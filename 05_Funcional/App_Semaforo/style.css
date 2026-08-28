@@ -1,0 +1,875 @@
+/* ===== IOT-VIAL · Centro de Control Semafórico V9.0 ===== */
+/* Design System: Cyber-Industrial Dark Glassmorphism, 3D LED Optics & Touch Ergonomics */
+
+:root {
+  --bg-main: #060911;
+  --bg-surface: #0B111E;
+  --bg-card: rgba(16, 24, 40, 0.75);
+  --bg-card-hover: rgba(22, 33, 56, 0.85);
+  --bg-glass: rgba(11, 17, 30, 0.8);
+  
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-glow: rgba(0, 240, 255, 0.3);
+  --border-active: #00F0FF;
+
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  /* N-75: era #64748B = 4.0:1 sobre el fondo, por debajo de AA (4.5:1).
+     Se sube al mismo gris del texto secundario: 7.4:1, AAA. */
+  --text-muted: #94A3B8;
+
+  /* Signal Colors & Blooms */
+  --red-lamp: #FF1E44;
+  /* N-75: rojo SOLO para texto. La lampara conserva el suyo -es un
+     componente grafico, umbral 3:1, y cumple con 4.9:1-, pero el rotulo
+     de 11 px pide 4.5:1 y se quedaba justo encima. Se midieron siete
+     rojos: ninguno creible de semaforo llega a AAA sobre fondo casi
+     negro, asi que se coge el mas alto que sigue leyendose como rojo. */
+  --red-text: #FF6B6B;
+  --red-glow: 0 0 25px rgba(255, 30, 68, 0.65), 0 0 50px rgba(255, 30, 68, 0.35);
+  --amber-lamp: #FFB300;
+  --amber-glow: 0 0 25px rgba(255, 179, 0, 0.65), 0 0 50px rgba(255, 179, 0, 0.35);
+  --green-lamp: #00E676;
+  --green-glow: 0 0 25px rgba(0, 230, 118, 0.65), 0 0 50px rgba(0, 230, 118, 0.35);
+  --cyan-neon: #00F0FF;
+  --cyan-glow: 0 0 20px rgba(0, 240, 255, 0.4);
+
+  /* Typography */
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Transitions & Radii */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 9999px;
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-main);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(0, 240, 255, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(255, 30, 68, 0.04) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.6) 0px, transparent 100%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 90px;
+  overflow-x: hidden;
+}
+
+/* ==========================================================================
+   Header & Top Status Bar
+   ========================================================================== */
+.status-bar {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  /* N-75: MEDIDO con el navegador a varios anchos. A 412 px -el de la maqueta con la
+     que se hicieron las capturas- no se notaba nada; a 360 px, que es un Android
+     comun, la pagina se salia 41 px y a 320 px, 81. El culpable no era la botonera:
+     era esta cabecera, que no encogia y ensanchaba el documento entero, asi que se
+     cortaba TODO lo de la derecha -incluidos DAR PASO y ROJO TOTAL-.
+     Un sintoma en un sitio y la causa en otro: por eso se midio en vez de mirar. */
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  /* Sin esto un hijo flex no baja de su ancho de contenido -min-width:auto- y empuja
+     el documento en vez de encogerse. Es la causa raiz del corte. */
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: all 0.3s var(--ease-smooth);
+}
+
+.status-dot.connected {
+  background: var(--green-lamp);
+  box-shadow: 0 0 12px var(--green-lamp);
+  animation: pulse-dot 2.5s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.7; }
+}
+
+.node-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.site-selector-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 2px 6px;
+  margin-left: -6px;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s;
+}
+
+.site-selector-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.site-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cyan-neon);
+  letter-spacing: 0.3px;
+  /* N-75: sin esto un nombre largo parte la cabecera en dos lineas y el rotulo del
+     nodo se monta con el RSSI. El ellipsis del navegador MIDE el ancho real, que es
+     lo que un recuento de caracteres no puede hacer: los nombres llevan emoji y
+     separadores anchos, y ademas llegan de localStorage de versiones anteriores,
+     donde ningun limite puesto hoy alcanza. */
+  max-width: 46vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Misma razon para el nodo: es el otro texto de la cabecera que puede crecer. */
+#node-name {
+  max-width: 42vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.site-arrow {
+  font-size: 9px;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.node-role-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.node-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.rssi-text {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--cyan-neon);
+  opacity: 0.9;
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+/* En pantallas estrechas las dos pastillas se quedan en icono. Se pierde el rotulo,
+   no el mando: el boton sigue estando y sigue siendo del mismo tamano para el dedo,
+   que es lo que importa a pie de calzada. */
+@media (max-width: 400px) {
+  #bt-btn-text, #role-label { display: none; }
+  .role-pill-btn, .btn-top { padding: 6px 9px; }
+}
+
+/* Role Toggle Pill Button */
+.role-pill-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.role-pill-btn.admin {
+  background: rgba(0, 240, 255, 0.12);
+  border-color: var(--cyan-neon);
+  color: var(--cyan-neon);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+}
+
+.btn-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  background: rgba(0, 240, 255, 0.08);
+  color: var(--cyan-neon);
+  cursor: pointer;
+  transition: all 0.25s var(--ease-smooth);
+}
+
+.btn-top:hover {
+  background: rgba(0, 240, 255, 0.18);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+}
+
+/* ==========================================================================
+   Layout Containers & Cards
+   ========================================================================== */
+.app-container {
+  max-width: 520px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tab-content {
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+  animation: fadeIn 0.3s var(--ease-smooth);
+}
+
+.tab-content.active {
+  display: flex;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+}
+
+/* ==========================================================================
+   Dual 3D Traffic Light Widget
+   ========================================================================== */
+.card-traffic {
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(16, 24, 40, 0.85) 0%, rgba(10, 15, 28, 0.95) 100%);
+}
+
+.traffic-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.card-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  letter-spacing: 0.5px;
+}
+
+.badge-auto {
+  background: rgba(0, 230, 118, 0.12);
+  border: 1px solid rgba(0, 230, 118, 0.4);
+  color: var(--green-lamp);
+}
+
+/* El rotulo de "no se sabe". Va en gris a proposito y no en rojo: en este tablero el
+   rojo significa ESPERA -una fase real del cruce- y pintar de rojo la ausencia de
+   datos seria decir que el equipo esta en rojo, que es justo lo que no consta.
+   Medido sobre el fondo de tarjeta compuesto (#0E1422): 7,17:1, por encima de AA. */
+.badge-sin-enlace {
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: var(--text-secondary);
+}
+
+.dual-semaforos {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.semaforo-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.semaforo-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.6px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* 3D Realistic Housing */
+.semaforo-housing {
+  background: linear-gradient(165deg, #1C2331 0%, #0D131F 100%);
+  border: 2px solid #2A364F;
+  box-shadow: 
+    inset 0 2px 4px rgba(255, 255, 255, 0.1),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.6),
+    0 10px 25px rgba(0, 0, 0, 0.5);
+  border-radius: 28px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 68px;
+}
+
+.lamp {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #1e2638 0%, #0d121c 80%);
+  border: 2px solid #080c14;
+  box-shadow: inset 0 3px 6px rgba(0,0,0,0.8), 0 1px 2px rgba(255,255,255,0.05);
+  position: relative;
+  transition: all 0.25s var(--ease-smooth);
+}
+
+.lamp::after {
+  content: '';
+  position: absolute;
+  top: 15%;
+  left: 20%;
+  width: 35%;
+  height: 25%;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 100%);
+}
+
+.lamp.red.active {
+  background: radial-gradient(circle at 40% 40%, #FFF 0%, #FF5252 25%, #D50000 70%, #8B0000 100%);
+  box-shadow: var(--red-glow), inset 0 0 8px rgba(255,255,255,0.8);
+}
+
+.lamp.amber.active {
+  background: radial-gradient(circle at 40% 40%, #FFF 0%, #FFD740 25%, #FFAB00 70%, #B27B00 100%);
+  box-shadow: var(--amber-glow), inset 0 0 8px rgba(255,255,255,0.8);
+}
+
+.lamp.green.active {
+  background: radial-gradient(circle at 40% 40%, #FFF 0%, #69F0AE 25%, #00C853 70%, #00701A 100%);
+  box-shadow: var(--green-glow), inset 0 0 8px rgba(255,255,255,0.8);
+}
+
+.semaforo-state-text {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  margin-top: 8px;
+  text-align: center;
+  font-family: var(--font-mono);
+}
+
+/* Central Countdown Ring */
+.countdown-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring-container {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring-svg {
+  transform: rotate(-90deg);
+}
+
+.ring-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.05);
+  stroke-width: 6;
+}
+
+.ring-fill {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 251.32;
+  stroke-dashoffset: 60;
+  transition: stroke-dashoffset 0.8s var(--ease-smooth), stroke 0.3s;
+}
+
+.ring-fill.green { stroke: var(--green-lamp); filter: drop-shadow(0 0 8px rgba(0,230,118,0.5)); }
+.ring-fill.amber { stroke: var(--amber-lamp); filter: drop-shadow(0 0 8px rgba(255,179,0,0.5)); }
+.ring-fill.red   { stroke: var(--red-lamp); filter: drop-shadow(0 0 8px rgba(255,30,68,0.5)); }
+
+.ring-text {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring-num {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.ring-num.green { color: var(--green-lamp); }
+.ring-num.amber { color: var(--amber-lamp); }
+.ring-num.red   { color: var(--red-text); }
+
+.ring-unit {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.phase-desc {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  margin-top: 8px;
+  text-align: center;
+  max-width: 130px;
+}
+
+/* ==========================================================================
+   Metrics Grid
+   ========================================================================== */
+.grid-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.metric-card {
+  padding: 12px 14px;
+}
+
+.metric-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.metric-icon { font-size: 14px; }
+.metric-label { font-size: 10px; font-weight: 700; color: var(--text-muted); }
+.metric-value { font-family: var(--font-mono); font-size: 18px; font-weight: 800; margin-bottom: 2px; }
+.metric-value.cyan { color: var(--cyan-neon); }
+.metric-value.green { color: var(--green-lamp); }
+.metric-value.red { color: var(--red-text); }
+.metric-sub { font-size: 10px; color: var(--text-secondary); margin-bottom: 6px; }
+.progress-bar-wrap { width: 100%; height: 4px; background: rgba(255, 255, 255, 0.06); border-radius: var(--radius-pill); overflow: hidden; }
+.progress-bar { height: 100%; border-radius: var(--radius-pill); transition: width 0.5s var(--ease-smooth); }
+.progress-bar.cyan { background: var(--cyan-neon); }
+.progress-bar.green { background: var(--green-lamp); }
+.progress-bar.red { background: var(--red-lamp); }
+
+/* ==========================================================================
+   Botonera Táctica de Campo (4 Botones Grandes estilo Mando de Relés)
+   ========================================================================== */
+.operario-pad-card {
+  padding: 16px;
+  background: linear-gradient(165deg, rgba(20, 29, 48, 0.9) 0%, rgba(11, 17, 30, 0.95) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  box-shadow: 0 0 25px rgba(0, 240, 255, 0.1);
+}
+
+.pad-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.pad-header h3 {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--cyan-neon);
+}
+
+.pad-sub {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.operario-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.pad-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 12px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-smooth);
+  text-align: left;
+}
+
+.pad-btn:active {
+  transform: scale(0.96);
+}
+
+.pad-icon {
+  font-size: 24px;
+}
+
+.pad-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pad-text strong {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: #FFF;
+}
+
+.pad-text small {
+  font-size: 10px;
+  opacity: 0.8;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* 4 Botones Temáticos */
+.btn-auto {
+  background: linear-gradient(135deg, rgba(0, 230, 118, 0.18) 0%, rgba(0, 180, 90, 0.35) 100%);
+  border-color: rgba(0, 230, 118, 0.6);
+  box-shadow: 0 4px 15px rgba(0, 230, 118, 0.2);
+}
+
+.btn-step {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.18) 0%, rgba(0, 140, 255, 0.35) 100%);
+  border-color: rgba(0, 240, 255, 0.6);
+  box-shadow: 0 4px 15px rgba(0, 240, 255, 0.2);
+}
+
+.btn-amber {
+  background: linear-gradient(135deg, rgba(255, 179, 0, 0.18) 0%, rgba(200, 140, 0, 0.35) 100%);
+  border-color: rgba(255, 179, 0, 0.6);
+  box-shadow: 0 4px 15px rgba(255, 179, 0, 0.2);
+}
+
+.btn-emergency {
+  background: linear-gradient(135deg, rgba(255, 30, 68, 0.25) 0%, rgba(185, 0, 32, 0.45) 100%);
+  border-color: rgba(255, 30, 68, 0.8);
+  box-shadow: 0 4px 18px rgba(255, 30, 68, 0.3);
+}
+
+/* ==========================================================================
+   Simulador de Campo Rápido
+   ========================================================================== */
+
+/* ==========================================================================
+   Admin Banners & Forms
+   ========================================================================== */
+.card-admin-banner {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.12) 0%, rgba(0, 100, 255, 0.2) 100%);
+  border-color: rgba(0, 240, 255, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.admin-shield { font-size: 24px; }
+.card-admin-banner strong { font-size: 13px; color: var(--cyan-neon); }
+.card-admin-banner p { font-size: 11px; color: var(--text-secondary); margin: 0; }
+
+.form-row { display: flex; gap: 10px; }
+.form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.form-group.half { flex: 1; }
+.form-group label { font-size: 11px; font-weight: 700; color: var(--text-secondary); }
+.form-input {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+}
+.form-input:focus { border-color: var(--cyan-neon); }
+.hint { font-size: 10px; color: var(--text-muted); }
+
+.btn-save-site, .btn-primary-bt {
+  background: linear-gradient(135deg, #00F0FF 0%, #0077FF 100%);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 12px;
+  color: #000;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s;
+}
+
+.btn-secondary-bt, .btn-share, .btn-export {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.feed-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+
+/* ==========================================================================
+   Courier RTC Box
+   ========================================================================== */
+.courier-box {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.courier-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.courier-label { color: var(--text-muted); font-weight: 600; }
+.courier-val { font-family: var(--font-mono); color: var(--text-primary); }
+.courier-timer { font-family: var(--font-mono); font-size: 16px; font-weight: 800; color: var(--cyan-neon); }
+
+.courier-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.btn-courier-step {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.btn-courier-step:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-courier-step:not(:disabled):hover { background: rgba(0, 240, 255, 0.12); border-color: var(--cyan-neon); }
+.step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--cyan-neon); color: #000; font-weight: 800; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.step-info { display: flex; flex-direction: column; gap: 2px; }
+.step-info strong { font-size: 11px; }
+.step-info small { font-size: 9px; color: var(--text-muted); }
+
+/* ==========================================================================
+   Modals & Bank-Grade PIN Keypad
+   ========================================================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 16px;
+  animation: modalFadeIn 0.2s var(--ease-smooth);
+}
+
+.modal-overlay.active { display: flex; }
+@keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-card {
+  background: linear-gradient(165deg, #161F30 0%, #0D131F 100%);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.modal-header h4 { font-size: 14px; font-weight: 800; color: var(--text-primary); }
+.modal-close { background: rgba(255, 255, 255, 0.06); border: none; color: var(--text-muted); width: 26px; height: 26px; border-radius: 50%; cursor: pointer; font-size: 12px; }
+.modal-desc { font-size: 11px; color: var(--text-secondary); margin-bottom: 14px; }
+
+.pin-display { display: flex; justify-content: center; gap: 14px; margin: 14px 0 18px; }
+.pin-dot { width: 14px; height: 14px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); border: 1.5px solid var(--border-subtle); transition: all 0.2s var(--ease-spring); }
+.pin-dot.filled { background: var(--cyan-neon); border-color: var(--cyan-neon); box-shadow: 0 0 12px var(--cyan-neon); transform: scale(1.2); }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pin-btn { background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px; font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--text-primary); cursor: pointer; }
+.pin-btn:active { background: rgba(0, 240, 255, 0.2); border-color: var(--cyan-neon); }
+.pin-btn.pin-clear { color: var(--amber-lamp); }
+.pin-btn.pin-ok { color: var(--green-lamp); }
+
+.bt-device-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.bt-device-item { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 10px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.2s; }
+.bt-device-item:hover { background: rgba(0, 240, 255, 0.1); border-color: var(--cyan-neon); }
+.bt-dev-icon { font-size: 20px; }
+.bt-dev-info { display: flex; flex-direction: column; flex: 1; text-align: left; }
+.bt-dev-info strong { font-size: 12px; }
+.bt-dev-info small { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); }
+.bt-dev-badge { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: var(--radius-pill); background: rgba(0, 240, 255, 0.2); color: var(--cyan-neon); }
+.bt-dev-badge.esclavo { background: rgba(255, 179, 0, 0.2); color: var(--amber-lamp); }
+
+/* ==========================================================================
+   Floating Bottom Glass Navigation
+   ========================================================================== */
+.bottom-nav {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: 440px;
+  background: rgba(11, 17, 30, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-pill);
+  padding: 6px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.nav-item {
+  background: transparent;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s var(--ease-smooth);
+}
+
+.nav-icon { font-size: 16px; }
+.nav-label { font-size: 10px; font-weight: 700; }
+.nav-item.active { background: rgba(0, 240, 255, 0.15); color: var(--cyan-neon); box-shadow: 0 0 12px rgba(0, 240, 255, 0.2); }
+
+.toast {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: rgba(16, 24, 40, 0.95);
+  border: 1px solid var(--border-glow);
+  color: var(--text-primary);
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s var(--ease-spring);
+  z-index: 1000;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }

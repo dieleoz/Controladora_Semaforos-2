@@ -1,0 +1,32 @@
+ACTA DE VERIFICACION - Controladora de Semaforos
+==============================================================================
+Fecha        : 2026-08-03
+HEAD         : 39fdbf5   rama: feat/n15-reloj-pantalla-hora
+Arbol        : CON CAMBIOS SIN COMMITEAR
+Modo         : completo
+PlatformIO   : PlatformIO Core, version 6.1.19
+GCC de host  : gcc.EXE (MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders, r3) 16.1.0
+
+RESULTADOS
+------------------------------------------------------------------------------
+  PASS      guarda de rutas            29 rutas parseadas, todas existen
+  PASS      compila maestro            Flash: [========  ]  84.7% (used 55496 bytes from 65536 bytes)
+  PASS      compila esclavo            Flash: [======    ]  64.2% (used 42100 bytes from 65536 bytes)
+  PASS      compila repetidor          Flash: [==        ]  20.6% (used 270497 bytes from 1310720 bytes)
+  PASS      simulador funcional        VEREDICTO FINAL: 20/20 PASS (SISTEMA V8.0 DEFINITIVA CERTIFICADO)
+  PASS      simulador de repetidor     RESULTADO: 10/10 PASS
+  FALLA     banco por packs            RESUMEN: 142/154 comprobaciones  |  packs: 14 PASS, 6 FALLA, 0 ABORTADO
+  PASS      validador Maestro          VEREDICTO FINAL: 60/67 PASS  --  7 FALLO(S)
+  FALLA     validador Esclavo          VEREDICTO: 30/31 comprobaciones PASS
+  PASS      validador de costura       VEREDICTO: 37/41 comprobaciones ejecutadas y concluidas
+  PASS      arnes de pantalla          MAESTRO  115/115 comprobaciones OK | ESCLAVO  126/126 comprobaciones OK | TOTAL    241/241 comprobaciones OK
+  PASS      arnes del ciclo            RESULTADO: 29/29 comprobaciones OK
+------------------------------------------------------------------------------
+  RESUMEN: 10 PASS | 2 FALLA | 0 ABORTADO
+
+ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
+firmware. Esta acta se verifica volviendo a 39fdbf5 y re-corriendo
+python 01_Firmware/compuerta.py.
+
+AVISO: el arbol tenia cambios sin commitear al medir. Estas
+cifras NO corresponden exactamente a 39fdbf5.

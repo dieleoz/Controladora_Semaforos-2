@@ -1,0 +1,45 @@
+name: Compilar APK Android IOT-VIAL
+
+on:
+  push:
+    branches: [ feat/n15-reloj-pantalla-hora, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Configurar Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Instalar dependencias de la App
+        working-directory: 05_Funcional/App_Semaforo
+        run: |
+          npm install
+          npx cap sync android
+
+      - name: Dar permisos de ejecucion a gradlew
+        working-directory: 05_Funcional/App_Semaforo/android
+        run: chmod +x gradlew
+
+      - name: Compilar APK Debug
+        working-directory: 05_Funcional/App_Semaforo/android
+        run: ./gradlew assembleDebug
+
+      - name: Subir artefacto APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: IOT-VIAL-Semaforos-Debug-APK
+          path: 05_Funcional/App_Semaforo/android/app/build/outputs/apk/debug/app-debug.apk

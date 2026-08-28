@@ -1,0 +1,38 @@
+/* ===== css/variables.css ===== */
+/* Tokens de Diseño, Paleta de Color Oscuro / Alto Contraste y Tipografía */
+
+:root {
+  --bg: #07090F;
+  --bg2: #0D1117;
+  --bg3: #161B24;
+  --bg4: #1C2333;
+  --border: #1E293B;
+  --border-focus: #334155;
+  
+  --text-main: #F1F5F9;
+  --text-sub: #94A3B8;
+  --text-dim: #64748B;
+
+  --red: #FF1744;
+  --red-glow: rgba(255, 23, 68, 0.4);
+  --amber: #FFB300;
+  --amber-glow: rgba(255, 179, 0, 0.4);
+  --green: #00E676;
+  --green-glow: rgba(0, 230, 118, 0.4);
+  --cyan: #00CFFF;
+  --cyan-glow: rgba(0, 207, 255, 0.3);
+
+  --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}

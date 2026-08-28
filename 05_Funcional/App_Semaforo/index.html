@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>IOT-VIAL · Control Semafórico V9.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#00f0ff">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+
+  <!-- Top Status Bar -->
+  <header class="status-bar">
+    <div class="status-left">
+      <!-- Arranca APAGADO: el verde lo enciende marcarConEnlace() al llegar el primer
+           $STATUS, no el hecho de abrir la app. -->
+      <div class="status-dot" id="bt-status-dot"></div>
+      <div class="node-info">
+        <div class="site-selector-btn" id="btn-select-site" title="Cambiar Cruce Vial">
+          <span class="site-name" id="current-site-name">📍 KM 12 · EL SISGA</span>
+          <span class="site-arrow">▼</span>
+        </div>
+        <div class="node-role-row">
+          <span class="node-title" id="node-name">SIN EQUIPO</span>
+          <span class="rssi-text" id="rssi-text">(sin enlace)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-right">
+      <!-- Role Toggle: Operario vs Técnico -->
+      <button class="role-pill-btn" id="btn-toggle-role" title="Cambiar a Modo Técnico / Administrador">
+        <span id="role-icon">👷</span>
+        <span id="role-label">Operario</span>
+      </button>
+
+      <button class="btn-top btn-device" id="btnDevice" title="Conectar Bluetooth">
+        <span class="bt-top-icon">📡</span>
+        <span id="bt-btn-text">Dispositivo</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main App Content -->
+  <main class="app-container">
+
+    <!-- ===================================================================
+         TAB 1: OPERACIÓN PRINCIPAL (LA VISTA QUE USA EL OPERARIO EN CAMPO)
+         =================================================================== -->
+    <section class="tab-content active" id="tab-estado">
+      
+      <!-- Dual Traffic Light Visual Widget -->
+      <div class="card card-traffic">
+        <div class="traffic-header">
+          <span class="card-tag">ESTADO DEL CRUCE EN TIEMPO REAL</span>
+          <span class="badge badge-sin-enlace" id="badge-modo">SIN ENLACE</span>
+        </div>
+
+        <div class="dual-semaforos">
+          <!-- Semáforo 1 (Maestro) -->
+          <div class="semaforo-col">
+            <div class="semaforo-label">POSTE 1 · MAESTRO</div>
+            <div class="semaforo-housing">
+              <div class="lamp red" id="s1-red"></div>
+              <div class="lamp amber" id="s1-amber"></div>
+              <div class="lamp green" id="s1-green"></div>
+            </div>
+            <div class="semaforo-state-text" id="s1-text">SIN DATOS</div>
+          </div>
+
+          <!-- Countdown Center Ring -->
+          <div class="countdown-center">
+            <div class="ring-container">
+              <svg class="ring-svg" width="96" height="96" viewBox="0 0 96 96">
+                <circle class="ring-bg" cx="48" cy="48" r="40"/>
+                <circle class="ring-fill green ring-anim" id="ring-progress" cx="48" cy="48" r="40"/>
+              </svg>
+              <div class="ring-text">
+                <div class="ring-num green" id="cd-num">--</div>
+                <div class="ring-unit">seg</div>
+              </div>
+            </div>
+            <div class="phase-desc" id="phase-desc">SIN ENLACE - sin datos del equipo</div>
+          </div>
+
+          <!-- Semáforo 2 (Esclavo) -->
+          <div class="semaforo-col">
+            <div class="semaforo-label">POSTE 2 · ESCLAVO</div>
+            <div class="semaforo-housing">
+              <div class="lamp red" id="s2-red"></div>
+              <div class="lamp amber" id="s2-amber"></div>
+              <div class="lamp green" id="s2-green"></div>
+            </div>
+            <div class="semaforo-state-text" id="s2-text">SIN DATOS</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Bar -->
+      <div class="grid-metrics">
+        <div class="card metric-card">
+          <div class="metric-head">
+            <span class="metric-icon">📡</span>
+            <span class="metric-label">ENLACE RADIO</span>
+          </div>
+          <div class="metric-value cyan" id="rf-quality">--</div>
+          <div class="metric-sub" id="rf-rtt">Sin datos del equipo</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar cyan" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div class="card metric-card">
+          <div class="metric-head">
+            <span class="metric-icon">🔋</span>
+            <span class="metric-label">BATERÍA 12V</span>
+          </div>
+          <div class="metric-value green" id="bat-voltage">-- V</div>
+          <div class="metric-sub" id="bat-status">Sin datos del equipo</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar green" id="bat-prog" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===============================================================
+           BOTONERA TÁCTIL DE CAMPO (4 BOTONES TIPO MANDO DE RELÉS)
+           =============================================================== -->
+      <div class="card operario-pad-card">
+        <div class="pad-header">
+          <h3>🎮 BOTONERA DE CAMPO</h3>
+          <span class="pad-sub">Control a 1 toque (Directo)</span>
+        </div>
+
+        <div class="operario-grid">
+          <!-- 1. MODO AUTOMÁTICO -->
+          <button class="pad-btn btn-auto" id="btn-op-auto">
+            <span class="pad-icon">🟢</span>
+            <div class="pad-text">
+              <strong>AUTOMÁTICO</strong>
+              <small>Ciclo autónomo</small>
+            </div>
+          </button>
+
+          <!-- 2. DAR PASO / TURNO -->
+          <button class="pad-btn btn-step" id="btn-op-step">
+            <span class="pad-icon">✋</span>
+            <div class="pad-text">
+              <strong>DAR PASO</strong>
+              <small>Cambiar sentido</small>
+            </div>
+          </button>
+
+          <!-- 3. MODO ÁMBAR -->
+          <button class="pad-btn btn-amber" id="btn-op-amber">
+            <span class="pad-icon">🟡</span>
+            <div class="pad-text">
+              <strong>ÁMBAR</strong>
+              <small>Precaución vial</small>
+            </div>
+          </button>
+
+          <!-- 4. ROJO TOTAL DE EMERGENCIA -->
+          <button class="pad-btn btn-emergency" id="btn-op-emergency">
+            <span class="pad-icon">🛑</span>
+            <div class="pad-text">
+              <strong>ROJO TOTAL</strong>
+              <small>Detener tráfico</small>
+            </div>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===================================================================
+         TAB 2: REGISTRO DE EVENTOS (VISIBLE PARA TODOS)
+         =================================================================== -->
+    <section class="tab-content" id="tab-eventos">
+      <div class="card">
+        <div class="card-header-flex">
+          <h3>🔔 Registro de Eventos en Campo</h3>
+          <span class="badge badge-auto">En Vivo</span>
+        </div>
+        <p class="card-sub">Historial de cambios de fase, órdenes de mando y alarmas del equipo.</p>
+
+        <div class="event-feed" id="event-feed">
+          <!-- Renderizado dinámico -->
+        </div>
+
+        <div class="feed-actions">
+          <button class="btn-share" id="btn-share-whatsapp">
+            <span>📲 Reporte WhatsApp</span>
+          </button>
+          <button class="btn-export" id="btn-export-csv">
+            <span>📥 Exportar CSV</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         TAB 3: AJUSTES DE TIEMPOS (SOLO MODO TÉCNICO / ADMINISTRADOR)
+         =================================================================== -->
+    <section class="tab-content admin-only" id="tab-tiempos">
+      <div class="card card-admin-banner">
+        <span class="admin-shield">🛡️</span>
+        <div>
+          <strong>MODO TÉCNICO ACTIVO</strong>
+          <p>Ajuste de tiempos de ciclo y seguridad vial.</p>
+        </div>
+      </div>
+
+      <div class="card card-tiempos" style="border-left: 4px solid var(--amber-lamp);">
+        <div class="card-header-flex">
+          <h3>⏱️ Tiempos Operativos de Ciclo</h3>
+          <span class="pin-badge">Firmware V9.0</span>
+        </div>
+        <p class="card-sub">Configure los minutos de paso y segundos de despeje en la memoria del semáforo:</p>
+
+        <form id="form-tiempos" class="tiempos-form">
+          <div class="form-row">
+            <div class="form-group half">
+              <label for="num-tiempo-verde">🟢 Verde Sentido (min):</label>
+              <input type="number" id="num-tiempo-verde" class="form-input" min="1" max="15" value="2" required>
+              <small class="hint">Rango: 1 a 15 min</small>
+            </div>
+            <div class="form-group half">
+              <label for="num-tiempo-rojo">🔴 Rojo Sentido (min):</label>
+              <input type="number" id="num-tiempo-rojo" class="form-input" min="1" max="15" value="2" required>
+              <small class="hint">Rango: 1 a 15 min</small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="num-tiempo-despeje">🟡 Despeje Todo-Rojo (seg):</label>
+            <input type="number" id="num-tiempo-despeje" class="form-input" min="10" max="90" value="15" required>
+            <small class="hint">Tiempo de cruce de calzada (10 a 90 seg)</small>
+          </div>
+
+          <button type="submit" class="btn-save-site" id="btn-aplicar-tiempos">
+            💾 Aplicar Tiempos al Semáforo
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         TAB 4: DIAGNÓSTICO Y COURIER RTC (SOLO MODO TÉCNICO)
+         =================================================================== -->
+    <section class="tab-content admin-only" id="tab-diag">
+      <!-- N-75: mandos que el firmware atiende y la interfaz de 2 roles habia dejado
+           sin boton. Viven en Modo Tecnico porque no son maniobra de campo. -->
+      <div class="card">
+        <div class="card-header-flex">
+          <h3>Mandos directos al equipo</h3>
+          <span class="badge">TECNICO</span>
+        </div>
+        <p class="card-sub">Ordenes que el firmware atiende por Bluetooth. Piden PIN antes de salir.</p>
+        <div class="ctrl-grid">
+          <button class="ctrl-btn btn-mode-manual" data-cmd="SET_MODO:MANUAL">
+            <strong>Modo Manual</strong>
+            <small>El ciclo deja de correr solo</small>
+          </button>
+          <button class="ctrl-btn btn-request" data-cmd="SOLICITAR_PASO">
+            <strong>Solicitar Paso</strong>
+            <small>Demanda de cruce (N-58)</small>
+          </button>
+        </div>
+      </div>
+
+      <!-- Asistente Courier RTC -->
+      <div class="card card-courier">
+        <div class="card-header-flex">
+          <h3>🔄 Asistente Courier RTC (Sin Radio)</h3>
+          <span class="badge badge-courier">SFTY-18</span>
+        </div>
+        <p class="card-sub">Traslada la hora satelital del Maestro al Esclavo con compensación automática de viaje:</p>
+
+        <div class="courier-box">
+          <div class="courier-status-row">
+            <span class="courier-label">Captura:</span>
+            <span class="courier-val" id="courier-snapshot-text">Ninguna captura previa</span>
+          </div>
+          <div class="courier-status-row">
+            <span class="courier-label">Traslado:</span>
+            <span class="courier-timer" id="courier-timer-digits">⏱️ 00:00</span>
+          </div>
+
+          <div class="courier-actions-grid">
+            <button class="btn-courier-step step-capture" id="btn-courier-capture">
+              <span class="step-num">1</span>
+              <div class="step-info">
+                <strong>📸 Capturar Maestro</strong>
+                <small>Memorizar hora en P1</small>
+              </div>
+            </button>
+
+            <button class="btn-courier-step step-inject" id="btn-courier-inject" disabled>
+              <span class="step-num">2</span>
+              <div class="step-info">
+                <strong>🚀 Inyectar en Esclavo</strong>
+                <small>Compensar y aplicar en P2</small>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sincronización Directa de Reloj -->
+      <div class="card">
+        <h3>⏱️ Sincronizar Reloj DS3231</h3>
+        <p class="card-sub">Ajusta el reloj de alta precisión con la hora de tu teléfono celular:</p>
+        <button class="btn-save-site" id="btn-sync-rtc">
+          ⏱️ Sincronizar Hora Actual (<span id="rtc-sync-digits">--:--:--</span>)
+        </button>
+      </div>
+
+      <!-- Test de Focos / Banco -->
+      <div class="card">
+        <h3>💡 Prueba de Focos y MOSFETs</h3>
+        <p class="card-sub">Secuencia de 6 segundos (2s Rojo ➔ 2s Amarillo ➔ 2s Verde) para validar potencia.</p>
+        <button class="btn-secondary-bt" id="btn-start-test-leds" style="width: 100%;">
+          ⚡ Iniciar Test de Luces (6s)
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===================================================================
+       FLOATING GLASS BOTTOM NAVIGATION
+       =================================================================== -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-tab="tab-estado">
+      <span class="nav-icon">🚦</span>
+      <span class="nav-label">Tráfico</span>
+    </button>
+    <button class="nav-item" data-tab="tab-eventos">
+      <span class="nav-icon">🔔</span>
+      <span class="nav-label">Eventos</span>
+    </button>
+    
+    <!-- Pestañas que se activan solo en Modo Técnico -->
+    <button class="nav-item admin-tab" data-tab="tab-tiempos" id="tab-btn-tiempos" style="display: none;">
+      <span class="nav-icon">⏱️</span>
+      <span class="nav-label">Tiempos</span>
+    </button>
+    <button class="nav-item admin-tab" data-tab="tab-diag" id="tab-btn-diag" style="display: none;">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">Técnico</span>
+    </button>
+  </nav>
+
+  <!-- ===================================================================
+       MODALS: PIN AUTHORIZATION & BLUETOOTH & CRUCES
+       =================================================================== -->
+  
+  <!-- PIN Modal Dialog -->
+  <div class="modal-overlay" id="pin-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4>🔒 Desbloqueo Modo Técnico</h4>
+        <button class="modal-close" id="modal-pin-close">✕</button>
+      </div>
+      <p class="modal-desc">Ingrese el PIN de administración de 4 dígitos para acceder a ajustes avanzados:</p>
+
+      <div class="pin-display">
+        <span class="pin-dot" id="pin-d1"></span>
+        <span class="pin-dot" id="pin-d2"></span>
+        <span class="pin-dot" id="pin-d3"></span>
+        <span class="pin-dot" id="pin-d4"></span>
+      </div>
+
+      <div class="pin-pad">
+        <button class="pin-btn" data-key="1">1</button>
+        <button class="pin-btn" data-key="2">2</button>
+        <button class="pin-btn" data-key="3">3</button>
+        <button class="pin-btn" data-key="4">4</button>
+        <button class="pin-btn" data-key="5">5</button>
+        <button class="pin-btn" data-key="6">6</button>
+        <button class="pin-btn" data-key="7">7</button>
+        <button class="pin-btn" data-key="8">8</button>
+        <button class="pin-btn" data-key="9">9</button>
+        <button class="pin-btn pin-clear" id="btn-pin-clear">⌫</button>
+        <button class="pin-btn" data-key="0">0</button>
+        <button class="pin-btn pin-ok" id="btn-pin-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bluetooth Devices Modal -->
+  <div class="modal-overlay" id="bt-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4>📡 Conectar Semáforo</h4>
+        <button class="modal-close" id="modal-bt-close">✕</button>
+      </div>
+      <p class="modal-desc">Seleccione el módulo Bluetooth del poste al que desea enlazar:</p>
+
+      <div class="bt-pin-select">
+        <span class="bt-pin-label">PIN de autorizacion del equipo:</span>
+        <label class="bt-pin-opt"><input type="radio" name="bt_pin_opt" value="1234" checked> <strong>1234</strong> (el unico que acepta el firmware)</label>
+      </div>
+
+      <div class="bt-device-list" id="bt-device-list-container">
+        <div class="bt-device-item" data-name="Semáforo Maestro (P1)" data-node="MAESTRO" data-mac="98:D3:31:F8:42:0A">
+          <div class="bt-dev-icon">👑</div>
+          <div class="bt-dev-info">
+            <strong>Semáforo Maestro (P1)</strong>
+            <small>MAC: 98:D3:31:F8:42:0A</small>
+          </div>
+          <span class="bt-dev-badge">Maestro</span>
+        </div>
+
+        <div class="bt-device-item" data-name="Semáforo Esclavo (P2)" data-node="ESCLAVO" data-mac="00:21:13:01:23:45">
+          <div class="bt-dev-icon">📡</div>
+          <div class="bt-dev-info">
+            <strong>Semáforo Esclavo (P2)</strong>
+            <small>MAC: 00:21:13:01:23:45</small>
+          </div>
+          <span class="bt-dev-badge esclavo">Esclavo</span>
+        </div>
+      </div>
+
+      <div class="bt-modal-actions">
+        <button class="btn-primary-bt" id="btn-scan-bluetooth-live">
+          🔍 Buscar Módulos Bluetooth
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Site Manager Modal -->
+  <div class="modal-overlay" id="site-modal">
+    <div class="modal-card modal-large">
+      <div class="modal-header">
+        <h4>🛣️ Cruces Viales y Frentes de Obra</h4>
+        <button class="modal-close" id="modal-site-close">✕</button>
+      </div>
+
+      <div class="site-manager-bar">
+        <input type="text" id="site-search-input" class="site-search-input" placeholder="🔍 Filtrar cruce o frente...">
+        <button class="btn-add-site" id="btn-open-add-site">➕ Nuevo Cruce</button>
+      </div>
+
+      <div class="site-list" id="dynamic-site-list">
+        <!-- Renderizado dinámico -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast-msg">✓ Notificación del Sistema</div>
+
+  <!-- Modular Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/nmea_parser.js"></script>
+  <script src="js/site_manager.js"></script>
+  <script src="js/courier_rtc.js"></script>
+  <script src="js/bluetooth_driver.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

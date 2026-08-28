@@ -1,0 +1,270 @@
+# 📱 MANUAL TÉCNICO Y ESPECIFICACIÓN INTEGRAL DE LA APP MÓVIL Y BLUETOOTH (V9.0)
+
+**Sistema:** Controladora de Semáforos Móviles de 3 Estados (Maestro y Esclavo V9.0)  
+**Módulo de Diagnóstico:** Módulo Bluetooth Serial SPP / BLE (Estándar Probado en Proyecto Baliza)  
+**Software Móvil:** App Android (.apk) con Frontend Reactivo Dark-Theme (Estándar IOT-VIAL)  
+**Propósito:** Telemetría en tiempo real, caja negra de alarmas, test de banco, sincronización Courier RTC y control desde el suelo con PIN  
+**Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `MAPEO_TARJETA_KICAD.md`  
+**Fecha de Emisión:** 26 de Agosto de 2026
+
+---
+
+## 1. Arquitectura de la App — DECISIÓN CONGELADA
+
+> ### 🔒 **Bluetooth Clásico SPP. No BLE. No Web Bluetooth. Y no es negociable sin reabrir este apartado por escrito.**
+
+Esto se congela porque ya se fue por el camino equivocado una vez y hay que dejar constancia de por
+qué, o se repetirá.
+
+### Lo que se eligió
+
+```text
+ ┌─────────────────────────────────────────────────────────────────────────────┐
+ │                    ARQUITECTURA DE LA APP MÓVIL (V9.0)                      │
+ ├─────────────────────────────────────────────────────────────────────────────┤
+ │ • ENLACE:        Bluetooth CLASICO, perfil SPP.                             │
+ │                  UUID 00001101-0000-1000-8000-00805F9B34FB                  │
+ │ • MODULOS:       HC-05 / JDY-30.  NO HM-10, NO JDY-31, NO BLE.              │
+ │ • EMPAREJADO:    Lo hace ANDROID en Ajustes, con PIN 0000 o 1234.           │
+ │                  La app NO empareja: solo lista getBondedDevices().         │
+ │ • IMPLEMENTACION: Puente NATIVO Android en el proyecto Capacitor            │
+ │                  (BluetoothAdapter + createRfcommSocketToServiceRecord).    │
+ │                  NO navigator.bluetooth. NO navigator.serial.               │
+ │ • CONEXION:      UNA a la vez, explicita. SIN reconexion automatica.        │
+ │ • INTERFAZ:      HTML5 + CSS + JS en WebView (Dark Theme IOT-VIAL).         │
+ │ • ALMACENAMIENTO: LocalStorage / IndexedDB para logs y cruces.              │
+ │ • AUTONOMIA:     100% offline. Opera en montana sin internet ni 4G.         │
+ └─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Por qué SPP y no BLE — las tres razones, para que no se vuelva a preguntar
+
+1. **`navigator.bluetooth` (Web Bluetooth) solo habla BLE.** No es que falle con un HC-05: **la API
+   no existe para SPP**. La versión anterior de esta app usaba `navigator.bluetooth` y por eso *no
+   abría el Bluetooth y no se conectaba a ningún dispositivo*. No era un error de programación: era
+   la tecnología equivocada.
+2. **La app probada en campo de esta casa es la de Baliza, y usa SPP.** `BluetoothAdapter`,
+   `getBondedDevices()`, `createRfcommSocketToServiceRecord(00001101-…)`, con reintento por
+   `createInsecureRfcommSocketToServiceRecord`. Está funcionando en la calle. **Se copia ese bloque,
+   no se reinventa.**
+3. **El técnico ya sabe usarlo.** Empareja en Ajustes de Android con `0000` o `1234` —el PIN del
+   módulo, no el del semáforo— y la app le lista lo que ya está emparejado. Cambiar a BLE le cambia
+   un flujo que domina, sin darle nada a cambio.
+
+### Lo que queda PROHIBIDO, y por qué
+
+| Prohibido | Motivo |
+|---|---|
+| `navigator.bluetooth` / Web Bluetooth | No puede ver un HC-05. Es la causa del fallo anterior |
+| Módulos BLE (`HM-10`, `JDY-31`) | Obligarían a rehacer el puente nativo y cambiar el flujo del técnico |
+| Reconexión automática | El operario camina al Km 24, el teléfono se reengancha solo al Km 12 que sigue en rango, y la pantalla muestra un sistema vivo **que está a 12 km**. No hay forma de que lo note |
+| Dos conexiones simultáneas | Físicamente imposible —los postes de una pareja están a cientos de metros y el Bluetooth alcanza 10-15 m— y Baliza ya usa un único socket. **Una a la vez es una propiedad de seguridad, no una limitación** |
+
+### El flujo de campo, que es el de Baliza
+
+```text
+  1. Ajustes de Android > Bluetooth > emparejar > PIN 0000 o 1234
+  2. Abrir la app > "Buscar" > lista los emparejados (nombre + MAC)
+        SEM-7A3F-M   Maestro, Km 12
+        SEM-7A3F-E   Esclavo,  Km 12
+        SEM-C104-M   Maestro, Km 24
+  3. Tocar uno > socket RFCOMM sobre SPP > leer/escribir lineas
+```
+
+El nombre visible del módulo lo fija el firmware con `AT+NAME`, así que **la lista de Android ya dice
+quién es cada equipo antes de conectar**. El técnico lee; no adivina.
+
+### Lo que la app NO puede hacer, aunque el operario lo pida
+
+**Al Esclavo no se le manda nada que abra paso.** Puede leer telemetría, ajustar el reloj, forzar
+rojo —que es la dirección segura— y **solicitar paso**, que viaja por radio al Maestro como una
+demanda: el Maestro decide, aplica el todo-rojo y ordena. El detalle está en `OPTIMIZACIONES.md`
+§ SFTY-27.
+
+> **Consecuencia para el operario, que es lo que importa:** da igual en qué extremo esté. Los dos
+> postes se operan igual y en la pantalla **no aparecen las palabras «maestro» ni «esclavo»** —
+> aparece el sentido de la vía.
+
+---
+
+## 2. Diagrama de Conexión Físico y Desacoplo de Hardware (KiCad)
+
+En la tarjeta controladora del semáforo, el módulo Bluetooth se conecta al puerto **`USART1` (`PA9` TX y `PA10` RX)**:
+
+```text
+ ┌─────────────────────────────────────────────────────────────────────────────┐
+ │               CONEXIÓN DE TELEMETRÍA BLUETOOTH EN TARJETA MADRE             │
+ ├─────────────────────────────────────────────────────────────────────────────┤
+ │                                                                             │
+ │   MÓDULO BLUETOOTH (HC-05 / JDY-30)           TARJETA CONTROLADORA STM32    │
+ │   ┌─────────────────────────────┐          ┌────────────────────────────┐   │
+ │   │  [ VCC ] (3.6V - 6.0V)      ├──────────┤► Pin 5V (o 3.3V)           │   │
+ │   │  [ GND ] (Tierra)           ├──────────┤► Pin GND (Tierra común)    │   │
+ │   │  [ TXD ] (Transmisión)      ├──────────┤► Pin PA10 (USART1 RX)      │   │
+ │   │  [ RXD ] (Recepción)        ├──────────┤► Pin PA9  (USART1 TX)      │   │
+ │   └─────────────────────────────┘          └────────────────────────────┘   │
+ │                                                                             │
+ └─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### ⚙️ Desacoplo Eléctrico del Transceptor MAX3485 (U3) en Hardware:
+Dado que `U3` (`MAX3485`) está físicamente conectado a `PA9`/`PA10`/`PA8` en la PCB:
+* **Manejo en Firmware:** El pin `PA8` (`RS485_IN_DE_RE`) se configura en **`HIGH` permanente**:
+  $$\text{pinMode}(\text{PA8}, \text{OUTPUT});\quad \text{digitalWrite}(\text{PA8}, \text{HIGH});$$
+* **Efecto Físico:** Al poner $\text{DE}/\overline{\text{RE}} = 1$, la salida del receptor $\text{RO}$ de `U3` pasa a **Alta Impedancia ($\text{Hi-Z}$)**, liberando completamente el pin `PA10` y evitando cualquier conflicto de corriente con el `TXD` del módulo Bluetooth.
+
+---
+
+## 3. Especificación de Pantallas y Módulos de la App
+
+La App cuenta con **5 pantallas funcionales**, diseñadas con alto contraste para visibilidad bajo sol directo en carretera:
+
+```text
+ ┌─────────────────────────────────────────────────────────────────────────────┐
+ │ 🚦 STATUS BAR: [● Conectado (👑 MAESTRO P1)] · [RSSI: -62 dBm] · [18:25:00] │
+ ├─────────────────────────────────────────────────────────────────────────────┤
+ │   [ 🗺️ ESTADO ]   [ 🎮 CONTROL ]   [ 🔔 EVENTOS ]   [ 🔬 TEST ]   [ ⚙️ RTC ] │
+ └─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Pantalla 1: ESTADO (Monitoreo en Tiempo Real)
+* **Semáforos Duales con Glow Dinámico:** Representación gráfica en vivo de Maestro (Sentido 1) y Esclavo (Sentido 2).
+* **Anillo de Cuenta Regresiva SVG:** Círculo animado en tiempo real con indicador gigante en monospace del tiempo restante de verde/rojo (`T:<segundos>`).
+* **Métricas Clave:** Calidad de enlace de radio inter-semáforo (%), tiempo de respuesta RTT (ms) y nivel de batería (V).
+* **Botón de Pánico Rojo Total:** Forzado inmediato de All-Red ante emergencias viales.
+
+### Pantalla 2: CONTROL (Comandos Protegidos por PIN)
+* **Selector de Modos:** Automático, Manual, Ámbar de Seguridad y Parada de Emergencia.
+* **Control de Tráfico Manual:** Botón táctil para alternar el turno vehicular desde el suelo respetando el tiempo de despeje All-Red normativo.
+* **Seguridad Obligatoria:** Requiere validación del PIN de 4 dígitos (`1234`) antes de enviar comandos que alteren las luces.
+
+### Pantalla 3: EVENTOS (Caja Negra y Registro Histórico)
+* **Feed de Alarmas:** Registro cronológico de caídas de radio, transiciones de modo y fallas con timestamp del reloj RTC.
+* **Compartir por WhatsApp:** Genera automáticamente el mensaje formateado para interventoría con ubicación y nodo.
+* **Exportar a CSV:** Descarga el archivo de auditoría para archivo formal.
+
+### Pantalla 4: TEST Y DIAGNÓSTICO EN TALLER
+* **Test de Lámparas de 6 Segundos:** Secuencia de prueba de banco (2s Rojo ➔ 2s Amarillo ➔ 2s Verde) ejecutada a través de `semaforo_iniciarTestLeds()` bajo la barrera de seguridad de `semaforo.cpp` con semáforo fuera de servicio o Todo-Rojo controlado.
+
+### Pantalla 5: AJUSTES & ASISTENTE COURIER RTC
+* **Sincronización Directa de Hora:** Ajuste del reloj RTC del nodo conectado con la hora del teléfono móvil.
+* **Modo Asistente Courier RTC (Sincronización Puente sin Radio):**
+  1. *Paso 1:* Capturar hora y ciclo en el Poste Maestro.
+  2. *Paso 2:* Viajar hasta el Poste Esclavo (la App cronometra el tiempo de viaje).
+  3. *Paso 3:* Inyectar en el Esclavo la hora compensada ($\Delta t < 0.1\text{ s}$), permitiendo sincronizar el Modo Degradado sin cables ni radio.
+
+---
+
+## 4. Estructura de Tramas y Protocolo Serie ASCII (Estilo NMEA con Checksum XOR)
+
+Todas las tramas viajan a **9600 baudios (8N1)** y finalizan en `\r\n`.
+
+### 4.1 Cálculo del Checksum NMEA (*XX)
+El checksum se calcula aplicando la operación **XOR bit a bit** de todos los bytes contenidos entre el carácter `$` inicial y el asterisco `*` (ambos excluidos), formateado como dos caracteres hexadecimales en mayúsculas (`00` a `FF`).
+
+### 4.2 Telemetría Periódica ($STATUS) — Emitida cada 1 segundo
+$$\text{Formato: }\$STATUS,NODE:\langle N\rangle,MODO:\langle M\rangle,ESTADO:\langle E\rangle,T:\langle S\rangle,RF:\langle R\rangle\%,RTT:\langle T\rangle ms,BAT:\langle V\rangle,HORA:\langle H\rangle*\langle CRC\rangle\backslash r\backslash n$$
+
+**Ejemplo Maestro en Modo Automático:**
+```text
+$STATUS,NODE:MAESTRO,MODO:AUTO,ESTADO:V1_R2,T:24,RF:98%,RTT:82ms,BAT:12.6,HORA:18:25:00*4F\r\n
+```
+
+### 4.3 Trama de Alarma Inmediata ($ALARM) — Emitida ante incidentes
+```text
+$ALARM,NODE:MAESTRO,EVENTO:FALLO_RF_12S,CAUSA:TIMEOUT_LATIDO,ACCION:CAMBIO_A_AMBAR,HORA:17:54:58*3B\r\n
+```
+
+### 4.4 Comandos desde la App hacia la Controladora (Protegidos por PIN)
+```text
+ ┌─────────────────────────────────────────────────────────────────────────────┐
+ │ COMANDOS DE CONTROL CON VALIDACIÓN DE PIN (USART1 a 9600 bps)               │
+ ├─────────────────────────────────────────────────────────────────────────────┤
+ │ • CMD:PIN:1234:SET_MODO:AUTO\r\n            ➔ Pone el cruce en Automático.  │
+ │ • CMD:PIN:1234:SET_MODO:MANUAL\r\n          ➔ Pone el cruce en Modo Manual. │
+ │ • CMD:PIN:1234:SET_MODO:AMBAR\r\n           ➔ Pone el cruce en Ámbar Seguro.│
+ │ • CMD:PIN:1234:FORZAR_ROJO\r\n              ➔ ROJO TOTAL DE EMERGENCIA.     │
+ │ • CMD:PIN:1234:MANUAL:CAMBIAR_TURNO\r\n     ➔ Concede turno opuesto.        │
+ │ • CMD:PIN:1234:TEST_LEDS\r\n                ➔ Inicia test de lámparas de 6s.│
+ │ • CMD:PIN:1234:SET_RTC:YYYY-MM-DD,HH:MM:SS\r\n ➔ Ajusta reloj RTC.          │
+ │ • CMD:PIN:1234:SOLICITAR_PASO\r\n     ➜ Solo ESCLAVO: pide al Maestro. │
+ │ • CMD:FORZAR_ROJO\r\n                    ➜ SIN PIN. Ver nota abajo.   │
+ └─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 🛑 El ROJO DE EMERGENCIA no pide PIN, y es deliberado
+
+`mando.cpp` lo dejó escrito hace meses para el mando de relés: **«asimetría deliberada: lo seguro,
+fácil; lo peligroso, difícil»**. Detener el tráfico es la acción **segura** —el equipo cae a
+todo-rojo—, así que ponerle una clave delante solo retrasa a quien está viendo el incidente.
+
+Se aceptan **las dos formas**: `CMD:FORZAR_ROJO` y `CMD:PIN:1234:FORZAR_ROJO` hacen lo mismo. El PIN
+sigue guardando lo que **abre** paso o mueve luces.
+
+### 📋 Qué acepta cada punta, y no es lo mismo
+
+| Comando | Maestro | Esclavo | Por qué |
+|---|---|---|---|
+| `SET_MODO:AUTO` · `MANUAL` · `AMBAR` | ✅ con PIN | ❌ | El Maestro es el único que arbitra el ciclo |
+| `MANUAL:CAMBIAR_TURNO` | ✅ con PIN | ❌ | idem |
+| **`SOLICITAR_PASO`** | — | ✅ **con PIN** | **Pide**, no ordena: manda `CMD_DEMANDA` por radio y decide el Maestro |
+| `FORZAR_ROJO` | ✅ **sin PIN** | ✅ **sin PIN** | Dirección segura, desde cualquier extremo |
+| `SET_RTC:…` | ✅ con PIN | ✅ con PIN | Ajusta el reloj, no las luces |
+| `TEST_LEDS` | ✅ con PIN | 🛑 **RECHAZADO** | Ver abajo |
+
+### 🛑 Por qué el Esclavo rechaza `TEST_LEDS`
+
+El test enciende 6 s de secuencia —rojo, ámbar y **verde**— sin mirar el estado del ciclo. Lanzado
+sobre un Esclavo en servicio, ese verde sale **mientras el Maestro está dando paso al otro sentido**:
+dos vehículos entrando de frente al tramo.
+
+Y lo que costó ver: **conectarse al Esclavo *correcto* era igual de peligroso.** El fallo no es
+equivocarse de poste —eso lo arreglaría una matrícula—, es que esa punta acepte mover luces. Por eso
+la guarda no vive en la app: una app se actualiza, se instala otra, se usa una vieja. Vive en el
+firmware, y la vigila el pack `esclavo_06_no_abre_paso`.
+
+El Esclavo contesta `$ERR,CMD:TEST_LEDS,DESC:NO_EN_SERVICIO_USE_EL_MAESTRO` — un motivo legible, no
+un silencio que el técnico leería como equipo colgado. **El test de lámparas se hace desde el
+Maestro.**
+
+> **Volverá al Esclavo** cuando exista un estado `FUERA DE SERVICIO` que el propio equipo conozca, no
+> una promesa del manual.
+
+### ✋ `SOLICITAR_PASO`: el funcional trabaja desde cualquier extremo
+
+El PMT coloca a un funcional en el extremo que haga falta, y ese funcional **no tiene por qué saber
+cuál de los dos postes es el Maestro**:
+
+```text
+   ORDEN     "ponte en verde"    -> el Esclavo la ejecutaria          NO
+   PETICION  "hay demanda aqui"  -> viaja al Maestro por radio,
+                                    el Maestro decide, aplica el
+                                    todo-rojo y ordena                SI
+```
+
+Es **la misma demanda que manda la cámara**: un botón del funcional y un coche detectado significan
+lo mismo. Con dos funcionales, uno en cada extremo, el Maestro **serializa** — ninguno concede nada,
+los dos piden. Que pulsen a la vez tiene que ser aburrido, y así lo es.
+
+Si la petición cae en la ventana de silencio de 3 s, el equipo contesta
+`$ERR,CMD:SOLICITAR_PASO,DESC:REPITA_EN_UNOS_SEGUNDOS`. **No se finge un envío que no ocurrió:** si el
+operario no lo sabe, vuelve a pulsar creyendo que no le hacen caso.
+
+
+---
+
+## 5. Operación en Corredor Vial (Un solo celular para múltiples cruces)
+
+En un proyecto de carretera con múltiples cruces (ej. Km 12, Km 24, Km 38), el técnico opera toda la concesión con **un solo teléfono móvil**:
+
+### 5.1 Identificación de Nodos y Roles
+1. **👑 Nodo Maestro (Poste 1):** Controla el ciclo global, programas de verde/despeje y radio hacia el Esclavo.
+2. **📡 Nodo Esclavo (Poste 2):** Opera subordinado al Maestro y reporta diagnóstico local de batería, focos y recepción RF.
+
+### 5.2 Modo Courier RTC (Sincronización Puente sin Radio)
+Cuando no hay cobertura de radio entre los dos postes:
+1. El técnico abre la App junto al **Maestro (Poste 1)** y toca **`[ 📸 Capturar Maestro ]`** (memoriza hora y ciclo).
+2. El técnico viaja en moto/vehículo hasta el **Esclavo (Poste 2)**; la App cronometra el viaje con su reloj interno de alta resolución.
+3. Al conectarse al Esclavo, toca **`[ 🚀 Inyectar en Esclavo ]`**; la App inyecta la hora exacta:  
+   $$\text{Hora Inyectada} = \text{Hora Capturada} + \text{Tiempo de Viaje}$$
+   logrando un desfase $\Delta t < 0.1\text{ s}$ para el Modo Degradado sin cables ni escaleras.

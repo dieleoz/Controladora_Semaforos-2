@@ -1,0 +1,23 @@
+%TF.GenerationSoftware,KiCad,Pcbnew,9.0.5*%
+%TF.CreationDate,2026-05-27T12:07:41-05:00*%
+%TF.ProjectId,Controladora_Semaforos,436f6e74-726f-46c6-9164-6f72615f5365,rev?*%
+%TF.SameCoordinates,Original*%
+%TF.FileFunction,Profile,NP*%
+%FSLAX46Y46*%
+G04 Gerber Fmt 4.6, Leading zero omitted, Abs format (unit mm)*
+G04 Created by KiCad (PCBNEW 9.0.5) date 2026-05-27 12:07:41*
+%MOMM*%
+%LPD*%
+G01*
+G04 APERTURE LIST*
+%TA.AperFunction,Profile*%
+%ADD10C,0.200000*%
+%TD*%
+G04 APERTURE END LIST*
+D10*
+X67000000Y-30000000D02*
+X223500000Y-30000000D01*
+X223500000Y-150000000D01*
+X67000000Y-150000000D01*
+X67000000Y-30000000D01*
+M02*

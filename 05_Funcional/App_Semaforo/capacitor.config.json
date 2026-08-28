@@ -1,0 +1,11 @@
+{
+  "appId": "com.iotvial.semaforos",
+  "appName": "IOT-VIAL Semaforos",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

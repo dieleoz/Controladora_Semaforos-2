@@ -1,0 +1,79 @@
+# IMPORTANTE: este archivo debe guardarse en UTF-8.
+# El 31/07/2026 estaba en UTF-16 y git, que lo lee byte a byte, interpretaba la
+# primera linea como el patron "*": el proyecto ENTERO quedaba ignorado. Los
+# archivos ya versionados seguian apareciendo como modificados, asi que el fallo
+# era invisible, pero ningun archivo nuevo llegaba al repositorio. Nueve se
+# perdieron asi, incluida la pantalla PRUEBA ALCANCE y las dos suites de
+# validacion. Si se edita con una herramienta que guarda en UTF-16, se repite.
+
+# --- Empaquetados: el repositorio ya contiene el contenido, el .zip lo duplica
+*.zip
+*.rar
+*.7z
+
+# --- Documentacion pesada de terceros -------------------------------------
+# 98 MB, al borde del limite duro de 100 MB por archivo de GitHub, y publicacion
+# del Ministerio de Transporte. Se consulta aparte, no se versiona.
+# Los manuales E90-DTU si se versionan: 3 MB y el funcional los necesita para
+# configurar las radios.
+04_Manuales/Manual_de_Senalizacion_Vial.pdf
+
+# --- Artefactos de compilacion --------------------------------------------
+.pio/
+__pycache__/
+# Comodin, no un fichero por arnes: Validacion_Ciclo y Validacion_Respaldo nacieron
+# despues y sus build/ se colaron al indice -validar_ciclo.exe llego a versionarse-.
+# Un patron por arnes garantiza que el siguiente arnes repita el fallo.
+01_Firmware/Validacion_*/build/
+.cache/
+
+# --- Configuracion local del editor ---------------------------------------
+.vscode/
+
+# --- Trabajo temporal ------------------------------------------------------
+scratch/
+*.patch
+# Worktrees de agentes: copias de trabajo aisladas del repositorio, con su .pio
+# dentro. Versionarlas duplicaria el arbol entero y ademas quedan colgadas de una
+# rama, asi que un `git checkout` de esa rama falla mientras exista la carpeta.
+.claude/worktrees/
+
+# --- Firmware de biseccion -------------------------------------------------
+# Misma razon que los *.zip de arriba: el repositorio ya contiene el fuente del
+# que salen. Cada .bin se regenera con `git worktree add` + `pio run` sobre el
+# hash que lleva en el propio nombre.
+# --- Node / App dependencies -----------------------------------------------
+node_modules/
+package-lock.json
+
+# --- Proyecto nuevo (28/08/2026): lo pesado no entra ----------------------
+# Este repositorio nace con historia propia. El padre, `Controladora_Semaforos`
+# @ 50a5380, pesaba 3,47 GB por dos ZIP de entrega de 2 GB y 1 GB que GitHub
+# rechaza de plano (limite duro: 100 MB por fichero). Se comprobo antes de
+# ignorar nada que NINGUN pack del banco ni la compuerta leen estos ficheros:
+# `grep -rn "\.apk|\.zip|fp-info-cache"` sobre `banco/packs/` y `compuerta.py`
+# no devuelve una sola linea. Si algun dia un pack los necesita, este bloque
+# es lo primero que hay que revisar.
+
+# La APK se compila con `05_Funcional/App_Semaforo/android/compilar_apk.bat`,
+# y lo que se versiona es el `app.js` del que sale. Guardar el binario duplica
+# 3,7 MB por cada version y ademas invita a validar por tamano en vez de por
+# contenido, que es justo lo que N-74 prohibe.
+*.apk
+
+# Cache de footprints de KiCad: 3,9 MB por copia, se regenera solo al abrir el
+# proyecto. Habia cinco copias en el arbol.
+fp-info-cache
+
+node_modules/
+
+# --- Clones de terceros anidados ------------------------------------------
+# `deep_sort` es la libreria de seguimiento del experimento de YOLO, que es el
+# camino MUERTO: hoy las camaras son contacto seco por `J14`/`J16` y el puerto
+# `AI_CARS` no lo llama nadie. Hay cinco copias en el arbol, cada una con su
+# propio `.git` dentro.
+#
+# Un repositorio anidado sin `.gitmodules` se versiona como *gitlink*: el clon
+# recibe una CARPETA VACIA y ni siquiera sabe de donde bajarla. Es peor que no
+# tenerlo, porque parece que esta.
+deep_sort/

@@ -1,0 +1,1350 @@
+<title>Cableado y pruebas V9.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --papel:      #f6f5f2;
+    --tarjeta:    #ffffff;
+    --tinta:      #17191c;
+    --tinta-2:    #55555a;
+    --tinta-3:    #86867f;
+    --linea:      #dedcd5;
+    --linea-2:    #ebe9e3;
+    --acento:     #c4520c;
+    --acento-sv:  #f3e3d6;
+    --rojo:       #b52b26;
+    --ambar:      #b07d00;
+    --verde:      #1d7a48;
+    --azul:       #2a5c86;
+    --ok-bg:      #e6f0e9;
+    --alto-bg:    #f7e6e4;
+    --info-bg:    #e3ecf3;
+    --campo:      #fffdf8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --papel:     #14151a;
+      --tarjeta:   #1b1d23;
+      --tinta:     #edece8;
+      --tinta-2:   #a8a8a4;
+      --tinta-3:   #7c7c79;
+      --linea:     #2e3038;
+      --linea-2:   #24262c;
+      --acento:    #f0813a;
+      --acento-sv: #3a2415;
+      --rojo:      #e8635c;
+      --ambar:     #e0aa2c;
+      --verde:     #4fb582;
+      --azul:      #6aa8d8;
+      --ok-bg:     #16281f;
+      --alto-bg:   #2e1a19;
+      --info-bg:   #16232e;
+      --campo:     #20232a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --papel:     #14151a;
+    --tarjeta:   #1b1d23;
+    --tinta:     #edece8;
+    --tinta-2:   #a8a8a4;
+    --tinta-3:   #7c7c79;
+    --linea:     #2e3038;
+    --linea-2:   #24262c;
+    --acento:    #f0813a;
+    --acento-sv: #3a2415;
+    --rojo:      #e8635c;
+    --ambar:     #e0aa2c;
+    --verde:     #4fb582;
+    --azul:      #6aa8d8;
+    --ok-bg:     #16281f;
+    --alto-bg:   #2e1a19;
+    --info-bg:   #16232e;
+    --campo:     #20232a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--papel);
+    color: var(--tinta);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .hoja {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.75rem;
+  }
+
+  /* ---------- cabecera ---------- */
+  .cabecera { display: flex; flex-direction: column; gap: .9rem; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--acento); font-weight: 600;
+  }
+  h1 {
+    font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif;
+    font-weight: 700; font-size: clamp(2rem, 5vw, 2.9rem);
+    line-height: 1.05; margin: 0; text-wrap: balance; letter-spacing: -.01em;
+  }
+  .sub { margin: 0; color: var(--tinta-2); max-width: 62ch; }
+  .meta {
+    font-family: "IBM Plex Mono", monospace; font-size: .78rem;
+    color: var(--tinta-3); display: flex; flex-wrap: wrap; gap: .35rem 1.25rem;
+  }
+
+  .aviso {
+    border: 1px solid var(--linea);
+    border-left: 4px solid var(--rojo);
+    background: var(--alto-bg);
+    padding: 1rem 1.15rem; border-radius: 3px;
+    display: flex; flex-direction: column; gap: .4rem;
+  }
+  .aviso strong { font-family: "IBM Plex Sans Condensed", sans-serif; font-size: 1.05rem; }
+  .aviso p { margin: 0; font-size: .93rem; color: var(--tinta-2); }
+  .aviso.bien { border-left-color: var(--verde); background: var(--ok-bg); }
+  .aviso.info { border-left-color: var(--azul); background: var(--info-bg); }
+
+  /* ---------- secciones ---------- */
+  section { display: flex; flex-direction: column; gap: 1.1rem; }
+  h2 {
+    font-family: "IBM Plex Sans Condensed", sans-serif;
+    font-size: 1.35rem; margin: 0; font-weight: 700;
+    padding-bottom: .5rem; border-bottom: 2px solid var(--tinta);
+    display: flex; align-items: baseline; gap: .7rem;
+  }
+  h2 .n {
+    font-family: "IBM Plex Mono", monospace; font-size: .8rem;
+    color: var(--acento); font-weight: 600;
+  }
+  .nota { margin: 0; color: var(--tinta-2); font-size: .93rem; max-width: 68ch; }
+
+  /* ---------- diagrama ---------- */
+  .diagrama {
+    background: var(--tarjeta); border: 1px solid var(--linea);
+    border-radius: 4px; padding: 1.25rem; overflow-x: auto;
+  }
+  .diagrama pre {
+    margin: 0; font-family: "IBM Plex Mono", monospace;
+    font-size: .78rem; line-height: 1.5; color: var(--tinta-2); white-space: pre;
+  }
+
+  /* ---------- bornes ---------- */
+  .bornes { display: flex; flex-direction: column; gap: .75rem; }
+  .borne {
+    background: var(--tarjeta); border: 1px solid var(--linea);
+    border-radius: 4px; padding: 1rem 1.15rem;
+    display: grid; grid-template-columns: 7.5rem 1fr; gap: .35rem 1.15rem;
+    align-items: start;
+  }
+  .borne.no { border-style: dashed; opacity: .85; }
+  .borne.via { border-left: 4px solid var(--acento); }
+  .chip {
+    font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 1.05rem;
+    color: var(--acento); background: var(--acento-sv);
+    border-radius: 3px; padding: .2rem .55rem; justify-self: start;
+    white-space: nowrap;
+  }
+  .chip.mudo { color: var(--tinta-3); background: var(--linea-2); }
+  .borne h3 {
+    margin: 0; font-size: 1.02rem; font-family: "IBM Plex Sans Condensed", sans-serif;
+    font-weight: 600;
+  }
+  .borne p { margin: .25rem 0 0; font-size: .92rem; color: var(--tinta-2); }
+  .borne .pin {
+    font-family: "IBM Plex Mono", monospace; font-size: .82rem; color: var(--tinta-3);
+    margin-top: .3rem;
+  }
+  .borne .cuerpo { grid-column: 2; }
+  @media (max-width: 34rem) {
+    .borne { grid-template-columns: 1fr; }
+    .borne .cuerpo { grid-column: 1; }
+  }
+
+  .marca {
+    display: inline-block; font-family: "IBM Plex Mono", monospace;
+    font-size: .68rem; letter-spacing: .08em; text-transform: uppercase;
+    padding: .12rem .45rem; border-radius: 2px; margin-left: .5rem;
+    vertical-align: .12em; font-weight: 600;
+  }
+  .marca.ok      { background: var(--ok-bg);    color: var(--verde); }
+  .marca.medir   { background: var(--alto-bg);  color: var(--rojo); }
+  .marca.decidir { background: var(--info-bg);  color: var(--azul); }
+  .marca.nuevo   { background: var(--acento-sv); color: var(--acento); }
+
+  /* ---------- tabla de pines ---------- */
+  .tabla-envoltorio { overflow-x: auto; border: 1px solid var(--linea); border-radius: 4px; background: var(--tarjeta); }
+  table { border-collapse: collapse; width: 100%; font-size: .88rem; min-width: 34rem; }
+  th, td { text-align: left; padding: .55rem .8rem; border-bottom: 1px solid var(--linea-2); vertical-align: top; }
+  th {
+    font-family: "IBM Plex Mono", monospace; font-size: .7rem; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--tinta-3); font-weight: 600;
+    border-bottom: 1px solid var(--linea);
+  }
+  td code { white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; color: var(--tinta-2); }
+
+  /* ---------- pruebas ---------- */
+  ol.pruebas { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .55rem; counter-reset: p; }
+  ol.pruebas li {
+    background: var(--tarjeta); border: 1px solid var(--linea); border-radius: 4px;
+    padding: .85rem 1rem .85rem 3.1rem; position: relative;
+  }
+  ol.pruebas li::before {
+    counter-increment: p; content: counter(p);
+    position: absolute; left: 1rem; top: .85rem;
+    font-family: "IBM Plex Mono", monospace; font-weight: 600;
+    color: var(--acento); font-size: .95rem;
+  }
+  ol.pruebas b { font-family: "IBM Plex Sans Condensed", sans-serif; font-size: 1rem; }
+  ol.pruebas p { margin: .2rem 0 0; font-size: .91rem; color: var(--tinta-2); }
+  .casilla {
+    float: right; font-family: "IBM Plex Mono", monospace; font-size: .78rem;
+    color: var(--tinta-3); letter-spacing: .04em;
+  }
+
+  code {
+    font-family: "IBM Plex Mono", monospace; font-size: .88em;
+    background: var(--linea-2); padding: .08em .34em; border-radius: 2px;
+  }
+
+  footer {
+    border-top: 1px solid var(--linea); padding-top: 1.25rem;
+    color: var(--tinta-3); font-size: .85rem; display: flex; flex-direction: column; gap: .5rem;
+  }
+
+
+  /* ---------- acta rellenable ---------- */
+  .ident { display:grid; grid-template-columns:repeat(auto-fit,minmax(12rem,1fr)); gap:.9rem;
+    background:var(--tarjeta); border:1px solid var(--linea); border-radius:4px; padding:1.1rem 1.2rem; }
+  .campo { display:flex; flex-direction:column; gap:.25rem; }
+  .campo label { font-family:"IBM Plex Mono",monospace; font-size:.7rem; letter-spacing:.09em;
+    text-transform:uppercase; color:var(--tinta-3); }
+  input[type=text], textarea {
+    font-family:"IBM Plex Sans",sans-serif; font-size:.95rem; color:var(--tinta);
+    background:var(--campo); border:1px solid var(--linea); border-radius:3px;
+    padding:.45rem .6rem; width:100%; }
+  textarea { resize:vertical; min-height:3.2rem; line-height:1.45; }
+  input:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline:2px solid var(--acento); outline-offset:1px; }
+  .veredicto { display:flex; flex-wrap:wrap; gap:1.1rem; align-items:center; margin-top:.35rem; }
+  .veredicto label { display:inline-flex; align-items:center; gap:.4rem; font-size:.92rem;
+    font-weight:600; cursor:pointer; }
+  .veredicto input { accent-color:var(--acento); width:1.05rem; height:1.05rem; }
+  .veredicto .si { color:var(--verde); }
+  .veredicto .no { color:var(--rojo); }
+  ol.pruebas li.clave { border-left:4px solid var(--acento); }
+  ol.pruebas .espera { border-left:3px solid var(--linea); padding-left:.7rem; margin-top:.35rem; }
+  ol.pruebas .espera b { color:var(--tinta); }
+  ol.pruebas textarea { margin-top:.45rem; }
+  .barra { position:sticky; bottom:0; background:var(--papel); border-top:1px solid var(--linea);
+    padding:.85rem 0 1rem; display:flex; flex-wrap:wrap; gap:.75rem; align-items:center; z-index:2; }
+  button { font-family:"IBM Plex Sans Condensed",sans-serif; font-weight:600; font-size:.95rem;
+    padding:.6rem 1.15rem; border-radius:3px; border:1px solid var(--tinta); cursor:pointer;
+    background:var(--tinta); color:var(--papel); }
+  button.sec { background:transparent; color:var(--tinta); }
+  button:hover { opacity:.88; }
+  .estado { font-family:"IBM Plex Mono",monospace; font-size:.8rem; color:var(--tinta-3); }
+
+  @media print {
+    body { background: #fff; }
+    .hoja { padding: 0; gap: 1.6rem; max-width: none; }
+    .diagrama, .borne, ol.pruebas li, .ident, .tabla-envoltorio { break-inside: avoid; }
+    .barra, .noimprimir { display: none !important; }
+    input[type=text], textarea { border: none; border-bottom: 1px solid #999; border-radius: 0; background: none; }
+    textarea { min-height: 2.4rem; }
+  }
+</style>
+
+<div class="hoja">
+
+  <header class="cabecera">
+    <div class="eyebrow">Sesión de banco · V9.0 · sin validar en tarjeta</div>
+    <h1>Cableado y pruebas de la tarjeta</h1>
+    <p class="sub">Qué se conecta en cada borne, por dónde entra el módulo Bluetooth, y las
+      comprobaciones de la sesión. Las dos tarjetas —Maestro y Esclavo— son idénticas: lo que cambia
+      es qué cámara y qué barrera cuelgan de cada una.</p>
+    <div class="meta">
+      <span>commit <code>614065d</code></span>
+      <span>compuerta 14 PASS · 1 FALLA · 0 ABORTADO</span>
+      <span>Maestro 85,8 % · 56.260 B</span>
+      <span>Esclavo 63,9 % · 41.872 B</span>
+      <span>arnés de pantalla 271/271</span>
+      <span>28 · 08 · 2026</span>
+    </div>
+  </header>
+
+  <div class="aviso">
+    <strong>⚠ ANTES DE TOCAR UN SOLO CABLE: <code>J16</code> lleva 12 V y <code>J17</code> no</strong>
+    <p><b><code>J16</code> tiene 12 V en su posición 1.</b> Enchufar ahí el módulo Bluetooth —o el
+      reloj— <b>lo quema en el acto</b>. Los dos conectores están juntos y se parecen, así que
+      <b>no se distinguen por su sitio ni por su aspecto: se distinguen midiendo</b>.</p>
+    <p><b>Cómo se distinguen, con el equipo encendido y el multímetro en continua:</b> se mide la
+      <b>posición 1</b> contra masa. <b>Si da ≈ 12 V es <code>J16</code></b> y ahí no entra nada de
+      esta guía. <b><code>J17</code> no tiene 12 V en ninguna de sus posiciones</b>: solo 3,3 V y
+      masa.</p>
+    <p><b>Y la orientación tampoco se cuenta, se mide.</b> El símbolo del esquemático dibuja
+      <b>13 posiciones</b> y el footprint de la placa tiene <b>16</b>: contar huecos desde un extremo
+      puede desplazar toda la numeración. <b>El conector se orienta localizando con el multímetro la
+      posición de 3,3 V y la de masa</b>, y numerando desde ahí.</p>
+    <p>MEDIDO EN EL ESQUEMÁTICO, trazando red por red el 28/08. <b>No verificado con multímetro
+      sobre el cobre</b> — eso lo hace la prueba 4 de esta misma guía, y va antes que cualquier
+      conexión.</p>
+  </div>
+
+  <div class="aviso info">
+    <strong>Corregido en una revisión anterior: dos referencias que mandaban al chip equivocado</strong>
+    <p>Una versión antigua de esta guía nombraba <code>U3</code> el transceptor del Bluetooth y
+      <code>U2</code> el de la radio. Medido sobre el esquemático KiCad trazando red por red, es
+      <b>al revés</b>: el del <code>USART1</code> es <code>U2</code> y el de la radio LoRa es
+      <code>U3</code>. Y la radio sale por <b><code>J12</code></b>, no por <code>J10</code>. Quien
+      siguiera la tabla vieja soldaría sobre el chip de la radio. La misma inversión está en
+      <code>MAPEO_TARJETA_KICAD.md</code> y en un comentario de <code>bluetooth.cpp</code>.</p>
+  </div>
+
+  <div class="ident">
+    <div class="campo"><label for="f-quien">Quién mide</label><input type="text" id="f-quien"></div>
+    <div class="campo"><label for="f-fecha">Fecha</label><input type="text" id="f-fecha" placeholder="28/08/2026"></div>
+    <div class="campo"><label for="f-tarjeta">Tarjeta / serie</label><input type="text" id="f-tarjeta" placeholder="Maestro · nº"></div>
+    <div class="campo"><label for="f-firmware">Firmware cargado · md5 del .bin</label><input type="text" id="f-firmware" placeholder="a4d6743896b7f535deac159d6bb29156"></div>
+    <div class="campo"><label for="f-apk">APK instalada</label><input type="text" id="f-apk" placeholder="2026-08-28_a8e1ceb"></div>
+    <div class="campo"><label for="f-modulo">Módulo Bluetooth</label><input type="text" id="f-modulo" placeholder="HC-05 · nombre · MAC"></div>
+  </div>
+
+  <section>
+    <h2><span class="n">01</span> Una tarjeta, cuatro cosas colgando</h2>
+    <p class="nota">Cada poste lleva <b>una</b> cámara de demanda y <b>una</b> barrera —no dos—, más
+      su módulo Bluetooth. El sentido lo define el poste, no un ajuste.</p>
+    <p class="nota"><b>Y desde el 28/08 no lleva pantalla.</b> La decisión está tomada: la pantalla
+      se retira y el módulo Bluetooth ocupa <code>J17</code>, que es el conector que ella deja. Todo
+      lo que en esta guía hable de la pantalla está marcado como <b>histórico</b>.</p>
+    <div class="diagrama">
+<pre>   SENTIDO 1                    TRAMO DE UN CARRIL                    SENTIDO 2
+   ┌───────────────┐                                              ┌───────────────┐
+   │  POSTE 1      │                                              │  POSTE 2      │
+   │  MAESTRO      │ ═══════════ obra · un solo carril ══════════ │  ESCLAVO      │
+   └───────┬───────┘                                              └───────┬───────┘
+           │                                                              │
+   📷 Cámara 1  → J14        (demanda de cola)          📷 Cámara 3  → J14
+   🚧 Barrera 1 → J15        (pluma del carril)         🚧 Barrera 2 → J15
+   📱 Bluetooth  → J17       (telemetria y mando)       📱 Bluetooth  → J17
+   📻 Radio LoRa → J12       ya en servicio · no se toca  📻 Radio LoRa → J12
+   ⚠  J16        → NADA      12 V en su posicion 1       ⚠  J16        → NADA</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">02</span> Borne por borne</h2>
+
+    <div class="bornes">
+
+      <div class="borne">
+        <span class="chip">J14</span>
+        <div class="cuerpo">
+          <h3>Cámara de demanda <span class="marca ok">activo en alto</span></h3>
+          <p><b>Los dos hilos del contacto seco van a los dos bornes de <code>J14</code>, y nada
+            más.</b> Uno de ellos es <code>3,3 V</code> y el otro la señal (<code>PB0</code>): al
+            cerrar el relé de la cámara, el pin sube a 3,3 V y eso es la petición de paso.
+            <b>No hace falta traer masa</b> ni poner resistencias: la placa ya lleva
+            <code>R64</code> 10 kΩ a masa —que fija el reposo— y <code>C25</code> 100 nF, que es un
+            antirrebote de 1 ms.</p>
+          <p class="pin">U1 pin 18 · <code>PB0</code> · contacto <b>N.A.</b> · cierra ≈ 1 s por
+            detección</p>
+        </div>
+      </div>
+
+      <div class="borne">
+        <span class="chip">J15</span>
+        <div class="cuerpo">
+          <h3>Barrera / talanquera <span class="marca medir">confirmar borne</span></h3>
+          <p>Salida de potencia con MOSFET propio: <b><code>Q10</code></b> (IRLZ44N) conmutando
+            <b>a masa</b> hasta 10 A. Un borne va a <code>+12 V</code> de batería y el otro a la
+            entrada <em>OPEN</em> de la centralita de la pluma.
+            <b>No hace falta módulo de relé externo.</b></p>
+          <p class="pin">U1 pin 20 · <code>PB2</code> → <code>R70</code> 220 Ω / <code>R69</code>
+            10 kΩ → opto <code>TLP127 U15</code> → MOSFET <code>IRLZ44N Q10</code> → <code>J15</code>
+            · sube con verde y con el ámbar intermitente de fallo de enlace</p>
+        </div>
+      </div>
+
+      <div class="borne">
+        <span class="chip">J12</span>
+        <div class="cuerpo">
+          <h3>Radio LoRa E90-DTU <span class="marca ok">en servicio · no se toca</span></h3>
+          <p>Par diferencial <code>A</code>/<code>B</code> del <code>MAX3485 U3</code>, con su
+            terminación de 120 Ω (<code>R10</code>) y polarización de 4,7 kΩ ya puestas en la placa.
+            <b>Es el enlace entre los dos postes</b>: sin él no hay coordinación. Enlace directo a
+            2,4 kbps, <code>M0</code>/<code>M1</code> en OFF, sin repetidor.</p>
+          <p class="pin">U1 pin 21 <code>PB10</code> TX · pin 22 <code>PB11</code> RX · pin 25
+            <code>PB12</code> DE/~RE · USART3 → <code>U3</code> → <code>J12</code></p>
+        </div>
+      </div>
+
+      <div class="borne no">
+        <span class="chip mudo">J16</span>
+        <div class="cuerpo">
+          <h3>12 V — <b>aquí no entra nada</b> <span class="marca medir">medir antes</span></h3>
+          <p><b>Su posición 1 lleva 12 V.</b> Es el vecino de <code>J17</code> y el error que hay
+            que evitar en esta sesión: un módulo Bluetooth o un reloj enchufados aquí <b>se
+            queman</b>. No se distingue de <code>J17</code> a ojo — <b>se distingue con el
+            multímetro</b>: posición 1 contra masa, y si hay 12 V es este.</p>
+          <p class="pin">MEDIDO EN EL ESQUEMÁTICO · sin verificar sobre el cobre · lo verifica la
+            prueba 4</p>
+        </div>
+      </div>
+
+      <div class="borne no">
+        <span class="chip mudo">PB8</span>
+        <div class="cuerpo">
+          <h3>Cámara de umbral — <b>no se instala</b></h3>
+          <p>Las cámaras 2 y 4 <b>no tienen dónde entrar</b>: ese pin alimenta el LED testigo
+            <code>D5</code> a través de <code>R16</code>, no es una bornera. Y aunque lo fuera,
+            faltaría el comando de radio que lleve la cuenta del tramo al Maestro. Mientras tanto el
+            todo-rojo de despeje va <b>por tiempo</b>, que es el criterio conservador.</p>
+          <p class="pin">no se cablea · no se compra · no se promete al cliente</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">03</span> El montaje vigente: el Bluetooth entra por <code>J17</code></h2>
+    <p class="nota"><b>Decidido el 28/08 y ya implementado en firmware: la pantalla se retira y el
+      módulo Bluetooth ocupa el conector que ella deja.</b> Esto ya no es una vía entre tres — es
+      <b>lo que se hace</b>. Las tres vías que esta guía barajaba antes quedan más abajo, marcadas
+      como alternativas históricas, para que nadie las siga por error y para que quede el rastro de
+      por qué se descartaron.</p>
+    <p class="nota"><b>Sin pantalla no hace falta ningún puente.</b> Los puentes de <code>PSB</code>
+      a masa y <code>RST</code> a 3,3 V que describía la vía A solo tenían sentido para que pantalla
+      y puerto serie convivieran. Si la pantalla no está, no hay nada que puentear.</p>
+
+    <div class="aviso info">
+      <strong>Qué módulo va aquí: un SPP dedicado, <code>HC-05</code> o <code>JDY-30</code></strong>
+      <p><b>Ese es el módulo vigente</b>, y es lo que pide la lista de compras. Habla <b>SPP</b>, que
+        es lo que la app de Android usa, y consume decenas de mA, así que puede alimentarse del
+        <code>3,3 V</code> de <code>J17</code>. <b>Necesita <code>AT+NAME</code> antes de
+        instalarse</b> — apartado 05.</p>
+      <p><b>El <code>ESP32</code> queda como ALTERNATIVA, no como sustituto</b>, y solo entra si no
+        llegan los <code>HC-05</code>. Si se usa uno, hay que saber cuál es: el <b>ESP32 clásico</b>
+        (<code>ESP32-WROOM-32</code>) habla <b>SPP</b> y la app funciona tal cual; el
+        <b>ESP32-S3</b> y el <b>C3</b> solo tienen <b>BLE</b>, y contra ellos
+        <code>createRfcommSocketToServiceRecord</code> no conecta — el mismo fallo que ya se pagó una
+        vez con Web Bluetooth. <b>La etiqueta comercial «WiFi + BT · ISM 2.4G · 802.11» no
+        distingue:</b> sale igual en los tres. Lo dice la serigrafía del blindaje metálico, o
+        <code>esptool.py chip_id</code> — que <b>no sirve contra un <code>HC-05</code></b>. Ver
+        prueba 9.</p>
+    </div>
+
+    <div class="bornes">
+
+      <div class="borne via">
+        <span class="chip">J17</span>
+        <div class="cuerpo">
+          <h3>El módulo Bluetooth · cuatro hilos, sin soldar <span class="marca nuevo">vigente</span></h3>
+          <p><b>Cuatro hilos y nada más</b>, en un Molex KK enchufable. Los dos de datos van
+            <b>cruzados</b>, que es como va siempre un puerto serie:</p>
+          <div class="tabla-envoltorio" style="margin:.6rem 0">
+            <table>
+              <thead>
+                <tr><th>Posición de <code>J17</code></th><th>Señal del micro</th><th>Al módulo</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="num">p2</td><td><code>PB7</code> · U1 pin 43 · RX</td><td><b><code>TXD</code></b> del módulo</td></tr>
+                <tr><td class="num">p3</td><td><code>PB6</code> · U1 pin 42 · TX</td><td><b><code>RXD</code></b> del módulo</td></tr>
+                <tr><td class="num">p6</td><td><code>3,3 V</code></td><td><code>VCC</code> — ver el aviso de alimentación</td></tr>
+                <tr><td class="num">p7</td><td><code>GND</code></td><td><code>GND</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p><b>El firmware ya está hecho y la compuerta pasada</b> (28/08, acta sobre
+            <code>614065d</code>): en las dos puntas <code>bluetooth.cpp</code> declara
+            <code>SerialBT(PB7, PB6)</code> —<code>USART1</code> remapeado, puerto serie <b>por
+            hardware</b>, no emulado—; <code>lcd.cpp</code> pasa <code>U8X8_PIN_NONE</code> y ya no
+            toca <code>LCD_PSB</code>; y <code>protocolo_setup()</code> dejó de abrir
+            <code>AiBus</code>, que declaraba ese mismo <code>USART1</code> sobre los pines viejos y
+            se lo habría disputado.</p>
+          <p><b>Sin pantalla no hay ningún puente que poner.</b> <code>PB6</code> era el
+            <em>PSB</em> del display y <code>PB7</code> su <em>reset</em>; sin display, ninguno de
+            los dos tiene otro dueño.</p>
+          <p class="pin">MEDIDO EN EL ESQUEMÁTICO · las posiciones de <code>J17</code> se confirman
+            con el multímetro antes de enchufar nada — ver el aviso de <code>J16</code> de arriba y
+            la prueba 4</p>
+        </div>
+      </div>
+
+      <div class="borne">
+        <span class="chip">DS3231</span>
+        <div class="cuerpo">
+          <h3>El reloj externo, si hace falta <span class="marca medir">sin driver en el firmware</span></h3>
+          <div class="aviso" style="margin:.2rem 0 .7rem">
+            <strong>Enchufado no dará la hora, y eso NO es una avería</strong>
+            <p><b>El firmware no tiene driver de <code>DS3231</code>.</b> No hay
+              <code>Wire.begin()</code>, no hay código de <code>I2C</code>, no hay nada que lea ese
+              chip. Un <code>DS3231</code> conectado se quedará <b>mudo</b>, el equipo seguirá sin
+              hora y <b>eso es exactamente lo esperado</b>. <b>No se reporta como fallo</b>, no se
+              cambia el módulo y no se recablea buscando el error: el error no está en el cable.</p>
+            <p>Además <code>PB3</code> y <code>PB4</code> los sigue configurando <code>lcd.cpp</code>
+              como salidas del SPI de la pantalla —<code>lcd_setup()</code> se llama todavía—, así que
+              el bus estaría además compartido con quien lo mueve. <b>Conectarlo hoy solo sirve para
+              dejar el cableado hecho</b>, y solo tiene sentido si se decide comprar el módulo.</p>
+          </div>
+          <p><b>Y solo hace falta si el cristal muerto es el del Maestro.</b> Si el que pierde la
+            hora es el <b>Esclavo</b>, <b>no se compra nada</b>: el Esclavo toma la hora del Maestro
+            por radio. Lo dice la prueba 14.</p>
+          <p class="pin">p1 <code>PB4</code> = <code>SDA</code> · p4 <code>PB3</code> =
+            <code>SCL</code> · p8 <code>VCC</code> · p9 <code>GND</code> · <code>32K</code> y
+            <code>SQW</code> <b>al aire</b> · el módulo <code>ZS-042</code> ya trae sus pull-ups, no
+            se añaden</p>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="nota" style="margin-top:.4rem"><b>Alternativas históricas.</b> No se siguen. Se dejan
+      escritas porque una vía descartada que desaparece en silencio vuelve a proponerse, y la segunda
+      vez ya nadie recuerda por qué se descartó.</p>
+
+    <div class="bornes">
+
+      <div class="borne no">
+        <span class="chip mudo">J17 + LCD</span>
+        <div class="cuerpo">
+          <h3>Vía A histórica · conservando la pantalla <span class="marca decidir">solo si vuelve el display</span></h3>
+          <p>Era la misma entrada por <code>J17</code>, pero <b>con la pantalla puesta</b>: se
+            liberaban <code>PB6</code>/<code>PB7</code> sustituyéndolos por <b>puentes dentro del
+            propio conector</b> —<code>PSB</code> a <code>GND</code> (p7 o p9) y <code>RST</code> a
+            <code>3,3 V</code> (p6 o p8)— y el display seguía funcionando con los otros tres hilos.</p>
+          <p><b>Al retirarse la pantalla, esos dos puentes sobran.</b> Solo vuelven a hacer falta si
+            alguna vez se decide reinstalar el display sobre este mismo firmware.</p>
+        </div>
+      </div>
+
+      <div class="borne no">
+        <span class="chip mudo">J10</span>
+        <div class="cuerpo">
+          <h3>Vía B histórica · por el conector RS-485 libre <span class="marca decidir">descartada</span></h3>
+          <p><code>J10</code> es el gemelo de <code>J12</code> y sigue vacío: saca
+            <code>A</code>/<code>B</code> del <code>MAX3485 U2</code>. Un módulo <code>MAX485</code>
+            de mostrador convertía a TTL y de ahí al módulo. Ventaja: podía quedar lejos, y el par es
+            diferencial.</p>
+          <p><b>Hoy es inviable sin deshacer el trabajo del 28/08:</b> exigiría devolver
+            <code>SerialBT</code> a los pines viejos <b>y</b> arreglar el <code>DE/~RE</code>.
+            <code>bluetooth_setup()</code> dejaba <code>PA8</code> clavado en alto, lo que mantenía el
+            transmisor de <code>U2</code> permanentemente tomado: saldría la telemetría, pero <b>los
+            comandos no entrarían nunca</b> —el mismo síntoma del repetidor del 31/07—.</p>
+          <p class="pin">p1 <code>A</code> · p2 <code>B</code> · <code>R6</code> 120 Ω y
+            <code>R7</code>/<code>R8</code> 4,7 kΩ ya en la placa · U1 pin 29 <code>PA8</code> DE/~RE</p>
+        </div>
+      </div>
+
+      <div class="borne no">
+        <span class="chip mudo">U2</span>
+        <div class="cuerpo">
+          <h3>Vía C histórica · soldadura directa <span class="marca decidir">descartada</span></h3>
+          <p>Dos hilos finos a las patas del <code>MAX3485 U2</code>, que es <b>SOIC-8 de paso
+            1,27 mm</b>. <b>Inviable tal cual con el firmware de hoy:</b> apunta a
+            <code>PA9</code>/<code>PA10</code>, y el <code>USART1</code> ya no está ahí. Seguirla
+            exigiría <b>revertir <code>SerialBT</code> a <code>(PA10, PA9)</code></b> en las dos
+            puntas y volver a pasar la compuerta. Y esos dos pines, además, ya no los reclama nadie
+            más: <code>protocolo_setup()</code> dejó de abrir <code>AiBus</code> sobre ellos.</p>
+          <p class="pin">pin 1 <code>RO</code> = <code>PA10</code> · pin 4 <code>DI</code> =
+            <code>PA9</code> · pin 5 <code>GND</code> — <b>solo con el firmware revertido</b></p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="aviso">
+      <strong>Alimentación: si el módulo es un ESP32, NO lo cuelgue del <code>3,3 V</code> de <code>J17</code></strong>
+      <p>Con WiFi activo un ESP32 da picos de <b>~500 mA</b>. A esa corriente el <code>LM7805</code>
+        disiparía <code>(12 − 5) × 0,5 = 3,5 W</code> y <b>se quema sin disipador</b>; y si el riel de
+        3,3 V se hunde, <b>se reinicia el STM32 que está gobernando el semáforo</b>.</p>
+      <p><b>La regla, y es la que decide qué se hace con <code>J17</code> p6:</b></p>
+      <p>· <b>Módulo de bajo consumo</b> (un <code>HC-05</code> / <code>HC-06</code> tira decenas de
+        mA): puede alimentarse de <code>J17</code> p6, y entonces los cuatro hilos de la tabla van
+        tal cual.</p>
+      <p>· <b>ESP32 con WiFi</b>: <b>fuente propia desde los 12 V</b>, <b>p6 se deja sin conectar</b>
+        y solo se llevan los dos hilos de datos más la <b>masa común</b> por p7. Masa común sí;
+        alimentación compartida no.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">04</span> Los pines, uno a uno</h2>
+    <p class="nota">Numeración del <code>STM32F103C8T6</code> (<code>U1</code>), trazada red por red
+      sobre el esquemático KiCad el 28/08. Las dos tarjetas son iguales.</p>
+    <p class="nota"><b>Todo lo de esta tabla está MEDIDO EN EL ESQUEMÁTICO. Nada está VERIFICADO EN
+      LA PLACA</b> —ni una sola de estas redes se ha comprobado con multímetro sobre el cobre—. Esa
+      es una de las cosas que hace esta sesión, y por eso las pruebas de continuidad van
+      <b>antes</b> de conectar nada.</p>
+
+    <div class="tabla-envoltorio">
+      <table>
+        <thead>
+          <tr><th>Qué</th><th>Pin U1</th><th>Señal</th><th>Recorrido en la placa</th><th>Borne</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>📷 Cámara de demanda</td><td class="num">18</td><td><code>PB0</code></td>
+            <td><code>R64</code> 10 k a masa + <code>C25</code> 100 nF (filtro 1 ms). La señal sale
+              <b>junto a 3,3 V</b>: los dos hilos aquí</td>
+            <td><code>J14</code></td>
+          </tr>
+          <tr>
+            <td>🚧 Barrera / talanquera</td><td class="num">20</td><td><code>PB2</code></td>
+            <td><code>R70</code> 220 + <code>R69</code> 10 k → opto <code>U15</code> →
+              <code>Q10</code>. MOSFET conmuta <b>a masa</b> hasta 10 A; +12 V al otro borne</td>
+            <td><code>J15</code></td>
+          </tr>
+          <tr>
+            <td>📻 Radio LoRa</td><td class="num">21 · 22</td><td><code>PB10</code> <code>PB11</code></td>
+            <td>USART3 → <code>MAX3485 U3</code></td>
+            <td><code>J12</code></td>
+          </tr>
+          <tr>
+            <td>📻 &nbsp;&nbsp;— control</td><td class="num">25</td><td><code>PB12</code></td>
+            <td>DE/~RE de <code>U3</code></td>
+            <td>ya en servicio</td>
+          </tr>
+          <tr>
+            <td>📱 <b>Bluetooth · TX</b></td><td class="num">42</td><td><code>PB6</code></td>
+            <td><b><code>USART1</code> remapeado — es donde está hoy.</b> Sale del micro y entra en
+              el <code>RXD</code> del módulo. 9600 8N1</td>
+            <td><code>J17</code> p3</td>
+          </tr>
+          <tr>
+            <td>📱 &nbsp;&nbsp;— <b>RX</b></td><td class="num">43</td><td><code>PB7</code></td>
+            <td>Entra en el micro desde el <code>TXD</code> del módulo. Antes era el <em>reset</em>
+              de la pantalla, que ya no está</td>
+            <td><code>J17</code> p2</td>
+          </tr>
+          <tr>
+            <td>📱 &nbsp;&nbsp;— alimentación</td><td class="num">—</td><td>—</td>
+            <td><code>3,3 V</code> y <code>GND</code> del propio conector. Con un ESP32, p6 <b>no se
+              usa</b>: fuente propia y solo masa común</td>
+            <td><code>J17</code> p6 · p7</td>
+          </tr>
+          <tr>
+            <td>⛔ <s><code>USART1</code> antiguo</s></td><td class="num">30 · 31</td><td><code>PA9</code> <code>PA10</code></td>
+            <td><b>Ya no llevan el puerto serie.</b> Iban a <code>DI</code>/<code>RO</code> de
+              <code>U2</code>. Volver aquí exigiría revertir <code>SerialBT</code> a
+              <code>(PA10, PA9)</code>. <code>protocolo_setup()</code> tampoco abre ya
+              <code>AiBus</code> sobre ellos</td>
+            <td>vía C histórica</td>
+          </tr>
+          <tr>
+            <td>⛔ <s>desacoplo <code>U2</code></s></td><td class="num">29</td><td><code>PA8</code></td>
+            <td>DE/~RE de <code>U2</code>, clavado en alto. Solo importaba para la vía B, que está
+              descartada</td>
+            <td><code>J10</code> · sin uso</td>
+          </tr>
+          <tr>
+            <td>🕐 Reloj <code>DS3231</code></td><td class="num">40 · 39</td><td><code>PB4</code> <code>PB3</code></td>
+            <td><code>SDA</code> y <code>SCL</code> <b>si se monta el reloj</b>.
+              <b>El firmware NO tiene driver</b>: no hay <code>Wire.begin()</code> ni código I²C.
+              Y <code>lcd_setup()</code> sigue configurándolos como SPI de la pantalla</td>
+            <td><code>J17</code> p1 · p4</td>
+          </tr>
+          <tr>
+            <td>🖥 <s>Pantalla ST7920</s></td><td class="num">39 · 40 · 41</td><td><code>PB3</code> <code>PB4</code> <code>PB5</code></td>
+            <td><b>Retirada el 28/08.</b> Era SPI por software: SCLK, CS, SID. <code>lcd.cpp</code>
+              sigue compilado y sigue moviendo estos tres pines</td>
+            <td><code>J17</code> p4 · p1 · p5</td>
+          </tr>
+          <tr>
+            <td>⚡ <b>12 V — no es señal</b></td><td class="num">—</td><td>—</td>
+            <td><b>Posición 1 de <code>J16</code> lleva 12 V.</b> Ningún pin del micro llega ahí.
+              Es el conector que NO hay que confundir con <code>J17</code></td>
+            <td><code>J16</code></td>
+          </tr>
+          <tr>
+            <td>🚦 Ocho luces</td><td class="num">10–17</td><td><code>PA0</code>–<code>PA7</code></td>
+            <td>opto <code>TLP127</code> → MOSFET <code>IRLZ44N</code></td>
+            <td><code>J3</code>–<code>J9</code>, <code>J11</code></td>
+          </tr>
+          <tr>
+            <td>🔊 Zumbador</td><td class="num">19</td><td><code>PB1</code></td>
+            <td>opto <code>U13</code> → <code>Q8</code></td>
+            <td><code>J13</code></td>
+          </tr>
+          <tr>
+            <td>❌ No es entrada de cámara</td><td class="num">45</td><td><code>PB8</code></td>
+            <td><code>R16</code> 1 k → LED testigo <code>D5</code></td>
+            <td>sin borne</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="aviso bien">
+      <strong>Las borneras de potencia no sirven para señal, y conectarlas quema el módulo</strong>
+      <p>Se preguntó en obra si el módulo podía entrar por <code>J3</code>, <code>J4</code>,
+        <code>J5</code> o <code>J7</code>. <b>No.</b> Cada una de esas lleva siempre lo mismo: un borne
+        a <code>12 V</code> y el otro al drenador del MOSFET. <b>Ningún pin del micro llega ahí</b>, y
+        quitar el MOSFET no lo haría aparecer: entre el GPIO y la bornera hay un optoacoplador
+        <code>TLP127</code>, que aísla galvánicamente. Además <code>PA0</code>–<code>PA7</code> son
+        las ocho luces: gastar una en telemetría es apagar una luz.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">05</span> Lo que se lleva al banco, y cómo se carga</h2>
+    <p class="nota">Sin esto la sesión no arranca. Va aquí porque hasta hoy vivía repartido entre el
+      <code>platformio.ini</code> —que no está en la carpeta del funcional— y el Manual 10.</p>
+
+    <div class="aviso">
+      <strong>El firmware de esta entrega es POSTERIOR a <code>614065d</code>, y todavía sin commitear</strong>
+      <p>El remapeo del <code>USART1</code> a <code>PB6</code>/<code>PB7</code> está <b>en el árbol de
+        trabajo, no en el histórico</b>. Quien vuelva a <code>614065d</code> y recompile obtiene
+        <code>SerialBT</code> en <code>PA9</code>/<code>PA10</code> y <b>cero tramas por
+        <code>J17</code></b>: parecería una avería de cableado y no lo sería.</p>
+      <p><b>Se identifica por el <code>md5</code> del binario, no por el tamaño</b> —dos binarios del
+        mismo tamaño pueden ser el mismo fichero o no serlo—. Los del árbol con el que se hizo esta
+        guía:</p>
+      <div class="tabla-envoltorio" style="margin:.6rem 0">
+        <table>
+          <thead><tr><th>Binario</th><th>Bytes</th><th><code>md5</code></th></tr></thead>
+          <tbody>
+            <tr><td>Maestro <code>firmware.bin</code></td><td class="num">56.580</td><td><code>a4d6743896b7f535deac159d6bb29156</code></td></tr>
+            <tr><td>Esclavo <code>firmware.bin</code></td><td class="num">42.192</td><td><code>a9d6c393d4f16fc0f52c45ff8ab08575</code></td></tr>
+            <tr><td>App Android <code>.apk</code></td><td class="num">3.838.474</td><td><code>06af63a1f75b532d4ec385584b667566</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><b>Hueco a rellenar cuando se commitee el firmware:</b> commit
+        <code>____________</code> · fecha <code>__________</code>. Hasta entonces esta guía <b>no
+        puede dar un hash</b>, y no se inventa uno.</p>
+    </div>
+
+    <div class="bornes">
+
+      <div class="borne via">
+        <span class="chip">J2</span>
+        <div class="cuerpo">
+          <h3>El conector SWD, por donde entra el ST-LINK</h3>
+          <p>PinHeader de <b>1×04</b>. Es el único sitio por el que se carga firmware en esta
+            tarjeta.</p>
+          <p class="pin">p1 <code>GND</code> · p2 <code>PA14</code> = <code>SWCLK</code> · p3
+            <code>PA13</code> = <code>SWDIO</code> · p4 <code>3,3 V</code> — MEDIDO EN EL
+            ESQUEMÁTICO, sin verificar sobre el cobre</p>
+          <p><b>Se orienta como <code>J17</code>: midiendo.</b> La posición de masa y la de 3,3 V se
+            localizan con el multímetro y desde ahí se numera. Un ST-LINK con <code>SWCLK</code> y
+            <code>SWDIO</code> cruzados no daña nada, pero tampoco engancha.</p>
+        </div>
+      </div>
+
+      <div class="borne via">
+        <span class="chip">Cargar</span>
+        <div class="cuerpo">
+          <h3>El comando completo, tal cual</h3>
+          <p>Sale del <code>upload_command</code> de <code>platformio.ini</code>, idéntico en las dos
+            puntas:</p>
+          <div class="diagrama" style="margin:.5rem 0">
+<pre>"C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin\STM32_Programmer_CLI.exe" \
+    --connect port=swd mode=UR -e all --write firmware.bin -rst</pre>
+          </div>
+          <p><b><code>mode=UR</code> y <code>-e all</code>, y no se cambian.</b>
+            <code>HOTPLUG</code> se engancha al micro en marcha: con un firmware que se cuelga al
+            arrancar, el watchdog reinicia cada 4 s en mitad del borrado y sale
+            <code>failed to erase memory</code>. <b>El delator es
+            <code>NVM size: 128 KBytes (default)</code></b> en un chip de 64 KB.</p>
+          <p><b>Si <code>UR</code> falla, se reintenta — no se cambia el modo.</b> Enganchar es
+            cuestión de <i>timing</i> y puede fallar varias veces con
+            <code>Unable to get core ID</code>. Eso <b>no</b> es falta de cableado.</p>
+          <p class="pin">se carga el <code>firmware.bin</code> del Maestro en la tarjeta del Maestro y
+            el del Esclavo en la del Esclavo — <b>no son intercambiables</b></p>
+        </div>
+      </div>
+
+      <div class="borne via">
+        <span class="chip">AT+NAME</span>
+        <div class="cuerpo">
+          <h3>Nombrar el módulo <b>antes</b> de instalarlo <span class="marca medir">obligatorio</span></h3>
+          <p>Dos cruces vecinos ponen <b>cuatro</b> módulos al alcance del mismo teléfono. Sin
+            nombrar, los dos de un cruce salen en la lista de Android como <b>dos <code>HC-05</code>
+            idénticos</b>, distinguibles solo por MAC. Conectarse al del poste equivocado y mandar un
+            <b>ROJO DE EMERGENCIA</b> es exactamente el error que esto evita.</p>
+          <div class="diagrama" style="margin:.5rem 0">
+<pre>1. Modo AT: alimentar el modulo con el pin/boton KEY en alto.
+2. Terminal serie a 38400 bps 8N1, fin de linea CR+LF.
+3.   AT+NAME=SEM-&lt;SERIE&gt;-M     (Maestro del cruce)       -&gt; OK
+     AT+NAME=SEM-&lt;SERIE&gt;-E     (Esclavo del mismo cruce) -&gt; OK
+     AT+UART=9600,0,0          (deja el modo datos a 9600 8N1)
+4. Anotar tambien la MAC de cada modulo.</pre>
+          </div>
+          <p><b>Las dos velocidades son distintas y confundirlas cuesta una hora:</b> <b>38400</b> en
+            <b>modo AT</b> (configuración, antes de instalar) y <b>9600</b> en <b>modo datos</b>
+            (operación, ya en el poste). El <code>9600</code> no se elige: <b>lo impone el
+            firmware</b>. Y el aviso que de verdad importa: <b>el síntoma de estar en el modo
+            equivocado es idéntico al de un cable cruzado</b> —silencio o basura—, así que la
+            velocidad se descarta antes de tocar un hilo.</p>
+        </div>
+      </div>
+
+      <div class="borne via">
+        <span class="chip">USB-TTL</span>
+        <div class="cuerpo">
+          <h3>El adaptador que falta en la lista de compras <span class="marca medir">llevarlo</span></h3>
+          <p><b>Hace falta un adaptador USB-TTL de 3,3 V</b> y hoy <b>no está en la lista de
+            compras</b>. Sin él no hay <code>AT+NAME</code>, y sin <code>AT+NAME</code> no se debe
+            instalar. Sirve para las dos cosas de este apartado.</p>
+          <p><b>Y rompe la dependencia circular del <code>&lt;SERIE&gt;</code>.</b> El nombre necesita
+            la serie del equipo; la serie sale de la trama <code>$STATUS</code>; y
+            <code>$STATUS</code> parecía exigir el módulo ya instalado. <b>No lo exige:</b> el
+            firmware emite <code>$STATUS</code> por el <code>USART1</code> pase lo que pase, así que
+            <b>el adaptador USB-TTL enchufado directamente a <code>J17</code></b> —su
+            <code>RX</code> a p3 (<code>PB6</code>), su <code>TX</code> a p2 (<code>PB7</code>), masa
+            a p7— <b>y un terminal a 9600 8N1</b> muestra las tramas <b>sin ningún módulo
+            Bluetooth de por medio</b>. La serie son los seis hexadecimales del campo
+            <code>SERIE:</code>.</p>
+          <p class="pin">ejemplo de trama:
+            <code>$STATUS,NODE:MAESTRO,SERIE:A3F19C,...</code> → <code>&lt;SERIE&gt;</code> =
+            <code>A3F19C</code> → nombres <code>SEM-A3F19C-M</code> y <code>SEM-A3F19C-E</code></p>
+          <p><b>De dónde sale esa serie, para saber que es estable:</b> el firmware la deriva del
+            <b>UID de silicio del propio STM32</b> (<code>identidad.cpp</code>), que es de solo
+            lectura. No cambia al recargar firmware, y es distinta en cada tarjeta.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">06</span> Las preguntas, con su respuesta</h2>
+    <p class="nota">En este orden, y cada una dice <b>qué se espera</b>: así se distingue bien de mal
+      sin llamar a nadie. Si la 1 no cumple, se para — cada carga es un SWD con sus reintentos y no se
+      gastan a ciegas. Las de barra naranja son de multímetro puro y se contestan <b>antes</b>
+      de conectar cable de campo.</p>
+
+    <ol class="pruebas">
+
+      <li><b>¿Arranca y ciclan las luces?</b>
+        <p>Cargar con el comando del apartado 05. Si <code>UR</code> falla, se reintenta: no se
+          cambia de modo.</p>
+        <p class="espera"><b>Esperado:</b> enciende y <b>las luces alternan</b>.
+          <b>Sin pantalla, las luces son el único testigo de que arrancó</b>: si no se mueven, no
+          se sabe todavía si es que no arranca o si es que no cicla — eso lo separa la prueba 2.</p>
+        <p class="espera"><b>Si hay dudas de si el micro vive:</b> el adaptador USB-TTL en
+          <code>J17</code> a 9600 (apartado 05) enseña las tramas <code>$STATUS</code>. Un equipo
+          que emite <code>$STATUS</code> está arrancado, tenga las luces como las tenga.</p>
+        <div class="veredicto">
+          <label class="si"><input type="radio" name="p1" value="si"> Cumple</label>
+          <label class="no"><input type="radio" name="p1" value="no"> No cumple</label>
+        </div>
+        <textarea id="t1" placeholder="Qué pasó · mensaje de error si lo hubo"></textarea></li>
+
+      <li><b>¿El Modo Automático mueve las luces?</b>
+        <p>Es la avería abierta: con radios enlazadas y botones sanos, el ciclo no encendía las luces.</p>
+        <p class="espera"><b>Esperado:</b> entra en automático y alterna respetando el todo-rojo. Si
+          no, anotar <b>en qué estado se quedan las luces</b> —qué color queda fijo en cada punta— y
+          <b>qué dice el campo <code>ESTADO:</code> de la trama <code>$STATUS</code></b>.</p>
+        <p class="espera"><b>Sin pantalla, el <code>$STATUS</code> sustituye a lo que antes se leía
+          en el display</b>, y dice más: <code>MODO:</code>, <code>ESTADO:</code> y
+          <code>RF:</code>. Se lee por la app, o por el adaptador USB-TTL en <code>J17</code> a 9600
+          si la app todavía no está funcionando.</p>
+        <div class="veredicto">
+          <label class="si"><input type="radio" name="p2" value="si"> Cumple</label>
+          <label class="no"><input type="radio" name="p2" value="no"> No cumple</label>
+        </div>
+        <textarea id="t2" placeholder="Que color queda fijo en cada punta · MODO: ____ ESTADO: ____ RF: ____"></textarea></li>
+
+      <li class="clave"><b>¿Cuánto tarda en irse a ámbar al cortar la radio?</b>
+        <p><b>Valida el único cambio de comportamiento de la entrega anterior.</b> En campo se reportó
+          que el cruce se va a Modo Degradado <i>«cada nada cuando llueve»</i>. Al medir el código
+          apareció que el equipo se rendía a los <b>12 s</b> mientras el propio firmware necesita hasta
+          <b>20,5 s</b> para agotar sus cinco reintentos: <b>los dos últimos no se ejecutaban
+          nunca</b>. El umbral pasó a <b>25 s</b>.</p>
+        <p><b>Cómo se mide:</b> con las dos puntas enlazadas y ciclando, <b>quitar la alimentación
+          de la radio del Esclavo</b> (o desconectar su antena) y <b>cronometrar</b> desde ese
+          instante hasta que el Maestro empieza a parpadear en ámbar. Repetir <b>tres veces</b> y
+          anotar los tres tiempos: uno solo no distingue un cambio real de una casualidad.</p>
+        <p class="espera"><b>Esperado:</b> entre <b>23 y 28 s</b>, las tres veces. <b>Si sale cerca
+          de 12 s, el firmware cargado no es este</b> — comprobar el hash antes de seguir. Si sale
+          por encima de 30 s, parar y avisar.</p>
+        <p class="espera"><b>Y la segunda mitad, que es la que de verdad importa:</b> volver a dar
+          alimentación a la radio y comprobar que el cruce <b>reengancha solo</b>, sin tocar nada.
+          Debe entrar en todo-rojo de despeje y reanudar. Anotar cuánto tarda.</p>
+        <div class="veredicto">
+          <label class="si"><input type="radio" name="p10" value="si"> Cumple</label>
+          <label class="no"><input type="radio" name="p10" value="no"> No cumple</label>
+        </div>
+        <textarea id="t11" placeholder="Corte 1 = ____ s · Corte 2 = ____ s · Corte 3 = ____ s · reenganche = ____ s"></textarea></li>
+
+      <li class="clave"><b>¿Cuál de los dos conectores es <code>J17</code>, y dónde está su posición 1?</b>
+        <p><b>Va antes de enchufar nada, y si no se puede contestar no se enchufa.</b>
+          <code>J16</code> lleva <b>12 V</b> en su posición 1: confundirlo con <code>J17</code>
+          quema el módulo. Y el conector <b>no se puede orientar contando huecos</b> —el símbolo del
+          esquemático tiene <b>13</b> posiciones y el footprint <b>16</b>—, ni hay foto ni pad
+          cuadrado de referencia en esta guía.</p>
+        <p class="espera"><b>Cómo:</b> equipo <b>encendido</b>, multímetro en continua, punta negra
+          en una masa conocida del chasis. (a) Medir la posición 1 de cada uno de los dos
+          conectores. (b) En el que <b>no</b> dé 12 V, recorrer todas las posiciones anotando cuáles
+          dan <b>3,3 V</b> y cuáles <b>0 V</b>.</p>
+        <p class="espera"><b>Esperado:</b> uno de los dos da <b>≈12 V</b> en su posición 1 — <b>ese
+          es <code>J16</code> y se deja en paz</b>. El otro es <code>J17</code>: <b>ninguna de sus
+          posiciones da 12 V</b>, y las de 3,3 V y masa son las que fijan la numeración —según el
+          esquemático, <b>3,3 V en p6 y p8</b>, <b>masa en p7 y p9</b>—.</p>
+        <p class="espera"><b>Si aparecen 12 V en el conector que se creía <code>J17</code>, o si el
+          patrón de 3,3 V y masa no cae donde dice el esquemático: parar y avisar.</b> Significaría
+          que la placa fabricada no es el plano, y toda la tabla del apartado 04 quedaría en duda.</p>
+        <div class="veredicto">
+          <label class="si"><input type="radio" name="p20" value="si"> Identificado y coincide</label>
+          <label class="no"><input type="radio" name="p20" value="no"> No coincide · parado</label>
+        </div>
+        <textarea id="t20" placeholder="J16 pos.1 = ____ V · J17: posiciones con 3,3 V = ____ · con masa = ____ · alguna con 12 V? ____"></textarea></li>
+
+      <li class="clave"><b>¿Está bien puesto el cableado del módulo en <code>J17</code>?</b>
+        <p>Se contesta <b>después</b> de la prueba 4 y <b>antes</b> de dar tensión al módulo. Son
+          dos medidas y dos continuidades.</p>
+        <p class="espera"><b>Tensión</b> —equipo encendido, módulo <b>desconectado</b>—: p6 contra
+          p7. <b>Esperado: 3,3 V ± 0,2</b>. Si sale por encima de 4 V o hay 12 V en cualquier
+          posición, <b>parar</b>.</p>
+        <p class="espera"><b>Continuidad</b> —equipo <b>apagado</b>—: (a) p3 de <code>J17</code>
+          contra el <b>pin 42</b> del <code>U1</code> (<code>PB6</code>); (b) p2 contra el <b>pin
+          43</b> (<code>PB7</code>). <b>Esperado: las dos pitan.</b> Si pitan cruzadas —p2 con 42 y
+          p3 con 43— <b>no se quema nada</b>, pero los hilos de datos van al revés y no comunicará:
+          se anota y se intercambian.</p>
+        <p class="espera"><b>Y el cruce, que es lo que más se equivoca:</b> p2
+          (<code>PB7</code>, RX del micro) va al <b><code>TXD</code></b> del módulo; p3
+          (<code>PB6</code>, TX del micro) va al <b><code>RXD</code></b>. <b>No van
+          rectos.</b></p>
+        <div class="veredicto">
+          <label class="si"><input type="radio" name="p21" value="si"> Todo como se esperaba</label>
+          <label class="no"><input type="radio" name="p21" value="no"> Algo distinto</label>
+        </div>
+        <textarea id="t21" placeholder="J17 p6-p7 = ____ V · p3 vs pin 42: pita si/no · p2 vs pin 43: pita si/no · cruce de datos comprobado si/no"></textarea></li>
+
+      <li class="clave"><b>¿Qué hay en los dos bornes de <code>J14</code>?</b>
+        <p>Multímetro en continua, equipo encendido, sin nada conectado a la bornera.</p>
+        <p class="espera"><b>Esperado:</b> un borne a <b>3,3 V</b> y el otro cerca de <b>0 V</b>.
+          <b>Si los dos dan 0 V, parar y avisar</b>: el firmware quedaría leyendo al revés.</p>
+        <div class="veredicto">
+          <label class="si"><input type="radio" name="p3" value="si"> Como se esperaba</label>
+          <label class="no"><input type="radio" name="p3" value="no"> Distinto</label>
+        </div>
+        <textarea id="t3" placeholder="Borne 1 = ____ V · Borne 2 = ____ V"></textarea></li>
+
+      <li class="clave"><b>¿<code>J15</code> conmuta con la luz?</b>
+        <p>Multímetro entre los dos bornes de <code>J15</code> —o un LED con su resistencia— mientras
+          el semáforo cambia de estado.</p>
+        <p class="espera"><b>Esperado:</b> conduce en <b>verde</b> y en el ámbar intermitente de fallo
+          de enlace; corta en rojo, ámbar de transición y todo-rojo.</p>
+        <div class="veredicto">
+          <label class="si"><input type="radio" name="p4" value="si"> Cumple</label>
+          <label class="no"><input type="radio" name="p4" value="no"> No cumple</label>
+        </div>
+        <textarea id="t4" placeholder="Qué se midió en cada estado"></textarea></li>
+
+      <li class="clave"><b>¿Coincide <code>J12</code> con el chip de la radio, y <code>J10</code> con el otro?</b>
+        <p><b>Es la comprobación que cierra la corrección de esta revisión.</b> El esquemático dice
+          una cosa y los manuales decían la contraria; hay que ver cuál describe la placa fabricada.
+          Equipo apagado, multímetro en continuidad.</p>
+        <p class="espera"><b>Cómo:</b> (a) continuidad entre los dos bornes de <code>J12</code> y las
+          patas <b>6</b> y <b>7</b> del <code>MAX3485</code> que esté rotulado <code>U3</code>;
+          (b) lo mismo entre <code>J10</code> y las patas 6 y 7 de <code>U2</code>; (c) continuidad
+          entre la pata <b>1</b> de <code>U2</code> y el <b>pin 31</b> del micro.</p>
+        <p class="espera"><b>Esperado:</b> las tres pitan. <b>Si <code>J10</code> pita contra el chip
+          de la radio</b>, la placa fabricada no es el esquemático: parar y avisar antes de conectar
+          nada, porque entonces la vía B entraría en el enlace entre postes.</p>
+        <div class="veredicto">
+          <label class="si"><input type="radio" name="p11" value="si"> Coincide con el esquemático</label>
+          <label class="no"><input type="radio" name="p11" value="no"> No coincide</label>
+        </div>
+        <textarea id="t12" placeholder="J12 -> U3 si/no · J10 -> U2 si/no · U2 pata 1 -> pin 31 si/no"></textarea></li>
+
+      <li class="clave"><b>¿Qué módulo es realmente el que hay en la caja?</b>
+        <p><b>De esto depende si la app de Android sirve tal cual o hay que rehacerla.</b> El
+          módulo <b>vigente es un SPP dedicado —<code>HC-05</code> o <code>JDY-30</code>—</b>, que es
+          lo que pide la lista de compras y con lo que la app funciona sin tocar nada. El
+          <b><code>ESP32</code> quedó como alternativa</b>, no como sustituto, y el 28/08 llegaron a
+          obra unos cuantos: por eso esta prueba sigue haciendo falta.</p>
+        <p class="espera"><b>Cómo, según lo que se tenga en la mano:</b> (a) <b>Si es un
+          <code>HC-05</code>/<code>JDY-30</code></b> —placa pequeña, botón o pin <code>KEY</code>,
+          seis pines rotulados <code>VCC GND TXD RXD KEY STATE</code>—: <b>no hay nada que
+          averiguar, hay SPP</b>. <b><code>esptool</code> no sirve contra un
+          <code>HC-05</code></b> y no se intenta. (b) <b>Si es un ESP32</b>: leer la serigrafía
+          <b>del blindaje metálico</b> y confirmarla por USB con
+          <code>esptool.py --port COM# chip_id</code> —ya viene con PlatformIO—.</p>
+        <p class="espera"><b>Esperado:</b> <code>HC-05</code>/<code>JDY-30</code>, o un ESP32 que
+          diga <code>ESP32-WROOM-32</code> / <code>-32D</code> / <code>-32E</code>: en los dos casos
+          <b>hay SPP</b> y la app funciona sin tocarla. Si dice <code>ESP32-S3</code> o
+          <code>ESP32-C3</code>, <b>solo hay BLE</b> y
+          <code>createRfcommSocketToServiceRecord</code> no conecta: hay que decidir entre servir la
+          app por WiFi o rehacer el puente nativo de Android. <b>La etiqueta comercial «WiFi + BT ·
+          ISM 2.4G · 802.11» no distingue</b> — sale igual en los tres ESP32. <b>Anotar la cadena
+          exacta.</b></p>
+        <div class="veredicto">
+          <label class="si"><input type="radio" name="p13" value="hc05"> Es <code>HC-05</code>/<code>JDY-30</code> · hay SPP · no aplica <code>esptool</code></label>
+          <label class="si"><input type="radio" name="p13" value="si"> ESP32 clásico · hay SPP</label>
+          <label class="no"><input type="radio" name="p13" value="no"> S3 o C3 · solo BLE</label>
+        </div>
+        <textarea id="t14" placeholder="Que modulo es · rotulos de sus pines · serigrafia del blindaje si es ESP32: ______ · salida de chip_id: ______"></textarea></li>
+
+      <li class="clave"><b>Los cuatro botones, ¿cierran contra masa o contra 3,3 V?</b>
+        <p>Treinta segundos, y sale de una duda real: al leer el conector aparecen los botones
+          alternando con <code>3,3 V</code>, pero el firmware los lee <b>activos en bajo</b>
+          —contacto a masa—. Lo más probable es que sea un error de lectura del
+          plano, porque <b>los botones funcionan</b>; pero si no lo es, es el mismo defecto de
+          polaridad que tenía la cámara.</p>
+        <p class="espera"><b>Cómo:</b> equipo apagado, continuidad entre cada vía de
+          botón y masa, con el botón pulsado y sin pulsar.
+          <b>Esperado:</b> pita con el botón <b>pulsado</b>.</p>
+        <div class="veredicto">
+          <label class="si"><input type="radio" name="p9" value="si"> Cierran a masa</label>
+          <label class="no"><input type="radio" name="p9" value="no"> Cierran a 3,3 V</label>
+        </div>
+        <textarea id="t10" placeholder="Que se midio en cada boton"></textarea></li>
+
+      <li><b>¿La cámara pide paso, y solo cuando debe?</b>
+        <p>Un pulsador entre los <b>dos bornes de <code>J14</code></b> hace de contacto seco. No hace
+          falta la cámara para probarlo.</p>
+        <p class="espera"><b>Esperado:</b> con el pulsador <b>suelto NO hay demanda</b> —si el
+          semáforo pide paso solo, el pin lee al revés— y al cerrarlo, ese poste pide y el Maestro
+          concede tras el todo-rojo.</p>
+        <div class="veredicto">
+          <label class="si"><input type="radio" name="p6" value="si"> Cumple</label>
+          <label class="no"><input type="radio" name="p6" value="no"> No cumple</label>
+        </div>
+        <textarea id="t6" placeholder="Qué hace en reposo · al cerrar · cuánto tarda en conceder"></textarea></li>
+
+      <li><b>¿Funciona la app contra el equipo?</b>
+        <p>Solo si la <b>prueba 9</b> dijo que hay SPP, y con las pruebas 4 y 5 ya contestadas.
+          Emparejar en Ajustes de Android (PIN <code>1234</code> o <code>0000</code>) y abrir la
+          app. <b>Si no llega nada, no se improvisa: se sigue el árbol del apartado 07.</b></p>
+        <p class="espera"><b>Esperado:</b> telemetría <b>cada segundo</b>, el reloj con la hora
+          completa, un comando con PIN que se ejecuta, y el <b>ROJO DE EMERGENCIA respondiendo sin
+          pedir PIN</b>. Desde el Esclavo, probar <b>Solicitar paso</b>.</p>
+        <p class="espera"><b>Y una que no se debe saltar:</b> con el equipo <b>apagado</b>, comprobar
+          que la app <b>dice que no hay enlace</b> y se queda quieta. Una pantalla que anima un cruce
+          sin datos le miente a quien decide sobre el tráfico mirándola.</p>
+        <div class="veredicto">
+          <label class="si"><input type="radio" name="p7" value="si"> Cumple</label>
+          <label class="no"><input type="radio" name="p7" value="no"> No cumple</label>
+        </div>
+        <textarea id="t7" placeholder="Qué llegó · qué comando se probó · qué falló · qué hace sin enlace"></textarea></li>
+
+      <li class="clave"><b>¿Con qué nombre y qué MAC sale cada módulo en la lista de Android?</b>
+        <p>Es la comprobación de que el <code>AT+NAME</code> del apartado 05 se hizo <b>y se hizo en
+          el módulo correcto</b>. Dos cruces vecinos ponen cuatro módulos al alcance del mismo
+          teléfono; el nombre es lo único que impide mandar un <b>ROJO DE EMERGENCIA</b> al poste
+          equivocado.</p>
+        <p class="espera"><b>Esperado:</b> <code>SEM-&lt;SERIE&gt;-M</code> en el Maestro y
+          <code>SEM-&lt;SERIE&gt;-E</code> en el Esclavo del <b>mismo</b> cruce, con la <b>misma</b>
+          serie de seis hexadecimales. <b>Si los dos llevan series distintas</b>, uno de los dos
+          nombres se puso con la serie del otro equipo: se rehace.</p>
+        <p class="espera"><b>Anotar también la MAC de cada uno</b>: es lo que identifica al módulo
+          si alguien vuelve a renombrarlo, y lo que permite reconocerlo aunque el nombre no se haya
+          refrescado en el teléfono.</p>
+        <div class="veredicto">
+          <label class="si"><input type="radio" name="p22" value="si"> Nombrados y coinciden</label>
+          <label class="no"><input type="radio" name="p22" value="no"> No · anotado abajo</label>
+        </div>
+        <textarea id="t22" placeholder="Maestro: nombre ____________ MAC __:__:__:__:__:__ · Esclavo: nombre ____________ MAC __:__:__:__:__:__"></textarea></li>
+
+      <li class="clave"><b>¿En qué tarjeta está muerto el cristal del reloj?</b>
+        <p>Poner la hora en cada equipo, apagar, esperar un minuto y volver a encender.</p>
+        <p class="espera"><b>Sin pantalla, esta prueba depende de que la app funcione</b> (prueba
+          12) <b>o del adaptador USB-TTL</b> del apartado 05: la hora se lee en el campo
+          <code>HORA:</code> de la trama <code>$STATUS</code>, y se pone con el comando de la app.
+          <b>Si la prueba 12 no cumple, esta no se puede contestar y se anota como pendiente</b> —
+          no como fallo del reloj.</p>
+        <p class="espera"><b>Esperado:</b> el sano <b>conserva la hora</b>; el averiado la pierde —
+          vuelve a una hora por defecto o el campo <code>HORA:</code> sale inválido. De esto depende
+          comprar un reloj externo — <b>o no comprar nada</b>, si el muerto es el del Esclavo, que
+          toma la hora del Maestro por radio.</p>
+        <div class="veredicto">
+          <label class="si"><input type="radio" name="p8" value="si"> Los dos conservan la hora</label>
+          <label class="no"><input type="radio" name="p8" value="no"> Uno la pierde</label>
+        </div>
+        <textarea id="t8" placeholder="Cual la pierde · HORA: antes de apagar ____ · HORA: al reencender ____ · o PENDIENTE si la app no funciona"></textarea></li>
+
+      <li><b>Si se monta el <code>DS3231</code>: ¿está bien puesto?</b>
+        <p><b>Solo si se decide montarlo</b>, y solo tiene sentido si la prueba 14 dijo que el
+          cristal muerto es el del <b>Maestro</b>. Se cablea a <code>J17</code>: p1
+          (<code>PB4</code>) = <code>SDA</code>, p4 (<code>PB3</code>) = <code>SCL</code>, p8
+          <code>VCC</code>, p9 <code>GND</code>; <code>32K</code> y <code>SQW</code> <b>al aire</b>.
+          El <code>ZS-042</code> ya trae sus pull-ups: no se añaden.</p>
+        <div class="aviso" style="margin:.35rem 0">
+          <strong>Que no dé la hora es LO ESPERADO — no se reporta como avería</strong>
+          <p><b>El firmware no tiene driver de <code>DS3231</code>.</b> No hay
+            <code>Wire.begin()</code> ni una sola línea de I²C. El módulo se quedará mudo y el equipo
+            seguirá sin hora. <b>Eso no es un fallo del módulo, ni del cable, ni de la tarjeta</b>, y
+            no se cambia nada buscándolo. Lo único que esta prueba comprueba es que <b>el cableado
+            quede hecho y no rompa nada</b>.</p>
+        </div>
+        <p class="espera"><b>Esperado:</b> con el módulo conectado, <b>el equipo sigue arrancando,
+          las luces siguen ciclando y las tramas <code>$STATUS</code> siguen llegando</b>. Si al
+          conectarlo el equipo deja de arrancar o de ciclar, <b>se desconecta y se anota</b>: eso sí
+          sería un hallazgo.</p>
+        <p class="espera"><b>Y una comprobación de compra:</b> si el <code>ZS-042</code> llegó con
+          una <code>CR2032</code> en vez de una <code>LIR2032</code>, hay que desoldar
+          <code>D1</code> o <code>R1</code> del módulo — lleva circuito de carga y <b>una
+          <code>CR2032</code> no es recargable</b>.</p>
+        <div class="veredicto">
+          <label class="si"><input type="radio" name="p23" value="si"> Montado · el equipo sigue igual</label>
+          <label class="no"><input type="radio" name="p23" value="no"> No se monta · no aplica</label>
+        </div>
+        <textarea id="t23" placeholder="Se monto si/no · el equipo sigue ciclando si/no · pila que traia: CR2032 / LIR2032"></textarea></li>
+
+      <li><b><s>¿Arranca la pantalla con <code>RST</code> a 3,3 V y <code>PSB</code> a masa?</s>
+        <span class="marca decidir">decae</span></b>
+        <p><b>Esta prueba DECAE y no se ejecuta.</b> Autorizaba la antigua vía A —comprobar que el
+          display sobrevivía sin pulso de reset para poder ceder <code>PB6</code>/<code>PB7</code> al
+          puerto serie—. <b>Con la pantalla retirada el 28/08 no hay display al que preguntarle</b>,
+          y el firmware ya arranca sin ese pulso: <code>lcd.cpp</code> pasa
+          <code>U8X8_PIN_NONE</code>.</p>
+        <p class="espera"><b>Se deja escrita, y no borrada, por una razón que hay que saber:</b> si
+          algún día se reinstala el display sobre este firmware, esta es la prueba que hay que
+          volver a hacer —cinco arranques seguidos, porque un reset que falla una de cada cinco es
+          peor que uno que falla siempre—.</p>
+        <p class="espera"><b>Y lo que esto significa hoy para el banco:</b> el montaje por
+          <code>J17</code> <b>no tiene repuesto</b>. Si algo de la parte serie no funcionara, las
+          vías B y C <b>no están disponibles</b> sin revertir <code>bluetooth.cpp</code> y
+          <code>lcd.cpp</code> y volver a pasar la compuerta. No es una decisión de banco.</p>
+        <div class="veredicto">
+          <label class="si"><input type="radio" name="p12" value="si"> No aplica · sin pantalla</label>
+          <label class="no"><input type="radio" name="p12" value="no"> Se instaló display y se probó</label>
+        </div>
+        <textarea id="t13" placeholder="Solo si se probo un display: cuantos arranques buenos de 5 · que se vio en los malos"></textarea></li>
+
+    </ol>
+  </section>
+
+  <section>
+    <h2><span class="n">07</span> «Conecté el Bluetooth y no llega nada»</h2>
+    <p class="nota">Es donde se va la primera hora si se improvisa. El árbol de abajo <b>separa tres
+      cosas que se confunden todo el rato</b>, y lo importante es que <b>las dos primeras se pueden
+      cumplir con el equipo entero muerto</b>.</p>
+
+    <div class="aviso">
+      <strong>Emparejar NO es comunicar. Abrir el socket TAMPOCO.</strong>
+      <p><b>1 · El módulo empareja en Android.</b> Demuestra <b>una sola cosa: que el módulo tiene
+        alimentación</b>. <b>Un <code>HC-05</code> empareja perfectamente con los dos hilos de datos
+        al aire</b>, sin tarjeta detrás, sin firmware y sin STM32. Un emparejamiento correcto
+        <b>no dice absolutamente nada</b> del equipo.</p>
+      <p><b>2 · La app abre el socket SPP.</b> Demuestra que el módulo <b>funciona</b> y que habla
+        SPP —es decir, que no es un S3 ni un C3—. <b>Sigue sin decir nada del STM32</b>: el socket
+        se abre contra el módulo, no contra la tarjeta. Un socket abierto y una pantalla vacía es
+        exactamente lo que se ve con los hilos de datos cruzados.</p>
+      <p><b>3 · Llegan tramas <code>$STATUS</code> cada segundo.</b> <b>Esto —y solo esto— demuestra
+        que el equipo habla.</b> Es el único de los tres que atraviesa el cable de datos, el
+        <code>USART1</code> y el firmware.</p>
+    </div>
+
+    <div class="diagrama">
+<pre>                 EL MODULO APARECE Y EMPAREJA EN ANDROID?
+                     |                          |
+                    NO                         SI  -&gt; solo hay alimentacion. Seguir.
+                     |
+       El modulo no tiene tension o esta en modo AT.
+       - Medir VCC-GND en el propio modulo (prueba 5).
+       - Un HC-05 en modo AT parpadea lento (~2 s) y NO empareja:
+         soltar el pin KEY y reencender.
+
+                 LA APP ABRE EL SOCKET SPP?
+                     |                          |
+                    NO                         SI  -&gt; el modulo funciona. Seguir.
+                     |
+       El modulo no habla SPP, o el PIN esta mal.
+       - Prueba 9: un ESP32-S3 o -C3 solo tiene BLE. No hay socket que abrir.
+       - PIN 1234 o 0000. Borrar el emparejamiento y rehacerlo.
+
+                 LLEGAN TRAMAS $STATUS CADA SEGUNDO?
+                     |                          |
+                    NO                         SI  -&gt; el equipo habla. FIN.
+                     |
+       AQUI ESTA EL 90% DE LOS CASOS, Y SE MIRA EN ESTE ORDEN:
+
+       (a) ES EL FIRMWARE NUEVO?  &lt;-- lo primero, siempre
+           md5 del .bin cargado vs. el del apartado 05.
+           El firmware viejo pone el USART1 en PA9/PA10:
+           todo el cableado de J17 estaria correcto y AUN ASI
+           no saldria ni una trama. Es el fallo que mas se
+           parece a un cable malo sin serlo.
+
+       (b) VELOCIDAD: el modulo esta a 9600 en modo datos?
+           38400 es la de modo AT. El sintoma de velocidad
+           equivocada es IDENTICO al de un cable cruzado:
+           silencio, o basura en pantalla. Se descarta ANTES
+           de tocar un hilo: AT+UART=9600,0,0
+
+       (c) INTERCAMBIAR LOS DOS HILOS DE DATOS
+           p2 &lt;-&gt; p3. Invertir TX/RX NO QUEMA NADA: solo
+           no comunica. Es la prueba mas barata del arbol y
+           se hace sin miedo.
+
+       (d) ALIMENTACION DEL MODULO
+           VCC-GND en el modulo, con el modulo conectado y
+           el equipo en marcha. Un ESP32 colgado del 3,3 V de
+           la tarjeta hunde el riel en cada pico de radio.
+
+       (e) SIGUE SIN LLEGAR NADA -&gt; SACAR EL MODULO DEL MEDIO
+           Adaptador USB-TTL directo a J17 a 9600 (apartado 05).
+           Si ASI llegan tramas -&gt; el fallo esta en el modulo.
+           Si asi TAMPOCO llegan  -&gt; el fallo esta en la tarjeta
+           o en el firmware. Parar y avisar con esta lectura.</pre>
+    </div>
+
+    <p class="nota"><b>El paso (e) es el que cierra el árbol</b>, y por eso está: sin él, «no llega
+      nada» se queda sin poder distinguir un módulo malo de una tarjeta mala, y se acaba cambiando
+      piezas sanas. <b>Descartar por eliminación solo vale si las opciones son exhaustivas</b> — el
+      USB-TTL es lo que las hace exhaustivas.</p>
+
+    <div class="campo" style="margin-top:.3rem">
+      <label for="t24">Hasta dónde se llegó en el árbol, y qué se midió en cada paso</label>
+      <textarea id="t24" style="min-height:5rem" placeholder="Empareja si/no · socket si/no · $STATUS si/no · md5 del .bin cargado ____ · velocidad ____ · se intercambiaron los hilos si/no · USB-TTL directo: llego algo si/no"></textarea>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">08</span> Lo que se vio y no estaba previsto</h2>
+    <p class="nota">Todo lo raro va aquí, aunque no parezca importante: un ruido, un parpadeo, un
+      mensaje que no se entiende. <b>Sin diagnosticar</b> — solo lo que se vio.</p>
+    <textarea id="t9" style="min-height:6rem" placeholder="Lo observado, tal cual"></textarea>
+  </section>
+
+  <section>
+    <h2><span class="n">09</span> Decisiones que no son de banco</h2>
+    <p class="nota">Quedan abiertas y las decide el responsable, no la sesión. Se anotan aquí para que
+      no se pierdan entre las medidas.</p>
+
+    <div class="bornes">
+      <div class="borne">
+        <span class="chip">Pantalla</span>
+        <div class="cuerpo">
+          <h3>Retirada — decidido el 28/08 <span class="marca nuevo">ya no se decide</span></h3>
+          <p><b>Se retira, y el módulo Bluetooth ocupa <code>J17</code>.</b> El argumento que ganó es
+            de campo: <b>el equipo está en alto y la pantalla no se lee desde el suelo</b>, que es la
+            misma razón por la que existe la app.</p>
+          <p><b>Lo que queda pendiente, y no es de banco:</b> el código de la pantalla <b>sigue
+            compilado</b>. <code>lcd_setup()</code> se llama todavía y sigue moviendo
+            <code>PB3</code>/<code>PB4</code>/<code>PB5</code>. Retirarlo devolvería
+            <b>19.565 B</b> medidos en <code>firmware.map</code> —U8g2 13.936 B,
+            <code>lcd.cpp</code> 4.455 B, <code>modo_hora.cpp</code> 748 B, <code>menu.cpp</code>
+            426 B—, que llevaría al Maestro del 85,8 % a poco más del 55 %. <b>Hoy esos bytes siguen
+            gastados.</b></p>
+          <p><b>Y el coste que se acepta al retirarla, escrito para que nadie lo descubra en
+            campo:</b> era <b>el único respaldo local si el Bluetooth falla</b>, y de ella colgaban
+            <code>menu.cpp</code>, <code>modo_hora.cpp</code> y <code>modo_degradado.cpp</code>.
+            Sin pantalla, <b>poner la hora y ver el estado dependen de la app</b>. Además
+            <code>Validacion_LCD</code> es uno de los cuatro arneses que compilan C++ real: quitar el
+            código toca hacerlo prueba por prueba, no en bloque.</p>
+          <p class="pin">arnés de pantalla en el acta del 28/08: <b>271/271</b> — sigue verde porque
+            el código sigue ahí; <b>no dice nada sobre si hay display conectado</b></p>
+        </div>
+      </div>
+
+      <div class="borne">
+        <span class="chip">Expansor</span>
+        <div class="cuerpo">
+          <h3>El módulo comprado no es el del Manual 13 <span class="marca decidir">sin pedir</span></h3>
+          <p>El <code>PCF8574P</code> es un integrado <b>DIP-16</b>, no un módulo con cuatro pines
+            rotulados. Un módulo con <code>VCC GND SDA SCL</code> y <b>portapilas redondo</b> es el
+            <code>DS3231 ZS-042</code>, que es el reloj —y ese solo se pide <b>si la prueba 14 dice
+            que el cristal muerto es el del Maestro</b>—.</p>
+          <p><b>Y si se pide, hay que decidir además quién escribe el driver:</b> hoy el firmware no
+            tiene ninguno, así que el módulo montado no da la hora. Comprarlo sin esa decisión deja
+            una pieza puesta que no hace nada.</p>
+          <p>Si algún día entra I²C, <b>ya no hace falta nada del Manual 13</b>: <code>PB6</code> y
+            <code>PB7</code> son <code>I2C1</code> <b>por hardware</b>… pero <b>ahora los ocupa el
+            Bluetooth</b>, así que esa puerta se cerró el 28/08. El I²C tendría que salir de otro
+            sitio, o convivir con el <code>USART1</code> — que no puede.</p>
+          <p class="pin">⚠️ Si el <code>DS3231</code> llega con <code>CR2032</code> en vez de
+            <code>LIR2032</code>, hay que desoldar <code>D1</code> o <code>R1</code> del módulo: el
+            ZS-042 lleva circuito de carga y una CR2032 no es recargable</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="barra noimprimir">
+    <button onclick="window.print()">Guardar como PDF</button>
+    <button class="sec" onclick="limpiar()">Vaciar respuestas</button>
+    <span class="estado" id="estado">se guarda solo mientras escribes</span>
+  </div>
+
+  <footer>
+    <div><b>Si algo falla, no se cambia una pieza todavía.</b> Primero la lectura: qué se midió, con
+      qué instrumento y qué dio. Una hipótesis anotada como reparación ya costó cambiar componentes
+      sanos una vez.</div>
+    <div><b>Sobre las cifras de la cabecera:</b> salen del acta
+      <code>evidencia/2026-08-28_compuerta.txt</code>, que se levantó con el árbol <b>con cambios sin
+      commitear</b>. <b>No corresponden a <code>614065d</code></b>, y el firmware de esta entrega es
+      <b>posterior</b> a ese commit — apartado 05. <b>No se vuelve a <code>614065d</code> para
+      verificarlas</b>: se obtendría <code>SerialBT</code> en <code>PA9</code>/<code>PA10</code> y
+      cero tramas por <code>J17</code>.</div>
+    <div><b>Sobre el <code>FALLA</code> del acta, que NO es del firmware:</b> es el pack
+      <code>documentos_01_cifras_del_acta</code> (41/45), que vigila que los documentos publiquen las
+      cifras de flash de la última corrida. Lo que falla es que <code>README.md</code> y
+      <code>ESTADO.md</code> publican flash vieja — <b>dos ficheros de documentación, en manos de
+      otra sesión</b>. El firmware compila y pasa; los otros 33 packs están en PASS.</div>
+    <div><b>Y la compuerta en verde no es un permiso.</b> Dice que los modelos y los arneses de PC no
+      encuentran nada; <b>no dice que el firmware funcione en la tarjeta</b>. Para eso es esta sesión.
+      Con la pantalla retirada y el <code>USART1</code> remapeado, <b>nada de este montaje se ha
+      ejercido sobre cobre todavía</b>.</div>
+    <div><b>Qué se lleva:</b> los dos <code>firmware.bin</code> con su <code>md5</code> (apartado
+      05), la app <code>IOT_VIAL_Semaforos_2026-08-28_a8e1ceb_SIN_BANCO.apk</code>
+      (<code>md5 06af63a1f75b532d4ec385584b667566</code>), el ST-LINK, un <b>adaptador USB-TTL de
+      3,3 V</b> y el multímetro. <b>El <code>SIN_BANCO</code> del nombre no es decorativo</b>: esa
+      app no ha pasado banco, y esta sesión es la que lo decide.</div>
+    <div>Detalle completo en el <b>Manual 2</b> (hardware), el <b>Manual 10</b> (módulo Bluetooth y
+      telemetría) y el <b>Manual 3</b>, que es el acta de 80 pruebas que se rellena.</div>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var campos = document.querySelectorAll('input[type=text], textarea, input[type=radio]');
+    var estado = document.getElementById('estado');
+
+    function clave(el) { return 'acta_' + (el.id || el.name + '_' + el.value); }
+
+    try {
+      campos.forEach(function (el) {
+        var v = localStorage.getItem(clave(el));
+        if (v === null) return;
+        if (el.type === 'radio') { el.checked = (v === '1'); } else { el.value = v; }
+      });
+    } catch (e) { /* navegador sin almacenamiento: el acta sigue sirviendo, no se guarda */ }
+
+    function guardar(el) {
+      try {
+        localStorage.setItem(clave(el), el.type === 'radio' ? (el.checked ? '1' : '0') : el.value);
+        estado.textContent = 'guardado ' + new Date().toLocaleTimeString();
+      } catch (e) {
+        estado.textContent = 'este navegador no guarda: imprime antes de cerrar';
+      }
+    }
+
+    campos.forEach(function (el) {
+      el.addEventListener(el.type === 'radio' ? 'change' : 'input', function () {
+        if (el.type === 'radio') {
+          Array.prototype.forEach.call(document.getElementsByName(el.name), guardar);
+        } else {
+          guardar(el);
+        }
+      });
+    });
+
+    window.limpiar = function () {
+      campos.forEach(function (el) {
+        if (el.type === 'radio') { el.checked = false; } else { el.value = ''; }
+        try { localStorage.removeItem(clave(el)); } catch (e) {}
+      });
+      estado.textContent = 'acta vacía';
+    };
+  })();
+</script>

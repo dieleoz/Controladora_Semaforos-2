@@ -1,0 +1,175 @@
+BISECCION DEL MODO AUTOMATICO - FIRMWARES DEL MAESTRO
+=====================================================
+Generado el 03/08/2026 desde la rama feat/n15-reloj-pantalla-hora.
+Encargo: 05_Funcional/ENCARGO_bisect_automatico.md   Detalle: roadmap.md seccion N-42
+
+Solo firmware del MAESTRO. El Esclavo NO se toca en esta prueba.
+16 ficheros .bin, los 16 compilan SUCCESS, 15 son distintos entre si
+(2779d9b y 831c4f0 son EL MISMO BINARIO - ver abajo).
+
+
+LA VENTANA SE CORRIGIO. LEE ESTO ANTES DE CARGAR NADA
+-----------------------------------------------------
+La primera version de este encargo proponia 8 firmwares del tramo 17:58-19:51 del
+sabado 01/08. Esa ventana estaba MAL por dos razones:
+
+  1. Ninguno de aquellos 8 toca el camino del ciclo: ni coordinador.cpp, ni
+     modo_automatico.cpp, ni semaforo.cpp, ni mando.cpp. El "sospechoso principal"
+     N-23 solo toca lcd.h, lcd.cpp y modo_hora.cpp - cambio quien mueve el
+     coordinador DESDE LA PANTALLA DE HORA, no desde el ciclo automatico.
+
+  2. El banco situa el ultimo firmware bueno hacia las 16:00 del sabado. Aquellos 8
+     son todos POSTERIORES: habrian fallado los 8 sin decir cual fue, y se habria
+     gastado la sesion entera de banco para concluir "es mas antiguo".
+
+Ahora la escalera baja hasta las 15:49 y cubre el tramo donde de verdad esta.
+
+
+COMO CARGAR
+-----------
+mode=UR con -e all. Si falla, SE REINTENTA - NO se cambia a HOTPLUG.
+Enganchar es cuestion de timing y puede fallar varias veces con "Unable to get
+core ID"; eso NO es falta de cableado. Ver CLAUDE.md seccion 9.
+
+
+EN QUE ORDEN CARGAR: EMPIEZA POR LA HIPOTESIS, NO POR LA BISECCION
+-----------------------------------------------------------------
+Hay un sospechoso claro. Si acierta, esto se cierra en DOS cargas:
+
+  CARGA 1 -> el numero 1 de la lista (c72700e, 15:49)
+     Es el ancla: el ultimo firmware ANTES de las 16:00.
+     DEBE FUNCIONAR. Si tambien falla, la hipotesis de "hasta las 16:00 todo iba"
+     es falsa y hay que bajar mas atras - avisa antes de seguir cargando.
+
+  CARGA 2 -> el numero 2 de la lista (2779d9b, 16:00)
+     Si FALLA -> ENCONTRADO. El culpable es 2779d9b (SFTY-21, mando de reles).
+     Si FUNCIONA -> el fallo esta entre el 4 y el 16; sigue con la biseccion.
+
+BISECCION (si la carga 2 funciono)
+Cada carga parte en dos el tramo que queda. Son 4 cargas como maximo.
+
+  Prueba el 9 (4d37db6)
+     funciona -> prueba el 13 (e787a29)
+                    funciona -> prueba el 15; funciona -> culpable 16 / falla -> 15
+                    falla    -> prueba el 11; funciona -> 12 o 13 / falla -> 10 u 11
+     falla    -> prueba el 5 (ee01702)
+                    funciona -> prueba el 7; funciona -> 8 o 9 / falla -> 6 o 7
+                    falla    -> prueba el 4 (ea5731d); funciona -> culpable 5 / falla -> 4
+
+Regla general: el culpable es EL PRIMERO QUE FALLA. Cuando un firmware falla y el
+inmediatamente anterior funciona, ese es.
+
+Anota en cada carga: arranca / no arranca, y QUE hace exactamente el Modo
+Automatico (no arranca el ciclo, arranca y se para, luces mal, pantalla).
+
+
+LA ESCALERA, DEL MAS ANTIGUO AL MAS RECIENTE
+--------------------------------------------
+  #   fichero                    hora    flash    que entro en ese commit
+
+  1   firmware_c72700e.bin       15:49   74,7%    ANCLA - ultimo antes de las 16:00
+      protocolo: cerrar quien amplia el despeje del Degradado (N-16).
+      Segun el banco, hasta aqui TODO FUNCIONABA.
+
+  2   firmware_2779d9b.bin       16:00   80,2%    <-- SOSPECHOSO PRINCIPAL
+      SFTY-21: Modo Degradado y mando de reles, en Maestro y Esclavo.
+      Toca 15 ficheros del Maestro - el cambio mas grande del dia, y +3.572 bytes
+      de flash de golpe. El mando de reles INTERCEPTA las escrituras de pines de
+      luz en vez de rodearlas, que es justo por donde el ciclo podria dejar de
+      avanzar. Cae en la hora exacta que da el banco.
+
+  3   firmware_831c4f0.bin       16:07   80,2%    NO LO CARGUES
+      N-20: modulo de respaldo en registros BKP.
+      ES BYTE A BYTE EL MISMO FICHERO QUE EL #2 (mismo MD5). El modulo se anade
+      pero no se conecta hasta el #5, asi que el enlazador lo descarta entero.
+      Cargarlo es una carga tirada: no puede dar un resultado distinto al #2.
+
+  4   firmware_ea5731d.bin       16:19   80,4%
+      fix(reloj): inicializar la fecha al poner la hora.
+
+  5   firmware_ee01702.bin       16:22   82,0%
+      N-20: conectar el respaldo en el Maestro y reanudar el Degradado tras un
+      corte. Aqui el modulo del #3 empieza a ejecutarse de verdad.
+
+  6   firmware_51f6f3b.bin       16:45   82,0%
+      fix(Maestro): el desbordamiento de millis() podia abrir la puerta del
+      Degradado.
+
+  7   firmware_9489e29.bin       17:22   82,2%
+      Correcciones de los tres validadores. El propio mensaje del commit dice
+      "incluida una REGRESION QUE YO INTRODUJE" - conviene mirarlo con atencion.
+
+  8   firmware_28e914d.bin       17:52   82,3%
+      SFTY-23: la fecha viaja con la hora, calendarios acoplados (CMD_HORA_D).
+
+  9   firmware_4d37db6.bin       17:58   82,5%
+      N-17: el arranque deja de esperar sin limite a que oscile el cristal Y2.
+      Antes el Maestro quedaba en bucle de watchdog en la bienvenida.
+
+ 10   firmware_b581000.bin       18:20   82,6%
+      N-21: siembra el estado REAL de los 4 pines de boton al arrancar. Antes un
+      pin en LOW al encender generaba un flanco fantasma y ejecutaba una maniobra.
+
+ 11   firmware_470a5c9.bin       18:57   83,4%
+      N-23: la pantalla AJUSTAR HORA ya no se va al confirmar; se queda llamando a
+      coordinador_actualizar(), que es lo unico que saca las tramas al aire.
+      OJO: NO toca coordinador.cpp. Solo lcd.h, lcd.cpp y modo_hora.cpp.
+
+ 12   firmware_71f8de2.bin       19:00   83,6%
+      N-24: aparece rtcOperativo; sin oscilador ya no se acepta la hora.
+      En ESTA tarjeta el cristal esta muerto (N-37), asi que este commit si cambia
+      de verdad el valor de horaValida en banco - aunque no toque el ciclo.
+
+ 13   firmware_e787a29.bin       19:06   83,7%
+      N-25: reintento del oscilador en segundo plano cada 30 s.
+      Unico de la ventana vieja que toca main.cpp (el bucle principal).
+
+ 14   firmware_e604273.bin       19:28   83,9%
+      N-30: el mensaje "Esclavo no responde" mentia cuando el que no tenia reloj
+      era el MAESTRO. Ahora dice "SIN RELOJ / Revisa Y2, pila y R5".
+
+ 15   firmware_8a45ae7.bin       19:35   84,7%
+      N-31: anade REINICIAR RELOJ en CONFIGURACION (BACKUPRESET).
+      Unico de la ventana vieja que toca menu.cpp, por donde se ENTRA a los modos.
+
+ 16   firmware_f37581f.bin       19:51   84,7%
+      N-38: titulos de pantalla a fuente 7x14B de paso fijo, porque la ncenB10 es
+      PROPORCIONAL y dos titulos se salian de los 128 px sin avisar.
+      Cosmetico de pantalla. Mismo tamano que el #15, distinto contenido.
+
+
+DOS COSAS QUE HAY QUE SABER ANTES DE INTERPRETAR EL RESULTADO
+-------------------------------------------------------------
+
+1. LOS SIMULADORES ESTAN EN VERDE SOBRE EL FIRMWARE QUE FALLA.
+   La compuerta da 9 PASS / 2 FALLA / 0 ABORTADO y el arnes de pantalla 241/241
+   sobre esta misma version que no arranca el ciclo en banco. Pasar los simuladores
+   es NECESARIO Y NO SUFICIENTE: son modelos escritos a mano que validan el modelo,
+   no el codigo, y ninguno ejerce el ciclo automatico sobre hardware. Si alguien
+   concluye "los simuladores pasan, luego esta bien", esa conclusion es falsa.
+
+2. ABORTADO NO ES PASS.
+   Si un firmware no se llega a cargar, se dice ABORTADO - no "no falla".
+   PASS = corrio y cumple. FALLA = corrio y no cumple. ABORTADO = no pudo correr,
+   y no dice NADA del firmware. Ver CLAUDE.md seccion 2.
+
+
+DOS HIPOTESIS YA DESCARTADAS POR LECTURA - NO LAS REPITAS
+---------------------------------------------------------
+- "El cristal muerto bloquea el ciclo por los guardas de reloj del coordinador."
+  NO. Los cinco guardas solo suprimen sincronizacion y medida de desfase. Los dos
+  que estan en el bucle (coordinador.cpp:443 y :465) bajan la bandera y caen hacia
+  abajo SIN return. No detienen el ciclo.
+
+- "reloj_actualizar() de N-25 se atasca con el RTC parado."
+  NO. Con el cristal muerto sale en la tercera linea (LSERDY == RESET), sin ninguna
+  llamada bloqueante. rtc.begin() solo se alcanza con el oscilador ya listo.
+
+
+NOTA SOBRE LOS .bin Y EL REPOSITORIO
+------------------------------------
+Los .bin NO se versionan (.gitignore): cada uno se regenera con
+`git worktree add` + `pio run` sobre el hash que lleva en el nombre, igual que no
+se versionan los .zip. Este LEEME.txt SI se versiona.
+Si el banco senala un culpable, ESE .bin puede subirse suelto y a proposito, como
+evidencia de lo que se probo.

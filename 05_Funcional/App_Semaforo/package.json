@@ -1,0 +1,24 @@
+{
+  "name": "iot-vial-app",
+  "version": "9.0.0",
+  "description": "Consola de Telemetría Bluetooth y Diagnóstico para Semáforos Móviles IOT-VIAL",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve .",
+    "test": "node tests/test_unitarios.js",
+    "test:unit": "node tests/test_unitarios.js",
+    "test:e2e": "node tests/test_e2e_visual.js",
+    "sync": "npx cap sync android",
+    "build:apk": "android\\compilar_apk.bat"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "cordova-plugin-bluetooth-serial": "^0.4.7"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
+    "jsdom": "^30.0.1",
+    "puppeteer-core": "^22.0.0"
+  }
+}

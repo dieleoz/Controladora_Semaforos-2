@@ -1,0 +1,81 @@
+graph TD
+    %% MAPA ESTRUCTURAL DEL SISTEMA SEMAFÓRICO (V9.0-rc1 — NO PROBADA EN BANCO)
+    %% Actualizado 26/08/2026.
+    %%
+    %% ESTADO: V9.0-rc1. Compila y pasa compuerta; NUNCA ha estado en un banco.
+    %%         En campo sigue la V8.4 (e303485).
+    %% HARDWARE: Tarjeta única KiCad STM32F103C8T6 (64 KB Flash, 20 KB RAM).
+    %% COMPUERTA: 11 PASS · 0 FALLA · 0 ABORTADO (Exit code: 0).
+    %%
+    %% NOVEDADES V8.9:
+    %% 1. Cámaras IA AcuSense por contacto seco en PB0 (demanda). PB8 (umbral)
+    %%    declarado pero NO SE LEE: cámaras 2 y 4 en reposo (N-59).
+    %% 2. Módulo Bluetooth Telemetría Baliza (USART1 PA9/PA10 en Maestro y Esclavo).
+    %% 3. Reloj: sigue el RTC interno con Y2 + CR2032 en VBAT. El DS3231 externo
+    %%    reclama PB0/PB8, que las cámaras ocupan: conflicto N-57, salida por bus
+    %%    I2C con PCF8574 (SFTY-26), pendiente del censo de cristales.
+    %% 4. Mando Anti-Colisión N-53 (A·B·A, B·A·B, B·A·B·A, A·B·A·B, A·A·B·B) e inhibición en menús.
+
+    subgraph CAPA 0: VERIFICACIÓN Y COMPUERTA [Calidad Formal de Software]
+        GATE[compuerta.py - V8.9<br>11 PASS · 0 FALLA · 0 ABORTADO<br>Exit Code: 0 Certificado<br>Escribe acta oficial en evidencia/2026-08-26_compuerta.txt<br>Guarda de rutas: 32 rutas parseadas y verificadas]
+        GATE --> PACKS[Banco por Packs - 20 Packs en PASS<br>155/155 comprobaciones OK<br>Simulador funcional 20/20 PASS<br>Simulador repetidor 10/10 PASS]
+        GATE --> ARNES_LCD[Arnés de Pantallas LCD - 271/271 OK<br>Maestro 145/145 · Esclavo 126/126<br>Compila lcd.cpp y menu.cpp reales contra framebuffer]
+        GATE --> ARNES_AUTO[Arnés del Automático - 67/67 OK<br>Compila coordinador.cpp, semaforo.cpp y mando.cpp<br>Evalúa enclavamiento SFTY-2 y Regresión N-53]
+        GATE --> ARNES_CICLO[Arnés del Ciclo y Respaldo<br>29/29 comprobaciones OK<br>Firma de respaldo 0x5EB1 intacta]
+    end
+
+    subgraph CAPA 4: DETECCIÓN VEHICULAR IA [4 Cámaras Hikvision AcuSense G2]
+        CAM1[Cámara 1: Aprox. Sentido 1<br>Hikvision AcuSense G2] -->|Contacto Seco 1A/1B| PB9_M[Bornera PB9 Maestro - Opto U6]
+        CAM2[Cámara 2: Obra Sentido 1<br>Hikvision AcuSense G2] -->|Contacto Seco 1A/1B| PB13_M[Bornera PB13 Maestro - Opto U7]
+        CAM3[Cámara 3: Aprox. Sentido 2<br>Hikvision AcuSense G2] -->|Contacto Seco 1A/1B| PB9_E[Bornera PB9 Esclavo - Opto U6]
+        CAM4[Cámara 4: Obra Sentido 2<br>Hikvision AcuSense G2] -->|Contacto Seco 1A/1B| PB13_E[Bornera PB13 Esclavo - Opto U7]
+        note4[Cero PCs o Raspberries externos.<br>La analítica corre en el DSP de la cámara (Filtro solo vehículos).<br>Piso de seguridad vial: Todo-Rojo inquebrantable de 15s entre sentidos.]
+    end
+
+    subgraph CAPA 2: CONTROLADOR MAESTRO [STM32F103C8T6 Maestro V8.9]
+        M[STM32F103 Maestro V8.9<br>Flash: 86.4% / RAM: 21%]
+        M -->|Enclavamiento SFTY-2| O_M[Optoacopladores & MOSFETs Q1-Q3]
+        O_M --> L_M[Luces Semáforo Maestro 12V/24V]
+        M -- "SPI 3-Wire (PB3..PB7)" --> LCD[Pantalla LCD ST7920 + 4 Botones<br>Menú de 2 niveles: Manual, Auto, Inteligente, Config]
+        M -- "I2C Software (PB0=SDA / PB8=SCL)" --> RTC[Módulo RTC DS3231 TCXO<br>Precisión ±2 ppm / Deriva <0.5s en 48h<br>Batería LIR2032 recargable<br>Resuelve N-37 definitivamente]
+        M -- "USART1 (PA9 TX / PA10 RX)" --> BT_M[Módulo Bluetooth Serial Baliza<br>Telemetría $STATUS cada 1s<br>Caja Negra $ALARM caídas RF con hora RTC<br>Control Modo Manual / Rojo Total desde Suelo]
+        M -- "PB9, PB13, PB14, PB15" --> MANDO[Mando 4 Relés Anti-Colisión N-53<br>A·B·A Auto · B·A·B Ámbar · B·A·B·A Manual · A·B·A·B Degradado<br>Inhibición 100% durante edición en pantalla]
+        RTC --> DEG[MODO DEGRADADO - SFTY-21<br>modo_degradado.cpp<br>Activación manual verificada por RTC<br>Ciclo verde 30s / todo-rojo 30s ampliado]
+        PB9_M --> M
+        PB13_M --> M
+    end
+
+    subgraph CAPA 3: ENLACE INDUSTRIAL [Radios E90-DTU RS-485]
+        M -- "USART3 (PB10 TX / PB11 RX) RS485" --> R1[Radio E90-DTU Maestro]
+        R1 -. "RF 2.4 kbps / 30 dBm / FEC Enable" .-> R2[Radio E90-DTU Esclavo]
+        R1 == "Opción Fallback Cable 3 Hilos" ==> R2
+        note3[SFTY-6: Timeout de 12.0s sin PONG -> Caída a Ámbar Intermitente.<br>Self-Healing: Recuperación con All-Red 15s automático sin reinicio manual.<br>SFTY-11: Ráfaga 1 copia con FEC + Ventana Deslizante CRC-8 Maxim.]
+    end
+
+    subgraph CAPA 1: CONTROLADOR ESCLAVO [STM32F103C8T6 Esclavo V8.9]
+        R2 -- "USART3 RS485" --> S[STM32F103 Esclavo V8.9<br>Flash: 64.3% / RAM: 18%]
+        S -->|Enclavamiento SFTY-2| O_S[Optoacopladores & MOSFETs Q1-Q3]
+        O_S --> L_S[Luces Semáforo Esclavo 12V/24V]
+        S -- "SPI 3-Wire (PB3..PB7)" --> LCD_S[Pantalla LCD ST7920 Esclavo<br>Menú: ESTADO y MODO DEGRADADO]
+        S -- "I2C Software (PB0=SDA / PB8=SCL)" --> RTC_S[Módulo RTC DS3231 TCXO Esclavo<br>Sincronización horaria por radio SFTY-23]
+        S -- "USART1 (PA9 TX / PA10 RX)" --> BT_E[Módulo Bluetooth Serial Esclavo<br>Diagnóstico desde Suelo en Esclavo<br>Resuelve N-19 sin escaleras a 5m]
+        PB9_E --> S
+        PB13_E --> S
+    end
+
+    %% Conexiones de estilo
+    style M fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style S fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style RTC fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style RTC_S fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style BT_M fill:#cce5ff,stroke:#004085,stroke-width:2px
+    style BT_E fill:#cce5ff,stroke:#004085,stroke-width:2px
+    style CAM1 fill:#e2e3e5,stroke:#383d41,stroke-width:2px
+    style CAM2 fill:#e2e3e5,stroke:#383d41,stroke-width:2px
+    style CAM3 fill:#e2e3e5,stroke:#383d41,stroke-width:2px
+    style CAM4 fill:#e2e3e5,stroke:#383d41,stroke-width:2px
+    style GATE fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style PACKS fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style ARNES_LCD fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style ARNES_AUTO fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style ARNES_CICLO fill:#d4edda,stroke:#28a745,stroke-width:2px

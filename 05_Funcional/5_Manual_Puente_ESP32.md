@@ -1,0 +1,320 @@
+# MANUAL DEL PUENTE REPETIDOR ESP32 (Topología de 4 Radios — V8.0)
+
+Este documento detalla la configuración y cableado del puente repetidor con microcontrolador **ESP32** cuando se requiere salvar curvas ciegas o montañas mediante 4 radios industriales E90-DTU.
+
+El ESP32 enlaza **dos radios back-to-back** (B1 y B2) dentro de una topología total de 4 radios.
+
+---
+
+> ## ⚠️ REQUISITO CRÍTICO — LAS 4 RADIOS A `2.4 kbps`
+>
+> El modo repetidor **no funcionará** con las radios a `0.3 kbps`. En esta topología cada mensaje
+> atraviesa **dos saltos de aire por sentido**: a 0.3 kbps el viaje orden→confirmación superaba los
+> **3 segundos** y desbordaba el plazo de espera del Maestro, que reintentaba y colisionaba con la
+> confirmación entrante en el bus half-duplex.
+>
+> **Ése era el motivo exacto de que el repetidor no enlazara en las pruebas del 30 y 31 de julio.**
+> No era un problema de cableado ni del firmware del ESP32.
+>
+> Ver `4_Manual_Configuracion_Radios.md`. Las 4 radios deben quedar con el mismo Air Data Rate.
+
+---
+
+## 1. Topología del Sistema Repetidor
+
+```text
++----------------+        Air 170MHz       +-------------------------------+        Air 172MHz       +----------------+
+| Semáforo STM32 | <=====================> | Radio B1 <-> ESP32 <-> Radio B2| <=====================> | Semáforo STM32 |
+|   (Maestro)    |                         |      (Poste Repetidor)        |                         |   (Esclavo)    |
++----------------+                         +-------------------------------+                         +----------------+
+```
+
+1. **Poste Maestro:** STM32 Maestro + Radio 1 en Canal `0` (`170.0 MHz`).
+2. **Poste Repetidor Central:**
+   - Radio B1 en Canal `0` (`170.0 MHz`) -> Habla con el Maestro.
+   - Microcontrolador ESP32 con firmware `01_Firmware/Repetidor`.
+   - Radio B2 en Canal `10` (`172.0 MHz`) -> Habla con el Esclavo.
+3. **Poste Esclavo:** STM32 Esclavo + Radio 4 en Canal `10` (`172.0 MHz`).
+
+---
+
+## 2. Pinout del ESP32 Repetidor (`01_Firmware/Repetidor/include/pines_repetidor.h`)
+
+| Conexión | Pin ESP32 | Puerto |
+|---|---|---|
+| **Radio B1 (Entrada) RX** | Pin `16` | UART1 RX |
+| **Radio B1 (Entrada) TX** | Pin `17` | UART1 TX |
+| **Radio B1 DE/RE** | Pin `4` | Control RS485 |
+| **Radio B2 (Salida) RX** | Pin `32` | UART2 RX |
+| **Radio B2 (Salida) TX** | Pin `33` | UART2 TX |
+| **Radio B2 DE/RE** | Pin `22` | Control RS485 |
+
+*Nota:* Las radios E90-DTU en bornera RS485 conmutan automáticamente TX/RX por hardware interno.
+
+---
+
+## 3. Firmware del Repetidor (V8.3) — valida antes de retransmitir
+
+> **Cambio importante respecto a versiones anteriores.** El puente ya **no reenvía a ciegas**
+> cualquier byte que le llegue: reconoce el formato del protocolo (4 bytes con CRC-8) y **solo
+> retransmite tramas válidas**.
+>
+> **Por qué:** si el par RS485 de entrada queda flotando —falta de resistencias de polarización,
+> transceptor sin alimentar, cable partido— el receptor lee ruido continuo. El puente anterior lo
+> interpretaba como datos infinitos, dejaba la transmisión permanentemente activa y **la radio de
+> salida se quedaba radiando basura al aire**, bloqueando el canal. Ése fue el fallo del 31/07:
+> LED TX fijo en B2.
+>
+> Ahora ese ruido se descarta dentro del ESP32 y **nunca llega al aire**. El puente es inmune a
+> esta familia de fallos de cableado.
+
+### 📡 El puente valida FORMATO, no comandos — y por eso no hay que tocarlo
+
+Desde la V8.7 el protocolo lleva comandos nuevos (`0x07`–`0x0F`) para la **sincronización horaria** y
+la **configuración del ciclo**. **El repetidor no necesita ningún cambio para dejarlos pasar.**
+
+La razón está en cómo valida: comprueba que la trama tenga **4 bytes y CRC-8 Maxim correcto**, y
+**no mira qué comando lleva dentro**. Un puente que conociera la lista de comandos habría que
+recompilarlo y reflashearlo cada vez que el protocolo crece — y **el día que alguien olvidara hacerlo,
+la sincronización horaria se caería en silencio solo en la topología de 4 radios**, que es la más
+difícil de diagnosticar.
+
+> **Validar la forma y no el contenido es lo que mantiene al puente fuera del camino crítico.** Es
+> deliberado, no un descuido: no hay ninguna versión del repetidor que "soporte" o "no soporte" la
+> sincronización horaria.
+
+### ⚠️ El repetidor es irrelevante en Modo Degradado
+
+Conviene decirlo para que nadie lo busque como causa: en **Modo Degradado no hay radio en absoluto**
+—ése es justamente el motivo de entrar al modo— así que **el puente no interviene**. Cada unidad
+calcula su fase por su cuenta a partir de la hora.
+
+Un repetidor colgado, sin alimentar o mal configurado **no afecta al Modo Degradado**, ni para bien ni
+para mal. Lo que sí afecta es la **sincronización previa**: si el enlace nunca funcionó a través del
+puente, nunca hubo sincronización, y **el Degradado se rechaza**.
+
+---
+
+## 3.0 RS-485 es half-duplex: por qué el control DE/RE lo es todo
+
+Conviene entender esto, porque explica los dos síntomas que costaron una tarde de campo.
+
+### El bus solo puede tener un emisor a la vez
+
+RS-485 usa **un solo par de hilos para ambos sentidos**. No hay canal de ida y otro de vuelta:
+cuando un extremo está excitando la línea, **el otro no puede hablar**. Es como un radioteléfono:
+o se transmite, o se escucha, nunca las dos cosas.
+
+Quién habla en cada momento lo decide una señal de control, el **`DE/RE`** del transceptor
+MAX3485:
+
+| `DE/RE` | Estado | Qué ocurre |
+|---|---|---|
+| **ALTO** | Transmisión | El ESP32 excita la línea. **La radio no puede enviarle nada.** |
+| **BAJO** | Recepción | El ESP32 escucha. La radio puede hablarle. |
+
+En el puente hay **dos buses independientes**, cada uno con su control: `M1_DE_RE` (GPIO 4) hacia
+B1, y `M2_DE_RE` (GPIO 22) hacia B2.
+
+### El fallo del 31/07, explicado
+
+El firmware anterior levantaba `DE/RE` en cuanto aparecía **cualquier** byte y solo lo bajaba tras
+5 ms de silencio. Con el par de entrada metiendo ruido continuo, ese silencio **nunca llegaba**:
+
+```
+M2_DE_RE  ─────────────────────────────────────────────  siempre ALTO
+                    (el ESP32 ocupa el bus permanentemente)
+```
+
+De ahí salieron **los dos síntomas a la vez**, que parecían problemas distintos:
+
+1. **LED TX de B2 encendido fijo.** B2 recibía un flujo interminable y lo radiaba sin parar,
+   saturando el canal.
+2. **Sin datos de vuelta.** Y éste es el menos evidente: como el ESP32 tenía el bus ocupado el
+   100% del tiempo, **B2 no podía devolverle nada**. La respuesta del Esclavo llegaba a B2 y ahí
+   moría, contra un bus permanentemente tomado. *No es que el Esclavo callara: es que su respuesta
+   no tenía por dónde entrar.*
+
+### Cómo lo maneja el firmware V8.3
+
+`DE/RE` se levanta **únicamente durante los milisegundos que dura enviar una trama válida**, y se
+baja enseguida:
+
+```
+M2_DE_RE  ▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+                 ↑ 4 ms          ↑ 4 ms
+          el bus queda libre el 99,9% del tiempo
+```
+
+Una trama de 4 bytes a 9600 baudios ocupa ~4,2 ms, y solo hay una cada 3 segundos. El camino de
+vuelta queda despejado prácticamente siempre.
+
+### Qué mirar en campo
+
+| Síntoma | Qué significa |
+|---|---|
+| LED TX de una radio **encendido fijo** | Su `DE/RE` está permanentemente activo, o le entra ruido continuo. **El bus de ese lado está bloqueado en ambos sentidos.** |
+| LED TX **destella brevemente cada 3 s** | Correcto |
+| Llega en un sentido pero **no vuelve nada** | Sospechar del `DE/RE` de ese tramo antes que de la radio del otro extremo |
+
+> ⚠️ **No hace falta cablear `DE/RE` hacia las radios E90-DTU**: ellas conmutan solas por hardware.
+> Las señales `M1_DE_RE` y `M2_DE_RE` controlan los **transceptores MAX3485 de la placa del
+> repetidor**, no las radios.
+
+---
+
+## 3.1 Detalle técnico
+
+El firmware en `01_Firmware/Repetidor/src/main.cpp` procesa cada sentido de forma independiente:
+
+1. Lee los bytes que le entrega la radio de entrada y los va acumulando en un búfer de 4 bytes.
+2. Al completar 4 bytes, comprueba el **CRC-8 Maxim (`0x31`)**.
+   - **CRC correcto** → levanta el `DE/RE` de la radio opuesta, emite la trama, espera a que salga
+     el último bit y **baja el `DE/RE` de inmediato**.
+   - **CRC incorrecto** → descarta un byte, desplaza el búfer y reintenta el enganche (ventana
+     deslizante). Así recupera la trama aunque venga precedida de ruido.
+
+**La línea de transmisión se ocupa únicamente durante la trama** (~4,2 ms a 9600 baudios), no
+durante ventanas de silencio. Es lo que mantiene libre el camino de vuelta.
+
+### Informe por consola — siempre activo
+
+El firmware **de producción** imprime por USB (115200) un encabezado al arrancar y un informe de
+contadores cada 2 segundos.
+
+> **Esto no era así antes, y costó una tarde de campo.** El informe solo existía en el entorno
+> `repetidor_diag`, pero `pio run -t upload` sube el entorno **por defecto**, que era el de
+> producción y era mudo. La consola mostraba solo el arranque de la ROM del ESP32 y se concluía
+> "no hay datos de flujo", cuando en realidad nunca se había cargado el firmware que informa.
+
+**Primera comprobación en campo:** si tras el arranque de la ROM **no aparece el encabezado**, el
+firmware no está corriendo.
+
+```
+==================================================
+ REPETIDOR ESP32  V8.3  -  puente con validacion CRC
+==================================================
+[    12s]  A<-Maestro:     36 b /    9 val /     0 desc   |   C<-Esclavo:     36 b /    9 val /     0 desc
+```
+
+**El ESP32 no lleva watchdog.** Si se cuelga, Maestro y Esclavo lo detectan por su cuenta y pasan a
+Ámbar intermitente a los 25 s (fail-safe, SFTY-6), pero el repetidor requiere corte de energía para recuperarse.
+
+---
+
+## 3.2 ⛔ NO unir las dos radios del repetidor con un cable directo
+
+Puede parecer que dos radios conectadas entre sí bornera con bornera (`485_A`↔`485_A`,
+`485_B`↔`485_B`) harían de puente solas, sin ESP32. **No funciona, y conviene entender por qué.**
+
+RS-485 usa **un solo par de hilos para ambos sentidos**, así que en cada instante solo puede hablar
+uno. Las radios E90-DTU conmutan la dirección **automáticamente, cada una por su cuenta**: deciden
+tomar la línea cuando tienen algo que enviar.
+
+**El problema es que ninguna sabe de la existencia de la otra.** No hay árbitro, no hay turnos. En la
+práctica una de las dos acapara la línea y la otra queda muda — con lo que el enlace funciona en un
+sentido y no en el contrario.
+
+> Probado en campo el 31/07/2026: con el cable directo, la ida fluía y el retorno nunca llegaba.
+
+**El ESP32 existe precisamente para arbitrar**: levanta la línea hacia la radio de salida solo
+durante los milisegundos que dura una trama válida, y la suelta enseguida para que la otra pueda
+contestar. Esa es su función, y no es opcional.
+
+---
+
+## 3.3 🔍 Cómo saber si el transmisor de una radio está muerto
+
+Un receptor capta señal aunque su antena esté floja. **Un transmisor con la antena en mal estado no
+radia prácticamente nada**: la potencia se refleja y se queda dentro. El síntoma es engañoso —
+*el LED indica que transmite, pero nadie la oye*.
+
+### La prueba de intercambio de frecuencias
+
+Es la que resolvió el caso del 31/07 y no requiere instrumentos:
+
+1. Anota qué radio está en cada banda y qué falla.
+2. **Intercambia las asignaciones de frecuencia** entre los dos extremos del repetidor.
+3. Vuelve a observar.
+
+| Lo que se observa | Conclusión |
+|---|---|
+| El fallo **se queda con el mismo destino** | Problema del enlace hacia ese punto |
+| El fallo **sigue a la misma radio**, aunque cambie de banda y de destino | **El transmisor de esa radio está muerto** |
+
+**Caso real:** B1 recibía bien en las dos configuraciones, pero **nadie oía sus transmisiones** — ni el
+Maestro ni el Esclavo, en bandas distintas. B2, en cambio, sí logró transmitir. **Factor común: B1.**
+
+### Qué revisar antes de dar el radio por perdido
+
+1. **Conector SMA** — apretado, sin el pin central hundido, sin rosca cruzada
+2. **Cable coaxial** — continuidad, sin dobleces cerrados ni conector flojo
+3. **Antena de la banda correcta** — una de otra banda presenta una carga pésima
+4. **Intercambiar el radio sospechoso por uno sano.** Si el fallo se muda, confirmado
+
+> ⚠️ **Transmitir con la antena en mal estado daña el amplificador de potencia.** Con 1 W, unas horas
+> radiando contra un conector suelto o un coaxial roto bastan para inutilizar el radio.
+>
+> **Al montar un radio de reemplazo, revisa primero el coaxial y el conector.** Si vuelves a montarlo
+> sobre el cable que causó la avería, quemas también el nuevo.
+
+---
+
+## 4. Diagnóstico rápido si el repetidor no enlaza
+
+### Paso 1 — Seguir la cadena de LEDs (no requiere herramientas)
+
+**El Maestro transmite cada 3 segundos aunque el enlace esté caído**: estando en fallo sigue emitiendo
+una orden de Rojo con esa cadencia. Ese pulso periódico es el metrónomo para rastrear la cadena.
+
+En cada radio, **ignore el LED de encendido (PWR), que queda fijo**, y observe los LEDs de actividad
+(`TXD` / `RXD`), que destellan al pasar información. **No hace falta saber cuál es cuál**: lo único
+que se registra es si esa radio destella cada 3 segundos o no.
+
+Observe cada radio durante ~15 segundos (unos 5 pulsos). Como están separadas, lo práctico es grabar
+un video corto con el celular frente a cada una y comparar después.
+
+Anote **hasta dónde llega el parpadeo**:
+
+```text
+  MAESTRO  ~~RF~~>  B1  ──RS485──> [ESP32] ──RS485──>  B2  ~~RF~~>  ESCLAVO
+     [ ]              [ ]                                [ ]           [ ]
+```
+
+| Último punto con parpadeo | Dónde está el corte | Qué revisar |
+|---|---|---|
+| Nada, ni el Maestro | Antes de la radio | Cableado `A`/`B` a la tarjeta; alimentación de la radio |
+| Solo el Maestro | Aire Maestro → B1 | Ambas en canal `0` y misma velocidad aérea |
+| Hasta B1 | **Dentro del repetidor** | ESP32 alimentado, flasheado, y con MAX3485 en la placa → Paso 2 |
+| Hasta B2 | Aire B2 → Esclavo | **Causa más frecuente:** la radio del Esclavo quedó en canal `0`; en modo repetidor debe estar en **canal `10`** |
+| Toda la cadena | Enlace físico correcto | Problema de protocolo; reportar a desarrollo |
+
+> ⚠️ **En modo repetidor el Maestro y el Esclavo NO van en la misma frecuencia.** Maestro y B1 en
+> canal `0` (170.0 MHz); B2 y Esclavo en canal `10` (172.0 MHz). Confundir esto es el error más común
+> al pasar de 2 radios a 4: se cambia B1/B2 y se olvida la radio del Esclavo.
+
+### Paso 2 — Firmware de diagnóstico del ESP32
+
+Si el corte parece estar dentro del repetidor, hay un segundo entorno de compilación que informa por
+USB cuántos bytes llegan de cada lado, cada 2 segundos:
+
+```bash
+pio run -e repetidor_diag -t upload     # cargar el diagnóstico
+pio device monitor -b 115200            # ver el informe
+
+pio run -e repetidor -t upload          # volver a producción al terminar
+```
+
+El informe indica directamente si el tráfico del Maestro llega al puente y si el Esclavo responde,
+lo que separa un fallo de radio de un fallo del puente.
+
+### Otros síntomas
+
+| Síntoma | Causa probable | Acción |
+|---|---|---|
+| Enlaza pero cae al pasar el Esclavo a Verde | Alguna radio sin reconfigurar a `2.4 kbps` | Verificar las 4 una por una |
+| Parpadeo errático ("árbol de navidad") | Tramas fragmentadas | Confirmar `2.4 kbps` y canales `0` / `10` |
+| Ambos extremos en Ámbar permanente | ESP32 sin alimentación o colgado | Verificar 5 V del ESP32; cortar y restablecer energía |
+| UART de B1/B2 distinto de 9600 | El ESP32 les habla a 9600 fijo | Revisar `Baud Rate` (no confundir con Air Data Rate) |
+| Una radio **recibe pero nadie la oye** | Transmisor o antena en mal estado | Ver §3.3 — prueba de intercambio de frecuencias |
+| Una radio **oye pero no contesta** | **DIP switches `M0`/`M1` fuera de OFF/OFF** | Ver `4_Manual_Configuracion_Radios.md`. Es la causa más frecuente |

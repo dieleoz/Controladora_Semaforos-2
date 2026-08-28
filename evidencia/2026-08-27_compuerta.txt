@@ -1,0 +1,35 @@
+ACTA DE VERIFICACION - Controladora de Semaforos
+==============================================================================
+Fecha        : 2026-08-27
+HEAD         : 632c22b   rama: feat/n69-ajustes-tiempos
+Arbol        : CON CAMBIOS SIN COMMITEAR
+Modo         : completo
+PlatformIO   : PlatformIO Core, version 6.1.19
+GCC de host  : gcc.exe (MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders, r3) 16.1.0
+
+RESULTADOS
+------------------------------------------------------------------------------
+  PASS      guarda de rutas            39 rutas parseadas, todas existen
+  PASS      compila maestro            Flash: [========= ]  85.9% (used 56308 bytes from 65536 bytes)
+  PASS      compila esclavo            Flash: [======    ]  64.0% (used 41920 bytes from 65536 bytes)
+  PASS      compila repetidor          Flash: [==        ]  20.6% (used 270497 bytes from 1310720 bytes)
+  PASS      simulador funcional        VEREDICTO FINAL: 20/20 PASS (SISTEMA V8.0 DEFINITIVA CERTIFICADO)
+  PASS      simulador de repetidor     RESULTADO: 10/10 PASS
+  PASS      simulador de app y bluetooth RESULTADO GLOBAL: 5/5 SUITES DE ESTRES PASS (SISTEMA APP + FIRMWARE V8.9)
+  PASS      test funcional de la app   [TEST] RESUMEN: 34/34 comprobaciones funcionales de la app en PASS
+  PASS      test unitarios de la app   RESUMEN DE PRUEBAS: 32 PASS | 0 FALLAS  (Total: 32)
+  PASS      app ejecutada en DOM       RESULTADO JSDOM: 53 PASS | 0 FALLAS
+  PASS      banco por packs            RESUMEN: 328/328 comprobaciones  |  packs: 34 PASS, 0 FALLA, 0 ABORTADO
+  PASS      arnes de pantalla          MAESTRO  145/145 comprobaciones OK | ESCLAVO  126/126 comprobaciones OK | TOTAL    271/271 comprobaciones OK
+  PASS      arnes del ciclo            RESULTADO: 29/29 comprobaciones OK
+  PASS      arnes del respaldo         respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
+  PASS      arnes del automatico       RESULTADO: 71/71 comprobaciones OK
+------------------------------------------------------------------------------
+  RESUMEN: 15 PASS | 0 FALLA | 0 ABORTADO
+
+ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
+firmware. Esta acta se verifica volviendo a 632c22b y re-corriendo
+python 01_Firmware/compuerta.py.
+
+AVISO: el arbol tenia cambios sin commitear al medir. Estas
+cifras NO corresponden exactamente a 632c22b.
