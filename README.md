@@ -46,9 +46,9 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 
 | Comprobación | Estado | |
 |---|---|---|
-| guarda de rutas de los instrumentos | ✅ | 39 rutas parseadas, todas existen |
-| banco por packs *(34 packs)* | ✅ | **348/348** — los 34 packs en `PASS`. Subió de 328 el 28/08 al enseñarle a `documentos_01` a exigir una **fila por comprobación del acta**, no sólo que las cifras cuadren |
-| compila Maestro / Esclavo / Repetidor | ✅ | **85,8 %** · 63,9 % · 20,6 % — *9.276 B libres en el Maestro tras N-76* |
+| guarda de rutas de los instrumentos | ✅ | 41 rutas parseadas, todas existen |
+| banco por packs *(36 packs)* | ✅ | **371/371** — los 36 packs en `PASS`. Subió de 348 con los dos packs de la Fase 1: `app_02_modos_simetricos` y `app_03_sin_ok_mudo`, que **nacieron en rojo** y no se dieron por buenos hasta que el firmware los apagó |
+| compila Maestro / Esclavo / Repetidor | ✅ | **88,4 %** · 64,0 % · 20,6 % — *7.632 B libres en el Maestro tras la Fase 1* |
 | simulador funcional | ✅ | 20/20 |
 | simulador de repetidor | ✅ | 10/10 |
 | simulador de app y bluetooth | ✅ | 5/5 — **conectado el 27/08**: existía desde el 26/08 y no estaba en el acta |
@@ -140,7 +140,7 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 >
 > **Y al retirarlos cayó la guarda de rutas**, que censaba las tuplas de los monolitos: se quedó
 > en 4 y **abortó en vez de aprobar**, que es exactamente su trabajo. Hoy censa `banco/packs` y
-> `banco/modelos` — 39 rutas, ninguna escrita a mano.
+> `banco/modelos` — 41 rutas, ninguna escrita a mano.
 
 > ⚠️ **`ABORTADO` no es `PASS`.** Una comprobación que no pudo correr no dice *nada* del firmware.
 > Así se perdió la cobertura del Maestro sin que nadie se enterara: `validador_maestro.py` llevaba

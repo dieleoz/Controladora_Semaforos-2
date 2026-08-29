@@ -157,12 +157,46 @@ static void procesarComando(const char* cmd) {
     enviarTramaConCrc("$ERR,CMD:TEST_LEDS,DESC:NO_EN_SERVICIO_USE_EL_MAESTRO");
     bluetooth_reportarEvento("APP_BLUETOOTH", "TEST_LEDS_RECHAZADO");
   } else if (strncmp(accion, "SET_RTC:", 8) == 0) {
-    // CMD:PIN:1234:SET_RTC:YYYY-MM-DD,HH:MM:SS (Inyección Courier RTC)
+    // CMD:PIN:1234:SET_RTC:YYYY-MM-DD,HH:MM:SS (Inyeccion Courier RTC)
+    //
+    // NO SE CONTESTA OK SIN HABER MIRADO SI SE PUDO. reloj_ajustar() no devuelve
+    // nada y rechaza EN SILENCIO en dos sitios -sin oscilador, reloj.cpp:173; con
+    // cifras fuera de rango, reloj.cpp:175-, asi que el $ACK incondicional de antes
+    // era una promesa que nadie habia comprobado. Con N-17 confirmado en hardware
+    // -el cristal Y2 no oscila en las tarjetas actuales- ese OK falso es hoy la
+    // respuesta HABITUAL, no un caso raro: el tecnico se va del poste convencido de
+    // que dejo el reloj puesto, y esta punta sigue sin hora.
+    //
+    // AQUI NO HAY reloj_hayCristal(): esa funcion solo la declara el reloj.h del
+    // Maestro. La pregunta equivalente en esta punta es reloj_contadorSegundos(),
+    // que reserva el 0 para "no hay reloj" y devuelve 1 antes que un cero real
+    // (reloj.cpp:131 y 143), de modo que su cero significa exactamente "el RTC no
+    // esta operativo". Se pregunta ANTES para no escribir sobre un contador parado.
+    //
+    // Y no se propaga nada despues: el Esclavo no tiene coordinador.cpp, su hora
+    // viaja por radio desde el Maestro. Aqui solo se responde la verdad.
+    //
+    // Las cifras se acotan tambien aqui, ademas de en reloj.cpp, porque si no un
+    // ajuste descartado por rango sobre un reloj que YA estaba en hora dejaria
+    // reloj_enHora() en true y volveria a contestar OK sin haber escrito nada. Se
+    // reusa FORMATO_INVALIDO -una hora imposible es tan mal formato como una trama
+    // que no casa- para no gastar flash en un literal nuevo. El dia se exige 1..31
+    // porque el Courier manda siempre la fecha completa; el 0 de "no toques la
+    // fecha" no llega nunca por esta puerta.
     int y, mo, d, h, mi, s;
-    if (sscanf(accion + 8, "%d-%d-%d,%d:%d:%d", &y, &mo, &d, &h, &mi, &s) == 6) {
-      reloj_ajustar((uint8_t)h, (uint8_t)mi, (uint8_t)s, (uint8_t)d);
-      enviarTramaConCrc("$ACK,CMD:SET_RTC,RESULT:OK");
-      bluetooth_reportarEvento("APP_BLUETOOTH", "COURIER_RTC_INYECTADO");
+    if (sscanf(accion + 8, "%d-%d-%d,%d:%d:%d", &y, &mo, &d, &h, &mi, &s) == 6 &&
+        h >= 0 && h <= 23 && mi >= 0 && mi <= 59 && s >= 0 && s <= 59 &&
+        d >= 1 && d <= 31) {
+      if (reloj_contadorSegundos()) reloj_ajustar((uint8_t)h, (uint8_t)mi, (uint8_t)s, (uint8_t)d);
+      // Con las cifras ya acotadas y el oscilador en marcha, reloj_ajustar() no
+      // puede rechazar: reloj_enHora() distingue entonces el ajuste hecho del que
+      // no se pudo intentar.
+      if (reloj_enHora()) {
+        enviarTramaConCrc("$ACK,CMD:SET_RTC,RESULT:OK");
+        bluetooth_reportarEvento("APP_BLUETOOTH", "COURIER_RTC_INYECTADO");
+      } else {
+        enviarTramaConCrc("$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL");
+      }
     } else {
       enviarTramaConCrc("$ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO");
     }

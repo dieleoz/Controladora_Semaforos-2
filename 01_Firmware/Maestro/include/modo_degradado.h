@@ -82,6 +82,21 @@ bool modo_degradado_reanudarTrasCorte();
 void modo_degradado_setup();
 void modo_degradado_loop();
 
+// Pide la salida del modo: arranca el todo-rojo obligatorio y, cumplido, devuelve el
+// mando al menu. Es la MISMA puerta que el boton 4 del gabinete, y esa es la razon de
+// que exista como funcion: quien quiera sacar al equipo de aqui -la pantalla o el
+// Bluetooth- tiene que pasar por ella.
+//
+// NADIE SALE DE ESTE MODO CON UN modoActual_set(MENU). Saltar al menu directamente se
+// come el todo-rojo de ROJO_TRANSICION_MS, y el escenario peligroso de este modo es
+// justo que UNA SOLA PUNTA lo abandone: esta unidad caeria a rojo mientras la otra
+// sigue dando verde por reloj, sin nadie que haya verificado las dos puntas.
+//
+// Devuelve false si no habia salida que arrancar -ya se estaba saliendo, o esta puesta
+// la pantalla de rechazo, que vuelve sola al menu-. En los dos casos el equipo ya esta
+// en rojo y camino del menu, asi que false no es un error: es "no hice nada nuevo".
+bool modo_degradado_pedirSalida();
+
 // El ambar intermitente vive en modo_ambar.h desde la Fase 4 (03/08/2026): es un MODO
 // DEL SISTEMA -la salida de emergencia de B.B.B-, no una parte del Modo Degradado.
 

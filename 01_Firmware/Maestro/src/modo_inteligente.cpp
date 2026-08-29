@@ -4,6 +4,7 @@
 #include "botones.h"
 #include "semaforo.h"
 #include "coordinador.h"
+#include "demanda.h"
 #include "lcd.h"
 #include "menu.h"
 #include "protocolo.h"
@@ -88,7 +89,12 @@ void modoInteligente_loop() {
         // ==============================================================
         // Cámara 1 (Maestro): PB0 (Demanda Sentido 1)
         // Cámara 3 (Esclavo): PB0 en Esclavo -> Transmite CMD_DEMANDA al Maestro (Sentido 2)
-        bool demandaLocalS1 = leerPinCamara(CAM_DEMANDA_PIN);
+        // La demanda pedida a mano por Bluetooth entra POR AQUI, en el mismo OR que la
+        // camara, y no por un camino propio hasta el coordinador: asi se le aplican los
+        // dos limites que gobiernan a la camara -el minimo de 15 s de verde y el tope
+        // de verde maximo-. Un atajo se los saltaria, y ademas partiria el turno sin
+        // que el ciclo se enterase.
+        bool demandaLocalS1 = leerPinCamara(CAM_DEMANDA_PIN) || demanda_hayLocal();
         bool demandaRemotaS2 = coordinador_hayDemandaRemota();
 
         // Regla 1: Mínimo 15 segundos de verde antes de permitir cualquier alternancia

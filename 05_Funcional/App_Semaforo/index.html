@@ -174,6 +174,21 @@
               <small>Detener tráfico</small>
             </div>
           </button>
+
+          <!-- 5. VOLVER AL MENU: la salida de CUALQUIER modo, y por eso ocupa las dos
+               columnas en vez de ser un boton mas de la reja. Hasta hoy esta vuelta
+               atras solo existia como el pulsador fisico PB15 del gabinete, que se
+               retira; sin ella, un operario a pie de calzada no tiene forma de sacar
+               al equipo de un modo sin subir al armario. No pide PIN, por el mismo
+               criterio que el Rojo Total: deja el cruce en rojo fijo, no abre paso
+               (Maestro/src/bluetooth.cpp:153-174). -->
+          <button class="pad-btn btn-menu pad-btn-wide" id="btn-op-menu">
+            <span class="pad-icon">↩️</span>
+            <div class="pad-text">
+              <strong>VOLVER AL MENÚ</strong>
+              <small>Sale del modo · deja rojo fijo</small>
+            </div>
+          </button>
         </div>
       </div>
 
@@ -272,7 +287,44 @@
             <strong>Solicitar Paso</strong>
             <small>Demanda de cruce (N-58)</small>
           </button>
+          <!-- Arranca un ciclo que DA VERDES, por eso pide PIN igual que el resto. -->
+          <button class="ctrl-btn btn-mode-smart" data-cmd="SET_MODO:INTELIGENTE">
+            <strong>Modo Inteligente</strong>
+            <small>Cicla por demanda de cámara</small>
+          </button>
+          <!-- Sin PIN: deja el equipo en rojo fijo y no arranca ciclo. -->
+          <button class="ctrl-btn btn-mode-range" id="btn-modo-alcance">
+            <strong>Prueba de Alcance</strong>
+            <small>Rojo fijo · mide el enlace</small>
+          </button>
         </div>
+      </div>
+
+      <!-- DEMANDA: la peticion de paso local del Modo Inteligente. NO es SOLICITAR_PASO
+           -alli es el Esclavo el que pide a la otra punta-. Fuera del Modo Inteligente
+           el firmware la rechaza porque ningun ciclo la mira, asi que el boton se apaga
+           solo segun el MODO que dice $STATUS en vez de gastar una orden que ya se sabe
+           rechazada. Sin telemetria no se sabe en que modo esta el equipo, y entonces
+           tampoco se habilita: no saber no es estar en Inteligente. -->
+      <div class="card">
+        <div class="card-header-flex">
+          <h3>🚶 Pedir paso (Modo Inteligente)</h3>
+          <span class="badge">DEMANDA</span>
+        </div>
+        <button class="btn-save-site" id="btn-demanda" data-cmd="DEMANDA" disabled>
+          🚶 Registrar demanda de paso
+        </button>
+        <p class="card-sub" id="demanda-hint">Sin datos del equipo: no se sabe en qué modo está.</p>
+      </div>
+
+      <!-- REINICIAR_RELOJ borra hora, ciclo acordado y la autorizacion del Degradado.
+           Va aparte del resto porque no es un cambio de modo: es un borrado. -->
+      <div class="card">
+        <h3>🧹 Reiniciar el reloj del equipo</h3>
+        <p class="card-sub">Borra la hora, el ciclo acordado con la otra punta y la autorización del Modo Degradado. Después hay que volver a sincronizar.</p>
+        <button class="btn-secondary-bt" data-cmd="REINICIAR_RELOJ" style="width: 100%;">
+          🧹 Reiniciar reloj y respaldo
+        </button>
       </div>
 
       <!-- Asistente Courier RTC -->
@@ -328,6 +380,26 @@
         <p class="card-sub">Secuencia de 6 segundos (2s Rojo ➔ 2s Amarillo ➔ 2s Verde) para validar potencia.</p>
         <button class="btn-secondary-bt" id="btn-start-test-leds" style="width: 100%;">
           ⚡ Iniciar Test de Luces (6s)
+        </button>
+      </div>
+
+      <!-- ===============================================================
+           MODO DEGRADADO - LA UNICA MANIOBRA QUE DA VERDE SIN RADIO
+           ===============================================================
+           No esta en la reja de mandos de arriba a proposito. Los demas botones piden
+           un cambio de modo que el otro extremo confirma; este enciende un verde
+           guiandose SOLO por el reloj, sin nadie al otro lado que diga que su sentido
+           esta en rojo. Un dedo que resbala sobre una reja de cuatro botones no puede
+           poder eso: va en su propia tarjeta, con su color, y detras de un dialogo que
+           dice lo que va a pasar y obliga a marcar la casilla. -->
+      <div class="card card-degradado">
+        <div class="card-header-flex">
+          <h3>⚠️ Modo Degradado (sin radio)</h3>
+          <span class="badge badge-degradado">PELIGROSO</span>
+        </div>
+        <p class="card-sub">Da verde guiándose <strong>solo por el reloj</strong>, sin confirmación de la otra punta. Úselo únicamente con el enlace caído y las dos unidades verificadas.</p>
+        <button class="btn-degradado" id="btn-modo-degradado">
+          ⚠️ Entrar en Modo Degradado…
         </button>
       </div>
     </section>
@@ -452,6 +524,37 @@
 
       <div class="site-list" id="dynamic-site-list">
         <!-- Renderizado dinámico -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmacion del Modo Degradado.
+       Es un modal propio de la app y NO un confirm()/prompt() del navegador: el
+       dialogo nativo bloquea el hilo -es lo que colgo una corrida E2E (N75-4)- y
+       ademas no deja escribir lo que de verdad hay que leer antes de pulsar. -->
+  <div class="modal-overlay" id="degradado-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4>⚠️ Modo Degradado</h4>
+        <button class="modal-close" id="modal-degradado-close">✕</button>
+      </div>
+      <p class="modal-desc">
+        Al aceptar, <strong>esta unidad abrirá paso guiándose solo por su reloj</strong>.
+        No preguntará nada por radio y nadie le confirmará que el otro sentido está en
+        rojo: es la única orden del equipo que enciende un verde sin el otro extremo.
+      </p>
+      <ul class="degradado-lista">
+        <li>Las dos unidades deben tener la hora puesta y el <strong>mismo ciclo acordado</strong>.</li>
+        <li>El equipo puede rechazar la orden. El motivo exacto sale en <strong>Eventos</strong>.</li>
+        <li>Para salir se usa <strong>VOLVER AL MENÚ</strong>: el equipo hace 30 s de todo-rojo antes de soltar.</li>
+      </ul>
+      <label class="degradado-check">
+        <input type="checkbox" id="chk-degradado-verificado">
+        <span>He verificado en persona la otra unidad y el enlace está caído.</span>
+      </label>
+      <div class="degradado-acciones">
+        <button class="btn-secondary-bt" id="btn-degradado-cancelar">Cancelar</button>
+        <button class="btn-degradado" id="btn-degradado-confirmar" disabled>Entrar en Degradado</button>
       </div>
     </div>
   </div>

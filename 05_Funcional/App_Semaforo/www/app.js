@@ -105,6 +105,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnOpStep = document.getElementById('btn-op-step');
   const btnOpAmber = document.getElementById('btn-op-amber');
   const btnOpEmergency = document.getElementById('btn-op-emergency');
+  const btnOpMenu = document.getElementById('btn-op-menu');
+
+  // Mandos de tecnico que no salen por data-cmd porque cada uno tiene una condicion
+  // propia: ALCANCE viaja sin PIN, DEMANDA solo vale en un modo concreto y DEGRADADO
+  // pasa antes por un dialogo.
+  const btnModoAlcance = document.getElementById('btn-modo-alcance');
+  const btnDemanda = document.getElementById('btn-demanda');
+  const demandaHintEl = document.getElementById('demanda-hint');
+  const btnModoDegradado = document.getElementById('btn-modo-degradado');
+  const degradadoModal = document.getElementById('degradado-modal');
+  const modalDegradadoClose = document.getElementById('modal-degradado-close');
+  const chkDegradadoVerificado = document.getElementById('chk-degradado-verificado');
+  const btnDegradadoCancelar = document.getElementById('btn-degradado-cancelar');
+  const btnDegradadoConfirmar = document.getElementById('btn-degradado-confirmar');
 
   // Courier RTC Elements
   const btnCourierCapture = document.getElementById('btn-courier-capture');
@@ -144,12 +158,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   // 1. PROTOCOLO DE COMANDOS FIRMWARE C++ (STM32 BLUETOOTH CONTRACT)
   // =========================================================================
-  // Las ordenes que el firmware acepta SIN autenticar. Hoy es una sola y esta
-  // razonada en bluetooth.cpp:70-82: el rojo de emergencia lo puede dar cualquiera
-  // que vea el accidente, porque el PIN guarda lo que ABRE paso, no lo que lo para.
-  // Se escribe aqui, con el nombre EXACTO que viaja por el cable, para que el censo
-  // del pack app_01_comandos vea lo mismo que ve el micro.
-  const SIN_PIN = ['FORZAR_ROJO'];
+  // Las ordenes que el firmware acepta SIN autenticar, con el nombre EXACTO que viaja
+  // por el cable, para que el censo del pack app_01_comandos vea lo mismo que ve el
+  // micro. El criterio no lo elige la app: esta escrito en el despachador y es el
+  // mismo para las tres -el PIN guarda lo que ABRE paso, no lo que lo para-.
+  //
+  //   FORZAR_ROJO      bluetooth.cpp:135-149. Lo da quien esta viendo el accidente.
+  //   SET_MODO:MENU    bluetooth.cpp:153-174. Deja el equipo en la pantalla, sin ciclo.
+  //   SET_MODO:ALCANCE bluetooth.cpp:153-174. Deja el equipo en rojo fijo.
+  //
+  // Las tres se aceptan TAMBIEN con PIN en el micro, asi que meterlas aqui no abre
+  // ninguna puerta nueva: lo que hace es que se puedan usar sin teclear nada, que es
+  // justo el motivo por el que el firmware las dejo sin clave. En particular MENU es
+  // la vuelta atras universal, y una vuelta atras que exige recordar una clave delante
+  // de un cruce parado no es una vuelta atras.
+  const SIN_PIN = ['FORZAR_ROJO', 'SET_MODO:MENU', 'SET_MODO:ALCANCE'];
 
   function enviarComandoFirmware(comando, args = '') {
     // La excepcion es el rojo de emergencia: bluetooth.cpp:70-82 lo acepta SIN PIN a
@@ -463,6 +486,117 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // VOLVER AL MENU: la salida de cualquier modo, sin PIN (ver SIN_PIN arriba).
+  //
+  // Ni aqui ni en ningun otro sitio se pinta "ya esta en el menu": desde el Degradado
+  // el firmware NO cambia de modo al recibirla, contesta
+  // $ACK,...,RESULT:SALIENDO_TODO_ROJO y tarda todavia el todo-rojo entero. Lo que el
+  // equipo hizo lo dicen $ACK y $STATUS; esta app solo sabe que mando la orden.
+  if (btnOpMenu) {
+    btnOpMenu.addEventListener('click', () => {
+      const punta = puntaCorrecta('SET_MODO');
+      if (punta) { avisarOtraPunta('SET_MODO:MENU', punta); return; }
+      enviarComandoFirmware('SET_MODO:MENU');
+      addEvent('cyan', 'Operario: orden VOLVER AL MENU enviada al equipo.');
+    });
+  }
+
+  // PRUEBA DE ALCANCE: rojo fijo mientras se mide el enlace. Sin PIN, como MENU.
+  if (btnModoAlcance) {
+    btnModoAlcance.addEventListener('click', () => {
+      const punta = puntaCorrecta('SET_MODO');
+      if (punta) { avisarOtraPunta('SET_MODO:ALCANCE', punta); return; }
+      enviarComandoFirmware('SET_MODO:ALCANCE');
+      addEvent('cyan', 'Tecnico: orden PRUEBA DE ALCANCE enviada al equipo.');
+    });
+  }
+
+  // =========================================================================
+  // 4.ter MODO DEGRADADO: LA UNICA ORDEN QUE ENCIENDE UN VERDE SIN LA OTRA PUNTA
+  // =========================================================================
+  // Las otras ordenes de modo se piden y el coordinador confirma. Esta no: el equipo
+  // se pone a dar paso guiandose por su reloj, y el escenario malo -las dos unidades
+  // en verde a la vez- no lo detiene ninguna radio porque no hay radio. Por eso no
+  // esta en la reja de mandos junto a las demas, sino detras de un dialogo que dice
+  // lo que va a pasar y de una casilla que hay que marcar.
+  //
+  // El dialogo es del propio DOM y no un confirm() del navegador: el nativo bloquea
+  // el hilo -colgo una corrida E2E, N75-4- y encima solo deja una linea de texto.
+  //
+  // El orden de las dos barreras no es indiferente: primero el PIN -que es la que el
+  // firmware exige de verdad- y despues la casilla. Al reves, el operario leeria la
+  // advertencia, la aceptaria, y le saldria un teclado despues de haber dicho que si.
+  function abrirConfirmacionDegradado() {
+    if (chkDegradadoVerificado) chkDegradadoVerificado.checked = false;
+    if (btnDegradadoConfirmar) btnDegradadoConfirmar.disabled = true;
+    openModal(degradadoModal);
+  }
+
+  if (btnModoDegradado) {
+    btnModoDegradado.addEventListener('click', () => {
+      const punta = puntaCorrecta('SET_MODO');
+      if (punta) { avisarOtraPunta('SET_MODO:DEGRADADO', punta); return; }
+      if (!state.pinVerificado) { pedirPin(() => btnModoDegradado.click()); return; }
+      abrirConfirmacionDegradado();
+    });
+  }
+
+  if (chkDegradadoVerificado && btnDegradadoConfirmar) {
+    chkDegradadoVerificado.addEventListener('change', () => {
+      btnDegradadoConfirmar.disabled = !chkDegradadoVerificado.checked;
+    });
+  }
+
+  if (btnDegradadoCancelar) {
+    btnDegradadoCancelar.addEventListener('click', () => {
+      closeModal(degradadoModal);
+      addEvent('cyan', 'Modo Degradado: entrada cancelada por el tecnico.');
+    });
+  }
+
+  if (modalDegradadoClose) {
+    modalDegradadoClose.addEventListener('click', () => closeModal(degradadoModal));
+  }
+
+  if (btnDegradadoConfirmar) {
+    btnDegradadoConfirmar.addEventListener('click', () => {
+      if (chkDegradadoVerificado && !chkDegradadoVerificado.checked) return;
+      closeModal(degradadoModal);
+      enviarComandoFirmware('SET_MODO:DEGRADADO');
+      // NO se pinta ningun modo: la puerta de modo_degradado_evaluarEntrada() rechaza
+      // por seis motivos distintos y el que decide es el equipo. Si dice que no, llega
+      // un $ERR con el motivo concreto y lo ensena el camino de rechazos de siempre.
+      addEvent('cyan', 'Tecnico: orden MODO DEGRADADO enviada al equipo. Esperando ' +
+                       'respuesta: el equipo puede rechazarla y dira por que.');
+    });
+  }
+
+  // =========================================================================
+  // 4.quater DEMANDA: UN CONTROL QUE REFLEJA EL MODO EN VEZ DE GASTAR UN RECHAZO
+  // =========================================================================
+  // El firmware solo mira la demanda estando en Modo Inteligente; en cualquier otro
+  // contesta $ERR,CMD:DEMANDA,DESC:SOLO_EN_MODO_INTELIGENTE. Un boton que siempre se
+  // puede pulsar y casi siempre falla ensena a no fiarse de los botones, asi que el
+  // control sigue al MODO que dice $STATUS.
+  //
+  // Y sin telemetria queda apagado, no habilitado: no saber en que modo esta el equipo
+  // no es lo mismo que saber que esta en Inteligente.
+  function actualizarDemanda() {
+    if (!btnDemanda) return;
+    const disponible = state.telemetriaViva && state.modo === 'INTELIGENTE';
+    btnDemanda.disabled = !disponible;
+    if (!demandaHintEl) return;
+    if (disponible) {
+      demandaHintEl.textContent = 'El equipo esta en Modo Inteligente: la peticion ' +
+                                  'entra en el ciclo.';
+    } else if (state.telemetriaViva) {
+      demandaHintEl.textContent = 'Solo sirve en Modo Inteligente. El equipo dice ' +
+                                  'estar en ' + (state.modo || 'un modo sin nombre') + '.';
+    } else {
+      demandaHintEl.textContent = 'Sin datos del equipo: no se sabe en que modo esta.';
+    }
+  }
+
 
   // =========================================================================
   // 4.bis INGESTA DE TELEMETRIA DEL EQUIPO ($STATUS / $ALARM / $ERR)
@@ -527,6 +661,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.MODO || data.ESTADO) {
         renderLights();
       }
+      // El control de DEMANDA se abre y se cierra con el MODO que acaba de llegar, no
+      // con lo que la app haya pedido: pedir Inteligente no es estar en Inteligente.
+      if (data.MODO) {
+        actualizarDemanda();
+      }
       if (data.T) {
         state.countdown = parseInt(data.T, 10) || 0;
         updateCountdownRing();
@@ -590,13 +729,25 @@ document.addEventListener('DOMContentLoaded', () => {
   // solo lo entiende el Esclavo (Esclavo/src/bluetooth.cpp:128) y SET_MODO solo el
   // Maestro (Maestro/src/bluetooth.cpp:123-137): pulsados contra la punta equivocada
   // devolvian $ERR,CMD:DESCONOCIDO y el boton parecia roto. El nodo lo dice $STATUS.
-  const SOLO_MAESTRO = ['SET_MODO', 'MANUAL:CAMBIAR_TURNO', 'SET_TIEMPOS', 'TEST_LEDS'];
+  // DEMANDA y REINICIAR_RELOJ tampoco existen en el Esclavo: su despachador no las
+  // conoce y contestaria $ERR,CMD:DESCONOCIDO, que es el error que no dice nada.
+  const SOLO_MAESTRO = ['SET_MODO', 'MANUAL:CAMBIAR_TURNO', 'SET_TIEMPOS', 'TEST_LEDS',
+                        'DEMANDA', 'REINICIAR_RELOJ'];
   const SOLO_ESCLAVO = ['SOLICITAR_PASO'];
 
   function puntaCorrecta(comando) {
     if (SOLO_MAESTRO.includes(comando) && state.node === 'ESCLAVO') return 'MAESTRO';
     if (SOLO_ESCLAVO.includes(comando) && state.node !== 'ESCLAVO') return 'ESCLAVO';
     return null;
+  }
+
+  // El aviso vive en una sola funcion porque lo usan tanto el despachador de data-cmd
+  // como los mandos que llevan su literal a la vista: dos textos para el mismo hecho
+  // acabarian diciendo cosas distintas del mismo rechazo.
+  function avisarOtraPunta(orden, punta) {
+    showToast('Esa orden la atiende el ' + punta + ', no esta punta');
+    addEvent('red', 'Orden ' + orden + ' no enviada: la acepta el ' + punta +
+                    ' y ahora mismo hay un ' + (state.node || '?') + ' al otro lado.');
   }
 
   document.querySelectorAll('[data-cmd]').forEach(btn => {
@@ -609,9 +760,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const punta = puntaCorrecta(comando);
       if (punta) {
-        showToast('Esa orden la atiende el ' + punta + ', no esta punta');
-        addEvent('red', 'Orden ' + orden + ' no enviada: la acepta el ' + punta +
-                        ' y ahora mismo hay un ' + (state.node || '?') + ' al otro lado.');
+        avisarOtraPunta(orden, punta);
         return;
       }
 
@@ -953,7 +1102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalSiteClose.addEventListener('click', () => closeModal(siteModal));
   }
 
-  [btModal, siteModal, pinModal].forEach(m => {
+  [btModal, siteModal, pinModal, degradadoModal].forEach(m => {
     if (m) {
       m.addEventListener('click', (e) => {
         if (e.target === m) closeModal(m);
@@ -1095,6 +1244,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.telemetriaViva = true;
     if (btStatusDot) btStatusDot.className = 'status-dot connected';
     if (btBtnText) btBtnText.textContent = 'Enlazado';
+    actualizarDemanda();
   }
 
   function marcarSinEnlace() {
@@ -1128,6 +1278,11 @@ document.addEventListener('DOMContentLoaded', () => {
       badgeModoEl.style.color = '';
       badgeModoEl.textContent = 'SIN ENLACE';
     }
+
+    // Sin telemetria no se sabe el modo, asi que el control que depende de el se
+    // apaga. Dejarlo habilitado con el ultimo modo conocido seria decidir con un dato
+    // vencido, que es lo mismo que se retira dos lineas mas arriba con los numeros.
+    actualizarDemanda();
 
     if (eraConectado) {
       addEvent('red', 'Enlace perdido: el equipo lleva mas de ' +
@@ -1164,6 +1319,7 @@ document.addEventListener('DOMContentLoaded', () => {
           marcarConEnlace();
           renderLights();
           updateCountdownRing();
+          actualizarDemanda();
         })
         .catch(() => {
           // El puente no contesta. No se declara caido el enlace aqui: en el APK no

@@ -645,9 +645,134 @@ body {
   box-shadow: 0 4px 18px rgba(255, 30, 68, 0.3);
 }
 
+/* La vuelta al menu ocupa la fila entera: no es una maniobra mas de la reja, es la
+   salida de todas ellas. En gris neutro porque no manda ninguna luz a ningun sitio. */
+.pad-btn-wide {
+  grid-column: 1 / -1;
+}
+
+.btn-menu {
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.14) 0%, rgba(100, 116, 139, 0.3) 100%);
+  border-color: rgba(148, 163, 184, 0.55);
+}
+
 /* ==========================================================================
-   Simulador de Campo Rápido
-   ========================================================================== */
+   Mandos Directos del Técnico (.ctrl-grid)
+   ==========================================================================
+   Estos botones existian en el HTML desde N-75 y NO tenian ni una regla: salian como
+   texto suelto sin caja ni area de toque. Un mando que se ve como un parrafo es un
+   mando que no se pulsa. */
+.ctrl-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.ctrl-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  /* Un hijo de grid no baja de su ancho de contenido salvo que se le diga: sin esto
+     el rotulo mas largo ensancha la columna y se lleva la tarjeta por delante en
+     pantalla estrecha, que es exactamente lo que se midio en la cabecera. */
+  min-width: 0;
+  padding: 12px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-smooth);
+}
+
+.ctrl-btn:active { transform: scale(0.97); }
+.ctrl-btn strong { font-size: 12px; font-weight: 800; }
+.ctrl-btn small { font-size: 10px; color: var(--text-secondary); }
+
+.ctrl-btn.btn-mode-manual { border-color: rgba(0, 240, 255, 0.4); }
+.ctrl-btn.btn-request { border-color: rgba(0, 230, 118, 0.4); }
+.ctrl-btn.btn-mode-smart { border-color: rgba(0, 230, 118, 0.4); }
+.ctrl-btn.btn-mode-range { border-color: rgba(255, 179, 0, 0.4); }
+
+/* Un mando apagado tiene que PARECER apagado: DEMANDA se deshabilita sola fuera del
+   Modo Inteligente y el rotulo de debajo dice por que. */
+.btn-save-site:disabled,
+.btn-secondary-bt:disabled,
+.ctrl-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+/* ==========================================================================
+   Modo Degradado: la única orden que da verde sin la otra punta
+   ==========================================================================
+   Tiene color propio y no comparte reja con nada. No es decoración: si se pareciera a
+   los demás mandos, se pulsaría como los demás mandos. */
+.card-degradado {
+  border-left: 4px solid var(--amber-lamp);
+  background: linear-gradient(135deg, rgba(255, 179, 0, 0.08) 0%, rgba(16, 24, 40, 0.75) 60%);
+}
+
+.badge-degradado {
+  background: rgba(255, 179, 0, 0.15);
+  border: 1px solid rgba(255, 179, 0, 0.5);
+  color: var(--amber-lamp);
+}
+
+.btn-degradado {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid rgba(255, 179, 0, 0.7);
+  background: linear-gradient(135deg, rgba(255, 179, 0, 0.18) 0%, rgba(185, 120, 0, 0.35) 100%);
+  color: var(--text-primary);
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-degradado:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+.degradado-lista {
+  margin: 0 0 14px 16px;
+  padding: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.degradado-lista li { margin-bottom: 6px; }
+
+.degradado-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 179, 0, 0.4);
+  background: rgba(255, 179, 0, 0.06);
+  font-size: 11px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.degradado-check input { margin-top: 2px; }
+
+.degradado-acciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.degradado-acciones .btn-degradado { margin-top: 0; }
+
 
 /* ==========================================================================
    Admin Banners & Forms

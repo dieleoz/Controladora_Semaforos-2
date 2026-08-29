@@ -432,6 +432,27 @@ void modo_degradado_setup() {
   ultEstadoPintado = DEG_RECHAZO;  // fuerza el primer repintado
 }
 
+bool modo_degradado_pedirSalida() {
+  // Ya se esta saliendo, o es la pantalla de rechazo -que vuelve sola al menu en
+  // RECHAZO_MS y ya tiene el equipo en rojo-. En ninguno de los dos casos hay ciclo
+  // que parar, y reiniciar el todo-rojo solo alargaria la espera de quien ya salio.
+  if (estado == DEG_SALIDA_ROJO || estado == DEG_RECHAZO) return false;
+
+  // N-20: el indicador se borra AL PULSAR, no al llegar al menu 30 s despues. Lo que
+  // sostiene la reanudacion es que la autorizacion de una persona SIGA VIGENTE, y
+  // este boton es esa persona revocandola. Si la luz se fuera durante el todo-rojo
+  // de salida, el equipo debe arrancar en el menu: el operario ya decidio salir.
+  respaldo_guardarDegradado(false);
+
+  semaforo_forzarRojo();
+  estado = DEG_SALIDA_ROJO;
+  tEstado = millis();
+  // El texto es corto a proposito: con la fuente 6x10 caben 20 caracteres por linea
+  // y U8g2 recorta en silencio lo que sobre. El arnes lo comprueba.
+  lcd_dibujarDegradadoAmbar("Saliendo: todo rojo", "Vea las dos puntas");
+  return true;
+}
+
 void modo_degradado_loop() {
   // Aqui, y no en el coordinador: en este modo no se llama al coordinador, y sin esto
   // ni el ambar parpadearia ni se animarian los destellos del mando.
@@ -446,19 +467,11 @@ void modo_degradado_loop() {
   // dos sentidos de la transicion. La verificacion visual de las dos puntas es
   // obligatoria tambien AL SALIR, no solo al entrar: el escenario peligroso de este
   // modo es que una sola punta lo abandone.
-  if (salir && estado != DEG_SALIDA_ROJO && estado != DEG_RECHAZO) {
-    // N-20: el indicador se borra AL PULSAR, no al llegar al menu 30 s despues. Lo que
-    // sostiene la reanudacion es que la autorizacion de una persona SIGA VIGENTE, y
-    // este boton es esa persona revocandola. Si la luz se fuera durante el todo-rojo
-    // de salida, el equipo debe arrancar en el menu: el operario ya decidio salir.
-    respaldo_guardarDegradado(false);
-
-    semaforo_forzarRojo();
-    estado = DEG_SALIDA_ROJO;
-    tEstado = millis();
-    // El texto es corto a proposito: con la fuente 6x10 caben 20 caracteres por linea
-    // y U8g2 recorta en silencio lo que sobre. El arnes lo comprueba.
-    lcd_dibujarDegradadoAmbar("Saliendo: todo rojo", "Vea las dos puntas");
+  //
+  // El cuerpo se mudo a modo_degradado_pedirSalida() sin tocarlo, porque el despachador
+  // de Bluetooth necesita ESTA salida y no otra: dos formas de abandonar el modo serian
+  // dos criterios, y en la calle mandaria el mas flojo.
+  if (salir && modo_degradado_pedirSalida()) {
     return;
   }
 
