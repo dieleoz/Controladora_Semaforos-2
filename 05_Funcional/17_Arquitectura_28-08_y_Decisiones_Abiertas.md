@@ -3,7 +3,7 @@
 **Para:** el funcional y el auditor.
 **Fecha del documento:** 28 de agosto de 2026.
 **Acta de compuerta de referencia:** `evidencia/2026-08-28_compuerta.txt` — `15 PASS | 0 FALLA | 0 ABORTADO`,
-HEAD `50a5380`, **con el arbol con cambios sin commitear al medir** (lo dice la propia acta).
+HEAD `3733544`, rama `main-nuevo`, **arbol LIMPIO** (lo dice la propia acta).
 
 Este documento esta escrito **en ASCII sin acentos**, como el resto de lo que se parsea o se lee en
 consola de Windows en este repositorio.
@@ -866,7 +866,7 @@ permiso.
 > 🛑 **La compuerta del 28/08 salio con `15 PASS | 0 FALLA | 0 ABORTADO` y eso no autoriza nada de
 > este documento.** Lo dice el acta y lo dice `CLAUDE.md` §3: ese `0` significa que *los modelos y
 > los arneses de PC no encuentran nada*. **Ninguno de ellos toca la tarjeta**, ninguno tiene
-> bornera, y el acta ademas avisa de que el arbol tenia cambios sin commitear al medir. **Verde no
+> bornera, y ninguno sabe si el cobre de la tarjeta es el del plano. **Verde no
 > es entregable.**
 
 ---
