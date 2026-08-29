@@ -181,8 +181,3 @@ unsigned long protocolo_bytesRecibidos();
 unsigned long protocolo_tramasValidas();
 unsigned long protocolo_tramasDescartadas();
 void protocolo_reiniciarContadores();
-
-// Funciones de IA (Mantiene strings porque va por cable serie directo a la RPi)
-void protocolo_actualizarAI();
-int protocolo_obtenerAutosEsperandoAI();
-unsigned long protocolo_obtenerUltimoTiempoAI();

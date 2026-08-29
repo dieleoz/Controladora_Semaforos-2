@@ -42,8 +42,10 @@ CONOCIDAS = {
     "Maestro": {
         # Getters de telemetria que la pantalla dejo de pedir. No danan; se anotan.
         "bluetooth_testLedsActivo", "protocolo_tramasDescartadas",
-        "protocolo_actualizarAI", "protocolo_obtenerAutosEsperandoAI",
-        "protocolo_obtenerUltimoTiempoAI",
+        # N-86 retiro las tres del puerto de camara IA (protocolo_actualizarAI,
+        # protocolo_obtenerAutosEsperandoAI, protocolo_obtenerUltimoTiempoAI). Ya no
+        # se declaran en ningun header, asi que salen de la lista: la comprobacion de
+        # "desaparecidas" las pediria por su nombre y estaria vigilando el aire.
         "respaldo_valido", "respaldo_verdeSeg", "respaldo_despejeSeg",
         "reloj_textoHora", "semaforo_toggle",
         # SFTY-20, franja nocturna: OPTIMIZACIONES.md la declara "DISENO, NO
@@ -58,8 +60,8 @@ CONOCIDAS = {
     },
     "Esclavo": {
         "bluetooth_testLedsActivo", "protocolo_tramasDescartadas",
-        "protocolo_actualizarAI", "protocolo_obtenerAutosEsperandoAI",
-        "protocolo_obtenerUltimoTiempoAI", "protocolo_reiniciarContadores",
+        # N-86: mismas tres del puerto de camara IA, retiradas tambien en esta punta.
+        "protocolo_reiniciarContadores",
         "respaldo_valido", "reloj_dia", "semaforo_toggle",
         # El Esclavo NO enciende luces por su cuenta: rechaza TEST_LEDS y no fuerza
         # verde. Que estas dos no tengan llamador es la barrera funcionando.

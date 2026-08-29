@@ -4,78 +4,49 @@
 #include <string.h>
 
 static HardwareSerial Bus(RS485_OUT_RX, RS485_OUT_TX);
-static HardwareSerial AiBus(RS485_IN_RX, RS485_IN_TX); // SFTY-5: Segundo bus UART para IA
 
 static char bufIn[64];
 static uint8_t idxIn = 0;
 static uint8_t msgIdCounter = 0;
 static uint8_t ultimoIdRecibido = 0;
 
-static int ai_autosEsperando = 0;
-static unsigned long ai_ultimoMensaje = 0;
-static char ai_bufIn[32];
-static uint8_t ai_idxIn = 0;
-
 void protocolo_setup() {
   pinMode(LORA_DE_RE, OUTPUT);
   digitalWrite(LORA_DE_RE, LOW); // Bus Master-Slave escuchando
   
-  // AQUI YA NO SE ABRE AiBus, Y NO ES UN OLVIDO.
+  // AQUI NO SE ABRE NINGUN SEGUNDO PUERTO SERIE, Y NO ES UN OLVIDO.
   //
-  // AiBus estaba declarado sobre (RS485_IN_RX, RS485_IN_TX) = (PA10, PA9), que
-  // es EL MISMO USART1 que usa SerialBT en bluetooth.cpp. Eran dos objetos
-  // peleandose un unico periferico, y ademas a dos velocidades: 115200 aqui y
-  // 9600 alli. Funcionaba por accidente de orden -bluetooth_setup() corre
-  // despues (main.cpp) y ganaba-, de modo que el puerto quedaba a 9600 y el
-  // "puerto IA" jamas existio a 115200.
+  // Hasta N-76 se abria aqui "AiBus", un HardwareSerial declarado sobre
+  // (RS485_IN_RX, RS485_IN_TX) = (PA10, PA9), que es EL MISMO USART1 que usa
+  // SerialBT en bluetooth.cpp. Eran dos objetos peleandose un unico periferico,
+  // y ademas a dos velocidades: 115200 aqui y 9600 alli. Funcionaba por
+  // accidente de orden -bluetooth_setup() corre despues (main.cpp) y ganaba-,
+  // de modo que el puerto quedaba a 9600 y el "puerto IA" jamas existio a
+  // 115200.
   //
-  // Ahora SerialBT vive en PB6/PB7 (USART1 remapeado, conector J17). Abrir aqui
-  // el mismo USART1 con el mapeo viejo dejaria dos mapeos peleando por el mismo
-  // hardware, asi que se retira la inicializacion.
+  // LA LECCION SIGUE VIGENTE AUNQUE EL CODIGO YA NO ESTE: dos objetos sobre el
+  // mismo periferico a velocidades distintas no dan error, dan el ultimo que
+  // arranco. Antes de declarar un HardwareSerial hay que mirar QUE USART tocan
+  // sus pines, no si los pines estan libres en el conector. Hoy SerialBT vive
+  // en PB6/PB7 (USART1 remapeado, conector J17), y abrir aqui ese mismo USART1
+  // con el mapeo viejo seria repetir la pelea con otro disfraz.
   //
-  // NO SE BORRA NADA MAS: el objeto AiBus y protocolo_actualizarAI() se quedan
-  // como estaban. Esa funcion NO LA LLAMA NADIE -ni aqui ni en la otra punta-, o
-  // sea que el puerto IA lleva huerfano desde siempre; retirarlo es un cambio
-  // con sentido propio y va en su propio N-x, no colado dentro de este.
+  // N-86 retiro el objeto entero, no solo su apertura, y esa distincion es la
+  // parte medida: el enlazador SI descartaba las tres funciones AI -nadie las
+  // llamaba-, pero NO el objeto, porque su constructor cuelga de .init_array y
+  // corre en cada arranque. Eran 280 B de .bss permanentes por punta para un
+  // puerto que no existia. Un camino muerto que no cuesta flash puede seguir
+  // costando RAM.
   //
-  // Y la etiqueta "SFTY-5" que habia en la linea que se retira NO era SFTY-5:
-  // esa regla es la transicion de luz legal (OPTIMIZACIONES.md), no un puerto
+  // Y la etiqueta "SFTY-5" que llevaba aquella declaracion NO era SFTY-5: esa
+  // regla es la transicion de luz legal (OPTIMIZACIONES.md), no un puerto
   // serie. Queda anotado para no arrastrar la etiqueta equivocada.
   //
-  // PA8 no se toca aqui: bluetooth_setup() lo pone en HIGH y corre despues, que
-  // es exactamente lo que pasaba antes. El comportamiento del pin no cambia.
+  // PA8 (RS485_IN_DE_RE) no se toca aqui: bluetooth_setup() lo pone en HIGH y
+  // corre despues, que es exactamente lo que pasaba antes. El comportamiento
+  // del pin no cambia.
 
   Bus.begin(9600);
-}
-
-void protocolo_actualizarAI() {
-  while (AiBus.available() > 0) {
-    char c = AiBus.read();
-    if (c == '\n' || c == '\r') {
-      if (ai_idxIn > 0) {
-        ai_bufIn[ai_idxIn] = '\0';
-        ai_idxIn = 0;
-        
-        // Formato esperado: "AI_CARS:5"
-        if (strncmp(ai_bufIn, "AI_CARS:", 8) == 0) {
-           ai_autosEsperando = atoi(&ai_bufIn[8]);
-           ai_ultimoMensaje = millis();
-        }
-      }
-    } else if (ai_idxIn < sizeof(ai_bufIn) - 1) {
-      ai_bufIn[ai_idxIn++] = c;
-    } else {
-      ai_idxIn = 0; // Prevenir desbordamiento y resincronizar búfer
-    }
-  }
-}
-
-int protocolo_obtenerAutosEsperandoAI() {
-  return ai_autosEsperando;
-}
-
-unsigned long protocolo_obtenerUltimoTiempoAI() {
-  return ai_ultimoMensaje;
 }
 
 // SFTY-7: Polinomio CRC-8 Maxim/Dallas (0x31) bit a bit
