@@ -20,6 +20,7 @@
 #include "U8g2lib.h"   // sin ARDUINO definido -> solo la clase base U8G2
 #include "lcd.h"
 #include "menu.h"      // se compila el menu.cpp REAL para simular la navegacion
+#include "modos.h"     // el enum y modoActual_get(): ya no viven en menu.h
 
 // --- Display de validacion: mismo controlador, sin hardware detras ---------
 extern "C" uint8_t u8x8_byte_nulo(u8x8_t *, uint8_t, uint8_t, void *) { return 1; }

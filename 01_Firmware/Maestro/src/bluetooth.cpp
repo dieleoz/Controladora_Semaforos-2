@@ -7,6 +7,7 @@
 #include "modo_degradado.h"
 #include "semaforo.h"
 #include "menu.h"
+#include "modos.h"
 #include "reloj.h"
 #include "identidad.h"
 #include <string.h>

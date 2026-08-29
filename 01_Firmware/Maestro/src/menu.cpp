@@ -1,5 +1,6 @@
 // ===== src/menu.cpp =====
 #include "menu.h"
+#include "modos.h"
 #include "reloj.h"   // N-31
 #include "botones.h"
 #include "lcd.h"
@@ -7,7 +8,6 @@
 #include "pines.h"
 #include "coordinador.h"
 
-static ModoSistema modoActual = MENU;
 static int cursorMenu = 0;
 
 // ---------------------------------------------------------------------------
@@ -73,7 +73,7 @@ static void repintar() {
 }
 
 void menu_setup() {
-  modoActual = MENU;
+  modoActual_set(MENU);
   // Se vuelve SIEMPRE al nivel raiz. Al salir de un modo el equipo debe aparecer
   // donde el operario espera encontrarlo, y no en un submenu en el que quiza nunca
   // estuvo -por ejemplo tras una vuelta al menu provocada por el propio firmware-.
@@ -82,9 +82,6 @@ void menu_setup() {
   coordinador_forzarMenu(); // Fuerza Rojo Fijo en Maestro y Esclavo
   repintar();
 }
-
-ModoSistema modoActual_get() { return modoActual; }
-void modoActual_set(ModoSistema m) { modoActual = m; }
 
 void menu_loop() {
   // N-31: mientras el resultado del reinicio esta en pantalla, se ignoran los botones
@@ -114,9 +111,9 @@ void menu_loop() {
   if (botonAceptar()) {
     if (nivel == NIVEL_RAIZ) {
       switch (cursorMenu) {
-        case 0: modoActual = MODO_MANUAL;      return;
-        case 1: modoActual = MODO_AUTOMATICO;  return;
-        case 2: modoActual = MODO_INTELIGENTE; return;
+        case 0: modoActual_set(MODO_MANUAL);      return;
+        case 1: modoActual_set(MODO_AUTOMATICO);  return;
+        case 2: modoActual_set(MODO_INTELIGENTE); return;
         default:
           // CONFIGURACION: baja de nivel. NO arranca ningun ciclo ni cambia el
           // estado de las luces; el equipo sigue en el mismo estado seguro que el
@@ -128,9 +125,9 @@ void menu_loop() {
       }
     } else {
       switch (cursorMenu) {
-        case 0:  modoActual = MODO_ALCANCE;   break;
-        case 1:  modoActual = MODO_HORA;      break;
-        case 2:  modoActual = MODO_DEGRADADO; break;
+        case 0:  modoActual_set(MODO_ALCANCE);   break;
+        case 1:  modoActual_set(MODO_HORA);      break;
+        case 2:  modoActual_set(MODO_DEGRADADO); break;
         default: {
           // N-31: se ejecuta AQUI mismo, sin pantalla propia. Es una operacion de un
           // solo paso cuyo resultado se lee en AJUSTAR HORA: si el aviso pasa de

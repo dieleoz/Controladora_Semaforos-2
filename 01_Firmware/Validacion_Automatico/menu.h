@@ -1,29 +1,19 @@
 // ===== Validacion_Automatico/menu.h =====
 // Sustituto de menu.h para compilar modo_automatico.cpp Y mando.cpp en el PC.
 //
-// EXTENDIDO PARA N-52: hasta ahora este sustituto solo daba MENU, porque
-// modo_automatico.cpp no necesitaba mas. mando.cpp si necesita el enum COMPLETO
-// -secuenciasInhibidas() compara contra MODO_HORA, ejecutar() contra
-// MODO_AUTOMATICO, MODO_AMBAR y MODO_DEGRADADO- y necesita modoActual_get(), que
-// antes ni se declaraba aqui.
+// YA NO COPIA EL ENUM, Y ESO ES UNA MEJORA, NO UN DESCUIDO.
 //
-// MISMOS NOMBRES Y MISMO ORDEN que include/menu.h real. El orden no lo compara
-// nadie por entero en este arnes, pero divergir de el es exactamente el tipo de
-// "casi igual" que un sustituto no puede permitirse: si algun dia alguien
-// compara valores crudos, un enum reordenado mentiria en silencio.
+// Hasta el 28/08 este sustituto redeclaraba ModoSistema entero "con los mismos
+// nombres y el mismo orden que include/menu.h real", con una nota admitiendo que
+// divergir seria un "casi igual" capaz de mentir en silencio. Esa copia ya no hace
+// falta: el enum salio de la cabecera de la pantalla a modos.h, que NO arrastra ni
+// STM32duino ni U8g2 -no incluye nada-, asi que aqui se toma el REAL. Un sustituto
+// que no puede desincronizarse es mejor que uno vigilado a mano.
+//
+// Lo unico que sigue siendo sustituto es menu_setup(): modo_automatico.cpp lo llama
+// al volver al menu y el arnes lo implementa como no-op, porque aqui no hay pantalla.
 #pragma once
 
-enum ModoSistema {
-  MENU,
-  MODO_MANUAL,
-  MODO_AUTOMATICO,
-  MODO_INTELIGENTE,
-  MODO_ALCANCE,
-  MODO_HORA,
-  MODO_DEGRADADO,
-  MODO_AMBAR
-};
+#include "modos.h"   // el de Maestro\include: -I lo resuelve, no hay copia local
 
 void menu_setup();
-ModoSistema modoActual_get();
-void modoActual_set(ModoSistema m);

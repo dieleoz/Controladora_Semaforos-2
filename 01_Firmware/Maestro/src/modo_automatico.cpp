@@ -5,6 +5,7 @@
 #include "coordinador.h"
 #include "lcd.h"
 #include "menu.h"
+#include "modos.h"
 #include <string.h>
 
 enum FaseAuto { CONFIG_ROJO, CONFIG_VERDE, CONFIG_ESTATICO, CORRIENDO };

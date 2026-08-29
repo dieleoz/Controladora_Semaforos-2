@@ -5,6 +5,7 @@
 #include "coordinador.h"
 #include "lcd.h"
 #include "menu.h"
+#include "modos.h"
 #include "modo_manual.h"
 #include "modo_automatico.h"
 #include "modo_inteligente.h"

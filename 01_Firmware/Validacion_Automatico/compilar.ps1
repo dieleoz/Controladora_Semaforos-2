@@ -41,8 +41,10 @@ if (-not (Test-Path $BUILD)) { New-Item -ItemType Directory -Path $BUILD | Out-N
 # botones.h, lcd.h y menu.h se resuelvan contra los sustitutos de aqui y no contra
 # los reales del Maestro -que arrastrarian el framework STM32duino, U8g2 y el resto
 # de modos, nada de lo cual hace falta para medir el ciclo automatico-.
-# protocolo.h, reloj.h, respaldo.h, coordinador.h, semaforo.h, mando.h, modo_ambar.h
-# y modo_degradado.h SI son los reales: no hay sustituto de esos en este directorio
+# protocolo.h, reloj.h, respaldo.h, coordinador.h, semaforo.h, mando.h, modo_ambar.h,
+# modo_degradado.h y modos.h SI son los reales: no hay sustituto de esos en este
+# directorio -modos.h a proposito: es el enum ModoSistema, y una copia local seria
+# justo el "casi igual" que puede divergir sin que nadie lo note-
 # (mando.h y las dos ultimas solo necesitan Arduino.h, que ya esta sustituido),
 # asi que caen a Maestro\include.
 $incluye = @("-I$AQUI", "-I$MAESTRO\include")

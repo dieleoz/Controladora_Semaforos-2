@@ -5,6 +5,7 @@
 #include "coordinador.h"
 #include "lcd.h"
 #include "menu.h"
+#include "modos.h"
 #include <string.h>
 
 enum FaseManual { CONFIG_ESTATICO, CORRIENDO };

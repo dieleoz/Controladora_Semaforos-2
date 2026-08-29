@@ -4,6 +4,7 @@
 #include "coordinador.h"
 #include "lcd.h"
 #include "menu.h"
+#include "modos.h"
 #include "protocolo.h"
 
 // Ultimos valores pintados, para no repetir transferencias a la pantalla.

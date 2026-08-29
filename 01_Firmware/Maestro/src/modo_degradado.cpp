@@ -6,6 +6,7 @@
 #include "coordinador.h"
 #include "lcd.h"
 #include "menu.h"
+#include "modos.h"
 #include "reloj.h"
 #include "respaldo.h"
 #include "semaforo.h"

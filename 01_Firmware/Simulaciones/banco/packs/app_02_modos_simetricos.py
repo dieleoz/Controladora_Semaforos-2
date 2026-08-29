@@ -112,10 +112,33 @@ def _acepta_set_modo(codigo):
     return set(re.findall(r'strcmp\s*\(\s*accion\s*,\s*"SET_MODO:([^"]+)"', codigo))
 
 
+# DONDE VIVE EL ENUM, CON EL ROL ESCRITO Y POR PUNTA.
+#
+# Hasta el 28/08 esto era fw.codigo(punta, "include", "menu.h"): el enum ModoSistema
+# vivia dentro de la cabecera de la pantalla. Al sacarlo a modos.h -el modo lo
+# consultan main.cpp, mando.cpp y bluetooth.cpp, que no dibujan nada- la ruta se
+# reapunta EN EL MISMO COMMIT que el traslado. Si no, este pack no encontraria el enum
+# y saldria ABORTADO, que no es PASS: dejaria entrar sin mirar toda la simetria de
+# modos que vigila.
+#
+# Y SE ESCRIBE COMO TUPLA COMPLETA, NO COMO ("include", "modos.h"), QUE NO ES
+# COSMETICA. La guarda de rutas de compuerta.py exige EN LAS DOS PUNTAS cualquier
+# pareja carpeta/fichero que aparezca sin rol -asi es como vigila los ficheros de
+# costura, que si estan duplicados-. El Esclavo NO tiene ModoSistema: su $STATUS
+# publica MODO:SUBORDINADO fijo, censado 0 veces en Esclavo/src y Esclavo/include
+# contra 48 en el Maestro. Sin el rol delante, la guarda pediria un
+# Esclavo\include\modos.h que no existe ni debe existir, y abortaria.
+RUTA_ENUM = {
+    "Maestro": ("Maestro", "include", "modos.h"),
+}
+
+
 def _enum_modos(fw, punta):
-    """Los valores del enum ModoSistema, leidos de menu.h."""
-    m = re.search(r"enum\s+ModoSistema\s*\{([^}]*)\}",
-                  fw.codigo(punta, "include", "menu.h"))
+    """Los valores del enum ModoSistema de esa punta, leidos de su cabecera."""
+    ruta = RUTA_ENUM.get(punta)
+    if ruta is None:
+        return set()
+    m = re.search(r"enum\s+ModoSistema\s*\{([^}]*)\}", fw.codigo(*ruta))
     if not m:
         return set()
     return set(re.findall(r"\b([A-Z][A-Z0-9_]*)\b", m.group(1)))
@@ -185,8 +208,11 @@ def correr(b, fw):
         enum = _enum_modos(fw, p)
         if not enum:
             raise fw.Abortado(
-                "%s: no se pudo leer el enum ModoSistema de menu.h. Sin el no hay "
-                "contra que contrastar los `case` del switch" % p)
+                "%s: no se pudo leer su enum ModoSistema (RUTA_ENUM lo situa en %s). "
+                "O esa punta gano un diccionario de modos sin declarar aqui donde "
+                "vive su enum, o la cabecera cambio de sitio. Sin el no hay "
+                "contra que contrastar los `case` del switch"
+                % (p, RUTA_ENUM.get(p, "NINGUNA RUTA DECLARADA")))
         sinNombrar = sorted(enum - set(casos))
         b.verificar(
             not sinNombrar,

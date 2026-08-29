@@ -46,7 +46,7 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 
 | Comprobación | Estado | |
 |---|---|---|
-| guarda de rutas de los instrumentos | ✅ | 42 rutas parseadas, todas existen |
+| guarda de rutas de los instrumentos | ✅ | 43 rutas parseadas, todas existen |
 | banco por packs *(38 packs)* | ✅ | **405/405** — los 38 packs en `PASS`. Subió de 348 con los cuatro packs de las Fases 1 y 2: `app_02_modos_simetricos`, `app_03_sin_ok_mudo`, `esclavo_07_ambar_emergencia` y `maestro_09_test_leds`. **Los cuatro nacieron en rojo** y ninguno se dio por bueno hasta verlo caer con el defecto inyectado en el `.cpp` real |
 | compila Maestro / Esclavo / Repetidor | ✅ | **88,3 %** · 64,4 % · 20,6 % — *7.644 B libres en el Maestro tras las Fases 1 y 2 y la retirada de `AiBus`* |
 | simulador funcional | ✅ | 20/20 |
@@ -140,7 +140,7 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 >
 > **Y al retirarlos cayó la guarda de rutas**, que censaba las tuplas de los monolitos: se quedó
 > en 4 y **abortó en vez de aprobar**, que es exactamente su trabajo. Hoy censa `banco/packs` y
-> `banco/modelos` — 42 rutas, ninguna escrita a mano.
+> `banco/modelos` — 43 rutas, ninguna escrita a mano.
 
 > ⚠️ **`ABORTADO` no es `PASS`.** Una comprobación que no pudo correr no dice *nada* del firmware.
 > Así se perdió la cobertura del Maestro sin que nadie se enterara: `validador_maestro.py` llevaba

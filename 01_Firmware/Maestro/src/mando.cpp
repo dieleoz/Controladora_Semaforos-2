@@ -2,7 +2,7 @@
 #include "mando.h"
 #include "coordinador.h"
 #include "lcd.h"
-#include "menu.h"
+#include "modos.h"
 #include "modo_automatico.h"
 #include "modo_degradado.h"
 #include "modo_ambar.h"

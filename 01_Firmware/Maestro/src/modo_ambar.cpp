@@ -15,6 +15,7 @@
 #include "coordinador.h"
 #include "lcd.h"
 #include "menu.h"
+#include "modos.h"
 #include "botones.h"
 
 // Motivo con el que arranca el ambar. Apunta a literales, nunca a memoria temporal.

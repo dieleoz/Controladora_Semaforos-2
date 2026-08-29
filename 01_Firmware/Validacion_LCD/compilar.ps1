@@ -116,18 +116,26 @@ foreach ($f in $fuentesC) {
 # ---------------------------------------------------------------------------
 # ARNES DEL MAESTRO
 # ---------------------------------------------------------------------------
-# lcd.cpp y menu.cpp son los MISMOS que se compilan para la tarjeta. Se enlazan
-# tal cual, de modo que la validacion no puede desviarse del firmware real.
-Write-Host "MAESTRO: compilando lcd.cpp y menu.cpp (los mismos del firmware) y el arnes..." -ForegroundColor Cyan
+# lcd.cpp, menu.cpp y modos.cpp son los MISMOS que se compilan para la tarjeta. Se
+# enlazan tal cual, de modo que la validacion no puede desviarse del firmware real.
+#
+# modos.cpp se suma el 28/08: el estado del sistema -modoActual y sus dos accesores-
+# salio de menu.cpp a su propio modulo, porque el modo lo consultan tres ficheros que
+# no dibujan nada. El arnes comprueba a que modo lleva cada opcion del menu, asi que
+# sin este objeto no enlazaria; y ponerle un doble aqui seria medir el menu real
+# contra un estado de mentira.
+Write-Host "MAESTRO: compilando lcd.cpp, menu.cpp y modos.cpp (los mismos del firmware) y el arnes..." -ForegroundColor Cyan
 & $GXX -c -O1 -w -DLCD_VALIDACION_NATIVA @incluyeMaestro (Join-Path $MAESTRO 'src\lcd.cpp') -o (Join-Path $SALIDA 'lcd.o')
 if ($LASTEXITCODE -ne 0) { Write-Error "Fallo compilando lcd.cpp del Maestro" }
 & $GXX -c -O1 -w -DLCD_VALIDACION_NATIVA @incluyeMaestro (Join-Path $MAESTRO 'src\menu.cpp') -o (Join-Path $SALIDA 'menu.o')
 if ($LASTEXITCODE -ne 0) { Write-Error "Fallo compilando menu.cpp del Maestro" }
+& $GXX -c -O1 -w -DLCD_VALIDACION_NATIVA @incluyeMaestro (Join-Path $MAESTRO 'src\modos.cpp') -o (Join-Path $SALIDA 'modos.o')
+if ($LASTEXITCODE -ne 0) { Write-Error "Fallo compilando modos.cpp del Maestro" }
 & $GXX -c -O1 -w -DLCD_VALIDACION_NATIVA @incluyeMaestro (Join-Path $AQUI 'arnes_lcd.cpp') -o (Join-Path $SALIDA 'arnes.o')
 if ($LASTEXITCODE -ne 0) { Write-Error "Fallo compilando el arnes del Maestro" }
 
 $exeMaestro = Join-Path $SALIDA 'validar_lcd.exe'
-& $GXX (Join-Path $SALIDA 'lcd.o') (Join-Path $SALIDA 'menu.o') (Join-Path $SALIDA 'arnes.o') $objetos -o $exeMaestro
+& $GXX (Join-Path $SALIDA 'lcd.o') (Join-Path $SALIDA 'menu.o') (Join-Path $SALIDA 'modos.o') (Join-Path $SALIDA 'arnes.o') $objetos -o $exeMaestro
 if ($LASTEXITCODE -ne 0) { Write-Error "Fallo el enlazado del arnes del Maestro" }
 
 # ---------------------------------------------------------------------------

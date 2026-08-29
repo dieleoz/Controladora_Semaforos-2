@@ -7,6 +7,7 @@
 #include "demanda.h"
 #include "lcd.h"
 #include "menu.h"
+#include "modos.h"
 #include "protocolo.h"
 #include <string.h>
 

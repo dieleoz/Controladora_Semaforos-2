@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-08-28
-HEAD         : e4f8a50   rama: main-nuevo
+HEAD         : 26479d9   rama: main-nuevo
 Arbol        : CON CAMBIOS SIN COMMITEAR
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -9,8 +9,8 @@ GCC de host  : gcc.exe (MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders
 
 RESULTADOS
 ------------------------------------------------------------------------------
-  PASS      guarda de rutas               42 rutas parseadas, todas existen
-  PASS      compila maestro               Flash: [========= ]  88.3% (used 57892 bytes from 65536 bytes)
+  PASS      guarda de rutas               43 rutas parseadas, todas existen
+  PASS      compila maestro               Flash: [========= ]  88.3% (used 57880 bytes from 65536 bytes)
   PASS      compila esclavo               Flash: [======    ]  64.4% (used 42176 bytes from 65536 bytes)
   PASS      compila repetidor             Flash: [==        ]  20.6% (used 270497 bytes from 1310720 bytes)
   PASS      simulador funcional           VEREDICTO FINAL: 20/20 PASS (SISTEMA V8.0 DEFINITIVA CERTIFICADO)
@@ -28,8 +28,8 @@ RESULTADOS
   RESUMEN: 15 PASS | 0 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a e4f8a50 y re-corriendo
+firmware. Esta acta se verifica volviendo a 26479d9 y re-corriendo
 python 01_Firmware/compuerta.py.
 
 AVISO: el arbol tenia cambios sin commitear al medir. Estas
-cifras NO corresponden exactamente a e4f8a50.
+cifras NO corresponden exactamente a 26479d9.
