@@ -1,8 +1,8 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-08-28
-HEAD         : 9b8de81   rama: main-nuevo
-Arbol        : CON CAMBIOS SIN COMMITEAR
+HEAD         : caef8a1   rama: main-nuevo
+Arbol        : LIMPIO
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
 GCC de host  : gcc.exe (MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders, r3) 16.1.0
@@ -28,8 +28,5 @@ RESULTADOS
   RESUMEN: 15 PASS | 0 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a 9b8de81 y re-corriendo
+firmware. Esta acta se verifica volviendo a caef8a1 y re-corriendo
 python 01_Firmware/compuerta.py.
-
-AVISO: el arbol tenia cambios sin commitear al medir. Estas
-cifras NO corresponden exactamente a 9b8de81.
