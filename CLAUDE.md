@@ -40,6 +40,17 @@ Un solo código de salida: `0` PASS · `1` FALLA · `2` ABORTADO. Escribe un act
 hash de HEAD en `evidencia/`. **Las cifras del README se copian del acta, nunca se escriben a
 mano.**
 
+> ⚠️ **La compuerta NO es idempotente después de un `--rapido`: hacen falta DOS pasadas completas.**
+> `documentos_01_cifras_del_acta` lee el acta **ANTERIOR** —la nueva se escribe al final, en
+> `escribir_acta()`, después de que el banco ya corrió—, y `--rapido` deja un acta **sin las tres
+> filas `compila maestro / esclavo / repetidor`**. La siguiente corrida, aunque sea completa,
+> compara la tabla del README contra esa acta mutilada, ve tres filas que el acta no mide y
+> protesta **con razón**.
+>
+> No es un defecto del pack: es el pack impidiendo publicar una cifra que no salga de la última
+> corrida. La cura no es tocarlo — es correr la completa **dos veces**, y copiar del acta que sí
+> las trae.
+
 > 🟢 **Desde el 05/08 la compuerta sale con `0` — y eso la vuelve más peligrosa, no menos.**
 > Mientras salía con `1`, nadie la confundía con un permiso. Un `0` sí se confunde. Lo que ese
 > `0` dice es exactamente esto: *los modelos y los arneses de PC no encuentran nada*. **No dice
@@ -86,8 +97,9 @@ python 01_Firmware/Simulaciones/banco/correr.py --listar
 python 01_Firmware/Simulaciones/banco/correr.py --pack esclavo_03
 ```
 
-**La migración terminó el 05/08: no quedan validadores monolíticos.** El banco son 24 packs
-—un fichero corto por propiedad, que se corre solo en un segundo—. El porqué estaba medido:
+**La migración terminó el 05/08: no quedan validadores monolíticos.** El banco son **38 packs**
+—`405/405` comprobaciones en el acta del 28/08—, un fichero corto por propiedad, que se corre solo
+en un segundo. El porqué estaba medido:
 **8.898 líneas de instrumento para 8.895 de firmware**, y los instrumentos no son pruebas — son
 una *segunda copia del firmware escrita a mano* que alguien sincroniza. Eso falló tres veces
 (N-36, N-39, y la propia compuerta).
@@ -142,6 +154,23 @@ monolitos y se quedó en 4—: abortó en vez de aprobar, que es su trabajo. Hoy
 > *es* la barrera—. Lo que falla es una **nueva**, una que **gana** llamador y sigue en la lista, y
 > sobre todo **una que los documentos anuncien como función existente**.
 
+> 🔴 **Refactorizar puede APAGAR un instrumento sin romper un solo test (N-89, 28/08).** Al escribir
+> los seis comandos nuevos se probó un compositor —`responderAck(cmd, resultado)` /
+> `responderErr(cmd, motivo)`— que armaba la trama en un buffer y ahorraba **636 B**. Se retiró, y
+> el porqué es la regla.
+>
+> `app_03_sin_ok_mudo` busca los literales `"$ACK` / `"$ERR` **dentro del bloque de cada rama**. Con
+> el compositor, esos literales se mudan a otro fichero y **ninguna rama los tiene ya**: todas
+> pasaban por *"no promete nada"* —incluida la de calibración, y **los dos controles negativos**,
+> que usan bloques sintéticos propios—. El pack habría seguido en **verde midiendo nada**: es la
+> prueba muerta de N-51, esta vez introducida por un cambio que ningún test delata, porque el
+> firmware seguía siendo correcto.
+>
+> **La regla: al tocar la FORMA de un bloque que un pack lee por texto, hay que comprobar que el
+> pack sigue sabiendo fallar** —§8.bis, aplicado al refactor y no solo al arnés nuevo—. Y 636 B
+> contra un instrumento que deja de medir no es un intercambio: se rechaza midiendo las dos cosas,
+> no dudándolo.
+
 **Las cuatro primitivas del contador, que no significan lo mismo:**
 
 | | cuenta | cuándo |
@@ -161,6 +190,21 @@ salían de la pantalla. Antes de reportar que algo falta, **verifica que tu bús
 encontrarlo**.
 
 Su corolario: cuando el instrumento y el razonamiento no coinciden, **manda la medida**.
+
+> 🔴 **Y el buscador puede estar ciego por el FORMATO del fichero, no por faltar la herramienta
+> (28/08).** `MAPEO_TARJETA_KICAD.md` afirmaba que el `.kicad_pcb` estaba **VACÍO**, y sobre esa
+> frase se sostenía todo el *"solo hay medida en el esquemático, no en el cobre"*. Era falsa: el
+> fichero pesa **2.158.421 B** y trae **185 huellas, 1.447 pistas, 89 vías, 485 pads y 117 redes**.
+>
+> ```
+> grep -c '(segment ' Controladora_Semaforos.kicad_pcb        ->    0     <-- FALSO
+> grep -oE '\(segment\b' Controladora_Semaforos.kicad_pcb | wc -l -> 1447 <-- REAL
+> ```
+>
+> KiCad separa los tokens con **tabulador y salto de línea**, así que buscar la pista con un espacio
+> detrás da cero — y **un cero se lee como «no hay»**. Es §4 aplicada a un formato, no a una
+> herramienta que falta: `grep` estaba, respondía, y aun así no sabía encontrar. Antes de publicar
+> un «está vacío», mide el fichero por otro camino (`wc -c`, un segundo patrón) y compara.
 
 > **Y su segunda cara, que costó un commit el 03/08: lo que TÚ reportas también es un
 > instrumento.** Se escribió en el roadmap que el arnés de respaldo fallaba por *"el canal de
@@ -225,6 +269,18 @@ impide que vuelva.
 > claro **y lo dejo asi**. En una regla de seguridad eso no es una nota: es una alarma. Los
 > comentarios de este repositorio explican **por que**, en espanol y en ASCII; una duda sin resolver
 > se resuelve o se anota en `roadmap.md`, no se deja flotando dentro de `aplicarSalidas()`.
+
+> 🔴 **Y el censo tiene una segunda dirección: retirar código NO es neutro cuando otros dependen de
+> que una bandera pueda ser CIERTA.** `mando_ambarLocal()` —`Esclavo/src/mando.cpp:103`, un getter
+> de una línea— tiene **tres consumidores** en `Esclavo/src/main.cpp` (`:406`, `:416`, `:540`), y
+> los tres la usan para **vetar**: `if (!mando_ambarLocal() && !bluetooth_ambarEmergencia())`. Es
+> la desobediencia deliberada que documenta `mando.h`: mientras un operario pidió ámbar local, una
+> orden de radio **no** saca a esa punta del ámbar.
+>
+> Al retirar el mando, esa bandera **no se arma nunca**, los tres `if` se vuelven siempre
+> verdaderos y **el veto desaparece**. No queda inerte: queda abierto, y el código que lo abre es
+> el que se borró en otro fichero. Antes de borrar el **armador** de una bandera, se censa quién la
+> lee y **qué pasa si nunca vale `true`** — que casi nunca es «nada».
 
 ---
 
@@ -356,9 +412,31 @@ Una orden inválida **se rechaza y se reporta**. El ámbar automático queda res
 caminos que ya lo tienen (SFTY-6, watchdog): **la máquina no decide sola** operar de un modo
 que nadie pidió.
 
+> 🔴 **Y la barrera se extiende a lo que el equipo CONTESTA: un `$ACK` que no depende de lo que la
+> llamada devolvió es una mentira con formato de éxito (28/08).** La rama `SET_RTC` del despachador
+> de Bluetooth llamaba a `reloj_ajustar()` y a `coordinador_sincronizarHora()` y mandaba
+> `"$ACK,CMD:SET_RTC,RESULT:OK"` **sin mirar ninguna de las dos**. Las dos negativas son correctas
+> y están razonadas donde deben —`if (!rtcOperativo) return;`, `if (!reloj_enHora()) return false;`—;
+> lo que estaba mal era el que contestaba. Con `Y2` **confirmado muerto en hardware** (N-17), en la
+> tarjeta real ese comando decía que sí y no ponía la hora, y el técnico se iba del poste creyendo
+> que dejó el reloj puesto.
+>
+> **Eran tres ramas, no una** —no hay con qué contar el tiempo · la hora no entró · la hora entró y
+> va camino del Esclavo—, y **las dos de más las encontró un pack** (`app_03_sin_ok_mudo`), no una
+> revisión humana: el mismo defecto estaba en el `SET_RTC` del Esclavo y en
+> `MANUAL:CAMBIAR_TURNO`, que llama a `coordinador_pedirCambio()` con su `if (estadoC != C_IDLE)
+> return;` delante.
+>
+> **El molde de cómo se hace bien vive en el mismo fichero: `SET_TIEMPOS`** — pregunta dentro del
+> `if` y tiene un `$ERR` por cada motivo de rechazo. Un despachador se escribe copiándolo, y un
+> pack que sabe acusar tiene que saber también reconocerlo, o sus acusaciones no valen nada.
+
 ## 7. Presupuesto de flash
 
-64 KB por micro; el Maestro va por el **~86 %**. Antes de proponer estructura:
+64 KB por micro; el Maestro va por el **88,3 %** —`57880` de `65536` B, o sea **7.656 B libres**—
+y el Esclavo por el **64,4 %** (acta del 28/08). **Ya no queda margen cómodo**: a este nivel una
+función nueva de tamaño medio no entra sin haber medido antes de qué está hecho el porcentaje.
+Antes de proponer estructura:
 
 > **Y antes de sacrificar una función porque «no cabe», MIDE DE QUÉ ESTÁ HECHO ese porcentaje.**
 > Durante meses la conversación fue *«qué quitamos para que quepa lo siguiente»* sin que nadie
@@ -379,6 +457,24 @@ que nadie pidió.
 >
 > El toolchain vive en `C:\.platformio` (fuera de la ruta con `ñ`, N-44):
 > `arm-none-eabi-nm --size-sort -S -td firmware.elf`.
+
+> 🔴 **Un camino muerto que no cuesta flash puede seguir costando RAM (N-86, 28/08).** `AiBus` —un
+> `HardwareSerial` declarado sobre `(PA10, PA9)` para un «puerto IA» que nunca existió— no tenía un
+> solo llamador, y `--gc-sections` **ya descartaba sus tres funciones**: retirarlas ahorró **16 B**
+> de flash. Un censo que mirara solo el mapa habría dicho *«esto no vale la pena»* y lo habría
+> dejado.
+>
+> Pero **el objeto no se podía descartar**: tiene constructor, y su llamada vive en `.init_array`,
+> así que corre en cada arranque y su `.bss` es permanente. Eran **280 B de RAM por punta**, el
+> **5,2 %** de la RAM viva del equipo — por un puerto que no se abre.
+>
+> **La flash se mide con la compuerta; la RAM, con `nm` sobre el `.elf`.** Un censo de código muerto
+> que solo mire flash **no ve los objetos globales**, que son justo los que el enlazador no puede
+> tocar. Se retira el objeto entero, no solo su apertura.
+>
+> *(De paso, el dato duro que salió de ahí: `SerialBT` vive hoy en **`PB6`/`PB7`, USART1 remapeado,
+> conector `J17`** —N-76—, no en `PA9`/`PA10`. Dos objetos sobre el mismo periférico a velocidades
+> distintas no dan error: dan el último que arrancó.)*
 
 
 - **Nada de clases con métodos virtuales.** Las vtables cuestan flash que no hay.
@@ -483,6 +579,28 @@ firmware que se cuelga al arrancar, el watchdog reinicia cada 4 s en mitad del b
 > Si `UR` falla, **reintenta — no cambies el modo.** Enganchar es cuestión de *timing* y puede
 > fallar varias veces con `Unable to get core ID`. Eso no es falta de cableado.
 
+## 9.bis Firmware primero; el cableado después. Un commit no protege de un destornillador
+
+> **Cuando un cambio reparte un conector entre firmware y cobre, el orden no es «el mismo commit»:
+> es ASIMÉTRICO, y solo uno de los dos sentidos es seguro.**
+
+`J16` es el conector de los cuatro botones, y ahí es donde van a ir las cámaras. Los dos pines que
+importan están medidos: `BOTON3 = PB14` es **`botonAceptar()`, el que EJECUTA**, y `BOTON4 = PB15`
+es `botonCancelar()` (`Maestro/include/pines.h:94-95`, `Maestro/src/botones.cpp:131-132`).
+
+- **Firmware primero es seguro.** Retirado `botones_setup()`, los pines dejan de estar en
+  `INPUT_PULLUP` y quedan fijados a **0 V** por los `R65`–`R68` de **10 kΩ a masa** que la placa ya
+  trae. Un pin en 0 V no ejecuta nada.
+- **Cableado primero NO lo es.** Con el firmware viejo todavía dentro, `PB14` sigue siendo
+  `botonAceptar()` leído **activo en BAJO**: cualquier cosa que un instalador enchufe en `J16` p10
+  puede pulsar *Aceptar* en un equipo que está en la calle.
+
+**Por eso la regla no es «van en el mismo commit» —un commit no protege de un destornillador—: es
+que el firmware nuevo tiene que ESTAR CARGADO EN LA TARJETA antes de que nadie enchufe nada.** Se
+exige la carga verificada, no el merge. Y mientras la polaridad de esos cuatro pines siga en
+contradicción entre el netlist y el fuente (medida `M3` de `05_Funcional/17_...`), **no se cablea
+cámara a `J16`** ni con el orden correcto.
+
 ## 10. Radios
 
 **`2.4 kbps` de Air Data Rate, `M0`/`M1` ambos en OFF** durante la operación. Configuración
@@ -496,7 +614,7 @@ vigente: 2 radios en enlace directo, **sin repetidor**.
 |---|---|
 | `01_Firmware/Maestro`, `Esclavo`, `Repetidor` | firmware |
 | `01_Firmware/compuerta.py` | **la única forma correcta de verificar** |
-| `01_Firmware/Simulaciones/` | simuladores, y `banco/` con los 24 packs |
+| `01_Firmware/Simulaciones/` | simuladores, y `banco/` con los **38 packs** |
 | `01_Firmware/Validacion_LCD/` | arnés de pantalla (compila el `lcd.cpp` real) |
 | `01_Firmware/Validacion_Ciclo/` · `_Respaldo/` · `_Automatico/` | los otros tres que compilan C++ real — ver §8 |
 | `OPTIMIZACIONES.md` | las reglas `SFTY-x` y la **trazabilidad regla → código → prueba** |

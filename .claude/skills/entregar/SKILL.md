@@ -136,6 +136,42 @@ despues que el recuento de artefactos es **0**, no suponerlo.
 Y fuera las carpetas que el funcional no necesita (`Camara`, `Semaforos`, `Diagnostico_LCD`): 56
 ficheros de ruido en los que se pierde lo que si importa.
 
+## 3.bis Lo que el 28/08 cambio en `05_Funcional/`, y que no puede salir mal
+
+**Hay un documento nuevo y es el que ordena a los demas:
+`05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`.** Recoge la arquitectura decidida en
+obra ese dia y, sobre todo, **lo que sigue abierto**, con su escala de tres niveles —MEDIDO /
+ESCRITO / SIN VERIFICAR—. Va en todo paquete, y **antes** que los manuales que corrige: los demas
+documentos todavia no incorporan sus correcciones, y el propio 17 lo dice en su cabecera. Cuidado
+con un detalle mecanico: nacio **sin `.docx`**, asi que el conversor tiene que correr antes de
+armar el `.zip` o se entrega la carpeta con un `.md` suelto que nadie abre.
+
+**La Lista de Compras cambio, y no es una correccion menor.**
+`15_Lista_de_Compras_Hardware.md` va por su **3.ª revision del 28/08**: el **`ESP32` SUSTITUYE al
+modulo Bluetooth SPP** —ya no se compran `HC-05` ni `JDY-30`—, el **`DS3231` deja la placa STM32 y
+se cuelga del `ESP32`** por I2C con pila propia, y **se retiran la pantalla LCD, los cuatro
+pulsadores y el mando de reles**. Lo descartado esta **tachado con su motivo, no borrado**, y esa
+forma se respeta: una linea borrada vuelve a proponerse dentro de un mes y nadie recuerda que se
+descarto. **Una lista de compras vieja se ejecuta con dinero**, asi que si sale una copia impresa
+anterior, sale con la cabecera de la revision o no sale.
+
+### Los documentos que llevan aviso de NO EJECUTAR salen CON el aviso, o no salen
+
+Hay manuales que hoy **describen algo que no se debe hacer todavia**, y el aviso es la parte util
+del documento — no el preambulo que se recorta para que quepa:
+
+| documento | el aviso que NO se puede separar de el |
+|---|---|
+| `13_Manual_Modulo_Expansion_I2C_y_Compras.md` | 🛑 **DISENO / PRE-IMPLEMENTACION (V9.0): NO ESTA EN EL FIRMWARE V8.9**, y la fe de erratas de riesgo electrico: **la talanquera NO va en `J14`** —`J14` es una ENTRADA del micro (`PB0`, 3,3 V, sin opto ni diodo); la salida es `J15`—. *"Si ya cableo un rele a `J14`: DESCONECTELO ANTES DE ENERGIZAR"* |
+| `15_Lista_de_Compras_Hardware.md` | la misma fe de erratas en su fila **A4**, mas el bloque de cambio de arquitectura que se lee **antes que el resto del documento** |
+| `17_Arquitectura_28-08_y_Decisiones_Abiertas.md` | **mientras la polaridad de los cuatro pines de boton no se mida con multimetro (medida `M3`), NO se cablea camara a `J16`** — al reves da demanda permanente o demanda que nunca llega, y las dos son de calle. Y `J16` p1 lleva **12 V crudos** a un conector de senal directa al micro |
+
+**Regla practica, que es la misma que la del LEEME:** si un documento entra en el paquete, entra
+**entero y con su cabecera de estado**. Extraer una tabla de conexiones de un manual marcado
+*"pre-implementacion"* la convierte en una instruccion de taller, y quien la recibe la ejecuta con
+un destornillador. **Y el orden de trabajo se dice en el LEEME: el firmware primero, cargado y
+verificado en la tarjeta, y el cableado despues** — nunca al reves (`CLAUDE.md` §9.bis).
+
 ## 4. El LEEME es la pieza critica
 
 Es lo unico que garantiza que se lea la mitad de arriba. Orden obligatorio:
@@ -159,7 +195,12 @@ hardware, se le pide al funcional, no se dictamina aqui.
 
 ## 5. Antes de comprimir, cuatro comprobaciones
 
-- [ ] `python 01_Firmware/compuerta.py` corrido **ahora**, y el acta metida en el paquete.
+- [ ] `python 01_Firmware/compuerta.py` corrido **ahora** —completo, nunca `--rapido`—, y el acta
+      metida en el paquete. **Si la corrida anterior fue `--rapido`, hacen falta DOS pasadas
+      completas**: el banco lee el acta ANTERIOR, y la de un `--rapido` no trae las filas
+      `compila *`. El acta que va al paquete tiene que traerlas.
+- [ ] `python 05_Funcional/convertir_a_word.py` corrido **despues** de tocar cualquier `.md`, para
+      que el `17_Arquitectura_28-08...` y las revisiones de la lista de compras salgan en `.docx`.
 - [ ] Recuento de artefactos de compilacion en el `stage` = **0**.
 - [ ] El LEEME dice si ha pasado banco, en la primera pantalla.
 - [ ] **Un solo encargo vigente.** Si hay dos documentos que dicen cosas distintas sobre lo mismo,

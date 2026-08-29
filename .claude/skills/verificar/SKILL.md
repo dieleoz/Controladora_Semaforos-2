@@ -24,6 +24,33 @@ python 01_Firmware/Simulaciones/banco/correr.py --listar
 python 01_Firmware/Simulaciones/banco/correr.py --pack esclavo_03
 ```
 
+> 🔴 **DESPUES DE UN `--rapido` HACEN FALTA DOS PASADAS COMPLETAS. La compuerta no es idempotente.**
+> `documentos_01_cifras_del_acta` lee el acta **ANTERIOR** —la nueva la escribe `escribir_acta()`
+> al final, cuando el banco ya corrio—, y `--rapido` deja un acta **sin las tres filas
+> `compila maestro / esclavo / repetidor`**. La corrida siguiente, aunque sea completa, compara la
+> tabla del README contra esa acta mutilada, ve tres filas que el acta no mide y **protesta con
+> razon**.
+>
+> No se toca el pack: esta impidiendo publicar una cifra que no salga de la ultima corrida. Se
+> corre la completa **dos veces** y se copia del acta que si las trae.
+
+## 1.bis Las cifras vigentes — acta `evidencia/2026-08-28_compuerta.txt`
+
+`15 PASS | 0 FALLA | 0 ABORTADO`. **Si tu corrida no da esto, la diferencia es el hallazgo.**
+
+| | |
+|---|---|
+| guarda de rutas | **43 rutas** parseadas, todas existen |
+| flash Maestro / Esclavo / Repetidor | **88,3 %** (57880 de 65536 B) · 64,4 % · 20,6 % |
+| banco por packs | **405/405** comprobaciones · **38 packs** PASS |
+| arnes de pantalla | MAESTRO 145/145 · ESCLAVO 126/126 · **TOTAL 271/271** |
+| arnes del ciclo · del automatico | **29/29** · **71/71** |
+| app: funcional · unitarios · DOM | 58/58 · 32/32 · 61/61 |
+
+**El Maestro esta al 88,3 %: quedan 7.656 B y ya no hay margen comodo.** Antes de proponer
+estructura, se mide de que esta hecho ese porcentaje (`CLAUDE.md` §7) — y **la RAM no la mide la
+compuerta**: un objeto global con constructor cuesta `.bss` aunque el enlazador tire sus funciones.
+
 ## 2. Las tres palabras, que no son dos
 
 | | significa |
@@ -136,6 +163,16 @@ restaurado.
 
 Y conectarlo a `compuerta.py` es parte de escribir el arnes, no un paso posterior: un
 instrumento que no esta en la compuerta no mide nada, y **no deja rastro de que falta**.
+
+> 🔴 **Y esto no vale solo para un arnes NUEVO: un refactor puede APAGAR uno ya conectado sin
+> romper un solo test (N-89).** Un compositor `responderAck()`/`responderErr()` ahorraba **636 B**
+> sacando los literales `"$ACK` / `"$ERR` de cada rama del despachador a otro fichero.
+> `app_03_sin_ok_mudo` los busca **dentro del bloque de cada rama**: con el compositor **todas** las
+> ramas pasaban por "no promete nada", **incluidos los dos controles negativos**. Verde, cero tests
+> rotos, cero medida. Se rechazo.
+>
+> **Si tocas la FORMA de un bloque que un pack lee por texto, rompele el firmware a proposito y
+> comprueba que el pack sigue sabiendo fallar** — antes de quedarte el ahorro.
 
 ## 6. Revisar trabajo delegado: por el diff, no por su informe
 

@@ -48,7 +48,7 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 43 rutas parseadas, todas existen |
 | banco por packs *(38 packs)* | ✅ | **405/405** — los 38 packs en `PASS`. Subió de 348 con los cuatro packs de las Fases 1 y 2: `app_02_modos_simetricos`, `app_03_sin_ok_mudo`, `esclavo_07_ambar_emergencia` y `maestro_09_test_leds`. **Los cuatro nacieron en rojo** y ninguno se dio por bueno hasta verlo caer con el defecto inyectado en el `.cpp` real |
-| compila Maestro / Esclavo / Repetidor | ✅ | **88,3 %** · 64,4 % · 20,6 % — *7.644 B libres en el Maestro tras las Fases 1 y 2 y la retirada de `AiBus`* |
+| compila Maestro / Esclavo / Repetidor | ✅ | **88,3 %** · 64,4 % · 20,6 % — *7.656 B libres en el Maestro tras las Fases 1 y 2, `AiBus` y N-90* |
 | simulador funcional | ✅ | 20/20 |
 | simulador de repetidor | ✅ | 10/10 |
 | simulador de app y bluetooth | ✅ | 5/5 — **conectado el 27/08**: existía desde el 26/08 y no estaba en el acta |

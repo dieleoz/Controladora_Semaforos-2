@@ -1,14 +1,18 @@
 # 🗺️ Roadmap y Estado del Ecosistema de Semáforos Móviles (V9.0)
 
-**Fecha de Actualización:** 28 de Agosto de 2026 · **HEAD:** `d34cfe2` · rama `main`  
-**Compuerta de Verificación:** ✅ **15 PASS | 0 FALLA | 0 ABORTADO** (Exit code: 0) · Maestro: 88.4% Flash · Esclavo: 64.0% Flash · Repetidor: 20.6% Flash · 371/371 en 36 packs · 271/271 pantalla · 71/71 automatico, en `evidencia/2026-08-28_compuerta.txt`
+**Fecha de Actualización:** 28 de Agosto de 2026 · **HEAD:** `e82fddc` · rama `main`  
+**Compuerta de Verificación:** ✅ **15 PASS | 0 FALLA | 0 ABORTADO** (Exit code: 0) · Maestro: 88.3% Flash (57.880 B) · Esclavo: 64.4% Flash (42.176 B) · Repetidor: 20.6% Flash · 43 rutas parseadas · 405/405 en 38 packs · 271/271 pantalla · 29/29 ciclo · 71/71 automatico, en `evidencia/2026-08-28_compuerta.txt`
 
-> ⚠️ **El acta se cabecea a si misma como `f6f75bb`, rama `main-nuevo`, «Arbol: CON CAMBIOS SIN
-> COMMITEAR», y ella misma cierra con su AVISO.** Esas cifras se midieron sobre el arbol de trabajo
-> que un rato despues se convirtio en `d34cfe2`, no sobre `f6f75bb`. Se copian aqui **con esa
-> advertencia pegada**, no limpias: un acta que no corresponde a un commit no es una medida
-> reproducible, y la unica forma de convertirla en una es volver a `d34cfe2` y re-correr
-> `python 01_Firmware/compuerta.py`. **Ese re-corrido no se ha hecho.**
+> ⚠️ **El acta se cabecea a si misma como `26479d9`, rama `main-nuevo`, «Arbol: CON CAMBIOS SIN
+> COMMITEAR», y ella misma cierra con su AVISO.** Y esta vez **se puede decir exactamente sobre que
+> arbol midio, porque dos de sus cifras lo delatan**: `43 rutas parseadas` y `57880 bytes` son
+> justo las que `e82fddc` reporta —a `26479d9` le correspondian **42 rutas y 57.892 B**—. Es decir:
+> el acta midio el arbol de trabajo que un rato despues se convirtio en **`e82fddc`**, y se cabecea
+> con el commit anterior. Se copian aqui **con esa advertencia pegada**, no limpias: un acta que no
+> corresponde a un commit no es una medida reproducible, y la unica forma de convertirla en una es
+> volver a `e82fddc` y re-correr `python 01_Firmware/compuerta.py`. **Ese re-corrido no se ha
+> hecho — es la tercera vez seguida que se publica un acta cabeceada con el commit equivocado, y
+> arreglarlo cuesta una corrida de compuerta sobre el arbol limpio.**
 
 ---
 
@@ -39,14 +43,198 @@
 | **N-79** Retirar el mando **borra un veto**, no deja `if` inertes | 🔴 ABIERTO |
 | **N-80** `SET_RTC` rechaza en silencio y contesta `RESULT:OK` | 🟢 **CERRADO** — `d34cfe2`, y eran **tres** ramas, no una |
 | **N-81** Telemetria fabricada: `RF`, `RTT`, `BAT` y `T` son literales | 🟠 ABIERTO |
-| **N-82** `TEST_LEDS` escribe pines por fuera de SFTY-2 | 🔴 ABIERTO |
-| **N-83** `FORZAR_ROJO` del Esclavo: el nombre y el efecto no coinciden | 🔴 ABIERTO |
+| **N-82** `TEST_LEDS` escribe pines por fuera de SFTY-2 | 🟢 **CERRADO** — `caef8a1`, y **espejado en las dos puntas** porque el instrumento no dejo cerrar a medias |
+| **N-83** `FORZAR_ROJO` del Esclavo: el nombre y el efecto no coinciden | 🟢 **CERRADO** — `caef8a1`, pasa a `CMD:AMBAR_EMERGENCIA` |
 | **N-84** Contradiccion de polaridad en `J16` | 🔴 ABIERTO — **bloquea el cableado de camaras** |
 | **N-85** El `.kicad_pcb` NO esta vacio | 🟢 identificado, correccion en curso por otra sesion |
-| **N-86** `AiBus`: 280 B de RAM que el enlazador no puede descartar | 🟠 ABIERTO |
+| **N-86** `AiBus`: 280 B de RAM que el enlazador no puede descartar | 🟢 **CERRADO** — `26479d9`, **−280 B de RAM por punta** medidos con `nm` en los dos extremos |
 | **N-87** La compuerta no es idempotente despues de un `--rapido` | 🟠 ABIERTO — no es defecto del pack |
 | **N-88** Dos criterios distintos para abandonar el Modo Degradado | 🔴 ABIERTO — **decision de spec, no de implementacion** |
 | **N-89** Un ahorro de 636 B que se RECHAZO: apagaba un pack sin romperlo | 🟢 **DECIDIDO Y ESCRITO** — regla permanente |
+| **N-90** `ModoSistema` sale de la cabecera de la pantalla | 🟢 **CERRADO** — `e82fddc`, **Fase 0** de la retirada del LCD · −12 B · una copia de modelo menos |
+| **N-91** El presupuesto de retirar la pantalla | 🟠 **ABIERTO — MEDIDO Y SIN EJECUTAR** · **19.513 B** en el Maestro, **9.659 B** en el Esclavo · y **tres instrumentos que no avisan** |
+| **N-92** El orden entre camaras y botones **no** es «mismo commit» | 🔴 ABIERTO — **corrige a N-84**: el requisito es asimetrico y **operativo**, no de historia |
+
+---
+
+### 🔴 N-92 — El orden entre camaras y botones NO es «mismo commit»: es «firmware CARGADO antes que el destornillador»
+
+**De donde sale:** de ir a escribir el procedimiento de N-84 y descubrir que la formulacion que se
+venia usando —*el firmware que libera esos pines y el cableado de las camaras van en el mismo
+commit*— **era mas estricta de lo necesario y en la direccion que no protege**. Es la regla del
+instrumento aplicada a una regla: una salvaguarda que suena severa no es una salvaguarda si lo que
+vigila no es lo que mata. **La version corregida ya vive en `CLAUDE.md §9.bis`**; esta entrada
+guarda la medida y el porque.
+
+**MEDIDO, sobre el fuente y sobre el cobre:**
+
+```
+Maestro/include/pines.h:94   #define BOTON3   PB14   // Aceptar
+Maestro/include/pines.h:95   #define BOTON4   PB15   // Cancelar
+Maestro/src/botones.cpp:131  bool botonAceptar()  { return consumir(2); }   // -> BOTON3 = PB14
+Maestro/src/botones.cpp:132  bool botonCancelar() { return consumir(3); }   // -> BOTON4 = PB15
+Maestro/src/botones.cpp:16   const unsigned long FLANCO_MS = 200;
+
+MAPEO_TARJETA_KICAD.md 7.bis  J16.10 -> U1.27 -> PB14   (R67 + C28, cobre continuo)
+                              J16.12 -> U1.28 -> PB15   (R68 + C29, cobre continuo)
+```
+
+**`PB14` no es un boton cualquiera: es `botonAceptar()`, EL QUE EJECUTA.** `PB15` es
+`botonCancelar()`. Y con `FLANCO_MS = 200` el antirrebote admite un flanco cada 200 ms: **cada coche
+que dispare la Camara 2 seria un ACEPTAR, hasta cinco por segundo**, sobre el menu que arranca modos.
+No es ruido en una entrada muerta — es el pulsador de confirmacion del gabinete accionado por el
+trafico.
+
+> 🔴 **Pero el requisito real es ASIMETRICO, y por eso la regla vieja estaba mal escrita.** Las tres
+> combinaciones no son equivalentes:
+>
+> | orden | que pasa | veredicto |
+> |---|---|---|
+> | **firmware primero** | sin `botones_setup()` los pines quedan como entradas sin configurar, y **`R67`/`R68` los fijan a 0 V** —son pull-**DOWN** a `GND`, medidos sobre el cobre en `MAPEO §7.bis.3`—. No hay lectura y no hay flotante | ✅ **seguro** |
+> | **mismo commit** | el caso ideal, pero solo describe el repositorio | ✅ seguro |
+> | **cableado primero** | la camara entra por `J16` a un `PB14` que el firmware **sigue leyendo** como `botonAceptar()` | 🔴 **NO seguro** |
+>
+> **La regla operativa que queda, y que un commit no puede dar:** *el firmware que deja de leer esos
+> pines tiene que estar **CARGADO EN LA TARJETA** antes de que nadie enchufe nada a `J16`.*
+
+**Por que esto es un N-x y no una correccion de estilo.** Exigir «mismo commit» **suena** mas seguro
+y **protege menos**: se cumple con un commit que nadie ha cargado, y no dice nada del unico momento
+que importa, que es el del destornillador delante de la bornera. Y al reves, prohibe el orden que
+**si** es seguro —cargar el firmware hoy y cablear la semana que viene—, que es ademas el que un
+tecnico haria de forma natural. **Un commit no protege de un destornillador**, y una regla que se
+apoya en la historia del repositorio para vigilar el mundo fisico esta vigilando el sitio equivocado.
+
+**Que haria falta para cerrarlo.** Tres cosas, y ninguna es un commit: **(a)** que N-84 se resuelva
+—mientras la polaridad de `J16` este en contradiccion no hay firmware correcto que cargar—; **(b)**
+que el paso *«cargar el firmware sin lectura de `PB14`/`PB15`»* aparezca **antes** del paso de
+cableado en el protocolo de banco de `05_Funcional/`, con su verificacion de que la carga entro; y
+**(c)** que la etiqueta fisica de `J16` lo diga, porque `J16` y `J17` son el mismo `Molex KK-254` de
+16 posiciones y estan uno al lado del otro (§7 del mapeo).
+
+---
+
+### 🟠 N-91 — El presupuesto de retirar la pantalla: 19.513 B MEDIDOS, y tres instrumentos que no avisarian
+
+**De donde sale:** de N-90. Cerrada la Fase 0, la pregunta siguiente es cuanto devuelve de verdad
+retirar el LCD — y la respuesta honesta tenia que salir del `firmware.map` **por fichero objeto**, no
+por nombre de simbolo, porque clasificar por `_Z...` mete libreria ajena dentro de *«lo nuestro»*
+(§7, el primer censo de N-70 se equivoco exactamente asi).
+
+**MEDIDO por fichero objeto sobre `01_Firmware/*/.pio/build/*/firmware.map`:**
+
+| | Maestro | Esclavo |
+|---|---|---|
+| `lcd.cpp.o` | **4.439 B** | 1.743 B |
+| `menu.cpp.o` | **390 B** | 997 B |
+| U8g2 (todos sus `.o`) | **13.936 B** | 6.919 B |
+| **subtotal pantalla** | **18.765 B** | **9.659 B** |
+| `modo_hora.cpp.o` | 748 B | — (no existe) |
+| **total retirable** | **19.513 B** | **9.659 B** |
+| RAM de esos objetos | **1.269 B**, de los que **1.024 son el framebuffer** (`u8g2_d_memory.c.o`) | 1.254 B |
+
+**Todos los objetos de U8g2 cuelgan de `lcd.cpp.o`; nada mas los toca.** Y **no hay ahorro
+secundario**: la cadena `snprintf`/`sscanf` (~3,7 kB) la arrastra `bluetooth.cpp.o`, no `lcd.cpp.o`,
+asi que retirar la pantalla **no** se la lleva de propina.
+
+> ⚠️ **Una discrepancia que se deja escrita en vez de taparse (§4, «manda la medida»).** El censo
+> entregado con el encargo daba `menu.cpp.o` = **490 B**, subtotal Maestro **18.865 B** y Esclavo
+> **9.675 B**. El re-conteo sobre el `.map` que HEAD deja en disco da **390 / 18.765 / 9.659**, y
+> coincide **al byte** en `lcd.cpp.o` (4.439), U8g2 (13.936) y `modo_hora.cpp.o` (748). Los 100 B de
+> `menu.cpp` **se explican**: son la Fase 0 —`e82fddc` saco `modoActual` de `menu.cpp` a
+> `modos.cpp.o` (+24 B)— asi que el 490 es la cifra **de antes** de N-90 y el 390 la de despues. Los
+> 16 B del Esclavo **no se explican**, y el Esclavo no lo toco N-90. **No se elige un numero: antes
+> de ejecutar la Fase 2 se vuelve a medir sobre un `.map` recien enlazado.**
+
+**Y lo que la cifra NO dice, que es lo importante y lo unico que puede hacer daño:**
+
+- 🔴 **`Validacion_LCD` tiene DIEZ comprobaciones que no miden un solo pixel.** Contadas una a una en
+  el fuente: cuatro en `arnes_lcd.cpp` (`:815` que `CONFIGURACION` **no arranque ningun modo**;
+  `:858` el regreso del submenu; `:875` y `:895` que cada opcion seleccione **su** modo, *incluido
+  `MODO_DEGRADADO`*) y seis en `arnes_esclavo.cpp` (`:660`, `:668`, `:672`, `:940`, `:948`, `:954`,
+  la inhibicion **SFTY-21** del mando del suelo mientras hay alguien delante del gabinete).
+  **`grep` de `menu_loop()` y `menu_estaAbierto()` en todo el arbol: fuera de la tarjeta no los llama
+  NADIE mas.** Retirar el arnes sin sustituto no cambia 18,4 KiB por bytes: los cambia por un
+  **hueco de cobertura sobre el modo que da verde por reloj** y sobre la unica barrera que impide que
+  el mando del suelo se mueva con un tecnico delante.
+- 🔴 **`flash_01_lastre` hace `raise Abortado`** (`:95`) si **ninguna** punta declara U8g2 en su
+  `platformio.ini`. Quitarlo del `.ini` sin invertir el pack no manda la compuerta a `FALLA`: la
+  manda a **exit 2**. Y §3.quater es explicita — *un `ABORTADO` es una puerta abierta, no una casilla
+  pendiente*: mientras dure, **todo lo que ese pack vigilaba entra sin mirar**.
+- 🔴 **`esclavo_06_no_abre_paso` tiene `except Exception: continue`** (`:118`) dentro del bucle sobre
+  `("main.cpp", "bluetooth.cpp", "modo_degradado.cpp", "menu.cpp")`. Si `menu.cpp` desaparece y nadie
+  toca esa lista, **la comprobacion sigue pasando midiendo un fichero menos** — sin `FALLA`, sin
+  `ABORTADO`, sin que la cuenta baje. Es N-51 otra vez: un `PASS` de algo que ya no se mira.
+
+#### Las cuatro fases minimas, cada una con lo que hay que tocar EN EL MISMO COMMIT
+
+Aqui «mismo commit» **si** es la regla correcta (§5: mover un `.cpp` y actualizar las rutas van
+juntos), porque lo que se protege es el repositorio, no una bornera.
+
+| fase | que sale | ahorro | **en el mismo commit** |
+|---|---|---|---|
+| **0** ✅ hecha (`e82fddc`) | `ModoSistema` de `menu.h` a `modos.h` | −12 B | `app_02_modos_simetricos` (su ruta), `Validacion_Automatico/menu.h` (deja de copiar el enum), `Validacion_LCD/compilar.ps1` (enlaza el `modos.cpp` real) |
+| **1** `modo_hora` | la pantalla AJUSTAR HORA | **748 B** | `main.cpp` (`:207` y `:221`), `modos.h`, `menu.cpp` (`opcionesConfig`), `arnes_lcd.cpp` (los recorridos del submenu), `maestro_07_menu_opciones`, `app_02_modos_simetricos` (fila `HORA`) |
+| **2** `lcd` + U8g2 | la pantalla entera, **`menu.cpp` SOBREVIVE** | **18.375 B** Maestro · **8.662 B** Esclavo · **1.269 B de RAM** | los dos `platformio.ini`, **`flash_01_lastre` invertido** (no borrado), `maestro_06_fuentes_pantalla`, `maestro_03_puerta_degradado` (`:549-550`), la entrada de `Validacion_LCD` en `compuerta.py`, la **guarda de rutas**, y **el sustituto de las diez comprobaciones no-pixel** |
+| **3** `menu` + `botones` + `mando` | la maquina de estados pasa a Bluetooth | 390 B + 468 B + 592 B | `esclavo_02_inhibicion_menu` (SFTY-21 entera), `maestro_07_menu_opciones`, **`esclavo_06_no_abre_paso` (su lista de cuatro ficheros, A MANO)**, `maestro_01_mando`, `costura_08_silencio`, `esclavo_01_latch_ambar`, `app_02_modos_simetricos` · **y arrastra N-79 y N-92** |
+
+> 🔴 **La Fase 1 tiene un agujero que conviene saber antes de empezar: NINGUN pack del banco nombra
+> `modo_hora.cpp`.** `grep` sobre los 38 packs da cero. Su unica cobertura es indirecta —el enum, el
+> menu y `Validacion_LCD`—, asi que borrarlo a secas **no bajaria ninguna cifra**. Su sustituto ya
+> existe y esta probado (`SET_RTC`, con sus tres rechazos razonados de N-80), pero la asimetria que
+> queda hay que decidirla, no descubrirla en la calle: **`AJUSTAR HORA` es hoy la unica via de poner
+> el reloj sin telefono.**
+
+> 🔴 **Y el orden importa por una razon que no es de bytes: `menu.cpp` NO es un menu** (N-90).
+> Contiene la maquina de estados del sistema y `menu_setup()` llama a `coordinador_forzarMenu()`, que
+> es **la maniobra de puesta en seguro de todo el firmware**. `menu_setup()` se invoca desde **13
+> sitios** —`main.cpp` ×2, `bluetooth.cpp`, `modo_alcance`, `modo_ambar`, `modo_automatico`,
+> `modo_degradado` ×2, `modo_hora` ×2, `modo_inteligente`, `modo_manual`, `modos.cpp`—. Por eso la
+> Fase 2 se para **antes** de `menu.cpp`: retirar la pantalla no puede llevarse por delante el sitio
+> por el que el equipo se pone en rojo.
+
+**Nada de esto esta ejecutado, y esa es la fila importante.** N-91 es un presupuesto, no un trabajo
+hecho: la unica fase cerrada es la 0.
+
+---
+
+### 🟢 N-90 — `ModoSistema` sale de la cabecera de la pantalla · **CERRADO en `e82fddc`**
+
+**De donde sale:** de preguntar por donde se empieza a retirar el LCD. La respuesta no era «por el
+LCD»: era por lo que el LCD **se llevaria de propina**.
+
+> **`menu.cpp` NO es un menu, y descubrirlo vale mas que los bytes.** Contiene `ModoSistema
+> modoActual`, que es **la maquina de estados del sistema**: `main.cpp` despacha sobre ella,
+> `mando.cpp` decide con ella si inhibe las secuencias del suelo, y `bluetooth.cpp` la escribe desde
+> los `SET_MODO`. Mientras el enum viviera dentro del fichero de la pantalla, **retirar la pantalla
+> arrastraba la maquina de estados**. Ahora vive en `Maestro/include/modos.h`, que **no incluye
+> nada** —ni STM32duino ni U8g2—.
+
+**SOLO EL MAESTRO, y se midio ANTES de escribir** (§4): `grep` de `ModoSistema` y `modoActual` da
+**48 coincidencias en el Maestro y CERO en el Esclavo**, que publica `MODO:SUBORDINADO` fijo desde
+N-16. Crear alli un `modos.h` por simetria habria sido una cabecera huerfana.
+
+**Tres cosas que aparecieron al hacerlo y merecen quedar escritas:**
+
+- 🔴 **La guarda de rutas salto, y tenia razon.** `ABORTADO: Esclavo\include\modos.h NO existe`.
+  **Causa medida, no deducida:** la guarda **expande a las DOS puntas** cualquier pareja
+  `("include", "x.h")` escrita **sin rol**, y el pack la habia escrito asi. Se arreglo **en el pack y
+  no en la guarda** —la tupla completa `("Maestro", "include", "modos.h")` es la verdad, y esa la lee
+  bien—. El censo pasa de **42 a 43 rutas**. Es la red de §5 haciendo exactamente su trabajo, y la
+  tentacion de tocar la guarda para que dejara de gritar era la salida equivocada.
+- 🟢 **Desaparecio una copia de modelo, que no estaba en el encargo.** `Validacion_Automatico/menu.h`
+  **redeclaraba el enum entero a mano**, con un comentario que **ya admitia** que divergir seria *«un
+  casi igual capaz de mentir en silencio»*. Ahora toma el real por `-I`. Es §3.bis literal: los
+  instrumentos no son pruebas, son **una segunda copia del firmware que alguien sincroniza**, y eso
+  ya fallo tres veces. **Una copia menos que sincronizar.** Por lo mismo `Validacion_LCD` enlaza el
+  `modos.cpp` **real**: ponerle un doble habria sido medir el menu real contra un estado de mentira.
+- **Traslado literal salvo un punto, declarado:** `menu.cpp` ya no puede tocar la variable
+  directamente, asi que sus siete `modoActual = X;` pasan a `modoActual_set(X);`. Mismo
+  comportamiento, y de ahi salen los **−12 B** (Maestro 57.892 → 57.880 B, Esclavo intacto, RAM
+  −4 B). La alternativa —dejar la variable en `menu.cpp`— era justo lo que este trabajo viene a
+  deshacer.
+
+**Verificado con el defecto inyectado (§8.bis):** un `MODO_INVENTADO` en el `modos.h` nuevo hace caer
+`app_02_modos_simetricos` a `7/8` con salida `1`, **nombrando el defecto**. Restaurado despues.
 
 ---
 
@@ -265,7 +453,23 @@ un `ABORTADO` contado como `PASS`.
 
 ---
 
-### 🟠 N-86 — `AiBus`: 280 B de RAM vivos que el enlazador no puede descartar
+### 🟢 N-86 — `AiBus`: 280 B de RAM vivos que el enlazador no puede descartar · **CERRADO en `26479d9`**
+
+> 🟢 **CERRADO el 28/08 en `26479d9`, y el cierre confirma la prediccion completa.** `nm` sobre los
+> dos extremos: **Maestro 3.804 → 3.524 B (−280 B, 18,6 % → 17,2 %)** y **Esclavo 3.640 → 3.360 B
+> (−280 B, 17,8 % → 16,4 %)**. **Lo que NO importa es la flash: son 16 B.** El enlazador ya
+> descartaba las tres funciones con `--gc-sections`, asi que quitarlas apenas mueve el binario. Lo
+> que **no podia** descartar era el objeto: `AiBus` tiene constructor, su llamada vive en
+> `.init_array`, y por eso se construia en cada arranque.
+>
+> **La regla que queda: un camino muerto que no cuesta flash puede seguir costando RAM.** Era el
+> 5,2 % de la RAM viva del equipo, y ningun censo de flash lo habria encontrado nunca.
+>
+> El trinquete de `costura_10_funciones_muertas` **se vio disparar antes de darlo por bueno**
+> (§8.bis): con la lista vieja y el firmware nuevo el pack cae a `11/13` pidiendo por su nombre
+> huerfanas que ya no existen. Maestro pasa de 18 a 15 huerfanas, Esclavo de 11 a 8.
+
+
 
 **De donde sale:** de N-76. Al dejar de abrir `AiBus` en `protocolo_setup()` quedaba la pregunta
 obvia —*"si ya no se usa, se lo lleva `--gc-sections` y no cuesta nada"*—. **No se lo lleva.**
@@ -356,6 +560,10 @@ esta haciendo **otra sesion sobre este mismo arbol**; este roadmap no toca ese f
 (`PB15`), los pines que hoy son Boton 3 y Boton 4. Antes de cablear hay que saber en que sentido lee
 ese pin, y **los dos lados estan medidos y se contradicen**.
 
+> ⚠️ **El ORDEN de esa maniobra se corrigio el 28/08 y vive en N-92 (y en `CLAUDE.md §9.bis`): no es
+> «mismo commit», es «firmware CARGADO en la tarjeta antes de que nadie enchufe nada a `J16`».**
+> Resolver N-84 es condicion previa; el orden de ejecucion es lo que N-92 fija.
+
 **Lado firmware — activo en BAJO. MEDIDO:**
 
 ```
@@ -411,7 +619,29 @@ medida de dos minutos y **desbloquea el cableado de camaras entero**.
 
 ---
 
-### 🔴 N-83 — `FORZAR_ROJO` del Esclavo: el nombre y el efecto no coinciden
+### 🟢 N-83 — `FORZAR_ROJO` del Esclavo: el nombre y el efecto no coinciden · **CERRADO en `caef8a1`**
+
+> 🟢 **CERRADO el 28/08 por la opcion (b), y con un matiz que no estaba en las dos que se listaron
+> abajo.** El comando pasa a `CMD:AMBAR_EMERGENCIA` y **el comportamiento NO cambia** —ambar
+> intermitente con la pluma arriba es decision del cliente y del PMT del 27/08—: lo que cambia es
+> que el equipo deje de contestar *«rojo forzado, correcto»* mientras pone ambar y abre. Y
+> `FORZAR_ROJO` **se rechaza por sus dos puertas con un motivo que enseña el nombre bueno**: ni
+> alias mudo —eso conservaria la mentira— ni `DESCONOCIDO` generico, porque quien lo mande tiene una
+> app o un manual viejo y merece enterarse.
+>
+> **La exencion de PIN se conserva y su razon se REESCRIBE, porque la vieja era falsa.** Decia que
+> el PIN guarda lo que abre paso, y este camino **si** abre paso. La buena es otra: un ambar
+> intermitente no le da prioridad a NADIE, y una caida segura que exija recordar una clave delante
+> de un accidente no es una caida segura.
+>
+> **Y aparecio una tercera mitad que no estaba en el hallazgo: el ambar pedido por Bluetooth se
+> revocaba solo.** El ambar del mando era sagrado y el de la app se lo llevaba el siguiente latido,
+> en ~3 s: el operario veia el equipo obedecer y volverse atras sin que nadie se lo dijera. El latch
+> entra en los **tres** vetos, y no por simetria —`:401` es la que revocaba de verdad, `:526` es un
+> `if` independiente y **no** un `else`, asi que guardar solo uno dejaba la revocacion intacta, y
+> `:408` porque si no el ambar duraria hasta el siguiente verde, que es el peor final—.
+
+
 
 **De donde sale:** del censo de comandos, al cruzar cada despachador de `bluetooth.cpp` con lo que la
 funcion llamada hace de verdad.
@@ -462,7 +692,38 @@ de comandos sin PIN al efecto medido sobre los pines, no al nombre.
 
 ---
 
-### 🔴 N-82 — `TEST_LEDS` escribe pines por fuera de SFTY-2, y ademas sube la pluma
+### 🟢 N-82 — `TEST_LEDS` escribe pines por fuera de SFTY-2, y ademas sube la pluma · **CERRADO en `caef8a1`**
+
+> 🟢 **CERRADO el 28/08.** Las tres fases del test salen ahora por `aplicarSalidas()`, y la
+> distincion va **DENTRO** de `escribirPines()` —`(verde && !testLedsActivo) || estado == S_FALLO`,
+> `Maestro/src/semaforo.cpp:94`—, **no en un segundo `digitalWrite`**: la regla §6 dice que todo
+> sale por esa puerta, y **una barrera con dos puertas no es una barrera**. Verde encendido con
+> pluma abajo es la direccion admitida; al reves seria una invitacion a entrar que nadie autorizo.
+>
+> 🔴 **Y al arreglarlo aparecio un FALLO LATENTE que el codigo viejo tenia abierto, y que nadie
+> habia pedido buscar.** Una senal del mando iniciada **a mitad de test** dejaba `actualizarSenal()`
+> sin llamar por el `return` del bloque del test: la senal no terminaba nunca, **`senalActiva` se
+> quedaba en `true` PARA SIEMPRE**, y `aplicarSalidas()` —que con `senalActiva` guarda y no
+> escribe— **no volvia a tocar un pin en toda la vida del equipo**. Los pines se congelaban en el
+> ultimo fotograma del test, **que podia ser el verde**. Ahora el test **espera** a que la senal
+> suelte las luces y se rearma entero, en vez de correr por debajo o abandonar en silencio.
+>
+> 🔴 **N-82 NO SE PODIA CERRAR EN UNA SOLA PUNTA, y eso lo impuso el instrumento, no el criterio de
+> nadie.** `barrera_02_dos_puntas` exige `escribirPines()` identica y el mismo multiconjunto de
+> llamadas en los dos `semaforo.cpp`. El cambio va **espejado en el Esclavo, donde es inerte** —alli
+> `TEST_LEDS` se rechaza y `testLedsActivo` nunca vale `true`—, porque la propiedad que se protege
+> no es *«el test del Maestro esta bien»*, es que **las dos puntas escriban los pines IGUAL**.
+>
+> ✅ **Y `app_03_sin_ok_mudo` cazo el PRIMER INTENTO del arreglo, tres horas despues de nacer.** El
+> primer intento rechazaba dentro de `semaforo_iniciarTestLeds()`, que es `void`: el `$ACK` habria
+> salido igual y el rechazo habria sido **mudo**. El pack de la Fase 1 haciendo exactamente su
+> trabajo, y sobre codigo escrito el mismo dia que el.
+>
+> **Instrumentos nuevos, los dos VISTOS CAER con el defecto inyectado en el `.cpp` real (§8.bis):**
+> `maestro_09_test_leds` **18/18**, cae a `13/18`; `esclavo_07_ambar_emergencia` **16/16**, cae a
+> `14/16`. La restauracion se verifico **por SHA-256**, no por la impresion de haberla hecho.
+
+
 
 **De donde sale:** del censo de escrituras de pin. CLAUDE.md §6 dice que **solo `semaforo.cpp`
 escribe pines de luz y todo pasa por `escribirPines()`**. Es cierto. Lo que no dice —y hay que
