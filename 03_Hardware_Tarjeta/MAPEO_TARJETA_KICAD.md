@@ -1,30 +1,100 @@
 # MAPEO DE LA TARJETA — Controladora de Semáforos
 
-Fuente real: `01_Firmware\Controladora_Semaforos\Controladora_Semaforos\Controladora_Semaforos.kicad_sch`
-(649 KB, el bueno). **La ruta que este documento declaraba antes —`03_Hardware_Tarjeta\KiCad\...`—
-no existe:** ese directorio solo contiene este `.md`. Quien "verificó contra el esquemático real" el
-31/07 no pudo abrir el fichero que citaba.
+Fuentes reales, las dos en `01_Firmware\Controladora_Semaforos\Controladora_Semaforos\`:
 
-**Última revisión:** 28 de agosto de 2026 — trazado red por red sobre el `.kicad_sch` bueno.
+| fichero | tamaño | qué contiene |
+|---|---|---|
+| `Controladora_Semaforos.kicad_sch` | 649 KB | el esquemático bueno |
+| `Controladora_Semaforos.kicad_pcb` | **2.158.421 B** | **el ruteo: 185 huellas, 1.447 pistas, 89 vías, 485 pads, 117 redes** |
+
+**La ruta que este documento declaraba antes —`03_Hardware_Tarjeta\KiCad\...`— no existe:** ese
+directorio solo contiene este `.md`. Quien "verificó contra el esquemático real" el 31/07 no pudo
+abrir el fichero que citaba.
+
+**Última revisión:** 28 de agosto de 2026 — trazado red por red sobre el `.kicad_sch` **y sobre el
+`.kicad_pcb`**, que hasta hoy este documento daba por vacío (ver §0).
 
 ---
 
 ## 0. Qué nivel de prueba tiene cada cosa de este documento
 
-> 🔴 **NADA de este documento está verificado con multímetro sobre el cobre.**
+> 🔴 **SIGUE SIENDO CIERTO: nada de este documento está verificado con multímetro sobre el cobre.**
+> Lo que cambia hoy es que ya no hay solo dos niveles, sino **tres**, y el intermedio existía desde
+> el principio sin que nadie lo mirara.
 
-| nivel | qué significa |
-|---|---|
-| **MEDIDO EN EL ESQUEMÁTICO** | se trazó la red en el `.kicad_sch`: es lo que alguien **dibujó** |
-| **VERIFICADO EN LA PLACA** | se midió con multímetro sobre la tarjeta física — **hoy no hay ni una sola fila así** |
+### 🔴 Lo que este documento afirmó hasta el 28/08, y era falso
 
-La diferencia no es formal. El `.kicad_pcb` de este proyecto **está vacío**, así que entre el
-esquemático y la tarjeta que hay encima de la mesa no existe ningún artefacto que las ate: el
-ruteo real pudo hacerse a mano y **el esquemático dice lo que se dibujó, no lo que se fabricó**.
+> *"El `.kicad_pcb` de este proyecto **está vacío**, así que entre el esquemático y la tarjeta que
+> hay encima de la mesa no existe ningún artefacto que las ate."*
+
+**No está vacío. Está enteramente ruteado.** El plano bueno pesa **2.158.421 bytes** y contiene
+**185 huellas, 1.447 segmentos de pista, 89 vías, 485 pads y 117 redes**.
+
+Los `.kicad_pcb` vacíos existen, pero **no son este**: son los de
+`99_Legacy\Controladora_Semaforos-backups\`, cinco ficheros de **78 bytes** —una cabecera y un
+paréntesis de cierre, sin una sola pista—. **Se midió sobre una copia incompleta y la conclusión se
+escribió apuntando al plano bueno.** Es N-64 repitiéndose.
+
+Las cinco copias grandes del repositorio (`01_Firmware` y cuatro entregables de `99_Legacy`) son
+**el mismo fichero**: `md5 = 088667eac75207e8dcfa0ce5b93adce6`. No hay ambigüedad sobre cuál es.
+
+**Y la trampa que probablemente lo causó, porque hay que dejarla escrita:** el fichero separa los
+tokens con **tabulador y salto de línea**, no con espacio. Buscar la pista con un espacio detrás
+**da cero**, y un cero se lee como "vacío":
+
+```
+grep -c '(segment ' Controladora_Semaforos.kicad_pcb    ->    0     <-- FALSO
+grep -oE '\(segment\b' Controladora_Semaforos.kicad_pcb | wc -l -> 1447   <-- REAL
+```
+
+Un `0` de un buscador que no sabía buscar. **Un "no aparece" no es un hallazgo hasta haber
+descartado al buscador**, y aquí el buscador era el culpable entero.
+
+### Los tres niveles
+
+| nivel | qué significa | qué NO significa |
+|---|---|---|
+| 📐 **ESQUEMÁTICO** | se trazó la red en el `.kicad_sch`: es lo que alguien **dibujó** | que se rutease así |
+| 🟦 **PCB** | se trazó sobre el cobre del `.kicad_pcb`: es **lo que se mandó fabricar** | que la placa de la mesa sea así |
+| 🔬 **MULTÍMETRO** | se midió con puntas sobre la tarjeta física — **hoy no hay ni una sola fila así** | — |
+
+**El nivel que se gana es real, y su límite también.** El PCB ata el esquemático al cobre: ya no
+hace falta suponer que el ruteo respetó la netlist, porque las 1.447 pistas dicen por dónde va cada
+señal, y además dan lo que el esquemático **no puede dar** —distancias en milímetros, capas,
+holguras—. Pero **el PCB dice lo que se mandó fabricar, no lo que salió de fábrica**: una tarjeta
+puede llegar con un componente no montado, y puede haberse retocado a mano después —un puente, una
+pista cortada, una resistencia quitada— sin que nada de eso vuelva al fichero.
 
 **Antes de soldar, cortar una pista o pinchar un hilo sobre cualquier dato de aquí, se comprueba
-con continuidad.** Un mapeo leído de un dibujo es una hipótesis muy buena; sigue siendo una
-hipótesis.
+con continuidad.** Un mapeo leído de un dibujo es una hipótesis muy buena; leído del PCB es mejor;
+**sigue siendo una hipótesis.**
+
+### Estado de verificación de lo que este documento afirma
+
+**La tercera columna está vacía en todo lo que este documento afirma sobre la tarjeta.** La única
+casilla marcada es la del cristal `Y2`, y no se ganó con puntas sobre el cobre sino en banco (N-37).
+Eso es lo que hay que ver de un vistazo.
+
+| afirmación | 📐 ESQ | 🟦 PCB | 🔬 MULT | dónde |
+|---|:---:|:---:|:---:|---|
+| `U2` = `USART1`/Bluetooth (`J10`) · `U3` = radio (`J12`) | ✅ | ✅ **trazado hasta el pin del `U1`** | ⬜ | §2.bis |
+| Terminación y polarización dobles (`R6`/`R7`/`R8`, `R10`/`R9`/`R11`) | ✅ | ✅ **los dos juegos, en `J10` y `J12`** | ⬜ | §3 |
+| `R5` = 0 Ω puentea `VBAT` ↔ 3,3 V | ✅ | ✅ *(valor `0` en el PCB)* | ⬜ | §3, §4 |
+| Cadena `GPIO → R → opto → MOSFET → bornera` | ✅ | ⬜ | ⬜ | §8.2 |
+| Los 5 V no salen a ningún conector | ✅ | ✅ *(15 pads en la red, ninguno de conector)* | ⬜ | §8.1 |
+| **Los dos MAX3485 se alimentan de 3,3 V, no de 5 V** | ✅ | ✅ **corregido** | ⬜ | §2, §7.bis.4 |
+| `PA11`/`PA12`/`PA15`/`PC13` sin conexión | ✅ | ✅ *(`unconnected-` en `U1` p32/33/38/2)* | ⬜ | §8.3 |
+| **`J16` p5/p8/p10/p12 → `U1` p46/p26/p27/p28, sin nada en serie** | ✅ | ✅ **trazado pista a pista** | ⬜ | **§7.bis** |
+| **`R65`–`R68` van a GND (pull-DOWN, activo en ALTO)** | ✅ | ✅ **resuelto** | ⬜ | **§7.bis** |
+| **`J16` p4/p7/p9/p11 y `J14` p2 son el mismo nudo de 3,3 V** | ✅ | ✅ **resuelto** | ⬜ | **§7.bis** |
+| **Separación real 12 V ↔ señal en `J16`** | ~10 mm *(estimado)* | ✅ **1,359 mm medidos** | ⬜ | **§7.bis** |
+| `J17` p1–p5 → `U1` p40/p43/p42/p39/p41 | ✅ | ✅ | ⬜ | §7 |
+| `J17`/`J16`: símbolo de 13/12 posiciones, footprint de 16 | ✅ | ✅ **confirmado** | ⬜ | §7 |
+| **Nombre real del pin 3 de `J17` (`RS` contra `PSB`)** | ❌ **en disputa** | ❌ **el PCB tampoco lo cierra** | ⬜ | §6.bis |
+| El cristal `Y2` está muerto en la unidad de banco | — | — | ✅ *(N-37, en banco)* | §4 |
+
+> ⚠️ **Una fila con 🟦 y sin 🔬 no es una fila cerrada.** Sube de "alguien lo dibujó" a "así se pidió
+> a fábrica". La placa de la mesa sigue sin haber sido medida ni una vez.
 
 ---
 
@@ -48,11 +118,22 @@ hipótesis.
 | **Aislamiento de salidas** | **10** × TLP127 (`U6`–**`U15`**) | Optoacopladores — **aislamiento galvánico** entre GPIO y potencia |
 | **Salidas de potencia** | **10** × IRLZ44N (`Q1`–**`Q10`**) | MOSFET canal N — 3 grupos semafóricos + barrera |
 | **Comunicación** | 2 × MAX3485 (`U2`, `U3`) | **Dos puertos RS-485** — ver §2.bis: `U2` es el del **USART1** y `U3` el de la **radio** |
-| **Alimentación** | `U4` LM7805 → `U5` LM1117DT-3.3 | 12/24 V → 5 V (RS-485 y optos) → 3,3 V (STM32) |
-| **Conectores** | `J1` alimentación · `J2` **SWD** · `J3`–`J9`,`J11`,`J13`,`J15` borneras de potencia · `J10`/`J12` RS-485 · `J14` cámara · `J16` botones · `J17` LCD | Ver §7 para el mapa pin a pin |
+| **Alimentación** | `U4` LM7805 → `U5` LM1117DT-3.3 | 12/24 V → **5 V (solo los diez optos)** → **3,3 V (STM32 *y los dos MAX3485*)** — corregido, ver abajo |
+| **Conectores** | `J1` alimentación · `J2` **SWD** · `J3`–`J9`,`J11`,`J13`,`J15` borneras de potencia · `J10`/`J12` RS-485 · `J14` cámara · `J16` botones · **`J17` LCD + módulo Bluetooth/ESP32** | Ver §7 para el mapa pin a pin |
 | **Interfaz** | `SW1` SW_Omron_B3FS | RESET / configuración |
 
 **Red de tierra:** una sola (`GND`), sin masas separadas. Cualquier punto de GND es válido.
+
+> 🟠 **Corregido el 28/08 al trazar el PCB: los RS-485 NO van a 5 V, van a 3,3 V.** Esta tabla decía
+> *"5 V (RS-485 y optos)"*. Medido sobre el cobre, `U2` p8 y `U3` p8 —el `VCC` de los dos
+> transceptores— están en el nudo de **3,3 V**, el mismo del STM32 (§7.bis.4). La red de **5 V toca
+> exactamente 15 pads y ninguno es de un MAX3485**: el pin 6 de los diez optos, `U4` p3 (`VO`),
+> `U5` p3 (`VI`), `C13`/`C14` y `R17`. Coincide con lo que §8.1 ya decía; lo que estaba mal era esta
+> fila.
+>
+> **No es un detalle de nomenclatura:** el `MAX3485` es precisamente la variante de 3,3 V del
+> `MAX485`, así que el diseño es coherente — pero quien leyera esta tabla para alimentar un
+> transceptor de repuesto **le habría metido 5 V**.
 
 ---
 
@@ -67,7 +148,9 @@ hipótesis.
 > al conector equivocado**, y la placa no se queja: los dos transceptores son la misma pieza con
 > la misma terminación. El síntoma es silencio en el enlace, no humo.
 
-MEDIDO EN EL ESQUEMÁTICO, red por red:
+MEDIDO EN EL ESQUEMÁTICO, red por red — y 🟦 **confirmado pista a pista sobre el `.kicad_pcb`**: las
+doce redes de la tabla salen igual siguiendo el cobre hasta la pata del `U1`, incluidos los dos pares
+`~RE`+`DE` compartiendo una sola red (`/PA8` y `/PB12`).
 
 | | `U2` | `U3` |
 |---|---|---|
@@ -105,6 +188,9 @@ Identificadas en el esquemático. **Conviene conocerlas antes de modificar la pl
 | **`R9`, `R11`** | **4,7 kΩ** | **Polarización *fail-safe* del bus de la radio** (`J12`) |
 | `R1`, `R2`, `R3` | 10 kΩ | Pull-ups / divisores generales |
 | `R4` | 1 MΩ | — |
+| 🔴 **`R65`–`R68`** | **10 kΩ** | **Pull-DOWN de los cuatro botones (`J16` p5/p8/p10/p12) — un extremo en la señal y el otro en `GND`.** 🟦 Confirmado sobre el cobre. **Hacen la entrada activa en ALTO, y el firmware la lee activa en BAJO: ver §7.bis.3** |
+| **`R64`** | **10 kΩ** | Pull-DOWN de la cámara de demanda (`J14` p1, `PB0`). Mismo patrón: a `GND`, con `C25` |
+| `C26`–`C29` | 100 nF | Antirrebote de los botones, **en paralelo a `GND`** — no en serie con la señal |
 | `R16` | 1 kΩ | Limitadora del LED testigo `D5` (`PB8`) |
 | `R19`–`R20`, `R21`–`R22`, … | — | Pares de entrada y de puerta de cada cadena opto→MOSFET. Ver §8 |
 
@@ -216,7 +302,12 @@ Con esa lectura delante, y solo entonces:
 > por partida doble.** Ni son los únicos —`PA11`, `PA12`, `PA15` y `PC13` no tienen **ni una**
 > conexión dibujada, ver §8.3—, ni están libres: `PB0` es la cámara de demanda (`J14`) y `PB8` el
 > LED testigo `D5`. Y `PB6`/`PB7`, que se daban por ocupados por la LCD, **no son líneas de datos**
-> — ver §6.bis, que es la vía más barata para un I²C por hardware.
+> — ver §6.bis.
+>
+> 🔴 **Pero esa puerta ya se cerró: no propongas `PB6`/`PB7` para un `DS3231`.** Era la vía más
+> barata de la tarjeta para un I²C por hardware, y **N-76 la gastó en el puerto serie del ESP32**
+> (`J17` p3/p2). Quien necesite hoy un bus tiene que disputárselo al Bluetooth o irse a los cuatro
+> pines sueltos de §8.3, **que no salen a ningún conector** y obligan a soldar en la pata del `U1`.
 
 ---
 
@@ -237,6 +328,13 @@ para STM32 en lugar de usar un ESP32 aparte.
 La lógica del puente ya está escrita y validada en `01_Firmware/Repetidor`; portarla al STM32 es
 cambiar el acceso al puerto serie. Pendiente de decisión.
 
+> ⚠️ **Cuidado desde N-76: esta idea y el módulo Bluetooth se disputan el mismo `USART1`.** El
+> puerto de `U2`/`J10` **es** el `USART1` por su salida original (`PA9`/`PA10`), y el `USART1` solo
+> puede salir por un sitio a la vez. Desde N-76 sale **remapeado por `PB6`/`PB7`** hacia el ESP32 de
+> `J17`. Un repetidor sobre esta placa tendría que **renunciar al Bluetooth de telemetría** o
+> repartirse el puerto por turnos. **No son dos recursos independientes**, aunque `J10` y `J17` sean
+> dos conectores distintos.
+
 ---
 
 ## 6. Verificación cruzada PCB ↔ firmware
@@ -247,9 +345,11 @@ cambiar el acceso al puerto serie. Pendiente de decisión.
 | Luces semáforo 2 (R/A/V) | `PA3` · `PA4` · `PA5` | MOSFET `Q4`–`Q6` |
 | Peatonal (R/V) | `PA6` · `PA7` | MOSFET `Q7`–`Q8` |
 | RS-485 radio (`USART3`) | `PB10` TX · `PB11` RX · `PB12` DE/~RE | **MAX3485 `U3`** → bornera **`J12`** · term. `R10` |
-| Telemetría Bluetooth (`USART1`) | `PA9` TX · `PA10` RX · `PA8` DE/~RE | **MAX3485 `U2`** → bornera **`J10`** *(hoy vacía)* · term. `R6` |
-| LCD ST7920 (**3 hilos de datos + 2 estáticos**) | datos: `PB3` `PB4` `PB5` — **estáticos: `PB6` `PB7`** | Conector **`J17`** — ver §6.bis y §7 |
-| Botones 1–4 y Mando RF | `PB9` · `PB13` · `PB14` · `PB15` | Conector **`J16`** (pines 5, 8, 10, 12) — ver §7 |
+| 🟠 **`USART1` por su salida ORIGINAL — hoy SIN USAR** | `PA9` TX · `PA10` RX · `PA8` DE/~RE | **MAX3485 `U2`** → bornera **`J10`** *(vacía)* · term. `R6`. **Desde N-76 el `USART1` sale remapeado por `PB6`/`PB7`, no por aquí** — y solo puede salir por un sitio a la vez, así que `U2` y `J10` quedan libres |
+| LCD ST7920 (**3 hilos de datos, y solo tres desde N-76**) | `PB3` `PB4` `PB5` | Conector **`J17`** p4, p1, p5 — ver §6.bis y §7 |
+| 🟢 **Módulo Bluetooth / ESP32 (`USART1` REMAPEADO)** | **`PB6` TX · `PB7` RX** | Conector **`J17`** p3 y p2 — **antes eran `PSB`/`RST` de la pantalla**, ver §6.bis y §7 |
+| Botones 1–4 y Mando RF | `PB9` · `PB13` · `PB14` · `PB15` | Conector **`J16`** (pines 5, 8, 10, 12) — ver §7 y **§7.bis** |
+| 🔴 **Polaridad de los botones** | `R65`–`R68` 10 kΩ a **`GND`** | **Pull-DOWN: entrada activa en ALTO.** El firmware usa `INPUT_PULLUP` y lee `LOW` como pulsado — **contradicción abierta, ver §7.bis.3** |
 | **Cristal RTC** | `PC14` · `PC15` | **`Y2` 32.768 kHz** |
 | **Pila RTC** | `VBAT` (pin 1) | **vía `R5` (desoldada) — ver §4** |
 | **Cámara de demanda** | `PB0` | ✅ **Resuelto.** La línea trae `R64` 10K + `C25` 100nF → bornera `J14`: antirrebote de ~1 ms que la placa ya da. Entrada **activa en alto** |
@@ -261,19 +361,25 @@ cambiar el acceso al puerto serie. Pendiente de decisión.
 
 ---
 
-## 6.bis 🟢 De los cinco pines de la LCD, DOS NO SON LÍNEAS DE DATOS
+## 6.bis 🟢 De los cinco pines de la LCD, DOS NO SON LÍNEAS DE DATOS — y ya los usa el ESP32
 
 Hallazgo del 28/08. Este documento —y todos los que copiaban su tabla— listaba los cinco pines de la
-pantalla en bloque, como si los cinco fueran señal. **No lo son**, y la diferencia vale un puerto
+pantalla en bloque, como si los cinco fueran señal. **No lo son**, y la diferencia valía un puerto
 serie o un bus I²C **por hardware**, gratis.
 
-| pin | red en `J17` | qué hace | ¿es dato? |
-|---|---|---|---|
-| `PB3` | `SCL` (p4) | reloj serie del ST7920 | ✅ **sí** — conmuta en cada bit |
-| `PB4` | `CS` (p1) | *chip select* | ✅ **sí** |
-| `PB5` | `SI` (p5) | dato serie | ✅ **sí** |
-| **`PB6`** | **`RS(A0)`** (p3) | **`LCD_PSB`: selecciona el modo SERIE del ST7920** | ❌ **no** — nivel **estático** |
-| **`PB7`** | **`RST`** (p2) | **reset del display** | ❌ **no** — pulso al arrancar y ya |
+> 🟢 **Ya no es una propuesta: N-76 lo hizo el mismo día.** `PB6`/`PB7` son hoy el `USART1`
+> remapeado por donde entra el módulo Bluetooth/ESP32, y la pantalla funciona con tres hilos. En
+> `lcd.cpp` (las dos puntas) el constructor recibe `U8X8_PIN_NONE` en vez de `LCD_RST` y
+> `lcd_setup()` ya no toca `LCD_PSB`. Lo de abajo se conserva porque **es el razonamiento que
+> permitió el cambio**, y porque el puente físico de `J17` sigue siendo el paso pendiente en placa.
+
+| pin | red en `J17` | qué hacía para la LCD | ¿era dato? | **hoy** |
+|---|---|---|---|---|
+| `PB3` | `SCL` (p4) | reloj serie del ST7920 | ✅ **sí** — conmuta en cada bit | LCD |
+| `PB4` | `CS` (p1) | *chip select* | ✅ **sí** | LCD |
+| `PB5` | `SI` (p5) | dato serie | ✅ **sí** | LCD |
+| **`PB6`** | **`RS(A0)`** (p3) | **`LCD_PSB`: selecciona el modo SERIE del ST7920** | ❌ **no** — nivel **estático** | 🟢 **`USART1` TX → ESP32** |
+| **`PB7`** | **`RST`** (p2) | **reset del display** | ❌ **no** — pulso al arrancar y ya | 🟢 **`USART1` RX → ESP32** |
 
 **La medida sobre el firmware**, que es lo que decide: en `lcd.cpp` (Maestro y Esclavo) `LCD_PSB`
 aparece **exactamente dos veces**, seguidas, y nunca más:
@@ -297,13 +403,21 @@ reset, así que se mueve al arrancar y luego se queda quieto.
 > 🟢 **Se liberan SIN SOLDAR EN LA PLACA y SIN QUITAR LA PANTALLA:** basta puentear, **en el propio
 > conector `J17`**, `PSB` a GND y `RST` a 3,3 V. La pantalla sigue en modo serie y sin reset activo,
 > exactamente igual que hoy, pero los dos pines del micro quedan sueltos.
+>
+> 🟦 **El PCB confirma que el puente es cómodo:** `J17` reparte `GND` en **p7 y p9** y 3,3 V en
+> **p6 y p8**, y las cuatro posiciones son del mismo nudo que el resto de la placa (§7.bis.4). El
+> puente se hace **dentro del conector**, sin tocar cobre.
 
-Es la vía más barata que tiene esta tarjeta para un periférico I²C —un `DS3231`, un sensor— o para un
-segundo puerto serie, y **no compite con nada**: no toca los tres hilos de datos, no toca `J2` (SWD),
-no toca ninguno de los dos RS-485.
+Era la vía más barata que tenía esta tarjeta para un periférico I²C —un `DS3231`, un sensor— o para
+un segundo puerto serie, y **no competía con nada**: no toca los tres hilos de datos, no toca `J2`
+(SWD), no toca ninguno de los dos RS-485. **N-76 gastó esa vía en el puerto serie del ESP32**, así
+que quien venga ahora a pedir un I²C por hardware ya no la tiene libre: tendría que disputársela al
+Bluetooth o irse a los pines sueltos de §8.3, que exigen soldar en la pata del `U1`.
 
 > ⚠️ **PENDIENTE DE CONFIRMAR EN LA PLACA — no lo des por resuelto.** Hay una discrepancia de nombres
-> que este documento **no puede cerrar leyendo dibujos**:
+> que este documento **no puede cerrar leyendo dibujos**, y **el `.kicad_pcb` tampoco la cierra**: el
+> cobre confirma que `J17` p3 va a `U1` p42 y a ningún sitio más, pero el nombre discutido es el de
+> **la pata del módulo del display**, que está al otro lado del conector y fuera de la tarjeta.
 >
 > - La **etiqueta de red del esquemático** para `PB6` es **`RS(A0)`**.
 > - El **firmware** lo llama **`LCD_PSB`** y lo usa como `PSB` (nivel estático, modo serie).
@@ -324,32 +438,56 @@ no toca ninguno de los dos RS-485.
 
 ## 7. Mapa pin a pin de los conectores de señal
 
-Todo MEDIDO EN EL ESQUEMÁTICO (§0). Ninguna de estas filas se ha comprobado con multímetro.
+Nivel **📐 ESQUEMÁTICO**, salvo lo marcado con 🟦, que está además trazado sobre el cobre del
+`.kicad_pcb` (§0, §7.bis). **Ninguna de estas filas se ha comprobado con multímetro.**
 
-### `J17` — conector de la LCD
+### `J17` — LCD **y entrada del módulo Bluetooth / ESP32**
+
+> 🟢 **BUSCA AQUÍ SI BUSCAS "DÓNDE VA EL ESP32": es `J17`, posiciones 3 y 2.** Este documento llamó a
+> `J17` *"el conector de la LCD"* a secas hasta el 28/08, y desde N-76 **eso ya solo es la mitad**:
+> el módulo Bluetooth/ESP32 de telemetría entra por dos de sus pines. No se borra que fue de la
+> pantalla —es exactamente así como se explica **por qué** esos pines están ahí y por qué se
+> llaman `RST` y `RS(A0)` en el cobre—.
 
 > ⚠️ **El símbolo y el footprint no coinciden, y en el cobre manda el footprint.** El símbolo es
 > `Conn_01x13_Pin` (13 posiciones) pero el footprint es `Molex_KK-254_AE-6410-16A_1x16`: **en la placa
-> hay 16 posiciones y en el esquema solo 13**. Al contar pines sobre la tarjeta física hay que
-> contar **desde el pin 1**, no desde el borde del conector, o todo el mapa se desplaza.
+> hay 16 posiciones y en el esquema solo 13**. 🟦 **Confirmado en el PCB:** hay 16 pads. Al contar
+> pines sobre la tarjeta física hay que contar **desde el pin 1**, no desde el borde del conector, o
+> todo el mapa se desplaza.
 
-| pin | red | destino |
-|---|---|---|
-| 1 | `CS` | `PB4` (`U1` p40) — dato |
-| 2 | `RST` | `PB7` (`U1` p43) — **estático**, ver §6.bis |
-| 3 | `RS(A0)` | `PB6` (`U1` p42) — **estático**, y **nombre en disputa**, ver §6.bis |
-| 4 | `SCL` | `PB3` (`U1` p39) — dato |
-| 5 | `SI` | `PB5` (`U1` p41) — dato |
-| 6 | `3,3 V` | alimentación |
-| 7 | `GND` | — |
-| 8 | `3,3 V` | alimentación |
-| 9 | `GND` | — |
-| **10–13** | **SIN RED** | **no van a ningún sitio.** Dibujados y sin conectar |
-| 14–16 | — | existen en el cobre, **no en el esquema** |
+| pin | red | `U1` | destino | **hoy lo usa** |
+|---|---|---|---|---|
+| 1 | `CS` | p40 | `PB4` — dato | LCD |
+| **2** | `RST` | **p43** | **`PB7`** | 🟢 **ESP32 — `RX` del micro** (recibe el `TXD` del módulo) |
+| **3** | `RS(A0)` | **p42** | **`PB6`** | 🟢 **ESP32 — `TX` del micro** (va al `RXD` del módulo) |
+| 4 | `SCL` | p39 | `PB3` — dato | LCD |
+| 5 | `SI` | p41 | `PB5` — dato | LCD |
+| 6 | `3,3 V` | — | alimentación | ambos |
+| 7 | `GND` | — | — | ambos |
+| 8 | `3,3 V` | — | alimentación | ambos |
+| 9 | `GND` | — | — | ambos |
+| **10–13** | **SIN RED** | — | **no van a ningún sitio.** Dibujados y sin conectar | — |
+| 14–16 | — | — | pads en el cobre, **no en el esquema** | — |
 
-### `J16` — botones
+🟦 **Los cinco destinos de señal están confirmados sobre el cobre**, y cada red contiene
+**exactamente dos pads** —el del conector y el del micro—: `CS`→`U1` p40, `RST`→p43, `RS(A0)`→p42,
+`SCL`→p39, `SI`→p41. **Nada en serie en ninguna de las cinco.**
 
-Mismo desajuste: símbolo `Conn_01x12_Pin`, footprint `1x16`.
+> ⚠️ **`J16` y `J17` son el mismo modelo de conector y están uno al lado del otro.** Los dos son
+> `Molex KK-254` de 16 posiciones. **`J16` trae 12 V en su pin 1; `J17` no trae 12 V en ningún
+> pin.** Antes de enchufar el módulo Bluetooth, **medir el pin 1 contra `GND`: si hay 12 V, ése es
+> `J16` y no es el suyo.**
+>
+> 🟠 Y hay un dato del PCB que conviene tener delante al hacerlo: por el hueco entre `J17` p7
+> (`GND`) y p8 (`3,3 V`) **pasa una pista de 12 V** de 0,4 mm, con **0,200 mm de holgura a cada
+> lado**. Es ruteo legal y no toca nada, pero significa que **hay cobre a 12 V por debajo de `J17`**:
+> al pinchar una punta o un hilo por esa zona no se está tan lejos de la potencia como sugiere el
+> hecho de que `J17` no reparta 12 V.
+
+### `J16` — botones (y **futuras cámaras**)
+
+Mismo desajuste: símbolo `Conn_01x12_Pin`, footprint `1x16`. **Confirmado en el PCB:** hay 16 pads,
+los 4 últimos sin red ninguna.
 
 | pin | red | destino |
 |---|---|---|
@@ -365,6 +503,7 @@ Mismo desajuste: símbolo `Conn_01x12_Pin`, footprint `1x16`.
 | 10 | `Boton3` | `PB14` (`U1` p27) |
 | 11 | `3,3 V` | — |
 | 12 | `Boton4` | `PB15` (`U1` p28) |
+| **13–16** | **sin red** | pads que existen en el cobre y **no** en el esquema |
 
 Cada botón lleva su antirrebote en placa (`R65`–`R68` + `C26`–`C29`). **`J16` es el único conector de
 señal que trae 12 V** (pin 1) además de 3,3 V.
@@ -380,10 +519,150 @@ señal que trae 12 V** (pin 1) además de 3,3 V.
 | 3 | `PA13` (`U1` p34) — `SWDIO` |
 | 4 | `3,3 V` |
 
+🟦 **Confirmado sobre el cobre:** `J2` p2 → `U1` p37 y `J2` p3 → `U1` p34, dos pads por red y nada
+en serie; p1 y p4 caen en los nudos generales de `GND` y 3,3 V.
+
 > 🔴 **`J2` es la ÚNICA vía de carga de firmware de esta tarjeta.** No hay USB, no hay puerto de
 > *bootloader* serie cableado. **No se reutiliza para nada**, por muy tentadores que sean sus cuatro
 > pines: sin `J2` la placa se queda sin forma de recibir una actualización, y recuperarla exige
 > soldar sobre las patas del `U1`.
+
+---
+
+## 7.bis 🟦 `J16` TRAZADO SOBRE EL COBRE — es donde van a ir las cámaras
+
+Todo lo de esta sección es nivel **PCB**: sale de seguir las 1.447 pistas del `.kicad_pcb`, no de
+leer el esquemático. **Ninguna fila está medida con multímetro.**
+
+**Cómo se trazó, que es la parte reutilizable:** no se leyó la netlist para decidir —eso solo diría
+lo que KiCad *cree*—. Se construyó el grafo geométrico **pad ↔ segmento ↔ vía**, uniendo extremos que
+coinciden en la misma capa y cerrando capas por las vías, y se sacaron las componentes conexas. La
+netlist se usó solo para **contrastar**: el instrumento se da por bueno porque **ninguna de las
+componentes de cobre halladas contiene dos redes distintas** —serían decenas si el transformado de
+coordenadas estuviera mal— y porque **459 de los 485 pads tocan cobre trazado**.
+
+### 1. Cada botón llega a su pin del micro, y no hay nada en serie
+
+| `J16` | red | llega a | GPIO | pistas | vías | **todo el cobre de esa red** |
+|---|---|---|---|---|---|---|
+| **p5** | `/Boton1` | **`U1` p46** ✅ | `PB9` | 14 | 3 | `J16`.5 · `U1`.46 · `R65`.2 · `C26`.1 |
+| **p8** | `/Boton2` | **`U1` p26** ✅ | `PB13` | 20 | 1 | `J16`.8 · `U1`.26 · `R66`.2 · `C27`.1 |
+| **p10** | `/Boton3` | **`U1` p27** ✅ | `PB14` | 26 | 2 | `J16`.10 · `U1`.27 · `R67`.2 · `C28`.1 |
+| **p12** | `/Boton4` | **`U1` p28** ✅ | `PB15` | 31 | 3 | `J16`.12 · `U1`.28 · `R68`.2 · `C29`.1 |
+
+> ✅ **"No hay nada en medio" se confirma, y conviene decir en qué sentido.** En cada red hay
+> exactamente cuatro pads. Dos son los extremos (`J16` y `U1`); los otros dos son `R65` y `C26`, y
+> **los dos cuelgan de lado, no en serie**: su otro extremo está en `GND` (`R65`.1 = `GND`,
+> `C26`.2 = `GND`). Es un antirrebote en paralelo. **Entre la bornera y la pata del micro no hay
+> resistencia en serie, ni divisor, ni diodo, ni opto**: la señal del conector llega al GPIO por
+> cobre continuo. Cualquier tensión que entre por `J16` p5 **llega entera a `PB9`**.
+
+### 2. La distancia real entre los 12 V y las señales
+
+El esquemático solo permitía estimar "~10 mm por el paso del conector". El PCB tiene las
+coordenadas, y **la estimación era correcta para los pads y engañosa para el cobre**.
+
+**Paso del conector: 2,540 mm exactos.** Pad de `J16`: 1,74 × 2,19 mm.
+
+| desde `J16` p1 (12 V) | centro a centro | borde de pad a borde de pad |
+|---|---|---|
+| p2 `GND` | 2,540 mm | **0,800 mm** |
+| p4 `3,3 V` | 7,620 mm | 5,880 mm |
+| **p5 `Boton1`** | **10,160 mm** | **8,420 mm** |
+| p8 `Boton2` | 17,780 mm | 16,040 mm |
+| p10 `Boton3` | 22,860 mm | 21,120 mm |
+| p12 `Boton4` | 27,940 mm | 26,200 mm |
+
+> 🟠 **Pero la distancia entre pads NO es la separación entre los 12 V y la señal.** Los 12 V son
+> una **red**, no un pad: salen de `J16` p1 y recorren la placa hasta las diez borneras de potencia
+> con pistas de hasta **1,0 mm** de ancho. Medida de cobre a cobre —pads, pistas y vías, respetando
+> capas—, la red de 12 V se acerca a las de botón **mucho más que los 10 mm del conector**:
+
+| red de 12 V contra | separación mínima real | dónde |
+|---|---|---|
+| `/Boton1` | **1,405 mm** | pista `B.Cu` 1,0 mm ↔ pad `J16`.5 |
+| `/Boton2` | **1,408 mm** | pista `B.Cu` 1,0 mm ↔ pad `J16`.8 |
+| `/Boton3` | 4,269 mm | pista `B.Cu` 1,0 mm ↔ pad `J16`.10 |
+| **`/Boton4`** | **1,359 mm** ← el peor | vía ↔ pista `F.Cu` |
+
+**Lo que hay que llevarse para las cámaras:** el margen real contra los 12 V no es de 10 mm sino de
+**1,36 mm**, y eso es cobre de diseño, sin contar la tolerancia de fábrica ni la suciedad ni la
+humedad de un armario en la calle. Un error de una posición al enchufar `J16` **mete 12 V en un pin
+de 3,3 V** sin ninguna protección en medio (§7.bis.1: no hay nada en serie).
+
+> 📐 Como referencia, la separación mínima de la red de 12 V a **cualquier** otra red de la placa es
+> de **0,099 mm** (pad `R28`.2 contra una pista de `GND`), y **ninguna pareja de pistas** de redes
+> distintas baja de 0,200 mm en toda la tarjeta.
+
+### 3. 🔴 `R65`–`R68` van a **GND**: son pull-DOWN, y el firmware dice lo contrario
+
+**Ésta era la contradicción de polaridad, y el PCB la cierra en la dirección del esquemático.**
+
+| | `R65` | `R66` | `R67` | `R68` |
+|---|---|---|---|---|
+| valor (en el PCB) | 10 kΩ | 10 kΩ | 10 kΩ | 10 kΩ |
+| **pin 1** | **`GND`** | **`GND`** | **`GND`** | **`GND`** |
+| pin 2 | `/Boton1` | `/Boton2` | `/Boton3` | `/Boton4` |
+
+**No hay ni una resistencia de `J16` a 3,3 V.** Las cuatro van a masa, y sus condensadores
+(`C26`–`C29`, 100 nF) también. La netlist que se trazó es la del esquemático: **pull-DOWN, entrada
+activa en ALTO**.
+
+**Y el reparto de pines del conector lo confirma por su cuenta:** cada pin de botón viene precedido
+de un pin de 3,3 V —p4/p5, p7/p8, p9/p10, p11/p12—, que es el patrón de un pulsador que **cierra
+3,3 V contra la señal**. Hay un solo pin de `GND` en todo `J16` (p2), no uno por botón.
+
+> 🔴 **El firmware hace lo contrario.** En `01_Firmware/Maestro/src/botones.cpp`:
+>
+> ```
+> pinMode(BOTON1, INPUT_PULLUP);
+> bool lecturaCruda = (digitalRead(b.pin) == LOW);   // LOW = pulsado
+> ```
+>
+> Pull-up interno y **activo en BAJO**, contra un pull-down externo de 10 kΩ y un conector que
+> reparte 3,3 V. **Las dos cosas no pueden ser ciertas a la vez.**
+>
+> **Lo que eso predice, que es comprobable:** el pull-up interno del STM32F103 está especificado
+> entre 30 kΩ y 50 kΩ. Contra los 10 kΩ a masa forma un divisor que deja el pin en reposo a
+> **0,83 V (30 k) · 0,66 V (40 k) · 0,55 V (50 k)**, todos por debajo del `V_IL` de 0,3·VDD ≈
+> 0,99 V. Es decir: **en reposo el pin lee LOW, y el firmware lo interpreta como "pulsado"** —los
+> cuatro botones, permanentemente—.
+>
+> ⚠️ **Esto es una cuenta, no una medida**, y descansa en dos cosas que el `.kicad_pcb` no puede
+> decir: que `R65`–`R68` estén **realmente montadas** en la tarjeta física, y cómo está cableado el
+> pulsador al otro lado de `J16`, que va fuera de la placa. **Va al multímetro**, y es la primera
+> fila que conviene cerrar: se mide la tensión en `J16` p5 con el equipo encendido y nadie tocando
+> nada. Si da ~0,7 V, la cuenta de arriba es correcta.
+>
+> Nótese que `botones.cpp` ya lleva un tratamiento explícito (N-26) para *"un botón ya pulsado al
+> encender"*. **Que ese caso hiciera falta es coherente con lo de arriba** — pero eso es una
+> sospecha, no una prueba, y se anota como tal.
+
+### 4. ✅ `J16` p4/p7/p9/p11 y `J14` p2 son el mismo nudo de 3,3 V
+
+**Sí, y no por igualdad de nombre de red: por cobre continuo.** Los cinco pads caen en la misma
+componente conexa, junto con:
+
+```
+J16 p4, p7, p9, p11        J14 p2        J17 p6, p8        J2 p4
+U1 p9, p24, p36, p48 (VDD)               U5 p2 (salida del LM1117)      R5 p1 (-> VBAT)
+U2 p8, U3 p8 (VCC de los DOS MAX3485)    R1.1  R7.2  R9.2  R18.2
+C1 C2 C3 C4 C10 C11 C15 (desacoplo)
+```
+
+98 pistas y 1 vía. **Un solo nudo de 3,3 V en toda la tarjeta**, alimentado por `U5` y repartido a
+los cuatro conectores de señal. No hay raíles de 3,3 V separados ni ferrita en medio: lo que cargue
+`J16` lo notan `J14`, `J17`, `J2`, **los dos transceptores RS-485** y el propio micro.
+
+> 🔴 **Que los MAX3485 cuelguen de este mismo nudo es lo que sube el listón.** No es un raíl
+> auxiliar de sensores: es el que alimenta al STM32 **y a las dos radios**. Un cortocircuito o un
+> consumo excesivo en un pin de 3,3 V de `J16` —una cámara mal conectada, por ejemplo— **no deja
+> a oscuras solo a la cámara: puede tumbar el micro y los dos enlaces a la vez.**
+
+> **Consecuencia para las cámaras:** los cuatro pines de 3,3 V de `J16` **no son cuatro fuentes**,
+> son cuatro tomas del mismo nudo, y ese nudo alimenta también al STM32. El `LM1117DT-3.3` tiene
+> margen de sobra, pero **cuánta corriente puede sacarse por `J16` sin hundir el micro es una
+> pregunta de banco**, no de este fichero: depende del disipado real de `U5` en el armario.
 
 ---
 
@@ -456,6 +735,11 @@ la segunda vez ya nadie recuerda que se comprobó.
 | 31/07 → **28/08** | los cinco pines de la LCD, en bloque | **tres son datos, dos son estáticos** (`PB6`, `PB7`) | §6.bis |
 | 31/07 → **28/08** | *"9 × TLP127 (`U6`–`U14`)"* y *"9 × IRLZ44N (`Q1`–`Q9`)"* | **10 y 10**: `U6`–`U15`, `Q1`–`Q10` | §2 |
 | 31/07 → **28/08** | fuente: `03_Hardware_Tarjeta\KiCad\...` | **esa ruta no existe**; el bueno está en `01_Firmware\Controladora_Semaforos\...` | cabecera |
+| **28/08 → 28/08** | 🔴 *"el `.kicad_pcb` **está vacío**"*, y de ahí *"no existe ningún artefacto que ate el esquemático a la tarjeta"* | **falso: 2.158.421 B, 185 huellas, 1.447 pistas, 89 vías, 485 pads.** Los vacíos (78 B) son los de `99_Legacy\...-backups\` | **§0** |
+| **28/08 → 28/08** | `J17` = *"el conector de la LCD"*, a secas | **también es por donde entra el ESP32** desde N-76: p2 = `PB7` (RX), p3 = `PB6` (TX) | §2, §6, §6.bis, §7 |
+| **28/08 → 28/08** | separación 12 V ↔ señal en `J16`: *"~10 mm por el paso del conector"* (estimado) | **cierto entre pads (10,160 mm), engañoso en cobre: la red de 12 V se acerca a 1,359 mm** | §7.bis.2 |
+| **28/08 → 28/08** | §3 no listaba `R64`–`R68` | son los pull-**DOWN** de los botones y de la cámara, **a `GND`** | §3, §7.bis.3 |
+| **28/08 → 28/08** | 🟠 *"5 V (RS-485 y optos)"* | **los MAX3485 van a 3,3 V**: `U2` p8 y `U3` p8 están en el nudo del STM32. Los 5 V solo tocan los diez optos, `U4`, `U5`, `C13`/`C14` y `R17` | §2, §7.bis.4 |
 
 **Cómo se midió, que es la parte reutilizable:** no se leyó el dibujo — se **trazó la conectividad**.
 Se parsea el `.kicad_sch`, se sitúan los pines de cada símbolo aplicando su rotación y espejo, se unen
@@ -464,10 +748,37 @@ conexas. **Leer el esquemático "de arriba abajo" es justo lo que produjo el err
 los dos bloques son idénticos y están uno sobre otro, así que la posición en la hoja no dice nada. La
 única forma de acertar es seguir la red hasta el pin del `U1`.
 
+**Y lo mismo sobre el `.kicad_pcb`, con dos trampas propias que costaron las dos conclusiones:**
+
+1. **El buscador.** `grep -c '(segment '` da **0** porque el fichero separa tokens con tabulador y
+   salto de línea. Hay que usar `grep -oE '\(segment\b'`, que da **1447**. Un cero de un buscador
+   roto se lee como "vacío", y así nació *"el PCB está vacío"*.
+2. **El ángulo de los pads.** KiCad guarda el ángulo de cada pad **ya en absoluto**, con la rotación
+   del footprint dentro. Sumarle otra vez la del footprint lo gira 90° de más. Con el ángulo mal,
+   este trazado *"encontró"* un **cortocircuito de 25 µm entre una pista de 12 V y el pin de `GND`
+   de `J17`**. No existe: con el ángulo correcto la holgura es de **+0,200 mm**, y ninguna pareja de
+   pistas de la placa baja de 0,200 mm. **Se comprobó antes de escribirlo, y por eso no está
+   escrito como hallazgo.**
+
+   *Cómo se zanjó, sin suponer:* se censó el fichero entero —**481 de 485 pads tienen
+   `pad_rot == fp_rot`**, y las 4 excepciones son las de `SW1`, cuyo pad de librería lleva 180°
+   propios—. Un footprint a 90° con pads a 90° y otro idéntico a −90° con pads a 270° solo es
+   posible si el ángulo guardado es absoluto.
+
+**Validación del trazador, que es lo que permite fiarse de §7.bis:** el grafo se construye por
+geometría (pad ↔ segmento ↔ vía) y **ninguna componente conexa contiene dos redes distintas** — si
+el transformado de coordenadas estuviera mal, aparecerían decenas.
+
 **Lo que sigue abierto, y no se cierra desde un fichero:**
 
-1. **El nombre real del pin 3 de `J17`** (`RS(A0)` en el esquema contra `PSB` en el firmware) — §6.bis.
-2. **Todo lo demás de este documento**, en el sentido de §0: está medido sobre lo que alguien
-   **dibujó**. El `.kicad_pcb` está vacío. La primera persona que tenga la tarjeta delante y un
-   multímetro puede convertir filas de "MEDIDO EN EL ESQUEMÁTICO" en "VERIFICADO EN LA PLACA", y
-   conviene que lo anote aquí fila a fila, porque **hoy no hay ni una sola**.
+1. **El nombre real del pin 3 de `J17`** (`RS(A0)` en el esquema contra `PSB` en el firmware) —
+   §6.bis. **El PCB no lo cierra**: el nombre en disputa es el de la pata del display, al otro lado
+   del conector.
+2. 🔴 **La polaridad de los botones** — §7.bis.3. El PCB dice **pull-DOWN a `GND`** (activo en ALTO)
+   y el firmware dice `INPUT_PULLUP` + activo en BAJO. **Es la fila más barata de cerrar y la que
+   más cambia:** medir `J16` p5 contra `GND` con el equipo encendido y nadie tocando nada.
+3. **Todo lo demás de este documento**, en el sentido de §0. Buena parte ha subido hoy de 📐 a 🟦
+   —**lo que se mandó fabricar**—, pero **la columna 🔬 sigue vacía entera**: nadie ha puesto una
+   punta en esta tarjeta. La primera persona que la tenga delante y un multímetro puede convertir
+   filas de 🟦 en 🔬, y conviene que lo anote **fila a fila en la tabla de §0**, porque hoy no hay
+   ni una sola.
