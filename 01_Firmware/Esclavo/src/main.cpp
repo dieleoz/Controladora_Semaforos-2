@@ -398,14 +398,22 @@ void loop() {
       // dando verde a su lado convencido de que aqui hay rojo. Callando, agota sus
       // reintentos, cae a C_FALLO en ~12,5 s y el cruce entero termina en ambar,
       // que es lo que el operario pidio.
-      if (!mando_ambarLocal()) {
+      //
+      // N-83: Y CON EL PEDIDO POR BLUETOOTH, IGUAL. Esta es la guarda que revocaba el
+      // ambar de la app: llega un CMD_GO_RED -o sea, cada pocos segundos- y este
+      // semaforo_forzarRojo() saca la luz de S_FALLO. Sin ella, las otras dos no
+      // pintan nada, porque el nodo ya no estaria en ambar cuando se evaluan.
+      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
         semaforo_forzarRojo(); // Directo a rojo
         ackRojoEnviado = true;
         programarRespuesta(CMD_ACK_RED);
       }
     } else if (pkt.command == CMD_GO_GREEN) {
       tUltimoComando = millis();
-      if (!mando_ambarLocal()) {
+      // N-83: la misma pareja de guardas. Sin la de Bluetooth el ambar de la app
+      // duraria hasta el siguiente verde, y ese es el peor final de los dos: el
+      // operario pidio precaucion para los dos sentidos y el equipo le da paso a uno.
+      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
         semaforo_iniciarTransicionAVerde(); // Transición Rojo -> Amarillo -> Verde
         // El backstop de verde maximo ya no se rearma aqui: lo hace el vigilante
         // del final del bucle, que mira la LUZ en vez de la orden. Ver alli el
@@ -523,7 +531,14 @@ void loop() {
     // SFTY-21: no con el ambar pedido desde el mando. Ese ambar no es una perdida de
     // enlace de la que haya que recuperarse, es una orden vigente del operario, y
     // solo A.A.A la revoca.
-    if (!mando_ambarLocal() && semaforo_estado() == S_FALLO && pkt.command == CMD_GO_RED) {
+    //
+    // N-83: tampoco con el pedido por Bluetooth, y hay que ponerlo AQUI ADEMAS de
+    // arriba porque este 'if' es independiente de aquel. No es un 'else': un CMD_GO_RED
+    // que encuentre el nodo en S_FALLO entra por esta puerta aunque la guarda de arriba
+    // lo haya vetado, y volveria a forzar rojo -y a reiniciar la proteccion de replay-
+    // por su cuenta. Guardar solo una de las dos deja la revocacion intacta.
+    if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() &&
+        semaforo_estado() == S_FALLO && pkt.command == CMD_GO_RED) {
       semaforo_forzarRojo();
       protocolo_resetReplayProtection();
     }

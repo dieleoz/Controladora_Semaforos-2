@@ -166,14 +166,36 @@
             </div>
           </button>
 
-          <!-- 4. ROJO TOTAL DE EMERGENCIA -->
+          <!-- 4. PARADA DE EMERGENCIA: DOS MANIOBRAS DISTINTAS, UNA POR PUNTA.
+               No es el mismo mando con dos nombres. Contra el MAESTRO el equipo deja
+               las dos vias en ROJO FIJO. Contra el ESCLAVO no para nada: pone AMBAR
+               INTERMITENTE y ABRE la talanquera -decision del cliente del 27/08, ambar
+               intermitente significa pasar con precaucion en los dos sentidos-, y por
+               eso el literal del cable dejo de llamarse FORZAR_ROJO en esa punta.
+               Un solo boton rotulado igual para las dos escondia justo lo que el
+               firmware acaba de dejar de esconder. Se ensena el de la punta que el
+               equipo declara en $STATUS; sin punta identificada se ensenan los dos con
+               su nombre delante, que es lo unico que no inventa nada. -->
           <button class="pad-btn btn-emergency" id="btn-op-emergency">
             <span class="pad-icon">🛑</span>
             <div class="pad-text">
               <strong>ROJO TOTAL</strong>
-              <small>Detener tráfico</small>
+              <small id="emergencia-maestro-sub">Ambas vías en rojo fijo</small>
             </div>
           </button>
+
+          <button class="pad-btn btn-amber-emergency" id="btn-op-ambar-emergencia">
+            <span class="pad-icon">🟡</span>
+            <div class="pad-text">
+              <strong>ÁMBAR EMERGENCIA</strong>
+              <small id="emergencia-esclavo-sub">Intermitente · talanquera ABIERTA</small>
+            </div>
+          </button>
+
+          <!-- El rotulo dice QUE maniobra; esta linea dice CONTRA QUE EQUIPO va, que
+               es la mitad que faltaba: el mismo boton pulsado en otro poste haria otra
+               cosa. Sin telemetria lo declara en vez de suponer una punta. -->
+          <p class="pad-hint" id="emergencia-hint">Sin equipo identificado: no se sabe qué poste hay al otro lado.</p>
 
           <!-- 5. VOLVER AL MENU: la salida de CUALQUIER modo, y por eso ocupa las dos
                columnas en vez de ser un boton mas de la reja. Hasta hoy esta vuelta

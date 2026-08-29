@@ -645,6 +645,27 @@ body {
   box-shadow: 0 4px 18px rgba(255, 30, 68, 0.3);
 }
 
+/* La parada de emergencia del ESCLAVO no es roja porque el equipo no se pone rojo:
+   se queda en ambar intermitente con la talanquera abierta. Pintarla del rojo de
+   .btn-emergency seria decir con el color lo contrario de lo que hace la maniobra, y
+   el color es lo primero que se lee a un metro de distancia. Lleva el ambar de
+   .btn-amber con el borde y la sombra de una emergencia -mas peso que el ambar de
+   precaucion, que es una orden de ciclo y no una parada-. */
+.btn-amber-emergency {
+  background: linear-gradient(135deg, rgba(255, 179, 0, 0.28) 0%, rgba(200, 120, 0, 0.5) 100%);
+  border-color: rgba(255, 179, 0, 0.9);
+  box-shadow: 0 4px 18px rgba(255, 179, 0, 0.3);
+}
+
+/* Ocupa la fila entera porque no acompana a un boton: acompana a la reja. */
+.pad-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
 /* La vuelta al menu ocupa la fila entera: no es una maniobra mas de la reja, es la
    salida de todas ellas. En gris neutro porque no manda ninguna luz a ningun sitio. */
 .pad-btn-wide {

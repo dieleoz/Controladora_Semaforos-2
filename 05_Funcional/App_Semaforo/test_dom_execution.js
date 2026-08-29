@@ -300,16 +300,31 @@ assert(!fuzzError, `Fuzzing de 200 tramas corruptas descartadas limpiamente sin 
 // emergencia viaja sin PIN, y es deliberado (bluetooth.cpp:70-82).
 document.querySelector('.nav-item[data-tab="tab-estado"]').click();
 
+// N-83, INVERTIDA: esta comprobacion media la propiedad buena -la emergencia no pide
+// PIN- sobre el literal equivocado. El equipo conectado aqui es un ESCLAVO, y en esa
+// punta la caida segura NO es rojo fijo: es ambar intermitente con la talanquera
+// ABIERTA. El comando pasa a llamarse como lo que hace. `FORZAR_ROJO` se queda en el
+// Maestro, donde si pone rojo.
+sentFrames = [];
+const btnAmbarEmerg = document.getElementById('btn-op-ambar-emergencia');
+assert(!!btnAmbarEmerg, 'Boton tactico de Ambar de Emergencia presente en el DOM');
+btnAmbarEmerg.click();
+
+const pinModal = document.getElementById('pin-modal');
+assert(!pinModal.classList.contains('active'),
+  'El Ambar de Emergencia NO pide PIN: se da desde el suelo, viendo el accidente');
+assert(sentFrames.some(f => f.includes('CMD:AMBAR_EMERGENCIA') && !f.includes('PIN')),
+  `El Ambar de Emergencia viaja SIN PIN, que es la forma que el firmware acepta: ${sentFrames.join(' | ')}`);
+
+// Y la otra mitad, que antes NO se medía: el mando del Maestro contra un Esclavo no
+// sale al canal. Dos puntas cuya caida segura es distinta no comparten boton, y si
+// alguien las junta otra vez esta linea lo caza.
 sentFrames = [];
 const btnEmergency = document.getElementById('btn-op-emergency');
 assert(!!btnEmergency, 'Boton tactico de Rojo Total presente en el DOM');
 btnEmergency.click();
-
-const pinModal = document.getElementById('pin-modal');
-assert(!pinModal.classList.contains('active'),
-  'El Rojo Total de emergencia NO pide PIN: se da desde el suelo, viendo el accidente');
-assert(sentFrames.some(f => f.includes('CMD:FORZAR_ROJO') && !f.includes('PIN')),
-  `El Rojo Total viaja SIN PIN, que es la forma que el firmware acepta: ${sentFrames.join(' | ')}`);
+assert(sentFrames.length === 0,
+  `El Rojo Total del Maestro NO se manda a un Esclavo: ${sentFrames.join(' | ')}`);
 
 // La primera orden que MUEVE luces tiene que pedir el PIN.
 sentFrames = [];

@@ -78,6 +78,10 @@ def main():
         ("btn-op-step", "Tactico: cambiar turno"),
         ("btn-op-amber", "Tactico: Ambar de precaucion"),
         ("btn-op-emergency", "Tactico: Rojo Total de emergencia"),
+        # N-83: el Esclavo no cae a rojo, cae a ambar intermitente con la
+        # talanquera abierta. Son dos maniobras distintas y por eso son dos
+        # mandos: un solo boton para las dos volveria a ocultar cual se pide.
+        ("btn-op-ambar-emergencia", "Tactico: Ambar de emergencia (Esclavo)"),
         ("btn-toggle-role", "Conmutador Operario / Tecnico"),
         ("btn-start-test-leds", "Test de Leds"),
         ("btn-sync-rtc", "Sincronizacion Horaria"),

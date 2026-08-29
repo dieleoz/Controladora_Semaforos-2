@@ -105,6 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnOpStep = document.getElementById('btn-op-step');
   const btnOpAmber = document.getElementById('btn-op-amber');
   const btnOpEmergency = document.getElementById('btn-op-emergency');
+  const btnOpAmbarEmergencia = document.getElementById('btn-op-ambar-emergencia');
+  const emergenciaHintEl = document.getElementById('emergencia-hint');
+  const emergenciaSubMaestroEl = document.getElementById('emergencia-maestro-sub');
+  const emergenciaSubEsclavoEl = document.getElementById('emergencia-esclavo-sub');
   const btnOpMenu = document.getElementById('btn-op-menu');
 
   // Mandos de tecnico que no salen por data-cmd porque cada uno tiene una condicion
@@ -163,16 +167,26 @@ document.addEventListener('DOMContentLoaded', () => {
   // micro. El criterio no lo elige la app: esta escrito en el despachador y es el
   // mismo para las tres -el PIN guarda lo que ABRE paso, no lo que lo para-.
   //
-  //   FORZAR_ROJO      bluetooth.cpp:135-149. Lo da quien esta viendo el accidente.
-  //   SET_MODO:MENU    bluetooth.cpp:153-174. Deja el equipo en la pantalla, sin ciclo.
-  //   SET_MODO:ALCANCE bluetooth.cpp:153-174. Deja el equipo en rojo fijo.
+  //   FORZAR_ROJO      Maestro/src/bluetooth.cpp. Rojo fijo en las dos vias.
+  //   AMBAR_EMERGENCIA Esclavo/src/bluetooth.cpp. Ambar intermitente y talanquera
+  //                    ABIERTA. Es la MISMA tecla de emergencia con OTRA maniobra, y
+  //                    por eso lleva otro nombre: hasta el 28/08 esa punta tambien
+  //                    respondia a FORZAR_ROJO y acusaba "rojo forzado, correcto" sin
+  //                    haber puesto un solo rojo. Ahora el Esclavo rechaza el literal
+  //                    viejo y el motivo del $ERR nombra el nuevo.
+  //   SET_MODO:MENU    Maestro/src/bluetooth.cpp. Deja el equipo en la pantalla, sin ciclo.
+  //   SET_MODO:ALCANCE Maestro/src/bluetooth.cpp. Deja el equipo en rojo fijo.
   //
-  // Las tres se aceptan TAMBIEN con PIN en el micro, asi que meterlas aqui no abre
+  // Las cuatro se aceptan TAMBIEN con PIN en el micro, asi que meterlas aqui no abre
   // ninguna puerta nueva: lo que hace es que se puedan usar sin teclear nada, que es
   // justo el motivo por el que el firmware las dejo sin clave. En particular MENU es
   // la vuelta atras universal, y una vuelta atras que exige recordar una clave delante
   // de un cruce parado no es una vuelta atras.
-  const SIN_PIN = ['FORZAR_ROJO', 'SET_MODO:MENU', 'SET_MODO:ALCANCE'];
+  //
+  // Y la exencion vale para LAS DOS ordenes de emergencia, no solo para la que dice
+  // "rojo": la caida segura del Esclavo es su ambar, y una caida segura que pide clave
+  // no es una caida segura. El criterio no cambia con el nombre del literal.
+  const SIN_PIN = ['FORZAR_ROJO', 'AMBAR_EMERGENCIA', 'SET_MODO:MENU', 'SET_MODO:ALCANCE'];
 
   function enviarComandoFirmware(comando, args = '') {
     // La excepcion es el rojo de emergencia: bluetooth.cpp:70-82 lo acepta SIN PIN a
@@ -477,13 +491,102 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // =========================================================================
+  // 4.bis LA PARADA DE EMERGENCIA NO ES LA MISMA MANIOBRA EN LAS DOS PUNTAS
+  // =========================================================================
+  // Contra el MAESTRO el equipo se pone en ROJO FIJO en las dos vias: para el trafico.
+  // Contra el ESCLAVO no para nada: pone AMBAR INTERMITENTE y ABRE la talanquera, que
+  // por decision del cliente del 27/08 significa pasar con precaucion en los dos
+  // sentidos. Son maniobras opuestas y hasta el 28/08 se pedian con el mismo literal
+  // -FORZAR_ROJO- y se acusaban con el mismo texto -"rojo forzado, correcto"- aunque
+  // en esa punta no se encendia un solo rojo. El firmware ya no lo esconde: el Esclavo
+  // atiende AMBAR_EMERGENCIA y RECHAZA el nombre viejo.
+  //
+  // La app no puede seguir escondiendolo con un boton unico. Un rotulo que dice lo
+  // mismo para dos maniobras contrarias es la misma clase de mentira que se acaba de
+  // quitar del C++, y aqui la lee alguien de pie en la calzada decidiendo sobre el
+  // trafico. Asi que son DOS mandos, cada uno con su maniobra escrita, y en pantalla
+  // solo esta el de la punta que el equipo declara.
+  //
+  // Cada orden va con su literal a la vista y NO por una tabla: el pack
+  // app_01_comandos censa la interfaz buscando la llamada con el comando escrito
+  // entero, y un comando que el censo no ve puede desaparecer sin que nadie se entere
+  // (CLAUDE.md 5).
+  //
+  // NINGUNO DE LOS DOS PINTA NADA: mandan y esperan. Lo que el equipo hizo lo dicen
+  // $ACK y $STATUS; si el literal va a la punta que no es, llega un $ERR con su motivo
+  // y lo ensena el camino de rechazos de siempre.
   if (btnOpEmergency) {
     btnOpEmergency.addEventListener('click', () => {
+      // La guarda mira state.node en vez de llamar a puntaCorrecta() tal cual: aquella
+      // resuelve por descarte -"si no es ESCLAVO, es MAESTRO"- y con la punta todavia
+      // sin identificar retiraria una de las dos emergencias por no saber. Aqui solo se
+      // rechaza cuando consta que al otro lado hay la punta contraria.
+      if (state.node === 'ESCLAVO') { avisarOtraPunta('FORZAR_ROJO', 'MAESTRO'); return; }
       // Forma SIN PIN: es la que el firmware espera para la parada de emergencia, y
       // la rama que la construye llevaba desde el rewrite sin un solo llamador.
       enviarComandoFirmware('FORZAR_ROJO');
-      addEvent('red', 'ALERTA: orden ROJO TOTAL DE EMERGENCIA enviada al equipo.');
+      addEvent('red', 'ALERTA: orden ROJO TOTAL DE EMERGENCIA enviada al MAESTRO. ' +
+                      'Si el equipo la acepta deja las dos vias en rojo fijo.');
     });
+  }
+
+  if (btnOpAmbarEmergencia) {
+    btnOpAmbarEmergencia.addEventListener('click', () => {
+      if (state.node === 'MAESTRO') { avisarOtraPunta('AMBAR_EMERGENCIA', 'ESCLAVO'); return; }
+      enviarComandoFirmware('AMBAR_EMERGENCIA');
+      addEvent('red', 'ALERTA: orden AMBAR DE EMERGENCIA enviada al ESCLAVO. Si el ' +
+                      'equipo la acepta queda en ambar intermitente y la talanquera ' +
+                      'ABIERTA: no es un rojo, los dos sentidos pasan con precaucion.');
+    });
+  }
+
+  // El rotulo dice QUE maniobra; esto dice CONTRA QUE PUNTA, que es la mitad sin la
+  // cual el rotulo no significa nada. Se gobierna con state.node -que sale del $STATUS
+  // del equipo, o del poste que el tecnico eligio en el modal de enlace-, nunca de lo
+  // que la app acabe de pedir.
+  //
+  // Y NO cuelga de state.telemetriaViva a proposito. La identidad de la punta no
+  // envejece como el contador o la bateria: mientras el socket siga abierto, al otro
+  // lado sigue estando el mismo poste. Colgarla del watchdog dejaria la emergencia
+  // escondida justo cuando la telemetria se ha caido, que es cuando mas falta hace
+  // poder pararlo -es la razon por la que el TX de emergencia tampoco cuelga de el-.
+  function actualizarEmergencia() {
+    const punta = (state.node === 'MAESTRO' || state.node === 'ESCLAVO') ? state.node : null;
+
+    // Sin punta identificada se ensenan LAS DOS, cada una con su poste delante.
+    // Esconder una obligaria a la app a elegir un poste que no conoce, y esconder las
+    // dos retiraria la caida segura por no saber. Ensenar las dos nombradas es lo unico
+    // que ni inventa ni quita.
+    if (btnOpEmergency) {
+      btnOpEmergency.style.display = (punta === 'ESCLAVO') ? 'none' : 'flex';
+    }
+    if (btnOpAmbarEmergencia) {
+      btnOpAmbarEmergencia.style.display = (punta === 'MAESTRO') ? 'none' : 'flex';
+    }
+    if (emergenciaSubMaestroEl) {
+      emergenciaSubMaestroEl.textContent = punta
+        ? 'Ambas vías en rojo fijo'
+        : 'MAESTRO · ambas vías en rojo fijo';
+    }
+    if (emergenciaSubEsclavoEl) {
+      emergenciaSubEsclavoEl.textContent = punta
+        ? 'Intermitente · talanquera ABIERTA'
+        : 'ESCLAVO · intermitente, talanquera ABIERTA';
+    }
+    if (!emergenciaHintEl) return;
+    if (punta === 'MAESTRO') {
+      emergenciaHintEl.textContent = 'Equipo MAESTRO: la parada de emergencia deja ' +
+        'las dos vías en ROJO FIJO y detiene el tráfico.';
+    } else if (punta === 'ESCLAVO') {
+      emergenciaHintEl.textContent = 'Equipo ESCLAVO: la parada de emergencia NO deja ' +
+        'rojo. Pone ÁMBAR INTERMITENTE y ABRE la talanquera: los dos sentidos pasan ' +
+        'con precaución.';
+    } else {
+      emergenciaHintEl.textContent = 'Sin equipo identificado: no se sabe qué poste ' +
+        'hay al otro lado. Cada botón dice la maniobra de su punta; el otro equipo ' +
+        'rechazaría la orden y diría por qué.';
+    }
   }
 
   // VOLVER AL MENU: la salida de cualquier modo, sin PIN (ver SIN_PIN arriba).
@@ -644,6 +747,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nodeNameEl) {
           nodeNameEl.textContent = data.NODE === 'MAESTRO' ? 'MAESTRO (POSTE 1)' : 'ESCLAVO (POSTE 2)';
         }
+        // La emergencia no es la misma maniobra en cada poste: el mando que se ensena
+        // lo decide esta trama, no lo que el operario supone que tiene delante.
+        actualizarEmergencia();
       }
       // N-62: aqui se leian SITE y PAIR, y NINGUNA punta los emite. No daba error:
       // dejaba la pantalla igual para siempre, que es la forma silenciosa del fallo.
@@ -731,9 +837,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // devolvian $ERR,CMD:DESCONOCIDO y el boton parecia roto. El nodo lo dice $STATUS.
   // DEMANDA y REINICIAR_RELOJ tampoco existen en el Esclavo: su despachador no las
   // conoce y contestaria $ERR,CMD:DESCONOCIDO, que es el error que no dice nada.
+  //
+  // Y desde el 28/08 la emergencia tambien esta repartida, que es el caso nuevo: no es
+  // que a una punta le falte la orden, es que CADA UNA TIENE LA SUYA y hacen cosas
+  // distintas. El Esclavo dejo de aceptar FORZAR_ROJO -lo rechaza nombrando el literal
+  // nuevo- y el Maestro no conoce AMBAR_EMERGENCIA. Los dos mandos de emergencia
+  // consultan state.node por su cuenta (ver 4.bis) porque no pueden resolver por
+  // descarte con la punta sin identificar, pero el reparto se apunta aqui, que es el
+  // unico sitio donde esta escrito quien atiende que.
   const SOLO_MAESTRO = ['SET_MODO', 'MANUAL:CAMBIAR_TURNO', 'SET_TIEMPOS', 'TEST_LEDS',
-                        'DEMANDA', 'REINICIAR_RELOJ'];
-  const SOLO_ESCLAVO = ['SOLICITAR_PASO'];
+                        'DEMANDA', 'REINICIAR_RELOJ', 'FORZAR_ROJO'];
+  const SOLO_ESCLAVO = ['SOLICITAR_PASO', 'AMBAR_EMERGENCIA'];
 
   function puntaCorrecta(comando) {
     if (SOLO_MAESTRO.includes(comando) && state.node === 'ESCLAVO') return 'MAESTRO';
@@ -874,6 +988,10 @@ document.addEventListener('DOMContentLoaded', () => {
       state.deviceMac = mac;
 
       if (nodeNameEl) nodeNameEl.textContent = node === 'MAESTRO' ? '👑 MAESTRO (POSTE 1)' : '📡 ESCLAVO (POSTE 2)';
+      // El poste elegido aqui ya decide que emergencia se ofrece, sin esperar al primer
+      // $STATUS: es lo unico que se sabe de la punta antes de que el equipo hable, y no
+      // se pinta como si fuera telemetria -el punto de estado sigue apagado abajo-.
+      actualizarEmergencia();
       // Abrir el socket NO es tener al equipo hablando: el modulo Bluetooth puede
       // emparejar con el poste alimentado y el micro colgado. Hasta que no llegue el
       // primer $STATUS la cabecera dice "Esperando", y quien lo pone en verde es
@@ -1336,5 +1454,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // cruce en marcha. En cuanto llegue el primer $STATUS lo pintara la telemetria.
   renderEvents();
   marcarSinEnlace();
+  // Arranca sin punta: los dos mandos de emergencia a la vista, cada uno con su poste
+  // escrito. En cuanto se sepa cual hay delante quedara solo el que corresponde.
+  actualizarEmergencia();
   setInterval(vigilarEnlace, 1000);
 });

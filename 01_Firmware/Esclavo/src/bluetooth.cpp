@@ -29,6 +29,16 @@ static unsigned long tUltimaTelemetria = 0;
 static char btBufIn[64];
 static uint8_t btIdxIn = 0;
 
+// SFTY-21 / N-83 — UNA EMERGENCIA PEDIDA POR BLUETOOTH VALE LO MISMO QUE UNA DEL MANDO.
+//
+// Mientras vale true, main.cpp no obedece las ordenes de luz del Maestro, igual que con
+// mando_ambarLocal(). Sin este latch el ambar pedido desde la app duraba lo que tardaba
+// en llegar el siguiente latido -unos 3 s-: el operario veia al equipo obedecer y
+// volverse atras solo, sin que nadie se lo dijera. La orden es la misma y la razon para
+// darla es la misma; que la haya dado un dedo en el gabinete o un dedo en el telefono no
+// puede cambiar cuanto dura.
+static bool ambarEmergencia = false;
+
 static uint8_t calcularChecksum(const char* str) {
   uint8_t crc = 0;
   while (*str && *str != '*') {
@@ -97,19 +107,56 @@ void bluetooth_reportarEvento(const char* origen, const char* detalle) {
 }
 
 static void procesarComando(const char* cmd) {
-  // SFTY - EL ROJO DE EMERGENCIA NO PIDE PIN, Y ES DELIBERADO.
+  // SFTY - EL AMBAR DE EMERGENCIA NO PIDE PIN, Y ES DELIBERADO.
   //
-  // mando.cpp ya lo dejo escrito para el mando de reles: "lo seguro, facil; lo
-  // peligroso, dificil". Detener el trafico es la accion SEGURA -el equipo cae a
-  // todo-rojo-, asi que ponerle una clave delante solo retrasa a quien esta viendo
-  // el incidente. El PIN guarda lo que ABRE paso o mueve luces; no lo que las para.
+  // N-83: LA RAZON DE ANTES ERA FALSA Y POR ESO SE REESCRIBE. Decia "el PIN guarda lo
+  // que ABRE paso o mueve luces; no lo que las para", dando por hecho que esto para el
+  // trafico. No lo para: deja el equipo en S_FALLO, que es ambar intermitente a 500 ms
+  // con la talanquera ARRIBA (semaforo.cpp, decision del cliente y del PMT del
+  // 27/08/2026). O sea que este camino SI abre paso, y la exencion quedaba justificada
+  // por algo que no ocurre.
+  //
+  // La exencion sigue siendo correcta, pero por esto otro: un ambar intermitente NO LE
+  // DA PRIORIDAD A NADIE. No concede el paso a un sentido contra el otro -que es lo que
+  // el PIN existe para custodiar-, sino que pone a los dos a pasar con precaucion y
+  // bajo su propia responsabilidad. Es la caida segura universal, la misma a la que el
+  // equipo llega solo cuando pierde el enlace (SFTY-6) o cuando el watchdog lo
+  // reinicia. Y una caida segura que exija recordar una clave delante de un accidente
+  // no es una caida segura: quien esta viendo el incidente tiene que poder pedirla,
+  // aunque no sea el tecnico que se sabe el PIN.
   //
   // Se acepta tambien la forma con PIN mas abajo: la app la envia asi y el manual
   // la documenta. Las dos entradas hacen lo mismo.
-  if (strcmp(cmd, "CMD:FORZAR_ROJO") == 0) {
+  if (strcmp(cmd, "CMD:AMBAR_EMERGENCIA") == 0) {
     semaforo_iniciarFallo();
-    enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:OK");
-    bluetooth_reportarEvento("APP_BLUETOOTH", "FORZAR_ROJO_SIN_PIN");
+    ambarEmergencia = true;
+    enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
+    bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_SIN_PIN");
+    return;
+  }
+
+  // N-83: EL NOMBRE VIEJO SE RECHAZA ENSENANDO EL BUENO, NO EN SILENCIO.
+  //
+  // "FORZAR_ROJO" prometia rojo y hacia ambar con la pluma arriba, que es casi lo
+  // contrario. El comportamiento es el correcto y no se toca; lo que se corrige es que
+  // el equipo declare otra cosa de la que hace.
+  //
+  // Dejarlo como alias mudo conservaria la mentira: quien lo mande seguira creyendo
+  // que detuvo el cruce. Y dejarlo caer al $ERR,CMD:DESCONOCIDO del final tampoco
+  // sirve: quien manda esto es alguien con una app o un manual anteriores al cambio, y
+  // lo que necesita no es enterarse de que el comando no existe, sino de como se llama
+  // ahora. Es el mismo patron con el que esta punta rechaza TEST_LEDS: se dice el
+  // motivo.
+  //
+  // La forma con PIN se rechaza en la cadena de 'accion', mas abajo, para no repetir
+  // aqui el literal del PIN.
+  //
+  // OJO AL MAESTRO: alli CMD:FORZAR_ROJO se queda, y alli SI hace rojo de verdad. Que
+  // las dos puntas usen literales distintos es lo correcto, porque hacen cosas
+  // distintas; llamarlas igual era el defecto.
+  if (strcmp(cmd, "CMD:FORZAR_ROJO") == 0) {
+    enviarTramaConCrc("$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA");
+    bluetooth_reportarEvento("APP_BLUETOOTH", "FORZAR_ROJO_RENOMBRADO");
     return;
   }
 
@@ -121,10 +168,19 @@ static void procesarComando(const char* cmd) {
 
   const char* accion = cmd + 13;
 
-  if (strcmp(accion, "FORZAR_ROJO") == 0) {
+  if (strcmp(accion, "AMBAR_EMERGENCIA") == 0) {
     semaforo_iniciarFallo();
-    enviarTramaConCrc("$ACK,CMD:FORZAR_ROJO,RESULT:OK");
-    bluetooth_reportarEvento("APP_BLUETOOTH", "FORZAR_ROJO_LOCAL");
+    ambarEmergencia = true;
+    enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
+    bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_LOCAL");
+  } else if (strcmp(accion, "FORZAR_ROJO") == 0) {
+    // N-83: la misma puerta que arriba, con el PIN puesto. Ver alli el porque de
+    // rechazar en vez de aliasar. Una app vieja lo manda por las dos, y las dos tienen
+    // que contestar lo mismo: sin esta rama la forma con PIN caeria al DESCONOCIDO
+    // generico y la forma sin PIN daria un motivo util, que es la peor combinacion
+    // -el mismo error contestado de dos maneras segun por donde entre-.
+    enviarTramaConCrc("$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA");
+    bluetooth_reportarEvento("APP_BLUETOOTH", "FORZAR_ROJO_RENOMBRADO");
   } else if (strcmp(accion, "SOLICITAR_PASO") == 0) {
     // EL ESCLAVO PIDE; NO ORDENA. Ver OPTIMIZACIONES.md SFTY-27.
     //
@@ -209,8 +265,31 @@ bool bluetooth_testLedsActivo() {
   return semaforo_testLedsEnCurso();
 }
 
+bool bluetooth_ambarEmergencia() {
+  return ambarEmergencia;
+}
+
 void bluetooth_loop() {
   const unsigned long ahora = millis();
+
+  // LA SALIDA DE ESTE AMBAR ES LOCAL, Y ES LA MISMA QUE LA DEL MANDO.
+  //
+  // Un latch persistente sin salida no es una mejora: es un nodo sordo al Maestro
+  // hasta el siguiente corte de corriente, y eso seria peor que el defecto que esto
+  // arregla. La salida existe y es la de siempre: el A.A.A del mando, que llama a
+  // semaforo_forzarRojo() y saca la luz de S_FALLO. Aqui no hace falta que mando.cpp
+  // avise de nada -este latch no es suyo-: basta con mirar el resultado. El ambar de
+  // emergencia solo tiene sentido MIENTRAS la luz sigue en el ambar que lo motivo.
+  //
+  // Y la radio no puede colarse por esta puerta, que es lo que la hace segura: con el
+  // latch puesto main.cpp no obedece ninguna orden de luz, asi que el Maestro no puede
+  // sacar al nodo de S_FALLO para que el latch se caiga solo. Solo lo saca de ahi
+  // alguien que este delante del gabinete.
+  //
+  // Va aqui y no dentro del getter para que la revocacion ocurra UNA vez por vuelta y
+  // ANTES de que se lea la radio: main.cpp llama a bluetooth_loop() antes del bloque de
+  // paquetes, asi que no queda ni una vuelta con un latch caduco decidiendo.
+  if (ambarEmergencia && semaforo_estado() != S_FALLO) ambarEmergencia = false;
 
   // 1. Recepción de Comandos desde la App Móvil
   while (SerialBT.available() > 0) {

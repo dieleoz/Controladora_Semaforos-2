@@ -31,6 +31,20 @@ static const unsigned long DESTELLO_OFF_MS = 400;
 // solo distingue "rechazado" de "estado seguro".
 static const unsigned long AMBAR_RAPIDO_PERIODO_MS = 150;
 
+// --- N-82: test de lamparas ------------------------------------------------
+// La bandera vive AQUI ARRIBA, y no junto a semaforo_iniciarTestLeds() donde estaba,
+// porque escribirPines() tiene que poder consultarla: la talanquera cuelga del mismo
+// 'verde' que enciende la lampara y hay que saber si ese verde es un paso concedido
+// o una lampara que se esta ensenando.
+static bool testLedsActivo = false;
+static unsigned long tInicioTest = 0;
+
+// Cada lampara se ensena 2 s: es lo que tarda un tecnico en confirmarla mirando hacia
+// arriba, y el total -tres fases, 6 s- es lo que aguanta sin bajar la vista. El
+// numero se escribe una vez y las tres fases se cuentan sobre el, para que no puedan
+// desincronizarse entre ellas.
+static const unsigned long TEST_FASE_MS = 2000;
+
 static void escribirPines(bool rojo, bool amarillo, bool verde) {
   digitalWrite(ROJO1, rojo);
   digitalWrite(ROJO2, rojo);
@@ -64,8 +78,21 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   // Esto vale porque es un digitalWrite local, que no puede bloquearse. El dia que la
   // pluma cuelgue de un bus (I2C del PCF8574), NO puede vivir aqui: un bus colgado
   // dejaria las luces esperando. Iria detras, con timeout, y sin tocar esta funcion.
+  //
+  // N-82: Y NO SIGUE AL VERDE DE UN TEST DE LAMPARAS. El test enciende el verde para
+  // que se vea la lampara, no para dar paso; con la condicion anterior una prueba de
+  // taller abria la barrera 2 s en un cruce en servicio. La distincion va DENTRO de
+  // esta condicion, en la unica funcion que escribe el pin, y no en un segundo
+  // digitalWrite dentro del bloque del test: la regla 6 dice que todo sale por esta
+  // puerta, y una barrera con dos puertas no es una barrera.
+  //
+  // Verde encendido con la pluma abajo es la direccion segura y esta admitida: la
+  // barrera puede ser MAS restrictiva que la lampara -el arnes del automatico solo
+  // exige lo contrario, que no haya pluma arriba sin verde-. Al reves seria una
+  // invitacion a entrar que nadie autorizo.
   digitalWrite(MOTOR_TALANQUERA,
-               (verde || estado == S_FALLO) ? TALANQUERA_ABRIR : TALANQUERA_CERRAR);
+               ((verde && !testLedsActivo) || estado == S_FALLO)
+                   ? TALANQUERA_ABRIR : TALANQUERA_CERRAR);
 }
 
 static void aplicarSalidas(bool rojo, bool amarillo, bool verde) {
@@ -218,10 +245,12 @@ void semaforo_iniciarFallo() {
   aplicarSalidas(LOW, LOW, LOW); // Empieza apagado, luego parpadea en actualizar()
 }
 
-static bool testLedsActivo = false;
-static unsigned long tInicioTest = 0;
-
 void semaforo_iniciarTestLeds() {
+  // SIN GUARDA, Y ES DELIBERADO. La tentacion era rechazar aqui el test cuando una
+  // senal del mando ocupa las luces. Seria un rechazo MUDO: esta funcion no devuelve
+  // nada y el $ACK de bluetooth.cpp se manda igual, asi que el tecnico se iria del
+  // poste con una confirmacion de algo que no ocurrio. La espera se resuelve en
+  // semaforo_actualizar(), donde no hay que prometer nada.
   testLedsActivo = true;
   tInicioTest = millis();
 }
@@ -233,20 +262,48 @@ bool semaforo_testLedsEnCurso() {
 void semaforo_actualizar() {
   unsigned long ahora = millis();
 
-  // Test de lámparas en taller (6 segundos: 2s Rojo -> 2s Amarillo -> 2s Verde)
+  // Test de lamparas en taller: 2 s Rojo -> 2 s Amarillo -> 2 s Verde.
+  //
+  // N-82: ENTRA POR aplicarSalidas() COMO TODO LO DEMAS. Antes llamaba a
+  // escribirPines() directamente y se saltaba, sin salirse del fichero, las dos cosas
+  // que aplicarSalidas() hace antes de escribir: el enclavamiento SFTY-2 y el
+  // registro de ultR/ultA/ultV. "Todo pasa por una funcion" solo es una barrera si la
+  // barrera esta EN esa funcion; aqui estaba un nivel por encima y bastaba llamar al
+  // nivel de abajo para rodearla.
   if (testLedsActivo) {
-    unsigned long elapsed = ahora - tInicioTest;
-    if (elapsed < 2000) {
-      escribirPines(true, false, false);
-    } else if (elapsed < 4000) {
-      escribirPines(false, true, false);
-    } else if (elapsed < 6000) {
-      escribirPines(false, false, true);
+    // CON UNA SENAL DEL MANDO EN CURSO, EL TEST ESPERA: no se abandona ni corre por
+    // debajo. Dos motivos, y ninguno es cortesia con el mando.
+    //
+    // No corre por debajo porque aplicarSalidas() con senalActiva guarda y NO escribe:
+    // el test gastaria sus seis segundos sin encender una lampara y un tecnico leeria
+    // eso como tres lamparas fundidas. Y porque el return de mas abajo dejaria
+    // actualizarSenal() sin llamar: la senal no terminaria nunca, senalActiva se
+    // quedaria en true y aplicarSalidas() no volveria a escribir un pin en toda la
+    // vida del equipo.
+    //
+    // No se abandona porque el $ACK de TEST_LEDS ya salio: tirar la peticion en
+    // silencio seria la misma mentira por otro camino. Re-armando el reloj, el test
+    // empieza entero en cuanto la senal suelta las luces.
+    if (senalActiva) {
+      tInicioTest = ahora;
     } else {
-      testLedsActivo = false;
-      aplicarSalidas(true, false, false);
+      unsigned long elapsed = ahora - tInicioTest;
+      if (elapsed < TEST_FASE_MS) {
+        aplicarSalidas(true, false, false);
+      } else if (elapsed < 2 * TEST_FASE_MS) {
+        aplicarSalidas(false, true, false);
+      } else if (elapsed < 3 * TEST_FASE_MS) {
+        // El verde del test pasa por el enclavamiento como cualquier otro: si algun
+        // dia SFTY-2 se lo niega, esta fase se queda sin encender y eso es la
+        // respuesta correcta, no un estorbo que rodear. La pluma no lo sigue -ver
+        // escribirPines()-, asi que el tecnico ve la lampara sin que se abra la via.
+        aplicarSalidas(false, false, true);
+      } else {
+        testLedsActivo = false;
+        aplicarSalidas(true, false, false);
+      }
+      return;
     }
-    return;
   }
 
   // SFTY-21: la senal se atiende ANTES y NO se sale de la funcion. La logica de

@@ -44,10 +44,22 @@ ABREN_PASO = ("semaforo_iniciarTestLeds",)
 
 # Lo que el Bluetooth del Esclavo puede atender. Anadir aqui exige justificarlo arriba.
 COMANDOS_PERMITIDOS = {
-    "FORZAR_ROJO":     "direccion segura: detiene el trafico",
-    "SOLICITAR_PASO":  "PIDE al Maestro; no enciende nada en esta punta",
-    "TEST_LEDS":       "presente solo para RECHAZARLO con un motivo legible",
-    "SET_RTC:":        "ajusta el reloj, no las luces",
+    # N-83: aqui ponia "FORZAR_ROJO: direccion segura: detiene el trafico", y ese motivo
+    # era FALSO -es la clase de prueba que documenta el defecto en vez de cazarlo, la de
+    # 8.quater-. El comando llamaba a semaforo_iniciarFallo(), o sea ambar intermitente
+    # con la TALANQUERA ARRIBA: no detenia el trafico, abria paso a los dos sentidos con
+    # precaucion. La lista blanca daba por revisado un comando cuyo motivo escrito
+    # describia otra cosa, que es peor que no tenerlo listado.
+    #
+    # El nombre se corrigio; la entrada se INVIERTE en vez de borrarse -sigue midiendo
+    # algo-, y el literal viejo se queda con el motivo de TEST_LEDS, que es el que
+    # ahora le corresponde.
+    "AMBAR_EMERGENCIA": "ambar intermitente: no le da prioridad a NADIE, no abre paso "
+                        "a un sentido contra el otro",
+    "FORZAR_ROJO":      "presente solo para RECHAZARLO ensenando el nombre nuevo",
+    "SOLICITAR_PASO":   "PIDE al Maestro; no enciende nada en esta punta",
+    "TEST_LEDS":        "presente solo para RECHAZARLO con un motivo legible",
+    "SET_RTC:":         "ajusta el reloj, no las luces",
 }
 
 
