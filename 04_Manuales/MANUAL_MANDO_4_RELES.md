@@ -5,6 +5,96 @@
 **Implementación:** `01_Firmware/Maestro/src/mando.cpp`, `include/mando.h`, `src/botones.cpp`
 **Fecha:** 1 de agosto de 2026
 
+> # 🛑 AVISO DEL 28/08/2026 — EL MANDO DE 4 RELÉS SE RETIRA
+>
+> **El 28/08/2026 se decidió en obra retirar la pantalla LCD, los cuatro pulsadores y el mando de
+> relés.** Toda la operación pasa a la App por Bluetooth. Este manual describe un actuador que deja
+> de existir.
+>
+> ## 1. Lo que se retira es código y papel, NO equipo en servicio
+>
+> **VERIFICADO leyendo la cabecera de este mismo manual (`:8-19`, justo debajo):** el receptor de
+> relés figura como **❌ no instalado en las dos puntas**, y la prueba de banco como **❌ ninguna**.
+> El propio documento lo dice sin rodeos: *"Nada de esto se ha ejercitado con un mando físico
+> conectado"*.
+>
+> | | Maestro | Esclavo |
+> |---|---|---|
+> | Receptor de relés instalado | ❌ **nunca** | ❌ **nunca** |
+> | Prueba de banco | ❌ **ninguna** | ❌ **ninguna** |
+>
+> **Consecuencia, y conviene decirla porque quita presión a la retirada:** ningún operario ha usado
+> nunca este mando. Retirarlo **no cambia lo que hoy se puede hacer en campo** — no había receptor
+> que accionar. Lo que se retira es `mando.cpp` en las dos puntas y las páginas que lo describen.
+>
+> **Lo que NO es inofensivo va en el punto 3.** Que el actuador no existiera no significa que su
+> código fuera inerte.
+>
+> ## 2. Lo que sí desaparece de verdad: la salida de emergencia prometida
+>
+> La §8 de este manual (`:316-318`) vende `B·B·B` como *"la regla que impide que nadie quede atrapado
+> con un semáforo en estado raro a 5 m de altura"*. **Esa salida nunca llegó a existir** (no hay
+> receptor) **y ahora tampoco existirá.** El aviso está pegado a la frase, en su sitio, y no solo
+> aquí arriba: quien lee la §8 puede no haber leído esta cabecera.
+>
+> ## 3. 🔴 HALLAZGO TÉCNICO — `mando_ambarLocal()` NO queda inerte al retirar el mando
+>
+> **Es lo único de este manual que hay que resolver antes de borrar nada.**
+>
+> ### MEDIDO — `grep` sobre el fuente, 28/08/2026
+>
+> `ambarLocal` es una bandera del Esclavo que se **arma en un solo sitio**:
+>
+> ```
+>   Esclavo/src/mando.cpp:132    ambarLocal = true;    // dentro de ejecutar(ACC_AMBAR) = B.B.B
+> ```
+>
+> No hay otro. Se apaga en `mando_setup()` (`:100`), en `ACC_OBEDECER` (`:116`) y en `ACC_DEGRADADO`
+> (`:147`) — todos también del mando. **Y tiene tres consumidores en `Esclavo/src/main.cpp` que
+> VETAN órdenes de radio:**
+>
+> | Línea | Código | Qué veta |
+> |---|---|---|
+> | `main.cpp:401` | `if (!mando_ambarLocal()) {` | Que un `CMD_GO_RED` del Maestro fuerce rojo y acuse recibo |
+> | `main.cpp:408` | `if (!mando_ambarLocal()) {` | Que un `CMD_GO_GREEN` del Maestro **abra paso** |
+> | `main.cpp:526` | `if (!mando_ambarLocal() && semaforo_estado() == S_FALLO && pkt.command == CMD_GO_RED)` | Que la recuperación tras `S_FALLO` revoque el ámbar del operario |
+>
+> *(Hay un cuarto uso, el sostenedor del ámbar en `mando.cpp:274`, que no es un veto.)*
+>
+> ### Qué pasa si el mando se va sin tocar estos tres `if`
+>
+> ```
+>   Se retiran mando y pulsadores
+>        -> ACC_AMBAR no se alcanza nunca
+>        -> ambarLocal se queda en false PARA SIEMPRE  (mando_setup lo pone a false)
+>        -> los tres if (!mando_ambarLocal()) son SIEMPRE VERDADEROS
+>        -> EL VETO DESAPARECE
+> ```
+>
+> **No es código que quede muerto: es una barrera de seguridad que se abre sola.** Hoy el firmware
+> garantiza que *una orden de radio no puede sacar al Esclavo del ámbar local*. Retirado el mando,
+> esa garantía no se elimina explícitamente — **se evapora**, porque su condición deja de poder ser
+> cierta. Nadie borra una línea y nadie ve un `FALLA`.
+>
+> Es la forma inversa de la **prueba muerta** que `CLAUDE.md` §3.bis describe: allí una condición
+> siempre cierta hacía que una prueba no midiera nada; aquí una condición siempre cierta hace que un
+> **veto no vete nada**. El síntoma es el mismo —un `if` que ya no decide— y la señal de alarma
+> también: *un `PASS` de algo que nadie ha visto fallar nunca*.
+>
+> ### Lo que hay que hacer con ello — ESCRITO, no medido
+>
+> **La decisión técnica NO está tomada** (falta confirmar el chip del ESP32 y qué pasa con el cristal
+> `Y2`), así que aquí no se propone implementación. Lo que sí queda fijado:
+>
+> - **`ambarLocal` no se borra junto con `mando.cpp`.** O el ámbar local gana un actuador nuevo por
+>   Bluetooth —y la bandera se conserva tal cual—, o se retira **con** sus tres consumidores, de
+>   forma explícita y en el mismo commit, dejando escrito que el veto ya no existe.
+> - **Retirarla en silencio es la peor de las tres opciones**, porque deja los tres `if` en pie
+>   pareciendo que protegen algo.
+> - Esto necesita **un pack que lo vigile**. Ver el informe de sesión.
+>
+> ---
+
 > ## ⚠️ ESTADO: FIRMWARE EN LAS DOS PUNTAS · **RECEPTOR FÍSICO SIN COMPRAR**
 >
 > | | Maestro | Esclavo |
@@ -94,6 +184,25 @@ cambia es la acción, porque **el Esclavo no tiene modos de operación propios**
 > equivocarse en la segunda punta.
 
 ### 3.1 ⚠️ En el Esclavo, `B·B·B` desobedece al Maestro a propósito
+
+> ## 🛑 28/08/2026 — ESTA DESOBEDIENCIA ES EL VETO QUE SE PIERDE
+>
+> **Esta sección describe la única barrera de seguridad que la retirada del mando rompe de verdad,
+> y la rompe en silencio.** Todo lo demás de este manual es papel; esto es un `if` que deja de
+> decidir.
+>
+> **MEDIDO:** la bandera que sostiene esta desobediencia es `ambarLocal`, y se arma en **un solo
+> sitio** — `Esclavo/src/mando.cpp:132`, dentro de `ejecutar(ACC_AMBAR)`, la acción de `B·B·B`. Sus
+> tres vetos viven en `Esclavo/src/main.cpp:401` (`CMD_GO_RED`), `:408` (`CMD_GO_GREEN`) y `:526`
+> (recuperación tras `S_FALLO`).
+>
+> Sin mando ni pulsadores, `ambarLocal` **nunca vuelve a ser `true`**, los tres `if
+> (!mando_ambarLocal())` quedan siempre-verdaderos y **el Maestro recupera la capacidad de abrir
+> paso en el Esclavo en situaciones en las que hoy tiene prohibido hacerlo**. Nadie borra una línea
+> y ningún instrumento se pone rojo.
+>
+> **No borre `mando.cpp` del Esclavo sin decidir antes qué pasa con estos tres `if`.** Desarrollo
+> completo en el punto 3 del aviso de cabecera.
 
 Mientras el ámbar local esté activo, **el Esclavo NO obedece las órdenes de luz del
 Maestro** y **tampoco acusa recibo de ellas**. Se queda en ámbar intermitente hasta que
@@ -313,9 +422,31 @@ intentar Automático es **volver al ámbar, que es justo donde se estaba**. Y ar
      luces en AMBAR  ->  sigue muerto; puede volverse al degradado
 ```
 
-> **`B·B·B` devuelve a ámbar desde cualquier estado en marcha, sin condiciones.** Es la regla
+> ~~**`B·B·B` devuelve a ámbar desde cualquier estado en marcha, sin condiciones.** Es la regla
 > que impide que nadie quede atrapado con un semáforo en estado raro a 5 m de altura. **Una
-> salida de emergencia con requisitos no es una salida de emergencia.**
+> salida de emergencia con requisitos no es una salida de emergencia.**~~
+
+> # 🛑 28/08/2026 — ESTA SALIDA DE EMERGENCIA NO EXISTE. NO CUENTE CON ELLA.
+>
+> **Un operario que confíe en esta frase no tiene la salida que promete.** El aviso va pegado aquí,
+> y no solo en la cabecera, porque quien lee esta página puede no haber leído aquélla — y lo que
+> esta frase ofrece es precisamente aquello sobre lo que alguien decide subirse a un poste.
+>
+> | | |
+> |---|---|
+> | **Nunca existió** | El receptor de relés **no se compró ni se conectó en ninguna punta**, y no hay prueba de banco (`:8-19` de este manual). Sin receptor, `B·B·B` no se puede accionar desde el piso: **jamás fue ejecutable en campo** |
+> | **Y deja de existir** | El mando y los cuatro pulsadores se retiran (28/08/2026). También se va la vía por botón |
+> | **Sin sustituto** | **MEDIDO:** `Esclavo/src/bluetooth.cpp` acepta `FORZAR_ROJO` (`:109`, `:124`), `SOLICITAR_PASO` (`:128`), `TEST_LEDS` (`:146`) y `SET_RTC:` (`:159`). **Ninguno pone al Esclavo en ámbar.** `FORZAR_ROJO` es rojo, no ámbar, y no revoca nada |
+>
+> **La frase tachada sigue siendo un buen requisito — por eso se tacha y no se borra.** *"Una salida
+> de emergencia con requisitos no es una salida de emergencia"* es exactamente el criterio que el
+> reemplazo por Bluetooth tiene que cumplir. Hoy no lo cumple nadie: **el sistema se ha quedado sin
+> salida de emergencia, con requisitos o sin ellos.**
+>
+> ⚠️ **Y hay una consecuencia de firmware que no se ve desde aquí:** `B·B·B` era el único sitio que
+> armaba `ambarLocal`, la bandera de la que cuelgan **tres vetos** en `Esclavo/src/main.cpp`
+> (`:401`, `:408`, `:526`). Al retirarla, esos vetos se vuelven siempre-verdaderos y **desaparecen
+> sin que nadie borre una línea.** Ver el punto 3 del aviso de cabecera.
 
 ---
 
@@ -362,6 +493,9 @@ mando no sirve. El escenario típico es *"dejó de llover, a ver si volvió el r
 | **El rechazo no indica el motivo desde el piso** | Aceptado. Hay que subir a leer la pantalla |
 | **No hay realimentación de "pulso recibido"** | El operario no sabe si un pulso entró hasta completar la secuencia. Consecuencia directa de tener solo las luces como salida |
 | **El estado del Degradado no persiste a un corte** | Pendiente **N-20**. Un microcorte puede crear la salida asimétrica de §9 sin que nadie toque el mando |
+| 🛑 **El mando entero se retira (28/08/2026)** | Decisión de obra. Todo este manual pasa a describir un actuador inexistente. **Nunca hubo receptor, así que no cambia lo que se puede hacer hoy en campo** |
+| 🛑 **Al retirarlo, el veto de `ambarLocal` desaparece solo** | **MEDIDO.** Tres `if` en `Esclavo/src/main.cpp` (`:401`, `:408`, `:526`) se vuelven siempre-verdaderos. **Es lo único de esta retirada que toca seguridad, y hay que resolverlo explícitamente.** Ver punto 3 de la cabecera |
+| 🛑 **El sistema se queda sin salida de emergencia** | `B·B·B` era la única *"desde cualquier estado y sin condiciones"*. **No hay sustituto por Bluetooth en el Esclavo.** Ver §8 |
 
 ---
 
