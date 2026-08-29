@@ -1,7 +1,14 @@
 # 🗺️ Roadmap y Estado del Ecosistema de Semáforos Móviles (V9.0)
 
-**Fecha de Actualización:** 28 de Agosto de 2026 · **HEAD:** `f7be2bd` · rama `main`  
-**Compuerta de Verificación:** ✅ **15 PASS | 0 FALLA | 0 ABORTADO** (Exit code: 0) · Maestro: 85.8% Flash · Esclavo: 63.9% Flash · Repetidor: 20.6% Flash · 348/348 en 34 packs · 271/271 pantalla · 71/71 automatico, en `evidencia/2026-08-28_compuerta.txt` (acta medida sobre `3733544`)
+**Fecha de Actualización:** 28 de Agosto de 2026 · **HEAD:** `d34cfe2` · rama `main`  
+**Compuerta de Verificación:** ✅ **15 PASS | 0 FALLA | 0 ABORTADO** (Exit code: 0) · Maestro: 88.4% Flash · Esclavo: 64.0% Flash · Repetidor: 20.6% Flash · 371/371 en 36 packs · 271/271 pantalla · 71/71 automatico, en `evidencia/2026-08-28_compuerta.txt`
+
+> ⚠️ **El acta se cabecea a si misma como `f6f75bb`, rama `main-nuevo`, «Arbol: CON CAMBIOS SIN
+> COMMITEAR», y ella misma cierra con su AVISO.** Esas cifras se midieron sobre el arbol de trabajo
+> que un rato despues se convirtio en `d34cfe2`, no sobre `f6f75bb`. Se copian aqui **con esa
+> advertencia pegada**, no limpias: un acta que no corresponde a un commit no es una medida
+> reproducible, y la unica forma de convertirla en una es volver a `d34cfe2` y re-correr
+> `python 01_Firmware/compuerta.py`. **Ese re-corrido no se ha hecho.**
 
 ---
 
@@ -13,6 +20,12 @@
 > aparecio al censar que se rompia. Ninguno de los diez ultimos se pregunto: salieron de cruzar la
 > superficie de entrada del firmware con lo que se retira (CLAUDE.md §3.ter).
 >
+> **Y los dos ultimos, N-88 y N-89, salieron de ARREGLAR los anteriores**, que es el sitio donde
+> este repositorio ya sabe que aparecen defectos: **N-88** es la asimetria que quedo a la vista al
+> escribir las ramas nuevas del despachador, y **N-89** es un ahorro de flash que hubo que
+> **rechazar** porque apagaba el instrumento recien construido. Ninguno de los dos se pregunto
+> tampoco.
+>
 > 🔴 **Y la linea que manda sobre todas las demas: hoy no existe ni una sola fila «VERIFICADO EN LA
 > PLACA».** Lo que aqui se llama MEDIDO se midio **sobre ficheros** —el `.cpp`, el `.h`, el
 > `.kicad_sch`, el `.kicad_pcb`, el `.elf`—. Un fichero dice lo que alguien dibujo o escribio; una
@@ -22,9 +35,9 @@
 |---|---|
 | **N-76** Bluetooth a `J17`, `USART1` remapeado a `PB6`/`PB7` | 🟢 **CERRADO** — `020c2db` + `50a5380` |
 | **N-77** La arquitectura del 28/08 (STM32 controlador · ESP32 expansion) | 🟢 documentada — `05_Funcional/17_...md` |
-| **N-78** `botonCancelar()` es la unica salida de todos los modos | 🔴 ABIERTO |
+| **N-78** `botonCancelar()` es la unica salida de todos los modos | 🟡 **MITAD CERRADA** — `d34cfe2` pone los seis comandos; `PB15` sigue siendo la unica salida **fisica** |
 | **N-79** Retirar el mando **borra un veto**, no deja `if` inertes | 🔴 ABIERTO |
-| **N-80** `SET_RTC` rechaza en silencio y contesta `RESULT:OK` | 🔴 ABIERTO |
+| **N-80** `SET_RTC` rechaza en silencio y contesta `RESULT:OK` | 🟢 **CERRADO** — `d34cfe2`, y eran **tres** ramas, no una |
 | **N-81** Telemetria fabricada: `RF`, `RTT`, `BAT` y `T` son literales | 🟠 ABIERTO |
 | **N-82** `TEST_LEDS` escribe pines por fuera de SFTY-2 | 🔴 ABIERTO |
 | **N-83** `FORZAR_ROJO` del Esclavo: el nombre y el efecto no coinciden | 🔴 ABIERTO |
@@ -32,6 +45,176 @@
 | **N-85** El `.kicad_pcb` NO esta vacio | 🟢 identificado, correccion en curso por otra sesion |
 | **N-86** `AiBus`: 280 B de RAM que el enlazador no puede descartar | 🟠 ABIERTO |
 | **N-87** La compuerta no es idempotente despues de un `--rapido` | 🟠 ABIERTO — no es defecto del pack |
+| **N-88** Dos criterios distintos para abandonar el Modo Degradado | 🔴 ABIERTO — **decision de spec, no de implementacion** |
+| **N-89** Un ahorro de 636 B que se RECHAZO: apagaba un pack sin romperlo | 🟢 **DECIDIDO Y ESCRITO** — regla permanente |
+
+---
+
+### 🟢 N-89 — 636 B de ahorro que se RECHAZARON: refactorizar puede apagar un instrumento sin romper ni un test
+
+**De donde sale:** de mirar la factura de `d34cfe2`. Los seis comandos de N-78 mas las tres ramas de
+N-80 costaron **1.644 B** de flash sobre un Maestro que ya iba al 85,8 %, y la primera reaccion —la
+correcta— fue buscar de donde recortarlos.
+
+**Lo que se probo, y lo que ahorraba MEDIDO:** un compositor. Las veintitantas ramas del despachador
+terminan escribiendo tramas que solo se diferencian en dos o tres campos, asi que en vez de un
+literal completo por rama se escribieron dos funciones —`responderAck(cmd, resultado)` y
+`responderErr(cmd, motivo)`— que arman la trama en un buffer. **636 B menos.** Con 7.632 B libres,
+eso es casi un 9 % del margen que queda.
+
+**Se retiro, y el motivo no es de estilo. `app_03_sin_ok_mudo` decide leyendo el bloque de cada rama
+y buscando LITERALES:**
+
+```
+app_03_sin_ok_mudo.py:200    if '"$ACK' not in bloque:
+                                 # "Una rama que no promete nada no puede mentir"
+                                 return True, None
+app_03_sin_ok_mudo.py:208    if '"$ERR' not in bloque:
+```
+
+Con el compositor, **ninguna rama contiene ya la cadena `"$ACK`**: la trama se arma dentro de
+`responderAck()`, que vive en otro sitio. Asi que la linea 200 se cumple **para todas**, y todas
+devuelven `(True, None)` — el veredicto de *«esta bien»*. El pack seguiria corriendo, seguiria
+contando sus comprobaciones, y **no estaria mirando ninguna**.
+
+> 🔴 **Lo que lo vuelve peligroso de verdad: sus dos redes tambien sobreviven.**
+>
+> - La **calibracion** (`:267`) exige que la rama patron `SET_TIEMPOS` del Maestro salga
+>   `(True, None)`. Con el compositor sale **exactamente eso** —por el camino equivocado, el de la
+>   linea 200— asi que la calibracion **pasa**. La rama que el pack usa para saber distinguir el bien
+>   del mal deja de distinguir nada y sigue diciendo que si.
+> - Los dos **controles negativos** (`:299` y `:303`) se ejercen contra bloques **sinteticos**
+>   escritos dentro del propio pack, que llevan sus `"$ACK` y `"$ERR` literales. El compositor no
+>   toca el fuente del pack, asi que los dos controles siguen en verde: el detector **sabe** fallar,
+>   solo que ya no se le presenta nada sobre lo que fallar.
+>
+> Es decir: **cero tests rotos, cero cifras a la baja, cero ABORTADO. El acta habria seguido diciendo
+> `371/371`.**
+
+**La regla que queda: un refactor puede apagar un instrumento sin romper ni una prueba, y el banco no
+tiene forma de avisarlo.** Es la misma familia que las pruebas 2.7 y 2.8 de N-51 —una condicion
+siempre cierta que hacia `break` antes de evaluar ni un candidato, meses de `PASS` sin medir nada—
+pero llegando por la puerta de al lado: alli el defecto se escribio dentro del pack, aqui **el pack
+no se toca** y se le retira por debajo lo que media.
+
+- **La senal es la misma que la de N-51: un `PASS` de algo que nadie ha visto fallar nunca.** Un pack
+  que sigue verde despues de un cambio que altera **justo la forma que ese pack lee** no esta
+  confirmando el cambio: esta callando.
+- **Y la comprobacion es barata: rompele el firmware a proposito otra vez (CLAUDE.md §8.bis).** Un
+  arnes se ve fallar **antes** de conectarlo, si — pero tambien **despues de cada refactor que toque
+  la forma de lo que vigila**, porque un instrumento que se vio fallar en enero puede estar ciego en
+  marzo sin que nada lo diga.
+- **Corolario de presupuesto, que es lo que hace incomodo esto:** el ahorro era real y el margen es
+  estrecho. No se rechazo por dudarlo, se rechazo **midiendo las dos cosas**: 636 B contra un pack
+  que vigila que ninguna de las 20+ ramas del despachador prometa lo que no comprobo, incluidas las
+  tres de N-80. **Ahorrar flash apagando el instrumento que vigila justo eso no es ahorrar: es
+  cambiar bytes por ceguera**, y los bytes se recuperan (N-70 saco 5.160 B de un bus que el equipo no
+  tiene, sin tocar codigo).
+
+**Las cifras del episodio, MEDIDAS en los dos extremos y no estimadas** (CLAUDE.md §7: *"un delta
+exige medir los DOS extremos"*):
+
+| | antes | despues | delta |
+|---|---|---|---|
+| Maestro | **85,8 %** · 56.260 B | **88,4 %** · 57.904 B | **+1.644 B** · quedan **7.632 B libres** |
+| Esclavo | 63,9 % | 64,0 % | las tres lineas del `SET_RTC` verificado |
+
+> ⚠️ **Y una cifra que hay que dejar escrita porque incomoda: se estimo ~930 B y costaron 1.644 —el
+> **77 % por encima**—.** Los dos motivos estan medidos y ninguno era imprevisible: **(a)** el alcance
+> crecio a mitad de camino, porque el pack encontro dos `OK` mudos que no estaban en el encargo
+> (N-80); y **(b)** `app_03` **obliga por diseno** a escribir la trama entera dentro de cada rama, que
+> es precisamente lo que este N-89 decide conservar. O sea: **el sobrecoste no es un fallo de la
+> estimacion, es el precio del instrumento, y ahora esta contado.** La proxima rama del despachador
+> cuesta su literal completo — quien planifique con eso no se llevara la sorpresa dos veces.
+
+**Que quedaria por hacer si el ahorro se quisiera de verdad.** No es imposible: el compositor puede
+convivir con el pack si el pack deja de leer literales y pasa a exigir que **la respuesta cuelgue de
+una condicion**, no que la cadena este escrita ahi. Pero eso es reescribir el detector, y un detector
+reescrito **vuelve a nacer sin haberse visto fallar**. Hoy la decision tomada es la conservadora:
+**los 1.644 B se pagan**, y por que se pagan queda escrito aqui para que nadie lo vuelva a proponer
+como una mejora obvia.
+
+---
+
+### 🔴 N-88 — La asimetria al abandonar el Modo Degradado: dos criterios para lo mismo
+
+**De donde sale:** de escribir las ramas nuevas de N-78. Al decidir que hacia `SET_MODO:MENU`
+estando en Degradado quedo a la vista que las ramas **viejas** no se hacen esa pregunta.
+
+**MEDIDO, en el mismo fichero y a diez lineas unas de otras:**
+
+```
+PREGUNTAN por el Degradado (ramas nuevas, d34cfe2). La guarda es
+`if (modoActual_get() == MODO_DEGRADADO)` en :195, :215 y :226:
+
+  Maestro/src/bluetooth.cpp:190   SET_MODO:MENU         -> modo_degradado_pedirSalida(), todo-rojo 30 s
+  Maestro/src/bluetooth.cpp:211   SET_MODO:ALCANCE      -> $ERR ... EN_MARCHA_PARE_EL_MODO
+  Maestro/src/bluetooth.cpp:222   SET_MODO:INTELIGENTE  -> $ERR ... EN_MARCHA_PARE_EL_MODO
+
+NO PREGUNTAN, y salen sin el todo-rojo de 30 s (ramas viejas, sin tocar):
+
+  Maestro/src/bluetooth.cpp:176   SET_MODO:AUTO         -> modoActual_set(MODO_AUTOMATICO)  (:177)
+  Maestro/src/bluetooth.cpp:181   SET_MODO:MANUAL       -> modoActual_set(MODO_MANUAL)      (:182)
+  Maestro/src/bluetooth.cpp:186   SET_MODO:AMBAR        -> modoActual_set(MODO_AMBAR)       (:187)
+  Maestro/src/mando.cpp:116       A.A.A (ACC_AUTOMATICO)-> modoActual_set(MODO_AUTOMATICO)
+  Maestro/src/mando.cpp:125       B.B.B (ACC_AMBAR)     -> modoActual_set(MODO_AMBAR)
+```
+
+Ninguna de las cinco de abajo consulta `modoActual_get() == MODO_DEGRADADO`. **Se ha comprobado leyendo
+las ramas, no el mensaje del commit.**
+
+**Lo que SI hacen las cinco, para no acusarlas de mas de lo que hacen:**
+
+1. **El indicador del Degradado se borra igual.** `main.cpp:198` es el punto de estrangulamiento unico
+   de N-20 —`if (modoAnterior == MODO_DEGRADADO) respaldo_guardarDegradado(false);`— y cualquier
+   cambio de modo pasa por ahi. **El equipo no reanudara el Degradado tras un corte.** Esa mitad esta
+   bien y no es lo que se discute.
+2. **Las dos del mando pasan por un todo-rojo.** `confirmarYActuar()` (`mando.cpp:148`) llama a
+   `coordinador_forzarRojoTotal()` **antes** de nada, en las dos puntas, mas los destellos de
+   confirmacion. No es un salto a verde.
+
+**Lo que NINGUNA de las cinco hace, que es la diferencia entera:** el todo-rojo de
+`ROJO_TRANSICION_MS` —**`DEG_DESPEJE_SEG = 30` segundos**, `modo_degradado.cpp:56` y `:114`— con la
+pantalla `"Saliendo: todo rojo" / "Vea las dos puntas"` y el estado `DEG_SALIDA_ROJO`, del que solo se
+sale al menu cuando esos 30 s se han cumplido (`modo_degradado.cpp:489-494`). **El todo-rojo del mando
+dura lo que duran unos destellos; el de la salida del Degradado dura media escena de trafico, y esa
+duracion ES la verificacion visual de las dos puntas.**
+
+> **Por que esto importa justo en este modo y no en otro:** el Degradado es **el unico modo del
+> firmware que enciende un verde sin confirmacion del otro extremo** —lo dice su propia puerta de
+> entrada—, y las dos puntas se coordinan **por reloj**, no por radio. Su escenario peligroso esta
+> escrito en el fuente, en `modo_degradado.cpp:466-469`: *"el escenario peligroso de este modo es que
+> una sola punta lo abandone"*. Salir por una via que no espera **es exactamente ese escenario**: esta
+> unidad se pone a ciclar o a ambar mientras la otra sigue dando verde por reloj.
+
+> 🔴 **Y la regla que lo convierte en un N-x en vez de en un detalle: dos puertas al mismo sitio con
+> criterios distintos son UNA sola puerta — la mas floja.** Es lo mismo que el propio `d34cfe2`
+> escribio como motivo para extraer `modo_degradado_pedirSalida()` (*"dos formas de abandonar el modo
+> serian dos criterios, y en la calle mandaria el mas flojo"*) y para que `SET_MODO:DEGRADADO` reuse
+> `modo_degradado_evaluarEntrada()` en vez de tener su propia tabla. La **entrada** quedo con una sola
+> puerta; **la salida quedo con dos**, y una de ellas no cuesta nada de usar.
+
+#### Las tres salidas posibles, sin recomendar ninguna
+
+Esto **no es un defecto con arreglo evidente**: es una decision sobre que debe hacer el equipo, y las
+tres opciones tienen coste real en la calle. **La eleccion es del responsable, no de quien escribe el
+codigo.**
+
+| | que se hace | lo que cuesta |
+|---|---|---|
+| **A. Que los nuevos tambien dejen salir** | se quitan las guardas de `SET_MODO:ALCANCE` e `INTELIGENTE`: cualquier `SET_MODO` abandona el Degradado como hoy hacen AUTO/MANUAL/AMBAR | el criterio queda unificado **por abajo**: el todo-rojo de 30 s deja de ser obligatorio para nadie, y el modo mas peligroso se abandona con un toque de telefono |
+| **B. Que los viejos pasen por el todo-rojo** | `SET_MODO:AUTO/MANUAL/AMBAR` y las secuencias `A.A.A`/`B.B.B` llaman a `modo_degradado_pedirSalida()` estando en Degradado, y el modo pedido se aplica al terminar | unificado **por arriba**, pero **`B.B.B` es la salida de emergencia del mando** (`modo_ambar_fijarMotivo("Ambar pedido desde", "el mando (B.B.B)")`): meterle 30 s de espera a una peticion de emergencia es una decision de seguridad **en la otra direccion**, no una mejora automatica. Y hace falta guardar la accion pendiente durante esos 30 s |
+| **C. Declararla deliberada** | se deja como esta y se escribe **por que** cada via tiene el criterio que tiene, en `OPTIMIZACIONES.md` con su regla `SFTY-x` | es una respuesta legitima **solo si el motivo esta escrito**. Una asimetria con motivo es una decision; sin motivo es un olvido que alguien confundira con una decision |
+
+> **Lo que no vale es lo que hay hoy: dos criterios y ningun texto que diga cual es el bueno.** Ese es
+> el estado en que un mantenedor futuro copia el criterio flojo creyendo que es el vigente —o el
+> estricto, y rompe la salida de emergencia—.
+
+**Que haria falta para cerrarlo.** (1) Que el responsable elija A, B o C. (2) Sea cual sea, **un pack
+que lo fije**: hoy no hay ninguno que compare entre si las vias de salida del Degradado, y por eso la
+asimetria pudo existir sin que nada la nombrara. El pack tiene que fallar el dia que alguien anada una
+sexta via con el criterio contrario al elegido. (3) Si sale B, decidir tambien que pasa con `B.B.B`
+—que es lo unico de las cinco que tiene argumento propio para NO esperar—.
 
 ---
 
@@ -373,7 +556,20 @@ unica forma de que esto no vuelva.
 
 ---
 
-### 🔴 N-80 — `SET_RTC` rechaza en silencio y contesta `RESULT:OK`
+### 🟢 N-80 — `SET_RTC` rechaza en silencio y contesta `RESULT:OK` · **CERRADO en `d34cfe2`**
+
+> **Y crecio al medirlo: no era una rama, eran TRES — y las dos de mas las encontro el PACK, no una
+> revision humana.** El encargo decia *"`SET_RTC` contesta OK a ciegas"*. Al escribir
+> `app_03_sin_ok_mudo`, que **deriva del C++ la lista de funciones a vigilar en vez de teclearla**,
+> aparecio que `MANUAL:CAMBIAR_TURNO` hacia lo mismo: llamaba a `coordinador_pedirCambio()`, que
+> abandona en su `if (estadoC != C_IDLE) return;`, y contestaba `RESULT:OK` igual.
+>
+> **Esto es exactamente lo que CLAUDE.md §3.ter dice que tiene que pasar.** *"Si los defectos
+> aparecen porque alguien pregunta, no hay metodo — hay suerte."* El 26/08 los ocho defectos de V9.0
+> salieron todos de que el responsable preguntara. Aqui **dos de tres salieron del instrumento**, en
+> la misma tarde, sin que nadie sospechara de esa rama: el pack censo las 20+ ramas del despachador
+> en las dos puntas y las midio todas con el mismo criterio. La diferencia entre las dos formas de
+> trabajar no es de esfuerzo, es que **una escala y la otra depende de que a alguien se le ocurra**.
 
 **De donde sale:** de la arquitectura de N-77. El plan del ESP32 da por hecho que el reloj se
 resuelve **poniendo un DS3231 en el modulo de expansion** y empujando la hora por `SET_RTC`. Se fue a
@@ -415,11 +611,37 @@ hora desde la app, recibe `OK`, y el equipo sigue sin hora.
 > STM32 necesita reloj de software alimentado por el ESP32 — y las dos salidas pasan por este
 > defecto.
 
-**Que haria falta para cerrarlo.** Que `reloj_ajustar()` devuelva `bool` (o que el despachador
-consulte `reloj_hayCristal()` antes) y que `bluetooth.cpp` emita
-`$ERR,CMD:SET_RTC,DESC:SIN_OSCILADOR` cuando no se pudo. Lo mismo en el Esclavo
-(`Esclavo/src/bluetooth.cpp:164`, misma forma). Y un pack que exija que **todo `RESULT:OK` cuelgue de
-un valor de retorno**, no de haber llamado.
+#### Como se cerro, que es la parte reutilizable
+
+**Sin tocar ni `reloj.cpp` ni `coordinador.cpp`.** Las dos negativas eran correctas y estaban
+razonadas donde deben; lo que faltaba era **contarlas**. El arreglo entero vive en los dos
+`bluetooth.cpp`, y son tres ramas:
+
+| rama | lo que faltaba mirar | como se pregunta ahora |
+|---|---|---|
+| **Maestro `MANUAL:CAMBIAR_TURNO`** | `coordinador_pedirCambio()` abandona en `if (estadoC != C_IDLE) return;` | `pedirCambioVerificado()` pregunta `coordinador_listoParaContar()`, que es literalmente `return estadoC == C_IDLE` |
+| **Maestro `SET_RTC`** | DOS retornos tirados: `reloj_ajustar()` (que rechaza en silencio) y `coordinador_sincronizarHora()` (que devuelve `bool`) | `reloj_hayCristal()` antes, `ajustarRelojVerificado()` que **relee** la hora despues, y el `bool` de la sincronizacion |
+| **Esclavo `SET_RTC`** | identico | `reloj_contadorSegundos()` |
+
+> **La regla del arreglo, y es la que salva estos cierres de convertirse en el defecto siguiente: se
+> pregunta LA MISMA condicion que mira la guarda, no una parecida.** `coordinador_listoParaContar()`
+> no es *una aproximacion* a `if (estadoC != C_IDLE) return;` — **es esa comparacion, leida por la
+> unica puerta publica que hay**. Una condicion *parecida* seria una segunda copia que alguien
+> tendria que sincronizar, y el dia que difieran el `$ERR` mentiria en la otra direccion.
+
+> 🔴 **Y en el Esclavo se aplico la regla del instrumento antes de copiar el arreglo.**
+> `reloj_hayCristal()` **no existe en esa punta** —lo declara solo el `reloj.h` del Maestro,
+> **comprobado con `grep` sobre `01_Firmware/Esclavo/` entero**, no supuesto por simetria—. La
+> pregunta equivalente alli es `reloj_contadorSegundos()`, que **reserva el `0` para "no hay reloj"**
+> y devuelve `1` antes que un cero real, de modo que su cero significa exactamente *"el RTC no esta
+> operativo"*. Eso es un **proxy exacto**, no una aproximacion — y la diferencia entre las dos cosas
+> es justo lo que este N-x castiga. Copiar `reloj_hayCristal()` a ciegas habria dado un ABORTADO de
+> compilacion; copiar *"algo que se le parezca"* habria dado un `$ERR` que miente.
+
+**Lo que queda vigilandolo:** `app_03_sin_ok_mudo`, con su calibracion contra `SET_TIEMPOS` —la rama
+que ya estaba bien hecha, para que el detector sepa distinguir en vez de solo acusar— y sus dos
+controles negativos. **Nacio en rojo y no se dio por bueno hasta que el firmware lo apago**
+(CLAUDE.md §8.bis). Y lo que ese pack cuesta mantener vivo esta contado en **N-89**.
 
 ---
 
@@ -464,7 +686,22 @@ vale es quitar el armador y dejar los lectores.
 
 ---
 
-### 🔴 N-78 — `botonCancelar()` es la unica salida de TODOS los modos, y desde Bluetooth no hay vuelta
+### 🟡 N-78 — `botonCancelar()` es la unica salida de TODOS los modos · **MITAD CERRADA en `d34cfe2`**
+
+> **Las dos mitades de este N-x son distintas y no se cierran juntas. Va escrito asi a proposito,
+> sin redondear:**
+>
+> | mitad | estado |
+> |---|---|
+> | **Que exista otra salida** — que MENU, ALCANCE, INTELIGENTE y DEGRADADO se puedan pedir y abandonar desde el telefono | 🟢 **CERRADA.** Seis comandos nuevos en el Maestro |
+> | **Que `PB15` deje de ser la unica salida EN LA PRACTICA** — o sea, que los cuatro pulsadores se retiren y `J16` quede libre para las camaras | 🔴 **ABIERTA.** Es la Fase 2, y no ha empezado |
+>
+> **Medido hoy sobre el fuente:** `botonCancelar()` sigue con **12 apariciones** en el Maestro y sigue
+> siendo la salida de los ocho modos (`menu.cpp:151`, `modo_alcance.cpp:50`, `modo_ambar.cpp:42`,
+> `modo_automatico.cpp:80`, `modo_degradado.cpp:464`, `modo_hora.cpp:262`, `modo_inteligente.cpp:66`,
+> `modo_manual.cpp:21`). **No se ha borrado ni una.** Lo que cambia es que **ya no es la unica**:
+> antes de `d34cfe2`, retirar los pulsadores dejaba tres modos sin ninguna forma de alcanzarse; hoy
+> ya no. Ese era el bloqueo, y ese es el que se levanto — **el trabajo, no**.
 
 **De donde sale:** de N-77, que retira los cuatro pulsadores para dejar `J16` libre a las camaras.
 Antes de retirarlos se censo que cuelga de ellos.
@@ -522,12 +759,33 @@ alcanzarse** — y `MENU` es la puerta del Modo Degradado.
 > salida, **por donde pasa**. Dos vias que llevan al mismo estado final pueden diferir en toda la
 > maniobra que hacen por el camino, y en un semaforo la maniobra **es** la seguridad.
 
-**Que haria falta para cerrarlo.** (1) `SET_MODO:MENU` en el Maestro, colgado de
-`coordinador_forzarMenu()`. (2) Que el Esclavo acepte `SET_MODO` o que el Maestro le propague el
-cambio por radio — con SFTY-27 delante: el Esclavo no decide, obedece. (3) Que la salida del Degradado
-por radio entre por la **misma** maniobra que la del boton, no por el `switch` de modo. (4) Un pack
-que exija que **todo modo alcanzable tenga al menos una salida por la interfaz que exista**, y que
-falle el dia que alguien anada un modo sin ella.
+#### Lo que se hizo en `d34cfe2`, punto por punto contra los cuatro que se pidieron
+
+| | pedido | estado, **verificado leyendo el fuente** |
+|---|---|---|
+| **(1)** | `SET_MODO:MENU` colgado de `coordinador_forzarMenu()` | 🟢 **hecho, aunque no como se escribio.** La rama llama a `menu_setup()`, y es `menu_setup()` (`menu.cpp:82`) quien llama a `coordinador_forzarMenu()`. Cuelga de el **por dentro**, que es mejor que duplicar la llamada: una sola forma de volver al menu |
+| **(2)** | Que el Esclavo acepte `SET_MODO`, o que el Maestro le propague el cambio | 🟡 **por propagacion, y solo por ahi.** El despachador del Esclavo sigue conociendo **cuatro** ordenes —`FORZAR_ROJO` (:124), `SOLICITAR_PASO` (:128), `TEST_LEDS` rechazado (:146), `SET_RTC` (:159)— y cerrando con `$ERR,CMD:DESCONOCIDO` (:204). **No acepta ningun `SET_MODO`, y eso no ha cambiado.** Lo que cierra el escenario es que la salida del Degradado termina en `menu_setup()` → `coordinador_forzarMenu()`, que *"fuerza Rojo Fijo en Maestro y Esclavo"*. SFTY-27 se respeta: el Esclavo no decide, obedece |
+| **(3)** | Que la salida del Degradado por radio entre por la **misma** maniobra que la del boton | 🟢 **hecho, y de la unica forma que no crea un segundo criterio: extrayendo el bloque.** `modo_degradado_pedirSalida()` es el cuerpo de `:449-463` **movido literal** —el diff lo ensena: mismas lineas, mismos comentarios— con su guarda dentro y devuelto como `bool`. El `if` del boton pasa a `if (salir && modo_degradado_pedirSalida())`. **No hay dos salidas: hay una funcion con dos llamadores.** El todo-rojo de 30 s se conserva entero |
+| **(4)** | Un pack que exija que todo modo alcanzable tenga salida por la interfaz que exista | 🟢 **`app_02_modos_simetricos`.** Cruza los `case X: return "Y";` de `obtenerNombreModo()` contra los `strcmp(accion, "SET_MODO:Y")` del despachador, **en los dos sentidos y leyendo el C++ en cada corrida**. `HORA` queda excluido **por nombre y con su motivo escrito**, no por un filtro generico. Si alguno de los dos censos sale vacio, **ABORTA** en vez de aprobar contra un conjunto vacio |
+
+> **Por que el pack (4) importa mas que los seis comandos:** el desajuste vivia **entero dentro del
+> mismo `.cpp`** —la telemetria y el despachador a ochenta lineas uno del otro, dos listas escritas a
+> mano que nadie cruzaba—. `app_01_comandos` vigila la costura **app ↔ firmware** y no veia nada de
+> esto. El proximo modo que alguien anada nacera otra vez legible y no ordenable, porque anadir el
+> `case` del `switch` es lo primero que se hace y anadir la rama del despachador es lo que se olvida.
+> **Los seis comandos arreglan hoy; el pack arregla el proximo.**
+
+**Lo que queda ABIERTO de N-78, y no se cierra aqui.**
+
+1. 🔴 **La retirada de los cuatro pulsadores (`PB9`, `PB13`, `PB14`, `PB15`) sigue sin hacerse.** Es
+   lo que libera `J16` para las camaras, es lo que N-77 pide (§2.3), y es **la Fase 2**. Hasta que
+   ocurra, `PB15` sigue siendo en la practica por donde sale todo el mundo — solo que ya no es la
+   unica puerta que existe.
+2. 🔴 **Y esa Fase 2 arrastra N-84 delante**, que sigue en rojo: mientras la polaridad de `J16` este
+   contradicha, el cableado de camaras no puede empezar aunque el pin quede libre.
+3. 🔴 **Nada de esto ha visto una tarjeta.** Los seis comandos, los dos packs y la interfaz de la app
+   se midieron sobre ficheros y sobre el `.elf`. **La sesion de banco sigue pendiente**, y un `$ACK`
+   que en el PC sale por el sitio correcto no demuestra que el telefono lo lea en el poste.
 
 ---
 
