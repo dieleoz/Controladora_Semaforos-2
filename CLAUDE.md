@@ -544,8 +544,41 @@ acaba en uno de tres sitios, anotado:
 | **se invierte** | pasa a exigir el comportamiento nuevo |
 | **se conserva** | medía otra cosa y sigue valiendo |
 
+> ⚠️ **Y hay un cuarto destino, que es el habitual: SE REPARTE.** Una prueba vieja casi nunca
+> afirma una sola cosa. Ver **§8.sexies**.
+
 **Y el mejor termómetro del arreglo son los fallos que desaparecen solos.** Si arreglas la causa
 raíz de cuatro `FALLA` y tras actualizar el instrumento siguen ahí, el arreglo no está completo.
+
+## 8.sexies Una prueba que celebraba el defecto casi nunca medía UNA sola cosa
+
+> **Antes de invertir una prueba vieja, cuenta cuántas propiedades afirma. La que sigue valiendo no
+> se borra con ella: se MUDA, literal, al sitio donde sí se cumple.**
+
+Las seis pruebas que exigían el enrutado roto de la app (N-83, 31/08) decían **dos cosas a la vez**:
+*«sin PIN no sale nada»* y *«esta orden es de esta punta»*. Arreglado el enrutado, las seis fallan —
+y las tres salidas de §8.quater no bastan, porque **ninguna de las tres es correcta para el conjunto**:
+borrarlas se lleva por delante el flujo del PIN, que nadie más medía; invertirlas todas convierte
+cuatro comprobaciones en repeticiones del mismo hecho. Lo que funciona es **repartir**: la mitad del
+enrutado se invierte donde estaba, y la del PIN se muda **con su bloque literal** a un escenario nuevo
+donde esas órdenes sí salen.
+
+**Y ese escenario nuevo no es relleno: es el control que le falta a toda inversión.** Una guarda que
+no dejara pasar **nada** haría pasar las seis líneas invertidas igual de bien que la guarda correcta.
+Sin el caso que exige que sí pase lo que debe pasar, no se está midiendo enrutado — se está midiendo
+una tapia.
+
+> 🔴 **Y el dato que decide cómo se escribe la inversión, que salió de inyectar el defecto (§8.bis):
+> al retirar la guarda, la línea que comprueba el RESULTADO —«no sale ninguna trama»— NO CAE.** Otra
+> barrera más abajo seguía frenando el envío. Lo único que cazó la regresión fueron las líneas que
+> miran **el orden**: que no se le pidiera el PIN al operario para una orden que no se iba a mandar.
+>
+> **Una inversión que solo mira el resultado final aprueba un firmware con las barreras en el orden
+> equivocado.** Y el orden es lo que se siente en la calle: cuatro dígitos tecleados delante de un
+> cruce parado para que luego le digan que la orden no era para esa punta.
+
+**Corolario, de la misma inyección:** una línea nueva que **no puede fallar sin que falle la de
+arriba** no es una comprobación, es un adorno — la segunda cara de la prueba muerta de §3.bis.
 
 ## 8.ter El trabajo delegado se revisa por el diff, no por su informe
 

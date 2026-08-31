@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-08-31
-HEAD         : c509b13   rama: main-nuevo
+HEAD         : fa66710   rama: main-nuevo
 Arbol        : CON CAMBIOS SIN COMMITEAR
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -9,27 +9,29 @@ GCC de host  : gcc.EXE (MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders
 
 RESULTADOS
 ------------------------------------------------------------------------------
-  PASS      guarda de rutas               44 rutas parseadas, todas existen
-  PASS      compila maestro               Flash: [========= ]  88.3% (used 57880 bytes from 65536 bytes)
-  PASS      compila esclavo               Flash: [======    ]  64.4% (used 42176 bytes from 65536 bytes)
+  PASS      guarda de rutas               56 rutas parseadas, todas existen
+  PASS      compila maestro               Flash: [========= ]  88.2% (used 57824 bytes from 65536 bytes)
+  PASS      compila esclavo               Flash: [======    ]  64.3% (used 42152 bytes from 65536 bytes)
   PASS      compila repetidor             Flash: [==        ]  20.6% (used 270497 bytes from 1310720 bytes)
-  PASS      simulador funcional           VEREDICTO FINAL: 20/20 PASS (SISTEMA V8.0 DEFINITIVA CERTIFICADO)
+  PASS      compila esp32                 Flash: [====      ]  35.6% (used 1121001 bytes from 3145728 bytes)
+  PASS      simulador funcional           VEREDICTO FINAL: 9/9 PASS (SISTEMA V8.0 DEFINITIVA CERTIFICADO)
   PASS      simulador de repetidor        RESULTADO: 10/10 PASS
-  PASS      simulador de app y bluetooth  RESULTADO GLOBAL: 5/5 SUITES DE ESTRES PASS (SISTEMA APP + FIRMWARE V8.9)
+  PASS      simulador de app y bluetooth  RESULTADO GLOBAL: 12/12 comprobaciones PASS (app movil vs firmware Bluetooth)
   PASS      test funcional de la app      [TEST] RESUMEN: 58/58 comprobaciones funcionales de la app en PASS
   PASS      test unitarios de la app      RESUMEN DE PRUEBAS: 32 PASS | 0 FALLAS  (Total: 32)
   PASS      app ejecutada en DOM          RESULTADO JSDOM: 61 PASS | 0 FALLAS
-  PASS      banco por packs               RESUMEN: 445/445 comprobaciones  |  packs: 39 PASS, 0 FALLA, 0 ABORTADO
+  ABORTADO  banco por packs               [ABORTADO] enlace_01_transporte: ABORTADO: no se pudo leer del C++ el constructor del display (patron 'U8G2_ST
   PASS      arnes de pantalla             MAESTRO  145/145 comprobaciones OK | ESCLAVO  126/126 comprobaciones OK | TOTAL    271/271 comprobaciones OK
-  PASS      arnes del ciclo               RESULTADO: 29/29 comprobaciones OK
+  PASS      arnes del ciclo               RESULTADO: 22/22 comprobaciones OK
   PASS      arnes del respaldo            respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
   PASS      arnes del automatico          RESULTADO: 71/71 comprobaciones OK
+  FALLA     simulador del puente ESP32    RESULTADO: 77/78 comprobaciones del contrato del puente en PASS
 ------------------------------------------------------------------------------
-  RESUMEN: 15 PASS | 0 FALLA | 0 ABORTADO
+  RESUMEN: 15 PASS | 1 FALLA | 1 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a c509b13 y re-corriendo
+firmware. Esta acta se verifica volviendo a fa66710 y re-corriendo
 python 01_Firmware/compuerta.py.
 
 AVISO: el arbol tenia cambios sin commitear al medir. Estas
-cifras NO corresponden exactamente a c509b13.
+cifras NO corresponden exactamente a fa66710.

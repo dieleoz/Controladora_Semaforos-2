@@ -10,6 +10,67 @@ bitacora. Lo anterior no se pierde —vive en el `git log` de este repositorio y
 
 ---
 
+## 0. PARA RETOMAR — lo primero de la proxima sesion
+
+**Cuatro pasos, en este orden. Los tres primeros son deuda, no trabajo nuevo.**
+
+| | que hacer | por que |
+|---|---|---|
+| **1** | `git status` y **revisar por el diff** lo que dejo el ultimo agente en `05_Funcional/Guia_Cableado_y_Pruebas_Banco.html` | quedo en vuelo al cerrar. Se revisa por el diff, **no por su informe** (§8.ter) |
+| **2** | 🔴 **`python 01_Firmware/compuerta.py` — DOS PASADAS completas, arbol limpio** | **el acta en disco no corresponde al codigo**: se escribio sobre `fa66710` con el arbol sucio. Dos pasadas porque la primera compara contra el acta anterior (§3) |
+| **3** | **Copiar las cifras del acta nueva** a `README.md`, `ESTADO.md`, `CERTIFICACION_SW.md` y a la tabla de §1 aqui arriba | tres packs lo vigilan y estaran en rojo hasta entonces. **Se copian del acta, nunca se escriben a mano** |
+| **4** | **Regenerar el `.zip`** (`python generar_entrega_v9_0.py`) | el entregado el 31/08 lleva la APK al dia y **un acta que no le corresponde** |
+
+### 0.1 · Que se entrego el 31/08, y con que salvedad
+
+```
+Paquete_Revision_V9.0_2026-08-31_59c5263_SIN_BANCO.zip
+365 ficheros | 6,95 MB | md5 c84a5d58366afda94883cfd8d2e77e8c
+APK  IOT_VIAL_Semaforos_2026-08-31_59c5263_SIN_BANCO.apk   recompilada, al dia
+acta 2026-08-31_compuerta.txt   ->  de fa66710, ARBOL SUCIO, NO corresponde
+```
+
+Los cuatro firmwares compilan: **Maestro 88,8 % · Esclavo 65,7 % · Repetidor 20,6 % · ESP32 35,6 %**.
+El `04_App/` del paquete lleva **solo la APK** desde el 31/08 — quien lo recibe la instala, no la compila.
+
+### 0.2 · Lo que de verdad mueve el proyecto
+
+> **Tres cables, un cargador USB y la guia impresa.** La placa portadora bloquea **desplegar**, no
+> **probar**. El montaje esta paso a paso en el apartado 04 de la guia.
+
+Y el funcional **tiene el banco**: conecta el ESP32, las camaras y las talanqueras, instala la app,
+**simula las entradas** —el mando se ejerce puenteando `J16` p5/p8 contra masa, sin el receptor que
+nunca se compro— y **mide las salidas**.
+
+Contesta cinco cosas que ningun PC puede, y **dos dan miedo**:
+
+- 🔴 **si el Modo Degradado se puede entrar siquiera** — toda su fase sale de `reloj_segundosDelDia()`,
+  y el cristal `Y2` no oscila en las tarjetas reales (N-17 / N-37)
+- 🔴 **si las dos puntas pueden dar verde a la vez** — hoy lo sostiene **una copia del firmware escrita
+  a mano en Python**; ningun instrumento ejecuta el C++ real de las dos puntas a la vez
+- y de paso valida **los 25 s** que arreglan el *«se va a ambar por nada»* que se sufre hoy en la calle
+
+### 0.3 · Lo que espera decision del responsable
+
+| | |
+|---|---|
+| 🔴 **Quien disena y quien fabrica** la placa portadora | bloquea todo lo demas de la placa |
+| 🔴 **Pedir la fuente `A5`** — conmutada 12->5 V, >= 1 A | sin ella no hay montaje permanente |
+| 🟠 **Los codigos de los mandos** | bloquean comprar los receptores `A9` |
+| 🟠 **`SFTY-27` designa DOS reglas distintas** | y ocho documentos mandan a leer la equivocada |
+| 🟠 **Contar los pines del ESP32** (30 o 38) y su ancho | bloquea el taladro, **no** el firmware. La guia ya lo pide en el paso 1 |
+
+### 0.4 · Y la frase que no conviene olvidar
+
+> *"El banco lleva siendo EL bloqueante desde el 31/07 sin moverse, y eso ha dejado de ser un bloqueo
+> para convertirse en una condicion permanente alrededor de la cual se ha construido una industria de
+> sustitucion."*
+
+**N-42 —que el Modo Automatico no mueve las luces en banco— sigue sin tocarse**, y es el bloque 1 del
+encargo de banco. Ver **N-109** entero.
+
+---
+
 ## 1. Que hay hoy
 
 | | |
@@ -104,7 +165,7 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 | **M3** | 🟠 **La resistencia real de `PB14`/`PB15` en cobre.** Con `pinMode(INPUT)` pelado, sin pull-down real el pin flota y da demandas fantasma | multimetro. Ya **no** es bloqueante de rehacer nada: decide **como se configura la salida de la camara** |
 | **A5** | 🔴 **La fuente propia del ESP32 desde 12 V.** No esta pedida y hace falta | comprarla |
 | **N75-1** | 🟠 El minimo de tiempo por sentido | es una cifra, y hace falta |
-| **APK** | 🔴 Recompilar: la del disco esta caducada y el paquete de entrega **aborta con exit 2** | skill `entregar` §2.bis |
+| ~~**APK**~~ | 🟢 **CERRADA el 31/08.** Recompilada contra el fuente al dia: `IOT_VIAL_Semaforos_2026-08-31_59c5263_SIN_BANCO.apk`, 3.908.591 B. El paquete ya no aborta | |
 
 ### Tecnico — se puede hacer ya
 
@@ -115,13 +176,14 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 | **T3** | 🔴 **Los cinco `MEDIDO` caducados** | hacen reimplementar trabajo ya hecho (N-100) |
 | **T4** | 🟠 **Firmware del ESP32**: watchdog primero, luego `DS3231`. No dependen de BLQ-1 | el watchdog con su desigualdad en un pack: periodo **<** `SFTY6_SILENCIO_MS = 25000UL` |
 | **T5** | 🟠 **Fases 2 y 3** del firmware STM32 | 🔴 `compilar.ps1` y los stubs de `Validacion_Automatico` **en el mismo commit** que toque `mando.cpp` (N-101) |
+| **T7** | 🟠 **Las dos barreras de la app de N-110**: validar el checksum de la telemetria (el llamador ya existe y esta sin usar) y que el teclado del PIN no acepte pulsaciones con el modal cerrado | tocar `app.js` obliga a **recompilar la APK y rehacer el paquete**: van juntas, no sueltas |
 | **T6** | 🛑 **BANCO** | sigue siendo EL bloqueante y nada lo sustituye |
 
 ---
 
 ## 5. Donde vamos — 31/08, cierre de sesion
 
-**Rama `fix/n93-cifras-app-y-entrega`, 41 commits. `origin/main` intacto en `f25fa57`.**
+**Rama `main-nuevo`, 50 commits por delante. `origin/main` intacto en `f25fa57`.**
 
 ### 🔴 Lo que la auditoria externa dejo claro (N-109)
 
@@ -223,6 +285,46 @@ compilan C++ real, ni este roadmap.
 
 ## 6. Los hallazgos de esta sesion — el porque de todo lo de arriba
 
+
+### 🟠 N-110 — Dos barreras de la app que no vigila nadie, salidas de invertir el arnes de DOM
+
+**Las encontro el agente que invirtio `test_dom_execution.js`, y las verifique yo mismo antes de
+escribirlas aqui** (§4: un informe no es una medida). **Ninguna de las dos se arreglo el 31/08** — se
+dejan medidas y abiertas, porque tocar `app.js` obliga a recompilar la APK y rehacer el paquete.
+
+#### 1. La app **no valida el checksum** de lo que pinta
+
+```
+app.js:1420  parseNmeaTelemetry()  ->  line.split('*')[0]      el CRC se tira sin mirarlo
+js/nmea_parser.js:27  validarTrama()   4 definiciones en disco, CERO llamadores
+```
+
+Es **la forma exacta de N-73**: una funcion declarada, documentada y sin un solo llamador. Y hay
+prueba dura de que no se mira: la trama de ejemplo del arnes lleva `*5F` **desde siempre** y su
+checksum real es `*04` — la app la pinta como verdad. Sobre radio a **2,4 kbps**, eso significa que
+un `$STATUS` corrompido en vuelo se dibuja como el estado del cruce. *(Ya estaba medido en
+`simulador_puente_esp32.py:1295`; lo que es nuevo es que el llamador existe y esta ahi al lado.)*
+
+#### 2. El teclado del PIN **acepta pulsaciones con el modal cerrado**
+
+Los handlers de `.pin-btn[data-key]` (`app.js:2099`) **no consultan si `pin-modal` esta activo**, y
+`validatePin()` pone `state.pinVerificado = true` igual. Hoy nadie llega —el modal esta oculto en el
+navegador—, pero **es una barrera cuyo estado se puede armar sin abrir la barrera**.
+
+> **Y no es teorico: esto enmascaraba parte del fallo que se acaba de arreglar.** El arnes tecleaba
+> `1234` sobre un modal que la guarda de punta nunca abrio, **se autorizaba solo**, y por eso
+> `SOLICITAR_PASO` seguia dando `[OK]` mientras seis lineas de al lado caian.
+
+El arreglo es una linea al principio del handler:
+`if (!pinModal.classList.contains('active')) return;`
+
+#### 3. Menor
+
+`avisarOtraPunta()` escribe el evento con `state.node || '?'`. Si la orden se pulsa **antes del primer
+`$STATUS`**, el operario lee *"ahora mismo hay un ? al otro lado"*. Es honesto, pero se lee como un
+error de la app.
+
+---
 
 ### 🔴 N-109 — Auditoria externa: el proceso no puede verse a si mismo caido, y el banco dejo de ser un bloqueo para ser una coartada
 
