@@ -326,10 +326,109 @@ btnEmergency.click();
 assert(sentFrames.length === 0,
   `El Rojo Total del Maestro NO se manda a un Esclavo: ${sentFrames.join(' | ')}`);
 
-// La primera orden que MUEVE luces tiene que pedir el PIN.
+// -------------------------------------------------------------------------
+// LAS TRES ORDENES DEL MAESTRO CONTRA UN ESCLAVO: NI SALEN NI PIDEN CLAVE
+// -------------------------------------------------------------------------
+// Estas comprobaciones son las de siempre INVERTIDAS (CLAUDE.md 8.quater). Hasta el
+// 31/08 exigian que `MANUAL:CAMBIAR_TURNO` y los dos `SET_MODO` salieran al cable
+// aqui, con este ESCLAVO delante -es el que declara el $STATUS de la seccion 4-. No
+// era un descuido: cuando se escribieron, la app mandaba a ciegas y lo unico que se
+// podia medir era el flujo del PIN. Median DOS propiedades a la vez -el enrutado por
+// punta y la barrera de PIN- y solo ha cambiado la primera; la segunda esta viva y se
+// ejerce entera unas lineas mas abajo, contra el MAESTRO, que es la punta que atiende
+// esas tres ordenes (app.js: SOLO_MAESTRO).
+//
+// Lo que se exige ahora es lo que dice el firmware: el despachador del Esclavo no
+// tiene esas ramas (Esclavo/src/bluetooth.cpp) y contestaria $ERR,CMD:DESCONOCIDO,
+// que es el error que parece un boton roto.
+//
+// Y LO QUE SE MIDE NO ES SOLO "NO SALE": ES QUE NO SE PIDE LA CLAVE. La guarda de
+// punta va DELANTE del PIN, y ese orden es la mitad util del arreglo. Si alguien la
+// pone detras, el operario teclea cuatro digitos delante de un cruce parado para que
+// la app le diga entonces que la orden no era para esta punta. Un teclado que aparece
+// es la senal de que el orden se invirtio, asi que se mira el modal, no solo el cable.
 sentFrames = [];
 const btnStep = document.getElementById('btn-op-step');
 assert(!!btnStep, 'Boton tactico de cambio de turno presente en el DOM');
+btnStep.click();
+assert(sentFrames.length === 0,
+  `CAMBIAR_TURNO es del Maestro: contra un Esclavo NO sale al cable: ${sentFrames.join(' | ')}`);
+assert(!pinModal.classList.contains('active'),
+  'Contra un Esclavo NO se pide el PIN de una orden que no se va a mandar: la guarda de punta va DELANTE del teclado');
+
+// Aqui vivia "con PIN erroneo no se autoriza nada", que tecleaba 9999 en el modal.
+// INVERTIDA, y no a un segundo "el modal sigue cerrado" -esa linea no podria fallar
+// sin que fallase la de arriba, y una comprobacion que no puede fallar sola es un
+// adorno (CLAUDE.md 3.bis)-. Pasa a exigir la otra mitad del rechazo, que hasta hoy
+// no medía nadie: QUE SE DIGA. Un boton que se queda mudo es indistinguible de un
+// boton roto, y el operario lo pulsa otra vez. La app tiene que nombrar la punta que
+// si atiende la orden. Esta linea tambien impide "arreglar" la guarda dejando el
+// boton muerto.
+const avisoPunta = document.querySelectorAll('.event-item')[0];
+assert(!!avisoPunta && avisoPunta.textContent.includes('MANUAL:CAMBIAR_TURNO') &&
+       avisoPunta.textContent.includes('MAESTRO'),
+  `El rechazo por punta se explica y nombra quien SI atiende la orden: ${avisoPunta ? avisoPunta.textContent.trim() : '(sin evento)'}`);
+
+// Los otros dos mandos de la botonera, con el mismo criterio y por separado: que uno
+// consulte la punta no dice nada del de al lado -el hueco de N-83 fueron exactamente
+// estos tres, y el resto de la app si preguntaba-.
+['btn-op-auto', 'btn-op-amber'].forEach(id => {
+  sentFrames = [];
+  document.getElementById(id).click();
+  assert(sentFrames.length === 0,
+    `[${id}] SET_MODO es del Maestro: contra un Esclavo NO sale al cable: ${sentFrames.join(' | ')}`);
+  assert(!pinModal.classList.contains('active'),
+    `[${id}] tampoco abre el teclado de PIN: la guarda de punta va delante`);
+});
+
+// =========================================================================
+// 6.bis LA MISMA BOTONERA CONTRA EL MAESTRO: LA GUARDA ENRUTA, NO TAPIA
+// =========================================================================
+// Aqui se conserva ENTERO el flujo del PIN, que es la propiedad buena que las seis
+// comprobaciones de arriba median de paso y que se perderia si uno se limitara a
+// invertirlas: "la primera orden que mueve luces pide el PIN", "un PIN erroneo no
+// autoriza", "con cuatro digitos validos el modal se cierra y la orden sale" y "una
+// vez verificado no se vuelve a pedir en cada pulsacion". Vuelven LITERALES, sobre
+// los MISMOS tres botones que las median (CLAUDE.md 3.bis: no se reescribe logica ya
+// probada), cambiando solo la punta que hay al otro lado.
+//
+// Que este bloque vaya DESPUES del anterior no es cosmetico: el flujo del PIN solo se
+// puede medir con la clave sin verificar, y el bloque del Esclavo tiene que correr con
+// la sesion virgen para poder afirmar que el teclado no se abrio. Invertir el orden
+// dejaria las dos mitades sin medir.
+//
+// Y es ademas el control que le falta a la inversion: una guarda que no dejara pasar
+// NADA tambien haria pasar las seis lineas de arriba. Lo que se exige es enrutado, no
+// una tapia (CLAUDE.md 8.bis).
+//
+// Cambiar de punta es inyectar el $STATUS que la declara -exactamente lo que pasa en
+// la calle al enlazar con el otro poste-, sin tocar ningun interno de la app. El
+// checksum se CALCULA en vez de escribirse a mano: la trama de la seccion 4 lleva un
+// *5F que no es el suyo -el real es *04- y la app la traga igual, porque
+// parseNmeaTelemetry() parte por '*' y tira el checksum sin mirarlo, y
+// NmeaParser.validarTrama() no tiene un solo llamador -ya medido en
+// 01_Firmware/Simulaciones/simulador_puente_esp32.py:1295-. Escribir aqui un checksum
+// falso seria acostumbrarse a que no importa; el dia que la app valide, estas dos
+// tramas tienen que seguir entrando.
+function xorNmea(payload) {
+  let c = 0;
+  for (const ch of payload) c ^= ch.charCodeAt(0);
+  return c.toString(16).toUpperCase().padStart(2, '0');
+}
+function conectarComo(node, resto) {
+  const payload = `STATUS,NODE:${node},${resto}`;
+  window._btSubscribeCb(`$${payload}*${xorNmea(payload)}\n`);
+}
+
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:V1_R2,T:31,RF:97,RTT:70,BAT:12.9,HORA:14:31:00');
+// La inyeccion se verifica antes de apoyar nada en ella: un $STATUS que no entrara
+// dejaria las diez comprobaciones siguientes midiendo un Esclavo y pasando por otra
+// razon (CLAUDE.md 4).
+assert(nodeNameEl.textContent.includes('MAESTRO'),
+  `La app conmuta a MAESTRO con el $STATUS de la otra punta: ${nodeNameEl.textContent}`);
+
+// La primera orden que MUEVE luces tiene que pedir el PIN.
+sentFrames = [];
 btnStep.click();
 assert(sentFrames.length === 0,
   `Sin PIN verificado no sale NADA por el canal serie: ${sentFrames.join(' | ')}`);
@@ -361,13 +460,53 @@ assert(sentFrames.some(f => f.includes('CMD:PIN:1234:MANUAL:CAMBIAR_TURNO')),
     `[${id}] no vuelve a pedir el PIN dentro de la misma sesion`);
 });
 
-// Los mandos de tecnico declarados con data-cmd tambien salen por la misma puerta.
+// Y las dos emergencias, ahora del reves. El par completo es lo que demuestra que el
+// boton esta vivo y enrutado, no escondido: contra el Esclavo salia el ambar y se
+// paraba el rojo; contra el Maestro tiene que ser exactamente al contrario.
+sentFrames = [];
+btnEmergency.click();
+assert(sentFrames.some(f => f.includes('CMD:FORZAR_ROJO') && !f.includes('PIN')),
+  `Contra el MAESTRO el Rojo Total SI sale, y sin PIN: una caida segura que pide clave no es una caida segura: ${sentFrames.join(' | ')}`);
+
+sentFrames = [];
+btnAmbarEmerg.click();
+assert(sentFrames.length === 0,
+  `El Ambar de Emergencia del Esclavo NO se manda a un Maestro -esa punta no conoce el literal-: ${sentFrames.join(' | ')}`);
+// Y no solo se niega: no se ensena. El rotulo dice QUE maniobra y la punta decide
+// CUAL de las dos esta en pantalla; ofrecer un boton que no se va a mandar es pedirle
+// al operario que descubra a pulsaciones cual de los dos sirve.
+assert(btnAmbarEmerg.style.display === 'none',
+  `Contra un Maestro el mando de ambar ni siquiera se ofrece: display="${btnAmbarEmerg.style.display}"`);
+
+// SOLICITAR_PASO es la simetrica: solo la entiende el Esclavo
+// (Esclavo/src/bluetooth.cpp:128), asi que aqui NO puede salir.
 sentFrames = [];
 const btnSolicitar = document.querySelector('[data-cmd="SOLICITAR_PASO"]');
 assert(!!btnSolicitar, 'El mando SOLICITAR_PASO (N-58) tiene boton en Modo Tecnico');
 btnSolicitar.click();
+assert(sentFrames.length === 0,
+  `SOLICITAR_PASO es del Esclavo: contra un Maestro NO sale al cable: ${sentFrames.join(' | ')}`);
+
+// =========================================================================
+// 6.ter VUELTA AL ESCLAVO: LO QUE ESA PUNTA SI ATIENDE, Y EL PIN DE LA SESION
+// =========================================================================
+// Los mandos de tecnico declarados con data-cmd tambien salen por la misma puerta.
+// Esta comprobacion es la de siempre y NO se toca -SE CONSERVA-: mide el despachador
+// de data-cmd, que ya preguntaba por la punta antes del 31/08. Lo unico que cambia es
+// que ahora se corre con el Esclavo delante a proposito y no por casualidad.
+conectarComo('ESCLAVO', 'SERIE:SEM-E-01,MODO:AUTO,ESTADO:R1_V2,T:28,RF:95,RTT:75,BAT:12.8,HORA:14:32:00');
+assert(nodeNameEl.textContent.includes('ESCLAVO'),
+  `La app vuelve al ESCLAVO con su $STATUS: ${nodeNameEl.textContent}`);
+
+sentFrames = [];
+btnSolicitar.click();
 assert(sentFrames.some(f => f.includes('SOLICITAR_PASO')),
   `SOLICITAR_PASO llega al canal serie: ${sentFrames.join(' | ')}`);
+// El PIN es de la SESION y del operario, no del poste: cambiar de punta no vuelve a
+// pedirlo. Si esto empezara a fallar, el tecnico tendria que reautorizarse cada vez
+// que salta de un poste al otro, que es media obra.
+assert(!pinModal.classList.contains('active'),
+  'Cambiar de punta no vuelve a pedir el PIN: la autorizacion es del operario, no del equipo');
 
 // 7. Probar Asistente Courier RTC
 document.querySelector('.nav-item[data-tab="tab-diag"]').click();
@@ -395,6 +534,28 @@ assert(!!inputVerde && !!inputRojo && !!inputDespeje && !!btnAplicarTiempos, 'Fo
 inputVerde.value = '3';
 inputRojo.value = '4';
 inputDespeje.value = '25';
+
+// INVERTIDA (CLAUDE.md 8.quater). Esta linea exigia que SET_TIEMPOS saliera al cable
+// con el ESCLAVO enlazado -es la punta que dejo puesta la seccion 6.ter-. Median dos
+// cosas a la vez y solo ha cambiado el enrutado: el formulario sigue componiendo bien
+// los tres numeros, y eso se comprueba dos parrafos mas abajo contra el Maestro, que
+// es quien tiene la rama (app.js: SOLO_MAESTRO).
+//
+// Aqui la propiedad nueva es ademas mas fina que en la botonera: la guarda se
+// pregunta ANTES de validar los tres campos. Hacer rellenar bien un formulario cuya
+// orden no se va a mandar es peor que negarla de entrada, asi que se entra con TRES
+// VALORES VALIDOS -si la guarda estuviera detras del rango, un formulario invalido
+// tambien daria cero tramas y esta linea pasaria sin medir nada-.
+sentFrames = [];
+btnAplicarTiempos.click();
+assert(sentFrames.length === 0,
+  `SET_TIEMPOS es del Maestro: con tres valores VALIDOS y un Esclavo delante no sale nada: ${sentFrames.join(' | ')}`);
+
+// Y contra el Maestro sale: la mitad conservada de la comprobacion anterior, que es
+// el control de que la guarda enruta en vez de tapiar el formulario.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:V1_R2,T:31,RF:97,RTT:70,BAT:12.9,HORA:14:33:00');
+assert(nodeNameEl.textContent.includes('MAESTRO'),
+  `La app conmuta a MAESTRO para los tiempos de ciclo: ${nodeNameEl.textContent}`);
 
 sentFrames = [];
 btnAplicarTiempos.click();

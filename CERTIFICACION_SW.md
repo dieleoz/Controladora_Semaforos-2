@@ -48,7 +48,7 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 | Arnés del Modo Automático | **71/71** | `Validacion_Automatico` |
 | App — test funcional | **58/58** | suite funcional de la app |
 | App — test unitarios | **32/32** | suite unitaria de la app |
-| App — ejecutada en DOM | **61/61** | arnés jsdom |
+| App — ejecutada en DOM | **77/77** | arnés jsdom |
 
 > ### ⛔ Cifras que este documento publicó hasta el 31/08/2026 — ANULADAS, conservadas con su motivo
 >

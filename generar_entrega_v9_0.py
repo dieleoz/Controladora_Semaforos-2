@@ -239,7 +239,7 @@ firmware ni mueve luces.
 | `01_Firmware_PlatformIO/` | **Fuente** para PlatformIO: Maestro, Esclavo, Repetidor. Sin `.bin`: se compila de aqui, y asi lo que se carga es lo que se revisa |
 | `02_Manuales/` | Manuales en `.docx` y `.md`. **Se lee primero `{{ARQ}}`**, que corrige a los demas y ellos todavia no lo incorporan |
 | `03_Cableado/` | `{{GUIA}}` — guia de conexiones: `J17` (ESP32), `J16` (camaras), `PB6`/`PB7`, `DS3231` y el conector SWD |
-| `04_App/` | Fuente de la app (PWA + proyecto Android) y la APK `{{APK}}` |
+| `04_App/` | **Solo la APK** `{{APK}}`. Se instala, no se compila |
 | `ACTA_verificacion.txt` | El acta de la corrida citada arriba |
 
 ## 6. Notas para quien instale esto
@@ -310,11 +310,9 @@ def crear_paquete():
         z.write(ruta_guia, os.path.join("03_Cableado", GUIA_HTML))
         metidos += 1
 
-        # 4. App: fuente versionado + la APK verificada.
-        for rel in _ficheros_versionados("05_Funcional/App_Semaforo"):
-            z.write(os.path.join(BASE_DIR, rel),
-                    os.path.join("04_App", os.path.relpath(rel, "05_Funcional/App_Semaforo")))
-            metidos += 1
+        # 4. App: SOLO la APK. El fuente de la PWA estuvo aqui hasta el 31/08 y se
+        #    retiro: quien recibe esto la INSTALA, no la compila. Diez ficheros de
+        #    fuente al lado del .apk solo invitan a abrir el que no toca.
         z.write(ruta_apk, os.path.join("04_App", nombre_apk))
         metidos += 1
 
