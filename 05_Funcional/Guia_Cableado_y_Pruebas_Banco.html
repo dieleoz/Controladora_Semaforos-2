@@ -322,8 +322,8 @@
   <header class="cabecera">
     <div class="eyebrow">Sesión de banco · V9.0 · sin validar en tarjeta</div>
     <h1>Cableado y pruebas de la tarjeta</h1>
-    <p class="sub">Qué se conecta en cada borne, por dónde entra el módulo de expansión ESP32, y las
-      comprobaciones de la sesión. Las dos tarjetas —Maestro y Esclavo— son idénticas: lo que cambia
+    <p class="sub">Qué se conecta en cada borne, por dónde entra el módulo de expansión ESP32,
+      <b>qué placa hay que construirle</b>, y las comprobaciones de la sesión. Las dos tarjetas —Maestro y Esclavo— son idénticas: lo que cambia
       es qué cámara y qué barrera cuelgan de cada una.</p>
     <div class="meta">
       <span>revisión del <b>31 · 08 · 2026</b></span>
@@ -445,6 +445,11 @@
       sobre las luces.</b> Se lleva el reloj <code>DS3231</code> —I²C por <code>GPIO21</code> SDA /
       <code>GPIO22</code> SCL, <b>con su propia pila</b>— y el Bluetooth, <b>sustituyendo al módulo
       SPP dedicado</b>. Va con <b>fuente propia desde 12 V</b>: no cuelga de la tarjeta.</p>
+    <p class="nota">🆕 <b>Y desde el 31/08 ese accesorio tiene cuerpo propio: el ESP32 no se cuelga
+      con cables sueltos, va SOLDADO sobre una placa portadora que hay que construir</b> —con
+      su fuente y con el reloj encima—. <b>Esa placa NO EXISTE todavía</b>; su especificación de
+      construcción es el apartado <b>03.bis</b>, y lo que hay que medir sobre ella cuando exista es la
+      fila <code>M6</code> de la hoja de validación.</p>
 
     <div class="diagrama">
 <pre>   SENTIDO 1                    TRAMO DE UN CARRIL                    SENTIDO 2
@@ -726,7 +731,9 @@
         escrito en el Manual 15, <b>no medida sobre el módulo que llegó a obra</b>. La decisión es
         no compartir riel, y esa decisión <b>no se cae si el pico resulta ser 300 mA</b>.</p>
       <p><b>Falta comprarla.</b> La fuente propia (DC-DC 12 V → 5 V) es la línea <code>A5</code> del
-        Manual 15 y <b>hoy no está pedida</b>.</p>
+        Manual 15 y <b>hoy no está pedida</b>. <b>El requisito completo —por qué tiene que ser
+        conmutada y no lineal, con qué margen y con qué rango de entrada— está en el apartado
+        03.bis</b>, que es donde vive la placa que la lleva.</p>
     </div>
 
     <p class="nota" style="margin-top:.4rem"><b>Alternativas históricas.</b> No se siguen. Se dejan
@@ -804,6 +811,376 @@
         </div>
       </div>
 
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">03.bis</span> La placa portadora del ESP32 — <b>hay que construirla</b></h2>
+
+    <div class="aviso">
+      <strong>🔴 Esta placa NO EXISTE. No está diseñada, no está fabricada y no está medida.</strong>
+      <p><b>Lo que sigue es una especificación de construcción, no un montaje verificado.</b> En todo
+        el proyecto no hay hoy <b>ni una sola fila «VERIFICADO EN LA PLACA»</b>; de ésta no puede
+        haberla, porque <b>la placa ni siquiera está construida</b>. Nada de este apartado autoriza a
+        montar nada en campo, y nada de esto ha pasado banco.</p>
+      <p><b>Se escribe ahora, y no cuando exista, por una razón concreta:</b> el cobre de esta placa
+        depende de decisiones que <b>hoy están abiertas</b> —empezando por qué chip llegó a obra—, y
+        una placa fabricada contra la decisión equivocada <b>se tira entera</b>. Escribir el requisito
+        antes es lo que hace que la placa se pueda mandar a fabricar una sola vez.</p>
+    </div>
+
+    <p class="nota"><b>Novedad del 31/08, decidida por el responsable:</b> el ESP32 <b>no se cuelga
+      con cables sueltos</b>. Va <b>soldado sobre una placa portadora propia</b>, que se construye
+      para esto. <b>Son dos placas iguales</b> —una por poste, Maestro y Esclavo— igual que las dos
+      tarjetas son iguales.</p>
+    <p class="nota"><b>Y es coherente con todo lo anterior, no un añadido:</b> la tarjeta STM32
+      <b>no permite ampliación</b> —es exactamente el motivo por el que cayó la pantalla, apartado
+      01—, así que el ESP32 y su reloj <b>viven fuera</b>, en su propia placa, unidos a
+      <code>J17</code> por <b>cuatro hilos</b>. La tarjeta del semáforo no se modifica: se le enchufan
+      cuatro hilos y nada más.</p>
+
+    <div class="diagrama">
+<pre>            12 V DE LA CAJA (es una BATERIA, no un 12,00 V fijo)
+                   |
+                   |  fusible + proteccion de polaridad  (requisito, sin referencia elegida)
+                   v
+   +===============================================================+
+   |            PLACA PORTADORA - NO EXISTE TODAVIA                |
+   |                                                               |
+   |   [ DC-DC CONMUTADO ]  linea A5 . NO PEDIDA . NO ELEGIDA      |
+   |     12 V  -->  5 V (a VIN)   o   3,3 V (a 3V3)  -- una sola   |
+   |            |                                                  |
+   |            |  condensador de reserva JUNTO al modulo          |
+   |            v                                                  |
+   |   +--------------------------+     +----------------------+   |
+   |   |   MODULO ESP32           |     |  DS3231  ZS-042      |   |
+   |   |   SOLDADO                |     |  pila propia         |   |
+   |   |   huella = ?  BLQ-1      |     |  pull-ups YA PUESTOS |   |
+   |   |                          |     |  32K y SQW al aire   |   |
+   |   |   GPIO21 SDA  ------------------  SDA                 |   |
+   |   |   GPIO22 SCL  ------------------  SCL                 |   |
+   |   |   3V3 / GND   ------------------  VCC / GND           |   |
+   |   |                          |     +----------------------+   |
+   |   |   GPIO17 TX2  --o TP1    |                                |
+   |   |   GPIO16 RX2  --o TP2    |   TP = puntos de prueba,       |
+   |   |   GND         --o TPG    |        con SU masa al lado     |
+   |   +------|-------------------+                                |
+   |          |  acceso de reflasheo accesible SIN DESOLDAR        |
+   +==========|====================================================+
+              |
+              |  4 hilos . 9600 8N1 . los dos lados de 3,3 V
+              v
+        J17 p2 / p3 / p7 (o p9)      &lt;-- NUNCA J16: J16 p1 lleva 12 V
+
+   NADA DE ESTA PLACA TOCA UNA LUZ, NI LA BARRERA, NI J14, NI J16.</pre>
+    </div>
+
+    <div class="aviso">
+      <strong>🛑 <code>BLQ-1</code> ya no bloquea solo la app: <b>bloquea la HUELLA DEL COBRE</b></strong>
+      <p><b>Esto es lo que cambia hoy, y es peor que antes.</b> Mientras el ESP32 se iba a colgar con
+        cables, saber qué chip llegó decidía <b>si la app conectaba</b>. Con una placa que hay que
+        dibujar, decide además <b>dónde van los pads</b>: un <code>ESP32-WROOM-32</code> y un
+        <code>ESP32-S3-WROOM-1</code> <b>no tienen ni el mismo footprint ni el mismo pinout</b>.
+        <b>No se puede cerrar el diseño de la placa sin leer la serigrafía del blindaje.</b></p>
+      <p><b>Rama 1 · el módulo es clásico</b> (<code>ESP32-WROOM-32</code> / <code>-32D</code> /
+        <code>-32E</code> / <code>-32U</code>): <b>hay SPP</b>, la app conecta sin tocar una línea, el
+        apartado 1 del Manual 10 <b>queda intacto</b>, y la placa se dibuja para <b>esa</b> huella —
+        la DevKitC de 38 pines si es la que llegó, y comprobando que saca <code>GPIO16</code>,
+        <code>GPIO17</code>, <code>GPIO21</code> y <code>GPIO22</code> al conector.</p>
+      <p><b>Rama 2 · el módulo es <code>S3</code> o <code>C3</code>:</b> 🔴 <b>no hay SPP</b> —solo
+        BLE—, <code>createRfcommSocketToServiceRecord</code> <b>no abre nunca</b>, y hay que
+        <b>rehacer el transporte de la app entero</b> y reabrir por escrito el apartado 1 del Manual
+        10, que está congelado. <b>Y además la placa es otra</b>: otra huella, otro pinout, otros
+        números de GPIO. <b>Si es un <code>S2</code>, no hay Bluetooth en absoluto.</b></p>
+      <p><b>Consecuencia dura, y es la que hay que respetar aunque incomode:</b> <b>no se dibuja
+        cobre, no se manda a fabricar y no se taladra nada</b> hasta que <code>BLQ-1</code> esté
+        contestado. Treinta segundos con el módulo en la mano. <b>Y mientras tanto no se compra ni un
+        módulo más</b>: comprar antes de saber es como se acaba con dos referencias distintas en el
+        mismo cruce — y ahora, con dos placas distintas.</p>
+      <p><b>Dueño:</b> el responsable de obra, leyendo la serigrafía del blindaje metálico —no la
+        etiqueta del vendedor, no la caja— o con <code>esptool.py --port COM# chip_id</code>.
+        <b>Sigue sin contestar.</b> Es la prueba 9 y la fila <code>BLQ-1</code> de la hoja de
+        validación.</p>
+    </div>
+
+    <div class="bornes">
+
+      <div class="borne via">
+        <span class="chip">A5</span>
+        <div class="cuerpo">
+          <h3>La alimentación — <b>DC-DC conmutado, no lineal</b> <span class="marca medir">compra pendiente · sin pedir</span></h3>
+
+          <p><b>1 · Fuente propia desde los 12 V. No cuelga del <code>3,3 V</code> de <code>J17</code>
+            p6/p8.</b> Ese riel es <b>el mismo que alimenta al STM32 que gobierna el semáforo</b>:
+            <b>el accesorio no puede tumbar al que manda</b>. <code>J17</code> p6 se deja <b>sin
+            conectar</b>, y de <code>J17</code> se toman <b>solo</b> las dos señales y la masa.</p>
+
+          <p>🔴 <b>2 · Tiene que ser CONMUTADO, y la cuenta es la que lo decide.</b> Con los picos de
+            <b>~500 mA</b> del ESP32, un regulador <b>lineal</b> disipa:</p>
+          <div class="diagrama" style="margin:.5rem 0">
+<pre>lineal 12 V -> 3,3 V :  (12 - 3,3) x 0,5 = 4,35 W
+lineal 12 V -> 5   V :  (12 - 5  ) x 0,5 = 3,50 W
+
+conmutado 12 V -> 5 V, rendimiento supuesto 85 % :
+        salida 5 x 0,5 = 2,50 W  ->  perdidas del orden de 0,4 W</pre>
+          </div>
+          <p><b>4,35 W en un armario cerrado y al sol no se disipan.</b> Un <code>LM7805</code> o un
+            <code>LM1117</code> <b>ahí se cuece</b> —y no falla limpio: falla caliente, cayendo de
+            tensión justo cuando el módulo tira del pico—. <i>Las tres cifras de arriba son
+            <b>cuentas</b>, y la del conmutado supone un rendimiento del 85 % que <b>tampoco está
+            medido</b>.</i></p>
+
+          <p>⚠️ <b>3 · Y los 500 mA son de datasheet y del Manual 15, NO medidos sobre el módulo que
+            llegó a obra.</b> Se marca como tal y no se disfraza de medida. <b>Pero la decisión no
+            depende de esa cifra:</b> aunque el pico resultara ser 300 mA, <b>no compartir riel sigue
+            en pie</b>, porque el motivo no es de amperios sino de <b>reparto de riesgo</b> — un reset
+            del controlador del semáforo provocado por un periférico de diagnóstico es exactamente el
+            reparto que no se acepta.</p>
+
+          <p><b>4 · El margen que hay que pedirle, y por qué no se dimensiona al consumo medio:</b>
+            el ESP32 <b>no consume su media</b>. El arranque de la radio es un <b>escalón</b> de
+            decenas de milisegundos, y una fuente ajustada al consumo medio <b>cae de tensión justo en
+            ese escalón</b>: el módulo se reinicia por <i>brown-out</i> y el síntoma parece software
+            —se cuelga «a veces», «cuando conecta el celular»—. <b>Se pide al menos el doble del pico
+            de datasheet: ≥ 1 A</b> para un pico declarado de 500 mA, que es lo que ya dice la línea
+            <code>A5</code>. <b>Y el margen no lo da solo la fuente:</b> hace falta un
+            <b>condensador de reserva junto al módulo</b> —un electrolítico de algunos cientos de µF
+            más un cerámico de 100 nF—, porque el hilo desde la fuente tiene inductancia y <b>el pico
+            no lo sirve el regulador: lo sirve el condensador que está al lado</b>. El valor exacto es
+            parte del diseño que falta.</p>
+
+          <p><b>5 · Rango de entrada: el riel de 12 V es una BATERÍA, no un 12,00 V fijo.</b> Sube al
+            cargar y baja al descargarse, y ninguno de los dos extremos <b>está medido en esta
+            instalación</b>. Se le pide a la fuente un rango de entrada <b>holgado por arriba y por
+            abajo</b> —los módulos de mostrador declaran típicamente de 6–8 V hasta 24–28 V, y eso
+            sobra—, y <b>se mide el riel real</b>: es la medida <b>M6</b> de la hoja de validación,
+            que hoy <b>no se puede hacer porque la placa no existe</b>.</p>
+
+          <p><b>6 · La salida: son DOS opciones válidas y hay que ELEGIR UNA. Nunca las dos.</b></p>
+          <div class="tabla-envoltorio" style="margin:.5rem 0">
+            <table>
+              <thead><tr><th>Salida</th><th>Dónde entra</th><th>Qué hay que saber</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><b>5 V</b></td>
+                  <td>pata <code>VIN</code> / <code>5V</code> de la DevKitC</td>
+                  <td>El regulador de a bordo del módulo hace <code>5 → 3,3</code> y disipa
+                    <b>(5 − 3,3) × 0,5 = 0,85 W</b> <i>(cuenta)</i>. Es el reparto que la propia
+                    DevKitC ya acepta. <b>Es lo que pide hoy la línea <code>A5</code></b></td>
+                </tr>
+                <tr>
+                  <td><b>3,3 V</b></td>
+                  <td>pata <code>3V3</code></td>
+                  <td>Entra por la <b>salida</b> del regulador de a bordo. Se hace, pero entonces
+                    <code>VIN</code>/<code>5V</code> <b>queda sin usar</b>. Es la vía si el módulo es
+                    un <code>WROOM</code> pelado <b>sin regulador propio</b></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>🔴 <b>Y esto engancha con el punto de prueba, así que se decide junto:</b> si la placa
+            alimenta el módulo <b>y alguien enchufa el USB para reflashear</b>, hay <b>dos fuentes
+            sobre el mismo riel</b>. El diseño tiene que decir cuál es el procedimiento —cortar la
+            entrada de 12 V antes de reflashear, o un jumper de aislamiento— <b>y eso va serigrafiado
+            en la placa</b>, no en un correo que nadie tendrá delante subido a un poste.</p>
+
+          <p><b>7 · Masa común con la tarjeta STM32, obligatoria</b>, y entra por <b><code>J17</code>
+            p7 <i>o</i> p9</b>. <b>Masa común sí; alimentación compartida no</b> — son dos cosas
+            distintas y confundirlas es lo que hace que el semáforo se reinicie solo. Sin masa común
+            los dos hilos de datos <b>no tienen referencia</b> y no comunica nada aunque todo lo demás
+            esté bien. <b>Va como hilo dedicado en el mismo mazo de los datos</b>, no tomada de la
+            caja por otro camino: dos masas que se encuentran por caminos distintos es como aparece
+            una diferencia de potencial entre ellas, y esa diferencia entra entera por
+            <code>PB6</code>/<code>PB7</code>. Se comprueba en <b>M5</b>: <b>&lt; 50 mV</b>.</p>
+
+          <p><b>8 · Protección de entrada, como requisito y sin referencia elegida:</b> <b>fusible o
+            polyfuse</b> en la entrada de 12 V y <b>protección contra inversión de polaridad</b>. El
+            12 V se toma de la misma caja, a mano, con un destornillador y a veces de noche:
+            invertirlo no es una hipótesis remota.</p>
+
+          <p>🔴 <b>9 · Y una regla de trazado que se hereda de un hallazgo medido, no de un manual:</b>
+            en la tarjeta actual el margen real entre la red de 12 V y una señal de botón es de
+            <b>1,36 mm</b> —y eso es lo que hay, porque ya está fabricada—. <b>En una placa que se
+            dibuja de cero eso se ELIGE</b>: la entrada de 12 V, el fusible y el regulador van
+            <b>en un extremo</b>, y las señales de 3,3 V y el conector hacia <code>J17</code> <b>en el
+            otro</b>. Regalar esa separación cuando es gratis es la diferencia entre una placa nueva y
+            una placa nueva con el mismo problema.</p>
+
+          <p class="pin">🛒 <b>COMPRA PENDIENTE — línea <code>A5</code> del Manual 15, 2 unidades
+            (1 por ESP32), NO PEDIDA.</b> El Manual 15 lo dice de sí mismo: <i>«qué módulo concreto se
+            compra —referencia, corriente, si aislado o no, cómo se fija en la caja— NO ESTÁ EN NINGÚN
+            MANUAL; lo de esa fila es un mínimo razonable, no una especificación»</i>. <b>Los
+            <code>LM2596</code> y <code>MP1584</code> que aquella línea nombra son EJEMPLOS de que
+            existe la pieza, no una elección hecha</b>: aquí se dan los requisitos —conmutado, ≥ 1 A,
+            rango de entrada holgado, salida 5 V o 3,3 V elegida— y <b>la referencia la elige quien
+            compra, con este apartado delante</b>.</p>
+        </div>
+      </div>
+
+      <div class="borne via">
+        <span class="chip">DS3231</span>
+        <div class="cuerpo">
+          <h3>El reloj va EN esta placa, no en la del semáforo <span class="marca nuevo">vigente</span></h3>
+          <p><b>Módulo <code>ZS-042</code>, I²C al ESP32:</b> <code>GPIO21</code> = <b>SDA</b>,
+            <code>GPIO22</code> = <b>SCL</b>, más <code>3V3</code> y <code>GND</code>. <b>Cuatro
+            hilos cortos dentro de la propia placa portadora</b> — no salen de ella y no llegan a la
+            tarjeta del semáforo.</p>
+          <p><b>Ya trae sus pull-ups: NO se añaden.</b> Poner un segundo juego en paralelo baja la
+            resistencia efectiva y carga el bus sin que nadie lo note hasta que el bus falla de forma
+            intermitente. <code>32K</code> y <code>SQW</code> quedan <b>al aire</b>.</p>
+          <p><b>Con su pila <code>CR2032</code> mantiene la hora aunque se corte todo</b>, y
+            <b>consume microamperios: no condiciona el dimensionado de la fuente</b> — no entra en la
+            cuenta del margen del apartado anterior.</p>
+          <p>⚠️ <b>La salvedad de la pila, que ya está escrita más arriba y se repite porque se paga
+            aquí:</b> el <code>ZS-042</code> lleva <b>circuito de carga</b> pensado para una
+            <code>LIR2032</code> recargable. <b>Si llega con una <code>CR2032</code>, que NO es
+            recargable, hay que desoldar <code>D1</code> o <code>R1</code> del módulo</b> antes de
+            montarlo.</p>
+          <p><b>La placa reserva su sitio; la compra sigue condicionada.</b> El <code>DS3231</code>
+            (línea <code>A6</code>) <b>solo hace falta si la prueba 16 dice que el cristal muerto es
+            el del Maestro</b> — si el que pierde la hora es el Esclavo, <b>no se compra nada</b>:
+            toma la hora del Maestro por radio. <b>Pero la huella y los cuatro hilos se dibujan
+            igual</b>, porque añadirlos después obliga a rehacer la placa.</p>
+          <p>🔴 <b>Y lo que no cambia por tener sitio:</b> <b>no hay driver de <code>DS3231</code> en
+            ninguna punta y el firmware del ESP32 no existe</b>. Un reloj montado hoy —en esta placa o
+            en cualquier otra— <b>se queda mudo, y eso es lo esperado</b>. No se reporta como fallo.</p>
+        </div>
+      </div>
+
+      <div class="borne via">
+        <span class="chip">J17</span>
+        <div class="cuerpo">
+          <h3>El enlace a la tarjeta — <b>ya está medido y no se toca</b></h3>
+          <p><b>Es la única conexión entre la placa portadora y el semáforo</b>, y es exactamente la
+            del apartado 03. Se repite aquí, literal, porque quien dibuje la placa no debería tener
+            que ir a buscarla:</p>
+          <div class="diagrama" style="margin:.5rem 0">
+<pre>GPIO17 (TX2)  --&gt;  J17 p2 = PB7 = RX del micro   (U1 pin 43)
+GPIO16 (RX2)  &lt;--  J17 p3 = PB6 = TX del micro   (U1 pin 42)
+GND           ---  J17 p7 o p9
+
+9600 8N1 - los dos lados son de 3,3 V: NO hace falta adaptar niveles</pre>
+          </div>
+          <p><b>Y por eso NO se pone adaptador de niveles, ni divisor, ni <i>level shifter</i>.</b>
+            <b>Las dos puntas son de 3,3 V</b>: el STM32 y el ESP32. Un adaptador de niveles puesto
+            «por si acaso» es una pieza más que puede estar mal, y un divisor mal calculado en la
+            línea de <code>RX</code> del micro <b>es peor que no tener nada</b>.</p>
+          <p>🔴 <b>El aviso que ya abre esta guía, y que aquí hay que repetir porque la placa es
+            nueva y su primer enchufe es el que más se equivoca:</b> <b><code>J16</code> y
+            <code>J17</code> comparten footprint</b> —los dos son
+            <code>Molex_KK-254_AE-6410-16A_1x16</code>, 16 pads— y <b><code>J16</code> p1 lleva
+            12 V crudos</b>. <b>Se distinguen MIDIENDO, no mirando</b> (pruebas 4 y 5, medidas M1 y
+            M2). <b>Enchufar la placa nueva en <code>J16</code> la quema en el acto</b>, y con ella el
+            módulo y el reloj.</p>
+          <p class="pin">el mazo de 4 hilos se mantiene <b>corto</b> y sale por un conector propio de
+            la placa portadora · masa en el mismo mazo que los datos, nunca por otro camino</p>
+        </div>
+      </div>
+
+      <div class="borne no">
+        <span class="chip mudo">NO</span>
+        <div class="cuerpo">
+          <h3>Lo que esta placa NO lleva — <b>y no es una lista de omisiones, es la barrera</b></h3>
+          <p>🔴 <b>Nada que escriba sobre las luces.</b> Ni relés de lámpara, ni salidas de potencia,
+            ni un hilo hacia <code>J3</code>–<code>J9</code> o <code>J11</code>, ni hacia
+            <code>J15</code> (la barrera), ni hacia <code>J14</code> (la cámara), ni hacia
+            <code>J13</code> (el buzzer). <b>Ni un hilo a <code>J16</code></b> —ni para señal ni para
+            tomar de ahí los 12 V—.</p>
+          <p><b>El porqué, que no cambia porque haya una placa nueva:</b> <b>solo
+            <code>semaforo.cpp</code> escribe pines de luz</b>, y todo pasa por su
+            <code>escribirPines()</code>. Es la barrera de salidas del apartado 01, y <b>una placa
+            accesoria no la reabre</b>. <b>El ESP32 no manda sobre el semáforo: PIDE</b>, por el
+            puerto serie, y el STM32 <b>acepta o rechaza</b> con su <code>$ACK</code> o su
+            <code>$ERR</code> — que es justo lo que la prueba 14 comprueba.</p>
+          <p><b>Tampoco lleva nada que reinicie al STM32.</b> Ni una línea de <i>reset</i>, ni un
+            watchdog externo sobre la tarjeta: <b>los dos STM32 ya tienen el suyo, a 4 s</b>, y un
+            accesorio con capacidad de reiniciar al controlador del semáforo es exactamente el reparto
+            que esta arquitectura evita.</p>
+          <p><b>Y no lleva batería propia para el ESP32.</b> Si se va la energía de la caja, el
+            semáforo se apaga: mantener vivo el módulo de diagnóstico mientras el cruce está muerto no
+            resuelve nada y añade una fuente más dentro del armario. <b>Lo único que sobrevive al
+            corte es el reloj, con su pila</b>, que es para lo que está.</p>
+          <p class="pin">esta lista se escribe porque lo que una placa nueva <b>no</b> lleva no deja
+            rastro en el cobre: un hueco no grita, y dentro de un año nadie sabrá si faltó o si se
+            decidió</p>
+        </div>
+      </div>
+
+      <div class="borne via">
+        <span class="chip">TP</span>
+        <div class="cuerpo">
+          <h3>Punto de prueba y acceso de reflasheo <span class="marca medir">requisito de diseño</span></h3>
+          <p><b>El módulo va SOLDADO, y por eso las dos cosas que habrá que hacerle con el tiempo hay
+            que diseñarlas ahora</b> —medirle el TX y volver a programarlo—, o se acaban haciendo con
+            una punta de soldador sobre una placa montada dentro de un armario.</p>
+
+          <p><b>(a) Puntos de prueba para el multímetro, y son TRES, no dos:</b></p>
+          <div class="tabla-envoltorio" style="margin:.5rem 0">
+            <table>
+              <thead><tr><th>Punto</th><th>Qué es</th><th>Para qué</th></tr></thead>
+              <tbody>
+                <tr><td><b><code>TP1</code></b></td><td><code>GPIO17</code> · <b>TX2</b> del ESP32</td>
+                  <td><b>Es la medida M5</b>: en reposo debe dar <b>3,3 V</b> (línea serie en reposo
+                    alta). 🔴 <b>Si diera 5 V, el módulo no es el que se cree que es</b></td></tr>
+                <tr><td><b><code>TP2</code></b></td><td><code>GPIO16</code> · <b>RX2</b></td>
+                  <td>Para ver que el hilo que viene del micro está donde se cree</td></tr>
+                <tr><td><b><code>TPG</code></b></td><td><b>masa, al lado de los otros dos</b></td>
+                  <td><b>Una medida de tensión necesita dos puntas.</b> Un punto de prueba sin su masa
+                    al lado <b>no es un punto de prueba</b>: obliga a buscar masa en otro sitio con la
+                    placa energizada, que es como se resbala una punta</td></tr>
+                <tr><td><b><code>TPV</code></b></td><td>salida de la fuente y su masa</td>
+                  <td>Para <b>M6</b>: medir la salida en vacío y con el módulo transmitiendo, sin
+                    desmontar nada</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p><b>Pads accesibles con punta de multímetro con la placa montada</b> —no vías tapadas por
+            el módulo, no pads debajo de un conector—, <b>rotulados en la serigrafía</b>. Si no está
+            rotulado, dentro de seis meses nadie sabrá cuál es cuál.</p>
+
+          <p><b>(b) Reflashear sin desoldar. Hay dos casos y dependen otra vez de
+            <code>BLQ-1</code>:</b></p>
+          <p>· <b>Si el módulo es una placa DevKitC</b>, ya trae su <b>conector USB</b>: el requisito
+            es <b>mecánico</b> —que ese conector quede <b>accesible con la placa montada en la
+            caja</b>, no tapado por el conector de 12 V, ni por el mazo hacia <code>J17</code>, ni
+            contra una pared del armario—. <b>Se comprueba al dibujar la placa, no después.</b></p>
+          <p>· <b>Si es un <code>WROOM</code> pelado</b>, no hay USB y hay que sacar a una tira de
+            prueba: <b><code>EN</code>, <code>IO0</code>, <code>TX0</code> (<code>GPIO1</code>),
+            <code>RX0</code> (<code>GPIO3</code>), <code>3V3</code> y <code>GND</code></b>. 🔴 <b>Y no
+            se reutilizan <code>GPIO16</code>/<code>GPIO17</code> para esto</b>: están ocupados por el
+            enlace con el semáforo.</p>
+          <p>🔴 <b>Y una precaución que es la misma de <code>J16</code> p1, aplicada aquí:</b>
+            <code>EN</code> e <code>IO0</code> son los que meten al módulo en modo de descarga.
+            <b>Una tira accesible con esos dos pines es una tira que un destornillador puede pisar</b>,
+            y el módulo se quedaría en modo de programación —mudo— sin que nada lo indique. Van donde
+            no se pisen, y <b>si llevan pulsador, que no sobresalga</b>.</p>
+          <p>· <b>Y el procedimiento de las dos fuentes, otra vez, porque es donde se rompe:</b>
+            <b>antes de enchufar el USB se corta la entrada de 12 V</b> (o se abre el jumper de
+            aislamiento). <b>Serigrafiado en la placa.</b></p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="aviso hist">
+      <strong>Lo que este apartado deja pendiente, en una lista, para que no se pierda entre el texto</strong>
+      <p>· 🛑 <b><code>BLQ-1</code> · qué chip llegó a obra</b> — bloquea el <b>diseño de la placa</b>
+        (huella y pinout) <b>y</b> el transporte de la app. <b>Dueño: el responsable de obra.</b> Sin
+        contestar.</p>
+      <p>· 🛒 <b>La fuente DC-DC conmutada</b> — línea <code>A5</code>, 2 unidades, <b>sin pedir</b>.
+        Aquí están los requisitos; <b>la referencia no está elegida</b>.</p>
+      <p>· 🛒 <b>La placa portadora en sí</b> —el circuito impreso o la placa de prototipo, sus
+        conectores, el fusible, la protección de polaridad, los condensadores de reserva y el
+        cableado—: <b>no es una línea de compras todavía</b>. <b>Quién la diseña y quién la fabrica no
+        está decidido.</b></p>
+      <p>· 🛒 <b>El <code>DS3231</code> <code>ZS-042</code></b> — línea <code>A6</code>, <b>solo si la
+        prueba 16 dice que el cristal muerto es el del Maestro</b>.</p>
+      <p>· ⌨️ <b>El firmware del ESP32</b> — <b>no existe</b>: ni puente Bluetooth, ni driver de
+        <code>DS3231</code>, ni el nombre <code>SEM-&lt;SERIE&gt;-M</code>/<code>-E</code>, ni
+        watchdog. <b>Quién lo escribe tampoco está decidido.</b> Una placa perfecta con un módulo
+        mudo encima sigue siendo un módulo mudo.</p>
+      <p>· 📏 <b>La tensión real del riel de 12 V</b> de la caja, y la de salida de la fuente bajo
+        pico — <b>medida <code>M6</code></b>, que <b>no se puede hacer hoy</b>: la placa no existe.</p>
     </div>
   </section>
 
@@ -1433,6 +1810,12 @@ BOTON    botones.cpp:50            pinMode(BOTON1, INPUT_PULLUP)
         <p>🛑 <b>Es el bloqueante más barato y más caro de la lista: treinta segundos con el módulo en
           la mano, y de la respuesta depende si la app sirve tal cual o hay que rehacer su transporte
           entero.</b> Nadie ha leído todavía la serigrafía de los módulos que llegaron.</p>
+        <p>🔴 <b>Y desde el 31/08 decide una cosa más, que es física y no se puede deshacer:</b> el
+          ESP32 va <b>soldado sobre una placa portadora</b> (apartado 03.bis), y un
+          <code>ESP32-WROOM-32</code> y un <code>ESP32-S3-WROOM-1</code> <b>no tienen ni el mismo
+          footprint ni el mismo pinout</b>. <b>Esta respuesta bloquea el DISEÑO DEL COBRE</b>: no se
+          dibuja, no se manda a fabricar y no se taladra nada antes de tenerla. Una placa hecha para
+          el módulo equivocado <b>se tira entera</b>.</p>
         <p class="espera"><b>Cómo, y no admite atajo:</b> (a) leer la <b>serigrafía del blindaje
           metálico</b> —<code>ESP32-WROOM-32E</code> es una respuesta, <code>ESP32-S3-WROOM-1</code>
           es otra—; (b) confirmarlo por USB con
@@ -1861,13 +2244,19 @@ CMD:PIN:1234:DEMANDA</pre>
       <div class="borne via">
         <span class="chip">ESP32</span>
         <div class="cuerpo">
-          <h3>Qué chip llegó a obra <span class="marca medir">bloquea compra y app</span></h3>
-          <p>🛑 <b>Bloquea la compra y bloquea la app, y se responde en treinta segundos</b> leyendo
-            la serigrafía del blindaje. Un ESP32 clásico deja el apartado 1 del Manual 10 intacto; un
-            <code>S3</code>, <code>C3</code> o <code>S2</code> <b>obliga a reabrirlo por escrito</b> y
-            a decidir entre servir la app por WiFi o rehacer el puente nativo de Android. Prueba 9.</p>
+          <h3>Qué chip llegó a obra <span class="marca medir">bloquea compra, app y COBRE</span></h3>
+          <p>🛑 <b>Bloquea la compra, bloquea la app y —desde el 31/08— bloquea el diseño de la placa
+            portadora</b>, y se responde en treinta segundos leyendo la serigrafía del blindaje. Un
+            ESP32 clásico deja el apartado 1 del Manual 10 intacto; un <code>S3</code>,
+            <code>C3</code> o <code>S2</code> <b>obliga a reabrirlo por escrito</b> y a decidir entre
+            servir la app por WiFi o rehacer el puente nativo de Android. Prueba 9.</p>
+          <p>🔴 <b>Lo nuevo, y es lo que sube su prioridad:</b> el ESP32 va <b>soldado</b> sobre una
+            placa que hay que construir (apartado 03.bis). <b>Huella y pinout dependen de esta
+            respuesta</b>, y una placa fabricada contra el módulo equivocado <b>se tira entera</b>.
+            <b>No se dibuja cobre antes de contestarla.</b></p>
           <p><b>Y mientras tanto no se compra ni un módulo más</b>: comprar antes de saber es como se
-            acaba con dos referencias distintas en el mismo cruce.</p>
+            acaba con dos referencias distintas en el mismo cruce — y ahora, con dos placas
+            distintas.</p>
         </div>
       </div>
 
@@ -1940,9 +2329,17 @@ CMD:PIN:1234:DEMANDA</pre>
         <span class="chip">Compras</span>
         <div class="cuerpo">
           <h3>Lo que hace falta y no está pedido <span class="marca medir">sin pedir</span></h3>
-          <p>· <b>La fuente propia del ESP32</b> (DC-DC 12 V → 5 V). Es la línea <code>A5</code> del
-            Manual 15 y <b>hoy no está pedida</b>. Sin ella no se puede montar esta arquitectura como
-            está descrita.</p>
+          <p>· 🆕 <b>La placa portadora del ESP32 — no existe y no es una línea de compras
+            todavía.</b> El circuito impreso (o la placa de prototipo), sus conectores, el fusible, la
+            protección de polaridad, los condensadores de reserva y el cableado. <b>Quién la diseña y
+            quién la fabrica NO está decidido</b>, y su huella <b>no se puede cerrar</b> hasta que se
+            lea la serigrafía del ESP32. Especificación completa en el apartado <b>03.bis</b>.</p>
+          <p>· <b>La fuente propia del ESP32</b>: <b>DC-DC CONMUTADO</b> desde los 12 V —<b>no
+            lineal</b>: un lineal de 12 V a 3,3 V con los picos de 500 mA disiparía <b>4,35 W</b> en
+            un armario cerrado—, <b>≥ 1 A</b>, rango de entrada holgado, salida 5 V o 3,3 V según el
+            módulo. Es la línea <code>A5</code> del Manual 15 y <b>hoy no está pedida</b>; la
+            <b>referencia concreta no está elegida</b>. Sin ella no se puede montar esta arquitectura
+            como está descrita.</p>
           <p>· <b>El adaptador USB-TTL de 3,3 V</b>, que <b>no está en la lista de compras</b> y en
             esta sesión es la única forma de ver tramas mientras el firmware del ESP32 no exista.</p>
           <p>· <b>El <code>DS3231</code> <code>ZS-042</code></b>, y <b>solo si la prueba 16 dice que
@@ -1972,8 +2369,11 @@ CMD:PIN:1234:DEMANDA</pre>
         <tbody>
           <tr><td><b>Nada del cobre</b></td><td>No hay hoy <b>ni una sola fila «VERIFICADO EN LA PLACA»</b> en todo el mapeo de la tarjeta. Todo el hardware de esta guía es <b>netlist y esquemático</b>. Un fichero dice lo que alguien dibujó; una placa dice lo que se fabricó — y lo que alguien reparó después</td></tr>
           <tr><td><b>Que la placa de banco salga de esa tirada</b></td><td>El <code>.kicad_pcb</code> está ruteado —185 huellas, 1.447 pistas, 89 vías— y eso sube el peso de la evidencia un escalón. <b>Sigue sin decir si la unidad que hay sobre la mesa es de esa tirada</b></td></tr>
-          <tr><td><b>El chip que llegó a obra</b></td><td>Nadie ha leído la serigrafía. <b>Lo más barato y lo más bloqueante de la lista</b> (prueba 9)</td></tr>
-          <tr><td><b>El pico de 500 mA del ESP32</b></td><td>De datasheet y de lo escrito en el Manual 15, <b>no medido</b> sobre el módulo real. La decisión de no compartir riel no depende de esa cifra</td></tr>
+          <tr><td><b>El chip que llegó a obra</b></td><td>Nadie ha leído la serigrafía. <b>Lo más barato y lo más bloqueante de la lista</b> (prueba 9), y desde el 31/08 bloquea además <b>la huella de la placa portadora</b></td></tr>
+          <tr><td><b>🆕 La placa portadora del ESP32</b></td><td>🔴 <b>NO EXISTE.</b> No está diseñada, no está fabricada y no está medida. El apartado 03.bis es una <b>especificación de construcción</b>, no un montaje verificado — <b>ni una sola línea de ese apartado está comprobada sobre cobre</b>, porque no hay cobre</td></tr>
+          <tr><td><b>🆕 La fuente del ESP32</b></td><td>Línea <code>A5</code>, <b>sin pedir y sin referencia elegida</b>. Las cifras de disipación del apartado 03.bis —4,35 W, 3,5 W, 0,85 W, ~0,4 W— son <b>cuentas</b>, no medidas, y la del conmutado supone un rendimiento del 85 % que tampoco está medido</td></tr>
+          <tr><td><b>🆕 La tensión real del riel de 12 V</b></td><td>Es una <b>batería</b>, no un 12,00 V fijo, y <b>ninguno de sus dos extremos está medido</b> en esta instalación. Es la medida <code>M6</code>, que <b>hoy no se puede hacer</b>: la placa no existe</td></tr>
+          <tr><td><b>El pico de 500 mA del ESP32</b></td><td>De datasheet y de lo escrito en el Manual 15, <b>no medido</b> sobre el módulo real. La decisión de no compartir riel no depende de esa cifra: <b>no se cae ni aunque el pico resulte ser 300 mA</b>, porque el motivo es de reparto de riesgo y no de amperios</td></tr>
           <tr><td><b>Que el enlace por <code>J17</code> funcione</b></td><td><b>No verificado en banco.</b> La compuerta pasó, y la compuerta no toca la tarjeta</td></tr>
           <tr><td><b>El firmware del ESP32</b></td><td>🔴 <b>NO EXISTE.</b> Ni driver de <code>DS3231</code> en ninguna punta, ni puente Bluetooth, ni watchdog. Las pruebas 13 y 15 dependen de él</td></tr>
           <tr><td><b>Que las cámaras funcionen en <code>PB14</code>/<code>PB15</code></b></td><td><b>Esos dos pines nunca han tenido una cámara conectada.</b> Y no la tendrán en esta sesión: lo bloquea la prueba 10</td></tr>
@@ -1995,9 +2395,12 @@ CMD:PIN:1234:DEMANDA</pre>
     </div>
 
     <p class="nota"><b>Esto es una petición formal al funcional de hardware, y su PDF relleno es el
-      feedback que vuelve.</b> Son las cinco medidas de multímetro del Manual 17 §A más el
-      bloqueante de la referencia del ESP32. <b>Se rellena a bolígrafo sobre el papel</b> y se
-      devuelve escaneado o fotografiado.</p>
+      feedback que vuelve.</b> Son las cinco medidas de multímetro del Manual 17 §A, el bloqueante de
+      la referencia del ESP32 —que desde el 31/08 <b>bloquea además el diseño de la placa
+      portadora</b>, y por eso encabeza la hoja— y una sexta medida, <code>M6</code>, que
+      <b>todavía no se puede rellenar</b>: es sobre la placa portadora, y <b>esa placa no está
+      construida</b>. <b>Se rellena a bolígrafo sobre el papel</b> y se devuelve escaneado o
+      fotografiado.</p>
     <p class="nota"><b>La regla que manda sobre toda esta hoja:</b> el producto de la sesión son
       <b>MEDIDAS, no un visto bueno</b>. <b>Si algo no se puede medir, se marca «NO SE PUDO MEDIR» y
       se escribe el motivo — nunca se marca como correcto.</b> Un hueco declarado vale; un hueco
@@ -2032,11 +2435,19 @@ CMD:PIN:1234:DEMANDA</pre>
       <div class="m-fila">
         <div class="m-cab">
           <span class="m-id">BLQ-1</span>
-          <h3>La serigrafía del ESP32 — <b>lo más barato y lo más bloqueante de toda la lista</b></h3>
+          <h3>La serigrafía del ESP32 — <b>bloquea la app Y EL DISEÑO DE LA PLACA PORTADORA</b></h3>
         </div>
         <p><b>Treinta segundos con el módulo en la mano, y de la respuesta depende si la app sirve
           tal cual o hay que rehacer su transporte entero.</b> Va la primera <b>porque no hace falta
-          energizar nada</b> y porque bloquea la compra.</p>
+          energizar nada</b>, porque bloquea la compra <b>y porque es lo único de esta hoja que
+          detiene un trabajo que ya se puede empezar</b>.</p>
+        <p>🔴 <b>SUBE DE PRIORIDAD el 31/08, y este es el motivo:</b> el ESP32 ya no se cuelga con
+          cables — va <b>SOLDADO sobre una placa portadora que hay que construir</b> (apartado
+          03.bis). Un <code>ESP32-WROOM-32</code> y un <code>ESP32-S3-WROOM-1</code> <b>no tienen ni
+          el mismo footprint ni el mismo pinout</b>. <b>Esta respuesta decide la HUELLA DEL COBRE:
+          sin ella no se puede cerrar el diseño de la placa</b>, no se manda a fabricar y no se
+          taladra nada. <b>Una placa hecha para el módulo equivocado se tira entera</b> — y son dos,
+          una por poste.</p>
         <p><b>Qué se mira:</b> la <b>serigrafía impresa en el blindaje metálico</b> del módulo — la
           chapa cuadrada soldada, no la etiqueta del vendedor ni la caja. <b>El rótulo del vendedor
           no distingue</b>: los tres se anuncian igual, <i>«WiFi + BT · ISM 2.4G · 802.11»</i>, y esa
@@ -2060,6 +2471,10 @@ CMD:PIN:1234:DEMANDA</pre>
           <b>En esos casos hay que rehacer el transporte de la app entero</b> y reabrir por escrito
           el apartado 1 del Manual 10, que está congelado. <b>Y mientras tanto no se compra ni un
           módulo más.</b></p>
+        <p class="desbloquea">🔴 <b>Y lo segundo que decide, que es cobre y no software:</b>
+          <b>la huella y el pinout de la placa portadora</b> (apartado 03.bis). <b>Mientras esta fila
+          esté en blanco, el diseño de esa placa está DETENIDO</b> — no en espera de una revisión: sin
+          empezar. <b>Dueño de la respuesta: el responsable de obra.</b></p>
         <div class="nomedido"><span class="cuadro"></span> <b>NO SE PUDO MEDIR</b> — motivo:
           <span class="renglon"></span></div>
       </div>
@@ -2226,8 +2641,81 @@ CMD:PIN:1234:DEMANDA</pre>
         <p><b>Recordatorio del cruce, que es lo que más se equivoca:</b> p2 (<code>PB7</code>, RX del
           micro) → <code>GPIO17</code> (TX2). p3 (<code>PB6</code>, TX del micro) →
           <code>GPIO16</code> (RX2). <b>No van rectos.</b></p>
+        <p>🆕 <b>Dónde se pincha <code>GPIO17</code> cuando exista la placa portadora:</b> en su
+          <b>punto de prueba <code>TP1</code></b>, con la masa en <code>TPG</code>, sin desoldar nada
+          y sin buscar la pata del módulo con la punta (apartado 03.bis). <b>Con el módulo soldado no
+          hay otra forma de hacer esta medida</b>, y por eso ese punto es un requisito de diseño y no
+          una comodidad. <i>Hoy, con cables sueltos, se mide donde se pueda y se anota dónde.</i></p>
         <div class="nomedido"><span class="cuadro"></span> <b>NO SE PUDO MEDIR</b> — motivo:
           <span class="renglon"></span></div>
+      </div>
+
+      <div class="m-fila">
+        <div class="m-cab">
+          <span class="m-id">M6</span>
+          <h3>La placa portadora y su fuente — <b>🆕 nueva, y hoy NO SE PUEDE RELLENAR</b></h3>
+        </div>
+        <p>🔴 <b>Esta fila no se puede contestar en esta sesión: la placa portadora NO EXISTE.</b> No
+          está diseñada ni fabricada. <b>La respuesta correcta hoy es marcar «NO SE PUDO MEDIR» con el
+          motivo «placa no construida»</b> — <b>no dejarla en blanco y no marcarla como correcta</b>.
+          Se deja escrita para la sesión en la que esa placa exista, y <b>se escribe ahora</b> porque
+          una medida que se inventa el día que hace falta es una medida sin número esperado, y un
+          número esperado que se elige después de mirar la pantalla no vale nada.</p>
+        <p><b>Qué placa:</b> la del apartado 03.bis — ESP32 soldado, fuente DC-DC conmutada desde
+          12 V, <code>DS3231</code> por I²C, y cuatro hilos a <code>J17</code>. <b>Son dos placas
+          iguales</b>, una por poste: <b>esta fila se rellena dos veces</b>.</p>
+        <p><b>Con qué:</b> tensión DC, punta negra en <code>TPG</code> o en la masa de la propia
+          placa. Las dos últimas exigen el ESP32 <b>en marcha y transmitiendo</b>.</p>
+        <p>Placa medida &nbsp; <span class="casillas" style="display:inline-flex">
+          <span><span class="cuadro"></span> Maestro</span>
+          <span><span class="cuadro"></span> Esclavo</span></span></p>
+        <p><b>Riel de 12 V de la caja, en REPOSO</b> = <span class="renglon"></span>
+          &nbsp;<i>(es una <b>batería</b>: no se espera 12,00 V, y su rango real <b>nunca se ha
+          medido</b> en esta instalación — este número es el dato, no el visto bueno)</i></p>
+        <p><b>Riel de 12 V con el equipo ciclando</b> = <span class="renglon"></span></p>
+        <p><b>Salida de la fuente en <code>TPV</code>, en vacío</b> = <span class="renglon"></span>
+          &nbsp;<i>(esperado: la tensión elegida — <b>5 V</b> a <code>VIN</code>, o <b>3,3 V</b> a
+          <code>3V3</code>; <b>anotar CUÁL de las dos se montó</b>)</i></p>
+        <p>Tensión elegida &nbsp; <span class="casillas" style="display:inline-flex">
+          <span><span class="cuadro"></span> 5 V a <code>VIN</code></span>
+          <span><span class="cuadro"></span> 3,3 V a <code>3V3</code></span></span></p>
+        <p><b>Salida de la fuente con el ESP32 transmitiendo</b> = <span class="renglon"></span>
+          &nbsp;<i>(🔴 <b>es la medida que de verdad importa</b>: una fuente ajustada al consumo medio
+          <b>cae justo en el pico</b> y el módulo se reinicia por <i>brown-out</i>, con un síntoma que
+          parece software)</i></p>
+        <p><b>Caída entre las dos lecturas anteriores</b> = <span class="renglon"></span>
+          &nbsp;<i>(cuanto menos, mejor; una caída apreciable apunta a fuente corta, a condensador de
+          reserva ausente o a hilo largo)</i></p>
+        <p><b><code>TP1</code> (<code>GPIO17</code>, TX2) contra <code>TPG</code>, en reposo</b> =
+          <span class="renglon"></span> &nbsp;<i>(esperado: <b>3,3 V</b> — es la misma medida que
+          <b>M5</b>, tomada ya en su punto de prueba)</i></p>
+        <p><b>Referencia de la fuente que se montó, tal cual</b> <span class="renglon"></span>
+          &nbsp;<i>(no está elegida a día de hoy: el apartado 03.bis da requisitos, no referencia)</i></p>
+        <p>¿Lleva <b>fusible</b> y <b>protección de polaridad</b> en la entrada de 12 V? &nbsp;
+          <span class="casillas" style="display:inline-flex">
+          <span><span class="cuadro"></span> sí</span>
+          <span><span class="cuadro"></span> no</span></span></p>
+        <p>¿Queda el <b>acceso de reflasheo</b> alcanzable con la placa montada en la caja? &nbsp;
+          <span class="casillas" style="display:inline-flex">
+          <span><span class="cuadro"></span> sí</span>
+          <span><span class="cuadro"></span> no</span></span>
+          &nbsp;cómo: <span class="renglon"></span></p>
+        <p><b>Temperatura del regulador al tacto tras 30 min con el equipo cerrado</b>
+          <span class="renglon"></span> &nbsp;<i>(no es una medida fina y no pretende serlo:
+          <b>si quema, se anota y se para</b> — un conmutado bien dimensionado no debería estar
+          caliente)</i></p>
+        <p class="desbloquea"><b>Qué decide:</b> si esa placa puede quedarse dentro de un armario
+          cerrado y al sol alimentando el módulo que hace de consola del cruce. 🔴 <b>Si la salida cae
+          apreciablemente al transmitir, o si el regulador quema, NO se deja montada</b>: se anota el
+          número y se replantea la fuente. <b>Y si alguien montó un regulador LINEAL en vez de un
+          conmutado, eso es el hallazgo</b> — un lineal de 12 V a 3,3 V con los picos de 500 mA
+          disipa <b>4,35 W</b>, y ahí dentro no se disipan.</p>
+        <p class="desbloquea"><b>Lo que esta fila NO dice, y hay que decirlo:</b> que la placa
+          funcione eléctricamente <b>no dice que el equipo hable</b>. El firmware del ESP32
+          <b>no existe</b>, así que una placa que da 5 V perfectos sigue teniendo un módulo mudo
+          encima. <b>Eso es lo esperado y no se reporta como avería.</b></p>
+        <div class="nomedido"><span class="cuadro"></span> <b>NO SE PUDO MEDIR</b> — motivo:
+          <span class="renglon"></span> <i>&nbsp;← hoy: <b>«la placa no está construida»</b></i></div>
       </div>
 
       <div class="m-fila">
@@ -2235,8 +2723,11 @@ CMD:PIN:1234:DEMANDA</pre>
           <span class="m-id">FUERA</span>
           <h3>Lo que estas cinco medidas NO cubren</h3>
         </div>
-        <p><b>Se escribe para que no se dé por medido lo que no se midió.</b> Ninguna de las cinco
-          dice nada de:</p>
+        <p><b>Se escribe para que no se dé por medido lo que no se midió.</b> Ninguna de las cinco de
+          multímetro dice nada de:</p>
+        <p>· 🆕 <b>La placa portadora del ESP32.</b> <code>M6</code> está escrita, pero <b>no se puede
+          rellenar hasta que exista</b>, y <b>una fila escrita no es una fila medida</b>. Hoy no hay
+          placa, no hay fuente comprada y no hay firmware de ESP32.</p>
         <p>· <b>El cristal <code>Y2</code> de cada tarjeta.</b> Se midió uno el 01/08 —no oscila—; el
           otro sigue sin diagnosticar. Procedimiento en <code>ENCARGO_SESION_BANCO.md</code> §3,
           <b>con la salvedad de que la pantalla <code>CONSULTA RELOJ</code> que aquel texto usa ya no
@@ -2277,9 +2768,10 @@ CMD:PIN:1234:DEMANDA</pre>
     </div>
 
     <p class="nota" style="margin-top:.6rem"><b>Nada de lo que se mida aquí autoriza a subir nada a
-      campo.</b> Estas cinco medidas dicen si la placa fabricada coincide con el plano. <b>No dicen
-      que el equipo funcione</b>, y no sustituyen la sesión de banco. En campo sigue corriendo la
-      V8.4.</p>
+      campo.</b> Estas medidas dicen si la tarjeta fabricada coincide con el plano —y
+      <code>M6</code>, el día que se pueda hacer, si la placa portadora aguanta a su módulo—.
+      <b>No dicen que el equipo funcione</b>, y no sustituyen la sesión de banco. <b>La placa
+      portadora, además, ni siquiera está construida.</b> En campo sigue corriendo la V8.4.</p>
   </section>
 
   <div class="barra noimprimir">
@@ -2302,8 +2794,9 @@ CMD:PIN:1234:DEMANDA</pre>
     <div><b>Y un acta en verde no es un permiso.</b> Dice que los modelos y los arneses de PC no
       encuentran nada; <b>no dice que el firmware funcione en la tarjeta</b>. Para eso es esta sesión.
       <b>Nada de esta arquitectura ha pasado banco</b>: ni el enlace por <code>J17</code>, ni las
-      cámaras en <code>J16</code>, ni el ESP32 —cuyo firmware no existe—. <b>Nada de esto sube a
-      campo sin pasar banco.</b> En campo sigue corriendo la V8.4.</div>
+      cámaras en <code>J16</code>, ni el ESP32 —cuyo firmware no existe—, <b>ni la placa portadora
+      del apartado 03.bis, que ni siquiera está construida</b>. <b>Nada de esto sube a campo sin
+      pasar banco.</b> En campo sigue corriendo la V8.4.</div>
     <div><b>Qué se lleva:</b> los dos <code>firmware.bin</code> con su <code>md5</code>
       (apartado 05), la APK más nueva —<b>recompilándola antes, porque la que hay en disco no tiene
       los botones de los comandos nuevos</b>—, el ST-LINK, un <b>adaptador USB-TTL de 3,3 V</b>, el
