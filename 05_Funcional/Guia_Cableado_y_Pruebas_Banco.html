@@ -275,13 +275,25 @@
       nuevo</b> (paso 2). Con el programa viejo dentro, el pin 10 de <code>J16</code> sigue siendo el
       <b>botón de Aceptar</b>: cualquier cosa que enchufes ahí pulsa Aceptar en un semáforo que está
       en la calle.</p>
-    <p><b>2 · No cablees cámara a <code>J16</code> hasta hacer la medida del paso 15.</b> Si esos
+    <p><b>2 · No cablees cámara a <code>J16</code> hasta hacer la medida del paso 20.</b> Si esos
       pines no tienen resistencia a masa, el cable queda al aire y el semáforo recibe peticiones de
       paso que nadie ha hecho.</p>
     <p><b>3 · No taladres ni mandes a fabricar la placa del módulo hasta contar sus pines</b>
       (paso 1). Vienen de 30 y de 38 pines, y son de anchos distintos.</p>
     <p><b>4 · Nada de lo que se pruebe aquí sube a campo.</b> Esto es una sesión de comprobación.
       En la calle sigue funcionando la versión anterior hasta que se diga lo contrario.</p>
+  </div>
+
+  <div class="aviso bien">
+    <strong>Lo que SÍ se puede hacer hoy mismo, sin comprar nada</strong>
+    <p><b>El apartado 04 —pasos 9 a 14— se hace con lo que ya hay:</b> el módulo del almacén,
+      <b>tres cables</b> y un <b>cargador USB</b>. <b>No hace falta la placa del módulo, ni su
+      fuente, ni el reloj, ni tocar <code>J16</code>, ni cablear una sola cámara.</b></p>
+    <p><b>Y es más seguro que el montaje definitivo</b>, no menos: alimentado por su propio USB, el
+      módulo <b>no toca la alimentación de la tarjeta del semáforo</b> y no puede tumbarla.</p>
+    <p><b>Si la visita se corta por lo que sea, ésos son los pasos que más falta nos hace traer
+      contestados</b>: son los únicos que dicen si el teléfono y el equipo se hablan de verdad.
+      <b>Es un montaje de mesa y se desmonta al terminar.</b></p>
   </div>
 
   <div class="ident">
@@ -313,11 +325,14 @@
           <tr><td><b>Funda termorretráctil</b> o unas fundas de pin</td>
             <td>Tapar el pin de 12 V de <code>J16</code> (paso 4). <b>No es opcional</b></td></tr>
           <tr><td><b>Un pulsador suelto</b> con dos cables</td>
-            <td>Hacer de cámara para probar sin la cámara (paso 12)</td></tr>
+            <td>Hacer de cámara para probar sin la cámara (paso 18)</td></tr>
+          <tr><td><b>Tres cables de puente</b> (hembra-hembra) y un <b>cargador USB</b> con su cable</td>
+            <td><b>Montar el enlace con el teléfono sobre la mesa</b> (pasos 9 a 14). <b>Es todo lo que
+              hace falta</b>: ni placa, ni fuente, ni reloj</td></tr>
           <tr><td><b>Cronómetro</b> (vale el del móvil)</td>
-            <td>Pasos 7 y 8: hay tiempos que hay que contar</td></tr>
+            <td>Pasos 7, 8 y 14: hay tiempos que hay que contar</td></tr>
           <tr><td><b>Móvil Android</b> con la aplicación instalada</td>
-            <td>Pasos 19 a 23</td></tr>
+            <td>Pasos <b>10 a 14</b> —el enlace de mesa, que se puede hacer ya— y pasos 25 a 29</td></tr>
         </tbody>
       </table>
     </div>
@@ -638,13 +653,348 @@
 
   <!-- =================================================================== -->
   <section>
-    <h2><span class="n">04</span> La talanquera</h2>
+    <h2><span class="n">04</span> El enlace con el teléfono · <span style="font-weight:400">hoy, sobre la mesa</span></h2>
+    <p class="nota"><b>Esto es lo único de toda la guía que se puede hacer hoy mismo sin comprar
+      nada.</b> El módulo ya está en el almacén, y todo lo que hace falta son <b>tres cables y un
+      cargador USB</b>. <b>No hace falta la placa del módulo, ni su fuente, ni el reloj, ni tocar
+      <code>J16</code>, ni cablear una sola cámara.</b></p>
+    <p class="nota">🔴 <b>Es un montaje de MESA, no de poste.</b> Con tres cables sueltos y el módulo
+      colgando de un cargador <b>no se deja un equipo en la vía</b>, ni un rato ni «mientras tanto».
+      Lo que hace falta para dejarlo puesto es <b>la placa del módulo con su fuente — y esa placa
+      todavía no existe</b> (apartado 07). Aquí se prueba y se desmonta.</p>
+    <p class="nota">🟢 <b>Y así es MÁS SEGURO que el montaje definitivo</b>, no menos: alimentado por
+      su propio USB, <b>el módulo no toca la alimentación de la tarjeta del semáforo</b>, así que no
+      puede tumbarla. La fuente propia hace falta para dejarlo montado, no para probarlo.</p>
+
+    <div class="diagrama">
+<pre>   MONTAJE DE MESA . TRES CABLES Y UN USB . NADA MAS
+
+        MODULO ESP32                        TARJETA . CONECTOR J17
+        ------------                        ----------------------
+
+   GPIO16  (el modulo ESCUCHA)  o---.    .---o  pos. 2  (el micro ESCUCHA)
+                                     \  /
+                                      \/   &lt;-- EL CRUCE: lo que HABLA una punta
+                                      /\       va a lo que ESCUCHA la otra
+                                     /  \
+   GPIO17  (el modulo HABLA)    o---'    '---o  pos. 3  (el micro HABLA)
+
+   GND     (masa del modulo)    o------------o  pos. 7  (o la 9)
+                                                MASA COMUN . OBLIGATORIA
+
+   USB del ESP32  ---&gt;  cargador o portatil . UNICA alimentacion del modulo
+
+   J17 posicion 6 ..... NO SE CONECTA (es el 3,3 V del micro del semaforo)
+   J17 posicion 8 ..... NO SE CONECTA
+   J16 ................ NO SE TOCA . tiene 12 V en su posicion 1</pre>
+    </div>
+
+    <div class="diagrama">
+<pre>   RESUMEN . LOS TRES CABLES, UNO POR LINEA
+
+   ESP32 GPIO17  ---------&gt;  J17 posicion 2       el micro ESCUCHA por aqui
+   ESP32 GPIO16  &lt;---------  J17 posicion 3       el micro HABLA por aqui
+   ESP32 GND     ----------  J17 posicion 7 o 9   MASA COMUN . obligatoria
+
+   ESP32 USB     ---------&gt;  cargador o portatil  y nada mas
+
+
+   COMO QUEDA LA MESA
+
+   [ TELEFONO ] ~~ Bluetooth ~~ [ ESP32 ] == 3 cables == [ TARJETA ] --&gt; lamparas
+                                    |
+                                 su USB
+                                    |
+                               [ cargador ]</pre>
+    </div>
+
+    <div class="paso parada">
+      <div class="paso-cab"><span class="paso-n">PASO 9</span>
+        <h3>Monta el enlace: tres cables y un USB</h3></div>
+      <div class="bloque ojo"><span class="et">Lee esto</span><span class="tx">
+        <p>🔴 <b><code>J16</code> y <code>J17</code> son el mismo tipo de conector, están juntos y a
+          la vista son idénticos, y <code>J16</code> tiene 12 V en su posición 1.</b> Si enchufas ahí
+          el módulo <b>lo quemas en el acto</b>. <b>Se mide antes de enchufar nada</b>, aunque ya lo
+          midieras hace un rato: multímetro en tensión continua, punta negra en masa, posición 1 de
+          cada uno. <b>El que da 12 V es <code>J16</code> y se deja en paz.</b> El otro es
+          <code>J17</code> y es el único que se toca en este apartado.</p>
+        <p>🔴 <b>Para esta prueba NO hay que tocar <code>J16</code> en absoluto</b>, ni cablear una
+          cámara, ni montar nada más. <b>El enlace se prueba entero sin eso.</b> No hace falta hacerlo
+          todo a la vez.</p>
+        <p>⚠️ <b>El programa nuevo ya tiene que estar cargado en las dos tarjetas</b> (paso 2). Con el
+          viejo dentro puede que por este camino no salga nada, y parecerá un cable malo sin serlo.</p></span></div>
+      <div class="bloque"><span class="et">Haz</span><span class="tx">
+        <p><b>(a) Encuentra <code>GPIO16</code> y <code>GPIO17</code> en tu módulo.</b> Vienen
+          rotulados en el borde de la placa, junto a cada pin. En la mayoría ponen <b><code>16</code>
+          y <code>17</code></b>; en otras ponen <b><code>RX2</code> y <code>TX2</code></b>
+          —<code>RX2</code> es el 16 y <code>TX2</code> es el 17—.</p>
+        <p>⚠️ <b>El rotulado cambia de un fabricante a otro.</b> <b>Cuéntalos y compruébalos</b> antes
+          de pinchar, y <b>haz una foto de las dos filas de pines con el rotulado legible</b>.
+          🔴 <b>Si no los encuentras rotulados, PARA y pregunta.</b> No lo adivines por la posición:
+          <b>un cable en el pin equivocado no avisa de nada</b> — no salta, no calienta, no se
+          enciende un testigo: simplemente no llega nada, y se pierde la tarde buscándolo en el sitio
+          equivocado.</p>
+        <p><b>(b) Con la tarjeta apagada y el USB del módulo todavía sin enchufar</b>, pon los tres
+          cables del dibujo. <b>Primero la masa</b>, y después los dos de datos.</p>
+        <p><b>(c) Los dos cables de datos van CRUZADOS</b>, que es como va siempre un puerto serie y
+          es <b>el error más común de todos</b>: <b>lo que habla una punta va a lo que escucha la
+          otra</b>. <code>GPIO17</code> del módulo a la <b>posición 2</b>; <code>GPIO16</code> del
+          módulo a la <b>posición 3</b>.</p>
+        <p><b>(d) La masa común no es opcional.</b> Sin ella los dos aparatos no comparten
+          referencia y <b>el enlace no funciona aunque los dos cables de datos estén perfectos</b> —
+          y lo que se ve entonces es silencio o basura, que <b>se parece exactamente a un módulo
+          roto</b>. Antes de dudar del módulo, mira la masa.</p>
+        <p><b>(e) Nada más.</b> <b>Ni la posición 6 ni la 8 de <code>J17</code> se conectan</b>: ahí
+          está el 3,3 V del micro que gobierna el semáforo. <b>El módulo se alimenta por su USB</b> y
+          por ningún otro sitio. Los dos lados trabajan a 3,3 V: <b>no hace falta adaptador de
+          niveles ni nada en medio</b>.</p></span></div>
+      <div class="bloque"><span class="et">Comprueba</span><span class="tx">
+        <p>Con el dibujo delante, <b>repasa el cruce cable por cable</b> y <b>tira suave de cada
+          uno</b> para ver que agarra.</p>
+        <p>Y <b>mira una vez más que estás en <code>J17</code></b> —el que no daba 12 V— y que la
+          posición 6 y la 8 están libres.</p>
+        <p>Después enciende: <b>primero la tarjeta, luego el USB del módulo</b>.</p></span></div>
+      <div class="bloque ver"><span class="et">Tienes que ver</span><span class="tx">
+        <p><b>Tres cables y ninguno más</b>: dos de datos cruzados y la masa. <b>Nada en
+          <code>J16</code></b>, nada en la posición 6 ni en la 8, y el módulo alimentado sólo por su
+          USB.</p>
+        <p><b>Si al final resulta que los dos hilos de datos están al revés, no se rompe nada</b>:
+          simplemente no comunicará. Se intercambian y ya está — es la prueba más barata que hay.</p></span></div>
+      <div class="anota">
+        <p class="porque"><b>Por qué importa:</b> este montaje es el que dice, hoy y sin gastar nada,
+          <b>si el teléfono y el equipo se hablan de verdad</b>. Todo lo demás del módulo —la placa,
+          la fuente, el reloj— se diseña <b>después</b> de saberlo.</p>
+        <p class="porque">¿Cómo venían rotulados los dos pines de datos?
+          <input type="text" id="a9a" placeholder="16 y 17 / RX2 y TX2 / sin rotular"></p>
+        <p class="porque" style="margin-top:.35rem">¿En qué posición pusiste la masa?
+          <input type="text" id="a9b" style="max-width:6rem;display:inline-block"> &nbsp;
+          ¿Hiciste la foto de los pines? <input type="text" id="a9c" style="max-width:6rem;display:inline-block"> &nbsp;
+          Posición 1 de <code>J16</code>, medida hoy: <input type="text" id="a9d" style="max-width:6rem;display:inline-block"> V</p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p9" value="si"> Los tres cables puestos</label>
+          <label class="no"><input type="radio" name="p9" value="no"> Puestos con dudas</label>
+          <label class="np"><input type="radio" name="p9" value="np"> No se pudo</label>
+        </div>
+        <textarea id="t9" placeholder="Si hubo que intercambiar los datos, dilo · si no encontraste los pines rotulados, qué hiciste"></textarea>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-cab"><span class="paso-n">PASO 10</span>
+        <h3>El módulo en la lista del teléfono · <b>copia el nombre literal</b></h3></div>
+      <div class="bloque"><span class="et">Haz</span><span class="tx">
+        <p>Con los tres cables puestos y el módulo alimentado por su USB, <b>abre la lista de
+          dispositivos Bluetooth del teléfono</b> y busca uno nuevo.</p></span></div>
+      <div class="bloque"><span class="et">Comprueba</span><span class="tx">
+        <p><b>Copia el nombre exactamente como sale, carácter por carácter</b> —no «el ESP32», sino lo
+          que ponga— y <b>anota también la dirección MAC</b>. Cuenta además <b>cuánto tardó en
+          aparecer</b> desde que enchufaste el USB.</p></span></div>
+      <div class="bloque ver"><span class="et">Tienes que ver</span><span class="tx">
+        <p>Un dispositivo nuevo en la lista, en menos de medio minuto.</p>
+        <p>⚠️ <b>Y ojo con lo que esto demuestra, que es poco:</b> que aparezca en la lista dice
+          <b>sólo que el módulo tiene corriente</b>. <b>Aparece igual con los tres cables al aire y
+          sin tarjeta detrás.</b> No dice nada del equipo todavía.</p>
+        <p><b>Si no aparece ninguno, o aparece con un nombre genérico: anótalo tal cual, no es un
+          fallo tuyo.</b> El programa del módulo se entrega aparte de esta guía y puede que todavía no
+          esté cargado.</p></span></div>
+      <div class="anota">
+        <p class="porque">Nombre, literal: <input type="text" id="a10a"></p>
+        <p class="porque">MAC: <input type="text" id="a10b" placeholder="__:__:__:__:__:__"> &nbsp;
+          Tardó en aparecer: <input type="text" id="a10c" style="max-width:6rem;display:inline-block"> s</p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p10" value="si"> Aparece</label>
+          <label class="no"><input type="radio" name="p10" value="no"> NO aparece / nombre raro</label>
+          <label class="np"><input type="radio" name="p10" value="np"> No se pudo</label>
+        </div>
+        <textarea id="t10" placeholder="Qué salió en la lista"></textarea>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-cab"><span class="paso-n">PASO 11</span>
+        <h3>La app conecta</h3></div>
+      <div class="bloque"><span class="et">Haz</span><span class="tx">
+        <p>Empareja con ese módulo —PIN <code>1234</code>, y si no <code>0000</code>— y abre la
+          aplicación.</p></span></div>
+      <div class="bloque"><span class="et">Comprueba</span><span class="tx">
+        <p>Si conecta, <b>y a la primera o tras varios intentos</b>. Si no conecta, <b>copia el
+          mensaje que sale</b>, tal cual.</p></span></div>
+      <div class="bloque ver"><span class="et">Tienes que ver</span><span class="tx">
+        <p><b>La app conecta.</b></p>
+        <p>⚠️ <b>Esto tampoco demuestra todavía nada del semáforo:</b> la conexión se abre
+          <b>contra el módulo</b>, no contra la tarjeta. Con los tres cables desconectados
+          <b>conectaría igual</b>. Lo que demuestra es que el módulo funciona — que ya es algo.</p>
+        <p><b>Si no conecta:</b> borra el emparejamiento y vuelve a hacerlo antes de tocar un solo
+          cable. Y no cambies el módulo: la lista ordenada de qué mirar está en el apartado 09.</p></span></div>
+      <div class="anota">
+        <p class="porque">¿Cuántos intentos? <input type="text" id="a11a" style="max-width:5rem;display:inline-block"> &nbsp;
+          ¿Con qué PIN entró? <input type="text" id="a11b" style="max-width:6rem;display:inline-block"></p>
+        <p class="porque" style="margin-top:.35rem">Si falló, mensaje literal: <input type="text" id="a11c"></p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p11" value="si"> Conecta</label>
+          <label class="no"><input type="radio" name="p11" value="no"> NO conecta</label>
+          <label class="np"><input type="radio" name="p11" value="np"> No se pudo</label>
+        </div>
+        <textarea id="t11" placeholder="Qué hizo al intentar conectar"></textarea>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-cab"><span class="paso-n">PASO 12</span>
+        <h3>Llegan datos · <b>di qué números ves</b></h3></div>
+      <div class="bloque ojo"><span class="et">Lee esto</span><span class="tx">
+        <p><b>Éste es el primer paso que demuestra algo del equipo.</b> Que lleguen datos cada segundo
+          es <b>lo único que atraviesa los tres cables, la tarjeta y su programa</b>: los dos pasos
+          anteriores se quedaban en el módulo.</p></span></div>
+      <div class="bloque"><span class="et">Haz</span><span class="tx">
+        <p>Con la tarjeta encendida y las luces moviéndose, <b>deja la app mirando un minuto
+          entero</b>, sin tocar nada.</p></span></div>
+      <div class="bloque"><span class="et">Comprueba</span><span class="tx">
+        <p><b>Copia los números y los textos que enseña la pantalla</b>, aunque parezcan raros.
+          <b>Y di cuáles salen como <code>--</code></b>.</p>
+        <p>Mira además si el número que debería cambiar cada segundo <b>cambia de verdad</b> o se
+          queda clavado en el mismo valor.</p></span></div>
+      <div class="bloque ver"><span class="et">Tienes que ver</span><span class="tx">
+        <p>La pantalla se refresca <b>cada segundo</b>, con la fase actual y la hora, y lo que enseña
+          <b>cuadra con lo que están haciendo las lámparas delante de ti</b>.</p>
+        <p><b>Si algo sale como <code>--</code>, eso también es un dato y hay que anotarlo</b>: no es
+          un fallo tuyo ni algo que tengas que arreglar. Nos dice exactamente qué campo no está
+          llegando.</p>
+        <p>⚠️ <b>Hay campos que no son medidas y no hay que creerse:</b> la <b>batería</b>, el
+          <b>porcentaje de radio</b> y el <b>tiempo de respuesta</b> salen siempre con el mismo valor.
+          <b>No los uses para decidir nada</b> y no los reportes como avería.</p>
+        <p><b>Si conecta pero no llega nada</b>, lo más probable es que el módulo aún no tenga su
+          programa: <b>eso es lo esperado y no se cambia el módulo</b>. Se confirma en un minuto
+          sacando el módulo del medio, con el adaptador USB-TTL directo a <code>J17</code> — está
+          explicado en el apartado 09.</p></span></div>
+      <div class="anota">
+        <p class="porque">Qué enseñaba la pantalla (copia los números tal cual):</p>
+        <textarea id="a12a" style="min-height:3.2rem"></textarea>
+        <p class="porque" style="margin-top:.35rem">¿Qué campos salían como <code>--</code>?
+          <input type="text" id="a12b"></p>
+        <p class="porque" style="margin-top:.3rem">¿Cambiaba cada segundo?
+          <input type="text" id="a12c" style="max-width:7rem;display:inline-block"> &nbsp;
+          ¿Cuadraba con las lámparas? <input type="text" id="a12d" style="max-width:7rem;display:inline-block"></p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p12" value="si"> Llegan datos cada segundo</label>
+          <label class="no"><input type="radio" name="p12" value="no"> No llega nada / llega a medias</label>
+          <label class="np"><input type="radio" name="p12" value="np"> No se pudo</label>
+        </div>
+        <textarea id="t12" placeholder="Si no llega nada: hasta dónde llegaste del apartado 09"></textarea>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-cab"><span class="paso-n">PASO 13</span>
+        <h3>Manda una orden y mira <b>las tres cosas</b></h3></div>
+      <div class="bloque"><span class="et">Haz</span><span class="tx">
+        <p>Con el equipo funcionando y la app conectada, <b>manda UNA sola orden</b>: la más visible
+          que tenga la app, la que pone el cruce <b>todo en rojo</b>. Es de mesa y es reversible.</p>
+        <p>Si la app no tiene ese botón, sirve escribirla a mano con el adaptador USB-TTL a
+          <b>9600</b>: <code>CMD:FORZAR_ROJO</code>. <b>Apunta por cuál de los dos caminos lo
+          hiciste.</b></p></span></div>
+      <div class="bloque"><span class="et">Comprueba</span><span class="tx">
+        <p><b>Las tres cosas, y las tres hacen falta:</b></p>
+        <p><b>1 ·</b> qué orden mandaste · <b>2 ·</b> qué contestó la pantalla del teléfono,
+          <b>literal</b> · <b>3 ·</b> qué hizo el semáforo, <b>mirando las lámparas con los ojos</b>.</p></span></div>
+      <div class="bloque ver"><span class="et">Tienes que ver</span><span class="tx">
+        <p>La pantalla contesta que la aceptó —las respuestas empiezan por <code>$ACK</code> si la
+          acepta y por <code>$ERR</code> si la rechaza— <b>y las lámparas hacen lo que dice</b>.</p>
+        <p>🔴 <b>Y esto es lo más importante de todo el apartado: si la pantalla dice que sí y las
+          lámparas no se mueven, ESE es el hallazgo.</b> Anótalo con las tres cosas escritas. Un
+          equipo que contesta «hecho» sin haberlo hecho <b>manda al técnico a casa creyendo que lo
+          dejó arreglado</b>, y eso no se descubre hasta que alguien va a mirar.</p>
+        <p>La lista completa de órdenes se prueba más adelante (apartado 08). <b>Aquí sólo se
+          comprueba que el camino de ida y vuelta existe.</b></p></span></div>
+      <div class="anota">
+        <p class="porque">¿Por qué camino? <input type="text" id="a13a" placeholder="app / adaptador USB-TTL"> &nbsp;
+          Orden que mandaste: <input type="text" id="a13b"></p>
+        <p class="porque" style="margin-top:.35rem">Qué contestó la pantalla, literal:</p>
+        <textarea id="a13c"></textarea>
+        <p class="porque" style="margin-top:.35rem">Qué hizo el semáforo:</p>
+        <textarea id="a13d" placeholder="p.ej.: los dos postes se pusieron en rojo y se quedaron / no cambió nada"></textarea>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p13" value="si"> Contesta y obedece</label>
+          <label class="no"><input type="radio" name="p13" value="no"> Contesta pero NO obedece</label>
+          <label class="np"><input type="radio" name="p13" value="np"> No se pudo</label>
+        </div>
+        <textarea id="t13" placeholder="Si contesta y no obedece, escríbelo aquí también: es el caso que más nos importa"></textarea>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-cab"><span class="paso-n">PASO 14</span>
+        <h3>Desenchufa un cable de datos y mira qué pasa · <b>y vuelve a enchufarlo</b></h3></div>
+      <div class="bloque ojo"><span class="et">Lee esto</span><span class="tx">
+        <p><b>Ésta es la prueba más útil del apartado y no la hace nadie.</b> Es exactamente lo que
+          va a pasar el día que ese cable se afloje en un poste, y lo que queremos saber es
+          <b>cuánto tarda en notarse</b> y <b>qué le enseña la app a quien esté mirando</b> mientras
+          tanto.</p></span></div>
+      <div class="bloque"><span class="et">Haz</span><span class="tx">
+        <p>Con la app conectada y datos llegando, <b>desenchufa el cable de la posición 3 de
+          <code>J17</code></b> —el que trae los datos del equipo— y <b>arranca el cronómetro en ese
+          mismo instante</b>. No toques nada más, y <b>no cierres la app</b>.</p>
+        <p>Espera hasta que la app diga algo, o hasta <b>dos minutos</b> si no dice nada.</p>
+        <p>Después <b>vuelve a enchufarlo</b> y cronometra otra vez.</p>
+        <p><b>Hazlo dos veces.</b> Una sola no distingue el comportamiento real de una casualidad.</p></span></div>
+      <div class="bloque"><span class="et">Comprueba</span><span class="tx">
+        <p><b>Cuántos segundos pasan hasta que se nota</b> en la pantalla del teléfono, y sobre todo
+          <b>qué enseña la app mientras tanto</b>: ¿lo dice? ¿se queda con el último número que
+          recibió? ¿sigue moviendo el cruce como si nada?</p>
+        <p>Y al volver a enchufar: <b>¿se recupera sola, o hay que cerrar la app y reconectar a
+          mano?</b> ¿cuánto tarda?</p></span></div>
+      <div class="bloque ver"><span class="et">Tienes que ver</span><span class="tx">
+        <p><b>La app tiene que decir que no hay enlace y quedarse quieta.</b> Un tablero parado que
+          admite que no sabe es lo correcto.</p>
+        <p>🔴 <b>Si con el cable fuera la app sigue enseñando un cruce que se mueve, eso es un fallo
+          y hay que anotarlo</b>: estaría pintando un semáforo que ya no está viendo, y alguien podría
+          decidir sobre el tráfico mirándolo.</p>
+        <p>Al volver a enchufar, <b>debería recuperarse sola</b>. Si hay que cerrar la app y volver a
+          conectar, no es una avería — pero <b>dilo</b>, porque cambia lo que hay que escribir en el
+          manual del técnico.</p></span></div>
+      <div class="anota">
+        <p class="porque">Vez 1 — tardó en notarse: <input type="text" id="a14a" style="max-width:5.5rem;display:inline-block"> s &nbsp;
+          Vez 2: <input type="text" id="a14b" style="max-width:5.5rem;display:inline-block"> s</p>
+        <p class="porque" style="margin-top:.3rem">Qué enseñó la app con el cable fuera:</p>
+        <textarea id="a14c" placeholder="p.ej.: puso «sin enlace» y se quedó quieta / se quedó con los últimos números / siguió moviendo el cruce"></textarea>
+        <p class="porque" style="margin-top:.35rem">Al volver a enchufar, tardó
+          <input type="text" id="a14d" style="max-width:5.5rem;display:inline-block"> s &nbsp;
+          ¿Se recuperó sola? <input type="text" id="a14e" style="max-width:7rem;display:inline-block"></p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p14" value="si"> Lo dice y se queda quieta</label>
+          <label class="no"><input type="radio" name="p14" value="no"> Sigue enseñando el cruce</label>
+          <label class="np"><input type="radio" name="p14" value="np"> No se pudo</label>
+        </div>
+        <textarea id="t14" placeholder="Qué hizo exactamente · si no se recuperó sola, qué hubo que hacer"></textarea>
+      </div>
+    </div>
+
+    <div class="aviso">
+      <strong>Al terminar este apartado, desmonta el enlace</strong>
+      <p><b>Los tres cables se quitan.</b> Este montaje es para la mesa: <b>no se deja puesto en un
+        equipo que va a la vía</b>, ni siquiera bien atado, ni siquiera «hasta la semana que viene».
+        Un cable suelto que se mueve es lo que acabas de comprobar en el paso 14.</p>
+      <p><b>Lo que hace falta para dejarlo montado es la placa del módulo con su fuente</b>, y
+        todavía no existe: el apartado 07 dice cómo tiene que ser, no cómo es.</p>
+    </div>
+
+    <div class="libre">
+      <b>¿Viste algo que no te esperabas montando el enlace?</b>
+      <p>Un pin rotulado de otra manera, un cable que no agarra, el módulo que se reinicia solo, la
+        app que tarda mucho, números que bailan. <b>Sin diagnosticar: sólo lo que viste.</b></p>
+      <textarea id="libmesa" style="min-height:3.5rem"></textarea>
+    </div>
+  </section>
+
+  <!-- =================================================================== -->
+  <section>
+    <h2><span class="n">05</span> La talanquera</h2>
     <p class="nota">La barrera va al conector <code>J15</code>. <b>Un borne a +12 V de la batería y
       el otro a la entrada de apertura de la centralita de la pluma.</b> La tarjeta lleva su propio
       transistor de potencia: <b>no hace falta módulo de relé externo</b>.</p>
 
     <div class="paso">
-      <div class="paso-cab"><span class="paso-n">PASO 9</span>
+      <div class="paso-cab"><span class="paso-n">PASO 15</span>
         <h3>Conecta la talanquera y mira <b>con qué luz SUBE</b></h3></div>
       <div class="bloque"><span class="et">Haz</span><span class="tx">
         <p>Con el equipo apagado, conecta los dos hilos a <code>J15</code>. Aprieta bien los bornes y
@@ -662,18 +1012,18 @@
           anótalo tal cual, no lo interpretes, y avisa antes de dejar el equipo funcionando.</p></span></div>
       <div class="anota">
         <p class="porque">La pluma empezó a subir con la luz en:
-          <input type="text" id="a9a" placeholder="verde / ámbar / rojo / otra cosa"></p>
+          <input type="text" id="a15a" placeholder="verde / ámbar / rojo / otra cosa"></p>
         <div class="tres">
-          <label class="si"><input type="radio" name="p9" value="si"> Sube, y con verde</label>
-          <label class="no"><input type="radio" name="p9" value="no"> Sube, pero con otra luz</label>
-          <label class="np"><input type="radio" name="p9" value="np"> No sube / no se pudo</label>
+          <label class="si"><input type="radio" name="p15" value="si"> Sube, y con verde</label>
+          <label class="no"><input type="radio" name="p15" value="no"> Sube, pero con otra luz</label>
+          <label class="np"><input type="radio" name="p15" value="np"> No sube / no se pudo</label>
         </div>
-        <textarea id="t9" placeholder="Qué luz había · si no sube, qué se midió en los bornes"></textarea>
+        <textarea id="t15" placeholder="Qué luz había · si no sube, qué se midió en los bornes"></textarea>
       </div>
     </div>
 
     <div class="paso">
-      <div class="paso-cab"><span class="paso-n">PASO 10</span>
+      <div class="paso-cab"><span class="paso-n">PASO 16</span>
         <h3>Mira <b>cuándo BAJA</b> la talanquera</h3></div>
       <div class="bloque"><span class="et">Haz</span><span class="tx">
         <p>Sigue mirando el mismo ciclo, sin tocar nada.</p></span></div>
@@ -685,13 +1035,13 @@
         <p>🔴 <b>Si se queda arriba con el semáforo en rojo, anótalo y avisa.</b></p></span></div>
       <div class="anota">
         <p class="porque">Empezó a bajar con la luz en:
-          <input type="text" id="a10a" placeholder="ámbar / rojo / no bajó"></p>
+          <input type="text" id="a16a" placeholder="ámbar / rojo / no bajó"></p>
         <div class="tres">
-          <label class="si"><input type="radio" name="p10" value="si"> Baja y queda abajo en rojo</label>
-          <label class="no"><input type="radio" name="p10" value="no"> NO baja o se queda a medias</label>
-          <label class="np"><input type="radio" name="p10" value="np"> No se pudo</label>
+          <label class="si"><input type="radio" name="p16" value="si"> Baja y queda abajo en rojo</label>
+          <label class="no"><input type="radio" name="p16" value="no"> NO baja o se queda a medias</label>
+          <label class="np"><input type="radio" name="p16" value="np"> No se pudo</label>
         </div>
-        <textarea id="t10" placeholder="Qué hizo exactamente"></textarea>
+        <textarea id="t16" placeholder="Qué hizo exactamente"></textarea>
       </div>
     </div>
 
@@ -703,14 +1053,14 @@
 
   <!-- =================================================================== -->
   <section>
-    <h2><span class="n">05</span> La cámara que pide paso</h2>
+    <h2><span class="n">06</span> La cámara que pide paso</h2>
     <p class="nota"><b>Hay dos sitios donde puede entrar una cámara, y hoy sólo uno está
       autorizado.</b> El conector <code>J14</code> está probado y se cablea en esta visita. Los pines
       10 y 12 de <code>J16</code> están preparados en el programa nuevo, <b>pero no se cablean hasta
-      hacer la medida del paso 15</b>.</p>
+      hacer la medida del paso 20</b>.</p>
 
     <div class="paso">
-      <div class="paso-cab"><span class="paso-n">PASO 11</span>
+      <div class="paso-cab"><span class="paso-n">PASO 17</span>
         <h3>Mira qué hay en los dos bornes de <code>J14</code></h3></div>
       <div class="bloque"><span class="et">Haz</span><span class="tx">
         <p>Equipo encendido, <b>sin nada conectado</b> en esa bornera. Multímetro en continua, punta
@@ -725,19 +1075,19 @@
         <p>🔴 <b>Si los dos dan 0 V, para y avisa</b>: el equipo estaría leyendo esa entrada al
           revés, y una cámara conectada así pediría paso todo el rato o no pediría nunca.</p></span></div>
       <div class="anota">
-        <p class="porque">Borne 1: <input type="text" id="a11a" style="max-width:6rem;display:inline-block"> V &nbsp;
-          Borne 2: <input type="text" id="a11b" style="max-width:6rem;display:inline-block"> V</p>
+        <p class="porque">Borne 1: <input type="text" id="a17a" style="max-width:6rem;display:inline-block"> V &nbsp;
+          Borne 2: <input type="text" id="a17b" style="max-width:6rem;display:inline-block"> V</p>
         <div class="tres">
-          <label class="si"><input type="radio" name="p11" value="si"> 3,3 V y 0 V</label>
-          <label class="no"><input type="radio" name="p11" value="no"> Otra cosa</label>
-          <label class="np"><input type="radio" name="p11" value="np"> No se pudo</label>
+          <label class="si"><input type="radio" name="p17" value="si"> 3,3 V y 0 V</label>
+          <label class="no"><input type="radio" name="p17" value="no"> Otra cosa</label>
+          <label class="np"><input type="radio" name="p17" value="np"> No se pudo</label>
         </div>
-        <textarea id="t11" placeholder="Si otra cosa: qué números"></textarea>
+        <textarea id="t17" placeholder="Si otra cosa: qué números"></textarea>
       </div>
     </div>
 
     <div class="paso">
-      <div class="paso-cab"><span class="paso-n">PASO 12</span>
+      <div class="paso-cab"><span class="paso-n">PASO 18</span>
         <h3>Conecta la cámara a <code>J14</code> y comprueba que <b>CONMUTA</b></h3></div>
       <div class="bloque"><span class="et">Haz</span><span class="tx">
         <p>Conecta los <b>dos hilos del contacto seco de la cámara</b> a los dos bornes de
@@ -756,18 +1106,18 @@
           de reposo cuando ya no hay nada.</p>
         <p><b>Que esté conectada no es que conmute.</b> Lo que hay que confirmar es el cambio.</p></span></div>
       <div class="anota">
-        <p class="porque">¿Cómo lo comprobaste? <input type="text" id="a12a" placeholder="testigo de la cámara / multímetro / la reacción del semáforo"></p>
+        <p class="porque">¿Cómo lo comprobaste? <input type="text" id="a18a" placeholder="testigo de la cámara / multímetro / la reacción del semáforo"></p>
         <div class="tres">
-          <label class="si"><input type="radio" name="p12" value="si"> Conmuta</label>
-          <label class="no"><input type="radio" name="p12" value="no"> NO conmuta</label>
-          <label class="np"><input type="radio" name="p12" value="np"> No se pudo</label>
+          <label class="si"><input type="radio" name="p18" value="si"> Conmuta</label>
+          <label class="no"><input type="radio" name="p18" value="no"> NO conmuta</label>
+          <label class="np"><input type="radio" name="p18" value="np"> No se pudo</label>
         </div>
-        <textarea id="t12" placeholder="Cuántas veces de cuántas · a qué distancia"></textarea>
+        <textarea id="t18" placeholder="Cuántas veces de cuántas · a qué distancia"></textarea>
       </div>
     </div>
 
     <div class="paso">
-      <div class="paso-cab"><span class="paso-n">PASO 13</span>
+      <div class="paso-cab"><span class="paso-n">PASO 19</span>
         <h3>Y que el semáforo <b>responda</b> a esa cámara</h3></div>
       <div class="bloque"><span class="et">Haz</span><span class="tx">
         <p>Con la cámara ya conectada, <b>o con un pulsador suelto entre los dos bornes de
@@ -785,19 +1135,19 @@
         <p><b>Al cerrar el contacto, ese poste pide paso</b>, el cruce hace su todo-rojo y <b>le
           concede el verde</b>.</p></span></div>
       <div class="anota">
-        <p class="porque">En reposo, ¿pidió paso solo? <input type="text" id="a13a" style="max-width:8rem;display:inline-block"> &nbsp;
-          Al cerrar, tardó <input type="text" id="a13b" style="max-width:6rem;display:inline-block"> segundos en dar verde</p>
+        <p class="porque">En reposo, ¿pidió paso solo? <input type="text" id="a19a" style="max-width:8rem;display:inline-block"> &nbsp;
+          Al cerrar, tardó <input type="text" id="a19b" style="max-width:6rem;display:inline-block"> segundos en dar verde</p>
         <div class="tres">
-          <label class="si"><input type="radio" name="p13" value="si"> Pide y le dan paso</label>
-          <label class="no"><input type="radio" name="p13" value="no"> NO responde, o pide solo</label>
-          <label class="np"><input type="radio" name="p13" value="np"> No se pudo</label>
+          <label class="si"><input type="radio" name="p19" value="si"> Pide y le dan paso</label>
+          <label class="no"><input type="radio" name="p19" value="no"> NO responde, o pide solo</label>
+          <label class="np"><input type="radio" name="p19" value="np"> No se pudo</label>
         </div>
-        <textarea id="t13" placeholder="Qué hizo en reposo · qué hizo al cerrar"></textarea>
+        <textarea id="t19" placeholder="Qué hizo en reposo · qué hizo al cerrar"></textarea>
       </div>
     </div>
 
     <div class="paso parada">
-      <div class="paso-cab"><span class="paso-n">PASO 14</span>
+      <div class="paso-cab"><span class="paso-n">PASO 20</span>
         <h3>Antes de tocar las cámaras de <code>J16</code>: la medida que lo decide</h3></div>
       <div class="bloque ojo"><span class="et">Lee esto</span><span class="tx">
         <p>🔴 <b>Los pines 10 y 12 de <code>J16</code> no llevan resistencia interna de reposo.</b>
@@ -833,27 +1183,27 @@
           <table>
             <thead><tr><th>Pin de <code>J16</code></th><th>Ω contra masa (pin 2)</th><th>Ω contra 3,3 V (pin 4)</th><th>Tensión con energía</th></tr></thead>
             <tbody>
-              <tr><td><b>5</b></td><td><input type="text" id="a14a"></td><td><input type="text" id="a14b"></td><td><input type="text" id="a14c"></td></tr>
-              <tr><td><b>8</b></td><td><input type="text" id="a14d"></td><td><input type="text" id="a14e"></td><td><input type="text" id="a14f"></td></tr>
-              <tr><td><b>10</b></td><td><input type="text" id="a14g"></td><td><input type="text" id="a14h"></td><td><input type="text" id="a14i"></td></tr>
-              <tr><td><b>12</b></td><td><input type="text" id="a14j"></td><td><input type="text" id="a14k"></td><td><input type="text" id="a14l"></td></tr>
+              <tr><td><b>5</b></td><td><input type="text" id="a20a"></td><td><input type="text" id="a20b"></td><td><input type="text" id="a20c"></td></tr>
+              <tr><td><b>8</b></td><td><input type="text" id="a20d"></td><td><input type="text" id="a20e"></td><td><input type="text" id="a20f"></td></tr>
+              <tr><td><b>10</b></td><td><input type="text" id="a20g"></td><td><input type="text" id="a20h"></td><td><input type="text" id="a20i"></td></tr>
+              <tr><td><b>12</b></td><td><input type="text" id="a20j"></td><td><input type="text" id="a20k"></td><td><input type="text" id="a20l"></td></tr>
             </tbody>
           </table>
         </div>
         <div class="tres">
-          <label class="si"><input type="radio" name="p14" value="si"> ~10 kΩ a masa y ~0 V · se puede cablear</label>
-          <label class="no"><input type="radio" name="p14" value="no"> Abierto o ~3,3 V · NO se cablea</label>
-          <label class="np"><input type="radio" name="p14" value="np"> No se pudo</label>
+          <label class="si"><input type="radio" name="p20" value="si"> ~10 kΩ a masa y ~0 V · se puede cablear</label>
+          <label class="no"><input type="radio" name="p20" value="no"> Abierto o ~3,3 V · NO se cablea</label>
+          <label class="np"><input type="radio" name="p20" value="np"> No se pudo</label>
         </div>
-        <textarea id="t14" placeholder="¿Difiere alguno de los cuatro? ¿cuál y en qué? · si no se pudo, por qué"></textarea>
+        <textarea id="t20" placeholder="¿Difiere alguno de los cuatro? ¿cuál y en qué? · si no se pudo, por qué"></textarea>
       </div>
     </div>
 
     <div class="paso">
-      <div class="paso-cab"><span class="paso-n">PASO 15</span>
-        <h3>Sólo si el paso 14 salió bien: cablea la cámara a <code>J16</code></h3></div>
+      <div class="paso-cab"><span class="paso-n">PASO 21</span>
+        <h3>Sólo si el paso 20 salió bien: cablea la cámara a <code>J16</code></h3></div>
       <div class="bloque ojo"><span class="et">Lee esto</span><span class="tx">
-        <p>🔴 <b>Si el paso 14 no salió bien, este paso NO se hace.</b> Marca «No se pudo» abajo con
+        <p>🔴 <b>Si el paso 20 no salió bien, este paso NO se hace.</b> Marca «No se pudo» abajo con
           el motivo «pendiente de la medida» y pasa al siguiente.</p>
         <p>🔴 <b>Y sólo si ya cargaste el programa nuevo en el paso 2.</b> Con el programa viejo
           dentro, el pin 10 es el botón de Aceptar.</p></span></div>
@@ -873,14 +1223,14 @@
           conmuta y en pocos segundos el cruce le da paso a ese sentido</b>.</p>
         <p>🔴 <b>Si pide paso sin que nadie pase, desconecta el cable y anótalo.</b></p></span></div>
       <div class="anota">
-        <p class="porque">¿En qué pin la pusiste? <input type="text" id="a15a" style="max-width:6rem;display:inline-block"> &nbsp;
-          ¿Cómo quedó configurada la cámara? <input type="text" id="a15b" placeholder="normalmente abierto / cerrado"></p>
+        <p class="porque">¿En qué pin la pusiste? <input type="text" id="a21a" style="max-width:6rem;display:inline-block"> &nbsp;
+          ¿Cómo quedó configurada la cámara? <input type="text" id="a21b" placeholder="normalmente abierto / cerrado"></p>
         <div class="tres">
-          <label class="si"><input type="radio" name="p15" value="si"> Cableada y responde</label>
-          <label class="no"><input type="radio" name="p15" value="no"> Cableada pero NO responde</label>
-          <label class="np"><input type="radio" name="p15" value="np"> No se cableó</label>
+          <label class="si"><input type="radio" name="p21" value="si"> Cableada y responde</label>
+          <label class="no"><input type="radio" name="p21" value="no"> Cableada pero NO responde</label>
+          <label class="np"><input type="radio" name="p21" value="np"> No se cableó</label>
         </div>
-        <textarea id="t15" placeholder="Si no se cableó, por qué · si no responde, qué hace"></textarea>
+        <textarea id="t21" placeholder="Si no se cableó, por qué · si no responde, qué hace"></textarea>
       </div>
     </div>
 
@@ -894,11 +1244,14 @@
 
   <!-- =================================================================== -->
   <section>
-    <h2><span class="n">06</span> El módulo Bluetooth y su placa</h2>
-    <p class="nota">El módulo ESP32 <b>no se cuelga con cables sueltos</b>: va enchufado sobre una
-      placa propia que hay que construir, con su fuente y con el reloj encima. <b>Esa placa todavía
-      no existe.</b> Si vas a montarlo hoy con cables, los pasos siguientes valen igual — apunta que
-      lo hiciste así.</p>
+    <h2><span class="n">07</span> El módulo Bluetooth y su placa</h2>
+    <p class="nota">Esto es el <b>montaje definitivo</b>, el que se queda puesto en el poste: el
+      módulo <b>no se cuelga con cables sueltos</b>, va enchufado sobre una placa propia que hay que
+      construir, con su fuente y con el reloj encima. <b>Esa placa todavía no existe.</b></p>
+    <p class="nota">⚠️ <b>El enlace con el teléfono ya se probó sobre la mesa en el apartado 04</b>,
+      con tres cables y el USB del módulo. <b>Si la placa no está construida, este apartado se marca
+      «No se pudo» con ese motivo</b> y no pasa nada: lo que hay que traer contestado son los pasos
+      9 a 14. <b>Lo que no vale es dejar el montaje de mesa puesto en un equipo que va a la vía.</b></p>
 
     <div class="diagrama">
 <pre>            12 V DE LA CAJA (es una BATERIA: no da 12,00 V fijos)
@@ -938,7 +1291,7 @@
     </div>
 
     <div class="paso">
-      <div class="paso-cab"><span class="paso-n">PASO 16</span>
+      <div class="paso-cab"><span class="paso-n">PASO 22</span>
         <h3>Monta la placa del módulo y mide su fuente</h3></div>
       <div class="bloque ojo"><span class="et">Lee esto</span><span class="tx">
         <p>🔴 <b>La fuente del módulo tiene que ser CONMUTADA, no lineal.</b> El módulo da picos de
@@ -979,27 +1332,27 @@
         <p><b>El regulador no debería estar caliente.</b> 🔴 <b>Si quema, anótalo y no dejes la placa
           montada.</b></p></span></div>
       <div class="anota">
-        <p class="porque">12 V de la caja en reposo: <input type="text" id="a16a" style="max-width:6rem;display:inline-block"> V &nbsp;
-          con el equipo funcionando: <input type="text" id="a16b" style="max-width:6rem;display:inline-block"> V</p>
-        <p class="porque" style="margin-top:.3rem">Salida de la fuente en vacío: <input type="text" id="a16c" style="max-width:6rem;display:inline-block"> V &nbsp;
-          transmitiendo: <input type="text" id="a16d" style="max-width:6rem;display:inline-block"> V</p>
-        <p class="porque" style="margin-top:.3rem">Referencia de la fuente que montaste: <input type="text" id="a16e"></p>
+        <p class="porque">12 V de la caja en reposo: <input type="text" id="a22a" style="max-width:6rem;display:inline-block"> V &nbsp;
+          con el equipo funcionando: <input type="text" id="a22b" style="max-width:6rem;display:inline-block"> V</p>
+        <p class="porque" style="margin-top:.3rem">Salida de la fuente en vacío: <input type="text" id="a22c" style="max-width:6rem;display:inline-block"> V &nbsp;
+          transmitiendo: <input type="text" id="a22d" style="max-width:6rem;display:inline-block"> V</p>
+        <p class="porque" style="margin-top:.3rem">Referencia de la fuente que montaste: <input type="text" id="a22e"></p>
         <p class="porque" style="margin-top:.3rem">¿Lleva fusible y protección de polaridad?
-          <input type="text" id="a16f" style="max-width:7rem;display:inline-block"> &nbsp;
+          <input type="text" id="a22f" style="max-width:7rem;display:inline-block"> &nbsp;
           ¿Queda el USB del módulo accesible con todo montado?
-          <input type="text" id="a16g" style="max-width:7rem;display:inline-block"> &nbsp;
-          Regulador al tacto tras 30 min: <input type="text" id="a16h" style="max-width:9rem;display:inline-block"></p>
+          <input type="text" id="a22g" style="max-width:7rem;display:inline-block"> &nbsp;
+          Regulador al tacto tras 30 min: <input type="text" id="a22h" style="max-width:9rem;display:inline-block"></p>
         <div class="tres">
-          <label class="si"><input type="radio" name="p16" value="si"> Montada y aguanta</label>
-          <label class="no"><input type="radio" name="p16" value="no"> Cae o calienta</label>
-          <label class="np"><input type="radio" name="p16" value="np"> No hay placa todavía</label>
+          <label class="si"><input type="radio" name="p22" value="si"> Montada y aguanta</label>
+          <label class="no"><input type="radio" name="p22" value="no"> Cae o calienta</label>
+          <label class="np"><input type="radio" name="p22" value="np"> No hay placa todavía</label>
         </div>
-        <textarea id="t16" placeholder="Si no hay placa: escribe «placa no construida». Si montaste con cables sueltos, dilo aquí"></textarea>
+        <textarea id="t22" placeholder="Si no hay placa: escribe «placa no construida». Si montaste con cables sueltos, dilo aquí"></textarea>
       </div>
     </div>
 
     <div class="paso parada">
-      <div class="paso-cab"><span class="paso-n">PASO 17</span>
+      <div class="paso-cab"><span class="paso-n">PASO 23</span>
         <h3>Antes de unir los hilos de datos: masa común y reposo</h3></div>
       <div class="bloque ojo"><span class="et">Lee esto</span><span class="tx">
         <p>🔴 <b>Este paso protege al micro del semáforo</b>, y va con <b>los hilos de datos todavía
@@ -1022,20 +1375,20 @@
         <p><code>GPIO17</code> en reposo, <b>3,3 V</b>. 🔴 <b>Si diera 5 V, el módulo no es el que
           creemos</b>: para y vuelve al paso 1.</p></span></div>
       <div class="anota">
-        <p class="porque">Masa contra masa: <input type="text" id="a17a" style="max-width:6rem;display:inline-block"> mV &nbsp;
-          <code>GPIO17</code> en reposo: <input type="text" id="a17b" style="max-width:6rem;display:inline-block"> V &nbsp;
-          ¿Está la posición 6 de <code>J17</code> sin conectar? <input type="text" id="a17c" style="max-width:6rem;display:inline-block"></p>
+        <p class="porque">Masa contra masa: <input type="text" id="a23a" style="max-width:6rem;display:inline-block"> mV &nbsp;
+          <code>GPIO17</code> en reposo: <input type="text" id="a23b" style="max-width:6rem;display:inline-block"> V &nbsp;
+          ¿Está la posición 6 de <code>J17</code> sin conectar? <input type="text" id="a23c" style="max-width:6rem;display:inline-block"></p>
         <div class="tres">
-          <label class="si"><input type="radio" name="p17" value="si"> Menos de 50 mV y 3,3 V</label>
-          <label class="no"><input type="radio" name="p17" value="no"> Otra cosa · no se unieron</label>
-          <label class="np"><input type="radio" name="p17" value="np"> No se pudo</label>
+          <label class="si"><input type="radio" name="p23" value="si"> Menos de 50 mV y 3,3 V</label>
+          <label class="no"><input type="radio" name="p23" value="no"> Otra cosa · no se unieron</label>
+          <label class="np"><input type="radio" name="p23" value="np"> No se pudo</label>
         </div>
-        <textarea id="t17" placeholder="Qué números salieron"></textarea>
+        <textarea id="t23" placeholder="Qué números salieron"></textarea>
       </div>
     </div>
 
     <div class="paso">
-      <div class="paso-cab"><span class="paso-n">PASO 18</span>
+      <div class="paso-cab"><span class="paso-n">PASO 24</span>
         <h3>Une los cuatro hilos a <code>J17</code></h3></div>
       <div class="bloque"><span class="et">Haz</span><span class="tx">
         <p><b>Los hilos de datos van CRUZADOS</b>, que es como va siempre un puerto serie. Es lo que
@@ -1056,19 +1409,22 @@ alimentacion                J17 posicion 6  NO SE CONECTA</pre>
           se rompe nada</b>: simplemente no comunicará, y se cambian.</p></span></div>
       <div class="anota">
         <div class="tres">
-          <label class="si"><input type="radio" name="p18" value="si"> Conectado</label>
-          <label class="no"><input type="radio" name="p18" value="no"> Con dudas</label>
-          <label class="np"><input type="radio" name="p18" value="np"> No se conectó</label>
+          <label class="si"><input type="radio" name="p24" value="si"> Conectado</label>
+          <label class="no"><input type="radio" name="p24" value="no"> Con dudas</label>
+          <label class="np"><input type="radio" name="p24" value="np"> No se conectó</label>
         </div>
-        <textarea id="t18" placeholder="Si hubo que intercambiar los hilos de datos, dilo aquí"></textarea>
+        <textarea id="t24" placeholder="Si hubo que intercambiar los hilos de datos, dilo aquí"></textarea>
       </div>
     </div>
 
     <div class="paso">
-      <div class="paso-cab"><span class="paso-n">PASO 19</span>
+      <div class="paso-cab"><span class="paso-n">PASO 25</span>
         <h3>El módulo en la lista del teléfono: <b>copia el nombre literal</b></h3></div>
       <div class="bloque"><span class="et">Haz</span><span class="tx">
-        <p>Con el móvil, abre la lista de dispositivos Bluetooth y busca los módulos.</p></span></div>
+        <p>Con el móvil, abre la lista de dispositivos Bluetooth y busca los módulos.</p>
+        <p>⚠️ <b>Esto ya lo hiciste sobre la mesa en el paso 10.</b> Aquí se repite <b>sobre el
+          montaje definitivo y con los dos postes</b>: <b>si el resultado cambia, ese cambio es el
+          hallazgo</b> — anótalo.</p></span></div>
       <div class="bloque"><span class="et">Comprueba</span><span class="tx">
         <p><b>Copia el nombre exactamente como sale</b>, carácter por carácter, y <b>anota también la
           dirección MAC</b> de cada uno.</p></span></div>
@@ -1082,25 +1438,28 @@ alimentacion                J17 posicion 6  NO SE CONECTA</pre>
           es un fallo tuyo.</b> El programa que pone el nombre se entrega aparte y puede que todavía
           no esté cargado en el módulo.</p></span></div>
       <div class="anota">
-        <p class="porque">Maestro — nombre: <input type="text" id="a19a"></p>
-        <p class="porque">Maestro — MAC: <input type="text" id="a19b" placeholder="__:__:__:__:__:__"></p>
-        <p class="porque">Esclavo — nombre: <input type="text" id="a19c"></p>
-        <p class="porque">Esclavo — MAC: <input type="text" id="a19d" placeholder="__:__:__:__:__:__"></p>
+        <p class="porque">Maestro — nombre: <input type="text" id="a25a"></p>
+        <p class="porque">Maestro — MAC: <input type="text" id="a25b" placeholder="__:__:__:__:__:__"></p>
+        <p class="porque">Esclavo — nombre: <input type="text" id="a25c"></p>
+        <p class="porque">Esclavo — MAC: <input type="text" id="a25d" placeholder="__:__:__:__:__:__"></p>
         <div class="tres">
-          <label class="si"><input type="radio" name="p19" value="si"> Aparecen los dos</label>
-          <label class="no"><input type="radio" name="p19" value="no"> NO aparecen / nombre raro</label>
-          <label class="np"><input type="radio" name="p19" value="np"> No se pudo</label>
+          <label class="si"><input type="radio" name="p25" value="si"> Aparecen los dos</label>
+          <label class="no"><input type="radio" name="p25" value="no"> NO aparecen / nombre raro</label>
+          <label class="np"><input type="radio" name="p25" value="np"> No se pudo</label>
         </div>
-        <textarea id="t19" placeholder="Qué salió en la lista"></textarea>
+        <textarea id="t25" placeholder="Qué salió en la lista"></textarea>
       </div>
     </div>
 
     <div class="paso">
-      <div class="paso-cab"><span class="paso-n">PASO 20</span>
+      <div class="paso-cab"><span class="paso-n">PASO 26</span>
         <h3>La app: <b>qué números enseña</b></h3></div>
       <div class="bloque"><span class="et">Haz</span><span class="tx">
         <p>Empareja con el módulo del Maestro (PIN <code>1234</code>, y si no <code>0000</code>) y
-          abre la aplicación.</p></span></div>
+          abre la aplicación.</p>
+        <p>⚠️ <b>Repite aquí lo de los pasos 11 y 12</b>, sobre el montaje definitivo. <b>Si sobre la
+          mesa llegaban datos y sobre la placa no, el problema está en la placa</b>, y eso es
+          justamente lo que este paso sirve para separar.</p></span></div>
       <div class="bloque"><span class="et">Comprueba</span><span class="tx">
         <p><b>Anota qué números y qué textos enseña la pantalla</b>, aunque parezcan raros. Después,
           <b>apaga el equipo con la app abierta</b> y mira qué hace.</p></span></div>
@@ -1116,19 +1475,19 @@ alimentacion                J17 posicion 6  NO SE CONECTA</pre>
           anótalo.</p></span></div>
       <div class="anota">
         <p class="porque">Qué enseñaba la pantalla (copia los números):</p>
-        <textarea id="a20a" style="min-height:3.2rem"></textarea>
-        <p class="porque" style="margin-top:.35rem">Con el equipo apagado, la app: <input type="text" id="a20b" placeholder="dijo que no hay enlace / siguió animando / otra cosa"></p>
+        <textarea id="a26a" style="min-height:3.2rem"></textarea>
+        <p class="porque" style="margin-top:.35rem">Con el equipo apagado, la app: <input type="text" id="a26b" placeholder="dijo que no hay enlace / siguió animando / otra cosa"></p>
         <div class="tres">
-          <label class="si"><input type="radio" name="p20" value="si"> Conecta y enseña datos</label>
-          <label class="no"><input type="radio" name="p20" value="no"> NO conecta o no enseña</label>
-          <label class="np"><input type="radio" name="p20" value="np"> No se pudo</label>
+          <label class="si"><input type="radio" name="p26" value="si"> Conecta y enseña datos</label>
+          <label class="no"><input type="radio" name="p26" value="no"> NO conecta o no enseña</label>
+          <label class="np"><input type="radio" name="p26" value="np"> No se pudo</label>
         </div>
-        <textarea id="t20" placeholder="Si no conecta: hasta dónde llegaste (ver la sección 08)"></textarea>
+        <textarea id="t26" placeholder="Si no conecta: hasta dónde llegaste (ver la sección 09)"></textarea>
       </div>
     </div>
 
     <div class="paso">
-      <div class="paso-cab"><span class="paso-n">PASO 21</span>
+      <div class="paso-cab"><span class="paso-n">PASO 27</span>
         <h3>El reloj: pon la hora y mira si la acepta</h3></div>
       <div class="bloque"><span class="et">Haz</span><span class="tx">
         <p>Desde la app, <b>pon la hora en cada equipo</b>. Luego <b>apaga</b> esa tarjeta, espera un
@@ -1148,18 +1507,18 @@ alimentacion                J17 posicion 6  NO SE CONECTA</pre>
         <p><b>Sólo importa cuál de las dos falla.</b> Si la que pierde la hora es la del Esclavo, no
           hay que comprar nada: la coge del Maestro por radio.</p></span></div>
       <div class="anota">
-        <p class="porque">Maestro — hora antes de apagar: <input type="text" id="a21a" style="max-width:9rem;display:inline-block"> &nbsp;
-          al reencender: <input type="text" id="a21b" style="max-width:9rem;display:inline-block"></p>
-        <p class="porque" style="margin-top:.3rem">Esclavo — hora antes de apagar: <input type="text" id="a21c" style="max-width:9rem;display:inline-block"> &nbsp;
-          al reencender: <input type="text" id="a21d" style="max-width:9rem;display:inline-block"></p>
+        <p class="porque">Maestro — hora antes de apagar: <input type="text" id="a27a" style="max-width:9rem;display:inline-block"> &nbsp;
+          al reencender: <input type="text" id="a27b" style="max-width:9rem;display:inline-block"></p>
+        <p class="porque" style="margin-top:.3rem">Esclavo — hora antes de apagar: <input type="text" id="a27c" style="max-width:9rem;display:inline-block"> &nbsp;
+          al reencender: <input type="text" id="a27d" style="max-width:9rem;display:inline-block"></p>
         <p class="porque" style="margin-top:.3rem">Qué contestó cada uno al ponerle la hora:</p>
-        <textarea id="a21e"></textarea>
+        <textarea id="a27e"></textarea>
         <div class="tres">
-          <label class="si"><input type="radio" name="p21" value="si"> Los dos conservan la hora</label>
-          <label class="no"><input type="radio" name="p21" value="no"> Uno la pierde · ¿cuál?</label>
-          <label class="np"><input type="radio" name="p21" value="np"> No se pudo</label>
+          <label class="si"><input type="radio" name="p27" value="si"> Los dos conservan la hora</label>
+          <label class="no"><input type="radio" name="p27" value="no"> Uno la pierde · ¿cuál?</label>
+          <label class="np"><input type="radio" name="p27" value="np"> No se pudo</label>
         </div>
-        <textarea id="t21" placeholder="Cuál la pierde · o por qué no se pudo probar"></textarea>
+        <textarea id="t27" placeholder="Cuál la pierde · o por qué no se pudo probar"></textarea>
       </div>
     </div>
 
@@ -1171,13 +1530,13 @@ alimentacion                J17 posicion 6  NO SE CONECTA</pre>
 
   <!-- =================================================================== -->
   <section>
-    <h2><span class="n">07</span> Órdenes desde el teléfono</h2>
+    <h2><span class="n">08</span> Órdenes desde el teléfono</h2>
     <p class="nota">Estos dos pasos comprueban que el equipo <b>obedece cuando puede</b> y sobre todo
       que <b>dice que NO cuando no puede</b>. Lo segundo es más importante que lo primero: un equipo
       que contesta «hecho» sin hacerlo manda al técnico a casa creyendo que lo dejó arreglado.</p>
 
     <div class="paso">
-      <div class="paso-cab"><span class="paso-n">PASO 22</span>
+      <div class="paso-cab"><span class="paso-n">PASO 28</span>
         <h3>Manda las órdenes y <b>copia lo que contesta, literal</b></h3></div>
       <div class="bloque"><span class="et">Haz</span><span class="tx">
         <p>Desde la app, o escribiendo la orden a mano con el adaptador USB-TTL a <b>9600</b>, manda
@@ -1212,30 +1571,30 @@ Y en cualquiera de los dos, con el PIN MAL a proposito:
         <p>· <code>SET_MODO:ALCANCE</code> con el equipo en marcha <b>tiene que ser rechazada</b>.</p>
         <p>· <code>DEMANDA</code> fuera del modo inteligente <b>tiene que ser rechazada</b>.</p>
         <p>· <b>Poner la hora en una tarjeta con el reloj averiado tiene que ser rechazado</b> (lo
-          viste en el paso 21).</p>
+          viste en el paso 27).</p>
         <p><b>Con el PIN mal</b>, tiene que rechazarla <b>y el modo no puede cambiar</b>. Compruébalo
           mirando las luces, no sólo la respuesta.</p>
         <p>🔴 <b>Y una que hay que mirar con los ojos, no en la pantalla:</b> con
           <code>TEST_LEDS</code> en el Maestro, <b>las lámparas se encienden pero la talanquera NO se
           puede mover</b>. Si la pluma sube durante esa prueba, anótalo — es importante.</p></span></div>
       <div class="anota">
-        <p class="porque">¿Por qué camino lo hiciste? <input type="text" id="a22a" placeholder="app / adaptador USB-TTL"></p>
+        <p class="porque">¿Por qué camino lo hiciste? <input type="text" id="a28a" placeholder="app / adaptador USB-TTL"></p>
         <p class="porque" style="margin-top:.35rem">Respuesta literal de cada orden:</p>
-        <textarea id="a22b" style="min-height:6rem" placeholder="MENU:&#10;ALCANCE:&#10;INTELIGENTE:&#10;DEGRADADO:&#10;REINICIAR_RELOJ:&#10;DEMANDA:&#10;TEST_LEDS Maestro:&#10;FORZAR_ROJO Maestro:&#10;AMBAR_EMERGENCIA Esclavo:&#10;FORZAR_ROJO Esclavo:&#10;TEST_LEDS Esclavo:&#10;PIN mal:"></textarea>
+        <textarea id="a28b" style="min-height:6rem" placeholder="MENU:&#10;ALCANCE:&#10;INTELIGENTE:&#10;DEGRADADO:&#10;REINICIAR_RELOJ:&#10;DEMANDA:&#10;TEST_LEDS Maestro:&#10;FORZAR_ROJO Maestro:&#10;AMBAR_EMERGENCIA Esclavo:&#10;FORZAR_ROJO Esclavo:&#10;TEST_LEDS Esclavo:&#10;PIN mal:"></textarea>
         <p class="porque" style="margin-top:.35rem">¿Se movió la talanquera durante <code>TEST_LEDS</code>?
-          <input type="text" id="a22c" style="max-width:8rem;display:inline-block"> &nbsp;
-          Con el PIN mal, ¿cambió el modo? <input type="text" id="a22d" style="max-width:8rem;display:inline-block"></p>
+          <input type="text" id="a28c" style="max-width:8rem;display:inline-block"> &nbsp;
+          Con el PIN mal, ¿cambió el modo? <input type="text" id="a28d" style="max-width:8rem;display:inline-block"></p>
         <div class="tres">
-          <label class="si"><input type="radio" name="p22" value="si"> Todas contestan lo que toca</label>
-          <label class="no"><input type="radio" name="p22" value="no"> Alguna no</label>
-          <label class="np"><input type="radio" name="p22" value="np"> No se pudo</label>
+          <label class="si"><input type="radio" name="p28" value="si"> Todas contestan lo que toca</label>
+          <label class="no"><input type="radio" name="p28" value="no"> Alguna no</label>
+          <label class="np"><input type="radio" name="p28" value="np"> No se pudo</label>
         </div>
-        <textarea id="t22" placeholder="Cuál falló y qué contestó"></textarea>
+        <textarea id="t28" placeholder="Cuál falló y qué contestó"></textarea>
       </div>
     </div>
 
     <div class="paso">
-      <div class="paso-cab"><span class="paso-n">PASO 23</span>
+      <div class="paso-cab"><span class="paso-n">PASO 29</span>
         <h3>El mando de relés, si hay receptor</h3></div>
       <div class="bloque"><span class="et">Haz</span><span class="tx">
         <p>⚠️ <b>El receptor del mando nunca se compró.</b> La tarjeta tiene las entradas preparadas,
@@ -1256,17 +1615,17 @@ Y en cualquiera de los dos, con el PIN MAL a proposito:
           <b>B·B·B</b> y luego <b>manda una orden desde la app</b>. <b>El Esclavo NO debe salir del
           ámbar</b>: tiene que ignorarla. <b>Si obedece, anótalo</b> — es un hallazgo importante.</p></span></div>
       <div class="anota">
-        <p class="porque">A·A·A: <input type="text" id="a23a"></p>
-        <p class="porque">B·B·B: <input type="text" id="a23b"></p>
-        <p class="porque">A·B·A·B: <input type="text" id="a23c" placeholder="¿4 destellos rojos? ¿ámbar rápido?"></p>
+        <p class="porque">A·A·A: <input type="text" id="a29a"></p>
+        <p class="porque">B·B·B: <input type="text" id="a29b"></p>
+        <p class="porque">A·B·A·B: <input type="text" id="a29c" placeholder="¿4 destellos rojos? ¿ámbar rápido?"></p>
         <p class="porque">Con ámbar local puesto, ¿el Esclavo obedeció la orden de la app?
-          <input type="text" id="a23d"></p>
+          <input type="text" id="a29d"></p>
         <div class="tres">
-          <label class="si"><input type="radio" name="p23" value="si"> Las tres funcionan</label>
-          <label class="no"><input type="radio" name="p23" value="no"> Alguna no</label>
-          <label class="np"><input type="radio" name="p23" value="np"> No se pudo · sin receptor</label>
+          <label class="si"><input type="radio" name="p29" value="si"> Las tres funcionan</label>
+          <label class="no"><input type="radio" name="p29" value="no"> Alguna no</label>
+          <label class="np"><input type="radio" name="p29" value="np"> No se pudo · sin receptor</label>
         </div>
-        <textarea id="t23" placeholder="Qué pasó · si hubo interferencias con los botones"></textarea>
+        <textarea id="t29" placeholder="Qué pasó · si hubo interferencias con los botones"></textarea>
       </div>
     </div>
 
@@ -1278,9 +1637,10 @@ Y en cualquiera de los dos, con el PIN MAL a proposito:
 
   <!-- =================================================================== -->
   <section>
-    <h2><span class="n">08</span> Si conectas el módulo y no llega nada</h2>
+    <h2><span class="n">09</span> Si conectas el módulo y no llega nada</h2>
     <p class="nota">Aquí se va la primera hora si se improvisa. <b>Míralo en este orden</b>, y no
-      cambies piezas hasta el final.</p>
+      cambies piezas hasta el final. <b>Vale igual para el enlace de mesa del apartado 04</b>: allí
+      la alimentación del módulo es su propio USB, y la masa común es el tercer cable.</p>
 
     <div class="aviso info">
       <strong>Tres cosas que se confunden todo el rato</strong>
@@ -1316,7 +1676,7 @@ Y en cualquiera de los dos, con el PIN MAL a proposito:
 
    (b) LA MASA COMUN. Es lo que mas falta en un montaje de dos fuentes.
        Sin ella los dos hilos de datos no tienen referencia: silencio o basura.
-       Masa contra masa, menos de 50 mV (paso 17).
+       Masa contra masa, menos de 50 mV (paso 23).
 
    (c) LA VELOCIDAD: las dos puntas a 9600.
        El sintoma de una velocidad equivocada es IDENTICO al de un cable
@@ -1356,7 +1716,7 @@ Y en cualquiera de los dos, con el PIN MAL a proposito:
 
   <!-- =================================================================== -->
   <section>
-    <h2><span class="n">09</span> Material de consulta</h2>
+    <h2><span class="n">10</span> Material de consulta</h2>
     <p class="nota">No hay que leerlo de arriba abajo. Está aquí para mirar un dato concreto mientras
       se hace un paso.</p>
 
@@ -1401,7 +1761,7 @@ Y en cualquiera de los dos, con el PIN MAL a proposito:
             <td><code>J16</code></td>
             <td>🔴 <b>12 V + mando + cámaras</b></td>
             <td><b>Posición 1: 12 V crudos — se tapa.</b> Posiciones 5 y 8: mando de relés (se
-              quedan). Posiciones 10 y 12: <b>cámaras</b>, y <b>no se cablean hasta el paso 14</b>.
+              quedan). Posiciones 10 y 12: <b>cámaras</b>, y <b>no se cablean hasta el paso 20</b>.
               La 10 es la que más lejos está de los 12 V</td>
           </tr>
           <tr>
@@ -1460,7 +1820,7 @@ Y en cualquiera de los dos, con el PIN MAL a proposito:
 
   <!-- =================================================================== -->
   <section>
-    <h2><span class="n">10</span> Lo que esta visita NO decide</h2>
+    <h2><span class="n">11</span> Lo que esta visita NO decide</h2>
     <p class="nota">Se escribe para que nadie dé por bueno lo que no se ha comprobado.</p>
     <div class="tabla-envoltorio">
       <table>
@@ -1469,10 +1829,14 @@ Y en cualquiera de los dos, con el PIN MAL a proposito:
           <tr><td><b>Que la tarjeta sea igual que el plano</b></td>
             <td>Todo lo que dice esta guía sobre pines y recorridos <b>sale del plano</b>. <b>Nadie
               lo ha comprobado nunca sobre una tarjeta fabricada</b>: eso es justo lo que hacen los
-              pasos 3, 5 y 14</td></tr>
+              pasos 3, 5 y 20</td></tr>
+          <tr><td><b>El enlace montado sobre la mesa</b></td>
+            <td>Los pasos 9 a 14 se hacen con <b>tres cables sueltos y un cargador</b>. <b>Eso prueba
+              que el equipo y el teléfono se hablan; no autoriza a dejar nada puesto en un poste</b>,
+              y los cables se quitan al terminar</td></tr>
           <tr><td><b>La placa del módulo</b></td>
             <td>🔴 <b>No existe.</b> No está diseñada, no está fabricada y no está medida. El
-              apartado 06 dice cómo tiene que ser, no cómo es</td></tr>
+              apartado 07 dice cómo tiene que ser, no cómo es</td></tr>
           <tr><td><b>La fuente del módulo</b></td>
             <td><b>No está comprada</b> y la referencia concreta <b>no está elegida</b></td></tr>
           <tr><td><b>El programa del módulo Bluetooth</b></td>
@@ -1491,7 +1855,7 @@ Y en cualquiera de los dos, con el PIN MAL a proposito:
 
   <!-- =================================================================== -->
   <section>
-    <h2><span class="n">11</span> Cierre</h2>
+    <h2><span class="n">12</span> Cierre</h2>
     <div class="libre">
       <b>Lo que viste y nadie pensó en preguntarte</b>
       <p><b>Ésta es la mitad del valor de que vayas tú.</b> Todo lo raro va aquí, aunque no parezca
@@ -1519,9 +1883,11 @@ Y en cualquiera de los dos, con el PIN MAL a proposito:
     <div><b>Si algo no se puede medir, márcalo «No se pudo» y escribe el motivo.</b> Nunca lo marques
       como correcto. Un hueco declarado vale; un hueco callado, no — y una hoja que sólo admite
       sí o no obliga a inventar.</div>
+    <div><b>Lo que se puede hacer hoy sin comprar nada son los pasos 9 a 14</b> — tres cables, un
+      cargador USB y el teléfono. Si el día se tuerce, que sean ésos los que vuelvan contestados.</div>
     <div><b>Recuerda los tres límites de esta visita:</b> no se enchufa nada en <code>J16</code>
       hasta cargar el programa nuevo · no se cablea cámara a <code>J16</code> hasta hacer la medida
-      del paso 14 · no se taladra la placa del módulo hasta contar sus pines.</div>
+      del paso 20 · no se taladra la placa del módulo hasta contar sus pines.</div>
   </footer>
 
 </div>
