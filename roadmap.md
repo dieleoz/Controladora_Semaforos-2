@@ -211,6 +211,93 @@ compilan C++ real, ni este roadmap.
 ## 6. Los hallazgos de esta sesion — el porque de todo lo de arriba
 
 
+### 🔴 N-108 — El enlace no deja rastro de como se cayo, y el umbral que lo arreglaba lleva un mes sin subir a campo
+
+**Lo aporto el responsable desde el campo el 31/08, y confirma N-71 POR EL OTRO LADO:**
+
+> *"El problema de desconexion es no saber cuanto se va cuando se va, y por que se va. Se va a ambar
+> a los 12 segundos de desconexion, y ese parametro toca alargarlo un poco mas, porque se va a
+> ambar por nada."*
+
+#### Los 12 s: ya esta arreglado, y ese es el problema
+
+**MEDIDO:** `SFTY6_SILENCIO_MS = 25000UL` en `protocolo.h:149` de las dos puntas... **pero eso es la
+rama**. El equipo de la calle es la **V8.4, `e303485`, del 31/07**, y ese commit **ni siquiera es
+alcanzable desde esta rama** (`git merge-base --is-ancestor` -> no). **En el poste sigue habiendo
+12 s**, y el arreglo lleva desde el **27/08** escrito sin poder subir.
+
+#### Y el "por nada" es LITERAL — el equipo se rendia antes de terminar de intentarlo
+
+El comentario del propio firmware (`protocolo.h:120-135`) describe el sintoma sin haberlo visto:
+
+```
+coordinador.cpp reintenta 5 veces con TIMEOUT_ACK_MS = 3500 ms. El peor caso
+son 3 + 5 x 3,56 = 20,8 s.
+
+Con el techo en 12 s, el ambar por orfandad saltaba sobre el segundo o tercer
+reintento. Los reintentos 4 y 5 NO PODIAN EJECUTARSE NUNCA.
+```
+
+Un enlace que se habria recuperado en el reintento 4 **nunca llegaba ahi**. Y el detalle de como se
+colo: el comentario viejo decia *"fallo tras 5 reintentos (12.5 s)"*, y esa cuenta venia de un
+`TIMEOUT_ACK_MS` de 2500 ms **que dejo de existir el 31/07**. Alguien cambio el numero y el
+comentario se quedo describiendo un equipo que ya no existia.
+
+> **Esto le cambia el sentido a la sesion de banco.** No es solo validar lo nuevo: **el sintoma que
+> el responsable sufre hoy se arregla con lo que ya esta escrito**, y lleva un mes sin poder subir.
+
+#### El rastro de la caida: la mitad existe y la otra esta inventada
+
+**MEDIDO, lo que el Maestro SI mide de verdad:**
+
+```
+coordinador.cpp:845   coordinador_calidadEnlace()   ventana deslizante de los ULTIMOS
+                      10 LATIDOS, uno cada 3 s -> "% de los ultimos 30 segundos"
+coordinador.cpp:857   coordinador_tiempoRespuestaMs()   media exponencial real del RTT
+coordinador.cpp:861   coordinador_latidosSinRespuesta()  cuantos seguidos sin contestar
+```
+
+**Y lo que el Esclavo INVENTA** (`Esclavo/src/bluetooth.cpp:328`):
+
+```c
+"...,MODO:SUBORDINADO,ESTADO:%s,T:%lu,RF:98%%,RTT:85ms,BAT:12.6,HORA:%s"
+                                       ^^^^^^^^^^^^^^^^^^^^^^^  literales
+```
+
+**De las dos puntas del enlace, solo una tiene dato — y la que se queda sin radio a 5 m de altura es
+justo la otra.**
+
+**Y nadie lo guarda.** El `RF:` solo viaja en el `$STATUS` mientras alguien mira el telefono. En el
+momento de la caida el tecnico no esta delante, y el numero que le habria dicho *"venia bajando
+desde el 60 %"* ya no existe. El `$ALARM,...,CAUSA:SILENCIO_25000ms` dice **que** se cayo, no
+**desde donde**.
+
+#### La decision, tomada el 31/08
+
+**No se mide potencia.** Nada de RSSI: pedirselo al modulo de radio es otro proyecto y hoy no lo hace
+nadie. **Se llega a latidos y se indica visualmente** — que es lo que ya existe en el Maestro.
+
+Lo que falta, y va con la Fase 4:
+
+1. **El Esclavo deja de inventar `RF`/`RTT`**: o los mide, o el campo se retira. *Un campo que no se
+   mide se retira o se marca; no se deja con aspecto de medida.*
+2. **La alarma de caida lleva el ultimo tramo**: `RF` de la ventana, `RTT` medio y latidos seguidos
+   sin respuesta. **Eso es la pregunta del responsable contestada.**
+3. **Un `$EVENT` en cada cambio de estado del enlace**, con su valor.
+4. **Que la app lo persista** — ya recibe `$EVENT` y hoy no lo guarda.
+
+**Limitacion escrita, para que nadie espere de mas:** esto mide **latidos contestados**, no potencia.
+Distingue *"el enlace se degrada"* de *"el enlace va bien"*, y **no** dice dBm ni si la culpa es de la
+antena, del cable o de un obstaculo nuevo.
+
+> **LA LECCION: un sintoma de campo y una medida de escritorio pueden ser el mismo defecto visto por
+> dos lados, y ninguno de los dos lo demuestra solo.** N-71 salio de cruzar tres constantes en un
+> fichero; esto salio de que a alguien se le fuera el cruce a ambar sin motivo aparente. **Los dos
+> decian lo mismo y ninguno lo sabia.** Cuando el campo reporta un sintoma, el primer sitio donde
+> mirar es si alguna medida vieja ya lo predijo — y al reves.
+
+---
+
 ### 🟢 N-107 — BLQ-1 cerrado: es un `ESP32-WROOM-32` clasico, hay SPP · **CERRADO 31/08**
 
 **La ficha del modulo comprado**, aportada por el responsable, cierra la fila mas bloqueante del
