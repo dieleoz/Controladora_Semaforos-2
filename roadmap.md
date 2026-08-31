@@ -211,6 +211,153 @@ compilan C++ real, ni este roadmap.
 ## 6. Los hallazgos de esta sesion — el porque de todo lo de arriba
 
 
+### 🔴 N-109 — Auditoria externa: el proceso no puede verse a si mismo caido, y el banco dejo de ser un bloqueo para ser una coartada
+
+**El responsable pidio una auditoria de fuera del marco.** Todo lo de esta sesion se habia medido
+**contra las reglas del propio proyecto**; nadie habia preguntado si las reglas eran las correctas.
+Lo que sigue lo verifico punto por punto el orquestador antes de escribirlo.
+
+#### 1. El repositorio publicaba un verde que su propia acta desmentia
+
+```
+evidencia/2026-08-31_compuerta.txt   (HEAD fa66710)
+    RESUMEN: 15 PASS | 1 FALLA | 1 ABORTADO
+    ABORTADO  banco por packs
+
+ESTADO.md:11 publica, CITANDO ESA MISMA ACTA
+    "15 PASS | 0 FALLA | 0 ABORTADO (Exit code: 0) ... 445/445 en 39 packs"
+
+packs en disco: 57
+```
+
+Tres incumplimientos a la vez: **la cifra no se copio del acta** (§3 literal); **el instrumento
+central estaba ABORTADO** —detras de un `ABORTADO` en *banco por packs* no corre **ninguno** de los
+57—; y 🔴 **`documentos_01_cifras_del_acta`, el pack que caza justo esta deriva, VIVE DENTRO del
+banco abortado**: el unico guardian de las cifras estaba apagado **el dia que las cifras mentian**.
+
+> **LA LECCION, y es la respuesta a "que no puede ver este proceso por construccion":
+> EL PROCESO NO PUEDE VERSE A SI MISMO CAIDO.** Cuando el instrumento que valida las cifras es parte
+> de lo que aborta, el `0` publicado deja de tener nada detras y **no hay meta-instrumento**. Un
+> `ABORTADO` en *banco por packs* no es una fila mas del acta: **es todas las filas**.
+
+**Verificado despues:** aquel `ABORTADO` era transitorio —un agente corrio la compuerta con
+`lcd.cpp` a medio escribir— y hoy `enlace_01` da `34/34`. **El hallazgo no se retira por eso.** Era
+cierto cuando se midio, y la discrepancia siguio en pie horas. Se deja escrito **precisamente porque
+la tentacion era regenerar el acta a verde y no contarlo**, y eso habria sido pasar por encima de la
+regla propia sin dejar rastro.
+
+#### 2. "Medir en vez de entregar" — la respuesta es SI
+
+```
+37 commits en 48 h · 57 packs · 4 arneses C++ · 3 simuladores.  NINGUNO toca una tarjeta.
+En campo corre e303485 (V8.4, 31/07), que NO ES ALCANZABLE desde esta rama.
+El arreglo del "se va a ambar a los 12 s" esta escrito desde el 27/08.
+```
+
+> *"El banco lleva siendo EL bloqueante desde el 31/07 sin moverse, y eso ha dejado de ser un bloqueo
+> para convertirse en una condicion permanente alrededor de la cual se ha construido una industria de
+> sustitucion. Cada auditoria interna encuentra defectos reales, pero todos son de escritorio, y cada
+> uno genera packs, que generan actas, que generan cifras que cuadrar. Es un bucle que se alimenta
+> solo y produce la sensacion de progreso sin acercar el unico entregable que importa: una tarjeta
+> cargada y ciclando."*
+
+**El indicador que lo delata:** **N-42 —que el Modo Automatico no mueve las luces en banco— lleva
+abierta desde ANTES de toda esta arquitectura y sigue sin tocarse**, mientras el instrumental se
+refactoriza una y otra vez.
+
+> **El rigor se ha aplicado solo donde no cuesta una sesion de banco.** Un mes sin cargar una tarjeta,
+> con un defecto de campo conocido y arreglado en el disco, **no es rigor: es evitacion.**
+
+#### 3. El fallo del que nadie hablaba: el Degradado da VERDE por un reloj que esta muerto
+
+Encadena hechos que el proyecto tenia medidos **por separado** y que nadie habia juntado:
+
+```
+modo_degradado.cpp:155   exige reloj_enHora(); sin el -> MDG_FALTA_HORA.
+                         Toda la fase sale de reloj_segundosDelDia()
+N-17 / N-37              el cristal Y2 NO OSCILA en las tarjetas reales (banco, 01/08)
+```
+
+**Sobre el hardware de campo, el Modo Degradado —la funcionalidad estrella de V8.5 a V8.7, con sus
+packs y sus arneses— podria no poder ni entrarse.** Nadie lo ha comprobado porque nadie ha llevado el
+banco.
+
+Y el plan lo resuelve **colgando el reloj del ESP32**: se hace depender una **funcion de vida** —el
+todo-rojo que evita verde-contra-verde— de un accesorio que **no tenia watchdog**, cuyo firmware **se
+escribio hoy y jamas se ha probado**, y que cuelga de **un unico cable serie que ningun pack vigilaba
+hasta ayer**.
+
+#### 4. Y el invariante que evitaria un choque frontal lo sostiene una copia a mano
+
+**Verificado por el orquestador, con el matiz que la auditoria no tenia:**
+
+| instrumento | que hace de verdad |
+|---|---|
+| `barrera_02_dos_puntas` | comprueba que el enclavamiento sea **textualmente el mismo** en las dos puntas. Buen proxy, **no un ejercicio** |
+| `Validacion_Automatico` | compila C++ **real**... **solo del Maestro**. `CLAUDE.md` §8 lo dice literal |
+| `simulador_sistema_v7_6` prueba 5 | **si ejercita las dos puntas** — en un **modelo de Python escrito a mano** |
+
+> **La conclusion aguanta: NINGUN instrumento ejecuta el C++ real de las dos puntas a la vez y
+> comprueba que nunca dan verde las dos.** Lo unico que cierra ese lazo es una copia del firmware
+> escrita a mano, que es justo lo que §8 avisa que no prueba el codigo.
+>
+> Y el escenario de salida asimetrica —una punta en verde, otra en ambar—, que `OPTIMIZACIONES.md:422`
+> da por **riesgo residual aceptado**, ocurre con **un solo microcorte** que reinicie una unidad. En un
+> cierre de carril, eso es un choque frontal.
+
+#### 5. La seguridad no esta clasificada como seguridad
+
+**MEDIDO:** el PIN es `1234` **literal en claro** (`Maestro/src/bluetooth.cpp:166`, `Esclavo:164`)
+sobre Bluetooth SPP sin cifrar. Y **las ordenes mas peligrosas no lo piden**: `FORZAR_ROJO`,
+`SET_MODO:MENU` y `SET_MODO:ALCANCE` en el Maestro; `AMBAR_EMERGENCIA` y `FORZAR_ROJO` en el Esclavo.
+
+**Cualquiera con la app —o un terminal serie— a distancia de radio puede parar el trafico o cambiar el
+modo.** Esta como fila del contrato de bytes; **no esta elevado a riesgo de seguridad, y lo es.**
+
+#### 6. La arquitectura: una cadena de apanos racional, con una cuenta sin hacer
+
+La restriccion es real y, dado eso, retirar funciones y colgar un ESP32 **es defendible sin
+presupuesto para respin**. **Lo que no esta en la cuenta:** cada apano anade un eslabon —STM32 ->
+serie -> ESP32 -> telefono -> BT— y cada eslabon es un punto de fallo nuevo. Seguir por este camino
+son N funciones nuevas de firmware mas **16 instrumentos que hacen falta antes de la primera linea**,
+para recuperar lo que un pin de sobra habria dado gratis.
+
+> **La comparacion honesta —"apano barato ahora" contra "respin caro una vez"— NO ESTA HECHA EN NINGUN
+> DOCUMENTO**, y deberia: el apano ya lleva un mes y sigue sin tocar banco.
+
+#### 7. Lo que la auditoria dice que esta BIEN
+
+La disciplina de **ver caer el instrumento con el defecto inyectado** (§8.bis) es *"genuinamente buena
+ingenieria de test y rara de ver"*. El razonamiento de por que el Degradado es manual, *"correcto y
+bien argumentado"*. Los despachadores `$ACK`/`$ERR` del Maestro, *"un molde honesto"*. Y la autocritica
+N-94 a N-108, *"de un nivel poco comun"* — con el pero: *"ven de escritorio y no cargan la tarjeta"*.
+
+#### 8. Donde el rigor cuesta mas de lo que compra
+
+**767 comprobaciones que reimplementan el firmware en Python** son, como §8 admite, *"una segunda copia
+del firmware escrita a mano"*. Ver caer cada una es correcto; **la CANTIDAD es donde el coste supera la
+compra**: cada pack es superficie que mantener sincronizada, **y ya rompio el arranque del banco**. El
+exceso concreto: *"escribir 9 packs del ESP32 y refactorizar el instrumental ANTES de haber cargado
+nunca la tarjeta que valida la premisa de todo."*
+
+---
+
+> **LA FRASE QUE RESUME LA AUDITORIA, copiada entera porque suavizarla seria el error que denuncia:**
+>
+> *"El proyecto ha perfeccionado el arte de medir en PC hasta el punto de que la medicion se ha vuelto
+> el trabajo, mientras el firmware de la calle lleva un mes con un defecto conocido cuyo arreglo esta
+> escrito y sin subir — y en este preciso momento el acta de record esta en rojo con el banco ABORTADO
+> mientras README y ESTADO publican exit-0 verde. **Verde no es entregable; hoy, ademas, el verde no es
+> ni verdadero.**"*
+
+**LO QUE CAMBIA A PARTIR DE AQUI**, y lo aporto el responsable en la misma sesion: con **tres cables y
+un USB** se monta el enlace ESP32 <-> STM32 **en una mesa, hoy, sin comprar nada** — sin la placa, sin
+la fuente, sin el reloj. **La placa bloquea DESPLEGAR, no PROBAR.** Y esa mesa contesta de una vez lo
+que ningun pack puede: que el enlace existe, que el SPP empareja, cuanto tarda el ESP32 en arrancar, y
+**de paso valida los 25 s que arreglan el sintoma que hoy se sufre en la calle**.
+
+---
+
 ### 🔴 N-108 — El enlace no deja rastro de como se cayo, y el umbral que lo arreglaba lleva un mes sin subir a campo
 
 **Lo aporto el responsable desde el campo el 31/08, y confirma N-71 POR EL OTRO LADO:**
