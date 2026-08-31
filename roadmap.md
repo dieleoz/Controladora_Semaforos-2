@@ -119,34 +119,47 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 
 ---
 
-## 5. Donde vamos — 31/08
+## 5. Donde vamos — 31/08, cierre de sesion
 
-**Rama `fix/n93-cifras-app-y-entrega`, 31 commits. `origin/main` intacto en `f25fa57`.**
+**Rama `fix/n93-cifras-app-y-entrega`, 41 commits. `origin/main` intacto en `f25fa57`.**
+
+### 🔴 Lo que la auditoria externa dejo claro (N-109)
+
+> *El banco lleva siendo EL bloqueante desde el 31/07 sin moverse, y eso ha dejado de ser un bloqueo
+> para convertirse en una condicion permanente alrededor de la cual se ha construido una industria de
+> sustitucion.*
+
+**Y lo que lo desatasca no es otro pack: son TRES CABLES Y UN USB.** La placa portadora bloquea
+**desplegar**, no **probar**. Ese montaje ya esta escrito paso a paso en la guia de cableado
+(apartado 04, pasos 9 a 14) y **se puede hacer hoy, sin comprar nada**.
 
 ### Cerrado hoy
 
 | | |
 |---|---|
-| **Documentos** | roadmap nuevo · README · `ARQUITECTURA.map` · manuales 9, 10, 11, 17 · `MANUAL_USUARIO` · `MANUAL_HARDWARE` · `CERTIFICACION_SW` · `OPTIMIZACIONES` · spec del ESP32 · Manual 5 · **la guia de cableado reescrita PARA EL TECNICO** (23 pasos `HAZ/COMPRUEBA/TIENES QUE VER/ANOTA`) |
-| **Firmware** | **camaras en C y D, las dos puntas** (N-97 cerrado, flash BAJA 56 B) · **el firmware del ESP32, que no existia** (SPP + `DS3231` + watchdog, 35,6 %) · **la app**: el tablero, el reloj de 12 h y los cinco exitos mudos |
-| **Instrumentos** | `enlace_01` del transporte · las 33 comprobaciones sin etiqueta · el `TOTAL_PACKS` que no sabia fallar · `documentos_04` · los tres verdes de `simulador_app_bluetooth` · la limpieza de `simulador_sistema_v7_6` (20/20 -> 9/9) · **la tautologia dentro de `arnes_ciclo`** · nueve packs `esp32_*` · tres packs `app_*` · **el simulador de la interaccion** |
-| **Decisiones** | **BLQ-1 cerrado** (N-107) · el mando se conserva en A y B (N-104) · **la pantalla NO se retira**: solo se dejan de conducir `PB3`/`PB4`/`PB5` |
-| **Entrega** | APK recompilada · los 20 `.docx` · **el paquete vuelve a generarse** |
+| **Firmware** | camaras en C y D (N-97 cerrado) · **el firmware del ESP32, que no existia** · la app: tablero, reloj y cinco exitos mudos · la pantalla deja de conducir `PB3/PB4/PB5` |
+| **Instrumentos** | `enlace_01` transporte · 9 packs `esp32_*` · 5 packs `app_*` · `costura_11` · **el simulador de la interaccion con las dos puntas REALES** · la tautologia de `arnes_ciclo` · el `TOTAL_PACKS` que no sabia fallar |
+| **Documentos** | roadmap · README · `.map` · **`INDICE_CRUZADO.md`** · **la especificacion de la placa portadora** · manuales 1, 2, 3, 5, 9, 10, 11, 12, 14, 15, 17, 18 · `MANUAL_MANDO`, `MANUAL_CONFIGURACION_BLUETOOTH` · `CERTIFICACION_SW` · `OPTIMIZACIONES` · **el encargo de banco** |
+| **La guia de campo** | reescrita **para el tecnico**: 29 pasos `HAZ / COMPRUEBA / TIENES QUE VER / ANOTA`, con el montaje de mesa dentro |
+| **Decisiones** | BLQ-1 cerrado · el mando se conserva en A y B · la pantalla no se retira · R-1 a R-4 del ambar · el `sscanf` se arregla |
 
 ### Defectos ABIERTOS, con instrumento que los ve
 
 | | que | estado |
 |---|---|---|
-| 🔴 **N-106** | el ambar de la app **no saca al Esclavo del Degradado** | pack en **rojo a proposito**. El arreglo espera **cuatro decisiones del responsable** (§4.5.6 del Manual 10) |
-| 🔴 **el `$ACK` cruzado** | **32 de 289 pares de comandos producen un `$ACK` de OTRA orden**. `sscanf` no exige que la cadena acabe, asi que un resto en el buffer hace ejecutar el comando viejo y **perder el que se acaba de pulsar** | medido sobre el `.cpp` compilado. El arreglo son **dos caracteres por sitio** y el simulador ya lo valida |
+| 🔴 **N-106** | el ambar de la app no saca al Esclavo del Degradado | en curso |
+| 🔴 **el `` cruzado** | 32 de 289 pares confirman OTRA orden | en curso |
+| 🔴 **N-42** | el Modo Automatico no mueve las luces en banco | **abierta desde antes de esta arquitectura, sin tocar** |
+| 🔴 **el verde simultaneo** | lo sostiene un modelo de Python, no el codigo | **solo se cierra en banco** |
+| 🟠 **el PIN 1234 en claro** | y las ordenes mas peligrosas no lo piden | sin elevar a riesgo de seguridad |
 
-### Lo que falta para cerrar la sesion
+### Lo que falta para cerrar
 
-1. **Sincronizar `www/` y los assets de Android** — hoy llevan el `app.js` **con los cinco defectos**, y `webDir` es `www`: una APK compilada ahora los metería dentro.
-2. **Recompilar la APK.**
-3. **Compuerta completa, DOS pasadas**, y acta sobre arbol limpio.
-4. **Cuadrar las cifras** en `README`, `ESTADO.md`, `CERTIFICACION_SW.md` y este roadmap.
-5. **La especificacion de la placa portadora** — hay tres requisitos que solo vivian en el HTML de campo y no tienen copia en ningun `.md`.
+1. Sincronizar `www/` y los assets de Android, y **recompilar la APK**.
+2. **Compuerta completa, DOS pasadas**, y acta sobre arbol limpio.
+3. **Cuadrar las cifras** en README, `ESTADO.md`, `CERTIFICACION_SW.md` y este roadmap.
+4. Resolver la contradiccion que la guia arrastra: su criterio *"los cuatro pines tienen que dar lo
+   mismo"* choca con el reparto del 31/08 —p10/p12 camaras en ALTO, p5/p8 mando en BAJO—.
 
 ---
 
