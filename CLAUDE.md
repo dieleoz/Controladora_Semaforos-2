@@ -403,10 +403,21 @@ si alguna no existe. No la desactives: es la red de la migración a `lib/Common`
 
 ## 6. Barrera de salidas
 
-**Solo `semaforo.cpp` escribe pines de luz.** Los ocho: `ROJO1/2`, `AMARILLO1/2`, `VERDE1/2`,
-`ROJO_PEATON`, `VERDE_PEATON`. Todo pasa por su `escribirPines()` estático, incluidos los
+**Solo `semaforo.cpp` escribe pines de luz.** Todo pasa por su `escribirPines()` estático, incluidos los
 destellos del mando —que *interceptan* las escrituras en vez de rodearlas, para no dejar
 colgado al coordinador esperando un `S_VERDE` que no llegaría—.
+
+> ⚠️ **Y la regla dice OCHO pines donde el firmware mueve SEIS (N-96, 31/08).** `escribirPines()`
+> escribe `ROJO1/2`, `AMARILLO1/2` y `VERDE1/2` — seis—. **`ROJO_PEATON` (`PA6`), `VERDE_PEATON`
+> (`PA7`) y el `BUZZER` (`PB1`) están declarados en `pines.h` y MUERTOS en las dos puntas**: sin
+> `pinMode`, sin `digitalRead`, sin `digitalWrite`. La regla era **vacuamente cierta** para dos de
+> sus ocho sujetos, y la palabra *«custodia»* sugería lo contrario de lo que pasa.
+>
+> Lo peor no es el hardware muerto —`OPTIMIZACIONES.md:1427` ya lo decía bien—: es que
+> **`barrera_01_pines_de_luz` no podía detectarlo**. Solo mide *fugas hacia fuera*, acepta
+> `len(luces) >= 6` sobre una lista que devuelve 8, y su `control_negativo` nunca ejerció un pin
+> peatonal. **Una regla de seguridad que enumera sujetos tiene que comprobar que cada sujeto
+> existe**, no solo que nadie la rodea.
 
 Una orden inválida **se rechaza y se reporta**. El ámbar automático queda reservado a los
 caminos que ya lo tienen (SFTY-6, watchdog): **la máquina no decide sola** operar de un modo
@@ -601,6 +612,19 @@ exige la carga verificada, no el merge. Y mientras la polaridad de esos cuatro p
 contradicción entre el netlist y el fuente (medida `M3` de `05_Funcional/17_...`), **no se cablea
 cámara a `J16`** ni con el orden correcto.
 
+> ✅ **Matiz del 31/08, y baja el coste de M3.** La contradicción es entre el netlist y
+> **`botones.cpp`** (`INPUT_PULLUP` + `== LOW`). El camino de **cámara** ya lee al revés
+> —`pinMode(INPUT)` pelado y **activo en ALTO**, `modo_inteligente.cpp:46` y `:25`, desde N-67—, así
+> que **en cuanto `PB14`/`PB15` se lean como cámara el firmware ya coincide con el netlist**. Y la
+> salida de la AcuSense es configurable (NO/NC), así que se elige qué estado significa demanda sin
+> tocar placa ni firmware.
+>
+> **Lo que M3 sigue decidiendo, y es su tercer resultado posible:** con `INPUT` pelado el pin
+> necesita **resistencia real a masa en la placa** o queda flotando y el ruido dispara demandas
+> fantasma. `PB0` la tiene declarada (`pines.h:43-46`, `R64` 10K + `C25` 100nF); de `PB14`/`PB15`
+> **sólo lo dice el netlist y nadie lo ha medido en cobre**. M3 pasa de bloqueante a
+> **confirmación que parametriza la cámara** — pero se hace **antes** de cablear, no después.
+
 ## 10. Radios
 
 **`2.4 kbps` de Air Data Rate, `M0`/`M1` ambos en OFF** durante la operación. Configuración
@@ -621,7 +645,7 @@ vigente: 2 radios en enlace directo, **sin repetidor**.
 | `05_Funcional/` | manuales y protocolo de pruebas para el auditor |
 | `evidencia/` | actas de la compuerta, con fecha y hash |
 | `ESTADO.md` | dónde está parado el trabajo **hoy** |
-| `roadmap.md` | histórico: N-x cerrados, decisiones y su porqué |
+| `roadmap.md` | **estado del proyecto** desde el 31/08: qué hay, qué está decidido, qué está abierto y **el orden de arranque** — con los `N-x` debajo como el *porqué*. Ya no es una bitácora; lo anterior a esa fecha vive en el `git log` y en el remoto `padre` |
 
 ## Convenciones
 
