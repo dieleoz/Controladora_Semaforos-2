@@ -118,8 +118,192 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 
 ---
 
-## 5. Los hallazgos de esta sesion — el porque de todo lo de arriba
+## 5. El orden de arranque — que se lanza, cuando, y que abre cada puerta
 
+**La regla que fija el orden, y no es de gusto:** hoy la compuerta **ve lo que se BORRA y no ve lo
+que se queda sin sujeto** (N-103). Si el firmware se mueve antes que los instrumentos, hay una
+ventana en la que decenas de comprobaciones dan verde midiendo codigo que ya no corre. Por eso los
+instrumentos van **antes**, no despues.
+
+### Ola A — lo que puede hacer daño hoy 🔴
+
+Va primero porque **no depende de nada** y es lo unico con daño fisico o dinero detras.
+
+| | que | por que aqui |
+|---|---|---|
+| **A1** | Los cuatro documentos de **N-105**: `MANUAL_USUARIO.md:66-70`, `04_Manuales/MANUAL_INSTALACION_RELOJ_DS3231.md`, `MANUAL_HARDWARE.md:63,66`, `9_Manual_Parametrizacion_Camara_IA.md:64,168` | mandan cablear camaras sobre `PB9`/`PB13` —el mando— y el I2C sobre la entrada de camara y un LED |
+| **A2** | El **Manual 17** y **`ESTADO.md`**: llevan la decision anterior *(«se retiran los cuatro pulsadores»)*, y `17_:152-153` manda dejar `p5`/`p8` vacios, que es justo el mando que se conserva | `ESTADO.md:104` ejecutado literal **borra `ambarLocal` y el veto de SFTY-21** |
+| **A3** | Los documentos que dan **`FORZAR_ROJO` por valido en el Esclavo** | es el boton de panico: el operario cree que paro el trafico y no paro nada |
+| **A4** | Las **cifras sin vigilante**: `MANUAL_USUARIO.md:21` publica despeje de *5 a 999 s* cuando son `DESPEJE_SEG_MIN=10, MAX=90` en un `uint8_t` — 999 nunca fue representable. Y `CERTIFICACION_SW.md` publica 65,0 % de flash cuando son 88,3 % | quien planifique cree tener 23 KB y quedan 7.656 B |
+
+### Ola B — la red, antes de tocar firmware 🔴
+
+| | que | por que aqui |
+|---|---|---|
+| **B1** | El **`TOTAL_PACKS`** de `documentos_01`: se comprueba como numero suelto y **casa por accidente con el hash `50a5380` del README** | esta demostrado que da falso verde. Se arregla anclandolo a la frase, y se ve caer |
+| **B2** | El **rol del ESP32** en `_ROLES` de `compuerta.py`, y su compilacion | sin el, el fuente del ESP32 es **invisible** para la guarda y el acta no tiene una fila donde echarlo de menos |
+| **B3** | El **pack de N-106**: que el ambar de la app saque al Esclavo del Degradado | tiene que **fallar** sobre el firmware de hoy antes de que nadie lo arregle |
+| **B4** | Un **`documentos_04`** que vigile los manuales que hoy no parsea nadie | `documentos_01` solo mira `README.md` y `ESTADO.md`, y ahi no estan las cifras malas |
+
+### Ola C — firmware
+
+| | que | notas |
+|---|---|---|
+| **C1** | **Camaras en C y D, LAS DOS PUNTAS EN UN SOLO AGENTE** | dos agentes en paralelo sobre la misma regla es como divergen: es SFTY-2 con el `amarillo = false` de mas, y es N-97. Cierra N-97 de paso unificando como se lee la camara |
+| **C2** | **N-106**: la llamada que falta en `Esclavo/src/bluetooth.cpp` | despues de B3, no antes |
+| **C3** | **ESP32: watchdog primero, luego `DS3231`** | no dependen de BLQ-1. El watchdog con su desigualdad en un pack: periodo **<** `SFTY6_SILENCIO_MS = 25000UL`, recalculada del C++ |
+
+### Ola D — la pantalla
+
+Sola, con el arbol quieto. Toca `lcd.cpp`, `menu.cpp`, `Validacion_LCD` (271 comprobaciones) y tres
+packs, y cada prueba afectada va a **se borra / se invierte / se conserva**, una por una y anotada.
+Libera ~18,9 KB y `PB3`/`PB4`/`PB5`.
+
+### Ola E — BANCO
+
+🛑 **Sigue siendo EL bloqueante y nada lo sustituye.** Ni la compuerta en verde, ni los arneses que
+compilan C++ real, ni este roadmap.
+
+### Lo que NO desbloquea ningun agente
+
+| | quien | coste |
+|---|---|---|
+| **BLQ-1** la serigrafia del ESP32 | responsable | 30 s con el modulo en la mano |
+| **M3** el pull-down real de `PB14`/`PB15` en cobre | funcional | multimetro. Decide **como se configura la camara** y en que pin va cada una: `p10` tiene 4,27 mm contra los 12 V y `p12` solo **1,36 mm** |
+| **A5** la fuente propia del ESP32 | responsable | no esta pedida |
+| el **receptor del mando** | responsable | nunca se compro: hoy hay firmware y veto, no equipo |
+| **recompilar la APK** | responsable | el paquete de entrega aborta con exit 2 |
+
+---
+
+## 6. Los hallazgos de esta sesion — el porque de todo lo de arriba
+
+
+### 🔴 N-105 — Cuatro documentos mandan cablear camaras sobre pines que NO son entradas de camara, y uno deja que el trafico cambie el modo del semaforo solo
+
+**Lo encontro la pasada de coherencia del 31/08, y lo verifico el orquestador contra el fuente.**
+
+#### El peor: las camaras sobre los pines del mando
+
+**MEDIDO** — `MANUAL_USUARIO.md:66-70`, cuatro lineas, las dos puntas:
+
+```
+* Camara 1 (Aproximacion Sentido 1): Contacto seco 1A/1B en **PB9**  y GND -> Demanda Verde Maestro.
+* Camara 2 (Monitoreo Obra Sentido 1): Contacto seco 1A/1B en **PB13** y GND -> Confirma flujo interno.
+* Camara 3 (Aproximacion Sentido 2): Contacto seco 1A/1B en **PB9**  y GND -> Demanda Verde Esclavo.
+* Camara 4 (Monitoreo Obra Sentido 2): Contacto seco 1A/1B en **PB13** y GND -> Confirma flujo interno.
+```
+
+**Contra el fuente, MEDIDO:**
+
+```
+botones.cpp:119   if (flanco[0]) mando_registrarPulso(MANDO_A);   // BOTON1 = PB9
+botones.cpp:120   if (flanco[1]) mando_registrarPulso(MANDO_B);   // BOTON2 = PB13
+mando.cpp:38      static const unsigned long VENTANA_TRIPLE_MS = 12000;
+mando.cpp:241-248 A.A.A -> ACC_AUTOMATICO   ·   B.B.B -> ACC_AMBAR
+mando.cpp:129-132 case ACC_AMBAR: ambarLocal = true;
+```
+
+> **`PB9` y `PB13` son `MANDO_A` y `MANDO_B`.** Una camara enchufada ahi entrega pulsos, y **tres
+> pulsos dentro de la ventana de 12 s componen una secuencia del mando**: en `PB9`, `A·A·A` mete el
+> equipo en Automatico; en `PB13`, `B·B·B` lo manda a ambar **y arma `ambarLocal`**, que ademas veta
+> las ordenes de radio. **El trafico cambiaria el modo del semaforo solo**, sin que nadie lo pida y
+> sin que nada lo registre como orden.
+
+**Y hay un segundo error encima del primero, que lo tapa:** el manual dice *"y `GND`"*. El camino de
+camara es `pinMode(INPUT)` pelado y **activo en ALTO** (`modo_inteligente.cpp:46`, `:25`), con la
+bornera sacando el pin junto a 3,3 V. Cableado a masa, **la camara no dispara nunca** — asi que un
+ensayo de taller la aprobaria sin ver el defecto de arriba, y este aparece el dia que alguien
+"arregla" el cableado.
+
+#### Los otros tres
+
+| `fichero:linea` | manda cablear | lo que hay |
+|---|---|---|
+| `04_Manuales/MANUAL_INSTALACION_RELOJ_DS3231.md:43-44`, `:56-57`, `:89`, `:121` | I2C del `DS3231` a `PB0` (SDA) y `PB8` (SCL) | **es la SEGUNDA COPIA del defecto del Manual 11.** `PB0` es `CAM_DEMANDA_PIN` y `PB8` es `LED_TESTIGO` |
+| `MANUAL_HARDWARE.md:63`, `:66` | Camara 2 a `PB8`, *"Entrada Libre"* | `PB8` no es entrada: es salida a LED por `R16` 1 K |
+| `05_Funcional/9_Manual_Parametrizacion_Camara_IA.md:64`, `:168` | bornera `1A`/`1B` a `PB0` **y `GND`** | mismo error de polaridad: `R64` es pull-**down**, la camara no disparara |
+
+#### Por que aparecio ahora, que es la parte reutilizable
+
+**El Manual 11 se arreglo esta misma manana** (`e1d3720`) y esta copia de `04_Manuales/` **siguio
+intacta**. Se arreglo el fichero que alguien nombro, no la propiedad. El censo que habria encontrado
+las dos es `grep` del pin, no del nombre del documento.
+
+Y la segunda mitad, que es mas incomoda:
+
+> **La decision de conservar el mando (N-104) convirtio cuatro documentos viejos en un peligro
+> vial.** Mientras el plan era retirar los cuatro pulsadores, `PB9`/`PB13` iban a quedar sin dueño y
+> un manual que mandara camaras ahi era solo un error de papel. Al conservar A y B, ese mismo texto
+> pasa a describir un cableado que **compone ordenes de mando con el trafico**.
+>
+> **LA LECCION: una decision no solo cambia lo que se construye, cambia lo que SIGNIFICAN los
+> documentos que ya estaban escritos.** Al cerrar una decision hay que censar que documentos hablan
+> de los pines que toca — y el censo es `grep` del pin, no lectura del indice.
+
+Y el hueco que lo dejo llegar hasta aqui: `documentos_01_cifras_del_acta` **solo vigila `README.md` y
+`ESTADO.md`** (MEDIDO, `:224-225`). `MANUAL_HARDWARE.md`, `MANUAL_USUARIO.md` y `CERTIFICACION_SW.md`
+**no los parsea nadie**, y es justo donde estan todas las cifras malas. Un `ABORTADO` grita; un hueco
+no.
+
+---
+
+### 🔴 N-106 — El ambar de emergencia de la app NO saca al Esclavo del Modo Degradado
+
+**MEDIDO por lectura del fuente. La consecuencia exacta esta razonada, no ejecutada: se marca como
+tal y se cierra con el arnes, no con esta nota.**
+
+```
+grep -c "degradado" Esclavo/src/bluetooth.cpp   ->   0
+
+Esclavo/src/bluetooth.cpp:130-136
+    if (strcmp(cmd, "CMD:AMBAR_EMERGENCIA") == 0) {
+      semaforo_iniciarFallo();
+      ambarEmergencia = true;
+      enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
+      ...
+    }
+```
+
+**Quien SI sabe salir del Degradado, censado:**
+
+```
+degradado_salir()  <-  Esclavo/src/main.cpp:385   (la puerta automatica)
+                   <-  Esclavo/src/mando.cpp:121  (el mando)
+                   <-  Esclavo/src/mando.cpp:138  (el mando)
+                   <-  Esclavo/src/menu.cpp:215   (la pantalla)
+```
+
+**`bluetooth.cpp` no esta en esa lista.** Y `degradado_actualizar()` corre en cada vuelta
+(`main.cpp:363`), con `degradado_gobiernaLuz()` decidiendo quien manda sobre la luz (`:383`, `:555`,
+`:619`).
+
+> **Es decir: el mando puede sacar al Esclavo del Degradado, la pantalla puede, y la app NO.** El
+> `$ACK,RESULT:OK` se manda igual. Es el patron de §6 —un `ACK` que no depende de lo que la llamada
+> consiguio— pero esta vez el defecto no esta en el que contesta: **esta en que falta la llamada**.
+
+**Y lo que lo vuelve grave es la conjuncion con las fases:**
+
+- La **pantalla se retira** en la Fase 3, y con ella `menu.cpp:215`.
+- Si el mando se hubiera retirado tambien —que era el plan hasta el 31/08— **no habria quedado
+  NINGUNA via externa para sacar al Esclavo del Degradado**. Solo la puerta automatica de
+  `main.cpp:385`.
+- La decision de N-104 lo evito **por accidente**, no porque nadie lo hubiera visto.
+
+**Lo que hay que hacer, y en este orden:** primero el pack que lo ejerza —que hoy no existe: ningun
+instrumento comprueba que el ambar de la app saque del Degradado—, verlo **fallar** sobre el firmware
+de hoy (§8.bis), y solo entonces añadir la llamada. Al reves, el arreglo entra sin testigo.
+
+Y `05_Funcional/8_Procedimiento_Modo_Degradado.md:474` **llego a la conclusion correcta citando un
+comando que no existe**: acerto por el camino equivocado. Se reescribe, no se borra.
+
+> **LA LECCION: un censo de llamadores tiene dos direcciones, y la segunda casi nunca se hace.**
+> Preguntar *"¿quien llama a esta funcion?"* encuentra codigo muerto. Preguntar *"¿quien DEBERIA
+> llamarla y no lo hace?"* encuentra agujeros — y esa pregunta solo se puede hacer con la lista de
+> los que si llaman delante. `mando.cpp` y `menu.cpp` la llaman; `bluetooth.cpp`, que es la unica
+> interfaz que va a quedar, no.
+
+---
 
 ### 🟢 N-104 — El mando se queda en A y B, las camaras entran por C y D, y la pantalla se fue porque NO HABIA PINES · **DECIDIDO 31/08**
 
@@ -1743,7 +1927,7 @@ existe.
 
 ---
 
-## 6. Lo anterior
+## 7. Lo anterior
 
 **Este roadmap arranca el 31/08/2026.** El historico del proyecto —los `N-1` a `N-93`, las versiones
 V8.0 a V8.9 y las auditorias de agosto— **no se ha borrado**: vive en el `git log` de este
