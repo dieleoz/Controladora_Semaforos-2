@@ -50,6 +50,118 @@
 
 ---
 
+> ## 🟢 31/08/2026 — RECTIFICACIÓN: LA PANTALLA **NO** SE RETIRA. LO QUE SE CORTA ES EL CABLE
+>
+> **Esta entrada deja sin efecto el titular del bloque anterior** («SE RETIRA LA PANTALLA LCD»). El
+> análisis de reglas que hay ahí arriba **sigue siendo válido y por eso no se borra** —una causa que
+> se cae se marca refutada, no se hace desaparecer—; lo que cambia es la decisión, tomada por el
+> responsable: *«no quitar el LCD del firmware si así va y la memoria alcanza»*.
+>
+> ### El dato que obligó a actuar de todas formas, y está medido en el cobre
+>
+> `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md:349-350` reparte **un solo conector** entre dos cosas:
+>
+> ```
+> LCD ST7920 (3 hilos desde N-76)   PB3 PB4 PB5     ->  J17  p4, p1, p5
+> Módulo Bluetooth / ESP32          PB6 TX PB7 RX   ->  J17  p3, p2
+> ```
+>
+> Y `:378` añade el detalle que lo vuelve urgente: **`PB3` es `SCL` (p4) y conmuta en cada bit**.
+>
+> De ahí salen dos hechos. Uno, **no pueden estar los dos enchufados**: es un conector, y en cuanto
+> el ESP32 ocupa `J17` la pantalla ya no está físicamente, se retire su código o no. Dos, y es el que
+> obligaba a tocar el firmware: **el código seguía conduciendo tres hilos de ese mismo conector**. Un
+> reloj de SPI por software corriendo pegado al RX/TX del ESP32 dentro del mismo mazo es exactamente
+> lo que produce **corrupción intermitente del enlace serie**: la avería que no se diagnostica nunca,
+> porque aparece y desaparece según lo que la pantalla esté dibujando en ese instante.
+>
+> ### Lo que se hizo el 31/08, que no es retirar nada
+>
+> En `lcd.cpp` de las dos puntas, **los cuatro argumentos de pin del constructor de `u8g2` pasan a
+> `U8X8_PIN_NONE`**. El objeto se construye igual —mismo tipo, mismo transporte—, pero **no recibe ni
+> un solo pin**. La pantalla ya renunciaba al reset así; ahora renuncia también a `SCLK`, `SID` y
+> `CS`. El framebuffer se compone igual; **no se vuelca al cable**.
+>
+> **Que eso baste no es una suposición, está leído en la librería.** En
+> `U8x8lib.cpp::u8x8_gpio_and_delay_arduino()` los **dos** caminos que tocan un pin preguntan antes:
+> `if ( u8x8->pins[i] != U8X8_PIN_NONE )` antes del `pinMode` de arranque, y `if ( i != U8X8_PIN_NONE )`
+> antes del `digitalWrite` de cada escritura. Con los cuatro en `NONE` no queda ni un `pinMode` ni un
+> `digitalWrite`: `PB3`, `PB4` y `PB5` quedan en **alta impedancia**.
+>
+> **Se conserva todo lo demás**: el API `lcd_*`, `menu.cpp` entero, los tres packs de pantalla con su
+> sujeto intacto y las **271/271** comprobaciones de `Validacion_LCD` —verificadas antes y después
+> del cambio, sin moverse—.
+>
+> | | antes | después | delta |
+> |---|---|---|---|
+> | Maestro | `57824` B · 88,2 % | `57824` B · 88,2 % | **0 B** |
+> | Esclavo | `42152` B · 64,3 % | `42152` B · 64,3 % | **0 B** |
+> | RAM (las dos puntas) | 3488 / 3328 B | 3488 / 3328 B | **0 B** |
+>
+> **Medido, no estimado**: `pio run` con reconstrucción limpia en los dos extremos, mismo toolchain
+> (§7 de `CLAUDE.md`: *un delta exige medir los DOS extremos*). **El delta es exactamente cero y tiene
+> que serlo**: no se ha retirado ni una línea de código, sólo han cambiado unas constantes que se
+> pasan por argumento. Un ahorro aquí habría sido la señal de que se hizo más de lo pedido.
+>
+> > 🔶 **La variante que sí ahorraba, y por qué se rechazó.** Armar `u8g2` con procedimientos de bus
+> > y GPIO **nulos** —la técnica que `Validacion_LCD` usa en el PC— también corta los pines y además
+> > ahorra **524 B por punta** (medido: Maestro `57300` B, Esclavo `41628` B). **Se descartó porque
+> > cambia la FORMA del bloque, y dos packs lo leen por texto**: `flash_01_lastre` exige que el
+> > transporte acabe en `_SW_SPI`, y `enlace_01_transporte` lee estos mismos argumentos para
+> > comprobar que *«el constructor del display no vuelve a reclamar el pin del puerto»*. Con la
+> > variante nula los dos caían a **`ABORTADO`** — y son precisamente los que vigilan el bus de la
+> > pantalla y su choque con el puerto serie, o sea **lo que este cambio arregla**. Apagar al
+> > vigilante mientras se toca lo que vigila es N-75; **524 B contra dos instrumentos que dejan de
+> > medir es N-89, y N-89 dice que se rechaza**.
+>
+> Lo vigila el pack **`costura_11_lcd_sin_bus`**, que exige que **ningún** fichero de ninguna punta
+> haga `pinMode` ni `digitalWrite/Read` sobre esos tres hilos —censando el directorio, no una lista
+> escrita a mano— y que el constructor **reciba `U8X8_PIN_NONE` en todos sus argumentos de pin**,
+> leídos del C++. Y lleva una comprobación en el sentido contrario —que `drawStr` y `sendBuffer`
+> sigan existiendo—, para que **el pack no se pueda poner en verde vaciando `lcd.cpp`**, que es
+> precisamente lo que se decidió no hacer.
+>
+> ---
+>
+> ### 📋 OPTIMIZACIÓN PENDIENTE, **NO EJECUTADA**: retirar la pantalla del todo
+>
+> **Esto NO está aprobado ni ha pasado banco. Está aplazado, y con su condición escrita.**
+>
+> **Qué liberaría, y con qué grado de certeza cada cifra:**
+>
+> | | cifra | ¿de dónde sale? |
+> |---|---|---|
+> | `PB3`, `PB4`, `PB5` | 3 pines | **Ya libres eléctricamente desde el 31/08.** Lo que queda es liberarlos del binario. `PB6`/`PB7` se los llevó el Bluetooth en N-76 |
+> | Flash | **~18,9 KB** | 🔶 **ESTIMACIÓN de un censo, NO una compilación.** Nadie ha compilado todavía una versión sin pantalla y restado los dos extremos. Hasta que eso se haga, esta cifra no se publica como medida |
+>
+> **Lo que cuesta, con la misma letra que lo que gana:**
+>
+> 1. 🔴 **`menu.cpp:215` es UNA DE LAS TRES VÍAS que sacan al Esclavo del Modo Degradado.** Las otras
+>    dos son `mando.cpp` y la puerta automática de `main.cpp:385`. **La app NO puede** — es el defecto
+>    **N-106**, abierto y con su pack en rojo. Retirar el menú hoy **elimina una vía de seguridad
+>    mientras otra sigue rota**.
+> 2. **Se van las 271 comprobaciones de `Validacion_LCD`**, y no todas son de pantalla: ese arnés
+>    enlaza `modo_degradado.cpp`, que es **SFTY-21**, y es el único sitio donde esa máquina de estados
+>    se compila como C++ real para el PC.
+> 3. **`esclavo_02_inhibicion_menu` es el único pack etiquetado `# EJERCE SFTY-21` cuyo sujeto
+>    desaparecería entero**, y con él `maestro_06_fuentes_pantalla` y `maestro_07_menu_opciones`.
+>
+> **La condición que la desbloquea** —y es lo más útil de esta entrada—: esto se vuelve razonable
+> **cuando N-106 esté cerrado (la app puede sacar al Esclavo del Degradado) y se haya decidido qué
+> pasa con las 271 comprobaciones de `Validacion_LCD`**. Antes de eso, no.
+>
+> **Por qué no se hace hoy: la memoria alcanza.** El Maestro está al **88,2 %**, con **7.712 B
+> libres**, y el Esclavo al **64,3 %**, con **23.384 B**. **Una optimización que no hace falta es
+> riesgo sin contrapartida.**
+>
+> ⚠️ **Y que nadie la reabra por el ruido: el ruido en el conector se acabó el 31/08.** Lo que queda
+> pendiente es **sólo la flash**, y la flash hoy sobra.
+>
+> **Referencias cruzadas:** **N-91** (el presupuesto de retirar la pantalla) · **N-106** (la vía del
+> Degradado que lo bloquea) · **Fase 3** de la hoja de ruta.
+
+---
+
 ## 📌 Reglas de Seguridad Inquebrantables (SFTY-1 a SFTY-18)
 
 - **SFTY-1:** Watchdog Timer IWDG activo a **4.0s** en Maestro y Esclavo STM32 (`IWatchdog.begin(4000000)`), con refresco obligatorio en `loop()`. *El Repetidor ESP32 no implementa watchdog.*

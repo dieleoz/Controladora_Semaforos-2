@@ -30,21 +30,67 @@
 // no de tocar este fichero.
 extern U8G2 &u8g2;
 #else
-// LA PANTALLA SE QUEDA CON TRES HILOS: SCLK, SID y CS. El reset va con
-// U8X8_PIN_NONE a proposito, no por descuido.
+// J17 LO OCUPA AHORA EL ESP32: LA PANTALLA SE DIBUJA, PERO YA NO CONDUCE EL BUS.
 //
-// PB6 y PB7 son el USART1 REMAPEADO, y el modulo Bluetooth de campo entra por
-// ahi (conector J17, posiciones 3 y 2). Mientras lcd.cpp se quedara con esos dos
-// pines no habia telemetria: dos perifericos no pueden gobernar el mismo pin.
+// EL DATO QUE MANDA, y esta medido en el cobre.
+// 03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md:349-350 reparte UN SOLO conector
+// entre dos cosas distintas:
 //
-// Se pueden soltar porque NINGUNO DE LOS DOS LLEVA DATOS del display:
-//   - LCD_RST (PB7) solo pulsa el reset al arrancar. El ST7920 arranca sin el;
-//     si se conserva la pantalla, su patilla RST se ata a 3,3 V en el cable.
-//   - LCD_PSB (PB6) era un nivel estatico -ver lcd_setup()-.
-// Los datos son LCD_SCLK, LCD_SID y LCD_CS, y esos no se tocan.
+//   LCD ST7920 (3 hilos desde N-76)   PB3 PB4 PB5     ->  J17  p4, p1, p5
+//   Modulo Bluetooth / ESP32          PB6 TX PB7 RX   ->  J17  p3, p2
+//
+// De ahi salen dos hechos, y el segundo es el que obliga a tocar este fichero:
+//
+//   1. NO PUEDEN ESTAR LOS DOS ENCHUFADOS. Es un conector. En cuanto el ESP32
+//      ocupa J17, la pantalla ya no esta fisicamente, se retire su codigo o no.
+//   2. Y EL CODIGO SEGUIA MOVIENDO TRES HILOS DE ESE MISMO CONECTOR. PB3 es SCL
+//      (p4) y CONMUTA EN CADA BIT (MAPEO_TARJETA_KICAD.md:378). Un reloj de SPI
+//      de software corriendo pegado al RX/TX del ESP32 dentro del mismo mazo es
+//      justo lo que produce corrupcion intermitente en el enlace serie: la que
+//      no se diagnostica nunca, porque aparece y desaparece segun lo que la
+//      pantalla este dibujando en ese instante.
+//
+// ESTO NO ES RETIRAR LA PANTALLA, Y LA DIFERENCIA IMPORTA. Se conserva el API
+// lcd_* entero, menu.cpp entero y las 271 comprobaciones de Validacion_LCD. Con
+// menu.cpp se conserva ademas menu.cpp:215, que es UNA DE LAS TRES VIAS que
+// sacan a esta punta del Modo Degradado -las otras dos son mando.cpp y la puerta
+// automatica de main.cpp; la app todavia NO puede, que es el defecto N-106, hoy
+// abierto-. Quitar el menu ahora seria retirar una via de seguridad mientras
+// otra sigue rota.
+//
+// LO UNICO QUE CAMBIA: el framebuffer se compone igual y NO SE VUELCA AL CABLE.
+//
+// COMO: LOS CUATRO PINES PASAN A U8X8_PIN_NONE. El objeto se sigue construyendo
+// igual -mismo transporte, mismo tipo-, pero no se le entrega ni un solo pin. La
+// pantalla ya renunciaba al reset asi; ahora renuncia tambien a SCLK, SID y CS.
+//
+// QUE ESO BASTA NO ES UNA SUPOSICION, esta leido en la libreria. En
+// U8x8lib.cpp::u8x8_gpio_and_delay_arduino() los DOS caminos que tocan un pin
+// preguntan antes:
+//   - el de arranque, "if ( u8x8->pins[i] != U8X8_PIN_NONE )" antes del pinMode;
+//   - el de cada escritura, "if ( i != U8X8_PIN_NONE )" antes del digitalWrite.
+// Con los cuatro en NONE no queda ni un pinMode ni un digitalWrite: PB3, PB4 y PB5
+// se quedan en alta impedancia. Todo lo demas -clearBuffer, setFont, drawStr,
+// sendBuffer- sigue corriendo intacto, y por eso las pantallas se siguen midiendo.
+//
+// POR QUE ASI Y NO CON PROCEDIMIENTOS DE BUS NULOS, que era la otra forma y ahorraba
+// 524 B mas: DOS PACKS LEEN ESTE CONSTRUCTOR POR TEXTO. flash_01_lastre exige que el
+// transporte acabe en _SW_SPI para saber si la bandera de HW SPI sobra, y
+// enlace_01_transporte lee estos argumentos justamente para comprobar que "el
+// constructor del display no vuelve a reclamar el pin del puerto". Cambiar la FORMA
+// del bloque dejaba a los dos en ABORTADO -y son precisamente los que vigilan el bus
+// de la pantalla y su choque con el puerto serie, o sea lo que este cambio arregla-.
+// Apagar al vigilante mientras se toca lo que vigila es N-75. Aqui solo cambian los
+// VALORES, asi que los dos siguen midiendo, y miden algo mas cierto que antes.
+// 524 B contra dos instrumentos que dejan de medir no es un intercambio: es N-89.
+//
+// PARA VOLVER A ENCENDER LA PANTALLA HACEN FALTA DOS COSAS, no una: devolver aqui
+// LCD_SCLK/LCD_SID/LCD_CS Y ADEMAS sacar el ESP32 de J17. Mientras ese modulo siga
+// en el conector, esta linea no se toca. Lo vigila costura_11_lcd_sin_bus.
 //
 // IDENTICO AL MAESTRO A PROPOSITO: las dos puntas comparten el cableado de J17.
-static U8G2_ST7920_128X64_F_SW_SPI u8g2(U8G2_R0, LCD_SCLK, LCD_SID, LCD_CS, U8X8_PIN_NONE);
+static U8G2_ST7920_128X64_F_SW_SPI u8g2(U8G2_R0, U8X8_PIN_NONE, U8X8_PIN_NONE,
+                                        U8X8_PIN_NONE, U8X8_PIN_NONE);
 #endif
 
 // Abrevia un contador para que no desborde la fila: 999 -> "999", 12345 -> "12k".
