@@ -25,7 +25,25 @@ Para evitar arranques prematuros y dar tiempo de frenado, la secuencia lumínica
 Cuando se solicita el cambio de vía, el sistema debe entrar en un estado de **ROJO ABSOLUTO**.
 - Durante *N* segundos, **ambos semáforos estarán en ROJO**.
 - **Variabilidad de Terreno:** Como la obra puede abarcar de 20m a 500m (con radios que alcanzan hasta 6km en línea vista), el tiempo de despeje no puede estar limitado a un valor bajo.
-- **Configuración:** La interfaz del menú LCD permite configurar tiempos de despeje de 5 a 999 segundos (piso mínimo de 5s por seguridad vial, hasta 16.6 minutos) para dar cobertura total a puentes largos o túneles de 500m.
+- **Configuración:** La interfaz del menú LCD permite configurar tiempos de despeje de **10 a 90 segundos**, con **piso mínimo de 10 s** por seguridad vial. Lo impone el firmware, no la pantalla: `DESPEJE_SEG_MIN = 10, DESPEJE_SEG_MAX = 90` en `01_Firmware/Maestro/src/modo_automatico.cpp:34`, y `modoAutomatico_fijarTiempos()` **rechaza** (`return false`) cualquier valor fuera del rango, venga del menú o de un comando por Bluetooth. ✅ **MEDIDO EN EL FUENTE.**
+
+> ### ⛔ Este apartado publicó ~~«de 5 a 999 segundos, piso mínimo de 5 s, hasta 16.6 minutos»~~ hasta el 31/08/2026. Era falso por partida triple.
+>
+> No se borra —una vía descartada que desaparece en silencio se vuelve a proponer— y se explica por qué,
+> porque las tres razones son distintas:
+>
+> 1. 🔴 **El piso publicado era la MITAD del real.** Un operario que configurase **5 s** de despeje
+>    creyendo que el manual manda, se encontraría con que el equipo **rechaza el valor** y se queda con
+>    el anterior. El despeje es *«el tiempo que garantiza que el tramo quedó vacío antes de dar verde al
+>    otro lado»*: **los 10 s no son un número redondo, son el tramo más corto que esta casa ha montado**
+>    (comentario de `modo_automatico.cpp:29-31`). Publicar 5 s invita a pedir un despeje que **no da
+>    margen**, y esto está en la matriz de seguridad como **SFTY-4**.
+> 2. 🔴 **El techo publicado era 11 veces el real.** El máximo es **90 s**, no 999. Quien planifique un
+>    túnel de 500 m contando con *«hasta 16.6 minutos»* está planificando sobre un equipo que no existe.
+> 3. 🔴 **Y 999 no fue nunca representable.** `despejeSeg` es un **`uint8_t`** (`modo_automatico.cpp:34`,
+>    `:37`): el valor más grande que cabe en ese tipo es **255**. La cifra publicada no era una
+>    configuración desafortunada — era un número que **ningún firmware podría haber aceptado jamás**, y
+>    llevaba meses escrito como si fuera una capacidad del equipo.
 
 ---
 
@@ -51,7 +69,11 @@ Mientras está activa, ambos semáforos permanecen en **🔴 Rojo Fijo** (o Amar
 
 ## 4. Comportamiento ante Fallas (Fail-Safe & Self-Healing Real)
 
-1. **Pérdida de Comunicación (SFTY-6):** Si se pierde comunicación por más de 12.0 segundos, el sistema entra automáticamente en `C_FALLO` / `S_FALLO` (🟡 **Amarillo Intermitente**). En `C_FALLO`, el Maestro envía `CMD_GO_RED` para obligar al Esclavo a pasar a Rojo o Amarillo Intermitente por timeout.
+1. **Pérdida de Comunicación (SFTY-6):** Si se pierde comunicación por más de **25 s de silencio**, el sistema entra automáticamente en `C_FALLO` / `S_FALLO` (🟡 **Amarillo Intermitente**). En `C_FALLO`, el Maestro envía `CMD_GO_RED` para obligar al Esclavo a pasar a Rojo o Amarillo Intermitente por timeout. ✅ **MEDIDO:** `SFTY6_SILENCIO_MS = 25000UL` en `01_Firmware/Maestro/include/protocolo.h:149` y en `01_Firmware/Esclavo/include/protocolo.h:149` — el umbral vive **una sola vez por punta** y las dos líneas son idénticas.
+   > ⛔ Este manual publicó ~~12.0 segundos~~ hasta el 31/08/2026. Era el umbral anterior a **N-71**, y no
+   > era sólo una cifra vieja: **12 s quedaban por debajo de los ~20,8 s que el ciclo necesita** para
+   > agotar sus cinco reintentos, así que **los reintentos 4 y 5 no se ejecutaban nunca** — el ámbar por
+   > orfandad saltaba antes. Nada lo delataba, porque irse a ámbar es un comportamiento razonable.
 2. **Auto-Recuperación Autónoma (Self-Healing Real):** Al restablecerse la señal de radio, el sistema **NO requiere reinicio manual**. Limpia automáticamente el registro de duplicados (`protocolo_resetReplayProtection()`), fuerza Rojo Estático (All-Red) de 15 segundos en ambos semáforos para limpiar la vía y reanuda el ciclo lumínico sin intervención técnica.
 3. **Cuelgue de Procesador (Ruido EMI):** El Watchdog interno (`IWatchdog` activo a 4.0s) reinicia el procesador ante interferencias severas.
 
@@ -306,6 +328,14 @@ pines pasan a las cámaras**.
 ## 8. Módulo Bluetooth para Telemetría y Diagnóstico Móvil (Estándar Baliza)
 
 Para soporte técnico en campo sin escaleras:
-* **Conexión Hardware:** Puerto USART1 (`PA9` TX, `PA10` RX), alimentado con 5V/3.3V de la PCB.
+* **Conexión Hardware:** Puerto **USART1 REMAPEADO a `PB6` (TX) / `PB7` (RX)**, conector **`J17`**, alimentado con 5V/3.3V de la PCB. ✅ **MEDIDO:** `static HardwareSerial SerialBT(PB7, PB6);` en `01_Firmware/Maestro/src/bluetooth.cpp:28`.
+  > ⛔ Este manual publicó ~~«USART1 (`PA9` TX, `PA10` RX)»~~ hasta el 31/08/2026. Es el sitio donde
+  > estuvo **antes** de `N-76`, y dejarlo escrito manda al técnico a soldar el módulo Bluetooth al
+  > conector equivocado.
 * **Telemetría en Vivo:** Emisión periódica de `$STATUS,...` cada 1 segundo con modo, fase de luces, cuenta regresiva, % de señal RF y hora exacta del RTC.
-* **Caja Negra de Alarmas:** Registro inmediato de eventos con timestamp (`$ALARM,EVENTO:FALLO_RF_12S...`) para diagnosticar la causa exacta de cualquier caída de radio en obra.
+* **Caja Negra de Alarmas:** Registro inmediato de eventos con timestamp (`$ALARM,NODE:MAESTRO,EVENTO:FALLO_RF,CAUSA:SILENCIO_25000ms,ACCION:CAMBIO_A_AMBAR,HORA:...`) para diagnosticar la causa exacta de cualquier caída de radio en obra.
+  > ⛔ El ejemplo decía ~~`$ALARM,EVENTO:FALLO_RF_12S...`~~ hasta el 31/08/2026. El propio firmware ya
+  > había retirado ese literal con su motivo escrito al lado —`Esclavo/src/main.cpp:573` y
+  > `*/include/bluetooth.h:18-19`: *«el numero quedo mintiendo al subir el umbral a 25 s»*—, pero el
+  > manual se quedó con la versión vieja. La causa **no lleva el número pegado al nombre del evento**:
+  > se compone en tiempo de ejecución desde `SFTY6_SILENCIO_MS`, y por eso no puede envejecer.

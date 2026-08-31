@@ -155,7 +155,11 @@ de relé y cuál elegir según **M3**— en
 ## 4. Módulo Bluetooth para Telemetría y Diagnóstico Móvil
 
 Para soporte técnico, caja negra de alarmas y monitoreo desde el suelo sin subir al poste (estándar probado en proyecto Baliza):
-* **Pines de Conexión:** Puerto USART1 del STM32 (`PA9` TX ➔ `RXD` BT, `PA10` RX ➔ `TXD` BT).
+* **Pines de Conexión:** Puerto **USART1 REMAPEADO** del STM32 — **`PB6` TX ➔ `RXD` BT, `PB7` RX ➔ `TXD` BT**, conector **`J17`**. ✅ **MEDIDO EN EL FUENTE:** `static HardwareSerial SerialBT(PB7, PB6);` (`01_Firmware/Maestro/src/bluetooth.cpp:28`, con el porqué del remapeo en `:16-22`).
+  > ⛔ Este apartado publicó ~~«`PA9` TX ➔ `RXD` BT, `PA10` RX ➔ `TXD` BT»~~ hasta el 31/08/2026. Ese
+  > era el sitio del puerto **antes de `N-76`**, y no es un detalle de redacción: manda soldar el módulo
+  > Bluetooth a dos pines por los que hoy **no sale ni un byte**. El técnico no vería un error — vería
+  > un módulo mudo, que es el fallo más caro de diagnosticar desde el suelo.
 * **Desacoplo Eléctrico:** Pin `PA8` forzado en `HIGH` permanente para poner en alta impedancia ($\text{Hi-Z}$) el transceptor `MAX3485 U3`.
 * **Alimentación:** `5V` (o `3.3V`) y `GND` de la tarjeta controladora.
 * **Funcionalidad:** Envío continuo de telemetría (estado de luces, modo, cuenta regresiva `T:`, calidad de señal RF, % de paquetes y motivos de alarma con hora exacta de RTC) hacia la App en celular con comandos protegidos por PIN (`1234`). Detalle completo en [`05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md`](05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md).
