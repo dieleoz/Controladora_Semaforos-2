@@ -119,7 +119,39 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 
 ---
 
-## 5. El orden de arranque — que se lanza, cuando, y que abre cada puerta
+## 5. Donde vamos — 31/08, sesion en curso
+
+**Rama `fix/n93-cifras-app-y-entrega`. `origin/main` intacto en `f25fa57`.**
+
+| ola | que | estado |
+|---|---|---|
+| **A1** | los cuatro documentos que mandaban camaras a los pines del mando | ✅ `641d02a` |
+| **A2** | Manual 17 y `ESTADO.md` con la decision del 31/08 | ✅ `e2f6df2` |
+| **A3** | `FORZAR_ROJO` dado por valido en el Esclavo | 🔍 en auditoria |
+| **A4** | cifras sin vigilante (`despeje 5-999`, `CERTIFICACION_SW`) | ⬜ pendiente |
+| **B1** | el `TOTAL_PACKS` que no sabia fallar | ✅ `249a1c4` — costo tres intentos |
+| **B2** | el rol del ESP32 en `_ROLES` | 🔧 en curso, con el firmware |
+| **B3** | el pack de N-106 | 🔧 en curso — **va a salir en rojo, a proposito** |
+| **B4** | un `documentos_04` para los manuales sin vigilante | ⬜ pendiente |
+| **C1** | **camaras en C y D, las dos puntas** | ✅ `deeeab4` — **N-97 cerrado**, y la flash BAJA 56 B |
+| **C2** | N-106: la llamada que falta en `bluetooth.cpp` del Esclavo | ⬜ despues de B3 |
+| **C3** | firmware del ESP32: watchdog, `DS3231`, puente SPP | 🔧 en curso |
+| **D** | retirada de la pantalla (~18,9 KB) | ⬜ con el arbol quieto |
+| **E** | **BANCO** | 🛑 bloqueante, sin sustituto |
+
+**Fuera de las olas, cerrado hoy:** roadmap nuevo · README · `ARQUITECTURA.map` · manuales 10 y 11 ·
+guia de cableado con la placa portadora y la hoja de validacion imprimible · pack del transporte
+(`enlace_01`) · las 33 comprobaciones que la trazabilidad no veia · la especificacion del firmware
+ESP32 · la APK recompilada · los 20 `.docx` · **BLQ-1 cerrado (N-107)**.
+
+**Tambien en vuelo:** simulador de la interaccion · los tres verdes que no miden nada de
+`simulador_app_bluetooth.py` · auditoria de la app contra el protocolo.
+
+**El banco ha ido de `411/411` en 38 packs a `512/512` en 40** en el transcurso de la sesion.
+
+---
+
+## 5.bis El orden de arranque — que se lanza, cuando, y que abre cada puerta
 
 **La regla que fija el orden, y no es de gusto:** hoy la compuerta **ve lo que se BORRA y no ve lo
 que se queda sin sujeto** (N-103). Si el firmware se mueve antes que los instrumentos, hay una
