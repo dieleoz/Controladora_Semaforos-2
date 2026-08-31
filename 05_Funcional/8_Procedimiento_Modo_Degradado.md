@@ -378,6 +378,103 @@ estar. **El peor caso de intentar Automático es volver al ámbar.**
 > Retirados mando y pulsadores, **el Esclavo no puede irse a ámbar local por orden de nadie**, y sus
 > tres vetos de radio se apagan solos. Ver el hallazgo completo en el manual del mando, §3.1.
 
+> ## 🟢 EL BLOQUE DE ARRIBA ESTÁ CADUCADO DESDE EL 31/08/2026 — y por DOS motivos independientes
+>
+> Se conserva tachado y no se borra: una casilla que desaparece en silencio se vuelve a proponer.
+>
+> **(1) EL MANDO DE RELÉS SE CONSERVA**, por decisión del responsable del 31/08, en los canales **A**
+> y **B** (`MANDO_A` = `PB9` = `J16` p5, `MANDO_B` = `PB13` = `J16` p8). Se retiran **solo** los
+> pulsadores 3 y 4, que son los que las cámaras necesitan. **`A·A·A`, `B·B·B` y `A·B·A·B` siguen
+> funcionando**, y con ellos `ambarLocal` y sus tres vetos. El *«sin actuador»* de arriba describía un
+> equipo que la decisión del 31/08 ya no va a construir.
+>
+> **(2) Y aunque no se conservara, el Esclavo SÍ tiene una segunda vía de ámbar** —la tenía ya cuando
+> se escribió aquello—: **`CMD:AMBAR_EMERGENCIA` por Bluetooth**, que entra por dos puertas, **con
+> PIN y sin PIN** (`Esclavo/src/bluetooth.cpp:130-136` y `:171-176`, **MEDIDO POR LECTURA**).
+
+### 5.bis 🟠 El ámbar de emergencia desde la app, y la jerarquía de las dos vías
+
+> 🛑 **ESPECIFICACIÓN DEL 31/08/2026. NADA DE ESTO HA PASADO BANCO,** y el firmware de hoy **no** se
+> comporta como dice este apartado: `CMD:AMBAR_EMERGENCIA` **no sale del Modo Degradado** y contesta
+> `RESULT:OK` pase lo que pase. Es el defecto **N-106**, abierto.
+
+**La jerarquía, que es decisión del responsable y no una preferencia de diseño:**
+
+| vía | qué es | cuándo se usa |
+|---|---|---|
+| **La app** (`CMD:AMBAR_EMERGENCIA`) | **la superficie de mando** | siempre que se pueda |
+| **El mando, `B·B·B`** | **la vía de último recurso** | cuando no hay teléfono, no hay cobertura, o el ESP32 se colgó |
+
+Que sea la *segunda* no la hace opcional: **es la única que no depende de una radio corta, de una
+batería de móvil ni de un accesorio.** Por eso el mando se conserva.
+
+**Y las dos tienen que hacer LO MISMO.** El firmware lo declara por escrito
+—`Esclavo/src/bluetooth.cpp:32-39`: *«UNA EMERGENCIA PEDIDA POR BLUETOOTH VALE LO MISMO QUE UNA DEL
+MANDO»*— y **hoy no es cierto en Modo Degradado**:
+
+| vía | qué hace hoy en Degradado | ¿sale por el todo-rojo? |
+|---|---|---|
+| Mando, `B·B·B` | `mando.cpp:129-141`: si el Degradado gobierna la luz, `degradado_salir()` | **sí** |
+| App, `AMBAR_EMERGENCIA` | `bluetooth.cpp:130-136` y `:171-176`: `semaforo_iniciarFallo()` a secas | **no** |
+
+**Decisión del responsable, 31/08:** la vía de la app **sale del Degradado de forma ordenada, igual
+que `B·B·B`**, por el todo-rojo de despedida.
+
+#### Lo que el funcional VE cuando lo pide con el Degradado en marcha
+
+```
+   pide AMBAR_EMERGENCIA desde el telefono
+        |
+        v
+   TODO-ROJO de despedida ......... entre 10 y 90 s   <-- NO es un cuelgue
+        |                                                 el equipo esta obedeciendo
+        v
+   AMBAR intermitente, pluma ARRIBA
+```
+
+> ⚠️ **Los 10 a 90 s no son un número redondo ni un margen de cortesía.** Salen de
+> `Esclavo/src/modo_degradado.cpp:108-111` —`max(cfgDespeje × 1000 ms, 4000 ms)`— y `cfgDespeje` es
+> el despeje configurado del cruce, que sólo admite **10 a 90 s** (`Maestro/src/modo_automatico.cpp:34`).
+> Es el mismo tiempo que ya cuesta `B·B·B`, y es el margen que garantiza que el tramo quedó vacío.
+>
+> **Que ese precio se acepte tal cual, se acote o se quite es la fila `R-1` del Manual 10 §4.5.6, y
+> la decide el responsable.**
+
+#### Lo que el equipo CONTESTA — no es siempre `OK`, y no se copia aquí
+
+**El Esclavo contesta cosas distintas según el estado en que le llegue la orden**, porque un
+`RESULT:OK` sobre un ámbar que todavía tardará 90 s en aparecer es una confirmación de algo que no ha
+ocurrido: el técnico se va del poste y el equipo se queda como estaba.
+
+**La tabla completa —los cinco casos, los nombres de `RESULT:` y `DESC:`, y lo que el firmware no
+sabe distinguir hoy— vive en un solo sitio:**
+
+📄 **[`10_Manual_Modulo_Bluetooth_Telemetria.md` §4.5](10_Manual_Modulo_Bluetooth_Telemetria.md)**
+
+**Aquí no se copia a propósito.** Duplicarla crearía dos versiones que alguien tendría que
+sincronizar a mano, y el día que difieran el técnico de arriba y el de abajo leerían contratos
+distintos del mismo comando.
+
+#### 🔴 Riesgo residual nuevo (31/08): entrar en Degradado con el ámbar de la app puesto
+
+**MEDIDO POR LECTURA, y RAZONADO —no ejercido—.** `degradado_entrar()`
+(`Esclavo/src/modo_degradado.cpp:212-243`) fuerza todo-rojo en `:224` **sin preguntar por
+`bluetooth_ambarEmergencia()`**, y el sostenedor del modo escribe luz por otra puerta —`aplicarLuz()`
+desde `degradado_actualizar()`, `main.cpp:363`— **que tampoco lo consulta**.
+
+Consecuencia: si alguien entra en Degradado desde el gabinete mientras hay un ámbar pedido por
+teléfono, **la luz sale de ámbar en ese mismo instante**, el latch se revoca solo en la vuelta
+siguiente (`bluetooth.cpp:292`), y en la siguiente frontera de fase el cruce puede dar **verde por
+reloj** donde alguien había pedido precaución. **El `$ACK` ya se envió, y nada se lo dice a nadie.**
+
+**Esto no lo arregla la decisión del 31/08 por sí sola.** Las tres opciones —rechazar la entrada,
+revocar el latch explícitamente, o que el latch vete la luz del Degradado— están escritas con su
+consecuencia en el Manual 10 **§4.5.7 (`R-4`)**, y **las decide el responsable**: lo que se elija lo
+ve un conductor.
+
+> **Mientras tanto, la regla de campo es la de siempre y sirve exactamente para esto:** *verificar
+> con los ojos las dos puntas*, al entrar y al salir. Ver Sección 6, Riesgo 2.
+
 ### Checklist de salida
 
 - [ ] ~~Secuencia o pulsación ejecutada en el **Maestro**~~ → **sin actuador**; queda `SET_MODO:AUTO` / `SET_MODO:AMBAR` por Bluetooth, **sin todo-rojo de despedida**

@@ -86,17 +86,6 @@ int main() {
              "todo-rojo (transiciones malas: %ld)", verde_a_verde);
     comprobar(verde_a_verde == 0, msg);
 
-    // 2. Las dos puntas nunca tienen verde a la vez. Se comprueba por construccion:
-    //    la fase es UNA, y solo una de las cuatro puede ser el verde de cada punta.
-    long simultaneos = 0;
-    for (uint32_t s = 0; s < SEGUNDOS_DEL_DIA; s++) {
-      FaseDegradado f = ciclo_degradado_fase(s, v, d);
-      if (f == FD_VERDE_MAESTRO && f == FD_VERDE_ESCLAVO) simultaneos++;
-    }
-    snprintf(msg, sizeof(msg),
-             "ningun segundo del dia da verde a las DOS puntas (casos: %ld)", simultaneos);
-    comprobar(simultaneos == 0, msg);
-
     // 3. La guarda de medianoche, en los dos sentidos. El dia no dura un numero
     //    entero de ciclos, asi que el ultimo ciclo antes de las 00:00 queda cortado:
     //    sin esta guarda, un verde podria empezar a las 23:59:5x y morir a medianoche
@@ -146,5 +135,62 @@ int main() {
   printf("==============================================================\n");
   printf(" Medido sobre el ciclo_degradado.h REAL del firmware, no sobre un\n");
   printf(" espejo en Python. Si alguien cambia el calculo, esto mide el nuevo.\n");
+  // --- FUERA DEL BUCLE DE CONFIGURACIONES, A PROPOSITO ---
+  // No depende de v ni de d: sus argumentos son (0,0) fijos. Dentro del bucle
+  // contaba una vez por configuracion, o sea N veces la MISMA propiedad, que es
+  // inflar la cuenta igual que hacia la tautologia que sustituye.
+  {
+    char msg[260];
+  // 2. LA CONFIGURACION IMPOSIBLE DE VERDAD: verde=0 Y despeje=0.
+  //
+  // Aqui vivia una comprobacion que NO PODIA FALLAR y lo parecia:
+  //
+  //     if (f == FD_VERDE_MAESTRO && f == FD_VERDE_ESCLAVO) simultaneos++;
+  //
+  // `f` es UN valor del enum: no puede ser los dos, asi que `simultaneos` valia 0
+  // pasara lo que pasara, mientras el mensaje afirmaba "ningun segundo del dia da
+  // verde a las DOS puntas" — una propiedad de clase SFTY-2. Prueba muerta dentro
+  // de una barrera de seguridad. Su propio comentario decia "se comprueba por
+  // construccion", y eso es lo que la descalifica (CLAUDE.md §3).
+  //
+  // Que ese verde simultaneo no ocurre es cierto POR EL TIPO DE RETORNO. **El
+  // riesgo real vive en otro sitio**: en como cada punta TRADUCE la fase a luz, en
+  // el aplicarLuz() de su modo_degradado.cpp. Ahi si pueden divergir, y hace falta
+  // un pack que compare las dos puntas: este arnes compila la funcion pura y no
+  // puede verlo. Queda dicho para que la ausencia no se lea como cobertura.
+  //
+  // Lo que se pone en su lugar es el unico caso que no ejercia nadie. La guarda es
+  // `if (verdeSeg == 0 || despejeSeg == 0)`, y de sus dos mitades:
+  //   - `despeje == 0` SI es portante: sin ella, pos < v da VERDE_MAESTRO y
+  //     pos < 2v da VERDE_ESCLAVO sin todo-rojo en medio. Ya la ejerce la config
+  //     de despeje=0 de la prueba 4.
+  //   - `verde == 0` con despeje valido NO es portante para el verde: el ciclo
+  //     vale 2d, y la aritmetica no devuelve verde aunque se quite la guarda.
+  //     Se comprobo inyectandolo: la cuenta no bajaba.
+  // La combinacion que si importa es **las dos a cero**: `ciclo` vale 0 y
+  // `segDia % ciclo` es una division por cero. Nadie la ejercia.
+  //
+  // ALCANCE, MEDIDO Y NO SUPUESTO. Al escribir esto se predijo que retirar la
+  // guarda mataria el arnes por division por cero -o sea, ABORTADO y no FALLA-.
+  // **Se inyecto y la prediccion era falsa**: la comprobacion cae limpia,
+  //
+  //     [FALLA] ... (verdes: 86400)
+  //
+  // asi que es un detector de FALLA, que es lo que se queria. Queda escrito el
+  // error porque la prediccion llego a estar en este comentario: en este
+  // repositorio lo que uno afirma tambien es un instrumento, y una suposicion con
+  // aspecto de medida es justo lo que §4 castiga.
+  long verdes_config_nula = 0;
+  for (uint32_t s = 0; s < SEGUNDOS_DEL_DIA; s++) {
+    FaseDegradado f = ciclo_degradado_fase(s, 0, 0);
+    if (f == FD_VERDE_MAESTRO || f == FD_VERDE_ESCLAVO) verdes_config_nula++;
+  }
+  snprintf(msg, sizeof(msg),
+           "verde=0 Y despeje=0 -la unica combinacion que hace ciclo=0- devuelve "
+           "todo-rojo en los 86.400 segundos, sin dividir por cero (verdes: %ld)",
+           verdes_config_nula);
+  comprobar(verdes_config_nula == 0, msg);
+  }
+
   return fallos == 0 ? 0 : 1;
 }

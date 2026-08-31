@@ -793,6 +793,23 @@ todo-rojo—, así que ponerle una clave delante solo retrasa a quien está vien
 Se aceptan **las dos formas**: `CMD:FORZAR_ROJO` y `CMD:PIN:1234:FORZAR_ROJO` hacen lo mismo. El PIN
 sigue guardando lo que **abre** paso o mueve luces.
 
+> ⚠️ **Este apartado habla del MAESTRO. En el Esclavo el comando cambió de nombre (N-83) y el
+> razonamiento de arriba no le vale.**
+>
+> ~~«Detener el tráfico es la acción segura, así que no pide PIN»~~ — en el Esclavo eso **no
+> describe lo que ocurre**: `semaforo_iniciarFallo()` deja el equipo en `S_FALLO`, que es **ámbar
+> intermitente a 500 ms con la talanquera ARRIBA**, no rojo. Ese camino **sí abre paso**. La
+> exención de PIN sigue siendo correcta por otro motivo, escrito en
+> `Esclavo/src/bluetooth.cpp:110-129`: un ámbar intermitente **no le da prioridad a nadie** —pone a
+> los dos sentidos a pasar con precaución—, y una caída segura que exija recordar una clave delante
+> de un accidente no es una caída segura.
+>
+> El literal `FORZAR_ROJO` **sigue existiendo en el Esclavo, rechazándose y enseñando el nombre
+> bueno** (`:157` y `:176`). No se convirtió en alias mudo a propósito: quien lo manda tiene una app
+> o un manual anteriores al cambio, y lo que necesita no es enterarse de que el comando no existe,
+> sino de cómo se llama ahora. **El nombre vigente es `AMBAR_EMERGENCIA`, y qué contesta en cada
+> estado es §4.5.**
+
 ### 📋 Qué acepta cada punta, y no es lo mismo
 
 | Comando | Maestro | Esclavo | Por qué |
@@ -800,7 +817,8 @@ sigue guardando lo que **abre** paso o mueve luces.
 | `SET_MODO:AUTO` · `MANUAL` · `AMBAR` | ✅ con PIN | ❌ | El Maestro es el único que arbitra el ciclo |
 | `MANUAL:CAMBIAR_TURNO` | ✅ con PIN | ❌ | idem |
 | **`SOLICITAR_PASO`** | — | ✅ **con PIN** | **Pide**, no ordena: manda `CMD_DEMANDA` por radio y decide el Maestro |
-| `FORZAR_ROJO` | ✅ **sin PIN** | ✅ **sin PIN** | Dirección segura, desde cualquier extremo |
+| ~~`FORZAR_ROJO`~~ ~~✅ sin PIN en las dos~~ | ✅ **sin PIN** | 🛑 **RECHAZADO con motivo** | 🔴 **Esta fila era falsa desde N-83.** En el Esclavo `FORZAR_ROJO` **ya no se atiende**: contesta `$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` (**MEDIDO POR LECTURA**, `Esclavo/src/bluetooth.cpp:157` sin PIN y `:176` con PIN). En el Maestro sí hace rojo de verdad (`Maestro/src/bluetooth.cpp:253`). Llamarlas igual era el defecto |
+| **`AMBAR_EMERGENCIA`** | ❌ *(el Maestro usa `SET_MODO:AMBAR`, con PIN)* | ✅ **sin PIN y con PIN** | Ámbar intermitente con la pluma arriba. **No es «lo seguro» a secas: SÍ abre paso a los dos sentidos** — la exención de PIN se razona en `Esclavo/src/bluetooth.cpp:110-129`, no en «esto para el tráfico». **Su tabla de respuestas es §4.5** |
 | `SET_RTC:…` | ✅ con PIN | ✅ con PIN | Ajusta el reloj, no las luces |
 | `TEST_LEDS` | ✅ con PIN | 🛑 **RECHAZADO** | Ver abajo |
 
@@ -842,6 +860,212 @@ Si la petición cae en la ventana de silencio de 3 s, el equipo contesta
 `$ERR,CMD:SOLICITAR_PASO,DESC:REPITA_EN_UNOS_SEGUNDOS`. **No se finge un envío que no ocurrió:** si el
 operario no lo sabe, vuelve a pulsar creyendo que no le hacen caso.
 
+---
+
+### 4.5 🟠 `AMBAR_EMERGENCIA` en el Esclavo — la tabla de respuestas
+
+> 🛑 **ESTO ES ESPECIFICACIÓN, NO ES LO QUE EL FIRMWARE HACE HOY.** Escrito el **31/08/2026**.
+> Ninguna línea de esta sección ha pasado banco, y el firmware de hoy contesta
+> `RESULT:OK` **en los cinco casos**. Mientras esta tabla no esté implementada y vista fallar, el
+> `$ACK` que llega del Esclavo **no distingue nada** y no debe leerse como si distinguiera.
+>
+> **La tabla vive AQUÍ y en ningún otro sitio.** El Manual 8 (§5.bis) y el Manual 18 (§3.6) la
+> **referencian**; copiarla crearía dos versiones que alguien tendría que sincronizar a mano, que es
+> exactamente el defecto que este proyecto lleva un mes cerrando.
+
+#### 4.5.0 La decisión que ya está tomada, y de quién es
+
+**Decisión del responsable, 31/08/2026:**
+
+1. `CMD:AMBAR_EMERGENCIA` en el Esclavo **sale del Modo Degradado de forma ORDENADA** —por el
+   todo-rojo de despedida—, **igual que hace `B·B·B` desde el mando**, en vez de limitarse a
+   `semaforo_iniciarFallo()`.
+2. **La jerarquía: la app es la superficie de mando; el `B·B·B` del mando es la vía de último
+   recurso** —cuando no hay teléfono, no hay cobertura o el ESP32 se colgó—.
+
+**Lo que esa decisión NO dijo, y es lo que especifica esta sección: qué contesta el equipo en cada
+caso.** Y hace falta decirlo porque el arreglo directo —copiar el molde de `mando.cpp:129-141` a las
+dos puertas— **lo rechazó el banco, con razón**. El pack `app_03_sin_ok_mudo` dijo:
+
+```text
+FALLA Esclavo / CMD:AMBAR_EMERGENCIA: llama a degradado_salir() y TIRA lo que
+      devuelve -o no comprueba su guarda- y aun asi manda $ACK. El tecnico recibe
+      una confirmacion de algo que puede no haber ocurrido, se va del poste, y el
+      equipo se queda como estaba sin que nada lo diga
+```
+
+Es la barrera de `CLAUDE.md` §6 literal, y es **el mismo defecto que N-80 cerró en `SET_RTC`**
+apareciendo en la rama de al lado. Por eso la respuesta tiene que **distinguir los casos**, y cuántos
+son y cómo se llaman es especificación.
+
+#### 4.5.1 Lo MEDIDO POR LECTURA — para que nadie lo suponga
+
+*(fichero y línea; nadie lo ha ejercido ni en banco ni en arnés)*
+
+| qué | dónde | qué dice |
+|---|---|---|
+| Puerta **SIN PIN** | `Esclavo/src/bluetooth.cpp:130-136` | `semaforo_iniciarFallo(); ambarEmergencia = true;` → `RESULT:OK` |
+| Puerta **CON PIN** | `Esclavo/src/bluetooth.cpp:171-176` | lo mismo, literalmente |
+| El molde bueno | `Esclavo/src/mando.cpp:129-141` | `if (degradado_gobiernaLuz()) degradado_salir(); else semaforo_iniciarFallo();` |
+| **La otra mitad del molde** | `Esclavo/src/mando.cpp:274` | el **sostenedor**: `if (ambarLocal && !semaforo_senalEnCurso() && !degradado_gobiernaLuz() && semaforo_estado() != S_FALLO) semaforo_iniciarFallo();` |
+| `degradado_salir()` | `Esclavo/src/modo_degradado.cpp:246-252` | es **`void`**, y tiene guarda interna: desde `DEG_RENDIDO` solo baja el cartel; desde `DEG_INACTIVO` o `DEG_SALIENDO` **no hace nada** |
+| Los cinco estados | `Esclavo/include/modo_degradado.h:30-36` | `DEG_INACTIVO` · `DEG_ENTRANDO` · `DEG_ACTIVO` · `DEG_SALIENDO` · `DEG_RENDIDO` |
+| `degradado_gobiernaLuz()` | `Esclavo/src/modo_degradado.cpp:367-369` | `ENTRANDO \|\| ACTIVO \|\| SALIENDO` — **`RENDIDO` NO gobierna la luz** |
+| Duración del todo-rojo de despedida | `Esclavo/src/modo_degradado.cpp:108-111` y `:49` | `max(cfgDespeje × 1000 ms, ROJO_MINIMO_MS = 4000 ms)` |
+| Rango legal del despeje | `Maestro/src/modo_automatico.cpp:34` (`DESPEJE_SEG_MIN = 10`, `MAX = 90`), llega al Esclavo por radio (`config_ciclo.cpp:158`) | **el todo-rojo de despedida dura entre 10 y 90 segundos** |
+| `semaforo_iniciarFallo()` | `Esclavo/src/semaforo.cpp:256-260` | **no tiene guarda y no puede fallar**: pone `S_FALLO` siempre |
+| El Esclavo **no tiene** comando de Bluetooth para ENTRAR en Degradado | `grep -in "degradado" Esclavo/src/bluetooth.cpp` → **CERO** | la entrada siempre la pide alguien delante del poste (mando `A·B·A·B`, o `menu.cpp:211`) o el arranque tras corte |
+
+#### 4.5.2 🔴 La tabla — qué contesta en cada estado
+
+**`<E>` es `CMD:AMBAR_EMERGENCIA`** en las respuestas de abajo; se escribe entero en la trama. El
+`*XX` se omite en esta tabla a propósito: se calcula como dice §4.1, sobre la trama final.
+
+| # | estado al recibir | qué hace | qué contesta |
+|---|---|---|---|
+| **A** | **`DEG_INACTIVO`** y la luz **no** está en `S_FALLO` — manda el Maestro por radio, o el equipo está en rojo/verde | `semaforo_iniciarFallo()` + arma el latch. **No puede fallar** (`semaforo.cpp:256`) | `$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK` |
+| **B** | **`DEG_INACTIVO`** y la luz **ya** está en `S_FALLO` — por SFTY-6 (25 s de silencio), por watchdog, por `B·B·B`, o por un `AMBAR_EMERGENCIA` anterior | reinicia el parpadeo y arma el latch. **El latch sí cambia algo**: convierte un ámbar que el siguiente `CMD_GO_RED` del Maestro se llevaría en un ámbar **vetado** (`main.cpp:406`, `:416`, `:540`) | `$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO` |
+| **C** | **`DEG_ENTRANDO`** o **`DEG_ACTIVO`** — el Degradado gobierna la luz y `degradado_salir()` **sí** opera | arranca la **salida ordenada**: todo-rojo de despedida de **10 a 90 s**, y el ámbar llega **al final**. Arma el latch | `$ACK,CMD:AMBAR_EMERGENCIA,RESULT:SALIENDO_TODO_ROJO` |
+| **D** | **`DEG_SALIENDO`** — ya hay una salida en curso, pedida por otro (el mando, el menú, el regreso del radio, o un `AMBAR_EMERGENCIA` anterior) | `degradado_salir()` es **NO-OPERATIVO** (`modo_degradado.cpp:250`). Lo único que ocurre es que se arma el latch | 🟠 **`R-2` — PENDIENTE DE DECISIÓN DEL RESPONSABLE.** Ver §4.5.5 |
+| **E** | **`DEG_RENDIDO`** — 48 h sin sincronizar; `degradado_actualizar()` ya lo dejó en ámbar intermitente (`modo_degradado.cpp:352-353`) | la luz ya está donde se pidió. Se arma el latch y **se baja el cartel** del modo a `DEG_INACTIVO` | `$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO` |
+| **F** | PIN mal formado, **solo por la puerta con PIN** | nada | `$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO` *(ya existe, `bluetooth.cpp:164`)* |
+
+**Filas que NO existen, y por qué se dice en vez de callarlo:**
+
+- **«La orden no se pudo cumplir»** no tiene fila porque **no hay ningún estado en el que
+  `semaforo_iniciarFallo()` o el armado del latch puedan fallar** — MEDIDO: la función no tiene
+  guarda y el latch es una asignación. Lo único que puede quedar sin ocurrir **en el instante de la
+  respuesta** es el ámbar de la fila **C**, que llega hasta 90 s después; de ahí que su `RESULT:` no
+  sea `OK`.
+- **Señal de confirmación del mando en curso** (`semaforo_senalEnCurso()`, los destellos de
+  `B·B·B`/`A·A·A`) **no es una fila**: `aplicarSalidas()` guarda y no escribe mientras dura la señal
+  (`semaforo.cpp`, cabecera del test de lámparas), así que el **estado** pasa a `S_FALLO`
+  inmediatamente y los **pines** enseñan la señal un par de segundos más. La respuesta no cambia, y
+  el firmware **no necesita distinguirlo**.
+- **`TEST_LEDS` en curso** no es una fila en esta punta: el Esclavo **rechaza** `TEST_LEDS`
+  (`bluetooth.cpp:202`), así que no hay camino para que esté activo.
+
+#### 4.5.3 🔴 Lo que el firmware NO puede distinguir hoy — y por eso se dice, no se inventa
+
+**`DEG_SALIENDO` es un solo estado con dos finales distintos, y desde fuera no se pueden separar.**
+
+**MEDIDO POR LECTURA:** `rendicionEnCurso` es `static bool` en `Esclavo/src/modo_degradado.cpp:58`,
+se escribe en `:147` y `:234`, se lee en `:346` — y **no tiene getter**: `modo_degradado.h` no lo
+declara. `degradado_estado()` devuelve `DEG_SALIENDO` en los dos casos.
+
+| final de la salida en curso | dónde | dónde acaba la luz |
+|---|---|---|
+| salida normal (`rendicion = false`) | `modo_degradado.cpp:356` | `DEG_INACTIVO` — **la luz se queda en ROJO** |
+| rendición por las 48 h (`rendicion = true`) | `modo_degradado.cpp:346-353` | `DEG_RENDIDO` + `semaforo_iniciarFallo()` — **ámbar** |
+
+Consecuencia para la fila **D**: **el equipo no sabe si el ámbar que se le está pidiendo va a
+aparecer solo al final del todo-rojo o no.** Eso es exactamente lo que decide `R-2`, y por eso `R-2`
+tiene dos partes: qué se contesta, y si hace falta un getter para poder contestarlo con verdad.
+
+#### 4.5.4 🔴 Las DOS condiciones que hay que cumplir ANTES de poder contestar `SALIENDO_TODO_ROJO`
+
+**Sin las dos, la fila C es un `$ACK` que miente — y sería `CLAUDE.md` §6 otra vez, esta vez
+introducido por el propio arreglo.** Las dos son **MEDIDAS POR LECTURA** y **RAZONADAS, NO
+EJERCIDAS**.
+
+**Condición 1 — el molde del mando tiene DOS mitades, y solo se estaba copiando una.**
+
+`mando.cpp:129-141` es la primera. La segunda es el **sostenedor** de `mando.cpp:274`, y su propio
+comentario dice para qué está: *«la orden del operario tiene que sobrevivir a lo que pase después: al
+todo-rojo de salida del Degradado —que termina en INACTIVO, no en ámbar—»*.
+
+`bluetooth.cpp` **no tiene sostenedor**. Copiada solo la primera mitad, el todo-rojo de despedida
+termina en `DEG_INACTIVO`, **nadie enciende el ámbar, y el equipo se queda en ROJO** — que es lo
+contrario de lo que se pidió, con un `$ACK` ya enviado.
+
+**Condición 2 — el latch se revoca a sí mismo DURANTE el todo-rojo, en la vuelta siguiente.**
+
+`bluetooth.cpp:292`: `if (ambarEmergencia && semaforo_estado() != S_FALLO) ambarEmergencia = false;`
+corre **una vez por vuelta de `bluetooth_loop()`**. Y `degradado_salir()` → `iniciarSalida()` →
+`semaforo_forzarRojo()` (`modo_degradado.cpp:145`) deja el estado en `S_ROJO`. O sea: **el latch
+muere milisegundos después de armarse**, antes de que el todo-rojo llegue ni a la mitad, y con él
+desaparecen los tres vetos de `main.cpp` (`:406`, `:416`, `:540`).
+
+> La revocación **no está mal escrita**: su razonamiento (`bluetooth.cpp:275-291`) es correcto
+> *mientras el ámbar sea inmediato*. Lo que rompe es que ahora hay un tercer estado que no existía
+> cuando se escribió: **«ámbar pedido y todavía en camino»**. Un latch que solo sabe distinguir
+> *«estoy en ámbar»* de *«ya no»* no puede sostener una orden que tarda 90 s en cumplirse.
+
+**Requisito de especificación, que es lo que aquí se fija:** el Esclavo **no contesta**
+`RESULT:SALIENDO_TODO_ROJO` mientras no sea cierto que, al terminar el todo-rojo de despedida, **la
+luz queda en ámbar y el latch sigue puesto**. Cómo se consigue es implementación —un sostenedor
+propio, un tercer valor del latch, o cualquier otra— y no se decide aquí; **lo que no se admite es la
+rama sin esa garantía**, porque entonces el `$ACK` promete un ámbar que nadie va a encender.
+
+> **Y esto se cierra con un arnés que hay que VER FALLAR antes de tocar una línea de firmware**
+> (`CLAUDE.md` §8.bis). El pack `esclavo_08_ambar_en_degradado` ya existe y **nace en rojo a
+> propósito**; lo que mide es el **texto** del C++ —que la rama se entere del Degradado—, **no** la
+> consecuencia dinámica. Las dos condiciones de arriba **ese pack no las ve**, y hacen falta dos
+> comprobaciones más que sí.
+
+#### 4.5.5 🟠 Las dos invariantes que la implementación tiene que cumplir
+
+1. **Las DOS puertas —con PIN (`:171-176`) y sin PIN (`:130-136`)— contestan EXACTAMENTE lo mismo.**
+   Un parche a una sola deja media puerta abierta contestando el `$ACK` viejo. Ya hay un pack que lo
+   caza: `esclavo_07_ambar_emergencia` compara las dos ramas.
+2. **El `$ACK`/`$ERR` de cada rama nombra el MISMO comando que la rama atiende** —`AMBAR_EMERGENCIA`,
+   nunca `FORZAR_ROJO`—. Es la propiedad 2 de `esclavo_07_ambar_emergencia`, y es la general: impide
+   que el defecto de N-83 vuelva con cualquier otro nombre.
+
+#### 4.5.6 🟠 Las filas que decide el RESPONSABLE — no se eligen en silencio
+
+**Están aquí porque lo que se elija LO VE UN CONDUCTOR**, o cambia lo que el operario cree que
+consiguió. Ninguna está decidida.
+
+| # | Qué hay que decidir | Opciones y su consecuencia | Dueño |
+|---|---|---|---|
+| **R-1** | **El ámbar de emergencia pedido desde la app tarda de 10 a 90 s en aparecer** cuando el Degradado gobierna la luz (fila **C**). Es el precio del todo-rojo de despedida, y sale de `cfgDespeje`, que el instalador configura | **(a) Se acepta tal cual** —es exactamente lo que ya cuesta `B·B·B`, y es la decisión del 31/08 leída al pie de la letra—. Un incidente en el tramo espera hasta minuto y medio a ver el ámbar. **(b) Se acota el todo-rojo de la vía de emergencia** a `ROJO_MINIMO_MS` (4 s) o a un número que se fije aquí. Consecuencia: el ámbar llega antes, pero el margen que garantiza que el tramo quedó vacío **se recorta justo en la transición menos vigilada** — y ese margen es el único de todo el modo. **(c) Ámbar inmediato sin todo-rojo** = revocar la decisión del 31/08: quien venía lanzado con verde por reloj se encuentra una señal que invita a negociar el paso creyendo que aún tiene prioridad | **Responsable** |
+| **R-2** | **Qué contesta la fila D** (`DEG_SALIENDO`: ya hay una salida en curso, la pidió otro). `degradado_salir()` no hace nada; el latch sí se arma; y **el firmware no sabe si esa salida termina en ámbar o en rojo** (§4.5.3) | **(a) `$ACK,CMD:AMBAR_EMERGENCIA,RESULT:SALIDA_YA_EN_CURSO`** — informa sin prometer `OK`. El operario espera. Es honesto **solo si** se cumple la Condición 1 de §4.5.4, porque entonces el ámbar llega igual venga la salida de donde venga. **(b) `$ERR,CMD:AMBAR_EMERGENCIA,DESC:SALIDA_YA_EN_CURSO`** — rechaza. Consecuencia: el operario cree que **no le hicieron caso** y va a por el mando (`B·B·B`), que es la vía de último recurso — y **el latch sí se armó**, así que el `$ERR` sería falso en la única parte que sí ocurrió. **(c) Dar un getter a `rendicionEnCurso`** y contestar distinto según el final: `RESULT:SALIDA_YA_EN_CURSO` si acaba en ámbar, y `$ERR` con motivo si acaba en rojo y nadie va a encender el ámbar. Consecuencia: es la única que dice la verdad en los dos casos, y cuesta una función de una línea | **Responsable** *(la (c) además necesita firmware)* |
+| **R-3** | **Si `AMBAR_EMERGENCIA` debe poder REVOCARSE desde la app.** Hoy no: `bluetooth.h` lo declara —*«no hay comando de Bluetooth que lo revoque, y es coherente con el del mando»*—, y la única salida es `A·A·A` en el mando. Con la app como superficie de mando (decisión del 31/08), **el técnico sin mando a mano no puede deshacer su propia orden** | **(a) Se queda como está** —*«una salida de emergencia que se pueda cancelar desde fuera no es una salida»*—. Consecuencia: hace falta subir al poste. **(b) Un comando de revocación con PIN.** Consecuencia: lo que hoy solo puede deshacer alguien delante del gabinete pasa a poder deshacerse por radio desde cualquier sitio, incluido mientras alguien trabaja bajo la luz | **Responsable** |
+| **R-4** | **Qué pasa si se ENTRA en Degradado con el latch de Bluetooth puesto.** Es el agujero que el arreglo de C **no cierra por sí solo**; ver §4.5.7 | Ver §4.5.7 | **Responsable** |
+
+#### 4.5.7 🔴 El segundo agujero: ENTRAR en Degradado con el ámbar de la app puesto
+
+**Este caso queda vivo aunque se arregle todo lo anterior**, y hoy no lo cubre nadie.
+
+**MEDIDO POR LECTURA:** `degradado_entrar()` (`Esclavo/src/modo_degradado.cpp:212-243`) llama a
+`semaforo_forzarRojo()` en `:224` **sin guarda ninguna** — no pregunta por `bluetooth_ambarEmergencia()`
+ni por `mando_ambarLocal()`. Y el sostenedor del Degradado escribe luz por otra puerta:
+`aplicarLuz()` desde `degradado_actualizar()` (`main.cpp:363`), que **tampoco** está vetada por
+`bluetooth_ambarEmergencia()`.
+
+**RAZONADO, NO EJERCIDO** —y corrige por lo alto lo que se había escrito en `ESTADO.md` §N-106:
+
+- No es que el ámbar *«aguante hasta el siguiente cambio de fase»*. El todo-rojo **de entrada** saca
+  la luz de `S_FALLO` **en el instante de entrar**, así que `bluetooth.cpp:292` revoca el latch **en
+  la vuelta siguiente**, no en el siguiente cambio de fase.
+- A partir de ahí los tres vetos de `main.cpp` se apagan, y en la siguiente frontera de fase
+  `aplicarLuz()` puede dar **verde por reloj** donde se había pedido ámbar de precaución.
+- El `$ACK` ya se envió hace rato. **Nada se lo dice a nadie.**
+
+**Quién puede entrar en Degradado, y por qué importa aquí:** el Esclavo **no tiene comando de
+Bluetooth** para entrar (MEDIDO: cero coincidencias de `degradado` en su `bluetooth.cpp`). Las vías
+son el mando `A·B·A·B` (`mando.cpp`, `ACC_DEGRADADO`), la pantalla (`menu.cpp:211` y `P_CONFIRMAR`) y
+`degradado_reanudarTrasCorte()` al arrancar. **La reanudación tras corte no está afectada**: el latch
+vive en RAM y arranca en `false`. Es decir que el caso real es siempre **alguien delante del poste
+entrando en Degradado mientras un ámbar pedido por teléfono sigue vigente**.
+
+> **La comparación que lo deja claro: el mando ya resolvió esto, y lo resolvió EXPLÍCITAMENTE.**
+> `ejecutar(ACC_DEGRADADO)` pone `ambarLocal = false` antes de llamar a `degradado_entrar()` (`mando.cpp:144-148`). O sea
+> que el mando **declara** que entrar en Degradado revoca su propio ámbar. El latch de Bluetooth **no
+> lo revoca nadie: se cae solo**, que es la misma opción tomada **en silencio y por accidente** — la
+> peor de las tres.
+
+**`R-4` — las opciones, para el responsable:**
+
+| opción | qué hace | consecuencia |
+|---|---|---|
+| **(a) El Degradado RECHAZA la entrada mientras haya ámbar de emergencia vigente** | un `RechazoDegradado` nuevo —en la forma que ya usa el enum, p. ej. `DEG_RECHAZO_AMBAR_VIGENTE`, texto `"AMBAR EMERGENCIA VIGENTE"`— que la pantalla enseña igual que los otros cinco | El operario del poste **no puede** entrar en Degradado hasta que alguien revoque el ámbar, y hoy eso solo se hace con `A·A·A` en el mando. Con la app como superficie de mando y `R-3` en la opción (a), **puede quedar bloqueado**: las dos decisiones están atadas |
+| **(b) Entrar en Degradado REVOCA el latch explícitamente**, como hace el mando con `ambarLocal` | quien está delante del gabinete manda sobre quien está al teléfono | Es el comportamiento de hoy, pero **declarado**: se escribe un `$EVENT` que lo diga y deja rastro en la caja negra, en vez de que el latch se caiga solo sin que nadie se entere. **El ámbar que alguien pidió por precaución desaparece**, y el que lo pidió no está delante para verlo |
+| **(c) El latch VETA la luz del Degradado**, igual que veta la del Maestro | `aplicarLuz()` y el todo-rojo de entrada pasan a mirar `bluetooth_ambarEmergencia()` | Es lo más coherente con lo que el latch promete —*«pesa lo mismo que el del mando»*—, pero deja el equipo **en Degradado nominal y en ámbar real**: dos autoridades sobre la misma luz, que es justo lo que SFTY-21 evita. Y la otra punta seguiría dando verde por reloj creyendo que ésta está en su fase |
+
+> **Ninguna de las tres es gratis y la tercera parece la peor**, pero eso es una opinión técnica y la
+> decisión no lo es: **lo que se elija lo ve un conductor**.
 
 ---
 

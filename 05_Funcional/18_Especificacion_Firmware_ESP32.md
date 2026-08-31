@@ -350,13 +350,37 @@ El puente tiene que dejarlos pasar **íntegros**. Se listan para que nadie los d
 > hace rojo de verdad en el Maestro y está renombrado en el Esclavo. Un puente que «normalizara»
 > comandos borraría diferencias que son **deliberadas y de seguridad**. El puente transporta bytes.
 
+> 🟠 **`CMD:AMBAR_EMERGENCIA` (`:130` y `:171`) va a dejar de tener UNA respuesta — 31/08/2026.**
+>
+> El censo de arriba lista lo que el STM32 **atiende**, y eso no cambia. Lo que cambia es lo que
+> **contesta**: por decisión del responsable del 31/08 ese comando pasa a salir del Modo Degradado de
+> forma ordenada, y entonces **la misma orden tiene cinco respuestas distintas según el estado del
+> equipo** —`RESULT:OK`, `RESULT:YA_EN_AMBAR_LATCH_PUESTO`, `RESULT:SALIENDO_TODO_ROJO`, una fila aún
+> por decidir y el `$ERR,CMD:AUTH_FAILED` de siempre—.
+>
+> **La tabla está especificada en un solo sitio y este documento NO la copia:**
+> `05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md` **§4.5**. **Nada de ello ha pasado banco, y
+> el firmware de hoy contesta `RESULT:OK` en los cinco casos.**
+>
+> **Lo que sí es asunto del puente, y son tres cosas:**
+>
+> 1. **No colapsar respuestas.** Un puente que tradujera cualquier `$ACK,CMD:AMBAR_EMERGENCIA,…` a un
+>    «OK» de su propia cosecha borraría justo la distinción que esa tabla existe para crear: el
+>    técnico volvería a irse del poste con una confirmación de algo que tarda hasta 90 s en ocurrir.
+>    Es §6.2 —**el puente NO ORIGINA**— aplicado a la respuesta y no sólo al comando.
+> 2. **No inventar el `RESULT:` que falta.** Si el STM32 no contesta, el puente **no** compone un
+>    `$ACK`. Es §6.4 literal: **silencio no es orden**, y tampoco es confirmación.
+> 3. **Los literales de `RESULT:` crecen, y el puente no los enumera.** Cualquier tabla de respuestas
+>    escrita dentro del ESP32 sería una segunda copia que alguien tendría que sincronizar. El puente
+>    **relaya la trama verbatim**, checksum incluido, y quien la interpreta es la app.
+
 ### 3.7 Censo completo de las tramas que el STM32 emite
 
 | prefijo | quién la compone | MEDIDO en |
 |---|---|---|
 | **`$STATUS`** | telemetría periódica, **cada 1000 ms** | `Maestro:403`, `:427` · `Esclavo:309`, `:328` |
-| **`$ACK`** | confirmación de un comando | 32 literales en el Maestro, 4 en el Esclavo |
-| **`$ERR`** | rechazo con motivo | idem, misma cadena |
+| **`$ACK`** | confirmación de un comando | ~~32 literales en el Maestro~~ → **MEDIDO el 31/08: `grep -c '"$ACK' ` da **17** en el Maestro y **4** en el Esclavo.** El 32 no era el recuento de ninguna de las dos columnas *(se parece a los 33 de sumar `$ACK` + `$ERR` del Maestro, pero eso es otra cosa)* |
+| **`$ERR`** | rechazo con motivo | **MEDIDO el 31/08: 16 en el Maestro, 8 en el Esclavo.** ~~«idem, misma cadena»~~ — no son las mismas cifras y la fila lo daba por hecho |
 | **`$ALARM`** | `bluetooth_reportarAlarma()` | `Maestro:82` · `Esclavo:90` |
 | **`$EVENT`** | `bluetooth_reportarEvento()` — bitácora de quién movió qué | `Maestro:96` · `Esclavo:104` |
 
