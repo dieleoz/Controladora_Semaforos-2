@@ -9,15 +9,42 @@ de comunicaciones RF (9600 bps / CRC-8 Maxim 0x31) y el puente passthrough del
 REPETIDOR ESP32, verificando las reglas viales y de seguridad en terreno.
 
 Incluye correcciones de auditoría:
-- SFTY-13: Supresión de PING durante espera de ACK (anti-colisión RS485)
-- CMD_ACK_RED reasignado a 0x06 (eliminación de colisión con CMD_PING 0x04)
+- SFTY-13: Supresion de PING durante la espera de ACK (evita que el latido pise la
+  ventana del acuse en el enlace de radio)
 - Buffer overflow protocolo corregido (binIdx=0 restaurado)
 - tUltimaRxEsclavo inicializado a 0 en setup
 - TIMEOUT_ACK y RF_BURST_COPIES se LEEN del firmware C++ en cada ejecución (ver bloque 0),
   para que el modelo no pueda divergir del código real sin que la prueba lo note.
 
+-------------------------------------------------------------------------------
+RETIRADA DEL 31/08/2026: LA CUENTA BAJA DE 20/20 A 9/9, Y NO ES UNA REGRESION
+-------------------------------------------------------------------------------
+Nueve de las veinte comprobaciones DUPLICABAN a un pack del banco o a un arnes que
+compila el C++ real. Dos instrumentos que miden la misma propiedad no son el doble de
+cobertura: son la misma cobertura contada dos veces, y la copia peor -esta, que corre
+sobre un espejo en Python- es la que envejece sin avisar. Se retiraron una a una,
+ensenando antes la comprobacion equivalente en el instrumento que se queda:
+
+  8       CMD_ACK_RED != CMD_PING   -> costura_03_comandos (colisiones de codigo, sin
+                                       literales escritos a mano) + costura_01_contratos
+  9a x3   terna H/M/S atomica       -> esclavo_05_hora_atomica 5.1 / 5.2 / 5.3 / 5.4
+  9b-1    desfase circular, 5 casos -> esclavo_04_desfase (barrido de las 3.600)
+  10 x4   SFTY-21 fase Degradado    -> Validacion_Ciclo/arnes_ciclo.cpp, que barre el
+                                       dia entero sobre el ciclo_degradado.h REAL
+
+Otras dos bajaron de categoria porque NINGUN FIRMWARE PUEDE APROBARLAS NI SUSPENDERLAS
+-son propiedades de una funcion de juguete definida en este mismo fichero-, y una
+comprobacion que no puede fallar no es una comprobacion, es una nota (CLAUDE.md §3):
+el limite de +-30 s del desfase y el conmutador booleano de MaestroSync.
+
+Y cuatro se INVIRTIERON porque su puerta de entrada dejo de existir: BOTON3 y BOTON4
+son hoy CAM_C_PIN / CAM_D_PIN (pines.h:124-125) y botonAceptar()/botonCancelar()
+devuelven false fijo (botones.cpp:280-281). La propiedad -donde acaba la luz- sigue
+valiendo; lo que se ejerce ahora es la via que un operario SI alcanza, que es el
+despachador de Bluetooth.
+
 Autor: Antigravity DeepMind Embedded Safety Agent
-Fecha: 31 de Julio de 2026
+Fecha: 31 de Julio de 2026 (retirada de duplicados: 31/08/2026)
 ===============================================================================
 """
 
@@ -137,30 +164,114 @@ AMARILLO_FIJO_S = _leer_constante_cpp(
 print(f"   Tiempos de seguridad leidos del C++: despeje={DESPEJE_S}s  "
       f"fallback={FALLBACK_S}s  amarillo={AMARILLO_FIJO_S}s")
 
-# --- SFTY-23: los codigos de comando se leen del contrato, no se copian ---------
-# Si alguien reasigna un comando en protocolo.h y aqui quedara el numero viejo, la
-# prueba pasaria validando un protocolo que ya no existe.
-def _leer_define_hex(nombre):
-    """Los codigos estan en hexadecimal; _leer_constante_cpp devuelve int base 10."""
-    ruta = _ruta_firmware("Maestro", "include", "protocolo.h")
-    if ruta and os.path.exists(ruta):
-        with open(ruta, "r", encoding="utf-8", errors="replace") as f:
-            m = _re.search(r"#define\s+" + nombre + r"\s+0x([0-9A-Fa-f]+)", f.read())
+# --- Los codigos CMD_HORA_* / CMD_DELTA* ya no se leen aqui ---------------------
+# Se leian para las pruebas 8, 9a y 9b, retiradas el 31/08 porque las miden
+# costura_03_comandos, esclavo_05_hora_atomica y esclavo_04_desfase. Dejar la lectura
+# sin nadie que la use seria la version silenciosa de la prueba muerta (N-73): un
+# `#define` vigilado por un instrumento que ya no comprueba nada con el.
+
+
+# --- LA PUERTA DE ENTRADA DE HOY: EL DESPACHADOR DE BLUETOOTH -------------------
+#
+# Las pruebas 1, 2 y 6 entraban llamando por dentro a maestro.forzar_menu() y a
+# maestro.forzar_rojo_total(): una puerta que en el equipo de hoy NO EXISTE. BOTON3 y
+# BOTON4 pasaron a ser CAM_C_PIN / CAM_D_PIN (Maestro/include/pines.h:124-125) y
+# botonAceptar() / botonCancelar() devuelven false fijo (Maestro/src/botones.cpp:280-281):
+# ningun operario alcanza ese camino. La propiedad -donde acaba la luz- sigue valiendo;
+# lo que cambia es por donde se pide.
+#
+# El PIN, las ordenes que entran SIN PIN y los textos de respuesta se LEEN del C++, por
+# el mismo motivo que los tiempos: si alguien mueve la puerta y aqui quedara la copia
+# vieja, la prueba aprobaria una via de entrada que ya no existe.
+_BT_CPP = _ruta_firmware("Maestro", "src", "bluetooth.cpp")
+
+
+def _leer_literal_cpp(patron, que):
+    """Extrae un literal de texto de bluetooth.cpp. La ausencia ABORTA, no cae a un
+    valor por defecto: si la puerta se movio, esta prueba no puede medir nada y tiene
+    que decirlo (CLAUDE.md §2, ABORTADO no es PASS)."""
+    if _BT_CPP and os.path.exists(_BT_CPP):
+        with open(_BT_CPP, "r", encoding="utf-8", errors="replace") as f:
+            m = _re.search(patron, f.read())
         if m:
-            return int(m.group(1), 16)
-    print(f"\n   ❌ ABORTADO: no se pudo leer {nombre} de protocolo.h.")
+            return m.group(1)
+    print(f"\n   ❌ ABORTADO: no se pudo leer de bluetooth.cpp {que}.")
+    print("      La puerta de entrada de la app se movio o se renombro. Sin ella este")
+    print("      modelo no ejerce ninguna via real: no puede seguir midiendo.")
     sys.exit(2)
 
 
-CMD_HORA_H     = _leer_define_hex("CMD_HORA_H")
-CMD_HORA_M     = _leer_define_hex("CMD_HORA_M")
-CMD_HORA_S     = _leer_define_hex("CMD_HORA_S")
-CMD_ACK_HORA   = _leer_define_hex("CMD_ACK_HORA")
-CMD_DELTA      = _leer_define_hex("CMD_DELTA")
-CMD_DELTA_RESP = _leer_define_hex("CMD_DELTA_RESP")
+def _leer_literales_cpp(patron):
+    if _BT_CPP and os.path.exists(_BT_CPP):
+        with open(_BT_CPP, "r", encoding="utf-8", errors="replace") as f:
+            return set(_re.findall(patron, f.read()))
+    return set()
 
-print(f"   SFTY-23: HORA_H=0x{CMD_HORA_H:02X} HORA_M=0x{CMD_HORA_M:02X} "
-      f"HORA_S=0x{CMD_HORA_S:02X} DELTA=0x{CMD_DELTA:02X}")
+
+# "CMD:PIN:1234:" - bluetooth.cpp:166
+BT_PREFIJO_PIN = _leer_literal_cpp(r'strncmp\(cmd,\s*"(CMD:PIN:[^"]+)"', "el prefijo de PIN")
+# "CMD:FORZAR_ROJO" - bluetooth.cpp:145, antes de la puerta del PIN
+BT_DIRECTO_SIN_PIN = _leer_literal_cpp(r'strcmp\(cmd,\s*"(CMD:[^"]+)"\)\s*==\s*0',
+                                       "la orden que entra antes del PIN")
+# {"SET_MODO:MENU", "SET_MODO:ALCANCE"} - bluetooth.cpp:169-170
+BT_ACCIONES_SIN_PIN = _leer_literales_cpp(r'strcmp\(cmd \+ 4,\s*"([^"]+)"\)')
+
+BT_ERR_AUTH        = _leer_literal_cpp(r'"(\$ERR,CMD:AUTH_FAILED[^"]*)"', "el rechazo de PIN")
+BT_ACK_MENU        = _leer_literal_cpp(r'"(\$ACK,CMD:SET_MODO:MENU,RESULT:OK)"', "el acuse del menu")
+BT_ACK_ROJO        = _leer_literal_cpp(r'"(\$ACK,CMD:FORZAR_ROJO,RESULT:OK)"', "el acuse del rojo")
+BT_ACK_CAMBIO      = _leer_literal_cpp(r'"(\$ACK,CMD:CAMBIAR_TURNO,RESULT:OK)"', "el acuse del cambio")
+BT_ERR_CAMBIO      = _leer_literal_cpp(r'"(\$ERR,CMD:CAMBIAR_TURNO,DESC:[^"]*)"',
+                                       "el rechazo del cambio en transicion")
+
+print(f"   Puerta de la app leida del C++: PIN={BT_PREFIJO_PIN!r}  "
+      f"sin PIN={sorted(BT_ACCIONES_SIN_PIN) + [BT_DIRECTO_SIN_PIN]}")
+
+
+class DespachadorBluetooth:
+    """Modela procesarComando() de Maestro/src/bluetooth.cpp.
+
+    Solo el camino que estas pruebas ejercen. Lo que NO cubre y hay que decirlo: la
+    rama de MODO_DEGRADADO de SET_MODO:MENU (bluetooth.cpp:198-205), que este
+    simulador no tiene modelado porque aqui no existe el Modo Degradado. Esa puerta
+    la miden los packs, no esto.
+    """
+
+    def __init__(self, maestro):
+        self.maestro = maestro
+        self.rf_pendiente = bytearray()   # tramas de radio que la orden genera
+
+    def procesar(self, trama: bytes, t: float) -> str:
+        cmd = trama.decode("ascii", errors="replace")
+
+        # Rojo de emergencia: entra ANTES de la puerta del PIN y es deliberado
+        # (bluetooth.cpp:137-150). Parar el trafico es la accion segura.
+        if cmd == BT_DIRECTO_SIN_PIN:
+            self.maestro.forzar_rojo_total(t)
+            return BT_ACK_ROJO
+
+        if cmd.startswith(BT_PREFIJO_PIN):
+            accion = cmd[len(BT_PREFIJO_PIN):]
+        elif cmd.startswith("CMD:") and cmd[4:] in BT_ACCIONES_SIN_PIN:
+            accion = cmd[4:]
+        else:
+            return BT_ERR_AUTH
+
+        if accion == "SET_MODO:MENU":
+            self.maestro.forzar_menu()
+            return BT_ACK_MENU
+        if accion == "FORZAR_ROJO":
+            self.maestro.forzar_rojo_total(t)
+            return BT_ACK_ROJO
+        if accion == "MANUAL:CAMBIAR_TURNO":
+            # bluetooth.cpp:265 pregunta pedirCambioVerificado(), que es
+            # coordinador_listoParaContar() -"return estadoC == C_IDLE"-. Partir un
+            # despeje por la mitad es justo lo que no se puede hacer: el rechazo es
+            # correcto, lo que faltaba era DECIRLO.
+            if self.maestro.estado_c != "C_IDLE":
+                return BT_ERR_CAMBIO
+            self.rf_pendiente.extend(self.maestro.pedir_cambio(t) or b"")
+            return BT_ACK_CAMBIO
+        return "$ERR,CMD:DESCONOCIDO"
 
 # ==========================================
 # 1. SIMULACIÓN DE CRC-8 MAXIM (0x31) Y PAQUETE RF
@@ -512,7 +623,12 @@ def ejecutar_auditoria_completa():
     total_tests = 0
 
     def pedir_cambio(t: float):
-        """Pulsa el botón de cambio y ENCOLA la trama que devuelve el Maestro.
+        """Cambio de turno del CICLO y ENCOLA la trama que devuelve el Maestro.
+
+        Solo la usa la prueba 5. Ahi el cambio de turno no lo pide nadie desde fuera: lo
+        pide el propio Modo Automatico al agotarse el verde, asi que entrar por dentro es
+        lo correcto -no hay puerta que ejercer-. Las ordenes que SI vienen de fuera van
+        por bt(), que alimenta el despachador con la trama entera.
 
         FIX: las llamadas directas a maestro.pedir_cambio() descartaban el valor de
         retorno, así que el CMD_GO_RED nunca se transmitía y el ciclo solo arrancaba
@@ -552,31 +668,62 @@ def ejecutar_auditoria_completa():
         else:
             print(f"   ✘ FAIL: {msg_fail}")
 
+    def reportar(msg):
+        """Hallazgo que NO cuenta, porque ningun firmware puede aprobarlo ni
+        suspenderlo. CLAUDE.md §3: una comprobacion que no puede fallar no es una
+        comprobacion, es una nota — y un FALLA permanente enseña a ignorar el acta."""
+        print(f"   ℹ NOTA: {msg}")
+
     current_time = 0.0
     m_rx_buf = bytearray()
     e_tx_buf = bytearray()
-    m_tx_pend = bytearray()  # Tramas emitidas fuera del bucle (pulsaciones de botón)
+    m_tx_pend = bytearray()  # Tramas emitidas fuera del bucle (ordenes de la app)
+
+    despachador = DespachadorBluetooth(maestro)
+
+    def bt(trama: bytes, t: float) -> str:
+        """Mete la cadena de BYTES por el despachador y encola lo que salga a la radio.
+
+        Se alimenta la trama entera -no se llama al metodo de dentro- porque lo que hay
+        que ejercer es la PUERTA: el prefijo, el PIN y el strcmp, que es donde vive el
+        unico camino que hoy alcanza un operario.
+        """
+        resp = despachador.procesar(trama, t)
+        m_tx_pend.extend(despachador.rf_pendiente)
+        despachador.rf_pendiente.clear()
+        return resp
 
     # ===========================================================
-    # PRUEBA 1: Menú con comunicación → Ambos en ROJO FIJO
+    # PRUEBA 1: SET_MODO:MENU por Bluetooth, con comunicación → Ambos en ROJO FIJO
     # ===========================================================
-    print("\n▶ PRUEBA 1: Menú con comunicación (TEST 5 campo)...")
-    maestro.forzar_menu()
+    # INVERTIDA el 31/08. La propiedad sobrevive intacta; lo que murio fue la puerta de
+    # entrada, que era la LCD del gabinete. La via de hoy esta medida:
+    # Maestro/src/bluetooth.cpp:191 atiende "SET_MODO:MENU", y entra SIN PIN por la
+    # segunda rama de :168-170 -el PIN guarda lo que ABRE paso, no lo que lo para-.
+    print("\n▶ PRUEBA 1: Menu por Bluetooth CON comunicacion (TEST 5 campo)...")
+    resp1 = bt(b"CMD:SET_MODO:MENU", current_time)
     maestro.t_ultima_rx_esclavo = current_time  # Simular que hay comunicación
     esclavo.t_ultimo_comando = current_time
     avanzar_simulacion(5.0)
-    print(f"   [t={current_time:.1f}s] Maestro: {maestro.luz_local} | Esclavo: {esclavo.luz_local}")
+    print(f"   [t={current_time:.1f}s] app->{resp1} | Maestro: {maestro.luz_local} "
+          f"| Esclavo: {esclavo.luz_local}")
     verificar(
+        resp1 == BT_ACK_MENU and
         maestro.luz_local == "S_ROJO" and esclavo.luz_local == "S_ROJO",
-        "Ambos nodos en ROJO FIJO continuo durante Menú con comunicación.",
-        "Deben estar en ROJO FIJO con comunicación activa")
+        f"La trama 'CMD:SET_MODO:MENU' entra SIN PIN, se acusa con {BT_ACK_MENU!r} y deja "
+        "a los dos nodos en ROJO FIJO continuo mientras haya comunicacion.",
+        f"app->{resp1} (esperado {BT_ACK_MENU!r}); deben quedar los dos en ROJO FIJO")
 
     # ===========================================================
-    # PRUEBA 2: Menú SIN comunicación → Ambos en AMARILLO PARPADEO
+    # PRUEBA 2: SET_MODO:MENU por Bluetooth, SIN comunicación → Ambos en AMARILLO
     # ===========================================================
-    print("\n▶ PRUEBA 2: Menú SIN comunicación (TEST 4 campo)...")
+    # INVERTIDA el 31/08 por lo mismo que la 1: cambia la puerta, no la propiedad. La
+    # derivacion de FALLBACK_S + LATIDO_S desde el C++ (arreglo de N-71) se conserva
+    # literal mas abajo, que es lo unico que impide que esta prueba mida un numero
+    # escrito a mano.
+    print("\n▶ PRUEBA 2: Menu por Bluetooth SIN comunicacion (TEST 4 campo)...")
     maestro2 = SemafaroMaestro()
-    maestro2.forzar_menu()
+    resp2 = DespachadorBluetooth(maestro2).procesar(b"CMD:SET_MODO:MENU", 0.0)
     maestro2.t_ultima_rx_esclavo = 0.0  # V7.7: Nunca recibió nada
     esclavo2 = SemaforoEsclavo()
     esclavo2.t_ultimo_comando = 0.0
@@ -591,11 +738,16 @@ def ejecutar_auditoria_completa():
         m_tx2 = maestro2.actualizar(bytearray(), t2)
         esclavo2.actualizar(bytearray(), t2)
         t2 += 0.1
-    print(f"   [t={t2:.1f}s] Maestro: {maestro2.luz_local} | Esclavo: {esclavo2.luz_local}")
+    print(f"   [t={t2:.1f}s] app->{resp2} | Maestro: {maestro2.luz_local} "
+          f"| Esclavo: {esclavo2.luz_local}")
     verificar(
+        resp2 == BT_ACK_MENU and
         maestro2.luz_local == "S_FALLO" and esclavo2.luz_local == "S_FALLO",
-        "Ambos nodos en AMARILLO PARPADEO sin comunicación en Menú.",
-        f"Maestro={maestro2.luz_local}, Esclavo={esclavo2.luz_local}. Ambos deben ser S_FALLO")
+        f"Entrando al menu por la misma trama de la app, y sin comunicacion, los dos nodos "
+        f"caen a AMARILLO PARPADEO pasados {FALLBACK_S + LATIDO_S:.0f}s "
+        f"(SFTY6_SILENCIO_MS + LATIDO_MS, leidos del C++).",
+        f"app->{resp2}; Maestro={maestro2.luz_local}, Esclavo={esclavo2.luz_local}. "
+        "Ambos deben ser S_FALLO")
 
     # ===========================================================
     # PRUEBA 3: Esclavo apagado → Maestro en AMARILLO PARPADEO
@@ -651,24 +803,55 @@ def ejecutar_auditoria_completa():
         f"Maestro={maestro.luz_local}, Estado={maestro.estado_c}. Debe ser S_VERDE/C_IDLE")
 
     # ===========================================================
-    # PRUEBA 6: Modo Manual — Botón 3 (Rojo Directo Indefinido)
+    # PRUEBA 6a: Rojo Fijo Indefinido pedido por la app (era el Botón 3)
     # ===========================================================
-    print("\n▶ PRUEBA 6: Modo Manual (Botón 3 — Rojo Fijo Indefinido)...")
-    maestro.forzar_rojo_total(current_time)
+    # INVERTIDA el 31/08, y esta era la peor de las cuatro: el sujeto ya no existe. El
+    # BOTON3 es CAM_C_PIN desde N-67 (pines.h:124) y botonAceptar() devuelve false fijo
+    # (botones.cpp:280). Ademas la prueba vieja NUNCA TOCO UN BOTON -llamaba a
+    # forzar_rojo_total() por dentro-, asi que llevaba meses en verde midiendo un camino
+    # que ningun operario alcanza. La via de hoy es "CMD:FORZAR_ROJO", que entra ANTES de
+    # la puerta del PIN (bluetooth.cpp:145) porque parar el trafico es la accion segura.
+    print("\n▶ PRUEBA 6a: Rojo Fijo Indefinido por 'CMD:FORZAR_ROJO' (sin PIN)...")
+    resp6a = bt(b"CMD:FORZAR_ROJO", current_time)
     avanzar_simulacion(20.0)
-    print(f"   [t={current_time:.1f}s] Maestro: {maestro.luz_local} | Esclavo: {esclavo.luz_local} | Estado: {maestro.estado_c}")
+    print(f"   [t={current_time:.1f}s] app->{resp6a} | Maestro: {maestro.luz_local} "
+          f"| Esclavo: {esclavo.luz_local} | Estado: {maestro.estado_c}")
     verificar(
+        resp6a == BT_ACK_ROJO and
         maestro.luz_local == "S_ROJO" and esclavo.luz_local == "S_ROJO" and maestro.estado_c == "C_IDLE",
-        "Botón 3 mantiene ROJO FIJO continuo en ambos nodos de forma indefinida.",
-        "Deben seguir en ROJO FIJO / C_IDLE")
+        f"'CMD:FORZAR_ROJO' se atiende SIN PIN, acusa {BT_ACK_ROJO!r} y mantiene ROJO FIJO "
+        "continuo en los dos nodos de forma indefinida.",
+        f"app->{resp6a} (esperado {BT_ACK_ROJO!r}); deben seguir en ROJO FIJO / C_IDLE")
 
-    pedir_cambio(current_time)
+    # ===========================================================
+    # PRUEBA 6b: Reanudar el paso a VERDE (era el Botón 1)
+    # ===========================================================
+    # BOTON1 = PB9 = MANDO_A sigue existiendo (pines.h:122), pero su papel AQUI era
+    # "pedir cambio de turno", y eso hoy se pide por "MANUAL:CAMBIAR_TURNO"
+    # (bluetooth.cpp:257), que SI pide PIN porque abre paso.
+    #
+    # Y se exige el $ERR, no solo el verde: es una de las ramas que app_03_sin_ok_mudo
+    # marco. coordinador_pedirCambio() abandona en silencio si no esta en C_IDLE, asi que
+    # el despachador tiene que preguntar antes y DECIRLO. Un $ACK que no depende de lo que
+    # la llamada hizo es una mentira con formato de exito.
+    print("\n▶ PRUEBA 6b: Reanudar el paso por 'MANUAL:CAMBIAR_TURNO' (con PIN)...")
+    resp6b_ok = bt(BT_PREFIJO_PIN.encode() + b"MANUAL:CAMBIAR_TURNO", current_time)
+    # Segunda orden inmediata: el coordinador ya NO esta en reposo -acaba de entrar en el
+    # todo-rojo de despeje- y partir ese despeje por la mitad es justo lo que no se puede
+    # hacer. Tiene que llegar el rechazo, no un OK.
+    resp6b_err = bt(BT_PREFIJO_PIN.encode() + b"MANUAL:CAMBIAR_TURNO", current_time)
+    resp6b_sinpin = bt(b"CMD:MANUAL:CAMBIAR_TURNO", current_time)
     avanzar_simulacion(15.0 + 4.3)
-    print(f"   [Acción] Pulsando Botón 1 -> Maestro: {maestro.luz_local}")
+    print(f"   [Accion] app->{resp6b_ok} | en transicion->{resp6b_err} | "
+          f"sin PIN->{resp6b_sinpin} | Maestro: {maestro.luz_local}")
     verificar(
-        maestro.luz_local == "S_VERDE",
-        "Botón 1 reanuda el paso a VERDE correctamente.",
-        "Maestro debe pasar a VERDE")
+        resp6b_ok == BT_ACK_CAMBIO and resp6b_err == BT_ERR_CAMBIO
+        and resp6b_sinpin == BT_ERR_AUTH and maestro.luz_local == "S_VERDE",
+        f"'MANUAL:CAMBIAR_TURNO' reanuda el paso a VERDE y acusa {BT_ACK_CAMBIO!r}; repetida "
+        f"con el despeje en curso responde {BT_ERR_CAMBIO!r} en vez de mentir con un OK, y "
+        f"sin PIN no entra ({BT_ERR_AUTH!r}).",
+        f"OK->{resp6b_ok}, en transicion->{resp6b_err}, sin PIN->{resp6b_sinpin}, "
+        f"luz={maestro.luz_local}")
 
     # ===========================================================
     # PRUEBA 7: SFTY-13 — PING NO se envía durante espera de ACK
@@ -680,23 +863,23 @@ def ejecutar_auditoria_completa():
     maestro3.t_ultimo_ping = 0.0  # Forzar que el timer PING esté "vencido"
     t3 = 0.0
     ping_enviado_durante_ack = False
-    # Avanzar hasta que entre en C_ESPERANDO_ACK_GREEN
+    # PRIMER BUCLE: solo AVANZAR hasta entrar en el ACK-wait. No mide nada.
+    #
+    # 31/08: aqui vivia un `if` anidado cuyo unico cuerpo era `pass`, con un comentario
+    # deliberando sobre si un msg_id que cambia es un PING o un reintento. Quien lo
+    # escribio no lo tenia claro y lo dejo asi (CLAUDE.md §3.ter). Queda resuelto: el
+    # msg_id NO distingue las dos cosas -lo mueven los dos caminos-, asi que no sirve de
+    # discriminador y el bucle no tiene por que intentarlo. Quien si distingue es
+    # t_ultimo_ping, que SOLO se toca en la rama del latido (ver actualizar()), y esa es
+    # la medida que hace el segundo bucle.
     for _ in range(200):
-        old_msg_id = maestro3.msg_id_counter
-        old_estado = maestro3.estado_c
         maestro3.actualizar(bytearray(), t3)
         if maestro3.estado_c in ("C_ESPERANDO_ACK_GREEN", "C_ESPERANDO_ACK_RED"):
-            # Si el msg_id cambió durante un estado ACK-wait, se envió algo (podría ser retry o PING)
-            # Verificar que no se envía PING cuando ya estábamos en ACK-wait
-            if old_estado in ("C_ESPERANDO_ACK_GREEN", "C_ESPERANDO_ACK_RED"):
-                if t3 - maestro3.t_ultimo_ping < 0.01 and maestro3.msg_id_counter != old_msg_id:
-                    # Un PING se habría enviado si t_ultimo_ping se actualizó
-                    pass  # Los retries actualizan msg_id, eso es OK
             break
         t3 += 0.1
-    # Ahora estamos en C_ESPERANDO_ACK_GREEN. Avanzar 4s (más que los 3s del timer PING)
-    t3_start_ack = t3
-    maestro3.t_ultimo_ping = t3 - 3.5  # Forzar timer PING vencido
+    # SEGUNDO BUCLE: ya dentro del ACK-wait, con el timer del latido vencido a proposito.
+    # Si el latido se colara, t_ultimo_ping se moveria.
+    maestro3.t_ultimo_ping = t3 - (LATIDO_S + 0.5)  # Forzar timer PING vencido
     for _ in range(20):
         old_ping = maestro3.t_ultimo_ping
         maestro3.actualizar(bytearray(), t3)
@@ -704,118 +887,66 @@ def ejecutar_auditoria_completa():
             ping_enviado_durante_ack = True
             break
         t3 += 0.1
+    # El texto decia "anti-colision RS485" y estaba caducado: el RS485 era el bus del
+    # repetidor viejo. El enlace de hoy es LoRa por USART3, y lo que SFTY-13 protege es la
+    # ventana del acuse: un latido metido ahi le pisa al Esclavo la unica respuesta que el
+    # coordinador esta esperando, y el ciclo se va por el camino del reintento.
     verificar(
         not ping_enviado_durante_ack,
-        "PING correctamente SUPRIMIDO durante C_ESPERANDO_ACK (anti-colisión RS485).",
-        "PING fue enviado durante ACK-wait — COLISIÓN RS485 posible")
+        "SFTY-13: el latido queda SUPRIMIDO mientras el coordinador espera el acuse, para "
+        "no pisar la respuesta del Esclavo en el enlace de radio.",
+        "Se emitio un PING durante el ACK-wait: el latido puede pisar el acuse del Esclavo")
 
     # ===========================================================
-    # PRUEBA 8: Lectura directa de C++ protocolo.h (CMD_ACK_RED ≠ CMD_PING)
+    # PRUEBA 8 — RETIRADA el 31/08/2026
     # ===========================================================
-    print("\n▶ PRUEBA 8: Verificar protocolo.h de C++ (CMD_ACK_RED 0x06 != CMD_PING 0x04)...")
-    import re, os
-    header_ok = False
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    candidate_paths = [
-        os.path.join(script_dir, "..", "Maestro", "include", "protocolo.h"),
-        os.path.join(os.getcwd(), "01_Firmware", "Maestro", "include", "protocolo.h"),
-        "01_Firmware/Maestro/include/protocolo.h"
-    ]
-    header_path = None
-    for p in candidate_paths:
-        if os.path.exists(p):
-            header_path = p
-            break
-
-    if header_path:
-        try:
-            with open(header_path, "r", encoding="utf-8") as f:
-                content = f.read()
-            cmd_ack_red = int(re.search(r"#define\s+CMD_ACK_RED\s+(0x[0-9A-Fa-f]+|\d+)", content).group(1), 16)
-            cmd_ping = int(re.search(r"#define\s+CMD_PING\s+(0x[0-9A-Fa-f]+|\d+)", content).group(1), 16)
-            header_ok = (cmd_ack_red == 0x06) and (cmd_ping == 0x04) and (cmd_ack_red != cmd_ping)
-        except Exception as e:
-            header_ok = False
-
-    verificar(
-        header_ok,
-        f"protocolo.h parseado con éxito ({header_path}): CMD_ACK_RED=0x06, CMD_PING=0x04 — Sin colisión en C++.",
-        f"Error al verificar protocolo.h de C++ en {header_path}")
+    # Leia CMD_ACK_RED y CMD_PING de protocolo.h y los comparaba contra 0x06 y 0x04
+    # ESCRITOS A MANO AQUI. Dos problemas: duplicaba a costura_03_comandos, y ademas lo
+    # hacia peor. Si manana el contrato se renumerase legitimamente, esta prueba fallaria
+    # por el motivo equivocado -"el numero no es el que yo tengo escrito"- en vez de por
+    # el motivo real, que es que dos comandos colisionen.
+    #
+    # Quien lo mide, SIN literales:
+    #   costura_03_comandos.py -> "los {len(CMD)} codigos de protocolo.h son todos
+    #   distintos: ningun comando puede confundirse con otro (la colision
+    #   CMD_ACK_RED/CMD_PING ya costo una vez)"  -- barre TODA la tabla, no dos codigos.
+    #   costura_01_contratos.py -> ademas exige que protocolo.h sea identico byte a byte
+    #   en las dos puntas, que es lo que impide que una renumere y la otra no.
 
     # ===========================================================
     # PRUEBA 9: SFTY-23 — Sincronizacion horaria por radio
     # ===========================================================
-    # Se modela SOLO el lado Esclavo del intercambio, que es donde estan las dos
-    # reglas que pueden fallar en silencio: la aplicacion atomica y la aritmetica
-    # circular del desfase. El lado Maestro se prueba en la 9c.
-    print("\n▶ PRUEBA 9a: SFTY-23 — La hora se aplica de forma ATOMICA...")
+    # 9a (x3) y 9b-1 — RETIRADAS el 31/08/2026.
+    #
+    # 9a montaba una clase `EsclavoReloj` que era una SEGUNDA COPIA A MANO del
+    # Esclavo/src/main.cpp dentro de este mismo fichero, y comprobaba tres casos sobre
+    # ella. Eso no mide el firmware: mide la copia. Quien lo mide de verdad es
+    # esclavo_05_hora_atomica.py, que corre sobre el modelo del banco y lo hace mas
+    # ancho:
+    #   9a-1 (terna completa)      -> 5.1 "La terna completa se aplica de una vez y se
+    #                                 acusa con CMD_ACK_HORA."
+    #   9a-2 (segundos sueltos)    -> 5.2 "Cinco tramas de segundos sueltas seguidas no
+    #                                 tocan el reloj y no se contestan"
+    #   9a-3 (foto rancia)         -> 5.4 "Barrido de 0 a N ms de retardo: la terna se
+    #                                 aplica mientras la foto tiene menos de
+    #                                 VENTANA_HORA_MS y se descarta despues."
+    #   y ademas 5.3 barre LAS 8 combinaciones de H/M/S, 5.5 el reenvio de segundos, 5.6
+    #   los 768 valores imposibles y 5.7 el rearme del limite de 48 h.
+    #
+    # 9b-1 comprobaba 5 casos del desfase circular. esclavo_04_desfase.py barre LAS 3.600
+    # combinaciones -"Barrido completo de 60x60 = 3.600 combinaciones: el desfase cae
+    # SIEMPRE en [-30, +30]"- y trae el mismo caso frontera con las mismas cifras: "Maestro
+    # en el segundo 1 y Esclavo en el 59 -> +2 s (el Esclavo va atrasado), no -58 s".
+    # Cinco casos son un subconjunto estricto de 3.600.
+    print("\n▶ PRUEBA 9: SFTY-23 — Sincronizacion horaria por radio...")
 
-    class EsclavoReloj:
-        """Modelo del Esclavo recibiendo la terna H/M/S. Espeja Esclavo/src/main.cpp."""
-        VENTANA_HORA_S = 3.0
-
-        def __init__(self):
-            self.hora = None          # None = reloj sin poner en hora
-            self.buf_h = None
-            self.buf_m = None
-            self.t_buf = 0.0
-            self.acks = 0
-
-        def _caducar(self, t):
-            if self.buf_h is not None and (t - self.t_buf) > self.VENTANA_HORA_S:
-                self.buf_h = None
-                self.buf_m = None
-
-        def recibir(self, cmd, param, t):
-            self._caducar(t)
-            if cmd == CMD_HORA_H:
-                self.buf_h = param
-                self.t_buf = t
-            elif cmd == CMD_HORA_M:
-                self.buf_m = param
-                self.t_buf = t
-            elif cmd == CMD_HORA_S:
-                if self.buf_h is not None and self.buf_m is not None:
-                    self.hora = (self.buf_h, self.buf_m, param)
-                    self.acks += 1
-                # El buffer se consume SIEMPRE, se aplique o no: una terna sirve
-                # una sola vez.
-                self.buf_h = None
-                self.buf_m = None
-
-    # 9a-1: la terna completa se aplica
-    e = EsclavoReloj()
-    e.recibir(CMD_HORA_H, 14, 0.0)
-    e.recibir(CMD_HORA_M, 32, 0.01)
-    e.recibir(CMD_HORA_S, 5, 0.02)
-    verificar(e.hora == (14, 32, 5) and e.acks == 1,
-              "SFTY-23: la terna completa H/M/S se aplica junta y se confirma una vez.",
-              f"La terna no se aplico correctamente: {e.hora}")
-
-    # 9a-2: segundos SUELTOS sin H/M previos NO deben escribir nada.
-    # Es el caso peligroso: escribiria una hora inventada que el equipo daria por
-    # buena, y nada la detectaria despues.
-    e2 = EsclavoReloj()
-    e2.recibir(CMD_HORA_S, 5, 0.0)
-    verificar(e2.hora is None and e2.acks == 0,
-              "SFTY-23: unos segundos sueltos NO ponen el reloj en hora ni se confirman.",
-              "PELIGRO: se aplico una hora a medias sin haber recibido H y M")
-
-    # 9a-3: H/M rancios NO deben combinarse con segundos nuevos.
-    # Si la foto del Maestro envejece y los segundos llegan tras un cambio de
-    # minuto, se escribiria una hora un minuto atrasada.
-    e3 = EsclavoReloj()
-    e3.recibir(CMD_HORA_H, 14, 0.0)
-    e3.recibir(CMD_HORA_M, 59, 0.01)
-    e3.recibir(CMD_HORA_S, 0, 10.0)   # 10 s despues: la foto caduco
-    verificar(e3.hora is None,
-              "SFTY-23: una foto de hora rancia caduca y no se combina con segundos nuevos.",
-              f"Se aplico una hora rancia: {e3.hora}")
-
-    print("\n▶ PRUEBA 9b: SFTY-23 — Aritmetica CIRCULAR del desfase...")
-
+    # 9b-2 BAJA A NOTA. El limite de +-30 s no lo puede aprobar ni suspender ningun
+    # firmware: es una propiedad de la aritmetica de un byte de segundos, y se cumple
+    # aunque el C++ cambie entero. Como comprobacion nunca podria fallar (§3); como nota
+    # sigue diciendo lo unico que importa de ella, que es por que la puerta del Degradado
+    # no puede apoyarse solo en este numero.
     def calcular_desfase(seg_maestro, seg_esclavo):
-        """Espeja calcularDesfase() del Esclavo. Positivo = Maestro por delante."""
+        """El envoltorio circular sobre el minuto. Positivo = Maestro por delante."""
         d = seg_maestro - seg_esclavo
         if d > 30:
             d -= 60
@@ -823,42 +954,57 @@ def ejecutar_auditoria_completa():
             d += 60
         return d
 
-    # El caso que delata una resta cruda: Maestro en el segundo 1, Esclavo en el 59.
-    # Sin correccion daria -58 ("el Esclavo va 58 s adelantado"), cuando la verdad
-    # es que el Maestro acaba de cambiar de minuto y el Esclavo va 2 s atrasado.
-    casos = [
-        (1, 59, 2),     # cruce de minuto hacia arriba
-        (59, 1, -2),    # cruce de minuto hacia abajo
-        (30, 30, 0),    # relojes iguales
-        (35, 30, 5),    # Maestro 5 s por delante
-        (30, 35, -5),   # Maestro 5 s por detras
-    ]
-    todos_ok = True
-    for sm, se, esperado in casos:
-        obtenido = calcular_desfase(sm, se)
-        if obtenido != esperado:
-            todos_ok = False
-            print(f"   ✗ Maestro={sm}s Esclavo={se}s -> {obtenido}s, esperado {esperado}s")
-    verificar(todos_ok,
-              "SFTY-23: el desfase resuelve el cruce de minuto en el sentido corto (1 vs 59 = +2s, no -58s).",
-              "La aritmetica circular del desfase es incorrecta")
-
-    # El LIMITE INHERENTE, documentado como prueba para que nadie lo olvide: con
-    # solo el segundo, un desfase real de 45 s se mide como -15 s. Por eso la
-    # puerta del Modo Degradado NO puede apoyarse solo en este numero, sino exigir
-    # ademas una sincronizacion RECIENTE.
-    verificar(calcular_desfase(45, 0) == -15,
-              "SFTY-23: se confirma el limite conocido de +-30s (45s se mide como -15s): "
-              "la puerta del Degradado exige tambien sincronizacion reciente.",
-              "El limite de la medida no es el documentado")
+    reportar(f"SFTY-23, limite inherente de la medida: con solo el byte de segundos un "
+             f"desfase real de 45 s se mide como {calcular_desfase(45, 0)} s. Ningun firmware "
+             f"puede arreglarlo, asi que no es una comprobacion sino un limite: por eso la "
+             f"puerta del Modo Degradado exige ADEMAS sincronizacion reciente, y no solo "
+             f"que este numero sea pequeno.")
 
     print("\n▶ PRUEBA 9c: SFTY-23 — El Maestro RECALCULA los segundos al reintentar...")
 
-    # Esta es la unica prueba que puede cazar el fallo del reintento, porque solo
-    # se manifiesta cuando una trama SE PIERDE. Con enlace bueno nunca aparece.
+    # Esta es la unica de las veinte que TOCA EL C++ REAL, y solo se manifiesta cuando
+    # una trama SE PIERDE: con enlace bueno nunca aparece. Se comprueba que la lectura
+    # del reloj esta DENTRO de la funcion de envio -la que se invoca en cada intento-,
+    # porque si no existe el sitio donde guardar el valor viejo, nadie puede reutilizarlo.
+    #
+    # ⚠️ SU SITIO NO ES ESTE FICHERO, y se deja dicho para que no se pierda: lee el
+    # firmware POR TEXTO, y N-89 enseño que un refactor que mueva ese bloque apaga el
+    # instrumento sin romper un solo test. Ese riesgo se vigila en los packs, que tienen
+    # control_negativo y guarda de rutas; aqui no hay ninguna de las dos cosas. La mudanza
+    # propuesta es a maestro_04_sync_horaria, junto a su 4.4, que hoy mide la MISMA regla
+    # pero sobre el modelo y no sobre el fuente.
+    #
+    # ⚠️ Y ADEMAS EL DETECTOR ES GRUESO, medido el 31/08 inyectando el defecto en una copia
+    # del arbol: enviarHoraCompleta() lee reloj_segundo() DOS veces -la segunda dentro de la
+    # guarda del cruce de minuto-, y esto busca la subcadena en el cuerpo entero. Congelando
+    # SOLO la primera lectura, que es la que decide el valor enviado, la prueba siguio en
+    # verde; hizo falta borrar las dos para verla caer a 8/9. Lo que mide de verdad es "no
+    # queda NINGUNA lectura dentro", no "el valor enviado se relee". Quien recoja la mudanza
+    # tiene ahi el hueco.
+    coord_path = _ruta_firmware("Maestro", "src", "coordinador.cpp")
+    RE_ENVIO = r"static void enviarHora\w*\(\)\s*\{(.*?)\n\}"
+    lectura_dentro = False
+    if coord_path and os.path.exists(coord_path):
+        with open(coord_path, "r", encoding="utf-8", errors="replace") as f:
+            cuerpo = f.read()
+        # Se busca por lo que la funcion HACE, no por como se llama: el 01/08/2026 paso
+        # de enviarTrioHora() a enviarHoraCompleta() al anadirse la trama del dia, y
+        # esta prueba fallo por el nombre mientras la propiedad seguia intacta. Una
+        # prueba que se rompe al renombrar una funcion entrena a ignorarla.
+        m = _re.search(RE_ENVIO, cuerpo, _re.S)
+        if not m:
+            m = _re.search(r"static void enviarTrioHora\(\)\s*\{(.*?)\n\}", cuerpo, _re.S)
+        if m:
+            lectura_dentro = "reloj_segundo()" in m.group(1)
+
+    # CONTROL NEGATIVO 1 (era la prueba 9c-1, que contaba y no podia fallar).
+    #
+    # 9c-1 comprobaba una clase MaestroSync definida diez lineas mas arriba con un
+    # interruptor booleano `recalcula`: la rama buena devolvia el valor nuevo porque
+    # estaba escrita para devolverlo. Ningun firmware podia suspenderla. Deja de contar
+    # como comprobacion y pasa a lo unico para lo que servia: demostrar que la propiedad
+    # que se mide arriba distingue el firmware correcto del defectuoso.
     class MaestroSync:
-        """Modela el envio de la terna. `recalcula` conmuta el comportamiento
-        correcto y el defectuoso, para demostrar que la prueba distingue."""
         def __init__(self, recalcula):
             self.recalcula = recalcula
             self.congelado = None
@@ -868,128 +1014,69 @@ def ejecutar_auditoria_completa():
                 self.congelado = reloj_seg
             return self.congelado
 
-    # El Maestro envia en t=0 con el reloj en el segundo 10. Se pierde. Reintenta
-    # 3,5 s despues (TIMEOUT_ACK_S), cuando su reloj ya marca 13.
-    reloj_en_primer_envio = 10
-    reloj_en_reintento = reloj_en_primer_envio + int(TIMEOUT_ACK_S)
-
+    reloj_1 = 10
+    reloj_2 = reloj_1 + int(TIMEOUT_ACK_S)
     bueno = MaestroSync(recalcula=True)
-    bueno.enviar(reloj_en_primer_envio)
-    s_bueno = bueno.enviar(reloj_en_reintento)
-
+    bueno.enviar(reloj_1)
     malo = MaestroSync(recalcula=False)
-    malo.enviar(reloj_en_primer_envio)
-    s_malo = malo.enviar(reloj_en_reintento)
+    malo.enviar(reloj_1)
+    atraso_si_congela = reloj_2 - malo.enviar(reloj_2)
+    ctrl_distingue = (bueno.enviar(reloj_2) == reloj_2 and atraso_si_congela == int(TIMEOUT_ACK_S))
 
-    error_si_no_recalcula = reloj_en_reintento - s_malo
-    verificar(s_bueno == reloj_en_reintento and error_si_no_recalcula == int(TIMEOUT_ACK_S),
-              f"SFTY-23: al reintentar se reenvia el segundo ACTUAL ({s_bueno}s). "
-              f"Reenviar el congelado dejaria al Esclavo {error_si_no_recalcula}s atrasado.",
-              "El modelo del reintento no distingue recalcular de reenviar el valor viejo")
+    # CONTROL NEGATIVO 2, el que de verdad hace falta aqui (§8.bis): que el DETECTOR sepa
+    # fallar. Se le da un cuerpo sintetico con la misma forma pero sin la lectura, y se
+    # exige que NO lo apruebe. Sin esto, un refactor que se llevara reloj_segundo() a otro
+    # fichero dejaria esta comprobacion en verde midiendo nada.
+    cuerpo_falso = ("static void enviarHoraCompleta() {\n"
+                    "  uint8_t s = segundoCongelado;\n"
+                    "  protocolo_enviarPaquete(CMD_HORA_S, s);\n}")
+    m_falso = _re.search(RE_ENVIO, cuerpo_falso, _re.S)
+    ctrl_detector = bool(m_falso) and "reloj_segundo()" not in m_falso.group(1)
 
-    # Y que el firmware real no tenga donde guardar el valor viejo: se comprueba
-    # que la lectura del reloj esta DENTRO de la funcion de envio, que es la que se
-    # invoca en cada intento. Si no existe el sitio, nadie puede reutilizarlo.
-    coord_path = _ruta_firmware("Maestro", "src", "coordinador.cpp")
-    lectura_dentro = False
-    if coord_path and os.path.exists(coord_path):
-        with open(coord_path, "r", encoding="utf-8", errors="replace") as f:
-            cuerpo = f.read()
-        # Se busca por lo que la funcion HACE, no por como se llama: el 01/08/2026 paso
-        # de enviarTrioHora() a enviarHoraCompleta() al anadirse la trama del dia, y
-        # esta prueba fallo por el nombre mientras la propiedad seguia intacta. Una
-        # prueba que se rompe al renombrar una funcion entrena a ignorarla.
-        m = _re.search(r"static void enviarHora\w*\(\)\s*\{(.*?)\n\}", cuerpo, _re.S)
-        if not m:
-            m = _re.search(r"static void enviarTrioHora\(\)\s*\{(.*?)\n\}", cuerpo, _re.S)
-        if m:
-            lectura_dentro = "reloj_segundo()" in m.group(1)
-    verificar(lectura_dentro,
+    print(f"   [ctrl-neg] el modelo distingue recalcular de congelar "
+          f"(congelar atrasaria {atraso_si_congela}s): {ctrl_distingue} | "
+          f"el detector rechaza un cuerpo sin la lectura: {ctrl_detector}")
+    verificar(lectura_dentro and ctrl_distingue and ctrl_detector,
               "SFTY-23: el firmware lee reloj_segundo() DENTRO de la funcion de envio, "
-              "la que se llama en cada intento: no hay valor viejo que reutilizar.",
-              "No se encontro la lectura del reloj dentro de la funcion de envio: "
-              "podria estar cacheandose el segundo del primer envio")
+              "la que se llama en cada intento: no hay valor viejo que reutilizar. Y la "
+              "comprobacion sabe fallar: rechaza un cuerpo de envio que no la tenga.",
+              "No se encontro la lectura del reloj dentro de la funcion de envio "
+              f"(lectura={lectura_dentro}), o la comprobacion no sabe fallar "
+              f"(modelo={ctrl_distingue}, detector={ctrl_detector})")
 
     # ===========================================================
-    # PRUEBA 10: SFTY-21 — Fase del Modo Degradado
+    # PRUEBA 10 (x4) — RETIRADA el 31/08/2026
     # ===========================================================
-    # Sin radio, cada unidad decide su luz por su cuenta. Lo unico que impide el
-    # verde simultaneo es que las dos calculen EXACTAMENTE lo mismo. Aqui se
-    # comprueba la propiedad de seguridad sobre las 86.400 posiciones del dia, no
-    # sobre unas cuantas de muestra: un fallo que solo aparezca a las 03:47 no
-    # sirve de nada haberlo buscado a las 10:00.
-    print("\n▶ PRUEBA 10: SFTY-21 — Fase del Modo Degradado (barrido de 24 h)...")
-
-    SEGUNDOS_DEL_DIA = 86400
-
-    def fase_degradado(seg_dia, verde, despeje):
-        """Espeja ciclo_degradado_fase() de ciclo_degradado.h."""
-        if verde == 0 or despeje == 0:
-            return "FD_DESPEJE_A"
-        ciclo = 2 * (verde + despeje)
-        if seg_dia < despeje:
-            return "FD_DESPEJE_B"
-        if SEGUNDOS_DEL_DIA - seg_dia <= despeje:
-            return "FD_DESPEJE_B"
-        pos = seg_dia % ciclo
-        if pos < verde:
-            return "FD_VERDE_MAESTRO"
-        if pos < verde + despeje:
-            return "FD_DESPEJE_A"
-        if pos < 2 * verde + despeje:
-            return "FD_VERDE_ESCLAVO"
-        return "FD_DESPEJE_B"
-
-    # La propiedad que de verdad importa: en TODO el dia, jamas se pasa de un
-    # verde a otro sin despeje por medio. Si esto falla, hay verde en las dos
-    # puntas y dos vehiculos entran de frente al tramo.
-    combinaciones = [(60, 30), (45, 20), (90, 45), (120, 30), (37, 23)]
-    fallos_verde_a_verde = []
-    for verde, despeje in combinaciones:
-        anterior = None
-        for s in range(SEGUNDOS_DEL_DIA):
-            f = fase_degradado(s, verde, despeje)
-            if anterior and anterior != f and "VERDE" in anterior and "VERDE" in f:
-                fallos_verde_a_verde.append((verde, despeje, s))
-                break
-            anterior = f
-    verificar(not fallos_verde_a_verde,
-              f"SFTY-21: en 24 h y {len(combinaciones)} configuraciones NUNCA se pasa de verde "
-              "a verde sin todo-rojo (incluidos ciclos que no dividen el dia).",
-              f"PELIGRO: transicion verde->verde sin despeje en {fallos_verde_a_verde[:3]}")
-
-    # El salto de medianoche. La posicion vuelve a 0 aunque el ciclo este a medias;
-    # las dos unidades saltan igual, pero el salto podria caer dentro de un verde y
-    # SALTARSE el despeje. Por eso la frontera se fuerza a todo-rojo.
-    medianoche_ok = True
-    for verde, despeje in combinaciones:
-        for s in list(range(SEGUNDOS_DEL_DIA - despeje, SEGUNDOS_DEL_DIA)) + list(range(0, despeje)):
-            if "VERDE" in fase_degradado(s, verde, despeje):
-                medianoche_ok = False
-                break
-    verificar(medianoche_ok,
-              "SFTY-21: la frontera de medianoche se cruza SIEMPRE en todo-rojo, "
-              "aunque la duracion del ciclo no divida a 86400.",
-              "PELIGRO: hay verde al cruzar la medianoche; el salto de posicion "
-              "podria saltarse el despeje")
-
-    # Las dos unidades leen la MISMA funcion, asi que en cada instante hay una sola
-    # fase: el verde simultaneo es imposible por construccion, no por acuerdo.
-    fases_validas = {"FD_VERDE_MAESTRO", "FD_VERDE_ESCLAVO", "FD_DESPEJE_A", "FD_DESPEJE_B"}
-    todas_validas = all(fase_degradado(s, 60, 30) in fases_validas
-                        for s in range(0, SEGUNDOS_DEL_DIA, 7))
-    verificar(todas_validas,
-              "SFTY-21: la fase es unica y valida en todo instante; el verde simultaneo "
-              "es imposible por construccion, no por acuerdo entre las dos puntas.",
-              "Se obtuvo una fase no reconocida")
-
-    # Configuracion imposible: sin verde o sin despeje la respuesta debe ser
-    # todo-rojo, no un caso "que no deberia pasar".
-    verificar(fase_degradado(1000, 0, 30) == "FD_DESPEJE_A" and
-              fase_degradado(1000, 60, 0) == "FD_DESPEJE_A",
-              "SFTY-21: una configuracion imposible (verde o despeje a cero) responde "
-              "TODO-ROJO, no un estado indefinido.",
-              "Una configuracion invalida no cae a todo-rojo")
+    # Barria las 86.400 posiciones del dia contra `fase_degradado()`, que era una
+    # REIMPLEMENTACION A MANO de ciclo_degradado_fase(). Es exactamente el espejo que
+    # N-36 castigo: alguien tenia que mantenerlo sincronizado con el C++, y el dia que
+    # dejara de estarlo el barrido seguiria dando verde sobre el calculo viejo.
+    #
+    # Lo mide 01_Firmware/Validacion_Ciclo/arnes_ciclo.cpp, que hace #include del
+    # ciclo_degradado.h REAL del firmware y barre SIETE configuraciones donde aqui habia
+    # cinco:
+    #   10-1 (verde->verde)   -> "las 86.400 posiciones del dia: NUNCA se pasa de verde a
+    #                            verde sin todo-rojo (transiciones malas: %ld)"
+    #   10-2 (medianoche)     -> "la frontera de medianoche esta en todo-rojo por los DOS
+    #                            lados: ningun verde queda cortado por el cambio de dia"
+    #   10-3 (verde simultaneo
+    #        imposible)       -> "ningun segundo del dia da verde a las DOS puntas"
+    #   10-4 (config imposible
+    #        -> todo-rojo)    -> control negativo: "con despeje=0 la funcion NO da un solo
+    #                            verde en todo el dia: una configuracion imposible cae al
+    #                            lado seguro, no al comodo"
+    #
+    # ⚠️ DOS HUECOS QUE ESTA RETIRADA DEJA A LA VISTA, y que no se tapan aqui porque
+    # taparlos con el espejo seria fingir cobertura (una fila que miente es peor que una
+    # vacia). Van al informe para que los recoja quien toque el arnes:
+    #   (a) el control negativo del arnes solo ejercita `despeje = 0`. La guarda del C++ es
+    #       `if (verdeSeg == 0 || despejeSeg == 0)`: la mitad `verde = 0` no la ejerce
+    #       ningun instrumento. Esta prueba 10-4 si la ejercia, pero sobre el espejo.
+    #   (b) la comprobacion 2 del arnes es tautologica:
+    #           if (f == FD_VERDE_MAESTRO && f == FD_VERDE_ESCLAVO) simultaneos++;
+    #       un solo valor del enum no puede ser los dos a la vez, asi que `simultaneos`
+    #       vale 0 pase lo que pase. Es la prueba muerta de N-51 dentro de una barrera de
+    #       seguridad. La propiedad real la sostiene la comprobacion 1, no esta.
 
     # ===========================================================
     # VEREDICTO FINAL
@@ -1000,6 +1087,15 @@ def ejecutar_auditoria_completa():
     else:
         print(f"⚠️  VEREDICTO FINAL: {total_pass}/{total_tests} PASS — HAY FALLOS PENDIENTES")
     print("=" * 80)
+    # El formato de la linea de arriba es el que compuerta.py sabe leer (la ultima linea
+    # con "/", un digito y "PASS"), y ahi se aplica la regla de N-71: x == y o FALLA.
+    #
+    # Y ademas se sale con codigo 1 cuando falta alguna. Hasta hoy este simulador salia
+    # con 0 pasara lo que pasara: la unica red era esa regla de la compuerta. Un
+    # instrumento que anuncia fallos y contesta "todo bien" al que le pregunta por el
+    # codigo de salida es la CUARTA CARA de N-46, y no hace falta convivir con ella.
+    return 0 if total_pass == total_tests else 1
+
 
 if __name__ == "__main__":
-    ejecutar_auditoria_completa()
+    sys.exit(ejecutar_auditoria_completa())
