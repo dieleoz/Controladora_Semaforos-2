@@ -53,6 +53,18 @@ CIFRAS = (
     # README tiene que decirlo; si una falla, lo dice el acta, no este pack.
     ("banco por packs",        r"\d+/(\d+) comprobaciones", "total de comprobaciones del banco"),
     ("banco por packs",        r"packs: (?P<TOTAL_PACKS>.*)", "total de packs"),
+    # LAS TRES DE LA APP FALTABAN, y el hueco costo lo mismo que costo N-62: el
+    # 31/08 el README publicaba 59/59 en jsdom y 57/57 en el funcional cuando el acta
+    # que el mismo citaba media 61 y 58. Ninguna cifra dejaba de cuadrar porque
+    # NINGUNA de las tres estaba en esta tupla: la fila existia -la cobertura del
+    # apartado 5 la veia- y su numero no lo miraba nadie. Un hueco no grita.
+    #
+    # Se comparan como FRACCION -"61/61"-, igual que pantalla, ciclo y automatico, y
+    # no como numero suelto: ver el comentario de _cifra(), donde esta medido lo que
+    # costo la primera version.
+    ("app ejecutada en DOM",   r"(?P<TOTAL_APP>.*)",        "comprobaciones de la app en DOM"),
+    ("test unitarios de la app", r"(?P<TOTAL_APP>.*)",      "test unitarios de la app"),
+    ("test funcional de la app", r"(\d+/\d+) comprobaciones", "test funcional de la app"),
     ("arnes de pantalla",      r"MAESTRO\s+(\d+/\d+)",      "pantalla del Maestro"),
     ("arnes de pantalla",      r"ESCLAVO\s+(\d+/\d+)",      "pantalla del Esclavo"),
     ("arnes de pantalla",      r"TOTAL\s+(\d+/\d+)",        "pantalla, total"),
@@ -63,7 +75,13 @@ CIFRAS = (
 # Las cinco que ESTADO.md repite en su cabecera. No se le exigen las trece: se le
 # exige que las que publica sean las mismas.
 EN_ESTADO = ("flash del Maestro", "flash del Esclavo", "flash del Repetidor",
-             "total de comprobaciones del banco", "pantalla, total")
+             "total de comprobaciones del banco", "pantalla, total",
+             # La cabecera de ESTADO.md publica las tres de la app -"32 unitarios +
+             # 61 jsdom + 58 funcional"- y llevaba dos viejas encima. Si un dia deja
+             # de publicarlas, esto falla y se quita la fila a mano: es mas barato
+             # que una cifra que envejece sin que nadie la mire.
+             "comprobaciones de la app en DOM", "test unitarios de la app",
+             "test funcional de la app")
 
 # LA TABLA DEL README TIENE QUE ANUNCIAR TODAS LAS COMPROBACIONES, NO SOLO SUS
 # CIFRAS. El 28/08 el README publicaba "15 PASS ... de 15 comprobaciones" con una
@@ -143,6 +161,18 @@ def _cifra(res, clave, patron):
     if par is None:
         return None
     d = par[1]
+    if "TOTAL_APP" in patron:
+        # "61 PASS | 0 FALLAS" -> "61/61". LA FRACCION, NO EL NUMERO SUELTO, y esto
+        # no es cosmetica: se escribio primero devolviendo "61" y el pack SE QUEDO EN
+        # VERDE con el defecto real reinyectado en el README -"59/59"-, porque el
+        # README dice "y=61" en la linea 335 hablando de la pantalla. Un "61" suelto
+        # casa con cualquier 61 del documento; "61/61" solo casa con la cifra.
+        #
+        # Es la regla del instrumento (CLAUDE.md §4) dentro del propio instrumento:
+        # la comprobacion existia, corria y no sabia fallar. Se vio caer antes de
+        # darla por buena.
+        m = re.search(r"(\d+)\s+PASS\s*\|\s*(\d+)\s+FALLAS?", d)
+        return "%d/%d" % (int(m.group(1)), int(m.group(1)) + int(m.group(2))) if m else None
     if "TOTAL_PACKS" in patron:
         # "packs: 25 PASS, 2 FALLA, 0 ABORTADO" -> 27. La suma, no los que pasaron.
         cuentas = re.findall(r"(\d+)\s+(?:PASS|FALLA|ABORTADO)", d)

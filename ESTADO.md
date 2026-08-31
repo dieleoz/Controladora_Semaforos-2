@@ -1,6 +1,6 @@
 # ESTADO — Dónde está parado el proyecto (V9.0)
 
-**Actualizado:** 28 de Agosto de 2026 · **HEAD:** `f7be2bd` · rama **`main-nuevo`** · remoto `origin` = `github.com/dieleoz/Controladora_Semaforos-2`  
+**Actualizado:** 31 de Agosto de 2026 · **HEAD:** `f25fa57` · rama **`main-nuevo`** · remoto `origin` = `github.com/dieleoz/Controladora_Semaforos-2`  
 **Repositorio NUEVO, con historia propia desde hoy.** Desciende de `Controladora_Semaforos` @ `50a5380`
 (commit raíz `24276ab`), y **la historia arranca de cero porque el padre pesaba 3,47 GB** por dos ZIP de
 2 GB y 1 GB que GitHub rechaza: no se podía publicar sin reescribir la historia entera, así que se
@@ -8,7 +8,7 @@ publica el árbol y se deja el anterior accesible como remoto **`padre`**.
 **Versión de Especificación y Firmware:** **V9.0 — implementada y compilando. NO probada en banco.**  
 **En campo sigue la V8.4 (`e303485`).** La compuerta en verde dice que los modelos y arneses de PC no
 encuentran nada; no dice que el firmware funcione sobre la tarjeta. Ver 🛑 más abajo.  
-**Compuerta:** ✅ **15 PASS | 0 FALLA | 0 ABORTADO** (Exit code: 0) · Maestro: 88.3% Flash (57.880 de 65.536 B → **7.656 B libres**) · Esclavo: 64.4% Flash · Repetidor: 20.6% Flash · 405/405 en 38 packs · 271/271 pantalla · 71/71 automatico · 29/29 ciclo · app: 32 unitarios + 59 jsdom + 57 funcional · `evidencia/2026-08-28_compuerta.txt`
+**Compuerta:** ✅ **15 PASS | 0 FALLA | 0 ABORTADO** (Exit code: 0) · Maestro: 88.3% Flash (57.880 de 65.536 B → **7.656 B libres**) · Esclavo: 64.4% Flash · Repetidor: 20.6% Flash · 411/411 en 38 packs · 271/271 pantalla · 71/71 automatico · 29/29 ciclo · app: 32/32 unitarios + 61/61 jsdom + 58/58 funcional · `evidencia/2026-08-31_compuerta.txt`
 
 ---
 
@@ -132,6 +132,21 @@ el 28/08—. Las filas tachadas **no se borran**: una tachada con su motivo no s
 
 ---
 
+## 🟢 CERRADO EL 31/08/2026 — N-93, el hueco que N-62 no miró
+
+- ✅ **Tres cifras de la app estaban escritas a mano y eran viejas.** El README publicaba `59/59`
+  (jsdom) y `57/57` (funcional) contra los `61` y `58` del acta que él mismo citaba; este fichero
+  repetía las dos. Corregidas **desde el acta**, no a ojo.
+- ✅ **`documentos_01_cifras_del_acta` no vigilaba ninguna de las tres.** La fila existía en la
+  tabla —la cobertura la veía— y su número no lo miraba nadie. Ahora entran las tres, en el README
+  y en la cabecera de este fichero: **45 → 51 comprobaciones**, banco **405/405 → 411/411**.
+- 🔴 **Y la primera versión del pack daba VERDE con el defecto delante** —comparó `61` suelto y
+  `README.md:335` dice `y=61` hablando del LCD—. Se arregló comparando la fracción y se vio caer
+  **tres veces** a `50/51` con exit `1`. Detalle en [`roadmap.md`](roadmap.md) §N-93.
+- ✅ **Compuerta: 15 PASS · 0 FALLA · 0 ABORTADO** en `evidencia/2026-08-31_compuerta.txt`.
+
+---
+
 ## 🟢 CERRADO EN ESTA SESIÓN (27/08/2026) — N-62, la pasada sobre lo que los documentos dicen haber medido
 
 - ✅ **Tres packs nuevos** (`documentos_01_cifras_del_acta`, `documentos_02_trazabilidad_sfty`,
@@ -147,7 +162,7 @@ el 28/08—. Las filas tachadas **no se borran**: una tachada con su motivo no s
   selector ofrecía un PIN `0000` que el firmware rechaza siempre, y se leían `SITE`/`PAIR` que
   nadie emite. Las tres copias (`www/`, assets de Android) vuelven a ser la misma.
 - ✅ **`simulador_app_bluetooth.py` conectado a la compuerta**, y con la prueba muerta arreglada.
-- ✅ **Compuerta: 15 PASS · 0 FALLA · 0 ABORTADO** en `evidencia/2026-08-28_compuerta.txt`.
+- ✅ **Compuerta: 15 PASS · 0 FALLA · 0 ABORTADO** en `evidencia/2026-08-31_compuerta.txt`.
 
 ## 🟢 CERRADO EN ESTA SESIÓN (28/08/2026) — N-75, la app que no oía al equipo
 

@@ -37,7 +37,7 @@
 > verde** —24 días al año—. Con T2 (commit `98d9058`), el Esclavo se rinde por el mismo criterio
 > de RTC monótono que el Maestro, eliminando la rendición desfasada por `millis()`. Medido contra el C++ real. Ver [`ESTADO.md`](ESTADO.md).
 
-**Verificación actual** — cifras **copiadas del acta** `evidencia/2026-08-28_compuerta.txt`, que
+**Verificación actual** — cifras **copiadas del acta** `evidencia/2026-08-31_compuerta.txt`, que
 genera `python 01_Firmware/compuerta.py` en una sola corrida. No se escriben a mano — y desde
 **N-62** eso ya no es una promesa: el pack `documentos_01_cifras_del_acta` compara esta tabla
 contra la última acta en cada corrida del banco. Cuando se escribió por primera vez, **falló**:
@@ -47,13 +47,13 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 43 rutas parseadas, todas existen |
-| banco por packs *(38 packs)* | ✅ | **405/405** — los 38 packs en `PASS`. Subió de 348 con los cuatro packs de las Fases 1 y 2: `app_02_modos_simetricos`, `app_03_sin_ok_mudo`, `esclavo_07_ambar_emergencia` y `maestro_09_test_leds`. **Los cuatro nacieron en rojo** y ninguno se dio por bueno hasta verlo caer con el defecto inyectado en el `.cpp` real |
+| banco por packs *(38 packs)* | ✅ | **411/411** — los 38 packs en `PASS`. Subió de 348 con los cuatro packs de las Fases 1 y 2: `app_02_modos_simetricos`, `app_03_sin_ok_mudo`, `esclavo_07_ambar_emergencia` y `maestro_09_test_leds`. **Los cuatro nacieron en rojo** y ninguno se dio por bueno hasta verlo caer con el defecto inyectado en el `.cpp` real |
 | compila Maestro / Esclavo / Repetidor | ✅ | **88,3 %** · 64,4 % · 20,6 % — *7.656 B libres en el Maestro tras las Fases 1 y 2, `AiBus` y N-90* |
 | simulador funcional | ✅ | 20/20 |
 | simulador de repetidor | ✅ | 10/10 |
 | simulador de app y bluetooth | ✅ | 5/5 — **conectado el 27/08**: existía desde el 26/08 y no estaba en el acta |
-| **app ejecutada en DOM** | ✅ | **59/59** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden** *(desde N-75: el rewrite sacó el gestor de cruces, el parser NMEA y el Courier a módulos, y el arnés seguía evaluando sólo `app.js`)*, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
-| test funcional de la app | ✅ | **57/57** — también conectado el 27/08. Decía «22/22» a mano y ejecuta 34; su prueba de Courier RTC era una tautología |
+| **app ejecutada en DOM** | ✅ | **61/61** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden** *(desde N-75: el rewrite sacó el gestor de cruces, el parser NMEA y el Courier a módulos, y el arnés seguía evaluando sólo `app.js`)*, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
+| test funcional de la app | ✅ | **58/58** — también conectado el 27/08. Decía «22/22» a mano y ejecuta 34; su prueba de Courier RTC era una tautología |
 | test unitarios de la app | ✅ | **32/32** — seis suites sin DOM: NMEA y *checksums*, generador de comandos y barrera de PIN, validación de `SET_TIEMPOS`, Courier RTC, gestor de cruces y escala de 20 cruces. **Faltaba en esta tabla hasta el 28/08**: el acta lo medía y el README no lo nombraba, así que el auditor no tenía forma de saber que existía |
 | arnés de pantalla | ✅ | **271/271** *(Maestro 145/145, Esclavo 126/126)* — +12 al exigir el texto exacto del aviso `>48h` (N-50) |
 | arnés del ciclo | ✅ | **29/29** — corre sobre el `ciclo_degradado.h` real compilado, sin espejo en Python |
@@ -153,7 +153,7 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 > los `lcd.cpp` y `menu.cpp` reales, pero contra un framebuffer en el PC, no contra la ST7920.
 
 **Certificado en campo:** 31 de Julio de 2026 *(V8.4, dos radios en enlace directo)*  
-**Última actualización del repositorio:** 28 de Agosto de 2026 *(la cifra vigente y su hash de HEAD están en el acta que cita la tabla de arriba —`evidencia/2026-08-28_compuerta.txt`—, y no se repiten aquí: este pie llevaba `14 PASS` sobre HEAD `2cde016` cuando el acta ya medía otra cosa, y un recuento viejo no se lee como viejo, se lee como medida. **Nada de esto ha pasado banco**: siguen abiertas la regresión N-42 del Modo Automático, el cristal N-37, y las cuatro funciones de V9.0 que ningún PC puede validar)*
+**Última actualización del repositorio:** 31 de Agosto de 2026 *(la cifra vigente y su hash de HEAD están en el acta que cita la tabla de arriba —`evidencia/2026-08-31_compuerta.txt`—, y no se repiten aquí: este pie llevaba `14 PASS` sobre HEAD `2cde016` cuando el acta ya medía otra cosa, y un recuento viejo no se lee como viejo, se lee como medida. **Nada de esto ha pasado banco**: siguen abiertas la regresión N-42 del Modo Automático, el cristal N-37, y las cuatro funciones de V9.0 que ningún PC puede validar)*
 **Repositorio Oficial:** [https://github.com/dieleoz/2semaforos_3estados.git](https://github.com/dieleoz/2semaforos_3estados.git)  
 **Normativa Aplicable:** Resolución 2024 del Ministerio de Transporte de Colombia (Secuencia de Luces y Tiempos de Seguridad Vial)
 

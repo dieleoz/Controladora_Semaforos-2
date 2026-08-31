@@ -1,7 +1,7 @@
 # 🗺️ Roadmap y Estado del Ecosistema de Semáforos Móviles (V9.0)
 
-**Fecha de Actualización:** 28 de Agosto de 2026 · **HEAD:** `e82fddc` · rama `main`  
-**Compuerta de Verificación:** ✅ **15 PASS | 0 FALLA | 0 ABORTADO** (Exit code: 0) · Maestro: 88.3% Flash (57.880 B) · Esclavo: 64.4% Flash (42.176 B) · Repetidor: 20.6% Flash · 43 rutas parseadas · 405/405 en 38 packs · 271/271 pantalla · 29/29 ciclo · 71/71 automatico, en `evidencia/2026-08-28_compuerta.txt`
+**Fecha de Actualización:** 31 de Agosto de 2026 · **HEAD:** `f25fa57` · rama `main-nuevo`  
+**Compuerta de Verificación:** ✅ **15 PASS | 0 FALLA | 0 ABORTADO** (Exit code: 0) · Maestro: 88.3% Flash (57.880 B) · Esclavo: 64.4% Flash (42.176 B) · Repetidor: 20.6% Flash · 43 rutas parseadas · 411/411 en 38 packs · 271/271 pantalla · 29/29 ciclo · 71/71 automatico, en `evidencia/2026-08-28_compuerta.txt`
 
 > ⚠️ **El acta se cabecea a si misma como `26479d9`, rama `main-nuevo`, «Arbol: CON CAMBIOS SIN
 > COMMITEAR», y ella misma cierra con su AVISO.** Y esta vez **se puede decir exactamente sobre que
@@ -54,6 +54,42 @@
 | **N-90** `ModoSistema` sale de la cabecera de la pantalla | 🟢 **CERRADO** — `e82fddc`, **Fase 0** de la retirada del LCD · −12 B · una copia de modelo menos |
 | **N-91** El presupuesto de retirar la pantalla | 🟠 **ABIERTO — MEDIDO Y SIN EJECUTAR** · **19.513 B** en el Maestro, **9.659 B** en el Esclavo · y **tres instrumentos que no avisan** |
 | **N-92** El orden entre camaras y botones **no** es «mismo commit» | 🔴 ABIERTO — **corrige a N-84**: el requisito es asimetrico y **operativo**, no de historia |
+| **N-93** Las tres cifras de la app no las vigilaba nadie, y el pack que iba a vigilarlas **no sabia fallar** | 🟢 **CERRADO** — `documentos_01` pasa de 45 a 51 comprobaciones; banco `411/411` → `411/411` |
+
+---
+
+### 🟢 N-93 — Las tres cifras de la app no las vigilaba nadie, y el instrumento que fui a escribir NO SABIA FALLAR · **CERRADO**
+
+**De donde sale:** de leer el README con el acta al lado. La tabla publicaba **59/59** en jsdom y
+**57/57** en el funcional de la app; el acta que ella misma citaba —`2026-08-28`— media **61** y
+**58**. `ESTADO.md` repetia las dos viejas en su cabecera. Es exactamente el defecto de N-62, en el
+unico sitio donde N-62 no habia mirado.
+
+**Por que no lo caza `documentos_01_cifras_del_acta`:** su tupla `CIFRAS` **no tenia ninguna de las
+tres filas de la app**. La cobertura del apartado 5 si las veia —la fila existia en la tabla—, asi
+que el pack aprobaba: comprobaba que el README *nombra* la comprobacion, nunca que su numero sea el
+medido. **Un `ABORTADO` grita; un hueco no** (CLAUDE.md §3).
+
+> 🔴 **Y lo que de verdad deja este N-x no es el arreglo: es que la PRIMERA version del arreglo
+> daba verde con el defecto delante.** Escrito el pack, se reinyecto la cifra vieja —`59/59`— en el
+> README y el pack **siguio en `51/51`, exit `0`**. Comparaba el numero suelto —`61`— con `valor in
+> readme`, y `README.md:335` dice **`y=61`** hablando de la pantalla LCD. El buscador casaba con otra
+> cosa.
+>
+> **Es CLAUDE.md §4 aplicada dentro del propio instrumento**, y §8.bis es lo unico que lo destapa: un
+> arnes que no se ha visto fallar es un adorno que da verde. Se corrigio comparando la **fraccion**
+> —`61/61`—, como ya hacian pantalla, ciclo y automatico, y se volvio a inyectar el defecto **tres
+> veces** —jsdom y funcional en el README, jsdom en `ESTADO.md`—: las tres bajan a `50/51` y cambian
+> el codigo de salida a `1`.
+
+**Lo que queda escrito, y no depende de este pack:** una cifra se compara en la forma que la hace
+distinguible. Un numero suelto de dos digitos casa con cualquier cosa en un documento de 400 lineas
+—una coordenada de pantalla, un tamano de bornera, un ano—, y la comprobacion que lo usa **no mide
+lo que dice medir**. Si el acta no publica la cifra en forma distinguible, se sintetiza al leerla
+(`61 PASS | 0 FALLAS` → `61/61`), no se rebaja la comparacion.
+
+**Evidencia:** `evidencia/2026-08-31_compuerta.txt` · banco `411/411` en 38 packs · 15 PASS | 0 FALLA
+| 0 ABORTADO.
 
 ---
 
