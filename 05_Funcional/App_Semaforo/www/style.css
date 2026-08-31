@@ -34,6 +34,24 @@
   --cyan-neon: #00F0FF;
   --cyan-glow: 0 0 20px rgba(0, 240, 255, 0.4);
 
+  /* Indicador de enlace. CUATRO tokens y no tres: "no lo se" tiene color propio
+     porque no es un tramo peor que "cayendo", es la ausencia del dato.
+     Ratios WCAG MEDIDOS sobre --bg-surface #0B111E (el pack app_09 los recalcula
+     desde este fichero en cada corrida, no se copian de aqui):
+        --enlace-bien    #00E676  11.30:1   AAA
+        --enlace-justo   #FFB300  10.51:1   AAA
+        --enlace-cayendo #FF6B6B   6.80:1   AA  (es --red-text: el rojo de lampara
+                                                 #FF1E44 se queda en 4.96:1, que
+                                                 vale como componente grafico pero
+                                                 no como rotulo de 11 px)
+        --enlace-sindato #94A3B8   7.36:1   AAA
+     Los cuatro se usan TAMBIEN como texto, asi que el umbral que se les exige es
+     4.5:1 y no el 3:1 de componente grafico. */
+  --enlace-bien: #00E676;
+  --enlace-justo: #FFB300;
+  --enlace-cayendo: #FF6B6B;
+  --enlace-sindato: #94A3B8;
+
   /* Typography */
   --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -1019,3 +1037,177 @@ body {
   z-index: 1000;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ==========================================================================
+   INDICADOR DE ENLACE Y BITACORA — CLAUDE.md 3.quinquies y 4.ter
+   ==========================================================================
+   Todo lo de aqui abajo tiene una regla en comun: NADA dibuja un valor que no
+   se haya medido. El hueco de la tira no es una barra corta ni una barra gris
+   con un numero pequeno: es un rayado que no tiene altura, porque la altura
+   ES el valor y aqui no hay valor.
+
+   Y los anchos: se midio a 320 / 360 / 390 / 412 px. La tira lleva
+   `overflow-x: auto` y `min-width: 0` en su contenedor porque una fila de 80
+   celdas es exactamente la clase de hijo flex que ensancha el documento
+   entero y corta lo de la derecha -que es como se cazo la cabecera-. */
+
+.enlace-estado {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+.enlace-bien { color: var(--enlace-bien); }
+.enlace-justo { color: var(--enlace-justo); }
+.enlace-cayendo { color: var(--enlace-cayendo); }
+.enlace-sindato { color: var(--enlace-sindato); }
+
+.progress-bar.enlace-barra.enlace-bien { background: var(--enlace-bien); }
+.progress-bar.enlace-barra.enlace-justo { background: var(--enlace-justo); }
+.progress-bar.enlace-barra.enlace-cayendo { background: var(--enlace-cayendo); }
+/* Sin dato la barra NO se pinta de ningun color: el carril se queda rayado, que
+   es lo que se ve cuando no hay medida. Una barra corta seria un valor bajo. */
+.progress-bar.enlace-barra.enlace-sindato { background: transparent; }
+
+.metric-etiqueta { color: var(--text-muted); font-size: 9px; letter-spacing: 0.08em; }
+.metric-sello {
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+.metric-nota {
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  line-height: 1.45;
+  border-top: 1px dashed var(--border-subtle);
+  padding-top: 6px;
+}
+.metric-nota strong { color: var(--text-secondary); }
+
+/* ---- La tira de la bitacora ---- */
+.tira-wrap {
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  margin-top: 10px;
+}
+.tira {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 64px;
+  min-width: min-content;
+}
+.tira-celda {
+  display: block;
+  width: 6px;
+  flex: 0 0 6px;
+  border-radius: 2px 2px 0 0;
+  align-self: flex-end;
+}
+.tira-bien { background: var(--enlace-bien); }
+.tira-justo { background: var(--enlace-justo); }
+.tira-cayendo { background: var(--enlace-cayendo); }
+/* "Se recibio una trama pero sin enlace medido": altura completa y rayado, para
+   que no se confunda con una medida alta. */
+.tira-sindato {
+  height: 100%;
+  background: repeating-linear-gradient(45deg,
+    var(--enlace-sindato) 0 2px, transparent 2px 5px);
+  opacity: 0.55;
+}
+/* EL HUECO. Ni altura ni color: no llego nada y no hay nada que dibujar. */
+.tira-hueco {
+  height: 100%;
+  width: 12px;
+  flex: 0 0 12px;
+  border-left: 1px dashed var(--enlace-sindato);
+  border-right: 1px dashed var(--enlace-sindato);
+  background: repeating-linear-gradient(90deg,
+    transparent 0 3px, rgba(148, 163, 184, 0.18) 3px 4px);
+}
+.tira-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+.tira-leyenda span { display: inline-flex; align-items: center; gap: 4px; }
+.tira-muestra { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+
+.registro-resumen {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 10px;
+  line-height: 1.5;
+}
+.registro-lista { margin-top: 8px; max-height: 260px; overflow-y: auto; }
+.registro-fila {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr;
+  gap: 6px;
+  align-items: baseline;
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 10px;
+}
+.registro-hora { font-family: var(--font-mono); color: var(--text-muted); }
+.registro-clase { font-weight: 800; font-size: 9px; letter-spacing: 0.05em; }
+.registro-valor { font-family: var(--font-mono); color: var(--text-secondary); }
+.registro-texto { color: var(--text-primary); min-width: 0; word-break: break-word; }
+.registro-caida .registro-clase { color: var(--enlace-cayendo); }
+.registro-regreso .registro-clase { color: var(--enlace-bien); }
+.registro-alarma .registro-clase { color: var(--enlace-cayendo); }
+.registro-evento .registro-clase { color: var(--cyan-neon); }
+.registro-muestra .registro-clase { color: var(--text-muted); }
+.registro-hueco .registro-clase { color: var(--enlace-sindato); }
+
+@media (max-width: 400px) {
+  /* A 360 y 320 px la fila de cuatro columnas parte el detalle en tiras de dos
+     palabras. Se apila: el texto es lo que se lee, la hora y la clase son la
+     etiqueta. Medido a los cuatro anchos, no supuesto. */
+  .registro-fila { grid-template-columns: auto auto auto; }
+  .registro-texto { grid-column: 1 / -1; }
+}
+
+/* R-3: RETIRAR AMBAR. Se distingue de los dos mandos de emergencia a proposito:
+   aquellos PARAN o dan precaucion -son la caida segura- y este DEVUELVE EL CRUCE A
+   DAR VERDES. Un boton que abre paso no puede tener el mismo aspecto que uno que lo
+   cierra, ni el rojo de una alarma: usa el cyan de accion normal con un borde que lo
+   separa de la reja de emergencia. */
+.pad-btn.btn-cancel-amber {
+  background: rgba(0, 240, 255, 0.08);
+  border-color: var(--border-glow);
+}
+.pad-btn.btn-cancel-amber strong { color: var(--cyan-neon); }
+
+/* LA REJA DE MANDOS TIENE QUE PODER ENCOGER — 4.ter otra vez, y esta vez MEDIDO
+   ANTES de escribir la regla, no despues.
+
+   Con el navegador a los cuatro anchos, y con RETIRAR AMBAR a la vista:
+
+       412 px  ok      390 px  ok      360 px  ok      320 px  el mando nuevo
+                                                        llegaba a 334 px (14 px
+                                                        fuera) y los tres de la
+                                                        columna derecha a 322 (2 px)
+
+   La causa es la misma de la cabecera de N-75: un hijo de la reja no baja de su ancho
+   de CONTENIDO -min-width:auto por defecto-, asi que el `small` mas largo decide el
+   ancho de la columna y empuja lo que tiene detras. Con overflow-x:hidden en el body
+   eso no se ve como barra de scroll: se ve como un boton al que le falta un trozo.
+
+   Se arregla en .pad-btn y no solo en el mando nuevo, porque el que hoy sobresale 2 px
+   sobresaldra mas el dia que alguien alargue su rotulo. El texto parte por palabras en
+   vez de recortarse: en un mando de calle vale mas leerlo en dos lineas que perder la
+   ultima palabra. */
+.pad-btn { min-width: 0; }
+.pad-text { min-width: 0; }
+.pad-text strong, .pad-text small { overflow-wrap: anywhere; }
