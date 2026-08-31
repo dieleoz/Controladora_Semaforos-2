@@ -27,8 +27,21 @@ document.addEventListener('DOMContentLoaded', () => {
     tiempoVerdeMin: 2,
     tiempoRojoMin: 2,
     tiempoDespejeSeg: 15,
+    // rfQuality/rfRtt son EL ULTIMO VALOR QUE VINO EN UNA TRAMA, y null mientras no
+    // haya venido ninguno. No se tocan en ningun otro sitio: los escribe pintarEnlace()
+    // -ver 2.bis- y los lee el reporte de WhatsApp, que hasta hoy publicaba
+    // "Enlace RF: null%" porque el unico camino que los escribia era el del puente de
+    // PC, que ya no existe.
     rfQuality: null,
     rfRtt: null,
+    // Instante de la ultima MEDIDA de enlace, que NO es el instante de ahora. Sin este
+    // sello, "70%" en pantalla no se distingue de "70% hace veinte minutos".
+    rfMedidaMs: null,
+    // Tramo del indicador (BIEN / JUSTO / CAYENDO / SIN_DATO) con el que se anoto la
+    // ultima vez. Cambiar de tramo es lo que dispara una anotacion fuera de turno: es
+    // el instante que el tecnico esta buscando en el registro.
+    rfTramo: null,
+    rfUltimaMuestraMs: null,
     battery: null,
     hora: null,
     pin: '',
@@ -45,6 +58,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Instante de la ultima trama $STATUS recibida. null = todavia no ha hablado
     // ningun equipo en esta sesion, que NO es lo mismo que un equipo con enlace.
     ultimoStatusMs: null,
+    // Hubo una caida que todavia no tiene su REGRESO anotado. Distinta de
+    // telemetriaViva: la primera conexion de la sesion no es una vuelta de nada.
+    huboCaida: false,
     courierSnapshot: null,
     courierTimerInterval: null,
     courierSecondsElapsed: 0,
@@ -97,8 +113,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Metrics
   const rfQualityEl = document.getElementById('rf-quality');
   const rfRttEl = document.getElementById('rf-rtt');
+  const rfEstadoEl = document.getElementById('rf-estado');
+  const rfBarraEl = document.getElementById('rf-barra');
+  const rfSelloEl = document.getElementById('rf-sello');
   const batVoltageEl = document.getElementById('bat-voltage');
   const batStatusEl = document.getElementById('bat-status');
+
+  // Bitacora del enlace (pestana de eventos)
+  const registroTiraEl = document.getElementById('registro-tira');
+  const registroListaEl = document.getElementById('registro-lista');
+  const registroResumenEl = document.getElementById('registro-resumen');
+  const btnRegistroCsv = document.getElementById('btn-registro-csv');
+  const btnRegistroLimpiar = document.getElementById('btn-registro-limpiar');
 
   // Operario Field Buttons
   const btnOpAuto = document.getElementById('btn-op-auto');
@@ -106,6 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnOpAmber = document.getElementById('btn-op-amber');
   const btnOpEmergency = document.getElementById('btn-op-emergency');
   const btnOpAmbarEmergencia = document.getElementById('btn-op-ambar-emergencia');
+  const btnOpCancelarAmbar = document.getElementById('btn-op-cancelar-ambar');
   const emergenciaHintEl = document.getElementById('emergencia-hint');
   const emergenciaSubMaestroEl = document.getElementById('emergencia-maestro-sub');
   const emergenciaSubEsclavoEl = document.getElementById('emergencia-esclavo-sub');
@@ -340,6 +367,330 @@ document.addEventListener('DOMContentLoaded', () => {
         <span style="color: var(--text-primary);">${ev.msg}</span>
       `;
       eventFeedEl.appendChild(item);
+    });
+  }
+
+  // =========================================================================
+  // 1.ter EL INDICADOR DE ENLACE - Y LA DIFERENCIA ENTRE "VA MAL" Y "NO LO SE"
+  // =========================================================================
+  // QUE MIDE ESTE NUMERO, QUE NO ES LO QUE PARECE UNA BARRA DE SENAL.
+  //
+  // El campo RF: de $STATUS sale de coordinador_calidadEnlace()
+  // (Maestro/src/coordinador.cpp:845): el PORCENTAJE DE LOS ULTIMOS 10 LATIDOS QUE
+  // CONTESTARON, uno cada 3 s, o sea una ventana de 30 s. Y RTT: sale de
+  // coordinador_tiempoRespuestaMs() (:857), una media exponencial del viaje de ida y
+  // vuelta.
+  //
+  // NO ES UN RSSI Y LA PANTALLA TIENE QUE DECIRLO. No hay dBm en ninguna parte de este
+  // enlace, y por decision del 31/08 no se va a medir potencia. La consecuencia
+  // practica, que es la que le importa a quien esta subido a la escalera: este numero
+  // NO dice si la culpa es de la antena, del cable, del conector o de un camion
+  // aparcado delante. Dice cuantos latidos volvieron. Un tecnico que lea "40%" como
+  // "poca senal" cambiara la antena de un equipo cuyo problema es otro.
+  //
+  // LOS TRES TRAMOS Y EL CUARTO ESTADO, QUE NO ES UN TRAMO.
+  //
+  // BIEN / JUSTO / CAYENDO son tres tramos del MISMO dato medido. "SIN DATO" no es un
+  // cuarto tramo peor que CAYENDO: es la ausencia del dato, y hoy se confundian. La
+  // app pintaba `(parseInt(data.RF, 10) || 0) + '%'`, asi que un RF: que no fuera un
+  // numero -vacio, "--", "N/A", lo que emita el firmware el dia que deje de mentir-
+  // aterrizaba en pantalla como **0%**, que es el peor valor medible que existe. Un
+  // campo que no se pudo leer no es un enlace a cero: nadie ha medido cero latidos.
+  //
+  // (El Esclavo emite hoy RF:98 y RTT:85 como LITERALES en su snprintf -no mide nada-.
+  // Eso se arregla en el firmware y no aqui; lo que si es de aqui es no depender de la
+  // forma exacta que tenga el arreglo: se lee lo que venga y lo que no se entienda se
+  // declara, en vez de exigir un formato que todavia no esta escrito.)
+
+  // Umbrales de los tramos, en % de latidos contestados. RF_BIEN > RF_JUSTO no es un
+  // detalle de estilo: si alguien los cruzara, el tramo del medio desapareceria sin
+  // que nada fallara. El pack app_09 recalcula esa desigualdad desde este fuente.
+  const RF_BIEN = 70;
+  const RF_JUSTO = 40;
+
+  // Lo que se acepta como "el equipo dice explicitamente que no lo midio". Se admite
+  // una lista y no un solo literal a proposito: el formato final del Esclavo todavia
+  // se esta escribiendo, y cualquiera de estas formas se entiende igual. Lo que NO se
+  // hace es adivinar un numero cuando llega algo que no esta aqui: eso tambien es "no
+  // medido", solo que ademas se guarda el texto crudo para poder diagnosticarlo.
+  const RF_NO_MEDIDO = ['', '-', '--', '?', 'NA', 'N/A', 'NULL', 'NO_MEDIDO', 'SIN_DATO'];
+
+  // La lectura que significa "no hay nada que pintar". Es una constante y no un objeto
+  // nuevo en cada llamada para que el censo del pack pueda distinguir de un vistazo
+  // los dos unicos origenes legitimos del indicador: esto, o lecturaDeEnlace().
+  const ENLACE_SIN_DATO = { medido: false, pct: null, rtt: null, crudo: null, crudoRtt: null };
+
+  // Los rotulos. Los cuatro textos son DISTINTOS y ninguno de los tres tramos se
+  // parece al de sin dato: el color no puede ser el unico canal -a pleno sol y con la
+  // pantalla sucia el color es lo primero que se pierde- y ademas hay quien no
+  // distingue el rojo del verde.
+  const ENLACE_ROTULO = {
+    BIEN: 'ENLACE BUENO',
+    JUSTO: 'ENLACE JUSTO',
+    CAYENDO: 'ENLACE CAYENDO',
+    SIN_DATO: 'NO SE SABE'
+  };
+
+  function _pctDeTrama(crudo) {
+    if (crudo === null || crudo === undefined) return null;
+    const s = String(crudo).trim().replace(/%$/, '').toUpperCase();
+    if (RF_NO_MEDIDO.indexOf(s) >= 0) return null;
+    if (!/^\d{1,3}$/.test(s)) return null;
+    const n = parseInt(s, 10);
+    return n >= 0 && n <= 100 ? n : null;
+  }
+
+  function _enteroDeTrama(crudo) {
+    if (crudo === null || crudo === undefined) return null;
+    const s = String(crudo).trim().replace(/\s*ms$/i, '').toUpperCase();
+    if (RF_NO_MEDIDO.indexOf(s) >= 0) return null;
+    if (!/^\d{1,6}$/.test(s)) return null;
+    return parseInt(s, 10);
+  }
+
+  // LA UNICA FABRICA DE LECTURAS DE ENLACE, y solo se alimenta de los campos de una
+  // trama $STATUS. Cualquier otro origen -un JSON de un puente, un valor de ejemplo,
+  // lo que la app acabe de pedir- no tiene por donde entrar aqui.
+  function lecturaDeEnlace(data) {
+    const crudoRf = data.RF === undefined ? null : String(data.RF);
+    const crudoRtt = data.RTT === undefined ? null : String(data.RTT);
+    const pct = _pctDeTrama(crudoRf);
+    return {
+      medido: pct !== null,
+      pct: pct,
+      rtt: _enteroDeTrama(crudoRtt),
+      crudo: crudoRf,
+      crudoRtt: crudoRtt
+    };
+  }
+
+  function clasificarEnlace(lectura) {
+    if (!lectura || lectura.medido !== true) return 'SIN_DATO';
+    if (lectura.pct >= RF_BIEN) return 'BIEN';
+    if (lectura.pct >= RF_JUSTO) return 'JUSTO';
+    return 'CAYENDO';
+  }
+
+  // EL UNICO SITIO DE LA APP QUE ESCRIBE LOS WIDGETS DE ENLACE.
+  //
+  // Que sea uno solo es la propiedad, no una comodidad: mientras hubiera dos caminos,
+  // uno de ellos acabaria pintando un valor que no vino de una trama -es exactamente
+  // lo que pasaba con el bloque del puente de PC que se retiro hoy, que escribia
+  // rf-quality desde un JSON-. Con un solo escritor, "de donde sale lo que se ve" es
+  // una pregunta con una respuesta.
+  //
+  // marcarSinEnlace() tambien pasa por aqui, con ENLACE_SIN_DATO: declarar que no se
+  // sabe es pintar el indicador, no saltarselo.
+  function pintarEnlace(lectura) {
+    const tramo = clasificarEnlace(lectura);
+    const medido = tramo !== 'SIN_DATO';
+
+    if (medido) {
+      state.rfQuality = lectura.pct;
+      state.rfRtt = lectura.rtt;
+      state.rfMedidaMs = Date.now();
+    }
+
+    if (rfQualityEl) rfQualityEl.textContent = medido ? lectura.pct + '%' : '--';
+
+    // rf-rtt lleva el numero que vino, y NADA MAS: la unidad la pone el rotulo fijo
+    // del HTML. Si no vino, la casilla queda con dos guiones y la unidad se retira -un
+    // "-- ms" es una medida en milisegundos que nadie hizo-. Quien declara la ausencia
+    // es el rotulo del tramo y el sello de hora, no un valor de relleno.
+    const hayRtt = lectura && lectura.rtt !== null && lectura.rtt !== undefined;
+    if (rfRttEl) rfRttEl.textContent = hayRtt ? String(lectura.rtt) : '--';
+    const rfRttUnidadEl = document.getElementById('rf-rtt-unidad');
+    if (rfRttUnidadEl) rfRttUnidadEl.style.visibility = hayRtt ? 'visible' : 'hidden';
+
+    if (rfEstadoEl) {
+      rfEstadoEl.textContent = ENLACE_ROTULO[tramo];
+      rfEstadoEl.className = 'enlace-estado enlace-' + tramo.toLowerCase().replace('_', '');
+    }
+
+    // La barra: sin dato se queda a CERO ANCHO Y CON EL FONDO RAYADO, que es distinto
+    // de una barra corta. Una barra al 3% "por poner algo" seria un valor pintado.
+    if (rfBarraEl) {
+      rfBarraEl.style.width = medido ? lectura.pct + '%' : '0%';
+      rfBarraEl.className = 'progress-bar enlace-barra enlace-' +
+                            tramo.toLowerCase().replace('_', '');
+    }
+
+    // El sello de hora es lo que impide que un numero viejo se lea como uno de ahora.
+    if (rfSelloEl) {
+      if (medido) {
+        rfSelloEl.textContent = 'medido a las ' + new Date().toTimeString().split(' ')[0];
+      } else if (state.rfMedidaMs) {
+        rfSelloEl.textContent = 'sin medida nueva; la ultima fue de las ' +
+          new Date(state.rfMedidaMs).toTimeString().split(' ')[0] +
+          ' (' + state.rfQuality + '%)';
+      } else {
+        rfSelloEl.textContent = 'ninguna medida en esta sesion';
+      }
+    }
+    return tramo;
+  }
+
+  // =========================================================================
+  // 1.quater LA BITACORA DEL ENLACE: LO QUE PASA CUANDO NADIE MIRA
+  // =========================================================================
+  // El indicador de arriba solo existe mientras alguien tiene el telefono en la mano.
+  // En el momento de la caida el tecnico no esta delante, y cuando llega el enlace ya
+  // volvio. Esto guarda la tira -ver js/registro_enlace.js, que lleva escrito por que
+  // no interpola y por que un hueco no es un cero-.
+
+  function _horaDe(ms) {
+    return new Date(ms).toTimeString().split(' ')[0];
+  }
+
+  // El valor del enlace QUE ACOMPANA A UN EVENTO. Es la mitad que faltaba: una alarma
+  // sin saber como iba la radio en ese momento no dice si la causa fue la radio.
+  //
+  // Y caduca. Si la ultima medida es mas vieja que el watchdog, ya no describe "ahora"
+  // y se devuelve como no medida: pegarle a un $ALARM de las 14:36 el 70% que se midio
+  // a las 14:32 seria inventar el dato mas importante de la linea.
+  function enlaceDeAhora() {
+    if (state.rfMedidaMs === null) return ENLACE_SIN_DATO;
+    if (Date.now() - state.rfMedidaMs > TIMEOUT_ENLACE_MS) return ENLACE_SIN_DATO;
+    return {
+      medido: true, pct: state.rfQuality, rtt: state.rfRtt, crudo: null, crudoRtt: null
+    };
+  }
+
+  // Se anota una MUESTRA cuando pasa algo que merece una linea, no una por segundo:
+  //   - cambia el tramo del enlace (el instante que se busca en el registro),
+  //   - o se cumple el periodo de rutina.
+  // Cada anotacion sale de la lectura de UNA trama concreta. Entre dos anotaciones no
+  // se rellena nada: eso es lo que dibuja los huecos como huecos.
+  function registrarMuestraEnlace(lectura) {
+    const tramo = clasificarEnlace(lectura);
+    const ahora = Date.now();
+    const cambioTramo = tramo !== state.rfTramo;
+    const tocaRutina = !state.rfUltimaMuestraMs ||
+      (ahora - state.rfUltimaMuestraMs) >= RegistroEnlace.PERIODO_MUESTRA_MS;
+    if (!cambioTramo && !tocaRutina) return;
+
+    const antes = state.rfTramo;
+    state.rfTramo = tramo;
+    state.rfUltimaMuestraMs = ahora;
+
+    let texto;
+    if (!lectura.medido) {
+      texto = 'el equipo hablo pero el enlace no venia medido (RF:' +
+              (lectura.crudo === null ? 'ausente' : lectura.crudo) + ')';
+    } else if (cambioTramo && antes) {
+      texto = 'el enlace paso de ' + ENLACE_ROTULO[antes] + ' a ' + ENLACE_ROTULO[tramo];
+    } else {
+      texto = ENLACE_ROTULO[tramo] + ' (latidos contestados en los ultimos 30 s)';
+    }
+    RegistroEnlace.anotar('MUESTRA', lectura, texto, ahora);
+    renderRegistroEnlace();
+  }
+
+  function renderRegistroEnlace() {
+    if (!registroTiraEl && !registroListaEl && !registroResumenEl) return;
+    const estado = RegistroEnlace.cargar();
+    const secuencia = RegistroEnlace.tramos(estado.registros);
+
+    if (registroResumenEl) {
+      if (!secuencia.length) {
+        registroResumenEl.textContent =
+          'Todavia no hay ninguna anotacion. Se llenara sola mientras la app este ' +
+          'abierta con un equipo delante.';
+      } else {
+        const primero = estado.registros[0];
+        const ultimo = estado.registros[estado.registros.length - 1];
+        let t = estado.registros.length + ' anotaciones, de las ' + _horaDe(primero.ms) +
+                ' a las ' + _horaDe(ultimo.ms) + ' del ' +
+                new Date(ultimo.ms).toLocaleDateString() + '.';
+        if (estado.descartados) {
+          // Un registro recortado en silencio se lee como uno completo, y entonces
+          // "no hay ninguna caida antes de las 9" se confunde con "no guarde nada".
+          t += ' RECORTADO: se tiraron las ' + estado.descartados + ' anotaciones mas ' +
+               'antiguas al llegar al tope de ' + RegistroEnlace.TOPE + '.';
+        }
+        registroResumenEl.textContent = t;
+      }
+      if (!RegistroEnlace.disponible) {
+        registroResumenEl.textContent +=
+          ' ATENCION: el registro NO se esta guardando (' +
+          RegistroEnlace.motivoNoDisponible + '). Lo que se ve se pierde al cerrar.';
+      }
+    }
+
+    // LA TIRA. Una celda por anotacion y una celda de HUECO por cada interrupcion, sin
+    // unir nada: no hay linea, no hay pendiente, no hay valor entre dos medidas.
+    if (registroTiraEl) {
+      registroTiraEl.innerHTML = '';
+      secuencia.slice(-80).forEach(r => {
+        const c = document.createElement('span');
+        if (r.clase === RegistroEnlace.CLASE_HUECO) {
+          c.className = 'tira-celda tira-hueco';
+          c.title = _horaDe(r.ms) + ' → ' + _horaDe(r.hastaMs) + ': ' + r.texto;
+        } else if (r.rf === null) {
+          c.className = 'tira-celda tira-sindato';
+          c.title = _horaDe(r.ms) + ' [' + r.clase + '] ' + r.texto;
+        } else {
+          const tramo = clasificarEnlace({ medido: true, pct: r.rf });
+          c.className = 'tira-celda tira-' + tramo.toLowerCase();
+          // La ALTURA de la celda es el valor. Se pone en el estilo porque es un dato,
+          // no una decoracion: 40% de alto = 40% de latidos contestados.
+          c.style.height = Math.max(8, r.rf) + '%';
+          c.title = _horaDe(r.ms) + ' [' + r.clase + '] ' + r.rf + '% · ' + r.texto;
+        }
+        registroTiraEl.appendChild(c);
+      });
+    }
+
+    if (registroListaEl) {
+      registroListaEl.innerHTML = '';
+      secuencia.slice(-40).reverse().forEach(r => {
+        const fila = document.createElement('div');
+        fila.className = 'registro-fila registro-' + r.clase.toLowerCase();
+        const valor = r.clase === RegistroEnlace.CLASE_HUECO ? 'HUECO'
+                    : (r.rf === null ? 'sin medir' : r.rf + '%');
+        fila.innerHTML =
+          '<span class="registro-hora">' + _horaDe(r.ms) + '</span>' +
+          '<span class="registro-clase">' + r.clase + '</span>' +
+          '<span class="registro-valor">' + valor + '</span>' +
+          '<span class="registro-texto"></span>';
+        // El detalle va por textContent y no dentro del innerHTML de arriba: lleva
+        // texto que viene del equipo ($EVENT/$ALARM) y ese no se interpreta como HTML.
+        fila.querySelector('.registro-texto').textContent = r.texto;
+        registroListaEl.appendChild(fila);
+      });
+    }
+  }
+
+  if (btnRegistroCsv) {
+    btnRegistroCsv.addEventListener('click', () => {
+      const estado = RegistroEnlace.cargar();
+      if (!estado.registros.length) {
+        showToast('El registro del enlace esta vacio: no hay nada que exportar');
+        return;
+      }
+      const csv = RegistroEnlace.aCsv(estado.registros, estado.descartados);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'Enlace_' + state.site.replace(/[\s\·\/]+/g, '_') + '_' +
+                      new Date().toISOString().slice(0, 10) + '.csv';
+      link.click();
+      showToast('Registro del enlace exportado (' + estado.registros.length + ' filas)');
+    });
+  }
+
+  if (btnRegistroLimpiar) {
+    btnRegistroLimpiar.addEventListener('click', () => {
+      // Se pide confirmacion porque esto BORRA LA PRUEBA de una caida que a lo mejor
+      // todavia no ha visto nadie.
+      if (typeof window.confirm === 'function' &&
+          !window.confirm('Se borra la bitacora del enlace guardada en este telefono. ' +
+                          'Si no la has exportado, se pierde.')) return;
+      RegistroEnlace.limpiar();
+      state.rfTramo = null;
+      state.rfUltimaMuestraMs = null;
+      renderRegistroEnlace();
+      addEvent('cyan', 'Bitacora del enlace borrada a peticion del usuario.');
     });
   }
 
@@ -614,8 +965,23 @@ document.addEventListener('DOMContentLoaded', () => {
   // la llamada con el comando escrito entero en el fuente: pasarlas por una tabla las hace
   // invisibles para el censo, y un comando que el censo no ve es un comando que puede
   // desaparecer de la app sin que nadie se entere (CLAUDE.md 5).
+  // LOS TRES MANDOS DE LA BOTONERA NO CONSULTABAN A QUE PUNTA IBAN.
+  //
+  // MEDIDO: SET_MODO y MANUAL:CAMBIAR_TURNO estan en SOLO_MAESTRO -el despachador del
+  // Esclavo no tiene esas ramas, Esclavo/src/bluetooth.cpp-. Contra un Esclavo estos
+  // tres botones salian al cable y volvian como $ERR,CMD:DESCONOCIDO: el operario ve
+  // un boton que "no hace nada" y un error que no dice de que habla. El resto de las
+  // ordenes de la app SI preguntaban -el despachador de data-cmd, MENU, ALCANCE,
+  // DEGRADADO y los dos mandos de emergencia-, asi que estos tres eran el hueco, no la
+  // norma.
+  //
+  // La guarda va ANTES del PIN, igual que en el despachador de data-cmd: pedir una
+  // clave para una orden que no se va a mandar es hacer teclear al operario delante de
+  // un cruce parado para nada.
   if (btnOpAuto) {
     btnOpAuto.addEventListener('click', () => {
+      const punta = puntaCorrecta('SET_MODO');
+      if (punta) { avisarOtraPunta('SET_MODO:AUTO', punta); return; }
       if (!state.pinVerificado) { pedirPin(() => btnOpAuto.click()); return; }
       enviarComandoFirmware('SET_MODO', 'AUTO');
       addEvent('cyan', 'Operario: orden MODO AUTOMATICO enviada al equipo.');
@@ -624,6 +990,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnOpStep) {
     btnOpStep.addEventListener('click', () => {
+      const punta = puntaCorrecta('MANUAL:CAMBIAR_TURNO');
+      if (punta) { avisarOtraPunta('MANUAL:CAMBIAR_TURNO', punta); return; }
       if (!state.pinVerificado) { pedirPin(() => btnOpStep.click()); return; }
       enviarComandoFirmware('MANUAL:CAMBIAR_TURNO');
       addEvent('cyan', 'Operario: orden CAMBIAR TURNO enviada al equipo.');
@@ -632,6 +1000,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnOpAmber) {
     btnOpAmber.addEventListener('click', () => {
+      const punta = puntaCorrecta('SET_MODO');
+      if (punta) { avisarOtraPunta('SET_MODO:AMBAR', punta); return; }
       if (!state.pinVerificado) { pedirPin(() => btnOpAmber.click()); return; }
       enviarComandoFirmware('SET_MODO', 'AMBAR');
       addEvent('cyan', 'Operario: orden MODO AMBAR enviada al equipo.');
@@ -688,6 +1058,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // R-3: RETIRAR EL AMBAR DE EMERGENCIA DEL ESCLAVO.
+  //
+  // Es la unica orden de la botonera de campo que PIDE PIN, y la asimetria esta
+  // razonada en el firmware (Esclavo/src/bluetooth.cpp:331): poner el ambar es la
+  // accion segura y por eso viaja sin clave; QUITARLO devuelve el cruce a dar verdes
+  // -abre paso-, que es exactamente lo que el PIN custodia. Por eso NO esta en SIN_PIN.
+  //
+  // Y NO SE PINTA NADA AQUI. Esta orden tiene TRES respuestas distintas y solo el
+  // equipo sabe cual toca -si queda el latch del mando, el ambar sigue puesto aunque
+  // la orden se haya aceptado-. Escribir "ambar retirado" al pulsar seria la mentira
+  // exacta que se quiere evitar: el operario se iria creyendo que el cruce vuelve a
+  // ciclar. Lo que sale de aqui es "orden enviada"; lo que pasa lo dicen $ACK y $ERR.
+  if (btnOpCancelarAmbar) {
+    btnOpCancelarAmbar.addEventListener('click', () => {
+      const punta = puntaCorrecta('CANCELAR_AMBAR');
+      if (punta) { avisarOtraPunta('CANCELAR_AMBAR', punta); return; }
+      if (!state.pinVerificado) { pedirPin(() => btnOpCancelarAmbar.click()); return; }
+      enviarComandoFirmware('CANCELAR_AMBAR');
+      addEvent('cyan', 'Tecnico: orden RETIRAR AMBAR enviada al ESCLAVO. Espere el ' +
+                       'acuse: el equipo dira si quedaba algun ambar y si queda otro ' +
+                       'puesto desde el mando.');
+    });
+  }
+
   // El rotulo dice QUE maniobra; esto dice CONTRA QUE PUNTA, que es la mitad sin la
   // cual el rotulo no significa nada. Se gobierna con state.node -que sale del $STATUS
   // del equipo, o del poste que el tecnico eligio en el modal de enlace-, nunca de lo
@@ -710,6 +1104,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (btnOpAmbarEmergencia) {
       btnOpAmbarEmergencia.style.display = (punta === 'MAESTRO') ? 'none' : 'flex';
+    }
+    // RETIRAR AMBAR solo sale con un ESCLAVO CONFIRMADO delante, y aqui el criterio es
+    // el contrario al de los dos de arriba a proposito. Aquellos son la caida segura y
+    // se ensenan aunque no se sepa la punta -retirar una parada de emergencia por no
+    // saber es peor que ensenar dos-. Esta ABRE PASO: sin punta identificada no se
+    // ofrece, porque una orden que abre paso no se ensena "por si acaso".
+    if (btnOpCancelarAmbar) {
+      btnOpCancelarAmbar.style.display = (punta === 'ESCLAVO') ? 'flex' : 'none';
     }
     if (emergenciaSubMaestroEl) {
       emergenciaSubMaestroEl.textContent = punta
@@ -811,6 +1213,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnDegradadoConfirmar) {
     btnDegradadoConfirmar.addEventListener('click', () => {
       if (chkDegradadoVerificado && !chkDegradadoVerificado.checked) return;
+      // La guarda de punta se repite AQUI aunque el boton que abre el dialogo ya la
+      // tenga. No es redundancia decorativa: quien escribe al cable es esta linea, y
+      // una barrera que vive en otro manejador solo protege mientras nadie llame a
+      // este por otro camino. Ademas es la unica forma de que un censo pueda
+      // comprobarlo sin seguir una cadena de dialogos -y una propiedad que solo se
+      // puede verificar leyendo es una que se rompe sin que nadie se entere-.
+      const puntaDeg = puntaCorrecta('SET_MODO');
+      if (puntaDeg) { avisarOtraPunta('SET_MODO:DEGRADADO', puntaDeg); return; }
       closeModal(degradadoModal);
       // ESTA PUERTA NO TIENE GUARDA DE PIN DELANTE Y SET_MODO:DEGRADADO NO ESTA EN
       // SIN_PIN, asi que sin PIN verificado la llamada no escribia un byte y la linea
@@ -855,6 +1265,130 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+
+  // =========================================================================
+  // 4.ante UN $ACK NO SIEMPRE SIGNIFICA "YA ESTA": HAY CUATRO ORDENES CON VARIOS SIES
+  // =========================================================================
+  // LA APP PINTABA TODOS LOS ACUSES IGUAL: "orden [X] ACEPTADA (LITERAL)". Y el
+  // firmware se habia tomado el trabajo contrario -inventar un literal distinto para
+  // cada final posible- precisamente porque NO significan lo mismo. Tragarselos en un
+  // texto unico deshace ese trabajo en la ultima pantalla, que es la unica que alguien
+  // lee de pie en la calzada.
+  //
+  // MEDIDO en las dos bluetooth.cpp: son CUATRO ordenes con mas de un RESULT posible.
+  //
+  //   CANCELAR_AMBAR    RETIRADO / RETIRADO_QUEDA_MANDO
+  //   AMBAR_EMERGENCIA  OK / YA_EN_AMBAR_LATCH_PUESTO / SALIENDO_TODO_ROJO /
+  //                     SALIDA_YA_EN_CURSO
+  //   SET_MODO:MENU     OK / SALIENDO_TODO_ROJO
+  //   SET_RTC           OK / HORA_PUESTA_SIN_PROPAGAR
+  //
+  // Y TODAS TIENEN LA MISMA FORMA DE TRAMPA: uno de los literales dice "aceptada, pero
+  // lo que pediste TODAVIA NO HA PASADO" o "aceptada, pero SIGUE HABIENDO otra cosa".
+  // Pintados como un si a secas, el tecnico se va del poste creyendo que termino.
+  //
+  // La tabla lleva los literales ESCRITOS ENTEROS para que el pack app_10 pueda cruzar
+  // sus claves contra los literales del C++ en las dos direcciones: una respuesta que
+  // el firmware manda y la tabla no nombra, y una que la tabla nombra y el firmware ya
+  // no manda. Las dos hacen dano y no son la misma averia.
+  const ACK_TEXTO = {
+    'CANCELAR_AMBAR|RETIRADO': {
+      tono: 'green',
+      texto: 'Equipo: ambar de emergencia RETIRADO. No queda ningun ambar puesto en ' +
+             'esa punta. Ojo: esta orden no mueve la luz, solo levanta el veto; la luz ' +
+             'vuelve a moverse con la siguiente orden del Maestro.',
+      toast: 'Ambar retirado por el equipo'
+    },
+    // LA QUE IMPORTA. El otro latch -el del mando del gabinete- NO se quita por radio:
+    // los tres vetos de Esclavo/src/main.cpp miran las dos banderas, asi que con la del
+    // mando puesta la luz sigue vetada. Un "ambar retirado" a secas manda al operario a
+    // esperar un cambio de fase que no va a llegar hasta que alguien suba a hacer el
+    // A.A.A, y mientras tanto el cruce sigue en ambar con la talanquera abierta.
+    'CANCELAR_AMBAR|RETIRADO_QUEDA_MANDO': {
+      tono: 'red',
+      texto: 'Equipo: se retiro el ambar que puso la APP, pero QUEDA OTRO AMBAR PUESTO ' +
+             'DESDE EL MANDO del gabinete. El cruce NO vuelve a ciclar: ese no se quita ' +
+             'por radio. Hay que ir al poste y hacer la secuencia en el mando.',
+      toast: 'QUEDA el ambar del mando: hay que ir al poste'
+    },
+    'AMBAR_EMERGENCIA|OK': {
+      tono: 'red',
+      texto: 'Equipo: AMBAR DE EMERGENCIA puesto. Intermitente en las dos vias y ' +
+             'talanquera ABIERTA: no es un rojo, los dos sentidos pasan con precaucion.',
+      toast: 'Ambar de emergencia puesto'
+    },
+    // Ya estaba en ambar por SFTY-6, por el watchdog o por un B.B.B. Lo que esta orden
+    // cambio NO es la luz: es el latch, que convierte un ambar que la siguiente orden
+    // del Maestro se llevaria en uno vetado. Contestar "puesto" ocultaria que lo unico
+    // nuevo es la proteccion, y con ella el tecnico decide distinto.
+    'AMBAR_EMERGENCIA|YA_EN_AMBAR_LATCH_PUESTO': {
+      tono: 'green',
+      texto: 'Equipo: YA ESTABA en ambar por otro motivo. Lo que anade esta orden es la ' +
+             'PROTECCION: a partir de ahora el ambar no se lo lleva la siguiente orden ' +
+             'del Maestro. Para quitarlo hace falta RETIRAR AMBAR.',
+      toast: 'Ya estaba en ambar - ahora ademas queda protegido'
+    },
+    // El ambar NO esta puesto todavia: el equipo esta saliendo del Degradado por
+    // todo-rojo y eso tarda hasta 90 s (cfgDespeje). Decir OK seria dar por hecho un
+    // cambio de luz que aun no ha ocurrido.
+    'AMBAR_EMERGENCIA|SALIENDO_TODO_ROJO': {
+      tono: 'red',
+      texto: 'Equipo: orden ACEPTADA pero el ambar TODAVIA NO ESTA PUESTO. La unidad ' +
+             'esta saliendo del Modo Degradado por TODO ROJO y eso tarda hasta 90 s. ' +
+             'El ambar entra al terminar esa salida: no se vaya sin verlo.',
+      toast: 'Aceptada - el ambar entra al acabar el todo-rojo (hasta 90 s)'
+    },
+    'AMBAR_EMERGENCIA|SALIDA_YA_EN_CURSO': {
+      tono: 'red',
+      texto: 'Equipo: orden ACEPTADA pero el ambar TODAVIA NO ESTA PUESTO. Ya habia una ' +
+             'salida en curso (rendicion por el limite de 48 h) que termina en ambar; ' +
+             'esta orden no la arranca, lo que anade es que ese ambar quede protegido.',
+      toast: 'Aceptada - ya habia una salida en curso que acaba en ambar'
+    },
+    'SET_MODO:MENU|OK': {
+      tono: 'green',
+      texto: 'Equipo: orden VOLVER AL MENU aceptada. La unidad queda en la pantalla, ' +
+             'sin ciclo.',
+      toast: 'El equipo vuelve al menu'
+    },
+    // En Degradado no se salta al menu: se pide la salida, que es un todo-rojo de 30 s.
+    'SET_MODO:MENU|SALIENDO_TODO_ROJO': {
+      tono: 'red',
+      texto: 'Equipo: orden ACEPTADA pero TODAVIA NO ESTA EN EL MENU. Estaba en Modo ' +
+             'Degradado y la salida pasa por un TODO ROJO de transicion; el menu llega ' +
+             'cuando ese todo-rojo termine.',
+      toast: 'Aceptada - sale del Degradado por todo-rojo antes de llegar al menu'
+    },
+    'SET_RTC|OK': {
+      tono: 'green',
+      texto: 'Equipo: hora puesta en el Maestro y propagada al Esclavo.',
+      toast: 'Hora puesta y propagada'
+    },
+    // La hora entro AQUI y no salio hacia la otra punta. Es medio arreglo, y un "OK" lo
+    // haria pasar por entero: el Esclavo se quedaria con la hora vieja, que es
+    // exactamente de lo que cuelga la autorizacion del Modo Degradado.
+    'SET_RTC|HORA_PUESTA_SIN_PROPAGAR': {
+      tono: 'red',
+      texto: 'Equipo: la hora entro en el MAESTRO pero NO se propago al ESCLAVO. La ' +
+             'otra punta sigue con la hora anterior, y de esa hora cuelga la ' +
+             'autorizacion del Modo Degradado. Repita la sincronizacion.',
+      toast: 'Hora puesta solo en el Maestro: NO llego al Esclavo'
+    }
+  };
+
+  // Los rechazos ya se leen como rechazos lleve el texto que lleve, asi que aqui solo
+  // se traduce lo que el literal en crudo haria entender MAL. NO_HAY_AMBAR_VIGENTE
+  // parece una averia y no lo es: es el equipo diciendo que no habia nada que quitar,
+  // que es un dato util -si el cruce sigue en ambar, viene de otro sitio-.
+  const ERR_TEXTO = {
+    'CANCELAR_AMBAR|NO_HAY_AMBAR_VIGENTE': {
+      texto: 'Equipo: NO habia ningun ambar de emergencia puesto desde la app, asi que ' +
+             'no se retiro nada. Si el cruce sigue en ambar viene del mando del ' +
+             'gabinete o de un fallo de comunicacion (SFTY-6), y esta orden no quita ' +
+             'ninguno de los dos.',
+      toast: 'No habia ambar de la app que retirar'
+    }
+  };
 
   // =========================================================================
   // 4.bis INGESTA DE TELEMETRIA DEL EQUIPO ($STATUS / $ALARM / $ERR)
@@ -938,22 +1472,43 @@ document.addEventListener('DOMContentLoaded', () => {
         state.countdown = parseInt(data.T, 10) || 0;
         updateCountdownRing();
       }
-      if (data.RF && rfQualityEl) {
-        rfQualityEl.textContent = (parseInt(data.RF, 10) || 0) + '%';
-      }
-      if (data.RTT && rfRttEl) {
-        rfRttEl.textContent = data.RTT;
-      }
-      if (data.BAT && batVoltageEl) {
-        // OJO: hoy este numero NO es una medida. Las dos puntas emiten el campo con el
-        // literal "BAT:12.6" en el snprintf (Maestro/src/bluetooth.cpp:245 y
-        // Esclavo/src/bluetooth.cpp:215): no hay divisor ni ADC detras. La app no puede
-        // distinguirlo de una lectura real, asi que lo pinta y lo DICE debajo. El
-        // arreglo es del firmware; mientras tanto nadie debe decidir por este valor.
-        state.battery = parseFloat(data.BAT);
-        batVoltageEl.textContent = Number.isFinite(state.battery)
-          ? state.battery.toFixed(1) + 'V' : '-- V';
-        if (batStatusEl) batStatusEl.textContent = 'Valor fijo del firmware, no medido';
+      // EL ENLACE. Un solo camino: la trama -> lecturaDeEnlace() -> pintarEnlace().
+      //
+      // Aqui habia `rfQualityEl.textContent = (parseInt(data.RF, 10) || 0) + '%'`, y
+      // ese `|| 0` es el defecto: con un RF: que no fuera un numero -ausente, vacio,
+      // "--", o lo que emita el firmware el dia que el Esclavo deje de inventarselo-
+      // la pantalla escribia **0%**, o sea el peor enlace medible, sin que nadie
+      // hubiera medido nada. "No lo se" y "va fatal" son cosas distintas y esa linea
+      // las juntaba. Ahora se pregunta SIEMPRE, aunque el campo no venga: es
+      // pintarEnlace() quien decide, y sabe declarar la ausencia.
+      const lectura = lecturaDeEnlace(data);
+      pintarEnlace(lectura);
+      registrarMuestraEnlace(lectura);
+      if (data.BAT !== undefined) {
+        // N-108 (31/08): EL FIRMWARE DEJO DE INVENTARSE ESTE NUMERO Y AHORA MANDA "--".
+        //
+        // Hasta ese commit las dos puntas emitian el literal "BAT:12.6" en su snprintf
+        // -sin divisor ni ADC detras- y la app lo pintaba con una nota debajo, que era
+        // lo unico que se podia hacer desde este lado. Ahora el campo llega MARCADO, y
+        // la app tiene que leer la marca en vez de seguir describiendo el defecto
+        // anterior: un texto que dice "valor fijo del firmware" debajo de un "-- V"
+        // acusa al equipo de algo que ya no hace.
+        //
+        // Se usa el MISMO vocabulario de ausencia que el enlace (RF_NO_MEDIDO): las
+        // tres cifras de la trama se marcan igual, asi que se leen igual.
+        const crudoBat = String(data.BAT).trim();
+        const noMedida = RF_NO_MEDIDO.indexOf(crudoBat.toUpperCase()) >= 0;
+        const volt = noMedida ? NaN : parseFloat(crudoBat);
+        state.battery = Number.isFinite(volt) ? volt : null;
+        if (batVoltageEl) {
+          batVoltageEl.textContent = state.battery === null
+            ? '-- V' : state.battery.toFixed(1) + 'V';
+        }
+        if (batStatusEl) {
+          batStatusEl.textContent = state.battery === null
+            ? 'El equipo declara que no la mide: falta el divisor y la entrada analogica'
+            : 'Medida del equipo';
+        }
       }
       if (data.HORA) {
         state.hora = data.HORA;
@@ -961,7 +1516,52 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (header === '$ALARM') {
       const data = _camposNmea(parts);
       showToast('ALERTA: ' + (data.EVENTO || 'Fallo detectado'));
-      addEvent('red', 'Caja Negra: ' + (data.EVENTO || 'FALLO') + ' - ' + (data.CAUSA || '') + ' (Accion: ' + (data.ACCION || '') + ')');
+
+      // N-108: EL $ALARM YA NO DICE SOLO QUE SE CAYO, DICE DESDE DONDE VENIA.
+      //
+      // El firmware mete en la propia alarma el ultimo tramo del enlace, y NO es el
+      // mismo dato en las dos puntas, porque las dos puntas no saben lo mismo:
+      //
+      //   MAESTRO   RF, RTT y SINRESP  -el manda los latidos, asi que sabe cuantos
+      //             salieron y cuantos volvieron-.
+      //   ESCLAVO   RX, OK y RUIDO     -solo contesta: no tiene ventana de latidos ni
+      //             ida y vuelta que cronometrar. Los tres contadores separan tres
+      //             averias que desde el suelo se ven todas igual: RX en 0 es que no
+      //             llega nada; RX alto con OK en 0 es que llega basura; los dos
+      //             subiendo con RUIDO alto es enlace marginal-.
+      //
+      // Se prefiere ESTE dato al ultimo que vio la app, y la diferencia importa: el de
+      // la alarma lo midio el equipo EN EL INSTANTE DE LA CAIDA, mientras que el de la
+      // app es el ultimo $STATUS que llego -que por definicion es anterior, y puede ser
+      // de bastante antes si la app estaba en segundo plano-.
+      const lecturaAlarma = lecturaDeEnlace(data);
+      const tramo = [];
+      if (data.SINRESP !== undefined) tramo.push('latidos sin respuesta: ' + data.SINRESP);
+      if (data.RX !== undefined) tramo.push('bytes recibidos: ' + data.RX);
+      if (data.OK !== undefined) tramo.push('tramas validas: ' + data.OK);
+      if (data.RUIDO !== undefined) tramo.push('tramas descartadas: ' + data.RUIDO);
+      if (data.RTT !== undefined) tramo.push('RTT: ' + data.RTT);
+
+      // Cuando la alarma NO trae enlace medido -la del ESCLAVO no lo trae nunca, porque
+      // esa punta no puede medirlo- la columna del registro se queda VACIA y el ultimo
+      // valor que si vio la app va en el texto CON SU HORA. NO se rellena con el:
+      // seria pegarle a la alarma de las 03:41 un numero de las 03:40, y encima uno que
+      // en este caso puede venir de la OTRA punta -la app pinta el $STATUS del equipo
+      // que este hablando-. Es la misma regla que la anotacion de CAIDA.
+      const ultimoVisto = (!lecturaAlarma.medido && state.rfQuality !== null)
+        ? ' [la app vio por ultima vez ' + state.rfQuality + '% a las ' +
+          _horaDe(state.rfMedidaMs) + ', que puede ser de la otra punta]'
+        : '';
+      const textoAlarma = 'Caja Negra: ' + (data.EVENTO || 'FALLO') + ' - ' +
+                          (data.CAUSA || '') + ' (Accion: ' + (data.ACCION || '') + ')' +
+                          (tramo.length ? ' [ultimo tramo: ' + tramo.join(', ') + ']' : '') +
+                          ultimoVisto;
+      addEvent('red', textoAlarma);
+      // El registro de eventos de la app vivia SOLO en memoria: al cerrarse la app se
+      // perdia, y el $ALARM de la caida de las 03:40 no lo leia nunca nadie. Ahora la
+      // alarma se guarda, y con el tramo que midio el equipo al lado.
+      RegistroEnlace.anotar('ALARMA', lecturaAlarma, textoAlarma);
+      renderRegistroEnlace();
     } else if (header === '$ACK') {
       // El firmware acusa CADA orden que acepta, y la app se lo tragaba: solo pintaba
       // los rechazos. De modo que el operario veia "orden enviada" -que es lo que sabe
@@ -970,22 +1570,47 @@ document.addEventListener('DOMContentLoaded', () => {
       // muestra viene del equipo.
       const data = _camposNmea(parts);
       const cual = data.CMD || '?';
-      addEvent('green', 'Equipo: orden [' + cual + '] ACEPTADA' +
-                        (data.RESULT ? ' (' + data.RESULT + ')' : ''));
-      showToast('Aceptado por el equipo: ' + cual);
+      const clave = cual + '|' + (data.RESULT || '');
+      const dicho = ACK_TEXTO[clave];
+      if (dicho) {
+        addEvent(dicho.tono, dicho.texto);
+        showToast(dicho.toast);
+      } else {
+        // FALLBACK, Y SE QUEDA A PROPOSITO. Un literal nuevo del firmware tiene que
+        // llegar a la pantalla aunque nadie le haya escrito todavia su texto: lo que no
+        // puede pasar es que desaparezca. El pack app_10 se pone rojo cuando aparece un
+        // RESULT que la tabla no nombra, asi que este camino es la red, no el destino.
+        addEvent('green', 'Equipo: orden [' + cual + '] ACEPTADA' +
+                          (data.RESULT ? ' (' + data.RESULT + ')' : ''));
+        showToast('Aceptado por el equipo: ' + cual);
+      }
     } else if (header === '$EVENT') {
       // $EVENT es la bitacora del propio equipo -quien movio que y desde donde-. No la
       // leia nadie, asi que el registro de eventos de la app solo contenia lo que la
       // app misma habia hecho: una bitacora que no sabe nada de lo que pasa en el poste.
       const data = _camposNmea(parts);
-      addEvent('cyan', 'Equipo [' + (data.ORIGEN || 'FIRMWARE') + ']: ' +
-                       (data.DETALLE || '') + (data.HORA ? ' - ' + data.HORA : ''));
+      const textoEvento = 'Equipo [' + (data.ORIGEN || 'FIRMWARE') + ']: ' +
+                          (data.DETALLE || '') + (data.HORA ? ' - ' + data.HORA : '');
+      addEvent('cyan', textoEvento);
+      RegistroEnlace.anotar('EVENTO', enlaceDeAhora(), textoEvento);
+      renderRegistroEnlace();
     } else if (header === '$ERR') {
       const data = _camposNmea(parts);
       // Un rechazo del firmware NO se oculta: si el equipo dijo que no, la pantalla
       // tiene que decirlo tambien, o el operario se va creyendo que la orden entro.
-      addEvent('red', 'Rechazo de Firmware: [' + (data.CMD || '?') + '] ' + (data.DESC || ''));
-      showToast('Rechazado por el equipo: ' + (data.DESC || 'ver eventos'));
+      //
+      // NO_HAY_AMBAR_VIGENTE se traduce porque es la tercera respuesta de R-3 y su
+      // literal, leido tal cual, se confunde con una averia. No lo es: es el equipo
+      // diciendo que no habia nada que quitar, y eso es una respuesta util -significa
+      // que si el cruce sigue en ambar, viene de otro sitio-.
+      const negado = ERR_TEXTO[(data.CMD || '?') + '|' + (data.DESC || '')];
+      if (negado) {
+        addEvent('red', negado.texto);
+        showToast(negado.toast);
+      } else {
+        addEvent('red', 'Rechazo de Firmware: [' + (data.CMD || '?') + '] ' + (data.DESC || ''));
+        showToast('Rechazado por el equipo: ' + (data.DESC || 'ver eventos'));
+      }
     }
   }
 
@@ -1009,7 +1634,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // unico sitio donde esta escrito quien atiende que.
   const SOLO_MAESTRO = ['SET_MODO', 'MANUAL:CAMBIAR_TURNO', 'SET_TIEMPOS', 'TEST_LEDS',
                         'DEMANDA', 'REINICIAR_RELOJ', 'FORZAR_ROJO'];
-  const SOLO_ESCLAVO = ['SOLICITAR_PASO', 'AMBAR_EMERGENCIA'];
+  // CANCELAR_AMBAR (R-3, 31/08) vive en el Esclavo por la misma razon que
+  // AMBAR_EMERGENCIA: es esa punta la que tiene el latch. El Maestro no conoce el
+  // literal, asi que sin esta linea el boton saldria al cable contra un Maestro y
+  // volveria como $ERR,CMD:DESCONOCIDO -el error que parece un boton roto-.
+  const SOLO_ESCLAVO = ['SOLICITAR_PASO', 'AMBAR_EMERGENCIA', 'CANCELAR_AMBAR'];
 
   function puntaCorrecta(comando) {
     if (SOLO_MAESTRO.includes(comando) && state.node === 'ESCLAVO') return 'MAESTRO';
@@ -1230,6 +1859,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (formTiempos) {
     formTiempos.addEventListener('submit', (e) => {
       e.preventDefault();
+
+      // SET_TIEMPOS es del Maestro (SOLO_MAESTRO): el Esclavo no tiene esa rama y
+      // contesta $ERR,CMD:DESCONOCIDO. Se pregunta ANTES de validar los tres numeros,
+      // porque hacer rellenar bien un formulario cuya orden no se va a mandar es peor
+      // que negarla de entrada.
+      const puntaTiempos = puntaCorrecta('SET_TIEMPOS');
+      if (puntaTiempos) { avisarOtraPunta('SET_TIEMPOS', puntaTiempos); return; }
+
       const verde = parseInt(numTiempoVerde.value, 10);
       const rojo = parseInt(numTiempoRojo.value, 10);
       const despeje = parseInt(numTiempoDespeje.value, 10);
@@ -1510,7 +2147,18 @@ document.addEventListener('DOMContentLoaded', () => {
       let r = `🚦 *REPORTE SEMAFÓRICO IOT-VIAL*\n`;
       r += `📍 *Cruce:* ${state.site}\n`;
       r += `👑 *Nodo:* ${state.node} | Modo: ${state.modo}\n`;
-      r += `🔋 *Batería:* ${state.battery}V | Enlace RF: ${state.rfQuality}%\n\n`;
+      // "Enlace RF: null%" es lo que salia aqui: state.rfQuality no lo escribia el
+      // camino de $STATUS -solo el del puente de PC, que ya no existe- asi que el
+      // reporte que el tecnico manda por WhatsApp publicaba la palabra `null`. Ahora
+      // se dice el valor con SU HORA, o se declara que no se midio. Un reporte que
+      // viaja fuera de la app es el sitio donde menos puede haber un numero sin sello.
+      const enlaceTexto = state.rfQuality === null
+        ? 'no medido en esta sesion'
+        : `${state.rfQuality}% de latidos contestados (medido a las ${_horaDe(state.rfMedidaMs)})`;
+      const bateriaTexto = state.battery === null
+        ? 'no medida por el equipo' : `${state.battery.toFixed(1)} V`;
+      r += `🔋 *Batería:* ${bateriaTexto} | *Enlace:* ${enlaceTexto}\n`;
+      r += `_El enlace es el % de latidos que contestaron, no potencia de señal._\n\n`;
       r += `*Últimos Eventos:*\n`;
       state.events.slice(0, 5).forEach(ev => {
         r += `• [${ev.time}] ${ev.msg}\n`;
@@ -1570,10 +2218,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const TIMEOUT_ENLACE_MS = 5000;
 
   function marcarConEnlace() {
+    const estabaCaido = !state.telemetriaViva;
     state.telemetriaViva = true;
     if (btStatusDot) btStatusDot.className = 'status-dot connected';
     if (btBtnText) btBtnText.textContent = 'Enlazado';
     actualizarDemanda();
+    if (estabaCaido && state.huboCaida) {
+      state.huboCaida = false;
+      // El REGRESO se anota sin valor de enlace a proposito: esta linea se escribe con
+      // la PRIMERA trama que vuelve, y en ese instante todavia no se ha leido su RF.
+      // La muestra con el numero llega inmediatamente despues, con su propia hora.
+      RegistroEnlace.anotar('REGRESO', ENLACE_SIN_DATO,
+                            'el equipo vuelve a emitir telemetria');
+      renderRegistroEnlace();
+    }
   }
 
   function marcarSinEnlace() {
@@ -1590,8 +2248,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // como si fuera de ahora es exactamente el dato inventado que se quiere evitar.
     if (phaseDescEl) phaseDescEl.textContent = 'SIN ENLACE - sin datos del equipo';
     if (cdNumEl) cdNumEl.textContent = '--';
-    if (rfQualityEl) rfQualityEl.textContent = '--';
-    if (rfRttEl) rfRttEl.textContent = 'Sin datos del equipo';
+    // El enlace se retira POR EL MISMO CAMINO que lo pinta, con la lectura vacia.
+    // Escribir aqui '--' a mano abriria un segundo escritor de esos widgets, y con dos
+    // escritores vuelve a poder aparecer uno que pinte algo que no vino en una trama.
+    pintarEnlace(ENLACE_SIN_DATO);
     if (batVoltageEl) batVoltageEl.textContent = '-- V';
     if (batStatusEl) batStatusEl.textContent = 'Sin datos del equipo';
     if (rssiTextEl) rssiTextEl.textContent = '(sin enlace)';
@@ -1616,6 +2276,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (eraConectado) {
       addEvent('red', 'Enlace perdido: el equipo lleva mas de ' +
                       (TIMEOUT_ENLACE_MS / 1000) + ' s sin emitir telemetria.');
+      state.huboCaida = true;
+      // LA CAIDA SE ANOTA SIN VALOR DE ENLACE. En este instante no se ha medido nada
+      // -por eso es una caida-, asi que la columna del enlace queda VACIA. El ultimo
+      // valor que si se midio va en el texto CON SU HORA, que es como se lee sin
+      // confundirlo con una medida de ahora: "iba al 40% a las 14:35, se fue a las
+      // 14:36". Poner ese 40 en la columna diria que a las 14:36 se midio 40.
+      const ultimo = state.rfQuality === null
+        ? 'no se llego a medir el enlace en esta sesion'
+        : 'la ultima medida fue ' + state.rfQuality + '% a las ' + _horaDe(state.rfMedidaMs);
+      RegistroEnlace.anotar('CAIDA', ENLACE_SIN_DATO,
+                            'silencio de mas de ' + (TIMEOUT_ENLACE_MS / 1000) +
+                            ' s; ' + ultimo);
+      state.rfTramo = null;
+      renderRegistroEnlace();
     }
   }
 
@@ -1625,45 +2299,36 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
+  // AQUI HABIA UN SEGUNDO ORIGEN DE TELEMETRIA, Y ERA UN JSON QUE NADIE EMITE.
+  //
+  // Cada segundo se pedia /api/status_json y, si contestaba, se escribian a pelo el
+  // modo, el estado de las luces, el contador, la bateria, el RF y el RTT -incluido
+  // `rfQualityEl.textContent = ${data.rf}%`-. O sea: un camino que pintaba el tablero
+  // entero, y el indicador de enlace, SIN QUE HUBIERA PASADO UNA SOLA TRAMA. Es la
+  // pantalla de campo hablando el idioma de un simulador, que es el defecto que
+  // app_04_valores_de_status existe para prohibir.
+  //
+  // Y MEDIDO: ese endpoint YA NO EXISTE. La cascara de demo lo retiro a proposito y
+  // dejo escrito el porque -servidor_puente_simulador.py:186: "NO existe
+  // /api/status_json, y su 404 es la respuesta CORRECTA"-. De modo que esto llevaba
+  // desde entonces cayendo al .catch() en cada tick: codigo muerto, pero de la clase
+  // que despierta el dia que alguien monte cualquier servidor que conteste ahi. Un
+  // camino que puede pintar un cruce inventado no se deja dormido; se quita.
+  //
+  // Lo que queda es el reloj de la cabecera. El enlace lo vigila el watchdog de abajo,
+  // que mira la unica senal que sirve en las dos vias: cuando hablo el equipo.
   setInterval(() => {
     const now = new Date();
     if (rtcSyncDigits) rtcSyncDigits.textContent = now.toTimeString().split(' ')[0];
-
-    // Si el servidor puente Python está activo, toma la telemetría del simulador C++
-    if (typeof fetch !== 'undefined') {
-      fetch('/api/status_json')
-        .then(r => r.json())
-        .then(data => {
-          state.modo = data.modo;
-          state.estadoLuces = data.estado;
-          state.countdown = data.countdown;
-          state.countdownMax = data.countdown_max;
-          state.battery = data.bat;
-          state.rfQuality = data.rf;
-          state.rfRtt = data.rtt;
-          if (batVoltageEl) batVoltageEl.textContent = `${data.bat} V`;
-          if (rfQualityEl) rfQualityEl.textContent = `${data.rf}%`;
-          if (rfRttEl) rfRttEl.textContent = `RTT: ${data.rtt} ms`;
-          state.ultimoStatusMs = Date.now();
-          marcarConEnlace();
-          renderLights();
-          updateCountdownRing();
-          actualizarDemanda();
-        })
-        .catch(() => {
-          // El puente no contesta. No se declara caido el enlace aqui: en el APK no
-          // hay puente y el dato bueno llega por Bluetooth. Decide el watchdog, que
-          // mira la unica senal que sirve en las dos vias -cuando hablo el equipo-.
-          vigilarEnlace();
-        });
-    } else {
-      vigilarEnlace();
-    }
   }, 1000);
 
   // Inicialización: el tablero nace declarando que no tiene datos, no fingiendo un
   // cruce en marcha. En cuanto llegue el primer $STATUS lo pintara la telemetria.
   renderEvents();
+  // La bitacora del enlace SI sobrevive al cierre de la app -es su motivo de existir-,
+  // asi que se pinta antes de nada: lo primero que quiere ver quien abre la app tras
+  // una caida nocturna es a que hora se fue, no el estado de ahora.
+  renderRegistroEnlace();
   marcarSinEnlace();
   // Arranca sin punta: los dos mandos de emergencia a la vista, cada uno con su poste
   // escrito. En cuanto se sepa cual hay delante quedara solo el que corresponde.

@@ -110,10 +110,24 @@
             <span class="metric-label">ENLACE RADIO</span>
           </div>
           <div class="metric-value cyan" id="rf-quality">--</div>
-          <div class="metric-sub" id="rf-rtt">Sin datos del equipo</div>
+          <!-- El rotulo del tramo. Cuatro textos distintos, y "NO SE SABE" no es el
+               peor de los tres: es la ausencia del dato. El color acompana, no
+               informa solo: a pleno sol el color es lo primero que se pierde. -->
+          <div class="enlace-estado enlace-sindato" id="rf-estado">NO SE SABE</div>
           <div class="progress-bar-wrap">
-            <div class="progress-bar cyan" style="width: 0%;"></div>
+            <div class="progress-bar enlace-barra enlace-sindato" id="rf-barra" style="width: 0%;"></div>
           </div>
+          <div class="metric-sub"><span class="metric-etiqueta">RTT</span> <span id="rf-rtt">--</span> <span class="metric-etiqueta" id="rf-rtt-unidad">ms</span></div>
+          <div class="metric-sello" id="rf-sello">ninguna medida en esta sesion</div>
+          <!-- ESTA NOTA ES FIJA Y VA EN EL HTML A PROPOSITO: es verdad siempre, no
+               depende de ninguna trama, y por tanto no puede quedarse describiendo
+               un equipo que ya no existe. Dice lo unico que el numero de arriba NO
+               dice, y que cualquiera que vea una barra de nivel da por supuesto. -->
+          <p class="metric-nota">
+            Es el <strong>% de latidos que contestaron</strong> en los últimos 30 s
+            (10 latidos, uno cada 3 s). <strong>No es potencia de señal (RSSI):</strong>
+            no dice si falla la antena, el cable o si hay un obstáculo delante.
+          </p>
         </div>
 
         <div class="card metric-card">
@@ -192,6 +206,21 @@
             </div>
           </button>
 
+          <!-- R-3: RETIRAR el ambar de emergencia del ESCLAVO, con PIN.
+               Va JUNTO al boton que lo pone y no en la pestana de tecnico: el que
+               tiene que poder deshacerlo es el mismo que acaba de ponerlo, en la
+               calzada y sin escalera. Pide PIN al reves que el de poner, y el motivo
+               esta escrito en el firmware: pedir ambar es la accion SEGURA; quitarlo
+               devuelve el cruce a dar verdes, o sea ABRE PASO, que es justo lo que el
+               PIN custodia. Solo aparece con un ESCLAVO delante. -->
+          <button class="pad-btn btn-cancel-amber" id="btn-op-cancelar-ambar" style="display: none;">
+            <span class="pad-icon">↩️</span>
+            <div class="pad-text">
+              <strong>RETIRAR ÁMBAR</strong>
+              <small>Revoca el ámbar puesto desde la app</small>
+            </div>
+          </button>
+
           <!-- El rotulo dice QUE maniobra; esta linea dice CONTRA QUE EQUIPO va, que
                es la mitad que faltaba: el mismo boton pulsado en otro poste haria otra
                cosa. Sin telemetria lo declara en vez de suponer una punta. -->
@@ -237,6 +266,48 @@
           </button>
           <button class="btn-export" id="btn-export-csv">
             <span>📥 Exportar CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ===============================================================
+           BITÁCORA DEL ENLACE — lo que pasa cuando nadie está mirando.
+           El indicador de la pestaña de tráfico sólo existe mientras
+           alguien tiene el teléfono en la mano; en el momento de la caída
+           el técnico no está delante. Esto se guarda en el teléfono y
+           sobrevive al cierre de la app.
+           =============================================================== -->
+      <div class="card">
+        <div class="card-header-flex">
+          <h3>📉 Bitácora del enlace</h3>
+          <span class="badge badge-auto">Guardada en el teléfono</span>
+        </div>
+        <p class="card-sub">
+          A qué hora iba bien, a qué hora se fue y a qué hora volvió. Cada marca es una
+          medida real; <strong>los huecos se dibujan como huecos</strong> porque entre
+          dos medidas no se recibió nada y nadie sabe qué pasó en medio.
+        </p>
+
+        <div class="tira-wrap">
+          <div class="tira" id="registro-tira"></div>
+        </div>
+        <div class="tira-leyenda">
+          <span><i class="tira-muestra tira-bien"></i> bueno</span>
+          <span><i class="tira-muestra tira-justo"></i> justo</span>
+          <span><i class="tira-muestra tira-cayendo"></i> cayendo</span>
+          <span><i class="tira-muestra tira-sindato"></i> sin medir</span>
+          <span><i class="tira-muestra tira-hueco"></i> hueco: no llegó nada</span>
+        </div>
+
+        <p class="registro-resumen" id="registro-resumen"></p>
+        <div class="registro-lista" id="registro-lista"></div>
+
+        <div class="feed-actions">
+          <button class="btn-export" id="btn-registro-csv">
+            <span>📥 Exportar bitácora del enlace</span>
+          </button>
+          <button class="btn-share" id="btn-registro-limpiar">
+            <span>🗑️ Borrar bitácora</span>
           </button>
         </div>
       </div>
@@ -589,6 +660,7 @@
   <script src="js/nmea_parser.js"></script>
   <script src="js/site_manager.js"></script>
   <script src="js/courier_rtc.js"></script>
+  <script src="js/registro_enlace.js"></script>
   <script src="js/bluetooth_driver.js"></script>
   <script src="app.js"></script>
 </body>
