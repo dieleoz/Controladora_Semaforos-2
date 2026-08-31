@@ -2,7 +2,13 @@
 
 **Sistema:** Controladora de Semáforos Móviles de 3 Estados (V9.0)
 **Fecha:** 27 de Agosto de 2026
-**Última revisión:** 28 de Agosto de 2026 (3.ª del día) — 🔄 **la arquitectura cambió en obra: el
+**Última revisión:** **31 de Agosto de 2026** — 🟢 **`BLQ-1` CERRADO: el módulo que llegó es un
+`ESP32-WROOM-32` clásico y habla SPP, así que `A1′` se DESBLOQUEA.** Con ella cambian tres cosas
+más: `A5` pasa a exigir **DC-DC conmutado y no lineal** (con la cuenta de disipación delante),
+aparece **`A8`, la placa portadora**, que hasta hoy no era línea de compras, y el **receptor del
+mando de relés sube de prioridad**, porque sin él el Esclavo se queda sin ninguna vía de mando. Lo
+del 28/08 se conserva entero debajo.
+**Revisión anterior:** 28 de Agosto de 2026 (3.ª del día) — 🔄 **la arquitectura cambió en obra: el
 `ESP32` SUSTITUYE al módulo Bluetooth SPP, el `DS3231` deja de ir en la placa STM32 y se cuelga del
 `ESP32`, y se retiran la pantalla LCD, los cuatro pulsadores y el mando de relés.** Lo que ya no se
 compra queda **tachado con su motivo**, no borrado. *(2.ª rev. del 28/08: corrige la bornera de la
@@ -14,12 +20,83 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 
 ---
 
+> [!IMPORTANT]
+> # 🟢 31/08/2026 — `BLQ-1` ESTÁ CERRADO: LA LÍNEA `A1′` SE DESBLOQUEA
+>
+> **El módulo que llegó a obra es un `ESP32-WROOM-32` clásico.** La ficha del artículo comprado
+> —aportada por el responsable— lo declara con **tres confirmaciones independientes**, y las tres
+> apuntan al mismo silicio:
+>
+> ```text
+> Microcontrolador ...  ESP32-WROOM-32
+> CPU ................  Tensilica Xtensa 32-bit LX6, DUAL-CORE
+>                       el S3 es LX7 y el C3 es RISC-V -> no es ninguno de los dos
+> Bluetooth ..........  v4.2 BR/EDR and Bluetooth Low Energy (BLE)
+>                              ^^^^^^ Bluetooth Clasico
+> ```
+>
+> **`BR/EDR` es Bluetooth Clásico, o sea SPP.** Es exactamente el perfil que necesita
+> `createRfcommSocketToServiceRecord` del puente nativo de Android: **la app conecta sin tocar una
+> línea de transporte**, y **el apartado 1 del Manual 10 no se reabre**. 📄 **LEÍDO** de la ficha del
+> artículo, no medido con `esptool` ni con la serigrafía en la mano — ver `roadmap.md` **N-107** y
+> `ESTADO.md` (fila `BLQ-1`).
+>
+> ### Lo que eso cambia en esta lista, y lo que NO
+>
+> | | |
+> |---|---|
+> | ✅ **`A1′` deja de estar 🛑 BLOQUEADA** | El módulo que hay sirve. **La cantidad que hay en almacén sigue sin anotarse** |
+> | ✅ **La vía WiFi queda descartada** | No hay que reabrir el Manual 10 §1. Era la rama cara y ya no está sobre la mesa |
+> | ✅ **La alimentación queda fijada por la propia ficha** | `12 V → DC-DC **conmutado** → 5 V → `VIN`` (entrada recomendada 5 V, límite 5,5 V, con regulador a bordo). Ver `A5`, que **cambió** con este dato |
+> | ✅ **Las E/S del módulo son de 3,3 V** | El enlace con el STM32 por `J17` va **directo, sin adaptador de niveles**. No hay que comprar traductor |
+> | 🛑 **NO se compra ni un `ESP32` más todavía** | **El bloqueo cambió de motivo, no desapareció:** ahora es el **conteo de pines**. Ver el aviso de abajo |
+>
+> ### 🛑 Lo que HOY bloquea comprar más módulos: 30 pines o 38, y no es lo mismo
+>
+> **Estas NodeMCU vienen en dos formatos, de 30 y de 38 pines, con anchos de placa distintos** — y
+> la placa portadora (`A8`) lleva **hembrillas**, no la huella del `WROOM-32`. Un módulo de 38 pines
+> no entra en unas hembrillas dimensionadas para 30, y al revés queda con filas al aire.
+>
+> **Se cuentan los pines y se mide el ancho con pie de rey ANTES de fabricar la portadora.** Es lo
+> único que bloquea el taladro, y **no bloquea firmware** — el firmware del ESP32 es el mismo en los
+> dos formatos. **Se anota aquí, con fecha y quién lo contó:**
+>
+> ```text
+> Fecha: ____________   Contado por: ____________________
+> Pines por fila:  [ ] 15 (placa de 30)   [ ] 19 (placa de 38)
+> Ancho de placa medido con pie de rey: ________ mm
+> Separacion entre filas (centro a centro): ________ mm
+> Cuantos modulos hay en almacen: ______
+> ```
+>
+> > ⚠️ **Y por qué no se compra «uno más por si acaso» antes de contarlos:** si el segundo pedido
+> > llega en el otro formato, la portadora sirve para uno de los dos postes. Dos referencias
+> > distintas en el mismo cruce es exactamente lo que este documento lleva un mes evitando.
+>
+> ### La lección de N-107, que se queda escrita porque cuesta dinero repetirla
+>
+> **El bloqueo se mantuvo más días de los necesarios por exigir la medida más cara.** Se pidió
+> durante toda una sesión *«la serigrafía del blindaje, 30 segundos»* cuando **la ficha técnica del
+> artículo comprado ya lo declaraba** y estaba a mano desde el principio.
+>
+> > **Antes de declarar algo bloqueado por una medida física, censa qué fuentes escritas pueden
+> > responderlo ya.** Una ficha de compra, una factura, una serigrafía y un `esptool chip_id`
+> > contestan la misma pregunta con costes muy distintos, y **la más cara no es la primera que hay
+> > que pedir**. Un bloqueo que se levanta leyendo no es un bloqueo: es una consulta pendiente.
+
 > [!CAUTION]
 > # 🔄 28/08/2026 — LA ARQUITECTURA CAMBIÓ. ESTO SE LEE ANTES QUE EL RESTO DEL DOCUMENTO
 >
 > **El `ESP32` pasa a SUSTITUIR al módulo Bluetooth SPP —ya no se compran `HC-05` ni `JDY-30`—, el
 > `DS3231` se cuelga del `ESP32` por I²C con pila propia en vez de montarse en la placa STM32, y se
-> retiran la pantalla LCD, los cuatro pulsadores y el mando de relés.**
+> retiran la pantalla LCD, ~~los cuatro pulsadores y el mando de relés~~.**
+>
+> > 🔴 **ESA ÚLTIMA FRASE ESTÁ CORREGIDA DESDE EL 31/08 Y NO SE EJECUTA LITERAL.** Por decisión del
+> > responsable: **se retiran SÓLO los pulsadores 3 y 4** (`PB14`/`PB15`), y **el MANDO DE RELÉS SE
+> > CONSERVA** en los canales A (`PB9`) y B (`PB13`). **Retirar el mando entero no dejaba código
+> > inerte: borraba un veto de seguridad** —el que impide que una orden de radio saque al Esclavo de
+> > un ámbar que un operario dejó puesto a propósito—. **Y de la corrección sale una línea de compra
+> > nueva: `A9`, el receptor RF del mando, que nunca se compró.**
 >
 > **Todo lo que aparece ~~tachado~~ más abajo es de la arquitectura anterior: no se compra, y lleva
 > el motivo escrito al lado.** No se borra a propósito — una línea borrada vuelve a proponerse
@@ -75,7 +152,7 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 
 ---
 
-## 0 · ESTADO REAL DE LAS COMPRAS al 28/08 — leer antes de volver a pedir
+## 0 · ESTADO REAL DE LAS COMPRAS al 31/08 — leer antes de volver a pedir
 
 > **Esta lista describía lo que hay que pedir; le faltaba decir qué llegó.** Sin esa columna se
 > vuelve a comprar lo que ya está, y —lo que pasó— se da por cubierta una línea que no lo está.
@@ -83,17 +160,25 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 | Línea | Qué se pidió | Qué hay de verdad hoy | Estado |
 |---|---|---|---|
 | ~~**A1**~~ Módulo Bluetooth SPP | ~~2 × `HC-05` / `JDY-30`~~ | **nunca llegaron, y ya no se piden** | ⛔ **ANULADA el 28/08.** El `ESP32` los sustituye |
-| **A1′** `ESP32` como módulo SPP | — *(línea nueva del 28/08)* | **Llegaron módulos `ESP32`**, referencia **sin confirmar** y **cantidad sin anotar** | 🛑 **BLOQUEADA.** No se compra ni un `ESP32` más hasta leer qué referencia llegó. Ver abajo |
+| **A1′** `ESP32` como módulo SPP | — *(línea nueva del 28/08)* | **Llegaron módulos `ESP32-WROOM-32` clásicos** —referencia **CONFIRMADA por ficha** el 31/08—, **cantidad todavía sin anotar** | 🟢 **DESBLOQUEADA el 31/08 (`BLQ-1` cerrado).** ~~🛑 BLOQUEADA hasta leer qué referencia llegó~~ — **el motivo desapareció: hay SPP.** Lo que queda antes de comprar **más** es contar pines (30/38), y eso bloquea la portadora `A8`, no el firmware |
 | **A2** Cámaras de demanda | 2 × AcuSense | sin novedad | pendiente *(confirmar si ya hay una en almacén)* |
 | **A3** Antenas + coaxiales | 2 + 2 | sin novedad | pendiente |
 | **A4** Módulos de 1 relé | 2 | sin novedad | pendiente |
-| **A5** Fuente propia del `ESP32` | — *(línea nueva del 28/08)* | **NO se ha pedido, y hace falta** | 🔴 **NO cubierta.** Sin ella el `ESP32` reinicia el STM32 del semáforo |
-| **A6** `DS3231` colgado del `ESP32` | — *(sale del bloque B)* | **NO se compró** | pendiente. **Ya no espera al banco**: no va en la placa STM32 |
+| **A5** Fuente propia del `ESP32` | — *(línea nueva del 28/08)* | **NO se ha pedido, y es LO QUE BLOQUEA EL MONTAJE** | 🔴 **NO cubierta.** Sin ella el `ESP32` reinicia el STM32 del semáforo. **31/08: pasa a exigir DC-DC CONMUTADO, no lineal** — ver `A5` |
+| **A6** `DS3231` colgado del `ESP32` | — *(sale del bloque B)* | **NO se compró** | pendiente. **Ya no espera al banco** para pedirse: no va en la placa STM32. **Lo que sigue condicionado a `Y2` es CUÁNTOS y qué reloj queda en el STM32** — ver `A6` |
 | **A7** Conexión de cámaras a `J16` | — *(línea nueva del 28/08)* | **NO se ha pedido** | pendiente *(es cable y conector, no electrónica)* |
+| **A8** **Placa portadora del `ESP32`** | — *(línea nueva del **31/08**)* | **NO se ha pedido, NO está diseñada, y NO está decidido quién la diseña ni quién la fabrica** | 🔴 **NO cubierta, y hasta hoy ni siquiera era una línea de esta lista.** Ver `A8` |
+| **A9** **Receptor RF del mando de relés** | ~~nunca se pidió: el mando iba a retirarse~~ | **NUNCA se compró** | 🔴 **31/08: SUBE DE PRIORIDAD.** El mando **se conserva**, y sin receptor **el Esclavo se queda sin ninguna vía de mando**. Ver `A9` |
 | ~~**B1–B2**~~ RTC en la placa STM32 | — | **NO se compraron** | ⛔ **ANULADAS.** El RTC se mudó a **A6**, colgado del `ESP32` |
 | **B3–B4** Expansor y accesorios | — | **NO se compraron** | correcto: siguen **esperando al banco**, no se piden todavía |
 
-### 🛑 Antes de comprar un `ESP32` más: NO todos hablan SPP, y el grande es el que no
+### ✅ Antes de comprar un `ESP32` más: NO todos hablan SPP, y el grande es el que no
+
+> 🟢 **31/08 — ESTA PREGUNTA YA ESTÁ CONTESTADA PARA LO QUE HAY EN ALMACÉN: es un `WROOM-32`
+> clásico y habla SPP.** Este apartado **no se tacha**, y no es por costumbre: sigue siendo el
+> criterio con el que se pide **el siguiente** módulo, y el error que describe —recibir un `S3`
+> por pedir *«el mejor»*— es exactamente igual de posible mañana que ayer. Lo que cambia es que
+> **ya no bloquea `A1′`**.
 
 Un `ESP32` **no es un módulo Bluetooth SPP por definición**. Según la familia de silicio:
 
@@ -113,13 +198,16 @@ Un `ESP32` **no es un módulo Bluetooth SPP por definición**. Según la familia
 > **Lo que se pide, escrito para copiar y pegar en el pedido:**
 >
 > ```text
-> ESP32-WROOM-32  (o -32D / -32E / -32U)  sobre placa DevKitC de 38 pines
+> ESP32-WROOM-32  (o -32D / -32E / -32U)  sobre placa DevKitC / NodeMCU
 > Bluetooth Clasico BR/EDR + WiFi.  NO S3, NO C3, NO S2, NO C6, NO H2.
+> MISMO FORMATO DE PINES que el que ya hay en almacen (30 o 38): CONTARLO ANTES.
 > ```
 >
-> **Los 38 pines son de la placa, no del chip:** es el mismo `WROOM-32` con SPP, pero saca más GPIO
-> al conector — que es lo que hace falta ahora que del `ESP32` cuelga también el reloj de A6. La
-> versión de 30 pines sirve igual si es la que hay, siempre que saque `GPIO21` y `GPIO22`.
+> **Los 30 o 38 pines son de la placa, no del chip:** es el mismo `WROOM-32` con SPP en los dos
+> casos, pero el de 38 saca más GPIO al conector y **la placa es más ancha**. Los dos sirven
+> eléctricamente —lo único que hace falta es que saquen `GPIO16`, `GPIO17`, `GPIO21` y `GPIO22`—,
+> pero **no son intercambiables en las hembrillas de la portadora `A8`**. 🛑 **Por eso, y sólo por
+> eso, no se compra un módulo más hasta contar los que hay.**
 
 **La rotulación del vendedor no distingue las tres:** todas se anuncian *«WiFi + BT · SoC · ISM
 2.4G · 802.11»*, y esa cadena dice que hay radio de 2,4 GHz, **no** que haya Bluetooth Clásico.
@@ -134,33 +222,57 @@ Un `ESP32` **no es un módulo Bluetooth SPP por definición**. Según la familia
    ```
    `esptool.py v4.11.0` ya está instalado con PlatformIO en la máquina de trabajo.
 
-> 🛑 **PENDIENTE, y es lo que BLOQUEA la línea A1′:** hasta que se anote aquí la referencia leída por
-> uno de esos dos métodos, **no se sabe si lo que llegó sirve para algo**. No se apunta como cubierto
-> ni como descartado. **Y mientras tanto no se compra ni un módulo más de Bluetooth**, ni `ESP32` ni
-> nada: comprar antes de saber es como se acaba con dos referencias distintas en el mismo cruce.
->
-> **Se anota aquí, con fecha y quién lo leyó:**
+> ✅ **CONTESTADO el 31/08 — y por un tercer método que no estaba en esta lista: la FICHA DEL
+> ARTÍCULO COMPRADO.** Los dos métodos de arriba siguen siendo válidos y siguen sirviendo como
+> comprobante de recepción de un lote nuevo; lo que este documento no había previsto es que **la
+> respuesta ya estaba escrita en el papel de la compra**, sin necesidad de tener el módulo delante.
 >
 > ```text
-> Fecha: ____________   Leido por: ____________________
-> Metodo: [ ] serigrafia del blindaje   [ ] esptool chip_id
-> Referencia leida: ______________________________
-> Cuantos modulos hay en almacen: ______
-> Habla SPP:  [ ] SI -> sigue A1'   [ ] NO -> ver la fila de WiFi de abajo
+> Fecha: 31/08/2026     Leido por: el responsable (ficha del articulo comprado)
+> Metodo: [ ] serigrafia del blindaje   [ ] esptool chip_id   [X] ficha tecnica de compra
+> Referencia leida: ESP32-WROOM-32  (Xtensa LX6 dual-core, BT v4.2 BR/EDR + BLE)
+> Cuantos modulos hay en almacen: ______   <-- SIGUE SIN ANOTAR
+> Habla SPP:  [X] SI -> sigue A1'   [ ] NO -> ver la fila de WiFi de abajo
 > ```
+>
+> 🛑 **Lo que SIGUE en blanco y todavía importa: cuántos hay.** Se pide un módulo por poste (**2**).
+> Si en almacén hay dos, no se compra ninguno; si hay uno, se compra uno **del mismo formato de
+> pines** (ver el aviso de 30/38 en la cabecera). **La casilla vacía no se rellena de memoria: se
+> cuenta.**
 
-**Y aunque salgan ESP32 clásicos, siguen sin ser un cambio gratis:** un ESP32 con WiFi da picos de
+**Salieron ESP32 clásicos — y aun así NO son un cambio gratis:** un ESP32 con WiFi da picos de
 **~500 mA**, y la alimentación de la tarjeta (`12 V → LM7805 → LM1117-3.3`) no los da: el `7805`
 disiparía 3,5 W sin disipador y, si el riel de 3,3 V se hunde, **se reinicia el STM32 que gobierna
-el semáforo**. Si se usan, van con **fuente propia desde los 12 V y masa común, alimentación NO
-compartida** (Manual 10 §1 y §2). Un `HC-05` (~40 mA) sí se alimenta de la placa. **Eso es la línea
-A5, y hoy no está pedida.**
+el semáforo**. Van con **fuente propia desde los 12 V y masa común, alimentación NO
+compartida** (Manual 10 §1 y §2). Un `HC-05` (~40 mA) sí se alimentaba de la placa; **éste no**.
+**Eso es la línea A5, y hoy sigue sin pedirse — es lo que BLOQUEA EL MONTAJE.**
+
+> 🔴 **No se lea el cierre de `BLQ-1` como «lo del ESP32 ya está resuelto».** Lo que se cerró es
+> **si el módulo sirve**. Lo que impide montarlo mañana son otras tres cosas, **todas de compra y
+> ninguna de firmware**: **`A5`** (la fuente, que además cambió de tipo hoy), **`A8`** (la placa
+> portadora, que ni siquiera tiene diseñador asignado) y **el conteo de pines** del módulo. Un
+> bloqueante que se cierra **destapa** los que tenía detrás; no los cierra con él.
 
 ### 🔄 Decisión de obra del 28/08 — VIGENTE: el `ESP32` SUSTITUYE al módulo SPP
 
 **Ya no se compran `HC-05` ni `JDY-30`. El `ESP32` es el módulo**, y además de la consola por celular
-lleva colgado el reloj (A6). Con él se retiran la pantalla LCD, los cuatro pulsadores y el mando de
-relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
+lleva colgado el reloj (A6). ~~Con él se retiran la pantalla LCD, los cuatro pulsadores y el mando de
+relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).~~
+
+> 🔴 **CORREGIDO EL 31/08 — esa frase llevaba dos cosas falsas, y una de ellas cambia lo que se
+> compra.** Por decisión del responsable:
+>
+> * **El mando de relés SE CONSERVA**, en los canales **A** y **B** (`MANDO_A`=`PB9`=`J16` p5,
+>   `MANDO_B`=`PB13`=`J16` p8). **Se retiran sólo los pulsadores 3 y 4** (`PB14`/`PB15`), que son
+>   los que las cámaras necesitan. **MEDIDO** en `Maestro/src/botones.cpp:119-120` y en los
+>   `#define CAM_C_PIN`/`CAM_D_PIN` de `Maestro/include/pines.h:124-125`.
+> * **La pantalla no se «retira» en el sentido en que se leía aquí.** Su código sigue compilado;
+>   lo que se hizo fue **dejar de conducir sus pines** (`PB3`/`PB4`/`PB5` pasan a
+>   `U8X8_PIN_NONE`, `Maestro/src/lcd.cpp:74`) porque el `ESP32` ocupa `J17` y un reloj de SPI de
+>   software pegado al RX/TX del módulo corrompe el enlace. **Para la compra el efecto es el
+>   mismo** —no se compran pantallas—, pero para el manual del operario no lo es.
+> * **Y de ahí sale una línea de compra nueva: `A9`.** El mando que se conserva necesita **su
+>   receptor RF**, que **nunca se compró**.
 
 > ~~**Se sigue pidiendo el módulo Bluetooth SPP dedicado (`HC-05` / `JDY-30`). El ESP32 queda como
 > alternativa, no como sustituto.**~~ ⛔ **ANULADO el 28/08 por la decisión de obra de arriba.**
@@ -173,35 +285,58 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 
 * Un **ESP32 clásico** haciendo de puente SPP **cabe dentro del Manual 10 §1 sin reabrirlo** —sigue
   siendo Bluetooth Clásico SPP, que es lo que ese apartado congela—, **con dos condiciones: la
-  referencia confirmada y su fuente propia**. Las dos siguen sin cumplirse.
-* Ir por **WiFi** —que es lo único que queda si los módulos resultan `S3`, `C3` o `S2`— **exige
-  reabrir por escrito el apartado 1 del Manual 10 antes de comprar y antes de programar**. Lo exige
-  ese mismo manual, y no se ablanda: la vez que se cambió de transporte sin escribirlo, el resultado
-  fue una app que no conectaba con nada.
+  referencia confirmada y su fuente propia**. ~~Las dos siguen sin cumplirse.~~ → **31/08: la
+  primera SÍ se cumple** (`BLQ-1` cerrado, es un `WROOM-32`); **la segunda NO** — `A5` sigue sin
+  pedirse.
+* Ir por **WiFi** —que era lo único que quedaba si los módulos resultaban `S3`, `C3` o `S2`—
+  **exigía reabrir por escrito el apartado 1 del Manual 10 antes de comprar y antes de programar**.
+  🟢 **31/08: esa rama queda DESCARTADA, no aplazada** — el módulo habla `BR/EDR`. Se conserva
+  escrita porque la regla sigue viva para cualquier cambio de transporte futuro, y **no se ablanda**:
+  la vez que se cambió de transporte sin escribirlo, el resultado fue una app que no conectaba con
+  nada.
 
-> ⚠️ **Y de ahí sale por qué el bloqueo de A1′ no es un trámite:** la decisión del 28/08 sustituye un
+> ⚠️ ~~**Y de ahí sale por qué el bloqueo de A1′ no es un trámite:** la decisión del 28/08 sustituye un
 > módulo por otro **dando por hecho que el que llegó habla SPP**. Si resulta que no, lo que hay
 > encima de la mesa no es una compra pendiente: es **un cambio de transporte** que hay que reabrir
-> por escrito. **La misma lectura de serigrafía decide las dos cosas.**
+> por escrito. **La misma lectura de serigrafía decide las dos cosas.**~~
+>
+> ✅ **RESUELTO el 31/08, y en la dirección buena: sí habla SPP.** El párrafo no se borra porque
+> **su razonamiento era correcto** —el bloqueo no era un trámite, decidía entre una compra pendiente
+> y un cambio de arquitectura—. Lo que estaba mal era **por dónde se buscaba la respuesta**: se
+> exigió la serigrafía durante días teniendo la ficha del artículo a mano. Ver la lección de N-107
+> en la cabecera.
 
 ---
 
-## A · SE PIDE YA — no depende de nada, salvo la línea marcada 🛑
+## A · SE PIDE YA — 🟢 **desde el 31/08 NO queda ninguna fila bloqueada por `BLQ-1`**
 
-> **Una sola fila de este bloque está bloqueada, y se marca en vez de sacarla:** `A1′`, el `ESP32`,
-> espera a que alguien lea qué referencia llegó (bloque **0**). **El resto se pide sin esperar a
-> nada** — y eso incluye `A5`, `A6` y `A7`, que son nuevas del 28/08.
+> ✅ **La única fila que estaba bloqueada era `A1′`, y se desbloqueó el 31/08** con el cierre de
+> `BLQ-1`: el módulo que llegó es un `ESP32-WROOM-32` clásico y habla SPP. ~~espera a que alguien
+> lea qué referencia llegó (bloque **0**)~~ — **ya se leyó.**
+>
+> **El resto se pide sin esperar a nada** — y eso incluye `A5`, `A6` y `A7`, del 28/08, y **`A8` y
+> `A9`, nuevas del 31/08**.
+>
+> 🛑 **Lo que sí queda condicionado, y no es lo mismo que bloqueado:**
+>
+> | | qué falta antes | qué NO impide |
+> |---|---|---|
+> | **`A1′`** | **contar los pines (30 o 38) y medir el ancho** de los módulos que ya hay | no impide usar los que hay ni escribir su firmware; **impide fabricar `A8`** |
+> | **`A8`** | **decidir quién la diseña y quién la fabrica** — hoy no está decidido | — |
+> | **`A6`** | nada para pedirlo. **Cuántos** y qué reloj queda en el STM32 dependen del `Y2` (`B5`) | no impide comprar el primero |
 
 | # | Qué | Cant. | Para qué | Especificación en |
 |:---:|---|:---:|---|---|
 | ~~A1~~ | ~~**Módulo Bluetooth SPP** `HC-05` / `JDY-30`~~ ⛔ **NO SE COMPRA.** El `ESP32` lo sustituye (decisión de obra del 28/08). *La fila no se borra: un hueco se vuelve a proponer, una fila tachada con su motivo no* | ~~2~~ → **0** | — | **Manual 10** §1 *(sigue mandando en el transporte: SPP, no BLE)* |
-| **A1′** | **`ESP32` clásico** `WROOM-32` / `-32D` / `-32E` / `-32U` sobre **placa DevKitC de 38 pines**. Hace de módulo SPP **y** sostiene el `DS3231` de A6. ⛔ **Ni «el más grande» ni «el más nuevo»: eso es un `S3` y no habla SPP — ver el aviso del bloque 0** | 🛑 **BLOQUEADA** | Consola de servicio por celular en cada poste (evita subir con escalera al Esclavo) **+ el bus I²C del reloj** | **Manual 10** §1 y §2 |
+| **A1′** | **`ESP32` clásico** `WROOM-32` / `-32D` / `-32E` / `-32U` sobre placa **DevKitC / NodeMCU**. Hace de módulo SPP **y** sostiene el `DS3231` de A6. ⛔ **Ni «el más grande» ni «el más nuevo»: eso es un `S3` y no habla SPP — ver el aviso del bloque 0.** ⚠️ **El formato de pines (30 o 38) se CUENTA antes de pedir más y antes de fabricar `A8`** | **2** *(1 por poste)* — 🟢 **DESBLOQUEADA 31/08**, ~~🛑 BLOQUEADA~~. **Descontar lo que haya en almacén: la cantidad recibida sigue sin anotarse** | Consola de servicio por celular en cada poste (evita subir con escalera al Esclavo) **+ el bus I²C del reloj** | **Manual 10** §1 y §2 · `roadmap.md` **N-107** *(la ficha que cierra `BLQ-1`)* |
 | A2 | **Cámara IA** Hikvision AcuSense varifocal motorizada `DS-2CD3643G2-LIZSU` **o equivalente** | **2** *(ver nota)* | Demanda vehicular: una por poste, contacto seco a `PB0`. **Son las dos que el firmware lee hoy** | **Manual 9** |
 | A3 | **Antenas VHF y coaxiales** | **2 + 2** | Recuperar alcance: las genéricas de «LoRa» costaban 15–20 dB y dejaban la cobertura en 3 cuadras | **Manual 7** §BOM *(lleva modelo, conectores y adaptadores)* |
 | A4 | **Módulo de 1 relé optoacoplado, con jumper `JD-VCC`** | **2** *(1 por poste)* | **La talanquera.** El firmware ya la manda (SFTY-28, 27/08) y la tarjeta ya expone la señal: se conecta a la bornera **`J15`** (red `Motor`, `PB2` → opto `U15` → MOSFET `Q10`). 🔴 **NO a `J14`, que es la ENTRADA de la cámara — ver la fe de erratas de la cabecera.** **No hace falta `PCF8574` ni MOSFET nuevo** | **Manual 13** §3 *(la etapa de potencia y el cuadro `J14`/`J15`)*; el jumper `JD-VCC` y su porqué, en el aviso del bloque **B** de esta misma lista |
-| **A5** | **Fuente propia para cada `ESP32`**: convertidor DC-DC reductor **12 V → 5 V, 1 A o más** (un módulo `LM2596` o `MP1584` sirve), con sus borneras y su cable | **2** *(1 por `ESP32`)* | **Que el `ESP32` no cuelgue del `LM7805` de la tarjeta.** A 500 mA de pico el `7805` disipa 3,5 W sin disipador, y al hundirse el riel de 3,3 V **se reinicia el STM32 que gobierna el semáforo** | **Manual 10** §1 *(la regla)* — ⚠️ **la pieza no está especificada en ningún manual todavía: ver el aviso de abajo** |
+| **A5** | 🔴 **Fuente propia para cada `ESP32`: convertidor DC-DC CONMUTADO (*switching*) reductor, `12 V → 5 V`, ≥ 1 A**, con sus borneras y su cable. **CONMUTADO, NO LINEAL — y no es una preferencia: ver la cuenta de abajo.** ~~(un módulo `LM2596` o `MP1584` sirve)~~ ⛔ **retirado el 31/08: ninguna referencia concreta está elegida** | **2** *(1 por `ESP32`)* | **Que el `ESP32` no cuelgue del `LM7805` de la tarjeta.** A 500 mA de pico el `7805` disipa 3,5 W sin disipador, y al hundirse el riel de 3,3 V **se reinicia el STM32 que gobierna el semáforo** | **Manual 10** §1 *(la regla)* — ⚠️ **la pieza sigue sin especificarse en ningún manual: ver el aviso de abajo** |
 | **A6** | **Módulo RTC `DS3231` `ZS-042`** con **su propia pila**, colgado del `ESP32` por I²C (`GPIO21` SDA · `GPIO22` SCL) | **1** *(el del Maestro — ver nota)* | El reloj del equipo, **fuera de la placa STM32**: no hay que modificar la tarjeta ni sacar hilos de `PB0`/`PB8` | **Manual 11** *(la pieza)* · ⚠️ **el montaje sobre `ESP32` no está en ningún manual: ver el aviso de abajo** |
-| **A7** | **Juego de conexión de las cámaras a `J16`**: conector hembra del footprint de `J16` con sus terminales de crimpar, y cable de 2 hilos apantallado por cámara | **2 juegos** | Llevar el contacto seco de la cámara a los pines que **libera el mando** (`PB14`/`PB15`). **No hace falta `PCF8574` ni ninguna placa hija** | **Manual 13** §3 *(borneras)* y `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md` §7 *(el mapa pin a pin de `J16`)* |
+| **A7** | **Juego de conexión de las cámaras a `J16`**: conector hembra del footprint de `J16` con sus terminales de crimpar, y cable de 2 hilos apantallado por cámara | **2 juegos** | Llevar el contacto seco de la cámara a los pines que **liberan los pulsadores 3 y 4** ~~el mando~~ (`PB14`/`PB15`). **No hace falta `PCF8574` ni ninguna placa hija** | **Manual 13** §3 *(borneras)* y `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md` §7 *(el mapa pin a pin de `J16`)* |
+| **A8** | 🔴 **PLACA PORTADORA DEL `ESP32`** — **línea nueva del 31/08; hasta hoy esto NO ERA UNA LÍNEA DE COMPRAS y hacía falta igual.** Lleva, como mínimo: **PCB**, **hembrillas** para el módulo (que es de formato protoboard y va enchufado, no soldado), **conectores** de entrada de 12 V y de salida a `J17`, **fusible**, **protección de inversión de polaridad** y **condensadores** de desacoplo y de reserva | **2** *(1 por poste)* — 🛑 **NO SE FABRICA todavía** | Que el `ESP32` y su `A5` y su `A6` sean **un conjunto montable y reemplazable**, en vez de tres módulos sueltos con cables volantes dentro de un armario que vibra en un remolque | 🔴 **`05_Funcional/19_Especificacion_Placa_Portadora_ESP32.md`** *(otro agente la está escribiendo en este mismo árbol — **aquí NO se duplica**: si al leer esto ese fichero no existe todavía, es que ese trabajo no ha entrado, y **se espera a que entre en vez de inventar la especificación aquí**)* |
+| **A9** | 🔴 **RECEPTOR RF DEL MANDO DE RELÉS** *(el emisor de 4 canales que el operario lleva en la mano ya existe; **el receptor NUNCA se compró**)*. Salidas de **contacto seco**, canales **A** y **B**, alimentación de 12 V | **2** *(1 por poste)* — ⚠️ **el del ESCLAVO es el crítico** | 🛑 **Es la ÚNICA vía de mando que le queda al Esclavo** — ver el aviso de abajo, que es lo que cambió de prioridad el 31/08 | ⚠️ **Ningún manual lo especifica todavía.** El vocabulario que tiene que producir está **MEDIDO** en `Esclavo/src/mando.cpp:240-248` y `Maestro/src/mando.cpp:201-238` |
 
 > 🔌 **Cómo queda montado lo que se pide en A1′, A5 y A6 — para que las tres líneas se lean juntas:**
 >
@@ -210,17 +345,31 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 >       |
 >       +---> LM7805 -> LM1117-3.3 -> STM32   (la tarjeta, SIN TOCAR)
 >       |
->       +---> [A5] DC-DC 12V -> 5V, 1 A ----> [A1'] ESP32 DevKitC (5V / VIN)
->                                                |
->                                                +-- GPIO21 SDA --+
->                                                +-- GPIO22 SCL --+--> [A6] DS3231
->                                                +-- GND ---------+     con su pila
->                                                |
->                                                +-- TX / RX -> J17 p2/p3 (PB7/PB6)
->                                                +-- GND ------> J17 p7   MASA COMUN
+>       |   .--- [A8] PLACA PORTADORA -----------------------------------.
+>       |   |  fusible + proteccion de polaridad + condensadores          |
+>       +---|-> [A5] DC-DC CONMUTADO 12V -> 5V, >=1A --> [A1'] ESP32     |
+>           |                                    (en HEMBRILLAS, 5V/VIN) |
+>           |                                             |              |
+>           |                                             +-- GPIO21 SDA-+--> [A6]
+>           |                                             +-- GPIO22 SCL-+    DS3231
+>           |                                             +-- GND -------+    con su pila
+>           |                                             |              |
+>           '---------------------------------------------|--------------'
+>                                                         |
+>                                                         +-- TX / RX -> J17 p2/p3
+>                                                         |              (PB7/PB6)
+>                                                         +-- GND ------> J17 p7
+>                                                                         MASA COMUN
 >
 >    MASA COMUN entre las dos ramas.  ALIMENTACION NO COMPARTIDA.
 >    De J17 se usan la senal y la masa.  Sus 3,3 V NO alimentan al ESP32.
+>    El ESP32 va ENCHUFADO en hembrillas: se reemplaza sin soldador, y por eso
+>    hay que saber si es de 30 o de 38 pines ANTES de fabricar la portadora.
+>
+>    Y EN PARALELO, sin tocar nada de lo anterior:
+>
+>    12 V ---> [A9] RECEPTOR RF DEL MANDO ---> contacto seco A --> J16 p5  (PB9)
+>                                         '--> contacto seco B --> J16 p8  (PB13)
 > ```
 >
 > **La masa común no es opcional y la alimentación compartida sí está prohibida**: son dos cosas
@@ -250,12 +399,51 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 > |---|---|
 > | Un `ESP32` con WiFi da picos de ~500 mA y el camino `12 V → LM7805 → LM1117-3.3` no los da | 📄 **Escrito y razonado** en el **Manual 10 §1**, con la cuenta de los 3,5 W |
 > | Que haya que ponerle fuente propia desde los 12 V, masa común y alimentación **no** compartida | 📄 **Es la regla del Manual 10 §1**, con esas palabras |
-> | **Qué módulo concreto se compra** —referencia, corriente, si aislado o no, cómo se fija en la caja | 🔴 **NO ESTÁ EN NINGÚN MANUAL.** Lo de esta fila es un mínimo razonable, no una especificación |
+> | Que la entrada sea **5 V por `VIN`** *(recomendada 5 V, límite 5,5 V; el módulo lleva su propio regulador a 3,3 V a bordo)* | 📄 **LEÍDO en la ficha del módulo comprado**, 31/08 — N-107 |
+> | Que las E/S del módulo son de **3,3 V**, así que el enlace con el STM32 va directo | 📄 **LEÍDO en la misma ficha** — **no hace falta adaptador de niveles**, y por tanto no hay línea de compra para uno |
+> | **Qué módulo concreto se compra** —referencia, corriente, si aislado o no, cómo se fija en la caja | 🔴 **SIGUE SIN ESTAR EN NINGÚN MANUAL.** Lo de esta fila es un **mínimo**, no una especificación, y **ninguna referencia está elegida** |
+>
+> ### 🔴 31/08 — **CONMUTADO, NO LINEAL**, y la razón es una cuenta, no una preferencia
+>
+> Con la entrada fijada en **5 V** por la ficha del módulo, un regulador **lineal** de 12 V a 5 V
+> tiene que tirar 7 V por cada amperio. Y si alguien decide bajar directamente a 3,3 V, peor:
+>
+> ```text
+>   LINEAL 12 V -> 3,3 V, a 500 mA de pico:  (12 - 3,3) x 0,5  =  4,35 W
+>   LINEAL 12 V -> 5   V, a 500 mA de pico:  (12 - 5  ) x 0,5  =  3,50 W
+>   CONMUTADO 12 V -> 5 V, ~85 % rend.:      perdida  ~ 0,44 W
+> ```
+>
+> **4,35 W** en un encapsulado sin disipador, **dentro de un armario cerrado al sol**, no es una
+> cifra de catálogo: es la temperatura a la que ese armario ya estaba antes de meterle nada.
+>
+> > ⚠️ **Y lo que hace peligrosa a esa disipación es CÓMO falla.** Un lineal caliente **no falla
+> > limpio**: entra en limitación térmica, recorta corriente, el `ESP32` se reinicia, vuelve,
+> > vuelve a calentar. **Lo que se ve desde fuera es un Bluetooth intermitente**, que es la avería
+> > que no se diagnostica nunca porque aparece y desaparece con la hora del día y con el sol. Un
+> > conmutado a 0,44 W ni siquiera llega a ese régimen.
+>
+> **Lo que se pide, escrito para copiar y pegar:**
+>
+> ```text
+> Convertidor DC-DC CONMUTADO (step-down / buck), entrada 12 V nominal, salida 5 V.
+> Corriente >= 1 A continuos.  NO lineal, NO AMS1117, NO 7805.
+> Con bornera de tornillo o cable soldado.  Salida fija de 5 V, o ajustable AJUSTADA
+> Y VERIFICADA CON MULTIMETRO ANTES DE ENCHUFAR EL MODULO.
+> ```
+>
+> 🛑 **El ≥ 1 A no es el consumo: es el margen.** El pico medido de un `ESP32` con WiFi es ~500 mA;
+> se pide el doble porque un conmutado al límite de su corriente es el que ondula, y la ondulación
+> en el riel del módulo que hace de consola **es otra vez un Bluetooth intermitente**.
+>
+> ⚠️ **Si el módulo que se consiga es de salida AJUSTABLE, se ajusta y se mide ANTES de conectar el
+> `ESP32`.** Vienen de fábrica con el potenciómetro en cualquier sitio, y el límite de `VIN` es
+> **5,5 V**: un módulo que salga de la caja a 12 V lo destruye al primer contacto.
 >
 > **Se apunta el hueco en vez de taparlo con una referencia falsa**, que es la costumbre de este
 > documento: el detalle de A5 tiene que acabar en el **Manual 10 §2**, junto al diagrama de conexión
 > — y ese diagrama **hoy dibuja un módulo colgado del riel de la placa, que es justo lo que un
-> `ESP32` no puede hacer**.
+> `ESP32` no puede hacer**. **La topología ya está decidida; la referencia, no.**
 
 > 🕐 **Sobre A6 —el reloj—, qué cambió y por qué abarata la obra:**
 >
@@ -266,6 +454,24 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 >   ⏳ **Lo que NO se da por resuelto aquí:** si el diagnóstico del cristal (`B5` de `ESTADO.md`)
 >   deja de hacer falta del todo, o solo deja de bloquear esta compra. **Eso lo cierra quien lleva el
 >   banco**, no esta lista.
+> * 🟠 **31/08 — Y sigue condicionado al `Y2`, aunque no de la forma en que lo estaba.** El
+>   bloqueante **`BLQ-2` sigue abierto**: `N-17` y `N-37` midieron en banco que el cristal de
+>   32.768 kHz **no oscila en la tarjeta medida**, y **la SEGUNDA tarjeta no se ha diagnosticado**.
+>   La distinción, que hay que tener clara antes de pedir:
+>
+>   | | ¿lo decide `Y2`? |
+>   |---|---|
+>   | **Comprar el primer `DS3231`** | ❌ **No.** Se pide ya. Va colgado del `ESP32`, fuera de la placa, y no espera al banco |
+>   | **Si son 1 o 2 módulos** | ✅ **Sí, en parte.** Con el `Y2` del Esclavo sano, esa punta puede seguir tomando la hora del Maestro por radio (`CMD_HORA_*`, SFTY-23) y **1 basta**. Si está muerto **en las dos**, y se quiere que cada poste mantenga hora sin depender del enlace, son **2** |
+>   | **Qué reloj queda dentro del STM32** | ✅ **Sí, y del todo.** Reparar el cristal (cambiar `C1`/`C2` por 6-10 pF C0G/NP0) o pasar a reloj de software disciplinado por el `ESP32` es **firmware**, y esa segunda vía **cuelga el reloj del semáforo del módulo accesorio** — que es justo lo que la arquitectura del 28/08 separa a propósito |
+>
+>   🛑 **Y lo que ya se paga hoy, MEDIDO en el firmware:** con el `Y2` muerto, `CMD:PIN:…:SET_RTC`
+>   responde **`$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL…`** y **no pone la hora**
+>   (`Maestro/src/bluetooth.cpp:336`, `SIN_CRISTAL_VEA_CONSULTA_RELOJ`; `Esclavo/src/bluetooth.cpp:268`,
+>   `SIN_CRISTAL`). Antes contestaba `RESULT:OK`
+>   sin haber puesto nada, y el técnico se iba del poste creyendo que dejó el reloj puesto; eso se
+>   arregló, pero **el reloj sigue sin ponerse**. **`A6` es la pieza que lo destraba, y su firmware
+>   —el del `ESP32`— tampoco existe todavía.**
 > * **Cantidad 1, y el porqué:** el Esclavo **ya toma la hora del Maestro por radio**
 >   (`CMD_HORA_*`, SFTY-23), así que no necesita reloj propio. Si el responsable quiere que cada
 >   poste mantenga hora **sin depender del enlace**, son **2** — es una decisión, no un olvido.
@@ -326,6 +532,82 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 > está medida y esta lista no la mueve.** Si la intención era **trasladar** también esa, hay que
 > decirlo por escrito — cambia el Manual 9, el Manual 13 y el pack `camara_01_demanda`.
 
+> 🧩 **Sobre A8 —la placa portadora—, que hasta el 31/08 no existía como línea de compras:**
+>
+> **El hueco no era de cantidad: era de categoría.** Esta lista tenía el módulo (`A1′`), su fuente
+> (`A5`) y su reloj (`A6`) como tres líneas sueltas, y **nada que dijera sobre qué van montados**.
+> Tres módulos con cables volantes dentro de un armario que viaja en un remolque no es un montaje:
+> es tres conexiones esperando a soltarse, y la que se suelte va a ser la del enlace con el semáforo.
+>
+> | qué lleva | por qué está en la lista y no «se ve al montar» |
+> |---|---|
+> | **PCB** y **hembrillas** | El `ESP32` es de formato protoboard: va **enchufado**, no soldado, para poder cambiarlo en el poste sin soldador |
+> | **Conector de entrada 12 V** y **conector de salida a `J17`** | Que el mazo se pueda desconectar entero sin desarmar el conjunto |
+> | **Fusible** | El `ESP32` cuelga de los mismos 12 V que el semáforo. Un cortocircuito en el accesorio **no puede llevarse por delante al que gobierna las luces** |
+> | **Protección de inversión de polaridad** | Es un montaje que alguien va a conectar subido a una escalera, con guantes, y los dos hilos son del mismo grosor |
+> | **Condensadores** de desacoplo y de reserva | Los picos de ~500 mA del WiFi son justo lo que hunde un riel que sólo tiene el conmutado detrás |
+>
+> 🛑 **Y LO QUE DE VERDAD BLOQUEA ESTA LÍNEA NO ES EL DINERO: NO ESTÁ DECIDIDO QUIÉN LA DISEÑA NI
+> QUIÉN LA FABRICA.** Ni el diseño (esquema + huella + fichero de fabricación) ni el proveedor
+> (casa de PCB, taller local, o montaje sobre placa perforada) tienen dueño asignado hoy. **Es una
+> decisión del responsable**, no un detalle técnico, y **mientras no se tome, `A1′`, `A5` y `A6` se
+> pueden comprar pero no se pueden montar.**
+>
+> ⚠️ **La especificación NO se escribe aquí.** Vive —o va a vivir— en
+> **`05_Funcional/19_Especificacion_Placa_Portadora_ESP32.md`**, que **otro agente está redactando
+> en este mismo árbol**. Esta lista **referencia y no duplica**: dos copias de una especificación
+> son dos versiones que alguien tiene que sincronizar a mano, que es el defecto que este documento
+> lleva un mes cerrando. **Si al leer esto ese fichero no existe, ese trabajo no ha entrado todavía
+> — y eso es un dato, no un permiso para inventarlo aquí.**
+>
+> ⏳ **Orden real de esta línea:** *(1)* contar los pines de los módulos que hay → *(2)* decidir
+> diseñador y fabricante → *(3)* cerrar `19_…` → *(4)* fabricar. **Los pasos 1 y 2 se pueden hacer
+> hoy y no dependen de nadie.**
+
+> 🎛️ **Sobre A9 —el receptor del mando—, y por qué esta línea CAMBIÓ DE PRIORIDAD el 31/08:**
+>
+> **Hasta el 28/08 el mando iba a retirarse entero, así que su receptor no hacía falta y ni siquiera
+> tenía línea: figuraba en el bloque D como «retirado, y además nunca se compró».** El 31/08 el
+> responsable decidió **conservar el mando en los canales A y B**. Con esa decisión, el receptor
+> deja de ser un accesorio de una función que se iba a quitar y pasa a ser **la pieza de la que
+> cuelga la única vía de mando de una de las dos puntas**.
+>
+> **La cuenta, MEDIDA sobre el fuente el 31/08, y es la que manda:**
+>
+> | punta | ¿mando por app? | ¿mando por pulsadores? | ¿mando por relés? |
+> |---|---|---|---|
+> | **Maestro** | ✅ **sí** — `SET_MODO:AUTO/MANUAL/AMBAR/MENU/ALCANCE/INTELIGENTE/DEGRADADO` en `Maestro/src/bluetooth.cpp:177+` | ❌ no — `botonAceptar()`/`botonCancelar()` devuelven **`false` siempre** (`Maestro/src/botones.cpp:280-281`) | ✅ sí, A y B |
+> | **Esclavo** | 🔴 **NO. No existe ni un solo `SET_MODO`** — `grep -n "SET_MODO" Esclavo/src/bluetooth.cpp` → **CERO** (**MEDIDO** 31/08). Lo que hay es `AMBAR_EMERGENCIA`, `SOLICITAR_PASO`, `SET_RTC` y poco más | ❌ no — mismos dos `false`, y sus pines 3 y 4 **son cámaras** desde N-97 | 🔴 **ES LA ÚNICA** |
+>
+> > 🛑 **La consecuencia operativa, dicha entera: sin receptor RF en el Esclavo, entrar o salir del
+> > Modo Degradado en esa punta obliga a SUBIR AL GABINETE.** Y ni así, porque lo que había allí
+> > arriba era el menú de la pantalla, que hoy **no puede confirmar nada** (`botonAceptar()` es
+> > `false`) y **no tiene display** (el `ESP32` ocupa `J17`). El censo llamador a llamador está
+> > escrito en el propio firmware, en `Esclavo/src/botones.cpp`, y dice literalmente que en esa
+> > punta *«el sustituto no es la app sino EL MANDO DE RELÉS»*.
+> >
+> > **Eso es exactamente lo que N-19 prometía evitar** —*«el técnico ya no tiene que subir con
+> > escalera a 5 metros en el Esclavo»*—. Sin `A9`, esa promesa se cae para el Degradado.
+>
+> **Qué se pide, y qué NO se sabe todavía:**
+>
+> ```text
+> Receptor RF de 4 canales, SALIDAS DE CONTACTO SECO (no de nivel), alimentacion 12 V,
+> emparejado con el emisor de mano que YA EXISTE en obra.
+> Se cablean SOLO dos canales:  A -> J16 p5 (PB9)   y   B -> J16 p8 (PB13).
+> ```
+>
+> | dato | nivel de prueba |
+> |---|---|
+> | El firmware espera **flancos de contacto** en `PB9`/`PB13`, y el vocabulario es `A·A·A`, `B·B·B` y `A·B·A·B` | ✅ **MEDIDO** en `Maestro/src/mando.cpp:201-238` y `Esclavo/src/mando.cpp:240-248` |
+> | La ventana de las secuencias triples es de **12 s** (`VENTANA_TRIPLE_MS`, `mando.cpp:38`) | ✅ **MEDIDO** — **importa para la compra**: un receptor con enclavamiento (*latch*) en vez de pulso momentáneo **no genera tres flancos** y las secuencias no se reconocerán nunca |
+> | **Qué referencia concreta se compra**, y si el emisor que hay en obra empareja con ella | 🔴 **NO SE SABE, y no se inventa aquí.** Hay que mirar el emisor que existe: frecuencia, codificación y si es *momentáneo* o *enclavado* |
+>
+> 🛑 **Antes de pedir: MIRAR EL EMISOR QUE YA HAY.** Un receptor de otra frecuencia o de otra
+> codificación no empareja, y uno con salida **enclavada** no sirve aunque empareje. **Es una
+> comprobación de cinco minutos con el mando en la mano**, y es de las que este documento pide
+> hacer antes de gastar — no después.
+
 > **Nota sobre la cantidad de cámaras.** El diseño habla de **cuatro** (dos por poste: demanda y
 > umbral), pero **el firmware solo lee las de demanda**: las de umbral quedaron retiradas en N-59
 > porque el protocolo no tiene comando para mandar la cuenta del tramo al Maestro. **Las de umbral se
@@ -365,7 +647,7 @@ de banco (tarea `B5`), y hasta entonces **no se pide nada de este bloque**:
 
 > 🛑 **Y `B3` tiene ahora menos motivos que ayer, no más.** El expansor entraba para dar entradas y
 > salidas que faltaban; entre lo que la tarjeta ya trae en el cobre (N-63) y **los dos pines que
-> libera el mando retirado** (`PB14`/`PB15`, línea A7), **hoy no hay ninguna función pendiente que lo
+> liberan ~~el mando retirado~~ los pulsadores 3 y 4 retirados** (`PB14`/`PB15`, línea A7), **hoy no hay ninguna función pendiente que lo
 > necesite**. No se tacha porque el bus podría hacer falta si aparece una, pero **quien lo pida tiene
 > que decir para qué**: es la regla del principio de esta lista.
 
@@ -423,49 +705,86 @@ de banco (tarea `B5`), y hasta entonces **no se pide nada de este bloque**:
 | Qué | Estado de la compra | Qué pasa con lo que ya hay |
 |---|---|---|
 | **Pantalla LCD** `ST7920` (conector `J17`) | ⛔ **RETIRADA.** No se compran repuestos ni unidades nuevas | Las que estén montadas se quedan donde están. **No se compra una de recambio si una muere.** Su conector **`J17` es el que ocupa ahora el módulo de A1′** (`USART1` remapeado a `PB7`/`PB6`, Manual 10 §2) |
-| **Los cuatro pulsadores** (`J16`: `PB9`, `PB13`, `PB14`, `PB15`) | ⛔ **RETIRADOS** | Sus **dos últimos pines pasan a las cámaras** — es la línea **A7** |
-| **Mando de relés / su receptor RF** | ⛔ **RETIRADO.** ⚠️ **El receptor NUNCA se compró**, así que aquí no hay nada que cancelar: no llegó a estar en ninguna línea de esta lista | — |
+| ~~**Los cuatro pulsadores**~~ → **SÓLO los pulsadores 3 y 4** (`J16` p10 `PB14`, p12 `PB15`) | ⛔ **RETIRADOS** *(los 3 y 4)*. 🟢 **CORREGIDO EL 31/08: `PB9` y `PB13` NO se retiran** — son `MANDO_A` y `MANDO_B`, y el mando se conserva | Sus **dos pines pasan a las cámaras** — es la línea **A7** |
+| ~~**Mando de relés / su receptor RF**~~ | 🟢 **31/08 — SALE DE ESTE BLOQUE: EL MANDO SE CONSERVA**, en los canales A y B, por decisión del responsable. ~~⛔ RETIRADO~~ | ⚠️ **El receptor NUNCA se compró** — y eso ya no es *«nada que cancelar»*: es **una compra que falta**, y es **la línea `A9`**, arriba. Sin ella el **Esclavo se queda sin ninguna vía de mando** |
 | ~~`HC-05` / `JDY-30`~~ | ⛔ **ANULADO** — línea A1, sustituida por el `ESP32` (A1′) | Nunca llegaron |
 | ~~`DS3231` + pila **en la placa STM32**~~ | 🔄 **NO anulado: MOVIDO.** Se compra igual, colgado del `ESP32` — línea **A6** | — |
 
 > ⚠️ **Retirado del EQUIPO no es retirado del FIRMWARE, y confundirlo cuesta una sesión de banco.**
-> Medido el 28/08 en el fuente: `main.cpp:45` llama a `lcd_setup()`, que en `lcd.cpp:70` llama a
+> ~~Medido el 28/08 en el fuente: `main.cpp:45` llama a `lcd_setup()`, que en `lcd.cpp:70` llama a
 > `u8g2.begin()`; y `botones.cpp:52-58` declara los cuatro pines en `INPUT_PULLUP` y los lee con
 > antirrebote. **El firmware de hoy sigue compilando y ejerciendo pantalla, menú y los cuatro
-> botones.**
+> botones.**~~
 >
-> **Para la compra da igual —no se pide nada—, pero para A7 no:** mientras `PB14`/`PB15` sean botones
-> en el código, **un contacto seco de cámara ahí dentro entra como una pulsación**, y el `Boton 3`
-> *ejecuta* (lo dice el comentario de N-26 en ese mismo fichero: un `3` fantasma arranca un modo que
-> nadie pidió, y en un semáforo eso es una maniobra). **El cable se puede comprar hoy; conectarlo
-> espera al firmware.**
+> 🟢 **AL DÍA EL 31/08 — el firmware se movió, y en la dirección segura. MEDIDO en el fuente:**
+>
+> | | 28/08 | **31/08** |
+> |---|---|---|
+> | `PB14`/`PB15` | `BOTON3`/`BOTON4`, `INPUT_PULLUP`, activos en BAJO | **`CAM_C_PIN`/`CAM_D_PIN`**, `INPUT` pelado, **activos en ALTO** (`pines.h:124-125`, `botones.cpp:156-157`) |
+> | `botonAceptar()` / `botonCancelar()` | leían pin y ejecutaban | **devuelven `false` siempre** (`botones.cpp:280-281`) |
+> | Pines de la pantalla `PB3`/`PB4`/`PB5` | conducidos por el bus SPI de software | **`U8X8_PIN_NONE`: ni un `pinMode` ni un `digitalWrite`** (`lcd.cpp:74`) |
+>
+> **Y eso cierra el aviso que había aquí en la buena dirección:** ya **no** es cierto que un contacto
+> seco de cámara en `PB14` entre como pulsación, porque ese pin ya no es un botón y `botonAceptar()`
+> no puede ejecutar nada. ✅ **`A7` deja de estar condicionada al firmware** — lo que sigue delante es
+> **la medida `M3`**: con `INPUT` pelado el pin necesita **resistencia real a masa en el cobre**, y de
+> `PB14`/`PB15` **sólo lo dice el netlist y nadie lo ha medido**. Sin ella el pin flota y da demandas
+> fantasma. **El cable se compra hoy; conectarlo espera a `M3`, no al firmware.**
+>
+> 🛑 **Y la regla de orden no cambia** (`CLAUDE.md` §9.bis): **el firmware nuevo tiene que estar
+> CARGADO EN LA TARJETA antes de que nadie enchufe nada en `J16`.** Un commit no protege de un
+> destornillador, y **nada de esto ha pasado banco.**
 
 ---
 
-## Resumen para autorizar
+## Resumen para autorizar — al **31/08/2026**
 
 **Se pide hoy:** 2 cámaras AcuSense de demanda *(confirmar si ya hay una)* · 2 antenas VHF con sus 2
-coaxiales · 2 módulos de 1 relé con jumper `JD-VCC` · **2 fuentes DC-DC 12 V → 5 V ≥ 1 A** (A5) ·
-**1 módulo `DS3231` `ZS-042` con su pila** (A6) · **2 juegos de conector y cable para `J16`** (A7).
+coaxiales · 2 módulos de 1 relé con jumper `JD-VCC` · 🔴 **2 fuentes DC-DC CONMUTADAS 12 V → 5 V
+≥ 1 A** (A5) · **1 módulo `DS3231` `ZS-042` con su pila** (A6) · **2 juegos de conector y cable para
+`J16`** (A7) · 🔴 **2 receptores RF de contacto seco para el mando** (A9, **mirando antes el emisor
+que ya hay en obra**).
 
-> 🛑 **Y NO se pide hoy ningún módulo de Bluetooth — de ninguna clase.** ~~Los 2 `HC-05` / `JDY-30`~~
-> quedaron **anulados** por la decisión de obra del 28/08: el `ESP32` los sustituye. Y **el `ESP32`
-> está BLOQUEADO** hasta que alguien lea qué referencia llegó, por serigrafía o por `chip_id`, y lo
-> anote en el bloque **0**. Comprar antes de esa lectura es como se acaba con un `S3` que **no habla
-> SPP** y con dos referencias distintas en el mismo cruce.
+### 🔴 Lo que HACE FALTA y NO ESTÁ PEDIDO — la lista corta, por orden de lo que bloquea
 
-> ⚡ **Las tres líneas nuevas no son accesorios, y por eso están arriba y no «para luego»:**
-> **A5** es lo que impide que el `ESP32` hunda el riel y **reinicie el STM32 que gobierna el
-> semáforo**; **A6** es el reloj, que deja de tocar la placa; **A7** son cuatro pesos de cable que
-> evitan una placa hija entera.
+| # | Qué | Qué bloquea hoy |
+|:---:|---|---|
+| **A5** | **Fuente DC-DC CONMUTADA 12 V → 5 V, ≥ 1 A** ×2 | 🛑 **EL MONTAJE.** Sin ella el `ESP32` cuelga del `LM7805` y **reinicia el STM32 que gobierna el semáforo**. **Conmutada, no lineal**: un lineal disipa **4,35 W** y en un armario al sol **no falla limpio, falla caliente** |
+| **A8** | **Placa portadora del `ESP32`** ×2 | 🛑 **EL MONTAJE**, y además **NO TIENE DUEÑO**: no está decidido quién la diseña ni quién la fabrica. **Decisión del responsable** |
+| **A9** | **Receptor RF del mando de relés** ×2 | 🛑 **LA OPERACIÓN DEL ESCLAVO.** Esa punta **no tiene `SET_MODO` por Bluetooth** (MEDIDO: cero coincidencias) y sus pulsadores 3 y 4 se fueron a cámaras. **Sin receptor, entrar o salir del Degradado allí obliga a subir al gabinete** |
+| **A6** | **`DS3231`** con su pila | El reloj del equipo. Se pide ya; **cuántos** lo decide el diagnóstico del `Y2` (`BLQ-2`, banco `B5`) |
+| **A7** | Conector y cable para `J16` ×2 | Nada: es cable. **Conectarlo** espera a la medida **`M3`** (resistencia real a masa en cobre) |
+| **A2** · **A3** · **A4** | Cámaras, antenas, relés de talanquera | Nada. Siguen pendientes desde el 27/08 |
+
+> 🟢 **Y desde el 31/08 ya SÍ se puede usar el Bluetooth que hay.** ~~🛑 **NO se pide hoy ningún
+> módulo de Bluetooth — de ninguna clase.** … el `ESP32` está BLOQUEADO hasta que alguien lea qué
+> referencia llegó~~ — **se leyó: es un `WROOM-32` clásico, habla SPP, y `A1′` está desbloqueada.**
+> Los 2 `HC-05` / `JDY-30` siguen **anulados** por la decisión de obra del 28/08.
+>
+> ⚠️ **Lo que sigue sin hacerse es CONTAR los que hay**, y si son de 30 o de 38 pines. **No se
+> compra un módulo más hasta contarlos** — no porque no sirvan, sino porque un formato distinto no
+> entra en las hembrillas de `A8`.
+
+> ⚡ **Las líneas nuevas no son accesorios, y por eso están en el bloque A y no «para luego»:**
+> **A5** impide que el `ESP32` hunda el riel y **reinicie el STM32 que gobierna el semáforo**;
+> **A6** es el reloj, que deja de tocar la placa; **A7** son cuatro pesos de cable que evitan una
+> placa hija entera; **A8** es lo que convierte tres módulos sueltos en algo montable dentro de un
+> remolque que vibra; y **A9** es lo único que le queda al Esclavo para que un operario pueda
+> mandarle algo desde el suelo.
+
+> 🛑 **NADA DE ESTO ES UN PERMISO PARA MONTAR NI PARA SUBIR A CAMPO.** En la calle corre la **V8.4**
+> (`e303485`). Todo lo que este documento describe —cámaras, `ESP32`, reloj, mando— **está sin pasar
+> banco**. Esta lista autoriza **comprar**, que es lo único que se puede hacer en paralelo; el
+> montaje y la puesta en servicio siguen detrás de la sesión de banco, sin excepción.
 
 **Se pide después del banco, y solo si aparece una función que lo necesite:** el `PCF8574P` con su
 placa de expansión (B3, B4). ⚠️ **Sigue sin driver: se compra preparado, no funcionando** — y hoy
 **no hay ninguna función pendiente que lo pida**.
 
 **No se pide:** cámaras de umbral ni la segunda cámara por poste *(la ruta ya está —`J16`—, el
-firmware que las lea no)*, `PCF8574` para talanqueras ni para cámaras, pantalla LCD, pulsadores, ni
-mando de relés o su receptor *(que nunca se compró)*. Las talanqueras salen por la salida
+firmware que las lea no)*, `PCF8574` para talanqueras ni para cámaras, pantalla LCD, pulsadores 3 y
+4, ~~ni mando de relés o su receptor *(que nunca se compró)*~~ 🟢 **corregido el 31/08: el receptor
+del mando SÍ se pide — es la línea `A9`**. Las talanqueras salen por la salida
 **`Motor` (bornera `J15`, MOSFET `Q10`)** que **la tarjeta ya trae**, y las cámaras de demanda por
 `PB0` (bornera `J14`), que ya se lee.
 
