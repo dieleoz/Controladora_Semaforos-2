@@ -1,14 +1,22 @@
 graph TD
 %% ===========================================================================
 %% ARQUITECTURA.map - MAPA ESTRUCTURAL DEL SISTEMA SEMAFORICO
-%% Actualizado: 31/08/2026. Escrito en ASCII sin acentos, como el resto de lo
-%% que se lee en consola de Windows en este repositorio.
+%% Actualizado: 31/08/2026, tarde. Escrito en ASCII sin acentos, como el resto
+%% de lo que se lee en consola de Windows en este repositorio.
 %%
 %% NINGUN PACK DEL BANCO PARSEA ESTE FICHERO. Comprobado con grep sobre todo el
-%% arbol el 31/08: las unicas referencias por nombre son prosa
-%% -02_LCD/MANUAL_PANTALLA_LCD.md:29 y 05_Funcional/README.md:135-. Este mapa NO
-%% es un instrumento: no mide nada y nadie falla por lo que aqui ponga. Es un
-%% indice. Lo que MIDE es la compuerta.
+%% arbol el 31/08 por la tarde: las unicas referencias por nombre son prosa
+%% -02_LCD/MANUAL_PANTALLA_LCD.md:29, 05_Funcional/README.md:135 y
+%% roadmap.md:142-, y el mismo grep sobre un nombre inventado da CERO, que es el
+%% control que demuestra que sabia distinguir. Este mapa NO es un instrumento:
+%% no mide nada y nadie falla por lo que aqui ponga. Es un indice.
+%% Lo que MIDE es la compuerta.
+%%
+%% SU HERMANO ES INDICE_CRUZADO.md, y contestan preguntas distintas:
+%%   ARQUITECTURA.map   COMO esta hecho el equipo
+%%   INDICE_CRUZADO.md  DONDE vive cada hecho y QUIEN se queda colgando si se
+%%                      reescribe un fichero -mas el censo de hechos que viven
+%%                      en un solo sitio y los HUECOS ya abiertos-
 %%
 %% ---------------------------------------------------------------------------
 %% COMO SE LEE - tres niveles, y no se mezclan nunca
@@ -29,29 +37,38 @@ graph TD
 %%         La compuerta en verde dice que los modelos y arneses de PC no
 %%         encuentran nada. NO dice que el firmware funcione en la tarjeta.
 %%
-%% ACTA DE REFERENCIA: evidencia/2026-08-31_compuerta.txt
-%%         15 PASS | 0 FALLA | 0 ABORTADO - HEAD 8d76f1e, rama main-nuevo.
-%%         Las cifras de este mapa se copian del acta, nunca se escriben a mano.
+%% AQUI NO SE PUBLICA NI UNA CIFRA DEL ACTA, y es deliberado. El numero de
+%% packs, las comprobaciones y los porcentajes de flash se mueven cada hora y
+%% hay packs que los vigilan; una copia a mano en este fichero seria una segunda
+%% version que alguien tendria que sincronizar. La cifra vigente esta en
+%% evidencia/, en el acta mas reciente, y se copia de ahi o no se copia.
 %%
 %% ARQUITECTURA VIGENTE: la decidida en obra el 28/08 y ajustada el 31/08.
 %%         Fuente: 05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md
 %%         secciones 1.1 a 1.7, y ESTADO.md seccion 4.
 %%         EL STM32 SIGUE SIENDO EL CONTROLADOR. El ESP32 es un modulo de
 %%         expansion colgado de un puerto serie, y NO MANDA SOBRE LAS LUCES.
+%%
+%% ARBOL EN VUELO. Este mapa se escribio con seis agentes tocando app.js,
+%% lcd.cpp, los manuales 2/12/14, OPTIMIZACIONES.md, packs y simuladores. Las
+%% RUTAS son estables; las LINEAS citadas de esos ficheros pueden haberse
+%% movido. Donde el estado del codigo estaba a mitad se dice, en vez de darlo
+%% por hecho.
 %% ===========================================================================
 
     subgraph C0["CAPA 0 - VERIFICACION Y COMPUERTA"]
-        GATE["compuerta.py<br>15 PASS - 0 FALLA - 0 ABORTADO - exit 0<br>guarda de rutas: 43 rutas, todas existen<br>acta: evidencia/2026-08-31_compuerta.txt<br>VERDE NO ES ENTREGABLE: nada sube a campo sin banco"]
-        GATE --> PACKS["Banco por packs - 38 packs<br>411/411 comprobaciones<br>01_Firmware/Simulaciones/banco/packs/<br>NO quedan validadores monoliticos"]
-        GATE --> ARN_LCD["Arnes de pantalla - 271/271<br>Maestro 145 - Esclavo 126<br>compila lcd.cpp y menu.cpp reales"]
-        GATE --> ARN_AUTO["Arnes del automatico - 71/71<br>compila coordinador + semaforo + modo_automatico<br>MIDE SFTY-2 sobre los pines escritos<br>punto ciego: solo el Maestro"]
-        GATE --> ARN_CICLO["Arnes del ciclo - 29/29<br>y arnes del respaldo (Horner, calcularSuma)"]
-        GATE --> SIM["Simuladores y app<br>funcional 20/20 - repetidor 10/10<br>app: 32 unitarios + 61 jsdom + 58 funcional"]
-        NOTA0["Los simuladores y los packs son Python escrito a mano:<br>un PASS suyo prueba EL MODELO, no el firmware.<br>Solo cuatro arneses compilan C++ real - CLAUDE.md seccion 8"]
+        GATE["compuerta.py - la unica forma correcta de verificar<br>guarda de rutas + compila los CUATRO roles<br>Maestro, Esclavo, Repetidor y ESP32_Expansion<br>cifras y veredicto: evidencia/, acta mas reciente<br>VERDE NO ES ENTREGABLE: nada sube a campo sin banco"]
+        GATE --> PACKS["Banco por packs<br>01_Firmware/Simulaciones/banco/packs/<br>un fichero corto por propiedad<br>NO quedan validadores monoliticos"]
+        GATE --> ARN_LCD["Arnes de pantalla - compila lcd.cpp y menu.cpp reales<br>Validacion_LCD"]
+        GATE --> ARN_AUTO["Arnes del automatico - Validacion_Automatico<br>compila coordinador + semaforo + modo_automatico<br>MIDE SFTY-2 sobre los pines escritos<br>punto ciego: solo el Maestro"]
+        GATE --> ARN_CICLO["Validacion_Ciclo y Validacion_Respaldo<br>ciclo_degradado.h - Horner y calcularSuma()"]
+        GATE --> SIM["Simuladores y app<br>funcional - repetidor - app y bluetooth<br>unitarios, jsdom y funcional de la app"]
+        GATE --> SIM_PUENTE["simulador_puente_esp32.py (31/08, EN VUELO)<br>el unico que ejerce el LAZO ENTERO app - ESP32 - STM32<br>dos de sus tres puntas son codigo real<br>la unica modelada es el ESP32"]
+        NOTA0["Los simuladores y los packs son Python escrito a mano:<br>un PASS suyo prueba EL MODELO, no el firmware.<br>Solo cuatro arneses compilan C++ real - CLAUDE.md seccion 8.<br>El C++ del ESP32 se COMPILA en la compuerta, pero no se ejecuta."]
     end
 
     subgraph C1["CAPA 1 - STM32 MAESTRO - EL CONTROLADOR"]
-        M["STM32F103C8T6 Maestro<br>Flash 88.3% - 57.880 de 65.536 B - 7.656 B libres<br>IWatchdog 4 s (main.cpp:52)<br>8 modos - 7 alcanzables por SET_MODO"]
+        M["STM32F103C8T6 Maestro<br>Flash: ver el acta de evidencia/ - NO queda margen comodo<br>IWatchdog 4 s (main.cpp:52)<br>8 modos - 7 alcanzables por SET_MODO"]
 
         M -- "SFTY-2 - escribirPines() semaforo.cpp:48-54" --> OUT_M["Optos TLP127 + MOSFET IRLZ44N<br>SON DIEZ CADENAS, no nueve"]
         OUT_M --> LUZ_M["SEIS pines de luz vivos<br>ROJO1 PA0 J3 - AMARILLO1 PA1 J4 - VERDE1 PA2 J5<br>ROJO2 PA3 J6 - AMARILLO2 PA4 J7 - VERDE2 PA5 J8"]
@@ -59,15 +76,17 @@ graph TD
 
         M -- "USART3 - PB10 TX / PB11 RX / PB12 DE-RE - J12" --> RAD_M["Radio LoRa E90-DTU Maestro"]
 
-        M -- "USART1 REMAPEADO - PB6 TX / PB7 RX - J17 p3/p2" --> ENL_M["Enlace serie 9600 8N1 al ESP32<br>SerialBT(PB7, PB6) - bluetooth.cpp:28"]
+        M -- "USART1 REMAPEADO - PB6 TX / PB7 RX - J17 p3/p2" --> ENL_M["Enlace serie 9600 8N1 al ESP32<br>SerialBT(PB7, PB6) - bluetooth.cpp:28<br>begin(9600) con UN solo argumento: el 8N1 lo pone<br>el framework y solo esta escrito en contrato.h"]
 
-        M -- "PB0 - J14 - antirrebote HW R64 10K + C25 100nF" --> CAM_M["Camara de demanda Maestro<br>pinMode(INPUT) y == HIGH (N-67 corregido)"]
+        M -- "PB0 - J14 - antirrebote HW R64 10K + C25 100nF" --> CAM_M["Camara de demanda - INPUT pelado, activo en ALTO<br>pinMode en botones.cpp:155, YA NO dentro de un modo (N-97)"]
 
-        M -- "PB9 A / PB13 B - J16 p5/p8" --> MANDO_M["Mando de reles - SE CONSERVA (31/08)<br>A = BOTON1 = botonArriba - B = BOTON2 = botonAbajo<br>botones.cpp:119-120 -> MANDO_A / MANDO_B"]
+        M -- "PB14 / PB15 - J16 p10/p12" --> CAMCD_M["Camaras C y D - CAM_C_PIN / CAM_D_PIN<br>INPUT pelado, activo en ALTO - botones.cpp:156-157<br>antirrebote por FLANCO con siembra al arrancar (N-26)"]
+
+        M -- "PB9 A / PB13 B - J16 p5/p8" --> MANDO_M["Mando de reles - SE CONSERVA (31/08)<br>A = BOTON1, B = BOTON2 - INPUT_PULLUP, activo en BAJO<br>botones.cpp:139-140 -> mando_registrarPulso()"]
     end
 
     subgraph C2["CAPA 2 - STM32 ESCLAVO - OBEDECE, NO DECIDE"]
-        S["STM32F103C8T6 Esclavo<br>Flash 64.4% - 42.176 de 65.536 B<br>IWatchdog 4 s (main.cpp:238)<br>pines.h BYTE-IDENTICO al del Maestro"]
+        S["STM32F103C8T6 Esclavo<br>Flash: ver el acta de evidencia/<br>IWatchdog 4 s (main.cpp:238)<br>pines.h BYTE-IDENTICO al del Maestro"]
 
         S -- "SFTY-2 - escribirPines() semaforo.cpp:48-54" --> OUT_S["Optos TLP127 + MOSFET IRLZ44N"]
         OUT_S --> LUZ_S["SEIS pines de luz vivos - mismos PA0..PA5"]
@@ -75,96 +94,121 @@ graph TD
 
         S -- "USART3 - J12" --> RAD_S["Radio LoRa E90-DTU Esclavo"]
         S -- "USART1 REMAPEADO - PB6/PB7 - J17" --> ENL_S["Enlace serie 9600 8N1 al ESP32<br>SerialBT(PB7, PB6) - bluetooth.cpp:26"]
-        S -- "PB0 - J14" --> CAM_S["Camara de demanda Esclavo<br>ASIMETRICA: vive en setup()/loop() sin condicion de modo<br>main.cpp:288 y :350"]
+        S -- "PB0 - J14" --> CAM_S["Camara de demanda - INPUT, activo en ALTO<br>pinMode en main.cpp:288, lectura en main.cpp:350<br>por NIVEL, no por flanco: es SFTY-27, no descuido"]
+        S -- "PB14 / PB15 - J16 p10/p12" --> CAMCD_S["Camaras C y D - botones.cpp:176-177<br>lector camara_leerPin() IDENTICO al del Maestro"]
         S -- "PB9 / PB13" --> MANDO_S["Mando de reles Esclavo - SE CONSERVA (31/08)<br>SFTY-21: mando_ambarLocal() VETA tres ordenes de radio<br>main.cpp:406, :416, :540"]
     end
 
     subgraph C3["CAPA 3 - ENLACE POR RADIO"]
         RAD_M -. "RF 2.4 kbps - M0/M1 en OFF - FEC" .-> RAD_S
-        NOTA3["Configuracion vigente: DOS radios en enlace directo, SIN repetidor.<br>SFTY-6: SFTY6_SILENCIO_MS = 25000 (protocolo.h:149).<br>SON 25 s desde N-71, NO los 12 s que aun dicen varios comentarios:<br>el techo estaba por debajo del peor caso de reintentos (20,5 s)<br>y los reintentos 4 y 5 no podian ejecutarse jamas."]
+        NOTA3["Configuracion vigente: DOS radios en enlace directo, SIN repetidor.<br>SFTY-6: SFTY6_SILENCIO_MS vive UNA VEZ, en */include/protocolo.h.<br>SON 25 s EN LA RAMA desde N-71, NO los 12 s que aun dicen varios<br>comentarios: el techo estaba por debajo del peor caso de reintentos<br>(~20,5 s) y los reintentos 4 y 5 no podian ejecutarse jamas.<br>La desigualdad la RECALCULA costura_09_presupuesto_radio desde el C++,<br>que es lo que sustituyo a la prosa que envejecia.<br><br>EN EL POSTE SIGUEN LOS 12 s (N-108, 31/08). El equipo de la calle es<br>la V8.4 (e303485) y los 25 s no han salido de la rama. El reporte de<br>campo -'se va a ambar a los 12 segundos, por nada'- CONFIRMA N-71 POR<br>EL OTRO LADO: el equipo se rendia antes de terminar de intentarlo.<br>Eso le cambia el sentido a la sesion de banco: no es solo validar lo<br>nuevo, es que el sintoma de hoy se arregla con lo que YA esta escrito."]
     end
 
-    subgraph C4["CAPA 4 - ESP32 MODULO DE EXPANSION - DECIDIDO, SIN CONSTRUIR"]
-        ESP["ESP32 - accesorio, NO controlador<br>No manda sobre las luces<br>FUENTE PROPIA DESDE 12 V<br>NO cuelga del 3,3 V de J17 p6/p8"]
+    subgraph C4["CAPA 4 - ESP32 DE EXPANSION - EL FIRMWARE YA EXISTE"]
+        ESP["ESP32-WROOM-32 clasico - accesorio, NO controlador<br>No manda sobre las luces: PIDE, y el STM32 acepta o rechaza<br>FUENTE PROPIA DESDE 12 V - NO cuelga del 3,3 V de J17<br>Firmware: 01_Firmware/ESP32_Expansion/ - COMPILA<br>Rol dado de alta en compuerta.py:114"]
         ENL_M --> ESP
         ENL_S --> ESP
-        ESP --> RTC_E["Reloj DS3231 con pila propia<br>I2C: GPIO21 SDA - GPIO22 SCL<br>modulo ZS-042, trae sus pull-ups<br>DECIDIDO, sin construir"]
-        ESP --> BT_E["Bluetooth - SUSTITUYE al modulo SPP dedicado<br>BLOQUEADO por la decision 3.1: que chip es<br>Clasico BR/EDR abre RFCOMM; S3/C3 solo BLE, NO abre"]
+        ESP --> WDT_E["FUNCION 1 - WATCHDOG. VA PRIMERO<br>vigilante.cpp sobre esp_task_wdt<br>ESP32_WDT_MS + ESP32_ARRANQUE_MS < min(TIMEOUT_ENLACE, SFTY6)<br>ESP32_ARRANQUE_MS SIN VERIFICAR: bandera propia (AB-3)<br>packs esp32_01 y esp32_02"]
+        ESP --> RTC_E["FUNCION 2 - Reloj DS3231 ZS-042, pila propia<br>I2C: GPIO21 SDA - GPIO22 SCL - dir 0x68<br>el modulo YA TRAE sus pull-ups: no se anaden<br>bit OSF: la hora NACE NO FIABLE - pack esp32_04<br>DECIDIDO, sin comprar (linea A6)"]
+        ESP --> BT_E["FUNCION 3 - Puente Bluetooth SPP<br>BLQ-1 CERRADO 31/08: BR/EDR = Clasico = SPP<br>la app conecta sin tocar una linea<br>SUSTITUYE al modulo SPP dedicado"]
         ESP --> FUT["Futuro: WiFi / GPS - NO decidido"]
-        NOTA4["EL ESP32 NO TIENE WATCHDOG - grep sobre Repetidor/src da CERO.<br>Y hay precedente escrito de uno clavado tumbando el enlace (31/07/2026).<br>Sin pantalla, sin pulsadores 3 y 4 y con el ESP32 colgado,<br>la superficie de mando que queda es el mando de reles A/B.<br>Decision abierta 3.3, dueno: el responsable."]
+        NOTA4["LAS TRES BARRERAS DEL PUENTE, y las vigila un pack cada una:<br>NO ORIGINA (esp32_05) - NO PARTE NI UNE TRAMAS (esp32_06)<br>SILENCIO NO ES ORDEN (esp32_08).<br>Y NO FILTRA POR COMANDO: retransmite toda trama bien formada,<br>valida FORMATO. Un puente que conociera la lista habria que<br>recompilarlo cada vez que el protocolo crece.<br><br>AB-1 ABIERTO: NADA EN EL EQUIPO VIGILA AL PUENTE.<br>SFTY-6 mira la radio, no J17: un ESP32 colgado es INVISIBLE<br>para el STM32 y el unico testigo es la app. Dueno: el responsable."]
+    end
+
+    subgraph C4B["CAPA 4.bis - LA PLACA PORTADORA - NO EXISTE"]
+        PLACA["PLACA PORTADORA DEL ESP32<br>NO DISENADA - NO FABRICADA - NO MEDIDA<br>ni siquiera es una linea de compras todavia<br>QUIEN LA DISENA Y QUIEN LA FABRICA: SIN DECIDIR"]
+        ESP --> PLACA
+        PLACA --> FTE["Fuente propia DC-DC 12 V -> 5 V, >= 1 A<br>linea A5 de la lista de compras - NO SE HA PEDIDO<br>el LM7805 de la tarjeta NO da los picos de ~500 mA:<br>disiparia 3,5 W y al hundirse el riel se reinicia el STM32"]
+        HUECO["HUECO ABIERTO - CINCO REQUISITOS SIN COPIA EN NINGUN FICHERO<br>Vivian solo en la guia de cableado (HTML) y se fueron al<br>reescribirla PARA EL TECNICO el 31/08 (fa66710).<br>grep sobre todo el arbol: CERO copias.<br><br>1. LO QUE ESTA PLACA NO LLEVA - barrera de arquitectura<br>2. Puntos de prueba TP1/TP2/TPG/TPV - requisito de diseno<br>3. Acceso de reflasheo sin desoldar - dos casos<br>4. La medida M6 y la regla de trazado del 12 V<br>5. Que la placa EXISTE como objeto pendiente<br><br>Recogidos en INDICE_CRUZADO.md seccion 4, H-1 a H-5.<br>Su sitio definitivo es la especificacion de la placa,<br>que el responsable encarga aparte. NO se copian a un manual."]
+        PLACA --> HUECO
     end
 
     subgraph C5["CAPA 5 - CAMARAS - DOS DE DEMANDA, UNA POR POSTE"]
         CD1["Camara de demanda sentido 1"] --> CAM_M
         CD2["Camara de demanda sentido 2"] --> CAM_S
-        NOTA5["Cero PCs, Raspberries o Jetson externos: la analitica corre en la camara.<br>HOY el unico camino con firmware probado es PB0/J14 (pack camara_01_demanda).<br>La mudanza a J16 p10/p12 es la Fase 3 y NO se cablea antes de la medida M3."]
+        NOTA5["Cero PCs, Raspberries o Jetson externos: la analitica corre en la camara.<br>El camino con firmware probado sigue siendo PB0/J14 (camara_01_demanda).<br>Las entradas C y D de J16 YA ESTAN EN EL FIRMWARE (deeeab4),<br>pero NO SE CABLEAN antes de la medida M3."]
     end
 
-    subgraph C6["CAPA 6 - MUDANZA A J16 - PENDIENTE, BLOQUEADA"]
-        J16["J16 - conector de 16 posiciones Molex KK-254<br>p1 = 12 V CRUDOS. UNICO conector de senal de la tarjeta con 12 V<br>p5 = PB9 (mando A) - p8 = PB13 (mando B) - SE CONSERVAN<br>p10 = PB14 y p12 = PB15 - LIBERADOS, destino de las dos camaras"]
-        BLQ_M3["BLOQUEANTE M3 - la polaridad esta en CONTRADICCION MEDIDA<br>placa: R65-R68 10K a GND + 3,3 V al lado = activo en ALTO<br>firmware: INPUT_PULLUP y == LOW = activo en BAJO<br>Los dos no pueden ser ciertos. Se cierra con multimetro, no leyendo mas codigo"]
+    subgraph C6["CAPA 6 - J16 - FIRMWARE HECHO, CABLEADO BLOQUEADO"]
+        J16["J16 - conector de 16 posiciones Molex KK-254<br>p1 = 12 V CRUDOS. UNICO conector de senal de la tarjeta con 12 V<br>p5 = PB9 (mando A) - p8 = PB13 (mando B) - SE CONSERVAN<br>p10 = PB14 = CAM_C_PIN - p12 = PB15 = CAM_D_PIN<br>botones.cpp es hoy el DUENO UNICO de J16: mitad botonera,<br>mitad camaras, con las dos polaridades declaradas"]
+        BLQ_M3["BLOQUEANTE M3 - la polaridad estaba en CONTRADICCION MEDIDA<br>placa: R65-R68 10K a GND + 3,3 V al lado = activo en ALTO<br>botones.cpp para A y B: INPUT_PULLUP y == LOW = activo en BAJO<br>MATIZ DEL 31/08: el camino de CAMARA ya lee al reves -INPUT<br>pelado y activo en ALTO-, asi que para C y D el firmware YA<br>coincide con el netlist. Lo que M3 sigue decidiendo es si<br>PB14/PB15 tienen resistencia REAL a masa en cobre: con INPUT<br>pelado y sin ella el pin flota y el ruido dispara demandas<br>fantasma. PB0 la tiene declarada (R64+C25); de PB14/PB15 solo<br>lo dice el netlist y NADIE LO HA MEDIDO EN COBRE.<br>Se cierra con multimetro, no leyendo mas codigo."]
         J16 --> BLQ_M3
-        NOTA6["CONSECUENCIA ABIERTA DE LA DECISION DEL 31/08, y no es opinion:<br>el colchon de aire de la seccion 1.7 -dejar p5 y p8 vacios- DESAPARECE.<br>Del 12 V de p1 a p5 (PB9) hay 4 posiciones = 10,2 mm; a p10, 22,9 mm; a p12, 27,9 mm.<br>p1 se tapa fisicamente antes de cablear nada: el destornillador no lee documentacion."]
+        NOTA6["EL MARGEN CONTRA LOS 12 V NO ES EL QUE PARECIA, y esta medido.<br>La distancia entre PADS -10,2 / 22,9 / 27,9 mm- NO es la separacion real.<br>MAPEO_TARJETA_KICAD.md:576-588 la mide sobre COBRE, respetando capas:<br>/Boton1 1,405 mm - /Boton2 1,408 mm - /Boton3 4,269 mm - /Boton4 1,359 mm.<br>EL ORDEN SE INVIERTE: p12 es el PEOR, no el mas seguro.<br>1,36 mm es cobre de diseno, sin tolerancia de fabrica ni suciedad de armario.<br>p1 se tapa fisicamente antes de cablear nada: el destornillador no lee.<br><br>Y EL ORDEN ES ASIMETRICO (CLAUDE.md 9.bis): el firmware nuevo tiene que<br>ESTAR CARGADO EN LA TARJETA antes de que nadie enchufe nada en J16.<br>Con el viejo dentro, PB14 sigue siendo botonAceptar() activo en BAJO."]
     end
 
-    subgraph C7["RETIRADO - SE MARCA, NO SE BORRA"]
-        R_LCD["Pantalla LCD ST7920 en las DOS puntas<br>HOY ocupa SOLO PB3/PB4/PB5 (lcd.cpp:29, U8G2 SW SPI)<br>PB6 y PB7 YA NO los toca: son del USART1 (lcd.cpp:59)<br>Al retirarla quedan libres PB3/PB4/PB5<br>Toda la operacion pasa a la app - Fase 3"]
-        R_BOT["Pulsadores 3 y 4 - PB14 Aceptar / PB15 Cancelar<br>botones.cpp:131-132 (Maestro), :145-146 (Esclavo)<br>Los pulsadores 1 y 2 SE QUEDAN: son el mando A/B<br>SIGUEN VIVOS EN EL FIRMWARE DE HOY: botones_setup() los declara los cuatro"]
-        R_SPP["Modulo Bluetooth SPP dedicado (HC-05 / JDY-30)<br>lo sustituye el ESP32 - condicionado a la decision 3.1"]
-        R_RTC["RTC interno del STM32 con cristal Y2 + CR2032<br>Y2 CONFIRMADO MUERTO EN BANCO el 01/08 (N-17, N-37)<br>el reloj se va al DS3231 del ESP32 - decision 3.2 abierta"]
+    subgraph C7["RETIRADO O REPLANTEADO - SE MARCA, NO SE BORRA"]
+        R_LCD["LA PANTALLA NO SE RETIRA - DECISION DEL 31/08<br>Lo que se hace es DEJAR DE CONDUCIR PB3/PB4/PB5.<br>EL PORQUE, medido en el cobre: J17 reparte UN SOLO conector<br>entre la LCD (p4/p1/p5) y el ESP32 (p3/p2)<br>-MAPEO_TARJETA_KICAD.md:349-350-, y PB3 es el RELOJ del SPI<br>de software: CONMUTA EN CADA BIT, pegado al RX/TX del ESP32<br>dentro del mismo mazo. Es la corrupcion intermitente que no se<br>diagnostica nunca, porque aparece segun lo que se este dibujando.<br><br>SE CONSERVAN el API lcd_* entero, menu.cpp entero y el arnes<br>Validacion_LCD. Con menu.cpp se conserva una de las TRES vias<br>que sacan al Esclavo del Degradado, y la de la app esta rota<br>(N-106): quitar el menu ahora seria retirar una via de seguridad<br>mientras otra sigue abierta.<br><br>COMO, MEDIDO en lcd.cpp:74-75 y ya COMMITEADO (88b0142): el<br>constructor SW SPI se conserva y recibe los CUATRO pines en<br>U8X8_PIN_NONE, asi que no queda ni un pinMode ni un digitalWrite<br>y PB3/PB4/PB5 quedan en alta impedancia.<br>Se eligio esa forma y no procedimientos de bus nulos -que ahorraban<br>524 B mas- porque DOS PACKS leen ese constructor POR TEXTO<br>(flash_01_lastre y enlace_01_transporte): cambiar la FORMA los<br>dejaba en ABORTADO. Es N-89. Lo vigila costura_11_lcd_sin_bus."]
+        R_BOT["Pulsadores 3 y 4 - RETIRADOS, y sus pines son ya las camaras<br>botonAceptar() y botonCancelar() quedan SIN SUJETO:<br>devuelven false fijo (Maestro/src/botones.cpp:280-281).<br>NO se borraron a proposito: un grep sigue listando EN UNA SOLA<br>LISTA todo lo que la retirada se llevo por delante.<br>La salida de los modos la da hoy SET_MODO:MENU por Bluetooth<br>(N-100, bluetooth.cpp:191), que por eso fue la Fase 1"]
+        R_SPP["Modulo Bluetooth SPP dedicado (HC-05 / JDY-30)<br>lo sustituye el ESP32 - BLQ-1 cerrado, ya no es condicional"]
+        R_RTC["RTC interno del STM32 con cristal Y2 + CR2032<br>Y2 CONFIRMADO MUERTO EN BANCO el 01/08 (N-17, N-37)<br>el reloj se va al DS3231 del ESP32<br>ABIERTO: reparar el cristal o reloj de software (AB-4 / BLQ-2)<br>y falta diagnosticar el Y2 de la SEGUNDA tarjeta"]
         R_I2C["PIN-0: bus I2C con PCF8574 sobre PB0/PB8 - ANULADA el 28/08<br>el I2C ya no vive en el STM32: el DS3231 cuelga del ESP32"]
         R_CAM4["Las 4 camaras AcuSense con camara de UMBRAL en PB8 - RETIRADO<br>PB8 no es una bornera: es R16 1K + LED D5, un testigo en la placa<br>cuatro manuales lo describieron como umbral durante meses (N-59)"]
-        R_REP["Repetidor ESP32 - el firmware existe y compila (20,6%)<br>pero la configuracion vigente NO lo usa: dos radios en directo"]
+        R_REP["Repetidor ESP32 - el firmware existe y compila<br>pero la configuracion vigente NO lo usa: dos radios en directo.<br>NO CONFUNDIR con ESP32_Expansion: son dos proyectos y dos roles"]
     end
 
     subgraph C8["DECLARADO Y MUERTO EN LAS DOS PUNTAS - censo por grep, no lectura"]
-        D_PEA["ROJO_PEATON PA6 J11 y VERDE_PEATON PA7 J9<br>MUERTOS: sin pinMode, sin digitalWrite, sin digitalRead<br>escribirPines() mueve SEIS pines de luz, no ocho<br>La unica aparicion fuera de pines.h es un comentario, main.cpp:35<br>MATIZ: el pack barrera_01 SI los cubre - la regla es que ningun pin<br>cuyo nombre empiece por ROJO/AMARILLO/VERDE se escriba fuera de<br>semaforo.cpp, y estos dos la cumplen porque no se escriben en ningun sitio.<br>Estar bajo custodia no es estar vivo"]
+        D_PEA["ROJO_PEATON PA6 J11 y VERDE_PEATON PA7 J9<br>MUERTOS: sin pinMode, sin digitalWrite, sin digitalRead<br>escribirPines() mueve SEIS pines de luz, no ocho<br>La unica aparicion fuera de pines.h es un comentario, main.cpp:35<br>MATIZ: el pack barrera_01 SI los cubre - la regla es que ningun pin<br>cuyo nombre empiece por ROJO/AMARILLO/VERDE se escriba fuera de<br>semaforo.cpp, y estos dos la cumplen porque no se escriben en ningun sitio.<br>Estar bajo custodia no es estar vivo (N-96)"]
         D_BUZ["BUZZER PB1 J13<br>MUERTO: cero apariciones fuera de pines.h<br>tiene cadena de potencia propia en la placa (opto U13, MOSFET Q8)"]
         D_LED["LED_TESTIGO PB8 - pinMode(INPUT) y NUNCA se lee<br>ES DELIBERADO Y ESTA DOCUMENTADO - pines.h:48-63<br>alta impedancia a proposito: un pin flotante no enciende el LED<br>con INPUT_PULLUP quedaria un testigo a medias que nadie sabria explicar<br>NO ES UN DEFECTO. Lo vigila el pack camara_01_demanda con cable trampa"]
-        D_RS485["RS485_IN_TX PA9 y RS485_IN_RX PA10 - NO SE USAN<br>cero pinMode, cero digitalWrite, cero digitalRead<br>solo aparecen en un comentario de protocolo.cpp:20<br>El USART1 real es SerialBT(PB7, PB6), no PA9/PA10"]
-        D_NOM["Los nombres LCD_PSB y LCD_RST de pines.h:88-89 apuntan a PB6/PB7,<br>QUE HOY SON DEL BLUETOOTH. El nombre engana, el pin no.<br>Y el nombre de PB6 sigue en disputa: la red del esquematico es RS(A0)<br>Se cierra siguiendo el hilo hasta la pata rotulada, no leyendo mas codigo"]
+        D_RS485["RS485_IN_TX PA9 y RS485_IN_RX PA10 - NO SE USAN<br>cero pinMode, cero digitalWrite, cero digitalRead<br>solo aparecen en un comentario de protocolo.cpp:20<br>El USART1 real es SerialBT(PB7, PB6), no PA9/PA10<br>y con el, U2 y la bornera J10 quedan libres"]
+        D_NOM["Los nombres LCD_PSB y LCD_RST de pines.h:88-89 apuntan a PB6/PB7,<br>QUE HOY SON DEL BLUETOOTH. El nombre engana, el pin no.<br>Y el nombre de PB6 sigue en disputa: la red del esquematico es RS(A0)<br>-pines.h:78-. Es AB-6. Se cierra siguiendo el hilo hasta la pata<br>rotulada, no leyendo mas codigo"]
     end
 
     subgraph C9["VIVO PERO CON EL COMENTARIO CADUCADO"]
         V_PA8["RS485_IN_DE_RE PA8 - VIVO<br>bluetooth.cpp:68-69 (Maestro), :76-77 (Esclavo)<br>pinMode(OUTPUT) + digitalWrite(HIGH)<br>Apaga el receptor de U2. Pero su comentario justificativo<br>-liberar PA10 para el modulo Bluetooth- ES FALSO DESDE N-76:<br>el Bluetooth se mudo a PB6/PB7 y PA10 ya no lo usa nadie"]
+        V_GATE["compuerta.py:671-676 y :802-806 siguen diciendo que el C++ del<br>ESP32 'todavia no existe' y que 'otro agente esta dando de alta<br>el rol'. YA EXISTE (d2427c2) y EL ROL YA ESTA DE ALTA (:114).<br>Comentario caducado DENTRO del instrumento. No se toca aqui<br>porque compuerta.py esta en vuelo: anotado para quien lo tenga"]
+    end
+
+    subgraph C10["REGRESION ABIERTA"]
+        N106["N-106 - EL AMBAR DE LA APP NO SACA AL ESCLAVO DEL DEGRADADO<br>Mando B.B.B: mando.cpp:129-141 llama a degradado_salir() -> SI sale<br>App CMD:AMBAR_EMERGENCIA: bluetooth.cpp no menciona el Degradado<br>-> NO sale, y ya mando un $ACK RESULT:OK<br>El comentario de Esclavo/src/bluetooth.cpp:32-39 dice literalmente<br>'UNA EMERGENCIA PEDIDA POR BLUETOOTH VALE LO MISMO QUE UNA DEL MANDO'.<br>En Degradado NO vale lo mismo. Es la barrera de CLAUDE.md 6 otra vez:<br>un $ACK que no depende de lo que la llamada devolvio.<br><br>SU PACK esclavo_08_ambar_en_degradado ESTA EN ROJO A PROPOSITO (829c457):<br>nacio viendolo fallar, que es lo unico que demuestra que mide.<br>QUE DEBE HACER el ambar de la app en Degradado ES DEL RESPONSABLE:<br>es lo que ve un conductor."]
     end
 
     style GATE fill:#d4edda,stroke:#28a745,stroke-width:2px
     style M fill:#d4edda,stroke:#28a745,stroke-width:2px
     style S fill:#d4edda,stroke:#28a745,stroke-width:2px
-    style ESP fill:#cce5ff,stroke:#004085,stroke-width:2px
+    style ESP fill:#d4edda,stroke:#28a745,stroke-width:2px
+    style WDT_E fill:#cce5ff,stroke:#004085,stroke-width:2px
     style RTC_E fill:#cce5ff,stroke:#004085,stroke-width:2px
-    style BT_E fill:#fff3cd,stroke:#856404,stroke-width:2px
+    style BT_E fill:#cce5ff,stroke:#004085,stroke-width:2px
     style FUT fill:#e2e3e5,stroke:#383d41,stroke-width:1px
+    style PLACA fill:#f8d7da,stroke:#721c24,stroke-width:3px
+    style HUECO fill:#f8d7da,stroke:#721c24,stroke-width:3px
+    style FTE fill:#fff3cd,stroke:#856404,stroke-width:2px
     style BLQ_M3 fill:#f8d7da,stroke:#721c24,stroke-width:3px
-    style J16 fill:#f8d7da,stroke:#721c24,stroke-width:2px
+    style J16 fill:#fff3cd,stroke:#856404,stroke-width:2px
     style NOTA6 fill:#f8d7da,stroke:#721c24,stroke-width:2px
-    style NOTA4 fill:#f8d7da,stroke:#721c24,stroke-width:2px
+    style NOTA4 fill:#fff3cd,stroke:#856404,stroke-width:2px
+    style N106 fill:#f8d7da,stroke:#721c24,stroke-width:3px
     style D_PEA fill:#e2e3e5,stroke:#383d41,stroke-width:2px
     style D_BUZ fill:#e2e3e5,stroke:#383d41,stroke-width:2px
     style D_RS485 fill:#e2e3e5,stroke:#383d41,stroke-width:2px
     style D_NOM fill:#e2e3e5,stroke:#383d41,stroke-width:2px
     style D_LED fill:#fff3cd,stroke:#856404,stroke-width:2px
     style V_PA8 fill:#fff3cd,stroke:#856404,stroke-width:2px
-    style R_LCD fill:#e2e3e5,stroke:#383d41,stroke-width:2px
+    style V_GATE fill:#fff3cd,stroke:#856404,stroke-width:2px
+    style R_LCD fill:#fff3cd,stroke:#856404,stroke-width:2px
     style R_BOT fill:#e2e3e5,stroke:#383d41,stroke-width:2px
     style R_SPP fill:#e2e3e5,stroke:#383d41,stroke-width:2px
-    style R_RTC fill:#e2e3e5,stroke:#383d41,stroke-width:2px
+    style R_RTC fill:#fff3cd,stroke:#856404,stroke-width:2px
     style R_I2C fill:#e2e3e5,stroke:#383d41,stroke-width:2px
     style R_CAM4 fill:#e2e3e5,stroke:#383d41,stroke-width:2px
     style R_REP fill:#e2e3e5,stroke:#383d41,stroke-width:2px
     style MANDO_M fill:#d1ecf1,stroke:#0c5460,stroke-width:2px
     style MANDO_S fill:#d1ecf1,stroke:#0c5460,stroke-width:2px
+    style CAMCD_M fill:#d1ecf1,stroke:#0c5460,stroke-width:2px
+    style CAMCD_S fill:#d1ecf1,stroke:#0c5460,stroke-width:2px
+    style SIM_PUENTE fill:#cce5ff,stroke:#004085,stroke-width:2px
 
 %% ===========================================================================
-%% ANEXO A - CENSO DE PINES, MEDIDO SOBRE EL FUENTE EL 31/08/2026
+%% ANEXO A - CENSO DE PINES, MEDIDO SOBRE EL FUENTE EL 31/08/2026 (tarde)
 %%
 %% Maestro/include/pines.h y Esclavo/include/pines.h son BYTE-IDENTICOS:
-%%     md5 = 8791a4c1f9afbe5e0e55adad2959b3eb   [MEDIDO]
+%%     md5 = d5d0be19911e0ec9b19ed6e55f799d08   [MEDIDO 31/08 tarde]
+%%     (el md5 cambio respecto a la pasada de la manana: deeeab4 renombro
+%%      BOTON3/BOTON4 a CAM_C_PIN/CAM_D_PIN en las dos puntas)
 %%
 %% El censo es grep de pinMode / digitalRead / digitalWrite sobre src/, no
-%% lectura -CLAUDE.md seccion 3.ter-. Las dos puntas declaran EXACTAMENTE los
-%% mismos 15 pinMode; lo que NO es simetrico es DONDE viven (ver anexo B).
+%% lectura -CLAUDE.md seccion 3.ter-.
 %%
 %% pin   nombre            bornera  estado                          evidencia
 %% ----  ----------------  -------  ------------------------------  --------------------------
@@ -174,50 +218,63 @@ graph TD
 %% PA3   ROJO2             J6       VIVO   OUTPUT                   semaforo.cpp:50, :196
 %% PA4   AMARILLO2         J7       VIVO   OUTPUT                   semaforo.cpp:52, :197
 %% PA5   VERDE2            J8       VIVO   OUTPUT                   semaforo.cpp:54, :198
-%% PA6   ROJO_PEATON       J11      MUERTO declarado, sin uso       pines.h:15 + coment. main.cpp:35
-%% PA7   VERDE_PEATON      J9       MUERTO declarado, sin uso       pines.h:16 + coment. main.cpp:35
+%% PA6   ROJO_PEATON       J11      MUERTO declarado, sin uso       pines.h + coment. main.cpp:35
+%% PA7   VERDE_PEATON      J9       MUERTO declarado, sin uso       pines.h + coment. main.cpp:35
 %% PA8   RS485_IN_DE_RE    U2       VIVO   OUTPUT HIGH              bluetooth.cpp:68-69 / :76-77
-%% PA9   RS485_IN_TX       J10      MUERTO declarado, sin uso       solo pines.h:99
-%% PA10  RS485_IN_RX       J10      MUERTO declarado, sin uso       solo pines.h:98
-%% PB0   CAM_DEMANDA_PIN   J14      VIVO   INPUT, activo en ALTO    modo_inteligente.cpp:46 / main.cpp:288
-%% PB1   BUZZER            J13      MUERTO declarado, sin uso       solo pines.h:20
+%% PA9   RS485_IN_TX       J10      MUERTO declarado, sin uso       solo pines.h
+%% PA10  RS485_IN_RX       J10      MUERTO declarado, sin uso       solo pines.h
+%% PB0   CAM_DEMANDA_PIN   J14      VIVO   INPUT, activo en ALTO    M: botones.cpp:155
+%%                                                                  E: main.cpp:288 / :350
+%% PB1   BUZZER            J13      MUERTO declarado, sin uso       solo pines.h
 %% PB2   MOTOR_TALANQUERA  J15      VIVO   OUTPUT, reposo CERRAR    semaforo.cpp:93, :203-204
-%% PB3   LCD_SCLK          -        VIVO   via U8G2 SW SPI          lcd.cpp:29
-%% PB4   LCD_CS            -        VIVO   via U8G2 SW SPI          lcd.cpp:29
-%% PB5   LCD_SID           -        VIVO   via U8G2 SW SPI          lcd.cpp:29
+%% PB3   LCD_SCLK          J17 p4   DECLARADO, YA NO SE CONDUCE     lcd.cpp: U8X8_PIN_NONE
+%% PB4   LCD_CS            J17 p1   DECLARADO, YA NO SE CONDUCE     lcd.cpp: U8X8_PIN_NONE
+%% PB5   LCD_SID           J17 p5   DECLARADO, YA NO SE CONDUCE     lcd.cpp: U8X8_PIN_NONE
 %% PB6   "LCD_PSB" -> TX   J17 p3   VIVO   USART1 remapeado, TX BT  bluetooth.cpp:28 / :26
 %% PB7   "LCD_RST" -> RX   J17 p2   VIVO   USART1 remapeado, RX BT  bluetooth.cpp:28 / :26
 %% PB8   LED_TESTIGO       -        pinMode(INPUT) SIN LECTURA      DELIBERADO, pines.h:48-63
-%% PB9   BOTON1 / MANDO_A  J16 p5   VIVO   INPUT_PULLUP - SE QUEDA  botones.cpp:50, :119
-%% PB10  RS485_OUT_TX      J12      VIVO   USART3 - radio LoRa      pines.h:113
-%% PB11  RS485_OUT_RX      J12      VIVO   USART3 - radio LoRa      pines.h:112
-%% PB12  LORA_DE_RE        J12      VIVO   OUTPUT                   pines.h:19
-%% PB13  BOTON2 / MANDO_B  J16 p8   VIVO   INPUT_PULLUP - SE QUEDA  botones.cpp:51, :120
-%% PB14  BOTON3 Aceptar    J16 p10  VIVO HOY - SE RETIRA (31/08)    botones.cpp:52, :131
-%% PB15  BOTON4 Cancelar   J16 p12  VIVO HOY - SE RETIRA (31/08)    botones.cpp:53, :132
+%% PB9   BOTON1 / mando A  J16 p5   VIVO   INPUT_PULLUP, act. BAJO  pines.h:122, botones.cpp:139
+%% PB10  RS485_OUT_TX      J12      VIVO   USART3 - radio LoRa      pines.h
+%% PB11  RS485_OUT_RX      J12      VIVO   USART3 - radio LoRa      pines.h
+%% PB12  LORA_DE_RE        J12      VIVO   OUTPUT                   pines.h
+%% PB13  BOTON2 / mando B  J16 p8   VIVO   INPUT_PULLUP, act. BAJO  pines.h:123, botones.cpp:140
+%% PB14  CAM_C_PIN         J16 p10  VIVO   INPUT pelado, act. ALTO  pines.h:124, botones.cpp:156
+%% PB15  CAM_D_PIN         J16 p12  VIVO   INPUT pelado, act. ALTO  pines.h:125, botones.cpp:157
 %%
 %% Sin cablear en la tarjeta: PA11, PA12, PA15, PC13.  [ESCRITO en pines.h:60-61]
 %% -no comprobado contra el netlist en esta pasada-.
 %%
+%% LAS DOS POLARIDADES DE J16 CONVIVEN A PROPOSITO, y botones.cpp es su dueno
+%% unico: INPUT_PULLUP + activo en BAJO para los botones A y B (pulsador contra
+%% masa), INPUT pelado + activo en ALTO para las tres camaras (contacto seco con
+%% R65-R68 de 10K a masa y 3,3 V al lado). Es la cuenta de N-67.
+%%
 %% ===========================================================================
 %% ANEXO B - LAS DOS PUNTAS NO SON SIMETRICAS, Y ESTA MEDIDO
 %%
-%% 1. LA CAMARA DE DEMANDA NO ES SIMETRICA.
-%%    Maestro: pinMode(CAM_DEMANDA_PIN, INPUT) vive DENTRO de
-%%             modoInteligente_setup() -modo_inteligente.cpp:46-, cuyo unico
-%%             llamador es main.cpp:205 (case MODO_INTELIGENTE). Fuera de ese
-%%             modo el pin no se declara y las lecturas no corren.
-%%    Esclavo: pinMode en setup() -main.cpp:288- y lectura en loop()
-%%             -main.cpp:350-, SIN NINGUNA CONDICION DE MODO.
-%%    Lo mismo le pasa a LED_TESTIGO: Maestro modo_inteligente.cpp:50,
-%%    Esclavo main.cpp:292.
+%% 1. N-97 CERRADO (deeeab4): la camara de demanda YA NO vive dentro de un modo.
+%%    Antes el Maestro hacia el pinMode DENTRO de modoInteligente_setup(), asi
+%%    que fuera de ese modo el pin NO EXISTIA. Hoy las dos puntas declaran sus
+%%    entradas en el arranque y sin condicion, y el lector es codigo identico:
+%%    camara_leerPin().
+%%
+%%    LO QUE SIGUE SIENDO ASIMETRICO, y hay que saberlo porque los instrumentos
+%%    leen POR RUTA (CLAUDE.md seccion 5):
+%%      - CAM_DEMANDA_PIN se declara en Maestro/src/botones.cpp:155 pero en
+%%        Esclavo/src/main.cpp:288. Un pack que censara solo botones.cpp veria
+%%        tres entradas en una punta y dos en la otra sin que haya defecto.
+%%      - PB0 se lee por NIVEL en el Maestro y por FLANCO en el Esclavo. Esta
+%%        razonado y va como reportar(), no como fallo: es SFTY-27 -"cede si el
+%%        otro pide Y NO hay cola local", y "hay cola ahora" es un nivel, no un
+%%        suceso-.
 %%
 %% 2. mando_ambarLocal() SOLO EXISTE COMO VETO EN EL ESCLAVO.
 %%    Esclavo/src/mando.cpp:103, con tres consumidores NEGADOS en
 %%    Esclavo/src/main.cpp:406, :416 y :540. Mientras un operario pidio ambar
 %%    local, una orden de radio NO saca a esa punta del ambar. Es SFTY-21.
 %%    Retirar el armador de esa bandera no deja tres if inertes: BORRA EL VETO.
-%%    La decision del 31/08 -conservar el mando en A y B- deja ese veto en pie.
+%%    La decision del 31/08 -conservar el mando en A y B- deja ese veto en pie,
+%%    y por eso NO hay que decidir quien lo hereda.
 %%
 %% 3. semaforo_iniciarFallo() esta en :242 en el Maestro y en :256 en el
 %%    Esclavo. Mismo codigo, distinto sitio: las rutas y las lineas que citan
@@ -228,35 +285,55 @@ graph TD
 %%
 %% - EL COBRE. Ni una fila "VERIFICADO EN LA PLACA" existe en el proyecto.
 %%   Las cinco medidas de multimetro pendientes (M1 a M5) estan en la seccion A
-%%   de 05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md.
-%%   M3 -la polaridad de los pines de boton- es la que desbloquea las camaras.
+%%   de 05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md, que es EL
+%%   UNICO SITIO CON EL PROCEDIMIENTO -ver INDICE_CRUZADO.md P-4-.
+%%   M3 es la que desbloquea el cableado de las camaras.
+%% - LA PLACA PORTADORA. No existe, y cinco de sus requisitos se perdieron el
+%%   31/08. Ver capa C4.bis y INDICE_CRUZADO.md seccion 4.
 %% - EL BANCO. V9.0 no ha estado nunca en una tarjeta. Ni la compuerta en verde
 %%   ni los cuatro arneses que compilan C++ real lo sustituyen.
-%% - QUE CHIP ES EL ESP32. Nadie ha leido la serigrafia del blindaje de los
-%%   modulos que llegaron a obra el 28/08. Decide si la app sirve o hay que
-%%   rehacer el transporte entero. Es una comprobacion de treinta segundos.
 %% - EL SEGUNDO CRISTAL Y2. N-37 midio uno; el del otro equipo sigue sin medir.
+%%   Es BLQ-2, y con el cuelga AB-4: reparar el cristal o reloj de software.
+%% - EL ARRANQUE DEL ESP32. ESP32_ARRANQUE_MS = 1500 esta SIN VERIFICAR y lleva
+%%   su propia bandera para que no se lea como medida (AB-3). Se mide con el
+%%   modulo en la mano, no se estima.
 %% - LA TELEMETRIA. BAT:12.6 es un literal en las dos puntas y no hay un solo
 %%   analogRead en src/. RF:98% y RTT:85ms son literales en el Esclavo, y el
-%%   campo T: no es tiempo de fase. Sin pantalla, $STATUS es el UNICO tablero
-%%   que existe: un campo que no se mide se retira o se marca. Fase 4.
-%% - EL COSTE EN FLASH DE LO QUE FALTA. Quedan 7.656 B libres en el Maestro.
-%%   A este nivel una funcion nueva no entra sin medir antes -CLAUDE.md 7-.
+%%   campo T: no es tiempo de fase. Sin pantalla conducida, $STATUS es el UNICO
+%%   tablero que existe: un campo que no se mide se retira o se marca. Fase 4.
+%% - EL COSTE EN FLASH DE LO QUE FALTA. La cifra vigente esta en el acta de
+%%   evidencia/, no aqui. A este nivel una funcion nueva no entra sin medir
+%%   antes -CLAUDE.md 7-.
+%% - QUIEN DISENA Y QUIEN FABRICA LA PLACA PORTADORA. Sin decidir.
 %%
 %% ===========================================================================
 %% ANEXO D - ORDEN DE EJECUCION VIGENTE (ESTADO.md, seis fases)
 %%
-%%   Fase 1  Comandos que faltaban en el Maestro          HECHO (medido:
+%%   Fase 1  Comandos que faltaban en el Maestro          HECHO (d34cfe2, N-78:
 %%           SET_MODO:MENU/ALCANCE/INTELIGENTE/DEGRADADO, REINICIAR_RELOJ,
 %%           DEMANDA - bluetooth.cpp:191-360. SET_RTC ya contesta
-%%           SIN_CRISTAL_VEA_CONSULTA_RELOJ en vez de un OK mentiroso)
-%%   Fase 2  Ignorar los pulsadores 3 y 4                 ABIERTO - los cuatro
-%%           siguen en botones_setup(). Con la decision del 31/08 la retirada
-%%           es PARCIAL: 3 y 4 se van, 1 y 2 se quedan como mando A/B
-%%   Fase 3  Camaras a J16 p10/p12 y retirar pantalla     ABIERTO - las camaras
-%%           NO se cablean antes de M3
-%%   Fase 4  Telemetria honesta                           ABIERTO
-%%   Fase 5  ESP32: watchdog PRIMERO, luego DS3231 y BT   ABIERTO
+%%           SIN_CRISTAL_VEA_CONSULTA_RELOJ en vez de un OK mentiroso).
+%%           Iba primero porque sin ella, al quitar botonCancelar(), no habria
+%%           salida de los modos: hoy la salida por app EXISTE
+%%   Fase 2  Ignorar los pulsadores 3 y 4                 HECHO en firmware
+%%           (deeeab4): PB14/PB15 son CAM_C_PIN/CAM_D_PIN, botonAceptar() y
+%%           botonCancelar() devuelven false. El mando A/B se queda
+%%   Fase 3  Camaras a J16 y dejar de conducir la LCD     HECHA EN FIRMWARE
+%%           (deeeab4 las camaras, 88b0142 la LCD). Lo que queda es HARDWARE:
+%%           EL CABLEADO SIGUE BLOQUEADO POR M3
+%%   Fase 4  Telemetria honesta                           ABIERTO. Y con dato
+%%           nuevo (N-108): el Maestro SI mide el enlace -ventana de 10 latidos,
+%%           RTT medio, latidos sin respuesta- y el Esclavo INVENTA RF:98% y
+%%           RTT:85ms. De las dos puntas solo una tiene dato, y la que se queda
+%%           sin radio a 5 m es justo la otra. Y nadie lo guarda.
+%%           Decision del 31/08: no se mide potencia; latidos e indicacion visual
+%%   Fase 5  ESP32: watchdog PRIMERO, luego DS3231 y BT   EL FIRMWARE EXISTE Y
+%%           COMPILA, con el watchdog escrito primero. Falta el hardware: la
+%%           placa portadora, su fuente (A5) y el DS3231 (A6), ninguno pedido
 %%   Fase 6  BANCO                                        BLOQUEANTE. Nada
 %%           sube a campo sin pasar banco.
+%%
+%% Y fuera de las fases, ABIERTO: N-106 (capa C10) y las ocho decisiones
+%% AB-1..AB-8 de 05_Funcional/18_Especificacion_Firmware_ESP32.md seccion 9,
+%% que hoy NO estan anotadas en ESTADO.md -lo dice el propio documento-.
 %% ===========================================================================

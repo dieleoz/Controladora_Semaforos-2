@@ -1,0 +1,449 @@
+# INDICE_CRUZADO — dónde vive cada hecho, y quién se queda colgando si lo tocas
+
+**Escrito el 31/08/2026.** Complementa a [`ARQUITECTURA.map`](ARQUITECTURA.map), que dice *cómo está
+hecho el equipo*. Este fichero dice **dónde está escrito cada hecho y quién apunta a él**.
+
+> 🔴 **Por qué existe.** El 31/08 se reescribió la guía de cableado para el técnico y, al sacar lo
+> que a él no le servía, **desaparecieron del repositorio entero** la especificación de los puntos de
+> prueba de la placa portadora, el requisito de acceso de reflasheo y **«lo que esta placa NO
+> lleva»** —una barrera de arquitectura—. Vivían en un solo fichero y **nadie apuntaba a ellas**.
+> Es `CLAUDE.md` §3 aplicado a la documentación: **un `ABORTADO` grita; un hueco no.**
+>
+> Este índice no impide que vuelva a pasar por sí solo. Lo que hace es que, **antes** de reescribir
+> un fichero, se pueda leer en treinta segundos qué hechos son los únicos que ese fichero sostiene.
+
+---
+
+## 0. Cómo se lee, y qué NO es
+
+**Este fichero no es un instrumento.** No mide nada, nadie falla por lo que aquí ponga, y ningún pack
+lo parsea *(comprobado el 31/08: `grep -rn "INDICE_CRUZADO"` sobre `.py`/`.md` → cero; el mismo
+comando sobre `ARQUITECTURA.map` da tres, que es el **control positivo** de que la búsqueda sabía
+encontrar)*. **Lo que mide es la compuerta.**
+
+Tres niveles, la misma escala de `ARQUITECTURA.map` y del Manual 17 §0, y no se mezclan:
+
+| marca | significa |
+|---|---|
+| **[MEDIDO]** | se abrió el fichero en esta pasada y se leyó, o lo dijo un `grep`. Va con `fichero:linea` |
+| **[LEÍDO]** | lo afirma un documento y aquí se recoge **sin volver a comprobarlo en el fuente** |
+| **[SIN VERIFICAR]** | nadie lo ha comprobado nunca. Casi todo el cobre está aquí |
+
+> ⚠️ **El árbol se estaba moviendo mientras esto se escribía**, y se movió de verdad: entre la
+> primera medida y la última entraron seis commits de otros agentes (`e8caef9` … `88b0142`), que
+> traen los generadores de trama, cinco manuales, N-108 y el cambio de la pantalla. **Las líneas
+> citadas de `app.js`, `lcd.cpp`, `OPTIMIZACIONES.md`, los manuales 2/12/14 y los packs pueden
+> haberse desplazado.** Lo que no se mueve es *en qué fichero* vive cada cosa, que es lo que este
+> índice contesta.
+
+**Aquí no se publican cifras del acta** —packs, comprobaciones, porcentajes de flash—: se mueven cada
+hora y hay packs que las vigilan. La cifra vigente está en **`evidencia/`**, en el acta más reciente.
+
+### Las dos preguntas que este fichero contesta
+
+| pregunta | dónde se contesta |
+|---|---|
+| **«Quiero saber X: ¿dónde está?»** | **§1 — mapa por tema** |
+| **«Voy a reescribir el fichero Y: ¿qué se pierde y quién se queda colgando?»** | **§2 — mapa por fichero** *(y es la que hoy no existía)* |
+| **«¿Qué está a un descuido de desaparecer?»** | **§3 — censo de hechos únicos** |
+| **«¿Qué se perdió ya?»** | **§4 — huecos abiertos** |
+
+### La columna que decide, y es el juicio de todo el fichero
+
+Un hecho que vive en **un solo documento** no es automáticamente un problema. Lo que lo vuelve
+peligroso es que **nada lo relea**:
+
+| | |
+|---|---|
+| **VIGILADO** | un pack o un arnés **relee el número o el patrón del fuente en cada corrida**. El documento puede envejecer o borrarse: la compuerta se pone roja. **No hace falta duplicarlo** |
+| **SOLO PROSA** | vive únicamente como texto. Si el fichero se reescribe, **nadie protesta**. Aquí es donde hay que decidir |
+
+Duplicar un hecho VIGILADO crearía **dos versiones que alguien tendría que sincronizar a mano**, que
+es exactamente el defecto que este repositorio lleva un mes cerrando (N-36, N-39, `PESOS_SUMA`,
+`cfgVerdeRecibido`). **No se duplica todo.**
+
+---
+
+## 1. MAPA POR TEMA — «quiero saber X, ¿dónde está?»
+
+### 1.1 El reparto STM32 / ESP32
+
+| hecho | dueño del hecho | quién más lo dice | quién lo VIGILA |
+|---|---|---|---|
+| **El STM32 sigue siendo el controlador; el ESP32 es un accesorio colgado de un puerto serie y NO manda sobre las luces** | `05_Funcional/17_...Decisiones_Abiertas.md` §1.1–1.2 | `ESTADO.md` §4 · `05_Funcional/18_Especificacion_Firmware_ESP32.md` §1.2 · `05_Funcional/5_Manual_Puente_ESP32.md` · `ARQUITECTURA.map` C4 · 7 documentos [MEDIDO] | `esp32_05_no_origina` · `esp32_08_silencio_no_es_orden` |
+| **El ESP32 lleva fuente propia desde 12 V y no cuelga del 3,3 V de `J17`** | Manual 17 §1.5 | `05_Funcional/10_...Telemetria.md` §1 · `05_Funcional/15_Lista_de_Compras_Hardware.md` línea `A5` · 6 documentos [MEDIDO] | — **SOLO PROSA** |
+| **El firmware del ESP32 EXISTE y compila** | `01_Firmware/ESP32_Expansion/` (`src/` + `include/`, 8 módulos) [MEDIDO] | `05_Funcional/18_...ESP32.md` (la especificación completa) | `compuerta.py` lo compila como rol `ESP32_Expansion` (`compuerta.py:114`) y los packs `esp32_01`…`esp32_09` |
+| **`ESP32_Expansion` es un ROL, distinto del `Repetidor`** | `01_Firmware/compuerta.py:90-118` [MEDIDO] | `05_Funcional/18_...ESP32.md` §7.1 | **la propia guarda de rutas**: un rol que no se declara no se censa |
+| **`BLQ-1` cerrado: es un `ESP32-WROOM-32` clásico, `BR/EDR` → hay SPP** | `ESTADO.md` tabla de bloqueantes | `roadmap.md` · `05_Funcional/18_...ESP32.md` §6.1 · `15_Lista_de_Compras...` · 6 documentos [MEDIDO] | — **SOLO PROSA** |
+
+### 1.2 El enlace `J17`, pin a pin
+
+| hecho | dónde | vigilado |
+|---|---|---|
+| **`J17` reparte UN conector entre dos cosas**: LCD `PB3`/`PB4`/`PB5` → p4/p1/p5, y `USART1` remapeado `PB6` TX / `PB7` RX → p3/p2 | `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md:349-350` **[MEDIDO — es la fuente]** · §6.bis del mismo | `costura_11_lcd_sin_bus`, `flash_01_lastre` y `enlace_01_transporte` — los tres leen el constructor de `lcd.cpp` **por texto** |
+| **La pareja del ESP32**: `GPIO17` (TX2) → `J17` p2 → `PB7` RX del micro · `GPIO16` (RX2) ← `J17` p3 ← `PB6` TX | `01_Firmware/ESP32_Expansion/include/contrato.h` (`ENLACE_PIN_TX`/`ENLACE_PIN_RX`) **[MEDIDO]** | `esp32_09_contrato_de_bytes` |
+| **`9600 8N1`, y el formato se elige en el ESP32 porque en el STM32 no se eligió** (`SerialBT.begin(9600)` con un solo argumento) | `contrato.h` §transporte **[MEDIDO]** · gemelo en `Maestro/src/bluetooth.cpp:70` y `Esclavo/src/bluetooth.cpp:78` | `esp32_09_contrato_de_bytes` |
+| **Masa común obligatoria** | Manual 17 §1.4 · 10 documentos [MEDIDO] | — **SOLO PROSA** *(pero es medida `M5`)* |
+| **El nombre del pin 3 sigue en disputa**: `RS(A0)` en el esquemático contra `LCD_PSB` en `pines.h:88` | `Maestro/include/pines.h:78` y `:88` **[MEDIDO]** · `18_...ESP32.md` §2.3 (`AB-6`) | — **SOLO PROSA** |
+
+### 1.3 El mapa de pines
+
+**El censo completo, pin a pin, está en `ARQUITECTURA.map` Anexo A.** Aquí solo dónde vive cada dato:
+
+| hecho | dónde vive | vigilado |
+|---|---|---|
+| **La tabla de `#define`** | `Maestro/include/pines.h` y `Esclavo/include/pines.h`, **byte-idénticos** (md5 `d5d0be19911e0ec9b19ed6e55f799d08`, 31/08) **[MEDIDO]** | `barrera_02_dos_puntas` · `camara_02_j16` |
+| **La verificación cruzada PCB ↔ firmware** | `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md` §6 | — **SOLO PROSA** *(es el único documento de cobre)* |
+| **`PB14`/`PB15` son hoy `CAM_C_PIN`/`CAM_D_PIN`**, `INPUT` pelado y activo en ALTO | `pines.h:124-125` · `botones.cpp:145-157` (Maestro) y `:176-177` (Esclavo) **[MEDIDO]** | `camara_02_j16` |
+| **`PB9`/`PB13` siguen siendo `BOTON1`/`BOTON2` = mando A/B**, `INPUT_PULLUP`, activo en BAJO | `pines.h:122-123` · `botones.cpp:139-140` **[MEDIDO]** | `camara_02_j16` (etiquetado `EJERCE SFTY-21`) |
+| **`ROJO_PEATON` `PA6`, `VERDE_PEATON` `PA7` y `BUZZER` `PB1` están DECLARADOS y MUERTOS** | `CLAUDE.md` §6 (recuadro N-96) · `OPTIMIZACIONES.md:1427` · `ARQUITECTURA.map` C8 | `barrera_01_pines_de_luz` los cubre **como sujetos de la regla, no como pines vivos** — ver el matiz de N-96 |
+| **`PB8` = `LED_TESTIGO`, `pinMode(INPUT)` sin lectura, DELIBERADO** | `pines.h:48-63` **[MEDIDO]** | `camara_01_demanda`, con cable trampa |
+| **Pines libres sin cablear: `PA11`, `PA12`, `PA15`, `PC13`** | `pines.h:60-61` **[LEÍDO — no comprobado contra el netlist]** | — |
+
+### 1.4 `J16`, las cámaras y la decisión del mando
+
+| hecho | dónde | vigilado |
+|---|---|---|
+| **El mando de relés SE CONSERVA en A y B** (decisión del responsable, 31/08) | `ESTADO.md` §4 · Manual 17 §1.6 y §3.3 | `camara_02_j16` (inyección: «el `#define BOTON3` reapareciendo») |
+| **Se retiran solo los pulsadores 3 y 4**; `botonAceptar()`/`botonCancelar()` quedan **sin sujeto, devolviendo `false` fijo** — no borradas, para que un `grep` siga listando en un sitio todo lo que la retirada se llevó | `Maestro/src/botones.cpp:250-253` y `:280-281` **[MEDIDO]** | `camara_02_j16` |
+| **🔴 `J16` p1 lleva 12 V crudos** — el único conector de señal de la tarjeta que los trae | Manual 17 §2.1 · 11 documentos [MEDIDO] | — **SOLO PROSA** |
+| **🔴 El margen real contra esos 12 V es de `1,36 mm`, medido sobre cobre** —y el orden se invierte: `p12` es el peor, no el mejor | `MAPEO_TARJETA_KICAD.md:576-588` **(la fuente)** · `ESTADO.md` §1 · 7 documentos | — **SOLO PROSA** |
+| **🔴 `M3`: la polaridad de esos pines está en contradicción medida** — netlist pull-**down** (activo ALTO) contra `botones.cpp` `INPUT_PULLUP` + `== LOW` | Manual 17 §2.2 y §A `M3` **(la fuente)** · `CLAUDE.md` §9.bis · 15 documentos | — **SOLO PROSA**, y es **bloqueante de cableado** |
+| **El orden es ASIMÉTRICO: firmware cargado ANTES de que nadie enchufe nada** | `CLAUDE.md` §9.bis | — **SOLO PROSA**, y no lo puede vigilar ningún pack: es un procedimiento |
+
+### 1.5 Las reglas `SFTY-x` y su trazabilidad
+
+| hecho | dónde |
+|---|---|
+| **El catálogo de reglas `SFTY-1` … `SFTY-29`** | `OPTIMIZACIONES.md` — **es el documento propietario y no hay otro** |
+| **La trazabilidad regla → código → prueba** | se **levanta buscando** la etiqueta `# EJERCE SFTY-x:` en la cabecera de cada pack (`CLAUDE.md` Convenciones) |
+| **Los packs etiquetados hoy** | `grep -rn "EJERCE SFTY" 01_Firmware/Simulaciones/banco/packs/` **[MEDIDO 31/08]**: `barrera_01`, `barrera_02` (SFTY-2) · `barrera_03`, `maestro_09` (SFTY-28) · `camara_02_j16`, `costura_02`, `costura_06`, `esclavo_01`, `esclavo_02`, `esclavo_07`, `esclavo_08`, `maestro_01`, `maestro_05` (SFTY-21) · `costura_08`, `costura_09`, `maestro_04` (SFTY-6) · `esclavo_03`, `esclavo_04`, `esclavo_05`, `maestro_04` (SFTY-23) · `esp32_04_osf` (SFTY-18) |
+| **Quién vigila que la tabla no mienta** | `documentos_02_trazabilidad_sfty` |
+| 🔴 **`enlace_01_transporte` NO lleva etiqueta A PROPÓSITO**: ninguna de las 29 reglas habla del transporte (`enlace_01_transporte.py` cabecera) **[MEDIDO]**. Asignar un número nuevo es del responsable — `AB-8` | |
+
+> 🔴 **DEFECTO ENCONTRADO EN ESTA PASADA, y no se arregla aquí porque `OPTIMIZACIONES.md` lo está
+> tocando otro agente: `SFTY-27` designa DOS cosas distintas.**
+>
+> | dónde | qué dice |
+> |---|---|
+> | `OPTIMIZACIONES.md:1145` | *«SFTY-27 — Matrícula de pareja: quién obedece a quién (DISEÑO, **NO IMPLEMENTADO**)»* |
+> | 9 sitios en firmware, packs y manuales | *«SFTY-27 — el Esclavo **PIDE** y el Maestro **DECIDE**»* |
+>
+> **[MEDIDO]** `Maestro/src/botones.cpp:71` · `Esclavo/src/botones.cpp:92` · `Maestro/include/botones.h:50`
+> · `Esclavo/include/botones.h:69` · `Maestro/include/demanda.h:8` · `Esclavo/include/demanda.h:19`
+> · `Esclavo/src/bluetooth.cpp:185` · `Maestro/src/bluetooth.cpp:347` · `packs/camara_02_j16.py:679`
+> · `packs/app_08_enrutado_por_punta.py:52` · `04_Manuales/MANUAL_CONFIGURACION_BLUETOOTH.md:152`
+> · `05_Funcional/10_...Telemetria.md:338` · `05_Funcional/18_...ESP32.md:449`.
+>
+> **Ocho de esos sitios remiten explícitamente a `OPTIMIZACIONES.md § SFTY-27`, que dice otra cosa.**
+> Un lector que siga el puntero lee la regla equivocada y encima la lee marcada *«NO IMPLEMENTADO»*
+> sobre una regla que **sí** está implementada. Es una regla vial designada con un número ocupado.
+> **Decisión: del responsable** (`AB-8` es exactamente esto). **Anotado, no tocado.**
+
+### 1.6 El contrato de bytes del Bluetooth, y las cinco tramas
+
+**El documento propietario del contrato es `01_Firmware/ESP32_Expansion/include/contrato.h`**, y está
+escrito así a propósito: *«cada número de este fichero tiene un GEMELO viviendo en otro lenguaje»*
+—el C++ del STM32 y el JavaScript de la app—, **y un pack relee las TRES fuentes en cada corrida**.
+Ese es el mecanismo, y es el único que no envejece.
+
+| hecho | constante / sitio | vigilado por |
+|---|---|---|
+| **Baudio y formato del enlace** | `ENLACE_BAUDIO 9600`, `ENLACE_FORMATO SERIAL_8N1` | `esp32_09_contrato_de_bytes` |
+| **Tope de línea útil = 63 B**, porque el STM32 **descarta el exceso en silencio** (`btBufIn[64]`, `Maestro/src/bluetooth.cpp:31` y `:397`) | `TRAMA_MAX_UTIL` | `esp32_09_contrato_de_bytes` |
+| **Buffers**: entrada app, entrada STM32 (160 B), salida app (512 B, por la ráfaga `P-2` de 340 B) | `BUF_*` | `esp32_07_presupuesto_bytes` |
+| **La desigualdad del watchdog**: `ESP32_WDT_MS + ESP32_ARRANQUE_MS < min(TIMEOUT_ENLACE_MS, SFTY6_SILENCIO_MS)` | `contrato.h` §watchdog | `esp32_01_watchdog_desigualdad` · `esp32_02_watchdog_alimentado` |
+| 🛑 **`ESP32_ARRANQUE_MS = 1500` está SIN VERIFICAR** y lleva su propia bandera `ESP32_ARRANQUE_MEDIDO 0` para que no se lea como medida | `contrato.h` | `esp32_01` lo **`reportar()`** en cada corrida — `reportar()` no cuenta como comprobación |
+| **`W-4`, `P-2`, `P-3`, `R-4`, `R-9`** (las reglas de diseño del puente) | identificadores en `18_...ESP32.md`, **razonados dentro de `contrato.h`** | los packs `esp32_*` |
+| **Rangos del `DS3231` en un solo sitio** (`R-9`), y la validación los **barre todos** | `contrato.h` §RTC | `esp32_04_osf` |
+
+**Las CINCO tramas que el STM32 emite — son cinco, no cuatro:**
+
+```
+$STATUS   $ACK   $ERR   $ALARM   $EVENT
+```
+
+`01_Firmware/ESP32_Expansion/src/trama.cpp:9-11` **[MEDIDO]**. Censo completo en
+`05_Funcional/18_...ESP32.md` §3.7; la trama de entrada, en §3.2.
+
+> 🔴 **`$EVENT` es la que se cae de las listas escritas de memoria** —catorce ramas del Maestro lo
+> emiten y la app lo consume—, y un puente que filtrara por cuatro prefijos **se comería la bitácora
+> entera**. Por eso **la lista NO es un filtro**: el puente retransmite toda trama bien formada, la
+> conozca o no, y valida **formato, no comandos** (`contrato.h`, censo de prefijos).
+
+### 1.7 Los límites del protocolo
+
+| límite | dónde vive **el número** | quién lo relee |
+|---|---|---|
+| **`SFTY6_SILENCIO_MS = 25000`** (era 12 s antes de N-71) | `*/include/protocolo.h`, idéntico en las dos puntas | `costura_08_silencio` · `costura_09_presupuesto_radio` |
+| 🔴 **En el poste siguen los 12 s** (N-108, 31/08). Los 25 s están **en la rama** desde el 27/08; el equipo de la calle es la V8.4 (`e303485`). El reporte de campo —*«se va a ámbar a los 12 segundos, por nada»*— **confirma N-71 por el otro lado**, y le cambia el sentido a la sesión de banco: no es solo validar lo nuevo, **es que el síntoma de hoy se arregla con lo que ya está escrito** | `roadmap.md` §N-108 · commit `318d67f` | — ningún pack puede vigilar lo que hay cargado en un poste |
+| **La desigualdad techo-vs-reintentos** (5 reintentos a 3,5 s ≈ 20,5–20,8 s bajo un techo de 25 s) | se **recalcula desde el C++** | `costura_09_presupuesto_radio` — **por eso ya no vive en prosa** (la lección de N-71) |
+| **Despeje todo-rojo 10–90 s**, piso inquebrantable | `Maestro/src/modo_automatico.cpp:34` | `documentos_04_cifras_sin_vigilante` + el arnés del automático |
+| **`RF_BURST_COPIES = 3`** · **CRC-8 Maxim `0x31`** | `protocolo.h` | `costura_01_contratos` |
+| **Límite de 48 h del respaldo** | `Maestro` respaldo | `costura_05_limite_48h` |
+| **`TIMEOUT_ACK_MS = 3500`** | `protocolo.h` | `costura_09` |
+| **Los cuatro límites del automático están escritos DOS veces** —`modo_automatico.cpp:31-33` y a mano en `app.js`— **sin nada que los ate** *(N75-2, abierto)* | `ESTADO.md` N75-2 | 🔴 **nada** — es el hueco declarado |
+| **El PIN `1234` va en claro en el fuente y en el aire** | `05_Funcional/18_...ESP32.md` §3.5 (`AB-7`) — **único sitio** | — **SOLO PROSA** |
+
+### 1.8 Decisiones abiertas, con dueño
+
+| conjunto | dónde vive | dueño | vigilado |
+|---|---|---|---|
+| **`AB-1` … `AB-8`** (ocho decisiones del ESP32, con dueño y con lo que desbloquea cada una) | `05_Funcional/18_Especificacion_Firmware_ESP32.md` **§9** | responsable / quien monte / técnico | 🔴 **nada** — ver §3 |
+| **Decisiones 3.1 a 3.5** (chip ESP32 ✅ cerrada · `Y2` · superficie de mando ✅ decidida · mínimo por sentido · cámara 1 en `PB0` o `J16`) | `05_Funcional/17_...Decisiones_Abiertas.md` **§3** | responsable | — |
+| **`BLQ-2`: el cristal `Y2` de la SEGUNDA tarjeta sin diagnosticar** | `ESTADO.md` · `roadmap.md` · `11_Manual_Instalacion_RTC...` | responsable (banco, `B5`) | — |
+| **`N-106`: el ámbar de la app no saca al Esclavo del Degradado** | `ESTADO.md` · `roadmap.md` · `OPTIMIZACIONES.md` · 7 documentos | responsable decide **qué debe hacer**; técnico escribe el arnés | 🔴 **`esclavo_08_ambar_en_degradado` — el pack está EN ROJO A PROPÓSITO** (`829c457`): nació viéndolo fallar, que es lo único que demuestra que mide |
+| **`N75-1` … `N75-4`** | `ESTADO.md` · `17_...` §3.4 · `roadmap.md` | responsable / técnica | — |
+| **`M1` … `M5`, las cinco medidas de multímetro** | `05_Funcional/17_...` **§A** — **es el único sitio con el procedimiento** | quien monte | — **SOLO PROSA** |
+
+### 1.9 Bloqueos y compras
+
+| hecho | dónde |
+|---|---|
+| **El listado consolidado de compras** | `05_Funcional/15_Lista_de_Compras_Hardware.md` — **documento propietario** |
+| **`A5`: la fuente propia del ESP32 (DC-DC 12 V→5 V, ≥1 A). NO SE HA PEDIDO y hace falta** | `15_...` línea `A5` · `ESTADO.md` `COMPRAS` · `10_...Telemetria.md` §1 (la cuenta de los 3,5 W del `LM7805`) — **6 documentos, bien referenciado** |
+| **`A6`: `DS3231` `ZS-042`, colgado del ESP32, ya no espera al banco** | `15_...` · `11_...` · `contrato.h` (`DS3231_DIR`, y el aviso de que el módulo **ya trae sus pull-ups**) |
+| **`A1′`: el ESP32 sustituye a los módulos SPP; `A1` anulada** | `15_...` — **único sitio con la línea** |
+| **🛑 `BANCO` sigue siendo EL bloqueante del proyecto** | `CLAUDE.md` §1 · `ESTADO.md` Fase 6 · el acta de `evidencia/` · todos |
+| **La placa portadora en sí no es todavía una línea de compras, y quién la diseña y quién la fabrica NO está decidido** | 🔴 **NINGUNO** — ver §4 |
+
+### 1.10 Qué hace cada instrumento
+
+**La lista autorizada es `01_Firmware/compuerta.py`**: un instrumento que no está ahí no mide nada
+(`CLAUDE.md` §3). Las cifras, del acta de `evidencia/`.
+
+| instrumento | qué ejerce | punto ciego |
+|---|---|---|
+| `compuerta.py` | **la única forma correcta de verificar**; guarda de rutas + compila los cuatro roles | un `0` **no dice que el firmware funcione en la tarjeta** |
+| **banco por packs** (`Simulaciones/banco/`) | un fichero corto por propiedad | **Python escrito a mano**: un `PASS` prueba el MODELO |
+| `Validacion_LCD` | compila `lcd.cpp`, `menu.cpp`, `modo_degradado.cpp` reales | framebuffer en el PC, **no** la ST7920 |
+| `Validacion_Ciclo` | compila `ciclo_degradado.h` | función pura, sin máquina de estados |
+| `Validacion_Respaldo` | compila `calcularSuma()`, Horner, `respaldo_horasDesdeSync()` | no ejerce el arranque |
+| `Validacion_Automatico` | compila `coordinador` + `semaforo` + `modo_automatico`; **mide SFTY-2 sobre los pines escritos** | **solo el Maestro** |
+| `simulador_sistema_v7_6.py` · `simulador_repetidor.py` · `simulador_app_bluetooth.py` | modelos | modelos |
+| arnés unitario de la app · arnés DOM · `test_funcional_app.py` | la app real | no es un teléfono |
+| **`simulador_puente_esp32.py`** (31/08, en vuelo) | **el LAZO ENTERO app ↔ ESP32 ↔ STM32**; dos de sus tres puntas son código real | el ESP32 es modelo en Python |
+| **`compilar("esp32", "ESP32_Expansion")`** | que el C++ del ESP32 **compile** — los packs no lo prueban | no ejecuta |
+
+> ⚠️ **`compuerta.py:671-676` y `:802-806` siguen diciendo que el C++ del ESP32 «todavía no
+> existe»** y que «otro agente está dando de alta el rol». **Ya existe** (`d2427c2`) y **el rol ya
+> está de alta** (`compuerta.py:114`). Comentario caducado dentro del instrumento; **no se toca aquí
+> porque `compuerta.py` está en vuelo** — anotado para quien lo tenga.
+
+---
+
+## 2. MAPA POR FICHERO — «voy a reescribir Y: ¿qué se pierde?»
+
+**Esta es la tabla que no existía el 31/08 por la mañana.** La columna que importa es la última.
+
+Metodología de la columna «quién apunta»: se contó, para cada documento, **cuántos otros ficheros
+nombran su nombre de fichero**, separando documentos de fuentes (`.py`, `.cpp`, `.h`, `.js`).
+**[MEDIDO 31/08]**
+
+> ⚠️ **Los números de esta tabla son los de ANTES de que existiera este índice, y hay que leerlos
+> así.** Al nombrar aquí a los huérfanos, este fichero se ha convertido en **su único puntero
+> entrante** —comprobado al volver a correr el censo—. **Eso no los arregla:** un índice que nadie
+> abre no encuentra un documento mejor que el silencio. Los enlaces que hacen falta van en
+> `ESTADO.md` y en `README.md`, que es donde la gente entra. **Anotado, no hecho: no son ficheros de
+> este encargo.**
+
+| fichero | quién apunta a él | qué hechos son **los únicos** que sostiene | riesgo |
+|---|---|---|---|
+| **`05_Funcional/18_Especificacion_Firmware_ESP32.md`** | **1 documento** (`5_Manual_Puente_ESP32.md`) + 2 fuentes | **`AB-1`…`AB-8` con su dueño** · el PIN en claro (`AB-7`) · «el puente NO ORIGINA» · «no parte ni une tramas» · la asimetría del checksum · «la hora nace no fiable» · escritura atómica · el censo de comandos y de tramas del STM32 · el presupuesto de bytes/s | 🔴 **EL MÁS ALTO DE TODO EL ÁRBOL.** Máxima densidad de hechos únicos, mínimo número de punteros. Su propio §9 ya avisa: *«`ESTADO.md`/`roadmap.md`: `BLQ-1` y `AB-1`…`AB-8` no están anotados como abiertos con dueño»* |
+| **`05_Funcional/17_...Decisiones_Abiertas.md`** | 10 documentos + 1 fuente | **`M1`…`M5`, las cinco medidas de multímetro con su procedimiento** · el censo §B de documentos que quedan falsos · §2.8 (49 de las 80 pruebas dejan de ser ejecutables) | 🟠 **Bien referenciado**, pero `M1`–`M5` viven solo aquí |
+| **`03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`** | 19 documentos + 9 fuentes | **TODO el cobre**: reparto de `J17`, `R65`–`R68`, el margen de `1,36 mm` sobre cobre, `PB8`→`R16`→`D5`, `PB2`→`U15`→`Q10`→`J15` | 🔴 **Es el único documento de cobre del proyecto.** Muy apuntado, pero **sin copia**: si se equivoca, se equivocan los 19 |
+| **`OPTIMIZACIONES.md`** | 13 documentos + 16 fuentes | **el catálogo `SFTY-1`…`SFTY-29`**, y en exclusiva `SFTY-19`, `SFTY-24`, `SFTY-25` | 🟠 documento propietario; la trazabilidad **sí** la vigila `documentos_02` |
+| **`01_Firmware/ESP32_Expansion/include/contrato.h`** | los packs `esp32_*` y todo `src/` del ESP32 | los números del contrato **y su porqué** | 🟢 **el modelo de cómo se hace bien**: hecho único, en su dueño, **releído por packs en cada corrida** |
+| **`ESTADO.md`** | 19 documentos | el estado de HOY, los bloqueantes, las seis fases | 🟢 muy apuntado y con `documentos_01` vigilando sus cifras |
+| **`05_Funcional/15_Lista_de_Compras_Hardware.md`** | 11 documentos | **la línea `A1′`** | 🟢 documento propietario |
+| **`05_Funcional/Guia_Cableado_y_Pruebas_Banco.html`** | 3 documentos (`ESTADO.md`, `README.md`, `roadmap.md`) | los 23 pasos de campo con `HAZ / COMPRUEBA / TIENES QUE VER / ANOTA` | 🔴 **YA COBRÓ SU RIESGO EL 31/08** — ver §4. Sostenía cinco hechos de arquitectura que no eran de campo, y al reescribirlo para el técnico se fueron |
+| **`05_Funcional/12_Cobertura_de_Pruebas_y_Huecos.md`** | **CERO** *(antes de este indice)* | el censo de cobertura y sus huecos | 🔴 **HUÉRFANO TOTAL**: nadie lo enlaza, ni un documento ni una fuente. Es el problema de los 81 KB de la guía, otra vez |
+| **`05_Funcional/16_Documento_Auditoria_...App_IOT_VIAL.md`** | **CERO** *(sigue en cero: este indice no lo nombra por su nombre de fichero completo)* | la auditoría de arquitectura y usabilidad de la app | 🔴 **HUÉRFANO TOTAL** |
+| **`05_Funcional/LEEME_PRIMERO_APP.md`** | **CERO** *(antes de este indice)* | lo primero que debería leer quien recibe la app | 🔴 **HUÉRFANO TOTAL** — y su nombre dice que es lo primero que hay que leer |
+| **`01_Firmware/FIRMWARE.md`** | **CERO** *(antes de este indice)* | — | 🟠 huérfano total |
+| **`05_Funcional/ENCARGO_SESION_BANCO.md`** | 1, y es un **histórico cerrado** | el encargo de la sesión de banco, que es **el bloqueante del proyecto** | 🔴 el documento del bloqueante, colgando de un fichero archivado |
+| **`ORDEN_EJECUCION.md`** | 1 (`CERTIFICACION_SW.md`) | — | 🟠 del 28/07; **probablemente caducado, y nadie lo va a echar de menos** |
+| **`ARQUITECTURA.map`** | 3 documentos | el censo de pines en un sitio, los dos anexos de asimetría | 🟢 **ningún pack lo parsea** [MEDIDO], así que reescribirlo no rompe la compuerta — y por eso tampoco protesta nadie si envejece |
+| **`04_Manuales/MANUAL_MANDO_4_RELES.md`** · **`05_Funcional/8_Procedimiento_Modo_Degradado.md`** | 9 cada uno | las secuencias `A·A·A`, `B·B·B`, `A·B·A·B` **desde el punto de vista del operario** | 🟢 el firmware lo vigila `maestro_01_mando` |
+
+---
+
+## 3. 🔴 CENSO DE HECHOS QUE VIVEN EN UN SOLO SITIO
+
+### 3.1 Método, y el descarte del buscador
+
+Se barrieron **75 ficheros** de documentación (`.md`, `.html`, `.map`, `.txt`) de todo el árbol,
+excluyendo `99_Legacy`, `evidencia/` y `node_modules`. Para cada hecho se contó **en cuántos ficheros
+distintos** aparece su término característico.
+
+**Control positivo — la búsqueda sabía encontrar más de uno** *(si estos hubieran dado 1, el censo no
+valdría nada)*:
+
+| término | ficheros |
+|---|---|
+| `SFTY-6` | **19** |
+| `escribirPines` | **8** |
+| `PB0` | **24** |
+| `J17` | **23** |
+| `compuerta.py` | **14** |
+| `Modo Degradado` | **33** |
+| `Y2` | **21** |
+
+**Control negativo:** un término inventado (`ZZQQXX_NO_EXISTE_NUNCA`) → **0 ficheros**. La búsqueda
+distingue el cero del uno.
+
+**Y el aviso de `CLAUDE.md` §4 aplicado al formato**, porque aquí también muerde: buscar
+`"placa portadora"` con `grep -i` sobre `.md` da 1. Se repitió sobre **todos** los ficheros de texto
+del árbol, incluidos `.py`, `.h`, `.cpp`, `.js`, y **sigue dando los mismos tres ficheros**, dos de
+ellos por «portadora» en el sentido de **portadora de radio** (`Esclavo/src/main.cpp:74`,
+`simulador_repetidor.py:55`). El cero es real.
+
+### 3.2 🔴 HECHOS ÚNICOS **PELIGROSOS** — hay que duplicarlos o referenciarlos YA
+
+> **Criterio:** barrera de arquitectura, límite de seguridad o requisito de diseño que **nada relee**
+> y que, si desaparece, **nadie echa de menos**.
+
+| # | hecho | vive en | por qué es peligroso | qué hacer |
+|---|---|---|---|---|
+| **P-1** | 🔴 **La especificación entera de la placa portadora**: qué lleva, qué NO lleva, los puntos de prueba, el acceso de reflasheo, la regla de trazado y la medida `M6` | **NINGÚN FICHERO.** `grep` sobre todo el árbol: **cero** | **Ya se perdió.** Detalle completo en §4 | **Su propio documento** — el responsable lo va a encargar aparte |
+| **P-2** | 🔴 **`AB-1` … `AB-8`: ocho decisiones abiertas, cada una con su dueño y con lo que desbloquea** | `18_...ESP32.md` §9, **y nada más** (`AB-2`…`AB-8` dan exactamente **1** fichero; `AB-1` da 2) | Ese fichero tiene **un solo puntero documental**. Si se reescribe o se archiva, **ocho decisiones con dueño desaparecen sin dejar rastro** — y su propio §9 ya avisa de que `ESTADO.md` no las tiene | **Referenciarlas desde `ESTADO.md`** en la tabla de bloqueantes, con el enlace al §9. **Con enlace, no copiadas**: la copia haría dos versiones |
+| **P-3** | 🔴 **`SFTY-27` designa dos reglas distintas** (§1.5) — y ocho sitios del firmware mandan al lector al sitio equivocado | la colisión no está escrita **en ninguna parte**: cada mitad se lee coherente por separado | Una regla vial implementada aparece bajo un número marcado *«NO IMPLEMENTADO»*. Nadie lo ve porque **hay que leer los dos sitios a la vez** | **Decisión del responsable** (`AB-8`). Hasta entonces, **anotarlo en `OPTIMIZACIONES.md` § SFTY-27** para que el puntero no engañe |
+| **P-4** | 🔴 **Las cinco medidas de multímetro `M1`…`M5`, con su procedimiento** | `17_...` §A, y solo ahí el **procedimiento** | `M3` es **bloqueante de cableado** y se cita en 15 documentos… pero **cómo se hace** está en uno. Reescribir el 17 deja quince punteros a un procedimiento que ya no existe | **Referenciar desde la guía de campo**, que es quien va a ejecutarlas |
+| **P-5** | 🔴 **`05_Funcional/12_Cobertura_de_Pruebas_y_Huecos.md` es HUÉRFANO TOTAL** — y es, literalmente, el documento que dice **qué NO se está midiendo** | 0 punteros entrantes | Es el mismo defecto que los 81 KB de guía que no enlazaba nadie, aplicado al fichero cuyo tema **es** los huecos | **Enlazarlo desde `ESTADO.md` y desde `README.md`** |
+| **P-6** | 🔴 **`05_Funcional/ENCARGO_SESION_BANCO.md`**: el encargo de la sesión de banco, que es **EL bloqueante del proyecto**, colgando solo de un histórico cerrado | 1 puntero, archivado | El día que se organice el banco, el documento que lo describe no se encuentra por ningún camino vivo | **Enlazarlo desde la Fase 6 de `ESTADO.md`** |
+| **P-7** | 🟠 **El PIN `1234` va en claro en el fuente y en el aire** | `18_...ESP32.md` §3.5 | Es una **limitación de seguridad conocida y aceptada**. Si el único sitio que lo dice desaparece, el día que alguien la encuentre no sabrá si es descuido o decisión — y esa diferencia decide si se para una entrega | **Anotarlo donde vive la barrera de PIN**, o en `OPTIMIZACIONES.md` |
+| **P-8** | 🟠 **Los cuatro límites del automático están escritos dos veces y nada los ata** (`N75-2`) | `ESTADO.md` lo declara abierto | No es un hecho único: es un hecho **duplicado sin vigilante**, que es la otra cara. Hoy coinciden; el día que suba el mínimo, la app seguirá dejando poner 1 | **Un pack que lea los cuatro del `.cpp`** — media hora, ya presupuestada |
+| **P-9** | 🟠 **`LEEME_PRIMERO_APP.md` y `16_Documento_Auditoria...` son huérfanos totales** | 0 punteros | Uno de ellos se llama *«léeme primero»* y no hay ningún camino que lleve a él | **Enlazarlos o retirarlos**; lo que no puede quedarse es a medias |
+
+### 3.3 🟢 HECHOS ÚNICOS **CORRECTOS** — así debe ser, NO se duplican
+
+> **Criterio:** vive en su documento propietario **y** un instrumento lo relee del fuente en cada
+> corrida, o los demás documentos lo referencian en vez de copiarlo. **Duplicarlos crearía dos
+> versiones que alguien tendría que sincronizar a mano** — el defecto que este repositorio lleva un
+> mes cerrando.
+
+| hecho | vive solo en | por qué está BIEN así |
+|---|---|---|
+| **Todo el contrato de bytes** (baudio, `TRAMA_MAX_UTIL`, buffers, la desigualdad del watchdog, los rangos del RTC) | `ESP32_Expansion/include/contrato.h` | **Es el ejemplo a seguir.** El propio fichero explica que cada número tiene un gemelo en otro lenguaje y que **`esp32_01` y `esp32_09` releen las tres fuentes en cada corrida**. Un cambio sin su gemelo pone la compuerta roja |
+| **`W-4`, `P-2`, `P-3`, `R-4`, `R-9`** — las reglas de diseño del puente | `18_...ESP32.md` como identificadores | Cada una está **razonada dentro de `contrato.h`** junto a su constante, y la vigila su pack. El documento explica; el fuente manda |
+| **«El puente NO ORIGINA»**, **«no parte ni une tramas»**, **«silencio no es orden»** | `18_...ESP32.md` §6.2–6.4 | Las tres son **barreras de arquitectura**… y las tres las vigila un pack (`esp32_05`, `esp32_06`, `esp32_08`). **El documento puede desaparecer y la barrera sigue de pie.** Es la diferencia exacta con P-1 |
+| **La asimetría deliberada del checksum** | `18_...ESP32.md` §3.4 | Vigilada por `esp32_09_contrato_de_bytes` |
+| **`SFTY-19`, `SFTY-24`, `SFTY-25`** (diseños **no implementados**) | `OPTIMIZACIONES.md` | Es su documento propietario, están declarados honestamente como *«sin construir»*, y no hay código que vigilar. **Copiarlos a un manual los convertiría en promesas** — que es lo que costó la Caja Negra de N-73 |
+| **`SFTY6_SILENCIO_MS`, `DESPEJE_SEG_MIN/MAX`, `RF_BURST_COPIES`, `TIMEOUT_ACK_MS`** | un `.h` cada uno | **Sin valor por defecto y releídos en cada corrida.** La lección de N-71 fue justo la contraria: sacarlos de la prosa |
+| **La línea `A1′` de compras** | `15_Lista_de_Compras_Hardware.md` | Documento propietario del dinero, con 11 punteros entrantes |
+| **`costura_11_lcd_sin_bus`, `camara_02_j16`, los nueve `esp32_*`** citados en un solo documento | `OPTIMIZACIONES.md` / `18_...ESP32.md` | **El pack es el hecho.** Está en `compuerta.py`, corre y sabe fallar; que un documento lo mencione una vez o diez no cambia lo que mide |
+| **El censo de pines completo** | `ARQUITECTURA.map` Anexo A | Es un índice, no una fuente: **cada fila lleva su `fichero:linea`**, y quien dude va al `.cpp`. Duplicarlo sería fabricar una segunda copia del `pines.h` |
+
+---
+
+## 4. 🔴 HUECOS ABIERTOS — lo que YA se perdió
+
+**Confirmado con `grep` sobre todo el árbol el 31/08, con el control positivo de §3.1 delante.**
+Estos cinco bloques **no tienen copia en ningún fichero del repositorio**. Se recogen aquí **solo
+para que no se vuelvan a perder**; su sitio definitivo es **la especificación de la placa portadora,
+que no existe todavía** y que el responsable encarga aparte. **Aquí no se escriben en ningún manual:
+no son ficheros de este encargo.**
+
+Todos vivían en `05_Funcional/Guia_Cableado_y_Pruebas_Banco.html`, añadidos en `f10f4d4` y retirados
+en `fa66710` al reescribir la guía **para el técnico**. La retirada fue **correcta de destinatario**
+—un funcional que va a cablear no necesita una barrera de arquitectura— y **equivocada de
+procedimiento**: no había otro sitio donde ponerlas.
+
+### H-1 · 🔴 «Lo que esta placa NO lleva» — **es una barrera de arquitectura, del rango de §6**
+
+Lo que decía, recuperado literal del commit `fa66710`:
+
+* **Nada que escriba sobre las luces.** Ni relés de lámpara, ni salidas de potencia, ni un hilo hacia
+  `J3`–`J9` o `J11`, ni hacia **`J15`** (la barrera), ni hacia **`J14`** (la cámara), ni hacia
+  **`J13`** (el buzzer). **Ni un hilo a `J16`** —ni para señal ni para tomar de ahí los 12 V—.
+* **El porqué, que no cambia porque haya una placa nueva:** solo `semaforo.cpp` escribe pines de luz,
+  y todo pasa por su `escribirPines()`. **Una placa accesoria no reabre la barrera de salidas.**
+  El ESP32 **no manda sobre el semáforo: PIDE**, por el puerto serie, y el STM32 acepta o rechaza con
+  su `$ACK` o su `$ERR`.
+* **Tampoco lleva nada que reinicie al STM32.** Ni una línea de *reset*, ni un watchdog externo sobre
+  la tarjeta: los dos STM32 ya tienen el suyo a 4 s, y **un accesorio con capacidad de reiniciar al
+  controlador del semáforo es exactamente el reparto que esta arquitectura evita.**
+* **Y no lleva batería propia para el ESP32.** Si se va la energía de la caja, el semáforo se apaga:
+  mantener vivo el módulo de diagnóstico mientras el cruce está muerto no resuelve nada y añade una
+  fuente más dentro del armario. **Lo único que sobrevive al corte es el reloj, con su pila.**
+* Y la frase que explica por qué la lista tenía que estar escrita: *«lo que una placa nueva **no**
+  lleva no deja rastro en el cobre: un hueco no grita, y dentro de un año nadie sabrá si faltó o si
+  se decidió»*.
+
+> **Es del mismo rango que la barrera de salidas de `CLAUDE.md` §6**, y hoy no está en ningún sitio.
+
+### H-2 · 🔴 Los puntos de prueba — **requisito de diseño, no comodidad**
+
+**El módulo va SOLDADO**, y por eso las dos cosas que habrá que hacerle con el tiempo —medirle el TX
+y volver a programarlo— **hay que diseñarlas ahora**, o se acaban haciendo con una punta de soldador
+sobre una placa montada dentro de un armario.
+
+| punto | qué es | para qué |
+|---|---|---|
+| **`TP1`** | `GPIO17` · **TX2** del ESP32 | **Es la medida `M5`**: en reposo debe dar **3,3 V** (línea serie en reposo alta). 🔴 **Si diera 5 V, el módulo no es el que se cree que es** |
+| **`TP2`** | `GPIO16` · **RX2** | ver que el hilo que viene del micro está donde se cree |
+| **`TPG`** | **masa, al lado de los otros dos** | **Una medida de tensión necesita dos puntas.** Un punto de prueba sin su masa al lado **no es un punto de prueba**: obliga a buscar masa en otro sitio con la placa energizada, que es como se resbala una punta |
+| **`TPV`** | salida de la fuente y su masa | para **`M6`**: medir la salida en vacío y con el módulo transmitiendo, **sin desmontar nada** |
+
+**Pads accesibles con punta de multímetro con la placa montada** —no vías tapadas por el módulo, no
+pads debajo de un conector—, **rotulados en la serigrafía**. *«Si no está rotulado, dentro de seis
+meses nadie sabrá cuál es cuál.»*
+
+### H-3 · 🔴 El acceso de reflasheo sin desoldar — **son DOS casos, y dependen del chip**
+
+* **Si el módulo es una placa DevKitC**, ya trae su **conector USB**: el requisito es **mecánico**
+  —que ese conector quede **accesible con la placa montada en la caja**, no tapado por el conector de
+  12 V, ni por el mazo hacia `J17`, ni contra una pared del armario—. **Se comprueba al dibujar la
+  placa, no después.**
+* **Si es un `WROOM` pelado**, no hay USB y hay que sacar a una tira de prueba: **`EN`, `IO0`,
+  `TX0` (`GPIO1`), `RX0` (`GPIO3`), `3V3` y `GND`**. 🔴 **Y no se reutilizan `GPIO16`/`GPIO17`**:
+  están ocupados por el enlace con el semáforo.
+* 🔴 **La precaución, que es la de `J16` p1 aplicada aquí:** `EN` e `IO0` son los que meten al módulo
+  en modo de descarga. **Una tira accesible con esos dos pines es una tira que un destornillador
+  puede pisar**, y el módulo se quedaría en modo de programación —mudo— sin que nada lo indique. Van
+  donde no se pisen, y **si llevan pulsador, que no sobresalga**.
+* **El procedimiento de las dos fuentes, porque es donde se rompe:** **antes de enchufar el USB se
+  corta la entrada de 12 V** (o se abre el jumper de aislamiento). **Serigrafiado en la placa.**
+
+### H-4 · 🟠 La medida `M6` y la regla de trazado
+
+* **`M6`** —riel de 12 V, salida de la fuente bajo pico, temperatura del regulador a los 30 min—
+  **no aparece hoy en ningún fichero** (`grep "M6"` → cero, con `M3` dando 15 como control positivo).
+  Iba encabezada por el aviso de que **hoy no se puede rellenar**: la respuesta correcta es marcar
+  *«NO SE PUDO MEDIR»* con motivo *«placa no construida»*. **Una hoja que solo admite bien/mal fuerza
+  a inventar.**
+* **La regla de trazado**, que sale de un hallazgo medido: en la tarjeta actual el margen contra los
+  12 V es de `1,36 mm` **y ya está fabricada**; en una placa que se dibuja de cero **eso se elige**.
+  **Entrada de 12 V y regulador en un extremo; señales de 3,3 V y conector a `J17` en el otro.**
+
+### H-5 · 🔴 Que la placa portadora **existe como objeto pendiente**
+
+`grep -i "portadora"` sobre **todo** el árbol devuelve **dos frases de prosa en `roadmap.md`**
+(`:149` y `:257`), y una de ellas es precisamente la nota de que estos requisitos se perdieron. **No
+hay un solo documento que diga que hay una placa que construir**, ni que
+**quién la diseña y quién la fabrica no está decidido**, ni que **no es todavía una línea de
+compras**.
+
+> 🛑 **Y `BLQ-1`, aunque esté cerrado para la app, dejó dicho algo que sigue vigente: la huella del
+> cobre.** Un `ESP32-WROOM-32` y un `ESP32-S3-WROOM-1` tienen **footprint y pinout distintos**. Ese
+> razonamiento tampoco tiene copia. *(Con `BLQ-1` cerrado el 31/08 la respuesta ya se conoce; lo que
+> se pierde es el **porqué**, que es lo que impide volver a equivocarse.)*
+
+---
+
+## 5. Lo que este índice NO cubre, y nadie debe dar por cubierto
+
+* **El cobre.** No hay una sola fila *«VERIFICADO EN LA PLACA»* en todo el proyecto, y este fichero
+  no inaugura la primera. Todo lo que aquí se llama **[MEDIDO]** se midió sobre **ficheros**.
+* **El banco.** V9.0 no ha estado nunca en una tarjeta. **Nada de lo que este índice ordena lo
+  sustituye.**
+* **Las cifras.** Aquí no hay ninguna del acta, a propósito. La vigente está en `evidencia/`.
+* **Los ficheros en vuelo.** Seis agentes escribían mientras esto se medía. Las **rutas** son
+  estables; las **líneas** de `app.js`, `lcd.cpp`, `OPTIMIZACIONES.md`, los manuales 2/12/14 y los
+  packs pueden haberse movido.
+* **Este fichero no se vigila solo.** No hay ningún pack que compruebe que sigue siendo cierto, y
+  **eso es deliberado**: un pack que exigiera que cada hecho esté en N ficheros forzaría a duplicar,
+  que es el defecto contrario. Lo que sí se puede escribir algún día, y sería barato, es un pack que
+  vigile **una sola propiedad**: que **ningún documento de `05_Funcional/` tenga cero punteros
+  entrantes**. Ese sí es un trinquete —lo que falla es un huérfano **nuevo**—, y habría cazado los
+  81 KB de la guía de cableado y los cuatro huérfanos de §2.
