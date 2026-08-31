@@ -188,13 +188,27 @@ document.addEventListener('DOMContentLoaded', () => {
   // no es una caida segura. El criterio no cambia con el nombre del literal.
   const SIN_PIN = ['FORZAR_ROJO', 'AMBAR_EMERGENCIA', 'SET_MODO:MENU', 'SET_MODO:ALCANCE'];
 
+  // DEVUELVE SI LA ORDEN LLEGO A SALIR, y el que llama TIENE QUE MIRARLO.
+  //
+  // Esta funcion se planta y no escribe un byte cuando falta el PIN, y hasta hoy no
+  // se lo decia a nadie: era un `return` seco. Tres manejadores -el reloj del
+  // celular, la inyeccion del Courier y el formulario de tiempos- imprimian su linea
+  // de exito EN VERDE Y EN PASADO justo debajo de la llamada, asi que sin PIN
+  // verificado la app anunciaba tres cosas que no habia enviado. Es la barrera del
+  // $ACK que no mira (CLAUDE.md 6) con las puntas cambiadas: aqui el que miente es
+  // el telefono, y el tecnico se va del poste igual.
+  //
+  // El molde de como se hace bien esta en la botonera de campo de mas abajo -"orden
+  // enviada", en cyan, y el resultado lo pintan $ACK y $STATUS-. Devolver un bool es
+  // lo que permite copiarlo: pulsar un boton no es saber que el equipo obedecio, y
+  // ni siquiera es saber que la orden salio.
   function enviarComandoFirmware(comando, args = '') {
     // La excepcion es el rojo de emergencia: bluetooth.cpp:70-82 lo acepta SIN PIN a
     // proposito -el PIN guarda lo que abre paso, no lo que lo para-.
     if (!SIN_PIN.includes(comando) && !state.pinVerificado) {
       console.warn('[TX BLOQUEADO] sin PIN verificado:', comando);
       addEvent('red', 'Comando ' + comando + ' no enviado: falta autorizacion con PIN.');
-      return;
+      return false;
     }
     const pin = state.correctPin;
     let rawCmd = '';
@@ -234,6 +248,59 @@ document.addEventListener('DOMContentLoaded', () => {
         // Modo offline sin servidor puente
       });
     }
+
+    // `true` significa EXACTAMENTE "la orden se escribio a la salida", ni un milimetro
+    // mas. No dice que el equipo la recibiera -la radio puede estar caida-, ni que la
+    // aceptara -eso lo dice $ACK- ni que la ejecutara -eso lo dice $STATUS-. Quien
+    // llame no puede escribir "hecho" con este bool; solo puede escribir "enviada".
+    return true;
+  }
+
+  // =========================================================================
+  // 1.bis LA HORA QUE SE MANDA AL EQUIPO SE COMPONE A MANO, NUNCA CON EL LOCALE
+  // =========================================================================
+  // EL RELOJ ENTRABA 12 HORAS TARDE Y LAS DOS PUNTAS CONTESTABAN RESULT:OK.
+  //
+  // Las dos puertas de SET_RTC formaban la hora con `new Date().toLocaleTimeString()`.
+  // MEDIDO en este equipo, con el locale de campo:
+  //
+  //     es-CO  ->  "6:25:00 p. m."     <- para las 18:25
+  //     es-ES  ->  "18:25:00"
+  //     en-US  ->  "6:25:00 PM"
+  //
+  // Y MEDIDO en C, compilando el mismo sscanf que usa el firmware
+  // (Maestro/src/bluetooth.cpp:307, Esclavo/src/bluetooth.cpp:242):
+  //
+  //     sscanf("2026-08-31,6:25:00 p. m.", "%d-%d-%d,%d:%d:%d")  ->  n=6, h=6
+  //
+  // El sufijo se queda fuera de la conversion, `n` vale 6, EL COMANDO SE ACEPTA y el
+  // equipo se queda con las 06:25. Nada en la cadena puede detectarlo: 06:25 es una
+  // hora perfectamente valida. Los tres $ACK son HONESTOS -miraron, y lo que miraron
+  // entro bien-, que es lo que lo vuelve invisible. Y falla SOLO POR LA TARDE, asi
+  // que una prueba de manana lo da por bueno. (De propina, tambien medido:
+  // "12:05:00 a. m." -las 00:05- entra como 12:05.)
+  //
+  // LO QUE CUELGA DE ESA HORA: es la que autoriza el Modo Degradado, el unico modo
+  // que enciende verde sin confirmacion del otro extremo.
+  //
+  // toTimeString() SI vale -su formato lo fija la especificacion, no el locale- pero
+  // se compone con los getters para que no haya que saberse esa diferencia de
+  // memoria, y para que el pack app_06_formato_de_hora pueda exigirlo por texto.
+  function horaLocal24(d = new Date()) {
+    const dd = (n) => String(n).padStart(2, '0');
+    return dd(d.getHours()) + ':' + dd(d.getMinutes()) + ':' + dd(d.getSeconds());
+  }
+
+  // Y LA MISMA LINEA MANDABA EL DIA DE MANANA CADA NOCHE.
+  //
+  // La fecha salia de `new Date().toISOString().slice(0, 10)`, y toISOString() es UTC.
+  // MEDIDO: local 2026-08-31 19:30 en UTC-5 -> "2026-09-01T00:30:00.000Z" -> el
+  // comando viaja con el dia 1. Desde las 19:00 locales, todas las noches, el dia del
+  // mes que entra al RTC es el siguiente. Se compone tambien a mano, con los getters
+  // locales, que es lo unico que no depende ni de la zona ni del idioma.
+  function fechaLocalISO(d = new Date()) {
+    const dd = (n) => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + dd(d.getMonth() + 1) + '-' + dd(d.getDate());
   }
 
   // --- TOAST & FEEDBACK HELPERS ---
@@ -277,100 +344,172 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // =========================================================================
-  // 2. RENDER DE SEMÁFOROS 3D Y CUENTA REGRESIVA
+  // 2. RENDER DE SEMAFOROS: SE PINTA LA PUNTA QUE HABLA, Y SE DECLARA LA OTRA
   // =========================================================================
+  // $STATUS TRAE EL ESTADO DE UN SOLO POSTE, Y ESTA PANTALLA TIENE DOS.
+  //
+  // El vocabulario que este bloque leia -V1_R2, Y1_R2, R1_R2, ALL_RED, R1_V2, R1_Y2,
+  // AMBAR_FAIL- describe LOS DOS semaforos a la vez, y NO LO EMITE NINGUN FIRMWARE:
+  // sale del puente de PC (servidor_puente_simulador.py:28), que es un simulador.
+  // Lo que manda el equipo es el enum de cuatro valores de semaforo_nombreEstado()
+  // -Maestro/src/semaforo.cpp:336-344 y Esclavo/src/semaforo.cpp:331-339, identicos-:
+  //
+  //     "ROJO"   "VERDE"   "AMARILLO"   "FALLO COM"
+  //
+  // MEDIDO: la interseccion de las dos listas es VACIA. Con el enlace vivo no casaba
+  // ni un case, las seis lamparas se quedaban apagadas por el forEach de arriba y
+  // nadie volvia a encenderlas, y s1Text/s2Text/phase-desc conservaban lo ultimo que
+  // hubiera -que tras marcarSinEnlace() es "SIN ENLACE - sin datos del equipo"-. O
+  // sea: el tablero declaraba que no tenia datos MIENTRAS los estaba recibiendo.
+  //
+  // POR QUE ESTO NO SE ARREGLA RENOMBRANDO LOS `case`.
+  //
+  // No hay a que renombrarlos. `V1_R2` afirma algo de DOS postes y la trama habla de
+  // UNO: el que dice NODE:. La app NO TIENE el estado del otro extremo -no llega por
+  // Bluetooth, y ninguna punta lo pone en $STATUS-. Deducirlo -"si este da verde, el
+  // otro estara en rojo"- seria inventar justo la cifra que decide si se cruza, y
+  // seria FALSO precisamente cuando mas se mira el telefono: en Modo Degradado cada
+  // punta cicla por su cuenta, un ambar de emergencia es local, y con la radio caida
+  // las dos puntas se van a S_FALLO por separado.
+  //
+  // Asi que se pinta el poste que habla, con su valor literal, y del otro se dice que
+  // no se sabe. Un tablero quieto que admite que no sabe es honesto; uno que pinta un
+  // cruce que no ha medido le miente a quien decide sobre el trafico mirandolo
+  // (CLAUDE.md 3.quinquies).
+  //
+  // Y el otro sentido, que se cobra al reves: "FALLO COM" NO ES "APAGADO" NI ES ROJO.
+  // Es ambar intermitente CON LA TALANQUERA ARRIBA -SFTY-6, la politica que eligio el
+  // cliente el 27/08-: por ahi SE PASA con precaucion. El anillo lo pintaba de rojo
+  // (ver mas abajo), que dice lo contrario de lo que hace el equipo.
+  const ESTADOS = {
+    'ROJO':      { lampara: 'red',   texto: 'ROJO (ESPERA)',  color: 'var(--red-text)',   anillo: 'red',
+                   frase: 'ROJO, este poste no da paso' },
+    'VERDE':     { lampara: 'green', texto: 'VERDE (PASO)',   color: 'var(--green-lamp)', anillo: 'green',
+                   frase: 'VERDE, este poste da paso' },
+    'AMARILLO':  { lampara: 'amber', texto: 'AMARILLO',       color: 'var(--amber-lamp)', anillo: 'amber',
+                   frase: 'AMARILLO, este poste está cerrando su paso' },
+    'FALLO COM': { lampara: 'amber', texto: 'ÁMBAR DESTELLO', color: 'var(--amber-lamp)', anillo: 'amber',
+                   frase: 'FALLO COM: ámbar intermitente y TALANQUERA ARRIBA, se pasa con precaución' }
+  };
+
+  // MODO: los diez literales que las dos puntas pueden emitir. Nueve son los `case`
+  // de obtenerNombreModo() (Maestro/src/bluetooth.cpp:367-379) y el decimo es el
+  // literal fijo que el Esclavo escribe dentro de su propio snprintf,
+  // MODO:SUBORDINADO (Esclavo/src/bluetooth.cpp:328).
+  //
+  // La cadena de `if` anterior tenia CUATRO ramas -AUTO, MANUAL, AMBAR y un
+  // ROJO_TOTAL que no emite nadie- y ningun `else`: con MENU, INTELIGENTE, ALCANCE,
+  // HORA, DEGRADADO, DESCONOCIDO o SUBORDINADO el badge se quedaba con el modo
+  // ANTERIOR pintado y con su color, o sea un modo vencido con aspecto de vigente. El
+  // que mas duele de esa lista es DEGRADADO: es el unico modo que da verde SIN
+  // confirmacion del otro extremo, y era invisible en la pantalla.
+  const MODOS = {
+    'AUTO':        { texto: '🟢 AUTOMÁTICO',                fondo: 'rgba(0,230,118,0.15)',   borde: 'var(--green-lamp)', color: 'var(--green-lamp)' },
+    'MANUAL':      { texto: '✋ MODO MANUAL',                fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
+    'AMBAR':       { texto: '🟡 ÁMBAR PRECAUCIÓN',          fondo: 'rgba(255,179,0,0.15)',   borde: 'var(--amber-lamp)', color: 'var(--amber-lamp)' },
+    'MENU':        { texto: '☰ EN MENÚ · SIN CICLO',        fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
+    'INTELIGENTE': { texto: '👁 INTELIGENTE · POR DEMANDA',  fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
+    'ALCANCE':     { texto: '🛑 ALCANCE · ROJO FIJO',       fondo: 'rgba(255,30,68,0.2)',    borde: 'var(--red-lamp)',   color: 'var(--red-lamp)' },
+    'HORA':        { texto: '🕐 AJUSTANDO HORA',            fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
+    'DEGRADADO':   { texto: '⚠️ DEGRADADO · SIN ENLACE ENTRE POSTES', fondo: 'rgba(255,179,0,0.15)', borde: 'var(--amber-lamp)', color: 'var(--amber-lamp)' },
+    'SUBORDINADO': { texto: '🔗 SUBORDINADO AL MAESTRO',    fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
+    // Este no es "la app no lo conoce": es el equipo diciendo que no sabe en que modo
+    // esta -el `default` de su propio switch-. Se distingue del de abajo a proposito.
+    'DESCONOCIDO': { texto: '❔ EL EQUIPO NO SABE SU MODO',  fondo: 'rgba(148,163,184,0.15)', borde: 'var(--text-muted)', color: 'var(--text-muted)' }
+  };
+
+  function pintarBadgeModo() {
+    if (!badgeModoEl) return;
+    const info = MODOS[state.modo];
+    badgeModoEl.className = 'badge badge-auto';
+    if (info) {
+      badgeModoEl.style.background = info.fondo;
+      badgeModoEl.style.borderColor = info.borde;
+      badgeModoEl.style.color = info.color;
+      badgeModoEl.textContent = info.texto;
+    } else {
+      // Un MODO que esta tabla no conoce se DICE, con el literal a la vista. Callarlo
+      // dejaria el badge anterior en pantalla; ensenarlo hace visible el dia que el
+      // firmware estrene un modo y a esta lista se le olvide crecer.
+      badgeModoEl.style.background = 'rgba(148,163,184,0.15)';
+      badgeModoEl.style.borderColor = 'var(--text-muted)';
+      badgeModoEl.style.color = 'var(--text-muted)';
+      badgeModoEl.textContent = state.modo
+        ? '❔ MODO NO RECONOCIDO: ' + state.modo
+        : 'SIN DATOS DE MODO';
+    }
+  }
+
   function renderLights() {
     if (!s1Red || !s1Amber || !s1Green || !s2Red || !s2Amber || !s2Green) return;
 
     [s1Red, s1Amber, s1Green, s2Red, s2Amber, s2Green].forEach(l => l.classList.remove('active'));
 
-    switch (state.estadoLuces) {
-      case 'V1_R2':
-        s1Green.classList.add('active');
-        s2Red.classList.add('active');
-        s1Text.textContent = 'VERDE (PASO)';
-        s1Text.style.color = 'var(--green-lamp)';
-        s2Text.textContent = 'ROJO (ESPERA)';
-        s2Text.style.color = 'var(--red-text)';
-        phaseDescEl.textContent = 'FASE: SENTIDO 1 (P1)';
-        break;
+    // Cual de las dos columnas es la que habla. El reparto no se inventa aqui: es el
+    // mismo que ya rotula el HTML -POSTE 1 = MAESTRO, POSTE 2 = ESCLAVO- y el mismo
+    // que usa la cabecera al leer NODE:.
+    const esEsclavo = state.node === 'ESCLAVO';
+    const propias = esEsclavo ? [s2Red, s2Amber, s2Green] : [s1Red, s1Amber, s1Green];
+    const textoPropio = esEsclavo ? s2Text : s1Text;
+    const textoAjeno = esEsclavo ? s1Text : s2Text;
+    const rotuloAjeno = esEsclavo ? 'POSTE 1 · MAESTRO' : 'POSTE 2 · ESCLAVO';
 
-      case 'Y1_R2':
-        s1Amber.classList.add('active');
-        s2Red.classList.add('active');
-        s1Text.textContent = 'AMARILLO';
-        s1Text.style.color = 'var(--amber-lamp)';
-        s2Text.textContent = 'ROJO (ESPERA)';
-        s2Text.style.color = 'var(--red-text)';
-        phaseDescEl.textContent = 'PRECAUCIÓN SENTIDO 1';
-        break;
-
-      case 'R1_R2':
-      case 'ALL_RED':
-        s1Red.classList.add('active');
-        s2Red.classList.add('active');
-        s1Text.textContent = 'ROJO (DESPEJE)';
-        s1Text.style.color = 'var(--red-text)';
-        s2Text.textContent = 'ROJO (DESPEJE)';
-        s2Text.style.color = 'var(--red-text)';
-        phaseDescEl.textContent = 'DESPEJE TOTAL CALZADA';
-        break;
-
-      case 'R1_V2':
-        s1Red.classList.add('active');
-        s2Green.classList.add('active');
-        s1Text.textContent = 'ROJO (ESPERA)';
-        s1Text.style.color = 'var(--red-text)';
-        s2Text.textContent = 'VERDE (PASO)';
-        s2Text.style.color = 'var(--green-lamp)';
-        phaseDescEl.textContent = 'FASE: SENTIDO 2 (P2)';
-        break;
-
-      case 'R1_Y2':
-        s1Red.classList.add('active');
-        s2Amber.classList.add('active');
-        s1Text.textContent = 'ROJO (ESPERA)';
-        s1Text.style.color = 'var(--red-text)';
-        s2Text.textContent = 'AMARILLO';
-        s2Text.style.color = 'var(--amber-lamp)';
-        phaseDescEl.textContent = 'PRECAUCIÓN SENTIDO 2';
-        break;
-
-      case 'AMBAR_FAIL':
-        s1Amber.classList.add('active');
-        s2Amber.classList.add('active');
-        s1Text.textContent = 'ÁMBAR DESTELLO';
-        s1Text.style.color = 'var(--amber-lamp)';
-        s2Text.textContent = 'ÁMBAR DESTELLO';
-        s2Text.style.color = 'var(--amber-lamp)';
-        phaseDescEl.textContent = 'MODO ÁMBAR PRECAUCIÓN';
-        break;
+    // EL OTRO EXTREMO NO SE PINTA NUNCA. Sus tres lamparas se quedan apagadas por el
+    // forEach de arriba, y el texto de debajo dice por que: tres lamparas apagadas a
+    // secas se leen como "ese poste esta apagado", que seria otra afirmacion sin
+    // medida. Lo que consta es que ESTA trama no habla de el.
+    function declararAjeno() {
+      if (!textoAjeno) return;
+      textoAjeno.textContent = 'SIN DATOS · no viaja en esta trama';
+      textoAjeno.style.color = 'var(--text-muted)';
     }
 
-    // Badge Modo
-    if (badgeModoEl) {
-      if (state.modo === 'AUTO') {
-        badgeModoEl.className = 'badge badge-auto';
-        badgeModoEl.textContent = '🟢 AUTOMÁTICO';
-      } else if (state.modo === 'MANUAL') {
-        badgeModoEl.className = 'badge badge-auto';
-        badgeModoEl.style.background = 'rgba(0,240,255,0.15)';
-        badgeModoEl.style.borderColor = 'var(--cyan-neon)';
-        badgeModoEl.style.color = 'var(--cyan-neon)';
-        badgeModoEl.textContent = '✋ MODO MANUAL';
-      } else if (state.modo === 'AMBAR') {
-        badgeModoEl.className = 'badge badge-auto';
-        badgeModoEl.style.background = 'rgba(255,179,0,0.15)';
-        badgeModoEl.style.borderColor = 'var(--amber-lamp)';
-        badgeModoEl.style.color = 'var(--amber-lamp)';
-        badgeModoEl.textContent = '🟡 ÁMBAR PRECAUCIÓN';
-      } else if (state.modo === 'ROJO_TOTAL') {
-        badgeModoEl.className = 'badge badge-auto';
-        badgeModoEl.style.background = 'rgba(255,30,68,0.2)';
-        badgeModoEl.style.borderColor = 'var(--red-lamp)';
-        badgeModoEl.style.color = 'var(--red-lamp)';
-        badgeModoEl.textContent = '🛑 ROJO TOTAL';
+    pintarBadgeModo();
+
+    if (!state.node) {
+      // Ni siquiera se sabe QUE punta hay al otro lado, asi que no hay columna que
+      // pintar. Ocurre entre la conexion y el primer $STATUS.
+      [s1Text, s2Text].forEach(t => {
+        if (!t) return;
+        t.textContent = 'SIN DATOS';
+        t.style.color = 'var(--text-muted)';
+      });
+      if (phaseDescEl) phaseDescEl.textContent = 'EQUIPO SIN IDENTIFICAR - esperando NODE en $STATUS';
+      return;
+    }
+
+    const info = ESTADOS[state.estadoLuces];
+    if (!info) {
+      // Llego un ESTADO que no esta en el enum del firmware. No se adivina: se ensena
+      // el literal. Es lo que hace visible el desajuste en vez de dejar la pantalla
+      // congelada, que es justo como este defecto sobrevivio.
+      declararAjeno();
+      if (textoPropio) {
+        textoPropio.textContent = 'ESTADO NO RECONOCIDO';
+        textoPropio.style.color = 'var(--text-muted)';
       }
+      if (phaseDescEl) {
+        phaseDescEl.textContent = state.estadoLuces
+          ? 'ESTADO no reconocido: "' + state.estadoLuces + '"'
+          : 'SIN ESTADO en la última trama';
+      }
+      return;
+    }
+
+    propias[{ red: 0, amber: 1, green: 2 }[info.lampara]].classList.add('active');
+    if (textoPropio) {
+      textoPropio.textContent = info.texto;
+      textoPropio.style.color = info.color;
+    }
+    declararAjeno();
+
+    // La linea del centro deja de anunciar una FASE DEL CRUCE -"FASE: SENTIDO 1"-,
+    // que es una afirmacion sobre los dos postes, y pasa a decir DE QUIEN es el dato
+    // que se esta viendo y que dice. Es la misma diferencia de arriba, escrita donde
+    // el operario la lee.
+    if (phaseDescEl) {
+      phaseDescEl.textContent = (esEsclavo ? 'ESCLAVO' : 'MAESTRO') + ': ' + info.frase +
+                                ' · ' + rotuloAjeno + ' no informa';
     }
   }
 
@@ -379,22 +518,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const current = Math.max(0, state.countdown);
     cdNumEl.textContent = current;
 
-    const total = Math.max(1, state.countdownMax);
-    const fraction = current / total;
     const circumference = 251.32;
-    const offset = circumference - (fraction * circumference);
-    ringProgressEl.style.strokeDashoffset = offset;
+    // LA FRACCION SOLO SE DIBUJA SI HAY UN TOTAL QUE VENGA DE FUERA DE ESTA APP.
+    //
+    // countdownMax no llega en $STATUS -la trama trae T: y nada mas-, asi que el
+    // unico que lo rellenaba era el formulario de tiempos de la propia app: el anillo
+    // dibujaba una fraccion contra un total que se habia inventado el telefono. Sin
+    // total conocido se deja el arco vacio, que es lo que se sabe; el numero de
+    // segundos si viene del equipo y se sigue mostrando.
+    const total = state.countdownMax > 0 ? state.countdownMax : 0;
+    ringProgressEl.style.strokeDashoffset = total > 0
+      ? circumference - (Math.min(1, current / total) * circumference)
+      : circumference;
 
-    if (state.estadoLuces.includes('V')) {
-      ringProgressEl.className = 'ring-fill green';
-      cdNumEl.className = 'ring-num green';
-    } else if (state.estadoLuces.includes('Y') || state.estadoLuces === 'AMBAR_FAIL') {
-      ringProgressEl.className = 'ring-fill amber';
-      cdNumEl.className = 'ring-num amber';
-    } else {
-      ringProgressEl.className = 'ring-fill red';
-      cdNumEl.className = 'ring-num red';
-    }
+    // EL COLOR SE DECIDE POR EL VALOR, NO POR LAS LETRAS QUE LLEVA DENTRO.
+    //
+    // Esto era `.includes('V')` / `.includes('Y')` sobre el vocabulario del
+    // simulador. MEDIDO contra el enum real: "AMARILLO" NO contiene 'Y' y "FALLO COM"
+    // tampoco, asi que los dos caian al else y salian en ROJO -el equipo en ambar, y
+    // en el caso de FALLO COM con la talanquera ARRIBA, mientras el anillo decia
+    // ESPERA-.
+    const info = ESTADOS[state.estadoLuces];
+    const clase = info ? info.anillo : 'red';
+    ringProgressEl.className = 'ring-fill ' + clase;
+    cdNumEl.className = 'ring-num ' + clase;
   }
 
   // =========================================================================
@@ -665,7 +812,15 @@ document.addEventListener('DOMContentLoaded', () => {
     btnDegradadoConfirmar.addEventListener('click', () => {
       if (chkDegradadoVerificado && !chkDegradadoVerificado.checked) return;
       closeModal(degradadoModal);
-      enviarComandoFirmware('SET_MODO:DEGRADADO');
+      // ESTA PUERTA NO TIENE GUARDA DE PIN DELANTE Y SET_MODO:DEGRADADO NO ESTA EN
+      // SIN_PIN, asi que sin PIN verificado la llamada no escribia un byte y la linea
+      // de abajo se imprimia igual: "orden enviada... esperando respuesta" sobre una
+      // orden que no salio, y el tecnico esperando un $ACK que no puede llegar. Lo
+      // encontro el pack app_05_sin_exito_mudo, no una lectura: era el quinto sitio
+      // con este defecto y el unico que no estaba en la lista de partida. Y es el peor
+      // de los cinco por lo que pide: el Degradado es el unico modo que enciende verde
+      // sin confirmacion del otro extremo.
+      if (!enviarComandoFirmware('SET_MODO:DEGRADADO')) return;
       // NO se pinta ningun modo: la puerta de modo_degradado_evaluarEntrada() rechaza
       // por seis motivos distintos y el que decide es el equipo. Si dice que no, llega
       // un $ERR con el motivo concreto y lo ensena el camino de rechazos de siempre.
@@ -758,13 +913,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.SERIE) {
         state.serie = data.SERIE;
       }
-      if (data.MODO) {
+      // Se guarda lo que VENGA, incluido el vacio. Los dos switch del firmware tienen
+      // salida por abajo -semaforo_nombreEstado() devuelve "" si el estado no es
+      // ninguno de los cuatro; obtenerNombreModo() devuelve "DESCONOCIDO"-, y un
+      // ESTADO vacio con el `if (data.ESTADO)` de antes NO se guardaba: la pantalla se
+      // quedaba con el ultimo estado bueno pintado como si fuera de ahora. Un campo
+      // que llega vacio es un dato -dice que el equipo no sabe-, no una trama sin
+      // campo. renderLights() lo declara.
+      if (data.MODO !== undefined) {
         state.modo = data.MODO;
       }
-      if (data.ESTADO) {
+      if (data.ESTADO !== undefined) {
         state.estadoLuces = data.ESTADO;
       }
-      if (data.MODO || data.ESTADO) {
+      if (data.MODO !== undefined || data.ESTADO !== undefined) {
         renderLights();
       }
       // El control de DEMANDA se abre y se cierra con el MODO que acaba de llegar, no
@@ -1072,21 +1234,36 @@ document.addEventListener('DOMContentLoaded', () => {
       const rojo = parseInt(numTiempoRojo.value, 10);
       const despeje = parseInt(numTiempoDespeje.value, 10);
 
-      if (verde < 1 || verde > 15 || rojo < 1 || rojo > 15 || despeje < 10 || despeje > 90) {
-        showToast('❌ Error: Tiempos fuera de rango permitido.');
+      // TODA COMPARACION CON NaN ES FALSE, incluida la de "fuera de rango".
+      //
+      // Un campo vacio da parseInt('') === NaN, y con NaN las seis comparaciones de
+      // la guarda anterior salian false, asi que la guarda dejaba pasar y al cable se
+      // iba SET_TIEMPOS:NaN,2,15 -reproducido en node-. El firmware lo rechaza, pero
+      // eso es suerte: la guarda de rangos de la app no estaba guardando nada. Se
+      // pregunta primero si hay tres enteros, y el rango despues.
+      const enRango = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
+      if (!enRango(verde, 1, 15) || !enRango(rojo, 1, 15) || !enRango(despeje, 10, 90)) {
+        showToast('❌ Error: Tiempos vacíos o fuera de rango permitido.');
         return;
       }
 
+      // Estos tres son la memoria del FORMULARIO, no telemetria.
       state.tiempoVerdeMin = verde;
       state.tiempoRojoMin = rojo;
       state.tiempoDespejeSeg = despeje;
-      state.countdown = verde * 60;
-      state.countdownMax = verde * 60;
 
-      enviarComandoFirmware('SET_TIEMPOS', `${verde},${rojo},${despeje}`);
-      updateCountdownRing();
-      showToast(`💾 Tiempos guardados: Verde ${verde}m · Rojo ${rojo}m · Despeje ${despeje}s`);
-      addEvent('cyan', `Ajustes aplicados: Verde=${verde}min, Rojo=${rojo}min, Despeje=${despeje}seg.`);
+      // AQUI SE ESCRIBIAN state.countdown Y state.countdownMax, que son los del
+      // ANILLO DE TELEMETRIA, y se llamaba a updateCountdownRing(): el formulario
+      // arrancaba una cuenta atras de verde*60 s que no habia mandado ningun equipo.
+      // Es el panel de demo escribiendo en los mismos widgets que el dato real
+      // (CLAUDE.md 3.quinquies). El contador lo pinta T: de $STATUS y nadie mas.
+      if (!enviarComandoFirmware('SET_TIEMPOS', `${verde},${rojo},${despeje}`)) return;
+      // "Enviada", no "guardados". Los tiempos los acepta o los rechaza el equipo
+      // -SET_TIEMPOS es justo la rama que este repositorio usa de molde porque
+      // pregunta dentro del `if` y tiene un $ERR por cada motivo-, y esa respuesta
+      // llega por $ACK/$ERR, que ya tienen quien los pinte.
+      showToast(`Orden enviada: Verde ${verde}m · Rojo ${rojo}m · Despeje ${despeje}s`);
+      addEvent('cyan', `Orden SET_TIEMPOS enviada al equipo: Verde=${verde}min, Rojo=${rojo}min, Despeje=${despeje}seg. Espere el acuse.`);
     });
   }
 
@@ -1095,7 +1272,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   if (btnCourierCapture) {
     btnCourierCapture.addEventListener('click', () => {
-      const now = new Date().toLocaleTimeString();
+      // 24 h compuesta a mano. Con toLocaleTimeString() esto capturaba
+      // "6:25:00 p. m." y el Courier lo partia por ':' -ver js/courier_rtc.js-, de
+      // modo que compensaba los segundos de traslado con exactitud de reloj sobre una
+      // hora 12 horas equivocada.
+      const now = horaLocal24();
       state.courierSnapshot = CourierRTC.capturarMaestro(now, state.estadoLuces, state.countdown);
       state.courierSecondsElapsed = 0;
 
@@ -1127,11 +1308,29 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!state.courierSnapshot) return;
       if (state.courierTimerInterval) clearInterval(state.courierTimerInterval);
 
-      const comp = CourierRTC.calcularCompensacion(state.courierSnapshot, Date.now());
-      const today = new Date().toISOString().slice(0, 10);
-      enviarComandoFirmware('SET_RTC', `${today},${comp.horaCompensada}`);
-      showToast(`🚀 Sincronizado en Esclavo. Hora compensada: ${comp.horaCompensada}`);
-      addEvent('green', `Courier RTC: Inyección en Esclavo exitosa (Viaje: ${comp.elapsedSeg}s).`);
+      // calcularCompensacion() ahora RECHAZA una hora que no sea HH:MM:SS en vez de
+      // tragarsela: antes `Number("00 p. m.")` daba NaN y el `ss || 0` de al lado lo
+      // convertia en 0 -NaN es falsy-, asi que no reventaba, seguia, y devolvia una
+      // hora limpia y falsa. Si se niega, se dice; no se manda nada.
+      let comp;
+      try {
+        comp = CourierRTC.calcularCompensacion(state.courierSnapshot, Date.now());
+      } catch (e) {
+        showToast('No se pudo compensar la hora capturada');
+        addEvent('red', 'Courier RTC: no se inyectó nada. ' + e.message);
+        return;
+      }
+      // La fecha se compone con los getters locales: toISOString() es UTC y desde las
+      // 19:00 locales mandaba el dia siguiente.
+      const today = fechaLocalISO();
+      if (!enviarComandoFirmware('SET_RTC', `${today},${comp.horaCompensada}`)) return;
+      // "Enviada", no "exitosa". Esta app no sabe si el Esclavo puso la hora: su
+      // despachador contesta $ERR,SIN_CRISTAL o $ERR,FORMATO_INVALIDO cuando no puede
+      // -Esclavo/src/bluetooth.cpp:251-257-, y con Y2 muerto en hardware (N-17) ese
+      // rechazo es hoy la respuesta habitual, no la rara.
+      showToast(`Orden enviada al Esclavo: ${today} ${comp.horaCompensada}`);
+      addEvent('cyan', `Courier RTC: orden SET_RTC enviada (${today} ${comp.horaCompensada}, ` +
+                       `traslado ${comp.elapsedSeg}s). Espere el acuse del equipo.`);
 
       if (btnCourierInject) btnCourierInject.disabled = true;
     });
@@ -1139,11 +1338,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnSyncRtc) {
     btnSyncRtc.addEventListener('click', () => {
-      const now = new Date().toLocaleTimeString();
-      const today = new Date().toISOString().slice(0, 10);
-      enviarComandoFirmware('SET_RTC', `${today},${now}`);
-      showToast(`⏱️ Reloj RTC DS3231 sincronizado a las ${now}`);
-      addEvent('green', `Reloj del Semáforo ajustado con el celular: ${now}.`);
+      // Una sola lectura del reloj para los dos campos: con dos `new Date()` la fecha
+      // y la hora pueden caer a distinto lado de la medianoche.
+      const ahora = new Date();
+      const now = horaLocal24(ahora);
+      const today = fechaLocalISO(ahora);
+      if (!enviarComandoFirmware('SET_RTC', `${today},${now}`)) return;
+      // NO SE NOMBRA NINGUNA PIEZA -"RTC DS3231"-: es lo mismo que N-45 quito de la
+      // pantalla del equipo por senalar un componente sin haberlo medido, y ademas el
+      // DS3231 hoy cuelga del ESP32, no de esta puerta.
+      //
+      // Y NO SE DICE "sincronizado": el Maestro tiene TRES finales para este comando
+      // -FORMATO_INVALIDO, SIN_CRISTAL_VEA_CONSULTA_RELOJ y OK
+      // (Maestro/src/bluetooth.cpp:307-330)-, y con Y2 confirmado muerto en hardware
+      // (N-17) el del medio es el habitual. La app solo sabe que la orden salio.
+      showToast(`Orden de ajuste de hora enviada: ${today} ${now}`);
+      addEvent('cyan', `Orden SET_RTC enviada al equipo con la hora del celular: ${today} ${now}. ` +
+                       `Espere el acuse; si no llega, el reloj NO quedó puesto.`);
     });
   }
 
