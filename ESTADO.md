@@ -30,7 +30,7 @@ banco**, y los dos se responden con el equipo en la mano.
 | Componente / Documento | Ubicación en el Repositorio | Descripción y Función |
 |---|---|---|
 | **App Móvil de Campo** | [`05_Funcional/App_Semaforo/`](file:///d:/@Proyect/Controladora_Semaforos%202/05_Funcional/App_Semaforo/) | Frontend Web Bluetooth / WebView con UI Baliza IOT-VIAL, Selector de Cruces Viales y Modo Courier RTC. |
-| **Manual de Usuario V9.0** | [`05_Funcional/1_Manual_Usuario.md`](file:///d:/@Proyect/Controladora_Semaforos%202/05_Funcional/1_Manual_Usuario.md) / `.docx` | Ground Truth de secuencia lumínica Colombia 2024. ⚠️ ~~cámaras en `PB0` (las de `PB8` van cableadas y en reposo), mando y Bluetooth~~ — **falso desde el 28/08**: las cámaras se mudan a `J16` p10/p12, el mando y los pulsadores se retiran y el Bluetooth pasa al ESP32. **El manual todavía no está corregido** (Manual 17 §B, segundo bloque). |
+| **Manual de Usuario V9.0** | [`05_Funcional/1_Manual_Usuario.md`](file:///d:/@Proyect/Controladora_Semaforos%202/05_Funcional/1_Manual_Usuario.md) / `.docx` | Ground Truth de secuencia lumínica Colombia 2024. ⚠️ ~~cámaras en `PB0` (las de `PB8` van cableadas y en reposo), mando y Bluetooth~~ — **falso desde el 28/08**: las cámaras se mudan a `J16` p10/p12 y el Bluetooth pasa al ESP32. ~~el mando y los pulsadores se retiran~~ — **corregido el 31/08 por decisión del responsable: el mando de relés SE CONSERVA en los canales A y B** (`MANDO_A`=`BOTON1`=`PB9`=`J16` p5, `MANDO_B`=`BOTON2`=`PB13`=`J16` p8). Se retiran **solo** los pulsadores 3 y 4 (`PB14`/`PB15`), que son los que las cámaras necesitan. Ver §4. **El manual todavía no está corregido** (Manual 17 §B, segundo bloque). |
 | **Manual de Hardware V9.0** | [`05_Funcional/2_Manual_Hardware_y_Pruebas.md`](file:///d:/@Proyect/Controladora_Semaforos%202/05_Funcional/2_Manual_Hardware_y_Pruebas.md) / `.docx` | Ensamblaje, cableado RS485 a 2.4kbps, pila RTC en VBAT (R5 retirada) y borneras. |
 | **Protocolo de Pruebas (80)** | [`05_Funcional/3_Protocolo_Pruebas_Rigurosas.md`](file:///d:/@Proyect/Controladora_Semaforos%202/05_Funcional/3_Protocolo_Pruebas_Rigurosas.md) / `.docx` | Acta de certificación funcional de **80 pruebas** —contadas, no recordadas: 80 identificadores unicos y 80 lineas `CUMPLE`— ~~(incluye cámaras en `PB0`, BT y N-53)~~. 🔴 **Con la arquitectura del 28/08, 49 de las 80 dejan de ser ejecutables** —sección a sección, Manual 17 §2.8—: sobreviven 31 en principio y **sólo 16 tal como están redactadas hoy**. Se reescribe **la última**, no la primera. |
 | **Manual 4 Cámaras IA** | [`05_Funcional/9_Manual_Parametrizacion_Camara_IA.md`](file:///d:/@Proyect/Controladora_Semaforos%202/05_Funcional/9_Manual_Parametrizacion_Camara_IA.md) / `.docx` | Parametrización Hikvision AcuSense G2. ⚠️ ~~contactos `1A`/`1B` en `PB0` (Demanda, **activa**) y `PB8` (Umbral, **en reposo en V9.0**)~~ — **el `PB8` ya no es destino de cámara**: son **2 cámaras de demanda**, y el pinout se muda a `J16` p10/p12 (`PB14`/`PB15`). Manual pendiente. |
@@ -47,9 +47,10 @@ banco**, y los dos se responden con el equipo en la mano.
 
 ### 1. ~~Sistema de 4 Cámaras IA AcuSense~~ → **2 cámaras de demanda** (Cero Raspi/Jetson externas)
 * **Lo que sigue en pie:** descartar ordenadores externos. La analítica vehicular corre dentro del procesador AcuSense de las cámaras Hikvision. **Seguridad:** todo cambio de sentido respeta el tiempo de **Despeje Todo-Rojo (`cfgDespejeSeg`)**.
-* ⚠️ ~~**Conexión:** Maestro: Cámara 1 (Demanda ➔ `PB0`) + Cámara 2 (Umbral ➔ `PB8`). Esclavo: Cámara 3 (`PB0`) + Cámara 4 (`PB8`)~~ — **falso desde el 28/08**. No son cuatro cámaras ni hay pin de umbral: son **dos cámaras de demanda, una por poste**, y su destino pasa a ser **`J16` p10 (`PB14`) y p12 (`PB15`)**, los pines que libera la retirada de los pulsadores y el mando.
+* ⚠️ ~~**Conexión:** Maestro: Cámara 1 (Demanda ➔ `PB0`) + Cámara 2 (Umbral ➔ `PB8`). Esclavo: Cámara 3 (`PB0`) + Cámara 4 (`PB8`)~~ — **falso desde el 28/08**. No son cuatro cámaras ni hay pin de umbral: son **dos cámaras de demanda, una por poste**, y su destino pasa a ser **`J16` p10 (`PB14`) y p12 (`PB15`)**, ~~los pines que libera la retirada de los pulsadores y el mando~~ → **los pines que libera la retirada de los pulsadores 3 y 4** (31/08): el mando **no** los usaba —`grep "BOTON[1-4]" Maestro/src/mando.cpp` da **CERO**, MEDIDO—, así que retirarlos no le quita nada al mando.
 * 🔴 **Y no se cablea todavía.** La polaridad de esos cuatro pines está en **contradicción medida**: el netlist tiene pull-**down** de 10 k con 3,3 V al lado (activo en ALTO) y `botones.cpp` los pone en `INPUT_PULLUP` y lee `== LOW`. Es **N-67 otra vez**, y se cierra con multímetro (medida **M3** del Manual 17 §A), no leyendo más código. Cablear al revés da **demanda permanente** o **demanda que nunca llega**: las dos son de calle.
-* 🔴 **`J16` p1 lleva 12 V crudos** —el único conector de señal de la tarjeta que los trae, sin opto ni clamp—. Se tapa físicamente antes de cablear nada, y `p5`/`p8` se dejan vacíos a propósito como colchón (**10,2 mm** de `p1` a `p5`, **22,9 mm** a `p10`, **27,9 mm** a `p12`).
+* 🔴 **`J16` p1 lleva 12 V crudos** —el único conector de señal de la tarjeta que los trae, sin opto ni clamp—. Se tapa físicamente antes de cablear nada.
+* 🔴 ~~`p5`/`p8` se dejan vacíos a propósito como colchón (**10,2 mm** de `p1` a `p5`, **22,9 mm** a `p10`, **27,9 mm** a `p12`)~~ — **REFUTADO el 31/08, y por dos motivos independientes.** **(1)** `p5` y `p8` **no pueden quedar vacíos**: son `MANDO_A` (`PB9`) y `MANDO_B` (`PB13`), y el mando se conserva (§4). **(2)** Esos tres números son la **distancia entre pads**, que **no es la separación real**: `MAPEO_TARJETA_KICAD.md:576-588` la mide sobre cobre —pistas y vías, respetando capas— y da `/Boton1` **1,405 mm**, `/Boton2` **1,408 mm**, `/Boton3` **4,269 mm** y `/Boton4` **1,359 mm**. **El orden se INVIERTE**: `p12`, que el colchón daba por el punto más seguro del conector, es **el peor**. El margen real contra los 12 V no es de 10 mm sino de **1,36 mm**, y eso es cobre de diseño, sin tolerancia de fábrica ni suciedad de armario.
 * El pack `camara_01_demanda` sigue vigilando que nadie lea `PB8` sin actualizar los manuales.
 
 ### 2. Módulo Bluetooth para Telemetría y Diagnóstico (Estándar Baliza)
@@ -79,18 +80,33 @@ enlaza.** Lo que sigue es sólo el reparto, para que se entienda el orden de las
 * **El STM32 sigue siendo el controlador del semáforo.** Conserva las **8 luces** (`J3`-`J9`, `J11`), la **barrera** (`PB2`, `J15`), el **buzzer** (`PB1`, `J13`), la **radio LoRa** (`USART3`, `J12`) **y las cámaras**. La barrera de salidas de `CLAUDE.md` §6 no cambia.
 * **El ESP32 es un módulo de expansión colgado de un puerto serie, y no manda sobre las luces.** Se lleva el **reloj `DS3231`** (I²C, `GPIO21` SDA / `GPIO22` SCL, con su propia pila) y el **Bluetooth**, **sustituyendo al módulo SPP dedicado**. Enlace por `J17`: `GPIO17`→`p2`=`PB7` RX, `GPIO16`←`p3`=`PB6` TX, `9600 8N1`, **masa común obligatoria**.
 * **El ESP32 lleva fuente propia desde 12 V.** No cuelga de los 3,3 V de `J17`: ese riel es el mismo que alimenta al STM32 que gobierna el semáforo, y el accesorio no puede tumbar al que manda.
-* **Se retiran:** la **pantalla LCD** de las dos puntas, los **cuatro pulsadores** (`PB9`, `PB13`, `PB14`, `PB15`) y el **mando de 4 relés**. Toda la operación pasa por la app.
-* **Las cámaras se mudan a `J16`**: p10 (`PB14`) y p12 (`PB15`), los pines que libera esa retirada.
+* **Se retiran:** la **pantalla LCD** de las dos puntas y ~~los **cuatro pulsadores** (`PB9`, `PB13`, `PB14`, `PB15`) y el **mando de 4 relés**~~ → **corregido el 31/08 por decisión del responsable** (ver el recuadro de abajo): se retiran **sólo los pulsadores 3 y 4** (`BOTON3`=`PB14`=`J16` p10, `BOTON4`=`PB15`=`J16` p12). Toda la operación *de menú* pasa por la app; el mando de relés **no**.
+* 🟢 **EL MANDO DE RELÉS SE CONSERVA, en los canales A y B** — `MANDO_A` = `BOTON1` = `PB9` = `J16` p5 y `MANDO_B` = `BOTON2` = `PB13` = `J16` p8 (**MEDIDO**: `Maestro/src/botones.cpp:119-120`, y los `#define BOTON1` / `BOTON2` de `Maestro/include/pines.h` — **sin número de línea a propósito: `pines.h` lo está reescribiendo otro agente ahora mismo**, y una línea citada que se mueve manda al lector a un sitio que no dice lo que promete). `A·A·A`, `B·B·B` y `A·B·A·B` siguen funcionando.
+* **Las cámaras se mudan a `J16`**: p10 (`PB14`) y p12 (`PB15`), los pines que libera esa retirada. **MEDIDO** que el mando no los usa: `grep "BOTON[1-4]" Maestro/src/mando.cpp` → **CERO coincidencias**; y `botones.cpp:131-132` los reparte a `botonAceptar()` / `botonCancelar()`, que son de menú, no de mando.
 
 > 🔴 **Las dos consecuencias que fijan el orden de las fases, y no son opinión:**
 > **(a)** `botonCancelar()` es hoy **la única salida de los ocho modos** —censo de llamadores en el
-> Manual 17 §2.3— y por Bluetooth sólo se alcanzan **tres** de los ocho, sin `SET_MODO:MENU`. Ignorar
-> los pulsadores antes de añadir los comandos convierte cada modo en **una puerta de un solo sentido**.
-> **(b)** Retirar el mando **no deja tres `if` inertes: borra un veto**. `mando_ambarLocal()` tiene tres
-> consumidores negados en `Esclavo/src/main.cpp` (`:401`, `:408`, `:526`); al desaparecer se vuelven
-> siempre-verdaderos y una orden de radio puede sacar al Esclavo de un ámbar que un operario dejó
-> puesto a propósito. Es **SFTY-21 desapareciendo por sustracción**, y hay que decidir quién hereda el
-> veto **antes** de quitar `mando.cpp`.
+> Manual 17 §2.3—. ~~y por Bluetooth sólo se alcanzan **tres** de los ocho, sin `SET_MODO:MENU`~~ →
+> **REFUTADO el 31/08 por el propio firmware (N-100):** `SET_MODO:MENU` **existe**, en
+> `Maestro/src/bluetooth.cpp:191`, y entra **sin PIN** (`:169-170`) junto con `SET_MODO:ALCANCE`; en
+> Degradado no salta al menú, sino que pide la salida por el todo-rojo (`:196-205`). Existen también
+> `SET_MODO:DEGRADADO` (`:234`, con `$ERR` motivado en `:245` y `$ACK` en `:250`),
+> `SET_MODO:INTELIGENTE` (`:223`), `REINICIAR_RELOJ` (`:330`) y `DEMANDA` (`:345`). **La Fase 1 está
+> hecha** —`d34cfe2`, N-78—; la salida por app que este apartado exigía **ya está construida**.
+> **(b)** Retirar el mando **no deja tres `if` inertes: borra un veto**. `mando_ambarLocal()`
+> (`Esclavo/src/mando.cpp:103`) tiene tres consumidores negados en `Esclavo/src/main.cpp`
+> ~~(`:401`, `:408`, `:526`)~~ → **las tres líneas estaban caducadas; MEDIDO el 31/08: son `:406`,
+> `:416` y `:540`**, y los tres leen `if (!mando_ambarLocal() && !bluetooth_ambarEmergencia())`.
+> `ambarLocal = true` se arma en **un único sitio**: `Esclavo/src/mando.cpp:132`, el `case ACC_AMBAR`
+> al que sólo se llega por `B·B·B` (`mando.cpp:246-248`). Sin el canal `B` esa bandera **no se arma
+> jamás**, los tres `if` se vuelven siempre-verdaderos y una orden de radio puede sacar al Esclavo de
+> un ámbar que un operario dejó puesto a propósito: **SFTY-21 desapareciendo por sustracción**.
+>
+> 🟢 **Y ésta es la razón por la que la decisión del 31/08 conserva los DOS canales y no uno.** El
+> veto de `mando_ambarLocal()` **no lo hereda nadie: se queda donde está**, porque `B` se queda. No
+> hace falta decidir quién lo hereda, y no hace falta escribir el pack que vigile la herencia —
+> tampoco se pierde nada por escribir uno que vigile que `ACC_AMBAR` sigue siendo el único armador.
+> **Nada de esto ha pasado banco.**
 
 ---
 
@@ -100,8 +116,8 @@ enlaza.** Lo que sigue es sólo el reparto, para que se entienda el orden de las
 
 | Fase | Qué | Por qué va ahí |
 |---|---|---|
-| **1** | **Los comandos que faltan** en el Maestro: `SET_MODO:DEGRADADO`, `MENU`, `ALCANCE`, `INTELIGENTE`, `REINICIAR_RELOJ` y `DEMANDA` | 🔴 **VAN PRIMERO, antes de tocar los pulsadores.** `botonCancelar()` (`PB15`) es hoy **la única salida de todos los modos**; sin estos comandos, retirar los botones deja al operario dentro de un modo sin forma de salir salvo cortar la energía. Coste **estimado ~930 B** de los **9.276 B libres** del Maestro — se mide antes de escribir, no después (`CLAUDE.md` §7) |
-| **2** | **Ignorar los pulsadores** · `FORZAR_ROJO` del Esclavo · `TEST_LEDS` | Sólo cuando la Fase 1 ha construido la salida. Aquí se decide también **quién hereda el veto de `mando_ambarLocal()`** (§4b) |
+| ~~**1**~~ ✅ | ~~**Los comandos que faltan** en el Maestro: `SET_MODO:DEGRADADO`, `MENU`, `ALCANCE`, `INTELIGENTE`, `REINICIAR_RELOJ` y `DEMANDA`~~ | ✅ **HECHA en `d34cfe2` (N-78).** **MEDIDO el 31/08** sobre `Maestro/src/bluetooth.cpp`: `MENU` `:191`, `ALCANCE` `:212`, `INTELIGENTE` `:223`, `DEGRADADO` `:234`, `REINICIAR_RELOJ` `:330`, `DEMANDA` `:345`. La razón por la que iban primero sigue siendo válida y ahora está **satisfecha**: la salida por app existe. **Sin banco** |
+| **2** | ~~**Ignorar los pulsadores**~~ → **Ignorar SÓLO los pulsadores 3 y 4** (`PB14`, `PB15`) · `FORZAR_ROJO` del Esclavo · `TEST_LEDS` | 🔴 **La redacción anterior era el peligro operativo concreto de esta tabla: ejecutada literal BORRA `ambarLocal` y con él el veto de SFTY-21** (§4b). El mando **se conserva en A y B** por decisión del 31/08, así que `botones_setup()` **sigue** poniendo `BOTON1`/`BOTON2` en entrada y `botones.cpp:119-120` sigue pasando sus flancos a `mando_registrarPulso()`. Lo que se ignora son los flancos 3 y 4 (`botonAceptar()`/`botonCancelar()`), que el mando no usa. ~~Aquí se decide quién hereda el veto~~ → **ya no hay nada que heredar: el armador se queda** |
 | **3** | **Cámaras a `J16`** (p10/p12) y **retirar pantalla, menú y `AiBus`** | Libera **~18,9 KB estimados** en el Maestro, que es de donde salen las fases siguientes. Las cámaras **no se cablean hasta la medida M3** (polaridad en contradicción) |
 | **4** | **Telemetría honesta** | Sin pantalla, `$STATUS` es **el único tablero que existe**, y hoy trae `BAT:12.6` literal en las dos puntas —**no hay un solo `analogRead` en `src/`**—, más `RF:98%`, `RTT:85ms` y `MODO:SUBORDINADO` fijos en el Esclavo, y un campo `T:` que **no es tiempo de fase**. Un campo que no se mide se retira o se marca; no se deja con aspecto de medida |
 | **5** | **ESP32: watchdog primero**, luego `DS3231` y puente Bluetooth | El watchdog va **antes** que las funciones: el ESP32 de este proyecto **no tiene ninguno** (`grep` sobre `Repetidor/src` → cero coincidencias) y hay precedente escrito de uno clavado tumbando el enlace (31/07). Con pantalla, botones y mando retirados, **un ESP32 colgado deja el equipo sin superficie de mando** |
@@ -145,6 +161,69 @@ el 28/08—. Las filas tachadas **no se borran**: una tachada con su motivo no s
   `README.md:335` dice `y=61` hablando del LCD—. Se arregló comparando la fracción y se vio caer
   **tres veces** a `50/51` con exit `1`. Detalle en [`roadmap.md`](roadmap.md) §N-93.
 - ✅ **Compuerta: 15 PASS · 0 FALLA · 0 ABORTADO** en `evidencia/2026-08-31_compuerta.txt`.
+
+---
+
+## 🟡 ABIERTO EL 31/08/2026 — N-106 y N-105
+
+**Ninguno de los dos se ha ejecutado, y ninguno ha pasado banco.** Los dos se anotan aquí con su
+medida y su dueño para que no se cierren por conversación.
+
+### N-106 · 🔴 El ámbar de emergencia de la app NO saca al Esclavo del Modo Degradado
+
+**MEDIDO POR LECTURA** (fichero y línea; nadie lo ha ejercido ni en banco ni en arnés):
+
+```
+grep -in "degradado" 01_Firmware/Esclavo/src/bluetooth.cpp     ->  CERO coincidencias
+grep -rn "degradado_salir" 01_Firmware/Esclavo/src
+   main.cpp:385 · mando.cpp:121 · mando.cpp:138 · menu.cpp:215     <- los cuatro llamadores
+   (definicion en modo_degradado.cpp:246)  ->  bluetooth.cpp NO esta
+```
+
+Las dos vías de ámbar de emergencia **no hacen lo mismo**, y el firmware declara por escrito que sí:
+
+| vía | qué ejecuta | ¿sale del Degradado? |
+|---|---|---|
+| Mando, `B·B·B` | `mando.cpp:129-141`, `case ACC_AMBAR`: `ambarLocal = true` y, **si `degradado_gobiernaLuz()`, `degradado_salir()`** | **sí**, por el todo-rojo de despedida |
+| App, `CMD:AMBAR_EMERGENCIA` | `bluetooth.cpp:130-136` (sin PIN) y `:171-176` (con PIN): `semaforo_iniciarFallo()` + `ambarEmergencia = true` | **no**: no pregunta por el Degradado ni llama a `degradado_salir()` |
+
+El comentario de `Esclavo/src/bluetooth.cpp:32-39` dice literalmente *«UNA EMERGENCIA PEDIDA POR
+BLUETOOTH VALE LO MISMO QUE UNA DEL MANDO»*. En Degradado **no vale lo mismo**.
+
+> **La consecuencia, RAZONADA y NO EJECUTADA** —se escribe como hipótesis porque no se ha corrido:
+> el sostenedor del Degradado sigue escribiendo luz (`modo_degradado.cpp:133`, `:135`, `:145`,
+> `:224`), así que en su siguiente vuelta sacaría la luz de `S_FALLO`; y `bluetooth.cpp:292`
+> revoca el latch justo con `if (ambarEmergencia && semaforo_estado() != S_FALLO) ambarEmergencia
+> = false;`. Es decir que el ámbar pedido desde el teléfono podría **caerse solo** exactamente en
+> el modo donde más falta hace, y encima con un `$ACK ... RESULT:OK` ya enviado (`:133`, `:174`)
+> — que es la barrera de `CLAUDE.md` §6 otra vez: un `$ACK` que no depende del resultado.
+>
+> **Esto NO se arregla todavía.** Se cierra con un arnés que hay que **ver fallar** antes de tocar
+> una línea de firmware (`CLAUDE.md` §8.bis): pone al Esclavo en Degradado, manda
+> `CMD:AMBAR_EMERGENCIA`, y exige que la luz quede en ámbar y el latch siga puesto. Si el arnés
+> nace en verde, no mide nada y no sirve para acusar.
+>
+> **Dueño:** técnico — el arnés primero. **La decisión de qué debe hacer** el ámbar de la app en
+> Degradado (salir ordenado como `B·B·B`, o quedarse) **es del responsable**: es lo que ve un
+> conductor.
+
+### N-105 · 🟠 Cuatro documentos mandan cablear cámaras sobre pines que no son entradas de cámara
+
+**MEDIDO:** la única entrada de cámara del firmware es `CAM_DEMANDA_PIN = PB0`
+(`Maestro/include/pines.h:46` y `Esclavo/include/pines.h:46`, con `R64` + `C25` a `J14`). `PB14` y
+`PB15` eran `BOTON3` y `BOTON4` (los `#define` de `pines.h`; **otro agente los está renombrando a
+`CAM_C_PIN`/`CAM_D_PIN` en este mismo árbol, así que no se cita línea**): **hoy no hay una sola línea de firmware que lea
+una cámara ahí**. Los documentos que mandan el cableado van por delante del firmware, no detrás.
+
+**Estado: EN CURSO por otro agente en este mismo árbol** (censo y corrección de los documentos).
+**Aquí no se toca ninguno** — dos agentes sobre el mismo árbol se pisan (`CLAUDE.md` §8.quinquies).
+Esta fila queda abierta hasta que ese trabajo entre y se pueda releer el censo.
+
+> Y sigue en pie lo que ya estaba escrito: **las cámaras no se cablean a `J16` hasta la medida M3**
+> (polaridad en contradicción, Manual 17 §2.2), y ahora además con el margen real de **1,36 mm**
+> a los 12 V delante (§1).
+>
+> **Dueño:** el agente de documentos para el censo; **responsable** para la orden de cableado.
 
 ---
 
