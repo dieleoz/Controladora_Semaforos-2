@@ -1,286 +1,225 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -*- coding: ascii -*-
 """
-servidor_puente_simulador.py
-Servidor HTTP + Puente de Telemetría NMEA en Tiempo Real para IOT-VIAL V9.0.
+===============================================================================
+ CASCARA HTTP PARA MIRAR LA APP.  NO ES UN INSTRUMENTO.  NO ES UN SIMULADOR.
+===============================================================================
 
-Conecta directamente el Frontend Web de la App con el Simulador del Controlador STM32 (FirmwareBluetoothSimulator).
-- Sirve los archivos estáticos de la App en http://localhost:3000/
-- Endpoint POST /api/cmd: Recibe comandos de la App y los ejecuta en el simulador STM32.
-- Endpoint GET /api/telemetria: Devuelve la trama $STATUS NMEA en vivo con checksum XOR.
-- Endpoint GET /api/status_json: Devuelve el estado parseado del controlador.
+QUE ES
+  Sirve los ficheros de la app -index.html, app.js, js/, css/, style.css- en
+  http://localhost:3000/ para poder ABRIRLA EN UN NAVEGADOR Y MEDIR LA
+  INTERFAZ. Eso es todo lo que hace, y es lo unico que valia del fichero que
+  habia aqui antes: con esta cascara se midio el desborde de la cabecera a
+  cuatro anchos (412 / 390 / 360 / 320 px), que es como se vio que una captura
+  a un solo ancho no demuestra nada.
+
+  Ademas publica en /api/telemetria UNA trama $STATUS de muestra, COMPUESTA A
+  PARTIR DEL FORMATO DEL C++ (ver "COMO SE COMPONE"), para poder pasarla por el
+  parser real de la app y comprobar que los campos cuadran.
+
+QUE NO ES  -- y esto importa mas que lo de arriba
+  * NO es un instrumento. NO esta enganchado a compuerta.py y no debe estarlo.
+    UN "PASS" SUYO NO EXISTE: este fichero no comprueba nada de nadie.
+  * NO es un simulador del STM32. No tiene maquina de estados, no tiene ciclo,
+    no tiene hilo. NADA AQUI SE MUEVE SOLO.
+  * NO valida comandos. No conoce el PIN, ni los rangos de SET_TIEMPOS, ni
+    ningun ACK. No contesta OK a nada.
+  * NO da telemetria a la pantalla. Sin equipo delante, la app declara
+    "SIN ENLACE" -y eso es la verdad, no una averia de esta cascara-.
+
+POR QUE SE REESCRIBIO  (para que nadie lo restaure del historico creyendo que
+                        valia: aqui esta medido por que no valia)
+  El fichero anterior era una CUARTA copia a mano del STM32, y hablaba un
+  protocolo que ninguna punta habla. Pasado por el parser REAL de la app
+  (js/nmea_parser.js), su propia trama daba:
+
+      lo que emitia el servidor:  ... RESTANTE:37  TOT:45   (y sin HORA)
+      lo que emite el micro:      ... T:24                  HORA:18:25:00
+
+      campos que se PERDIAN: ["hora", "restante"]
+
+  La trama PASABA EL CHECKSUM, asi que la app la daba por buena y se quedaba
+  sin la cuenta atras y sin el reloj -las dos cosas que mira el tecnico- SIN
+  DECIR NADA, porque el parser ya no rellena valores por defecto (y hace bien).
+
+  Y tres defectos mas de la misma familia:
+    1. Contestaba "RESULT:OK" a SET_RTC incondicionalmente. Es exactamente la
+       mentira con formato de exito que el pack app_03_sin_ok_mudo existe para
+       prohibir.
+    2. Llevaba su propia copia de los rangos de SET_TIEMPOS (1-15 / 10-90), que
+       viven en modoAutomatico_fijarTiempos(). Dos copias de un limite es una
+       que se queda vieja sin avisar.
+    3. Arrancaba un hilo que animaba el ciclo solo. Un tablero que anima un
+       cruce que no existe le miente a quien esta decidiendo sobre trafico
+       mirandolo. Lo que sustituye a un dato que no se tiene no es una
+       simulacion: es DECIRLO.
+
+COMO SE COMPONE LA TRAMA  (el punto entero de la reescritura)
+  El formato NO se escribe aqui: se EXTRAE del snprintf de $STATUS de
+  01_Firmware/Maestro/src/bluetooth.cpp, y se rellenan sus conversiones en el
+  mismo orden. Asi los nombres de campo y su orden no pueden divergir del
+  firmware, que es como se colo el defecto de arriba.
+  Si el formato no se puede extraer, ESTE FICHERO ABORTA con codigo 2 y no
+  sirve nada. No inventa una trama.
+===============================================================================
 """
 
 import http.server
-import socketserver
 import json
-import urllib.parse
 import os
+import re
+import socketserver
 import sys
-import threading
-import time
 
-# Importar o definir el simulador del controlador
-class FirmwareSTM32Simulator:
-    def __init__(self):
-        self.node = "MAESTRO"
-        self.modo = "AUTO"
-        self.estado = "V1_R2" # V1_R2, Y1_R2, R1_R2, R1_V2, R1_Y2, AMBAR_FAIL
-        self.countdown = 38
-        self.countdown_max = 45
-        self.tiempo_verde_min = 2
-        self.tiempo_rojo_min = 2
-        self.tiempo_despeje_seg = 15
-        self.rf_calidad = 98
-        self.rtt_ms = 76
-        self.bateria_v = 12.6
-        self.serie = "M-2026-A1B2"
-        self.ultimo_evento = "Simulador STM32 iniciado en Modo AUTO."
-        self.lock = threading.Lock()
+AQUI = os.path.dirname(os.path.abspath(__file__))
+# Ruta explicita al fuente. Si alguien mueve bluetooth.cpp, esto aborta en el
+# arranque con el nombre del fichero delante, que es la unica forma de que un
+# "no aparece" no se lea como "no hay nada que extraer".
+BLUETOOTH_CPP = os.path.join(AQUI, "..", "..", "01_Firmware", "Maestro", "src", "bluetooth.cpp")
 
-    def calcular_checksum(self, payload):
-        crc = 0
-        for char in payload:
-            crc ^= ord(char)
-        return f"{crc:02X}"
 
-    def tick(self):
-        with self.lock:
-            if self.modo == "AUTO":
-                self.countdown -= 1
-                if self.countdown <= 0:
-                    if self.estado == "V1_R2":
-                        self.estado = "Y1_R2"
-                        self.countdown = 4
-                        self.countdown_max = 4
-                    elif self.estado == "Y1_R2":
-                        self.estado = "R1_R2"
-                        self.countdown = self.tiempo_despeje_seg
-                        self.countdown_max = self.tiempo_despeje_seg
-                    elif self.estado == "R1_R2":
-                        self.estado = "R1_V2"
-                        self.countdown = self.tiempo_rojo_min * 60
-                        self.countdown_max = self.tiempo_rojo_min * 60
-                    elif self.estado == "R1_V2":
-                        self.estado = "R1_Y2"
-                        self.countdown = 4
-                        self.countdown_max = 4
-                    elif self.estado == "R1_Y2":
-                        self.estado = "V1_R2"
-                        self.countdown = self.tiempo_verde_min * 60
-                        self.countdown_max = self.tiempo_verde_min * 60
+def abortar(motivo):
+    # Codigo 2 = ABORTADO en el idioma de este repositorio: no pudo correr, y no
+    # dice nada del firmware. Se sale ruidosamente en vez de servir una demo
+    # inventada, que es justo lo que se esta retirando.
+    sys.stderr.write("[ABORTADO] " + motivo + "\n")
+    sys.exit(2)
 
-    def procesar_comando(self, raw_cmd):
-        with self.lock:
-            raw_cmd = raw_cmd.strip()
-            print(f"  [SIMULADOR RX]: {raw_cmd}")
 
-            # Soporte comando de emergencia sin PIN
-            if raw_cmd == "CMD:FORZAR_ROJO":
-                self.modo = "ROJO_TOTAL"
-                self.estado = "R1_R2"
-                self.countdown = 0
-                self.ultimo_evento = "Rojo Total de Emergencia accionado."
-                payload = "ACK,CMD:FORZAR_ROJO,RESULT:OK"
-                return f"${payload}*{self.calcular_checksum(payload)}\r\n"
+def leer_fuente():
+    try:
+        with open(BLUETOOTH_CPP, "r", encoding="utf-8", errors="replace") as f:
+            return f.read()
+    except OSError as e:
+        abortar("no se puede leer %s (%s)." % (BLUETOOTH_CPP, e))
 
-            # Validación obligatoria de PIN 1234
-            if not raw_cmd.startswith("CMD:PIN:1234:"):
-                payload = "ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO"
-                return f"${payload}*{self.calcular_checksum(payload)}\r\n"
 
-            accion = raw_cmd[13:]
+def extraer(src, patron, que):
+    m = re.search(patron, src)
+    if not m:
+        abortar("no se encuentra %s en %s. El formato de la trama sale de ahi o no "
+                "sale: esta cascara no se lo inventa." % (que, BLUETOOTH_CPP))
+    return m.group(1)
 
-            if accion == "SET_MODO:AUTO":
-                self.modo = "AUTO"
-                self.estado = "V1_R2"
-                self.countdown = self.tiempo_verde_min * 60
-                self.countdown_max = self.tiempo_verde_min * 60
-                self.ultimo_evento = "Modo Automático reanudado."
-                payload = "ACK,CMD:SET_MODO:AUTO,RESULT:OK"
 
-            elif accion == "SET_MODO:MANUAL":
-                self.modo = "MANUAL"
-                self.ultimo_evento = "Modo Manual activado."
-                payload = "ACK,CMD:SET_MODO:MANUAL,RESULT:OK"
+def guarda_checksum(src):
+    # Un algoritmo no se puede "extraer" de un .cpp. Lo que si se puede es exigir
+    # que el fuente siga diciendo lo que aqui abajo se reimplemento, y NEGARSE a
+    # arrancar si dejo de decirlo: asi la reimplementacion no puede quedarse
+    # vieja en silencio, que es como se cuelan estas cosas.
+    for aguja, que in (("crc ^= (uint8_t)(*str);", "el XOR-8 byte a byte"),
+                       ("calcularChecksum(payload + 1)", "el salto del '$' inicial"),
+                       ('"%s*%02X\\r\\n"', "el cierre *XX CRLF")):
+        if aguja not in src:
+            abortar("%s ya no esta en enviarTramaConCrc(). El checksum del firmware "
+                    "cambio de forma y esta cascara lo calcularia mal." % que)
 
-            elif accion == "SET_MODO:AMBAR":
-                self.modo = "AMBAR"
-                self.estado = "AMBAR_FAIL"
-                self.countdown = 0
-                self.ultimo_evento = "Modo Ámbar Precaución activado."
-                payload = "ACK,CMD:SET_MODO:AMBAR,RESULT:OK"
 
-            elif accion == "FORZAR_ROJO":
-                self.modo = "ROJO_TOTAL"
-                self.estado = "R1_R2"
-                self.countdown = 0
-                self.ultimo_evento = "Rojo Total de Emergencia accionado."
-                payload = "ACK,CMD:FORZAR_ROJO,RESULT:OK"
+def con_crc(payload):
+    # Copia de enviarTramaConCrc(): XOR-8 del payload SALTANDO el '$', cierre *XX\r\n.
+    crc = 0
+    for b in payload[1:].encode("ascii"):
+        crc ^= b
+    return "%s*%02X\r\n" % (payload, crc)
 
-            elif accion == "MANUAL:CAMBIAR_TURNO":
-                self.modo = "MANUAL"
-                if self.estado == "V1_R2":
-                    self.estado = "R1_R2"
-                    self.countdown = self.tiempo_despeje_seg
-                    self.countdown_max = self.tiempo_despeje_seg
-                    self.ultimo_evento = "Maniobra: Despeje para cambio de turno."
-                else:
-                    self.estado = "V1_R2"
-                    self.countdown = self.tiempo_verde_min * 60
-                    self.countdown_max = self.tiempo_verde_min * 60
-                    self.ultimo_evento = "Maniobra: Paso concedido a Sentido 1."
-                payload = "ACK,CMD:CAMBIAR_TURNO,RESULT:OK"
 
-            elif accion == "TEST_LEDS":
-                self.ultimo_evento = "Test de Luces iniciado (6s)."
-                payload = "ACK,CMD:TEST_LEDS,RESULT:STARTING_6S"
+CONVERSION = re.compile(r"%%|%[-0-9.]*(?:ll|l|h)?[sdiuxX]")
 
-            elif accion.startswith("SET_TIEMPOS:"):
-                # SET_TIEMPOS:V,R,D
-                try:
-                    parts = accion[12:].split(",")
-                    v, r, d = int(parts[0]), int(parts[1]), int(parts[2])
-                    if 1 <= v <= 15 and 1 <= r <= 15 and 10 <= d <= 90:
-                        self.tiempo_verde_min = v
-                        self.tiempo_rojo_min = r
-                        self.tiempo_despeje_seg = d
-                        self.countdown = v * 60
-                        self.countdown_max = v * 60
-                        self.ultimo_evento = f"Tiempos cambiados: V={v}m, R={r}m, D={d}s"
-                        payload = "ACK,CMD:SET_TIEMPOS,RESULT:OK"
-                    else:
-                        payload = "ERR,CMD:SET_TIEMPOS,DESC:RANGO_INVALIDO"
-                except Exception:
-                    payload = "ERR,CMD:SET_TIEMPOS,DESC:FORMATO_INVALIDO"
 
-            elif accion.startswith("SET_RTC:"):
-                self.ultimo_evento = f"Reloj RTC sincronizado: {accion[8:]}"
-                payload = "ACK,CMD:SET_RTC,RESULT:OK"
+def componer(fmt, valores):
+    # Sustituye cada conversion de printf EN ORDEN. Si sobran o faltan valores es
+    # que el firmware cambio de campos: aborta en vez de emitir una trama corta.
+    pendientes = list(valores)
 
-            elif accion == "SOLICITAR_PASO":
-                self.ultimo_evento = "Petición de paso recibida desde Esclavo."
-                payload = "ACK,CMD:SOLICITAR_PASO,RESULT:FORWARDED_TO_MASTER"
+    def uno(m):
+        if m.group(0) == "%%":
+            return "%"
+        if not pendientes:
+            abortar("el $STATUS del firmware trae mas campos de los que esta cascara "
+                    "sabe rellenar. Actualice VALORES_MUESTRA.")
+        return pendientes.pop(0)
 
-            else:
-                payload = "ERR,CMD:DESCONOCIDO,DESC:NO_SOPORTADO"
+    trama = CONVERSION.sub(uno, fmt)
+    if pendientes:
+        abortar("el $STATUS del firmware trae menos campos de los esperados: sobran %d "
+                "valores de muestra." % len(pendientes))
+    return trama
 
-            return f"${payload}*{self.calcular_checksum(payload)}\r\n"
 
-    def generar_trama_status(self):
-        with self.lock:
-            payload = f"STATUS,NODE:{self.node},MODO:{self.modo},ESTADO:{self.estado},RESTANTE:{self.countdown},TOT:{self.countdown_max},BAT:{self.bateria_v:.1f},RF:{self.rf_calidad},RTT:{self.rtt_ms},SERIE:{self.serie}"
-            return f"${payload}*{self.calcular_checksum(payload)}\r\n"
+_SRC = leer_fuente()
+guarda_checksum(_SRC)
+FORMATO_STATUS = extraer(_SRC, r'"(\$STATUS,[^"]*)"', "el snprintf de $STATUS")
+# El literal que el propio firmware emite cuando NO tiene hora. Se relee de ahi
+# para no tener una segunda copia de como se dice "no se la hora".
+SIN_HORA = extraer(_SRC, r'strncpy\(horaBuf,\s*"([^"]*)"', 'el literal de hora no valida')
 
-# Instancia global del simulador
-simulador_controlador = FirmwareSTM32Simulator()
+# Valores de la muestra, en el orden del snprintf: SERIE, MODO, ESTADO, T, RF,
+# RTT, HORA. NO SON TELEMETRIA: no hay equipo detras. Van marcados DEMO a
+# proposito -quien lea la trama tiene que ver que no es un cruce- y los numeros
+# van a cero porque cero es lo que se sabe. La hora usa el literal del firmware.
+# (BAT no aparece: en el C++ es una constante dentro del propio formato.)
+VALORES_MUESTRA = ["DEMO", "DEMO", "DEMO", "0", "0", "0", SIN_HORA]
 
-def cycle_ticker_loop():
-    while True:
-        simulador_controlador.tick()
-        time.sleep(1.0)
+TRAMA_STATUS = con_crc(componer(FORMATO_STATUS, VALORES_MUESTRA))
+# Respuesta unica a cualquier comando. NO es un ACK: es el unico hecho real que
+# esta cascara conoce -que no hay equipo al otro lado-, con la forma de $ERR del
+# firmware (ERR,CMD:<que>,DESC:<motivo>).
+TRAMA_ERR = con_crc("$ERR,CMD:PUENTE_DEMO,DESC:NO_HAY_EQUIPO_ESTO_ES_SOLO_LA_INTERFAZ")
 
-# Ticker en segundo plano
-ticker_thread = threading.Thread(target=cycle_ticker_loop, daemon=True)
-ticker_thread.start()
 
-class BridgeHTTPHandler(http.server.SimpleHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        directory = os.path.dirname(os.path.abspath(__file__))
-        super().__init__(*args, directory=directory, **kwargs)
+class Cascara(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *a, **kw):
+        super().__init__(*a, directory=AQUI, **kw)
+
+    def _cuerpo(self, texto, tipo):
+        datos = texto.encode("ascii", "replace")
+        self.send_response(200)
+        self.send_header("Content-Type", tipo)
+        self.send_header("Content-Length", str(len(datos)))
+        self.end_headers()
+        self.wfile.write(datos)
 
     def do_GET(self):
-        parsed = urllib.parse.urlparse(self.path)
-
-        if parsed.path == "/api/telemetria":
-            # Devuelve trama NMEA pura $STATUS
-            trama = simulador_controlador.generar_trama_status()
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            self.wfile.write(trama.encode("utf-8"))
+        if self.path.split("?")[0] == "/api/telemetria":
+            self._cuerpo(TRAMA_STATUS, "text/plain; charset=us-ascii")
             return
-
-        elif parsed.path == "/api/status_json":
-            # Devuelve JSON parseado del simulador
-            with simulador_controlador.lock:
-                data = {
-                    "node": simulador_controlador.node,
-                    "modo": simulador_controlador.modo,
-                    "estado": simulador_controlador.estado,
-                    "countdown": simulador_controlador.countdown,
-                    "countdown_max": simulador_controlador.countdown_max,
-                    "bat": simulador_controlador.bateria_v,
-                    "rf": simulador_controlador.rf_calidad,
-                    "rtt": simulador_controlador.rtt_ms,
-                    "serie": simulador_controlador.serie,
-                    "ultimo_evento": simulador_controlador.ultimo_evento,
-                    "trama_nmea": simulador_controlador.generar_trama_status().strip()
-                }
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            self.wfile.write(json.dumps(data).encode("utf-8"))
-            return
-
-        # Archivos estáticos HTML/JS/CSS normales
+        # NO existe /api/status_json, y su 404 es la respuesta CORRECTA: la app cae
+        # a su .catch(), manda el watchdog y la pantalla declara SIN ENLACE. Servir
+        # ahi un estado fabricado seria pintar un cruce inventado en los mismos
+        # widgets que la telemetria real - el defecto que se acaba de retirar.
         super().do_GET()
 
     def do_POST(self):
-        parsed = urllib.parse.urlparse(self.path)
-
-        if parsed.path == "/api/cmd":
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length).decode('utf-8')
-            
-            try:
-                data = json.loads(body)
-                cmd_str = data.get("cmd", "")
-            except Exception:
-                cmd_str = body
-
-            # Enviar comando al simulador de firmware
-            respuesta_nmea = simulador_controlador.procesar_comando(cmd_str)
-
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            
-            resp_data = {
-                "cmd_enviado": cmd_str,
-                "resp_nmea": respuesta_nmea.strip(),
-                "modo_actual": simulador_controlador.modo,
-                "estado_actual": simulador_controlador.estado
-            }
-            self.wfile.write(json.dumps(resp_data).encode("utf-8"))
+        if self.path.split("?")[0] == "/api/cmd":
+            # El cuerpo se lee y se TIRA sin registrarlo: los comandos de la app
+            # llevan el PIN dentro (CMD:PIN:1234:...) y hacerle eco lo pintaria en
+            # el registro de eventos de la pantalla.
+            n = int(self.headers.get("Content-Length") or 0)
+            if n:
+                self.rfile.read(n)
+            self._cuerpo(json.dumps({"resp_nmea": TRAMA_ERR.strip()}),
+                         "application/json; charset=us-ascii")
             return
+        self.send_error(404)
 
-        self.send_response(404)
-        self.end_headers()
 
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        self.end_headers()
-
-def run_server(port=3000):
+def arrancar(puerto):
     socketserver.ThreadingTCPServer.allow_reuse_address = True
-    with socketserver.ThreadingTCPServer(("", port), BridgeHTTPHandler) as httpd:
-        print("=" * 80)
-        print(f"[OK] SERVIDOR PUENTE MULTIHILO STM32 ACTIVO EN: http://localhost:{port}/")
-        print("=" * 80)
-        print("  * Frontend App Web:     http://localhost:3000/")
-        print("  * Telemetria NMEA ($):  http://localhost:3000/api/telemetria")
-        print("  * Estado en Vivo JSON:  http://localhost:3000/api/status_json")
-        print("  * Receptor de Comandos: POST http://localhost:3000/api/cmd")
-        print("=" * 80)
+    with socketserver.ThreadingTCPServer(("", puerto), Cascara) as httpd:
+        print("=" * 78)
+        print(" CASCARA DE DEMO - NO ES UN INSTRUMENTO, NO ESTA EN LA COMPUERTA")
+        print("=" * 78)
+        print("  App .............. http://localhost:%d/" % puerto)
+        print("  Trama de muestra . http://localhost:%d/api/telemetria" % puerto)
+        print("  Formato leido de . %s" % os.path.normpath(BLUETOOTH_CPP))
+        print("    " + FORMATO_STATUS)
+        print("  Emite ............ " + TRAMA_STATUS.strip())
+        print("")
+        print("  Sin ciclo, sin hilo, sin ACK. La app dira SIN ENLACE: es correcto,")
+        print("  no hay equipo. Esta cascara sirve para MIRAR Y MEDIR LA INTERFAZ.")
+        print("=" * 78)
         httpd.serve_forever()
 
+
 if __name__ == "__main__":
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 3000
-    run_server(port)
+    arrancar(int(sys.argv[1]) if len(sys.argv) > 1 else 3000)
