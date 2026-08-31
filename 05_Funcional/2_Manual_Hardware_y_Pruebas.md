@@ -8,13 +8,63 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 |---|---|---|
 | **Pila `CR2032` en `VBAT`** | ✅ **Instalada en AMBAS tarjetas** (Maestro y Esclavo) | Alimentación directa RTC (R5 retirado). Ver §5 |
 | **Pantalla LCD ST7920** | 🛑 **SE RETIRA (28/08/2026)** | No se lee desde el suelo. Sus pines `PB6`/`PB7` (conector `J17`) pasan al módulo Bluetooth. Ver §3 y §8 |
-| **Botonera de 4 pulsadores** | ✅ **Se queda en AMBOS** | Botones 1 a 4 (`PB9`, `PB13`, `PB14`, `PB15`) por el conector **`J16`**. ⚠️ Siguen navegando un menú **que ya nadie ve** — ver §3 |
+| **Botonera de `J16`** | ⚠️ **SE PARTE EN DOS (31/08/2026)** | ~~*Se queda en AMBOS, botones 1 a 4*~~ → **quedan 2 pulsadores** (`PB9` p5 y `PB13` p8, mando `A`/`B`); **`PB14` p10 y `PB15` p12 pasan a CÁMARAS**. Ver §3 y §6 |
 | **Cámaras IA de demanda (1 y 3)** | ✅ **1 en Maestro + 1 en Esclavo** | Contacto seco `1A`/`1B` en `PB0`. Operativas. Ver §7 |
-| **Cámaras IA de umbral (2 y 4)** | 🛑 **NO SE INSTALAN** | **No hay entrada donde conectarlas:** `PB8` alimenta el LED testigo `D5` (`R16` 1 kΩ), no es bornera. Harían falta un hilo y un comando de radio. Ver Manual 9 y N-64 |
-| **Módulo Bluetooth Telemetría** | ✅ **En Maestro y Esclavo (Baliza)** — **es la interfaz del equipo** | Conector **`J17`** p2/p3 = `PB7`/`PB6` (`USART1` **remapeado**), p6 = 3,3 V, p7 = GND. ⛔ **`J16` NO es `J17`: lleva 12 V.** Ver §8 |
-| **Mando de 4 Relés Anti-Colisión** | ✅ **Secuencias Seguras A·B·A...** | Cableado en paralelo con `PB9`..`PB15`. Ver §6 |
+| **Cámaras IA en `J16` (`C` y `D`)** | 🟢 **YA ESTÁN EN EL FIRMWARE (31/08)** | `CAM_C_PIN` = `PB14`, `CAM_D_PIN` = `PB15`. **`INPUT` pelado, activo en ALTO.** ⚠️ **No se cablean hasta la medida `M3`.** Ver §7 |
+| ~~**Cámaras IA de umbral (2 y 4)**~~ | 🛑 **NO SE INSTALAN EN `PB8`** | **`PB8` NO es entrada de cámara:** alimenta el LED testigo `D5` por `R16` de 1 kΩ. Se renombró a `LED_TESTIGO` (`pines.h:63`) y **`CAM_UMBRAL_PIN` ya no existe en el fuente** — N-64. Ver §7 |
+| **Módulo de expansión ESP32** | 🟢 **IDENTIFICADO Y CON FIRMWARE (31/08)** | `ESP32-WROOM-32` clásico (**BT v4.2 BR/EDR → hay SPP**) por **`J17`** p2/p3 = `PB7`/`PB6` (`USART1` **remapeado**), p6 = 3,3 V, p7 = GND. **Sustituye al módulo SPP discreto** y trae el reloj `DS3231` con pila propia. ⛔ **`J16` NO es `J17`: lleva 12 V.** Ver §8 |
+| **Mando de 4 Relés Anti-Colisión** | ⚠️ **SE CONSERVA, sobre 2 canales** | ~~*Cableado en paralelo con `PB9`..`PB15`*~~ → **solo `A` (`PB9`) y `B` (`PB13`)**. `C` y `D` se retiran. **Las tres secuencias siguen funcionando.** Ver §6 |
 
 > 📱 **El Módulo Bluetooth en el Esclavo resuelve la operación desde el suelo:** Gracias al módulo Bluetooth de diagnóstico estándar Baliza instalado en el Esclavo (`USART1` por `J17`), el operario puede consultar el estado, ver alarmas y operar el Esclavo desde el celular sin necesidad de subir al poste a 5 metros de altura.
+
+---
+
+> # 🟢 CAMBIOS DEL 31/08/2026 — LÉASE ANTES DE MONTAR NADA
+>
+> Cuatro cosas que este manual daba de otra manera. Todo lo de abajo es **MEDIDO sobre el fuente el
+> 31/08**; lo superado se tacha con su motivo y no se borra.
+>
+> ### 1. La arquitectura: el ESP32 es un MÓDULO DE EXPANSIÓN, no un segundo controlador
+>
+> | | |
+> |---|---|
+> | **STM32** | **el controlador del cruce.** Sigue siendo quien mueve las luces |
+> | **ESP32 por `J17`** | **módulo de expansión.** Aporta el **Bluetooth** —sustituye al módulo SPP discreto— y un **reloj `DS3231`** con pila propia (`GPIO21` `SDA` / `GPIO22` `SCL`, `ESP32_Expansion/include/contrato.h:142-143`) |
+> | 🛑 **Lo que el ESP32 NO hace** | **No manda sobre las luces.** Es un puente: traduce y reenvía. La barrera de salidas sigue viviendo en `semaforo.cpp` del STM32 |
+>
+> **El módulo está identificado y el firmware existe.** Es un `ESP32-WROOM-32` clásico —`Xtensa LX6`
+> doble núcleo, `Bluetooth v4.2 BR/EDR + BLE`—, o sea que **hay perfil SPP y la app conecta sin tocar
+> una línea**. Su firmware vive en `01_Firmware/ESP32_Expansion/` y **la compuerta lo compila como una
+> suite más** (`compila esp32`); la cifra de flash se lee del acta de `evidencia/`.
+>
+> ### 2. `J16` se parte: dos pulsadores y dos cámaras
+>
+> ```text
+>    J16 p5    PB9    BOTON1 / mando A    INPUT_PULLUP,  activo en BAJO   <- SE QUEDA
+>    J16 p8    PB13   BOTON2 / mando B    INPUT_PULLUP,  activo en BAJO   <- SE QUEDA
+>    J16 p10   PB14   CAM_C_PIN           INPUT pelado,  activo en ALTO   <- ERA "Aceptar"
+>    J16 p12   PB15   CAM_D_PIN           INPUT pelado,  activo en ALTO   <- ERA "Cancelar"
+> ```
+>
+> **Se conservan los DOS canales del mando a propósito**, no por comodidad: `ambarLocal` —el veto de
+> SFTY-21 en el Esclavo— **solo lo arma `B·B·B`**, y `A·A·A` es la única salida de ese ámbar desde el
+> piso. `A·A·A`, `B·B·B` y `A·B·A·B` **siguen funcionando enteras**: ninguna usaba `C` ni `D`.
+>
+> ### 3. `SFTY6_SILENCIO_MS` son **25 s**, no 12
+>
+> **MEDIDO:** `Maestro/include/protocolo.h:149` y `Esclavo/include/protocolo.h:149` →
+> `#define SFTY6_SILENCIO_MS 25000UL`. El valor de 12 s era **el techo de otra cuenta** y dejaba los
+> reintentos 4 y 5 del ciclo sin poder ejecutarse jamás (N-71).
+>
+> > ⚠️ **No lo confunda con `VENTANA_TRIPLE_MS`, que sí vale 12 s y es correcto**
+> > (`Maestro/src/mando.cpp:38`, `Esclavo/src/mando.cpp:42`): son los 12 s de la ventana de
+> > `A·A·A` / `B·B·B` del mando, **otra magnitud y otro sujeto**. Dos números iguales en documentos
+> > distintos no son el mismo número.
+>
+> ### 4. Y lo que NO cambia
+>
+> **En campo corre la V8.4.** Nada de lo descrito aquí ha pasado banco. **Un manual corregido no es un
+> permiso de carga.**
 
 ---
 
@@ -39,13 +89,35 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 > ### ⚠️ La pantalla se va; el menú NO se ha ido del binario
 >
 > **Medido el 28/08:** `lcd.cpp`, `menu.cpp` y `modo_hora.cpp` siguen compilándose, `lcd_setup()`
-> sigue llamando a `u8g2.begin()`, y **los cuatro botones de `J16` siguen navegando el menú**. Lo
+> sigue llamando a `u8g2.begin()`, y ~~**los cuatro botones de `J16` siguen navegando el menú**~~. Lo
 > único que falta es el display.
 >
-> **Consecuencia para quien monte o mantenga el equipo:** pulsar esos botones —o accionar el mando
+> ~~**Consecuencia para quien monte o mantenga el equipo:** pulsar esos botones —o accionar el mando
 > de relés, que va en paralelo con ellos— **mueve un menú a ciegas**, y con los pulsos suficientes se
-> llega a `AJUSTAR HORA` y **se confirma una hora que el equipo dará por válida**. **No se accionan
-> los botones del gabinete para «probar».**
+> llega a `AJUSTAR HORA` y **se confirma una hora que el equipo dará por válida**.~~
+>
+> > ## ✅ 31/08 — EL RIESGO DE «CONFIRMAR UNA HORA A CIEGAS» SE HA CERRADO POR CONSTRUCCIÓN
+> >
+> > **MEDIDO** en `Maestro/src/botones.cpp:280-281` y su equivalente del Esclavo:
+> >
+> > ```
+> >   bool botonAceptar() { return false; }
+> >   bool botonCancelar(){ return false; }
+> > ```
+> >
+> > `PB14` y `PB15` son cámaras: **ya no hay pin que pueda levantar esos dos flancos**. El menú sigue
+> > en el binario y los pulsadores `A`/`B` siguen **moviendo el cursor**, pero **no hay nada que
+> > CONFIRME**. La cadena *«ráfaga de pulsos → cursor a `AJUSTAR HORA` → hora inventada dada por
+> > válida»* **se corta en el último eslabón**, que era el único peligroso.
+> >
+> > *(Se devuelven `false` en vez de borrarlas a propósito: tienen veintitantos llamadores en nueve
+> > ficheros, y borrarlas convertiría una reasignación de pines en una reescritura del control de
+> > flujo de cada modo. Así `git grep botonCancelar` sigue listando en un solo sitio todo lo que la
+> > retirada de `C` y `D` se llevó por delante.)*
+>
+> **Lo que sigue vigente de la instrucción anterior:** **no se accionan los botones del gabinete para
+> «probar»**. `A` y `B` siguen siendo entradas reales y **siguen disparando las secuencias del
+> mando** —incluido `A·B·A·B`, que pide entrar al Modo Degradado—.
 
 ---
 
@@ -95,7 +167,13 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 * **Semáforo Esclavo:** Tarjeta STM32 conectada por bornera A/B a la Radio 2 — Canal `0` (`170.0 MHz`).
 * **Funcionamiento:** La señal viaja transparente por aire. No requiere la tarjeta Repetidor ESP32.
 
-### Opción 2: Modo Repetidor (4 Radios - Esquinas Ciegas / Montaña)
+> ### ✅ La Opción 1 es la CONFIGURACIÓN VIGENTE
+>
+> **2 radios en enlace directo, `2.4 kbps`, `M0`/`M1` ambos en OFF durante la operación, sin
+> repetidor.** La Opción 2 se documenta porque el firmware del repetidor existe y la compuerta lo
+> compila, **no porque haya un repetidor montado**. No monte uno sin reabrir esta decisión.
+
+### Opción 2: Modo Repetidor (4 Radios - Esquinas Ciegas / Montaña) — **NO es el montaje vigente**
 * **Semáforo Maestro:** Conectado a la Radio 1 — Canal `0` (`170.0 MHz`).
 * **Repetidor Central (ESP32):**
   - Radio B1 en Canal `0` (`170.0 MHz`) — habla con el Maestro.
@@ -247,32 +325,54 @@ saberlo.
 * ~~**Botón 3 (Aceptar / OK):** Confirma la selección.~~
 * ~~**Botón 4 (Cancelar / Menú):** Sube un nivel de menú.~~
 
-> ## ⚠️ LOS BOTONES SIGUEN CONECTADOS Y EL MENÚ SIGUE VIVO — A CIEGAS
+> ## ⚠️ ~~LOS BOTONES SIGUEN CONECTADOS Y EL MENÚ SIGUE VIVO — A CIEGAS~~
 >
-> **Esto no es una nota histórica: es el estado de hoy.** El firmware **no ha perdido el menú**, solo
+> ~~**Esto no es una nota histórica: es el estado de hoy.** El firmware **no ha perdido el menú**, solo
 > ha perdido dónde dibujarlo. Los cuatro pulsadores de `J16` siguen entrando por `PB9`, `PB13`,
-> `PB14` y `PB15`, y siguen navegando exactamente el mismo menú de dos niveles de antes.
+> `PB14` y `PB15`, y siguen navegando exactamente el mismo menú de dos niveles de antes.~~
 >
-> **Lo que eso permite, sin que nadie lo vea:** llegar a `CONFIGURACION → AJUSTAR HORA` y confirmar
-> **una hora cualquiera**, que el equipo dará por buena. Desde ahí, el Modo Degradado entraría sobre
-> una hora inventada con las dos puntas desfasadas — que es exactamente el escenario que el diseño
-> del reloj existe para evitar.
+> ~~**Lo que eso permite, sin que nadie lo vea:** llegar a `CONFIGURACION → AJUSTAR HORA` y confirmar
+> **una hora cualquiera**, que el equipo dará por buena.~~
 >
-> **Instrucción de montaje:** los botones se dejan cableados (los usa el mando de relés), pero
-> **nadie los pulsa para «ver qué pasa»**. Si el gabinete queda accesible, considérese poner el
-> cartel correspondiente.
+> ### ✅ 31/08 — SUPERADO EN SU MITAD PELIGROSA. QUEDAN DOS PULSADORES, NINGUNO CONFIRMA
+>
+> **MEDIDO** (`botones.cpp:280-281` en ambas puntas): `botonAceptar()` y `botonCancelar()` devuelven
+> **`false` siempre**, porque `PB14` y `PB15` **ya no son pulsadores**, son `CAM_C_PIN` y
+> `CAM_D_PIN`. El cursor se puede mover con `A`/`B`; **no se puede confirmar nada**, y por tanto
+> **no se puede dejar una hora inventada dada por buena**.
+>
+> **Lo que SÍ sigue en pie, y es la razón de que la instrucción de montaje no cambie:** `PB9` y
+> `PB13` son entradas reales, y **`A·B·A·B` sigue pidiendo entrar al Modo Degradado**. Una ráfaga de
+> pulsos accidental ya no inventa una hora, pero puede pedir un cambio de modo — que el firmware
+> evaluará contra su puerta (§7 del Manual del Mando), no concederá sin más.
+>
+> **Instrucción de montaje (vigente):** los dos botones se dejan cableados —los usa el mando de
+> relés—, pero **nadie los pulsa para «ver qué pasa»**. Si el gabinete queda accesible, considérese
+> poner el cartel correspondiente.
 
-### Pines de la botonera *(sin cambios: siguen ahí)*
+### Pines de `J16` — **CAMBIADOS EL 31/08**
 
-| Botón | Pin del STM32 |
-|---|---|
-| 1 — Arriba / `A` | `PB9` |
-| 2 — Abajo / `B` | `PB13` |
-| 3 — Aceptar / `C` | `PB14` |
-| 4 — Menú / `D` | `PB15` |
+| `J16` | Pin del STM32 | 28/08 | **31/08 — vigente** | Modo del pin |
+|---|---|---|---|---|
+| p5 | `PB9` | 1 — Arriba / `A` | ✅ **1 — Arriba / mando `A`** | `INPUT_PULLUP`, activo en **BAJO** |
+| p8 | `PB13` | 2 — Abajo / `B` | ✅ **2 — Abajo / mando `B`** | `INPUT_PULLUP`, activo en **BAJO** |
+| p10 | `PB14` | ~~3 — Aceptar / `C`~~ | 🛑 **`CAM_C_PIN` — cámara** | **`INPUT` pelado, activo en ALTO** |
+| p12 | `PB15` | ~~4 — Menú / `D`~~ | 🛑 **`CAM_D_PIN` — cámara** | **`INPUT` pelado, activo en ALTO** |
 
-**Ambas tarjetas usan los mismos pines.** El mando de 4 relés se cablea **en paralelo con estos cuatro
-pulsadores** — no hay entradas dedicadas para él (ver §6).
+**Ambas tarjetas usan los mismos pines** (`Maestro/include/pines.h:118-125`, idéntico en el Esclavo).
+El mando de relés se cablea **en paralelo con los dos pulsadores que quedan** — no hay entradas
+dedicadas para él (ver §6).
+
+> ⛔ **El cambio de polaridad de p10 y p12 NO es cosmético, y por eso el orden importa.** `R67` y
+> `R68` son 10 kΩ **a masa** y `J16` saca 3,3 V en p9 y p11: con `INPUT_PULLUP` el pin se quedaba en
+> 3,3 × 10/50 = **0,66 V**, que el micro lee `LOW` — **demanda permanente sin cámara conectada**.
+> Por eso van en `INPUT` pelado y activo en ALTO.
+>
+> **Firmware primero; el cableado después. Un commit no protege de un destornillador.** Con el
+> firmware viejo todavía dentro, `PB14` sigue siendo *Aceptar* leído **activo en BAJO**: cualquier
+> hilo que un instalador enchufe en `J16` p10 **pulsa Aceptar en un equipo que está en la calle**.
+> **Se exige la carga verificada en la tarjeta, no el merge.** Y **no se cablea cámara a `J16` hasta
+> la medida `M3`** de `05_Funcional/17_Arquitectura...` §2.2.
 
 ### Las dos unidades tienen interfaz, pero menús distintos — 📕 HISTÓRICO (hasta el 28/08)
 
@@ -310,7 +410,10 @@ Siga estos pasos al pie de la letra para compilar y flashear el firmware en las 
 3. **CRÍTICO:** Navegue y seleccione ÚNICAMENTE la subcarpeta específica correspondiente:
    - `01_Firmware/Maestro` si va a flashear la tarjeta Maestro STM32.
    - `01_Firmware/Esclavo` si va a flashear la tarjeta Esclavo STM32.
-   - `01_Firmware/Repetidor` si va a flashear la tarjeta Repetidor ESP32.
+   - **`01_Firmware/ESP32_Expansion` si va a flashear el módulo de expansión del `J17`** *(el del
+     Bluetooth y el `DS3231`) — nuevo el 31/08.*
+   - `01_Firmware/Repetidor` si va a flashear la tarjeta Repetidor ESP32 *(no es el montaje vigente,
+     ver §2)*.
 
 **Paso 2: Conectar y Flashear**
 1. Conecte el STM32 (vía ST-Link) o la ESP32 (vía USB) a la computadora.
@@ -363,14 +466,33 @@ alternativa por módulo `DS3231` si el cristal no arranca— está en
 `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md §4`. **Este manual no lo duplica a propósito:** dos copias
 de un procedimiento de soldadura acaban divergiendo.
 
-> 🛑 **PERO NO PIDA UN `DS3231` CREYENDO QUE FUNCIONARÁ AL ENCHUFARLO.** Medido sobre el firmware el
-> 28/08: **no hay driver de `DS3231` en ninguna de las dos puntas.** El reloj que usa el equipo es
-> el **RTC interno del STM32** con el cristal `Y2` y la pila en `VBAT` (SFTY-18). Un módulo `DS3231`
-> montado hoy sería **una pieza de hardware sin una sola línea de software que la lea**.
+> 🛑 **NO CUELGUE UN `DS3231` DE LOS PINES DEL STM32 CREYENDO QUE FUNCIONARÁ.** Medido el 28/08 y
+> **revalidado el 31/08**: **no hay driver de `DS3231` en ninguna de las dos puntas STM32.** El reloj
+> que usa el STM32 es su **RTC interno** con el cristal `Y2` y la pila en `VBAT` (SFTY-18). Un módulo
+> `DS3231` soldado hoy al STM32 sería **una pieza de hardware sin una sola línea de software que la
+> lea**.
 >
-> La detección automática de `DS3231` en el arranque está **diseñada y no construida** — vive en
-> `OPTIMIZACIONES.md` como **SFTY-26**, marcada `DISEÑO, NO IMPLEMENTADO`. **Esa alternativa es un
-> plan, no un repuesto.**
+> La detección automática de `DS3231` **por parte del STM32** está **diseñada y no construida** —
+> `OPTIMIZACIONES.md`, **SFTY-26**, marcada `DISEÑO, NO IMPLEMENTADO`. **Esa alternativa es un plan,
+> no un repuesto.**
+>
+> > ## 🟢 31/08 — PERO EL `DS3231` SÍ EXISTE, EN EL OTRO LADO DEL `J17`
+> >
+> > **El módulo de expansión ESP32 trae su propio `DS3231` con pila propia**, en `GPIO21` (`SDA`) /
+> > `GPIO22` (`SCL`), y **su driver existe y compila**: `01_Firmware/ESP32_Expansion/src/reloj_ds3231.cpp`.
+> >
+> > **No es lo mismo y la diferencia importa al pedir material:**
+> >
+> > | | dónde vive | driver |
+> > |---|---|---|
+> > | RTC interno + `Y2` + `CR2032` en `VBAT` | **STM32** | ✅ `reloj.cpp` |
+> > | **`DS3231` + pila propia** | **módulo ESP32 del `J17`** | ✅ `reloj_ds3231.cpp` **(ESP32)** |
+> > | `DS3231` colgado del STM32 | — | ❌ **no existe** |
+> >
+> > ⚠️ **Y la pila NO es la misma:** en `VBAT` del STM32 va **`CR2032` no recargable**; los módulos
+> > `DS3231` externos llevan circuito de carga y usan **`LIR2032` recargable**. **Poner la equivocada
+> > en cualquiera de los dos casos es peligroso** — ya está dicho arriba y se repite aquí porque ahora
+> > hay dos relojes en el equipo y es exactamente donde se confunden.
 
 ### Vida útil — no es mantenimiento periódico
 
@@ -412,17 +534,57 @@ Con ~1,4 µA de consumo por `VBAT`, la autonomía teórica supera los **15 años
 >
 > **Consecuencia honesta: mientras ese diagnóstico no esté en la app, N-37 no se puede cerrar por
 > lectura.** No se sustituyen condensadores por conjetura; se anota que falta el instrumento.
+>
+> > ### ✅ 31/08 — el instrumento ha mejorado a medias, y conviene saber hasta dónde
+> >
+> > **MEDIDO** en `Maestro/src/bluetooth.cpp`: `SET_RTC` ya **no contesta `OK` sin mirar**. Tiene
+> > **cinco ramas** y dos de ellas son diagnósticas:
+> >
+> > | Respuesta | Línea | Qué dice |
+> > |---|---|---|
+> > | `$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ` | `:313` | **No hay con qué contar el tiempo.** La hora NO quedó puesta |
+> > | `$ACK,CMD:SET_RTC,RESULT:HORA_PUESTA_SIN_PROPAGAR` | `:325` | Entró aquí, **no viajó al Esclavo** |
+> > | `$ACK,CMD:SET_RTC,RESULT:OK` | `:327` | Entró y va camino del Esclavo |
+> > | `$ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO` | `:308`, `:318` | La trama no se pudo leer, o cifras fuera de rango |
+> >
+> > Y existe además `CMD:PIN:1234:REINICIAR_RELOJ` (`:330`), que contesta
+> > `CRISTAL_OK_PONGA_LA_HORA` o `SIGUE_PARADO_VEA_CONSULTA_RELOJ`.
+> >
+> > **Por qué esto importa en el poste:** la versión anterior mandaba `RESULT:OK` **sin mirar
+> > ninguna de las dos llamadas**, así que con `Y2` muerto el equipo decía que sí y no ponía la hora
+> > — y el técnico se iba creyendo que lo había dejado puesto. Eso ya no pasa.
+> >
+> > 🔴 **Lo que sigue faltando, y no se disimula:** esas respuestas distinguen *«no hay cristal»* de
+> > *«sí lo hay»*, pero **siguen sin distinguir cuál de las cuatro causas** —`LSE no se pide`,
+> > `Pedido, no oscila`, `Oscila; RTC no atado`, `Oscila y atado a LSE`—. **N-37 sigue sin poderse
+> > cerrar por lectura.**
 
 > **Un semáforo no puede depender de un cristal de reloj para encender.** Ésa es la razón de la
 > segunda prueba, y es la más fácil de olvidar porque en una tarjeta sana nunca se nota.
 
 ---
 
-## 6. 🎛️ El mando de 4 relés
+## 6. 🎛️ El mando de relés — **SE CONSERVA, sobre 2 canales (31/08)**
 
-El operario acciona el equipo **desde el piso**, con un mando de 4 relés (`A`, `B`, `C`, `D`) cableados
-**en paralelo con los cuatro pulsadores físicos** (`PB9`, `PB13`, `PB14`, `PB15`). **No hay entradas
-dedicadas**: para el firmware, un relé y un botón son indistinguibles.
+> ## ✅ 31/08/2026 — EL MANDO NO SE RETIRA. QUEDAN `A` Y `B`
+>
+> | Canal | Pin | `J16` | 31/08 |
+> |---|---|---|---|
+> | **`A`** | `PB9` | p5 | ✅ **se conserva** |
+> | **`B`** | `PB13` | p8 | ✅ **se conserva** |
+> | ~~`C`~~ | `PB14` | p10 | 🛑 **se retira** → cámara |
+> | ~~`D`~~ | `PB15` | p12 | 🛑 **se retira** → cámara |
+>
+> **Las tres secuencias siguen funcionando enteras** —`A·A·A`, `B·B·B`, `A·B·A·B`— porque **ninguna
+> usaba `C` ni `D`**: `botones.cpp` nunca entregó al mando más flancos que los de los botones 1 y 2.
+>
+> **Por qué se conservan los DOS canales y no uno:** `ambarLocal`, el veto de SFTY-21 en el Esclavo,
+> **solo lo arma `B·B·B`**; y `A·A·A` es la única forma de salir de ese ámbar desde el piso. Son un
+> par, no dos opciones. Desarrollo completo en `04_Manuales/MANUAL_MANDO_4_RELES.md`.
+
+El operario acciona el equipo **desde el piso**, con un mando de relés (~~`A`, `B`, `C`, `D`~~ **`A` y
+`B`**) cableado **en paralelo con los pulsadores físicos** (~~`PB9`, `PB13`, `PB14`, `PB15`~~ **`PB9`
+y `PB13`**). **No hay entradas dedicadas**: para el firmware, un relé y un botón son indistinguibles.
 
 ### Características medidas en campo (01/08/2026) — condicionan el diseño
 
@@ -438,9 +600,15 @@ ellas. Un mando que se comporte distinto obliga a rehacer ambas.
 
 > ## 🪜 EL ESCLAVO NO TIENE RECEPTOR DE MANDO (pendiente N-19)
 >
-> **Hoy solo el Maestro puede operarse desde el piso.** La tarjeta del Esclavo **ya trae las cuatro
-> entradas** (`PB9`, `PB13`, `PB14`, `PB15`) y su firmware las atiende: **falta únicamente comprar e
-> instalar el receptor**.
+> **Hoy solo el Maestro puede operarse desde el piso.** La tarjeta del Esclavo ya trae las entradas
+> ~~(`PB9`, `PB13`, `PB14`, `PB15`)~~ **`PB9` y `PB13`** y su firmware las atiende: **falta únicamente
+> comprar e instalar el receptor**.
+>
+> > 🔴 **31/08 — y en el Esclavo esto ha subido de categoría.** Con *Aceptar* mudo y **sin `SET_MODO`
+> > por Bluetooth en esa punta** —el Maestro es el único que arbitra el ciclo—, **el mando pasa a ser
+> > el único actuador de modo del Esclavo**: entrar al Degradado es `A·B·A·B` (`menu.cpp:227` →
+> > `mando.cpp:148`) y salir es `A·A·A` o `B·B·B` (`:121`, `:138`). Mientras el receptor no esté
+> > comprado, **esas dos acciones solo se hacen subiendo al gabinete y pulsando `A` y `B` a mano**.
 >
 > **No hay atajo por software.** El Maestro no puede ordenárselo por radio, porque *el radio muerto es
 > justamente la razón de entrar al Modo Degradado*.
@@ -465,9 +633,15 @@ ellas. Un mando que se comporte distinto obliga a rehacer ambas.
 
 ### Verificación del cableado del mando
 
-- [ ] Cada relé cierra contra **el mismo pin** que su pulsador correspondiente
+- [ ] Cada relé cierra contra **el mismo pin** que su pulsador correspondiente (`A`→`PB9`, `B`→`PB13`)
 - [ ] Con el equipo en el menú, accionar `A` mueve el cursor **una sola posición** por pulsación
-- [ ] Accionar `C` desde el mando **selecciona**, igual que el Botón 3
+- [ ] ~~Accionar `C` desde el mando **selecciona**, igual que el Botón 3~~ — 🛑 **31/08: este punto se
+      RETIRA.** `C` y `D` ya no llegan a ningún pulsador, y `botonAceptar()`/`botonCancelar()`
+      devuelven `false` siempre. **Si `C` seleccionara algo, el firmware cargado no es el vigente**
+- [ ] 🆕 Accionar `A·A·A` dentro de la ventana produce **2 destellos rojos**; `B·B·B`, **3**;
+      `A·B·A·B`, **4** *(la ventana es `VENTANA_TRIPLE_MS = 12000` ms para las de tres pulsos y
+      18000 ms para la de cuatro — `mando.cpp:38-39`)*
+- [ ] 🆕 Los canales `C` y `D` del mando **no producen ningún efecto** en ninguna de las dos puntas
 - [ ] El mando **no** genera pulsos espurios al energizar el gabinete
 
 > **El último punto no es paranoia.** Un pulso espurio al energizar, con el menú abierto, puede llevar
@@ -481,15 +655,49 @@ ellas. Un mando que se comporte distinto obliga a rehacer ambas.
 Para detección vehicular por demanda en obra vial (analítica embebida sin computadores externos):
 
 ```text
-       CÁMARAS HIKVISION ACUSENSE                     TARJETA CONTROLADORA STM32
+       CAMARAS HIKVISION ACUSENSE                     TARJETA CONTROLADORA STM32
   ┌─────────────────────────────────┐              ┌───────────────────────────────┐
-  │ CÁMARA 1 (Demanda Sentido 1)    ┼─ Hilos 1A/1B ┼──► Bornera PB0 (Entrada Libre)│
-  │ CAMARA 2 (Umbral) NO SE INSTALA ┼───── — ──────┼──► sin bornera: PB8 es LED   │ (En Maestro)
+  │ CAMARA 1 (Demanda Sentido 1)    ┼─ Hilos 1A/1B ┼──► Bornera PB0 (Entrada Libre)│
+  │ CAMARA C  (31/08)               ┼─ contacto ───┼──► J16 p10 = PB14  CAM_C_PIN  │ (En Maestro)
+  │ CAMARA D  (31/08)               ┼─ contacto ───┼──► J16 p12 = PB15  CAM_D_PIN  │
   ├─────────────────────────────────┤              ├───────────────────────────────┤
-  │ CÁMARA 3 (Demanda Sentido 2)    ┼─ Hilos 1A/1B ┼──► Bornera PB0 (Entrada Libre)│
-  │ CAMARA 4 (Umbral) NO SE INSTALA ┼───── — ──────┼──► sin bornera: PB8 es LED   │ (En Esclavo)
+  │ CAMARA 3 (Demanda Sentido 2)    ┼─ Hilos 1A/1B ┼──► Bornera PB0 (Entrada Libre)│
+  │ CAMARA C / D  (31/08)           ┼─ contacto ───┼──► J16 p10/p12 = PB14/PB15    │ (En Esclavo)
   └─────────────────────────────────┘              └───────────────────────────────┘
+
+       PB8  ->  R16 1K  ->  LED testigo D5.   NO ES ENTRADA DE CAMARA.
 ```
+
+> ## 🟢 31/08 — LAS CÁMARAS `C` Y `D` YA ESTÁN EN EL FIRMWARE
+>
+> **MEDIDO:** `CAM_C_PIN` = `PB14` y `CAM_D_PIN` = `PB15` (`pines.h:124-125`, idéntico en las dos
+> puntas), declarados en `botones.cpp` con **`pinMode(..., INPUT)` pelado** y leídos **activos en
+> ALTO**.
+>
+> ⚠️ **Pero NO se cablea nada a `J16` todavía**, por dos motivos independientes:
+>
+> 1. **La medida `M3` sigue pendiente.** Con `INPUT` pelado el pin necesita **resistencia real a masa
+>    en la placa** o queda flotando y el ruido dispara demandas fantasma. `PB0` la tiene declarada
+>    (`R64` 10 kΩ + `C25` 100 nF); de `PB14`/`PB15` **solo lo dice el netlist y nadie lo ha medido en
+>    cobre**. `M3` ya no es bloqueante por contradicción de polaridad —el camino de cámara lee al
+>    revés que el de botón, así que coincide con el netlist—: hoy es la **confirmación que parametriza
+>    la cámara**, y se hace **antes** de cablear.
+> 2. **`J16` p1 lleva 12 V CRUDOS** —sin opto, sin serie, sin clamp— a nueve posiciones de p10 y once
+>    de p12. **Se tapa físicamente antes de enchufar nada.**
+>
+> *(La salida de alarma de la AcuSense es configurable NO/NC, así que se elige qué estado significa
+> demanda **sin tocar placa ni firmware**.)*
+
+> ## ✅ 31/08 — `PB8` NO ES, NI FUE NUNCA, UNA ENTRADA DE CÁMARA (N-64)
+>
+> Las ediciones anteriores hablaban de *«Cámara 2 / Cámara 4 de umbral en `PB8`»*. **Corregido:**
+> `PB8` va por `R16` de 1 kΩ a un **LED testigo (`D5`)**. Se renombró a **`LED_TESTIGO`**
+> (`pines.h:63`) y **el símbolo `CAM_UMBRAL_PIN` ya no existe en el fuente de ninguna de las dos
+> puntas** — se comprobó con `grep`, no leyendo.
+>
+> Esto cierra de paso el hallazgo que circulaba como *«`CAM_UMBRAL_PIN` tiene `pinMode()` y ni un
+> `digitalRead()`»*: **ya no hay `pinMode()` que sobre**, porque ya no hay pin de cámara ahí. Si algún
+> documento sigue describiendo `PB8` como *«Umbral de tramo»* con función activa, **está caducado**.
 
 * **Salida de Alarma de la Cámara:** Contacto seco libre de potencial (`1A` y `1B` del conector de alarma de la cámara Hikvision, configurado en N/O a 1s).
 * **Analítica Embebida:** La cámara ejecuta internamente su algoritmo AcuSense (Detección de Intrusión con filtro `☑ Solo Vehículo`), ignorando peatones, ramas y sombras.
@@ -497,9 +705,25 @@ Para detección vehicular por demanda en obra vial (analítica embebida sin comp
 
 ---
 
-## 8. 📱 Conexión del Módulo Bluetooth — 🔴 REESCRITA EL 28/08: ENTRA POR `J17`
+## 8. 📱 Conexión del Módulo de Expansión — 🔴 REESCRITA EL 28/08 (`J17`) · 🟢 AMPLIADA EL 31/08
 
 Desde el 28/08 esto **no es un accesorio de diagnóstico: es la interfaz del equipo.**
+
+> ### 🟢 31/08 — el módulo es un **ESP32 de expansión**, y sustituye al SPP discreto
+>
+> **El cableado de `J17` que describe esta sección NO cambia.** Lo que cambia es qué se enchufa ahí.
+>
+> | | |
+> |---|---|
+> | **Chip** | **`ESP32-WROOM-32` clásico** — `Xtensa LX6` doble núcleo, **`Bluetooth v4.2 BR/EDR + BLE`**. `BR/EDR` es Bluetooth clásico: **hay SPP** y la app conecta sin tocar una línea |
+> | **Qué aporta** | El **Bluetooth** (sustituye al módulo SPP discreto) y un **reloj `DS3231`** en `GPIO21` (`SDA`) / `GPIO22` (`SCL`), **con pila propia** |
+> | **Firmware** | 🟢 **existe y compila**: `01_Firmware/ESP32_Expansion/`. La compuerta lo mide como suite propia (`compila esp32`); **la cifra de flash se lee del acta de `evidencia/`, no de este manual** |
+> | 🛑 **Qué NO hace** | **No manda sobre las luces.** Es un puente: traduce y reenvía. La barrera de salidas sigue en `semaforo.cpp` del STM32 |
+>
+> **Consecuencia para el reloj, y es grande:** el `DS3231` del módulo **no cuelga de `PB0`/`PB8` del
+> STM32** ni compite con las cámaras por pines. La disputa *«el reloj y las cámaras quieren los mismos
+> dos pines»* que describían documentos anteriores **ya no existe**. Y no depende del cristal `Y2`,
+> que está confirmado muerto en hardware (N-17).
 
 > # ⛔ PARE. `J16` LLEVA 12 V Y QUEMA EL MÓDULO
 >
@@ -601,9 +825,25 @@ Trazado red por red sobre el esquemático (`Controladora_Semaforos.kicad_sch`):
   **Censado el 28/08: tiene llamadores reales** — `coordinador.cpp` líneas 683 y 775 en el Maestro,
   `main.cpp` línea 560 en el Esclavo. *(No siempre fue así: la función estuvo documentada en cuatro
   manuales y sin un solo llamador — N-73.)*
-* **Seguridad:** los comandos de control exigen PIN de 4 dígitos (`CMD:PIN:1234:...`), **salvo
-  `CMD:FORZAR_ROJO`, que se acepta SIN PIN a propósito**: llevar el cruce a rojo total es la
-  dirección segura y no debe depender de recordar un código.
+* **Seguridad:** los comandos de control exigen PIN de 4 dígitos (`CMD:PIN:1234:...`), **salvo la
+  caída segura, que se acepta SIN PIN a propósito**: detener el tráfico no debe depender de recordar
+  un código.
+
+  > 🛑 **31/08 — Y EL LITERAL NO ES EL MISMO EN LAS DOS PUNTAS. ES EL BOTÓN DE PÁNICO.**
+  >
+  > | Punta | Comando sin PIN | Qué hace | Medido en |
+  > |---|---|---|---|
+  > | **Maestro** | `CMD:FORZAR_ROJO` | **rojo total** | `Maestro/src/bluetooth.cpp:145` |
+  > | **Esclavo** | **`CMD:AMBAR_EMERGENCIA`** | **ámbar intermitente** + latch que **veta** las órdenes de radio | `Esclavo/src/bluetooth.cpp:130`, `:171`, `:268` |
+  >
+  > **En el Esclavo, `FORZAR_ROJO` está RENOMBRADO y NO HACE NADA.** Las dos formas —con PIN y sin
+  > PIN— contestan `$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` (`:157`, `:176`).
+  > **Un operario que mande el literal viejo creerá haber detenido el cruce sin haber detenido nada.**
+  > El nombre viejo prometía rojo y hacía ámbar: se corrigió el nombre, **no el comportamiento**.
+  >
+  > Que las dos puntas usen literales distintos es lo correcto, **porque hacen cosas distintas**;
+  > llamarlas igual era el defecto. Tabla completa de comandos en
+  > `04_Manuales/MANUAL_CONFIGURACION_BLUETOOTH.md §4.4` — **17 formas en el Maestro**, no 5 ni 9.
 
 > 🔴 **AVISO SOBRE TRES CAMPOS DE `$STATUS` QUE NO SON MEDIDAS.** Medido sobre `bluetooth.cpp` el
 > 28/08:

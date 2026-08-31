@@ -4,12 +4,72 @@
 **Referencia de diseño:** SFTY-21 (`OPTIMIZACIONES.md`)
 **Implementación:** `01_Firmware/Maestro/src/mando.cpp`, `include/mando.h`, `src/botones.cpp`
 **Fecha:** 1 de agosto de 2026
+**Última revisión:** 31 de agosto de 2026 — **el mando NO se retira. Ver el aviso de cabecera.**
 
-> # 🛑 AVISO DEL 28/08/2026 — EL MANDO DE 4 RELÉS SE RETIRA
+> # ✅ DECISIÓN DEL 31/08/2026 — EL MANDO SE CONSERVA EN `A` Y `B`. SE RETIRAN `C` Y `D`
 >
-> **El 28/08/2026 se decidió en obra retirar la pantalla LCD, los cuatro pulsadores y el mando de
-> relés.** Toda la operación pasa a la App por Bluetooth. Este manual describe un actuador que deja
-> de existir.
+> **Este manual sale de la lista de documentos falsos.** Lo que sigue vigente se marca; lo superado
+> se tacha con su motivo.
+>
+> | Canal | Pin | Conector | 31/08 |
+> |---|---|---|---|
+> | **`A`** | `PB9` | `J16` p5 | ✅ **SE CONSERVA** — Arriba / mando A |
+> | **`B`** | `PB13` | `J16` p8 | ✅ **SE CONSERVA** — Abajo / mando B |
+> | ~~`C`~~ | `PB14` | `J16` p10 | 🛑 **SE RETIRA** → `CAM_C_PIN`, entrada de cámara |
+> | ~~`D`~~ | `PB15` | `J16` p12 | 🛑 **SE RETIRA** → `CAM_D_PIN`, entrada de cámara |
+>
+> **Las tres secuencias siguen funcionando enteras**, porque **ninguna usaba `C` ni `D`**:
+> `A·A·A`, `B·B·B` y `A·B·A·B`. **MEDIDO** en `Maestro/src/mando.cpp:11-21` y en
+> `Maestro/include/pines.h:91-125` / `Esclavo/include/pines.h:91-125`.
+>
+> ## 🔑 Y la razón de conservarlo la escribió la §3 de este mismo manual
+>
+> **Decirlo importa**, porque el documento estuvo a punto de borrarse por obsoleto y **fue su §3 lo
+> que sostuvo la decisión**: `B·B·B` es el único gesto que arma `ambarLocal`, la bandera de la que
+> cuelgan **tres vetos** en `Esclavo/src/main.cpp` (SFTY-21). Retirar el mando entero **no dejaba
+> esos tres `if` inertes: los dejaba siempre-verdaderos**, es decir, **abría** una barrera sin que
+> nadie borrara una línea y sin que ningún instrumento se pusiera rojo.
+>
+> **Se conservan los DOS canales, no solo uno, precisamente por eso:** `A` sin `B` no arma
+> `ambarLocal`, y `B` sin `A` deja al operario dentro del ámbar **sin forma de salir desde el piso**
+> (`A·A·A` es la salida). Los dos canales son un par, no dos opciones.
+>
+> ## ✅ 31/08 — y ahora `ambarLocal` tiene además un SEGUNDO armador
+>
+> **MEDIDO** en `Esclavo/src/main.cpp:406`, `:416` y `:540`: los tres vetos ya no leen una sola
+> bandera, sino dos —
+> `if (!mando_ambarLocal() && !bluetooth_ambarEmergencia())`.
+>
+> El segundo es el latch de `CMD:AMBAR_EMERGENCIA` (`Esclavo/src/bluetooth.cpp:130`, `:171`, getter en
+> `:268`). O sea: **el ámbar local del Esclavo se puede pedir hoy por dos caminos independientes** —el
+> mando por `B·B·B` y la app por Bluetooth—, y **cualquiera de los dos veta las órdenes de radio**.
+> El riesgo del punto 3 de la versión anterior de este aviso **está resuelto por construcción**, no
+> por promesa.
+>
+> ## 🛑 Lo que NO cambia
+>
+> **Sigue sin haber receptor de relés comprado ni instalado en ninguna punta, y sin prueba de banco.**
+> Conservar los canales `A` y `B` en el firmware **no pone un actuador en el poste**. Y en campo corre
+> la **V8.4**: nada de esto ha pasado banco.
+>
+> ---
+>
+> ## 📕 HISTÓRICO — el aviso del 28/08, superado. Se conserva, no se borra
+>
+> > # ~~🛑 AVISO DEL 28/08/2026 — EL MANDO DE 4 RELÉS SE RETIRA~~
+> >
+> > ~~El 28/08/2026 se decidió en obra retirar la pantalla LCD, los cuatro pulsadores y el mando de
+> > relés. Toda la operación pasa a la App por Bluetooth. Este manual describe un actuador que deja
+> > de existir.~~
+>
+> **Motivo por el que se supera:** la retirada total del mando **no se ejecutó**. El 31/08 se decidió
+> partir `J16` —dos posiciones al mando, dos a las cámaras—, y el argumento que lo decidió es el
+> `ambarLocal` de arriba. Lo que sí se ejecutó de aquel aviso: **la pantalla LCD se retira** y
+> **`C`/`D` dejan de ser pulsadores**.
+>
+> Lo que sigue del aviso viejo se conserva porque **su punto 3 sigue siendo la mejor explicación
+> escrita de por qué el mando no se podía borrar sin más**, y es lo que hay que releer si alguien
+> vuelve a proponer retirarlo.
 >
 > ## 1. Lo que se retira es código y papel, NO equipo en servicio
 >
@@ -53,11 +113,15 @@
 > (`:147`) — todos también del mando. **Y tiene tres consumidores en `Esclavo/src/main.cpp` que
 > VETAN órdenes de radio:**
 >
-> | Línea | Código | Qué veta |
+> | Línea *(28/08)* | Código *(28/08)* | Qué veta |
 > |---|---|---|
 > | `main.cpp:401` | `if (!mando_ambarLocal()) {` | Que un `CMD_GO_RED` del Maestro fuerce rojo y acuse recibo |
 > | `main.cpp:408` | `if (!mando_ambarLocal()) {` | Que un `CMD_GO_GREEN` del Maestro **abra paso** |
 > | `main.cpp:526` | `if (!mando_ambarLocal() && semaforo_estado() == S_FALLO && pkt.command == CMD_GO_RED)` | Que la recuperación tras `S_FALLO` revoque el ámbar del operario |
+>
+> > ⚠️ **Estas tres líneas se han movido.** Hoy son `:406`, `:416` y `:540`, y la condición lleva una
+> > segunda bandera: `if (!mando_ambarLocal() && !bluetooth_ambarEmergencia())`. **Qué vetan no ha
+> > cambiado.** Ver §3.1.
 >
 > *(Hay un cuarto uso, el sostenedor del ámbar en `mando.cpp:274`, que no es un veto.)*
 >
@@ -81,10 +145,21 @@
 > **veto no vete nada**. El síntoma es el mismo —un `if` que ya no decide— y la señal de alarma
 > también: *un `PASS` de algo que nadie ha visto fallar nunca*.
 >
-> ### Lo que hay que hacer con ello — ESCRITO, no medido
+> ### ✅ 31/08 — CERRADO, y por la primera de las tres vías que este punto listaba
 >
-> **La decisión técnica NO está tomada** (falta confirmar el chip del ESP32 y qué pasa con el cristal
-> `Y2`), así que aquí no se propone implementación. Lo que sí queda fijado:
+> **La decisión se tomó y fue *«el ámbar local gana un actuador nuevo por Bluetooth — y la bandera se
+> conserva tal cual»*.** De hecho conserva las dos: `B·B·B` sigue armándola y
+> `CMD:AMBAR_EMERGENCIA` arma la segunda, y los tres `if` leen ambas. **No se retiró en silencio**,
+> que era la peor de las tres opciones.
+>
+> **Y las dos incógnitas que bloqueaban esta decisión están resueltas:** el chip del ESP32 está
+> identificado —`ESP32-WROOM-32` clásico, con SPP— y el reloj deja de depender del cristal `Y2`,
+> porque el `DS3231` con pila propia vive ahora en el módulo de expansión.
+>
+> ### ~~Lo que hay que hacer con ello — ESCRITO, no medido~~ *(superado, se conserva)*
+>
+> ~~**La decisión técnica NO está tomada** (falta confirmar el chip del ESP32 y qué pasa con el cristal
+> `Y2`), así que aquí no se propone implementación.~~ Lo que sí queda fijado:
 >
 > - **`ambarLocal` no se borra junto con `mando.cpp`.** O el ámbar local gana un actuador nuevo por
 >   Bluetooth —y la bandera se conserva tal cual—, o se retira **con** sus tres consumidores, de
@@ -121,15 +196,40 @@ El operario maneja el equipo desde el suelo con un **mando inalámbrico de 4 rel
 (canales `A`, `B`, `C`, `D`) cuyos contactos están cableados **en paralelo con los cuatro
 botones físicos** de la tarjeta:
 
-| Canal del mando | Botón físico | Pin STM32 | Función en el menú |
-|---|---|---|---|
-| **A** | Botón 1 | `PB9` | Arriba |
-| **B** | Botón 2 | `PB13` | Abajo |
-| **C** | Botón 3 | `PB14` | Aceptar / Ejecutar |
-| **D** | Botón 4 | `PB15` | Cancelar / Menú |
+| Canal del mando | Botón físico | Pin STM32 | `J16` | Función en el menú | 31/08 |
+|---|---|---|---|---|---|
+| **A** | Botón 1 | `PB9` | p5 | Arriba | ✅ se conserva |
+| **B** | Botón 2 | `PB13` | p8 | Abajo | ✅ se conserva |
+| ~~**C**~~ | ~~Botón 3~~ | `PB14` | p10 | ~~Aceptar / Ejecutar~~ | 🛑 **→ `CAM_C_PIN`** |
+| ~~**D**~~ | ~~Botón 4~~ | `PB15` | p12 | ~~Cancelar / Menú~~ | 🛑 **→ `CAM_D_PIN`** |
 
-**Los cuatro pines son los mismos en el Maestro y en el Esclavo**, así que el cableado del
-receptor es idéntico en las dos puntas.
+**Los pines son los mismos en el Maestro y en el Esclavo**, así que el cableado del receptor es
+idéntico en las dos puntas.
+
+> ### 🛑 31/08 — `C` y `D` YA NO SON PULSADORES, Y EL MODO DEL PIN CAMBIA
+>
+> No es un cambio de nombre. **MEDIDO** en `pines.h:100-101` y `botones.cpp` de ambas puntas:
+>
+> | | antes (`BOTON3`/`BOTON4`) | ahora (`CAM_C_PIN`/`CAM_D_PIN`) |
+> |---|---|---|
+> | Modo del pin | `INPUT_PULLUP` | **`INPUT` pelado** |
+> | Polaridad | activo en **BAJO** | **activo en ALTO** |
+> | Quién lo lee | `botones.cpp` → menú | el camino de cámara |
+>
+> **La polaridad no es una preferencia, es una cuenta.** `R67` y `R68` son 10 kΩ **a masa** sobre
+> `/Boton3` y `/Boton4`, y `J16` saca 3,3 V en p9 y p11 —las posiciones de al lado—: eso es un
+> pull-**down** con la tensión a un pin de distancia, y el gesto previsto es cerrar el contacto seco
+> de la cámara contra esos 3,3 V. Con `INPUT_PULLUP` el pull-up interno (~40 kΩ) contra ese 10 kΩ
+> deja el pin en 3,3 × 10/50 = **0,66 V**, que el micro lee `LOW`: **demanda permanente sin cámara
+> conectada, e invertida al cerrarla.**
+>
+> ⚠️ **NO SE CABLEA CÁMARA A `J16` hasta que se haga la medida `M3`** de
+> `05_Funcional/17_Arquitectura...` §2.2 — y el orden es **firmware primero, cableado después**
+> (`CLAUDE.md §9.bis`): un pin en `INPUT` no ejecuta nada, mientras que con el firmware viejo dentro
+> `PB14` sigue siendo *Aceptar* activo en BAJO y **cualquier hilo enchufado en p10 lo pulsa**.
+>
+> ⚠️ **Y `J16` p1 lleva 12 V CRUDOS** —sin opto, sin serie, sin clamp— a nueve posiciones de p10 y
+> once de p12. **Se tapa físicamente antes de enchufar nada.**
 
 > **No hay entradas dedicadas.** Eléctricamente, el relé y el botón **son el mismo
 > contacto**: el firmware no puede distinguir cuál de los dos se accionó, y no lo intenta.
@@ -185,24 +285,42 @@ cambia es la acción, porque **el Esclavo no tiene modos de operación propios**
 
 ### 3.1 ⚠️ En el Esclavo, `B·B·B` desobedece al Maestro a propósito
 
-> ## 🛑 28/08/2026 — ESTA DESOBEDIENCIA ES EL VETO QUE SE PIERDE
+> ## ✅ 31/08/2026 — ESTA DESOBEDIENCIA SE CONSERVA, Y AHORA TIENE DOS ARMADORES
 >
-> **Esta sección describe la única barrera de seguridad que la retirada del mando rompe de verdad,
-> y la rompe en silencio.** Todo lo demás de este manual es papel; esto es un `if` que deja de
-> decidir.
+> **Es la barrera que decidió que el mando no se retirara.** Se conserva el aviso anterior debajo,
+> tachado, porque su razonamiento es lo que hay que releer si alguien vuelve a proponer borrar
+> `mando.cpp`.
 >
-> **MEDIDO:** la bandera que sostiene esta desobediencia es `ambarLocal`, y se arma en **un solo
-> sitio** — `Esclavo/src/mando.cpp:132`, dentro de `ejecutar(ACC_AMBAR)`, la acción de `B·B·B`. Sus
-> tres vetos viven en `Esclavo/src/main.cpp:401` (`CMD_GO_RED`), `:408` (`CMD_GO_GREEN`) y `:526`
-> (recuperación tras `S_FALLO`).
+> **MEDIDO el 31/08 en `Esclavo/src/main.cpp`** — los tres vetos leen hoy **dos** banderas:
 >
-> Sin mando ni pulsadores, `ambarLocal` **nunca vuelve a ser `true`**, los tres `if
-> (!mando_ambarLocal())` quedan siempre-verdaderos y **el Maestro recupera la capacidad de abrir
-> paso en el Esclavo en situaciones en las que hoy tiene prohibido hacerlo**. Nadie borra una línea
-> y ningún instrumento se pone rojo.
+> ```
+>   :406   if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {    // CMD_GO_RED
+>   :416   if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {    // CMD_GO_GREEN  <- abre paso
+>   :540   if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() && ...) // tras S_FALLO
+> ```
 >
-> **No borre `mando.cpp` del Esclavo sin decidir antes qué pasa con estos tres `if`.** Desarrollo
-> completo en el punto 3 del aviso de cabecera.
+> | Bandera | Quién la arma | Sigue viva |
+> |---|---|---|
+> | `mando_ambarLocal()` | `Esclavo/src/mando.cpp:132`, dentro de `ejecutar(ACC_AMBAR)` = **`B·B·B`** | ✅ `B` es `PB13`, se conserva |
+> | `bluetooth_ambarEmergencia()` | `Esclavo/src/bluetooth.cpp:130` y `:171` = **`CMD:AMBAR_EMERGENCIA`** | ✅ **nuevo camino, sin PIN** |
+>
+> **Que sean dos no es redundancia decorativa:** el mando funciona sin radio ni teléfono, y la app
+> funciona sin receptor de relés. Hoy **el receptor no está comprado**, así que en la práctica el
+> camino disponible es el de Bluetooth.
+>
+> > ### 📕 ~~28/08/2026 — ESTA DESOBEDIENCIA ES EL VETO QUE SE PIERDE~~ *(superado, se conserva)*
+> >
+> > ~~Sin mando ni pulsadores, `ambarLocal` **nunca vuelve a ser `true`**, los tres `if
+> > (!mando_ambarLocal())` quedan siempre-verdaderos y **el Maestro recupera la capacidad de abrir
+> > paso en el Esclavo en situaciones en las que hoy tiene prohibido hacerlo**. Nadie borra una línea
+> > y ningún instrumento se pone rojo.~~
+> >
+> > **Sigue siendo el aviso correcto para el escenario que describe** —retirar el armador de una
+> > bandera **no** la deja inerte: la deja siempre-falsa, y eso **abre** el `if` que la leía—. Lo que
+> > cambió es que ese escenario **no se ejecutó**.
+> >
+> > *(Las líneas `:401`, `:408` y `:526` que citaba se han desplazado a `:406`, `:416` y `:540` al
+> > añadirse la segunda bandera.)*
 
 Mientras el ámbar local esté activo, **el Esclavo NO obedece las órdenes de luz del
 Maestro** y **tampoco acusa recibo de ellas**. Se queda en ámbar intermitente hasta que
@@ -299,8 +417,8 @@ estaba invertido**, y el cliente lo corrigió el 01/08/2026.
 > **`C` ejecuta; `A` y `B` solo mueven.** La regla es: **a ciegas se usan únicamente los
 > botones cuya repetición accidental es inofensiva.**
 
-**En el Esclavo la regla se sostiene por el mismo motivo**, con otro ejemplo: allí `C` es el
-botón que **confirma la entrada al Modo Degradado** y `D` el que navega hacia atrás,
+**En el Esclavo la regla se sostiene por el mismo motivo**, con otro ejemplo: allí `C` era el
+botón que **confirmaba la entrada al Modo Degradado** y `D` el que navegaba hacia atrás,
 mientras que `A` y `B` solo mueven el cursor entre dos opciones — y repetirlos **no hace
 absolutamente nada**.
 
@@ -310,6 +428,51 @@ ocurrido es que el cursor se movió**.
 
 `botones.cpp` solo entrega al mando los flancos de los botones 1 y 2. Los botones 3 y 4
 nunca llegan a `mando_registrarPulso()`.
+
+### ✅ 31/08 — el argumento de esta sección lo ha ratificado el hardware
+
+**Este apartado razonaba que `C` y `D` no debían usarse *a ciegas*. El 31/08 dejaron de existir como
+pulsadores**, así que la regla ya no cuelga de una decisión de diseño: **no hay pin detrás**.
+
+**MEDIDO** en `Maestro/src/botones.cpp:280-281` y su equivalente del Esclavo:
+
+```
+  bool botonAceptar() { return false; }
+  bool botonCancelar(){ return false; }
+```
+
+**No se borraron, y la razón está escrita en el fuente:** tienen veintitantos llamadores en nueve
+ficheros, y borrarlas convertiría una reasignación de pines en **una reescritura del control de flujo
+de cada modo, la salida del Degradado incluida** — que es justo donde se cuelan los errores en un
+cambio que no debería cambiar comportamiento. Devolviendo `false`, `git grep botonCancelar` sigue
+listando **en una sola lista** todo lo que la retirada de `C` y `D` se llevó por delante.
+
+> ### 🔴 Consecuencia que hay que leer entera: en el ESCLAVO, el mando es ahora la ÚNICA vía
+>
+> El Esclavo **no tiene `SET_MODO` por Bluetooth** (`§4.4` del Manual 10: el Maestro es el único que
+> arbitra el ciclo). Con *Aceptar* mudo, **el sustituto de esos dos botones en esta punta no es la
+> app — es el mando de relés**:
+>
+> | Lo que se perdió | Dónde estaba | Con qué se sustituye |
+> |---|---|---|
+> | Entrar al Modo Degradado | `Esclavo/src/menu.cpp:227` | **`A·B·A·B`** → `ACC_DEGRADADO` (`mando.cpp:148`) |
+> | Salir del Modo Degradado | `Esclavo/src/menu.cpp:215` | **`A·A·A`** → `ACC_OBEDECER` (`:121`) · **`B·B·B`** → `ACC_AMBAR` (`:138`) |
+>
+> **Esto sube el mando de «conveniencia desde el piso» a «único actuador de modo del Esclavo».** Y
+> como el receptor sigue sin comprarse, hoy la vía real de esas dos acciones es **subir al gabinete y
+> pulsar `A` y `B` a mano**.
+>
+> *(En el Maestro sí hay sustituto por app: `SET_MODO:AUTO|MANUAL|AMBAR|MENU|ALCANCE|INTELIGENTE|
+> DEGRADADO`, `SET_TIEMPOS`, `MANUAL:CAMBIAR_TURNO`, `SET_RTC` y `REINICIAR_RELOJ` — censados
+> llamador a llamador en `Maestro/src/botones.cpp:255-275`.)*
+
+> ### ✅ Y un efecto lateral que va en la dirección buena (SFTY-21)
+>
+> Con *Aceptar* mudo, **la pantalla del Esclavo no puede bajar del listado**, así que
+> `menu_estaAbierto()` es siempre falso y **el mando deja de poder quedarse inhibido por una pantalla
+> que alguien olvidó abierta**. Era la preocupación explícita de la `§6` de este manual —*«el síntoma,
+> "el mando no responde nunca en el Esclavo", sería indistinguible de un receptor averiado»*—, y ya no
+> puede ocurrir por esa causa.
 
 ---
 
@@ -422,31 +585,54 @@ intentar Automático es **volver al ámbar, que es justo donde se estaba**. Y ar
      luces en AMBAR  ->  sigue muerto; puede volverse al degradado
 ```
 
-> ~~**`B·B·B` devuelve a ámbar desde cualquier estado en marcha, sin condiciones.** Es la regla
-> que impide que nadie quede atrapado con un semáforo en estado raro a 5 m de altura. **Una
-> salida de emergencia con requisitos no es una salida de emergencia.**~~
+**`B·B·B` devuelve a ámbar desde cualquier estado en marcha, sin condiciones.** Es la regla
+que impide que nadie quede atrapado con un semáforo en estado raro a 5 m de altura. **Una
+salida de emergencia con requisitos no es una salida de emergencia.**
 
-> # 🛑 28/08/2026 — ESTA SALIDA DE EMERGENCIA NO EXISTE. NO CUENTE CON ELLA.
+> # ✅ 31/08/2026 — LA FRASE DE ARRIBA VUELVE A ESTAR VIGENTE, Y AHORA TIENE SUSTITUTO
 >
-> **Un operario que confíe en esta frase no tiene la salida que promete.** El aviso va pegado aquí,
-> y no solo en la cabecera, porque quien lee esta página puede no haber leído aquélla — y lo que
-> esta frase ofrece es precisamente aquello sobre lo que alguien decide subirse a un poste.
+> **Se destacha.** El 28/08 se tachó porque el mando se retiraba entero; el 31/08 el mando **se
+> conserva en `A` y `B`**, y `B·B·B` es exactamente una de las dos secuencias que sobreviven.
 >
-> | | |
+> ## 🔴 Y hay que corregir una afirmación que este manual publicaba como MEDIDA y era FALSA
+>
+> El aviso del 28/08 decía, con la palabra *«MEDIDO»* encima:
+>
+> > ~~**Sin sustituto** — MEDIDO: `Esclavo/src/bluetooth.cpp` acepta `FORZAR_ROJO` (`:109`, `:124`),
+> > `SOLICITAR_PASO` (`:128`), `TEST_LEDS` (`:146`) y `SET_RTC:` (`:159`). **Ninguno pone al Esclavo
+> > en ámbar.** `FORZAR_ROJO` es rojo, no ámbar, y no revoca nada~~
+>
+> **Es falso en las dos mitades, y se refuta con la medida — no se borra** (`CLAUDE.md §4`: una
+> refutación también es un instrumento, y tachar exige el mismo rigor que afirmar).
+>
+> **MEDIDO el 31/08 sobre `01_Firmware/Esclavo/src/bluetooth.cpp`:**
+>
+> ```
+>   :130   if (strcmp(cmd, "CMD:AMBAR_EMERGENCIA") == 0) {      <- SIN PIN
+>   :131     semaforo_iniciarFallo();
+>   :132     ambarEmergencia = true;                            <- el latch
+>   :133     enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
+>   :171   } else if (strcmp(accion, "AMBAR_EMERGENCIA") == 0)  <- la forma CON PIN
+>   :268   bool bluetooth_ambarEmergencia() { ... }             <- lo leen los tres vetos
+> ```
+>
+> | Lo que decía | Lo que mide el fuente |
 > |---|---|
-> | **Nunca existió** | El receptor de relés **no se compró ni se conectó en ninguna punta**, y no hay prueba de banco (`:8-19` de este manual). Sin receptor, `B·B·B` no se puede accionar desde el piso: **jamás fue ejecutable en campo** |
-> | **Y deja de existir** | El mando y los cuatro pulsadores se retiran (28/08/2026). También se va la vía por botón |
-> | **Sin sustituto** | **MEDIDO:** `Esclavo/src/bluetooth.cpp` acepta `FORZAR_ROJO` (`:109`, `:124`), `SOLICITAR_PASO` (`:128`), `TEST_LEDS` (`:146`) y `SET_RTC:` (`:159`). **Ninguno pone al Esclavo en ámbar.** `FORZAR_ROJO` es rojo, no ámbar, y no revoca nada |
+> | *«ninguno pone al Esclavo en ámbar»* | **`CMD:AMBAR_EMERGENCIA` sí lo pone**, y se acepta **sin PIN** |
+> | *«`FORZAR_ROJO` es rojo, no ámbar»* | **`FORZAR_ROJO` ya no es nada en el Esclavo**: contesta `$ERR,…,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` por las dos formas (`:157`, `:176`). Era el **nombre** lo que estaba mal: aquella rama ya hacía ámbar |
+> | *«no revoca nada»* | **Sí revoca:** `bluetooth_ambarEmergencia()` entra en los tres vetos de `main.cpp:406`, `:416`, `:540`, junto a `mando_ambarLocal()` |
 >
-> **La frase tachada sigue siendo un buen requisito — por eso se tacha y no se borra.** *"Una salida
-> de emergencia con requisitos no es una salida de emergencia"* es exactamente el criterio que el
-> reemplazo por Bluetooth tiene que cumplir. Hoy no lo cumple nadie: **el sistema se ha quedado sin
-> salida de emergencia, con requisitos o sin ellos.**
+> ## Estado real de la salida de emergencia del Esclavo, hoy
 >
-> ⚠️ **Y hay una consecuencia de firmware que no se ve desde aquí:** `B·B·B` era el único sitio que
-> armaba `ambarLocal`, la bandera de la que cuelgan **tres vetos** en `Esclavo/src/main.cpp`
-> (`:401`, `:408`, `:526`). Al retirarla, esos vetos se vuelven siempre-verdaderos y **desaparecen
-> sin que nadie borre una línea.** Ver el punto 3 del aviso de cabecera.
+> | Vía | Estado |
+> |---|---|
+> | **`B·B·B` desde el mando** | ✅ **en el firmware**, 🛑 **sin receptor comprado**. Ejecutable subiendo al gabinete, no desde el piso |
+> | **`CMD:AMBAR_EMERGENCIA` desde la app** | ✅ **en el firmware**, sin PIN, con latch y con veto |
+> | Prueba de banco de cualquiera de las dos | ❌ **ninguna** |
+>
+> **La frase de arriba sigue siendo el criterio con el que se juzga el sustituto**, y el sustituto por
+> Bluetooth lo cumple *en el fuente*: desde cualquier estado, sin condiciones y sin PIN. **Lo que
+> falta es la tarjeta.** No se lea esto como permiso.
 
 ---
 
@@ -493,9 +679,11 @@ mando no sirve. El escenario típico es *"dejó de llover, a ver si volvió el r
 | **El rechazo no indica el motivo desde el piso** | Aceptado. Hay que subir a leer la pantalla |
 | **No hay realimentación de "pulso recibido"** | El operario no sabe si un pulso entró hasta completar la secuencia. Consecuencia directa de tener solo las luces como salida |
 | **El estado del Degradado no persiste a un corte** | Pendiente **N-20**. Un microcorte puede crear la salida asimétrica de §9 sin que nadie toque el mando |
-| 🛑 **El mando entero se retira (28/08/2026)** | Decisión de obra. Todo este manual pasa a describir un actuador inexistente. **Nunca hubo receptor, así que no cambia lo que se puede hacer hoy en campo** |
-| 🛑 **Al retirarlo, el veto de `ambarLocal` desaparece solo** | **MEDIDO.** Tres `if` en `Esclavo/src/main.cpp` (`:401`, `:408`, `:526`) se vuelven siempre-verdaderos. **Es lo único de esta retirada que toca seguridad, y hay que resolverlo explícitamente.** Ver punto 3 de la cabecera |
-| 🛑 **El sistema se queda sin salida de emergencia** | `B·B·B` era la única *"desde cualquier estado y sin condiciones"*. **No hay sustituto por Bluetooth en el Esclavo.** Ver §8 |
+| ~~🛑 **El mando entero se retira (28/08/2026)**~~ | ✅ **SUPERADO el 31/08.** Se conserva en `A` (`PB9`) y `B` (`PB13`); se retiran `C` y `D`, que pasan a cámaras. **Las tres secuencias siguen funcionando.** Ver cabecera |
+| ~~🛑 **Al retirarlo, el veto de `ambarLocal` desaparece solo**~~ | ✅ **RESUELTO.** No se retira el armador (`B·B·B` sigue), y además los tres `if` —`main.cpp:406`, `:416`, `:540`— leen ahora **dos** banderas: `mando_ambarLocal()` **y** `bluetooth_ambarEmergencia()` |
+| ~~🛑 **El sistema se queda sin salida de emergencia**~~ | ⚠️ **CORREGIDO — la afirmación era falsa.** `CMD:AMBAR_EMERGENCIA` (`Esclavo/src/bluetooth.cpp:130`, sin PIN) **sí** pone al Esclavo en ámbar y **sí** veta las órdenes de radio. Ver §8. **Lo que sigue faltando es el receptor y la prueba de banco**, no el sustituto |
+| 🛑 **`C` y `D` cambian de modo de pin y de polaridad** | `INPUT_PULLUP` activo en BAJO → **`INPUT` pelado activo en ALTO**. **No se cablea cámara a `J16` hasta la medida `M3`**, y el firmware nuevo va **cargado en la tarjeta** antes de que nadie enchufe nada (`CLAUDE.md §9.bis`) |
+| 🛑 **En el Esclavo el mando pasa a ser el ÚNICO actuador de modo** | Con *Aceptar* mudo y sin `SET_MODO` por Bluetooth en esa punta, entrar y salir del Degradado **solo se hace con `A·B·A·B` / `A·A·A` / `B·B·B`**. Ver §5 |
 
 ---
 
