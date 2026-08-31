@@ -6,6 +6,8 @@
 #include "demanda.h"
 #include "reloj.h"
 #include "identidad.h"
+#include "mando.h"           // R-3: mando_ambarLocal(), para no prometer un ambar que no se quita
+#include "modo_degradado.h"  // N-106: la salida ordenada y sus dos finales
 #include <string.h>
 #include <stdio.h>
 
@@ -37,7 +39,26 @@ static uint8_t btIdxIn = 0;
 // volverse atras solo, sin que nadie se lo dijera. La orden es la misma y la razon para
 // darla es la misma; que la haya dado un dedo en el gabinete o un dedo en el telefono no
 // puede cambiar cuanto dura.
+//
+// N-106 (31/08) - AQUI VIVIA LA REVOCACION AUTOMATICA, Y SE RETIRA. Estaba en
+// bluetooth_loop() y decia: "si el latch esta puesto y la luz ya no esta en S_FALLO,
+// tirar el latch". Su razonamiento era correcto MIENTRAS el ambar fuera inmediato, y
+// dejo de serlo el dia que este comando pasa a salir del Modo Degradado por el todo-rojo
+// de despedida: durante esos 10 a 90 s la luz esta en ROJO, o sea fuera de S_FALLO, asi
+// que el latch moria milisegundos despues de armarse y con el se apagaban los tres vetos
+// de main.cpp (:406, :416, :540). El $ACK ya se habia enviado.
+//
+// No se parchea con una excepcion: se retira, y en su lugar queda EXACTAMENTE lo que
+// tiene el mando -un sostenedor en el bucle y una revocacion explicita-. El motivo por el
+// que existia esta escrito en bluetooth.h y era honesto: "no hay comando de Bluetooth que
+// lo revoque, asi que se cae solo". Desde R-3 SI lo hay (CMD:PIN:1234:CANCELAR_AMBAR), y
+// una revocacion que ocurre porque una persona la pide es lo contrario de una que ocurre
+// porque la maquina deshizo sola una proteccion que puso alguien.
 static bool ambarEmergencia = false;
+
+// N-108 - "esta punta ya declaro que se quedo sin radio". Lo pone quien manda la alarma
+// y lo baja el aviso de vuelta; no es un watchdog y no tiene reloj. Ver bluetooth_loop().
+static bool enlaceCaidoAnunciado = false;
 
 static uint8_t calcularChecksum(const char* str) {
   uint8_t crc = 0;
@@ -50,7 +71,12 @@ static uint8_t calcularChecksum(const char* str) {
 
 static void enviarTramaConCrc(const char* payload) {
   uint8_t crc = calcularChecksum(payload + 1); // Salta el '$' inicial
-  char tramaCompleta[140];
+  // N-108: 160 y no 140. El $ALARM pasa a llevar el ultimo tramo del enlace y su peor
+  // caso medido son 128 B de payload; con 140 aqui, el cierre del checksum entraba
+  // justo y una CAUSA mas larga habria truncado la trama SIN AVISO -y una trama
+  // truncada es una que el otro extremo descarta por checksum, o sea una alarma que
+  // desaparece justo cuando hace falta-.
+  char tramaCompleta[160];
   snprintf(tramaCompleta, sizeof(tramaCompleta), "%s*%02X\r\n", payload, crc);
   SerialBT.print(tramaCompleta);
 }
@@ -86,9 +112,40 @@ void bluetooth_reportarAlarma(const char* evento, const char* causa, const char*
     strncpy(horaBuf, "--:--:--", sizeof(horaBuf));
   }
 
-  char payload[100];
-  snprintf(payload, sizeof(payload), "$ALARM,NODE:ESCLAVO,EVENTO:%s,CAUSA:%s,ACCION:%s,HORA:%s",
-           evento, causa, accion, horaBuf);
+  // N-108 - LA ALARMA LLEVA EL ULTIMO TRAMO, Y EN ESTA PUNTA ES OTRO. Y ESO ES EL DATO.
+  //
+  // El Maestro puede contar latidos porque el los MANDA: sabe cuantos salieron y cuantos
+  // volvieron. Esta punta solo CONTESTA, asi que no tiene ni ventana de latidos ni ida y
+  // vuelta que cronometrar. Lo que si tiene, y es real, son los tres contadores de
+  // SFTY-15 (protocolo.cpp:101-103), que separan las tres averias que desde el suelo se
+  // ven todas igual -"no hay comunicacion"-:
+  //
+  //   RX en 0                 no llega NADA: cobertura, canal o antena
+  //   RX alto y OK en 0       llega BASURA: cableado, linea flotando, radio atascada
+  //   los dos suben, RUIDO alto  enlace marginal por distancia o lluvia
+  //
+  // Ese reparto es exactamente "desde donde se cayo" visto desde este extremo, que es el
+  // que se queda sin radio a 5 m de altura y el que hasta hoy no tenia un solo dato.
+  //
+  // NO SE PUBLICA UN RF% AQUI, Y NO ES POR PEREZA. El unico cociente que se podria formar
+  // -OK / (OK + RUIDO)- no es una tasa de perdida, y lo dice el propio protocolo.cpp:120
+  // en su nota: "un solo byte de ruido puede provocar varios descartes seguidos mientras
+  // la ventana se desplaza. El contador mide RUIDO, no tramas perdidas una a una". Ademas
+  // OK cuenta las 3 copias de cada rafaga (SFTY-11), asi que ni el numerador es de
+  // mensajes. Un porcentaje sobre eso seria el RF:98% de antes con otra forma: peor, de
+  // hecho, porque se moveria y por eso nadie sospecharia de el.
+  char tramo[44];
+  snprintf(tramo, sizeof(tramo), "RX:%lu,OK:%lu,RUIDO:%lu",
+           protocolo_bytesRecibidos(), protocolo_tramasValidas(),
+           protocolo_tramasDescartadas());
+
+  // Se anota que la caida YA se anuncio, para que la vuelta tenga con que compararse.
+  // No decide nada: la decision es de SFTY-6, en main.cpp; aqui solo se toma nota.
+  enlaceCaidoAnunciado = true;
+
+  char payload[144];
+  snprintf(payload, sizeof(payload), "$ALARM,NODE:ESCLAVO,EVENTO:%s,CAUSA:%s,%s,ACCION:%s,HORA:%s",
+           evento, causa, tramo, accion, horaBuf);
   enviarTramaConCrc(payload);
 }
 
@@ -104,6 +161,23 @@ void bluetooth_reportarEvento(const char* origen, const char* detalle) {
   snprintf(payload, sizeof(payload), "$EVENT,NODE:ESCLAVO,ORIGEN:%s,DETALLE:%s,HORA:%s",
            origen, detalle, horaBuf);
   enviarTramaConCrc(payload);
+}
+
+// --- El envoltorio que devuelve lo que degradado_salir() no sabe decir ------------
+//
+// degradado_salir() es `void` Y ABANDONA EN SILENCIO: desde DEG_INACTIVO y desde
+// DEG_SALIENDO no hace nada, y desde DEG_RENDIDO solo baja el cartel. Llamarla suelta y
+// contestar $ACK detras es el OK mudo que este repositorio persigue -es literalmente lo
+// que el banco rechazo del primer intento de N-106-.
+//
+// Aqui se pregunta la MISMA guarda que ella tiene, no una parecida: modo_degradado.cpp
+// arranca la salida en iniciarSalida(false) solo si el estado es DEG_ENTRANDO o
+// DEG_ACTIVO. Es el mismo patron que pedirCambioVerificado() del Maestro.
+static bool salidaDegradadoIniciada() {
+  const EstadoDegradado e = degradado_estado();
+  if (e != DEG_ENTRANDO && e != DEG_ACTIVO) return false;
+  degradado_salir();
+  return true;
 }
 
 static void procesarComando(const char* cmd) {
@@ -127,11 +201,68 @@ static void procesarComando(const char* cmd) {
   //
   // Se acepta tambien la forma con PIN mas abajo: la app la envia asi y el manual
   // la documenta. Las dos entradas hacen lo mismo.
+  //
+  // N-106 (31/08) - Y NO SE SALTA EL MODO DEGRADADO. La tabla completa es el Manual 10
+  // S4.5.2; aqui va el porque, que es vial:
+  //
+  // Antes esto era semaforo_iniciarFallo() a secas. Con el Degradado gobernando la luz
+  // eso saltaba de un VERDE POR RELOJ directo a ambar intermitente, y su propio mando.cpp
+  // ya tenia escrito lo que eso significa: "le daria a quien ya venia lanzado una senal
+  // que invita a negociar el paso mientras aun cree tener prioridad". Por eso el Degradado
+  // entra y sale SIEMPRE por todo-rojo, y por eso el B.B.B del mando sale por ahi.
+  //
+  // R-1 (31/08): se acepta que el ambar tarde de 10 a 90 s -el todo-rojo de despedida sale
+  // de cfgDespeje-, porque ese margen es lo unico que protege a quien ya venia lanzado. Es
+  // exactamente lo que ya cuesta el B.B.B.
+  //
+  // LAS DOS PUERTAS -esta sin PIN y la de 'accion' con PIN- LLEVAN EL MISMO BLOQUE, letra
+  // por letra. Un parche a una sola deja media puerta abierta contestando el $ACK viejo;
+  // lo vigilan esclavo_07 y esclavo_08.
   if (strcmp(cmd, "CMD:AMBAR_EMERGENCIA") == 0) {
-    semaforo_iniciarFallo();
-    ambarEmergencia = true;
-    enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
-    bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_SIN_PIN");
+    if (!degradado_gobiernaLuz()) {
+      // Filas A y B: nadie mas gobierna la luz, el ambar se enciende ya. No hay $ERR
+      // posible en este camino y no se inventa uno: semaforo_iniciarFallo() no tiene
+      // guarda y no puede fallar, y armar el latch es una asignacion.
+      const bool yaEnAmbar = (semaforo_estado() == S_FALLO);
+      semaforo_iniciarFallo();
+      ambarEmergencia = true;
+      if (yaEnAmbar) {
+        // Fila B. Lo que esta orden cambia NO es la luz -ya estaba en ambar por SFTY-6,
+        // por el watchdog o por un B.B.B-: es el latch, que convierte un ambar que el
+        // siguiente CMD_GO_RED se llevaria en uno vetado. Contestar OK ocultaria que lo
+        // unico nuevo es la proteccion.
+        enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO");
+      } else {
+        enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
+      }
+      bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_SIN_PIN");
+    } else if (salidaDegradadoIniciada()) {
+      // Fila C. El RESULT no es OK a proposito: el ambar no esta puesto todavia y decir
+      // OK seria dar por hecho un cambio de luz que tarda hasta 90 s. Lo que garantiza
+      // que llegue es el sostenedor de bluetooth_loop() -la segunda mitad del molde-.
+      ambarEmergencia = true;
+      enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:SALIENDO_TODO_ROJO");
+      bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_SIN_PIN");
+    } else if (degradado_rendicionEnCurso()) {
+      // Fila D con la salida en curso terminando en AMBAR: es la rendicion por el limite
+      // de 48 h, que acaba en DEG_RENDIDO encendiendo el ambar por su cuenta. La orden no
+      // arranca nada -degradado_salir() ya no opera- pero el latch SI cambia algo: sin el,
+      // ese ambar duraria hasta la siguiente orden del Maestro. R-2.
+      ambarEmergencia = true;
+      enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:SALIDA_YA_EN_CURSO");
+      bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_SIN_PIN");
+    } else {
+      // Fila D con la salida en curso terminando en ROJO -la pidio otro: el A.A.A del
+      // mando, la pantalla o el regreso del radio-. NO se arma el latch y NO se contesta
+      // OK, y las dos cosas van juntas: armarlo seria quedarse con el final de una salida
+      // que mando otro, y contestar OK seria prometer un ambar que nadie va a encender.
+      //
+      // La espera no cuesta seguridad: mientras dura esa salida el equipo esta en TODO
+      // ROJO, que es mas seguro que el ambar que se pide. Al terminar, el mismo comando
+      // cae en la fila A y enciende el ambar de inmediato; por eso el motivo dice REPITA.
+      enviarTramaConCrc("$ERR,CMD:AMBAR_EMERGENCIA,DESC:SALIDA_A_ROJO_EN_CURSO_REPITA");
+      bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_RECHAZADO");
+    }
     return;
   }
 
@@ -168,11 +299,68 @@ static void procesarComando(const char* cmd) {
 
   const char* accion = cmd + 13;
 
+  // LA MISMA PUERTA QUE ARRIBA, CON EL PIN PUESTO, Y CON EL MISMO BLOQUE LETRA POR LETRA.
+  // El porque de cada fila esta escrito una sola vez, en la puerta sin PIN; repetirlo aqui
+  // serian dos explicaciones que alguien tendria que sincronizar. Lo que NO se puede
+  // repartir es el codigo: los packs leen el bloque de CADA rama, y una respuesta que
+  // viviera en una funcion comun dejaria a los dos instrumentos midiendo un bloque vacio
+  // -es N-89, el refactor que apaga el instrumento sin romper un solo test-.
   if (strcmp(accion, "AMBAR_EMERGENCIA") == 0) {
-    semaforo_iniciarFallo();
-    ambarEmergencia = true;
-    enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
-    bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_LOCAL");
+    if (!degradado_gobiernaLuz()) {
+      const bool yaEnAmbar = (semaforo_estado() == S_FALLO);
+      semaforo_iniciarFallo();
+      ambarEmergencia = true;
+      if (yaEnAmbar) {
+        enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO");
+      } else {
+        enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
+      }
+      bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_LOCAL");
+    } else if (salidaDegradadoIniciada()) {
+      ambarEmergencia = true;
+      enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:SALIENDO_TODO_ROJO");
+      bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_LOCAL");
+    } else if (degradado_rendicionEnCurso()) {
+      ambarEmergencia = true;
+      enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:SALIDA_YA_EN_CURSO");
+      bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_LOCAL");
+    } else {
+      enviarTramaConCrc("$ERR,CMD:AMBAR_EMERGENCIA,DESC:SALIDA_A_ROJO_EN_CURSO_REPITA");
+      bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_RECHAZADO");
+    }
+  } else if (strcmp(accion, "CANCELAR_AMBAR") == 0) {
+    // R-3 (31/08) - EL AMBAR DE EMERGENCIA SE REVOCA DESDE LA APP, CON PIN.
+    //
+    // Hasta hoy la unica salida era subir al gabinete y hacer A.A.A en el mando, y ademas
+    // el latch se caia solo -ver la cabecera de ambarEmergencia-. Con la app como
+    // superficie de mando, el tecnico que pidio el ambar por telefono no podia deshacer su
+    // propia orden sin escalera.
+    //
+    // PIDE PIN, y aqui la asimetria de mando.cpp se lee al derecho: pedir el ambar es la
+    // accion SEGURA y no pide clave; QUITARLO devuelve el cruce a dar verdes, o sea que
+    // ABRE PASO, y eso es justo lo que el PIN existe para custodiar.
+    //
+    // Y no se toca la luz: retirar el latch no ordena nada, solo levanta el veto. Quien
+    // vuelve a mover la luz es el Maestro con su siguiente orden. Por eso el RESULT dice
+    // RETIRADO y no OK -un OK se leeria como "el ambar ya no esta", y sigue estando hasta
+    // que llegue esa orden-.
+    if (!ambarEmergencia) {
+      // No se finge una revocacion que no ocurrio: si el operario no sabe que no habia
+      // nada que quitar, se ira creyendo que desactivo algo que sigue puesto por otra via.
+      enviarTramaConCrc("$ERR,CMD:CANCELAR_AMBAR,DESC:NO_HAY_AMBAR_VIGENTE");
+    } else {
+      ambarEmergencia = false;
+      if (mando_ambarLocal()) {
+        // El otro latch, el del mando, NO lo puede quitar este comando: los tres vetos de
+        // main.cpp son "!mando_ambarLocal() && !bluetooth_ambarEmergencia()", asi que con
+        // el del gabinete puesto la luz sigue vetada. Contestar OK a secas mandaria al
+        // tecnico a esperar un cambio que no va a llegar hasta que alguien haga A.A.A.
+        enviarTramaConCrc("$ACK,CMD:CANCELAR_AMBAR,RESULT:RETIRADO_QUEDA_MANDO");
+      } else {
+        enviarTramaConCrc("$ACK,CMD:CANCELAR_AMBAR,RESULT:RETIRADO");
+      }
+      bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_REVOCADO");
+    }
   } else if (strcmp(accion, "FORZAR_ROJO") == 0) {
     // N-83: la misma puerta que arriba, con el PIN puesto. Ver alli el porque de
     // rechazar en vez de aliasar. Una app vieja lo manda por las dos, y las dos tienen
@@ -239,8 +427,22 @@ static void procesarComando(const char* cmd) {
     // que no casa- para no gastar flash en un literal nuevo. El dia se exige 1..31
     // porque el Courier manda siempre la fecha completa; el 0 de "no toques la
     // fecha" no llega nunca por esta puerta.
+    //
+    // EL %c DE MAS NO SE LEE NUNCA: ESTA PARA QUE sscanf DELATE LO QUE SOBRA.
+    //
+    // sscanf cuenta CAMPOS CONVERTIDOS y no exige que la cadena se acabe. Con dos ordenes
+    // en el mismo buffer -"...,18:25:00CMD:AMBAR_EMERGENCIA", que es lo que queda cuando una
+    // trama entra a medias y la siguiente se le concatena- esto convertia sus 6 campos,
+    // ponia la hora y contestaba "$ACK,CMD:SET_RTC,RESULT:OK", tirando sin aviso la orden
+    // que venia detras -que en esta punta es justo la de emergencia-.
+    //
+    // Con el %c detras la cuenta separa los dos casos: una cadena que se acaba convierte 6
+    // -el %c se queda sin nada que leer- y una con basura pegada convierte 7. Se exige el 6
+    // EXACTO: ante dos ordenes pegadas la respuesta segura es no ejecutar ninguna y
+    // decirlo, no adivinar cual era.
     int y, mo, d, h, mi, s;
-    if (sscanf(accion + 8, "%d-%d-%d,%d:%d:%d", &y, &mo, &d, &h, &mi, &s) == 6 &&
+    char sobra = 0;
+    if (sscanf(accion + 8, "%d-%d-%d,%d:%d:%d%c", &y, &mo, &d, &h, &mi, &s, &sobra) == 6 &&
         h >= 0 && h <= 23 && mi >= 0 && mi <= 59 && s >= 0 && s <= 59 &&
         d >= 1 && d <= 31) {
       if (reloj_contadorSegundos()) reloj_ajustar((uint8_t)h, (uint8_t)mi, (uint8_t)s, (uint8_t)d);
@@ -272,24 +474,35 @@ bool bluetooth_ambarEmergencia() {
 void bluetooth_loop() {
   const unsigned long ahora = millis();
 
-  // LA SALIDA DE ESTE AMBAR ES LOCAL, Y ES LA MISMA QUE LA DEL MANDO.
+  // SOSTENEDOR DEL AMBAR PEDIDO POR LA APP - LA SEGUNDA MITAD DEL MOLDE (N-106).
   //
-  // Un latch persistente sin salida no es una mejora: es un nodo sordo al Maestro
-  // hasta el siguiente corte de corriente, y eso seria peor que el defecto que esto
-  // arregla. La salida existe y es la de siempre: el A.A.A del mando, que llama a
-  // semaforo_forzarRojo() y saca la luz de S_FALLO. Aqui no hace falta que mando.cpp
-  // avise de nada -este latch no es suyo-: basta con mirar el resultado. El ambar de
-  // emergencia solo tiene sentido MIENTRAS la luz sigue en el ambar que lo motivo.
+  // Es mando.cpp:274 con la otra bandera, y existe por el mismo motivo que alli: la orden
+  // de quien la dio tiene que sobrevivir a lo que pase despues. En concreto al todo-rojo
+  // de salida del Modo Degradado, que TERMINA EN INACTIVO, NO EN AMBAR: copiada solo la
+  // primera mitad del molde -la del despachador-, el todo-rojo de despedida acababa y
+  // nadie encendia nada, con lo que el equipo se quedaba en ROJO despues de haber
+  // contestado SALIENDO_TODO_ROJO. Eso es lo contrario de lo que se pidio, con el $ACK ya
+  // enviado.
   //
-  // Y la radio no puede colarse por esta puerta, que es lo que la hace segura: con el
-  // latch puesto main.cpp no obedece ninguna orden de luz, asi que el Maestro no puede
-  // sacar al nodo de S_FALLO para que el latch se caiga solo. Solo lo saca de ahi
-  // alguien que este delante del gabinete.
+  // Se RE-ARMA en vez de encenderse una sola vez porque un ambar que se apaga solo no es
+  // un estado seguro, es un parpadeo.
   //
-  // Va aqui y no dentro del getter para que la revocacion ocurra UNA vez por vuelta y
-  // ANTES de que se lea la radio: main.cpp llama a bluetooth_loop() antes del bloque de
-  // paquetes, asi que no queda ni una vuelta con un latch caduco decidiendo.
-  if (ambarEmergencia && semaforo_estado() != S_FALLO) ambarEmergencia = false;
+  // Las tres guardas, y ninguna sobra:
+  //   !semaforo_senalEnCurso()    mientras hay destellos de confirmacion las luces son de
+  //                              la senal; pisarla dejaria al operario sin la cuenta.
+  //   !degradado_gobiernaLuz()    durante el todo-rojo de despedida la luz es del modo. Es
+  //                              tambien lo que impide que esto pise al Degradado.
+  //   estado() != S_FALLO         si la rendicion por 48 h ya encendio el ambar, no se
+  //                              reinicia el parpadeo por gusto.
+  //
+  // Y AQUI YA NO HAY REVOCACION AUTOMATICA. La habia -"si la luz salio de S_FALLO, tira el
+  // latch"- y se retira con su porque escrito en la cabecera de ambarEmergencia: durante
+  // el todo-rojo de despedida la luz esta en ROJO, asi que mataba el latch milisegundos
+  // despues de armarse. Desde R-3 el latch se quita pidiendolo: CANCELAR_AMBAR.
+  if (ambarEmergencia && !semaforo_senalEnCurso() && !degradado_gobiernaLuz() &&
+      semaforo_estado() != S_FALLO) {
+    semaforo_iniciarFallo();
+  }
 
   // 1. Recepción de Comandos desde la App Móvil
   while (SerialBT.available() > 0) {
@@ -323,11 +536,70 @@ void bluetooth_loop() {
     char serieTxt[7];
     identidad_texto(serieTxt);
 
+    // N-108 - RF, RTT Y BAT DEJAN DE INVENTARSE. Los tres eran LITERALES: "RF:98%",
+    // "RTT:85ms" y "BAT:12.6" salian iguales del equipo estuviera como estuviera, asi que
+    // el tablero ensenaba un enlace perfecto y una bateria sana mientras el poste se
+    // quedaba sin radio. Un dato fijo con aspecto de medida es peor que un hueco: el
+    // hueco hace preguntar, y el numero bueno hace descartar la causa sin mirarla.
+    //
+    // SE MARCAN, NO SE RETIRAN, y el motivo es que el campo si tiene que existir: el dia
+    // que se midan, la app y el Manual 10 no cambian de contrato. Retirarlos ademas
+    // dejaria las dos puntas emitiendo tramas distintas, que es lo que
+    // documentos_03_trama_status impide con razon -la app es una sola-.
+    //
+    // POR QUE NINGUNO SE PUEDE MEDIR HOY EN ESTA PUNTA, medido y no supuesto:
+    //   RTT   esta punta nunca ORIGINA una peticion. Recibe CMD_PING y contesta
+    //         CMD_PONG tras el retardo de cortesia de SFTY-17. No hay ida y vuelta que
+    //         cronometrar: lo unico que podria medir es su propio retardo.
+    //   RF    no hay ventana de latidos aqui -los latidos los manda el Maestro-, y los
+    //         contadores de SFTY-15 no dan una tasa: ver el porque entero en
+    //         bluetooth_reportarAlarma(), donde SI se publican, en crudo y sin cociente.
+    //   BAT   no hay un solo analogRead() en Esclavo/src ni en Esclavo/include -ni en las
+    //         dos carpetas equivalentes del Maestro-. MEDIDO: grep sin coincidencias.
+    //         Sin divisor y sin entrada analogica no hay bateria que leer.
+    //
+    // Y por decision del responsable (31/08) NO se anade RSSI: no se mide potencia. Lo
+    // que hay se llega a latidos, y el estado del enlace se indica visualmente -abajo, en
+    // el $EVENT, y en el $ALARM de la caida-.
     char payload[128];
     snprintf(payload, sizeof(payload),
-             "$STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:%lu,RF:98%%,RTT:85ms,BAT:12.6,HORA:%s",
+             "$STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:%lu,RF:--,RTT:--,BAT:--,HORA:%s",
              serieTxt, estadoStr, tFaseSeg, horaBuf);
 
     enviarTramaConCrc(payload);
+
+    // N-108 - EL $EVENT QUE FALTABA ES EL DE LA VUELTA DEL ENLACE, NO EL DE LA CAIDA.
+    //
+    // La caida YA tiene dueno y ya deja rastro: SFTY-6 la decide en main.cpp y manda el
+    // $ALARM, que desde hoy lleva ademas los tres contadores de linea. Lo que no anunciaba
+    // nadie era el REGRESO, y por eso en la caja negra una radio que va y viene con la
+    // lluvia -el reporte del 27/08- se leia como una sola caida en vez de como doce. Sin
+    // la vuelta no se puede contar el numero de cortes, que es el dato que separa "se
+    // mojo el conector" de "esta al limite de alcance".
+    //
+    // AQUI NO HAY RELOJ NI UMBRAL, Y ES DELIBERADO. La primera version media el silencio
+    // con SFTY6_SILENCIO_MS y el simulador del puente la tumbo con razon: ese umbral es el
+    // del watchdog de la RADIO, y traerlo a este fichero -el del puerto del telefono- es
+    // la precondicion de que alguien acabe alimentando uno con el otro. El dia que eso
+    // pase, un ESP32 colgado mandaria el cruce a ambar y, peor, un telefono conectado
+    // SALVARIA al cruce de una caida de radio real. Son dos silencios y dos instrumentos.
+    //
+    // Asi que este bloque no decide nada: OBSERVA. La caida la declara quien manda la
+    // alarma; aqui solo se anota que ocurrio y se avisa cuando vuelven a entrar tramas.
+    // Vale con "cualquier alarma" porque en esta punta hay UNA sola llamada a
+    // bluetooth_reportarAlarma() -main.cpp:577, MEDIDO- y es justo la del fallo de RF; si
+    // algun dia hay otra, el peor caso es un aviso de vuelta de mas, que se ve.
+    {
+      static unsigned long validasAnt = 0;
+      const unsigned long validas = protocolo_tramasValidas();
+      if (enlaceCaidoAnunciado && validas != validasAnt) {
+        enlaceCaidoAnunciado = false;
+        char det[40];
+        snprintf(det, sizeof(det), "RECUPERADO_OK:%lu_RUIDO:%lu",
+                 validas, protocolo_tramasDescartadas());
+        bluetooth_reportarEvento("ENLACE_RF", det);
+      }
+      validasAnt = validas;
+    }
   }
 }

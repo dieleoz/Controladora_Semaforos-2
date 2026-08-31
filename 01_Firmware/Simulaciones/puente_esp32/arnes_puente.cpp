@@ -73,6 +73,15 @@
 #include "modo_degradado.h"
 #endif
 
+#if defined(PUNTA_ESCLAVO)
+// N-106: el bluetooth.cpp del Esclavo pasa a consultar el Modo Degradado, asi que este
+// arnes necesita el enum de estados. Es el modo_degradado.h REAL de esta punta -no hay
+// copia local, igual que con los otros diez headers-: si alguien anadiera un estado, los
+// sustitutos de mas abajo dejarian de cubrir la tabla y habria que venir aqui, que es
+// exactamente lo que se quiere que pase.
+#include "modo_degradado.h"
+#endif
+
 // --- El estado que Arduino.h declara y alguien tiene que definir ------------------
 int arnes_pines[64];
 int arnes_entradas[64];
@@ -208,6 +217,48 @@ bool botonCancelar() { return false; }
 // lo que este arnes mide de verdad, vive dentro del bluetooth.cpp REAL.
 static bool mando_ambar = false;
 bool mando_ambarLocal() { return mando_ambar; }
+
+// N-106 - EL MODO DEGRADADO DEL ESCLAVO, SUSTITUIDO Y GOBERNABLE DESDE FUERA.
+//
+// Son las mismas 400 lineas con la pantalla y el RTC dentro que ya estaban fuera de este
+// arnes. Lo que bluetooth.cpp consulta de todo eso son cuatro funciones, y las cuatro se
+// sustituyen aqui SOBRE UN SOLO ESTADO -deg_estado-, no como cuatro no-op independientes:
+// devolver constantes sueltas dejaria la tabla de S4.5.2 sin poder ejercerse y el arnes
+// aprobaria cualquier bluetooth.cpp -es la prueba muerta de N-51-.
+//
+// gobiernaLuz() se DERIVA del estado con la misma regla que el fichero real
+// (modo_degradado.cpp:367): ENTRANDO || ACTIVO || SALIENDO. Copiar el criterio y no
+// derivarlo seria una segunda copia que alguien tendria que sincronizar.
+//
+// salir() imita la guarda real: desde ENTRANDO o ACTIVO pasa a SALIENDO; desde RENDIDO
+// baja el cartel a INACTIVO; desde INACTIVO y SALIENDO no hace nada.
+//
+// Se gobiernan con DEG <estado> y DEG_REND 0|1.
+static int deg_estado = (int)DEG_INACTIVO;
+static bool deg_rendicion = false;
+
+EstadoDegradado degradado_estado() { return (EstadoDegradado)deg_estado; }
+bool degradado_rendicionEnCurso() { return deg_rendicion; }
+
+bool degradado_gobiernaLuz() {
+  return deg_estado == (int)DEG_ENTRANDO || deg_estado == (int)DEG_ACTIVO ||
+         deg_estado == (int)DEG_SALIENDO;
+}
+
+void degradado_salir() {
+  if (deg_estado == (int)DEG_RENDIDO) { deg_estado = (int)DEG_INACTIVO; return; }
+  if (deg_estado != (int)DEG_ENTRANDO && deg_estado != (int)DEG_ACTIVO) return;
+  deg_estado = (int)DEG_SALIENDO;
+  deg_rendicion = false;
+}
+
+// N-108 - LOS CONTADORES DE LINEA DE SFTY-15, que protocolo.cpp lleva y este arnes
+// sustituye. Suben con cada paquete que el arnes entrega, para que el $EVENT de enlace y
+// el tramo del $ALARM tengan algo real que publicar en vez de tres ceros fijos.
+static unsigned long cnt_bytes = 0, cnt_validas = 0, cnt_ruido = 0;
+unsigned long protocolo_bytesRecibidos()    { return cnt_bytes; }
+unsigned long protocolo_tramasValidas()     { return cnt_validas; }
+unsigned long protocolo_tramasDescartadas() { return cnt_ruido; }
 #endif
 
 // --- El puerto del ESP32, buscado POR SUS PINES ----------------------------------
@@ -352,6 +403,36 @@ int main(void) {
       printf("OK mdg=%d\n", mdg_motivo);
 #else
       printf("OK mdg=n/a\n");
+#endif
+
+    } else if (strncmp(linea, "DEG_REND ", 9) == 0) {
+#if defined(PUNTA_ESCLAVO)
+      deg_rendicion = (atoi(linea + 9) != 0);
+      printf("OK deg_rend=%d\n", (int)deg_rendicion);
+#else
+      printf("OK deg_rend=n/a\n");
+#endif
+
+    } else if (strncmp(linea, "DEG ", 4) == 0) {
+#if defined(PUNTA_ESCLAVO)
+      // El numero es el enum de modo_degradado.h: 0 INACTIVO, 1 ENTRANDO, 2 ACTIVO,
+      // 3 SALIENDO, 4 RENDIDO. Se imprime tambien gobiernaLuz() porque es lo que decide
+      // la rama, y verlo evita depurar contra un estado que no es el que se creia.
+      deg_estado = atoi(linea + 4);
+      printf("OK deg=%d gobierna=%d\n", deg_estado, (int)degradado_gobiernaLuz());
+#else
+      printf("OK deg=n/a\n");
+#endif
+
+    } else if (strncmp(linea, "RXCNT ", 6) == 0) {
+#if defined(PUNTA_ESCLAVO)
+      // Los tres contadores de SFTY-15 de una vez: bytes, validas y ruido.
+      cnt_bytes = (unsigned long)atol(linea + 6);
+      cnt_validas = cnt_bytes / 6;
+      cnt_ruido = cnt_bytes % 7;
+      printf("OK rx=%lu ok=%lu ruido=%lu\n", cnt_bytes, cnt_validas, cnt_ruido);
+#else
+      printf("OK rxcnt=n/a\n");
 #endif
 
     } else if (strcmp(linea, "MODO") == 0) {

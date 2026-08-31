@@ -56,6 +56,28 @@ COMANDOS_PERMITIDOS = {
     # ahora le corresponde.
     "AMBAR_EMERGENCIA": "ambar intermitente: no le da prioridad a NADIE, no abre paso "
                         "a un sentido contra el otro",
+    # N-106 / R-3 (31/08). EL MOTIVO SE ESCRIBE ENTERO, INCLUIDA LA PARTE INCOMODA, que
+    # es justo donde N-83 se equivoco: alli la lista blanca dio por revisado un comando
+    # cuyo motivo describia otra cosa de la que hacia.
+    #
+    # Este comando NO enciende nada -no llama a ninguna de ABREN_PASO ni ordena una luz-,
+    # pero tampoco es inocuo, y decir "solo quita una bandera" seria el mismo error: al
+    # retirar el latch se apagan los tres vetos de main.cpp (:406, :416, :540), y el
+    # SIGUIENTE CMD_GO_GREEN del Maestro pasa a obedecerse. O sea que este comando puede
+    # terminar en un verde en esta punta.
+    #
+    # Se acepta por tres razones, y las tres son comprobables en el fuente:
+    #   1. El verde lo decide el MAESTRO, no esta punta. Aqui no se elige fase: se vuelve
+    #      a obedecer. Es exactamente lo que ya hace el A.A.A del mando (ACC_OBEDECER),
+    #      que tambien apaga su latch y devuelve el nodo al gobierno por radio.
+    #   2. PIDE PIN. Es la asimetria de mando.cpp leida al derecho: pedir el ambar es la
+    #      caida segura y entra sin clave; QUITARLO devuelve el cruce a dar verdes, y eso
+    #      es lo que el PIN existe para custodiar.
+    #   3. Sin el, el latch no tenia mas salida que subir al gabinete -y ademas se caia
+    #      solo, que era peor: la maquina deshaciendo una proteccion que puso una persona.
+    "CANCELAR_AMBAR":   "retira el latch del ambar de la app; NO enciende nada, pero "
+                        "levanta el veto y el siguiente verde del Maestro se obedece. "
+                        "Pide PIN, y el verde lo sigue decidiendo el Maestro (R-3)",
     "FORZAR_ROJO":      "presente solo para RECHAZARLO ensenando el nombre nuevo",
     "SOLICITAR_PASO":   "PIDE al Maestro; no enciende nada en esta punta",
     "TEST_LEDS":        "presente solo para RECHAZARLO con un motivo legible",

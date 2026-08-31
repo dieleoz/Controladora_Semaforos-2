@@ -74,7 +74,22 @@ def correr(b, fw):
     solo_esclavo = {"DEG_RECHAZO_SIN_CONFIG", "DEG_RECHAZO_CICLO_NULO",
                     "DEG_RECHAZO_SYNC_VENCIDA"} & set(e_causas)
 
-    hallazgo(len(m_causas) != len(e_causas) and bool(solo_maestro) and bool(solo_esclavo)
+    # N-106 (31/08) - ESTA CONDICION ERA UN RECUENTO Y PASA A SER LA PROPIEDAD.
+    #
+    # Decia len(m_causas) != len(e_causas), y funcionaba por casualidad: el Maestro tenia
+    # 6 causas y el Esclavo 5. Al anadir DEG_RECHAZO_AMBAR_VIGENTE (R-4) el Esclavo paso a
+    # 6 y el hallazgo se declaro "no reproducido" -pero NADA se habia arreglado: las dos
+    # tablas siguen siendo distintas, con distinto formato y distintos umbrales.
+    #
+    # Que dos listas tengan el mismo numero de filas no las hace la misma lista. Lo que el
+    # hallazgo afirma es que NO SE PUEDE ESCRIBIR UNA SOLA TABLA, y eso se mide comparando
+    # los CONJUNTOS de causas, no cuantas hay. Se comparan con el prefijo quitado porque
+    # cada punta usa el suyo (MDG_ / DEG_RECHAZO_) y con prefijo serian siempre distintos:
+    # eso aprobaria sin mirar, que es el defecto contrario y peor.
+    norm_m = {c[len("MDG_"):] for c in m_causas}
+    norm_e = {c[len("DEG_RECHAZO_"):] for c in e_causas}
+
+    hallazgo(norm_m != norm_e and bool(solo_maestro) and bool(solo_esclavo)
              and m_dos_lineas and e_una_linea and e_mayusculas and m_no_mayusculas,
              "los motivos de rechazo NO coinciden entre puntas: ni en conjunto ni en formato",
              f"cada punta tiene causas distintas (Maestro {len(m_causas)}, Esclavo {len(e_causas)}). "

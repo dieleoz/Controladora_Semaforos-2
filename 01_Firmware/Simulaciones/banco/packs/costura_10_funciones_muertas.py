@@ -55,11 +55,20 @@ CONOCIDAS = {
         "reloj_ajustarFranjaNocturna", "reloj_esHorarioNocturno",
         "reloj_inicioNoche", "reloj_finNoche",
         # API del coordinador que quedo del diseno anterior de reconexion.
-        "coordinador_comunicacionPerdida", "coordinador_intentarHandshake",
+        # N-108 (31/08): coordinador_comunicacionPerdida SALE de la lista. Ya tiene
+        # llamador -bluetooth.cpp la consulta para publicar el $EVENT de cambio de
+        # estado del enlace-, y una huerfana que gano llamador y se queda anotada es
+        # justo lo que este pack persigue: la lista dejaria de poder fallar.
+        "coordinador_intentarHandshake",
         "coordinador_medirDesfase", "coordinador_reiniciarConexion",
     },
     "Esclavo": {
-        "bluetooth_testLedsActivo", "protocolo_tramasDescartadas",
+        # N-108 (31/08): protocolo_tramasDescartadas SALE de la lista en esta punta.
+        # El $ALARM de la caida y el $EVENT de la vuelta publican los contadores de
+        # SFTY-15, que es para lo que se escribieron: separan "no llega nada" de
+        # "llega basura" de "enlace marginal". Sigue huerfana en el MAESTRO, donde
+        # nadie los publica todavia, y por eso alli se queda anotada.
+        "bluetooth_testLedsActivo",
         # N-86: mismas tres del puerto de camara IA, retiradas tambien en esta punta.
         "protocolo_reiniciarContadores",
         "respaldo_valido", "reloj_dia", "semaforo_toggle",

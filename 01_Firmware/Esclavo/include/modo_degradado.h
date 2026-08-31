@@ -46,7 +46,8 @@ enum RechazoDegradado {
   DEG_RECHAZO_SIN_CONFIG,     // el Maestro nunca mando la duracion del ciclo
   DEG_RECHAZO_CICLO_NULO,     // la mando, pero con un verde o un despeje en cero
   DEG_RECHAZO_SIN_SYNC,       // el RTC puede estar en hora de un arranque anterior
-  DEG_RECHAZO_SYNC_VENCIDA    // la ultima sincronizacion supero el limite duro
+  DEG_RECHAZO_SYNC_VENCIDA,   // la ultima sincronizacion supero el limite duro
+  DEG_RECHAZO_AMBAR_VIGENTE   // R-4: hay un ambar de emergencia puesto por una persona
 };
 
 // --- Sincronizacion horaria: el reloj del limite duro -----------------------
@@ -121,6 +122,21 @@ void degradado_actualizar();
 bool degradado_gobiernaLuz();
 
 EstadoDegradado degradado_estado();
+
+// R-2 - DEG_SALIENDO ES UN SOLO ESTADO CON DOS FINALES, Y DESDE FUERA NO SE VEN.
+//
+// La salida normal termina en DEG_INACTIVO con la luz en ROJO; la rendicion por el
+// limite duro de 48 h termina en DEG_RENDIDO con la luz en AMBAR. degradado_estado()
+// devuelve DEG_SALIENDO en los dos casos, asi que quien esta fuera del modo no puede
+// saber en que va a acabar el todo-rojo que esta viendo.
+//
+// Lo pide el despachador de Bluetooth: cuando llega AMBAR_EMERGENCIA con una salida ya
+// en curso, la respuesta honesta no es la misma si el ambar iba a llegar solo -era una
+// rendicion- que si la salida terminaba en rojo y el ambar lo tiene que encender el
+// latch de la app. Sin este getter, las dos se contestarian igual y una de las dos
+// seria falsa.
+bool degradado_rendicionEnCurso();
+
 FaseDegradado   degradado_fase();
 
 // Segundos hasta el proximo cambio de fase, para la cuenta atras de la pantalla.

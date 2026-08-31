@@ -1,5 +1,6 @@
 // ===== src/modo_degradado.cpp (ESCLAVO) =====
 #include "modo_degradado.h"
+#include "bluetooth.h"      // R-4: bluetooth_ambarEmergencia(), la unica consulta que se le hace
 #include "ciclo_degradado.h"
 #include "config_ciclo.h"
 #include "protocolo.h"
@@ -206,6 +207,30 @@ RechazoDegradado degradado_comprobar() {
   // seria un boton de posponer.
   if (syncVencidaLatch) return DEG_RECHAZO_SYNC_VENCIDA;
 
+  // R-4 - CON UN AMBAR DE EMERGENCIA PUESTO, EL DEGRADADO NO ENTRA, Y DICE POR QUE.
+  //
+  // Entrar arranca con semaforo_forzarRojo() (:224) sin guarda ninguna, y eso saca la
+  // luz de S_FALLO. A la vuelta siguiente la revocacion de bluetooth.cpp veia el equipo
+  // fuera del ambar y tiraba el latch, con lo que los tres vetos de main.cpp (:406,
+  // :416, :540) se apagaban y en la siguiente frontera de fase aplicarLuz() podia dar
+  // VERDE POR RELOJ donde una persona habia pedido ambar de precaucion -alguien
+  // trabajando bajo la luz, un incidente en el tramo-. El $ACK ya se habia enviado hacia
+  // rato y nada se lo decia a nadie.
+  //
+  // Se rechaza con MOTIVO y no en silencio porque el operario esta subido al poste: un
+  // "no" mudo lo manda a buscar una averia que no existe. Y no se deshace la proteccion
+  // por su cuenta -la maquina no revoca lo que puso una persona-; quitarla es un acto
+  // deliberado, y desde el 31/08 se puede hacer sin subir al gabinete con
+  // CMD:PIN:1234:CANCELAR_AMBAR (R-3), asi que nadie queda bloqueado.
+  //
+  // SOLO SE MIRA EL LATCH DE BLUETOOTH, NO mando_ambarLocal(), y es deliberado: el
+  // mando ya resolvio esto de otra forma y la resolvio EXPLICITAMENTE -ejecutar(
+  // ACC_DEGRADADO) pone ambarLocal = false antes de llamar aqui (mando.cpp:147)-, o sea
+  // que declara que entrar en Degradado revoca su propio ambar. Anadirlo a esta guarda
+  // rechazaria el A.B.A.B del mando antes de que llegue a ejecutarse, porque
+  // mando_registrarPulso() consulta degradado_comprobar() con la bandera todavia puesta.
+  if (bluetooth_ambarEmergencia()) return DEG_RECHAZO_AMBAR_VIGENTE;
+
   return DEG_ACEPTADO;
 }
 
@@ -370,6 +395,11 @@ bool degradado_gobiernaLuz() {
 
 EstadoDegradado degradado_estado() { return estado; }
 
+// R-2. El porque completo esta en modo_degradado.h: DEG_SALIENDO no distingue la salida
+// normal -termina en rojo- de la rendicion por el limite duro -termina en ambar-, y el
+// despachador de Bluetooth necesita esa diferencia para contestar la verdad.
+bool degradado_rendicionEnCurso() { return rendicionEnCurso; }
+
 FaseDegradado degradado_fase() { return calcularFase(); }
 
 uint32_t degradado_segundosParaCambio() {
@@ -405,6 +435,10 @@ const char* degradado_textoRechazo(RechazoDegradado motivo) {
     case DEG_RECHAZO_CICLO_NULO:   return "CICLO EN CERO";
     case DEG_RECHAZO_SIN_SYNC:     return "NUNCA SINCRONIZADO";
     case DEG_RECHAZO_SYNC_VENCIDA: return "SYNC CADUCADA >48h";
+    // R-4. 18 caracteres EXACTOS, que es el techo que menu.cpp:107 declara para este
+    // texto -"los 18 caracteres del motivo mas largo"- y el que ya ocupan otros tres.
+    // Un motivo recortado no sirve para arreglar nada, que es justo lo que dice alli.
+    case DEG_RECHAZO_AMBAR_VIGENTE: return "AMBAR EMERG.PUESTO";
     default:                       return "";
   }
 }

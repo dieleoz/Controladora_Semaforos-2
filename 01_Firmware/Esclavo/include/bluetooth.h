@@ -50,10 +50,27 @@ bool bluetooth_testLedsActivo();
 // la razon para pedir el ambar -alguien trabajando bajo la luz, un incidente en el
 // tramo- no cambia segun por donde entro la orden.
 //
-// COMO SE SALE: por A.A.A en el mando, exactamente igual que el ambar de B.B.B. No hay
-// comando de Bluetooth que lo revoque, y es coherente con el del mando -que tampoco se
-// revoca a distancia-: una salida de emergencia que se pueda cancelar desde fuera no
-// es una salida. El latch se cae solo en cuanto la luz deja de estar en S_FALLO, que
-// es justo lo que hace A.A.A; ver el porque en bluetooth.cpp.
+// COMO SE SALE - N-106 (31/08). ESTE PARRAFO DECIA OTRA COSA Y SE REESCRIBE ENTERO.
+//
+// Decia que se salia "por A.A.A en el mando", que "no hay comando de Bluetooth que lo
+// revoque" y que "el latch se cae solo en cuanto la luz deja de estar en S_FALLO". Lo
+// primero y lo tercero eran la misma frase: la revocacion automatica de bluetooth_loop().
+//
+// Esa revocacion se RETIRA, porque dejo de ser correcta el dia que este comando pasa a
+// salir del Modo Degradado por el todo-rojo de despedida: durante esos 10 a 90 s la luz
+// esta en ROJO -fuera de S_FALLO-, asi que el latch moria antes de servir para nada y con
+// el se apagaban los tres vetos de main.cpp. En su lugar queda lo mismo que tiene el
+// mando: un SOSTENEDOR en bluetooth_loop() que re-arma el ambar en cuanto el Degradado
+// suelta la luz.
+//
+// Y la salida ahora se pide, no se deduce: CMD:PIN:1234:CANCELAR_AMBAR (R-3). PIDE PIN
+// porque quitar el ambar devuelve el cruce a dar verdes -abre paso-, mientras que pedirlo
+// es la caida segura y no pide clave. Un latch sin salida seria un nodo sordo al Maestro
+// hasta el proximo corte de corriente; una salida que ocurre sola es la maquina
+// deshaciendo una proteccion que puso una persona. Esta es la tercera: la deshace otra
+// persona, y queda escrita en la caja negra.
+//
+// El ambar del MANDO no lo quita este comando: los vetos de main.cpp miran las dos
+// banderas, y CANCELAR_AMBAR lo dice en su RESULT cuando la otra sigue puesta.
 // ---------------------------------------------------------------------------
 bool bluetooth_ambarEmergencia();

@@ -42,7 +42,12 @@ static uint8_t calcularChecksum(const char* str) {
 
 static void enviarTramaConCrc(const char* payload) {
   uint8_t crc = calcularChecksum(payload + 1); // Salta el '$' inicial
-  char tramaCompleta[140];
+  // N-108: 160 y no 140. El $ALARM pasa a llevar el ultimo tramo del enlace y su peor
+  // caso medido son 128 B de payload; con 140 aqui, el cierre del checksum entraba
+  // justo y una CAUSA mas larga habria truncado la trama SIN AVISO -y una trama
+  // truncada es una que el otro extremo descarta por checksum, o sea una alarma que
+  // desaparece justo cuando hace falta-.
+  char tramaCompleta[160];
   snprintf(tramaCompleta, sizeof(tramaCompleta), "%s*%02X\r\n", payload, crc);
   SerialBT.print(tramaCompleta);
 }
@@ -78,9 +83,34 @@ void bluetooth_reportarAlarma(const char* evento, const char* causa, const char*
     strncpy(horaBuf, "--:--:--", sizeof(horaBuf));
   }
 
-  char payload[100];
-  snprintf(payload, sizeof(payload), "$ALARM,NODE:MAESTRO,EVENTO:%s,CAUSA:%s,ACCION:%s,HORA:%s",
-           evento, causa, accion, horaBuf);
+  // N-108 - LA ALARMA LLEVA EL ULTIMO TRAMO DEL ENLACE, Y ES LA PREGUNTA DEL CAMPO.
+  //
+  // Hasta hoy decia QUE se cayo -"CAUSA:SILENCIO_25000ms"- y no DESDE DONDE venia. El
+  // reporte del 27/08 -"se va a degradado cada nada cuando llueve"- necesitaba
+  // exactamente esto: si el RF venia en 90% y cayo de golpe, es una obstruccion o una
+  // antena; si llevaba media hora en 40% con el RTT subiendo, es alcance o lluvia. Los
+  // tres numeros ya existian y solo vivian en el $STATUS de 1 Hz, que no se graba.
+  //
+  // SE COMPONEN AQUI Y NO EN EL LLAMANTE a proposito: los dos sitios que disparan esta
+  // alarma estan en coordinador.cpp, y hacerles pasar el tramo obligaria a tocar el
+  // fichero que decide el ciclo para anadir telemetria. Este modulo ya sabe preguntarlo.
+  //
+  // Y se marcan igual que en el $STATUS: sin muestras no hay cifra, hay "--".
+  const int rf = coordinador_calidadEnlace();
+  char tramo[40];
+  if (rf < 0) {
+    snprintf(tramo, sizeof(tramo), "RF:--,RTT:--,SINRESP:%d", coordinador_latidosSinRespuesta());
+  } else {
+    snprintf(tramo, sizeof(tramo), "RF:%d%%,RTT:%lums,SINRESP:%d",
+             rf, coordinador_tiempoRespuestaMs(), coordinador_latidosSinRespuesta());
+  }
+
+  // 144 y no 100. El peor caso MEDIDO sumando los literales que de verdad se pasan
+  // -CAUSA:REINTENTOS_AGOTADOS con RF:100%, RTT de 4 cifras y SINRESP:999- son 128 B, y
+  // con 100 la trama se cortaba por la HORA sin que nada lo dijera.
+  char payload[144];
+  snprintf(payload, sizeof(payload), "$ALARM,NODE:MAESTRO,EVENTO:%s,CAUSA:%s,%s,ACCION:%s,HORA:%s",
+           evento, causa, tramo, accion, horaBuf);
   enviarTramaConCrc(payload);
 }
 
@@ -279,8 +309,24 @@ static void procesarComando(const char* cmd) {
     // es quien conoce el ciclo. Este sitio solo traduce texto a numeros. Repetir los
     // rangos en los dos lados seria una segunda copia que alguien tendria que
     // sincronizar -y el dia que difieran, la app dejaria pasar lo que el ciclo rechaza-.
+    //
+    // EL %c DE MAS NO SE LEE NUNCA: ESTA PARA QUE sscanf DELATE LO QUE SOBRA.
+    //
+    // sscanf cuenta CAMPOS CONVERTIDOS y no exige que la cadena se acabe: se lleva sus
+    // tres numeros y se desentiende de lo que venga pegado detras. Con dos ordenes en el
+    // mismo buffer -"8,8,50CMD:FORZAR_ROJO", que es lo que queda cuando una trama entra a
+    // medias y la siguiente se le concatena- esto convertia 3 y entraba como si fuera una
+    // trama limpia: el equipo ejecutaba la VIEJA, contestaba OK con el nombre de la vieja,
+    // y la que el operario acababa de pulsar -que puede ser el rojo de emergencia- se
+    // perdia sin un solo aviso.
+    //
+    // Con el %c detras la cuenta separa los dos casos: una cadena que se acaba convierte
+    // 3 -el %c se queda sin nada que leer-, y una con basura pegada convierte 4. Se exige
+    // el 3 EXACTO, y todo lo demas se rechaza por formato: ante dos ordenes pegadas la
+    // respuesta segura es no ejecutar ninguna y decirlo, no adivinar cual era.
     int v = 0, r = 0, d = 0;
-    if (sscanf(accion + 12, "%d,%d,%d", &v, &r, &d) != 3) {
+    char sobra = 0;
+    if (sscanf(accion + 12, "%d,%d,%d%c", &v, &r, &d, &sobra) != 3) {
       enviarTramaConCrc("$ERR,CMD:SET_TIEMPOS,DESC:FORMATO_INVALIDO");
     } else if (modoAutomatico_enMarcha()) {
       // Con el ciclo corriendo no se tocan: bajar un tiempo a mitad de fase acortaria
@@ -303,8 +349,15 @@ static void procesarComando(const char* cmd) {
     //
     // Los tres finales son distintos y el operario necesita los tres distintos: no hay
     // con que contar el tiempo; la hora no entro; la hora entro y va camino del Esclavo.
+    //
+    // El %c del final es el mismo cierre que lleva SET_TIEMPOS, y por el mismo motivo:
+    // sin el, "...,18:25:00CMD:FORZAR_ROJO" -dos ordenes pegadas en el buffer- convierte
+    // sus 6 campos, pone la hora y contesta OK, tirando la orden de emergencia que venia
+    // detras. Aqui ademas la basura entra en un comando que ESCRIBE en el RTC: se rechaza
+    // antes de tocar nada.
     int y, mo, d, h, mi, s;
-    if (sscanf(accion + 8, "%d-%d-%d,%d:%d:%d", &y, &mo, &d, &h, &mi, &s) != 6) {
+    char sobra = 0;
+    if (sscanf(accion + 8, "%d-%d-%d,%d:%d:%d%c", &y, &mo, &d, &h, &mi, &s, &sobra) != 6) {
       enviarTramaConCrc("$ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO");
     } else if (!reloj_hayCristal()) {
       // No se nombra ninguna pieza: N-45 quito "Es Y2: toca hardware" de la pantalla
@@ -405,9 +458,33 @@ void bluetooth_loop() {
 
     const char* modoStr = obtenerNombreModo(modoActual_get());
     const char* estadoStr = coordinador_nombreEstadoMaster();
-    int rfCalidad = coordinador_calidadEnlace();
-    if (rfCalidad < 0) rfCalidad = 0;
-    unsigned long rtt = coordinador_tiempoRespuestaMs();
+
+    // N-108 - UN CAMPO QUE NO SE MIDE SE MARCA; NO SE APLASTA A UN NUMERO.
+    //
+    // Aqui ponia "if (rfCalidad < 0) rfCalidad = 0;". El -1 de calidadEnlace() significa
+    // AUN NO HAY MUESTRAS -no ha cerrado ni un latido-, y convertirlo en 0 publicaba
+    // "RF:0%", que en el tablero se lee como enlace caido: un equipo sano recien
+    // arrancado se veia igual que una radio muerta. Y rttMedioMs vale 0 en ese mismo
+    // instante, o sea "RTT:0ms", que se lee como un enlace perfecto. Los dos numeros
+    // mentian a la vez y en direcciones opuestas.
+    //
+    // Con "--" el tablero dice lo unico cierto: todavia no se sabe. Es la misma regla
+    // que ya se aplica a HORA cuando el reloj no esta en hora.
+    const int rfCalidad = coordinador_calidadEnlace();
+    // 13 y no 8: calidadEnlace() devuelve 0..100 por construccion, pero eso lo sabe el
+    // coordinador, no este fichero -y no lo sabe el compilador, que avisa con -Wall-. Un
+    // buffer dimensionado por una invariante que vive en OTRO modulo es el que se rompe
+    // en silencio el dia que ese modulo cambie; se dimensiona para el tipo, que es lo
+    // unico que este lado puede garantizar.
+    char rfTxt[13];
+    char rttTxt[16];
+    if (rfCalidad < 0) {
+      strncpy(rfTxt, "--", sizeof(rfTxt));
+      strncpy(rttTxt, "--", sizeof(rttTxt));
+    } else {
+      snprintf(rfTxt, sizeof(rfTxt), "%d%%", rfCalidad);
+      snprintf(rttTxt, sizeof(rttTxt), "%lums", coordinador_tiempoRespuestaMs());
+    }
 
     char horaBuf[16];
     if (reloj_enHora()) {
@@ -422,11 +499,42 @@ void bluetooth_loop() {
     char serieTxt[7];
     identidad_texto(serieTxt);
 
+    // N-108 - BAT SE MARCA, EN LAS DOS PUNTAS. El 12.6 era un LITERAL: no hay un solo
+    // analogRead() en Maestro/src, Maestro/include, Esclavo/src ni Esclavo/include
+    // -MEDIDO: grep sin una coincidencia-. Un tablero que ensena 12,6 V fijos no esta
+    // informando de la bateria, esta impidiendo que nadie pregunte por ella: el tecnico
+    // ve el numero bueno y descarta la alimentacion como causa sin haberla mirado.
+    // Vuelve a haber cifra cuando haya divisor y una entrada analogica que lo lea.
     char payload[128];
     snprintf(payload, sizeof(payload),
-             "$STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%lu,RF:%d%%,RTT:%lums,BAT:12.6,HORA:%s",
-             serieTxt, modoStr, estadoStr, tFaseSeg, rfCalidad, rtt, horaBuf);
+             "$STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%lu,RF:%s,RTT:%s,BAT:--,HORA:%s",
+             serieTxt, modoStr, estadoStr, tFaseSeg, rfTxt, rttTxt, horaBuf);
 
     enviarTramaConCrc(payload);
+
+    // N-108 - UN $EVENT EN CADA CAMBIO DE ESTADO DEL ENLACE, CON SU VALOR.
+    //
+    // Hasta hoy la caida del radio solo dejaba rastro cuando ya era total: el $ALARM de
+    // SFTY-6. Lo que el campo pregunta -"desde cuando venia mal"- no lo contestaba nadie,
+    // porque el RF% solo existe en el $STATUS de 1 Hz, que no se graba en ningun sitio.
+    //
+    // LOS TRES ESTADOS SALEN DEL FIRMWARE, NO DE UN UMBRAL INVENTADO. C_FALLO ya existe y
+    // lo publica coordinador_comunicacionPerdida(); "sin medida" es el -1 de
+    // calidadEnlace(). Poner aqui un "RF < 70% = degradado" seria una constante que nadie
+    // ha decidido gobernando lo que el tecnico ve, asi que el numero VIAJA EN EL DETALLE y
+    // el juicio lo hace quien lo lee.
+    {
+      static int8_t enlaceAnt = -2;  // -2: aun no se ha publicado ninguno
+      const int8_t enlaceAhora = coordinador_comunicacionPerdida() ? 0
+                              : (rfCalidad < 0 ? 1 : 2);
+      if (enlaceAhora != enlaceAnt) {
+        enlaceAnt = enlaceAhora;
+        char det[28];
+        snprintf(det, sizeof(det), "%s_RF:%s",
+                 enlaceAhora == 0 ? "PERDIDO" : (enlaceAhora == 1 ? "SIN_MEDIDA" : "OK"),
+                 rfTxt);
+        bluetooth_reportarEvento("ENLACE_RF", det);
+      }
+    }
   }
 }
