@@ -2,6 +2,19 @@
 #
 # SINCRONIZACION HORARIA POR RADIO (SFTY-23)
 #
+# EJERCE SFTY-23: el trio de hora se relee del reloj en cada envio Y en cada reintento
+# -la regla de una sola linea que SFTY-23 obliga-, la guarda del cruce de minuto y de
+# hora, y las tres ventanas que sostienen la puerta del Degradado (resincronizacion,
+# vigencia del desfase y frescura).
+#
+# EJERCE SFTY-6: que el intercambio de sincronizacion quepa por debajo del techo de
+# silencio releido de SFTY6_SILENCIO_MS. Durante el intercambio se calla el latido
+# (SFTY-13), asi que un sync que se pase del techo se lee desde la otra punta como un
+# enlace muerto: seria un ambar de orfandad PROVOCADO por el propio mecanismo.
+#
+# Las dos etiquetas faltaban desde que se escribio el pack, y sin ellas la tercera
+# columna de OPTIMIZACIONES.md -que se levanta buscandolas- no podia citarlo.
+#
 # La hora y la fecha viajan acopladas. Sin sincronizacion no hay Modo Degradado, y
 # N-23 enseno que PONER el reloj no es lo mismo que SINCRONIZARLO: encolar el envio
 # no es enviarlo si nadie mueve el coordinador.

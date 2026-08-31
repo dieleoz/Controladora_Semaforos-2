@@ -2,6 +2,13 @@
 #
 # APLICACION ATOMICA DE LA HORA (SFTY-23)
 #
+# EJERCE SFTY-23: la hora que llega por radio se escribe ENTERA o no se escribe -las
+# 8 combinaciones de H/M/S, la caducidad de la foto, el reenvio de los segundos y el
+# rango de las tres cifras-, y solo la terna aplicada rearma la cuenta de sincronia.
+#
+# La etiqueta faltaba desde que se escribio el pack, asi que estas comprobaciones no
+# aparecian en la tercera columna de OPTIMIZACIONES.md, que se levanta buscandola.
+#
 # La hora viaja en tramas separadas. Si se aplicara pieza a pieza, un instante con
 # la hora nueva y los minutos viejos daria un reloj que nadie puso -y sobre ese
 # reloj se decide el Modo Degradado-. O entra entera, o no entra.

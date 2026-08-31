@@ -2,6 +2,14 @@
 #
 # SECUENCIAS DEL MANDO DE RELES (SFTY-21, mando.cpp)
 #
+# EJERCE SFTY-21: las tres secuencias del mando (A.A.A, B.B.B, A.B.A.B) con sus
+# ventanas releidas del C++, la cuenta de destellos rojos como unica realimentacion,
+# y que B.B.B lleve a ambar desde CUALQUIER estado del Maestro.
+#
+# La etiqueta faltaba desde que se escribio el pack: 15 comprobaciones de SFTY-21 que
+# la tercera columna de OPTIMIZACIONES.md no podia ver, porque esa columna se levanta
+# buscando esta linea. Un hueco no grita, al reves que un ABORTADO.
+#
 # El operario acciona desde el suelo SIN VER LA PANTALLA: esta a 5 m dentro del
 # gabinete. Solo se usan botones cuya repeticion accidental es inofensiva, y la
 # confirmacion se da en destellos ROJOS contables -el rojo nunca significa pase, asi
