@@ -119,35 +119,34 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 
 ---
 
-## 5. Donde vamos — 31/08, sesion en curso
+## 5. Donde vamos — 31/08
 
-**Rama `fix/n93-cifras-app-y-entrega`. `origin/main` intacto en `f25fa57`.**
+**Rama `fix/n93-cifras-app-y-entrega`, 31 commits. `origin/main` intacto en `f25fa57`.**
 
-| ola | que | estado |
+### Cerrado hoy
+
+| | |
+|---|---|
+| **Documentos** | roadmap nuevo · README · `ARQUITECTURA.map` · manuales 9, 10, 11, 17 · `MANUAL_USUARIO` · `MANUAL_HARDWARE` · `CERTIFICACION_SW` · `OPTIMIZACIONES` · spec del ESP32 · Manual 5 · **la guia de cableado reescrita PARA EL TECNICO** (23 pasos `HAZ/COMPRUEBA/TIENES QUE VER/ANOTA`) |
+| **Firmware** | **camaras en C y D, las dos puntas** (N-97 cerrado, flash BAJA 56 B) · **el firmware del ESP32, que no existia** (SPP + `DS3231` + watchdog, 35,6 %) · **la app**: el tablero, el reloj de 12 h y los cinco exitos mudos |
+| **Instrumentos** | `enlace_01` del transporte · las 33 comprobaciones sin etiqueta · el `TOTAL_PACKS` que no sabia fallar · `documentos_04` · los tres verdes de `simulador_app_bluetooth` · la limpieza de `simulador_sistema_v7_6` (20/20 -> 9/9) · **la tautologia dentro de `arnes_ciclo`** · nueve packs `esp32_*` · tres packs `app_*` · **el simulador de la interaccion** |
+| **Decisiones** | **BLQ-1 cerrado** (N-107) · el mando se conserva en A y B (N-104) · **la pantalla NO se retira**: solo se dejan de conducir `PB3`/`PB4`/`PB5` |
+| **Entrega** | APK recompilada · los 20 `.docx` · **el paquete vuelve a generarse** |
+
+### Defectos ABIERTOS, con instrumento que los ve
+
+| | que | estado |
 |---|---|---|
-| **A1** | los cuatro documentos que mandaban camaras a los pines del mando | ✅ `641d02a` |
-| **A2** | Manual 17 y `ESTADO.md` con la decision del 31/08 | ✅ `e2f6df2` |
-| **A3** | `FORZAR_ROJO` dado por valido en el Esclavo | 🔍 en auditoria |
-| **A4** | cifras sin vigilante (`despeje 5-999`, `CERTIFICACION_SW`) | ⬜ pendiente |
-| **B1** | el `TOTAL_PACKS` que no sabia fallar | ✅ `249a1c4` — costo tres intentos |
-| **B2** | el rol del ESP32 en `_ROLES` | 🔧 en curso, con el firmware |
-| **B3** | el pack de N-106 | 🔧 en curso — **va a salir en rojo, a proposito** |
-| **B4** | un `documentos_04` para los manuales sin vigilante | ⬜ pendiente |
-| **C1** | **camaras en C y D, las dos puntas** | ✅ `deeeab4` — **N-97 cerrado**, y la flash BAJA 56 B |
-| **C2** | N-106: la llamada que falta en `bluetooth.cpp` del Esclavo | ⬜ despues de B3 |
-| **C3** | firmware del ESP32: watchdog, `DS3231`, puente SPP | 🔧 en curso |
-| **D** | retirada de la pantalla (~18,9 KB) | ⬜ con el arbol quieto |
-| **E** | **BANCO** | 🛑 bloqueante, sin sustituto |
+| 🔴 **N-106** | el ambar de la app **no saca al Esclavo del Degradado** | pack en **rojo a proposito**. El arreglo espera **cuatro decisiones del responsable** (§4.5.6 del Manual 10) |
+| 🔴 **el `$ACK` cruzado** | **32 de 289 pares de comandos producen un `$ACK` de OTRA orden**. `sscanf` no exige que la cadena acabe, asi que un resto en el buffer hace ejecutar el comando viejo y **perder el que se acaba de pulsar** | medido sobre el `.cpp` compilado. El arreglo son **dos caracteres por sitio** y el simulador ya lo valida |
 
-**Fuera de las olas, cerrado hoy:** roadmap nuevo · README · `ARQUITECTURA.map` · manuales 10 y 11 ·
-guia de cableado con la placa portadora y la hoja de validacion imprimible · pack del transporte
-(`enlace_01`) · las 33 comprobaciones que la trazabilidad no veia · la especificacion del firmware
-ESP32 · la APK recompilada · los 20 `.docx` · **BLQ-1 cerrado (N-107)**.
+### Lo que falta para cerrar la sesion
 
-**Tambien en vuelo:** simulador de la interaccion · los tres verdes que no miden nada de
-`simulador_app_bluetooth.py` · auditoria de la app contra el protocolo.
-
-**El banco ha ido de `411/411` en 38 packs a `512/512` en 40** en el transcurso de la sesion.
+1. **Sincronizar `www/` y los assets de Android** — hoy llevan el `app.js` **con los cinco defectos**, y `webDir` es `www`: una APK compilada ahora los metería dentro.
+2. **Recompilar la APK.**
+3. **Compuerta completa, DOS pasadas**, y acta sobre arbol limpio.
+4. **Cuadrar las cifras** en `README`, `ESTADO.md`, `CERTIFICACION_SW.md` y este roadmap.
+5. **La especificacion de la placa portadora** — hay tres requisitos que solo vivian en el HTML de campo y no tienen copia en ningun `.md`.
 
 ---
 
