@@ -7,6 +7,21 @@ especificación. El Manual 17 §C lo deja escrito con todas las letras —*«El 
 existe**»*— y aun así la arquitectura del 28/08 ya reparte funciones sobre él. Lo que sigue es
 contra lo que se programa.
 
+> 📌 **Actualización del 31/08, más tarde el mismo día. El párrafo de arriba se queda escrito porque
+> era cierto cuando se escribió, y tachar el porqué de un documento hace que nadie entienda su forma.
+> Lo que ya no es cierto va aquí, MEDIDO:**
+>
+> | | estado a 31/08 | MEDIDO en |
+> |---|---|---|
+> | El firmware del ESP32 de expansión | 🟢 **existe y compila** — `35.6 %` de flash (`1121001` de `3145728` B) | `evidencia/2026-08-31_compuerta.txt:16` · árbol en `01_Firmware/ESP32_Expansion/` (8 `.h` + 8 `.cpp`) |
+> | El rol nuevo en la compuerta (§7.1) | 🟢 **dado de alta** | `01_Firmware/compuerta.py:114` `_ROLES = (..., "ESP32_Expansion")`, `:118` la regex, `:97` `RUTAS_MINIMAS_ESPERADAS = 45`, `:692` `compilar("esp32", "ESP32_Expansion")` |
+> | Los nueve packs de §7.2 | 🟢 **existen los nueve** | `01_Firmware/Simulaciones/banco/packs/esp32_01…esp32_09` |
+> | `BLQ-1` | 🟢 **CERRADO** — ver §6.1 | `ESTADO.md:23` · `roadmap.md:215` (N-107) |
+>
+> 🛑 **Y lo que NO cambia: nada de esto ha pasado banco, y no hay una sola tarjeta con un ESP32
+> conectado a `J17`.** Que compile y que los packs den verde es exactamente lo que `CLAUDE.md` §3
+> dice que **no** es un entregable.
+
 > 🛑 **Esto no es un permiso, y no se convierte en uno por estar escrito.**
 >
 > Nada de lo que hay aquí ha pasado banco. **No hay una sola tarjeta con un ESP32 conectado a
@@ -198,11 +213,46 @@ De ahí salen **cuatro reglas duras**, y ninguna es negociable desde el ESP32:
 | **E-4** | **El STM32 NO valida el checksum de entrada** | ver §3.4 |
 
 > 🔴 **E-2 es un límite duro y hay que escribirlo en la especificación del puente, no descubrirlo en
-> banco.** El comando útil más largo que la app compone hoy es
-> `CMD:PIN:1234:SET_RTC:2026-08-31,23:59:59` = **41 caracteres**, con 22 de margen. Pero el margen
-> no es una garantía: es una casualidad de los literales de hoy. **El ESP32 tiene que medir la
-> longitud antes de reenviar y rechazar con `$ERR` propio lo que no quepa** — porque el STM32, si
-> se lo mandan, no protesta: trunca y compara.
+> banco.** **El ESP32 tiene que medir la longitud antes de reenviar y rechazar con `$ERR` propio lo
+> que no quepa** — porque el STM32, si se lo mandan, no protesta: trunca y compara.
+>
+> ⚠️ ~~*«El comando útil más largo que la app compone hoy es `CMD:PIN:1234:SET_RTC:2026-08-31,23:59:59`
+> = **41 caracteres**, con 22 de margen»*~~ — **REFUTADA el 31/08. La cadena está bien, la cuenta no,
+> y encima no era la cadena que la app componía.** Se deja tachada y no borrada: `CLAUDE.md` §4, *una
+> causa que se cae se marca refutada; la que desaparece en silencio vuelve a proponerse.*
+
+**La cuenta de E-2, y de dónde sale cada número. MEDIDO el 31/08 sobre el emisor vivo:**
+
+El emisor es `enviarComandoFirmware()` — `05_Funcional/App_Semaforo/app.js:205-221` —, y la línea que
+compone es, literal del fuente:
+
+```js
+rawCmd = `CMD:PIN:${pin}:${comando}:${args}\r\n`;   // app.js:218
+rawCmd = 'CMD:' + comando + '\r\n';                 // app.js:216, los cuatro SIN_PIN
+```
+
+Los caracteres **útiles** son los que llegan al `btBufIn` del STM32: **sin** el `\r\n`, que E-1
+consume como terminador y nunca se guarda. Sobre esa definición:
+
+| comando compuesto | útiles | margen sobre 63 | de dónde sale |
+|---|---|---|---|
+| `CMD:PIN:1234:SET_RTC:2026-08-31,23:59:59` | **40** | **23** | hora en `HH:MM:SS` de 24 h — **es el formato que la app compone HOY**, `horaLocal24()`, `app.js:289-292` |
+| `CMD:PIN:1234:SET_RTC:2026-08-31,6:25:00 p. m.` | **45** | **18** | 🔴 el que componía **antes** del arreglo del 31/08: `toLocaleTimeString()` en el locale de campo `es-CO` daba `"6:25:00 p. m."` (`app.js:264-281`) |
+| `CMD:PIN:1234:SET_TIEMPOS:255,255,255` | 36 | 27 | `app.js:1252`, con los tres campos en su valor más largo |
+| `CMD:PIN:1234:SET_MODO:INTELIGENTE` | 33 | 30 | el `SET_MODO` de literal más largo |
+| `CMD:AMBAR_EMERGENCIA` | 20 | 43 | rama sin PIN, `app.js:216` |
+
+> 🔴 **El número que se publica es el de hoy, y hoy vale 40 con 23 de margen. Pero lo que gobierna
+> E-2 no es el número: es el CÁLCULO, y por eso se escribe entero.** La cifra se movió **cinco
+> caracteres** en una sola tarde sin que nadie tocara el protocolo ni el firmware — la movió el
+> **formato de la hora dentro de la app**, y la va a volver a mover cualquier campo que crezca.
+> Publicar sólo el número es publicar una foto de un día. Quien necesite la cifra la **recalcula**
+> con la tabla de arriba.
+>
+> ⚠️ **Y el margen no es una garantía en ninguno de los dos casos: es una casualidad de los literales
+> de hoy.** El caso de 45 demuestra la forma del riesgo mejor que el de 40: **no hizo falta un
+> comando nuevo para comerse 5 de los 23 caracteres de margen, bastó una llamada de JavaScript que
+> depende del idioma del teléfono.** Por eso el tope se mide en el puente y no se confía al margen.
 
 ### 3.3 La trama de SALIDA del STM32 (lo que el ESP32 lee de `PB6`)
 
@@ -254,24 +304,80 @@ El literal más largo que emite el firmware hoy, medido:
 
 > 🔴 **El STM32 EMITE checksum pero NO VALIDA el de entrada.**
 
-**MEDIDO:** `procesarComando()` arranca directamente con `strcmp(cmd, "CMD:FORZAR_ROJO")`
-(`Maestro:145`) y `strcmp(cmd, "CMD:AMBAR_EMERGENCIA")` (`Esclavo:130`). **No hay una sola llamada
-a `calcularChecksum()` en el camino de recepción**, en ninguna de las dos puntas. El `*XX` que la
-app añade —`nmea_parser.js:20-21`, `formatearComando()`— llega al `strcmp` como parte de la cadena
-y **hace que el comando no case**, cayendo en `$ERR,CMD:DESCONOCIDO`.
+**MEDIDO, y esta parte sí lo estaba:** `procesarComando()` arranca directamente con
+`strcmp(cmd, "CMD:FORZAR_ROJO")` (`Maestro:145`) y `strcmp(cmd, "CMD:AMBAR_EMERGENCIA")`
+(`Esclavo:130`). **No hay una sola llamada a `calcularChecksum()` en el camino de recepción**, en
+ninguna de las dos puntas.
 
-De ahí, la obligación que recae entera sobre el ESP32:
+---
 
-| dirección | quién valida | qué tiene que hacer el ESP32 |
+#### 🔴 3.4.a REFUTADO — lo que esta sección decía antes, y lo que costó
+
+> ⚠️ **Esta sección llevaba la palabra MEDIDO encima de algo que no se midió, y por eso se tacha en
+> vez de borrarse.** Es el caso más puro de `CLAUDE.md` §4 segunda cara —*lo que TÚ reportas también
+> es un instrumento*— que ha salido en este repositorio: una afirmación plausible, escrita con dos
+> citas de línea, que llegó al documento **con la palabra «medido» encima** y era falsa **en sus dos
+> extremos**.
+
+~~*«El `*XX` que la app añade —`nmea_parser.js:20-21`, `formatearComando()`— llega al `strcmp` como
+parte de la cadena y hace que el comando no case»*~~, y de ahí ~~*«el ESP32 SÍ valida: comprueba
+`$`, `*` y que el XOR-8 case; si no casa, descarta y contesta `$ERR` él mismo»*~~.
+
+**Los dos extremos son falsos. MEDIDO el 31/08, cada uno por separado:**
+
+| # | lo que decía | lo MEDIDO | dónde |
+|---|---|---|---|
+| **1** | la app añade `*XX` (y `$`) | 🔴 **NO los añade.** El emisor vivo compone literalmente `CMD:PIN:1234:SET_MODO:AUTO\r\n` — sin `$` delante y sin `*XX` detrás | `enviarComandoFirmware()`, `05_Funcional/App_Semaforo/app.js:205-221`; las tres ramas de composición en `:216`, `:218`, `:220` |
+| **2** | la función se llama `formatearComando()` | 🔴 **NO EXISTE.** `grep -rn "formatearComando"` sobre toda la app da **cero**. La función es **`formatearTrama()`**, y vive en **`js/nmea_parser.js:19-22`**, no en la raíz | `05_Funcional/App_Semaforo/js/nmea_parser.js:19` |
+| **2.bis** | *(implícito: que ese módulo esté en el camino)* | 🔴 **`NMEAParser` no tiene un solo llamador en la app.** Está cargado por `index.html:589` y **nadie lo usa**: los únicos usos vivos están en `tests/`. Su `generarComando()` (`:129-135`) sí produce `$CMD:…*XX`, y con el `$` delante **no casaría con ningún `strcmp`** — pero esa cadena **nunca sale al aire** | `index.html:589` · `js/nmea_parser.js:129-135` |
+
+🔴 **Lo que costó, y va escrito porque es la lección y no la anécdota:** el agente que escribió el
+firmware del ESP32 **siguió esta sección al pie de la letra en su primera versión**. Un puente que
+exige `$` y checksum a lo que llega de la app **habría descartado el 100 % de los comandos reales**
+—ninguno trae `$` ni `*`— y habría contestado un `$ERR` propio a cada uno. Y el equipo, a un
+comando que sí llega, contesta `AUTH_FAILED,PIN_INVALIDO`: el motivo manda a depurar el PIN, que no
+tiene **nada** que ver. Es la prueba muerta de N-51 del revés: **un instrumento que no aprueba nada
+válido**, con documentación encima.
+
+**Es también la forma exacta del corolario de §4:** dos citas con número de línea **parecen** una
+medida. Una cita a `nmea_parser.js:20-21` sólo demuestra que alguien abrió ese fichero; **no**
+demuestra que ese código corra, y aquí no corre. *Un «no aparece» no es un hallazgo hasta haber
+descartado al buscador* tiene su gemelo: **un «sí aparece» no es un hallazgo hasta haber comprobado
+que alguien lo llama.**
+
+---
+
+#### 3.4.b Lo que el puente hace HOY, en positivo
+
+**MEDIDO** sobre `01_Firmware/ESP32_Expansion/src/puente.cpp`, que ya existe y compila:
+
+| dirección | ¿hay checksum en el cable? | qué hace el puente |
 |---|---|---|
-| app ⟶ STM32 | **nadie, hoy** | 🔴 **el ESP32 SÍ valida.** Comprueba `$`, `*`, y que el XOR-8 case. Si no casa, **descarta y contesta `$ERR` él mismo**; no reenvía |
-| STM32 ⟶ app | el STM32 lo emite | el ESP32 **recalcula y comprueba** antes de retransmitir. Una trama con CRC malo es ruido de cable, y el ruido no sube al teléfono |
+| **app ⟶ STM32** | 🔴 **NO.** La app no lo pone (medida 1 de arriba) | **Los bytes se reenvían VERBATIM**: los mismos que mandó la app, sin quitar nada y **sin añadir nada**, con su `\r\n`. La **única** comprobación de este sentido es el **tope de longitud** (E-2): lo que no cabe se descarta y **se dice**, con un `$ERR` marcado como del puente (`NODE:PUENTE`) |
+| **STM32 ⟶ app** | ✅ **SÍ.** Lo pone `enviarTramaConCrc()` (`Maestro:43-48`, `Esclavo:51-56`) | **El puente lo verifica** antes de retransmitir. Una trama con CRC malo es ruido de cable, y el ruido no sube al teléfono. Se cuenta lo descartado (P-3) |
 
-Es SFTY-16 aplicado al puente, y es exactamente lo que ya hace el firmware del Repetidor en la otra
-topología: **valida FORMATO, no comandos** (`05_Funcional/5_Manual_Puente_ESP32.md` §3). La razón
-está escrita allí y vale igual aquí: *un puente que conociera la lista de comandos habría que
-recompilarlo cada vez que el protocolo crece, y el día que alguien olvidara hacerlo la función
-nueva se caería en silencio.*
+> 🔴 **No se puede validar el checksum de lo que llega de la app, porque la app no lo pone.** No es
+> una relajación de SFTY-16 ni una comodidad: **es que no hay nada que validar**, y exigirlo sería
+> rechazar el 100 % del tráfico real. La asimetría de esta tabla no es un descuido — es la medida.
+>
+> ⚠️ **Y por el mismo motivo el puente TAMPOCO añade checksum al salir hacia el STM32.** El STM32
+> compara la línea **entera** con `strcmp`: un `*4F` pegado detrás haría que no casara ningún
+> comando y **todos** caerían en `$ERR,CMD:DESCONOCIDO`. Es el defecto refutado de §3.4.a,
+> reintroducido por el otro lado.
+
+> 🟢 **El dato que esta pasada saca de propina, y que nadie había escrito:** en el sentido
+> **STM32 ⟶ app**, el puente es **el primero de toda la cadena que comprueba el checksum**. La app
+> **no** lo comprueba: `parseNmeaTelemetry()` hace `line.split('*')[0]` (`app.js:881`) y **tira el
+> `*XX` sin mirarlo**. O sea que **hoy, sin el puente, no hay un solo checksum verificado en toda la
+> cadena, en ninguna dirección** — el STM32 lo emite y nadie lo lee. El ESP32 no está reforzando una
+> comprobación existente: está **estrenándola**.
+
+Lo que sí se mantiene de la formulación anterior, porque es correcto y es el principio de diseño:
+el puente **valida FORMATO, no comandos**, igual que el firmware del Repetidor en la otra topología
+(`05_Funcional/5_Manual_Puente_ESP32.md` §3 — 🔴 **otro equipo, otro firmware: ver el recuadro de
+ese manual antes de mezclarlos**). La razón está escrita allí y vale igual aquí: *un puente que
+conociera la lista de comandos habría que recompilarlo cada vez que el protocolo crece, y el día
+que alguien olvidara hacerlo la función nueva se caería en silencio.*
 
 > ⚠️ **Y el corolario que hay que escribir para que nadie lo «mejore»:** validar el CRC en el ESP32
 > **no** convierte al enlace en autenticado. El STM32 sigue aceptando cualquier línea que le
@@ -385,11 +491,33 @@ El puente tiene que dejarlos pasar **íntegros**. Se listan para que nadie los d
 | **`$EVENT`** | `bluetooth_reportarEvento()` — bitácora de quién movió qué | `Maestro:96` · `Esclavo:104` |
 
 > 📌 **Corrección al encargo: son CINCO prefijos, no cuatro.** `$EVENT` faltaba en la lista de
-> partida y **no es marginal**: el Maestro lo emite desde **catorce** ramas del despachador y la app
-> lo consume (`app.js:814-815`, *«`$EVENT` es la bitácora del propio equipo»*). Un puente que
-> filtrara por una lista de cuatro prefijos **se comería la bitácora entera** — y sería exactamente
-> la clase de pérdida silenciosa que costó N-73: un registro que cuatro documentos describen y que
-> nadie puede mirar cuando hay que diagnosticar un fallo de campo.
+> partida y **no es marginal**. Un puente que filtrara por una lista de cuatro prefijos **se comería
+> la bitácora entera** — y sería exactamente la clase de pérdida silenciosa que costó N-73: un
+> registro que cuatro documentos describen y que nadie puede mirar cuando hay que diagnosticar un
+> fallo de campo.
+>
+> ⚠️ **Y las dos cifras con que se justificaba estaban mal las dos. Re-MEDIDO el 31/08, segunda
+> pasada:**
+>
+> | | decía | MEDIDO | cómo |
+> |---|---|---|---|
+> | ramas del despachador del Maestro que emiten `$EVENT` | ~~14~~ | **16** | `grep -n "bluetooth_reportarEvento" Maestro/src/bluetooth.cpp` → 17 líneas, de las que `:87` es **la definición** y no una llamada. Las 16 llamadas van de `:148` a `:355` |
+> | dónde lo consume la app | ~~`app.js:814-815`~~ | **`app.js:976-977`** | `:814` no habla de `$EVENT`; la rama real es `else if (header === '$EVENT')` con el comentario *«`$EVENT` es la bitacora del propio equipo -quien movio que y desde donde-»* |
+>
+> **La conclusión no cambia y por eso el error es instructivo:** las dos cifras estaban mal, las dos
+> apuntaban en la misma dirección que la conclusión, y **ninguna de las dos se habría notado nunca**
+> porque el lector que está de acuerdo no va a comprobarlas. Es §4 otra vez — *un número con
+> `fichero:línea` al lado **parece** medido*, y contar a ojo un `grep` que incluye la definición
+> junto a las llamadas es exactamente el fallo de N-73 al revés.
+
+**MEDIDO en la segunda pasada, para que no haya que volver a contarlo:**
+
+```
+$ grep -c '"$ACK'  Maestro/src/bluetooth.cpp  ->  17      Esclavo -> 4
+$ grep -c '"$ERR'  Maestro/src/bluetooth.cpp  ->  16      Esclavo -> 8
+$ grep -n "bluetooth_reportarEvento" Maestro/src/bluetooth.cpp | wc -l  ->  17
+                                              (:87 es la definicion; 16 son llamadas)
+```
 
 **Plantillas literales, MEDIDAS:**
 
@@ -685,11 +813,31 @@ escribe copiándolo.
 
 ---
 
-## 6. Función 3 — El puente Bluetooth. 🛑 **BLOQUEADO por `BLQ-1`**
+## 6. Función 3 — El puente Bluetooth. 🟢 **DESBLOQUEADO: `BLQ-1` cerrado el 31/08**
 
-**Esta función se escribe como bloqueada.** No se desbloquea desde el firmware.
+### 6.1 `BLQ-1` — 🟢 **CERRADO el 31/08: es un `ESP32-WROOM-32` clásico, hay SPP**
 
-### 6.1 `BLQ-1` — nadie ha leído la serigrafía del blindaje
+> 🟢 **La respuesta llegó, y es la buena.** El módulo es un **`ESP32-WROOM-32` clásico**:
+> `Xtensa LX6 dual-core` y `Bluetooth v4.2 **BR/EDR** + BLE`. `BR/EDR` es Bluetooth Clásico, o sea
+> **SPP**: `createRfcommSocketToServiceRecord` abre y **la app conecta sin tocar una línea de
+> transporte**. **El apartado 1 del Manual 10 NO se reabre.**
+>
+> **Tres confirmaciones independientes**, que es lo que lo cierra y no una sola: el nombre del
+> módulo, el núcleo `LX6` —el `S3` es `LX7` y el `C3` es RISC-V— y el perfil Bluetooth declarado.
+>
+> **ESCRITO** en `ESTADO.md:23` y `roadmap.md:215` (**N-107**), leídos el 31/08.
+>
+> ⚠️ **Lo que este cierre NO cierra, y hay que decirlo porque un bloqueo resuelto contagia
+> optimismo a los de al lado:** sigue **SIN VERIFICAR** el tiempo de arranque del módulo y el de
+> reemparejar el SPP (`AB-3`), sigue sin comprarse el `DS3231` (`A6`) y sin pedirse la fuente
+> propia (`A5`), y **no hay una sola tarjeta con un ESP32 conectado a `J17`**. Queda además una
+> pregunta menor y no bloqueante: **30 o 38 pines** de la placa DevKitC, para las hembrillas
+> (`roadmap.md:204`) — se resuelve con un pie de rey.
+
+**La tabla que sigue se conserva porque es el razonamiento que hizo del chip un bloqueo, y hace
+falta para entender por qué la respuesta importaba tanto.** Es §8.quater aplicado a un documento:
+esto **se conserva**, no se borra — medía algo que sigue valiendo el día que alguien proponga
+cambiar de módulo.
 
 **ESCRITO** en `15_Lista_de_Compras_Hardware.md:102-104` y replicado en
 `10_Manual_Modulo_Bluetooth_Telemetria.md:83-84`:
@@ -710,18 +858,20 @@ versión entera de la app.
 > módulo. `ESP32-WROOM-32E` es una respuesta; `ESP32-S3-WROOM-1` es otra. 🔴 **El rótulo del
 > vendedor no distingue** (`10_Manual...:91`, `:100`).
 >
-> **SIN VERIFICAR:** nadie ha leído la serigrafía de los módulos que llegaron a obra el 28/08. La
-> lista de compras los registra como *«referencia sin confirmar»* (`15_Lista...:69`, línea `A1′`,
-> 🛑 **BLOQUEADA**).
+> ~~**SIN VERIFICAR:** nadie ha leído la serigrafía de los módulos que llegaron a obra el 28/08~~ →
+> 🟢 **RESUELTO el 31/08**, ver el recuadro de §6.1. *(La línea `A1′` de `15_Lista...:198` sigue
+> marcada **🛑 BLOQUEADA** en su fichero: esa deriva está anotada en el Anexo y **no se corrige desde
+> aquí**.)*
 >
-> **Es una comprobación de treinta segundos con el módulo en la mano y decide si hay que rehacer el
-> transporte de la app entero.** **Dueño: el responsable.** No la resuelve quien escribe firmware.
+> **Era una comprobación de treinta segundos con el módulo en la mano, y decidía si había que
+> rehacer el transporte de la app entero. Se hizo, y la respuesta fue la barata.**
 
-**Qué se puede escribir mientras `BLQ-1` siga abierto:** todo lo que **no** depende del perfil —el
-watchdog (§4), el reloj (§5), el validador de tramas, el bombeo de bytes hacia `Serial2` y los packs
-de §7—. **Lo único bloqueado es la capa de transporte SPP.** Se aísla detrás de una interfaz
-estrecha —`abrir()`, `disponible()`, `leer()`, `escribir()`— para que la rama BLE, si toca, no
-obligue a reescribir el resto.
+**La interfaz estrecha se conserva aunque el bloqueo se haya cerrado.** La capa de transporte SPP
+está aislada detrás de `abrir()` / `disponible()` / `leer()` / `escribir()`
+(`01_Firmware/ESP32_Expansion/include/transporte_app.h`), y **eso no se deshace ahora que sabemos
+que hay SPP**: el aislamiento se puso para que una rama BLE no obligara a reescribir el resto, y
+sigue valiendo el día que alguien cambie de módulo. Retirar una barrera porque el problema que
+temía no ocurrió es exactamente la clase de simplificación que este repositorio paga después.
 
 ### 6.2 El puente **NO ORIGINA**
 
@@ -774,7 +924,14 @@ STM32**, y por eso el STM32 no debe deducir nada de ninguna de las dos. Concreta
 
 ### 7.1 🔴 Primero: sin un rol nuevo, el fuente del ESP32 es INVISIBLE
 
-**MEDIDO:**
+> 🟢 **HECHO el 31/08 — y el razonamiento se queda entero, porque es el que hay que repetir el día
+> que aparezca un quinto rol.** MEDIDO hoy en `01_Firmware/compuerta.py`: `:114` el `_ROLES` ya trae
+> `"ESP32_Expansion"`, `:118` la regex lo incluye, `:97` el suelo subió a
+> `RUTAS_MINIMAS_ESPERADAS = 45`, y `:692` compila el proyecto (`compilar("esp32",
+> "ESP32_Expansion")`). Los nueve packs de §7.2 existen los nueve en
+> `banco/packs/esp32_01…esp32_09`. **Lo que sigue describe cómo se hizo, no lo que falta.**
+
+**MEDIDO cuando se escribió esta sección, y sigue siendo la estructura que hay que tocar:**
 
 ```
 01_Firmware/compuerta.py:88   _ROLES = ("Maestro", "Esclavo", "Repetidor")
@@ -896,8 +1053,15 @@ entero y el arnés de DOM—, que eran justo **los dos únicos que ejercen la ap
 PIN que la propia app abría, un parser de un protocolo que ninguna punta habla, y comandos del
 firmware sin interfaz.
 
-> **Aquí la situación es PEOR, y hay que decirlo así: no hay ningún instrumento que pueda abortar,
-> porque no hay ninguno.** Un `ABORTADO` al menos grita. Un hueco no.
+> ~~**Aquí la situación es PEOR, y hay que decirlo así: no hay ningún instrumento que pueda abortar,
+> porque no hay ninguno.**~~ → 🟢 **Ya no. MEDIDO el 31/08: el rol está dado de alta, el proyecto
+> compila en la compuerta y los nueve packs existen.** El aviso se conserva tachado porque describe
+> con exactitud el hueco que había, y **el hueco era real hasta esta misma tarde**. Un `ABORTADO` al
+> menos grita. Un hueco no.
+>
+> ⚠️ **Y lo que el verde de esos nueve packs NO dice, que es lo mismo de siempre:** son Python que
+> parsea texto y un compilador que enlaza — **ninguno toca la tarjeta**. `CLAUDE.md` §3: *verde no
+> es entregable.*
 >
 > Y el corolario de aquella vez, aplicado a lo que va a pasar cuando el firmware del ESP32 esté
 > escrito: *«un parte de trabajo con seis artefactos que existen y 29 tests que pasan puede ser
@@ -929,8 +1093,8 @@ Es la sección C del Manual 17, aplicada aquí.
 | | |
 |---|---|
 | **Nada de esto ha pasado banco** | y **ni un verde de `compuerta.py` lo autoriza**: ese `0` dice que los modelos y los arneses de PC no encuentran nada, y **ninguno toca la tarjeta** |
-| **El firmware del ESP32 no existe** | este documento es contra lo que se va a escribir, no la descripción de algo que corre |
-| **El chip que llegó a obra** | 🛑 `BLQ-1`. Nadie ha leído la serigrafía. **Lo más barato y lo más bloqueante de toda la lista** |
+| ~~**El firmware del ESP32 no existe**~~ | 🟢 **existe y compila al `35.6 %`** (`evidencia/2026-08-31_compuerta.txt:16`). Lo que **no** cambia: **compilar no es funcionar**, y **no ha pasado banco** |
+| ~~**El chip que llegó a obra**~~ | 🟢 **`BLQ-1` CERRADO el 31/08**: `ESP32-WROOM-32` clásico, hay SPP (§6.1, `ESTADO.md:23`, N-107) |
 | **Que el enlace `J17` funcione** | `13_Manual...:99`: *«tampoco está verificado en banco el enlace Bluetooth sobre `J17` p2/p3: la compuerta pasó, y la compuerta no toca la tarjeta»* |
 | **El `DS3231`** | **no se ha comprado** (`A6`). Su dirección `0x68`, sus pull-ups y su `OSF` son datasheet, no medida sobre el módulo real |
 | **La fuente propia (`A5`)** | **no está pedida**. Sin ella no se conecta nada: el ESP32 tumbaría el riel del STM32 |
@@ -957,7 +1121,7 @@ deja abierto: no se inventa una decisión para que el documento parezca cerrado.
 
 | id | qué está abierto | dueño | qué desbloquea |
 |---|---|---|---|
-| **`BLQ-1`** | 🛑 **Qué chip es el ESP32.** Nadie ha leído la serigrafía del blindaje. `WROOM-32*` → hay SPP y la app conecta sin tocar una línea. `S3`/`C3` → solo BLE, **hay que rehacer el transporte de la app entero**. `S2` → sin Bluetooth. **El rótulo del vendedor no distingue** | **el responsable** | la compra (`A1′`), §6 entera, y si hay que reabrir por escrito el Manual 10 §1 |
+| ~~**`BLQ-1`**~~ | 🟢 **CERRADO el 31/08.** Es un **`ESP32-WROOM-32` clásico**: `Xtensa LX6 dual-core`, `Bluetooth v4.2 BR/EDR + BLE`. **Hay SPP**, la app conecta sin tocar el transporte y **el Manual 10 §1 no se reabre** (§6.1, `ESTADO.md:23`, `roadmap.md:215` N-107). Queda una pregunta menor y no bloqueante: **30 o 38 pines** de la DevKitC, para las hembrillas | ~~el responsable~~ **resuelto** | desbloqueó la compra (`A1′`) y §6 entera |
 | **`AB-1`** | 🔴 **Nada en el equipo vigila al puente.** MEDIDO en §4.2: SFTY-6 mira la radio, no `J17`. Un ESP32 colgado es **invisible** para el STM32. ¿Se acepta que el único testigo sea la app, o el STM32 tiene que notar el silencio del puente? | **el responsable** *(es una decisión vial: cambia lo que el equipo hace cuando se queda sin operador)* | el alcance del watchdog y si hace falta un SFTY nuevo |
 | **`AB-2`** | 🔴 **Cómo se opera el equipo si el ESP32 se cuelga**, sin pantalla, sin pulsadores y sin mando. El watchdog cubre el colgado; **no** el muerto ni el desenchufado. Las cinco opciones están escritas en el Manual 17 §3.3 y **no se reabren aquí** | **el responsable** | si el mando de relés se retira o se queda (afecta al veto de §17 2.4) |
 | **`AB-3`** | 🟠 **`ESP32_ARRANQUE_MS` y el tiempo de reemparejar SPP: SIN VERIFICAR.** Son el hueco de la desigualdad de §4.2, y **se miden con el módulo en la mano**, no se estiman | **quien monte**, con visto bueno técnico | el número concreto del watchdog, y qué tiene que decirle la app al operario tras un reinicio |
@@ -975,12 +1139,14 @@ deja abierto: no se inventa una decisión para que el documento parezca cerrado.
 
 | fichero | qué le falta |
 |---|---|
-| `01_Firmware/compuerta.py` | 🔴 `:88` el rol nuevo, `:91-95` la regex, `:87` el suelo. **Sin esto el ESP32 es invisible** (§7.1) |
-| `01_Firmware/Simulaciones/banco/packs/` | los nueve packs de §7.2 |
+| ~~`01_Firmware/compuerta.py`~~ | 🟢 **hecho el 31/08**: `:114` el rol, `:118` la regex, `:97` el suelo (45), `:692` la compilación |
+| ~~`01_Firmware/Simulaciones/banco/packs/`~~ | 🟢 **hecho el 31/08**: existen `esp32_01` … `esp32_09` |
+| `05_Funcional/15_Lista_de_Compras_Hardware.md` | 🟠 `:198` marca la línea `A1′` **🛑 BLOQUEADA por `BLQ-1`**, y `BLQ-1` está **cerrado** desde el 31/08. Deriva pendiente |
+| `05_Funcional/App_Semaforo/js/nmea_parser.js` | 🟠 **módulo sin un solo llamador** (§3.4.a): cargado por `index.html:589` y usado sólo en `tests/`. Habla un protocolo (`$…*XX`) que **ninguna punta de este sistema habla**. Es N-73 en JavaScript, y ya indujo un defecto de firmware. ¿Se retira o se documenta como muerto? **No se decide desde aquí** |
 | `OPTIMIZACIONES.md` | `:55` — SFTY-1 dice *«El Repetidor ESP32 no implementa watchdog»*. Cuando lo implemente, esa frase queda falsa |
 | `05_Funcional/17_...md` §1.4 | cita `Maestro/src/bluetooth.cpp:25`; hoy es `:28` |
 | `05_Funcional/17_...md` §3.3 | cita `Maestro/src/main.cpp:52`; hoy es `:53` |
-| `05_Funcional/5_Manual_Puente_ESP32.md` | describe el ESP32 en el rol **Repetidor** (4 radios). No dice nada del rol **Puente**, y un lector puede confundirlos |
+| ~~`05_Funcional/5_Manual_Puente_ESP32.md`~~ | 🟢 **corregido el 31/08**: lleva recuadro que separa los **dos ESP32** y avisa de la **colisión de GPIO** (`GPIO16`/`17`/`22` sirven a cosas distintas en cada rol). Sigue describiendo sólo el rol Repetidor, que es su asunto |
 | `05_Funcional/10_...Bluetooth...md` | congelado en SPP, y sigue mandando enchufar un `HC-05` en `J17` (Manual 17 §B, Orden 2) |
 | `ESTADO.md` / `roadmap.md` | `BLQ-1` y `AB-1`…`AB-8` no están anotados como abiertos con dueño |
 
@@ -988,3 +1154,31 @@ deja abierto: no se inventa una decisión para que el documento parezca cerrado.
 
 *Documento escrito el 31/08/2026 sobre `HEAD = cc4ba61`. Banco medido antes y después de esta
 pasada: **445/445, 39 packs, 0 FALLA, 0 ABORTADO**. Este documento no toca código ni instrumentos.*
+
+---
+
+### Segunda pasada — 31/08/2026, más tarde el mismo día
+
+**Qué se corrigió, y por qué la lista importa más que las correcciones:**
+
+| § | qué estaba mal | clase de error |
+|---|---|---|
+| **§3.4** | 🔴 **`formatearComando()` no existe y la app no añade `*XX`.** Sobre esa frase falsa —**con la palabra MEDIDO encima**— la sección ordenaba al ESP32 validar `$`, `*` y XOR-8. El firmware lo obedeció en su primera versión y **habría descartado el 100 % de los comandos reales** | `CLAUDE.md` §4 segunda cara: **lo que TÚ reportas también es un instrumento** |
+| **§3 `E-2`** | la cifra de `41 caracteres` no cuadraba: la cadena mide **40**, y la que la app componía de verdad en el locale de campo medía **45** | una foto de un día publicada como constante |
+| **§3.7** | `$EVENT`: se decía **14** ramas y `app.js:814-815`. MEDIDO: **16** ramas y `app.js:976-977` | dos cifras que apoyaban una conclusión correcta, y que **nadie iba a comprobar por eso mismo** |
+| **§6, §9** | `BLQ-1` dado por abierto; está **cerrado** desde el 31/08 | deriva entre documentos |
+| **cabecera, §7.1, §7.5, §8, Anexo** | el firmware, el rol de la compuerta y los nueve packs se daban por inexistentes; **existen los tres** | deriva |
+
+**Lo que sí se re-midió y estaba bien** —se anota porque una lista de errores sin la lista de
+aciertos no dice si la revisión fue exhaustiva o afortunada—: los baudios (`9600` en las dos
+puntas), `SerialBT(PB7, PB6)` en `Maestro:28` y `Esclavo:26`, `btBufIn[64]`, `payload[128]`,
+`payload[100]`, `p[80]`, `tramaCompleta[140]`, los recuentos `$ACK` 17/4 y `$ERR` 16/8,
+`IWatchdog.begin(4000000)` en las dos puntas, `SFTY6_SILENCIO_MS 25000UL`,
+`TIMEOUT_ENLACE_MS = 5000` y que la numeración `SFTY-x` llega a **29**.
+
+**Ninguna afirmación se borró: las cuatro están tachadas con lo medido al lado.** *Una causa que se
+cae se marca refutada; la que desaparece en silencio vuelve a proponerse, y la segunda vez ya nadie
+recuerda que se comprobó.*
+
+🛑 **Y lo que esta segunda pasada NO cambia: nada ha pasado banco.** Este documento sigue sin tocar
+código ni instrumentos.

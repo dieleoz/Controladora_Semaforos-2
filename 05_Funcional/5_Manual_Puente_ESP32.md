@@ -1,5 +1,56 @@
 # MANUAL DEL PUENTE REPETIDOR ESP32 (Topología de 4 Radios — V8.0)
 
+> # 🛑 EN ESTE PROYECTO HAY **DOS** ESP32 DISTINTOS. ESTE MANUAL ES DE UNO SOLO.
+>
+> **Léase antes de tocar un cable o teclear un `pio run`.** Los dos son módulos ESP32, los dos van
+> en un poste, los dos hacen de «puente» — y **usan los mismos GPIO para cosas distintas**. Cargar
+> el firmware de uno en el otro no da error: da un equipo que parece encendido y no hace su trabajo.
+>
+> | | **ESP32 de EXPANSIÓN** | **ESP32 del REPETIDOR** *(el de este manual)* |
+> |---|---|---|
+> | **Dónde va** | **uno por poste**, en cada equipo | **un poste intermedio propio**, entre Maestro y Esclavo |
+> | **De qué cuelga** | del conector **`J17`** de la tarjeta del semáforo | de **dos radios** E90-DTU (B1 y B2), por RS-485 |
+> | **Qué hace** | **puente Bluetooth SPP ⟷ `J17`** (sustituye al módulo SPP) **+ reloj `DS3231`** por I²C | enlaza **dos radios back-to-back** para salvar una curva ciega o una montaña |
+> | **Cuántas radios toca** | **ninguna** | **cuatro** en total en el sistema |
+> | **Firmware** | 🟢 `01_Firmware/ESP32_Expansion/` | 🟠 `01_Firmware/Repetidor/` |
+> | **Estado hoy** | firmware escrito y compilando; **sin pasar banco** | **NO DESPLEGADO.** Fuera de la configuración vigente |
+> | **Documento** | `05_Funcional/18_Especificacion_Firmware_ESP32.md` | **éste** |
+>
+> ### 🔴 Los tres GPIO que colisionan — MEDIDO el 31/08
+>
+> No es un parecido: es **el mismo número de pin sirviendo a dos cosas incompatibles**.
+>
+> | GPIO | en el **REPETIDOR** *(este manual, §2)* | en el de **EXPANSIÓN** |
+> |---|---|---|
+> | **`GPIO16`** | RX de la radio B1, **a través de un MAX3485** | **RX del enlace TTL directo a `J17` p2/p3** — sin transceptor |
+> | **`GPIO17`** | TX de la radio B1, **a través de un MAX3485** | **TX del mismo enlace TTL** |
+> | **`GPIO22`** | **`DE/RE` de la radio B2** (control RS-485) | **`SCL` del bus I²C del `DS3231`** |
+>
+> **MEDIDO en:** `01_Firmware/Repetidor/include/pines_repetidor.h` (`M1_RX 16`, `M1_TX 17`,
+> `M2_DE_RE 22`) contra `01_Firmware/ESP32_Expansion/include/contrato.h`
+> (`ENLACE_PIN_RX 16`, `ENLACE_PIN_TX 17`, `DS3231_SCL 22`, `DS3231_SDA 21`).
+>
+> ### 🛑 Qué pasa si se confunden — y por qué el papel es lo único que lo impide
+>
+> - **Firmware del Repetidor en una placa de EXPANSIÓN:** el equipo pierde **la única superficie de
+>   mando que le queda**. Con la pantalla, los cuatro pulsadores y el mando de relés retirados, toda
+>   la operación pasa por la app, y la app pasa por ese ESP32. El semáforo sigue ciclando —el
+>   STM32 no depende del accesorio— pero **queda seguro y no operable**, y encima el firmware
+>   estaría meneando `GPIO22` como línea de control RS-485 **sobre el `SCL` de un reloj**.
+> - **Firmware de Expansión en la placa del REPETIDOR:** ningún `DE/RE` se gobierna, el bus RS-485
+>   se queda sin árbitro y el enlace de radio no pasa.
+>
+> **Los dos firmwares NO son intercambiables**, no comparten pinout y **no se mezclan sus
+> directorios**: comparten familia de módulo y nada más. Antes de un `pio run -t upload`, mire de
+> qué poste es la placa que tiene delante.
+>
+> ### ⚠️ Y sobre este manual en concreto
+>
+> La topología de 4 radios que describe está **fuera de la configuración vigente**: hoy son **2
+> radios en enlace directo, sin repetidor** (`CLAUDE.md` §10). Lo que sigue **no es un montaje a
+> ejecutar**; es la referencia del día que haya que salvar un obstáculo. Nada de este documento
+> aplica al ESP32 de expansión.
+
 Este documento detalla la configuración y cableado del puente repetidor con microcontrolador **ESP32** cuando se requiere salvar curvas ciegas o montañas mediante 4 radios industriales E90-DTU.
 
 El ESP32 enlaza **dos radios back-to-back** (B1 y B2) dentro de una topología total de 4 radios.
@@ -40,16 +91,25 @@ El ESP32 enlaza **dos radios back-to-back** (B1 y B2) dentro de una topología t
 
 ## 2. Pinout del ESP32 Repetidor (`01_Firmware/Repetidor/include/pines_repetidor.h`)
 
-| Conexión | Pin ESP32 | Puerto |
-|---|---|---|
-| **Radio B1 (Entrada) RX** | Pin `16` | UART1 RX |
-| **Radio B1 (Entrada) TX** | Pin `17` | UART1 TX |
-| **Radio B1 DE/RE** | Pin `4` | Control RS485 |
-| **Radio B2 (Salida) RX** | Pin `32` | UART2 RX |
-| **Radio B2 (Salida) TX** | Pin `33` | UART2 TX |
-| **Radio B2 DE/RE** | Pin `22` | Control RS485 |
+> 🔴 **Esta tabla es SOLO del ESP32 del repetidor. El ESP32 de expansión usa tres de estos pines
+> para otra cosa** — ver el recuadro del principio. No se cablea una placa con esta tabla sin haber
+> confirmado antes cuál de los dos equipos se está montando.
+
+| Conexión | Pin del ESP32 **del repetidor** | Puerto | ⚠️ colisión con el de expansión |
+|---|---|---|---|
+| **Radio B1 (Entrada) RX** | Pin `16` | UART1 RX | 🔴 allí es **RX del enlace TTL a `J17`** |
+| **Radio B1 (Entrada) TX** | Pin `17` | UART1 TX | 🔴 allí es **TX del enlace TTL a `J17`** |
+| **Radio B1 DE/RE** | Pin `4` | Control RS485 | — |
+| **Radio B2 (Salida) RX** | Pin `32` | UART2 RX | — |
+| **Radio B2 (Salida) TX** | Pin `33` | UART2 TX | — |
+| **Radio B2 DE/RE** | Pin `22` | Control RS485 | 🔴 allí es **`SCL` del I²C del `DS3231`** |
 
 *Nota:* Las radios E90-DTU en bornera RS485 conmutan automáticamente TX/RX por hardware interno.
+
+> **La diferencia que no se ve en la tabla y decide el cableado:** aquí `GPIO16`/`GPIO17` van a las
+> radios **a través de transceptores MAX3485** (§3.0). En el ESP32 de expansión los mismos dos pines
+> van **en TTL directo** al conector `J17` del semáforo, **sin transceptor de por medio**. Mismo
+> número de pin, dos niveles eléctricos distintos y dos destinos distintos.
 
 ---
 
@@ -197,8 +257,17 @@ firmware no está corriendo.
 [    12s]  A<-Maestro:     36 b /    9 val /     0 desc   |   C<-Esclavo:     36 b /    9 val /     0 desc
 ```
 
-**El ESP32 no lleva watchdog.** Si se cuelga, Maestro y Esclavo lo detectan por su cuenta y pasan a
-Ámbar intermitente a los 25 s (fail-safe, SFTY-6), pero el repetidor requiere corte de energía para recuperarse.
+**El ESP32 del repetidor no lleva watchdog.** Si se cuelga, Maestro y Esclavo lo detectan por su
+cuenta y pasan a Ámbar intermitente a los 25 s (fail-safe, SFTY-6), pero el repetidor requiere corte
+de energía para recuperarse.
+
+> ⚠️ **Esta frase es del ESP32 DEL REPETIDOR, y no se puede trasladar al otro.** El ESP32 de
+> expansión **sí** lleva watchdog (`01_Firmware/ESP32_Expansion/src/vigilante.cpp`, sobre
+> `esp_task_wdt_*`), y además **su caída no la detecta nadie en el equipo**: SFTY-6 vigila el enlace
+> de radio, no el conector `J17`, así que un ESP32 de expansión colgado **no dispara nada** y el
+> STM32 sigue ciclando sin enterarse. Son dos situaciones opuestas —aquí el sistema **sí** reacciona,
+> allí **no**— y confundirlas manda a buscar la causa al poste equivocado. Ver
+> `18_Especificacion_Firmware_ESP32.md` §4.2 y `AB-1`.
 
 ---
 
@@ -297,6 +366,28 @@ Anote **hasta dónde llega el parpadeo**:
 
 Si el corte parece estar dentro del repetidor, hay un segundo entorno de compilación que informa por
 USB cuántos bytes llegan de cada lado, cada 2 segundos:
+
+> 🛑 **ANTES DE TECLEAR ESTO: confirme que el ESP32 que tiene enchufado es el del POSTE REPETIDOR.**
+>
+> Estos tres comandos se lanzan desde `01_Firmware/Repetidor/` y cargan el firmware **del
+> repetidor**. Si el módulo conectado es un **ESP32 de expansión** —el que cuelga de `J17` en un
+> poste de semáforo—, esta carga **le deja el equipo sin la única interfaz que le queda**: sin
+> pantalla, sin pulsadores y sin mando, toda la operación pasa por la app, y la app pasa por ese
+> ESP32. El semáforo seguiría ciclando, pero **nadie podría mandarle nada**.
+>
+> El síntoma es engañoso: el módulo enciende, el LED de alimentación queda fijo y por consola
+> aparece el encabezado del repetidor. **Parece que funciona.**
+>
+> **Cómo se distingue en treinta segundos, sin abrir un fichero:** un ESP32 **de expansión** tiene
+> un cable de datos hacia el **conector `J17` de la tarjeta del semáforo** y, si el reloj está
+> montado, un módulo `DS3231` (`ZS-042`) colgado de `GPIO21`/`GPIO22`. Un ESP32 **del repetidor**
+> tiene **dos radios** y sus transceptores MAX3485, y **ningún** cable hacia una tarjeta de
+> semáforo.
+>
+> **Firmware de expansión** — otro directorio, otro entorno, y **no es intercambiable**:
+> ```bash
+> pio run -e esp32_expansion -t upload    # desde 01_Firmware/ESP32_Expansion/
+> ```
 
 ```bash
 pio run -e repetidor_diag -t upload     # cargar el diagnóstico
