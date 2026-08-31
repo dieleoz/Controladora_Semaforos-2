@@ -17,33 +17,21 @@ static int maxVerde = 2, segEstatico = 15;
 static unsigned long tEstadoDesde = 0;
 static bool primeraVezCorriendo = true;
 
-// Filtro antirrebote para lectura digital de cámaras AcuSense (PB0 / PB8)
-static bool leerPinCamara(uint8_t pin) {
-  // N-67: activo en ALTO -ver el porque en modoInteligente_setup()-. El antirrebote
-  // de 5 ms se mantiene: el RC de la placa filtra 1 ms, y el rele de la camara puede
-  // rebotar mas que eso.
-  if (digitalRead(pin) == HIGH) {
-    delay(5);
-    return (digitalRead(pin) == HIGH);
-  }
-  return false;
-}
+// N-97 (31/08): el lector antirrebotado de camara se mudo a botones.cpp, que es el dueno
+// de J16 y ahora tambien de las dos camaras nuevas. No se copio: es LA MISMA funcion,
+// camara_leerPin(), y la usan las dos puntas. Aqui se llama, no se redefine.
 
 void modoInteligente_setup() {
-  // N-67: LA POLARIDAD LA MANDA LA PLACA, Y LA PLACA DICE ACTIVO EN ALTO.
+  // N-97 (31/08): AQUI YA NO SE DECLARA LA CAMARA, Y ESE ERA EL DEFECTO.
   //
-  // Medido sobre el esquematico bueno: PB0 lleva R64 de 10 kOhm A MASA -pull-DOWN- y
-  // C25 de 100 nF tambien a masa; la bornera J14 saca ese pin JUNTO A 3,3 V. O sea que
-  // el contacto seco de la camara va entre los dos bornes de J14 y CIERRA A 3,3 V.
+  // pinMode(CAM_DEMANDA_PIN, INPUT) vivia en esta funcion, o sea que el pin de la camara
+  // solo estaba configurado mientras el equipo estuviera EN Modo Inteligente -mientras el
+  // Esclavo lo declaraba en su setup(), siempre-. Un modo no es dueno de una entrada
+  // fisica: la entrada existe desde que la tarjeta arranca, la mire quien la mire. Ahora
+  // las dos puntas la declaran en el arranque; en esta, en botones_setup().
   //
-  // Con INPUT_PULLUP esto no podia funcionar de ninguna manera: el pull-up interno
-  // (~40 kOhm) contra los 10 kOhm externos deja el pin en 3,3 x 10/50 = 0,66 V, que es
-  // LOW. El firmware habria visto DEMANDA PERMANENTE desde el arranque, sin camara
-  // conectada; y al cerrar el contacto el pin sube a 3,3 V y lo habria leido como
-  // "no hay demanda". Invertido y siempre activo a la vez.
+  // La cuenta que fija la polaridad -activo en ALTO- sigue estando, entera, en pines.h.
   //
-  // Se deja en INPUT a secas -sin pull-up-: el reposo lo fija el 10k de la placa.
-  pinMode(CAM_DEMANDA_PIN, INPUT);
   // N-64: PB8 no es una entrada de camara, es el LED testigo D5 (R16 1K). Se deja en
   // alta impedancia: un pin flotante no puede encenderlo sea cual sea el sentido del
   // diodo, y con INPUT_PULLUP quedaria a medio encender por 40 uA de fuga.
@@ -95,7 +83,7 @@ void modoInteligente_loop() {
         // dos limites que gobiernan a la camara -el minimo de 15 s de verde y el tope
         // de verde maximo-. Un atajo se los saltaria, y ademas partiria el turno sin
         // que el ciclo se enterase.
-        bool demandaLocalS1 = leerPinCamara(CAM_DEMANDA_PIN) || demanda_hayLocal();
+        bool demandaLocalS1 = camara_leerPin(CAM_DEMANDA_PIN) || demanda_hayLocal();
         bool demandaRemotaS2 = coordinador_hayDemandaRemota();
 
         // Regla 1: Mínimo 15 segundos de verde antes de permitir cualquier alternancia
@@ -133,7 +121,7 @@ void modoInteligente_loop() {
       static const char* estadoAnt = "";
       static int presenciaAnt = -1;
       const char* actual = coordinador_nombreEstadoMaster();
-      int presenciaActual = (leerPinCamara(CAM_DEMANDA_PIN) ? 1 : 0) + (coordinador_hayDemandaRemota() ? 1 : 0);
+      int presenciaActual = (camara_leerPin(CAM_DEMANDA_PIN) ? 1 : 0) + (coordinador_hayDemandaRemota() ? 1 : 0);
 
       if (strcmp(actual, estadoAnt) != 0 || presenciaActual != presenciaAnt) {
         lcd_dibujarInteligente(actual, presenciaActual, true);

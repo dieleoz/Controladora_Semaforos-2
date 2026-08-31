@@ -88,11 +88,41 @@
 #define LCD_PSB     PB6   // -> PSB del LCD (fijo LOW). Nombre SIN CONFIRMAR: la red se rotula "RS(A0)"
 #define LCD_RST     PB7   // -> RST del LCD (reset)
 
-// --- Botones Panel Frontal LCD y Mando RF ---
-#define BOTON1      PB9   // Arriba
-#define BOTON2      PB13  // Abajo
-#define BOTON3      PB14  // Aceptar
-#define BOTON4      PB15  // Cancelar
+// --- J16: mitad botonera, mitad camaras (decision del 31/08/2026) ---
+//
+// J16 llevaba los CUATRO pulsadores. Desde el 31/08 se queda con dos -A y B, que son
+// los que alimentan las secuencias del mando de reles (SFTY-21)- y sus otras dos
+// posiciones pasan a ser entradas de camara. No es un cambio de nombre: cambia el modo
+// del pin, la polaridad con la que se lee y quien lo lee.
+//
+//   J16 p5   PB9    BOTON1      Arriba / mando A   INPUT_PULLUP, activo en BAJO
+//   J16 p8   PB13   BOTON2      Abajo  / mando B   INPUT_PULLUP, activo en BAJO
+//   J16 p10  PB14   CAM_C_PIN   camara             INPUT pelado,  activo en ALTO
+//   J16 p12  PB15   CAM_D_PIN   camara             INPUT pelado,  activo en ALTO
+//
+// POR QUE ACTIVO EN ALTO, Y POR QUE ESO NO ES UNA PREFERENCIA. Es la cuenta de N-67,
+// con la misma resistencia y el mismo valor: R67 y R68 son 10K A MASA sobre las redes
+// /Boton3 y /Boton4, y J16 saca 3,3 V en p9 y p11 -las posiciones de al lado-. Eso es
+// un pull-DOWN con la tension a un pin de distancia: el gesto previsto es cerrar el
+// contacto seco de la camara contra los 3,3 V del propio conector. Con INPUT_PULLUP el
+// pull-up interno (~40 kOhm) contra ese 10K deja el pin en 3,3 x 10/50 = 0,66 V, que el
+// micro lee LOW: demanda permanente sin camara conectada, e invertida al cerrarla.
+//
+// LO QUE ESTE CAMBIO NO RESUELVE Y NO SE PUEDE RESOLVER LEYENDO CODIGO. El netlist y el
+// fuente llevan en contradiccion desde siempre (05_Funcional/17_Arquitectura...:2.2):
+// si la placa soldada fuera la del netlist, PB9 y PB13 en INPUT_PULLUP estarian en LOW
+// permanente y el menu no se podria navegar -y hay evidencia de banco de que se
+// navega-. La medida M3 de ese documento lo cierra con ohmimetro, y HASTA QUE SE HAGA
+// NO SE CABLEA CAMARA A J16. El firmware va primero (CLAUDE.md 9.bis): un pin en INPUT
+// no ejecuta nada, mientras que con el firmware viejo dentro PB14 sigue siendo
+// botonAceptar() activo en BAJO y cualquier hilo enchufado en p10 lo pulsa.
+//
+// Y p1 de J16 lleva 12 V CRUDOS -sin opto, sin serie, sin clamp- a nueve posiciones de
+// p10 y once de p12. Se tapa fisicamente antes de enchufar nada (17_...:2.1).
+#define BOTON1      PB9   // J16 p5  - Arriba / mando A
+#define BOTON2      PB13  // J16 p8  - Abajo  / mando B
+#define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco (era BOTON3, "Aceptar")
+#define CAM_D_PIN   PB15  // J16 p12 - camara de contacto seco (era BOTON4, "Cancelar")
 
 // --- RS485 "IN" / Telemetría Bluetooth (USART1) ---
 #define RS485_IN_RX     PA10
