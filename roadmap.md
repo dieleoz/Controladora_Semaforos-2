@@ -18,7 +18,7 @@ bitacora. Lo anterior no se pierde —vive en el `git log` de este repositorio y
 | **En el repositorio** | **V9.0** — implementada y compilando. **NO probada en banco** |
 | **Compuerta** | ✅ 15 PASS · 0 FALLA · 0 ABORTADO — acta `evidencia/2026-08-31_compuerta.txt` |
 | **Flash** | Maestro **88,3 %** (57.880 de 65.536 B, **7.656 B libres**) · Esclavo 64,4 % · Repetidor 20,6 % |
-| **Banco** | 411/411 en 38 packs · 271/271 pantalla · 71/71 automatico · 29/29 ciclo · app 32/32 + 61/61 + 58/58 |
+| **Banco** | 445/445 en 39 packs · 271/271 pantalla · 71/71 automatico · 29/29 ciclo · app 32/32 + 61/61 + 58/58 |
 
 > 🛑 **Verde no es entregable.** Ese `0` significa que los modelos y los arneses de PC no encuentran
 > nada. **Ninguno toca la tarjeta.** Nada sube a campo sin pasar banco.

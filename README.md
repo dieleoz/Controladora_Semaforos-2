@@ -54,8 +54,8 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 
 | Comprobación | Estado | |
 |---|---|---|
-| guarda de rutas de los instrumentos | ✅ | 43 rutas parseadas, todas existen |
-| banco por packs *(38 packs)* | ✅ | **411/411** — los 38 packs en `PASS`. Subió de 348 con los cuatro packs de las Fases 1 y 2: `app_02_modos_simetricos`, `app_03_sin_ok_mudo`, `esclavo_07_ambar_emergencia` y `maestro_09_test_leds`. **Los cuatro nacieron en rojo** y ninguno se dio por bueno hasta verlo caer con el defecto inyectado en el `.cpp` real |
+| guarda de rutas de los instrumentos | ✅ | 44 rutas parseadas, todas existen |
+| banco por packs *(39 packs)* | ✅ | **445/445** — los 39 packs en `PASS`. Subó de 411 al conectar `enlace_01_transporte`, que vigila los pines, la velocidad, el buffer y el framing del puerto por el que va a hablar el ESP32 — hasta entonces nadie los miraba (N-94).  Antes había subido de 348 Subió de 348 con los cuatro packs de las Fases 1 y 2: `app_02_modos_simetricos`, `app_03_sin_ok_mudo`, `esclavo_07_ambar_emergencia` y `maestro_09_test_leds`. **Los cuatro nacieron en rojo** y ninguno se dio por bueno hasta verlo caer con el defecto inyectado en el `.cpp` real |
 | compila Maestro / Esclavo / Repetidor | ✅ | **88,3 %** · 64,4 % · 20,6 % — *7.656 B libres en el Maestro tras las Fases 1 y 2, `AiBus` y N-90* |
 | simulador funcional | ✅ | 20/20 |
 | simulador de repetidor | ✅ | 10/10 |
@@ -121,7 +121,7 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 > no es eso, y qué sigue roto. Un lector que empieza por *"100% PASS"* no llega a la línea que
 > importa. El método está en la skill `entregar`.
 
-> ### 📦 El banco son 38 packs — la migración terminó el 05/08, y creció con V9.0
+> ### 📦 El banco son 39 packs — la migración terminó el 05/08, y creció con V9.0
 >
 > *(Este rótulo decía **34** mientras la tabla de arriba y el acta que ella cita decían **38**. Un
 > documento que se contradice a sí mismo en dos párrafos es el caso que ya cazó N-62 con las rutas;
@@ -152,7 +152,7 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 >
 > **Y al retirarlos cayó la guarda de rutas**, que censaba las tuplas de los monolitos: se quedó
 > en 4 y **abortó en vez de aprobar**, que es exactamente su trabajo. Hoy censa `banco/packs` y
-> `banco/modelos` — 43 rutas, ninguna escrita a mano.
+> `banco/modelos` — 44 rutas, ninguna escrita a mano.
 
 > ⚠️ **`ABORTADO` no es `PASS`.** Una comprobación que no pudo correr no dice *nada* del firmware.
 > Así se perdió la cobertura del Maestro sin que nadie se enterara: `validador_maestro.py` llevaba

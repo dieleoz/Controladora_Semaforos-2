@@ -8,7 +8,7 @@ publica el árbol y se deja el anterior accesible como remoto **`padre`**.
 **Versión de Especificación y Firmware:** **V9.0 — implementada y compilando. NO probada en banco.**  
 **En campo sigue la V8.4 (`e303485`).** La compuerta en verde dice que los modelos y arneses de PC no
 encuentran nada; no dice que el firmware funcione sobre la tarjeta. Ver 🛑 más abajo.  
-**Compuerta:** ✅ **15 PASS | 0 FALLA | 0 ABORTADO** (Exit code: 0) · Maestro: 88.3% Flash (57.880 de 65.536 B → **7.656 B libres**) · Esclavo: 64.4% Flash · Repetidor: 20.6% Flash · 411/411 en 38 packs · 271/271 pantalla · 71/71 automatico · 29/29 ciclo · app: 32/32 unitarios + 61/61 jsdom + 58/58 funcional · `evidencia/2026-08-31_compuerta.txt`
+**Compuerta:** ✅ **15 PASS | 0 FALLA | 0 ABORTADO** (Exit code: 0) · Maestro: 88.3% Flash (57.880 de 65.536 B → **7.656 B libres**) · Esclavo: 64.4% Flash · Repetidor: 20.6% Flash · 445/445 en 39 packs · 271/271 pantalla · 71/71 automatico · 29/29 ciclo · app: 32/32 unitarios + 61/61 jsdom + 58/58 funcional · `evidencia/2026-08-31_compuerta.txt`
 
 ---
 
