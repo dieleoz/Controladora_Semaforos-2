@@ -83,13 +83,39 @@ def anotar(nombre, estado, detalle=""):
 # una guarda que se queda ciega tiene que decirlo, no dar verde.
 # ---------------------------------------------------------------------------
 
-RUTAS_MINIMAS_ESPERADAS = 20
+# EL SUELO SUBE CON LAS RUTAS NUEVAS, Y ESE ES SU TRABAJO.
+#
+# Estaba en 20 cuando el censo media 44: un suelo que se queda a menos de la mitad de lo
+# real no detecta que el buscador se ha quedado ciego, que es lo unico para lo que
+# existe. Con el rol ESP32_Expansion dado de alta el censo mide 56 -10 de ellas del
+# puente-, y el suelo sube a 45.
+#
+# No se pone en 56 a proposito: hay varios agentes escribiendo packs a la vez y un suelo
+# pegado al techo abortaria por una ruta que alguien retire legitimamente. 45 tolera esa
+# rotacion y sigue cazando el caso que importa -un censo que cae a 4 porque el patron
+# dejo de casar-, que es como cayo la guarda al retirar los tres monoliticos.
+RUTAS_MINIMAS_ESPERADAS = 45
 
-_ROLES = ("Maestro", "Esclavo", "Repetidor")
+# ESP32_Expansion ES UN ROL NUEVO, Y DARLO DE ALTA VA ANTES QUE SU CODIGO.
+#
+# La guarda solo reconoce los roles de esta tupla: un fuente bajo un cuarto directorio
+# NO LO PUEDE NOMBRAR NINGUN PACK, porque _RE_TRIPLE no casa su tupla y las rutas que
+# declare no se censan. Con el firmware del ESP32 escrito y sin el rol, la compuerta
+# saldria con exit 0 y el ESP32 sin una sola comprobacion detras -y, lo que es peor,
+# SIN UNA FILA EN EL ACTA DONDE ECHARLO DE MENOS-.
+#
+# Ese 0 se lee como permiso. Es la puerta abierta de CLAUDE.md 3.quater sin siquiera el
+# ABORTADO que grita: "un ABORTADO al menos grita; un hueco no". Por eso el rol se
+# levanta aunque el codigo este a medias.
+#
+# Y EL NOMBRE SE ELIGE UNA VEZ. La guarda vigila ficheros que desaparecen, NO contenido
+# que se muda de fichero: renombrar este directorio mas adelante dejaria a los packs
+# buscando un patron que ya no esta y acusando al firmware de un defecto que no tiene.
+_ROLES = ("Maestro", "Esclavo", "Repetidor", "ESP32_Expansion")
 
 # ("Maestro", "src", "mando.cpp") — admite saltos de linea dentro de la llamada.
 _RE_TRIPLE = re.compile(
-    r'["\'](Maestro|Esclavo|Repetidor)["\']\s*,\s*'
+    r'["\'](Maestro|Esclavo|Repetidor|ESP32_Expansion)["\']\s*,\s*'
     r'["\'](src|include)["\']\s*,\s*'
     r'["\']([A-Za-z0-9_]+\.(?:h|cpp|ini))["\']', re.S)
 
@@ -655,6 +681,15 @@ def main():
         compilar("maestro", "Maestro")
         compilar("esclavo", "Esclavo")
         compilar("repetidor", "Repetidor")
+        # ESP32 de expansion: el puente de J17 mas el reloj DS3231. NO es el Repetidor
+        # -aquel es el puente de radio de la topologia de 4 radios, que esta fuera de la
+        # configuracion vigente-, y por eso son dos proyectos y dos filas distintas.
+        #
+        # Se compila desde el primer dia. Los packs del banco son Python que parsea
+        # texto: valen para las propiedades estructurales y NO prueban que el codigo
+        # compile. Un firmware que no compila con nueve packs en verde es exactamente el
+        # parte de trabajo "cierto en cada linea y falso en conjunto" de 3.quater.
+        compilar("esp32", "ESP32_Expansion")
 
     print("\n-- Modelos de comportamiento --")
     correr_python("simulador funcional", "simulador_sistema_v7_6.py")
