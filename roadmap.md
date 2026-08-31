@@ -89,6 +89,7 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 | **Se retira la pantalla LCD** de las dos puntas | 28/08 | libera `PB6`/`PB7` para el Bluetooth y `PB3`/`PB4`/`PB5` de margen, mas ~18,9 KB de flash |
 | **El `DS3231` sale del STM32** y cuelga del ESP32 | 28/08 | la linea `PIN-0` queda ANULADA: el I2C ya no vive en el STM32 |
 | **El mando de reles se CONSERVA en A y B**; se retiran C y D | **31/08** | `A·A·A`, `B·B·B` y `A·B·A·B` sobreviven, el veto de SFTY-21 no desaparece, y `PB14`/`PB15` quedan para las camaras — **ver N-104** |
+| **El modulo es un `ESP32-WROOM-32` clasico: hay SPP** | **31/08** | la app conecta sin tocar el transporte; el apartado 1 del Manual 10 queda intacto; la alimentacion es `12 V -> DC-DC conmutado -> 5 V -> VIN` |
 | **Las camaras entran por `J16` p10 y p12** | **31/08** | se leen por el camino de camara (`INPUT` + activo en ALTO), no por el de boton |
 
 ---
@@ -99,7 +100,7 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 
 | # | que | como se cierra |
 |---|---|---|
-| **BLQ-1** | 🔴 **Que chip es el ESP32 que llego a obra.** `WROOM-32*` clasico tiene SPP y la app conecta tal cual; `S3`/`C3`/`S2` son solo BLE y **hay que rehacer el transporte de la app entero** | leer la serigrafia del blindaje. **30 segundos con el modulo en la mano.** Nadie lo ha hecho |
+| ~~**BLQ-1**~~ | 🟢 **CERRADO el 31/08.** Es un **`ESP32-WROOM-32` clasico**: `Xtensa LX6 dual-core` y `Bluetooth v4.2 **BR/EDR** + BLE` — hay **SPP**. La app conecta sin tocar el transporte y el apartado 1 del Manual 10 **no se reabre**. Ver **N-107** | — |
 | **M3** | 🟠 **La resistencia real de `PB14`/`PB15` en cobre.** Con `pinMode(INPUT)` pelado, sin pull-down real el pin flota y da demandas fantasma | multimetro. Ya **no** es bloqueante de rehacer nada: decide **como se configura la salida de la camara** |
 | **A5** | 🔴 **La fuente propia del ESP32 desde 12 V.** No esta pedida y hace falta | comprarla |
 | **N75-1** | 🟠 El minimo de tiempo por sentido | es una cifra, y hace falta |
@@ -168,7 +169,7 @@ compilan C++ real, ni este roadmap.
 
 | | quien | coste |
 |---|---|---|
-| **BLQ-1** la serigrafia del ESP32 | responsable | 30 s con el modulo en la mano |
+| ~~**BLQ-1** la serigrafia del ESP32~~ | ✅ **cerrado el 31/08** | era `WROOM-32` clasico. Queda una pregunta mucho menor: **30 o 38 pines** de la NodeMCU, para las hembrillas de la placa — pie de rey, y no bloquea firmware |
 | **M3** el pull-down real de `PB14`/`PB15` en cobre | funcional | multimetro. Decide **como se configura la camara** y en que pin va cada una: `p10` tiene 4,27 mm contra los 12 V y `p12` solo **1,36 mm** |
 | **A5** la fuente propia del ESP32 | responsable | no esta pedida |
 | el **receptor del mando** | responsable | nunca se compro: hoy hay firmware y veto, no equipo |
@@ -178,6 +179,56 @@ compilan C++ real, ni este roadmap.
 
 ## 6. Los hallazgos de esta sesion — el porque de todo lo de arriba
 
+
+### 🟢 N-107 — BLQ-1 cerrado: es un `ESP32-WROOM-32` clasico, hay SPP · **CERRADO 31/08**
+
+**La ficha del modulo comprado**, aportada por el responsable, cierra la fila mas bloqueante del
+proyecto con **tres confirmaciones independientes**:
+
+```
+Microcontrolador ...  ESP32-WROOM-32
+CPU ................  Tensilica Xtensa 32-bit LX6, DUAL-CORE
+                      el S3 es LX7 y el C3 es RISC-V -> no es ninguno de los dos
+Bluetooth ..........  v4.2 BR/EDR and Bluetooth Low Energy (BLE)
+                             ^^^^^^ Bluetooth Clasico
+```
+
+`BR/EDR` es exactamente el perfil que necesita `createRfcommSocketToServiceRecord`. **La app conecta
+sin tocar el transporte**, y el apartado 1 del Manual 10 —congelado por escrito— **no se reabre**.
+
+Y la ficha resolvio de paso dos cosas abiertas: la alimentacion queda en
+**`12 V -> DC-DC conmutado -> 5 V -> VIN`** (entrada recomendada 5 V, limite 5,5, con regulador a
+bordo), y las E/S a **3,3 V** confirman que el enlace con el STM32 va directo, sin adaptar niveles.
+
+#### Lo que se hizo mal por el camino, que es lo que hay que guardar
+
+**El responsable dijo dos veces que el modulo "ya tiene Bluetooth integrado", y las dos veces se le
+contesto con la misma explicacion en vez de con una medida.** La afirmacion era **cierta**; lo que
+faltaba era distinguir `BR/EDR` de `BLE`. Pero la forma de resolverlo no era repetir la distincion:
+era **buscar el dato**.
+
+Y el dato **no exigia el modulo en la mano**. Se exigio durante toda la sesion *"la serigrafia del
+blindaje, 30 segundos"*, cuando **la ficha tecnica del articulo comprado ya lo declaraba**. El
+bloqueo se mantuvo mas tiempo del necesario **por no haber preguntado por la referencia de compra**,
+que es un dato que el responsable tenia a mano desde el principio.
+
+> **LA LECCION: antes de declarar algo bloqueado por una medida fisica, censa que fuentes escritas
+> pueden responderlo ya.** Una serigrafia, una ficha de compra, una factura y un `esptool chip_id`
+> contestan la misma pregunta con costes muy distintos, y **la mas cara no es la primera que hay que
+> pedir**. Un bloqueo que se puede levantar leyendo no es un bloqueo: es una consulta pendiente.
+>
+> Y su corolario, que es de trato: **cuando alguien insiste en un hecho que resulta ser cierto,
+> repetir la objecion no lo convierte en falso.** La segunda vez que se oye la misma afirmacion es
+> la senal de ir a medir, no de explicar mejor.
+
+#### Lo que sigue abierto, y es mucho menor
+
+**Estas NodeMCU vienen en 30 y en 38 pines, con anchos distintos**, y la placa portadora lleva
+hembrillas, no la huella del `WROOM-32` —el modulo es de formato protoboard, asi que va enchufado y
+es reemplazable sin soldador—. Contar pines y medir el ancho con pie de rey **antes de fabricar**.
+No bloquea firmware.
+
+---
 
 ### 🔴 N-105 — Cuatro documentos mandan cablear camaras sobre pines que NO son entradas de camara, y uno deja que el trafico cambie el modo del semaforo solo
 
