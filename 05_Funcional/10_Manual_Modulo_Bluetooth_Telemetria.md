@@ -1,7 +1,8 @@
 # 📱 MANUAL TÉCNICO Y ESPECIFICACIÓN INTEGRAL DE LA APP MÓVIL Y BLUETOOTH (V9.0)
 
 **Sistema:** Controladora de Semáforos Móviles de 3 Estados (Maestro y Esclavo V9.0)  
-**Módulo de Diagnóstico:** Módulo Bluetooth Serial **SPP (Clásico)** — **no BLE** (Estándar Probado en Proyecto Baliza)  
+**Transporte de Diagnóstico:** Bluetooth Serial **SPP (Clásico)** — **no BLE** (Estándar Probado en Proyecto Baliza). **El transporte NO cambia.**  
+**Módulo que lo lleva:** ~~`HC-05` / `JDY-30` dedicado~~ → **`ESP32` clásico haciendo de puente SPP** *(decisión de obra del 28/08, ver §1.9)*. 🛑 **Condicionado a `BLQ-1`: la referencia del ESP32 que llegó a obra sigue SIN LEER.**  
 **Software Móvil:** App Android (.apk) con Frontend Reactivo Dark-Theme (Estándar IOT-VIAL)  
 **Propósito:** Telemetría en tiempo real, caja negra de alarmas, test de banco, sincronización Courier RTC y control desde el suelo con PIN  
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `MAPEO_TARJETA_KICAD.md`  
@@ -18,6 +19,37 @@ de compra del módulo (ESP32 sí/no), consumo y puesta a punto con `AT+NAME`.
 > referencia del chip bien y el cableado mal, y el detalle corregido en la cabecera daba a entender
 > que el apartado entero estaba revisado. **Esta cabecera enumera lo que se revisó; no garantiza
 > nada que no nombre explícitamente.**
+
+**Revisión del 31 de Agosto de 2026 — QUÉ SE REVISÓ, y nada más que esto:**
+
+1. **§1.9 rehecha.** Publicaba la decisión **contraria** a la vigente —*«se instala `HC-05` / `JDY-30`,
+   no ESP32»`*— cuando el 28/08 se decidió y se dejó escrito lo opuesto. **La fila de la tabla de
+   caminos se ha DECIDIDO y anotado**, que era lo que faltaba.
+2. **§2.3: el módulo del diagrama pasa de `HC-05`/`JDY-30` a `ESP32`.** El **pinout de `J17` p2/p3 NO
+   se ha tocado**: era y sigue siendo correcto. Lo que estaba mal era el módulo dibujado.
+3. **§2.3.bis nueva: la alimentación.** El ESP32 lleva **fuente propia desde 12 V** y no cuelga del
+   3,3 V de `J17`.
+4. **«Puesta a punto del módulo… el `AT+NAME`» marcada como NO aplicable a un ESP32**, con lo que la
+   sustituye y lo que falta.
+
+5. **§2.1: se corrige el «el `.kicad_pcb` está vacío»**, que era falso — el fichero pesa 2.158.421 B y
+   trae 185 huellas y 1.447 pistas. **La advertencia de medir con multímetro se mantiene íntegra**:
+   lo que se corrige es el motivo, no la precaución.
+
+**Lo que NO se ha tocado en esta revisión, y sigue como estaba:** el **apartado 1 congelado** (el
+cuadro de arquitectura, las tres razones y la tabla de prohibiciones), el pinout de `J17`, §2.2
+(`J16` vs `J17`), **§2.5 (`PA8`/`J10`, residuo pendiente)**, y los apartados 3, 4 y 5.
+
+> 🛑 **NADA DE ESTO HA PASADO PRUEBA DE BANCO, y este manual no es un permiso para instalar.** Hay
+> **dos bloqueos vivos delante del montaje**: `BLQ-1` —la serigrafía del ESP32, sin leer— y la línea
+> `A5` —la fuente propia, sin pedir—. Y **el firmware del puente SPP del ESP32 no existe todavía**
+> (MEDIDO el 31/08). El cableado de §2.3 describe **a dónde irán los hilos**, no una instalación
+> autorizada.
+
+> 🔒 **EL APARTADO 1 NO SE HA DEROGADO, Y ESTA REVISIÓN NO LO DEROGA.** Sigue congelado: **Bluetooth
+> Clásico SPP, no BLE, no Web Bluetooth**. Un ESP32 **clásico** haciendo de puente SPP **cabe dentro
+> de esa decisión sin reabrirla** —es la vía que el propio manual dejaba abierta—, y es justamente por
+> eso que se eligió esa fila y no otra.
 
 ---
 
@@ -48,6 +80,16 @@ qué, o se repetirá.
  │ • AUTONOMIA:     100% offline. Opera en montana sin internet ni 4G.         │
  └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+> 📌 **El cuadro de arriba se deja LITERAL, porque es el acta de la decisión congelada — pero una de
+> sus once líneas ya no describe el montaje.** La línea `MODULOS: HC-05 / JDY-30` se sustituye por
+> **`ESP32` clásico haciendo de puente SPP** (§1.9, decisión de obra del 28/08).
+>
+> **Las otras diez líneas no cambian, y ese es exactamente el argumento**: el enlace sigue siendo
+> Bluetooth Clásico SPP con el mismo UUID, el emparejado lo sigue haciendo Android en Ajustes, el
+> puente nativo `createRfcommSocketToServiceRecord` **no se toca**, y `NO BLE` sigue siendo `NO BLE`.
+> **Cambia quién lleva la radio, no qué radio es.** Por eso este apartado **no se reabre** — y por eso
+> mismo, si el módulo resultara ser BLE, **sí habría que reabrirlo** (`BLQ-1`, §1.9).
 
 ### Por qué SPP y no BLE — las tres razones, para que no se vuelva a preguntar
 
@@ -129,27 +171,87 @@ Un ESP32 con WiFi activo da **picos de ~500 mA**. La alimentación de la tarjeta
 > tarjeta y alimentación NO compartida.** Un `HC-05` (~40 mA) sí puede colgarse del riel de la placa
 > —por eso el diagrama del apartado 2 lo dibuja así—, y **ese diagrama no vale para un ESP32**.
 
-### ✅ Decisión de obra del 28/08: se sigue con el módulo SPP dedicado
+### 1.9 ✅ La decisión VIGENTE: el ESP32 clásico SUSTITUYE al módulo SPP dedicado
 
-**Se instala `HC-05` / `JDY-30`, no ESP32.** El motivo no es la preferencia: es que un módulo SPP
-dedicado **deja esta decisión congelada intacta** —el puente nativo Android, el emparejado en
-Ajustes y el flujo que el técnico ya domina siguen siendo los mismos— y su consumo cabe en la
-alimentación que la tarjeta ya tiene.
+> ### ~~✅ Decisión de obra del 28/08: se sigue con el módulo SPP dedicado~~
+> ### ~~**Se instala `HC-05` / `JDY-30`, no ESP32.**~~
+>
+> ⛔ **ANULADO. Era la decisión de la 1.ª revisión del 28/08, y ese mismo día se decidió lo
+> contrario.** Este manual se quedó publicando la versión vieja **once días**, mientras
+> `15_Lista_de_Compras_Hardware.md` ya publicaba la nueva desde el commit `2e6baf4`.
+>
+> **Su motivo era bueno y se conserva escrito**, porque es la mitad del argumento que sigue en pie:
+> un módulo SPP dedicado deja esta decisión congelada intacta y su consumo cabe en la alimentación
+> que la tarjeta ya tiene. **Lo que lo tumbó no fue el argumento: fue el almacén.**
+>
+> **No se borra**, porque una vía descartada que desaparece en silencio se vuelve a proponer, y la
+> segunda vez ya nadie recuerda por qué se descartó.
 
-El ESP32 queda documentado como **ALTERNATIVA, no como sustituto**, por si los `HC-05` no llegan a
-tiempo, y con las condiciones separadas porque **no cuestan lo mismo**:
+**Lo que manda hoy, y por qué este manual no era quien lo decidía:**
 
-| Camino | Qué exige | Estado de este apartado 1 |
-|---|---|---|
-| `HC-05` / `JDY-30` (SPP) | Nada nuevo. Es lo que este manual ya especifica | **Intacto** |
-| ESP32 **clásico** (`WROOM-32/-32D/-32E/-32U`) haciendo de puente SPP | Confirmar la referencia por serigrafía o `chip_id`, y **fuente propia de 12 V** | **Intacto**: sigue siendo Bluetooth Clásico SPP, que es lo que este apartado congela |
-| ESP32 **por WiFi** (`S3`, `C3`, `S2`, o cualquiera renunciando al SPP) | Rehacer el transporte de la app entero | 🛑 **Exige REABRIR ESTE APARTADO 1 POR ESCRITO**, antes de comprar y antes de escribir una línea |
+```
+15_Lista_de_Compras_Hardware.md:159  "Decision de obra del 28/08 - VIGENTE: el ESP32 SUSTITUYE al modulo SPP"
+15_Lista_de_Compras_Hardware.md:85   linea A1 ANULADA: los HC-05 "nunca llegaron, y ya no se piden"
+ESTADO.md:80                         "sustituyendo al modulo SPP dedicado"
+ESTADO.md:251                        A3: "ya no se compran HC-05 ni JDY-30: los sustituye el ESP32"
+```
 
-> **Esa última fila no es burocracia, y no se ablanda.** El valor de una decisión congelada está
+📖 **LEÍDO** en esos documentos, no medido: **los `HC-05` nunca llegaron a obra, ya no se piden, y el
+28/08 llegaron módulos `ESP32` en su lugar.** No se está eligiendo entre dos módulos disponibles: hay
+uno.
+
+#### La fila decidida — y se decide aquí, por escrito, porque faltaba
+
+La tabla de caminos del 28/08 se publicó **sin ninguna fila marcada como elegida**, que es como este
+manual acabó contradiciendo a la lista de compras sin que nada chirriara. **Se decide ahora:**
+
+| Camino | Qué exige | Estado de este apartado 1 | Decisión |
+|---|---|---|---|
+| ~~`HC-05` / `JDY-30` (SPP)~~ | ~~Nada nuevo. Es lo que este manual ya especifica~~ | ~~Intacto~~ | ⛔ **DESCARTADO 28/08.** No llegaron y ya no se piden (`15_…:85`) |
+| **ESP32 clásico** (`WROOM-32`/`-32D`/`-32E`/`-32U`) haciendo de **puente SPP** | Confirmar la referencia por serigrafía o `chip_id`, y **fuente propia de 12 V** | **Intacto**: sigue siendo Bluetooth Clásico SPP, que es lo que este apartado congela | ✅ **ELEGIDO.** 🛑 **Condicionado a `BLQ-1`** |
+| ESP32 **por WiFi / BLE** (`S3`, `C3`, `S2`, o cualquiera renunciando al SPP) | Rehacer el transporte de la app entero | 🛑 **Exige REABRIR ESTE APARTADO 1 POR ESCRITO**, antes de comprar y antes de escribir una línea | ⛔ **NO ELEGIDO.** Es la rama que hay que evitar, no un plan |
+
+> **Por qué la fila 2 y no otra, que es lo único que autoriza a no reabrir el apartado 1.** Esa vía
+> ya estaba abierta en la tabla original: **un ESP32 clásico haciendo de puente SPP deja el apartado 1
+> INTACTO**. Si la serigrafía dice `ESP32-WROOM-32`/`-32D`/`-32E`/`-32U`, **hay Bluetooth Clásico
+> BR/EDR, hay SPP, y `createRfcommSocketToServiceRecord` conecta sin tocar una línea de la app.**
+> Cambia el módulo; **no cambia el transporte**, que es lo que este apartado congela.
+>
+> **La última fila no es burocracia, y no se ablanda.** El valor de una decisión congelada está
 > justamente en que cambiarla cueste un documento: la vez anterior se cambió de transporte sin
-> escribirlo y el resultado fue una app que no conectaba con nada. Un ESP32 por WiFi no es «el mismo
-> módulo con otra radio»: cambia el emparejado, el descubrimiento, la autonomía sin internet y el
-> flujo del técnico. Si se toma ese camino, **se reabre aquí, con fecha y firma, antes**.
+> escribirlo y el resultado fue una app que no conectaba con nada. Un ESP32 por WiFi o BLE no es «el
+> mismo módulo con otra radio»: cambia el emparejado, el descubrimiento, la autonomía sin internet y
+> el flujo del técnico. Si se toma ese camino, **se reabre aquí, con fecha y firma, antes**.
+
+#### 🛑 `BLQ-1` — BLOQUEO VIVO: nadie ha leído la serigrafía. **No lo resuelve este manual.**
+
+> ## Hasta que alguien lea el blindaje del módulo, **NO SE SABE en cuál de las dos ramas estamos**, y las dos consecuencias son distintas.
+
+📖 **LEÍDO** en `ESTADO.md:23` (`BLQ-1`, dueño: **Responsable**) y `15_Lista_de_Compras_Hardware.md:86`
+(línea `A1′`, **🛑 BLOQUEADA**): de los módulos que llegaron a obra el 28/08, la **referencia exacta
+está sin confirmar** y la **cantidad sin anotar**.
+
+| si la serigrafía dice… | qué pasa con la app | qué pasa con este apartado 1 |
+|---|---|---|
+| `ESP32-WROOM-32` · `-32D` · `-32E` · `-32U` | ✅ **Nada. Conecta tal cual**, sin tocar el puente nativo | ✅ **Intacto.** No se reabre |
+| `ESP32-S3` · `ESP32-C3` | 🔴 **El socket RFCOMM no abre NUNCA.** Hay que **rehacer el transporte de la app entero** | 🛑 **Reapertura OBLIGATORIA, por escrito** |
+| `ESP32-S2` | 🔴 **No tiene radio Bluetooth.** No hay nada que emparejar en Ajustes de Android | 🛑 **Reapertura OBLIGATORIA, por escrito** |
+
+**Lo que cuesta no saberlo, y es la parte que no se ve:** si son `S3` o `C3`, el síntoma en campo es
+**indistinguible** del fallo que congeló este apartado —*«no abre el Bluetooth, no se conecta a ningún
+dispositivo»*—, y el tiempo de diagnóstico se gasta otra vez en el sitio equivocado. **Es la regla del
+instrumento aplicada a una etiqueta:** el rótulo del vendedor no distingue las tres familias, así que
+comprar o instalar leyendo el anuncio es elegir al azar entre tres filas de las que **dos no
+conectan**.
+
+**Cómo se levanta el bloqueo — treinta segundos, y es una medida, no una consulta al proveedor:**
+leer la **serigrafía del blindaje metálico**, o correr el `chip_id` de «Qué módulo cumple esta
+decisión: la etiqueta comercial NO lo dice», más arriba en este mismo apartado. **Y anotarlo**, en
+`ESTADO.md` y en la línea `A1′` del Manual 15. Mientras no esté anotado, **`BLQ-1` sigue vivo y este
+manual sigue sin poder afirmar que el montaje funcione**.
+
+> 🔴 **Y `BLQ-1` bloquea también la compra:** no se compra ni un ESP32 más hasta leer qué referencia
+> llegó (`15_…:86`). Un lote entero de `S3` es un lote entero de módulos que no sirven.
 
 ### El flujo de campo, que es el de Baliza
 
@@ -166,6 +268,31 @@ El nombre visible del módulo se fija con `AT+NAME`, así que **la lista de Andr
 cada equipo antes de conectar**. El técnico lee; no adivina.
 
 ### 🔧 Puesta a punto del módulo ANTES de instalarlo — el `AT+NAME` no es opcional
+
+> ## ⚠️ ESTE PROCEDIMIENTO ES DE `HC-05`, Y CON UN ESP32 **NO SE APLICA**. La NECESIDAD sí sigue en pie.
+>
+> **Lo que NO cambia:** dos módulos sin matricular en el mismo corredor salen en la lista de Android
+> como dos filas iguales, y el técnico **no sabe a qué poste se ha conectado**. Eso es igual de grave
+> con un ESP32 que con un `HC-05`, y sigue siendo obligatorio.
+>
+> **Lo que SÍ cambia:** un ESP32 **no tiene modo AT ni `AT+NAME`** — el nombre lo fija **su propio
+> firmware**, en la llamada que abre el `SerialBT` del lado ESP32 (`SerialBT.begin("SEM-7A3F-M")` en
+> el API clásico de Arduino-ESP32). No hay terminal a 38400 bps que abrir: **hay un firmware que
+> escribir y grabar**.
+>
+> 🔴 **Y ese firmware NO EXISTE. MEDIDO el 31/08:** el único fuente de ESP32 del repositorio es
+> `01_Firmware/Repetidor/src/main.cpp` (un solo fichero, 8.348 B), **que es el del repetidor de radio,
+> no un puente Bluetooth**. Mientras no exista, **no hay nada que rotular y no hay módulo que
+> instalar**: no es un paso que se salta, es un paso que todavía no tiene con qué hacerse.
+>
+> 🟡 **PENDIENTE, con dueño: escribir el firmware del puente SPP del ESP32, y en él la matrícula.**
+> Va **detrás del watchdog** del ESP32 —hoy no tiene ninguno, y hay precedente escrito de uno clavado
+> tumbando el enlace el 31/07— según el orden de fases de `ESTADO.md:107`. **Lo decide y lo ordena el
+> responsable**, no este manual.
+>
+> **Lo que sigue se conserva íntegro** porque describe el `HC-05` que puede haber montado ya en algún
+> equipo, y porque **el `9600 8N1` del modo datos lo impone el firmware del STM32 y vale para los dos
+> módulos**.
 
 > **Ese «la lista ya dice quién es cada equipo» no ocurre solo: hay que provocarlo en el banco, con
 > el módulo en la mano y antes de que suba al poste.**
@@ -241,11 +368,31 @@ Las dos mitades de este apartado **no tienen la misma solidez**, y se separan a 
 | `J17` p2 = `PB7` (`U1` p43) · `J17` p3 = `PB6` (`U1` p42) · p6/p8 = 3,3 V · p7/p9 = `GND` | 📐 **MEDIDO EN EL ESQUEMÁTICO.** Trazado sobre `Controladora_Semaforos.kicad_sch` (§7 de `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`) |
 | Que en la tarjeta física esas vías vayan a donde dice el esquemático | 🔴 **NO VERIFICADO EN LA PLACA.** Nadie lo ha medido con multímetro |
 
-> 🔴 **Esa última fila es una advertencia, no un formalismo.** El `.kicad_pcb` de este proyecto está
-> vacío: entre el esquemático y la tarjeta que hay sobre la mesa **no existe ningún artefacto que
-> las ate**, y el ruteo pudo hacerse a mano. **Antes de enchufar el módulo, compruebe con el
-> multímetro las cuatro vías** (continuidad de p2 a la pata 43 de `U1`, de p3 a la 42, y tensión en
-> p6 y p7). Son cinco minutos y son los que separan una hipótesis muy buena de un hecho.
+> 🔴 **Esa última fila es una advertencia, no un formalismo. Antes de enchufar el módulo, compruebe
+> con el multímetro las vías que vaya a usar** (continuidad de p2 a la pata 43 de `U1`, de p3 a la 42,
+> y masa en p7). Son cinco minutos y son los que separan una hipótesis muy buena de un hecho.
+>
+> ⚠️ **CORRECCIÓN DEL 31/08 al motivo que esta advertencia daba.** Esta nota decía que *«el
+> `.kicad_pcb` de este proyecto está vacío»* y que *«no existe ningún artefacto que ate el esquemático
+> con la tarjeta»*. **Las dos frases son falsas, y se corrigen midiendo:**
+>
+> ```
+>   wc -c  Controladora_Semaforos.kicad_pcb           ->  2.158.421 B
+>   grep -oE '\(footprint\b'  ... | wc -l             ->      185 huellas
+>   grep -oE '\(segment\b'    ... | wc -l             ->    1.447 pistas
+>   grep -oE '\(via\b'        ... | wc -l             ->       89 vias
+>   grep -c  'J17'            ...                     ->  J17 esta en el cobre, con sus pads
+> ```
+>
+> **Por qué se creyó vacío:** KiCad separa los tokens con **tabulador y salto de línea**, así que un
+> `grep -c '(segment '` —con espacio detrás— devuelve **0**, y un cero se lee como *«no hay»*. Es la
+> **regla del instrumento** aplicada a un formato: `grep` estaba, respondía, y aun así no sabía
+> encontrar (`CLAUDE.md` §4).
+>
+> **Lo que NO cambia con la corrección, y es lo importante:** sigue sin haber **una sola medida con
+> punta sobre la tarjeta física**. Que el `.kicad_pcb` esté ruteado sube el nivel de prueba de
+> *«hipótesis»* a *«hay un diseño de cobre que lo dice»* — **no lo sube a hecho**. La comprobación con
+> multímetro se mantiene íntegra.
 
 ### 2.2 ⚠️ ANTES DE ENCHUFAR NADA: `J16` y `J17` SON EL MISMO CONECTOR A LA VISTA
 
@@ -276,37 +423,125 @@ el `VCC` si alguien cuenta desde el borde equivocado.
 > del conector desplaza el mapa entero. Se cuenta **desde la posición 1 marcada**, y se confirma la
 > orientación **leyendo 3,3 V en la 6 y masa en la 7** antes de insertar el módulo.
 
-### 2.3 Diagrama de conexión — VIGENTE
+### 2.3 Diagrama de conexión — VIGENTE (ESP32 clásico, 31/08)
+
+> ⚠️ **Lo que cambió el 31/08 en este apartado es EL MÓDULO, no el pinout.** `J17` p2 = `PB7` y
+> `J17` p3 = `PB6` **siguen siendo correctos y no se han tocado**: son los que midió N-76 sobre el
+> esquemático y el fuente. Lo que estaba mal era que el dibujo mandaba enchufar un `HC-05`, y **ese
+> módulo ya no es el que se instala** (§1.9).
+>
+> 🛑 **Y sigue condicionado a `BLQ-1`:** hasta leer la serigrafía del blindaje no se sabe si el ESP32
+> que hay en obra habla SPP. **Este diagrama no autoriza a instalar nada.**
 
 ```text
  ┌─────────────────────────────────────────────────────────────────────────────┐
- │      CONEXION DE TELEMETRIA BLUETOOTH  --  CONECTOR J17  (VIGENTE 28/08)    │
+ │   CONEXION DE TELEMETRIA BLUETOOTH  --  CONECTOR J17   (VIGENTE 31/08)      │
  ├─────────────────────────────────────────────────────────────────────────────┤
  │                                                                             │
- │   MODULO BLUETOOTH (HC-05 / JDY-30)        TARJETA -- CONECTOR J17          │
+ │   ESP32 CLASICO (WROOM-32/-32D/-32E/-32U)   TARJETA -- CONECTOR J17         │
  │   ┌────────────────────────────┐        ┌──────────────────────────────┐    │
- │   │  [ TXD ]  transmite        ├────────┤► J17 p2 = PB7  (U1 pin 43)   │    │
+ │   │  GPIO17 (TX2)  transmite   ├────────┤► J17 p2 = PB7  (U1 pin 43)   │    │
  │   │                            │        │           USART1 RX del STM32│    │
- │   │  [ RXD ]  recibe           ├────────┤► J17 p3 = PB6  (U1 pin 42)   │    │
+ │   │  GPIO16 (RX2)  recibe      ├────────┤► J17 p3 = PB6  (U1 pin 42)   │    │
  │   │                            │        │           USART1 TX del STM32│    │
- │   │  [ VCC ]  3,3 V            ├────────┤► J17 p6 = 3,3 V   (o p8)     │    │
- │   │  [ GND ]  masa             ├────────┤► J17 p7 = GND     (o p9)     │    │
+ │   │  GND                       ├────────┤► J17 p7 = GND     (o p9)     │    │
  │   └────────────────────────────┘        └──────────────────────────────┘    │
+ │        ▲                                                                    │
+ │        │  ALIMENTACION: NO SALE DE J17.  Fuente propia desde 12 V.          │
+ │        │  J17 p6/p8 (3,3 V) SE DEJAN SIN CONECTAR.  Ver 2.3.bis.            │
+ │                                                                             │
+ │   SON TRES HILOS, NO CUATRO:  RX, TX y MASA COMUN.                          │
  │                                                                             │
  │   LAS LINEAS DE DATOS VAN CRUZADAS:                                         │
- │      TXD del modulo  ->  RX del micro (p2).                                 │
- │      RXD del modulo  ->  TX del micro (p3).                                 │
- │   Conectarlas en paralelo -TXD contra TX- no rompe nada, pero no llega      │
+ │      TX del ESP32 (GPIO17)  ->  RX del micro (p2).                          │
+ │      RX del ESP32 (GPIO16)  <-  TX del micro (p3).                          │
+ │   Conectarlas en paralelo -TX contra TX- no rompe nada, pero no llega       │
  │   ni una trama, y el sintoma es identico al de un modulo muerto.            │
+ │                                                                             │
+ │   LA MASA COMUN ES OBLIGATORIA: con dos fuentes distintas y sin masa        │
+ │   comun, las dos puntas no comparten referencia y el serie no cuadra.       │
  └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-| hilo del módulo | va a | pin del `U1` | qué es |
-|---|---|---|---|
-| **`TXD`** | **`J17` p2** | `PB7` (p43) | `USART1` **RX** del STM32 — el micro **escucha** aquí |
-| **`RXD`** | **`J17` p3** | `PB6` (p42) | `USART1` **TX** del STM32 — el micro **habla** aquí |
-| `VCC` | `J17` p6 (o p8) | — | 3,3 V |
-| `GND` | `J17` p7 (o p9) | — | masa común |
+| hilo del ESP32 | dirección | va a | pin del `U1` | qué es |
+|---|---|---|---|---|
+| **`GPIO17`** (`TX2`) | ---> | **`J17` p2** | `PB7` (p43) | `USART1` **RX** del STM32 — el micro **escucha** aquí |
+| **`GPIO16`** (`RX2`) | <--- | **`J17` p3** | `PB6` (p42) | `USART1` **TX** del STM32 — el micro **habla** aquí |
+| `GND` | --- | `J17` p7 (o p9) | — | **masa común, obligatoria** |
+| *(alimentación)* | — | **NO va a `J17`** | — | 🔴 **Fuente propia desde 12 V.** `J17` p6/p8 **se dejan libres** — ver 2.3.bis |
+
+**`9600 8N1`.** Es la del `USART1` del firmware y la de todas las tramas del apartado 4: **no se
+elige, la impone el firmware.**
+
+📖 **Nivel de prueba de la columna del ESP32:** **LEÍDO** en
+`05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md` §1.4 y `ESTADO.md:80` — es la asignación
+decidida, **sin firmware que la ejerza todavía** y sin nadie que la haya cableado. `GPIO16`/`GPIO17`
+son la `UART2` por defecto del ESP32 clásico; **si el firmware del puente acaba usando otros pines, lo
+que manda es el firmware y esta tabla se corrige entonces.** La columna del STM32 sí está **MEDIDA EN
+EL FUENTE** (§2.1).
+
+> ⚠️ **Duda abierta que este manual NO cierra y que no es de aquí:** la etiqueta de red del **pin 3**
+> de `J17` está en disputa —el esquemático la llama `RS(A0)` y el firmware `LCD_PSB`—, y los dos
+> nombres no pueden ser ciertos a la vez (doc 17 §1.4, `MAPEO_TARJETA_KICAD.md` §6.bis). **No cambia
+> nada del cableado de arriba**, pero se cierra siguiendo el hilo del pin 3 hasta la pata rotulada, no
+> leyendo más código. **Dueño: responsable.**
+
+#### 2.3.bis 🔌 La alimentación del ESP32 — **no cuelga de `J17`, y esto no es un detalle de montaje**
+
+> ## 🔴 EL ESP32 LLEVA FUENTE PROPIA DESDE LOS 12 V. NO SE ALIMENTA DEL 3,3 V DE `J17` p6/p8.
+
+**El motivo no es la corriente: es de quién es esa corriente.** Ese riel de 3,3 V es **el mismo que
+alimenta al STM32 que gobierna el semáforo**, y un accesorio de diagnóstico **no puede tumbar al que
+manda**.
+
+Un ESP32 con radio activa da **picos de ~500 mA**, y el camino `12 V → LM7805 → LM1117-3.3` de la
+tarjeta no los da:
+
+* **El `LM7805` se quema:** a 500 mA disipa $(12-5)\times 0{,}5 = 3{,}5\ \text{W}$, que sin disipador
+  no se evacúan.
+* **Y antes de quemarse se lleva por delante al micro:** si el riel de 3,3 V se hunde, **se reinicia
+  el STM32 que está gobernando el cruce**. El síntoma en campo **no se parece a un fallo de
+  telemetría**: se parece a un cruce que se reinicia solo, y ahí ya no se está diagnosticando un
+  módulo de diagnóstico.
+
+| | `HC-05` / `JDY-30` (~40 mA) | **ESP32 (~500 mA de pico)** |
+|---|---|---|
+| ¿puede colgarse de `J17` p6/p8? | ✅ sí — por eso el diagrama viejo lo dibujaba así | 🔴 **NO. Nunca.** |
+| alimentación | del riel de la tarjeta | **fuente propia DC-DC 12 V → 5 V, 1 A** |
+| masa | la del conector | **masa común con la tarjeta, obligatoria** |
+
+> 🛑 **PENDIENTE Y BLOQUEANTE DE MONTAJE: esa fuente NO SE HA PEDIDO.** Es la línea **`A5`** de
+> `05_Funcional/15_Lista_de_Compras_Hardware.md:90`, marcada **🔴 NO cubierta** — *«sin ella el `ESP32`
+> reinicia el STM32 del semáforo»*. **Sin `A5` no se monta el ESP32**, ni «provisionalmente desde el
+> 3,3 V para probar»: esa prueba provisional se hace sobre el equipo que controla el tráfico.
+> **Dueño: responsable** (`ESTADO.md:251`, línea `A3`).
+
+#### ~~Diagrama anterior (`HC-05` / `JDY-30`)~~ — conservado, NO es el montaje vigente
+
+**No se borra**, porque las revisiones anteriores de este manual lo mandaban y **puede haber equipos
+montados así**. Un `HC-05` cableado a `J17` con este dibujo **funcionaría eléctricamente** —el pinout
+era y es correcto—; lo que ya no es cierto es que sea el módulo que se instala, porque **esos módulos
+nunca llegaron y ya no se piden** (`15_…:85`).
+
+```text
+   ##########  MONTAJE ANTERIOR -- YA NO ES EL MODULO QUE SE INSTALA  ##########
+
+   MODULO BLUETOOTH (HC-05 / JDY-30)        TARJETA -- CONECTOR J17
+   ┌────────────────────────────┐        ┌──────────────────────────────┐
+   │  [ TXD ]  transmite        ├────────┤► J17 p2 = PB7  (U1 pin 43)   │
+   │  [ RXD ]  recibe           ├────────┤► J17 p3 = PB6  (U1 pin 42)   │
+   │  [ VCC ]  3,3 V            ├────────┤► J17 p6 = 3,3 V   (o p8)     │
+   │  [ GND ]  masa             ├────────┤► J17 p7 = GND     (o p9)     │
+   └────────────────────────────┘        └──────────────────────────────┘
+
+   El pinout de J17 NO cambia. Lo que cambia es el modulo, y con el la
+   alimentacion: el ESP32 NO usa p6/p8.  (Ver 2.3.bis.)
+```
+
+> ⚠️ **Si usted ya tiene un `HC-05` montado en `J17` y funcionando, no lo desconecte por este
+> manual.** Está cableado al pinout correcto y el firmware del STM32 le habla igual. Lo que este
+> apartado dice es **qué se instala de aquí en adelante**, no que lo montado esté mal. **Que un cruce
+> se quede sin consola por seguir un cambio de documento es peor que la inconsistencia.**
 
 **Por qué estos dos pines y no otros:** son los que dejó libres la **pantalla LCD, que se retira**
 (ver `1_Manual_Usuario.md` y `OPTIMIZACIONES.md`, ambos del 28/08). El equipo va montado en alto y
@@ -315,7 +550,11 @@ En `J17`, `PB7` era el `RST` del display y `PB6` su nivel estático de modo seri
 dos transportaba datos**, y por eso el puerto serie sale gratis sin tocar los tres hilos que sí
 dibujan (`PB3`, `PB4`, `PB5`).
 
-> ⚠️ **PENDIENTE DE CONFIRMAR — la tensión de `VCC` del módulo que se instale.** `J17` entrega
+> ✅ **RESUELTO PARA EL CAMINO VIGENTE, y solo para ese: con el ESP32 esta pregunta desaparece,
+> porque el módulo NO se alimenta de `J17`** (2.3.bis, fuente propia de 12 V). Lo de abajo **sigue
+> valiendo íntegro para un `HC-05` ya montado o para quien vuelva a esa vía**, y por eso no se borra.
+
+> ⚠️ **PENDIENTE DE CONFIRMAR *(solo en el camino `HC-05`)* — la tensión de `VCC` del módulo que se instale.** `J17` entrega
 > **3,3 V, y solo 3,3 V**: en esta tarjeta **los 5 V son un raíl interno que no sale a ningún
 > conector de señal**. Muchas placas de evaluación de `HC-05` (tipo `ZS-040`) llevan su propio
 > regulador y piden **3,6–6 V** en el pin rotulado `VCC`, aunque casi todas exponen además una
@@ -325,8 +564,8 @@ dibujan (`PB3`, `PB4`, `PB5`).
 > regulador, que es soldadura en placa. Esto **no está resuelto en este manual**.
 
 > ⚡ **Alimentar desde el riel de la tarjeta vale para un `HC-05`/`JDY-30` (~40 mA) y NO vale para un
-> ESP32** (picos de ~500 mA). Ver el apartado 1, «Si se va con un ESP32, el consumo no es un detalle
-> de montaje». **El diagrama de arriba no vale para un ESP32.**
+> ESP32** (picos de ~500 mA). Ver 2.3.bis y el apartado 1, «Si se va con un ESP32, el consumo no es un
+> detalle de montaje». **El diagrama histórico de `HC-05` no vale para un ESP32.**
 
 ### 2.4 `PA9`/`PA10`: alternativa histórica, NO el montaje vigente
 
