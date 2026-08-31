@@ -174,9 +174,23 @@ def _cifra(res, clave, patron):
         m = re.search(r"(\d+)\s+PASS\s*\|\s*(\d+)\s+FALLAS?", d)
         return "%d/%d" % (int(m.group(1)), int(m.group(1)) + int(m.group(2))) if m else None
     if "TOTAL_PACKS" in patron:
-        # "packs: 25 PASS, 2 FALLA, 0 ABORTADO" -> 27. La suma, no los que pasaron.
+        # "packs: 25 PASS, 2 FALLA, 0 ABORTADO" -> "27 packs". La suma, no los que
+        # pasaron.
+        #
+        # Y VA CON LA PALABRA PEGADA, NO SUELTO. Esto no es cosmetica: la comparacion
+        # de mas abajo es `valor in readme`, una subcadena sobre el documento ENTERO,
+        # y un numero de dos digitos casa con cualquier cosa. Medido el 31/08: "38"
+        # aparece CINCO veces en README.md y dos de ellas estan DENTRO del hash
+        # `50a5380` de la cabecera, asi que el README podia publicar "los 40 packs"
+        # con el acta midiendo 38 y esta comprobacion seguia en verde -51/51, exit 0-.
+        # Se vio: inyectado el defecto daba PASS, y con "N packs" da FALLA.
+        #
+        # Es el mismo defecto que ya se curo para las tres cifras de la app -donde un
+        # "61" suelto casaba con el "y=61" de README.md:335- sobreviviendo en la fila
+        # de al lado. La cura es la misma que usa el apartado 4 para las rutas:
+        # anclar a la FRASE, no al numero.
         cuentas = re.findall(r"(\d+)\s+(?:PASS|FALLA|ABORTADO)", d)
-        return str(sum(int(c) for c in cuentas)) if cuentas else None
+        return "%d packs" % sum(int(c) for c in cuentas) if cuentas else None
     m = re.search(patron, d)
     return m.group(1) if m else None
 
@@ -290,6 +304,49 @@ def correr(b, fw):
                 "%s no arrastra ningun otro recuento de rutas" % doc,
                 "%s dice ADEMAS %s rutas parseadas cuando el acta mide %s"
                 % (doc, "/".join(otras), rutas))
+
+    # ---- 4.bis. El recuento de packs, ANCLADO A SU LINEA ----
+    #
+    # Tres intentos, y los dos primeros fallaron. Queda escrito porque la forma de
+    # fallar es la reutilizable.
+    #
+    # (1) TOTAL_PACKS se comparaba SUELTO -"38"- contra el documento entero. "38"
+    #     aparece cinco veces en README.md y dos estan DENTRO del hash `50a5380` de
+    #     la cabecera: el README podia publicar "los 40 packs" con el acta midiendo
+    #     38 y esto seguia en verde. Inyectado, daba PASS.
+    #
+    # (2) Se anclo a la frase -"38 packs"- y SEGUIA en verde: el documento nombra la
+    #     cifra en dos sitios -la tabla y el titulo de la seccion del banco- y
+    #     falsificar uno deja al otro cumpliendo la subcadena. Un `in` sobre el
+    #     documento entero no distingue CUAL ocurrencia es la buena.
+    #
+    # (3) Y prohibir cualquier otro "N packs" tampoco vale: ESTADO.md cuenta que el
+    #     banco "paso de 20 packs a 27", que es historia legitima. Un instrumento que
+    #     obligue a reescribir el pasado empuja a maquillarlo, que es peor que la
+    #     cifra que venia a cazar -lo dice el apartado 4 sobre las rutas, y aqui se
+    #     repitio sin leerlo-.
+    #
+    # Lo que si distingue: exigir que el recuento viva en LA MISMA LINEA que la cifra
+    # de comprobaciones del banco. Esa linea es la afirmacion viva; las demas son
+    # narracion.
+    packs = _cifra(res, "banco por packs", r"packs: (?P<TOTAL_PACKS>.*)")
+    total = _cifra(res, "banco por packs", r"\d+/(\d+) comprobaciones")
+    if packs is None or total is None:
+        b.reportar("el acta no trae el par comprobaciones/packs",
+                   ["sin los dos no se puede anclar el recuento a su linea"])
+    else:
+        n = packs.split()[0]
+        for doc, txt in (("README.md", readme), ("ESTADO.md", estado)):
+            vivas = [ln for ln in txt.splitlines() if total in ln]
+            malas = sorted({m for ln in vivas
+                            for m in re.findall(r"(\d+)\s+packs", ln)} - {n})
+            b.verificar(
+                bool(vivas) and not malas,
+                "%s publica el recuento de packs (%s) en la misma linea que %s"
+                % (doc, n, total),
+                "%s no publica %s en ninguna linea" % (doc, total) if not vivas
+                else "%s publica %s junto a %s packs cuando el acta mide %s"
+                % (doc, total, "/".join(malas), n))
 
     # ---- 5. La tabla anuncia TODAS las comprobaciones, no solo sus cifras ----
     #
