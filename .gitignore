@@ -25,6 +25,11 @@ __pycache__/
 # despues y sus build/ se colaron al indice -validar_ciclo.exe llego a versionarse-.
 # Un patron por arnes garantiza que el siguiente arnes repita el fallo.
 01_Firmware/Validacion_*/build/
+01_Firmware/Simulaciones/puente_esp32/build/
+# 31/08: y volvio a pasar, con el arnes del puente. 26 ficheros, 408 KB de .exe y .o
+# comiteados por hacer `git add` del directorio entero en vez de los fuentes.
+# El aviso de arriba estaba escrito y no se leyo: por eso la regla es anadir
+# RUTAS EXPLICITAS, nunca un directorio que contiene artefactos.
 .cache/
 
 # --- Configuracion local del editor ---------------------------------------
