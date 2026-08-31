@@ -1,555 +1,761 @@
 # 📋 PROTOCOLO DE AUDITORÍA FUNCIONAL Y ACTA DE CERTIFICACIÓN EN CAMPO
 
-**Versión del protocolo:** V8.7 · **Fecha de emisión:** 1 de Agosto de 2026
+**Revisión:** 31 de Agosto de 2026 · **Rama:** `main-nuevo`
 **Documento para remisión al Ingeniero Funcional / Auditor de Tránsito**
 **Ubicación:** `05_Funcional/3_Protocolo_Pruebas_Rigurosas.md`
-**Entorno Auditable:** Ecosistema Semafórico Móvil (Maestro STM32, Esclavo STM32, Repetidor ESP32)
-**Normativa Aplicable:** Resolución 2024 del Ministerio de Transporte de Colombia
+**Entorno Auditable:** Ecosistema Semafórico Móvil (Maestro STM32, Esclavo STM32)
 
-## 📌 QUÉ AÑADE ESTA REVISIÓN DEL PROTOCOLO
-
-Las Secciones 1 a 6 **no cambiaron de contenido** — siguen certificando lo mismo que la V8.0. Lo
-nuevo son cuatro bloques que la versión anterior no cubría en absoluto:
-
-| Sección | Qué certifica | Por qué es nueva |
-|---|---|---|
-| **5.6** *(modificada)* | El menú ahora tiene **dos niveles** | La lista plana de 4 opciones ya no existe |
-| **7** | **AJUSTAR HORA** y **sincronización horaria por radio** | El equipo no tenía reloj |
-| **8** | **Secuencias del mando de 4 relés** | No existían |
-| **9** | **MODO DEGRADADO** | No existía |
-| **10** | Interfaz propia del **Esclavo** | El Esclavo no tenía pantalla |
-
-> **Las Secciones 7 a 10 solo aplican si el firmware cargado es V8.6 o posterior.** Si se está
-> certificando la V8.4 que corre hoy en campo, **márquelas como NO APLICA** y no las cuente en el
-> total: esas funciones no existen en ese binario.
+> **Esta revisión sustituye a la V8.7 del 1 de Agosto.** La anterior seguía dando por navegable un
+> menú que ya no se puede abrir y por legible una pantalla que ya no conduce sus pines. Cada una de
+> sus pruebas se ha revisado una por una y marcada; **ninguna se ha borrado en silencio.**
 
 ---
 
-## 🆔 IDENTIFICACIÓN DEL EQUIPO BAJO PRUEBA
+## 🔴 LO PRIMERO: POR QUÉ NO PUEDE USARSE LA REVISIÓN ANTERIOR
 
-> Diligenciar **antes** de empezar. Sin estos datos el acta no es trazable: rondas anteriores se
-> ejecutaron con firmware y configuración de radio distintos, y sus resultados no son comparables.
+Tres cosas cambiaron en el equipo y las tres invalidan procedimiento escrito:
 
-```text
-Fecha y hora de inicio de pruebas: ______________________________________
-Versión de firmware MAESTRO: __________  Commit: __________  Fecha binario: ________
-Versión de firmware ESCLAVO: __________  Commit: __________  Fecha binario: ________
-   -> ¿Son la MISMA version en ambas puntas?   [ ] SI   [ ] NO  <- si es NO, DETENER
-Nº de serie Maestro: ______________  Nº de serie Esclavo: ______________
-Nº de serie Repetidor ESP32: ______________
-Air Data Rate configurado en las radios: __________ kbps
-Modo de enlace probado:  [ ] Directo (2 radios)   [ ] Repetidor (4 radios)
-Receptor de mando de reles instalado:  Maestro [ ] SI [ ] NO   Esclavo [ ] SI [ ] NO
-Pila CR2032 instalada (R5 retirado):   Maestro [ ] SI [ ] NO   Esclavo [ ] SI [ ] NO
-Auditor responsable: ____________________________________________________
-```
+| Qué cambió | Dónde está medido | Consecuencia para este documento |
+|---|---|---|
+| **`botonAceptar()` y `botonCancelar()` devuelven `false` siempre.** Los pulsadores 3 y 4 dejaron de ser pulsadores: sus pines (`PB14`, `PB15` = `J16` p10/p12) pasan a ser entradas de cámara | `Maestro/src/botones.cpp:280-281` · `Esclavo/src/botones.cpp:294-295` — **MEDIDO** | **No se puede aceptar ni cancelar nada.** Todo paso que diga *«pulse Botón 3»*, *«confirme»*, *«entre en CONFIGURACION»* o *«recorra el menú»* **no se puede ejecutar** |
+| **La pantalla no se retira, pero deja de conducir sus pines.** `PB3`/`PB4`/`PB5` quedan en alta impedancia porque comparten el conector `J17` con el ESP32 | `Maestro/src/lcd.cpp:74-75` · `Esclavo/src/lcd.cpp:92-93` (los cuatro pines a `U8X8_PIN_NONE`); el porqué, en el comentario de `lcd.cpp:18-73` — **MEDIDO** | **No hay imagen.** El framebuffer se sigue componiendo y no se vuelca al cable. Todo paso que diga *«la pantalla muestra»* o *«anote lo que muestra»* **no se puede ejecutar** |
+| **El mando de relés SE CONSERVA**, en los canales `A` (`PB9` = `J16` p5) y `B` (`PB13` = `J16` p8). Las tres secuencias siguen en el firmware | `Maestro/src/mando.cpp:202-235` · `Esclavo/src/mando.cpp:218-250` — **MEDIDO**. Ventanas: `VENTANA_TRIPLE_MS = 12000` (`mando.cpp:38` Maestro, `:42` Esclavo) y `VENTANA_CUADRUPLE_MS = 18000` (`:39` / `:43`) | Las secuencias se pueden **ejercer**, pero **el receptor de radio del mando nunca se compró**: hoy sólo se pueden inyectar los pulsos a mano (§0.3) |
 
-> ⚠️ **Si las dos tarjetas no llevan la misma versión de firmware, deténgase aquí.** El cálculo de la
-> fase del Modo Degradado tiene que dar **exactamente el mismo resultado** en las dos puntas. Dos
-> versiones distintas pueden calcular fases distintas **sin ningún aviso en pantalla**: cada unidad
-> mostraría que todo va bien mientras las luces se solapan.
+> ⚠️ **Y una consecuencia que no es evidente y hay que decir en voz alta.** Con `botonAceptar()`
+> siempre `false`, `menu_estaAbierto()` no puede ser cierto nunca, así que **el mando del Esclavo ya
+> no está inhibido en ningún caso** (`Esclavo/src/botones.cpp:291-293`, **MEDIDO**). La regla
+> *«con el menú abierto el mando se ignora»* no está rota: **se quedó sin sujeto**.
+
+---
+
+## 📌 CÓMO SE MARCÓ CADA PRUEBA — la parte que decide si este documento sirve
+
+Una prueba que no se puede ejecutar y **sigue teniendo casilla de firma es peor que una que falta**:
+la que falta no miente, y ésa sí. Por eso ninguna se ha borrado, y **las que no se pueden ejecutar
+hoy no llevan casilla**.
+
+| Marca | Qué significa | Lleva casilla |
+|---|---|---|
+| ♻️ **SE REESCRIBE** | La propiedad sigue viva y **sólo cambia por dónde entra el operario** — del menú al comando o al puente de `J16` | **Sí** |
+| ⏸️ **SE APLAZA** | Necesita algo que **no existe todavía**. Va escrito qué falta | **No** |
+| 🚫 **SE RETIRA** | Medía algo que **ya no existe** | **No** |
+
+**El reparto de las 82 pruebas numeradas de la revisión anterior:**
+
+| | pruebas | dónde están |
+|---|---|---|
+| ♻️ **SE REESCRIBE** | **49** | §1 (3) · §2 (5) · §3 (5) · §4 (2) · §5 (6) · §7 (6) · §8 (5) · §9 (12) · §11 (2) · §12 (3) |
+| ⏸️ **SE APLAZA** | **12** | §6 (6) · §9 (2) · §11 (1) · §12 (3) |
+| 🚫 **SE RETIRA** | **21** | §1 (1) · §4 (2) · §5 (2) · §7 (5) · §8 (3) · §10 (5) · §11 (1) · §13 (2) |
+| ➕ **NUEVAS** | **4** | 8.9 · 9.15 · 9.16 · 12.7 |
+| | **86** | |
+
+> **Sobre el número: son 82 identificadores, no 80.** El resumen de la revisión anterior sumaba `80`
+> porque `6.0` y `6.0-bis` no llevaban línea `CUMPLE` aunque sí llevaban casillas de respuesta.
+> Contados por identificador numerado son **82**. Se dice aquí porque un total que no cuadra con lo
+> que hay debajo se arrastra de revisión en revisión.
+>
+> ⚠️ **Y ese `49` de «se reescribe» NO es el `49` de la auditoría del 28/08.** Aquélla contó
+> **49 pruebas que dejan de ser ejecutables**; aquí las no ejecutables son **33** (12 aplazadas +
+> 21 retiradas). La coincidencia del número es casual y no debe leerse como confirmación. La
+> diferencia se explica sola: la decisión del **31/08 de conservar el mando en `A` y `B`** rescató
+> la Sección 8 y casi toda la 9, que aquella auditoría daba por perdidas.
 
 ---
 
 ## 🚨 PASO 0 — OBLIGATORIO ANTES DE CUALQUIER PRUEBA
 
-- [ ] **0.1 Reconfigurar las radios a `2.4 kbps` de Air Data Rate**, siguiendo `4_Manual_Configuracion_Radios.md`.
-  - Aplica a **las 4 radios** (Maestro, Esclavo, Repetidor-Entrada B1, Repetidor-Salida B2).
-  - Todas deben quedar con **el mismo** valor, o no enlazarán entre sí.
-  - **Si se omite, las Secciones 3, 4, 5 y 6 fallarán** reproduciendo el fallo de comunicación al paso
-    de ciclo ya reportado. No es un ajuste opcional ni cosmético.
-- [ ] **0.2 Cargar el firmware de esta entrega** en las tres tarjetas (Maestro, Esclavo, Repetidor).
-- [ ] **0.3 Verificar canales:** Directo → ambas en canal `0`. Repetidor → Maestro y B1 en canal `0`; B2 y Esclavo en canal `10`.
-- [ ] **0.4 Confirmar que las DOS tarjetas llevan la MISMA versión de firmware.** Anotarla en la
-  identificación de arriba. Si difieren, **no continúe**: el cálculo de la fase del Modo Degradado
-  tiene que dar exactamente el mismo resultado en las dos puntas, y dos versiones distintas pueden
-  calcular fases distintas **sin ningún aviso en pantalla**.
-- [ ] **0.5 Verificar que la pila `CR2032` está instalada y `R5` retirado** en ambas tarjetas *(solo si
-  va a ejecutar las Secciones 7 a 10)*. Con `R5` puesto, la pila queda en paralelo con los 3,3 V:
-  **una pila no recargable en esa situación se calienta, se hincha y puede reventar.** Ver
-  `2_Manual_Hardware_y_Pruebas.md §5`.
+### 0.1 · El cableado y las medidas de la tarjeta van ANTES, y no se repiten aquí
 
-> ⚠️ Las pruebas de las rondas del 30 y 31 de julio se ejecutaron con radios a `0.3 kbps` y firmware
-> anterior a esta corrección. **Sus resultados no son comparables con esta ronda.**
+**Todo lo que es conectar, medir con multímetro y cargar el firmware está en
+[`Guia_Cableado_y_Pruebas_Banco.html`](Guia_Cableado_y_Pruebas_Banco.html)**, en formato
+`HAZ / COMPRUEBA / TIENES QUE VER / ANOTA`, 23 pasos. **Se ejecuta entera antes que este documento y
+no se duplica aquí**: dos versiones del mismo procedimiento son dos cosas que alguien tendría que
+mantener sincronizadas, y el día que difieran nadie sabrá cuál manda.
+
+De sus 23 pasos, éstos son requisito de este protocolo:
+
+| Paso de la Guía | Por qué es requisito aquí |
+|---|---|
+| **2** — cargar el firmware nuevo en las dos tarjetas | Va **antes** de enchufar nada en `J16`. Con el firmware viejo dentro, `J16` p10 sigue siendo *Aceptar* |
+| **3** y **4** — distinguir `J16` de `J17` y **tapar el pin de 12 V** | `J16` p1 lleva 12 V crudos. Sin tapar, no se toca `J16` |
+| **14** — la medida de reposo de `J16` p5, p8, p10, p12 | **Decide si §8 y §9 de este protocolo se pueden ejecutar.** Ver §0.3 |
+| **18** — los cuatro hilos a `J17` | Es el único camino por el que hoy entra una orden |
+
+> 🔴 **Un desacuerdo entre este protocolo y la Guía que hay que resolver antes de la sesión, y no lo
+> resuelve el técnico.** El paso 14 de la Guía mide `J16` p5, p8, p10 y p12 y dice *«los cuatro
+> tienen que dar lo mismo»*. Eso era cierto cuando los cuatro eran pulsadores. **Desde el 31/08 no
+> lo es:** p10 y p12 son cámaras y las quiere en reposo a masa (activas en ALTO), mientras p5 y p8
+> son el mando, que el firmware lee en `INPUT_PULLUP` y **activo en BAJO**
+> (`Esclavo/src/botones.cpp:37`, `:160-161` — **MEDIDO**). **Si los cuatro dieran lo mismo, una de
+> las dos funciones estaría rota.** Se anota como hallazgo del paso 14, no se interpreta en el poste.
+
+### 0.2 · Por dónde se manda una orden hoy
+
+**El puerto serie de `J17` es la única vía de operación que queda.** Hay dos formas de usarlo, y
+**para este protocolo son equivalentes salvo donde se diga**:
+
+| vía | disponible hoy | cómo |
+|---|---|---|
+| **Adaptador USB-TTL a 9600** directo a `J17` (su RX a p3, su TX a p2, masa a p7 o p9) | ✅ **Sí** | Guía, paso 6 y paso 22 |
+| **ESP32 + Bluetooth SPP + app del móvil** | ❌ **No.** La placa del módulo no existe (§0.4) | Guía, apartado 06 |
+
+**Anote siempre por cuál de las dos lo hizo.** Una orden que llega por USB-TTL demuestra que el
+firmware del STM32 la entiende; **no demuestra nada del ESP32, ni del enlace Bluetooth, ni de la app.**
+
+**Las órdenes que el firmware acepta hoy están censadas del fuente** (`Maestro/src/bluetooth.cpp` y
+`Esclavo/src/bluetooth.cpp`, **MEDIDO el 31/08**). Se citan por **literal**, no por número de línea:
+esos dos ficheros los está tocando otro trabajo en el mismo árbol y una línea citada que se mueve
+manda al lector a un sitio que no dice lo que promete.
+
+**MAESTRO — sin PIN** (dos excepciones deliberadas de la puerta de autenticación):
+
+```text
+CMD:FORZAR_ROJO
+CMD:SET_MODO:MENU
+CMD:SET_MODO:ALCANCE
+```
+
+**MAESTRO — con PIN**, forma `CMD:PIN:1234:<acción>`:
+
+```text
+SET_MODO:AUTO           SET_MODO:MANUAL         SET_MODO:AMBAR
+SET_MODO:MENU           SET_MODO:ALCANCE        SET_MODO:INTELIGENTE
+SET_MODO:DEGRADADO      FORZAR_ROJO             MANUAL:CAMBIAR_TURNO
+TEST_LEDS               REINICIAR_RELOJ         DEMANDA
+SET_TIEMPOS:<verde_min>,<rojo_min>,<despeje_seg>
+SET_RTC:AAAA-MM-DD,HH:MM:SS
+```
+
+**ESCLAVO — sin PIN:** `CMD:AMBAR_EMERGENCIA` · `CMD:FORZAR_ROJO` *(se rechaza a propósito)*
+**ESCLAVO — con PIN:** `AMBAR_EMERGENCIA` · `FORZAR_ROJO` · `SOLICITAR_PASO` · `TEST_LEDS`
+*(se rechaza a propósito)* · `SET_RTC:AAAA-MM-DD,HH:MM:SS`
+
+> 🔴 **El Esclavo NO tiene ni un solo `SET_MODO:*`.** No hay comando que lo meta en un modo ni que
+> lo saque. Es un hecho medido y tiene consecuencias en toda la Sección 9. Ver la prueba **9.15**.
+
+**Lo que el equipo emite sin que nadie se lo pida** (los dos, cada 1000 ms el `$STATUS`):
+
+```text
+$STATUS,NODE:MAESTRO,SERIE:..,MODO:..,ESTADO:..,T:..,RF:..%,RTT:..ms,BAT:12.6,HORA:HH:MM:SS*CRC
+$STATUS,NODE:ESCLAVO,SERIE:..,MODO:SUBORDINADO,ESTADO:..,T:..,RF:98%,RTT:85ms,BAT:12.6,HORA:..*CRC
+$ALARM,NODE:..,EVENTO:..,CAUSA:..,ACCION:..,HORA:..*CRC
+$EVENT,NODE:..,ORIGEN:..,DETALLE:..,HORA:..*CRC
+```
+
+> ⚠️ **Campos que NO son medidas y no se reportan como avería** (**MEDIDO**: son literales dentro
+> del `snprintf`, no valores leídos):
+> - **`BAT:12.6`** en las dos puntas.
+> - **`RF:98%` y `RTT:85ms` en el Esclavo.** En el Maestro sí son medidos.
+> - **`T:`** es `(millis()/1000)%60`, **no** el tiempo que le queda a la fase.
+> - **`MODO:SUBORDINADO` en el Esclavo es fijo**, así que **desde el `$STATUS` del Esclavo no se
+>   puede ver si está en Modo Degradado.** Sólo lo insinúa `ESTADO:`.
+>
+> `HORA:` cae a `--:--:--` cuando el reloj no está en hora. **Eso es un dato, no un fallo.**
+
+### 0.3 · Cómo se ejercen las secuencias del mando SIN el receptor
+
+El receptor de radio del mando **nunca se compró** (Guía, paso 23). Pero los dos canales que quedan
+son pines de entrada de la propia tarjeta, y el firmware los lee en `INPUT_PULLUP` **activo en BAJO**
+(`Esclavo/src/botones.cpp:37`, `:160-161`; `Maestro/src/botones.cpp`, mismo cuerpo — **MEDIDO**):
+
+```text
+MANDO A  =  BOTON1  =  PB9   =  J16 p5
+MANDO B  =  BOTON2  =  PB13  =  J16 p8
+masa                          =  J16 p2
+```
+
+**Un pulso `A` es tocar un instante `J16` p5 contra masa con un cable suelto.** Un pulso `B`, lo
+mismo en p8. Es el mismo recurso que la Guía usa en su paso 13 para hacer de cámara con un pulsador.
+
+> 🔴 **Requisitos, y no son opcionales:**
+> 1. **El paso 4 de la Guía hecho**: el pin de 12 V de `J16` tapado. En el cobre, esos 12 V corren
+>    a **1,36 mm** del más cercano de estos pines — no a los milímetros que se ven entre los pines
+>    del conector.
+> 2. **El paso 14 de la Guía hecho, y con su resultado delante.** Si p5 y p8 dan **~10 kΩ contra
+>    masa**, el pull-up interno no puede ganarles: el pin queda permanentemente en BAJO y el mando
+>    está **inoperante de fábrica**. En ese caso **§8 y §9 no se ejecutan**, y *eso* es el hallazgo:
+>    se anota con los números del paso 14 y se para.
+> 3. Si p5 y p8 dan **circuito abierto contra masa y ~3,3 V en reposo**, el puente funciona y §8 y
+>    §9 se ejecutan.
+>
+> ⚠️ **Lo que este recurso NO demuestra, y va escrito al lado:** demuestra que **el firmware
+> reconoce las secuencias**. No demuestra que los pulsos lleguen **desde el piso por radio**, que es
+> la condición real de uso — eso lleva el rebote del contacto del relé y sus ~2 s por pulsación, y
+> **sigue sin receptor con el que probarlo**. Ver la prueba **8.9**.
+
+### 0.4 · Lo que NO existe, y por tanto no se prueba
+
+| Falta | Consecuencia |
+|---|---|
+| **La placa del módulo ESP32** — no está diseñada, ni fabricada, ni medida | Sin Bluetooth ni app. Toda la §12 que dependa del enlace inalámbrico queda aplazada |
+| **La fuente del ESP32** (DC-DC 12 V→5 V, ≥1 A) — no está pedida ni elegida la referencia | Ídem |
+| **El reloj `DS3231`** — va sobre esa placa, que no existe | La §12.6 (Courier RTC) queda aplazada |
+| **El receptor de radio del mando** — nunca se compró | Ver §0.3 |
+| **El repetidor y sus dos radios adicionales** | La §6 entera queda aplazada. Además, **la topología vigente es de enlace directo, 2 radios, sin repetidor** |
+| **Las dos cámaras de demanda** — pendientes de confirmar si hay una en almacén | La §11.3 queda aplazada |
+
+### 0.5 · Comprobaciones que sí se hacen antes de empezar
+
+- [ ] **0.5.1** Las **dos** radios a `2.4 kbps` de Air Data Rate, mismo canal. Ver `4_Manual_Configuracion_Radios.md`.
+- [ ] **0.5.2** Firmware cargado en las dos tarjetas por SWD, **`mode=UR` con `-e all`**. Ver Guía, paso 2.
+  - **Si sale `Unable to get core ID`, se reintenta. NO se cambia el modo.** Enganchar es cuestión de
+    milisegundos y puede fallar dos o tres veces seguidas; eso no es falta de cableado. Si tras varios
+    intentos no entra, el camino determinista es el puente de `BOOT0` que describe la Guía.
+  - **El delator de haberlo hecho mal es `NVM size: 128 KBytes (default)`** en un chip de 64 KB.
+- [ ] **0.5.3** **Las dos tarjetas con la MISMA versión.** Se compara por **`md5`**, nunca por tamaño:
+  dos binarios del mismo tamaño pueden ser distintos, y dos de nombre distinto pueden ser el mismo.
+  - `md5` Maestro: ________________________  `md5` Esclavo: ________________________
+- [ ] **0.5.4** Adaptador USB-TTL conectado a `J17` de cada punta, terminal a 9600, y **`$STATUS`
+  llegando cada segundo en las dos**. Si no llega, se para aquí y se sigue el árbol del apartado 08
+  de la Guía. Sin `$STATUS` no se puede operar nada.
 
 ---
+
+## 🆔 IDENTIFICACIÓN DEL EQUIPO BAJO PRUEBA
+
+```text
+Fecha y hora de inicio: _________________________________________________
+Firmware MAESTRO — md5: ______________________  Fecha binario: __________
+Firmware ESCLAVO — md5: ______________________  Fecha binario: __________
+   -> Son la MISMA version en ambas puntas?   [ ] SI   [ ] NO   <- si es NO, DETENER
+Nº de serie Maestro: ______________  Nº de serie Esclavo: ______________
+Air Data Rate verificado: __________ kbps      Canal: __________
+Via de mando usada:  [ ] USB-TTL a 9600   [ ] ESP32 + app
+Puente de mando en J16 p5/p8:  [ ] SI, tras el paso 14   [ ] NO   [ ] paso 14 lo desaconseja
+Auditor responsable: ____________________________________________________
+```
+
+> ⚠️ **Si las dos tarjetas no llevan la misma versión, deténgase aquí.** El cálculo de la fase del
+> Modo Degradado tiene que dar **exactamente el mismo resultado** en las dos puntas. Dos versiones
+> distintas pueden calcular fases distintas **sin ningún aviso en ningún sitio** — y ahora, sin
+> pantalla, menos todavía.
+
+---
+
+## ⚠️ QUÉ SIGNIFICA Y QUÉ NO SIGNIFICA ESTA RONDA
+
+**Nada de lo que se prueba aquí ha pasado banco, y nada de este documento autoriza a subir nada a
+un cruce abierto al tráfico.** En campo sigue la **V8.4**.
+
+La suite de verificación del repositorio sale en verde. Lo que ese verde dice es exactamente esto:
+**los modelos y los arneses de PC no encuentran nada. No dice que el firmware funcione sobre la
+tarjeta.** Las cifras de esa suite —comprobaciones, porcentajes de flash— **no se copian aquí**
+porque se mueven cada hora: viven en las actas de `evidencia/`, con su fecha y el hash de `HEAD`.
+
+> 🔴 **Y hay una regresión abierta que es anterior a toda esta arquitectura: N-42, el Modo
+> Automático no mueve las luces en banco.** Es lo primero que hay que reproducir. Mientras siga
+> abierta, **ningún resultado de las Secciones 3 a 9 se puede dar por bueno**, porque todas
+> descansan sobre un ciclo que funcione.
 
 ## ℹ️ COMPORTAMIENTOS ESPERADOS — NO son fallas
 
-Léase antes de empezar. Estos comportamientos son **de diseño**; marcarlos como falla invalidaría el acta.
-
 | Observación | Explicación |
 |---|---|
-| Al encender el Maestro, **~2 segundos con todas las luces apagadas** | Pantalla de bienvenida (`delay(2000)`). Tras ese lapso el Maestro fija Rojo. *Pendiente de mejora: lo deseable sería arrancar en Rojo.* |
-| En Modo Manual, el arranque tarda **5s de Rojo + 4s de Amarillo** antes del Verde | El despeje All-Red mínimo subió de 3s a **5s** por seguridad vial (no configurable por debajo). |
-| El Amarillo previo al Verde dura **exactamente 4.0s** | Res. 2024. El paso de Verde a Rojo es **directo, 0s de aviso**. |
-| Tras 5 reintentos fallidos, el Maestro **no insiste**: pasa a Ámbar | El fallback de seguridad de 12.0s tiene prioridad sobre los reintentos. Es intencional. |
-| En Modo Inteligente, durante el **primer minuto** tras arrancar la pantalla puede mostrar `IA: OK` aunque la cámara no esté conectada | Defecto conocido **N-5**, pendiente. No afecta la seguridad vial. Anotarlo, no bloquear por ello. |
-| El **Menú Principal tiene 4 opciones**, y la cuarta es `CONFIGURACION` — no `PRUEBA ALCANCE` | El menú pasó a **dos niveles**. `PRUEBA ALCANCE`, `AJUSTAR HORA` y `MODO DEGRADADO` cuelgan de `CONFIGURACION`. |
-| El **Esclavo tiene pantalla y menú propios**, con solo 2 opciones y **sin ajuste de hora** | De diseño. La hora llega por radio; ajustarla a mano en el Esclavo reintroduciría el desfase que ese mecanismo elimina. |
-| Al perder el radio, el sistema **sigue yendo a ámbar intermitente** y **no entra solo** en Modo Degradado | De diseño, y es la regla central de SFTY-21. El Degradado **nunca** es automático. |
-| Con el **menú abierto**, el mando de relés **no responde a las secuencias** | Requisito de seguridad, no un fallo. Ver Sección 8. |
-
-## 🚫 FUNCIONES NO IMPLEMENTADAS — no deben probarse ni certificarse
-
-| Función | Estado |
-|---|---|
-| **Operación intermitente por bajo flujo** (ámbar en vía principal / rojo en secundaria tras 4h con flujo ≤50%), descrita en `1_Manual_Usuario.md §2` | **NO IMPLEMENTADA.** Aplazada por decisión del cliente (31/07): el horario no es igual en todas las obras. Fuera del alcance. |
-| **Operación intermitente nocturna por horario** (SFTY-20) | Especificada, **sin construir.** Fuera del alcance. |
-| **Watchdog en el Repetidor ESP32** | No implementado. Maestro y Esclavo sí lo tienen (IWDG a 4.0s). |
-| **Receptor del mando de relés en el ESCLAVO** (N-19) | **No instalado.** La Sección 8 se ejecuta **solo sobre el Maestro**. En el Esclavo hay que subir al gabinete. |
-| **Persistencia del estado del Modo Degradado a un corte de energía** (N-20) | Módulo escrito, **sin conectar.** Un microcorte deja esa punta en ámbar mientras la otra sigue en verde — ver prueba 9.8. |
-| **Consumo de la configuración del ciclo recibida por radio** (N-18) | Se **almacena** pero **no se usa** todavía en el cálculo. Ambas puntas emplean los 30/30 s fijos compilados. |
-
-> ## ⚠️ SOBRE EL ALCANCE DE LAS SECCIONES 7 A 10
->
-> Todo lo que certifican **está construido y validado en simulador** (20/20 funcional, 10/10
-> repetidor, 83/83 de pantalla), pero **nunca se ha ejercitado sobre hardware real**. Esta ronda de
-> pruebas **es** su primera verificación física.
->
-> Trátelas como pruebas de puesta en marcha, no como confirmación de algo ya conocido: **espere
-> encontrar fallos** y anótelos con el detalle que pide la tabla final.
+| Al encender, **~2 s con todas las luces apagadas** | Arranque. Tras ese lapso el Maestro fija Rojo |
+| El Amarillo previo al Verde dura **4,0 s**; de Verde a Rojo el paso es **directo, 0 s de aviso** | Res. 2024 |
+| Al perder la radio, el equipo va a **ámbar intermitente y NO entra solo en Modo Degradado** | Es la regla central de SFTY-21. La entrada es 100 % manual |
+| El equipo tarda **25 s**, no 12, en irse a ámbar por silencio | `SFTY6_SILENCIO_MS = 25000UL` — `Maestro/include/protocolo.h:149` y `Esclavo/include/protocolo.h:149`, **MEDIDO**. El techo de 12 s estaba **por debajo** del peor caso de reintentos (20,5 s): los reintentos 4 y 5 no llegaban a ejecutarse |
+| Las secuencias del mando siguen aceptándose dentro de **12 s** (`A·A·A`, `B·B·B`) y **18 s** (`A·B·A·B`) | `VENTANA_TRIPLE_MS = 12000` y `VENTANA_CUADRUPLE_MS = 18000`. **⚠️ Estos 12 s NO son los 25 s de arriba: son cosas distintas y no se confunden** |
+| El `$STATUS` del Esclavo dice siempre `MODO:SUBORDINADO` | Literal fijo. **MEDIDO** |
+| `HORA:` en `--:--:--` | El reloj no está en hora. Es un dato |
+| Varios comentarios del fuente siguen diciendo *«12 s de silencio»* | **Están caducados** (`Esclavo/src/mando.cpp:113`, `Esclavo/src/main.cpp:396`). El umbral real es 25 s. Anotado, no es fallo de comportamiento |
 
 ---
 
-## 📝 CÓMO REGISTRAR CADA PRUEBA
+## 📑 SECCIÓN 1 — ESTADO DE REPOSO E INDEPENDENCIA DE RADIO (SFTY-12)
 
-Marque una casilla por prueba y anote lo observado. Si algo no cumple, **describa qué pasó y en qué
-segundo**; ese dato es lo que permite diagnosticar.
-
----
-
-## 📑 SECCIÓN 1 — MENÚ PRINCIPAL E INDEPENDENCIA DE RADIO (SFTY-12)
-
-**1.1 Rojo Fijo en Menú con enlace activo**
-- *Acción:* Encender Maestro y Esclavo con comunicación activa, sin seleccionar modo.
-- *Esperado:* Tras los ~2s de bienvenida, **ambos en 🔴 ROJO FIJO continuo**.
+**1.1 En reposo, Rojo Fijo con enlace activo** — ♻️ **SE REESCRIBE** *(antes: «Rojo Fijo en Menú»)*
+- *Qué cambia:* el «Menú» ya no es una pantalla que se abre: es el **estado en el que el equipo
+  arranca y en el que se queda** mientras nadie mande un modo. No hace falta llegar a él.
+- *Acción:* encender Maestro y Esclavo con la radio enlazada. No mandar ninguna orden.
+- *Esperado:* tras los ~2 s de arranque, **ambos en 🔴 ROJO FIJO continuo**, y el `$STATUS` del
+  Maestro con `MODO:MENU`.
+- `MODO:` leído en el Maestro: ______________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**1.2 Navegación LCD fluida sin radio**
-- *Acción:* Con el Maestro en el Menú, apagar la radio del Esclavo. Navegar por las pantallas de configuración.
-- *Esperado:* La LCD ST7920 navega con normalidad, **sin congelarse ni trabarse** en ningún momento.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+**1.2 Navegación LCD fluida sin radio** — 🚫 **SE RETIRA**
+- *Por qué:* medía que la pantalla ST7920 navegara sin trabarse. **Hoy no hay imagen**: los cuatro
+  pines del transporte están en `U8X8_PIN_NONE` (`Maestro/src/lcd.cpp:74-75`, **MEDIDO**).
+- **No se firma.**
 
-**1.3 Indicación de orfandad en el Menú (regresión reportada)**
-- *Acción:* Continuando desde 1.2, esperar sin tocar botones.
-- *Esperado:* A los **12.0 s** sin comunicación, **el Maestro pasa a 🟡 AMARILLO INTERMITENTE (~1 Hz)** y el Esclavo también. **Ambos deben parpadear**, no quedarse en Rojo ni apagados.
+**1.3 Sin comunicación, el equipo se va a ámbar intermitente** — ♻️ **SE REESCRIBE**
+- *Qué cambia:* la cifra —**25 s, no 12**— y que el equipo ya no está *«en el Menú»* sino en reposo.
+- *Acción:* con las dos puntas en reposo y enlazadas, apagar la radio del Esclavo. Cronometrar.
+- *Esperado:* a los **25 s**, **ambas puntas en 🟡 ÁMBAR INTERMITENTE (~1 Hz)**. **Las dos parpadean**,
+  ninguna se queda en Rojo ni apagada.
+- Segundos medidos: ________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Corresponde a los puntos 3 y 4 de la ronda del 31/07, donde el Maestro se quedaba en Rojo.*
+- > *El mismo corte, cronometrado tres veces y con el reenganche, está en el **paso 8 de la Guía**.
+  > Si ya lo hizo allí, traiga aquí los números y no lo repita.*
 
-**1.4 Arranque de modo sin ciclos fantasma**
-- *Acción:* Ajustar tiempos y presionar Botón 3 (OK) para iniciar un modo.
-- *Esperado:* Entra directo al Despeje All-Red, **sin parpadeos ni saltos de estado extraños**.
+**1.4 Arranque de modo sin ciclos fantasma** — ♻️ **SE REESCRIBE** *(antes: «presionar Botón 3»)*
+- *Acción:* mandar `CMD:PIN:1234:SET_TIEMPOS:1,1,15` y después `CMD:PIN:1234:SET_MODO:AUTO`.
+- *Esperado:* la primera contesta `$ACK,CMD:SET_TIEMPOS,RESULT:OK`; la segunda,
+  `$ACK,CMD:SET_MODO:AUTO,RESULT:OK`, y el equipo entra **directo al Despeje Todo-Rojo**, sin
+  parpadeos ni saltos de estado extraños.
+- Respuesta literal recibida: ______________________________________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
 ---
 
 ## 📑 SECCIÓN 2 — PÉRDIDA DE COMUNICACIÓN Y SELF-HEALING (SFTY-6 / SFTY-9)
 
-**2.1 Apagado del Esclavo**
-- *Acción:* Con el sistema en Modo Automático, apagar la radio o la batería del Esclavo. Cronometrar.
-- *Esperado:* A los **12.0 s** el Maestro pasa a **🟡 AMARILLO INTERMITENTE**.
-- Segundos medidos hasta el ámbar: ________
+> Las cinco se reescriben por lo mismo: **el modo se arranca con `CMD:PIN:1234:SET_MODO:AUTO`**, no
+> con un botón. Lo que se observa son las luces, igual que antes.
+
+**2.1 Apagado del Esclavo** — ♻️ **SE REESCRIBE**
+- *Acción:* con el sistema en Modo Automático, apagar la radio o la batería del Esclavo. Cronometrar.
+- *Esperado:* a los **25 s** el Maestro pasa a **🟡 ÁMBAR INTERMITENTE**.
+- Segundos medidos: ________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**2.2 Apagado del Maestro**
-- *Acción:* Con el sistema corriendo, apagar la radio o la batería del Maestro. Cronometrar.
-- *Esperado:* A los **12.0 s** el Esclavo pasa a **🟡 AMARILLO INTERMITENTE**.
-- Segundos medidos hasta el ámbar: ________
+**2.2 Apagado del Maestro** — ♻️ **SE REESCRIBE**
+- *Acción:* con el sistema corriendo, apagar la radio o la batería del Maestro. Cronometrar.
+- *Esperado:* a los **25 s** el Esclavo pasa a **🟡 ÁMBAR INTERMITENTE**.
+- Segundos medidos: ________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**2.3 Esclavo en Verde cuando cae el enlace (prueba de seguridad crítica)**
-- *Acción:* Esperar a que el **Esclavo esté en Verde**. Entonces desconectar la antena del Maestro.
-- *Esperado:* El Esclavo **NO puede quedarse en Verde indefinidamente**. Debe pasar a 🔴 Rojo o a 🟡 Ámbar intermitente en un máximo de **25 s** (SFTY-6).
+**2.3 Esclavo en Verde cuando cae el enlace (seguridad crítica)** — ♻️ **SE REESCRIBE**
+- *Acción:* con el ciclo corriendo, esperar a que el **Esclavo esté en Verde**. Entonces desconectar
+  la antena del Maestro.
+- *Esperado:* el Esclavo **no puede quedarse en Verde indefinidamente**. Pasa a 🔴 Rojo o a
+  🟡 Ámbar intermitente en un máximo de **25 s** (SFTY-6).
 - Estado final del Esclavo: ____________  Segundos: ________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Prueba nueva. Verifica la corrección H-1: un fallo de enlace en un solo sentido dejaba al Esclavo en Verde permanente mientras el Maestro parpadeaba en ámbar.*
 
-**2.4 Self-Healing sin reinicio manual**
-- *Acción:* Con ambos en ámbar por falta de señal, reconectar la radio o la antena. **No tocar la alimentación de las tarjetas.**
-- *Esperado:* Reconectan solas, **sin reiniciar ni apagar ninguna tarjeta**.
+**2.4 Self-Healing sin reinicio manual** — ♻️ **SE REESCRIBE**
+- *Acción:* con ambos en ámbar por falta de señal, reconectar la radio o la antena. **No tocar la
+  alimentación de las tarjetas ni mandar ninguna orden.**
+- *Esperado:* reconectan solas.
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**2.5 Despeje All-Red tras la reconexión**
-- *Acción:* Observar las luces inmediatamente después de la reconexión automática.
-- *Esperado:* Primero **15.0 s de 🔴 ROJO FIJO en ambos** para vaciar la vía, y solo después se abre un carril.
-- Segundos de All-Red medidos: ________
+**2.5 Despeje Todo-Rojo tras la reconexión** — ♻️ **SE REESCRIBE**
+- *Acción:* observar las luces inmediatamente después de la reconexión automática.
+- *Esperado:* primero **🔴 ROJO FIJO en ambos** para vaciar la vía, y sólo después se abre un carril.
+- Segundos de todo-rojo medidos: ________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
 ---
 
-## 📑 SECCIÓN 3 — MODO AUTOMÁTICO (1 min Rojo / 1 min Verde / 15 s Despeje)
+## 📑 SECCIÓN 3 — MODO AUTOMÁTICO
 
-> Configuración de la prueba: Rojo **1 min**, Verde **1 min**, Despeje **15 s**.
-> Mínimos que el menú ya no permite bajar: fases de **1 minuto**, despeje de **5 segundos**.
+> **Configuración de la prueba:** `CMD:PIN:1234:SET_TIEMPOS:1,1,15` — **verde 1 minuto, rojo
+> 1 minuto, despeje 15 segundos**. Ese es el orden y esas son las unidades: los dos primeros en
+> **minutos** y el tercero en **segundos** (`modoAutomatico_fijarTiempos(verdeMin, rojoMin,
+> despejeSeg)`, `Maestro/src/modo_automatico.cpp:38` — **MEDIDO**).
+>
+> **Los tiempos no se pueden cambiar con el ciclo en marcha**: contesta
+> `$ERR,CMD:SET_TIEMPOS,DESC:EN_MARCHA_PARE_EL_MODO`, y ese rechazo es correcto — bajar un tiempo a
+> mitad de fase acortaría la fase en curso, y una de esas fases es el todo-rojo de despeje.
+>
+> 🔴 **Aquí es donde vive N-42.** Si el ciclo no mueve las luces, **se para y se reporta**: es la
+> regresión abierta y es lo primero que esta sesión tiene que reproducir.
 
-**3.1 Secuencia lumínica normativa (Res. 2024)**
-- *Esperado:* Rojo → **Amarillo Fijo 4.0 s** → Verde. Y de Verde a Rojo, **directo, sin amarillo**.
+**3.1 Secuencia lumínica normativa (Res. 2024)** — ♻️ **SE REESCRIBE**
+- *Esperado:* Rojo → **Amarillo Fijo 4,0 s** → Verde. Y de Verde a Rojo, **directo, sin amarillo**.
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**3.2 Arranque y Turno 1 (Verde Maestro)**
-- *Esperado:* All-Red 15 s → Maestro 4 s Amarillo → Maestro Verde 60 s, con Esclavo en Rojo.
+**3.2 Arranque y Turno 1 (Verde Maestro)** — ♻️ **SE REESCRIBE**
+- *Esperado:* Todo-Rojo 15 s → Maestro 4 s Amarillo → Maestro Verde 60 s, con Esclavo en Rojo.
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**3.3 Turno 2 (Verde Esclavo) — PUNTO CRÍTICO DE LA RONDA ANTERIOR**
-- *Acción:* Observar con atención el momento exacto en que el **Esclavo pasa a Amarillo y luego a Verde**.
-- *Esperado:* Maestro a Rojo → All-Red 15 s → Esclavo 4 s Amarillo → Esclavo Verde 60 s. **Sin fallo de comunicación y sin que el ciclo se reinicie.**
+**3.3 Turno 2 (Verde Esclavo) — punto crítico histórico** — ♻️ **SE REESCRIBE**
+- *Acción:* observar con atención el momento exacto en que el **Esclavo pasa a Amarillo y luego a Verde**.
+- *Esperado:* Maestro a Rojo → Todo-Rojo 15 s → Esclavo 4 s Amarillo → Esclavo Verde 60 s. **Sin
+  fallo de comunicación y sin que el ciclo se reinicie.**
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Aquí fallaba en todas las rondas anteriores. Es la prueba que valida la corrección N-1 (tasa aérea + tiempos de espera). Si esta prueba falla, **verifique primero el Paso 0.1** antes de reportar.*
+- > *Si esta prueba falla, verifique primero el Air Data Rate (0.5.1) antes de reportar.*
 
-**3.4 Retorno al Maestro sin falso fallo**
-- *Esperado:* Terminado el minuto de Verde del Esclavo y los 15 s de despeje, el Maestro toma el Verde limpiamente.
+**3.4 Retorno al Maestro sin falso fallo** — ♻️ **SE REESCRIBE**
+- *Esperado:* terminado el verde del Esclavo y su despeje, el Maestro toma el Verde limpiamente.
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**3.5 Estabilidad en ciclos sucesivos**
-- *Acción:* Dejar correr **al menos 5 ciclos completos** (≈ 12 minutos) sin intervenir.
-- *Esperado:* Ningún fallo de comunicación, ningún reinicio de ciclo.
+**3.5 Estabilidad en ciclos sucesivos** — ♻️ **SE REESCRIBE**
+- *Acción:* dejar correr **al menos 5 ciclos completos** (≈ 12 min) sin intervenir.
 - Ciclos completados sin fallo: ________ de 5
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
 ---
 
-## 📑 SECCIÓN 4 — MODO INTELIGENTE AI (Cámara YOLOv8)
+## 📑 SECCIÓN 4 — MODO INTELIGENTE (demanda por cámara)
 
-**4.1 Interfaz dedicada**
-- *Esperado:* La pantalla muestra `MODO: INTELIGENTE AI` y `IA: OK (Autos: X)` o `IA: Standby (Fallback)`.
+> 🔴 **Lo que esta sección ya no puede medir, y hay que decirlo antes de las pruebas.** El *«bus de
+> IA»* que recibía las tramas `AI_CARS:X` **se retiró** (N-86): era un `HardwareSerial` declarado
+> sobre un puerto que nunca existió, sin un solo llamador, y costaba 280 B de RAM por punta. **No
+> hay hoy ningún camino por el que inyectar un conteo de vehículos**, ni ninguna salida por la que
+> leerlo. Lo que queda del Modo Inteligente es la **demanda**: un contacto seco que pide paso.
+
+**4.1 Interfaz dedicada (`IA: OK (Autos: X)`)** — 🚫 **SE RETIRA**
+- *Por qué:* medía dos cosas y **las dos perdieron su sitio**. El rótulo se dibujaba en la pantalla
+  (`lcd_dibujarInteligente()`, `Maestro/src/lcd.cpp:256-269`, que hoy compone un framebuffer que no
+  se vuelca), y el contador de autos venía del bus retirado en N-86.
+- *La mitad que sobrevive* —que el equipo declare `MODO:INTELIGENTE`— se comprueba en el `$STATUS`,
+  y eso ya lo cubre la prueba **12.2**. No se duplica aquí.
+- **No se firma.**
+
+**4.2 Cede de paso por demanda** — ♻️ **SE REESCRIBE** *(antes: «inyectar la trama `AI_CARS:X`»)*
+- *Acción:* con `CMD:PIN:1234:SET_MODO:INTELIGENTE` puesto, provocar una demanda por **una** de estas
+  dos vías, y anotar cuál:
+  - cerrando el contacto seco en `J14` (cámara real, o un pulsador suelto — **Guía, pasos 12 y 13**);
+  - mandando `CMD:PIN:1234:DEMANDA` al Maestro.
+- *Esperado:* `$ACK,CMD:DEMANDA,RESULT:REGISTRADA`, y el cruce **respeta el todo-rojo de despeje**
+  antes de conceder el verde a ese sentido. Cronometrar desde el cierre del contacto hasta el verde.
+- *Y el rechazo, que es igual de importante:* fuera del Modo Inteligente, `CMD:PIN:1234:DEMANDA`
+  tiene que contestar `$ERR,CMD:DEMANDA,DESC:SOLO_EN_MODO_INTELIGENTE`. **Provóquelo a propósito.**
+- Vía usada: ____________  Segundos hasta el verde: ________
+- Respuesta literal fuera del modo: ______________________________________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > Recuerde el aviso **N-5**: durante el primer minuto tras arrancar puede mostrar `IA: OK` sin cámara.
 
-**4.2 Cede de paso adaptativo**
-- *Acción:* Inyectar la trama UART `AI_CARS:X` para simular vehículos.
-- *Esperado:* Con el carril en Verde y **0 autos**, adelanta el cambio a partir de los **20 s**. Con autos esperando en Rojo, adelanta el cambio a partir de los **60 s** (mitad del máximo de verde de 2 min).
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+**4.3 Fallback por pérdida de cámara (60 s sin datos → `IA: Standby`)** — 🚫 **SE RETIRA**
+- *Por qué:* medía qué pasaba al dejar de llegar datos por un bus de IA que ya no existe (N-86), y
+  lo comprobaba en un rótulo de pantalla que ya no se dibuja. **No queda ni la entrada ni la salida.**
+- **No se firma.**
+- > *Hueco declarado:* lo que **sí** convendría poder comprobar —qué hace el Modo Inteligente cuando
+  > la cámara de `J14` se queda muda o se queda pegada— **no tiene hoy prueba en este documento**.
+  > Escribirla exige antes decidir qué debe hacer el equipo en ese caso, y eso es decisión del
+  > responsable, no del auditor.
 
-**4.3 Fallback por pérdida de cámara**
-- *Acción:* Desconectar la cámara / dejar de enviar `AI_CARS`.
-- *Esperado:* Transcurridos **60 s** sin datos, la pantalla pasa a `IA: Standby` y el sistema se comporta como Modo Automático con el máximo de verde.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-
-**4.4 Ciclo completo sin caída (punto crítico)**
-- *Acción:* Dejar correr un ciclo completo, observando el paso del Esclavo a Verde.
-- *Esperado:* Igual que 3.3 — **sin caída de comunicación**.
+**4.4 Ciclo completo sin caída** — ♻️ **SE REESCRIBE**
+- *Acción:* dejar correr un ciclo completo en Modo Inteligente, observando el paso del Esclavo a Verde.
+- *Esperado:* igual que 3.3 — **sin caída de comunicación**.
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
 ---
 
-## 📑 SECCIÓN 5 — MODO MANUAL (Botonera Física)
+## 📑 SECCIÓN 5 — MODO MANUAL Y MEDIDA DE ENLACE
 
-**5.1 Primer cambio de carril**
-- *Acción:* En Modo Manual, presionar **una vez** el Botón 1.
-- *Esperado:* Cambio de vía respetando el All-Red configurado (mínimo 5 s) y los 4 s de Amarillo.
+**5.1 Primer cambio de carril** — ♻️ **SE REESCRIBE** *(antes: «presionar Botón 1»)*
+- *Acción:* con `CMD:PIN:1234:SET_MODO:MANUAL` puesto, mandar `CMD:PIN:1234:MANUAL:CAMBIAR_TURNO`.
+- *Esperado:* `$ACK,CMD:CAMBIAR_TURNO,RESULT:OK` y cambio de vía respetando el todo-rojo (mínimo 5 s)
+  y los 4 s de Amarillo.
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**5.2 Cambios sucesivos — PUNTO CRÍTICO DE LA RONDA ANTERIOR**
-- *Acción:* Presionar Botón 1 o 2 una **segunda, tercera y cuarta vez**, dejando completar cada cambio.
-- *Esperado:* La comunicación se mantiene estable en **todos** los cambios. Antes fallaba a partir del segundo.
-- Nº de cambios consecutivos logrados sin fallo: ________
+**5.2 Cambios sucesivos** — ♻️ **SE REESCRIBE**
+- *Acción:* repetir `CMD:PIN:1234:MANUAL:CAMBIAR_TURNO` una **segunda, tercera y cuarta vez**,
+  dejando completar cada cambio.
+- *Esperado:* la comunicación se mantiene estable en **todos** los cambios.
+- *Y el rechazo honesto:* si se manda **en mitad de una transición**, el equipo tiene que contestar
+  `$ERR,CMD:CAMBIAR_TURNO,DESC:EN_TRANSICION_REINTENTE` — **no `$ACK`**. **Provóquelo a propósito**
+  mandando la orden justo durante el amarillo.
+- Nº de cambios consecutivos sin fallo: ________
+- Respuesta literal en transición: ______________________________________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**5.2-bis MEDICIÓN DE CALIDAD DE ENLACE** 📶 *(ya no requiere cronómetro: el equipo lo mide solo)*
-- *Acción:* Entrar en **Menú → PRUEBA ALCANCE** y esperar unos 15 segundos a que se estabilice.
-- *Anotar lo que muestra la pantalla:*
+**5.2-bis Medida de calidad de enlace** — ♻️ **SE REESCRIBE** *(antes: pantalla `PRUEBA ALCANCE`)*
+- *Acción:* mandar `CMD:SET_MODO:ALCANCE` (**sin PIN**, es una de las dos excepciones). Esperar unos
+  15 s a que se estabilice y leer `RF:` y `RTT:` **del `$STATUS` del MAESTRO**.
+- *Esperado:* `$ACK,CMD:SET_MODO:ALCANCE,RESULT:OK`. Se espera **100 % de calidad** y **menos de
+  1000 ms** de respuesta. Si la calidad no llega al 100 % o la respuesta pasa de 3000 ms, avise antes
+  de continuar: indicaría que alguna radio no quedó bien configurada.
+- *Y el rechazo:* con un modo en marcha, la orden tiene que contestar
+  `$ERR,CMD:SET_MODO:ALCANCE,DESC:EN_MARCHA_PARE_EL_MODO`. **Provóquelo.**
 
 ```text
-Enlace DIRECTO (2 radios):     Calidad ______ %     Respuesta ______ ms
-Enlace con REPETIDOR (4 radios): Calidad ______ %   Respuesta ______ ms
+Enlace DIRECTO (2 radios):   RF ______ %     RTT ______ ms
 ```
 
+- > 🔴 **Se lee el `$STATUS` del MAESTRO y sólo el del Maestro.** En el Esclavo, `RF:98%` y
+  > `RTT:85ms` son **literales fijos** y no miden nada (§0.2).
 - Resultado: `[ ] MEDIDO  [ ] NO SE PUDO MEDIR` — Observación: ________________________________
-- > *Referencia:* se espera **100% de calidad** y **menos de 1000 ms** de respuesta. Si la calidad no llega al 100% o la respuesta pasa de 3000 ms, avise antes de continuar: indicaría que alguna radio no quedó bien configurada.
 
-**5.3 Botón 3 — Rojo total indefinido**
-- *Acción:* Presionar Botón 3 (OK) durante el Modo Manual, **en cualquier estado en que estén las luces**.
-- *Esperado:* Ambos pasan **de inmediato a 🔴 ROJO FIJO** y **se mantienen así de forma indefinida**. No deben conmutar a Amarillo ni a Verde por sí solos pasados unos segundos.
-- Tiempo observado en Rojo sin conmutar: ________ (esperar al menos 60 s)
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-
-**5.4 Reanudación desde Botón 3**
-- *Acción:* Estando en Rojo por Botón 3, presionar Botón 1 o Botón 2.
-- *Esperado:* Reanuda abriendo el carril correspondiente, respetando el despeje.
+**5.3 Rojo total inmediato** — ♻️ **SE REESCRIBE** *(antes: «Botón 3»)*
+- *Acción:* mandar `CMD:FORZAR_ROJO` (**sin PIN**, a propósito: quien ve el incidente tiene que
+  poder pararlo aunque no se sepa el PIN) en **cualquier estado en que estén las luces**.
+- *Esperado:* `$ACK,CMD:FORZAR_ROJO,RESULT:OK` y ambos pasan **de inmediato a 🔴 ROJO FIJO**,
+  manteniéndose así de forma indefinida. No deben conmutar solos pasados unos segundos.
+- Tiempo observado en Rojo sin conmutar: ________ *(esperar al menos 60 s)*
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**5.5 Botón 4 — Retorno a Menú**
-- *Esperado:* Vuelve al Menú Principal y ambos semáforos quedan en Rojo Fijo (con enlace activo).
+**5.4 Reanudación desde el Rojo total** — ♻️ **SE REESCRIBE**
+- *Acción:* estando en Rojo por 5.3, mandar `CMD:PIN:1234:MANUAL:CAMBIAR_TURNO`.
+- *Esperado:* reanuda abriendo el carril correspondiente, respetando el despeje.
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**5.6 Menú de DOS NIVELES y pantalla de alcance** *(modificado — el menú cambió)*
-- *Acción:* En el Menú Principal, recorrer la lista con Botón 1/2.
-- *Esperado:* Se ven **4 opciones completas y legibles**: `MANUAL`, `AUTOMATICO`, `INTELIGENTE`, **`CONFIGURACION`**. Ninguna cortada ni fuera de pantalla. **`PRUEBA ALCANCE` ya NO está en este nivel.**
+**5.5 Vuelta al reposo** — ♻️ **SE REESCRIBE** *(antes: «Botón 4 — Retorno a Menú»)*
+- *Acción:* mandar `CMD:SET_MODO:MENU` (**sin PIN**).
+- *Esperado:* `$ACK,CMD:SET_MODO:MENU,RESULT:OK` y ambos semáforos quedan en **Rojo Fijo** con el
+  enlace activo. **Entrar en reposo no arranca ningún ciclo.**
+- *Y las otras dos respuestas, que también hay que ver:*
+  - mandado **estando ya en reposo** → `$ERR,CMD:SET_MODO:MENU,DESC:YA_VUELVE_AL_MENU`;
+  - mandado **desde Modo Degradado** → `$ACK,CMD:SET_MODO:MENU,RESULT:SALIENDO_TODO_ROJO`, y el
+    equipo **no salta al reposo de golpe: pide la salida por el todo-rojo**. Es lo correcto.
+- Respuestas literales obtenidas: ______________________________________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- *Acción:* Entrar en `CONFIGURACION` con Botón 3 y recorrer la lista.
-- *Esperado:* **3 opciones legibles**: `PRUEBA ALCANCE`, `AJUSTAR HORA`, `MODO DEGRADADO`. **Ambos semáforos siguen en 🔴 Rojo Fijo** (o ámbar sin enlace): **entrar al submenú no arranca ningún ciclo**.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- *Acción:* Pulsar Botón 4 desde el submenú.
-- *Esperado:* Vuelve al **Menú Principal** con el cursor **sobre `CONFIGURACION`**. **No arranca ningún modo.**
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- *Acción:* Entrar en `PRUEBA ALCANCE` con Botón 3.
-- *Esperado:* Muestra calidad en %, barra gráfica, tiempo de respuesta y fallos. **Ambos semáforos en 🔴 Rojo Fijo**, sin arrancar ciclos. Sale con Botón 4 (vuelve a `CONFIGURACION`).
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Por qué se comprueba el layout:* la librería de pantalla **recorta fuera de los 128×64 en silencio, sin error**. Una opción que no quepa **no da fallo: simplemente no se dibuja, pero el cursor sí llega hasta ella.** El operario acabaría seleccionando una opción invisible. Ya ocurrió una vez con la cuarta opción del menú plano.
 
-**5.7 Diagnóstico de línea en pantalla** *(nuevo)*
-- *Acción:* En `PRUEBA ALCANCE`, observar la **fila inferior**. Luego apagar la radio del Esclavo y volver a observarla.
-- *Esperado:* Con enlace sano muestra `RX <bytes>  <n> tr`. Al apagar el Esclavo pasa a `RX 0 - nada llega` en unos segundos.
-- Lo observado con enlace: ______________  Tras apagar el Esclavo: ______________
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Para qué sirve:* si alguna vez aparece `RX <n> - BASURA` significa que entran datos pero ninguno válido — problema de **cableado, línea RS485 suelta o radio transmitiendo ruido**, no de alcance. Evita desplazamientos al poste con instrumentos.
+**5.6 Menú de dos niveles y layout de la pantalla** — 🚫 **SE RETIRA**
+- *Por qué:* medía que las opciones de un menú **cupieran dibujadas** en los 128×64 de la ST7920,
+  porque la librería recorta en silencio y el cursor sí llega a una opción invisible. Hoy no se
+  dibuja nada en ningún cristal: los pines están en alta impedancia y **no hay menú que abrir**,
+  porque no hay `Aceptar`.
+- **No se firma.**
+
+**5.7 Diagnóstico de línea RS-485 en pantalla (`RX <bytes> <n> tr`)** — 🚫 **SE RETIRA**
+- *Por qué:* la fila inferior donde se leía ya no se dibuja.
+- **No se firma.**
+- > 🔴 **Hueco declarado, y es una pérdida real de capacidad de diagnóstico.** Ese renglón
+  > distinguía tres cosas que desde fuera se parecen: *no llega nada* · *llega y es basura* ·
+  > *llega bien*. La segunda apunta a cableado, línea suelta o radio emitiendo ruido, y evitaba
+  > desplazamientos al poste con instrumentos. **Los contadores siguen existiendo en el firmware;
+  > lo que no existe es por dónde leerlos.** Recuperarlo es **trabajo de firmware** —añadirlos al
+  > `$STATUS`—, no una compra. Queda anotado, no cerrado.
 
 ---
 
 ## 📑 SECCIÓN 6 — REPETIDOR ESP32 (topología de 4 radios)
 
-> Requisito previo: Paso 0.1 y 0.3 completados. **La ronda anterior falló íntegramente esta sección**
-> por saturación del canal a 0.3 kbps.
-
-**6.0 DIAGNÓSTICO DE CADENA POR LEDs** 🔦 *(hacer esto PRIMERO si el repetidor no enlaza)*
-
-### Cómo se observa
-
-**El Maestro transmite cada 3 segundos, aunque el enlace esté caído.** Estando en fallo sigue
-emitiendo una orden de Rojo con esa misma cadencia. Ese pulso periódico es el **metrónomo** que
-permite rastrear la cadena precisamente cuando no hay comunicación.
-
-**Qué mirar en cada radio:**
-- El LED de **encendido (PWR)** queda **fijo** — ignórelo, no aporta nada.
-- Los LEDs de **actividad** (rotulados `TXD` / `RXD` según el modelo) **destellan** cuando pasa
-  información. **Son ésos.**
-- **No hace falta saber cuál es cuál.** Lo único que se anota es: *¿esta radio destella cada
-  3 segundos, sí o no?*
-
-**Procedimiento (unos 5 minutos):**
-1. Encienda Maestro, Esclavo y Repetidor. Deje el Maestro en el **Menú Principal**, sin arrancar
-   ningún modo. Es indiferente que estén en ámbar por falta de enlace: el pulso sigue saliendo.
-2. Párese frente a la **radio del Maestro** y confirme el destello cada 3 s. **Ése es el ritmo de
-   referencia**; si aquí no destella nada, no siga: el problema está antes de la radio.
-3. Vaya al **poste del repetidor** y observe **B1** durante 15 segundos (unos 5 pulsos).
-4. Sin moverse, observe **B2** otros 15 segundos.
-5. Vaya a la **radio del Esclavo** y observe otros 15 segundos.
-
-> 💡 Como las radios están separadas, lo más práctico es **grabar 15 segundos de video con el celular
-> frente a cada una** y comparar después. También sirve con dos personas y una llamada abierta.
-
-> 💡 *Alternativa con evento provocado:* en **Modo Manual**, cada pulsación del Botón 1 genera una
-> transmisión inmediata. Si le resulta difícil seguir el ritmo de 3 s, pulse el botón y observe si
-> aparece **un** destello. Correlacionar una pulsación con un destello es más fácil que contar
-> intervalos.
-
-### Dónde se detiene la cadena
-
-Anote **hasta dónde llega el parpadeo**. Donde se detenga, ahí está el corte.
-
-```text
-        MAESTRO          B1              [ESP32]         B2            ESCLAVO
-        ┌──────┐        ┌──────┐                       ┌──────┐        ┌──────┐
-        │ Radio│ ~~RF~~>│ Radio│ ──RS485──> ──RS485──> │ Radio│ ~~RF~~>│ Radio│
-        └──────┘        └──────┘                       └──────┘        └──────┘
-  Parpadea:  [ ]  ──────>  [ ]  ─────────────────────>   [ ]  ───────>   [ ]
-```
-
-Registre lo observado en cada radio:
-
-```text
-Radio del MAESTRO ..... [ ] destella c/3s   [ ] no destella
-Radio B1 (repetidor) .. [ ] destella c/3s   [ ] no destella
-Radio B2 (repetidor) .. [ ] destella c/3s   [ ] no destella
-Radio del ESCLAVO ..... [ ] destella c/3s   [ ] no destella
-```
-
-Marque el **último** punto donde vio parpadeo:
-
-- [ ] **A. No parpadea ni la radio del Maestro** → el problema está antes de la radio: cableado
-  `A`/`B` a la tarjeta, o alimentación de la radio.
-- [ ] **B. Parpadea el Maestro, pero B1 no recibe** → salto de aire Maestro→B1. Revisar que ambas
-  estén en **canal `0`** y con la **misma velocidad aérea (2.4 kbps)**.
-- [ ] **C. Parpadea B1, pero B2 no transmite** → el corte está **dentro del repetidor**: ESP32 sin
-  alimentar, sin flashear, o falta el transceptor MAX3485 en la placa. Ver 6.0-bis.
-- [ ] **D. Parpadea B2, pero el Esclavo no recibe** → **la causa más frecuente.** La radio del
-  Esclavo quedó en canal `0` (170 MHz) cuando en modo repetidor debe estar en **canal `10`
-  (172 MHz)**, igual que B2.
-- [ ] **E. Parpadea toda la cadena pero el semáforo no responde** → el enlace físico está bien;
-  el problema es de protocolo. Anotarlo y avisar a desarrollo.
-
-Observación: ______________________________________________________________________
-
-> **Recordatorio de canales en modo repetidor:** Maestro y B1 en canal `0` (170.0 MHz); B2 y
-> **Esclavo** en canal `10` (172.0 MHz). En modo repetidor el Maestro y el Esclavo **NO** van en la
-> misma frecuencia — ése es justamente el trabajo del puente.
-
-**6.0-bis Firmware de diagnóstico del ESP32** *(solo si marcó la opción C)*
-
-Si el corte parece estar dentro del repetidor, cargue el firmware de diagnóstico, que informa por USB
-cuántos bytes llegan de cada lado:
-
-```bash
-pio run -e repetidor_diag -t upload     # cargar diagnóstico
-pio device monitor -b 115200            # ver el informe (cada 2 s)
-
-pio run -e repetidor -t upload          # volver a producción al terminar
-```
-
-Copie aquí dos o tres líneas del informe: ____________________________________________
-
-**6.1 Enlace básico a través del repetidor**
-- *Acción:* Interponer el puente ESP32 con las 4 radios ya reconfiguradas.
-- *Esperado:* Maestro y Esclavo enlazan y se mantienen en Rojo Fijo en el Menú, sin caer a ámbar.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-
-**6.2 Ausencia de parpadeo errático ("árbol de navidad")**
-- *Esperado:* Las tramas viajan sin truncarse; el Esclavo responde de forma fluida, sin encendidos y apagados erráticos de las luces.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-
-**6.3 Ciclo completo con repetidor**
-- *Acción:* Ejecutar la Sección 3 completa (Modo Automático, ≥3 ciclos) con el repetidor interpuesto.
-- *Esperado:* Mismo comportamiento que en enlace directo, **sin caídas al pasar el Esclavo a Verde**.
-- Ciclos completados sin fallo: ________ de 3
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-
-**6.4 Fail-safe del repetidor**
-- *Acción:* Desconectar la alimentación del ESP32 durante la marcha; luego restablecerla.
-- *Esperado:* A los **12.0 s**, Maestro y Esclavo pasan a 🟡 Ámbar intermitente. Al volver la energía, reconectan solos y ejecutan **15 s de All-Red** antes de reanudar.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+> ⏸️ **LA SECCIÓN ENTERA SE APLAZA — sus 6 pruebas (6.0, 6.0-bis, 6.1, 6.2, 6.3, 6.4).**
+>
+> **Qué falta, en concreto:**
+> - **Dos radios más** (`B1` y `B2`) con sus antenas y coaxiales.
+> - **La placa del repetidor** con su transceptor `MAX3485` y su ESP32, alimentada.
+> - Que el repetidor esté **flasheado** con su firmware.
+>
+> **Y una razón que no es de material:** la configuración vigente del sistema es de **2 radios en
+> enlace directo, sin repetidor**. Mientras eso no cambie, esta sección certifica una topología que
+> no se está desplegando. **Si el funcional necesita certificarla, hay que decidirlo antes de
+> comprar las radios, no después.**
+>
+> **Ninguna de las seis lleva casilla. No se firman.**
+>
+> *(El contenido de la revisión anterior —el diagnóstico de cadena por LEDs contando destellos cada
+> 3 s, el árbol A/B/C/D/E y el firmware `repetidor_diag`— sigue siendo válido y no se ha borrado del
+> histórico: está en `roadmap.md`. Se recupera tal cual el día que haya cuatro radios.)*
 
 ---
 
-## 📑 SECCIÓN 7 — RELOJ, AJUSTAR HORA Y SINCRONIZACIÓN POR RADIO (SFTY-18 / SFTY-23)
+## 📑 SECCIÓN 7 — RELOJ Y SINCRONIZACIÓN POR RADIO (SFTY-18 / SFTY-23)
 
-> **Requisito previo de todo lo demás.** Sin reloj en hora y sincronizado, el Modo Degradado **no
-> entra** — así está construido. Ejecute esta sección **antes** de la 8 y la 9.
+> **Requisito de la Sección 9.** Sin reloj en hora y sincronizado, el Modo Degradado **no entra**,
+> así está construido.
 >
-> Material necesario: **una hora patrón** (celular con hora de red) y forma de **cortar la
-> alimentación** de cada tarjeta.
+> **Lo que cambia en bloque:** la hora ya no se teclea dígito a dígito en una pantalla. Entra en
+> **un solo comando**, `CMD:PIN:1234:SET_RTC:AAAA-MM-DD,HH:MM:SS`, y **el equipo contesta con tres
+> respuestas distintas que no significan lo mismo**. Ésa es la propiedad central de la sección.
 
-**7.1 El reloj arranca declarándose NO fiable**
-- *Acción:* Con una tarjeta **nunca puesta en hora** (o con la pila retirada), encender y entrar en `CONFIGURACION → AJUSTAR HORA`, y en el Esclavo a `ESTADO`.
-- *Esperado:* El equipo indica que **la hora no es fiable**. **No debe mostrar una hora cualquiera como si fuera buena.**
-- Lo que muestra: ______________________________________
+**7.1 El reloj arranca declarándose NO fiable, y `SET_RTC` no miente** — ♻️ **SE REESCRIBE**
+- *Acción:* con una tarjeta **nunca puesta en hora** (o con la pila retirada), encender y leer
+  `HORA:` en su `$STATUS`. Después mandar `CMD:PIN:1234:SET_RTC:2026-08-31,10:00:00`.
+- *Esperado:* `HORA:` en `--:--:--` — **no una hora cualquiera como si fuera buena**. Y la orden
+  contesta **una** de estas tres, que hay que copiar literal:
+
+| respuesta | qué significa |
+|---|---|
+| `$ACK,CMD:SET_RTC,RESULT:OK` | la hora entró **y** va camino del Esclavo |
+| `$ACK,CMD:SET_RTC,RESULT:HORA_PUESTA_SIN_PROPAGAR` | la hora entró en esta punta, **pero no se propagó** |
+| `$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ` | **no hay con qué contar el tiempo.** La hora **no** quedó puesta |
+| `$ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO` | la orden no se entendió. El reloj **no se tocó** |
+
+- Respuesta literal: ______________________________________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Por qué es la primera prueba:* un reloj sin poner en hora que se cree válido **es peor que no tener reloj**. Habilitaría el Modo Degradado con las dos puntas desfasadas, y nadie lo vería.
+- > 🔴 **Un `$ACK` aquí sobre una tarjeta que luego pierde la hora es un hallazgo importante**, no
+  > una molestia: es el equipo diciendo que sí y no haciéndolo, y el técnico se va del poste creyendo
+  > que dejó el reloj puesto. **Se anota literalmente lo que contestó.** *(Guía, paso 21.)*
 
-**7.2 Edición dígito a dígito**
-- *Acción:* En `AJUSTAR HORA`, recorrer los dígitos con Botón 3 y modificarlos con Botón 1 / Botón 2.
-- *Esperado:* El **dígito activo se ve subrayado**. Botón 1 sube, Botón 2 baja, Botón 3 avanza al siguiente.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+**7.2 Edición dígito a dígito** — 🚫 **SE RETIRA**
+- *Por qué:* medía el subrayado del dígito activo y el recorrido con Botones 1/2/3 en una pantalla
+  de edición que ya no se puede abrir ni ver. La hora entra hoy en un solo comando.
+- **No se firma.**
 
-**7.3 Salir con Botón 4 NO altera la hora** 🔒
-- *Acción:* Anotar la hora que marca el equipo. Entrar en `AJUSTAR HORA`, **cambiar varios dígitos** y salir con **Botón 4**. Volver a entrar.
-- *Esperado:* La hora sigue siendo **la anotada al principio**. Los cambios se descartaron.
-- Hora antes: ________  Hora después: ________
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Para qué sirve:* se trabaja sobre una copia y solo se escribe al confirmar, de modo que **entrar por error no rompe la hora del equipo**.
+**7.3 Salir con Botón 4 no altera la hora** — 🚫 **SE RETIRA**
+- *Por qué:* medía que la pantalla de edición trabajara sobre una copia y sólo escribiera al
+  confirmar, para que **entrar por error no rompiera la hora**. Sin pantalla de edición no hay
+  copia, no hay confirmación y no hay error de entrada posible.
+- *Lo que hereda esa preocupación* —que una orden mal formada **no toque** el reloj— se comprueba en
+  **7.1**, con `FORMATO_INVALIDO`. No se duplica.
+- **No se firma.**
 
-**7.4 La pantalla NO arranca ciclos**
-- *Acción:* Permanecer en `AJUSTAR HORA` un par de minutos observando las luces.
-- *Esperado:* **🔴 Rojo Fijo en ambas puntas** con enlace (o ámbar sin él). **No arranca ningún ciclo.**
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+**7.4 La pantalla NO arranca ciclos** — 🚫 **SE RETIRA**
+- *Por qué:* no hay pantalla en la que permanecer. La propiedad equivalente —que volver al reposo no
+  arranque nada— se comprueba en **5.5**.
+- **No se firma.**
 
-**7.5 Contraste contra hora patrón** *(prueba de banco pendiente N-15)*
-- *Acción:* Poner el Maestro en hora contra un celular con hora de red. Dejarlo **al menos 2 horas** encendido y volver a comparar.
-- *Esperado:* La diferencia es de **pocos segundos**. Un cristal sin calibrar deriva ~30–50 ppm, es decir **menos de 1 s en 2 h**.
-- Hora patrón: ________  Hora del equipo: ________  Diferencia: ________ s
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-
-**7.6 La hora sobrevive al corte de energía** 🔋 *(valida la pila — prueba de banco pendiente N-15)*
-- *Acción:* Con el equipo en hora, **desconectar la alimentación 10 minutos**. Volver a energizar.
-- *Esperado:* Al arrancar, el equipo **conserva la hora** y la declara **fiable**. La diferencia contra la hora patrón debe ser de pocos segundos.
-- Hora al volver: ________  Diferencia contra patrón: ________ s
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > **Si esta prueba falla, la pila no está haciendo su trabajo.** Revise que `R5` esté retirado y que el positivo esté soldado al pad de `VBAT` (ver `2_Manual_Hardware_y_Pruebas.md §5`). Sin esto, el Modo Degradado se rechaza tras cada apagón y el equipo es inutilizable en obra.
-- *Repetir en el **Esclavo**:* Hora al volver: ________  Diferencia: ________ s — `[ ] CUMPLE  [ ] NO CUMPLE`
-
-**7.7 Arranque con el cristal `Y2` desconectado** ⚠️ *(prueba de banco pendiente N-17)*
-- *Acción:* Con la tarjeta **desenergizada**, desconectar el cristal `Y2` de 32.768 kHz. Energizar.
-- *Esperado:* **El equipo bootea con normalidad**, las luces encienden, y la hora se declara **NO fiable**. **No debe quedarse colgado con las luces apagadas.**
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Por qué esta prueba existe:* algunos microcontroladores clonados traen mal calculado el condensador de carga y **el oscilador de 32.768 kHz no arranca**. Si el arranque del reloj colgara el equipo, la tarjeta quedaría muda y a oscuras. **Un semáforo no puede depender de un cristal de reloj para encender.**
-
-**7.8 Poner en hora SINCRONIZA en el mismo gesto** 📡
-- *Acción:* Con **enlace de radio activo**, confirmar la hora en el **Maestro**. Ir enseguida a la pantalla `ESTADO` del **Esclavo**.
-- *Esperado:* El Esclavo muestra **la misma hora, con segundos**, y una **sincronización reciente**. **Nadie tocó el Esclavo.**
-- Hora Maestro: ______:______:______   Hora Esclavo: ______:______:______
+**7.5 Contraste contra hora patrón** — ♻️ **SE REESCRIBE** *(antes: leído en pantalla)*
+- *Acción:* poner el Maestro en hora contra un celular con hora de red. Dejarlo **al menos 2 h**
+  encendido y volver a comparar, leyendo `HORA:` del `$STATUS`.
+- *Esperado:* la diferencia es de **pocos segundos**. Un cristal sin calibrar deriva ~30–50 ppm, es
+  decir **menos de 1 s en 2 h**.
+- Hora patrón: ________  `HORA:` del equipo: ________  Diferencia: ________ s
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**7.9 Medición del desfase — es un NÚMERO, no una impresión** 📏
-- *Acción:* En el Maestro, leer el **desfase medido** contra el Esclavo y la marca de última sincronización.
-- *Anotar:*
+**7.6 La hora sobrevive al corte de energía (valida la pila)** — ♻️ **SE REESCRIBE**
+- *Acción:* con el equipo en hora, **desconectar la alimentación 10 minutos**. Volver a energizar y
+  leer `HORA:`.
+- *Esperado:* al arrancar, el equipo **conserva la hora**; no vuelve a `--:--:--`.
+- Maestro — `HORA:` al volver: ________  Diferencia contra patrón: ________ s — `[ ] CUMPLE [ ] NO CUMPLE`
+- Esclavo — `HORA:` al volver: ________  Diferencia: ________ s — `[ ] CUMPLE [ ] NO CUMPLE`
+- > **Si falla, la pila no está haciendo su trabajo.** Revise que `R5` esté retirado y el positivo
+  > soldado al pad de `VBAT` (`2_Manual_Hardware_y_Pruebas.md §5`).
+  > **Sólo importa cuál de las dos falla.** Si la que pierde la hora es la del Esclavo, no hay que
+  > comprar nada: la coge del Maestro por radio. *(Guía, paso 21.)*
+
+**7.7 Veredicto del cristal `Y2`** — ♻️ **SE REESCRIBE** *(antes: la pantalla `CONSULTA RELOJ`)*
+- *Qué cambia:* la pantalla de diagnóstico con sus cuatro líneas y su punto parpadeante **ya no se
+  puede leer**. El veredicto se pide ahora con un comando, y **el comando distingue los dos casos
+  por sí solo**.
+- *Acción:* mandar `CMD:PIN:1234:REINICIAR_RELOJ`.
+- *Esperado:* **una** de estas dos, y cualquiera de las dos **es** el veredicto:
+
+| respuesta | qué significa |
+|---|---|
+| `$ACK,CMD:REINICIAR_RELOJ,RESULT:CRISTAL_OK_PONGA_LA_HORA` | **el oscilador arranca. El cristal NO era el problema.** No cambie ningún componente |
+| `$ERR,CMD:REINICIAR_RELOJ,DESC:SIGUE_PARADO_VEA_CONSULTA_RELOJ` | **se pidió el oscilador y no arranca.** Aquí sí apunta al `Y2` y su entorno |
+
+- *Y la segunda mitad de la prueba, que es de seguridad:* con la tarjeta **desenergizada**,
+  desconectar el cristal `Y2` y energizar. **El equipo tiene que bootear con normalidad y encender
+  las luces**, declarando la hora no fiable. **No debe quedarse colgado y a oscuras.**
+- Respuesta literal: ______________________________________
+- Con `Y2` desconectado, ¿arrancan las luces? ____________
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+- > **No sustituya ningún componente en esta sesión.** El objetivo es traer la lectura. Ya se dio por
+  > culpable a este cristal una vez sin haber medido nada, y se cambiaron piezas sanas.
+  > **Hay que hacerlo en las DOS tarjetas: una está diagnosticada, la otra no.**
+- > ⚠️ El texto `VEA CONSULTA RELOJ` que aparece en la respuesta **remite a una pantalla que hoy no
+  > se puede ver**. No es un fallo del equipo: es un mensaje caducado. Anótelo y siga.
+
+**7.8 Poner en hora SINCRONIZA en el mismo gesto** — ♻️ **SE REESCRIBE**
+- *Acción:* con **enlace de radio activo**, poner la hora en el **Maestro** con `SET_RTC`. Leer
+  enseguida `HORA:` del `$STATUS` **del Esclavo**, por su propio USB-TTL. **Nadie toca el Esclavo.**
+- *Esperado:* el Maestro contesta `RESULT:OK` (no `HORA_PUESTA_SIN_PROPAGAR`) y el Esclavo muestra
+  **la misma hora, con segundos**.
+- `HORA:` Maestro: ______:______:______   `HORA:` Esclavo: ______:______:______
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+
+**7.9 Desfase entre las dos puntas — es un NÚMERO** — ♻️ **SE REESCRIBE**
+- *Qué cambia, y a mejor:* antes se leía la medida interna del Maestro, que **transporta sólo el
+  segundo** y por eso confundía un desfase de 45 s con uno de −15 s. Ahora se comparan directamente
+  los dos `HORA:HH:MM:SS`, que **no tienen ese alias**.
+- *Acción:* con los dos terminales abiertos a la vez, capturar el `$STATUS` de cada punta y comparar
+  los campos `HORA:` del mismo segundo de pared.
 
 ```text
-Desfase Esclavo medido: ________ s     Ultima sincronizacion: ______:______
+HORA: Maestro ______:______:______     HORA: Esclavo ______:______:______
+Desfase calculado: ________ s
 ```
 
-- *Esperado:* Desfase **dentro de ±3 s** tras una sincronización reciente.
+- *Esperado:* desfase **dentro de ±3 s** tras una sincronización reciente.
 - Resultado: `[ ] MEDIDO  [ ] NO SE PUDO MEDIR` — Observación: ________________________________
-- > *Por qué se anota y no se mira:* confirmar la hora *"mirando las dos pantallas"* **no detecta hasta 59 s de desfase**, porque dos relojes separados 40 s muestran el mismo `14:32`. Cuarenta segundos es **más que el todo-rojo entero**. Este número es la única validación real, y por eso queda registrado en el acta.
-- > *Sesgo conocido, no lo persiga:* la medida incluye el tiempo de aire más el retardo de cortesía del Esclavo (200 ms), así que trae **algunas décimas de segundo** de sesgo. Frente a un todo-rojo de 30 s es irrelevante.
+- > *Por qué se anota y no se mira:* dos relojes separados 40 s muestran el mismo `14:32`. Cuarenta
+  > segundos es **más que el todo-rojo entero**. Los segundos no son un adorno.
+- > *Sesgo conocido, no lo persiga:* las dos capturas no son simultáneas al milisegundo. Frente a un
+  > todo-rojo de 30 s, unas décimas son irrelevantes.
 
-**7.10 Resincronización periódica**
-- *Acción:* Dejar el sistema con enlace activo **más de una hora** sin tocar nada. Volver a leer la marca de sincronización.
-- *Esperado:* Se ha actualizado sola. El sistema resincroniza **cada hora mientras hay enlace**.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+**7.10 Resincronización periódica cada hora** — 🚫 **SE RETIRA**
+- *Por qué:* medía que la **marca de última sincronización** se actualizara sola, y esa marca se leía
+  en pantalla. **Hoy no hay ningún campo de telemetría que la exponga.**
+- *Y por qué no se sustituye por «comprobar que los relojes siguen cuadrados»:* en una hora la deriva
+  de dos cristales es de **~0,36 s**, muy por debajo de la resolución de `HORA:`. Los dos relojes se
+  verían cuadrados **hayan resincronizado o no**. Sería una prueba que **no puede fallar**, y una
+  prueba que no puede fallar no mide nada — sólo enseña a firmar.
+- **No se firma.**
+- > 🔴 **Hueco declarado.** Exponer la antigüedad de la última sincronización en el `$STATUS` es
+  > trabajo de firmware, y hasta que exista **la frescura de la sincronización no es verificable
+  > desde fuera del equipo**. Importa porque es justo la garantía en la que se apoya el Modo
+  > Degradado (ver 9.4).
 
-**7.11 El Esclavo NO ofrece ajuste de hora**
-- *Acción:* Recorrer completo el menú del Esclavo.
-- *Esperado:* **Solo 2 opciones**: `ESTADO` y `MODO DEGRADADO`. **No existe `AJUSTAR HORA`.**
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *No es una carencia: es la regla.* La hora se cuadra **una sola vez en el Maestro** y viaja por radio. Ajustarla a mano en el Esclavo reintroduciría exactamente el desfase que ese mecanismo elimina.
+**7.11 El Esclavo NO ofrece ajuste de hora** — 🚫 **SE RETIRA**
+- *Por qué, y no es sólo la pantalla:* la prueba recorría el menú del Esclavo para confirmar que no
+  existía `AJUSTAR HORA`, apoyada en la regla *«la hora se cuadra una sola vez en el Maestro y viaja
+  por radio»*. **El firmware de hoy ya no cumple esa regla:** el Esclavo **acepta**
+  `CMD:PIN:1234:SET_RTC:` y contesta `$ACK,CMD:SET_RTC,RESULT:OK` (**MEDIDO**, `Esclavo/src/bluetooth.cpp`).
+- **No se firma como estaba.** Lo que hoy hay que comprobar del `SET_RTC` del Esclavo —que rechace
+  con `SIN_CRISTAL` cuando no hay reloj y con `FORMATO_INVALIDO` cuando la orden está mal— se hace
+  en **7.6** y **12.7**.
+- > 🔴 **Esto es una decisión pendiente, no un simple ajuste de documento.** Poner la hora del
+  > Esclavo a mano **reintroduce exactamente el desfase que la sincronización por radio elimina**, y
+  > el Modo Degradado descansa en que las dos puntas cuenten igual. Que el Esclavo acepte `SET_RTC`
+  > es lo que hace posible el *Courier RTC* (12.6) cuando no hay radio — **es una capacidad
+  > deliberada, no un descuido** —, pero la regla escrita en los manuales dice lo contrario. **Hay
+  > que decidir cuál de las dos manda, y es decisión del responsable.**
 
 ---
 
 ## 📑 SECCIÓN 8 — MANDO DE 4 RELÉS Y SECUENCIAS (SFTY-21)
 
-> **Solo aplica al MAESTRO.** El Esclavo **no tiene receptor de mando** (N-19).
+> **Lea §0.3 antes de esta sección.** Si el paso 14 de la Guía dice que `J16` p5 y p8 llevan ~10 kΩ
+> a masa, **el mando está inoperante y esta sección no se ejecuta**: se anotan los números del paso
+> 14 y se para. Ése es el hallazgo.
 >
-> Estas pruebas se hacen **desde el piso**, sin ver la pantalla: es la condición real de uso. Necesita
-> una segunda persona arriba solo para las pruebas que exigen leer la LCD.
+> **Sólo aplica al MAESTRO** salvo donde se diga. El Esclavo tiene sus propias secuencias en el
+> firmware, y en él se ejercen en la Sección 9.
 >
-> ⚠️ **Recuerde el ritmo del mando:** cada pulsación tarda **~2 s** en conmutar. No lo acelere.
+> ⚠️ **Con el puente a masa, un pulso es instantáneo. El relé real tarda ~2 s.** Deje al menos un
+> segundo entre pulsos: si los da demasiado juntos puede quedar por debajo del filtro de rebote.
 
-**8.1 El mando navega el menú igual que la botonera**
-- *Acción:* Con el equipo en el Menú Principal, accionar `A`, `B`, `C` y `D` uno a uno.
-- *Esperado:* `A` sube el cursor, `B` lo baja, `C` selecciona, `D` sube un nivel — **una sola posición por pulsación**, sin saltos ni rebotes.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+**8.1 El mando navega el menú igual que la botonera** — 🚫 **SE RETIRA**
+- *Por qué:* no hay menú que navegar ni cursor que mover, y `C` y `D` no existen como canales.
+- **No se firma.**
 
-**8.2 `A · A · A` → AUTOMÁTICO, con 2 destellos rojos**
-- *Acción:* Con el equipo **fuera del menú** (ciclando o en ámbar), accionar `A` tres veces en **menos de 12 s**.
+**8.2 `A · A · A` → AUTOMÁTICO, con 2 destellos rojos** — ♻️ **SE REESCRIBE** *(entrada por puente)*
+- *Acción:* con el equipo **fuera de cualquier modo**, dar tres pulsos `A` (`J16` p5 a masa) en
+  **menos de 12 s**.
 - *Esperado:* **2 destellos ROJOS contables**, y luego el equipo intenta Modo Automático.
 - Destellos contados: ________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**8.3 `B · B · B` → ÁMBAR, con 3 destellos rojos**
-- *Acción:* Accionar `B` tres veces en **menos de 12 s**.
+**8.3 `B · B · B` → ÁMBAR, con 3 destellos rojos** — ♻️ **SE REESCRIBE** *(entrada por puente)*
+- *Acción:* tres pulsos `B` (`J16` p8 a masa) en **menos de 12 s**.
 - *Esperado:* **3 destellos ROJOS** y el equipo pasa a 🟡 Ámbar intermitente.
 - Destellos contados: ________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**8.4 `B · B · B` funciona DESDE CUALQUIER ESTADO** 🛟
-- *Acción:* Repetir 8.3 desde **cada uno** de estos estados: Modo Manual, Modo Automático a mitad de verde, Modo Inteligente, y Modo Degradado activo.
-- *Esperado:* En **todos** los casos va a ámbar, **sin condiciones ni rechazos**.
+**8.4 `B · B · B` funciona DESDE CUALQUIER ESTADO** 🛟 — ♻️ **SE REESCRIBE**
+- *Acción:* repetir 8.3 desde **cada uno** de estos estados: Modo Manual, Modo Automático a mitad de
+  verde, Modo Inteligente, y Modo Degradado activo.
+- *Esperado:* en **todos** los casos va a ámbar, **sin condiciones ni rechazos**.
 - Estados probados con éxito: ______ de 4
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Por qué se prueba desde todos:* es la regla que **impide que nadie quede atrapado** con un semáforo en un estado raro a 5 m de altura y sin escalera a mano. Si falla desde algún estado, es un hallazgo de seguridad.
+- > *Por qué se prueba desde todos:* es la regla que **impide que nadie quede atrapado** con un
+  > semáforo en un estado raro a 5 m de altura. Si falla desde algún estado, es un hallazgo de
+  > seguridad. **Es la salida de emergencia: si pide algo para funcionar, no es una salida de
+  > emergencia.**
 
-**8.5 Los destellos son ROJOS, nunca verdes** 🔴
-- *Acción:* Observar las tres confirmaciones **desde lejos**, como lo haría un conductor que se acerca.
-- *Esperado:* **Solo destella el ROJO.** En ningún momento se enciende el verde ni los tres colores a la vez.
+**8.5 Los destellos son ROJOS, nunca verdes** 🔴 — ♻️ **SE REESCRIBE**
+- *Acción:* observar las confirmaciones **desde lejos**, como lo haría un conductor que se acerca.
+- *Esperado:* **sólo destella el ROJO.** En ningún momento se enciende el verde ni los tres colores.
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Por qué importa:* el operario cuenta destellos **sin ver la pantalla**. Si cuenta mal, el peor caso debe seguir siendo seguro — y **el rojo nunca significa "pase"**. Un destello verde podría ser interpretado por un conductor lejano como autorización de paso.
+- > *Por qué importa:* el operario cuenta destellos **sin ver ninguna pantalla** — y ahora eso ya no
+  > es una hipótesis de uso, es la única forma que hay. Si cuenta mal, el peor caso debe seguir
+  > siendo seguro, y **el rojo nunca significa «pase»**.
 
-**8.6 CON EL MENÚ ABIERTO, LAS SECUENCIAS SE IGNORAN** 🔒 *(prueba de seguridad crítica)*
-- *Acción:* Dejar el equipo **con el menú abierto**. Desde el piso, ejecutar `B·B·B`, luego `A·A·A`, luego `A·B·A·B`.
-- *Esperado:* **Ninguna secuencia se reconoce.** No hay destellos, no cambia de modo, no entra en Degradado. El cursor simplemente se mueve.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > **Por qué es crítica, con el caso concreto:** con el menú abierto, una ráfaga accidental de pulsos podría llevar el cursor hasta `CONFIGURACION → AJUSTAR HORA` y, con unos pulsos más, **confirmar una hora cualquiera que el equipo daría por válida**. A partir de ahí el Modo Degradado entraría sobre una hora inventada, con las dos puntas desfasadas y nadie enterado. Es exactamente el fallo que el diseño del reloj existe para evitar. **Si esta prueba no cumple, es un hallazgo de seguridad vial: RECHAZAR.**
+**8.6 Con el menú abierto, las secuencias se ignoran** — 🚫 **SE RETIRA**
+- *Por qué:* **la condición no se puede provocar.** `menu_estaAbierto()` no puede ser cierto, porque
+  se abre con `botonAceptar()` y ése devuelve `false` siempre (`Esclavo/src/botones.cpp:291-293`,
+  **MEDIDO**). La función `secuenciasInhibidas()` sigue en el fuente de las dos puntas y **se ha
+  quedado sin sujeto**.
+- **No se firma.**
+- > 🔴 **Se retira la prueba, no la preocupación.** El riesgo que cubría —una ráfaga accidental de
+  > pulsos confirmando una hora inventada— **desapareció con la pantalla de ajuste**, así que la
+  > retirada es honesta. Lo que queda anotado para desarrollo es distinto: **hay una barrera de
+  > seguridad en el firmware que hoy no puede activarse nunca.** Un código muerto dentro de una regla
+  > de seguridad no es neutro, y merece decisión: se conecta a otra condición, o se retira a
+  > sabiendas.
 
-**8.7 Ráfagas accidentales no dejan el equipo en estado peligroso**
-- *Acción:* Con el equipo **fuera del menú**, accionar `A` y `B` de forma desordenada durante un minuto (simulando un pulso espurio o un operario confundido).
-- *Esperado:* El equipo termina en **Automático, en Ámbar, o donde estaba** — nunca en un estado peligroso, y **nunca en Degradado si los requisitos no se cumplen**.
+**8.7 Ráfagas accidentales no dejan el equipo en estado peligroso** — ♻️ **SE REESCRIBE**
+- *Acción:* dar pulsos `A` y `B` de forma desordenada durante un minuto (simulando un pulso espurio
+  o un operario confundido).
+- *Esperado:* el equipo termina en **Automático, en Ámbar, o donde estaba** — nunca en un estado
+  peligroso, y **nunca en Degradado si los requisitos no se cumplen**.
 - Estado final: ______________________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**8.8 `C` y `D` NO forman secuencias**
-- *Acción:* Con el equipo fuera del menú, accionar `C·C·C` y luego `D·D·D`.
-- *Esperado:* **Ninguna secuencia se dispara.** Solo se usan `A` y `B`.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+**8.8 `C` y `D` NO forman secuencias** — 🚫 **SE RETIRA**
+- *Por qué:* **ya no hay canales `C` ni `D`.** Sus pines (`J16` p10 y p12, `PB14`/`PB15`) pasaron a
+  ser entradas de cámara. No hay nada que pulsar y por tanto nada que no deba dispararse.
+- **No se firma.**
+
+**8.9 Que los pulsos lleguen desde el piso, por radio** ➕ **NUEVA** — ⏸️ **SE APLAZA**
+- *Qué mediría:* que el mando funcione **en su condición real de uso**: alguien de pie en el suelo,
+  a distancia, sin ver el equipo. Es lo que el puente de §0.3 **no** demuestra.
+- **Falta: el receptor de radio del mando. Nunca se compró.** La tarjeta tiene las entradas
+  preparadas; falta el aparato.
+- **No se firma.** *(Guía, paso 23: si no lo tiene, se marca «No se pudo» con ese motivo — **nunca**
+  como correcto.)*
+- > ⚠️ **Y hay una decisión de seguridad abierta antes de comprarlo (N-19):** si se quieren mandos en
+  > las dos puntas, ¿llevan **el mismo código o códigos distintos**? Un solo código metería las dos
+  > torres en Degradado a la vez desde el piso, **saltándose la verificación de cada punta**;
+  > códigos distintos obligan a comprobar torre por torre. **No está decidido. Que el funcional
+  > opine antes de comprar nada.**
 
 ---
 
@@ -557,64 +763,86 @@ Desfase Esclavo medido: ________ s     Ultima sincronizacion: ______:______
 
 > ## ⚠️ ANTES DE EMPEZAR ESTA SECCIÓN
 >
-> **1. Lea completo el `8_Procedimiento_Modo_Degradado.md`.** No ejecute estas pruebas sin conocer los
-> riesgos residuales de su Sección 6.
+> **1. Lea completo el `8_Procedimiento_Modo_Degradado.md`**, y en particular los riesgos residuales
+> de su Sección 6.
 >
-> **2. Estas pruebas se hacen con el tramo CERRADO al tráfico.** Varias de ellas provocan
-> deliberadamente el escenario de verde en una punta y ámbar en la otra.
+> **2. Estas pruebas se hacen con el tramo CERRADO al tráfico.** Varias provocan deliberadamente el
+> escenario de verde en una punta y ámbar en la otra.
 >
 > **3. La Sección 7 debe estar CUMPLE** — sin reloj en hora y sincronizado, el modo no entra.
 >
-> Material necesario: forma de **cortar el radio** (desconectar antena o apagar la radio) y **dos
-> observadores**, uno en cada punta, con forma de comunicarse.
+> **4. La entrada en el ESCLAVO sólo es posible por el puente de `J16` (§0.3).** No hay comando, no
+> hay pantalla y no hay receptor. Si el paso 14 de la Guía desaconseja el puente, **de 9.6 en
+> adelante no se ejecuta nada** y se anota el motivo.
+>
+> Material: forma de **cortar el radio** y **dos observadores**, uno en cada punta, comunicados.
 
-**9.1 Sin radio, el comportamiento por defecto SIGUE siendo el ámbar** ✅
-- *Acción:* Con el sistema en Modo Automático, desconectar la antena del Maestro. Esperar **5 minutos sin tocar nada**.
-- *Esperado:* A los **25 s** ambas puntas van a 🟡 Ámbar intermitente **y se quedan ahí**. **El equipo NO entra solo en Modo Degradado, ni a los 5 minutos ni nunca.**
+**9.1 Sin radio, el comportamiento por defecto SIGUE siendo el ámbar** ✅ — ♻️ **SE REESCRIBE**
+- *Acción:* con el sistema en Modo Automático, desconectar la antena del Maestro. Esperar
+  **5 minutos sin tocar nada**.
+- *Esperado:* a los **25 s** ambas puntas van a 🟡 Ámbar intermitente **y se quedan ahí**. **El
+  equipo NO entra solo en Modo Degradado, ni a los 5 minutos ni nunca.**
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Es la prueba más importante de la sección.* Si el equipo entrara solo, estaría dando verde **sin poder saber si la otra punta sigue viva** — podría estar apagada, colgada o movida a otra obra. **Si esta prueba no cumple: RECHAZAR.**
+- > *Es la prueba más importante de la sección.* Si el equipo entrara solo, estaría dando verde **sin
+  > poder saber si la otra punta sigue viva** — podría estar apagada, colgada o movida a otra obra.
+  > **Si esta prueba no cumple: RECHAZAR.**
 
-**9.2 Rechazo con el reloj sin poner en hora**
-- *Acción:* Con una unidad **sin hora fiable**, intentar entrar al Modo Degradado desde la pantalla.
-- *Esperado:* **Lo rechaza**, y dice el motivo: `Falta: reloj sin poner en hora`.
-- Mensaje mostrado: ______________________________________
+**9.2 Rechazo con el reloj sin poner en hora** — ♻️ **SE REESCRIBE**
+- *Acción:* con el Maestro **sin hora fiable**, mandar `CMD:PIN:1234:SET_MODO:DEGRADADO`.
+- *Esperado:* **lo rechaza** con `$ERR,CMD:SET_MODO:DEGRADADO,DESC:<motivo>`, y **el motivo es el
+  dato**: se copia literal, sin resumir.
+- Respuesta literal: ______________________________________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**9.3 Rechazo sin sincronización previa por radio**
-- *Acción:* Con la hora puesta pero **sin que haya habido nunca sincronización** con la otra punta, intentar entrar.
-- *Esperado:* **Rechazado**, con motivo `Falta: nunca hubo sincronizacion RF`.
-- Mensaje mostrado: ______________________________________
+**9.3 Rechazo sin sincronización previa por radio** — ♻️ **SE REESCRIBE**
+- *Acción:* con la hora puesta pero **sin que haya habido nunca sincronización** con la otra punta,
+  mandar `CMD:PIN:1234:SET_MODO:DEGRADADO`.
+- *Esperado:* **rechazado**, con su motivo en el `$ERR`.
+- Respuesta literal: ______________________________________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**9.4 Rechazo con sincronización caducada (más de 2 h)**
-- *Acción:* Sincronizar, luego dejar el radio caído **más de 2 horas**. Intentar entrar.
-- *Esperado:* **Rechazado**, con motivo `Falta: la ultima sync es muy vieja`.
-- Horas transcurridas: ________  Mensaje: ______________________________________
+**9.4 Rechazo con sincronización caducada (más de 2 h)** — ♻️ **SE REESCRIBE**
+- *Acción:* sincronizar, dejar el radio caído **más de 2 horas**, y mandar la orden.
+- *Esperado:* **rechazado**, con su motivo.
+- Horas transcurridas: ________  Respuesta literal: ______________________________________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Por qué no basta con medir el desfase:* la medida de desfase transporta **solo el segundo**, así que un desfase real de 45 s **se lee como −15 s**. Un desfase peligroso podría pasar por aceptable. Lo que cierra ese agujero es **la frescura**: tras una sincronización de hace una hora la deriva es de ~0,36 s y la medida no puede estar equivocada. **El desfase es una comprobación de cordura; la garantía es la sincronización reciente.**
+- > *Por qué no basta con medir el desfase:* la medida interna transporta **sólo el segundo**, así que
+  > un desfase real de 45 s **se lee como −15 s**. Lo que cierra ese agujero es **la frescura**: tras
+  > una sincronización de hace una hora la deriva es de ~0,36 s y la medida no puede estar
+  > equivocada. **El desfase es una comprobación de cordura; la garantía es la sincronización
+  > reciente.**
 
-**9.5 Rechazo desde el piso: ámbar rápido en vez de destellos**
-- *Acción:* Con alguno de los requisitos sin cumplir, ejecutar `A·B·A·B` desde el mando.
-- *Esperado:* **NO hay 4 destellos rojos.** Aparece un **ámbar rápido** que significa *rechazado*, y el equipo **no entra**.
+**9.5 Rechazo desde el piso: ámbar rápido en vez de destellos** — ♻️ **SE REESCRIBE** *(por puente)*
+- *Acción:* con alguno de los requisitos sin cumplir, dar `A · B · A · B` en menos de 18 s.
+- *Esperado:* **NO hay 4 destellos rojos.** Aparece un **ámbar rápido** que significa *rechazado*, y
+  el equipo **no entra**.
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Por qué se distingue así:* los destellos rojos significan **"hecho"**. Un rechazo no puede confirmarse con el mismo lenguaje que un éxito, o el operario se va creyendo que el modo quedó activo.
+- > *Por qué se distingue así:* los destellos rojos significan **«hecho»**. Un rechazo no puede
+  > confirmarse con el mismo lenguaje que un éxito, o el operario se va creyendo que quedó activo.
 
-**9.6 Entrada correcta en las DOS puntas y verificación visual** 👁️
-- *Acción:* Cumplidos los requisitos, cortar el radio y entrar al Degradado **en el Maestro y en el Esclavo** siguiendo el `8_Procedimiento_Modo_Degradado.md §3`.
-- *Anotar cómo se activó cada punta:*
+**9.6 Entrada correcta en las DOS puntas** 👁️ — ♻️ **SE REESCRIBE**
+- *Acción:* cumplidos los requisitos y cortado el radio, entrar al Degradado en cada punta:
+  - **MAESTRO:** `CMD:PIN:1234:SET_MODO:DEGRADADO` → `$ACK,...,RESULT:OK`, **o** `A·B·A·B` por puente.
+  - **ESCLAVO:** **sólo `A·B·A·B` por el puente de `J16` p5/p8.** No hay otra vía.
+- *Esperado:* las dos puntas entran, y la del mando confirma con **4 destellos ROJOS**.
 
 ```text
-MAESTRO: [ ] desde la pantalla   [ ] con A.B.A.B desde el piso  -> destellos contados: ____
-ESCLAVO: [ ] desde la pantalla (subiendo al gabinete)   [ ] N/A
-   Tiempo que tomó subir al gabinete del Esclavo: ________ min
+MAESTRO: [ ] por comando   [ ] con A.B.A.B por puente  -> destellos contados: ____
+ESCLAVO: [ ] con A.B.A.B por puente   [ ] NO se pudo entrar, motivo: ______________
 ```
 
-- *Esperado:* **Doble confirmación** en cada punta (`Botón 3` → `CONFIRMAR ENTRADA?` → `Botón 3`).
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+- > 🔴 **La doble confirmación desapareció, y no por decisión de diseño.** Antes entrar exigía dos
+  > pulsaciones (`Botón 3` → `CONFIRMAR ENTRADA?` → `Botón 3`) contra una sola para salir: **lo
+  > peligroso difícil, lo seguro fácil**. Esa asimetría vivía en la pantalla. Hoy el Maestro entra
+  > con **un solo comando** y el Esclavo con **una sola secuencia**. **No es un fallo de esta
+  > sesión, es una decisión pendiente**: si la protección de entrada debe reconstruirse por comando,
+  > lo decide el responsable. Anótelo si le parece relevante para su dictamen.
 
-**9.7 VERIFICACIÓN VISUAL DEL CICLO — al menos 2 ciclos completos** 👁️👁️
-- *Acción:* Con las dos puntas en Degradado, **observar dos ciclos completos (4 minutos)** con un observador en cada punta.
-- *Marcar cada punto con lo observado en las LUCES, no en la pantalla:*
+**9.7 VERIFICACIÓN VISUAL DEL CICLO — al menos 2 ciclos completos** 👁️👁️ — ♻️ **SE REESCRIBE**
+- *Acción:* con las dos puntas en Degradado, **observar dos ciclos completos (4 minutos)** con un
+  observador en cada punta.
+- *Marcar cada punto con lo observado en las LUCES:*
 
 ```text
 [ ] Maestro VERDE  <->  Esclavo ROJO           (verificado a las ______)
@@ -626,280 +854,466 @@ ESCLAVO: [ ] desde la pantalla (subiendo al gabinete)   [ ] N/A
 
 - Duración medida del ciclo completo: ________ s *(esperado ~120 s)*
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > **Por qué mirar las luces y no la pantalla.** Cada unidad muestra la fase que *ella* calcula. Si las dos calculan mal —relojes desfasados, versiones de firmware distintas, una unidad reiniciada— **las dos pantallas dirán que todo va bien** mientras las luces cuentan otra historia. **La pantalla informa; las luces son la evidencia.**
-- > **Verde simultáneo en las dos puntas es la única forma en que este equipo puede matar a alguien.** Si lo observa, corte el modo con `B·B·B` de inmediato y **RECHACE**.
+- > **Por qué las luces y no la telemetría.** Cada unidad informa de la fase que *ella* calcula. Si
+  > las dos calculan mal —relojes desfasados, versiones distintas, una unidad reiniciada— **las dos
+  > dirán que todo va bien** mientras las luces cuentan otra historia. Y ahora hay una razón más
+  > dura todavía: **el `$STATUS` del Esclavo dice `MODO:SUBORDINADO` pase lo que pase** (§0.2), así
+  > que desde el teléfono **no se puede ni saber que está en Degradado**. **Las luces son la
+  > evidencia.**
+- > **Verde simultáneo en las dos puntas es la única forma en que este equipo puede matar a alguien.**
+  > Si lo observa, saque las dos puntas con `B·B·B` de inmediato y **RECHACE**.
 
-**9.8 Corte de energía en UNA punta — riesgo residual nº 2** ⚠️ *(documentar, no necesariamente rechazar)*
-- *Acción:* Con las dos puntas en Degradado, **cortar y restituir la alimentación de una sola unidad**.
-- *Esperado hoy:* la unidad reiniciada **arranca en el menú, sin enlace, y cae a ÁMBAR**, mientras **la otra sigue dando verde por reloj**.
+**9.8 Corte de energía en UNA punta — riesgo residual nº 2** ⚠️ — ♻️ **SE REESCRIBE**
+- *Acción:* con las dos puntas en Degradado, **cortar y restituir la alimentación de una sola unidad**.
+- *Esperado hoy:* la unidad reiniciada **arranca en reposo, sin enlace, y cae a ÁMBAR**, mientras
+  **la otra sigue dando verde por reloj**.
 - Lo observado: ______________________________________
-- Resultado: `[ ] SE REPRODUJO  [ ] NO SE REPRODUJO` — Observación: ________________________________
-- > **Esto es el riesgo residual nº 2, conocido y aceptado por el cliente el 01/08/2026.** No es un defecto nuevo: es la consecuencia de que el estado del modo viva en RAM (pendiente **N-20**, módulo escrito y sin conectar). Un lado en ámbar contra un lado en verde es **exactamente el escenario que este modo quiere evitar**: el conductor del lado en verde entra confiado a un tramo que el otro lado está negociando.
-- > **La mitigación es procedimental, no técnica:** verificación visual de ambas puntas, también al salir. Esta prueba existe para que el funcional **vea el escenario con sus ojos antes de firmar**, no para descubrirlo en obra.
+- Resultado: `[ ] SE REPRODUJO  [ ] NO SE REPRODUJO` — *(escenario documentado, no puntuado)*
+- > **Es el riesgo residual nº 2, conocido y aceptado.** No es un defecto nuevo: el estado del modo
+  > vive en RAM (pendiente **N-20**, módulo escrito y sin conectar). Un lado en ámbar contra un lado
+  > en verde es **exactamente el escenario que este modo quiere evitar**.
+  > **La mitigación es procedimental, no técnica:** verificación visual de ambas puntas, también al
+  > salir. Esta prueba existe para que el funcional **lo vea con sus ojos antes de firmar**.
+- > 🔴 **Y con la arquitectura de hoy es peor que antes, por una razón concreta:** si la unidad que
+  > se reinicia es el **Esclavo**, ya no queda ninguna forma de devolverlo al Degradado salvo volver
+  > al puente de `J16`. Antes bastaba con subir al gabinete y usar su pantalla.
 
-**9.9 Salida asimétrica provocada** ⚠️
-- *Acción:* Con las dos puntas en Degradado, sacar del modo **una sola** unidad con `A·A·A`.
-- *Esperado:* Se reproduce el mismo escenario que 9.8 — una punta en ámbar, la otra en verde.
-- Resultado: `[ ] SE REPRODUJO  [ ] NO SE REPRODUJO` — Observación: ________________________________
-- > *Para qué sirve provocarlo:* demuestra por qué **la verificación visual de ambas puntas es obligatoria también AL SALIR**, no solo al entrar. Es la razón de que ese paso esté en el procedimiento y en esta acta.
+**9.9 Salida asimétrica provocada** ⚠️ — ♻️ **SE REESCRIBE**
+- *Acción:* con las dos puntas en Degradado, sacar del modo **una sola** unidad con `A·A·A` por puente.
+- *Esperado:* se reproduce el mismo escenario que 9.8 — una punta en ámbar, la otra en verde.
+- Resultado: `[ ] SE REPRODUJO  [ ] NO SE REPRODUJO` — *(escenario documentado, no puntuado)*
+- > *Para qué sirve provocarlo:* demuestra por qué **la verificación visual de ambas puntas es
+  > obligatoria también AL SALIR**, no sólo al entrar.
 
-**9.10 Salida a Automático desde el piso**
-- *Acción:* Con el radio **restablecido**, ejecutar `A·A·A` en **ambas** unidades.
-- *Esperado:* 2 destellos rojos, y a los ~15 s **las luces vuelven a ciclar** en modo Automático.
+**9.10 Salida a Automático desde el piso** — ♻️ **SE REESCRIBE**
+- *Acción:* con el radio **restablecido**, dar `A·A·A` por puente en **ambas** unidades.
+- *Esperado:* 2 destellos rojos y, a los ~15 s, **las luces vuelven a ciclar**.
+- > *Ojo a la asimetría, que es de diseño y no un fallo:* en el **Maestro**, `A·A·A` significa
+  > *«ponte en Automático»*; en el **Esclavo** significa *«vuelve a obedecer al Maestro»*
+  > (`Esclavo/src/mando.cpp:109-127`, **MEDIDO**). No son la misma orden, y por eso hay que darla en
+  > las dos.
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**9.11 Salida a Automático con el radio TODAVÍA muerto**
-- *Acción:* Con el radio aún desconectado, ejecutar `A·A·A` en ambas unidades.
+**9.11 Salida a Automático con el radio TODAVÍA muerto** — ♻️ **SE REESCRIBE**
+- *Acción:* con el radio aún desconectado, dar `A·A·A` en ambas unidades.
 - *Esperado:* 2 destellos, intenta Automático, **y a los 25 s cae solo a 🟡 Ámbar** en ambas.
 - Segundos hasta el ámbar: ________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Por qué esta prueba tranquiliza:* **el peor caso de intentar Automático es volver al ámbar**, que es justo donde se quería estar. Por eso volver a Automático no necesita protección y su secuencia es corta.
+- > *Por qué esta prueba tranquiliza:* **el peor caso de intentar Automático es volver al ámbar**,
+  > que es justo donde se quería estar.
 
-**9.12 LÍMITE DURO DE 48 h — el modo se rinde solo** ⏱️
-- *Acción:* Dejar el Modo Degradado activo **sin radio** y sin resincronizar. Observar a las **44 h** y a las **48 h**.
-- *Esperado:*
-  - A partir de las **44 h**: la pantalla muestra `AVISO: LIMITE 48h`.
-  - A las **48 h**: el modo **cae solo a 🟡 ámbar intermitente**, con el mensaje `Limite 48h sin sync — Revise el radio`. **Sin que nadie intervenga.**
-- Hora de entrada al modo: ________  Hora del aviso: ________  Hora de la caída a ámbar: ________
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > **Por qué existe el límite, con el número concreto:** el colchón que impide el verde simultáneo es el todo-rojo de 30 s, y se lo come la deriva de dos cristales sin calibrar a la intemperie (**±30 a 50 ppm**, ~8,6 s de separación por día). Con 30 s de todo-rojo el margen teórico son **~3,5 días**; las 48 h dejan **factor de seguridad 2**.
-- > **Y por qué es un tope y no un aviso:** *el estado seguro no puede depender de que alguien se acuerde.* Es el mismo principio del fallback de 25 s y del piso de 5 s del despeje. Un modo degradado que dependa de que un operario vuelva a tiempo no es un modo degradado: es una apuesta.
-- > *Si necesita más autonomía, la respuesta no es alargar el plazo:* una semana obligaría a un todo-rojo de ~90 s, que destroza la fluidez del paso. **La alternativa real es ir a arreglar el radio.**
+**9.12 Límite duro de 48 h** ⏱️ — ⏸️ **SE APLAZA**
+- *Qué mediría:* que a las **44 h** apareciera el aviso `LIMITE 48h` y que a las **48 h** el modo
+  cayera solo a ámbar intermitente, sin que nadie intervenga.
+- **Falta:** el aviso de las 44 h **se mostraba en pantalla** y hoy no hay ningún campo de telemetría
+  que lo exponga; y la caída de las 48 h **no se cronometra en una sesión de banco**.
+- **No se firma.** Queda como **prueba larga pendiente**, y su mitad observable —la caída a ámbar—
+  se puede medir en una prueba de duración dedicada, no aquí.
+- > **Por qué el límite existe, con el número concreto:** el colchón que impide el verde simultáneo
+  > es el todo-rojo de 30 s, y se lo come la deriva de dos cristales sin calibrar a la intemperie
+  > (**±30 a 50 ppm**, ~8,6 s de separación por día). El margen teórico son ~3,5 días; las 48 h dejan
+  > **factor de seguridad 2**. **Y es un tope, no un aviso:** *el estado seguro no puede depender de
+  > que alguien se acuerde.* Si hace falta más autonomía, la respuesta no es alargar el plazo —una
+  > semana obligaría a un todo-rojo de ~90 s— sino **ir a arreglar el radio**.
 
-**9.13 Salir y volver a entrar NO reinicia la cuenta de 48 h**
-- *Acción:* Con el modo llevando ya varias horas activo y sin radio, salir con `B·B·B` y volver a entrar.
-- *Esperado:* La cuenta **sigue donde iba**. Solo una **sincronización nueva por radio** la reinicia.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Por qué:* el límite mide **el tiempo desde la última sincronización real**, no desde la última pulsación. Si bastara con salir y entrar, cualquiera podría estirar el plazo indefinidamente sin haber corregido nada — y la deriva seguiría corriendo igual.
+**9.13 Salir y volver a entrar NO reinicia la cuenta de 48 h** — ⏸️ **SE APLAZA**
+- *Qué mediría:* que la cuenta siga donde iba, y que **sólo una sincronización nueva por radio** la
+  reinicie.
+- **Falta:** no hay hoy **por dónde leer la cuenta**. Es el mismo hueco de 7.10. Sin exponerla en el
+  `$STATUS`, la prueba no se puede observar en menos de 48 h.
+- **No se firma.**
 
-**9.14 Comportamiento en el cambio de medianoche**
-- *Acción:* Dejar el Modo Degradado corriendo **a través de las 00:00**, con observadores en ambas puntas.
-- *Esperado:* Al cruzar la medianoche **ambas puntas quedan en todo-rojo**. **No debe saltarse el despeje ni darse verde sin todo-rojo previo.**
+**9.14 Comportamiento en el cambio de medianoche** — ♻️ **SE REESCRIBE**
+- *Acción:* dejar el Modo Degradado corriendo **a través de las 00:00**, con observadores en ambas
+  puntas.
+- *Esperado:* al cruzar la medianoche **ambas puntas quedan en todo-rojo**. **No debe saltarse el
+  despeje ni darse verde sin todo-rojo previo.**
 - Lo observado entre 23:58 y 00:02: ______________________________________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Por qué se prueba específicamente:* a las 00:00:00 el contador del día vuelve a cero, y si la duración del ciclo no divide exactamente al día —casi nunca lo hace— **la posición del ciclo salta**. Las dos unidades saltan igual y a la vez, así que no se desincronizan; el problema es otro y es peor: **ese salto podría caer en mitad de un verde y saltarse el despeje**, dando verde a la otra punta sin todo-rojo de por medio. El firmware fuerza todo-rojo alrededor de la medianoche precisamente por eso, y aquí se comprueba que lo hace.
+- > *Por qué se prueba específicamente:* a las 00:00:00 el contador del día vuelve a cero, y si la
+  > duración del ciclo no divide exactamente al día —casi nunca lo hace— **la posición del ciclo
+  > salta**. Las dos unidades saltan igual y a la vez, así que no se desincronizan; el problema es
+  > otro y es peor: **ese salto podría caer en mitad de un verde y saltarse el despeje**.
+
+**9.15 El Esclavo no acepta ninguna orden de modo** ➕ **NUEVA** — ♻️ *(ejecutable hoy)*
+- *Por qué existe:* documenta con una medida lo que hoy es el hueco más grande del sistema. **Se
+  ejecuta y se firma**, porque el resultado tiene que quedar en el acta.
+- *Acción:* mandar al **Esclavo** `CMD:PIN:1234:SET_MODO:DEGRADADO` y después
+  `CMD:PIN:1234:SET_MODO:AUTO`.
+- *Esperado:* las dos contestan `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO`.
+- Respuestas literales: ______________________________________
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+- > 🔴 **Lo que este `$ERR` significa, dicho entero.** El Esclavo **no tiene ni un solo `SET_MODO:*`**
+  > (**MEDIDO**, `Esclavo/src/bluetooth.cpp`). Sumado a que no hay pantalla y a que
+  > `botonAceptar()` es `false`, hoy **las únicas vías que entran o sacan al Esclavo del Modo
+  > Degradado son el mando —sin receptor comprado— y la vuelta automática de la radio.** La vía de
+  > la pantalla (`Esclavo/src/menu.cpp:215`) **existe en el código y está muerta**, porque el
+  > `aceptar` que la dispara no puede ser cierto nunca.
+  >
+  > **En claro: si el Esclavo entra en Degradado y no hay puente ni receptor, la única forma de
+  > sacarlo es que vuelva la radio.** Es un dato para el dictamen, no una opinión.
+
+**9.16 El ámbar de emergencia de la app en un Esclavo en Degradado (N-106)** ➕ **NUEVA** — ♻️ *(ejecutable hoy, por puente)*
+- *Por qué existe:* es un **defecto abierto y conocido**, y esta sesión tiene que **ejercerlo**, no
+  ignorarlo. Está razonado por lectura del fuente y **nadie lo ha ejecutado nunca** — ni en banco ni
+  en arnés. Esta prueba es la primera vez que se mide.
+- *Acción:*
+  1. Poner el **Esclavo** en Modo Degradado con `A·B·A·B` por puente (requiere 9.6).
+  2. Confirmar en las **luces** que el Degradado gobierna: el Esclavo cicla verde/rojo por reloj.
+  3. Mandar al Esclavo `CMD:AMBAR_EMERGENCIA` (sin PIN).
+  4. **Observar las luces durante 3 minutos completos, sin tocar nada.**
+- *Anotar los tres datos, y los tres importan:*
+
+```text
+Respuesta literal del Esclavo: ______________________________________
+La luz paso a AMBAR INTERMITENTE?         [ ] SI   [ ] NO
+Y a los 3 minutos, seguia en AMBAR?       [ ] SI   [ ] NO, volvio a: ____________
+```
+
+- *Cómo se lee el resultado:*
+
+| lo que ocurre | qué significa |
+|---|---|
+| Contesta `$ACK,...,RESULT:OK` y **la luz vuelve a ciclar** por reloj | 🔴 **El defecto está vivo.** El equipo dijo que sí y no lo hizo: el ámbar pedido desde el teléfono se cae solo justo en el modo donde más falta hace |
+| Contesta `$ACK` y **se queda en ámbar** los 3 minutos | El arreglo está dentro y funciona. Anótelo con el `md5` del binario |
+| Contesta `$ERR` con un motivo | El equipo **declara que no puede**, que es honesto. Copie el motivo literal |
+
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+- > **Estado al redactar este documento (31/08, por lectura del árbol de trabajo):** el defecto
+  > **sigue abierto**. `Esclavo/src/bluetooth.cpp` no nombra el Degradado en ninguna línea y ni
+  > siquiera incluye su cabecera, mientras `Esclavo/src/mando.cpp:129-142` —la vía del `B·B·B`— sí
+  > comprueba `degradado_gobiernaLuz()` y llama a `degradado_salir()`. **Las dos vías de ámbar de
+  > emergencia no hacen lo mismo, y el firmware declara por escrito que sí.**
+  >
+  > **Se escribe la prueba, no el resultado.** El arreglo está en curso y puede estar dentro del
+  > binario que se cargue; por eso la tabla de arriba admite las tres salidas. **Lo que no vale es
+  > firmar esta casilla sin haber mirado las luces tres minutos**: el modo que las gobierna repinta
+  > la luz en cada vuelta, así que un ámbar que aparece **no demuestra** que el ámbar se quede.
 
 ---
 
-## 📑 SECCIÓN 10 — INTERFAZ PROPIA DEL ESCLAVO (N-16)
+## 📑 SECCIÓN 10 — INTERFAZ PROPIA DEL ESCLAVO
 
-> El Esclavo tenía pantalla en hardware desde antes, pero **su firmware no la usaba**. Desde la V8.7
-> sí. Esta sección certifica esa interfaz.
-
-**10.1 Menú de 2 opciones, con `ESTADO` primero**
-- *Acción:* En el Esclavo, pulsar Botón 4 hasta el menú y recorrerlo.
-- *Esperado:* **Exactamente 2 opciones legibles**: `ESTADO` (primera) y `MODO DEGRADADO` (segunda). **No hay modos de operación ni ajuste de hora.**
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *`ESTADO` va primero a propósito:* con el mando operando a ciegas, lo peor que puede hacer un pulso de aceptar perdido es **mostrar un diagnóstico**. Si la primera opción fuera `MODO DEGRADADO`, un pulso suelto llevaría directo a la pantalla que habilita verdes sin confirmación del otro extremo.
-
-**10.2 La pantalla `ESTADO` muestra lo que hace falta**
-- *Acción:* Entrar en `ESTADO`.
-- *Esperado:* Hora **con segundos** y si es fiable · antigüedad de la última sincronización · contadores de línea RS-485 · estado actual de la luz. **Se refresca una vez por segundo.**
-- Lo que muestra: ______________________________________
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Los segundos no son un adorno:* `HH:MM` no sirve para validar nada — dos relojes a 40 s de distancia muestran el mismo `14:32`. Ésta es la comprobación de respaldo cuando el radio ya murió y no hay medida de desfase disponible.
-
-**10.3 El menú del Esclavo NO detiene nada que estuviera funcionando**
-- *Acción:* Con el sistema en Modo Automático y enlace activo, entrar al menú del Esclavo y navegarlo.
-- *Esperado:* Las luces se comportan igual que cuando se entra al menú del Maestro: **🔴 Rojo Fijo continuo** en ambas puntas.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-
-**10.4 Aviso de Modo Degradado activo en el pie del menú**
-- *Acción:* Con el Modo Degradado gobernando la luz en el Esclavo, volver a su menú.
-- *Esperado:* El pie del menú muestra **`MODO DEGRADADO ACTIVO`**, sin necesidad de entrar a ninguna pantalla.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *Por qué está en el pie y no dentro de una pantalla:* es el dato que **cambia el significado de todo lo demás**. Un técnico que suba a revisar y no sepa que el cruce va por reloj **puede creer que el radio funciona** y dar por buena una avería que sigue ahí.
-
-**10.5 Entrada al Degradado desde el Esclavo con doble confirmación**
-- *Acción:* En `MODO DEGRADADO` del Esclavo, pulsar Botón 3.
-- *Esperado:* Aparece `CONFIRMAR ENTRADA?` con el aviso `Verifique el Maestro`. **Hace falta un segundo Botón 3** para entrar. Botón 4 cancela.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > *La asimetría es deliberada:* **entrar exige dos pulsaciones; salir, una.** Salir lleva el equipo hacia el estado seguro y no necesita protección; entrar habilita verdes sin confirmación del otro extremo, y eso sí. **Lo peligroso se hace difícil; lo seguro, fácil.**
+> 🚫 **LA SECCIÓN ENTERA SE RETIRA — sus 5 pruebas (10.1 a 10.5).**
+>
+> Certificaba la pantalla y el menú propios del Esclavo: sus dos opciones, la pantalla `ESTADO`, el
+> aviso `MODO DEGRADADO ACTIVO` en el pie y la doble confirmación de entrada. **Los cinco puntos
+> viven en una pantalla que no conduce sus pines y en un menú que no se puede abrir.**
+>
+> **Ninguna lleva casilla. No se firman.**
+>
+> 🔴 **Dos huecos declarados que salen de aquí y no se cierran retirando la sección:**
+>
+> 1. **Ya no hay forma de saber, desde fuera, si el Esclavo está en Modo Degradado.** El aviso del
+>    pie del menú lo decía sin entrar a ninguna pantalla, y era el dato que **cambia el significado
+>    de todo lo demás**: un técnico que revise sin saber que el cruce va por reloj **puede creer que
+>    el radio funciona** y dar por buena una avería que sigue ahí. El `$STATUS` del Esclavo no lo
+>    sustituye: `MODO:SUBORDINADO` es un literal fijo (§0.2). **Exponer el modo real del Esclavo en
+>    su `$STATUS` es trabajo de firmware, y hoy falta.**
+> 2. **La entrada al Degradado del Esclavo perdió su doble confirmación** al perder la pantalla. Ver
+>    la nota de 9.6.
 
 ---
 
-## 11. 📷 VALIDACIÓN DE CÁMARAS IA ACUSENSE (MODO INTELIGENTE)
+## 📑 SECCIÓN 11 — CÁMARAS DE DEMANDA
 
-Esta sección certifica la integración de las cámaras de detección vehicular por contacto seco de relé (`1A`/`1B`) conectadas a los pines libres de la tarjeta controladora: `PB0` (Demanda) y `PB8` (Umbral).
+> **Qué cambió:** no son cuatro cámaras ni hay pin de umbral. Son **dos cámaras de demanda, una por
+> poste**. La única entrada de cámara que el firmware del Maestro lee hoy es `CAM_DEMANDA_PIN = PB0`,
+> que sale por la bornera **`J14`** (`Maestro/include/pines.h:46`, **MEDIDO**).
+>
+> 🔴 **`PB8` NO es una entrada de cámara** y no lo ha sido nunca en el firmware. Alimenta un LED
+> testigo de la placa. Hay documentación antigua que dice lo contrario (Guía, apartado 09).
+>
+> 🔴 **Las cámaras de `J16` p10/p12 no se cablean en esta sesión** hasta que el paso 14 de la Guía
+> mida la resistencia de reposo de esos pines. Sin ella, un cable flojo no queda en reposo: **queda
+> flotando, y el ruido del armario mete peticiones de paso que nadie ha hecho.**
 
-**11.1 Demanda vehicular en Sentido 1 (Cámara 1 en Maestro)**
-- *Acción:* Simular o hacer cruzar un vehículo frente a la Cámara 1 (Maestro) estando el semáforo en Rojo o en reposo.
-- *Esperado:* Cierre de contacto `1A`/`1B` en `PB0` del Maestro. El Maestro registra la demanda, aplica el tiempo configurado de **Despeje Todo-Rojo (`cfgDespejeSeg`)** y conmuta a **🟢 Verde Maestro**.
+**11.1 Demanda en el Maestro (`J14`)** — ♻️ **SE REESCRIBE**
+- *Acción:* provocar una detección con la cámara —o con un pulsador suelto entre los dos bornes de
+  `J14`, que hace exactamente el mismo papel— estando ese sentido en Rojo.
+- *Esperado:* el Maestro registra la demanda, **aplica el todo-rojo de despeje** y conmuta a
+  🟢 Verde Maestro. **En reposo no pide paso solo.**
+- *El montaje y la comprobación de que el contacto conmuta de verdad están en los **pasos 11, 12 y 13
+  de la Guía**. No se repiten aquí: traiga de allí los números.*
+- Segundos hasta el verde: ________  En reposo, ¿pidió paso solo? ____________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**11.2 Demanda vehicular en Sentido 2 (Cámara 3 en Esclavo)**
-- *Acción:* Simular o hacer cruzar un vehículo frente a la Cámara 3 (Esclavo).
-- *Esperado:* Cierre de contacto `1A`/`1B` en `PB0` del Esclavo. El Esclavo transmite la demanda al Maestro por `RS485_OUT`, el Maestro aplica **Todo-Rojo de Despeje** y conmuta a **🟢 Verde Esclavo**.
+**11.2 Demanda en el Esclavo, y el Maestro decide** — ♻️ **SE REESCRIBE**
+- *Acción:* provocar la detección en el `J14` del **Esclavo**. Alternativa sin cámara: mandarle
+  `CMD:PIN:1234:SOLICITAR_PASO`.
+- *Esperado:* `$ACK,CMD:SOLICITAR_PASO,RESULT:PEDIDO_AL_MAESTRO`. El Esclavo **transmite la petición
+  al Maestro y no enciende nada por su cuenta**; el Maestro aplica el todo-rojo y concede el verde.
+- Vía usada: ____________  Segundos hasta el verde: ________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+- > **La asimetría es la regla, no un defecto: el Esclavo pide y el Maestro decide** (SFTY-27). Si el
+  > Esclavo encendiera verde por su cuenta al detectar un vehículo, estaría abriendo un carril sin
+  > que nadie compruebe el otro.
 
-**11.3 Inmunidad a Peatones, Sombras y Lluvia (Filtro AcuSense)**
-- *Acción:* Una persona camina, salta o agita los brazos frente al lente de la cámara en el carril.
-- *Esperado:* El filtro AcuSense (*Solo Vehículo*) ignora a la persona: el relé **permanece abierto** y las luces no se alteran.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+**11.3 Inmunidad a peatones, sombras y lluvia (filtro AcuSense)** — ⏸️ **SE APLAZA**
+- *Qué mediría:* que el filtro *«sólo vehículo»* ignore a una persona que camina, salta o agita los
+  brazos frente al lente.
+- **Falta: la cámara real.** Es una propiedad **del procesador de la cámara**, no del semáforo: con
+  un pulsador suelto no se puede ejercer, y sustituirla por el pulsador sería firmar una casilla que
+  no midió nada.
+- **No se firma.**
 
-**11.4 Inmunidad e Independencia de los Botones del Panel LCD**
-- *Acción:* Verificar que las activaciones en `PB0` y `PB8` **NO afecten ni interactúen** con las entradas de los botones frontales (`PB9`, `PB13`, `PB14`, `PB15`).
-- *Esperado:* Los menús y botones del LCD permanecen 100% estables e independientes.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+**11.4 Independencia entre las entradas de cámara y los pulsadores** — 🚫 **SE RETIRA**
+- *Por qué:* medía que las activaciones en `PB0`/`PB8` no interfirieran con los pulsadores `PB9`,
+  `PB13`, `PB14`, `PB15`. **Hoy no hay dos sujetos que separar:** `PB8` no es entrada de cámara,
+  `PB14` y `PB15` **son las cámaras**, y `PB9`/`PB13` ya no son pulsadores de menú sino los canales
+  `A` y `B` del mando.
+- **No se firma.**
+- > 🔴 **Lo que sí hay que medir en su lugar ya está escrito, y es el paso 14 de la Guía**: la
+  > polaridad de reposo de `J16` p5, p8, p10 y p12, hoy en **contradicción medida** entre el netlist
+  > (pull-**down** de 10 kΩ, activo en ALTO) y el fuente (`INPUT_PULLUP`, activo en BAJO). Cablear al
+  > revés da **demanda permanente** o **demanda que nunca llega**: las dos son de calle.
 
 ---
 
-## 12. 📱 MÓDULO BLUETOOTH DE TELEMETRÍA Y DIAGNÓSTICO (BALIZA)
+## 📑 SECCIÓN 12 — TELEMETRÍA Y ÓRDENES POR EL PUERTO SERIE
 
-Esta sección certifica la consola inalámbrica de servicio por Bluetooth en el puerto `USART1` (`PA9` TX, `PA10` RX).
+**12.1 Emparejamiento y enlace Bluetooth** — ⏸️ **SE APLAZA**
+- *Qué mediría:* que el móvil empareje con el módulo a 10 m, en menos de 5 s.
+- **Falta: la placa del ESP32** (no diseñada, no fabricada, no medida), **su fuente** (DC-DC 12 V→5 V
+  ≥1 A, sin pedir) y **el firmware del módulo**, que se entrega aparte.
+- **No se firma.** *(El montaje, cuando exista la placa, está en los pasos 16 a 19 de la Guía.)*
+- > ⚠️ **Y un requisito que va antes de comprar:** dos cruces vecinos ponen cuatro módulos al alcance
+  > del mismo teléfono. **El nombre del módulo es lo único que impide mandar una orden de emergencia
+  > al poste equivocado** (Guía, paso 19).
 
-**12.1 Emparejamiento y enlace inalámbrico**
-- *Acción:* Conectar el celular vía Bluetooth con PIN `1234` al semáforo a 10 metros de distancia.
-- *Esperado:* Enlace establecido en < 5 segundos. El LED del módulo Bluetooth pasa de parpadeo a **encendido fijo**.
+**12.2 Telemetría periódica `$STATUS`** — ♻️ **SE REESCRIBE**
+- *Acción:* con el terminal a 9600 en cada punta, observar el flujo un minuto.
+- *Esperado:* **una trama por segundo** en cada punta, con su checksum, en el formato de §0.2.
+  Comprobar que aparece `MODO:` y que **cambia** al mandar un `SET_MODO`.
+- *Y lo que hay que confirmar que NO es una medida* —copie los valores y compruebe que **no varían**:
+
+```text
+BAT del Maestro tras 5 min: ______   BAT del Esclavo: ______   (los dos deben salir 12.6 fijos)
+RF y RTT del Esclavo: ______ / ______   (deben salir 98% y 85ms fijos)
+```
+
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+- > **No son averías y no se reportan como tales**, pero **tampoco se usan para decidir nada**. Un
+  > campo que siempre da el mismo número no es un dato: es un adorno con formato de medida.
+
+**12.3 Caja Negra de Alarmas `$ALARM`** — ♻️ **SE REESCRIBE** *(la cifra estaba mal)*
+- *Qué cambia:* la revisión anterior mandaba cortar la antena **12 s** y esperar una alarma cuyo
+  propio texto de ejemplo decía `SILENCIO_25000ms`. **Con 12 s no salta nada**: el umbral son 25 s.
+- *Acción:* desconectar la antena del Esclavo y **mantenerla desconectada más de 25 segundos**.
+- *Esperado:* ambos caen a Ámbar Intermitente (SFTY-6) y llega una trama del tipo
+  `$ALARM,NODE:...,EVENTO:FALLO_RF,CAUSA:SILENCIO_25000ms,ACCION:CAMBIO_A_AMBAR,HORA:...`
+- Trama literal recibida: ______________________________________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
-**12.2 Telemetría periódica en vivo ($STATUS)**
-- *Acción:* Observar la pantalla de la App en el celular.
-- *Esperado:* Recepción continua cada 1 segundo exacto de la trama `$STATUS,MODO:...,ESTADO:...,RF:...%,RTT:...ms,HORA:...`.
+**12.4 Modo Manual y Rojo Total desde el teléfono** — ♻️ **SE REESCRIBE** *(literales corregidos)*
+- *Acción:* mandar `CMD:PIN:1234:SET_MODO:MANUAL` y después `CMD:FORZAR_ROJO` (**este segundo sin
+  PIN**, que es como lo acepta el firmware).
+- *Esperado:* conmuta a Modo Manual, y al recibir el forzado aplica **🔴 ROJO TOTAL INMEDIATO** en
+  ambos extremos.
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+- > **En el Esclavo, `CMD:FORZAR_ROJO` tiene que ser RECHAZADO** con
+  > `$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA`. Es deliberado: el nombre prometía
+  > rojo y hacía ámbar con la pluma arriba, que es casi lo contrario. **Provóquelo y copie la
+  > respuesta.**
 
-**12.3 Caja Negra de Alarmas con Hora Exacta RTC ($ALARM)**
-- *Acción:* Provocar una caída de radio desconectando la antena del Esclavo durante 12.0 segundos.
-- *Esperado:* Ambos semáforos caen a Ámbar Intermitente (SFTY-6) y la App del celular recibe inmediatamente la trama con fecha y hora: `$ALARM,EVENTO:FALLO_RF,CAUSA:SILENCIO_25000ms,ACCION:CAMBIO_A_AMBAR,HORA:...`.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+**12.5 Selector de cruces en el corredor (multicruce con un teléfono)** — ⏸️ **SE APLAZA**
+- **Falta:** dos módulos ESP32 montados con nombres distinguibles, la app, y dos cruces. Depende
+  entera de 12.1.
+- **No se firma.**
 
-**12.4 Maniobra de Modo Manual y Rojo Total desde el celular**
-- *Acción:* Enviar desde la App el comando `CMD:SET_MODO:MANUAL` y luego `CMD:FORZAR_ROJO`.
-- *Esperado:* El semáforo conmuta a Modo Manual y al recibir el forzado aplica **🔴🔴 ROJO TOTAL INMEDIATO** en ambos extremos.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+**12.6 Sincronización Puente Móvil (Courier RTC)** — ⏸️ **SE APLAZA**
+- *Qué mediría:* capturar la hora en el Maestro, desplazarse hasta el Esclavo e inyectarla
+  compensando el tiempo de viaje.
+- **Falta: el reloj `DS3231`**, que va montado **sobre la placa del ESP32** — la que no existe — con
+  su propia pila. Y la app.
+- **No se firma.**
+- > ⚠️ **Cuando exista, hay un aviso de montaje que no es opcional:** si el módulo del reloj trae una
+  > **`CR2032` en vez de una `LIR2032`**, hay que desoldar el diodo o la resistencia de su circuito
+  > de carga. **La `CR2032` no es recargable y ese circuito la calienta** (Guía, paso 16).
 
-**12.5 Selector de Cruces Viales en el Corredor (Multicruce con 1 celular)**
-- *Acción:* Abrir la App en el corredor vial y alternar entre Cruce Km 12 (El Sisga) y Cruce Km 24 (Machetá), seleccionando nodo Maestro o Esclavo.
-- *Esperado:* La App adapta su interfaz al rol conectado (`👑 MAESTRO (Poste 1)` o `📡 ESCLAVO (Poste 2)`) mostrando las métricas y controles pertinentes.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+**12.7 El equipo dice que NO cuando no puede** ➕ **NUEVA** — ♻️ *(ejecutable hoy)*
+- *Por qué existe:* **es la propiedad más importante de todo el protocolo y no tenía prueba propia.**
+  Un equipo que contesta *«hecho»* sin hacerlo manda al técnico a casa creyendo que lo dejó
+  arreglado. Se prueban los rechazos **a propósito**, uno por uno.
+- *Acción:* mandar estas órdenes y **copiar la respuesta literal de cada una, sin resumirla**:
 
-**12.6 Sincronización Puente Móvil (Modo Courier RTC sin Radio)**
-- *Acción:* En el Maestro, presionar `[ 📸 Capturar Maestro ]`. Desplazarse 3 minutos hasta el Esclavo y presionar `[ 🚀 Inyectar en Esclavo ]`.
-- *Esperado:* La App calcula el tiempo transcurrido de viaje y programa el RTC DS3231 del Esclavo con la hora exacta compensada ($\Delta t < 0.1\text{ s}$ respecto al Maestro).
+```text
+En el MAESTRO:
+   CMD:PIN:0000:SET_MODO:AUTO        -> tiene que dar AUTH_FAILED, y el modo NO puede cambiar
+   CMD:PIN:1234:SET_MODO:ALCANCE     -> con un modo en marcha, EN_MARCHA_PARE_EL_MODO
+   CMD:PIN:1234:SET_TIEMPOS:1,1,15   -> con el ciclo corriendo, EN_MARCHA_PARE_EL_MODO
+   CMD:PIN:1234:SET_TIEMPOS:9,9,9    -> fuera de rango, RANGO
+   CMD:PIN:1234:SET_RTC:31-08-2026   -> formato al reves, FORMATO_INVALIDO
+   CMD:PIN:1234:DEMANDA              -> fuera del modo inteligente, SOLO_EN_MODO_INTELIGENTE
+   CMD:PIN:1234:ESTO_NO_EXISTE       -> COMANDO_NO_SOPORTADO
+
+En el ESCLAVO:
+   CMD:PIN:1234:TEST_LEDS            -> NO_EN_SERVICIO_USE_EL_MAESTRO
+   CMD:FORZAR_ROJO                   -> RENOMBRADO_USE_AMBAR_EMERGENCIA
+```
+
+- *Esperado:* **las nueve contestan `$ERR` con su motivo. Ninguna contesta `$ACK`.** Con el PIN mal,
+  además, **el modo no cambia**: compruébelo **mirando las luces**, no sólo la respuesta.
+- Con el PIN mal, ¿cambió el modo? ____________
+- ¿Alguna contestó `$ACK`? ¿cuál? ______________________________________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+- > 🔴 **Un `$ACK` en cualquiera de las nueve es el fallo entero, aunque el equipo se comporte bien
+  > después.** Y hay una que hay que mirar **con los ojos**, no en el terminal: con
+  > `CMD:PIN:1234:TEST_LEDS` en el Maestro las lámparas se encienden pero **la talanquera NO se puede
+  > mover**. Si la pluma sube durante esa prueba, anótelo — es importante *(Guía, paso 22)*.
 
 ---
 
-## 13. 🛡️ BLINDAJE DEL MANDO ANTI-COLISIÓN (RESOLUCIÓN N-53)
+## 📑 SECCIÓN 13 — BLINDAJE DEL MANDO ANTI-COLISIÓN (N-53)
 
-**13.1 Estrés con codillo en pantalla AJUSTAR HORA (N-53)**
-- *Acción:* Entrar en el menú a `AJUSTAR HORA` y presionar **15 veces seguidas y rápido el Botón 1 (Arriba / PB9)**.
-- *Esperado:* Los minutos van subiendo correlativamente. El semáforo **NO destella en rojo, NO se sale de la pantalla y NO salta a Automático**.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+> 🚫 **LA SECCIÓN ENTERA SE RETIRA — sus 2 pruebas.**
 
-**13.2 Nuevas secuencias oficiales del mando**
-- *Acción:* Probar desde el suelo las nuevas combinaciones: `A·B·A` (Auto - 2 destellos), `B·A·B` (Ámbar - 3 destellos), `B·A·B·A` (Manual - 5 destellos), `A·B·A·B` (Degradado - 4 destellos).
-- *Esperado:* Cada secuencia ejecuta su modo correspondiente con su conteo exacto de destellos rojos y Todo-Rojo preventivo de 15s.
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+**13.1 Estrés con codillo en la pantalla `AJUSTAR HORA`** — 🚫 **SE RETIRA**
+- *Por qué:* medía que 15 pulsaciones rápidas del Botón 1 subieran los minutos sin que el firmware
+  las confundiera con la secuencia `A·A·A` del mando. **No hay pantalla de ajuste que abrir, ni
+  Botón 3 con que llegar a ella.** La causa raíz que documentaba —los relés en paralelo con los
+  pulsadores frontales— sigue siendo cierta, pero **ya no hay pulsador frontal con el que chocar**.
+- **No se firma.**
+
+**13.2 «Nuevas secuencias oficiales del mando»** — 🚫 **SE RETIRA**
+- *Por qué, y esto es un error de la revisión anterior, no un cambio de arquitectura:* pedía probar
+  `A·B·A` (Auto), `B·A·B` (Ámbar) y `B·A·B·A` (Manual). **Esas secuencias nunca se implementaron.**
+  Las reales son, y siguen siendo, `A·A·A` (Automático), `B·B·B` (Ámbar) y `A·B·A·B` (Degradado)
+  — `Maestro/src/mando.cpp:202-235`, **MEDIDO**.
+- **No se firma.** Las tres secuencias que sí existen se certifican en la **Sección 8**.
+- > 🔴 **La redefinición de secuencias sigue siendo una decisión de especificación abierta**, no
+  > código pendiente: cambiarla toca el Manual de Usuario, este protocolo y el adiestramiento del
+  > operario. **Es del responsable.** Se anota aquí para que no se pierda al retirar la prueba.
 
 ---
 
 ## 📊 RESUMEN DE RESULTADOS
 
+> **Sólo se cuentan las pruebas que llevan casilla.** Las aplazadas y las retiradas **no suman ni al
+> numerador ni al denominador**: contarlas como denominador convertiría un hueco en un suspenso, y
+> contarlas como aprobadas sería exactamente lo que este documento existe para impedir.
+
 ```text
-NUCLEO YA CERTIFICADO EN V8.0  (aplica a cualquier version de firmware)
-Seccion 1 — Menu e independencia de radio ...........  ___ / 4  CUMPLE
-Seccion 2 — Perdida de comunicacion y Self-Healing ..  ___ / 5  CUMPLE
-Seccion 3 — Modo Automatico .........................  ___ / 5  CUMPLE
-Seccion 4 — Modo Inteligente AI .....................  ___ / 4  CUMPLE
-Seccion 5 — Modo Manual y menu de dos niveles .......  ___ / 10 CUMPLE
-Seccion 6 — Repetidor ESP32 .........................  ___ / 4  CUMPLE
-                                                       ------------------
-                                        SUBTOTAL       ___ / 32 CUMPLE
+PRUEBAS EJECUTABLES EN ESTA RONDA
+Seccion  1 — Reposo e independencia de radio ..........  ___ / 3
+Seccion  2 — Perdida de comunicacion y Self-Healing ...  ___ / 5
+Seccion  3 — Modo Automatico ..........................  ___ / 5
+Seccion  4 — Modo Inteligente (demanda) ...............  ___ / 2
+Seccion  5 — Modo Manual y medida de enlace ...........  ___ / 6
+Seccion  7 — Reloj y sincronizacion ...................  ___ / 6
+Seccion  8 — Mando de reles (por puente en J16) .......  ___ / 5
+Seccion  9 — Modo Degradado ...........................  ___ / 14   (12 + 9.15 + 9.16)
+Seccion 11 — Camaras de demanda .......................  ___ / 2
+Seccion 12 — Telemetria y ordenes .....................  ___ / 4    (3 + 12.7)
+                                                         -----------------
+                                            TOTAL        ___ / 52
 
-FUNCIONES V9.0 (Cámaras IA, Bluetooth, Mando Anti-Colisión y Modo Degradado)
-Seccion 7 — Reloj, AJUSTAR HORA y sincronizacion ....  ___ / 11 CUMPLE
-Seccion 8 — Mando de 4 reles y secuencias ...........  ___ / 8  CUMPLE
-Seccion 9 — Modo Degradado ..........................  ___ / 12 CUMPLE
-Seccion 10 — Interfaz propia del Esclavo ............  ___ / 5  CUMPLE
-Seccion 11 — Sistema de 4 Cámaras IA AcuSense .......  ___ / 4  CUMPLE
-Seccion 12 — Módulo Bluetooth y Telemetría ..........  ___ / 6  CUMPLE
-Seccion 13 — Blindaje Mando Anti-Colisión (N-53) ....  ___ / 2  CUMPLE
-                                                       ------------------
-                                        SUBTOTAL       ___ / 48 CUMPLE
-
-                                        TOTAL          ___ / 80 CUMPLE
+   De las cuales, ESCENARIOS documentados y NO puntuados:  9.8 y 9.9
+   -> total puntuable: ___ / 50
 
 
+NO EJECUTABLES EN ESTA RONDA  (no se firman, no se cuentan)
+   APLAZADAS ... 13   Seccion 6 entera (6) . 8.9 . 9.12 . 9.13 . 11.3 . 12.1 . 12.5 . 12.6
+                      (12 heredadas de la revision anterior + 8.9, que es nueva)
+   RETIRADAS ... 21   1.2 . 4.1 . 4.3 . 5.6 . 5.7 . 7.2 . 7.3 . 7.4 . 7.10 . 7.11
+                      8.1 . 8.6 . 8.8 . Seccion 10 entera (5) . 11.4 . 13.1 . 13.2
 
-DATOS MEDIDOS  (no cuentan como PASS/FALLA: son registro para el acta)
 
-  Calidad de enlace (5.2-bis), en pantalla PRUEBA ALCANCE:
-     Directo ...... calidad ____%   respuesta ______ ms
-     Repetidor .... calidad ____%   respuesta ______ ms
+DATOS MEDIDOS  (no cuentan como CUMPLE/NO CUMPLE: son registro para el acta)
 
-  Reloj (7.5 / 7.6):
+  md5 del binario cargado:  Maestro ______________  Esclavo ______________
+
+  Enlace (5.2-bis), leido del $STATUS del MAESTRO:
+     RF ______ %        RTT ______ ms
+
+  Reloj (7.5 / 7.6 / 7.7):
      Deriva contra hora patron en 2 h ....... ______ s
-     Diferencia tras corte de energia ....... ______ s  (Maestro)
-                                              ______ s  (Esclavo)
+     Diferencia tras corte de energia ....... ______ s (Maestro)  ______ s (Esclavo)
+     Veredicto de REINICIAR_RELOJ ........... Maestro: ______________
+                                              Esclavo: ______________
 
   Sincronizacion horaria (7.9):
-     Desfase Esclavo medido ................. ______ s   (tolerancia +-3 s)
-     Marca de ultima sincronizacion ......... ______:______
+     HORA: Maestro ______:______:______   HORA: Esclavo ______:______:______
+     Desfase calculado ...................... ______ s   (tolerancia +-3 s)
 
-  Modo Degradado (9.7 / 9.12):
+  Modo Degradado (9.7):
      Duracion del ciclo completo ............ ______ s   (esperado ~120 s)
      Todo-rojo medido ....................... ______ s   (esperado ~30 s)
-     Horas hasta la caida automatica ........ ______ h   (esperado 48 h)
 
-
-ESCENARIOS DE RIESGO RESIDUAL  (se documentan, no se puntuan)
-
-  9.8  Corte de energia en una sola punta ..... [ ] SE REPRODUJO  [ ] NO
-  9.9  Salida asimetrica provocada ............ [ ] SE REPRODUJO  [ ] NO
-
-  El funcional declara haber OBSERVADO ambos escenarios y conocer que la
-  mitigacion es PROCEDIMENTAL, no tecnica: verificacion visual de las dos
-  puntas, obligatoria tambien AL SALIR del Modo Degradado.
-
-  Firma del funcional sobre este punto: ____________________________________
+  Mando (§0.3), del paso 14 de la Guia:
+     J16 p5 contra masa ..... ______   p8 contra masa ..... ______
+     -> El puente se pudo usar?  [ ] SI   [ ] NO, motivo: ______________
 ```
 
 ### Pruebas NO CUMPLE — detalle para el equipo de desarrollo
 
-| Nº de prueba | Qué se observó | Segundo / momento exacto | Modo y topología |
+| Nº | Qué se observó | Segundo / momento exacto | Modo y vía usada |
 |---|---|---|---|
 |  |  |  |  |
 |  |  |  |  |
 |  |  |  |  |
+
+### Lo que vio y nadie pensó en preguntarle
+
+Un ruido, un olor, un parpadeo, una lámpara a media luz, una soldadura rehecha, un componente que no
+coincide con el resto, un número que no cuadra. **Sin diagnosticar: sólo lo que vio.**
+
+________________________________________________________________________________
+________________________________________________________________________________
 
 ---
 
 ## ✍️ ACTA DE CERTIFICACIÓN FUNCIONAL
 
 ```text
-Fecha de Auditoría: _____ / _____ / 2026        Hora inicio: ______  Hora fin: ______
-Lugar / Tramo de Obra: __________________________________________________________
-Versión de firmware certificada: ________   Air Data Rate verificado: ________ kbps
+Fecha de Auditoria: _____ / _____ / 2026       Hora inicio: ______  Hora fin: ______
+Lugar / Tramo: __________________________________________________________________
+md5 del firmware certificado: Maestro ______________  Esclavo ______________
+Air Data Rate verificado: ________ kbps        Via de mando usada: ________________
 
-ALCANCE CERTIFICADO:
-  [ ] Solo nucleo (Secciones 1-6) ......... 32 pruebas
-  [ ] Nucleo + funciones nuevas (1-10) .... 68 pruebas
+ALCANCE CERTIFICADO:  las 50 pruebas puntuables listadas arriba, y NINGUNA OTRA.
 
 DICTAMEN:
   [ ] APROBADO ..................... todas las pruebas del alcance en CUMPLE
   [ ] APROBADO CON OBSERVACIONES ... sin hallazgos de seguridad vial; detallar arriba
-  [ ] RECHAZADO .................... uno o más hallazgos de seguridad vial
+  [ ] RECHAZADO .................... uno o mas hallazgos de seguridad vial
 
-DICTAMEN ESPECIFICO SOBRE EL MODO DEGRADADO  (marcar solo si se ejecuto la Seccion 9):
+DICTAMEN ESPECIFICO SOBRE EL MODO DEGRADADO (marcar solo si se ejecuto la Seccion 9):
   [ ] APTO para operacion en campo con el procedimiento de 8_Procedimiento_Modo_Degradado.md
   [ ] APTO CON RESTRICCION ... detallar: ______________________________________
   [ ] NO APTO ................ no debe operarse en via abierta al trafico
+```
 
-Se deja constancia de que NO forman parte del alcance de esta certificación las funciones
-listadas como "NO IMPLEMENTADAS" al inicio de este documento, y en particular:
-  - el receptor de mando de reles del ESCLAVO, no instalado (N-19): activar el Modo
-    Degradado en esa punta exige subir al gabinete;
-  - la persistencia del estado del Modo Degradado ante corte de energia (N-20).
+**Se deja constancia expresa de que NO forman parte del alcance de esta certificación** las 12
+pruebas aplazadas y las 21 retiradas que se listan en el resumen, y en particular:
 
+- **el receptor de radio del mando de relés**, que nunca se compró: las secuencias se ejercieron con
+  un puente a masa en `J16`, lo que verifica el firmware pero **no la condición real de uso**;
+- **el módulo ESP32, su placa, su fuente y el reloj `DS3231`**, que no existen: no se ha certificado
+  ningún enlace Bluetooth, ninguna función de la app y ninguna sincronización por courier;
+- **la topología con repetidor** y sus cuatro radios;
+- **la persistencia del estado del Modo Degradado ante corte de energía** (N-20), reproducida y
+  documentada en 9.8 como riesgo residual conocido;
+- **la ausencia de doble confirmación** en la entrada al Modo Degradado, consecuencia de la retirada
+  de la pantalla (9.6);
+- **el hecho de que el Esclavo no acepte ninguna orden de modo** (9.15), con lo que su salida del
+  Modo Degradado depende hoy del mando o de la vuelta de la radio.
 
-Ingeniero Funcional / Auditor de Tránsito
+```text
+Ingeniero Funcional / Auditor de Transito
 Nombre: _________________________________________________________________________
 Cargo / Empresa: ________________________________________________________________
-Matrícula profesional: __________________________  Firma: _______________________
+Matricula profesional: __________________________  Firma: _______________________
 
 
 Ingeniero Responsable de Desarrollo
 Nombre: _________________________________________________________________________
-Matrícula profesional: __________________________  Firma: _______________________
+Matricula profesional: __________________________  Firma: _______________________
 ```
+
+> **Nada de lo probado en esta ronda sube a un cruce abierto al tráfico.** En campo sigue la V8.4.
+> Esta es una sesión de comprobación, y su producto son **medidas, no un visto bueno**. Si algo no se
+> pudo medir, se anota como **no medido** — nunca como correcto. Un hueco declarado vale; un hueco
+> callado, no.
+</content>
+</invoke>
