@@ -667,6 +667,77 @@ def arnes_automatico():
     anotar("arnes del automatico", PASS if p.returncode == 0 else FALLA, cuenta[:110])
 
 
+# ---------------------------------------------------------------------------
+# INICIO DEL BLOQUE DEL SIMULADOR DEL PUENTE ESP32 (31/08).
+# Otro agente esta dando de alta el rol del fuente del ESP32 en este mismo fichero:
+# su bloque es OTRO. Este empieza aqui y acaba en el marcador de FIN.
+# ---------------------------------------------------------------------------
+
+def simulador_puente_esp32():
+    """El unico instrumento que ejerce el LAZO ENTERO app <-> ESP32 <-> STM32.
+
+    NO es un modelo mas. De las tres puntas, DOS son codigo real:
+
+      - la app corre en jsdom -index.html, js/*.js y app.js-, compone sus comandos con
+        enviarComandoFirmware() y parsea las tramas con parseNmeaTelemetry();
+      - el STM32 es bluetooth.cpp COMPILADO, con semaforo.cpp, coordinador.cpp,
+        modo_automatico.cpp, mando.cpp, modos.cpp, demanda.cpp e identidad.cpp detras,
+        asi que el EFECTO de un comando se mide sobre los pines que escribio el
+        firmware y no sobre la respuesta que imprimio;
+      - el ESP32 es modelo en Python, y es el unico que puede serlo: su C++ tiene cero
+        lineas. Cuando exista, se compila igual y el simulador se queda sin ningun
+        modelo escrito a mano.
+
+    POR QUE ENTRA AQUI. Las dos puntas tenian instrumento por separado -el arnes de DOM
+    y los packs- y EN MEDIO no habia nada, que es justo donde vive el contrato de bytes
+    del doc 18 §3. Y de las dos direcciones, la de VUELTA -el equipo emite, el puente
+    transporta, la app pinta- no la ejercia nadie de punta a punta: ahi vive $EVENT, que
+    catorce ramas del Maestro emiten y que un puente filtrando por cuatro prefijos se
+    comeria entera.
+
+    VISTO FALLAR ANTES DE CONECTARLO (§8.bis), tres veces y con la salida pegada en el
+    parte de trabajo:
+      - partiendo cada trama en dos escrituras en el puente -> 77/78 baja a 70/78 y cae
+        F2 por su nombre;
+      - quitando la medida de longitud antes de reenviar -> baja a 75/78 y cae F3 con el
+        comando de 64+;
+      - y en la otra direccion, que es la que demuestra que el codigo de salida se
+        mueve: inyectando en el bluetooth.cpp REAL el arreglo candidato de la propiedad
+        rota -un '%c' de sobra en los dos sscanf- sube a 78/78 y sale con 0.
+
+    HOY SALE CON 1, Y NO ES UN DEFECTO DEL ARNES. Con el firmware tal cual esta, 32 de
+    289 pares 'comando a medias + comando siguiente' hacen que el equipo conteste $ACK
+    de una orden DISTINTA de la que se acaba de pulsar, y la que se pulso se pierde sin
+    aviso. Se reproduce sobre el .cpp compilado; el arreglo esta medido arriba."""
+    d = os.path.join(RAIZ, "Simulaciones", "puente_esp32")
+    if not os.path.isdir(d):
+        anotar("simulador del puente ESP32", ABORTADO, "no existe Simulaciones/puente_esp32")
+        return
+    if _asegurar_gcc() is None:
+        anotar("simulador del puente ESP32", ABORTADO, MOTIVO_GCC)
+        return
+    if shutil.which("node") is None:
+        # Sin node no hay punta de app REAL, y sustituirla por una imitacion seria
+        # exactamente el defecto que este simulador vino a cerrar. ABORTADO, no PASS.
+        anotar("simulador del puente ESP32", ABORTADO,
+               "no hay node en el PATH: la punta de la app no se puede ejercer")
+        return
+    p = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                        "-File", os.path.join(d, "compilar.ps1")],
+                       cwd=d, capture_output=True, text=True, errors="replace")
+    if p.returncode != 0:
+        salida = _ascii((p.stdout or "") + (p.stderr or ""))
+        anotar("simulador del puente ESP32", ABORTADO,
+               "no compilan los arneses del STM32: " + salida.strip()[-90:])
+        return
+    correr_python("simulador del puente ESP32", "simulador_puente_esp32.py")
+
+
+# ---------------------------------------------------------------------------
+# FIN DEL BLOQUE DEL SIMULADOR DEL PUENTE ESP32.
+# ---------------------------------------------------------------------------
+
+
 def main():
     rapido = "--rapido" in sys.argv
     print("=" * 78)
@@ -728,6 +799,12 @@ def main():
     arnes_ciclo()
     arnes_respaldo()
     arnes_automatico()
+    # BLOQUE DEL SIMULADOR DEL PUENTE ESP32 (31/08) - ver la funcion para el porque.
+    # Va en esta seccion y no arriba con los modelos porque DOS de sus tres puntas son
+    # codigo real: la app en jsdom y bluetooth.cpp compilado. La unica modelada es el
+    # ESP32, cuyo C++ todavia no existe.
+    simulador_puente_esp32()
+    # FIN DEL BLOQUE DEL SIMULADOR DEL PUENTE ESP32.
 
     n_pass = sum(1 for _, e, _ in resultados if e == PASS)
     n_falla = sum(1 for _, e, _ in resultados if e == FALLA)
