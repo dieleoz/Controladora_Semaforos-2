@@ -55,7 +55,7 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 58 rutas parseadas, todas existen |
-| banco por packs *(65 packs)* | 🔴 | **955/955** — **todos en `PASS`**. Los ultimos en entrar vigilan lo que la V9.0 estrena: `enlace_01_transporte` (pines, velocidad, buffer y framing del puerto por el que habla el ESP32, que hasta N-94 no miraba nadie), `camara_02_j16`, los nueve del ESP32 y `costura_11_lcd_sin_bus`. |
+| banco por packs *(66 packs)* | 🔴 | **963/963** — **todos en `PASS`**. Los ultimos en entrar vigilan lo que la V9.0 estrena: `enlace_01_transporte` (pines, velocidad, buffer y framing del puerto por el que habla el ESP32, que hasta N-94 no miraba nadie), `camara_02_j16`, los nueve del ESP32 y `costura_11_lcd_sin_bus`. |
 | compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.2 %** · 65.9 % · 20,6 % · 35,7 % — *7.080 B libres en el Maestro tras las Fases 1 y 2, `AiBus` y N-90* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
@@ -135,7 +135,7 @@ escribir que eso no se hace: decía `✅ 829/829, los 59 packs en PASS` citando 
 > no es eso, y qué sigue roto. Un lector que empieza por *"100% PASS"* no llega a la línea que
 > importa. El método está en la skill `entregar`.
 
-> ### 📦 El banco son 65 packs — la migración terminó el 05/08, y creció con V9.0
+> ### 📦 El banco son 66 packs — la migración terminó el 05/08, y creció con V9.0
 >
 > *(Este rótulo decía **34** mientras la tabla de arriba y el acta que ella cita decían **38**. Un
 > documento que se contradice a sí mismo en dos párrafos es el caso que ya cazó N-62 con las rutas;
