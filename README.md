@@ -70,7 +70,8 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 | arnés del respaldo | ✅ | **conectado por fin** (N-43/N-29) — compila el `calcularSuma()` real; identidad de `respaldo.cpp` entre puntas + prueba de vida |
 | arnés del automático | ✅ | **71/71** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` **reales** y comprueba SFTY-2 sobre las escrituras de pin |
 
-**⚠️ El código de salida de la compuerta ALTERNA en pasadas consecutivas sobre un árbol
+**De 17 comprobaciones, la compuerta da `17 PASS · 0 FALLA · 0 ABORTADO` en unas pasadas y
+`16 PASS · 1 FALLA · 0 ABORTADO` en otras — ⚠️ su código de salida ALTERNA sobre un árbol
 idéntico.** Medido el 01/09, tres corridas seguidas sin tocar nada: `1`, `0`, `1`. El firmware no
 cambia entre ellas — cambia lo que el acta anterior le deja leer al pack que compara las cifras.
 **Hasta que eso se arregle (N-112), este número no acredita nada**, y la salida en verde es
