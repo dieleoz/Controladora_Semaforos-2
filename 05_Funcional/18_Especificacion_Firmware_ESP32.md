@@ -365,12 +365,26 @@ que alguien lo llama.**
 > comando y **todos** caerían en `$ERR,CMD:DESCONOCIDO`. Es el defecto refutado de §3.4.a,
 > reintroducido por el otro lado.
 
-> 🟢 **El dato que esta pasada saca de propina, y que nadie había escrito:** en el sentido
-> **STM32 ⟶ app**, el puente es **el primero de toda la cadena que comprueba el checksum**. La app
-> **no** lo comprueba: `parseNmeaTelemetry()` hace `line.split('*')[0]` (`app.js:881`) y **tira el
-> `*XX` sin mirarlo**. O sea que **hoy, sin el puente, no hay un solo checksum verificado en toda la
-> cadena, en ninguna dirección** — el STM32 lo emite y nadie lo lee. El ESP32 no está reforzando una
-> comprobación existente: está **estrenándola**.
+> ~~🟢 **El dato que esta pasada saca de propina:** en el sentido **STM32 ⟶ app**, el puente es **el
+> primero de toda la cadena que comprueba el checksum**. La app **no** lo comprueba… **hoy no hay un
+> solo checksum verificado en toda la cadena, en ninguna dirección**. El ESP32 está **estrenándola**.~~
+>
+> 🔴 **REFUTADO el 01/09, y en sus tres extremos. MEDIDO:** la app **sí** comprueba el checksum de
+> bajada desde el 31/08. `parseNmeaTelemetry()` empieza por `juzgarTrama(line)`, que llama a
+> `NMEAParser.validarTrama()` y **vuelve sin pintar** si no casa; `line.split('*')` **ya no existe en
+> el código** —sólo en dos comentarios que describen lo retirado—.
+>
+> En el sentido **STM32 ⟶ app hay DOS validadores del mismo XOR-8**, el del puente y el de la app, y
+> **juzgan igual**: siete casos frontera con veredicto idéntico. El ESP32 **no estrena** la
+> comprobación: la **duplica**.
+>
+> 🔴 **Y lo que sí sigue siendo cierto es la otra mitad, que es la que importa: EN LA SUBIDA NO HAY
+> CHECKSUM EN NINGÚN SITIO.** La app no firma, el puente no valida (deliberado, apartado 3.4.b) y
+> **ninguna de las dos puntas llama a `calcularChecksum()` en recepción** —está definida y sólo se usa
+> al emitir, medido en las dos—. Consecuencia: **un bit cambiado DENTRO del parámetro de
+> `SET_TIEMPOS:` o `SET_RTC:` sigue casando con el `strncmp` del prefijo, y el equipo obedece con los
+> valores mutilados.** El agujero está razonado en 3.4.b; **que exista sólo ahí no estaba escrito en
+> ningún sitio.**
 
 Lo que sí se mantiene de la formulación anterior, porque es correcto y es el principio de diseño:
 el puente **valida FORMATO, no comandos**, igual que el firmware del Repetidor en la otra topología

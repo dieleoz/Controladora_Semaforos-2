@@ -48,7 +48,7 @@ void puente_emitirPropio(const char* payload) {
 // El unico camino por el que se escribe en Serial2, y cada byte que sale de aqui vino
 // de transporte_leer(). No hay literales: enlace_escribirLinea() recibe el buffer.
 //
-// 🔴 AQUI NO SE VALIDA NINGUN CHECKSUM, Y NO ES UN OLVIDO. Es la correccion de un
+// AQUI NO SE VALIDA NINGUN CHECKSUM, Y NO ES UN OLVIDO. Es la correccion de un
 // dato falso, y se deja escrita porque la version anterior de este fichero SI validaba
 // y habria descartado el 100% de los comandos reales.
 //
@@ -140,13 +140,27 @@ static void desdeLaApp() {
 //
 //   app -> STM32   la app NO pone checksum (MEDIDO en app.js:199-207). No hay nada que
 //                  validar, y exigirlo descartaria el 100% del trafico real.
-//   STM32 -> app   el equipo SI lo pone -enviarTramaConCrc(), Maestro:43-48- y ademas
-//                  MEDIDO que la app NO lo comprueba: parseNmeaTelemetry() hace
-//                  line.split('*')[0] (app.js:734) y lo tira sin mirarlo.
+//   STM32 -> app   el equipo SI lo pone -enviarTramaConCrc(), Maestro:43-48- y desde el
+//                  31/08 la app TAMBIEN lo comprueba: parseNmeaTelemetry() empieza por
+//                  juzgarTrama(), que llama a NMEAParser.validarTrama() y vuelve sin
+//                  pintar si no casa. Aqui decia lo contrario, MEDIDO, y era cierto
+//                  cuando se escribio.
 //
-// 🔴 Consecuencia medida: hoy NO HAY UN SOLO CHECKSUM VERIFICADO EN TODA LA CADENA, en
-// ninguna direccion. Este bucle es el primero que lo hace. Una trama con CRC malo es
-// ruido de cable, y el ruido no sube al telefono.
+// Consecuencia medida el 01/09, corregida: en la BAJADA hay DOS validadores del mismo
+// XOR-8 -este y el de la app- y juzgan IGUAL en los siete casos frontera. Este bucle no
+// estrena la comprobacion: la duplica. Una trama con CRC malo es ruido de cable, y el
+// ruido no sube al telefono.
+//
+// LO QUE SIGUE SIN CUBRIR, y es la mitad que importa: EN LA SUBIDA NO HAY CHECKSUM EN
+// NINGUN SITIO. Ninguna de las dos puntas llama a calcularChecksum() en RECEPCION -esta
+// definida y solo se usa al emitir-. Un bit cambiado DENTRO del parametro de SET_TIEMPOS
+// o SET_RTC sigue casando con el strncmp del prefijo, y el equipo obedece con los
+// valores mutilados.
+//
+// Y ojo al efecto de esta asimetria en el diagnostico: aqui la trama mala se descarta EN
+// SILENCIO, asi que con puente la averia se lee como un HUECO -"no llegaba nada"-,
+// mientras que sin puente -la topologia de campo de hoy- la app la caza y la NOMBRA:
+// CHECKSUM. Dos diagnosticos distintos de la misma averia segun haya puente o no.
 //
 // Lo que NO se hace es mirar el prefijo: se valida FORMATO, no contenido.
 // ---------------------------------------------------------------------------
@@ -178,7 +192,7 @@ static void desdeElEquipo() {
         continue;
       }
 
-      // 🔴 NO HAY FILTRO POR PREFIJO, Y ES DELIBERADO. Son cinco -$STATUS, $ACK, $ERR,
+      // NO HAY FILTRO POR PREFIJO, Y ES DELIBERADO. Son cinco -$STATUS, $ACK, $ERR,
       // $ALARM y $EVENT-, el Maestro emite $EVENT desde catorce ramas y la app lo
       // consume como bitacora del equipo: un puente que filtrara por una lista de
       // cuatro se comeria el registro entero, y esa es la perdida silenciosa que costo

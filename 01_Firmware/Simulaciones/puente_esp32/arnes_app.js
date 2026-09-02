@@ -33,6 +33,15 @@
 //   RXHEX <hex>   entrega esos bytes por el canal serie, respetando el troceado del
 //                 plugin, y devuelve el estado observable del tablero
 //   DOM           devuelve el estado observable sin tocar nada
+//   DEPU          abre la pestana de depuracion REAL, lee sus contadores -cuantas
+//                 tramas entraron, cuantas se rechazaron y con que motivo- y vuelve a
+//                 la de trafico. Es lo que ve el tecnico, no la estructura de datos.
+//   JUZGAR <hex>  pasa esos bytes por NMEAParser.validarTrama() REAL -la que desde el
+//                 31/08 llama juzgarTrama()- y devuelve su veredicto SIN entregar nada
+//                 por el canal. Existe para comparar la regla de CRC de la app con la
+//                 del puente: si las dos capas no juzgan igual, hay tramas que una pasa
+//                 y la otra rechaza, y eso es o un hueco o dos mensajes distintos al
+//                 operario por la misma trama.
 //   PIN           teclea 1234 en el teclado REAL si el modal esta abierto
 //   QUIT
 
@@ -178,6 +187,29 @@ function estadoTablero() {
   };
 }
 
+// LO QUE LA APP DICE DE LO QUE NO PINTO, POR EL CAMINO DEL TECNICO.
+//
+// Se expone desde el 01/09, cuando parseNmeaTelemetry() paso a juzgar el checksum: sin
+// esto el simulador solo veia el RESULTADO -"no se pinto"-, y un tablero que no pintara
+// NADA daria la misma medida que una barrera correcta. Aqui se lee QUIEN rechaza y CON
+// QUE MOTIVO, que es lo unico que distingue "el puente se lo comio en silencio" de "la
+// app lo rechazo y lo dijo".
+//
+// NO se lee RegistroCrudo.contadores() a pelo, y no es capricho: renderDepuracion()
+// vuelve temprano si la pestana no esta abierta, asi que preguntarle a la estructura
+// daria un texto que en la pantalla NO esta. Se pulsa la pestana REAL -que es lo que
+// hace el tecnico- y se vuelve a la de trafico para no dejar la app en otro sitio del
+// que estaba.
+function contadoresDepuracion() {
+  const abrir = document.querySelector('.nav-item[data-tab="tab-depuracion"]');
+  const volver = document.querySelector('.nav-item[data-tab="tab-estado"]');
+  if (!abrir) return '(no existe la pestana de depuracion)';
+  abrir.click();
+  const t = texto('depu-contadores');
+  if (volver) volver.click();
+  return t;
+}
+
 // EL TROCEADO DEL PLUGIN. Ver la cabecera: es el unico modelo de esta punta.
 function entregar(bytes) {
   bufferPlugin += bytes;
@@ -234,6 +266,26 @@ function atender(linea) {
     const e = estadoTablero();
     process.stdout.write('DOM ' + JSON.stringify(e) + '\n');
     process.stdout.write('OK trozos=' + trozos + ' pendiente=' + bufferPlugin.length + '\n');
+
+  } else if (linea === 'DEPU') {
+    process.stdout.write('DEPU ' + contadoresDepuracion() + '\n');
+    process.stdout.write('OK\n');
+
+  } else if (linea.startsWith('JUZGAR ')) {
+    // Se llama a la funcion REAL de la app, la misma que juzgarTrama() invoca. No se
+    // reimplementa aqui el XOR: una segunda copia del validador escrita en este arnes
+    // mediria que este fichero se comporta, no que la app lo haga.
+    const cruda = desdeHex(linea.slice(7));
+    let v;
+    try {
+      v = window.NMEAParser.validarTrama(cruda);
+    } catch (e) {
+      process.stdout.write('ERR validarTrama reviento: ' + e.message + '\n');
+      return;
+    }
+    process.stdout.write('JUICIO ' + JSON.stringify(
+      { valida: !!v.valida, motivo: v.motivo || null }) + '\n');
+    process.stdout.write('OK juzgada\n');
 
   } else if (linea === 'DOM') {
     process.stdout.write('DOM ' + JSON.stringify(estadoTablero()) + '\n');

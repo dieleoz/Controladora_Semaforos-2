@@ -509,6 +509,28 @@ class AppReal:
         import json
         return json.loads(next((e[4:] for e in eventos if e.startswith("DOM ")), "{}"))
 
+    def depuracion(self):
+        """Lo que el tecnico lee al abrir la pestana de depuracion de la app REAL."""
+        eventos, _ = self.pr.pedir("DEPU")
+        return next((e[5:] for e in eventos if e.startswith("DEPU ")), "")
+
+    def juzgar(self, linea):
+        """El veredicto de NMEAParser.validarTrama() REAL, sin entregar nada al canal.
+
+        Sirve para comparar la regla de CRC de la app con la del puente. Desde el
+        31/08 hay DOS capas que validan el mismo checksum: si no juzgan igual, existe
+        una trama que una deja pasar y la otra tira -o nadie tira, o el operario lee
+        dos motivos distintos de la misma trama-."""
+        eventos, _ = self.pr.pedir("JUZGAR " + hexa(linea))
+        import json
+        crudo = next((e[7:] for e in eventos if e.startswith("JUICIO ")), None)
+        if crudo is None:
+            raise fw.Abortado(
+                "el arnes de la app no devolvio veredicto para %r. Sin el, la "
+                "comparacion de las dos reglas de CRC no se puede hacer y este "
+                "simulador estaria publicando una cuenta que no midio" % linea[:40])
+        return json.loads(crudo)
+
     def cerrar(self):
         self.pr.cerrar()
 
@@ -655,6 +677,65 @@ def comandos_censados(c, punta):
 def clase_de(linea):
     """De que clase es una trama de vuelta, mirando su prefijo."""
     return linea.split(",")[0] if linea.startswith("$") else "?"
+
+
+def sin_comentarios_js(texto):
+    """El mismo texto con los comentarios fuera. Devuelve blancos en su sitio para que
+    los indices sigan valiendo -aqui se compara el ORDEN de dos patrones-.
+
+    HACE FALTA, Y NO ES CELO. app.js documenta el defecto que acaba de arreglar citando
+    el codigo viejo: dentro de parseNmeaTelemetry() hay un comentario que dice
+    "Antes aqui habia ... line.split('*')[0], que TIRA EL CHECKSUM SIN MIRARLO". Buscar
+    esa huella sin quitar los comentarios la encuentra EN LA PROSA y acusa al fichero de
+    conservar lo que precisamente explica haber quitado. Es CLAUDE.md 4 otra vez: el
+    buscador respondia, y aun asi no sabia encontrar."""
+    fuera = []
+    i, n = 0, len(texto)
+    while i < n:
+        if texto.startswith("//", i):
+            j = texto.find("\n", i)
+            j = n if j < 0 else j
+            fuera.append(" " * (j - i))
+            i = j
+        elif texto.startswith("/*", i):
+            j = texto.find("*/", i + 2)
+            j = n if j < 0 else j + 2
+            fuera.append("".join(" " if ch != "\n" else "\n" for ch in texto[i:j]))
+            i = j
+        else:
+            fuera.append(texto[i])
+            i += 1
+    return "".join(fuera)
+
+
+def cuerpo_js(texto, nombre):
+    """El cuerpo de una funcion de app.js, acotado por la SIGUIENTE del mismo nivel.
+
+    Se acota a proposito, y no se busca el patron en el fichero entero: `app.js` habla
+    de sus propias funciones en los comentarios -"NMEAParser.validarTrama() llevaba
+    meses escrita"-, asi que un `in app_js` a secas casa con la PROSA y da por buena una
+    llamada que no existe. Es la regla del instrumento (CLAUDE.md 4) aplicada a un
+    fichero que se documenta a si mismo: el buscador respondia, y aun asi no sabia
+    distinguir codigo de comentario."""
+    m = re.search(r"\n(\s*)function %s\(" % re.escape(nombre), texto)
+    if not m:
+        raise fw.Abortado(
+            "no se encontro function %s() en app.js. Este simulador mide el ORDEN de "
+            "las barreras dentro de esa funcion: si cambio de nombre o de sitio, hay "
+            "que actualizar el instrumento, no ignorarlo." % nombre)
+    ini = m.end()
+    sig = re.search(r"\n%sfunction \w+\(" % m.group(1), texto[ini:])
+    return texto[ini:ini + sig.start()] if sig else texto[ini:]
+
+
+def _contadores_app(texto):
+    """(tramas rechazadas, rechazos por CHECKSUM) tal como los publica la pestana.
+
+    Se lee el TEXTO que ve el tecnico y no la estructura de datos de dentro: lo que no
+    llega a la pantalla no lo puede usar nadie delante de un poste."""
+    n = re.search(r"(\d+) rechazadas", texto)
+    k = re.search(r"CHECKSUM x(\d+)", texto)
+    return (int(n.group(1)) if n else 0), (int(k.group(1)) if k else 0)
 
 
 def _acks_de(salidas):
@@ -1286,32 +1367,227 @@ def escenario_f4(t, c, maestro, app, util_max):
         "tras descartar una corrupta el puente dejo de subir las buenas (%d "
         "escrituras)" % len(puente.hacia_app))
 
-    # POR QUE ESTO NO ES OPCIONAL, y esta MEDIDO en el fuente de la app: el parser que
-    # la app usa de verdad no valida el checksum, y el que si lo valida no lo llama
-    # nadie. Si el puente no filtra, una trama con CRC malo se pinta como buena.
-    app_js = fw.texto_repo(*APP_JS)
-    parser_js = fw.texto_repo(*PARSER_JS)
-    t.verificar(
-        "validarTrama(" in parser_js and "validarTrama(" not in app_js,
-        "MEDIDO: NMEAParser.validarTrama() existe y NO tiene un solo llamador en "
-        "app.js. El unico sitio de la cadena donde se puede validar el CRC de vuelta "
-        "es el ESP32",
-        "app.js llama ahora a validarTrama(): si la app valida por su cuenta, esta "
-        "comprobacion mide otra cosa y hay que reescribirla")
+    # =================================================================================
+    # (c) QUIEN VALIDA EL CRC DE VUELTA. ESTE BLOQUE CAMBIO DE SIGNO EL 01/09.
+    #
+    # Hasta el 31/08 aqui habia dos comprobaciones que EXIGIAN el defecto, y lo hacian
+    # con honestidad: "validarTrama() no tiene un solo llamador" y "entregada a la app
+    # una trama con CRC malo, la pinta igual". Eran ciertas -era N-73 en JavaScript- y
+    # documentaban el coste: si el puente no filtraba, no filtraba NADIE.
+    #
+    # El 31/08 app.js conecto validarTrama() dentro de juzgarTrama(), y las dos
+    # cayeron. CLAUDE.md 8.quater y 8.sexies mandan contar cuantas cosas afirmaba cada
+    # una antes de tocarlas, y afirmaban dos:
+    #
+    #   la del censo   "la funcion existe" (sigue valiendo) + "nadie la llama" (falso
+    #                  hoy) ------> SE INVIERTE la segunda mitad, y se CONSERVA la
+    #                  primera como precondicion: sin la funcion no hay nada que llamar.
+    #   la ejercida    "se ejerce contra la app REAL" (sigue valiendo, es el metodo) +
+    #                  "y la pinta" (falso hoy) ------> SE INVIERTE.
+    #
+    # Y LO QUE NO ESTABA Y AHORA HACE FALTA, que es la parte que N-83 dice que se
+    # olvida: una inversion que solo mira el RESULTADO -"no se pinto"- la aprueba
+    # tambien un tablero que no pinte NADA. Hacen falta las dos que faltaban:
+    #   - el caso que exige que SI pase lo que debe pasar (la misma trama con el CRC
+    #     bueno tiene que pintar), o esto no mide una barrera, mide una tapia;
+    #   - y el ORDEN, no el resultado: que el rechazo ocurra ANTES de tocar el estado.
+    #     Una app que pintara y luego se arrepintiera daria el mismo tablero final en
+    #     este caso y uno distinto en cuanto un campo no se sobreescribiera.
+    # =================================================================================
 
+    # LOS TRES TEXTOS SE LEEN SIN COMENTARIOS. Ver sin_comentarios_js(): este fichero
+    # documenta el defecto citando el codigo viejo, y buscar la huella en la prosa
+    # acusaria a la app de conservar lo que explica haber quitado.
+    app_js = sin_comentarios_js(fw.texto_repo(*APP_JS))
+    parser_js = fw.texto_repo(*PARSER_JS)
+    juez = cuerpo_js(app_js, "juzgarTrama")
+    telemetria = cuerpo_js(app_js, "parseNmeaTelemetry")
+
+    # [INVERTIDA] El censo de N-73, del reves: la huerfana GANO llamador. Se mide como
+    # un censo -declaracion contra llamadas- y no con un `in` sobre el fichero, porque
+    # app.js habla de validarTrama() en sus comentarios. Ver cuerpo_js().
+    llamadas_juez = len(re.findall(r"(?<!function )\bjuzgarTrama\(", app_js))
+    t.verificar(
+        "validarTrama(" in parser_js
+        and "NMEAParser.validarTrama(linea)" in juez
+        and llamadas_juez >= 1,
+        "MEDIDO: NMEAParser.validarTrama() ya NO es huerfana: la llama juzgarTrama() y "
+        "juzgarTrama() tiene %d llamador(es). La app valida el CRC de vuelta por su "
+        "cuenta, asi que el ESP32 dejo de ser el UNICO sitio donde se podia"
+        % llamadas_juez,
+        "validarTrama() volvio a quedarse sin llamador vivo en app.js (dentro de "
+        "juzgarTrama: %s, llamadores de juzgarTrama: %d). Si la app deja de validar, "
+        "el unico filtro de la cadena vuelve a ser el puente y este bloque mide otra "
+        "cosa" % ("NMEAParser.validarTrama(linea)" in juez, llamadas_juez))
+
+    # [EL ORDEN, QUE ES LO QUE N-83 DEMOSTRO QUE HAY QUE MIRAR] La barrera esta ANTES de
+    # pintar, no despues. Dos huellas, y las dos en el cuerpo de parseNmeaTelemetry():
+    # la rama de rechazo VUELVE antes de la primera escritura de estado, y el
+    # `line.split('*')[0]` que tiraba el checksum sin leerlo -la huella literal del
+    # defecto- ya no esta.
+    corte = re.search(r"if \(!veredicto\.aceptada\)[\s\S]*?\breturn;", telemetria)
+    pintura = re.search(r"state\.\w+\s*=[^=]", telemetria)
+    resto_del_defecto = re.search(r"line\s*\.\s*split\('\*'\)", telemetria)
+    t.verificar(
+        corte is not None and pintura is not None
+        and corte.end() < pintura.start() and resto_del_defecto is None,
+        "y la llama EN ORDEN: la rama de rechazo vuelve en el byte %d del cuerpo y la "
+        "primera escritura de estado esta en el %d -la barrera va DELANTE-, y el "
+        "line.split('*')[0] que tiraba el CRC sin leerlo ya no aparece"
+        % (corte.end() if corte else -1, pintura.start() if pintura else -1),
+        "el orden de parseNmeaTelemetry() no es el que dice defenderse: rechazo en %s, "
+        "primera escritura de estado en %s, resto del defecto %r. Una app que pinte y "
+        "luego se arrepienta deja campos viejos escritos con bytes que llegaron rotos"
+        % (corte.end() if corte else None, pintura.start() if pintura else None,
+           resto_del_defecto.group(0) if resto_del_defecto else None))
+
+    # [INVERTIDA Y EJERCIDA] Se conserva el metodo -entregarselo a la app REAL- y se
+    # invierte lo que se exige.
+    #
+    # SE MIDE POR EL VALOR QUE TRAE LA TRAMA ROTA (77) Y NO POR "el contador no cambio",
+    # y eso salio de verlo: entre dos escenarios pasa tiempo de reloj real, y el
+    # watchdog de enlace de la app -TIMEOUT_ENLACE_MS, suyo, medido en F5- puede borrar
+    # el contador a '--' por su cuenta en medio. Comparar contra el valor anterior
+    # mediria ese watchdog y fallaria a ratos sin que nadie hubiera tocado la barrera.
+    # El 77 solo puede aparecer si la trama rota se pinto.
+    antes = app.tablero()["contador"]
+    depu_antes = app.depuracion()
     tablero, _ = app.entregar(ruido)
     t.verificar(
-        tablero["contador"] == "77",
-        "y se ejerce: entregada a la app REAL una trama con CRC malo, la pinta igual "
-        "(contador %r). Por eso el filtro tiene que estar en el puente"
+        antes != "77" and tablero["contador"] != "77",
+        "y se ejerce: entregada a la app REAL la MISMA trama con CRC malo, ya NO la "
+        "pinta -el contador se queda en %r y no salta al 77 que traia la trama rota-"
         % tablero["contador"],
-        "la app descarto la trama con CRC malo (contador %r): si ya se defiende sola, "
-        "el reparto de responsabilidades del doc 18 3.4 cambia" % tablero["contador"])
+        "la app pinto una trama con el checksum malo: el contador paso de %r a %r. "
+        "Desde el 31/08 juzgarTrama() tiene que pararla, y si no la para, un byte que "
+        "cambio la radio se lee como estado del cruce" % (antes, tablero["contador"]))
 
+    # [EL CONTROL QUE LE FALTA A TODA INVERSION - CLAUDE.md 8.sexies]
+    #
+    # Una guarda que no dejara pasar NADA haria pasar la linea de arriba igual de bien
+    # que la guarda correcta. Sin este caso no se esta midiendo una barrera: se esta
+    # midiendo una tapia. Es la MISMA trama, byte a byte, con el CRC que le toca.
+    sana = envolver(c, "Maestro", "$STATUS,NODE:MAESTRO,ESTADO:V1_R2,T:77")
+    tablero, _ = app.entregar(sana)
+    t.verificar(
+        tablero["contador"] == "77",
+        "y la MISMA trama con el CRC bueno SI pinta (contador %r): la app rechaza por "
+        "el checksum, no por sistema" % tablero["contador"],
+        "la app tampoco pinta la trama SANA (contador %r): entonces la linea de arriba "
+        "no mide una barrera, mide una tapia -cualquier app que no pintara nada la "
+        "pasaria igual-" % tablero["contador"])
+
+    # [QUIEN LO RECHAZA Y CON QUE MOTIVO, que es la pregunta que el encargo del 01/09
+    # obliga a hacer] "Se descarta" no basta: un descarte mudo es indistinguible de una
+    # trama que nunca llego, y esas dos averias se diagnostican distinto delante del
+    # poste. Se lee por la pestana REAL, que es por donde lo lee el tecnico.
+    depu_despues = app.depuracion()
+    rech_antes, crc_antes = _contadores_app(depu_antes)
+    rech_despues, crc_despues = _contadores_app(depu_despues)
+    t.verificar(
+        rech_despues == rech_antes + 1 and crc_despues == crc_antes + 1,
+        "y lo DICE, con nombre: los contadores de la app pasan de %d a %d rechazadas y "
+        "de %d a %d por CHECKSUM. El tecnico lee 'llegaba basura', que no es lo mismo "
+        "que 'no llegaba nada'" % (rech_antes, rech_despues, crc_antes, crc_despues),
+        "la app descarto la trama SIN decirlo: rechazadas %d -> %d, CHECKSUM %d -> %d. "
+        "Un descarte mudo se lee como un hueco de enlace y manda a buscar la averia al "
+        "sitio equivocado" % (rech_antes, rech_despues, crc_antes, crc_despues))
+
+    # [EL REPARTO, MEDIDO: LAS DOS CAPAS TIENEN QUE JUZGAR IGUAL]
+    #
+    # Desde el 31/08 hay DOS validadores del mismo XOR-8 en la cadena de vuelta: el del
+    # puente y el de la app. Dos copias de una regla es la forma que este repositorio
+    # paga cara (CLAUDE.md 8.ter), y aqui los dos sentidos del desacuerdo tienen precio:
+    #
+    #   la APP mas laxa que el puente   una corrupta que el puente deje pasar la pinta
+    #                                   la app: no la rechaza NADIE.
+    #   la APP mas dura que el puente   la trama sube y muere arriba, asi que el
+    #                                   operario puede leer el motivo de una capa hoy y
+    #                                   el de la otra manana, para la misma averia.
+    #
+    # SOLO EL SENTIDO DE VUELTA. La comparacion se acota a lineas que empiezan por '$',
+    # y no es una comodidad: el puente acepta A PROPOSITO la linea desnuda sin '$' -es
+    # lo que la app manda de SUBIDA, medido en el escenario del asterisco-, mientras la
+    # app la juzgaria SIN_FORMA. Comparar las dos direcciones daria un desacuerdo que no
+    # significa nada.
+    cuerpo_sano = "$STATUS,NODE:MAESTRO,ESTADO:R1_V2,T:44"
+    sano = envolver(c, "Maestro", cuerpo_sano).strip()
+    frontera = [
+        ("sana", sano),
+        ("CRC cambiado", sano[:-2] + "FF"),
+        ("sin el '*XX'", cuerpo_sano),
+        ("CRC en minusculas", sano[:-2] + sano[-2:].lower()),
+        ("un byte de mas tras el CRC", sano + "Z"),
+        ("payload vacio", "$*00"),
+        ("solo el dolar", "$"),
+    ]
+    desacuerdos = []
+    for etiqueta, linea in frontera:
+        del_puente = Puente(util_max)._validar(linea) is not None
+        de_la_app = app.juzgar(linea)["valida"]
+        if del_puente != de_la_app:
+            desacuerdos.append("%s: puente=%s app=%s" % (etiqueta, del_puente, de_la_app))
+    t.verificar(
+        not desacuerdos,
+        "y las DOS capas juzgan igual el mismo XOR-8: los %d casos frontera de vuelta "
+        "reciben el mismo veredicto del puente y de NMEAParser.validarTrama() REAL. Ni "
+        "hay corrupta que las dos dejen pasar, ni una que rechacen las dos con dos "
+        "motivos" % len(frontera),
+        "el puente y la app NO juzgan igual el mismo checksum: %s. Una trama que una "
+        "capa pasa y la otra tira es, o un agujero -si la laxa esta al final-, o dos "
+        "mensajes distintos por la misma trama" % " | ".join(desacuerdos))
+
+    # ---- Los dos controles negativos ------------------------------------------
     t.control_negativo(
         Puente(util_max)._validar(mala.strip()) is None
         and Puente(util_max)._validar(buena.strip()) is not None,
         "el validador del puente distingue la trama corrupta de la sana")
+
+    # Y el de la comparacion de arriba, que sin esto seria una lista de verdades que
+    # coinciden por casualidad: contra un validador deliberadamente laxo -uno que se
+    # conforma con ver un '$' y un '*'- la misma comparacion tiene que cazar el
+    # desacuerdo. Si no lo cazara, su PASS no valdria nada (N-51).
+    laxo = lambda l: l.startswith("$") and "*" in l          # noqa: E731
+    cazados = [e for e, l in frontera if laxo(l) != app.juzgar(l)["valida"]]
+    t.control_negativo(
+        bool(cazados),
+        "la comparacion de las dos reglas caza a un validador laxo: le encuentra %d "
+        "desacuerdo(s) (%s)" % (len(cazados), ", ".join(cazados)))
+
+    # ---- LO QUE LA MEDIDA DEJA ABIERTO, y no lo decide un instrumento ----------
+    p_mudo = Puente(util_max)
+    depu_pre = app.depuracion()
+    p_mudo.desde_stm32(sano + "\r\n")                 # sana: sube
+    p_mudo.desde_stm32(sano[:-2] + "FF\r\n")          # corrupta: NO sube, y NO avisa
+    for w in p_mudo.hacia_app:
+        app.entregar(w)
+    rech_con_puente = _contadores_app(app.depuracion())[0] - _contadores_app(depu_pre)[0]
+    t.reportar(
+        "EL DESCARTE DE BAJADA DEL PUENTE ES MUDO, Y ESO CAMBIA EL DIAGNOSTICO SEGUN "
+        "HAYA ESP32 O NO",
+        ["Medido en este mismo escenario, con la misma trama corrompida:",
+         "",
+         "  CON puente   el puente la cuenta (%d por CRC) y NO escribe nada hacia el"
+         % p_mudo.crc_malos_del_cable,
+         "               telefono. La app suma %d rechazos: para ella no ha pasado"
+         % rech_con_puente,
+         "               nada, y el hueco se lee como 'no llegaba nada'.",
+         "  SIN puente   -que es la topologia de campo de HOY, JDY-31 directo- la app",
+         "               la caza ella y la NOMBRA: CHECKSUM. 'Llegaba basura'.",
+         "",
+         "Las dos averias son distintas y se buscan en sitios distintos, y el doc 18",
+         "3.4 no dice cual de las dos lecturas quiere. En la SUBIDA el puente si avisa",
+         "-manda su $ERR con NODE:PUENTE, ejercido arriba-; en la BAJADA se calla.",
+         "Esa asimetria no la ha decidido nadie por escrito.",
+         "",
+         "Y la otra mitad de la misma pregunta, tambien medida arriba: en el sentido",
+         "de SUBIDA no hay checksum en ningun sitio -la app no firma, el puente no",
+         "valida y el STM32 tampoco-, asi que un byte que cambie en J17 subiendo no lo",
+         "rechaza NADIE. El doc 18 3.4.b lo declara deliberado y esta razonado; lo que",
+         "no esta escrito es que el agujero exista solo ahi.",
+         "",
+         "Va en reportar() y no en verificar() porque es una politica sin dueno, no un",
+         "defecto: ningun firmware puede 'aprobar' una decision que nadie ha tomado."])
 
 
 def escenario_f5(t, c, maestro, app, util_max):
@@ -1418,15 +1694,30 @@ def escenario_f5(t, c, maestro, app, util_max):
         "igual acaban tratandose igual" % (c.sfty6_ms, c.timeout_app_ms))
 
     t.reportar(
-        "NADIE VIGILA EL TERCER SILENCIO, y este simulador solo puede decirlo",
+        "EL TERCER SILENCIO SE MIDE DESDE EL 31/08, PERO SIGUE SIN VIGILARSE - y no es "
+        "lo mismo",
         ["Los dos primeros silencios tienen dueno y plazo medido. El TERCERO -el del",
-         "propio ESP32- no lo vigila nadie: el STM32 no puede notarlo (no hay guarda",
-         "de tiempo en bluetooth_loop(), medido arriba) y la app no distingue 'el",
-         "equipo callado' de 'el puente colgado': las dos cosas le llegan como %d ms"
+         "propio ESP32- cambio a medias con A3 (commit d44048c), y la diferencia entre",
+         "MEDIR y VIGILAR es justo lo que queda abierto:",
+         "",
+         "  lo que A3 SI hizo   j17RegistrarLinea() cierra el silencio cuando llega una",
+         "                      linea y publica $EVENT,ORIGEN:J17,DETALLE:MUDO:Ns.",
+         "                      Ejercido en F6. Es un dato de DIAGNOSTICO, y bueno: el",
+         "                      tecnico que se conecta lee cuanto llevaba mudo el puerto.",
+         "  lo que NO hizo      no hay umbral, ni alarma, ni comprobacion periodica. La",
+         "                      guarda de tiempo en bluetooth_loop() sigue sin existir",
+         "                      -medido arriba, en este mismo escenario-, asi que el",
+         "                      equipo NO se entera mientras el puente esta muerto: solo",
+         "                      puede contarlo DESPUES, y solo a quien vuelva a hablarle.",
+         "",
+         "Y la app sigue sin distinguir 'el equipo callado' de 'el puente colgado': las",
+         "dos cosas le llegan como %d ms sin trama, y un tecnico delante del poste vera"
          % c.timeout_app_ms,
-         "sin trama. Un tecnico delante del poste vera 'Sin enlace' en las dos.",
-         "Que eso se resuelva con un latido propio del ESP32, con un campo en la",
-         "trama, o con nada, es una decision con dueno y no la toma un instrumento."])
+         "'Sin enlace' en las dos. El $EVENT de A3 no llega a tiempo para eso, porque",
+         "por construccion sale cuando el silencio YA se acabo.",
+         "Que el hueco que queda se cierre con un latido propio del ESP32, con un campo",
+         "en la trama, o con nada, es una decision con dueno y no la toma un",
+         "instrumento."])
 
 
 def escenario_f6(t, c, maestro, util_max):
@@ -1460,15 +1751,84 @@ def escenario_f6(t, c, maestro, util_max):
             "telefonos, esta comprobacion mide otra cosa"
             % (punta, rastro.group(0) if rastro else None))
 
+    # =================================================================================
     # $EVENT EXISTE PARA ESTO, Y AQUI SE MIDE HASTA DONDE LLEGA.
+    #
+    # ESTA COMPROBACION SE PARTIO EN DOS EL 01/09, Y NO PORQUE FALLARA EL FIRMWARE.
+    # Hasta el 31/08 decia `len(eventos) == 2 and all("ORIGEN:" in e ...)`, y eso
+    # afirmaba DOS cosas de una vez (CLAUDE.md 8.sexies):
+    #
+    #   la que era su tema      cada cambio de modo deja su linea en la bitacora, y la
+    #                           linea dice de donde vino la orden.
+    #   la que se colo de tapadillo   "y no hay ningun otro $EVENT en toda la tanda".
+    #                           Eso nunca fue el tema de F6: era un efecto lateral de
+    #                           contar con `== 2`.
+    #
+    # El 31/08 A3 -commit d44048c- hizo que el STM32 cuente el silencio de J17 y publique
+    # un $EVENT,ORIGEN:J17 por cada linea recibida. La segunda mitad dejo de ser cierta
+    # y arrastro a la primera, que sigue siendo verdad y que nadie mas mide.
+    #
+    # No se relaja el numero hasta que pase: SE REPARTE. La mitad que era el tema se
+    # queda aqui y ademas se ENDURECE -antes solo exigia que la palabra ORIGEN: saliera;
+    # ahora exige de que canal vino cada una y en que ORDEN llegaron-, y la otra mitad
+    # se convierte en lo que de verdad hay que vigilar del flujo nuevo: uno por linea,
+    # y en un canal distinguible del mando.
+    # =================================================================================
     eventos = [s.strip() for s in salidas if s.startswith("$EVENT")]
+
+    def _campo(trama, clave):
+        m = re.search(r"%s:([^,*]+)" % clave, trama)
+        return m.group(1) if m else None
+
+    def _bitacora_del_mando(lista):
+        """Los $EVENT que dejan las DOS ordenes, en orden de llegada.
+
+        Se pide la lista completa -canal y detalle de cada uno- y no un recuento: dos
+        lineas con ORIGEN: escrito y el detalle cambiado no valen para distinguir a dos
+        operarios, que es lo unico que F6 existe para medir."""
+        return [(_campo(e, "ORIGEN"), _campo(e, "DETALLE"))
+                for e in lista if _campo(e, "ORIGEN") == "APP_BLUETOOTH"]
+
+    del_mando = _bitacora_del_mando(eventos)
     t.verificar(
-        len(eventos) == 2 and all("ORIGEN:" in e for e in eventos),
-        "y cada cambio deja su linea en la bitacora, con ORIGEN: %s"
-        % " | ".join(e.split("ORIGEN:")[1].split(",")[0] for e in eventos),
-        "los dos cambios no dejaron dos $EVENT con ORIGEN: %r. Sin bitacora de origen, "
-        "dos operarios contradiciendose son indistinguibles de un equipo que hace "
-        "cosas solo" % (eventos,))
+        del_mando == [("APP_BLUETOOTH", "SET_MODO_AUTO"),
+                      ("APP_BLUETOOTH", "SET_MODO_AMBAR")],
+        "y cada cambio deja su linea en la bitacora, con el canal Y la orden, en orden "
+        "de llegada: %s" % " | ".join("%s/%s" % p for p in del_mando),
+        "los dos cambios no dejaron su rastro en la bitacora del mando: %r (de %d "
+        "$EVENT en la tanda). Sin bitacora de origen, dos operarios contradiciendose "
+        "son indistinguibles de un equipo que hace cosas solo"
+        % (del_mando, len(eventos)))
+
+    # El control que le falta a toda comprobacion de ORDEN: la de arriba tiene que saber
+    # distinguir las dos ordenes CAMBIADAS DE SITIO. Con `all("ORIGEN:" in e)` -lo de
+    # antes- una bitacora que confesara las dos ordenes al reves pasaba igual, y es
+    # justo el caso que F6 mide: cual gano.
+    al_reves = list(reversed(eventos))
+    t.control_negativo(
+        _bitacora_del_mando(al_reves) != del_mando
+        and _bitacora_del_mando([e.replace("ORIGEN:APP_BLUETOOTH", "ORIGEN:J17")
+                                 for e in eventos]) == [],
+        "la bitacora se lee por canal Y por orden: con las mismas lineas al reves da "
+        "otra cosa, y con el canal cambiado no da ninguna")
+
+    # [LA MITAD QUE SE MUDA, con su medida propia] El flujo nuevo de A3: una linea
+    # entregada por J17 cierra un silencio y lo publica. Se exige uno POR LINEA -ni de
+    # mas, que llenaria la bitacora, ni de menos, que perderia el silencio que interesa-
+    # y que su contador N avance, que es lo que distingue dos sucesos de uno repetido.
+    del_puerto = [e for e in eventos if _campo(e, "ORIGEN") == "J17"]
+    ns = [int(m.group(1)) for m in
+          (re.search(r"N:(\d+)", e) for e in del_puerto) if m]
+    t.verificar(
+        len(del_puerto) == len(puente.hacia_stm32)
+        and len(ns) == len(del_puerto) and ns == sorted(set(ns)),
+        "y el silencio de J17 deja SU propia linea, en otro canal: %d $EVENT "
+        "ORIGEN:J17 para %d lineas entregadas, con N: %s -uno por linea, y el contador "
+        "avanza-" % (len(del_puerto), len(puente.hacia_stm32), ns),
+        "el registro de silencio de J17 no cuadra con las lineas entregadas: %d "
+        "$EVENT ORIGEN:J17 para %d lineas, N: %s. Uno de mas por linea llena la "
+        "bitacora de ruido; uno de menos pierde el silencio que el tecnico vino a "
+        "mirar" % (len(del_puerto), len(puente.hacia_stm32), ns))
 
     origenes = set(re.findall(r'bluetooth_reportarEvento\("([^"]+)"',
                               c.codigo["Maestro"] + c.codigo["Esclavo"]))
