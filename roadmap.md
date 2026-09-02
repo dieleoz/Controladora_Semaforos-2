@@ -27,6 +27,43 @@ cuadradas, la guia de campo recortada a ~7.100 palabras, y el arnes de DOM inver
 > Ojo con la fecha: la sesion se cerro **pasada la medianoche**, asi que el acta viva es
 > `evidencia/2026-09-01_compuerta.txt` — **fichero nuevo, no sustituye** al del 31/08.
 
+### 0.bis · La V2 — lo que ya esta identificado y NO se ha hecho
+
+**No es una lista de deseos: cada linea salio de un defecto medido en esta sesion o de una pregunta
+del responsable.** Se agrupa por lo que compra, no por lo que cuesta.
+
+#### A · Que el equipo cuente lo que le pasa (lo que hoy NO existe)
+
+> El sintoma que se sufre en la calle es *«no saber cuanto se va cuando se va, y por que se va»*. Hoy
+> el equipo **no guarda nada**: cuando el tecnico llega, lo que paso ya no esta.
+
+| | que | por que |
+|---|---|---|
+| **A1** | **Pantalla de modo depuracion en la app** — las tramas **en crudo**, las rechazadas **con su motivo**, y los contadores de la ultima ventana | hoy la app pinta el estado y tira todo lo demas. Un fallo intermitente no se diagnostica con un semaforo dibujado: se diagnostica con la trama que no cuadro |
+| **A2** | **Registro descargable** de esas tramas | para que el dato salga del poste. `registro_enlace.js` (N-108) ya lleva la mitad: guarda los cortes del enlace. Falta el **contenido**, no solo el hueco |
+| **A3** | **El STM32 cuenta el silencio de `J17`** (N-113) | el ESP32 no puede reportar su propia muerte. El que sobrevive es el STM32 |
+| **A4** | **El ESP32 declara su reinicio** al volver del watchdog | un puente que revive en silencio **esconde** el fallo que hay que contar |
+
+#### B · Barreras que hoy no vigila nadie
+
+| | que | estado |
+|---|---|---|
+| **B1** | **La app no valida el checksum de lo que pinta.** `validarTrama()` existe, esta en 4 copias y **no tiene un solo llamador** | medido, N-110 |
+| **B2** | **El teclado del PIN acepta pulsaciones con el modal cerrado**: una barrera cuyo estado se arma sin abrir la barrera | medido, N-110 |
+| **B3** | **El PIN es `1234` literal en claro** sobre SPP sin cifrar, y **`FORZAR_ROJO`, `SET_MODO:MENU`, `SET_MODO:ALCANCE` y `AMBAR_EMERGENCIA` no lo piden** | N-109 §5. **No esta clasificado como riesgo de seguridad, y lo es** |
+
+#### C · El instrumental, solo lo que impide medir
+
+| | que | por que ahora |
+|---|---|---|
+| **C1** | 🔴 **N-112: la compuerta alterna** | **es el aparato de medir, y miente**. Todo lo demas se juzga con el |
+| **C2** | **Repasar `OPTIMIZACIONES.md`**: la trazabilidad regla -> codigo -> prueba se levanta buscando `# EJERCE`, y el firmware se movio mucho | una regla que aparece cubierta por un pack que no la ejerce **es peor que una fila vacia**, porque la vacia no miente |
+
+> ⚠️ **Y lo que NO entra en la V2, a proposito:** mas packs, mas actas y mas documentos. La auditoria
+> (N-109) ya dijo que ese bucle *«produce la sensacion de progreso sin acercar el unico entregable que
+> importa»*. **Nada de A, B ni C sustituye al banco** — A y B se escriben para que la sesion de banco
+> devuelva datos en vez de impresiones.
+
 ### 0.1 · Que se entrego el 31/08, y con que salvedad
 
 ```
