@@ -5,84 +5,56 @@
 
 ---
 
-> # 🛑 AVISO DEL 28/08/2026 — ESTE PROCEDIMIENTO YA NO SE PUEDE EJECUTAR
+> # 🛑 AVISO DEL 02/09/2026 — ESTE MODO SE OPERA HOY DESDE LA APP, NO DESDE LOS BOTONES
 >
-> **El 28/08/2026 se decidió en obra retirar la pantalla LCD, los cuatro pulsadores y el mando de
-> relés.** Toda la operación pasa a la App por Bluetooth.
->
-> **Las dos vías de entrada y las dos de salida de este modo son, todas, botones o secuencias de
-> mando.** Al retirarlos, este documento describe maniobras **sin actuador**: no hay con qué
-> hacerlas.
->
-> | Maniobra | Actuador que la ejecuta hoy | Tras la retirada |
-> |---|---|---|
-> | Entrar (pantalla) | `Botón 4` → `CONFIGURACION` → `Botón 3` → `Botón 3` | ❌ sin actuador |
-> | Entrar (piso) | `A · B · A · B` en el mando | ❌ sin actuador |
-> | Salir a Automático | `A · A · A`, o `Botón 3` en pantalla | ❌ sin actuador |
-> | Salir a Ámbar | `B · B · B`, o `Botón 3` en pantalla | ❌ sin actuador |
-> | Volver al MENÚ desde cualquier modo | `Botón 4` (`botonCancelar()`, `PB15`) | ❌ sin actuador |
->
-> ## 🔴 Lo que hay que decir sin adornos
->
-> **Hasta que exista el comando de vuelta, retirar los pulsadores deja el Modo Degradado como una
-> puerta de un solo sentido.**
->
-> Y hoy ni siquiera es una puerta: **tampoco existe el comando de ida.** No hay forma de *entrar*
-> al Degradado por Bluetooth, así que retirados los botones este modo queda **inalcanzable** salvo
-> por la reanudación automática tras un corte (N-20, `main.cpp:115`) — que es justo el camino que
-> **nadie pulsa** y del que **nadie podría sacarlo**.
->
-> ### MEDIDO — verificado leyendo el fuente el 28/08/2026
->
-> | # | Hallazgo | Evidencia |
-> |---|---|---|
-> | 1 | `botonCancelar()` **es** el `Botón 4` = `PB15` | `Maestro/include/pines.h:95` (`#define BOTON4 PB15  // Cancelar`) · `Maestro/src/botones.cpp:132` |
-> | 2 | `botonCancelar()` es la **única** vuelta al MENÚ desde **todos** los modos del Maestro | `modo_degradado.cpp:443` · `modo_alcance.cpp:50` · `modo_ambar.cpp:42` · `modo_automatico.cpp:80` · `modo_hora.cpp:262` · `modo_inteligente.cpp:65` · `modo_manual.cpp:21` · `menu.cpp:151` |
-> | 3 | **No existe comando Bluetooth para ENTRAR** en Degradado | `grep DEGRADADO` sobre los dos `bluetooth.cpp` devuelve **una sola línea**: `Maestro/src/bluetooth.cpp:193`, `case MODO_DEGRADADO: return "DEGRADADO";` — la **cadena de estado de `$STATUS`**, no un comando |
-> | 4 | **No existe comando Bluetooth para volver al MENÚ** | `coordinador_forzarMenu()` está declarada en `coordinador.h:7` y definida en `coordinador.cpp:545`. Tiene **tres** llamadores —`menu.cpp:82`, `modo_alcance.cpp:40`, `modo_hora.cpp:104`— y **ninguno** es `bluetooth.cpp` |
-> | 5 | En el **Esclavo** no hay **ninguna** vía Bluetooth ni de entrada ni de salida | `Esclavo/src/bluetooth.cpp` solo acepta `FORZAR_ROJO` (`:109`, `:124`), `SOLICITAR_PASO` (`:128`), `TEST_LEDS` (`:146`) y `SET_RTC:` (`:159`) |
->
-> ### ⚠️ CORRECCIÓN MEDIDA — el Maestro SÍ tiene dos salidas por Bluetooth, y son incompletas
->
-> Se dio por sentado que *"desde Bluetooth no existe ningún comando de vuelta"*. **Medido, es falso
-> a medias, y la mitad cierta importa más que la falsa.** Hay dos:
+> **Los pulsadores 3 y 4 ya no existen.** Sus pines (`J16` p10 y p12) son entradas de cámara, y el
+> firmware devuelve *«no pulsado»* de forma permanente para los dos:
 >
 > ```
->   CMD:PIN:1234:SET_MODO:AUTO    -> modoActual_set(MODO_AUTOMATICO)   bluetooth.cpp:124
->   CMD:PIN:1234:SET_MODO:AMBAR   -> modoActual_set(MODO_AMBAR)        bluetooth.cpp:134
+>   Maestro/src/botones.cpp:280-281   bool botonAceptar()  { return false; }
+>                                     bool botonCancelar(){ return false; }
+>   Esclavo/src/botones.cpp:294-295   identico
 > ```
 >
-> Y **sí se atienden estando en Degradado**: `bluetooth_loop()` se llama incondicionalmente en
-> `main.cpp:145`, antes del despacho de modos. El indicador de respaldo también se borra bien —
-> `main.cpp:196-198` lo hace en el cambio de modo, **por cualquier vía**.
+> **No intente ejecutar ningún paso que diga «pulse Botón 3», «pulse Botón 4» o «navegue al menú».**
+> No hay con qué hacerlo, y el equipo no dará ninguna señal de error: simplemente no pasará nada.
 >
-> **Lo que esas dos salidas NO hacen, y es el motivo por el que no sustituyen al `Botón 4`:**
+> ## Cómo se entra y se sale HOY
 >
-> - **Se saltan el todo-rojo de despedida.** La salida por `Botón 4` fuerza `semaforo_forzarRojo()`,
->   espera `ROJO_TRANSICION_MS` y pinta `"Vea las dos puntas"` (`modo_degradado.cpp:448-462`). La
->   salida por Bluetooth **no**: se pasa de un **verde por reloj** directamente a
->   `modoAutomatico_setup()` / `modo_ambar_setup()` en la iteración siguiente. Es exactamente lo que
->   el comentario del propio firmware llama *"encadenar dos autoridades sin cerrar el paso en
->   medio"* (`Esclavo/src/mando.cpp:118-121`).
-> - **No devuelven al MENÚ.** Sacan del Degradado hacia *otro modo en marcha*, no al estado de
->   reposo.
-> - **No existen en el Esclavo** (hallazgo 5). Así que una salida por Bluetooth **solo mueve una
->   punta** — que es el **Riesgo residual nº 2** de la Sección 6, provocado a propósito.
+> | Maniobra | Cómo se hace hoy | Evidencia |
+> |---|---|---|
+> | Entrar en Degradado | **App:** `CMD:PIN:1234:SET_MODO:DEGRADADO` | `Maestro/src/bluetooth.cpp:435` |
+> | Entrar desde el piso | `A · B · A · B` en el mando de relés | canales `A` (`PB9`) y `B` (`PB13`), **se conservan** |
+> | Salir a Automático | **App:** `SET_MODO:AUTO`, o `A · A · A` en el mando | `bluetooth.cpp:378` |
+> | Salir a Ámbar | **App:** `SET_MODO:AMBAR`, o `B · B · B` en el mando | `bluetooth.cpp:388` |
+> | Volver al MENÚ | **App:** `SET_MODO:MENU` | `bluetooth.cpp:392` |
+> | ~~Entrar por pantalla~~ | ⛔ **sin actuador** — necesitaba `Botón 4` y dos `Botón 3` | — |
+> | ~~Salir por pantalla~~ | ⛔ **sin actuador** — necesitaba `Botón 3` | — |
 >
-> ### ESCRITO — decidido, no medido
+> **El modo NO está inalcanzable, y esto invierte lo que decía la versión anterior de este aviso.**
+> Hasta el 28/08 no existía comando de ida ni de vuelta por Bluetooth y esa era la advertencia
+> central. Hoy existen los dos. Se deja escrito el cambio y no se borra el motivo: lo que dejó de
+> ser cierto es *«el Degradado queda inalcanzable al retirar los botones»*.
 >
-> - La retirada de LCD, pulsadores y mando es una **decisión de obra del 28/08/2026**.
-> - **El reemplazo NO está decidido:** falta confirmar el chip del ESP32 y qué pasa con el cristal
->   `Y2`. Por eso **este aviso no propone un procedimiento nuevo**. No lo invente.
+> ### 🔴 Lo que la salida por app NO hace, y hay que tenerlo en cuenta en obra
 >
-> ### Qué se hace mientras tanto
+> - **Se salta el todo-rojo de despedida.** La salida por `Botón 4` forzaba rojo, esperaba la
+>   transición y pintaba *«Vea las dos puntas»* (`modo_degradado.cpp:448-462`). La salida por app
+>   pasa de un **verde por reloj** directamente al modo nuevo en la iteración siguiente. **Mire las
+>   dos puntas usted antes de dar la orden.**
+> - **El Esclavo no tiene `SET_MODO`.** Su despachador de Bluetooth atiende `FORZAR_ROJO`,
+>   `SOLICITAR_PASO`, `TEST_LEDS` y `SET_RTC:` — no cambia de modo. Una salida por app **mueve solo
+>   el Maestro**, que es el **Riesgo residual nº 2** de la Sección 6.
+> - **El mando de relés sigue siendo la única vía que mueve las dos puntas desde el piso**, y sigue
+>   necesitando el receptor RF, que **no se ha comprado**.
 >
-> 1. **No ejecute nada de las Secciones 3, 5, 7 ni 8 de este documento.** Los pasos tachados abajo
->    no tienen actuador.
-> 2. **No retire los pulsadores de una punta que pueda quedar en Degradado** hasta que exista el
->    comando de vuelta. Es la única salida que hoy funciona en las dos puntas.
-> 3. El límite duro de 48 h (Sección 4) **sigue vigente y es hoy la única salida garantizada**: el
->    equipo se rinde solo a ámbar (`modo_degradado.cpp:515`). No es un procedimiento — es un tope.
+> ### Qué NO se puede ejecutar de este documento
+>
+> 1. **Todo paso que mencione `Botón 3` o `Botón 4`.** Están tachados abajo y siguen tachados.
+> 2. La pantalla LCD **se sigue dibujando** y sirve para *leer* estado; **no sirve para mandar**,
+>    porque no hay con qué confirmar una opción.
+> 3. El límite duro de 48 h (Sección 4) sigue vigente: el equipo se rinde solo a ámbar
+>    (`modo_degradado.cpp:515`). No es un procedimiento — es un tope.
 
 ---
 
@@ -184,11 +156,21 @@ procedimiento.
 
 ### Paso 1 — Activar en el **MAESTRO**
 
-> 🛑 **SIN ACTUADOR desde el 28/08/2026 — las dos vías de este paso se retiran.** No se tacha para
-> borrarlo: se conserva porque es la especificación de lo que el reemplazo por Bluetooth tendrá que
-> reproducir, incluida la doble confirmación. Ver el aviso de cabecera.
+> ✅ **CÓMO SE HACE HOY (02/09/2026): desde la app, con PIN.**
+>
+> ```
+>   CMD:PIN:1234:SET_MODO:DEGRADADO
+> ```
+>
+> El firmware atiende esta orden en `Maestro/src/bluetooth.cpp:435`, y **la puerta de los 5
+> requisitos sigue delante**: si alguno no se cumple, no entra y contesta el motivo concreto
+> (`$ERR,CMD:SET_MODO:DEGRADADO,DESC:...`). **Lea la respuesta** — un `$ERR` aquí no es un fallo de
+> la app, es el equipo diciéndole cuál de los cinco requisitos falta.
+>
+> Los pasos de pantalla que van debajo quedan tachados: **no hay `Botón 3` ni `Botón 4`.** Se
+> conservan porque describen la doble confirmación que la puerta sigue exigiendo por dentro.
 
-Desde la pantalla del gabinete:
+~~Desde la pantalla del gabinete:~~
 
 1. ~~`Botón 4` hasta llegar al **Menú Principal**.~~
 2. ~~Bajar hasta `CONFIGURACION` y entrar con `Botón 3`.~~
@@ -205,18 +187,22 @@ Lo que desaparece es la forma de llamar a la puerta, no la puerta.
 > hacia el estado seguro y no necesita protección. Entrar habilita verdes sin confirmación del otro
 > extremo, y eso sí.
 >
-> ⚠️ **Esta asimetría es hoy exactamente al revés, y es el problema.** Retirados los botones no hay
-> **ninguna** pulsación para entrar y **ninguna** para salir; lo único que queda por Bluetooth son
-> dos salidas *parciales* en el Maestro (`SET_MODO:AUTO` y `SET_MODO:AMBAR`) que **se saltan el
-> todo-rojo de despedida** y **no existen en el Esclavo**. Ver la corrección medida en la cabecera.
+> ⚠️ **La asimetría se conserva por app, pero no en las dos puntas (medido el 02/09).** En el
+> **Maestro** entrar exige PIN (`CMD:PIN:1234:SET_MODO:DEGRADADO`) y la puerta de los 5 requisitos
+> sigue delante. Salir por app (`SET_MODO:AUTO`, `SET_MODO:AMBAR`) **se salta el todo-rojo de
+> despedida** que hacía el `Botón 3`. En el **Esclavo** no hay `SET_MODO` de ninguna clase: entra
+> solo por `A · B · A · B`, y sale a ámbar por `CMD:AMBAR_EMERGENCIA`.
 
-~~**Desde el piso**, con el mando de 4 relés: `A · B · A · B` en menos de 18 segundos.
+**Desde el piso**, con el mando de relés: `A · B · A · B` en menos de 18 segundos.
 Confirmación: **4 destellos rojos**. Si en vez de destellos aparece un **ámbar rápido**, la secuencia
-fue **rechazada** por alguno de los 5 requisitos — hay que subir a ver cuál.~~
+fue **rechazada** por alguno de los 5 requisitos.
 
-**Por qué se tacha:** el mando de 4 relés se retira (28/08/2026). Además, ese receptor **nunca se
-compró ni se conectó**, así que esta vía **nunca llegó a existir en campo** — ver
-`04_Manuales/MANUAL_MANDO_4_RELES.md:8-19`.
+> ⚠️ **La secuencia existe en el firmware** (`Maestro/src/mando.cpp:204-214`, `Esclavo/src/mando.cpp:148`)
+> **y no se puede ejercer todavía: el receptor RF nunca se compró ni se conectó.** Esta vía **nunca
+> ha llegado a existir en campo** — ver `04_Manuales/MANUAL_MANDO_4_RELES.md`.
+>
+> **Es hoy la única forma de meter el Esclavo en Degradado**, porque su despachador de Bluetooth no
+> tiene comando de entrada. Vea el Paso 2.
 
 ### Paso 2 — Activar en el **ESCLAVO**
 
@@ -243,17 +229,37 @@ En la App Móvil o en la pantalla del Esclavo:
 1. **Vía App Móvil (Desde el suelo):** Conectarse al `📡 ESCLAVO (Poste 2)`, entrar a `Ajustes / RTC` y pulsar `[ 🚀 Inyectar en Esclavo ]` ~~o activar Modo Degradado~~.
 2. ~~**Vía Pantalla LCD (Gabinete):** `Botón 4` hasta el menú ➔ `MODO DEGRADADO` ➔ `Botón 3` (`CONFIRMAR ENTRADA`).~~
 
-> 🛑 **AVISO 28/08/2026 — el punto 2 se retira, y el punto 1 promete algo que el firmware no tiene.**
+> 🛑 **AVISO AL DÍA (02/09/2026) — AL ESCLAVO NO SE LE PUEDE METER EN DEGRADADO DESDE LA APP.**
 >
-> - El punto 2 es pantalla + pulsadores: **sin actuador**.
-> - **MEDIDO:** *"o activar Modo Degradado"* del punto 1 **no existe**. `Esclavo/src/bluetooth.cpp`
->   acepta exactamente cuatro acciones —`FORZAR_ROJO` (`:109`, `:124`), `SOLICITAR_PASO` (`:128`),
->   `TEST_LEDS` (`:146`) y `SET_RTC:` (`:159`)— y **ninguna** entra ni sale del Degradado. `grep
->   DEGRADADO` sobre ese fichero **no devuelve nada**. La inyección de RTC sí existe y se conserva.
+> Esto **no ha cambiado**, aunque el Maestro sí tenga ya su comando. Medido sobre
+> `Esclavo/src/bluetooth.cpp`, su despachador acepta exactamente estas acciones y ninguna más:
 >
-> Es la clase de promesa que este repositorio ya pagó con la *«Caja Negra de Alarmas»* (N-73): un
-> documento que anuncia como existente una función que nadie llama. Aquí es peor, porque **no está
-> ni declarada**.
+> ```
+>   CMD:AMBAR_EMERGENCIA            :315   (sin PIN)
+>   CMD:FORZAR_ROJO                 :382   (sin PIN)
+>   CMD:PIN:1234:AMBAR_EMERGENCIA   :402
+>   CMD:PIN:1234:CANCELAR_AMBAR     :425
+>   CMD:PIN:1234:FORZAR_ROJO        :458
+>   CMD:PIN:1234:SOLICITAR_PASO     :466
+>   CMD:PIN:1234:TEST_LEDS          :484
+>   CMD:PIN:1234:SET_RTC:...        :497
+> ```
+>
+> **Ninguna entra en Degradado.** Las dos únicas puertas de entrada del Esclavo son
+> `Esclavo/src/mando.cpp:148` —la secuencia `A · B · A · B` del mando de relés— y
+> `Esclavo/src/menu.cpp:227`, que necesita `botonAceptar()` y por tanto **está tapiada**.
+>
+> ### 🔴 Lo que eso significa en obra, sin adornos
+>
+> **Para poner el Esclavo en Degradado hace falta el mando de relés, y su receptor RF nunca se
+> compró.** Mientras eso siga así, este procedimiento **no se puede completar en las dos puntas** —
+> y una sola punta en Degradado es peor que ninguna (Sección 6).
+>
+> - El punto 2 (pantalla + pulsadores) sigue **sin actuador**: no hay `Botón 3` ni `Botón 4`.
+> - *"o activar Modo Degradado"* del punto 1 **sigue sin existir**. La inyección de RTC del punto 1
+>   sí existe y se conserva.
+> - Lo que el Esclavo **sí** acepta ya desde la app, y antes no, es el **ámbar de emergencia** y su
+>   revocación. Es el plan de aborto del Paso 3, no una vía de entrada.
 
 ### Paso 3 — VERIFICACIÓN VISUAL DE AMBAS PUNTAS ← **obligatoria**
 
@@ -273,18 +279,38 @@ compruebe con los ojos, no en pantalla:
 ~~Si algo no cuadra: `B · B · B` desde el piso, o `Botón 3` en la pantalla del Degradado, **en las dos
 unidades**. Vuelva a ámbar y no insista.~~
 
-> 🛑 **SIN ACTUADOR (28/08/2026) — y este es el tachón más grave del documento.**
+> ## ✅ EL PLAN DE ABORTO, AL DÍA (02/09/2026)
 >
-> Esta línea es el **plan de aborto** de la verificación visual: lo que se hace cuando se descubre
-> que las dos puntas no cuadran, con el cruce ya dando verdes por reloj. Sus dos vías son mando y
-> pulsador, y las dos se retiran.
+> Esta línea es lo que se hace **cuando las dos puntas no cuadran con el cruce ya dando verdes por
+> reloj**. Sus dos vías viejas eran mando y pulsador. Hoy se hace desde la app, **punta por punta**:
 >
-> **Lo que queda hoy, medido, y por qué no basta:** en el **Maestro**,
-> `CMD:PIN:1234:SET_MODO:AMBAR` (`bluetooth.cpp:134`). En el **Esclavo**, `CMD:FORZAR_ROJO`
-> (`bluetooth.cpp:109`) — que **no es ámbar y no saca del Degradado**. Es decir: **no hay forma de
-> devolver las dos puntas a ámbar por Bluetooth**, que es literalmente lo que este paso ordena
-> hacer. La verificación visual sigue siendo obligatoria; lo que ha desaparecido es qué hacer
-> cuando falla.
+> | punta | orden | dónde está |
+> |---|---|---|
+> | **MAESTRO** | `CMD:PIN:1234:SET_MODO:AMBAR` | `Maestro/src/bluetooth.cpp:388` |
+> | **ESCLAVO** | `CMD:AMBAR_EMERGENCIA` *(sin PIN)* o `CMD:PIN:1234:AMBAR_EMERGENCIA` | `Esclavo/src/bluetooth.cpp:315` y `:402` |
+>
+> **El ámbar del Esclavo NO es instantáneo si el Degradado está gobernando la luz, y eso es
+> deliberado.** El equipo sale **por todo-rojo**, no de un verde a un ámbar intermitente: saltar
+> directo le daría a quien viene lanzado una señal que invita a negociar el paso creyendo que
+> todavía tiene prioridad. Puede tardar **de 10 a 90 s**. Lo verá en la respuesta:
+>
+> ```
+>   $ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK                        <- ambar ya puesto
+>   $ACK,CMD:AMBAR_EMERGENCIA,RESULT:SALIENDO_TODO_ROJO        <- va en camino, espere
+>   $ACK,CMD:AMBAR_EMERGENCIA,RESULT:SALIDA_YA_EN_CURSO        <- ya estaba saliendo
+>   $ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO  <- ya estaba en ambar
+>   $ERR,CMD:AMBAR_EMERGENCIA,DESC:SALIDA_A_ROJO_EN_CURSO_REPITA  <- REPITA la orden
+> ```
+>
+> 🔴 **`SALIENDO_TODO_ROJO` no es `OK`, y la diferencia importa en la calle: el ámbar todavía no
+> está puesto.** No se vaya del cruce hasta verlo con los ojos.
+>
+> **Para revocar ese ámbar** en el Esclavo: `CMD:PIN:1234:CANCELAR_AMBAR` (`bluetooth.cpp:425`).
+> Pide PIN a propósito — poner el ámbar es la acción segura; **quitarlo devuelve el cruce a dar
+> verdes**, y eso es lo que el PIN custodia.
+>
+> **Lo que sigue sin existir:** `CMD:FORZAR_ROJO` en el Esclavo (`bluetooth.cpp:382`) **no es ámbar
+> y no saca del Degradado**. No lo use como plan de aborto.
 
 ---
 
@@ -305,7 +331,26 @@ poco por la deriva de dos cristales de 32.768 kHz sin calibrar, a la intemperie:
 | **30 s** ← el que usa este modo | ~8,6 s/día | ~3,5 días | **48 h** |
 | 90 s | ~8,6 s/día | ~10 días | 5 días *(a costa de la fluidez)* |
 
-Las 48 h dejan **factor de seguridad 2** sobre el margen teórico.
+> 🔴 **CORREGIDO EL 02/09 — el factor de seguridad NO es 2. Es 1,44.**
+>
+> Este documento decía *«las 48 h dejan factor de seguridad 2 sobre el margen teórico»*. Se midió
+> ejecutando el C++ real de las dos puntas a la vez, cada una con su reloj, y la cuenta sale así
+> (`Maestro/src/modo_degradado.cpp:39-45`):
+>
+> | | |
+> |---|---|
+> | Desfase entre relojes que el cruce **aguanta** | **29 s** |
+> | Desfase que el equipo puede **acumular** en 48 h | **20,2 s** *(17,2 s de deriva + 3 s de tolerancia)* |
+> | Margen que queda | **8,8 s** → **factor 1,44** |
+>
+> **Los 48 h no cambian y el despeje de 30 s tampoco** —subirlo alarga el todo-rojo que ve el
+> conductor, y esa es una decisión vial, no de firmware—. Lo que cambia es cuánto colchón crea
+> usted que tiene: **es la mitad de lo que este documento venía diciendo.** Con 8,8 s de margen, un
+> radio caído no se deja para «la semana que viene».
+>
+> La frontera del sentido malo —**Esclavo atrasado**— es exactamente el despeje de 30 s, y el
+> segundo entero con que viaja la hora la deja en 29. El sentido favorable aguanta 35 s porque los
+> 4 s de ámbar con que el Esclavo abre su verde protegen **solo en un sentido**.
 
 > **El estado seguro no puede depender de que alguien se acuerde.** Ése es el principio que el resto
 > del sistema ya aplica —el fallback de 12 s, el piso de 5 s del despeje— y aquí aplica igual. Un
@@ -336,18 +381,33 @@ real usando el **contador del RTC** (N-49 T1/T2, monótono y sin saltos de fin d
 Se hace cuando se cree que el radio volvió. El escenario típico es *"dejó de llover, a ver si
 enlaza"*.
 
-- ~~**Desde el piso:** `A · A · A` en menos de 12 s → **2 destellos rojos**.~~
-- ~~**Desde la pantalla:** en `CONFIGURACION → MODO DEGRADADO`, `Botón 3` (`3=Salir`).~~
+- **Desde el piso:** `A · A · A` en menos de 12 s → **2 destellos rojos**. ✅ **Sigue existiendo.**
+- **Desde la app:** `CMD:PIN:1234:SET_MODO:AUTO` — **solo en el Maestro**.
+- ~~**Desde la pantalla:** en `CONFIGURACION → MODO DEGRADADO`, `Botón 3` (`3=Salir`).~~ ⛔ sin actuador.
 
-> 🛑 **SIN ACTUADOR (28/08/2026).** Las dos vías se retiran.
+> ✅ **CORREGIDO EL 02/09 — `A · A · A` NO se retiró, y la versión anterior de este documento decía
+> que sí.**
 >
-> **Sustituto parcial en el Maestro, medido:** `CMD:PIN:1234:SET_MODO:AUTO`
-> (`Maestro/src/bluetooth.cpp:124`). **No es equivalente**: se salta el todo-rojo de despedida de
-> `modo_degradado.cpp:448-462` y pasa del verde por reloj directo a `modoAutomatico_setup()`.
-> **En el Esclavo no hay sustituto ninguno**, así que ejecutar solo el del Maestro produce el
+> El mando de relés **se conserva en sus canales `A` y `B`** (`MANDO_A` = `PB9` = `J16` p5,
+> `MANDO_B` = `PB13` = `J16` p8). Lo que se retiró son los pulsadores 3 y 4, que el mando **no
+> usaba**. Las tres secuencias siguen enteras en el firmware de las dos puntas:
+>
+> ```
+>   A A A      -> Automatico  Maestro/src/mando.cpp:225-227 · Esclavo/src/mando.cpp
+>   B B B      -> Ambar       Maestro/src/mando.cpp:230-234
+>   A B A B    -> Degradado   Maestro/src/mando.cpp:204-214 · Esclavo/src/mando.cpp:148
+> ```
+>
+> ⚠️ **Lo que falta no es el firmware: es el receptor RF, que nunca se compró.** Sin él no hay con
+> qué generar los pulsos desde el piso. **La secuencia existe y no tiene mando.**
+>
+> **La vía por app no es equivalente a `A·A·A`:** `CMD:PIN:1234:SET_MODO:AUTO`
+> (`Maestro/src/bluetooth.cpp:378`) **se salta el todo-rojo de despedida** de
+> `modo_degradado.cpp:448-462` y pasa del verde por reloj directo a `modoAutomatico_setup()`. Y **en
+> el Esclavo no hay `SET_MODO` de ninguna clase**, así que ejecutar solo el del Maestro produce el
 > **Riesgo residual nº 2** (Sección 6) — una punta fuera, la otra dentro.
 
-~~**Hágalo en las dos unidades**~~ *(hoy imposible: no hay comando en el Esclavo)*, y luego mire las luces:
+**Hágalo en las dos unidades**, y luego mire las luces:
 
 ```
    A·A·A  ->  2 destellos  ->  esperar ~15 s
@@ -362,21 +422,27 @@ estar. **El peor caso de intentar Automático es volver al ámbar.**
 
 ### Para irse a ámbar y dejarlo así
 
-- ~~**Desde el piso:** `B · B · B` en menos de 12 s → **3 destellos rojos**.~~
-- ~~`B·B·B` funciona **desde cualquier estado y sin condiciones**. Es la regla que impide que nadie
-  quede atrapado con un semáforo en un estado raro a 5 m de altura.~~
+- **Desde el piso:** `B · B · B` en menos de 12 s → **3 destellos rojos**. ✅ **Sigue existiendo.**
+- `B·B·B` funciona **desde cualquier estado y sin condiciones**. Es la regla que impide que nadie
+  quede atrapado con un semáforo en un estado raro a 5 m de altura.
+- **Desde la app:** `SET_MODO:AMBAR` en el Maestro · `AMBAR_EMERGENCIA` en el Esclavo.
 
-> 🛑 **SIN ACTUADOR (28/08/2026) — y lo que se pierde no es solo una comodidad.**
+> ✅ **CORREGIDO EL 02/09 — `B·B·B` tampoco se retiró.** El mando se conserva en `A` y `B`
+> (`Maestro/src/mando.cpp:230-234`). Sigue siendo la **salida de emergencia** del sistema, y su
+> promesa —*«desde cualquier estado y sin condiciones»*— **sigue siendo cierta en el firmware**. Lo
+> que no hay es el **receptor RF**, que nunca se compró: la secuencia existe y no tiene con qué
+> generarse desde el piso.
 >
-> `B·B·B` es la **salida de emergencia** del sistema entero. Su promesa —*"desde cualquier estado y
-> sin condiciones"*— **deja de ser cierta el día que se retire el mando**, y quien confíe en ella no
-> la tiene. El mismo aviso, con más detalle, está pegado a la frase original en
-> `04_Manuales/MANUAL_MANDO_4_RELES.md:316-318`.
+> ✅ **Y el ámbar del Esclavo YA NO depende solo del mando.** La versión anterior decía que
+> *«el Esclavo no puede irse a ámbar local por orden de nadie»*. Hoy es falso: su despachador de
+> Bluetooth atiende **`CMD:AMBAR_EMERGENCIA`** (`Esclavo/src/bluetooth.cpp:315`, sin PIN) y su
+> gemelo con PIN (`:402`), y ese ámbar **queda enclavado**: una orden de radio del Maestro no se lo
+> quita. Se revoca con `CMD:PIN:1234:CANCELAR_AMBAR` (`:425`), que **sí pide PIN** porque devuelve
+> el cruce a dar verdes.
 >
-> **MEDIDO — el ámbar del Esclavo desaparece por completo.** `ambarLocal` se arma en un solo sitio,
-> `Esclavo/src/mando.cpp:132`, dentro de `ejecutar(ACC_AMBAR)` — la acción de `B·B·B`. No hay otra.
-> Retirados mando y pulsadores, **el Esclavo no puede irse a ámbar local por orden de nadie**, y sus
-> tres vetos de radio se apagan solos. Ver el hallazgo completo en el manual del mando, §3.1.
+> `ambarLocal` —el veto del mando, `Esclavo/src/mando.cpp:132`— sigue armándose solo desde `B·B·B`.
+> Son **dos enclavamientos distintos**: el del mando lo pone quien está subido al poste; el de la
+> app, quien tiene el teléfono. Ver el manual del mando, §3.1.
 
 > ## 🟢 EL BLOQUE DE ARRIBA ESTÁ CADUCADO DESDE EL 31/08/2026 — y por DOS motivos independientes
 >
@@ -390,7 +456,8 @@ estar. **El peor caso de intentar Automático es volver al ámbar.**
 >
 > **(2) Y aunque no se conservara, el Esclavo SÍ tiene una segunda vía de ámbar** —la tenía ya cuando
 > se escribió aquello—: **`CMD:AMBAR_EMERGENCIA` por Bluetooth**, que entra por dos puertas, **con
-> PIN y sin PIN** (`Esclavo/src/bluetooth.cpp:130-136` y `:171-176`, **MEDIDO POR LECTURA**).
+> PIN y sin PIN** (`Esclavo/src/bluetooth.cpp:315` y `:402`, **MEDIDO el 02/09**; las dos puertas
+> llevan el mismo bloque letra por letra, a propósito). Se revoca con `CANCELAR_AMBAR` (`:425`).
 
 ### 5.bis 🟠 El ámbar de emergencia desde la app, y la jerarquía de las dos vías
 
@@ -477,15 +544,19 @@ ve un conductor.
 
 ### Checklist de salida
 
-- [ ] ~~Secuencia o pulsación ejecutada en el **Maestro**~~ → **sin actuador**; queda `SET_MODO:AUTO` / `SET_MODO:AMBAR` por Bluetooth, **sin todo-rojo de despedida**
-- [ ] ~~Secuencia o pulsación ejecutada en el **Esclavo** *(hoy: subiendo al gabinete)*~~ → **sin actuador y SIN SUSTITUTO**: no hay comando Bluetooth de salida en el Esclavo
+- [ ] Salida ejecutada en el **MAESTRO** — `SET_MODO:AUTO` o `SET_MODO:AMBAR` por app, o `A·A·A` / `B·B·B` con mando. ⚠️ **Por app no hay todo-rojo de despedida**
+- [ ] Salida ejecutada en el **ESCLAVO** — `CMD:AMBAR_EMERGENCIA` por app, o `B·B·B` con mando. ⚠️ **No hay salida a Automático en el Esclavo**: por app solo se le puede llevar a ámbar
+- [ ] Si salió a ámbar por app en el Esclavo: **`RESULT:OK` visto**, no solo `SALIENDO_TODO_ROJO`
 - [ ] **Verificado con los ojos** que **ambas** puntas quedaron en el mismo estado — las dos ciclando
       o las dos en ámbar *(sigue vigente: mirar no necesita actuador)*
 - [ ] **Ninguna punta quedó dando verde por reloj mientras la otra parpadea en ámbar** *(sigue vigente)*
 
-> ⚠️ **Las dos primeras casillas de este checklist no se pueden marcar hoy.** Un checklist con
-> casillas imposibles no es un checklist: es una invitación a firmarlo igual. Se conservan tachadas
-> para que el reemplazo sepa qué tiene que volver a hacer marcable.
+> ✅ **Las cinco casillas se pueden marcar hoy** (02/09). En agosto las dos primeras eran
+> imposibles, y un checklist con casillas imposibles es una invitación a firmarlo igual.
+>
+> ⚠️ **La segunda tiene un límite que hay que conocer antes de marcarla:** por app el Esclavo solo
+> va a **ámbar**, no a Automático. Si quiere las dos puntas ciclando otra vez, el Esclavo sale del
+> Degradado **solo** por el mando (`A·A·A`) o cuando el radio vuelva.
 
 ---
 
@@ -542,13 +613,19 @@ arriba**.
 | Tolerancia de desfase para entrar | **±3 s** | `TOLERANCIA_DESFASE_S` |
 | Aviso de límite en pantalla | a partir de **44 h** | `AVISO_LIMITE_MS` |
 | **Límite duro → ámbar** | **48 h** | `LIMITE_DURO_MS` |
-| ~~Secuencia de entrada desde el piso~~ 🛑 | ~~`A · B · A · B` en ≤ 18 s → **4 destellos rojos**~~ | ~~`mando.cpp`~~ |
-| ~~Secuencia a Automático~~ 🛑 | ~~`A · A · A` en ≤ 12 s → **2 destellos rojos**~~ | ~~`mando.cpp`~~ |
-| ~~Secuencia a Ámbar~~ 🛑 | ~~`B · B · B` en ≤ 12 s → **3 destellos rojos**~~ | ~~`mando.cpp`~~ |
+| Secuencia de entrada desde el piso | `A · B · A · B` en ≤ 18 s → **4 destellos rojos** | `mando.cpp:204-214` |
+| Secuencia a Automático | `A · A · A` en ≤ 12 s → **2 destellos rojos** | `mando.cpp:225-227` |
+| Secuencia a Ámbar | `B · B · B` en ≤ 12 s → **3 destellos rojos** | `mando.cpp:230-234` |
 
-> 🛑 **Las tres últimas filas se retiran (28/08/2026): sin actuador.** Los parámetros de *arriba*
-> —tiempos, tolerancias y el límite de 48 h— **siguen todos vigentes**: viven en el firmware y no
-> dependen de ningún botón. Lo que se cae son las tres formas de **pedir** un cambio.
+> ✅ **CORREGIDO EL 02/09 — las tres secuencias siguen en el firmware.** Una versión anterior de
+> este documento las daba por retiradas; el mando **se conserva** en sus canales `A` (`PB9`) y `B`
+> (`PB13`). Lo que se retiró son los pulsadores 3 y 4, que estas secuencias **no usan**.
+>
+> ⚠️ **Pero no se pueden ejercer todavía: el receptor RF nunca se compró.** Es una compra que falta,
+> no una función perdida.
+>
+> Los parámetros de *arriba* —tiempos, tolerancias y el límite de 48 h— viven en el firmware y no
+> dependen de ningún botón.
 
 **El ciclo degradado es fijo y propio: no hereda el verde configurado en Modo Automático.** Es
 deliberado — un verde de 2 minutos con un todo-rojo de 30 s daría un ciclo de 5 minutos, y nadie
@@ -558,18 +635,21 @@ espera cinco minutos en un paso alternado sin invadir.
 
 ## 8. Qué hacer si algo va mal
 
-> 🛑 **AVISO 28/08/2026 — la columna «Qué hacer» de esta tabla se queda casi entera sin actuador.**
-> Las filas tachadas describen respuestas que **ya no se pueden ejecutar**. Se conservan porque son
-> la lista de emergencias que el reemplazo por Bluetooth **tiene que saber atender**; hasta
-> entonces, la respuesta real a las tres primeras es **ir al gabinete**.
+> ✅ **TABLA AL DÍA (02/09/2026).** La columna «Qué hacer» se rehízo: la app tiene hoy órdenes que
+> en agosto no existían, incluida la que apaga el Esclavo. **Sin receptor RF, las respuestas por
+> mando no se pueden ejercer**; las de app sí.
 
 | Síntoma | Causa probable | Qué hacer |
 |---|---|---|
-| ~~La secuencia `A·B·A·B` responde con **ámbar rápido** en vez de 4 destellos~~ 🛑 *(sin mando: el síntoma ya no ocurre)* | Falta alguno de los 5 requisitos | ~~Subir al gabinete y leer el motivo en `CONFIGURACION → MODO DEGRADADO`~~ — **sin pantalla.** El motivo solo se podrá leer cuando la App lo publique |
-| ~~La secuencia **no responde nada**~~ 🛑 *(sin mando: no aplica)* | ~~El menú está abierto~~ — **sin menú, la inhibición de secuencias deja de existir** | ~~Subir y salir del menú con `Botón 4`~~ |
-| Las dos puntas **ciclan pero desfasadas** | Relojes separados, o una unidad se reinició | ~~`B·B·B` en **ambas** y volver a ámbar.~~ 🛑 **SIN ACTUADOR.** Hoy: `SET_MODO:AMBAR` por Bluetooth **solo en el Maestro**; el Esclavo **no tiene comando**. **No corregir a ojo** *(sigue vigente)* |
-| Una punta en **verde** y la otra en **ámbar** | Riesgo residual nº 2 — salida asimétrica | ~~**`B·B·B` inmediatamente en la punta que da verde.**~~ 🛑 **SIN ACTUADOR — y esta es la fila que más duele.** Si la punta en verde es el **Esclavo**, hoy **no hay ninguna orden que lo apague**: lo único disponible es `CMD:FORZAR_ROJO` (`Esclavo/src/bluetooth.cpp:109`), que **no saca del Degradado** — el ciclo por reloj volverá a dar verde en la siguiente fase |
-| Pantalla: `Limite 48h sin sync` | Se agotó el límite duro | Es correcto. Hay que **arreglar el radio**, no reactivar el modo. *(Sigue vigente: el tope es del firmware, `modo_degradado.cpp:515`, y no necesita actuador. Con los botones retirados es **la única salida garantizada** del Degradado.)* |
+| La secuencia `A·B·A·B` responde con **ámbar rápido** en vez de 4 destellos | Falta alguno de los 5 requisitos | Repita la entrada **desde la app** con `CMD:PIN:1234:SET_MODO:DEGRADADO`: el `$ERR` dice **cuál** de los cinco falta. La pantalla ya no se puede navegar |
+| La secuencia **no responde nada** | Sin receptor RF no hay quien genere los pulsos | Use la app. La inhibición por menú abierto ya no ocurre: el menú no se puede abrir |
+| Las dos puntas **ciclan pero desfasadas** | Relojes separados, o una unidad se reinició | **Ámbar en las dos, y no corrija a ojo.** Maestro: `CMD:PIN:1234:SET_MODO:AMBAR`. Esclavo: `CMD:AMBAR_EMERGENCIA` |
+| 🔴 **Una punta en verde y la otra en ámbar** | Riesgo residual nº 2 — salida asimétrica | **Apague la punta que da verde, ya.** Si es el **Esclavo**: `CMD:AMBAR_EMERGENCIA` (`Esclavo/src/bluetooth.cpp:315`, **no pide PIN** justamente por esto). Si es el **Maestro**: `CMD:PIN:1234:SET_MODO:AMBAR`. **`CMD:FORZAR_ROJO` NO sirve** (`:382`): no saca del Degradado y el ciclo por reloj volverá a dar verde en la fase siguiente |
+| Pantalla: `Limite 48h sin sync` | Se agotó el límite duro | Es correcto. Hay que **arreglar el radio**, no reactivar el modo. El tope es del firmware (`modo_degradado.cpp:515`) y no necesita actuador |
+
+> ⏱️ **En la fila roja, cuente con que el ámbar del Esclavo puede tardar de 10 a 90 s**: sale por
+> todo-rojo a propósito. `RESULT:SALIENDO_TODO_ROJO` significa *va en camino*, no *ya está*. **No se
+> vaya del cruce hasta verlo.**
 
 ---
 
@@ -588,9 +668,11 @@ Escrito aquí porque una limitación documentada vale más que una promesa:
   aviso**.
 - **El RTC no se ha contrastado contra hora patrón** ni se ha comprobado que conserve la hora tras
   desconectar la alimentación (N-15, N-17).
-- 🛑 **Y desde el 28/08/2026, lo mayor: no cubre cómo se ENTRA ni cómo se SALE de este modo.** Las
-  cuatro vías que documentaba eran botones y secuencias de mando, y las tres se retiran. **MEDIDO:**
-  no existe comando Bluetooth de entrada en ninguna punta, ni de salida en el Esclavo; en el Maestro
-  las dos salidas que hay (`SET_MODO:AUTO`, `SET_MODO:AMBAR`) se saltan el todo-rojo de despedida.
-  Ver el aviso de cabecera. **Este documento describe hoy un modo al que no se puede llamar y del
-  que no se puede volver.**
+- ⚠️ **Lo que sigue abierto en la entrada y la salida (medido el 02/09):**
+  - **El Esclavo no tiene comando Bluetooth de entrada** en Degradado. Su única puerta es la
+    secuencia `A · B · A · B` del mando, y **el receptor RF no se ha comprado**. Mientras siga así,
+    este procedimiento no se puede completar en las dos puntas.
+  - Las salidas por app del Maestro (`SET_MODO:AUTO`, `SET_MODO:AMBAR`) **se saltan el todo-rojo de
+    despedida** que sí hacía el `Botón 3`.
+  - El ámbar de emergencia del Esclavo **sí existe ya** por app y **sale por todo-rojo**, tardando
+    de 10 a 90 s. Ver el aviso de cabecera y la Sección 8.

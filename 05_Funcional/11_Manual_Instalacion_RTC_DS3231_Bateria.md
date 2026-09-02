@@ -77,7 +77,8 @@ Para mantener la hora y fecha exactas durante cortes de energía o traslados en 
  │                                                                             │
  │    PORTAPILAS CR2032 (3V)  ──► Pad VBAT (Pin 1 de U1) tras desoldar R5      │
  │                                                                             │
- │    DIAGNÓSTICO EN PANTALLA ──► Menú "CONSULTA RELOJ" (Oscilando OK / En Hora)│
+ │    DIAGNOSTICO POR LA APP  ──► $EVENT,ORIGEN:RELOJ  (pestana "Eventos")      │
+ │      La pantalla "CONSULTA RELOJ" YA NO SE PUEDE ABRIR.  Ver apartado 4.     │
  │                                                                             │
  └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -128,9 +129,58 @@ En la PCB de fábrica, `R5` es una resistencia puente de **0 Ω** que une el pin
 
 ---
 
-## 4. Verificación de Funcionamiento con la Pantalla LCD
+## 4. Verificación de Funcionamiento — **HOY SE LEE POR LA APP, NO POR LA PANTALLA**
 
-En el menú del semáforo, ingresar a **`CONFIGURACION` ➔ `CONSULTA RELOJ`** (`lcd.cpp:421`):
+> # 🛑 `CONSULTA RELOJ` YA NO SE PUEDE ABRIR. No lo intente.
+>
+> La pantalla **se sigue dibujando**, pero **no se puede llegar a ella**: `CONSULTA RELOJ` vive
+> dentro de `CONFIGURACION`, y para entrar hacen falta **dos pulsaciones de *Aceptar*** —una para
+> bajar de nivel y otra para entrar en la opción (`Maestro/src/menu.cpp:111`, `:129`)—. Los dos
+> pulsadores que lo hacían **ya no existen**:
+>
+> ```
+>   Maestro/src/botones.cpp:280-281   bool botonAceptar()  { return false; }
+>                                     bool botonCancelar(){ return false; }
+> ```
+>
+> `J16` p10 y p12 pasaron a ser entradas de cámara el 31/08. **La puerta está tapiada por los dos
+> lados**, y por Bluetooth no existe ningún comando que abra esa pantalla.
+
+### 4.1 ✅ Cómo se leen HOY esos mismos bits: por Bluetooth
+
+**Los mismos seis bits que pintaba la pantalla salen ahora en una trama de evento.** No hay que
+pedirla con un comando nuevo: **el equipo la manda sola, justo detrás del rechazo**, que es cuando
+hay alguien mirando.
+
+1. Conéctese al equipo con la app y **mande la hora**: `CMD:PIN:1234:SET_RTC:…`
+2. Si el equipo la rechaza, contesta **primero** el error y **detrás** los bits:
+
+```text
+   $ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ
+   $EVENT,NODE:MAESTRO,ORIGEN:RELOJ,DETALLE:ON:1 RDY:0 BYP:0 SEL:1 EN:1 CNT:0,HORA:--:--:--
+```
+
+3. **Léalo en la pestaña `Eventos`** de la app. Es la pestaña 2 y la ven los dos roles.
+
+*(Medido: `Maestro/src/bluetooth.cpp:305-333` compone el detalle y `:542` / `:577` lo emiten, detrás
+de `SIN_CRISTAL_VEA_CONSULTA_RELOJ` y de `SIGUE_PARADO_VEA_CONSULTA_RELOJ`. El mismo camino existe
+en el Esclavo.)*
+
+> ⚠️ **`CNT:--` no es `CNT:0`, y la diferencia es el diagnóstico.** `--` significa *no se pudo leer
+> el contador* —el periférico no tiene reloj y leerlo sería un fallo de bus—; `0` significa *se leyó
+> y vale cero*. Un cero en lugar de los guiones haría indistinguibles dos averías que mandan a
+> sitios opuestos.
+>
+> 💡 **Para saber si el contador AVANZA hacen falta dos lecturas.** Repita el mismo `SET_RTC` al cabo
+> de unos segundos y compare el `CNT`: si cambia, el RTC cuenta. No cuesta nada — en esta rama el
+> comando se rechaza **antes** de escribir.
+
+### 4.2 ~~Verificación con la pantalla LCD~~ ⛔ NO EJECUTABLE
+
+*Se conserva porque describe qué significa cada diagnóstico, y ese significado sigue valiendo — es
+lo que hoy dicen los bits `ON` / `RDY` / `BYP` de la trama de arriba.*
+
+~~En el menú del semáforo, ingresar a **`CONFIGURACION` ➔ `CONSULTA RELOJ`**~~ (`lcd.cpp:488`):
 
 ```text
  ┌──────────────────────────────────────┐
@@ -150,17 +200,16 @@ En el menú del semáforo, ingresar a **`CONFIGURACION` ➔ `CONSULTA RELOJ`** (
 | **`Pedido, no oscila`** | Los condensadores de carga $C_1/C_2$ del cristal no resuenan. | Reemplazar $C_1/C_2$ por 6–10 pF C0G/NP0. ~~o aplicar Plan B (DS3231)~~ ⛔ **el «Plan B» de este manual está ANULADO: no se cablea nada a `PB0`/`PB8`.** Ver apartado 5 |
 | **`Parado / Sin bateria`** | Pila agotada o $R_5$ no retirado correctamente. | Medir voltaje en Pin 1 (`VBAT` debe ser > 2.8V). |
 
-> ⚠️ **Este apartado 4 se comprueba desde la pantalla LCD, y la pantalla está en la lista de lo que se
-> retira.** La arquitectura de obra del 28/08 retira la LCD, los cuatro pulsadores y el mando de relés
-> (`ESTADO.md:80`, `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md` §1.3). **MEDIDO hoy en
-> el fuente: la pantalla sigue en el firmware** —`01_Firmware/Maestro/src/main.cpp:46` llama a
-> `lcd_setup()`, y `CONSULTA RELOJ` vive en `01_Firmware/Maestro/src/lcd.cpp:428-443`—, así que **este
-> procedimiento funciona tal cual mientras la LCD siga montada**.
+> ✅ **RESUELTO EL 01/09 — el hueco que este apartado dejaba abierto ya tiene instrumento.**
 >
-> 🟡 **PENDIENTE, con dueño: el día que se retire la pantalla, este apartado se queda sin instrumento**
-> y hay que decidir por dónde se lee el diagnóstico del reloj (la consola por celular es la candidata
-> obvia, pero **hoy no muestra estos tres mensajes** y este manual no lo afirma). **Lo decide el
-> responsable**, no este documento.
+> La versión anterior decía que *«este procedimiento funciona tal cual mientras la LCD siga
+> montada»*, y avisaba de que el día que se retirara la pantalla el apartado se quedaría sin
+> instrumento. **Ese día llegó antes de lo previsto y por otro camino:** la pantalla sigue montada y
+> el firmware la sigue dibujando (`Maestro/src/main.cpp:46`, `lcd.cpp:483-500`), pero **`CONSULTA
+> RELOJ` dejó de ser alcanzable** cuando los pulsadores 3 y 4 pasaron a ser cámaras.
+>
+> El instrumento nuevo es el `$EVENT,ORIGEN:RELOJ` del apartado 4.1. **No se decidió una pantalla
+> nueva: se mandaron los mismos bits por el canal que ya tenía interfaz construida.**
 
 ---
 
@@ -287,7 +336,9 @@ exactas: **«decidido, sin construir»**.
 |---|---|
 | `PB0` = cámara de demanda · `PB8` = `LED_TESTIGO` | ✅ **MEDIDO EN EL FUENTE** (`pines.h:46`, `:63`, las dos puntas) |
 | No hay driver de `DS3231` ni I²C en ninguna punta, ni en el ESP32 | ✅ **MEDIDO** (`grep`, 31/08) |
-| La LCD y `CONSULTA RELOJ` siguen en el firmware de hoy | ✅ **MEDIDO EN EL FUENTE** (`main.cpp:46`, `lcd.cpp:428`) |
+| La LCD y `CONSULTA RELOJ` siguen **dibujándose** en el firmware de hoy | ✅ **MEDIDO EN EL FUENTE** (`main.cpp:46`, `lcd.cpp:483`) |
+| …pero **`CONSULTA RELOJ` ya no es alcanzable**: necesita dos `botonAceptar()`, que devuelve `false` | ✅ **MEDIDO el 02/09** (`menu.cpp:111`, `:129`; `botones.cpp:280-281`) |
+| Los seis bits salen hoy por `$EVENT,ORIGEN:RELOJ`, detrás de los dos `$ERR` que nombran esa pantalla | ✅ **MEDIDO el 02/09** (`Maestro/src/bluetooth.cpp:305-333`, emitido en `:542` y `:577`) |
 | El `DS3231` va al ESP32 por `GPIO21`/`GPIO22` | 📖 **LEÍDO** en los documentos de decisión (doc 17 §1.3, `ESTADO.md:80`, `:124`). **Sin construir y sin hardware que medir** |
 | Que retirar `R5` y montar la `CR2032` funcione en la tarjeta que usted tiene delante | 🔴 **NO VERIFICADO en esa tarjeta.** El procedimiento de los apartados 2-4 es el mismo desde el 26/08 y **la única medida de banco que existe es la del 01/08 sobre UNA tarjeta** |
 

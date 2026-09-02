@@ -1,5 +1,22 @@
 # LEEME PRIMERO — App IOT-VIAL, paquete del 28/08/2026
 
+> ## ⚠️ ESTE LÉEME DESCRIBE EL PAQUETE DEL 28/08. HAY UNO POSTERIOR
+>
+> Si va a probar con el `.apk` del **02/09** (`IOT_VIAL_Semaforos_2026-09-02_285b18d_SIN_BANCO.apk`),
+> **la app trae cuatro cosas que este documento no menciona** y que cambian lo que hay que mirar:
+>
+> - **Comprueba el checksum y descarta las tramas corrompidas.** Antes las pintaba como buenas.
+>   🔴 **Consecuencia: una pantalla quieta ya no significa «el equipo no contesta» — puede
+>   significar «contesta y llega roto».** Son dos averías distintas.
+> - **Pestaña `Tramas`** (🧪, sólo en modo técnico): las tramas en crudo, las rechazadas marcadas con
+>   su motivo, y se puede guardar el registro en un fichero. **Es donde se mira cuando algo no
+>   cuadra.**
+> - **El PIN ya no se puede armar con el teclado cerrado.**
+> - **El puente ESP32 dice por qué arrancó** al reconectar, con un `$EVENT,EVT:ARRANQUE`.
+>
+> El detalle está en `14_Manual_App_Movil_IOT_VIAL.md` §5.4. **Lo que no cambia: sigue sin pasar
+> banco.**
+
 ## 1. Qué corre en la calle hoy, y esto no es eso
 
 **En campo está la V8.4 del firmware** (commit `e303485`, 31/07/2026), validada por el funcional.
@@ -96,9 +113,13 @@ La APK está **verificada por contenido**, no por confianza: sus nueve ficheros 
 byte a byte a los del repositorio en el commit `a8e1ceb`.
 
 **Instalación:** es un *build debug* sin firmar para tienda. Hay que permitir *"instalar apps de
-origen desconocido"* en el teléfono. Requiere emparejar antes el módulo HC-05/JDY-31 por Bluetooth
-del sistema; el PIN de emparejamiento del módulo y el PIN de autorización de la app (`1234`) son
-cosas distintas.
+origen desconocido"* en el teléfono. Requiere emparejar antes el módulo por Bluetooth del sistema;
+el PIN de emparejamiento del módulo y el PIN de autorización de la app (`1234`) son cosas distintas.
+
+> 🛑 **El módulo es un `ESP32-WROOM-32` clásico, y este texto decía `HC-05/JDY-31`.** El **`JDY-31`
+> está PROHIBIDO por su nombre** —es **BLE**, y la app conecta por **SPP** (Bluetooth clásico):
+> con un `JDY-31` no empareja y habría que rehacer el puente nativo. Ver
+> `04_Manuales/MANUAL_CONFIGURACION_BLUETOOTH.md` §1. **No lo compre ni lo pruebe.**
 
 **Reproducir la verificación:**
 `git checkout a8e1ceb && python 01_Firmware/compuerta.py`

@@ -52,31 +52,44 @@ Esta carpeta centraliza los manuales de operación, guía de cableado, protocolo
 > **Este README anunciaba «integración con visión artificial (YOLOv8)». Se corrige, y queda escrito
 > qué decía**, porque lo que se borra en silencio se vuelve a proponer.
 >
-> **Lo que el firmware hace de verdad hoy: lee UN CONTACTO SECO en `PB0`.** Una cámara por poste,
-> con su relé cableado a la bornera **`J14`**, entrada **activa en ALTO** con antirrebote de placa
-> (`R64` 10 kΩ + `C25` 100 nF). Nada más. La analítica de vídeo la hace **el DSP de la propia
-> cámara Hikvision AcuSense**; el equipo solo ve un pulso de 1 segundo.
+> **Lo que el firmware hace de verdad hoy: lee CONTACTOS SECOS, y nada más.** La analítica de vídeo
+> la hace **el DSP de la propia cámara Hikvision AcuSense**; el equipo solo ve un pulso de 1 segundo.
+>
+> **Desde el 31/08 son TRES entradas por punta, no una** —este README decía *«lee UN contacto seco
+> en `PB0`»*—:
+>
+> | entrada | pin | bornera | antirrebote de placa | estado |
+> |---|---|---|---|---|
+> | `CAM_DEMANDA_PIN` | `PB0` | `J14` | ✅ `R64` 10 kΩ + `C25` 100 nF | ✅ **cableable hoy** |
+> | `CAM_C_PIN` | `PB14` | `J16` p10 | ❌ ninguno | 🟠 firmware listo — **NO cablear hasta `M3`** |
+> | `CAM_D_PIN` | `PB15` | `J16` p12 | ❌ ninguno | 🟠 firmware listo — **NO cablear hasta `M3`** |
+>
+> **Las tres son de DEMANDA y activas en ALTO**: el contacto cierra contra **3,3 V**, no contra masa.
 >
 > | | |
 > |---|---|
 > | **NO hay** visión artificial embarcada en el STM32 | 64 KB de flash; el Maestro ya va al ~86 % |
 > | **NO hay** YOLO, Raspberry Pi, Jetson ni PC en obra | Descartado **por decisión escrita** en `6_Preguntas_Diseno_Funcional.md` §2: *«Cero Computadores Edge Externos (CERRADO)»* |
-> | **NO está implementado** el puerto serie de cámara IA (`AI_CARS`) | `AiBus` y `protocolo_actualizarAI()` existen en `*/src/protocolo.cpp` de las dos puntas y **no los llama nadie**. Además `protocolo_setup()` ya **no abre** ese puerto: chocaba con el USART1 de Bluetooth. Nació vivo en el firmware de nodo único `01_Firmware/Semaforos/` y murió al partirlo en Maestro/Esclavo — el Esclavo ni siquiera tiene `modo_inteligente.cpp` |
+> | **NO existe** el puerto serie de cámara IA (`AI_CARS`) | **`AiBus` y sus tres funciones están RETIRADOS**, no huérfanos: `grep AiBus` sobre las dos puntas sólo devuelve comentarios de historia. Colgaba del mismo USART1 que el Bluetooth, así que *«el puerto IA a 115200» nunca existió*; el enlazador ya descartaba las funciones, pero el objeto costaba **280 B de RAM por punta** en cada arranque |
 > | **NO está construida** la cámara de umbral (despeje de tramo) | *Especificado, sin construir.* Falta una entrada física y un comando de radio. El despeje se hace **por tiempo** (`cfgDespejeSeg`), que es el criterio conservador. Ver `9_Manual_Parametrizacion_Camara_IA.md` |
 >
 > **Y el manual `04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md` salió el 26/08 con dos errores de
-> pin**, corregidos el 28/08 y registrados en su §0: describía **4 cámaras** (son **2**, una por
-> poste) y asignaba la de demanda a **`PB9`**, que es **`BOTON1`** del menú. `PB13` es `BOTON2` y
-> `PB8` es el **LED testigo `D5`**, no una bornera. Cablear una cámara a `PB9`/`PB13` inyecta
-> pulsaciones de menú fantasma en el equipo.
+> pin**, corregidos el 28/08 y registrados en su §0: asignaba la cámara de demanda a **`PB9`**.
+>
+> 🔴 **`PB9` y `PB13` son hoy `MANDO_A` y `MANDO_B`, los canales del mando de relés** (`J16` p5 y
+> p8), y `PB8` es el **LED testigo `D5`**, no una bornera. **Cablear una cámara a `PB9`/`PB13` no
+> inyecta «pulsaciones de menú»: compone SECUENCIAS DE MANDO.** Tres pulsos de tráfico en 12 s hacen
+> `A·A·A` o `B·B·B` y **el semáforo cambia de modo solo**; cuatro alternos en 18 s lo meten en
+> Degradado.
 >
 > **Evidencia:** todo lo anterior está **MEDIDO** sobre el fuente y el esquemático (`grep` de las
 > llamadas y `pines.h` de las dos puntas). **Ninguna línea está VERIFICADA EN LA PLACA todavía**:
 > la sesión de banco es su primera comprobación física.
 >
 > Referencia de campo vigente: **[`9_Manual_Parametrizacion_Camara_IA.md`](9_Manual_Parametrizacion_Camara_IA.md)**
-> y **[`15_Lista_de_Compras_Hardware.md`](15_Lista_de_Compras_Hardware.md)** (2 cámaras, *«son las
-> dos que el firmware lee hoy»*).
+> y **[`15_Lista_de_Compras_Hardware.md`](15_Lista_de_Compras_Hardware.md)**. **2 cámaras es el
+> montaje mínimo y el único cableable hoy** —una por poste, en `J14`—; las dos entradas de `J16` de
+> cada punta están en el firmware y **esperan la medida `M3`**.
 
 ---
 
@@ -135,5 +148,6 @@ python 05_Funcional/convertir_a_word.py 3 8    # solo los numerados 3 y 8
 - **`ARQUITECTURA.map` $\leftrightarrow$ `05_Funcional`:** Mapeo directo entre la topología de red RS485/LoRa y las instrucciones físicas de conexión.
 - **`README.md` & `roadmap.md` $\leftrightarrow$ `05_Funcional`:** Garantiza el cumplimiento de las fases de desarrollo (Fase 1 Lógica Core, Fase 2 «AI Edge», Fase 3 Protocolo Binario V7 y Fase 4 Pruebas Físicas).
   > *Nota (28/08/2026):* el nombre **«Fase 2 AI Edge»** es histórico y **no describe lo construido**.
-  > Lo que quedó de esa fase es la lectura del **contacto seco en `PB0`** — ver el aviso de cámaras
-  > más arriba. No hay computador edge ni inferencia en el microcontrolador.
+  > Lo que quedó de esa fase es la lectura de **contactos secos** —`PB0` en `J14`, y `PB14`/`PB15`
+  > en `J16` desde el 31/08— ver el aviso de cámaras más arriba. No hay computador edge ni
+  > inferencia en el microcontrolador.

@@ -518,8 +518,34 @@ Desde el 28/08 esto **ya no es un accesorio de soporte: es la única interfaz de
   > | respuesta | qué pasó | qué hace el técnico |
   > |---|---|---|
   > | `$ACK,CMD:SET_RTC,RESULT:OK` | La hora **entró** | Listo. Puede bajarse del poste |
-  > | `$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ` *(Maestro, `bluetooth.cpp:336`)* · `DESC:SIN_CRISTAL` *(Esclavo, `bluetooth.cpp:268`)* | 🛑 **No hay con qué contar el tiempo. La hora NO entró** | **El viaje no sirvió.** Es avería de hardware: hay que reparar el cristal o esperar al reloj externo. **No lo reintente: va a contestar lo mismo** |
+  > | `$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ` *(Maestro)* · `DESC:SIN_CRISTAL` *(Esclavo)* | 🛑 **No hay con qué contar el tiempo. La hora NO entró** | **El viaje no sirvió.** Es avería de hardware. **Antes de bajarse, mande el mismo comando una segunda vez** y apunte lo que dice la trama de abajo — es el dato que decide qué pieza se toca |
   > | `$ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO` | La app mandó algo que no se entiende | Reintentar |
+  >
+  > > ### 🛑 `CONSULTA RELOJ` NO SE PUEDE ABRIR — el mensaje nombra una pantalla tapiada
+  > >
+  > > Ese `$ERR` le manda a `CONSULTA RELOJ`, y **esa pantalla ya no es alcanzable**: está dentro de
+  > > `CONFIGURACION` y llegar ahí necesita dos pulsaciones de *Aceptar*, que hoy no existen.
+  > >
+  > > **✅ Pero el equipo manda esos mismos datos SOLO, justo detrás del rechazo.** Búsquelos en la
+  > > pestaña **`Eventos`** de la app:
+  > >
+  > > ```
+  > >   $EVENT,NODE:MAESTRO,ORIGEN:RELOJ,DETALLE:ON:1 RDY:0 BYP:0 SEL:1 EN:1 CNT:0,HORA:--:--:--
+  > > ```
+  > >
+  > > | lo que lea | qué significa |
+  > > |---|---|
+  > > | `ON:0` | el oscilador **ni se pide**. **No es el cristal** — no lo cambie |
+  > > | `ON:1 RDY:0` | **pedido y no oscila.** Aquí **sí** se mira `Y2` y sus condensadores |
+  > > | `ON:1 RDY:1 SEL:0` | oscila bien; lo que falla es el enganche. **No es el cristal** |
+  > > | `CNT:--` | no se pudo **leer** el contador. **No es lo mismo que `CNT:0`** |
+  > >
+  > > 🔴 **Apunte estos seis números antes de bajarse del poste.** Sin ellos, arriba sólo se sabe
+  > > *«el reloj no va»*, y este proyecto ya mandó cambiar pila, resistencia y cristal **tres veces
+  > > con el hardware sano** por no tener este dato.
+  > >
+  > > 💡 **Mande el comando dos veces con unos segundos de diferencia y compare el `CNT`:** si cambia,
+  > > el reloj cuenta. No cuesta nada — en este caso el comando se rechaza **antes** de escribir.
   >
   > > ⚠️ **Y por qué esto se escribe con tanto detalle: hasta hace poco ese comando contestaba
   > > `RESULT:OK` sin haber puesto nada.** Con el `Y2` muerto ése era el caso **normal**, no el

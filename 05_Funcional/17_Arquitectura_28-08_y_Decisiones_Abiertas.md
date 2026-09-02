@@ -102,14 +102,31 @@ Todo esta MEDIDO en `01_Firmware/Maestro/include/pines.h`.
 |---|---|---|---|
 | Rojo 1 / Amarillo 1 / Verde 1 | `PA0` `PA1` `PA2` | `J3` `J4` `J5` | `pines.h:5-7` |
 | Rojo 2 / Amarillo 2 / Verde 2 | `PA3` `PA4` `PA5` | `J6` `J7` `J8` | `pines.h:10-12` |
-| Rojo peaton / Verde peaton | `PA6` `PA7` | `J11` `J9` | `pines.h:15-16` |
+| 🔴 Rojo peaton / Verde peaton | `PA6` `PA7` | `J11` `J9` | `pines.h:15-16` — **DECLARADOS Y MUERTOS** |
 | Barrera (talanquera) | `PB2` | `J15` | `pines.h:31` |
-| Buzzer | `PB1` | `J13` | `pines.h:20` |
+| 🔴 Buzzer | `PB1` | `J13` | `pines.h:20` — **DECLARADO Y MUERTO** |
 | Radio LoRa (`USART3`) | `PB10` TX · `PB11` RX · `PB12` DE/~RE | `J12` | `pines.h:112-114`, `:19` |
-| Camara de demanda (hoy) | `PB0` | `J14` | `pines.h:46` |
+| Camara de demanda | `PB0` | `J14` | `pines.h:46` |
+| 🆕 Camaras `C` / `D` | `PB14` `PB15` | `J16` p10 / p12 | `pines.h:124-125` — **NO cablear hasta `M3`** |
 
-La barrera de salidas de `CLAUDE.md` §6 no cambia: **solo `semaforo.cpp` escribe pines de luz**, y
-la talanquera entro dentro de `escribirPines()` el 27/08 (`ESTADO.md`, fila `A2`).
+> ## 🔴 TRES DE ESTAS SALIDAS NO EXISTEN MÁS QUE EN LA TABLA (medido el 02/09)
+>
+> **`ROJO_PEATON` (`PA6`), `VERDE_PEATON` (`PA7`) y el `BUZZER` (`PB1`) están declarados en
+> `pines.h` y MUERTOS en las dos puntas**: `grep` de esos tres nombres sobre `Maestro/src` y
+> `Esclavo/src` **no devuelve ni un `pinMode`, ni un `digitalWrite`, ni un `digitalRead`**. Sólo
+> aparecen en la línea del `#define`.
+>
+> **Lo que eso significa en obra: si alguien cablea una cabeza peatonal a `J11`/`J9` o un zumbador a
+> `J13`, no se enciende nunca y no hay mensaje de error.** El montaje parece bien hecho y el equipo
+> parece sano. Es la avería más cara de diagnosticar, porque no hay síntoma que buscar.
+>
+> **No las venda ni las incluya en una entrega como funciones del equipo.** El hardware está en la
+> placa —sus optos y sus MOSFET—; **lo que falta es el firmware**, y no está escrito.
+>
+> ⚠️ **Y por eso la barrera de salidas de `CLAUDE.md` §6 hay que leerla con cuidado:** dice ocho
+> pines de luz y **`escribirPines()` mueve SEIS** —`ROJO1/2`, `AMARILLO1/2`, `VERDE1/2`—. La regla es
+> **vacuamente cierta** para los dos peatonales: nadie los escribe porque nadie los escribe. La
+> talanquera sí entró dentro de `escribirPines()` el 27/08 (`ESTADO.md`, fila `A2`).
 
 ### 1.3 Que se lleva el ESP32
 

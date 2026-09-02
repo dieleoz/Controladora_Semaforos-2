@@ -2,11 +2,48 @@
 
 **Modelo de Cámara:** Hikvision `DS-2CD3643G2-LIZSU` (Lente Varifocal Motorizado 2.7–13.5 mm)
 **Sistema:** Controladora de Semáforos Móviles de 3 Estados (Control por Demanda Vehicular / Paso Alternado)
-**Topología VIGENTE:** 2 Nodos Semafóricos (Maestro y Esclavo) + **2 cámaras IA — UNA por poste** + Enlace de Control `RS485_OUT`
+**Topología VIGENTE:** 2 Nodos Semafóricos (Maestro y Esclavo) + **cámaras IA de demanda** + Enlace de Control `RS485_OUT`
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `MAPEO_TARJETA_KICAD.md`
 **Normativa Aplicable:** Manual de Señalización Vial de Colombia (Resolución 2024 - MinTransporte)
 **Fecha de Emisión:** 26 de Agosto de 2026
-**Fecha de Corrección:** 28 de Agosto de 2026 *(ver §0 — este manual salió con dos errores de pin)*
+**Fecha de Corrección:** 2 de Septiembre de 2026 *(ver §0 y §0.ter)*
+
+---
+
+## 0.ter 🟢 QUÉ CAMBIÓ EL 31/08 — ESTE MANUAL SE QUEDÓ CORTO DE ENTRADAS
+
+> **Este manual decía que el firmware lee UNA cámara por poste. Hoy lee TRES.**
+
+Medido el 02/09 sobre el fuente, idéntico en las dos puntas:
+
+| entrada | pin | bornera | antirrebote de placa | estado |
+|---|---|---|---|---|
+| `CAM_DEMANDA_PIN` | `PB0` | `J14` | ✅ `R64` 10 kΩ + `C25` 100 nF (~1 ms) | ✅ **cableable hoy** |
+| `CAM_C_PIN` | `PB14` | `J16` **p10** | ❌ **ninguno** | 🟠 firmware listo — **NO CABLEAR hasta `M3`** |
+| `CAM_D_PIN` | `PB15` | `J16` **p12** | ❌ **ninguno** | 🟠 firmware listo — **NO CABLEAR hasta `M3`** |
+
+```
+  pines.h:124-125     #define CAM_C_PIN PB14   // J16 p10 (era BOTON3, "Aceptar")
+                      #define CAM_D_PIN PB15   // J16 p12 (era BOTON4, "Cancelar")
+  botones.cpp:156-157 pinMode(CAM_C_PIN, INPUT);  pinMode(CAM_D_PIN, INPUT);
+  botones.cpp:126-133 flanco de subida -> demanda_solicitar()
+  botones.cpp:280-281 bool botonAceptar() { return false; }
+                      bool botonCancelar(){ return false; }
+```
+
+**Las tres son cámaras de DEMANDA:** las tres acaban en `demanda_solicitar()`. Ninguna mide el
+despeje del tramo, que sigue siendo por tiempo (`cfgDespejeSeg`).
+
+🔴 **`J16` p10 y p12 NO SE CABLEAN TODAVÍA, y el motivo es de cobre, no de firmware.** El firmware
+pone esos pines en `INPUT` **pelado**, sin resistencia interna: el reposo tiene que fijarlo `R67` /
+`R68` de 10 kΩ a masa, **que sólo están en el netlist y nadie las ha medido en la placa**. Sin ellas
+el pin flota y el ruido dispara demandas fantasma. La medida es `M3`, con óhmetro, y no se salta.
+Además **`J16` p1 lleva 12 V crudos** y se tapa físicamente antes de enchufar nada.
+
+🪜 **Y el orden es asimétrico: el firmware nuevo tiene que estar CARGADO EN LA TARJETA antes de que
+nadie enchufe un hilo en `J16`.** Con el firmware viejo dentro, `PB14` todavía es *Aceptar* leído
+**activo en BAJO**, y cualquier cosa enchufada en p10 lo pulsa en un equipo que está en la calle. Un
+commit no protege de un destornillador: se exige la carga verificada, no el merge.
 
 ---
 
@@ -21,7 +58,7 @@ contra el firmware que corre. Se corrigen aquí, y queda el registro de qué se 
 
 | Lo que decía el manual del 26/08 | Lo MEDIDO sobre el fuente (28/08) |
 |---|---|
-| **4 cámaras** (2 por poste): demanda + umbral | El firmware lee **1 cámara por poste**. La de umbral no tiene dónde entrar |
+| **4 cámaras** (2 por poste): demanda + umbral | El firmware leía **1 cámara por poste**. La de umbral no tiene dónde entrar. *(Al 02/09 son **3 entradas de demanda** por punta — ver §0.ter. La de umbral **sigue sin existir**)* |
 | Cámara 1 y 3 (demanda) → pin **`PB9`** | **`PB9` es `BOTON1`** (`pines.h:92`, las dos puntas). La demanda entra por **`PB0`** = `CAM_DEMANDA_PIN` (`pines.h:46`) |
 | Cámara 2 y 4 (umbral) → pin **`PB13`** | **`PB13` es `BOTON2`** (`pines.h:93`). No existe `CAM_UMBRAL_PIN` en el firmware Maestro/Esclavo |
 | «Optoacoplador `TLP127` con pull-up en `PB9`/`PB13`» | La línea de cámara real (`PB0`) lleva **`R64` 10 kΩ (pull-DOWN) + `C25` 100 nF**, antirrebote ~1 ms, bornera **`J14`**, y es **activa en ALTO** |
@@ -47,20 +84,26 @@ no una bornera (`roadmap.md` N-64, y `pines.h:63` lo deja escrito como `LED_TEST
 > **Estado: código huérfano. Especificado, escrito, y sin un solo llamador.** No lo describa a
 > ningún cliente como una función del equipo.
 
-Medido el 28/08 con `grep` sobre `01_Firmware/`:
+**Actualización del 02/09: ya no es código huérfano — es código RETIRADO.**
 
-- `AiBus` — el `HardwareSerial` del puerto — está **declarado** en
-  `Maestro/src/protocolo.cpp:7` y `Esclavo/src/protocolo.cpp:7`.
-- `protocolo_actualizarAI()`, `protocolo_obtenerAutosEsperandoAI()` y
-  `protocolo_obtenerUltimoTiempoAI()` están **declaradas** en `*/include/protocolo.h:186-188`
-  y **definidas** en `*/src/protocolo.cpp:51-79`.
-- **Ningún fichero de Maestro ni de Esclavo las llama.** La cadena está cerrada sobre sí misma:
-  la única lectura de `AiBus` ocurre dentro de la propia función que nadie invoca.
-- **Y hoy el puerto ni siquiera se abre:** `protocolo_setup()` ya no llama a `AiBus.begin()`.
-  El comentario del propio fuente lo explica: `AiBus` colgaba de `(PA10, PA9)` — el **mismo
-  USART1** que usa `SerialBT` —, dos objetos peleándose un periférico a dos velocidades
-  distintas (115200 aquí, 9600 allí). Ganaba Bluetooth por orden de arranque, **así que el
-  «puerto IA a 115200» nunca existió**.
+Medido el 02/09 con `grep AiBus` sobre `01_Firmware/Maestro` y `01_Firmware/Esclavo`: **no queda ni
+una declaración, ni una definición, ni una llamada.** Lo único que aparece son dos comentarios que
+cuentan la historia (`Maestro/src/protocolo.cpp:19`, `Esclavo/src/protocolo.cpp:19`).
+
+Lo que hubo, y por qué se fue:
+
+- `AiBus` era un `HardwareSerial` sobre `(PA10, PA9)` — el **mismo USART1** que usaba `SerialBT`.
+  Dos objetos peleándose un periférico a dos velocidades distintas (115200 aquí, 9600 allí).
+  Ganaba Bluetooth por orden de arranque, **así que el «puerto IA a 115200» nunca existió**.
+- Sus tres funciones —`protocolo_actualizarAI()` y sus dos consultas— **no tenían un solo
+  llamador**. El enlazador ya las descartaba: retirarlas ahorró 16 B de flash.
+- **El objeto sí costaba, y ése era el motivo real de retirarlo:** su constructor cuelga del
+  arranque, así que corría en cada encendido y su memoria era permanente. Eran **280 B de RAM por
+  punta** —el 5,2 % de la RAM viva del equipo— por un puerto que no se abre.
+
+**Y un dato de cableado que sale de aquí:** `SerialBT` **ya no vive en `PA9`/`PA10`**. Vive en
+**`PB6`/`PB7`, USART1 remapeado, conector `J17`** (`Maestro/src/bluetooth.cpp:28`, idéntico en el
+Esclavo). Ver la tabla de §2.
 
 **Nació vivo y murió en la partición del firmware.** En `01_Firmware/Semaforos/` (nodo único)
 `modo_inteligente.cpp:65,81-82` sí llamaba a las tres. Al separar en Maestro/Esclavo la llamada
@@ -75,15 +118,15 @@ no se portó, y el **Esclavo ni siquiera tiene `modo_inteligente.cpp`**.
 
 **Conclusión operativa:** la analítica de vídeo la hace **la cámara**, y llega al equipo por **un
 contacto seco**. No hay ni habrá un enlace serie de conteo de vehículos mientras esa decisión siga
-cerrada. El código de `AiBus` se conserva a propósito —retirarlo es un cambio con sentido propio
-y va en su propio `N-x`— pero **no es una función del producto**.
+cerrada. **El código de `AiBus` ya se retiró** (02/09) y **no es una función del producto**.
 
 ---
 
 ## 1. Arquitectura Vial y Distribución de las Cámaras (VIGENTE)
 
 Tramo de obra de un solo carril con paso alternado, **dos postes** y **una cámara de demanda por
-poste**:
+poste** — que es el montaje mínimo y el único cableable hoy. Cada punta admite además **dos
+entradas más** en `J16`, pendientes de `M3` (§0.ter):
 
 ```text
   ══════════════════════════════════════════════════════════════════════════════════════════════
@@ -118,6 +161,11 @@ poste**:
 |---|---|---|---|---|
 | **CÁMARA 1** | **Poste Maestro (Extremo 1)** | **SENTIDO 1 (Aproximación):** vehículos que llegan por la vía hacia el Maestro | **Demanda Vehicular Sentido 1:** al detectar vehículo, solicita apertura de **🟢 Verde en Semáforo Maestro** | Pin **`PB0`** — bornera **`J14`**, `R64` 10 kΩ + `C25` 100 nF, **activa en ALTO** |
 | **CÁMARA 2** | **Poste Esclavo (Extremo 2)** | **SENTIDO 2 (Aproximación):** vehículos que llegan por la vía hacia el Esclavo | **Demanda Vehicular Sentido 2:** el Esclavo transmite la demanda al Maestro por `RS485_OUT`/radio | Pin **`PB0`** — bornera **`J14`**, idéntico al Maestro |
+| **CÁMARA `C`** *(opcional)* | cualquiera de los dos postes | libre — es una segunda demanda de esa punta | **Demanda Vehicular**, igual que la de `J14`: pide paso | Pin **`PB14`** — **`J16` p10**. 🟠 **NO CABLEAR hasta `M3`** |
+| **CÁMARA `D`** *(opcional)* | cualquiera de los dos postes | libre — es una tercera demanda de esa punta | **Demanda Vehicular**, igual | Pin **`PB15`** — **`J16` p12**. 🟠 **NO CABLEAR hasta `M3`** |
+
+> ⚠️ **`C` y `D` no son «cámaras de umbral» ni miden nada distinto.** Son entradas de demanda más,
+> por si un poste necesita vigilar dos accesos. Sin antirrebote de placa: ver §0.ter.
 
 > ⚠️ **Numeración:** el manual del 26/08 llamaba «Cámara 3» a la del Esclavo, porque contaba
 > cuatro. Con dos cámaras, la del Esclavo es la **Cámara 2**. Si encuentra rotulado *«CAM 3»* en
@@ -127,13 +175,21 @@ poste**:
 
 | Pin | Lo que realmente es | Referencia |
 |---|---|---|
-| **`PB9`** | **`BOTON1`** (Arriba) del menú LCD | `pines.h:92` |
-| **`PB13`** | **`BOTON2`** (Abajo) del menú LCD | `pines.h:93` |
+| **`PB9`** (`J16` p5) | **`BOTON1` = `MANDO_A`**, canal `A` del mando de relés | `pines.h:122`, `mando.cpp:225-227` |
+| **`PB13`** (`J16` p8) | **`BOTON2` = `MANDO_B`**, canal `B` del mando de relés | `pines.h:123`, `mando.cpp:230-234` |
 | **`PB8`** | **`LED_TESTIGO`** — `R16` 1 kΩ → LED `D5`. **Salida, no bornera** | `pines.h:63` |
-| `PA9` / `PA10` | USART1 — hoy es el bus de **Bluetooth**, no el puerto IA | `protocolo.cpp:19-45` |
+| `PA9` / `PA10` | `RS485_IN` — el MAX3485 `U2` y la bornera `J10`. **NO es el Bluetooth** | `pines.h:127-139` |
+| `PB6` / `PB7` (`J17`) | **USART1 remapeado — aquí sí está el Bluetooth / ESP32** | `bluetooth.cpp:28` |
 
-Conectar un relé de cámara a `PB9` o `PB13` **inyecta pulsaciones de menú fantasma** en el
-equipo. No es una conexión inerte: es una avería.
+🔴 **Conectar un relé de cámara a `PB9` o `PB13` no inyecta «pulsaciones de menú»: compone
+SECUENCIAS DE MANDO.** Tres pulsos de tráfico dentro de la ventana de 12 s hacen `A·A·A` o `B·B·B`,
+y eso **cambia el modo del semáforo solo**: a Automático o a ámbar. Cuatro alternos en 18 s
+(`A·B·A·B`) lo meten en **Modo Degradado**. No es una conexión inerte: es un semáforo que se
+reconfigura con el tráfico.
+
+⚠️ **`PA9`/`PA10` cambió de significado el 28/08 y este manual llevaba el dato viejo.** Decía que
+eran *«hoy el bus de Bluetooth»*. Son `RS485_IN`; el Bluetooth se mudó a `PB6`/`PB7` (`J17`).
+Tampoco son entrada de cámara.
 
 ---
 
@@ -174,8 +230,15 @@ por **`RS485_OUT`**:
  │    Rele [ 1B ] ───► 3.3V del propio J14      │      │    Rele [ 1B ] ───► 3.3V del propio J14      │
  │      (R64 10K a GND = pull-DOWN + C25 100nF) │      │      (R64 10K a GND = pull-DOWN + C25 100nF) │
  │                                              │      │                                              │
- │  NO CABLEAR: PB9 = BOTON1 · PB13 = BOTON2    │      │  NO CABLEAR: PB9 = BOTON1 · PB13 = BOTON2    │
+ │  NO CABLEAR: PB9 = MANDO A · PB13 = MANDO B  │      │  NO CABLEAR: PB9 = MANDO A · PB13 = MANDO B  │
+ │              (J16 p5 y p8 - secuencias)      │      │              (J16 p5 y p8 - secuencias)      │
  │  NO CABLEAR: PB8 = LED testigo D5 (salida)   │      │  NO CABLEAR: PB8 = LED testigo D5 (salida)   │
+ │                                              │      │                                              │
+ │  CAMARA C -> J16 p10 = PB14  ) firmware YA   │      │  CAMARA C -> J16 p10 = PB14  ) firmware YA   │
+ │  CAMARA D -> J16 p12 = PB15  ) escrito       │      │  CAMARA D -> J16 p12 = PB15  ) escrito       │
+ │    NO SE CABLEAN HASTA LA MEDIDA M3.         │      │    NO SE CABLEAN HASTA LA MEDIDA M3.         │
+ │    Contacto contra los 3,3 V de p9 / p11.    │      │    Contacto contra los 3,3 V de p9 / p11.    │
+ │    J16 p1 lleva 12 V CRUDOS: taparlo antes.  │      │    J16 p1 lleva 12 V CRUDOS: taparlo antes.  │
  │                                              │      │                                              │
  │  BORNERA RS485_OUT (Control Inter-Poste)     │      │  BORNERA RS485_OUT (Control Inter-Poste)     │
  │    [ A   ] ══════════════════════════════════╪══════╪═══════════════════════════════► [ A   ]      │
@@ -291,9 +354,17 @@ Antes de abrir el paso vehicular en el tramo de obra:
 * Acercar un vehículo frente a la **Cámara 1**.
 * **Criterio de Aceptación:** el Maestro recibe el pulso en **`PB0`** y ejecuta la secuencia de
   transición legal hasta **🟢 Verde Maestro**, manteniendo el Esclavo en Rojo.
-* **Criterio negativo, obligatorio:** pulsar los cuatro botones del menú **no** debe generar
-  ninguna demanda. Si al pulsar Arriba/Abajo el equipo pide paso, **el relé está cableado a
-  `PB9`/`PB13`** — el error de §0.
+* **Criterio negativo, obligatorio:** **con el contacto de la cámara ABIERTO y nadie delante del
+  lente, el equipo NO debe registrar demanda.** Si la registra, el pin está flotando o la polaridad
+  no es la que se cree: se para y se anota.
+* **Segundo criterio negativo, si hay mando conectado:** tres pulsos en `A` o en `B` dentro de 12 s
+  **no** deben salir del relé de la cámara. Si el semáforo cambia de modo solo, **el relé está
+  cableado a `PB9`/`PB13`** — el error de §0.
+
+> ⚠️ **La versión anterior de este ensayo decía *«pulsar los cuatro botones del menú»*. Ya no hay
+> cuatro botones.** Quedan dos —`A` en `J16` p5 y `B` en p8—, y los pulsadores 3 y 4 se retiraron:
+> `botonAceptar()` y `botonCancelar()` devuelven `false` siempre (`Maestro/src/botones.cpp:280-281`,
+> `Esclavo/src/botones.cpp:294-295`). Un criterio negativo que no se puede ejercer no prueba nada.
 
 ### 🧪 Ensayo 3: Demanda y Conmutación Sentido 2 (Esclavo)
 
@@ -316,6 +387,9 @@ Antes de abrir el paso vehicular en el tramo de obra:
 
 ---
 *Manual técnico de instalación, topología y cableado para semáforos móviles.*
-*Emitido 26/08/2026 · **Corregido 28/08/2026** (§0: pines `PB9`/`PB13` erróneos y 4 cámaras → 2).*
+*Emitido 26/08/2026 · **Corregido 28/08/2026** (§0: pines `PB9`/`PB13` erróneos y 4 cámaras → 2) ·
+**Corregido 02/09/2026** (§0.ter: `J16` p10/p12 ya son entradas de cámara; `PA9`/`PA10` no son el
+Bluetooth; el criterio negativo del Ensayo 2 ya no se podía ejercer; `AiBus` está retirado, no
+huérfano).*
 *Todo lo de este documento está **MEDIDO sobre el fuente y el esquemático**, y **ninguna línea
 está VERIFICADA EN LA PLACA**: la sesión de banco es su primera comprobación física.*

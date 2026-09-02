@@ -522,9 +522,13 @@ Con ~1,4 µA de consumo por `VBAT`, la autonomía teórica supera los **15 años
 > no era.~~ Con esa lectura en la mano, la sustitución de condensadores pasa a ser una petición
 > concreta al funcional, no una conjetura.
 >
-> 🔴 **28/08 — ESTE PROCEDIMIENTO SE HA QUEDADO SIN INSTRUMENTO, Y HAY QUE DECIRLO.** La pantalla
-> `CONSULTA RELOJ` y sus cuatro líneas de diagnóstico **eran de la LCD**, y la LCD se retira. **Esas
-> cuatro líneas no viajan en la trama `$STATUS`.**
+> 🛑 **`CONSULTA RELOJ` YA NO SE PUEDE ABRIR (medido el 02/09).** La pantalla se sigue dibujando,
+> pero está dentro de `CONFIGURACION` y llegar ahí necesita **dos pulsaciones de *Aceptar***
+> (`menu.cpp:111`, `:129`); `botonAceptar()` devuelve `false` siempre desde que `PB14`/`PB15` son
+> cámaras (`botones.cpp:280-281`). **Sus cuatro líneas de diagnóstico tampoco viajan en `$STATUS`.**
+>
+> ✅ **Pero el diagnóstico NO se ha perdido: se mudó a un `$EVENT`.** Ver el bloque del 01/09, más
+> abajo, que es donde está el procedimiento que sí se puede ejecutar hoy.
 >
 > Lo que **sí** se puede hacer hoy desde la app: poner la hora con
 > `CMD:PIN:1234:SET_RTC:YYYY-MM-DD,HH:MM:SS` y leer el campo `HORA:` de `$STATUS`. **Si la hora
@@ -532,8 +536,9 @@ Con ~1,4 µA de consumo por `VBAT`, la autonomía teórica supera los **15 años
 > declara no fiable. Eso distingue *«funciona»* de *«no funciona»*, pero **NO distingue cuál de las
 > cuatro causas es** — que era exactamente el punto de aquella pantalla.
 >
-> **Consecuencia honesta: mientras ese diagnóstico no esté en la app, N-37 no se puede cerrar por
-> lectura.** No se sustituyen condensadores por conjetura; se anota que falta el instrumento.
+> ~~**Consecuencia honesta: mientras ese diagnóstico no esté en la app, N-37 no se puede cerrar por
+> lectura.**~~ ✅ **Ya está en la app desde el 01/09** — ver el bloque de abajo. Lo que no cambia es
+> la regla: **no se sustituyen condensadores por conjetura.** Primero la lectura, después la pieza.
 >
 > > ### ✅ 31/08 — el instrumento ha mejorado a medias, y conviene saber hasta dónde
 > >
@@ -554,10 +559,39 @@ Con ~1,4 µA de consumo por `VBAT`, la autonomía teórica supera los **15 años
 > > ninguna de las dos llamadas**, así que con `Y2` muerto el equipo decía que sí y no ponía la hora
 > > — y el técnico se iba creyendo que lo había dejado puesto. Eso ya no pasa.
 > >
-> > 🔴 **Lo que sigue faltando, y no se disimula:** esas respuestas distinguen *«no hay cristal»* de
-> > *«sí lo hay»*, pero **siguen sin distinguir cuál de las cuatro causas** —`LSE no se pide`,
-> > `Pedido, no oscila`, `Oscila; RTC no atado`, `Oscila y atado a LSE`—. **N-37 sigue sin poderse
-> > cerrar por lectura.**
+> > ~~🔴 **Lo que sigue faltando, y no se disimula:** esas respuestas distinguen *«no hay cristal»*
+> > de *«sí lo hay»*, pero **siguen sin distinguir cuál de las cuatro causas**. **N-37 sigue sin
+> > poderse cerrar por lectura.**~~
+> >
+> > ### ✅ 01/09 — YA SE PUEDE. Los cuatro diagnósticos llegan a la app
+> >
+> > **El hueco de arriba está cerrado, y por eso se tacha.** Los seis bits que pintaba `CONSULTA
+> > RELOJ` salen ahora en una trama de evento, **detrás de los dos `$ERR` que nombran esa
+> > pantalla** — que es justo cuando hay alguien mirando:
+> >
+> > ```
+> >   $ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ
+> >   $EVENT,NODE:MAESTRO,ORIGEN:RELOJ,DETALLE:ON:1 RDY:0 BYP:0 SEL:1 EN:1 CNT:0,HORA:--:--:--
+> > ```
+> >
+> > **Se lee en la pestaña `Eventos` de la app**, y sale con `SIN_CRISTAL_VEA_CONSULTA_RELOJ` y con
+> > `SIGUE_PARADO_VEA_CONSULTA_RELOJ` (`Maestro/src/bluetooth.cpp:305-333`, emitido en `:542` y
+> > `:577`).
+> >
+> > | lo que se lee | qué significa |
+> > |---|---|
+> > | `ON:0` | **`LSE no se pide`** — el oscilador ni siquiera está pedido. Es firmware o dominio de respaldo, **no el cristal** |
+> > | `ON:1 RDY:0` | **`Pedido, no oscila`** — aquí **sí** se mira el cristal `Y2` y sus condensadores |
+> > | `ON:1 RDY:1 SEL:0` | **`Oscila; RTC no atado`** — el cristal va bien; lo que falla es el enganche |
+> > | `ON:1 RDY:1 SEL:1` | **`Oscila y atado a LSE`** — el reloj está sano |
+> > | `CNT:--` | **no se pudo leer** el contador. **No es `CNT:0`**: un cero leído es otro diagnóstico |
+> >
+> > 💡 **Para saber si el contador AVANZA, repita el mismo `SET_RTC` unos segundos después y compare
+> > `CNT`.** En esta rama el comando se rechaza **antes** de escribir nada, así que no cuesta.
+> >
+> > 🔴 **Y esto es lo que decide si se tocan los condensadores: primero la lectura, después la
+> > pieza.** Sólo `ON:1 RDY:0` señala al cristal. Con cualquiera de las otras tres, **cambiar `C1`/`C2`
+> > es cambiar componentes sanos** — que es exactamente lo que este proyecto ya pagó una vez.
 
 > **Un semáforo no puede depender de un cristal de reloj para encender.** Ésa es la razón de la
 > segunda prueba, y es la más fácil de olvidar porque en una tarjeta sana nunca se nota.

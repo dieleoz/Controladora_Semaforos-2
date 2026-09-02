@@ -196,9 +196,17 @@ Existen dos tipos de pilas de botón y no deben confundirse:
 1. ~~**Encendido:** Energizar la tarjeta STM32 ➔ El LED de encendido del módulo DS3231 debe iluminar fijo.~~
    ⚠️ El LED **sí** encenderá: sólo indica que el módulo tiene tensión, **no** que alguien lo esté leyendo.
 2. ~~**Puesta en Hora:** Desde la pantalla LCD, ingresar a `CONFIGURACION > AJUSTAR HORA`…~~
-   ⛔ **`AJUSTAR HORA` pone en hora el RTC INTERNO del STM32** (cristal `Y2`, `PC14`/`PC15`), **no el
-   `DS3231`**. No hay driver que escriba en el módulo — apartado 8. El criterio *«NO aparece
-   `CONSULTA RELOJ`»* no dice nada sobre el `DS3231`.
+   ⛔ **Doblemente anulado, y el segundo motivo es nuevo:**
+   - **`AJUSTAR HORA` pone en hora el RTC INTERNO del STM32** (cristal `Y2`, `PC14`/`PC15`), **no el
+     `DS3231`**. No hay driver que escriba en el módulo — apartado 8.
+   - 🛑 **Y desde el 31/08 esa pantalla NO SE PUEDE ABRIR.** Está dentro de `CONFIGURACION` y llegar
+     ahí necesita **dos pulsaciones de *Aceptar***; `botonAceptar()` devuelve `false` siempre desde
+     que `J16` p10 y p12 son entradas de cámara (`Maestro/src/botones.cpp:280-281`). **Lo mismo vale
+     para `CONSULTA RELOJ`.**
+
+   **La hora se pone hoy desde la app:** `CMD:PIN:1234:SET_RTC:YYYY-MM-DD,HH:MM:SS`, y **hay que leer
+   la respuesta** — tiene cinco ramas y sólo una significa *puesta y propagada*. Ver
+   `05_Funcional/11_Manual_Instalacion_RTC_DS3231_Bateria.md` §4.
 3. ~~**Prueba de Corte de Energía:** … la hora debe marcar exactamente `18:02:00`.~~
    ⛔ Esa prueba mide la **pila `CR2032` del `VBAT` del STM32**, que es **otra pila y otro reloj**. El
    procedimiento correcto para ésa está en

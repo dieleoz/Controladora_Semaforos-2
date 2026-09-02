@@ -16,7 +16,12 @@ En esta iteración se logró:
    * **Modo Operario (0 contraseñas):** Botonera de campo de 4 pulsadores gigantes (Automático, Dar Paso / Alternar, Ámbar Precaución, Rojo Total de Emergencia).
    * **Modo Técnico / Admin (PIN 1234):** Desbloquea ajustes de tiempos de ciclo (Verde, Rojo, Despeje), Asistente Courier RTC, prueba de potencia de focos (6s) y gestor de cruces.
 2. **Arnés de Transporte Dual para Bluetooth:**
-   * Soporte nativo para sockets RFCOMM SPP (HC-05 / JDY-31 a 9600 bps) en Android vía `cordova-plugin-bluetooth-serial`.
+   * Soporte nativo para sockets RFCOMM SPP a 9600 bps en Android vía `cordova-plugin-bluetooth-serial`, contra el módulo de expansión **`ESP32-WROOM-32` clásico** (`BR/EDR`, perfil SPP).
+
+     > 🛑 **Corregido: aquí decía `HC-05 / JDY-31`. El `JDY-31` está PROHIBIDO por su nombre** —es
+     > **BLE**, y esta app conecta por **SPP** (Bluetooth clásico): con un `JDY-31` no empareja y
+     > habría que rehacer el puente nativo. Ver `04_Manuales/MANUAL_CONFIGURACION_BLUETOOTH.md` §1.
+     > **No se compra ni se prueba con un `JDY-31`.**
    * Servidor puente multihilo en Python (`servidor_puente_simulador.py`) para emulación Hardware-in-the-Loop desde el navegador Web.
 3. **Batería de Pruebas Automatizadas:**
    * 29 Pruebas Unitarias TDD (100% PASS).

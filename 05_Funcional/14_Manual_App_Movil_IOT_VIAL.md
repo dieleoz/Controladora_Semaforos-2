@@ -5,9 +5,10 @@
 **Plataforma:** Android Nativo (.APK) y Web Testing PWA  
 **Protocolo:** ~~Bluetooth Serial SPP (HC-05 / JDY-31 a 9600 bps) / BLE GATT~~ → **Bluetooth Serial SPP a 9600 bps contra el módulo de expansión `ESP32-WROOM-32`**. Ver el aviso de cabecera  
 **Fecha de Actualización:** 28 de Agosto de 2026  
-**Última revisión:** 31 de agosto de 2026  
+**Última revisión:** 2 de septiembre de 2026 — **§5.4 nueva:** la app valida el checksum y descarta tramas corrompidas, tiene pestaña `Tramas` con las tramas en crudo, el PIN ya no se arma con el teclado cerrado, y el puente declara por qué arrancó  
 **Versión de Firmware Compatible:** V8.9 / V9.0 Definitiva — ⚠️ **en campo corre la V8.4**  
-**Archivo APK Compilado:** `05_Funcional/IOT_VIAL_Semaforos_2026-08-28_a8e1ceb_SIN_BANCO.apk`  
+**Archivo APK Compilado:** `05_Funcional/IOT_VIAL_Semaforos_2026-09-02_285b18d_SIN_BANCO.apk` *(el `.apk` del 28/08 es anterior a §5.4 y **no** trae ninguna de esas cuatro cosas)*  
+**Pestañas:** **2 visibles al operario** (`Tráfico`, `Eventos`) y **5 en modo técnico** — se añaden `Tiempos`, `Técnico` y `Tramas`  
 
 ---
 
@@ -257,6 +258,71 @@ Cualquier otra cosa: `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO` (`:363`).
 > creyendo que había dejado el reloj puesto. **Un `$ACK` que no depende de lo que devolvió la llamada
 > es una mentira con formato de éxito** — y una app que no lee la diferencia la reintroduce en la
 > pantalla.
+
+---
+
+## 5.4 🆕 LO QUE LA APP HACE DESDE EL 01/09 Y ANTES NO — tres cosas que se notan en campo
+
+### 5.4.1 La app **comprueba el checksum y descarta lo corrompido**
+
+Antes cortaba la trama por el `*` y **tiraba el checksum sin mirarlo**: una trama corrompida en el
+aire se pintaba como si fuera buena. Hoy lo calcula, lo compara y, si no cuadra, **no pinta nada**
+(`js/nmea_parser.js:23-29` lo calcula, `:71-81` lo compara; `app.js:1820-1826` la descarta).
+
+También descarta lo que **no tiene forma** de trama —sin `$` o sin `*`— y las cabeceras que no
+conoce. Las que sí lee son cinco: `$STATUS`, `$ALARM`, `$ACK`, `$EVENT` y `$ERR`.
+
+> 🔴 **Consecuencia práctica, y es la que hay que saber en el poste: una pantalla que se queda
+> quieta ya no significa «el equipo no contesta».** Puede significar **«contesta y llega roto»** —
+> radio con ruido, cable flojo, un `J17` mal enchufado—. Los dos casos se ven distintos en la
+> pestaña `Tramas`, y **son averías diferentes**. No cambie el equipo antes de mirarla.
+
+### 5.4.2 La pestaña **`Tramas`** — las tramas en crudo, tal como llegan
+
+Es la quinta pestaña, con icono 🧪, y **solo se ve en modo TÉCNICO**: se llega tocando el botón de
+rol, tecleando el PIN, y luego `Tramas`.
+
+Muestra cada línea recibida **tal cual**, marcando las rechazadas con su motivo, más los contadores,
+un filtro *Sólo rechazadas* y la posibilidad de **guardar el registro en un fichero** o copiarlo.
+
+> 💡 **Es el instrumento que hay que abrir cuando algo no cuadra**, y también donde se leen los
+> `$EVENT` en bruto — el `ORIGEN:RELOJ` con los bits del reloj, entre ellos.
+
+### 5.4.3 El **PIN ya no se puede armar con el teclado cerrado**
+
+Los botones del teclado siguen existiendo en la página aunque el modal esté oculto, así que
+cualquier cosa que disparara una pulsación sobre ellos **autorizaba la sesión sin que la barrera se
+hubiera abierto nunca**. Hoy los cuatro caminos que tocan el PIN comprueban primero que el teclado
+esté delante del operario (`app.js:2554-2556`, aplicado en `:2561`, `:2574`, `:2582` y `:2592`), y
+**cerrar el teclado cancela de verdad**: borra los dígitos y la acción pendiente.
+
+> ⚠️ **Esto no lo nota el operario, y por eso se escribe.** Lo que cambia es que un modo técnico
+> abierto **significa que alguien tecleó cuatro dígitos**, que es lo que el PIN existía para
+> garantizar.
+
+### 5.4.4 El puente **dice por qué arrancó** al reconectar
+
+Cuando el teléfono se empareja con el ESP32, el puente manda **una** trama contando su último
+reinicio. Vuelve a mandarla en cada reconexión:
+
+```text
+   $EVENT,NODE:PUENTE,EVT:ARRANQUE,CAUSA:PERRO_DE_TAREAS,ARRANQUES:3,PERRO:ARMADO,WDT_MS:2000*XX
+```
+
+| campo | qué dice |
+|---|---|
+| `CAUSA:` | por qué se reinició. `SUBIDA_DE_TENSION` es un encendido normal; **`PERRO_DE_TAREAS`, `EXCEPCION_O_PANICO` o `TENSION_BAJA` no lo son** |
+| `ARRANQUES:` | cuántas veces ha arrancado **desde la última subida de tensión**, no desde siempre |
+| `PERRO:` | `ARMADO` si el watchdog está vigilando; **`SIN_ARMAR` es un problema** |
+
+*(Medido en `01_Firmware/ESP32_Expansion/src/vigilante.cpp:90-91` el formato, `:103-118` las once
+causas posibles, `:170-174` el rearme por reconexión.)*
+
+> 🔴 **`ARRANQUES:` subiendo entre visitas es el síntoma que ningún otro instrumento da.** Un puente
+> que se reinicia solo cada pocos minutos **parece un enlace intermitente**, y se acaba cambiando la
+> radio o el cable. Este campo dice que el problema es el módulo.
+>
+> ⚠️ **La app no le da pantalla propia: sale como un evento más.** Se lee en `Eventos` o en `Tramas`.
 
 ---
 

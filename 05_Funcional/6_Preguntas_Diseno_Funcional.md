@@ -6,18 +6,66 @@ Este documento recopila los puntos clave de diseño funcional y operativo acorda
 
 ## 1. Integración de Cámaras de Visión Artificial (Hikvision AcuSense G2 - APROBADO)
 
-1. **Topología de Cámaras (CERRADO):** Se aprueba el sistema autónomo de **4 Cámaras Hikvision AcuSense G2** (2 en Maestro y 2 en Esclavo) mediante **contacto seco directo (`1A`/`1B`)** a las entradas optoacopladas `PB9` y `PB13` de las tarjetas STM32.
-2. **Cero Computadores Edge Externos (CERRADO):** Se descarta el uso de Raspberry Pi, Jetson Nano, conversores USB y switches Ethernet. La detección de vehículos corre directamente dentro de la cámara (DSP AcuSense) y entra por pulsos limpios de hardware a la placa.
-3. **Respuesta Adaptativa (CERRADO):** Cada pulso de detección en `PB9` solicita verde para el sentido correspondiente. Se garantiza un piso inquebrantable de **15 segundos mínimos de All-Red (Todo-Rojo)** antes de conmutar de un carril al opuesto.
-4. **Cobertura Simétrica (CERRADO):** Ambas puntas disponen de detección simétrica (Cámara 1 y 2 en Maestro; Cámara 3 y 4 en Esclavo).
+> # 🔴 EL PIN DE ESTE APARTADO ERA FALSO, Y ES EL ERROR MÁS CARO DEL DOCUMENTO
+>
+> **Este apartado mandaba las cámaras a `PB9` y `PB13`. Esos dos pines son los canales `A` y `B` del
+> MANDO DE RELÉS**, no entradas de cámara — y **nunca fueron optoacoplados**. Se corrige aquí y se
+> deja el rastro, porque una decisión marcada `CERRADO` es justo la que nadie vuelve a comprobar.
+>
+> **Lo que pasa si se cablea una cámara a `PB9` o `PB13`:** tres pulsos de tráfico dentro de la
+> ventana de 12 s **componen una secuencia de mando** y el semáforo **cambia de modo solo** —a
+> Automático con `A·A·A`, a ámbar con `B·B·B`—; cuatro alternos en 18 s lo meten en Degradado. No es
+> una conexión inerte.
+
+1. ~~**Topología de Cámaras (CERRADO):** … a las entradas optoacopladas `PB9` y `PB13`.~~
+   ⛔ **ANULADO.** El reparto real, **MEDIDO** en `Maestro/include/pines.h` (idéntico en el Esclavo):
+
+   | entrada | pin | bornera | estado |
+   |---|---|---|---|
+   | `CAM_DEMANDA_PIN` | `PB0` | `J14` — con `R64` 10 kΩ + `C25` 100 nF | ✅ **cableable hoy** |
+   | `CAM_C_PIN` | `PB14` | `J16` **p10** — sin antirrebote de placa | 🟠 firmware listo, **NO cablear hasta `M3`** |
+   | `CAM_D_PIN` | `PB15` | `J16` **p12** — sin antirrebote de placa | 🟠 firmware listo, **NO cablear hasta `M3`** |
+
+   **Las tres son ACTIVAS EN ALTO**: el contacto seco cierra contra **3,3 V**, no contra masa.
+   Contra masa **la cámara no dispara nunca** y no hay síntoma. **`PB9` y `PB13` NO admiten cámara.**
+2. **Cero Computadores Edge Externos (CERRADO):** Se descarta el uso de Raspberry Pi, Jetson Nano, conversores USB y switches Ethernet. La detección de vehículos corre directamente dentro de la cámara (DSP AcuSense) y entra por pulsos limpios de hardware a la placa. ✅ **Sigue cerrado y sigue siendo cierto.**
+3. **Respuesta Adaptativa (CERRADO):** Cada pulso de detección solicita verde para el sentido correspondiente. Se garantiza un piso inquebrantable de **15 segundos mínimos de All-Red (Todo-Rojo)** antes de conmutar de un carril al opuesto. *(Corregido: el pulso entra por `PB0`, `PB14` o `PB15`, ~~`PB9`~~.)*
+4. ~~**Cobertura Simétrica (CERRADO):** … Cámara 1 y 2 en Maestro; Cámara 3 y 4 en Esclavo.~~
+   ⚠️ **La simetría se mantiene, la numeración no.** Cada punta tiene **tres entradas de demanda
+   iguales**. **La «cámara de umbral» NO EXISTE**: no hay entrada física para ella ni comando de
+   radio que lleve la cuenta del tramo al Maestro. El despeje se hace **por tiempo**
+   (`cfgDespejeSeg`), que es el criterio conservador.
 
 ---
 
 ## 2. Parámetros de Operación Vial y Módulo Bluetooth (APROBADO)
 
 1. **Tiempo de Despeje (All-Red):** El firmware admite de **5 a 999 segundos** (hasta 16.6 min); el piso de 5s en menú y 15s en auto-recuperación es inquebrantable por seguridad.
-2. **Módulo Bluetooth en Maestro y Esclavo (CERRADO - Estándar Baliza):** Se conecta a `USART1` (`PA9` TX, `PA10` RX) con alimentación 5V/GND. Permite telemetría periódica `$STATUS`, Caja Negra de caídas de radio `$ALARM` con timestamp del RTC y control de Modo Manual y Rojo Total desde el suelo sin necesidad de subir a los postes con escaleras (resolviendo el punto N-19 en el Esclavo).
-3. **Mando a Distancia Anti-Colisión (CERRADO - Resolución N-53):** Secuencias con alternancia (`A·B·A` Auto, `B·A·B` Ámbar, `B·A·B·A` Manual, `A·B·A·B` Degradado) e inhibición total de secuencias durante la navegación y edición de parámetros en la pantalla LCD.
+2. **Módulo Bluetooth en Maestro y Esclavo (CERRADO - Estándar Baliza):** ~~Se conecta a `USART1` (`PA9` TX, `PA10` RX) con alimentación 5V/GND.~~
+   🔴 **PINOUT ANULADO.** Se conecta a **`USART1` REMAPEADO — `PB6` TX / `PB7` RX — por el conector
+   `J17`** (**MEDIDO**: `Maestro/src/bluetooth.cpp:28`, `static HardwareSerial SerialBT(PB7, PB6)`,
+   idéntico en el Esclavo). `USART1` sale por `PA9`/`PA10` **o** por `PB6`/`PB7`, **nunca por los
+   dos a la vez**: un montaje en `PA9`/`PA10` exigiría cambiar el firmware de las dos puntas.
+   **`PA9`/`PA10` son hoy `RS485_IN`** (el MAX3485 `U2` y la bornera `J10`).
+   🔴 **Y la alimentación NO sale de `J17`:** el módulo lleva **fuente propia desde 12 V**. Ver
+   `10_Manual_Modulo_Bluetooth_Telemetria.md` §2.3.
+   ⚠️ **La *«Caja Negra de caídas de radio»* estaba declarada y documentada, y NO tenía un solo
+   llamador.** No la ofrezca como función existente sin comprobar el fuente.
+3. **Mando a Distancia Anti-Colisión (CERRADO - Resolución N-53):** ~~Secuencias con alternancia (`A·B·A` Auto, `B·A·B` Ámbar, `B·A·B·A` Manual, `A·B·A·B` Degradado).~~
+   🔴 **LAS SECUENCIAS DE ESTA LÍNEA NO SON LAS DEL FIRMWARE.** Un operario que las ejecute no
+   consigue nada. **MEDIDO** en `Maestro/src/mando.cpp`:
+
+   | secuencia | ventana | qué hace | línea |
+   |---|---|---|---|
+   | `A · A · A` | ≤ 12 s | **Automático** — 2 destellos rojos | `:225-227` |
+   | `B · B · B` | ≤ 12 s | **Ámbar** — 3 destellos rojos | `:230-234` |
+   | `A · B · A · B` | ≤ 18 s | **Degradado** — 4 destellos rojos | `:204-214` |
+
+   **No existe secuencia para Modo Manual.** El mando **se conserva** sobre los canales `A` (`PB9`)
+   y `B` (`PB13`); `C` y `D` se retiraron porque sus pines pasaron a cámaras, y **ninguna secuencia
+   los usaba**. ⚠️ **El receptor RF no se ha comprado en ninguna punta**, así que hoy no hay con qué
+   generar los pulsos. La inhibición durante la navegación de la LCD sigue en el firmware, pero **ya
+   no puede ocurrir**: sin `botonAceptar()` el menú no se abre.
 
 ---
 
@@ -33,9 +81,16 @@ corrija **antes** de la primera puesta en campo.
    para el tramo de obra real, o hace falta ajustarlos por longitud?** *(Bajar el todo-rojo acorta el
    margen de deriva y obligaría a bajar también el límite de 48 h.)*
 2. **Límite duro de 48 h sin resincronizar ⇒ caída automática a ámbar.** Sale de un margen teórico de
-   ~3,5 días con factor de seguridad 2. **¿Se acepta que el equipo se rinda solo a las 48 h**, o la
-   obra necesita una autonomía distinta? *Recordar el coste: una semana obligaría a un todo-rojo de
-   ~90 s.*
+   ~3,5 días ~~con factor de seguridad 2~~ 🔴 **con factor de seguridad 1,44, no 2.**
+
+   > **MEDIDO el 01/09** ejecutando el C++ real de las dos puntas a la vez, cada una con su reloj
+   > (`Maestro/src/modo_degradado.cpp:39-45`): el cruce **aguanta 29 s** de desfase entre relojes y
+   > el equipo puede **acumular 20,2 s** en 48 h (17,2 de deriva + 3 de tolerancia). Margen: **8,8
+   > s → factor 1,44.** El «2» era una cuenta que nadie había rehecho.
+
+   **¿Se acepta que el equipo se rinda solo a las 48 h**, o la obra necesita una autonomía distinta?
+   *Recordar el coste: una semana obligaría a un todo-rojo de ~90 s.* **Y ahora también:** con la
+   mitad del colchón que se creía, un radio caído no se deja para la semana siguiente.
 3. **Antigüedad máxima de la sincronización para poder entrar: 2 h.** Tiene una consecuencia
    operativa poco intuitiva: **si el radio lleva medio día muerto, ya no se puede entrar al
    Degradado.** La ventana para activarlo era mientras el enlace todavía respiraba. **¿Se acepta, o
@@ -58,7 +113,19 @@ corrija **antes** de la primera puesta en campo.
 
 1. **Operación intermitente por bajo flujo (`1_Manual_Usuario.md §2`):** el Manual de Señalización 2024 la contempla (ámbar en vía principal, rojo en secundaria, tras 4 h con flujo ≤50%), pero **no está implementada**. ¿Se incorpora al alcance, se difiere, o se retira de la especificación?
 2. **Arranque en oscuro:** al encender, el Maestro deja las luces apagadas ~2 s durante la pantalla de bienvenida. ¿Se acepta, o debe arrancar directamente en Rojo?
-3. **Watchdog en el Repetidor ESP32:** no está implementado. Maestro y Esclavo lo detectan por fail-safe a los 25 s (SFTY-6), pero el repetidor requiere corte de energía para recuperarse de un cuelgue. ¿Se añade?
+3. **Watchdog en el Repetidor ESP32:** **sigue sin estar implementado** (`grep` sobre
+   `01_Firmware/Repetidor/` da cero). Maestro y Esclavo lo detectan por fail-safe a los 25 s
+   (SFTY-6), pero el repetidor requiere corte de energía para recuperarse de un cuelgue. ¿Se añade?
+
+   > ⚠️ **No confundir con el otro ESP32.** El **puente de expansión** (`01_Firmware/ESP32_Expansion/`,
+   > el de `J17`) **sí lleva watchdog** desde el 01/09 —Task WDT a 2 s, `src/vigilante.cpp:24`— y
+   > además **declara por qué arrancó** al reconectar. Son dos módulos distintos con respuestas
+   > opuestas a esta pregunta.
+   >
+   > 🔴 **Y una pregunta que ese watchdog NO cierra, y que sigue siendo del responsable:** un puente
+   > de expansión colgado **no lo detecta nadie en el equipo** —SFTY-6 vigila la radio, no `J17`—, y
+   > el watchdog no hace nada por uno **muerto o desalimentado**. ¿Basta con que el único testigo sea
+   > la app, o el STM32 tiene que notar el silencio del puente?
 4. **Velocidad aérea:** se adopta `2.4 kbps` (antes `0.3 kbps`) con un coste aproximado de 6 dB de sensibilidad. ¿Se valida contra la distancia máxima real de obra prevista?
 
 ---

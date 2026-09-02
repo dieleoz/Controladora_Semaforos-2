@@ -570,8 +570,36 @@ A **9600 8N1 = 960 B/s**. La cuenta, con los tamaños medidos de §3.3:
 
 ## 4. Función 1 — El watchdog. **VA PRIMERO**
 
-Va primero porque las otras dos funciones cuelgan de que el ESP32 siga vivo, y hoy **nada garantiza
-que lo esté**.
+> ## ✅ 01/09/2026 — YA ESTÁ CONSTRUIDO. Este apartado dejó de ser una especificación
+>
+> El watchdog del ESP32 **existe, compila y está en la compuerta**. Lo que sigue se conserva porque
+> es el porqué y los requisitos que se le exigieron, pero **léalo en pasado**: ya no describe lo que
+> hay que hacer, describe lo que se hizo.
+>
+> **MEDIDO el 02/09**, en `01_Firmware/ESP32_Expansion/` (proyecto PlatformIO real, `esp32dev`):
+>
+> | | |
+> |---|---|
+> | qué watchdog | **Task Watchdog Timer del IDF**, con *panic* — **reinicia**, no sólo avisa (`src/vigilante.cpp:24`) |
+> | periodo | **2 s** — `ESP32_WDT_MS 2000UL` (`include/contrato.h:102`) |
+> | dónde se arma | `setup()`, **antes** del SPP y del I²C (`src/main.cpp:58`) — requisito `W-5` |
+> | qué tarea vigila | la que bombea bytes (`esp_task_wdt_add(NULL)`, `src/vigilante.cpp:40`) — `W-1` |
+> | dónde se alimenta | una vez por vuelta del `loop()`, al final (`src/main.cpp:89`) |
+> | fuera del bucle interior | ✅ `W-3` respetado; el `while` interior está topado en `PUENTE_MAX_ITER 64` |
+>
+> Lo vigilan dos packs del banco: `esp32_01_watchdog_desigualdad` y `esp32_02_watchdog_alimentado`.
+>
+> 🟠 **Lo que sigue SIN VERIFICAR, y no se disimula:** `ESP32_ARRANQUE_MS` vale **1500 ms** y lleva su
+> propio marcador de que **nadie lo ha medido** (`contrato.h:120-121`,
+> `ESP32_ARRANQUE_MEDIDO 0`). El margen de la desigualdad de §4.2 se apoya en ese número: **es un
+> supuesto, no una medida**. Es `AB-3`, y se cierra con el módulo en la mano.
+>
+> 🔴 **Y lo que un watchdog NO resuelve sigue igual de abierto:** rescata al ESP32 **colgado**; no
+> hace nada por uno **muerto o desalimentado**, y **SFTY-6 no lo ve** porque mira la radio, no `J17`.
+> Es `AB-1`, y es del responsable.
+
+Va primero porque las otras dos funciones cuelgan de que el ESP32 siga vivo, y cuando se escribió
+esto **nada garantizaba** que lo estuviera.
 
 ### 4.1 Lo MEDIDO
 
@@ -584,9 +612,19 @@ que lo esté**.
 01_Firmware/Repetidor/src/   grep -rniE "watchdog|esp_task_wdt|WDT"  ->  CERO coincidencias
 ```
 
-**Los dos STM32 tienen watchdog a 4 s con refresco en el bucle. El ESP32 de este proyecto no tiene
-ninguno.** Lo confirma `OPTIMIZACIONES.md:55` en la propia definición de SFTY-1: *«El Repetidor
-ESP32 no implementa watchdog.»*
+**Los dos STM32 tienen watchdog a 4 s con refresco en el bucle.** ~~El ESP32 de este proyecto no
+tiene ninguno.~~
+
+> ⚠️ **CADUCADO EL 01/09 — y hay que distinguir DOS ESP32, que no son el mismo.**
+>
+> | | watchdog |
+> |---|---|
+> | **`01_Firmware/Repetidor/`** — el ESP32 del repetidor | ❌ **sigue sin tener.** `grep -rniE "watchdog\|esp_task_wdt\|WDT"` sobre esa carpeta da **cero** |
+> | **`01_Firmware/ESP32_Expansion/`** — el puente de `J17`, el de esta especificación | ✅ **SÍ tiene**, TWDT a 2 s (`src/vigilante.cpp:24`) |
+>
+> La frase de `OPTIMIZACIONES.md:55` habla del **Repetidor** y sigue siendo cierta para él. **No es
+> cierta para el puente**, que es el sujeto de este documento. Confundir los dos es fácil y aquí ya
+> pasó: se conserva la distinción escrita.
 
 > 📌 **Corrección de deriva:** el Manual 17 §3.3 cita `Maestro/src/main.cpp:52`. Hoy es **`:53`**.
 
