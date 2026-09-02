@@ -64,6 +64,31 @@ del responsable.** Se agrupa por lo que compra, no por lo que cuesta.
 > importa»*. **Nada de A, B ni C sustituye al banco** — A y B se escriben para que la sesion de banco
 > devuelva datos en vez de impresiones.
 
+### 0.ter · Como se reparte el trabajo entre agentes, y por que asi
+
+> **El cuello de botella NO es cuantos agentes se coordinan: es que dos sobre el mismo fichero se
+> pisan sin avisar.** El limite real es **cuantos ficheros disjuntos quedan por repartir.**
+
+Costo una historia mintiendo (27/08): `ff6bd19 fix(N-71): el techo de silencio...` contiene **un solo
+fichero, el acta**, y todo el firmware de N-71 acabo dentro de otro commit que habla de otra cosa. El
+contenido era correcto y la compuerta verde; **lo roto era la historia**, y un `revert` de aquel commit
+no deshace nada.
+
+**Las reglas, que no son negociables:**
+
+| | |
+|---|---|
+| **Un agente = sus ficheros en exclusiva**, listados dentro del encargo | si necesita algo fuera, **para y lo dice**; no lo coge |
+| **Ningun agente hace `git add` ni commit** | comiteo yo, **por rutas explicitas**. Nunca `git add -A`, y nunca un directorio que pueda contener artefactos de compilacion — eso ya metio 408 KB de `.exe` y `.o` dos veces |
+| **Se revisa por el DIFF, no por su informe** | un agente entrego *«31/31 verificado»* habiendo cambiado a la vez el firmware **y las dos copias del modelo que debian vigilarlo**. Las tres decian lo mismo, asi que el banco no podia verlo |
+| **`compuerta.py` no lo toca nadie** | lo quieren todos y es donde chocarian. Los agentes crean packs con **nombre nuevo** y dicen cual conectar |
+| **Cada agente tiene que VER CAER su instrumento** | defecto inyectado en el `.cpp` real, la cuenta baja, se restaura, y se verifica con `git diff` **vacio** — no con la impresion de haberlo restaurado |
+| **Si cambia una decision a mitad, se redirige al agente vivo** | funciona, y evita tirar trabajo hecho |
+
+**Y el reparto se hace por FICHEROS, no por temas.** Dos encargos que suenan distintos —"el registro del
+enlace" y "la seguridad del PIN"— caen los dos en `bluetooth.cpp` y **no pueden ir a la vez**. Elegir
+sospechoso por el titulo en vez de por los ficheros ya mando una vez a acusar al commit equivocado.
+
 ### 0.1 · Que se entrego el 31/08, y con que salvedad
 
 ```
