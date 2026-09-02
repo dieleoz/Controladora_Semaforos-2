@@ -12,17 +12,20 @@ bitacora. Lo anterior no se pierde —vive en el `git log` de este repositorio y
 
 ## 0. PARA RETOMAR — lo primero de la proxima sesion
 
-**Cuatro pasos, en este orden. Los tres primeros son deuda, no trabajo nuevo.**
-
-> Ojo con la fecha: la sesion se cerro **pasada la medianoche**, asi que la compuerta escribira
-> `evidencia/2026-09-01_compuerta.txt` — **fichero nuevo, no sustituye** al del 31/08. No falta nada.
+**Tres pasos, en este orden.** La deuda de cifras del 31/08 **ya esta pagada** —README, ESTADO y
+CERTIFICACION salen del acta del 01/09—, pero aparecio una peor al pagarla.
 
 | | que hacer | por que |
 |---|---|---|
-| **1** | `git status` y **revisar por el diff** lo que dejo el ultimo agente en `05_Funcional/Guia_Cableado_y_Pruebas_Banco.html` | quedo en vuelo al cerrar. Se revisa por el diff, **no por su informe** (§8.ter) |
-| **2** | 🔴 **Arreglar N-112 ANTES de creerse ninguna corrida**: la compuerta alterna `0` y `1` en pasadas consecutivas sobre un arbol identico | mientras eso siga, **su codigo de salida no significa nada**, y el habito que crea -re-correr hasta que salga verde- se lleva por delante la compuerta entera |
-| **3** | **Copiar las cifras del acta nueva** a `README.md`, `ESTADO.md`, `CERTIFICACION_SW.md` y a la tabla de §1 aqui arriba | tres packs lo vigilan y estaran en rojo hasta entonces. **Se copian del acta, nunca se escriben a mano** |
-| **4** | **Regenerar el `.zip`** (`python generar_entrega_v9_0.py`) | el entregado el 31/08 lleva la APK al dia y **un acta que no le corresponde**. Ojo: el nuevo saldra con **~355 ficheros y no 365**, y no falta nada — el generador ya no mete el fuente de la PWA |
+| **1** | 🔴 **Arreglar N-112: la compuerta ALTERNA `0` y `1`** en pasadas consecutivas sobre un arbol identico (medido: `1`, `0`, `1`) | mientras siga asi **su codigo de salida no significa nada**, y el habito que crea —re-correr hasta que salga verde— se lleva por delante la compuerta entera. **Es lo primero porque todo lo demas se mide con ella** |
+| **2** | **Regenerar el `.zip`** (`python generar_entrega_v9_0.py`) sobre arbol limpio | el entregado el 31/08 lleva la APK al dia y **un acta que no le corresponde**. Saldra con **~355 ficheros y no 365**: el generador ya no mete el fuente de la PWA, y no falta nada |
+| **3** | 🛑 **BANCO** | sigue siendo EL bloqueante, y nada de lo anterior lo sustituye |
+
+**Lo que ya NO hay que hacer**, para no repetirlo: los dos `ABORTADO` estan cerrados, las cifras
+cuadradas, la guia de campo recortada a ~7.100 palabras, y el arnes de DOM invertido a `77/77`.
+
+> Ojo con la fecha: la sesion se cerro **pasada la medianoche**, asi que el acta viva es
+> `evidencia/2026-09-01_compuerta.txt` — **fichero nuevo, no sustituye** al del 31/08.
 
 ### 0.1 · Que se entrego el 31/08, y con que salvedad
 
