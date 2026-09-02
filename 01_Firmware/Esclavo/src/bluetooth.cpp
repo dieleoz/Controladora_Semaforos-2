@@ -217,7 +217,13 @@ void bluetooth_reportarEvento(const char* origen, const char* detalle) {
     strncpy(horaBuf, "--:--:--", sizeof(horaBuf));
   }
 
-  char payload[100];
+  // N-114: 112 y no 100, IGUAL QUE EL MAESTRO Y A PROPOSITO. Alli el numero lo obliga
+  // el DETALLE de ORIGEN:RELOJ -los bits del RTC, 44 caracteres en su peor caso por
+  // tipo-, y esta punta todavia no lo emite porque su reloj.h no declara
+  // reloj_diagnostico(). Se sube igual: el dia que lo declare, este emisor tiene que
+  // ser el mismo bloque letra por letra, y dos buffers distintos en la misma funcion de
+  // las dos puntas son la divergencia que luego nadie recuerda haber introducido.
+  char payload[112];
   snprintf(payload, sizeof(payload), "$EVENT,NODE:ESCLAVO,ORIGEN:%s,DETALLE:%s,HORA:%s",
            origen, detalle, horaBuf);
   enviarTramaConCrc(payload);

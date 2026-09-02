@@ -182,7 +182,13 @@ void bluetooth_reportarEvento(const char* origen, const char* detalle) {
     strncpy(horaBuf, "--:--:--", sizeof(horaBuf));
   }
 
-  char payload[100];
+  // N-114: 112 y no 100. El DETALLE mas largo que hoy entra aqui es el de ORIGEN:RELOJ,
+  // y su peor caso POR TIPO son 44 caracteres. Con 100, la trama entera daba 106 de 99:
+  // se truncaba POR EL FINAL -o sea por la HORA-, el checksum se calculaba sobre lo que
+  // quedo y el otro extremo la habria descartado. Es N-108 letra por letra, y el numero
+  // que lo dijo salio de la cuenta que rehace el pack, no de mirarlo. Los 12 B son de
+  // pila, no de flash, y el presupuesto de J17 los recalcula solo.
+  char payload[112];
   snprintf(payload, sizeof(payload), "$EVENT,NODE:MAESTRO,ORIGEN:%s,DETALLE:%s,HORA:%s",
            origen, detalle, horaBuf);
   enviarTramaConCrc(payload);
@@ -248,6 +254,83 @@ static bool ajustarRelojVerificado(uint8_t h, uint8_t mi, uint8_t s, uint8_t d) 
   // uno. Si el minuto avanza justo en ese hueco esto contesta que no pudo, con la hora
   // bien puesta -es el lado seguro del error, y el operario repite-.
   return reloj_enHora() && reloj_hora() == h && reloj_minuto() == mi;
+}
+
+// --- LOS BITS DEL RELOJ, POR EL UNICO CAMINO QUE QUEDA ABIERTO --------------------
+//
+// N-114 - DOS $ERR DE ESTE FICHERO MANDAN AL TECNICO A UNA PANTALLA TAPIADA.
+//
+// SIN_CRISTAL_VEA_CONSULTA_RELOJ y SIGUE_PARADO_VEA_CONSULTA_RELOJ nombran la consulta
+// de N-45 por su nombre. Esa consulta es MODO_HORA, y MODO_HORA se arma en UN solo
+// sitio -menu.cpp, el case 1 de NIVEL_CONFIG-, al que hacen falta DOS botonAceptar():
+// uno para bajar al nivel y otro para entrar en la opcion. botonAceptar() es hoy
+// "return false" -PB14 y PB15 dejaron de ser pulsadores para ser camaras-, asi que la
+// puerta esta tapiada por DOS sitios a la vez, y por Bluetooth no existe SET_MODO:HORA.
+// El equipo estaba mandando a leer un instrumento que nadie puede abrir.
+//
+// Y NO ES UNA CURIOSIDAD: es el instrumento del bloqueante BLQ-2. Sin estos bits,
+// SET_RTC distingue "hay reloj" de "no hay reloj" y NO distingue las dos averias que
+// mandan a sitios opuestos -lseOn=0, que es firmware o dominio de respaldo, de
+// lseOn=1 con lseRdy=0, que es donde SI se mira el cristal-. Es la confusion que ya
+// costo cambiar pila, R5 e Y2 tres veces con el hardware sano (N-45).
+//
+// POR QUE $EVENT Y NO UN COMANDO DE CONSULTA NUEVO. Un comando cuesta una rama mas y,
+// sobre todo, EXIGE INTERFAZ: app_01_comandos pone en rojo todo comando que el firmware
+// atienda y la app no sepa mandar, con razon -firmware sin interfaz es trabajo que
+// nadie puede usar-. El $EVENT ya tiene esa interfaz construida y MEDIDA, no supuesta:
+// app.js:755 lo lista en TIPOS_QUE_LA_APP_LEE y app.js:1999-2007 lo pinta con su
+// ORIGEN, su DETALLE y su HORA en el REGISTRO DE EVENTOS, que es la pestana 2 y la ven
+// los dos roles. Cero lineas de JavaScript para que estos bits lleguen a la pantalla.
+//
+// SE EMITE DONDE EL FIRMWARE YA MANDA AL TECNICO, y no en un latido periodico ni en el
+// arranque: en el arranque del STM32 puede no haber nadie escuchando -el ESP32 y el
+// telefono llegan despues- y una trama que nadie oye no es un instrumento. Aqui hay
+// alguien mirando por construccion: acaba de recibir el rechazo.
+// LIMITE DECLARADO: esto NO es una consulta bajo demanda. Para la segunda visita que
+// pide reloj.h -"cnt cambiando entre dos visitas -> el RTC CUENTA"- se repite el mismo
+// SET_RTC, que en esta rama se rechaza ANTES de escribir nada y por tanto no cuesta.
+//
+// EL DETALLE NO LLEVA NI UNA COMA, Y NO ES ESTILO. _camposNmea() de la app parte la
+// trama por ',' y cada trozo por su PRIMER ':' (app.js:1798-1810), asi que una coma
+// dentro del DETALLE convierte todo lo que va detras en campos sueltos que el pintor de
+// $EVENT no mira: los bits saldrian al cable y no llegarian a la pantalla. Seria la
+// prueba muerta con forma de telemetria. Se separan con espacio, que es lo que ya hace
+// el DESC de SET_MODO:DEGRADADO. Lo vigila reloj_01_consulta_por_bluetooth.
+//
+// CFG Y ANIO NO VAN, Y ES LO CONTRARIO DE UN OLVIDO. reloj.cpp los saca de rtcOperativo
+// -"configurado = rtcOperativo ? rtc.isConfigured() : false"-, y las DOS puertas que
+// llaman aqui son justo las que exigen rtcOperativo == false: valdrian 0 y 0 SIEMPRE.
+// Publicar dos ceros constantes con forma de medida es el BAT:12.6 otra vez. Los seis
+// que quedan son exactamente los que la cabecera de reloj.h usa para razonar.
+static void reportarBitsDelReloj() {
+  RelojDiag d;
+  reloj_diagnostico(&d);
+
+  // Sin RTCEN no se leyo el periferico A PROPOSITO -leer los registros de un periferico
+  // sin reloj es un fallo de bus-, y eso se dice con "--" en vez de con un 0: un cero
+  // ahi es indistinguible de un contador parado en cero, que es otro diagnostico. Es la
+  // misma marca que ya llevan RF, RTT y BAT en el $STATUS.
+  //
+  // 11 y no 12: un uint32_t no pasa de 4294967295, que son DIEZ cifras mas el cierre.
+  // Un byte de mas seria holgura falsa -se paga cuando empuja a recortar el campo que
+  // si la necesita-, y este numero entra en la cuenta del payload del $EVENT.
+  char cntTxt[11];
+  if (d.cntLeido) {
+    snprintf(cntTxt, sizeof(cntTxt), "%lu", (unsigned long)d.cnt);
+  } else {
+    strncpy(cntTxt, "--", sizeof(cntTxt));
+  }
+
+  // 48 y no 44. El peor caso POR TIPO son 44 caracteres -cuatro bits, las tres cifras
+  // que cabe un uint8_t en RTCSEL y las diez de un uint32_t-. La cuenta NO se deja
+  // escrita solo aqui: un comentario no falla cuando alguien alarga un campo. La rehace
+  // en cada corrida reloj_01_consulta_por_bluetooth, releyendo este formato, el del
+  // $EVENT, los tres buffers y el TIPO de cada campo de RelojDiag.
+  char det[48];
+  snprintf(det, sizeof(det), "ON:%u RDY:%u BYP:%u SEL:%u EN:%u CNT:%s",
+           (unsigned)d.lseOn, (unsigned)d.lseRdy, (unsigned)d.lseByp,
+           (unsigned)d.rtcSel, (unsigned)d.rtcEn, cntTxt);
+  bluetooth_reportarEvento("RELOJ", det);
 }
 
 static void procesarComando(const char* cmd) {
@@ -452,6 +535,11 @@ static void procesarComando(const char* cmd) {
       // por senalar un componente sin haberlo medido, y con Y2 nuevo seguia diciendo lo
       // mismo. Lo que el micro VE lo cuenta CONSULTA RELOJ.
       enviarTramaConCrc("$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ");
+      // Y aqui van los bits que esa consulta ensenaba, porque su pantalla ya no se
+      // puede abrir. DETRAS del $ERR y no delante: el $ERR es la respuesta a la orden y
+      // el diagnostico la acompana, igual que j17RegistrarLinea() se anota despues de
+      // despachar y no antes.
+      reportarBitsDelReloj();
     } else if (!ajustarRelojVerificado((uint8_t)h, (uint8_t)mi, (uint8_t)s, (uint8_t)d)) {
       // El ajuste se descarto ENTERO por un campo fuera de rango. Los rangos siguen
       // viviendo en reloj.cpp, que es quien conoce el calendario; aqui solo se relee lo
@@ -482,6 +570,11 @@ static void procesarComando(const char* cmd) {
       bluetooth_reportarEvento("APP_BLUETOOTH", "RELOJ_REINICIADO");
     } else {
       enviarTramaConCrc("$ERR,CMD:REINICIAR_RELOJ,DESC:SIGUE_PARADO_VEA_CONSULTA_RELOJ");
+      // El mismo motivo que en SET_RTC: este $ERR nombra una consulta que no se puede
+      // abrir. Y aqui el dato vale mas todavia, porque el dominio de respaldo ACABA de
+      // reiniciarse: los bits dicen si el oscilador se quedo sin pedir -lseOn=0, que no
+      // es el cristal- o pedido y sin arrancar -lseOn=1, lseRdy=0, que si lo es-.
+      reportarBitsDelReloj();
     }
   } else if (strcmp(accion, "DEMANDA") == 0) {
     // NO ES SOLICITAR_PASO, y la diferencia no es de nombre: alli el Esclavo PIDE a

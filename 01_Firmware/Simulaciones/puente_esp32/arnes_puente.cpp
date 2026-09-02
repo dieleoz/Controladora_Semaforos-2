@@ -134,6 +134,48 @@ uint8_t reloj_finNoche() { return 5; }
 bool reloj_esHorarioNocturno() { return false; }
 const char* reloj_textoHora() { return "18:25:00"; }
 
+#if defined(PUNTA_MAESTRO)
+#include "reloj.h"   // struct RelojDiag: solo la declara el reloj.h del Maestro
+// N-114 - EL SUSTITUTO DE LA CONSULTA DEL RELOJ, Y POR QUE DEVUELVE UN IMPOSIBLE.
+//
+// reportarBitsDelReloj() saca por $EVENT los seis bits que RCC->BDCR trae de verdad, y
+// esos bits AQUI NO EXISTEN: no hay BDCR, no hay dominio de respaldo y no hay cristal.
+// Este arnes mide el CONTRATO DE BYTES -que la trama se forme, quepa y lleve su
+// checksum-, no el reloj.
+//
+// Por eso no se devuelve un RelojDiag de aspecto sano. Un sustituto con lseOn=1, lseRdy=1 y
+// rtcSel=1 saldria al cable como un diagnostico plausible, y el dia que alguien
+// escribiera una comprobacion sobre esa trama estaria midiendo un dato inventado con
+// cara de medida: es la prueba muerta de este repositorio, y aqui ademas con la palabra
+// "diagnostico" encima.
+//
+// Lo que se devuelve es IMPOSIBLE EN SILICIO, por tres sitios a la vez, para que nadie
+// lo confunda con una lectura:
+//
+//   lseOn=0 con lseRdy=1   el oscilador no esta pedido y sin embargo esta listo. El
+//                          hardware no puede dar esa pareja: RDY solo sube detras de ON.
+//   rtcSel=255             RTCSEL son DOS BITS de BDCR, enmascarados en reloj.cpp: su
+//                          valor real esta entre 0 y 3 y nunca puede llegar a 255.
+//   rtcEn=0 con cntLeido=0 el propio firmware no lee el contador sin RTCEN, asi que la
+//                          trama sale con CNT:-- y no con una cifra que parezca un conteo.
+//
+// De regalo, el 255 ejerce el PEOR CASO de ancho del campo SEL -tres cifras-, que es
+// justo el que la cuenta de reloj_01_consulta_por_bluetooth dimensiona: si algun dia la
+// trama se truncara por ahi, este arnes lo ve con la trama mas larga posible delante.
+void reloj_diagnostico(RelojDiag* d) {
+  if (d == nullptr) return;
+  d->lseOn = false;
+  d->lseRdy = true;
+  d->lseByp = true;
+  d->rtcSel = 255;
+  d->rtcEn = false;
+  d->cntLeido = false;
+  d->cnt = 0;
+  d->configurado = false;
+  d->anio = 0;
+}
+#endif
+
 // protocolo.cpp: abre un segundo HardwareSerial sobre la radio LoRa. Aqui no hay
 // radio, y compilarlo metería un puerto mas en el registro sin aportar nada al
 // contrato con el ESP32.
