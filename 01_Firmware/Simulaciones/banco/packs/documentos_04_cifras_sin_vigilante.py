@@ -398,18 +398,31 @@ def correr(b, fw):
         "FIRMA y apunta a un acta vieja manda a verificar la corrida equivocada"
         % (", ".join(citadas) or "ninguna", ultima[:10]))
 
+# N-112 (01/09): AQUI NO SE PUEDE USAR reportar() EN LUGAR DE verificar().
+#
+# Este pack tenia el mismo defecto que documentos_01 en TRES sitios, y era peor por dos
+# motivos. Primero, no colgaba de si la cifra se dejaba leer sino de par[0] != "PASS",
+# o sea DIRECTAMENTE del veredicto del acta. Segundo, mientras el otro pack se ponia en
+# FALLA, este se quedaba en PASS midiendo dos comprobaciones menos: un verde que mide
+# menos, que es la peor forma del defecto porque nadie lo mira.
+#
+# Y el comentario que habia aqui AFIRMABA la propiedad que el codigo incumplia -"para
+# que el total de este pack no dependa de la salud del acta"- seguido de un continue que
+# saltaba el verificar(). Un comentario no falla cuando alguien cambia el codigo: se
+# queda describiendo un programa que ya no existe, con la autoridad de una cuenta hecha.
+#
+# La regla: el NUMERO de comprobaciones que emite un pack no puede depender de su propio
+# veredicto ni del de nadie. Sin dato se emite en FALLA diciendo que falta, que es una
+# afirmacion verdadera y util.
     for clave, patron, etiqueta, forma in CIFRAS_ACTA:
         par = res.get(clave)
         if par is None or par[0] != "PASS":
-            # La comprobacion no salio PASS en el acta: no dejo cifra que copiar. Se
-            # anota -reportar() NO cuenta- y se pasa en vacio, para que el total de
-            # este pack no dependa de la salud del acta. Si variara, el recuento del
-            # banco se moveria solo y ningun documento podria publicarlo.
-            b.reportar(
-                "el acta no trae cifra de %r" % clave,
-                ["salio %s en %s" % (par[0] if par else "AUSENTE", ultima),
-                 "no hay nada que comparar contra CERTIFICACION_SW.md hasta que "
-                 "vuelva a medir"])
+            b.verificar(
+                False,
+                "el acta trae la cifra de %r para poder compararla" % clave,
+                "el acta %s no trae cifra de %r: salio %s, asi que no hay nada que "
+                "comparar contra el documento hasta que vuelva a medir"
+                % (ultima, clave, par[0] if par else "AUSENTE"))
             continue
         mm = re.search(patron, par[1])
         if not mm:
@@ -442,8 +455,12 @@ def correr(b, fw):
     # de documentos_01, donde un "38" suelto casaba dentro de un hash.
     par = res.get("banco por packs")
     if par is None or par[0] != "PASS":
-        b.reportar("el acta no trae el recuento de packs",
-                   ["sin el no hay nada que comparar contra CERTIFICACION_SW.md"])
+        b.verificar(
+            False,
+            "el acta trae el recuento de packs para poder compararlo",
+            "el acta %s no trae el recuento de packs: salio %s, asi que no hay nada "
+            "que comparar contra el documento"
+            % (ultima, par[0] if par else "AUSENTE"))
     else:
         cuentas = re.findall(r"(\d+)\s+(?:PASS|FALLA|ABORTADO)", par[1])
         if not cuentas:
@@ -467,8 +484,12 @@ def correr(b, fw):
                             ("compila repetidor", "repetidor")):
         par = res.get(clave)
         if par is None or par[0] != "PASS":
-            b.reportar("el acta no trae el flash de %s" % etiqueta,
-                       ["sin el no se puede buscar un segundo porcentaje en el documento"])
+            b.verificar(
+                False,
+                "el acta trae el flash de %s para poder compararlo" % etiqueta,
+                "el acta %s no trae el flash de %s: salio %s, asi que no se puede "
+                "buscar un segundo porcentaje en el documento"
+                % (ultima, etiqueta, par[0] if par else "AUSENTE"))
             continue
         real = re.search(r"([\d.]+)%", par[1]).group(1)
         otros = sorted({x for _, p in cert if etiqueta in p and "flash" in p

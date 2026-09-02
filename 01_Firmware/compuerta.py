@@ -330,12 +330,32 @@ def correr_python(nombre, script, base=None):
         anotar(nombre, ABORTADO, "excepcion de Python, no llego a medir")
         return
 
-    cuenta = ""
-    for l in reversed(salida.splitlines()):
-        if "/" in l and any(c.isdigit() for c in l) and \
-           ("PASS" in l.upper() or "comprobacion" in l.lower()):
-            cuenta = l.strip()[:110]
-            break
+    # N-112 (01/09): LA LINEA DE RESUMEN MANDA SOBRE CUALQUIER OTRA.
+    #
+    # Esto cogia la ULTIMA linea con barra + digito + PASS/comprobacion, y las lineas
+    # de FALLA se imprimen DESPUES del RESUMEN. Cuando el banco fallaba, una de ellas
+    # -"el acta dice 120/120"- ganaba, y el acta guardaba EL TEXTO DEL FALLO EN LUGAR
+    # DE LAS CIFRAS. Efecto: los packs que comparan documentos contra el acta se
+    # quedaban sin dato justo cuando hacia falta, el total del banco se movia, y la
+    # compuerta ALTERNABA verde y rojo sobre un arbol identico.
+    #
+    # Peor todavia: una vez roja no podia volver. El acta sin cifras hace fallar a los
+    # packs de cifras, que hacen fallar al banco, que vuelve a escribir un acta sin
+    # cifras. Un bloqueo circular que ningun cambio de documento podia romper.
+    #
+    # La cura no es pedirle a cada mensaje de FALLA que no lleve barras -eso reparte la
+    # carga entre todos los packs, presentes y futuros, y basta que uno se despiste-:
+    # es que la linea que RESUME tenga prioridad. El acta guarda ahora las cifras del
+    # banco aunque el banco este en rojo, que es cuando mas falta hacen.
+    def _con_ratio(l):
+        return ("/" in l and any(c.isdigit() for c in l)
+                and ("PASS" in l.upper() or "comprobacion" in l.lower()))
+
+    _lineas = salida.splitlines()
+    cuenta = next((l.strip()[:110] for l in reversed(_lineas)
+                   if "RESUMEN" in l.upper() and _con_ratio(l)), "")
+    if not cuenta:
+        cuenta = next((l.strip()[:110] for l in reversed(_lineas) if _con_ratio(l)), "")
 
     # N-46. Se cuentan las lineas [FALLA] de la propia salida. No es una heuristica
     # sobre texto libre: es la marca exacta que los validadores imprimen al romper una
@@ -592,6 +612,44 @@ def arnes_unitarios_app():
     anotar("test unitarios de la app", PASS if p.returncode == 0 else FALLA, cuenta[:110])
 
 
+
+def arnes_unitarios_tdd_app():
+    """Ejecuta la OTRA suite unitaria de la app: tests/test_unitarios.js.
+
+    Existen dos ficheros distintos y hasta el 01/09 la compuerta solo corria uno. El
+    01/09 un agente anadio 23 comprobaciones -el checksum de la telemetria y el
+    generador de comandos- a tests/test_unitarios.js, que NO estaba conectado: 23
+    pruebas escritas, verdes, y midiendo cero desde el punto de vista del acta. Es
+    literal el apartado 3 de CLAUDE.md -"un instrumento que no esta en la compuerta no
+    mide nada, y no deja rastro de que falta"-: la guarda de rutas no lo echaba de
+    menos porque el fichero existe, y ningun pack lo contaba.
+
+    No se fusionan las dos suites: la de la raiz cubre otras propiedades y fusionarlas
+    seria reescribir logica ya probada para renombrar llamadas, que es como se cuelan
+    los errores en un cambio que no debe cambiar comportamiento."""
+    d = os.path.join(os.path.dirname(RAIZ), "05_Funcional", "App_Semaforo")
+    script = os.path.join(d, "tests", "test_unitarios.js")
+    if not os.path.isfile(script):
+        anotar("test unitarios TDD de la app", ABORTADO,
+               "no existe tests/test_unitarios.js")
+        return
+    node = shutil.which("node")
+    if node is None:
+        anotar("test unitarios TDD de la app", ABORTADO, "no hay node en el PATH")
+        return
+    p = subprocess.run([node, script], cwd=d, capture_output=True, text=True,
+                       errors="replace")
+    salida = (p.stdout or "") + (p.stderr or "")
+    cuenta = next((l.strip() for l in reversed(salida.splitlines())
+                   if "PASS" in l and "FALLA" in l), "")
+    if not cuenta:
+        anotar("test unitarios TDD de la app", ABORTADO,
+               f"no llego a medir (solo {len(salida)} caracteres de salida)")
+        return
+    anotar("test unitarios TDD de la app",
+           PASS if p.returncode == 0 else FALLA, cuenta[:110])
+
+
 def arnes_respaldo():
     """N-43 / N-29: compila el calcularSuma() REAL, y hasta hoy no estaba aqui.
 
@@ -825,6 +883,7 @@ def main():
     correr_python("test funcional de la app", os.path.join("App_Semaforo", "test_funcional_app.py"),
                   base=os.path.join(os.path.dirname(RAIZ), "05_Funcional"))
     arnes_unitarios_app()
+    arnes_unitarios_tdd_app()
     arnes_dom()
 
     print("\n-- Validadores de firmware --")

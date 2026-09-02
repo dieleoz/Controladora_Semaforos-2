@@ -55,28 +55,33 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 56 rutas parseadas, todas existen |
-| banco por packs *(59 packs)* | ✅ | **829/829** — los 59 packs en `PASS`. Los ultimos en entrar vigilan lo que la V9.0 estrena: `enlace_01_transporte` (pines, velocidad, buffer y framing del puerto por el que habla el ESP32, que hasta N-94 no miraba nadie), `camara_02_j16`, los nueve del ESP32 y `costura_11_lcd_sin_bus`. |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **88.8 %** · 65.7 % · 20,6 % · 35,6 % — *7.348 B libres en el Maestro tras las Fases 1 y 2, `AiBus` y N-90* |
+| banco por packs *(63 packs)* | 🔴 | **919/922** — 61 packs en `PASS`, **2 en FALLA**. Los ultimos en entrar vigilan lo que la V9.0 estrena: `enlace_01_transporte` (pines, velocidad, buffer y framing del puerto por el que habla el ESP32, que hasta N-94 no miraba nadie), `camara_02_j16`, los nueve del ESP32 y `costura_11_lcd_sin_bus`. |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.0 %** · 65.9 % · 20,6 % · 35,7 % — *7.240 B libres en el Maestro tras las Fases 1 y 2, `AiBus` y N-90* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35,6 % — 1.121.001 de 3.145.728 B |
 | simulador del puente ESP32 | ✅ | **78/78** — las tres puntas: `bluetooth.cpp` compilado, la app en jsdom, y solo el ESP32 modelado |
 | simulador de app y bluetooth | ✅ | 5/5 — **conectado el 27/08**: existía desde el 26/08 y no estaba en el acta |
-| **app ejecutada en DOM** | ✅ | **77/77** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden** *(desde N-75: el rewrite sacó el gestor de cruces, el parser NMEA y el Courier a módulos, y el arnés seguía evaluando sólo `app.js`)*, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
+| **app ejecutada en DOM** | ✅ | **120/120** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden** *(desde N-75: el rewrite sacó el gestor de cruces, el parser NMEA y el Courier a módulos, y el arnés seguía evaluando sólo `app.js`)*, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
 | test funcional de la app | ✅ | **58/58** — también conectado el 27/08. Decía «22/22» a mano y ejecuta 34; su prueba de Courier RTC era una tautología |
+| test unitarios TDD de la app | ✅ | **55/55** — la **segunda** suite unitaria, que hasta el 01/09 **no estaba en la compuerta**: 23 pruebas verdes que no medían nada |
 | test unitarios de la app | ✅ | **32/32** — seis suites sin DOM: NMEA y *checksums*, generador de comandos y barrera de PIN, validación de `SET_TIEMPOS`, Courier RTC, gestor de cruces y escala de 20 cruces. **Faltaba en esta tabla hasta el 28/08**: el acta lo medía y el README no lo nombraba, así que el auditor no tenía forma de saber que existía |
 | arnés de pantalla | ✅ | **271/271** *(Maestro 145/145, Esclavo 126/126)* — +12 al exigir el texto exacto del aviso `>48h` (N-50) |
 | arnés del ciclo | ✅ | **22/22** — corre sobre el `ciclo_degradado.h` real compilado, sin espejo en Python |
 | arnés del respaldo | ✅ | **conectado por fin** (N-43/N-29) — compila el `calcularSuma()` real; identidad de `respaldo.cpp` entre puntas + prueba de vida |
+| arnés de las dos puntas | ✅ | **42/42** — el C++ **real de las DOS puntas** ejecutándose en el mismo proceso y el mismo instante: verde simultáneo en **0 de 53.236 instantes** |
 | arnés del automático | ✅ | **71/71** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` **reales** y comprueba SFTY-2 sobre las escrituras de pin |
 
-**De 17 comprobaciones, la compuerta da `17 PASS · 0 FALLA · 0 ABORTADO` en unas pasadas y
-`16 PASS · 1 FALLA · 0 ABORTADO` en otras — ⚠️ su código de salida ALTERNA sobre un árbol
-idéntico.** Medido el 01/09, tres corridas seguidas sin tocar nada: `1`, `0`, `1`. El firmware no
-cambia entre ellas — cambia lo que el acta anterior le deja leer al pack que compara las cifras.
-**Hasta que eso se arregle (N-112), este número no acredita nada**, y la salida en verde es
-justo la que no hay que creerse: enseña a re-correr hasta que salga. Las cifras de la tabla de
-arriba sí están medidas y no oscilan.
+**17 PASS · 2 FALLA · 0 ABORTADO, de 19 comprobaciones — la compuerta sale con código `1`.**
+
+✅ **N-112 cerrado: ya no alterna.** Tres corridas seguidas sobre un árbol idéntico dan lo mismo.
+Hacían falta **dos** arreglos, no uno: `documentos_01` y `documentos_04` contaban distinto según
+el veredicto del acta, y con uno solo arreglado el punto fijo era falso.
+
+🔴 **Y este README publicó un verde que su propia acta desmentía**, veinticuatro horas después de
+escribir que eso no se hace: decía `✅ 829/829, los 59 packs en PASS` citando un acta que decía
+`FALLA, 824/829, 57 PASS`. La cifra salió de repetir la corrida hasta que una salió verde — que es
+**exactamente** el hábito que N-112 describe. Lo encontró una auditoría externa, no nosotros.
 
 > 🟢 **Y ese verde es más peligroso que el rojo, no menos.** Mientras la compuerta salía con `1`
 > nadie la confundía con un permiso; un `0` sí se confunde. Lo que dice es exactamente esto: *los

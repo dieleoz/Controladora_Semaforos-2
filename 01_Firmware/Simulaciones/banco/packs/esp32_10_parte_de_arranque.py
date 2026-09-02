@@ -76,8 +76,14 @@ NOMBRE = "esp32_10_parte_de_arranque"
 DESCRIPCION = "el ESP32 declara por que arranco y cuantas veces, y el parte no se puede truncar"
 
 ROL = "ESP32_Expansion"
-VIGILANTE_H = (ROL, "include", "vigilante.h")
-CONTRATO = (ROL, "include", "contrato.h")
+# El rol va ESCRITO, no por la variable ROL, y no es estilo: la guarda de rutas de
+# compuerta.py lee estas tuplas POR TEXTO. Con una variable delante solo ve
+# ("include", "vigilante.h") -una tupla de dos, que no dice el rol- y entonces la exige
+# en LAS DOS PUNTAS. Resultado el 01/09: ABORTO la guarda entera reclamando
+# Maestro/include/vigilante.h y Esclavo/include/vigilante.h, que no existen ni deben.
+# Un ABORTADO en la guarda apaga la compuerta completa, asi que esto no es cosmetico.
+VIGILANTE_H = ("ESP32_Expansion", "include", "vigilante.h")
+CONTRATO = ("ESP32_Expansion", "include", "contrato.h")
 
 # LOS ONCE VALORES DE esp_reset_reason_t, ESCRITOS A MANO.
 #
