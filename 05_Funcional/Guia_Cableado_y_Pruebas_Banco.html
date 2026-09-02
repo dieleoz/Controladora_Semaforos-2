@@ -128,6 +128,14 @@
     text-transform: uppercase; letter-spacing: .08em; color: var(--azul);
     text-decoration: none; border-bottom: 1px dotted var(--azul); margin-left: .45rem;
     white-space: nowrap; }
+  /* Un hijo de grid NO baja de su ancho de contenido salvo que se le diga
+     (min-width:auto por defecto). Sin esta linea, la tabla de min-width:30rem
+     del paso 20 y los diagramas <pre> de los pasos 28 y 29 ensanchan el
+     documento ENTERO y cortan la hoja por la derecha en cualquier telefono.
+     MEDIDO antes: 318 / 340 / 371 / 410 px de desborde a 412 / 390 / 360 / 320.
+     Con min-width:0 los envoltorios .tabla-envoltorio y .diagrama recuperan su
+     overflow-x y se deslizan solos, que es para lo que estaban puestos. */
+  .fc { min-width: 0; }
   .fc p { margin: 0 0 .28rem; font-size: .93rem; }
   .fc p > b.et { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace; font-size: .66rem;
     letter-spacing: .09em; text-transform: uppercase; color: var(--tinta-3);
@@ -181,6 +189,82 @@
     outline: 2px solid var(--acento); outline-offset: 1px; }
   .en-linea { max-width: 6rem; display: inline-block; }
 
+  /* ---------- el parte: la primera hoja, que es la que leemos nosotros ----------
+     Todo lo de aqui lo escribe el guion al vuelo leyendo la propia hoja. No hay
+     ni un titulo de paso copiado a mano: si manana cambia un paso, el parte
+     cambia con el. */
+  .parte { border: 2px solid var(--tinta); border-radius: 4px;
+    background: var(--tarjeta); padding: 1rem 1.1rem; }
+  .p-cab { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace; font-size: .7rem;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--tinta-2);
+    margin-bottom: .5rem; }
+  .p-aviso { border-left: 4px solid; border-radius: 3px; padding: .6rem .8rem;
+    font-size: .92rem; margin-bottom: .85rem; }
+  .p-aviso > b { display: block; font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif;
+    font-size: 1.06rem; margin-bottom: .2rem; }
+  .p-aviso.vacio   { background: var(--alto-bg);   border-color: var(--rojo);   }
+  .p-aviso.parcial { background: var(--acento-sv); border-color: var(--acento); }
+  .p-aviso.lleno   { background: var(--ok-bg);     border-color: var(--verde);  }
+
+  .p-cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.2rem, 1fr));
+    gap: .5rem; }
+  .p-cif { border: 1px solid var(--linea); border-radius: 3px; padding: .4rem .55rem;
+    background: var(--papel); }
+  .p-cif .v { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace;
+    font-size: 1.55rem; font-weight: 600; line-height: 1.05; display: block; }
+  .p-cif .k { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace; font-size: .61rem;
+    letter-spacing: .07em; text-transform: uppercase; color: var(--tinta-2); }
+  .p-cif.si .v { color: var(--verde); }
+  .p-cif.no .v { color: var(--rojo);  }
+  .p-cif.np .v { color: var(--azul);  }
+  .p-cif.sm .v { color: var(--tinta-2); }
+
+  .p-bloque { margin-top: 1rem; }
+  .p-bloque > h3 { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif;
+    font-size: 1.02rem; font-weight: 700; margin: 0 0 .1rem;
+    padding-bottom: .22rem; border-bottom: 1px solid var(--linea); }
+  .p-bloque > .pie { font-size: .82rem; color: var(--tinta-2); margin: .25rem 0 .45rem; }
+
+  .p-item { border-left: 3px solid var(--linea); padding: .3rem 0 .32rem .6rem;
+    margin-top: .35rem; font-size: .9rem; break-inside: avoid; page-break-inside: avoid; }
+  .p-item.no { border-left-color: var(--rojo); }
+  .p-item.np { border-left-color: var(--azul); }
+  .p-item.si { border-left-color: var(--verde); }
+  .p-item .np2 { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace;
+    font-size: .78rem; font-weight: 600; color: var(--tinta-2); margin-right: .4rem; }
+  .p-item .ti { font-weight: 600; }
+  .p-item .ve { display: block; margin-top: .1rem; }
+  .p-item .mo { display: block; color: var(--tinta-2); margin-top: .1rem; }
+  /* --tinta-3 da 3,66:1 en claro y 4,02:1 en oscuro: por debajo de AA (4,5).
+     Y «Sin motivo escrito» es justo la linea que avisa de que un NO se quedo
+     sin explicar, asi que no puede ser la mas floja de la hoja. --tinta-2 son
+     7,41:1 y 7,06:1. La cursiva sigue distinguiendola del texto normal. */
+  .p-item .falta { color: var(--tinta-2); font-style: italic; }
+  .p-sello { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace; font-size: .72rem;
+    font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+  .p-sello.no { color: var(--rojo);  }
+  .p-sello.np { color: var(--azul);  }
+  .p-sello.si { color: var(--verde); }
+  .p-sello.sm { color: var(--tinta-2); }
+
+  /* La regla general «table { min-width: 30rem }» es para las tablas del cuerpo,
+     que viven dentro de un .tabla-envoltorio y se deslizan. Esta no: va suelta
+     dentro del parte y tiene que encoger, o desborda la pagina entera.
+     MEDIDO sin esta linea: 112 / 134 / 164 / 204 px de desborde. */
+  .p-datos { width: 100%; min-width: 0; font-size: .87rem; border-collapse: collapse;
+    table-layout: auto; }
+  .p-datos th { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif;
+    font-size: .9rem; text-transform: none; letter-spacing: 0; color: var(--tinta);
+    padding: .5rem .1rem .2rem; border-bottom: 1px solid var(--linea); }
+  .p-datos td { padding: .22rem .5rem .22rem 0; border-bottom: 1px solid var(--linea-2);
+    vertical-align: top; }
+  .p-datos td.pz { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace;
+    font-size: .78rem; color: var(--tinta-2); white-space: nowrap; width: 1%; }
+  .p-datos td.vz { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace;
+    font-weight: 600; white-space: pre-wrap; }
+  .p-libre { font-size: .9rem; white-space: pre-wrap; margin: .1rem 0 0; }
+  .p-nada { font-size: .88rem; color: var(--tinta-2); margin: .3rem 0 0; }
+
   .libre { background: var(--tarjeta); border: 1px dashed var(--tinta-3);
     border-radius: 3px; padding: .7rem .9rem; margin-top: .55rem;
     display: flex; flex-direction: column; gap: .3rem; }
@@ -221,6 +305,23 @@
     flex-direction: column; gap: .4rem; }
 
   @media print {
+    /* Esto se imprime en PAPEL. Si el navegador esta en tema oscuro -y en un
+       movil suele estarlo-, «body { background:#fff }» no basta: las tarjetas,
+       las tablas, los <code> y los avisos siguen pintados con var(--tarjeta),
+       que sigue siendo negra. MEDIDO con la hoja de impresion puesta: la pagina
+       salia con los bloques en negro. Se vuelve al papel aqui, y da igual como
+       tenga el tema quien imprima. Los tres colores de veredicto se quedan,
+       oscuros: en color se leen, y fotocopiados dan grises distintos. */
+    :root,
+    :root[data-theme="dark"],
+    :root:not([data-theme="light"]) {
+      --papel:     #ffffff;  --tarjeta:   #ffffff;  --tinta:     #000000;
+      --tinta-2:   #333333;  --tinta-3:   #555555;  --linea:     #999999;
+      --linea-2:   #cccccc;  --acento:    #7a3208;  --acento-sv: #ffffff;
+      --rojo:      #a0140f;  --verde:     #0a5c34;  --azul:      #1a3f66;
+      --ok-bg:     #ffffff;  --alto-bg:   #ffffff;  --info-bg:   #ffffff;
+      --campo:     #ffffff;
+    }
     body { background: #fff; color: #000; font-size: 9.5pt; line-height: 1.35; }
     .hoja { padding: 0; gap: .8rem; max-width: none; }
     .barra, .noimprimir, .detalle-cab, details { display: none !important; }
@@ -234,6 +335,19 @@
     .fc p > b.et { color: #000; }
     h2 { border-bottom-color: #000; margin-top: .6rem; }
     .parar, .marco { background: none; border: 1.5px solid #000; }
+
+    /* El parte va SOLO en la primera hoja y la hoja de trabajo empieza en la
+       segunda: lo primero que se abre tiene que ser el recuento y la lista de
+       los NO, no el paso 1. Fondos fuera -se comen el toner-: el color del
+       veredicto lo lleva el sello de texto y la barra del margen izquierdo,
+       que en gris tambien se distinguen. */
+    .parte { border: 1.5px solid #000; padding: .6rem .7rem;
+      break-after: page; page-break-after: always; }
+    .p-aviso { background: none !important; border: 1px solid #000;
+      border-left-width: 4px; }
+    .p-cif { background: none; border-color: #666; }
+    .p-item { break-inside: avoid; page-break-inside: avoid; }
+    .p-datos tr, .p-libre { break-inside: avoid; page-break-inside: avoid; }
   }
 </style>
 
@@ -313,10 +427,17 @@
     <div class="campo"><label for="f-hora">Hora de inicio</label><input type="text" id="f-hora"></div>
     <div class="campo"><label for="f-tarjeta-m">Nº de serie · Maestro</label><input type="text" id="f-tarjeta-m"></div>
     <div class="campo"><label for="f-tarjeta-e">Nº de serie · Esclavo</label><input type="text" id="f-tarjeta-e"></div>
+    <div class="campo"><label for="f-lugar">Dónde se hizo</label><input type="text" id="f-lugar" placeholder="banco / taller / poste"></div>
     <div class="campo"><label for="f-multimetro">Multímetro</label><input type="text" id="f-multimetro"></div>
+    <div class="campo"><label for="f-movil">Móvil y versión de la app</label><input type="text" id="f-movil" placeholder="modelo · versión o fecha del APK"></div>
     <div class="campo"><label for="f-fw-m">Fichero cargado · Maestro</label><input type="text" id="f-fw-m" placeholder="nombre y md5"></div>
     <div class="campo"><label for="f-fw-e">Fichero cargado · Esclavo</label><input type="text" id="f-fw-e" placeholder="nombre y md5"></div>
   </div>
+
+  <!-- El parte. Va vacio en el fichero A PROPOSITO: lo rellena el guion leyendo
+       la hoja, y si el guion no corre no queda un resumen falso impreso, queda
+       nada. Un parte en blanco con pinta de parte es lo unico peor que ninguno. -->
+  <section class="parte" id="parte" hidden aria-live="polite"></section>
 
   <h2><span class="n">00</span> Qué llevar</h2>
   <div class="tabla-envoltorio">
@@ -1193,8 +1314,9 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
   </footer>
 
   <div class="barra noimprimir">
-    <button onclick="window.print()">🖨 Imprimir la hoja de trabajo</button>
+    <button onclick="guardarParte()">📄 Guardar el parte en PDF</button>
     <button class="sec" onclick="limpiar()">Vaciar todo</button>
+    <span class="estado">en el diálogo elige destino <b>«Guardar como PDF»</b> · sin internet funciona igual</span>
     <span class="estado" id="estado">lo que escribes se guarda solo en este navegador</span>
   </div>
 
@@ -1528,6 +1650,446 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
         if (d && d.tagName === 'DETAILS') { d.open = true; }
       });
     });
+
+    /* =================================================================
+       EL PARTE
+
+       El PDF sale por window.print() y la hoja @media print. Es la unica
+       via que no depende de que haya red en el cruce: una libreria de PDF
+       hay que traerla dentro del fichero, y ademas rasteriza -el parte
+       dejaria de ser texto que se busca y se copia- y reimplementa la
+       paginacion que el navegador ya sabe hacer, break-inside incluido.
+
+       Lo que sigue arma la primera hoja. Nada de lo que imprime esta
+       escrito aqui: los titulos de los pasos, el texto de cada casilla y
+       el rotulo de cada dato se LEEN del documento. Una segunda copia a
+       mano de esos textos se queda describiendo una hoja que ya cambio.
+       ================================================================= */
+
+    var parte = document.getElementById('parte');
+
+    // Los pasos que contestan lo que se pregunto al encargar la visita.
+    // Lo unico escrito a mano es CUALES; el texto sale de cada paso, y si
+    // uno deja de existir el parte lo dice en vez de callarselo.
+    var CLAVE = ['f7', 'f12', 'f15', 'f16', 'f19', 'f20', 'f21', 'f29'];
+
+    var SELLO = { si: 'Sí', no: 'NO CUMPLE', np: 'NO SE PUDO PROBAR',
+                  sm: 'sin marcar' };
+
+    // Las unidades que esta hoja escribe detras de un hueco. Es una lista
+    // cerrada a proposito: con un comodin de «palabra corta», «Al», «con» y
+    // «Los» pasaban por unidad. Si un dia se anota en A o en kHz, se anade aqui.
+    var UNIDAD = /^(mV|kV|mA|kΩ|MΩ|ms|mm|cm|Hz|[VsΩ%])$/;
+    var RE_UNIDAD_DELANTE = /^(mV|kV|mA|kΩ|MΩ|ms|mm|cm|Hz|[VsΩ%])\b\s*/;
+    var BLOQUE = { P: 1, DIV: 1, TABLE: 1, UL: 1, OL: 1, H3: 1, H4: 1, PRE: 1 };
+
+    function txt(el) {
+      return el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
+    }
+    function esCampo(n) {
+      return n.nodeType === 1 && (n.tagName === 'INPUT' || n.tagName === 'TEXTAREA');
+    }
+    function nuevo(tag, clase, texto) {
+      var e = document.createElement(tag);
+      if (clase) e.className = clase;
+      if (texto !== undefined && texto !== null) e.textContent = texto;
+      return e;
+    }
+
+    // titulo del paso, sin el enlace «detalle» que no significa nada en papel
+    function tituloDe(fila) {
+      var ft = fila.querySelector('.ft');
+      if (!ft) return '';
+      var c = ft.cloneNode(true);
+      Array.prototype.forEach.call(c.querySelectorAll('a'), function (a) {
+        a.parentNode.removeChild(a);
+      });
+      return txt(c);
+    }
+
+    // el <h2> que manda sobre este paso
+    function apartadoDe(el) {
+      var n = el;
+      while (n) {
+        var p = n.previousElementSibling;
+        while (p) {
+          if (p.tagName === 'H2') return txt(p);
+          p = p.previousElementSibling;
+        }
+        n = n.parentElement;
+        if (!n || n.tagName === 'BODY') break;
+      }
+      return 'Sin apartado';
+    }
+
+    /* Rotulo de un campo de dato. Cuatro caminos, en orden, porque la hoja
+       escribe sus campos de cuatro formas distintas y ninguna lleva etiqueta
+       propia salvo la identificacion. */
+    function rotuloDe(campo) {
+      // 1) dentro de una tabla: cabecera de columna + primera celda de la fila
+      var td = campo.parentElement;
+      while (td && td.tagName !== 'TD' && td.tagName !== 'BODY') td = td.parentElement;
+      if (td && td.tagName === 'TD') {
+        var tr = td.parentElement, tabla = td;
+        while (tabla && tabla.tagName !== 'TABLE') tabla = tabla.parentElement;
+        var i = Array.prototype.indexOf.call(tr.children, td);
+        var ths = tabla ? tabla.querySelectorAll('thead th') : [];
+        var col = ths[i] ? txt(ths[i]) : '';
+        var enc = txt(tr.children[0]);
+        return (enc ? enc + ' · ' : '') + col;
+      }
+      // 2) su etiqueta con for=, que es como se rotula la identificacion
+      if (campo.id) {
+        var l = document.querySelector('label[for="' + campo.id + '"]');
+        if (l) return txt(l);
+      }
+      // 3) el texto que le precede dentro de su parrafo, desde el campo
+      //    anterior; y detras, la unidad («V», «s», «mV») si la lleva
+      var pa = campo.parentElement, antes = '', despues = '', fase = 0, hubo = false;
+      if (pa) {
+        for (var k = 0; k < pa.childNodes.length; k++) {
+          var n = pa.childNodes[k];
+          if (n === campo) { fase = 1; continue; }
+          if (esCampo(n)) {
+            // Solo se descarta lo acumulado mientras el campo aun no ha salido.
+            // Pasada esa linea, «antes» ya es la etiqueta buena y no se toca:
+            // con un `else` suelto, un tercer campo en el mismo parrafo la
+            // borraba y el rotulo caia al id. MEDIDO: a1b, a8a, a8b y a23a
+            // salian como «a1b», «a8a»... en el parte.
+            if (fase === 0) { antes = ''; hubo = true; }
+            else if (fase === 1) { fase = 2; }
+            continue;
+          }
+          if (fase === 0) {
+            // Un textarea suelto cuelga del .anota, no de un parrafo: ahi lo
+            // que precede son PARRAFOS enteros. Solo vale el ultimo; encadenar
+            // todos da un rotulo que arrastra las etiquetas de otros campos.
+            if (n.nodeType === 1 && BLOQUE[n.tagName]) antes = n.textContent;
+            else antes += n.textContent;
+          } else if (fase === 1) despues += n.textContent;
+        }
+      }
+      antes = antes.replace(/\s+/g, ' ').trim();
+      // Si delante habia otro campo, lo primero de este texto es la UNIDAD de
+      // aquel -«... <input> V &nbsp; Borne 2: <input>»- y no la etiqueta de
+      // este. Se quita solo si es una unidad de verdad: recortar cualquier
+      // palabra corta se comeria «En reposo...» o «Al reenchufar...».
+      if (hubo) antes = antes.replace(RE_UNIDAD_DELANTE, '');
+      antes = antes.trim().replace(/[:：]$/, '').trim();
+      // de lo que va DETRAS solo interesa la unidad -«V», «s», «mV», «kΩ»-, que
+      // es lo que convierte un numero suelto en una medida. El resto de lo que
+      // sigue es ya la etiqueta del campo siguiente y no pinta nada aqui.
+      // La misma lista que arriba, y por el mismo motivo: aceptar «cualquier
+      // palabra corta» convertia en unidad el «Al» de «Al reenchufar» y el
+      // «con» de «con 0 V», y el parte publicaba «(Al)» como si fuera un volt.
+      var uni = despues.replace(/\s+/g, ' ').trim().split(' ')[0];
+      if (!UNIDAD.test(uni)) uni = '';
+      if (antes) return antes + (uni ? ' (' + uni + ')' : '');
+      // 4) el parrafo de arriba, o lo que sugiere el propio hueco
+      var pv = campo.previousElementSibling || (pa && pa.previousElementSibling);
+      while (pv && !txt(pv)) pv = pv.previousElementSibling;
+      if (pv && txt(pv)) return txt(pv).replace(/[:：]$/, '');
+      return campo.getAttribute('placeholder') || campo.id;
+    }
+
+    /* Censo de la hoja. Devuelve pasos, veredictos, datos y observaciones.
+       Un paso puede llevar mas de una pregunta -el 29 lleva dos-, asi que
+       la unidad que se cuenta es la CASILLA, no el paso. */
+    function censar() {
+      var pasos = [], porGrupo = {};
+      Array.prototype.forEach.call(document.querySelectorAll('.fila'), function (fila) {
+        var num = txt(fila.querySelector('.fn'));
+        var tit = tituloDe(fila);
+        var apa = apartadoDe(fila);
+
+        // datos anotados de este paso
+        var datos = [];
+        Array.prototype.forEach.call(
+          fila.querySelectorAll('input[type=text], textarea'), function (c) {
+            if (!c.id || c.id.charAt(0) !== 'a') return;   // los t* son el motivo
+            var v = (c.value || '').trim();
+            if (!v) return;
+            datos.push({ rotulo: rotuloDe(c), valor: v });
+          });
+
+        // una entrada por grupo de casillas
+        var grupos = [];
+        Array.prototype.forEach.call(fila.querySelectorAll('.tres'), function (g) {
+          var radios = g.querySelectorAll('input[type=radio]');
+          if (!radios.length) return;
+          var nombre = radios[0].name, val = 'sm', etiqueta = '';
+          Array.prototype.forEach.call(radios, function (r) {
+            if (r.checked) { val = r.value; etiqueta = txt(r.parentElement); }
+          });
+          // el motivo es el textarea t<nombre-sin-la-p> del mismo bloque
+          var mot = document.getElementById('t' + nombre.slice(1));
+          grupos.push({ nombre: nombre, val: val, etiqueta: etiqueta,
+                        motivo: mot ? (mot.value || '').trim() : '' });
+        });
+
+        var p = { id: fila.id, num: num, tit: tit, apa: apa,
+                  datos: datos, grupos: grupos };
+        pasos.push(p);
+        porGrupo[fila.id] = p;
+      });
+
+      var libres = [];
+      Array.prototype.forEach.call(document.querySelectorAll('.libre'), function (b) {
+        var ta = b.querySelector('textarea');
+        if (!ta || !(ta.value || '').trim()) return;
+        libres.push({ rotulo: txt(b.querySelector('b')), valor: ta.value.trim() });
+      });
+
+      var ident = [];
+      Array.prototype.forEach.call(document.querySelectorAll('.ident .campo'), function (c) {
+        var i = c.querySelector('input');
+        if (!i) return;
+        ident.push({ rotulo: txt(c.querySelector('label')),
+                     valor: (i.value || '').trim() });
+      });
+
+      return { pasos: pasos, porId: porGrupo, libres: libres, ident: ident };
+    }
+
+    function itemPaso(p, g, conDato) {
+      var d = nuevo('div', 'p-item ' + g.val);
+      var l1 = nuevo('div');
+      // Un paso puede llevar dos preguntas -el 29 pregunta por el puente y por
+      // el receptor-: sin el «(2.ª)» el parte ensena dos veces el mismo titulo
+      // con veredictos distintos y parece una contradiccion.
+      var i = p.grupos.indexOf(g);
+      l1.appendChild(nuevo('span', 'np2', 'paso ' + p.num +
+        (p.grupos.length > 1 ? ' (' + (i + 1) + '.ª)' : '')));
+      l1.appendChild(document.createTextNode(' '));
+      l1.appendChild(nuevo('span', 'ti', p.tit));
+      d.appendChild(l1);
+      var ve = nuevo('span', 've');
+      var s = nuevo('span', 'p-sello ' + g.val, SELLO[g.val]);
+      ve.appendChild(s);
+      if (g.etiqueta) ve.appendChild(document.createTextNode(' · ' + g.etiqueta));
+      d.appendChild(ve);
+      if (g.motivo) d.appendChild(nuevo('span', 'mo', 'Motivo: ' + g.motivo));
+      else if (g.val === 'no' || g.val === 'np') {
+        d.appendChild(nuevo('span', 'mo falta', 'Sin motivo escrito.'));
+      }
+      if (conDato && p.datos.length) {
+        d.appendChild(nuevo('span', 'mo', p.datos.map(function (x) {
+          return x.rotulo + ': ' + x.valor;
+        }).join(' · ')));
+      }
+      return d;
+    }
+
+    function bloque(titulo, pie) {
+      var b = nuevo('div', 'p-bloque');
+      b.appendChild(nuevo('h3', null, titulo));
+      if (pie) b.appendChild(nuevo('p', 'pie', pie));
+      return b;
+    }
+
+    function construirParte() {
+      var c = censar();
+      var todos = [];
+      c.pasos.forEach(function (p) {
+        p.grupos.forEach(function (g) { todos.push({ p: p, g: g }); });
+      });
+      var n = { si: 0, no: 0, np: 0, sm: 0 };
+      todos.forEach(function (x) { n[x.g.val]++; });
+      var nDatos = 0;
+      c.pasos.forEach(function (p) { nDatos += p.datos.length; });
+      var identLlenos = c.ident.filter(function (x) { return x.valor; }).length;
+      var marcadas = n.si + n.no + n.np;
+
+      parte.textContent = '';
+      parte.hidden = false;
+
+      // Los datos de la cabecera son <span> pegados: su textContent los une sin
+      // separador y publicaba «...31 · 08 · 202629 pasos». Se juntan uno a uno.
+      var rev = Array.prototype.map.call(
+        document.querySelectorAll('header .meta > span'), txt)
+        .filter(function (s) { return s; }).join(' · ');
+      parte.appendChild(nuevo('div', 'p-cab',
+        'Parte de cableado y pruebas · ' + rev +
+        ' · generado ' + new Date().toLocaleString()));
+
+      // --- el aviso: lo primero es si esto es un parte o no lo es ---
+      var av = nuevo('div', 'p-aviso');
+      if (marcadas === 0 && nDatos === 0 && identLlenos === 0) {
+        av.className = 'p-aviso vacio';
+        av.appendChild(nuevo('b', null, 'HOJA EN BLANCO · esto NO es un parte'));
+        av.appendChild(document.createTextNode(
+          'No hay ninguna casilla marcada ni ningún dato escrito. Sirve para ' +
+          'imprimirla y rellenarla a bolígrafo; como informe no dice nada del ' +
+          'equipo, ni bueno ni malo.'));
+      } else if (marcadas < todos.length) {
+        av.className = 'p-aviso parcial';
+        av.appendChild(nuevo('b', null, 'PARTE INCOMPLETO · ' + marcadas +
+          ' de ' + todos.length + ' casillas marcadas'));
+        av.appendChild(document.createTextNode(
+          'Las ' + (todos.length - marcadas) + ' casillas sin marcar no son pasos ' +
+          'correctos: son pasos de los que no se sabe nada. Están listadas abajo.'));
+      } else {
+        av.className = 'p-aviso lleno';
+        av.appendChild(nuevo('b', null, 'Parte completo · ' + todos.length +
+          ' de ' + todos.length + ' casillas marcadas'));
+        av.appendChild(document.createTextNode(
+          'Marcadas todas las casillas. Lo verde dice que se probó y cumplió; ' +
+          'no dice que el equipo esté aprobado para la calle.'));
+      }
+      parte.appendChild(av);
+
+      // --- las cuatro cifras, que no se suman entre ellas ---
+      var cif = nuevo('div', 'p-cifras');
+      [['si', 'Sí, cumple'], ['no', 'NO cumple'],
+       ['np', 'No se pudo probar'], ['sm', 'Sin marcar']].forEach(function (par) {
+        var d = nuevo('div', 'p-cif ' + par[0]);
+        d.appendChild(nuevo('span', 'v', String(n[par[0]])));
+        d.appendChild(nuevo('span', 'k', par[1]));
+        cif.appendChild(d);
+      });
+      parte.appendChild(cif);
+
+      // Con la hoja en blanco no hay nada que resumir, y los ocho bloques de
+      // abajo saldrian repitiendo «ninguno» durante hoja y media. Se corta
+      // aqui: quien la imprime en blanco es para rellenarla a mano, y lo que
+      // necesita es papel, no un indice de vacios.
+      if (marcadas === 0 && nDatos === 0 && identLlenos === 0) {
+        parte.appendChild(nuevo('p', 'p-nada',
+          'El resto del parte —lo que falló, lo que no se pudo probar y los ' +
+          'números— aparece aquí en cuanto se marque la primera casilla.'));
+        return;
+      }
+
+      // --- los NO: lo primero que se lee ---
+      var b1 = bloque('Lo que NO cumplió (' + n.no + ')',
+        'Se probó y el equipo no hizo lo que debía. Esto es lo que hay que arreglar.');
+      var hayNo = false;
+      todos.forEach(function (x) {
+        if (x.g.val === 'no') { b1.appendChild(itemPaso(x.p, x.g, true)); hayNo = true; }
+      });
+      if (!hayNo) b1.appendChild(nuevo('p', 'p-nada',
+        marcadas ? 'Ninguno de los pasos marcados falló.'
+                 : 'Nada marcado todavía: esto no significa que no haya fallos.'));
+      parte.appendChild(b1);
+
+      // --- los NO SE PUDO: separados, porque no dicen nada del equipo ---
+      var b2 = bloque('Lo que NO SE PUDO probar (' + n.np + ')',
+        'No es lo mismo que un fallo: de estos pasos no se sabe nada, ni a favor ' +
+        'ni en contra. Cuentan como pendientes, no como aprobados.');
+      var hayNp = false;
+      todos.forEach(function (x) {
+        if (x.g.val === 'np') { b2.appendChild(itemPaso(x.p, x.g, false)); hayNp = true; }
+      });
+      if (!hayNp) b2.appendChild(nuevo('p', 'p-nada', 'Ninguno.'));
+      parte.appendChild(b2);
+
+      // --- los que ni se tocaron ---
+      if (n.sm) {
+        var b3 = bloque('Sin marcar (' + n.sm + ')',
+          'Nadie contestó a estas casillas. No se sabe si se hicieron.');
+        var l = todos.filter(function (x) { return x.g.val === 'sm'; })
+                     .map(function (x) {
+                       // el 29 tiene dos preguntas: sin el ordinal sale «29, 29»
+                       return x.p.num + (x.p.grupos.length > 1
+                         ? ' (' + (x.p.grupos.indexOf(x.g) + 1) + '.ª)' : '');
+                     });
+        b3.appendChild(nuevo('p', 'p-nada', 'Pasos: ' + l.join(', ')));
+        parte.appendChild(b3);
+      }
+
+      // --- lo que se preguntó al encargar la visita ---
+      var b4 = bloque('Las respuestas que se pidieron',
+        'Los pasos que contestan a lo que se preguntó: si la talanquera sube y ' +
+        'con qué luz, si la cámara cambió algo, y si el equipo habla con el móvil.');
+      CLAVE.forEach(function (id) {
+        var p = c.porId[id];
+        if (!p) {
+          b4.appendChild(nuevo('p', 'p-nada',
+            '⚠ El paso «' + id + '» ya no existe en la hoja: este parte lo ' +
+            'esperaba y no lo encuentra.'));
+          return;
+        }
+        p.grupos.forEach(function (g) { b4.appendChild(itemPaso(p, g, true)); });
+      });
+      parte.appendChild(b4);
+
+      // --- los numeros, juntos ---
+      var b5 = bloque('Los números anotados (' + nDatos + ')',
+        'Todo lo que se midió, en un sitio y no repartido por 29 apartados.');
+      if (!nDatos) {
+        b5.appendChild(nuevo('p', 'p-nada', 'No se anotó ningún dato.'));
+      } else {
+        var t = nuevo('table', 'p-datos'), tb = nuevo('tbody'), apa = null;
+        c.pasos.forEach(function (p) {
+          if (!p.datos.length) return;
+          if (p.apa !== apa) {
+            apa = p.apa;
+            var trh = nuevo('tr'), th = nuevo('th', null, apa);
+            th.setAttribute('colspan', '3');
+            trh.appendChild(th); tb.appendChild(trh);
+          }
+          p.datos.forEach(function (d, i) {
+            var tr = nuevo('tr');
+            tr.appendChild(nuevo('td', 'pz', i === 0 ? 'paso ' + p.num : ''));
+            tr.appendChild(nuevo('td', null, d.rotulo));
+            tr.appendChild(nuevo('td', 'vz', d.valor));
+            tb.appendChild(tr);
+          });
+        });
+        t.appendChild(tb);
+        b5.appendChild(t);
+      }
+      parte.appendChild(b5);
+
+      // --- quien, cuando, con que ---
+      var b6 = bloque('Quién, cuándo y con qué', null);
+      if (!identLlenos) {
+        b6.appendChild(nuevo('p', 'p-nada',
+          'Sin rellenar. Un parte sin firma ni número de serie no se puede ' +
+          'atribuir a ninguna tarjeta.'));
+      } else {
+        var t2 = nuevo('table', 'p-datos'), tb2 = nuevo('tbody');
+        c.ident.forEach(function (x) {
+          var tr = nuevo('tr');
+          tr.appendChild(nuevo('td', null, x.rotulo));
+          var td = nuevo('td', x.valor ? 'vz' : null, x.valor || '— en blanco');
+          if (!x.valor) td.className = 'p-nada';
+          tr.appendChild(td);
+          tb2.appendChild(tr);
+        });
+        t2.appendChild(tb2);
+        b6.appendChild(t2);
+      }
+      parte.appendChild(b6);
+
+      // --- lo que vio y nadie preguntó ---
+      var b7 = bloque('Lo que vio y nadie preguntó (' + c.libres.length + ')', null);
+      if (!c.libres.length) {
+        b7.appendChild(nuevo('p', 'p-nada', 'Nada escrito.'));
+      } else {
+        c.libres.forEach(function (x) {
+          var d = nuevo('div', 'p-item');
+          d.appendChild(nuevo('div', 'ti', x.rotulo));
+          d.appendChild(nuevo('p', 'p-libre', x.valor));
+          b7.appendChild(d);
+        });
+      }
+      parte.appendChild(b7);
+    }
+
+    // el parte se rehace al vuelo: el que imprime es siempre el de ahora
+    function refrescar() { try { construirParte(); } catch (e) { } }
+    campos.forEach(function (el) {
+      el.addEventListener(el.type === 'radio' ? 'change' : 'input', refrescar);
+    });
+    window.addEventListener('beforeprint', refrescar);
+
+    window.guardarParte = function () { refrescar(); window.print(); };
+
+    var limpiarAntes = window.limpiar;
+    window.limpiar = function () { limpiarAntes(); refrescar(); };
+
+    refrescar();
   })();
 </script>
 
