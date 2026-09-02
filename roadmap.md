@@ -14,12 +14,15 @@ bitacora. Lo anterior no se pierde —vive en el `git log` de este repositorio y
 
 **Cuatro pasos, en este orden. Los tres primeros son deuda, no trabajo nuevo.**
 
+> Ojo con la fecha: la sesion se cerro **pasada la medianoche**, asi que la compuerta escribira
+> `evidencia/2026-09-01_compuerta.txt` — **fichero nuevo, no sustituye** al del 31/08. No falta nada.
+
 | | que hacer | por que |
 |---|---|---|
 | **1** | `git status` y **revisar por el diff** lo que dejo el ultimo agente en `05_Funcional/Guia_Cableado_y_Pruebas_Banco.html` | quedo en vuelo al cerrar. Se revisa por el diff, **no por su informe** (§8.ter) |
 | **2** | 🔴 **`python 01_Firmware/compuerta.py` — DOS PASADAS completas, arbol limpio** | **el acta en disco no corresponde al codigo**: se escribio sobre `fa66710` con el arbol sucio. Dos pasadas porque la primera compara contra el acta anterior (§3) |
 | **3** | **Copiar las cifras del acta nueva** a `README.md`, `ESTADO.md`, `CERTIFICACION_SW.md` y a la tabla de §1 aqui arriba | tres packs lo vigilan y estaran en rojo hasta entonces. **Se copian del acta, nunca se escriben a mano** |
-| **4** | **Regenerar el `.zip`** (`python generar_entrega_v9_0.py`) | el entregado el 31/08 lleva la APK al dia y **un acta que no le corresponde** |
+| **4** | **Regenerar el `.zip`** (`python generar_entrega_v9_0.py`) | el entregado el 31/08 lleva la APK al dia y **un acta que no le corresponde**. Ojo: el nuevo saldra con **~355 ficheros y no 365**, y no falta nada — el generador ya no mete el fuente de la PWA |
 
 ### 0.1 · Que se entrego el 31/08, y con que salvedad
 
