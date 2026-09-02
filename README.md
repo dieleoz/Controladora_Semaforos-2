@@ -45,6 +45,25 @@
 > verde** —24 días al año—. Con T2 (commit `98d9058`), el Esclavo se rinde por el mismo criterio
 > de RTC monótono que el Maestro, eliminando la rendición desfasada por `millis()`. Medido contra el C++ real. Ver [`ESTADO.md`](ESTADO.md).
 
+> ### 🔴 Lo que este README no puede decirte, y es lo primero
+>
+> **En campo corre `e303485` (V8.4, 31/07/2026). Han pasado 33 días y ninguna línea de todo lo
+> que hay debajo ha tocado una tarjeta.** El arreglo del defecto que se sufre **hoy** en la calle
+> —el equipo se va a ámbar por nada— lleva escrito desde el 27/08 y **sin subir**.
+>
+> | | firmware | instrumento | ratio |
+> |---|---|---|---|
+> | 28/08 | 8.895 | 8.898 | 1,00 : 1 |
+> | 02/09 | **14.976** | **34.532** | **2,31 : 1** |
+>
+> **Tres auditorías externas independientes dijeron lo mismo**, y la tercera lo dijo de la
+> respuesta a la segunda. La regla que salió de ahí vive en `CLAUDE.md` §2.bis:
+>
+> > **Un `20/20` sobre 34.532 líneas que nunca han tocado una tarjeta no es un entregable: es una
+> > coartada.**
+>
+> La tabla de abajo es verdad. **Lee lo que mide antes de lo que puntúa.**
+
 **Verificación actual** — cifras **copiadas del acta** `evidencia/2026-09-02_compuerta.txt`, que
 genera `python 01_Firmware/compuerta.py` en una sola corrida. No se escriben a mano — y desde
 **N-62** eso ya no es una promesa: el pack `documentos_01_cifras_del_acta` compara esta tabla
@@ -62,7 +81,7 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 | compila ESP32 | ✅ | 35,6 % — 1.121.001 de 3.145.728 B |
 | simulador del puente ESP32 | ✅ | **85/85** — las tres puntas: `bluetooth.cpp` compilado, la app en jsdom, y solo el ESP32 modelado |
 | simulador de app y bluetooth | ✅ | 5/5 — **conectado el 27/08**: existía desde el 26/08 y no estaba en el acta |
-| **app ejecutada en DOM** | ✅ | **128/128** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden** *(desde N-75: el rewrite sacó el gestor de cruces, el parser NMEA y el Courier a módulos, y el arnés seguía evaluando sólo `app.js`)*, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
+| **app ejecutada en DOM** | ✅ | **128/128** — y lo que mide creció: la app **valida el checksum** desde el 01/09 (`validarTrama()` tenía 4 copias y **cero llamadores**), tiene una **pestaña de depuración** con las tramas en crudo y las rechazadas **con su motivo**, y su barrera de PIN ya no se puede armar con el teclado cerrado. — — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden** *(desde N-75: el rewrite sacó el gestor de cruces, el parser NMEA y el Courier a módulos, y el arnés seguía evaluando sólo `app.js`)*, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
 | test funcional de la app | ✅ | **58/58** — también conectado el 27/08. Decía «22/22» a mano y ejecuta 34; su prueba de Courier RTC era una tautología |
 | test unitarios TDD de la app | ✅ | **55/55** — la **segunda** suite unitaria, que hasta el 01/09 **no estaba en la compuerta**: 23 pruebas verdes que no medían nada |
 | test unitarios de la app | ✅ | **32/32** — seis suites sin DOM: NMEA y *checksums*, generador de comandos y barrera de PIN, validación de `SET_TIEMPOS`, Courier RTC, gestor de cruces y escala de 20 cruces. **Faltaba en esta tabla hasta el 28/08**: el acta lo medía y el README no lo nombraba, así que el auditor no tenía forma de saber que existía |
