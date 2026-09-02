@@ -89,6 +89,36 @@ del responsable.** Se agrupa por lo que compra, no por lo que cuesta.
 > salida no acredita nada, y **en campo sigue corriendo `e303485`** con el arreglo del ambar escrito
 > desde el 27/08 y sin subir. Mas medida no es mas entregado.
 
+### 0.quinquies · 🔴 `AB-9` — El PIN no caduca NUNCA. Decision del responsable
+
+**Medido el 01/09:** `state.pinVerificado` se pone a `true` en **una linea** (`app.js:2549`) y **no se
+apaga en ninguna**. Ni al cerrar el modal, ni al cambiar de punta, ni al caerse el enlace, ni con el
+tiempo. Dura lo que dure el proceso del navegador.
+
+> **El operario teclea la clave, se guarda el telefono, y el siguiente que lo coja manda ordenes sin
+> teclear nada.**
+
+La demostracion de que no caduca esta en el propio arnes: para probar una sesion sin autorizar **hay
+que montar un navegador nuevo**.
+
+**Las opciones, con su coste. No se elige aqui porque decide quien puede parar un cruce:**
+
+| | criterio | coste operativo | cubre el telefono olvidado |
+|---|---|---|---|
+| **A** | **Inactividad** — sin orden enviada durante X | el tecnico que mira telemetria 20 min re-teclea al actuar | si |
+| **B** | **Sesion absoluta** — X desde el desbloqueo | **corta faenas largas en mitad de un cruce parado** | si |
+| **C** | **Al perder el enlace** | reconectar con radio floja re-pide clave cada vez | **parcial**: el telefono guardado con enlace vivo sigue autorizado |
+| **D** | **Al pasar la app a segundo plano** | ninguno perceptible; **guardarse el telefono = bloquear** | si, y es el que mas se parece al gesto real |
+| **E** | Boton *«bloquear»* explicito | depende de que alguien lo pulse | **no** |
+
+**Aporte tecnico, sin elegir:** **A y D son complementarias y baratas**; **C es la que mas friccion
+crea por menos cobertura**. Y sea cual sea la que se elija, **ya funcionara**: al vaciar el buffer del
+teclado en el cierre se quito el residuo que habria convertido cualquier caducidad en un adorno —un
+`OK` suelto la habria re-armado con el PIN bueno todavia en memoria—.
+
+**Relacionado y tambien abierto:** `state.correctPin = '1234'` **sigue en el fuente de la app, en
+claro**. La app conoce el PIN y lo inyecta en cada trama. Va con `B3` de la V2.
+
 ### 0.ter · Como se reparte el trabajo entre agentes, y por que asi
 
 > **El cuello de botella NO es cuantos agentes se coordinan: es que dos sobre el mismo fichero se
