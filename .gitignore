@@ -82,3 +82,11 @@ node_modules/
 # recibe una CARPETA VACIA y ni siquiera sabe de donde bajarla. Es peor que no
 # tenerlo, porque parece que esta.
 deep_sort/
+
+# Temporal que compuerta.py crea para EXIGIRLE A GCC QUE ENLACE antes de fiarse de el
+# (N-44: gcc estaba instalado, compilaba a .o y su ld no enlazaba nada porque el
+# toolchain vivia bajo una ruta con enye). Se regenera en cada corrida.
+#
+# Ojo al comprobarlo: `git check-ignore -v` responde que si, citando una linea en
+# blanco como patron. Quien manda es `git status`, que lo lista como no rastreado.
+01_Firmware/.compuerta_prueba_gcc/
