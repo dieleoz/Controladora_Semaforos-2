@@ -65,6 +65,13 @@ EMITE_HACIA_LA_APP = {
         "motivo 7: la hora entro aqui y la linea no llego entera al equipo",
     "$ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,":
         "la hora entro, se releyo y va camino del equipo",
+    "$EVENT,NODE:PUENTE,EVT:ARRANQUE,CAUSA:%s,ARRANQUES:%lu,PERRO:%s,WDT_MS:%lu":
+        "el parte de arranque: por que arranco el puente y cuantas veces lleva "
+        "arrancando. Revisado a mano el 01/09 y aprobado por tres cosas: va a la APP "
+        "y no hacia el STM32 -sale por puente_emitirPropio()-, lleva NODE:PUENTE asi "
+        "que el operario ve de quien es, y no ORIGINA nada: cuenta un hecho ya "
+        "ocurrido, no pide ni ordena. Existe porque un puente que revive en silencio "
+        "esconde el fallo que hay que contar",
 }
 
 # Literales con '$' que NO son emisiones: reconocimiento y censo. Se listan aparte

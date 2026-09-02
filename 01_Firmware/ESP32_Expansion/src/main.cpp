@@ -37,6 +37,18 @@
 #include "puente.h"
 
 void setup() {
+  // EL CENSO ANTES QUE EL PERRO, Y ES LA MITAD QUE FALTABA.
+  //
+  // Un puente que revive en silencio esconde el fallo que hay que contar: desde la app
+  // y desde el STM32, un modulo que se reinicia cada dos segundos y uno sano son
+  // INDISTINGUIBLES si el reinicio es rapido. Esto lee del chip por que arrancamos y
+  // suma uno a la cuenta que vive en memoria RTC.
+  //
+  // Va antes de armar porque mira al PASADO -por que estamos aqui- y el armado al
+  // FUTURO. Separadas, el censo corre aunque el armado falle, que es justo el modulo
+  // que mas falta hace contar. NO EMITE NADA: setup() no pone un byte en ningun cable.
+  vigilante_censarArranque();
+
   // W-5: EL PERRO PRIMERO. Antes del SPP y antes de tocar el I2C.
   //
   // El orden no es estetico: si el DS3231 cuelga el bus en el arranque -un SDA en corto
@@ -56,6 +68,15 @@ void loop() {
   // Una vuelta = las dos direcciones + el reloj.
   puente_bombear();
   reloj_revisar();
+
+  // EL PARTE DE ARRANQUE SALE AQUI, NO EN setup(), Y LAS DOS RAZONES SON DISTINTAS.
+  //
+  // La primera es 6.4: setup() no puede emitir. Un saludo del puente es una orden que
+  // nadie pidio entrando por el mismo camino que las que si se piden.
+  // La segunda es que en setup() NO HABRIA NADIE ESCUCHANDO -transporte_escribir()
+  // devuelve 0 sin telefono conectado-, asi que el parte se perderia justo la vez que
+  // hace falta. Esta funcion espera al enlace y se rearma cuando cae.
+  vigilante_declarar();
 
   // W-2: el reset, UNA VEZ POR VUELTA DEL BUCLE EXTERIOR y aqui abajo, despues de haber
   // atendido las dos direcciones.

@@ -2,7 +2,11 @@
 
 #include "vigilante.h"
 #include "contrato.h"
+#include "puente.h"
+#include "transporte_app.h"
 #include <esp_task_wdt.h>
+#include <esp_system.h>
+#include <stdio.h>
 
 static bool armado = false;
 
@@ -45,4 +49,142 @@ void vigilante_alimentar() {
 
 bool vigilante_armado() {
   return armado;
+}
+
+// ===========================================================================
+// EL PARTE DE ARRANQUE
+// ===========================================================================
+//
+// LAS DOS VARIABLES QUE TIENEN QUE SOBREVIVIR AL REINICIO, Y POR QUE ESTAN EN ESA
+// SECCION Y NO EN OTRA. Medido en el header del IDF que trae este framework
+// (tools/sdk/esp32/include/esp_common/include/esp_attr.h:77 y :102): RTC_DATA_ATTR solo
+// promete el ciclo de sueno profundo -"during a deep sleep / wake cycle"-, mientras que
+// RTC_NOINIT_ATTR promete literalmente "after restart". Un reinicio por watchdog es un
+// restart, no un despertar, asi que la unica de las dos que sirve aqui es la segunda.
+//
+// Y LA MARCA NO ES PARANOIA: ".rtc_noinit" no se inicializa NUNCA -ese es el sentido
+// del nombre-, tampoco en la primera subida de tension de un modulo virgen. Sin ella,
+// la cuenta arrancaria valiendo lo que hubiera en esa RAM. Un contador que puede
+// empezar en un numero cualquiera no mide: decora.
+//
+// El valor de la marca es arbitrario; lo unico que se le pide es que sea improbable
+// como basura.
+#define VIGILANTE_MARCA_RTC   0x5EA1F0C0UL
+
+RTC_NOINIT_ATTR static uint32_t marcaRtc;
+RTC_NOINIT_ATTR static uint32_t arranques;
+
+static esp_reset_reason_t causa = ESP_RST_UNKNOWN;
+
+// true mientras el parte de ESTA conexion no haya salido. No vive en memoria RTC a
+// proposito: es un asunto de la sesion actual, no del historial del modulo.
+static bool parteEmitido = false;
+
+// EL FORMATO, EN UN SOLO LITERAL Y CON NOMBRE.
+//
+// No se parte en literales adyacentes -que es lo que pide la anchura de linea- porque
+// el pack esp32_10 lo lee de aqui para recalcular la desigualdad del buffer, y un
+// instrumento que tenga que RECONSTRUIR el formato pegando trozos puede reconstruirlo
+// mal y seguir dando verde. Es N-89 por el otro lado: alli el compositor escondia los
+// literales del pack, aqui se evita darle uno que solo entiende a medias.
+static const char FORMATO_PARTE[] =
+  "$EVENT,NODE:PUENTE,EVT:ARRANQUE,CAUSA:%s,ARRANQUES:%lu,PERRO:%s,WDT_MS:%lu";
+
+// EL NOMBRE DE CADA CAUSA, UNA RAMA POR VALOR DEL ENUM DEL IDF.
+//
+// Son los once de esp_reset_reason_t (esp_system.h:41-52 del mismo header medido
+// arriba) mas el default. El default NO es relleno: es la rama que impide que un valor
+// que Espressif anada manana llegue al operario como un hueco. Es la misma decision
+// que MOTIVO_NO_CONTEMPLADO del despachador -un caso nuevo no se aprueba a si mismo-.
+//
+// Ningun nombre lleva coma, asterisco ni '$': la coma separa campos de la trama y el
+// asterisco abre el checksum, asi que una causa con cualquiera de los dos partiria la
+// trama por dentro sin que nada lo delatara. El pack lo exige.
+static const char* nombreCausa(esp_reset_reason_t c) {
+  switch (c) {
+    case ESP_RST_POWERON:   return "SUBIDA_DE_TENSION";
+    case ESP_RST_EXT:       return "PIN_EXTERNO";
+    case ESP_RST_SW:        return "REINICIO_POR_SOFTWARE";
+    case ESP_RST_PANIC:     return "EXCEPCION_O_PANICO";
+    case ESP_RST_INT_WDT:   return "PERRO_DE_INTERRUPCION";
+    case ESP_RST_TASK_WDT:  return "PERRO_DE_TAREAS";
+    case ESP_RST_WDT:       return "OTRO_PERRO";
+    case ESP_RST_DEEPSLEEP: return "SUENO_PROFUNDO";
+    case ESP_RST_BROWNOUT:  return "TENSION_BAJA";
+    case ESP_RST_SDIO:      return "SDIO";
+    case ESP_RST_UNKNOWN:   return "DESCONOCIDA";
+    default:                return "NO_CONTEMPLADA";
+  }
+}
+
+void vigilante_censarArranque() {
+  // DEL CHIP. esp_reset_reason() devuelve lo que el hardware apunto en el dominio RTC
+  // antes de que este firmware existiera en esta arrancada. Deducirla de una bandera
+  // propia solo acertaria en los reinicios que el firmware ve venir, que son justo los
+  // que no hay que contar.
+  causa = esp_reset_reason();
+
+  // POR QUE LA SUBIDA DE TENSION PONE LA CUENTA A CERO AUNQUE LA MARCA SIGA VALIDA.
+  //
+  // La RAM del dominio RTC puede conservar su contenido a traves de un corte corto y
+  // perderlo en uno largo. Sin esta linea, la cuenta significaria "desde la ultima
+  // subida de tension" unas veces y "desde vaya usted a saber" otras, segun lo que
+  // durara el corte. Una variable que contesta a dos preguntas distintas no puede
+  // contestar bien a ninguna -es cfgVerdeRecibido otra vez-, asi que se le fija UN
+  // significado: arranques desde la ultima subida de tension, siempre.
+  if (marcaRtc != VIGILANTE_MARCA_RTC || causa == ESP_RST_POWERON) {
+    marcaRtc = VIGILANTE_MARCA_RTC;
+    arranques = 0;
+  }
+  arranques++;
+}
+
+size_t vigilante_parteDeArranque(char* destino, size_t capacidad) {
+  if (destino == NULL || capacidad == 0) return 0;
+
+  int n = snprintf(destino, capacidad, FORMATO_PARTE,
+                   nombreCausa(causa),
+                   (unsigned long)arranques,
+                   vigilante_armado() ? "ARMADO" : "SIN_ARMAR",
+                   (unsigned long)ESP32_WDT_MS);
+
+  // snprintf trunca en silencio y devuelve lo que HABRIA escrito. Un parte truncado
+  // saldria por trama_componer() con un checksum perfectamente calculado sobre el
+  // trozo: la app lo daria por bueno y ensenaria una causa a medias. Se prefiere no
+  // decir nada -y que el pack impida que este caso pueda ocurrir- antes que decir algo
+  // que parece medido y esta cortado.
+  if (n < 0 || (size_t)n >= capacidad) {
+    destino[0] = '\0';
+    return 0;
+  }
+  return (size_t)n;
+}
+
+void vigilante_declarar() {
+  // SIN NADIE ESCUCHANDO NO SE DECLARA, Y SE REARMA.
+  //
+  // transporte_escribir() devuelve 0 sin telefono conectado (transporte_app.cpp:59):
+  // un parte emitido en el arranque se perderia entero, y como solo se compone una vez
+  // el operario no volveria a verlo nunca. Rearmarlo al caer el enlace hace ademas que
+  // reconectar sirva para volver a preguntarlo.
+  if (!transporte_conectado()) {
+    parteEmitido = false;
+    return;
+  }
+  if (parteEmitido) return;
+
+  char parte[VIGILANTE_PARTE_MAX];
+  size_t n = vigilante_parteDeArranque(parte, sizeof(parte));
+
+  // Se marca como intentado quepa o no. Reintentarlo en cada vuelta convertiria un
+  // parte que no cabe en un bucle que recompone lo mismo para siempre, y eso no lo
+  // arregla: lo esconde detras de trabajo. Que no quepa es lo que el pack esp32_10
+  // impide recalculando la desigualdad en cada corrida.
+  parteEmitido = true;
+  if (n == 0) return;
+
+  // HACIA LA APP Y SOLO HACIA LA APP (B-3). El parte habla del puente, no del equipo, y
+  // va marcado con NODE:PUENTE porque un $EVENT del accesorio que pareciera del STM32
+  // mandaria a diagnosticar el poste equivocado.
+  puente_emitirPropio(parte);
 }
