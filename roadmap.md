@@ -62,6 +62,7 @@ Contesta cinco cosas que ningun PC puede, y **dos dan miedo**:
 | 🟠 **Los codigos de los mandos** | bloquean comprar los receptores `A9` |
 | 🟠 **`SFTY-27` designa DOS reglas distintas** | y ocho documentos mandan a leer la equivocada |
 | 🟠 **Contar los pines del ESP32** (30 o 38) y su ancho | bloquea el taladro, **no** el firmware. La guia ya lo pide en el paso 1 |
+| 🟠 **Si el reloj se va con el ESP32, el Modo Degradado no entra** (N-113) | hay que elegirlo a proposito. Y si se quiere aviso remoto, es **coste recurrente** —SIM o WiFi en el cruce—, no una linea de firmware |
 
 ### 0.4 · Y la frase que no conviene olvidar
 
@@ -288,6 +289,67 @@ compilan C++ real, ni este roadmap.
 
 ## 6. Los hallazgos de esta sesion — el porque de todo lo de arriba
 
+
+### 🟠 N-113 — Si el ESP32 se cuelga: que sigue funcionando, que NO, y por que la app no es un canal de alarma
+
+**Propuesta del responsable (01/09):** *«si eso pasa, la apk deberia informar que no hay conexion y
+reportar fallo, en cuyo caso el otro micro se queda trabajando con tiempos. Ideal que la apk enviara
+un correo de notificacion a nosotros o a la concesion para que puedan apoyar con personal de trafico
+mientras la reaccion al fallo.»*
+
+**La base es correcta, pero el supuesto «el otro micro se queda trabajando con tiempos» son DOS
+casos, y solo uno se cumple.** Medido en el fuente:
+
+| modo | de que depende | si el ESP32 muere |
+|---|---|---|
+| **Automatico** | `millis()` — `modo_automatico.cpp:67,126,141` | 🟢 **sigue ciclando.** No toca el reloj |
+| **Degradado** | `reloj_enHora()` — `modo_degradado.cpp:155,329,349,515` y `coordinador.cpp:335,476,498` | 🔴 **no se puede ni entrar** |
+
+> 🔴 **Y ahi esta el problema de la arquitectura que se decidio, escrito sin rodeos: se colgo el reloj
+> del ESP32 (DS3231 por `J17`), y el Modo Degradado sale ENTERO de ese reloj.** O sea que el accesorio
+> que se anadio para ganar funciones es tambien el que puede llevarse por delante la funcion de vida
+> —el todo-rojo coordinado que evita verde-contra-verde—. Es exactamente lo que la auditoria de N-109
+> senalo en su punto 3, ahora con las lineas delante.
+
+#### Por que la app NO puede ser el canal de alarma
+
+**No es que sea mala idea: es que no llega a tiempo por construccion.** El unico enlace de la app es
+**Bluetooth SPP a traves del propio ESP32**, y eso impone tres cosas a la vez:
+
+1. **El alcance es de metros.** La app solo se entera cuando alguien ya esta en el poste — el momento
+   en que el correo sobra, porque el tecnico ya lo esta viendo.
+2. **Si el ESP32 es lo que se colgo, el enlace de la app es justo lo que ha desaparecido.** La app no
+   puede distinguir *«el puente esta muerto»* de *«estoy fuera de alcance»* o *«tengo el Bluetooth
+   apagado»*, y las tres se ven igual desde el telefono.
+3. **Nadie tiene la app abierta a las 3 de la manana.** Una alarma que depende de que un humano este
+   mirando no es una alarma; es un aviso al que ya estaba mirando.
+
+**La app SI debe declarar la ausencia de enlace** —y hoy ya lo hace, sin inventarse el estado
+(§3.quinquies)—. Lo que no puede es ser quien avisa a la concesion.
+
+#### Lo que si es barato y honesto, hoy
+
+> **El equipo que sobrevive al fallo es el STM32, asi que es el STM32 quien tiene que llevar el
+> registro.** El ESP32 no puede reportar su propia muerte.
+
+- **El STM32 cuenta el silencio de `J17`** igual que ya se cuenta el de la radio (N-108): cuanto lleva
+  mudo el puente, cuantas veces se cayo, y cuanto duro cada corte. **No necesita cobertura, ni SIM, ni
+  internet, ni que nadie este delante**, y cuando el tecnico por fin conecta, la app se lo descarga
+  entero. Contesta justo lo que se dijo que falta en campo: *«no saber cuanto se va cuando se va, y
+  por que se va»*.
+- **Watchdog en el ESP32** (ya es la tarea **T4**) para que se reinicie solo, y que **declare el
+  reinicio** al volver — un puente que revive en silencio esconde el fallo que hay que contar.
+- **Y la decision que hay que tomar antes de escribir nada: que hace el equipo si el reloj se va.**
+  Hoy la respuesta es *«el Degradado no entra»*, y eso hay que elegirlo a proposito, no heredarlo.
+
+#### Lo que cuesta de verdad un aviso remoto, para que se decida con el precio delante
+
+Un correo desde el poste necesita **camino propio a internet**: WiFi del sitio o un modulo celular con
+SIM y su plan. El ESP32 trae WiFi —esa parte esta— pero **hace falta cobertura en el cruce y una red a
+la que entrar**, y si el que avisa es el mismo que se cuelga, el aviso no sale. **Es una decision de
+producto con coste recurrente, no una linea de firmware**, y va al responsable con esa etiqueta.
+
+---
 
 ### 🔴 N-112 — La compuerta ALTERNA verde y rojo sobre un arbol identico: su codigo de salida no significa nada
 
