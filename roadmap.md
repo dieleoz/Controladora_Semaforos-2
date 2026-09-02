@@ -64,6 +64,31 @@ del responsable.** Se agrupa por lo que compra, no por lo que cuesta.
 > importa»*. **Nada de A, B ni C sustituye al banco** — A y B se escriben para que la sesion de banco
 > devuelva datos en vez de impresiones.
 
+### 0.quater · Lo que cayo el 01/09 — siete encargos en paralelo
+
+**Nada de esto ha visto una tarjeta**, y conviene leerlo con eso delante.
+
+| | que se gano | lo que aparecio al MEDIR, que no estaba en el encargo |
+|---|---|---|
+| **Verde simultaneo** | un instrumento ejecuta el C++ **real de las dos puntas a la vez** (`Validacion_Automatico/dos_puntas`). `42/42`, verde de los dos en **0 de 53.236 instantes** | el choque de simbolos se resuelve con **una DLL por punta en el mismo proceso**: un tick pone el mismo `millis()` en las dos y **solo entonces** lee los doce pines. Y un microcorte es descargar y recargar la DLL, asi que vuelven al arranque **todas** las estaticas — lo que un `reset()` escrito a mano no garantiza |
+| **App: depuracion + checksum** | pestana aparte con las tramas en crudo y las rechazadas **con su motivo**; DOM `77 -> 120`, unitarios `32 -> 55` | 🔴 **52 tramas que se pintaban ahora se rechazan**, y **50 de ellas marcaban el enlace como VIVO**: la app decia que habia equipo al otro lado **porque le llegaba basura** |
+| **Reloj `DS3231`** | tres puertas nuevas cerradas | 🔴 **el bit 12/24**: un modulo en 12 h con el oscilador sano devuelve numeros bien formados con **hasta DOCE HORAS de error**, y el `OSF` a cero con razon |
+| **Watchdog del ESP32** | el puente **declara por que arranco** y cuantas veces lleva | `RTC_DATA_ATTR` promete sobrevivir a un *deep sleep* y **no menciona reinicio**; `RTC_NOINIT_ATTR` si. Verificado **sobre el binario** con `nm`, no leyendo el header |
+| **Silencio de `J17`** | el STM32 cuenta los silencios del puerto | 🔴 **por `J17` solo entra lo que un dedo pulsa en el telefono**: `enlace_escribirLinea()` tiene un solo llamador. *«El puente no dice nada»* y *«el puente no esta»* **siguen sin distinguirse** hasta que el ESP32 emita un latido propio (`AB-1`) |
+| **`SFTY-27`** | referencias corregidas | 🔴 **`SFTY-3` y `SFTY-7` estaban INTERCAMBIADAS** en las tres puntas, y **la tabla de trazabilidad heredo el error** — se levanta del label, asi que un label malo se lee como medida |
+| **N-112** | — | **sin cerrar**. Es el paso 1 |
+
+**Y tres huecos del propio banco que se cerraron de paso**, todos de la misma familia —el instrumento que no puede ver lo que vino a vigilar—:
+
+- `documentos_03` comparaba **solo `app.js`** entre las copias. Con `js/depuracion.js` nuevo, quitarle el `<script>` **revienta la app al cargar** y ningun pack lo veia. Ahora **censa lo que `index.html` carga**.
+- El mismo pack comparaba `android/.../public`, que **no esta en git** —lo genera el build—: en un clon limpio habria dado **FALLA por algo que no es un defecto**, y un falso rojo ensena a ignorar el pack.
+- `esp32_05` dejo el literal nuevo del watchdog en `9/10` hasta que **un humano lo mirara**. Eso no es un fallo: es la lista blanca escrita a mano haciendo su trabajo.
+
+> ⚠️ **Lo que NO se puede concluir de esta tabla.** Son siete instrumentos y dos defectos de
+> firmware reales; el resto es **cobertura**. La compuerta sigue alternando, asi que su codigo de
+> salida no acredita nada, y **en campo sigue corriendo `e303485`** con el arreglo del ambar escrito
+> desde el 27/08 y sin subir. Mas medida no es mas entregado.
+
 ### 0.ter · Como se reparte el trabajo entre agentes, y por que asi
 
 > **El cuello de botella NO es cuantos agentes se coordinan: es que dos sobre el mismo fichero se
