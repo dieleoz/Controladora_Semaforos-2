@@ -55,7 +55,7 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 58 rutas parseadas, todas existen |
-| banco por packs *(65 packs)* | 🔴 | **950/955** — **tres de ellos en FALLA**, el resto en `PASS`. Los ultimos en entrar vigilan lo que la V9.0 estrena: `enlace_01_transporte` (pines, velocidad, buffer y framing del puerto por el que habla el ESP32, que hasta N-94 no miraba nadie), `camara_02_j16`, los nueve del ESP32 y `costura_11_lcd_sin_bus`. |
+| banco por packs *(65 packs)* | 🔴 | **955/955** — **todos en `PASS`**. Los ultimos en entrar vigilan lo que la V9.0 estrena: `enlace_01_transporte` (pines, velocidad, buffer y framing del puerto por el que habla el ESP32, que hasta N-94 no miraba nadie), `camara_02_j16`, los nueve del ESP32 y `costura_11_lcd_sin_bus`. |
 | compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.2 %** · 65.9 % · 20,6 % · 35,7 % — *7.080 B libres en el Maestro tras las Fases 1 y 2, `AiBus` y N-90* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
@@ -73,7 +73,7 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 | arnés de las dos puntas | ✅ | **42/42** — el C++ **real de las DOS puntas** ejecutándose en el mismo proceso y el mismo instante: verde simultáneo en **0 de 53.236 instantes** |
 | arnés del automático | ✅ | **71/71** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` **reales** y comprueba SFTY-2 sobre las escrituras de pin |
 
-**19 PASS · 1 FALLA · 0 ABORTADO, de 20 comprobaciones — la compuerta sale con código `1`.**
+**20 PASS · 0 FALLA · 0 ABORTADO, de 20 comprobaciones — la compuerta sale con código `0`.**
 
 ✅ **N-112 cerrado: ya no alterna.** Tres corridas seguidas sobre un árbol idéntico dan lo mismo.
 Hacían falta **dos** arreglos, no uno: `documentos_01` y `documentos_04` contaban distinto según
@@ -619,7 +619,7 @@ queda si el ESP32 se cuelga**, y por eso se conserva: en sus dos canales `A` y `
 - [`01_Firmware/Simulaciones/simulador_sistema_v7_6.py`](file:///d:/@Proyect/Controladora_Semaforos/01_Firmware/Simulaciones/simulador_sistema_v7_6.py): Banco de simulación en Python — **20/20 PASS** con barrido de 86.400 segundos.
 - [`01_Firmware/Simulaciones/simulador_repetidor.py`](file:///d:/@Proyect/Controladora_Semaforos/01_Firmware/Simulaciones/simulador_repetidor.py): Escenarios de enlace de radio — **10/10 PASS**.
 - [`01_Firmware/Validacion_LCD/`](01_Firmware/Validacion_LCD): Validación de pantalla ejecutada en el PC — **271/271 comprobaciones OK**. ⏳ **Mide código que se va a retirar**: cuando la pantalla salga, sus comprobaciones van una por una a *borrar, invertir o conservar* —con la cuenta comparada antes y después—, nunca en bloque.
-- [`01_Firmware/compuerta.py`](01_Firmware/compuerta.py): Suite formal de verificación integral — **19 PASS · 1 FALLA · 0 ABORTADO** (Exit code 0). Las cifras están en la tabla de arriba, que se copia del acta; ésta es sólo la puerta.
+- [`01_Firmware/compuerta.py`](01_Firmware/compuerta.py): Suite formal de verificación integral — **20 PASS · 0 FALLA · 0 ABORTADO** (Exit code 0). Las cifras están en la tabla de arriba, que se copia del acta; ésta es sólo la puerta.
 
 > 🛑 **Y para cerrar donde se abrió: nada de este README es un permiso.** En campo corre la **V8.4**;
 > la V9.0 compila y pasa la compuerta, y **no ha visto una tarjeta**. La arquitectura de arriba está
