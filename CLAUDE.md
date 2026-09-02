@@ -29,6 +29,59 @@ Los tres estados de una comprobación son distintos y no se mezclan nunca:
 Tratar un `ABORTADO` como aprobado es como el Maestro estuvo días sin cobertura de validación
 sin que nadie se enterara. `01_Firmware/compuerta.py` existe para que eso no vuelva a pasar.
 
+## 2.bis Medir no es entregar, y el instrumento no es el producto
+
+> **Antes de escribir un instrumento, la pregunta no es «¿está bien hecho?» sino «¿esto acerca una
+> tarjeta cargada, o la sustituye?»**
+
+Dos auditorías externas independientes llegaron a la misma frase, y la segunda la dijo de la
+respuesta a la primera:
+
+> *«El proyecto respondió a la auditoría arreglando todo lo que ella midió y nada de lo que ella
+> dijo.»*
+
+**La medida, para que no se discuta:**
+
+| | firmware | instrumento | ratio |
+|---|---|---|---|
+| 28/08 | 8.895 | 8.898 | 1,0 : 1 |
+| 31/08 | 14.188 | 27.705 | 1,95 : 1 |
+| 02/09 | **14.976** | **34.532** | **2,31 : 1** |
+
+Y en la sesión del 01–02/09, contada por commits: **27 commits — 19 tocan documentos, 10 tocan
+instrumentos, 8 tocan firmware. 675 líneas de firmware contra 7.039 de instrumento: 10,4 a 1.**
+
+**En campo sigue corriendo `e303485` (31/07), y el arreglo de un defecto real de calle —el equipo
+se va a ámbar por nada— lleva escrito desde el 27/08 sin subir.**
+
+### Las tres señales de que se ha cruzado la línea
+
+1. **Un pack nuevo que nadie pidió**, escrito la misma noche en que se acaba de comitear un
+   documento que dice *«lo que NO entra: más packs»*.
+2. **Un arreglo del aparato de medir que necesita más de dos capas.** N-112 costó **tres commits**, y
+   **los dos primeros afirmaron el cierre en su propio título** antes de que el tercero demostrara
+   que no. Si el vigilante necesita tres vueltas, la pregunta ya no es cómo arreglarlo: es **por qué
+   existe** —y en aquel caso la respuesta estaba escrita y sin plantear al responsable: los
+   documentos **copian** cifras que el acta ya publica, y por eso hacen falta 1.120 líneas de Python
+   vigilando copias.
+3. **Entregar documentos cuando lo pedido era un entregable.** Se pidió el `.zip` y se contestó con
+   99 líneas de autocrítica. Un parte de trabajo con cifras verdes puede ser **cierto en cada línea y
+   falso en conjunto**: el dato que lo habría dicho en diez segundos es el que no estaba.
+
+### Y el corolario que más duele, porque es el mismo error una capa arriba
+
+**Un `20/20` sobre 34.532 líneas de instrumento que nunca han tocado una tarjeta no es un
+entregable: es una coartada.** El apartado 3 ya avisa de que *verde no es entregable*; esto es su
+segunda mitad — **cuando el verde cuesta más que lo que certifica, el verde ES el problema.**
+
+> **Lo que sí es una excepción legítima, para no leer esto como «nunca instrumentes»:** un
+> instrumento que **desbloquea** algo que estaba parado, o que mide una **propiedad de vida** que
+> nadie ejercía —el verde simultáneo sobre las dos puntas reales, que dio el factor **1,44** en vez
+> del **2** declarado— es firmware por otro nombre. La diferencia no es el fichero que toca: es si
+> **contesta una pregunta abierta** o si **certifica otra vez lo ya certificado**.
+
+---
+
 ## 3. La compuerta, antes y después
 
 ```
@@ -97,9 +150,15 @@ python 01_Firmware/Simulaciones/banco/correr.py --listar
 python 01_Firmware/Simulaciones/banco/correr.py --pack esclavo_03
 ```
 
-**La migración terminó el 05/08: no quedan validadores monolíticos.** El banco son **38 packs**
-—`405/405` comprobaciones en el acta del 28/08—, un fichero corto por propiedad, que se corre solo
-en un segundo. El porqué estaba medido:
+**La migración terminó el 05/08: no quedan validadores monolíticos.** El banco son **66 packs**
+—`963/963` comprobaciones en el acta del 02/09—, un fichero corto por propiedad, que se corre solo
+en un segundo.
+
+> ⚠️ **Y ese crecimiento no es una medalla, es un aviso.** El 28/08 eran 38 packs y `405/405`. Hoy
+> hay **34.532 líneas de instrumento contra 14.976 de firmware —2,31 a 1—** y **ninguna ha tocado
+> una tarjeta desde el 31/07**. Dos auditorías externas lo llamaron *«industria de sustitución»*.
+> **Antes de escribir un pack nuevo, la pregunta no es «¿está bien hecho?» sino «¿esto acerca una
+> tarjeta cargada, o la sustituye?»** El porqué estaba medido:
 **8.898 líneas de instrumento para 8.895 de firmware**, y los instrumentos no son pruebas — son
 una *segunda copia del firmware escrita a mano* que alguien sincroniza. Eso falló tres veces
 (N-36, N-39, y la propia compuerta).
@@ -444,8 +503,8 @@ que nadie pidió.
 
 ## 7. Presupuesto de flash
 
-64 KB por micro; el Maestro va por el **88,3 %** —`57880` de `65536` B, o sea **7.656 B libres**—
-y el Esclavo por el **64,4 %** (acta del 28/08). **Ya no queda margen cómodo**: a este nivel una
+64 KB por micro; el Maestro va por el **89,2 %** —`58456` de `65536` B, o sea **7.080 B libres**—
+y el Esclavo por el **65,9 %** (acta del 02/09). **Ya no queda margen cómodo**: a este nivel una
 función nueva de tamaño medio no entra sin haber medido antes de qué está hecho el porcentaje.
 Antes de proponer estructura:
 
@@ -506,11 +565,27 @@ lo que hace el C++. Un `PASS` suyo no prueba el firmware; prueba el modelo.
 | `Validacion_LCD` | `lcd.cpp`, `menu.cpp`, `modo_degradado.cpp` | framebuffer en el PC, **no** la ST7920 |
 | `Validacion_Ciclo` | `ciclo_degradado.h` | función pura: no hay maquina de estados |
 | `Validacion_Respaldo` | `calcularSuma()`, Horner, `respaldo_horasDesdeSync()` | no ejerce el arranque |
-| `Validacion_Automatico` | `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` | **solo el Maestro**: "verde simultáneo en las dos puntas" no se mide ahí |
+| `Validacion_Automatico` | `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` | **solo el Maestro** |
+| `Validacion_Automatico/dos_puntas` | **las DOS puntas a la vez** — 4 ficheros del Maestro y **7 del Esclavo, `src/main.cpp` incluido** | el microcorte y el Degradado del Maestro **no** entran; `protocolo.cpp` tampoco |
+| `…/dos_puntas` **en Degradado** | el `modo_degradado.cpp` **real de las dos**, cada una con **su propio reloj** | no ejerce el microcorte |
 
 `Validacion_Automatico` existe por una razón concreta: la regresión del Modo Automático pasó con
 la compuerta en verde y el arnés de pantalla en `241/241`, porque **nadie ejercía el ciclo**. Mide
 SFTY-2 sobre lo que `semaforo.cpp` **escribió en los pines**, no sobre su lógica.
+
+> ✅ **Desde el 02/09 el verde simultáneo SÍ se ejerce sobre las dos puntas reales.** Hasta entonces
+> lo único que cerraba ese lazo era una copia del firmware escrita a mano en Python — justo lo que
+> este apartado avisa que no prueba el código. El choque de símbolos —las dos puntas definen los
+> mismos nombres— se resolvió con **una DLL por punta en el mismo proceso**: un tick pone el mismo
+> `millis()` en las dos, las llama, y **sólo entonces** lee los doce pines. Ese instante común es lo
+> que dos ejecutables separados no pueden tener.
+>
+> 🔴 **Y el número que salió de ejercerlo en Degradado: el margen es 1,44, no 2.** El cruce aguanta
+> **29 s** de desfase entre relojes y el equipo puede acumular **20,2 s** en 48 h. Los comentarios de
+> **las dos puntas** afirmaban *«factor de seguridad de 2»* — una cuenta hecha dentro de un
+> comentario, con la autoridad de un dato, y falsa. Y el pack que la vigilaba **barría un solo
+> sentido** y publicaba el favorable (35 s) como *«el margen real»*: la deriva de dos cristales no
+> elige sentido.
 
 Nada de esto sustituye la prueba de banco.
 
@@ -671,7 +746,7 @@ vigente: 2 radios en enlace directo, **sin repetidor**.
 |---|---|
 | `01_Firmware/Maestro`, `Esclavo`, `Repetidor` | firmware |
 | `01_Firmware/compuerta.py` | **la única forma correcta de verificar** |
-| `01_Firmware/Simulaciones/` | simuladores, y `banco/` con los **38 packs** |
+| `01_Firmware/Simulaciones/` | simuladores, y `banco/` con los **66 packs** |
 | `01_Firmware/Validacion_LCD/` | arnés de pantalla (compila el `lcd.cpp` real) |
 | `01_Firmware/Validacion_Ciclo/` · `_Respaldo/` · `_Automatico/` | los otros tres que compilan C++ real — ver §8 |
 | `OPTIMIZACIONES.md` | las reglas `SFTY-x` y la **trazabilidad regla → código → prueba** |
