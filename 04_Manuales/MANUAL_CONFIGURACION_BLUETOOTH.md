@@ -148,11 +148,19 @@ quién es cada equipo antes de conectar**. El técnico lee; no adivina.
 
 **Al Esclavo no se le manda nada que abra paso.** Puede leer telemetría, ajustar el reloj, pedir
 ~~forzar rojo~~ **`AMBAR_EMERGENCIA`** —que es la dirección segura— y **solicitar paso**, que viaja
-por radio al Maestro como una demanda: el Maestro decide, aplica el todo-rojo y ordena. El detalle
-está en `OPTIMIZACIONES.md` § SFTY-27.
+por radio al Maestro como una demanda: el Maestro decide, aplica el todo-rojo y ordena. Esa asimetría
+—**el Esclavo pide y el Maestro decide**— vive escrita en la puerta única por la que entra una
+demanda: `Maestro/include/demanda.h` y `Esclavo/include/demanda.h`.
 
 > 🛑 **Corregido el 31/08:** decía *«forzar rojo»* y ese literal **ya no funciona en el Esclavo**.
 > Ver el aviso de cabecera y `§4.4`. Lo que esa punta hace es **ámbar intermitente**, no rojo.
+
+> 🛑 **Corregido el 01/09 — el puntero mandaba a la regla equivocada.** Decía ~~*«El detalle está en
+> `OPTIMIZACIONES.md` § SFTY-27»*~~. **MEDIDO:** el apartado que lleva ese número se titula
+> *«SFTY-27 — Matrícula de pareja: quién obedece a quién»* y está marcado **DISEÑO, NO
+> IMPLEMENTADO** — no es la asimetría de la demanda. El número `SFTY-27` designa hoy dos reglas
+> distintas y **renumerar es decisión del responsable**, así que aquí se hace lo único que no depende
+> de esa decisión: **se apunta a donde la regla está escrita de verdad**, que es el fuente.
 
 > **Consecuencia para el operario, que es lo que importa:** da igual en qué extremo esté. Los dos
 > postes se operan igual y en la pantalla **no aparecen las palabras «maestro» ni «esclavo»** —

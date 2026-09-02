@@ -230,12 +230,17 @@ binario** (`modo_alcance.cpp`) y ya no tiene dónde dibujarse. De lo que mostrab
 
 ---
 
-## 5. Resiliencia RF: Ráfaga configurable y Ventana Deslizante (SFTY-11)
+## 5. Resiliencia RF: Ráfaga configurable (SFTY-11) y Ventana Deslizante (SFTY-10)
 
 Para garantizar comunicación inquebrantable en zonas de montaña con alta interferencia:
-- **Ráfaga (Burst):** 1 copia de 4 bytes con FEC activo en radios E90-DTU.
-- **Ventana Deslizante (Sliding Window):** Procesamiento asíncrono con CRC-8 Maxim (`0x31`).
-- **Protección Antirepetida (Replay Protection):** Descarte de duplicados mediante `msgID`.
+- **Ráfaga (Burst) — SFTY-11:** cada orden de 4 bytes sale **3 veces seguidas**, con FEC activo en
+  las radios E90-DTU. Al escuchar el bus verá tres tramas idénticas por cada orden: es lo esperado,
+  no un reenvío por fallo. *(`RF_BURST_COPIES = 3`, en `include/protocolo.h` de las dos puntas.)*
+- **Suma de verificación CRC-8 Maxim (`0x31`) — SFTY-3:** todo paquete cuya suma no cuadre se
+  descarta sin ejecutarse.
+- **Ventana Deslizante (Sliding Window) — SFTY-10:** cuando la suma no cuadra, el búfer se desplaza
+  un byte y se reintenta, para reengancharse a la copia siguiente de la ráfaga sin desalinearse.
+- **Protección Antirepetida (Replay Protection):** descarte de duplicados mediante `msgID`.
 
 ---
 

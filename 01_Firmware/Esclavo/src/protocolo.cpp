@@ -49,7 +49,7 @@ void protocolo_setup() {
   Bus.begin(9600);
 }
 
-// SFTY-7: Polinomio CRC-8 Maxim/Dallas (0x31) bit a bit
+// SFTY-3: Polinomio CRC-8 Maxim/Dallas (0x31) bit a bit
 static uint8_t calcularCRC_Bin(const uint8_t* data, size_t len) {
   uint8_t crc = 0x00;
   for (size_t i = 0; i < len; i++) {
@@ -104,7 +104,14 @@ static unsigned long cntDescartadas = 0;
 
 bool protocolo_hayPaqueteDisponible(RF_Packet* destino) {
   while (Bus.available() > 0) {
-    // SFTY-3: Time-based sync. If more than 50ms passed since last byte, reset buffer
+    // SIN REGLA SFTY ASIGNADA, y se dice a proposito: llevaba la etiqueta SFTY-3, que es
+    // el CRC-8, y no es esto. Tampoco es SFTY-10 -la ventana deslizante, treinta lineas
+    // mas abajo-. Es un mecanismo distinto sin numero propio, y ponerle uno prestado es
+    // como se llego al intercambio que esto corrige.
+    //
+    // Que hace: si pasaron mas de 50 ms desde el ultimo byte, el buffer se tira. Lo que
+    // quedaba dentro es de una trama que no llego entera, y pegarle los bytes de la
+    // siguiente fabrica una trama que nadie mando.
     if (millis() - lastByteTime > 50) {
       binIdx = 0;
     }

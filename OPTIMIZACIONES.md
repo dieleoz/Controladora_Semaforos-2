@@ -17,7 +17,7 @@ la que determina el coste de la ráfaga de SFTY-11 y el peor caso de reintentos 
 >
 > | | dónde |
 > |---|---|
-> | 🔴 **`SFTY-27` designa DOS reglas** y ocho sitios del firmware mandan a leer la equivocada | tras la tabla de trazabilidad, y un aviso en el propio § `SFTY-27` |
+> | 🔴 **`SFTY-27` designa DOS reglas** y CUATRO sitios mandan a leer la equivocada | tras la tabla de trazabilidad, y un aviso en el propio § `SFTY-27` |
 > | 🔴 **Seis reglas no tenían fila** en la tabla — `SFTY-20`, `22`, `24`, `25`, `26`, `27` | la tabla |
 > | 🔴 **Qué significa de verdad un ✅**: los cuatro packs de `SFTY-2` **leen** el C++, no lo ejecutan | tras las «siete filas vacías» |
 > | 🔴 **El riesgo residual nº 2 estaba descrito corto**: lo dispara un microcorte, y acaba en choque frontal | § riesgos residuales de `SFTY-21` |
@@ -376,7 +376,7 @@ implementar aparece vacía en vez de aparentar cobertura.
 | SFTY-4 | `Maestro/src/coordinador.cpp` · `Maestro/src/modo_automatico.cpp` | — |
 | SFTY-5 | `Maestro/src/semaforo.cpp` · `Esclavo/src/semaforo.cpp` | ✅ `Validacion_Automatico/arnes_automatico.cpp` — **arnés C++, invisible para el censo de packs**, ver abajo |
 | **SFTY-6** | `*/include/protocolo.h` *(el umbral)* · `Maestro/src/coordinador.cpp` · `Esclavo/src/main.cpp` | ✅ `costura_08_silencio` · `costura_09_presupuesto_radio` · `maestro_04_sync_horaria` |
-| SFTY-7 | `*/src/protocolo.cpp` | — |
+| SFTY-7 | `Maestro/include/coordinador.h` · `Maestro/src/coordinador.cpp` | — |
 | SFTY-8 | `*/src/protocolo.cpp` | — |
 | SFTY-9 | `Maestro/src/coordinador.cpp` · `Maestro/src/main.cpp` | — |
 | SFTY-10 | `*/src/protocolo.cpp` | — |
@@ -419,7 +419,18 @@ implementar aparece vacía en vez de aparentar cobertura.
 >                   Esclavo/include/botones.h · Esclavo/include/demanda.h
 > ```
 >
-> #### 🔴 `SFTY-27` DESIGNA DOS REGLAS DISTINTAS, y ocho documentos mandan a leer la equivocada
+> #### 🔴 `SFTY-27` DESIGNA DOS REGLAS DISTINTAS, y CUATRO sitios mandan a leer la equivocada
+>
+> ⚠️ **CORREGIDO EL 01/09: aqui se publico "ocho" y era una cifra de otra propiedad.** El `8` es el
+> numero de **ficheros de firmware que llevan la etiqueta** —lo que mide el `grep -rl` citado mas
+> abajo— y se copio a la frase *"ocho mandan a leer la equivocada"*, **que nunca se habia medido**.
+> Medido de verdad: **17 sitios usan el numero** (8 firmware · 2 packs · 2 `ARQUITECTURA.map` ·
+> 5 manuales) y **CUATRO remiten explicitamente** a este documento —`Esclavo/include/demanda.h:19`,
+> `Esclavo/src/bluetooth.cpp:456`, y dos manuales ya corregidos—.
+>
+> **Y el buscador casi falla, que es la parte que hay que recordar:** el cuarto puntero **no lo
+> encuentra** un `grep` que exija `SFTY-27` y `OPTIMIZACIONES` en la MISMA linea, porque el ajuste
+> de linea del Markdown los deja en dos. Con una linea salen 3; con `-B2 -A2`, 4.
 >
 > | dónde | qué llama `SFTY-27` | estado |
 > |---|---|---|
@@ -1607,7 +1618,7 @@ el expansor por bueno.
 
 > # 🔴 SI HAS LLEGADO AQUI SIGUIENDO UN PUNTERO DESDE EL FIRMWARE, ESTA NO ES LA REGLA QUE BUSCAS
 >
-> **`SFTY-27` designa DOS reglas distintas, y ocho sitios del firmware mandan a leer esta.**
+> **`SFTY-27` designa DOS reglas distintas, y CUATRO sitios mandan a leer la equivocada.**
 >
 > | | |
 > |---|---|

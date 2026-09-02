@@ -334,8 +334,12 @@ módulo trasplantado a otra placa se delata al primer `$STATUS`.
 
 **Al Esclavo no se le manda nada que abra paso.** Puede leer telemetría, ajustar el reloj, forzar
 rojo —que es la dirección segura— y **solicitar paso**, que viaja por radio al Maestro como una
-demanda: el Maestro decide, aplica el todo-rojo y ordena. El detalle está en `OPTIMIZACIONES.md`
-§ SFTY-27.
+demanda: el Maestro decide, aplica el todo-rojo y ordena.
+
+**Al probarlo, espere esa asimetría: es la regla, no una avería.** Una petición hecha en el Esclavo
+—por cámara o por la app— no enciende ninguna luz en el Esclavo. Sale al aire, y el verde lo concede
+el Maestro después de aplicar el todo-rojo. Si el Esclavo abriera por su cuenta, estaría dando paso
+a un carril sin que nadie compruebe el otro.
 
 > **Consecuencia para el operario, que es lo que importa:** da igual en qué extremo esté. Los dos
 > postes se operan igual y en la pantalla **no aparecen las palabras «maestro» ni «esclavo»** —

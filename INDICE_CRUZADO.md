@@ -121,24 +121,117 @@ es exactamente el defecto que este repositorio lleva un mes cerrando (N-36, N-39
 | **Quién vigila que la tabla no mienta** | `documentos_02_trazabilidad_sfty` |
 | 🔴 **`enlace_01_transporte` NO lleva etiqueta A PROPÓSITO**: ninguna de las 29 reglas habla del transporte (`enlace_01_transporte.py` cabecera) **[MEDIDO]**. Asignar un número nuevo es del responsable — `AB-8` | |
 
-> 🔴 **DEFECTO ENCONTRADO EN ESTA PASADA, y no se arregla aquí porque `OPTIMIZACIONES.md` lo está
-> tocando otro agente: `SFTY-27` designa DOS cosas distintas.**
+> 🔴 **`SFTY-27` designa DOS cosas distintas.** *(Anotado el 31/08; **recontado el 01/09**, y las tres
+> cifras de la nota anterior eran falsas — ver el recuadro de abajo. `OPTIMIZACIONES.md` no se toca
+> desde aquí: lo lleva otro agente.)*
 >
 > | dónde | qué dice |
 > |---|---|
-> | `OPTIMIZACIONES.md:1145` | *«SFTY-27 — Matrícula de pareja: quién obedece a quién (DISEÑO, **NO IMPLEMENTADO**)»* |
-> | 9 sitios en firmware, packs y manuales | *«SFTY-27 — el Esclavo **PIDE** y el Maestro **DECIDE**»* |
+> | `OPTIMIZACIONES.md:1595` | *«SFTY-27 — Matrícula de pareja: quién obedece a quién (DISEÑO, **NO IMPLEMENTADO**)»* |
+> | **17 sitios** en firmware, packs, mapa y manuales | *«SFTY-27 — el Esclavo **PIDE** y el Maestro **DECIDE**»* — la asimetría de `demanda_solicitar()`, **implementada y viva** |
 >
-> **[MEDIDO]** `Maestro/src/botones.cpp:71` · `Esclavo/src/botones.cpp:92` · `Maestro/include/botones.h:50`
-> · `Esclavo/include/botones.h:69` · `Maestro/include/demanda.h:8` · `Esclavo/include/demanda.h:19`
-> · `Esclavo/src/bluetooth.cpp:185` · `Maestro/src/bluetooth.cpp:347` · `packs/camara_02_j16.py:679`
-> · `packs/app_08_enrutado_por_punta.py:52` · `04_Manuales/MANUAL_CONFIGURACION_BLUETOOTH.md:152`
-> · `05_Funcional/10_...Telemetria.md:338` · `05_Funcional/18_...ESP32.md:449`.
+> **Censo completo [MEDIDO 01/09]**, `grep -rn "SFTY-27"` sobre todo el árbol, cruzado con un segundo
+> recuento por fichero (`grep -rc`) que da la misma lista de 19 ficheros — 17 sitios de la regla viva,
+> más `OPTIMIZACIONES.md` y `roadmap.md`, que hablan **de** la colisión:
 >
-> **Ocho de esos sitios remiten explícitamente a `OPTIMIZACIONES.md § SFTY-27`, que dice otra cosa.**
-> Un lector que siga el puntero lee la regla equivocada y encima la lee marcada *«NO IMPLEMENTADO»*
-> sobre una regla que **sí** está implementada. Es una regla vial designada con un número ocupado.
-> **Decisión: del responsable** (`AB-8` es exactamente esto). **Anotado, no tocado.**
+> | firmware (8) | `Maestro/src/botones.cpp:71` · `Maestro/src/bluetooth.cpp:483` · `Maestro/include/botones.h:50` · `Maestro/include/demanda.h:8` · y los cuatro gemelos del Esclavo (`botones.cpp:92`, `bluetooth.cpp:456`, `botones.h:69`, `demanda.h:19`) |
+> |---|---|
+> | **packs (2)** | `camara_02_j16.py:679` · `app_08_enrutado_por_punta.py:52` |
+> | **mapa (2)** | `ARQUITECTURA.map:97` · `ARQUITECTURA.map:267` |
+> | **manuales (5)** | `04_Manuales/MANUAL_CONFIGURACION_BLUETOOTH.md:152` · `05_Funcional/10_...Telemetria.md:338` · `05_Funcional/18_...ESP32.md:449` · `05_Funcional/1_Manual_Usuario.md:259` · `05_Funcional/3_Protocolo_Pruebas_Rigurosas.md:1048` |
+>
+> #### 🔴 El «ocho» era de otra cosa, y la nota del 31/08 lo publicó como si fuera esta
+>
+> Los tres números que traía esa nota —*«9 sitios»*, la lista de 13, y *«ocho de esos sitios remiten
+> explícitamente»*— **no coinciden entre sí ni con la medida**, y el error tiene nombre: **`8` es el
+> número de FICHEROS DE FIRMWARE que llevan la etiqueta**, que es lo que mide el `grep -rl` citado en
+> `OPTIMIZACIONES.md:404`. Se copió como *«ocho sitios que mandan a leer la equivocada»*, que es una
+> propiedad distinta y **no se había medido nunca**.
+>
+> **Lo que sí remite explícitamente a `OPTIMIZACIONES.md § SFTY-27` son CUATRO sitios [MEDIDO 01/09]:**
+>
+> | `Esclavo/include/demanda.h:19` · `Esclavo/src/bluetooth.cpp:456` | *«Ver OPTIMIZACIONES.md SFTY-27»* |
+> |---|---|
+> | `04_Manuales/MANUAL_CONFIGURACION_BLUETOOTH.md:152` | *«El detalle está en `OPTIMIZACIONES.md` § SFTY-27»* — **corregido el 01/09** |
+> | `05_Funcional/10_...Telemetria.md:337-338` | igual, **partido en dos líneas** — **corregido el 01/09** |
+>
+> ⚠️ **Y el buscador estuvo a punto de fallar aquí, que es §4 de `CLAUDE.md` en directo.** El cuarto
+> puntero **no lo encuentra** un `grep` de `SFTY-27` filtrado por `OPTIMIZACIONES` en la misma línea:
+> el salto de línea del Markdown deja `OPTIMIZACIONES.md` en la 337 y `§ SFTY-27` en la 338. Con la
+> búsqueda de una línea salen **3**; con `-B2 -A2` salen **4**. Un puntero partido por el ajuste de
+> línea es invisible a la búsqueda obvia.
+>
+> #### Cuál se queda con el `27`, y por qué no es la antigüedad
+>
+> **La regla viva —*«el Esclavo pide y el Maestro decide»*— es la que debe conservar el número**, y el
+> criterio es de coste, no de fecha: está referenciada desde **8 ficheros de firmware y 2 packs**,
+> mientras que la *«matrícula de pareja»* **no tiene una sola referencia fuera de `OPTIMIZACIONES.md`**
+> [MEDIDO: `grep -rn "SFTY-27"` no la cita en ningún `.cpp`, `.h` ni pack]. Renumerar la matrícula
+> toca **prosa de un solo documento**; renumerar la regla viva toca **fuente y banco**. Es diseño sin
+> construir contra código que corre en la calle.
+>
+> **La decisión sigue siendo del responsable** (`AB-8` / `P-3`): asignar el número nuevo a la matrícula
+> es un acto de numeración, no de auditoría. Lo que sí se ha hecho el 01/09 es que **los dos punteros
+> de manual dejen de engañar**, apuntando a donde la regla vive de verdad en vez de a una sección que
+> dice otra cosa. **Los dos punteros del firmware siguen mandando a la sección equivocada** — son de
+> otro agente.
+
+> ### 🔴 01/09 — UN NÚMERO DUPLICADO NUNCA ESTÁ SOLO. Censo de las 29 reglas
+>
+> Se censaron **todas** las `SFTY-x` del árbol y se cruzó cada referencia contra la definición de
+> `OPTIMIZACIONES.md`. `SFTY-27` no era la única: **`SFTY-3` y `SFTY-7` están INTERCAMBIADAS en
+> `protocolo.cpp`, en las dos puntas.**
+>
+> | | lo que dice la definición | lo que etiqueta el código |
+> |---|---|---|
+> | **`SFTY-3`** | *«Suma de verificación polinomial **CRC-8 Maxim (`0x31`)** en todos los paquetes RF»* | `Maestro/src/protocolo.cpp:107` y `Esclavo/src/protocolo.cpp:107` la ponen sobre la **resincronización temporal del búfer** (`if (millis() - lastByteTime > 50) binIdx = 0;`), que no es el CRC |
+> | **`SFTY-7`** | *«Reintento automático de órdenes ACK cada 3.5 s (`TIMEOUT_ACK_MS`)»* | `Maestro/src/protocolo.cpp:52` y `Esclavo/src/protocolo.cpp:52` la ponen sobre **el polinomio CRC-8 Maxim**, que es el contenido de `SFTY-3` |
+>
+> **Sólo `Repetidor/src/main.cpp:37` usa `SFTY-3` para lo que la definición dice.** Las referencias
+> correctas de `SFTY-7` viven en `Maestro/include/coordinador.h:54` y `Maestro/src/coordinador.cpp:431`
+> — es decir, **cada número designa dos cosas, igual que el 27**, y en el mismo fichero.
+>
+> **Y la tabla de trazabilidad heredó el error, que es lo que lo mantuvo de pie:** su fila
+> `SFTY-7 | */src/protocolo.cpp` apunta al sitio mal etiquetado, no al reintento de ACK. Es
+> literalmente el defecto que `OPTIMIZACIONES.md` reconoce dos párrafos más arriba —*«para la segunda
+> columna no lo comprueba nadie»*—, y es el mismo caso que la corrección `SFTY-10`/`SFTY-11` de N-6:
+> aquella pasada arregló una pareja permutada y **no volvió a barrer el fichero**.
+>
+> **A diferencia del 27, esto NO necesita decisión del responsable:** no hay que asignar número
+> nuevo ni renombrar regla, sólo poner cada etiqueta sobre la línea que le corresponde. Son 4 líneas
+> de comentario en firmware, más la fila de la tabla. **No se toca desde aquí**: `01_Firmware/` y
+> `OPTIMIZACIONES.md` son de otros agentes.
+>
+> #### Reglas definidas que nadie referencia (huérfanas)
+>
+> | `SFTY-24`, `SFTY-25` | **cero referencias fuera de `OPTIMIZACIONES.md` e `INDICE_CRUZADO.md`** [MEDIDO] |
+> |---|---|
+>
+> **No es un defecto y no se arregla**, por el motivo ya escrito en §5 de este documento: son diseños
+> declarados honestamente como *«sin construir»*, y copiarlos a un manual los convertiría en promesas.
+> Se deja medido para que la próxima pasada no lo vuelva a levantar como hallazgo.
+>
+> #### Referencias a reglas que no existen: **ninguna** [MEDIDO]
+>
+> El censo devuelve dos números por encima del catálogo, y **los dos son legítimos**, no punteros rotos:
+>
+> - **`SFTY-30`** — `05_Funcional/18_...ESP32.md:992`, y no cita una regla: dice que *«la numeración
+>   llega hoy a `SFTY-29`, así que las siguientes empezarían en `SFTY-30`»*.
+> - **`SFTY-99`** — `packs/documentos_02_trazabilidad_sfty.py:131`, un número **sintético** dentro del
+>   control negativo del propio pack, para comprobar que sabe leer una fila sin packs.
+>
+> #### Un tercer defecto, ya corregido: la Ventana Deslizante estaba bajo el número de la Ráfaga
+>
+> `05_Funcional/1_Manual_Usuario.md:233` y `MANUAL_USUARIO.md:82` (raíz) titulan *«Ráfaga configurable
+> y Ventana Deslizante **(SFTY-11)**»*. **`SFTY-11` es la ráfaga; la ventana deslizante es `SFTY-10`**
+> —la definición lo dice, y el código lo etiqueta bien en `*/src/protocolo.cpp:120`—. Es el mismo
+> error que N-6 corrigió **en el firmware** en 2026-08-03 y **no corrigió en los manuales**, que lo
+> llevan arrastrando desde entonces. Corregido el 01/09 en `05_Funcional/1_Manual_Usuario.md`;
+> **`MANUAL_USUARIO.md` de la raíz sigue mal** — no es de esta pasada.
+>
+> *(De paso, medido en la misma línea: ese apartado decía **«1 copia»** de ráfaga cuando
+> `RF_BURST_COPIES` vale **3** en `*/include/protocolo.h:162`. Corregido junto con la etiqueta, porque
+> un técnico escuchando el bus contaría tres tramas y las leería como reenvío por fallo.)*
 
 ### 1.6 El contrato de bytes del Bluetooth, y las cinco tramas
 
@@ -307,7 +400,8 @@ ellos por «portadora» en el sentido de **portadora de radio** (`Esclavo/src/ma
 |---|---|---|---|---|
 | **P-1** | 🔴 **La especificación entera de la placa portadora**: qué lleva, qué NO lleva, los puntos de prueba, el acceso de reflasheo, la regla de trazado y la medida `M6` | **NINGÚN FICHERO.** `grep` sobre todo el árbol: **cero** | **Ya se perdió.** Detalle completo en §4 | **Su propio documento** — el responsable lo va a encargar aparte |
 | **P-2** | 🔴 **`AB-1` … `AB-8`: ocho decisiones abiertas, cada una con su dueño y con lo que desbloquea** | `18_...ESP32.md` §9, **y nada más** (`AB-2`…`AB-8` dan exactamente **1** fichero; `AB-1` da 2) | Ese fichero tiene **un solo puntero documental**. Si se reescribe o se archiva, **ocho decisiones con dueño desaparecen sin dejar rastro** — y su propio §9 ya avisa de que `ESTADO.md` no las tiene | **Referenciarlas desde `ESTADO.md`** en la tabla de bloqueantes, con el enlace al §9. **Con enlace, no copiadas**: la copia haría dos versiones |
-| **P-3** | 🔴 **`SFTY-27` designa dos reglas distintas** (§1.5) — y ocho sitios del firmware mandan al lector al sitio equivocado | la colisión no está escrita **en ninguna parte**: cada mitad se lee coherente por separado | Una regla vial implementada aparece bajo un número marcado *«NO IMPLEMENTADO»*. Nadie lo ve porque **hay que leer los dos sitios a la vez** | **Decisión del responsable** (`AB-8`). Hasta entonces, **anotarlo en `OPTIMIZACIONES.md` § SFTY-27** para que el puntero no engañe |
+| **P-3** | 🔴 **`SFTY-27` designa dos reglas distintas** (§1.5) — **17 sitios** usan la viva; ~~ocho~~ **CUATRO** mandan explícitamente al lector al sitio equivocado *(recontado el 01/09: el «ocho» era el número de FICHEROS de firmware con la etiqueta, copiado como si fuera el de punteros)* | ya está escrita: `OPTIMIZACIONES.md` §`SFTY-27` y su tabla, §1.5 de aquí | Una regla vial implementada aparece bajo un número marcado *«NO IMPLEMENTADO»*. Nadie lo ve porque **hay que leer los dos sitios a la vez** | **Decisión del responsable** (`AB-8`): el `27` se queda con la regla viva —está en 8 fuentes y 2 packs; la matrícula no está en ninguno— y la matrícula toma número nuevo. Los 2 punteros de manual ya no engañan (01/09); **quedan los 2 del firmware** |
+| **P-3.bis** | 🔴 **`SFTY-3` y `SFTY-7` están INTERCAMBIADAS en `*/src/protocolo.cpp:52` y `:107`, en las dos puntas** (§1.5) — y la fila `SFTY-7` de la tabla de trazabilidad apunta al sitio mal etiquetado | §1.5 de aquí, desde el 01/09. Antes: **en ninguna parte** | El CRC lleva el número del reintento de ACK y el reintento lleva el suyo en otro fichero: **el mismo defecto que el 27, y en la misma clase de sitio que N-6 ya corrigió una vez** para `SFTY-10`/`SFTY-11` | **NO necesita al responsable**: no hay número nuevo que asignar, sólo mover 4 etiquetas de comentario y una fila. Firmware y `OPTIMIZACIONES.md` son de otros agentes |
 | **P-4** | 🔴 **Las cinco medidas de multímetro `M1`…`M5`, con su procedimiento** | `17_...` §A, y solo ahí el **procedimiento** | `M3` es **bloqueante de cableado** y se cita en 15 documentos… pero **cómo se hace** está en uno. Reescribir el 17 deja quince punteros a un procedimiento que ya no existe | **Referenciar desde la guía de campo**, que es quien va a ejecutarlas |
 | **P-5** | 🔴 **`05_Funcional/12_Cobertura_de_Pruebas_y_Huecos.md` es HUÉRFANO TOTAL** — y es, literalmente, el documento que dice **qué NO se está midiendo** | 0 punteros entrantes | Es el mismo defecto que los 81 KB de guía que no enlazaba nadie, aplicado al fichero cuyo tema **es** los huecos | **Enlazarlo desde `ESTADO.md` y desde `README.md`** |
 | **P-6** | 🔴 **`05_Funcional/ENCARGO_SESION_BANCO.md`**: el encargo de la sesión de banco, que es **EL bloqueante del proyecto**, colgando solo de un histórico cerrado | 1 puntero, archivado | El día que se organice el banco, el documento que lo describe no se encuentra por ningún camino vivo | **Enlazarlo desde la Fase 6 de `ESTADO.md`** |
