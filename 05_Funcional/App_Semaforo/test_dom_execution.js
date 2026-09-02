@@ -538,6 +538,122 @@ assert(sentFrames.some(f => f.includes('SOLICITAR_PASO')),
 assert(!pinModal.classList.contains('active'),
   'Cambiar de punta no vuelve a pedir el PIN: la autorizacion es del operario, no del equipo');
 
+// =========================================================================
+// 6.quater B2: EL TECLADO CERRADO NO ARMA LA SESION, Y CERRARLO CANCELA
+// =========================================================================
+// Los diez botones del teclado siguen en el arbol con el modal cerrado -solo estan
+// ocultos por CSS-, y sus manejadores no preguntaban por el modal: cualquier click
+// sobre ellos llamaba a validatePin() y armaba state.pinVerificado. Es el estado de
+// una barrera puesto a CIERTO sin que la barrera se haya abierto.
+//
+// Y no es teorico: en N-83 el arnes tecleaba 1234 sobre un modal que la guarda de
+// punta nunca abrio, la sesion se autorizaba sola, y SOLICITAR_PASO seguia dando [OK]
+// mientras seis comprobaciones de al lado caian. El defecto no se cobro en la calle:
+// se cobro quitandole capacidad de detectar a otra prueba.
+//
+// ESTE BLOQUE MONTA UNA APP NUEVA, Y ESA NECESIDAD ES EL SEGUNDO HALLAZGO. La sesion
+// de arriba ya tiene el PIN verificado y NO HAY FORMA DE VOLVER ATRAS: pinVerificado
+// se pone a true en una sola linea y no se apaga en ninguna -ni al cerrar el teclado,
+// ni al cambiar de punta, ni al caerse el enlace, ni con el tiempo-. Para medir una
+// sesion sin autorizar hace falta un navegador nuevo, que en la calle significa cerrar
+// la app. Cuanto tiene que durar esa autorizacion lo decide el responsable; lo que el
+// arnes deja escrito es que hoy dura lo que dure el proceso.
+function montarAppLimpia() {
+  const dom2 = new JSDOM(htmlContent, { runScripts: 'dangerously', resources: 'usable', url: 'http://localhost/' });
+  const w = dom2.window;
+  const almacen = {};
+  w.localStorage = {
+    getItem: (k) => almacen[k] || null,
+    setItem: (k, v) => { almacen[k] = String(v); },
+    removeItem: (k) => { delete almacen[k]; },
+    clear: () => { Object.keys(almacen).forEach(k => delete almacen[k]); }
+  };
+  w.navigator.vibrate = () => true;
+  const tramas = [];
+  w.bluetoothSerial = {
+    isEnabled: (ok) => ok(),
+    list: (ok) => ok([{ name: 'JDY-31 Maestro', id: '00:11:22:33:44:55', address: '00:11:22:33:44:55' }]),
+    connect: (mac, ok) => ok(),
+    disconnect: (ok) => ok && ok(),
+    subscribe: (delim, cb) => { w._btSubscribeCb = cb; },
+    write: (data, ok) => { tramas.push(data); if (ok) ok(); }
+  };
+  modulos.forEach(rel => {
+    const src = fs.readFileSync(path.join(__dirname, rel), 'utf8');
+    const nombres = (src.match(/^(?:const|class|function|var|let)\s+([A-Za-z_$][\w$]*)/gm) || [])
+      .map(m => m.split(/\s+/)[1]);
+    w.eval(src + ';' + nombres.map(n => `try{window.${n}=${n};}catch(e){}`).join(''));
+  });
+  w.eval(jsContent);
+  w.document.dispatchEvent(new w.Event('DOMContentLoaded'));
+  w.document.getElementById('btnDevice').click();
+  w.document.querySelector('.bt-device-item').click();
+  const carga = 'STATUS,NODE:MAESTRO,SERIE:SEM-M-01,MODO:AUTO,ESTADO:V1_R2,T:31,RF:97,RTT:70,BAT:12.9,HORA:14:31:00';
+  w._btSubscribeCb(`$${carga}*${xorNmea(carga)}\n`);
+  return { d: w.document, tramas };
+}
+
+const limpia = montarAppLimpia();
+const pinModal2 = limpia.d.getElementById('pin-modal');
+const pinD1 = limpia.d.getElementById('pin-d1');
+
+// (0) LA GUARDA DEL EMISOR, QUE NO MEDIA NADIE.
+//
+// Salio del censo de este encargo: de los catorce llamadores de
+// enviarComandoFirmware() hay CUATRO -SET_MODO:DEGRADADO, SET_TIEMPOS y los dos
+// SET_RTC- que no preguntan por state.pinVerificado antes de llamar. Para esos, el
+// `if` de dentro del emisor no es un refuerzo: es la unica barrera que tienen.
+//
+// Y estaba sin vigilar. Al quitarlo del fuente, los 38 packs y este arnes seguian en
+// verde, porque las tres puertas que si se median tienen su propia guarda encima y
+// porque cuando el arnes llega al Courier ya ha tecleado el PIN. Es la barrera de
+// abajo tapando la de arriba de CLAUDE.md 8.sexies, vista desde el otro lado: aqui
+// la de arriba tapaba que nadie miraba la de abajo.
+//
+// Se mide por SET_TIEMPOS, que es el llamador sin guarda propia mas facil de ejercer.
+limpia.d.getElementById('num-tiempo-verde').value = '5';
+limpia.d.getElementById('num-tiempo-rojo').value = '5';
+limpia.d.getElementById('num-tiempo-despeje').value = '30';
+limpia.tramas.length = 0;
+limpia.d.getElementById('btn-aplicar-tiempos').click();
+assert(limpia.tramas.length === 0,
+  `SET_TIEMPOS no tiene guarda propia: sin PIN lo para el emisor, y esto lo comprueba: ${limpia.tramas.join(' | ')}`);
+
+// (1) TECLADO FANTASMA: se teclea el PIN BUENO sobre un modal que nadie abrio.
+limpia.tramas.length = 0;
+['1', '2', '3', '4'].forEach(dg => limpia.d.querySelector(`.pin-btn[data-key="${dg}"]`).click());
+limpia.d.getElementById('btn-pin-ok').click();
+// El teclado no ha recibido nada: los puntos son lo que ve el operario, y son tambien
+// la prueba de que la pulsacion se paro EN LA ENTRADA y no solo al autorizar.
+assert(!pinD1.classList.contains('filled'),
+  'Con el teclado cerrado las pulsaciones no entran ni en el buffer: el primer punto sigue vacio');
+// Y la sesion NO quedo autorizada, que se mide como se mide en la calle: pidiendo algo.
+limpia.d.getElementById('btn-op-step').click();
+assert(limpia.tramas.length === 0,
+  `Tras teclear el PIN con el modal cerrado la sesion sigue SIN autorizar: ${limpia.tramas.join(' | ')}`);
+assert(pinModal2.classList.contains('active'),
+  'y la orden que mueve luces abre el teclado en vez de salir con una autorizacion que nadie dio');
+
+// (2) CERRAR EL TECLADO CANCELA LA ORDEN QUE ESPERABA DETRAS.
+// pedirPin() dejo CAMBIAR_TURNO en cola. El operario se arrepiente y cierra con la X.
+limpia.d.getElementById('modal-pin-close').click();
+// Mas tarde alguien teclea el PIN por OTRO motivo: subir a Tecnico desde la cabecera.
+limpia.d.getElementById('btn-toggle-role').click();
+assert(pinModal2.classList.contains('active'),
+  'El interruptor de rol abre el teclado: es la otra puerta legitima, y sin ella esto no mide nada');
+limpia.tramas.length = 0;
+['1', '2', '3', '4'].forEach(dg => limpia.d.querySelector(`.pin-btn[data-key="${dg}"]`).click());
+assert(limpia.tramas.length === 0,
+  `La orden cancelada NO se dispara con la siguiente clave, que se tecleo para otra cosa: ${limpia.tramas.join(' | ')}`);
+// El control positivo, sin el cual lo de arriba lo aprobaria tambien una app que no
+// hiciera nada nunca: esta autorizacion SI hace lo suyo (CLAUDE.md 8.sexies).
+assert(limpia.d.getElementById('role-label').textContent === 'Técnico',
+  `y la clave hace LO QUE SE TECLEO: sube a Tecnico (rol: ${limpia.d.getElementById('role-label').textContent})`);
+// Y los cuatro digitos buenos no se quedan en memoria detras del modal cerrado: son
+// los que un OK suelto reutilizaria el dia que la autorizacion caduque.
+assert(!pinD1.classList.contains('filled'),
+  'Una validacion correcta vacia el teclado: el PIN bueno no queda guardado tras el modal');
+
 // 7. Probar Asistente Courier RTC
 document.querySelector('.nav-item[data-tab="tab-diag"]').click();
 const btnCourierCap = document.getElementById('btn-courier-capture');

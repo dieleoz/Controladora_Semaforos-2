@@ -2469,7 +2469,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function closeModal(modal) {
-    if (modal) modal.classList.remove('active');
+    if (!modal) return;
+    modal.classList.remove('active');
+    // Cerrar el teclado es CANCELAR, y hasta hoy no cancelaba nada. Quedaban dos
+    // restos vivos detras de un modal que ya nadie ve:
+    //
+    //   state.pin            los cuatro digitos BUENOS seguian en memoria despues de
+    //                        una validacion correcta -validatePin() no los borraba-,
+    //                        asi que un OK con el teclado cerrado volvia a armar la
+    //                        sesion sin teclear un solo digito. Mientras pinVerificado
+    //                        no caduque eso no cambia nada; el dia que caduque, ese
+    //                        resto convierte la caducidad en un adorno.
+    //
+    //   state.accionPendiente  la orden que pedirPin() dejo en cola sobrevivia al
+    //                        cierre, y la disparaba la SIGUIENTE validacion, que puede
+    //                        ser de otro operario y por otro motivo -subir a Tecnico-.
+    //                        Una orden que mueve luces no se ejecuta media hora tarde
+    //                        porque alguien tecleo la clave para otra cosa.
+    if (modal === pinModal) {
+      state.pin = '';
+      state.accionPendiente = null;
+      updatePinDisplay();
+    }
   }
 
   if (btnDevice && btModal) {
@@ -2517,9 +2538,27 @@ document.addEventListener('DOMContentLoaded', () => {
     modalPinClose.addEventListener('click', () => closeModal(pinModal));
   }
 
+  // LA BARRERA ES EL TECLADO ABIERTO, ASI QUE HAY QUE PREGUNTARLE AL TECLADO.
+  //
+  // Los tres manejadores de abajo escribian en state.pin y llamaban a validatePin()
+  // sin mirar si el modal estaba delante del operario. Con el teclado cerrado los
+  // botones siguen en el arbol -solo estan ocultos por CSS-, asi que cualquier cosa
+  // que dispare un click sobre ellos ARMA state.pinVerificado sin que la barrera se
+  // haya abierto nunca: es el estado de una barrera armado por fuera de la barrera.
+  //
+  // Que nadie llegue ahi con el dedo no lo vuelve teorico. En N-83 el arnes tecleaba
+  // 1234 sobre un modal que la guarda de punta jamas abrio, la sesion se autorizaba
+  // sola, y SOLICITAR_PASO seguia dando [OK] mientras seis comprobaciones de al lado
+  // caian: el defecto no se cobro en la calle, se cobro QUITANDOLE CAPACIDAD DE
+  // DETECTAR A OTRA PRUEBA, que es la forma cara de pagarlo.
+  function tecladoPinAbierto() {
+    return !!pinModal && pinModal.classList.contains('active');
+  }
+
   const pinButtons = document.querySelectorAll('.pin-btn[data-key]');
   pinButtons.forEach(btn => {
     btn.addEventListener('click', () => {
+      if (!tecladoPinAbierto()) return;
       if (state.pin.length < 4) {
         state.pin += btn.getAttribute('data-key');
         updatePinDisplay();
@@ -2532,6 +2571,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnPinClear) {
     btnPinClear.addEventListener('click', () => {
+      if (!tecladoPinAbierto()) return;
       state.pin = state.pin.slice(0, -1);
       updatePinDisplay();
     });
@@ -2539,18 +2579,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnPinOk) {
     btnPinOk.addEventListener('click', () => {
+      if (!tecladoPinAbierto()) return;
       if (state.pin.length === 4) validatePin();
     });
   }
 
   function validatePin() {
+    // La guarda se repite AQUI a proposito, y no es un adorno de la de arriba: esta
+    // es la unica linea del fichero que arma state.pinVerificado. Guardar solo las
+    // tres entradas deja la puerta abierta a la CUARTA que alguien anada manana; los
+    // manejadores frenan la pulsacion, esta frena la autorizacion.
+    if (!tecladoPinAbierto()) return;
     if (state.pin === state.correctPin) {
-      closeModal(pinModal);
-      state.pinVerificado = true;
+      // Se recoge ANTES de cerrar porque cerrar el teclado ya cancela la cola (ver
+      // closeModal): esta accion no se cancela, se acaba de autorizar.
       // Dos usos distintos: autorizar un comando pendiente NO asciende a TECNICO.
       // El operario que da paso desde el suelo no queda con el menu de ajustes abierto.
       const accion = state.accionPendiente;
-      state.accionPendiente = null;
+      closeModal(pinModal);
+      state.pinVerificado = true;
       if (accion) { accion(); return; }
       setRole('TECNICO');
     } else {
