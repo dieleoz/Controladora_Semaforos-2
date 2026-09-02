@@ -126,6 +126,13 @@ unsigned long protocolo_bytesRecibidos()   { return m_bytes; }
 unsigned long protocolo_tramasValidas()    { return m_validas; }
 void          protocolo_resetReplayProtection() {}
 
+// N-106 metio esta llamada dentro de modo_degradado.cpp y el arnes se quedo sin
+// enlazar: compilaba y moria en el enlazador, o sea ABORTADO -que no dice NADA de la
+// pantalla-. Devuelve false a proposito: este arnes mide GEOMETRIA de las vistas, y el
+// ambar de emergencia no dibuja ninguna. Que lo ejerza es trabajo de esclavo_08 y del
+// simulador, no de aqui; ponerlo a true dejaria las cinco vistas del Esclavo sin medir.
+bool     bluetooth_ambarEmergencia()                    { return false; }
+
 // El respaldo real habla con los registros BKP del STM32; aqui basta con que
 // diga que no hay nada guardado, que es el caso en el que manda la radio.
 void     respaldo_guardarDegradado(bool)                { }

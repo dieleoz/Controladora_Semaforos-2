@@ -20,7 +20,7 @@ bitacora. Lo anterior no se pierde —vive en el `git log` de este repositorio y
 | | que hacer | por que |
 |---|---|---|
 | **1** | `git status` y **revisar por el diff** lo que dejo el ultimo agente en `05_Funcional/Guia_Cableado_y_Pruebas_Banco.html` | quedo en vuelo al cerrar. Se revisa por el diff, **no por su informe** (§8.ter) |
-| **2** | 🔴 **`python 01_Firmware/compuerta.py` — DOS PASADAS completas, arbol limpio** | **el acta en disco no corresponde al codigo**: se escribio sobre `fa66710` con el arbol sucio. Dos pasadas porque la primera compara contra el acta anterior (§3) |
+| **2** | 🔴 **Arreglar N-112 ANTES de creerse ninguna corrida**: la compuerta alterna `0` y `1` en pasadas consecutivas sobre un arbol identico | mientras eso siga, **su codigo de salida no significa nada**, y el habito que crea -re-correr hasta que salga verde- se lleva por delante la compuerta entera |
 | **3** | **Copiar las cifras del acta nueva** a `README.md`, `ESTADO.md`, `CERTIFICACION_SW.md` y a la tabla de §1 aqui arriba | tres packs lo vigilan y estaran en rojo hasta entonces. **Se copian del acta, nunca se escriben a mano** |
 | **4** | **Regenerar el `.zip`** (`python generar_entrega_v9_0.py`) | el entregado el 31/08 lleva la APK al dia y **un acta que no le corresponde**. Ojo: el nuevo saldra con **~355 ficheros y no 365**, y no falta nada — el generador ya no mete el fuente de la PWA |
 
@@ -288,6 +288,53 @@ compilan C++ real, ni este roadmap.
 
 ## 6. Los hallazgos de esta sesion — el porque de todo lo de arriba
 
+
+### 🔴 N-112 — La compuerta ALTERNA verde y rojo sobre un arbol identico: su codigo de salida no significa nada
+
+**Medido el 01/09, tres corridas completas seguidas sin tocar UN SOLO fichero entre ellas:**
+
+```
+pasada 1:  RESUMEN: 16 PASS | 1 FALLA | 0 ABORTADO   ->  exit 1
+pasada 2:  RESUMEN: 17 PASS | 0 FALLA | 0 ABORTADO   ->  exit 0
+pasada 3:  RESUMEN: 16 PASS | 1 FALLA | 0 ABORTADO   ->  exit 1
+```
+
+**El mecanismo, observado directamente en el acta.** `documentos_01_cifras_del_acta` compara lo que
+publican README y ESTADO contra la fila `banco por packs` del acta **ANTERIOR**. Cuando el banco sale
+en verde esa fila trae sus cifras —`RESUMEN: 829/829 comprobaciones | packs: 59 PASS...`— y el pack
+puede anclar el recuento: son **dos comprobaciones mas**. Cuando el banco sale en rojo, la fila del
+acta guarda **el texto del fallo en vez de las cifras**, `_cifra()` no encuentra el patron
+`x/y comprobaciones`, y esas dos comprobaciones **desaparecen**.
+
+Total en verde **829**, total en rojo **827**. Publicar cualquiera de los dos hace fallar la corrida
+siguiente, que restaura el otro. **No hay ninguna cifra publicable que estabilice esto**: la busque
+iterando, y el punto fijo del banco a solas (827) no es el punto fijo bajo la compuerta (829).
+
+> 🔴 **Por que esto es peor que un FALLA:** el proyecto ya tiene escrito que *«un `FALLA` permanente
+> tampoco es un aviso»* y que *«un codigo de salida que jamas cambia ensena a ignorarlo»*. Esto es la
+> version siguiente y mas danina: **un codigo de salida que cambia solo ensena a re-correr hasta que
+> salga verde**, y ese habito destruye la compuerta entera — porque el `0` que se acaba publicando es,
+> literalmente, el que se ha elegido a base de repetir.
+>
+> Y esta noche pasó exactamente eso: estuve a punto de correr una vez mas «para dejar el acta en
+> verde». Eso habria sido el error, no el arreglo.
+
+**La regla que queda, y generaliza a cualquier instrumento del banco:**
+
+> **El NUMERO de comprobaciones que emite un pack no puede depender de su propio veredicto.** Si una
+> rama de `if` llama a `verificar()` dos veces y la otra a `reportar()`, el total se mueve con el
+> resultado, y un total que se mueve solo no se puede publicar — que es justo lo que §3 exige.
+
+**Como se arregla** (no se hizo el 01/09: son las 2 de la manana y tocar el pack de cifras a esta hora
+es como se meten los defectos que este fichero documenta): las dos comprobaciones ancladas se emiten
+**siempre**, y cuando el acta no trae el par se emiten en **FALLA** diciendo que el acta no lo trae —
+que es una afirmacion verdadera y util— en vez de no emitirse. Y su `control_negativo` tiene que
+ejercer las dos ramas, porque es justo lo que hoy no hace.
+
+**Mientras tanto: las cifras de la tabla de §1 SI estan medidas y no oscilan** —flash, packs,
+arneses, app—. Lo que no vale nada hasta arreglar esto es **el codigo de salida**.
+
+---
 
 ### 🟠 N-110 — Dos barreras de la app que no vigila nadie, salidas de invertir el arnes de DOM
 

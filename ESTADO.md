@@ -8,7 +8,8 @@ publica el árbol y se deja el anterior accesible como remoto **`padre`**.
 **Versión de Especificación y Firmware:** **V9.0 — implementada y compilando. NO probada en banco.**  
 **En campo sigue la V8.4 (`e303485`).** La compuerta en verde dice que los modelos y arneses de PC no
 encuentran nada; no dice que el firmware funcione sobre la tarjeta. Ver 🛑 más abajo.  
-**Compuerta:** ✅ **15 PASS | 0 FALLA | 0 ABORTADO** (Exit code: 0) · Maestro: 88.3% Flash (57.880 de 65.536 B → **7.656 B libres**) · Esclavo: 64.4% Flash · Repetidor: 20.6% Flash · 445/445 en 39 packs · 271/271 pantalla · 71/71 automatico · 29/29 ciclo · app: 32/32 unitarios + 61/61 jsdom + 58/58 funcional · `evidencia/2026-08-31_compuerta.txt`
+**Compuerta:** ⚠️ **ALTERNA entre `17 PASS | 0 FALLA` (exit 0) y `16 PASS | 1 FALLA` (exit 1) en pasadas consecutivas sobre un arbol identico** (medido el 01/09: `1`, `0`, `1`). No es que el firmware cambie: cambia lo que el acta anterior le deja leer al pack de cifras. **Mientras esto siga asi, el codigo de salida de la compuerta no significa nada** — ver N-112. Lo que si esta medido y no oscila: · Maestro: 88.8% Flash (58.188 de 65.536 B → **7.348 B libres**) · Esclavo: 65.7% Flash · Repetidor: 20.6% Flash · ESP32: 35.6% Flash · 829/829 en 59 packs · 271/271 pantalla · 71/71 automatico · 22/22 ciclo · 78/78 puente ESP32 · app: 32/32 unitarios + 77/77 jsdom + 58/58 funcional · `evidencia/2026-09-01_compuerta.txt`  
+Y aun cuando salga en verde, el verde dice lo de siempre: **los modelos y los arneses de PC no encuentran nada.** No dice que el firmware funcione sobre la tarjeta, que es lo que falta.
 
 ---
 
@@ -160,7 +161,7 @@ el 28/08—. Las filas tachadas **no se borran**: una tachada con su motivo no s
 - 🔴 **Y la primera versión del pack daba VERDE con el defecto delante** —comparó `61` suelto y
   `README.md:335` dice `y=61` hablando del LCD—. Se arregló comparando la fracción y se vio caer
   **tres veces** a `50/51` con exit `1`. Detalle en [`roadmap.md`](roadmap.md) §N-93.
-- ✅ **Compuerta: 15 PASS · 0 FALLA · 0 ABORTADO** en `evidencia/2026-08-31_compuerta.txt`.
+- ✅ **Compuerta: 15 PASS · 0 FALLA · 0 ABORTADO** en `evidencia/2026-09-01_compuerta.txt`.
 
 ---
 
@@ -242,7 +243,7 @@ Esta fila queda abierta hasta que ese trabajo entre y se pueda releer el censo.
   selector ofrecía un PIN `0000` que el firmware rechaza siempre, y se leían `SITE`/`PAIR` que
   nadie emite. Las tres copias (`www/`, assets de Android) vuelven a ser la misma.
 - ✅ **`simulador_app_bluetooth.py` conectado a la compuerta**, y con la prueba muerta arreglada.
-- ✅ **Compuerta: 15 PASS · 0 FALLA · 0 ABORTADO** en `evidencia/2026-08-31_compuerta.txt`.
+- ✅ **Compuerta: 15 PASS · 0 FALLA · 0 ABORTADO** en `evidencia/2026-09-01_compuerta.txt`.
 
 ## 🟢 CERRADO EN ESTA SESIÓN (28/08/2026) — N-75, la app que no oía al equipo
 

@@ -62,13 +62,17 @@ assert(parsedErr && parsedErr.cmd === 'SET_MODO', 'Parser detecta trama $ERR');
 // 3. Generación y Validación de Comandos con PIN
 console.log('\n--- 3. Comandos con PIN y Validación de Rangos ---');
 const cmdAuto = NMEAParser.generarComando('1234', 'SET_MODO', 'AUTO');
-assert(cmdAuto.includes('CMD:PIN:1234:SET_MODO:AUTO'), 'Generación de comando SET_MODO con PIN 1234');
+// includes() no puede ver un envoltorio: es cierto tambien de '$CMD:PIN:...*XX', que
+// es una trama que el despachador del firmware RECHAZA. Estas tres lineas dieron
+// verde durante meses sobre exactamente esa trama mala. Se compara la cadena ENTERA,
+// terminador incluido, porque el terminador es parte del contrato.
+assert(cmdAuto === 'CMD:PIN:1234:SET_MODO:AUTO\r\n', 'Generación de comando SET_MODO con PIN 1234');
 
 const cmdRojo = NMEAParser.generarComando('1234', 'FORZAR_ROJO');
-assert(cmdRojo.includes('CMD:PIN:1234:FORZAR_ROJO'), 'Generación de comando FORZAR_ROJO');
+assert(cmdRojo === 'CMD:PIN:1234:FORZAR_ROJO\r\n', 'Generación de comando FORZAR_ROJO');
 
 const cmdTiempos = NMEAParser.generarComando('1234', 'SET_TIEMPOS', '2,2,15');
-assert(cmdTiempos.includes('CMD:PIN:1234:SET_TIEMPOS:2,2,15'), 'Generación de comando SET_TIEMPOS (Verde:2m, Rojo:2m, Despeje:15s)');
+assert(cmdTiempos === 'CMD:PIN:1234:SET_TIEMPOS:2,2,15\r\n', 'Generación de comando SET_TIEMPOS (Verde:2m, Rojo:2m, Despeje:15s)');
 
 try {
   NMEAParser.generarComando('123', 'SET_MODO');

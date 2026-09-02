@@ -1,6 +1,21 @@
 // ===== js/nmea_parser.js =====
 // Parser y Formateador de Tramas NMEA de Telemetría Semafórica
 
+// Vocabulario de ausencia, el MISMO que RF_NO_MEDIDO de app.js: las tres cifras de la
+// trama se marcan igual, asi que tienen que leerse igual. Si esta lista y la de app.js
+// dejan de coincidir, una punta declarara la ausencia y la otra la pintara como dato.
+const _SIN_DATO = ['', '-', '--', '?', 'NA', 'N/A', 'NULL', 'NO_MEDIDO', 'SIN_DATO'];
+
+function _numeroOMarca(v, conv, base) {
+  const crudo = String(v).trim();
+  if (_SIN_DATO.indexOf(crudo.toUpperCase()) >= 0) return crudo;
+  const n = base === undefined ? conv(crudo) : conv(crudo, base);
+  // Un campo que no sea ni numero ni marca conocida tampoco se convierte en 0: se
+  // devuelve entero, para que quien pinte vea que no lo entiende en vez de heredar
+  // una cifra que nadie midio.
+  return Number.isNaN(n) ? crudo : n;
+}
+
 const NMEAParser = {
   /**
    * Calcula el checksum XOR estándar NMEA (formato hexadecimal de 2 caracteres)
@@ -71,10 +86,19 @@ const NMEAParser = {
         case 'SERIE': data.serie = v; break;
         case 'MODO': data.modo = v; break;
         case 'ESTADO': data.estado = v; break;
+        // El `|| 0` que habia aqui es el MISMO defecto que app.js documenta haber
+        // quitado de su propio camino, y este modulo se lo quedo: con un campo que no
+        // fuera un numero -"--", vacio, "N/A"- devolvia **0**, o sea el peor enlace
+        // medible, la bateria a cero y una latencia perfecta, sin que nadie hubiera
+        // medido nada. "No lo se" y "va fatal" son cosas distintas.
+        //
+        // Desde N-108 las dos puntas MARCAN la ausencia en vez de inventarse la cifra,
+        // asi que el valor llegaba bueno y era el parser quien lo estropeaba. Ahora el
+        // marcador se devuelve tal cual y decide quien pinta, que sabe declararlo.
         case 'T': data.restante = parseInt(v, 10) || 0; break;
-        case 'RF': data.rf = parseInt(v, 10) || 0; break;
-        case 'RTT': data.rtt = parseInt(v, 10) || 0; break;
-        case 'BAT': data.bat = parseFloat(v) || 0; break;
+        case 'RF': data.rf = _numeroOMarca(v, parseInt, 10); break;
+        case 'RTT': data.rtt = _numeroOMarca(v, parseInt, 10); break;
+        case 'BAT': data.bat = _numeroOMarca(v, parseFloat); break;
         case 'HORA': data.hora = v; break;
       }
     }
@@ -131,7 +155,15 @@ const NMEAParser = {
       throw new Error('PIN inválido: debe contener exactamente 4 dígitos numéricos');
     }
     const payload = args ? `CMD:PIN:${pin}:${comando}:${args}` : `CMD:PIN:${pin}:${comando}`;
-    return this.formatearTrama(payload);
+    // NO se envuelve con formatearTrama(). Las dos direcciones del cable NO tienen la
+    // misma forma, y esta funcion llevaba tiempo componiendo la de la direccion
+    // contraria: el firmware manda '$STATUS,...*XX' -con dolar y checksum- y la app
+    // manda 'CMD:PIN:...' pelado y terminado en CR LF, que es lo que bluetooth.cpp
+    // compara con strncmp.
+    // Envuelta, la trama empieza por '$' y el despachador no la reconoce: el comando se
+    // pierde entero. Es la forma que usa enviarComandoFirmware() de app.js, que es la
+    // que de verdad viaja.
+    return payload + '\r\n';
   }
 };
 

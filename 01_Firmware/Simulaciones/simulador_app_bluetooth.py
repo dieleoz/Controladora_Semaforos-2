@@ -237,6 +237,32 @@ def cerrar_trama(payload_con_dolar):
 _ESPECIFICADOR = re.compile(r"%[-+ #0-9.]*(?:hh|h|ll|l|z|j|t)?[a-zA-Z]")
 
 # Como se compara cada campo de la trama con lo que el parser de la app devuelve.
+# El vocabulario de ausencia que usan las dos puntas desde N-108: cuando no hay con que
+# medir, el campo viaja MARCADO en vez de con un numero inventado. Es la misma lista que
+# RF_NO_MEDIDO de app.js, y esta aqui porque el instrumento tiene que saber leerla.
+SIN_DATO = ("", "-", "--", "?", "NA", "N/A", "NULL", "NO_MEDIDO", "SIN_DATO")
+
+
+def _sin_dato_o(conv):
+    """Envuelve un conversor numerico para que sepa que "no lo se" no es un numero.
+
+    Antes esto era `int(re.match(...).group(0))` a pelo, y el dia que el firmware dejo de
+    inventarse RF/RTT/BAT el `re.match` devolvio None: AttributeError, y la comprobacion
+    entera cayo a ABORTADO. Un arnes que no sabe leer un valor legitimo no esta
+    detectando un defecto - esta dejando de medir, que es la puerta abierta de 3.quater.
+
+    El centinela se devuelve TAL CUAL, no se traduce a 0 ni a None: si el parser colapsa
+    la ausencia a un numero, la comparacion tiene que verlo y decirlo. "No lo se" y "va
+    fatal" son cosas distintas, y un 0 las junta - que es exactamente el defecto que
+    app.js documenta haber quitado de su propio camino.
+    """
+    def convertir(v):
+        if str(v).strip().upper() in SIN_DATO:
+            return str(v).strip()
+        return conv(v)
+    return convertir
+
+
 # Si el firmware estrena un campo que no este aqui, esto ABORTA: preferimos no medir a
 # medir de menos en silencio, que es como se pierden los campos nuevos.
 CAMPOS = {
@@ -245,9 +271,9 @@ CAMPOS = {
     "MODO":   ("modo",     lambda v: v),
     "ESTADO": ("estado",   lambda v: v),
     "T":      ("restante", lambda v: int(re.match(r"\d+", v).group(0))),
-    "RF":     ("rf",       lambda v: int(re.match(r"\d+", v).group(0))),
-    "RTT":    ("rtt",      lambda v: int(re.match(r"\d+", v).group(0))),
-    "BAT":    ("bat",      lambda v: float(re.match(r"[\d.]+", v).group(0))),
+    "RF":     ("rf",       _sin_dato_o(lambda v: int(re.match(r"\d+", v).group(0)))),
+    "RTT":    ("rtt",      _sin_dato_o(lambda v: int(re.match(r"\d+", v).group(0)))),
+    "BAT":    ("bat",      _sin_dato_o(lambda v: float(re.match(r"[\d.]+", v).group(0)))),
     "HORA":   ("hora",     lambda v: v),
 }
 
