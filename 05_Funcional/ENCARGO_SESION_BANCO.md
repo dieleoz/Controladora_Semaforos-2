@@ -45,7 +45,7 @@ cosa**. Lo que se ejecuta está en otros dos ficheros, y hay que llevar los dos:
 
 | Documento | Qué es | Cómo se usa |
 |---|---|---|
-| [`Guia_Cableado_y_Pruebas_Banco.html`](Guia_Cableado_y_Pruebas_Banco.html) | **23 pasos** en formato `HAZ / COMPRUEBA / TIENES QUE VER / ANOTA`. Todo lo que es conectar, medir con multímetro y cargar firmware | Se abre en el navegador o se **imprime y se rellena a bolígrafo**. Guarda lo escrito en el propio navegador |
+| [`Guia_Cableado_y_Pruebas_Banco.html`](Guia_Cableado_y_Pruebas_Banco.html) | **29 pasos** en formato `HAZ / COMPRUEBA / TIENES QUE VER / ANOTA`. Todo lo que es conectar, medir con multímetro y cargar firmware | Se abre en el navegador o se **imprime y se rellena a bolígrafo**. Guarda lo escrito en el propio navegador |
 | [`3_Protocolo_Pruebas_Rigurosas.md`](3_Protocolo_Pruebas_Rigurosas.md) | **52 pruebas ejecutables** de comportamiento, y **34 marcadas como no ejecutables hoy** con el motivo escrito. Es el acta que se firma | Se ejecuta **después** de la Guía, y sus secciones se enganchan a los tramos de la Guía según la tabla de abajo |
 
 > 🔴 **Las pruebas del Protocolo que hoy no se pueden ejecutar NO tienen casilla de firma.** Es
@@ -94,11 +94,11 @@ necesita:
 |---|---|---|---|
 | **0** | Módulo, carga del firmware, `J16`/`J17`, tapar los 12 V | **Guía, pasos 1 a 5** | La carga va **antes** de enchufar nada en `J16`. Con el firmware viejo dentro, `J16` p10 sigue siendo *Aceptar* en un equipo que está en la calle |
 | **1** | 🔴 **Que el ciclo arranque y mueva las luces — N-42** | **Guía, pasos 6 a 8** + **Protocolo §2 y §3** | **Es la regresión abierta y es lo primero.** Mientras siga, nada de lo demás se puede dar por bueno |
-| **2** | 🔴 **La medida de `J16` p5, p8, p10 y p12** | **Guía, paso 14** | **Decide si los bloques 4 y 5 existen.** Va pronto a propósito: si sale mal, hay media sesión que replantear y conviene saberlo el primer día, no el último |
+| **2** | 🔴 **La medida de `J16` p5, p8, p10 y p12** | **Guía, paso 20** | **Decide si los bloques 4 y 5 existen.** Va pronto a propósito: si sale mal, hay media sesión que replantear y conviene saberlo el primer día, no el último |
 | **3** | Reloj, pila y veredicto del cristal `Y2` | **Protocolo §7** | Requisito del Modo Degradado: sin reloj en hora y sincronizado, el modo no entra. **Y va después del bloque 1** porque una carga nueva borra el binario que se estuviera bisecando |
 | **4** | Mando de relés, por puente | **Protocolo §8** | Depende del bloque 2 |
 | **5** | 🔴 **Modo Degradado, incluido el defecto N-106** | **Protocolo §9** | Depende de los bloques 3 y 4. Es lo más largo y lo más delicado |
-| **6** | Talanquera y cámaras de demanda | **Guía, pasos 9 a 15** + **Protocolo §11** | Independiente. Si un bloque anterior se atasca, éste se puede adelantar |
+| **6** | Talanquera y cámaras de demanda | **Guía, pasos 15 a 21** + **Protocolo §11** | Independiente. Si un bloque anterior se atasca, éste se puede adelantar |
 | **7** | Telemetría, órdenes y **los rechazos** | **Protocolo §12** | Se puede hacer en paralelo con cualquier otro, con el terminal abierto |
 
 ---
@@ -211,35 +211,34 @@ masa                          =  J16 p2
 ```
 
 **Un pulso `A` es tocar un instante `J16` p5 contra masa con un cable suelto.** Es el mismo recurso
-que la Guía usa en su paso 13 para hacer de cámara con un pulsador.
+que la Guía usa en su paso 19 para hacer de cámara con un pulsador.
 
 > 🔴 **Antes de tocar `J16`, dos requisitos que no son opcionales:**
 > 1. **Paso 4 de la Guía hecho: el pin de 12 V tapado.** En el cobre esos 12 V corren a **1,36 mm**
 >    del más cercano de estos pines — no a los milímetros que se ven entre los pines del conector.
-> 2. **Paso 14 de la Guía hecho, con su resultado delante:**
+> 2. **Paso 20 de la Guía hecho, con su resultado delante:**
 >    - Si p5 y p8 dan **circuito abierto contra masa y ~3,3 V en reposo** → el puente funciona, y los
 >      bloques 4 y 5 se ejecutan.
 >    - Si dan **~10 kΩ contra masa** → el pull-up interno no puede ganarles, el pin queda
 >      permanentemente en BAJO y **el mando está inoperante de fábrica**. En ese caso **el Protocolo
->      §8 y §9 no se ejecutan**: se anotan los números del paso 14 y **eso es el hallazgo**.
+>      §8 y §9 no se ejecutan**: se anotan los números del paso 20 y **eso es el hallazgo**.
 >
 > ⚠️ **Lo que el puente NO demuestra, y va escrito al lado:** demuestra que **el firmware reconoce
 > las secuencias**. No demuestra que los pulsos lleguen **desde el piso, por radio**, que es la
 > condición real de uso — con su rebote de contacto y sus ~2 s por pulsación. Eso sigue sin
 > receptor con el que probarlo, y queda aplazado (prueba 8.9 del Protocolo).
 
-> ⚠️ **Y un detalle de numeración que conviene saber antes de buscarlo en el poste:** la Guía se
-> refiere a esta medida unas veces como *«la medida del paso 14»* y otras como *«del paso 15»*. **La
-> medida es el PASO 14** —*«Antes de tocar las cámaras de `J16`: la medida que lo decide»*—; el paso
-> 15 es el que **cablea** la cámara, y sólo si el 14 salió bien. Cuando este encargo dice «paso 14»
-> se refiere a la medida.
+> ⚠️ **Y no confunda los dos pasos de la Guía que hablan de `J16`, porque hacen cosas distintas:**
+> **el PASO 20 es la MEDIDA** —*«La medida que decide lo de `J16`»*—, y es la que decide; **el PASO 21
+> es el que CABLEA** la cámara, y sólo se hace si el 20 salió bien. Cuando este encargo dice «paso
+> 20» se refiere a la medida.
 
 > 🔴 **Un desacuerdo entre documentos que hay que resolver antes de la sesión, y no lo resuelve el
-> técnico.** El paso 14 de la Guía dice *«los cuatro tienen que dar lo mismo»*. Eso era cierto
+> técnico.** El paso 20 de la Guía dice *«los cuatro tienen que dar lo mismo»*. Eso era cierto
 > cuando p5, p8, p10 y p12 eran los cuatro pulsadores. **Desde el 31/08 no lo es:** p10 y p12 son
 > cámaras y las quieren en reposo a masa (activas en ALTO), mientras p5 y p8 son el mando, activo
 > en BAJO. **Si los cuatro dieran lo mismo, una de las dos funciones estaría rota.** Se anota como
-> hallazgo del paso 14 y se decide con el dato delante, no en el poste.
+> hallazgo del paso 20 y se decide con el dato delante, no en el poste.
 
 ---
 
@@ -308,13 +307,13 @@ de la fase que *ella* calcula, y si las dos calculan mal, las dos dirán que tod
 
 ## 6 · Qué devolver
 
-1. **La Guía rellena**, con los tres cuadros de `ANOTA` de los 23 pasos — **también los que salieron
+1. **La Guía rellena**, con los tres cuadros de `ANOTA` de los 29 pasos — **también los que salieron
    bien**. Una casilla en blanco no dice nada.
 2. **El Protocolo rellenado y firmado**, con su acta. Las pruebas sin casilla **no se firman**: si
    ejecutó alguna de ellas por su cuenta, anótelo en el cuadro de texto libre, no invente casilla.
 3. **N-42:** `md5` de cada binario cargado y qué hizo cada uno. **Si el ancla falló, dígalo — es un
    resultado, no un fracaso.**
-4. **Los números del paso 14 de la Guía**, tal cual, aunque no se entiendan. Deciden dos bloques.
+4. **Los números del paso 20 de la Guía**, tal cual, aunque no se entiendan. Deciden dos bloques.
 5. **El veredicto del reloj en las DOS tarjetas** (una está diagnosticada, la otra no): la respuesta
    literal de `CMD:PIN:1234:REINICIAR_RELOJ` en cada una.
 6. **La respuesta literal de cada rechazo provocado** (prueba 12.7). Un `$ACK` donde debía haber un
@@ -339,14 +338,14 @@ esperan a esto — y algunas esperan a una decisión, no a una compra.
 | **H1** | **Receptor de radio del mando de relés** (uno por punta si se quiere en las dos) | Prueba **8.9**, y convierte todo el bloque 4/5 de *«ejercido con un cable»* a *«ejercido como se usa»* | 🔴 **No se compra hasta decidir D1.** Ver abajo |
 | **H2** | **Fuente conmutada DC-DC 12 V → 5 V, ≥ 1 A**, con fusible y protección de polaridad inversa | Toda la §12 del Protocolo | **Conmutada, no lineal.** Un lineal desde 12 V disiparía más de 4 W en un armario cerrado y al sol, y cae de tensión justo cuando el módulo tira del pico — el síntoma parece un problema de programa. **La referencia concreta no está elegida** |
 | **H3** | **Módulo de reloj `DS3231`** con su pila | Prueba **12.6** (Courier RTC) | Si trae **`CR2032` en vez de `LIR2032`**, hay que desoldar el diodo o la resistencia de su circuito de carga: **la `CR2032` no es recargable y ese circuito la calienta** |
-| **H4** | **Dos cámaras de demanda** *(confirmar antes si ya hay una en almacén)* | Prueba **11.3** | Contacto seco **normalmente abierto**. Se cablean a `J14`, que está probado — **no** a `J16` hasta que el paso 14 lo permita |
+| **H4** | **Dos cámaras de demanda** *(confirmar antes si ya hay una en almacén)* | Prueba **11.3** | Contacto seco **normalmente abierto**. Se cablean a `J14`, que está probado — **no** a `J16` hasta que el paso 20 lo permita |
 | **H5** | **Dos radios más, con antenas y coaxiales**, y la placa del repetidor con su `MAX3485` | La §6 entera del Protocolo (6 pruebas) | 🔴 **No se compra hasta decidir D2.** La topología vigente es de **2 radios en enlace directo, sin repetidor**: hoy esas 6 pruebas certifican algo que no se está desplegando |
 
 ### Lo que hay que construir
 
 | # | Qué | Desbloquea | Estado |
 |---|---|---|---|
-| **C1** | **La placa del módulo ESP32** — con sus dos tiras de conector hembra, la fuente H2 y el reloj H3 encima, y el USB del módulo accesible | Pruebas **12.1**, **12.5**, **12.6**, y el uso de la app en toda la sesión | 🔴 **No está diseñada, ni fabricada, ni medida.** El apartado 06 de la Guía dice **cómo tiene que ser**, no cómo es. **No se manda a fabricar hasta contar los pines y medir el ancho del módulo — paso 1 de la Guía**: vienen de 30 y de 38 pines y de anchos distintos |
+| **C1** | **La placa del módulo ESP32** — con sus dos tiras de conector hembra, la fuente H2 y el reloj H3 encima, y el USB del módulo accesible | Pruebas **12.1**, **12.5**, **12.6**, y el uso de la app en toda la sesión | 🔴 **No está diseñada, ni fabricada, ni medida.** El apartado 07 de la Guía dice **cómo tiene que ser**, no cómo es. **No se manda a fabricar hasta contar los pines y medir el ancho del módulo — paso 1 de la Guía**: vienen de 30 y de 38 pines y de anchos distintos |
 | **C2** | **Cargar el firmware del ESP32** en el módulo | Ídem | El firmware **existe** (`01_Firmware/ESP32_Expansion/`) y **no está cargado**. Un módulo sin él aparece en el teléfono, deja conectar y **no reenvía nada**: eso es lo esperado, **no se reporta como avería y no se cambia el módulo** |
 
 ### Firmware que falta, y no es una compra

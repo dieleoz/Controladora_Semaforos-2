@@ -69,26 +69,26 @@ hoy no llevan casilla**.
 
 **Todo lo que es conectar, medir con multímetro y cargar el firmware está en
 [`Guia_Cableado_y_Pruebas_Banco.html`](Guia_Cableado_y_Pruebas_Banco.html)**, en formato
-`HAZ / COMPRUEBA / TIENES QUE VER / ANOTA`, 23 pasos. **Se ejecuta entera antes que este documento y
+`HAZ / COMPRUEBA / TIENES QUE VER / ANOTA`, 29 pasos. **Se ejecuta entera antes que este documento y
 no se duplica aquí**: dos versiones del mismo procedimiento son dos cosas que alguien tendría que
 mantener sincronizadas, y el día que difieran nadie sabrá cuál manda.
 
-De sus 23 pasos, éstos son requisito de este protocolo:
+De sus 29 pasos, éstos son requisito de este protocolo:
 
 | Paso de la Guía | Por qué es requisito aquí |
 |---|---|
 | **2** — cargar el firmware nuevo en las dos tarjetas | Va **antes** de enchufar nada en `J16`. Con el firmware viejo dentro, `J16` p10 sigue siendo *Aceptar* |
 | **3** y **4** — distinguir `J16` de `J17` y **tapar el pin de 12 V** | `J16` p1 lleva 12 V crudos. Sin tapar, no se toca `J16` |
-| **14** — la medida de reposo de `J16` p5, p8, p10, p12 | **Decide si §8 y §9 de este protocolo se pueden ejecutar.** Ver §0.3 |
-| **18** — los cuatro hilos a `J17` | Es el único camino por el que hoy entra una orden |
+| **20** — la medida de reposo de `J16` p5, p8, p10, p12 | **Decide si §8 y §9 de este protocolo se pueden ejecutar.** Ver §0.3 |
+| **24** — los cuatro hilos a `J17` | Es el único camino por el que hoy entra una orden |
 
 > 🔴 **Un desacuerdo entre este protocolo y la Guía que hay que resolver antes de la sesión, y no lo
-> resuelve el técnico.** El paso 14 de la Guía mide `J16` p5, p8, p10 y p12 y dice *«los cuatro
+> resuelve el técnico.** El paso 20 de la Guía mide `J16` p5, p8, p10 y p12 y dice *«los cuatro
 > tienen que dar lo mismo»*. Eso era cierto cuando los cuatro eran pulsadores. **Desde el 31/08 no
 > lo es:** p10 y p12 son cámaras y las quiere en reposo a masa (activas en ALTO), mientras p5 y p8
 > son el mando, que el firmware lee en `INPUT_PULLUP` y **activo en BAJO**
 > (`Esclavo/src/botones.cpp:37`, `:160-161` — **MEDIDO**). **Si los cuatro dieran lo mismo, una de
-> las dos funciones estaría rota.** Se anota como hallazgo del paso 14, no se interpreta en el poste.
+> las dos funciones estaría rota.** Se anota como hallazgo del paso 20, no se interpreta en el poste.
 
 ### 0.2 · Por dónde se manda una orden hoy
 
@@ -97,8 +97,8 @@ De sus 23 pasos, éstos son requisito de este protocolo:
 
 | vía | disponible hoy | cómo |
 |---|---|---|
-| **Adaptador USB-TTL a 9600** directo a `J17` (su RX a p3, su TX a p2, masa a p7 o p9) | ✅ **Sí** | Guía, paso 6 y paso 22 |
-| **ESP32 + Bluetooth SPP + app del móvil** | ❌ **No.** La placa del módulo no existe (§0.4) | Guía, apartado 06 |
+| **Adaptador USB-TTL a 9600** directo a `J17` (su RX a p3, su TX a p2, masa a p7 o p9) | ✅ **Sí** | Guía, paso 6 y paso 28 |
+| **ESP32 + Bluetooth SPP + app del móvil** | ❌ **No.** La placa del módulo no existe (§0.4) | Guía, apartado 07 |
 
 **Anote siempre por cuál de las dos lo hizo.** Una orden que llega por USB-TTL demuestra que el
 firmware del STM32 la entiende; **no demuestra nada del ESP32, ni del enlace Bluetooth, ni de la app.**
@@ -155,7 +155,7 @@ $EVENT,NODE:..,ORIGEN:..,DETALLE:..,HORA:..*CRC
 
 ### 0.3 · Cómo se ejercen las secuencias del mando SIN el receptor
 
-El receptor de radio del mando **nunca se compró** (Guía, paso 23). Pero los dos canales que quedan
+El receptor de radio del mando **nunca se compró** (Guía, paso 29). Pero los dos canales que quedan
 son pines de entrada de la propia tarjeta, y el firmware los lee en `INPUT_PULLUP` **activo en BAJO**
 (`Esclavo/src/botones.cpp:37`, `:160-161`; `Maestro/src/botones.cpp`, mismo cuerpo — **MEDIDO**):
 
@@ -166,16 +166,16 @@ masa                          =  J16 p2
 ```
 
 **Un pulso `A` es tocar un instante `J16` p5 contra masa con un cable suelto.** Un pulso `B`, lo
-mismo en p8. Es el mismo recurso que la Guía usa en su paso 13 para hacer de cámara con un pulsador.
+mismo en p8. Es el mismo recurso que la Guía usa en su paso 19 para hacer de cámara con un pulsador.
 
 > 🔴 **Requisitos, y no son opcionales:**
 > 1. **El paso 4 de la Guía hecho**: el pin de 12 V de `J16` tapado. En el cobre, esos 12 V corren
 >    a **1,36 mm** del más cercano de estos pines — no a los milímetros que se ven entre los pines
 >    del conector.
-> 2. **El paso 14 de la Guía hecho, y con su resultado delante.** Si p5 y p8 dan **~10 kΩ contra
+> 2. **El paso 20 de la Guía hecho, y con su resultado delante.** Si p5 y p8 dan **~10 kΩ contra
 >    masa**, el pull-up interno no puede ganarles: el pin queda permanentemente en BAJO y el mando
 >    está **inoperante de fábrica**. En ese caso **§8 y §9 no se ejecutan**, y *eso* es el hallazgo:
->    se anota con los números del paso 14 y se para.
+>    se anota con los números del paso 20 y se para.
 > 3. Si p5 y p8 dan **circuito abierto contra masa y ~3,3 V en reposo**, el puente funciona y §8 y
 >    §9 se ejecutan.
 >
@@ -207,7 +207,7 @@ mismo en p8. Es el mismo recurso que la Guía usa en su paso 13 para hacer de c�
   dos binarios del mismo tamaño pueden ser distintos, y dos de nombre distinto pueden ser el mismo.
   - `md5` Maestro: ________________________  `md5` Esclavo: ________________________
 - [ ] **0.5.4** Adaptador USB-TTL conectado a `J17` de cada punta, terminal a 9600, y **`$STATUS`
-  llegando cada segundo en las dos**. Si no llega, se para aquí y se sigue el árbol del apartado 08
+  llegando cada segundo en las dos**. Si no llega, se para aquí y se sigue el árbol del apartado 09
   de la Guía. Sin `$STATUS` no se puede operar nada.
 
 ---
@@ -222,7 +222,7 @@ Firmware ESCLAVO — md5: ______________________  Fecha binario: __________
 Nº de serie Maestro: ______________  Nº de serie Esclavo: ______________
 Air Data Rate verificado: __________ kbps      Canal: __________
 Via de mando usada:  [ ] USB-TTL a 9600   [ ] ESP32 + app
-Puente de mando en J16 p5/p8:  [ ] SI, tras el paso 14   [ ] NO   [ ] paso 14 lo desaconseja
+Puente de mando en J16 p5/p8:  [ ] SI, tras el paso 20   [ ] NO   [ ] paso 20 lo desaconseja
 Auditor responsable: ____________________________________________________
 ```
 
@@ -397,7 +397,7 @@ porque se mueven cada hora: viven en las actas de `evidencia/`, con su fecha y e
 **4.2 Cede de paso por demanda** — ♻️ **SE REESCRIBE** *(antes: «inyectar la trama `AI_CARS:X`»)*
 - *Acción:* con `CMD:PIN:1234:SET_MODO:INTELIGENTE` puesto, provocar una demanda por **una** de estas
   dos vías, y anotar cuál:
-  - cerrando el contacto seco en `J14` (cámara real, o un pulsador suelto — **Guía, pasos 12 y 13**);
+  - cerrando el contacto seco en `J14` (cámara real, o un pulsador suelto — **Guía, pasos 18 y 19**);
   - mandando `CMD:PIN:1234:DEMANDA` al Maestro.
 - *Esperado:* `$ACK,CMD:DEMANDA,RESULT:REGISTRADA`, y el cruce **respeta el todo-rojo de despeje**
   antes de conceder el verde a ese sentido. Cronometrar desde el cierre del contacto hasta el verde.
@@ -550,7 +550,7 @@ Enlace DIRECTO (2 radios):   RF ______ %     RTT ______ ms
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 - > 🔴 **Un `$ACK` aquí sobre una tarjeta que luego pierde la hora es un hallazgo importante**, no
   > una molestia: es el equipo diciendo que sí y no haciéndolo, y el técnico se va del poste creyendo
-  > que dejó el reloj puesto. **Se anota literalmente lo que contestó.** *(Guía, paso 21.)*
+  > que dejó el reloj puesto. **Se anota literalmente lo que contestó.** *(Guía, paso 27.)*
 
 **7.2 Edición dígito a dígito** — 🚫 **SE RETIRA**
 - *Por qué:* medía el subrayado del dígito activo y el recorrido con Botones 1/2/3 en una pantalla
@@ -587,7 +587,7 @@ Enlace DIRECTO (2 radios):   RF ______ %     RTT ______ ms
 - > **Si falla, la pila no está haciendo su trabajo.** Revise que `R5` esté retirado y el positivo
   > soldado al pad de `VBAT` (`2_Manual_Hardware_y_Pruebas.md §5`).
   > **Sólo importa cuál de las dos falla.** Si la que pierde la hora es la del Esclavo, no hay que
-  > comprar nada: la coge del Maestro por radio. *(Guía, paso 21.)*
+  > comprar nada: la coge del Maestro por radio. *(Guía, paso 27.)*
 
 **7.7 Veredicto del cristal `Y2`** — ♻️ **SE REESCRIBE** *(antes: la pantalla `CONSULTA RELOJ`)*
 - *Qué cambia:* la pantalla de diagnóstico con sus cuatro líneas y su punto parpadeante **ya no se
@@ -672,9 +672,9 @@ Desfase calculado: ________ s
 
 ## 📑 SECCIÓN 8 — MANDO DE 4 RELÉS Y SECUENCIAS (SFTY-21)
 
-> **Lea §0.3 antes de esta sección.** Si el paso 14 de la Guía dice que `J16` p5 y p8 llevan ~10 kΩ
+> **Lea §0.3 antes de esta sección.** Si el paso 20 de la Guía dice que `J16` p5 y p8 llevan ~10 kΩ
 > a masa, **el mando está inoperante y esta sección no se ejecuta**: se anotan los números del paso
-> 14 y se para. Ése es el hallazgo.
+> 20 y se para. Ése es el hallazgo.
 >
 > **Sólo aplica al MAESTRO** salvo donde se diga. El Esclavo tiene sus propias secuencias en el
 > firmware, y en él se ejercen en la Sección 9.
@@ -749,7 +749,7 @@ Desfase calculado: ________ s
   a distancia, sin ver el equipo. Es lo que el puente de §0.3 **no** demuestra.
 - **Falta: el receptor de radio del mando. Nunca se compró.** La tarjeta tiene las entradas
   preparadas; falta el aparato.
-- **No se firma.** *(Guía, paso 23: si no lo tiene, se marca «No se pudo» con ese motivo — **nunca**
+- **No se firma.** *(Guía, paso 29: si no lo tiene, se marca «No se pudo» con ese motivo — **nunca**
   como correcto.)*
 - > ⚠️ **Y hay una decisión de seguridad abierta antes de comprarlo (N-19):** si se quieren mandos en
   > las dos puntas, ¿llevan **el mismo código o códigos distintos**? Un solo código metería las dos
@@ -772,7 +772,7 @@ Desfase calculado: ________ s
 > **3. La Sección 7 debe estar CUMPLE** — sin reloj en hora y sincronizado, el modo no entra.
 >
 > **4. La entrada en el ESCLAVO sólo es posible por el puente de `J16` (§0.3).** No hay comando, no
-> hay pantalla y no hay receptor. Si el paso 14 de la Guía desaconseja el puente, **de 9.6 en
+> hay pantalla y no hay receptor. Si el paso 20 de la Guía desaconseja el puente, **de 9.6 en
 > adelante no se ejecuta nada** y se anota el motivo.
 >
 > Material: forma de **cortar el radio** y **dos observadores**, uno en cada punta, comunicados.
@@ -1022,9 +1022,10 @@ Y a los 3 minutos, seguia en AMBAR?       [ ] SI   [ ] NO, volvio a: ___________
 > que sale por la bornera **`J14`** (`Maestro/include/pines.h:46`, **MEDIDO**).
 >
 > 🔴 **`PB8` NO es una entrada de cámara** y no lo ha sido nunca en el firmware. Alimenta un LED
-> testigo de la placa. Hay documentación antigua que dice lo contrario (Guía, apartado 09).
+> testigo de la placa. Hay documentación antigua que dice lo contrario (Guía, al final: el
+> desplegable **«Consulta · qué va en cada bornera»**).
 >
-> 🔴 **Las cámaras de `J16` p10/p12 no se cablean en esta sesión** hasta que el paso 14 de la Guía
+> 🔴 **Las cámaras de `J16` p10/p12 no se cablean en esta sesión** hasta que el paso 20 de la Guía
 > mida la resistencia de reposo de esos pines. Sin ella, un cable flojo no queda en reposo: **queda
 > flotando, y el ruido del armario mete peticiones de paso que nadie ha hecho.**
 
@@ -1033,7 +1034,7 @@ Y a los 3 minutos, seguia en AMBAR?       [ ] SI   [ ] NO, volvio a: ___________
   `J14`, que hace exactamente el mismo papel— estando ese sentido en Rojo.
 - *Esperado:* el Maestro registra la demanda, **aplica el todo-rojo de despeje** y conmuta a
   🟢 Verde Maestro. **En reposo no pide paso solo.**
-- *El montaje y la comprobación de que el contacto conmuta de verdad están en los **pasos 11, 12 y 13
+- *El montaje y la comprobación de que el contacto conmuta de verdad están en los **pasos 17, 18 y 19
   de la Guía**. No se repiten aquí: traiga de allí los números.*
 - Segundos hasta el verde: ________  En reposo, ¿pidió paso solo? ____________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
@@ -1063,7 +1064,7 @@ Y a los 3 minutos, seguia en AMBAR?       [ ] SI   [ ] NO, volvio a: ___________
   `PB14` y `PB15` **son las cámaras**, y `PB9`/`PB13` ya no son pulsadores de menú sino los canales
   `A` y `B` del mando.
 - **No se firma.**
-- > 🔴 **Lo que sí hay que medir en su lugar ya está escrito, y es el paso 14 de la Guía**: la
+- > 🔴 **Lo que sí hay que medir en su lugar ya está escrito, y es el paso 20 de la Guía**: la
   > polaridad de reposo de `J16` p5, p8, p10 y p12, hoy en **contradicción medida** entre el netlist
   > (pull-**down** de 10 kΩ, activo en ALTO) y el fuente (`INPUT_PULLUP`, activo en BAJO). Cablear al
   > revés da **demanda permanente** o **demanda que nunca llega**: las dos son de calle.
@@ -1076,10 +1077,10 @@ Y a los 3 minutos, seguia en AMBAR?       [ ] SI   [ ] NO, volvio a: ___________
 - *Qué mediría:* que el móvil empareje con el módulo a 10 m, en menos de 5 s.
 - **Falta: la placa del ESP32** (no diseñada, no fabricada, no medida), **su fuente** (DC-DC 12 V→5 V
   ≥1 A, sin pedir) y **el firmware del módulo**, que se entrega aparte.
-- **No se firma.** *(El montaje, cuando exista la placa, está en los pasos 16 a 19 de la Guía.)*
+- **No se firma.** *(El montaje, cuando exista la placa, está en los pasos 22 a 25 de la Guía.)*
 - > ⚠️ **Y un requisito que va antes de comprar:** dos cruces vecinos ponen cuatro módulos al alcance
   > del mismo teléfono. **El nombre del módulo es lo único que impide mandar una orden de emergencia
-  > al poste equivocado** (Guía, paso 19).
+  > al poste equivocado** (Guía, paso 25).
 
 **12.2 Telemetría periódica `$STATUS`** — ♻️ **SE REESCRIBE**
 - *Acción:* con el terminal a 9600 en cada punta, observar el flujo un minuto.
@@ -1129,7 +1130,7 @@ RF y RTT del Esclavo: ______ / ______   (deben salir 98% y 85ms fijos)
 - **No se firma.**
 - > ⚠️ **Cuando exista, hay un aviso de montaje que no es opcional:** si el módulo del reloj trae una
   > **`CR2032` en vez de una `LIR2032`**, hay que desoldar el diodo o la resistencia de su circuito
-  > de carga. **La `CR2032` no es recargable y ese circuito la calienta** (Guía, paso 16).
+  > de carga. **La `CR2032` no es recargable y ese circuito la calienta** (Guía, paso 22).
 
 **12.7 El equipo dice que NO cuando no puede** ➕ **NUEVA** — ♻️ *(ejecutable hoy)*
 - *Por qué existe:* **es la propiedad más importante de todo el protocolo y no tenía prueba propia.**
@@ -1160,7 +1161,7 @@ En el ESCLAVO:
 - > 🔴 **Un `$ACK` en cualquiera de las nueve es el fallo entero, aunque el equipo se comporte bien
   > después.** Y hay una que hay que mirar **con los ojos**, no en el terminal: con
   > `CMD:PIN:1234:TEST_LEDS` en el Maestro las lámparas se encienden pero **la talanquera NO se puede
-  > mover**. Si la pluma sube durante esa prueba, anótelo — es importante *(Guía, paso 22)*.
+  > mover**. Si la pluma sube durante esa prueba, anótelo — es importante *(Guía, paso 28)*.
 
 ---
 
@@ -1240,7 +1241,7 @@ DATOS MEDIDOS  (no cuentan como CUMPLE/NO CUMPLE: son registro para el acta)
      Duracion del ciclo completo ............ ______ s   (esperado ~120 s)
      Todo-rojo medido ....................... ______ s   (esperado ~30 s)
 
-  Mando (§0.3), del paso 14 de la Guia:
+  Mando (§0.3), del paso 20 de la Guia:
      J16 p5 contra masa ..... ______   p8 contra masa ..... ______
      -> El puente se pudo usar?  [ ] SI   [ ] NO, motivo: ______________
 ```
