@@ -667,6 +667,51 @@ def arnes_automatico():
     anotar("arnes del automatico", PASS if p.returncode == 0 else FALLA, cuenta[:110])
 
 
+def arnes_dos_puntas():
+    """Ejecuta el C++ REAL de LAS DOS PUNTAS A LA VEZ y comprueba que nunca dan verde
+    las dos.
+
+    Por que existe, y por que no bastaba con lo que ya habia: hasta el 01/09 NINGUN
+    instrumento ejecutaba las dos puntas a la vez. barrera_02 comparaba el texto del
+    enclavamiento -buen proxy, no un ejercicio-, Validacion_Automatico compila C++
+    real pero SOLO del Maestro, y lo unico que cerraba el lazo era una copia del
+    firmware escrita a mano en Python, que es justo lo que el apartado 8 avisa que no
+    prueba el codigo. Verde contra verde en un cierre de carril es un choque frontal:
+    era la propiedad mas cara del equipo y la peor cubierta.
+
+    El choque de simbolos -las dos puntas definen los mismos nombres- se resuelve con
+    una DLL por punta cargadas en el mismo proceso, asi que un tick pone el MISMO
+    millis() en las dos, las llama a las dos, y SOLO ENTONCES lee los doce pines. Ese
+    instante comun es lo que dos ejecutables separados no pueden tener. De regalo, un
+    microcorte es descargar y recargar la DLL: vuelven al arranque TODAS las estaticas
+    de esa punta, incluidas las que nadie recuerda, que es lo que un reset a mano
+    escrito por una persona no garantiza.
+
+    Comprobado que sabe fallar antes de conectarlo, y por CADA PUNTA POR SEPARADO: con
+    VERDE1 forzado a HIGH bajo el enclavamiento cae a 26/42 inyectando en el Maestro y
+    a 23/42 en el Esclavo, con salida 1 las dos veces. La del Esclavo tira tres
+    comprobaciones mas, que es coherente: es la punta que no tenia instrumento."""
+    d = os.path.join(RAIZ, "Validacion_Automatico")
+    guion = os.path.join(d, "compilar_dos_puntas.ps1")
+    if not os.path.isfile(guion):
+        anotar("arnes de las dos puntas", ABORTADO,
+               "no existe compilar_dos_puntas.ps1")
+        return
+    if _asegurar_gcc() is None:
+        anotar("arnes de las dos puntas", ABORTADO, MOTIVO_GCC)
+        return
+    p = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                        "-File", guion],
+                       cwd=d, capture_output=True, text=True, errors="replace")
+    salida = (p.stdout or "") + (p.stderr or "")
+    if "comprobaciones" not in salida:
+        anotar("arnes de las dos puntas", ABORTADO,
+               f"no llego a medir (solo {len(salida)} caracteres de salida)")
+        return
+    cuenta = next((l.strip() for l in reversed(salida.splitlines())
+                   if "RESULTADO" in l), "")
+    anotar("arnes de las dos puntas", PASS if p.returncode == 0 else FALLA, cuenta[:110])
+
 # ---------------------------------------------------------------------------
 # INICIO DEL BLOQUE DEL SIMULADOR DEL PUENTE ESP32 (31/08).
 # Otro agente esta dando de alta el rol del fuente del ESP32 en este mismo fichero:
@@ -799,6 +844,7 @@ def main():
     arnes_ciclo()
     arnes_respaldo()
     arnes_automatico()
+    arnes_dos_puntas()
     # BLOQUE DEL SIMULADOR DEL PUENTE ESP32 (31/08) - ver la funcion para el porque.
     # Va en esta seccion y no arriba con los modelos porque DOS de sus tres puntas son
     # codigo real: la app en jsdom y bluetooth.cpp compilado. La unica modelada es el
