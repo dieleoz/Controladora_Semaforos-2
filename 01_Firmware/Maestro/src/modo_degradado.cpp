@@ -34,7 +34,7 @@
 // POR QUE 30 s DE DESPEJE. En Degradado el todo-rojo ya no es solo el despeje de la
 // interseccion: es el colchon que absorbe la DERIVA entre dos cristales de 32.768 kHz
 // sin calibrar y a la intemperie, que se separan del orden de 8,6 s al dia en el peor
-// caso.
+// caso. Con 30 s de despeje el margen teorico son ~3,5 dias.
 //
 // EL FACTOR DE SEGURIDAD DE 2 QUE AQUI SE AFIRMABA ES FALSO. Medido el 01/09 ejecutando
 // el C++ REAL de las dos puntas a la vez, cada una con su reloj -Validacion_Automatico/

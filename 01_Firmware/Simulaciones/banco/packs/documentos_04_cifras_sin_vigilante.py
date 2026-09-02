@@ -398,6 +398,22 @@ def correr(b, fw):
         "FIRMA y apunta a un acta vieja manda a verificar la corrida equivocada"
         % (", ".join(citadas) or "ninguna", ultima[:10]))
 
+# SEGUNDA VUELTA DE N-112 (02/09): EL PREDICADO ERA "SALIO PASS" Y TIENE QUE SER
+# "TRAE LA CIFRA".
+#
+# Cambiar reportar() por verificar() quito la oscilacion, pero dejo vivo un bucle: estas
+# comprobaciones exigian par[0] == "PASS" en la fila del acta, y esa fila estaba en FALLA
+# PRECISAMENTE PORQUE ELLAS FALLABAN. Un pack que se pide a si mismo estar en verde para
+# poder ponerse en verde no se puede aprobar con ningun documento, y eso es lo que
+# CLAUDE.md llama una comprobacion que ningun firmware puede aprobar: no es una
+# comprobacion, es una nota.
+#
+# Y era ademas el predicado equivocado por el fondo: desde que compuerta.py da prioridad a
+# la linea de RESUMEN, el acta trae las cifras del banco AUNQUE EL BANCO ESTE EN ROJO. Una
+# cuenta en rojo es una cuenta verdadera - dice cuantas comprobaciones hay y cuantas
+# cumplen-, y compararla contra el documento es exactamente lo que se quiere. Lo que
+# invalida la comparacion no es que el banco falle: es que la cifra NO SE PUEDA LEER.
+#
 # N-112 (01/09): AQUI NO SE PUEDE USAR reportar() EN LUGAR DE verificar().
 #
 # Este pack tenia el mismo defecto que documentos_01 en TRES sitios, y era peor por dos
@@ -416,16 +432,16 @@ def correr(b, fw):
 # afirmacion verdadera y util.
     for clave, patron, etiqueta, forma in CIFRAS_ACTA:
         par = res.get(clave)
-        if par is None or par[0] != "PASS":
+        mm = re.search(patron, par[1]) if par else None
+        if mm is None:
             b.verificar(
                 False,
                 "el acta trae la cifra de %r para poder compararla" % clave,
-                "el acta %s no trae cifra de %r: salio %s, asi que no hay nada que "
-                "comparar contra el documento hasta que vuelva a medir"
-                % (ultima, clave, par[0] if par else "AUSENTE"))
+                "el acta %s no trae cifra legible de %r (fila: %s): sin ella no hay nada "
+                "que comparar contra el documento"
+                % (ultima, clave, (par[1][:60] if par else "AUSENTE")))
             continue
-        mm = re.search(patron, par[1])
-        if not mm:
+        if False:
             raise fw.Abortado(
                 "%r salio PASS en el acta y aun asi no se pudo leer su cifra con el "
                 "patron %r sobre %r: fallo el buscador, no el acta"
@@ -454,15 +470,15 @@ def correr(b, fw):
     # Y va con la palabra PEGADA -"39 packs", no "39"-: es la cura del apartado 4.bis
     # de documentos_01, donde un "38" suelto casaba dentro de un hash.
     par = res.get("banco por packs")
-    if par is None or par[0] != "PASS":
+    cuentas = re.findall(r"(\d+)\s+(?:PASS|FALLA|ABORTADO)", par[1]) if par else []
+    if not cuentas:
         b.verificar(
             False,
             "el acta trae el recuento de packs para poder compararlo",
-            "el acta %s no trae el recuento de packs: salio %s, asi que no hay nada "
-            "que comparar contra el documento"
-            % (ultima, par[0] if par else "AUSENTE"))
+            "el acta %s no trae un recuento de packs legible (fila: %s): sin el no hay "
+            "nada que comparar contra el documento"
+            % (ultima, (par[1][:60] if par else "AUSENTE")))
     else:
-        cuentas = re.findall(r"(\d+)\s+(?:PASS|FALLA|ABORTADO)", par[1])
         if not cuentas:
             raise fw.Abortado(
                 "la linea de 'banco por packs' del acta %s salio PASS y aun asi no se "
@@ -483,15 +499,16 @@ def correr(b, fw):
                             ("compila esclavo", "esclavo"),
                             ("compila repetidor", "repetidor")):
         par = res.get(clave)
-        if par is None or par[0] != "PASS":
+        mflash = re.search(r"([\d.]+)%", par[1]) if par else None
+        if mflash is None:
             b.verificar(
                 False,
                 "el acta trae el flash de %s para poder compararlo" % etiqueta,
-                "el acta %s no trae el flash de %s: salio %s, asi que no se puede "
-                "buscar un segundo porcentaje en el documento"
-                % (ultima, etiqueta, par[0] if par else "AUSENTE"))
+                "el acta %s no trae un porcentaje legible de flash de %s (fila: %s): sin "
+                "el no se puede buscar un segundo porcentaje en el documento"
+                % (ultima, etiqueta, (par[1][:60] if par else "AUSENTE")))
             continue
-        real = re.search(r"([\d.]+)%", par[1]).group(1)
+        real = mflash.group(1)
         otros = sorted({x for _, p in cert if etiqueta in p and "flash" in p
                         for x in re.findall(r"([\d.]+)%", p)} - {real})
         b.verificar(

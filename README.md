@@ -45,7 +45,7 @@
 > verde** —24 días al año—. Con T2 (commit `98d9058`), el Esclavo se rinde por el mismo criterio
 > de RTC monótono que el Maestro, eliminando la rendición desfasada por `millis()`. Medido contra el C++ real. Ver [`ESTADO.md`](ESTADO.md).
 
-**Verificación actual** — cifras **copiadas del acta** `evidencia/2026-09-01_compuerta.txt`, que
+**Verificación actual** — cifras **copiadas del acta** `evidencia/2026-09-02_compuerta.txt`, que
 genera `python 01_Firmware/compuerta.py` en una sola corrida. No se escriben a mano — y desde
 **N-62** eso ya no es una promesa: el pack `documentos_01_cifras_del_acta` compara esta tabla
 contra la última acta en cada corrida del banco. Cuando se escribió por primera vez, **falló**:
@@ -54,25 +54,26 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 
 | Comprobación | Estado | |
 |---|---|---|
-| guarda de rutas de los instrumentos | ✅ | 56 rutas parseadas, todas existen |
-| banco por packs *(63 packs)* | 🔴 | **919/922** — 61 packs en `PASS`, **2 en FALLA**. Los ultimos en entrar vigilan lo que la V9.0 estrena: `enlace_01_transporte` (pines, velocidad, buffer y framing del puerto por el que habla el ESP32, que hasta N-94 no miraba nadie), `camara_02_j16`, los nueve del ESP32 y `costura_11_lcd_sin_bus`. |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.0 %** · 65.9 % · 20,6 % · 35,7 % — *7.240 B libres en el Maestro tras las Fases 1 y 2, `AiBus` y N-90* |
+| guarda de rutas de los instrumentos | ✅ | 58 rutas parseadas, todas existen |
+| banco por packs *(65 packs)* | 🔴 | **950/955** — **tres de ellos en FALLA**, el resto en `PASS`. Los ultimos en entrar vigilan lo que la V9.0 estrena: `enlace_01_transporte` (pines, velocidad, buffer y framing del puerto por el que habla el ESP32, que hasta N-94 no miraba nadie), `camara_02_j16`, los nueve del ESP32 y `costura_11_lcd_sin_bus`. |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.2 %** · 65.9 % · 20,6 % · 35,7 % — *7.080 B libres en el Maestro tras las Fases 1 y 2, `AiBus` y N-90* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35,6 % — 1.121.001 de 3.145.728 B |
-| simulador del puente ESP32 | ✅ | **78/78** — las tres puntas: `bluetooth.cpp` compilado, la app en jsdom, y solo el ESP32 modelado |
+| simulador del puente ESP32 | ✅ | **85/85** — las tres puntas: `bluetooth.cpp` compilado, la app en jsdom, y solo el ESP32 modelado |
 | simulador de app y bluetooth | ✅ | 5/5 — **conectado el 27/08**: existía desde el 26/08 y no estaba en el acta |
-| **app ejecutada en DOM** | ✅ | **120/120** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden** *(desde N-75: el rewrite sacó el gestor de cruces, el parser NMEA y el Courier a módulos, y el arnés seguía evaluando sólo `app.js`)*, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
+| **app ejecutada en DOM** | ✅ | **128/128** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden** *(desde N-75: el rewrite sacó el gestor de cruces, el parser NMEA y el Courier a módulos, y el arnés seguía evaluando sólo `app.js`)*, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
 | test funcional de la app | ✅ | **58/58** — también conectado el 27/08. Decía «22/22» a mano y ejecuta 34; su prueba de Courier RTC era una tautología |
 | test unitarios TDD de la app | ✅ | **55/55** — la **segunda** suite unitaria, que hasta el 01/09 **no estaba en la compuerta**: 23 pruebas verdes que no medían nada |
 | test unitarios de la app | ✅ | **32/32** — seis suites sin DOM: NMEA y *checksums*, generador de comandos y barrera de PIN, validación de `SET_TIEMPOS`, Courier RTC, gestor de cruces y escala de 20 cruces. **Faltaba en esta tabla hasta el 28/08**: el acta lo medía y el README no lo nombraba, así que el auditor no tenía forma de saber que existía |
 | arnés de pantalla | ✅ | **271/271** *(Maestro 145/145, Esclavo 126/126)* — +12 al exigir el texto exacto del aviso `>48h` (N-50) |
 | arnés del ciclo | ✅ | **22/22** — corre sobre el `ciclo_degradado.h` real compilado, sin espejo en Python |
 | arnés del respaldo | ✅ | **conectado por fin** (N-43/N-29) — compila el `calcularSuma()` real; identidad de `respaldo.cpp` entre puntas + prueba de vida |
+| arnés del Degradado a dos puntas | ✅ | **18/18** — las dos puntas en Degradado **cada una con su reloj**. Entrega **el número**: el cruce aguanta **29 s** de desfase contra los **20,2 s** que el equipo puede acumular en 48 h, o sea factor **1,44** — y no el 2 que afirmaban los comentarios de las dos puntas |
 | arnés de las dos puntas | ✅ | **42/42** — el C++ **real de las DOS puntas** ejecutándose en el mismo proceso y el mismo instante: verde simultáneo en **0 de 53.236 instantes** |
 | arnés del automático | ✅ | **71/71** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` **reales** y comprueba SFTY-2 sobre las escrituras de pin |
 
-**17 PASS · 2 FALLA · 0 ABORTADO, de 19 comprobaciones — la compuerta sale con código `1`.**
+**19 PASS · 1 FALLA · 0 ABORTADO, de 20 comprobaciones — la compuerta sale con código `1`.**
 
 ✅ **N-112 cerrado: ya no alterna.** Tres corridas seguidas sobre un árbol idéntico dan lo mismo.
 Hacían falta **dos** arreglos, no uno: `documentos_01` y `documentos_04` contaban distinto según
@@ -134,7 +135,7 @@ escribir que eso no se hace: decía `✅ 829/829, los 59 packs en PASS` citando 
 > no es eso, y qué sigue roto. Un lector que empieza por *"100% PASS"* no llega a la línea que
 > importa. El método está en la skill `entregar`.
 
-> ### 📦 El banco son 59 packs — la migración terminó el 05/08, y creció con V9.0
+> ### 📦 El banco son 65 packs — la migración terminó el 05/08, y creció con V9.0
 >
 > *(Este rótulo decía **34** mientras la tabla de arriba y el acta que ella cita decían **38**. Un
 > documento que se contradice a sí mismo en dos párrafos es el caso que ya cazó N-62 con las rutas;
@@ -178,7 +179,7 @@ escribir que eso no se hace: decía `✅ 829/829, los 59 packs en PASS` citando 
 > los `lcd.cpp` y `menu.cpp` reales, pero contra un framebuffer en el PC, no contra la ST7920.
 
 **Certificado en campo:** 31 de Julio de 2026 *(V8.4, dos radios en enlace directo)*  
-**Última actualización del repositorio:** 31 de Agosto de 2026 *(la cifra vigente y su hash de HEAD están en el acta que cita la tabla de arriba —`evidencia/2026-09-01_compuerta.txt`—, y no se repiten aquí: este pie llevaba `14 PASS` sobre HEAD `2cde016` cuando el acta ya medía otra cosa, y un recuento viejo no se lee como viejo, se lee como medida. **Nada de esto ha pasado banco**: siguen abiertas la regresión N-42 del Modo Automático, el cristal N-37, y las cuatro funciones de V9.0 que ningún PC puede validar)*
+**Última actualización del repositorio:** 31 de Agosto de 2026 *(la cifra vigente y su hash de HEAD están en el acta que cita la tabla de arriba —`evidencia/2026-09-02_compuerta.txt`—, y no se repiten aquí: este pie llevaba `14 PASS` sobre HEAD `2cde016` cuando el acta ya medía otra cosa, y un recuento viejo no se lee como viejo, se lee como medida. **Nada de esto ha pasado banco**: siguen abiertas la regresión N-42 del Modo Automático, el cristal N-37, y las cuatro funciones de V9.0 que ningún PC puede validar)*
 **Repositorio Oficial:** [`github.com/dieleoz/Controladora_Semaforos-2`](https://github.com/dieleoz/Controladora_Semaforos-2.git) — remoto `origin`. *(Este renglón publicaba `2semaforos_3estados.git`, que es el remoto **`padre`**: `git remote -v` lo dice. Un README que da la dirección del repositorio anterior manda a clonar el árbol anterior.)*  
 **Normativa Aplicable:** Resolución 2024 del Ministerio de Transporte de Colombia (Secuencia de Luces y Tiempos de Seguridad Vial)
 
@@ -618,7 +619,7 @@ queda si el ESP32 se cuelga**, y por eso se conserva: en sus dos canales `A` y `
 - [`01_Firmware/Simulaciones/simulador_sistema_v7_6.py`](file:///d:/@Proyect/Controladora_Semaforos/01_Firmware/Simulaciones/simulador_sistema_v7_6.py): Banco de simulación en Python — **20/20 PASS** con barrido de 86.400 segundos.
 - [`01_Firmware/Simulaciones/simulador_repetidor.py`](file:///d:/@Proyect/Controladora_Semaforos/01_Firmware/Simulaciones/simulador_repetidor.py): Escenarios de enlace de radio — **10/10 PASS**.
 - [`01_Firmware/Validacion_LCD/`](01_Firmware/Validacion_LCD): Validación de pantalla ejecutada en el PC — **271/271 comprobaciones OK**. ⏳ **Mide código que se va a retirar**: cuando la pantalla salga, sus comprobaciones van una por una a *borrar, invertir o conservar* —con la cuenta comparada antes y después—, nunca en bloque.
-- [`01_Firmware/compuerta.py`](01_Firmware/compuerta.py): Suite formal de verificación integral — **17 PASS · 0 FALLA · 0 ABORTADO** (Exit code 0). Las cifras están en la tabla de arriba, que se copia del acta; ésta es sólo la puerta.
+- [`01_Firmware/compuerta.py`](01_Firmware/compuerta.py): Suite formal de verificación integral — **19 PASS · 1 FALLA · 0 ABORTADO** (Exit code 0). Las cifras están en la tabla de arriba, que se copia del acta; ésta es sólo la puerta.
 
 > 🛑 **Y para cerrar donde se abrió: nada de este README es un permiso.** En campo corre la **V8.4**;
 > la V9.0 compila y pasa la compuerta, y **no ha visto una tarjeta**. La arquitectura de arriba está

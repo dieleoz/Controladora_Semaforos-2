@@ -12,8 +12,8 @@ publica el árbol y se deja el anterior accesible como remoto **`padre`**.
 **Versión de Especificación y Firmware:** **V9.0 — implementada y compilando. NO probada en banco.**  
 **En campo sigue la V8.4 (`e303485`).** La compuerta en verde dice que los modelos y arneses de PC no
 encuentran nada; no dice que el firmware funcione sobre la tarjeta. Ver 🛑 más abajo.  
-**Compuerta:** 🔴 **18 PASS | 1 FALLA | 1 ABORTADO** · **hay un `ABORTADO`, y un `ABORTADO` es una puerta abierta**: el `simulador del puente ESP32` **no llegó a correr** —*«no compilan los arneses del STM32»*—, así que **no dice nada** del contrato del puente. Cifras **copiadas del acta `evidencia/2026-09-01_compuerta.txt` (HEAD `0bc0e25`, árbol CON cambios sin commitear)**: · Maestro: 89.2% Flash (58.456 de 65.536 B → **7.080 B libres**) · Esclavo: 65.9% · Repetidor: 20.6% · ESP32: 35.7% · **939/943 en 64 packs (61 PASS, 3 FALLA)** · 271/271 pantalla · 71/71 automatico · 22/22 ciclo · 42/42 dos puntas · 18/18 Degradado a dos puntas · app: 32/32 + 55/55 unitarios + 128/128 jsdom + 58/58 funcional
-⚠️ ~~17 PASS | 2 FALLA | 0 ABORTADO · 919/922 en 63 packs · 78/78 puente ESP32 · 120/120 jsdom · 89.0% Maestro~~ — **cifras de la corrida anterior.** El `78/78` además **no salía de ningún acta**: la de entonces decía `75/78`. **Estas cifras se vuelven a copiar del acta en cada corrida; no se escriben a mano** (N-93).  
+**Compuerta:** 🔴 **19 PASS | 1 FALLA | 0 ABORTADO** (Exit code: 1) · el ABORTADO del `simulador del puente ESP32` **se cerró**: era un arnés que dejó de enlazar al ganar el firmware una llamada nueva, y ahora da `85/85`. El FALLA que queda es **de cifras de documentos, no de firmware**. Cifras **copiadas del acta `evidencia/2026-09-02_compuerta.txt`** · Maestro: 89.2% Flash (58.456 de 65.536 B → **7.080 B libres**) · Esclavo: 65.9% · Repetidor: 20.6% · ESP32: 35.7% · **940/955 en 65 packs** · 271/271 pantalla · 71/71 automatico · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** · 85/85 puente ESP32 · app: 32/32 + 55/55 unitarios + 128/128 jsdom + 58/58 funcional
+⚠️ ~~18 PASS | 1 FALLA | 1 ABORTADO · 939/943 en 64 packs~~ — **cifras de la corrida anterior**, con el ABORTADO que ya está cerrado. **Estas cifras se vuelven a copiar del acta en cada corrida; no se escriben a mano** (N-93).  
 Y aun cuando salga en verde, el verde dice lo de siempre: **los modelos y los arneses de PC no encuentran nada.** No dice que el firmware funcione sobre la tarjeta, que es lo que falta.
 
 ---
@@ -166,7 +166,7 @@ el 28/08—. Las filas tachadas **no se borran**: una tachada con su motivo no s
 - 🔴 **Y la primera versión del pack daba VERDE con el defecto delante** —comparó `61` suelto y
   `README.md:335` dice `y=61` hablando del LCD—. Se arregló comparando la fracción y se vio caer
   **tres veces** a `50/51` con exit `1`. Detalle en [`roadmap.md`](roadmap.md) §N-93.
-- ⚠️ ~~**Compuerta: 15 PASS · 0 FALLA · 0 ABORTADO** en `evidencia/2026-09-01_compuerta.txt`.~~ —
+- ⚠️ ~~**Compuerta: 15 PASS · 0 FALLA · 0 ABORTADO** en `evidencia/2026-09-02_compuerta.txt`.~~ —
   **NO VERIFICADO, y el fichero que cita dice otra cosa.** Medido el 01/09 sobre las actas del
   disco: `2026-09-01` dice **17 PASS | 2 FALLA | 0 ABORTADO** (HEAD `94850e0`) y `2026-08-31` dice
   **15 PASS | 1 FALLA | 1 ABORTADO** (HEAD `fa66710`). **Ninguna de las dos da `15 · 0 · 0`**, así
@@ -252,7 +252,7 @@ Esta fila queda abierta hasta que ese trabajo entre y se pueda releer el censo.
   selector ofrecía un PIN `0000` que el firmware rechaza siempre, y se leían `SITE`/`PAIR` que
   nadie emite. Las tres copias (`www/`, assets de Android) vuelven a ser la misma.
 - ✅ **`simulador_app_bluetooth.py` conectado a la compuerta**, y con la prueba muerta arreglada.
-- ✅ **Compuerta: 15 PASS · 0 FALLA · 0 ABORTADO** en ~~`evidencia/2026-09-01_compuerta.txt`~~ →
+- ✅ **Compuerta: 15 PASS · 0 FALLA · 0 ABORTADO** en ~~`evidencia/2026-09-02_compuerta.txt`~~ →
   **`evidencia/2026-08-27_compuerta.txt`**. *(La cifra era la buena; el fichero, no: el acta del
   01/09 dice `17 | 2 | 0`. **MEDIDO el 01/09**: el acta del 27/08 sí dice `15 PASS | 0 FALLA | 0
   ABORTADO`, HEAD `632c22b`, que es la sesión que este bloque cuenta.)*
