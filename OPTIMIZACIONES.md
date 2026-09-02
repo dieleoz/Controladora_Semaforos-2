@@ -1,7 +1,31 @@
 # ⚡ Matriz de Optimizaciones y Reglas de Seguridad (V8.7)
 
-**Fecha de Revisión:** 31 de Julio de 2026  
-**Ecosistema:** Firmware STM32 + Repetidor ESP32 + Protocolo RF 9600 bps  
+**Fecha de Revisión:** 31 de Julio de 2026 · **última auditoría: 01 de Septiembre de 2026**  
+**Ecosistema:** Firmware STM32 + Repetidor ESP32 + Radio LoRa E90-DTU  
+**Velocidades, que no son la misma y se confundían en esta cabecera:** el puerto serie al módulo va a
+**9600 bps** (`Bus.begin(9600)`, `*/src/protocolo.cpp:49`); la **tasa aérea** es de **2,4 kbps**, que es
+la que determina el coste de la ráfaga de SFTY-11 y el peor caso de reintentos de SFTY-7.
+
+> ### 🔎 01/09/2026 — AUDITORÍA DE ESTE DOCUMENTO CONTRA EL FIRMWARE DE HOY
+>
+> Se cruzaron las **29 reglas `SFTY-x`** que aquí se definen contra las **23 etiquetas `# EJERCE`** de
+> los 59 packs, **en las dos direcciones**, y se comprobaron una a una las afirmaciones verificables
+> sobre hardware y firmware. **Lo corregido no se ha borrado: se ha tachado con su motivo**, y cada
+> corrección lleva pegada la medida —fichero:línea o la salida del comando— con la que se hizo.
+>
+> Los seis bloques que un lector con prisa necesita:
+>
+> | | dónde |
+> |---|---|
+> | 🔴 **`SFTY-27` designa DOS reglas** y ocho sitios del firmware mandan a leer la equivocada | tras la tabla de trazabilidad, y un aviso en el propio § `SFTY-27` |
+> | 🔴 **Seis reglas no tenían fila** en la tabla — `SFTY-20`, `22`, `24`, `25`, `26`, `27` | la tabla |
+> | 🔴 **Qué significa de verdad un ✅**: los cuatro packs de `SFTY-2` **leen** el C++, no lo ejecutan | tras las «siete filas vacías» |
+> | 🔴 **El riesgo residual nº 2 estaba descrito corto**: lo dispara un microcorte, y acaba en choque frontal | § riesgos residuales de `SFTY-21` |
+> | ✅ **El riesgo del menú a ciegas se cerró solo el 31/08**: `botonAceptar()` y `botonCancelar()` devuelven `false` | primer bloque del documento |
+> | 📐 **La pantalla: el bus ya no está, la pila sigue enlazada** — 19,3 KB de flash y **1.024 B de RAM**, medidos | § optimización pendiente |
+>
+> **Nada de esto es una prueba de banco.** Todo lo de aquí se midió sobre el fuente, el mapa del
+> enlazador y el esquemático, desde un PC.
 
 ---
 
@@ -47,6 +71,44 @@
 > **no protege contra la navegación**, porque la navegación es justo lo que el menú abierto sí
 > acepta. **Mientras el menú siga en el binario, esto es un riesgo abierto y no una nota
 > histórica.**
+>
+> > ### ✅ 01/09/2026 — ESTE RIESGO SE CERRÓ SOLO EL 31/08, Y NO POR HABERLO ATENDIDO
+> >
+> > **El párrafo de arriba dejó de ser cierto y no se borra: se marca refutado.** Lo que lo cerró fue
+> > el reparto de `J16` de N-97, que se hizo por las cámaras y no por esto.
+> >
+> > **MEDIDO sobre el fuente (01/09), y es de una línea:**
+> >
+> > ```
+> > Maestro/src/botones.cpp:280   bool botonAceptar() { return false; }
+> > Maestro/src/botones.cpp:281   bool botonCancelar(){ return false; }
+> > Esclavo/src/botones.cpp:294   bool botonAceptar() { return false; }
+> > Esclavo/src/botones.cpp:295   bool botonCancelar(){ return false; }
+> > ```
+> >
+> > `PB14` y `PB15` —`J16` p10 y p12— **son entradas de cámara desde el 31/08** (`Maestro/include/pines.h:124-125`,
+> > `CAM_C_PIN` y `CAM_D_PIN`, `INPUT` pelado y activas en ALTO). ACEPTAR y CANCELAR **se quedaron sin
+> > pin**, y las dos funciones devuelven `false` incondicionalmente. De los cuatro botones que este
+> > párrafo daba por vivos **quedan dos**: `BOTON1 = PB9` (arriba / mando A) y `BOTON2 = PB13`
+> > (abajo / mando B).
+> >
+> > **Consecuencia exacta, ni más ni menos:** el cursor todavía sube y baja, pero
+> > `Maestro/src/menu.cpp:111` (`if (botonAceptar())`) y `Maestro/src/modo_hora.cpp:208` (el que confirma
+> > la hora) **no pueden dispararse nunca desde el panel**. La ráfaga de pulsos a ciegas ya no puede
+> > confirmar una hora inventada, porque **no hay con qué confirmar**. El veneno que describe SFTY-18
+> > sigue existiendo; su vía por el panel, no.
+> >
+> > **Y el efecto lateral, que va en la dirección buena y lo anota el propio fuente**
+> > (`Maestro/src/botones.cpp:274-276`): con ACEPTAR mudo la pantalla del Esclavo no puede bajar del
+> > listado, así que `menu_estaAbierto()` es **siempre falso** y el mando ya no puede quedarse inhibido
+> > por una pantalla que alguien dejó abierta.
+> >
+> > ⚠️ **Lo que esto ABRE, y es la otra cara:** el mando de relés y la app pasan a ser **la única**
+> > interfaz de operación. Los sustitutos están censados llamador a llamador en
+> > `Maestro/src/botones.cpp:253-273` —`SET_MODO:`, `SET_TIEMPOS`, `MANUAL:CAMBIAR_TURNO`, `SET_RTC`
+> > por Bluetooth en el Maestro; el mando `A·A·A` / `B·B·B` / `A·B·A·B` en el Esclavo, que **no tiene
+> > `SET_MODO`**—. Ese censo es del fuente y **no está reflejado en los manuales de campo**: quien suba
+> > al poste con el manual de hoy en la mano buscará dos botones que ya no hacen nada.
 
 ---
 
@@ -134,25 +196,115 @@
 > | `PB3`, `PB4`, `PB5` | 3 pines | **Ya libres eléctricamente desde el 31/08.** Lo que queda es liberarlos del binario. `PB6`/`PB7` se los llevó el Bluetooth en N-76 |
 > | Flash | **~18,9 KB** | 🔶 **ESTIMACIÓN de un censo, NO una compilación.** Nadie ha compilado todavía una versión sin pantalla y restado los dos extremos. Hasta que eso se haga, esta cifra no se publica como medida |
 >
+> > ### 📐 01/09/2026 — LO QUE SIGUE ENLAZADO, MEDIDO POR FICHERO OBJETO. Y LA FILA QUE FALTABA: LA RAM
+> >
+> > **La distinción que esta entrada tenía que hacer y no hacía explícita: el BUS ya no está; la PILA
+> > del LCD sí.** Son dos cosas distintas y sólo una se resolvió el 31/08.
+> >
+> > | | estado hoy |
+> > |---|---|
+> > | **El bus** —`PB3` `SCLK`, `PB4` `CS`, `PB5` `SID`— | **fuera.** Los cuatro argumentos de pin son `U8X8_PIN_NONE` (`Maestro/src/lcd.cpp:74-75`), no queda ni un `pinMode` ni un `digitalWrite`, y lo vigila `costura_11_lcd_sin_bus` |
+> > | **La pila** —`libU8g2.a`, `lcd.cpp`, `menu.cpp`, `modo_hora.cpp`— | **dentro, entera.** Se compila, se enlaza, compone el framebuffer en cada vuelta y **lo tira**. Cortar el cable no descuenta un byte, y por eso el delta del 31/08 fue exactamente cero |
+> >
+> > **MEDIDO el 01/09 sobre `Maestro/.pio/build/maestro/firmware.map`** (HEAD `aa69349`), por **fichero
+> > objeto** y sólo sobre las secciones **retenidas** —las que caen en `0x0800xxxx`; el bloque
+> > *Discarded input sections* se descarta antes de sumar. **Ahí se equivoca este censo si se hace de
+> > prisa, y ahí se equivocó la primera pasada de este mismo párrafo**: contando los descartados el
+> > mapa suma 14 MB, o sea 240 veces la flash del micro, que es la señal de que se está midiendo mal.
+> >
+> > ```
+> > total atribuido      58.356 B   (el acta dice 58.296 usados: cuadra en 60 B de tabla de vectores)
+> >   firmware propio    23.768 B
+> >   core / libc        20.652 B
+> >   libU8g2.a          13.936 B  <-- de los cuales 9.483 B son u8g2_fonts.c.o
+> >
+> > ficheros propios de pantalla   lcd.cpp.o 4.430 · modo_hora.cpp.o 748
+> >                                menu.cpp.o 390 · modo_alcance.cpp.o 272   = 5.840 B
+> > ```
+> >
+> > **`13.936 + 5.840 = 19.776 B ≈ 19,3 KB.`** Corrobora la estimación de `~18,9 KB` de la fila de
+> > arriba, **y no la sustituye**: es un **TECHO**, no un delta. Lo que se ahorra de verdad sólo lo dice
+> > compilar sin pantalla y restar los dos extremos (§7 de `CLAUDE.md`), y hay dos motivos por los que
+> > el número real será distinto —`modo_alcance.cpp` es un modo, no sólo una pantalla, y retirar la
+> > pila arrastra además lo que sólo ella usaba del core—.
+> >
+> > #### 🔴 Y la fila que esta tabla no tenía: **1.024 B de RAM**
+> >
+> > ```
+> > RAM atribuida por objeto (0x2000xxxx)         [MEDIDO 01/09, mismo mapa]
+> >   1.024 B  libU8g2.a(u8g2_d_memory.c.o)   <-- el framebuffer 128x64 completo
+> >     188 B  src/lcd.cpp.o
+> >      41 B  src/menu.cpp.o
+> >   -------
+> >   3.386 B  RAM estatica total atribuida del Maestro
+> > ```
+> >
+> > **Es el 30 % de la RAM estática del Maestro, por una pantalla que no está conectada.** Un
+> > censo que sólo mirase flash no lo habría visto: es exactamente N-86 —*«un camino muerto que no
+> > cuesta flash puede seguir costando RAM»*—, y aquí ni siquiera hace falta que el enlazador no pueda
+> > tirarlo: el framebuffer se usa de verdad, se compone entero cada vuelta y se descarta.
+> >
+> > **Esto NO reabre la decisión.** El responsable pidió no quitar el LCD del firmware mientras la
+> > memoria alcance, y alcanza. Lo que hace es **poner el precio completo donde se pueda leer**: quien
+> > algún día necesite 1 KB de RAM tiene aquí medido de dónde sale, sin volver a hacer el censo.
+>
 > **Lo que cuesta, con la misma letra que lo que gana:**
 >
 > 1. 🔴 **`menu.cpp:215` es UNA DE LAS TRES VÍAS que sacan al Esclavo del Modo Degradado.** Las otras
 >    dos son `mando.cpp` y la puerta automática de `main.cpp:385`. **La app NO puede** — es el defecto
 >    **N-106**, abierto y con su pack en rojo. Retirar el menú hoy **elimina una vía de seguridad
 >    mientras otra sigue rota**.
+>
+>    > 🔴 **REFUTADO EL 01/09, y en la dirección INCÓMODA: esa vía ya no existe, y nadie lo había
+>    > apuntado aquí.** `Esclavo/src/menu.cpp:210` pide `aceptar` para llamar a `degradado_salir()`, y
+>    > `aceptar` sale de `botonAceptar()`, que desde el 31/08 es `return false;`
+>    > (`Esclavo/src/botones.cpp:294`) porque su pin `PB15` es una cámara. **La vía del menú está
+>    > muerta hoy, con el menú entero todavía en el binario.**
+>    >
+>    > Así que el coste real de retirar el menú **no es perder una vía**: es que **ya sólo quedan dos**
+>    > —el mando (`A·A·A` → `ACC_OBEDECER`, `B·B·B` → `ACC_AMBAR`) y la puerta automática— y **N-106
+>    > sigue abierto**. El argumento no se debilita: cambia de sitio. Lo que bloquea sigue siendo
+>    > N-106, y ahora sin el colchón que este punto creía tener.
+>
 > 2. **Se van las 271 comprobaciones de `Validacion_LCD`**, y no todas son de pantalla: ese arnés
 >    enlaza `modo_degradado.cpp`, que es **SFTY-21**, y es el único sitio donde esa máquina de estados
->    se compila como C++ real para el PC.
+>    se compila como C++ real para el PC. *(Sigue vigente: `271/271` en el acta del 01/09.)*
 > 3. **`esclavo_02_inhibicion_menu` es el único pack etiquetado `# EJERCE SFTY-21` cuyo sujeto
 >    desaparecería entero**, y con él `maestro_06_fuentes_pantalla` y `maestro_07_menu_opciones`.
+>
+>    > ⚠️ **Matiz del 01/09, y hay que leerlo antes de fiarse de ese pack.** Su sujeto no sólo
+>    > desaparecería: **ya es inalcanzable en la tarjeta**. El pack llega a `P_DEGRADADO`,
+>    > `P_CONFIRMAR` y `P_RECHAZO` pulsando el botón `2` sobre `banco/modelos/esclavo.py`, y ese modelo
+>    > **sigue teniendo cuatro botones** (`consumir_boton(2)` = aceptar, `(3)` = cancelar), mientras el
+>    > firmware tiene dos. El pack mide una lógica que existe y es correcta, sobre un camino que ningún
+>    > operario puede recorrer. **No es una etiqueta que mienta: es un modelo que se quedó atrás.**
+>    > Corregirlo es del que lleve `banco/modelos/` — se anota aquí porque es lo que sostiene una fila
+>    > de la tabla de arriba.
 >
 > **La condición que la desbloquea** —y es lo más útil de esta entrada—: esto se vuelve razonable
 > **cuando N-106 esté cerrado (la app puede sacar al Esclavo del Degradado) y se haya decidido qué
 > pasa con las 271 comprobaciones de `Validacion_LCD`**. Antes de eso, no.
 >
-> **Por qué no se hace hoy: la memoria alcanza.** El Maestro está al **88,2 %**, con **7.712 B
-> libres**, y el Esclavo al **64,3 %**, con **23.384 B**. **Una optimización que no hace falta es
-> riesgo sin contrapartida.**
+> **Por qué no se hace hoy: la memoria alcanza.** ~~El Maestro está al **88,2 %**, con **7.712 B
+> libres**, y el Esclavo al **64,3 %**, con **23.384 B**.~~ **Cifras del acta del 01/09/2026**
+> (`evidencia/2026-09-01_compuerta.txt`, HEAD `aa69349`, filas *compila maestro* y *compila esclavo*):
+>
+> | | usado | de 65.536 B | libres |
+> |---|---|---|---|
+> | Maestro | `58296` B | **89,0 %** | **7.240 B** |
+> | Esclavo | `43192` B | **65,9 %** | **22.344 B** |
+>
+> Las tachadas eran las del 31/08 y **ya no salen de la última corrida**. Se dejan visibles porque lo
+> que importa no es el número suelto sino el sentido: **el margen del Maestro se estrechó 472 B en un
+> día**, y el acta se regeneró **dos veces mientras se escribía esta auditoría** —`58188` B primero,
+> `58296` B después—. **Una optimización que no hace falta es riesgo sin contrapartida** — pero el
+> margen que la sostiene se está gastando a ~0,5 KB/día, y el día que deje de sostenerla hay que
+> decirlo aquí.
+>
+> ⚠️ **Y la regla de higiene que este párrafo estrena, porque le pasó:** una cifra de flash **se copia
+> del acta en el momento de escribirla y se cita con el HEAD del acta**. Sin el HEAD al lado, quien la
+> lea no puede saber contra qué binario vale, y en un árbol con varios agentes trabajando eso caduca
+> en horas, no en semanas.
 >
 > ⚠️ **Y que nadie la reabra por el ruido: el ruido en el conector se acabó el 31/08.** Lo que queda
 > pendiente es **sólo la flash**, y la flash hoy sobra.
@@ -237,10 +389,68 @@ implementar aparece vacía en vez de aparentar cobertura.
 | SFTY-17 | `Esclavo/src/main.cpp` | — |
 | **SFTY-18** | `Maestro/src/reloj.cpp` · `Maestro/include/reloj.h` · `ESP32_Expansion` *(el reloj del puente)* | ✅ `esp32_04_osf` |
 | **SFTY-19** | **— solo diseño, ver abajo.** La única mención en el código es una advertencia en `reloj.h` aclarando que este modo **no** se apoya en el RTC | — |
+| SFTY-20 | `Maestro/include/modo_hora.h` · `ESP32_Expansion/include/reloj_ds3231.h` *(sólo referencias; el modo no existe)* | — |
 | **SFTY-21** | `*/src/modo_degradado.cpp` · `*/src/mando.cpp` · `*/include/ciclo_degradado.h` | ✅ `esclavo_01_latch_ambar` · `esclavo_02_inhibicion_menu` · `esclavo_07_ambar_emergencia` · `esclavo_08_ambar_en_degradado` · `maestro_01_mando` · `maestro_05_ciclo_sin_radio` · `costura_02_fase_ciclo` · `costura_06_reanudacion` · `camara_02_j16` |
+| SFTY-22 | `Maestro/src/lcd.cpp` · `Maestro/include/modo_ambar.h` *(sólo referencias; la pantalla no existe)* | — |
 | **SFTY-23** | `Maestro/src/coordinador.cpp` · `Esclavo/src/config_ciclo.cpp` *(Fase 2)* · `*/src/reloj.cpp` | ✅ `esclavo_03_par_config` · `esclavo_04_desfase` · `esclavo_05_hora_atomica` · `maestro_04_sync_horaria` |
+| SFTY-24 | **— solo diseño.** Cero etiquetas en el firmware | — |
+| SFTY-25 | **— solo diseño.** Cero etiquetas en el firmware | — |
+| SFTY-26 | **— solo diseño.** Cero etiquetas en el firmware | — |
+| **SFTY-27** | 🔴 **DOS REGLAS CON EL MISMO NÚMERO — ver el aviso justo debajo.** Este documento lo define como *«matrícula de pareja»*, sin implementar; las **8 etiquetas del firmware** dicen otra cosa | — |
 | **SFTY-28** | `*/src/semaforo.cpp` *(dentro de `escribirPines()`)* · `*/include/pines.h` | ✅ `barrera_03_talanquera` · `maestro_09_test_leds` |
 | **SFTY-29** | **— solo diseño.** Presencia como veto del todo-rojo y sensor de pluma | — |
+
+> ### 🔴 01/09/2026 — AUDITORÍA DE LA TABLA. Seis filas faltaban, y una de ellas tapaba una colisión de número
+>
+> **Antes de esta pasada la tabla tenía 23 filas para 29 reglas definidas en este documento.** Faltaban
+> `SFTY-20`, `22`, `24`, `25`, `26` y `27`. Una regla que no tiene fila **no aparece vacía: no aparece**,
+> y las dos direcciones que vigila `documentos_02_trazabilidad_sfty` no la echan de menos, porque ese
+> pack sólo cruza *etiquetas de pack* contra *filas*, y ninguna de las seis tenía etiqueta de pack.
+> Añadidas arriba con lo que mide el `grep`, no con lo que se recordaba.
+>
+> **Censo de etiquetas en el firmware [MEDIDO 01/09]**, sobre `Maestro/`, `Esclavo/`, `Repetidor/` y
+> `ESP32_Expansion/`:
+>
+> ```
+> grep -rl "SFTY-27\b" 01_Firmware/{Maestro,Esclavo}/{src,include}
+>   -> 8 ficheros:  Maestro/src/bluetooth.cpp · Maestro/src/botones.cpp
+>                   Maestro/include/botones.h · Maestro/include/demanda.h
+>                   Esclavo/src/bluetooth.cpp · Esclavo/src/botones.cpp
+>                   Esclavo/include/botones.h · Esclavo/include/demanda.h
+> ```
+>
+> #### 🔴 `SFTY-27` DESIGNA DOS REGLAS DISTINTAS, y ocho documentos mandan a leer la equivocada
+>
+> | dónde | qué llama `SFTY-27` | estado |
+> |---|---|---|
+> | **Este documento**, §`SFTY-27` (más abajo) | *«Matrícula de pareja: quién obedece a quién»* | **DISEÑO, NO IMPLEMENTADO** |
+> | **8 sitios del firmware** + 2 packs + 3 manuales | *«el Esclavo PIDE y el Maestro DECIDE»* | **IMPLEMENTADA y viva** — es la asimetría de `demanda_solicitar()` |
+>
+> **Ocho de esos sitios remiten explícitamente a `OPTIMIZACIONES.md § SFTY-27`.** Quien siga el puntero
+> lee la regla equivocada, y encima la lee marcada *«NO IMPLEMENTADO»* sobre una regla vial que **sí**
+> corre. Cada mitad se lee coherente por separado: hay que abrir los dos sitios a la vez para verlo, que
+> es por lo que llevaba semanas de pie.
+>
+> **Renumerar es decisión del responsable** (`AB-8` de `INDICE_CRUZADO.md`, `P-3`), **no se hace desde
+> esta auditoría**: tocar el número obliga a cambiar 13 sitios a la vez, y un número de regla a medio
+> cambiar es peor que uno duplicado. Lo que sí se hace aquí es **que el puntero deje de engañar**: la
+> fila de arriba y este aviso.
+>
+> #### Lo que la segunda columna NO es, y conviene decirlo
+>
+> La cabecera promete que la tabla se levanta *«buscando esas etiquetas en los fuentes»*. **Para la
+> tercera columna eso es cierto y lo comprueba un pack; para la segunda no lo comprueba nadie**, y se
+> nota:
+>
+> - **`SFTY-5`**: la fila dice `*/src/semaforo.cpp`, que es donde vive la regla. Pero
+>   `grep -rl "SFTY-5\b"` sobre el firmware devuelve **sólo `*/src/protocolo.cpp`** [MEDIDO 01/09] —el
+>   rastro de la etiqueta impostora, que hoy es un comentario que deja constancia del error
+>   (`Maestro/src/protocolo.cpp:41-43`) y **por eso mismo sigue apareciendo en el `grep`**.
+> - **`SFTY-21`**: la fila cita tres ficheros; el `grep` devuelve **35** en las dos puntas. La fila es un
+>   resumen curado, no un censo.
+>
+> Ninguna de las dos cosas es un defecto de la fila — son defectos de la **frase que dice cómo se
+> levanta**. Queda escrito para que nadie vuelva a leer la segunda columna como si fuera medida.
 
 ### Discrepancias corregidas al levantar esta tabla
 
@@ -305,6 +515,53 @@ como trabajo por hacer; siete alineadas sobre el mismo `.cpp` señalan **dónde 
 
 **No se inventa cobertura para taparlas.** Se dejan vacías, contadas y con el nombre del fichero
 delante, que es lo que un auditor necesita para preguntar por él.
+
+### 🔴 01/09/2026 — QUÉ SIGNIFICA UN ✅ DE ESTA TABLA, Y DOS SITIOS DONDE SIGNIFICA MENOS DE LO QUE PARECE
+
+**Se auditó etiqueta por etiqueta**: las **23 marcas `# EJERCE SFTY-x`** repartidas en **21 packs**
+—`maestro_04_sync_horaria` y `maestro_09_test_leds` llevan dos cada uno— sobre los **59 packs** del
+banco. Se abrieron una a una y se comparó lo que la etiqueta promete con lo que el pack hace.
+**Ninguna cita una regla inexistente y ninguna falta en la tabla**; eso lo sostiene
+`documentos_02_trazabilidad_sfty`, que tras esta pasada censa `23 etiquetas en 6 reglas y 29 filas`,
+y sigue en verde. **También son honestas las cinco negativas**: `app_03_sin_ok_mudo`,
+`app_04_valores_de_status`, `app_06_formato_de_hora`, `esp32_01_watchdog_desigualdad` y
+`enlace_01_transporte` **declaran en su cabecera que rozan una regla y NO la ejercen**, y por eso no
+llevan etiqueta. Esa disciplina es la que hace que la tabla valga algo. Lo que la auditoría añade son **dos matices
+que un ✅ no distingue y un auditor sí necesita**:
+
+**1. Los cuatro packs de `SFTY-2` leen el C++; ninguno lo ejecuta.** [MEDIDO 01/09, abriendo los cuatro]
+
+| pack | qué hace de verdad |
+|---|---|
+| `barrera_01_pines_de_luz` | `re` sobre `pines.h` y los `.cpp`: **custodia** —que nadie escriba un pin de luz fuera de `semaforo.cpp`—. No evalúa nunca verde-contra-rojo |
+| `barrera_02_dos_puntas` | compara el **texto** de `aplicarSalidas()`/`escribirPines()` entre puntas. Buen proxy; **no es un ejercicio** *(así lo calificó también la auditoría externa, N-109 §4)* |
+| `esclavo_06_no_abre_paso` | lista blanca de comandos contra el **texto** de `bluetooth.cpp` |
+| `maestro_09_test_leds` | `re` sobre `semaforo.cpp`: quién llama a `escribirPines()` y con qué tercer argumento |
+
+**El enclavamiento como tal —«nunca verde y rojo a la vez»— sólo lo EJECUTA
+`Validacion_Automatico/arnes_automatico.cpp`, y sólo del Maestro** (§8 de `CLAUDE.md`, y el arnés
+está en `71/71` en el acta del 01/09). La custodia y la identidad entre puntas son las condiciones que
+hacen creíble el enclavamiento, no el enclavamiento. **Cuatro ✅ en la fila de `SFTY-2` no son cuatro
+ejecuciones: son cuatro lecturas del fuente y una sola ejecución, de una sola punta.**
+
+**2. El ✅ de `SFTY-18` cubre el tercero de sus tres sitios, no el primero.** `esp32_04_osf` ejerce el
+`OSF` del `DS3231` **del puente ESP32**. La regla tal como está definida arriba —el año marcador del
+RTC del STM32 y `reloj_enHora()` como barrera— **no la ejerce ningún pack**:
+
+```
+grep -rl "reloj_enHora\|ano marcador" 01_Firmware/Simulaciones/banco/packs/   [MEDIDO 01/09]
+  -> app_03_sin_ok_mudo · app_06_formato_de_hora · costura_06_reanudacion
+     esp32_03_ack_que_mira · esp32_04_osf
+```
+
+y **los dos primeros lo dicen ellos mismos en su cabecera**, negándose a llevar la etiqueta:
+`app_06_formato_de_hora` escribe *«este pack no la EJERCE: no comprueba `reloj_enHora()` ni el año
+marcador»*. Esa honestidad es lo correcto; **lo que faltaba era decirlo también aquí**, donde se lee
+la fila.
+
+> **La regla que queda, y vale para toda la columna:** cuando la segunda columna nombra **varios**
+> sitios, un ✅ puede estar cubriendo uno solo. Un auditor que lea esta tabla tiene que cruzar las dos
+> columnas, no leer la tercera sola. Lo honesto sería una fila por sitio; mientras no la haya, esto.
 
 ---
 
@@ -409,6 +666,15 @@ Con el desfase puesto a cero por SFTY-23 al perder el enlace, el margen es el qu
 **Propuesta: todo-rojo de 30 s y límite duro de 48 h**, con factor de seguridad 2 sobre el margen
 teórico. Pasadas 48 h sin resincronizar, **el Degradado cae solo a ámbar intermitente**.
 
+> ✅ **YA NO ES UNA PROPUESTA: está construido en las dos puntas [MEDIDO 01/09].**
+> `Maestro/src/modo_degradado.cpp:102` y `Esclavo/src/modo_degradado.cpp` declaran
+> `LIMITE_DURO_MS = 172800000UL` (48 h), con el estado `DEG_RENDIDO`, el rechazo
+> `DEG_RECHAZO_SYNC_VENCIDA` y un **latch de caducidad que no se baja hasta una sincronización nueva**
+> —para que un corte de luz a las 47 h no regale otras 48, que es la trampa que convierte un límite en
+> un botón de posponer (`Esclavo/src/modo_degradado.cpp:311`)—. Lo vigila `costura_05_limite_48h`.
+>
+> **Sigue sin pasar banco**, como todo lo de V8.5 a V8.7.
+
 > Conviene decirlo sin adornos: **querer una semana de autonomía obliga a un todo-rojo de ~90 s**, que
 > destroza la fluidez del paso. No es una limitación del diseño, es la física de dos cristales sin
 > disciplinar. La alternativa real no es alargar el plazo: es ir a arreglar el radio.
@@ -435,6 +701,56 @@ Ocurre igual si un operario saca del Degradado **una sola** unidad con `A·A·A`
 **Mitigación procedimental, no técnica: la verificación visual de ambas puntas es obligatoria también
 AL SALIR**, no solo al entrar. Debe constar en el manual del funcional y en el acta de pruebas.
 
+> ### 🔴 01/09/2026 — «RIESGO RESIDUAL ACEPTADO» NO ES UNA DESCRIPCIÓN HONESTA DE ESTE RIESGO
+>
+> **Auditoría externa (N-109 §4).** El texto de arriba es correcto en los hechos y **engañoso en el
+> encuadre**, por tres cosas que no dice:
+>
+> **1. El disparador es un microcorte, no una equivocación.** El escenario está descrito con un
+> operario que saca *una sola* unidad —un error humano, que se corrige con procedimiento— y con «un
+> microcorte» dentro del diagrama, en letra igual. **No son del mismo orden.** Un parpadeo de red
+> reinicia una punta, esa punta arranca en menú y sin enlace cae a ámbar, y la otra **sigue dando
+> verde por reloj**. No hace falta que nadie se equivoque en nada. Un riesgo que se dispara solo no se
+> mitiga *«con verificación visual al salir»*: cuando el técnico se ha ido, no hay quien verifique.
+>
+> **2. La consecuencia no está escrita.** *«Un lado en ámbar contra un lado en verde»* describe dos
+> lámparas. Lo que ocurre en un cierre de carril alternado, dicho como se debe: el conductor del lado
+> ámbar negocia el paso y entra; el del lado verde entra confiado y sin mirar; **se encuentran de
+> frente dentro del tramo.** Es la única forma en que este equipo puede matar a alguien, y este
+> documento la nombra así en `SFTY-19` — pero no aquí, que es donde se aceptó el riesgo.
+>
+> **3. Nadie mide el invariante que lo cerraría.** *«Nunca verde en las dos puntas a la vez»* no lo
+> ejecuta ningún instrumento sobre el C++ real de ambos extremos: `Validacion_Automatico` compila de
+> verdad pero **sólo el Maestro** (§8 de `CLAUDE.md`), y lo único que cierra el lazo es una copia del
+> firmware escrita a mano en Python. Ver el bloque de auditoría de la tabla de trazabilidad, más
+> arriba.
+>
+> **4. Y hay una SEGUNDA salida asimétrica que este apartado no lista, con un pack que la reproduce.**
+> No hace falta ni microcorte ni operario: **las dos puntas cuentan las 48 h por caminos distintos**
+> —el Maestro contrasta con la pila, el Esclavo usa `millis()` con latch— **así que no se rinden en el
+> mismo instante**, y en ese hueco una está en ámbar mientras la otra sigue dando verde por reloj. No
+> es una hipótesis: es la propiedad que `costura_05_limite_48h` existe para reproducir, y está escrita
+> en su cabecera. **El límite duro cierra la deriva y abre esto.** Cuánto dura el hueco es una medida
+> de banco que nadie ha hecho.
+>
+> **Qué se cambia aquí y qué no.** No se retira la aceptación: **la decisión de riesgo es del
+> responsable y del cliente, y sigue siendo suya.** Lo que se corrige es la frase que la sostiene, que
+> daba por *residual* algo que un microcorte dispara solo y que acaba en choque frontal. **Una
+> aceptación de riesgo vale lo que vale la descripción sobre la que se firmó**; si la descripción
+> estaba corta, la firma se pidió sobre otra cosa.
+>
+> **Lo que reabre, y va al orden de trabajo, no a este documento:** el Modo Degradado no tiene hoy
+> ninguna detección de *«la otra punta se reinició»*, porque sin radio no puede tenerla. La única
+> palanca que queda del lado seguro es **el límite duro de 48 h**, que **sí está construido**
+> —`LIMITE_DURO_MS = 172800000UL` en `Maestro/src/modo_degradado.cpp:102` y su gemelo en el Esclavo,
+> con `DEG_RENDIDO` y el latch de caducidad [MEDIDO 01/09]—. **Acota la deriva; no acota el
+> microcorte**, que es asimétrico y ocurre en el minuto uno.
+>
+> *(Anotación de método: la primera redacción de este párrafo decía que el límite «sigue siendo una
+> propuesta, no una constante en el C++». Era falso y se cazó al ir a comprobarlo. Se deja escrito
+> porque es §4 en el propio documento que audita: una afirmación plausible sobre lo que NO existe
+> también es un instrumento, y también hay que descartar al buscador antes de publicarla.)*
+
 ---
 
 ### 🎛️ El mando de 4 relés — interfaz sin realimentación visual
@@ -442,6 +758,21 @@ AL SALIR**, no solo al entrar. Debe constar en el manual del funcional y en el a
 El operario maneja la pantalla con un **mando de 4 relés (A, B, C, D)** cableados **en paralelo con
 los botones físicos** (`PB9`, `PB13`, `PB14`, `PB15`; no hay entradas dedicadas). Hoy solo navegan el
 menú: `A` arriba, `B` abajo, `C` aceptar, `D` menú.
+
+> ⚠️ **CADUCADO EL 31/08/2026 en su segunda mitad, y se marca en vez de reescribirse porque el resto
+> de este apartado —el porqué de usar sólo `A` y `B`— es lo que sigue vivo y es lo que importa.**
+>
+> **MEDIDO 01/09:** `J16` se repartió (N-97). `BOTON1 = PB9` y `BOTON2 = PB13` siguen siendo botones
+> en `INPUT_PULLUP`, activos en BAJO, y **siguen alimentando `mando_registrarPulso()`**
+> (`Maestro/src/botones.cpp:221-222`, `Esclavo:235-236`) — **el mando de relés está entero sobre `A` y
+> `B` y no se ha tocado**. Lo que ya no existe es la otra mitad: `PB14` y `PB15` son `CAM_C_PIN` y
+> `CAM_D_PIN`, entradas de cámara en `INPUT` pelado y activas en ALTO (`Maestro/include/pines.h:124-125`),
+> y `botonAceptar()`/`botonCancelar()` devuelven `false` sin condiciones.
+>
+> **`C` y `D` ya no pulsan nada.** Este apartado razonaba largamente *por qué nunca se usarían* `C` ni
+> `D`; el reparto de `J16` lo hizo **estructural** en vez de disciplinado. La conclusión que se
+> defendía —*a ciegas se usan únicamente los botones cuya repetición accidental es inofensiva*— ya no
+> depende de que nadie los cablee: **no hay a qué cablearlos.** Lo vigila `camara_02_j16`.
 
 **El problema: la pantalla está a 5 m, dentro del gabinete.** El operario acciona desde el piso **sin
 poder verla**. Un menú es inservible a ciegas: no se sabe dónde está el cursor ni si la pulsación
@@ -1171,9 +1502,27 @@ exactamente lo que hizo `N-37` a mano y lo que la app puede hacer sola en cada c
 
 ### Lo que hay que medir ANTES de comprometerlo
 
-**El I2C es por software**, no por hardware: los dos puertos nativos estan ocupados (`PB6`/`PB7` la
-LCD, `PB10`/`PB11` el RS-485). Meter dos esclavos en un bus bit-bang, en un micro que ya hace
+**El I2C es por software**, no por hardware: los dos puertos nativos estan ocupados (~~`PB6`/`PB7` la
+LCD~~, `PB10`/`PB11` el RS-485). Meter dos esclavos en un bus bit-bang, en un micro que ya hace
 bit-bang del LCD y lleva el `IWDG` armado, **no es gratis**:
+
+> ⚠️ **01/09: la conclusion aguanta, el motivo NO.** `PB6`/`PB7` —que son `I2C1`— **ya no son la
+> LCD**: desde N-76 los ocupa el **Bluetooth**, `USART1` remapeado, conector `J17`.
+> **MEDIDO:** `Maestro/src/bluetooth.cpp:28` → `static HardwareSerial SerialBT(PB7, PB6);`. La LCD
+> vive en `PB3`/`PB4`/`PB5` por SPI de software, y desde el 31/08 ni eso: sus cuatro argumentos de pin
+> son `U8X8_PIN_NONE`.
+>
+> Asi que `I2C1` sigue ocupado —por otro—, y **el I2C por software sigue siendo la unica salida**. Lo
+> que cambia es que **el LCD ya no hace bit-bang de nada**, asi que el primer riesgo de la tabla de
+> abajo —*«la lectura del expansor compite con el refresco del LCD»*— **hoy no existe**: no hay
+> refresco que se vuelque al cable. Los otros dos —el margen del `IWDG` y la latencia de deteccion—
+> siguen enteros y siguen siendo de banco.
+>
+> 🔴 **Y un choque que este apartado no ve:** propone `PB0` como `SDA`, pero **`PB0` es hoy
+> `CAM_DEMANDA_PIN`**, la camara de demanda con su RC de 1 ms en la bornera `J14`, leida por nivel en
+> el Maestro y por flanco en el Esclavo. Convertirlo en media linea de bus **retira una entrada que
+> esta en uso**; el apartado da eso por gratis porque se escribio cuando `PB0` era *«un pin libre en
+> disputa»*. Ya no lo es.
 
 | Riesgo | Como se mide |
 |---|---|
@@ -1255,6 +1604,25 @@ el expansor por bueno.
 ---
 
 ## 🔗 SFTY-27 — Matricula de pareja: quien obedece a quien (DISENO, **NO IMPLEMENTADO**)
+
+> # 🔴 SI HAS LLEGADO AQUI SIGUIENDO UN PUNTERO DESDE EL FIRMWARE, ESTA NO ES LA REGLA QUE BUSCAS
+>
+> **`SFTY-27` designa DOS reglas distintas, y ocho sitios del firmware mandan a leer esta.**
+>
+> | | |
+> |---|---|
+> | **Lo que dice este apartado** | matricula de pareja: `SERIE`, `PAIR`, `SITIO`/`SENTIDO`. **DISENO, no implementado** |
+> | **Lo que dicen las 8 etiquetas del firmware** | *«el Esclavo PIDE y el Maestro DECIDE»* — la asimetria de `demanda_solicitar()`. **Implementada y viva** |
+>
+> Los ocho sitios son `Maestro/src/bluetooth.cpp` · `Maestro/src/botones.cpp` ·
+> `Maestro/include/botones.h` · `Maestro/include/demanda.h` y sus cuatro gemelos del Esclavo
+> [MEDIDO 01/09], mas dos packs y tres manuales. **Varios de ellos remiten literalmente a
+> `OPTIMIZACIONES.md § SFTY-27`**, o sea aqui, o sea a la regla que no es — y encima marcada
+> *«NO IMPLEMENTADO»* sobre una regla vial que si corre.
+>
+> **Renumerar es del responsable** (`AB-8` / `P-3` de `INDICE_CRUZADO.md`): son 13 sitios a la vez, y
+> un numero de regla a medio cambiar es peor que uno duplicado. Hasta entonces, **este aviso es lo que
+> impide que el puntero engane**. No se quita sin cerrar `AB-8`.
 
 > **Estado:** disenado el 26/08/2026. **Nada esta implementado.** Hoy `RF_Packet` no lleva
 > direccionamiento de ningun tipo —`{msgID, command, param, crc}`—, asi que dos parejas dentro del
@@ -1439,6 +1807,36 @@ Tres caminos, y **lo decide la pregunta 5 del acta de banco**:
 
 **Decidido el 27/08: la entrada es `PA11` (pad 32 del `U1`).**
 
+> ### ⚠️ 01/09/2026 — LA PREMISA CAMBIO EL 31/08: YA HAY DOS ENTRADAS MAS, Y ESTAN EN EL FIRMWARE
+>
+> **Esto no invalida la eleccion de `PA11`, pero cambia por completo la urgencia**, y hay que leerlo
+> antes de tirar un hilo a un pad.
+>
+> **MEDIDO 01/09.** El reparto de `J16` (N-97) dio a las dos puntas **dos entradas de camara nuevas**,
+> ya configuradas y ya leidas en cada vuelta del `loop()`:
+>
+> ```
+> Maestro/include/pines.h:124-125   CAM_C_PIN  PB14  (J16 p10)   INPUT pelado, activo en ALTO
+>                                   CAM_D_PIN  PB15  (J16 p12)   INPUT pelado, activo en ALTO
+> Maestro/src/botones.cpp:156-157   pinMode(CAM_C_PIN, INPUT); pinMode(CAM_D_PIN, INPUT);
+> Esclavo/src/botones.cpp:176-177   identico
+> ```
+>
+> Las dos entran por `demanda_solicitar()` y se leen **por flanco en las dos puntas**, con siembra del
+> nivel al arrancar para que un contacto ya cerrado al encender no cuente como deteccion.
+>
+> **Consecuencia para SFTY-29, dicha con precision:** lo que hoy falta **ya no es una entrada
+> electrica** —hay tres: `PB0` en `J14` y `PB14`/`PB15` en `J16`—. Lo que falta es que **una de ellas
+> signifique PRESENCIA en vez de DEMANDA**, que es una decision de firmware y de cableado, no de pines.
+> Y son cosas opuestas: una demanda **pide** el verde, una presencia **lo retrasa**. Reusar una entrada
+> de demanda como presencia sin cambiar quien la lee seria pedir paso justo cuando hay que negarlo.
+>
+> ⚠️ **Y lo que NO se ha movido: `J16` sigue sin poder cablearse.** La medida `M3` —la contradiccion
+> entre el netlist y el fuente sobre la polaridad de esos pines— **sigue abierta**, y hasta que se
+> cierre con ohmimetro **no se cablea camara a `J16`**, ni de demanda ni de presencia. `PA11` sigue
+> siendo la eleccion correcta para una entrada **con bornera propia**; lo que ya no es cierto es que
+> haga falta un hilo a un pad **para tener por donde entrar**.
+
 Se midio el cobre del `.kicad_pcb`, y lo dice el propio enrutador: `PA11`, `PA12`, `PA15` y `PC13`
 salen como `unconnected-(U1-PA11-Pad32)` y equivalentes — **pads sin una sola pista**. En la misma
 pasada los ocupados aparecen con su red (`PB0 -> /Puerta`, `PB2 -> /Motor`, `PB1 -> /Buzzer`), asi que
@@ -1476,8 +1874,12 @@ cruce. Esa combinacion -NC mas tope- es lo que hace que esta entrada no pueda em
 ### Lo que hay que medir ANTES de escribir una linea
 
 - **El flash.** El bit y la maquina de extension son pocas decenas de bytes; la alarma y el texto de
-  pantalla, mas. Quedan **4.684 bytes** en el Maestro: se compila con y sin, y se compara el acta. Sin
-  esa cifra, cualquier estimacion de aqui es una intuicion.
+  pantalla, mas. ~~Quedan **4.684 bytes** en el Maestro~~ → **quedan 7.240 B** (acta del 01/09,
+  HEAD `aa69349`: `58296` de `65536`, 89,0 %). Se compila con y sin, y se compara el acta. Sin esa
+  cifra, cualquier estimacion de aqui es una intuicion.
+  > *La cifra vieja era del 27/08 y sobrevivio a dos cambios de presupuesto —N-70 libero 5.160 B de
+  > `Wire`, N-86 otros 16—. **Un numero de flash escrito en prosa caduca cada vez que alguien
+  > compila**; se copia del acta, nunca se recuerda.*
 - **La polaridad del sensor**, como en N-67: la manda la placa, no el gusto de nadie.
 
 ### El pack que lo vigilara, y la comprobacion que nadie escribe
@@ -1523,10 +1925,24 @@ de que se pueda añadir sin volver a discutir el todo-rojo entero.
 > precaucion»* es decision del cliente y del PMT. Cambiarla es **una linea** en
 > `escribirPines()`, y el dia que se cambie hay que actualizar la tabla de abajo y el Manual 1.
 >
-> 🔴 **Y sigue sin resolverse el hardware:** son 10 demandas para 9 MOSFET —el buzzer y la
-> talanquera se disputan el unico driver libre—, y a donde sale `PB2` de verdad esta **por
+> 🔴 **Y sigue sin resolverse el hardware:** ~~son 10 demandas para 9 MOSFET —el buzzer y la
+> talanquera se disputan el unico driver libre—~~, y a donde sale `PB2` de verdad esta **por
 > confirmar con multimetro** (tarea `B3` de `ESTADO.md`). El firmware ya escribe el pin; que
 > ese pin mueva un motor es lo que falta comprobar.
+>
+> > ⚠️ **01/09: la mitad tachada contradecia a su propia correccion, tres pantallas mas abajo.** El
+> > bloque *«RESUELTO el 27/08»* de este mismo apartado ya media **DIEZ** MOSFET y DIEZ optos, y este
+> > encabezado seguia publicando los nueve de la primera version. **Re-medido sobre el plano bueno**
+> > (`01_Firmware/Controladora_Semaforos/Controladora_Semaforos/Controladora_Semaforos.kicad_sch`,
+> > 649.224 B):
+> >
+> > ```
+> > grep -oE '"Q[0-9]+"' ... | sort -u   ->  Q1 .. Q10   (diez)
+> > grep -oE '"U[0-9]+"' ... | sort -u   ->  U1 .. U15
+> > ```
+> >
+> > **No hay disputa: el buzzer tiene `Q8` y la talanquera `Q10`.** Lo que sigue abierto es solo `B3`
+> > —a donde sale `PB2` en el cobre—, y eso no es un problema de reparto de drivers.
 
 ### Lo que ya existe y no se usa
 
@@ -1534,9 +1950,31 @@ de que se pueda añadir sin volver a discutir el todo-rojo entero.
    pines.h:21   #define MOTOR_TALANQUERA   PB2   // J15
 ```
 
-Ese pin esta declarado en las dos puntas, tiene **MOSFET de potencia y bornera propia**, y
-**ninguna linea del firmware lo escribe** — comprobado con el censo de `pinMode()`: no aparece.
-Es hardware pagado y muerto, igual que el semaforo peatonal (`PA6`/`PA7`) y el buzzer (`PB1`).
+~~Ese pin esta declarado en las dos puntas, tiene **MOSFET de potencia y bornera propia**, y
+**ninguna linea del firmware lo escribe** — comprobado con el censo de `pinMode()`: no aparece.~~
+
+> ✅ **CADUCADO: desde el 27/08 el firmware SI lo escribe, y este apartado se quedo describiendo la
+> vispera.** [MEDIDO 01/09, las dos puntas, `grep -rn MOTOR_TALANQUERA */src/`]
+>
+> ```
+> Maestro/src/semaforo.cpp:203   pinMode(MOTOR_TALANQUERA, OUTPUT);
+> Maestro/src/semaforo.cpp:204   digitalWrite(MOTOR_TALANQUERA, TALANQUERA_CERRAR);
+> Maestro/src/semaforo.cpp:93    digitalWrite(MOTOR_TALANQUERA, ...)   <- dentro de escribirPines()
+> Esclavo/src/semaforo.cpp       identico, mismas lineas
+> ```
+>
+> El titulo de la seccion —*«lo que ya existe y no se usa»*— **ya no describe a la talanquera**. Se
+> conserva el apartado porque lo que sigue —para que sirve, la regla de que SIGUE al semaforo, las
+> tres preguntas de operacion y el actuador— es lo que no ha cambiado.
+>
+> 🔴 **Lo que SI sigue siendo hardware pagado y muerto, y ahora esta medido en vez de citado de
+> pasada:** `ROJO_PEATON` (`PA6`), `VERDE_PEATON` (`PA7`) y el `BUZZER` (`PB1`). Estan declarados en
+> `*/include/pines.h` y **no tienen ni un `pinMode`, ni un `digitalWrite`, ni un `digitalRead` en
+> ninguna de las dos puntas** — el censo devuelve **cero** llamadas, y la unica aparicion de esos
+> nombres fuera de `pines.h` es un comentario en `Maestro/src/main.cpp:35`. Es N-96, y su parte
+> incomoda no es el hardware muerto sino que **`barrera_01_pines_de_luz` no puede detectarlo**: acepta
+> `len(luces) >= 6` sobre una lista que devuelve 8, y su control negativo nunca ejercio un pin
+> peatonal. **Una regla de seguridad que enumera sujetos tiene que comprobar que cada sujeto existe.**
 
 ### Para que sirve una talanquera aqui
 
@@ -1589,6 +2027,17 @@ no tener barrera — porque el conductor confia en ella.
 > etapa y `J15` no existe"*. Salio de `03_Hardware_Tarjeta/KiCad/*.kicad_sch`, que esta **incompleto**
 > —sin LCD, sin botones y sin el canal del motor— y cuyo `.kicad_pcb` **esta vacio (78 bytes)**.
 >
+> > ⚠️ **Nota de rastro, 01/09: esa ruta ya no existe, y el `.kicad_pcb` de 78 B tampoco esta ahi.**
+> > [MEDIDO] `03_Hardware_Tarjeta/` contiene **un solo fichero**, `MAPEO_TARJETA_KICAD.md`: no hay
+> > `KiCad/`, ni `.kicad_sch`, ni `.kicad_pcb`. Los cinco ficheros de **78 bytes** que quedan viven en
+> > `99_Legacy/Controladora_Semaforos-backups/`. Y el `.kicad_pcb` del **plano bueno** pesa
+> > **2.158.421 B** y trae cobre de verdad —es el que se midio para decidir `PA11`—.
+> >
+> > Se anota porque **esta frase se sigue citando como prueba de que «el otro plano estaba vacio»**, y
+> > quien vaya a verificarla hoy no encontrara el fichero y no sabra si es que se borro o si la frase
+> > era falsa. **Era cierta cuando se midio; la ruta caduco.** Lo que sigue en pie y es lo que importa:
+> > **hubo dos planos, se leyo el que no era, y hoy solo queda uno.**
+>
 > **Medido sobre el plano bueno** (`01_Firmware/Controladora_Semaforos/.../*.kicad_sch`, 649 KB):
 > **son DIEZ MOSFET y DIEZ optos** (`Q1..Q10`, `U6..U15`). No falta ninguno:
 >
@@ -1612,11 +2061,37 @@ no tener barrera — porque el conductor confia en ella.
 > descartado al buscador* — aqui el buscador leia el plano que no era. **Dos copias de un plano son
 > peores que ninguna**, y hay que dejar una sola.
 
-> 🔴 **Y un dato falso en el fuente, encontrado al medir:** `pines.h` dice
+> 🔴 ~~**Y un dato falso en el fuente, encontrado al medir:** `pines.h` dice
 > `#define MOTOR_TALANQUERA PB2 // J15`, pero **la bornera `J15` no existe**. El esquematico tiene
 > `J1`..`J14` y `J16`. Quien vaya a cablear buscando `J15` no la va a encontrar. Hay que trazar a
 > donde sale `PB2` de verdad —probablemente por el conector de 12 vias `J16`— y corregir el
-> comentario.
+> comentario.~~
+>
+> > ### 🔴 01/09/2026 — REFUTADO. `J15` SI EXISTE, Y ESTA ACUSACION SE CONTRADECIA CON LA TABLA DE ARRIBA
+> >
+> > Dos parrafos por encima, la tabla del *«plano bueno»* ya decia `Motor (PB2) -> opto U15 -> MOSFET
+> > Q10 -> bornera J15`. Este aviso decia lo contrario **en la misma seccion**, y las dos cosas no
+> > podian ser ciertas.
+> >
+> > **MEDIDO 01/09** sobre el plano bueno (649.224 B), enumerando en vez de buscando una sola:
+> >
+> > ```
+> > grep -oE '"J[0-9]+"' Controladora_Semaforos.kicad_sch | sort -u -V
+> >   ->  J1 J2 J3 J4 J5 J6 J7 J8 J9 J10 J11 J12 J13 J14 J15 J16 J17
+> >
+> > "J15" aparece como (property "Reference" "J15") y como (reference "J15"),
+> > exactamente igual que J13, J14, J16 y J17: dos apariciones cada uno.
+> > ```
+> >
+> > **La lista `J1..J14` y `J16` que este aviso publicaba era del plano incompleto**, el mismo error
+> > que su propio parrafo de mas arriba dice haber cometido y corregido. El comentario del fuente ya
+> > esta bien y **ya se corrigio**: `Maestro/include/pines.h:31` dice hoy
+> > `// -> opto U15 -> MOSFET Q10 -> bornera J15`.
+> >
+> > **La leccion no cambia, cambia de sujeto:** *un «no aparece» no es un hallazgo hasta haber
+> > descartado al buscador*. Aqui el buscador era el plano equivocado **por segunda vez, dentro del
+> > apartado que estrenaba esa misma leccion**. Una refutacion tambien es un instrumento (§4 de
+> > `CLAUDE.md`): tacharla exige el mismo rigor que afirmarla, y por eso esto va con el `grep` pegado.
 
 ### ⚠️ Y un MOSFET no basta para una talanquera
 
