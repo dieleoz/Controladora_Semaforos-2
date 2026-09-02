@@ -31,6 +31,66 @@ static unsigned long tUltimaTelemetria = 0;
 static char btBufIn[64];
 static uint8_t btIdxIn = 0;
 
+// ---------------------------------------------------------------------------
+// A3 - EL REGISTRO DE SILENCIO DEL PUERTO J17.
+//
+// POR QUE LO LLEVA ESTE MICRO. El ESP32 no puede reportar su propia muerte: el equipo
+// que sobrevive al fallo es este, asi que el registro es suyo. Hoy, si J17 se calla, no
+// lo apunta nadie, y cuando el tecnico llega lo que paso ya no esta.
+//
+// QUE MIDEN ESTOS TRES NUMEROS Y QUE NO. ESTA ES LA MITAD IMPORTANTE.
+//
+// MEDIDO sobre el puente, no supuesto:
+//   ESP32_Expansion/src/enlace_stm32.cpp:27-33  "6.4 - SILENCIO NO ES ORDEN [...] aqui
+//                                               NO se manda nada"
+//   ESP32_Expansion/src/puente.cpp:29-35        lo mismo por el otro lado
+//   enlace_escribirLinea() tiene UN solo llamador -puente.cpp:116-, y es el reenvio
+//   VERBATIM de lo que mando la app.
+// Y sobre la app: no hay un solo envio periodico al firmware; sus dos setInterval son
+// el reloj de la cabecera y vigilarEnlace(), que solo ESCUCHA.
+//
+// O sea que por J17 entra EXACTAMENTE lo que un dedo pulsa en el telefono. De modo que
+// esto cuenta SILENCIOS DEL PUERTO, no muertes del puente: mientras nadie use la app el
+// puerto esta mudo con el puente perfectamente vivo, y desde aqui "el puente no dice
+// nada" y "el puente no esta" NO SE DISTINGUEN -lo dice el propio puente en los dos
+// comentarios de arriba-.
+//
+// Se nombra asi, y no "cortes del puente", porque un contador que prometiera eso seria
+// el RF:98% otra vez: un numero con forma de medida. El dia que el ESP32 emita un latido
+// propio -AB-1, ESP32_Expansion/src/main.cpp:22-28, abierto y del responsable- estos
+// mismos tres numeros pasan a ser el registro de cortes de verdad SIN TOCAR UNA LINEA de
+// aqui. Esa es la mitad que si se puede construir hoy.
+//
+// NO HAY UMBRAL, Y ES LA DECISION DE DISENO. Un silencio se define por sus DOS EXTREMOS
+// -la linea que lo abre y la que lo cierra-, nunca por un limite. Un limite seria un
+// numero que nadie ha decidido gobernando lo que el tecnico ve, y ademas la precondicion
+// para que alguien acabe alimentando este silencio con el de la radio. SFTY6_SILENCIO_MS
+// vigila la RADIO y no se nombra en este fichero: son dos silencios y dos instrumentos.
+//
+// Y ESTO CUENTA; NO ACTUA. De aqui no sale una sola escritura de luz. El ambar
+// automatico sigue reservado a los caminos que ya lo tienen -SFTY-6 y el watchdog-: la
+// maquina no decide sola operar de un modo que nadie pidio.
+//
+// SE MIDE POR LINEA COMPLETA, no por byte: el puente entrega lineas y el receptor de
+// abajo solo actua sobre lineas. La PRIMERA linea tras el arranque cierra el silencio
+// que empezo en el arranque, que es un silencio real y el unico capaz de contestar
+// "llevo tres dias sin que nadie hable por aqui".
+//
+//
+// EL ULTIMO SILENCIO NO SE GUARDA, Y NO ES UN OLVIDO. Se publica en el instante en que
+// se cierra -que es el unico en que alguien puede estar mirando, ver abajo-, asi que
+// entre llamada y llamada no lo lee nadie. MEDIDO: con la variable static puesta,
+// arm-none-eabi-nm sobre el .elf NO la encuentra en .bss -el enlazador ya sabia que
+// nadie la lee y la habia borrado-. Dejarla declarada seria anunciar un estado que no
+// existe: quien lo leyera creeria que se puede consultar mas tarde, y no se puede.
+// LIMITE DECLARADO: millis() da la vuelta a los 49,7 dias. La resta sin signo mide bien
+// UNA vuelta; un silencio mas largo que eso queda aliasado. Se escribe en vez de
+// esconderse.
+// ---------------------------------------------------------------------------
+static unsigned long tUltimaLineaJ17  = 0;  // millis() de la ultima linea completa
+static unsigned long j17Silencios     = 0;  // cerrados: uno por linea. 0 = ninguna aun
+static unsigned long j17SilencioMaxMs = 0;  // el mas largo desde el arranque
+
 static uint8_t calcularChecksum(const char* str) {
   uint8_t crc = 0;
   while (*str && *str != '*') {
@@ -126,6 +186,34 @@ void bluetooth_reportarEvento(const char* origen, const char* detalle) {
   snprintf(payload, sizeof(payload), "$EVENT,NODE:MAESTRO,ORIGEN:%s,DETALLE:%s,HORA:%s",
            origen, detalle, horaBuf);
   enviarTramaConCrc(payload);
+}
+
+// Cierra el silencio de J17 que la linea recien recibida acaba de terminar, y lo publica.
+//
+// SE PUBLICA EN EL INSTANTE EN QUE SE CIERRA PORQUE ES EL UNICO EN QUE SE PUEDE. "Cuanto
+// lleva mudo ahora mismo" no es observable desde la app por construccion: la unica forma
+// de que alguien este mirando es que acabe de mandar una linea, y esa linea es justo la
+// que termina el silencio. Guardar el dato para un comando que lo pida seria guardarlo
+// para el unico momento en que ya vale cero.
+//
+// Por eso sale una linea de bitacora por cada silencio cerrado y no solo por los que
+// baten el record: el que le interesa al tecnico que acaba de llegar es el SUYO -"este
+// puerto llevaba catorce horas sin que nadie hablara"-, y ese no tiene por que ser el
+// mayor. El coste esta medido y cabe: ver el presupuesto de bytes de J17.
+//
+// EN SEGUNDOS, no en ms. Un corte se cuenta en horas y el ms no aporta nada; en ms el
+// peor caso del tipo son diez cifras y la trama se comia el margen del payload -que es
+// como N-108 encontro un $ALARM truncandose por la HORA sin que nada lo dijera-.
+static void j17RegistrarLinea(unsigned long ahora) {
+  const unsigned long silencio = ahora - tUltimaLineaJ17;
+  tUltimaLineaJ17 = ahora;
+  if (silencio > j17SilencioMaxMs) j17SilencioMaxMs = silencio;
+  j17Silencios++;
+
+  char det[48];
+  snprintf(det, sizeof(det), "MUDO:%lus,MAX:%lus,N:%lu",
+           silencio / 1000UL, j17SilencioMaxMs / 1000UL, j17Silencios);
+  bluetooth_reportarEvento("J17", det);
 }
 
 // --- Dos envoltorios que devuelven lo que la funcion de abajo no sabe decir -------
@@ -446,6 +534,14 @@ void bluetooth_loop() {
         btBufIn[btIdxIn] = '\0';
         procesarComando(btBufIn);
         btIdxIn = 0;
+        // A3: DESPUES de despachar, no antes. La linea que llega puede ser el rojo de
+        // emergencia, y anteponerle una trama de bitacora le mete el tiempo de cable de
+        // esa trama por delante. El registro es diagnostico; la orden, no.
+        //
+        // Y se anota la linea RECIBIDA, se haya reconocido o no: quien mide el silencio
+        // del puerto es el puerto. Una linea que el despachador rechaza por desconocida
+        // sigue siendo prueba de que el puente esta vivo y hablando.
+        j17RegistrarLinea(ahora);
       }
     } else if (btIdxIn < sizeof(btBufIn) - 1) {
       btBufIn[btIdxIn++] = c;
