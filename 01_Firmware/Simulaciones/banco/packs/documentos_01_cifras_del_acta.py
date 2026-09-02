@@ -106,6 +106,33 @@ _RE_LINEA = re.compile(r"^ {2}(PASS|FALLA|ABORTADO)\s+(\S.*?)\s{2,}(\S.*)$", re.
 _RE_CITA = r"evidencia/(\d{4}-\d{2}-\d{2})_compuerta\.txt"
 
 
+def _sin_cifra(doc, que, acta):
+    """El FALLA de una comprobacion cuyo dato de partida no esta en el acta.
+
+    N-112. Antes estas comprobaciones NO SE EMITIAN cuando el acta no traia su cifra:
+    se anotaba un reportar() -que no cuenta- y las lineas de verificar() colgaban del
+    else. El total del pack se movia entonces con la SALUD del acta, y ese es el
+    defecto entero: el numero de comprobaciones que emite un pack no puede depender
+    de su propio veredicto. Con 55 en una corrida y 53 en la siguiente, no hay ninguna
+    cifra publicable -se probo iterando: cualquiera de las dos hace fallar la corrida
+    que la restaura-, y este pack existe justamente para exigir que los documentos
+    publiquen una cifra que salga de la ultima corrida.
+
+    Decir "no se pudo medir" en FALLA es verdadero y util. No es un cepo: en cuanto
+    una corrida deja el acta entera, la comprobacion vuelve a verde sola.
+
+    VA SIN BARRA A PROPOSITO, y esto no es estilo. compuerta.py se queda con la ULTIMA
+    linea de la salida del banco que lleve una barra, un digito y la palabra PASS o
+    comprobacion, y las lineas de FALLA se imprimen DESPUES del RESUMEN. Un mensaje de
+    fallo con "comprobaciones/packs" dentro se colaria en el acta EN LUGAR de las
+    cifras del banco, dejando sin par a la corrida siguiente: el propio aviso
+    perpetuaria lo que denuncia."""
+    return ("%s: el acta %s no trae %s, asi que no hay contra que comparar lo que "
+            "publica el documento. No dice que el documento este mal; dice que esta "
+            "corrida no lo pudo medir, y una comprobacion que se calla en vez de "
+            "decirlo desaparece del recuento" % (doc, acta, que))
+
+
 def _normalizar(t):
     """Deja el texto comparable: coma decimal a punto y sin espacio ante el %.
 
@@ -292,18 +319,23 @@ def correr(b, fw):
     # rutas parseadas"- y no en cualquier numero suelto: una historia fechada ("paso
     # de 20 packs a 27") es legitima, y un instrumento que obligue a reescribirla
     # empuja a maquillar el pasado, que es peor que la cifra que venia a cazar.
+    #
+    # N-112: LAS DOS COMPROBACIONES SE EMITEN PASE LO QUE PASE. Estaban dentro de un
+    # else, asi que un acta sin la cifra de rutas se llevaba por delante DOS lineas
+    # del recuento sin dejar rastro -el reportar() no cuenta-. Ver _sin_cifra().
     rutas = _cifra(res, "guarda de rutas", r"(\d+) rutas parseadas")
     if rutas is None:
         b.reportar("no hay cifra de rutas en el acta",
                    ["sin ella no se puede buscar un segundo recuento en los documentos"])
-    else:
-        for doc, txt in (("README.md", readme), ("ESTADO.md", estado)):
-            otras = sorted(set(re.findall(r"(\d+)\s+rutas parseadas", txt)) - {rutas})
-            b.verificar(
-                not otras,
-                "%s no arrastra ningun otro recuento de rutas" % doc,
-                "%s dice ADEMAS %s rutas parseadas cuando el acta mide %s"
-                % (doc, "/".join(otras), rutas))
+    for doc, txt in (("README.md", readme), ("ESTADO.md", estado)):
+        otras = (sorted(set(re.findall(r"(\d+)\s+rutas parseadas", txt)) - {rutas})
+                 if rutas is not None else [])
+        b.verificar(
+            rutas is not None and not otras,
+            "%s no arrastra ningun otro recuento de rutas" % doc,
+            _sin_cifra(doc, "la cifra de rutas de la guarda", ultima) if rutas is None
+            else "%s dice ADEMAS %s rutas parseadas cuando el acta mide %s"
+                 % (doc, "/".join(otras), rutas))
 
     # ---- 4.bis. El recuento de packs, ANCLADO A SU LINEA ----
     #
@@ -329,24 +361,46 @@ def correr(b, fw):
     # Lo que si distingue: exigir que el recuento viva en LA MISMA LINEA que la cifra
     # de comprobaciones del banco. Esa linea es la afirmacion viva; las demas son
     # narracion.
+    # (4) N-112, Y ES EL DEFECTO QUE MAS CARO SALIO: el bloque entero colgaba de un
+    #     else. Con la fila del banco del acta trayendo sus cifras se emitian DOS
+    #     comprobaciones; sin ellas, un reportar() que NO CUENTA y las dos
+    #     desaparecian. Medido: tres corridas completas seguidas sobre un arbol
+    #     identico dieron 16 PASS / 1 FALLA, 17 PASS / 0 FALLA y 16 PASS / 1 FALLA.
+    #
+    #     El lazo se cierra en compuerta.py, que guarda como detalle de esta fila la
+    #     ULTIMA linea de la salida del banco con barra, digito y la palabra PASS o
+    #     comprobacion. En verde esa linea es el RESUMEN y trae el par; en rojo puede
+    #     ganarla un mensaje de FALLA -"...la cifra medida de comprobaciones de la app
+    #     en DOM: el acta dice 77/77..." lo cumple entero- y entonces el acta guarda
+    #     el texto del fallo EN LUGAR de las cifras. Total en verde 829, en rojo 827:
+    #     publicar cualquiera de los dos hace fallar la corrida siguiente, que
+    #     restaura el otro. No hay cifra publicable, que es lo contrario de lo que
+    #     este pack le exige a los documentos.
+    #
+    #     Ahora las dos se emiten SIEMPRE, y sin el par salen en FALLA diciendo
+    #     exactamente eso. Ver _sin_cifra(), incluido el porque de que su texto no
+    #     lleve ni una barra.
     packs = _cifra(res, "banco por packs", r"packs: (?P<TOTAL_PACKS>.*)")
     total = _cifra(res, "banco por packs", r"\d+/(\d+) comprobaciones")
-    if packs is None or total is None:
-        b.reportar("el acta no trae el par comprobaciones/packs",
-                   ["sin los dos no se puede anclar el recuento a su linea"])
-    else:
-        n = packs.split()[0]
-        for doc, txt in (("README.md", readme), ("ESTADO.md", estado)):
-            vivas = [ln for ln in txt.splitlines() if total in ln]
-            malas = sorted({m for ln in vivas
-                            for m in re.findall(r"(\d+)\s+packs", ln)} - {n})
-            b.verificar(
-                bool(vivas) and not malas,
-                "%s publica el recuento de packs (%s) en la misma linea que %s"
-                % (doc, n, total),
-                "%s no publica %s en ninguna linea" % (doc, total) if not vivas
-                else "%s publica %s junto a %s packs cuando el acta mide %s"
-                % (doc, total, "/".join(malas), n))
+    hay_par = packs is not None and total is not None
+    if not hay_par:
+        b.reportar("el acta no trae las dos cifras del banco",
+                   ["sin las dos no se puede anclar el recuento de packs a su linea",
+                    "la fila del banco guarda el texto de un fallo en vez de medir"])
+    n = packs.split()[0] if hay_par else None
+    for doc, txt in (("README.md", readme), ("ESTADO.md", estado)):
+        vivas = [ln for ln in txt.splitlines() if total in ln] if hay_par else []
+        malas = sorted({m for ln in vivas
+                        for m in re.findall(r"(\d+)\s+packs", ln)} - {n})
+        b.verificar(
+            hay_par and bool(vivas) and not malas,
+            "%s publica el recuento de packs (%s) en la misma linea que %s"
+            % (doc, n, total),
+            _sin_cifra(doc, "las dos cifras del banco -total de comprobaciones y "
+                            "recuento de packs-", ultima) if not hay_par
+            else "%s no publica %s en ninguna linea" % (doc, total) if not vivas
+            else "%s publica %s junto a %s packs cuando el acta mide %s"
+            % (doc, total, "/".join(malas), n))
 
     # ---- 5. La tabla anuncia TODAS las comprobaciones, no solo sus cifras ----
     #
@@ -388,7 +442,18 @@ def correr(b, fw):
     # Se compara el TOTAL de comprobaciones, no cuantas pasaron: si se comparasen los
     # PASS, un acta roja dejaria al README imposible de cuadrar y el pack se volveria
     # un cepo -acta roja, documento imposible, acta roja-.
-    publicados = sorted(set(re.findall(r"de (\d+) comprobaciones", readme)))
+    #
+    # HUNK APARTE DE N-112, y es la regla del instrumento (CLAUDE.md §4) dentro del
+    # instrumento otra vez: el buscador iba SIN re.I, y el README abre la frase en
+    # mayuscula -"**De 17 comprobaciones, la compuerta da..."-. El patron devolvia []
+    # y el pack acusaba a un documento correcto de "publica ninguno como total de
+    # comprobaciones". Un "no aparece" no es un hallazgo hasta haber descartado al
+    # buscador, y aqui el buscador media la ortografia de la primera letra.
+    #
+    # No relaja nada: se sigue exigiendo que el conjunto publicado sea EXACTAMENTE
+    # [str(laxas)], anclado a la misma frase literal. Solo deja de depender de si la
+    # cifra cae al principio de una oracion.
+    publicados = sorted(set(re.findall(r"de (\d+) comprobaciones", readme, re.I)))
     b.verificar(
         publicados == [str(laxas)],
         "README publica el total de comprobaciones del acta (%d)" % laxas,
@@ -397,11 +462,55 @@ def correr(b, fw):
         % ("/".join(publicados) or "ninguno", ultima, laxas))
 
     # ---- 6. Controles negativos: la comprobacion sabe fallar ----
-    if rutas is not None:
-        falso = readme.replace(rutas + " rutas parseadas", "9999 rutas parseadas")
-        b.control_negativo(
-            rutas + " rutas parseadas" not in falso,
-            "un README con la cifra de rutas alterada deja de coincidir con el acta")
+    #
+    # N-112: ESTE COLGABA DE `if rutas is not None`, o sea la tercera comprobacion que
+    # el pack dejaba de emitir segun lo que el acta trajera. Se ejerce siempre: con la
+    # cifra del acta cuando la hay y con una de laboratorio cuando no, porque lo que
+    # demuestra -que el detector distingue un segundo recuento- no depende del acta.
+    #
+    # Y de paso deja de comprobar un str.replace, que no puede fallar: ahora ejerce el
+    # re.findall REAL del apartado 4 sobre un documento con un recuento inyectado.
+    cifra_rutas = rutas if rutas is not None else "424241"
+    sucio = readme + "\nlinea inyectada por el control negativo: 424242 rutas parseadas\n"
+    b.control_negativo(
+        "424242" in (set(re.findall(r"(\d+)\s+rutas parseadas", sucio))
+                     - {cifra_rutas}),
+        "un documento que arrastra un segundo recuento de rutas se detecta con el "
+        "mismo buscador que usa la comprobacion")
+
+    # N-112: LAS DOS RAMAS DEL APARTADO 4.bis, QUE HASTA HOY NO EJERCIA NINGUNA.
+    #
+    # (a) La rama CON cifra tiene que saber acusar: una linea que publique el total
+    #     del banco junto a un recuento de packs distinto del del acta es mala. Sin
+    #     esto, la rama podia estar aprobando cualquier cosa -y ya lo hizo dos veces,
+    #     ver los intentos (1) y (2) de arriba, cazados a mano y no por el banco-.
+    linea_falsa = "| banco por packs *(424242 packs)* | %s comprobaciones |" \
+                  % (total if hay_par else "424243")
+    b.control_negativo(
+        bool(sorted(set(re.findall(r"(\d+)\s+packs", linea_falsa))
+                    - {n if hay_par else "0"})),
+        "una linea que publica el total del banco junto a otro recuento de packs se "
+        "detecta como recuento que el acta no respalda")
+
+    # (b) La rama SIN cifra, que es la que N-112 saco del limbo. Se reproduce lo que
+    #     de verdad ocurre cuando la corrida anterior salio en rojo: la fila del banco
+    #     guarda el texto de un fallo en lugar de sus cifras. Se exige que el extractor
+    #     devuelva nada por los DOS patrones -no un valor por defecto que daria PASS-,
+    #     que es lo que lleva a la rama de FALLA en vez de a la desaparicion.
+    acta_sin_par = re.sub(
+        r"^(  (?:PASS|FALLA|ABORTADO)\s+banco por packs\s{2,}).*$",
+        r"\1README NO publica la cifra medida de la app: el acta dice 77 de 77",
+        texto_acta, count=1, flags=re.M)
+    res_sin_par = _resultados(acta_sin_par)
+    b.control_negativo(
+        acta_sin_par != texto_acta
+        and _cifra(res_sin_par, "banco por packs",
+                   r"packs: (?P<TOTAL_PACKS>.*)") is None
+        and _cifra(res_sin_par, "banco por packs",
+                   r"\d+/(\d+) comprobaciones") is None,
+        "una fila del banco que guarda el texto de un fallo en vez de sus cifras deja "
+        "sin dato a las dos comprobaciones del apartado 4.bis, que por eso tienen que "
+        "salir en FALLA y no dejar de emitirse")
 
     acta_mutilada = "\n".join(l for l in texto_acta.splitlines()
                               if "guarda de rutas" not in l)
