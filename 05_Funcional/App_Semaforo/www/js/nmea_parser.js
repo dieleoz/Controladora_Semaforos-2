@@ -38,11 +38,31 @@ const NMEAParser = {
 
   /**
    * Valida si una trama NMEA recibida tiene formato y checksum correctos
+   *
+   * ESTA FUNCION ESTUVO ESCRITA Y SIN UN SOLO LLAMADOR, y no era un detalle: mientras
+   * nadie la llamaba, la app PINTABA TRAMAS CON EL CHECKSUM MALO. parseNmeaTelemetry()
+   * hacia `line.split('*')[0]` y tiraba el CRC sin mirarlo, asi que una trama que llego
+   * corrompida por la radio -un byte cambiado en ESTADO:, en T: o en MODO:- entraba en
+   * la pantalla como si fuera buena. El pack app_07 la tenia fichada como huerfana
+   * conocida, que es la unica razon de que se supiera.
+   *
+   * Desde hoy la llama parseNmeaTelemetry(). Lo que se calcula es EL MISMO XOR que el
+   * firmware: Maestro/src/bluetooth.cpp, enviarTramaConCrc() hace el XOR sobre
+   * `payload + 1`, o sea saltando el '$', y lo escribe con "%02X". Aqui se salta el '$'
+   * igual y se compara en mayusculas.
+   *
+   * Devuelve, ademas del `error` de siempre, un `motivo` en clave. El texto es para el
+   * tecnico y el motivo es para contar: agrupar rechazos por una frase en castellano se
+   * rompe el dia que alguien corrija una tilde.
    */
   validarTrama(linea) {
-    const trimmed = linea.trim();
+    const trimmed = String(linea === undefined || linea === null ? '' : linea).trim();
     if (!trimmed.startsWith('$') || !trimmed.includes('*')) {
-      return { valida: false, error: 'Formato NMEA inválido (falta $ o *)' };
+      return {
+        valida: false,
+        motivo: 'SIN_FORMA',
+        error: 'Formato NMEA inválido (falta $ o *)'
+      };
     }
 
     const payloadConDolar = trimmed.substring(0, trimmed.indexOf('*'));
@@ -51,7 +71,13 @@ const NMEAParser = {
     const crcCalculado = this.calcularChecksum(payload);
 
     if (crcRecibido !== crcCalculado) {
-      return { valida: false, error: `Checksum inválido (esperado: ${crcCalculado}, recibido: ${crcRecibido})` };
+      return {
+        valida: false,
+        motivo: 'CHECKSUM',
+        esperado: crcCalculado,
+        recibido: crcRecibido,
+        error: `Checksum inválido (esperado: ${crcCalculado}, recibido: ${crcRecibido})`
+      };
     }
 
     return { valida: true, payload };

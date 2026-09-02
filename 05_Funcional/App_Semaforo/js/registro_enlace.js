@@ -70,7 +70,19 @@ const RegistroEnlace = {
   // no falla cuando alguien cambia uno de los dos (CLAUDE.md 3.bis, N-71).
   HUECO_MS: 150000,
 
-  CLASES: ['MUESTRA', 'CAIDA', 'REGRESO', 'EVENTO', 'ALARMA'],
+  // RECHAZO (V2/A1): entro algo por el cable y la app NO lo pinto -checksum malo, tipo
+  // desconocido, sin forma de trama-. Va en ESTA linea de tiempo y no en un registro
+  // aparte porque es la misma pregunta: "por que se fue". Una tira que solo sabe de
+  // huecos dice que a las 03:41 no llego nada; con esto se distingue "no llegaba nada"
+  // de "llegaba basura", que son dos averias distintas -antena contra ruido- y desde el
+  // suelo se ven igual.
+  //
+  // El CONTENIDO de cada trama rechazada no vive aqui: vive en la cinta de
+  // js/depuracion.js, que es de memoria. Aqui va una anotacion ESTRANGULADA -ver
+  // registrarRechazoEnlace() en app.js- porque mil tramas malas seguidas seguirian
+  // siendo un solo suceso, y anotarlas una a una vaciaria el tope de 400 y se llevaria
+  // por delante justo la historia del enlace que este fichero existe para guardar.
+  CLASES: ['MUESTRA', 'CAIDA', 'REGRESO', 'EVENTO', 'ALARMA', 'RECHAZO'],
   CLASE_HUECO: 'HUECO',
 
   // Se pone a false la primera vez que el almacenamiento del telefono falla -modo

@@ -32,6 +32,7 @@
 # dos programas. Un pack no puede compilar la APK, pero si puede exigir que haya UNA
 # sola copia.
 
+import os
 import re
 
 NOMBRE = "documentos_03_trama_status"
@@ -42,11 +43,15 @@ PUNTAS = ("Maestro", "Esclavo")
 MANUAL = ("05_Funcional", "10_Manual_Modulo_Bluetooth_Telemetria.md")
 APP = ("05_Funcional", "App_Semaforo", "app.js")
 APP_HTML = ("05_Funcional", "App_Semaforo", "index.html")
-COPIAS_APP = (
-    ("05_Funcional", "App_Semaforo", "www", "app.js"),
-    ("05_Funcional", "App_Semaforo", "android", "app", "src", "main", "assets",
-     "public", "app.js"),
+# Los dos destinos a los que se copia la app. El fichero concreto ya NO se escribe
+# aqui: se censa (ver el bloque 5), porque una lista escrita a mano solo vigila lo que
+# alguien se acordo de anadir, y el fichero nuevo es justo el que nadie recuerda.
+DESTINOS_APP = (
+    ("05_Funcional", "App_Semaforo", "www"),
+    ("05_Funcional", "App_Semaforo", "android", "app", "src", "main", "assets", "public"),
 )
+ORIGEN_APP = ("05_Funcional", "App_Semaforo")
+SUBDIR_JS = "js"
 
 
 def _crc(payload):
@@ -161,14 +166,68 @@ def correr(b, fw):
         "'HORA:18:25:00' entra como '18'" % ", ".join(valores_con_dos_puntos))
 
     # ---- 5. Una sola app: lo que se prueba es lo que se instala ----
-    fuente = fw.texto_repo(*APP)
-    for copia in COPIAS_APP:
+    #
+    # Esto comparaba UN fichero, app.js, y el 01/09 se midio lo que dejaba pasar: al
+    # anadir js/depuracion.js, quitar su <script> de index.html hace que la app
+    # REVIENTE AL CARGAR -"RegistroCrudo is not defined"- y ningun pack lo veia. Una
+    # lista escrita a mano solo vigila lo que alguien se acordo de anadir, y el
+    # fichero nuevo es exactamente el que nadie recuerda. Es el hueco de N-43: no
+    # grita como un ABORTADO, porque un hueco no grita.
+    #
+    # Ahora se CENSA el origen y se exige que cada destino tenga lo mismo, asi que un
+    # fichero nuevo entra en la vigilancia el dia que se crea y no cuando alguien se
+    # acuerda.
+    # El censo NO es "todos los .js de la carpeta": eso metia herramientas de
+    # desarrollo que no se despliegan. Lo que se despliega es LO QUE index.html CARGA,
+    # asi que se lee de ahi. Un fichero nuevo entra en la vigilancia el dia que alguien
+    # lo enchufa a la pagina -que es el dia que empieza a importar- y una herramienta
+    # suelta que nadie carga no ensucia la cuenta.
+    html = fw.texto_repo(*(ORIGEN_APP + ("index.html",)))
+    refs = re.findall(r'<script[^>]+src="([^"]+)"', html)
+    refs += re.findall(r'<link[^>]+href="([^"]+)"', html)
+    origen = {"index.html": ORIGEN_APP + ("index.html",)}
+    for ref in refs:
+        if ref.startswith(("http://", "https://", "//", "data:")):
+            continue
+        rel = ref.lstrip("./")
+        if not rel.endswith((".js", ".css")):
+            continue
+        origen[rel] = ORIGEN_APP + tuple(rel.split("/"))
+
+    if len(origen) < 3:
+        raise fw.Abortado(
+            "el censo de lo que index.html carga devolvio %d ficheros: comparar las "
+            "copias contra una lista vacia o casi vacia aprobaria cualquier cosa "
+            "-y el buscador es lo primero que hay que descartar-" % len(origen))
+
+    for destino in DESTINOS_APP:
+        # Un destino que NO EXISTE ENTERO no es una divergencia: android/.../public lo
+        # genera el build de Capacitor y esta en su .gitignore, asi que en un clon
+        # limpio no esta. Comparar contra el vacio daria FALLA por algo que no es un
+        # defecto, y ese falso rojo enseña a ignorar el pack. Se REPORTA -no cuenta- y
+        # se sigue. Lo que si es defecto, y cuenta, es un destino que existe y difiere.
+        if not os.path.isdir(os.path.join(fw.RAIZ_REPO, *destino)):
+            b.reportar("%s no esta generado" % "/".join(destino[2:]),
+                       ["lo escribe el build y no vive en el repositorio; sin el, "
+                        "comparar no dice nada. Se mide cuando exista"])
+            continue
+        faltan, distintos = [], []
+        for rel, ruta in sorted(origen.items()):
+            partes = destino + tuple(rel.split("/"))
+            if not os.path.isfile(os.path.join(fw.RAIZ_REPO, *partes)):
+                faltan.append(rel)
+            elif fw.texto_repo(*partes) != fw.texto_repo(*ruta):
+                distintos.append(rel)
+        detalle = " | ".join(
+            ([("FALTAN: " + ", ".join(faltan))] if faltan else [])
+            + ([("DIFIEREN: " + ", ".join(distintos))] if distintos else []))
         b.verificar(
-            fw.texto_repo(*copia) == fuente,
-            "%s es identico a app.js" % "/".join(copia[2:]),
-            "%s NO es identico a app.js. La APK se construye desde esa copia, asi "
-            "que lo que se prueba en el navegador y lo que se instala en el celular "
-            "del tecnico son dos programas distintos" % "/".join(copia[2:]))
+            not faltan and not distintos,
+            "%s trae los %d ficheros que index.html carga, todos identicos al original"
+            % ("/".join(destino[2:]), len(origen)),
+            "%s -> %s. La APK se construye desde esa copia, asi que lo que se prueba "
+            "en el navegador y lo que se instala en el celular del tecnico son dos "
+            "programas distintos" % ("/".join(destino[2:]), detalle))
 
     # ---- 6. El PIN que ofrece la app tiene que existir en el firmware ----
     aceptados = set()

@@ -74,11 +74,24 @@ BT_ESCLAVO = ("Esclavo", "src", "bluetooth.cpp")
 
 # Los modulos que index.html carga y que HOY no llama nadie, con su motivo. La lista es
 # un trinquete: sobra tanto uno que aparece como uno que desaparece.
+# NMEAParser SALIO DE ESTA LISTA EL 01/09, y el motivo es la regla que la lista sirve.
+#
+# Estaba fichado como huerfano con este texto: "su generarComando() es el segundo
+# generador de trama, y su formato no entra en el firmware. Que ademas no lo llame nadie
+# es lo unico que ha impedido que rompa la app". Lo que la ficha NO decia, porque el
+# censo mira llamadores y no consecuencias, es que en el mismo modulo vivia
+# validarTrama() -el unico sitio de la app que sabe comprobar un checksum-, y que
+# mientras nadie lo llamara la app PINTABA TRAMAS CON EL CHECKSUM MALO.
+#
+# La V2 conecta validarTrama() desde parseNmeaTelemetry() (defecto B1), asi que
+# NMEAParser gana llamador y esta fila tenia que caer: el trinquete es "una nueva que
+# GANA llamador y sigue en la lista", y esta lo hizo. Se retira, no se comenta: una
+# lista que acumula nombres obsoletos deja de poder fallar.
+#
+# generarComando() sigue sin llamador, y eso ya no lo vigila esta lista sino la
+# comprobacion de gramatica de este mismo pack: si alguien lo conecta, su trama con '$'
+# y checksum delante no casa con los prefijos del despachador y falla ahi.
 HUERFANOS_CONOCIDOS = {
-    # Su generarComando() es el segundo generador de trama, y su formato no entra en el
-    # firmware. Que ademas no lo llame nadie es lo unico que ha impedido que rompa la
-    # app; no es un atenuante, es la razon de que lleve meses sin que nadie lo note.
-    "NMEAParser": "js/nmea_parser.js - parser y generador de tramas, sin un solo uso",
     # Capa de transporte SPP/BLE/Serial escrita entera. app.js habla por window.
     # bluetoothSerial y por fetch() al puente, sin pasar por aqui.
     "BluetoothDriver": "js/bluetooth_driver.js - transporte alternativo sin conectar",

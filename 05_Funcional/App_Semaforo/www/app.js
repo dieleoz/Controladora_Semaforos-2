@@ -61,6 +61,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Hubo una caida que todavia no tiene su REGRESO anotado. Distinta de
     // telemetriaViva: la primera conexion de la sesion no es una vuelta de nada.
     huboCaida: false,
+    // El estrangulador de anotaciones de RECHAZO en la bitacora. Ver
+    // registrarRechazoEnlace(): mil tramas malas seguidas son UN suceso, y anotarlas
+    // una a una vaciaria el tope de 400 de la bitacora con basura, llevandose por
+    // delante la historia del enlace que es justo lo que se quiere conservar.
+    rechazoMotivo: null,
+    rechazoDesdeMs: null,
+    rechazoUltimaMs: null,
+    rechazoCuenta: 0,
+    rechazoAnotadoMs: null,
+    // Filtro de la vista de depuracion. Es SOLO un filtro de lo que se pinta: no borra
+    // nada de la cinta y el rotulo dice siempre cuantas se estan ocultando.
+    depuSoloRechazadas: false,
     courierSnapshot: null,
     courierTimerInterval: null,
     courierSecondsElapsed: 0,
@@ -125,6 +137,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const registroResumenEl = document.getElementById('registro-resumen');
   const btnRegistroCsv = document.getElementById('btn-registro-csv');
   const btnRegistroLimpiar = document.getElementById('btn-registro-limpiar');
+
+  // Modo depuracion: la cinta de tramas en crudo (pestana propia, no mezclada con la
+  // pantalla de operacion). Ver el bloque 1.quinquies.
+  const depuContadoresEl = document.getElementById('depu-contadores');
+  const depuListaEl = document.getElementById('depu-lista');
+  const depuNotaEl = document.getElementById('depu-nota');
+  const depuTextoEl = document.getElementById('depu-texto');
+  const btnDepuTodas = document.getElementById('btn-depu-todas');
+  const btnDepuRechazadas = document.getElementById('btn-depu-rechazadas');
+  const btnDepuExport = document.getElementById('btn-depu-export');
+  const btnDepuCopiar = document.getElementById('btn-depu-copiar');
+  const btnDepuLimpiar = document.getElementById('btn-depu-limpiar');
 
   // Operario Field Buttons
   const btnOpAuto = document.getElementById('btn-op-auto');
@@ -691,6 +715,374 @@ document.addEventListener('DOMContentLoaded', () => {
       state.rfUltimaMuestraMs = null;
       renderRegistroEnlace();
       addEvent('cyan', 'Bitacora del enlace borrada a peticion del usuario.');
+    });
+  }
+
+  // =========================================================================
+  // 1.quinquies MODO DEPURACION: LAS TRAMAS EN CRUDO Y LAS QUE NO ENTRARON
+  // =========================================================================
+  // "Hoy el problema es no saber cuanto se va cuando se va, y POR QUE se va."
+  //
+  // La bitacora de arriba contesta al "cuanto": guarda la tira y los huecos. Este
+  // bloque contesta al "por que", y para eso hace falta el CONTENIDO, no solo el hueco:
+  // hasta hoy la app parseaba cada linea, se quedaba con los campos que entendia y
+  // TIRABA LA LINEA. Diez milisegundos despues de llegar, la trama que no cuadro no
+  // existia en ninguna parte.
+  //
+  // POR QUE ESTO ES UNA PESTANA APARTE Y NO UN PANEL EN LA DE TRAFICO.
+  //
+  // Porque un panel que escribe en LOS MISMOS widgets que el dato real es la version de
+  // interfaz de la prueba que no mide nada, y esta app ya lo pago: traia un "SIMULADOR
+  // DE PRUEBAS - DEMO EN VIVO" que pintaba fases inventadas sobre los mismos semaforos
+  // que la telemetria. Aqui no se pinta ni un semaforo, ni el contador, ni la barra de
+  // enlace: se ensena texto que entro por el cable. Y cuando no ha entrado nada, se
+  // DICE. Nunca hay una trama de ejemplo en esta vista.
+  //
+  // Y ESTE BLOQUE CAMBIA COMPORTAMIENTO, QUE ES LO QUE HAY QUE MIRAR AL REVISARLO.
+  //
+  // Para poder decir "rechazada por checksum" hay que validar el checksum, y hasta hoy
+  // NADIE lo validaba: parseNmeaTelemetry() hacia `line.split('*')[0]` y tiraba el CRC
+  // sin leerlo, mientras NMEAParser.validarTrama() llevaba meses escrita y sin un solo
+  // llamador -fichada como huerfana en el pack app_07, que es la unica razon de que se
+  // supiera-. Conectarla NO es solo instrumentacion: desde hoy una trama con el
+  // checksum malo NO se pinta. Antes se pintaba, con los bytes que hubiera traido la
+  // radio dentro de ESTADO:, de MODO: o de T:.
+
+  // Las cabeceras que esta app sabe leer. La lista se escribe UNA vez y la usan el juez
+  // y la pantalla: un tipo que no este aqui no se pinta, y se cuenta como rechazado
+  // NOMBRANDOLO, que es distinto de ignorarlo en silencio como se hacia antes -un
+  // `else if` sin `else` final se traga lo que no reconoce y no deja rastro-.
+  const TIPOS_QUE_LA_APP_LEE = ['$STATUS', '$ALARM', '$ACK', '$EVENT', '$ERR'];
+
+  // EL JUEZ. Una sola funcion decide si una linea entra, y devuelve POR QUE no cuando
+  // no entra. No pinta, no anota y no toca el estado: eso lo hacen sus llamadores.
+  function juzgarTrama(linea) {
+    const v = NMEAParser.validarTrama(linea);
+    if (!v.valida) {
+      return {
+        aceptada: false,
+        motivo: v.motivo,
+        detalle: v.error,
+        tipo: '',
+        partes: null
+      };
+    }
+    // El payload vuelve SIN el '$' -validarTrama lo salta para el XOR, igual que
+    // enviarTramaConCrc() en el firmware-. Se le devuelve para que el resto del camino
+    // siga comparando cabeceras con dolar, que es como estan escritas las ramas.
+    const partes = ('$' + v.payload).split(',');
+    const tipo = partes[0];
+    if (TIPOS_QUE_LA_APP_LEE.indexOf(tipo) < 0) {
+      return {
+        aceptada: false,
+        motivo: 'TIPO_DESCONOCIDO',
+        detalle: 'la cabecera ' + tipo + ' no la lee ninguna rama de esta app',
+        tipo: tipo,
+        partes: null
+      };
+    }
+    return { aceptada: true, motivo: null, detalle: '', tipo: tipo, partes: partes };
+  }
+
+  // LA ANOTACION DE RECHAZO EN LA BITACORA, ESTRANGULADA.
+  //
+  // Un rechazo va a la linea de tiempo persistida porque "a las 03:41 empezo a llegar
+  // basura" es exactamente lo que se busca al dia siguiente, y distingue dos averias
+  // que desde el suelo se ven igual: "no llegaba nada" (hueco) contra "llegaba basura"
+  // (esto). Lo que NO va es una anotacion por trama: con la radio en mal estado pueden
+  // ser cientos por minuto, y el tope de 400 de la bitacora se vaciaria de historia del
+  // enlace para llenarse de la misma linea repetida.
+  //
+  // Se anota cuando CAMBIA el motivo -que es el instante que interesa- o cuando se
+  // cumple el periodo de rutina, y la anotacion lleva la CUENTA acumulada desde que
+  // empezo la racha. La trama en crudo va dentro del texto, recortada: la cinta de
+  // js/depuracion.js se pierde al cerrar la app y esto no, asi que la muestra tiene que
+  // viajar con la anotacion o el ejemplo se pierde.
+  const RECHAZO_MUESTRA_MAX = 120;
+
+  function registrarRechazoEnlace(veredicto, linea) {
+    const ahora = Date.now();
+    const motivo = veredicto.motivo || 'SIN_FORMA';
+    // Una racha se da por terminada cuando pasa un periodo entero SIN NINGUN rechazo, y
+    // no con la primera trama buena que llegue. La diferencia importa en el caso que se
+    // quiere medir: con la radio marginal se alternan buenas y malas, y cortar la racha
+    // en cada buena anotaria una linea por cada mala -que es justo lo que el
+    // estrangulador existe para impedir-. Un rechazo suelto una hora despues, en
+    // cambio, es un suceso nuevo y merece su propia anotacion.
+    const rachaVieja = state.rechazoUltimaMs !== null &&
+      (ahora - state.rechazoUltimaMs) > RegistroEnlace.PERIODO_MUESTRA_MS;
+    const cambioMotivo = motivo !== state.rechazoMotivo || rachaVieja;
+    state.rechazoUltimaMs = ahora;
+    if (cambioMotivo) {
+      state.rechazoMotivo = motivo;
+      state.rechazoDesdeMs = ahora;
+      state.rechazoCuenta = 0;
+      state.rechazoAnotadoMs = null;
+    }
+    state.rechazoCuenta++;
+    const tocaRutina = !state.rechazoAnotadoMs ||
+      (ahora - state.rechazoAnotadoMs) >= RegistroEnlace.PERIODO_MUESTRA_MS;
+    if (!cambioMotivo && !tocaRutina) return;
+    state.rechazoAnotadoMs = ahora;
+
+    const cruda = RegistroCrudo.escapar(String(linea === undefined ? '' : linea));
+    const muestra = cruda.length > RECHAZO_MUESTRA_MAX
+      ? cruda.slice(0, RECHAZO_MUESTRA_MAX) + '...' : cruda;
+    const texto = 'Entro algo por el cable y la app NO lo pinto: ' +
+      (RegistroCrudo.MOTIVOS[motivo] || motivo) + '. ' +
+      state.rechazoCuenta + ' desde las ' + _horaDe(state.rechazoDesdeMs) + '. ' +
+      (veredicto.detalle ? veredicto.detalle + '. ' : '') +
+      'Muestra: ' + muestra;
+    RegistroEnlace.anotar('RECHAZO', enlaceDeAhora(), texto);
+    renderRegistroEnlace();
+  }
+
+  // LOS REPAROS DE UNA TRAMA QUE SI ENTRO. No es lo mismo "no se pinto nada" que "se
+  // pinto con huecos", y meter las dos cosas en el saco de rechazadas diria que la
+  // segunda no llego. Los reparos se calculan DESPUES de parsear, con las mismas
+  // funciones que decidieron lo que se pinta -no con una segunda copia de la regla-,
+  // que es la unica forma de que la cinta cuente lo que de verdad paso.
+  function reparosDeStatus(data, lectura) {
+    const r = [];
+    if (Object.keys(data).length === 0) {
+      r.push('no traia ningun campo con forma clave:valor. El checksum es bueno, asi ' +
+             'que el equipo hablo y llego entero: sirve de latido y no de medida');
+    }
+    if (!lectura.medido) {
+      r.push('el enlace no venia medido (RF:' +
+             (lectura.crudo === null ? 'ausente' : lectura.crudo) + ')');
+    }
+    if (lectura.rtt === null) {
+      r.push('el RTT no venia medido (RTT:' +
+             (lectura.crudoRtt === null ? 'ausente' : lectura.crudoRtt) + ')');
+    }
+    if (data.BAT !== undefined && state.battery === null) {
+      r.push('la bateria no venia medida (BAT:' + data.BAT + ')');
+    }
+    return r;
+  }
+
+  // ---- La pantalla de depuracion ----------------------------------------
+
+  function _textoContadores(c) {
+    const min = Math.round(c.ventanaMs / 60000);
+    if (!c.total) {
+      return 'En los ultimos ' + min + ' minutos no ha entrado ninguna trama.';
+    }
+    let t = 'Ultimos ' + min + ' min: ' + c.total + ' tramas · ' +
+            c.aceptadas + ' aceptadas · ' + c.rechazadas + ' rechazadas';
+    if (c.conReparos) {
+      t += ' · ' + c.conReparos + ' aceptadas con algun campo sin medida';
+    }
+    const motivos = Object.keys(c.porMotivo).sort();
+    if (motivos.length) {
+      t += '. Motivos: ' + motivos.map(m => m + ' x' + c.porMotivo[m]).join(', ');
+    }
+    if (c.fueraDeVentana) {
+      t += '. (' + c.fueraDeVentana + ' mas antiguas siguen en la cinta y no se ' +
+           'cuentan en esta ventana.)';
+    }
+    return t;
+  }
+
+  function renderDepuracion() {
+    if (!depuListaEl && !depuContadoresEl && !depuNotaEl) return;
+    // NO SE REPINTA UNA VISTA QUE NADIE ESTA MIRANDO. Con el equipo delante entra un
+    // $STATUS por segundo, y rehacer sesenta filas de DOM cada segundo mientras el
+    // tecnico esta en la pantalla de trafico se paga en bateria del telefono y en
+    // nada mas. Al abrir la pestana se pinta entera, que es lo unico que hace falta:
+    // la cinta la guarda RegistroCrudo, no el DOM.
+    //
+    // Esta salida temprana OBLIGA a que el conmutador de pestanas llame aqui al abrir
+    // la vista; si no, se abriria en blanco -que es exactamente la clase de fallo
+    // silencioso que este fichero persigue-. La llamada esta en el bloque 9.
+    const seccion = document.getElementById('tab-depuracion');
+    if (seccion && !seccion.classList.contains('active')) return;
+    const cuenta = RegistroCrudo.contadores();
+
+    if (depuContadoresEl) depuContadoresEl.textContent = _textoContadores(cuenta);
+
+    if (depuNotaEl) {
+      // La declaracion de lo que esta cinta NO es. Va siempre a la vista, no en un
+      // pliegue: un tecnico que la exporte creyendo que se lleva la noche entera se
+      // va del poste con menos de lo que cree.
+      let n = 'Esta cinta vive en la MEMORIA de la app y cabe ' +
+              RegistroCrudo.TOPE + ' tramas -unos ' +
+              Math.round(RegistroCrudo.horizonteMinutos()) + ' minutos de trafico ' +
+              'seguido-. Al cerrar la app se pierde: exportela antes de bajar del ' +
+              'poste. Lo que si sobrevive al cierre es la bitacora del enlace de la ' +
+              'pestana de Eventos, donde cada racha de rechazos deja su anotacion.';
+      if (cuenta.descartados) {
+        n += ' RECORTADA: se tiraron las ' + cuenta.descartados + ' tramas mas ' +
+             'antiguas al llegar al tope.';
+      }
+      depuNotaEl.textContent = n;
+    }
+
+    if (btnDepuTodas) {
+      btnDepuTodas.className = 'depu-filtro' + (state.depuSoloRechazadas ? '' : ' activo');
+    }
+    if (btnDepuRechazadas) {
+      btnDepuRechazadas.className = 'depu-filtro' + (state.depuSoloRechazadas ? ' activo' : '');
+    }
+
+    if (!depuListaEl) return;
+    depuListaEl.innerHTML = '';
+    const todas = RegistroCrudo.recientes(60);
+    const vista = state.depuSoloRechazadas
+      ? todas.filter(r => r.veredicto === RegistroCrudo.RECHAZADA) : todas;
+
+    if (!vista.length) {
+      const vacio = document.createElement('p');
+      vacio.className = 'depu-vacio';
+      // NUNCA una trama de ejemplo. Lo que sustituye a un dato que no se tiene no es
+      // una simulacion: es decirlo.
+      vacio.textContent = todas.length
+        ? 'Ninguna trama rechazada entre las ultimas ' + todas.length + ' que entraron.'
+        : 'Todavia no ha entrado ninguna trama en esta sesion. Esta lista se llena ' +
+          'sola con un equipo delante; aqui no se ensena ninguna trama de ejemplo.';
+      depuListaEl.appendChild(vacio);
+      return;
+    }
+
+    vista.forEach(r => {
+      const fila = document.createElement('div');
+      fila.className = 'depu-fila depu-' + r.veredicto.toLowerCase() +
+                       (r.reparos.length ? ' depu-conreparos' : '');
+
+      const cab = document.createElement('div');
+      cab.className = 'depu-cab';
+      const hora = document.createElement('span');
+      hora.className = 'depu-hora';
+      hora.textContent = _horaDe(r.ms);
+      const marca = document.createElement('span');
+      marca.className = 'depu-marca';
+      marca.textContent = r.veredicto === RegistroCrudo.RECHAZADA
+        ? 'RECHAZADA · ' + r.motivo : 'ACEPTADA' + (r.tipo ? ' · ' + r.tipo : '');
+      cab.appendChild(hora);
+      cab.appendChild(marca);
+      fila.appendChild(cab);
+
+      // LA TRAMA EN CRUDO, y por textContent: es texto que viene del cable y no se
+      // interpreta como HTML ni de broma. Los caracteres de control salen escapados
+      // para que un CR suelto no parta la lista y ensene una trama que no es la que
+      // entro; lo que se escapa es como se ve, no lo que se guarda.
+      const crudo = document.createElement('code');
+      crudo.className = 'depu-crudo';
+      crudo.textContent = RegistroCrudo.escapar(r.linea) +
+        (r.cortada ? '   [CORTADA: llegaron ' + r.largoOriginal + ' caracteres]' : '');
+      fila.appendChild(crudo);
+
+      if (r.detalle) {
+        const d = document.createElement('div');
+        d.className = 'depu-detalle';
+        d.textContent = r.detalle;
+        fila.appendChild(d);
+      }
+      r.reparos.forEach(x => {
+        const d = document.createElement('div');
+        d.className = 'depu-reparo';
+        d.textContent = 'se pinto, pero: ' + x;
+        fila.appendChild(d);
+      });
+
+      depuListaEl.appendChild(fila);
+    });
+  }
+
+  // ---- Sacar el registro del poste --------------------------------------
+  //
+  // EN EL CRUCE PUEDE NO HABER INTERNET, asi que ninguna de las dos salidas lo
+  // necesita: las dos componen el texto aqui dentro. (El reporte de WhatsApp de la
+  // pestana de Eventos SI abre api.whatsapp.com, y por eso no es la salida de esto.)
+  //
+  // Y son DOS a proposito. La descarga es la comoda, pero dentro de un WebView de
+  // Android una descarga puede no llegar a ninguna parte sin que la pagina se entere
+  // -no hay forma fiable de preguntarselo-, y entonces el tecnico se baja del poste
+  // creyendo que lleva el fichero. La segunda salida es la que no puede fallar: el
+  // texto entero a la vista, seleccionado, para pegarlo donde sea.
+  function textoDepuracion() {
+    return RegistroCrudo.aTexto(Date.now(), {
+      Cruce: state.site,
+      Equipo: state.node === null ? 'sin identificar (ningun $STATUS con NODE)' : state.node,
+      Serie: state.serie === null ? 'sin identificar' : state.serie,
+      Enlace: state.rfQuality === null
+        ? 'no medido en esta sesion'
+        : state.rfQuality + '% a las ' + _horaDe(state.rfMedidaMs)
+    });
+  }
+
+  function nombreFicheroDepuracion() {
+    return 'Tramas_' + state.site.replace(/[\s\·\/]+/g, '_') + '_' +
+           new Date().toISOString().slice(0, 10) + '.txt';
+  }
+
+  if (btnDepuExport) {
+    btnDepuExport.addEventListener('click', () => {
+      if (!RegistroCrudo.todas().length) {
+        showToast('La cinta esta vacia: no ha entrado ninguna trama que sacar');
+        return;
+      }
+      const blob = new Blob([textoDepuracion()], { type: 'text/plain;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = nombreFicheroDepuracion();
+      link.click();
+      // El toast NO afirma que el fichero este en el telefono: la pagina no puede
+      // saberlo. Dice lo que se ha intentado y donde esta la salida que no falla.
+      showToast('Fichero pedido. Si no aparece, use Copiar y pegue el texto');
+    });
+  }
+
+  if (btnDepuCopiar) {
+    btnDepuCopiar.addEventListener('click', () => {
+      if (!depuTextoEl) return;
+      const texto = textoDepuracion();
+      depuTextoEl.value = texto;
+      depuTextoEl.hidden = false;
+      try {
+        depuTextoEl.focus();
+        depuTextoEl.select();
+      } catch (e) {
+        // Seleccionar puede negarse en algun WebView; el texto ya esta a la vista,
+        // que es lo que de verdad hace falta.
+      }
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(texto).then(
+          () => showToast('Texto en el portapapeles, y tambien abajo para revisarlo'),
+          () => showToast('El portapapeles se nego: el texto esta abajo, seleccionelo')
+        );
+      } else {
+        showToast('El texto esta abajo, seleccionado: peguelo donde quiera');
+      }
+    });
+  }
+
+  if (btnDepuLimpiar) {
+    btnDepuLimpiar.addEventListener('click', () => {
+      if (typeof window.confirm === 'function' &&
+          !window.confirm('Se vacia la cinta de tramas de esta sesion. Si no la ha ' +
+                          'exportado, se pierde.')) return;
+      RegistroCrudo.limpiar();
+      if (depuTextoEl) {
+        depuTextoEl.value = '';
+        depuTextoEl.hidden = true;
+      }
+      renderDepuracion();
+      addEvent('cyan', 'Cinta de tramas en crudo vaciada a peticion del usuario.');
+    });
+  }
+
+  if (btnDepuTodas) {
+    btnDepuTodas.addEventListener('click', () => {
+      state.depuSoloRechazadas = false;
+      renderDepuracion();
+    });
+  }
+  if (btnDepuRechazadas) {
+    btnDepuRechazadas.addEventListener('click', () => {
+      state.depuSoloRechazadas = true;
+      renderDepuracion();
     });
   }
 
@@ -1419,9 +1811,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function parseNmeaTelemetry(line) {
     if (!line || typeof line !== 'string') return;
-    if (!line.startsWith('$')) return;
-    const parts = line.split('*')[0].split(',');
-    const header = parts[0];
+
+    // LA PUERTA. Antes aqui habia `if (!line.startsWith('$')) return;` y luego
+    // `line.split('*')[0]`, que TIRA EL CHECKSUM SIN MIRARLO: una trama corrompida por
+    // la radio entraba a pintar con los bytes que trajera dentro. Ahora se juzga, se
+    // anota en la cinta lo que llego, y lo que no pasa NO PINTA NADA -pero deja rastro
+    // con su motivo, que es lo contrario de la vuelta silenciosa de antes-.
+    const veredicto = juzgarTrama(line);
+    const anotado = RegistroCrudo.anotar(line, veredicto);
+    if (!veredicto.aceptada) {
+      registrarRechazoEnlace(veredicto, line);
+      renderDepuracion();
+      return;
+    }
+    const parts = veredicto.partes;
+    const header = veredicto.tipo;
 
     if (header === '$STATUS') {
       const data = _camposNmea(parts);
@@ -1512,6 +1916,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (data.HORA) {
         state.hora = data.HORA;
+      }
+      // Los reparos se apuntan AQUI ABAJO y no en el juez, y el sitio importa: a esta
+      // altura ya esta decidido lo que se pinto -la lectura de enlace y state.battery
+      // salieron de las mismas funciones que escriben la pantalla-. Calcularlos antes
+      // obligaria a una segunda copia de la regla, y una segunda copia es la que se
+      // queda vieja sin avisar y hace que la cinta cuente algo distinto de lo que paso.
+      if (anotado) {
+        reparosDeStatus(data, lectura).forEach(x => anotado.reparos.push(x));
       }
     } else if (header === '$ALARM') {
       const data = _camposNmea(parts);
@@ -1612,6 +2024,10 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Rechazado por el equipo: ' + (data.DESC || 'ver eventos'));
       }
     }
+    // La cinta se repinta una sola vez por trama y al final, cuando los reparos ya
+    // estan puestos: hacerlo arriba ensenaria la trama sin ellos y el usuario veria la
+    // linea cambiar sola.
+    renderDepuracion();
   }
 
   // Despachador unico de los botones que declaran su orden en data-cmd. Un solo sitio
@@ -2037,6 +2453,11 @@ document.addEventListener('DOMContentLoaded', () => {
         targetEl.classList.add('active');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+      // La cinta de tramas no se repinta mientras esta pestana esta cerrada -a un
+      // $STATUS por segundo eso serian sesenta filas de DOM por segundo gastando
+      // bateria para nadie-, asi que al abrirla hay que pintarla aqui o se abriria en
+      // blanco enseñando "todavia no ha entrado ninguna trama" con la cinta llena.
+      if (targetId === 'tab-depuracion') renderDepuracion();
     });
   });
 
@@ -2329,6 +2750,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // asi que se pinta antes de nada: lo primero que quiere ver quien abre la app tras
   // una caida nocturna es a que hora se fue, no el estado de ahora.
   renderRegistroEnlace();
+  // Y la cinta de tramas nace VACIA Y DICIENDOLO. Es la vista donde mas tentador seria
+  // dejar un ejemplo "para que se vea el formato": no lo lleva.
+  renderDepuracion();
   marcarSinEnlace();
   // Arranca sin punta: los dos mandos de emergencia a la vista, cada uno con su poste
   // escrito. En cuanto se sepa cual hay delante quedara solo el que corresponde.

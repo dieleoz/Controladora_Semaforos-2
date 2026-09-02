@@ -497,6 +497,61 @@
       </div>
     </section>
 
+    <!-- ===================================================================
+         TAB 5: MODO DEPURACIÓN — LAS TRAMAS EN CRUDO (V2 · A1)
+         ===================================================================
+         VIVE APARTE DE LA PANTALLA DE OPERACIÓN A PROPÓSITO. Aquí se ve lo que
+         entró por el cable, no lo que la app entendió: si estos textos se
+         mezclaran con los semáforos, un byte corrupto tendría el mismo aspecto
+         que una medida. Esta vista NO pinta ningún semáforo, ningún contador y
+         ninguna barra de enlace; y cuando no ha llegado nada, lo dice, no lo
+         inventa.
+         =================================================================== -->
+    <section class="tab-content admin-only" id="tab-depuracion">
+      <div class="card">
+        <div class="card-header-flex">
+          <h3>🧪 Tramas en crudo</h3>
+          <span class="badge">DEPURACIÓN</span>
+        </div>
+        <p class="card-sub">
+          Lo que entró por el Bluetooth, <strong>tal y como entró</strong>, con las
+          rechazadas y su motivo. Un fallo intermitente no se diagnostica con un
+          semáforo dibujado: se diagnostica con la trama que no cuadró.
+        </p>
+
+        <div class="depu-contadores" id="depu-contadores"></div>
+
+        <div class="depu-filtros">
+          <button class="depu-filtro activo" id="btn-depu-todas">Todas</button>
+          <button class="depu-filtro" id="btn-depu-rechazadas">Sólo rechazadas</button>
+        </div>
+
+        <div class="depu-lista" id="depu-lista"></div>
+
+        <p class="card-sub depu-nota" id="depu-nota"></p>
+
+        <!-- LAS DOS SALIDAS, Y NINGUNA NECESITA INTERNET. El reporte de WhatsApp
+             de la pestaña de eventos abre api.whatsapp.com, y en un cruce puede
+             no haber datos; esto se compone en el teléfono. La de abajo es la
+             que siempre funciona: el texto a la vista para seleccionarlo. -->
+        <div class="feed-actions">
+          <button class="btn-export" id="btn-depu-export">
+            <span>📥 Guardar como fichero</span>
+          </button>
+          <button class="btn-share" id="btn-depu-copiar">
+            <span>📋 Copiar / mostrar texto</span>
+          </button>
+        </div>
+        <textarea class="depu-texto" id="depu-texto" readonly hidden
+                  aria-label="Texto del registro de tramas para copiar"></textarea>
+        <div class="feed-actions">
+          <button class="btn-share" id="btn-depu-limpiar">
+            <span>🗑️ Vaciar la cinta</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- ===================================================================
@@ -520,6 +575,10 @@
     <button class="nav-item admin-tab" data-tab="tab-diag" id="tab-btn-diag" style="display: none;">
       <span class="nav-icon">⚙️</span>
       <span class="nav-label">Técnico</span>
+    </button>
+    <button class="nav-item admin-tab" data-tab="tab-depuracion" id="tab-btn-depuracion" style="display: none;">
+      <span class="nav-icon">🧪</span>
+      <span class="nav-label">Tramas</span>
     </button>
   </nav>
 
@@ -661,6 +720,7 @@
   <script src="js/site_manager.js"></script>
   <script src="js/courier_rtc.js"></script>
   <script src="js/registro_enlace.js"></script>
+  <script src="js/depuracion.js"></script>
   <script src="js/bluetooth_driver.js"></script>
   <script src="app.js"></script>
 </body>

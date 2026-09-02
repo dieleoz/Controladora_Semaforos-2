@@ -1169,6 +1169,11 @@ body {
 .registro-evento .registro-clase { color: var(--cyan-neon); }
 .registro-muestra .registro-clase { color: var(--text-muted); }
 .registro-hueco .registro-clase { color: var(--enlace-sindato); }
+/* RECHAZO no comparte color con HUECO, y la diferencia es el diagnostico entero: un
+   hueco es "no llegaba nada" -antena, cable, alcance- y un rechazo es "llegaba basura"
+   -ruido, colision, cable largo-. Desde el suelo se ven igual y se arreglan distinto.
+   --enlace-justo #FFB300 sobre --bg-surface: 10.51:1, AAA. */
+.registro-rechazo .registro-clase { color: var(--enlace-justo); }
 
 @media (max-width: 400px) {
   /* A 360 y 320 px la fila de cuatro columnas parte el detalle en tiras de dos
@@ -1211,3 +1216,197 @@ body {
 .pad-btn { min-width: 0; }
 .pad-text { min-width: 0; }
 .pad-text strong, .pad-text small { overflow-wrap: anywhere; }
+
+/* ===================================================================
+   MODO DEPURACION - LA CINTA DE TRAMAS EN CRUDO (V2 - A1)
+   =================================================================== */
+
+/* LA BARRA DE ABAJO PASA DE CUATRO PESTANAS A CINCO, Y ESO SE MIDE.
+
+   ESTE COMENTARIO SE ESCRIBIO DOS VECES, y la primera version es la leccion. Decia que
+   sin esta regla la quinta pestana "se salia por la derecha 33 px a 320 px", razonando
+   desde `min-width:auto` -que es la causa real de N-75, tres bloques por encima del
+   sintoma-. Al medirlo con el navegador, ESO NO PASA: los rotulos son de una sola
+   palabra, asi que el ancho minimo de contenido es pequeno y los botones si encogen.
+   Era una cifra plausible, deducida y falsa, escrita con aspecto de medida.
+
+   Lo que SI pasa, medido a los cuatro anchos con las cinco pestanas visibles
+   (`.bottom-nav` mide 388/366/336/296 px de ancho y la altura es lo que se mueve):
+
+                        412 px    390 px    360 px    320 px
+     sin esta regla     60 px     60 px     60 px     71 px  <- los cinco rotulos
+                                                              parten en DOS lineas
+     con esta regla     60 px     59 px     59 px     59 px
+
+     desborde por la derecha: 0 px en los ocho casos, y ningun rotulo recortado.
+
+   O sea que la regla no arregla un corte: impide que la barra flotante CREZCA un 18 %
+   justo en el telefono mas estrecho, comiendose el contenido que tiene debajo. Se queda
+   por eso y porque el reparto a partes iguales deja el sitio hecho para la sexta
+   pestana; no por el desborde que no habia. */
+.nav-item { min-width: 0; flex: 1 1 0; }
+.nav-label { overflow-wrap: anywhere; }
+@media (max-width: 400px) {
+  .nav-item { padding: 6px 4px; }
+  .nav-label { font-size: 9px; }
+}
+
+.depu-contadores {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  margin-top: 10px;
+  /* Los contadores son texto largo y variable -"Motivos: CHECKSUM x12, SIN_FORMA x3"-.
+     Parte por palabras: un contador que se sale por la derecha no se lee, y el numero
+     que se pierde es siempre el ultimo, que es el que se acaba de anadir. */
+  overflow-wrap: anywhere;
+}
+
+.depu-filtros { display: flex; gap: 8px; margin-top: 10px; }
+.depu-filtro {
+  flex: 1 1 0;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: var(--radius-pill);
+  padding: 8px 6px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.depu-filtro.activo {
+  border-color: var(--border-glow);
+  color: var(--cyan-neon);
+  background: rgba(0, 240, 255, 0.08);
+}
+
+.depu-lista {
+  margin-top: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.depu-vacio {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  padding: 12px 4px;
+  margin: 0;
+}
+
+.depu-fila {
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 7px 4px;
+  min-width: 0;
+}
+.depu-cab {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  min-width: 0;
+}
+.depu-hora { font-family: var(--font-mono); color: var(--text-muted); flex: 0 0 auto; }
+.depu-marca { min-width: 0; overflow-wrap: anywhere; }
+
+/* Los dos veredictos NO se distinguen solo por color: la palabra ACEPTADA o RECHAZADA
+   va escrita al lado. A pleno sol y con la pantalla sucia el color es lo primero que se
+   pierde, y hay quien no distingue el rojo del verde.
+
+   CONTRASTE MEDIDO, no copiado. La tentacion era pegar aqui los ratios que el indicador
+   de enlace tiene escritos -11.30, 6.80, 10.51...-, pero esos estan calculados sobre
+   --bg-surface #0B111E y ESTOS ELEMENTOS NO ESTAN AHI: viven dentro de .card, que es
+   semitransparente, y la trama en crudo lleva encima otra capa a 35 % de negro. El
+   fondo real es otro y el ratio, tambien. Se ha compuesto capa a capa sobre la pagina
+   renderizada, a 390 px, con el color que el navegador aplica de verdad:
+
+     contadores de la ventana   10 px   18.43:1   AAA
+     la trama en crudo          10 px   18.56:1   AAA
+     texto para copiar          10 px   18.56:1   AAA
+     nota de la cinta                   17.56:1   AAA
+     filtro activo              11 px   11.12:1   AAA
+     rotulo ACEPTADA             9 px   11.01:1   AAA
+     reparo de una aceptada     10 px   10.24:1   AAA
+     detalle del rechazo        10 px    7.16:1   AAA
+     hora de la fila             9 px    7.16:1   AAA
+     rotulo RECHAZADA            9 px    6.62:1   AA
+     filtro no activo           11 px    6.53:1   AA
+
+   Los once por encima de 4.5:1, que es el umbral que les toca: aqui no hay texto grande
+   -nada llega a 18.66 px en negrita-, asi que el 3:1 de componente grafico no aplica a
+   ninguno. Lo que esta cuenta NO cubre, y va escrito al lado: a pleno sol el reflejo
+   sube el nivel de negro y comprime los ratios, y a un tema oscuro le comprime mas. La
+   intervencion demostrada contra el sol es un modo dia, no un color mas brillante. */
+.depu-aceptada .depu-marca { color: var(--enlace-bien); }
+.depu-rechazada .depu-marca { color: var(--enlace-cayendo); }
+.depu-rechazada { border-left: 2px solid var(--enlace-cayendo); padding-left: 8px; }
+.depu-conreparos { border-left: 2px solid var(--enlace-justo); padding-left: 8px; }
+
+/* LA TRAMA TAL Y COMO LLEGO. Fondo mas OSCURO que el de la tarjeta a proposito: sobre
+   un texto claro, oscurecer el fondo solo puede SUBIR el ratio de contraste, nunca
+   bajarlo, asi que esta caja no puede empeorar ninguna de las cuentas de arriba.
+   `overflow-wrap: anywhere` y no scroll horizontal: una trama tiene 100 caracteres sin
+   un solo espacio y en un telefono lo que no cabe no se descubre deslizando -se pierde-. */
+.depu-crudo {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 6px;
+  padding: 6px 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.depu-detalle {
+  margin-top: 3px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.depu-reparo {
+  margin-top: 3px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--enlace-justo);
+  overflow-wrap: anywhere;
+}
+
+.depu-nota {
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+/* La salida que no puede fallar: el texto entero a la vista para seleccionarlo cuando
+   la descarga del WebView no llega a ninguna parte. */
+.depu-texto {
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  margin-top: 10px;
+  height: 180px;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+}

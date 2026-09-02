@@ -106,9 +106,23 @@ const navItems = document.querySelectorAll('.nav-item');
 const tabPanes = document.querySelectorAll('.tab-content');
 // N-75: la interfaz de 2 roles dejo 4 pestanas. tab-control desaparecio -sus mandos
 // son la botonera tactica del operario- y tab-rtc tambien -el Courier vive en tab-diag-.
-assert(navItems.length === 4, `Existen 4 botones de navegación inferior (detectados: ${navItems.length})`);
+//
+// SE CONSERVA, con el numero al dia (CLAUDE.md 8.quater): lo que mide -"la barra de
+// abajo tiene exactamente las pestanas declaradas"- sigue valiendo; lo que ha cambiado
+// es el sujeto, porque la V2 anade tab-depuracion. Son 5.
+assert(navItems.length === 5, `Existen 5 botones de navegación inferior (detectados: ${navItems.length})`);
 
-const expectedTabs = ['tab-estado', 'tab-eventos', 'tab-tiempos', 'tab-diag'];
+// Y el trinquete que faltaba, que es lo que impide que este numero vuelva a quedarse
+// viejo: cada seccion tiene su boton y cada boton su seccion. Una pestana sin boton es
+// una vista que existe y no se puede abrir -y no lo delataba nadie-; un boton sin
+// seccion es un mando que no lleva a ninguna parte.
+assert(navItems.length === tabPanes.length,
+  `Tantos botones de navegación como secciones: ${navItems.length} botones / ${tabPanes.length} secciones`);
+const sinBoton = [...tabPanes].filter(p => !document.querySelector(`.nav-item[data-tab="${p.id}"]`));
+assert(sinBoton.length === 0,
+  `Ninguna sección se queda sin botón que la abra (huérfanas: ${sinBoton.map(p => p.id).join(', ') || 'ninguna'})`);
+
+const expectedTabs = ['tab-estado', 'tab-eventos', 'tab-tiempos', 'tab-diag', 'tab-depuracion'];
 document.querySelectorAll('.admin-tab').forEach(t => { t.style.display = ''; });
 expectedTabs.forEach(tabId => {
   const btn = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
@@ -134,7 +148,23 @@ assert(btnDevice.classList.contains('connected'), 'El botón de dispositivo pasa
 // 4. Inyectar telemetría NMEA en vivo ($STATUS)
 assert(typeof window._btSubscribeCb === 'function', 'Callback de suscripción serie Bluetooth activo');
 
-const sampleTelemetry = '$STATUS,NODE:ESCLAVO,SERIE:SEM-E-01,MODO:AUTO,ESTADO:R1_V2,T:28,RF:95,RTT:75,BAT:12.8,HORA:14:30:00*5F\n';
+// SE REPARTE (CLAUDE.md 8.sexies). Esta trama llevaba `*5F`, que NO es su checksum -el
+// real es `*04`-, y entraba igual porque parseNmeaTelemetry() tiraba el CRC sin mirarlo.
+// Estas seis lineas decian DOS cosas a la vez: "la telemetria pinta los widgets" y, sin
+// pretenderlo, "una trama con el checksum malo se pinta".
+//
+//   - la primera mitad SE CONSERVA aqui, con el checksum correcto: es lo que estas
+//     lineas querian medir, y la seccion 6.bis ya dejaba escrito -antes de que nadie
+//     validara nada- que "el dia que la app valide, estas tramas tienen que seguir
+//     entrando";
+//   - la segunda se MUDA a la seccion 9, donde se exige lo contrario y con su control:
+//     una trama con el checksum malo NO se pinta, y deja rastro con su motivo.
+//
+// El checksum se escribe a mano AQUI Y SOLO AQUI, a proposito: es la unica trama del
+// arnes cuyo CRC no sale de xorNmea(). Si se calculara tambien esta, un fallo del propio
+// calculador la haria pasar igual, y no quedaria ni una linea que compare el XOR de la
+// app contra un numero escrito por una persona.
+const sampleTelemetry = '$STATUS,NODE:ESCLAVO,SERIE:SEM-E-01,MODO:AUTO,ESTADO:R1_V2,T:28,RF:95,RTT:75,BAT:12.8,HORA:14:30:00*04\n';
 window._btSubscribeCb(sampleTelemetry);
 
 const nodeNameEl = document.getElementById('node-name');
@@ -561,11 +591,194 @@ sentFrames = [];
 btnAplicarTiempos.click();
 assert(sentFrames.some(f => f.includes('SET_TIEMPOS:3,4,25')), `Comando SET_TIEMPOS generado correctamente: ${sentFrames.join(' | ')}`);
 
-// Simular respuesta $ERR del firmware por valor fuera de rango
-window._btSubscribeCb('$ERR,CMD:SET_TIEMPOS,DESC:RANGO*00\n');
+// Simular respuesta $ERR del firmware por valor fuera de rango.
+// SE CONSERVA, con el checksum al dia: llevaba `*00` -que no es el suyo, el real es
+// `*0F`- y entraba porque nadie validaba. Lo que esta linea mide es que un rechazo del
+// firmware NO se oculta, y eso sigue en pie; lo que ha cambiado es que ahora la trama
+// tiene que estar bien formada para llegar hasta ahi, igual que en la calle.
+window._btSubscribeCb('$ERR,CMD:SET_TIEMPOS,DESC:RANGO*0F\n');
 const eventItems = document.querySelectorAll('.event-item');
 const lastEvent = eventItems[0];
 assert(lastEvent && lastEvent.textContent.includes('Rechazo de Firmware: [SET_TIEMPOS] RANGO'), `La app muestra y registra el error de firmware $ERR,CMD:SET_TIEMPOS,DESC:RANGO sin ocultarlo`);
+
+// =========================================================================
+// 9. MODO DEPURACION: LAS TRAMAS EN CRUDO, LAS RECHAZADAS Y SU MOTIVO
+// =========================================================================
+// Aqui vive la mitad MUDADA de la seccion 4 (CLAUDE.md 8.sexies). Alli se exigia que
+// una trama con el checksum malo se pintara -sin querer, pero se exigia-; aqui se
+// exige lo contrario, y con el control que le falta a toda inversion: una guarda que
+// no dejara pasar NADA cumpliria igual de bien "la mala no entra". Por eso cada
+// rechazo se prueba junto a una trama BUENA que si tiene que entrar.
+document.querySelector('.nav-item[data-tab="tab-depuracion"]').click();
+const depuLista = document.getElementById('depu-lista');
+const depuContadores = document.getElementById('depu-contadores');
+const depuTexto = document.getElementById('depu-texto');
+assert(!!depuLista && !!depuContadores && !!depuTexto,
+  'La pantalla de depuración existe y está separada de la de operación');
+
+// Vaciar la cinta para medir sobre una cuenta conocida -y de paso ejercer el boton-.
+window.confirm = () => true;
+document.getElementById('btn-depu-limpiar').click();
+assert(window.RegistroCrudo.todas().length === 0,
+  'El botón de vaciar deja la cinta a cero');
+assert(depuLista.textContent.includes('Todavia no ha entrado ninguna trama'),
+  'Con la cinta vacía la vista lo DECLARA en vez de enseñar una trama de ejemplo');
+assert(!depuLista.textContent.includes('$STATUS') && !depuLista.textContent.includes('$ALARM'),
+  'Y no hay ni una sola trama inventada en la vista vacía');
+
+// --- La trama BUENA: el control de que esto no es una tapia ---
+const cargaBuena = 'STATUS,NODE:ESCLAVO,SERIE:SEM-E-01,MODO:AUTO,ESTADO:R1_V2,T:44,RF:88,RTT:60,BAT:12.4,HORA:14:40:00';
+window._btSubscribeCb(`$${cargaBuena}*${xorNmea(cargaBuena)}\n`);
+assert(cdNumEl.textContent === '44',
+  `Una trama con el checksum BUENO sigue entrando y pintando: cd-num=${cdNumEl.textContent}`);
+assert(depuLista.textContent.includes(cargaBuena),
+  'Y aparece en la cinta EN CRUDO, con sus campos tal y como llegaron');
+assert(depuLista.textContent.includes('ACEPTADA'),
+  'marcada como ACEPTADA, que es lo que la app hizo con ella');
+
+// --- Rechazo 1: checksum malo. Es el defecto B1 de la V2, ya conectado. ---
+const cargaMala = 'STATUS,NODE:MAESTRO,SERIE:SEM-M-99,MODO:AUTO,ESTADO:V1_R2,T:99,RF:11,RTT:900,BAT:9.9,HORA:03:41:00';
+window._btSubscribeCb(`$${cargaMala}*00\n`);
+assert(cdNumEl.textContent === '44',
+  `Una trama con el CHECKSUM MALO no pinta nada: el contador sigue en el valor bueno (${cdNumEl.textContent}, no 99)`);
+assert(!nodeNameEl.textContent.includes('MAESTRO'),
+  `Ni cambia la punta que la app cree tener delante: ${nodeNameEl.textContent}`);
+assert(depuLista.textContent.includes('RECHAZADA · CHECKSUM'),
+  'La cinta la enseña como RECHAZADA nombrando el motivo: CHECKSUM');
+assert(depuLista.textContent.includes(cargaMala),
+  'Y guarda la trama EN CRUDO: sin la línea que no cuadró no hay nada que diagnosticar');
+assert(depuLista.textContent.includes('esperado') || depuLista.textContent.includes('Checksum'),
+  'con el detalle de la cuenta: qué CRC esperaba y cuál traía');
+
+// --- Rechazo 2: sin forma de trama ---
+window._btSubscribeCb('$SIN_ASTERISCO,NODE:MAESTRO\n');
+assert(depuLista.textContent.includes('RECHAZADA · SIN_FORMA'),
+  'Una línea sin el * del checksum se rechaza como SIN_FORMA');
+
+// --- Rechazo 3: tipo desconocido, y con el checksum BUENO ---
+// Es el que separa "no entiendo esta trama" de "esta trama viene rota": el CRC cuadra,
+// asi que llego entera; lo que pasa es que esta app no tiene rama para ella. Antes se
+// caia por el final del if/else sin dejar rastro de ninguna clase.
+const cargaRara = 'PEPE,NODE:MAESTRO,ALGO:1';
+window._btSubscribeCb(`$${cargaRara}*${xorNmea(cargaRara)}\n`);
+assert(depuLista.textContent.includes('RECHAZADA · TIPO_DESCONOCIDO'),
+  'Una trama con el checksum bueno y una cabecera que la app no lee se rechaza como TIPO_DESCONOCIDO');
+assert(depuLista.textContent.includes('$PEPE'),
+  'y también se guarda entera, que es como se descubre que el equipo emite algo nuevo');
+
+// --- Los contadores de la ventana ---
+const cuentaVista = window.RegistroCrudo.contadores();
+assert(cuentaVista.total === 4 && cuentaVista.aceptadas === 1 && cuentaVista.rechazadas === 3,
+  `Los contadores cuadran con lo inyectado: ${cuentaVista.total} tramas, ${cuentaVista.aceptadas} aceptadas, ${cuentaVista.rechazadas} rechazadas`);
+assert(depuContadores.textContent.includes('3 rechazadas'),
+  `La pantalla publica el recuento de la ventana: ${depuContadores.textContent}`);
+assert(cuentaVista.porMotivo.CHECKSUM === 1 && cuentaVista.porMotivo.SIN_FORMA === 1 &&
+       cuentaVista.porMotivo.TIPO_DESCONOCIDO === 1,
+  'y desglosado por motivo, que es lo que distingue ruido de protocolo nuevo');
+
+// --- El filtro NO borra: oculta, y lo dice ---
+document.getElementById('btn-depu-rechazadas').click();
+assert(!depuLista.textContent.includes(cargaBuena),
+  'El filtro de "sólo rechazadas" deja fuera las aceptadas');
+assert(depuLista.textContent.includes(cargaMala),
+  'y conserva las rechazadas, que es lo que se está buscando');
+assert(window.RegistroCrudo.todas().length === 4,
+  'Filtrar no borra nada de la cinta: siguen las 4');
+document.getElementById('btn-depu-todas').click();
+assert(depuLista.textContent.includes(cargaBuena),
+  'Volver a "todas" recupera las aceptadas');
+
+// --- Un campo sin medida NO es un rechazo: entra y se declara ---
+// Es la regla de RF_NO_MEDIDO llevada a la cinta. Si esto se contara como rechazo, la
+// app diria que no pinto una trama que si pinto.
+const cargaSinRf = 'STATUS,NODE:ESCLAVO,MODO:AUTO,ESTADO:R1_V2,T:12,RF:--,RTT:--,BAT:--,HORA:14:41:00';
+window._btSubscribeCb(`$${cargaSinRf}*${xorNmea(cargaSinRf)}\n`);
+assert(cdNumEl.textContent === '12',
+  `Una trama con RF:-- SI entra y pinta lo que sí trae: cd-num=${cdNumEl.textContent}`);
+assert(depuLista.textContent.includes('se pinto, pero'),
+  'y la cinta anota el reparo en vez de tirarla: se pintó, pero el enlace no venía medido');
+assert(window.RegistroCrudo.contadores().conReparos >= 1,
+  'los contadores separan "aceptadas con reparo" de "rechazadas"');
+
+// --- La bitácora del enlace RECIBE los rechazos: no hay un segundo registro al lado ---
+function contarRechazosEnBitacora() {
+  return window.RegistroEnlace.cargar().registros.filter(r => r.clase === 'RECHAZO').length;
+}
+const rechazosAntes = contarRechazosEnBitacora();
+assert(rechazosAntes > 0,
+  `Los rechazos se anotan en la bitácora del enlace, que es la que sobrevive al cierre de la app (${rechazosAntes} anotaciones)`);
+const bitacoraTexto = window.RegistroEnlace.cargar().registros
+  .filter(r => r.clase === 'RECHAZO').map(r => r.texto).join(' | ');
+assert(bitacoraTexto.includes('Muestra:'),
+  'y la anotación se lleva una muestra de la trama, porque la cinta se pierde al cerrar y ésta no');
+
+// --- El estrangulador: mil tramas malas seguidas son UN suceso ---
+// Sin esto, una radio ruidosa llenaria el tope de 400 de la bitacora con la misma linea
+// repetida y se llevaria por delante la historia del enlace, que es justo lo que esa
+// bitacora existe para guardar.
+const antesDeLaRafaga = contarRechazosEnBitacora();
+window._btSubscribeCb('$SIN_ASTERISCO_OTRA_VEZ\n');   // cambia el motivo: +1
+for (let i = 0; i < 40; i++) {
+  window._btSubscribeCb(`$STATUS,RAFAGA_${i}*00\n`);   // 40 seguidas del mismo motivo
+}
+const anotadasPorLaRafaga = contarRechazosEnBitacora() - antesDeLaRafaga;
+assert(anotadasPorLaRafaga === 2,
+  `41 rechazos seguidos dejan 2 anotaciones en la bitácora -una por cambio de motivo-, no 41 (dejaron ${anotadasPorLaRafaga})`);
+assert(window.RegistroCrudo.todas().length === 46,
+  `pero la cinta SÍ las tiene todas, una a una: ${window.RegistroCrudo.todas().length}`);
+const conRafaga = window.RegistroEnlace.cargar().registros
+  .filter(r => r.clase === 'RECHAZO').map(r => r.texto).join(' | ');
+assert(/\d+ desde las \d{2}:\d{2}:\d{2}/.test(conRafaga),
+  'y la anotación lleva la CUENTA de la racha con su hora de inicio, no una sola línea suelta');
+
+// --- Lo que llega con la pestaña CERRADA no se pierde ---
+// La vista no se repinta mientras nadie la mira -a un $STATUS por segundo serían
+// sesenta filas de DOM por segundo gastando batería para nadie-. Esa optimización tiene
+// una forma de fallar muy silenciosa: abrirse en blanco, diciendo "todavía no ha
+// entrado ninguna trama" con la cinta llena. Que es justo la mentira que esta pantalla
+// existe para no contar.
+const cargaCerrada = 'STATUS,NODE:ESCLAVO,MODO:AUTO,ESTADO:R1_V2,T:77,RF:55,RTT:120,BAT:12.1,HORA:14:44:00';
+document.querySelector('.nav-item[data-tab="tab-estado"]').click();
+window._btSubscribeCb(`$${cargaCerrada}*${xorNmea(cargaCerrada)}\n`);
+document.querySelector('.nav-item[data-tab="tab-depuracion"]').click();
+assert(depuLista.textContent.includes(cargaCerrada),
+  'Una trama que llega con la pestaña cerrada aparece al abrirla: la vista no se abre en blanco');
+assert(depuContadores.textContent.includes('tramas'),
+  `y los contadores se recomponen al abrir: ${depuContadores.textContent.slice(0, 60)}`);
+
+// --- Sacar el registro del poste, sin internet ---
+// Ninguna de las dos salidas llama a la red: el texto se compone en el telefono. La de
+// abajo es ademas la que no puede fallar -dentro de un WebView una descarga puede no
+// llegar a ninguna parte sin que la pagina se entere-.
+document.getElementById('btn-depu-copiar').click();
+assert(depuTexto.hidden === false && depuTexto.value.length > 0,
+  'El botón de copiar deja el texto ENTERO a la vista para seleccionarlo (la salida que no puede fallar)');
+assert(depuTexto.value.includes(cargaMala) && depuTexto.value.includes('CHECKSUM'),
+  'El texto exportado lleva la trama rechazada en crudo y su motivo');
+assert(depuTexto.value.includes(cargaBuena),
+  'y también las aceptadas: sin ellas no se puede saber qué pasaba justo antes del fallo');
+assert(depuTexto.value.includes('CONTADORES'),
+  'con los contadores de la ventana en la cabecera');
+assert(!/api\.whatsapp\.com/.test(depuTexto.value),
+  'y se compone en el teléfono: en el cruce puede no haber internet');
+
+// La descarga a fichero: jsdom no trae createObjectURL -no es cosa de la app-, asi que
+// se le pone el que el navegador si tiene y se comprueba que el camino no revienta.
+window.URL.createObjectURL = () => 'blob:prueba';
+let errorExport = null;
+try {
+  document.getElementById('btn-depu-export').click();
+} catch (e) {
+  errorExport = e;
+}
+assert(!errorExport,
+  `La descarga a fichero se ejecuta sin romper el hilo (${errorExport ? errorExport.message : 'OK'})`);
+
+// Y el cierre de la propiedad: la vista de depuracion no escribe en la de operacion.
+// (Una linea que no pueda fallar aqui seria un adorno, no una comprobacion: se mide el
+// HTML de la otra pestana, que es donde apareceria el texto si se colara.)
+assert(!document.getElementById('tab-estado').innerHTML.includes('RECHAZADA'),
+  'La pantalla de operación no ha recibido ni una palabra de la de depuración');
 
 console.log('='.repeat(80));
 console.log(` RESULTADO JSDOM: ${testsPassed} PASS | ${testsFailed} FALLAS`);

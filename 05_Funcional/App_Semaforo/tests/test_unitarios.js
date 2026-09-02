@@ -5,6 +5,7 @@ const IOT_CONFIG = require('../js/config.js');
 const NMEAParser = require('../js/nmea_parser.js');
 const SiteManager = require('../js/site_manager.js');
 const CourierRTC = require('../js/courier_rtc.js');
+const RegistroCrudo = require('../js/depuracion.js');
 
 let passed = 0;
 let failed = 0;
@@ -140,6 +141,111 @@ function verificarAccesoAdmin(pinIngresado, pinCorrecto) {
 }
 assert(verificarAccesoAdmin('1234', '1234') === true, 'Autenticación exitosa con PIN 1234');
 assert(verificarAccesoAdmin('0000', '1234') === false, 'Rechazo de PIN erróneo');
+
+// 8. Validación de checksum: la función que llevaba meses sin llamador
+console.log('\n--- 8. Validación de Checksum NMEA (B1: conectada en la V2) ---');
+// El XOR es el MISMO del firmware -Maestro/src/bluetooth.cpp, enviarTramaConCrc()
+// calcula sobre `payload + 1`, o sea saltando el '$'-. Aqui se comprueba contra un
+// numero calculado a mano, no contra la propia funcion: comparar calcularChecksum()
+// consigo misma daria PASS con el XOR roto.
+const tramaBuena = '$STATUS,NODE:ESCLAVO,SERIE:SEM-E-01,MODO:AUTO,ESTADO:R1_V2,T:28,RF:95,RTT:75,BAT:12.8,HORA:14:30:00*04';
+const vBuena = NMEAParser.validarTrama(tramaBuena);
+assert(vBuena.valida === true, 'validarTrama() acepta una trama con el checksum correcto');
+assert(vBuena.payload.startsWith('STATUS,'),
+  'y devuelve el payload SIN el $, que es sobre lo que el firmware calcula el XOR');
+
+// La misma trama con el checksum que llevaba escrito a mano el arnes de DOM. La app la
+// PINTABA: parseNmeaTelemetry() hacia line.split('*')[0] y tiraba el CRC sin leerlo.
+const vMala = NMEAParser.validarTrama(tramaBuena.replace('*04', '*5F'));
+assert(vMala.valida === false && vMala.motivo === 'CHECKSUM',
+  'Rechaza la misma trama con el checksum cambiado, y lo clasifica como CHECKSUM');
+assert(vMala.esperado === '04' && vMala.recibido === '5F',
+  `El rechazo dice los dos números, que es lo que se mira al diagnosticar: esperado ${vMala.esperado}, recibido ${vMala.recibido}`);
+
+const vSinAst = NMEAParser.validarTrama('$STATUS,NODE:ESCLAVO');
+assert(vSinAst.valida === false && vSinAst.motivo === 'SIN_FORMA',
+  'Una línea sin el * se rechaza como SIN_FORMA, no como checksum malo');
+const vSinDolar = NMEAParser.validarTrama('STATUS,NODE:ESCLAVO*04');
+assert(vSinDolar.valida === false && vSinDolar.motivo === 'SIN_FORMA',
+  'Y una sin el $ tampoco pasa: el $ es parte del contrato del cable');
+
+// El motivo va en clave y no en la frase: agrupar rechazos por un texto en castellano
+// se rompe el dia que alguien corrija una tilde.
+assert(typeof vMala.motivo === 'string' && vMala.motivo === vMala.motivo.toUpperCase(),
+  'El motivo es una clave en mayúsculas, contable; la frase para el técnico va aparte');
+
+// 9. La cinta de tramas en crudo (A1)
+console.log('\n--- 9. Cinta de tramas en crudo (modo depuración) ---');
+RegistroCrudo.limpiar();
+assert(RegistroCrudo.todas().length === 0 && RegistroCrudo.descartados === 0,
+  'La cinta arranca vacía y sin descartes');
+
+const t0 = 1700000000000;
+RegistroCrudo.anotar('$STATUS,NODE:ESCLAVO,T:28*XX\r\n', { aceptada: true, tipo: '$STATUS' }, t0);
+RegistroCrudo.anotar('$STATUS,ROTA*00\r\n',
+  { aceptada: false, motivo: 'CHECKSUM', detalle: 'esperado 16, recibido 00', tipo: '$STATUS' }, t0 + 1000);
+const c9 = RegistroCrudo.contadores(t0 + 2000);
+assert(c9.total === 2 && c9.aceptadas === 1 && c9.rechazadas === 1,
+  `Los contadores separan aceptadas de rechazadas: ${c9.aceptadas}/${c9.rechazadas}`);
+assert(c9.porMotivo.CHECKSUM === 1, 'y desglosan por motivo');
+
+// La ventana no es decoración: "12 rechazadas" sin un "de cuándo" no dice nada.
+const cViejo = RegistroCrudo.contadores(t0 + RegistroCrudo.VENTANA_MS + 5000);
+assert(cViejo.total === 0 && cViejo.fueraDeVentana === 2,
+  'Las tramas más viejas que la ventana salen del recuento Y se declaran como fuera, no desaparecen');
+
+// El escapado toca la REPRESENTACION, nunca el dato: un CR suelto en mitad de la lista
+// ensenaria una trama distinta de la que entro.
+assert(RegistroCrudo.escapar('A\r\nB\tC') === 'A\\r\\nB\\tC',
+  'Los caracteres de control salen escapados al pintar y al exportar');
+assert(RegistroCrudo.escapar(String.fromCharCode(7)) === '\\x07',
+  'y los no imprimibles salen en hexadecimal, no se comen en silencio');
+assert(RegistroCrudo.todas()[0].linea.includes('\r\n'),
+  'pero la línea guardada conserva el terminador tal y como llegó');
+
+// Tope duro y recorte CONTADO: un registro recortado en silencio se lee como completo.
+RegistroCrudo.limpiar();
+for (let i = 0; i < RegistroCrudo.TOPE + 25; i++) {
+  RegistroCrudo.anotar('$STATUS,N:' + i + '*00', { aceptada: true, tipo: '$STATUS' }, t0 + i);
+}
+assert(RegistroCrudo.todas().length === RegistroCrudo.TOPE,
+  `La cinta no crece sin límite: se queda en el tope de ${RegistroCrudo.TOPE}`);
+assert(RegistroCrudo.descartados === 25,
+  `y CUENTA las ${RegistroCrudo.descartados} que tiró: un recorte silencioso se lee como registro completo`);
+assert(RegistroCrudo.aTexto(t0).includes('RECORTADO'),
+  'El texto exportado lo dice también, que es donde acaba mirando quien no estuvo delante');
+
+// Una línea absurdamente larga se corta y se dice cuánto llegó.
+RegistroCrudo.limpiar();
+const larga = '$' + 'A'.repeat(RegistroCrudo.LARGO_MAX + 50);
+const regLargo = RegistroCrudo.anotar(larga, { aceptada: false, motivo: 'SIN_FORMA' }, t0);
+assert(regLargo.cortada === true && regLargo.largoOriginal === larga.length,
+  `Una línea de ${larga.length} caracteres se corta y se guarda su largo real`);
+assert(RegistroCrudo.aTexto(t0).includes('CORTADA'),
+  'y el export lo declara en vez de enseñar un trozo como si fuera la trama entera');
+
+// El export lleva lo que hace falta para diagnosticar, y no necesita internet.
+RegistroCrudo.limpiar();
+RegistroCrudo.anotar('$STATUS,NODE:MAESTRO,T:7*00',
+  { aceptada: false, motivo: 'CHECKSUM', detalle: 'esperado 3B, recibido 00' }, t0);
+const txt = RegistroCrudo.aTexto(t0, { Cruce: 'KM 12' });
+assert(txt.includes('$STATUS,NODE:MAESTRO,T:7*00') && txt.includes('CHECKSUM') &&
+       txt.includes('esperado 3B') && txt.includes('KM 12'),
+  'El export lleva la trama en crudo, el motivo, el detalle y el cruce');
+assert(!/https?:\/\//.test(txt),
+  'y no contiene ninguna URL: se compone en el teléfono porque en el cruce puede no haber internet');
+
+// Una cinta vacía DECLARA que está vacía. Nunca una trama de ejemplo.
+RegistroCrudo.limpiar();
+const txtVacio = RegistroCrudo.aTexto(t0);
+assert(txtVacio.includes('vacia') && !txtVacio.includes('$STATUS'),
+  'Una cinta vacía se exporta diciendo que está vacía, sin inventar ninguna trama de ejemplo');
+
+// Los motivos declarados tienen que tener descripción: un motivo que sale en pantalla
+// como una clave a secas no le dice nada a quien está subido a la escalera.
+assert(Object.keys(RegistroCrudo.MOTIVOS).length >= 3 &&
+       Object.keys(RegistroCrudo.MOTIVOS).every(k => RegistroCrudo.MOTIVOS[k].length > 10),
+  `Los ${Object.keys(RegistroCrudo.MOTIVOS).length} motivos de rechazo tienen texto que explica qué pasó`);
 
 console.log('\n' + '='.repeat(80));
 console.log(` RESUMEN TDD: ${passed} PASS | ${failed} FALLAS  (Total: ${passed + failed})`);
