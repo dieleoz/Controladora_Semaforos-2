@@ -17,6 +17,7 @@ DESCRIPCION = "la fase del ciclo: que las dos puntas calculen lo mismo"
 def correr(b, fw):
     # Bloque traido LITERAL, solo reindentado.
     verificar = b.verificar
+    reportar = b.reportar
 
     def hallazgo(reproducido, titulo, detalle, consecuencia):
         """El hallazgo de costura lleva CUATRO argumentos y SI cuenta como
@@ -259,27 +260,56 @@ def correr(b, fw):
               "distingue el caso bueno del malo y su PASS no vale nada")
 
     # Y la deriva de reloj que el despeje absorbe. Se desplaza el reloj del Esclavo
-    # segundo a segundo y se busca el desfase al que aparece el primer solape: tiene
-    # que ser el despeje, ni mas ni menos. Es la cuenta que sostiene el limite de 48 h.
-    deriva_critica = None
-    for skew in range(0, 2 * (DEG_VERDE_SEG + DEG_DESPEJE_SEG)):
-        choca = False
-        for s in range(0, SEGUNDOS_DEL_DIA, 1):
-            if (luz_maestro(s, DEG_VERDE_SEG, DEG_DESPEJE_SEG) == VERDE and
-                    luz_esclavo((s + skew) % SEGUNDOS_DEL_DIA, DEG_VERDE_SEG, DEG_DESPEJE_SEG,
-                                M_AMARILLO_MS // 1000) == VERDE):
-                choca = True
-                break
-        if choca:
-            deriva_critica = skew
-            break
-    verificar(deriva_critica is not None and deriva_critica > DEG_DESPEJE_SEG,
-              f"el margen real contra la deriva entre relojes es de {deriva_critica} s -el despeje "
-              f"de {DEG_DESPEJE_SEG} s mas los {E_AMARILLO_MS//1000} s de amarillo del Esclavo, mas "
-              "el segundo de la frontera-: es el colchon que justifica el limite de 48 h "
-              "(dos cristales sin calibrar derivan ~8,6 s/dia en el peor caso)",
-              f"el margen medido ({deriva_critica} s) no llega al despeje configurado "
+    # segundo a segundo y se busca el desfase al que aparece el primer solape.
+    #
+    # CORREGIDO EL 01/09: ESTO BARRIA UN SOLO SENTIDO Y PUBLICABA EL FAVORABLE.
+    #
+    # El bucle iba de 0 hacia arriba, o sea SOLO con el Esclavo adelantado, y anunciaba
+    # ese resultado como "el margen real contra la deriva entre relojes". Pero la deriva
+    # de dos cristales no elige sentido: el Esclavo puede atrasarse igual de bien, y ESE
+    # es el sentido malo. Los 4 s de ambar con que el Esclavo abre su verde protegen
+    # SOLO en un sentido, asi que los dos numeros no son iguales:
+    #
+    #   Esclavo adelantado  ->  rompe a 35 s   (el que se publicaba)
+    #   Esclavo atrasado    ->  rompe a 30 s   <- LA FRONTERA REAL
+    #
+    # Medido ademas sobre el C++ REAL de las dos puntas -Validacion_Automatico/
+    # compilar_degradado.ps1, 01/09-, que da 29 s: el segundo entero con que viaja la
+    # hora se come el que falta. Publicar 35 cuando el equipo rompe a 29 es un colchon
+    # inflado un 20 % en el modo donde un solape es un choque frontal.
+    #
+    # Ahora se barren LOS DOS SENTIDOS y manda el peor.
+    def _primer_solape(signo):
+        for skew in range(0, 2 * (DEG_VERDE_SEG + DEG_DESPEJE_SEG)):
+            for s in range(0, SEGUNDOS_DEL_DIA, 1):
+                if (luz_maestro(s, DEG_VERDE_SEG, DEG_DESPEJE_SEG) == VERDE and
+                        luz_esclavo((s + signo * skew) % SEGUNDOS_DEL_DIA,
+                                    DEG_VERDE_SEG, DEG_DESPEJE_SEG,
+                                    M_AMARILLO_MS // 1000) == VERDE):
+                    return skew
+        return None
+
+    adelantado = _primer_solape(+1)
+    atrasado = _primer_solape(-1)
+    medidos = [x for x in (adelantado, atrasado) if x is not None]
+    deriva_critica = min(medidos) if medidos else None
+
+    verificar(deriva_critica is not None and deriva_critica >= DEG_DESPEJE_SEG,
+              f"el margen contra la deriva entre relojes es de {deriva_critica} s, medido en "
+              f"LOS DOS SENTIDOS -atrasado {atrasado} s, adelantado {adelantado} s-: manda el "
+              f"peor, y el despeje configurado son {DEG_DESPEJE_SEG} s",
+              f"el margen del peor sentido ({deriva_critica} s) no llega al despeje configurado "
               f"({DEG_DESPEJE_SEG} s): el colchon no es el que dice el diseno")
+
+    reportar("el colchon NO es simetrico, y el limite de 48 h se justifica con el peor",
+             [f"Esclavo atrasado rompe a {atrasado} s; adelantado, a {adelantado} s. "
+              f"La diferencia son los {E_AMARILLO_MS//1000} s de ambar con que el Esclavo "
+              "abre su verde, que protegen solo en un sentido",
+              "sobre el C++ real de las dos puntas la frontera baja a 29 s: la hora viaja "
+              "en segundos enteros y ese segundo se descuenta",
+              "contra 20,2 s que el equipo puede acumular en 48 h -17,2 de deriva mas 3 de "
+              "TOLERANCIA_DESFASE_S- el factor es 1,44, NO el 2 que afirmaban los "
+              "comentarios de las dos puntas hasta el 01/09"])
 
     # --- 2e. El tope del byte: el contrato dice SATURAR, el codigo TRUNCA ------
     # protocolo.h: "param = SEGUNDOS, saturado a 255" y ademas afirma que por encima

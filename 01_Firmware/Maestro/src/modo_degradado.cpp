@@ -34,8 +34,26 @@
 // POR QUE 30 s DE DESPEJE. En Degradado el todo-rojo ya no es solo el despeje de la
 // interseccion: es el colchon que absorbe la DERIVA entre dos cristales de 32.768 kHz
 // sin calibrar y a la intemperie, que se separan del orden de 8,6 s al dia en el peor
-// caso. Con 30 s el margen teorico son ~3,5 dias; el limite duro de 48 h deja un
-// factor de seguridad de 2 sobre esa cuenta.
+// caso.
+//
+// EL FACTOR DE SEGURIDAD DE 2 QUE AQUI SE AFIRMABA ES FALSO. Medido el 01/09 ejecutando
+// el C++ REAL de las dos puntas a la vez, cada una con su reloj -Validacion_Automatico/
+// compilar_degradado.ps1-:
+//
+//   el cruce aguanta            29 s de desfase entre relojes
+//   el equipo puede acumular    20,2 s  (17,2 de deriva en 48 h + 3 de TOLERANCIA_DESFASE_S)
+//   MARGEN                       8,8 s  ->  factor 1,44, NO 2
+//
+// La frontera del sentido malo -Esclavo atrasado- es EXACTAMENTE este despeje de 30 s, y
+// el segundo entero con que viaja la hora la deja en 29. El sentido favorable aguanta 35
+// porque los 4 s de ambar con que el Esclavo abre su verde protegen SOLO en un sentido.
+//
+// Se deja escrito con el numero y no se toca el despeje: subirlo es una decision vial
+// -alarga el todo-rojo que ve el conductor- y no la toma el firmware. Lo que si cambia
+// es que la desigualdad ya NO vive solo en este comentario: la recalcula desde el C++
+// el pack costura_12_margen_deriva, que es lo que N-71 exige. Un comentario no falla
+// cuando alguien cambia un numero; se queda describiendo un equipo que ya no existe,
+// con la autoridad de una cuenta hecha - que es exactamente lo que paso aqui.
 //
 // Querer una semana de autonomia obligaria a un todo-rojo de ~90 s, que destroza la
 // fluidez del paso. No es una limitacion del diseno, es la fisica de dos cristales

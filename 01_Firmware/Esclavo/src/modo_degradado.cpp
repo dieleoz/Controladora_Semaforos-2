@@ -27,11 +27,18 @@
 // que alguien se acuerde.
 //
 // De donde salen las 48 h: dos cristales de 32.768 kHz sin calibrar y a la
-// intemperie derivan hasta ~8,6 s/dia en el peor caso. Con el todo-rojo ampliado
-// a 30 s el margen teorico antes de que los verdes se solapen son ~3,5 dias; 48 h
-// deja factor de seguridad 2. Alargar el plazo obliga a alargar el todo-rojo -una
-// semana pide ~90 s, que destroza la fluidez del paso-. La alternativa real no es
-// estirar el limite: es ir a arreglar el radio.
+// intemperie derivan hasta ~8,6 s/dia en el peor caso.
+//
+// EL FACTOR DE SEGURIDAD 2 QUE AQUI SE AFIRMABA ES FALSO, y la correccion es la misma
+// que en el Maestro porque la cuenta era la misma. Medido el 01/09 sobre el C++ REAL de
+// las dos puntas ejecutandose a la vez, cada una con su reloj: el cruce aguanta 29 s de
+// desfase, el equipo puede acumular 20,2 s en 48 h, MARGEN 8,8 s, factor 1,44.
+//
+// Alargar el plazo sigue obligando a alargar el todo-rojo -una semana pide ~90 s, que
+// destroza la fluidez del paso-, y la alternativa real sigue sin ser estirar el limite:
+// es ir a arreglar el radio. Lo que cambia es que ahora hay un instrumento que
+// recalcula la desigualdad desde el C++ en cada corrida, en vez de una cuenta escrita
+// dentro de un comentario.
 static const unsigned long LIMITE_SIN_SYNC_MS = 48UL * 3600UL * 1000UL;
 
 // El mismo limite expresado en horas, que es la unidad en la que el respaldo sabe

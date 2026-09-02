@@ -770,6 +770,45 @@ def arnes_dos_puntas():
                    if "RESULTADO" in l), "")
     anotar("arnes de las dos puntas", PASS if p.returncode == 0 else FALLA, cuenta[:110])
 
+def arnes_degradado_dos_puntas():
+    """Las DOS puntas en Modo Degradado a la vez, cada una con SU PROPIO reloj.
+
+    Es el modo que se usa cuando la radio muere: ahi el verde de cada punta sale de su
+    reloj y no hay nadie coordinando. Hasta el 01/09 la desigualdad que decide un choque
+    frontal -despeje ampliado contra deriva acumulada- la recalculaba SOLO
+    costura_02_fase_ciclo.py, o sea un modelo de Python escrito a mano. Este arnes la
+    mide sobre el modo_degradado.cpp REAL de las dos puntas.
+
+    El desfase se inyecta en el RTC y NO en millis(), y el motivo es que la primera
+    version se equivoco ahi: un salto de millis() hacia atras hace que toda resta sin
+    signo de un instante anterior de ~4.290 millones, y vencen TODOS los temporizadores
+    a la vez. El arnes habria medido su propia averia.
+
+    Lo que devuelve no es un PASS: es el numero. Hoy 29 s de aguante contra 20,2 s de
+    deriva posible, o sea factor 1,44 - y no 2, como afirmaban los comentarios de las
+    dos puntas."""
+    d = os.path.join(RAIZ, "Validacion_Automatico")
+    guion = os.path.join(d, "compilar_degradado.ps1")
+    if not os.path.isfile(guion):
+        anotar("arnes del Degradado a dos puntas", ABORTADO,
+               "no existe compilar_degradado.ps1")
+        return
+    if _asegurar_gcc() is None:
+        anotar("arnes del Degradado a dos puntas", ABORTADO, MOTIVO_GCC)
+        return
+    p = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                        "-File", guion],
+                       cwd=d, capture_output=True, text=True, errors="replace")
+    salida = (p.stdout or "") + (p.stderr or "")
+    if "comprobaciones" not in salida:
+        anotar("arnes del Degradado a dos puntas", ABORTADO,
+               f"no llego a medir (solo {len(salida)} caracteres de salida)")
+        return
+    cuenta = next((l.strip() for l in reversed(salida.splitlines())
+                   if "RESULTADO" in l), "")
+    anotar("arnes del Degradado a dos puntas",
+           PASS if p.returncode == 0 else FALLA, cuenta[:110])
+
 # ---------------------------------------------------------------------------
 # INICIO DEL BLOQUE DEL SIMULADOR DEL PUENTE ESP32 (31/08).
 # Otro agente esta dando de alta el rol del fuente del ESP32 en este mismo fichero:
@@ -904,6 +943,7 @@ def main():
     arnes_respaldo()
     arnes_automatico()
     arnes_dos_puntas()
+    arnes_degradado_dos_puntas()
     # BLOQUE DEL SIMULADOR DEL PUENTE ESP32 (31/08) - ver la funcion para el porque.
     # Va en esta seccion y no arriba con los modelos porque DOS de sus tres puntas son
     # codigo real: la app en jsdom y bluetooth.cpp compilado. La unica modelada es el
