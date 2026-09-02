@@ -387,7 +387,7 @@ implementar aparece vacía en vez de aparentar cobertura.
 | SFTY-15 | `*/src/protocolo.cpp` · `Maestro/src/lcd.cpp` · `Maestro/src/modo_alcance.cpp` | — |
 | SFTY-16 | `Repetidor/src/main.cpp` | — |
 | SFTY-17 | `Esclavo/src/main.cpp` | — |
-| **SFTY-18** | `Maestro/src/reloj.cpp` · `Maestro/include/reloj.h` · `ESP32_Expansion` *(el reloj del puente)* | ✅ `esp32_04_osf` |
+| **SFTY-18** | `Maestro/src/reloj.cpp` · `Maestro/include/reloj.h` · `ESP32_Expansion` *(el reloj del puente)* | ✅ `esp32_04_osf` · ✅ `esp32_11_bien_formada_no_es_cierta` |
 | **SFTY-19** | **— solo diseño, ver abajo.** La única mención en el código es una advertencia en `reloj.h` aclarando que este modo **no** se apoya en el RTC | — |
 | SFTY-20 | `Maestro/include/modo_hora.h` · `ESP32_Expansion/include/reloj_ds3231.h` *(sólo referencias; el modo no existe)* | — |
 | **SFTY-21** | `*/src/modo_degradado.cpp` · `*/src/mando.cpp` · `*/include/ciclo_degradado.h` | ✅ `esclavo_01_latch_ambar` · `esclavo_02_inhibicion_menu` · `esclavo_07_ambar_emergencia` · `esclavo_08_ambar_en_degradado` · `maestro_01_mando` · `maestro_05_ciclo_sin_radio` · `costura_02_fase_ciclo` · `costura_06_reanudacion` · `camara_02_j16` |

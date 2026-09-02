@@ -41,13 +41,42 @@ enum ResultadoReloj {
   RELOJ_ERR_OSF_SIGUE         // el OSF sigue puesto tras escribir: pila agotada
 };
 
-// Los tres motivos por los que la hora no es fiable, que NO son el mismo problema.
+// Los motivos por los que la hora no es fiable, que NO son el mismo problema.
+//
+// Son CINCO y no tres, y los dos de mas no se anadieron por completar la lista: cada
+// uno es un camino por el que el modulo devolvia una hora BIEN FORMADA Y FALSA con la
+// barrera levantada. Su detalle esta en el .cpp, en la funcion que arma cada uno.
 enum MotivoSinHora {
-  SIN_HORA_NINGUNO = 0,       // hay hora fiable
+  SIN_HORA_NINGUNO = 0,          // hay hora fiable
   SIN_HORA_NUNCA_SE_PUSO,
-  SIN_HORA_OSCILADOR_PARADO,  // OSF == 1
-  SIN_HORA_BUS_MUDO           // el I2C no responde
+  SIN_HORA_OSCILADOR_PARADO,     // OSF == 1
+  SIN_HORA_BUS_MUDO,             // el I2C no responde
+  SIN_HORA_ESCRITURA_A_MEDIAS,   // se toco el bus y la escritura no quedo verificada
+  SIN_HORA_FORMATO_12H,          // el registro de horas esta en modo 12 h, no en 24 h
+  SIN_HORA_REGISTROS_INCOHERENTES  // lo que hay dentro no compone una fecha valida
 };
+
+// ---------------------------------------------------------------------------------
+// LOS DOS BITS DEL REGISTRO DE HORAS QUE HAY QUE MIRAR PARA QUE LA MASCARA SEA HONESTA
+//
+// El registro 0x02 del DS3231 no guarda solo la hora: su bit 6 dice en que FORMATO
+// esta guardada. Con el bit a 0 -modo 24 h- los bits 5..0 son la hora y la mascara
+// 0x3F es correcta. Con el bit a 1 -modo 12 h- el bit 5 pasa a ser AM/PM, y la misma
+// mascara devuelve un numero perfectamente formado y equivocado: las 3 de la tarde
+// -0x63- se leen como las 23, y las 12 de la noche -0x52- como las 12.
+//
+// Eso es hasta DOCE HORAS de error sobre el reloj del que cuelga la operacion
+// nocturna, entregado sin una sola senal de alarma. Es la misma trampa que el OSF
+// -"bien formada" no es "cierta"-, por otra puerta.
+//
+// POR QUE ESTAN AQUI Y NO EN contrato.h, JUNTO A DS3231_REG_ESTADO. Es una razon de
+// proceso, no de diseno: su sitio natural es al lado de los otros registros del chip.
+// El pack las relee de DONDE ESTAN; si alguien las muda, muda con ellas la ruta del
+// pack. La guarda de rutas de compuerta.py avisa si un fichero desaparece, NO si su
+// contenido se muda de sitio (CLAUDE.md seccion 5).
+// ---------------------------------------------------------------------------------
+#define DS3231_OFS_HORA       2      // el registro de horas es el tercero de los siete
+#define DS3231_BIT_12H        0x40   // bit 6 del registro de horas: 1 = modo 12 h
 
 struct FechaHora {
   int anio, mes, dia, hora, minuto, segundo;
@@ -63,6 +92,26 @@ void reloj_revisar();
 // LA BARRERA. Nace en false y toda ruta que use la hora la consulta primero.
 //
 //   false  si  (nunca se puso) || (OSF == 1) || (el I2C no contesta)
+//              || (una escritura toco el bus y no quedo verificada)
+//              || (el registro de horas esta en modo 12 h)
+//
+// 🔴 EL RESIDUAL QUE ESTA BARRERA NO CUBRE, Y SE ESCRIBE EN VEZ DE DISIMULARSE.
+//
+// Las dos condiciones nuevas viven en RAM y NO SOBREVIVEN A UN RESET; el OSF si. Si
+// una escritura se corta a mitad dejando los siete registros con una fecha que sigue
+// dentro de rango -media vieja y media nueva-, y acto seguido el equipo se reinicia,
+// el OSF estara a cero y el modulo declarara fiable esa hora.
+//
+// Lo que lo estrecha, y por que no se deja abierto del todo: (1) el OSF ya no se
+// limpia hasta DESPUES de que la relectura cuadre, asi que una escritura que no
+// verifica no llega a borrar el unico bit que sobrevive al corte; y (2) reloj_leer()
+// valida por rango lo que decodifica, asi que la mezcla tiene ademas que caer entera
+// dentro de los doce limites de contrato.h para colarse.
+//
+// Cerrarlo del todo pide un marcador en la propia NVRAM del chip -lo que el STM32
+// hace con su ano marcador (SFTY-18)-, y eso no se escribe sin un DS3231 delante:
+// la linea A6 de la lista de compras sigue sin comprar, y este repositorio castiga
+// el mecanismo afirmado sin medir mas que el hueco declarado.
 //
 // N-73: una funcion "tengo hora?" declarada, documentada y SIN UN SOLO LLAMADOR es la
 // Caja Negra de Alarmas otra vez. El censo de llamadores es parte de escribirla, y hay
