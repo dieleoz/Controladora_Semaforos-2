@@ -441,6 +441,105 @@ producto con coste recurrente, no una linea de firmware**, y va al responsable c
 
 ---
 
+### 🔴 N-114 — Segunda auditoria externa: "arreglamos todo lo que midio y nada de lo que dijo"
+
+**Se pidio que NO repitiera N-109 y que dijera que ha cambiado, que no, y que se ha vuelto peor
+precisamente por lo que se hizo bien.** Todo lo que sigue esta verificado por el orquestador.
+
+#### 1. Lo que reconoce como bueno, para saber que conservar
+
+`Validacion_Automatico/dos_puntas` *«es un salto de clase, no de cantidad»*: lo ejecuto el mismo y da
+`42/42`, verde simultaneo en 0 de 53.236 instantes, compilando **siete ficheros reales del Esclavo,
+`src/main.cpp` incluido**. Sus puntos ciegos estan **declarados en su propia cabecera**, y eso es lo
+que hay que conservar. Igual de reales: el checksum conectado, el bit 12/24 del `DS3231`, el parte de
+arranque y el contador de `J17` — **cinco propiedades nuevas de verdad**.
+
+#### 2. 🔴 El README publicaba un verde que su propia acta desmentia — otra vez, y a las 24 horas
+
+```
+README.md:58   banco por packs  OK 829/829 - los 59 packs en PASS
+acta CITADA    FALLA banco por packs - 824/829 | packs: 57 PASS, 2 FALLA
+```
+
+**Verificado.** Y no es el mismo defecto de N-109: aquel fue un descuido. Este salio de **repetir la
+corrida hasta que una dio verde**, con la alternancia de N-112 como excusa disponible. *«La
+alternancia se ha convertido en licencia para publicar el numero de la pasada que salio verde»* — el
+habito que N-112 describe como destructor de la compuerta, ejercido **en el mismo commit que lo
+documenta**.
+
+#### 3. Lo que empeoro por lo que se hizo bien
+
+| | |
+|---|---|
+| **La sofisticacion de `documentos_01` es lo que ROMPIO la compuerta** | anclar el recuento a la linea del acta era rigor bien intencionado; su rama `else` hizo que el total dependiera del veredicto. **Un defecto creado por el instrumental, no encontrado por el** |
+| **La observabilidad se pago en la flash del micro mas lleno** | Maestro **+472 B en una tarde**, y el contador de `J17` se grabo en las DOS puntas **despues** de que la propia medicion demostrara que hoy no distingue nada. Firmware pagado por adelantado de una decision (`AB-1`) que sigue abierta |
+| **El checksum cambia comportamiento de campo y solo se valido en PC** | el modo de fallo nuevo es **asimetrico**: antes la basura mantenia la interfaz *«viva»*; ahora una divergencia real deja a la app **sorda diciendo que no hay equipo, junto a un equipo que funciona** |
+| **El numero estrella ya viaja sin sus salvedades** | el roadmap cita *«42/42, 0 de 53.236»*; la letra pequena vive en la cabecera de un `.cpp` que quien lea esto no va a abrir. **El instrumento es honesto; el titular le va a sobrevivir** |
+
+Y la relacion instrumento/firmware **se ha duplicado en cuatro dias**: 14.829 lineas de firmware
+contra **30.740 de instrumentacion**, o sea **2,07:1** — el 28/08 era 1:1.
+
+#### 4. 🔴 El invariante de vida: lo que SIGUE sin cubrir
+
+> **Las DOS puntas en Degradado a la vez** — el modo disenado para cuando la radio muere, donde el
+> verde de cada punta sale de **su propio reloj**.
+
+`Maestro/src/modo_degradado.cpp` esta **excluido** del arnes nuevo, y el reloj del Esclavo esta anclado
+al mismo `arnes_millis`, asi que **la deriva entre relojes no es representable**. La desigualdad que
+decide un choque frontal —despeje ampliado contra deriva acumulada— hoy la recalcula **solo
+`costura_02_fase_ciclo.py`, el modelo de Python escrito a mano**: el invariante del modo mas critico
+sigue sostenido por exactamente la clase de instrumento que la auditoria anterior senalo.
+
+**Y es alcanzable sin banco, con piezas que ya existen aqui:** `Validacion_LCD/compilar.ps1` **ya
+compila el `modo_degradado.cpp` real con las fuentes de U8g2 en el host**. La exclusion *«arrastra
+u8g2»* es un problema **ya resuelto a diez directorios de distancia**.
+
+Segundo hueco alcanzable: **`protocolo.cpp` no entra** — una trama corrompida, repetida (*replay*) o
+de otra pareja no se ejerce de punta a punta.
+
+#### 5. La pregunta del 31/07: **sigue siendo evitacion**, con esas palabras
+
+- 19 commits, **~7.400 lineas insertadas, cero contacto con una tarjeta**.
+- La V2 escribio *«lo que NO entra: mas packs»* y **esa misma noche el banco crecio de 445 a 859**.
+- **El montaje de mesa con tres cables —que se puede hacer HOY, sin comprar nada, con la guia ya
+  escrita— no se hizo**, mientras si hubo tiempo para 42 comprobaciones nuevas del arnes que lo
+  sustituye en PC.
+
+> *«El proyecto ha perfeccionado la descripcion de su evitacion hasta que la descripcion funciona como
+> entregable. N-109 dijo "industria de sustitucion"; la respuesta fue anadirle a la industria un
+> departamento de autocritica.»*
+
+#### 6. 🔴 Las tres preguntas que nadie estaba haciendo
+
+**(a) Por que los documentos COPIAN cifras en vez de citarlas.** Toda la familia N-62 -> N-93 -> N-112
+existe porque README, ESTADO y CERTIFICACION **duplican** numeros que el acta ya publica, y hay
+**1.120 lineas de Python vigilando las copias**. Si los documentos dijeran *«banco: ver la ultima
+acta»* y publicaran solo lo que el acta **no** mide, `documentos_01`, `documentos_04` y N-112 entero
+**desaparecen sin arreglar nada**. *«El instinto del proyecto ante cada defecto es anadir un
+instrumento»*, y nadie ha preguntado **cuales de sus defectos los fabrica la propia duplicacion**.
+**Es una decision del responsable y esta abierta.**
+
+**(b) Cual es el incremento MINIMO cargable.** Todos los documentos tratan el banco como **un
+acontecimiento unico** que valida V9.0 entera de un salto desde V8.4. Ninguno pregunta que pasa **la
+manana siguiente cuando falle** —y va a fallar en algo: `Y2` esta medido muerto y N-42 es una
+regresion abierta *en banco*—. Ni cual es el delta minimo que paga la deuda de calle: **el arreglo de
+los 25 s podria ser una carga de una constante sobre la V8.4 que ya esta probada**, sin esperar a
+certificar 14.000 lineas. *«El proyecto sabe hacer trinquetes en sus packs; no ha pensado su despliegue
+como trinquete.»*
+
+**(c)** Cuando haya banco, **la primera comprobacion del protocolo debe ser el checksum sobre bytes
+reales** app <-> ESP32 <-> STM32: es la unica pieza nueva capaz de dejar al tecnico **sin herramienta
+de diagnostico justo el dia que la estrena**.
+
+---
+
+> **La frase, copiada entera:** *«El proyecto respondio a la auditoria arreglando todo lo que ella
+> midio y nada de lo que ella dijo — el instrumento que faltaba ya ejecuta las dos puntas de verdad, y
+> la tarjeta sigue sin tocarse mientras el README vuelve a publicar, veinticuatro horas despues de
+> N-109 y con su acta en rojo al lado, un verde elegido a base de repetir.»*
+
+---
+
 ### 🔴 N-112 — La compuerta ALTERNA verde y rojo sobre un arbol identico: su codigo de salida no significa nada
 
 **Medido el 01/09, tres corridas completas seguidas sin tocar UN SOLO fichero entre ellas:**
