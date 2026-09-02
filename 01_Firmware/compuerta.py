@@ -946,8 +946,12 @@ def main():
     arnes_degradado_dos_puntas()
     # BLOQUE DEL SIMULADOR DEL PUENTE ESP32 (31/08) - ver la funcion para el porque.
     # Va en esta seccion y no arriba con los modelos porque DOS de sus tres puntas son
-    # codigo real: la app en jsdom y bluetooth.cpp compilado. La unica modelada es el
-    # ESP32, cuyo C++ todavia no existe.
+    # codigo real: la app en jsdom y bluetooth.cpp compilado.
+    #
+    # AQUI DECIA "la unica modelada es el ESP32, cuyo C++ todavia no existe". Caducado el
+    # 02/09: el C++ del ESP32 existe desde el 31/08, esta de alta como rol y la compuerta
+    # lo compila. Lo que sigue siendo cierto es que ESTE simulador modela el puente en
+    # Python en vez de ejecutar su binario - que es otra cosa, y es la que hay que decir.
     simulador_puente_esp32()
     # FIN DEL BLOQUE DEL SIMULADOR DEL PUENTE ESP32.
 

@@ -1,7 +1,19 @@
 # INDICE_CRUZADO — dónde vive cada hecho, y quién se queda colgando si lo tocas
 
-**Escrito el 31/08/2026.** Complementa a [`ARQUITECTURA.map`](ARQUITECTURA.map), que dice *cómo está
-hecho el equipo*. Este fichero dice **dónde está escrito cada hecho y quién apunta a él**.
+**Escrito el 31/08/2026 · revisado y corregido el 02/09/2026.** Complementa a
+[`ARQUITECTURA.map`](ARQUITECTURA.map), que dice *cómo está hecho el equipo*. Este fichero dice
+**dónde está escrito cada hecho y quién apunta a él**.
+
+> **Qué cambió en la pasada del 02/09**, para que se lea sin releerlo entero. El árbol se movió mucho
+> —el banco pasó de 39 a **66 packs** y la compuerta de 15 a **20** comprobaciones—, y esta revisión
+> midió las dos direcciones, no sólo lo que faltaba:
+>
+> | | |
+> |---|---|
+> | **Dejaron de ser `SOLO PROSA`** | el margen del Degradado contra la deriva (`costura_12` + el arnés a dos puntas) · el registro de silencio de `J17` (`enlace_02`) · el parte de arranque del puente (`esp32_10`) · *«bien formada no es cierta»* del reloj (`esp32_11`) · el diagnóstico del reloj, que era un **N-73 en marcha** (`reloj_01`) |
+> | 🔴 **Decían `VIGILADO` y no era exacto** | el censo de `# EJERCE SFTY-x` (`P-3.ter`: faltaban dos etiquetas **desde antes de escribirlo**) · el PIN, que tiene **medio** vigilante y no ninguno (`P-7`) |
+> | ✅ **Estaban abiertos y ya no** | `N-106` (el pack pasó de rojo-a-propósito a **8/8**) · `SFTY-3`/`SFTY-7` (`P-3.bis`) |
+> | 🔴 **Lo nuevo, y es lo que buscaba el encargo** | **dos instrumentos existen y no están en la compuerta** — §1.10.bis y `P-10` |
 
 > 🔴 **Por qué existe.** El 31/08 se reescribió la guía de cableado para el técnico y, al sacar lo
 > que a él no le servía, **desaparecieron del repositorio entero** la especificación de los puntos de
@@ -17,9 +29,25 @@ hecho el equipo*. Este fichero dice **dónde está escrito cada hecho y quién a
 ## 0. Cómo se lee, y qué NO es
 
 **Este fichero no es un instrumento.** No mide nada, nadie falla por lo que aquí ponga, y ningún pack
-lo parsea *(comprobado el 31/08: `grep -rn "INDICE_CRUZADO"` sobre `.py`/`.md` → cero; el mismo
-comando sobre `ARQUITECTURA.map` da tres, que es el **control positivo** de que la búsqueda sabía
-encontrar)*. **Lo que mide es la compuerta.**
+lo parsea. **Re-medido el 02/09, y la cifra del 31/08 había que corregirla:**
+
+| medida | 31/08 | 02/09 [MEDIDO] |
+|---|---|---|
+| `grep -rn "INDICE_CRUZADO"` sobre **`.py`** | cero | **cero** — sigue siendo cierto, y es lo que importa: **ningún pack lo parsea** |
+| el mismo sobre **`.md`** | *«cero»* | **tres** — `OPTIMIZACIONES.md:445` y `:1634`, y `roadmap.md:328` |
+| control positivo, `ARQUITECTURA.map` | tres | **cuatro** documentos lo nombran, y **cinco ficheros** lo contienen |
+
+> ⚠️ **La frase del 31/08 mezclaba dos cosas en un solo `grep`, y por eso envejeció mal.** *«Ningún
+> pack lo parsea»* y *«nadie lo enlaza»* son propiedades distintas: la primera sigue siendo verdad y
+> **es la que sostiene el párrafo**; la segunda ya no, y era la que se movía. Se separan aquí para
+> que la próxima pasada no tenga que decidir cuál de las dos se estaba midiendo.
+>
+> **Y el control positivo necesitaba a su vez un control**, que no tenía: `grep "ARQUITECTURA"` sobre
+> los `.py` del árbol da **5**, y ninguna es una lectura del mapa. La trampa está en la extensión —
+> `flash_01_lastre.py` **sí** parsea un `.map`, pero es `firmware.map`, el del enlazador. Buscar por
+> extensión habría dado un falso positivo y con él la conclusión contraria.
+
+**Lo que mide es la compuerta.**
 
 Tres niveles, la misma escala de `ARQUITECTURA.map` y del Manual 17 §0, y no se mezclan:
 
@@ -72,7 +100,7 @@ es exactamente el defecto que este repositorio lleva un mes cerrando (N-36, N-39
 |---|---|---|---|
 | **El STM32 sigue siendo el controlador; el ESP32 es un accesorio colgado de un puerto serie y NO manda sobre las luces** | `05_Funcional/17_...Decisiones_Abiertas.md` §1.1–1.2 | `ESTADO.md` §4 · `05_Funcional/18_Especificacion_Firmware_ESP32.md` §1.2 · `05_Funcional/5_Manual_Puente_ESP32.md` · `ARQUITECTURA.map` C4 · 7 documentos [MEDIDO] | `esp32_05_no_origina` · `esp32_08_silencio_no_es_orden` |
 | **El ESP32 lleva fuente propia desde 12 V y no cuelga del 3,3 V de `J17`** | Manual 17 §1.5 | `05_Funcional/10_...Telemetria.md` §1 · `05_Funcional/15_Lista_de_Compras_Hardware.md` línea `A5` · 6 documentos [MEDIDO] | — **SOLO PROSA** |
-| **El firmware del ESP32 EXISTE y compila** | `01_Firmware/ESP32_Expansion/` (`src/` + `include/`, 8 módulos) [MEDIDO] | `05_Funcional/18_...ESP32.md` (la especificación completa) | `compuerta.py` lo compila como rol `ESP32_Expansion` (`compuerta.py:114`) y los packs `esp32_01`…`esp32_09` |
+| **El firmware del ESP32 EXISTE y compila** | `01_Firmware/ESP32_Expansion/` (`src/` + `include/`, 8 módulos) [MEDIDO] | `05_Funcional/18_...ESP32.md` (la especificación completa) | `compuerta.py` lo compila como rol `ESP32_Expansion` (`compuerta.py:114`, [RE-MEDIDO 02/09]: `_ROLES = ("Maestro", "Esclavo", "Repetidor", "ESP32_Expansion")`) y los packs **`esp32_01`…`esp32_11`** *(eran nueve el 31/08)* |
 | **`ESP32_Expansion` es un ROL, distinto del `Repetidor`** | `01_Firmware/compuerta.py:90-118` [MEDIDO] | `05_Funcional/18_...ESP32.md` §7.1 | **la propia guarda de rutas**: un rol que no se declara no se censa |
 | **`BLQ-1` cerrado: es un `ESP32-WROOM-32` clásico, `BR/EDR` → hay SPP** | `ESTADO.md` tabla de bloqueantes | `roadmap.md` · `05_Funcional/18_...ESP32.md` §6.1 · `15_Lista_de_Compras...` · 6 documentos [MEDIDO] | — **SOLO PROSA** |
 
@@ -117,8 +145,35 @@ es exactamente el defecto que este repositorio lleva un mes cerrando (N-36, N-39
 |---|---|
 | **El catálogo de reglas `SFTY-1` … `SFTY-29`** | `OPTIMIZACIONES.md` — **es el documento propietario y no hay otro** |
 | **La trazabilidad regla → código → prueba** | se **levanta buscando** la etiqueta `# EJERCE SFTY-x:` en la cabecera de cada pack (`CLAUDE.md` Convenciones) |
-| **Los packs etiquetados hoy** | `grep -rn "EJERCE SFTY" 01_Firmware/Simulaciones/banco/packs/` **[MEDIDO 31/08]**: `barrera_01`, `barrera_02` (SFTY-2) · `barrera_03`, `maestro_09` (SFTY-28) · `camara_02_j16`, `costura_02`, `costura_06`, `esclavo_01`, `esclavo_02`, `esclavo_07`, `esclavo_08`, `maestro_01`, `maestro_05` (SFTY-21) · `costura_08`, `costura_09`, `maestro_04` (SFTY-6) · `esclavo_03`, `esclavo_04`, `esclavo_05`, `maestro_04` (SFTY-23) · `esp32_04_osf` (SFTY-18) |
+| **Los packs etiquetados hoy** | `grep -rn "EJERCE SFTY" 01_Firmware/Simulaciones/banco/packs/` **[RE-MEDIDO 02/09]** — ver el recuadro de abajo, porque **la lista del 31/08 estaba incompleta el día que se publicó**: <br>**SFTY-2** `barrera_01`, `barrera_02`, **`esclavo_06_no_abre_paso`**, **`maestro_09_test_leds`** · **SFTY-28** `barrera_03`, `maestro_09` · **SFTY-21** `camara_02_j16`, `costura_02`, `costura_06`, **`costura_12_margen_deriva`**, `esclavo_01`, `esclavo_02`, `esclavo_07`, `esclavo_08`, `maestro_01`, `maestro_05` · **SFTY-6** `costura_08`, `costura_09`, `maestro_04` · **SFTY-23** `esclavo_03`, `esclavo_04`, `esclavo_05`, `maestro_04` · **SFTY-18** `esp32_04_osf`, **`esp32_11_bien_formada_no_es_cierta`** |
+| **Los que NO llevan etiqueta a propósito** | `enlace_01_transporte` (ninguna de las 29 habla del transporte — `AB-8`) y, desde el 01/09, **`barrera_04_arnes_dos_puntas`**: su cabecera `:39-42` razona por qué *«EJERCE SFTY-2» sería falso* — vigila al **instrumento** que ejerce el enclavamiento, no al enclavamiento. Es la Convención de `CLAUDE.md` bien aplicada: **una fila vacía no miente; una etiqueta de más, sí** |
 | **Quién vigila que la tabla no mienta** | `documentos_02_trazabilidad_sfty` |
+
+> ### 🔴 02/09 — LA LISTA DE ETIQUETAS DEL 31/08 ESTABA MAL, Y NO POR HABER ENVEJECIDO
+>
+> Faltaban dos, y **las dos estaban ahí el 31/08**. No es deriva del árbol: es que el censo no las
+> vio. Fechado con `git log -S` sobre el texto literal de cada etiqueta:
+>
+> | pack | etiqueta que faltaba | desde |
+> |---|---|---|
+> | **`esclavo_06_no_abre_paso.py:36`** | *«EJERCE SFTY-2: ningún camino del Bluetooth del Esclavo puede producir un verde»* — **el pack no aparecía en la lista en absoluto** | `24276ab`, **28/08** |
+> | **`maestro_09_test_leds.py:53`** | *«EJERCE SFTY-2: ningún verde llega a los pines sin pasar por el enclavamiento»* — el pack **sí** estaba listado, pero **sólo por su segunda etiqueta**, `SFTY-28` | `caef8a1`, **28/08** |
+>
+> **Los dos casos son el mismo error con dos caras, y ninguna es «el árbol se movió»:** uno se cayó
+> entero de la lista, y el otro entró con **una** de sus dos etiquetas porque **un pack puede llevar
+> más de una y el censo se quedó con la primera**. Un `grep -rl` cuenta ficheros; la propiedad que
+> hace falta aquí es *«cuántas reglas ejerce cada pack»*, que es `grep -rn` y **contar líneas, no
+> ficheros**.
+>
+> Es exactamente el error que este mismo documento diagnostica dos recuadros más abajo para el «ocho»
+> de `SFTY-27` —*«`8` es el número de FICHEROS de firmware que llevan la etiqueta»*—: **se midió una
+> propiedad y se publicó otra**. Que reapareciera aquí, en la sección que denuncia ese fallo, es el
+> dato que importa: **no basta con haberlo escrito; hay que volver a medir**.
+>
+> **Consecuencia sobre `SFTY-2`, que es una regla vial:** su cobertura real no eran dos packs sino
+> **cuatro**, y desde el 01/09 son cinco contando el arnés de las dos puntas que `barrera_04` vigila.
+> La fila estaba **corta, no falsa** — pero una regla de seguridad que parece cubierta por la mitad
+> de lo que la cubre invita a escribir el pack que ya existe.
 | 🔴 **`enlace_01_transporte` NO lleva etiqueta A PROPÓSITO**: ninguna de las 29 reglas habla del transporte (`enlace_01_transporte.py` cabecera) **[MEDIDO]**. Asignar un número nuevo es del responsable — `AB-8` | |
 
 > 🔴 **`SFTY-27` designa DOS cosas distintas.** *(Anotado el 31/08; **recontado el 01/09**, y las tres
@@ -202,6 +257,26 @@ es exactamente el defecto que este repositorio lleva un mes cerrando (N-36, N-39
 > de comentario en firmware, más la fila de la tabla. **No se toca desde aquí**: `01_Firmware/` y
 > `OPTIMIZACIONES.md` son de otros agentes.
 >
+> #### ✅ **CERRADO el 01/09 por el agente de firmware (`4d3b1b9`). Verificado el 02/09, no leído**
+>
+> El párrafo de arriba se conserva **porque describe lo que había**, no lo que hay. Medido hoy sobre
+> los dos `protocolo.cpp`:
+>
+> | línea | 31/08 | **02/09 [MEDIDO]** |
+> |---|---|---|
+> | `*/src/protocolo.cpp:52` | `SFTY-3` sobre el polinomio → **etiqueta equivocada** | `// SFTY-3: Polinomio CRC-8 Maxim/Dallas (0x31) bit a bit` → **coincide con la definición** |
+> | `*/src/protocolo.cpp:107` | `SFTY-7` sobre la resincronización del búfer | `// SIN REGLA SFTY ASIGNADA, y se dice a proposito: llevaba la etiqueta SFTY-3, que es…` |
+>
+> **Y la parte que no era obvia: el arreglo correcto dejó una fila VACÍA, no una etiqueta nueva.** La
+> resincronización temporal del búfer **no es ninguna de las 29 reglas**, así que ponerle un número
+> —cualquiera— habría sido el defecto de la Convención de `CLAUDE.md`: *«una regla que aparece
+> cubierta por una prueba que no la ejerce es peor que una fila vacía, porque la vacía no miente»*.
+> Se declara sin regla **y se dice por qué**, que es la misma solución que `enlace_01_transporte`.
+>
+> `grep "SFTY-7"` sobre los dos `protocolo.cpp` da hoy **cero** [MEDIDO]; el número vive donde la
+> definición dice, en `Maestro/include/coordinador.h:54` y `Maestro/src/coordinador.cpp:431`.
+> **`SFTY-27` sigue abierto** — es el que necesita al responsable, y no se cerró con éste.
+>
 > #### Reglas definidas que nadie referencia (huérfanas)
 >
 > | `SFTY-24`, `SFTY-25` | **cero referencias fuera de `OPTIMIZACIONES.md` e `INDICE_CRUZADO.md`** [MEDIDO] |
@@ -248,7 +323,9 @@ Ese es el mecanismo, y es el único que no envejece.
 | **La desigualdad del watchdog**: `ESP32_WDT_MS + ESP32_ARRANQUE_MS < min(TIMEOUT_ENLACE_MS, SFTY6_SILENCIO_MS)` | `contrato.h` §watchdog | `esp32_01_watchdog_desigualdad` · `esp32_02_watchdog_alimentado` |
 | 🛑 **`ESP32_ARRANQUE_MS = 1500` está SIN VERIFICAR** y lleva su propia bandera `ESP32_ARRANQUE_MEDIDO 0` para que no se lea como medida | `contrato.h` | `esp32_01` lo **`reportar()`** en cada corrida — `reportar()` no cuenta como comprobación |
 | **`W-4`, `P-2`, `P-3`, `R-4`, `R-9`** (las reglas de diseño del puente) | identificadores en `18_...ESP32.md`, **razonados dentro de `contrato.h`** | los packs `esp32_*` |
-| **Rangos del `DS3231` en un solo sitio** (`R-9`), y la validación los **barre todos** | `contrato.h` §RTC | `esp32_04_osf` |
+| **Rangos del `DS3231` en un solo sitio** (`R-9`), y la validación los **barre todos** | `contrato.h` §RTC | `esp32_04_osf` **+ `esp32_11_bien_formada_no_es_cierta` (01/09)** — ver abajo |
+| 🔴 **«BIEN FORMADA» NO ES «CIERTA», y el `OSF` sólo cubre una de las puertas** *(nuevo, 01/09)* | `reloj_ds3231.cpp` | ✅ **`esp32_11_bien_formada_no_es_cierta`** (`EJERCE SFTY-18`). `esp32_04` vigila el bit `OSF` y **sigue valiendo**; lo que no podía ver es que `OSF` a cero significa exactamente *«el oscilador no se paró»* y se estaba leyendo como *«el número que vas a devolver es la hora»*. **Eran tres puertas más**, y las tres acababan en **una fecha perfectamente formada y falsa** saliendo por el puente |
+| 🟢 **El parte de arranque del puente**: cuando el watchdog muerde, **alguien se entera** | `vigilante.cpp:55-121`, `esp_reset_reason()` y sus once causas **[MEDIDO 02/09]** | ✅ **`esp32_10_parte_de_arranque` (01/09).** No es redundante con los dos del watchdog y el pack lo razona: `esp32_01` mide **el número**, `esp32_02` **el mecanismo**, y los dos **dan por bueno un módulo que se reinicia**. Desde la app, un ESP32 que se reinicia cada dos segundos y uno sano **se ven igual** |
 
 **Las CINCO tramas que el STM32 emite — son cinco, no cuatro:**
 
@@ -269,23 +346,27 @@ $STATUS   $ACK   $ERR   $ALARM   $EVENT
 | límite | dónde vive **el número** | quién lo relee |
 |---|---|---|
 | **`SFTY6_SILENCIO_MS = 25000`** (era 12 s antes de N-71) | `*/include/protocolo.h`, idéntico en las dos puntas | `costura_08_silencio` · `costura_09_presupuesto_radio` |
+| 🟢 **El margen del Modo Degradado contra la deriva de los dos relojes**: `despeje ampliado > deriva acumulada durante el límite duro`. **Era SOLO PROSA hasta el 01/09** — vivía dentro de un comentario de los dos `.cpp`, que es exactamente cómo se perdió el techo de SFTY-6 en N-71 | se **recalcula desde el C++** | ✅ **PASÓ A VIGILADO (01/09)**: `costura_12_margen_deriva` (`EJERCE SFTY-21`) **+ el arnés del Degradado a dos puntas**, que lo ejecuta. El Degradado es el **único modo sin coordinador**: ahí el choque frontal no lo impide un enclavamiento, sino esa desigualdad |
+| 🟢 **El registro de silencio de `J17`**: las dos puntas cuentan `MUDO`/`MAX`/`N` en segundos y lo publican en un `$EVENT`, **sin un solo umbral y sin tocar una luz** | `Maestro/src/bluetooth.cpp:197-222` · `Esclavo/src/bluetooth.cpp:232-257` **[MEDIDO 02/09]** | ✅ **NUEVO Y VIGILADO (01/09)**: `enlace_02_silencio_j17`. La propiedad que vigila es tanto lo que hace como **lo que tiene prohibido**: que no se enganche a `SFTY-6` —*«si el silencio de J17 alimentara al de la radio, un teléfono conectado SALVARÍA al cruce de una caída de radio real»*—. Ver el límite en `§1.8 AB-1` |
 | 🔴 **En el poste siguen los 12 s** (N-108, 31/08). Los 25 s están **en la rama** desde el 27/08; el equipo de la calle es la V8.4 (`e303485`). El reporte de campo —*«se va a ámbar a los 12 segundos, por nada»*— **confirma N-71 por el otro lado**, y le cambia el sentido a la sesión de banco: no es solo validar lo nuevo, **es que el síntoma de hoy se arregla con lo que ya está escrito** | `roadmap.md` §N-108 · commit `318d67f` | — ningún pack puede vigilar lo que hay cargado en un poste |
 | **La desigualdad techo-vs-reintentos** (5 reintentos a 3,5 s ≈ 20,5–20,8 s bajo un techo de 25 s) | se **recalcula desde el C++** | `costura_09_presupuesto_radio` — **por eso ya no vive en prosa** (la lección de N-71) |
 | **Despeje todo-rojo 10–90 s**, piso inquebrantable | `Maestro/src/modo_automatico.cpp:34` | `documentos_04_cifras_sin_vigilante` + el arnés del automático |
 | **`RF_BURST_COPIES = 3`** · **CRC-8 Maxim `0x31`** | `protocolo.h` | `costura_01_contratos` |
 | **Límite de 48 h del respaldo** | `Maestro` respaldo | `costura_05_limite_48h` |
 | **`TIMEOUT_ACK_MS = 3500`** | `protocolo.h` | `costura_09` |
-| **Los cuatro límites del automático están escritos DOS veces** —`modo_automatico.cpp:31-33` y a mano en `app.js`— **sin nada que los ate** *(N75-2, abierto)* | `ESTADO.md` N75-2 | 🔴 **nada** — es el hueco declarado |
-| **El PIN `1234` va en claro en el fuente y en el aire** | `05_Funcional/18_...ESP32.md` §3.5 (`AB-7`) — **único sitio** | — **SOLO PROSA** |
+| **Los cuatro límites del automático están escritos DOS veces** —`modo_automatico.cpp:32-34` y a mano en `app.js`— **sin nada que los ate** *(N75-2, abierto)* | `ESTADO.md` N75-2 | 🔴 **nada, sigue siendo el hueco declarado** [RE-MEDIDO 02/09: `grep -l "VERDE_MIN_MIN\|DESPEJE_SEG_MIN\|ROJO_MIN_MIN"` sobre los 66 packs da **`documentos_04`** y **`maestro_08`**, y los dos leen **sólo el C++**. Ninguno cruza contra `app.js`] |
+| 🔴 **Y N75-2 tiene un HERMANO que nadie había anotado** *(medido el 02/09)*: `js/config.js` define `IOT_CONFIG` con **PIN, baudio, límites de tiempo y UUIDs BLE**… y **no lo llama nadie**, porque `app.js` lleva su propia copia. No es un hecho único: es **la misma duplicación sin vigilante, en un cuarto sitio** | `app_07_generadores_de_trama.py:94-101`, en su lista `HUERFANOS_CONOCIDOS` | 🟠 **el huérfano SÍ está vigilado** —`app_07` lo lleva censado y una nueva rompería el pack—; **la coherencia de los números duplicados, NO**. Ver `P-8` |
+| **El PIN `1234` va en claro en el fuente y en el aire** | `05_Funcional/18_...ESP32.md` §3.5 (`AB-7`) — **único sitio** | ⚠️ **PARTIDO EL 02/09, y las dos mitades no valen lo mismo.** El **número** sí se relee: `app_01_comandos.py:149-157` lo saca del `CMD:PIN:(\d+):` de **los dos `bluetooth.cpp`** y exige que las dos puntas pidan el mismo *(«un técnico que cambie de poste tendría que cambiar de PIN sin que nada se lo diga»)*, y `app_07` lo relee de `js/nmea_parser.js` y `app.js`. **Lo que sigue SOLO PROSA es la DECISIÓN** — que ir en claro es una limitación conocida y aceptada, no un descuido. Ver `P-7`: es justo esa mitad la que decide si se para una entrega |
 
 ### 1.8 Decisiones abiertas, con dueño
 
 | conjunto | dónde vive | dueño | vigilado |
 |---|---|---|---|
 | **`AB-1` … `AB-8`** (ocho decisiones del ESP32, con dueño y con lo que desbloquea cada una) | `05_Funcional/18_Especificacion_Firmware_ESP32.md` **§9** | responsable / quien monte / técnico | 🔴 **nada** — ver §3 |
+| **`AB-1`: nada en el equipo vigila al puente** | ídem | responsable | ⚠️ **SIGUE ABIERTO, pero ya no a ciegas (01/09)**. `enlace_02_silencio_j17` vigila un registro que **existe** desde `d44048c`. 🔴 **Y su límite hay que leerlo, porque es lo que impide dar el `AB-1` por cerrado: el silencio se cierra CUANDO LLEGA UNA LÍNEA**, y un puente muerto no manda ninguna. El STM32 **sigue sin poder ver morir al puente en vivo**; lo que gana es la prueba *después*. *«Cuánto lleva mudo ahora mismo» no es observable por construcción* (`bluetooth.cpp:199-202`). El único testigo en vivo sigue siendo la app |
 | **Decisiones 3.1 a 3.5** (chip ESP32 ✅ cerrada · `Y2` · superficie de mando ✅ decidida · mínimo por sentido · cámara 1 en `PB0` o `J16`) | `05_Funcional/17_...Decisiones_Abiertas.md` **§3** | responsable | — |
 | **`BLQ-2`: el cristal `Y2` de la SEGUNDA tarjeta sin diagnosticar** | `ESTADO.md` · `roadmap.md` · `11_Manual_Instalacion_RTC...` | responsable (banco, `B5`) | — |
-| **`N-106`: el ámbar de la app no saca al Esclavo del Degradado** | `ESTADO.md` · `roadmap.md` · `OPTIMIZACIONES.md` · 7 documentos | responsable decide **qué debe hacer**; técnico escribe el arnés | 🔴 **`esclavo_08_ambar_en_degradado` — el pack está EN ROJO A PROPÓSITO** (`829c457`): nació viéndolo fallar, que es lo único que demuestra que mide |
+| **`N-106`: el ámbar de la app no sacaba al Esclavo del Degradado** | `ESTADO.md` · `roadmap.md` · `OPTIMIZACIONES.md` · 7 documentos | responsable decide **qué debe hacer**; técnico escribe el arnés | ✅ **CERRADO — y el pack está VIGILANDO, no celebrando.** `esclavo_08_ambar_en_degradado` da hoy **8/8** *(corrido solo el 02/09)*, y **nació EN ROJO a propósito** (`829c457`): por eso su verde vale. **Cuatro de sus ocho comprobaciones son controles negativos**, y uno existe justo para que el arreglo no entrara por **una sola** de las dos puertas. Medido en `Esclavo/src/bluetooth.cpp`: las dos puertas del ámbar consultan `degradado_gobiernaLuz()` **dentro de su bloque** (`:316`, `:403`), tienen rama para `degradado_rendicionEnCurso()` (`:340`, `:417`), y hay un **envoltorio** (`:260-273`) que devuelve lo que `degradado_salir()` —que es `void` y abandona en silencio— no sabía decir. 🔴 **Lo cerrado es la incoherencia entre las dos vías, NO la decisión vial**: *qué debe hacer* el ámbar de la app en Degradado sigue siendo del responsable |
 | **`N75-1` … `N75-4`** | `ESTADO.md` · `17_...` §3.4 · `roadmap.md` | responsable / técnica | — |
 | **`M1` … `M5`, las cinco medidas de multímetro** | `05_Funcional/17_...` **§A** — **es el único sitio con el procedimiento** | quien monte | — **SOLO PROSA** |
 
@@ -312,16 +393,44 @@ $STATUS   $ACK   $ERR   $ALARM   $EVENT
 | `Validacion_LCD` | compila `lcd.cpp`, `menu.cpp`, `modo_degradado.cpp` reales | framebuffer en el PC, **no** la ST7920 |
 | `Validacion_Ciclo` | compila `ciclo_degradado.h` | función pura, sin máquina de estados |
 | `Validacion_Respaldo` | compila `calcularSuma()`, Horner, `respaldo_horasDesdeSync()` | no ejerce el arranque |
-| `Validacion_Automatico` | compila `coordinador` + `semaforo` + `modo_automatico`; **mide SFTY-2 sobre los pines escritos** | **solo el Maestro** |
+| `Validacion_Automatico` | compila `coordinador` + `semaforo` + `modo_automatico`; **mide SFTY-2 sobre los pines escritos** | **solo el Maestro** — y **ya no es el único**, ver la fila siguiente |
+| ✅ **`Validacion_Automatico/dos_puntas/`** (01/09, `compilar_dos_puntas.ps1`) | **el único que ejecuta el C++ real de LAS DOS PUNTAS a la vez.** Compila cada punta en su propia DLL —Maestro y Esclavo definen los **mismos símbolos** y no enlazan juntas—, las carga en un proceso y les da el **mismo `millis()`**: *«verde en las dos a la vez»* tiene por fin un instante donde ocurrir. **Cierra el punto ciego que la fila de arriba declara** | sigue siendo el PC, no la tarjeta. Lo vigila `barrera_04_arnes_dos_puntas` |
+| ✅ **arnés del Degradado a dos puntas** (01/09, `compilar_degradado.ps1`, `orquestador_degradado.cpp`) | el **único modo sin coordinador**: ahí el choque no lo impide un enclavamiento sino una desigualdad numérica | ídem. Lo acompaña `costura_12_margen_deriva` |
 | `simulador_sistema_v7_6.py` · `simulador_repetidor.py` · `simulador_app_bluetooth.py` | modelos | modelos |
-| arnés unitario de la app · arnés DOM · `test_funcional_app.py` | la app real | no es un teléfono |
-| **`simulador_puente_esp32.py`** (31/08, en vuelo) | **el LAZO ENTERO app ↔ ESP32 ↔ STM32**; dos de sus tres puntas son código real | el ESP32 es modelo en Python |
+| **DOS** arneses unitarios de la app · arnés DOM · `test_funcional_app.py` | la app real | no es un teléfono. **El segundo unitario —`tests/test_unitarios.js`— existía y NO estaba conectado**; se dio de alta el 02/09 |
+| **`simulador_puente_esp32.py`** (31/08) | **el LAZO ENTERO app ↔ ESP32 ↔ STM32**; dos de sus tres puntas son código real | el ESP32 **sigue siendo modelo en Python aunque su C++ ya exista**: el simulador no lo carga |
 | **`compilar("esp32", "ESP32_Expansion")`** | que el C++ del ESP32 **compile** — los packs no lo prueban | no ejecuta |
 
-> ⚠️ **`compuerta.py:671-676` y `:802-806` siguen diciendo que el C++ del ESP32 «todavía no
-> existe»** y que «otro agente está dando de alta el rol». **Ya existe** (`d2427c2`) y **el rol ya
-> está de alta** (`compuerta.py:114`). Comentario caducado dentro del instrumento; **no se toca aquí
-> porque `compuerta.py` está en vuelo** — anotado para quien lo tenga.
+### 🔴 1.10.bis Instrumentos que EXISTEN y NO están en la compuerta [MEDIDO 02/09]
+
+> **La pregunta de `CLAUDE.md` §3 —*«¿hay algún instrumento que exista y no esté conectado?»*— tiene
+> hoy dos respuestas**, y la segunda no aparece en ningún censo porque **ningún fichero del árbol la
+> nombra**. Se dejan aquí con su comando; **conectarlos o retirarlos no es de este documento.**
+
+| instrumento | quién lo nombra | comando | por qué no entra tal cual |
+|---|---|---|---|
+| **`05_Funcional/App_Semaforo/tests/test_e2e_visual.js`** | `package.json` (`"test:e2e"`), `README.md` de la app, Manual `14` línea 144, y `16_Documento_Auditoria...` §4.2 — que lo llama **«Validación Visual E2E»** | `node tests/test_e2e_visual.js` (con `python servidor_puente_simulador.py 3000` levantado) | **No afirma nada: es un capturador de pantalla.** No publica ninguna cuenta `x/y`, así que la regla de la cuarta cara de N-46 no tiene qué exigirle. Sólo pone `process.exitCode = 1` si *revienta*, no si la pantalla sale mal |
+| 🔴 **`05_Funcional/App_Semaforo/test_e2e_puppeteer.js`** | **NADIE.** `grep -rn` sobre todo el árbol antes de esta pasada: **cero** *(control positivo: el fichero de al lado, `tests/test_e2e_visual.js`, da **4 ficheros vivos** —Manual 14, doc 16, `README.md` de la app y `package.json`— más dos `.zip` de entrega. La búsqueda sabía encontrar; el cero es real)* | `node test_e2e_puppeteer.js` | **Peor: se traga toda excepción y sale con `0`** imprimiendo *«🎉 TODOS LOS CONTROLES Y PANTALLAS FUERON PROBADOS CON ÉXITO»*. Es N-46 literal —fallo pintado de verde— en un fichero que además escribe sus capturas a un directorio de otro IDE (`.gemini/antigravity-ide/brain/<uuid>`) |
+
+> ⚠️ **Y los dos comparten un defecto que `CLAUDE.md` §4.ter ya cobró una vez: miden a `412 px` y
+> sólo a `412 px`** —`setViewport({width: 412})` en los dos—, que es **el único de los cuatro anchos
+> medidos donde el fallo de recorte no aparecía**. Conectarlos sin más anchos daría un verde con el
+> mismo valor que tenían las capturas limpias del `evidencia/`.
+>
+> **Lo que sí falta y ninguno de los dos cubre:** un arnés de interfaz que **afirme** —anchos,
+> contraste, recorte— en vez de fotografiar. Hoy quien mide la app de verdad son los tres que sí
+> están en la compuerta: los dos unitarios y el de DOM.
+
+> ✅ **Corregido el 02/09 — y la corrección es la lección.** Este apartado acusaba a
+> `compuerta.py:671-676` y `:802-806` de decir que el C++ del ESP32 *«todavía no existe»*. **Medido
+> hoy, esas líneas son otra cosa**: `:671-676` es la guarda de `gcc` del arnés del respaldo, y
+> `:802-806` el `ABORTADO` del arnés del Degradado a dos puntas. La acusación se quedó apuntando a
+> unas líneas que se movieron.
+>
+> **Lo que sí queda, buscado por texto y no por número: UNA sola aparición, `compuerta.py:950`**,
+> dentro del bloque del simulador del puente. **No se toca aquí** — `compuerta.py` no es de este
+> encargo. Y la regla que deja: **un defecto se persigue por su texto, no por su línea**; una cita
+> numérica a un fichero en vuelo caduca sola, y encima caduca **acusando a un inocente**.
 
 ---
 
@@ -356,7 +465,7 @@ nombran su nombre de fichero**, separando documentos de fuentes (`.py`, `.cpp`, 
 | **`01_Firmware/FIRMWARE.md`** | **CERO** *(antes de este indice)* | — | 🟠 huérfano total |
 | **`05_Funcional/ENCARGO_SESION_BANCO.md`** | 1, y es un **histórico cerrado** | el encargo de la sesión de banco, que es **el bloqueante del proyecto** | 🔴 el documento del bloqueante, colgando de un fichero archivado |
 | **`ORDEN_EJECUCION.md`** | 1 (`CERTIFICACION_SW.md`) | — | 🟠 del 28/07; **probablemente caducado, y nadie lo va a echar de menos** |
-| **`ARQUITECTURA.map`** | 3 documentos | el censo de pines en un sitio, los dos anexos de asimetría | 🟢 **ningún pack lo parsea** [MEDIDO], así que reescribirlo no rompe la compuerta — y por eso tampoco protesta nadie si envejece |
+| **`ARQUITECTURA.map`** | **4 documentos** [RE-MEDIDO 02/09]: `02_LCD/MANUAL_PANTALLA_LCD.md:29`, `05_Funcional/README.md:135`, `OPTIMIZACIONES.md:427` **(nuevo)** y este índice. 🔴 **`roadmap.md:142` YA NO** — el roadmap se reescribió el 31/08 y perdió la referencia | el censo de pines en un sitio, los dos anexos de asimetría | 🟢 **ningún pack lo parsea** [RE-MEDIDO 02/09 con su control: `grep "ARQUITECTURA"` sobre `.py` da 5 y ninguna lo lee; `flash_01_lastre` sí parsea un `.map`, pero es `firmware.map`], así que reescribirlo no rompe la compuerta — 🔴 **y ésa es también su enfermedad: la pasada del 02/09 verificó sus 60 citas `fichero:linea` y encontró seis apuntando a código que se había movido.** Las **rutas** aguantaron las 36, porque ésas sí tienen vigilante: la guarda de rutas. **Lo que nadie relee, envejece sin avisar** |
 | **`04_Manuales/MANUAL_MANDO_4_RELES.md`** · **`05_Funcional/8_Procedimiento_Modo_Degradado.md`** | 9 cada uno | las secuencias `A·A·A`, `B·B·B`, `A·B·A·B` **desde el punto de vista del operario** | 🟢 el firmware lo vigila `maestro_01_mando` |
 
 ---
@@ -401,13 +510,16 @@ ellos por «portadora» en el sentido de **portadora de radio** (`Esclavo/src/ma
 | **P-1** | 🔴 **La especificación entera de la placa portadora**: qué lleva, qué NO lleva, los puntos de prueba, el acceso de reflasheo, la regla de trazado y la medida `M6` | **NINGÚN FICHERO.** `grep` sobre todo el árbol: **cero** | **Ya se perdió.** Detalle completo en §4 | **Su propio documento** — el responsable lo va a encargar aparte |
 | **P-2** | 🔴 **`AB-1` … `AB-8`: ocho decisiones abiertas, cada una con su dueño y con lo que desbloquea** | `18_...ESP32.md` §9, **y nada más** (`AB-2`…`AB-8` dan exactamente **1** fichero; `AB-1` da 2) | Ese fichero tiene **un solo puntero documental**. Si se reescribe o se archiva, **ocho decisiones con dueño desaparecen sin dejar rastro** — y su propio §9 ya avisa de que `ESTADO.md` no las tiene | **Referenciarlas desde `ESTADO.md`** en la tabla de bloqueantes, con el enlace al §9. **Con enlace, no copiadas**: la copia haría dos versiones |
 | **P-3** | 🔴 **`SFTY-27` designa dos reglas distintas** (§1.5) — **17 sitios** usan la viva; ~~ocho~~ **CUATRO** mandan explícitamente al lector al sitio equivocado *(recontado el 01/09: el «ocho» era el número de FICHEROS de firmware con la etiqueta, copiado como si fuera el de punteros)* | ya está escrita: `OPTIMIZACIONES.md` §`SFTY-27` y su tabla, §1.5 de aquí | Una regla vial implementada aparece bajo un número marcado *«NO IMPLEMENTADO»*. Nadie lo ve porque **hay que leer los dos sitios a la vez** | **Decisión del responsable** (`AB-8`): el `27` se queda con la regla viva —está en 8 fuentes y 2 packs; la matrícula no está en ninguno— y la matrícula toma número nuevo. Los 2 punteros de manual ya no engañan (01/09); **quedan los 2 del firmware** |
-| **P-3.bis** | 🔴 **`SFTY-3` y `SFTY-7` están INTERCAMBIADAS en `*/src/protocolo.cpp:52` y `:107`, en las dos puntas** (§1.5) — y la fila `SFTY-7` de la tabla de trazabilidad apunta al sitio mal etiquetado | §1.5 de aquí, desde el 01/09. Antes: **en ninguna parte** | El CRC lleva el número del reintento de ACK y el reintento lleva el suyo en otro fichero: **el mismo defecto que el 27, y en la misma clase de sitio que N-6 ya corrigió una vez** para `SFTY-10`/`SFTY-11` | **NO necesita al responsable**: no hay número nuevo que asignar, sólo mover 4 etiquetas de comentario y una fila. Firmware y `OPTIMIZACIONES.md` son de otros agentes |
+| **P-3.bis** | ✅ **CERRADO el 01/09** (`4d3b1b9`). Era: *«`SFTY-3` y `SFTY-7` están INTERCAMBIADAS en `*/src/protocolo.cpp:52` y `:107`, en las dos puntas»* | §1.5 de aquí | *(era)* El CRC llevaba el número del reintento de ACK: el mismo defecto que el 27, y la misma clase de sitio que N-6 ya corrigió una vez | **HECHO, y verificado el 02/09 midiendo, no leyendo el commit:** `:52` etiqueta hoy el polinomio como `SFTY-3` —que es lo que dice la definición— y `:107` declara **«SIN REGLA SFTY ASIGNADA»** con su porqué. `grep "SFTY-7"` sobre los dos `protocolo.cpp` → **cero**. 🟢 **Lo reutilizable: el arreglo correcto dejó una fila VACÍA, no una etiqueta nueva** — la resincronización del búfer no es ninguna de las 29, y ponerle un número habría sido *«una regla cubierta por una prueba que no la ejerce»* |
+| **P-3.ter** | 🔴 **La lista de packs con `# EJERCE SFTY-x` de §1.5 estaba INCOMPLETA el día que se publicó** — y no por deriva: `esclavo_06` (SFTY-2) faltaba entero y `maestro_09` entró con **una** de sus **dos** etiquetas, las dos presentes desde el 28/08 | §1.5, corregido el 02/09 | Es el error del «ocho» de `SFTY-27` **repetido dentro de la sección que lo denuncia**: se midió *ficheros* (`grep -rl`) y se publicó *reglas ejercidas*. La cobertura real de `SFTY-2` —una regla **vial**— parecía la mitad de lo que es | **HECHO.** Y la regla que deja: **una etiqueta por línea, no por fichero** (`grep -rn` y contar líneas). Un pack puede ejercer más de una regla, y `documentos_02` levanta la tabla de trazabilidad **de esas líneas** |
 | **P-4** | 🔴 **Las cinco medidas de multímetro `M1`…`M5`, con su procedimiento** | `17_...` §A, y solo ahí el **procedimiento** | `M3` es **bloqueante de cableado** y se cita en 15 documentos… pero **cómo se hace** está en uno. Reescribir el 17 deja quince punteros a un procedimiento que ya no existe | **Referenciar desde la guía de campo**, que es quien va a ejecutarlas |
 | **P-5** | 🔴 **`05_Funcional/12_Cobertura_de_Pruebas_y_Huecos.md` es HUÉRFANO TOTAL** — y es, literalmente, el documento que dice **qué NO se está midiendo** | 0 punteros entrantes | Es el mismo defecto que los 81 KB de guía que no enlazaba nadie, aplicado al fichero cuyo tema **es** los huecos | **Enlazarlo desde `ESTADO.md` y desde `README.md`** |
 | **P-6** | 🔴 **`05_Funcional/ENCARGO_SESION_BANCO.md`**: el encargo de la sesión de banco, que es **EL bloqueante del proyecto**, colgando solo de un histórico cerrado | 1 puntero, archivado | El día que se organice el banco, el documento que lo describe no se encuentra por ningún camino vivo | **Enlazarlo desde la Fase 6 de `ESTADO.md`** |
-| **P-7** | 🟠 **El PIN `1234` va en claro en el fuente y en el aire** | `18_...ESP32.md` §3.5 | Es una **limitación de seguridad conocida y aceptada**. Si el único sitio que lo dice desaparece, el día que alguien la encuentre no sabrá si es descuido o decisión — y esa diferencia decide si se para una entrega | **Anotarlo donde vive la barrera de PIN**, o en `OPTIMIZACIONES.md` |
-| **P-8** | 🟠 **Los cuatro límites del automático están escritos dos veces y nada los ata** (`N75-2`) | `ESTADO.md` lo declara abierto | No es un hecho único: es un hecho **duplicado sin vigilante**, que es la otra cara. Hoy coinciden; el día que suba el mínimo, la app seguirá dejando poner 1 | **Un pack que lea los cuatro del `.cpp`** — media hora, ya presupuestada |
+| **P-7** | 🟠 **El PIN `1234` va en claro en el fuente y en el aire** | `18_...ESP32.md` §3.5 | Es una **limitación de seguridad conocida y aceptada**. Si el único sitio que lo dice desaparece, el día que alguien la encuentre no sabrá si es descuido o decisión — y esa diferencia decide si se para una entrega | **SIGUE ABIERTO, y el 02/09 se precisó por qué.** El **número** sí lo relee un pack (`app_01_comandos.py:149-157`, de los dos `bluetooth.cpp`; `app_07` de `js/`), así que **no es un hecho sin vigilante — es un hecho con MEDIO vigilante**. Lo que ningún pack puede comprobar es que ir en claro sea una **decisión**: eso es prosa por naturaleza, y por eso es justo la mitad que hay que anotar **donde vive la barrera de PIN**, o en `OPTIMIZACIONES.md` |
+| **P-8** | 🟠 **Los cuatro límites del automático están escritos dos veces y nada los ata** (`N75-2`) | `ESTADO.md` lo declara abierto | No es un hecho único: es un hecho **duplicado sin vigilante**, que es la otra cara. Hoy coinciden; el día que suba el mínimo, la app seguirá dejando poner 1 | **SIGUE ABIERTO** [re-medido 02/09: los dos packs que leen esas constantes, `documentos_04` y `maestro_08`, leen **sólo el C++**]. **Un pack que lea los cuatro del `.cpp` y los cruce con `app.js`** — media hora, ya presupuestada |
+| **P-8.bis** | 🟠 **`js/config.js` (`IOT_CONFIG`) es la MISMA duplicación en un cuarto sitio**: define PIN, baudio, límites de tiempo y UUIDs BLE, **y no lo llama nadie** porque `app.js` lleva su propia copia | `app_07_generadores_de_trama.py:94-101`, lista `HUERFANOS_CONOCIDOS` | Un módulo huérfano de constantes es peor que la duplicación sola: **parece la fuente y no lo es.** Quien lo edite creyendo cambiar el PIN no cambiará nada, y no habrá error | **Ya está medido y el huérfano vigilado** —una función que gane llamador y siga en la lista rompe `app_07`—. Lo que falta es lo de `P-8`: **atar los números**, o **retirar el módulo**. Lo que no puede quedarse es a medias |
 | **P-9** | 🟠 **`LEEME_PRIMERO_APP.md` y `16_Documento_Auditoria...` son huérfanos totales** | 0 punteros | Uno de ellos se llama *«léeme primero»* y no hay ningún camino que lleve a él | **Enlazarlos o retirarlos**; lo que no puede quedarse es a medias |
+| **P-10** | 🔴 **DOS instrumentos existen y no están en la compuerta** — `tests/test_e2e_visual.js` (4 ficheros lo nombran, uno de ellos lo llama *«Validación Visual E2E»*) y **`test_e2e_puppeteer.js`, que no lo nombra NADIE** | §1.10.bis de aquí, desde el 02/09. Antes: **en ninguna parte** | Es `CLAUDE.md` §3 en su forma más cara: **un hueco no grita.** Y el de puppeteer es peor que un hueco — **se traga toda excepción, sale con `0` e imprime *«TODOS LOS CONTROLES FUERON PROBADOS CON ÉXITO»***, que es N-46 literal esperando a que alguien lo conecte. Los dos miden a **412 px y sólo 412 px**, el único ancho donde el fallo de §4.ter no aparecía | **NO conectarlos tal cual**: no afirman nada, son capturadores. Decidir entre **retirarlos** o **convertir uno en un arnés que afirme** —anchos, contraste, recorte— y entonces sí darlo de alta, con la inyección de §8.bis delante. **`compuerta.py` no es de este documento** |
 
 ### 3.3 🟢 HECHOS ÚNICOS **CORRECTOS** — así debe ser, NO se duplican
 
@@ -425,7 +537,8 @@ ellos por «portadora» en el sentido de **portadora de radio** (`Esclavo/src/ma
 | **`SFTY-19`, `SFTY-24`, `SFTY-25`** (diseños **no implementados**) | `OPTIMIZACIONES.md` | Es su documento propietario, están declarados honestamente como *«sin construir»*, y no hay código que vigilar. **Copiarlos a un manual los convertiría en promesas** — que es lo que costó la Caja Negra de N-73 |
 | **`SFTY6_SILENCIO_MS`, `DESPEJE_SEG_MIN/MAX`, `RF_BURST_COPIES`, `TIMEOUT_ACK_MS`** | un `.h` cada uno | **Sin valor por defecto y releídos en cada corrida.** La lección de N-71 fue justo la contraria: sacarlos de la prosa |
 | **La línea `A1′` de compras** | `15_Lista_de_Compras_Hardware.md` | Documento propietario del dinero, con 11 punteros entrantes |
-| **`costura_11_lcd_sin_bus`, `camara_02_j16`, los nueve `esp32_*`** citados en un solo documento | `OPTIMIZACIONES.md` / `18_...ESP32.md` | **El pack es el hecho.** Está en `compuerta.py`, corre y sabe fallar; que un documento lo mencione una vez o diez no cambia lo que mide |
+| **`costura_11_lcd_sin_bus`, `camara_02_j16`, los **once** `esp32_*`** citados en un solo documento | `OPTIMIZACIONES.md` / `18_...ESP32.md` | **El pack es el hecho.** Está en `compuerta.py`, corre y sabe fallar; que un documento lo mencione una vez o diez no cambia lo que mide. *(Eran nueve el 31/08; `esp32_10` y `esp32_11` entraron el 01/09)* |
+| 🟢 **Los siete packs nuevos del 01–02/09 no están nombrados en `ARQUITECTURA.map` ni lo estaban aquí, Y ESO NO ES UN DEFECTO DE ELLOS** | sus propios `.py` | **Es la misma razón de la fila de arriba, y conviene decirla porque parece un hueco y no lo es.** `barrera_04`, `costura_12`, `documentos_05`, `enlace_02`, `esp32_10`, `esp32_11` y `reloj_01` corren en cada corrida y **saben fallar**; que un índice los nombre no cambia lo que miden. Se les ha dado fila arriba **para el lector**, no para sostenerlos. 🔴 **La asimetría que sí importa: lo que un índice sostiene de verdad son los hechos que NADIE relee** — y ésos son los de §3.2 |
 | **El censo de pines completo** | `ARQUITECTURA.map` Anexo A | Es un índice, no una fuente: **cada fila lleva su `fichero:linea`**, y quien dude va al `.cpp`. Duplicarlo sería fabricar una segunda copia del `pines.h` |
 
 ---
@@ -535,6 +648,13 @@ compras**.
 * **Los ficheros en vuelo.** Seis agentes escribían mientras esto se medía. Las **rutas** son
   estables; las **líneas** de `app.js`, `lcd.cpp`, `OPTIMIZACIONES.md`, los manuales 2/12/14 y los
   packs pueden haberse movido.
+* 🔴 **Las citas `fichero:linea`, y esto lo cobró la pasada del 02/09.** Se verificaron una a una las
+  del hermano `ARQUITECTURA.map`: **las 36 rutas aguantaron** —tienen vigilante, la guarda de rutas
+  de la compuerta— y **seis citas de línea apuntaban a código que se había movido**, una de ellas
+  *acusando de caducado un comentario que ya no estaba ahí*. Las de **este** fichero no se han
+  revisado enteras y **hay que leerlas con la misma desconfianza**. Lo que no se mueve es *en qué
+  fichero* vive cada cosa, que es lo que este índice contesta; el número de línea es una comodidad,
+  no un dato vigilado.
 * **Este fichero no se vigila solo.** No hay ningún pack que compruebe que sigue siendo cierto, y
   **eso es deliberado**: un pack que exigiera que cada hecho esté en N ficheros forzaría a duplicar,
   que es el defecto contrario. Lo que sí se puede escribir algún día, y sería barato, es un pack que

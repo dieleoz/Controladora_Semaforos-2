@@ -1,3 +1,17 @@
+// AVISO, ANTES DE CONECTAR ESTO A NADA (02/09):
+//
+// ESTE GUION NO AFIRMA NADA. Hace capturas de pantalla; no compara, no cuenta, y no
+// publica ninguna cifra x/y. Un PASS suyo no dice que la interfaz este bien: dice que el
+// navegador no reventó.
+//
+// Y mide a UN SOLO ANCHO -412 px-, que es precisamente el unico de los cuatro en los que
+// el desbordamiento que sufrio este proyecto NO aparecia. Una captura a un solo ancho
+// demuestra que a ESE ancho se veia bien, y nada mas.
+//
+// Lo que hace falta de verdad es un arnes de interfaz que AFIRME -anchos, contraste,
+// recorte-, no uno que fotografie. Mientras eso no exista, esto no se conecta a la
+// compuerta: una fila que no sabe fallar es peor que una fila que falta.
+
 const puppeteer = require('puppeteer-core');
 const path = require('path');
 const fs = require('fs');
@@ -132,7 +146,15 @@ async function runE2ETests() {
     console.log('='.repeat(80));
 
   } catch (err) {
+    // N-46 (02/09): ESTE catch SE TRAGABA TODO Y EL GUION SALIA CON 0 PASE LO QUE PASARA.
+    //
+    // No habia un solo process.exit en el fichero, y justo encima se imprime "TODOS LOS
+    // CONTROLES Y PANTALLAS FUERON PROBADOS CON EXITO". O sea que si alguien lo hubiera
+    // conectado a compuerta.py, habria anadido una fila verde permanente al acta. Es
+    // literal el defecto que este repositorio lleva un mes cerrando, esperando a que
+    // alguien lo diera de alta.
     console.error('Error durante la ejecución E2E:', err);
+    process.exitCode = 1;
   } finally {
     await browser.close();
   }
