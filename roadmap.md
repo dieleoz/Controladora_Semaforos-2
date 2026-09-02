@@ -10,22 +10,82 @@ bitacora. Lo anterior no se pierde —vive en el `git log` de este repositorio y
 
 ---
 
-## 0. PARA RETOMAR — lo primero de la proxima sesion
+## 0. PARA RETOMAR — leelo entero antes de tocar nada
 
-**Tres pasos, en este orden.** La deuda de cifras del 31/08 **ya esta pagada** —README, ESTADO y
-CERTIFICACION salen del acta del 01/09—, pero aparecio una peor al pagarla.
+### 0.0 · 🔴 LO PRIMERO, Y NO ES TRABAJO NUEVO: NO ESCRIBAS UN INSTRUMENTO MAS
 
-| | que hacer | por que |
+**En campo corre `e303485` (V8.4, 31/07). Han pasado 33 dias y ninguna linea de todo esto ha
+tocado una tarjeta.** El arreglo del defecto que se sufre HOY en la calle —el equipo se va a
+ambar por nada— **lleva escrito desde el 27/08 y sin subir**.
+
+| | firmware | instrumento | ratio |
+|---|---|---|---|
+| 28/08 | 8.895 | 8.898 | 1,00 : 1 |
+| 02/09 | **14.976** | **34.532** | **2,31 : 1** |
+
+**Tres auditorias externas independientes dijeron lo mismo**, y la tercera lo dijo de la respuesta
+a la segunda: *«arreglamos todo lo que midio y nada de lo que dijo»*. Ver **N-109**, **N-114** y la
+regla **§2.bis de `CLAUDE.md`**, que existe por esto.
+
+> **La pregunta antes de escribir cualquier cosa: ¿esto acerca una tarjeta cargada, o la sustituye?**
+
+### 0.1 · Lo unico que hay que hacer, en orden
+
+| | que | por que |
 |---|---|---|
-| **1** | 🔴 **Arreglar N-112: la compuerta ALTERNA `0` y `1`** en pasadas consecutivas sobre un arbol identico (medido: `1`, `0`, `1`) | mientras siga asi **su codigo de salida no significa nada**, y el habito que crea —re-correr hasta que salga verde— se lleva por delante la compuerta entera. **Es lo primero porque todo lo demas se mide con ella** |
-| **2** | **Regenerar el `.zip`** (`python generar_entrega_v9_0.py`) sobre arbol limpio | el entregado el 31/08 lleva la APK al dia y **un acta que no le corresponde**. Saldra con **~355 ficheros y no 365**: el generador ya no mete el fuente de la PWA, y no falta nada |
-| **3** | 🛑 **BANCO** | sigue siendo EL bloqueante, y nada de lo anterior lo sustituye |
+| **1** | 🔴 **Cargar `SFTY6_SILENCIO_MS = 25000UL` sobre `e303485`** — solo esa constante, sobre la V8.4 que **ya esta probada en la calle** | es lo unico que llega al conductor esta semana, y **no depende de nada de la V9.0** |
+| **2** | 🔴 **El montaje de mesa: tres cables y un cargador USB** | **se puede hacer HOY, sin comprar nada.** La placa portadora bloquea *desplegar*, no *probar*. Esta paso a paso en el apartado 04 de la guia. Lleva pendiente desde el 31/08 |
+| **3** | 🛑 **BANCO** | sigue siendo EL bloqueante y **nada de lo escrito lo sustituye** |
 
-**Lo que ya NO hay que hacer**, para no repetirlo: los dos `ABORTADO` estan cerrados, las cifras
-cuadradas, la guia de campo recortada a ~7.100 palabras, y el arnes de DOM invertido a `77/77`.
+**Lo que NO hay que hacer:** ni un pack, ni un arnes, ni un documento — salvo que **conteste una
+pregunta abierta**, que es la excepcion escrita en §2.bis.
 
-> Ojo con la fecha: la sesion se cerro **pasada la medianoche**, asi que el acta viva es
-> `evidencia/2026-09-01_compuerta.txt` — **fichero nuevo, no sustituye** al del 31/08.
+### 0.2 · Donde esta todo, medido el 02/09 sobre arbol limpio
+
+```
+compuerta      20 PASS | 0 FALLA | 0 ABORTADO   (tres pasadas identicas)
+banco          963/963 en 66 packs
+firmwares      Maestro 89,2 % (7.080 B libres) · Esclavo 65,9 % · Repetidor 20,6 % · ESP32 35,7 %
+simuladores    9/9 · 10/10 · 12/12 · 85/85
+arneses C++    pantalla 271/271 · ciclo 22/22 · automatico 71/71 · dos puntas 42/42 · Degradado 18/18
+app            jsdom 128 · unitarios 32 + 55 · funcional 58/58
+```
+
+> ⚠️ **Y ese 20/20 no es un entregable.** Es lo que §2.bis llama una coartada: verde sobre 34.532
+> lineas que no han visto una tarjeta.
+
+### 0.3 · Lo que espera DECISION del responsable, no trabajo
+
+| | |
+|---|---|
+| 🔴 **Quien disena y quien fabrica** la placa portadora | bloquea el montaje permanente, **no la prueba** |
+| 🔴 **Pedir la fuente `A5`** — conmutada 12->5 V, >= 1 A | |
+| 🔴 **`AB-9`: el PIN no caduca NUNCA** | se teclea, se guarda el telefono, y el siguiente manda ordenes sin teclear. **Cinco opciones con su coste en §0.quinquies** |
+| 🔴 **Por que los documentos COPIAN cifras en vez de citarlas** | toda la familia N-62 -> N-93 -> N-112 sale de esa duplicacion, y hay **1.120 lineas de Python vigilando copias**. Si dijeran *«ver la ultima acta»*, dos packs enteros sobran |
+| 🟠 **`AB-1`: el latido del ESP32** | sin el, el contador de `J17` **no distingue** un puente muerto de un telefono apagado |
+| 🟠 **Los codigos de los mandos** · **`M3` en cobre** | compras y una medida de multimetro |
+
+### 0.4 · Deuda de firmware, si se decide seguir por ahi
+
+1. **El Esclavo no tiene `reloj_diagnostico()`** — porte **mecanico** desde el Maestro; ya tiene todos los ingredientes. Sin el, la mitad del diagnostico de `Y2` sigue tapiada.
+2. 🔴 **En la SUBIDA no hay checksum en ningun sitio.** Ninguna punta llama a `calcularChecksum()` **en recepcion**: un bit cambiado dentro del parametro de `SET_TIEMPOS` o `SET_RTC` casa con el `strncmp` del prefijo y **el equipo obedece valores mutilados**.
+3. **N-42** — el Modo Automatico no mueve las luces en banco. Abierta desde antes de toda esta arquitectura.
+
+### 0.5 · Lo que se entrego el 02/09
+
+```
+Paquete_Revision_V9.0_2026-09-02_<hash>_SIN_BANCO.zip
+acta 2026-09-02_compuerta.txt  ·  ARBOL LIMPIO  ·  20/20
+APK  IOT_VIAL_Semaforos_2026-09-02_<hash>_SIN_BANCO.apk
+     verificada entrada por entrada y por CRC contra el fuente: cero diferencias
+guia con PARTE EN PDF: hoja 1 el resumen, y separa "no cumplio" de "no se pudo probar"
+```
+
+**La APK se compila con JDK 17 y NO con el 21** (`D:\@Proyect\Baliza\7 sw apk\jdk-17\...`). La receta
+entera esta en la skill `entregar` §2.bis, y **la verificacion que exige es por CRC entrada por
+entrada**, no por md5 de tres ficheros.
+
+---
 
 ### 0.bis · La V2 — lo que ya esta identificado y NO se ha hecho
 
