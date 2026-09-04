@@ -62,7 +62,7 @@ regla **§2.bis de `CLAUDE.md`**, que existe por esto.
 | **1** | 🛑 **NO REENERGIZAR EL MAESTRO hasta inspeccionarlo en frio** | se calienta y deja de funcionar a los ~30 s de alimentarlo. **Cada ciclo puede terminar de matar el chip.** Las dos pruebas que discriminan la causa sin arriesgarlo mas estan en **N-116** |
 | **2** | 🔴 **Monitor serie a 115200 sobre el CP2102 del ESP32** — dos minutos, no hace falta recompilar nada | decide **N-117**: si el banner de la ROM se repite cada ~2 s hay bucle de reinicio y el Bluetooth esta explicado. Si sale una vez y calla, es antena o *advertising* y hay que mirar otra cosa. **Se mide ANTES de reflashear** |
 | **3** | 🔴 **Reflashear el ESP32** con el arreglo del perro ya aplicado (`main.cpp`, compuerta 20/20 el 04/09) | desbloquea el paso **10**. 🔴 **Pero NO basta: ver la fila 3.bis** |
-| **3.bis** | 🔴 **RECOMPILAR LA APK** (`APP-APK`, JDK 17, verificacion por CRC) | **N-122: la app nunca llamaba a `connect()`.** Los pasos **11-14 y 25-28** estaban bloqueados por esto **ademas** de por el ESP32 — son dos defectos en serie. El fuente ya esta arreglado y verde; **una APK sin recompilar sigue sin conectar aunque el modulo este perfecto** |
+| **3.bis** | 🟢 **RECOMPILAR LA APK — HECHO el 04/09.** `IOT_VIAL_Semaforos_2026-09-04_edf4783_SIN_BANCO.apk`, JDK 17, verificada por CRC | **N-122: la app nunca llamaba a `connect()`.** Los pasos **11-14 y 25-28** estaban bloqueados por esto **ademas** de por el ESP32 — dos defectos en serie. **Instalar ESTA APK: la del 02/09 no puede conectar, por bien que funcione el modulo** |
 | **4** | 🔴 **Repetir los pasos 7, 19 y 21** en cuanto haya app | son los que deciden si **N-42** sigue viva. El banco **no la confirmo ni la descarto** |
 | **5** | 🔴 **Cargar `SFTY6_SILENCIO_MS = 25000UL` sobre `e303485`** — solo esa constante, sobre la V8.4 que **ya esta probada en la calle** | sigue siendo lo unico que llega al conductor esta semana, y **no depende de nada de la V9.0** |
 
@@ -118,15 +118,31 @@ BANCO          24/29 pasos COMPLETOS  ·  4 BLOQUEADOS (Bluetooth)  ·  1 ABORTA
 2. 🔴 **En la SUBIDA no hay checksum en ningun sitio.** Ninguna punta llama a `calcularChecksum()` **en recepcion**: un bit cambiado dentro del parametro de `SET_TIEMPOS` o `SET_RTC` casa con el `strncmp` del prefijo y **el equipo obedece valores mutilados**.
 3. **N-42** — el Modo Automatico no mueve las luces en banco. Abierta desde antes de toda esta arquitectura.
 
-### 0.5 · Lo que se entrego el 02/09
+### 0.5 · Lo que hay armado el 04/09 — es un ENCARGO, no una entrega
 
 ```
-Paquete_Revision_V9.0_2026-09-02_<hash>_SIN_BANCO.zip
-acta 2026-09-02_compuerta.txt  ·  ARBOL LIMPIO  ·  20/20
-APK  IOT_VIAL_Semaforos_2026-09-02_<hash>_SIN_BANCO.apk
-     verificada entrada por entrada y por CRC contra el fuente: cero diferencias
-guia con PARTE EN PDF: hoja 1 el resumen, y separa "no cumplio" de "no se pudo probar"
+Encargo_Banco_2026-09-04_edf4783_SIN_BANCO.zip     7.040.016 B · 303 entradas
+acta 2026-09-04_compuerta.txt  ·  ARBOL LIMPIO  ·  HEAD edf4783  ·  20/20
+APK  IOT_VIAL_Semaforos_2026-09-04_edf4783_SIN_BANCO.apk        3.882.117 B
+     md5 d83e519b341a542291642d75a087c0da
+     verificada entrada por entrada y por CRC: app.js, index.html y style.css
+     con el CRC identico al fuente, el connect() de N-122 DENTRO, y el defecto
+     viejo comprobado ausente
+contenido  257 ficheros de firmware (de `git ls-files`, no de una lista de
+           exclusiones) + 43 manuales en .md y .docx
+las cuatro comprobaciones sobre el propio zip, no sobre la intencion:
+     artefactos de compilacion = 0 · md5 de la APK de dentro == el del repositorio
+     · el LEEME cita el nombre EXACTO de esa APK · el LEEME dice NO al banco en la
+     primera pantalla
 ```
+
+> 🔴 **Es un ENCARGO DE BANCO, y la distincion es de la skill `entregar` §1, no una
+> formalidad.** Una *entrega de version* solo sale con **banco pasado**, y el banco esta en 24/29 con
+> la tarjeta Maestro fuera de servicio. Este paquete **pide medidas; no autoriza a instalar nada**.
+
+**Lo entregado el 02/09**, que es contra lo que el banco corrio:
+`Paquete_Revision_V9.0_2026-09-02_617bd00_SIN_BANCO.zip`, acta del 02/09 con arbol limpio y 20/20,
+APK `IOT_VIAL_Semaforos_2026-09-02_617bd00_SIN_BANCO.apk`, y la guia con **parte en PDF**.
 
 **La APK se compila con JDK 17 y NO con el 21** (`D:\@Proyect\Baliza\7 sw apk\jdk-17\...`). La receta
 entera esta en la skill `entregar` §2.bis, y **la verificacion que exige es por CRC entrada por
@@ -455,13 +471,15 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 | 🔴 **el verde simultaneo** | lo sostiene un modelo de Python, no el codigo | **solo se cierra en banco**, y el banco no llego a ejercerlo |
 | 🟠 **el PIN 1234 en claro** | y las ordenes mas peligrosas no lo piden | sin elevar a riesgo de seguridad. **El banco aclaro un punto de proceso**: el ESP32 empareja por *Just Works*, asi que el 1234 es PIN de comando de la app, **no** de emparejamiento |
 
-### Lo que falta para cerrar
+### Lo que falta para cerrar — al dia el 04/09
 
-1. Sincronizar `www/` y los assets de Android, y **recompilar la APK**.
-2. **Compuerta completa, DOS pasadas**, y acta sobre arbol limpio.
-3. **Cuadrar las cifras** en README, `ESTADO.md`, `CERTIFICACION_SW.md` y este roadmap.
-4. Resolver la contradiccion que la guia arrastra: su criterio *"los cuatro pines tienen que dar lo
-   mismo"* choca con el reparto del 31/08 —p10/p12 camaras en ALTO, p5/p8 mando en BAJO—.
+| | | estado |
+|---|---|---|
+| 1 | Sincronizar `www/` y los assets de Android, y **recompilar la APK** | 🟢 **HECHO el 04/09.** Las TRES copias identicas —`app.js`, `www/app.js` y `android/.../assets/public/app.js`, que es de donde se construye la APK— y la APK recompilada con JDK 17 y verificada por CRC |
+| 2 | **Compuerta completa, DOS pasadas**, y acta sobre arbol limpio | 🟢 **HECHO.** `20/20`, exit 0, `HEAD edf4783`, arbol LIMPIO |
+| 3 | **Cuadrar las cifras** en README, `ESTADO.md`, `CERTIFICACION_SW.md` y este roadmap | 🟢 **HECHO.** Las tres citaban el acta del 02/09 con la del 04/09 escrita; lo cazaron `documentos_01` y `documentos_04` |
+| 4 | La contradiccion de la guia: *«los cuatro pines tienen que dar lo mismo»* contra el reparto del 31/08 | 🟠 **abierta, y ahora medida.** El cobre dice que los **cuatro** son identicos —10K a masa y 3,3 V al lado—, o sea que la guia tenia razon y el reparto no: **los cuatro son activos en ALTO**. Es N-118, y lo que falta es la decision de compra, no la medida |
+| 5 | 🛑 **BANCO: los 5 pasos que faltan** | **es lo unico que queda de verdad.** 4 los abren el ESP32 (N-117) y la APK nueva (N-122); 1, la reparacion del Maestro (N-116) |
 
 ---
 
