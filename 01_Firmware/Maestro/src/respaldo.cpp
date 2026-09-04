@@ -54,12 +54,31 @@ static const uint8_t REG_SYNC_BAJA = 6;
 static const uint8_t REG_SUMA_BAJA = 7;
 static const uint8_t REG_SUMA_ALTA = 8;   // N-51: DR8 estaba libre, ver reparto arriba
 
+// N-133 (04/09): LOS TIEMPOS DEL CICLO AUTOMATICO, QUE NO SE GUARDABAN EN NINGUN SITIO.
+//
+// Lo destapo una pregunta del responsable: "una cosa es parametrizar al inicio, luego
+// deberia funcionar". No se cumplia. REG_VERDE y REG_DESPEJE de arriba son del MODO
+// DEGRADADO -y estan en segundos-, no del ciclo automatico; los del automatico vivian
+// SOLO en RAM, asi que un corte de luz -o entrar al modo- devolvia el cruce a los
+// minimos sin avisar, despues de haber contestado $ACK a un SET_TIEMPOS.
+//
+// Caben en los dos DR que quedaban libres. Los tres valores son de un byte -verde y
+// rojo van 3..15 minutos, el despeje 10..90 segundos-, asi que rojo y verde comparten
+// registro y el despeje se queda con el suyo.
+static const uint8_t REG_CICLO_RV      = 9;   // rojo en el byte alto, verde en el bajo
+static const uint8_t REG_CICLO_DESPEJE = 10;
+
 // N-49/N-51: LA FIRMA CAMBIA CON EL FORMATO, y no es opcional. Un equipo
 // actualizado que encontrara una firma vieja daria por bueno un contenido escrito
 // con otra aritmetica -otro par dia/segundo en N-49, un checksum plegado a la
 // mitad en N-51-. Al no reconocerla, respaldo_setup() borra y el equipo arranca
 // SIN sincronizacion previa -el estado seguro-, a costa de resincronizar a mano.
-static const uint16_t FIRMA = 0x5EB1;   // 0x5EB0 era el checksum plegado a 16 bits
+static const uint16_t FIRMA = 0x5EB2;   // 0x5EB1 no tenia los tiempos del ciclo (N-133)
+// La firma sube porque el FORMATO cambio -dos registros mas dentro del checksum-. Un
+// equipo actualizado que encontrara la firma vieja leeria DR9/DR10 como tiempos cuando
+// alli no hay mas que lo que dejo el arranque anterior. Al no reconocerla, borra y
+// arranca limpio, que es lo correcto: se pierden la hora y la autorizacion del
+// Degradado, y las dos se vuelven a poner. Un ciclo inventado no se puede deshacer.
 
 static const uint16_t FLAG_CICLO     = 0x0001;
 static const uint16_t FLAG_SYNC      = 0x0002;
@@ -132,6 +151,11 @@ static uint32_t calcularSuma() {
   s = s * 31U + leerReg(REG_FLAGS);
   s = s * 31U + leerReg(REG_SYNC_ALTA);
   s = s * 31U + leerReg(REG_SYNC_BAJA);
+  // N-133: los tiempos del ciclo entran en la suma. Dejarlos fuera seria guardarlos
+  // sin proteger: un bit volteado en el dominio de respaldo daria un ciclo distinto
+  // del que alguien configuro, y el equipo lo daria por bueno.
+  s = s * 31U + leerReg(REG_CICLO_RV);
+  s = s * 31U + leerReg(REG_CICLO_DESPEJE);
   return s;
 }
 
@@ -191,6 +215,41 @@ void respaldo_guardarCiclo(uint8_t verdeSeg, uint8_t despejeSeg) {
 
 uint8_t respaldo_verdeSeg()   { return contenidoValido ? (uint8_t)leerReg(REG_VERDE) : 0; }
 uint8_t respaldo_despejeSeg() { return contenidoValido ? (uint8_t)leerReg(REG_DESPEJE) : 0; }
+
+// --- N-133: los tiempos del ciclo AUTOMATICO -------------------------------
+//
+// NO SE VALIDA EL RANGO AQUI, Y ES DELIBERADO. El respaldo guarda y devuelve; quien
+// sabe cuales son los limites viales es modo_automatico.cpp, que es donde viven
+// VERDE_MIN_MIN y compania. Copiar los rangos aqui seria una segunda copia que alguien
+// tendria que sincronizar -R-9 de contrato.h, tres veces pagado-, y ademas la copia de
+// aqui no llevaria encima el comentario que explica por que son 3 minutos.
+//
+// Lo que SI se hace es negarse a guardar un cero: un tiempo a cero no es configuracion,
+// es ausencia de ella, y respaldo_hayTiemposCiclo() mentiria. Mismo criterio que
+// respaldo_guardarCiclo() de arriba.
+void respaldo_guardarTiemposCiclo(uint8_t rojoMin, uint8_t verdeMin, uint8_t despejeSeg) {
+  if (rojoMin == 0 || verdeMin == 0 || despejeSeg == 0) return;
+  escribirReg(REG_CICLO_RV, (uint16_t)(((uint16_t)rojoMin << 8) | verdeMin));
+  escribirReg(REG_CICLO_DESPEJE, despejeSeg);
+  escribirReg(REG_FIRMA, FIRMA);
+  sellar();
+}
+
+// Devuelve si HABIA algo guardado. Los tres punteros solo se tocan si devuelve true:
+// asi el llamante no puede quedarse con medio dato -dos tiempos del respaldo y uno de
+// los suyos-, que seria un ciclo que nadie configuro.
+bool respaldo_tiemposCiclo(uint8_t* rojoMin, uint8_t* verdeMin, uint8_t* despejeSeg) {
+  if (!contenidoValido) return false;
+  const uint16_t rv = leerReg(REG_CICLO_RV);
+  const uint8_t d = (uint8_t)leerReg(REG_CICLO_DESPEJE);
+  const uint8_t r = (uint8_t)(rv >> 8), v = (uint8_t)(rv & 0xFF);
+  // Un dominio de respaldo recien borrado da ceros, y el checksum los aprueba porque
+  // son el contenido legitimo de un equipo nuevo. Cero no es un tiempo: es "nadie ha
+  // configurado esto todavia", y el llamante tiene que poder distinguirlo.
+  if (r == 0 || v == 0 || d == 0) return false;
+  *rojoMin = r; *verdeMin = v; *despejeSeg = d;
+  return true;
+}
 
 bool respaldo_hayCiclo() {
   if (!contenidoValido) return false;

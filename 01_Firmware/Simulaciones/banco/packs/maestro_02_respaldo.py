@@ -131,7 +131,65 @@ def correr(b, fw):
             REG_FLAGS: FLAG_CICLO | FLAG_SYNC | FLAG_DEGRADADO,
             # N-49: las dos mitades de un contador de RTC corriente (17*65536+21600).
             REG_SYNC_ALTA: 17, REG_SYNC_BAJA: 21600}
+
+    # N-133 (04/09): LA MUESTRA SE COMPLETA CON LO QUE EL C++ TENGA, NO CON UNA LISTA.
+    #
+    # Esta muestra estaba escrita a mano con cinco registros, y al anadir los dos de los
+    # tiempos del ciclo el pack ABORTO con un KeyError: calcular_suma() recorre
+    # ORDEN_SUMA -que se lee del C++- y pedia un registro que la muestra no tenia. El
+    # ABORTADO fue correcto; lo que estaba mal era la lista.
+    #
+    # Se rellena desde ORDEN_SUMA tomando un valor CENTRAL del dominio real de cada
+    # registro. Central y no cero a proposito: un cero se intercambia con otro cero sin
+    # cambiar la suma, y el barrido de transposiciones de mas abajo se saltaria esos
+    # pares por iguales, midiendo menos de lo que dice medir.
+    for _r in ORDEN_SUMA:
+        if _r in base:
+            continue
+        _dom = DOMINIO_REG.get(_r)
+        base[_r] = (list(_dom)[len(_dom) // 2] if _dom else 1)
     suma_base = calcular_suma(base)
+
+    # --- 2.4.bis ---------------------------------------------------------------
+    # LA FIRMA TIENE QUE CAMBIAR CUANDO CAMBIA EL FORMATO, Y HASTA HOY NADIE LO MEDIA.
+    #
+    # respaldo.cpp lo dice en prosa desde N-49: "LA FIRMA CAMBIA CON EL FORMATO, y no
+    # es opcional. Un equipo actualizado que encontrara una firma vieja daria por bueno
+    # un contenido escrito con otra aritmetica". Es correcto y era SOLO UN COMENTARIO.
+    #
+    # Se descubrio el 04/09 inyectando el defecto (§8.bis): al anadir los dos registros
+    # de los tiempos del ciclo y NO subir la firma, el banco daba 19/19. O sea que la
+    # regla mas importante de este fichero no la podia romper nadie... porque nadie la
+    # comprobaba. Es §3.bis literal: una relacion que vive en prosa no falla cuando
+    # alguien cambia un numero.
+    #
+    # COMO SE MIDE, que es lo unico que se puede medir aqui: se ata la FIRMA al CONJUNTO
+    # Y ORDEN de registros del checksum, los dos leidos del C++. Si alguien toca uno sin
+    # tocar el otro, esto cae. La pareja de abajo esta escrita a mano A PROPOSITO: es un
+    # valor de oro, y actualizarla es el acto deliberado que demuestra que alguien penso
+    # en los equipos que ya tienen contenido guardado. Si se pudiera derivar sola, no
+    # comprobaria nada.
+    _firma = re.search(r"FIRMA\s*=\s*(0x[0-9A-Fa-f]+)",
+                       fw.codigo("Maestro", "src", "respaldo.cpp"))
+    if not _firma:
+        raise fw.Abortado("no se halla la FIRMA en respaldo.cpp")
+    _formato = tuple(NOMBRE_REG[r] for r in ORDEN_SUMA)
+
+    FORMATO_ESPERADO = ("VERDE", "DESPEJE", "FLAGS", "SYNC_ALTA", "SYNC_BAJA",
+                        "CICLO_RV", "CICLO_DESPEJE")
+    FIRMA_ESPERADA = "0x5EB2"
+
+    b.verificar(
+        _formato == FORMATO_ESPERADO and _firma.group(1).lower() == FIRMA_ESPERADA.lower(),
+        "el formato del respaldo y su FIRMA cuadran: %d registros en el checksum "
+        "(%s) con la firma %s" % (len(_formato), ", ".join(_formato), _firma.group(1)),
+        "EL FORMATO DEL RESPALDO Y LA FIRMA NO CUADRAN. En el C++: registros %s con "
+        "firma %s. Esperado: %s con %s. Si has CAMBIADO el formato, sube la FIRMA y "
+        "actualiza esta pareja; si has cambiado la firma sin tocar el formato, "
+        "sobra. Con una firma vieja, un equipo actualizado da por bueno un contenido "
+        "escrito con otra aritmetica: leeria como tiempos lo que dejo el arranque "
+        "anterior" % (list(_formato), _firma.group(1),
+                      list(FORMATO_ESPERADO), FIRMA_ESPERADA))
     no_detectados_bit = []
     for reg_n in base:
         for bit in range(16):
@@ -147,7 +205,11 @@ def correr(b, fw):
     # --- 2.5 -------------------------------------------------------------------
     # LAS TRANSPOSICIONES, sobre la muestra concreta del ciclo real. Es el caso que
     # motivo el cambio de algoritmo el 01/08/2026.
-    regs_lista = [REG_VERDE, REG_DESPEJE, REG_FLAGS, REG_SYNC_ALTA, REG_SYNC_BAJA]
+    # Mismo motivo que la muestra: los registros salen del C++ via ORDEN_SUMA. Con la
+    # lista a mano, un registro nuevo entraba en el checksum SIN que nadie barriera
+    # sus transposiciones: el pack seguiria en verde midiendo menos que ayer, que es
+    # la prueba muerta de §3.bis introducida por un cambio ajeno al pack.
+    regs_lista = list(ORDEN_SUMA)
     transp_no_detectadas, transp_totales = [], 0
     for i in range(len(regs_lista)):
         for j in range(i + 1, len(regs_lista)):

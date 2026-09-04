@@ -413,9 +413,27 @@ DERIVA_PEOR_S_DIA = 8.6
 # hash de Horner (s = s*31 + reg), no una suma. Con una suma, dos registros
 # intercambiados dan el mismo resultado y la corrupcion pasa desapercibida.
 # --------------------------------------------------------------------------
-REG_VERDE, REG_DESPEJE, REG_FLAGS, REG_SYNC_ALTA, REG_SYNC_BAJA = 2, 3, 4, 5, 6
-NOMBRE_REG = {REG_VERDE: "VERDE", REG_DESPEJE: "DESPEJE", REG_FLAGS: "FLAGS",
-              REG_SYNC_ALTA: "SYNC_ALTA", REG_SYNC_BAJA: "SYNC_BAJA"}
+# LOS NUMEROS DE REGISTRO SE LEEN DEL C++, NO SE COPIAN (04/09).
+#
+# Aqui habia cinco numeros escritos a mano y un diccionario de nombres al lado. Al
+# anadir los dos registros de N-133 -los tiempos del ciclo automatico- CINCO packs
+# cayeron a ABORTADO con un KeyError, porque el mapa no los conocia. El ABORTADO fue
+# correcto -grito en vez de medir otra cosa-, pero la causa era esta copia a mano: es
+# el mismo motivo por el que los pesos y el orden ya se leian del fuente unas lineas
+# mas abajo. Ahora el mapa entero sale del C++ y anadir un registro no rompe nada.
+_REG_DEF = dict((m.group(1), int(m.group(2))) for m in re.finditer(
+    r"static const uint8_t\s+(REG_\w+)\s*=\s*(\d+)\s*;",
+    _codigo("Maestro", "src", "respaldo.cpp")))
+if not _REG_DEF:
+    raise _fw.Abortado("no se hallan los REG_* en respaldo.cpp: sin el mapa de "
+                       "registros el modelo mediria sobre numeros inventados")
+
+REG_VERDE     = _REG_DEF["REG_VERDE"]
+REG_DESPEJE   = _REG_DEF["REG_DESPEJE"]
+REG_FLAGS     = _REG_DEF["REG_FLAGS"]
+REG_SYNC_ALTA = _REG_DEF["REG_SYNC_ALTA"]
+REG_SYNC_BAJA = _REG_DEF["REG_SYNC_BAJA"]
+NOMBRE_REG = dict((num, nom[4:]) for nom, num in _REG_DEF.items())
 
 # LOS PESOS SE LEEN DEL C++, NO SE COPIAN.
 #
@@ -441,13 +459,28 @@ if not _cuerpo_suma:
 # con Horner, no. Modelarlo como suma seria validar contra el algoritmo ANTERIOR.
 ORDEN_SUMA = []
 for _n in re.findall(r"leerReg\((REG_\w+)\)", _cuerpo_suma.group(1)):
-    _r = {"REG_VERDE": REG_VERDE, "REG_DESPEJE": REG_DESPEJE,
-          "REG_FLAGS": REG_FLAGS, "REG_SYNC_ALTA": REG_SYNC_ALTA,
-          "REG_SYNC_BAJA": REG_SYNC_BAJA}[_n]
+    if _n not in _REG_DEF:
+        raise _fw.Abortado(f"calcularSuma() usa {_n}, que no esta definido como "
+                           "registro en respaldo.cpp")
+    _r = _REG_DEF[_n]
     if _r not in ORDEN_SUMA:
         ORDEN_SUMA.append(_r)
-if len(ORDEN_SUMA) != 5:
-    raise _fw.Abortado(f"calcularSuma() no cubre los 5 registros: {ORDEN_SUMA}")
+
+# LA PROPIEDAD NO ES "SON CINCO": ES "ESTAN TODOS LOS QUE GUARDAN CONTENIDO".
+#
+# Antes se exigia el numero 5 a secas, y ese numero envejecio en cuanto N-133 anadio
+# dos registros. Lo que de verdad importa es que ningun registro de CONTENIDO quede
+# fuera del checksum: uno que no entre en la suma se puede cambiar sin que nada lo
+# note, que es justo lo que el respaldo existe para impedir. Se excluyen FIRMA -que
+# no se protege a si misma- y los dos donde vive la propia suma.
+_ESPERADOS = set(v for k, v in _REG_DEF.items()
+                 if k not in ("REG_FIRMA", "REG_SUMA_ALTA", "REG_SUMA_BAJA"))
+if set(ORDEN_SUMA) != _ESPERADOS:
+    _faltan = sorted(NOMBRE_REG.get(r, r) for r in _ESPERADOS - set(ORDEN_SUMA))
+    raise _fw.Abortado(
+        "calcularSuma() no cubre todos los registros de contenido. Fuera del "
+        f"checksum: {_faltan}. Un registro que no entra en la suma se puede cambiar "
+        "sin que el equipo lo note")
 
 # El multiplicador tambien se lee, para que cambiarlo en el C++ no deje al validador
 # midiendo otra cosa en silencio.
@@ -512,6 +545,13 @@ DOMINIO_REG = {
     REG_FLAGS:    range(0, 8),          # tres indicadores
     REG_SYNC_ALTA: range(0, 65536),     # 16 bits altos del contador del RTC
     REG_SYNC_BAJA: range(0, 65536),     # 16 bits bajos del contador del RTC
+
+    # N-133: los tiempos del ciclo automatico. El dominio NO son los 65536 valores:
+    # el firmware solo escribe aqui desde modoAutomatico_fijarTiempos(), que ya ha
+    # comprobado los rangos viales. Modelar mas de lo que el equipo puede producir
+    # haria buscar colisiones en casos que no existen -y ademas tardaria una eternidad-.
+    _REG_DEF["REG_CICLO_RV"]:      range(0x0303, 0x0F10),  # rojo<<8 | verde, 3..15 los dos
+    _REG_DEF["REG_CICLO_DESPEJE"]: range(10, 91),          # segundos de despeje
 }
 
 

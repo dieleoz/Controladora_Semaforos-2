@@ -48,6 +48,19 @@ bool respaldo_valido();
 void respaldo_guardarCiclo(uint8_t verdeSeg, uint8_t despejeSeg);
 uint8_t respaldo_verdeSeg();
 uint8_t respaldo_despejeSeg();
+
+// --- N-133: los tiempos del ciclo AUTOMATICO, que no se guardaban en ningun sitio ---
+//
+// OJO A LA UNIDAD, porque las dos parejas de arriba y esta NO son lo mismo:
+// respaldo_verdeSeg()/despejeSeg() son del MODO DEGRADADO y van en SEGUNDOS; estos son
+// del ciclo AUTOMATICO y el rojo y el verde van en MINUTOS.
+//
+// Sobreviven al corte porque los BKP viven en el dominio de VBAT. Sin pila, o con la
+// pila agotada, respaldo_setup() encuentra el contenido invalido y borra: entonces
+// respaldo_tiemposCiclo() devuelve false y el equipo arranca con sus minimos, que es la
+// direccion segura. Un cruce lento molesta; uno rapido mata.
+void respaldo_guardarTiemposCiclo(uint8_t rojoMin, uint8_t verdeMin, uint8_t despejeSeg);
+bool respaldo_tiemposCiclo(uint8_t* rojoMin, uint8_t* verdeMin, uint8_t* despejeSeg);
 bool respaldo_hayCiclo();
 
 // --- Marca de la ultima sincronizacion horaria -----------------------------

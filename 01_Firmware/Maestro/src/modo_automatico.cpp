@@ -1,5 +1,6 @@
 // ===== src/modo_automatico.cpp =====
 #include "modo_automatico.h"
+#include "respaldo.h"   // N-133: los tiempos del ciclo sobreviven al corte
 #include "botones.h"
 #include "semaforo.h"
 #include "coordinador.h"
@@ -8,7 +9,10 @@
 #include "modos.h"
 #include <string.h>
 
-enum FaseAuto { CONFIG_ROJO, CONFIG_VERDE, CONFIG_ESTATICO, CORRIENDO };
+// N-42 (04/09): SE FUERON LAS TRES FASES DE CONFIGURACION. Queda una sola, y por eso
+// el enum sobrevive: modoAutomatico_enMarcha() -de la que cuelga la guarda de
+// SET_TIEMPOS- se lee mejor preguntando por la fase que por una bandera suelta.
+enum FaseAuto { CORRIENDO };
 static FaseAuto fase;
 static const uint8_t VERDE_MIN_MIN = 3,  VERDE_MIN_MAX = 15;
 static const uint8_t ROJO_MIN_MIN  = 3,  ROJO_MIN_MAX  = 15;
@@ -31,9 +35,13 @@ static unsigned long tEstadoDesde = 0;
 static bool primeraVezCorriendo = true;
 
 // SFTY-21: peticion de arranque sin asistente, desde el mando de reles (A.A.A).
-static bool arranqueDirecto = false;
+// arranqueDirecto DESAPARECE como concepto: ahora TODAS las entradas al modo son
+// directas, asi que no queda de que escapar. La funcion publica se conserva vacia
+// porque su llamador vive en mando.cpp -la secuencia A.A.A del mando de reles- y
+// borrarla convertiria este arreglo en un cambio de dos ficheros por comodidad.
+// El compilador conserva el punto de uso y un grep lo sigue encontrando.
 
-void modoAutomatico_pedirArranqueDirecto() { arranqueDirecto = true; }
+void modoAutomatico_pedirArranqueDirecto() { /* N-42: ya no hace falta, ver arriba */ }
 
 // --- N-69: limites DUROS de los tiempos del ciclo --------------------------------
 //
@@ -67,6 +75,27 @@ void modoAutomatico_pedirArranqueDirecto() { arranqueDirecto = true; }
 
 bool modoAutomatico_enMarcha() { return fase == CORRIENDO; }
 
+// N-133: recupera los tiempos guardados, si los hay Y si siguen siendo legales.
+//
+// EL RANGO SE COMPRUEBA AQUI, no en respaldo.cpp, y no es reparto arbitrario: los
+// limites viales viven en este fichero con el comentario que explica por que son 3
+// minutos. Copiarlos al respaldo seria una segunda copia sin ese porque encima.
+//
+// Y SE COMPRUEBA AUNQUE EL CHECKSUM APRUEBE, que es el caso que de verdad importa: un
+// equipo que se actualiza puede traer guardado un ciclo de 1 minuto, perfectamente
+// integro, escrito cuando 1 era legal. Un dato integro no es un dato valido. Si algo
+// no cuadra se descarta el conjunto -no se corrige el campo malo y se quedan los
+// otros dos-: medio ciclo del respaldo y medio de los minimos es un ciclo que nadie
+// configuro nunca.
+static void recuperarTiemposGuardados() {
+  uint8_t r = 0, v = 0, d = 0;
+  if (!respaldo_tiemposCiclo(&r, &v, &d)) return;
+  if (r < ROJO_MIN_MIN  || r > ROJO_MIN_MAX)  return;
+  if (v < VERDE_MIN_MIN || v > VERDE_MIN_MAX) return;
+  if (d < DESPEJE_SEG_MIN || d > DESPEJE_SEG_MAX) return;
+  minRojo = r; minVerde = v; segEstatico = d;
+}
+
 bool modoAutomatico_fijarTiempos(uint8_t verdeMin, uint8_t rojoMin, uint8_t despejeSeg) {
   if (verdeMin  < VERDE_MIN_MIN   || verdeMin  > VERDE_MIN_MAX)   return false;
   if (rojoMin   < ROJO_MIN_MIN    || rojoMin   > ROJO_MIN_MAX)    return false;
@@ -81,6 +110,15 @@ bool modoAutomatico_fijarTiempos(uint8_t verdeMin, uint8_t rojoMin, uint8_t desp
   minVerde = verdeMin;
   minRojo = rojoMin;
   segEstatico = despejeSeg;
+
+  // N-133: Y SE GUARDAN, que es lo que faltaba. Hasta el 04/09 vivian solo en RAM: un
+  // corte de luz -o entrar al modo- devolvia el cruce a los minimos SIN AVISAR, despues
+  // de que el equipo hubiera contestado $ACK,CMD:SET_TIEMPOS,RESULT:OK. El tecnico se
+  // iba del poste creyendo que dejo el ciclo puesto.
+  //
+  // Se escribe AQUI y no en cada vuelta del ciclo: los BKP son memoria de respaldo, no
+  // un sitio donde repicar cada segundo. Solo cuando alguien los cambia de verdad.
+  respaldo_guardarTiemposCiclo(rojoMin, verdeMin, despejeSeg);
   return true;
 }
 
@@ -90,26 +128,46 @@ void modoAutomatico_setup() {
   // punto de entrada del modo, para que el camino sea el mismo se llegue desde el
   // menu o desde el mando; duplicar el arranque en dos sitios es como se acaba con dos
   // configuraciones distintas segun por donde se entrase.
-  if (arranqueDirecto) {
-    arranqueDirecto = false;
-    coordinador_configurar((unsigned long)segEstatico * 1000UL,
-                           (unsigned long)minRojo * 60000UL,
-                           (unsigned long)minVerde * 60000UL);
-    coordinador_iniciarModo();   // empieza SIEMPRE por todo-rojo y su despeje
-    tEstadoDesde = millis();
-    primeraVezCorriendo = true;
-    fase = CORRIENDO;
-    lcd_dibujarAutomatico(coordinador_nombreEstadoMaster(), minRojo, minVerde);
-    return;
-  }
+  // N-42 (04/09): SE RETIRA EL ASISTENTE. UNA SOLA PUERTA, Y EL MODO ARRANCA CORRIENDO.
+  //
+  // EL DEFECTO QUE ESTO CIERRA, medido y confirmado en banco el 04/09: aqui se entraba
+  // en fase CONFIG_ROJO -un cuestionario de tres preguntas de la epoca de la pantalla
+  // LCD- cuya UNICA salida era botonAceptar(). Esa funcion devuelve `false` SIEMPRE
+  // desde el commit deeeab4 del 31/08, cuando BOTON3 y BOTON4 pasaron a ser entradas de
+  // camara. El equipo entraba en el cuestionario y no salia nunca.
+  //
+  // Y no era solo que las luces no se movieran. coordinador_actualizar() vivia DENTRO
+  // del `case CORRIENDO`, y main.cpp EXCLUYE a MODO_AUTOMATICO del respaldo de fondo
+  // -con el comentario "ya se llama en modo_automatico.cpp", cierto sobre el papel y
+  // falso en ejecucion-. Asi que en Automatico el Maestro se quedaba MUDO en la radio:
+  // ni un PING. El Esclavo, sin oir nada durante SFTY6_SILENCIO_MS, se iba a ambar por
+  // orfandad haciendo lo correcto, y desde fuera parecia un fallo de comunicaciones.
+  // El Maestro estaba VIVO pero no HABLANDO, que no es lo mismo.
+  //
+  // POR QUE SE RETIRA EN VEZ DE PARCHEARSE: el asistente no esta roto, esta HUERFANO.
+  // No tiene pantalla donde mostrarse -retirada el 28/08- ni boton donde aceptarse, y
+  // no los va a volver a tener. Dejarlo con un atajo por al lado seria codigo muerto
+  // dentro del camino que decide las luces, y ademas DOS puertas de entrada al mismo
+  // modo: exactamente como se acaba con dos configuraciones distintas segun por donde
+  // se entrase. Por eso desaparece tambien arranqueDirecto: ya no hay de que escapar.
+  //
+  // LOS TIEMPOS YA NO SE PISAN (N-133). Aqui se reescribian a los minimos en cada
+  // entrada, asi que unos tiempos aceptados con $ACK por SET_TIEMPOS se perdian en
+  // cuanto alguien mandaba SET_MODO:AUTO. Se respetan los que haya; de donde salen al
+  // arrancar el equipo lo decide el inicializador, y sobrevivir a un corte es cosa del
+  // respaldo.
+  // N-133: lo primero, antes de configurar nada. Si el equipo venia de un corte, los
+  // tiempos estan en el respaldo y no en RAM.
+  recuperarTiemposGuardados();
 
-  fase = CONFIG_ROJO;
-  // Mismo motivo que el inicializador: reentrar en el modo no puede devolver el
-  // equipo por debajo del minimo vial. SET_MODO:AUTO llama aqui, asi que con el "1"
-  // escrito a mano unos tiempos aceptados con $ACK se perdian al arrancar el modo.
-  minRojo = ROJO_MIN_MIN; minVerde = VERDE_MIN_MIN; segEstatico = DESPEJE_SEG_MIN;
+  coordinador_configurar((unsigned long)segEstatico * 1000UL,
+                         (unsigned long)minRojo * 60000UL,
+                         (unsigned long)minVerde * 60000UL);
+  coordinador_iniciarModo();   // empieza SIEMPRE por todo-rojo y su despeje
+  tEstadoDesde = millis();
   primeraVezCorriendo = true;
-  lcd_dibujarConfigValor("Minutos ROJO", minRojo, "min");
+  fase = CORRIENDO;
+  lcd_dibujarAutomatico(coordinador_nombreEstadoMaster(), minRojo, minVerde);
 }
 
 void modoAutomatico_loop() {
@@ -120,63 +178,6 @@ void modoAutomatico_loop() {
   }
 
   switch (fase) {
-    case CONFIG_ROJO: {
-      bool r = false;
-      // LOS TOPES SALEN DE LOS MISMOS LIMITES QUE LA GUARDA DE SET_TIEMPOS (04/09).
-      // Ponia 99 arriba y 1 abajo: por la pantalla se podia dejar el cruce en un
-      // minuto -prohibido desde hoy- y en 99, que el propio SET_TIEMPOS rechaza. Dos
-      // caminos hacia el mismo ciclo con dos reglas distintas es como se cuela un
-      // valor vial por la puerta que nadie mira.
-      if (botonArriba()) { minRojo++; if (minRojo > ROJO_MIN_MAX) minRojo = ROJO_MIN_MAX; r = true; }
-      if (botonAbajo())  { minRojo--; if (minRojo < ROJO_MIN_MIN) minRojo = ROJO_MIN_MIN; r = true; }
-      if (botonAceptar()) {
-        fase = CONFIG_VERDE;
-        lcd_dibujarConfigValor("Minutos VERDE", minVerde, "min");
-        return;
-      }
-      if (r) lcd_dibujarConfigValor("Minutos ROJO", minRojo, "min");
-      break;
-    }
-
-    case CONFIG_VERDE: {
-      bool r = false;
-      if (botonArriba()) { minVerde++; if (minVerde > VERDE_MIN_MAX) minVerde = VERDE_MIN_MAX; r = true; }
-      if (botonAbajo())  { minVerde--; if (minVerde < VERDE_MIN_MIN) minVerde = VERDE_MIN_MIN; r = true; }
-      if (botonAceptar()) {
-        fase = CONFIG_ESTATICO;
-        lcd_dibujarConfigValor("Tiem. Despeje All-Red", segEstatico, "seg");
-        return;
-      }
-      if (r) lcd_dibujarConfigValor("Minutos VERDE", minVerde, "min");
-      break;
-    }
-
-    case CONFIG_ESTATICO: {
-      bool r = false;
-      // OPT-6 / SFTY-4: Se aumenta el límite de 99 a 999 segundos (casi 16 min).
-      // Ver MANUAL_USUARIO.md. Requerido para obras extensas de hasta 500 metros
-      // a baja velocidad (10 km/h) operando bajo antenas de 6km.
-      // El piso era 5 s y el minimo vial son 10: el despeje es el UNICO de los tres
-      // que garantiza que el tramo quedo vacio antes de dar verde al otro lado, y
-      // por la pantalla se podia dejar en la mitad. El techo de 999 ademas no cabe
-      // en el uint8_t con que viaja por radio.
-      if (botonArriba()) { segEstatico += 5; if (segEstatico > DESPEJE_SEG_MAX) segEstatico = DESPEJE_SEG_MAX; r = true; }
-      if (botonAbajo())  { segEstatico -= 5; if (segEstatico < DESPEJE_SEG_MIN) segEstatico = DESPEJE_SEG_MIN; r = true; }
-      if (botonAceptar()) {
-        coordinador_configurar((unsigned long)segEstatico * 1000UL,
-                                (unsigned long)minRojo * 60000UL,
-                                (unsigned long)minVerde * 60000UL);
-        coordinador_iniciarModo();
-        tEstadoDesde = millis();
-        primeraVezCorriendo = true;
-        fase = CORRIENDO;
-        lcd_dibujarAutomatico(coordinador_nombreEstadoMaster(), minRojo, minVerde);
-        return;
-      }
-      if (r) lcd_dibujarConfigValor("Tiem. Despeje All-Red", segEstatico, "seg");
-      break;
-    }
-
     case CORRIENDO: {
       coordinador_actualizar();
 

@@ -63,6 +63,24 @@ CONOCIDAS = {
         "coordinador_medirDesfase", "coordinador_reiniciarConexion",
     },
     "Esclavo": {
+        # N-133 (04/09): los dos accesos a los tiempos del ciclo AUTOMATICO.
+        #
+        # EL MOTIVO ES COMPROBABLE, que es lo que §3.bis exige de una excepcion: no se
+        # acepta un huerfano "porque si". Aqui son dos hechos que otro pack ya mide:
+        #
+        #   1. respaldo.cpp y respaldo.h son GEMELOS BYTE A BYTE entre las dos puntas,
+        #      y lo exige maestro_02_respaldo -"un respaldo escrito por una punta
+        #      podria no validarlo la otra"-. O sea que estas dos funciones no PUEDEN
+        #      no estar aqui: retirarlas del Esclavo separaria a los gemelos y ese
+        #      pack caeria en el acto.
+        #   2. El ciclo automatico solo existe en el Maestro: no hay
+        #      Esclavo/src/modo_automatico.cpp. El Esclavo no elige tiempos; los
+        #      recibe por radio. Asi que en esta punta no hay a quien llamarlas.
+        #
+        # Si algun dia el Esclavo gana ciclo propio, ganaran llamador y este pack lo
+        # dira -"una huerfana que gano llamador y se queda anotada"-, que es justo lo
+        # que persigue.
+        "respaldo_guardarTiemposCiclo", "respaldo_tiemposCiclo",
         # N-108 (31/08): protocolo_tramasDescartadas SALE de la lista en esta punta.
         # El $ALARM de la caida y el $EVENT de la vuelta publican los contadores de
         # SFTY-15, que es para lo que se escribieron: separan "no llega nada" de
