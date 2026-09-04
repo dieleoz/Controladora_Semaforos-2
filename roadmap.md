@@ -101,8 +101,8 @@ pregunta abierta**, que es la excepcion escrita en §2.bis.
 
 ```
 compuerta      20 PASS | 0 FALLA | 0 ABORTADO   (acta evidencia/2026-09-04_compuerta.txt)
-banco          963/963 en 66 packs
-firmwares      Maestro 89,2 % (7.080 B libres) · Esclavo 65,9 % · Repetidor 20,6 % · ESP32 35,7 %
+banco          964/964 en 66 packs
+firmwares      Maestro 89,3 % (7.040 B libres) · Esclavo 65,9 % · Repetidor 20,6 % · ESP32 35,7 %
 simuladores    9/9 · 10/10 · 12/12 · 85/85
 arneses C++    pantalla 271/271 · ciclo 22/22 · automatico 71/71 · dos puntas 42/42 · Degradado 18/18
 app            jsdom 128 · unitarios 32 + 55 · funcional 58/58
@@ -812,6 +812,63 @@ hay **nada**.
 > paso 4 de la guia —**tapar fisicamente el pin de 12 V**— deja de ser una precaucion de banco y pasa
 > a ser **obligatorio en cada equipo, escrito en la guia de instalacion**. Es lo unico que hay hoy
 > entre el instalador y esta averia.
+
+
+### 🟢 N-127 — AB-1 CONSTRUIDO: el latido del puente, y las dos piezas del STM32 que lo hacian imposible
+
+**Decision del responsable, 04/09.** El ESP32 emite ahora un latido propio para que los tres
+contadores de silencio de `J17` **signifiquen algo**. Hasta hoy no servian, y lo decia su propio
+comentario: por `J17` solo entra lo que un dedo pulsa en la app, asi que **un puente vivo y uno
+muerto eran indistinguibles** desde el STM32.
+
+#### Un primer intento se PARO, y esa parada es la mitad del valor
+
+El agente que lo iba a escribir midio antes y no lo escribio: `j17RegistrarLinea()` vive **despues**
+de `procesarComando()`, y el despachador **contesta a todo** —lo que no case cae en
+`$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO`—. Un latido a secas habria sido **un aviso rojo cada dos
+segundos acusando al operario de una clave que nadie tecleo**: el *falla permanente* de §2, que
+enseña a ignorar los rechazos de verdad.
+
+**Y de paso refuto una frase escrita en el propio `bluetooth.cpp`:** *«estos mismos tres numeros
+pasan a ser el registro de cortes de verdad SIN TOCAR UNA LINEA de aqui»*. Era falsa —hacen falta
+**dos** cambios en las **dos** puntas— y era una cuenta hecha dentro de un comentario, con la
+autoridad de un dato.
+
+#### Las tres piezas, y ninguna sirve sin las otras dos
+
+| | |
+|---|---|
+| **ESP32** | `LATIDO_LINEA = "$LATIDO"`, `LATIDO_MS = 2000`. El literal empieza por `$` a proposito: las ordenes son `CMD:...`, y lo que empieza por `$` son las tramas que el **equipo emite**. No hay ninguna orden a un byte de distancia. Vive en `vigilante.cpp` porque `puente.cpp` y `enlace_stm32.cpp` son el camino de datos y `P-1/P-4` les prohiben tener reloj |
+| **STM32, las dos puntas** | la **linea reservada**, la primera de todas en `procesarComando()`: devuelve **sin actuar y SIN CONTESTAR**. No rompe 6.4 —la regla prohibe originar **ordenes**, y esto no ejecuta nada, no mueve una luz y no contesta—. Su unico efecto es que se cierre un silencio. **No se manda: se respira** |
+| **STM32, las dos puntas** | el **umbral de publicacion**. Antes se publicaba un `$EVENT` por CADA linea; con latido cada 2 s serian **1.800 lineas identicas por hora** en la bitacora donde hay que encontrar el fallo de campo. El umbral **sale del periodo del latido** —`LATIDO_MS x 1,5 = 3000 ms`—, no de un numero elegido. **Los contadores siguen contando todo: lo que se acota es lo que se publica** |
+
+**El periodo sale de una ventana medida:** `1000 ms < T < 3500 ms`. Por abajo, el STM32 publica el
+silencio en segundos enteros y por debajo de 1000 ms `MUDO` sale siempre `0 s`. Por arriba, el corte
+mas corto que hay que ver es un ciclo de perro entero. ⚠️ **Ese techo descansa sobre
+`ESP32_ARRANQUE_MS`, que sigue con `MEDIDO = 0` (AB-3)** — el dia que se mida, la ventana se
+recalcula.
+
+#### Cinco instrumentos se movieron, y el mas interesante era un PROXY
+
+`esp32_10` comprobaba `B-1` —*el accesorio no origina trafico hacia el micro que gobierna el cruce*—
+**prohibiendo que `vigilante.cpp` NOMBRARA `enlace_escribirLinea()`**. Medir el vocabulario del
+fichero en vez de a donde va el parte. Funcionaba solo mientras no hubiera otra razon para hablar con
+el STM32. **Se reparte en dos**, y ahora `B-1` se comprueba de verdad: que lo unico que sale de ahi
+hacia el equipo sea el latido, **comparando el literal**.
+
+Los otros cuatro —`app_07`, `esp32_09` y dos censos del simulador— tenian el mismo falso positivo:
+**buscan literales `$` y no distinguen lo EMITIDO de lo COMPARADO**. Se acotan por el literal exacto,
+nunca por una regla general: una trama de salida nueva tiene que seguir rompiendolos.
+
+> 🔴 **Y la mitad que la inversion se habria llevado por delante (§8.sexies).** Al invertir la
+> comprobacion del registro `J17` de «uno por linea» a «solo lo que pase del umbral», bastaba cambiar
+> `==` por `<=`… y entonces **un firmware que no publicara NINGUN evento pasaria igual de bien**. Se
+> anade el control que faltaba: el umbral se lee del C++ de las **dos** puntas y el periodo del
+> `contrato.h` del ESP32, y se exige que **el umbral este entre un latido y dos y sea el mismo en las
+> dos puntas**. Sin eso, *«el umbral sale del latido»* seria una frase, no una comprobacion.
+
+**Flash del Maestro: 89,2 % -> 89,3 %** (58.456 -> 58.496 B). El banco pasa de **963 a 964**.
+**La APK NO cambia**: `$LATIDO` muere en el despachador del STM32 y nunca llega a la app.
 
 
 ### 🟢 N-126 — SESION 2 DE BANCO (04/09): dos defectos cerrados con evidencia fisica, y el VERDE por primera vez

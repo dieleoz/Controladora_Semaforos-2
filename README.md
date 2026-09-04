@@ -90,8 +90,8 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 58 rutas parseadas, todas existen |
-| banco por packs *(66 packs)* | 🔴 | **963/963** — **todos en `PASS`**. Los ultimos en entrar vigilan lo que la V9.0 estrena: `enlace_01_transporte` (pines, velocidad, buffer y framing del puerto por el que habla el ESP32, que hasta N-94 no miraba nadie), `camara_02_j16`, los nueve del ESP32 y `costura_11_lcd_sin_bus`. |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.2 %** · 65.9 % · 20,6 % · 35,7 % — *7.080 B libres en el Maestro tras las Fases 1 y 2, `AiBus` y N-90* |
+| banco por packs *(66 packs)* | 🔴 | **964/964** — **todos en `PASS`**. Los ultimos en entrar vigilan lo que la V9.0 estrena: `enlace_01_transporte` (pines, velocidad, buffer y framing del puerto por el que habla el ESP32, que hasta N-94 no miraba nadie), `camara_02_j16`, los nueve del ESP32 y `costura_11_lcd_sin_bus`. |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.3 %** · 65.9 % · 20,6 % · 35,7 % — *7.040 B libres en el Maestro tras las Fases 1 y 2, `AiBus` y N-90* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35,6 % — 1.121.001 de 3.145.728 B |
