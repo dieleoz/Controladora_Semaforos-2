@@ -101,9 +101,23 @@ los mismos comandos:
 
 Las dos mitades importan por separado:
 
-- **Es la superficie de mando** porque el Manual 17 §1.6 retira la pantalla, los cuatro pulsadores
-  y el mando de relés. Después de esa retirada, *toda* la operación pasa por la app, y la app pasa
-  por el ESP32. Un ESP32 colgado deja el equipo **seguro pero no operable** (§17 3.3).
+- **Es la superficie de mando** porque el Manual 17 §1.6 retira la pantalla y ~~los cuatro
+  pulsadores y el mando de relés~~ → **sólo `BOTON3` (`PB14`) y `BOTON4` (`PB15`)**, que son los que
+  las cámaras necesitan.
+  > 🔵 **CORREGIDO EL 04/09: esta frase llevaba desde el 31/08 diciendo lo contrario que el
+  > Manual 17 §1.6**, que **ese mismo día** decidió **CONSERVAR el mando de relés** en los canales
+  > `A` (`PB9`) y `B` (`PB13`). Era deriva entre documentos, de la misma clase que las cinco de la
+  > segunda pasada.
+  >
+  > **Lo que NO cambia es la conclusión de este apartado**, y por eso el diseño no se toca: después
+  > de la retirada, *toda la operación normal* pasa por la app, y la app pasa por el ESP32. Un ESP32
+  > colgado deja el equipo **seguro pero no operable** (§17 3.3).
+  >
+  > **Lo que cambia es su tamaño:** queda una superficie física de último recurso —`A·A·A`, `B·B·B`
+  > y `A·B·A·B`— **en el Maestro y sólo en el Maestro** (§17 2.7: el receptor del Esclavo no se ha
+  > comprado). 🔴 **Y no está demostrada:** el mando **no se pudo pulsar** en el banco del
+  > 3-4/09 (N-118), el fuente se corrigió el 04/09 y **no se ha cargado en ninguna tarjeta**. Un
+  > accesorio no puede apoyarse en una salida de emergencia que nadie ha visto funcionar.
 - **No es parte del lazo de seguridad** porque el ciclo, el enclavamiento SFTY-2, el todo-rojo y la
   caída a ámbar de SFTY-6 viven enteros en el STM32 y no leen ni un byte del ESP32.
 
@@ -546,6 +560,13 @@ Esclavo:328  $STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:%lu,RF:9
 ya levantada en el Manual 17 §2.6. **No es cosa del puente** y no se arregla aquí; se anota para que
 nadie crea que el ESP32 los mide.)*
 
+> 🔵 **Y un acoplamiento que hay que dejar escrito, porque desde el 04/09 algo cuelga de él:
+> `$STATUS` es la única trama que lleva `SERIE:` y `NODE:` a la vez, y de ahí —y sólo de ahí— sale el
+> rótulo Bluetooth del módulo** (§6.5, `src/puente.cpp:205-206`). Es una dependencia **de un campo,
+> no de un formato**: quien acorte un campo de `$STATUS` para ganar los 8 B de margen de `AB-5` tiene
+> que dejar `SERIE:` y `NODE:` en pie, o el puente deja de aprender su nombre **en silencio** y todos
+> los módulos se quedan en `SEM-SIN-MATRICULA`.
+
 ### 3.8 El presupuesto de bytes por segundo
 
 A **9600 8N1 = 960 B/s**. La cuenta, con los tamaños medidos de §3.3:
@@ -975,6 +996,55 @@ STM32**, y por eso el STM32 no debe deducir nada de ninguna de las dos. Concreta
 
 ---
 
+### 6.5 🆕 (04/09) El rótulo del dispositivo — y por qué desde hoy decide algo
+
+**Este apartado no existía, y la ausencia es el hallazgo.** El firmware del puente ya rotula desde
+que se escribió, y la especificación **no lo decía en ninguna parte**: `grep -i "rotulo|SEM-"` sobre
+este documento antes del 04/09 devolvía **una sola línea**, y era sobre la serigrafía del blindaje
+del módulo (§6.1), que es otra cosa. Es `CLAUDE.md` §4 aplicada a un documento: **lo que el fuente
+hace y la especificación calla no lo revisa nadie.**
+
+**Lo que hace hoy el puente, MEDIDO:**
+
+| | | MEDIDO en |
+|---|---|---|
+| El nombre SPP se fija **al abrir el perfil** | `spp.begin(rotulo)` | `src/transporte_app.cpp:37` |
+| El rótulo del arranque sale de la **NVS** | `Preferences`, espacio `"puente"`, clave `"rotulo"` | `src/transporte_app.cpp:23-25` |
+| Si no hay nada guardado, se anuncia el **provisional** | `SEM-SIN-MATRICULA` | `include/contrato.h:259` · `transporte_app.cpp:30` |
+| El bueno se **aprende del `$STATUS`** que ya se retransmite | `SERIE:` + `NODE:` → `SEM-<serie>-M` / `-E` | `src/puente.cpp:205-206` · `transporte_app.cpp:81-104` |
+| Y se guarda para la **SIGUIENTE arrancada** | `memoria.putString("rotulo", candidato)` | `src/transporte_app.cpp:113` |
+| **No se re-rotula en caliente** | cerrar y reabrir el perfil **tira la sesión** del operario | `src/transporte_app.cpp:109-111` |
+| Una escritura **por arrancada**, no por trama | `aprendido[]` corta la repetición: el equipo emite un `$STATUS` cada 2 s y una escritura por trama **se come la NVS en semanas** | `src/transporte_app.cpp:15-16`, `:102-104` |
+| Un `NODE:` que no se reconoce **no se rotula a medias** | `return`, **sin valor por defecto** | `src/transporte_app.cpp:97` |
+| Un campo que no está o no cabe **no se completa** | `campo()` devuelve `false`; *«un rótulo a medias es un rótulo equivocado y esto lo va a leer un técnico para decidir a qué poste se conecta»* | `src/transporte_app.cpp:64-79` |
+
+**Por qué la letra final la decide el equipo y no una opción de compilación** —está escrito en el
+fuente, `transporte_app.cpp:90-93—`: **el mismo binario sirve a las dos puntas.** Un firmware
+distinto por punta sería una segunda copia que alguien tendría que sincronizar, y **el día que se
+cruzaran los dos postes se llamarían igual**.
+
+**Y encaja con las reglas de §6.2 sin romper ninguna, que es lo que hay que comprobar antes de
+aceptar que el puente haga algo más:** `transporte_aprenderRotulo()` se llama **desde el camino de
+retransmisión** y *observa*: no altera la trama, no decide si sube, y no origina nada hacia el STM32
+(`src/puente.cpp:205-206`). **B-1 y B-5 siguen intactas.**
+
+> 🔵 **Desde el 04/09 esto dejó de ser prolijidad de montaje.** El responsable decidió que
+> **el cruce se opera desde el Maestro** (Manual 17 §3.7): no se relevan `SET_MODO` ni
+> `MANUAL:CAMBIAR_TURNO` por radio, así que **el operario tiene que saber a qué poste caminar antes
+> de caminar**. Lo único que se lo dice **antes de conectar** es este rótulo, en la lista de
+> emparejados de Android.
+>
+> 🔴 **Y con ello se abre `AB-9`, que es de las que no se ven desde el PC:** dos módulos
+> vírgenes anuncian **los dos** `SEM-SIN-MATRICULA`, y se diferencian sólo después de haber visto un
+> `$STATUS` **y de una vuelta de energía**. Las cuatro opciones, con su coste, están en el Manual 17
+> §3.8 y **no se reabren aquí**.
+
+**SIN VERIFICAR, y es la mitad que pesa:** nadie ha visto este rótulo en la lista de emparejados de
+un teléfono. **El Bluetooth no subió en el banco del 3-4/09** (N-117 / N-122, arreglados **sin
+banco**), y no hay una sola tarjeta con un ESP32 conectado a `J17`.
+
+---
+
 ## 7. Los instrumentos que tienen que existir ANTES del código
 
 **Esto no es un apéndice: es la mitad del documento.**
@@ -1161,6 +1231,7 @@ Es la sección C del Manual 17, aplicada aquí.
 | **El pico de 500 mA del ESP32** | ESCRITO en el Manual 15, **no medido** sobre el módulo real |
 | **El tiempo de arranque del ESP32 y el de reemparejar SPP** | **SIN VERIFICAR**. `ESP32_ARRANQUE_MS` es hoy un hueco en la desigualdad de §4.2, y hay que **medirlo**, no estimarlo |
 | **El nombre real del pin 3 de `J17`** | sigue en disputa (§2.3) |
+| 🔴 **El rótulo del dispositivo** | el puente lo compone y lo guarda (§6.5, **MEDIDO** en el fuente), y **nadie lo ha visto nunca en la lista de emparejados de un teléfono**. Desde el 04/09 el Manual 17 §3.7 apoya en él una decisión operativa —a qué poste camina el operario—, y §3.8 deja abierto que **dos módulos vírgenes se llaman igual** hasta una vuelta de energía (`AB-9`) |
 | **Que un watchdog resuelva §17 3.3** | **no lo resuelve**. Cubre el ESP32 colgado; **no** el muerto ni el desenchufado |
 | **La regresión N-42** | el Modo Automático no mueve las luces en banco y **sigue abierta** (`ESTADO.md` `B2`). Es anterior a esta arquitectura y **no se cierra con ella** |
 | **El `Y2` de la segunda tarjeta** | N-37 midió uno; el otro sigue sin diagnosticar (`ESTADO.md` `B5`) |
@@ -1183,7 +1254,8 @@ deja abierto: no se inventa una decisión para que el documento parezca cerrado.
 |---|---|---|---|
 | ~~**`BLQ-1`**~~ | 🟢 **CERRADO el 31/08.** Es un **`ESP32-WROOM-32` clásico**: `Xtensa LX6 dual-core`, `Bluetooth v4.2 BR/EDR + BLE`. **Hay SPP**, la app conecta sin tocar el transporte y **el Manual 10 §1 no se reabre** (§6.1, `ESTADO.md:23`, `roadmap.md:215` N-107). Queda una pregunta menor y no bloqueante: **30 o 38 pines** de la DevKitC, para las hembrillas | ~~el responsable~~ **resuelto** | desbloqueó la compra (`A1′`) y §6 entera |
 | **`AB-1`** | 🔴 **Nada en el equipo vigila al puente.** MEDIDO en §4.2: SFTY-6 mira la radio, no `J17`. Un ESP32 colgado es **invisible** para el STM32. ¿Se acepta que el único testigo sea la app, o el STM32 tiene que notar el silencio del puente? | **el responsable** *(es una decisión vial: cambia lo que el equipo hace cuando se queda sin operador)* | el alcance del watchdog y si hace falta un SFTY nuevo |
-| **`AB-2`** | 🔴 **Cómo se opera el equipo si el ESP32 se cuelga**, sin pantalla, sin pulsadores y sin mando. El watchdog cubre el colgado; **no** el muerto ni el desenchufado. Las cinco opciones están escritas en el Manual 17 §3.3 y **no se reabren aquí** | **el responsable** | si el mando de relés se retira o se queda (afecta al veto de §17 2.4) |
+| ~~**`AB-2`**~~ | ✅ **DECIDIDA el 31/08 y la mitad que faltaba el 04/09.** ~~*Cómo se opera el equipo si el ESP32 se cuelga, sin pantalla, sin pulsadores y sin mando*~~ → el mando **se queda** en los canales `A` y `B` (Manual 17 §3.3, opción 3), y el cruce **se opera desde el Maestro** (§3.7). 🔴 **Lo que sigue abierto no es la decisión, es su demostración:** el mando **no se pudo pulsar en banco** (N-118), el fuente se corrigió el 04/09 y **no se ha cargado en ninguna tarjeta**. El watchdog sigue cubriendo el colgado y **no** el muerto ni el desenchufado | ~~el responsable~~ **decidida; falta la carga verificada** | ya no bloquea el alcance de §6; **sí** bloquea que se pueda vender como salida de emergencia |
+| **`AB-9`** | 🔴 **NUEVA (04/09): dos módulos vírgenes se anuncian con el MISMO nombre.** El rótulo bueno se aprende del `$STATUS` y entra **en la siguiente arrancada** (§6.5); hasta entonces las dos puntas dicen `SEM-SIN-MATRICULA`. Y `AB-2` acaba de convertir ese rótulo en **lo que le dice al operario a qué poste caminar** (§17 3.7). ¿Se cubre por procedimiento —una vuelta de energía a cada módulo antes de irse, firmada en el acta— o el firmware da un provisional distinto por módulo? Las cuatro opciones, en el Manual 17 §3.8 | **el responsable** | si hay que tocar el firmware del puente antes de la primera puesta en marcha |
 | **`AB-3`** | 🟠 **`ESP32_ARRANQUE_MS` y el tiempo de reemparejar SPP: SIN VERIFICAR.** Son el hueco de la desigualdad de §4.2, y **se miden con el módulo en la mano**, no se estiman | **quien monte**, con visto bueno técnico | el número concreto del watchdog, y qué tiene que decirle la app al operario tras un reinicio |
 | **`AB-4`** | 🟠 **El `Y2`: se repara, o el STM32 lleva reloj de software disciplinado por el ESP32.** La vía B **cuelga el reloj del semáforo del accesorio** — contra §1.2. Antes hay una medida pendiente que puede ahorrar la compra entera (`ESTADO.md` `B5`) | **el responsable** | si el `DS3231` del ESP32 basta o hay que tocar el STM32 |
 | **`AB-5`** | 🟡 **`$STATUS` tiene 8 B de margen** antes de que `snprintf` trunque el payload (§3.3), y **nada lo vigila**. ¿Se acorta un campo, se sube el buffer, o se añade un pack que mida el margen? | técnico | evita una trama cortada a mitad de campo el día que crezca un literal |

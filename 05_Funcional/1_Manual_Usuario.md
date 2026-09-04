@@ -52,6 +52,29 @@ Todas las operaciones están alineadas al **Manual de Señalización Vial de Col
 
 ---
 
+> ## 🟢 CAMBIOS DEL 04/09/2026 — CUATRO COSAS QUE CAMBIAN LO QUE SE HACE EN EL POSTE
+>
+> **Los cuatro están en el firmware y verificados en el fuente.** Ninguno se ha ejercido en tarjeta:
+> lo que sigue vigente arriba —**nada sube a campo sin banco pasado**— no lo levanta ninguno de
+> ellos.
+>
+> 1. **EL CICLO MÍNIMO SUBE DE 1 A 3 MINUTOS.** Verde **3–15 min**, rojo **3–15 min**, despeje
+>    **10–90 s**. Es una **decisión vial del responsable**: *«tres minutos es la mínima distancia de
+>    seguridad»*. **Donde este manual —o cualquier otro— diga «1 a 15» o «mínimo 1 minuto», está
+>    obsoleto.** El equipo rechaza lo que quede fuera con `$ERR,CMD:SET_TIEMPOS,DESC:RANGO`. Ver §1.
+> 2. **EL CRUCE SE OPERA DESDE EL MAESTRO.** No se hace transparente el mando desde el Esclavo:
+>    **para dar paso, cambiar de modo o ajustar tiempos hay que conectarse al poste Maestro.** Desde
+>    el Esclavo sólo se puede pedir paso, poner ámbar de emergencia y retirarlo. Ver §9.
+> 3. **CÓMO SE DISTINGUE UN POSTE DEL OTRO, QUE AHORA ES CRÍTICO.** El módulo se auto-rotula
+>    `SEM-<serie>-M` o `SEM-<serie>-E`… **pero lo aprende del `$STATUS` y lo guarda para la
+>    SIGUIENTE arrancada.** **Un módulo recién puesto anuncia `SEM-SIN-MATRICULA`, y los dos postes
+>    se llaman igual hasta que se les da una vuelta de energía.** Ver §8.
+> 4. **`N-130`: EL EQUIPO YA NO DICE QUE SÍ A LO QUE NO VA A HACER.** Pedir paso desde el Esclavo
+>    con el cruce fuera del Modo Inteligente produce el evento
+>    `MAESTRO / DEMANDA_NO_ATENDIDA_MODO_ACTUAL`. **Es comportamiento normal, no una avería.** Ver §9.
+
+---
+
 > ## 🔴 CAMBIO DEL 28/08/2026, **AL DÍA EL 31/08/2026** — LA PANTALLA DEJA DE SERVIR, Y EL MENÚ YA NO SE PUEDE EJECUTAR
 >
 > **El equipo va montado en alto y la pantalla no se lee desde el suelo.** Una LCD de 128×64 dentro
@@ -157,6 +180,57 @@ Para evitar arranques prematuros y dar tiempo de frenado, la secuencia lumínica
 3. 🟢 **VERDE FIJO:** Vía libre.
 4. 🔴 **ROJO FIJO:** (Transición directa desde el verde, 0s de aviso). Vía cerrada.
 
+### 🚧 La talanquera — su reposo y su fallo NO son lo mismo, y hay que leerlos juntos
+
+**MEDIDO el 04/09** sobre los símbolos `MOTOR_TALANQUERA`, `TALANQUERA_ABRIR` y `TALANQUERA_CERRAR`
+de `Maestro/include/pines.h` y el único `digitalWrite(MOTOR_TALANQUERA, …)` de
+`escribirPines()`, en `Maestro/src/semaforo.cpp` *(idéntico en el Esclavo)*.
+
+> ✏️ **Aquí no van números de línea a propósito.** Ese fichero se está tocando hoy mismo: el
+> `digitalWrite` de la pluma pasó de la línea 93 a la 100 **durante la redacción de este apartado**.
+> **Un número de línea en un manual caduca solo**; el nombre de la función y del símbolo, no. Se
+> busca con `grep -n MOTOR_TALANQUERA`.
+
+**Sale por la bornera `J15`, NUNCA por `J14`.** `J14` es una **ENTRADA** del micro (`PB0`, 3,3 V, sin
+opto ni diodo): un relé cableado ahí mete tensión directa a la pata del microcontrolador. 🛑 **Si
+alguien ya cableó un relé a `J14`, desconéctelo ANTES de energizar.**
+
+La cadena es un **canal de potencia propio, igual que cada luz**:
+
+```
+   PB2 --> R70 220 / R69 10K --> opto TLP127 (U15) --> MOSFET IRLZ44N (Q10) --> bornera J15
+```
+
+Son **DIEZ MOSFET y DIEZ optos** en la placa (`Q1..Q10`, `U6..U15`), no nueve: el zumbador tiene el
+suyo (`U13`/`Q8`/`J13`) y la talanquera el suyo.
+
+| situación | la pluma | por qué |
+|---|---|---|
+| **Reposo / arranque** | 🔽 **ABAJO** | **SFTY-28.** En `LOW` el MOSFET no conduce, el motor queda sin energía y la pluma cierra. **Es el fallo seguro** |
+| **Sin corriente** | 🔽 **ABAJO** | Lo mismo por otra vía. La especificación de compra pide además **actuador con retorno por muelle o gravedad**, porque eso el software no lo garantiza |
+| **Verde** | 🔼 arriba | Da paso |
+| **En FALLO (`S_FALLO`, ámbar intermitente)** | 🔼 **ARRIBA** | 🟢 **ES QUERIDO, y está confirmado por el responsable el 04/09/2026.** Es para **no dejar coches atrapados detrás de una pluma que ya no señaliza nada** |
+
+> 🟢 **El `|| estado == S_FALLO` NO es un descuido, y por eso se escribe aquí.** Hasta el 04/09 esa
+> decisión vivía dentro de un operador ternario **sin motivo escrito**, y quien la leyera de paso la
+> tomaría por un error —contradice el reposo de la línea de abajo— y la *«arreglaría»*.
+>
+> ⚠️ **La diferencia que se lee mal, dicha en voz alta: FALLO DEL EQUIPO no es CORTE DE CORRIENTE.**
+> Con el equipo en ámbar intermitente el micro sigue vivo y **sube** la pluma; sin energía la pluma
+> **baja**. Las dos cosas son deliberadas y no se contradicen.
+
+**Verde con la pluma abajo está admitido** —la barrera puede ser **más restrictiva** que la lámpara—;
+**pluma arriba sin verde, no**: eso sería una invitación a entrar que nadie autorizó. Es lo único que
+el arnés del automático exige en esta dirección.
+
+> **Y sólo `semaforo.cpp` la mueve, dentro de `escribirPines()`**: `grep -n MOTOR_TALANQUERA` sobre
+> las dos puntas devuelve **ese `digitalWrite` y el del `setup()`, y nada más**. No hay un segundo
+> `digitalWrite` sobre `MOTOR_TALANQUERA` en ninguna parte, ni siquiera en el test de lámparas
+> (`N-82`: el verde del test enciende la lámpara, **no abre la barrera**). **Una barrera con dos
+> puertas no es una barrera.**
+
+---
+
 ### Tiempos de Despeje (All-Red / Rojo Estático)
 Cuando se solicita el cambio de vía, el sistema debe entrar en un estado de **ROJO ABSOLUTO**.
 - Durante *N* segundos, **ambos semáforos estarán en ROJO**.
@@ -165,14 +239,46 @@ Cuando se solicita el cambio de vía, el sistema debe entrar en un estado de **R
   > 🔴 **CORREGIDO EL 28/08 — este párrafo daba un rango que la app NO puede pedir.** Sin pantalla,
   > los tiempos se fijan con `CMD:PIN:...:SET_TIEMPOS:<verdeMin>,<rojoMin>,<despejeSeg>`, y los
   > límites duros los impone el firmware, no la interfaz. **MEDIDO en
-  > `Maestro/src/modo_automatico.cpp` líneas 32–34** *(re-verificado el 31/08; la revisión anterior
-  > citaba «30–32», que es donde estaba el comentario, no las constantes)*:
+  > `Maestro/src/modo_automatico.cpp` líneas 51–53** *(re-medido el 04/09: las constantes se
+  > movieron al crecer el comentario que las razona; el 31/08 estaban en `32–34`)*:
   >
   > | | constante | mínimo | máximo |
   > |---|---|---|---|
-  > | Verde | `VERDE_MIN_MIN` / `_MAX` (`:32`) | 1 min | 15 min |
-  > | Rojo | `ROJO_MIN_MIN` / `_MAX` (`:33`) | 1 min | 15 min |
-  > | **Despeje (todo-rojo)** | **`DESPEJE_SEG_MIN` / `_MAX` (`:34`)** | **10 s** | **90 s** |
+  > | Verde | `VERDE_MIN_MIN` / `_MAX` (`:51`) | **3 min** *(era 1)* | 15 min |
+  > | Rojo | `ROJO_MIN_MIN` / `_MAX` (`:52`) | **3 min** *(era 1)* | 15 min |
+  > | **Despeje (todo-rojo)** | **`DESPEJE_SEG_MIN` / `_MAX` (`:53`)** | **10 s** | **90 s** |
+  >
+  > 🔴 **EL MÍNIMO DE VERDE Y ROJO SUBIÓ DE 1 A 3 MINUTOS EL 04/09, Y ES UNA DECISIÓN VIAL DEL
+  > RESPONSABLE, NO UN AJUSTE DE INTERFAZ.** El motivo, con sus palabras: **«tres minutos es la
+  > mínima distancia de seguridad»**. En un paso alternado de un solo carril un camión pesado tarda
+  > entre 5 y 8 s sólo en reaccionar y arrancar; con un verde de 60 s pasan tres o cuatro vehículos
+  > antes de cortar a ámbar, y lo que se produce no es una cola: es **un conductor convencido de que
+  > el semáforo está averiado, adelantando en rojo contra el sentido que acaba de recibir verde**.
+  > El límite de 1 minuto era un valor de **mesa de pruebas** que se quedó abierto para la vía.
+  >
+  > **La guarda vive en el firmware, y ése es todo el punto.** La app valida lo mismo —para no
+  > ofrecer lo que el equipo va a rechazar— pero la app no es la única que habla por `J17`:
+  > cualquier otra cosa en ese cable, o una APK vieja de las que sobreviven en los teléfonos, puede
+  > mandar `SET_TIEMPOS` con un minuto. **Una guarda que sólo vive en la interfaz es de cortesía.**
+  >
+  > ⚠️ **Coste declarado, para que no aparezca como sorpresa en banco: ya no se puede probar en mesa
+  > con ciclos de 1 minuto.** Se aceptó a sabiendas.
+  >
+  > 🛑 **Y LO QUE ESE MÍNIMO NO CUBRE — MEDIDO EL 04/09 Y SIN DIAGNOSTICAR:** los **valores por
+  > defecto** del modo siguen siendo **1 min de rojo y 1 min de verde** (`modo_automatico.cpp:13` y
+  > `:94`), y **no pasan por la guarda**: `modoAutomatico_fijarTiempos()` (`:57`) sólo se ejerce
+  > desde `SET_TIEMPOS`. Al entrar en Modo Automático desde la app, `modoAutomatico_setup()` (`:94`)
+  > **reescribe los tres valores a `1, 1, 15`**, así que unos tiempos aceptados por `SET_TIEMPOS`
+  > **se pierden al arrancar el modo**. *No se propone aquí un arreglo: se deja medido y abierto —
+  > qué debe hacer el arranque es una decisión del responsable, porque es lo que ve un conductor.*
+  >
+  > ⚠️ **Y en el mismo camino hay una segunda cosa medida que este manual no puede callar:** ese
+  > `modoAutomatico_setup()` deja el modo en la fase `CONFIG_ROJO` del asistente de pantalla, que
+  > sólo avanza con `botonAceptar()` — **y `botonAceptar()` devuelve `false` siempre** desde el
+  > 31/08. En esa fase **`coordinador_actualizar()` no se llama** (sólo se llama en `CORRIENDO`,
+  > `:156`). **Esto es consistente con el síntoma de la regresión abierta `N-42` —«el Modo
+  > Automático no mueve las luces»— pero NO se publica aquí como su causa: nadie lo ha ejercido en
+  > tarjeta.** Es una lectura del fuente, y una lectura no cierra un defecto.
   >
   > ⚠️ **Y hay un techo que no es una decisión sino el tipo de dato: los tres son `uint8_t`.** Un
   > `uint8_t` no pasa de **255**, así que **el «999 s» que este párrafo prometía no fue nunca
@@ -330,18 +436,46 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 * **Conexión Hardware:** Salida de alarma de relé de la cámara (`1A`/`1B`) al pin **`PB0` (Demanda)**
   con masa `GND`, por la bornera **`J14`**.
 
-> 🔵 **ACTUALIZADO EL 31/08 — hoy hay TRES entradas de cámara por poste en el firmware, no una.**
-> **MEDIDO** en `Maestro/include/pines.h:46, 124-125` y `Maestro/src/botones.cpp:156-157`
-> *(idéntico en el Esclavo)*:
+> 🛑 **CORREGIDO EL 04/09 — SON DOS CÁMARAS EN EL CRUCE, UNA POR POSTE. NO TRES POR TARJETA.**
 >
-> | entrada | pin | bornera | cómo se lee | estado |
+> **Aquí ponía ~~«hoy hay TRES entradas de cámara por poste»~~ y se leía como tres cámaras que
+> cablear.** Lo que hay son **tres bornes de entrada por tarjeta que piden LO MISMO: paso para ese
+> poste**. Y como el cruce tiene **dos sentidos, un poste por sentido**, **las cámaras del cruce son
+> DOS: una por poste.**
+>
+> **MEDIDO el 04/09** en `Maestro/include/pines.h:43-46` y `:136-137`,
+> `Maestro/src/botones.cpp:116` y `:144-152`, `Maestro/src/modo_inteligente.cpp:86` y `:124`,
+> `Esclavo/src/main.cpp:348-354` y `Esclavo/src/botones.cpp:136`, `:164-172`:
+>
+> | borne | pin | qué trae la placa | cómo lo lee el programa | estado |
 > |---|---|---|---|---|
-> | `CAM_DEMANDA_PIN` | `PB0` | **`J14`** | `INPUT` pelado, **activo en ALTO**, con antirrebote en la placa (`R64` 10 kΩ + `C25` 100 nF) | ✅ **En servicio. Es el único camino de cámara con firmware ya probado** |
-> | **`CAM_C_PIN`** | **`PB14`** | **`J16` p10** | `INPUT` pelado, **activo en ALTO** — la misma lectura antirrebotada | 🟠 **Firmware hecho (N-97). SIN CABLEAR** |
-> | **`CAM_D_PIN`** | **`PB15`** | **`J16` p12** | igual | 🟠 **Firmware hecho (N-97). SIN CABLEAR** |
+> | **`J14`** | `PB0` | 🟢 **`R64` 10 kΩ + `C25` 100 nF → antirrebote por hardware de ~1 ms** | **Maestro: por NIVEL** (`modo_inteligente.cpp:86`, `:124`) · **Esclavo: por FLANCO**, y ahí sí llama a `demanda_solicitar()` (`main.cpp:352`) | ✅ **Es el borne donde va la cámara** |
+> | `J16` p10 | `PB14` | 🟠 `R67` 10 kΩ a masa, **SIN condensador** | **por FLANCO** → `demanda_solicitar()`, en las dos puntas | 🟠 **entrada equivalente disponible. NO se le monta cámara hoy** |
+> | `J16` p12 | `PB15` | 🟠 `R68` 10 kΩ a masa, **SIN condensador** | igual | 🟠 igual |
 >
-> **Las tres piden paso por la misma puerta** —`demanda_solicitar()`—, que es donde está escrita la
-> diferencia entre **pedir** y **decidir** (SFTY-27). **Una cámara no enciende nada**: sólo pide.
+> **🔵 LA CÁMARA VA A `J14`, Y EL MOTIVO NO ES PREFERENCIA: es el único de los tres bornes que la
+> placa protege.** Un relé de cámara **rebota** al cerrar. En `J14` el condensador se lo come antes
+> de que el micro lo vea. En `p10`/`p12` no hay condensador y la lectura es **por flanco**: lo único
+> que hay delante es la **ventana de silencio de 3 s** de `demanda_solicitar()`
+> (`demanda.cpp:8`, `:19`), que lo tapa casi siempre. **«Casi» no es una garantía**, y esa ventana es
+> **una sola por poste**: un rebote la consume y la petición del coche que viene detrás se pierde.
+>
+> **`p10` y `p12` NO se retiran de este manual y no son un error:** son entradas reales, medidas en
+> banco (`M3`, 03/09: **p10 = 9,93 kΩ**, **p12 = 9,94 kΩ** a masa), y **son el sitio previsto si
+> algún día hace falta una segunda entrada en un poste**.
+>
+> ✏️ **Y una precisión que el censo del 04/09 obligó a escribir, porque la frase anterior era falsa
+> en una punta:** aquí ponía *~~«las tres piden paso por la misma puerta —`demanda_solicitar()`»~~*.
+> **En el ESCLAVO es cierto para los tres bornes. En el MAESTRO no lo es para `J14`**, que se lee
+> **por nivel** dentro de `modo_inteligente.cpp` y **no llama a `demanda_solicitar()`** —`grep` de la
+> función devuelve `bluetooth.cpp:653`, `botones.cpp:148` y su definición, y ninguno pasa
+> `CAM_DEMANDA_PIN`—. **El efecto operativo es el mismo** —la petición entra igual en el mismo `OR`
+> del Modo Inteligente— pero **las dos puntas no lo hacen igual**, y eso se anota en vez de
+> redondearse. *No se propone aquí ningún cambio de firmware: es una asimetría medida, no un defecto
+> diagnosticado.*
+>
+> **Lo que sí vale para los tres bornes y para las dos puntas, y es lo que importa en la calle: una
+> cámara PIDE, no decide** (SFTY-27). **No enciende nada.**
 >
 > 🛑 **ANTES DE CABLEAR CÁMARA A `J16`, uno de los dos motivos SIGUE EN PIE y el otro está CERRADO:**
 >
@@ -686,15 +820,49 @@ el nombre lo puede llevar cualquier fichero y el hash no.
 > módulo muerto ni una APK mala. Es la app diciendo, correctamente, que el teléfono todavía no
 > conoce a ese equipo.
 
-**2. En la lista de Bluetooth el equipo se llama `SEM-SIN-MATRICULA`, no como el cruce.**
+**2. Cómo se distingue un poste del otro en la lista de Bluetooth — y el caso en que NO se
+distinguen.**
 
-> 🛑 **Mientras el módulo no haya aprendido la serie del equipo se anuncia como `SEM-SIN-MATRICULA`.**
-> Si el técnico busca **`IOT_VIAL`** o **el nombre del cruce**, **no lo encuentra** y concluye que el
-> módulo está muerto.
+> 🔵 **El módulo se auto-rotula, y la letra final dice QUÉ POSTE ES.** No es una opción de
+> compilación: el mismo binario sirve a las dos puntas y **el nombre lo aprende del campo `NODE:` de
+> la trama `$STATUS`** que emite la tarjeta. **MEDIDO en
+> `01_Firmware/ESP32_Expansion/src/transporte_app.cpp:80-114`** y
+> `include/contrato.h:258-259`:
 >
-> **Y no se renombra en caliente:** aunque el módulo aprenda la serie durante la sesión, **el nombre
-> bueno no aparece hasta el arranque siguiente**. Ver un `SEM-SIN-MATRICULA` no significa que la
-> serie no haya entrado; significa que el módulo no se ha reiniciado desde que entró.
+> | lo que sale en la lista de Android | qué es |
+> |---|---|
+> | **`SEM-<serie>-M`** | el poste **MAESTRO** |
+> | **`SEM-<serie>-E`** | el poste **ESCLAVO** |
+> | **`SEM-SIN-MATRICULA`** | el módulo **todavía no ha aprendido** de qué poste cuelga |
+>
+> **Desde la decisión del 04/09 —el cruce se opera desde el Maestro, §9— esa letra final deja de ser
+> un detalle y pasa a ser lo primero que hay que mirar antes de mandar una orden.**
+
+> 🛑 **Y AQUÍ ESTÁ EL CASO QUE HAY QUE SABER EN OBRA: UN MÓDULO RECIÉN PUESTO ANUNCIA
+> `SEM-SIN-MATRICULA`, Y LOS DOS POSTES SE LLAMAN IGUAL HASTA QUE SE LES DA UNA VUELTA DE ENERGÍA.**
+>
+> **El rótulo aprendido se guarda para la SIGUIENTE arrancada, y es deliberado** *(`transporte_app.cpp:109-113`)*:
+> cambiar el nombre SPP en caliente obliga a cerrar y reabrir el perfil Bluetooth, o sea **a tirar
+> la sesión del operario que en ese momento puede estar dando una orden al cruce**. Se prefirió no
+> renombrar en caliente.
+>
+> **Consecuencia real, y no es teórica: con dos módulos nuevos en el mismo frente de obra, los dos
+> aparecen en la lista como `SEM-SIN-MATRICULA` y el técnico se conecta a ciegas** — sin saber si
+> tiene delante el Maestro, que es el que manda, o el Esclavo, que casi no.
+>
+> **Qué hacer, y va en la puesta en marcha:**
+>
+> 1. **Con el módulo montado y la tarjeta encendida, déjelo un minuto**: le basta con recibir un
+>    `$STATUS`, que sale cada 2 s, para aprender su matrícula y guardarla.
+> 2. **Déle una vuelta de energía al módulo** —quitar y devolver tensión—. **En el arranque
+>    siguiente ya sale con su nombre bueno**, con su `-M` o su `-E`.
+> 3. **No dé el módulo por muerto ni lo cambie** por anunciarse `SEM-SIN-MATRICULA`. Y si busca
+>    `IOT_VIAL` o el nombre del cruce, **no lo va a encontrar**: no se llama así.
+>
+> ⚠️ **Mientras no se haya reiniciado, la matrícula que vale es la del campo `SERIE:` de la trama
+> `$STATUS` que la app enseña — no la del nombre Bluetooth.** Ver un `SEM-SIN-MATRICULA` **no**
+> significa «equipo sin configurar»: puede ser un equipo con su serie ya puesta que todavía no se ha
+> reiniciado.
 
 **3. El emparejamiento NO pide PIN, y el `1234` no es el PIN de emparejamiento.**
 
@@ -808,17 +976,69 @@ el nombre lo puede llevar cualquier fichero y el hash no.
 > **Este apartado no existía, y es el que un operario necesita antes de subirse a un poste.** La app
 > **no** manda lo mismo en el Maestro que en el Esclavo, y el manual daba a entender que sí.
 
-**MEDIDO el 31/08** sobre `Maestro/src/bluetooth.cpp` y `Esclavo/src/bluetooth.cpp`:
+> ## 🟢 DECISIÓN DEL 04/09/2026 — **EL CRUCE SE OPERA DESDE EL MAESTRO**
+>
+> **No se va a hacer transparente el mando desde el Esclavo.** La asimetría de la tabla de abajo
+> deja de ser una limitación pendiente de cerrar y pasa a ser **cómo se opera este equipo**.
+>
+> **Lo que eso significa para el operario, que es lo único que hay que recordar de este apartado:**
+> para **dar paso, cambiar de modo o ajustar tiempos hay que conectarse al poste MAESTRO**. Desde el
+> Esclavo sólo se puede **pedir paso** (`SOLICITAR_PASO`), **poner ámbar de emergencia**,
+> **retirarlo** (`CANCELAR_AMBAR`) y **el intento de forzar rojo, que esa punta rechaza**.
+>
+> ⚠️ **Consecuencia de obra que hay que planificar antes de subir:** si se llega al Poste 2 y hace
+> falta cambiar el modo, **hay que desplazarse al Poste 1**. La app lo dice —cuando la orden no es
+> de esta punta avisa a cuál va— pero **no lo hace por usted**: el enlace Bluetooth alcanza el poste
+> que tiene delante, no el otro.
+>
+> 🔵 **Por eso la §8 de este manual pasa a ser crítica: hay que saber A QUÉ POSTE se está
+> conectando.** El módulo se auto-rotula `SEM-<serie>-M` (Maestro) o `SEM-<serie>-E` (Esclavo), y
+> hay un caso en el que **los dos se llaman igual**. Está escrito allí.
+
+**MEDIDO el 31/08 y RE-CENSADO EL 04/09** sobre `Maestro/src/bluetooth.cpp` y
+`Esclavo/src/bluetooth.cpp`:
 
 | | **MAESTRO** | **ESCLAVO** |
 |---|---|---|
-| Cambiar de modo desde la app | ✅ **Sí.** `SET_MODO:AUTO` · `MANUAL` · `AMBAR` · `MENU` · `ALCANCE` · `INTELIGENTE` · `DEGRADADO` (`:177+`) | 🛑 **NO. No existe ni un solo `SET_MODO`** — `grep -n "SET_MODO" Esclavo/src/bluetooth.cpp` → **CERO coincidencias** |
-| Ámbar de emergencia desde la app | ✅ sí | ✅ sí — `CMD:AMBAR_EMERGENCIA` |
-| Pedir paso | ✅ `DEMANDA` | ✅ `SOLICITAR_PASO` *(se lo pide al Maestro)* |
-| Poner los tiempos | ✅ `SET_TIEMPOS` | ❌ no — los tiempos los lleva el Maestro |
-| `FORZAR_ROJO` | ✅ **sí, y para de verdad** | 🛑 **NO.** Contesta `$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` (`:158`, `:182`) y **no para nada** |
+| Cambiar de modo desde la app | ✅ **Sí.** `SET_MODO:AUTO` · `MANUAL` · `AMBAR` · `MENU` · `ALCANCE` · `INTELIGENTE` · `DEGRADADO` (`:444+`) | 🛑 **NO. No existe ni un solo `SET_MODO`** — `grep -n "SET_MODO" Esclavo/src/bluetooth.cpp` → **CERO coincidencias** |
+| Ámbar de emergencia desde la app | 🛑 **NO existe `AMBAR_EMERGENCIA` en el Maestro** — re-censado el 04/09. Lo que hay es `SET_MODO:AMBAR` (`:454`, **con PIN**, y es un **modo**, no un latch) y `FORZAR_ROJO` | ✅ sí — `CMD:AMBAR_EMERGENCIA` (`:381` sin PIN, `:468` con PIN). Arma un **latch** que veta las órdenes de radio |
+| Retirar el ámbar de emergencia | ❌ no aplica: no hay latch que retirar | ✅ `CANCELAR_AMBAR` (`:491`, **con PIN**). Contesta `RETIRADO` o `RETIRADO_QUEDA_MANDO` |
+| Pedir paso | ✅ `DEMANDA` (`:645`, **sólo en Modo Inteligente**) | ✅ `SOLICITAR_PASO` (`:532`) *(se lo pide al Maestro)* — ver `N-130` abajo |
+| Poner los tiempos | ✅ `SET_TIEMPOS` (`:542`) | ❌ no — los tiempos los lleva el Maestro |
+| `FORZAR_ROJO` | ✅ **sí, y para de verdad** (`:412` sin PIN, `:520` con PIN) | 🛑 **NO.** Contesta `$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` (`:448`, `:524`) y **no para nada** |
+| `TEST_LEDS` | ✅ sí (`:538`) | 🛑 **rechazado a propósito** (`:550`): `NO_EN_SERVICIO_USE_EL_MAESTRO` |
 | Menú local / botones | ❌ sin sujeto | ❌ sin sujeto |
 | **Mando de relés (A y B)** | 🟠 **No se pudo accionar en banco (`N-118`). Firmware corregido, SIN ejercer en tarjeta** | 🟠 **Igual — y aquí es además la única vía de mando de la punta** |
+
+> ✏️ **CORRECCIÓN DEL 04/09 — la fila del ámbar de emergencia decía «✅ sí» en las DOS puntas y era
+> falsa en la del Maestro.** `grep -n "AMBAR_EMERGENCIA" Maestro/src/bluetooth.cpp` → **cero
+> coincidencias**. La confusión venía de que el operario ve un botón de ámbar en la app estando
+> delante de cualquiera de los dos postes; lo que **manda** al Maestro es otra cosa —`SET_MODO:AMBAR`,
+> un modo con PIN— y **no arma el latch que veta las órdenes de radio**. La app ya lo enruta bien
+> (`SOLO_ESCLAVO` en `app.js:2057`); lo que estaba mal era este manual.
+
+> ### 🟢 `N-130` (04/09) — EL EQUIPO YA NO DICE QUE SÍ A LO QUE NO VA A HACER
+>
+> **Esto es COMPORTAMIENTO NORMAL, no una avería, y hay que reconocerlo en obra.**
+>
+> Si el técnico pulsa **«Solicitar Paso» desde el ESCLAVO** y el cruce **no está en Modo
+> Inteligente**, el Maestro **rechaza la demanda** y el Esclavo lo dice en la bitácora con el evento:
+>
+> ```
+>   MAESTRO / DEMANDA_NO_ATENDIDA_MODO_ACTUAL
+> ```
+>
+> **Antes decía «pedido al Maestro» y no pasaba nada.** El Esclavo tiene que contestar a la app
+> antes de saber la respuesta del Maestro —bloquear su bucle esperando una radio de 2,4 kbps es
+> peor—, así que **el primer acuse sigue siendo `PEDIDO_AL_MAESTRO`** y el desmentido llega después,
+> como **evento fechado**. **MEDIDO:** `Maestro/src/coordinador.cpp:636-641` decide con
+> `modoActual_get() == MODO_INTELIGENTE` y manda `DEMANDA_ACEPTADA` o `DEMANDA_RECHAZADA`;
+> `Esclavo/src/main.cpp:541-543` lo convierte en el evento.
+>
+> **Qué hacer si sale:** no es un fallo del Esclavo ni del enlace. **Es que el cruce no está en Modo
+> Inteligente**, y ese modo se pone **desde el Maestro** (decisión de arriba). El mismo criterio
+> gobierna el botón `DEMANDA` del propio Maestro: fuera del Modo Inteligente contesta
+> `$ERR,CMD:DEMANDA,DESC:SOLO_EN_MODO_INTELIGENTE`.
 
 > 🟠 **ESA FILA HA CAMBIADO DOS VECES Y HAY QUE LEER LAS DOS.** **04/09, medido en banco:** con la
 > lectura antigua (`INPUT_PULLUP` + `== LOW`), las `R65`/`R66` (10 kΩ a masa) dejaban `PB9` y `PB13`

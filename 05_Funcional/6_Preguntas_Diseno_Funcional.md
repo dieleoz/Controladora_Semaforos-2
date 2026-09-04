@@ -23,13 +23,41 @@ Este documento recopila los puntos clave de diseño funcional y operativo acorda
    | entrada | pin | bornera | estado |
    |---|---|---|---|
    | `CAM_DEMANDA_PIN` | `PB0` | `J14` — con `R64` 10 kΩ + `C25` 100 nF | ✅ **cableable hoy** |
-   | `CAM_C_PIN` | `PB14` | `J16` **p10** — sin antirrebote de placa | 🟠 firmware listo, **NO cablear hasta `M3`** |
-   | `CAM_D_PIN` | `PB15` | `J16` **p12** — sin antirrebote de placa | 🟠 firmware listo, **NO cablear hasta `M3`** |
+   | `CAM_C_PIN` | `PB14` | `J16` **p10** — sin antirrebote de placa | ~~🟠 **NO cablear hasta `M3`**~~ → ✅ **M3 CERRADA el 03/09 y verificada en banco (paso 21):** `0 V` en reposo y **sin demandas fantasma**, con el cable puesto y sin él |
+   | `CAM_D_PIN` | `PB15` | `J16` **p12** — sin antirrebote de placa | ~~🟠 **NO cablear hasta `M3`**~~ → ✅ **M3 cerrada**, `0 V` en reposo (paso 20). ⚠️ **Pero `p12` es el punto del conector MÁS cercano a la red de 12 V —`1,359 mm` de cobre— y `J16` p1 reparte 12 V crudos** |
+
+   > 🔵 **ACTUALIZADO EL 04/09.** La medida `M3` que estas dos filas esperaban **se hizo el 03/09 con
+   > multímetro**: las cuatro posiciones llevan pull-down real de `10 kΩ` a masa y `3,3 V` en la
+   > posición contigua, así que **el gesto es cerrar contra los `3,3 V`** y la lectura activa en ALTO
+   > del firmware es la correcta. Números y procedencia en `17_...md`, revisión del 03-04/09.
+   >
+   > 🛑 **Lo que sigue siendo obligatorio y NO lo levanta esta medida: tapar `J16` p1 en CADA equipo
+   > que se monte**, retirando el pin del cuerpo del conector volante. El banco midió que **las 9
+   > salidas** de campo van con `220 Ω` + optoacoplador y **las 5 entradas no llevan nada** —del borne
+   > directo a la pata del STM32— (N-120, `17_...md` §3.6). Un contacto de `p1` a `p10` o `p12` mete
+   > 12 V en una pata que espera 3,3.
 
    **Las tres son ACTIVAS EN ALTO**: el contacto seco cierra contra **3,3 V**, no contra masa.
    Contra masa **la cámara no dispara nunca** y no hay síntoma. **`PB9` y `PB13` NO admiten cámara.**
 2. **Cero Computadores Edge Externos (CERRADO):** Se descarta el uso de Raspberry Pi, Jetson Nano, conversores USB y switches Ethernet. La detección de vehículos corre directamente dentro de la cámara (DSP AcuSense) y entra por pulsos limpios de hardware a la placa. ✅ **Sigue cerrado y sigue siendo cierto.**
 3. **Respuesta Adaptativa (CERRADO):** Cada pulso de detección solicita verde para el sentido correspondiente. Se garantiza un piso inquebrantable de **15 segundos mínimos de All-Red (Todo-Rojo)** antes de conmutar de un carril al opuesto. *(Corregido: el pulso entra por `PB0`, `PB14` o `PB15`, ~~`PB9`~~.)*
+   **MEDIDO** en `Maestro/src/modo_inteligente.cpp:42` (`segEstatico = 15`) y `:90` (15 s mínimos de
+   verde antes de permitir alternancia). ⚠️ **Son del Modo Inteligente y están fijados en el código**;
+   no se confundan con el despeje configurable del Modo Automático, que va de 10 a 90 s (§2.1).
+
+   > 🔴 **AMPLIADO EL 04/09 — N-130, y limita este apartado: la demanda SÓLO se atiende en Modo
+   > Inteligente.** Censo de llamadores de la bandera `demandaRemotaPendiente`, hecho con `grep` y no
+   > leyendo: **un solo fichero** —`modo_inteligente.cpp:87`, `:102`, `:110`, `:124`—. **En Modo
+   > Manual y en Modo Automático el pulso entra y nadie lo mira.**
+   >
+   > Hasta el 04/09 el equipo lo **acusaba igual**: el Esclavo contestaba
+   > `$ACK,CMD:SOLICITAR_PASO,RESULT:PEDIDO_AL_MAESTRO`, el operario leía la confirmación y **el cruce
+   > no se movía**. Volvía a pulsar. Hoy el acuse **dice cuál de las dos cosas es** —`DEMANDA_ACEPTADA`
+   > / `DEMANDA_RECHAZADA`, `protocolo.h:171-172` en las dos puntas— y el Esclavo levanta un evento
+   > `MAESTRO / DEMANDA_NO_ATENDIDA_MODO_ACTUAL` (`Esclavo/src/main.cpp:541-543`).
+   >
+   > ⚠️ **Lo que eso NO cierra, y es una pregunta funcional, no técnica: ¿es aceptable que un botón de
+   > demanda no haga nada en dos de los tres modos operativos?** Ver §5.2.
 4. ~~**Cobertura Simétrica (CERRADO):** … Cámara 1 y 2 en Maestro; Cámara 3 y 4 en Esclavo.~~
    ⚠️ **La simetría se mantiene, la numeración no.** Cada punta tiene **tres entradas de demanda
    iguales**. **La «cámara de umbral» NO EXISTE**: no hay entrada física para ella ni comando de
@@ -40,7 +68,29 @@ Este documento recopila los puntos clave de diseño funcional y operativo acorda
 
 ## 2. Parámetros de Operación Vial y Módulo Bluetooth (APROBADO)
 
-1. **Tiempo de Despeje (All-Red):** El firmware admite de **5 a 999 segundos** (hasta 16.6 min); el piso de 5s en menú y 15s en auto-recuperación es inquebrantable por seguridad.
+1. ~~**Tiempo de Despeje (All-Red):** El firmware admite de **5 a 999 segundos** (hasta 16.6 min); el piso de 5s en menú y 15s en auto-recuperación es inquebrantable por seguridad.~~
+
+   > 🔴 **ANULADO EL 04/09/2026: las tres cifras son falsas, y una de ellas ninguna versión del
+   > firmware pudo aceptarla nunca.** **MEDIDO** en `01_Firmware/Maestro/src/modo_automatico.cpp:53`:
+   >
+   > ```
+   >    static const uint8_t DESPEJE_SEG_MIN = 10, DESPEJE_SEG_MAX = 90;
+   > ```
+   >
+   > **El despeje va de 10 a 90 segundos.** El piso real es **10 s**, no 5 —era la mitad—; el techo
+   > **90 s**, no 999 —era once veces—, y **999 no cabe en el `uint8_t` que transporta el valor**, así
+   > que no fue representable en ninguna versión. `modoAutomatico_fijarTiempos()` hace `return false`
+   > fuera de rango **venga del menú o de Bluetooth** (`:57-60`), y la orden se rechaza con
+   > `$ERR,CMD:SET_TIEMPOS,DESC:RANGO` (`Maestro/src/bluetooth.cpp:573`).
+   >
+   > *(Los **15 s** sí existen, pero son otra cosa: son el todo-rojo y el verde mínimo del **Modo
+   > Inteligente** —`modo_inteligente.cpp:42` y `:90`—, no un piso de la auto-recuperación ni del
+   > despeje configurable.)*
+   >
+   > ⚠️ **El mismo error estuvo publicado en `MANUAL_USUARIO.md` y en `OPTIMIZACIONES.md`, y allí se
+   > corrigió el 31/08. Aquí sobrevivió cinco días más.** Es lo que `roadmap.md` `A4` llama *cifras sin
+   > vigilante*: una cifra copiada a mano en varios documentos **envejece en cada copia por separado**,
+   > y la que nadie vigila es la que se lee en obra.
 2. **Módulo Bluetooth en Maestro y Esclavo (CERRADO - Estándar Baliza):** ~~Se conecta a `USART1` (`PA9` TX, `PA10` RX) con alimentación 5V/GND.~~
    🔴 **PINOUT ANULADO.** Se conecta a **`USART1` REMAPEADO — `PB6` TX / `PB7` RX — por el conector
    `J17`** (**MEDIDO**: `Maestro/src/bluetooth.cpp:28`, `static HardwareSerial SerialBT(PB7, PB6)`,
@@ -77,6 +127,48 @@ Este documento recopila los puntos clave de diseño funcional y operativo acorda
    si la secuencia se rechaza. ⚠️ **Pruébelo DESDE OTRO MODO:** si el equipo ya está en el modo que
    la secuencia pide, `MODO:` no cambia y la prueba no distingue nada. La inhibición durante la navegación de la LCD sigue en el firmware, pero **ya
    no puede ocurrir**: sin `botonAceptar()` el menú no se abre.
+
+---
+
+4. 🆕 **Mínimo de verde y de rojo: 3 minutos — DECIDIDO EL 04/09/2026.** Sube de 1 a 3 min (los
+   techos siguen en 15 min). Motivo del responsable, literal: **«tres minutos es la mínima distancia
+   de seguridad»**. **MEDIDO** en `Maestro/src/modo_automatico.cpp:51-52`
+   (`VERDE_MIN_MIN = 3`, `ROJO_MIN_MIN = 3`).
+
+   **El razonamiento, en una línea:** en un paso alternado de un solo carril un camión pesado tarda
+   entre 5 y 8 s **sólo en reaccionar y arrancar**; con un verde de 60 s lo que se produce no es una
+   cola, es un conductor convencido de que el semáforo está averiado y adelantando en rojo contra el
+   sentido que acaba de recibir verde. El límite de 1 minuto **era un valor de mesa de pruebas** que
+   se quedó abierto para la operación en vía.
+
+   🔴 **La guarda vive en el FIRMWARE, no en la app, y eso es la otra mitad de la decisión:** la app
+   no es la única que puede hablar por `J17` —cualquier otra cosa en ese cable, o una APK vieja, puede
+   mandar `SET_TIEMPOS` con un minuto—. Una guarda que sólo vive en la interfaz **es de cortesía**;
+   ésta rechaza con `$ERR,CMD:SET_TIEMPOS,DESC:RANGO` y no la puede saltar nadie.
+
+   ⚠️ **COSTE ACEPTADO A SABIENDAS: ya no se puede probar en mesa con ciclos de un minuto.** Quien
+   planifique la próxima sesión de banco tiene que contar **tres minutos por paso** al escribir los
+   tiempos. *(Cierra `N75-1`, abierta desde el 26/08. Detalle en `17_...md` §3.4.)*
+
+5. 🆕 **El cruce se opera DESDE EL MAESTRO — DECIDIDO EL 04/09/2026.** Se descartó hacer transparente
+   el mando desde el Esclavo: **no se relevan `SET_MODO` ni `MANUAL:CAMBIAR_TURNO` por radio.**
+
+   **MEDIDO** por censo de despachadores: el Maestro atiende **14** comandos
+   (`Maestro/src/bluetooth.cpp:444-664`) y el Esclavo **5** —`AMBAR_EMERGENCIA`, `CANCELAR_AMBAR`,
+   `SOLICITAR_PASO`, más `FORZAR_ROJO` y `TEST_LEDS` que rechaza a propósito—
+   (`Esclavo/src/bluetooth.cpp:468-561`). **El Esclavo pide; no ordena** (SFTY-27): `SOLICITAR_PASO`
+   manda la misma demanda que la cámara y **el Maestro decide, aplica el todo-rojo y ordena**.
+
+   🔴 **CONSECUENCIA OPERATIVA, y es la que hay que llevar a obra: el operario tiene que saber a qué
+   poste conectarse ANTES de caminar.** Con dos postes que pueden estar a cientos de metros,
+   descubrir en el sitio que el Bluetooth al que se conectó no atiende `SET_MODO` es una caminata
+   perdida y un cruce que sigue como estaba. Lo que lo resuelve es el **rótulo Bluetooth**
+   —`SEM-<serie>-M` para el Maestro y `SEM-<serie>-E` para el Esclavo—, visible en la lista de
+   emparejados **antes de conectar**. **Y ese rótulo tiene una pregunta abierta: §5.1.**
+
+   ⚠️ **Lo que se acepta al decidirlo, y va escrito para que conste:** con el Maestro caído o
+   inaccesible, la única superficie que queda en el Esclavo son sus cinco comandos. **No hay forma de
+   cambiar el modo del cruce desde el Esclavo**, ni por Bluetooth ni por radio. Ver §5.3.
 
 ---
 
@@ -154,10 +246,62 @@ corrija **antes** de la primera puesta en campo.
    fijos compilados. Mientras las dos puntas lleven la misma versión de firmware coinciden — **pero
    nadie vigila que la lleven**. ¿Se cierra esto antes de campo, o basta con la comprobación de
    versión en el acta de pruebas?
-3. **Margen de flash del Maestro (N-21).** Tras el Modo Degradado va al **80,2 %**. Lo pendiente
+3. **Margen de flash del Maestro (N-21).** ~~Tras el Modo Degradado va al **80,2 %**. Lo pendiente
    —persistencia conectada, pantalla informativa en ámbar y modo nocturno— lo dejaría sobre el
-   **85 %**: ajustado pero viable. **Una función grande más ya no cabría.** ¿Se acota el alcance
+   **85 %**: ajustado pero viable.~~ **Una función grande más ya no cabría.** ¿Se acota el alcance
    funcional, o se evalúa el cambio de microcontrolador con su verificación chip a chip?
+
+   > ⚠️ **CIFRA CADUCADA, y la pregunta no está respondida: está más apretada.** El acta de la
+   > compuerta del 04/09 —`evidencia/2026-09-04_compuerta.txt`, `HEAD 624eb37`— publica **`89,3 %`**
+   > (`58496` de `65536` B), o sea **`7.040` B libres**. El **`85 %`** que este punto daba como
+   > escenario de llegada **ya se pasó**, y lo que lo listaba como pendiente sigue pendiente.
+   > 🔴 **Y el árbol de hoy tiene cambios posteriores a esa acta sin medir por la compuerta**: la cifra
+   > que valga sale de una corrida nueva, no de aquí (`17_...md`, revisión del 04/09 por la tarde).
 4. **Prueba de banco del reloj (N-15 / N-17).** Sigue sin hacerse: ni contraste contra hora patrón, ni
    conservación tras corte de energía, ni arranque con el cristal desconectado. **Todo lo que depende
    de la hora va hoy sobre un supuesto.** ¿Se agenda antes de la certificación?
+
+---
+
+## 5. Decisiones abiertas por la sesión del 04/09/2026
+
+Las tres salen de los cambios de esa fecha —el mínimo de 3 minutos (§2.4), operar desde el Maestro
+(§2.5) y N-130 (§1.3)—. **Ninguna la puede tomar quien escribe firmware.**
+
+1. 🔴 **El rótulo Bluetooth de un módulo virgen es el MISMO en las dos puntas.** El ESP32 **no puede
+   saber la serie al arrancar** —sale del silicio del STM32, `identidad_serie()` lee el UID del
+   micro—, así que la aprende del `$STATUS` que retransmite y **la usa a partir de la SIGUIENTE
+   arrancada** (`ESP32_Expansion/src/transporte_app.cpp:23-31`, `:105-113`). **No se re-rotula en
+   caliente a propósito**: cambiar el nombre SPP obliga a cerrar el perfil, o sea **a tirar la sesión
+   del operario que está dando una orden al cruce**. **MEDIDO** en `include/contrato.h:259`: el
+   provisional es **`SEM-SIN-MATRICULA`**.
+
+   **Con dos módulos vírgenes, los dos postes se llaman exactamente igual** hasta que cada uno haya
+   visto un `$STATUS` **y se le haya cortado la energía** — y §2.5 acaba de apoyar en ese rótulo la
+   decisión de a qué poste camina el operario.
+
+   **¿Se cubre por procedimiento** —una vuelta de energía a cada módulo antes de irse, firmada en el
+   acta de puesta en marcha— **, o el firmware debe dar un provisional distinto por módulo?** Las
+   cuatro opciones, con su coste, en `17_...md` §3.8. **Dueño: el responsable.**
+
+   ⚠️ **SIN VERIFICAR:** nadie ha visto este rótulo en un teléfono. El Bluetooth **no subió en el
+   banco del 3-4/09**, y no hay una sola tarjeta con un ESP32 conectado a `J17`.
+
+2. 🟠 **Un botón de demanda que no hace nada en dos de los tres modos.** Desde el 04/09 el equipo ya
+   **no miente** —el acuse dice si se va a atender, N-130—, pero **el botón sigue estando** en la app
+   en Modo Manual y en Modo Automático, y lo único que produce es una línea en la bitácora. **¿Se
+   deja así, se oculta el botón mientras el equipo no esté en Modo Inteligente, o la demanda debe
+   hacer algo en los otros modos?** Lo segundo es interfaz; lo tercero es alcance funcional y toca el
+   ciclo. **Dueño: el responsable.**
+
+   ⚠️ **SIN VERIFICAR, y decide si N-130 está cerrado o a medias:** que la app **pinte** ese evento y
+   el operario lo lea **no se ha comprobado**. Si no lo pinta, el resultado es que se dejó de mentir
+   y no se dice nada — que es mejor, pero no es lo mismo que avisar.
+
+3. 🟡 **Sin Maestro no hay cambio de modo.** Consecuencia directa de §2.5, y va aquí para que se
+   firme y no se descubra en obra: con el Maestro caído, inaccesible o fuera de servicio —hoy hay una
+   tarjeta Maestro así, N-116—, la única superficie que queda en el Esclavo son sus cinco comandos:
+   **ámbar de emergencia, cancelarlo y pedir paso**. Y el mando de relés, la otra vía de último
+   recurso, **también vive sólo en el Maestro**: el receptor del Esclavo no se ha comprado (N-19).
+   **¿Se acepta, o hace falta un procedimiento de contingencia escrito para ese caso?**
+   **Dueño: el responsable.**

@@ -140,6 +140,24 @@
 >
 > Ver la sección corregida más abajo.
 >
+> ## 🟢 4. CAMBIOS DEL 04/09 QUE AFECTAN A LO QUE LA APP OFRECE
+>
+> **Los tres están verificados en el fuente y ninguno se ha ejercido en tarjeta.**
+>
+> 1. **El ciclo mínimo sube de 1 a 3 minutos** — verde **3–15 min**, rojo **3–15 min**, despeje
+>    10–90 s. **Donde este manual dijera «1-15», estaba obsoleto.** La guarda de verdad está en el
+>    firmware; la app valida lo mismo por comodidad. Ver `§5.5.1`.
+> 2. **DECISIÓN: el cruce se opera desde el MAESTRO.** La app ya lo enruta y avisa a qué punta va
+>    cada orden. Ver `§5.5.2`.
+> 3. **`N-130`: el `PEDIDO_AL_MAESTRO` ya no es la última palabra.** Fuera del Modo Inteligente el
+>    Maestro rechaza la demanda y llega el evento `MAESTRO / DEMANDA_NO_ATENDIDA_MODO_ACTUAL`.
+>    **Es comportamiento normal.** Ver `§5.5.3`.
+>
+> **Y una cuarta, que no es de comportamiento sino de identificación:** el módulo se auto-rotula
+> `SEM-<serie>-M` / `SEM-<serie>-E`, **pero un módulo recién puesto anuncia `SEM-SIN-MATRICULA` y
+> los dos postes se llaman igual hasta que se les da una vuelta de energía.** Con la decisión 2
+> encima, saber a qué poste se conecta uno deja de ser un detalle. Ver `§4.bis.1`.
+>
 > ## ⚠️ Y lo que no cambia: **nada de esto ha pasado banco**
 >
 > En campo corre la **V8.4**. El propio nombre del `.apk` lleva `SIN_BANCO` y hay que leerlo:
@@ -158,16 +176,26 @@ La aplicación móvil **IOT-VIAL V9.0** elimina la fricción operativa en obra s
 │                   PERFILES DE ACCESO EN APP IOT-VIAL V9.0                │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ 👷 MODO OPERARIO (POR DEFECTO):                                          │
-│   • Botonera tactil de campo de 4 botones grandes                       │
-│     (31/08: NO es una "replica del mando" - es LA superficie de mando)  │
-│   • 1 toque: 🟢 Automatico | ✋ Dar Paso | 🟡 Ambar | 🛑 Caida segura     │
-│     OJO: la caida segura NO es el mismo comando en las dos puntas.      │
-│          Maestro -> CMD:FORZAR_ROJO      (rojo total)                   │
-│          Esclavo -> CMD:AMBAR_EMERGENCIA (ambar). FORZAR_ROJO da $ERR.  │
+│   • Botonera tactil de campo - CENSADA EL 04/09 sobre index.html         │
+│     (31/08: NO es una "replica del mando" - es LA superficie de mando)   │
+│   • Rotulos LITERALES, y no son cuatro:                                  │
+│       AUTOMATICO . DAR PASO . AMBAR . ROJO TOTAL .                       │
+│       AMBAR EMERGENCIA . RETIRAR AMBAR . VOLVER AL MENU                  │
+│     Los TRES de emergencia se ensenan segun la punta (app.js:1494-1506)  │
+│       ROJO TOTAL        se oculta con un ESCLAVO delante                 │
+│       AMBAR EMERGENCIA  se oculta con un MAESTRO delante                 │
+│       RETIRAR AMBAR     SOLO aparece con un ESCLAVO delante              │
+│     Sin punta identificada salen los DOS primeros, con su aviso.         │
+│     OJO: la parada de emergencia NO es el mismo comando en las dos       │
+│          puntas, y por eso NO comparten rotulo:                          │
+│          Maestro -> ROJO TOTAL        = CMD:FORZAR_ROJO      (rojo)      │
+│          Esclavo -> AMBAR EMERGENCIA  = CMD:AMBAR_EMERGENCIA (ambar,     │
+│                     talanquera ABIERTA). FORZAR_ROJO da $ERR alli.       │
 │   • Cero contrasenas ni formularios complejos para el operario de obra.  │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ 🛡️ MODO TÉCNICO / ADMINISTRADOR (PIN '1234'):                           │
-│   • Ajustes de tiempos de ciclo (Verde 1-15m, Rojo 1-15m, Despeje 10-90s)│
+│   • Tiempos de ciclo: Verde 3-15m, Rojo 3-15m, Despeje 10-90s            │
+│     (04/09: el minimo sube de 1 a 3 min. DECISION VIAL, ver 5.5)         │
 │   • Asistente Courier RTC con compensación automática de viaje.          │
 │   • Test secuencial de potencia de MOSFETs y focos (6 segundos).         │
 │   • Gestor CRUD de frentes de obra y cruces viales en LocalStorage.      │
@@ -283,10 +311,37 @@ hablar con el equipo teniéndolo delante y encendido.**
 > en Ajustes de Android PRIMERO** y **después** pulsar **«Buscar Módulos Bluetooth»** en la app. Sin
 > ese orden la lista sale vacía. Ver la cabecera.
 
-### 4.bis.1 🛑 En la lista de Bluetooth el equipo se llama `SEM-SIN-MATRICULA`
+### 4.bis.1 🛑 Cómo se distingue un poste del otro en la lista — y cuándo NO se distinguen
 
-**Mientras el módulo no haya aprendido la serie del equipo se anuncia como `SEM-SIN-MATRICULA`, NO
-con el nombre del cruce.**
+**El módulo se AUTO-ROTULA, y la letra final dice qué poste es.** No es una opción de compilación:
+el mismo binario sirve a las dos puntas y **el nombre lo aprende del campo `NODE:` de la trama
+`$STATUS`** que emite la tarjeta. **MEDIDO en
+`01_Firmware/ESP32_Expansion/src/transporte_app.cpp:80-114`** y `include/contrato.h:258-259`:
+
+| lo que sale en la lista de Android | qué es |
+|---|---|
+| **`SEM-<serie>-M`** | el poste **MAESTRO** |
+| **`SEM-<serie>-E`** | el poste **ESCLAVO** |
+| **`SEM-SIN-MATRICULA`** | el módulo **todavía no ha aprendido** de qué poste cuelga |
+
+> 🔵 **Desde la decisión del 04/09 —el cruce se opera desde el Maestro, `§5.5.2`— esa letra final
+> deja de ser un detalle y pasa a ser lo primero que hay que mirar antes de mandar una orden.**
+
+> 🛑 **Y AQUÍ ESTÁ EL CASO QUE HAY QUE SABER EN OBRA: UN MÓDULO RECIÉN PUESTO ANUNCIA
+> `SEM-SIN-MATRICULA`, Y LOS DOS POSTES SE LLAMAN IGUAL HASTA QUE SE LES DA UNA VUELTA DE ENERGÍA.**
+>
+> **El rótulo aprendido se guarda para la SIGUIENTE arrancada, y es deliberado**
+> (`transporte_app.cpp:109-113`): renombrar el perfil SPP en caliente obliga a cerrarlo y reabrirlo,
+> o sea **a tirar la sesión del operario que en ese momento puede estar dando una orden al cruce**.
+>
+> **Con dos módulos nuevos en el mismo frente de obra los dos salen iguales en la lista, y el
+> técnico se conecta a ciegas.** Lo que hay que hacer, y va en la puesta en marcha:
+>
+> 1. Con el módulo montado y la tarjeta encendida, **déjelo un minuto**: le basta con recibir un
+>    `$STATUS` —salen cada 2 s— para aprender su matrícula y guardarla.
+> 2. **Déle una vuelta de energía al módulo.** En el arranque siguiente ya sale con su `-M` o su `-E`.
+> 3. **No cambie el módulo** por anunciarse `SEM-SIN-MATRICULA`, y **no lo busque como `IOT_VIAL`**
+>    ni por el nombre del cruce: no se llama así.
 
 * Si el técnico busca **`IOT_VIAL`**, o **el nombre del cruce**, **no lo encuentra** — y lo razonable
   es concluir que el módulo está muerto. No lo está.
@@ -296,7 +351,7 @@ con el nombre del cruce.**
 > ⚠️ **Consecuencia para la app y para quien la usa:** un `SEM-SIN-MATRICULA` en la lista **no
 > significa «equipo sin configurar»**; puede ser un equipo con su serie ya puesta que todavía no se
 > ha reiniciado. La matrícula que vale es la del campo `SERIE:` de la trama `$STATUS`, no la del
-> nombre Bluetooth.
+> nombre Bluetooth. **La app ya lo dice en su propia pantalla de Bluetooth** (`index.html:639-640`).
 
 ### 4.bis.2 ⚠️ El emparejamiento es «Just Works»: SIN PIN del sistema operativo
 
@@ -349,29 +404,34 @@ NMEA. **La forma es `CMD:PIN:1234:<ACCION>` — con dos puntos**, que es como la
    $CMD,PIN,1234,SET_RTC,18:27:00*41\r\n
 ```
 
-### 5.1 Lo que despacha el **MAESTRO** — censado sobre `Maestro/src/bluetooth.cpp` el 31/08
+### 5.1 Lo que despacha el **MAESTRO** — censado el 31/08, **RE-MEDIDO EL 04/09**
+
+> ✏️ **Las líneas de esta tabla y de la 5.2 se re-midieron el 04/09.** Las del censo de agosto ya no
+> valían: el fichero creció y los despachadores bajaron unas 270 líneas. **Un número de línea en un
+> manual caduca solo**, así que se citan con la fecha de la medida.
 
 | Trama | Línea | Notas |
 |---|---|---|
-| `CMD:FORZAR_ROJO` | `:145` | **Sin PIN**, a propósito. Rojo total |
-| `CMD:SET_MODO:MENU` | `:168` | **Sin PIN** (alias). No abre paso |
-| `CMD:SET_MODO:ALCANCE` | `:168` | **Sin PIN** (alias) |
-| `CMD:PIN:1234:SET_MODO:AUTO` | `:177` | |
-| `CMD:PIN:1234:SET_MODO:MANUAL` | `:182` | |
-| `CMD:PIN:1234:SET_MODO:AMBAR` | `:187` | |
-| `CMD:PIN:1234:SET_MODO:MENU` | `:191` | 🆕 **sustituye al botón *Cancelar*** retirado |
-| `CMD:PIN:1234:SET_MODO:ALCANCE` | `:212` | 🆕 |
-| `CMD:PIN:1234:SET_MODO:INTELIGENTE` | `:223` | 🆕 modo de cámaras |
-| `CMD:PIN:1234:SET_MODO:DEGRADADO` | `:234` | 🆕 **contesta el motivo concreto del rechazo** |
-| `CMD:PIN:1234:FORZAR_ROJO` | `:253` | Igual que la forma sin PIN |
-| `CMD:PIN:1234:MANUAL:CAMBIAR_TURNO` | `:257` | |
-| `CMD:PIN:1234:TEST_LEDS` | `:271` | |
-| `CMD:PIN:1234:SET_TIEMPOS:v,r,d` | `:275` | Un `$ERR` por motivo: `FORMATO_INVALIDO`, `EN_MARCHA_PARE_EL_MODO`, `RANGO` |
-| `CMD:PIN:1234:SET_RTC:YYYY-MM-DD,HH:MM:SS` | `:295` | **Cinco ramas** — ver 5.3 |
-| `CMD:PIN:1234:REINICIAR_RELOJ` | `:330` | 🆕 diagnóstico del cristal |
-| `CMD:PIN:1234:DEMANDA` | `:345` | 🆕 solo en Modo Inteligente |
+| `$LATIDO` | `:399` | 🆕 **04/09.** No es una orden: es la línea que el puente emite para que el troceador cierre un silencio. **El equipo NO contesta nada, a propósito** — sin esta rama caía en la guarda de PIN y devolvía un `AUTH_FAILED` cada dos segundos |
+| `CMD:FORZAR_ROJO` | `:412` | **Sin PIN**, a propósito. Rojo total |
+| `CMD:SET_MODO:MENU` | `:436` | **Sin PIN** (alias). No abre paso |
+| `CMD:SET_MODO:ALCANCE` | `:437` | **Sin PIN** (alias) |
+| `CMD:PIN:1234:SET_MODO:AUTO` | `:444` | ⚠️ ver el aviso de §5.5: **reinicia los tiempos a 1/1/15** |
+| `CMD:PIN:1234:SET_MODO:MANUAL` | `:449` | |
+| `CMD:PIN:1234:SET_MODO:AMBAR` | `:454` | **Es un MODO, no el latch de emergencia.** El Maestro no tiene `AMBAR_EMERGENCIA` |
+| `CMD:PIN:1234:SET_MODO:MENU` | `:458` | **sustituye al botón *Cancelar*** retirado. En Degradado sale por todo-rojo |
+| `CMD:PIN:1234:SET_MODO:ALCANCE` | `:479` | |
+| `CMD:PIN:1234:SET_MODO:INTELIGENTE` | `:490` | modo de cámaras |
+| `CMD:PIN:1234:SET_MODO:DEGRADADO` | `:501` | **contesta el motivo concreto del rechazo** |
+| `CMD:PIN:1234:FORZAR_ROJO` | `:520` | Igual que la forma sin PIN |
+| `CMD:PIN:1234:MANUAL:CAMBIAR_TURNO` | `:524` | `$ERR,…,DESC:EN_TRANSICION_REINTENTE` si no está en reposo |
+| `CMD:PIN:1234:TEST_LEDS` | `:538` | |
+| `CMD:PIN:1234:SET_TIEMPOS:v,r,d` | `:542` | Un `$ERR` por motivo: `FORMATO_INVALIDO`, `EN_MARCHA_PARE_EL_MODO`, `RANGO`. **Rangos nuevos del 04/09 en §5.5** |
+| `CMD:PIN:1234:SET_RTC:YYYY-MM-DD,HH:MM:SS` | `:578` | **Cinco ramas** — ver 5.3 |
+| `CMD:PIN:1234:REINICIAR_RELOJ` | `:625` | diagnóstico del cristal |
+| `CMD:PIN:1234:DEMANDA` | `:645` | **sólo en Modo Inteligente**: fuera de él, `$ERR,…,DESC:SOLO_EN_MODO_INTELIGENTE` |
 
-Cualquier otra cosa: `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO` (`:363`).
+Cualquier otra cosa: `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO` (`:663`).
 
 > **Los marcados 🆕 son los que la app tiene que exponer y este manual no mencionaba.** Un comando
 > del firmware sin interfaz en la app es un modo al que ya no se puede llegar: la LCD se retiró y
@@ -379,15 +439,27 @@ Cualquier otra cosa: `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO` (`:363`).
 
 ### 5.2 🛑 Lo que despacha el **ESCLAVO** — y NO es lo mismo
 
+**Censado el 31/08, RE-MEDIDO EL 04/09.**
+
 | Trama | Línea | Qué hace |
 |---|---|---|
-| `CMD:AMBAR_EMERGENCIA` | `:130` | **Sin PIN.** Ámbar intermitente + latch que **veta las órdenes de radio** |
-| `CMD:PIN:1234:AMBAR_EMERGENCIA` | `:171` | Lo mismo, con PIN |
-| `CMD:PIN:1234:SOLICITAR_PASO` | `:184` | **Pide**, no ordena. `PEDIDO_AL_MAESTRO` / `$ERR,…,DESC:REPITA_EN_UNOS_SEGUNDOS` |
-| `CMD:PIN:1234:SET_RTC:…` | `:215` | `OK` / `SIN_CRISTAL` / `FORMATO_INVALIDO` |
-| ~~`CMD:FORZAR_ROJO`~~ | `:157` | 🛑 `$ERR,…,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` |
-| ~~`CMD:PIN:1234:FORZAR_ROJO`~~ | `:176` | 🛑 mismo `$ERR`. **Las dos formas** |
-| ~~`CMD:PIN:1234:TEST_LEDS`~~ | `:202` | 🛑 `$ERR,…,DESC:NO_EN_SERVICIO_USE_EL_MAESTRO` |
+| `$LATIDO` | `:340` | 🆕 **04/09.** Igual que en el Maestro: **no se contesta**, sólo cierra un silencio |
+| `CMD:AMBAR_EMERGENCIA` | `:381` | **Sin PIN.** Ámbar intermitente + latch que **veta las órdenes de radio** |
+| `CMD:PIN:1234:AMBAR_EMERGENCIA` | `:468` | Lo mismo, con PIN. **El mismo bloque letra por letra** — lo vigilan `esclavo_07` y `esclavo_08` |
+| `CMD:PIN:1234:CANCELAR_AMBAR` | `:491` | 🆕 **faltaba en este manual.** **Retira** el latch, **con PIN**. `RETIRADO` · `RETIRADO_QUEDA_MANDO` · `$ERR,…,DESC:NO_HAY_AMBAR_VIGENTE` |
+| `CMD:PIN:1234:SOLICITAR_PASO` | `:532` | **Pide**, no ordena. `PEDIDO_AL_MAESTRO` / `$ERR,…,DESC:REPITA_EN_UNOS_SEGUNDOS`. **Y el `PEDIDO_AL_MAESTRO` se puede desmentir después — `N-130`, abajo** |
+| `CMD:PIN:1234:SET_RTC:…` | `:563` | `OK` / `SIN_CRISTAL` / `FORMATO_INVALIDO` |
+| ~~`CMD:FORZAR_ROJO`~~ | `:448` | 🛑 `$ERR,…,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` |
+| ~~`CMD:PIN:1234:FORZAR_ROJO`~~ | `:524` | 🛑 mismo `$ERR`. **Las dos formas** |
+| ~~`CMD:PIN:1234:TEST_LEDS`~~ | `:550` | 🛑 `$ERR,…,DESC:NO_EN_SERVICIO_USE_EL_MAESTRO` |
+
+Cualquier otra cosa: `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO` (`:622`).
+
+> ✏️ **`CANCELAR_AMBAR` llevaba desde el 31/08 en el firmware (`R-3`) y NO estaba en esta tabla.**
+> La app sí tiene su botón —**«RETIRAR ÁMBAR»**, que sólo aparece con un Esclavo delante—, así que
+> el manual describía menos comandos de los que el técnico tiene en la pantalla. **Pide PIN al revés
+> que el de poner ámbar, y el motivo está en el firmware:** pedir ámbar es la acción **segura**;
+> quitarlo devuelve el cruce a dar verdes, o sea **abre paso**, que es justo lo que el PIN custodia.
 
 > ## 🛑 EL BOTÓN DE PÁNICO NO ES EL MISMO EN LAS DOS PUNTAS
 >
@@ -485,6 +557,86 @@ causas posibles, `:170-174` el rearme por reconexión.)*
 
 ---
 
+## 5.5 🟢 LO QUE CAMBIÓ EL 04/09 — TRES COSAS QUE LA APP TIENE QUE REFLEJAR
+
+### 5.5.1 🔴 El ciclo mínimo sube de 1 a 3 minutos, y la guarda de verdad NO es la app
+
+**Rangos vigentes, MEDIDOS en `Maestro/src/modo_automatico.cpp:51-53`:**
+
+| | mínimo | máximo |
+|---|---|---|
+| Verde | **3 min** *(era 1)* | 15 min |
+| Rojo | **3 min** *(era 1)* | 15 min |
+| Despeje (todo-rojo) | 10 s | 90 s |
+
+**El motivo es una decisión vial del responsable, literal: «tres minutos es la mínima distancia de
+seguridad».** En un paso alternado de un solo carril un camión pesado tarda entre 5 y 8 s sólo en
+reaccionar y arrancar; con un verde de 60 s pasan tres o cuatro vehículos antes de cortar a ámbar, y
+lo que sale de ahí no es una cola: es un conductor convencido de que el semáforo está averiado.
+
+> 🔵 **La app valida lo mismo —`app.js:2500`, `enRango(verde, 3, 15)`— pero eso es COMODIDAD, no la
+> barrera.** La barrera vive en el firmware y rechaza con `$ERR,CMD:SET_TIEMPOS,DESC:RANGO`. **Y es
+> la única que vale:** la app no es la única que habla por `J17`, y **una APK vieja de las que
+> sobreviven en los teléfonos puede mandar `SET_TIEMPOS` con un minuto**. Una guarda que sólo vive
+> en la interfaz es de cortesía.
+>
+> **Para quien mantiene la app, la regla que sale de aquí:** el rango de la app se valida contra el
+> `.cpp`, y **si algún día divergen, el que manda es el firmware**. Ofrecer un valor que el equipo
+> va a rechazar es el defecto que este proyecto ya conoce con otro nombre.
+
+> 🛑 **Y un aviso ABIERTO, medido el 04/09 y SIN DIAGNOSTICAR, que afecta a lo que la app enseña:**
+> los valores por defecto del modo siguen siendo **1 min / 1 min / 15 s** (`modo_automatico.cpp:13`
+> y `:94`) y **no pasan por la guarda** —`modoAutomatico_fijarTiempos()` sólo se ejerce desde
+> `SET_TIEMPOS`—. **`SET_MODO:AUTO` llama a `modoAutomatico_setup()`, que reescribe los tres valores
+> a `1, 1, 15`**: unos tiempos aceptados con `$ACK` **se pierden al arrancar el modo**.
+> *No se propone aquí un arreglo, y la app no debe fingir uno: mientras esto siga así, lo que la
+> pantalla muestre después de un `SET_MODO:AUTO` puede no ser lo que el equipo está usando.*
+
+### 5.5.2 🟢 DECISIÓN: el cruce se opera desde el MAESTRO
+
+**No se va a hacer transparente el mando desde el Esclavo.** La asimetría de `§5.1` y `§5.2` deja de
+ser una limitación pendiente y pasa a ser **cómo se opera este equipo**.
+
+| desde el **MAESTRO** | desde el **ESCLAVO** |
+|---|---|
+| cambiar de modo · dar paso · ajustar tiempos · `TEST_LEDS` · rojo total | **sólo** `SOLICITAR_PASO`, `AMBAR_EMERGENCIA`, `CANCELAR_AMBAR` y `SET_RTC` |
+
+**La app ya lo enruta y no hace falta tocarla:** `SOLO_MAESTRO` y `SOLO_ESCLAVO` en `app.js:2051-2057`,
+y `puntaCorrecta()` en `:2078` avisa a qué punta va la orden en vez de mandarla al vacío.
+
+> ⚠️ **Lo que la app NO puede hacer por el operario: llevarle al otro poste.** El Bluetooth alcanza
+> el equipo que tiene delante. Si hace falta cambiar el modo estando en el Poste 2, hay que
+> desplazarse. **Por eso `§4.bis.1` deja de ser un detalle de lista: hay que saber a qué poste se
+> está conectando.**
+
+### 5.5.3 🟢 `N-130` — el equipo ya no dice que sí a lo que no va a hacer
+
+**Es comportamiento normal, no una avería.** Si se pulsa **«Solicitar Paso» desde el ESCLAVO** y el
+cruce **no está en Modo Inteligente**, el Maestro rechaza la demanda y el Esclavo lo publica como
+evento:
+
+```text
+   MAESTRO / DEMANDA_NO_ATENDIDA_MODO_ACTUAL
+```
+
+**Por qué llega como EVENTO y no como `$ERR`:** el Esclavo contesta a la app **antes** de saber la
+respuesta del Maestro —no puede esperar: bloquear su bucle por una radio de 2,4 kbps es peor—, así
+que **el primer acuse sigue siendo `$ACK,CMD:SOLICITAR_PASO,RESULT:PEDIDO_AL_MAESTRO`**. Un `$ERR`
+tardío habría que casarlo con una orden contestada hace cientos de milisegundos, y con dos
+pulsaciones seguidas la app no sabría a cuál corresponde. **Un evento fechado en la bitácora sí se
+lee.**
+
+**MEDIDO:** `Maestro/src/coordinador.cpp:636-641` (decide con `modoActual_get() == MODO_INTELIGENTE`
+y manda `DEMANDA_ACEPTADA` / `DEMANDA_RECHAZADA`) y `Esclavo/src/main.cpp:541-543` (lo convierte en
+el evento). **Antes esa rama estaba vacía: la app decía «pedido al Maestro» y no pasaba nada.**
+
+> ⚠️ **Para quien lea la app en campo: el `PEDIDO_AL_MAESTRO` ya no es la última palabra.** Hay que
+> mirar `Eventos` unos segundos después. Si sale `DEMANDA_NO_ATENDIDA_MODO_ACTUAL`, **no es un fallo
+> del enlace ni del Esclavo**: es que el cruce no está en Modo Inteligente, y ese modo se pone
+> **desde el Maestro**.
+
+---
+
 ## 6. 📊 EVIDENCIA DE PANTALLAS (GALERÍA V9.0)
 
 > ⚠️ **Una captura a un solo ancho no es una prueba de interfaz.** Las de `evidencia/` se hicieron a
@@ -494,7 +646,7 @@ causas posibles, `:170-174` el rearme por reconexión.)*
 
 | Vista | Captura | Descripción |
 |---|---|---|
-| **Modo Operario** | `evidencia/01_modo_operario_principal.png` | Botonera táctil de 4 botones y réplica 3D de semáforos. ~~*«réplica del mando de relés»*~~ → **31/08: es la superficie de mando principal**, no una réplica de nada |
+| **Modo Operario** | `evidencia/01_modo_operario_principal.png` | Botonera táctil y réplica 3D de semáforos. ~~*«réplica del mando de relés»*~~ → **31/08: es la superficie de mando principal**, no una réplica de nada. ⚠️ **04/09: la captura enseña ~~4~~ botones y la botonera de hoy tiene SIETE rótulos, tres de ellos condicionados a la punta (§1). La captura está caducada, no la botonera** |
 | **Selector de Cruces** | `evidencia/02_modal_cruces_abierto.png` | Catálogo de frentes de obra y selección inmediata |
 | **Modo Técnico** | `evidencia/06_modo_tecnico_activo.png` | Desbloqueo por PIN y pestañas de configuración |
 | **Ajustes de Tiempos** | `evidencia/07_tiempos_guardados_exito.png` | Programación de tiempos de verde, rojo y despeje |

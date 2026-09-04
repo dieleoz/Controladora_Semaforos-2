@@ -2,9 +2,11 @@
 
 **Para:** el funcional y el auditor.
 **Fecha del documento:** 28 de agosto de 2026.
-**Revisado:** 31 de agosto de 2026 (decision del responsable) y **04 de septiembre de 2026 (banco
-real: el equipo se midio con multimetro los dias 3 y 4)**. Las dos revisiones estan al principio, la
-mas nueva primero, y **nada de lo superado se ha borrado**.
+**Revisado:** 31 de agosto de 2026 (decision del responsable), **04 de septiembre de 2026 (banco
+real: el equipo se midio con multimetro los dias 3 y 4)** y **04 de septiembre de 2026, mas tarde el
+mismo dia (tres cambios de firmware y una decision del responsable, medidos SOBRE FICHEROS)**. Las
+tres revisiones estan al principio; **la del banco va la primera a proposito** —es la unica medida en
+cobre—, y detras la de la tarde. **Nada de lo superado se ha borrado.**
 **Acta de compuerta de referencia:** `evidencia/2026-08-28_compuerta.txt` — `15 PASS | 0 FALLA | 0 ABORTADO`,
 HEAD `3733544`, rama `main-nuevo`, **arbol LIMPIO** (lo dice la propia acta).
 
@@ -167,6 +169,135 @@ leyendo**, que es justo el que se habria revisado.
 **Los dos arreglados, y hay APK nueva.** ⚠️ **Pero eso es firmware y app, no banco: lo medido aqui es
 el defecto, no el arreglo.** Que el enlace suba se demuestra repitiendo los pasos 25-28 — no leyendo
 esta tabla.
+
+---
+
+## 🔵 REVISION DEL 04/09/2026, MAS TARDE EL MISMO DIA — TRES CAMBIOS Y UNA DECISION
+
+**Esto NO lo trajo el banco.** La revision de arriba se midio con multimetro; esta se midio **sobre
+ficheros** —el `.cpp` y el `.h`—, y por eso va aparte y no se mezcla con aquella: es `MEDIDO`, no
+`MEDIDO EN COBRE`. **Nada de lo que sigue se ha cargado en una tarjeta.**
+
+| # | que cambia | donde se comprueba | nivel |
+|---|---|---|---|
+| **1** | **El minimo del ciclo sube de 1 a 3 minutos.** Cierra `N75-1`, abierta desde el 26/08 (§3.4) | `Maestro/src/modo_automatico.cpp:51-53` | **MEDIDO** |
+| **2** | **DECISION DEL RESPONSABLE: el cruce se opera DESDE EL MAESTRO.** Se descarta relevar el mando por radio desde el Esclavo | **§3.7, nueva** | **decision** |
+| **3** | **N-130: el acuse de la demanda dice si se va a atender**, y la bandera solo se arma si hay quien la consuma | `include/protocolo.h:151-172` (las dos puntas) · `Maestro/src/coordinador.cpp:620-642` · `Esclavo/src/main.cpp:525-544` | **MEDIDO** |
+| — | 🔴 **ABIERTA, nueva:** el rotulo Bluetooth de un modulo virgen es **el mismo en las dos puntas** hasta la segunda arrancada | **§3.8, nueva** | **MEDIDO** |
+
+### 1 · El minimo del ciclo sube de 1 a 3 minutos
+
+**MEDIDO** en `01_Firmware/Maestro/src/modo_automatico.cpp:51-53`:
+
+```
+   static const uint8_t VERDE_MIN_MIN = 3,  VERDE_MIN_MAX = 15;
+   static const uint8_t ROJO_MIN_MIN  = 3,  ROJO_MIN_MAX  = 15;
+   static const uint8_t DESPEJE_SEG_MIN = 10, DESPEJE_SEG_MAX = 90;
+```
+
+**El porque, con las palabras del responsable: «tres minutos es la minima distancia de seguridad».**
+El razonamiento largo esta escrito en el propio fichero (`:22-50`) y **no se copia aqui**: dos
+versiones de un motivo son dos cosas que alguien tiene que sincronizar, y este documento ya sabe
+como acaba eso. En una linea: en un paso alternado de un solo carril, un camion pesado tarda entre
+5 y 8 s **solo en reaccionar y arrancar**; con un verde de 60 s lo que se produce no es una cola, es
+un conductor convencido de que el semaforo esta averiado.
+
+**Y la mitad que decide DONDE vive la guarda, que es lo que la hace firmware y no interfaz.** La app
+valida por comodidad, pero **la app no es la unica que puede hablar por `J17`**: cualquier otra cosa
+en ese cable —o una APK vieja, que el 04/09 se demostro que sobreviven en los telefonos— puede
+mandar `SET_TIEMPOS` con un minuto. La guarda esta en `modoAutomatico_fijarTiempos()`
+(`modo_automatico.cpp:57-60`) y el rechazo sale por `$ERR,CMD:SET_TIEMPOS,DESC:RANGO`
+(`Maestro/src/bluetooth.cpp:573`). **Una guarda que solo vive en la interfaz es de cortesia.**
+
+**COSTE ACEPTADO A SABIENDAS, y va escrito porque se paga en la proxima sesion de banco:** ya **no
+se puede probar en mesa con ciclos de un minuto**. Un banco cae del lado de esperar tres minutos, no
+del lado de dejar un limite de laboratorio suelto en una carretera. **Quien planifique la proxima
+visita tiene que contar tres minutos por paso al escribir los tiempos.**
+
+> ✅ **N75-2 se cierra con el mismo cambio, y no por casualidad: al ir a subir el numero aparecio que
+> los seis limites estaban escritos a mano en TRES sitios y tres lenguajes.** Hoy los tres coinciden
+> y hay un pack que los relee en cada corrida —`app_11_rangos_de_tiempos`, que lee el C++, el
+> `enRango(...)` de `app.js` y los `min=`/`max=` de `index.html`—. **MEDIDO** en
+> `01_Firmware/Simulaciones/banco/packs/app_11_rangos_de_tiempos.py:3-8`, `:34-37`.
+>
+> 🔴 **Y el hueco que ese pack NO cubre, medido en esta misma pasada: hay un CUARTO sitio, y
+> hoy dice lo contrario que el firmware.** `05_Funcional/App_Semaforo/js/config.js:10-17` declara
+> `LIMITES_TIEMPO` con `VERDE_MIN_MIN: 1` y `ROJO_MIN_MIN: 1`, bajo el comentario *«Rangos de
+> Tiempos Permitidos por Firmware»* — **que hoy es falso**. `index.html:718` lo carga, y `grep` de
+> `IOT_CONFIG` y de `LIMITES_TIEMPO` sobre la app **da cero consumidores fuera de `tests/`**: es un
+> huerfano de los de N-73 **con una cifra caducada dentro y una frase que la presenta como medida**.
+> **No se toca desde este documento** —la app la lleva otro trabajo—; queda en el Anexo, punto 6.
+
+### 2 · La demanda que se acusaba y no se atendia (N-130)
+
+**El defecto, MEDIDO por censo y no por lectura.** El Esclavo contestaba
+`$ACK,CMD:SOLICITAR_PASO,RESULT:PEDIDO_AL_MAESTRO` (`Esclavo/src/bluetooth.cpp:543`) y el Maestro
+armaba `demandaRemotaPendiente` **siempre**. `grep` de esa bandera contra sus llamadores:
+
+```
+   grep -rn "coordinador_hayDemandaRemota|coordinador_limpiarDemandaRemota" Maestro/src
+      ->  modo_inteligente.cpp:87, :102, :110, :124     <-- UN SOLO FICHERO
+```
+
+**En Modo Manual y en Modo Automatico nadie la lee.** El operario de pie junto al Poste 2 pulsaba,
+leia la confirmacion, y el cruce no se movia. Vuelve a pulsar. **Es la barrera de `CLAUDE.md` §6 —un
+`$ACK` que no depende de lo que paso— pero repartida entre DOS placas**, y por eso ninguna de las
+dos ramas parecia mal escrita leida por separado.
+
+**Lo que hay hoy, MEDIDO:**
+
+| donde | que hace |
+|---|---|
+| `Maestro/include/protocolo.h:171-172` (identico en el `Esclavo`) | `DEMANDA_ACEPTADA 0` / `DEMANDA_RECHAZADA 1` |
+| `Maestro/src/coordinador.cpp:636-641` | la bandera **solo se arma si el modo la va a consumir**, y el acuse viaja con el motivo en el byte `param` |
+| `Esclavo/src/main.cpp:541-543` | si llega `DEMANDA_RECHAZADA`, levanta el evento `MAESTRO / DEMANDA_NO_ATENDIDA_MODO_ACTUAL` |
+
+**Dos detalles del diseno que conviene no perder, porque son los que lo hacen barato:**
+
+- **No gasta un codigo de comando ni cambia la trama.** El `param` ya viajaba y ya va cubierto por
+  el CRC —`calcularCRC_Bin(&pkt, 3)` incluye `msgID`, `command` y `param`—.
+- **`DEMANDA_ACEPTADA` vale `0` a proposito.** `protocolo_enviarPaquete()` pone `param = 0` por
+  defecto, asi que un Maestro sin actualizar se sigue leyendo como *aceptada* y se comporta como
+  siempre: **si la compatibilidad fallara, fallaria hacia el silencio de hoy y no hacia una alarma
+  inventada.**
+
+**Y el molde estaba dentro del mismo sistema:** la rama `DEMANDA` **local** del Maestro ya rechazaba
+fuera del Modo Inteligente —`$ERR,CMD:DEMANDA,DESC:SOLO_EN_MODO_INTELIGENTE`,
+`Maestro/src/bluetooth.cpp:649-652`—. Lo que faltaba era la misma regla **al otro lado de la radio**.
+
+> ⚠️ **Lo que N-130 NO cierra, y va escrito al lado:** el rechazo llega a la app como **evento de
+> bitacora**, no como `$ERR` —y esta razonado: un `$ERR` habria que casarlo con una orden contestada
+> cientos de milisegundos antes, y con dos pulsaciones seguidas la app no sabria a cual corresponde
+> (`Esclavo/src/main.cpp:534-537`)—. **Que la app pinte ese evento y el operario lo lea NO se ha
+> comprobado.** Sin eso el cierre es medio: se deja de mentir, pero puede no decirse nada.
+
+### 3 · La decision del responsable
+
+**Va desarrollada en §3.7**, que es nueva, con la alternativa descartada, el censo que la respalda,
+su consecuencia operativa y su coste. La pregunta que abre —el rotulo— va en **§3.8**, abierta.
+
+> 🔴 **EL COSTE DE FLASH DE ESTOS CAMBIOS NO SE PUBLICA COMO DATO: SE PUBLICA LA
+> DISCREPANCIA.** Es `CLAUDE.md` §4 y §4.bis, y el mismo criterio con el que la cabecera trata la
+> cuenta del informe de banco.
+>
+> El acta mas reciente es `evidencia/2026-09-04_compuerta.txt`, `HEAD 624eb37`, y **es ANTERIOR a
+> estos cambios**: publica `89.3 %` (`58496` de `65536` B) en el Maestro y `65.9 %` (`43220` B) en el
+> Esclavo. El coste se reporto como **`+36` B** en el Maestro y **`+116` B** en el Esclavo.
+>
+> **Medido aqui sobre el `.elf` construido despues del cambio** —`arm-none-eabi-size -A`, sumando
+> las secciones cargables, que es la cuenta que reproduce exactamente las cifras de las actas
+> anteriores y que coincide byte a byte con el tamano del `.bin`—:
+>
+> ```
+>    Maestro   58852 B  (89,8 %)      acta 624eb37: 58496 B   ->  +356 B
+>    Esclavo   43656 B  (66,6 %)      acta 624eb37: 43220 B   ->  +436 B
+> ```
+>
+> **Las dos parejas no reconcilian, y este documento no elige entre ellas.** La explicacion mas
+> probable es que **el acta no sea el extremo bueno del delta** —entre `624eb37` y hoy hay mas de un
+> cambio, y §4.bis avisa de que *un delta exige medir los DOS extremos*—; pero eso es una hipotesis,
+> no una medida. **La cifra que vale sale de correr la compuerta sobre el arbol de hoy**, y hasta
+> entonces aqui no va ningun porcentaje de flash como dato.
 
 ---
 
@@ -1130,26 +1261,58 @@ comentarios y `ESTADO.md`).
 > | `J2` (SWD) como consola de servicio | 🔴 **descartado**: `MAPEO_TARJETA_KICAD.md` §7 — `J2` es la unica via de carga de firmware, no se reutiliza | — |
 > | ~~Aceptar el ambar como estado final y subir al gabinete~~ | cero | ⛔ **retirada de la mesa el 31/08**: era la que habia que firmar, y la decision fue no firmarla |
 
-### 3.4 🟠 El minimo de tiempo por sentido (N75-1)
+### 3.4 ✅ ~~🟠~~ El minimo de tiempo por sentido (N75-1) — **DECIDIDA EL 04/09/2026**
 
-**Dueno: el responsable.** Es una cifra, y hace falta.
+**Dueno: ~~el responsable~~ DECIDIDA (04/09).** Era una cifra y hacia falta; llego.
 
-**MEDIDO:** `01_Firmware/Maestro/src/modo_automatico.cpp:31`
+> ✅ **DECIDIDA POR EL RESPONSABLE EL 04/09/2026: el minimo de verde y de rojo sube de 1 a 3
+> minutos.** Su motivo, literal: **«tres minutos es la minima distancia de seguridad»**. El
+> desarrollo esta en la revision del 04/09 (tarde) de la cabecera, y largo en
+> `modo_automatico.cpp:22-50`.
+>
+> **MEDIDO** en `01_Firmware/Maestro/src/modo_automatico.cpp:51-52`:
+>
+> ```
+>    static const uint8_t VERDE_MIN_MIN = 3,  VERDE_MIN_MAX = 15;
+>    static const uint8_t ROJO_MIN_MIN  = 3,  ROJO_MIN_MAX  = 15;
+> ```
+>
+> **Y va en el C++, no en la app**, que es la otra mitad de la decision: la app puede quedarse vieja
+> y **no es la unica que puede hablar por `J17`**. El firmware rechaza con
+> `$ERR,CMD:SET_TIEMPOS,DESC:RANGO` (`Maestro/src/bluetooth.cpp:573`), y el rango lo comprueba
+> `modoAutomatico_fijarTiempos()` (`:57-60`), no el despachador — que solo traduce texto a numeros.
+>
+> ⚠️ **Coste aceptado a sabiendas: ya no se puede probar en mesa con ciclos de un minuto.**
+>
+> 🔴 **Y lo que la decision NO trae: nadie ha ejercido esto en una tarjeta.** Es MEDIDO sobre
+> fichero, como casi todo este documento.
+
+**Lo que decia este apartado hasta el 04/09, conservado porque una decision solo se puede revisar si
+la pregunta sigue escrita:**
+
+~~**MEDIDO:** `01_Firmware/Maestro/src/modo_automatico.cpp:31`~~
 
 ```
-   static const uint8_t VERDE_MIN_MIN = 1,  VERDE_MIN_MAX = 15;
+   static const uint8_t VERDE_MIN_MIN = 1,  VERDE_MIN_MAX = 15;      <- CADUCADO el 04/09
 ```
 
-**El firmware admite 1 minuto.** `ESTADO.md:140` (N75-1) lo dice con todas las letras: *"Se pidio
+~~**El firmware admite 1 minuto.** `ESTADO.md:140` (N75-1) lo dice con todas las letras: *"Se pidio
 'minimo de 3 minutos'; **no esta escrito en ninguna parte** — el firmware dice `VERDE_MIN_MIN = 1`
 y la app valida exactamente lo mismo. No hay desajuste: hay una decision sin tomar, y su sitio es
-el C++"*.
+el C++"*.~~ → **la decision se tomo, y su sitio era exactamente ese.**
 
-> **Y su hermana, N75-2, que es la que hace que esto vuelva:** los cuatro limites estan escritos
-> **dos veces** —en `modo_automatico.cpp:31-33` y a mano en `app.js:734` mas los `min`/`max` del
-> formulario— **sin nada que los ate**. Hoy coinciden. El dia que suba el minimo, si nadie ata las
-> dos copias, **la app seguira dejando poner 1**. La decision del responsable es el numero; atarlo
-> es media hora de trabajo tecnico y va en el mismo commit.
+> ✅ **Y su hermana, N75-2, se cierra con el mismo cambio.** Decia esto: *"los cuatro limites estan
+> escritos **dos veces** —en `modo_automatico.cpp:31-33` y a mano en `app.js` mas los `min`/`max`
+> del formulario— **sin nada que los ate**. El dia que suba el minimo, si nadie ata las dos copias,
+> la app seguira dejando poner 1"*. **Eran tres sitios, no dos** —el `.cpp`, el `enRango(...)` de
+> `app.js` y los `min=`/`max=` de `index.html`—, hoy los tres dicen `3`, y **hay un pack que los
+> relee del fuente en cada corrida**: `app_11_rangos_de_tiempos`. Eso es lo que la nota vieja pedia
+> —*"atarlo es media hora de trabajo tecnico y va en el mismo commit"*— y es lo que se hizo.
+>
+> 🔴 **Con un hueco medido el mismo dia: hay un CUARTO sitio y el pack no lo mira.**
+> `App_Semaforo/js/config.js:10-17` declara `LIMITES_TIEMPO` con `VERDE_MIN_MIN: 1` y
+> `ROJO_MIN_MIN: 1`, bajo el comentario *«Rangos de Tiempos Permitidos por Firmware»*. Esta
+> **cargado** por `index.html:718` y **sin un solo consumidor** fuera de `tests/`. Anexo, punto 6.
 
 ### 3.5 🟡 La Camara 1: se queda en `PB0`/`J14`, o se muda a `J16`
 
@@ -1222,6 +1385,114 @@ el otro**.
 > **Y lo que SI esta decidido y no espera a V2:** ~~tapar `p1` es una precaucion de banco~~ →
 > **tapar `p1` es obligatorio en cada equipo**, retirando el pin del conector volante. Eso no cuesta
 > rediseno, no espera a nadie y ya se hizo una vez (paso 4).
+
+### 3.7 ✅ NUEVA Y DECIDIDA (04/09) — el cruce se opera DESDE EL MAESTRO
+
+**Dueno: el responsable. DECIDIDA el 04/09/2026.** Es la segunda decision que este documento recoge
+ya tomada, y va aqui —en el apartado de decisiones— por el mismo motivo que §3.3: **una decision
+entre alternativas solo se puede revisar si las alternativas siguen escritas.**
+
+**La alternativa que se descarto:** hacer **transparente** el mando desde el Esclavo, o sea que esa
+punta aceptara `SET_MODO` y `MANUAL:CAMBIAR_TURNO` y los **relevara por radio** al Maestro, de forma
+que el operario pudiera operar el cruce entero desde cualquiera de los dos postes.
+
+**Se descarta. El cruce se opera desde el Maestro.**
+
+**Lo que hay hoy, MEDIDO por censo de despachadores** (`grep -n 'strcmp(accion, "'`):
+
+| punta | comandos que atiende | fichero |
+|---|---|---|
+| **Maestro** | `SET_MODO:AUTO` · `:MANUAL` · `:AMBAR` · `:MENU` · `:ALCANCE` · `:INTELIGENTE` · `:DEGRADADO` · `FORZAR_ROJO` · `MANUAL:CAMBIAR_TURNO` · `TEST_LEDS` · `SET_TIEMPOS` · `SET_RTC` · `REINICIAR_RELOJ` · `DEMANDA` — **14** | `Maestro/src/bluetooth.cpp:444-664` |
+| **Esclavo** | `AMBAR_EMERGENCIA` · `CANCELAR_AMBAR` · `SOLICITAR_PASO`, mas `FORZAR_ROJO` y `TEST_LEDS` que **rechaza a proposito** — **5** | `Esclavo/src/bluetooth.cpp:468-561` |
+
+**El Esclavo PIDE; no ordena** —`SOLICITAR_PASO` manda la misma demanda que la camara y **el Maestro
+decide, aplica el todo-rojo y ordena**: `Esclavo/src/bluetooth.cpp:533-539`, SFTY-27—. **No hay ni
+una linea que releve un `SET_MODO` por radio**, y esta decision dice que no la va a haber.
+
+**Por que se descarta, y no es por coste de codigo:** relevar el mando por radio pone **una segunda
+puerta a la maquina de estados del cruce** al otro lado de un enlace de `2.4 kbps` que el propio
+equipo declara caido a los 25 s (SFTY-6). Cada orden relevada seria un `$ACK` que hay que casar con
+algo que ocurre en **otra placa** — que es exactamente el defecto que N-130 acaba de cerrar en la
+unica trama donde ya existia. **Una punta que pide y otra que decide es una asimetria deliberada, no
+una carencia.**
+
+> 🔴 **LA CONSECUENCIA, y es operativa: el operario tiene que saber a que poste conectarse
+> ANTES de caminar.** Con dos postes que pueden estar a cientos de metros, descubrir en el sitio que
+> el Bluetooth al que se conecto no atiende `SET_MODO` es una caminata perdida y un cruce que sigue
+> como estaba.
+>
+> **Lo unico que se lo dice antes de conectar es el ROTULO Bluetooth** —`SEM-<serie>-M` para el
+> Maestro y `SEM-<serie>-E` para el Esclavo—, que aparece en la lista de emparejados de Android
+> **sin abrir la app**: `ESP32_Expansion/include/contrato.h:241-259`. **Asi que el rotulo deja de ser
+> prolijidad de montaje y pasa a ser parte de esta decision.** Como funciona esta en el Manual 18
+> §6.5; **lo que abre, en §3.8, y esta ABIERTO.**
+
+**Lo que la app ya hace, MEDIDO** (`App_Semaforo/app.js:2051-2058`): lleva la lista `SOLO_MAESTRO`
+—`SET_MODO`, `MANUAL:CAMBIAR_TURNO`, `SET_TIEMPOS`, `TEST_LEDS`, `DEMANDA`, `REINICIAR_RELOJ`,
+`FORZAR_ROJO`— y **avisa a que punta va cada orden** en vez de mandarla al cable contra la punta
+equivocada. **La decision no obliga a tocar la app: la app ya la implementaba.**
+
+**COSTE DE LA DECISION: cero bytes y cero lineas** — es **no construir** lo descartado.
+
+> ⚠️ **Y el coste que SI se paga, que es de calle y por eso va escrito:** con el Maestro caido,
+> inaccesible o fuera de servicio —hoy hay una tarjeta Maestro asi, N-116—, la unica superficie que
+> queda en el Esclavo son sus cinco comandos: **ambar de emergencia, cancelarlo y pedir paso**. **No
+> hay forma de cambiar el modo del cruce desde el Esclavo, ni por Bluetooth ni por radio.** Eso es
+> lo que se ha decidido aceptar.
+>
+> **Y se suma a lo que §3.3 ya dejaba escrito:** el mando de reles —la otra superficie de ultimo
+> recurso— **tambien vive solo en el Maestro**, porque el receptor del Esclavo no se ha comprado
+> (§2.7). Las dos vias de ultimo recurso estan en la misma punta.
+
+### 3.8 🔴 NUEVA Y ABIERTA (04/09) — un modulo virgen se llama igual en las dos puntas
+
+**Dueno: el responsable**, porque lo que decide es lo que hace un tecnico de pie delante de dos
+postes, y §3.7 acaba de apoyar en ello una decision de operacion.
+
+**MEDIDO** en `01_Firmware/ESP32_Expansion/`:
+
+```
+   include/contrato.h:259          #define ROTULO_PROVISIONAL  "SEM-SIN-MATRICULA"
+   src/transporte_app.cpp:23-31    el rotulo del arranque sale de la NVS; si no hay nada, el provisional
+   src/transporte_app.cpp:37       spp.begin(rotulo)     <- el nombre se fija AL ABRIR el perfil
+   src/transporte_app.cpp:105-113  el aprendido se GUARDA, y no se re-rotula en caliente
+   src/puente.cpp:205-206          se aprende de paso, del $STATUS que ya se retransmite
+```
+
+**Como funciona, y por que esta bien pensado —esta parte no se discute:** la serie sale del **silicio
+del STM32** (`identidad_serie()` lee el UID del micro), asi que **el ESP32 no puede saberla al
+arrancar**. El puente la aprende del `$STATUS` que retransmite —sin tocarlo—, junto con el `NODE:`,
+compone `SEM-<serie>-M` o `SEM-<serie>-E` y lo **guarda para la SIGUIENTE arrancada**. **No se
+re-rotula en caliente a proposito**: cambiar el nombre SPP obliga a cerrar y reabrir el perfil, o sea
+**a tirar la sesion del operario que en ese momento puede estar dando una orden al cruce**. Y un
+`NODE:` que no se reconoce **no se rotula a medias**: `return`, sin valor por defecto
+(`transporte_app.cpp:97`).
+
+**LO QUE ABRE, y es la pregunta:** un modulo virgen —recien montado, con la NVS borrada, o con un
+STM32 que todavia no ha hablado— anuncia **`SEM-SIN-MATRICULA`**. Con **dos** modulos virgenes, uno
+por poste, **los dos postes se llaman exactamente igual** hasta que cada uno haya visto un `$STATUS`
+**y se le haya cortado la energia**. Y §3.7 acaba de decidir que **el rotulo es lo que le dice al
+operario a que poste caminar**.
+
+> **Que hay que decidir, con las opciones escritas para que no se elija por eliminacion**
+> (`CLAUDE.md` §4: *eliminar entre opciones incompletas es adivinar con tabla*):
+>
+> | opcion | coste | que resuelve |
+> |---|---|---|
+> | **Dejarlo y cubrirlo por procedimiento** — el montador da una vuelta de energia a cada modulo antes de irse y lo firma en el acta de puesta en marcha | cero firmware | resuelve el caso del montaje; **no** resuelve la NVS borrada en campo ni el modulo de repuesto que alguien enchufa un martes |
+> | **Provisional distinto por modulo** — p. ej. con los ultimos bytes del MAC del propio ESP32, que si conoce al arrancar | bajo, firmware del ESP32 | **dos virgenes dejan de llamarse igual**; el rotulo sigue sin decir cual es el Maestro |
+> | **Re-rotular en caliente** al aprender la matricula | bajo en lineas, 🔴 **alto en calle** | 🛑 **tira la sesion del operario que esta dando una orden.** Es justo lo que `transporte_app.cpp:109-111` evita a proposito |
+> | **Que lo diga la app** en vez del rotulo: conectar a cualquiera y leer `NODE:` del primer `$STATUS` | cero firmware; la app ya recibe el campo | 🔴 **no resuelve el problema de §3.7**, que es saberlo **antes de caminar** |
+>
+> **Este documento no elige.** Lo que si deja escrito es que la primera opcion **es una decision**,
+> no el estado por defecto: si nadie la firma, lo que hay es dos postes con el mismo nombre y nadie
+> avisado.
+
+**SIN VERIFICAR, y es la mitad que mas pesa:** **nadie ha visto este rotulo en la lista de
+emparejados de un telefono.** No hay una sola tarjeta con un ESP32 conectado a `J17`, y el Bluetooth
+**no subio en toda la sesion de banco del 3-4/09** (N-117 / N-122, arreglados **sin banco**).
+
+---
 
 ---
 
@@ -1573,6 +1844,11 @@ permiso.
 | 🔴 **La causa de N-116** | la tarjeta Maestro tiene un corto entre `3,3 V` y `GND` **medido**, y **la causa esta abierta**. El firmware queda descartado por censo —ninguna de las 9 salidas toca un pin de `J16`—, y eso **no nombra a nadie mas** |
 | 🔴 **Que el mando `A`/`B` funcione con la polaridad corregida** | ~~la correccion de `botones.cpp` **no esta escrita ni cargada**~~ → 🟢 **escrita el 04/09 en `346ea5f`, las dos puntas.** 🔴 **NO cargada y NO ejercida**, y el unico intento de pulsarlo acabo en el incidente de N-116. **Nadie ha visto nunca a este equipo obedecer un `A·A·A`.** El gesto de la proxima prueba es `p5`-`p4` y `p8`-`p7`, **no contra masa**, y no sobre la Maestro |
 
+| 🔴 **Que el minimo de 3 minutos aguante en la tarjeta** | el cambio esta **MEDIDO en el fuente** (`modo_automatico.cpp:51-53`) y **no se ha cargado en ninguna tarjeta**. Trae ademas un coste de banco declarado: **ya no hay ciclos de un minuto para probar en mesa**, y la proxima visita tiene que contar tres minutos por paso |
+| 🔴 **Que N-130 se VEA desde la app** | el rechazo llega como evento `MAESTRO / DEMANDA_NO_ATENDIDA_MODO_ACTUAL` (`Esclavo/src/main.cpp:542`), no como `$ERR`. **Que la app lo pinte y el operario lo lea NO se ha comprobado**, y sin eso el cierre es medio: se deja de mentir, pero puede no decirse nada |
+| 🔴 **El coste de flash de los cambios del 04/09 por la tarde** | **no medido por la compuerta.** El acta de `624eb37` es anterior a ellos, y la lectura directa del `.elf` **no reconcilia** con el delta reportado. La discrepancia esta publicada en la revision del 04/09 (tarde); **el numero bueno sale de correr la compuerta sobre el arbol de hoy** |
+| 🔴 **El rotulo Bluetooth** | **nadie lo ha visto en un telefono.** §3.7 apoya en el una decision operativa —a que poste camina el operario— y §3.8 deja abierto que **dos modulos virgenes se llaman igual** hasta una vuelta de energia |
+
 > 🛑 **La compuerta del 28/08 salio con `15 PASS | 0 FALLA | 0 ABORTADO` y eso no autoriza nada de
 > este documento.** Lo dice el acta y lo dice `CLAUDE.md` §3: ese `0` significa que *los modelos y
 > los arneses de PC no encuentran nada*. **Ninguno de ellos toca la tarjeta**, ninguno tiene
@@ -1633,8 +1909,17 @@ Se conservan tachados: una tarea que desaparece en silencio se vuelve a pedir.**
    > 2. 🔴 **La carga verificada en tarjeta.** Y **no en una tarjeta con un corto** (N-116): se
    >    prueba sobre la que esta sana, y con el gesto nuevo —`p5` contra `p4`, `p8` contra `p7`—,
    >    **no contra masa**.
-6. **`VERDE_MIN_MIN`** (`modo_automatico.cpp:31`) cuando llegue el numero, **atado a la app** en el
-   mismo commit (N75-1 y N75-2, §3.4).
+6. ~~**`VERDE_MIN_MIN`** (`modo_automatico.cpp:31`) cuando llegue el numero, **atado a la app** en
+   el mismo commit (N75-1 y N75-2, §3.4).~~ → ✅ **HECHO el 04/09.** El numero llego —**3 minutos**—
+   y entro atado: `modo_automatico.cpp:51-53`, `app.js` con `enRango(verde, 3, 15)`, `index.html`
+   con `min="3"`, y el pack **`app_11_rangos_de_tiempos`** releyendo los tres del fuente en cada
+   corrida.
+   > 🔴 **Queda un CUARTO sitio que ese pack no mira, y hoy dice lo contrario que el
+   > firmware:** `05_Funcional/App_Semaforo/js/config.js:10-17` — `LIMITES_TIEMPO` con
+   > `VERDE_MIN_MIN: 1` y `ROJO_MIN_MIN: 1`, bajo el comentario *«Rangos de Tiempos Permitidos por
+   > Firmware»*. `index.html:718` lo carga y **no lo consume nadie fuera de `tests/`** (`grep` de
+   > `IOT_CONFIG` y de `LIMITES_TIEMPO` sobre la app). Es un huerfano de los de N-73 **con una cifra
+   > caducada dentro**: o se borra, o se ata al pack. **No se toca desde este documento.**
 7. **Comentarios que ya mienten:** `Esclavo/src/main.cpp:399` dice *"cae a C_FALLO en ~12,5 s"* con
    `SFTY6_SILENCIO_MS` en 25 000. Es lo que `CLAUDE.md` avisa de los comentarios que sobreviven a un
    numero.

@@ -21,13 +21,13 @@
 >
 > ## Cómo se entra y se sale HOY
 >
-> | Maniobra | Cómo se hace hoy | Evidencia |
+> | Maniobra | Cómo se hace hoy | Evidencia *(re-medida el 04/09)* |
 > |---|---|---|
-> | Entrar en Degradado | **App:** `CMD:PIN:1234:SET_MODO:DEGRADADO` | `Maestro/src/bluetooth.cpp:435` |
+> | Entrar en Degradado | **App:** `CMD:PIN:1234:SET_MODO:DEGRADADO` | `Maestro/src/bluetooth.cpp:501` |
 > | Entrar desde el piso | `A · B · A · B` en el mando de relés | canales `A` (`PB9`) y `B` (`PB13`), **se conservan** |
-> | Salir a Automático | **App:** `SET_MODO:AUTO`, o `A · A · A` en el mando | `bluetooth.cpp:378` |
-> | Salir a Ámbar | **App:** `SET_MODO:AMBAR`, o `B · B · B` en el mando | `bluetooth.cpp:388` |
-> | Volver al MENÚ | **App:** `SET_MODO:MENU` | `bluetooth.cpp:392` |
+> | Salir a Automático | **App:** `SET_MODO:AUTO`, o `A · A · A` en el mando | `bluetooth.cpp:444` |
+> | Salir a Ámbar | **App:** `SET_MODO:AMBAR`, o `B · B · B` en el mando | `bluetooth.cpp:454` |
+> | Volver al MENÚ | **App:** `SET_MODO:MENU` | `bluetooth.cpp:458` |
 > | ~~Entrar por pantalla~~ | ⛔ **sin actuador** — necesitaba `Botón 4` y dos `Botón 3` | — |
 > | ~~Salir por pantalla~~ | ⛔ **sin actuador** — necesitaba `Botón 3` | — |
 >
@@ -42,9 +42,32 @@
 >   transición y pintaba *«Vea las dos puntas»* (`modo_degradado.cpp:448-462`). La salida por app
 >   pasa de un **verde por reloj** directamente al modo nuevo en la iteración siguiente. **Mire las
 >   dos puntas usted antes de dar la orden.**
-> - **El Esclavo no tiene `SET_MODO`.** Su despachador de Bluetooth atiende `FORZAR_ROJO`,
->   `SOLICITAR_PASO`, `TEST_LEDS` y `SET_RTC:` — no cambia de modo. Una salida por app **mueve solo
->   el Maestro**, que es el **Riesgo residual nº 2** de la Sección 6.
+> - **El Esclavo no tiene `SET_MODO`.** Una salida por app **mueve solo el Maestro**, que es el
+>   **Riesgo residual nº 2** de la Sección 6.
+>
+>   > ✏️ **CORREGIDO EL 04/09 — la lista que había aquí era falsa en dos de sus cuatro entradas.**
+>   > Decía que el despachador del Esclavo *«atiende `FORZAR_ROJO`, `SOLICITAR_PASO`, `TEST_LEDS` y
+>   > `SET_RTC:`»*. **`FORZAR_ROJO` y `TEST_LEDS` están RECHAZADOS a propósito**, y faltaban las dos
+>   > órdenes de ámbar, que son justo las que importan en este procedimiento. **Re-censado sobre
+>   > `Esclavo/src/bluetooth.cpp`:**
+>   >
+>   > | orden | línea | qué hace |
+>   > |---|---|---|
+>   > | `CMD:AMBAR_EMERGENCIA` | `:381` sin PIN · `:468` con PIN | ✅ ámbar + latch que veta la radio |
+>   > | `CMD:PIN:1234:CANCELAR_AMBAR` | `:491` | ✅ **retira** el latch. **Con PIN** |
+>   > | `CMD:PIN:1234:SOLICITAR_PASO` | `:532` | ✅ pide al Maestro; no ordena |
+>   > | `CMD:PIN:1234:SET_RTC:…` | `:563` | ✅ pone la hora |
+>   > | ~~`CMD:FORZAR_ROJO`~~ | `:448` · `:524` | 🛑 `$ERR,…,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` |
+>   > | ~~`CMD:PIN:1234:TEST_LEDS`~~ | `:550` | 🛑 `$ERR,…,DESC:NO_EN_SERVICIO_USE_EL_MAESTRO` |
+>   >
+>   > **Importa para este documento**: quien leyera la lista vieja y mandara `FORZAR_ROJO` al Esclavo
+>   > para pararlo **no habría parado nada**.
+>
+> - 🟢 **DECISIÓN DEL 04/09: el cruce se opera desde el MAESTRO.** Que el Esclavo no tenga `SET_MODO`
+>   **deja de ser una limitación pendiente de cerrar** y pasa a ser cómo se opera este equipo. **Para
+>   este procedimiento eso no lo hace más fácil: lo hace más definitivo.** La entrada al Degradado en
+>   el Esclavo sigue dependiendo del `A·B·A·B` del mando —y del receptor RF que **no se ha
+>   comprado**—, y esa vía ya no espera un comando Bluetooth que la sustituya. Ver la Sección 9.
 > - **El mando de relés sigue siendo la única vía que mueve las dos puntas desde el piso**, y sigue
 >   necesitando el receptor RF, que **no se ha comprado**.
 >
@@ -60,10 +83,26 @@
 
 > ## ⚠️ ESTE MODO NO HA PISADO HARDWARE TODAVÍA
 >
-> Está construido en las dos puntas y validado en simulador (20/20 funcional, 10/10 repetidor,
-> 83/83 de pantalla), pero **no se ha ejercitado sobre tarjetas reales ni en obra**. Hasta que la
-> prueba de banco de la Sección 9 del `3_Protocolo_Pruebas_Rigurosas.md` esté firmada, este
-> procedimiento **no autoriza operación en vía abierta al tráfico**.
+> Está construido en las dos puntas y validado en simulador, pero **no se ha ejercitado sobre
+> tarjetas reales ni en obra**. Hasta que la prueba de banco de la Sección 9 del
+> `3_Protocolo_Pruebas_Rigurosas.md` esté firmada, este procedimiento **no autoriza operación en vía
+> abierta al tráfico**.
+>
+> **Las cifras, COPIADAS del acta `evidencia/2026-09-04_compuerta.txt` (HEAD `624eb37`), no escritas
+> a mano** *(la revisión anterior publicaba «20/20 funcional, 10/10 repetidor, 83/83 de pantalla» y
+> las tres estaban caducadas)*:
+>
+> | instrumento | acta del 04/09 |
+> |---|---|
+> | simulador funcional | `9/9 PASS` |
+> | simulador de repetidor | `10/10 PASS` |
+> | arnés de pantalla | `271/271` *(Maestro 145 + Esclavo 126)* |
+> | arnés del Degradado a dos puntas | `18/18` |
+> | banco por packs | `974/974` · 67 packs PASS |
+> | **resumen de la compuerta** | **20 PASS · 0 FALLA · 0 ABORTADO** |
+>
+> 🛑 **Y ese `20 PASS` no es un permiso.** Dice que los modelos y los arneses de PC no encuentran
+> nada. **No dice que este modo funcione en la tarjeta**, y este modo **no ha pisado hardware**.
 
 ---
 
@@ -645,6 +684,14 @@ arriba**.
 deliberado — un verde de 2 minutos con un todo-rojo de 30 s daría un ciclo de 5 minutos, y nadie
 espera cinco minutos en un paso alternado sin invadir.
 
+> 🔵 **Y desde el 04/09 ese argumento es MÁS fuerte, no menos.** El mínimo del Modo Automático
+> **subió de 1 a 3 minutos** —verde 3–15 min, rojo 3–15 min
+> (`Maestro/src/modo_automatico.cpp:51-53`)—, por decisión vial del responsable: *«tres minutos es
+> la mínima distancia de seguridad»*. **Si el Degradado heredase el verde configurado, el ciclo
+> mínimo pasaría de los 120 s de ahora a 7 minutos** —2 × (3 min + 30 s)—, y este modo es
+> precisamente el que corre **sin confirmación de la otra punta**. Los `30 / 30` fijos se quedan
+> como están, y el porqué queda medido en vez de razonado.
+
 ---
 
 ## 8. Qué hacer si algo va mal
@@ -658,7 +705,9 @@ espera cinco minutos en un paso alternado sin invadir.
 | La secuencia `A·B·A·B` responde con **ámbar rápido** en vez de 4 destellos | Falta alguno de los 5 requisitos | Repita la entrada **desde la app** con `CMD:PIN:1234:SET_MODO:DEGRADADO`: el `$ERR` dice **cuál** de los cinco falta. La pantalla ya no se puede navegar |
 | La secuencia **no responde nada** | Sin receptor RF no hay quien genere los pulsos | Use la app. La inhibición por menú abierto ya no ocurre: el menú no se puede abrir |
 | Las dos puntas **ciclan pero desfasadas** | Relojes separados, o una unidad se reinició | **Ámbar en las dos, y no corrija a ojo.** Maestro: `CMD:PIN:1234:SET_MODO:AMBAR`. Esclavo: `CMD:AMBAR_EMERGENCIA` |
-| 🔴 **Una punta en verde y la otra en ámbar** | Riesgo residual nº 2 — salida asimétrica | **Apague la punta que da verde, ya.** Si es el **Esclavo**: `CMD:AMBAR_EMERGENCIA` (`Esclavo/src/bluetooth.cpp:315`, **no pide PIN** justamente por esto). Si es el **Maestro**: `CMD:PIN:1234:SET_MODO:AMBAR`. **`CMD:FORZAR_ROJO` NO sirve** (`:382`): no saca del Degradado y el ciclo por reloj volverá a dar verde en la fase siguiente |
+| 🔴 **Una punta en verde y la otra en ámbar** | Riesgo residual nº 2 — salida asimétrica | **Apague la punta que da verde, ya.** Si es el **Esclavo**: `CMD:AMBAR_EMERGENCIA` (`Esclavo/src/bluetooth.cpp:381`, **no pide PIN** justamente por esto). Si es el **Maestro**: `CMD:PIN:1234:SET_MODO:AMBAR`. **`CMD:FORZAR_ROJO` NO sirve en el Esclavo** (`:448`): esa punta lo **rechaza** con `RENOMBRADO_USE_AMBAR_EMERGENCIA`, así que no para nada y el ciclo por reloj volverá a dar verde en la fase siguiente |
+| 🟡 **Puse ámbar de emergencia en el Esclavo y ya no hace falta** | — | `CMD:PIN:1234:CANCELAR_AMBAR` (`:491`). **Pide PIN al revés que el de poner**, porque quitarlo devuelve el cruce a dar verdes. Contesta `RETIRADO`, o `RETIRADO_QUEDA_MANDO` si además hay un ámbar pedido desde el mando: en ese caso **la luz sigue vetada** hasta que alguien haga `A·A·A` |
+| ❓ **Estoy delante de un poste y no sé si es el Maestro o el Esclavo** | Módulo Bluetooth recién puesto | El módulo se auto-rotula **`SEM-<serie>-M`** o **`SEM-<serie>-E`**. **Si se anuncia `SEM-SIN-MATRICULA` todavía no lo ha aprendido, y con dos módulos nuevos LOS DOS SE LLAMAN IGUAL.** Déjelo un minuto encendido y **déle una vuelta de energía**: el nombre bueno sale en el arranque siguiente. Mientras tanto, la punta la dice el campo `NODE:` del `$STATUS` en la app, no el nombre Bluetooth |
 | Pantalla: `Limite 48h sin sync` | Se agotó el límite duro | Es correcto. Hay que **arreglar el radio**, no reactivar el modo. El tope es del firmware (`modo_degradado.cpp:515`) y no necesita actuador |
 
 > ⏱️ **En la fila roja, cuente con que el ámbar del Esclavo puede tardar de 10 a 90 s**: sale por
@@ -686,6 +735,12 @@ Escrito aquí porque una limitación documentada vale más que una promesa:
   - **El Esclavo no tiene comando Bluetooth de entrada** en Degradado. Su única puerta es la
     secuencia `A · B · A · B` del mando, y **el receptor RF no se ha comprado**. Mientras siga así,
     este procedimiento no se puede completar en las dos puntas.
+
+    > 🟢 **Y al 04/09 esto CAMBIA DE NATURALEZA, no de estado.** La decisión del responsable es que
+    > **el cruce se opera desde el Maestro** y **no se hace transparente el mando desde el Esclavo**:
+    > o sea que **no viene un `SET_MODO` para el Esclavo**. Lo que era *«falta el comando»* pasa a
+    > ser *«la vía es el mando de relés, y hay que comprar su receptor»*. **El bloqueo es el mismo;
+    > lo que se sabe hoy es que no se va a resolver por software.**
   - Las salidas por app del Maestro (`SET_MODO:AUTO`, `SET_MODO:AMBAR`) **se saltan el todo-rojo de
     despedida** que sí hacía el `Botón 3`.
   - El ámbar de emergencia del Esclavo **sí existe ya** por app y **sale por todo-rojo**, tardando

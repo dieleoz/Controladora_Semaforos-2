@@ -378,7 +378,7 @@
       en cada paso. <b>No hay que leerlo antes de empezar</b>: se va a él cuando algo no sale. Las dos
       tarjetas son iguales; cambia qué cámara y qué barrera cuelgan de cada una.</p>
     <div class="meta">
-      <span>revisión del <b>31 · 08 · 2026</b></span><span>29 pasos</span>
+      <span>revisión del <b>04 · 09 · 2026</b></span><span>31 pasos</span>
     </div>
   </header>
 
@@ -441,10 +441,13 @@
       <table>
         <thead><tr><th>Entrada</th><th>Se simula así</th><th>Paso</th></tr></thead>
         <tbody>
-          <tr><td>Cámara de demanda · <code>J14</code></td>
-            <td>Un cable <b>entre sus dos bornes</b></td><td>19</td></tr>
-          <tr><td>Cámaras nuevas · <code>J16</code> p10 y p12</td>
-            <td>Un cable del pin a <b>p9 u p11 (3,3 V)</b>, <b>no a masa</b> · sólo tras el paso 20</td><td>21</td></tr>
+          <tr><td><b>LA</b> cámara del poste · <code>J14</code></td>
+            <td>Un cable <b>entre sus dos bornes</b>. <b>Es la que se cablea</b> — ver el aviso de
+              debajo de esta tabla</td><td>19</td></tr>
+          <tr><td>Entradas equivalentes · <code>J16</code> p10 y p12</td>
+            <td><b>NO son cámaras que haya que cablear</b>: son la misma petición de paso por otro
+              borne. Se ejercen para dejarlas medidas: un cable del pin a <b>p9 u p11 (3,3 V)</b>,
+              <b>no a masa</b> · sólo tras el paso 20</td><td>21</td></tr>
           <tr><td>Mando <code>A</code> y <code>B</code> · <code>J16</code> p5 y p8</td>
             <td>Un cable de <b>p5 a p4</b> (canal A) y de <b>p8 a p7</b> (canal B) — <b>3,3 V, NO a
               masa</b>: un toque = un pulso. <s>Antes ponía «del pin a masa»</s>, y desde el 04/09
@@ -453,6 +456,94 @@
           <tr><td>Pérdida del módulo</td><td>Desenchufa un cable de datos de <code>J17</code></td><td>14</td></tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="parar">
+      <b>🛑 SON <u>DOS</u> CÁMARAS EN EL CRUCE, UNA POR POSTE — NO TRES POR TARJETA</b>
+      <p>Esta tabla listaba <s>«Cámara de demanda · J14»</s> y <s>«Cámaras nuevas · J16 p10 y p12»</s>
+        como si fueran entradas distintas que hay que cablear. <b>No lo son.</b> Los tres bornes de una
+        tarjeta <b>piden lo mismo: paso para ese poste</b>. Y como el cruce tiene <b>dos sentidos, un
+        poste por sentido</b>, <b>las cámaras del cruce son DOS: una por poste.</b></p>
+      <p><b>La cámara va a <code>J14</code>, y el motivo no es preferencia: es lo único de los tres
+        bornes que la placa protege.</b> Medido en el fuente y en el cobre:</p>
+      <div class="tabla-envoltorio">
+        <table>
+          <thead><tr><th>borne</th><th>pin</th><th>qué trae la placa</th><th>cómo lo lee el programa</th></tr></thead>
+          <tbody>
+            <tr><td><b><code>J14</code></b></td><td><code>PB0</code></td>
+              <td>🟢 <b><code>R64</code> 10K + <code>C25</code> 100nF → antirrebote por hardware de
+                ~1 ms</b></td>
+              <td>Maestro: <b>por NIVEL</b> · Esclavo: por flanco</td></tr>
+            <tr><td><code>J16</code> p10</td><td><code>PB14</code></td>
+              <td>🟠 <code>R67</code> 10K a masa, <b>SIN condensador</b></td>
+              <td><b>por FLANCO</b>, en las dos puntas</td></tr>
+            <tr><td><code>J16</code> p12</td><td><code>PB15</code></td>
+              <td>🟠 <code>R68</code> 10K a masa, <b>SIN condensador</b></td>
+              <td><b>por FLANCO</b>, en las dos puntas</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><b>Por eso importa:</b> un relé de cámara <b>rebota</b> al cerrar. En <code>J14</code> el
+        condensador se lo come antes de que el micro lo vea. En <code>p10</code> y <code>p12</code> no
+        hay condensador y la lectura es <b>por flanco</b>: lo único que hay delante es una <b>ventana
+        de silencio de 3 s por programa</b>, que lo tapa casi siempre. <b>«Casi» no es una
+        garantía</b>, y además esa ventana es <b>una sola por poste</b>: un rebote la consume y la
+        petición del coche que viene detrás se pierde.</p>
+      <p><b><code>p10</code> y <code>p12</code> NO se borran de esta guía y no son un error:</b> son
+        entradas reales, <b>equivalentes en función</b>, y están medidas en banco (paso 20, 03/09:
+        <b>p10 = 9,93 kΩ</b> y <b>p12 = 9,94 kΩ</b> a masa). <b>Son el sitio previsto si algún día
+        hace falta una segunda entrada en un poste</b> — no un tercer cable que poner hoy.</p>
+      <div class="anota">
+        <p class="porque">¿Cuántas cámaras trajiste al banco? <input type="text" id="a0ca" class="en-linea">
+          &nbsp; ¿A qué borne las conectaste? <input type="text" id="a0cb" class="en-linea"></p>
+      </div>
+    </div>
+
+    <div class="marco">
+      <b>🚧 LA TALANQUERA, EXPLICADA — porque su reposo y su fallo NO son lo mismo</b>
+      <p><b>Sale por <code>J15</code>, NUNCA por <code>J14</code>.</b> <code>J14</code> es una
+        <b>ENTRADA</b> del micro (<code>PB0</code>, 3,3 V, sin opto ni diodo): un relé cableado ahí
+        mete tensión directa a la pata del microcontrolador. <b>Si alguien ya cableó un relé a
+        <code>J14</code>, desconéctelo ANTES de energizar.</b></p>
+      <p><b>La cadena es un canal de potencia propio, igual que cada luz</b> (medido el 04/09 sobre
+        el símbolo <code>MOTOR_TALANQUERA</code> de <code>Maestro/include/pines.h</code>):</p>
+      <div class="diagrama" style="margin:.3rem 0">
+<pre>PB2 --&gt; R70 220 / R69 10K --&gt; opto TLP127 (U15) --&gt; MOSFET IRLZ44N (Q10) --&gt; J15</pre>
+      </div>
+      <p>Son <b>DIEZ MOSFET y DIEZ optos</b> en la placa (<code>Q1..Q10</code>,
+        <code>U6..U15</code>), no nueve: el zumbador tiene el suyo
+        (<code>U13</code>/<code>Q8</code>/<code>J13</code>) y la talanquera el suyo.</p>
+      <div class="tabla-envoltorio">
+        <table>
+          <thead><tr><th>situación</th><th>la pluma</th><th>por qué</th></tr></thead>
+          <tbody>
+            <tr><td><b>Reposo / arranque</b></td><td>🔽 <b>ABAJO</b></td>
+              <td><b>SFTY-28.</b> En <code>LOW</code> el MOSFET no conduce, el motor queda sin energía
+                y la pluma cierra. <b>Es el fallo seguro</b></td></tr>
+            <tr><td><b>Sin corriente</b></td><td>🔽 <b>ABAJO</b></td>
+              <td>Lo mismo por otra vía: sin energía no hay quien la suba. La compra pide además
+                <b>retorno por muelle o gravedad</b>, porque eso el software no lo garantiza</td></tr>
+            <tr><td><b>Verde</b></td><td>🔼 arriba</td><td>Da paso</td></tr>
+            <tr><td><b>En FALLO (ámbar intermitente)</b></td><td>🔼 <b>ARRIBA — y es QUERIDO</b></td>
+              <td>🟢 <b>Confirmado por el responsable el 04/09.</b> Es para <b>no dejar coches
+                atrapados detrás de una pluma que ya no señaliza nada</b>. <b>NO es un descuido y no
+                se «arregla»</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><b>Ojo a la diferencia, que es la que se lee mal:</b> <b>fallo del equipo</b> (ámbar
+        intermitente, el micro sigue vivo) <b>sube</b> la pluma; <b>corte de corriente</b> la
+        <b>baja</b>. Son dos cosas distintas y las dos son deliberadas.</p>
+      <p><b>Verde con la pluma abajo está admitido</b> —la barrera puede ser más restrictiva que la
+        lámpara—; <b>pluma arriba sin verde, no</b>: eso sería una invitación a entrar que nadie
+        autorizó. <b>Y sólo <code>semaforo.cpp</code> la mueve</b>, dentro de
+        <code>escribirPines()</code>: no hay un segundo <code>digitalWrite</code> en ninguna parte.
+        <b>Una barrera con dos puertas no es una barrera.</b></p>
+      <div class="anota">
+        <p class="porque">Al energizar sin programa en marcha, ¿la pluma quedó abajo? <input type="text" id="a0ta" class="en-linea"></p>
+        <p class="porque">En ámbar intermitente, ¿subió? <input type="text" id="a0tb" class="en-linea">
+          &nbsp; Al quitar corriente con la pluma arriba, ¿bajó sola? <input type="text" id="a0tc" class="en-linea"></p>
+      </div>
     </div>
     <div class="tabla-envoltorio">
       <table>
@@ -787,16 +878,43 @@
   <div class="fila" id="f10">
     <div class="fn">10</div>
     <div class="fc">
-      <p class="ft">El módulo en la lista del teléfono</p>
+      <p class="ft">El módulo en la lista del teléfono · <b>el nombre dice QUÉ POSTE ES</b></p>
       <p><b class="et">Haz</b> Busca un dispositivo nuevo. <b>Copia el nombre carácter por
         carácter</b> —no «el ESP32»— y la <b>MAC</b>. Cuenta cuánto tardó.</p>
+      <div class="marco">
+        <b>🔵 EL MÓDULO SE AUTO-ROTULA, Y LA LETRA DEL FINAL ES LA QUE IMPORTA</b>
+        <div class="diagrama" style="margin:.3rem 0">
+<pre>SEM-&lt;serie&gt;-M      es el poste MAESTRO
+SEM-&lt;serie&gt;-E      es el poste ESCLAVO
+SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
+        </div>
+        <p>El nombre <b>no viene puesto de fábrica</b>: el módulo lo aprende del campo
+          <code>NODE:</code> de la trama que le manda la tarjeta. <b>Y desde el 04/09 el cruce se
+          opera desde el MAESTRO</b>, así que esa letra es lo primero que hay que mirar antes de
+          mandar una orden.</p>
+      </div>
+      <div class="parar">
+        <b>🛑 UN MÓDULO RECIÉN PUESTO SE LLAMA <code>SEM-SIN-MATRICULA</code> — Y LOS DOS POSTES SE
+          LLAMAN IGUAL HASTA QUE SE LES DA UNA VUELTA DE ENERGÍA</b>
+        <p>El nombre aprendido <b>se guarda para la arrancada SIGUIENTE</b>, a propósito: renombrar
+          el Bluetooth en caliente <b>tiraría la sesión de quien esté dando una orden al cruce</b>.
+          Así que en el banco, con módulos nuevos, <b>vas a ver dos equipos con el mismo nombre</b>.</p>
+        <p><b>Qué hacer:</b> déjalo un minuto con la tarjeta encendida —le basta con recibir una
+          trama— y <b>quítale y devuélvele la tensión al módulo</b>. En el arranque siguiente sale con
+          su <code>-M</code> o su <code>-E</code>. <b>NO es un módulo muerto y no se cambia.</b></p>
+      </div>
       <p class="ver"><b class="et">Ver</b> Aparece en menos de medio minuto. <b>Esto sólo demuestra
         que el módulo tiene corriente</b>: aparece igual con los cables al aire. <b>Si no aparece o
-        sale genérico, anótalo tal cual: no es un fallo tuyo</b> — su programa se entrega aparte.</p>
+        sale genérico, anótalo tal cual: no es un fallo tuyo</b> — su programa se entrega aparte.
+        <b>Y no lo busques como <code>IOT_VIAL</code> ni por el nombre del cruce: no se llama así.</b></p>
       <div class="anota">
         <p class="porque">Nombre, literal: <input type="text" id="a10a"></p>
         <p class="porque">MAC: <input type="text" id="a10b" placeholder="__:__:__:__:__:__">
           &nbsp; Tardó: <input type="text" id="a10c" class="en-linea"> s</p>
+        <p class="porque">¿Salió <code>SEM-SIN-MATRICULA</code>? <input type="text" id="a10d" class="en-linea">
+          &nbsp; Tras la vuelta de energía, ¿qué nombre salió? <input type="text" id="a10e" class="en-linea"></p>
+        <p class="porque">Si probaste los dos postes, ¿se distinguían por la letra <code>-M</code> /
+          <code>-E</code>? <input type="text" id="a10f"></p>
         <div class="tres">
           <label class="si"><input type="radio" name="p10" value="si"> Aparece</label>
           <label class="no"><input type="radio" name="p10" value="no"> NO aparece / nombre raro</label>
@@ -811,15 +929,26 @@
     <div class="fn">11</div>
     <div class="fc">
       <p class="ft">La app conecta</p>
-      <p><b class="et">Haz</b> Empareja —PIN <code>1234</code>, si no <code>0000</code>— y abre la
-        app. Si no conecta, <b>copia el mensaje</b>, borra el emparejamiento y repite <b>antes de
-        tocar un cable</b>.</p>
+      <p><b class="et">Haz</b> Empareja y abre la app. Si no conecta, <b>copia el mensaje</b>, borra
+        el emparejamiento y repite <b>antes de tocar un cable</b>.</p>
+      <div class="marco">
+        <b>⚠️ EL EMPAREJAMIENTO NO DEBE PEDIRTE NINGÚN PIN — y el <code>1234</code> NO es ése</b>
+        <p>Aquí ponía <s>«PIN 1234, si no 0000»</s>. <b>El módulo empareja «Just Works»: sin PIN del
+          sistema operativo</b>, y la propia app lo dice en su pantalla de Bluetooth. <b>El
+          <code>1234</code> es el PIN de COMANDO dentro de la app</b> —el que viaja en
+          <code>CMD:PIN:1234:…</code>—, y el sistema operativo ni lo ve.</p>
+        <p><b>Si el teléfono te pide un PIN de emparejamiento, no estás hablando con este módulo.</b>
+          Anótalo y dilo: es un dato, no un trámite. En el banco del 3–4/09 se tecleó
+          <code>1234</code> en el diálogo de Android esperando que enlazara.</p>
+        <p class="porque">¿Te pidió PIN al emparejar? <input type="text" id="a11d" class="en-linea">
+          &nbsp; Si sí, ¿cuál aceptó? <input type="text" id="a11e" class="en-linea"></p>
+      </div>
       <p class="ver"><b class="et">Ver</b> <b>Conecta.</b> <b>Sigue sin demostrar nada del
         semáforo</b>: la conexión se abre contra el módulo. <b>No cambies el módulo</b>: la lista de
         qué mirar es el apartado 09.</p>
       <div class="anota">
         <p class="porque">Intentos: <input type="text" id="a11a" class="en-linea">
-          &nbsp; PIN con el que entró: <input type="text" id="a11b" class="en-linea"></p>
+          &nbsp; ¿Emparejó sin pedir nada? <input type="text" id="a11b" class="en-linea"></p>
         <p class="porque">Si falló, mensaje literal: <input type="text" id="a11c"></p>
         <div class="tres">
           <label class="si"><input type="radio" name="p11" value="si"> Conecta</label>
@@ -969,9 +1098,14 @@
   </div>
 
   <h2><span class="n">06</span> La cámara que pide paso</h2>
-  <p class="sub" style="margin-top:.4rem"><b>Las dos entradas se simulan con un cable, pero no con el
-    mismo gesto:</b> en <code>J14</code> el cable va <b>entre sus dos bornes</b>; en <code>J16</code>
-    va del pin <b>a los 3,3 V</b>, nunca a masa. Y <code>J16</code> <b>no se cablea hasta el paso 20</b>.</p>
+  <p class="sub" style="margin-top:.4rem"><b>Es UNA cámara por poste, o sea DOS en el cruce.</b> Los
+    tres bornes de una tarjeta —<code>J14</code>, <code>J16</code> p10 y <code>J16</code> p12— piden
+    <b>lo mismo</b>: paso para ese poste. <b>La que se cablea va a <code>J14</code></b>, que es el
+    único con antirrebote en el cobre; p10 y p12 se ejercen aquí para dejarlos <b>medidos como
+    entradas disponibles</b>, no porque haya que montarles una cámara. Ver el aviso del apartado 00.</p>
+  <p class="sub"><b>Las entradas se simulan con un cable, pero no con el mismo gesto:</b> en
+    <code>J14</code> el cable va <b>entre sus dos bornes</b>; en <code>J16</code> va del pin
+    <b>a los 3,3 V</b>, nunca a masa. Y <code>J16</code> <b>no se cablea hasta el paso 20</b>.</p>
 
   <div class="fila" id="f17">
     <div class="fn">17</div>
@@ -1078,17 +1212,28 @@
   <div class="fila" id="f21">
     <div class="fn">21</div>
     <div class="fc">
-      <p class="ft">Sólo si el 20 salió bien: cámara en <code>J16</code> <a href="#d20">detalle</a></p>
+      <p class="ft">Sólo si el 20 salió bien: <b>ejercer</b> las entradas de <code>J16</code> <a href="#d20">detalle</a></p>
       <p><b class="et">Haz</b> Apagado, el contacto seco entre el <b>pin 10</b> y los <b>3,3 V del
-        pin 9 u 11</b> —<b>contra 3,3 V, no contra masa</b>—, en normalmente abierto. <b>Sin cámara,
-        un cable del 10 al 9 hace lo mismo.</b> Si sólo montas una, <b>en el pin 10</b>. Comprueba
-        que el <b>pin 1 sigue tapado</b>.</p>
+        pin 9 u 11</b> —<b>contra 3,3 V, no contra masa</b>—, en normalmente abierto. <b>Con un cable
+        del 10 al 9 basta: NO hace falta traer una cámara aquí.</b> Comprueba que el <b>pin 1 sigue
+        tapado</b>.</p>
+      <div class="marco">
+        <b>⚠️ Esto NO es «montar la segunda cámara del poste»</b>
+        <p>La cámara del poste va a <code>J14</code> (apartado 00). <b>Lo que se comprueba aquí es
+          que p10 y p12 son entradas VIVAS y equivalentes</b>, para que el día que haga falta una
+          segunda entrada se sepa que responde. <b>Se piden las dos: p10 y p12.</b></p>
+      </div>
       <p class="ver"><b class="et">Ver</b> En reposo, <b>ninguna petición</b>; al cerrar, el cruce le
         da paso en pocos segundos. 🔴 <b>Si el paso 20 no salió bien, este paso NO se hace</b>: marca
-        «No se cableó» con el motivo. <b>Si pide paso solo, quita el cable y anótalo.</b></p>
+        «No se cableó» con el motivo. <b>Si pide paso solo, quita el cable y anótalo.</b>
+        ⚠️ <b>Y si al cerrar una vez el cruce cuenta DOS peticiones, anótalo tal cual</b>: estos dos
+        pines no llevan condensador y se leen por flanco.</p>
       <div class="anota">
         <p class="porque">¿En qué pin? <input type="text" id="a21a" class="en-linea">
           &nbsp; ¿Cómo quedó? <input type="text" id="a21b" placeholder="normalmente abierto / cerrado / cable de prueba"></p>
+        <p class="porque">p10 — ¿respondió? <input type="text" id="a21c" class="en-linea">
+          &nbsp; p12 — ¿respondió? <input type="text" id="a21d" class="en-linea">
+          &nbsp; ¿alguna contó doble? <input type="text" id="a21e" class="en-linea"></p>
         <div class="tres">
           <label class="si"><input type="radio" name="p21" value="si"> Cableada y responde</label>
           <label class="no"><input type="radio" name="p21" value="no"> Cableada pero NO responde</label>
@@ -1278,7 +1423,9 @@
          CMD:PIN:1234:SET_MODO:INTELIGENTE     CMD:PIN:1234:TEST_LEDS
          CMD:PIN:1234:SET_MODO:DEGRADADO       CMD:FORZAR_ROJO
 
-ESCLAVO  CMD:AMBAR_EMERGENCIA   (sin PIN, a proposito)
+ESCLAVO  CMD:AMBAR_EMERGENCIA           (sin PIN, a proposito)
+         CMD:PIN:1234:CANCELAR_AMBAR    (retira el ambar. SI pide PIN)
+         CMD:PIN:1234:SOLICITAR_PASO    (pide al Maestro; no ordena)
          CMD:FORZAR_ROJO          y   CMD:PIN:1234:TEST_LEDS   (los dos, RECHAZADOS)
 
 CON EL PIN MAL, en cualquiera:   CMD:PIN:0000:SET_MODO:AUTO</pre>
@@ -1287,11 +1434,13 @@ CON EL PIN MAL, en cualquiera:   CMD:PIN:0000:SET_MODO:AUTO</pre>
         las que no puede hacer, <code>$ERR</code> <b>con su motivo</b>. <b>Un «hecho» ahí es el fallo
         entero.</b> Se provocan a propósito <code>ALCANCE</code> en marcha y <code>DEMANDA</code>
         fuera del modo inteligente. <b>Con el PIN mal el modo no puede cambiar: míralo en las
-        luces.</b> Con <code>TEST_LEDS</code>, <b>la talanquera NO debe moverse</b>.</p>
+        luces.</b> Con <code>TEST_LEDS</code>, <b>la talanquera NO debe moverse</b>.
+        <code>CANCELAR_AMBAR</code> sin ámbar puesto tiene que decir <code>NO_HAY_AMBAR_VIGENTE</code>:
+        <b>no debe fingir que retiró algo que no había</b>.</p>
       <div class="anota">
         <p class="porque">Camino: <input type="text" id="a28a" placeholder="app / USB-TTL"></p>
         <p class="porque">Respuesta literal de cada orden:</p>
-        <textarea id="a28b" style="min-height:5rem" placeholder="MENU:&#10;ALCANCE:&#10;INTELIGENTE:&#10;DEGRADADO:&#10;REINICIAR_RELOJ:&#10;DEMANDA:&#10;TEST_LEDS Maestro:&#10;FORZAR_ROJO Maestro:&#10;AMBAR_EMERGENCIA Esclavo:&#10;FORZAR_ROJO Esclavo:&#10;TEST_LEDS Esclavo:&#10;PIN mal:"></textarea>
+        <textarea id="a28b" style="min-height:6rem" placeholder="MENU:&#10;ALCANCE:&#10;INTELIGENTE:&#10;DEGRADADO:&#10;REINICIAR_RELOJ:&#10;DEMANDA:&#10;TEST_LEDS Maestro:&#10;FORZAR_ROJO Maestro:&#10;AMBAR_EMERGENCIA Esclavo:&#10;CANCELAR_AMBAR Esclavo (con ambar puesto):&#10;CANCELAR_AMBAR Esclavo (sin ambar puesto):&#10;SOLICITAR_PASO Esclavo:&#10;FORZAR_ROJO Esclavo:&#10;TEST_LEDS Esclavo:&#10;PIN mal:"></textarea>
         <p class="porque" style="margin-top:.3rem">¿Se movió la talanquera con <code>TEST_LEDS</code>? <input type="text" id="a28c" class="en-linea">
           &nbsp; Con el PIN mal, ¿cambió el modo? <input type="text" id="a28d" class="en-linea"></p>
         <div class="tres">
@@ -1300,6 +1449,111 @@ CON EL PIN MAL, en cualquiera:   CMD:PIN:0000:SET_MODO:AUTO</pre>
           <label class="np"><input type="radio" name="p28" value="np"> No se pudo</label>
         </div>
         <textarea id="t28" placeholder="Cuál falló y qué contestó"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="fila" id="f28b">
+    <div class="fn">28<br>bis</div>
+    <div class="fc">
+      <p class="ft">El ciclo mínimo son <b>3 minutos</b> · <b>y hay que ver al equipo DECIR QUE NO</b></p>
+      <div class="parar">
+        <b>🛑 CAMBIÓ EL 04/09, Y NO ES UN AJUSTE DE INTERFAZ: ES UNA DECISIÓN VIAL</b>
+        <p>El mínimo de verde y de rojo <s>era 1 minuto</s> y ahora es <b>3</b>. El porqué, con las
+          palabras del responsable: <b>«tres minutos es la mínima distancia de seguridad»</b>. Con un
+          verde de 60 s pasan tres o cuatro vehículos antes de cortar a ámbar, y lo que sale de ahí
+          no es una cola: es un conductor convencido de que el semáforo está averiado, adelantando en
+          rojo contra el sentido que acaba de recibir verde.</p>
+        <p><b>Coste declarado, para que no sorprenda hoy: ya no se puede probar en mesa con ciclos de
+          1 minuto.</b> Se aceptó a sabiendas. Si el banco necesita ciclos cortos, <b>dilo en la
+          casilla</b>; no se baja el límite por comodidad de la prueba.</p>
+      </div>
+      <p><b class="et">Haz</b> Contra el <b>MAESTRO</b>, y con el modo automático <b>parado</b>
+        —con el ciclo en marcha lo rechaza por otro motivo distinto, y entonces la prueba no mide lo
+        que quiere medir—:</p>
+      <div class="diagrama" style="margin:.3rem 0">
+<pre>DEBE ACEPTARSE   CMD:PIN:1234:SET_TIEMPOS:3,3,10     el minimo justo
+                 CMD:PIN:1234:SET_TIEMPOS:15,15,90   el maximo justo
+
+DEBE RECHAZARSE  CMD:PIN:1234:SET_TIEMPOS:2,3,10     verde por debajo
+                 CMD:PIN:1234:SET_TIEMPOS:1,1,15     el limite VIEJO
+                 CMD:PIN:1234:SET_TIEMPOS:3,3,9      despeje por debajo
+
+Y CON EL CICLO EN MARCHA, cualquiera de ellas -> EN_MARCHA_PARE_EL_MODO</pre>
+      </div>
+      <p class="ver"><b class="et">Ver</b> Las dos de arriba, <code>$ACK</code>. <b>Las tres de
+        abajo tienen que contestar <code>$ERR,CMD:SET_TIEMPOS,DESC:RANGO</code></b> y <b>no cambiar
+        nada</b>. <b>Un <code>$ACK</code> a <code>1,1,15</code> es el fallo entero de este paso</b>:
+        significa que el equipo acepta un ciclo por debajo del mínimo de seguridad. <b>La app también
+        lo valida, pero eso no es lo que se prueba aquí</b> — la barrera que importa está en el
+        firmware, porque cualquier cosa en ese cable, o una APK vieja, puede mandar un minuto.</p>
+      <div class="anota">
+        <p class="porque">Respuesta literal de cada una:</p>
+        <textarea id="a28ba" style="min-height:4rem" placeholder="3,3,10:&#10;15,15,90:&#10;2,3,10:&#10;1,1,15:&#10;3,3,9:&#10;con el ciclo en marcha:"></textarea>
+        <p class="porque" style="margin-top:.3rem">Si mandaste desde la app, ¿te dejó <b>teclear</b>
+          un 1? <input type="text" id="a28bb" class="en-linea">
+          &nbsp; ¿Qué rango ofrecía la pantalla? <input type="text" id="a28bc" class="en-linea"></p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p28b" value="si"> Acepta 3 y RECHAZA 1</label>
+          <label class="no"><input type="radio" name="p28b" value="no"> Aceptó algo por debajo de 3</label>
+          <label class="np"><input type="radio" name="p28b" value="np"> No se pudo</label>
+        </div>
+        <textarea id="t28b" placeholder="Qué pasó · si aceptó un valor bajo, cuál y qué contestó"></textarea>
+        <p class="porque" style="margin-top:.45rem">⚠️ <b>Y una cosa aparte, que no es el rango:</b>
+          después de fijar tiempos, <b>entra en Modo Automático desde la app</b> y vuelve a mirar qué
+          tiempos usa el equipo. <b>Si no son los que pusiste, anótalo tal cual</b> — hay una lectura
+          del fuente que apunta a que el arranque los reescribe, <b>y nadie la ha ejercido en
+          tarjeta</b>. No lo des por diagnosticado: sólo dinos lo que viste.</p>
+        <p class="porque">Tiempos que pusiste: <input type="text" id="a28bd" class="en-linea">
+          &nbsp; Tiempos con los que ciclaba después: <input type="text" id="a28be" class="en-linea"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="fila" id="f28c">
+    <div class="fn">28<br>ter</div>
+    <div class="fc">
+      <p class="ft">Pedir paso desde el <b>ESCLAVO</b> · <b>el equipo tiene que saber decir que NO</b></p>
+      <div class="marco">
+        <b>🟢 ESTO ES COMPORTAMIENTO NORMAL, NO UNA AVERÍA (cambio del 04/09)</b>
+        <p><b>Antes el Esclavo decía «pedido al Maestro» y no pasaba nada.</b> Ahora, si el cruce no
+          está en Modo Inteligente, el Maestro <b>rechaza la demanda</b> y el Esclavo lo publica en
+          la bitácora.</p>
+        <p><b>El primer acuse sigue siendo <code>PEDIDO_AL_MAESTRO</code>, y eso es correcto:</b> el
+          Esclavo no puede quedarse esperando a una radio de 2,4 kbps para contestarle al teléfono.
+          <b>El desmentido llega después, como evento.</b> Por eso este paso <b>se mira en Eventos,
+          no en el acuse</b>.</p>
+      </div>
+      <p><b class="et">Haz</b> Con las dos tarjetas hablando por radio, y el cruce <b>FUERA</b> del
+        Modo Inteligente —déjalo en automático o en menú—, conéctate al <b>ESCLAVO</b> y pulsa
+        <b>«Solicitar Paso»</b> (o manda <code>CMD:PIN:1234:SOLICITAR_PASO</code>). <b>Espera unos
+        segundos mirando la pestaña <code>Eventos</code>.</b> Después <b>repítelo con el cruce SÍ en
+        Modo Inteligente</b> —el modo se pone desde el <b>Maestro</b>—.</p>
+      <div class="diagrama" style="margin:.3rem 0">
+<pre>FUERA de Modo Inteligente   $ACK ... RESULT:PEDIDO_AL_MAESTRO
+                            y luego, en Eventos:
+                            MAESTRO / DEMANDA_NO_ATENDIDA_MODO_ACTUAL
+
+EN Modo Inteligente         $ACK ... RESULT:PEDIDO_AL_MAESTRO
+                            y NO sale ese evento. El cruce se mueve.</pre>
+      </div>
+      <p class="ver"><b class="et">Ver</b> <b>Lo que se comprueba es que el equipo NO diga que sí a
+        lo que no va a hacer.</b> Si fuera del Modo Inteligente <b>no sale el evento y tampoco se
+        mueve el cruce</b>, eso es el fallo: el operario se queda pulsando delante de un cruce que no
+        responde. <b>Y si el cruce se mueve estando fuera del Modo Inteligente, también anótalo</b>,
+        porque es lo contrario de lo que debe pasar.</p>
+      <div class="anota">
+        <p class="porque">Acuse literal del Esclavo: <input type="text" id="a28ca"></p>
+        <p class="porque">Evento que salió después, literal: <input type="text" id="a28cb"></p>
+        <p class="porque">Segundos hasta que salió el evento: <input type="text" id="a28cc" class="en-linea">
+          &nbsp; ¿Se movió el cruce? <input type="text" id="a28cd" class="en-linea"></p>
+        <p class="porque">Con el cruce <b>en</b> Modo Inteligente, qué pasó: <input type="text" id="a28ce"></p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p28c" value="si"> Sale el evento y el cruce no se mueve</label>
+          <label class="no"><input type="radio" name="p28c" value="no"> No sale el evento / se movió cuando no debía</label>
+          <label class="np"><input type="radio" name="p28c" value="np"> No se pudo</label>
+        </div>
+        <textarea id="t28c" placeholder="Qué pasó · si el enlace de radio no estaba, dilo: sin radio este paso no se puede hacer"></textarea>
       </div>
     </div>
   </div>
@@ -1487,6 +1741,33 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
     <div class="campo"><label for="pa8">Segundos desde tensión hasta que la app recibe el primer dato</label><input type="text" id="pa8" placeholder="p. ej. 3,5 s · repetido 3 veces"></div>
   </div>
 
+  <div class="libre">
+    <b>9 · 🔴 Al entrar en Modo Automático el equipo vuelve a 1 / 1 / 15. ¿Qué debe hacer?</b>
+    <p><b>El mínimo del ciclo subió a 3 minutos el 04/09 y esa guarda funciona</b> — pero sólo la
+      cruza la orden <code>SET_TIEMPOS</code>. <b>Los valores con los que arranca el modo siguen
+      siendo 1 min de rojo, 1 min de verde y 15 s de despeje</b>, y no pasan por ella. Leído en el
+      fuente, entrar en Modo Automático desde la app <b>reescribe los tres</b>, así que unos tiempos
+      que el equipo acaba de aceptar con <code>$ACK</code> <b>se perderían al arrancar el modo</b>.</p>
+    <p>🛑 <b>Esto NO está diagnosticado y no se propone aquí ningún arreglo.</b> Es una lectura del
+      código; <b>nadie lo ha ejercido en tarjeta</b> —el paso 28 bis pide justo esa medida—. Y la
+      decisión no es técnica: <b>con qué tiempos debe arrancar un cruce al que nadie le ha dicho
+      todavía cuáles quiere es una decisión vial</b>, y las decisiones viales son tuyas.</p>
+    <textarea id="pa9" style="min-height:3rem" placeholder="¿arranca con los ultimos tiempos guardados? · ¿arranca siempre en 3/3/10, el minimo? · ¿se niega a arrancar hasta que alguien fije tiempos? · y si lo mediste en la tarjeta: que tiempos pusiste y con cuales ciclo"></textarea>
+  </div>
+
+  <div class="libre">
+    <b>10 · 🟢 El cruce se opera desde el Maestro. ¿Hace falta algo en obra para que se cumpla?</b>
+    <p><b>Ya está decidido y no se pregunta otra vez:</b> no se hace transparente el mando desde el
+      Esclavo. Desde el Poste 2 sólo se puede <b>pedir</b> paso, poner ámbar de emergencia y
+      retirarlo. <b>Lo que sí es una pregunta es la consecuencia de obra:</b> el técnico que está en
+      el Poste 2 y necesita cambiar el modo <b>tiene que desplazarse al Poste 1</b>, y el Bluetooth
+      no alcanza de un poste al otro.</p>
+    <p>Y con ella va la de identificar el poste: <b>un módulo recién puesto se llama
+      <code>SEM-SIN-MATRICULA</code> en los DOS postes</b> hasta que se le da una vuelta de energía
+      (paso 10).</p>
+    <textarea id="pa10" style="min-height:2.4rem" placeholder="¿se rotulan los postes fisicamente en obra? · ¿la vuelta de energia al modulo entra en la puesta en marcha? · ¿que distancia hay entre los dos postes en el frente tipico?"></textarea>
+  </div>
+
   <h2><span class="n">10</span> Cierre</h2>
   <div class="libre">
     <b>Lo que viste y nadie pensó en preguntarte</b>
@@ -1525,8 +1806,13 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
   <div class="detalle-cab noimprimir">
     <h2>El detalle · sólo lo que cambia lo que haces con las manos</h2>
     <p class="sub" style="margin-top:.5rem">Diagramas, tablas de bornera y los cuatro sitios donde el
-      porqué evita romper algo. <b>No hay que leerlo antes de empezar</b>, y <b>no se imprime</b>: la
-      hoja de arriba es lo que se lleva al banco.</p>
+      porqué evita romper algo. <b>No hay que leerlo antes de empezar</b>: la hoja de arriba es lo que
+      se lleva al banco.</p>
+    <p class="sub"><b>✏️ Corregido el 04/09: aquí ponía <s>«y no se imprime»</s>, y desde el 02/09 es
+      falso.</b> Estos bloques <b>SÍ salen en el PDF</b> —se despliegan solos al imprimir, con el
+      botón y con <code>Ctrl+P</code>— porque dentro van las conexiones de bornera, la placa del
+      módulo y <b>«lo que esta visita NO decide»</b>. <b>Lo que no se imprime no se contesta</b>, y
+      esto es justo lo que hay que poner delante de quien tiene que contestarlo.</p>
 
     <details id="d2"><summary>Paso 2 · por qué la carga va ANTES de tocar <code>J16</code></summary><div class="dcuerpo">
       <p>El programa nuevo es el que convierte los pines 10 y 12 de <code>J16</code> en <b>entradas de
@@ -1779,13 +2065,27 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
             <tr><td><b>La fuente del módulo</b></td><td><b>No comprada</b> y sin referencia elegida</td></tr>
             <tr><td><b>El programa del módulo</b></td>
               <td>Se entrega aparte. <b>Sin él el módulo está mudo, y eso es lo esperado</b></td></tr>
-            <tr><td><b>Las cámaras en <code>J16</code></b></td>
-              <td><b>Esos pines nunca han tenido una cámara.</b> Sólo se cablean si el 20 sale bien</td></tr>
+            <tr><td><b>Las entradas de <code>J16</code> p10 y p12</b></td>
+              <td><b>Esos pines nunca han tenido una cámara, y esta visita no les monta una.</b> Se
+                <b>ejercen</b> (paso 21, y sólo si el 20 sale bien) para dejarlos medidos como
+                entradas disponibles. <b>La cámara del poste va a <code>J14</code></b>: es el único
+                con antirrebote en la placa</td></tr>
+            <tr><td><b>Cuántas cámaras lleva el cruce</b></td>
+              <td>🟢 <b>Ya está: DOS, una por poste.</b> Los tres bornes de una tarjeta piden lo
+                mismo. Lo que esta visita comprueba es que responden, no cuántas hay que comprar</td></tr>
             <tr><td><b>El mando por radio</b></td>
               <td><b>El receptor nunca se compró.</b> El paso 29 ejerce las secuencias con un puente;
                 <b>emisor, alcance y receptor quedan sin probar</b></td></tr>
             <tr><td><b>Zumbador y luces de peatón</b></td>
               <td><b>No se prueban porque no hay nada que probar — y no son averías</b></td></tr>
+            <tr><td><b>Con qué tiempos ARRANCA el Modo Automático</b></td>
+              <td>🔴 <b>Sin decidir, y sin diagnosticar.</b> El mínimo de 3 min lo cruza
+                <code>SET_TIEMPOS</code>, pero el arranque del modo vuelve a 1/1/15 según el fuente.
+                <b>Se mide en el paso 28 bis y se decide en la pregunta 9</b> — aquí no se propone
+                ningún arreglo</td></tr>
+            <tr><td><b>Que el mando se opere desde el Esclavo</b></td>
+              <td>🟢 <b>Ya decidido el 04/09, y en contra: el cruce se opera desde el MAESTRO.</b>
+                Este banco no lo revisa; lo que sí anota es la consecuencia de obra (pregunta 10)</td></tr>
             <tr><td><b>Que el cruce funcione en la calle</b></td>
               <td><b>Es una sesión de comprobación, no una puesta en servicio.</b> Nada de lo que se
                 pruebe aquí autoriza a dejar el equipo trabajando en la vía</td></tr>

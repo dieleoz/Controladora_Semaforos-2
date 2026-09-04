@@ -13,8 +13,34 @@
 > | **Qué hace** | **puente Bluetooth SPP ⟷ `J17`** (sustituye al módulo SPP) **+ reloj `DS3231`** por I²C | enlaza **dos radios back-to-back** para salvar una curva ciega o una montaña |
 > | **Cuántas radios toca** | **ninguna** | **cuatro** en total en el sistema |
 > | **Firmware** | 🟢 `01_Firmware/ESP32_Expansion/` | 🟠 `01_Firmware/Repetidor/` |
+> | **Cómo se llama en Bluetooth** | 🔵 **se auto-rotula `SEM-<serie>-M` o `SEM-<serie>-E`** *(y `SEM-SIN-MATRICULA` mientras no lo ha aprendido)* | **no ofrece Bluetooth SPP.** Si busca un `SEM-…` y no sale, puede que tenga delante el otro |
 > | **Estado hoy** | firmware escrito y compilando; **sin pasar banco** | **NO DESPLEGADO.** Fuera de la configuración vigente |
 > | **Documento** | `05_Funcional/18_Especificacion_Firmware_ESP32.md` | **éste** |
+>
+> ### 🔵 04/09 — LA FORMA MÁS BARATA DE SABER QUÉ PLACA TIENE DELANTE, ANTES DE CARGAR NADA
+>
+> **Desde el 04/09 el ESP32 de EXPANSIÓN dice de qué poste cuelga en su propio nombre Bluetooth.**
+> No es una opción de compilación —el mismo binario sirve a las dos puntas—: **lo aprende del campo
+> `NODE:` de la trama `$STATUS`** que le manda la tarjeta del semáforo. **MEDIDO en
+> `01_Firmware/ESP32_Expansion/src/transporte_app.cpp:80-114`** y `include/contrato.h:258-259`.
+>
+> | en la lista de Bluetooth del teléfono | qué placa es |
+> |---|---|
+> | **`SEM-<serie>-M`** | ESP32 de **expansión**, colgado del poste **MAESTRO** |
+> | **`SEM-<serie>-E`** | ESP32 de **expansión**, colgado del poste **ESCLAVO** |
+> | **`SEM-SIN-MATRICULA`** | ESP32 de **expansión** que **aún no ha aprendido** de qué poste cuelga |
+> | *(nada)* | **el REPETIDOR no ofrece SPP**: este manual no habla de Bluetooth con el teléfono |
+>
+> 🛑 **PERO ESE NOMBRE NO ES FIABLE EL PRIMER DÍA, Y HAY QUE SABERLO ANTES DE SUBIR A UN POSTE.** El
+> rótulo aprendido **se guarda para la SIGUIENTE arrancada** *(`transporte_app.cpp:109-113`)*, a
+> propósito: renombrar el perfil SPP en caliente obliga a cerrarlo y reabrirlo, o sea a **tirar la
+> sesión del operario que puede estar dando una orden al cruce**. **Consecuencia: un módulo recién
+> puesto se anuncia `SEM-SIN-MATRICULA`, y con dos módulos nuevos en el mismo frente de obra LOS DOS
+> POSTES SE LLAMAN IGUAL hasta que se les da una vuelta de energía.**
+>
+> **Un nombre no sustituye a mirar el cableado**: el `SEM-…` dice **de qué poste** cuelga la placa,
+> **no qué firmware lleva dentro**. Los tres GPIO que colisionan siguen colisionando igual. Para eso
+> está la tabla de abajo.
 >
 > ### 🔴 Los tres GPIO que colisionan — MEDIDO el 31/08
 >
