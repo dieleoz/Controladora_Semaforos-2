@@ -64,7 +64,7 @@
 >
 > La tabla de abajo es verdad. **Lee lo que mide antes de lo que puntúa.**
 
-**Verificación actual** — cifras **copiadas del acta** `evidencia/2026-09-02_compuerta.txt`, que
+**Verificación actual** — cifras **copiadas del acta** `evidencia/2026-09-04_compuerta.txt`, que
 genera `python 01_Firmware/compuerta.py` en una sola corrida. No se escriben a mano — y desde
 **N-62** eso ya no es una promesa: el pack `documentos_01_cifras_del_acta` compara esta tabla
 contra la última acta en cada corrida del banco. Cuando se escribió por primera vez, **falló**:
@@ -198,7 +198,20 @@ escribir que eso no se hace: decía `✅ 829/829, los 59 packs en PASS` citando 
 > los `lcd.cpp` y `menu.cpp` reales, pero contra un framebuffer en el PC, no contra la ST7920.
 
 **Certificado en campo:** 31 de Julio de 2026 *(V8.4, dos radios en enlace directo)*  
-**Última actualización del repositorio:** 31 de Agosto de 2026 *(la cifra vigente y su hash de HEAD están en el acta que cita la tabla de arriba —`evidencia/2026-09-02_compuerta.txt`—, y no se repiten aquí: este pie llevaba `14 PASS` sobre HEAD `2cde016` cuando el acta ya medía otra cosa, y un recuento viejo no se lee como viejo, se lee como medida. **Nada de esto ha pasado banco**: siguen abiertas la regresión N-42 del Modo Automático, el cristal N-37, y las cuatro funciones de V9.0 que ningún PC puede validar)*
+**Última actualización del repositorio:** 4 de Septiembre de 2026 *(la cifra vigente y su hash de HEAD están en el acta que cita la tabla de arriba —`evidencia/2026-09-04_compuerta.txt`—, y no se repiten aquí: este pie llevaba `14 PASS` sobre HEAD `2cde016` cuando el acta ya medía otra cosa, y un recuento viejo no se lee como viejo, se lee como medida.)*
+
+> 🟢 **El 3 y 4 de Septiembre esto SÍ pasó por banco, y este pie decía lo contrario hasta hoy.** El
+> funcional ejecutó la guía de 29 pasos sobre `617bd00` con dos tarjetas cargadas: **24 completos, 4
+> bloqueados por el enlace Bluetooth y 1 abortado por un incidente de seguridad**. Informe en
+> `evidencia/Informe_Pruebas_Banco_Semaforos_V9.0.pdf`.
+>
+> **Lo que el banco NO cerró, y por eso sigue sin ser un entregable de campo:** la regresión **N-42**
+> del Modo Automático **no se pudo ni confirmar ni descartar** —el equipo nunca llegó a operar,
+> faltaba la app—; el **verde simultáneo** sigue sin ejercerse sobre hardware; y aparecieron **tres
+> defectos que ninguna de estas cifras podía ver**: la tarjeta Maestro se calienta y se para a los
+> ~30 s (**N-116**), el ESP32 no se anuncia por Bluetooth (**N-117**, arreglado en el árbol y
+> pendiente de confirmar en el módulo) y el mando A/B no puede pulsarse (**N-118**). Los tres pasaron
+> el `20/20` sin despeinarlo. El detalle está en [`roadmap.md`](roadmap.md) §6.
 **Repositorio Oficial:** [`github.com/dieleoz/Controladora_Semaforos-2`](https://github.com/dieleoz/Controladora_Semaforos-2.git) — remoto `origin`. *(Este renglón publicaba `2semaforos_3estados.git`, que es el remoto **`padre`**: `git remote -v` lo dice. Un README que da la dirección del repositorio anterior manda a clonar el árbol anterior.)*  
 **Normativa Aplicable:** Resolución 2024 del Ministerio de Transporte de Colombia (Secuencia de Luces y Tiempos de Seguridad Vial)
 

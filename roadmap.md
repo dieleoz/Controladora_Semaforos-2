@@ -12,11 +12,35 @@ bitacora. Lo anterior no se pierde —vive en el `git log` de este repositorio y
 
 ## 0. PARA RETOMAR — leelo entero antes de tocar nada
 
-### 0.0 · 🔴 LO PRIMERO, Y NO ES TRABAJO NUEVO: NO ESCRIBAS UN INSTRUMENTO MAS
+### 0.0 · 🟢 EL BANCO CORRIO. Lo que este roadmap daba por bloqueante ya no lo es
 
-**En campo corre `e303485` (V8.4, 31/07). Han pasado 33 dias y ninguna linea de todo esto ha
-tocado una tarjeta.** El arreglo del defecto que se sufre HOY en la calle —el equipo se va a
-ambar por nada— **lleva escrito desde el 27/08 y sin subir**.
+**El 03 y 04/09 el funcional ejecutó la guía de 29 pasos sobre el paquete V9.0 (`617bd00`), con dos
+tarjetas cargadas.** Informe en `evidencia/Informe_Pruebas_Banco_Semaforos_V9.0.pdf`, preparado por
+Sebastian, equipo `nitro5-marco`. **24 de 29 pasos completados y verificados en hardware.**
+
+Durante 34 dias este fichero repitio *«ninguna linea ha tocado una tarjeta»* y *«BANCO sigue siendo
+EL bloqueante»*. **Eso dejo de ser cierto el 03/09 y el resto del documento se lee con eso delante.**
+
+Lo que el banco confirmo funcionando en cobre, que no es poco y no lo decia nadie hasta ahora:
+
+```
+carga de firmware por SWD/ST-LINK, las dos puntas, al primer intento y sin BOOT0
+radio Maestro <-> Esclavo, con caida a ambar intermitente en ~20 s y vuelta sola en ~3 s
+talanquera J15: sube en ambar, baja al recuperar enlace
+camara de demanda J14: 3,3 V / 0 V y conmutacion correcta
+camara cableada en J16 p10: sin falsa activacion, con y sin el cable puesto
+masa comun del modulo definitivo contra la STM32: 0 V (umbral exigido 50 mV)
+identidad real de J17 -RESUELTA-: es el UART del ESP32, no el LCD del netlist
+```
+
+**Y lo que el banco NO pudo probar, que es lo que manda ahora:** 4 pasos bloqueados en cascada por
+el enlace Bluetooth, 1 abortado por un incidente de seguridad, y **la tarjeta Maestro fuera de
+servicio**. Ver **N-115**, **N-116** y **N-117**.
+
+> ⚠️ **La regla §2.bis no se relaja por esto — se refuerza.** El banco no invalido ni un instrumento:
+> **encontro tres cosas que ninguno de los 34.532 renglones podia ver**, porque ninguna es una
+> propiedad del fuente. Un chip que se calienta, un modulo que no se anuncia y una resistencia de
+> 10 kOhm en el cobre no salen de leer C++. Esa es exactamente la diferencia que §2.bis nombra.
 
 | | firmware | instrumento | ratio |
 |---|---|---|---|
@@ -28,22 +52,31 @@ a la segunda: *«arreglamos todo lo que midio y nada de lo que dijo»*. Ver **N-
 regla **§2.bis de `CLAUDE.md`**, que existe por esto.
 
 > **La pregunta antes de escribir cualquier cosa: ¿esto acerca una tarjeta cargada, o la sustituye?**
+> Desde el 03/09 hay una segunda, y es mejor: **¿esto desatasca uno de los 5 pasos que el banco no
+> pudo correr?** Lo que no conteste a ninguna de las dos, no se escribe.
 
-### 0.1 · Lo unico que hay que hacer, en orden
+### 0.1 · Lo unico que hay que hacer, en orden — reescrito el 04/09 con el banco delante
 
 | | que | por que |
 |---|---|---|
-| **1** | 🔴 **Cargar `SFTY6_SILENCIO_MS = 25000UL` sobre `e303485`** — solo esa constante, sobre la V8.4 que **ya esta probada en la calle** | es lo unico que llega al conductor esta semana, y **no depende de nada de la V9.0** |
-| **2** | 🔴 **El montaje de mesa: tres cables y un cargador USB** | **se puede hacer HOY, sin comprar nada.** La placa portadora bloquea *desplegar*, no *probar*. Esta paso a paso en el apartado 04 de la guia. Lleva pendiente desde el 31/08 |
-| **3** | 🛑 **BANCO** | sigue siendo EL bloqueante y **nada de lo escrito lo sustituye** |
+| **1** | 🛑 **NO REENERGIZAR EL MAESTRO hasta inspeccionarlo en frio** | se calienta y deja de funcionar a los ~30 s de alimentarlo. **Cada ciclo puede terminar de matar el chip.** Las dos pruebas que discriminan la causa sin arriesgarlo mas estan en **N-116** |
+| **2** | 🔴 **Monitor serie a 115200 sobre el CP2102 del ESP32** — dos minutos, no hace falta recompilar nada | decide **N-117**: si el banner de la ROM se repite cada ~2 s hay bucle de reinicio y el Bluetooth esta explicado. Si sale una vez y calla, es antena o *advertising* y hay que mirar otra cosa. **Se mide ANTES de reflashear** |
+| **3** | 🔴 **Reflashear el ESP32** con el arreglo del perro ya aplicado (`main.cpp`, compuerta 20/20 el 04/09) | desbloquea en cascada los pasos **10-14 y 25-28**, y con ellos la unica via de operacion del equipo |
+| **4** | 🔴 **Repetir los pasos 7, 19 y 21** en cuanto haya app | son los que deciden si **N-42** sigue viva. El banco **no la confirmo ni la descarto** |
+| **5** | 🔴 **Cargar `SFTY6_SILENCIO_MS = 25000UL` sobre `e303485`** — solo esa constante, sobre la V8.4 que **ya esta probada en la calle** | sigue siendo lo unico que llega al conductor esta semana, y **no depende de nada de la V9.0** |
 
 **Lo que NO hay que hacer:** ni un pack, ni un arnes, ni un documento — salvo que **conteste una
 pregunta abierta**, que es la excepcion escrita en §2.bis.
 
-### 0.2 · Donde esta todo, medido el 02/09 sobre arbol limpio
+> 🔴 **Y una que el banco anadio a esa lista: no escribas un pack para N-117.** La propiedad que
+> fallo es **cuanto TARDA** el arranque del ESP32, y eso no se lee del fuente — solo se mide con el
+> modulo en la mano. Un pack que comprobara *«hay un `vigilante_alimentar()` entre etapa y etapa»*
+> volveria a medir la forma, que es exactamente lo que `esp32_02` ya hacia cuando dejo pasar esto.
+
+### 0.2 · Donde esta todo, medido el 04/09 tras el arreglo de N-117
 
 ```
-compuerta      20 PASS | 0 FALLA | 0 ABORTADO   (tres pasadas identicas)
+compuerta      20 PASS | 0 FALLA | 0 ABORTADO   (acta evidencia/2026-09-04_compuerta.txt)
 banco          963/963 en 66 packs
 firmwares      Maestro 89,2 % (7.080 B libres) · Esclavo 65,9 % · Repetidor 20,6 % · ESP32 35,7 %
 simuladores    9/9 · 10/10 · 12/12 · 85/85
@@ -51,13 +84,25 @@ arneses C++    pantalla 271/271 · ciclo 22/22 · automatico 71/71 · dos puntas
 app            jsdom 128 · unitarios 32 + 55 · funcional 58/58
 ```
 
-> ⚠️ **Y ese 20/20 no es un entregable.** Es lo que §2.bis llama una coartada: verde sobre 34.532
-> lineas que no han visto una tarjeta.
+**Y ahora, al lado, la cifra que hasta el 03/09 no existia:**
+
+```
+BANCO          24/29 pasos COMPLETOS  ·  4 BLOQUEADOS (Bluetooth)  ·  1 ABORTADO (seguridad)
+               informe: evidencia/Informe_Pruebas_Banco_Semaforos_V9.0.pdf
+```
+
+> ⚠️ **El 20/20 sigue sin ser un entregable, y ahora hay prueba de por que.** Las tres cosas que
+> pararon el banco —el chip que se calienta, el modulo que no se anuncia, los 10 kOhm del cobre—
+> pasaron **las 20 comprobaciones sin despeinarlas**. Verde no es entregable: esta vez con el
+> contraejemplo delante en vez de como advertencia.
 
 ### 0.3 · Lo que espera DECISION del responsable, no trabajo
 
 | | |
 |---|---|
+| 🛑 **Que se hace con la tarjeta Maestro danada** | reparar, sustituir o diagnosticar con camara termica. **Bloquea todo lo demas**: sin Maestro no hay banco. Ver **N-116** |
+| 🔴 **Con que polaridad se lee el mando A/B** — hoy **no se puede pulsar**, y esta medido en cobre | **N-118**. Las dos salidas son leerlo activo en ALTO como las camaras, o quitar `R65`/`R66`. Afecta a que receptor de mando se compra: **es decision de quien firma la seguridad**, no mia |
+| 🟠 **La cadencia del `$STATUS` por J17** | va a **1000 ms** y su unico consumidor (`vigilarEnlace()` de la app) tiene una cota de **5 s**. El peor segundo ocupa el **55 %** del cable. Bajarlo a 2000 ms lo deja bajo el 30 %; el coste es que el tablero del operario refresca la mitad de rapido. **Cifras en N-119** |
 | 🔴 **Quien disena y quien fabrica** la placa portadora | bloquea el montaje permanente, **no la prueba** |
 | 🔴 **Pedir la fuente `A5`** — conmutada 12->5 V, >= 1 A | |
 | 🔴 **`AB-9`: el PIN no caduca NUNCA** | se teclea, se guarda el telefono, y el siguiente manda ordenes sin teclear. **Cinco opciones con su coste en §0.quinquies** |
@@ -346,7 +391,7 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 | # | que | como se cierra |
 |---|---|---|
 | ~~**BLQ-1**~~ | 🟢 **CERRADO el 31/08.** Es un **`ESP32-WROOM-32` clasico**: `Xtensa LX6 dual-core` y `Bluetooth v4.2 **BR/EDR** + BLE` — hay **SPP**. La app conecta sin tocar el transporte y el apartado 1 del Manual 10 **no se reabre**. Ver **N-107** | — |
-| **M3** | 🟠 **La resistencia real de `PB14`/`PB15` en cobre.** Con `pinMode(INPUT)` pelado, sin pull-down real el pin flota y da demandas fantasma | multimetro. Ya **no** es bloqueante de rehacer nada: decide **como se configura la salida de la camara** |
+| ~~**M3**~~ | 🟢 **CERRADA EN BANCO el 03/09, paso 20.** El pull-down es **real y de 10 kOhm**: `p10` mide **9,93 kOhm** a masa y `p12` **9,94 kOhm**, los dos a **0 V** con energia. El camino de camara —`INPUT` pelado, activo en ALTO— es correcto y **no hay demandas fantasma**: el paso 21 lo confirmo con y sin el cable puesto. La misma medida condena el mando: ver **N-118** | — |
 | **A5** | 🔴 **La fuente propia del ESP32 desde 12 V.** No esta pedida y hace falta | comprarla |
 | **N75-1** | 🟠 El minimo de tiempo por sentido | es una cifra, y hace falta |
 | ~~**APK**~~ | 🟢 **CERRADA el 31/08.** Recompilada contra el fuente al dia: `IOT_VIAL_Semaforos_2026-08-31_59c5263_SIN_BANCO.apk`, 3.908.591 B. El paquete ya no aborta | |
@@ -361,13 +406,19 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 | **T4** | 🟠 **Firmware del ESP32**: watchdog primero, luego `DS3231`. No dependen de BLQ-1 | el watchdog con su desigualdad en un pack: periodo **<** `SFTY6_SILENCIO_MS = 25000UL` |
 | **T5** | 🟠 **Fases 2 y 3** del firmware STM32 | 🔴 `compilar.ps1` y los stubs de `Validacion_Automatico` **en el mismo commit** que toque `mando.cpp` (N-101) |
 | **T7** | 🟠 **Las dos barreras de la app de N-110**: validar el checksum de la telemetria (el llamador ya existe y esta sin usar) y que el teclado del PIN no acepte pulsaciones con el modal cerrado | tocar `app.js` obliga a **recompilar la APK y rehacer el paquete**: van juntas, no sueltas |
-| **T6** | 🛑 **BANCO** | sigue siendo EL bloqueante y nada lo sustituye |
+| **T8** | 🟢 **N-117 ARREGLADO el 04/09**: el perro del ESP32 ya no muerde su propio arranque | queda **confirmarlo en el modulo** con el monitor serie. El arreglo esta en el arbol; lo que falta no es codigo |
+| **T6** | 🟠 **BANCO — corrio el 03-04/09.** Ya no es EL bloqueante entero: quedan **5 pasos de 29** | los desatasca el ESP32 (4) y la reparacion del Maestro (1). **Sigue siendo cierto que nada de lo escrito lo sustituye** |
 
 ---
 
-## 5. Donde vamos — 31/08, cierre de sesion
+## 5. Donde vamos — 04/09, con el banco corrido
 
-**Rama `main-nuevo`, 50 commits por delante. `origin/main` intacto en `f25fa57`.**
+**Rama `main-nuevo`. `origin/main` intacto en `f25fa57`.**
+
+> 🟢 **El eje del proyecto cambio el 03/09.** Durante 34 dias la pregunta fue *«como llegamos al
+> banco»*. Ya se llego: **24/29**. La pregunta de hoy es **«como se destraban los 5 que faltan»**, y
+> los cinco tienen nombre — 4 el ESP32 (**N-117**), 1 la tarjeta Maestro (**N-116**). Ninguno se
+> destraba escribiendo.
 
 ### 🔴 Lo que la auditoria externa dejo claro (N-109)
 
@@ -393,11 +444,14 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 
 | | que | estado |
 |---|---|---|
+| 🛑 **N-116** | **la tarjeta Maestro se calienta y se para a los ~30 s** | **fuera de servicio.** El firmware queda descartado por censo; es hardware |
+| 🔴 **N-117** | el ESP32 no se anuncia por Bluetooth de forma fiable | **arreglado en el arbol el 04/09**, pendiente de confirmar en el modulo |
+| 🔴 **N-118** | **el mando A/B no puede pulsarse**: SFTY-21 no tiene respaldo fisico | medido en cobre y en el fuente. **Espera decision de polaridad** |
 | 🔴 **N-106** | el ambar de la app no saca al Esclavo del Degradado | en curso |
 | 🔴 **el `` cruzado** | 32 de 289 pares confirman OTRA orden | en curso |
-| 🔴 **N-42** | el Modo Automatico no mueve las luces en banco | **abierta desde antes de esta arquitectura, sin tocar** |
-| 🔴 **el verde simultaneo** | lo sostiene un modelo de Python, no el codigo | **solo se cierra en banco** |
-| 🟠 **el PIN 1234 en claro** | y las ordenes mas peligrosas no lo piden | sin elevar a riesgo de seguridad |
+| 🔴 **N-42** | el Modo Automatico no mueve las luces en banco | **el banco del 03/09 NO la confirmo ni la descarto**: el equipo nunca llego a Modo Automatico porque falto la app. Se decide repitiendo el paso 7 |
+| 🔴 **el verde simultaneo** | lo sostiene un modelo de Python, no el codigo | **solo se cierra en banco**, y el banco no llego a ejercerlo |
+| 🟠 **el PIN 1234 en claro** | y las ordenes mas peligrosas no lo piden | sin elevar a riesgo de seguridad. **El banco aclaro un punto de proceso**: el ESP32 empareja por *Just Works*, asi que el 1234 es PIN de comando de la app, **no** de emparejamiento |
 
 ### Lo que falta para cerrar
 
@@ -452,8 +506,13 @@ Libera ~18,9 KB y `PB3`/`PB4`/`PB5`.
 
 ### Ola E — BANCO
 
-🛑 **Sigue siendo EL bloqueante y nada lo sustituye.** Ni la compuerta en verde, ni los arneses que
-compilan C++ real, ni este roadmap.
+🟢 **CORRIO EL 03-04/09.** 24/29 pasos verificados en hardware. Lo que sigue abierto son **5 pasos**,
+y ninguno se destraba escribiendo: **4 los abre el ESP32** (N-117) y **1 la reparacion del Maestro**
+(N-116).
+
+**La frase de este apartado se mantiene entera, y ahora con prueba:** ni la compuerta en verde, ni
+los arneses que compilan C++ real, ni este roadmap vieron venir ninguno de los tres hallazgos del
+banco. **Los tres pasaron el 20/20 sin despeinarlo.**
 
 ### Lo que NO desbloquea ningun agente
 
@@ -468,6 +527,254 @@ compilan C++ real, ni este roadmap.
 ---
 
 ## 6. Los hallazgos de esta sesion — el porque de todo lo de arriba
+
+
+### 🟢 N-115 — El banco corrio, y lo primero que hay que decir es que NO invalido nada de lo escrito
+
+**03-04/09, informe en `evidencia/Informe_Pruebas_Banco_Semaforos_V9.0.pdf`.** 24 de 29 pasos
+completos sobre `617bd00`, con dos tarjetas cargadas por SWD al primer intento y sin BOOT0.
+
+**Lo que conviene registrar con cuidado, porque es la respuesta a tres auditorias:** el banco **no
+encontro ni un defecto de logica**. El ciclo, la radio, la caida a ambar, la talanquera, la camara de
+J14 y el enclavamiento se comportaron como los modelos decian. Los 34.532 renglones de instrumento
+**acertaron en todo lo que sabian mirar**.
+
+Y aun asi el banco paro. Los tres hallazgos que lo pararon comparten una propiedad:
+
+| hallazgo | por que ningun instrumento podia verlo |
+|---|---|
+| **N-116** el chip se calienta | es corriente y temperatura, no es una propiedad del fuente |
+| **N-117** el modulo no se anuncia | es **cuanto TARDA** un arranque, y eso no se lee del C++ |
+| **N-118** los 10 kOhm del cobre | esta en la placa, no en el repositorio |
+
+> **Eso no es una absolucion del §2.bis: es su enunciado exacto.** La critica nunca fue *«los
+> instrumentos estan mal»* —estan bien—, sino que **certifican otra vez lo ya certificado mientras
+> nadie mide lo que solo se mide con la tarjeta en la mano**. El banco acaba de mostrar cual era la
+> mitad que faltaba, y no era Python.
+
+**Correccion de una cifra de este roadmap, para que no se arrastre:** aqui se ha repetido 34 dias que
+el montaje de mesa *«se puede hacer HOY, sin comprar nada»*. Era cierto, y cuando se hizo salieron
+**dos problemas de hardware que ningun analisis de escritorio habria encontrado**. La conclusion no
+es que el analisis sobrara: es que **el orden estaba invertido desde el 31/07**.
+
+**Y un aviso de proceso que el propio informe merece:** esta redactado con las tres categorias
+separadas —*completo*, *bloqueado*, *abortado*— y **no cuenta un `BLOQUEADO` como aprobado en ninguna
+linea**. Es §2 de `CLAUDE.md` aplicado por alguien que no lo ha leido, lo cual dice que la distincion
+es natural y no una mania de este repositorio.
+
+
+### 🛑 N-116 — El Maestro se calienta a los ~30 s: el firmware queda DESCARTADO por censo, no por opinion
+
+**Sintoma, del funcional el 04/09:** *«al iniciarse o alimentar la placa funciona adecuadamente
+durante aproximadamente 30 segundos, se calienta de mas el microcontrolador y deja de funcionar»*.
+Aparecio durante el **paso 29**, puenteando `J16` p5/p8 contra masa, y **ahora se repite sin puente**.
+
+#### Lo que esta MEDIDO: el firmware no puede ser la fuente del calor
+
+Censo de **todas** las salidas del Maestro —`grep` de `pinMode(..., OUTPUT)` sobre `Maestro/src/`,
+no lectura—:
+
+```
+semaforo.cpp:193-198   ROJO1/2, AMARILLO1/2, VERDE1/2
+semaforo.cpp:203       MOTOR_TALANQUERA (PB2)
+bluetooth.cpp:133      RS485_IN_DE_RE (PA8)
+protocolo.cpp:14       LORA_DE_RE
+```
+
+**Nueve salidas en todo el firmware, y ninguna es `PB9`, `PB13`, `PB14` ni `PB15`** — los cuatro
+pines de `J16`. Los dos que se puentearon estan en `INPUT_PULLUP` (`botones.cpp:139-140`): contra
+masa consumen `3,3 V / 40 kOhm` ~= **80 uA**, o sea **0,27 mW**. Eso no calienta un chip.
+
+> **Consecuencia dura y util: cargar otro firmware no arregla esto.** Es la clase de conclusion que
+> ahorra una sesion entera de banco persiguiendo el sitio equivocado.
+
+#### Una causa que se cayo, y se marca refutada en vez de borrarse
+
+Se sospecho **contencion en `PB6`/`PB7`**: el netlist dice que `J17` es el LCD y el firmware lo usa
+como UART del ESP32, asi que dos salidas *push-pull* enfrentadas en el mismo hilo explicarian el
+calor perfectamente. **Es falsa.** `Maestro/src/lcd.cpp:74-75` construye el U8g2 con los **cuatro
+pines en `U8X8_PIN_NONE`**, y `U8x8lib.cpp` pregunta `if (u8x8->pins[i] != U8X8_PIN_NONE)` antes de
+cada `pinMode` y cada `digitalWrite`: no queda ni una escritura. La pantalla no conduce nada.
+
+Queda escrita porque **es la sospecha natural** —la contradiccion netlist/fuente esta ahi y volvera a
+proponerse—, y porque las medidas del paso 5 la explican mejor sin ningun defecto: `RST` (`PB7`) a
+3,3 V es el **TX del ESP32 en reposo**, que es alto; `RS/A0` (`PB6`) variando entre 2,8 y 3,3 V es el
+**TX del STM32 transmitiendo**. Todo coherente, cero conflicto.
+
+#### La hipotesis que queda, ETIQUETADA COMO TAL
+
+`semaforo.cpp:93` energiza la talanquera cuando `verde || estado == S_FALLO`, y `pines.h:31` dice a
+donde va: `PB2 -> opto U15 -> MOSFET Q10 -> bornera J15`, una salida de motor de **hasta 10 A**. Un
+Maestro solo, sin Esclavo, cae a `S_FALLO` a los **~20 s** —medido en el paso 8 del propio banco— y
+**en ese instante enciende `J15`**. Es lo unico del equipo que cambia solo, sin que nadie toque nada,
+dentro de la ventana de los 30 s.
+
+**No esta medido y no se publica como causa.** Se decide con dos pruebas que no arriesgan mas la
+tarjeta:
+
+| prueba | si NO se calienta |
+|---|---|
+| **a)** Maestro **con el Esclavo enlazado** — se queda en rojo fijo y nunca entra en `S_FALLO` | la falla esta en el camino de la talanquera (`J15`/`U15`/`Q10`), no en un corto generico |
+| **b)** Maestro solo, **con `J15` desconectado** | la falla esta aguas abajo del conector |
+
+Si calienta en los dos casos, es corto generico y la tarjeta va a inspeccion sin mas pruebas.
+
+> 🛑 **Y la instruccion que va antes que las dos: no repetirlo «a ver si pasa».** Cada ciclo de 30 s
+> calentando puede terminar de matar el chip. El informe recomienda inspeccion en frio antes de
+> reenergizar y hay que hacerle caso.
+
+
+### 🔴 N-117 — El perro del ESP32 se comia su propio arranque, y el pack lo aprobaba mirando la forma
+
+**Sintoma en banco, paso 10:** el modulo *«no aparecio de forma confiable»* en la lista del telefono,
+con el firmware cargado sin errores y el hardware confirmado compatible (BR/EDR, o sea SPP).
+
+#### El defecto
+
+`ESP32_Expansion/src/main.cpp` armaba el watchdog —**2 s, `panic = true`**— y **no lo alimentaba
+hasta el primer `vigilante_alimentar()` de `loop()`**. Entre medias, cuatro etapas compartiendo **un
+solo presupuesto de 2000 ms**:
+
+```
+enlace_setup()        Serial2, barato
+reloj_setup()         Wire.begin() + lectura del OSF del DS3231
+transporte_abrir()    Preferences/NVS  +  pila Bluedroid CLASICA entera
+puente_setup()        trivial
+```
+
+La cara es la tercera. **Y cuanto tarda no lo ha medido nadie: lo declara el propio `contrato.h` en
+`AB-3`**, con todas las letras —*«Nadie ha medido cuanto tarda este modulo desde el reset hasta
+volver a pasar bytes»*— y con `ESP32_ARRANQUE_MEDIDO = 0` para que no se lea como cifra.
+
+**Un techo duro de 2 s sobre un arranque de duracion desconocida no es una proteccion: es una
+apuesta.** Si se pierde, `panic` reinicia, y vuelta a empezar — para siempre.
+
+> **Y asi es como se ve desde fuera, que es lo que ata el defecto al sintoma:** un modulo que
+> rearranca cada 2 s **no parece averiado desde el telefono. Parece que APARECE Y DESAPARECE de la
+> lista**, porque el descubrimiento de Android necesita que el equipo se quede en *inquiry scan*
+> varios segundos seguidos. Es literalmente la frase del paso 10.
+
+#### Por que salia verde: el pack medía la forma, no la propiedad
+
+`esp32_02_watchdog_alimentado` comprueba **11 cosas** y todas pasan: que se arma (`W-1`), que se
+registra la tarea correcta, que `loop()` alimenta **despues** de bombear (`W-2`), que ningun `while`
+esconde el reset (`W-3`), que los bucles llevan tope (`W-4`) y que el perro se arma **antes** del I2C
+y del SPP (`W-5`).
+
+**Ni una sola acota la DURACION de la ventana contra `ESP32_WDT_MS`.** Comprueba el **orden** del
+armado y la **presencia** del reset; nunca pregunta si lo de en medio **cabe**. Es la forma exacta de
+la prueba muerta de §3.bis: verde perfecto sobre la propiedad de al lado.
+
+#### El arreglo, y lo que NO debilita
+
+Se alimenta **entre etapa y etapa**, en linea recta. `W-5` queda intacto —cada etapa se alimenta
+*antes* de entrar y la siguiente solo alimenta si la anterior **volvio**, asi que un `DS3231` que
+cuelgue el bus sigue sin llegar a su reset y el perro muerde a los 2 s—; `W-3` tambien, porque no hay
+ningun `while` de por medio. Lo unico que cambia es que **cada etapa tiene sus propios 2 s en vez de
+repartirse unos solos entre las cuatro**.
+
+**Compuerta tras el cambio: `20 PASS | 0 FALLA | 0 ABORTADO`, codigo 0**, acta
+`evidencia/2026-09-04_compuerta.txt`. `esp32_02` sigue en 11/11 y `esp32_07` en 11/11.
+
+#### 🔴 Lo que falta, y no es codigo
+
+**Esto es una hipotesis con arreglo aplicado, no una causa demostrada.** Se confirma en dos minutos y
+**antes** de reflashear: monitor serie a **115200** sobre el CP2102. El firmware no imprime nada
+propio —no hay un solo `Serial.begin()` en el proyecto, comprobado—, pero **la ROM del ESP32 si saca
+su banner** (`rst:0x...`, `ets ...`) en cada arranque.
+
+| lo que se ve | lo que significa |
+|---|---|
+| banner repitiendose cada ~2 s | **bucle de reinicio: N-117 confirmado** |
+| banner una vez y despues silencio | es **otra cosa** — antena, *advertising* o interferencia — y hay que mirar ahi |
+
+> **Y la regla que deja: no se escribe un pack para esto.** La propiedad que fallo es un **tiempo**, y
+> un tiempo no se lee del fuente. Un pack que exigiera *«hay un `vigilante_alimentar()` entre etapa y
+> etapa»* estaria midiendo la forma otra vez — el mismo error que dejo pasar esto. **La medida vive
+> en el modulo; lo que va al repositorio es el numero medido en `ESP32_ARRANQUE_MS` y su bandera
+> `ESP32_ARRANQUE_MEDIDO` a 1.** Ese es el cierre de `AB-3`, y sigue abierto.
+
+
+### 🔴 N-118 — El mando A/B no se puede pulsar: SFTY-21 se quedo sin respaldo fisico, y esta medido en las dos mitades
+
+El informe lo reporta como `H2`, *«riesgo sobre el respaldo de seguridad del mando de reles»*.
+**Cruzando su medida con el fuente, no es un riesgo: ya pasó.**
+
+#### La mitad del cobre, del paso 20
+
+`J16` p5 (`PB9`, mando A) y p8 (`PB13`, mando B) miden **9,92 kOhm a masa** y **0,6 V** con energia.
+
+#### La mitad del fuente, que estaba escrita desde el 31/08
+
+`pines.h:107-110` ya traia la cuenta hecha, para las camaras: el pull-up interno (~40 kOhm) contra un
+pull-down de 10 kOhm deja el pin en `3,3 x 10/50 = 0,66 V`, **que el micro lee LOW**. El funcional
+midio **0,6 V**. La prediccion y la medida coinciden.
+
+Lo que nadie habia cruzado es que **`R65`/`R66` hacen lo mismo en p5/p8**, donde el firmware **sigue
+leyendo activo en BAJO**. Y entonces `botones.cpp` cierra el circulo solo:
+
+- `botones_setup()` siembra `disparadoAnt[i] = pulsado` — un pin que ya viene en LOW al arrancar
+  queda marcado como **«flanco ya consumido»** (es N-26, y es la decision correcta).
+- `botones_actualizar()` solo llama a `mando_registrarPulso()` **con un flanco**.
+- Con el pin clavado en 0,6 V **nunca sube**, luego **nunca hay flanco**, luego **el mando no
+  registra un solo pulso en toda la vida del equipo**.
+
+**Ninguna de las tres secuencias —`A·A·A`, `B·B·B`, `A·B·A·B`— es alcanzable.** Y el propio comentario
+de `botones.cpp:186-189` lo habia anticipado sin saber que ya era el caso: *«si esta trabado de
+verdad, el equipo arranca en el menu y ese boton no responde»*.
+
+> **Confirmacion independiente, del paso 29:** al puentear p5/p8 contra masa *«no se observo ningun
+> cambio de comportamiento»*. Claro: **el pin ya estaba en LOW**. El puente no cambiaba nada.
+
+#### Por que importa mas de lo que parece
+
+El mando de reles es **el respaldo fisico de seguridad deliberadamente conservado el 31/08**, el unico
+camino de mando que **no depende de la app ni del ESP32**. Con la pantalla y los pulsadores retirados,
+era lo unico que quedaba cuando el Bluetooth falla — que es exactamente lo que acaba de pasar en banco.
+
+**Hoy el equipo no tiene ninguna via de mando local.** Y el veto de `mando_ambarLocal()` que
+documenta `CLAUDE.md` §3.ter —los tres `if` de `Esclavo/src/main.cpp` que impiden que una orden de
+radio saque del ambar a un operario— **no puede armarse nunca**, porque su bandera cuelga de un pulso
+que no llega. Es el caso que aquella regla describe, ocurriendo por hardware en vez de por un borrado.
+
+#### Las dos salidas, y la decision NO es mia
+
+| | que | coste |
+|---|---|---|
+| **1** | **Leer A/B activo en ALTO**, como las camaras desde el 31/08: `INPUT` pelado y contacto contra los 3,3 V de p9/p11 | firmware + decide como se conecta el receptor de mando, **que aun no se ha comprado** |
+| **2** | **Retirar `R65`/`R66`** para que el pull-up interno gane | tocar la placa; deja el pin flotando si el receptor se desconecta |
+
+**La 1 es coherente con la decision del 31/08 y no toca cobre**, pero cambia que hardware se compra y
+como se cablea un camino de seguridad: **va al responsable, no se implementa de oficio.**
+
+
+### 🟠 N-119 — El ritmo de J17: la pregunta era buena y la respuesta es «ya es por eventos, salvo un latido»
+
+**Pregunta del responsable (04/09):** *«no debe ser tan continua sino por eventos entre el ESP y el
+STM, no son un computador y no aguantan esos ciclos tan rapidos»*.
+
+Medido con `esp32_07_presupuesto_bytes`, que recalcula esto del C++ en cada corrida:
+
+| direccion | como es hoy |
+|---|---|
+| **app -> STM32** | **ya es puramente por eventos.** Cero envios periodicos, y hay pack que lo exige (`P-1`/`P-4`: ni `puente.cpp` ni `enlace_stm32.cpp` tienen reloj). Por J17 entra **exactamente lo que un dedo pulsa** |
+| **STM32 -> app** | eventos **+ un `$STATUS` cada 1000 ms** (`bluetooth.cpp:645`) |
+
+```
+peor segundo    528 B de 960 B/s   =  55,0 %   ($STATUS + $EVENT + $ALARM + $ACK)
+reposo          ~130 B             =  ~13,5 %
+```
+
+**Lo que la medida descarta:** el ritmo **no** es la causa del calentamiento de N-116. 9600 baudios es
+un periferico UART al 13,5 % de uso; no hay ciclo rapido que quemar. No se persigue por ahi.
+
+**Lo que la medida confirma del instinto:** el unico consumidor del `$STATUS` es `vigilarEnlace()` de
+la app, y **su cota son 5 s**. El latido va **cinco veces mas rapido de lo que nadie necesita**, y el
+peor segundo se come mas de la mitad del cable. Pasarlo a 2000 ms lo deja bajo el 30 %.
+
+**El coste, declarado:** el tablero del operario refresca la mitad de rapido. **Es decision del
+responsable** —afecta a lo que ve quien decide sobre el trafico—, esta en §0.3 y **no se toca de
+oficio**.
 
 
 ### 🟠 N-113 — Si el ESP32 se cuelga: que sigue funcionando, que NO, y por que la app no es un canal de alarma

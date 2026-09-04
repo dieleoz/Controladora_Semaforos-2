@@ -9,24 +9,39 @@ medir con el mismo comando.)*
 (commit raíz `24276ab`), y **la historia arranca de cero porque el padre pesaba 3,47 GB** por dos ZIP de
 2 GB y 1 GB que GitHub rechaza: no se podía publicar sin reescribir la historia entera, así que se
 publica el árbol y se deja el anterior accesible como remoto **`padre`**.  
-**Versión de Especificación y Firmware:** **V9.0 — implementada y compilando. NO probada en banco.**  
+**Versión de Especificación y Firmware:** **V9.0 — implementada, compilando y PROBADA EN BANCO el 3-4/09: 24 de 29 pasos.**  
 **En campo sigue la V8.4 (`e303485`).** La compuerta en verde dice que los modelos y arneses de PC no
 encuentran nada; no dice que el firmware funcione sobre la tarjeta. Ver 🛑 más abajo.  
-**Compuerta:** ✅ **20 PASS | 0 FALLA | 0 ABORTADO** (Exit code: 0) · **N-112 cerrado**: tres pasadas consecutivas sobre un arbol identico dan lo mismo. Cifras **copiadas del acta `evidencia/2026-09-02_compuerta.txt` (arbol LIMPIO)** · Maestro: 89.2% Flash (58.456 de 65.536 B → **7.080 B libres**) · Esclavo: 65.9% · Repetidor: 20.6% · ESP32: 35.7% · **963/963 en 66 packs** · 271/271 pantalla · 71/71 automatico · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** · 85/85 puente ESP32 · app: 32/32 + 55/55 unitarios + 128/128 jsdom + 58/58 funcional  
-🔴 **Y el verde sigue sin ser un entregable.** Son 34.532 lineas de instrumento contra 14.976 de firmware —**2,31 a 1**— y **ninguna ha tocado una tarjeta desde el 31/07**.
+
+> 🟢 **EL BANCO CORRIÓ — 3 y 4 de Septiembre, sobre `617bd00`, dos tarjetas cargadas.**
+> Informe: `evidencia/Informe_Pruebas_Banco_Semaforos_V9.0.pdf` (Sebastian, equipo `nitro5-marco`).
+> **24 completos · 4 bloqueados por el enlace Bluetooth · 1 abortado por seguridad.**
+> Verificado en cobre: carga por SWD al primer intento, radio Maestro↔Esclavo con caída a ámbar en
+> ~20 s y vuelta sola en ~3 s, talanquera `J15`, cámara `J14`, cámara cableada en `J16` p10 sin falsa
+> activación, masa común a 0 V, e identidad real de `J17` **resuelta**.
+>
+> 🔴 **Y tres defectos que ninguna cifra de este bloque podía ver, porque ninguno es una propiedad del
+> fuente:** la tarjeta **Maestro se calienta y se para a los ~30 s** (**N-116**, fuera de servicio),
+> el **ESP32 no se anuncia por Bluetooth** (**N-117**, arreglado en el árbol el 04/09 y pendiente de
+> confirmar en el módulo) y el **mando A/B no puede pulsarse** (**N-118**, SFTY-21 sin respaldo
+> físico). **Los tres pasaron el `20/20` sin despeinarlo.** El porqué de cada uno, en
+> [`roadmap.md`](roadmap.md) §6.
+**Compuerta:** ✅ **20 PASS | 0 FALLA | 0 ABORTADO** (Exit code: 0) · **N-112 cerrado**: tres pasadas consecutivas sobre un arbol identico dan lo mismo. Cifras **copiadas del acta `evidencia/2026-09-04_compuerta.txt` (arbol LIMPIO)** · Maestro: 89.2% Flash (58.456 de 65.536 B → **7.080 B libres**) · Esclavo: 65.9% · Repetidor: 20.6% · ESP32: 35.7% · **963/963 en 66 packs** · 271/271 pantalla · 71/71 automatico · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** · 85/85 puente ESP32 · app: 32/32 + 55/55 unitarios + 128/128 jsdom + 58/58 funcional  
+🔴 **Y el verde sigue sin ser un entregable — ahora con el contraejemplo delante en vez de como advertencia.** Son 34.532 lineas de instrumento contra 14.976 de firmware —**2,31 a 1**—, y el banco del 3-4/09 encontró **tres defectos que las 34.532 no podían ver**. Lo que sí hay que apuntarles: **no fallaron en nada de lo que sabían mirar** — el ciclo, la radio, el ámbar, la talanquera y el enclavamiento se comportaron como los modelos decían.
 ⚠️ ~~18 PASS | 1 FALLA | 1 ABORTADO · 939/943 en 64 packs~~ — **cifras de la corrida anterior**, con el ABORTADO que ya está cerrado. **Estas cifras se vuelven a copiar del acta en cada corrida; no se escriben a mano** (N-93).  
 Y aun cuando salga en verde, el verde dice lo de siempre: **los modelos y los arneses de PC no encuentran nada.** No dice que el firmware funcione sobre la tarjeta, que es lo que falta.
 
 ---
 
-## 🛑 BLOQUEANTES DE HOY — son DOS, y ninguno cuesta firmware
+## 🛑 BLOQUEANTES DE HOY — reescrito el 04/09, y el primero es nuevo
 
-**El banco sigue siendo EL bloqueante del proyecto** (Fase 6, más abajo): nada sube a campo sin pasar
-banco. Estos dos son distintos: **bloquean decisiones que hay que tomar antes incluso de llegar al
-banco**, y los dos se responden con el equipo en la mano.
+**El banco ya no es EL bloqueante entero: corrió el 3-4/09 y dejó 24 de 29 pasos verificados.** Lo que
+bloquea hoy son los **5 pasos que no pudo correr**, y tienen nombre.
 
 | # | Qué está bloqueado | Qué lo desbloquea | De quién es |
 |---|---|---|---|
+| 🛑 **BLQ-3** | **TODO. La tarjeta Maestro está fuera de servicio** (**N-116**): se calienta y deja de funcionar a los ~30 s de alimentarla. Sin Maestro no hay banco, no hay repetición del paso 7 y no se cierra N-42. **El firmware queda descartado por censo** —ninguna de las 9 salidas del Maestro toca un pin de `J16`—, así que **reflashear no lo arregla** | Inspección en frío, y **antes** las dos pruebas que discriminan la causa sin arriesgarlo más (roadmap §6, N-116). 🛑 **No reenergizar «a ver si pasa»**: cada ciclo de 30 s puede terminar de matar el chip | **Responsable** |
+| 🔴 **BLQ-4** | **4 pasos de la guía (10-14, 25-28) y la única vía de operación del equipo**: el ESP32 no se anuncia por Bluetooth (**N-117**). Arreglado en el árbol el 04/09 — el perro se comía su propio arranque— pero **la causa no está confirmada en el módulo** | **Dos minutos de monitor serie a 115200 sobre el CP2102, ANTES de reflashear.** Banner de la ROM repitiéndose cada ~2 s = confirmado. Una vez y silencio = es antena o *advertising* | Técnico |
 | ~~**BLQ-1**~~ | 🟢 **CERRADO el 31/08 — es un `ESP32-WROOM-32` clásico.** La ficha del módulo comprado declara `Xtensa LX6 **dual-core**` y `Bluetooth v4.2 **BR/EDR** and BLE`. `BR/EDR` es Bluetooth Clásico, o sea **SPP**: `createRfcommSocketToServiceRecord` abre y **la app conecta sin tocar una línea**. Tres confirmaciones independientes —nombre del módulo, núcleo `LX6` (el `S3` es `LX7`, el `C3` es RISC-V) y el perfil declarado—. **El apartado 1 del Manual 10 NO se reabre.** | — | — |
 | **BLQ-2** | 🟠 **El cristal `Y2`.** N-17 y N-37 lo cerraron **con medida de banco del 01/08**: no oscila en la tarjeta medida. ✅ **La mitad de firmware YA ESTÁ HECHA (N-80, `d34cfe2`) y esta fila seguía describiéndola como viva** —decía que `SET_RTC` *«rechaza en silencio y contesta `RESULT:OK`»*, y hoy el Maestro tiene **tres ramas** (`bluetooth.cpp:307-313`): formato inválido, `SIN_CRISTAL_VEA_CONSULTA_RELOJ` vía `reloj_hayCristal()`, y `ajustarRelojVerificado()`. El Esclavo hace la pregunta equivalente con `reloj_contadorSegundos()`, que reserva el `0` para *no hay reloj*. **Un bloqueante que ya no bloquea, escrito como si bloqueara, cuesta la misma sesión que uno real** | Lo que queda es **hardware**: **diagnosticar el `Y2` de la SEGUNDA tarjeta** —N-37 midió uno— para decidir entre reparar el cristal o reloj de software **(banco, `B5`)** | **Responsable** |
 
