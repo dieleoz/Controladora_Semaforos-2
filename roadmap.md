@@ -672,13 +672,58 @@ p5/p8 y masa, y no hay motivo para dudarlo — pero el dano pudo entrar en cualq
 a 29, en los que se manipulo `J16` y `J15` repetidamente con los 12 V presentes, o con el conector
 volante insertado una posicion corrido. **Eso solo lo dice la inspeccion.**
 
-#### Lo que hay que hacer, en orden
+#### 🟢 MEDIDO EL 04/09: HAY CORTO ENTRE 3,3 V Y GND. La hipotesis deja de serlo
 
-1. 🛑 **No reenergizar «a ver si pasa».** Cada ciclo de 30 s puede terminar el dano.
-2. **Medir el consumo del riel de 3,3 V en frio, antes de energizar.** Un latch-up dejado atras se ve
-   como consumo alto en reposo: es la medida que confirma o descarta en un minuto, con una fuente
-   limitada en corriente y sin volver a arriesgar nada.
-3. **Inspeccionar `J16`** buscando el rastro del contacto: p1 y p2 son los sospechosos.
+El responsable lo midio en la tarjeta: **corto franco entre el riel de 3,3 V y masa**. Eso era
+exactamente la comprobacion que este apartado pedia, y **explica los ~30 s enteros sin necesitar
+ninguna otra causa**: el regulador entra en limitacion de corriente, disipa toda la diferencia
+`12 V -> 3,3 V` contra el corto, y se va a proteccion termica. Puede calentar `U5` **o** `U1`, y
+desde fuera se sienten igual.
+
+#### 🔴 Y EL COBRE DA UN CANDIDATO QUE ENCAJA CON EL GESTO DEL PASO 29
+
+```
+J16   3,3 V en pines 4, 7, 9, 11     GND en pin 2
+J17   3,3 V en pines 6, 8            GND en pines 7, 9
+```
+
+En el paso 29 se estaba puenteando **p5 y p8 contra masa**, y la masa de ese conector es **p2**.
+**`p4` es adyacente a `p5`, y `p7` es adyacente a `p8`** — y las dos llevan 3,3 V. Un puente que
+resbale **una sola posicion** pone el riel de 3,3 V directamente contra masa. Es el mismo gesto que se
+estaba haciendo, corrido un pin.
+
+Y `J17` es peor todavia: **3,3 V en 6 y 8 con masa en 7 y 9**, o sea alternados. Un conector insertado
+una posicion corrida cortocircuita el riel sin que nada lo delate — y en el paso 24 se enchufo ahi el
+modulo definitivo.
+
+> **Lo que esto ABRE, y es la buena noticia: el STM32 puede estar sano.** Un corto de 3,3 V a masa
+> hecho con un puente castiga al **regulador**, que tiene limitacion de corriente y proteccion
+> termica. Que la pastilla este muerta es **una** de las salidas, no la unica ni la mas barata. **No
+> se da por muerto el micro hasta haber recorrido la escalera de abajo.**
+
+#### La escalera, de lo gratis a lo caro — y no se salta ningun peldano
+
+**1. DESENCHUFAR TODO** —`J14`, `J15`, `J16`, `J17`, `J2`— y volver a medir 3,3 V contra masa.
+Los cuatro conectores sacan el riel fuera de la placa. **Si el corto desaparece, la placa esta bien**
+y el problema esta en el cableado volante o en el modulo ESP32. Es gratis y puede cerrar el caso.
+
+**2. Si el corto sigue, esta en la placa.** Lo que cuelga del riel, en orden de coste:
+
+| | | por que en este orden |
+|---|---|---|
+| `C1` `C2` `C3` `C4` `C10` `C11` (100 nF) · `C15` (10 uF) | condensadores de desacoplo | **un ceramico en corto es el fallo mas frecuente y el mas barato.** Se levanta uno y se remide |
+| `U5` | LM1117DT-3.3 | es quien mas ha sufrido: el corto lo castiga a el |
+| `U2` `U3` (pin 8) | los dos MAX3485 | alimentados del mismo riel |
+| `U1` (pines 9, 24, 36, 48) | el STM32 | **el ultimo, no el primero** |
+
+**3. Discriminar SIN desoldar:** inyectar 3,3 V en el riel con **fuente limitada a ~200 mA** y buscar
+que componente calienta. Con alcohol isopropilico sobre la zona, el que primero seca es el que
+disipa. Es el metodo estandar y no arriesga nada mas.
+
+**4. Inspeccionar `J16` y `J17`** buscando el rastro: en `J16`, p2 contra p4 o p7; en `J17`, cualquier
+pareja 6-7 u 8-9.
+
+> 🛑 **Mientras tanto sigue en pie: no reenergizar «a ver si pasa».**
 
 > ⚠️ **Y lo que de verdad importa, porque no se va con la tarjeta rota: esto le va a pasar a la
 > siguiente.** Las camaras van a `J16` p10/p12 **en campo, con instaladores**, y el conector lleva 12 V
