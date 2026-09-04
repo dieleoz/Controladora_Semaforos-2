@@ -2056,6 +2056,25 @@ document.addEventListener('DOMContentLoaded', () => {
   // volveria como $ERR,CMD:DESCONOCIDO -el error que parece un boton roto-.
   const SOLO_ESCLAVO = ['SOLICITAR_PASO', 'AMBAR_EMERGENCIA', 'CANCELAR_AMBAR'];
 
+  // 🟠 N-124, VENTANA CONOCIDA Y ABIERTA A PROPOSITO - NO ES UN DESCUIDO.
+  //
+  // `SOLO_MAESTRO` pregunta `=== 'ESCLAVO'`, asi que con `state.node` en null -el segundo
+  // escaso entre que el socket abre y llega el primer $STATUS- una orden de Maestro SI
+  // sale al cable. `SOLO_ESCLAVO` no tiene esa ventana: su `!== 'ESCLAVO'` incluye null.
+  //
+  // Antes la tapaba una punta ADIVINADA de una fila fija del HTML, cuyo MAC ademas era
+  // falso. Al dejar que la punta la diga el equipo (N-124) la ventana queda al aire.
+  //
+  // SE PROBO A CERRARLA -poniendo `!== 'MAESTRO'`- y se retiro, porque rompe el arnes del
+  // puente: `simulador_puente_esp32.py` pulsa AUTOMATICO en el instante siguiente a
+  // conectar, sin esperar al primer $STATUS, y la app dejaba de emitir nada. Arreglarlo
+  // de verdad es que el arnes entregue un $STATUS antes de pulsar -que es lo que pasa en
+  // la realidad-, y eso se toca con calma, no con prisa y sobre una guarda de seguridad.
+  //
+  // LO QUE CUESTA MIENTRAS TANTO, medido y acotado: ~1 s por conexion en el que una orden
+  // SOLO_MAESTRO puede salir contra un Esclavo. El firmware la rechaza con
+  // $ERR,CMD:DESCONOCIDO, asi que no mueve una luz; lo que se pierde es el aviso claro al
+  // operario. Queda anotado en el roadmap y no se cierra desde aqui.
   function puntaCorrecta(comando) {
     if (SOLO_MAESTRO.includes(comando) && state.node === 'ESCLAVO') return 'MAESTRO';
     if (SOLO_ESCLAVO.includes(comando) && state.node !== 'ESCLAVO') return 'ESCLAVO';
@@ -2176,12 +2195,23 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   // 6. GESTIÓN BLUETOOTH Y DISPOSITIVOS
   // =========================================================================
-  const btDevices = document.querySelectorAll('.bt-device-item');
-  btDevices.forEach(dev => {
-    dev.addEventListener('click', () => {
+  // N-124: EL OYENTE VIVE EN EL CONTENEDOR, NO EN CADA FILA.
+  //
+  // Las filas ya no las trae index.html: las pinta pintarEquipos() con lo que devuelve
+  // el sistema, y se sustituyen enteras en cada escaneo. Un querySelectorAll().forEach()
+  // al cargar dejaria los manejadores colgados de elementos que ya no estan en el
+  // documento: el clic no haria nada y nadie avisaria -la prueba muerta con forma de
+  // interfaz-. El contenedor si sobrevive a los repintados, asi que el oyente va en el.
+  if (btDeviceListContainer) {
+    btDeviceListContainer.addEventListener('click', (ev) => {
+      const dev = ev.target && ev.target.closest ? ev.target.closest('.bt-device-item') : null;
+      if (!dev) return;
       const name = dev.getAttribute('data-name');
-      const node = dev.getAttribute('data-node');
       const mac = dev.getAttribute('data-mac');
+      // Sin direccion no hay a quien llamar: connect() marca el MAC. Una fila sin el no
+      // se pinta (ver pintarEquipos), y si aun asi llegara aqui se para ANTES de tocar
+      // el estado, para no dejar la app "eligiendo" un equipo al que no puede llamar.
+      if (!mac) return;
 
       // N-75: el PIN que viajara en CMD:PIN: sale del selector del modal, no de un
       // literal. Si alguien cambia el PIN del equipo, se cambia aqui y el pack
@@ -2193,13 +2223,19 @@ document.addEventListener('DOMContentLoaded', () => {
       // un socket. Lo pone a true unicamente el callback de exito de connect(), abajo.
       state.connected = false;
       state.deviceName = name;
-      state.node = node;
       state.deviceMac = mac;
 
-      if (nodeNameEl) nodeNameEl.textContent = node === 'MAESTRO' ? '👑 MAESTRO (POSTE 1)' : '📡 ESCLAVO (POSTE 2)';
-      // El poste elegido aqui ya decide que emergencia se ofrece, sin esperar al primer
-      // $STATUS: es lo unico que se sabe de la punta antes de que el equipo hable, y no
-      // se pinta como si fuera telemetria -el punto de estado sigue apagado abajo-.
+      // N-124: LA PUNTA NO SE ADIVINA. Aqui se leia un data-node de la fila, y las dos
+      // filas venian escritas a mano en el HTML: la app afirmaba tener un MAESTRO
+      // delante antes de que ningun equipo hubiera hablado. Con la lista pintada por el
+      // escaneo eso ya no se puede saber al pulsar, y no hace falta: NODE: del $STATUS
+      // llega cada segundo y lo escribe abajo (parseNmeaTelemetry). Hasta entonces el
+      // rotulo dice lo unico que consta, que es que todavia no se sabe.
+      state.node = null;
+      if (nodeNameEl) nodeNameEl.textContent = 'IDENTIFICANDO...';
+      // Con la punta sin identificar actualizarEmergencia() ensena LAS DOS emergencias
+      // -cada una con su poste delante- y retira RETIRAR AMBAR, que es la unica que
+      // abre paso. Ese reparto ya estaba escrito alli y es justo el que toca ahora.
       actualizarEmergencia();
       // Abrir el socket NO es tener al equipo hablando: el modulo Bluetooth puede
       // emparejar con el poste alimentado y el micro colgado. Hasta que no llegue el
@@ -2279,41 +2315,131 @@ document.addEventListener('DOMContentLoaded', () => {
 
       closeModal(btModal);
     });
-  });
+  }
+
+  // =========================================================================
+  // 6.bis LA LISTA DE EQUIPOS LA PINTA EL SISTEMA, NO EL HTML
+  // =========================================================================
+  //
+  // N-124: este boton NO PINTABA NADA. Llamaba a list(), contaba lo que volvia y hacia
+  // un toast con el numero: el resultado de la unica busqueda real de la app no llegaba
+  // jamas a la pantalla, y debajo seguian las dos filas fijas del HTML con el MAC
+  // escrito a mano. Una de ellas empezaba por 98:D3:31 -prefijo de los HC-05, los
+  // modulos que el ESP32 sustituyo el 28/08- y la otra era relleno, asi que connect()
+  // marcaba un numero que no existe por muy bien que N-122 hubiera puesto la llamada.
+  function mensajeEnLista(texto) {
+    if (!btDeviceListContainer) return;
+    btDeviceListContainer.innerHTML = '';
+    const p = document.createElement('p');
+    p.className = 'modal-desc';
+    p.textContent = texto;
+    btDeviceListContainer.appendChild(p);
+  }
+
+  function pintarEquipos(dispositivos) {
+    if (!btDeviceListContainer) return 0;
+    const lista = Array.isArray(dispositivos) ? dispositivos : [];
+    btDeviceListContainer.innerHTML = '';
+    let pintados = 0;
+    lista.forEach(d => {
+      // El MAC es lo unico que connect() sabe marcar, y el plugin lo entrega en
+      // `address` o en `id` segun la version. Un equipo sin direccion no se pinta: una
+      // fila que no se puede pulsar es peor que una fila que no esta.
+      const mac = d && (d.address || d.id);
+      if (!mac) return;
+      const nombre = (d && d.name && String(d.name).trim()) || String(mac);
+
+      const item = document.createElement('div');
+      item.className = 'bt-device-item';
+      item.setAttribute('data-name', nombre);
+      item.setAttribute('data-mac', String(mac));
+      // NO se escribe data-node: una fila no puede saber que punta hay al otro lado.
+      // Lo dice el equipo en NODE: del $STATUS.
+
+      const icono = document.createElement('div');
+      icono.className = 'bt-dev-icon';
+      icono.textContent = '📡';
+
+      const info = document.createElement('div');
+      info.className = 'bt-dev-info';
+      const titulo = document.createElement('strong');
+      // textContent y no innerHTML: el nombre lo pone el modulo del otro lado, no la
+      // app, y un texto que llega de fuera no se inyecta como marcado.
+      titulo.textContent = nombre;
+      const detalle = document.createElement('small');
+      detalle.textContent = 'MAC: ' + mac;
+      info.appendChild(titulo);
+      info.appendChild(detalle);
+
+      const etiqueta = document.createElement('span');
+      etiqueta.className = 'bt-dev-badge';
+      // "emparejado" es lo unico que consta de esta fila. Poner "Maestro" o "Esclavo"
+      // seria la misma invencion que los dos MAC que se acaban de retirar.
+      etiqueta.textContent = 'emparejado';
+
+      item.appendChild(icono);
+      item.appendChild(info);
+      item.appendChild(etiqueta);
+      btDeviceListContainer.appendChild(item);
+      pintados += 1;
+    });
+    return pintados;
+  }
+
+  // porPeticion = lo pulso el tecnico. Al abrir el modal se llama con false: si hay
+  // radio la lista se rellena sola -es la misma busqueda que hace el boton- y si no la
+  // hay se vuelve en silencio dejando el aviso que trae el HTML. Anunciar "no hay
+  // radio" cada vez que se abre el modal en un navegador seria ruido; callarselo
+  // cuando alguien PIDE la busqueda seria lo otro, que es peor: se le contesta que no
+  // se pudo buscar, que no es lo mismo que no haber encontrado.
+  function escanearEquipos(porPeticion) {
+    const hayRadio = typeof window !== 'undefined' && window.bluetoothSerial &&
+                     typeof window.bluetoothSerial.list === 'function';
+    if (!hayRadio) {
+      if (!porPeticion) return;
+      showToast('Escaneo no disponible fuera del APK');
+      addEvent('red', 'Escaneo Bluetooth no realizado: no hay radio disponible en ' +
+                      'este entorno. No se sabe que equipos hay, que no es lo mismo ' +
+                      'que no haberlos encontrado.');
+      mensajeEnLista('Sin radio en este entorno: no se pudo buscar. Esta lista está ' +
+                     'vacía porque no hubo búsqueda, no porque no haya equipos.');
+      return;
+    }
+    // El rotulo NO nombra el modulo. En obra ya se ha cambiado de radio mas de una vez
+    // -del HC-05 al ESP32-, asi que un texto que diga "HC-05" queda desmintiendo al
+    // equipo el dia que se sustituya. "El enlace" vale para todos.
+    if (porPeticion) showToast('🔍 Buscando equipos...');
+    window.bluetoothSerial.list(
+      (dispositivos) => {
+        const pintados = pintarEquipos(dispositivos);
+        if (!pintados) {
+          // CERO EMPAREJADOS NO ES CERO EQUIPOS. list() devuelve lo que ESTE telefono
+          // tiene emparejado en Ajustes de Android, no lo que hay encendido al lado.
+          mensajeEnLista('Este teléfono no tiene ningún equipo emparejado. El ' +
+                         'emparejamiento se hace en Ajustes de Android; aquí solo se ' +
+                         'listan los que ya lo están.');
+          addEvent('red', 'Escaneo Bluetooth: 0 equipos emparejados en este telefono. ' +
+                          'Empareje el modulo en Ajustes de Android y repita. No se ha ' +
+                          'buscado equipos nuevos: list() solo lee los emparejados.');
+          return;
+        }
+        showToast(pintados + ' equipo(s) emparejado(s)');
+        addEvent('green', 'Escaneo Bluetooth: ' + pintados + ' equipo(s) emparejado(s) ' +
+                          'listados con su MAC real.');
+      },
+      (err) => {
+        // No se finge un resultado vacio: no encontrar y no poder buscar son cosas
+        // distintas, y solo una de las dos permite concluir que no hay equipo.
+        showToast('El escaneo fallo');
+        addEvent('red', 'Escaneo Bluetooth fallido: ' + err + '. No se sabe que hay.');
+        mensajeEnLista('El escaneo falló: no se sabe qué equipos hay. Vuelva a ' +
+                       'pulsar Buscar.');
+      }
+    );
+  }
 
   if (btnScanBluetoothLive) {
-    btnScanBluetoothLive.addEventListener('click', () => {
-      // ESTE BOTON NO ESCANEABA NADA. Esperaba un segundo con setTimeout y anunciaba
-      // "2 Modulos Semaforicos encontrados", que es justo el numero de filas fijas que
-      // trae el HTML. Sin radio, sin permisos y sin equipo delante decia lo mismo. Un
-      // hallazgo que no salio de una busqueda es un dato inventado con forma de medida.
-      if (typeof window === 'undefined' || !window.bluetoothSerial ||
-          typeof window.bluetoothSerial.list !== 'function') {
-        showToast('Escaneo no disponible fuera del APK');
-        addEvent('red', 'Escaneo Bluetooth no realizado: no hay radio disponible en ' +
-                        'este entorno. La lista de abajo son los equipos conocidos, no ' +
-                        'un resultado de busqueda.');
-        return;
-      }
-      // El rotulo NO nombra el modulo. En obra ya se ha cambiado de radio mas de una
-      // vez -y ahora se habla de poner un ESP32 al lado-, asi que un texto que diga
-      // "HC-05" queda desmintiendo al equipo el dia que se sustituya. "El enlace" vale
-      // para todos y no hay que rectificarlo.
-      showToast('🔍 Buscando equipos...');
-      window.bluetoothSerial.list(
-        (dispositivos) => {
-          const n = Array.isArray(dispositivos) ? dispositivos.length : 0;
-          showToast(n + ' equipo(s) emparejado(s)');
-          addEvent(n ? 'green' : 'red', 'Escaneo Bluetooth: ' + n + ' equipo(s).');
-        },
-        (err) => {
-          // No se finge un resultado vacio: no encontrar y no poder buscar son cosas
-          // distintas, y solo una de las dos permite concluir que no hay equipo.
-          showToast('El escaneo fallo');
-          addEvent('red', 'Escaneo Bluetooth fallido: ' + err + '. No se sabe que hay.');
-        }
-      );
-    });
+    btnScanBluetoothLive.addEventListener('click', () => escanearEquipos(true));
   }
 
   // =========================================================================
@@ -2541,7 +2667,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (btnDevice && btModal) {
-    btnDevice.addEventListener('click', () => openModal(btModal));
+    btnDevice.addEventListener('click', () => {
+      openModal(btModal);
+      // N-124: la lista ya no viene en el HTML, asi que el modal se abriria vacio y
+      // haria falta un segundo toque para ver algo. Con radio se rellena al abrir -es
+      // la misma llamada que hace el boton-; sin radio esto vuelve en silencio y queda
+      // el aviso del HTML diciendo que hay que pulsar Buscar.
+      escanearEquipos(false);
+    });
   }
   if (modalBtClose && btModal) {
     modalBtClose.addEventListener('click', () => closeModal(btModal));
@@ -2661,7 +2794,10 @@ document.addEventListener('DOMContentLoaded', () => {
     btnShareWhatsapp.addEventListener('click', () => {
       let r = `🚦 *REPORTE SEMAFÓRICO IOT-VIAL*\n`;
       r += `📍 *Cruce:* ${state.site}\n`;
-      r += `👑 *Nodo:* ${state.node} | Modo: ${state.modo}\n`;
+      // La punta puede no estar identificada todavia -N-124: ya no se adivina al
+      // pulsar la fila-, y este reporte SALE DE LA APP: es el sitio donde menos
+      // puede aparecer la palabra `null` haciendose pasar por un dato.
+      r += `👑 *Nodo:* ${state.node || 'sin identificar'} | Modo: ${state.modo || 'sin datos'}\n`;
       // "Enlace RF: null%" es lo que salia aqui: state.rfQuality no lo escribia el
       // camino de $STATUS -solo el del puente de PC, que ya no existe- asi que el
       // reporte que el tecnico manda por WhatsApp publicaba la palabra `null`. Ahora

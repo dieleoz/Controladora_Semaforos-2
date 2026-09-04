@@ -633,24 +633,29 @@
         <label class="bt-pin-opt"><input type="radio" name="bt_pin_opt" value="1234" checked> <strong>1234</strong> (el unico que acepta el firmware)</label>
       </div>
 
-      <div class="bt-device-list" id="bt-device-list-container">
-        <div class="bt-device-item" data-name="Semáforo Maestro (P1)" data-node="MAESTRO" data-mac="98:D3:31:F8:42:0A">
-          <div class="bt-dev-icon">👑</div>
-          <div class="bt-dev-info">
-            <strong>Semáforo Maestro (P1)</strong>
-            <small>MAC: 98:D3:31:F8:42:0A</small>
-          </div>
-          <span class="bt-dev-badge">Maestro</span>
-        </div>
+      <!-- N-124: LOS DOS DATOS CON LOS QUE EL TECNICO SE ATASCA DELANTE DEL POSTE.
+           El nombre lo pone el modulo -no la app- y el emparejamiento del sistema no
+           pide clave: sin esto se busca el nombre del cruce en una lista donde no
+           esta, y se espera un PIN que Android nunca pregunta. -->
+      <p class="modal-desc bt-aviso-modulo">
+        <strong>Antes de buscar:</strong> mientras el módulo no haya aprendido la serie del
+        equipo se anuncia como <strong>SEM-SIN-MATRICULA</strong>, no con el nombre del cruce.
+        El emparejamiento es <em>«Just Works»</em>: Android <strong>no pide PIN</strong>.
+        El 1234 de arriba es el PIN de comando que viaja dentro de la app, no la clave del
+        sistema operativo.
+      </p>
 
-        <div class="bt-device-item" data-name="Semáforo Esclavo (P2)" data-node="ESCLAVO" data-mac="00:21:13:01:23:45">
-          <div class="bt-dev-icon">📡</div>
-          <div class="bt-dev-info">
-            <strong>Semáforo Esclavo (P2)</strong>
-            <small>MAC: 00:21:13:01:23:45</small>
-          </div>
-          <span class="bt-dev-badge esclavo">Esclavo</span>
-        </div>
+      <!-- N-124: aqui habia DOS FILAS FIJAS con el MAC escrito a mano. Una empezaba por
+           98:D3:31 -prefijo de los HC-05, los modulos que el ESP32 sustituyo el 28/08- y
+           la otra era relleno. Ninguno de los dos es el MAC del equipo, asi que connect()
+           marcaba un numero que no existe y el enlace no podia abrir. La lista la pinta
+           ahora el escaneo con lo que devuelve el sistema, y la punta -MAESTRO/ESCLAVO-
+           la declara el equipo en NODE: del $STATUS, no una fila escrita a mano. -->
+      <div class="bt-device-list" id="bt-device-list-container">
+        <p class="modal-desc" id="bt-lista-vacia">
+          Pulse <strong>🔍 Buscar Módulos Bluetooth</strong> para ver los equipos
+          emparejados en este teléfono. Aquí no hay ninguna lista guardada.
+        </p>
       </div>
 
       <div class="bt-modal-actions">
