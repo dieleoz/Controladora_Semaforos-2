@@ -338,14 +338,42 @@ def correr(b, fw):
         % (total, salida))
 
     # ---- B-1 y B-3: el parte va a la APP, y solo a la APP ---------------------
+    #
+    # 🔴 ESTA COMPROBACION SE REPARTE EL 04/09 (AB-1), Y EL PORQUE ES LA REGLA.
+    #
+    # Preguntaba dos cosas a la vez y solo una era la suya: (1) que el parte salga por
+    # puente_emitirPropio(), que es LO QUE SU TITULO DICE; y (2) que el fichero entero no
+    # NOMBRE enlace_escribirLinea(). La segunda era un PROXY -medir el vocabulario del
+    # fichero en vez de a donde va el parte-, y funcionaba solo mientras vigilante.cpp no
+    # tuviera otra razon para hablar con el STM32.
+    #
+    # Ahora la tiene: el latido de AB-1. Y el proxy no sabe distinguirlos, asi que
+    # acusaba al parte de irse al equipo cuando el parte no se ha movido.
+    #
+    # SE PARTE EN DOS, y ninguna de las dos es mas debil que la de antes:
+    #   - la de arriba sigue exigiendo que el parte salga por la puerta de la app;
+    #   - la de abajo exige que la UNICA linea que va hacia el STM32 desde aqui sea el
+    #     latido, comparando el literal, no la ausencia de una palabra.
+    #
+    # Lo que NO cambia es B-1: el puente sigue sin poder originar ORDENES hacia el micro.
+    # El latido no lo es -el despachador lo reconoce antes de la guarda de PIN, devuelve
+    # sin actuar y sin contestar-, y eso lo comprueba costura_12, que lee las dos puntas.
     b.verificar(
-        "puente_emitirPropio" in vig and "enlace_escribirLinea" not in vig,
-        "el parte sale por puente_emitirPropio() -hacia la app- y vigilante.cpp no "
-        "nombra la puerta hacia el STM32",
-        "vigilante.cpp escribe hacia el STM32 o no emite hacia la app. Un parte del "
-        "puente mandado al equipo es el accesorio originando trafico hacia un micro que "
-        "gobierna un cruce y que no valida quien habla (B-1); y si no sale por ningun "
-        "lado, el reinicio sigue siendo mudo")
+        "puente_emitirPropio" in vig,
+        "B-3: el parte sale por puente_emitirPropio(), hacia la app",
+        "vigilante.cpp no emite el parte hacia la app: el reinicio sigue siendo mudo, que "
+        "es justo lo que este pack existe para impedir")
+
+    # B-1 acotado: lo unico que este fichero puede mandar al STM32 es el latido.
+    escrituras = re.findall(r"enlace_escribirLinea\s*\(\s*(\w+)", vig)
+    b.verificar(
+        all(v == "LINEA" for v in escrituras),
+        "B-1: lo unico que vigilante.cpp manda hacia el STM32 es el latido (%d escritura"
+        "%s)" % (len(escrituras), "s" if len(escrituras) != 1 else ""),
+        "vigilante.cpp manda hacia el STM32 algo que no es el latido: %s. El accesorio "
+        "no origina trafico hacia un micro que gobierna un cruce y que no valida quien "
+        "habla, y la unica excepcion decidida (AB-1, 04/09) es una linea reservada que "
+        "el despachador ignora sin contestar" % (escrituras or "(no se hallan)"))
 
     b.verificar(
         "NODE:PUENTE" in formato,

@@ -486,6 +486,17 @@ def correr(b, fw):
                 "checksum, la trama NMEA entraria y las acusaciones de abajo serian "
                 "falsas" % (partes[0], motivo))
 
+    # AB-1 (04/09): se descuenta la linea reservada del puente antes de exigir el
+    # comienzo comun. Esta comprobacion habla de LO QUE LA APP MANDA -su titulo lo dice:
+    # "asi que la app no puede tener un solo generador"- y $LATIDO no lo manda la app: lo
+    # manda el ESP32, y el despachador lo reconoce ANTES de la guarda de PIN para
+    # devolver sin actuar y sin contestar. Meterlo en el censo del comienzo comun era
+    # acusar a la app de una trama que no compone.
+    #
+    # Se descuenta por su literal exacto, no por "lo que empiece por $": si manana entra
+    # otra linea reservada, esta comprobacion vuelve a FALLAR y alguien tiene que decidir
+    # si es legitima. Un filtro generico se las tragaria todas en silencio.
+    prefijos = {x for x in prefijos if x != "$LATIDO"}
     b.verificar(
         all(p.startswith("CMD:") for p in prefijos),
         "contrato leido del C++: la trama que el equipo compara empieza por %s, y el "

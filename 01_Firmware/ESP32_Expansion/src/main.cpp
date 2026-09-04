@@ -181,6 +181,15 @@ void loop() {
   // hace falta. Esta funcion espera al enlace y se rearma cuando cae.
   vigilante_declarar();
 
+  // AB-1: el latido, antes de alimentar al perro y despues de haber bombeado.
+  //
+  // El orden importa por la misma razon que el de vigilante_alimentar(): si latiera al
+  // principio de la vuelta, latiria aunque el bombeo no volviera nunca, y entonces el
+  // equipo veria un puente "vivo" que en realidad ya no pasa un byte. Latir DESPUES de
+  // bombear hace que el latido signifique lo mismo que el reset del perro: la vuelta se
+  // completo.
+  vigilante_latir();
+
   // W-2: el reset, UNA VEZ POR VUELTA DEL BUCLE EXTERIOR y aqui abajo, despues de haber
   // atendido las dos direcciones.
   //

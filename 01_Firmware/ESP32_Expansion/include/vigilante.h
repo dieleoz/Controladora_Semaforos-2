@@ -39,6 +39,15 @@ void vigilante_armar();
 // progresa. Un watchdog que un flujo de basura mantiene contento no vigila nada.
 void vigilante_alimentar();
 
+// AB-1: manda la linea reservada hacia el STM32 cada LATIDO_MS. Es lo unico que permite
+// al equipo distinguir "el puente no dice nada" de "el puente no esta": hasta hoy sus
+// tres contadores de silencio de J17 contaban silencios del PUERTO, y por J17 solo entra
+// lo que un dedo pulsa en la app.
+//
+// NO es una orden y no puede llegar a serlo: el STM32 la reconoce ANTES de la guarda de
+// PIN, devuelve sin actuar y SIN CONTESTAR. Su unico efecto es cerrar un silencio.
+void vigilante_latir();
+
 // Para el diagnostico: si el registro fallo, el resto del firmware corre creyendose
 // vigilado y no lo esta. Un esp_task_wdt_init() sin su reset en el sitio correcto es
 // CAM_UMBRAL_PIN con otro nombre -un pinMode() sin digitalRead(), con documentacion

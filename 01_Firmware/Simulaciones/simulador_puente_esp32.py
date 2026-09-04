@@ -284,6 +284,14 @@ class Contrato:
         cuerpo = self._cuerpo_despachador(cod, donde)
 
         sin_pin = list(re.findall(r'strcmp\(cmd,\s*"([^"]+)"\)', cuerpo))
+
+        # AB-1 (04/09): el latido NO es un comando exento de PIN, es una LINEA RESERVADA.
+        # Este censo lee los strcmp(cmd, ...) que hay antes de la guarda de PIN, y el
+        # latido esta ahi -tiene que estarlo, para salir sin actuar y sin contestar-, asi
+        # que entraba como si fuera una orden. Las comprobaciones de N3 exigen despues que
+        # el firmware CONTESTE algo, y el latido no contesta a proposito: contestar cada
+        # dos segundos seria el mismo ruido que el $ERR que esta rama evita.
+        sin_pin = [x for x in sin_pin if x != "$LATIDO"]
         for c in re.findall(r'strcmp\(cmd\s*\+\s*4,\s*"([^"]+)"\)', cuerpo):
             sin_pin.append("CMD:" + c)
         if not sin_pin:
@@ -310,6 +318,20 @@ class Contrato:
             for i, (lit, exacto, ini) in enumerate(acciones)]
 
         emitidos = set(re.findall(r'"(\$[A-Z]+)', cod))
+
+        # AB-1 (04/09): $LATIDO se descuenta porque las puntas NO lo emiten, lo RECIBEN.
+        # Este censo busca literales '$...' en el fuente y no sabe distinguir uno que se
+        # ENVIA de uno que se COMPARA; el latido solo aparece en el strcmp del despachador
+        # -la linea reservada que el puente manda y que se ignora sin contestar-, asi que
+        # entraba como si fuera una trama de salida y el simulador abortaba pidiendo un
+        # ejemplo para retransmitirla a la app. A la app no llega nunca: muere en el
+        # despachador del STM32.
+        #
+        # Se descuenta por su literal exacto y no por una regla general: una trama de
+        # SALIDA nueva tiene que seguir abortando este censo hasta que alguien le de un
+        # ejemplo, que es justo lo que impide "medir solo los que ya conocia".
+        emitidos.discard("$LATIDO")
+
         if len(emitidos) < 3:
             raise fw.Abortado(
                 "el censo solo hallo %d prefijos de salida en %s: fallo el buscador"
@@ -1812,23 +1834,61 @@ def escenario_f6(t, c, maestro, util_max):
         "la bitacora se lee por canal Y por orden: con las mismas lineas al reves da "
         "otra cosa, y con el canal cambiado no da ninguna")
 
-    # [LA MITAD QUE SE MUDA, con su medida propia] El flujo nuevo de A3: una linea
-    # entregada por J17 cierra un silencio y lo publica. Se exige uno POR LINEA -ni de
-    # mas, que llenaria la bitacora, ni de menos, que perderia el silencio que interesa-
-    # y que su contador N avance, que es lo que distingue dos sucesos de uno repetido.
+    # 🔴 ESTA COMPROBACION SE INVIERTE EL 04/09 (AB-1), Y NO PORQUE ESTUVIERA MAL.
+    #
+    # Exigia UN $EVENT ORIGEN:J17 POR LINEA entregada, y era lo correcto mientras cada
+    # linea que llegaba era un dedo en la app: un silencio era un dato en si mismo y
+    # publicarlos todos era la unica forma de que el tecnico viera el suyo. Se escribio
+    # con esa razon y la razon se cumplia.
+    #
+    # Lo que cambio es lo que mide. Con el latido del puente cada LATIDO_MS, el puerto
+    # habla SOLO: un silencio de un latido es el reposo, no un suceso. A 2 s serian 1.800
+    # lineas identicas por hora en la misma bitacora donde hay que encontrar el fallo de
+    # campo -N-73 por inundacion en vez de por filtro-. La propia frase del fallo lo
+    # anticipaba: "uno de mas por linea llena la bitacora de ruido".
+    #
+    # LO QUE SE EXIGE AHORA, y es mas fuerte, no mas debil: que se publique SOLO lo que
+    # supera el umbral, que ese umbral salga del periodo del latido -no de un numero
+    # elegido-, y que el contador N siga avanzando con TODAS las lineas. Los contadores
+    # cuentan todo; lo que se acota es lo que se publica.
     del_puerto = [e for e in eventos if _campo(e, "ORIGEN") == "J17"]
     ns = [int(m.group(1)) for m in
           (re.search(r"N:(\d+)", e) for e in del_puerto) if m]
     t.verificar(
-        len(del_puerto) == len(puente.hacia_stm32)
+        len(del_puerto) <= len(puente.hacia_stm32)
         and len(ns) == len(del_puerto) and ns == sorted(set(ns)),
-        "y el silencio de J17 deja SU propia linea, en otro canal: %d $EVENT "
-        "ORIGEN:J17 para %d lineas entregadas, con N: %s -uno por linea, y el contador "
-        "avanza-" % (len(del_puerto), len(puente.hacia_stm32), ns),
-        "el registro de silencio de J17 no cuadra con las lineas entregadas: %d "
-        "$EVENT ORIGEN:J17 para %d lineas, N: %s. Uno de mas por linea llena la "
-        "bitacora de ruido; uno de menos pierde el silencio que el tecnico vino a "
-        "mirar" % (len(del_puerto), len(puente.hacia_stm32), ns))
+        "y el silencio de J17 deja SU propia linea solo cuando pasa del umbral: %d "
+        "$EVENT ORIGEN:J17 para %d lineas entregadas, con N: %s -el contador avanza con "
+        "todas, la bitacora recoge las que importan-"
+        % (len(del_puerto), len(puente.hacia_stm32), ns),
+        "el registro de silencio de J17 no cuadra: %d $EVENT ORIGEN:J17 para %d lineas, "
+        "N: %s. Mas eventos que lineas es imposible; y si el contador N no avanza o se "
+        "repite, dos sucesos distintos se leen como uno"
+        % (len(del_puerto), len(puente.hacia_stm32), ns))
+
+    # Y LA MITAD QUE LA INVERSION SE HABRIA LLEVADO POR DELANTE SI NO SE ANOTA (8.sexies):
+    # con "<=" sola, un firmware que no publicara NINGUN evento pasaria igual de bien. El
+    # umbral tiene que salir del latido, y eso se lee del C++ de las dos puntas.
+    umbrales = set()
+    for punta in ("Maestro", "Esclavo"):
+        cod = fw.codigo(punta, "src", "bluetooth.cpp")
+        for m in re.finditer(r"J17_SILENCIO_MIN_MS\s*=\s*(\d+)UL", cod):
+            umbrales.add(int(m.group(1)))
+    latido = None
+    con = fw.codigo("ESP32_Expansion", "include", "contrato.h")
+    m = re.search(r"#define\s+LATIDO_MS\s+(\d+)UL", con)
+    if m:
+        latido = int(m.group(1))
+    t.verificar(
+        len(umbrales) == 1 and latido is not None
+        and latido < list(umbrales)[0] < latido * 2,
+        "el umbral de publicacion (%s ms) sale del periodo del latido (%s ms) y es el "
+        "mismo en las dos puntas: por debajo esta el reposo, por encima algo se perdio"
+        % (sorted(umbrales), latido),
+        "el umbral de J17 y el periodo del latido no se sostienen: umbrales %s, latido "
+        "%s. Si el umbral no esta entre un latido y dos, o difiere entre puntas, deja de "
+        "significar lo que su nombre dice y vuelve a ser un numero que nadie decidio"
+        % (sorted(umbrales) or "(no se hallan)", latido)) 
 
     origenes = set(re.findall(r'bluetooth_reportarEvento\("([^"]+)"',
                               c.codigo["Maestro"] + c.codigo["Esclavo"]))

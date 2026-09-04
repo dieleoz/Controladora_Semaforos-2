@@ -210,16 +210,49 @@ void bluetooth_reportarEvento(const char* origen, const char* detalle) {
 // EN SEGUNDOS, no en ms. Un corte se cuenta en horas y el ms no aporta nada; en ms el
 // peor caso del tipo son diez cifras y la trama se comia el margen del payload -que es
 // como N-108 encontro un $ALARM truncandose por la HORA sin que nada lo dijera-.
+// AB-1: el silencio por debajo de esto es el reposo normal del latido del puente, no un
+// corte. Es LATIDO_MS x 1,5 -contrato.h del ESP32, hoy 2000 ms-, y hay un pack que
+// recalcula los dos y falla si divergen: un umbral que no salga del periodo del latido
+// deja de significar lo que su nombre dice.
+static const unsigned long J17_SILENCIO_MIN_MS = 3000UL;
+
 static void j17RegistrarLinea(unsigned long ahora) {
   const unsigned long silencio = ahora - tUltimaLineaJ17;
   tUltimaLineaJ17 = ahora;
   if (silencio > j17SilencioMaxMs) j17SilencioMaxMs = silencio;
   j17Silencios++;
 
-  char det[48];
-  snprintf(det, sizeof(det), "MUDO:%lus,MAX:%lus,N:%lu",
-           silencio / 1000UL, j17SilencioMaxMs / 1000UL, j17Silencios);
-  bluetooth_reportarEvento("J17", det);
+  // AB-1 - AQUI HABIA "SIN UMBRAL, Y ES LA DECISION DE DISENO". SE INVIERTE, Y EL
+  // MOTIVO NO ES QUE AQUELLA FUERA MALA: ES QUE EL LATIDO CAMBIO LO QUE MIDE ESTO.
+  //
+  // Sin latido, cada linea que llegaba era un dedo en la app y un silencio era un dato
+  // en si mismo: "este puerto llevaba catorce horas sin que nadie hablara". Publicar
+  // todos era correcto, y poner un umbral habria sido un numero que nadie habia decidido
+  // gobernando lo que ve el tecnico.
+  //
+  // Con latido cada LATIDO_MS el puerto habla SOLO, asi que un silencio de un latido no
+  // significa absolutamente nada: es el reposo. A 2 s serian 1.800 lineas identicas por
+  // hora en la misma bitacora donde hay que encontrar el fallo de campo. Es N-73 por
+  // INUNDACION en vez de por filtro: el registro existe y deja de poder leerse.
+  //
+  // EL UMBRAL NO ES ARBITRARIO Y POR ESO SE PUEDE ESCRIBIR. Sale del periodo del latido,
+  // no del gusto de nadie: LATIDO_MS x 1,5. Por debajo esta el hueco normal -un latido-;
+  // por encima, algo se perdio. Con LATIDO_MS = 2000 el corte se pone en 3000 ms, y un
+  // ciclo de perro entero -2000 de watchdog mas el arranque- cae siempre por encima.
+  //
+  // ⚠️ ES UN GEMELO EN OTRO LENGUAJE, y este repositorio ya sabe como acaban: si alguien
+  // cambia LATIDO_MS en el contrato.h del ESP32 y no toca este numero, el umbral deja de
+  // significar lo que dice. Hay un pack que recalcula los dos y falla si divergen.
+  //
+  // LOS CONTADORES SIGUEN CONTANDO TODO: lo que se acota es lo que se PUBLICA. j17Silencios
+  // y j17SilencioMaxMs se actualizan arriba con cada linea, latido incluido, porque son
+  // los que contestan "cuanto llevaba caido" cuando el tecnico llegue.
+  if (silencio >= J17_SILENCIO_MIN_MS) {
+    char det[48];
+    snprintf(det, sizeof(det), "MUDO:%lus,MAX:%lus,N:%lu",
+             silencio / 1000UL, j17SilencioMaxMs / 1000UL, j17Silencios);
+    bluetooth_reportarEvento("J17", det);
+  }
 }
 
 // --- Dos envoltorios que devuelven lo que la funcion de abajo no sabe decir -------
@@ -334,6 +367,39 @@ static void reportarBitsDelReloj() {
 }
 
 static void procesarComando(const char* cmd) {
+  // AB-1 - LA LINEA RESERVADA DEL PUENTE, Y VA LA PRIMERA DE TODAS.
+  //
+  // Antes que el rojo de emergencia, antes que la guarda de PIN, antes que nada. No
+  // porque sea mas importante -no lo es-, sino porque tiene que salir de aqui SIN
+  // TOCAR NADA y sin contestar, y cualquier rama que la adelante le anadiria un efecto.
+  //
+  // POR QUE EXISTE. El puente emite esta linea cada LATIDO_MS -contrato.h del ESP32-
+  // para que los tres contadores de silencio de J17 de este mismo fichero signifiquen
+  // algo. Hasta hoy contaban SILENCIOS DEL PUERTO, no muertes del puente: por J17 solo
+  // entraba lo que un dedo pulsa en la app, asi que un puente vivo y uno muerto eran
+  // indistinguibles desde aqui.
+  //
+  // POR QUE NO CONTESTA, QUE ES TODA LA RAZON DE QUE ESTA RAMA EXISTA. Se midio el
+  // 04/09: sin ella, el latido caeria en el ultimo else de la guarda de PIN y devolveria
+  // $ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO. La app no traduce ese par y lo saca por el
+  // ramal generico: un aviso ROJO cada dos segundos acusando al operario de una clave
+  // que nadie tecleo. Eso es el FALLA PERMANENTE de CLAUDE.md seccion 2 -un rechazo que
+  // nadie puede apagar ensena a ignorar los rechazos de verdad-, y por eso la rama
+  // devuelve muda en vez de con un $ACK: un ACK cada dos segundos seria el mismo ruido
+  // con otro color.
+  //
+  // Y NO ROMPE 6.4. La regla dice que el puente no origina ORDENES. Esta linea no
+  // ejecuta nada, no mueve una luz, no cambia un modo y no contesta. Lo unico que
+  // produce es que j17RegistrarLinea() -mas abajo, en el troceador- cierre un silencio.
+  // No se manda: se respira.
+  //
+  // EL LITERAL EMPIEZA POR '$' A PROPOSITO. Las ordenes son "CMD:..."; lo que empieza
+  // por '$' son las tramas que este equipo EMITE. No hay ninguna orden a un byte de
+  // distancia de esto, asi que ni un bit cambiado en el cable la convierte en otra cosa.
+  if (strcmp(cmd, "$LATIDO") == 0) {
+    return;
+  }
+
   // SFTY - EL ROJO DE EMERGENCIA NO PIDE PIN, Y ES DELIBERADO.
   //
   // mando.cpp ya lo dejo escrito para el mando de reles: "lo seguro, facil; lo

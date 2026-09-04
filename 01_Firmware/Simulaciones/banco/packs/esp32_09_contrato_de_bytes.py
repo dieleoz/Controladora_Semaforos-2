@@ -184,6 +184,16 @@ def correr(b, fw):
     n = fw.constante(CONTRATO, r"#define\s+PREFIJOS_STM32_N\s+(\d+)",
                      "el numero de prefijos del censo")
 
+    # AB-1 (04/09): $LATIDO se descuenta de "emitidos" porque las puntas NO lo emiten:
+    # lo RECIBEN. El lector busca literales '$...' en el fuente de las dos puntas y no
+    # sabe distinguir un literal que se envia de uno que se compara, asi que el latido
+    # -que solo aparece en el strcmp del despachador- entraba como si fuera una trama de
+    # salida. El censo del puente es de lo que el puente RETRANSMITE hacia la app, y el
+    # latido no llega nunca a la app: muere en el despachador del STM32.
+    #
+    # Se descuenta por su literal, no por una regla general, para que una trama de salida
+    # nueva siga rompiendo esta comprobacion como debe.
+    emitidos = {x for x in emitidos if x != "$LATIDO"}
     b.verificar(
         len(censo) == n and censo == emitidos,
         "el censo del puente son los %d prefijos que las dos puntas emiten de verdad: %s"

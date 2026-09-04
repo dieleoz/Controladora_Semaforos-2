@@ -4,6 +4,7 @@
 #include "contrato.h"
 #include "puente.h"
 #include "transporte_app.h"
+#include "enlace_stm32.h"
 #include <esp_task_wdt.h>
 #include <esp_system.h>
 #include <stdio.h>
@@ -187,4 +188,58 @@ void vigilante_declarar() {
   // va marcado con NODE:PUENTE porque un $EVENT del accesorio que pareciera del STM32
   // mandaria a diagnosticar el poste equivocado.
   puente_emitirPropio(parte);
+}
+
+// ===========================================================================
+// EL LATIDO HACIA EL STM32 (AB-1)
+// ===========================================================================
+//
+// POR QUE VIVE AQUI Y NO EN puente.cpp NI EN enlace_stm32.cpp.
+//
+// No es comodidad: es que esos dos ficheros son EL CAMINO DE DATOS, y el pack
+// esp32_07 exige por P-1/P-4 que no tengan reloj -"sin millis() no hay forma de
+// emitir periodicamente ni de agrupar telemetria"-. Un reloj alli abriria las dos
+// cosas que esa regla cierra. Aqui no hay datos de nadie pasando: este fichero ya
+// era el que emite lo propio del puente -el parte de arranque-, asi que el latido
+// entra por la puerta que ya estaba abierta y sancionada.
+//
+// 🔴 Y ESO DEJA UN HUECO QUE HAY QUE DECIR: P-1/P-4 censan `millis()` SOLO en esos
+// dos ficheros, asi que este latido les es INVISIBLE. Siguen en verde y siguen
+// siendo literalmente ciertas, pero ya no cubren "el puente no emite
+// periodicamente" -porque ahora si emite, aqui-. Lo que las mantiene honestas es
+// que su enunciado habla del CAMINO DE DATOS, no del puente entero. El pack se
+// amplia con una comprobacion propia del latido; sin ella, esta funcion podria
+// desaparecer manana y ningun instrumento lo notaria.
+//
+// 6.4 SIGUE EN PIE, Y ESTA ES LA PARTE QUE HAY QUE MIRAR DESPACIO. La regla dice que
+// el puente no origina ORDENES: "un saludo del puente seria una orden que nadie
+// pidio entrando por el mismo camino que las que si se piden". El latido entra por
+// ese mismo camino, si — pero NO es una orden y no puede llegar a serlo:
+//
+//   - el STM32 lo reconoce ANTES de la guarda de PIN y devuelve sin actuar;
+//   - no ejecuta nada, no mueve una luz, no cambia un modo;
+//   - y no CONTESTA, que es lo que lo separa de todo lo demas que entra por J17.
+//
+// Lo unico que produce es que j17RegistrarLinea() cierre un silencio. O sea: su
+// unico efecto es que el equipo pueda contar que el puente esta vivo. Eso es
+// exactamente lo que 6.4 protege -que nadie mande sin pedirlo- visto por el otro
+// lado: aqui no se manda, se respira.
+//
+// NO SE EMITE EN setup(). Igual que el parte de arranque, y por la misma razon: en
+// setup() no se pone un byte en ningun cable. El primer latido sale en el primer
+// loop() que cumpla el plazo.
+static unsigned long tUltimoLatido = 0;
+
+void vigilante_latir() {
+  const unsigned long ahora = millis();
+
+  // La resta sin signo mide bien UNA vuelta de millis() -49,7 dias-. Un latido
+  // perdido en la vuelta no significa nada: el siguiente llega 2 s despues.
+  if (ahora - tUltimoLatido < LATIDO_MS) return;
+  tUltimoLatido = ahora;
+
+  // Se manda con su terminador porque el STM32 trocea por CR o LF: sin el, la linea
+  // no se cierra nunca y el latido se quedaria pegado a lo siguiente que pase.
+  static const char LINEA[] = LATIDO_LINEA "\r\n";
+  enlace_escribirLinea(LINEA, sizeof(LINEA) - 1);
 }

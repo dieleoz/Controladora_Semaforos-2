@@ -120,6 +120,53 @@
 #define ESP32_ARRANQUE_MS     1500UL
 #define ESP32_ARRANQUE_MEDIDO 0        // 0 = SIN VERIFICAR (AB-3) · 1 = medido en banco
 
+// ---------------------------------------------------------------------------
+// EL LATIDO DEL PUENTE (AB-1), Y POR QUE HACE FALTA UNA LINEA RESERVADA
+//
+// El STM32 ya cuenta los silencios de J17 -Maestro/src/bluetooth.cpp:213-223-, pero ese
+// contador NO SIRVE y su propio comentario lo dice: cuenta SILENCIOS DEL PUERTO, no
+// muertes del puente, porque por J17 solo entra lo que un dedo pulsa en la app. Un puente
+// vivo y uno muerto son indistinguibles desde el STM32 mientras nadie use el telefono.
+//
+// El latido lo arregla. Pero el 04/09 se midio por que NO bastaba con emitirlo:
+// j17RegistrarLinea() vive DESPUES de procesarComando(), y procesarComando() CONTESTA A
+// TODO -lo que no case cae en el $ERR de PIN_INVALIDO-. Un latido a secas seria un aviso
+// rojo cada dos segundos en la pantalla del operario, acusandole de una clave que nadie
+// tecleo. Por eso las dos puntas ganan una LINEA RESERVADA que se reconoce ANTES de la
+// guarda de PIN y devuelve sin actuar y SIN CONTESTAR.
+//
+// EL LITERAL EMPIEZA POR '$' A PROPOSITO. Las ordenes de la app son "CMD:..."; lo que
+// empieza por '$' son las tramas que el EQUIPO emite. Una linea reservada con esa forma no
+// puede confundirse con una orden ni por accidente ni por un byte cambiado en el cable: no
+// hay ninguna orden a un '$' de distancia.
+//
+// NO LLEVA CHECKSUM, y es deliberado: no transporta informacion. Lo unico que significa es
+// "he hablado", y eso ya lo dice el hecho de que la linea llegue. Un checksum aqui seria
+// proteger un dato que no existe.
+#define LATIDO_LINEA          "$LATIDO"
+
+// EL PERIODO, CON LA VENTANA QUE LO ACOTA POR LOS DOS LADOS. MEDIDO, no elegido:
+//
+//   por ABAJO   > 1000 ms   el STM32 publica el silencio en SEGUNDOS ENTEROS
+//                           (silencio / 1000UL). Por debajo de 1000 ms, MUDO sale
+//                           siempre 0 s y el registro no distingue nada.
+//   por ARRIBA  < 3500 ms   el corte mas corto que hay que poder ver es un ciclo de
+//                           perro entero: ESP32_WDT_MS (2000) + ESP32_ARRANQUE_MS (1500).
+//                           Con T >= 3500 un reinicio completo cabe dentro de un hueco
+//                           normal y se vuelve invisible.
+//
+// 2000 ms deja el hueco normal en MUDO:2s y un reinicio en MUDO:5s o 6s.
+//
+// ⚠️ EL TECHO DESCANSA SOBRE UN NUMERO SIN MEDIR: ESP32_ARRANQUE_MS lleva
+// ESP32_ARRANQUE_MEDIDO = 0 (AB-3). El dia que se mida de verdad, esta ventana se
+// recalcula. Se escribe el aviso en vez de publicar un margen que no se tiene.
+#define LATIDO_MS             2000UL
+
+// EL COSTE EN CABLE, con la cuenta hecha para que no haya que rehacerla:
+// el latido son 9 B con su "\r\n". A 2000 ms eso son 4,5 B/s sobre los 960 B/s de J17,
+// y el peor segundo pasa de 462 B (48,1%) a 471 B (49,1%). El pack esp32_07 lo recalcula.
+#define LATIDO_BYTES          (sizeof(LATIDO_LINEA) - 1 + 2)
+
 // W-4: tope de iteraciones del bucle INTERIOR de cada sentido.
 //
 // No es una optimizacion: es la mitad de la defensa. El fallo del 31/07/2026 fue un
