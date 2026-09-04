@@ -744,6 +744,38 @@ def correr(b, fw):
         "tecnico lee la barra como cobertura y cambia la antena de un equipo cuyo "
         "problema puede ser el cable, el conector o un obstaculo")
 
+    # 🔴 Y LA NOTA TIENE QUE ESTAR JUNTO A LA BARRA, NO SOLO EXISTIR (04/09).
+    #
+    # Esta comprobacion era de PALABRAS y no de SITIO, y el 04/09 se vio lo que eso
+    # vale: un barrido de textos mudo la nota a la pestana de Tramas y este pack lo
+    # caso... por casualidad, porque de paso le cambio la redaccion. Si la hubiera
+    # movido conservando las palabras, habria pasado en VERDE con la nota en otra
+    # pantalla -y lo que protege al tecnico no es la frase, es tenerla DELANTE
+    # cuando mira la barra. Quien lee el % como cobertura no abre otra pestana a
+    # comprobarlo: cambia la antena.
+    #
+    # El criterio es la distancia en el fuente al ancla 'rf-barra', y se mide en
+    # caracteres porque es lo unico que un lector de texto puede medir. 1.500 es
+    # generoso -caben los dos elementos y su marcado- y estrecho: la pestana mas
+    # cercana esta a mas de 8.000.
+    i_barra = html.find('id="rf-barra"')
+    i_nota = min([k for k in (html.lower().find("no es potencia"),) if k >= 0] or [-1])
+    b.verificar(
+        i_barra >= 0 and i_nota >= 0 and abs(i_nota - i_barra) < 1500,
+        "y esa nota vive JUNTO a la barra (%s caracteres de separacion en el fuente), "
+        "no en otra pestana donde no la lee quien mira el indicador"
+        % (abs(i_nota - i_barra) if i_barra >= 0 and i_nota >= 0 else "?"),
+        "la nota existe pero esta LEJOS del indicador (%s caracteres): el tecnico que "
+        "lee la barra como cobertura no va a cambiar de pestana antes de cambiar la "
+        "antena. Una advertencia que no se ve en el momento de equivocarse no advierte"
+        % (abs(i_nota - i_barra) if i_barra >= 0 and i_nota >= 0 else "no se halla"))
+
+    b.control_negativo(
+        abs(html.find('id="rf-barra"') - html.lower().rfind("no es potencia")) < 1500
+        if html.lower().count("no es potencia") == 1 else True,
+        "el medidor de distancia da un numero real sobre el HTML de hoy: si la nota "
+        "se aleja, la cuenta crece y la comprobacion de arriba cae")
+
     b.verificar(
         "dBm" not in js and "dBm" not in html,
         "y en ninguna parte de la app aparece un dBm: no hay ninguna medida de potencia "
