@@ -161,6 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const emergenciaSubMaestroEl = document.getElementById('emergencia-maestro-sub');
   const emergenciaSubEsclavoEl = document.getElementById('emergencia-esclavo-sub');
   const btnOpMenu = document.getElementById('btn-op-menu');
+  const padPosteEl = document.getElementById('pad-poste');
 
   // Mandos de tecnico que no salen por data-cmd porque cada uno tiene una condicion
   // propia: ALCANCE viaja sin PIN, DEMANDA solo vale en un modo concreto y DEGRADADO
@@ -1487,6 +1488,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function actualizarEmergencia() {
     const punta = (state.node === 'MAESTRO' || state.node === 'ESCLAVO') ? state.node : null;
 
+    // Cuelga de aqui y no de sus propias llamadas para que no puedan desincronizarse:
+    // esta funcion ya se invoca en los tres momentos en que la punta puede cambiar
+    // -al llegar un $STATUS, al conectar y al arrancar-, y una segunda lista de sitios
+    // donde llamar es una lista que alguien tiene que acordarse de actualizar.
+    actualizarMandosDePunta(punta);
+
     // Sin punta identificada se ensenan LAS DOS, cada una con su poste delante.
     // Esconder una obligaria a la app a elegir un poste que no conoce, y esconder las
     // dos retiraria la caida segura por no saber. Ensenar las dos nombradas es lo unico
@@ -1505,29 +1512,94 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnOpCancelarAmbar) {
       btnOpCancelarAmbar.style.display = (punta === 'ESCLAVO') ? 'flex' : 'none';
     }
+    // MAESTRO y ESCLAVO son el vocabulario del protocolo, no el de quien esta de pie
+    // en la calzada: un banderillero no tiene por que saber cual de los dos manda.
+    // POSTE 1 y POSTE 2 son los rotulos que esta misma pantalla lleva escritos encima
+    // de cada semaforo, asi que el mando y la luz se nombran igual. Los dos nombres
+    // tecnicos siguen enteros donde hacen falta -la cabecera, la bitacora de Eventos y
+    // las pestanas de tecnico-, que es donde los lee quien diagnostica.
     if (emergenciaSubMaestroEl) {
       emergenciaSubMaestroEl.textContent = punta
         ? 'Ambas vías en rojo fijo'
-        : 'MAESTRO · ambas vías en rojo fijo';
+        : 'POSTE 1 · ambas vías en rojo fijo';
     }
     if (emergenciaSubEsclavoEl) {
       emergenciaSubEsclavoEl.textContent = punta
         ? 'Intermitente · talanquera ABIERTA'
-        : 'ESCLAVO · intermitente, talanquera ABIERTA';
+        : 'POSTE 2 · intermitente, talanquera ABIERTA';
     }
     if (!emergenciaHintEl) return;
+    // El texto de la punta sin identificar carga con mas de lo que parece: los <small>
+    // de los mandos estan APAGADOS por CSS en cualquier pantalla de menos de 740 px de
+    // alto -o sea en todos los telefonos-, asi que cuando se ensenan las dos
+    // emergencias esta linea es el UNICO sitio donde se dice cual es de cada poste.
     if (punta === 'MAESTRO') {
-      emergenciaHintEl.textContent = 'Equipo MAESTRO: la parada de emergencia deja ' +
-        'las dos vías en ROJO FIJO y detiene el tráfico.';
+      emergenciaHintEl.textContent = 'POSTE 1: la parada de emergencia deja las dos ' +
+        'vías en ROJO FIJO y detiene el tráfico.';
     } else if (punta === 'ESCLAVO') {
-      emergenciaHintEl.textContent = 'Equipo ESCLAVO: la parada de emergencia NO deja ' +
-        'rojo. Pone ÁMBAR INTERMITENTE y ABRE la talanquera: los dos sentidos pasan ' +
-        'con precaución.';
+      emergenciaHintEl.textContent = 'POSTE 2: la parada de emergencia NO deja rojo. ' +
+        'Pone ÁMBAR INTERMITENTE y ABRE la talanquera: los dos sentidos pasan con ' +
+        'precaución. En gris, lo que solo se manda desde el POSTE 1.';
     } else {
-      emergenciaHintEl.textContent = 'Sin equipo identificado: no se sabe qué poste ' +
-        'hay al otro lado. Cada botón dice la maniobra de su punta; el otro equipo ' +
-        'rechazaría la orden y diría por qué.';
+      emergenciaHintEl.textContent = 'No se sabe qué poste hay al otro lado: ROJO ' +
+        'TOTAL es del POSTE 1 y ÁMBAR EMERGENCIA del POSTE 2.';
     }
+  }
+
+  // =========================================================================
+  // 4.ter QUE MANDOS HAY EN ESTE POSTE, VISTO ANTES DE PULSAR
+  // =========================================================================
+  // El cruce se opera desde el POSTE 1 -decision del responsable del 04/09-, y eso no
+  // es un detalle de reparto: los cuatro mandos de ciclo -AUTOMATICO, DAR PASO, AMBAR
+  // y VOLVER AL MENU- solo existen en el despachador de esa punta. Contra el POSTE 2 la
+  // app ya frenaba la orden y avisaba, y ESE AVISO SE QUEDA porque es el unico que dice
+  // por que. Lo que cambia es que dejar de servir se vea ANTES del dedo: enterarse
+  // pulsando cuesta un intento delante de un cruce parado, y el que espera es el
+  // trafico.
+  //
+  // LA DISPONIBILIDAD SE PREGUNTA A puntaCorrecta(), QUE ES LA MISMA FUNCION QUE DECIDE
+  // SI LA ORDEN SALE AL CABLE. Escribir aqui una segunda lista de quien atiende que
+  // seria la copia a mano que este repositorio ya pago tres veces (N-36, N-39 y la
+  // propia compuerta): el boton diria una cosa, el cable otra, y las dos estarian
+  // "bien" cada una por su lado hasta que alguien lo viera en el poste.
+  //
+  // Y NO SE APAGA NADA POR NO SABER. Con la punta sin identificar puntaCorrecta() de
+  // SET_MODO y MANUAL:CAMBIAR_TURNO devuelve null -su guarda pregunta === 'ESCLAVO'- y
+  // los cuatro salen normales, que es lo correcto: no saber no es saber que no.
+  const MANDOS_DE_CICLO = [
+    [btnOpAuto, 'SET_MODO'],
+    [btnOpStep, 'MANUAL:CAMBIAR_TURNO'],
+    [btnOpAmber, 'SET_MODO'],
+    [btnOpMenu, 'SET_MODO'],
+  ];
+
+  function marcarDisponible(el, disponible) {
+    if (!el) return;
+    el.classList.toggle('no-disponible', !disponible);
+    if (disponible) el.removeAttribute('aria-disabled');
+    else el.setAttribute('aria-disabled', 'true');
+  }
+
+  function actualizarMandosDePunta(punta) {
+    if (padPosteEl) {
+      // Tres rotulos y no dos: "NO SE SABE" no es un poste, es la ausencia del dato, y
+      // por eso tiene rotulo y color propios en vez de quedarse en blanco.
+      padPosteEl.textContent = punta === 'MAESTRO' ? 'POSTE 1'
+                             : punta === 'ESCLAVO' ? 'POSTE 2'
+                             : 'NO SE SABE';
+      padPosteEl.classList.toggle('pad-poste-sindato', !punta);
+    }
+    for (const par of MANDOS_DE_CICLO) {
+      marcarDisponible(par[0], !puntaCorrecta(par[1]));
+    }
+    // Los dos de emergencia NO pasan por puntaCorrecta() a proposito, y es el mismo
+    // motivo por el que sus manejadores tampoco: aquella resuelve SOLO_ESCLAVO por
+    // descarte -su !== 'ESCLAVO' incluye el null- y con la punta sin identificar
+    // apagaria el AMBAR DE EMERGENCIA, que es justo la caida segura que se ensena
+    // cuando no se sabe con quien se habla. Aqui solo se apaga cuando CONSTA que al
+    // otro lado hay la punta contraria.
+    marcarDisponible(btnOpEmergency, state.node !== 'ESCLAVO');
+    marcarDisponible(btnOpAmbarEmergencia, state.node !== 'MAESTRO');
   }
 
   // VOLVER AL MENU: la salida de cualquier modo, sin PIN (ver SIN_PIN arriba).

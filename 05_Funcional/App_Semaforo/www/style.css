@@ -96,7 +96,14 @@ body {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border-subtle);
-  padding: 10px 16px;
+  /* 10px -> 6px, y NO es cosmetica: paga el area de toque sin mover nada de abajo.
+     MEDIDO: la cabecera son 58 px de los que el contenido ocupa 37 -las dos lineas
+     de la izquierda-, asi que las dos pastillas de la derecha vivian en 27 y 29 px
+     de alto sobrando 8 px de aire. Al subirlas a los 44 px que exige el guante, con
+     este relleno la cabecera queda en 57: un pixel MENOS que antes. Importa porque
+     esta barra es sticky y esta encima de todo: cada pixel que crezca empuja el
+     ultimo mando fuera de la pantalla a 320 px, donde solo hay 18 px de margen. */
+  padding: 6px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -242,6 +249,12 @@ body {
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
+  /* WCAG 2.2 AAA (2.5.5): 44x44. El motivo esta escrito en
+     herramientas_medir_pulsables.js y no es el umbral habitual: esto se pulsa de
+     pie, con guantes y con trafico esperando. Media 37x27 a 320 px. */
+  min-height: 44px;
+  min-width: 44px;
+  justify-content: center;
 }
 
 .role-pill-btn.admin {
@@ -254,8 +267,12 @@ body {
 .btn-top {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 6px 12px;
+  /* Mismo motivo que .role-pill-btn: medido en 41x29 a 320 px. */
+  min-height: 44px;
+  min-width: 44px;
   border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 700;
@@ -593,6 +610,39 @@ body {
   color: var(--text-muted);
 }
 
+/* A QUE POSTE ESTOY CONECTADO. Va en la cabecera de la botonera porque es la primera
+   pregunta que se hace quien llega al armario con el telefono en la mano, y hasta hoy
+   la app solo la contestaba en dos sitios que el operario no mira: el rotulo tecnico
+   de la cabecera -"MAESTRO"/"ESCLAVO", que no significa nada para un banderillero- y
+   un parrafo de 10 px debajo de la reja.
+   Dice POSTE 1 / POSTE 2, que es el vocabulario que la propia pantalla ya usa encima
+   de cada semaforo, y NO SE SABE cuando no ha llegado un $STATUS. No inventa un poste
+   por descarte: la ausencia del dato tiene su propio rotulo y su propio color.
+
+   ALTO EXACTO 17 px, QUE ES EL DEL <h3> QUE TIENE AL LADO, y eso no es un detalle de
+   estilo: la cabecera de la botonera esta encima de los mandos, asi que un pixel que
+   crezca aqui es un pixel que empuja el ultimo mando fuera de la pantalla a 320 px.
+   Por eso no lleva ni borde ni relleno vertical: el line-height hace de alto. */
+.pad-poste {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  line-height: 17px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  color: var(--cyan-neon);
+  background: rgba(0, 240, 255, 0.12);
+  white-space: nowrap;
+}
+
+/* "NO SE SABE" no es un poste peor: es la ausencia del dato, y lleva el mismo gris
+   que --enlace-sindato usa para lo mismo en la barra de enlace. 7.36:1 sobre el
+   fondo de la tarjeta. */
+.pad-poste.pad-poste-sindato {
+  color: var(--enlace-sindato);
+  background: rgba(148, 163, 184, 0.14);
+}
+
 .operario-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -634,6 +684,30 @@ body {
 
 .pad-btn:active {
   transform: scale(0.96);
+}
+
+/* LO QUE ESTE POSTE NO ATIENDE, VISTO ANTES DE PULSAR Y NO DESPUES.
+ *
+ * El cruce se opera desde el POSTE 1 (decision del 04/09): los mandos de ciclo
+ * -AUTOMATICO, DAR PASO, AMBAR, VOLVER AL MENU- solo existen en el despachador de esa
+ * punta. Contra el POSTE 2 la app ya frenaba la orden y avisaba, pero el aviso llega
+ * DESPUES del dedo: el operario se entera de que un boton no sirve gastando un intento
+ * delante de un cruce parado. El aviso se queda -es el unico que dice por que-; esto
+ * es para no tener que llegar a el.
+ *
+ * SIN TEXTO NUEVO, Y NO POR ECONOMIA: a partir de 740 px de alto de pantalla -o sea,
+ * en TODOS los telefonos- la regla de compactado apaga los <small> de los mandos, asi
+ * que un rotulo explicativo dentro del boton no lo leeria nadie en campo. Lo que si se
+ * ve a un metro y con guantes es que el color se va: el mando que sirve sigue siendo
+ * verde, cyan o ambar y el que no sirve se queda en gris con el borde de puntos.
+ *
+ * NO CAMBIA NI UN PIXEL DE CAJA -ni relleno, ni grosor de borde, ni tipo de letra-,
+ * que es la condicion para no empujar el ultimo mando fuera de la pantalla. */
+.pad-btn.no-disponible {
+  filter: grayscale(1);
+  opacity: 0.45;
+  border-style: dashed;
+  box-shadow: none;
 }
 
 .pad-icon {
@@ -869,6 +943,10 @@ body {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   padding: 8px 10px;
+  /* 35 px medidos a los dos anchos. Un campo numerico es un objetivo tactil como
+     cualquier otro -hay que acertarle para poner el foco- y ademas es el que lleva
+     los tiempos del ciclo: fallarlo es teclear en el campo de al lado. 44 AAA. */
+  min-height: 44px;
   color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: 13px;
@@ -882,6 +960,10 @@ body {
   border: none;
   border-radius: var(--radius-md);
   padding: 12px;
+  /* 42 px medidos: se quedaba a dos pixeles. Ninguno de estos vive en la pantalla
+     de operacion -son de las pestanas de tecnico-, asi que subirlos no empuja el
+     ultimo mando de campo: se comprueba con herramientas_medir_consola.js. */
+  min-height: 44px;
   color: #000;
   font-weight: 800;
   font-size: 13px;
@@ -895,6 +977,8 @@ body {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 10px;
+  /* 38 px medidos: exportar, compartir, vaciar y reiniciar. Mismo umbral. */
+  min-height: 44px;
   color: var(--text-primary);
   font-weight: 700;
   font-size: 12px;
@@ -1028,6 +1112,20 @@ body {
   display: flex;
   justify-content: space-around;
   align-items: center;
+  /* DOS OBJETIVOS PEGADOS SE FALLAN AUNQUE CADA UNO CUMPLA EL TAMANO, y estos dos
+     estaban a 0 px: "Trafico" y "Eventos" compartian borde a los dos anchos. El
+     dedo que va a Eventos y cae un pixel a la izquierda sale de la pantalla de
+     operacion sin querer. 8 px es el minimo que exige
+     herramientas_medir_pulsables.js. No cambia la ALTURA de la barra -es un hueco
+     horizontal- asi que no empuja nada: los botones se reparten 8 px menos de
+     ancho y con cinco pestanas siguen por encima de 44 px de ancho.
+
+     12 y no 8, y el motivo se midio: con 8 px los bordes de las dos pestanas caian a
+     8 px EXACTOS de las columnas de la reja de mandos -la barra flota POR ENCIMA de
+     la botonera en un telefono de 320 px-, o sea justo en el umbral y a un pixel de
+     volver a fallar. Con 12 quedan a 9 y 11. Con las cinco pestanas del tecnico cada
+     una sigue midiendo 47 px de ancho a 320 px, por encima de los 44. */
+  gap: 12px;
   z-index: 100;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
@@ -1312,6 +1410,8 @@ body {
   font-weight: 700;
   cursor: pointer;
   overflow-wrap: anywhere;
+  /* 32 px medidos: eran los dos objetivos mas pequenos de toda la app. */
+  min-height: 44px;
 }
 .depu-filtro.activo {
   border-color: var(--border-glow);
@@ -1507,4 +1607,23 @@ body {
   .countdown-center { transform: scale(0.74); }
   .pad-btn { padding: 6px 6px; }
   .card-traffic { padding: 6px 10px; }
+
+  /* OCHO PIXELES, Y SE SABE PARA QUE SIRVE CADA UNO. A 320x568 la ultima fila de la
+     reja quedaba PEGADA a la barra de pestanas flotante -medido: el borde de arriba
+     de AMBAR EMERGENCIA y el borde de abajo de la pestana Trafico, a 0 px-. La barra
+     se dibuja ENCIMA, asi que el dedo que busca el mando de emergencia cae en la
+     pestana y se sale de la pantalla de operacion. Subir la reja tambien acorta lo
+     que hay que bajar para llegar al ultimo mando, que es el criterio del apartado B.
+
+     LOS OCHO SALEN DE FUERA DE LA REJA, Y ESO SE INTENTO AL REVES PRIMERO. La primera
+     version los sacaba del hueco entre FILAS -8 px a 6- razonando que encima de un
+     mando esta el de arriba y no un mando distinto. El instrumento lo tumbo en la
+     misma corrida: aparecieron TRES pares nuevos a 6 px -AUTOMATICO con AMBAR, DAR
+     PASO con ROJO TOTAL, AMBAR con AMBAR EMERGENCIA-, que son exactamente dos mandos
+     contiguos al alcance del mismo pulgar. La reja no da de si: los pixeles se cogen
+     del aire que la rodea. */
+  .app-container { padding-top: 4px; }
+  .tab-content { gap: 6px; }
+  .operario-pad-card { padding: 8px 12px; }
+  .pad-header { margin-bottom: 4px; }
 }

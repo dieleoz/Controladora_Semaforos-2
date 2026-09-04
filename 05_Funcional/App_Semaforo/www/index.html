@@ -109,6 +109,14 @@
       <div class="card operario-pad-card">
         <div class="pad-header">
           <h3>🎮 BOTONERA DE CAMPO</h3>
+          <!-- A QUE POSTE ESTA CONECTADO, CON LAS PALABRAS QUE USA LA PANTALLA.
+               "MAESTRO" y "ESCLAVO" son el vocabulario del protocolo y no significan
+               nada para un banderillero; POSTE 1 y POSTE 2 son los rotulos que estan
+               justo encima de cada semaforo en esta misma pantalla. Arranca en NO SE
+               SABE y lo escribe actualizarMandosDePunta() con lo que declara NODE: en
+               el $STATUS. Sin $STATUS se queda en NO SE SABE: no se deduce el poste
+               por descarte. -->
+          <span class="pad-poste pad-poste-sindato" id="pad-poste">NO SE SABE</span>
         </div>
 
         <div class="operario-grid">
@@ -153,7 +161,7 @@
             <span class="pad-icon">🛑</span>
             <div class="pad-text">
               <strong>ROJO TOTAL</strong>
-              <small id="emergencia-maestro-sub">Ambas vías en rojo fijo</small>
+              <small id="emergencia-maestro-sub">POSTE 1 · ambas vías en rojo fijo</small>
             </div>
           </button>
 
@@ -161,7 +169,7 @@
             <span class="pad-icon">🟡</span>
             <div class="pad-text">
               <strong>ÁMBAR EMERGENCIA</strong>
-              <small id="emergencia-esclavo-sub">Intermitente · talanquera ABIERTA</small>
+              <small id="emergencia-esclavo-sub">POSTE 2 · intermitente, talanquera ABIERTA</small>
             </div>
           </button>
 
@@ -183,7 +191,7 @@
           <!-- El rotulo dice QUE maniobra; esta linea dice CONTRA QUE EQUIPO va, que
                es la mitad que faltaba: el mismo boton pulsado en otro poste haria otra
                cosa. Sin telemetria lo declara en vez de suponer una punta. -->
-          <p class="pad-hint" id="emergencia-hint">Sin equipo identificado: no se sabe qué poste hay al otro lado.</p>
+          <p class="pad-hint" id="emergencia-hint">No se sabe qué poste hay al otro lado: ROJO TOTAL es del POSTE 1 y ÁMBAR EMERGENCIA del POSTE 2.</p>
 
           <!-- 5. VOLVER AL MENU: la salida de CUALQUIER modo, y por eso ocupa las dos
                columnas en vez de ser un boton mas de la reja. Hasta hoy esta vuelta
