@@ -102,46 +102,6 @@
         </div>
       </div>
 
-      <!-- Quick Metrics Bar -->
-      <div class="grid-metrics">
-        <div class="card metric-card">
-          <div class="metric-head">
-            <span class="metric-icon">📡</span>
-            <span class="metric-label">ENLACE RADIO</span>
-          </div>
-          <div class="metric-value cyan" id="rf-quality">--</div>
-          <!-- El rotulo del tramo. Cuatro textos distintos, y "NO SE SABE" no es el
-               peor de los tres: es la ausencia del dato. El color acompana, no
-               informa solo: a pleno sol el color es lo primero que se pierde. -->
-          <div class="enlace-estado enlace-sindato" id="rf-estado">NO SE SABE</div>
-          <div class="progress-bar-wrap">
-            <div class="progress-bar enlace-barra enlace-sindato" id="rf-barra" style="width: 0%;"></div>
-          </div>
-          <div class="metric-sub"><span class="metric-etiqueta">RTT</span> <span id="rf-rtt">--</span> <span class="metric-etiqueta" id="rf-rtt-unidad">ms</span></div>
-          <div class="metric-sello" id="rf-sello">ninguna medida en esta sesion</div>
-          <!-- ESTA NOTA ES FIJA Y VA EN EL HTML A PROPOSITO: es verdad siempre, no
-               depende de ninguna trama, y por tanto no puede quedarse describiendo
-               un equipo que ya no existe. Dice lo unico que el numero de arriba NO
-               dice, y que cualquiera que vea una barra de nivel da por supuesto. -->
-          <p class="metric-nota">
-            Es el <strong>% de latidos que contestaron</strong> en los últimos 30 s
-            (10 latidos, uno cada 3 s). <strong>No es potencia de señal (RSSI):</strong>
-            no dice si falla la antena, el cable o si hay un obstáculo delante.
-          </p>
-        </div>
-
-        <div class="card metric-card">
-          <div class="metric-head">
-            <span class="metric-icon">🔋</span>
-            <span class="metric-label">BATERÍA 12V</span>
-          </div>
-          <div class="metric-value green" id="bat-voltage">-- V</div>
-          <div class="metric-sub" id="bat-status">Sin datos del equipo</div>
-          <div class="progress-bar-wrap">
-            <div class="progress-bar green" id="bat-prog" style="width: 0%;"></div>
-          </div>
-        </div>
-      </div>
 
       <!-- ===============================================================
            BOTONERA TÁCTIL DE CAMPO (4 BOTONES TIPO MANDO DE RELÉS)
@@ -240,6 +200,60 @@
               <small>Sale del modo · deja rojo fijo</small>
             </div>
           </button>
+        </div>
+      </div>
+
+      <!-- ===============================================================
+           LA TELEMETRIA BAJA AQUI, DEBAJO DE LOS MANDOS (04/09)
+
+           Estaba ENTRE el semaforo y la botonera, y eso obligaba a hacer scroll para
+           dar una orden: el operario perdia de vista las luces justo cuando acababa
+           de pulsar, que es el unico instante en que hay que mirarlas. MEDIDO con
+           herramientas_medir_consola.js a cuatro tamanos reales de telefono: el
+           ultimo mando quedaba entre 82 y 382 px por debajo del borde de la pantalla.
+
+           No se borra nada. El enlace, la bateria y su explicacion siguen enteros:
+           solo dejan de robar el espacio entre la accion y su consecuencia. Quien
+           quiera el detalle tecnico baja; quien esta regulando trafico, no.
+           =============================================================== -->
+      <!-- Quick Metrics Bar -->
+      <div class="grid-metrics">
+        <div class="card metric-card">
+          <div class="metric-head">
+            <span class="metric-icon">📡</span>
+            <span class="metric-label">ENLACE RADIO</span>
+          </div>
+          <div class="metric-value cyan" id="rf-quality">--</div>
+          <!-- El rotulo del tramo. Cuatro textos distintos, y "NO SE SABE" no es el
+               peor de los tres: es la ausencia del dato. El color acompana, no
+               informa solo: a pleno sol el color es lo primero que se pierde. -->
+          <div class="enlace-estado enlace-sindato" id="rf-estado">NO SE SABE</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar enlace-barra enlace-sindato" id="rf-barra" style="width: 0%;"></div>
+          </div>
+          <div class="metric-sub"><span class="metric-etiqueta">RTT</span> <span id="rf-rtt">--</span> <span class="metric-etiqueta" id="rf-rtt-unidad">ms</span></div>
+          <div class="metric-sello" id="rf-sello">ninguna medida en esta sesion</div>
+          <!-- ESTA NOTA ES FIJA Y VA EN EL HTML A PROPOSITO: es verdad siempre, no
+               depende de ninguna trama, y por tanto no puede quedarse describiendo
+               un equipo que ya no existe. Dice lo unico que el numero de arriba NO
+               dice, y que cualquiera que vea una barra de nivel da por supuesto. -->
+          <p class="metric-nota">
+            Es el <strong>% de latidos que contestaron</strong> en los últimos 30 s
+            (10 latidos, uno cada 3 s). <strong>No es potencia de señal (RSSI):</strong>
+            no dice si falla la antena, el cable o si hay un obstáculo delante.
+          </p>
+        </div>
+
+        <div class="card metric-card">
+          <div class="metric-head">
+            <span class="metric-icon">🔋</span>
+            <span class="metric-label">BATERÍA 12V</span>
+          </div>
+          <div class="metric-value green" id="bat-voltage">-- V</div>
+          <div class="metric-sub" id="bat-status">Sin datos del equipo</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar green" id="bat-prog" style="width: 0%;"></div>
+          </div>
         </div>
       </div>
 

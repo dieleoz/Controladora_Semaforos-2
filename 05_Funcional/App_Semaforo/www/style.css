@@ -599,16 +599,37 @@ body {
   gap: 12px;
 }
 
+/* EL MANDO EN COLUMNA, Y NO ES UNA PREFERENCIA DE ESTILO: ES LO QUE PARTIA LAS PALABRAS.
+ *
+ * Aqui habia `display:flex` en FILA con el icono a la izquierda y `text-align:left`. El
+ * icono se lleva su ancho fijo, y a 360 px -un Android normal- al texto le quedaban 76 px.
+ * MEDIDO con herramientas_medir_consola.js a cuatro tamanos reales de telefono, y visto
+ * en las fotos de campo del 04/09:
+ *
+ *     AUTOMATICO         en 2 lineas    "AUTO / MATIC / O" en la foto
+ *     AMBAR EMERGENCIA   en 4 lineas    "AMBA / R / EMERG / ENCIA"
+ *     ROJO TOTAL         "MAESTR / O"   en el subtexto
+ *
+ * Un rotulo partido en tres trozos no se lee a pleno sol, con guantes y con un coche
+ * encima. Y el defecto NO SALIA a 412 px, que es el ancho de las maquetas: es el mismo
+ * agujero que el desborde de 41 px que costo N-110 -una captura a un ancho no es una
+ * prueba de interfaz-.
+ *
+ * En columna el texto dispone del ancho ENTERO del boton, no del que sobra: a 320 px pasa
+ * de 56 px a mas de 130. El icono va arriba y el rotulo centrado debajo, que ademas es
+ * como se lee un boton de panico cuando no se tiene tiempo de leer. */
 .pad-btn {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 14px 12px;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 8px;
   border-radius: var(--radius-md);
   border: 1.5px solid transparent;
   cursor: pointer;
   transition: all 0.2s var(--ease-smooth);
-  text-align: left;
+  text-align: center;
 }
 
 .pad-btn:active {
@@ -623,6 +644,16 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  /* El texto ocupa el boton entero: es lo que evita que la palabra se rompa. */
+  width: 100%;
+  align-items: center;
+  text-align: center;
+  /* Guarda de ultimo recurso: si algun dia un rotulo no cupiera ni asi, que se salga
+   * en vez de partirse por dentro. Una palabra cortada miente sobre lo que dice el
+   * boton; una que se sale se ve y se arregla. */
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: none;
 }
 
 .pad-text strong {
@@ -1409,4 +1440,71 @@ body {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   padding: 8px;
+}
+
+/* ===========================================================================
+   CONSOLA DE UN SOLO PANTALLAZO (04/09)
+
+   El criterio lo fijo el responsable con una frase: "sin desplazamiento deberia
+   ver y operar el operador; al bajar, lo que no usa a diario".
+
+   Lo que tiene que caber sin mover el dedo: el SEMAFORO y los MANDOS DIARIOS.
+   Lo que puede quedar debajo: el aviso de punta, VOLVER AL MENU, la telemetria y
+   el diagnostico.
+
+   POR QUE IMPORTA Y NO ES ESTETICA. Para pulsar DAR PASO habia que bajar, y al
+   bajar se perdia de vista el semaforo — justo en el instante en que hay que
+   mirarlo, porque es la unica confirmacion de que la orden entro. Medido con
+   herramientas_medir_consola.js sobre el estado real de la pantalla: el ultimo
+   mando quedaba entre 189 y 438 px por debajo del borde segun el telefono.
+
+   Se acota por ALTO y no por ancho: el problema no es que no quepa de lado, es
+   que la pantalla es corta. A 412x732 -la maqueta- ya cabia casi todo, y por eso
+   nadie lo vio en las capturas: es el mismo agujero que el desborde de 41 px.
+   =========================================================================== */
+@media (max-height: 740px) {
+  /* El rotulo de la tarjeta dice lo que el operario ya esta viendo. */
+  .card-traffic .card-tag { display: none; }
+
+  .card-traffic { padding: 10px 12px; }
+  .semaforo-housing { padding: 8px 0; }
+  .countdown-center { transform: scale(0.86); }
+
+  /* El encabezado de la botonera: se queda el titulo, se va la coletilla. */
+  .pad-header { margin-bottom: 6px; }
+  .pad-sub { display: none; }
+
+  /* Mandos mas compactos SIN tocar el area de pulsacion util: se recorta el
+   * relleno vertical, no el ancho ni la altura minima que exige un dedo con
+   * guante -48 px es el minimo de accesibilidad y se respeta-. */
+  .pad-btn { padding: 8px 6px; gap: 4px; min-height: 48px; }
+  .pad-icon { font-size: 20px; }
+  .pad-text small { display: none; }
+
+  /* Lo que NO se usa a diario baja: el aviso de punta y el volver al menu se
+   * quedan donde estan, pero dejan de empujar a los mandos hacia fuera porque
+   * ya no hay nada entre el semaforo y ellos. */
+
+  /* El semaforo se compacta, NO se encoge: la lampara sigue igual de grande
+   * -es lo que hay que ver de un vistazo-; lo que se recorta es el aire y los
+   * rotulos de alrededor. Un semaforo pequeno en un movil al sol es peor que
+   * un scroll. */
+  .semaforo-col { gap: 4px; }
+  .dual-semaforos { gap: 8px; }
+  .app-container { padding-top: 6px; }
+  .tab-content { gap: 8px; }
+  .operario-grid { gap: 8px; }
+  .operario-pad-card { padding: 10px 12px; }
+}
+
+/* Y un escalon mas para las pantallas MUY cortas -un iPhone SE de 1a generacion
+ * son 568 px utiles-. Aqui ya no sobra nada: se retira tambien el rotulo de
+ * cada poste, que el operario deduce por su posicion, y el contador se acerca
+ * a las lamparas. Sigue sin tocarse el tamano de la lampara. */
+@media (max-height: 600px) {
+  .semaforo-col > .semaforo-rotulo,
+  .semaforo-col > .poste-label { display: none; }
+  .countdown-center { transform: scale(0.74); }
+  .pad-btn { padding: 6px 6px; }
+  .card-traffic { padding: 6px 10px; }
 }
