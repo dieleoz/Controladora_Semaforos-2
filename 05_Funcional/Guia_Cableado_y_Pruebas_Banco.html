@@ -15,7 +15,7 @@
      de la tipografia. -->
 <style>
   :root { color-scheme: light; }
-  body { font-family: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, Arial, sans-serif; }
+  body { font-family: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, Arial, sans-serif, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; }
   @media print {
     /* Se imprime para llevarla al poste: sin fondos que se coman el toner y sin
        cortar un paso por la mitad entre dos hojas. */
@@ -71,7 +71,7 @@
 
   body {
     margin: 0; background: var(--papel); color: var(--tinta);
-    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji";
     font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased;
   }
 
@@ -79,20 +79,20 @@
     display: flex; flex-direction: column; gap: 1.6rem; }
 
   /* ---------- cabecera ---------- */
-  .eyebrow { font-family: "IBM Plex Mono", ui-monospace, Consolas, "Courier New", monospace;
+  .eyebrow { font-family: "IBM Plex Mono", ui-monospace, Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji";
     font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
     color: var(--acento); font-weight: 600; }
-  h1 { font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", "Segoe UI", system-ui, Arial, sans-serif;
+  h1 { font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", "Segoe UI", system-ui, Arial, sans-serif, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji";
     font-weight: 700; font-size: clamp(1.9rem, 5vw, 2.6rem);
     line-height: 1.05; margin: .35rem 0 .5rem; letter-spacing: -.01em; }
   .sub { margin: 0 0 .4rem; color: var(--tinta-2); max-width: 68ch; font-size: .95rem; }
-  .meta { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace; font-size: .76rem;
+  .meta { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: .76rem;
     color: var(--tinta-3); display: flex; flex-wrap: wrap; gap: .3rem 1.2rem; }
 
   /* ---------- los cinco avisos que paran la mano ---------- */
   .parar { border: 2px solid var(--rojo); background: var(--alto-bg);
     border-radius: 4px; padding: .9rem 1.1rem; }
-  .parar > b { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif; font-size: 1.05rem;
+  .parar > b { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: 1.05rem;
     display: block; margin-bottom: .5rem; }
   .parar ol { margin: 0; padding-left: 1.3rem; }
   .parar li { margin: 0 0 .4rem; font-size: .93rem; }
@@ -101,16 +101,16 @@
   /* ---------- marco entradas / salidas ---------- */
   .marco { border: 1px solid var(--linea); border-left: 4px solid var(--verde);
     background: var(--ok-bg); border-radius: 4px; padding: .9rem 1.1rem; }
-  .marco > b { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif; font-size: 1.05rem;
+  .marco > b { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: 1.05rem;
     display: block; margin-bottom: .4rem; }
   .marco p { margin: 0 0 .55rem; font-size: .93rem; }
 
   /* ---------- secciones ---------- */
-  h2 { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif;
+  h2 { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji";
     font-size: 1.25rem; margin: .8rem 0 0; font-weight: 700;
     padding-bottom: .35rem; border-bottom: 2px solid var(--tinta);
     display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
-  h2 .n { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace; font-size: .78rem;
+  h2 .n { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: .78rem;
     color: var(--acento); font-weight: 600; }
 
   /* ---------- filas de paso ---------- */
@@ -119,12 +119,12 @@
     padding: .6rem .8rem .7rem; margin-top: .55rem;
     display: grid; grid-template-columns: 2.2rem 1fr; gap: 0 .7rem; }
   .fila.alto { border-left-color: var(--rojo); }
-  .fn { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace; font-weight: 600; font-size: .95rem;
+  .fn { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-weight: 600; font-size: .95rem;
     color: var(--acento); }
   .fila.alto .fn { color: var(--rojo); }
-  .ft { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif; font-weight: 700;
+  .ft { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-weight: 700;
     font-size: 1.02rem; margin: 0 0 .3rem; }
-  .ft a { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace; font-size: .68rem; font-weight: 500;
+  .ft a { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: .68rem; font-weight: 500;
     text-transform: uppercase; letter-spacing: .08em; color: var(--azul);
     text-decoration: none; border-bottom: 1px dotted var(--azul); margin-left: .45rem;
     white-space: nowrap; }
@@ -137,7 +137,7 @@
      overflow-x y se deslizan solos, que es para lo que estaban puestos. */
   .fc { min-width: 0; }
   .fc p { margin: 0 0 .28rem; font-size: .93rem; }
-  .fc p > b.et { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace; font-size: .66rem;
+  .fc p > b.et { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: .66rem;
     letter-spacing: .09em; text-transform: uppercase; color: var(--tinta-3);
     margin-right: .4rem; }
   .fc p.ver > b.et { color: var(--verde); }
@@ -160,17 +160,17 @@
   table { border-collapse: collapse; width: 100%; font-size: .87rem; min-width: 30rem; }
   th, td { text-align: left; padding: .4rem .7rem; border-bottom: 1px solid var(--linea-2);
     vertical-align: top; }
-  th { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace; font-size: .66rem; letter-spacing: .08em;
+  th { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: .66rem; letter-spacing: .08em;
     text-transform: uppercase; color: var(--tinta-3); font-weight: 600;
     border-bottom: 1px solid var(--linea); }
   tbody tr:last-child td { border-bottom: none; }
 
   .diagrama { background: var(--tarjeta); border: 1px solid var(--linea);
     border-radius: 3px; padding: .9rem; overflow-x: auto; margin: .5rem 0; }
-  .diagrama pre { margin: 0; font-family: "IBM Plex Mono", Consolas, "Courier New", monospace;
+  .diagrama pre { margin: 0; font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji";
     font-size: .76rem; line-height: 1.45; color: var(--tinta-2); white-space: pre; }
 
-  code { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace; font-size: .9em;
+  code { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: .9em;
     background: var(--linea-2); padding: .06em .3em; border-radius: 2px; }
 
   /* ---------- campos ---------- */
@@ -178,10 +178,10 @@
     gap: .7rem; background: var(--tarjeta); border: 1px solid var(--linea);
     border-radius: 3px; padding: .9rem 1rem; }
   .campo { display: flex; flex-direction: column; gap: .2rem; }
-  .campo label { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace; font-size: .66rem;
+  .campo label { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: .66rem;
     letter-spacing: .09em; text-transform: uppercase; color: var(--tinta-3); }
   input[type=text], textarea {
-    font-family: "IBM Plex Sans", "Segoe UI", system-ui, Arial, sans-serif; font-size: .92rem; color: var(--tinta);
+    font-family: "IBM Plex Sans", "Segoe UI", system-ui, Arial, sans-serif, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: .92rem; color: var(--tinta);
     background: var(--campo); border: 1px solid var(--linea); border-radius: 2px;
     padding: .35rem .5rem; width: 100%; }
   textarea { resize: vertical; min-height: 2.4rem; line-height: 1.4; }
@@ -195,12 +195,12 @@
      cambia con el. */
   .parte { border: 2px solid var(--tinta); border-radius: 4px;
     background: var(--tarjeta); padding: 1rem 1.1rem; }
-  .p-cab { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace; font-size: .7rem;
+  .p-cab { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: .7rem;
     letter-spacing: .12em; text-transform: uppercase; color: var(--tinta-2);
     margin-bottom: .5rem; }
   .p-aviso { border-left: 4px solid; border-radius: 3px; padding: .6rem .8rem;
     font-size: .92rem; margin-bottom: .85rem; }
-  .p-aviso > b { display: block; font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif;
+  .p-aviso > b { display: block; font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji";
     font-size: 1.06rem; margin-bottom: .2rem; }
   .p-aviso.vacio   { background: var(--alto-bg);   border-color: var(--rojo);   }
   .p-aviso.parcial { background: var(--acento-sv); border-color: var(--acento); }
@@ -210,9 +210,9 @@
     gap: .5rem; }
   .p-cif { border: 1px solid var(--linea); border-radius: 3px; padding: .4rem .55rem;
     background: var(--papel); }
-  .p-cif .v { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace;
+  .p-cif .v { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji";
     font-size: 1.55rem; font-weight: 600; line-height: 1.05; display: block; }
-  .p-cif .k { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace; font-size: .61rem;
+  .p-cif .k { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: .61rem;
     letter-spacing: .07em; text-transform: uppercase; color: var(--tinta-2); }
   .p-cif.si .v { color: var(--verde); }
   .p-cif.no .v { color: var(--rojo);  }
@@ -220,7 +220,7 @@
   .p-cif.sm .v { color: var(--tinta-2); }
 
   .p-bloque { margin-top: 1rem; }
-  .p-bloque > h3 { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif;
+  .p-bloque > h3 { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji";
     font-size: 1.02rem; font-weight: 700; margin: 0 0 .1rem;
     padding-bottom: .22rem; border-bottom: 1px solid var(--linea); }
   .p-bloque > .pie { font-size: .82rem; color: var(--tinta-2); margin: .25rem 0 .45rem; }
@@ -230,7 +230,7 @@
   .p-item.no { border-left-color: var(--rojo); }
   .p-item.np { border-left-color: var(--azul); }
   .p-item.si { border-left-color: var(--verde); }
-  .p-item .np2 { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace;
+  .p-item .np2 { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji";
     font-size: .78rem; font-weight: 600; color: var(--tinta-2); margin-right: .4rem; }
   .p-item .ti { font-weight: 600; }
   .p-item .ve { display: block; margin-top: .1rem; }
@@ -240,7 +240,7 @@
      sin explicar, asi que no puede ser la mas floja de la hoja. --tinta-2 son
      7,41:1 y 7,06:1. La cursiva sigue distinguiendola del texto normal. */
   .p-item .falta { color: var(--tinta-2); font-style: italic; }
-  .p-sello { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace; font-size: .72rem;
+  .p-sello { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: .72rem;
     font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
   .p-sello.no { color: var(--rojo);  }
   .p-sello.np { color: var(--azul);  }
@@ -253,14 +253,14 @@
      MEDIDO sin esta linea: 112 / 134 / 164 / 204 px de desborde. */
   .p-datos { width: 100%; min-width: 0; font-size: .87rem; border-collapse: collapse;
     table-layout: auto; }
-  .p-datos th { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif;
+  .p-datos th { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji";
     font-size: .9rem; text-transform: none; letter-spacing: 0; color: var(--tinta);
     padding: .5rem .1rem .2rem; border-bottom: 1px solid var(--linea); }
   .p-datos td { padding: .22rem .5rem .22rem 0; border-bottom: 1px solid var(--linea-2);
     vertical-align: top; }
-  .p-datos td.pz { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace;
+  .p-datos td.pz { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji";
     font-size: .78rem; color: var(--tinta-2); white-space: nowrap; width: 1%; }
-  .p-datos td.vz { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace;
+  .p-datos td.vz { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji";
     font-weight: 600; white-space: pre-wrap; }
   .p-libre { font-size: .9rem; white-space: pre-wrap; margin: .1rem 0 0; }
   .p-nada { font-size: .88rem; color: var(--tinta-2); margin: .3rem 0 0; }
@@ -268,19 +268,19 @@
   .libre { background: var(--tarjeta); border: 1px dashed var(--tinta-3);
     border-radius: 3px; padding: .7rem .9rem; margin-top: .55rem;
     display: flex; flex-direction: column; gap: .3rem; }
-  .libre b { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif; font-size: .98rem; }
+  .libre b { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: .98rem; }
   .libre p { margin: 0; font-size: .86rem; color: var(--tinta-2); }
 
   .barra { position: sticky; bottom: 0; background: var(--papel);
     border-top: 1px solid var(--linea); padding: .8rem 0 .9rem;
     display: flex; flex-wrap: wrap; gap: .7rem; align-items: center; z-index: 2; }
-  button { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif; font-weight: 600;
+  button { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-weight: 600;
     font-size: .93rem; padding: .55rem 1.05rem; border-radius: 3px;
     border: 1px solid var(--tinta); cursor: pointer;
     background: var(--tinta); color: var(--papel); }
   button.sec { background: transparent; color: var(--tinta); }
   button:hover { opacity: .88; }
-  .estado { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace; font-size: .78rem; color: var(--tinta-3); }
+  .estado { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: .78rem; color: var(--tinta-3); }
 
   /* ---------- capa 2: el detalle ---------- */
   .detalle-cab { margin-top: 2.5rem; border-top: 3px double var(--tinta);
@@ -289,11 +289,11 @@
   details { background: var(--tarjeta); border: 1px solid var(--linea);
     border-radius: 3px; margin-top: .5rem; }
   details > summary { cursor: pointer; padding: .6rem .85rem; font-weight: 600;
-    font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif; font-size: 1rem;
+    font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: 1rem;
     list-style-position: outside; }
   details[open] > summary { border-bottom: 1px solid var(--linea-2); }
   .dcuerpo { padding: .8rem .95rem 1rem; }
-  .dcuerpo h4 { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif; font-size: .98rem;
+  .dcuerpo h4 { font-family: "IBM Plex Sans Condensed", "Segoe UI", system-ui, Arial, sans-serif, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: .98rem;
     margin: 1rem 0 .3rem; color: var(--acento); }
   .dcuerpo h4:first-child { margin-top: 0; }
   .dcuerpo p { margin: 0 0 .5rem; font-size: .92rem; }
@@ -324,7 +324,21 @@
     }
     body { background: #fff; color: #000; font-size: 9.5pt; line-height: 1.35; }
     .hoja { padding: 0; gap: .8rem; max-width: none; }
-    .barra, .noimprimir, .detalle-cab, details { display: none !important; }
+    .barra, .noimprimir, .detalle-cab { display: none !important; }
+
+    /* 🔴 AQUI ESTABA `details` TAMBIEN, Y SE LLEVABA 12.600 CARACTERES AL PDF.
+       Entre lo que NO salia impreso: «Consulta · que va en cada bornera» -las
+       conexiones-, «Paso 22 · la placa del modulo» -la arquitectura- y «Lo que
+       esta visita NO decide» -las preguntas abiertas-. O sea, justo lo que hay
+       que poner delante de quien tiene que contestarlas.
+       El PDF es el canal de vuelta del funcional: lo que no se imprime no se
+       contesta. Se despliegan al imprimir -el `open` lo pone el script de abajo,
+       porque un <details> cerrado no se abre desde CSS- y se marcan para que no
+       se partan por la mitad entre dos hojas. */
+    details { display: block !important; break-inside: avoid; margin-top: .4rem;
+      border: 1px solid #999; border-left: 3px solid #000; padding: .45rem .6rem; }
+    details > summary { list-style: none; font-weight: 700; margin-bottom: .3rem; }
+    details > summary::-webkit-details-marker { display: none; }
     .ft a { display: none; }
     .fila, .ident, .tabla-envoltorio, .parar, .marco, .libre, .diagrama { break-inside: avoid; }
     .fila { border: 1px solid #999; border-left: 3px solid #000; margin-top: .35rem; }
@@ -367,6 +381,37 @@
       <span>revisión del <b>31 · 08 · 2026</b></span><span>29 pasos</span>
     </div>
   </header>
+
+  <div class="parar">
+    <b>🛑 ESTA SESIÓN NO EMPIEZA DE CERO — lo del 3 y 4 de Septiembre</b>
+    <ol>
+      <li><b>La tarjeta Maestro tiene un CORTO entre 3,3 V y masa, y está medido.</b> Funciona unos
+        30 s al alimentarla, se calienta y se para. <b>NO la energice «a ver si pasa»</b>: cada ciclo
+        puede terminar el daño. Antes de nada, <b>desenchufe <code>J14</code>, <code>J15</code>,
+        <code>J16</code>, <code>J17</code> y <code>J2</code> y vuelva a medir</b>: los cinco sacan el
+        riel fuera de la placa, y <b>si el corto desaparece la placa está bien</b>. Si sigue, mire
+        primero los cerámicos de desacoplo —el fallo más barato—, luego <code>U5</code>, y
+        <b>el STM32 el último</b>. No cargue firmware: el firmware no es la causa y está descartado
+        por censo.</li>
+      <li><b>El paso 29 ya está diagnosticado. No lo repita buscando el fallo.</b> El mando A/B
+        <b>no puede pulsarse</b>: <code>R65</code>/<code>R66</code> (10 kΩ a masa) dejan el pin en
+        <b>0,6 V</b>, que el micro lee como BAJO permanente, y el arranque lo siembra como «flanco ya
+        consumido». Nunca hay transición, así que ninguna secuencia es alcanzable. Está medido en el
+        cobre y en el fuente.</li>
+      <li><b>Instale la APK NUEVA</b>
+        (<code>IOT_VIAL_Semaforos_2026-09-04_edf4783_SIN_BANCO.apk</code>). La anterior
+        <b>no podía abrir el enlace</b>: le faltaba la llamada que abre el socket, así que se pintaba
+        «Enlazado» sin estarlo. <b>Con la APK vieja no conecta por bien que funcione el módulo.</b></li>
+      <li><b>Antes de sospechar del ESP32, mire el NOMBRE.</b> Mientras no haya aprendido la serie del
+        equipo se anuncia como <code>SEM-SIN-MATRICULA</code>, no con el nombre del cruce. Si aparece
+        ahí y <b>se queda quieto</b>, el módulo está sano. Si parpadea entrando y saliendo, abra el
+        monitor serie a <b>115200</b> y mire si el arranque se repite cada ~2 s.</li>
+      <li><b>Tapar el pin de 12 V de <code>J16</code> ya no es una precaución de banco: es
+        obligatorio en cada equipo.</b> Las cinco entradas de campo van <b>directas al micro, sin
+        nada en serie</b>, mientras que todas las salidas llevan 220 Ω y optoacoplador. Ese pin es lo
+        único que hay entre un instalador y esta avería.</li>
+    </ol>
+  </div>
 
   <div class="parar">
     <b>🔴 Lo único que hay que leer antes de tocar nada</b>
@@ -1292,6 +1337,82 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
     <textarea id="lib7" style="min-height:3rem" placeholder="Aparece sí/no · conecta sí/no · llegan datos sí/no · md5 · masa contra masa · ¿intercambiaste los hilos? · con el USB-TTL directo, ¿llegó algo?"></textarea>
   </div>
 
+  <h2><span class="n">9.bis</span> Preguntas abiertas · las que necesitan tu respuesta, no una medida</h2>
+
+  <div class="marco">
+    <b>📄 Esto se contesta y vuelve en el PDF</b>
+    <p>Las de abajo <b>no las desatasca nadie midiendo</b>: son decisiones, y varias tienen dinero o
+      seguridad detrás. Si no sabes una, <b>escribe «no sé» o «lo decide Julio»</b> — dejarla en
+      blanco no se distingue de haberla pasado por alto, y la pregunta vuelve dentro de un mes.</p>
+  </div>
+
+  <div class="libre">
+    <b>1 · 🛑 La tarjeta Maestro con el corto. ¿Qué se hace con ella?</b>
+    <p>Bloquea todo lo demás: sin Maestro no hay banco. Antes de decidir, la escalera del aviso de
+      arriba —<b>desenchufar los cinco conectores y remedir</b> es gratis y puede cerrar el caso—.
+      Di también <b>cuánto midió</b> el riel de 3,3 V contra masa, con y sin conectores.</p>
+    <textarea id="pa1" style="min-height:3rem" placeholder="ohmios con conectores puestos · ohmios con todo desenchufado · ¿reparar, sustituir la pastilla, o placa nueva? · ¿hay tarjeta de repuesto?"></textarea>
+  </div>
+
+  <div class="libre">
+    <b>2 · 🔴 Las entradas de campo no tienen ninguna protección. ¿Se cambia el diseño?</b>
+    <p>Las <b>cinco</b> entradas de bornera van directas al micro, sin nada en serie, mientras que
+      las <b>nueve</b> salidas llevan 220 Ω y optoacoplador. Y <code>J16</code> p1 lleva 12 V crudos
+      en ese mismo conector. La cuenta: <b>2K2 en serie</b> deja la inyección en 3,6 mA —por debajo
+      de los 5 mA que admite el micro— y el nivel alto en 2,70 V, que aún se lee. Con 4K7 ya no
+      leería la cámara. <b>Es tu decisión y la de quien firma la placa, no nuestra.</b></p>
+    <textarea id="pa2" style="min-height:3rem" placeholder="¿entra en la V2? · ¿quién firma el cambio? · ¿se parchea a mano en las tarjetas que ya hay? · mientras tanto, ¿el pin de 12 V se tapa en TODOS los equipos?"></textarea>
+  </div>
+
+  <div class="libre">
+    <b>3 · 🔴 El mando A/B no se puede pulsar. ¿Con qué salida se compra el receptor?</b>
+    <p>Medido en el cobre: los <b>cuatro</b> pines de <code>J16</code> tienen 10 kΩ a masa y 3,3 V en
+      la posición de al lado, o sea que el conector pide <b>contacto contra 3,3 V — activo en
+      ALTO</b>. El firmware lee A y B al revés, y por eso el mando está sordo. La polaridad ya no se
+      pregunta: la decidió la placa. Lo que falta es <b>qué receptor se compra (NO o NC)</b> y quién
+      valida que un cambio en un camino de seguridad entre sin pasar banco.</p>
+    <textarea id="pa3" style="min-height:3rem" placeholder="modelo y referencia del receptor · ¿salida NO o NC? · ¿se compra ya? · ¿quién autoriza el cambio de firmware del mando?"></textarea>
+  </div>
+
+  <div class="libre">
+    <b>4 · 🟠 El tablero de la app refresca cada segundo. ¿Se baja a dos?</b>
+    <p>El equipo manda su estado <b>cada 1000 ms</b> y el peor segundo ocupa el <b>55 %</b> del
+      cable. Quien lo consume sólo necesita saberlo cada <b>5 s</b>. Pasarlo a 2000 ms deja el cable
+      por debajo del 30 %. <b>El coste es que el tablero refresca la mitad de rápido</b>, y eso lo
+      mira quien decide sobre el tráfico: por eso lo preguntamos en vez de hacerlo.</p>
+    <textarea id="pa4" style="min-height:2.4rem" placeholder="¿se baja a 2 s? · ¿se deja en 1 s? · ¿notaste el tablero lento o a tirones con la app conectada?"></textarea>
+  </div>
+
+  <div class="libre">
+    <b>5 · 🟠 El PIN no caduca nunca. ¿Se le pone caducidad?</b>
+    <p>Hoy se teclea una vez y <b>el teléfono queda autorizado hasta que se cierra la app</b>. Si
+      alguien lo guarda en el bolsillo desbloqueado, el siguiente que lo coja manda sobre el cruce
+      sin teclear nada.</p>
+    <textarea id="pa5" style="min-height:2.4rem" placeholder="¿caduca por tiempo? ¿cuántos minutos? · ¿se vuelve a pedir para las órdenes que abren paso? · ¿se deja como está y por qué?"></textarea>
+  </div>
+
+  <div class="libre">
+    <b>6 · La placa portadora del módulo y su fuente</b>
+    <p>La placa <b>no existe</b> —ni diseñada, ni fabricada— y la fuente de 12→5 V <b>no está
+      comprada</b>. Las dos bloquean dejar el módulo montado en un poste, no probarlo sobre la mesa.</p>
+    <textarea id="pa6" style="min-height:2.4rem" placeholder="¿quién la diseña? ¿quién la fabrica? ¿para cuándo? · referencia de la fuente elegida"></textarea>
+  </div>
+
+  <div class="libre">
+    <b>7 · 🟠 Si el módulo Bluetooth se cuelga, nadie se entera. ¿Se acepta?</b>
+    <p>El semáforo <b>sigue siendo seguro</b> —el ciclo y las protecciones viven en el micro y no
+      leen un byte del módulo—, pero <b>deja de ser operable</b> y el único testigo es la app.
+      Ponerle un latido propio es trabajo; dejarlo así es una decisión.</p>
+    <textarea id="pa7" style="min-height:2.4rem" placeholder="¿se acepta que un módulo colgado sólo se note al intentar usar la app? · ¿o se le pone latido y aviso?"></textarea>
+  </div>
+
+  <div class="libre">
+    <b>8 · La medida que falta y no es una decisión: cuánto tarda el módulo en arrancar</b>
+    <p>Nadie ha cronometrado <b>desde que se le da tensión hasta que vuelve a pasar datos</b>. Ese
+      número gobierna el vigilante del módulo y hoy está puesto <b>a ojo</b>. Con el móvil basta.</p>
+    <div class="campo"><label for="pa8">Segundos desde tensión hasta que la app recibe el primer dato</label><input type="text" id="pa8" placeholder="p. ej. 3,5 s · repetido 3 veces"></div>
+  </div>
+
   <h2><span class="n">10</span> Cierre</h2>
   <div class="libre">
     <b>Lo que viste y nadie pensó en preguntarte</b>
@@ -2084,7 +2205,41 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
     });
     window.addEventListener('beforeprint', refrescar);
 
-    window.guardarParte = function () { refrescar(); window.print(); };
+    // AL IMPRIMIR SE DESPLIEGA TODO LO PLEGADO, Y SE VUELVE A DEJAR COMO ESTABA.
+    //
+    // Un <details> cerrado NO se abre desde CSS -el navegador oculta sus hijos por el
+    // mecanismo del propio elemento, no con un display que se pueda pisar-, asi que la
+    // hoja de impresion sola no basta: hace falta poner el atributo `open`.
+    //
+    // Va en `beforeprint` y NO solo dentro del boton, porque el PDF se saca de las dos
+    // maneras: con el boton y con Ctrl+P. Si esto viviera solo en el boton, imprimir con
+    // Ctrl+P seguiria perdiendo las conexiones, la arquitectura y las preguntas abiertas
+    // -12.600 caracteres- sin que nadie se enterara, que es como estaba hasta hoy.
+    //
+    // Y se RESTAURA en `afterprint`: quien estaba leyendo la guia en el movil la tenia
+    // plegada por algo, y devolverla desplegada seria cambiarle la pantalla por haber
+    // impreso. Se guarda cuales estaban abiertos, no se abren todos y ya.
+    var plegadosAntesDeImprimir = null;
+    function desplegarParaImprimir() {
+      var ds = document.querySelectorAll('details');
+      plegadosAntesDeImprimir = [];
+      for (var i = 0; i < ds.length; i++) {
+        plegadosAntesDeImprimir.push(ds[i].open);
+        ds[i].open = true;
+      }
+    }
+    function restaurarTrasImprimir() {
+      if (!plegadosAntesDeImprimir) return;
+      var ds = document.querySelectorAll('details');
+      for (var i = 0; i < ds.length && i < plegadosAntesDeImprimir.length; i++) {
+        ds[i].open = plegadosAntesDeImprimir[i];
+      }
+      plegadosAntesDeImprimir = null;
+    }
+    window.addEventListener('beforeprint', desplegarParaImprimir);
+    window.addEventListener('afterprint', restaurarTrasImprimir);
+
+    window.guardarParte = function () { refrescar(); desplegarParaImprimir(); window.print(); };
 
     var limpiarAntes = window.limpiar;
     window.limpiar = function () { limpiarAntes(); refrescar(); };
