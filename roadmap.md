@@ -773,6 +773,27 @@ repartirse unos solos entre las cuatro**.
 **Compuerta tras el cambio: `20 PASS | 0 FALLA | 0 ABORTADO`, codigo 0**, acta
 `evidencia/2026-09-04_compuerta.txt`. `esp32_02` sigue en 11/11 y `esp32_07` en 11/11.
 
+#### 🟠 Y HAY UNA SEGUNDA CAUSA CANDIDATA, MAS BARATA DE COMPROBAR, que esta revision no habia visto
+
+No la encontro este analisis: la aporto una revision paralela el 04/09, y hay que apuntarla porque
+**explica el mismo sintoma sin ningun defecto** y se descarta en treinta segundos.
+
+`transporte_abrir()` llama a `cargarRotulo()`, que lee el nombre SPP de la NVS. Si no hay nada
+guardado —modulo virgen— usa `ROTULO_PROVISIONAL`, que vale **`SEM-SIN-MATRICULA`**
+(`contrato.h:212`). Y el aprendizaje del nombre bueno **se guarda para el arranque SIGUIENTE**, nunca
+en caliente: renombrar obligaria a cerrar el perfil y tirar la sesion del operario
+(`transporte_app.cpp:109-114`, decision deliberada y razonada alli).
+
+**Consecuencia: durante TODA la sesion de banco el modulo se anuncio como `SEM-SIN-MATRICULA`**, hable
+o no el STM32 con el. Quien buscara `IOT_VIAL`, el nombre del cruce o algo con la serie **no lo
+reconocio en la lista**, y eso se reporta exactamente igual que un modulo que no aparece.
+
+> **Las dos causas no compiten, y por eso el orden de comprobacion importa:** la del rotulo cuesta
+> mirar una lista de Bluetooth; la del perro cuesta un monitor serie. **Se mira el nombre primero.**
+> Un `SEM-SIN-MATRICULA` presente y estable en la lista **descarta el bucle de reinicio de golpe** —un
+> modulo que rearranca cada 2 s no se queda quieto en un escaneo—, y entonces el arreglo del perro
+> sigue siendo correcto pero no era esto.
+
 #### 🔴 Lo que falta, y no es codigo
 
 **Esto es una hipotesis con arreglo aplicado, no una causa demostrada.** Se confirma en dos minutos y
