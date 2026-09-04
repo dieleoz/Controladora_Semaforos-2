@@ -55,6 +55,99 @@ regla **§2.bis de `CLAUDE.md`**, que existe por esto.
 > Desde el 03/09 hay una segunda, y es mejor: **¿esto desatasca uno de los 5 pasos que el banco no
 > pudo correr?** Lo que no conteste a ninguna de las dos, no se escribe.
 
+### 0.0.bis · 🔴 REPORTE DE CAMPO DEL 04/09, TARDE — LAS DOS PLACAS YA HABLAN, Y APARECIO N-42 ENTERO
+
+**Lo bueno primero: hay comunicacion entre las dos placas.** Es la primera vez. El bloqueo fisico de
+la segunda tarjeta que este documento daba por vigente **ya no existe**.
+
+**Lo reportado, literal:** *"los cuatro modos de la ventana inicial no funcionan adecuadamente. En el
+panel inicial a veces cuando pongo ambar los dos pasan a ambar, o a veces solo el maestro o solo el
+esclavo; igualmente para rojo total. Y en modo automatico tampoco funciona: sale maestro rojo, este
+poste no da paso, poste dos no informa. Y a veces el esclavo se pasa a ambar parpadeando solo, pero
+no por falta de comunicacion porque el maestro queda en rojo."*
+
+**No son cuatro fallos: son DOS causas, y las dos estan medidas en el fuente.**
+
+#### CAUSA 1 — el Maestro se queda MUDO en Modo Automatico (esto es N-42, diagnosticado)
+
+```
+app: SET_MODO:AUTO
+  -> bluetooth.cpp:445  modoActual_set(MODO_AUTOMATICO)
+  -> bluetooth.cpp:447  "$ACK,CMD:SET_MODO:AUTO,RESULT:OK"      <- ya dijo que si
+  -> main.cpp:204       modoAutomatico_setup()
+       |
+       +- if (arranqueDirecto) -> CORRIENDO      (solo lo pone mando.cpp:112, el mando de reles)
+       +- else fase = CONFIG_ROJO                 <- se queda aqui PARA SIEMPRE
+              unica salida: botonAceptar()
+              botones.cpp:305  ->  return false;  <- SIEMPRE, desde deeeab4 (31/08)
+```
+
+Y como nunca llega a `CORRIENDO`:
+
+- **`coordinador_actualizar()` vive DENTRO de `case CORRIENDO`** (`modo_automatico.cpp:181`), asi que
+  no se ejecuta;
+- **y `main.cpp:185` EXCLUYE a `MODO_AUTOMATICO` del respaldo de fondo**, con el comentario *"ya se
+  llama en modo_automatico.cpp"* — que es cierto sobre el papel y falso en ejecucion.
+
+**Resultado: en Modo Automatico el Maestro no emite ni un `PING`.** De ahi salen dos de los sintomas
+reportados con una sola causa:
+
+| lo que se ve en banco | por que |
+|---|---|
+| *"maestro rojo, este poste no da paso"* | nadie ejecuta el ciclo: las luces no se mueven |
+| *"el esclavo se pasa a ambar parpadeando solo"* | lleva **25 s** sin oir al Maestro (`SFTY6_SILENCIO_MS = 25000`) y se va a ambar por orfandad. **Esta haciendo lo correcto** |
+
+> 🔴 **Y hay que corregir una lectura del reporte, porque es la que despista:** *"no por falta de
+> comunicacion porque el maestro queda en rojo"*. **SI es falta de comunicacion.** El Maestro esta
+> VIVO pero no esta HABLANDO, y son dos cosas distintas. Verlo encendido y en rojo no dice que este
+> emitiendo. La radio esta bien; el que calla es el.
+
+**El origen es el commit `deeeab4` (31/08), *"las camaras entran por C y D"*.** Al reconvertir
+`BOTON3`/`BOTON4` en entradas de camara, `botonAceptar()` paso a `return false` **y nadie censo quien
+dependia de que pudiera ser CIERTA**. Es literalmente §3.ter de `CLAUDE.md`, la regla que se escribio
+por `mando_ambarLocal()`. Volvio a pasar, y esta vez se llevo el Modo Automatico entero. En el
+firmware de campo (`e303485`, 31/07) esa funcion leia el boton de verdad: por eso alli funcionaba.
+
+#### CAUSA 2 — el ambar y el rojo total van a UNA sola punta
+
+No hay propagacion disenada. `SET_MODO:AMBAR` es del Maestro; `AMBAR_EMERGENCIA` es del Esclavo;
+`FORZAR_ROJO` existe en las dos pero **solo afecta a aquella a la que estas conectado**. Y cuando el
+Maestro entra en `MODO_AMBAR`, `main.cpp:185` **tambien lo excluye** de hablar por radio, asi que el
+Esclavo se queda huerfano y a los **25 s** se va a ambar por su cuenta.
+
+**Por eso "a veces los dos, a veces solo uno": depende de a que poste estabas conectado y de cuanto
+esperaste.** Antes de 25 s ves uno; despues ves los dos — pero el segundo no obedecio una orden: se
+quedo huerfano.
+
+#### Y una tercera, que el responsable habia visto antes que nadie
+
+***"poste dos: no informa"*** — el `$STATUS` es
+`$STATUS,NODE:MAESTRO,SERIE:..,MODO:..,ESTADO:..,T:..,RF:..,RTT:..,BAT:--,HORA:..`: **un solo
+`ESTADO`, el del que la manda.** No hay campo para la otra punta. Y sin embargo el Maestro **si lo
+sabe**: recibe `CMD_ACK_GREEN` / `CMD_ACK_RED` del Esclavo en cada cambio (`coordinador.cpp:780` y
+`:805`). Lo usa y lo tira. **`SIN DATOS` es honesto dada la trama, y la trama esta incompleta.**
+
+> Matiz que decide como se escribe el campo: el Maestro sabe **lo ultimo que el Esclavo confirmo**, no
+> lo que su lampara ensena ahora — el operario con el mando local tiene **veto** sobre las ordenes de
+> radio. El campo correcto es *"lo ultimo confirmado, y hace cuanto"*, no *"estado del Esclavo"*.
+
+#### N-133 — 🔴 LOS TIEMPOS DEL CICLO NO SE GUARDAN EN NINGUN SITIO
+
+Lo destapo una pregunta del responsable: *"una cosa es parametrizar al inicio, luego deberia
+funcionar"*. **Hoy no se cumple.** Censado: el respaldo guarda `verdeSeg`, `despejeSeg` y
+`horasDesdeSync`, y **los dos primeros son del Modo Degradado** (`respaldo.h:47`). Los del Automatico
+viven **solo en RAM**:
+
+```
+arranque              ->  3 / 3 / 10   (los minimos)
+SET_TIEMPOS 8/8/20    ->  8 / 8 / 20   $ACK OK
+SET_MODO:AUTO         ->  3 / 3 / 10   modoAutomatico_setup() los reescribe
+corte de luz          ->  3 / 3 / 10   nunca se guardaron
+```
+
+**Y esto es deuda propia:** el hallazgo se levanto por la manana, se arreglo **el valor** al que
+vuelven (de 1 a 3, N-131) y **no se arreglo que vuelvan**. Se anoto como abierto en vez de cerrarse.
+
 ### 0.1 · Lo unico que hay que hacer, en orden — tras la SESION 2 de banco (04/09)
 
 > 🟢 **EL BLUETOOTH ESTA CERRADO CON EVIDENCIA FISICA.** La sesion 2 confirmo **N-117** y **N-122** en
@@ -425,6 +518,12 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 | **El mando de reles se CONSERVA en A y B**; se retiran C y D | **31/08** | `A·A·A`, `B·B·B` y `A·B·A·B` sobreviven, el veto de SFTY-21 no desaparece, y `PB14`/`PB15` quedan para las camaras — **ver N-104** |
 | **El modulo es un `ESP32-WROOM-32` clasico: hay SPP** | **31/08** | la app conecta sin tocar el transporte; el apartado 1 del Manual 10 queda intacto; la alimentacion es `12 V -> DC-DC conmutado -> 5 V -> VIN` |
 | **Las camaras entran por `J16` p10 y p12** | **31/08** | se leen por el camino de camara (`INPUT` + activo en ALTO), no por el de boton |
+| **4 SEMAFOROS POR CRUCE, 2 POR PLACA** | **04/09** | y cuadra con el firmware: `escribirPines()` escribe `ROJO1`/`ROJO2`, `AMARILLO1`/`AMARILLO2` y `VERDE1`/`VERDE2` **con el mismo valor** — son dos caras de una senal, no dos semaforos independientes. **Funciona hoy: no hace falta trama nueva ni protocolo nuevo.** Ocho serian dos cruces de estos |
+| **Va un `L298N` por barrera, FUERA de la placa, en el esquema SIMPLE** | **04/09** | `J15` gobierna `ENA`, direccion fija: la pluma **sube con senal y baja por su peso**. Sin inversor, sin finales de carrera a la tarjeta, sin firmware. **NO se cablea hasta tener la corriente del motorreductor** — el `L298N` cae 2-5 V y con 12 V el par baja mas de la mitad; ademas son 2 A por canal y una pluma arranca entre 3 y 8 A. Pregunta 11 del HTML de banco |
+| **Los finales de carrera NO van a la placa** | **04/09** | van **en serie con el motor**, cada uno con un diodo en antiparalelo. Y con el esquema simple ni eso: **arriba lo para el final de carrera que el propio motorreductor ya trae**. Censado: de los 37 pines del LQFP48 quedan cuatro, y son `PA13`/`PA14` (SWD, es por donde se carga) y `PC14`/`PC15` (el cristal muerto de N-17). **No hay entradas libres, y no hacen falta** |
+| **`A5` resuelta: `LM2596` desde la bateria** | **04/09** | no es una fuente que comprar aparte: es un reductor 12 -> 5 V DC colgado de la bateria. La fila `A5` de la lista de compras se reescribe con eso |
+| **El PIN CADUCA: al guardarse el telefono (60 s de gracia) y a los 5 min sin mandar nada** | **04/09** | hoy `state.pinVerificado` se enciende en una linea y **no se apaga en ninguna**: el operario teclea, se guarda el telefono, y el siguiente que lo coja manda ordenes sin teclear. Los 60 s existen porque el funcional reporta por WhatsApp y saldria de la app cada dos por tres |
+| **EL OPERARIO DEJA DE TECLEAR EL PIN. Lo sustituye una CONFIRMACION** | **04/09** | *¿confirma que no quedan vehiculos en el tramo?* antes de lo que ABRE paso. El motivo es de fondo: **el equipo no sabe si queda alguien en el tramo y el operario si**; una cuenta atras finge saberlo. Y el PIN no protege al que abre paso — demuestra QUIEN eres, no que hayas MIRADO. **Nunca se pregunta para poner rojo o ambar**: parar es la direccion segura, y preguntar ahi ensena a decir que si sin leer. El PIN se queda para el tecnico: tiempos, modos, reloj, test |
 | **El cruce SE OPERA DESDE EL MAESTRO.** No se hace transparente el mando desde el Esclavo | **04/09** | el operario tiene que saber a que poste conectarse ANTES de caminar, asi que el rotulo Bluetooth pasa a ser lo que lo resuelve (ver N-129). Se descarta relevar `SET_MODO` y `MANUAL:CAMBIAR_TURNO` por radio: no se toca el Maestro, que va al 89,3 % de flash |
 
 ---
