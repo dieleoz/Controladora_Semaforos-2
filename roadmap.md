@@ -480,6 +480,7 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 | 3 | **Cuadrar las cifras** en README, `ESTADO.md`, `CERTIFICACION_SW.md` y este roadmap | 🟢 **HECHO.** Las tres citaban el acta del 02/09 con la del 04/09 escrita; lo cazaron `documentos_01` y `documentos_04` |
 | 4 | La contradiccion de la guia: *«los cuatro pines tienen que dar lo mismo»* contra el reparto del 31/08 | 🟠 **abierta, y ahora medida.** El cobre dice que los **cuatro** son identicos —10K a masa y 3,3 V al lado—, o sea que la guia tenia razon y el reparto no: **los cuatro son activos en ALTO**. Es N-118, y lo que falta es la decision de compra, no la medida |
 | 5 | 🛑 **BANCO: los 5 pasos que faltan** | **es lo unico que queda de verdad.** 4 los abren el ESP32 (N-117) y la APK nueva (N-122); 1, la reparacion del Maestro (N-116) |
+| 6 | 🟠 **Los 21 manuales de `05_Funcional` siguen sin tocar desde el 02/09** | **ninguno lleva nada del banco**: ni el corto, ni las entradas sin proteger, ni que la app no conectaba. Se actualizo **solo la guia** —que es la que el funcional tiene en la mano y la que vuelve en PDF—. Los dos que mas lo piden: **`17_Arquitectura...`**, que es el que ordena a los demas y cuya medida `M3` ya esta cerrada por el cobre, y **`ENCARGO_SESION_BANCO.md`**, superado por lo que paso de verdad |
 
 ---
 
@@ -855,6 +856,61 @@ celular del tecnico son dos programas distintos»* — las tres quedan identicas
 **Compuerta: `20 PASS | 0 FALLA | 0 ABORTADO`.** 🔴 **Pero esto NO llega al telefono hasta recompilar
 la APK** (`APP-APK`, JDK 17, verificacion por CRC entrada por entrada). El fuente arreglado en el
 repositorio no es una app arreglada en la mano del tecnico.
+
+
+### 🔴 N-123 — La guia perdia 12.600 caracteres al imprimir, y eran los que hay que contestar
+
+**El PDF que devuelve el funcional ES el canal de vuelta** —asi llego el informe del 3-4/09—, o sea
+que lo que no se imprime no se contesta. Y la hoja de impresion llevaba esto:
+
+```css
+.barra, .noimprimir, .detalle-cab, details { display: none !important; }
+```
+
+**Medido: 12.600 caracteres en ocho bloques plegados que NO salian en el PDF.** Entre ellos:
+
+| | |
+|---|---|
+| 1.820 | *«Consulta · que va en cada bornera»* — **las conexiones** |
+| 2.241 | *«Paso 22 · la placa del modulo»* — **la arquitectura** |
+| 1.008 | *«Lo que esta visita NO decide»* — **las preguntas abiertas** |
+| 1.478 | *«Paso 9 · el montaje de mesa, cable a cable»* |
+| 2.384 | *«Paso 29 · el mando sin receptor»* · y tres mas |
+
+**Nadie lo noto porque en pantalla estaba todo.** Se veia bien y volvia incompleto, y quien rellena
+no puede echar de menos lo que no sabe que existe.
+
+**Las dos mitades del arreglo, porque la primera sola no basta:** un `<details>` cerrado **no se abre
+desde CSS** —el navegador oculta sus hijos por el mecanismo del elemento—, asi que hace falta poner
+`open`; y eso va en **`beforeprint`, no dentro del boton**, porque el PDF sale tambien con `Ctrl+P` y
+un arreglo que viva solo en el boton seguiria perdiendo lo mismo en silencio. Se restaura en
+`afterprint`. **La regla queda en `CLAUDE.md` §4.quater.**
+
+**Seccion nueva `9.bis · Preguntas abiertas`, con hueco de respuesta.** El bloque que habia
+**listaba** lo no decidido y no dejaba contestarlo — *«una pregunta sin hueco para contestar no es
+una pregunta: es una nota»*. Son ocho, cada una diciendo por que no la desatasca una medida, y con
+el aviso de que *«no se»* o *«lo decide Julio»* valen: una en blanco no se distingue de una que se
+paso por alto, y vuelve dentro de un mes.
+
+#### Y los acentos NO eran el problema — se deja escrito para no volver a buscarlo ahi
+
+Se reporto *«que salga en español, no caracteres raros»*. Medido sobre el fichero: **decodifica como
+UTF-8 limpio, sin BOM, 662 acentos bien formados, CERO mojibake**, y el `<meta charset>` puesto desde
+siempre en la linea 4. **Lo que si podia salir raro son los 25 emoji**, porque ninguna de las **33**
+pilas de fuentes declaraba una fuente de emoji; se anade como **ultimo recurso** en todas —no cambia
+una sola letra de texto normal, solo entra cuando el glifo no existe en las de delante—.
+
+> **Y una que casi se «arregla» rompiendo algo que funciona:** el fichero tiene dos-puntos de ancho
+> completo (`U+FF1A`), que parecen un caracter CJK colado. **Son intencionales**: viven dentro de la
+> regex `/[:：]$/` que limpia los dos. Se miro el contexto antes de tocarlos. Es §4 aplicada a una
+> «corrección».
+
+#### El defecto del paquete que esto destapo
+
+**La guia no entraba en el `.zip`.** El filtro de manuales era `.md`/`.docx`, y `CLAUDE.md` dice que
+el HTML de cableado **viaja en el paquete de entrega**. Corregido, y ademas va **en la raiz** —es lo
+que se abre y se devuelve, no un manual de consulta— con una comprobacion nueva que lo exige. El
+paquete pasa de 303 a **304 entradas**.
 
 
 ### 🟠 N-121 — Censo de las cuatro salidas del Degradado del Esclavo: dos muertas, y son las que no dependen del ESP32

@@ -212,6 +212,19 @@ monolitos y se quedó en 4—: abortó en vez de aprobar, que es su trabajo. Hoy
 > medias declarada honestamente como *«sin construir»*, y hay barreras cuya ausencia de llamador
 > *es* la barrera—. Lo que falla es una **nueva**, una que **gana** llamador y sigue en la lista, y
 > sobre todo **una que los documentos anuncien como función existente**.
+>
+> 🔴 **Y la mitad que faltaba, que costó el banco entero del 3-4/09 (N-122): el trinquete se apoya en
+> una LISTA DE EXCEPCIONES, y cada excepción lleva un MOTIVO escrito que nadie comprueba.**
+> `BluetoothDriver` llevaba meses en `HUERFANOS_CONOCIDOS` con este motivo: *«app.js habla por
+> `window.bluetoothSerial`, sin pasar por aquí»*. Es **medio cierto** —`app.js` usa `write`,
+> `subscribe` y `list`… y **no usa `connect`**, que es justo la que hace funcionar a las otras
+> tres—. El pack estaba bien, el trinquete estaba bien, y **la app nunca abrió un socket**: se
+> pintaba «Enlazado» por haber pulsado una fila.
+>
+> **La regla: un huérfano se acepta por una razón, y una razón es una AFIRMACIÓN SOBRE EL CÓDIGO —
+> o sea, algo que se comprueba, no que se escribe.** Una lista de excepciones con motivos sin
+> verificar es **una lista de defectos con permiso**, y envejece peor que el código porque nadie
+> vuelve a mirarla. Al añadir una entrada se mide la frase entera; al heredarla, también.
 
 > 🔴 **Refactorizar puede APAGAR un instrumento sin romper un solo test (N-89, 28/08).** Al escribir
 > los seis comandos nuevos se probó un compositor —`responderAck(cmd, resultado)` /
@@ -378,6 +391,42 @@ pantalla se congela y lo declara. Un tablero quieto que admite que no sabe es ho
 anima un cruce que no existe le miente a quien decide sobre el trafico mirandolo.
 
 ---
+
+## 4.quater Lo que no se imprime no se contesta
+
+> **Cuando un documento es el CANAL DE VUELTA, su hoja de impresión es parte del instrumento — y
+> puede estar apagada sin que nada falle.**
+
+La guía de banco se abre en el navegador, se rellena y **se devuelve en PDF**: así llegó el informe
+del 3-4/09. O sea que el PDF no es una copia bonita del documento — **es el formulario de vuelta**,
+y lo que no salga en él no se contesta nunca.
+
+Llevaba una línea en `@media print`:
+
+```css
+.barra, .noimprimir, .detalle-cab, details { display: none !important; }
+```
+
+Medido: **12.600 caracteres que no salían**, repartidos en ocho bloques plegados. Entre ellos,
+*«qué va en cada bornera»* —las conexiones—, *«la placa del módulo»* —la arquitectura— y *«lo que
+esta visita NO decide»* —las preguntas abiertas—. Es decir, **exactamente lo que hay que poner
+delante de quien tiene que contestarlo**. Nadie lo notó porque en pantalla estaba todo: se veía
+bien y volvía incompleto, y el que rellena no puede echar de menos lo que no sabe que existe.
+
+**Las dos partes mecánicas que hay que saber, porque la primera sola no basta:**
+
+- **Un `<details>` cerrado NO se abre desde CSS.** El navegador oculta sus hijos por el mecanismo
+  del propio elemento, no con un `display` que se pueda pisar. Hay que poner el atributo `open`.
+- **Y eso va en `beforeprint`, no dentro del botón de imprimir.** El PDF sale de las dos maneras
+  —el botón y `Ctrl+P`—, así que un arreglo que viva solo en el botón deja `Ctrl+P` perdiendo lo
+  mismo, en silencio y para siempre. Se restaura en `afterprint`: quien leía plegado lo tenía así
+  por algo.
+
+**Corolario que vale para cualquier documento con campos:** si se pide una respuesta, se comprueba
+que **la pregunta y su hueco llegan al medio en que se responde** —papel, PDF, pantalla—, no solo
+que existen en el fuente. Y una pregunta sin hueco para contestar no es una pregunta: es una nota.
+La sección *«lo que esta visita NO decide»* llevaba meses listando lo abierto **sin un solo campo
+donde escribir la decisión**.
 
 ## 4.ter Una captura a un solo ancho no es una prueba de interfaz
 
@@ -688,6 +737,19 @@ no deshace nada.
 - **Y no se reescribe la historia publicada para arreglarlo.** Si la rama está en dos remotos y
   el otro agente sigue encima, un `push --force` causa más daño del que repara: se anota dónde
   vive de verdad el cambio y se sigue.
+
+> 🔴 **Y hay una SEGUNDA vía al mismo daño que no necesita dos agentes — pasó el 04/09, con un solo
+> agente y rutas explícitas.** `git add <fichero_válido> <fichero_en_gitignore>` **devuelve código
+> distinto de cero PERO DEJA LOS VÁLIDOS YA PREPARADOS**. Con el patrón de siempre —`git add ... &&
+> git commit -F -`— el `&&` corta, el commit bueno **no llega a correr**, y los ficheros se quedan
+> en el índice esperando: **se los lleva el commit SIGUIENTE**. Aquel día fue el del acta, y
+> `d766f3a "chore: acta del 04/09"` acabó conteniendo el arreglo entero de N-122 más 107 líneas de
+> roadmap. Un `git revert` de ese commit, creyendo deshacer un acta, se llevaría por delante la
+> única línea que permite a la app abrir un socket.
+>
+> **La regla que lo cubre, y que `-A` no agotaba: se comprueba el ÍNDICE antes de comitear, no el
+> código de salida del `add`.** Un `git diff --cached --name-only` delante del commit cuesta una
+> línea y es lo único que ve esta clase de fallo.
 
 ## 9. Carga por SWD
 

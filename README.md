@@ -19,8 +19,20 @@
 > **La versión que corre en campo es la V8.4** (commit `e303485`, 31/07/2026), validada por el
 > funcional. Todo lo de la V8.5 a la V9.0 —reloj, sincronización horaria, Modo Degradado, mando de
 > relés anti-colisión, cámaras IA Hikvision y telemetría Bluetooth estándar Baliza— está
-> especificado y validado en simuladores/arneses, en la rama `feat/n15-reloj-pantalla-hora`.
-> **Nada de eso ha visto una tarjeta.**
+> especificado y validado en simuladores/arneses.
+>
+> 🟢 **Y el 3 y 4 de Septiembre por fin vio una tarjeta.** Aquí ponía *«nada de eso ha visto una
+> tarjeta»* y dejó de ser cierto: el funcional ejecutó la guía de 29 pasos sobre hardware real
+> (`617bd00`), con **24 completados**, 4 bloqueados por el enlace Bluetooth y 1 abortado por un
+> incidente de seguridad. Informe en `evidencia/Informe_Pruebas_Banco_Semaforos_V9.0.pdf`.
+>
+> **Funcionó en cobre:** carga por SWD al primer intento, radio entre puntas con caída a ámbar en
+> ~20 s y vuelta sola en ~3 s, talanquera, cámara de demanda y masa común a 0 V. **No se pudo
+> probar** el ciclo vehicular real ni la operación por app — y aparecieron **tres defectos que
+> ninguna cifra de la tabla de abajo podía ver**, porque ninguno es una propiedad del código:
+> la tarjeta Maestro tiene un corto de 3,3 V a masa (**N-116**), las entradas de campo no tienen
+> ninguna protección mientras las salidas sí (**N-120**), y el mando A/B no puede pulsarse
+> (**N-118**). **Los tres pasaron el `20/20` sin despeinarlo.**
 >
 > ⚠️ **Y la arquitectura del equipo cambió en obra el 28/08, así que parte de esa lista ya describe
 > un aparato que no se va a montar:** ~~sistema de **4** cámaras IA~~ → **2 cámaras de demanda, una
@@ -30,9 +42,13 @@
 > aquí abajo. **Lo que no cambia es lo de arriba: en campo sigue la V8.4.**
 
 > 🔴 **Regresión abierta en banco: el Modo Automático no arranca el ciclo en la rama.** No es
-> radio *(`RF:` da porcentaje)* ni botón trabado *(el Botón 3 responde)*. Está en bisección con
-> firmware real — entregable en `05_Funcional/bisect_entregable/`, sospechoso `2779d9b`
-> *(SFTY-21, mando de relés)*. Detalle en [`roadmap.md`](roadmap.md) §N-42.
+> radio *(`RF:` da porcentaje)* ni botón trabado *(el Botón 3 responde)*. Detalle en
+> [`roadmap.md`](roadmap.md) §N-42.
+>
+> ⚠️ **El banco del 3-4/09 NO la confirmó ni la descartó**, y la distinción importa: el equipo
+> **nunca llegó a operar en Modo Automático** porque la única vía para seleccionarlo es la app, y la
+> app no pudo conectar. Se decide repitiendo el paso 7 con enlace, no antes. Un *«no se pudo
+> probar»* no es un *«sigue rota»* ni un *«ya está»*.
 >
 > **Esto es lo que la tabla de abajo NO puede ver.** Los simuladores están en verde sobre ese
 > mismo firmware: son modelos escritos a mano que **validan el modelo, no el código**, y ninguno
