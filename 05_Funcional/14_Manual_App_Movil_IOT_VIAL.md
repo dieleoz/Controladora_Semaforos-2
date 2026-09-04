@@ -5,10 +5,53 @@
 **Plataforma:** Android Nativo (.APK) y Web Testing PWA  
 **Protocolo:** ~~Bluetooth Serial SPP (HC-05 / JDY-31 a 9600 bps) / BLE GATT~~ → **Bluetooth Serial SPP a 9600 bps contra el módulo de expansión `ESP32-WROOM-32`**. Ver el aviso de cabecera  
 **Fecha de Actualización:** 28 de Agosto de 2026  
-**Última revisión:** 2 de septiembre de 2026 — **§5.4 nueva:** la app valida el checksum y descarta tramas corrompidas, tiene pestaña `Tramas` con las tramas en crudo, el PIN ya no se arma con el teclado cerrado, y el puente declara por qué arrancó  
+**Última revisión:** 4 de septiembre de 2026 — **banco real del 3–4/09: `N-122`, la app nunca abría el socket Bluetooth.** Arreglado, y **obliga a APK nueva**. Ver la cabecera y `§4.bis`  
 **Versión de Firmware Compatible:** V8.9 / V9.0 Definitiva — ⚠️ **en campo corre la V8.4**  
-**Archivo APK Compilado:** `05_Funcional/IOT_VIAL_Semaforos_2026-09-02_285b18d_SIN_BANCO.apk` *(el `.apk` del 28/08 es anterior a §5.4 y **no** trae ninguna de esas cuatro cosas)*  
+**Archivo APK Compilado:** `05_Funcional/IOT_VIAL_Semaforos_2026-09-04_5ac280b_SIN_BANCO.apk`  
+&nbsp;&nbsp;&nbsp;&nbsp;🛑 ~~`IOT_VIAL_Semaforos_2026-09-02_285b18d_SIN_BANCO.apk`~~ — **y todas las anteriores: NO CONECTAN** (`N-122`, ver cabecera). No es que les falten funciones: **no abren el socket**  
 **Pestañas:** **2 visibles al operario** (`Tráfico`, `Eventos`) y **5 en modo técnico** — se añaden `Tiempos`, `Técnico` y `Tramas`  
+
+---
+
+> # 🛑 BANCO DEL 3–4/09/2026 — **`N-122`: LA APP NUNCA ABRÍA EL SOCKET BLUETOOTH**
+>
+> **Es el hallazgo que hay que leer antes que cualquier otra cosa de este manual, porque invalida
+> todas las APK anteriores al 04/09.**
+>
+> ## Qué pasaba
+>
+> Al pulsar una fila de la lista de equipos, la app **ponía `state.connected = true`**, guardaba la
+> `MAC` y llamaba a `subscribe()` — **sin haber llamado NUNCA a `connect()`**. Sin esa llamada **no
+> hay socket**: la suscripción no engancha en ningún sitio y **los comandos se van al vacío**.
+>
+> **La app se pintaba «Enlazado» por haber pulsado una fila.** No por haber conectado.
+>
+> ## Cómo se veía en el poste, que es lo que costó el banco
+>
+> El rótulo decía **Enlazado**, el equipo estaba bien, el módulo estaba bien, y **no llegaba ni una
+> trama**. Se buscó la avería en el sitio equivocado —radio, cable, módulo, alimentación— porque la
+> app afirmaba lo único que era falso. Es la interfaz que **inventa el dato que no tiene**, otra vez:
+> el estado de enlace no se dedujo del enlace, se dedujo de un toque en la pantalla.
+>
+> ## ✅ Arreglado — y el arreglo va DENTRO de la APK
+>
+> Ahora se llama a **`connect(mac)`**, y **`state.connected` sólo se pone a `true` en su callback de
+> éxito**; si la conexión falla, **se dice, y el estado se queda en falso**.
+>
+> 🛑 **HAY QUE INSTALAR LA APK NUEVA:** `IOT_VIAL_Semaforos_2026-09-04_5ac280b_SIN_BANCO.apk`.
+> **Con la APK anterior la app NO conecta por bien que funcione el módulo** — actualizar el firmware
+> del equipo o cambiar el `ESP32` no arregla nada, porque el defecto está en el teléfono.
+>
+> **Cómo comprobar que la de hoy sí conectó, sin fiarse del rótulo:** una app enlazada de verdad
+> recibe **`$STATUS` cada segundo**. Si dice enlazado y la pestaña `Tramas` no se mueve, no está
+> enlazada.
+>
+> ## ⚠️ Y el resultado del banco, para que no se lea esto como un cierre
+>
+> De los 29 pasos previstos se ejercieron **24**; **4 quedaron bloqueados por el enlace Bluetooth**
+> —o sea, por esto— y **1 se abortó por un incidente de seguridad**. Como el equipo nunca llegó a
+> operar por falta de app, **la regresión del Modo Automático (`N-42`) no se confirmó ni se
+> descartó**. Un paso bloqueado no dice nada del firmware.
 
 ---
 
@@ -41,6 +84,15 @@
 > | Superficie de mando | la botonera / el mando de relés | 📱 **la app** |
 > | El mando de relés | la referencia que la app imitaba | 🪜 **el último recurso** — y **sin receptor comprado en ninguna punta** |
 > | La pantalla LCD | la interfaz local | 🛑 **retirada** |
+>
+> > 🔴 **AL DÍA EL 04/09, y empeora: el mando de relés YA NI SIQUIERA ES EL ÚLTIMO RECURSO
+> > (`N-118`).** Medido en banco: `R65`/`R66` (10 kΩ a masa) dejan `PB9`/`PB13` en **0,6 V, BAJO
+> > permanente**, así que **no hay flanco y ninguna de las tres secuencias es alcanzable**. Con la
+> > pantalla y los pulsadores retirados, **la app no es la superficie de mando principal: es la
+> > ÚNICA. Hoy no hay respaldo físico operativo.**
+> >
+> > Eso cambia el peso de cada defecto de esta app: **no hay una segunda vía que recoja lo que la
+> > app no pueda hacer.** Ver `1_Manual_Usuario.md` §7 y §9.
 >
 > **Por qué:** la LCD va a 5 m dentro del gabinete y no se lee desde el suelo; y de los cuatro
 > pulsadores **quedan dos** (`A` y `B`), porque `PB14` y `PB15` pasaron a ser entradas de cámara.
@@ -122,6 +174,17 @@ La aplicación móvil **IOT-VIAL V9.0** elimina la fricción operativa en obra s
   > simultáneamente en `ABORTADO` una vez, y detrás entraron cuatro defectos, entre ellos **una app
   > que dejó de oír al equipo y pintaba un estado inventado** y **una barrera de PIN que la propia app
   > abría**.
+  >
+  > 🔴 **Y `N-122` añade el caso peor, que hay que tener delante al leer cualquier cifra de esta
+  > página: los instrumentos estaban en VERDE mientras la app no abría el socket.** El censo de
+  > funciones sin llamador llevaba `BluetoothDriver` en su lista de excepciones con un motivo
+  > escrito —*«`app.js` habla por `window.bluetoothSerial`, sin pasar por aquí»*—, y ese motivo era
+  > **medio cierto**: la app usa `write`, `subscribe` y `list`… **y no usa `connect`**, que es justo
+  > la que hace funcionar a las otras tres. **Ningún test podía verlo, porque la excepción decía que
+  > no había nada que mirar.**
+  >
+  > **Una cifra verde de esta app no demuestra que la app hable con el equipo.** Eso sólo lo
+  > demuestra una trama recibida, en la pestaña `Tramas`, con el equipo delante.
 * **E2E Visual (Puppeteer Core):** Automatiza la apertura de modales, selección de dispositivos, cambio de cruces y captura evidencia gráfica en alta resolución en `evidencia/`.
 
 ---
@@ -148,7 +211,9 @@ Desde la carpeta raíz de la App (`05_Funcional/App_Semaforo/`):
    ```bash
    android\compilar_apk.bat
    ```
-   *El script sincroniza los assets web con Capacitor (`npx cap sync android`) y ejecuta Gradle `assembleDebug` generando el archivo maestro en `05_Funcional/IOT_VIAL_Semaforos_2026-08-28_a8e1ceb_SIN_BANCO.apk` en ~20 segundos.*
+   *El script sincroniza los assets web con Capacitor (`npx cap sync android`) y ejecuta Gradle `assembleDebug` generando el archivo maestro en `05_Funcional/` en ~20 segundos.* **El nombre lleva fecha y hash del árbol** — el vigente es
+   `IOT_VIAL_Semaforos_2026-09-04_5ac280b_SIN_BANCO.apk`; ~~`…_2026-08-28_a8e1ceb_…`~~ **no conecta**
+   (`N-122`, ver cabecera).
 
 ---
 
@@ -172,6 +237,58 @@ Para tramos donde la geografía bloquea el enlace de radio LoRa/RS-485, el **Asi
 > 2. **El paso 3 puede fallar y hay que mirarlo.** Si el Esclavo contesta
 >    `$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL`, **la hora NO quedó inyectada** y el viaje no ha servido de
 >    nada. Ver `§5.3`. **No se da el Courier por hecho sin leer la respuesta.**
+
+---
+
+## 4.bis 🔵 EL ENLACE BLUETOOTH — LO QUE NO ESTABA ESCRITO Y COSTÓ EL BANCO DEL 3–4/09
+
+**Los tres puntos de abajo no son teoría: son las tres cosas por las que el técnico se quedó sin
+hablar con el equipo teniéndolo delante y encendido.**
+
+### 4.bis.1 🛑 En la lista de Bluetooth el equipo se llama `SEM-SIN-MATRICULA`
+
+**Mientras el módulo no haya aprendido la serie del equipo se anuncia como `SEM-SIN-MATRICULA`, NO
+con el nombre del cruce.**
+
+* Si el técnico busca **`IOT_VIAL`**, o **el nombre del cruce**, **no lo encuentra** — y lo razonable
+  es concluir que el módulo está muerto. No lo está.
+* **No se renombra en caliente.** Aunque la serie entre durante la sesión, **el nombre bueno aparece
+  en el arranque siguiente**, no antes.
+
+> ⚠️ **Consecuencia para la app y para quien la usa:** un `SEM-SIN-MATRICULA` en la lista **no
+> significa «equipo sin configurar»**; puede ser un equipo con su serie ya puesta que todavía no se
+> ha reiniciado. La matrícula que vale es la del campo `SERIE:` de la trama `$STATUS`, no la del
+> nombre Bluetooth.
+
+### 4.bis.2 ⚠️ El emparejamiento es «Just Works»: SIN PIN del sistema operativo
+
+**El `ESP32` empareja sin pedir PIN.** Android enlaza directamente.
+
+> 🔴 **Y aquí está la confusión que se dio en banco, que hay que dejar escrita: el `1234` NO es el
+> PIN de emparejamiento.** Es un **PIN de comando dentro de la app** —el que viaja en la trama
+> `CMD:PIN:1234:…` (`§5`)— y no lo ve el sistema operativo. Teclearlo en el diálogo de
+> emparejamiento de Android no hace nada, porque ese diálogo **no debería aparecer**.
+>
+> **Si el teléfono pide un PIN de emparejamiento, no está hablando con este módulo.**
+
+### 4.bis.3 🛑 El PIN de la app NO CADUCA NUNCA — `AB-9`, ABIERTO
+
+**Se teclea una vez y el teléfono queda autorizado hasta que se cierra la app.** No hay expiración
+por tiempo, ni bloqueo por inactividad, ni cierre al cambiar de nodo.
+
+> 🔴 **Lo que eso significa:** si alguien **guarda el teléfono desbloqueado en el bolsillo**, el
+> siguiente que lo coja **manda sobre el cruce sin teclear nada**. Y con la app como superficie de
+> mando principal —y hoy, con el mando de relés sin poder accionarse (`N-118`), como **única**—, eso
+> es todo el mando del equipo.
+>
+> ⚠️ **Se escribe como riesgo conocido, NO como algo resuelto.** `§5.4.3` cuenta lo que sí se
+> arregló —que el PIN ya no se puede armar con el teclado cerrado—, y eso **no es esto**: aquello
+> garantiza que **alguien tecleó** cuatro dígitos; esto es **cuánto dura** ese permiso después.
+>
+> **Cuánto debe durar una sesión autorizada es decisión del responsable**, porque el coste va en los
+> dos sentidos: una sesión que caduca demasiado pronto obliga a teclear el PIN delante de un cruce
+> parado, y ese fue exactamente el argumento que hizo que no caducara. Mientras siga así, **la única
+> barrera real es quién tiene el teléfono**.
 
 ---
 
@@ -299,6 +416,10 @@ esté delante del operario (`app.js:2554-2556`, aplicado en `:2561`, `:2574`, `:
 > ⚠️ **Esto no lo nota el operario, y por eso se escribe.** Lo que cambia es que un modo técnico
 > abierto **significa que alguien tecleó cuatro dígitos**, que es lo que el PIN existía para
 > garantizar.
+>
+> 🛑 **Y lo que este arreglo NO cubre, para que no se lea como si la barrera estuviera cerrada:
+> ese permiso NO CADUCA (`AB-9`, abierto).** Garantizar que alguien tecleó el PIN **no es lo mismo
+> que** garantizar que quien manda ahora es quien lo tecleó. Ver `§4.bis.3`.
 
 ### 5.4.4 El puente **dice por qué arrancó** al reconectar
 

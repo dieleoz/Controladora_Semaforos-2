@@ -5,6 +5,32 @@ Todas las operaciones están alineadas al **Manual de Señalización Vial de Col
 
 ---
 
+> ## 🔴 BANCO DEL 3–4/09/2026 — TRES COSAS DE ESTE MANUAL CAMBIAN DE SIGNIFICADO
+>
+> **Es la primera vez que la tarjeta se ejerce cargada desde el 31/07.** Nada de esto se descubre
+> leyendo el fuente: sale de tener el equipo delante.
+>
+> 1. **Al encender, el equipo se queda EN ESPERA DE SELECCIÓN DE MODO. NO ES UNA AVERÍA.** Con la
+>    pantalla y los pulsadores retirados **no queda nada local que arranque un modo**: el equipo
+>    espera a que se le ordene uno **desde la app**. Mientras espera muestra **🔴 rojo fijo** si hay
+>    comunicación con la otra punta, y **🟡 ámbar intermitente** si no la hay. En banco se
+>    interpretó como fallo del equipo, y no lo era. Ver §3.
+> 2. **El mando de relés `A`/`B` NO SE PUEDE ACCIONAR HOY (`N-118`).** Las tres secuencias de §7
+>    siguen escritas en el firmware y **ninguna de las tres es alcanzable**. Con eso, **la app es la
+>    única vía de mando que queda: hoy NO hay respaldo físico operativo.** Ver §7.
+> 3. **La app sólo conecta con la APK del 04/09**
+>    (`IOT_VIAL_Semaforos_2026-09-04_5ac280b_SIN_BANCO.apk`). Hasta esa versión la app **nunca abría
+>    el socket Bluetooth**: se pintaba «Enlazado» por haber pulsado una fila de la lista, y los
+>    comandos se iban al vacío. Ver §8 y el Manual 14.
+>
+> **Y lo que este banco NO pudo contestar, que es lo que hay que saber antes de creer que algo está
+> aprobado:** de 29 pasos previstos se ejercieron 24; **4 quedaron bloqueados por el enlace
+> Bluetooth** y **1 se abortó por un incidente de seguridad**. Como el equipo nunca llegó a operar
+> por falta de app, la regresión del Modo Automático (`N-42`, *«no mueve las luces»*) **no se
+> confirmó NI se descartó**. Sigue abierta, y no se cuenta como pasada.
+
+---
+
 > ## 🔴 CAMBIO DEL 28/08/2026, **AL DÍA EL 31/08/2026** — LA PANTALLA DEJA DE SERVIR, Y EL MENÚ YA NO SE PUEDE EJECUTAR
 >
 > **El equipo va montado en alto y la pantalla no se lee desde el suelo.** Una LCD de 128×64 dentro
@@ -81,9 +107,15 @@ Todas las operaciones están alineadas al **Manual de Señalización Vial de Col
 > dónde recibir esa orden**. Se hace desde la app, y donde la app todavía no llega está escrito
 > abajo en voz alta, sin darlo por trasladado.
 >
-> **Y sigue en pie lo único que quedaba de aquel aviso:** **no accione los botones del gabinete «a
+> ~~**Y sigue en pie lo único que quedaba de aquel aviso:** **no accione los botones del gabinete «a
 > ver qué pasa»**. Ya no pueden confirmar una hora falsa, pero `PB9` y `PB13` son **el mando**, y
-> tres pulsos seguidos **sí** cambian el modo del semáforo. Ver §7.
+> tres pulsos seguidos **sí** cambian el modo del semáforo. Ver §7.~~
+>
+> 🔴 **CADUCADO EL 04/09 EN LA DIRECCIÓN MALA — MEDIDO EN BANCO (`N-118`): esos pulsos ya no cambian
+> nada, porque `PB9` y `PB13` NO PUEDEN LLEGAR A ALTO.** `R65`/`R66` (10 kΩ a masa) dejan el pin en
+> **0,6 V — BAJO permanente**, así que **no hay flanco** y el reconocedor de secuencias nunca
+> arranca. Se conserva tachado porque describía un riesgo real: quien lo lea hoy como vigente
+> estará **desconfiando de los botones y confiando en un respaldo que no existe**. Ver §7.
 
 ---
 
@@ -166,6 +198,24 @@ queda lo que decía antes, tachado, para que se vea qué se perdió y qué lo su
   semáforos se mantienen en **🔴 ROJO FIJO continuo** si hay comunicación, y pasan a **🟡 Amarillo
   Intermitente** si no la hay. **Eso no lo decidía la pantalla, lo decide el coordinador**, y no ha
   cambiado.
+
+  > 🔴 **VISTO EN BANCO EL 3–4/09, Y HAY QUE DECIRLO CON OTRAS PALABRAS: ESO ES TAMBIÉN LO QUE SE VE
+  > AL ENCENDER, Y NO ES UNA AVERÍA.** Retiradas la pantalla y los pulsadores, **al energizar el
+  > equipo no arranca ningún modo por su cuenta**: se queda **EN ESPERA DE SELECCIÓN DE MODO** hasta
+  > que se le ordene uno desde la app.
+  >
+  > | lo que se ve al encender | qué significa |
+  > |---|---|
+  > | 🔴 **Rojo fijo en las dos puntas** | esperando modo, **y hay comunicación con la otra punta** |
+  > | 🟡 **Ámbar intermitente** | esperando modo, **y NO hay comunicación con la otra punta** |
+  >
+  > **Ninguno de los dos es un fallo del equipo.** En banco se leyó el ámbar intermitente como
+  > avería y se perdió tiempo buscándola: era el equipo diciendo, correctamente, que nadie le había
+  > dicho todavía qué hacer. Lo que sí es un dato a mirar es **cuál de los dos** sale, porque
+  > distingue *«falta la orden»* de *«falta la orden Y falta la radio»*.
+  >
+  > 🛑 **Y su consecuencia dura:** si la app no conecta, **el equipo se queda ahí para siempre**. No
+  > hay ninguna otra forma de sacarlo de esa espera — ver §7 (`N-118`) y §8.
 - **Arranque:** al ordenar un modo desde la app (`CMD:PIN:1234:SET_MODO:AUTO` / `:MANUAL` /
   `:AMBAR`), el sistema aplica el Despeje All-Red en ambos extremos antes de abrir ningún carril.
 
@@ -326,9 +376,37 @@ Para permitir la operación del semáforo a nivel del suelo sin colisionar con l
 > | ~~**`B · A · B · A`** (≤18s)~~ | ~~✋ Modo Manual (Operario)~~ | ⛔ **NO EXISTE — y no hay ninguna secuencia de mando para el Modo Manual** |
 > | ~~**`A · A · B · B`** (≤18s)~~ | ~~📷 Modo Inteligente (Cámaras IA)~~ | ⛔ **NO EXISTE — y no hay ninguna secuencia de mando para el Modo Inteligente** |
 
+> ## 🛑 04/09 — **NINGUNA DE LAS TRES SECUENCIAS DE ABAJO SE PUEDE ACCIONAR HOY (`N-118`)**
+>
+> **Lo de abajo sigue siendo cierto sobre el firmware y falso sobre el equipo.** El vocabulario está
+> escrito, compilado y es el correcto; lo que no hay es forma de pronunciarlo.
+>
+> **MEDIDO en banco el 3–4/09:** `MANDO_A` (`PB9`) y `MANDO_B` (`PB13`) llevan **`R65`/`R66`, 10 kΩ
+> a masa**, y con ellas el pin se queda en **0,6 V — nivel BAJO permanente**. El reconocedor de
+> secuencias cuenta **flancos**, y **un pin que nunca sube no da flancos**: las tres secuencias son
+> **inalcanzables**, no «poco fiables».
+>
+> * No es que el mando falle a veces: **no llega ni el primer pulso**.
+> * No se arregla accionando más fuerte, más veces ni más despacio.
+> * **No hay confirmación por destellos** que mirar, porque no se ha reconocido nada.
+>
+> ### 🛑 La consecuencia, dicha entera
+>
+> Con la pantalla retirada, los botones sin sujeto y el mando sin flanco, **la app por Bluetooth es
+> la ÚNICA vía de mando que le queda al equipo. Hoy NO hay respaldo físico operativo** — ni en el
+> Maestro ni en el Esclavo.
+>
+> 🔴 **Y en el ESCLAVO eso cierra el círculo, porque allí la app no manda de modo** (§9): **hoy no
+> queda ninguna forma de cambiarle el modo al Esclavo** — ni entrar ni salir del Degradado, ni
+> quitar un `ambarLocal` ya puesto. Lo que §9 daba como *«la única vía que le queda»* ya no está.
+>
+> **Se deja escrito en vez de reescribir la tabla:** el vocabulario de abajo es el que volverá a
+> valer en cuanto el mando tenga por dónde entrar, y borrarlo obligaría a redescubrirlo.
+
 ### ✅ EL VOCABULARIO REAL — MEDIDO en `Maestro/src/mando.cpp:201-238` y `Esclavo/src/mando.cpp` (31/08)
 
-**Son TRES secuencias, y no hay más.**
+**Son TRES secuencias, y no hay más.** *(Escritas en el firmware; **hoy ninguna se puede accionar** —
+ver el recuadro `N-118` de arriba.)*
 
 | Secuencia | Modo Activado | Confirmación Lumínica | Dónde está |
 |---|---|---|---|
@@ -353,8 +431,13 @@ Para permitir la operación del semáforo a nivel del suelo sin colisionar con l
 
 > 🛑 **Y una advertencia de operación que sale de la misma medida: `A` y `B` son los MISMOS PINES
 > que los pulsadores 1 y 2 del gabinete** (`MANDO_A` = `PB9` = `J16` p5, `MANDO_B` = `PB13` = `J16`
-> p8). El mando de relés va cableado **en paralelo** con ellos. **Pulsar tres veces seguidas el
-> botón 1 del gabinete cambia el modo del semáforo exactamente igual que hacerlo desde el suelo.**
+> p8). El mando de relés va cableado **en paralelo** con ellos. ~~**Pulsar tres veces seguidas el
+> botón 1 del gabinete cambia el modo del semáforo exactamente igual que hacerlo desde el suelo.**~~
+>
+> 🔴 **CADUCADO EL 04/09 (`N-118`): hoy no cambia nada, ni desde el gabinete ni desde el suelo.** Es
+> el mismo pin y el mismo camino, y ese camino está clavado en BAJO por `R65`/`R66`. **El reparto de
+> pines sigue siendo cierto** —y hay que conocerlo el día que se arregle—; lo que ha dejado de ser
+> cierto es el efecto.
 
 > 🔴 **LO QUE NO TIENE MANDO, dicho entero porque es lo que se echa de menos en obra:** **no hay
 > secuencia para el Modo Manual ni para el Modo Inteligente.** Esos dos se ordenan **sólo desde la
@@ -379,6 +462,11 @@ saber, porque el gesto es idéntico y el resultado no:
 >
 > **Para quitarlo hay que ir al poste y hacer `A·A·A`** — que es lo único que baja esa marca
 > (`mando.cpp:116`). **No hay forma de quitarla desde la app**, ni desde el Maestro.
+>
+> ⚠️ **04/09 (`N-118`) — hoy esa marca NI SE PONE NI SE QUITA**, porque `B·B·B` y `A·A·A` no se
+> pueden accionar. Es un empate que no tranquiliza: **si el mando llega a funcionar antes de que
+> exista una vía para bajar la marca, un `ambarLocal` puesto en el sitio se queda puesto** y sólo se
+> baja subiendo al poste. Se anota porque la protección y su cerradura son la misma pieza.
 
 * **Inhibición de UI (N-53):** Mientras el equipo esté en pantallas de configuración (`AJUSTAR HORA`, `CONFIG_TIEMPOS`), el receptor del mando se inhibe al 100%, evitando que los pulsos de edición disparen cambios de modo involuntarios.
   > ⚠️ ~~**28/08 — esta protección sigue en el firmware, pero ahora protege un menú que nadie ve.**
@@ -480,6 +568,62 @@ Desde el 28/08 esto **ya no es un accesorio de soporte: es la única interfaz de
 > **al contar pines sobre la tarjeta física hay que contar desde el pin 1, no desde el borde del
 > conector.** La verificación de continuidad con la tarjeta delante sigue pendiente.
 
+### 🔵 CÓMO SE ENLAZA EL TELÉFONO — MEDIDO EN BANCO EL 3–4/09
+
+**Los tres tropiezos de abajo costaron horas de banco, y ninguno era una avería del equipo.**
+
+**1. La APK tiene que ser la del 04/09.** El fichero es
+`IOT_VIAL_Semaforos_2026-09-04_5ac280b_SIN_BANCO.apk`.
+
+> 🔴 **Con cualquier APK anterior la app NO CONECTA, por bien que funcione el módulo (`N-122`).**
+> Hasta esa versión, al tocar una fila de la lista de equipos la app **se daba por enlazada sin
+> haber abierto nunca el socket Bluetooth**: guardaba la dirección, se pintaba **«Enlazado»** y se
+> ponía a escuchar un canal que no existía. **Los comandos se iban al vacío y el equipo no contestaba
+> nunca.** Está arreglado —ahora la app abre el socket y sólo se declara enlazada si el socket
+> abrió—, **pero el arreglo va dentro de la APK: no se hereda actualizando el equipo.**
+>
+> **Cómo distinguirlo en el poste, que es lo que hace falta:** con la APK vieja la app dice
+> «Enlazado» **y no llega ni una trama**. Una app enlazada de verdad recibe `$STATUS` **cada
+> segundo**. Si el rótulo dice enlazado y la pantalla no se mueve, sospeche de la APK antes que del
+> equipo.
+
+**2. En la lista de Bluetooth el equipo se llama `SEM-SIN-MATRICULA`, no como el cruce.**
+
+> 🛑 **Mientras el módulo no haya aprendido la serie del equipo se anuncia como `SEM-SIN-MATRICULA`.**
+> Si el técnico busca **`IOT_VIAL`** o **el nombre del cruce**, **no lo encuentra** y concluye que el
+> módulo está muerto.
+>
+> **Y no se renombra en caliente:** aunque el módulo aprenda la serie durante la sesión, **el nombre
+> bueno no aparece hasta el arranque siguiente**. Ver un `SEM-SIN-MATRICULA` no significa que la
+> serie no haya entrado; significa que el módulo no se ha reiniciado desde que entró.
+
+**3. El emparejamiento NO pide PIN, y el `1234` no es el PIN de emparejamiento.**
+
+> ⚠️ **El `ESP32` empareja por «Just Works»: SIN PIN del sistema operativo.** Android enlaza sin
+> preguntar nada. **Si el teléfono le pide un PIN de emparejamiento, no está hablando con este
+> módulo.**
+>
+> 🔴 **El `1234` es un PIN DE COMANDO DENTRO DE LA APP** —el que va en la trama
+> `CMD:PIN:1234:…`—, **no el PIN de emparejamiento de Bluetooth.** Se confundieron en banco: se
+> tecleó `1234` en el diálogo del sistema operativo esperando que enlazara. Son dos cosas distintas
+> y sólo una existe.
+
+**4. Ese PIN de la app NO CADUCA. Riesgo conocido y ABIERTO (`AB-9`).**
+
+> 🛑 **Se teclea una vez y el teléfono queda autorizado hasta que se cierra la app.** No hay tiempo
+> de expiración, ni bloqueo por inactividad, ni recuento de órdenes: **una sesión desbloqueada lo
+> sigue estando dentro del bolsillo**.
+>
+> **Lo que eso significa en obra:** si alguien deja el teléfono desbloqueado y otra persona lo coge,
+> **manda sobre el cruce sin teclear nada** — y con la app como única vía de mando (§7), eso es todo
+> el mando del equipo.
+>
+> ⚠️ **Se escribe como riesgo conocido, no como algo resuelto.** Cuánto debe durar una sesión
+> autorizada —y si debe caducar por tiempo, por inactividad o al cambiar de nodo— **es decisión del
+> responsable**, porque el coste de equivocarse cae en los dos sentidos: una sesión que caduca
+> demasiado pronto obliga a teclear cuatro dígitos delante de un cruce parado. Mientras tanto, la
+> única barrera real es **quién tiene el teléfono**.
+
 ### Telemetría en vivo — y qué campos NO son medidas
 
 * **Emisión periódica de `$STATUS,...` cada 1 segundo.** Formato real, leído del firmware:
@@ -574,13 +718,30 @@ Desde el 28/08 esto **ya no es un accesorio de soporte: es la única interfaz de
 | Poner los tiempos | ✅ `SET_TIEMPOS` | ❌ no — los tiempos los lleva el Maestro |
 | `FORZAR_ROJO` | ✅ **sí, y para de verdad** | 🛑 **NO.** Contesta `$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` (`:158`, `:182`) y **no para nada** |
 | Menú local / botones | ❌ sin sujeto | ❌ sin sujeto |
-| **Mando de relés (A y B)** | ✅ sí | ✅ **sí — y es la ÚNICA vía de mando que le queda** |
+| **Mando de relés (A y B)** | ~~✅ sí~~ 🛑 **NO se puede accionar (`N-118`)** | ~~✅ **sí — y es la ÚNICA vía de mando que le queda**~~ 🛑 **NO se puede accionar (`N-118`)** |
+
+> 🔴 **CORREGIDA ESA FILA EL 04/09, MEDIDO EN BANCO.** `R65`/`R66` (10 kΩ a masa) dejan `PB9` y
+> `PB13` en **0,6 V — BAJO permanente**: **nunca hay flanco y ninguna secuencia se reconoce**, en
+> ninguna de las dos puntas. Ver §7.
 
 ### 🛑 La consecuencia, dicha en voz alta
 
 **En el Esclavo, entrar o salir del Modo Degradado NO se puede hacer desde la app.** Sólo con el
 mando de relés (`A·B·A·B` para entrar, `A·A·A` o `B·B·B` para salir). Y el **receptor RF de ese
 mando NUNCA SE COMPRÓ** *(línea `A9` del Manual 15)*.
+
+> 🛑 **Y DESDE EL 04/09 ESA CONSECUENCIA ES PEOR, PORQUE YA NO ES «FALTA EL RECEPTOR»: ES QUE EL
+> MANDO NO ENTRA NI CABLEADO** (`N-118`, §7). Comprar el receptor RF **no destraba esto**: el
+> problema está en el pin, no en quién lo pulsa.
+>
+> **Sumado a que el Esclavo no tiene `SET_MODO` por Bluetooth (fila 1 de esta tabla), hoy NO QUEDA
+> NINGUNA FORMA DE ORDENARLE UN MODO AL ESCLAVO ESTANDO DELANTE DE ÉL:** ni la app, ni el mando, ni
+> los botones, ni la pantalla. Lo único que el Esclavo sigue aceptando de la app es lo que ya dice
+> esta tabla —ámbar de emergencia, solicitar paso y `SET_RTC`—, que **no es cambiar de modo**.
+>
+> **Lo que sí sigue funcionando es el Esclavo obedeciendo al Maestro por radio**, que es su trabajo
+> normal. Lo que ha desaparecido es **la vía local**: el técnico que está junto al poste 2 **no puede
+> decidir nada allí**, tiene que ir al Maestro. Con el enlace de radio caído, tampoco desde allí.
 
 > **Sin ese receptor, la única forma de entrar o salir del Degradado en el Esclavo es SUBIR AL
 > GABINETE** — y ni así, porque allí arriba lo que había era el menú de la pantalla, que hoy **no
@@ -606,8 +767,15 @@ de emergencia **no hacen lo mismo**, y el firmware afirma por escrito que sí.
 > Es decir: **el botón de pánico de la app puede no parar el cruce exactamente en el modo donde más
 > falta hace**, y decir que sí lo hizo.
 >
-> ✅ **Mientras esto siga abierto, en el ESCLAVO en Modo Degradado use el MANDO (`B·B·B`), no la
-> app.** Y si no hay mando, se sube.
+> ~~✅ **Mientras esto siga abierto, en el ESCLAVO en Modo Degradado use el MANDO (`B·B·B`), no la
+> app.** Y si no hay mando, se sube.~~
+>
+> 🛑 **ESA SALIDA YA NO EXISTE, MEDIDO EL 04/09 (`N-118`): el `B·B·B` no se puede accionar**, y subir
+> al gabinete tampoco sirve, porque allí arriba el mismo pin sigue clavado en BAJO. Se conserva
+> tachada porque era la recomendación correcta y **hay que ver que se ha quedado sin sustituto**:
+> hoy, en el Esclavo en Modo Degradado, **no hay ninguna vía fiable de ámbar de emergencia** — la de
+> la app puede caerse sola y decir que no. **`N-106` deja de ser un defecto con rodeo y pasa a ser un
+> defecto sin rodeo.**
 >
 > ⚠️ **Está anotado como `N-106` y NO está arreglado.** El arreglo espera decisiones del
 > responsable —qué *debe* hacer el ámbar de la app en Degradado: salir ordenado como `B·B·B`, o
@@ -625,6 +793,15 @@ de emergencia **no hacen lo mismo**, y el firmware afirma por escrito que sí.
 > Que la compuerta de verificación salga en verde significa que los modelos y los arneses de PC no
 > encuentran nada. **No dice que el firmware funcione sobre la tarjeta.** Las actas están en
 > `evidencia/`, con su fecha y el hash del árbol que midieron.
+>
+> 🔴 **Y el banco del 3–4/09 tampoco es ese permiso.** De los 29 pasos previstos se ejercieron 24:
+> **4 quedaron bloqueados por el enlace Bluetooth** —el equipo no llegó a recibir órdenes— y **1 se
+> abortó por un incidente de seguridad**. Un paso bloqueado **no dice nada del firmware**: no es un
+> aprobado ni un suspenso.
+>
+> **La consecuencia concreta:** como el equipo nunca llegó a operar, **la regresión del Modo
+> Automático (`N-42`) no se confirmó ni se descartó.** El defecto por el que se fue a banco sigue
+> exactamente igual de abierto que antes de ir.
 >
 > **Nada de esto sube a campo sin pasar banco.** No es una preferencia de proceso: un semáforo que
 > falla mal mata a alguien.

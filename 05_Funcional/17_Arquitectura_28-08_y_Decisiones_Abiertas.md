@@ -2,6 +2,9 @@
 
 **Para:** el funcional y el auditor.
 **Fecha del documento:** 28 de agosto de 2026.
+**Revisado:** 31 de agosto de 2026 (decision del responsable) y **04 de septiembre de 2026 (banco
+real: el equipo se midio con multimetro los dias 3 y 4)**. Las dos revisiones estan al principio, la
+mas nueva primero, y **nada de lo superado se ha borrado**.
 **Acta de compuerta de referencia:** `evidencia/2026-08-28_compuerta.txt` — `15 PASS | 0 FALLA | 0 ABORTADO`,
 HEAD `3733544`, rama `main-nuevo`, **arbol LIMPIO** (lo dice la propia acta).
 
@@ -11,6 +14,117 @@ consola de Windows en este repositorio.
 > **Este documento no cambia ningun otro fichero.** Todo lo que otro documento necesita corregir
 > esta listado en la seccion B y en el anexo final, y **no se ha tocado**. Habia otros trabajos en
 > vuelo sobre el mismo arbol el dia que se escribio.
+
+---
+
+## 🔴 REVISION DEL 03-04/09/2026 — EL BANCO CORRIO. Leer esto ANTES que todo lo demas
+
+**Los dias 3 y 4 de septiembre de 2026 este equipo estuvo en un banco, con multimetro, sobre el
+paquete V9.0 (commit `617bd00`).** Informe: `evidencia/Informe_Pruebas_Banco_Semaforos_V9.0.pdf`.
+Es la primera vez que algo de este documento se contrasta contra **cobre** en vez de contra un
+dibujo, y eso **cambia el nivel de varias filas, no solo su contenido**.
+
+**El resultado, sin adornos:** de los **29 pasos** de la Guia de Cableado y Pruebas de Banco,
+**24 completos** (pasos 1-6, 8-9, 15-18, 20-24), **4 bloqueados** por el enlace Bluetooth
+(25, 26, 27 y 28) y **1 abortado por seguridad** (paso 29). Los pasos **7, 19 y 21** quedaron
+**parciales** —la parte de cableado y de medida se verifico; la respuesta funcional depende del Modo
+Automatico, que no se pudo seleccionar sin app— y se cuentan dentro de los 24 con esa salvedad.
+
+| # | este documento decia | lo que midio el banco |
+|---|---|---|
+| **M3** | *"la medida que desbloquea las camaras"*, **pendiente**, y sobre ella colgaba *"mientras esto no se mida, no se cablea camara a `J16`"* | ✅ **CERRADA el 03/09.** Numeros en la tabla de abajo y en la seccion A · M3 |
+| **§2.2** | *"contradiccion: el netlist dice activo en ALTO, el firmware dice activo en BAJO, y no se puede decidir desde aqui"* | 🔴 **LA DECIDE EL COBRE (N-118): activo en ALTO los CUATRO.** No era una contradiccion — era **un fuente equivocado** en `A` y `B` |
+| **§2.4 y §3.3** | el veto de `mando_ambarLocal()` se queda, y `B·B·B` es la salida fisica de ultimo recurso | 🔴 **EL MANDO `A`/`B` HOY NO SE PUEDE PULSAR (N-118).** Con el pin en `0,6 V` permanente no hay transicion que detectar. Existe en el codigo y **no existe en la mano** |
+| — | — | 🔴 **NUEVO, N-120: la tarjeta protege sus 9 SALIDAS y no protege NINGUNA de sus 5 ENTRADAS de campo.** Abre una decision de diseno para V2, y es del responsable: **§3.6** |
+| — | — | 🔴 **NUEVO, N-116: la tarjeta Maestro esta FUERA DE SERVICIO.** Corto MEDIDO entre `3,3 V` y `GND`. **No se reenergiza** |
+| **N-42** | *"el Modo Automatico no mueve las luces"*, regresion abierta | ⚠️ **NI CONFIRMADA NI DESCARTADA.** El equipo nunca llego a operar —falto la app—. Sigue abierta y sigue siendo lo primero de la proxima sesion |
+| **§3.1** | *"nadie ha leido la serigrafia del modulo"* — la bloqueante mas barata de la lista | 🟢 **ES un `ESP32-WROOM-32` clasico** (BR/EDR + BLE). El perfil que el SPP de la app necesita existe: **el chip no era la causa** |
+| **§1.4** | el nombre del pin 3 de `J17` *"sigue en disputa"* | 🟢 **RESUELTO en banco (paso 5):** continuidad `J17` p3 -> pata 42 y p2 -> pata 43, y **sin 12 V en ninguna posicion**. El netlist quedo viejo; el enlace es el que describe §1.4 |
+
+### Lo que se midio en `J16`, que es el nucleo de todo lo anterior
+
+**MEDIDO EN COBRE** —multimetro, conector vacio, paso 20 de la Guia, 03/09/2026—:
+
+| `J16` | R a masa (sin energia) | R a `3,3 V` (sin energia) | V contra masa (con energia) |
+|---|---|---|---|
+| p5 — `MANDO_A` (`PB9`) | **9,92 kOhm** | 11,28 kOhm | 🔴 **0,6 V** |
+| p8 — `MANDO_B` (`PB13`) | **9,92 kOhm** | 11,28 kOhm | 🔴 **0,6 V** |
+| p10 — Camara (`PB14`) | **9,93 kOhm** | 11,29 kOhm | **0 V** |
+| p12 — Camara (`PB15`) | **9,94 kOhm** | 11,31 kOhm | **0 V** |
+
+**El pull-down de 10 kOhm que declaraba el netlist es REAL, y esta en las cuatro posiciones**
+(`R65`-`R68`, con su `100 nF`). Con `3,3 V` en la posicion de al lado en las cuatro —`J16` p4, p7,
+p9 y p11—, el gesto que el conector pide es cerrar el contacto **contra los `3,3 V`**: **entrada
+activa en ALTO, para los cuatro pines y sin excepcion.**
+
+**De ahi salen dos conclusiones distintas, una buena y una mala:**
+
+- 🟢 **El camino de camara es correcto, y ademas esta EJERCIDO.** `pinMode(INPUT)` pelado con
+  deteccion contra `HIGH` —lo que N-67 dejo en `modo_inteligente.cpp:46` y `:25`— es exactamente lo
+  que el cobre pide. El **paso 21** cableo `p10` contra `p11` (`3,3 V`) en normalmente abierto y **el
+  equipo no pidio paso solo, ni con el cable puesto ni sin el**: **no hay demandas fantasma**. La
+  consecuencia operativa de §2.2 —*"mientras esto no se mida, no se cablea camara a `J16`"*— **queda
+  levantada.**
+- 🔴 **El camino de mando esta invertido, y no es un matiz de estilo: HOY NO SE PUEDE PULSAR
+  (N-118).** `botones.cpp` lee `INPUT_PULLUP` y `== LOW`. Con el pin en `0,6 V` en reposo la lectura
+  cruda ya es `LOW` **desde el arranque**, el antirrebote lo siembra como *flanco ya consumido*, y
+  **la transicion que `mando_registrarPulso()` espera no llega nunca**. El banco lo vio: se puenteo
+  `p5`/`p8` contra masa y **el semaforo no cambio de comportamiento** (paso 29).
+
+> 🛑 **Lo que eso le hace a §3.3, y hay que leerlo entero.** La decision del 31/08 —*"se conserva el
+> mando en `A` y `B`"*— se eligio porque era la unica salida fisica de ultimo recurso que **ya estaba
+> construida**. El cobre dice que **no lo estaba**: `A·A·A`, `B·B·B` y `A·B·A·B` existen en el
+> firmware y **no existen en la mano de nadie**. El coste de la decision seguia siendo cero; lo que
+> costaba cero era tambien lo que resolvia.
+>
+> **No es una decision equivocada: es una decision tomada sobre un dato que no se tenia** —y que este
+> documento pedia por escrito, en M3—. Ahora se tiene. Lo que hace falta para que el mando exista de
+> verdad es **una linea de `botones.cpp` por punta** (Anexo, punto 5), y ya no es *"si M3 dice"*: M3
+> lo dijo.
+>
+> **Y mientras eso no entre y no se cargue, esto es lo que va en el parte: el equipo no tiene hoy
+> NINGUNA superficie de mando fisica.** El agujero que §3.3 daba por tapado esta abierto.
+
+### 🔴 N-120 — la tarjeta protege todo lo que sale y no protege nada de lo que entra
+
+**MEDIDO en banco (03-04/09), y coherente con el netlist:** las **9 salidas** de campo van con
+**220 Ohm en serie + optoacoplador `TLP127`**; las **5 entradas** de campo van **del borne directo a
+la pata del STM32** — sin resistencia en serie, sin opto y sin clamp. Y `J16` p1 reparte **12 V
+crudos** en ese mismo conector (§2.1).
+
+**Consecuencia inmediata, y deja de ser una cautela de mesa:** ~~tapar `p1` antes de cablear nada en
+`J16`~~ → **tapar `p1` es OBLIGATORIO en cada equipo que se monte**, no solo en el banco. En banco se
+hizo **retirando el pin del cuerpo del conector volante** (paso 4), que es mas fiable que la funda
+termorretractil porque no se puede deshacer por accidente. Es el metodo que se documenta.
+
+**La decision de diseno que abre —2K2 en serie por entrada, con su cuenta— es de V2, es del
+responsable, y esta en §3.6.**
+
+### 🔴 N-116 — la tarjeta Maestro esta fuera de servicio
+
+**MEDIDO despues del incidente del paso 29: hay un corto entre `3,3 V` y `GND`.** La tarjeta arranca,
+funciona unos **30 segundos** y se calienta. 🛑 **No se reenergiza** hasta inspeccion tecnica con el
+equipo frio.
+
+**El firmware queda descartado como causa, y por CENSO, no por opinion:** ninguna de las **9 salidas**
+que el firmware escribe toca un pin de `J16`. Nada de lo que pasa por `escribirPines()` puede llegar
+a `p5` ni a `p8`. **Eso no nombra al culpable** —el informe deja la causa abierta, y hace bien—: lo
+que hace es **sacar de la lista al unico sospechoso que este repositorio podia haber revisado
+leyendo**, que es justo el que se habria revisado.
+
+### 🟢 El Bluetooth eran DOS defectos en serie, y los dos estan arreglados
+
+**N-117 y N-122.** El enlace no se establecio en toda la sesion y bloqueo en cascada los pasos 25 a
+28, mas la parte funcional de 7, 19 y 21. Eran dos, uno en cada punta del cable:
+
+| # | donde | que pasaba |
+|---|---|---|
+| **N-117** | ESP32 | **el watchdog se comia su propio arranque** — el modulo no llegaba a anunciarse |
+| **N-122** | app | **nunca llamaba a `connect()`** |
+
+**Los dos arreglados, y hay APK nueva.** ⚠️ **Pero eso es firmware y app, no banco: lo medido aqui es
+el defecto, no el arreglo.** Que el enlace suba se demuestra repitiendo los pasos 25-28 — no leyendo
+esta tabla.
 
 ---
 
@@ -59,6 +173,18 @@ Tres niveles, y no se mezclan nunca. Es la misma escala que usa
 > verdad. Todo lo que este documento llama MEDIDO se midio **sobre ficheros**: el `.cpp`, el `.h`,
 > el `.kicad_sch` y el `.kicad_pcb`. Un fichero dice lo que alguien **dibujo o escribio**. Una placa
 > dice lo que se **fabrico**, y lo que alguien reparo despues.
+>
+> ✅ **ACTUALIZADO EL 04/09: eso ya no es cierto de TODO el documento, y la diferencia importa.** La
+> sesion de banco del 03-04/09 dejo las **primeras filas medidas sobre la placa fisica**: `J16`
+> p5/p8/p10/p12 (paso 20), `J17` p2/p3 contra las patas 42 y 43 del `U1` (paso 5), `J14` (pasos 17 y
+> 18), `J15` (pasos 15 y 16) y las masas del modulo (paso 23). **Esas se marcan `MEDIDO EN COBRE` y
+> llevan el numero del multimetro al lado.** Todo lo demas sigue siendo `MEDIDO` sobre ficheros, y no
+> se mezclan: la escala no gana un cuarto nivel, gana una **procedencia** que hay que escribir.
+>
+> **Y la leccion, que este documento se aplica a si mismo:** §2.2 estuvo semanas declarada como
+> *"contradiccion irresoluble desde aqui"* y el cobre la resolvio en una tarde con un ohmimetro.
+> **Lo que un documento no puede decidir no siempre es indecidible: a veces solo esta esperando a que
+> alguien baje al banco.**
 
 ---
 
@@ -107,7 +233,7 @@ Todo esta MEDIDO en `01_Firmware/Maestro/include/pines.h`.
 | 🔴 Buzzer | `PB1` | `J13` | `pines.h:20` — **DECLARADO Y MUERTO** |
 | Radio LoRa (`USART3`) | `PB10` TX · `PB11` RX · `PB12` DE/~RE | `J12` | `pines.h:112-114`, `:19` |
 | Camara de demanda | `PB0` | `J14` | `pines.h:46` |
-| 🆕 Camaras `C` / `D` | `PB14` `PB15` | `J16` p10 / p12 | `pines.h:124-125` — **NO cablear hasta `M3`** |
+| 🆕 Camaras `C` / `D` | `PB14` `PB15` | `J16` p10 / p12 | `pines.h:124-125` — ~~**NO cablear hasta `M3`**~~ → ✅ **M3 CERRADA el 03/09: se pueden cablear.** `0 V` en reposo y sin demandas fantasma (paso 21) |
 
 > ## 🔴 TRES DE ESTAS SALIDAS NO EXISTEN MÁS QUE EN LA TABLA (medido el 02/09)
 >
@@ -222,12 +348,12 @@ Los pines que libera la retirada de los pulsadores 3 y 4:
 
 | `J16` | red | GPIO | uso nuevo |
 |---|---|---|---|
-| p1 | `/12V` | — | 🔴 **12 V crudos. Se tapa** — ver §2.1 |
+| p1 | `/12V` | — | 🔴 **12 V crudos. Se tapa** — ver §2.1 y **N-120: es OBLIGATORIO, no una cautela de banco** |
 | p2 | `GND` | — | masa |
-| p5 | `/Boton1` | `PB9` | ~~**vacio a proposito** (colchon)~~ → 🟢 **`MANDO_A`. VA CABLEADO** (31/08) |
-| p8 | `/Boton2` | `PB13` | ~~**vacio a proposito** (colchon)~~ → 🟢 **`MANDO_B`. VA CABLEADO** (31/08) |
-| p10 | `/Boton3` | `PB14` | **Camara 2** |
-| p12 | `/Boton4` | `PB15` | **Camara 1** |
+| p5 | `/Boton1` | `PB9` | ~~**vacio a proposito** (colchon)~~ → 🟢 **`MANDO_A`. VA CABLEADO** (31/08) → 🔴 **y hoy no responde: `0,6 V` en reposo, N-118** |
+| p8 | `/Boton2` | `PB13` | ~~**vacio a proposito** (colchon)~~ → 🟢 **`MANDO_B`. VA CABLEADO** (31/08) → 🔴 **idem N-118** |
+| p10 | `/Boton3` | `PB14` | **Camara 2** — ✅ **cableada y verificada en banco el 03/09** (paso 21) |
+| p12 | `/Boton4` | `PB15` | **Camara 1** — `0 V` en reposo, MEDIDO (paso 20) |
 
 > 🔴 **Las dos filas tachadas eran las lineas mas daninas de este documento: mandaban dejar sin
 > cablear justo el mando que la decision del 31/08 conserva.** Un `J16` montado segun la tabla
@@ -293,8 +419,65 @@ conector de senal de toda la tarjeta que trae 12 V.**
 > el pin, o el pin retirado del cuerpo del conector volante. No basta con «no conectarlo»: el
 > destornillador, la viruta y el hilo suelto no leen documentacion. Un contacto de `p1` a `p10` o
 > `p12` mete 12 V en una pata del `U1` que espera 3,3.
+>
+> 🔴 **AMPLIADO EL 04/09 — N-120, y sube de precaucion a obligacion.** El banco confirmo en cobre lo
+> que este apartado deducia del netlist, **y encontro que es peor de lo que decia**: no es que `J16`
+> no tenga aislamiento, es que **ninguna de las 5 entradas de campo de la tarjeta lo tiene**,
+> mientras **las 9 salidas** llevan `220 Ohm` en serie y opto `TLP127`. La proteccion de esta placa
+> es **asimetrica**, y esta entera del lado por el que no entra nada.
+>
+> **Por eso `p1` deja de taparse «en banco» y pasa a taparse EN CADA EQUIPO QUE SE MONTE**, con el
+> pin retirado del conector volante — que es como se hizo en el paso 4 y es lo que se documenta,
+> porque no se deshace por accidente. **La decision de diseno que esto abre para V2 esta en §3.6**, y
+> es del responsable.
 
-### 2.2 🔴 La polaridad de los pines de boton esta en contradiccion — y es N-67 otra vez
+### 2.2 ~~🔴 La polaridad de los pines de boton esta en contradiccion~~ → ✅ **CERRADA EN COBRE EL 03/09 (M3 / N-118): NO era una contradiccion**
+
+> ✅ **CERRADA POR MEDIDA, y se conserva entera porque el analisis es el que motivo la medida.** Este
+> apartado decia que los dos lados —netlist y firmware— *"no pueden ser ciertos a la vez"* y que
+> **no se podia decidir desde aqui**. Era correcto, y la salida que proponia —**M3, con multimetro**—
+> es exactamente la que se ejecuto.
+>
+> **MEDIDO EN COBRE el 03/09/2026, paso 20 de la Guia, conector vacio:**
+>
+> ```
+>    J16 p5  (MANDO_A, PB9)    9,92 kOhm a masa   11,28 kOhm a 3,3 V    0,6 V con energia
+>    J16 p8  (MANDO_B, PB13)   9,92 kOhm a masa   11,28 kOhm a 3,3 V    0,6 V con energia
+>    J16 p10 (camara, PB14)    9,93 kOhm a masa   11,29 kOhm a 3,3 V    0   V con energia
+>    J16 p12 (camara, PB15)    9,94 kOhm a masa   11,31 kOhm a 3,3 V    0   V con energia
+> ```
+>
+> 🔴 **El netlist tenia razon, y la tiene en las CUATRO posiciones.** El pull-down de 10 kOhm es
+> real, las cuatro posiciones son identicas —10K a masa mas `100 nF`— y las cuatro llevan `3,3 V` en
+> la posicion de al lado (`J16` p4, p7, p9, p11). **El gesto que el conector pide es cerrar contra
+> los `3,3 V`: entrada activa en ALTO, sin excepcion.**
+>
+> **Asi que no habia dos afirmaciones incompatibles sobre la placa: habia un fuente equivocado.**
+> `botones.cpp` esta invertido en `A` y `B`, en las dos puntas. La camara ya se corrigio en N-67 y
+> por eso el camino de camara sale bien; el camino de mando **nunca se corrigio**, y es N-67 otra
+> vez — con la diferencia de que ahora esta **medido**, no deducido.
+>
+> **Y la cuenta de `0,66 V` que este apartado reprodujo de N-67 se confirma en la punta del
+> multimetro: `0,6 V`.** No es una coincidencia amable — es la unica parte de todo este documento que
+> se puede comparar contra un numero real, y coincide.
+>
+> ⚠️ **Lo que la medida NO dice, y va escrito al lado:** no dice por que el menu se navegaba en las
+> pruebas de banco de agosto. El parrafo de mas abajo levanta esa objecion —*"si esa cuenta
+> describiera la placa fisica, los cuatro botones estarian en LOW permanente y el menu no se podria
+> navegar"*— y la medida **no la contesta**. La pista que si esta escrita es la coincidencia con
+> N-26, mas abajo: *"el Maestro aparecia solo en la pantalla de configuracion del Modo Manual"*, que
+> **es el sintoma exacto de un pin en LOW al arrancar**, y que se cerro **sembrando el estado real
+> del pin** — es decir, enmascarando el sintoma. Eso deja de ser *"una pista"* y pasa a ser la
+> explicacion mas probable, pero **no esta comprobada**: se marca SIN VERIFICAR y no se convierte en
+> causa.
+>
+> **Consecuencias, y son dos en direcciones opuestas — estan desarrolladas en la revision del
+> 03-04/09 de la cabecera:** ✅ la camara **se cablea** (paso 21, sin demandas fantasma) · 🔴 el
+> mando `A`/`B` **hoy no se puede pulsar** (N-118), y con el se cae la salida fisica de ultimo
+> recurso que §3.3 daba por construida.
+
+**Lo que sigue debajo es el texto del 28/08, conservado.** Su conclusion —*"esto es una
+contradiccion y no un defecto"*— **ya no vale**: es un defecto, y esta en `botones.cpp`.
 
 Es el bloqueante del cableado de camaras. **Los dos lados estan MEDIDOS y no pueden ser ciertos a
 la vez.**
@@ -355,9 +538,16 @@ La camara se arreglo: `pinMode(CAM_DEMANDA_PIN, INPUT)` y deteccion contra `HIGH
 > enmascara el sintoma sin decidir cual de las dos polaridades es la buena. Es una pista, **no una
 > medida**, y este documento no la convierte en causa.
 
-**Consecuencia operativa: mientras esto no se mida, no se cablea camara a `J16`.** Cablear una
-camara con la polaridad al reves da **demanda permanente** —un semaforo que pide paso solo— o
-**demanda que nunca llega**. Las dos son de calle.
+~~**Consecuencia operativa: mientras esto no se mida, no se cablea camara a `J16`.**~~ → ✅ **SE
+MIDIO (M3, 03/09) y el bloqueo se levanta: la camara se cablea.** Cablear una camara con la
+polaridad al reves da **demanda permanente** —un semaforo que pide paso solo— o **demanda que nunca
+llega**; las dos son de calle, y por eso la medida iba antes que el cable. **El paso 21 la cablo
+(`p10` contra `p11`, normalmente abierto) y no hubo demanda fantasma ni con el cable ni sin el.**
+
+> 🔴 **Y la consecuencia se muda de sitio, no desaparece: el que esta con la polaridad al reves es el
+> MANDO.** `A`/`B` no dan *"pulsacion permanente"* de forma visible —dan algo peor, **silencio**: el
+> pin nace en `LOW`, el antirrebote lo da por consumido y ninguna pulsacion produce ya un flanco.
+> **Una entrada de seguridad que no puede fallar ruidosamente es la que hay que vigilar.**
 
 ### 2.3 ~~🔴 `botonCancelar()` es la unica salida de todos los modos, y desde Bluetooth no hay vuelta~~ → 🟢 **REFUTADA EL 31/08 (N-100)**
 
@@ -470,6 +660,16 @@ El Maestro tiene **ocho** modos (`bluetooth.cpp:185-196`: `MENU`, `MANUAL`, `AUT
 > el veto NO se retira y no hay que decidir quien lo hereda.** Este apartado se conserva entero —es
 > el analisis que justifica la decision— con dos correcciones dentro: las tres lineas citadas
 > **estaban caducadas**, y falta el dato de donde se arma la bandera.
+>
+> 🔴 **Y UN TERCER DATO, DEL 04/09, QUE NO CAMBIA EL CODIGO PERO SI LO QUE SIGNIFICA (N-118).** El
+> veto sigue **entero** en el firmware: `ACC_AMBAR` sigue siendo el unico armador y los tres `if`
+> siguen negados. Lo que el banco midio es que **nadie puede llegar a `ACC_AMBAR`**, porque `B·B·B`
+> no se puede pulsar con `PB13` a `0,6 V` en reposo.
+>
+> **`mando_ambarLocal()` devuelve hoy siempre `false` — que es exactamente el escenario que este
+> apartado describe como peligroso**, y se ha llegado a el **sin retirar una sola linea**. Es la
+> version silenciosa de lo que se temia: los tres `if` ya son siempre-verdaderos, y ningun `git diff`
+> lo delata. **La barrera no se borro: se quedo sin quien la arme.**
 
 **MEDIDO**: `mando_ambarLocal()` (`Esclavo/src/mando.cpp:103`) tiene tres consumidores, todos en
 `Esclavo/src/main.cpp`, y **los tres son negados**:
@@ -721,7 +921,8 @@ Las tres columnas con `*` **no sobreviven tal como estan escritas**:
 
 ## 3. Decisiones ABIERTAS, con dueno
 
-Ninguna de estas cinco la puede tomar quien escribe firmware. Van con quien las tiene que firmar.
+Ninguna de estas ~~cinco~~ **seis** la puede tomar quien escribe firmware. Van con quien las tiene
+que firmar. *(La sexta —§3.6, N-120— la trajo el banco del 03-04/09 y no existia el 28/08.)*
 
 ### 3.1 🔴 Que chip es el ESP32 — **bloquea la compra y bloquea la app**
 
@@ -770,6 +971,19 @@ no se compra nada"*. **N-37 midio uno**; el otro sigue SIN VERIFICAR.
 
 ### 3.3 ✅ ~~🔴~~ Sin pantalla, sin pulsadores ~~y sin mando~~: como se opera el equipo si el ESP32 se cuelga — **DECIDIDA EL 31/08**
 
+> 🔴 **AVISO DEL 04/09, ANTES DE LEER NADA DE ESTE APARTADO: la opcion elegida NO ESTA CONSTRUIDA.**
+> El banco midio `J16` p5 y p8 en **`0,6 V` permanentes** (M3, N-118) y el mando `A`/`B` **hoy no se
+> puede pulsar**: el pin nace en `LOW`, el antirrebote lo da por consumido y no hay flanco que
+> detectar. Se puenteo en el paso 29 y **el semaforo no se inmuto**.
+>
+> **Asi que el agujero que este apartado daba por tapado sigue abierto: no hay ninguna superficie de
+> mando fisica.** La decision no era mala —era la unica opcion que no costaba nada—, pero **se tomo
+> creyendo que ya estaba construida, y no lo estaba**. Para que lo este hacen falta **dos lineas de
+> `botones.cpp`, una por punta** (Anexo, punto 5), su pack visto fallar antes, y una carga verificada.
+> Hasta entonces, **la fila que este apartado retiro de la mesa el 31/08 —*aceptar el ambar como
+> estado final y subir al gabinete*— es lo que de hecho esta pasando**, sin que nadie la haya
+> firmado.
+>
 > ✅ **DECIDIDA POR EL RESPONSABLE EL 31/08: se elige la opcion 3 de la tabla de abajo — DEJAR EL
 > MANDO DE RELES**, en los canales `A` y `B`. La tabla se conserva entera: una decision entre
 > alternativas escritas solo se puede revisar si las alternativas siguen escritas.
@@ -870,8 +1084,66 @@ el C++"*.
 
 > **Este documento no toma la decision, pero deja escrito el sesgo:** mover una funcion que
 > **funciona con firmware probado** a un conector cuya polaridad esta en contradiccion medida y que
-> reparte 12 V, para ganar prolijidad de montaje, es cambiar riesgo por estetica. Si se muda, se
-> muda **despues** de la medida M3 de la seccion A, nunca antes.
+> reparte 12 V, para ganar prolijidad de montaje, es cambiar riesgo por estetica. ~~Si se muda, se
+> muda **despues** de la medida M3 de la seccion A, nunca antes.~~
+>
+> 🔵 **ACTUALIZADO EL 04/09: M3 ya se hizo, y el sesgo cambia de forma — no de signo.** La polaridad
+> ya no esta *"en contradiccion"*: el cobre dice **activo en ALTO**, que es como el firmware de
+> camara ya lee (N-67). **Y `J16` p10 se cablo en banco y funciono** (paso 21), asi que la mudanza
+> deja de ser un salto a ciegas.
+>
+> **Lo que NO ha cambiado, y es la mitad que decide:** `p12` sigue siendo el punto del conector **mas
+> cercano a la red de 12 V** —`1,359 mm` de cobre—, `J16` p1 sigue repartiendo 12 V crudos, y
+> **ninguna entrada de campo tiene proteccion en serie** (§3.6, N-120). `J14` no reparte 12 V y
+> ademas trae antirrebote por hardware. **El sesgo sigue siendo quedarse en `PB0`/`J14`** — ahora por
+> el riesgo de los 12 V, no por la polaridad.
+
+### 3.6 🔴 NUEVA (04/09) — N-120: las entradas de campo no tienen ninguna proteccion, y hay que decidir si V2 se la pone
+
+**Dueno: el responsable.** Es una decision de diseno de placa: cuesta rediseno y no la desbloquea
+ninguna medida mas. Y es la unica de este apartado que **no** existia el 28/08: la trajo el banco.
+
+**MEDIDO en el banco del 03-04/09, y es una asimetria, no un olvido puntual:**
+
+| | cuantas | que llevan en medio |
+|---|---|---|
+| **Salidas** de campo | **9** | `220 Ohm` en serie **+ optoacoplador `TLP127`** |
+| **Entradas** de campo | **5** | 🔴 **nada.** Del borne **directo** a la pata del STM32 |
+
+Y en el mismo conector de dos de esas entradas, `J16` p1 reparte **12 V crudos** (§2.1).
+
+> **Lo que eso significa en la calle, en una frase:** la tarjeta esta blindada contra lo que ella
+> hace y desnuda contra lo que le hacen. Cualquier tension que aparezca en un borne de entrada —un
+> cruce de hilos en el armario, un cable de camara que roza `p1`, una descarga por la linea de una
+> camara que vive fuera del gabinete— entra **entera** en una pata del micro que gobierna el
+> semaforo. **La proteccion de esta placa esta toda del lado por el que no entra nada.**
+
+**La propuesta tecnica, con su cuenta hecha para que se pueda discutir el numero y no la
+sensacion — `2K2` en serie por entrada:**
+
+| | con `2K2` | por que ese numero y no otro |
+|---|---|---|
+| **Corriente inyectada** con 12 V en el borne | **3,6 mA** | por debajo de los **5 mA** por pata que admite el datasheet del STM32F103: el diodo de clamp la aguanta en vez de morirse |
+| **Nivel ALTO que ve el micro** con la camara cerrada | **2,70 V** | el `2K2` forma divisor con el pull-down de **10 kOhm** de la placa: `3,3 x 10/12,2` |
+| **Umbral `VIH`** del micro | **2,31 V** | `0,7 x VDD`. Los `2,70 V` quedan **por encima**, con margen |
+| **Con `4K7` en vez de `2K2`** | 🔴 **`2,24 V` — por DEBAJO de `VIH`** | **ya no leeria la camara.** No es *"mas proteccion, mejor"*: hay un techo, y esta cerca |
+
+**Esa ultima fila es la razon por la que esto es una decision y no una obviedad:** el margen entre
+*proteger* y *dejar de leer* es de un salto de valor de resistencia. La cuenta la fija el pull-down
+de 10 kOhm que la placa ya trae —el mismo que M3 midio—, asi que **cambiar uno obliga a recalcular
+el otro**.
+
+> **Lo que este documento NO decide, y va escrito:**
+> - **Si esto entra en V2 o se queda como esta.** Es coste de rediseno de placa contra un riesgo que
+>   nadie ha visto materializarse todavia. El dato en contra de esperar es que **ya hay una tarjeta
+>   fuera de servicio** (N-116) y la causa esta abierta.
+> - **SIN VERIFICAR: el `2K2` no se ha probado en ninguna tarjeta.** La cuenta es aritmetica sobre el
+>   datasheet y sobre el pull-down medido; **no es una medida**. Antes de mandar a fabricar, se monta
+>   sobre una entrada y se comprueba que la camara sigue leyendose.
+>
+> **Y lo que SI esta decidido y no espera a V2:** ~~tapar `p1` es una precaucion de banco~~ →
+> **tapar `p1` es obligatorio en cada equipo**, retirando el pin del conector volante. Eso no cuesta
+> rediseno, no espera a nadie y ya se hizo una vez (paso 4).
 
 ---
 
@@ -880,6 +1152,19 @@ el C++"*.
 > 🔴 **El motivo por el que esta seccion existe: hoy no hay ni una fila «VERIFICADO EN LA PLACA» en
 > todo el mapeo de la tarjeta.** `MAPEO_TARJETA_KICAD.md` §0 y §9 lo declaran, y sigue siendo cierto
 > el 28/08. Todo lo que sabemos del cobre sale de un dibujo.
+>
+> ✅ **ACTUALIZADO EL 04/09: cuatro de las cinco se ejecutaron en el banco del 03-04/09.**
+>
+> | | estado | donde |
+> |---|---|---|
+> | **M1** — cual es `J16` y cual `J17` | ✅ **HECHA** (paso 3): `J16` p1 da 12 V, `J17` p1 no | informe §3.2 |
+> | **M2** — `J17` sin 12 V, y p2/p3 = `PB7`/`PB6` | ✅ **HECHA** (paso 5): continuidad a las patas 43 y 42, **ni un pin por encima de 3,3 V** | informe §3.2 |
+> | **M3** — la polaridad de los pines de boton | ✅ **HECHA, y es la que mas cambio** (paso 20) — ver abajo | informe §3.7 |
+> | **M4** — los 12 V de `J16` p1 | ✅ **HECHA** (pasos 3 y 4): 12 V confirmados, y `p1` **retirado del conector volante** | informe §3.2 |
+> | **M5** — masa comun del ESP32 y reposo de su TX | ✅ **HECHA** (paso 23): **0 V** entre masas —por debajo del umbral de 50 mV— y `GPIO17` en **3,3 V**, no 5 V | informe §3.8 |
+>
+> **Las cinco se anotan en `MAPEO_TARJETA_KICAD.md` §9 con su fecha, que es lo que esta seccion pedia
+> desde el 28/08.** Ese fichero **no lo toca este documento** — va en la lista de la seccion B.
 
 **Las tres primeras van con la tarjeta SIN ENERGIA. Las dos ultimas con energia, y antes de unir los
 dos equipos.** Cada una se anota en `MAPEO_TARJETA_KICAD.md` §9 con la fecha, para que empiece a
@@ -912,7 +1197,34 @@ Es la medida que protege al ESP32 y a las patas 42 y 43 del `U1`.
 
 🔴 **Si aparece 12 V en cualquier posicion de `J17`, el ESP32 no se enchufa** hasta aclararlo.
 
-### M3 · La polaridad de los pines de boton — **la que desbloquea las camaras**
+### M3 · La polaridad de los pines de boton — ~~**la que desbloquea las camaras**~~ ✅ **HECHA EL 03/09. RESULTADO ABAJO**
+
+> ✅ **EJECUTADA en el paso 20 de la Guia, el 03/09/2026. El resultado es la primera columna: «la
+> placa es la del netlist».** La receta que sigue se conserva entera —no se borra una medida por
+> haberla hecho una vez: hay una segunda tarjeta, y habra mas—.
+>
+> **MEDIDO EN COBRE, conector vacio:**
+>
+> | `J16` | R a masa | R a `3,3 V` | V contra masa (con energia) | veredicto |
+> |---|---|---|---|---|
+> | p5 (`PB9`) | **9,92 kOhm** | 11,28 kOhm | 🔴 **0,6 V** | **el netlist tiene razon** |
+> | p8 (`PB13`) | **9,92 kOhm** | 11,28 kOhm | 🔴 **0,6 V** | idem |
+> | p10 (`PB14`) | **9,93 kOhm** | 11,29 kOhm | **0 V** | idem |
+> | p12 (`PB15`) | **9,94 kOhm** | 11,31 kOhm | **0 V** | idem |
+>
+> **Los cuatro dieron lo mismo, que es lo que esta seccion pedia comprobar** —y aqui *«lo mismo»* no
+> es el resultado tranquilizador que parece: significa que **la placa trata igual a los cuatro** y
+> por tanto el firmware **no** puede leer dos de ellos al reves de los otros dos. Los `0,6 V` de p5 y
+> p8 contra los `0 V` de p10 y p12 son la huella del pull-up interno que `botones.cpp` activa **y que
+> no deberia activar**.
+>
+> **La fila «~0,66 V» de la tabla de interpretacion de mas abajo es la que se cumplio.** Ver §2.2 y
+> la revision del 03-04/09 de la cabecera para lo que eso decide: 🟢 camara desbloqueada · 🔴 mando
+> `A`/`B` inoperante (N-118).
+>
+> ⚠️ **Lo que M3 NO midio, y no se da por medido:** el voltaje de p5/p8 **con el puente puesto**. Ese
+> dato es el que faltaba del paso 29 y se perdio con el incidente de N-116. Sigue pendiente, **y no
+> sobre la tarjeta Maestro** mientras siga con el corto.
 
 Es la medida que cierra la contradiccion de §2.2. Sin ella no se cablea camara a `J16`.
 
@@ -1170,14 +1482,16 @@ permiso.
 
 | | |
 |---|---|
-| **Nada del cobre** | ni una fila «VERIFICADO EN LA PLACA». Todo el hardware de aqui es netlist y esquematico |
-| **El chip que llego a obra** | nadie ha leido la serigrafia (§3.1). **Es lo mas barato y lo mas bloqueante de la lista** |
-| **El pico de 500 mA del ESP32** | ESCRITO en el Manual 15, no medido sobre el modulo real |
-| **Que el enlace `J17` funcione** | `13_Manual...:99` lo dice mejor de lo que se puede decir aqui: *"tampoco esta verificado en banco el enlace Bluetooth sobre `J17` p2/p3: la compuerta paso, y la compuerta no toca la tarjeta"* |
-| **El `Y2` de la segunda tarjeta** | N-37 midio uno. El otro sigue sin diagnosticar (`ESTADO.md` `B5`) |
-| **Que las camaras funcionen en `PB14`/`PB15`** | esos dos pines **nunca han tenido una camara conectada**. `ESTADO.md`, fila `BANCO`: *"nadie ha cableado nunca esos pines"* |
-| **El firmware del ESP32** | **no existe**. No hay driver de `DS3231` en ninguna punta —medido el 28/08 con `grep -rniE "DS3231\|Wire\.\|0x68"`, `13_Manual...:56`— ni codigo de ESP32 para esta funcion |
-| **La regresion N-42** | el Modo Automatico no mueve las luces en banco, y **sigue abierta** (`ESTADO.md` `B2`). Es anterior a esta arquitectura y no se cierra con ella |
+| ~~**Nada del cobre**~~ → **casi nada del cobre** | ✅ **el banco del 03-04/09 dejo las primeras filas medidas**: `J16` p5/p8/p10/p12, `J17` p2/p3 y sus tensiones, `J14`, `J15` y las masas del modulo. **Todo lo demas de esta tarjeta sigue siendo netlist y esquematico** |
+| ~~**El chip que llego a obra**~~ | ✅ **CERRADO: `ESP32-WROOM-32` clasico**, BR/EDR + BLE. Era lo mas barato y lo mas bloqueante, y ya no bloquea |
+| **El pico de 500 mA del ESP32** | ESCRITO en el Manual 15, no medido sobre el modulo real. 🔴 **Y sigue sin medirse por un motivo nuevo: en banco el modulo se alimento por USB, no por la fuente `12 V -> 5 V` de la placa definitiva** (paso 22, parcial) |
+| ~~**Que el enlace `J17` funcione**~~ | ✅ **el enlace fisico SI:** continuidad a las patas 42/43, masa comun por debajo de 50 mV, `GPIO17` en 3,3 V y el montaje definitivo encendido sin calentamiento ni reinicios (pasos 5, 23 y 24). 🔴 **Lo que sigue sin verificarse es que por ese enlace hable alguien**: el Bluetooth no subio en toda la sesion (N-117 / N-122, arreglados **sin banco**) |
+| **El `Y2` de la segunda tarjeta** | N-37 midio uno. El otro sigue sin diagnosticar (`ESTADO.md` `B5`). 🔴 **Y el paso 27 —«el reloj conserva la hora»— quedo BLOQUEADO**: la unica via de consultar el `DS3231` es `SET_RTC` por Bluetooth, que no subio |
+| ~~**Que las camaras funcionen en `PB14`/`PB15`**~~ | 🟡 **a medias, y hay que decir cual mitad.** ✅ **el cableado si**: `p10` cablado contra `p11` en normalmente abierto, `0 V` en reposo, **sin demandas fantasma con cable y sin el** (pasos 20 y 21). 🔴 **La concesion de paso NO**: depende del Modo Automatico, que no se pudo seleccionar sin app |
+| **El firmware del ESP32** | ~~**no existe**~~ → **existe, compila y se cargo sin errores** (`01_Firmware/ESP32_Expansion/`), con su `DS3231` por `GPIO21`/`GPIO22`. 🔴 **Lo que no esta demostrado es que funcione**: el modulo no se anuncio de forma fiable en el telefono en toda la sesion |
+| **La regresion N-42** | el Modo Automatico no mueve las luces en banco, y **sigue abierta**. 🔴 **El banco del 03-04/09 NI la confirmo NI la descarto** —el equipo nunca llego a operar, porque se queda esperando seleccion de modo y la app no conecto—. **Un ABORTADO no es un PASS**: sigue siendo lo primero de la proxima sesion |
+| 🔴 **La causa de N-116** | la tarjeta Maestro tiene un corto entre `3,3 V` y `GND` **medido**, y **la causa esta abierta**. El firmware queda descartado por censo —ninguna de las 9 salidas toca un pin de `J16`—, y eso **no nombra a nadie mas** |
+| 🔴 **Que el mando `A`/`B` funcione con la polaridad corregida** | la correccion de `botones.cpp` **no esta escrita ni cargada**, y el unico intento de pulsarlo acabo en el incidente de N-116. **Nadie ha visto nunca a este equipo obedecer un `A·A·A`** |
 
 > 🛑 **La compuerta del 28/08 salio con `15 PASS | 0 FALLA | 0 ABORTADO` y eso no autoriza nada de
 > este documento.** Lo dice el acta y lo dice `CLAUDE.md` §3: ese `0` significa que *los modelos y
@@ -1216,12 +1530,21 @@ Se conservan tachados: una tarea que desaparece en silencio se vuelve a pedir.**
 4. **La telemetria fabricada:** `BAT:12.6` en las dos puntas, y `RF:98%` / `RTT:85ms` /
    `MODO:SUBORDINADO` en el Esclavo. Se retiran o se marcan; no se dejan con aspecto de medida
    (§2.6). Y el campo `T:` no es tiempo de fase — el comentario de `bluetooth.cpp:241` dice que si.
-5. **La polaridad de `botones.cpp`** en las dos puntas, si M3 dice que el netlist tiene razon
+5. **La polaridad de `botones.cpp`** en las dos puntas, ~~si M3 dice que el netlist tiene razon~~
    (§2.2). Con su pack, como N-67 tuvo el suyo. 🔴 **Y desde el 31/08 esto SUBE de prioridad, no
    baja:** con los pulsadores 3 y 4 retirados, `PB9` y `PB13` dejan de ser *"pines que se van"* y
-   pasan a ser **las dos entradas del unico mando fisico que queda** (§3.3). Si M3 dice que el
+   pasan a ser **las dos entradas del unico mando fisico que queda** (§3.3). ~~Si M3 dice que el
    netlist tiene razon, el mando esta leyendo al reves **la superficie de ultimo recurso del
-   equipo**.
+   equipo**.~~
+   > 🔴 **YA NO ES UN CONDICIONAL — 04/09. M3 lo dijo: el netlist tiene razon, y el mando esta
+   > leyendo al reves la superficie de ultimo recurso del equipo (N-118).** Esto pasa de *"punto 5 de
+   > un anexo"* a **el arreglo de firmware con nombre y sitio**: `pinMode(INPUT)` pelado y deteccion
+   > contra `HIGH` para `MANDO_A` y `MANDO_B`, en las **dos** puntas, exactamente como se hizo con la
+   > camara en N-67. **Y su pack primero, visto fallar sobre el firmware de hoy** (`CLAUDE.md`
+   > §8.bis): hoy el pack tiene que poder acusar a `botones.cpp`, o el arreglo entra sin testigo.
+   >
+   > ⚠️ **Y no se carga en una tarjeta con un corto** (N-116). El arreglo se escribe ya; se prueba
+   > sobre la tarjeta que esta sana.
 6. **`VERDE_MIN_MIN`** (`modo_automatico.cpp:31`) cuando llegue el numero, **atado a la app** en el
    mismo commit (N75-1 y N75-2, §3.4).
 7. **Comentarios que ya mienten:** `Esclavo/src/main.cpp:399` dice *"cae a C_FALLO en ~12,5 s"* con
@@ -1249,6 +1572,13 @@ Se conservan tachados: una tarea que desaparece en silencio se vuelve a pedir.**
 
 ---
 
-*Escrito el 28/08/2026. Todo lo marcado MEDIDO se puede repetir abriendo el fichero y la linea que
-se cita. Lo marcado ESCRITO tiene su fuente al lado. Lo marcado SIN VERIFICAR no lo ha comprobado
-nadie — ni aqui ni en ningun otro sitio de este repositorio.*
+*Escrito el 28/08/2026. Revisado el 31/08/2026 y el 04/09/2026. Todo lo marcado MEDIDO se puede
+repetir abriendo el fichero y la linea que se cita; lo marcado **MEDIDO EN COBRE** se puede repetir
+con un multimetro, y trae el numero que dio. Lo marcado ESCRITO tiene su fuente al lado. Lo marcado
+SIN VERIFICAR no lo ha comprobado nadie — ni aqui ni en ningun otro sitio de este repositorio.*
+
+> **Y la unica frase de este documento que el 04/09 vale mas que el 28/08:** durante meses lo que
+> sabiamos del cobre salia de un dibujo, y este documento lo decia en cada pagina. **Tres dias de
+> banco cerraron cuatro medidas, resolvieron una contradiccion que se daba por indecidible, abrieron
+> una decision de diseno que nadie habia planteado y dejaron una tarjeta fuera de servicio.**
+> Ninguna de esas cuatro cosas la habria producido otra pasada de lectura.

@@ -10,12 +10,53 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 | **Pantalla LCD ST7920** | 🛑 **SE RETIRA (28/08/2026)** | No se lee desde el suelo. Sus pines `PB6`/`PB7` (conector `J17`) pasan al módulo Bluetooth. Ver §3 y §8 |
 | **Botonera de `J16`** | ⚠️ **SE PARTE EN DOS (31/08/2026)** | ~~*Se queda en AMBOS, botones 1 a 4*~~ → **quedan 2 pulsadores** (`PB9` p5 y `PB13` p8, mando `A`/`B`); **`PB14` p10 y `PB15` p12 pasan a CÁMARAS**. Ver §3 y §6 |
 | **Cámaras IA de demanda (1 y 3)** | ✅ **1 en Maestro + 1 en Esclavo** | Contacto seco `1A`/`1B` en `PB0`. Operativas. Ver §7 |
-| **Cámaras IA en `J16` (`C` y `D`)** | 🟢 **YA ESTÁN EN EL FIRMWARE (31/08)** | `CAM_C_PIN` = `PB14`, `CAM_D_PIN` = `PB15`. **`INPUT` pelado, activo en ALTO.** ⚠️ **No se cablean hasta la medida `M3`.** Ver §7 |
+| **Cámaras IA en `J16` (`C` y `D`)** | 🟢 **YA ESTÁN EN EL FIRMWARE (31/08)** | `CAM_C_PIN` = `PB14`, `CAM_D_PIN` = `PB15`. **`INPUT` pelado, activo en ALTO.** ⚠️ **No se cablean hasta la medida `M3`** ni antes de **tapar `J16` p1 (12 V crudos)** — obligatorio desde N-120. Ver §7 |
+| **Talanquera de barrera (`J15`)** | ✅ **PROBADA EN COBRE (04/09)** y **bien diseñada** | `PB2` → `R70` 220 Ω → `U15` (`TLP127`, **aísla**) → `R72` 220 Ω → puerta de `Q10` (`IRLZ44N`) → `J15`. ⚠️ El diodo de rueda libre `D30` es un `1N4148` y **queda corto para un motor real** — va a la V2. Ver §10 |
 | ~~**Cámaras IA de umbral (2 y 4)**~~ | 🛑 **NO SE INSTALAN EN `PB8`** | **`PB8` NO es entrada de cámara:** alimenta el LED testigo `D5` por `R16` de 1 kΩ. Se renombró a `LED_TESTIGO` (`pines.h:63`) y **`CAM_UMBRAL_PIN` ya no existe en el fuente** — N-64. Ver §7 |
 | **Módulo de expansión ESP32** | 🟢 **IDENTIFICADO Y CON FIRMWARE (31/08)** | `ESP32-WROOM-32` clásico (**BT v4.2 BR/EDR → hay SPP**) por **`J17`** p2/p3 = `PB7`/`PB6` (`USART1` **remapeado**), p6 = 3,3 V, p7 = GND. **Sustituye al módulo SPP discreto** y trae el reloj `DS3231` con pila propia. ⛔ **`J16` NO es `J17`: lleva 12 V.** Ver §8 |
 | **Mando de 4 Relés Anti-Colisión** | ⚠️ **SE CONSERVA, sobre 2 canales** | ~~*Cableado en paralelo con `PB9`..`PB15`*~~ → **solo `A` (`PB9`) y `B` (`PB13`)**. `C` y `D` se retiran. **Las tres secuencias siguen funcionando.** Ver §6 |
 
 > 📱 **El Módulo Bluetooth en el Esclavo resuelve la operación desde el suelo:** Gracias al módulo Bluetooth de diagnóstico estándar Baliza instalado en el Esclavo (`USART1` por `J17`), el operario puede consultar el estado, ver alarmas y operar el Esclavo desde el celular sin necesidad de subir al poste a 5 metros de altura.
+
+---
+
+> # ⛔ 03–04/09/2026 — DOS COSAS QUE PARAN EL TRABAJO. LÉASE ANTES DE ENERGIZAR NADA
+>
+> **Esto sale de la sesión de banco del 3–4/09, con las tarjetas en la mano.** No es análisis de
+> escritorio: el punto 1 se **midió con el multímetro** sobre la tarjeta Maestro, el punto 2 se **leyó
+> del `.kicad_pcb`** —el fichero de cobre, no el esquemático— y el punto 3 se **ejercitó sobre la
+> tarjeta**.
+>
+> ### 1. 🛑 LA TARJETA MAESTRO TIENE UN CORTO ENTRE EL RIEL DE 3,3 V Y MASA — **NO LA REENERGICE**
+>
+> **Medido.** La tarjeta funciona **unos 30 s** al alimentarla, **se calienta y se para**. **No se
+> vuelve a energizar «a ver si pasa»**: cada minuto extra con un corto alimentado es lo que convierte
+> un componente averiado en varios. **El firmware queda descartado por censo** — no se arregla
+> cargando nada.
+>
+> **Procedimiento completo en §9.** No empiece por desoldar: el primer paso es gratis.
+>
+> ### 2. 🔴 LAS 5 ENTRADAS DE CAMPO VAN **DESNUDAS** AL PIN DEL STM32, Y `J16` p1 LLEVA 12 V CRUDOS
+>
+> Leído del `.kicad_pcb` (N-120). La tarjeta **no protege sus entradas como protege sus salidas**:
+>
+> | | protección en serie |
+> |---|---|
+> | Las **9 salidas** de la placa | ✅ **220 Ω + optoacoplador `TLP127`** — p. ej. `PA0` (`/S1`) → `R19` 220 Ω → `U6` `TLP127` → potencia |
+> | Las **5 entradas de campo** (`PB0`, `PB9`, `PB13`, `PB14`, `PB15`) | 🔴 **NADA.** Van directas al pin del micro |
+>
+> **Consecuencia inmediata y sin discusión:** tapar físicamente `J16` p1 —los 12 V— deja de ser una
+> precaución de banco y pasa a ser **OBLIGATORIO en cada equipo, antes de enchufar nada en ese
+> conector**. Detalle, cuentas y la propuesta para la V2 en **§7**.
+>
+> ### 3. ✅ Y lo que SÍ funcionó en cobre, que también es dato
+>
+> El banco cerró en **24/29**. Funcionaron sobre la tarjeta real: la **carga por SWD al primer
+> intento y sin `BOOT0`**, la **radio** —caída a ámbar en ~20 s y vuelta en ~3 s—, la **talanquera de
+> `J15`**, la **cámara de `J14`**, la **masa común a 0 V**, y quedó **resuelta la identidad de `J17`**
+> (es el UART del módulo ESP32, **no** la pantalla que dice el netlist — ver §8).
+>
+> **Lo que esto NO es:** un permiso de carga a campo. En campo sigue corriendo la V8.4.
 
 ---
 
@@ -374,6 +415,16 @@ dedicadas para él (ver §6).
 > **Se exige la carga verificada en la tarjeta, no el merge.** Y **no se cablea cámara a `J16` hasta
 > la medida `M3`** de `05_Funcional/17_Arquitectura...` §2.2.
 
+> 🔴 **04/09 (N-120) — y por debajo de la polaridad hay algo que la polaridad no arregla: `PB14` y
+> `PB15` van DESNUDOS al pin del micro.** Leído del `.kicad_pcb`: entre la posición de `J16` y la
+> pata del STM32 **no hay ni resistencia en serie ni optoacoplador** — lo que sí tienen las nueve
+> salidas de la placa. El `10 kΩ` y el `100 nF` de esas entradas están **en PARALELO a masa**: fijan
+> el reposo, que es lo útil contra el pin flotante, pero **no limitan corriente**.
+>
+> **Con `J16` p1 a 12 V crudos a nueve posiciones de p10, eso convierte un hilo mal puesto en un pin
+> del micro a 12 V.** Tapar p1 es **obligatorio**, no recomendable. Las cuentas y la propuesta para
+> la V2 están en **§7**; aquí basta con la instrucción de montaje.
+
 ### Las dos unidades tienen interfaz, pero menús distintos — 📕 HISTÓRICO (hasta el 28/08)
 
 > **Esta tabla describe el equipo CON pantalla.** Se conserva porque el menú sigue en el binario y
@@ -426,6 +477,11 @@ Siga estos pasos al pie de la letra para compilar y flashear el firmware en las 
 > calcular exactamente lo mismo a partir de la hora. **Flashear versiones distintas en cada punta
 > puede romper la fase sin ningún aviso en pantalla** — cada unidad creería estar en lo correcto.
 > Anote la versión y el commit cargados en cada tarjeta.
+
+> ✅ **03/09 — medido en banco: la carga por SWD entró al PRIMER INTENTO y SIN tocar `BOOT0`.** El
+> truco del RESET del paso 4 queda como **recurso si falla**, no como parte del procedimiento: si
+> hace falta recurrir a él de entrada, lo que hay que sospechar es el cable o la alimentación de la
+> tarjeta, no el chip.
 
 ---
 
@@ -717,10 +773,69 @@ Para detección vehicular por demanda en obra vial (analítica embebida sin comp
 >    revés que el de botón, así que coincide con el netlist—: hoy es la **confirmación que parametriza
 >    la cámara**, y se hace **antes** de cablear.
 > 2. **`J16` p1 lleva 12 V CRUDOS** —sin opto, sin serie, sin clamp— a nueve posiciones de p10 y once
->    de p12. **Se tapa físicamente antes de enchufar nada.**
+>    de p12. ~~**Se tapa físicamente antes de enchufar nada.**~~ → **04/09: tapar p1 es OBLIGATORIO en
+>    cada equipo, no una precaución de banco.** El motivo del ascenso está en el bloque de abajo
+>    (N-120): las entradas no tienen **nada** que limite lo que entra por ellas.
 >
 > *(La salida de alarma de la AcuSense es configurable NO/NC, así que se elige qué estado significa
 > demanda **sin tocar placa ni firmware**.)*
+
+> ## 🔴 04/09 (N-120) — LA PLACA PROTEGE SUS SALIDAS Y **NO** PROTEGE SUS ENTRADAS
+>
+> **Leído del `.kicad_pcb`, red por red.** No es una impresión ni una lectura de esquemático: es el
+> fichero de cobre.
+>
+> ### Las 9 salidas van blindadas
+>
+> Cada una lleva **220 Ω en serie + optoacoplador `TLP127`**. Cadena completa de ejemplo:
+>
+> ```text
+>    PA0  (/S1)  ->  R19  220 Ω  ->  U6  TLP127  ->  etapa de potencia
+> ```
+>
+> El opto **aísla galvánicamente**: pase lo que pase en el lado de potencia, no hay camino de
+> corriente hacia el micro.
+>
+> ### Las 5 entradas de campo van DESNUDAS
+>
+> | entrada | llega desde | protección en serie |
+> |---|---|---|
+> | `PB0` | `J14.1` | 🔴 **NADA** |
+> | `PB9` | `J16.5` | 🔴 **NADA** |
+> | `PB13` | `J16.8` | 🔴 **NADA** |
+> | `PB14` | `J16.10` | 🔴 **NADA** |
+> | `PB15` | `J16.12` | 🔴 **NADA** |
+>
+> ⚠️ **El `10 kΩ` y el `100 nF` de esas entradas NO son protección: están en PARALELO a masa.** Fijan
+> el **nivel de reposo** —que es lo que evita el pin flotante y las demandas fantasma— pero **no
+> limitan corriente**. Un componente en paralelo no frena lo que entra por su mismo nudo.
+>
+> **Qué le hace esto a `M3`:** el `.kicad_pcb` dice que la resistencia a masa de `PB14`/`PB15`
+> **existe en cobre**, que era la duda que `M3` tenía que despejar. **No la cierra** —esto sigue
+> siendo lectura de fichero y `M3` es punta sobre la placa—, pero cambia lo que `M3` va a buscar: ya
+> no *«¿hay pull-down?»* sino *«¿el que hay está bien puesto?»*.
+>
+> ### ⛔ Lo que obliga HOY, en cada equipo montado
+>
+> `J16` p1 lleva **12 V crudos** y está a **nueve posiciones de p10** y **once de p12**. Con la
+> entrada desnuda, un hilo desplazado no da una lectura rara: **pone 12 V en una pata del STM32**.
+>
+> **Se tapa físicamente `J16` p1 antes de enchufar nada en ese conector. En todos los equipos, no
+> solo en el de banco.**
+>
+> ### 🟡 La propuesta para la V2 — es una CUENTA, no una decisión tomada
+>
+> | | valor | contra qué se compara |
+> |---|---|---|
+> | Resistencia en serie propuesta | **`2K2` por entrada** | — |
+> | Corriente de inyección resultante | **3,6 mA** | por debajo de los **5 mA** del datasheet ✅ |
+> | Nivel alto que quedaría en el pin | **2,70 V** | por encima de los **2,31 V** de `VIH` ✅ |
+> | Si se sube a **`4K7`** | — | 🛑 **ya no leería la cámara** |
+>
+> **Esto NO está decidido y este manual no lo decide.** Es la cuenta puesta delante de quien firme la
+> placa, con las dos cotas —lo que hace falta para que siga leyendo la cámara y lo que hace falta
+> para no pasarse del límite del micro— para que la decisión se tome con números y no con criterio.
+> Mientras tanto, lo que protege es la cinta sobre p1.
 
 > ## ✅ 31/08 — `PB8` NO ES, NI FUE NUNCA, UNA ENTRADA DE CÁMARA (N-64)
 >
@@ -768,7 +883,13 @@ Desde el 28/08 esto **no es un accesorio de diagnóstico: es la interfaz del equ
 > | | qué es | **posición 1** |
 > |---|---|---|
 > | **`J16`** | conector de la **BOTONERA** | 🔴 **`12 V`** |
-> | **`J17`** | conector de la **PANTALLA** — **el suyo** | `CS` (señal, no alimentación) |
+> | **`J17`** | ~~conector de la **PANTALLA**~~ → **el UART del módulo ESP32** — **el suyo** | `CS` (señal, no alimentación) |
+>
+> > ✅ **04/09 — la identidad de `J17` quedó RESUELTA en banco, y por eso se tacha lo anterior.**
+> > `J17` **es el puerto serie del módulo de expansión ESP32**, no una pantalla. El netlist lo sigue
+> > llamando *LCD* porque **quedó desactualizado el día que se retiró el display** (28/08) y nadie
+> > volvió a tocarlo. El cableado de esta sección **no cambia** —siempre describió los pines
+> > correctos—; lo que cambia es cómo se llama el conector cuando alguien lo busque en el netlist.
 >
 > **`J16` es el único conector de señal de esta tarjeta que trae 12 V.** El módulo Bluetooth es de
 > **3,3 V**. Confundirlos **lo quema**, y no hay aviso previo: se enchufa, se energiza y se acabó.
@@ -784,6 +905,12 @@ Desde el 28/08 esto **no es un accesorio de diagnóstico: es la interfaz del equ
 > ⚠️ **Y cuente los pines DESDE EL PIN 1, no desde el borde del conector.** El símbolo de `J17` en
 > el esquema tiene **13 posiciones** y el footprint de la placa tiene **16**: si cuenta desde el
 > borde, todo el mapa se desplaza tres posiciones. Lo mismo en `J16` (símbolo 12, footprint 16).
+>
+> 🔴 **04/09 — y hay un motivo nuevo para contar bien: en estos dos conectores el 3,3 V y la masa
+> están ALTERNADOS.** Leído del netlist: `J16` saca **3,3 V en p4, p7, p9 y p11** con **GND en p2**;
+> `J17` saca **3,3 V en p6 y p8** con **GND en p7 y p9**. **Un puente corrido UNA sola posición pone
+> el riel de 3,3 V contra masa** — que es exactamente el candidato físico del corto de la tarjeta
+> Maestro (**§9**). Si va a puentear algo aquí, cuente dos veces y mida antes de energizar.
 
 ### El cableado
 
@@ -893,4 +1020,107 @@ Trazado red por red sobre el esquemático (`Controladora_Semaforos.kicad_sch`):
 > El `RF:98%` del Esclavo se emite igual con la antena desconectada. **No use esos campos para
 > juzgar el enlace del Esclavo ni la batería de ninguna de las dos puntas**, y no los apunte en un
 > acta como si fueran medidas.
+
+---
+
+## 9. 🩺 EL CORTO DE 3,3 V DE LA TARJETA MAESTRO (N-116) — cómo se diagnostica
+
+> # ⛔ NO REENERGICE LA TARJETA «A VER SI PASA»
+>
+> **Síntoma medido el 03–04/09, con la tarjeta en la mano:** alimentada, la Maestro **funciona unos
+> 30 s**, **se calienta** y **se para**. Hay **continuidad medida entre el riel de 3,3 V y masa**.
+>
+> Cada reenergizada mete más energía en el punto que ya se está calentando. Un corto que hoy es un
+> componente se vuelve tres si se insiste. **La tarjeta se diagnostica en frío.**
+
+**Lo que ya está descartado, para que nadie lo vuelva a intentar:**
+
+* 🛑 **El firmware. Descartado por censo.** Un corto entre riel y masa es cobre o componente: **ningún
+  binario lo provoca y ninguno lo arregla.** No gaste una carga en esto.
+* 🛑 **Cambiar piezas por sospecha.** Este proyecto ya pagó una vez por ahí —se mandó a cambiar `Y2`,
+  la pila y `R5` sin haber medido ninguno de los tres—. Primero la medida, después la pieza.
+
+### La escalera de diagnóstico — de lo gratis a lo caro. No se salta un peldaño
+
+#### Peldaño a) — **gratis, y es el primero:** desenchufe los cinco conectores
+
+**`J14`, `J15`, `J16`, `J17` y `J2`.** Los cinco **sacan el riel de 3,3 V fuera de la placa**. Con la
+tarjeta **sin alimentación**, vuelva a medir continuidad entre 3,3 V y masa:
+
+| resultado | qué significa | qué se hace |
+|---|---|---|
+| **El corto DESAPARECE** | 🟢 **la placa está bien** | el corto está en lo que colgaba de esos conectores — revíselo antes de volver a enchufar |
+| **El corto SIGUE** | 🔴 está **dentro** de la placa | pase al peldaño b) |
+
+#### Peldaño b) — si sigue, se sustituye **por orden de coste**, no por corazonada
+
+| orden | qué | referencias |
+|---|---|---|
+| 1 | cerámicos de desacoplo de 100 nF | `C1` `C2` `C3` `C4` `C10` `C11` |
+| 2 | condensador de 10 µF | `C15` |
+| 3 | regulador de 3,3 V | `U5` (`LM1117DT-3.3`) |
+| 4 | transceptores RS485 | `U2` / `U3` (`MAX3485`) |
+| 5 | 🛑 **el STM32 — EL ÚLTIMO** | — |
+
+**El orden no es capricho:** un cerámico en corto es lo más frecuente y lo más barato de sustituir; el
+micro es lo más caro, lo que peor se desuelda y lo que menos suele fallar. Empezar por el final es
+tirar la tarjeta para arreglar un condensador de céntimos.
+
+#### Peldaño c) — discriminar **SIN DESOLDAR**
+
+**Inyecte 3,3 V con una fuente limitada a ~200 mA** en el riel y **busque qué componente calienta**.
+El que conduce es el que se calienta, y así se localiza la pieza antes de tocar el soldador.
+
+⚠️ **La limitación de corriente no es opcional:** es lo único que impide que el diagnóstico se
+convierta en la segunda avería.
+
+### 🔎 El candidato físico, leído del netlist
+
+| conector | 3,3 V en | GND en |
+|---|---|---|
+| **`J16`** | p4, p7, p9, p11 | p2 |
+| **`J17`** | p6, p8 | p7, p9 — **alternados** |
+
+En el **paso 29** de la guía de banco se puenteaban `J16` **p5** y **p8** contra masa (**p2**). Y
+**`p4` es ADYACENTE a `p5`**, igual que **`p7` lo es de `p8`**: **un puente corrido UNA sola posición
+pone el riel de 3,3 V directamente contra masa.**
+
+> **Esto es un candidato, no un veredicto.** No demuestra que fuera lo que ocurrió — el peldaño a) lo
+> confirma o lo descarta en un minuto y sin desoldar nada. Se escribe aquí por dos razones: para que
+> quien repita el paso 29 lo haga sabiéndolo, y para que la hipótesis quede anotada y no se vuelva a
+> proponer dentro de un mes como si fuera nueva.
+
+---
+
+## 10. 🚧 La talanquera de `J15` — **probada en cobre y BIEN DISEÑADA**
+
+> **Se sospechó de ella y la sospecha era FALSA.** Se deja escrito precisamente por eso: una sospecha
+> que se cae en silencio vuelve a proponerse al mes siguiente, y la segunda vez ya nadie recuerda que
+> se comprobó.
+
+Cadena completa, leída del `.kicad_pcb`:
+
+```text
+   PB2  ->  R70 220 Ω  ->  U15  TLP127  ->  R72 220 Ω  ->  puerta de Q10 (IRLZ44N)  ->  J15
+                           [  A Í S L A  ]                        D30 al riel de 12 V
+```
+
+* **`U15` es un `TLP127`: aísla galvánicamente.** La etapa de potencia **no puede inyectar corriente
+  al micro**, pase lo que pase del lado del motor. Es exactamente lo contrario de lo que ocurre con
+  las cinco entradas de campo (**§7**): aquí la barrera existe y está bien puesta.
+* **En banco, el 04/09, la talanquera funcionó por `J15`.**
+
+### ⚠️ Pero hay un hallazgo real, y va a la V2: `D30` está infradimensionado
+
+**`D30` es un `1N4148` (200 mA)** haciendo de **diodo de rueda libre** de una salida de **motor**
+gobernada por un **`IRLZ44N`**. Un motor real devuelve al abrir bastante más de 200 mA por esa vía.
+
+| | |
+|---|---|
+| Lo que **NO** pasa | 🟢 **el STM32 no corre peligro** — `U15` lo aísla. Ese es el mérito del diseño y por eso se dice arriba |
+| Lo que **SÍ** pasa | 🔴 el retorno inductivo se lleva **`D30`**, y detrás **`Q10`** |
+
+**Va a la V2 como cambio de componente**, no como parche de campo: es un diodo, no una decisión de
+arquitectura. Mientras tanto la talanquera funciona — lo que no conviene es darla por eterna en cuanto
+se le cuelgue un motor grande.
 
