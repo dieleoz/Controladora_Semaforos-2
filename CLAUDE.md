@@ -82,6 +82,61 @@ segunda mitad — **cuando el verde cuesta más que lo que certifica, el verde E
 
 ---
 
+## 2.ter DECLARAR NO ES EJERCER — por qué el banco pasó con cinco defectos dentro
+
+> **La pregunta del 04/09, y hay que contestarla bien porque es la que más vale: si el banco corrió
+> el 3-4/09 y paró por cinco defectos, ¿cómo estaba la compuerta en `20/20` y `963/963`?**
+
+No fue suerte, ni un hueco casual. **Los cinco vivían en el mismo sitio: la distancia entre algo
+DECLARADO y ese algo EJERCIDO.** Y en cada caso había un instrumento verde mirando la declaración.
+
+| | lo declarado | lo que nadie ejercía |
+|---|---|---|
+| **N-125** | los permisos de Bluetooth, en `AndroidManifest.xml` | que alguien los **pidiera en runtime**. En Android 12+ un permiso peligroso no concedido se comporta **igual que uno que no existe** |
+| **N-122** | `conectarNativoSPP()` escrita entera, con su `connect()` dentro | que **alguien la llamara**. Cero llamadores |
+| **N-124** | dos `data-mac` en el HTML | que ese MAC **fuera el de un equipo real**. Era el de un `HC-05` retirado el 28/08 |
+| **N-118** | `BOTON1`/`BOTON2` con su `pinMode` y su lectura | que la **polaridad casara con el cobre**. La placa pide ALTO; el fuente leía BAJO |
+| **N-117** | `ESP32_ARRANQUE_MS` y la desigualdad del watchdog | que alguien **cronometrara el arranque**. `ESP32_ARRANQUE_MEDIDO = 0`, y lo dice el propio fichero |
+
+**Es la misma forma que este repositorio ya conocía en pequeño** —`CAM_UMBRAL_PIN` con `pinMode()` y
+sin `digitalRead()`, la Caja Negra de N-73 documentada en cuatro manuales y sin un llamador— pero
+aquí aparece **cinco veces en un día y en cinco lenguajes distintos**: XML, JavaScript, HTML, C++ y
+una constante. No es un descuido de alguien: es un **hueco de método**.
+
+### Y la segunda mitad, que es peor: el instrumento verde tenía una FRASE debajo
+
+En tres de los cinco, el pack **no fallaba porque una frase escrita al lado lo justificaba** — y esa
+frase era falsa o media verdad. Nadie la comprobó nunca, porque las frases no se compilan.
+
+| | la frase que sostenía el verde | qué pasaba de verdad |
+|---|---|---|
+| **N-118** | *«A y B van contra masa; invertirlos deja el mando pulsado en permanencia»* | **al revés.** Hay **una sola masa** en todo `J16` (p2); un contacto por botón contra masa necesitaría una masa por botón |
+| **N-122** | `BluetoothDriver` en `HUERFANOS_CONOCIDOS`: *«app.js habla por `window.bluetoothSerial`»* | **medio cierto.** Usa `write`, `subscribe` y `list`… y **no `connect`**, que es la que hace funcionar a las otras tres |
+| **N-118** | *«hay evidencia de banco de que el menú se navega»* | **no existe.** Lo que se citaba como tal es un **protocolo** —un plan de pruebas—, no un resultado |
+
+> 🔴 **La regla, y vale más que cualquier pack nuevo: cuando un instrumento está verde porque una
+> EXCEPCIÓN lo justifica, el instrumento de verdad es la frase de esa excepción — y no la comprueba
+> nadie.** Una lista de excepciones con motivos sin verificar es **una lista de defectos con
+> permiso**, y envejece peor que el código, porque el código al menos se recompila.
+
+### Qué hacer con esto, que no es escribir más packs
+
+**No.** El 2,31 : 1 sigue ahí, y cuatro de los cinco defectos **no se pueden ver desde el PC** —una
+corriente, un permiso del sistema operativo, un MAC de un módulo, un tiempo de arranque—. Un pack
+más habría dado verde igual.
+
+1. **Al escribir una excepción, su motivo se mide, no se redacta.** Es una afirmación sobre el
+   código: o se comprueba, o no se escribe.
+2. **Al heredar una excepción, se vuelve a medir su motivo.** Las tres de arriba llevaban meses.
+3. **Un `20/20` responde «los modelos y arneses de PC no encuentran nada».** El 04/09 dio el
+   contraejemplo que faltaba: **los tres defectos que pararon el banco pasaron esas 20
+   comprobaciones sin despeinarlas**, porque ninguno es una propiedad del fuente. *Verde no es
+   entregable* dejó de ser una advertencia y pasó a ser un hecho con fecha.
+4. **Lo que cierra esta clase de hueco es la tarjeta**, no el instrumento. El banco encontró en dos
+   días lo que 34.532 líneas no vieron en cinco semanas.
+
+---
+
 ## 3. La compuerta, antes y después
 
 ```
