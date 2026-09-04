@@ -63,8 +63,19 @@ Este documento recopila los puntos clave de diseño funcional y operativo acorda
 
    **No existe secuencia para Modo Manual.** El mando **se conserva** sobre los canales `A` (`PB9`)
    y `B` (`PB13`); `C` y `D` se retiraron porque sus pines pasaron a cámaras, y **ninguna secuencia
-   los usaba**. ⚠️ **El receptor RF no se ha comprado en ninguna punta**, así que hoy no hay con qué
-   generar los pulsos. La inhibición durante la navegación de la LCD sigue en el firmware, pero **ya
+   los usaba**. ⚠️ **El receptor RF no se ha comprado en ninguna punta**, así que ~~hoy no hay con qué
+   generar los pulsos~~ **hoy no hay con qué generarlos POR RADIO desde el piso** — en banco se
+   generan con un cable, y el gesto está medido (`N-118`, `346ea5f`):
+
+   🛑 **`J16` p5 contra p4** (canal `A`) y **`J16` p8 contra p7** (canal `B`) — los **3,3 V del pin
+   contiguo—, NUNCA contra masa.** Estas entradas se leen en `INPUT` pelado y **activas en ALTO**,
+   igual que las cámaras de la tabla de arriba; `J16` tiene **una sola masa en todo el conector**
+   (`p2`) y un cable a ella **no produce absolutamente nada**.
+
+   👁️ **La confirmación no necesita app ni terminal: la dan las propias luces**
+   (`Maestro/src/mando.cpp:45-47`) — los destellos rojos de la tabla, y un **ámbar rápido de 2 s**
+   si la secuencia se rechaza. ⚠️ **Pruébelo DESDE OTRO MODO:** si el equipo ya está en el modo que
+   la secuencia pide, `MODO:` no cambia y la prueba no distingue nada. La inhibición durante la navegación de la LCD sigue en el firmware, pero **ya
    no puede ocurrir**: sin `botonAceptar()` el menú no se abre.
 
 ---

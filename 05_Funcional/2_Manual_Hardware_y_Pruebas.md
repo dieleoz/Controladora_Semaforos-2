@@ -113,6 +113,35 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 > que ya usaban las cámaras `C` y `D`, y por la misma razón: sólo hay una masa en el conector, así
 > que un contacto por botón contra masa nunca pudo ser el diseño.
 >
+> ### 👁️ Y para saber si el equipo OYÓ el pulso no hace falta ningún instrumento
+>
+> **MEDIDO en `01_Firmware/Maestro/src/mando.cpp:45-47`** (`DESTELLOS_AUTOMATICO = 2`,
+> `DESTELLOS_AMBAR = 3`, `DESTELLOS_DEGRADADO = 4`):
+>
+> ```text
+>   A . A . A       (<= 12 s)   ->  2 destellos ROJOS   Automatico
+>   B . B . B       (<= 12 s)   ->  3 destellos ROJOS   Ambar intermitente
+>   A . B . A . B   (<= 18 s)   ->  4 destellos ROJOS   Modo Degradado
+>   rechazado                   ->  ambar rapido de 2 s
+> ```
+>
+> **El firmware confirma con las propias luces, y se ven DESDE EL SUELO: sin app, sin cable y sin
+> segunda tarjeta.** Está diseñado así a propósito —quien acciona el mando está a 5 m y sin
+> pantalla—, y los destellos son **siempre rojos** porque el rojo nunca significa *pase*: si el
+> operario cuenta mal, el peor caso sigue siendo seguro. Un rechazo **no habla el idioma de un
+> éxito**: es un ámbar rápido de 2 s.
+>
+> 🛑 **La trampa, y hay que leerla antes del primer pulso: pruebe DESDE OTRO MODO.** Si el equipo
+> **ya está** en el modo que la secuencia pide, `MODO:` **no cambia** —`mando.cpp` entra por la rama
+> `if (modoActual_get() == MODO_AUTOMATICO) modoAutomatico_setup();`— y la prueba **no distingue
+> nada**. Un `A·A·A` que funcionó perfectamente sobre un equipo ya en Automático no mueve ni un
+> campo. **Los destellos, en cambio, se ven siempre.**
+>
+> 🔵 **Por eso el USB-TTL de `J17` baja de rango PARA EL MANDO.** Sigue siendo el recurso legítimo
+> cuando la app no conecta —lo fue en la sesión 1 de banco— pero **no es la forma de verificar el
+> mando**: la respuesta son los destellos. Anotar *«no cambió el `MODO:`»* mirando sólo el terminal
+> es exactamente cómo un mando sano se apunta como sordo.
+>
 > ### 🛑 Y lo que sigue SIN MEDIRSE, que hay que decir en voz alta
 >
 > **Nadie ha medido la tensión de `J16` p5/p8 con el puente a 3,3 V puesto y ESTE firmware cargado.**

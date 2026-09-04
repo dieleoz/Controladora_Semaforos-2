@@ -333,10 +333,18 @@ No se copia aquí para no crear dos listas que alguien tendría que sincronizar.
 > nadie ha visto todavía a este equipo obedecer un `A·A·A`. **El fuente ya no es el bloqueante; la
 > carga verificada sí.**
 >
-> **Y el propio apartado tenía escrita esa rama, dos párrafos más abajo:** *«Si dan ~10 kΩ contra
+> ~~**Y el propio apartado tenía escrita esa rama, dos párrafos más abajo:** *«Si dan ~10 kΩ contra
 > masa → el pull-up interno no puede ganarles, el pin queda permanentemente en BAJO y el mando está
 > inoperante de fábrica. En ese caso el Protocolo §8 y §9 no se ejecutan: se anotan los números del
-> paso 20 y eso es el hallazgo.»* **Dieron 9,92 kΩ. Es exactamente esa rama, y eso ES el hallazgo.**
+> paso 20 y eso es el hallazgo.»* **Dieron 9,92 kΩ. Es exactamente esa rama, y eso ES el hallazgo.**~~
+>
+> 🔧 **TACHADO EL MISMO 04/09 POR `N-118`, y se conserva porque es la frase que resucita el gesto
+> malo.** La rama estaba escrita **suponiendo un firmware con pull-up interno**, y **ése era el
+> defecto, no el criterio**. Con `346ea5f` los cuatro pines de `J16` se leen igual —`INPUT` pelado,
+> **activo en ALTO**—, y esos 10 kΩ pasan a ser **la resistencia de reposo que hace falta**: es
+> exactamente lo que ya ocurría en las cámaras `C` y `D`, medidas a `0 V`. **El mando NO está
+> inoperante de fábrica.** Lo que sigue impidiendo ejecutar §8 y §9 es **otra cosa y hay que decirla
+> por su nombre: no hay tarjeta sana** (N-116).
 >
 > 🛑 **Lo que NO se hizo bien, y hay que decirlo porque estaba escrito aquí:** el paso 29 se ejecutó
 > **igualmente**, con el resultado del paso 20 ya delante. El puente no produjo ningún cambio —lo
@@ -359,8 +367,12 @@ era el que estaba al revés (N-118), y se corrigió en `346ea5f`.**
 ```text
 MANDO A  =  BOTON1  =  PB9   =  J16 p5      <- MEDIDO: 9,92 kOhm a masa, 0,6 V en reposo
 MANDO B  =  BOTON2  =  PB13  =  J16 p8      <- MEDIDO: 9,92 kOhm a masa, 0,6 V en reposo
-masa                          =  J16 p2
+masa                          =  J16 p2     <- UNA sola en todo el conector: NUNCA es el gesto
 3,3 V                         =  J16 p4 (para A) y p7 (para B)   <- el gesto va CONTRA esto
+
+   El 0,6 V de arriba se midio con 617bd00 dentro, y lo ponia el INPUT_PULLUP de aquel
+   firmware contra esos 10 kOhm.  Con 346ea5f (INPUT pelado) el reposo es 0 V, como en
+   las camaras C y D.  La resistencia siempre estuvo bien; la polaridad, no.
 ```
 
 ~~**Un pulso `A` es tocar un instante `J16` p5 contra masa con un cable suelto.**~~ → 🛑 **No. Eso es
@@ -370,19 +382,58 @@ contra `p4` (3,3 V), y el `B`, `p8` contra `p7`** — y aun así **no sobre la M
 N-116 esté diagnosticado. Es el mismo recurso que la Guía usa en su paso 19 para hacer de cámara con un
 pulsador, **que sí funcionó** (paso 21), porque la cámara ya lee en la polaridad correcta.
 
+> ## 👁️ NO HACE FALTA NINGÚN INSTRUMENTO PARA SABER SI EL MANDO OYÓ: EL EQUIPO LO CONFIRMA CON SUS PROPIAS LUCES
+>
+> **MEDIDO en `01_Firmware/Maestro/src/mando.cpp:45-47`** (`DESTELLOS_AUTOMATICO = 2`,
+> `DESTELLOS_AMBAR = 3`, `DESTELLOS_DEGRADADO = 4`):
+>
+> ```text
+>   A . A . A       (<= 12 s)   ->  2 destellos ROJOS   Automatico
+>   B . B . B       (<= 12 s)   ->  3 destellos ROJOS   Ambar intermitente
+>   A . B . A . B   (<= 18 s)   ->  4 destellos ROJOS   Modo Degradado
+>   rechazado                   ->  ambar rapido de 2 s
+> ```
+>
+> **Se ve DESDE EL SUELO: sin app, sin cable y sin segunda tarjeta.** Está diseñado así a propósito
+> —quien acciona el mando está a 5 m y sin pantalla—, y los destellos son **siempre rojos** porque
+> el rojo nunca significa *pase*: si el operario cuenta mal, el peor caso sigue siendo seguro. **Un
+> rechazo no habla el mismo idioma que un éxito:** es un ámbar rápido de 2 s, no destellos.
+>
+> **Anote los destellos CONTADOS, no «funcionó».** Es el dato de vuelta de esta prueba.
+>
+> ⚠️ **Y la trampa que hay que conocer antes de dar el primer pulso: pruebe DESDE OTRO MODO.** Si el
+> equipo **ya está** en el modo que la secuencia pide, `MODO:` no cambia — `mando.cpp` entra por la
+> rama `if (modoActual_get() == MODO_AUTOMATICO) modoAutomatico_setup();` y **el terminal no
+> distingue nada**. Un `A·A·A` sobre un equipo que ya está en Automático puede haber funcionado
+> perfectamente y no mover ni un campo del `$STATUS`. **Los destellos, en cambio, se ven siempre.**
+>
+> 🔵 **Por eso el USB-TTL baja de rango PARA ESTA PRUEBA.** Sigue siendo el recurso legítimo para
+> operar el equipo cuando la app no conecta —que es lo que pasó en la sesión 1— y para todo lo
+> demás de este encargo; pero **la respuesta sobre si el mando oyó son los destellos**, no la
+> trama. Mirar sólo el terminal es cómo un mando sano se apunta como sordo.
+
 > 🔴 **Antes de tocar `J16`, dos requisitos que no son opcionales:**
 > 1. **Paso 4 de la Guía hecho: el pin de 12 V tapado.** En el cobre esos 12 V corren a **1,36 mm**
 >    del más cercano de estos pines — no a los milímetros que se ven entre los pines del conector.
 >    ✅ **HECHO el 3/09**, retirando el pin del cuerpo del conector volante. 🔴 **Y desde N-120 esto
 >    sube: no es una precaución de banco, es obligatorio en cada equipo** — ninguna de las 5 entradas
 >    de campo de la placa lleva nada en serie, mientras las 9 salidas llevan 220 Ω y opto.
-> 2. **Paso 20 de la Guía hecho, con su resultado delante:**
+> 2. ~~**Paso 20 de la Guía hecho, con su resultado delante:**~~
 >    - ~~Si p5 y p8 dan **circuito abierto contra masa y ~3,3 V en reposo** → el puente funciona, y los
->      bloques 4 y 5 se ejecutan.~~ → **no fue esta rama.**
->    - **Si dan ~10 kΩ contra masa** → el pull-up interno no puede ganarles, el pin queda
+>      bloques 4 y 5 se ejecutan.~~
+>    - ~~**Si dan ~10 kΩ contra masa** → el pull-up interno no puede ganarles, el pin queda
 >      permanentemente en BAJO y **el mando está inoperante de fábrica**. En ese caso **el Protocolo
->      §8 y §9 no se ejecutan**: se anotan los números del paso 20 y **eso es el hallazgo**.
->      🛑 **ESTA. Dieron 9,92 kΩ y 0,6 V. El mando está inoperante de fábrica, y ése es el hallazgo.**
+>      §8 y §9 no se ejecutan**: se anotan los números del paso 20 y **eso es el hallazgo**.~~
+>      ~~🛑 **ESTA. Dieron 9,92 kΩ y 0,6 V. El mando está inoperante de fábrica, y ése es el hallazgo.**~~
+>
+>    🔧 **LAS DOS RAMAS CADUCARON EL 04/09 (`N-118`), y se tachan sin borrarse porque son las que
+>    mandan al técnico a puentear contra masa.** Estaban escritas suponiendo un firmware con
+>    `INPUT_PULLUP`, y ése era el defecto. El paso 20 ya midió lo que había que medir —**los cuatro
+>    pines llevan ~10 kΩ a masa, y eso es CORRECTO para los cuatro**, porque los cuatro son activos
+>    en ALTO desde `346ea5f`—: **la medida `M3` quedó cerrada y no hay bifurcación que resolver.**
+>    **El requisito que SÍ queda es otro:** el firmware de N-118 **cargado y verificado** en la
+>    tarjeta —no mergeado—, con su `md5` anotado **antes** de tocar `J16`. Con el firmware anterior
+>    dentro, el puente no hace nada.
 >
 > ⚠️ **Lo que el puente NO demuestra, y va escrito al lado:** demuestra que **el firmware reconoce
 > las secuencias**. No demuestra que los pulsos lleguen **desde el piso, por radio**, que es la
@@ -453,7 +504,7 @@ que no hay pantalla y a que `botonAceptar()` es `false`:
 
 | vía de entrada / salida del Degradado en el ESCLAVO | estado hoy |
 |---|---|
-| El mando (`A·B·A·B` para entrar, `A·A·A` o `B·B·B` para salir) | ~~**Viva** — pero sólo con el puente de `J16`, porque no hay receptor~~ → 🔴 **MUERTA, medido el 3/09 (N-118).** Sin receptor **y** con el pin a 0,6 V, el puente tampoco sirve: no hay flanco que registrar |
+| El mando (`A·B·A·B` para entrar, `A·A·A` o `B·B·B` para salir) | ~~**Viva** — pero sólo con el puente de `J16`, porque no hay receptor~~ · ~~🔴 **MUERTA, medido el 3/09 (N-118).** Sin receptor **y** con el pin a 0,6 V, el puente tampoco sirve: no hay flanco que registrar~~ → 🟡 **VIVA POR PUENTE, SIN EJERCER.** El `0,6 V` lo ponía el `INPUT_PULLUP` del propio firmware; con `346ea5f` (`INPUT` pelado, activo en ALTO) **el puente sí produce flanco** — dado **`p5` contra `p4` y `p8` contra `p7`**, los 3,3 V del pin contiguo, **NUNCA contra masa**. Confirmación: **4 destellos rojos** al entrar, 2 o 3 al salir. 🔴 Lo que falta es **una tarjeta sana** (N-116) y el **receptor**, que nunca se compró |
 | La vuelta automática de la radio (deja de gobernar cuando el Maestro habla) | **Viva** |
 | La pantalla (`Esclavo/src/menu.cpp:215`) | **Existe en el código y está MUERTA**: el `aceptar` que la dispara no puede ser cierto nunca |
 | Por comando / app | **No existe** |

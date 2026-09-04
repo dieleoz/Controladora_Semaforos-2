@@ -47,7 +47,7 @@
 > el teléfono.
 >
 > **Cómo comprobar que la de hoy sí conectó, sin fiarse del rótulo:** una app enlazada de verdad
-> recibe **`$STATUS` cada segundo**. Si dice enlazado y la pestaña `Tramas` no se mueve, no está
+> recibe **`$STATUS` cada 2 segundos** *(~~cada segundo~~ — la cadencia del STM32 bajo a 2000 ms el 04/09, en las dos puntas)*. Si dice enlazado y la pestaña `Tramas` no se mueve, no está
 > enlazada.
 >
 > ## 🔵 Y esa misma APK trae `N-124`: la lista de equipos ya NO tiene `MAC` escritas a mano

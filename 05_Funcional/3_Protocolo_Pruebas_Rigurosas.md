@@ -242,7 +242,9 @@ SET_RTC:AAAA-MM-DD,HH:MM:SS
 > 🔴 **El Esclavo NO tiene ni un solo `SET_MODO:*`.** No hay comando que lo meta en un modo ni que
 > lo saque. Es un hecho medido y tiene consecuencias en toda la Sección 9. Ver la prueba **9.15**.
 
-**Lo que el equipo emite sin que nadie se lo pida** (los dos, cada 1000 ms el `$STATUS`):
+**Lo que el equipo emite sin que nadie se lo pida** (los dos, ~~cada 1000 ms~~ **cada 2000 ms** el
+`$STATUS` — **bajado el 04/09 por decisión del responsable, en las dos puntas**; si cronometra la
+cadencia, el valor que tiene que dar es **2 s, no 1 s**):
 
 ```text
 $STATUS,NODE:MAESTRO,SERIE:..,MODO:..,ESTADO:..,T:..,RF:..%,RTT:..ms,BAT:12.6,HORA:HH:MM:SS*CRC
@@ -288,6 +290,35 @@ masa                          =  J16 p2                (UNA sola en todo el cone
 en todo el conector, así que un contacto por botón contra masa nunca pudo ser el diseño. Es el mismo
 recurso, y ahora la misma polaridad, que la Guía usa en su paso 19 para hacer de cámara con un
 pulsador.
+
+> ## 👁️ CÓMO SE SABE QUE EL EQUIPO OYÓ EL PULSO: LO CONFIRMA CON SUS PROPIAS LUCES
+>
+> **No hace falta ningún instrumento extra.** **MEDIDO en `01_Firmware/Maestro/src/mando.cpp:45-47`**
+> (`DESTELLOS_AUTOMATICO = 2`, `DESTELLOS_AMBAR = 3`, `DESTELLOS_DEGRADADO = 4`):
+>
+> ```text
+>   A . A . A       (<= 12 s)   ->  2 destellos ROJOS   Automatico
+>   B . B . B       (<= 12 s)   ->  3 destellos ROJOS   Ambar intermitente
+>   A . B . A . B   (<= 18 s)   ->  4 destellos ROJOS   Modo Degradado
+>   rechazado                   ->  ambar rapido de 2 s
+> ```
+>
+> **Se ve DESDE EL SUELO: sin app, sin cable y sin segunda tarjeta.** Está diseñado así a propósito
+> —quien acciona el mando está a 5 m y sin pantalla—, y los destellos son **siempre rojos** porque
+> el rojo nunca significa *pase*: si el operario cuenta mal, el peor caso sigue siendo seguro. Y un
+> rechazo **no habla el mismo idioma que un éxito**: ámbar rápido de 2 s, nunca destellos.
+>
+> 🛑 **LA TRAMPA DE ESTA PRUEBA, Y HAY QUE LEERLA ANTES DEL PRIMER PULSO: pruebe DESDE OTRO MODO.**
+> Si el equipo **ya está** en el modo que la secuencia pide, `MODO:` **no cambia** —`mando.cpp` entra
+> por la rama `if (modoActual_get() == MODO_AUTOMATICO) modoAutomatico_setup();`— y **la prueba no
+> distingue nada**: un `A·A·A` que ha funcionado perfectamente sobre un equipo ya en Automático no
+> mueve ni un campo del `$STATUS`. **O se prueba desde otro modo, o se cuentan los destellos — que
+> se ven siempre.**
+>
+> 🔵 **Y por eso el USB-TTL baja de rango PARA EL MANDO.** Sigue siendo un recurso legítimo —es la
+> vía de operación cuando la app no conecta, §0.2, que es justo lo que pasó en la sesión 1— pero
+> **no es la forma de verificar el mando**: la respuesta son los destellos. Anotar «no cambió el
+> `MODO:`» es cómo un mando sano se apunta como sordo.
 
 > 🔴 **Requisitos, y no son opcionales:**
 > 1. **El paso 4 de la Guía hecho**: el pin de 12 V de `J16` tapado. En el cobre, esos 12 V corren
@@ -395,7 +426,7 @@ pulsador.
   dos binarios del mismo tamaño pueden ser distintos, y dos de nombre distinto pueden ser el mismo.
   - `md5` Maestro: ________________________  `md5` Esclavo: ________________________
 - [ ] **0.5.4** Adaptador USB-TTL conectado a `J17` de cada punta, terminal a 9600, y **`$STATUS`
-  llegando cada segundo en las dos**. Si no llega, se para aquí y se sigue el árbol del apartado 09
+  llegando ~~cada segundo~~ **cada 2 s** en las dos** *(cadencia bajada a 2000 ms el 04/09)*. Si no llega, se para aquí y se sigue el árbol del apartado 09
   de la Guía. Sin `$STATUS` no se puede operar nada.
 
 ---
@@ -410,7 +441,11 @@ Firmware ESCLAVO — md5: ______________________  Fecha binario: __________
 Nº de serie Maestro: ______________  Nº de serie Esclavo: ______________
 Air Data Rate verificado: __________ kbps      Canal: __________
 Via de mando usada:  [ ] USB-TTL a 9600   [ ] ESP32 + app
-Puente de mando en J16 p5/p8:  [ ] SI, tras el paso 20   [ ] NO   [ ] paso 20 lo desaconseja
+Puente de mando en J16:  [ ] SI, p5-p4 y p8-p7 (3,3 V del pin contiguo)   [ ] NO
+   ~~[ ] SI, tras el paso 20   [ ] paso 20 lo desaconseja~~   <- CADUCADO (N-118, 04/09):
+   el paso 20 ya no decide nada, y el puente NUNCA va contra masa. Un cable a p2 no
+   produce absolutamente nada con este firmware. Confirmacion = destellos ROJOS, no el terminal.
+   Firmware de N-118 cargado y verificado antes de tocar J16?  [ ] SI   [ ] NO  <- si es NO, DETENER
 Auditor responsable: ____________________________________________________
 ```
 
@@ -940,6 +975,14 @@ Desfase calculado: ________ s
 > ⚠️ **Con el puente ~~a masa~~ a 3,3 V, un pulso es instantáneo. El relé real tarda ~2 s.** Deje al
 > menos un segundo entre pulsos: si los da demasiado juntos puede quedar por debajo del filtro de
 > rebote.
+>
+> 🛑 **Y las dos reglas de §0.3 que deciden si esta sección mide algo:**
+> 1. **El gesto es `p5` contra `p4` y `p8` contra `p7`** —los 3,3 V del pin contiguo—, **jamás
+>    contra masa.** Hay **una sola masa** en todo `J16` (`p2`), y un cable a ella no produce
+>    absolutamente nada con el firmware de N-118.
+> 2. **Se prueba DESDE OTRO MODO, y lo que se anota son los DESTELLOS.** Si el equipo ya está en el
+>    modo que la secuencia pide, `MODO:` no cambia y la prueba no distingue nada. **2 destellos
+>    rojos = Automático · 3 = Ámbar · 4 = Degradado · ámbar rápido de 2 s = rechazado.**
 
 **8.1 El mando navega el menú igual que la botonera** — 🚫 **SE RETIRA**
 - *Por qué:* no hay menú que navegar ni cursor que mover, y `C` y `D` no existen como canales.

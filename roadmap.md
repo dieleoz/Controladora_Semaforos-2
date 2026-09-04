@@ -55,11 +55,20 @@ regla **§2.bis de `CLAUDE.md`**, que existe por esto.
 > Desde el 03/09 hay una segunda, y es mejor: **¿esto desatasca uno de los 5 pasos que el banco no
 > pudo correr?** Lo que no conteste a ninguna de las dos, no se escribe.
 
-### 0.1 · Lo unico que hay que hacer, en orden — reescrito a las 13:40 del 04/09
+### 0.1 · Lo unico que hay que hacer, en orden — tras la SESION 2 de banco (04/09)
 
-> 🟢 **EL BLUETOOTH YA NO BLOQUEA.** A las 13:32 el funcional confirmo *«ya funciona la app»*. Era
-> **N-125**: nadie pedia el permiso de Android. Con eso caen los pasos **11-14 y 25-28**, que llevaban
-> bloqueados desde ayer. **Lo que queda no lo destraba nadie escribiendo.**
+> 🟢 **EL BLUETOOTH ESTA CERRADO CON EVIDENCIA FISICA.** La sesion 2 confirmo **N-117** y **N-122** en
+> hardware, con la app operando el equipo de punta a punta, y encendio **VERDE por primera vez en dos
+> sesiones**. Ver **N-126**.
+>
+> 🔴 **Y ahora hay UN solo bloqueo, y es fisico: no hay segunda tarjeta.** De ahi cuelgan los tres
+> asuntos que la sesion 2 dejo abiertos —N-42, la verificacion del mando, y los pasos 25/26/28—. **No
+> lo destraba nadie escribiendo.**
+
+| | que | por que |
+|---|---|---|
+| **0** | 🎯 **El paso 29, otra vez — pero con el gesto BUENO y contando los DESTELLOS** | **no necesita segunda tarjeta, ni app, ni cable.** Salio «inconcluso» porque nuestra guia mandaba el gesto viejo (a masa). Con `p5` contra `p4`: **2 destellos rojos** y N-118 queda verificado. Es lo mas barato que queda por hacer |
+| **0.bis** | 🎯 **Cronometrar el arranque del ESP32 con el modulo delante** | cierra la desigualdad que la respuesta 8 dejo rota. Lo medido -2 a 3 s- incluye emparejamiento y app; hace falta *reset -> primer byte*, que es menor |
 
 | | que | por que |
 |---|---|---|
@@ -118,7 +127,7 @@ BANCO          24/29 pasos COMPLETOS  ·  4 BLOQUEADOS (Bluetooth)  ·  1 ABORTA
 | 🛑 **Que se hace con la tarjeta Maestro danada** | reparar, sustituir o diagnosticar. **Bloquea todo lo demas**: sin Maestro no hay banco. La causa que sostiene el cobre es **latch-up por 12 V en una entrada sin proteger** — ver **N-116** |
 | 🔴 **Proteger las entradas de campo** —hoy los 5 pines de bornera van **desnudos al die** mientras las 9 salidas llevan 220R y opto | **N-120.** Es de diseño y afecta a todas las unidades, no solo a la danada. Cuenta hecha: **2K2 en serie** cumple las dos desigualdades. **Y mientras no exista, tapar el pin de 12 V de `J16` pasa a ser obligatorio en cada equipo** |
 | 🟠 **Con que salida se compra el receptor de mando (NO/NC)** | **N-118**. La polaridad ya no se pregunta: el cobre la decide —los cuatro pines de `J16` tienen 10K a masa y 3,3 V al lado, o sea **activo en ALTO**—. Lo que queda es la compra, y quien valida que un cambio en un camino de seguridad entra sin banco |
-| 🟠 **La cadencia del `$STATUS` por J17** | va a **1000 ms** y su unico consumidor (`vigilarEnlace()` de la app) tiene una cota de **5 s**. El peor segundo ocupa el **55 %** del cable. Bajarlo a 2000 ms lo deja bajo el 30 %; el coste es que el tablero del operario refresca la mitad de rapido. **Cifras en N-119** |
+| 🟢 **La cadencia del `$STATUS` por J17** | ✅ **DECIDIDA Y APLICADA el 04/09: baja a 2000 ms** en las dos puntas. **MEDIDO tras el cambio: 462 B de 960 B/s = 48,1 %**, no «bajo el 30 %» como se publico aqui. Solo el `$STATUS` periodico se parte por dos; el `$EVENT`, el `$ALARM` y el `$ACK` que coinciden en el peor segundo **no escalan con la cadencia**. Era una cuenta hecha a ojo con autoridad de dato. El coste declarado: el tablero refresca la mitad de rapido. **Cifras en N-119** |
 | 🔴 **Quien disena y quien fabrica** la placa portadora | bloquea el montaje permanente, **no la prueba** |
 | 🔴 **Pedir la fuente `A5`** — conmutada 12->5 V, >= 1 A | |
 | 🔴 **`AB-9`: el PIN no caduca NUNCA** | se teclea, se guarda el telefono, y el siguiente manda ordenes sin teclear. **Cinco opciones con su coste en §0.quinquies** |
@@ -805,6 +814,91 @@ hay **nada**.
 > entre el instalador y esta averia.
 
 
+### 🟢 N-126 — SESION 2 DE BANCO (04/09): dos defectos cerrados con evidencia fisica, y el VERDE por primera vez
+
+**Informe en `evidencia/Informe_Pruebas_Banco_Semaforos_Sesion2.pdf`.** Se corrio con **una sola
+tarjeta** —la Maestro de la sesion 1 sigue con el corto y se descarto entera— reprogramada como
+Maestro.
+
+#### Lo que quedo CERRADO con evidencia en hardware
+
+| | |
+|---|---|
+| **N-117** | el modulo se anuncia **estable, sin parpadear**, y ya con el rotulo aprendido: **`SEM-179DB0-M`**. Eso prueba de paso la cadena entera del `$STATUS`: el nombre solo se aprende de ahi |
+| **N-122** | la app conecta y **opera de punta a punta**: `FORZAR_ROJO` -> rojo fisico, `SET_MODO:AMBAR` -> vuelve. Reversible |
+| **N-125** | confirmado por su ausencia: ya no aparece el *«el escaneo fallo»* |
+| 🟢 **VERDE FISICO** | **primera vez en dos sesiones de banco.** La prueba de focos encendio rojo, ambar y **verde** |
+| **paso 2.bis** | el que se anadio esa manana **se ejecuto y salio completo**: las cuatro senales a 0 V. El binario nuevo entro |
+| **paso 14** | al perder el cable la app **se congela y lo declara**; recupera sola en 1-2 s. No finge datos |
+| **paso 12** | **ya no inventa la bateria**: declara que el equipo no la mide |
+| **paso 27** | el reloj corre y `SET_RTC` responde *«hora puesta y aprobada»* |
+
+> **Y el verde acota N-42 sin cerrarlo:** con la cadena de comandos funcionando de punta a punta y la
+> salida de verde confirmada, lo que falla —si falla— esta en **el arranque del ciclo coordinado**, no
+> en el hardware de salida ni en la cadena de mando. Sigue **sin confirmar ni descartar**: hace falta
+> la segunda tarjeta.
+
+#### 🔴 Y lo que la sesion destapo de NUESTROS documentos
+
+**El paso 29 volvio a salir *«inconcluso»*, y no fue por falta de instrumento: fue porque la guia
+mandaba el gesto equivocado.** Se corrigio el gesto en el aviso de cabecera y en la tabla de
+conectores… **y NO en el paso 29 mismo**, que es donde se lee al hacerlo. Seguia diciendo *«p5 a masa
+= A»* y *«un cable del pin a masa es exactamente lo que hace el relé»*. Con el firmware nuevo eso
+**no produce nada**, y ademas es **el gesto que sobrecalento la tarjeta el 03/09**.
+
+**El informe recomendo entonces un USB-TTL como Prioridad 1 para verificar N-118. Sobra, y la
+propuesta salio de nuestra propia guia**, que apoya el USB-TTL en seis sitios como *«sin app, igual
+con el USB-TTL»*. Dos cosas lo hacen innecesario, y las dos estan verificadas en el fuente:
+
+1. **El mando ya confirma solo, con destellos de las propias luces** (`Maestro/src/mando.cpp:45-47`):
+   `A·A·A` -> **2 destellos rojos**, `B·B·B` -> **3**, `A·B·A·B` -> **4**, rechazo -> ambar rapido de
+   2 s. **Se ve desde el suelo**, sin app, sin cable y sin segunda tarjeta. Esta disenado asi porque
+   quien acciona el mando esta a 5 m sin pantalla.
+2. **Y la afirmacion del informe de que *«la app no expone un campo `MODO:`/`ESTADO:`»* es FALSA**:
+   el STM32 los manda (`bluetooth.cpp:699`), el parser los lee (`nmea_parser.js:113-114`) y la app
+   los pinta (`app.js:1180` y `:1235`).
+
+> ⚠️ **Y una trampa que habria dejado el cruce con la app igual de inconcluso:** `A·A·A` hace
+> `modoActual_set(MODO_AUTOMATICO)`, pero si el equipo **ya estaba** en automatico el firmware entra
+> por `if (modoActual_get() == MODO_AUTOMATICO) modoAutomatico_setup();` y **`MODO:` no cambia**. Se
+> prueba **desde otro modo**, o se cuentan los destellos, que se ven siempre.
+
+**La leccion, y es de §2.ter: propusimos un instrumento para un problema que el firmware ya tenia
+resuelto.** El dato estaba en las luces desde el primer dia.
+
+#### 🔴 La respuesta 8 cierra AB-3 y ROMPE una desigualdad
+
+El responsable midio el arranque del ESP32: **2 a 3 segundos**. Eso cierra `AB-3`, que llevaba
+abierto desde que se escribio. Pero en `contrato.h` pone `ESP32_ARRANQUE_MS = 1500UL`.
+
+Escrito el peor caso medido, el pack cae al instante:
+
+```
+FALLA  NO CABE: el watchdog (2000 ms) mas su arranque (3000 ms) suman 5000 ms
+       y la cota es 5000 ms
+```
+
+**No se escribe `2000` porque cuadre** —coger el extremo favorable de un rango medido es exactamente
+lo que costo el margen «2» que era **1,44**—. **Decision del responsable: medir fino primero.** Lo
+medido es *energizado -> primer dato en la app*, que **incluye el emparejamiento y la app**; la
+desigualdad solo necesita *reset del modulo -> volver a pasar bytes*, que sera bastante menor.
+Mientras tanto la constante se queda en 1500 **con su bandera `MEDIDO = 0`**, que al menos es honesta
+sobre no saberse.
+
+#### Las 8 decisiones del responsable, tomadas
+
+| | |
+|---|---|
+| 1 · tarjeta Maestro | **se repara** |
+| 2 · proteccion de entradas (N-120) | 🟢 **2K2 APROBADO** para diseno |
+| 3 · mando A/B | falta comprobar en tarjeta |
+| 4 · refresco del tablero | 🟢 **baja a 2000 ms** |
+| 5 · caducidad del PIN | **no**, queda como esta. `AB-9` cerrado por decision |
+| 6 · placa portadora | aun no definitiva |
+| 7 · si el ESP32 se cuelga | **sigue en el ultimo modo Y avisa.** `AB-1` decidido: **latido propio del ESP32** |
+| 8 · arranque del ESP32 | **2 a 3 s** — cierra `AB-3` y abre lo de arriba |
+
+
 ### 🟢 N-125 — La app no pedia el permiso de Bluetooth. CERRADO EN CAMPO, y obliga a rebajar dos hallazgos
 
 **04/09, 13:32, del funcional: *«ya funciona la app»*.** Es el primer bloqueo del banco que se
@@ -1199,7 +1293,7 @@ Medido con `esp32_07_presupuesto_bytes`, que recalcula esto del C++ en cada corr
 | direccion | como es hoy |
 |---|---|
 | **app -> STM32** | **ya es puramente por eventos.** Cero envios periodicos, y hay pack que lo exige (`P-1`/`P-4`: ni `puente.cpp` ni `enlace_stm32.cpp` tienen reloj). Por J17 entra **exactamente lo que un dedo pulsa** |
-| **STM32 -> app** | eventos **+ un `$STATUS` cada 1000 ms** (`bluetooth.cpp:645`) |
+| **STM32 -> app** | eventos **+ un `$STATUS` cada 2000 ms** desde el 04/09 (antes 1000) |
 
 ```
 peor segundo    528 B de 960 B/s   =  55,0 %   ($STATUS + $EVENT + $ALARM + $ACK)
@@ -1211,7 +1305,11 @@ un periferico UART al 13,5 % de uso; no hay ciclo rapido que quemar. No se persi
 
 **Lo que la medida confirma del instinto:** el unico consumidor del `$STATUS` es `vigilarEnlace()` de
 la app, y **su cota son 5 s**. El latido va **cinco veces mas rapido de lo que nadie necesita**, y el
-peor segundo se come mas de la mitad del cable. Pasarlo a 2000 ms lo deja bajo el 30 %.
+peor segundo se come mas de la mitad del cable.
+
+> 🔴 **Y aqui se publico una cifra que la medida refuto.** Ponia que pasarlo a 2000 ms lo dejaria
+> «bajo el 30 %». **MEDIDO tras el cambio: 462 B de 960 B/s = 48,1 %**, no «bajo el 30 %» como se publico aqui. Solo el `$STATUS` periodico se parte por dos; el `$EVENT`, el `$ALARM` y el `$ACK` que coinciden en el peor segundo **no escalan con la cadencia**. Era una cuenta hecha a ojo con autoridad de dato, y el cambio se aplico igual porque 48,1 % sigue siendo mejor que 55 %
+> — pero el numero que lo justificaba estaba mal.
 
 **El coste, declarado:** el tablero del operario refresca la mitad de rapido. **Es decision del
 responsable** —afecta a lo que ve quien decide sobre el trafico—, esta en §0.3 y **no se toca de
@@ -3452,7 +3550,7 @@ MEDIDO linea por linea, identico en las dos puntas:
 | **El STM32 NO valida el checksum de entrada** | `procesarComando()` empieza en `Maestro/src/bluetooth.cpp:135` con `strcmp(cmd, "CMD:FORZAR_ROJO")` — no hay lectura de `*XX` en ninguna rama | el ESP32 **puede** mandar comandos sin checksum, pero tambien significa que **el enlace no tiene deteccion de error en el sentido ESP32 -> STM32**. Un byte corrompido no se rechaza: se compara |
 | **El STM32 SI lo emite, siempre** | `enviarTramaConCrc()`, `Maestro/src/bluetooth.cpp:42-48`: `snprintf(tramaCompleta, ..., "%s*%02X\r\n", payload, crc)` | el ESP32 **tiene que verificarlo** en el sentido STM32 -> ESP32, o se estara fiando de tramas sin comprobar |
 | **XOR-8 saltando el `$` inicial** | `calcularChecksum()`, `Maestro/src/bluetooth.cpp:33-40`, invocado como `calcularChecksum(payload + 1)` en `:43`. Recorre hasta `'\0'` **o hasta `'*'`** | un ESP32 que calcule el XOR incluyendo el `$` rechazara **todas** las tramas buenas |
-| **Telemetria no solicitada cada 1000 ms** | `Maestro/src/bluetooth.cpp:403` (`if (ahora - tUltimaTelemetria >= 1000)`) | el enlace **no es pregunta-respuesta**: llegan `$STATUS` sin pedirlos, mas `$ALARM` y `$EVENT` asincronos. Un parser que espere respuesta a su comando leera un `$STATUS` como respuesta |
+| **Telemetria no solicitada cada 2000 ms** (1000 hasta el 04/09) | `Maestro/src/bluetooth.cpp:403` (`if (ahora - tUltimaTelemetria >= 1000)`) | el enlace **no es pregunta-respuesta**: llegan `$STATUS` sin pedirlos, mas `$ALARM` y `$EVENT` asincronos. Un parser que espere respuesta a su comando leera un `$STATUS` como respuesta |
 | **La autenticacion es un literal en claro** | `strncmp(cmd, "CMD:PIN:1234:", 13)`, `Maestro/src/bluetooth.cpp:166` | no cambia por el ESP32, pero el ESP32 pasa a ser **quien lo transporta**, y eso es una decision de seguridad que hereda |
 
 > ⚠️ **Correccion de una cifra propia, dentro de este mismo N-x.** El primer informe de esta

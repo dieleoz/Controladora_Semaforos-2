@@ -259,7 +259,7 @@ binario** (`modo_alcance.cpp`) y ya no tiene dónde dibujarse. De lo que mostrab
 
 | dato | ¿sobrevive? | dónde |
 |---|---|---|
-| Calidad de enlace en % | ✅ sí | campo `RF:` de la trama `$STATUS`, cada segundo |
+| Calidad de enlace en % | ✅ sí | campo `RF:` de la trama `$STATUS`, ~~cada segundo~~ **cada 2 s** *(04/09)* |
 | Tiempo de respuesta en ms | ✅ sí | campo `RTT:` de `$STATUS` |
 | Barra gráfica y fallos consecutivos | ❌ no | eran dibujo de pantalla |
 | **Contadores de línea RS-485** (`RX 0 - nada llega` · `RX 4k - BASURA` · `RX 36 9 tr`) | ❌ **NO** | **no viajan en `$STATUS`** |
@@ -498,6 +498,14 @@ ver el recuadro `N-118` de arriba, con el gesto de prueba que cambió.)*
   5 m de altura»*.
 * ⚠️ **Un error a mitad de secuencia no hace nada.** Si el operario se equivoca, lo único que ha
   hecho es no activar el modo; no hay estado intermedio que deshacer.
+* 👁️ **La confirmación no necesita app, ni cable, ni una segunda persona: son las propias luces.**
+  Los destellos de la tabla se cuentan **desde el suelo**, que es donde está quien acciona el mando.
+  Un **ámbar rápido de 2 s** en vez de destellos significa **rechazado**, no *«no me oyó»*.
+* 🛑 **Y al PROBARLO, hágalo DESDE OTRO MODO.** Si el equipo ya está en el modo que la secuencia
+  pide, `MODO:` **no cambia** —el firmware entra por la rama
+  `if (modoActual_get() == MODO_AUTOMATICO) modoAutomatico_setup();`— y quien mire la app o el
+  terminal **no distingue nada**, aunque el mando haya funcionado perfectamente. **Cuente los
+  destellos: ésos se ven siempre.**
 
 > 🛑 **Y una advertencia de operación que sale de la misma medida: `A` y `B` son los MISMOS PINES
 > que los pulsadores 1 y 2 del gabinete** (`MANDO_A` = `PB9` = `J16` p5, `MANDO_B` = `PB13` = `J16`
@@ -658,8 +666,8 @@ el nombre lo puede llevar cualquier fichero y el hash no.
 > abrió—, **pero el arreglo va dentro de la APK: no se hereda actualizando el equipo.**
 >
 > **Cómo distinguirlo en el poste, que es lo que hace falta:** con la APK vieja la app dice
-> «Enlazado» **y no llega ni una trama**. Una app enlazada de verdad recibe `$STATUS` **cada
-> segundo**. Si el rótulo dice enlazado y la pantalla no se mueve, sospeche de la APK antes que del
+> «Enlazado» **y no llega ni una trama**. Una app enlazada de verdad recibe `$STATUS` ~~**cada
+> segundo**~~ **cada 2 segundos** *(cadencia bajada el 04/09)*. Si el rótulo dice enlazado y la pantalla no se mueve, sospeche de la APK antes que del
 > equipo.
 
 > 🔵 **Y esa misma APK trae un segundo cambio que ALTERA EL ORDEN DE LO QUE HACE EL TÉCNICO

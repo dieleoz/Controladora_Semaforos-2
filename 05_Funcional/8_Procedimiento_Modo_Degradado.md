@@ -398,8 +398,22 @@ enlaza"*.
 >   A B A B    -> Degradado   Maestro/src/mando.cpp:204-214 · Esclavo/src/mando.cpp:148
 > ```
 >
-> ⚠️ **Lo que falta no es el firmware: es el receptor RF, que nunca se compró.** Sin él no hay con
-> qué generar los pulsos desde el piso. **La secuencia existe y no tiene mando.**
+> ⚠️ **Lo que falta no es el firmware: es el receptor RF, que nunca se compró.** ~~Sin él no hay con
+> qué generar los pulsos desde el piso. **La secuencia existe y no tiene mando.**~~
+>
+> 🔧 **Matizado el 04/09 (`N-118`): en BANCO sí hay con qué darlos, con un cable.** Un pulso `A` es
+> cerrar un instante **`J16` p5 contra p4**, y un pulso `B`, **p8 contra p7** — los **3,3 V del pin
+> contiguo**. 🛑 **NUNCA contra masa:** `J16` tiene **una sola masa en todo el conector** (`p2`), el
+> firmware lee estas entradas en `INPUT` pelado y **activo en ALTO** (`346ea5f`), y un cable a masa
+> **no produce absolutamente nada** — es además el gesto que precedió al calentamiento del paso 29.
+> Lo que sigue faltando es **el receptor**, para darlos por radio desde el piso, y **una tarjeta
+> sana** (N-116).
+>
+> 👁️ **Y no hace falta app ni terminal para saber si el equipo oyó: lo confirma con sus luces**
+> (`Maestro/src/mando.cpp:45-47`) — **`A·A·A` → 2 destellos rojos · `B·B·B` → 3 · `A·B·A·B` → 4 ·
+> rechazado → ámbar rápido de 2 s**. Se cuentan desde el suelo. ⚠️ **Pruebe DESDE OTRO MODO:** si el
+> equipo ya está en el modo que pide la secuencia, `MODO:` no cambia y no se distingue nada; los
+> destellos, en cambio, se ven siempre.
 >
 > **La vía por app no es equivalente a `A·A·A`:** `CMD:PIN:1234:SET_MODO:AUTO`
 > (`Maestro/src/bluetooth.cpp:378`) **se salta el todo-rojo de despedida** de

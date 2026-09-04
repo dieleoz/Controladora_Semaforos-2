@@ -498,7 +498,7 @@ El puente tiene que dejarlos pasar **íntegros**. Se listan para que nadie los d
 
 | prefijo | quién la compone | MEDIDO en |
 |---|---|---|
-| **`$STATUS`** | telemetría periódica, **cada 1000 ms** | `Maestro:403`, `:427` · `Esclavo:309`, `:328` |
+| **`$STATUS`** | telemetría periódica, ~~**cada 1000 ms**~~ → **cada 2000 ms** *(bajada el 04/09 por decisión del responsable, en las **dos** puntas del STM32)* | `Maestro:403`, `:427` · `Esclavo:309`, `:328` |
 | **`$ACK`** | confirmación de un comando | ~~32 literales en el Maestro~~ → **MEDIDO el 31/08: `grep -c '"$ACK' ` da **17** en el Maestro y **4** en el Esclavo.** El 32 no era el recuento de ninguna de las dos columnas *(se parece a los 33 de sumar `$ACK` + `$ERR` del Maestro, pero eso es otra cosa)* |
 | **`$ERR`** | rechazo con motivo | **MEDIDO el 31/08: 16 en el Maestro, 8 en el Esclavo.** ~~«idem, misma cadena»~~ — no son las mismas cifras y la fila lo daba por hecho |
 | **`$ALARM`** | `bluetooth_reportarAlarma()` | `Maestro:82` · `Esclavo:90` |
@@ -552,10 +552,18 @@ A **9600 8N1 = 960 B/s**. La cuenta, con los tamaños medidos de §3.3:
 
 | tráfico | tamaño | ocupación del canal |
 |---|---|---|
-| `$STATUS` 1/s, caso largo realista | 124 B/s | **12,9 %** |
-| `$STATUS` 1/s, tope duro | 132 B/s | **13,8 %** |
-| ráfaga `$ACK` + `$EVENT` + `$STATUS` juntos | 340 B | **354 ms de cable** |
-| comando entrante, tope `E-2` (63 + terminador) | 64 B | **67 ms de cable** |
+| ~~`$STATUS` 1/s, caso largo realista~~ → **`$STATUS` 1 cada 2 s** | ~~124 B/s~~ → **62 B/s** | ~~12,9 %~~ → **6,5 %** |
+| ~~`$STATUS` 1/s, tope duro~~ → **`$STATUS` 1 cada 2 s, tope duro** | ~~132 B/s~~ → **66 B/s** | ~~13,8 %~~ → **6,9 %** |
+| ráfaga `$ACK` + `$EVENT` + `$STATUS` juntos | 340 B | **354 ms de cable** — **NO cambia con la cadencia** |
+| comando entrante, tope `E-2` (63 + terminador) | 64 B | **67 ms de cable** — **NO cambia con la cadencia** |
+
+> 🔴 **La bajada a 2000 ms NO divide por dos la ocupación, y esto hay que decirlo porque ya se dijo
+> mal.** Se afirmó que dejaría el cable *«por debajo del 30 %»*. **Es falso, y está medido: el peor
+> segundo pasa de `528 B` (`55,0 %`) a `462 B` (`48,1 %`) de los 960 B/s.** Sólo el `$STATUS`
+> **periódico** se parte por dos; el `$EVENT`, el `$ALARM` y el `$ACK` que caen en ese mismo segundo
+> **no escalan con la cadencia** — la cuenta anterior daba por hecho que la ráfaga escalaba, y no
+> escala. Las dos primeras filas de la tabla son la parte periódica; **el número que decide es el
+> peor segundo, y es `48,1 %`.**
 
 **Lo que esto obliga:**
 

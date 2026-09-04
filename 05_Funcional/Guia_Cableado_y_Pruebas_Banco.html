@@ -446,7 +446,9 @@
           <tr><td>Cámaras nuevas · <code>J16</code> p10 y p12</td>
             <td>Un cable del pin a <b>p9 u p11 (3,3 V)</b>, <b>no a masa</b> · sólo tras el paso 20</td><td>21</td></tr>
           <tr><td>Mando <code>A</code> y <code>B</code> · <code>J16</code> p5 y p8</td>
-            <td>Un cable <b>del pin a masa</b>: un toque = un pulso. <b>Es lo mismo que hace el relé</b></td><td>29</td></tr>
+            <td>Un cable de <b>p5 a p4</b> (canal A) y de <b>p8 a p7</b> (canal B) — <b>3,3 V, NO a
+              masa</b>: un toque = un pulso. <s>Antes ponía «del pin a masa»</s>, y desde el 04/09
+              eso <b>no hace nada</b> (N-118)</td><td>29</td></tr>
           <tr><td>Pérdida de radio</td><td>Desenrosca la antena o quita su alimentación</td><td>8</td></tr>
           <tr><td>Pérdida del módulo</td><td>Desenchufa un cable de datos de <code>J17</code></td><td>14</td></tr>
         </tbody>
@@ -1306,21 +1308,47 @@ CON EL PIN MAL, en cualquiera:   CMD:PIN:0000:SET_MODO:AUTO</pre>
     <div class="fn">29</div>
     <div class="fc">
       <p class="ft">El mando de relés · <b>se prueba HOY, sin receptor</b> <a href="#d29">detalle</a></p>
-      <p><b class="et">Haz</b> 🟢 <b>No hace falta el receptor.</b> El relé va <b>en paralelo con el
-        pulsador</b>: <b>un cable del pin a masa es exactamente lo que hace el relé</b>. Con el equipo
-        funcionando y <b>fuera del menú</b>, toca <code>J16</code> <b>p5 a masa = A</b> y <b>p8 a
-        masa = B</b>. Toques <b>seguidos</b>, pero <b>separados como medio segundo</b>: dos demasiado
-        juntos cuentan como uno.</p>
+      <div class="parar">
+        <b>🛑 EL GESTO CAMBIÓ EL 04/09. Un cable a MASA ya no hace nada</b>
+        <p>Aquí ponía <s>«p5 a masa = A» y «p8 a masa = B»</s>, y <s>«un cable del pin a masa es
+          exactamente lo que hace el relé»</s>. <b>Era cierto con el programa viejo y ahora es al
+          revés.</b> Con el firmware de este paquete los pines se leen <b>activos en ALTO</b>
+          (N-118), así que un cable a masa <b>no produce absolutamente nada</b> — y en `J16` hay
+          <b>una sola masa</b> (p2) para los cuatro pines, que es la pista de que nunca fue ése el
+          gesto.</p>
+        <p><b>Y no es sólo que no funcione: es el gesto que sobrecalentó una tarjeta el 03/09.</b></p>
+      </div>
+      <p><b class="et">Haz</b> 🟢 <b>No hace falta el receptor</b>, ni la app, ni la segunda tarjeta.
+        Con el equipo funcionando y <b>fuera del menú</b>, cierra <b>señal contra los 3,3 V del pin
+        de al lado</b>:</p>
+      <div class="diagrama" style="margin:.3rem 0">
+<pre>canal A   ->   J16  p5  contra  p4      (p4 son 3,3 V)
+canal B   ->   J16  p8  contra  p7      (p7 son 3,3 V)
+                    NUNCA contra masa</pre>
+      </div>
+      <p>Toques <b>seguidos</b>, pero <b>separados como medio segundo</b>: dos demasiado juntos
+        cuentan como uno.</p>
       <div class="diagrama" style="margin:.3rem 0">
 <pre>A . A . A       en menos de 12 s   ->  2 destellos ROJOS   automatico / obedecer
 B . B . B       en menos de 12 s   ->  3 destellos ROJOS   ambar intermitente
 A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
                                        ambar rapido 2 s    RECHAZADO</pre>
       </div>
-      <p class="ver"><b class="et">Ver</b> <b>Cuenta los destellos: son la respuesta.</b> <b>Si no
+      <p class="ver"><b class="et">Ver</b> <b>Cuenta los destellos: son la respuesta, y no hacen
+        falta ni la app ni un cable.</b> Están en el firmware (`mando.cpp`) y se ven <b>desde el
+        suelo</b> — está diseñado así porque quien acciona el mando está a 5 m sin pantalla. <b>Si no
         responde, repite antes de darlo por roto.</b> Mientras destella no acepta pulsos nuevos, y
         <b>con el menú abierto no reconoce las secuencias</b> — <b>si las luces ciclan, el menú no
         está abierto</b>. En el Esclavo, <code>A·A·A</code> lo devuelve a <b>obedecer al Maestro</b>.</p>
+      <div class="marco">
+        <b>⚠️ Si además quiere cruzarlo con la app, hágalo DESDE OTRO MODO</b>
+        <p>La app <b>sí</b> enseña el modo del equipo. Pero si el equipo <b>ya está</b> en el modo que
+          la secuencia pide, el firmware sólo lo reinicia y <b>el modo no cambia</b>: la pantalla se
+          queda igual y la prueba no distingue «no me oyó» de «me oyó y ya estaba ahí».</p>
+        <p><b>Así que primero ponga otro modo</b> —por ejemplo ÁMBAR desde la app— <b>y luego haga
+          `A·A·A`</b>: el modo tiene que pasar a AUTOMÁTICO. <b>Los destellos, en cambio, se ven
+          siempre</b>, esté en el modo que esté. Si sólo va a mirar una cosa, mire los destellos.</p>
+      </div>
       <p class="ver"><b class="et">Y esto</b> <b>Lo que más importa:</b> en el <b>Esclavo</b>, deja
         el ámbar con <code>B·B·B</code> y <b>manda una orden desde la app</b>. <b>NO debe salir del
         ámbar.</b> Si obedece, anótalo. ⚠️ El <code>A·B·A·B</code> <b>se comprueba por las luces</b>:
@@ -1422,7 +1450,7 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
 
   <div class="libre">
     <b>4 · 🟠 El tablero de la app refresca cada segundo. ¿Se baja a dos?</b>
-    <p>El equipo manda su estado <b>cada 1000 ms</b> y el peor segundo ocupa el <b>55 %</b> del
+    <p>El equipo manda su estado <b>cada 2000 ms</b> desde el 04/09 (<s>cada 1000 ms</s>) y el peor segundo ocupa el <b>48,1 %</b> del
       cable. Quien lo consume sólo necesita saberlo cada <b>5 s</b>. Pasarlo a 2000 ms deja el cable
       por debajo del 30 %. <b>El coste es que el tablero refresca la mitad de rápido</b>, y eso lo
       mira quien decide sobre el tráfico: por eso lo preguntamos en vez de hacerlo.</p>

@@ -87,7 +87,7 @@ como *BLOQUEADO*. Repartidos como el cuerpo los describe, la cuenta que cuadra a
 | **N-42 — el Modo Automático no mueve las luces** | **NI confirmada NI descartada.** El equipo nunca llegó a operar en Automático: la única vía de selección de modo es la app, y la app no conectó. **Se decide repitiendo el paso 7 con enlace.** ⚠️ *Un «no se pudo probar» no es un «sigue rota» ni un «ya está»: es un `ABORTADO`, y §2 del `CLAUDE.md` dice qué vale eso* |
 | **Verde simultáneo en las dos puntas sobre HARDWARE** | **Sigue sin ejercerse.** `barrera_02_dos_puntas` y el arnés de dos puntas lo cierran en PC —y dieron el margen real de `1,44`—, pero **ninguno ha encendido una lámpara**. Lo único que lo cierra es banco |
 | **Operación por app · reloj `DS3231` (`SET_RTC`) · barrera de PIN** | **Bloqueados en cascada** (pasos 11-14 y 25-28) porque el módulo **no se anunció en el teléfono**. El hardware está descartado como causa: es un `ESP32-WROOM-32` clásico, con `BR/EDR`, que es justo el perfil que el `SPP` de la app necesita |
-| **Paso 29 — mando de relés** | **ABORTADO por seguridad** (el Maestro se sobrecalentó y quedó pendiente de inspección en frío). **Pero la sordera del mando no necesita ese paso para estar diagnosticada, y lo está por el paso 20:** la red de 10 kΩ a masa que la placa trae en esos pines —las `R65`–`R68` de `CLAUDE.md §9.bis`— deja `J16` p5/p8 en **`0,6 V` permanentes**, o sea BAJO fijo. **Nunca hay flanco**, así que el mando está sordo de fábrica |
+| **Paso 29 — mando de relés** | **ABORTADO por seguridad** (el Maestro se sobrecalentó y quedó pendiente de inspección en frío). ~~**Pero la sordera del mando no necesita ese paso para estar diagnosticada, y lo está por el paso 20:** la red de 10 kΩ a masa que la placa trae en esos pines —las `R65`–`R68` de `CLAUDE.md §9.bis`— deja `J16` p5/p8 en **`0,6 V` permanentes**, o sea BAJO fijo. **Nunca hay flanco**, así que el mando está sordo de fábrica~~ 🔧 **CADUCADO el mismo 04/09 por `N-118`, y se tacha en vez de borrarse porque es la frase que resucita el gesto peligroso.** Ese `0,6 V` **lo ponía el firmware**, no el cobre: era el `INPUT_PULLUP` contra esos 10 kΩ. Con `BOTON1`/`BOTON2` en `INPUT` pelado y **activo en ALTO** (`346ea5f`), los 10 kΩ pasan a ser el **reposo correcto**. **El mando NO está sordo de fábrica**; lo que cambia es el gesto: **`p5` contra `p4` y `p8` contra `p7` — los 3,3 V del pin contiguo, NUNCA contra masa** (`J16` tiene una sola masa, `p2`) |
 | **La fuente `12 V → 5 V` de la placa del módulo** | **No medida con carga real:** toda la sesión se alimentó por USB. Pendiente antes de campo |
 
 ---
@@ -102,7 +102,7 @@ Y no por un fallo de la compuerta: **ninguno de los tres es una propiedad del c�
 |---|---|---|
 | El **sobrecalentamiento del STM32 del Maestro** al puentear `J16` p5/p8 contra masa | **corriente y temperatura** | amperímetro y un dedo — *el informe no afirma causa; pide inspección con la placa fría* |
 | El **módulo que no se anuncia** | **cuánto tarda un arranque**, y si el anuncio `SPP` llega a arrancar | un monitor serie y un cronómetro |
-| Los **10 kΩ a masa** que dejan el mando sordo | **una resistencia en el cobre** | un óhmetro |
+| ~~Los **10 kΩ a masa** que dejan el mando sordo~~ → **la POLARIDAD con que el firmware declaraba esos dos pines** (`N-118`) | **no era una resistencia: era un `pinMode()`.** Los 10 kΩ están bien y son los mismos que en las cámaras | se mide en el fuente **y** con un voltímetro sobre el pin, **con el gesto bueno puesto** — `p5`–`p4`, `p8`–`p7` |
 
 > **Ninguno de los tres está en el repositorio.** No hay `grep` que los encuentre, no hay pack que
 > los pueda escribir y **no hay `x/y` que baje cuando aparecen**. Este documento se llama *«Cobertura
@@ -196,9 +196,18 @@ queda flotando y el ruido dispara demandas fantasma; de `PB14`/`PB15` **solo lo 
 > cumplió — el paso 2 fue antes que el 21.
 >
 > ⚠️ **Y la misma medida cerró `M3` y abrió otra cosa:** los pines vecinos del **mando**, `J16` p5 y
-> p8, dan esos mismos ~10 kΩ a masa **y `0,6 V` en reposo**. Ahí la resistencia no ayuda: gana al
-> pull-up interno, el pin queda en BAJO permanente y **nunca hay flanco que detectar**. Ver la
-> sección del banco, arriba.
+> p8, dan esos mismos ~10 kΩ a masa **y `0,6 V` en reposo**. ~~Ahí la resistencia no ayuda: gana al
+> pull-up interno, el pin queda en BAJO permanente y **nunca hay flanco que detectar**.~~
+>
+> 🔧 **Corregido el 04/09 (`N-118`), y la diferencia importa porque cambia el gesto de banco:** ese
+> `0,6 V` **no lo ponía el cobre, lo ponía el `INPUT_PULLUP` del firmware** contra esos 10 kΩ. Los
+> cuatro pines de `J16` son eléctricamente idénticos y ahora se leen igual —`INPUT` pelado, **activo
+> en ALTO**, `346ea5f`—, así que esos 10 kΩ **son el reposo, no el estorbo**.
+>
+> 🛑 **El gesto para pulsar el mando es `p5` contra `p4` y `p8` contra `p7`** —los 3,3 V del pin
+> contiguo—, **nunca contra masa**: en todo `J16` hay **una sola masa** (`p2`), y un cable a masa
+> con este firmware **no produce absolutamente nada**. Es además el gesto que precedió al
+> calentamiento del paso 29.
 
 ### 📕 El hallazgo original, tal como se escribió el 26/08 — se conserva
 
@@ -236,7 +245,7 @@ Todo lo que puede meter información al sistema, y qué lo prueba:
 | # | Entrada | Canal | Qué acepta | Pack que lo cubre | Estado | 🔬 Banco 3–4/09 |
 |---|---|---|---|---|---|---|
 | 1 | ~~4~~ **2** botones locales | ~~`PB9` `PB13` `PB14` `PB15`~~ **`PB9` `PB13`** | secuencias A/B | `maestro_01_mando`, `esclavo_02_inhibicion_menu` | ✅ | 🔴 **ABORTADO** — paso 29, ver abajo |
-| 2 | Mando de ~~4~~ **2** relés | **los mismos 2 pines** | idem | idem | ✅ | 🔴 **sordo en cobre**: p5/p8 a `0,6 V` fijos, sin flanco posible |
+| 2 | Mando de ~~4~~ **2** relés | **los mismos 2 pines** | idem | idem | ✅ | 🔴 **SIN EJERCER.** ~~sordo en cobre: p5/p8 a `0,6 V` fijos, sin flanco posible~~ → **el cobre estaba bien; era el `pinMode()` (`N-118`, `346ea5f`)**. Gesto: **p5–p4 y p8–p7**, nunca a masa. Confirmación: **destellos rojos**, contables desde el suelo |
 | 3 | Cámara de demanda | `PB0` | binario con antirrebote | 🟢 **`camara_01_demanda`** | ✅ *(era ❌)* | 🟡 **media**: `J14` conmuta (pasos 17-18); la respuesta del semáforo, **pendiente** (paso 19) |
 | 4 | ~~Cámara de umbral (`PB8`)~~ | — | **no existe: `PB8` es `LED_TESTIGO`** | — | ✅ **cerrado, §1** | — |
 | 4.bis | 🆕 **Cámaras `C`/`D` en `J16`** | `PB14` `PB15` | contacto seco, **activo en ALTO** | 🟢 **`camara_02_j16`** | ✅ | 🟢 **`M3` cerrada** (`9,93`/`9,94 kΩ`) y cableada **sin falsa activación** (pasos 20-21) |
