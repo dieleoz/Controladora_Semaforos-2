@@ -29,8 +29,27 @@ void modoAutomatico_pedirArranqueDirecto() { arranqueDirecto = true; }
 // que el tramo quedo vacio antes de dar verde al otro lado. Su minimo no sale de un
 // numero redondo: 10 s es lo que tarda en despejarse el tramo mas corto que esta casa
 // ha montado, y por debajo de eso el margen desaparece.
-static const uint8_t VERDE_MIN_MIN = 1,  VERDE_MIN_MAX = 15;
-static const uint8_t ROJO_MIN_MIN  = 1,  ROJO_MIN_MAX  = 15;
+// EL MINIMO SUBE DE 1 A 3 MINUTOS EL 04/09, Y ES UNA DECISION VIAL DEL RESPONSABLE.
+//
+// EL PORQUE, con sus palabras: tres minutos es la MINIMA DISTANCIA DE SEGURIDAD. En un
+// paso alternado de un solo carril, un camion pesado tarda entre 5 y 8 s solo en
+// reaccionar y arrancar; con un verde de 60 s pasan tres o cuatro vehiculos antes de
+// cortar a ambar. Lo que se produce no es una cola: es un conductor convencido de que el
+// semaforo esta averiado, adelantando en rojo contra el sentido que acaba de recibir
+// verde. El limite de 1 minuto era un valor de MESA DE PRUEBAS que se quedo abierto para
+// la operacion en via.
+//
+// VA AQUI Y NO EN LA APP, y esa es toda la diferencia. La app puede impedir que un dedo
+// teclee 1, pero no es la unica que habla por J17: cualquier otra cosa en ese cable -o
+// una APK vieja, que hoy mismo se demostro que sobreviven en los telefonos- puede
+// mandar SET_TIEMPOS con un minuto. Una guarda que solo vive en la interfaz es de
+// cortesia. Esta rechaza con $ERR,CMD:SET_TIEMPOS,DESC:RANGO y no la puede saltar nadie.
+//
+// COSTE DECLARADO: ya no se puede probar en mesa con ciclos de 1 minuto. Se acepto a
+// sabiendas: un banco cae del lado de esperar tres minutos, no del lado de dejar el
+// limite de laboratorio suelto en una carretera.
+static const uint8_t VERDE_MIN_MIN = 3,  VERDE_MIN_MAX = 15;
+static const uint8_t ROJO_MIN_MIN  = 3,  ROJO_MIN_MAX  = 15;
 static const uint8_t DESPEJE_SEG_MIN = 10, DESPEJE_SEG_MAX = 90;
 
 bool modoAutomatico_enMarcha() { return fase == CORRIENDO; }
