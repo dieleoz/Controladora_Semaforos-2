@@ -523,7 +523,24 @@ void loop() {
         programarRespuesta(CMD_ACK_CONFIG);   // cierra el par
       }
     } else if (pkt.command == CMD_ACK_DEMANDA) {
-      // Acuse de recibo de demanda recibido desde el Maestro
+      // N-130: el acuse ya no es solo "me llego": dice si el Maestro la va a atender.
+      //
+      // Esta rama estaba VACIA, con un comentario que describia lo que no hacia. El
+      // Esclavo ya le habia contestado a la app "$ACK ... PEDIDO_AL_MAESTRO" sin
+      // esperar a nadie -no puede esperar: bloquear el bucle por una radio de 2.4 kbps
+      // es peor-, asi que el unico sitio donde se puede desmentir es AQUI, cuando la
+      // respuesta llega.
+      //
+      // Se manda como EVENTO y no como $ERR a proposito: el $ERR habria que casarlo
+      // con una orden que ya se contesto hace cientos de milisegundos, y la app no
+      // sabria a cual de dos pulsaciones seguidas corresponde. Un evento fechado en la
+      // bitacora si se lee: "pediste paso y el Maestro no lo atendio".
+      //
+      // Un Maestro viejo manda param=0 -DEMANDA_ACEPTADA- y aqui no pasa nada, que es
+      // exactamente el comportamiento de siempre.
+      if (pkt.param == DEMANDA_RECHAZADA) {
+        bluetooth_reportarEvento("MAESTRO", "DEMANDA_NO_ATENDIDA_MODO_ACTUAL");
+      }
     }
 
 

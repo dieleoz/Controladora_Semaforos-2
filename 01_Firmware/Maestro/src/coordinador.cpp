@@ -5,6 +5,7 @@
 #include "respaldo.h"
 #include "semaforo.h"
 #include "bluetooth.h"   // N-73: la Caja Negra, que hasta hoy no la llamaba nadie
+#include "modos.h"      // N-130: para no acusar una demanda que este modo no atiende
 #include <string.h>
 #include <stdio.h>
 
@@ -617,8 +618,27 @@ void coordinador_actualizar() {
     if (pkt.command == CMD_PING) {
       protocolo_enviarPaquete(CMD_PONG);
     } else if (pkt.command == CMD_DEMANDA) {
-      demandaRemotaPendiente = true;
-      protocolo_enviarPaquete(CMD_ACK_DEMANDA);
+      // N-130: NO SE ACUSA LO QUE NO SE VA A ATENDER.
+      //
+      // demandaRemotaPendiente la lee UN SOLO fichero, modo_inteligente.cpp. Censado
+      // con grep de la declaracion contra las llamadas, que es como se cuenta esto y
+      // no leyendo. Fuera de ese modo la bandera se encendia, nadie la miraba, y el
+      // Esclavo ya le habia dicho a la app que la peticion iba camino del Maestro.
+      //
+      // El operario que esta de pie junto al Poste 2 pulsa, lee la confirmacion, y el
+      // cruce no se mueve. Vuelve a pulsar. Eso no es una limitacion: es el equipo
+      // diciendo que si a algo que no va a hacer, que es justo lo que la barrera de
+      // salidas prohibe cuando ocurre dentro de un despachador. Aqui ocurria a traves
+      // de la radio, entre dos placas, y por eso ninguna de las dos parecia mal escrita.
+      //
+      // La bandera solo se arma si hay quien la consuma. El acuse sale igual -callarse
+      // dejaria al Esclavo sin saber si le llego- pero DICE cual de las dos cosas es.
+      const bool atendible = (modoActual_get() == MODO_INTELIGENTE);
+      if (atendible) {
+        demandaRemotaPendiente = true;
+      }
+      protocolo_enviarPaquete(CMD_ACK_DEMANDA,
+                              atendible ? DEMANDA_ACEPTADA : DEMANDA_RECHAZADA);
     }
   }
 

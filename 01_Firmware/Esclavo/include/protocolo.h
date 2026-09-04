@@ -151,6 +151,26 @@
 #define CMD_DEMANDA        0x11
 #define CMD_ACK_DEMANDA    0x12
 
+// N-130: EL PARAM DE CMD_ACK_DEMANDA DICE SI LA DEMANDA SE VA A ATENDER O NO.
+//
+// Hasta el 04/09 el Maestro acusaba la demanda SIEMPRE y armaba su bandera SIEMPRE,
+// y esa bandera la lee UN SOLO fichero -modo_inteligente.cpp-. En Manual y en
+// Automatico el Esclavo contestaba a la app "$ACK ... PEDIDO_AL_MAESTRO", el operario
+// leia la confirmacion, y el cruce no se movia. Es §6 -un acuse que no depende de lo
+// que paso- pero repartido entre DOS placas: por separado ninguna rama parecia mal
+// escrita, y por eso no lo vio nadie.
+//
+// Se resuelve SIN gastar un codigo de comando ni tocar la trama: el param ya viaja y
+// ya va cubierto por el CRC -calcularCRC_Bin(&pkt, 3) incluye msgID, command y param-.
+//
+// ACEPTADA vale 0 A PROPOSITO: protocolo_enviarPaquete() pone param=0 por defecto, asi
+// que un Maestro con firmware viejo -que no conoce estos motivos- sigue leyendose como
+// "aceptada" y se comporta como siempre. El valor nuevo es el que dice que NO, que es
+// el que hay que anunciar; si la compatibilidad fallara, fallaria hacia el silencio de
+// hoy y no hacia una alarma inventada.
+#define DEMANDA_ACEPTADA   0
+#define DEMANDA_RECHAZADA  1
+
 // SFTY-11: Copias por ráfaga (Burst). Ver nota en protocolo_enviarPaquete().
 // A la tasa aérea de operación (2.4 kbps) cada copia de 4 bytes cuesta ~0.04s de aire
 // (x2 con FEC): 3 copias son ~0.13s, despreciable frente a ciclos de 15s y 60s.
