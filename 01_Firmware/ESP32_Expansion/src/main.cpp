@@ -57,10 +57,42 @@ void setup() {
   // razon por la que el Maestro arma el suyo ANTES de rtc.begin() (main.cpp:53 y :57).
   vigilante_armar();
 
+  // EL PERRO SE ALIMENTA ENTRE ETAPA Y ETAPA, Y NO ES UN DETALLE DE ESTILO.
+  //
+  // Hasta aqui, entre vigilante_armar() y el primer vigilante_alimentar() de loop() NO
+  // habia ni un solo reset. O sea que las CUATRO etapas de abajo compartian UN presupuesto
+  // de ESP32_WDT_MS (2000 ms) y, pasado, panic=true reinicia. La mas cara con diferencia es
+  // transporte_abrir(): monta la NVS por Preferences y levanta la pila Bluedroid clasica
+  // entera -btStart, bluedroid_init, bluedroid_enable, registro del SPP y nombre-.
+  //
+  // Y CUANTO TARDA ESO NADIE LO HA MEDIDO. Lo dice el propio contrato.h en AB-3, con todas
+  // las letras: "Nadie ha medido cuanto tarda este modulo desde el reset hasta volver a
+  // pasar bytes". ESP32_ARRANQUE_MS lleva ESP32_ARRANQUE_MEDIDO = 0 justo por eso. Un techo
+  // duro de 2 s sobre un arranque de duracion desconocida no es una proteccion: es una
+  // apuesta, y si se pierde el modulo se reinicia en bucle. Desde el telefono un modulo que
+  // rearranca cada 2 s no se ve como averiado: se ve como que APARECE Y DESAPARECE de la
+  // lista, que es exactamente el sintoma del paso 10 del banco del 03-04/09.
+  //
+  // LO QUE ESTO NO DEBILITA, que es la mitad que hay que comprobar antes de creerselo. W-5
+  // pide perro ANTES del I2C y del SPP para que un DS3231 que cuelgue el bus en el arranque
+  // tenga quien reinicie. Sigue igual: cada etapa se alimenta ANTES de entrar y la
+  // siguiente solo alimenta si la anterior VOLVIO. Una etapa colgada no llega nunca a su
+  // reset y el perro muerde a los 2 s, como antes. Lo unico que cambia es que cada etapa
+  // tiene sus propios 2 s en vez de repartirse unos solos entre las cuatro.
+  //
+  // NO VA DENTRO DE NINGUN BUCLE (W-3): son llamadas en linea recta. Un reset dentro de un
+  // while alimentaria al perro para siempre mientras el puente no progresa.
+  //
   // El puente no manda nada al abrir, en ninguno de los dos sentidos.
   enlace_setup();
+  vigilante_alimentar();
+
   reloj_setup();
+  vigilante_alimentar();
+
   transporte_abrir();
+  vigilante_alimentar();
+
   puente_setup();
 }
 
