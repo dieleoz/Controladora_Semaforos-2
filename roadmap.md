@@ -55,24 +55,38 @@ regla **§2.bis de `CLAUDE.md`**, que existe por esto.
 > Desde el 03/09 hay una segunda, y es mejor: **¿esto desatasca uno de los 5 pasos que el banco no
 > pudo correr?** Lo que no conteste a ninguna de las dos, no se escribe.
 
-### 0.1 · Lo unico que hay que hacer, en orden — reescrito el 04/09 con el banco delante
+### 0.1 · Lo unico que hay que hacer, en orden — reescrito a las 13:40 del 04/09
+
+> 🟢 **EL BLUETOOTH YA NO BLOQUEA.** A las 13:32 el funcional confirmo *«ya funciona la app»*. Era
+> **N-125**: nadie pedia el permiso de Android. Con eso caen los pasos **11-14 y 25-28**, que llevaban
+> bloqueados desde ayer. **Lo que queda no lo destraba nadie escribiendo.**
 
 | | que | por que |
 |---|---|---|
-| **1** | 🛑 **NO REENERGIZAR EL MAESTRO hasta inspeccionarlo en frio** | se calienta y deja de funcionar a los ~30 s de alimentarlo. **Cada ciclo puede terminar de matar el chip.** Las dos pruebas que discriminan la causa sin arriesgarlo mas estan en **N-116** |
-| **2** | 🔴 **Monitor serie a 115200 sobre el CP2102 del ESP32** — dos minutos, no hace falta recompilar nada | decide **N-117**: si el banner de la ROM se repite cada ~2 s hay bucle de reinicio y el Bluetooth esta explicado. Si sale una vez y calla, es antena o *advertising* y hay que mirar otra cosa. **Se mide ANTES de reflashear** |
-| **3** | 🔴 **Reflashear el ESP32** con el arreglo del perro ya aplicado (`main.cpp`, compuerta 20/20 el 04/09) | desbloquea el paso **10**. 🔴 **Pero NO basta: ver la fila 3.bis** |
-| **3.bis** | 🟢 **RECOMPILAR LA APK — HECHO el 04/09.** `IOT_VIAL_Semaforos_2026-09-04_edf4783_SIN_BANCO.apk`, JDK 17, verificada por CRC | **N-122: la app nunca llamaba a `connect()`.** Los pasos **11-14 y 25-28** estaban bloqueados por esto **ademas** de por el ESP32 — dos defectos en serie. **Instalar ESTA APK: la del 02/09 no puede conectar, por bien que funcione el modulo** |
-| **4** | 🔴 **Repetir los pasos 7, 19 y 21** en cuanto haya app | son los que deciden si **N-42** sigue viva. El banco **no la confirmo ni la descarto** |
-| **5** | 🔴 **Cargar `SFTY6_SILENCIO_MS = 25000UL` sobre `e303485`** — solo esa constante, sobre la V8.4 que **ya esta probada en la calle** | sigue siendo lo unico que llega al conductor esta semana, y **no depende de nada de la V9.0** |
+| **1** | 🛑 **La tarjeta Maestro: STM32 confirmado muerto y los pads con cortos.** Hay que montar una **nueva desde cero** | sin Maestro no hay ciclo, no hay paso 7 y **no se cierra N-42**. Es lo unico que bloquea de verdad. 🛑 **Y la que esta no se reenergiza** |
+| **2** | 🟢 **Al soldar la placa nueva: 2K2 en serie en las 5 entradas de campo, y no poblar los 12 V de `J16` p1** | **es el momento y no vuelve.** N-120: hoy las entradas van desnudas al die mientras las 9 salidas llevan 220 Ohm y opto. Si se suelda igual, la placa nueva nace con la misma averia dentro |
+| **3** | 🟢 **Cargar el firmware ANTES de enchufar nada**, y comprobarlo con el **paso 2.bis** de la guia | `J16` vacio, medir contra masa: **0 V en las cuatro posiciones**. Si p5/p8 dan 0,6 V, entro el binario viejo. Un multimetro y diez segundos |
+| **4** | 🔴 **Con el Esclavo solo, ya se puede: pasos 11-14 y 25-28** | telemetria viva, `AMBAR_EMERGENCIA`, `FORZAR_ROJO`, la barrera de PIN y `SET_RTC`. **No hace falta el Maestro para nada de eso** |
+| **5** | 🔴 **Repetir los pasos 7, 19 y 21** cuando haya Maestro sano | son los que deciden si **N-42** sigue viva. El banco **no la confirmo ni la descarto** |
+| **6** | 🔴 **Cargar `SFTY6_SILENCIO_MS = 25000UL` sobre `e303485`** — solo esa constante, sobre la V8.4 que **ya esta probada en la calle** | sigue siendo lo unico que llega al conductor esta semana, y **no depende de nada de la V9.0** |
+
+#### Lo que sigue SIN medir, y son medidas, no decisiones
+
+| | quien |
+|---|---|
+| **Que la app recibe TELEMETRIA VIVA**, no solo que conecta. *«Ya conecta seguramente»* es una suposicion; lo constatado es que dejo de fallar el escaneo. La prueba que lo cierra: dejar el ESP32 hablando con el Esclavo, **reiniciarlo**, y ver si pasa de `SEM-SIN-MATRICULA` a `SEM-<serie>-E` | Marco |
+| **AB-3: cuanto tarda el ESP32 desde tension hasta pasar bytes.** Hoy esta puesto a ojo y gobierna su watchdog. Con el movil basta | Marco |
+| **La tension de `J16` p5/p8 con el puente a 3,3 V y el firmware nuevo** — el dato que el paso 29 nunca tomo | Marco, con Maestro sano |
+| **La fuente 12 V -> 5 V con carga real.** El banco se alimento por USB | Marco |
 
 **Lo que NO hay que hacer:** ni un pack, ni un arnes, ni un documento — salvo que **conteste una
 pregunta abierta**, que es la excepcion escrita en §2.bis.
 
-> 🔴 **Y una que el banco anadio a esa lista: no escribas un pack para N-117.** La propiedad que
-> fallo es **cuanto TARDA** el arranque del ESP32, y eso no se lee del fuente — solo se mide con el
-> modulo en la mano. Un pack que comprobara *«hay un `vigilante_alimentar()` entre etapa y etapa»*
-> volveria a medir la forma, que es exactamente lo que `esp32_02` ya hacia cuando dejo pasar esto.
+> 🔴 **Y el 04/09 lo dejo demostrado, no advertido: `CLAUDE.md` §2.ter.** Los cinco defectos que
+> pararon el banco vivian entre algo **declarado** y ese algo **ejercido** —un permiso declarado sin
+> pedir, una funcion definida sin llamador, un MAC escrito sin equipo, una polaridad sin cobre, una
+> constante sin cronometro—, y **cuatro de los cinco no se pueden ver desde el PC**. Un pack mas
+> habria dado verde igual.
 
 ### 0.2 · Donde esta todo, medido el 04/09 tras el arreglo de N-117
 
@@ -118,35 +132,38 @@ BANCO          24/29 pasos COMPLETOS  ·  4 BLOQUEADOS (Bluetooth)  ·  1 ABORTA
 2. 🔴 **En la SUBIDA no hay checksum en ningun sitio.** Ninguna punta llama a `calcularChecksum()` **en recepcion**: un bit cambiado dentro del parametro de `SET_TIEMPOS` o `SET_RTC` casa con el `strncmp` del prefijo y **el equipo obedece valores mutilados**.
 3. **N-42** — el Modo Automatico no mueve las luces en banco. Abierta desde antes de toda esta arquitectura.
 
-### 0.5 · Lo que hay armado el 04/09 — es un ENCARGO, no una entrega
+### 0.5 · El paquete que esta en la mano del funcional
 
 ```
-Encargo_Banco_2026-09-04_edf4783_SIN_BANCO.zip     7.040.016 B · 303 entradas
-acta 2026-09-04_compuerta.txt  ·  ARBOL LIMPIO  ·  HEAD edf4783  ·  20/20
-APK  IOT_VIAL_Semaforos_2026-09-04_edf4783_SIN_BANCO.apk        3.882.117 B
-     md5 d83e519b341a542291642d75a087c0da
-     verificada entrada por entrada y por CRC: app.js, index.html y style.css
-     con el CRC identico al fuente, el connect() de N-122 DENTRO, y el defecto
-     viejo comprobado ausente
-contenido  257 ficheros de firmware (de `git ls-files`, no de una lista de
-           exclusiones) + 43 manuales en .md y .docx
-las cuatro comprobaciones sobre el propio zip, no sobre la intencion:
-     artefactos de compilacion = 0 · md5 de la APK de dentro == el del repositorio
-     · el LEEME cita el nombre EXACTO de esa APK · el LEEME dice NO al banco en la
-     primera pantalla
+Encargo_Banco_2026-09-04_6126bfa_SIN_BANCO.zip     5.419.031 B · 152 entradas
+APK  IOT_VIAL_Semaforos_2026-09-04_6126bfa_SIN_BANCO.apk
+     md5 3199cab8dde4679eaab1c742c915ccc5
+     lleva N-122 (connect), N-124 (la lista sale del escaneo) y N-125 (pide el permiso)
+
+01_Firmware/   COMO_CARGAR.md  ·  TROUBLESHOOTING.md
+               Maestro/ 50  ·  Esclavo/ 36  ·  ESP32_Expansion/ 17
+02_Manuales/   43
+raiz           LEEME_PRIMERO.md · Guia_Cableado_y_Pruebas_Banco.html · ACTA
 ```
 
-> 🔴 **Es un ENCARGO DE BANCO, y la distincion es de la skill `entregar` §1, no una
-> formalidad.** Una *entrega de version* solo sale con **banco pasado**, y el banco esta en 24/29 con
-> la tarjeta Maestro fuera de servicio. Este paquete **pide medidas; no autoriza a instalar nada**.
+**SE RECORTO A PROPOSITO EL 04/09, y el motivo es del que lo abre:** antes iban los **257** ficheros
+versionados de `01_Firmware`, o sea 88 de simuladores, 37 de arneses, 16 de KiCad —4,8 MB— y el
+Repetidor, que hoy no se carga en ningun sitio. **Quien abre el paquete para CARGAR no sabe cual de
+las trece carpetas mirar, y el ruido esconde lo que importa.** Quedan **tres carpetas, tres cosas que
+se cargan**, y una hoja —`COMO_CARGAR.md`— que dice cual va en cada tarjeta, con que se carga, en que
+orden, y **que NO esta y por que**, para que nadie lo busque.
+
+**Y el armador lo comprueba sobre el propio zip, no sobre la intencion:** artefactos de compilacion
+= 0 (se parte de `git ls-files`, no de una lista de exclusiones), md5 de la APK de dentro igual al
+del repositorio, el LEEME citando su nombre exacto, el LEEME diciendo **NO** al banco en la primera
+pantalla, que en `01_Firmware` solo va lo que se carga, y que la guia viaja dentro.
+
+> 🔴 **Sigue siendo un ENCARGO, no una entrega de version** (skill `entregar` §1): una entrega solo
+> sale con **banco pasado**, y el banco sigue abierto. **Pide medidas; no autoriza a instalar nada
+> en la calle.**
 
 **Lo entregado el 02/09**, que es contra lo que el banco corrio:
-`Paquete_Revision_V9.0_2026-09-02_617bd00_SIN_BANCO.zip`, acta del 02/09 con arbol limpio y 20/20,
-APK `IOT_VIAL_Semaforos_2026-09-02_617bd00_SIN_BANCO.apk`, y la guia con **parte en PDF**.
-
-**La APK se compila con JDK 17 y NO con el 21** (`D:\@Proyect\Baliza\7 sw apk\jdk-17\...`). La receta
-entera esta en la skill `entregar` §2.bis, y **la verificacion que exige es por CRC entrada por
-entrada**, no por md5 de tres ficheros.
+`Paquete_Revision_V9.0_2026-09-02_617bd00_SIN_BANCO.zip` con su APK `617bd00`.
 
 ---
 
@@ -482,7 +499,7 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 | 3 | **Cuadrar las cifras** en README, `ESTADO.md`, `CERTIFICACION_SW.md` y este roadmap | 🟢 **HECHO.** Las tres citaban el acta del 02/09 con la del 04/09 escrita; lo cazaron `documentos_01` y `documentos_04` |
 | 4 | La contradiccion de la guia: *«los cuatro pines tienen que dar lo mismo»* contra el reparto del 31/08 | 🟠 **abierta, y ahora medida.** El cobre dice que los **cuatro** son identicos —10K a masa y 3,3 V al lado—, o sea que la guia tenia razon y el reparto no: **los cuatro son activos en ALTO**. Es N-118, y lo que falta es la decision de compra, no la medida |
 | 5 | 🛑 **BANCO: los 5 pasos que faltan** | **es lo unico que queda de verdad.** 4 los abren el ESP32 (N-117) y la APK nueva (N-122); 1, la reparacion del Maestro (N-116) |
-| 6 | 🟠 **Los 21 manuales de `05_Funcional` siguen sin tocar desde el 02/09** | **ninguno lleva nada del banco**: ni el corto, ni las entradas sin proteger, ni que la app no conectaba. Se actualizo **solo la guia** —que es la que el funcional tiene en la mano y la que vuelve en PDF—. Los dos que mas lo piden: **`17_Arquitectura...`**, que es el que ordena a los demas y cuya medida `M3` ya esta cerrada por el cobre, y **`ENCARGO_SESION_BANCO.md`**, superado por lo que paso de verdad |
+| 6 | 🟢 **Los manuales, HECHO el 04/09.** Nueve reescritos por cinco agentes en ficheros disjuntos, mas la guia | y despues **auditados en cruce**, que es lo que ninguno de los cinco podia hacer: salieron **7 fallos, 3 graves** —una APK que no existe, un hash inventado, y que ninguno sabia que el mando ya estaba arreglado, con la guia mandando simularlo **con un cable a masa**—. Corregidos los siete |
 
 ---
 
