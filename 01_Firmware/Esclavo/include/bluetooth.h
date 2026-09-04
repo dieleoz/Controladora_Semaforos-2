@@ -9,7 +9,7 @@
 void bluetooth_setup();
 
 /**
- * @brief Procesa la recepción no bloqueante de comandos y emite telemetría periódica cada 1000ms.
+ * @brief Procesa la recepción no bloqueante de comandos y emite telemetría periódica cada 2000ms.
  */
 void bluetooth_loop();
 

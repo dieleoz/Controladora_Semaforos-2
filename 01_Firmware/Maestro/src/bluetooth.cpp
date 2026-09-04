@@ -641,8 +641,30 @@ void bluetooth_loop() {
     }
   }
 
-  // 2. Emisión periódica de Telemetría cada 1000ms ($STATUS,...)
-  if (ahora - tUltimaTelemetria >= 1000) {
+  // 2. Emision periodica de telemetria cada 2000 ms ($STATUS,...)
+  //
+  // POR QUE 2000 Y NO 1000 -decision del responsable, 04/09-. El unico consumidor del
+  // $STATUS es vigilarEnlace() de la app, y su cota son 5000 ms: a 1000 ms se emitia
+  // cinco veces mas rapido de lo que nadie necesita. Y el cable no era gratis: medido
+  // por esp32_07_presupuesto_bytes, el peor segundo eran 528 B de los 960 B/s que
+  // caben a 9600 8N1 -el 55,0%-; a 2000 ms son 462 B, el 48,1%.
+  //
+  // NO baja al 30%, y el numero se deja escrito porque la cuenta a ojo se equivoca
+  // aqui: de los cuatro sumandos del peor segundo -el $STATUS periodico mas el
+  // $EVENT, el $ALARM y el $ACK que coinciden con el- SOLO el periodico se parte
+  // por dos. La rafaga no escala con la cadencia. Medido, no supuesto.
+  //
+  // EL COSTE VA DECLARADO, NO ESCONDIDO: el tablero del operario refresca la mitad de
+  // rapido. Eso es lo que se paga por el margen de cable, y lo decidio el responsable.
+  //
+  // POR QUE SIGUE ESCRITO A PELO Y NO EN UNA CONSTANTE CON NOMBRE, que es lo que este
+  // repositorio pide: hay DOS instrumentos que leen este numero por TEXTO, con el patron
+  // `ahora - tUltimaTelemetria >= (\d+)` -banco/packs/esp32_07_presupuesto_bytes.py y
+  // Simulaciones/simulador_puente_esp32.py-. Un identificador en su sitio no casa con
+  // (\d+): los dos quedarian ABORTADOS, y un ABORTADO deja pasar sin mirar todo lo que
+  // vigilaba. Si algun dia se saca a un nombre, los dos lectores se cambian en el MISMO
+  // commit; mientras tanto, las dos puntas van a la vez porque el pack lo exige.
+  if (ahora - tUltimaTelemetria >= 2000) {
     tUltimaTelemetria = ahora;
 
     const char* modoStr = obtenerNombreModo(modoActual_get());
