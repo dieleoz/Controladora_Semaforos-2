@@ -108,14 +108,26 @@
 // pull-up interno (~40 kOhm) contra ese 10K deja el pin en 3,3 x 10/50 = 0,66 V, que el
 // micro lee LOW: demanda permanente sin camara conectada, e invertida al cerrarla.
 //
-// LO QUE ESTE CAMBIO NO RESUELVE Y NO SE PUEDE RESOLVER LEYENDO CODIGO. El netlist y el
-// fuente llevan en contradiccion desde siempre (05_Funcional/17_Arquitectura...:2.2):
-// si la placa soldada fuera la del netlist, PB9 y PB13 en INPUT_PULLUP estarian en LOW
-// permanente y el menu no se podria navegar -y hay evidencia de banco de que se
-// navega-. La medida M3 de ese documento lo cierra con ohmimetro, y HASTA QUE SE HAGA
-// NO SE CABLEA CAMARA A J16. El firmware va primero (CLAUDE.md 9.bis): un pin en INPUT
-// no ejecuta nada, mientras que con el firmware viejo dentro PB14 sigue siendo
-// botonAceptar() activo en BAJO y cualquier hilo enchufado en p10 lo pulsa.
+// 🟢 M3 CERRADA EN BANCO EL 03/09, Y AQUI HABIA UNA FRASE FALSA QUE SE TACHA EN VEZ DE
+// BORRARSE. Ponia: "si la placa soldada fuera la del netlist, PB9 y PB13 en INPUT_PULLUP
+// estarian en LOW permanente y el menu no se podria navegar -Y HAY EVIDENCIA DE BANCO DE
+// QUE SE NAVEGA-". Sobre esa ultima frase se sostenia que A y B eran un caso distinto de
+// C y D, y por eso se quedaron en INPUT_PULLUP cuando C y D pasaron a INPUT.
+//
+// NO EXISTE ESA EVIDENCIA. Lo que 17_Arquitectura citaba como tal es un PROTOCOLO -un
+// plan de pruebas, no un resultado-. La unica observacion real de banco sobre estos pines
+// dice lo contrario: N-26 (01/08) apunta que la tarjeta "se plantaba sola en la pantalla
+// de configuracion del Modo Manual sin que nadie tocara la botonera", que es la firma de
+// unos pines en BAJO al arrancar con J16 vacio.
+//
+// Y la medida: paso 20 del 03/09 -p5 9,92 kOhm y 0,6 V; p8 9,92 y 0,6; p10 9,93 y 0 V;
+// p12 9,94 y 0 V-. Los CUATRO pines son identicos. La placa soldada SI es la del netlist,
+// asi que A y B se leen como C y D: INPUT pelado y activo en ALTO (N-118). Ya se puede
+// cablear camara a J16.
+//
+// El firmware sigue yendo primero (CLAUDE.md 9.bis): un pin en INPUT no ejecuta nada,
+// mientras que con el firmware viejo dentro PB14 seguia siendo botonAceptar() activo en
+// BAJO y cualquier hilo enchufado en p10 lo pulsaba.
 //
 // Y p1 de J16 lleva 12 V CRUDOS -sin opto, sin serie, sin clamp- a nueve posiciones de
 // p10 y once de p12. Se tapa fisicamente antes de enchufar nada (17_...:2.1).

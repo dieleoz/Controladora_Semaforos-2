@@ -19,7 +19,25 @@ const unsigned long DEBOUNCE_MS = 30;
 const unsigned long FLANCO_MS = 200;
 
 static void actualizar(Boton &b) {
-  bool lecturaCruda = (digitalRead(b.pin) == LOW);
+  // N-118: ACTIVO EN ALTO, y lo decide EL COBRE, no una preferencia.
+  //
+  // Aqui ponia `== LOW` con los pines en INPUT_PULLUP, y eso llevaba mal desde el primer
+  // dia: R65/R66 son 10K A MASA sobre /Boton1 y /Boton2 -medido en el .kicad_pcb y
+  // confirmado en banco el 03/09 con 9,92 kOhm-, y J16 reparte 3,3 V en la posicion de
+  // al lado de cada boton (p4, p7, p9, p11) con UNA SOLA masa en todo el conector (p2).
+  // Un contacto por boton contra masa necesitaria una masa por boton. Solo hay una.
+  //
+  // Con INPUT_PULLUP, el pull-up interno (30-50 kOhm) contra ese 10K deja el pin en
+  // 0,55-0,83 V, por debajo del VIL de 0,99 V: el micro lo lee LOW SIEMPRE. El banco
+  // midio 0,6 V, dentro de la horquilla. O sea que los dos botones estaban clavados en
+  // "pulsado" y NUNCA producian un flanco: el mando A/B no se podia pulsar.
+  //
+  // NO ES UNA REGRESION NUESTRA, y conviene saberlo: el repositorio del que salio este
+  // firmware -2semaforos_3estados- trae este mismo `== LOW` y el MISMO .kicad_pcb byte a
+  // byte (md5 088667eac75207e8dcfa0ce5b93adce6). La contradiccion es original. Su huella
+  // esta medida: el ACEPTAR fantasma al arrancar de N-26 (banco del 01/08) es justo lo
+  // que hacen unos pines clavados en bajo.
+  bool lecturaCruda = (digitalRead(b.pin) == HIGH);
 
   if (lecturaCruda != b.estadoAnt) {
     b.tUltimoCambio = millis();
@@ -134,10 +152,13 @@ static void camaras_actualizar() {
 }
 
 void botones_setup() {
-  // A y B siguen igual: INPUT_PULLUP y pulsador contra masa, activo en BAJO. Son los
-  // dos que alimentan las secuencias del mando de reles, y ese camino no se toca.
-  pinMode(BOTON1, INPUT_PULLUP);
-  pinMode(BOTON2, INPUT_PULLUP);
+  // N-118: A y B pasan a INPUT PELADO, igual que las camaras C y D. Los CUATRO pines de
+  // J16 son electricamente identicos -10K a masa y 3,3 V en la posicion de al lado-, asi
+  // que se leen igual. Aqui ponia INPUT_PULLUP "y ese camino no se toca": el camino sigue
+  // siendo el mismo -las secuencias del mando-, lo que cambia es que ahora se puede
+  // recorrer. El porque completo, en actualizar().
+  pinMode(BOTON1, INPUT);
+  pinMode(BOTON2, INPUT);
 
   b1.pin = BOTON1;
   b2.pin = BOTON2;
@@ -195,7 +216,11 @@ void botones_setup() {
 
   Boton *todos[2] = {&b1, &b2};
   for (int i = 0; i < 2; i++) {
-    const bool pulsado = (digitalRead(todos[i]->pin) == LOW);
+    // N-118: la siembra lee con la MISMA polaridad que actualizar(). Si aqui quedara un
+    // `== LOW` con el resto en ALTO, un boton suelto se sembraria como "pulsado" y el
+    // primer flanco de verdad se perderia: la guarda de N-26 se comeria la pulsacion
+    // buena en vez de la fantasma. Las dos lecturas se cambian juntas o ninguna.
+    const bool pulsado = (digitalRead(todos[i]->pin) == HIGH);
     todos[i]->estadoAnt = pulsado;
     todos[i]->estadoEstable = pulsado;
     todos[i]->tUltimoCambio = millis();  // el antirrebote arranca contando desde AHORA

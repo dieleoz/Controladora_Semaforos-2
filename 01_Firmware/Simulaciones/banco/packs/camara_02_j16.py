@@ -37,11 +37,27 @@
 # LO QUE ESTE PACK NO PUEDE COMPROBAR, Y VA ESCRITO PARA QUE NADIE LO LEA COMO PERMISO
 #
 # Que el firmware sea coherente con el NETLIST no demuestra que sea coherente con la
-# PLACA SOLDADA. La contradiccion de 05_Funcional/17_Arquitectura...:2.2 sigue abierta: si
-# la placa fuera la del netlist, PB9 y PB13 en INPUT_PULLUP estarian en LOW permanente y
-# el menu no se podria navegar, y hay evidencia de banco de que se navega. Eso lo cierra
-# la medida M3 con ohmimetro, no un pack. HASTA QUE M3 SE HAGA, NO SE CABLEA CAMARA A
-# J16 - y este pack en verde no dice nada de eso.
+# PLACA SOLDADA.
+#
+# 🟢 M3 SE CERRO EN BANCO EL 03/09 (paso 20): p10 = 9,93 kOhm a masa, p12 = 9,94, los dos
+# a 0 V con energia. El pull-down es REAL y de 10K, y ya se puede cablear camara a J16.
+#
+# 🔴 Y AQUI ABAJO PONIA UNA COSA QUE ERA FALSA, ASI QUE SE TACHA EN VEZ DE BORRARSE. Decia:
+# "si la placa fuera la del netlist, PB9 y PB13 en INPUT_PULLUP estarian en LOW permanente
+# y el menu no se podria navegar, Y HAY EVIDENCIA DE BANCO DE QUE SE NAVEGA". Sobre esa
+# ultima frase se sostenia que A y B eran un caso distinto de C y D.
+#
+# NO EXISTE ESA EVIDENCIA. Lo que 17_Arquitectura citaba como tal es un PROTOCOLO -un plan
+# de pruebas, no un resultado-. La unica observacion real de banco sobre estos pines es la
+# contraria: N-26 (01/08, commit b581000) apunta que "la tarjeta se plantaba sola en la
+# pantalla de configuracion del Modo Manual sin que nadie tocara la botonera", que es la
+# firma exacta de unos pines en BAJO al arrancar con J16 vacio. Y el paso 29 del 03/09
+# puenteo p5/p8 contra masa sin ningun cambio de comportamiento: el pin YA estaba en bajo.
+#
+# Comprobado ademas que no es una regresion nuestra: el repositorio del que salio este
+# firmware -2semaforos_3estados- trae el mismo `== LOW`, el mismo INPUT_PULLUP y el MISMO
+# .kicad_pcb byte a byte (md5 088667eac75207e8dcfa0ce5b93adce6), sin una sola R65-R68
+# marcada como no montar. La contradiccion es original.
 #
 # El firmware va primero de todos modos (CLAUDE.md 9.bis) y ese orden es el seguro: un pin
 # en INPUT no ejecuta nada, mientras que con el firmware viejo dentro PB14 sigue siendo
@@ -50,8 +66,10 @@
 
 import re
 
-# EJERCE SFTY-21: que los dos pines del mando (A y B) sigan en INPUT_PULLUP y sigan
-# alimentando mando_registrarPulso(), que es de donde cuelga el veto de mando_ambarLocal().
+# EJERCE SFTY-21: que los dos pines del mando (A y B) se lean con la polaridad que pide el
+# conector -INPUT pelado, activo en ALTO- y sigan alimentando mando_registrarPulso(), que
+# es de donde cuelga el veto de mando_ambarLocal(). Hasta el 04/09 esta etiqueta decia
+# "sigan en INPUT_PULLUP", y con eso la regla que dice ejercer estaba muerta (N-118).
 
 NOMBRE = "camara_02_j16"
 DESCRIPCION = "J16: A y B siguen siendo botones, C y D son camaras, y las dos puntas las leen igual"
@@ -259,14 +277,27 @@ def correr(b, fw):
             for c in fuentes.values():
                 for m in re.finditer(r"pinMode\s*\(\s*%s\s*,\s*(\w+)\s*\)" % bt, c):
                     modos_boton.setdefault(bt, []).append(m.group(1))
+        # N-118 - ESTA COMPROBACION SE INVIRTIO EL 04/09, Y EL PORQUE IMPORTA MAS QUE EL
+        # CAMBIO. Exigia INPUT_PULLUP con este motivo: "SFTY-21 depende de que A y B se
+        # lean igual que siempre". Era falso, y de la peor clase: una prueba que EXIGIA el
+        # defecto, con una razon que sonaba a seguridad.
+        #
+        # Lo que la tumbo, medido: R65/R66 son 10K A MASA sobre /Boton1 y /Boton2 -las
+        # mismas que R67/R68 sobre C y D-, y J16 reparte 3,3 V en p4 y p7, las posiciones
+        # de al lado. Es EXACTAMENTE la cuenta que la cabecera de este pack ya hacia bien
+        # para las camaras; lo unico que pasaba es que no se aplicaba a A y B. El banco
+        # del 03/09 midio 9,92 kOhm y 0,6 V en p5/p8: el pin estaba clavado en BAJO, nunca
+        # habia flanco, y el mando NO SE PODIA PULSAR. SFTY-21 no dependia de esto: estaba
+        # MUERTO por esto.
         b.verificar(
             sorted(modos_boton) == sorted(MANDO_ESPERADO)
-            and all(m == "INPUT_PULLUP" for ms in modos_boton.values() for m in ms),
-            "%s: A y B siguen en INPUT_PULLUP - el pulsador y el rele del mando cierran "
-            "contra masa y se leen activos en BAJO" % punta,
-            "%s: los pines del mando se declaran %s. Cambiarles el modo al reasignar C y "
-            "D es justo el error de al lado: SFTY-21 depende de que A y B se lean igual "
-            "que siempre" % (punta, modos_boton or "(no se hallan)"))
+            and all(m == "INPUT" for ms in modos_boton.values() for m in ms),
+            "%s: A y B en INPUT pelado, como C y D - los cuatro pines de J16 son "
+            "electricamente identicos y el reposo lo fija el pull-down de 10K" % punta,
+            "%s: los pines del mando se declaran %s. Con INPUT_PULLUP el pull-up interno "
+            "contra los 10K de R65/R66 deja el pin en 0,6 V -medido en banco el 03/09-, "
+            "que el micro lee LOW en permanencia: sin flanco no hay secuencia, y SFTY-21 "
+            "se queda sin respaldo fisico" % (punta, modos_boton or "(no se hallan)"))
 
         # -- 2.bis NINGUN PIN DE CAMARA ENTRA POR EL CAMINO DE BOTON --
         codigo_botones = fw.codigo(punta, "src", "botones.cpp")
@@ -383,13 +414,22 @@ def correr(b, fw):
 
         botoneras = {q: v for q, v in por_funcion.items()
                      if q in ("actualizar", "botones_setup")}
+        # N-118, la otra mitad. Decia "A y B van contra masa", y el cobre dice que no: hay
+        # UNA SOLA masa en todo J16 (p2). Un contacto por boton contra masa necesitaria
+        # una masa por boton. Lo que el conector reparte es 3,3 V, uno por boton.
+        #
+        # SE EXIGEN LAS DOS FUNCIONES A LA VEZ -actualizar() y botones_setup()- y no una
+        # cualquiera: si la siembra del arranque se quedara en LOW con la lectura en ALTO,
+        # un boton suelto se sembraria como "pulsado" y la guarda de N-26 se comeria la
+        # PRIMERA pulsacion buena. Medir solo una de las dos dejaria pasar ese caso.
         b.verificar(
-            botoneras and all(v == {"LOW"} for v in botoneras.values()),
-            "%s: el camino del boton sigue leyendo activo en BAJO en %s - el mando no "
-            "cambia de polaridad porque cambien sus vecinos de conector"
+            botoneras and all(v == {"HIGH"} for v in botoneras.values()),
+            "%s: el camino del boton lee activo en ALTO en %s - la misma polaridad que "
+            "las camaras, que es la que pide el conector"
             % (punta, ", ".join(sorted(botoneras))),
-            "%s: el camino del boton lee %s. A y B van contra masa; invertirlos deja el "
-            "mando de reles pulsado en permanencia" % (punta, botoneras or "(nada)"))
+            "%s: el camino del boton lee %s. Con los 10K a masa de R65/R66 y los 3,3 V en "
+            "el pin de al lado, leer en BAJO deja el mando pulsado en permanencia y sin "
+            "un solo flanco" % (punta, botoneras or "(nada)"))
 
     # =============================================================================
     # 5. LAS DOS PUNTAS LEEN LAS CAMARAS DE J16 CON EL MISMO CODIGO (N-97)
