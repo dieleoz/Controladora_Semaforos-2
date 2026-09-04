@@ -546,6 +546,46 @@
         <textarea id="t2" placeholder="Intentos · si hubo que usar BOOT0 · mensaje de error literal"></textarea>
       </div>
     </div>
+
+    <div class="fila">
+      <div class="fn">2.bis</div>
+      <div class="fc">
+        <div class="ft">🎯 Comprueba que entró el binario NUEVO, con el multímetro y en diez segundos</div>
+        <p><b>Es la prueba más barata del día y no necesita app, ni radio, ni nada enchufado.</b>
+          El programa del 04/09 cambia cómo se leen los pines del mando (<code>J16</code> p5 y p8):
+          antes tenían el pull-up interno encendido y ahora no. <b>Eso se ve con el voltímetro.</b></p>
+        <p><b>HAZ:</b> equipo encendido, <code>J16</code> <b>vacío</b>, nadie tocando nada. Mide
+          contra masa (<code>J16</code> p2) las cuatro posiciones de señal.</p>
+        <p><b>TIENES QUE VER:</b> <b>0 V en las CUATRO</b>.</p>
+        <table>
+          <thead><tr><th>posición</th><th>qué es</th><th>antes del 04/09</th><th>ahora tiene que dar</th><th>lo que mides</th></tr></thead>
+          <tbody>
+            <tr><td><b>p5</b></td><td>mando A</td><td>0,6 V</td><td><b>0 V</b></td><td><input type="text" id="m2b5" placeholder="___ V"></td></tr>
+            <tr><td><b>p8</b></td><td>mando B</td><td>0,6 V</td><td><b>0 V</b></td><td><input type="text" id="m2b8" placeholder="___ V"></td></tr>
+            <tr><td><b>p10</b></td><td>cámara C</td><td>0 V</td><td><b>0 V</b></td><td><input type="text" id="m2b10" placeholder="___ V"></td></tr>
+            <tr><td><b>p12</b></td><td>cámara D</td><td>0 V</td><td><b>0 V</b></td><td><input type="text" id="m2b12" placeholder="___ V"></td></tr>
+          </tbody>
+        </table>
+        <p class="porque"><b>Por qué funciona:</b> la placa lleva 10 kΩ a masa en las cuatro señales.
+          Con el pull-up interno encendido —el programa viejo— ese pull-up peleaba contra los 10 kΩ y
+          dejaba el pin en <b>0,6 V</b>. Sin pull-up —el programa nuevo— no hay nada que empuje hacia
+          arriba y los 10 kΩ tiran el pin a masa <b>limpio</b>. Las cámaras (p10, p12) ya estaban así,
+          y por eso <b>no cambian</b>: son el control de que la medida está bien hecha.</p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p2b" value="si"> Las cuatro a 0 V — el programa nuevo está dentro</label>
+          <label class="no"><input type="radio" name="p2b" value="no"> p5 y/o p8 siguen dando ~0,6 V</label>
+          <label class="np"><input type="radio" name="p2b" value="np"> No se pudo medir</label>
+        </div>
+        <div class="parar" style="margin-top:.5rem">
+          <b>🛑 Si p5 o p8 te dan ~0,6 V, PARA aquí</b>
+          <p>No es la placa: <b>es que se cargó el binario viejo</b>. Vuelve al paso 2 y repite la
+            carga. <b>Si sigues sin el programa nuevo, no pruebes el mando</b> — con el viejo dentro
+            los pines están clavados en «pulsado», ninguna secuencia responde, y perderás la sesión
+            diagnosticando algo que ya está diagnosticado.</p>
+        </div>
+        <textarea id="t2b" placeholder="¿Coinciden las cuatro? · ¿qué multímetro usaste? · si p5/p8 dan 0,6 V: ¿repetiste la carga? ¿qué pasó?"></textarea>
+      </div>
+    </div>
   </div>
 
   <h2><span class="n">02</span> Los dos conectores que se parecen</h2>
