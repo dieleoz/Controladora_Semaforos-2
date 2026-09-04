@@ -2430,10 +2430,25 @@ document.addEventListener('DOMContentLoaded', () => {
       (err) => {
         // No se finge un resultado vacio: no encontrar y no poder buscar son cosas
         // distintas, y solo una de las dos permite concluir que no hay equipo.
-        showToast('El escaneo fallo');
-        addEvent('red', 'Escaneo Bluetooth fallido: ' + err + '. No se sabe que hay.');
-        mensajeEnLista('El escaneo falló: no se sabe qué equipos hay. Vuelva a ' +
-                       'pulsar Buscar.');
+        // N-125: UN FALLO DE PERMISO NO SE PARECE EN NADA A UN FALLO DE RADIO, Y ANTES
+        // SE VEIAN IGUAL. En banco (04/09) el tecnico emparejo el ESP32, la app dijo "el
+        // escaneo fallo", y ese texto no le decia que hacer: la causa era que Android 12+
+        // exige BLUETOOTH_CONNECT concedido EN RUNTIME para listar emparejados, y nadie lo
+        // pedia. Se pide desde MainActivity, pero si el usuario dice que NO -o si esta
+        // corriendo una version vieja- el texto tiene que llevar la salida encima.
+        //
+        // Se mira el texto del error porque es lo unico que el plugin entrega: no hay un
+        // codigo. Y si no casa, NO se inventa una causa: se dice el error tal cual.
+        var txt = String(err || '');
+        var esPermiso = /permis|security|denied|denegad/i.test(txt);
+        showToast(esPermiso ? 'Falta el permiso de Bluetooth' : 'El escaneo fallo');
+        addEvent('red', 'Escaneo Bluetooth fallido: ' + txt + '. No se sabe que hay.');
+        mensajeEnLista(esPermiso
+          ? 'Falta el permiso «Dispositivos cercanos». Ajustes de Android → Aplicaciones → ' +
+            'IOT VIAL → Permisos → Dispositivos cercanos → Permitir. Después vuelva a pulsar Buscar.'
+          : 'El escaneo falló: no se sabe qué equipos hay. Si se repite, compruebe en Ajustes de ' +
+            'Android → Aplicaciones → IOT VIAL → Permisos que «Dispositivos cercanos» está ' +
+            'permitido; sin ese permiso Android no deja ver los equipos emparejados.');
       }
     );
   }
