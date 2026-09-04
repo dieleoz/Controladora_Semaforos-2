@@ -30,8 +30,7 @@ Todas las operaciones están alineadas al **Manual de Señalización Vial de Col
 >      ha cargado ni ejercido en tarjeta**; lo único medido es el fuente. Hasta esa prueba, **no
 >      cuente con respaldo físico**: opere por la app. Ver §7.
 > 3. **La app sólo conecta con la APK del 04/09**
->    (`IOT_VIAL_Semaforos_2026-09-04_1f6b8f1_SIN_BANCO.apk`, md5
->    `1b5a2e1ca1f2647e585aeca40f1a0c3e`). Hasta esa versión la app **nunca abría el socket
+>    (**la APK del 04/09 que acompaña a este paquete** — su nombre exacto y su `md5` estan en `LEEME_PRIMERO.md`, en la raíz del `.zip`, que es el único sitio donde no caducan). Hasta esa versión la app **nunca abría el socket
 >    Bluetooth**: se pintaba «Enlazado» por haber pulsado una fila de la lista, y los comandos se
 >    iban al vacío (`N-122`). **Y esa misma APK trae `N-124`: la lista de equipos ya NO lleva
 >    direcciones `MAC` escritas a mano — sale del escaneo real.** Por eso el orden en el poste es
@@ -647,8 +646,8 @@ Desde el 28/08 esto **ya no es un accesorio de soporte: es la única interfaz de
 **Los tres tropiezos de abajo costaron horas de banco, y ninguno era una avería del equipo.**
 
 **1. La APK tiene que ser la del 04/09.** El fichero es
-`IOT_VIAL_Semaforos_2026-09-04_1f6b8f1_SIN_BANCO.apk`, **md5 `1b5a2e1ca1f2647e585aeca40f1a0c3e`**.
-**Es la única del 04/09 que existe en `05_Funcional/`**; compruebe el md5 antes de instalar, porque
+**la APK del 04/09 que acompaña a este paquete** — su nombre exacto y su `md5` estan en `LEEME_PRIMERO.md`, en la raíz del `.zip`, que es el único sitio donde no caducan.
+**Compruebe el `md5` antes de instalar**, porque
 el nombre lo puede llevar cualquier fichero y el hash no.
 
 > 🔴 **Con cualquier APK anterior la app NO CONECTA, por bien que funcione el módulo (`N-122`).**

@@ -7,8 +7,8 @@
 **Fecha de Actualización:** 28 de Agosto de 2026  
 **Última revisión:** 4 de septiembre de 2026 — **banco real del 3–4/09: `N-122`, la app nunca abría el socket Bluetooth**, y **`N-124`, la lista de equipos llevaba `MAC` escritas a mano**. Los dos arreglados, y **obligan a APK nueva**. Ver la cabecera y `§4.bis`  
 **Versión de Firmware Compatible:** V8.9 / V9.0 Definitiva — ⚠️ **en campo corre la V8.4**  
-**Archivo APK Compilado:** `05_Funcional/IOT_VIAL_Semaforos_2026-09-04_1f6b8f1_SIN_BANCO.apk`  
-&nbsp;&nbsp;&nbsp;&nbsp;**md5 `1b5a2e1ca1f2647e585aeca40f1a0c3e`** — el nombre lo puede llevar cualquier fichero; el hash no  
+**Archivo APK Compilado:** **la APK del 04/09 que acompaña a este paquete** — su nombre exacto y su `md5` estan en `LEEME_PRIMERO.md`, en la raíz del `.zip`, que es el único sitio donde no caducan  
+&nbsp;&nbsp;&nbsp;&nbsp; — el nombre lo puede llevar cualquier fichero; el hash no  
 &nbsp;&nbsp;&nbsp;&nbsp;🛑 ~~`IOT_VIAL_Semaforos_2026-09-02_617bd00_SIN_BANCO.apk`~~ — **y todas las anteriores: NO CONECTAN** (`N-122`, ver cabecera). No es que les falten funciones: **no abren el socket**  
 &nbsp;&nbsp;&nbsp;&nbsp;✏️ *Corregido el 04/09: esta línea citaba `…_2026-09-02_285b18d_…`, **un hash que no existe en ninguna parte**. La APK del 02/09 que sí está en disco es la `617bd00`. Se anota en vez de sustituirse en silencio: una cifra inventada que desaparece sin dejar rastro vuelve a escribirse.*  
 **Pestañas:** **2 visibles al operario** (`Tráfico`, `Eventos`) y **5 en modo técnico** — se añaden `Tiempos`, `Técnico` y `Tramas`  
@@ -40,8 +40,8 @@
 > Ahora se llama a **`connect(mac)`**, y **`state.connected` sólo se pone a `true` en su callback de
 > éxito**; si la conexión falla, **se dice, y el estado se queda en falso**.
 >
-> 🛑 **HAY QUE INSTALAR LA APK NUEVA:** `IOT_VIAL_Semaforos_2026-09-04_1f6b8f1_SIN_BANCO.apk`,
-> **md5 `1b5a2e1ca1f2647e585aeca40f1a0c3e`**. **Es la única APK del 04/09 que existe en
+> 🛑 **HAY QUE INSTALAR LA APK NUEVA:** **la APK del 04/09 que acompaña a este paquete** — su nombre exacto y su `md5` estan en `LEEME_PRIMERO.md`, en la raíz del `.zip`, que es el único sitio donde no caducan.
+> **Es la única APK del 04/09 que existe en
 > `05_Funcional/`.** Con la APK anterior la app **NO conecta por bien que funcione el módulo** —
 > actualizar el firmware del equipo o cambiar el `ESP32` no arregla nada, porque el defecto está en
 > el teléfono.
@@ -244,7 +244,7 @@ Desde la carpeta raíz de la App (`05_Funcional/App_Semaforo/`):
    android\compilar_apk.bat
    ```
    *El script sincroniza los assets web con Capacitor (`npx cap sync android`) y ejecuta Gradle `assembleDebug` generando el archivo maestro en `05_Funcional/` en ~20 segundos.* **El nombre lleva fecha y hash del árbol** — el vigente es
-   `IOT_VIAL_Semaforos_2026-09-04_1f6b8f1_SIN_BANCO.apk`, md5 `1b5a2e1ca1f2647e585aeca40f1a0c3e`;
+   **la APK del 04/09 que acompaña a este paquete** — su nombre exacto y su `md5` estan en `LEEME_PRIMERO.md`, en la raíz del `.zip`, que es el único sitio donde no caducan;
    ~~`…_2026-09-02_617bd00_…`~~ y ~~`…_2026-08-28_a8e1ceb_…`~~ **no conectan** (`N-122`, ver
    cabecera).
 

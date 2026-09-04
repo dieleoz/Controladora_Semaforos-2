@@ -3,7 +3,7 @@
 > ## ⚠️ ESTE LÉEME DESCRIBE EL PAQUETE DEL 28/08. HAY DOS POSTERIORES
 >
 > 🔴 **La APK que hay que instalar hoy es la del 04/09:**
-> `IOT_VIAL_Semaforos_2026-09-04_1f6b8f1_SIN_BANCO.apk`, md5 `1b5a2e1ca1f2647e585aeca40f1a0c3e`.
+> **la APK del 04/09 que acompaña a este paquete** — su nombre exacto y su `md5` estan en `LEEME_PRIMERO.md`, en la raíz del `.zip`, que es el único sitio donde no caducan.
 > Las anteriores **no pueden abrir el enlace Bluetooth**: `app.js` marcaba «Enlazado» y se
 > suscribía sin haber llamado nunca a `connect()`, y además marcaba dos MAC escritos a mano que no
 > son los del ESP32 (N-122 y N-124). Con cualquier APK anterior la app no conecta **por bien que
