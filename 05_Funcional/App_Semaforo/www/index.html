@@ -58,7 +58,7 @@
       <!-- Dual Traffic Light Visual Widget -->
       <div class="card card-traffic">
         <div class="traffic-header">
-          <span class="card-tag">ESTADO DEL CRUCE EN TIEMPO REAL</span>
+          <span class="card-tag">ESTADO DEL CRUCE</span>
           <span class="badge badge-sin-enlace" id="badge-modo">SIN ENLACE</span>
         </div>
 
@@ -109,7 +109,6 @@
       <div class="card operario-pad-card">
         <div class="pad-header">
           <h3>🎮 BOTONERA DE CAMPO</h3>
-          <span class="pad-sub">Control a 1 toque (Directo)</span>
         </div>
 
         <div class="operario-grid">
@@ -177,7 +176,7 @@
             <span class="pad-icon">↩️</span>
             <div class="pad-text">
               <strong>RETIRAR ÁMBAR</strong>
-              <small>Revoca el ámbar puesto desde la app</small>
+              <small>Quita el ámbar de emergencia</small>
             </div>
           </button>
 
@@ -212,9 +211,10 @@
            herramientas_medir_consola.js a cuatro tamanos reales de telefono: el
            ultimo mando quedaba entre 82 y 382 px por debajo del borde de la pantalla.
 
-           No se borra nada. El enlace, la bateria y su explicacion siguen enteros:
-           solo dejan de robar el espacio entre la accion y su consecuencia. Quien
-           quiera el detalle tecnico baja; quien esta regulando trafico, no.
+           El enlace y la bateria siguen enteros; solo dejan de robar el espacio entre
+           la accion y su consecuencia. Su EXPLICACION -que el % no es RSSI- ya no esta
+           aqui: bajo a la pestana de Tramas el 04/09, con el barrido de textos.
+           Quien quiera el detalle tecnico baja; quien esta regulando trafico, no.
            =============================================================== -->
       <!-- Quick Metrics Bar -->
       <div class="grid-metrics">
@@ -233,15 +233,13 @@
           </div>
           <div class="metric-sub"><span class="metric-etiqueta">RTT</span> <span id="rf-rtt">--</span> <span class="metric-etiqueta" id="rf-rtt-unidad">ms</span></div>
           <div class="metric-sello" id="rf-sello">ninguna medida en esta sesion</div>
-          <!-- ESTA NOTA ES FIJA Y VA EN EL HTML A PROPOSITO: es verdad siempre, no
-               depende de ninguna trama, y por tanto no puede quedarse describiendo
-               un equipo que ya no existe. Dice lo unico que el numero de arriba NO
-               dice, y que cualquiera que vea una barra de nivel da por supuesto. -->
-          <p class="metric-nota">
-            Es el <strong>% de latidos que contestaron</strong> en los últimos 30 s
-            (10 latidos, uno cada 3 s). <strong>No es potencia de señal (RSSI):</strong>
-            no dice si falla la antena, el cable o si hay un obstáculo delante.
-          </p>
+          <!-- ESTA NOTA SE QUEDA JUNTO A LA BARRA, Y ESE SITIO ES TODA SU RAZON DE SER.
+               El 04/09 el barrido de textos la mudo a la pestana de Tramas por larga
+               -cuatro lineas de prosa en la pantalla que se mira con un coche encima-
+               y el banco lo caso. Con motivo: lo que protege no es la frase, es su
+               SITIO. Quien lee la barra como cobertura y va a cambiar la antena no
+               abre otra pestana a comprobarlo. Vuelve, en una linea. -->
+          <p class="metric-nota">% de <strong>latidos</strong> contestados. <strong>No es potencia (RSSI).</strong></p>
         </div>
 
         <div class="card metric-card">
@@ -265,10 +263,9 @@
     <section class="tab-content" id="tab-eventos">
       <div class="card">
         <div class="card-header-flex">
-          <h3>🔔 Registro de Eventos en Campo</h3>
+          <h3>🔔 Eventos</h3>
           <span class="badge badge-auto">En Vivo</span>
         </div>
-        <p class="card-sub">Historial de cambios de fase, órdenes de mando y alarmas del equipo.</p>
 
         <div class="event-feed" id="event-feed">
           <!-- Renderizado dinámico -->
@@ -296,12 +293,6 @@
           <h3>📉 Bitácora del enlace</h3>
           <span class="badge badge-auto">Guardada en el teléfono</span>
         </div>
-        <p class="card-sub">
-          A qué hora iba bien, a qué hora se fue y a qué hora volvió. Cada marca es una
-          medida real; <strong>los huecos se dibujan como huecos</strong> porque entre
-          dos medidas no se recibió nada y nadie sabe qué pasó en medio.
-        </p>
-
         <div class="tira-wrap">
           <div class="tira" id="registro-tira"></div>
         </div>
@@ -310,7 +301,7 @@
           <span><i class="tira-muestra tira-justo"></i> justo</span>
           <span><i class="tira-muestra tira-cayendo"></i> cayendo</span>
           <span><i class="tira-muestra tira-sindato"></i> sin medir</span>
-          <span><i class="tira-muestra tira-hueco"></i> hueco: no llegó nada</span>
+          <span><i class="tira-muestra tira-hueco"></i> hueco: nada recibido</span>
         </div>
 
         <p class="registro-resumen" id="registro-resumen"></p>
@@ -318,7 +309,7 @@
 
         <div class="feed-actions">
           <button class="btn-export" id="btn-registro-csv">
-            <span>📥 Exportar bitácora del enlace</span>
+            <span>📥 Exportar bitácora</span>
           </button>
           <button class="btn-share" id="btn-registro-limpiar">
             <span>🗑️ Borrar bitácora</span>
@@ -335,39 +326,36 @@
         <span class="admin-shield">🛡️</span>
         <div>
           <strong>MODO TÉCNICO ACTIVO</strong>
-          <p>Ajuste de tiempos de ciclo y seguridad vial.</p>
         </div>
       </div>
 
       <div class="card card-tiempos" style="border-left: 4px solid var(--amber-lamp);">
         <div class="card-header-flex">
-          <h3>⏱️ Tiempos Operativos de Ciclo</h3>
-          <span class="pin-badge">Firmware V9.0</span>
+          <h3>⏱️ Tiempos de Ciclo</h3>
         </div>
-        <p class="card-sub">Configure los minutos de paso y segundos de despeje en la memoria del semáforo:</p>
 
         <form id="form-tiempos" class="tiempos-form">
           <div class="form-row">
             <div class="form-group half">
-              <label for="num-tiempo-verde">🟢 Verde Sentido (min):</label>
-              <input type="number" id="num-tiempo-verde" class="form-input" min="1" max="15" value="2" required>
-              <small class="hint">Rango: 1 a 15 min</small>
+              <label for="num-tiempo-verde">🟢 Verde (min)</label>
+              <input type="number" id="num-tiempo-verde" class="form-input" min="3" max="15" value="3" required>
+              <small class="hint">3 a 15 min</small>
             </div>
             <div class="form-group half">
-              <label for="num-tiempo-rojo">🔴 Rojo Sentido (min):</label>
-              <input type="number" id="num-tiempo-rojo" class="form-input" min="1" max="15" value="2" required>
-              <small class="hint">Rango: 1 a 15 min</small>
+              <label for="num-tiempo-rojo">🔴 Rojo (min)</label>
+              <input type="number" id="num-tiempo-rojo" class="form-input" min="3" max="15" value="3" required>
+              <small class="hint">3 a 15 min</small>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="num-tiempo-despeje">🟡 Despeje Todo-Rojo (seg):</label>
+            <label for="num-tiempo-despeje">🟡 Despeje todo-rojo (seg)</label>
             <input type="number" id="num-tiempo-despeje" class="form-input" min="10" max="90" value="15" required>
-            <small class="hint">Tiempo de cruce de calzada (10 a 90 seg)</small>
+            <small class="hint">10 a 90 seg</small>
           </div>
 
           <button type="submit" class="btn-save-site" id="btn-aplicar-tiempos">
-            💾 Aplicar Tiempos al Semáforo
+            💾 Aplicar tiempos
           </button>
         </form>
       </div>
@@ -384,20 +372,20 @@
           <h3>Mandos directos al equipo</h3>
           <span class="badge">TECNICO</span>
         </div>
-        <p class="card-sub">Ordenes que el firmware atiende por Bluetooth. Piden PIN antes de salir.</p>
+        <p class="card-sub">Requieren PIN.</p>
         <div class="ctrl-grid">
           <button class="ctrl-btn btn-mode-manual" data-cmd="SET_MODO:MANUAL">
             <strong>Modo Manual</strong>
-            <small>El ciclo deja de correr solo</small>
+            <small>Sin ciclo automático</small>
           </button>
           <button class="ctrl-btn btn-request" data-cmd="SOLICITAR_PASO">
             <strong>Solicitar Paso</strong>
-            <small>Demanda de cruce (N-58)</small>
+            <small>Demanda de paso</small>
           </button>
           <!-- Arranca un ciclo que DA VERDES, por eso pide PIN igual que el resto. -->
           <button class="ctrl-btn btn-mode-smart" data-cmd="SET_MODO:INTELIGENTE">
             <strong>Modo Inteligente</strong>
-            <small>Cicla por demanda de cámara</small>
+            <small>Por demanda de cámara</small>
           </button>
           <!-- Sin PIN: deja el equipo en rojo fijo y no arranca ciclo. -->
           <button class="ctrl-btn btn-mode-range" id="btn-modo-alcance">
@@ -428,7 +416,7 @@
            Va aparte del resto porque no es un cambio de modo: es un borrado. -->
       <div class="card">
         <h3>🧹 Reiniciar el reloj del equipo</h3>
-        <p class="card-sub">Borra la hora, el ciclo acordado con la otra punta y la autorización del Modo Degradado. Después hay que volver a sincronizar.</p>
+        <p class="card-sub">Borra hora, ciclo acordado y autorización de Degradado. Hay que volver a sincronizar.</p>
         <button class="btn-secondary-bt" data-cmd="REINICIAR_RELOJ" style="width: 100%;">
           🧹 Reiniciar reloj y respaldo
         </button>
@@ -437,10 +425,10 @@
       <!-- Asistente Courier RTC -->
       <div class="card card-courier">
         <div class="card-header-flex">
-          <h3>🔄 Asistente Courier RTC (Sin Radio)</h3>
-          <span class="badge badge-courier">SFTY-18</span>
+          <h3>🔄 Courier RTC (sin radio)</h3>
+          <span class="badge badge-courier">SIN RADIO</span>
         </div>
-        <p class="card-sub">Traslada la hora satelital del Maestro al Esclavo con compensación automática de viaje:</p>
+        <p class="card-sub">Lleva la hora del Maestro al Esclavo, compensando el viaje.</p>
 
         <div class="courier-box">
           <div class="courier-status-row">
@@ -457,7 +445,7 @@
               <span class="step-num">1</span>
               <div class="step-info">
                 <strong>📸 Capturar Maestro</strong>
-                <small>Memorizar hora en P1</small>
+                <small>Hora de P1</small>
               </div>
             </button>
 
@@ -465,7 +453,7 @@
               <span class="step-num">2</span>
               <div class="step-info">
                 <strong>🚀 Inyectar en Esclavo</strong>
-                <small>Compensar y aplicar en P2</small>
+                <small>Aplicar en P2</small>
               </div>
             </button>
           </div>
@@ -474,19 +462,19 @@
 
       <!-- Sincronización Directa de Reloj -->
       <div class="card">
-        <h3>⏱️ Sincronizar Reloj DS3231</h3>
-        <p class="card-sub">Ajusta el reloj de alta precisión con la hora de tu teléfono celular:</p>
+        <h3>⏱️ Sincronizar reloj DS3231</h3>
+        <p class="card-sub">Con la hora del teléfono.</p>
         <button class="btn-save-site" id="btn-sync-rtc">
-          ⏱️ Sincronizar Hora Actual (<span id="rtc-sync-digits">--:--:--</span>)
+          ⏱️ Sincronizar (<span id="rtc-sync-digits">--:--:--</span>)
         </button>
       </div>
 
       <!-- Test de Focos / Banco -->
       <div class="card">
-        <h3>💡 Prueba de Focos y MOSFETs</h3>
-        <p class="card-sub">Secuencia de 6 segundos (2s Rojo ➔ 2s Amarillo ➔ 2s Verde) para validar potencia.</p>
+        <h3>💡 Prueba de focos</h3>
+        <p class="card-sub">2s rojo · 2s ámbar · 2s verde.</p>
         <button class="btn-secondary-bt" id="btn-start-test-leds" style="width: 100%;">
-          ⚡ Iniciar Test de Luces (6s)
+          ⚡ Iniciar prueba (6s)
         </button>
       </div>
 
@@ -504,7 +492,7 @@
           <h3>⚠️ Modo Degradado (sin radio)</h3>
           <span class="badge badge-degradado">PELIGROSO</span>
         </div>
-        <p class="card-sub">Da verde guiándose <strong>solo por el reloj</strong>, sin confirmación de la otra punta. Úselo únicamente con el enlace caído y las dos unidades verificadas.</p>
+        <p class="card-sub">Da verde <strong>solo por el reloj</strong>, sin confirmación de la otra punta. Sólo con el enlace caído y las dos unidades verificadas.</p>
         <button class="btn-degradado" id="btn-modo-degradado">
           ⚠️ Entrar en Modo Degradado…
         </button>
@@ -527,11 +515,7 @@
           <h3>🧪 Tramas en crudo</h3>
           <span class="badge">DEPURACIÓN</span>
         </div>
-        <p class="card-sub">
-          Lo que entró por el Bluetooth, <strong>tal y como entró</strong>, con las
-          rechazadas y su motivo. Un fallo intermitente no se diagnostica con un
-          semáforo dibujado: se diagnostica con la trama que no cuadró.
-        </p>
+        <p class="card-sub">Lo que entró por el Bluetooth, <strong>tal y como entró</strong>, con las rechazadas y su motivo.</p>
 
         <div class="depu-contadores" id="depu-contadores"></div>
 
@@ -607,7 +591,7 @@
         <h4>🔒 Desbloqueo Modo Técnico</h4>
         <button class="modal-close" id="modal-pin-close">✕</button>
       </div>
-      <p class="modal-desc">Ingrese el PIN de administración de 4 dígitos para acceder a ajustes avanzados:</p>
+      <p class="modal-desc">PIN de 4 dígitos.</p>
 
       <div class="pin-display">
         <span class="pin-dot" id="pin-d1"></span>
@@ -640,11 +624,11 @@
         <h4>📡 Conectar Semáforo</h4>
         <button class="modal-close" id="modal-bt-close">✕</button>
       </div>
-      <p class="modal-desc">Seleccione el módulo Bluetooth del poste al que desea enlazar:</p>
+      <p class="modal-desc">Módulo Bluetooth del poste:</p>
 
       <div class="bt-pin-select">
         <span class="bt-pin-label">PIN de autorizacion del equipo:</span>
-        <label class="bt-pin-opt"><input type="radio" name="bt_pin_opt" value="1234" checked> <strong>1234</strong> (el unico que acepta el firmware)</label>
+        <label class="bt-pin-opt"><input type="radio" name="bt_pin_opt" value="1234" checked> <strong>1234</strong> (unico aceptado)</label>
       </div>
 
       <!-- N-124: LOS DOS DATOS CON LOS QUE EL TECNICO SE ATASCA DELANTE DEL POSTE.
@@ -652,11 +636,9 @@
            pide clave: sin esto se busca el nombre del cruce en una lista donde no
            esta, y se espera un PIN que Android nunca pregunta. -->
       <p class="modal-desc bt-aviso-modulo">
-        <strong>Antes de buscar:</strong> mientras el módulo no haya aprendido la serie del
-        equipo se anuncia como <strong>SEM-SIN-MATRICULA</strong>, no con el nombre del cruce.
-        El emparejamiento es <em>«Just Works»</em>: Android <strong>no pide PIN</strong>.
-        El 1234 de arriba es el PIN de comando que viaja dentro de la app, no la clave del
-        sistema operativo.
+        Sin matrícula aprendida el módulo se anuncia <strong>SEM-SIN-MATRICULA</strong>,
+        no con el nombre del cruce. Android <strong>no pide PIN</strong> al emparejar.
+        El 1234 es PIN de comando, no clave del sistema.
       </p>
 
       <!-- N-124: aqui habia DOS FILAS FIJAS con el MAC escrito a mano. Una empezaba por
@@ -667,8 +649,8 @@
            la declara el equipo en NODE: del $STATUS, no una fila escrita a mano. -->
       <div class="bt-device-list" id="bt-device-list-container">
         <p class="modal-desc" id="bt-lista-vacia">
-          Pulse <strong>🔍 Buscar Módulos Bluetooth</strong> para ver los equipos
-          emparejados en este teléfono. Aquí no hay ninguna lista guardada.
+          Pulse <strong>Buscar</strong> para ver los equipos emparejados.
+          No hay lista guardada.
         </p>
       </div>
 
@@ -711,13 +693,12 @@
       </div>
       <p class="modal-desc">
         Al aceptar, <strong>esta unidad abrirá paso guiándose solo por su reloj</strong>.
-        No preguntará nada por radio y nadie le confirmará que el otro sentido está en
-        rojo: es la única orden del equipo que enciende un verde sin el otro extremo.
+        Nadie le confirmará que el otro sentido está en rojo.
       </p>
       <ul class="degradado-lista">
         <li>Las dos unidades deben tener la hora puesta y el <strong>mismo ciclo acordado</strong>.</li>
-        <li>El equipo puede rechazar la orden. El motivo exacto sale en <strong>Eventos</strong>.</li>
-        <li>Para salir se usa <strong>VOLVER AL MENÚ</strong>: el equipo hace 30 s de todo-rojo antes de soltar.</li>
+        <li>El equipo puede rechazar la orden. El motivo sale en <strong>Eventos</strong>.</li>
+        <li>Para salir: <strong>VOLVER AL MENÚ</strong>. El equipo hace 30 s de todo-rojo.</li>
       </ul>
       <label class="degradado-check">
         <input type="checkbox" id="chk-degradado-verificado">

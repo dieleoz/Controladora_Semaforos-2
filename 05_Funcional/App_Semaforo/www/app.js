@@ -2483,7 +2483,21 @@ document.addEventListener('DOMContentLoaded', () => {
       // eso es suerte: la guarda de rangos de la app no estaba guardando nada. Se
       // pregunta primero si hay tres enteros, y el rango despues.
       const enRango = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
-      if (!enRango(verde, 1, 15) || !enRango(rojo, 1, 15) || !enRango(despeje, 10, 90)) {
+      // LOS RANGOS SON COPIA DEL C++, Y ESO ES LO PELIGROSO DE ESTA LINEA.
+      //
+      // Los cuatro numeros viven de verdad en Maestro/src/modo_automatico.cpp:32-34
+      // -VERDE_MIN_MIN/MAX, ROJO_MIN_MIN/MAX, DESPEJE_SEG_MIN/MAX-. Aqui son una SEGUNDA
+      // COPIA escrita a mano en otro lenguaje, que es exactamente lo que contrato.h llama
+      // R-9: "el dia que difieran, una punta deja pasar lo que la otra rechaza".
+      //
+      // Se sincronizan el 04/09 con el minimo nuevo de 3 minutos, y a partir de hoy hay
+      // un pack -app_11_rangos_de_tiempos- que relee los seis numeros del C++ y de aqui
+      // en cada corrida y FALLA si divergen. Sin ese pack, esta linea envejece sola.
+      //
+      // Y LA APP NO ES LA GUARDA: la guarda esta en el firmware, que rechaza con
+      // $ERR,CMD:SET_TIEMPOS,DESC:RANGO. Esto solo evita que el operario teclee algo que
+      // el equipo va a rechazar y se quede sin saber por que.
+      if (!enRango(verde, 3, 15) || !enRango(rojo, 3, 15) || !enRango(despeje, 10, 90)) {
         showToast('❌ Error: Tiempos vacíos o fuera de rango permitido.');
         return;
       }
