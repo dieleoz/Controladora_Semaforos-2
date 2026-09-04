@@ -463,7 +463,9 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 | | que | estado |
 |---|---|---|
 | 🛑 **N-116** | **la tarjeta Maestro se calienta y se para a los ~30 s** | **fuera de servicio.** El firmware queda descartado por censo; es hardware |
-| 🔴 **N-117** | el ESP32 no se anuncia por Bluetooth de forma fiable | **arreglado en el arbol el 04/09**, pendiente de confirmar en el modulo |
+| 🟢 **N-125** | **la app no pedia el permiso de Bluetooth de Android** | ✅ **CERRADO EN CAMPO el 04/09 a las 13:32**: *«ya funciona la app»*. Era la causa real del *«el escaneo fallo»* del banco |
+| 🟠 **N-117** | el ESP32 no se anuncia por Bluetooth de forma fiable | **arreglado en el arbol el 04/09**, y ahora **probablemente NO era la causa** — ver el aviso de abajo |
+| 🟠 **N-122 / N-124** | la app no abria el socket, y marcaba dos MAC escritos a mano | arregladas y en la APK. **Ejercidas en campo solo hasta donde llego la observacion**: ver el aviso de abajo |
 | 🔴 **N-118** | **el mando A/B no puede pulsarse**: SFTY-21 no tiene respaldo fisico | medido en cobre y en el fuente. **Espera decision de polaridad** |
 | ~~🟢 **N-106**~~ | el ambar de la app no saca al Esclavo del Degradado | ✅ **CERRADO, y esta fila llevaba dias mintiendo.** Lo cerro `2e99bc3` con el molde de cuatro filas de `Esclavo/src/bluetooth.cpp`, y `esclavo_08_ambar_en_degradado` lo vigila **8/8 con cinco controles negativos**. Se descubrio auditando, no trabajando: ver **N-121** |
 | 🔴 **el `` cruzado** | 32 de 289 pares confirman OTRA orden | en curso |
@@ -784,6 +786,65 @@ hay **nada**.
 > paso 4 de la guia —**tapar fisicamente el pin de 12 V**— deja de ser una precaucion de banco y pasa
 > a ser **obligatorio en cada equipo, escrito en la guia de instalacion**. Es lo unico que hay hoy
 > entre el instalador y esta averia.
+
+
+### 🟢 N-125 — La app no pedia el permiso de Bluetooth. CERRADO EN CAMPO, y obliga a rebajar dos hallazgos
+
+**04/09, 13:32, del funcional: *«ya funciona la app»*.** Es el primer bloqueo del banco que se
+cierra, y desatasca los pasos 11-14 y 25-28.
+
+#### El defecto
+
+```
+BluetoothSerial.java:107-109   list -> listBondedDevices()  SIN comprobar permiso
+BluetoothSerial.java:220       el UNICO requestPermission del plugin: ACCESS_COARSE_LOCATION
+                               -permiso de Android 6-11, y cuelga de DESCUBRIR, no de listar-
+MainActivity.java              vacio: no pedia nada
+variables.gradle               targetSdk 34
+```
+
+Desde Android 12 (API 31), `getBondedDevices()` exige **`BLUETOOTH_CONNECT` concedido EN RUNTIME** y
+lanza `SecurityException` si no. Esa excepcion caia en el callback de error del plugin y salia como
+*«el escaneo fallo»*, que fue literalmente lo que el funcional reporto.
+
+> **Los permisos SI estaban declarados en el manifest desde siempre. Declarar no es pedir:** en
+> runtime, un permiso peligroso no concedido se comporta **igual que uno que no existe**. Por eso
+> costo verlo — el manifest se lee y parece completo. Es un `pinMode()` sin `digitalRead()` con otra
+> ropa, y es la misma familia que N-73.
+
+#### 🔴 LO QUE ESTE CIERRE OBLIGA A REBAJAR, Y ES LA PARTE QUE IMPORTA
+
+**Si funciono SIN reflashear el ESP32 —que es lo que parece—, entonces N-117 NO era la causa.** El
+watchdog seguia siendo un defecto real —un techo de 2 s sobre un arranque que `contrato.h` declara
+sin medir es una apuesta, no una proteccion— y su arreglo se queda. **Pero no era lo que bloqueaba
+el banco**, y apuntarselo seria fabricar un acierto.
+
+Es §4 otra vez, y esta vez en nuestra contra: **una causa plausible que resulto no ser la causa.** Se
+degrada de 🔴 a 🟠 y se deja escrito, en vez de quedarse como "arreglado" al lado del sintoma que no
+arreglo.
+
+#### ⚠️ Y LO QUE TODAVIA NO ESTA MEDIDO, dicho como tal
+
+*«Ya conecta seguramente»* es una suposicion del responsable, no una observacion del banco. Lo unico
+CONSTATADO es que **la app dejo de dar el error de escaneo**. Faltan tres cosas, y cada una cierra un
+hallazgo distinto:
+
+| lo que hay que VER | que cierra |
+|---|---|
+| sale la lista con el ESP32 | **N-125** — esto ya esta |
+| conecta y el boton queda en «Enlazado» | **N-122**: el socket abre de verdad |
+| **llega telemetria viva** —el contador se mueve solo— | la cadena entera: STM32 -> J17 -> ESP32 -> app |
+
+**Y la prueba que las cierra las tres de golpe, sin depender de lo que pinte el tablero:** dejar el
+ESP32 hablando un rato con el Esclavo, **reiniciarlo**, y mirar el nombre. Si paso de
+`SEM-SIN-MATRICULA` a `SEM-<serie>-E`, el `$STATUS` salio del STM32, cruzo J17, se parseo y se
+guardo. El rotulo solo se aprende de ahi.
+
+#### La solucion inmediata que quedo escrita, porque servira otra vez
+
+Conceder **«Dispositivos cercanos»** a mano en Ajustes de Android desbloquea la app **sin instalar
+nada**. Sirve con cualquier APK anterior, y es la primera comprobacion cuando alguien diga que el
+escaneo falla.
 
 
 ### 🔴 N-122 — La app NUNCA abria el socket: faltaba `connect()`, y eso bloqueaba el banco por si solo
