@@ -180,6 +180,13 @@ void loop() {
   //     a que una orden vieja contradijese la fase calculada por reloj.
   //   - Y si el otro extremo siguiera en modo normal, dejar de hablarle lo manda a
   //     ambar por orfandad (SFTY-6), que es la direccion segura.
+  // OJO: LA FRASE QUE SEGUIA AQUI DESCRIBIA UN FIRMWARE ANTERIOR (corregido 04/09).
+  // Decia que estos modos llaman a semaforo_actualizar() por su cuenta "que es lo que
+  // aqui se perderia". Medido: la linea 167 de este mismo fichero ya la llama SIN
+  // condicion, asi que no se perderia nada. La exclusion sigue siendo correcta, pero
+  // por el OTRO motivo -callar en la radio a proposito-, que es el de arriba. Se anota
+  // porque una cuenta dentro de un comentario envejece con la autoridad de un dato.
+  // Lo encontro maestro_10_coordinador_alcanzable.
   // Los dos modos llaman a semaforo_actualizar() por su cuenta, que es lo que aquí se
   // perdería.
   ModoSistema modo = modoActual_get();
