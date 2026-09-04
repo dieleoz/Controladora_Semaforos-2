@@ -10,7 +10,23 @@
 
 enum FaseAuto { CONFIG_ROJO, CONFIG_VERDE, CONFIG_ESTATICO, CORRIENDO };
 static FaseAuto fase;
-static int minRojo = 1, minVerde = 1, segEstatico = 15;
+static const uint8_t VERDE_MIN_MIN = 3,  VERDE_MIN_MAX = 15;
+static const uint8_t ROJO_MIN_MIN  = 3,  ROJO_MIN_MAX  = 15;
+static const uint8_t DESPEJE_SEG_MIN = 10, DESPEJE_SEG_MAX = 90;
+
+// LOS VALORES DE ARRANQUE SALEN DE LOS LIMITES, NO SE ESCRIBEN A MANO (04/09).
+//
+// Aqui ponia "1, 1, 15" y eso convertia la guarda de 3 minutos en media guarda: solo
+// la cruzaba SET_TIEMPOS. Un equipo que arranca y al que nadie le manda tiempos corria
+// con UN MINUTO por sentido -justo lo que el responsable prohibio hoy- y ningun
+// instrumento lo veia, porque el numero prohibido no estaba en la guarda: estaba en el
+// inicializador, tres lineas mas arriba, con pinta de detalle.
+//
+// Es §3.bis: un minimo declarado en un sitio y repetido a mano en otro es una segunda
+// copia que alguien tiene que sincronizar, y el dia que difieran gana la que NO tiene
+// el comentario de seguridad encima.
+static int minRojo = ROJO_MIN_MIN, minVerde = VERDE_MIN_MIN,
+           segEstatico = DESPEJE_SEG_MIN;
 static unsigned long tEstadoDesde = 0;
 static bool primeraVezCorriendo = true;
 
@@ -48,9 +64,6 @@ void modoAutomatico_pedirArranqueDirecto() { arranqueDirecto = true; }
 // COSTE DECLARADO: ya no se puede probar en mesa con ciclos de 1 minuto. Se acepto a
 // sabiendas: un banco cae del lado de esperar tres minutos, no del lado de dejar el
 // limite de laboratorio suelto en una carretera.
-static const uint8_t VERDE_MIN_MIN = 3,  VERDE_MIN_MAX = 15;
-static const uint8_t ROJO_MIN_MIN  = 3,  ROJO_MIN_MAX  = 15;
-static const uint8_t DESPEJE_SEG_MIN = 10, DESPEJE_SEG_MAX = 90;
 
 bool modoAutomatico_enMarcha() { return fase == CORRIENDO; }
 
@@ -91,7 +104,10 @@ void modoAutomatico_setup() {
   }
 
   fase = CONFIG_ROJO;
-  minRojo = 1; minVerde = 1; segEstatico = 15;
+  // Mismo motivo que el inicializador: reentrar en el modo no puede devolver el
+  // equipo por debajo del minimo vial. SET_MODO:AUTO llama aqui, asi que con el "1"
+  // escrito a mano unos tiempos aceptados con $ACK se perdian al arrancar el modo.
+  minRojo = ROJO_MIN_MIN; minVerde = VERDE_MIN_MIN; segEstatico = DESPEJE_SEG_MIN;
   primeraVezCorriendo = true;
   lcd_dibujarConfigValor("Minutos ROJO", minRojo, "min");
 }
@@ -106,8 +122,13 @@ void modoAutomatico_loop() {
   switch (fase) {
     case CONFIG_ROJO: {
       bool r = false;
-      if (botonArriba()) { minRojo++; if (minRojo > 99) minRojo = 99; r = true; }
-      if (botonAbajo())  { minRojo--; if (minRojo < 1) minRojo = 1; r = true; } // FIX H-2: Mínimo 1 minuto
+      // LOS TOPES SALEN DE LOS MISMOS LIMITES QUE LA GUARDA DE SET_TIEMPOS (04/09).
+      // Ponia 99 arriba y 1 abajo: por la pantalla se podia dejar el cruce en un
+      // minuto -prohibido desde hoy- y en 99, que el propio SET_TIEMPOS rechaza. Dos
+      // caminos hacia el mismo ciclo con dos reglas distintas es como se cuela un
+      // valor vial por la puerta que nadie mira.
+      if (botonArriba()) { minRojo++; if (minRojo > ROJO_MIN_MAX) minRojo = ROJO_MIN_MAX; r = true; }
+      if (botonAbajo())  { minRojo--; if (minRojo < ROJO_MIN_MIN) minRojo = ROJO_MIN_MIN; r = true; }
       if (botonAceptar()) {
         fase = CONFIG_VERDE;
         lcd_dibujarConfigValor("Minutos VERDE", minVerde, "min");
@@ -119,8 +140,8 @@ void modoAutomatico_loop() {
 
     case CONFIG_VERDE: {
       bool r = false;
-      if (botonArriba()) { minVerde++; if (minVerde > 99) minVerde = 99; r = true; }
-      if (botonAbajo())  { minVerde--; if (minVerde < 1) minVerde = 1; r = true; } // FIX H-2: Mínimo 1 minuto
+      if (botonArriba()) { minVerde++; if (minVerde > VERDE_MIN_MAX) minVerde = VERDE_MIN_MAX; r = true; }
+      if (botonAbajo())  { minVerde--; if (minVerde < VERDE_MIN_MIN) minVerde = VERDE_MIN_MIN; r = true; }
       if (botonAceptar()) {
         fase = CONFIG_ESTATICO;
         lcd_dibujarConfigValor("Tiem. Despeje All-Red", segEstatico, "seg");
@@ -135,8 +156,12 @@ void modoAutomatico_loop() {
       // OPT-6 / SFTY-4: Se aumenta el límite de 99 a 999 segundos (casi 16 min).
       // Ver MANUAL_USUARIO.md. Requerido para obras extensas de hasta 500 metros
       // a baja velocidad (10 km/h) operando bajo antenas de 6km.
-      if (botonArriba()) { segEstatico += 5; if (segEstatico > 999) segEstatico = 999; r = true; }
-      if (botonAbajo())  { segEstatico -= 5; if (segEstatico < 5) segEstatico = 5; r = true; } // FIX H-2: Piso mínimo de seguridad de 5s despeje All-Red
+      // El piso era 5 s y el minimo vial son 10: el despeje es el UNICO de los tres
+      // que garantiza que el tramo quedo vacio antes de dar verde al otro lado, y
+      // por la pantalla se podia dejar en la mitad. El techo de 999 ademas no cabe
+      // en el uint8_t con que viaja por radio.
+      if (botonArriba()) { segEstatico += 5; if (segEstatico > DESPEJE_SEG_MAX) segEstatico = DESPEJE_SEG_MAX; r = true; }
+      if (botonAbajo())  { segEstatico -= 5; if (segEstatico < DESPEJE_SEG_MIN) segEstatico = DESPEJE_SEG_MIN; r = true; }
       if (botonAceptar()) {
         coordinador_configurar((unsigned long)segEstatico * 1000UL,
                                 (unsigned long)minRojo * 60000UL,

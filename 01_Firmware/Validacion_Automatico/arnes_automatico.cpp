@@ -569,19 +569,29 @@ int main() {
       R"(CICLO_MAX_REINTENTOS\s*=\s*(\d+))",
       "el numero de reintentos del ciclo antes de C_FALLO");
 
-  std::vector<long> defaultsAsistente = leerConstantesTodas("modo_automatico.cpp",
-      R"(static int minRojo = (\d+), minVerde = (\d+), segEstatico = (\d+);)",
-      "los valores por defecto del asistente (min rojo)");
-  // El patron de arriba tiene TRES grupos y leerConstantesTodas() solo devuelve el
-  // primero por aparicion; se relee cada grupo por separado para no perder los
-  // otros dos.
-  long SEG_ESTATICO_DEFECTO = leerConstante("modo_automatico.cpp",
-      R"(minVerde = \d+, segEstatico = (\d+);)",
-      "el despeje All-Red por defecto del asistente");
+  // LOS VALORES POR DEFECTO YA NO SON LITERALES, Y ESO ES EL ARREGLO (N-131, 04/09).
+  //
+  // Aqui se leian tres numeros escritos a mano en el inicializador:
+  //     static int minRojo = 1, minVerde = 1, segEstatico = 15;
+  // El 04/09 se descubrio que ese "1" convertia la guarda de 3 minutos en media
+  // guarda -solo la cruzaba SET_TIEMPOS- y los defectos pasaron a salir de las MISMAS
+  // constantes que el limite. Este arnes ABORTO en la primera corrida siguiente, que
+  // es exactamente su trabajo: leia por patron literal y el patron dejo de existir
+  // (CLAUDE.md §5). Un ABORTADO grita; lo que no se puede permitir es que siguiera
+  // dando veredicto sobre un firmware que ya no describe.
+  //
+  // Ahora se leen las constantes por nombre. Sin valor por defecto, igual que antes:
+  // si alguien las renombra, esto vuelve a ABORTAR en vez de medir otra cosa.
+  long MIN_ROJO_DEFECTO = leerConstante("modo_automatico.cpp",
+      R"(ROJO_MIN_MIN\s*=\s*(\d+))",
+      "el minimo de rojo, que es tambien el valor de arranque del asistente");
   long MIN_VERDE_DEFECTO = leerConstante("modo_automatico.cpp",
-      R"(minRojo = \d+, minVerde = (\d+))",
-      "los minutos de verde por defecto del asistente");
-  (void)defaultsAsistente;
+      R"(VERDE_MIN_MIN\s*=\s*(\d+))",
+      "el minimo de verde, que es tambien el valor de arranque del asistente");
+  long SEG_ESTATICO_DEFECTO = leerConstante("modo_automatico.cpp",
+      R"(DESPEJE_SEG_MIN\s*=\s*(\d+))",
+      "el despeje All-Red minimo, que es tambien el de arranque");
+  (void)MIN_ROJO_DEFECTO;
 
   std::printf("\nConstantes releidas del C++ real (Maestro/src), no escritas a mano:\n");
   std::printf("   amarillo fijo (SFTY-5) ......... %ld ms\n", AMBAR_MS);

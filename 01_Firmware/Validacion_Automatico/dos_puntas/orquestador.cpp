@@ -506,7 +506,12 @@ int main() {
   SFTY6_SILENCIO_MS_V  = leerNumero(PROTO_M, R"(#define\s+SFTY6_SILENCIO_MS\s+(\d+)UL)", "SFTY6_SILENCIO_MS");
   TIMEOUT_ACK_MS_V     = leerNumero(COORD, R"(TIMEOUT_ACK_MS\s*=\s*(\d+))", "TIMEOUT_ACK_MS");
   CICLO_MAX_REINTENTOS_V = leerNumero(COORD, R"(CICLO_MAX_REINTENTOS\s*=\s*(\d+))", "CICLO_MAX_REINTENTOS");
-  DESPEJE_POR_DEFECTO_S  = leerNumero(AUTOM, R"(segEstatico\s*=\s*(\d+)\s*;)", "despeje por defecto");
+  // N-131 (04/09): el despeje de arranque ya no es un literal en el inicializador.
+  // Sale de DESPEJE_SEG_MIN, la misma constante que la guarda de SET_TIEMPOS, para que
+  // no puedan divergir. Este arnes ABORTO al cambiarlo -leia el patron viejo- y eso es
+  // lo correcto: §5, mover contenido rompe al que lee por patron, y un ABORTADO avisa
+  // mientras que un numero supuesto no.
+  DESPEJE_POR_DEFECTO_S  = leerNumero(AUTOM, R"(DESPEJE_SEG_MIN\s*=\s*(\d+))", "despeje por defecto");
 
   std::printf("\n Constantes releidas del C++ real: silencio SFTY-6 = %lu ms,\n",
               SFTY6_SILENCIO_MS_V);

@@ -128,6 +128,91 @@ def correr(b, fw):
             "pantalla, no toca nada, pulsa guardar y el equipo rechaza el valor que la "
             "propia app le puso delante" % (campo, val, lo, hi))
 
+    # ---- 4. Y NO PUEDE HABER UNA CUARTA COPIA ESCONDIDA -------------------------
+    #
+    # ESTE PACK NACIO DICIENDO "TRES SITIOS" Y HABIA CUATRO. Lo encontro una revision
+    # cruzada el mismo 04/09: js/config.js declaraba un LIMITES_TIEMPO con
+    # VERDE_MIN_MIN: 1 bajo el rotulo "Rangos de Tiempos Permitidos por Firmware".
+    #
+    # Y era la peor de las cuatro, porque NO LA LEIA NADIE -cero consumidores de
+    # IOT_CONFIG en toda la app- y aun asi index.html la carga. Una cifra caducada que
+    # nadie usa no falla nunca: solo espera a que alguien la lea y se la crea. Es §3.bis
+    # -la prueba muerta- aplicada a una constante, con una frase encima que la presenta
+    # como medida del firmware.
+    #
+    # Se borro en vez de corregirse: actualizarla habria creado otra copia a mano que
+    # sincronizar. Lo que se vigila desde aqui es que no VUELVA -y de paso, que no
+    # aparezca en ningun otro fichero de la app-.
+    sospechosos = []
+    for sub, fichero in (("js", "config.js"),):
+        try:
+            txt = fw.texto_repo("05_Funcional", "App_Semaforo", sub, fichero)
+        except Exception:
+            continue
+        # SE QUITAN LOS COMENTARIOS ANTES DE BUSCAR, Y NO ES UN DETALLE.
+        #
+        # La primera version de esta comprobacion FALLO sobre el fichero ya arreglado:
+        # el comentario que documenta el defecto retirado CITA los nombres viejos para
+        # explicar que se borro, y el regex casaba dentro de esa cita. Un buscador que
+        # no distingue codigo de comentario acusa a la documentacion de ser el defecto
+        # que documenta, y el arreglo obvio -no explicar nada- es peor que el problema.
+        # Es §4 sobre mi propio instrumento.
+        codigo = re.sub(r"//[^\n]*", "", txt)
+
+        # Se busca la FORMA -un nombre de limite con un numero pegado-, no un valor
+        # concreto: corregir el 1 a 3 y dejarla ahi seria exactamente el defecto.
+        m = re.search(r"(VERDE_MIN_MIN|ROJO_MIN_MIN|DESPEJE_MIN_SEG|VERDE_MAX_MIN|"
+                      r"ROJO_MAX_MIN|DESPEJE_MAX_SEG)\s*:\s*\d+", codigo)
+        if m:
+            sospechosos.append("%s/%s -> %s" % (sub, fichero, m.group(0)))
+
+    b.verificar(
+        not sospechosos,
+        "no hay una cuarta copia de los rangos escondida en la app: los limites viven "
+        "solo donde alguien los usa",
+        "vuelve a haber limites de tiempo escritos a mano donde nadie los lee: %s. Una "
+        "cifra que ningun codigo consume no falla nunca cuando se queda vieja; solo "
+        "espera a que alguien la lea y se la crea. Si hacen falta ahi, tienen que "
+        "consumirse desde ahi y entrar en esta comprobacion" % sospechosos)
+
+    # ---- 5. Y EL FIRMWARE NO SE CONTRADICE A SI MISMO ---------------------------
+    #
+    # LA GUARDA DE 3 MINUTOS ERA MEDIA GUARDA, Y LO ENCONTRO UNA REVISION CRUZADA EL
+    # MISMO DIA QUE SE ESCRIBIO.
+    #
+    # VERDE_MIN_MIN/ROJO_MIN_MIN solo los cruzaba SET_TIEMPOS. Habia CINCO sitios mas
+    # en modo_automatico.cpp con el numero prohibido escrito a mano:
+    #
+    #   - el inicializador estatico:            minRojo = 1, minVerde = 1, segEstatico = 15
+    #   - el reset de modoAutomatico_setup():   los mismos tres, otra vez
+    #   - los topes de los tres campos del menu: piso 1 min, 1 min y 5 s; techo 99/99/999
+    #
+    # O sea: un equipo que arranca y al que nadie le manda SET_TIEMPOS corria con UN
+    # MINUTO por sentido. Y peor: SET_MODO:AUTO llama a modoAutomatico_setup(), asi que
+    # unos tiempos aceptados con $ACK se perdian al arrancar el modo. El despeje se
+    # podia dejar en 5 s por pantalla, la MITAD del minimo vial.
+    #
+    # Ninguna de las tres copias tenia el comentario de seguridad encima. Ese es el
+    # patron y por eso se vigila: cuando un minimo vive en una constante y ademas
+    # escrito a mano en otro sitio, el dia que difieran gana el que NO lleva el aviso.
+    lineas_malas = []
+    for m in re.finditer(r"(minRojo|minVerde|segEstatico)\s*(?:=|<|>)\s*(\d+)", cpp):
+        var, val = m.group(1), int(m.group(2))
+        lo, hi = {"minRojo": (r_min, r_max), "minVerde": (v_min, v_max),
+                  "segEstatico": (d_min, d_max)}[var]
+        if not (lo <= val <= hi):
+            lineas_malas.append("%s con %d (el rango es %d-%d)" % (var, val, lo, hi))
+
+    b.verificar(
+        not lineas_malas,
+        "ningun valor de ciclo escrito a mano en modo_automatico.cpp se sale de los "
+        "limites: el arranque, el reset del modo y los topes del menu salen de las "
+        "mismas constantes que la guarda",
+        "hay tiempos de ciclo escritos a mano FUERA del rango que el propio fichero "
+        "declara: %s. Un minimo vial que solo cruza SET_TIEMPOS no protege el arranque "
+        "ni el menu, y un equipo al que nadie manda tiempos corre con el valor de "
+        "mesa de pruebas" % lineas_malas)
+
     # ---- CONTROLES NEGATIVOS ---------------------------------------------------
     b.control_negativo(
         re.search(r"enRango\(\s*verde\s*,\s*(\d+)", "if (!enRango(verde, 1, 15))")
