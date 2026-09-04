@@ -90,6 +90,13 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   // barrera puede ser MAS restrictiva que la lampara -el arnes del automatico solo
   // exige lo contrario, que no haya pluma arriba sin verde-. Al reves seria una
   // invitacion a entrar que nadie autorizo.
+  //
+  // Y EL S_FALLO DE ARRIBA NO CONTRADICE AL REPOSO DE pines.h, que es lo que confunde
+  // al leerlo (anotado el 04/09/2026, con la politica reconfirmada por el responsable).
+  // S_FALLO es un fallo CONOCIDO con el firmware VIVO y decidiendo, y decide abrir. Un
+  // equipo SIN ENERGIA no ejecuta esta linea: el pin cae a LOW, el MOSFET no conduce y
+  // la pluma BAJA -SFTY-28-. Equipo vivo que sabe que fallo, abre; equipo muerto,
+  // cierra. Las dos son ciertas y hay que leerlas juntas.
   digitalWrite(MOTOR_TALANQUERA,
                ((verde && !testLedsActivo) || estado == S_FALLO)
                    ? TALANQUERA_ABRIR : TALANQUERA_CERRAR);
