@@ -205,8 +205,8 @@ python 01_Firmware/Simulaciones/banco/correr.py --listar
 python 01_Firmware/Simulaciones/banco/correr.py --pack esclavo_03
 ```
 
-**La migración terminó el 05/08: no quedan validadores monolíticos.** El banco son **66 packs**
-—`963/963` comprobaciones en el acta del 02/09—, un fichero corto por propiedad, que se corre solo
+**La migración terminó el 05/08: no quedan validadores monolíticos.** El banco son **67 packs**
+—`974/974` comprobaciones en el acta del 04/09—, un fichero corto por propiedad, que se corre solo
 en un segundo.
 
 > ⚠️ **Y ese crecimiento no es una medalla, es un aviso.** El 28/08 eran 38 packs y `405/405`. Hoy
@@ -863,7 +863,7 @@ vigente: 2 radios en enlace directo, **sin repetidor**.
 |---|---|
 | `01_Firmware/Maestro`, `Esclavo`, `Repetidor` | firmware |
 | `01_Firmware/compuerta.py` | **la única forma correcta de verificar** |
-| `01_Firmware/Simulaciones/` | simuladores, y `banco/` con los **66 packs** |
+| `01_Firmware/Simulaciones/` | simuladores, y `banco/` con los **67 packs** |
 | `01_Firmware/Validacion_LCD/` | arnés de pantalla (compila el `lcd.cpp` real) |
 | `01_Firmware/Validacion_Ciclo/` · `_Respaldo/` · `_Automatico/` | los otros tres que compilan C++ real — ver §8 |
 | `OPTIMIZACIONES.md` | las reglas `SFTY-x` y la **trazabilidad regla → código → prueba** |
