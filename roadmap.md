@@ -100,8 +100,9 @@ BANCO          24/29 pasos COMPLETOS  ·  4 BLOQUEADOS (Bluetooth)  ·  1 ABORTA
 
 | | |
 |---|---|
-| 🛑 **Que se hace con la tarjeta Maestro danada** | reparar, sustituir o diagnosticar con camara termica. **Bloquea todo lo demas**: sin Maestro no hay banco. Ver **N-116** |
-| 🔴 **Con que polaridad se lee el mando A/B** — hoy **no se puede pulsar**, y esta medido en cobre | **N-118**. Las dos salidas son leerlo activo en ALTO como las camaras, o quitar `R65`/`R66`. Afecta a que receptor de mando se compra: **es decision de quien firma la seguridad**, no mia |
+| 🛑 **Que se hace con la tarjeta Maestro danada** | reparar, sustituir o diagnosticar. **Bloquea todo lo demas**: sin Maestro no hay banco. La causa que sostiene el cobre es **latch-up por 12 V en una entrada sin proteger** — ver **N-116** |
+| 🔴 **Proteger las entradas de campo** —hoy los 5 pines de bornera van **desnudos al die** mientras las 9 salidas llevan 220R y opto | **N-120.** Es de diseño y afecta a todas las unidades, no solo a la danada. Cuenta hecha: **2K2 en serie** cumple las dos desigualdades. **Y mientras no exista, tapar el pin de 12 V de `J16` pasa a ser obligatorio en cada equipo** |
+| 🟠 **Con que salida se compra el receptor de mando (NO/NC)** | **N-118**. La polaridad ya no se pregunta: el cobre la decide —los cuatro pines de `J16` tienen 10K a masa y 3,3 V al lado, o sea **activo en ALTO**—. Lo que queda es la compra, y quien valida que un cambio en un camino de seguridad entra sin banco |
 | 🟠 **La cadencia del `$STATUS` por J17** | va a **1000 ms** y su unico consumidor (`vigilarEnlace()` de la app) tiene una cota de **5 s**. El peor segundo ocupa el **55 %** del cable. Bajarlo a 2000 ms lo deja bajo el 30 %; el coste es que el tablero del operario refresca la mitad de rapido. **Cifras en N-119** |
 | 🔴 **Quien disena y quien fabrica** la placa portadora | bloquea el montaje permanente, **no la prueba** |
 | 🔴 **Pedir la fuente `A5`** — conmutada 12->5 V, >= 1 A | |
@@ -601,27 +602,123 @@ proponerse—, y porque las medidas del paso 5 la explican mejor sin ningun defe
 3,3 V es el **TX del ESP32 en reposo**, que es alto; `RS/A0` (`PB6`) variando entre 2,8 y 3,3 V es el
 **TX del STM32 transmitiendo**. Todo coherente, cero conflicto.
 
-#### La hipotesis que queda, ETIQUETADA COMO TAL
+#### 🔴 UNA SEGUNDA CAUSA REFUTADA, Y ERA LA MIA — la talanquera no puede ser
 
-`semaforo.cpp:93` energiza la talanquera cuando `verde || estado == S_FALLO`, y `pines.h:31` dice a
-donde va: `PB2 -> opto U15 -> MOSFET Q10 -> bornera J15`, una salida de motor de **hasta 10 A**. Un
-Maestro solo, sin Esclavo, cae a `S_FALLO` a los **~20 s** —medido en el paso 8 del propio banco— y
-**en ese instante enciende `J15`**. Es lo unico del equipo que cambia solo, sin que nadie toque nada,
-dentro de la ventana de los 30 s.
+Se propuso aqui mismo, y hay que tacharla con el mismo rigor con que se escribio. El razonamiento era:
+`semaforo.cpp:93` energiza la talanquera cuando `verde || estado == S_FALLO`; un Maestro solo cae a
+`S_FALLO` a los **~20 s** —medido en el paso 8— y **en ese instante enciende `J15`**, que es lo unico
+que conmuta solo dentro de la ventana de los 30 s. Encajaba en el tiempo.
 
-**No esta medido y no se publica como causa.** Se decide con dos pruebas que no arriesgan mas la
-tarjeta:
+**Se cae al leer el cobre.** Trazada la cadena entera sobre `Controladora_Semaforos.kicad_pcb`:
 
-| prueba | si NO se calienta |
-|---|---|
-| **a)** Maestro **con el Esclavo enlazado** — se queda en rojo fijo y nunca entra en `S_FALLO` | la falla esta en el camino de la talanquera (`J15`/`U15`/`Q10`), no en un corto generico |
-| **b)** Maestro solo, **con `J15` desconectado** | la falla esta aguas abajo del conector |
+```
+U1.20 (PB2) -> /Motor -> R70 220R -> U15.1   TLP127  (LED del optoacoplador)
+                      -> R69 10K a masa      (pull-down de BOOT1, correcto)
+U15.6 -> /5V    U15.4 -> R72 220R -> puerta de Q10 (IRLZ44N), con R71 10K y C30 100nF
+Q10.2 (drenador) -> J15.2 + D30 1N4148 al riel de 12V     Q10.3 -> GND
+```
 
-Si calienta en los dos casos, es corto generico y la tarjeta va a inspeccion sin mas pruebas.
+**`U15` es un TLP127: aisla galvanicamente las dos mitades.** El STM32 no toca la etapa de potencia
+por ningun camino — lo unico que ve desde ese lado es el LED del opto detras de **220 ohmios**, o sea
+`(3,3 - 1,2) / 220 = 9,5 mA`, dentro de los 20 mA que el pin admite. **Aunque `J15`, `Q10` y `D30`
+ardieran enteros, no hay por donde inyectar corriente al silicio.** La hipotesis era plausible y es
+falsa, que es exactamente lo que §4 castiga cuando llega con la palabra *«medido»* encima.
 
-> 🛑 **Y la instruccion que va antes que las dos: no repetirlo «a ver si pasa».** Cada ciclo de 30 s
-> calentando puede terminar de matar el chip. El informe recomienda inspeccion en frio antes de
-> reenergizar y hay que hacerle caso.
+*(De paso, un hallazgo real que salio de mirar ahi y que **no** es la causa de esto:* **`D30` es un
+`1N4148`** *—200 mA— haciendo de diodo de rueda libre de una salida de motor gobernada por un*
+*`IRLZ44N`. Esta infradimensionado en dos ordenes de magnitud. No mata al STM32, que esta aislado,*
+*pero se lleva por delante `D30` y despues `Q10` en cuanto un motor real de pluma haga su retorno*
+*inductivo. Va a la V2.)*
+
+#### La causa que SI sostiene el cobre — y es de diseno, no de esta tarjeta
+
+El censo de que hay **entre el borne de campo y el silicio**, leido del `.kicad_pcb`:
+
+```
+PB0   pad 18   /Puerta   <- J14.1     serie: NADA
+PB9   pad 46   /Boton1   <- J16.5     serie: NADA
+PB13  pad 26   /Boton2   <- J16.8     serie: NADA
+PB14  pad 27   /Boton3   <- J16.10    serie: NADA
+PB15  pad 28   /Boton4   <- J16.12    serie: NADA
+```
+
+Contra lo que hace la placa con **todas** sus salidas, sin una sola excepcion:
+
+```
+PA0 (/S1) -> R19 220R -> U6  TLP127 -> lado de potencia     ... y asi las nueve
+```
+
+> 🔴 **La placa protege cada SALIDA con 220 ohmios en serie y un optoacoplador, y no protege NINGUNA
+> entrada de campo.** Los cinco pines que salen a bornera van **desnudos al die**. El `10K` y el
+> `100nF` que llevan estan en **paralelo**, no en serie: fijan el reposo, **no limitan corriente**.
+
+Y en ese mismo conector, **`J16.1` es el riel de `/12V` crudo** —el netlist lo confirma: comparte net
+con `J15.1`, `J13.1`, `J11.1` y veintitantos mas—. `pines.h:120-121` ya lo tenia escrito: *«12 V
+CRUDOS, sin opto, sin serie, sin clamp»*.
+
+**El mecanismo, que es estandar y encaja con todo lo observado:** 12 V tocando cualquiera de esos
+cinco pines hace conducir el diodo de sujecion de ESD del STM32 **hacia el riel de 3,3 V**. Sin nada
+en serie que limite, la corriente la fija solo la impedancia de la fuente. Eso dispara el **latch-up**
+—el tiristor parasito del CMOS— y el chip pasa a consumir corriente sostenida de `VDD` a `VSS`:
+**calienta, y sigue calentando hasta que se le quita la alimentacion**. El dano suele ser permanente.
+
+**Y explica los 30 segundos sin necesidad de la talanquera:** una pastilla ya danada arranca, funciona,
+y su propia corriente de fuga la calienta; al calentarse la fuga sube, y eso realimenta. La fuga
+termica de un encapsulado asi tarda **decenas de segundos** en hacerse notar. Por eso se manifiesta
+igual con el conector vacio, que es lo que el funcional describe hoy.
+
+**Lo que esto NO dice:** cual fue el contacto concreto. El informe afirma que el puente solo toco
+p5/p8 y masa, y no hay motivo para dudarlo — pero el dano pudo entrar en cualquiera de los pasos 15
+a 29, en los que se manipulo `J16` y `J15` repetidamente con los 12 V presentes, o con el conector
+volante insertado una posicion corrido. **Eso solo lo dice la inspeccion.**
+
+#### Lo que hay que hacer, en orden
+
+1. 🛑 **No reenergizar «a ver si pasa».** Cada ciclo de 30 s puede terminar el dano.
+2. **Medir el consumo del riel de 3,3 V en frio, antes de energizar.** Un latch-up dejado atras se ve
+   como consumo alto en reposo: es la medida que confirma o descarta en un minuto, con una fuente
+   limitada en corriente y sin volver a arriesgar nada.
+3. **Inspeccionar `J16`** buscando el rastro del contacto: p1 y p2 son los sospechosos.
+
+> ⚠️ **Y lo que de verdad importa, porque no se va con la tarjeta rota: esto le va a pasar a la
+> siguiente.** Las camaras van a `J16` p10/p12 **en campo, con instaladores**, y el conector lleva 12 V
+> en p1 y silicio desnudo en p5, p8, p10 y p12. **Un commit no protege de un destornillador**
+> (§9.bis), y aqui tampoco protege un manual. Ver **N-120**.
+
+
+### 🔴 N-120 — La placa protege todas sus salidas y ninguna de sus entradas. Va a la V2, y antes de cablear camara
+
+Sale del censo de N-116 y merece linea propia porque **no se va con la tarjeta danada**: es de diseno,
+esta en las 185 huellas del `.kicad_pcb`, y afecta a todas las unidades.
+
+| | camino | proteccion |
+|---|---|---|
+| **salidas** (9) | `PBx -> 220R -> TLP127 -> potencia` | serie **y** aislamiento galvanico |
+| **entradas de campo** (5) | `bornera -> pin del STM32` | **ninguna** |
+
+Y las entradas son justo las que un instalador toca: `J14` (camara de demanda) y `J16` p10/p12
+(camaras C y D), en un conector cuyo **p1 lleva 12 V crudos**.
+
+**La cuenta de lo que costaria cerrarlo, para que se decida con el numero delante.** Una resistencia
+en serie por entrada:
+
+```
+con 2K2 en serie:   12 V en el pin ->  (12 - 4,0) / 2200  =  3,6 mA   <  los 5 mA que el
+                                                                          datasheet admite de
+                                                                          inyeccion por pin
+y el contacto cerrado sigue leyendose:  3,3 x 10 / (10 + 2,2)  =  2,70 V   >  2,31 V de VIH
+```
+
+**2K2 es el punto donde las dos desigualdades se cumplen a la vez** —4K7 ya deja el nivel alto en
+2,24 V, por debajo de `VIH`, y dejaria de leer la camara—. **Son cuentas de sobremesa, no una
+decision:** quien firme el diseno de la placa las rehace y elige. Lo que no es opinable es que hoy no
+hay **nada**.
+
+> 🛑 **Consecuencia inmediata, que no espera a la V2:** mientras las entradas sigan desnudas, cablear
+> camara a `J16` es exponer el micro a los 12 V de p1 con la mano de un instalador de por medio. El
+> paso 4 de la guia —**tapar fisicamente el pin de 12 V**— deja de ser una precaucion de banco y pasa
+> a ser **obligatorio en cada equipo, escrito en la guia de instalacion**. Es lo unico que hay hoy
+> entre el instalador y esta averia.
 
 
 ### 🔴 N-117 — El perro del ESP32 se comia su propio arranque, y el pack lo aprobaba mirando la forma
@@ -737,15 +834,38 @@ documenta `CLAUDE.md` §3.ter —los tres `if` de `Esclavo/src/main.cpp` que imp
 radio saque del ambar a un operario— **no puede armarse nunca**, porque su bandera cuelga de un pulso
 que no llega. Es el caso que aquella regla describe, ocurriendo por hardware en vez de por un borrado.
 
-#### Las dos salidas, y la decision NO es mia
+#### 🟢 La tercera mitad, del 04/09: el COBRE decide la polaridad, y ya no hay ambiguedad
+
+`CLAUDE.md` §9.bis llevaba abierta *«la contradiccion entre el netlist y el fuente»* sobre la
+polaridad de estos pines. Leido el `.kicad_pcb` con un parser de parentesis balanceados **no hay
+contradiccion: hay un fuente equivocado**.
+
+```
+J16.4  /3.3V     J16.5   /Boton1  -> R65 10K a masa + C26 100nF + U1.46 (PB9)
+J16.7  /3.3V     J16.8   /Boton2  -> R66 10K a masa + C27 100nF + U1.26 (PB13)
+J16.9  /3.3V     J16.10  /Boton3  -> R67 10K a masa + C28 100nF + U1.27 (PB14)
+J16.11 /3.3V     J16.12  /Boton4  -> R68 10K a masa + C29 100nF + U1.28 (PB15)
+```
+
+**Los CUATRO son identicos, y los cuatro tienen 3,3 V en la posicion de al lado.** El conector esta
+diseñado, sin lugar a duda, para que **un contacto seco cierre el pin contra los 3,3 V vecinos**, con
+el 10K sujetando el reposo en bajo. Eso es **activo en ALTO para los cuatro**.
+
+*(Y de paso queda verificado que la asignacion de pines del netlist y la de `pines.h` coinciden pin a
+pin —`U1.46 = PB9`, `U1.26 = PB13`, `U1.27 = PB14`, `U1.28 = PB15` sobre el LQFP48—. Lo que difiere no
+es el mapa: es solo como los lee `botones.cpp`.)*
+
+Asi que la opcion **1 no es una preferencia: es lo que la placa pide**, y la 2 seria pelear contra el
+diseño.
 
 | | que | coste |
 |---|---|---|
-| **1** | **Leer A/B activo en ALTO**, como las camaras desde el 31/08: `INPUT` pelado y contacto contra los 3,3 V de p9/p11 | firmware + decide como se conecta el receptor de mando, **que aun no se ha comprado** |
-| **2** | **Retirar `R65`/`R66`** para que el pull-up interno gane | tocar la placa; deja el pin flotando si el receptor se desconecta |
+| **1** ✅ | **Leer A/B activo en ALTO**, exactamente como las camaras desde el 31/08 — `INPUT` pelado y contacto contra los 3,3 V de p4/p7 | firmware. Es el mismo bloque que ya corre en C y D |
+| **2** ❌ | Retirar `R65`/`R66` para que gane el pull-up interno | tocar cuatro placas y quedarse con el pin flotando si el receptor se desconecta |
 
-**La 1 es coherente con la decision del 31/08 y no toca cobre**, pero cambia que hardware se compra y
-como se cablea un camino de seguridad: **va al responsable, no se implementa de oficio.**
+**Lo tecnico queda decidido por el cobre. Lo que sigue siendo del responsable es lo de fuera:** con que
+salida se compra el receptor de mando —NO o NC— y quien valida que un cambio en un camino de seguridad
+entra sin banco. **No se implementa de oficio.**
 
 
 ### 🟠 N-119 — El ritmo de J17: la pregunta era buena y la respuesta es «ya es por eventos, salvo un latido»
