@@ -61,7 +61,8 @@ regla **§2.bis de `CLAUDE.md`**, que existe por esto.
 |---|---|---|
 | **1** | 🛑 **NO REENERGIZAR EL MAESTRO hasta inspeccionarlo en frio** | se calienta y deja de funcionar a los ~30 s de alimentarlo. **Cada ciclo puede terminar de matar el chip.** Las dos pruebas que discriminan la causa sin arriesgarlo mas estan en **N-116** |
 | **2** | 🔴 **Monitor serie a 115200 sobre el CP2102 del ESP32** — dos minutos, no hace falta recompilar nada | decide **N-117**: si el banner de la ROM se repite cada ~2 s hay bucle de reinicio y el Bluetooth esta explicado. Si sale una vez y calla, es antena o *advertising* y hay que mirar otra cosa. **Se mide ANTES de reflashear** |
-| **3** | 🔴 **Reflashear el ESP32** con el arreglo del perro ya aplicado (`main.cpp`, compuerta 20/20 el 04/09) | desbloquea en cascada los pasos **10-14 y 25-28**, y con ellos la unica via de operacion del equipo |
+| **3** | 🔴 **Reflashear el ESP32** con el arreglo del perro ya aplicado (`main.cpp`, compuerta 20/20 el 04/09) | desbloquea el paso **10**. 🔴 **Pero NO basta: ver la fila 3.bis** |
+| **3.bis** | 🔴 **RECOMPILAR LA APK** (`APP-APK`, JDK 17, verificacion por CRC) | **N-122: la app nunca llamaba a `connect()`.** Los pasos **11-14 y 25-28** estaban bloqueados por esto **ademas** de por el ESP32 — son dos defectos en serie. El fuente ya esta arreglado y verde; **una APK sin recompilar sigue sin conectar aunque el modulo este perfecto** |
 | **4** | 🔴 **Repetir los pasos 7, 19 y 21** en cuanto haya app | son los que deciden si **N-42** sigue viva. El banco **no la confirmo ni la descarto** |
 | **5** | 🔴 **Cargar `SFTY6_SILENCIO_MS = 25000UL` sobre `e303485`** — solo esa constante, sobre la V8.4 que **ya esta probada en la calle** | sigue siendo lo unico que llega al conductor esta semana, y **no depende de nada de la V9.0** |
 
@@ -448,7 +449,7 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 | 🛑 **N-116** | **la tarjeta Maestro se calienta y se para a los ~30 s** | **fuera de servicio.** El firmware queda descartado por censo; es hardware |
 | 🔴 **N-117** | el ESP32 no se anuncia por Bluetooth de forma fiable | **arreglado en el arbol el 04/09**, pendiente de confirmar en el modulo |
 | 🔴 **N-118** | **el mando A/B no puede pulsarse**: SFTY-21 no tiene respaldo fisico | medido en cobre y en el fuente. **Espera decision de polaridad** |
-| 🔴 **N-106** | el ambar de la app no saca al Esclavo del Degradado | en curso |
+| ~~🟢 **N-106**~~ | el ambar de la app no saca al Esclavo del Degradado | ✅ **CERRADO, y esta fila llevaba dias mintiendo.** Lo cerro `2e99bc3` con el molde de cuatro filas de `Esclavo/src/bluetooth.cpp`, y `esclavo_08_ambar_en_degradado` lo vigila **8/8 con cinco controles negativos**. Se descubrio auditando, no trabajando: ver **N-121** |
 | 🔴 **el `` cruzado** | 32 de 289 pares confirman OTRA orden | en curso |
 | 🔴 **N-42** | el Modo Automatico no mueve las luces en banco | **el banco del 03/09 NO la confirmo ni la descarto**: el equipo nunca llego a Modo Automatico porque falto la app. Se decide repitiendo el paso 7 |
 | 🔴 **el verde simultaneo** | lo sostiene un modelo de Python, no el codigo | **solo se cierra en banco**, y el banco no llego a ejercerlo |
@@ -764,6 +765,108 @@ hay **nada**.
 > paso 4 de la guia —**tapar fisicamente el pin de 12 V**— deja de ser una precaucion de banco y pasa
 > a ser **obligatorio en cada equipo, escrito en la guia de instalacion**. Es lo unico que hay hoy
 > entre el instalador y esta averia.
+
+
+### 🔴 N-122 — La app NUNCA abria el socket: faltaba `connect()`, y eso bloqueaba el banco por si solo
+
+**La pregunta que lo destapo fue del responsable el 04/09: *«si pasan los simuladores, ¿la apk no
+necesita cambios?»***. La APK del 02/09 esta al dia con el fuente —ningun commit ha tocado
+`App_Semaforo/` desde entonces—, asi que por esa via la respuesta era *no*. Mirando **que hace** el
+fuente, la respuesta es que si, y era lo que tenia parado el banco.
+
+#### El defecto
+
+Al pulsar una fila de la lista de equipos, `app.js` hacia esto:
+
+```js
+state.connected = true;               // <- sin haber abierto nada
+state.deviceMac = mac;                // <- y esta variable no se leia NUNCA mas
+...
+window.bluetoothSerial.subscribe('\n', ...);   // <- sobre un socket inexistente
+```
+
+**`connect(mac)` no se llamaba en ningun sitio.** En `cordova-plugin-bluetooth-serial`, `subscribe()`
+y `write()` operan sobre la conexion que abre `connect()`: sin ella no hay `BluetoothSerialService`,
+la suscripcion no engancha, y el `write()` de `enviarComandoFirmware()` se va al vacio. La app se
+pintaba **«Enlazado»** por haber pulsado una fila.
+
+> **Esto bloquea los pasos 11 a 14 y 25 a 28 POR SI SOLO, con independencia de N-117.** Un ESP32
+> perfecto, anunciandose con su nombre correcto y sin un solo reinicio, tampoco habria conectado.
+> Son dos defectos en serie sobre el mismo camino, y el banco solo podia ver el sintoma del final.
+
+#### Por que ningun instrumento lo cazo, que es la parte que hay que entender
+
+**No es que nadie lo supiera: estaba anotado, y aprobado.** `app_07_generadores_de_trama` lleva una
+lista **congelada** de huerfanos conocidos, y ahi dentro esta:
+
+```python
+"BluetoothDriver": "js/bluetooth_driver.js - transporte alternativo sin conectar",
+# Capa de transporte SPP/BLE/Serial escrita entera. app.js habla por window.
+# bluetoothSerial y por fetch() al puente, sin pasar por aqui.
+```
+
+`js/bluetooth_driver.js` tiene la llamada escrita —`conectarNativoSPP()`, con su `connect()` y su
+`subscribe()` dentro del callback de exito— y **cero llamadores**. El pack lo acepta porque su regla
+es un **trinquete**: falla si aparece un huerfano NUEVO o si uno de la lista GANA llamador y no sale.
+Eso es correcto y es N-73 bien aplicado.
+
+**Lo que fallo fue el MOTIVO con el que se acepto.** *«app.js habla por `window.bluetoothSerial`»* es
+**medio cierto**: app.js usa `write`, `subscribe` y `list`… y **no usa `connect`**, que es justo la
+que hace funcionar a las otras tres. Nadie comprobo esa frase entera, y la mitad que faltaba era la
+unica que importaba.
+
+> **La regla que deja: un huerfano se acepta por una razon, y la razon es una afirmacion sobre el
+> codigo — o sea, algo que se comprueba, no que se escribe.** Una lista de excepciones con motivos
+> sin verificar es una lista de defectos con permiso.
+
+#### El arreglo, y el orden que es la mitad de el
+
+Se llama a `connect(mac)` y **`state.connected` solo se pone a `true` en su callback de exito**, junto
+con el `.connected` del boton y la suscripcion. El fallo se dice —`$ERR` visible, estado en falso— en
+vez de pintar un enlace que no existe.
+
+**El orden no es cosmetico:** `enviarComandoFirmware()` guarda con `&& state.connected`. Con la
+bandera puesta al pulsar, esa guarda **daba paso a ordenes que no tenian por donde salir**, y el
+operario las veia aceptadas. Es §8.sexies otra vez: lo que se siente en la calle es el orden.
+
+**Y hay TRES copias del fuente, no dos.** `documentos_03_trama_status` lo caza y por eso el primer
+intento salio en `FALLA`: `app.js`, `www/app.js` y **`android/app/src/main/assets/public/app.js`**,
+que es desde donde se construye la APK. *«Lo que se prueba en el navegador y lo que se instala en el
+celular del tecnico son dos programas distintos»* — las tres quedan identicas.
+
+**Compuerta: `20 PASS | 0 FALLA | 0 ABORTADO`.** 🔴 **Pero esto NO llega al telefono hasta recompilar
+la APK** (`APP-APK`, JDK 17, verificacion por CRC entrada por entrada). El fuente arreglado en el
+repositorio no es una app arreglada en la mano del tecnico.
+
+
+### 🟠 N-121 — Censo de las cuatro salidas del Degradado del Esclavo: dos muertas, y son las que no dependen del ESP32
+
+Sale de auditar una revision externa, no de trabajar. Dos cosas, y la primera corrige este roadmap.
+
+**1. `N-106` esta CERRADO y esta tabla lo daba por abierto.** Lo cerro `2e99bc3` con el molde de
+cuatro filas de `Esclavo/src/bluetooth.cpp`, y `esclavo_08_ambar_en_degradado` lo vigila **8/8 con
+cinco controles negativos** que saben distinguir el arreglo del defecto. Llevaba dias escrito como
+*«en curso»*: **un defecto cerrado que el roadmap sigue publicando como abierto cuesta la misma sesion
+que uno real**, y es el error de N-100 -los `MEDIDO` caducados- por el otro lado.
+
+**2. El censo, que el propio pack imprime:** `degradado_salir()` tiene **cuatro** llamadores.
+
+| via | estado |
+|---|---|
+| `main.cpp:385` — vuelve el Maestro por radio (`CMD_PING`/`GO_RED`/`GO_GREEN`) | 🟢 **viva** |
+| `bluetooth.cpp:273` — `AMBAR_EMERGENCIA` desde la app | 🟢 **viva** (N-106) |
+| `menu.cpp:215` — el menu del Esclavo | 🔴 **muerta**: `botonAceptar()` devuelve `false` desde el 31/08 |
+| `mando.cpp:121` y `:138` — `A.A.A` y `B.B.B` | 🔴 **muerta**: N-118, el pin no puede dar un flanco |
+
+**Ninguna esta rota por descuido:** la del menu se retiro con un censo que nombra su sustituto, y ese
+sustituto **era el mando**. Lo que nadie podia saber al escribirlo es que el mando tampoco iba a
+poder pulsarse — eso se midio en cobre el 03/09.
+
+> **Lo que el censo dice, y es lo unico que hay que retener: las dos vias muertas son exactamente las
+> dos que NO necesitan el ESP32.** Con el Bluetooth caido —que es la situacion del banco— al operario
+> de pie junto al cruce **no le queda ninguna**: solo que vuelva el Maestro por radio. Es la frase que
+> el propio `ESP32_Expansion/src/main.cpp` tiene escrita en su cabecera —*«un ESP32 colgado deja el
+> equipo seguro pero NO OPERABLE»*— ocurriendo de verdad, y con una punta menos de las que se creia.
 
 
 ### 🔴 N-117 — El perro del ESP32 se comia su propio arranque, y el pack lo aprobaba mirando la forma

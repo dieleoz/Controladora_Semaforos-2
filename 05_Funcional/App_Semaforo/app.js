@@ -2189,7 +2189,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const pinSel = document.querySelector('input[name="bt_pin_opt"]:checked');
       if (pinSel) state.correctPin = pinSel.value;
 
-      state.connected = true;
+      // N-122: state.connected NO se pone aqui. Pulsar una fila elige un equipo; no abre
+      // un socket. Lo pone a true unicamente el callback de exito de connect(), abajo.
+      state.connected = false;
       state.deviceName = name;
       state.node = node;
       state.deviceMac = mac;
@@ -2207,30 +2209,75 @@ document.addEventListener('DOMContentLoaded', () => {
       //
       // Las dos cosas que se pintan aqui dicen COSAS DISTINTAS, y antes decian la misma:
       //   - btnDevice .connected = hay un equipo ELEGIDO y la suscripcion serie abierta.
-      //     Eso si es cierto en este instante, y es lo que el boton "Dispositivo" gobierna.
       //   - el punto de estado y el rotulo = el equipo esta HABLANDO. Eso no se sabe
       //     todavia, asi que se queda apagado hasta el primer $STATUS.
       // El modulo Bluetooth empareja igual con un poste alimentado y el micro colgado.
-      if (btnDevice) btnDevice.className = 'btn-top btn-device connected';
+      //
+      // N-122: el `.connected` del boton TAMPOCO se pinta aqui. El comentario de arriba
+      // decia que era cierto "en este instante" porque daba por abierta la suscripcion;
+      // no lo estaba. Se pinta en el callback de exito de connect(), que es el unico
+      // momento en que hay socket de verdad.
       if (btStatusDot) btStatusDot.className = 'status-dot';
       if (btBtnText) btBtnText.textContent = 'Esperando equipo';
 
-      // N-75: sin esto la app no oye al equipo. El firmware emite $STATUS solo, cada
-      // segundo, asi que NO se pide nada al conectar (N-66: GET_STATUS no existe en
-      // ninguna punta y lo primero que veia el tecnico era un $ERR).
-      if (typeof window !== 'undefined' && window.bluetoothSerial) {
-        window.bluetoothSerial.subscribe(
-          '\n',
-          (data) => {
-            if (data && String(data).trim()) parseNmeaTelemetry(String(data).trim());
+      // 🔴 N-122: AQUI FALTABA connect(), Y ES LA LINEA QUE BLOQUEO EL BANCO DEL 03/09.
+      //
+      // Esto llamaba a subscribe() SIN HABER ABIERTO NINGUN SOCKET. En
+      // cordova-plugin-bluetooth-serial, subscribe() y write() operan sobre la conexion
+      // que abre connect(mac): sin ella no hay BluetoothSerialService, asi que la
+      // suscripcion no engancha y el write() de enviarComandoFirmware() (linea 278) se
+      // va al vacio. La app se pintaba "Enlazado" por haber pulsado una fila.
+      //
+      // Y no era un olvido invisible: `js/bluetooth_driver.js` tiene la llamada escrita
+      // -conectarNativoSPP()- y esta en la lista de HUERFANOS_CONOCIDOS de
+      // app_07_generadores_de_trama con el motivo "app.js habla por window.
+      // bluetoothSerial". Ese motivo era MEDIO cierto: app.js usa write, subscribe y
+      // list... y no usa connect, que es justo la que hace funcionar a las otras tres.
+      // Un huerfano aceptado por una razon que no se comprobo entera.
+      //
+      // EL ORDEN IMPORTA Y ES LA MITAD DEL ARREGLO: state.connected solo puede ser
+      // cierto DESPUES de que el socket abra. Antes se ponia a true al pulsar la fila,
+      // asi que la guarda de enviarComandoFirmware() -`&& state.connected`- daba paso a
+      // ordenes que no tenian por donde salir, y el operario las veia aceptadas.
+      if (typeof window !== 'undefined' && window.bluetoothSerial &&
+          typeof window.bluetoothSerial.connect === 'function') {
+        window.bluetoothSerial.connect(
+          mac,
+          () => {
+            state.connected = true;
+            if (btnDevice) btnDevice.className = 'btn-top btn-device connected';
+            showToast(`🔗 Enlazado a: ${name}`);
+            addEvent('green', `Bluetooth conectado: ${name} (${mac})`);
+
+            // N-75: sin esto la app no oye al equipo. El firmware emite $STATUS solo,
+            // cada segundo, asi que NO se pide nada al conectar (N-66: GET_STATUS no
+            // existe en ninguna punta y lo primero que veia el tecnico era un $ERR).
+            window.bluetoothSerial.subscribe(
+              '\n',
+              (data) => {
+                if (data && String(data).trim()) parseNmeaTelemetry(String(data).trim());
+              },
+              (err) => console.warn('Error en suscripcion serie:', err)
+            );
           },
-          (err) => console.warn('Error en suscripcion serie:', err)
+          (err) => {
+            // NO CONECTAR NO ES CONECTAR. Se dice, y se deja el estado en falso: pintar
+            // "Enlazado" sobre un socket que no abrio es lo que hizo que el banco
+            // gastara cuatro pasos buscando el fallo en el modulo.
+            state.connected = false;
+            if (btnDevice) btnDevice.className = 'btn-top btn-device';
+            showToast('❌ No se pudo conectar');
+            addEvent('red', `Bluetooth NO conectado a ${name} (${mac}): ${err}. ` +
+                            `Comprueba que el equipo este emparejado en Ajustes de Android.`);
+          }
         );
+      } else {
+        // Fuera del APK no hay radio. Se declara en vez de simular un enlace.
+        state.connected = false;
+        addEvent('red', 'Sin radio en este entorno: no se abrio ningun enlace.');
       }
 
       closeModal(btModal);
-      showToast(`🔗 Enlazado a: ${name}`);
-      addEvent('green', `Bluetooth conectado con éxito: ${name} (${mac})`);
     });
   });
 
