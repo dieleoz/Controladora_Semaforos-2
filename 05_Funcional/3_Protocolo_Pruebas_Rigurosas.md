@@ -22,7 +22,7 @@ protocolo:
 | | Qué se midió | Qué significa para este protocolo |
 |---|---|---|
 | 🔴 **1** | **Durante el paso 29, el STM32 de la placa MAESTRO se sobrecalentó** al puentear `J16` p5/p8 contra masa. La prueba se abortó, la placa siguió funcionando pero caliente, y el informe **pide inspección técnica en frío antes de cualquier otra prueba eléctrica en `J16`** | **Esa tarjeta no se energiza para este protocolo hasta que alguien la inspeccione.** No es una recomendación de proceso: el informe declara *señal de alerta de un posible daño interno ya iniciado* |
-| 🔴 **2** | **`J16` p5 y p8 —el mando `A` y `B`— miden `0,6 V` en reposo**, con `9,92 kΩ` a masa. El pull-up interno no gana | **§0.3 escribió dos ramas y salió la mala: el mando está inoperante de fábrica.** La §8 entera y buena parte de la §9 **no se ejecutan**. Ver §0.3 |
+| 🔴 **2** | **`J16` p5 y p8 —el mando `A` y `B`— midieron `0,6 V` en reposo**, con `9,92 kΩ` a masa. El pull-up interno no ganaba | ~~**§0.3 escribió dos ramas y salió la mala: el mando está inoperante de fábrica.**~~ 🔧 **Corregido el 04/09 (N-118): ese `0,6 V` lo producía EL FIRMWARE, no sólo la placa** — era el pull-up interno contra los 10 kΩ. **El firmware ya está arreglado en las dos puntas** (`INPUT` pelado, activo en ALTO) y **el gesto para pulsar el mando CAMBIA: p5 contra p4 y p8 contra p7, NO contra masa.** La §8 y la parte de la §9 que dependen del puente **siguen sin ejecutarse**, pero **por otro motivo**: no hay tarjeta sana con la que ejercerlo. Ver §0.3 |
 | 🔴 **3** | **El módulo Bluetooth nunca se anunció en el teléfono**, con el firmware cargado sin errores y el hardware descartado como causa | Todo lo que entra por la app sigue sin poder probarse. **La vía de `J17` por USB-TTL sigue siendo la única**, y este protocolo ya está escrito sobre ella |
 
 > ⚠️ **Y lo que el banco NO decidió, que es lo que más se va a malinterpretar: la regresión N-42.**
@@ -42,7 +42,7 @@ Tres cosas cambiaron en el equipo y las tres invalidan procedimiento escrito:
 |---|---|---|
 | **`botonAceptar()` y `botonCancelar()` devuelven `false` siempre.** Los pulsadores 3 y 4 dejaron de ser pulsadores: sus pines (`PB14`, `PB15` = `J16` p10/p12) pasan a ser entradas de cámara | `Maestro/src/botones.cpp:280-281` · `Esclavo/src/botones.cpp:294-295` — **MEDIDO** | **No se puede aceptar ni cancelar nada.** Todo paso que diga *«pulse Botón 3»*, *«confirme»*, *«entre en CONFIGURACION»* o *«recorra el menú»* **no se puede ejecutar** |
 | **La pantalla no se retira, pero deja de conducir sus pines.** `PB3`/`PB4`/`PB5` quedan en alta impedancia porque comparten el conector `J17` con el ESP32 | `Maestro/src/lcd.cpp:74-75` · `Esclavo/src/lcd.cpp:92-93` (los cuatro pines a `U8X8_PIN_NONE`); el porqué, en el comentario de `lcd.cpp:18-73` — **MEDIDO** | **No hay imagen.** El framebuffer se sigue componiendo y no se vuelca al cable. Todo paso que diga *«la pantalla muestra»* o *«anote lo que muestra»* **no se puede ejecutar** |
-| **El mando de relés SE CONSERVA**, en los canales `A` (`PB9` = `J16` p5) y `B` (`PB13` = `J16` p8). Las tres secuencias siguen en el firmware | `Maestro/src/mando.cpp:202-235` · `Esclavo/src/mando.cpp:218-250` — **MEDIDO**. Ventanas: `VENTANA_TRIPLE_MS = 12000` (`mando.cpp:38` Maestro, `:42` Esclavo) y `VENTANA_CUADRUPLE_MS = 18000` (`:39` / `:43`) | ~~Las secuencias se pueden **ejercer**~~ **— corregido el 04/09: NO se pueden.** Siguen en el firmware, pero los dos pines miden `0,6 V` en reposo, así que **no hay flanco que darles**: ni con el puente a mano ni con el receptor, que además **nunca se compró**. Ver §0.3 |
+| **El mando de relés SE CONSERVA**, en los canales `A` (`PB9` = `J16` p5) y `B` (`PB13` = `J16` p8). Las tres secuencias siguen en el firmware | `Maestro/src/mando.cpp:202-235` · `Esclavo/src/mando.cpp:218-250` — **MEDIDO**. Ventanas: `VENTANA_TRIPLE_MS = 12000` (`mando.cpp:38` Maestro, `:42` Esclavo) y `VENTANA_CUADRUPLE_MS = 18000` (`:39` / `:43`) | ~~Las secuencias se pueden **ejercer**~~ ~~**— corregido el 04/09: NO se pueden.** Siguen en el firmware, pero los dos pines miden `0,6 V` en reposo, así que **no hay flanco que darles**: ni con el puente a mano ni con el receptor, que además **nunca se compró**.~~ 🔧 **Corregido otra vez el 04/09, después de N-118, y esta vez con el fuente delante:** el `0,6 V` era obra del `INPUT_PULLUP` que el firmware ponía, y **ese firmware ya no existe** — `botones.cpp` lee `BOTON1`/`BOTON2` en `INPUT` pelado y **activo en ALTO** en las dos puntas. **El flanco sí se puede dar; lo que cambia es cómo: p5 contra p4, p8 contra p7 (3,3 V del pin de al lado), NUNCA contra masa.** Lo que sigue faltando es **una tarjeta con la que ejercerlo** —la Maestro está fuera de servicio por N-116— y el **receptor, que nunca se compró**. Ver §0.3 |
 
 > ⚠️ **Y una consecuencia que no es evidente y hay que decir en voz alta.** Con `botonAceptar()`
 > siempre `false`, `menu_estaAbierto()` no puede ser cierto nunca, así que **el mando del Esclavo ya
@@ -67,10 +67,35 @@ hoy no llevan casilla**.
 > 🆕 **Por qué hizo falta una cuarta marca el 04/09.** Las tres de arriba reparten por lo que dice
 > **el firmware**: se reescribe, se aplaza o se retira. El banco del 3–4/09 trajo un cuarto motivo
 > que ninguna cubría: **una prueba correcta, sobre un firmware correcto, que no se puede ejecutar
-> porque una resistencia de la placa lo impide** (`J16` p5/p8 a `0,6 V`). Meterla en «se aplaza»
-> sería mentir sobre qué falta —no falta comprar nada—; dejarla con casilla abierta invitaría a
-> firmarla; y marcarla `NO CUMPLE` acusaría al firmware de algo que no ha llegado a hacer. **Los
-> tres estados de `PASS` / `FALLA` / `ABORTADO` valen igual aquí, y el tercero necesitaba nombre.**
+> porque el estado del hardware impide provocar la condición** ~~(`J16` p5/p8 a `0,6 V`)~~. Meterla
+> en «se aplaza» sería mentir sobre qué falta —no falta comprar nada—; dejarla con casilla abierta
+> invitaría a firmarla; y marcarla `NO CUMPLE` acusaría al firmware de algo que no ha llegado a
+> hacer. **Los tres estados de `PASS` / `FALLA` / `ABORTADO` valen igual aquí, y el tercero
+> necesitaba nombre.**
+>
+> > ## 🔧 04/09, MÁS TARDE (N-118) — **EL MOTIVO DE TODOS LOS ⛔ DE ESTE DOCUMENTO HA CAMBIADO. LÉASE UNA VEZ Y VALE PARA TODOS**
+> >
+> > A lo largo de la §8 y la §9 hay **una docena de pruebas marcadas ⛔ citando como motivo *«el
+> > puente de `J16`, medido a `0,6 V`»*.** Ese motivo **está caducado y se tacha aquí en bloque**,
+> > porque tacharlo doce veces por separado haría el documento ilegible.
+> >
+> > **Lo que se midió era cierto; lo que se dedujo, no.** Los `0,6 V` no eran una propiedad del
+> > cobre: los producía **el `INPUT_PULLUP` que el firmware ponía** contra los 10 kΩ a masa de la
+> > placa. **N-118 cambió las dos puntas a `INPUT` pelado y activo en ALTO**, así que el puente sí
+> > puede dar un flanco — **dado contra los 3,3 V del pin de al lado (p5–p4, p8–p7), nunca contra
+> > masa**. Ver §0.3, que trae el gesto entero.
+> >
+> > **Lo que NO cambia: esas pruebas siguen marcadas ⛔ y siguen sin casilla firmada.** El motivo
+> > vigente, y el único que hay que escribir en el acta, es:
+> >
+> > > ⛔ **NO EJECUTABLE (04/09): el mando está arreglado en el fuente (N-118) y PENDIENTE DE
+> > > EJERCER EN TARJETA. La tensión de `J16` p5/p8 con el puente a 3,3 V y este firmware cargado
+> > > NO SE HA MEDIDO NUNCA —el paso 29 no llegó a ese dato— y no se puede medir sobre la Maestro
+> > > mientras siga el corto de N-116.**
+> >
+> > **Por qué se corrige en vez de dejarlo:** un ⛔ que dice *«la placa lo impide»* manda a rediseñar
+> > una placa que está bien y a no comprar un receptor que sí funcionaría. Un ⛔ que dice *«falta
+> > tarjeta sana»* manda a arreglar la tarjeta, que es lo que hay que hacer.
 
 **El reparto de las 82 pruebas numeradas de la revisión anterior:**
 
@@ -121,28 +146,57 @@ tienen que dar lo mismo»*.~~ *(Ya no hay desacuerdo: se midió.)*
 
 > ## ✅ 04/09 — ESE DESACUERDO SE RESOLVIÓ MIDIENDO, Y EL PROTOCOLO TENÍA RAZÓN
 >
-> La Guía pedía que los cuatro pines dieran lo mismo; este protocolo avisó de que **si los cuatro
+> La Guía pedía que los cuatro pines dieran lo mismo; ~~este protocolo avisó de que **si los cuatro
 > dieran lo mismo, una de las dos funciones estaría rota**, porque p10/p12 son cámaras (activas en
 > ALTO, reposo a masa) y p5/p8 son el mando (`INPUT_PULLUP`, activo en BAJO —
-> `Esclavo/src/botones.cpp:37`, `:160-161`). **El paso 20 lo midió:**
+> `Esclavo/src/botones.cpp:37`, `:160-161`).~~ **El paso 20 lo midió:**
 >
 > | `J16` | Función | R a masa | R a 3,3 V | **V en reposo, con energía** | Lectura |
 > |---|---|---|---|---|---|
-> | **p5** | mando `A` | `9,92 kΩ` | `11,28 kΩ` | **`0,6 V`** | 🔴 **BAJO permanente** |
-> | **p8** | mando `B` | `9,92 kΩ` | `11,28 kΩ` | **`0,6 V`** | 🔴 **BAJO permanente** |
+> | **p5** | mando `A` | `9,92 kΩ` | `11,28 kΩ` | **`0,6 V`** | 🔴 **BAJO permanente** *(con el firmware de entonces)* |
+> | **p8** | mando `B` | `9,92 kΩ` | `11,28 kΩ` | **`0,6 V`** | 🔴 **BAJO permanente** *(ídem)* |
 > | **p10** | cámara `C` | `9,93 kΩ` | `11,29 kΩ` | `0 V` | 🟢 correcto |
 > | **p12** | cámara `D` | `9,94 kΩ` | `11,31 kΩ` | `0 V` | 🟢 correcto |
 >
-> **Las resistencias son casi idénticas y el resultado es opuesto**, que es exactamente lo que este
-> apartado anticipaba. Para la cámara, esos ~10 kΩ a masa **son** la resistencia de reposo que hacía
-> falta y que sólo decía el netlist: **la medida `M3` queda CERRADA**. Para el mando, esos mismos
-> 10 kΩ **ganan al pull-up interno**, el pin queda leído como accionado en reposo y **nunca hay
-> flanco que detectar**.
+> **Las resistencias son casi idénticas y el resultado salió opuesto.** Para la cámara, esos ~10 kΩ a
+> masa **son** la resistencia de reposo que hacía falta y que sólo decía el netlist: **la medida `M3`
+> queda CERRADA**. ~~Para el mando, esos mismos 10 kΩ **ganan al pull-up interno**, el pin queda
+> leído como accionado en reposo y **nunca hay flanco que detectar**.~~
 >
-> 🔴 **Consecuencia dura, y no es opinable: el mando de relés está inoperante de fábrica en esta
+> ~~🔴 **Consecuencia dura, y no es opinable: el mando de relés está inoperante de fábrica en esta
 > placa.** No es que falte el receptor —que también falta—: es que **el puente a masa de §0.3 tampoco
-> puede funcionar**, porque no hay transición que provocar. Y cuando en el paso 29 se intentó de
+> puede funcionar**, porque no hay transición que provocar.~~ Y cuando en el paso 29 se intentó de
 > todas formas, la placa se calentó.
+>
+> > ### 🔧 04/09 (N-118) — LA CONCLUSIÓN DE ARRIBA ERA DE LA PLACA **Y DEL FIRMWARE**, Y EL FIRMWARE YA ESTÁ ARREGLADO
+> >
+> > **La diferencia entre las dos mitades de esa tabla no la ponía el cobre: la ponía el `pinMode()`.**
+> > Las cuatro resistencias son iguales; lo que no era igual es cómo declaraba el firmware cada pin.
+> > `BOTON1`/`BOTON2` iban en `INPUT_PULLUP`, y el pull-up interno (30–50 kΩ) contra esos 10 kΩ deja
+> > el pin en **0,55–0,83 V** — el banco midió `0,6 V`, dentro de la horquilla. Las cámaras iban en
+> > `INPUT` pelado y por eso daban `0 V`. **La Guía tenía razón: los cuatro pines son eléctricamente
+> > idénticos y tienen que leerse igual.**
+> >
+> > **MEDIDO sobre el fuente el 04/09, en las DOS puntas** (`Maestro/src/botones.cpp`,
+> > `Esclavo/src/botones.cpp`):
+> >
+> > ```text
+> >   pinMode(BOTON1, INPUT);   pinMode(BOTON2, INPUT);      <- INPUT pelado, ya no INPUT_PULLUP
+> >   bool lecturaCruda = (digitalRead(b.pin) == HIGH);      <- ACTIVO EN ALTO, ya no LOW
+> >   const bool pulsado = (digitalRead(...) == HIGH);       <- la siembra del arranque, igual
+> > ```
+> >
+> > 🔴 **Lo que hay que llevarse al banco, porque el gesto es el contrario del que decía este
+> > documento:** un pulso `A` es **tocar `J16` p5 contra p4**, y un pulso `B` es **tocar p8 contra
+> > p7** — los 3,3 V que el conector reparte en la posición de al lado de cada entrada. **Un cable a
+> > masa no produce absolutamente nada.** Sólo hay **una** masa en todo `J16` (p2), así que un
+> > contacto por botón contra masa nunca pudo ser el diseño.
+> >
+> > 🛑 **Y lo que sigue SIN medirse, que es lo que impide dar esto por cerrado:** **nadie ha medido
+> > la tensión de p5/p8 con el puente a 3,3 V puesto y este firmware cargado.** El paso 29 nunca
+> > llegó a tomar ese dato —se abortó por el sobrecalentamiento— y **no se puede tomar sobre la
+> > Maestro mientras siga con el corto de N-116**. El firmware está **arreglado y razonado, no
+> > verificado en tarjeta**.
 
 ### 0.2 · Por dónde se manda una orden hoy
 
@@ -210,48 +264,89 @@ $EVENT,NODE:..,ORIGEN:..,DETALLE:..,HORA:..*CRC
 ### 0.3 · Cómo se ejercen las secuencias del mando SIN el receptor
 
 El receptor de radio del mando **nunca se compró** (Guía, paso 29). Pero los dos canales que quedan
-son pines de entrada de la propia tarjeta, y el firmware los lee en `INPUT_PULLUP` **activo en BAJO**
-(`Esclavo/src/botones.cpp:37`, `:160-161`; `Maestro/src/botones.cpp`, mismo cuerpo — **MEDIDO**):
+son pines de entrada de la propia tarjeta, y ~~el firmware los lee en `INPUT_PULLUP` **activo en
+BAJO**~~ 🔧 **desde el 04/09 (N-118) el firmware los lee en `INPUT` pelado y ACTIVO EN ALTO**, igual
+que las cámaras `C` y `D` (`Maestro/src/botones.cpp`, `Esclavo/src/botones.cpp`, mismo cuerpo —
+**MEDIDO sobre el fuente el 04/09**):
 
 ```text
-MANDO A  =  BOTON1  =  PB9   =  J16 p5
-MANDO B  =  BOTON2  =  PB13  =  J16 p8
-masa                          =  J16 p2
+MANDO A  =  BOTON1  =  PB9   =  J16 p5     <- se cierra contra p4  (3,3 V)
+MANDO B  =  BOTON2  =  PB13  =  J16 p8     <- se cierra contra p7  (3,3 V)
+
+3,3 V                         =  J16 p4, p7, p9, p11   (uno al lado de cada entrada)
+masa                          =  J16 p2                (UNA sola en todo el conector)
 ```
 
-**Un pulso `A` es tocar un instante `J16` p5 contra masa con un cable suelto.** Un pulso `B`, lo
-mismo en p8. Es el mismo recurso que la Guía usa en su paso 19 para hacer de cámara con un pulsador.
+> 🛑 ~~**Un pulso `A` es tocar un instante `J16` p5 contra masa con un cable suelto.** Un pulso `B`,
+> lo mismo en p8.~~ **CADUCADO EL 04/09 POR N-118, y es el error que más caro sale de este
+> documento: con el firmware vigente un cable a masa NO PRODUCE ABSOLUTAMENTE NADA.** Quien vaya a
+> banco con esta instrucción va a diagnosticar *«mando sordo»* sobre un firmware sano y va a perder
+> la sesión.
+
+**Un pulso `A` es tocar un instante `J16` p5 contra `J16` p4.** Un pulso `B`, tocar p8 contra p7.
+**El contacto se cierra contra los 3,3 V del pin de al lado, nunca contra masa** — sólo hay una masa
+en todo el conector, así que un contacto por botón contra masa nunca pudo ser el diseño. Es el mismo
+recurso, y ahora la misma polaridad, que la Guía usa en su paso 19 para hacer de cámara con un
+pulsador.
 
 > 🔴 **Requisitos, y no son opcionales:**
 > 1. **El paso 4 de la Guía hecho**: el pin de 12 V de `J16` tapado. En el cobre, esos 12 V corren
 >    a **1,36 mm** del más cercano de estos pines — no a los milímetros que se ven entre los pines
 >    del conector.
-> 2. **El paso 20 de la Guía hecho, y con su resultado delante.** Si p5 y p8 dan **~10 kΩ contra
+> 2. **El firmware de N-118 CARGADO Y VERIFICADO en la tarjeta**, no mergeado. Con el firmware
+>    anterior dentro, este puente no hace nada: los dos pines van en `INPUT_PULLUP` y ya se leen
+>    accionados. **Anote el `md5` del binario cargado antes de tocar `J16`.**
+> 3. ~~**El paso 20 de la Guía hecho, y con su resultado delante.** Si p5 y p8 dan **~10 kΩ contra
 >    masa**, el pull-up interno no puede ganarles: el pin queda permanentemente en BAJO y el mando
->    está **inoperante de fábrica**. En ese caso **§8 y §9 no se ejecutan**, y *eso* es el hallazgo:
->    se anota con los números del paso 20 y se para.
-> 3. Si p5 y p8 dan **circuito abierto contra masa y ~3,3 V en reposo**, el puente funciona y §8 y
->    §9 se ejecutan.
+>    está **inoperante de fábrica**.~~ ~~En ese caso **§8 y §9 no se ejecutan**~~ · ~~4. Si p5 y p8
+>    dan **circuito abierto contra masa y ~3,3 V en reposo**, el puente funciona.~~ 🔧 **Los dos
+>    ramales caducaron el 04/09.** Estaban escritos suponiendo un firmware con pull-up interno, y
+>    **ése era el defecto, no el criterio**. El paso 20 ya midió lo que había que medir —los cuatro
+>    pines llevan ~10 kΩ a masa y **eso es correcto para los cuatro**, porque los cuatro son activos
+>    en ALTO—: **la medida `M3` quedó cerrada y no hay bifurcación que resolver**.
+> 4. **La medida que SÍ falta, y que nadie ha tomado:** la tensión de p5/p8 **con el puente a 3,3 V
+>    puesto y el firmware de N-118 cargado**. El paso 29 no llegó a ese dato y **no se puede tomar
+>    sobre la Maestro mientras siga con el corto de N-116**. Hasta entonces, el mando está
+>    **arreglado en el fuente y pendiente de ejercer en tarjeta** — que no es lo mismo que
+>    verificado.
 >
 > ⚠️ **Lo que este recurso NO demuestra, y va escrito al lado:** demuestra que **el firmware
 > reconoce las secuencias**. No demuestra que los pulsos lleguen **desde el piso por radio**, que es
 > la condición real de uso — eso lleva el rebote del contacto del relé y sus ~2 s por pulsación, y
 > **sigue sin receptor con el que probarlo**. Ver la prueba **8.9**.
 
-> ## ⛔ 04/09 — LA BIFURCACIÓN DE ARRIBA YA ESTÁ RESUELTA, Y SALIÓ EL CASO 2
+> ## ⛔ 04/09 — LA BIFURCACIÓN DE ARRIBA YA ESTÁ RESUELTA, ~~Y SALIÓ EL CASO 2~~ **Y NINGUNO DE LOS DOS ERA EL CASO**
 >
 > **Este apartado escribió el 31/08 dos caminos y una regla para elegir. El banco del 3–4/09 midió,
-> y salió el malo.** `J16` p5 y p8: **`9,92 kΩ` contra masa** y **`0,6 V` en reposo** con energía
-> (paso 20 de la Guía, tabla completa en §0.1).
+> y salió `9,92 kΩ` contra masa y `0,6 V` en reposo** (paso 20 de la Guía, tabla completa en §0.1).
 >
-> **Por tanto, y siguiendo la regla que este documento se dio a sí mismo:**
+> ~~**Por tanto, y siguiendo la regla que este documento se dio a sí mismo:**~~
 >
-> - **La §8 entera NO se ejecuta.** Sus cinco pruebas con casilla dependen de que un pulso `A` o `B`
->   produzca una transición, y **no hay transición que producir**.
-> - **De la §9, no se ejecuta nada que dependa del puente**: `9.5`, `9.6` en la punta del Esclavo,
->   `9.9`, `9.10`, `9.11` y `9.16`. La entrada al Degradado del **Maestro** por comando sigue en pie
->   (`9.6`, rama *«por comando»*), pero **la del Esclavo no tiene ninguna vía** — ver `9.15`.
-> - **El hallazgo es ése**, y ya está anotado con sus números. No hace falta repetir la medida.
+> - ~~**La §8 entera NO se ejecuta.** Sus cinco pruebas con casilla dependen de que un pulso `A` o `B`
+>   produzca una transición, y **no hay transición que producir**.~~
+> - ~~**De la §9, no se ejecuta nada que dependa del puente**: `9.5`, `9.6` en la punta del Esclavo,
+>   `9.9`, `9.10`, `9.11` y `9.16`.~~
+> - ~~**El hallazgo es ése**, y ya está anotado con sus números.~~
+>
+> > ### 🔧 CORREGIDO EL MISMO 04/09, DESPUÉS DE N-118 — la conclusión era del firmware, no del cobre
+> >
+> > Los dos caminos que este apartado escribió el 31/08 daban por bueno un `INPUT_PULLUP` que era
+> > **el defecto**. Medido el fuente: `BOTON1`/`BOTON2` ya van en **`INPUT` pelado y activo en
+> > ALTO** en las dos puntas, así que **sí hay transición que producir** — cerrando p5 contra p4 y
+> > p8 contra p7.
+> >
+> > **Qué cambia y qué NO cambia en esta ronda:**
+> >
+> > | | |
+> > |---|---|
+> > | **Cambia** | el **gesto** (contra 3,3 V, no contra masa) y el **motivo** por el que §8 y la parte de §9 que dependen del puente siguen sin firmarse |
+> > | **NO cambia** | **§8 y esas pruebas de §9 siguen SIN EJECUTAR.** No porque el firmware no pueda leer un flanco —eso está corregido— sino porque **no hay tarjeta sana con la que ejercerlo**: la Maestro está fuera de servicio por N-116 y el gesto nuevo **no se ha probado nunca sobre cobre** |
+> >
+> > **Se marcan «no ejecutable» con este motivo, no con el del `0,6 V`.** Un motivo caducado manda a
+> > rediseñar una placa que no lo necesita, igual que uno manda a comprar lo que ya está comprado.
+>
+> - La entrada al Degradado del **Maestro** por comando sigue en pie (`9.6`, rama *«por comando»*),
+>   y **la del Esclavo sigue sin vía practicable hoy** — ver `9.15`.
 >
 > ### 🛑 Y una prohibición que no estaba y ahora sí, porque se cobró una placa
 >
@@ -261,9 +356,14 @@ mismo en p8. Es el mismo recurso que la Guía usa en su paso 19 para hacer de c�
 > masa. El informe **no afirma una causa**: pide inspección en frío antes de cualquier prueba
 > eléctrica adicional en `J16`.
 >
-> > **No se vuelve a puentear `J16` p5/p8 contra masa hasta que esa inspección esté hecha.** Y si
-> > alguien la hace y decide reintentarlo, **se hace midiendo la corriente**, no observando las
-> > luces: lo que falló aquí no se ve, se toca.
+> > **No se vuelve a puentear `J16` p5/p8 contra masa — nunca, ni tras la inspección.** Desde N-118
+> > ese gesto **no mide nada** (los pines son activos en ALTO) y es el que precedió al
+> > calentamiento: no hay ninguna razón para repetirlo. **El gesto vigente es contra los 3,3 V del
+> > pin de al lado** (p5–p4, p8–p7).
+> >
+> > 🛑 **Y eso NO es permiso para ejercerlo en esta placa.** La tarjeta Maestro no se energiza hasta
+> > la inspección en frío (N-116). Cuando haya tarjeta sana y alguien lo intente, **se hace midiendo
+> > la corriente**, no observando las luces: lo que falló aquí no se ve, se toca.
 
 ### 0.4 · Lo que NO existe, y por tanto no se prueba
 
@@ -276,7 +376,7 @@ mismo en p8. Es el mismo recurso que la Guía usa en su paso 19 para hacer de c�
 | ~~**La placa del módulo ESP32** — no está diseñada, ni fabricada, ni medida~~ · 🆕 **EXISTE y está armada** (paso 22): fuente conmutada, `DS3231` por I²C en `GPIO21`/`GPIO22`, salida a `J17`. **Lo que falta es que el módulo se anuncie en el teléfono** (pasos 10 y 25) | §12 sigue aplazada, **por otra razón**: hay hardware, no hay enlace. El chip está descartado como causa —es un `ESP32-WROOM-32` clásico, con el `BR/EDR` que el `SPP` de la app necesita— y el firmware cargó sin errores. **La causa está abierta** |
 | ~~**La fuente del ESP32** (DC-DC 12 V→5 V, ≥1 A) — no está pedida ni elegida la referencia~~ · 🆕 **está montada, y SIN MEDIR CON CARGA REAL** | El banco entero se alimentó **por USB**. **Medir esa fuente con 12 V de verdad es un pendiente propio**, independiente del Bluetooth, y va antes de campo |
 | ~~**El reloj `DS3231`** — va sobre esa placa, que no existe~~ · 🆕 **montado y cableado** | La §12.6 (Courier RTC) **sigue aplazada**, y ahora se sabe por qué exactamente: **la única vía para leer o poner esa hora es `SET_RTC` desde la app**. Sin enlace, ese reloj no es verificable desde fuera por ninguna vía (paso 27) |
-| **El receptor de radio del mando** — nunca se compró | Ver §0.3. ⚠️ **Y hoy es peor que una compra pendiente:** los pines del mando miden `0,6 V` en reposo, así que **el receptor tampoco funcionaría** si llegara mañana |
+| **El receptor de radio del mando** — nunca se compró | Ver §0.3. ~~⚠️ **Y hoy es peor que una compra pendiente:** los pines del mando miden `0,6 V` en reposo, así que **el receptor tampoco funcionaría** si llegara mañana~~ 🔧 **Caducado el 04/09 (N-118): ese `0,6 V` lo ponía el `INPUT_PULLUP` del firmware, y ya no está.** Con `INPUT` pelado y activo en ALTO, un receptor de contacto seco **sí produciría flanco** cerrando contra los 3,3 V del pin vecino. Vuelve a ser lo que era: **una compra pendiente**, con su decisión de polaridad de salida (NO/NC) y la de N-19 —mismo código o códigos distintos— **antes** de pedirlo |
 | **El repetidor y sus dos radios adicionales** | La §6 entera queda aplazada. Además, **la topología vigente es de enlace directo, 2 radios, sin repetidor** |
 | **Las dos cámaras de demanda** — pendientes de confirmar si hay una en almacén | La §11.3 queda aplazada |
 
@@ -798,50 +898,63 @@ Desfase calculado: ________ s
 
 ## 📑 SECCIÓN 8 — MANDO DE 4 RELÉS Y SECUENCIAS (SFTY-21)
 
-> ## ⛔ 04/09 — ESTA SECCIÓN NO SE EJECUTA. LA CONDICIÓN YA SE MIDIÓ Y SALIÓ QUE NO
+> ## ⛔ 04/09 — ESTA SECCIÓN SIGUE SIN EJECUTARSE, PERO **EL MOTIVO HA CAMBIADO EL MISMO DÍA**
 >
-> El banco del 3–4/09 midió el paso 20: **`J16` p5 y p8 dan `9,92 kΩ` contra masa y `0,6 V` en
+> ~~El banco del 3–4/09 midió el paso 20: **`J16` p5 y p8 dan `9,92 kΩ` contra masa y `0,6 V` en
 > reposo**. Es exactamente la rama que el párrafo de abajo describe. **El mando está inoperante de
 > fábrica: el pin ya se lee como accionado y no hay flanco que provocar**, ni con el puente ni con el
-> receptor que falta comprar.
+> receptor que falta comprar.~~
 >
-> **Sus cinco pruebas con casilla —8.2, 8.3, 8.4, 8.5 y 8.7— no se firman en esta ronda.** No se
-> marcan `NO CUMPLE`, que acusaría al firmware de algo que no ha podido hacer: se marcan
-> **«no ejecutable»** con los números del paso 20 al lado. *(`ABORTADO` no es `NO CUMPLE`, igual que
-> no es `CUMPLE`.)*
+> 🔧 **CORREGIDO POR N-118, con el fuente delante: ese `0,6 V` lo producía el `INPUT_PULLUP` DEL
+> FIRMWARE contra los 10 kΩ del cobre, y ese firmware ya no existe.** `BOTON1` y `BOTON2` van en
+> **`INPUT` pelado y activo en ALTO** en las dos puntas, igual que las cámaras. **El mando no está
+> sordo: el gesto para pulsarlo es otro** — p5 contra **p4** y p8 contra **p7** (3,3 V del pin de al
+> lado), **nunca contra masa**. Lea §0.3, que trae el gesto entero.
 >
-> 🛑 **Y no se reintenta el puente.** En el paso 29 se intentó y **el STM32 del Maestro se
-> sobrecalentó**; esa placa necesita inspección técnica en frío antes de cualquier prueba eléctrica
-> en `J16`. Ver §0.3.
+> **Sus cinco pruebas con casilla —8.2, 8.3, 8.4, 8.5 y 8.7— siguen sin firmarse en esta ronda, y
+> por un motivo distinto:** **no hay tarjeta sana con la que ejercerlas.** La Maestro está fuera de
+> servicio por el corto de N-116, y **la tensión de p5/p8 con el puente a 3,3 V y este firmware
+> cargado NO SE HA MEDIDO NUNCA** — el paso 29 no llegó a ese dato. No se marcan `NO CUMPLE`, que
+> acusaría al firmware de algo que no ha podido hacer: se marcan **«no ejecutable»** con ese motivo.
+> *(`ABORTADO` no es `NO CUMPLE`, igual que no es `CUMPLE`.)*
 >
-> **Lo que queda de la §8 no es una casilla: es una decisión de diseño para el responsable.** Un
-> respaldo físico de seguridad —el que existe justamente para no depender de la app ni del ESP32—
-> **está sordo en la placa actual**. Se investiga el origen de esa red de ~10 kΩ y se decide si hay
-> ajuste de diseño **antes** de comprar el receptor.
+> 🛑 **Y no se reintenta el puente en la placa dañada.** En el paso 29 se intentó y **el STM32 del
+> Maestro se sobrecalentó**; esa placa necesita inspección técnica en frío antes de cualquier prueba
+> eléctrica en `J16`. Ver §0.3.
+>
+> **Lo que queda de la §8 no es una casilla: es la primera sesión de banco que ejerza el mando con
+> el firmware de N-118 cargado.** ~~Se investiga el origen de esa red de ~10 kΩ y se decide si hay
+> ajuste de diseño **antes** de comprar el receptor.~~ *(Caducado: la red de 10 kΩ es correcta y está
+> cerrada como `M3`. Lo que queda antes de comprar el receptor es la polaridad de su salida —NO/NC—
+> y la decisión de N-19.)*
 
-> **Lea §0.3 antes de esta sección.** El paso 20 de la Guía tenía que decir si `J16` p5 y p8 llevan
+> **Lea §0.3 antes de esta sección.** ~~El paso 20 de la Guía tenía que decir si `J16` p5 y p8 llevan
 > unos 10 kΩ a masa. **Lo dice: `9,92 kΩ`.** **El mando está inoperante y esta sección no se
-> ejecuta**: se anotan los números del paso 20 y se para. Ése es el hallazgo, y ya está anotado.
+> ejecuta**: se anotan los números del paso 20 y se para. Ése es el hallazgo, y ya está anotado.~~
+> *(Caducado el 04/09: esos 10 kΩ son la resistencia de reposo correcta para una entrada activa en
+> ALTO, que es como el firmware las lee desde N-118.)*
 >
 > **Sólo aplica al MAESTRO** salvo donde se diga. El Esclavo tiene sus propias secuencias en el
 > firmware, y en él se ejercen en la Sección 9.
 >
-> ⚠️ **Con el puente a masa, un pulso es instantáneo. El relé real tarda ~2 s.** Deje al menos un
-> segundo entre pulsos: si los da demasiado juntos puede quedar por debajo del filtro de rebote.
+> ⚠️ **Con el puente ~~a masa~~ a 3,3 V, un pulso es instantáneo. El relé real tarda ~2 s.** Deje al
+> menos un segundo entre pulsos: si los da demasiado juntos puede quedar por debajo del filtro de
+> rebote.
 
 **8.1 El mando navega el menú igual que la botonera** — 🚫 **SE RETIRA**
 - *Por qué:* no hay menú que navegar ni cursor que mover, y `C` y `D` no existen como canales.
 - **No se firma.**
 
 **8.2 `A · A · A` → AUTOMÁTICO, con 2 destellos rojos** — ♻️ **SE REESCRIBE** *(entrada por puente)*
-- *Acción:* con el equipo **fuera de cualquier modo**, dar tres pulsos `A` (`J16` p5 a masa) en
-  **menos de 12 s**.
+- *Acción:* con el equipo **fuera de cualquier modo**, dar tres pulsos `A` (~~`J16` p5 a masa~~
+  **`J16` p5 contra p4 — los 3,3 V del pin de al lado, N-118**) en **menos de 12 s**.
 - *Esperado:* **2 destellos ROJOS contables**, y luego el equipo intenta Modo Automático.
 - Destellos contados: ________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
 **8.3 `B · B · B` → ÁMBAR, con 3 destellos rojos** — ♻️ **SE REESCRIBE** *(entrada por puente)*
-- *Acción:* tres pulsos `B` (`J16` p8 a masa) en **menos de 12 s**.
+- *Acción:* tres pulsos `B` (~~`J16` p8 a masa~~ **`J16` p8 contra p7 — los 3,3 V del pin de al
+  lado, N-118**) en **menos de 12 s**.
 - *Esperado:* **3 destellos ROJOS** y el equipo pasa a 🟡 Ámbar intermitente.
 - Destellos contados: ________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
@@ -896,12 +1009,21 @@ Desfase calculado: ________ s
   a distancia, sin ver el equipo. Es lo que el puente de §0.3 **no** demuestra.
 - **Falta: el receptor de radio del mando. Nunca se compró.** ~~La tarjeta tiene las entradas
   preparadas; falta el aparato.~~
-- 🔴 **04/09 — y esa última frase era falsa, lo demostró el paso 20: las entradas NO están
+- ~~🔴 **04/09 — y esa última frase era falsa, lo demostró el paso 20: las entradas NO están
   preparadas.** `J16` p5 y p8 tienen ~10 kΩ a masa y se quedan en `0,6 V`, o sea BAJO permanente.
   **Un receptor comprado mañana se enchufaría a un pin que ya lee «accionado» y no produciría ningún
   flanco.** Comprarlo antes de resolver esa red de resistencias es gastar dinero en un aparato que
-  no puede funcionar. *(Y la decisión de N-19 —mismo código o códigos distintos en las dos puntas—
-  sigue abierta y va antes de la compra, no después.)*
+  no puede funcionar.~~
+- 🔧 **04/09, más tarde el mismo día (N-118) — y la corrección de arriba también era falsa a
+  medias.** Ese `0,6 V` no salía del cobre solo: lo producía **el `INPUT_PULLUP` del firmware**
+  contra esos 10 kΩ. Con `BOTON1`/`BOTON2` en **`INPUT` pelado y activo en ALTO**, esos 10 kΩ pasan
+  a ser exactamente la resistencia de reposo que hace falta —lo mismo que ya ocurría en las cámaras
+  `C` y `D`, medidas a `0 V`—, y **un receptor de contacto seco cerrando contra los 3,3 V del pin
+  vecino sí produciría flanco**. **Las entradas SÍ están preparadas; lo que falta es el aparato.**
+  Lo que hay que decidir antes de comprarlo es la **polaridad de su salida (NO/NC)** y la decisión
+  de N-19 —mismo código o códigos distintos en las dos puntas—, no un rediseño de la placa.
+  *(Se conservan las dos frases tachadas a propósito: es la misma medida leída tres veces, y la
+  tercera es la que tenía el fuente delante.)*
 - **No se firma.** *(Guía, paso 29: si no lo tiene, se marca «No se pudo» con ese motivo — **nunca**
   como correcto.)*
 - > ⚠️ **Y hay una decisión de seguridad abierta antes de comprarlo (N-19):** si se quieren mandos en
@@ -928,7 +1050,12 @@ Desfase calculado: ________ s
 > hay pantalla y no hay receptor. Si el paso 20 de la Guía desaconseja el puente, **de 9.6 en
 > adelante no se ejecuta nada** y se anota el motivo.
 >
-> > ⛔ **04/09 — el paso 20 ya se midió y lo desaconseja: `0,6 V` en reposo, `9,92 kΩ` a masa.**
+> > ⛔ **04/09 — ~~el paso 20 ya se midió y lo desaconseja: `0,6 V` en reposo, `9,92 kΩ` a masa.~~**
+> > 🔧 **Motivo corregido el mismo día por N-118:** ese `0,6 V` lo ponía el `INPUT_PULLUP` del
+> > firmware, que ya no está; el puente **sí funcionaría**, dado **contra los 3,3 V del pin de al
+> > lado** (p5–p4, p8–p7) y **no contra masa** — ver §0.3. **Lo que impide ejecutar sigue siendo
+> > cierto y es otro: no hay tarjeta sana.** La Maestro está fuera de servicio por N-116 y el gesto
+> > nuevo nunca se ha ejercido sobre cobre.
 > > Por tanto, **de 9.6 en adelante no se ejecuta nada que necesite el puente** — es decir `9.5`,
 > > la punta del Esclavo de `9.6`, `9.9`, `9.10`, `9.11` y `9.16`. Y **no se reintenta**: el puente
 > > se cobró el sobrecalentamiento del Maestro en el paso 29 (§0.3).
@@ -981,7 +1108,9 @@ Desfase calculado: ________ s
   > reciente.**
 
 **9.5 Rechazo desde el piso: ámbar rápido en vez de destellos** — ♻️ **SE REESCRIBE** *(por puente)*
-— ⛔ **NO EJECUTABLE (04/09): necesita el puente de `J16`, medido a `0,6 V`**
+— ⛔ **NO EJECUTABLE (04/09): necesita el puente de `J16`** ~~, medido a `0,6 V`~~ **— y no hay
+tarjeta sana con la que darlo (N-116). El puente en sí SÍ funciona con el firmware de N-118: p5
+contra p4, p8 contra p7, nunca contra masa. Ver §0.3 y el bloque de marcas**
 - *Acción:* con alguno de los requisitos sin cumplir, dar `A · B · A · B` en menos de 18 s.
 - *Esperado:* **NO hay 4 destellos rojos.** Aparece un **ámbar rápido** que significa *rechazado*, y
   el equipo **no entra**.
@@ -991,10 +1120,12 @@ Desfase calculado: ________ s
 
 **9.6 Entrada correcta en las DOS puntas** 👁️ — ♻️ **SE REESCRIBE**
 — ⛔ **PARCIAL (04/09): la rama del MAESTRO por comando sigue viva; la del ESCLAVO no, porque su
-única vía es el puente de `J16` y está medido a `0,6 V`**
+única vía es el puente de `J16`** ~~y está medido a `0,6 V`~~ **y no hay tarjeta sana con la que
+darlo (N-116) — el puente en sí funciona desde N-118**
 - *Acción:* cumplidos los requisitos y cortado el radio, entrar al Degradado en cada punta:
   - **MAESTRO:** `CMD:PIN:1234:SET_MODO:DEGRADADO` → `$ACK,...,RESULT:OK`, **o** `A·B·A·B` por puente.
-  - **ESCLAVO:** **sólo `A·B·A·B` por el puente de `J16` p5/p8.** No hay otra vía.
+  - **ESCLAVO:** **sólo `A·B·A·B` por el puente de `J16` p5/p8** — ~~contra masa~~ **cerrando p5
+    contra p4 y p8 contra p7 (los 3,3 V del pin de al lado), N-118**. No hay otra vía.
 - *Esperado:* las dos puntas entran, y la del mando confirma con **4 destellos ROJOS**.
 
 ```text
@@ -1134,8 +1265,9 @@ meterlo. El riesgo residual sigue documentado y sigue **sin reproducirse en hard
 
 **9.16 El ámbar de emergencia de la app en un Esclavo en Degradado (N-106)** ➕ **NUEVA** — ~~♻️ *(ejecutable hoy, por puente)*~~
 — ⛔ **NO EJECUTABLE (04/09).** Su paso 1 es *«poner el Esclavo en Degradado con `A·B·A·B` por
-puente»*, y el puente está medido a `0,6 V`. **El defecto sigue abierto y sigue sin ejercerse
-nunca** — ni en banco ni en arnés. *La prueba se conserva entera: es correcta, y el día que haya
+puente»*, ~~y el puente está medido a `0,6 V`~~ **y no hay tarjeta sana con la que darlo (N-116);
+el puente en sí funciona desde N-118, cerrando contra los 3,3 V del pin de al lado**. **El defecto
+sigue abierto y sigue sin ejercerse nunca** — ni en banco ni en arnés. *La prueba se conserva entera: es correcta, y el día que haya
 vía para meter al Esclavo en Degradado se ejecuta tal cual está escrita.*
 - *Por qué existe:* es un **defecto abierto y conocido**, y esta sesión tiene que **ejercerlo**, no
   ignorarlo. Está razonado por lectura del fuente y **nadie lo ha ejecutado nunca** — ni en banco ni
@@ -1266,10 +1398,20 @@ Y a los 3 minutos, seguia en AMBAR?       [ ] SI   [ ] NO, volvio a: ___________
   `PB14` y `PB15` **son las cámaras**, y `PB9`/`PB13` ya no son pulsadores de menú sino los canales
   `A` y `B` del mando.
 - **No se firma.**
-- > 🔴 **Lo que sí hay que medir en su lugar ya está escrito, y es el paso 20 de la Guía**: la
+- > ~~🔴 **Lo que sí hay que medir en su lugar ya está escrito, y es el paso 20 de la Guía**: la
   > polaridad de reposo de `J16` p5, p8, p10 y p12, hoy en **contradicción medida** entre el netlist
   > (pull-**down** de 10 kΩ, activo en ALTO) y el fuente (`INPUT_PULLUP`, activo en BAJO). Cablear al
-  > revés da **demanda permanente** o **demanda que nunca llega**: las dos son de calle.
+  > revés da **demanda permanente** o **demanda que nunca llega**: las dos son de calle.~~
+- > 🔧 **04/09 — CADUCADO, y se tacha porque mandaba a repetir una medida que este mismo documento
+  > ya publica 1.100 líneas más arriba.** El paso 20 **se ejecutó** en el banco del 3–4/09 y su tabla
+  > completa está en **§0.1**: los cuatro pines llevan ~10 kΩ a masa (`9,92`–`9,94 kΩ`). **La
+  > contradicción se resolvió a favor del netlist y ya no existe:** desde N-118 el fuente lee los
+  > **cuatro** pines en `INPUT` pelado y **activo en ALTO**, así que netlist y firmware dicen lo
+  > mismo. **No hay nada que volver a medir aquí.** Lo que queda por medir —y está anotado en §0.3—
+  > es otra cosa: la tensión de p5/p8 **con el puente a 3,3 V puesto y este firmware cargado**, que
+  > nadie ha tomado y no se puede tomar sobre la Maestro mientras siga el corto de N-116.
+  > *(Un documento que se contradice consigo mismo manda a gastar una sesión de banco en repetir lo
+  > hecho. Por eso esto se tacha en vez de dejarse «por si acaso».)*
 
 ---
 
@@ -1419,7 +1561,10 @@ En el ESCLAVO:
 > banco del 3–4/09 la despejó y varias pruebas dejaron de ser ejecutables**, no por el firmware sino
 > por la placa:
 >
-> - **La §8 entera —5 pruebas— no se ejecuta.** `J16` p5/p8 en `0,6 V` (paso 20).
+> - **La §8 entera —5 pruebas— no se ejecuta.** ~~`J16` p5/p8 en `0,6 V` (paso 20).~~ 🔧 **Motivo
+>   corregido el 04/09 (N-118): el mando está arreglado en el fuente —`INPUT` pelado, activo en ALTO
+>   en las dos puntas— y PENDIENTE DE EJERCER EN TARJETA.** El gesto es p5 contra p4 y p8 contra p7,
+>   no contra masa (§0.3), y **nadie lo ha medido nunca con este firmware cargado**.
 > - **De las 14 de la §9, seis dependen directamente del puente** —`9.5`, la punta del Esclavo de
 >   `9.6`, `9.9`, `9.10`, `9.11` y `9.16`— **y otras dos, `9.7` y `9.8`, no se pueden montar sin
 >   meter al Esclavo en Degradado**. `9.7` es la verificación visual de dos ciclos completos: **la
@@ -1429,8 +1574,11 @@ En el ESCLAVO:
 >   Maestro no se ejecuta nada.
 >
 > **Este documento NO publica un total nuevo, y es deliberado.** Escribirlo aquí sería inventar una
-> cifra que nadie ha medido, sobre un alcance que todavía depende de dos decisiones abiertas —qué
-> pasa con la red de ~10 kΩ del mando, y qué dice la inspección de la placa—. **El denominador lo
+> cifra que nadie ha medido, sobre un alcance que todavía depende de ~~dos decisiones abiertas —qué
+> pasa con la red de ~10 kΩ del mando, y qué dice la inspección de la placa—~~ **una decisión
+> abierta: qué dice la inspección de la tarjeta Maestro.** *(La red de ~10 kΩ dejó de ser una
+> decisión el 04/09: es correcta, es la resistencia de reposo de una entrada activa en ALTO, y el
+> firmware ya la lee así — N-118.)* **El denominador lo
 > recorta quien ejecute la sesión, tachando línea por línea lo no ejecutable con su motivo**, y el
 > alcance certificado del acta se escribe con ese número, no con el `50` de abajo.
 >
@@ -1448,7 +1596,14 @@ Seccion  4 — Modo Inteligente (demanda) ...............  ___ / 2
 Seccion  5 — Modo Manual y medida de enlace ...........  ___ / 6
 Seccion  7 — Reloj y sincronizacion ...................  ___ / 6
 Seccion  8 — Mando de reles (por puente en J16) .......  --- / 5   <- NO EJECUTABLE (04/09)
-                                                                     J16 p5/p8 = 0,6 V en reposo
+                                                                     motivo VIGENTE: N-118 arreglo
+                                                                     el firmware (INPUT pelado,
+                                                                     activo en ALTO) y falta
+                                                                     ejercerlo en tarjeta sana.
+                                                                     El puente va p5-p4 y p8-p7,
+                                                                     NO contra masa.  Ver 0.3
+                                                                     (el motivo viejo "p5/p8 =
+                                                                      0,6 V" esta CADUCADO)
 Seccion  9 — Modo Degradado ...........................  ___ / 14   (12 + 9.15 + 9.16)
    de las 14, NO son ejecutables sin el puente de J16:  9.5 . 9.6(punta Esclavo) . 9.9 .
    9.10 . 9.11 . 9.16   -- y 9.7 y 9.8 no se pueden montar sin meter al Esclavo en
@@ -1498,16 +1653,26 @@ DATOS MEDIDOS  (no cuentan como CUMPLE/NO CUMPLE: son registro para el acta)
      Duracion del ciclo completo ............ ______ s   (esperado ~120 s)
      Todo-rojo medido ....................... ______ s   (esperado ~30 s)
 
-  Mando (§0.3), del paso 20 de la Guia:
-     J16 p5 contra masa ..... ______   p8 contra masa ..... ______
+  Mando (§0.3):
+     ~~J16 p5 contra masa ... ______   p8 contra masa ... ______~~   CADUCADO (N-118, 04/09):
+     el gesto es contra los 3,3 V del pin de al lado, NO contra masa.
+
+     LO QUE FALTA MEDIR, y nadie ha medido nunca -es EL dato de esta seccion-:
+        V en p5 con el puente p5-p4 puesto y el firmware de N-118 cargado ... ______ V
+        V en p8 con el puente p8-p7 puesto y el firmware de N-118 cargado ... ______ V
+        md5 del binario cargado (tiene que ser el de N-118) ......... ________________
      -> El puente se pudo usar?  [ ] SI   [ ] NO, motivo: ______________
+     -> NO se toma sobre la Maestro mientras siga el corto de N-116.
 
      MEDIDO YA el 3-4/09 sobre estas placas, para contrastar:
-        p5  9,92 kOhm a masa | 11,28 kOhm a 3,3 V | 0,6 V en reposo  -> BAJO permanente
-        p8  9,92 kOhm a masa | 11,28 kOhm a 3,3 V | 0,6 V en reposo  -> BAJO permanente
+        p5  9,92 kOhm a masa | 11,28 kOhm a 3,3 V | 0,6 V en reposo  <- lo ponia el
+        p8  9,92 kOhm a masa | 11,28 kOhm a 3,3 V | 0,6 V en reposo     INPUT_PULLUP viejo
         p10 9,93 kOhm a masa | 11,29 kOhm a 3,3 V | 0   V en reposo  -> correcto (camara)
         p12 9,94 kOhm a masa | 11,31 kOhm a 3,3 V | 0   V en reposo  -> correcto (camara)
-     Si sus medidas difieren de estas, NO son las mismas placas o algo cambio:
+     Con el firmware de N-118 los CUATRO deberian dar 0 V en reposo, porque los cuatro
+     van en INPUT pelado. Si p5/p8 vuelven a dar 0,6 V, el binario cargado NO es el de
+     N-118: se comprueba el md5 antes de reportar nada.
+     Si las resistencias difieren de estas, NO son las mismas placas o algo cambio:
      eso es un hallazgo por si solo y se anota antes de seguir.
 ```
 
@@ -1557,8 +1722,10 @@ DICTAMEN ESPECIFICO SOBRE EL MODO DEGRADADO (marcar solo si se ejecuto la Seccio
 línea se había quedado con la cifra vieja)* y las 21 retiradas que se listan en el resumen, y en
 particular:
 
-- **el receptor de radio del mando de relés**, que nunca se compró: las secuencias se ejercieron con
-  un puente a masa en `J16`, lo que verifica el firmware pero **no la condición real de uso**;
+- **el receptor de radio del mando de relés**, que nunca se compró: las secuencias se ejercerían con
+  un puente ~~a masa~~ **a los 3,3 V del pin de al lado** en `J16`, lo que verificaría el firmware
+  pero **no la condición real de uso** — y en esta ronda **ni siquiera eso se pudo hacer**, porque
+  no hay tarjeta sana (N-116) y el gesto de N-118 **nunca se ha ejercido sobre cobre**;
 - **el módulo ESP32, su placa, su fuente y el reloj `DS3231`**, que no existen: no se ha certificado
   ningún enlace Bluetooth, ninguna función de la app y ninguna sincronización por courier;
 - **la topología con repetidor** y sus cuatro radios;
@@ -1571,9 +1738,11 @@ particular:
 
 **Y lo que el banco del 3–4/09 añade a esa constancia, que no estaba el 31/08:**
 
-- **la §8 entera y siete pruebas de la §9**, no ejecutables porque `J16` p5/p8 miden `0,6 V` en
-  reposo: **el respaldo físico de mando está sordo en esta placa**, y con él la única vía que tiene
-  hoy el Esclavo para entrar o salir del Modo Degradado sin radio;
+- **la §8 entera y siete pruebas de la §9**, no ejecutables ~~porque `J16` p5/p8 miden `0,6 V` en
+  reposo: **el respaldo físico de mando está sordo en esta placa**~~ 🔧 **— motivo corregido el
+  04/09 (N-118): el respaldo físico de mando estaba sordo POR EL FIRMWARE, y el firmware ya está
+  arreglado en las dos puntas. Lo que falta es ejercerlo en una tarjeta sana, y no la hay** —, y con
+  él la única vía que tiene hoy el Esclavo para entrar o salir del Modo Degradado sin radio;
 - **la regresión N-42**, que **sigue sin determinar**: el banco no la confirmó ni la descartó porque
   el equipo nunca llegó a operar en Modo Automático. **No se certifica ningún ciclo vehicular**;
 - **el verde simultáneo en las dos puntas**, que sigue **sin ejercerse sobre hardware** — sólo en

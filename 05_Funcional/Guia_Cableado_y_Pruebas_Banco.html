@@ -399,7 +399,7 @@
         consumido». Nunca hay transición, así que ninguna secuencia es alcanzable. Está medido en el
         cobre y en el fuente.</li>
       <li><b>Instale la APK NUEVA</b>
-        (<code>IOT_VIAL_Semaforos_2026-09-04_edf4783_SIN_BANCO.apk</code>). La anterior
+        (<code>IOT_VIAL_Semaforos_2026-09-04_1f6b8f1_SIN_BANCO.apk</code>). La anterior
         <b>no podía abrir el enlace</b>: le faltaba la llamada que abre el socket, así que se pintaba
         «Enlazado» sin estarlo. <b>Con la APK vieja no conecta por bien que funcione el módulo.</b></li>
       <li><b>Antes de sospechar del ESP32, mire el NOMBRE.</b> Mientras no haya aprendido la serie del
@@ -1365,13 +1365,19 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
   </div>
 
   <div class="libre">
-    <b>3 · 🔴 El mando A/B no se puede pulsar. ¿Con qué salida se compra el receptor?</b>
+    <b>3 · 🟢 El mando A/B: arreglado en firmware el 04/09. Falta comprarlo y probarlo</b>
     <p>Medido en el cobre: los <b>cuatro</b> pines de <code>J16</code> tienen 10 kΩ a masa y 3,3 V en
-      la posición de al lado, o sea que el conector pide <b>contacto contra 3,3 V — activo en
-      ALTO</b>. El firmware lee A y B al revés, y por eso el mando está sordo. La polaridad ya no se
-      pregunta: la decidió la placa. Lo que falta es <b>qué receptor se compra (NO o NC)</b> y quién
-      valida que un cambio en un camino de seguridad entre sin pasar banco.</p>
-    <textarea id="pa3" style="min-height:3rem" placeholder="modelo y referencia del receptor · ¿salida NO o NC? · ¿se compra ya? · ¿quién autoriza el cambio de firmware del mando?"></textarea>
+      la posición de al lado, con <b>una sola masa en todo el conector</b> (p2). Un contacto por botón
+      contra masa necesitaría una masa por botón. El conector pide <b>cerrar contra los 3,3 V — activo
+      en ALTO</b>, y desde hoy <b>el firmware lee así en las dos puntas</b>. Estuvo sordo desde el
+      primer día, y no fue una regresión: el repositorio del que salió este firmware trae el mismo
+      código y el mismo diseño de placa, byte a byte.</p>
+    <p>🛑 <b>Por eso el gesto de prueba CAMBIÓ:</b> el mando <b>ya no se simula con un cable a masa</b>
+      — con el firmware nuevo eso no hace nada. Se cierra <code>J16</code> <b>p5 contra p4</b> (canal A)
+      y <b>p8 contra p7</b> (canal B).</p>
+    <p><b>Y la compra ya no es pregunta: receptor con salida NORMALMENTE ABIERTA (NO).</b> Lo decidió
+      la placa. Lo que sí necesitamos de ti es el resto.</p>
+    <textarea id="pa3" style="min-height:3rem" placeholder="modelo y referencia del receptor NO que se compra · ¿se pide ya? · al cerrar p5-p4 con el firmware nuevo, ¿reacciona el equipo? · ¿qué tensión mides en p5 con el puente puesto y sin él?"></textarea>
   </div>
 
   <div class="libre">
@@ -1608,7 +1614,7 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
       <h4>Por qué un cable a masa es exactamente lo que hace el relé</h4>
       <p><b>Comprobado sobre el programa de las dos puntas:</b> las entradas <code>A</code> y
         <code>B</code> —<code>J16</code> p5 y p8— llevan <b>resistencia interna hacia arriba</b> y se
-        leen <b>activas en BAJO</b>. Y el relé del receptor va cableado <b>EN PARALELO con el
+        leen <b>activas en ALTO desde el 04/09</b> (<s>activas en BAJO</s>). Y el relé del receptor va cableado <b>EN PARALELO con el
         pulsador del gabinete</b>: <b>eléctricamente son el mismo contacto</b>. No es una
         aproximación — es el mismo suceso eléctrico.</p>
       <p><b>Lo que el puente NO demuestra:</b> que los pulsos lleguen <b>por radio desde el piso</b>.
@@ -1657,8 +1663,8 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
             <tr><td><code>J12</code></td><td><b>Radio</b> entre postes</td>
               <td><b>En servicio: no se toca.</b> Sin ella los dos postes no se coordinan</td></tr>
             <tr><td><code>J16</code></td><td>🔴 <b>12 V + mando + cámaras</b></td>
-              <td><b>Pos. 1: 12 V crudos — se tapa.</b> <b>5 y 8</b>: mando, <b>activas en BAJO — se
-                simulan con un cable a MASA</b>. <b>10 y 12</b>: cámaras, <b>activas en ALTO — cable a
+              <td><b>Pos. 1: 12 V crudos — se tapa.</b> <b>5 y 8</b>: mando, <b>activas en ALTO desde el 04/09 — se
+                cierran contra los 3,3 V del pin de al lado (p4 y p7), NO a masa</b>. Antes ponia <s>se simulan con un cable a MASA</s>: con el firmware del 04/09 cargado, un cable a masa <b>no produce absolutamente nada</b>, y quien use la instruccion vieja diagnosticara «mando sordo» sobre un firmware sano. <b>10 y 12</b>: cámaras, <b>activas en ALTO — cable a
                 los 3,3 V de p9 u p11</b>, y <b>no se cablean hasta el paso 20</b>. La 10 es la que
                 más lejos está de los 12 V</td></tr>
             <tr><td><code>J17</code></td><td><b>Módulo Bluetooth</b></td>

@@ -24,17 +24,40 @@ paquete V9.0 (commit `617bd00`).** Informe: `evidencia/Informe_Pruebas_Banco_Sem
 Es la primera vez que algo de este documento se contrasta contra **cobre** en vez de contra un
 dibujo, y eso **cambia el nivel de varias filas, no solo su contenido**.
 
-**El resultado, sin adornos:** de los **29 pasos** de la Guia de Cableado y Pruebas de Banco,
-**24 completos** (pasos 1-6, 8-9, 15-18, 20-24), **4 bloqueados** por el enlace Bluetooth
-(25, 26, 27 y 28) y **1 abortado por seguridad** (paso 29). Los pasos **7, 19 y 21** quedaron
-**parciales** —la parte de cableado y de medida se verifico; la respuesta funcional depende del Modo
-Automatico, que no se pudo seleccionar sin app— y se cuentan dentro de los 24 con esa salvedad.
+**El resultado, sin adornos — y la CUENTA no la publica este documento, que es lo que se corrige el
+04/09.** La **cabecera del informe** declara **24 completos · 4 bloqueados por el enlace Bluetooth ·
+1 abortado por seguridad**, sobre **29 pasos**. Su **propia enumeracion** nombra `1-6, 8-9, 15-18,
+20-24` (**17** identificadores) · `25-28` (**4**) · `29` (**1**): **22 de los 29**. Los **siete que
+faltan** —`7`, `10`, `11`, `12`, `13`, `14`, `19`— si estan descritos en el cuerpo del informe (`7`
+y `19` como *PARCIAL*, `10` como *no logrado*, `11` y `12-14` como *BLOQUEADO*), pero **la cabecera
+no los mete en ningun cajon**. Repartidos como el cuerpo los describe, la cuenta que cuadra a 29 es
+**19 / 9 / 1**.
+
+> **Aqui no se publica ninguna de las dos: se publica la DISCREPANCIA.** ~~*"24 completos (pasos
+> 1-6, 8-9, 15-18, 20-24), 4 bloqueados y 1 abortado; los pasos 7, 19 y 21 quedaron parciales y se
+> cuentan dentro de los 24"*~~ → 🛑 **CADUCADO el 04/09: esa reconciliacion no sale, y no era del
+> informe — se escribio aqui.** Los identificadores de esa lista son **17**, no 24; el **paso 21 ya
+> estaba dentro** de `20-24`, asi que sumarlo aparte como *parcial* no cuadra nada; y los pasos **10
+> a 14 no caian en ningun cajon**. Era un total escrito a mano para que la cabecera pareciera
+> reconciliada, y **un total inventado es peor que un hueco declarado**.
+>
+> **Cual de las dos vale lo decide quien ejecuto la sesion, no este repositorio.** Lo que si se deja
+> escrito es **donde esta la diferencia** —los pasos **10 a 14**, el modulo que no se anuncia y todo
+> lo que cuelga de el—, porque **un paso que no esta en ningun cajon es un hueco que no deja rastro
+> de que falta**. *(Mismo criterio, y misma medida, que
+> `12_Cobertura_de_Pruebas_y_Huecos.md` §«La cuenta, y por que este documento no la copia»: ninguna
+> linea del informe miente, y la cuenta de su cabecera no sale.)*
+>
+> **Lo que NO depende de la cuenta y sigue siendo cierto:** los pasos **7 y 19** quedaron
+> **parciales** —la parte de cableado y de medida se verifico; la respuesta funcional depende del
+> Modo Automatico, que no se pudo seleccionar sin app—, y el **21** si esta en la lista de la
+> cabecera: cablea camara, y esa parte se verifico entera.
 
 | # | este documento decia | lo que midio el banco |
 |---|---|---|
 | **M3** | *"la medida que desbloquea las camaras"*, **pendiente**, y sobre ella colgaba *"mientras esto no se mida, no se cablea camara a `J16`"* | ✅ **CERRADA el 03/09.** Numeros en la tabla de abajo y en la seccion A · M3 |
 | **§2.2** | *"contradiccion: el netlist dice activo en ALTO, el firmware dice activo en BAJO, y no se puede decidir desde aqui"* | 🔴 **LA DECIDE EL COBRE (N-118): activo en ALTO los CUATRO.** No era una contradiccion — era **un fuente equivocado** en `A` y `B` |
-| **§2.4 y §3.3** | el veto de `mando_ambarLocal()` se queda, y `B·B·B` es la salida fisica de ultimo recurso | 🔴 **EL MANDO `A`/`B` HOY NO SE PUEDE PULSAR (N-118).** Con el pin en `0,6 V` permanente no hay transicion que detectar. Existe en el codigo y **no existe en la mano** |
+| **§2.4 y §3.3** | el veto de `mando_ambarLocal()` se queda, y `B·B·B` es la salida fisica de ultimo recurso | 🔴 **EL MANDO `A`/`B` NO SE PUDO PULSAR EN BANCO (N-118)** — con `617bd00`, el pin en `0,6 V` permanente y el firmware leyendo activo en BAJO: no habia transicion que detectar. 🟢 **El fuente ya esta corregido en las dos puntas (`346ea5f`)**; 🔴 **sin ejercer en tarjeta** |
 | — | — | 🔴 **NUEVO, N-120: la tarjeta protege sus 9 SALIDAS y no protege NINGUNA de sus 5 ENTRADAS de campo.** Abre una decision de diseno para V2, y es del responsable: **§3.6** |
 | — | — | 🔴 **NUEVO, N-116: la tarjeta Maestro esta FUERA DE SERVICIO.** Corto MEDIDO entre `3,3 V` y `GND`. **No se reenergiza** |
 | **N-42** | *"el Modo Automatico no mueve las luces"*, regresion abierta | ⚠️ **NI CONFIRMADA NI DESCARTADA.** El equipo nunca llego a operar —falto la app—. Sigue abierta y sigue siendo lo primero de la proxima sesion |
@@ -65,11 +88,24 @@ activa en ALTO, para los cuatro pines y sin excepcion.**
   equipo no pidio paso solo, ni con el cable puesto ni sin el**: **no hay demandas fantasma**. La
   consecuencia operativa de §2.2 —*"mientras esto no se mida, no se cablea camara a `J16`"*— **queda
   levantada.**
-- 🔴 **El camino de mando esta invertido, y no es un matiz de estilo: HOY NO SE PUEDE PULSAR
-  (N-118).** `botones.cpp` lee `INPUT_PULLUP` y `== LOW`. Con el pin en `0,6 V` en reposo la lectura
-  cruda ya es `LOW` **desde el arranque**, el antirrebote lo siembra como *flanco ya consumido*, y
-  **la transicion que `mando_registrarPulso()` espera no llega nunca**. El banco lo vio: se puenteo
-  `p5`/`p8` contra masa y **el semaforo no cambio de comportamiento** (paso 29).
+- 🔴 **El camino de mando ESTABA invertido, y no era un matiz de estilo: EN BANCO NO SE PUDO PULSAR
+  (N-118).** El firmware que se llevo —`617bd00`— leia `INPUT_PULLUP` y `== LOW`. Con el pin en
+  `0,6 V` en reposo la lectura cruda ya era `LOW` **desde el arranque**, el antirrebote lo sembraba
+  como *flanco ya consumido*, y **la transicion que `mando_registrarPulso()` espera no llegaba
+  nunca**. El banco lo vio: se puenteo `p5`/`p8` contra masa y **el semaforo no cambio de
+  comportamiento** (paso 29).
+  > 🟢 **ESTADO DE HOY, 04/09 — el fuente ya no es el defecto.** `346ea5f` deja `pinMode(BOTON1,
+  > INPUT)` / `pinMode(BOTON2, INPUT)` pelados y `digitalRead(b.pin) == HIGH` en **las dos puntas**
+  > (`Maestro/src/botones.cpp:40`, `:160-161`; `Esclavo/src/botones.cpp:54`, `:178-179`) — el mismo
+  > arreglo que N-67 le hizo a la camara.
+  >
+  > 🔴 **Y sigue PENDIENTE de ejercer en tarjeta**, que es lo unico que lo cerraria: **nadie ha
+  > visto todavia a este equipo obedecer un `A·A·A`**, y no se prueba sobre la Maestro con el corto
+  > (N-116). **Un arreglo en el fuente no es un arreglo cargado.**
+  >
+  > ⚠️ **Cambia el GESTO DE PRUEBA, y esto es lo que se lleva al banco:** ~~tocar `J16` p5 contra
+  > masa~~ → **cerrar `p5` contra `p4` y `p8` contra `p7`, que son los `3,3 V` del pin contiguo**.
+  > El gesto viejo es el del paso 29, el que acabo con el Maestro caliente.
 
 > 🛑 **Lo que eso le hace a §3.3, y hay que leerlo entero.** La decision del 31/08 —*"se conserva el
 > mando en `A` y `B`"*— se eligio porque era la unica salida fisica de ultimo recurso que **ya estaba
@@ -78,12 +114,18 @@ activa en ALTO, para los cuatro pines y sin excepcion.**
 > costaba cero era tambien lo que resolvia.
 >
 > **No es una decision equivocada: es una decision tomada sobre un dato que no se tenia** —y que este
-> documento pedia por escrito, en M3—. Ahora se tiene. Lo que hace falta para que el mando exista de
-> verdad es **una linea de `botones.cpp` por punta** (Anexo, punto 5), y ya no es *"si M3 dice"*: M3
+> documento pedia por escrito, en M3—. Ahora se tiene. Lo que hacia falta para que el mando exista de
+> verdad era **una linea de `botones.cpp` por punta** (Anexo, punto 5), y ya no es *"si M3 dice"*: M3
 > lo dijo.
 >
-> **Y mientras eso no entre y no se cargue, esto es lo que va en el parte: el equipo no tiene hoy
-> NINGUNA superficie de mando fisica.** El agujero que §3.3 daba por tapado esta abierto.
+> 🟢 **Y esa linea YA ESTA ESCRITA, en las dos puntas: `346ea5f`.** ~~*"mientras eso no entre"*~~ →
+> entro.
+>
+> 🔴 **Lo que NO ha pasado, y es lo que decide: no se ha cargado ni ejercido en una tarjeta.** Asi
+> que **lo que va en el parte sigue siendo lo mismo, por un motivo distinto**: nadie ha visto a este
+> equipo obedecer un `A·A·A`, el agujero que §3.3 daba por tapado sigue abierto **hasta la carga
+> verificada**, y esa prueba **no se hace sobre la Maestro con el corto** (N-116). *(`CLAUDE.md` §9.bis:
+> se exige la carga verificada, no el merge.)*
 
 ### 🔴 N-120 — la tarjeta protege todo lo que sale y no protege nada de lo que entra
 
@@ -453,9 +495,11 @@ conector de senal de toda la tarjeta que trae 12 V.**
 > los `3,3 V`: entrada activa en ALTO, sin excepcion.**
 >
 > **Asi que no habia dos afirmaciones incompatibles sobre la placa: habia un fuente equivocado.**
-> `botones.cpp` esta invertido en `A` y `B`, en las dos puntas. La camara ya se corrigio en N-67 y
-> por eso el camino de camara sale bien; el camino de mando **nunca se corrigio**, y es N-67 otra
-> vez — con la diferencia de que ahora esta **medido**, no deducido.
+> `botones.cpp` **estaba** invertido en `A` y `B`, en las dos puntas. La camara ya se corrigio en
+> N-67 y por eso el camino de camara sale bien; el camino de mando **no se habia corregido**, y es
+> N-67 otra vez — con la diferencia de que ahora esta **medido**, no deducido. 🟢 **Corregido el
+> 04/09 en `346ea5f`, en las dos puntas** —`INPUT` pelado y `== HIGH`—; 🔴 **sin ejercer en
+> tarjeta**.
 >
 > **Y la cuenta de `0,66 V` que este apartado reprodujo de N-67 se confirma en la punta del
 > multimetro: `0,6 V`.** No es una coincidencia amable — es la unica parte de todo este documento que
@@ -473,11 +517,15 @@ conector de senal de toda la tarjeta que trae 12 V.**
 >
 > **Consecuencias, y son dos en direcciones opuestas — estan desarrolladas en la revision del
 > 03-04/09 de la cabecera:** ✅ la camara **se cablea** (paso 21, sin demandas fantasma) · 🔴 el
-> mando `A`/`B` **hoy no se puede pulsar** (N-118), y con el se cae la salida fisica de ultimo
-> recurso que §3.3 daba por construida.
+> mando `A`/`B` **no se pudo pulsar en banco** con `617bd00` (N-118), y con el se cayo la salida
+> fisica de ultimo recurso que §3.3 daba por construida. 🟢 **El fuente se corrigio el 04/09
+> (`346ea5f`, las dos puntas); 🔴 la salida de ultimo recurso NO vuelve a estar construida hasta la
+> carga verificada en tarjeta.**
 
-**Lo que sigue debajo es el texto del 28/08, conservado.** Su conclusion —*"esto es una
-contradiccion y no un defecto"*— **ya no vale**: es un defecto, y esta en `botones.cpp`.
+**Lo que sigue debajo es el texto del 28/08, conservado, y HAY QUE LEERLO EN PASADO.** Su conclusion
+—*"esto es una contradiccion y no un defecto"*— **ya no vale**: era un defecto, estaba en
+`botones.cpp`, y **se corrigio el 04/09 en `346ea5f`**. Las citas de fuente que vienen a
+continuacion describen el firmware de `617bd00` —el que fue al banco—, **no el de hoy**.
 
 Es el bloqueante del cableado de camaras. **Los dos lados estan MEDIDOS y no pueden ser ciertos a
 la vez.**
@@ -499,7 +547,7 @@ la vez.**
 Eso es **pull-DOWN de 10 kOhm a masa, con 3,3 V en la posicion de al lado**: el gesto previsto es
 cerrar el contacto contra los 3,3 V del propio conector, o sea **entrada activa en ALTO**.
 
-**Lo que dice el firmware:**
+**Lo que decia el firmware — `617bd00`, el que fue al banco. ~~Lo que dice el firmware~~:**
 
 ```
    01_Firmware/Maestro/src/botones.cpp:50-53   pinMode(BOTONn, INPUT_PULLUP);
@@ -509,7 +557,20 @@ cerrar el contacto contra los 3,3 V del propio conector, o sea **entrada activa 
    01_Firmware/Esclavo/src/botones.cpp:16      "Entradas en INPUT_PULLUP y pulsador contra masa: pulsado = LOW"
 ```
 
-O sea **pull-UP interno, activo en BAJO**. Los dos no pueden ser ciertos.
+O sea **pull-UP interno, activo en BAJO**. Los dos no podian ser ciertos.
+
+> 🟢 **AL DIA EL 04/09 — este bloque describe `617bd00`, y el fuente ya no dice eso.** En `346ea5f`
+> las cuatro lineas de arriba son:
+>
+> ```
+>    01_Firmware/Maestro/src/botones.cpp:160-161   pinMode(BOTON1, INPUT); pinMode(BOTON2, INPUT);
+>    01_Firmware/Maestro/src/botones.cpp:40        bool lecturaCruda = (digitalRead(b.pin) == HIGH);
+>    01_Firmware/Esclavo/src/botones.cpp:178-179   pinMode(BOTON1, INPUT); pinMode(BOTON2, INPUT);
+>    01_Firmware/Esclavo/src/botones.cpp:54        bool lecturaCruda = (digitalRead(b.pin) == HIGH);
+> ```
+>
+> **El fuente y el netlist ya coinciden.** 🔴 **Lo que falta es la tarjeta**: sin carga verificada
+> esto es una lectura, no una prueba.
 
 **Esto ya paso, con la misma resistencia y el mismo valor.** `R64` es tambien 10K a GND, sobre la
 red `/Puerta` que llega a `J14` p1, con 3,3 V en `J14` p2. Es la entrada de camara, y la cuenta que
@@ -521,8 +582,10 @@ cierra `roadmap.md` N-67 (linea 552) es esta:
 
 La camara se arreglo: `pinMode(CAM_DEMANDA_PIN, INPUT)` y deteccion contra `HIGH`
 (`Maestro/src/modo_inteligente.cpp:19-25`, `:44`; `Esclavo/src/main.cpp:288`, `:350`).
-**Los cuatro pines de boton, con topologia identica en el netlist, siguen en `INPUT_PULLUP` y
-`== LOW`.**
+~~**Los cuatro pines de boton, con topologia identica en el netlist, siguen en `INPUT_PULLUP` y
+`== LOW`.**~~ → 🟢 **CADUCADO el 04/09: ya no queda ninguno.** `PB14`/`PB15` pasaron a camara en
+N-67/31-08, y `PB9`/`PB13` en `346ea5f`. **Los cuatro leen `INPUT` pelado y `== HIGH`**, que es lo
+que pide el cobre. **Pendiente de ejercer en tarjeta.**
 
 > **Lo que NO se puede concluir desde aqui, y por eso esto es una contradiccion y no un defecto:**
 > si esa cuenta describiera la placa fisica, los cuatro botones estarian en LOW permanente y el menu
@@ -663,13 +726,19 @@ El Maestro tiene **ocho** modos (`bluetooth.cpp:185-196`: `MENU`, `MANUAL`, `AUT
 >
 > 🔴 **Y UN TERCER DATO, DEL 04/09, QUE NO CAMBIA EL CODIGO PERO SI LO QUE SIGNIFICA (N-118).** El
 > veto sigue **entero** en el firmware: `ACC_AMBAR` sigue siendo el unico armador y los tres `if`
-> siguen negados. Lo que el banco midio es que **nadie puede llegar a `ACC_AMBAR`**, porque `B·B·B`
-> no se puede pulsar con `PB13` a `0,6 V` en reposo.
+> siguen negados. Lo que el banco midio es que **nadie podia llegar a `ACC_AMBAR`** con `617bd00`,
+> porque `B·B·B` no se podia pulsar con `PB13` a `0,6 V` en reposo y el pin leido activo en BAJO.
 >
-> **`mando_ambarLocal()` devuelve hoy siempre `false` — que es exactamente el escenario que este
-> apartado describe como peligroso**, y se ha llegado a el **sin retirar una sola linea**. Es la
-> version silenciosa de lo que se temia: los tres `if` ya son siempre-verdaderos, y ningun `git diff`
-> lo delata. **La barrera no se borro: se quedo sin quien la arme.**
+> **`mando_ambarLocal()` devolvia siempre `false` — que es exactamente el escenario que este
+> apartado describe como peligroso**, y se llego a el **sin retirar una sola linea**. Es la
+> version silenciosa de lo que se temia: los tres `if` eran siempre-verdaderos, y ningun `git diff`
+> lo delataba. **La barrera no se borro: se quedo sin quien la arme.**
+>
+> 🟢 **Y esto es lo que cambia con `346ea5f`: el armador vuelve a ser alcanzable EN EL FUENTE**
+> —`PB13` en `INPUT` pelado y `== HIGH`, las dos puntas—. 🔴 **En la tarjeta, sin verificar.** Hasta
+> que una carga verificada demuestre que `B·B·B` arma `ACC_AMBAR`, **lo que hay escrito arriba sigue
+> siendo la descripcion del equipo real**, y el pack que exija que `ACC_AMBAR` es el unico armador
+> (punto 8 del Anexo) sigue sin escribirse.
 
 **MEDIDO**: `mando_ambarLocal()` (`Esclavo/src/mando.cpp:103`) tiene tres consumidores, todos en
 `Esclavo/src/main.cpp`, y **los tres son negados**:
@@ -971,18 +1040,27 @@ no se compra nada"*. **N-37 midio uno**; el otro sigue SIN VERIFICAR.
 
 ### 3.3 ✅ ~~🔴~~ Sin pantalla, sin pulsadores ~~y sin mando~~: como se opera el equipo si el ESP32 se cuelga — **DECIDIDA EL 31/08**
 
-> 🔴 **AVISO DEL 04/09, ANTES DE LEER NADA DE ESTE APARTADO: la opcion elegida NO ESTA CONSTRUIDA.**
-> El banco midio `J16` p5 y p8 en **`0,6 V` permanentes** (M3, N-118) y el mando `A`/`B` **hoy no se
-> puede pulsar**: el pin nace en `LOW`, el antirrebote lo da por consumido y no hay flanco que
-> detectar. Se puenteo en el paso 29 y **el semaforo no se inmuto**.
+> 🔴 **AVISO DEL 04/09, ANTES DE LEER NADA DE ESTE APARTADO: la opcion elegida NO ESTABA
+> CONSTRUIDA, Y TODAVIA NO ESTA DEMOSTRADA.** El banco midio `J16` p5 y p8 en **`0,6 V`
+> permanentes** (M3, N-118) y con `617bd00` el mando `A`/`B` **no se pudo pulsar**: el pin nacia en
+> `LOW`, el antirrebote lo daba por consumido y no habia flanco que detectar. Se puenteo en el paso
+> 29 y **el semaforo no se inmuto**.
 >
-> **Asi que el agujero que este apartado daba por tapado sigue abierto: no hay ninguna superficie de
-> mando fisica.** La decision no era mala —era la unica opcion que no costaba nada—, pero **se tomo
-> creyendo que ya estaba construida, y no lo estaba**. Para que lo este hacen falta **dos lineas de
-> `botones.cpp`, una por punta** (Anexo, punto 5), su pack visto fallar antes, y una carga verificada.
-> Hasta entonces, **la fila que este apartado retiro de la mesa el 31/08 —*aceptar el ambar como
-> estado final y subir al gabinete*— es lo que de hecho esta pasando**, sin que nadie la haya
-> firmado.
+> **Asi que el agujero que este apartado daba por tapado sigue abierto.** La decision no era mala
+> —era la unica opcion que no costaba nada—, pero **se tomo creyendo que ya estaba construida, y no
+> lo estaba**. Hacian falta **dos lineas de `botones.cpp`, una por punta** (Anexo, punto 5), su pack
+> visto fallar antes, y una carga verificada.
+>
+> 🟢 **Las dos lineas YA ESTAN: `346ea5f`, las dos puntas en `INPUT` pelado y `== HIGH`.** 🔴 **Falta
+> el resto, y es lo que decide: el pack visto fallar y la carga verificada en tarjeta.** Mientras no
+> se ejerza, **la fila que este apartado retiro de la mesa el 31/08 —*aceptar el ambar como estado
+> final y subir al gabinete*— sigue siendo lo que de hecho esta pasando**, sin que nadie la haya
+> firmado. **Un arreglo en el fuente no tapa un agujero de calle: lo tapa una carga verificada**
+> (`CLAUDE.md` §9.bis).
+>
+> ⚠️ **Y cuando se ejerza, el gesto es OTRO:** ~~puentear `p5`/`p8` contra masa~~ → **cerrar `p5`
+> contra `p4` y `p8` contra `p7`** (los `3,3 V` contiguos), y **no sobre la tarjeta Maestro** con el
+> corto de N-116.
 >
 > ✅ **DECIDIDA POR EL RESPONSABLE EL 31/08: se elige la opcion 3 de la tabla de abajo — DEJAR EL
 > MANDO DE RELES**, en los canales `A` y `B`. La tabla se conserva entera: una decision entre
@@ -1215,8 +1293,10 @@ Es la medida que protege al ESP32 y a las patas 42 y 43 del `U1`.
 > **Los cuatro dieron lo mismo, que es lo que esta seccion pedia comprobar** —y aqui *«lo mismo»* no
 > es el resultado tranquilizador que parece: significa que **la placa trata igual a los cuatro** y
 > por tanto el firmware **no** puede leer dos de ellos al reves de los otros dos. Los `0,6 V` de p5 y
-> p8 contra los `0 V` de p10 y p12 son la huella del pull-up interno que `botones.cpp` activa **y que
-> no deberia activar**.
+> p8 contra los `0 V` de p10 y p12 eran la huella del pull-up interno que `botones.cpp` activaba **y
+> que no debia activar**. 🟢 **Ya no lo activa: `346ea5f` deja los cuatro en `INPUT` pelado**, asi
+> que una repeticion de M3 sobre una tarjeta con firmware de hoy **debe dar `0 V` en las cuatro
+> posiciones**. Es la comprobacion mas barata de que el arreglo entro, y **todavia no se ha hecho**.
 >
 > **La fila «~0,66 V» de la tabla de interpretacion de mas abajo es la que se cumplio.** Ver §2.2 y
 > la revision del 03-04/09 de la cabecera para lo que eso decide: 🟢 camara desbloqueada · 🔴 mando
@@ -1491,7 +1571,7 @@ permiso.
 | **El firmware del ESP32** | ~~**no existe**~~ → **existe, compila y se cargo sin errores** (`01_Firmware/ESP32_Expansion/`), con su `DS3231` por `GPIO21`/`GPIO22`. 🔴 **Lo que no esta demostrado es que funcione**: el modulo no se anuncio de forma fiable en el telefono en toda la sesion |
 | **La regresion N-42** | el Modo Automatico no mueve las luces en banco, y **sigue abierta**. 🔴 **El banco del 03-04/09 NI la confirmo NI la descarto** —el equipo nunca llego a operar, porque se queda esperando seleccion de modo y la app no conecto—. **Un ABORTADO no es un PASS**: sigue siendo lo primero de la proxima sesion |
 | 🔴 **La causa de N-116** | la tarjeta Maestro tiene un corto entre `3,3 V` y `GND` **medido**, y **la causa esta abierta**. El firmware queda descartado por censo —ninguna de las 9 salidas toca un pin de `J16`—, y eso **no nombra a nadie mas** |
-| 🔴 **Que el mando `A`/`B` funcione con la polaridad corregida** | la correccion de `botones.cpp` **no esta escrita ni cargada**, y el unico intento de pulsarlo acabo en el incidente de N-116. **Nadie ha visto nunca a este equipo obedecer un `A·A·A`** |
+| 🔴 **Que el mando `A`/`B` funcione con la polaridad corregida** | ~~la correccion de `botones.cpp` **no esta escrita ni cargada**~~ → 🟢 **escrita el 04/09 en `346ea5f`, las dos puntas.** 🔴 **NO cargada y NO ejercida**, y el unico intento de pulsarlo acabo en el incidente de N-116. **Nadie ha visto nunca a este equipo obedecer un `A·A·A`.** El gesto de la proxima prueba es `p5`-`p4` y `p8`-`p7`, **no contra masa**, y no sobre la Maestro |
 
 > 🛑 **La compuerta del 28/08 salio con `15 PASS | 0 FALLA | 0 ABORTADO` y eso no autoriza nada de
 > este documento.** Lo dice el acta y lo dice `CLAUDE.md` §3: ese `0` significa que *los modelos y
@@ -1536,15 +1616,23 @@ Se conservan tachados: una tarea que desaparece en silencio se vuelve a pedir.**
    pasan a ser **las dos entradas del unico mando fisico que queda** (§3.3). ~~Si M3 dice que el
    netlist tiene razon, el mando esta leyendo al reves **la superficie de ultimo recurso del
    equipo**.~~
-   > 🔴 **YA NO ES UN CONDICIONAL — 04/09. M3 lo dijo: el netlist tiene razon, y el mando esta
-   > leyendo al reves la superficie de ultimo recurso del equipo (N-118).** Esto pasa de *"punto 5 de
+   > 🔴 **YA NO ES UN CONDICIONAL — 04/09. M3 lo dijo: el netlist tiene razon, y el mando estaba
+   > leyendo al reves la superficie de ultimo recurso del equipo (N-118).** Esto paso de *"punto 5 de
    > un anexo"* a **el arreglo de firmware con nombre y sitio**: `pinMode(INPUT)` pelado y deteccion
    > contra `HIGH` para `MANDO_A` y `MANDO_B`, en las **dos** puntas, exactamente como se hizo con la
-   > camara en N-67. **Y su pack primero, visto fallar sobre el firmware de hoy** (`CLAUDE.md`
-   > §8.bis): hoy el pack tiene que poder acusar a `botones.cpp`, o el arreglo entra sin testigo.
+   > camara en N-67.
    >
-   > ⚠️ **Y no se carga en una tarjeta con un corto** (N-116). El arreglo se escribe ya; se prueba
-   > sobre la tarjeta que esta sana.
+   > 🟢 **EL FUENTE YA ESTA: `346ea5f`** —`Maestro/src/botones.cpp:40`, `:160-161`;
+   > `Esclavo/src/botones.cpp:54`, `:178-179`—. **Este punto NO se cierra con eso**, y se deja
+   > abierto a proposito con las dos mitades que faltan:
+   >
+   > 1. 🔴 **El pack, visto fallar sobre el firmware de ANTES** (`CLAUDE.md` §8.bis). Con el arreglo
+   >    ya dentro, la unica forma honesta de exigirlo es **inyectar la polaridad vieja en el `.cpp`
+   >    real y comprobar que el pack baja la cuenta y cambia el codigo de salida**. Sin eso el
+   >    arreglo entro sin testigo, que es exactamente lo que este punto pedia evitar.
+   > 2. 🔴 **La carga verificada en tarjeta.** Y **no en una tarjeta con un corto** (N-116): se
+   >    prueba sobre la que esta sana, y con el gesto nuevo —`p5` contra `p4`, `p8` contra `p7`—,
+   >    **no contra masa**.
 6. **`VERDE_MIN_MIN`** (`modo_automatico.cpp:31`) cuando llegue el numero, **atado a la app** en el
    mismo commit (N75-1 y N75-2, §3.4).
 7. **Comentarios que ya mienten:** `Esclavo/src/main.cpp:399` dice *"cae a C_FALLO en ~12,5 s"* con

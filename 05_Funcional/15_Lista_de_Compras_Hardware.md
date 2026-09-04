@@ -5,9 +5,14 @@
 **Última revisión:** **4 de Septiembre de 2026** — 🔬 **primera revisión con datos de BANCO REAL
 (sesión del 03–04/09), y cambia lo que se compra en cuatro sitios:**
 
-* 🔴 **`A9` (receptor del mando) pasa de «falta comprarlo» a «falta DECIDIR CÓMO se compra».** El
-  banco midió que **el mando A/B hoy NO SE PUEDE PULSAR**, y de ahí sale una elección de compra —
-  **receptor con salida `NO` o con salida `NC`**— que **es del responsable** y está sin tomar.
+* 🟢 **`A9` (receptor del mando) se PIDE, y con salida `NO` (normalmente abierto).** ~~«falta
+  DECIDIR CÓMO se compra»: receptor con salida `NO` o `NC`, decisión del responsable, sin tomar~~ →
+  **CADUCADO el 04/09: no era una decisión abierta, la decide el cobre y el cobre ya está medido.**
+  `J16` tiene **un solo pin de masa en todo el conector** (`p2`) y **3,3 V en la posición contigua a
+  cada señal** (`p4`, `p7`, `p9`, `p11`): un contacto por botón contra masa exigiría **una masa por
+  botón**, y sólo hay una. Es **activo en ALTO**, y `NC` además sería inseguro —un canal caído se
+  leería como pulsación—. El **firmware ya está corregido en las dos puntas** (`346ea5f`) y queda
+  **pendiente de ejercer en tarjeta**.
 * 🟢 **`A7` (cable y conector de `J16`) se DESBLOQUEA para conectar:** la medida **`M3` está cerrada
   en banco** —pull-down real de 10 kΩ, `p10` 9,93 kΩ y `p12` 9,94 kΩ—. Se compraba ya; **ahora
   además se puede enchufar**, con el pin de 12 V tapado.
@@ -43,19 +48,28 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 > antes que el resto porque **una copia impresa de la revisión del 31/08 se ejecuta con dinero y le
 > falta lo de abajo**.
 >
-> ## 1. 🔴 `A9` — el mando A/B **HOY NO SE PUEDE PULSAR**, y eso decide CÓMO se compra el receptor
+> ## 1. 🟢 `A9` — se PIDE, con salida `NO`. El mando **estuvo** sordo, y ya no lo está en el fuente
 >
-> **MEDIDO en banco:** `R65`/`R66` —10 kΩ a masa, el mismo cobre que las entradas de cámara— dejan el
-> pin en **0,6 V**. El micro lo lee como **BAJO permanente**, y el arranque lo siembra como **«flanco
-> ya consumido»**: **nunca hay transición**. No es que el mando funcione mal — **es que no hay gesto
-> que lo active**.
+> **EL DEFECTO, en pasado — es lo que midió el banco el 03–04/09 sobre el firmware `617bd00`:**
+> `R65`/`R66` —10 kΩ a masa, el mismo cobre que las entradas de cámara— dejan el pin en **0,6 V**.
+> Aquel firmware leía `INPUT_PULLUP` y activo en **BAJO**, así que veía **BAJO permanente** y el
+> arranque lo sembraba como **«flanco ya consumido»**: **nunca había transición**. No era que el
+> mando funcionara mal — **es que no había gesto que lo activara** (N-118).
 >
-> **El cobre pide `ACTIVO EN ALTO`**: contacto contra los **3,3 V** que `J16` tiene en `p4` (para
-> `MANDO_A`/`p5`) y en `p7` (para `MANDO_B`/`p8`) — exactamente el mismo gesto que las cámaras.
+> **EL ESTADO DE HOY:** 🟢 **el firmware está arreglado en las DOS puntas** (`346ea5f`) —`pinMode(...,
+> INPUT)` pelado y `digitalRead(...) == HIGH`, `Maestro/src/botones.cpp:40` y `:160-161`,
+> `Esclavo/src/botones.cpp:54` y `:178-179`—, exactamente como la cámara en N-67. 🔴 **PENDIENTE de
+> ejercer en tarjeta:** nadie ha visto todavía a este equipo obedecer un `A·A·A`, y no se prueba
+> sobre la Maestro con el corto (N-116).
 >
-> 🛑 **Y de ahí sale una DECISIÓN DE COMPRA que no está tomada y que no se toma aquí: con qué salida
-> se pide el receptor, `NO` o `NC`.** Ver la fila `A9` y su bloque, que lleva las dos consecuencias
-> escritas y la casilla en blanco. **Es decisión del responsable.**
+> ⚠️ **Y con el arreglo cambia EL GESTO DE PRUEBA, que es lo que se lleva al banco:** ~~tocar `J16`
+> p5 contra masa con un cable~~ → **cerrar contra los 3,3 V del pin contiguo: `p5`–`p4` para
+> `MANDO_A` y `p8`–`p7` para `MANDO_B`.** Es el mismo gesto que ya funcionó con la cámara (paso 21).
+>
+> 🟢 ~~**Y de ahí sale una DECISIÓN DE COMPRA que no está tomada: `NO` o `NC`.**~~ → **CADUCADA el
+> 04/09: no era una decisión abierta.** La decide el cobre, y está medido: `J16` tiene **un solo pin
+> de masa en todo el conector** (`p2`) y **3,3 V en la posición contigua a cada señal**. **Se compra
+> con salida `NO`.** El porqué completo, en el bloque `A9`.
 >
 > ## 2. 🟢 `A7` — `M3` CERRADA: las cámaras de `J16` ya se pueden CONECTAR
 >
@@ -243,7 +257,7 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 | **A6** `DS3231` colgado del `ESP32` | — *(sale del bloque B)* | **NO se compró** | pendiente. **Ya no espera al banco** para pedirse: no va en la placa STM32. **Lo que sigue condicionado a `Y2` es CUÁNTOS y qué reloj queda en el STM32** — ver `A6` |
 | **A7** Conexión de cámaras a `J16` | — *(línea nueva del 28/08)* | **NO se ha pedido** | pendiente *(es cable y conector, no electrónica)*. 🟢 **04/09: `M3` CERRADA en banco — ya no sólo se compra, YA SE PUEDE CONECTAR**, con el p1 de `J16` tapado. Ver `A7` |
 | **A8** **Placa portadora del `ESP32`** | — *(línea nueva del **31/08**)* | **NO se ha pedido, NO está diseñada, y NO está decidido quién la diseña ni quién la fabrica** | 🔴 **NO cubierta.** ⏸️ **04/09: SIN MOVIMIENTO — sigue sin dueño.** Ver `A8` |
-| **A9** **Receptor RF del mando de relés** | ~~nunca se pidió: el mando iba a retirarse~~ | **NUNCA se compró** | 🔴 **31/08: SUBE DE PRIORIDAD.** El mando **se conserva**, y sin receptor **el Esclavo se queda sin ninguna vía de mando**. 🛑 **04/09: además hay que DECIDIR la salida (`NO` o `NC`) — el banco midió que el mando A/B hoy no se puede pulsar. DECISIÓN DEL RESPONSABLE, sin tomar.** Ver `A9` |
+| **A9** **Receptor RF del mando de relés** | ~~nunca se pidió: el mando iba a retirarse~~ | **NUNCA se compró** | 🔴 **31/08: SUBE DE PRIORIDAD.** El mando **se conserva**, y sin receptor **el Esclavo se queda sin ninguna vía de mando**. 🟢 **04/09: SE COMPRA, con salida `NO` (normalmente abierto) y momentáneo.** ~~🛑 además hay que DECIDIR la salida (`NO` o `NC`): decisión del responsable, sin tomar~~ — **caducado: lo decide el cobre (una sola masa en `J16`, p2) y el firmware ya lee activo en ALTO (`346ea5f`)**. Ver `A9` |
 | ~~**B1–B2**~~ RTC en la placa STM32 | — | **NO se compraron** | ⛔ **ANULADAS.** El RTC se mudó a **A6**, colgado del `ESP32` |
 | **B3–B4** Expansor y accesorios | — | **NO se compraron** | correcto: siguen **esperando al banco**, no se piden todavía |
 | **E1** Resistencias **2K2** para las 5 entradas de campo | — *(línea nueva del **04/09**)* | **NO se ha pedido: es de la revisión V2 de la placa** | 🆕 **NO es una decisión tomada.** Es una **cuenta** para quien firme la V2. Ver bloque **E** |
@@ -413,7 +427,7 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 | **A6** | **Módulo RTC `DS3231` `ZS-042`** con **su propia pila**, colgado del `ESP32` por I²C (`GPIO21` SDA · `GPIO22` SCL) | **1** *(el del Maestro — ver nota)* | El reloj del equipo, **fuera de la placa STM32**: no hay que modificar la tarjeta ni sacar hilos de `PB0`/`PB8` | **Manual 11** *(la pieza)* · ⚠️ **el montaje sobre `ESP32` no está en ningún manual: ver el aviso de abajo** |
 | **A7** | **Juego de conexión de las cámaras a `J16`**: conector hembra del footprint de `J16` con sus terminales de crimpar, y cable de 2 hilos apantallado por cámara. 🟢 **04/09: `M3` CERRADA — ya se puede CONECTAR, no sólo comprar.** ⚠️ **Y el juego incluye con qué TAPAR el p1 de 12 V** *(tapón, funda termorretráctil o el conector sin terminal en esa posición)*: no es opcional | **2 juegos** | Llevar el contacto seco de la cámara a los pines que **liberan los pulsadores 3 y 4** ~~el mando~~ (`PB14`/`PB15`), **contra los 3,3 V del borne contiguo** (`p9` para `p10`, `p11` para `p12`). **No hace falta `PCF8574` ni ninguna placa hija** | **Manual 13** §3 *(borneras)* · `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md` §7 *(el mapa pin a pin de `J16`)* · **Manual 9** *(polaridad, `M3` y el `ENSAYO 4`)* |
 | **A8** | 🔴 **PLACA PORTADORA DEL `ESP32`** — **línea nueva del 31/08; hasta hoy esto NO ERA UNA LÍNEA DE COMPRAS y hacía falta igual.** Lleva, como mínimo: **PCB**, **hembrillas** para el módulo (que es de formato protoboard y va enchufado, no soldado), **conectores** de entrada de 12 V y de salida a `J17`, **fusible**, **protección de inversión de polaridad** y **condensadores** de desacoplo y de reserva | **2** *(1 por poste)* — 🛑 **NO SE FABRICA todavía** | Que el `ESP32` y su `A5` y su `A6` sean **un conjunto montable y reemplazable**, en vez de tres módulos sueltos con cables volantes dentro de un armario que vibra en un remolque | 🔴 **`05_Funcional/19_Especificacion_Placa_Portadora_ESP32.md`** *(otro agente la está escribiendo en este mismo árbol — **aquí NO se duplica**: si al leer esto ese fichero no existe todavía, es que ese trabajo no ha entrado, y **se espera a que entre en vez de inventar la especificación aquí**)* |
-| **A9** | 🔴 **RECEPTOR RF DEL MANDO DE RELÉS** *(el emisor de 4 canales que el operario lleva en la mano ya existe; **el receptor NUNCA se compró**)*. Salidas de **contacto seco**, canales **A** y **B**, alimentación de 12 V. 🛑 **04/09: falta DECIDIR si con salida `NO` o `NC`** — el banco midió que **el mando A/B hoy no se puede pulsar** y que el cobre pide **activo en ALTO**. **Es decisión del responsable y está sin tomar: ver el bloque de abajo** | **2** *(1 por poste)* — ⚠️ **el del ESCLAVO es el crítico** | 🛑 **Es la ÚNICA vía de mando que le queda al Esclavo** — ver el aviso de abajo, que es lo que cambió de prioridad el 31/08 | ⚠️ **Ningún manual lo especifica todavía.** El vocabulario que tiene que producir está **MEDIDO** en `Esclavo/src/mando.cpp:240-248` y `Maestro/src/mando.cpp:201-238`; **la polaridad y el estado del pin, MEDIDOS EN BANCO el 03–04/09** |
+| **A9** | 🟢 **RECEPTOR RF DEL MANDO DE RELÉS — SE PIDE** *(el emisor de 4 canales que el operario lleva en la mano ya existe; **el receptor NUNCA se compró**)*. Salidas de **contacto seco MOMENTÁNEO**, canales **A** y **B**, alimentación de 12 V, y **salida `NO` (normalmente abierto)**. ~~🛑 04/09: falta DECIDIR si `NO` o `NC`, decisión del responsable~~ → **caducado el mismo 04/09: lo decide el cobre — `J16` tiene una sola masa (`p2`) y 3,3 V en cada posición contigua, así que la entrada es activa en ALTO; y `NC` dejaría un canal caído leyéndose como pulsación.** Ver el bloque de abajo | **2** *(1 por poste)* — ⚠️ **el del ESCLAVO es el crítico** | 🛑 **Es la ÚNICA vía de mando que le queda al Esclavo** — ver el aviso de abajo, que es lo que cambió de prioridad el 31/08 | ⚠️ **Ningún manual lo especifica todavía.** El vocabulario que tiene que producir está **MEDIDO** en `Esclavo/src/mando.cpp:240-248` y `Maestro/src/mando.cpp:201-238`; **la polaridad y el estado del pin, MEDIDOS EN BANCO el 03–04/09** |
 
 > 🔌 **Cómo queda montado lo que se pide en A1′, A5 y A6 — para que las tres líneas se lean juntas:**
 >
@@ -684,32 +698,61 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 > > **Eso es exactamente lo que N-19 prometía evitar** —*«el técnico ya no tiene que subir con
 > > escalera a 5 metros en el Esclavo»*—. Sin `A9`, esa promesa se cae para el Degradado.
 >
-> ### 🔬 04/09 — LO QUE EL BANCO MIDIÓ, Y QUE CONVIERTE ESTA LÍNEA EN UNA DECISIÓN
+> ### 🔬 04/09 — LO QUE EL BANCO MIDIÓ, Y QUE CIERRA ESTA LÍNEA
 >
-> **El mando A/B, hoy, NO SE PUEDE PULSAR.** No es una avería del emisor ni un cable suelto: es que
-> **no existe el gesto que lo active**.
+> **EL DEFECTO, EN PASADO — es lo que el banco encontró sobre el firmware `617bd00`:** el mando A/B
+> **no se podía pulsar**. No era una avería del emisor ni un cable suelto: **no existía el gesto que
+> lo activara**.
 >
 > ```text
 >   R65 / R66  =  10 kOhm a masa   (el mismo cobre que las entradas de camara)
 >       -> el pin se queda en 0,6 V
->       -> el micro lo lee BAJO, permanente
->       -> el arranque lo siembra como "flanco ya consumido"
->       -> NUNCA hay transicion.  Ninguna secuencia A.A.A ni B.B.B se compone.
+>       -> aquel firmware (INPUT_PULLUP, activo en BAJO) lo leia BAJO, permanente
+>       -> el arranque lo sembraba como "flanco ya consumido"
+>       -> NUNCA habia transicion.  Ninguna secuencia A.A.A ni B.B.B se componia.
 >
 >   El cobre pide ACTIVO EN ALTO:
 >       contacto contra los 3,3 V de J16 p4  (para MANDO_A, p5 / PB9)
 >       contacto contra los 3,3 V de J16 p7  (para MANDO_B, p8 / PB13)
 > ```
 >
+> **EL ESTADO DE HOY, y hay que leerlo separado de lo de arriba:** 🟢 **el firmware está corregido en
+> las dos puntas** —`346ea5f`: `pinMode(BOTON1/BOTON2, INPUT)` pelado y `digitalRead(...) == HIGH`,
+> en `Maestro/src/botones.cpp:40`, `:160-161` y `Esclavo/src/botones.cpp:54`, `:178-179`—. 🔴 **Y
+> está PENDIENTE de ejercer en tarjeta:** nadie ha visto todavía a este equipo obedecer un `A·A·A`,
+> y no se prueba sobre la Maestro mientras siga el corto de N-116. **El fuente ya no es el
+> bloqueante; la carga verificada sí.**
+>
+> ⚠️ **El gesto de prueba CAMBIÓ, y es lo que se lleva al banco:** ~~tocar `J16` p5 contra masa con
+> un cable suelto~~ → **cerrar `p5` contra `p4` y `p8` contra `p7` (los 3,3 V del pin contiguo)**.
+> El gesto viejo es el del paso 29, el que acabó con el Maestro caliente.
+>
 > **Es el mismo gesto que las cámaras** —`J16` tiene 3,3 V en `p4`, `p7`, `p9` y `p11`, y los cuatro
 > pines de señal llevan 10 kΩ a masa + 100 nF—. Que el mando y la cámara pidan lo mismo no es
 > casualidad: **es el mismo cobre**.
 >
-> ### 🛑 LA DECISIÓN QUE HAY QUE TOMAR ANTES DE PEDIR: `NO` o `NC` — Y NO SE TOMA EN ESTA LISTA
+> ### 🟢 ~~LA DECISIÓN QUE HAY QUE TOMAR ANTES DE PEDIR: `NO` o `NC`~~ → **DECIDIDA: `NO`, Y LA DECIDE EL COBRE**
 >
-> **La lista mide y pone las dos consecuencias delante; la elección es del responsable.** Lo que está
-> medido es el firmware y el cobre; lo que **no** está decidido es qué estado quiere el responsable
-> que signifique *«el operario ha pulsado»*:
+> 🛑 ~~**No se toma en esta lista: la lista mide y pone las dos consecuencias delante; la elección es
+> del responsable.**~~ → **CADUCADO el 04/09, y se conserva el motivo por el que estuvo bloqueada:
+> se creía una preferencia de operación, y no lo es — es una consecuencia de la placa.** La tabla de
+> abajo se conserva entera porque es la que lo demuestra, y porque una decisión entre alternativas
+> escritas sólo se puede revisar si las alternativas siguen escritas.
+>
+> **Las dos medidas que la cierran, y ninguna es una opinión:**
+>
+> 1. **`J16` tiene UN SOLO pin de masa en todo el conector: `p2`** —`MAPEO_TARJETA_KICAD.md:613`,
+>    *«no hay ni una resistencia de `J16` a 3,3 V; las cuatro van a masa … hay un solo pin de `GND`
+>    en todo `J16` (p2), no uno por botón»*—, mientras que **cada señal tiene 3,3 V en la posición
+>    contigua** (`p4`, `p7`, `p9`, `p11`). Un contacto por botón **contra masa** exigiría **una masa
+>    por botón**: no las hay. **El conector sólo admite el gesto contra los 3,3 V — activo en ALTO.**
+> 2. **`NC` sería inseguro, y lo demuestra la propia tabla de abajo:** un canal caído o un receptor
+>    sin alimentación **se leen como pulsación**, y con un vocabulario de secuencias eso compone
+>    órdenes que nadie dio. **`NO` deja el fallo en reposo: el mando no manda nada.**
+>
+> **Y el firmware ya no es un condicional:** lee activo en ALTO en las dos puntas desde `346ea5f`.
+>
+> **Lo que la tabla comparaba, conservado:**
 >
 > | salida del receptor | qué hace el contacto | qué ve el pin | consecuencia |
 > |---|---|---|---|
@@ -726,11 +769,10 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 > **momentáneo**.
 >
 > ```text
-> DECISION DEL RESPONSABLE -- SIN TOMAR al 04/09/2026
+> ~~DECISION DEL RESPONSABLE -- SIN TOMAR al 04/09/2026~~
+> ~~Salida del receptor:  [ ] NO   [ ] NC~~     <-- CADUCADO: la decide el cobre, y es NO
 >
-> Fecha: ____________   Decidido por: ____________________
-> Salida del receptor:  [ ] NO (normalmente abierto)   [ ] NC (normalmente cerrado)
-> Tipo de salida:       [ ] momentaneo (unico que compone secuencias)  [ ] enclavado
+> LO QUE SIGUE SIENDO UNA COMPROBACION DE OBRA, y no la decide esta lista:
 > Emisor que hay en obra -- frecuencia: ________  codificacion: ________
 > Empareja con el receptor elegido:  [ ] SI  [ ] NO
 > ```
@@ -739,10 +781,13 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 >
 > ```text
 > Receptor RF de 4 canales, SALIDAS DE CONTACTO SECO (no de nivel), MOMENTANEO,
+> SALIDA NORMALMENTE ABIERTA (NO),
 > alimentacion 12 V, emparejado con el emisor de mano que YA EXISTE en obra.
 > Se cablean SOLO dos canales:  A -> J16 p5 (PB9)   y   B -> J16 p8 (PB13),
 > cerrando CONTRA LOS 3,3 V de J16 p4 y p7  (ACTIVO EN ALTO, medido en banco 04/09).
-> NO / NC:  <-- SIN DECIDIR.  No se pide hasta que este decidido.
+> NO / NC:  <-- DECIDIDO: NO.  Lo decide el cobre -- una sola masa en el conector (p2),
+>               3,3 V en cada posicion contigua, y NC daria pulsacion fantasma.
+> Lo que SI falta antes de pedir:  mirar el emisor que ya hay (frecuencia y codificacion).
 > ```
 >
 
@@ -750,9 +795,12 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 > |---|---|
 > | El firmware espera **flancos de contacto** en `PB9`/`PB13`, y el vocabulario es `A·A·A`, `B·B·B` y `A·B·A·B` | ✅ **MEDIDO** en `Maestro/src/mando.cpp:201-238` y `Esclavo/src/mando.cpp:240-248` |
 > | La ventana de las secuencias triples es de **12 s** (`VENTANA_TRIPLE_MS`, `mando.cpp:38`) | ✅ **MEDIDO** — **importa para la compra**: un receptor con enclavamiento (*latch*) en vez de pulso momentáneo **no genera tres flancos** y las secuencias no se reconocerán nunca |
-> | Que **`R65`/`R66` dejan el pin en 0,6 V**, leído BAJO permanente, y que el arranque lo siembra como *flanco ya consumido* — **el mando A/B hoy no se puede pulsar** | ✅ **MEDIDO EN BANCO** el 03–04/09 |
+> | Que **`R65`/`R66` dejan el pin en 0,6 V**, y que el firmware `617bd00` lo leía BAJO permanente sembrándolo como *flanco ya consumido* — **el mando A/B no se podía pulsar** | ✅ **MEDIDO EN BANCO** el 03–04/09. ⚠️ **Es el DEFECTO, en pasado** |
 > | Que el cobre pide **activo en ALTO**: contacto contra los **3,3 V** de `J16` `p4` y `p7` | ✅ **MEDIDO EN BANCO** el 04/09 — mismo cobre que las entradas de cámara |
-> | **Si el receptor se pide con salida `NO` o `NC`** | 🛑 **SIN DECIDIR. Es del responsable**, y no se pide hasta que esté decidido — ver la casilla de arriba |
+> | Que **`J16` tiene un solo pin de masa** (`p2`) y 3,3 V en cada posición contigua — por eso el gesto contra masa no es posible en este conector | ✅ **MEDIDO sobre el cobre**, `MAPEO_TARJETA_KICAD.md:613` y §7.bis |
+> | Que **el firmware ya lee `INPUT` pelado y `== HIGH` en las dos puntas** | ✅ **MEDIDO POR LECTURA** en `346ea5f` (`Maestro/src/botones.cpp:40`, `:160-161`; `Esclavo/src/botones.cpp:54`, `:178-179`) |
+> | Que **el mando responde a un `A·A·A` en la tarjeta** | 🔴 **NO EJERCIDO.** El arreglo está cargado en el fuente, **no en una tarjeta**: falta la sesión, y no sobre la Maestro con el corto (N-116) |
+> | ~~**Si el receptor se pide con salida `NO` o `NC`**~~ | 🟢 **DECIDIDO: `NO`.** ~~🛑 SIN DECIDIR, es del responsable~~ — **caducado: no era una preferencia, la decide el cobre** (una sola masa en `J16`, y `NC` daría pulsación fantasma) |
 > | **Qué referencia concreta se compra**, y si el emisor que hay en obra empareja con ella | 🔴 **NO SE SABE, y no se inventa aquí.** Hay que mirar el emisor que existe: frecuencia, codificación y si es *momentáneo* o *enclavado* |
 >
 > 🛑 **Antes de pedir: MIRAR EL EMISOR QUE YA HAY.** Un receptor de otra frecuencia o de otra
@@ -876,6 +924,13 @@ de banco (tarea `B5`), y hasta entonces **no se pide nada de este bloque**:
 > | `botonAceptar()` / `botonCancelar()` | leían pin y ejecutaban | **devuelven `false` siempre** (`botones.cpp:280-281`) |
 > | Pines de la pantalla `PB3`/`PB4`/`PB5` | conducidos por el bus SPI de software | **`U8X8_PIN_NONE`: ni un `pinMode` ni un `digitalWrite`** (`lcd.cpp:74`) |
 >
+> 🟢 **Y la cuarta fila, que llegó el 04/09 y completa el cuadro: `PB9`/`PB13` (`MANDO_A`/`MANDO_B`).**
+> Hasta `617bd00` seguían en `INPUT_PULLUP` y activos en BAJO —el defecto que el banco cobró: el
+> mando **no se podía pulsar**—. **Desde `346ea5f` son `INPUT` pelado y activos en ALTO en las dos
+> puntas** (`Maestro/src/botones.cpp:40`, `:160-161`; `Esclavo/src/botones.cpp:54`, `:178-179`), o
+> sea **los cuatro pines de `J16` leen ya como pide el cobre**. 🔴 **Pendiente de ejercer en
+> tarjeta**: el arreglo está en el fuente, no en una carga verificada.
+>
 > **Y eso cierra el aviso que había aquí en la buena dirección:** ya **no** es cierto que un contacto
 > seco de cámara en `PB14` entre como pulsación, porque ese pin ya no es un botón y `botonAceptar()`
 > no puede ejecutar nada. ✅ **`A7` deja de estar condicionada al firmware** — ~~lo que sigue delante
@@ -970,13 +1025,18 @@ de banco (tarea `B5`), y hasta entonces **no se pide nada de este bloque**:
 **Se pide hoy:** 2 cámaras AcuSense de demanda *(confirmar si ya hay una)* · 2 antenas VHF con sus 2
 coaxiales · 2 módulos de 1 relé con jumper `JD-VCC` · 🔴 **2 fuentes DC-DC CONMUTADAS 12 V → 5 V
 ≥ 1 A** (A5) · **1 módulo `DS3231` `ZS-042` con su pila** (A6) · **2 juegos de conector y cable para
-`J16`, con qué tapar el p1 de 12 V incluido** (A7).
+`J16`, con qué tapar el p1 de 12 V incluido** (A7) · 🟢 **2 receptores RF de mando, contacto seco
+MOMENTÁNEO y salida `NO`** (A9).
 
-🛑 **Lo que HOY sale del «se pide»: `A9`.** El receptor del mando **sigue haciendo la misma falta que
-el 31/08** —es la única vía de mando del Esclavo—, pero **no se pide hasta decidir si con salida `NO`
-o `NC`**. El banco midió el 03–04/09 que **el mando A/B no se puede pulsar** con el cobre actual, y
-esa medida convierte la compra en una elección. **Es del responsable, no de esta lista, y está en
-blanco.** Ver el bloque `A9`.
+🟢 **`A9` VUELVE al «se pide», y con la salida ya elegida.** ~~🛑 Lo que HOY sale del «se pide»:
+`A9` … no se pide hasta decidir si con salida `NO` o `NC`; es del responsable y está en blanco~~ →
+**CADUCADO el 04/09.** Se conserva el motivo por el que estuvo bloqueada —el banco midió que el
+mando A/B no se podía pulsar, y eso parecía convertir la compra en una elección de operación—, pero
+**no lo era: la decide el cobre.** `J16` tiene **una sola masa** (`p2`) y 3,3 V en cada posición
+contigua, así que la entrada sólo puede ser **activa en ALTO**; y `NC` dejaría un canal caído
+leyéndose como pulsación. **Se pide con salida `NO`.** Lo único que queda antes de emitir la orden
+es de obra y no de decisión: **mirar frecuencia y codificación del emisor que ya existe.** Ver el
+bloque `A9`.
 
 🆕 **Y lo que NO se pide y no estaba antes: el bloque `E`** —`E1` resistencias de **2K2** para las
 cinco entradas de campo, `E2` un **diodo de potencia** en lugar del `D30`—. **Son cuentas para quien
@@ -988,7 +1048,7 @@ firme la revisión V2 de la placa, no compras autorizadas.**
 |:---:|---|---|
 | **A5** | **Fuente DC-DC CONMUTADA 12 V → 5 V, ≥ 1 A** ×2 | 🛑 **EL MONTAJE.** Sin ella el `ESP32` cuelga del `LM7805` y **reinicia el STM32 que gobierna el semáforo**. **Conmutada, no lineal**: un lineal disipa **4,35 W** y en un armario al sol **no falla limpio, falla caliente** |
 | **A8** | **Placa portadora del `ESP32`** ×2 | 🛑 **EL MONTAJE**, y además **NO TIENE DUEÑO**: no está decidido quién la diseña ni quién la fabrica. **Decisión del responsable** |
-| **A9** | **Receptor RF del mando de relés** ×2 | 🛑 **LA OPERACIÓN DEL ESCLAVO.** Esa punta **no tiene `SET_MODO` por Bluetooth** (MEDIDO: cero coincidencias) y sus pulsadores 3 y 4 se fueron a cámaras. **Sin receptor, entrar o salir del Degradado allí obliga a subir al gabinete.** 🛑 **04/09: y ahora lo bloquea además una DECISIÓN — `NO` o `NC`—, porque el banco midió que el mando A/B no se puede pulsar con el cobre actual. Es del responsable** |
+| **A9** | **Receptor RF del mando de relés** ×2 — 🟢 **salida `NO`, contacto seco momentáneo** | 🛑 **LA OPERACIÓN DEL ESCLAVO.** Esa punta **no tiene `SET_MODO` por Bluetooth** (MEDIDO: cero coincidencias) y sus pulsadores 3 y 4 se fueron a cámaras. **Sin receptor, entrar o salir del Degradado allí obliga a subir al gabinete.** ~~🛑 04/09: y ahora lo bloquea además una DECISIÓN — `NO` o `NC`~~ → 🟢 **decidida el mismo 04/09: la decide el cobre, es `NO`.** Lo que queda antes de pedir es **mirar el emisor que ya hay** (frecuencia y codificación), no una decisión |
 | **A6** | **`DS3231`** con su pila | El reloj del equipo. Se pide ya; **cuántos** lo decide el diagnóstico del `Y2` (`BLQ-2`, banco `B5`) |
 | **A7** | Conector y cable para `J16` ×2 | 🟢 **Nada, ni para comprar ni para conectar: `M3` se cerró en banco el 04/09** —pull-down real de 10 kΩ—. ~~**Conectarlo** espera a la medida **`M3`**~~. **Lo único obligatorio es tapar el p1 de 12 V antes de enchufar** |
 | **A2** · **A3** · **A4** | Cámaras, antenas, relés de talanquera | Nada. Siguen pendientes desde el 27/08 |

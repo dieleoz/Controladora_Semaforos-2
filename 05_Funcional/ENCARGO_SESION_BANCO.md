@@ -11,21 +11,37 @@
 — preparado por Sebastián, IT Vial SAS. **Lo que sigue en este documento ya no es una tarea: es el
 guion de lo que se hizo, con lo que quedó fuera marcado.**
 
-**El resultado, y va delante de todo lo demás: de los 29 pasos de la Guía se completaron 24, cuatro
-quedaron bloqueados y uno se abortó por seguridad.**
+**El resultado, y va delante de todo lo demás: la CABECERA del informe declara 24 completos, cuatro
+bloqueados y uno abortado por seguridad — y su propia enumeración no da esa cuenta. Aquí se publica
+la discrepancia, no un total.**
 
-| | cuántos | cuáles |
+| | lo que declara la CABECERA del informe | los pasos que esa misma cabecera NOMBRA |
 |---|---|---|
-| **Completos** | **24 / 29** | pasos 1-6, 8-9, 15-18, 20-24 |
-| 🔴 **Bloqueados** por el enlace Bluetooth | **4 / 29** | pasos **25, 26, 27 y 28** |
-| 🛑 **Abortado por seguridad** | **1 / 29** | paso **29** (mando de relés) |
+| **Completos** | **24 / 29** | `1-6, 8-9, 15-18, 20-24` → **17 identificadores** |
+| 🔴 **Bloqueados** por el enlace Bluetooth | **4 / 29** | `25, 26, 27, 28` → **4** |
+| 🛑 **Abortado por seguridad** | **1 / 29** | `29` (mando de relés) → **1** |
+| | **29** | **22 — faltan siete: `7`, `10`, `11`, `12`, `13`, `14`, `19`** |
 
-> ⚠️ **Y tres de esos 24 son PARCIALES, con su motivo escrito: los pasos 7, 19 y 21.** La parte de
-> cableado y de medida se verificó; la respuesta funcional del semáforo **no**, porque depende del
-> Modo Automático y el modo no se llegó a seleccionar —el informe lo atribuye a que *«sólo se puede
-> seleccionar desde la app»*; **eso no está medido y este documento lo deja abierto**, ver el
-> apartado «Orden de la sesión»—. Se cuentan dentro de los 24 por su parte verificable — **no por la
-> que falta**.
+> 🛑 **LA CUENTA NO SALE, y este encargo no la arregla inventando otra.** Los siete pasos que la
+> cabecera no mete en ningún cajón **sí están descritos en el cuerpo del informe**: `7` y `19` como
+> *PARCIAL*, `10` como *no logrado*, `11` y `12-14` como *BLOQUEADO*. Repartidos como el cuerpo los
+> describe, lo que cuadra a 29 es **19 / 9 / 1**, no 24 / 4 / 1.
+>
+> **No se publica aquí ninguna de las dos.** Cuál vale lo decide quien ejecutó la sesión, no este
+> repositorio. Lo que sí se deja escrito es **dónde está la diferencia** —los pasos **10 a 14**, el
+> módulo que no se anuncia y todo lo que cuelga de él—, porque **un paso que no está en ningún cajón
+> es un hueco que no deja rastro de que falta**. Mismo criterio que
+> [`12_Cobertura_de_Pruebas_y_Huecos.md`](12_Cobertura_de_Pruebas_y_Huecos.md), §«La cuenta, y por
+> qué este documento no la copia».
+>
+> ⚠️ ~~**Y tres de esos 24 son PARCIALES: los pasos 7, 19 y 21 … se cuentan dentro de los 24 por su
+> parte verificable.**~~ → **CADUCADO el 04/09: esa reconciliación no cuadra.** El **paso 21 ya
+> estaba dentro** de `20-24`, así que sumarlo aparte como *parcial* no explica nada; y dejaba fuera
+> los pasos **10 a 14**. **Lo que sí es cierto y no depende de la cuenta:** los pasos **7 y 19**
+> quedaron parciales —cableado y medida verificados; la respuesta funcional del semáforo **no**,
+> porque depende del Modo Automático y el modo no se llegó a seleccionar; el informe lo atribuye a
+> que *«sólo se puede seleccionar desde la app»*, **eso no está medido y este documento lo deja
+> abierto**, ver el apartado «Orden de la sesión»—, y el **21** cableó cámara sin demandas fantasma.
 
 ### Lo que queda pendiente, que son 5 pasos y 3 repeticiones
 
@@ -108,9 +124,11 @@ como *no medido* — **nunca como correcto**. Un hueco declarado vale; un hueco 
 > El informe dice con todas las letras que **el sistema no puede considerarse listo para campo**, y
 > deja **la causa del sobrecalentamiento abierta** en vez de nombrar un culpable cómodo.
 >
-> 🔴 **Todo lo de arriba sigue vigente palabra por palabra: la sesión NO fue un visto bueno.** Con
-> 24 de 29 pasos hechos, **la vía principal de operación del equipo no se verificó ni una vez**, y
-> **N-42 sigue sin confirmar ni descartar**. Nada de esto sube a un cruce.
+> 🔴 **Todo lo de arriba sigue vigente palabra por palabra: la sesión NO fue un visto bueno.** Y no
+> hace falta cerrar la cuenta de arriba para decirlo — ~~«con 24 de 29 pasos hechos»~~ **es
+> justamente el número que este encargo se niega a publicar**: con o sin él, **la vía principal de
+> operación del equipo no se verificó ni una vez**, y **N-42 sigue sin confirmar ni descartar**.
+> Nada de esto sube a un cruce.
 
 ---
 
@@ -141,7 +159,7 @@ El encargo del 5 de agosto citaba **otra rama y otro `HEAD`**, y sus apartados 3
 |---|---|---|
 | **`botonAceptar()` y `botonCancelar()` devuelven `false` siempre.** Los pulsadores 3 y 4 dejaron de existir: sus pines pasan a ser entradas de cámara | `Maestro/src/botones.cpp:280-281` · `Esclavo/src/botones.cpp:294-295` | **No hay forma de aceptar ni cancelar nada, ni de abrir un menú.** Toda la operación pasa por comandos |
 | **La pantalla no se retira, pero deja de conducir sus pines.** `PB3`/`PB4`/`PB5` quedan en alta impedancia porque comparten `J17` con el ESP32 | `Maestro/src/lcd.cpp:74-75` · `Esclavo/src/lcd.cpp:92-93` | **No hay imagen.** Nada de lo que se leía en pantalla se puede leer. **No es una avería: no lleve una pantalla de repuesto** |
-| **El mando de relés SE CONSERVA**, en `A` = `PB9` = `J16` p5 y `B` = `PB13` = `J16` p8 | `Maestro/src/mando.cpp:202-235` · `Esclavo/src/mando.cpp:218-250` | `A·A·A`, `B·B·B` y `A·B·A·B` siguen en el firmware. **Pero el receptor de radio nunca se compró**: ~~hoy sólo se pueden inyectar los pulsos con un cable~~ → 🔴 **MEDIDO EL 3/09: hoy no se pueden inyectar de ninguna forma.** El pin está en 0,6 V en reposo y `botones.cpp` lo lee activo en BAJO: nunca hay flanco (**N-118**). El mando existe en el código y **no existe en la mano** |
+| **El mando de relés SE CONSERVA**, en `A` = `PB9` = `J16` p5 y `B` = `PB13` = `J16` p8 | `Maestro/src/mando.cpp:202-235` · `Esclavo/src/mando.cpp:218-250` | `A·A·A`, `B·B·B` y `A·B·A·B` siguen en el firmware. **Pero el receptor de radio nunca se compró**: ~~hoy sólo se pueden inyectar los pulsos con un cable~~ → 🔴 **MEDIDO EL 3/09: con `617bd00` no se podían inyectar de ninguna forma.** El pin está en 0,6 V en reposo y aquel `botones.cpp` lo leía activo en BAJO: nunca había flanco (**N-118**). 🟢 **Corregido en `346ea5f`** —`INPUT` pelado y `== HIGH`, las dos puntas—, y el pulso se inyecta ahora **contra los 3,3 V del pin contiguo** (`p5`–`p4`, `p8`–`p7`). 🔴 **Sin ejercer en tarjeta: el mando existe en el código y todavía no se ha visto en la mano** |
 | **El umbral de silencio son 25 s, no 12** | `SFTY6_SILENCIO_MS = 25000UL` — `Maestro/include/protocolo.h:149` y `Esclavo/include/protocolo.h:149` | Al cortar la radio se cronometran **~25 s**. Si sale alrededor de 12, **el firmware cargado no es el nuevo**. ✅ **Medido: ~20 s en tres cortes** — es el firmware nuevo, y la diferencia va en la dirección segura, pero **no está explicada**: se vuelve a cronometrar con reloj |
 | **`VENTANA_TRIPLE_MS = 12000` sigue siendo 12 s, y es correcto** | `Maestro/src/mando.cpp:38` · `Esclavo/src/mando.cpp:42` | Es la ventana para encadenar `A·A·A` o `B·B·B`. **No son los 25 s de arriba: son cosas distintas y no se confunden** |
 | **El ESP32 de expansión tiene firmware nuevo**, va en `J17`, con Bluetooth SPP y reloj `DS3231` | `01_Firmware/ESP32_Expansion/` | ~~**La placa que lo lleva NO EXISTE**, ni su fuente está pedida~~ → ✅ **construida y montada el 4/09** (paso 22), con su fuente y su `DS3231`. **Módulo confirmado `ESP32-WROOM-32` clásico** — BR/EDR, el perfil que el SPP necesita. 🔴 **Lo que faltó fue el enlace**, no el hardware |
@@ -303,11 +321,17 @@ No se copia aquí para no crear dos listas que alguien tendría que sincronizar.
 ## 4 · ~~El mando sin receptor: cómo se ejerce, y cuándo NO se ejerce~~ → 🛑 **NO SE EJERCE. La rama de abajo se cumplió**
 
 > 🛑 **ESTE APARTADO ESTÁ TACHADO EN SU PREMISA, y no se borra: es el que predijo lo que pasó.** Lo
-> que sigue da por hecho que el mando se pulsa **contra masa**, porque `botones.cpp` lo lee en
-> `INPUT_PULLUP` y activo en BAJO. **El cobre dice lo contrario (N-118): los cuatro pines llevan
-> pull-down de 10 kΩ y 3,3 V en la posición de al lado — el gesto es contra los 3,3 V, activo en
-> ALTO.** El fuente está invertido en `A` y `B`, y con el pin ya en 0,6 V en reposo **no hay
-> transición que detectar: el mando no se puede pulsar.**
+> que sigue da por hecho que el mando se pulsa **contra masa**, porque el `botones.cpp` de `617bd00`
+> lo leía en `INPUT_PULLUP` y activo en BAJO. **El cobre dice lo contrario (N-118): los cuatro pines
+> llevan pull-down de 10 kΩ y 3,3 V en la posición de al lado — el gesto es contra los 3,3 V, activo
+> en ALTO.** Aquel fuente estaba invertido en `A` y `B`, y con el pin ya en 0,6 V en reposo **no
+> había transición que detectar: el mando no se pudo pulsar.**
+>
+> 🟢 **ESTADO DEL FIRMWARE HOY (04/09), separado del defecto de arriba:** `346ea5f` deja `MANDO_A` y
+> `MANDO_B` en **`INPUT` pelado y `== HIGH` en las dos puntas** (`Maestro/src/botones.cpp:40`,
+> `:160-161`; `Esclavo/src/botones.cpp:54`, `:178-179`). 🔴 **PENDIENTE de ejercer en tarjeta:**
+> nadie ha visto todavía a este equipo obedecer un `A·A·A`. **El fuente ya no es el bloqueante; la
+> carga verificada sí.**
 >
 > **Y el propio apartado tenía escrita esa rama, dos párrafos más abajo:** *«Si dan ~10 kΩ contra
 > masa → el pull-up interno no puede ganarles, el pin queda permanentemente en BAJO y el mando está
@@ -320,12 +344,17 @@ No se copia aquí para no crear dos listas que alguien tendría que sincronizar.
 > GND (**N-116**). La instrucción de no ejecutar §8 y §9 con ese resultado **no era prudencia
 > genérica: era ésta.**
 >
-> **Para la próxima sesión: no se repite el puente hasta que `botones.cpp` lea `INPUT` pelado y
-> `HIGH` en las dos puntas, y no se repite sobre la tarjeta Maestro.**
+> ✅ **Para la próxima sesión: la primera mitad de esa condición ya se cumple** —`botones.cpp` lee
+> `INPUT` pelado y `HIGH` en las dos puntas desde `346ea5f`—, así que **el puente sí se repite, pero
+> con DOS cambios que no son opcionales:**
+> 1. **El gesto es contra los 3,3 V del pin contiguo: `p5`–`p4` para `A`, `p8`–`p7` para `B`.**
+>    ~~Contra masa~~ es el gesto del paso 29, el que dejó al Maestro caliente.
+> 2. 🛑 **No sobre la tarjeta Maestro** (N-116, corto medido entre 3,3 V y GND).
 
-**El receptor de radio del mando nunca se compró.** ~~Pero los dos canales que quedan son pines de
-entrada de la propia tarjeta, leídos en `INPUT_PULLUP` y **activos en BAJO**:~~ → **medido activo en
-ALTO; el firmware es el que está al revés (N-118).**
+**El receptor de radio del mando nunca se compró** —y desde el 04/09 **ya se pide, con salida `NO`**
+(Manual 15, línea `A9`). ~~Pero los dos canales que quedan son pines de entrada de la propia
+tarjeta, leídos en `INPUT_PULLUP` y **activos en BAJO**:~~ → **medido activo en ALTO; el firmware
+era el que estaba al revés (N-118), y se corrigió en `346ea5f`.**
 
 ```text
 MANDO A  =  BOTON1  =  PB9   =  J16 p5      <- MEDIDO: 9,92 kOhm a masa, 0,6 V en reposo
@@ -335,9 +364,10 @@ masa                          =  J16 p2
 ```
 
 ~~**Un pulso `A` es tocar un instante `J16` p5 contra masa con un cable suelto.**~~ → 🛑 **No. Eso es
-lo que se hizo en el paso 29 y es lo que acabó con el Maestro caliente.** Cuando el firmware se
-corrija, el pulso será tocar `p5` contra **`p4` (3,3 V)** — y aun así **no antes** de que N-116 esté
-diagnosticado. Es el mismo recurso que la Guía usa en su paso 19 para hacer de cámara con un
+lo que se hizo en el paso 29 y es lo que acabó con el Maestro caliente.** ~~Cuando el firmware se
+corrija~~ → **el firmware ya está corregido (`346ea5f`): el pulso `A` es tocar un instante `p5`
+contra `p4` (3,3 V), y el `B`, `p8` contra `p7`** — y aun así **no sobre la Maestro** hasta que
+N-116 esté diagnosticado. Es el mismo recurso que la Guía usa en su paso 19 para hacer de cámara con un
 pulsador, **que sí funcionó** (paso 21), porque la cámara ya lee en la polaridad correcta.
 
 > 🔴 **Antes de tocar `J16`, dos requisitos que no son opcionales:**
@@ -371,9 +401,11 @@ pulsador, **que sí funcionó** (paso 21), porque la cámara ya lee en la polari
 > reposo a masa (activas en ALTO), mientras p5 y p8 son el mando, activo en BAJO. **Si los cuatro
 > dieran lo mismo, una de las dos funciones estaría rota.**
 >
-> **Los cuatro dieron lo mismo** —9,92 / 9,92 / 9,93 / 9,94 kΩ— **y la función rota es el mando.** La
-> placa trata igual a los cuatro pines, así que el firmware no puede leer dos al revés de los otros
-> dos: o los cuatro son activos en ALTO, o ninguno. Y la cámara ya está corregida desde N-67.
+> **Los cuatro dieron lo mismo** —9,92 / 9,92 / 9,93 / 9,94 kΩ— **y la función rota era el mando.**
+> La placa trata igual a los cuatro pines, así que el firmware no puede leer dos al revés de los
+> otros dos: o los cuatro son activos en ALTO, o ninguno. La cámara ya estaba corregida desde N-67;
+> 🟢 **el mando lo está desde `346ea5f` (04/09), y con eso los CUATRO leen ya como pide el cobre.**
+> 🔴 **Ninguna de las dos correcciones del mando se ha ejercido sobre una tarjeta.**
 >
 > **Nota de método, porque este documento la pedía y se cobró sola:** la frase de la Guía no era un
 > error de redacción a corregir antes de bajar al banco — era **la comprobación que hacía visible el
@@ -556,9 +588,10 @@ esperan a esto — y algunas esperan a una decisión, no a una compra.
 > resultados revisados.** Y ni siquiera entonces lo autoriza este documento: lo autoriza el
 > responsable, con el acta firmada delante.
 >
-> 🛑 **La sesión está hecha, y esta frase NO se levanta.** 24 de 29 pasos son buenas noticias sobre
-> el cableado, la radio, la talanquera y las cámaras — **y ninguna sobre lo que este equipo hace en
-> un cruce**. El ciclo no se vio moverse ni una vez, el Modo Degradado no se tocó, el Protocolo no se
-> empezó, hay una tarjeta con un corto y el único mando físico del equipo resultó no ser pulsable.
-> **Lo que corre en campo sigue siendo la V8.4.**
+> 🛑 **La sesión está hecha, y esta frase NO se levanta.** ~~24 de 29 pasos~~ → **la cuenta no se
+> publica** (ver la cabecera de este documento): lo verificado son buenas noticias sobre el
+> cableado, la radio, la talanquera y las cámaras — **y ninguna sobre lo que este equipo hace en un
+> cruce**. El ciclo no se vio moverse ni una vez, el Modo Degradado no se tocó, el Protocolo no se
+> empezó, hay una tarjeta con un corto y el único mando físico del equipo **resultó no ser pulsable
+> con el firmware que se llevó al banco**. **Lo que corre en campo sigue siendo la V8.4.**
 </content>

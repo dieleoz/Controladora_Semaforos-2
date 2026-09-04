@@ -10,7 +10,7 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 | **Pantalla LCD ST7920** | 🛑 **SE RETIRA (28/08/2026)** | No se lee desde el suelo. Sus pines `PB6`/`PB7` (conector `J17`) pasan al módulo Bluetooth. Ver §3 y §8 |
 | **Botonera de `J16`** | ⚠️ **SE PARTE EN DOS (31/08/2026)** | ~~*Se queda en AMBOS, botones 1 a 4*~~ → **quedan 2 pulsadores** (`PB9` p5 y `PB13` p8, mando `A`/`B`); **`PB14` p10 y `PB15` p12 pasan a CÁMARAS**. Ver §3 y §6 |
 | **Cámaras IA de demanda (1 y 3)** | ✅ **1 en Maestro + 1 en Esclavo** | Contacto seco `1A`/`1B` en `PB0`. Operativas. Ver §7 |
-| **Cámaras IA en `J16` (`C` y `D`)** | 🟢 **YA ESTÁN EN EL FIRMWARE (31/08)** | `CAM_C_PIN` = `PB14`, `CAM_D_PIN` = `PB15`. **`INPUT` pelado, activo en ALTO.** ⚠️ **No se cablean hasta la medida `M3`** ni antes de **tapar `J16` p1 (12 V crudos)** — obligatorio desde N-120. Ver §7 |
+| **Cámaras IA en `J16` (`C` y `D`)** | 🟢 **YA ESTÁN EN EL FIRMWARE (31/08)** | `CAM_C_PIN` = `PB14`, `CAM_D_PIN` = `PB15`. **`INPUT` pelado, activo en ALTO.** ~~⚠️ **No se cablean hasta la medida `M3`**~~ *(`M3` **CERRADA** en el paso 20 del banco del 03/09: el pull-down de 10 kΩ es real, `9,93`/`9,94 kΩ` y `0 V` en reposo)* ni antes de **tapar `J16` p1 (12 V crudos)** — obligatorio desde N-120. Ver §7 |
 | **Talanquera de barrera (`J15`)** | ✅ **PROBADA EN COBRE (04/09)** y **bien diseñada** | `PB2` → `R70` 220 Ω → `U15` (`TLP127`, **aísla**) → `R72` 220 Ω → puerta de `Q10` (`IRLZ44N`) → `J15`. ⚠️ El diodo de rueda libre `D30` es un `1N4148` y **queda corto para un motor real** — va a la V2. Ver §10 |
 | ~~**Cámaras IA de umbral (2 y 4)**~~ | 🛑 **NO SE INSTALAN EN `PB8`** | **`PB8` NO es entrada de cámara:** alimenta el LED testigo `D5` por `R16` de 1 kΩ. Se renombró a `LED_TESTIGO` (`pines.h:63`) y **`CAM_UMBRAL_PIN` ya no existe en el fuente** — N-64. Ver §7 |
 | **Módulo de expansión ESP32** | 🟢 **IDENTIFICADO Y CON FIRMWARE (31/08)** | `ESP32-WROOM-32` clásico (**BT v4.2 BR/EDR → hay SPP**) por **`J17`** p2/p3 = `PB7`/`PB6` (`USART1` **remapeado**), p6 = 3,3 V, p7 = GND. **Sustituye al módulo SPP discreto** y trae el reloj `DS3231` con pila propia. ⛔ **`J16` NO es `J17`: lleva 12 V.** Ver §8 |
@@ -51,12 +51,84 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 >
 > ### 3. ✅ Y lo que SÍ funcionó en cobre, que también es dato
 >
-> El banco cerró en **24/29**. Funcionaron sobre la tarjeta real: la **carga por SWD al primer
+> ~~El banco cerró en **24/29**.~~ 🔴 **Corregido el 04/09: ese total NO se publica aquí como hecho,
+> porque no cuadra consigo mismo.** `24 / 4 / 1` es la cifra de **la cabecera del informe** —24
+> completos, 4 bloqueados por el enlace, 1 abortado por seguridad—, pero **su propia enumeración
+> nombra 22 identificadores**, y los siete que faltan —`7`, `10`, `11`, `12`, `13`, `14`, `19`— sí
+> están descritos en el cuerpo (como *PARCIAL*, *no logrado* o *BLOQUEADO*).
+> `12_Cobertura_de_Pruebas_y_Huecos.md` mide esa discrepancia y **se niega a publicar un total**;
+> este manual hace lo mismo. **No se inventa una reconciliación: la decide quien ejecutó la sesión,
+> no el repositorio.**
+>
+> Lo que sí es dato, porque se vio funcionar sobre la tarjeta real: la **carga por SWD al primer
 > intento y sin `BOOT0`**, la **radio** —caída a ámbar en ~20 s y vuelta en ~3 s—, la **talanquera de
 > `J15`**, la **cámara de `J14`**, la **masa común a 0 V**, y quedó **resuelta la identidad de `J17`**
 > (es el UART del módulo ESP32, **no** la pantalla que dice el netlist — ver §8).
 >
 > **Lo que esto NO es:** un permiso de carga a campo. En campo sigue corriendo la V8.4.
+
+---
+
+> # 🔧 04/09/2026 (N-118) — EL MANDO YA NO ESTÁ SORDO EN EL FIRMWARE, Y **EL GESTO PARA PROBARLO CAMBIA**
+>
+> **Si va a banco con la instrucción vieja —«tocar `J16` p5 contra masa»— no va a pasar
+> absolutamente nada, y va a diagnosticar «mando sordo» sobre un firmware sano.** Léase esto entero
+> antes de tocar `J16`.
+>
+> ### El defecto histórico — **EN PASADO**, porque ya está arreglado en el fuente
+>
+> Los cuatro pines de `J16` llevan **10 kΩ a masa** (`R65`–`R68`, medidos `9,92`–`9,94 kΩ` en el
+> banco del 03/09) y el conector reparte **3,3 V en la posición de al lado de cada uno** (p4, p7, p9,
+> p11), con **una sola masa en todo el conector** (p2). El firmware leía `BOTON1`/`BOTON2` en
+> `INPUT_PULLUP` y activo en BAJO: el pull-up interno (30–50 kΩ) contra esos 10 kΩ dejaba el pin en
+> **0,55–0,83 V** —el banco midió **`0,6 V`**—, por debajo del `VIL`. Los dos botones estaban
+> **clavados en «pulsado»** y **nunca producían un flanco**. Ésa era la causa de que el mando `A`/`B`
+> no se pudiera pulsar, y **no era una regresión de este proyecto**: el repositorio de origen trae el
+> mismo `== LOW` con el mismo `.kicad_pcb`.
+>
+> ### El estado de HOY — firmware arreglado, **pendiente de ejercer en tarjeta**
+>
+> **MEDIDO sobre el fuente el 04/09**, en las **dos** puntas (`Maestro/src/botones.cpp` y
+> `Esclavo/src/botones.cpp`):
+>
+> ```text
+>   pinMode(BOTON1, INPUT);   pinMode(BOTON2, INPUT);        <- INPUT PELADO, ya no INPUT_PULLUP
+>   bool lecturaCruda = (digitalRead(b.pin) == HIGH);        <- ACTIVO EN ALTO, ya no LOW
+>   const bool pulsado = (digitalRead(...) == HIGH);         <- la siembra del arranque, igual
+> ```
+>
+> Los **cuatro** pines de `J16` son ahora eléctricamente idénticos y se leen igual: `INPUT` pelado,
+> reposo fijado por el pull-down de 10 kΩ de la placa, **activo en ALTO**.
+>
+> ### 🔴 LA CONSECUENCIA PRÁCTICA, que es lo que se lleva uno al banco
+>
+> | | gesto | vale hoy |
+> |---|---|---|
+> | ~~Pulso `A`~~ | ~~tocar `J16` **p5** contra **masa** (p2)~~ | 🛑 **NO. Un cable a masa no produce absolutamente nada** |
+> | ~~Pulso `B`~~ | ~~tocar `J16` **p8** contra **masa** (p2)~~ | 🛑 **NO** |
+> | **Pulso `A`** | tocar un instante **`J16` p5 contra p4** (los 3,3 V de al lado) | ✅ **Sí** |
+> | **Pulso `B`** | tocar un instante **`J16` p8 contra p7** (los 3,3 V de al lado) | ✅ **Sí** |
+>
+> **El contacto se cierra contra los 3,3 V del pin de al lado, no contra masa.** Es el mismo gesto
+> que ya usaban las cámaras `C` y `D`, y por la misma razón: sólo hay una masa en el conector, así
+> que un contacto por botón contra masa nunca pudo ser el diseño.
+>
+> ### 🛑 Y lo que sigue SIN MEDIRSE, que hay que decir en voz alta
+>
+> **Nadie ha medido la tensión de `J16` p5/p8 con el puente a 3,3 V puesto y ESTE firmware cargado.**
+> El paso 29 del banco del 3–4/09 nunca llegó a tomar ese dato —se abortó por el
+> sobrecalentamiento—, y **no se puede tomar sobre la tarjeta Maestro mientras siga con el corto de
+> N-116**. Por tanto:
+>
+> - El firmware está **arreglado y razonado**, no *verificado en tarjeta*.
+> - Las pruebas del mando siguen **sin ejecutar**. Lo que cambió es **el motivo**: ya no es *«el
+>   firmware no puede leer un flanco»* —eso está corregido—, sino *«no hay tarjeta sana con la que
+>   ejercerlo»*.
+> - **No se vuelve a puentear `J16` p5/p8 contra masa** — ni con la instrucción vieja ni «a ver qué
+>   pasa»: es el gesto que precedió al calentamiento del paso 29, y además ahora **no mide nada**.
+>
+> **Un manual corregido no es un permiso de carga, y un firmware arreglado no es un firmware
+> probado.**
 
 ---
 
@@ -81,11 +153,18 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 > ### 2. `J16` se parte: dos pulsadores y dos cámaras
 >
 > ```text
->    J16 p5    PB9    BOTON1 / mando A    INPUT_PULLUP,  activo en BAJO   <- SE QUEDA
->    J16 p8    PB13   BOTON2 / mando B    INPUT_PULLUP,  activo en BAJO   <- SE QUEDA
+>    J16 p5    PB9    BOTON1 / mando A    INPUT pelado,  activo en ALTO   <- SE QUEDA
+>    J16 p8    PB13   BOTON2 / mando B    INPUT pelado,  activo en ALTO   <- SE QUEDA
 >    J16 p10   PB14   CAM_C_PIN           INPUT pelado,  activo en ALTO   <- ERA "Aceptar"
 >    J16 p12   PB15   CAM_D_PIN           INPUT pelado,  activo en ALTO   <- ERA "Cancelar"
 > ```
+>
+> > 🔧 **04/09 — las dos primeras filas se han corregido, y el motivo NO es cosmético.** Decían
+> > ~~`INPUT_PULLUP, activo en BAJO`~~, que es lo que el firmware hacía **hasta el 04/09** y lo que
+> > dejaba los dos pines clavados en `0,6 V` sin poder dar un flanco. **N-118 los pasó a `INPUT`
+> > pelado y activo en ALTO en las dos puntas**, igual que las cámaras. Consecuencia para quien vaya
+> > a banco: **el pulso se da contra los 3,3 V del pin de al lado —p5 contra p4, p8 contra p7—, NO
+> > contra masa.** Ver el bloque del 04/09 arriba.
 >
 > **Se conservan los DOS canales del mando a propósito**, no por comodidad: `ambarLocal` —el veto de
 > SFTY-21 en el Esclavo— **solo lo arma `B·B·B`**, y `A·A·A` es la única salida de ese ámbar desde el
@@ -391,29 +470,46 @@ saberlo.
 > relés—, pero **nadie los pulsa para «ver qué pasa»**. Si el gabinete queda accesible, considérese
 > poner el cartel correspondiente.
 
-### Pines de `J16` — **CAMBIADOS EL 31/08**
+### Pines de `J16` — **repartidos el 31/08, polaridad corregida el 04/09 (N-118)**
 
-| `J16` | Pin del STM32 | 28/08 | **31/08 — vigente** | Modo del pin |
-|---|---|---|---|---|
-| p5 | `PB9` | 1 — Arriba / `A` | ✅ **1 — Arriba / mando `A`** | `INPUT_PULLUP`, activo en **BAJO** |
-| p8 | `PB13` | 2 — Abajo / `B` | ✅ **2 — Abajo / mando `B`** | `INPUT_PULLUP`, activo en **BAJO** |
-| p10 | `PB14` | ~~3 — Aceptar / `C`~~ | 🛑 **`CAM_C_PIN` — cámara** | **`INPUT` pelado, activo en ALTO** |
-| p12 | `PB15` | ~~4 — Menú / `D`~~ | 🛑 **`CAM_D_PIN` — cámara** | **`INPUT` pelado, activo en ALTO** |
+| `J16` | Pin del STM32 | 28/08 | Función vigente | Modo del pin — **04/09** | Se acciona |
+|---|---|---|---|---|---|
+| p5 | `PB9` | 1 — Arriba / `A` | ✅ **mando `A`** | ~~`INPUT_PULLUP`, activo en BAJO~~ → **`INPUT` pelado, activo en ALTO** | **p5 contra p4** (3,3 V) |
+| p8 | `PB13` | 2 — Abajo / `B` | ✅ **mando `B`** | ~~`INPUT_PULLUP`, activo en BAJO~~ → **`INPUT` pelado, activo en ALTO** | **p8 contra p7** (3,3 V) |
+| p10 | `PB14` | ~~3 — Aceptar / `C`~~ | 🛑 **`CAM_C_PIN` — cámara** | **`INPUT` pelado, activo en ALTO** | p10 contra p9 (3,3 V) |
+| p12 | `PB15` | ~~4 — Menú / `D`~~ | 🛑 **`CAM_D_PIN` — cámara** | **`INPUT` pelado, activo en ALTO** | p12 contra p11 (3,3 V) |
 
 **Ambas tarjetas usan los mismos pines** (`Maestro/include/pines.h:118-125`, idéntico en el Esclavo).
 El mando de relés se cablea **en paralelo con los dos pulsadores que quedan** — no hay entradas
 dedicadas para él (ver §6).
 
-> ⛔ **El cambio de polaridad de p10 y p12 NO es cosmético, y por eso el orden importa.** `R67` y
-> `R68` son 10 kΩ **a masa** y `J16` saca 3,3 V en p9 y p11: con `INPUT_PULLUP` el pin se quedaba en
-> 3,3 × 10/50 = **0,66 V**, que el micro lee `LOW` — **demanda permanente sin cámara conectada**.
-> Por eso van en `INPUT` pelado y activo en ALTO.
+> 🔧 **Las dos primeras filas cambiaron el 04/09 y la última columna es nueva.** Los cuatro pines de
+> `J16` son eléctricamente idénticos —10 kΩ a masa y 3,3 V en la posición de al lado— y desde N-118
+> **los cuatro se leen igual**. **El contacto se cierra contra el pin de 3,3 V vecino, nunca contra
+> masa**: sólo hay **una** masa en todo el conector (p2), así que un contacto por botón contra masa
+> nunca pudo ser el diseño. La instrucción vieja *«toque p5 contra masa»* **no produce nada** con
+> este firmware.
+
+> ⛔ **El cambio de polaridad NO es cosmético, y por eso el orden importa.** `R65`–`R68` son 10 kΩ
+> **a masa** y `J16` saca 3,3 V en p4, p7, p9 y p11: con `INPUT_PULLUP` el pin se queda en
+> 3,3 × 10/50 = **0,66 V**, que el micro lee `LOW` — **entrada permanentemente accionada sin nada
+> conectado**. Por eso van en `INPUT` pelado y activo en ALTO.
 >
-> **Firmware primero; el cableado después. Un commit no protege de un destornillador.** Con el
+> 🔧 **04/09 (N-118) — y eso ya no vale sólo para p10 y p12: vale para los CUATRO.** El mismo defecto
+> que producía *«demanda permanente sin cámara»* en p10/p12 producía *«botón permanentemente
+> pulsado»* en p5/p8 — medido en banco a **`0,6 V`**, dentro de la horquilla que predice la cuenta de
+> arriba. **`BOTON1` y `BOTON2` pasaron a `INPUT` pelado y activo en ALTO en las dos puntas.**
+>
+> **Firmware primero; el cableado después. Un commit no protege de un destornillador.** ~~Con el
 > firmware viejo todavía dentro, `PB14` sigue siendo *Aceptar* leído **activo en BAJO**: cualquier
-> hilo que un instalador enchufe en `J16` p10 **pulsa Aceptar en un equipo que está en la calle**.
-> **Se exige la carga verificada en la tarjeta, no el merge.** Y **no se cablea cámara a `J16` hasta
-> la medida `M3`** de `05_Funcional/17_Arquitectura...` §2.2.
+> hilo que un instalador enchufe en `J16` p10 **pulsa Aceptar en un equipo que está en la calle**.~~
+> *(Caducado el 04/09: `botonAceptar()` devuelve `false` desde el 31/08 y desde N-118 ningún pin de
+> `J16` se lee activo en BAJO.)* **Lo que sigue vigente sin cambio: se exige la carga verificada en
+> la tarjeta, no el merge**, porque el gesto de accionar esos pines es el opuesto en cada firmware —
+> un instalador que trabaje con la instrucción de la versión que no está cargada no acciona nada, o
+> acciona lo que no quería. ~~Y **no se cablea cámara a `J16` hasta la medida `M3`**~~ — **`M3` quedó
+> CERRADA en el paso 20 del banco del 03/09**: el pull-down de 10 kΩ es real y medido (`9,93` y
+> `9,94 kΩ`, `0 V` en reposo).
 
 > 🔴 **04/09 (N-120) — y por debajo de la polaridad hay algo que la polaridad no arregla: `PB14` y
 > `PB15` van DESNUDOS al pin del micro.** Leído del `.kicad_pcb`: entre la posición de `J16` y la
@@ -1089,6 +1185,13 @@ pone el riel de 3,3 V directamente contra masa.**
 > confirma o lo descarta en un minuto y sin desoldar nada. Se escribe aquí por dos razones: para que
 > quien repita el paso 29 lo haga sabiéndolo, y para que la hipótesis quede anotada y no se vuelva a
 > proponer dentro de un mes como si fuera nueva.
+
+> 🔧 **04/09 (N-118) — y el gesto nuevo ya no tiene ese extremo.** Con el firmware corregido el pulso
+> se da **p5 contra p4** y **p8 contra p7**: **ninguna de las dos puntas del cable va a masa**, así
+> que el escenario de arriba —un puente corrido una posición desde p2— **deja de ser posible con la
+> instrucción vigente**. No es una autorización para reintentarlo: la tarjeta Maestro sigue con el
+> corto de N-116 y **no se energiza**. Es un dato para cuando haya tarjeta sana con la que ejercerlo,
+> y la razón de que la instrucción vieja no se conserve «por si acaso».
 
 ---
 

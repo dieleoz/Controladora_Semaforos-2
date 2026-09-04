@@ -5,10 +5,12 @@
 **Plataforma:** Android Nativo (.APK) y Web Testing PWA  
 **Protocolo:** ~~Bluetooth Serial SPP (HC-05 / JDY-31 a 9600 bps) / BLE GATT~~ → **Bluetooth Serial SPP a 9600 bps contra el módulo de expansión `ESP32-WROOM-32`**. Ver el aviso de cabecera  
 **Fecha de Actualización:** 28 de Agosto de 2026  
-**Última revisión:** 4 de septiembre de 2026 — **banco real del 3–4/09: `N-122`, la app nunca abría el socket Bluetooth.** Arreglado, y **obliga a APK nueva**. Ver la cabecera y `§4.bis`  
+**Última revisión:** 4 de septiembre de 2026 — **banco real del 3–4/09: `N-122`, la app nunca abría el socket Bluetooth**, y **`N-124`, la lista de equipos llevaba `MAC` escritas a mano**. Los dos arreglados, y **obligan a APK nueva**. Ver la cabecera y `§4.bis`  
 **Versión de Firmware Compatible:** V8.9 / V9.0 Definitiva — ⚠️ **en campo corre la V8.4**  
-**Archivo APK Compilado:** `05_Funcional/IOT_VIAL_Semaforos_2026-09-04_5ac280b_SIN_BANCO.apk`  
-&nbsp;&nbsp;&nbsp;&nbsp;🛑 ~~`IOT_VIAL_Semaforos_2026-09-02_285b18d_SIN_BANCO.apk`~~ — **y todas las anteriores: NO CONECTAN** (`N-122`, ver cabecera). No es que les falten funciones: **no abren el socket**  
+**Archivo APK Compilado:** `05_Funcional/IOT_VIAL_Semaforos_2026-09-04_1f6b8f1_SIN_BANCO.apk`  
+&nbsp;&nbsp;&nbsp;&nbsp;**md5 `1b5a2e1ca1f2647e585aeca40f1a0c3e`** — el nombre lo puede llevar cualquier fichero; el hash no  
+&nbsp;&nbsp;&nbsp;&nbsp;🛑 ~~`IOT_VIAL_Semaforos_2026-09-02_617bd00_SIN_BANCO.apk`~~ — **y todas las anteriores: NO CONECTAN** (`N-122`, ver cabecera). No es que les falten funciones: **no abren el socket**  
+&nbsp;&nbsp;&nbsp;&nbsp;✏️ *Corregido el 04/09: esta línea citaba `…_2026-09-02_285b18d_…`, **un hash que no existe en ninguna parte**. La APK del 02/09 que sí está en disco es la `617bd00`. Se anota en vez de sustituirse en silencio: una cifra inventada que desaparece sin dejar rastro vuelve a escribirse.*  
 **Pestañas:** **2 visibles al operario** (`Tráfico`, `Eventos`) y **5 en modo técnico** — se añaden `Tiempos`, `Técnico` y `Tramas`  
 
 ---
@@ -38,20 +40,42 @@
 > Ahora se llama a **`connect(mac)`**, y **`state.connected` sólo se pone a `true` en su callback de
 > éxito**; si la conexión falla, **se dice, y el estado se queda en falso**.
 >
-> 🛑 **HAY QUE INSTALAR LA APK NUEVA:** `IOT_VIAL_Semaforos_2026-09-04_5ac280b_SIN_BANCO.apk`.
-> **Con la APK anterior la app NO conecta por bien que funcione el módulo** — actualizar el firmware
-> del equipo o cambiar el `ESP32` no arregla nada, porque el defecto está en el teléfono.
+> 🛑 **HAY QUE INSTALAR LA APK NUEVA:** `IOT_VIAL_Semaforos_2026-09-04_1f6b8f1_SIN_BANCO.apk`,
+> **md5 `1b5a2e1ca1f2647e585aeca40f1a0c3e`**. **Es la única APK del 04/09 que existe en
+> `05_Funcional/`.** Con la APK anterior la app **NO conecta por bien que funcione el módulo** —
+> actualizar el firmware del equipo o cambiar el `ESP32` no arregla nada, porque el defecto está en
+> el teléfono.
 >
 > **Cómo comprobar que la de hoy sí conectó, sin fiarse del rótulo:** una app enlazada de verdad
 > recibe **`$STATUS` cada segundo**. Si dice enlazado y la pestaña `Tramas` no se mueve, no está
 > enlazada.
 >
+> ## 🔵 Y esa misma APK trae `N-124`: la lista de equipos ya NO tiene `MAC` escritas a mano
+>
+> Antes la app llevaba un par de direcciones `MAC` **fijas dentro del código**, así que la lista
+> enseñaba equipos que podían no estar delante y **no enseñaba el que sí lo estaba**. Hoy **la lista
+> sale del escaneo real del teléfono**: si Android no conoce el módulo, no aparece.
+>
+> **Eso cambia el orden de lo que hace el técnico, y hay que decirlo entero:**
+>
+> 1. **EMPAREJAR el `ESP32` en Ajustes de Android** (Bluetooth → `SEM-SIN-MATRICULA`, ver
+>    `§4.bis.1`). Empareja **sin PIN**, «Just Works» — `§4.bis.2`.
+> 2. **Abrir la app y pulsar «Buscar Módulos Bluetooth».** Sólo entonces sale el equipo en la lista.
+>
+> 🛑 **Saltarse el paso 1 deja la lista vacía** — y eso **no** es un módulo muerto ni una APK mala.
+>
 > ## ⚠️ Y el resultado del banco, para que no se lea esto como un cierre
 >
-> De los 29 pasos previstos se ejercieron **24**; **4 quedaron bloqueados por el enlace Bluetooth**
-> —o sea, por esto— y **1 se abortó por un incidente de seguridad**. Como el equipo nunca llegó a
-> operar por falta de app, **la regresión del Modo Automático (`N-42`) no se confirmó ni se
-> descartó**. Un paso bloqueado no dice nada del firmware.
+> **La cabecera del informe de banco** dice **24 ejercidos · 4 bloqueados por el enlace Bluetooth**
+> —o sea, por esto— **· 1 abortado por un incidente de seguridad**, sobre 29 pasos. **Se cita como
+> la cifra de la cabecera, no como un hecho: la enumeración del propio informe no cuadra con ella**
+> —sus tres cajones nombran 22 identificadores y siete pasos no caen en ninguno—. La discrepancia
+> está desglosada en `12_Cobertura_de_Pruebas_y_Huecos.md`, que por eso **no publica ningún total**;
+> aquí tampoco se publica uno reconciliado, porque **eso lo decide quien ejecutó la sesión**.
+>
+> Lo que no depende de la cuenta: como el equipo nunca llegó a operar por falta de app, **la
+> regresión del Modo Automático (`N-42`) no se confirmó ni se descartó**. Un paso bloqueado no dice
+> nada del firmware.
 
 ---
 
@@ -85,14 +109,22 @@
 > | El mando de relés | la referencia que la app imitaba | 🪜 **el último recurso** — y **sin receptor comprado en ninguna punta** |
 > | La pantalla LCD | la interfaz local | 🛑 **retirada** |
 >
-> > 🔴 **AL DÍA EL 04/09, y empeora: el mando de relés YA NI SIQUIERA ES EL ÚLTIMO RECURSO
-> > (`N-118`).** Medido en banco: `R65`/`R66` (10 kΩ a masa) dejan `PB9`/`PB13` en **0,6 V, BAJO
-> > permanente**, así que **no hay flanco y ninguna de las tres secuencias es alcanzable**. Con la
-> > pantalla y los pulsadores retirados, **la app no es la superficie de mando principal: es la
-> > ÚNICA. Hoy no hay respaldo físico operativo.**
+> > 🟠 **AL DÍA EL 04/09 (`N-118`) — y son dos medidas del mismo día que dicen cosas distintas:**
 > >
-> > Eso cambia el peso de cada defecto de esta app: **no hay una segunda vía que recoja lo que la
-> > app no pueda hacer.** Ver `1_Manual_Usuario.md` §7 y §9.
+> > * **En banco (3–4/09) el mando ni siquiera era el último recurso.** Con la lectura antigua
+> >   —`INPUT_PULLUP` y `== LOW`—, las `R65`/`R66` (10 kΩ a masa) dejan `PB9`/`PB13` en **0,6 V,
+> >   BAJO permanente**: **no hay flanco y ninguna de las tres secuencias es alcanzable**.
+> > * **En el fuente, ese mismo día, ya está corregido en LAS DOS PUNTAS:** `pinMode(BOTON1/BOTON2,
+> >   INPUT)` pelado y `digitalRead(...) == HIGH` —**activo en ALTO**, como las cámaras—
+> >   (`Maestro/src/botones.cpp:160-161` y `:223`, `Esclavo/src/botones.cpp:178-179` y `:232`). Se
+> >   acciona **cerrando contra los 3,3 V del pin de al lado** (`J16` p5-p4 canal `A`, p8-p7 canal
+> >   `B`), **no** con un cable a masa. Y el receptor a comprar deja de ser decisión abierta: es
+> >   **NORMALMENTE ABIERTO (`NO`)**.
+> >
+> > ⚠️ **Pero el arreglo NO se ha cargado ni ejercido en tarjeta.** Mientras no se ejerza, para
+> > planificar hay que contar con que **la app es la única vía de mando comprobada** y que **no hay
+> > una segunda vía que recoja lo que la app no pueda hacer** — que es lo que da peso a cada defecto
+> > de esta app. Ver `1_Manual_Usuario.md` §7 y §9.
 >
 > **Por qué:** la LCD va a 5 m dentro del gabinete y no se lee desde el suelo; y de los cuatro
 > pulsadores **quedan dos** (`A` y `B`), porque `PB14` y `PB15` pasaron a ser entradas de cámara.
@@ -212,8 +244,9 @@ Desde la carpeta raíz de la App (`05_Funcional/App_Semaforo/`):
    android\compilar_apk.bat
    ```
    *El script sincroniza los assets web con Capacitor (`npx cap sync android`) y ejecuta Gradle `assembleDebug` generando el archivo maestro en `05_Funcional/` en ~20 segundos.* **El nombre lleva fecha y hash del árbol** — el vigente es
-   `IOT_VIAL_Semaforos_2026-09-04_5ac280b_SIN_BANCO.apk`; ~~`…_2026-08-28_a8e1ceb_…`~~ **no conecta**
-   (`N-122`, ver cabecera).
+   `IOT_VIAL_Semaforos_2026-09-04_1f6b8f1_SIN_BANCO.apk`, md5 `1b5a2e1ca1f2647e585aeca40f1a0c3e`;
+   ~~`…_2026-09-02_617bd00_…`~~ y ~~`…_2026-08-28_a8e1ceb_…`~~ **no conectan** (`N-122`, ver
+   cabecera).
 
 ---
 
@@ -244,6 +277,11 @@ Para tramos donde la geografía bloquea el enlace de radio LoRa/RS-485, el **Asi
 
 **Los tres puntos de abajo no son teoría: son las tres cosas por las que el técnico se quedó sin
 hablar con el equipo teniéndolo delante y encendido.**
+
+> 🔵 **Y antes de los tres, el paso que `N-124` volvió obligatorio:** la lista de equipos de la app
+> **sale del escaneo real**, ya no de `MAC` escritas a mano, así que hay que **emparejar el `ESP32`
+> en Ajustes de Android PRIMERO** y **después** pulsar **«Buscar Módulos Bluetooth»** en la app. Sin
+> ese orden la lista sale vacía. Ver la cabecera.
 
 ### 4.bis.1 🛑 En la lista de Bluetooth el equipo se llama `SEM-SIN-MATRICULA`
 
@@ -278,8 +316,8 @@ por tiempo, ni bloqueo por inactividad, ni cierre al cambiar de nodo.
 
 > 🔴 **Lo que eso significa:** si alguien **guarda el teléfono desbloqueado en el bolsillo**, el
 > siguiente que lo coja **manda sobre el cruce sin teclear nada**. Y con la app como superficie de
-> mando principal —y hoy, con el mando de relés sin poder accionarse (`N-118`), como **única**—, eso
-> es todo el mando del equipo.
+> mando principal —y, mientras el arreglo del mando de relés no se ejerza en tarjeta (`N-118`), como
+> **única vía comprobada**—, eso es todo el mando del equipo.
 >
 > ⚠️ **Se escribe como riesgo conocido, NO como algo resuelto.** `§5.4.3` cuenta lo que sí se
 > arregló —que el PIN ya no se puede armar con el teclado cerrado—, y eso **no es esto**: aquello

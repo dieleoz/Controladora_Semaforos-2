@@ -1,8 +1,20 @@
 # LEEME PRIMERO — App IOT-VIAL, paquete del 28/08/2026
 
-> ## ⚠️ ESTE LÉEME DESCRIBE EL PAQUETE DEL 28/08. HAY UNO POSTERIOR
+> ## ⚠️ ESTE LÉEME DESCRIBE EL PAQUETE DEL 28/08. HAY DOS POSTERIORES
 >
-> Si va a probar con el `.apk` del **02/09** (`IOT_VIAL_Semaforos_2026-09-02_285b18d_SIN_BANCO.apk`),
+> 🔴 **La APK que hay que instalar hoy es la del 04/09:**
+> `IOT_VIAL_Semaforos_2026-09-04_1f6b8f1_SIN_BANCO.apk`, md5 `1b5a2e1ca1f2647e585aeca40f1a0c3e`.
+> Las anteriores **no pueden abrir el enlace Bluetooth**: `app.js` marcaba «Enlazado» y se
+> suscribía sin haber llamado nunca a `connect()`, y además marcaba dos MAC escritos a mano que no
+> son los del ESP32 (N-122 y N-124). Con cualquier APK anterior la app no conecta **por bien que
+> funcione el módulo**. Y el orden en campo importa: **emparejar el ESP32 en Ajustes de Android
+> primero**, y luego «Buscar Módulos Bluetooth» dentro de la app.
+>
+> ✏️ *Corregido el 04/09: esta línea citaba `…_2026-09-02_285b18d_…`, **un hash que no existe en
+> ninguna parte**. La del 02/09 que sí está en disco es la `617bd00`. Se anota en vez de
+> sustituirse en silencio: una cifra inventada que desaparece sin dejar rastro vuelve a escribirse.*
+>
+> Si va a probar con el `.apk` del **02/09** (`IOT_VIAL_Semaforos_2026-09-02_617bd00_SIN_BANCO.apk`),
 > **la app trae cuatro cosas que este documento no menciona** y que cambian lo que hay que mirar:
 >
 > - **Comprueba el checksum y descarta las tramas corrompidas.** Antes las pintaba como buenas.
