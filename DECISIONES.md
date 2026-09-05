@@ -92,8 +92,26 @@ las armadas: si Motion o Tampering también lo marcan, el bit deja de significar
 | **1** | instalar · activar · IP · **microSD y grabación** | 🔴 **comprar las tarjetas** (A-0). Cero firmware, valor inmediato |
 | **2** | **mirar la casilla `Trigger Alarm Output`** | 10 min con la cámara delante. **Decide todo lo demás** |
 | **3** | medir el **`Delay`** y el tiempo de respuesta | de ahí se **deriva** `SILENCIO_MS > Delay + rearme` (A-7) |
-| **4** | firmware fase 1: **sólo el vigilante y los eventos** | **cero efecto vial.** Es el contador que dice si el veto merece la pena |
+| **4** | firmware fase 1: **el vigilante, los eventos Y SU PANTALLA** | **cero efecto vial.** Es el contador que dice si el veto merece la pena — y por eso **no se construye sin dónde leerlo**: hoy `camara` aparece **cero veces** en `app.js` y la talanquera sólo sale en textos que explican botones, **nunca como estado**. Un contador que nadie lee es lo que este repositorio lleva pagando |
 | **5** | firmware fase 2: **el veto de la pluma** | **sólo si la fase 4 da números que lo justifiquen**, y con la derogación de SFTY-28 escrita (A-1.bis) |
+
+### Lo que el equipo tiene que PUBLICAR, y hoy no publica
+
+Sin esto la fase 1 no puede decidir la fase 5, y la fase 5 sería invisible para el operario.
+Dos campos en el `$STATUS` del Maestro, con la misma disciplina que `ESC:` —incluido su `?`
+honesto—:
+
+| campo | valores | por qué |
+|---|---|---|
+| **`PLUMA:`** | `ARRIBA` · `ABAJO` | Es un elemento físico que se mueve y **la app no lo enseña**. Con D-13 pasa a haber ratos con **luz roja y pluma arriba**, que hoy un operario lee como avería. **No depende de las cámaras: se puede publicar ya** |
+| **`CAM:`** | `OK` · `CIEGA` · `PEGADA` · `?` | Sale del vigilante. Sin él, «no llega bit» y «no hay nadie» son indistinguibles |
+
+Y en la app: la **pluma dibujada en el cruce**, el **estado de cada cámara**, y el **contador
+de la fase 1** («el veto habría actuado N veces»). Los eventos ya caen solos en el registro.
+
+> **Por qué esto no se había hecho:** se esperaba que las cámaras alimentaran el Modo
+> Inteligente, y ese modo no se usa. **No es que se olvidara dibujarlo: es que no había dato
+> que dibujar.** Con D-13 lo hay, y por primera vez llega a los modos que se operan.
 
 ### Lo que NO se hace, y no es negociable
 

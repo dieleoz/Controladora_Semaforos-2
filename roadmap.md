@@ -55,7 +55,25 @@ regla **§2.bis de `CLAUDE.md`**, que existe por esto.
 > Desde el 03/09 hay una segunda, y es mejor: **¿esto desatasca uno de los 5 pasos que el banco no
 > pudo correr?** Lo que no conteste a ninguna de las dos, no se escribe.
 
-### 0.0.novodecies 🔴 LAS CAMARAS NO HACEN NADA EN LOS MODOS QUE SE USAN — y el modo que las usa mete el ruido que se temia
+### 0.0.vicies LAS DECISIONES SE MUDAN A `DECISIONES.md` — este fichero deja de ser donde se buscan
+
+> **Una revision externa lo midio el 05/09: este roadmap tiene 4.700 lineas, `CLAUDE.md`
+> dice que no hace falta leerlo entero, y un agente que hace `grep` encuentra la version
+> que case primero.** Las decisiones aqui se ANADEN sin derogar las anteriores, y por eso
+> hubo que matar un encargo que contradecia una decision escrita desde el 31/08.
+
+**A partir del 05/09 la decision vigente vive en [`DECISIONES.md`](DECISIONES.md), en una
+linea.** Doce vigentes y diez abiertas. Aqui se queda **el porque largo**, que es lo que
+este fichero sabe hacer bien; lo que MANDA es aquella tabla.
+
+**Si una fila de `DECISIONES.md` y un parrafo de este roadmap no coinciden, gana la fila y
+el parrafo esta caducado.** Y antes de encargar un cambio de alcance —a un agente o a uno
+mismo— se lee aquella tabla: si el encargo la contradice, eso no es una orden, es una
+pregunta.
+
+---
+
+## 0.0.novodecies 🔴 LAS CAMARAS NO HACEN NADA EN LOS MODOS QUE SE USAN — y el modo que las usa mete el ruido que se temia
 
 > **Se afirmo tres veces esta noche que «el firmware de las dos camaras ya esta puesto, lo
 > que falta es cobre». ES FALSO en Automatico y en Manual, que es donde se opera el cruce.**

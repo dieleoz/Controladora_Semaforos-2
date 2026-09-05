@@ -1,6 +1,11 @@
 # 🚦 Controladora de Semáforos Móviles de 3 Estados (V9.0)
 
-> ## 📍 De dónde viene este repositorio
+> > 🧭 **Las decisiones vigentes viven en [`DECISIONES.md`](DECISIONES.md)** — una fila por
+> decision, con su fecha, su motivo y que deroga. Doce vigentes, diez abiertas. Si un
+> parrafo de cualquier documento contradice una fila de ahi, **gana la fila**: el parrafo
+> esta caducado. Se lee ANTES de encargar un cambio de alcance.
+
+## 📍 De dónde viene este repositorio
 >
 > **Este proyecto desciende de `Controladora_Semaforos` @ `50a5380`** (28/08/2026). Allí vive la
 > historia completa: 8.900 líneas de firmware validado y dos años de actas en `evidencia/`.
