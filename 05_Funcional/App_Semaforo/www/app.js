@@ -22,7 +22,14 @@ document.addEventListener('DOMContentLoaded', () => {
     serie: null,
     modo: null, // 'AUTO', 'MANUAL', 'AMBAR', 'ROJO_TOTAL'
     estadoLuces: null, // V1_R2, Y1_R2, R1_R2, R1_V2, R1_Y2, AMBAR_FAIL, ALL_RED
-    countdown: 0,
+    // null = NADIE HA DICHO CUANTO FALTA. No es 0: 0 es el ultimo segundo de la
+    // fase, que es un dato, y esto es la ausencia de dato. Ver N-139 y
+    // updateCountdownRing().
+    // El ultimo equipo al que se abrio enlace, para poder VOLVER a el sin buscar. No es
+    // lo mismo que deviceName/deviceMac, que dicen "el elegido ahora": esto sobrevive a
+    // la caida, que es justo cuando hace falta.
+    ultimoEquipo: null,
+    countdown: null,
     countdownMax: 0,
     tiempoVerdeMin: 2,
     tiempoRojoMin: 2,
@@ -113,6 +120,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalBtClose = document.getElementById('modal-bt-close');
   const btnScanBluetoothLive = document.getElementById('btn-scan-bluetooth-live');
   const btDeviceListContainer = document.getElementById('bt-device-list-container');
+  const btnBtDisconnect = document.getElementById('btn-bt-disconnect');
+  const panelDiagnosticoEl = document.getElementById('panel-diagnostico');
+  const diagLogEl = document.getElementById('diag-log');
+  const padTituloEl = document.getElementById('pad-titulo');
+  const btnIrAlMaestro = document.getElementById('btn-ir-al-maestro');
+  const btnIrAlEsclavo = document.getElementById('btn-ir-al-esclavo');
   const btStatusDot = document.getElementById('bt-status-dot');
   const btBtnText = document.getElementById('bt-btn-text');
 
@@ -484,6 +497,10 @@ document.addEventListener('DOMContentLoaded', () => {
     state.events.unshift({ time, type, msg });
     if (state.events.length > 30) state.events.pop();
     renderEvents();
+    // La ventana de diagnostico ensena los ultimos de esta misma lista, asi que se
+    // repinta aqui y no en cada llamador: una segunda lista de sitios donde acordarse
+    // de refrescar es una lista que alguien deja sin actualizar.
+    renderDiagnostico();
   }
 
   function renderEvents() {
@@ -1607,8 +1624,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateCountdownRing() {
     if (!cdNumEl || !ringProgressEl) return;
-    const current = Math.max(0, state.countdown);
-    cdNumEl.textContent = current;
+    // NUMERO O "--", Y NUNCA UN 0 DE RELLENO. `state.countdown` vale null mientras
+    // ningun equipo haya dicho cuanto falta -al arrancar, y siempre que se hable con el
+    // Esclavo, que manda `T:--` en todas sus tramas-. El HTML ya nace con "--" en
+    // #cd-num: aqui solo hay que no estropearlo escribiendo una cifra inventada.
+    const conocido = typeof state.countdown === 'number' && !Number.isNaN(state.countdown);
+    const current = conocido ? Math.max(0, state.countdown) : 0;
+    cdNumEl.textContent = conocido ? String(current) : '--';
 
     const circumference = 251.32;
     // LA FRACCION SOLO SE DIBUJA SI HAY UN TOTAL QUE VENGA DE FUERA DE ESTA APP.
@@ -1618,7 +1640,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // dibujaba una fraccion contra un total que se habia inventado el telefono. Sin
     // total conocido se deja el arco vacio, que es lo que se sabe; el numero de
     // segundos si viene del equipo y se sigue mostrando.
-    const total = state.countdownMax > 0 ? state.countdownMax : 0;
+    // Sin cifra conocida tampoco hay fraccion que dibujar: un arco lleno junto a un
+    // "--" seria el anillo afirmando lo que el numero acaba de negar.
+    const total = (conocido && state.countdownMax > 0) ? state.countdownMax : 0;
     ringProgressEl.style.strokeDashoffset = total > 0
       ? circumference - (Math.min(1, current / total) * circumference)
       : circumference;
@@ -2166,6 +2190,103 @@ document.addEventListener('DOMContentLoaded', () => {
     // otro lado hay la punta contraria.
     marcarDisponible(btnOpEmergency, state.node !== 'ESCLAVO');
     marcarDisponible(btnOpAmbarEmergencia, state.node !== 'MAESTRO');
+    aplicarModoPantalla(punta);
+  }
+
+  // =========================================================================
+  // 4.quater DOS PANTALLAS, PORQUE SON DOS COSAS
+  // =========================================================================
+  // DECISION DEL RESPONSABLE, 04/09: "al conectarnos al maestro, ese front debe
+  // mostrarnos data de todo... y al conectarnos a una ventana de esclavo, sera para
+  // diagnostico: logs de cuando conecta o no, y estado de las ordenes que recibe del
+  // maestro. Ademas no puede permitir operar, pero si diagnosticar. La pantalla
+  // confunde."
+  //
+  // Y la confusion tenia causa medible: esta pantalla intentaba ser las dos a la vez.
+  // Contra el POSTE 2 ensenaba los CUATRO mandos de ciclo en gris -el despachador del
+  // Esclavo no tiene esas ramas, ver SOLO_MAESTRO- y contra el POSTE 1 una columna
+  // entera de SIN DATOS. Las dos mitades mienten por omision: una promete mandos que no
+  // existen, la otra parece una averia del poste que calla.
+  //
+  //   POSTE 1 (MAESTRO)  consola de OPERACION: el ciclo, los tiempos, el modo.
+  //   POSTE 2 (ESCLAVO)  ventana de DIAGNOSTICO: que le llega y que hace con ello.
+  //
+  // 🔴 LO QUE NO SE PUEDE HACER TODAVIA, Y NO SE SIMULA. La consola del Maestro NO
+  // puede ensenar las luces del Esclavo: el $STATUS lleva UN solo ESTADO, el del que lo
+  // manda (Maestro/src/bluetooth.cpp:833 y Esclavo/src/bluetooth.cpp:776, un campo
+  // ESTADO por trama), y el Maestro no publica el del otro. Eso es firmware y no esta
+  // hecho. El sitio queda hecho y el hueco declarado -- y en vez de anunciar la carencia
+  // OFRECE LA ACCION: "Conectarse al POSTE 2". Tambien decision del responsable.
+  //
+  // 🟠 LO QUE ESTA FUNCION NO DECIDE, Y VA ESCRITO PARA QUE LO DECIDA QUIEN DEBE: los
+  // DOS MANDOS DE EMERGENCIA SE QUEDAN en la ventana del Esclavo. "No operar" se ha
+  // leido como el CICLO -- que es lo que estaba en gris y lo que confunde --, no como la
+  // parada de emergencia: AMBAR EMERGENCIA y RETIRAR AMBAR son las UNICAS ordenes que
+  // el Esclavo atiende (SOLO_ESCLAVO), y retirarlas dejaria el ambar de emergencia de
+  // ese poste sin ninguna via desde el telefono, que es la resolucion operativa de N-19
+  // -- el tecnico ya no sube cinco metros de escalera --. Quitarlas es una decision
+  // vial y es del responsable, no de esta linea.
+  function aplicarModoPantalla(punta) {
+    const enEsclavo = punta === 'ESCLAVO';
+    const enMaestro = punta === 'MAESTRO';
+
+    // Los cuatro mandos de ciclo DESAPARECEN contra el Esclavo en vez de quedarse en
+    // gris. Un boton apagado sigue diciendo "esto se puede hacer aqui, pero ahora no", y
+    // no es eso: en este poste no existe. Contra el Maestro y sin punta identificada
+    // vuelven, porque ahi la respuesta si depende del momento.
+    for (const par of MANDOS_DE_CICLO) {
+      if (par[0]) par[0].style.display = enEsclavo ? 'none' : '';
+    }
+    if (padTituloEl) {
+      padTituloEl.textContent = enEsclavo
+        ? '🚨 EMERGENCIA DE ESTE POSTE'
+        : '🎮 BOTONERA DE CAMPO';
+    }
+    if (panelDiagnosticoEl) {
+      panelDiagnosticoEl.style.display = enEsclavo ? '' : 'none';
+    }
+    // El atajo al OTRO poste sale en la columna que no tiene datos, y solo con una punta
+    // CONFIRMADA: sin saber con quien se habla no se puede decir a donde ir.
+    if (btnIrAlEsclavo) btnIrAlEsclavo.style.display = enMaestro ? '' : 'none';
+    if (btnIrAlMaestro) btnIrAlMaestro.style.display = enEsclavo ? '' : 'none';
+    if (enEsclavo) renderDiagnostico();
+  }
+
+  // El registro de la ventana de diagnostico. NO es una segunda copia de nada: lee
+  // state.events, que es la misma lista que pinta la pestana de Eventos, y ahi ya entran
+  // las conexiones y desconexiones (olvidarEnlace/abrirEnlace), los $ACK y $ERR con que
+  // el equipo contesta, y los $EVENT con que cuenta lo que hizo por su cuenta. Escribir
+  // aqui un registro propio seria la copia a mano que este repositorio ya pago tres
+  // veces; lo unico que se hace es ACERCARLO, para no obligar a cambiar de pestana con
+  // el poste delante.
+  function renderDiagnostico() {
+    if (!diagLogEl) return;
+    diagLogEl.innerHTML = '';
+    const ultimos = state.events.slice(0, 12);
+    if (!ultimos.length) {
+      const vacio = document.createElement('p');
+      vacio.className = 'diag-log-vacio';
+      // Vacio por no haber pasado nada y vacio por no estar mirando son cosas
+      // distintas, y desde que se abrio la app solo puede ser lo primero.
+      vacio.textContent = 'Sin movimientos desde que se abrió la app. Aquí van las ' +
+                          'conexiones y desconexiones de este enlace, y lo que el equipo ' +
+                          'conteste o avise por su cuenta.';
+      diagLogEl.appendChild(vacio);
+      return;
+    }
+    ultimos.forEach(ev => {
+      const item = document.createElement('div');
+      item.className = 'diag-log-item ' + (ev.type || '');
+      const hora = document.createElement('span');
+      hora.className = 'diag-log-hora';
+      hora.textContent = ev.time;
+      const txt = document.createElement('span');
+      // textContent: dentro de estos mensajes van literales que llegan del equipo.
+      txt.textContent = ev.msg;
+      item.appendChild(hora);
+      item.appendChild(txt);
+      diagLogEl.appendChild(item);
+    });
   }
 
   // VOLVER AL MENU: la salida de cualquier modo, sin PIN (ver SIN_PIN arriba).
@@ -2753,8 +2874,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.MODO) {
         actualizarDemanda();
       }
-      if (data.T) {
-        state.countdown = parseInt(data.T, 10) || 0;
+      // N-139: `T:` YA NO ES UN NUMERO SIEMPRE, Y ESTA LINEA LO PINTABA COMO 0.
+      //
+      // El `|| 0` que habia aqui es el mismo defecto que el bloque de abajo documenta
+      // haber quitado de RF, RTT y BAT. Con `T:--` -que el Esclavo manda SIEMPRE
+      // (Esclavo/src/bluetooth.cpp:776) y el Maestro cuando no sabe cuanto falta
+      // (Maestro/src/bluetooth.cpp:833)- parseInt da NaN y el `|| 0` escribia un CERO
+      // en el anillo: "faltan 0 segundos, cambia ya", justo encima de un equipo que
+      // acababa de decir que no lo sabe. Es §3.quinquies en un solo widget - lo que
+      // sustituye a un dato que no se tiene no es una cifra, es decirlo.
+      //
+      // Y NO SE COLAPSA CON EL CERO LEGITIMO: `T:0` es el ultimo segundo de la fase y
+      // significa lo contrario que `T:--`. Un anillo en 0 que quiera decir las dos
+      // cosas no dice ninguna. Se guarda numero o null, y updateCountdownRing() sabe
+      // pintar los dos.
+      if (data.T !== undefined) {
+        const seg = parseInt(data.T, 10);
+        state.countdown = Number.isNaN(seg) ? null : seg;
         updateCountdownRing();
       }
       // EL ENLACE. Un solo camino: la trama -> lecturaDeEnlace() -> pintarEnlace().
@@ -3110,6 +3246,243 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   // 6. GESTIÓN BLUETOOTH Y DISPOSITIVOS
   // =========================================================================
+  //
+  // 6.pre CAMBIAR DE POSTE ES DESCONECTAR PRIMERO, Y ENTERARSE CUANDO NO LO HAS HECHO TU
+  //
+  // REPORTE DE BANCO DEL 04/09, con los dos modulos encendidos: "dejé todo igual, los dos
+  // conectados, y me quería conectar al maestro. Y solito desvinculó este. Y me le dio
+  // ese." Funcionaba -- y funcionaba POR ACCIDENTE, que es lo que hay que arreglar.
+  //
+  // MEDIDO en el plugin instalado, no supuesto:
+  //   BluetoothSerial.java:110-113    connect() hace `connectCallback = callbackContext;`
+  //                                   y DESPUES bluetoothSerialService.connect(...)
+  //   BluetoothSerialService.java:127 ese connect() hace `mConnectedThread.cancel()`
+  //                                   sobre la conexion anterior
+  //   BluetoothSerialService.java:467 al cerrarse ese socket el hilo de lectura cae en
+  //                                   connectionLost()
+  //   BluetoothSerial.java:413-418    connectionLost llama a connectCallback.error(...)
+  //
+  // Junta las cuatro y sale la avería: al conectar con el POSTE 1 estando en el POSTE 2,
+  // el `error` de la conexion QUE SE CAE aterriza en el callback DEL POSTE NUEVO, porque
+  // la primera linea ya lo habia sustituido. La app pintaria "no se pudo conectar" de un
+  // enlace que si abrio. Es una carrera, y por eso el sintoma que se vio en banco fue
+  // "solito desvinculó este": el trabajo lo hizo el sistema y la app se entero por los
+  // datos, que es enterarse tarde.
+  //
+  // LA CURA ES PEDIRLO EN VOZ ALTA. disconnect() -- MEDIDO: existe en
+  // www/bluetoothSerial.js:13, y en Java (BluetoothSerial.java:122-125) pone
+  // `connectCallback = null` ANTES de parar el servicio -- cierra el anterior sin que su
+  // connectionLost tenga a quien avisar. Solo entonces se llama al connect() del nuevo, y
+  // ese callback ya es suyo y de nadie mas.
+  //
+  // Y LA OTRA MITAD: SABER CUANDO TE HAN DESCONECTADO. notifyConnectionSuccess() manda su
+  // PluginResult con setKeepCallback(true) (BluetoothSerial.java:420-425), asi que el
+  // callback de FALLO del connect() sigue vivo DESPUES de haber conectado, y es por donde
+  // llega "Device connection was lost". Un error que entra con state.connected ya en true
+  // NO es "no se pudo conectar": es "se ha caido". Misma funcion, significados opuestos.
+  // Es la familia de N-122 al reves -- alli la app se pintaba enlazada sin haber abierto
+  // socket; aqui se quedaria creyendose enlazada despues de que se lo cerraran.
+  //
+  // LO QUE ESTA APP NO PUEDE SABER, y va escrito para que nadie lo de por cubierto: por
+  // que se cayo. El plugin entrega un texto fijo, no un motivo. Si el socket lo cerro el
+  // sistema para dejar sitio a otra aplicacion, el aviso llega igual y no lo dice. La
+  // causa no se inventa.
+
+  // El estado del enlace se apaga SIEMPRE por aqui. Tenerlo en un solo sitio es lo que
+  // impide que "he desconectado" y "me han desconectado" dejen la pantalla en estados
+  // distintos, que es como se cuela un boton que dice enlazado sin estarlo.
+  function olvidarEnlace() {
+    state.connected = false;
+    state.node = null;
+    if (btnDevice) btnDevice.className = 'btn-top btn-device';
+    if (btStatusDot) btStatusDot.className = 'status-dot';
+    // "Sin equipo" y "Sin enlace" NO son lo mismo, y la diferencia es la que decide si
+    // hay algo que reintentar. Se acaba de soltar un socket: si quedaba un equipo
+    // elegido, lo que hay es un enlace caido -y un boton de RECONECTAR debajo-, no una
+    // app sin equipo. marcarSinEnlace() ya escribe 'Sin enlace' por su cuenta; esto es
+    // para que la llamada de despues no se lo pise con algo mas pesimista.
+    if (btBtnText) btBtnText.textContent = (state.ultimoEquipo && state.ultimoEquipo.mac)
+      ? 'Sin enlace' : 'Sin equipo';
+    if (nodeNameEl) nodeNameEl.textContent = '---';
+    actualizarBotonDesconectar();
+    // La punta deja de constar, asi que los mandos vuelven al reparto de "no se sabe que
+    // poste hay": las dos emergencias visibles y RETIRAR AMBAR retirado. Lo hace la misma
+    // funcion que al conectar, para que las dos no puedan desincronizarse.
+    actualizarEmergencia();
+  }
+
+  // Cierra el enlace, a peticion del tecnico o para dejar sitio al siguiente poste.
+  // `alTerminar` corre en los DOS desenlaces -- se pudo cerrar o no --, porque lo que
+  // sigue es abrir el otro y eso hay que intentarlo igual: pararse porque disconnect()
+  // se quejo dejaria al tecnico sin ninguno de los dos postes.
+  function desconectarEquipo(alTerminar) {
+    const bt = (typeof window !== 'undefined') ? window.bluetoothSerial : null;
+    const quien = state.deviceName || state.deviceMac || 'el equipo';
+    if (!bt || typeof bt.disconnect !== 'function') {
+      // No se promete lo que no se puede hacer. El estado interno si se limpia -- la app
+      // deja de mandar ordenes por un enlace del que ya no se fia --, pero se DICE que el
+      // cierre no se llego a pedir al sistema.
+      addEvent('red', 'Desconexion NO solicitada al sistema: esta version de la app no ' +
+                      'dispone de disconnect(). La app deja de usar el enlace, pero el ' +
+                      'socket puede seguir abierto hasta que Android lo cierre.');
+      olvidarEnlace();
+      if (alTerminar) alTerminar();
+      return;
+    }
+    bt.disconnect(
+      () => {
+        addEvent('cyan', 'Bluetooth desconectado de ' + quien + ' a peticion de la app.');
+        olvidarEnlace();
+        if (alTerminar) alTerminar();
+      },
+      (err) => {
+        addEvent('red', 'La desconexion de ' + quien + ' fallo: ' + String(err || '') +
+                        '. Se deja de usar el enlace igualmente.');
+        olvidarEnlace();
+        if (alTerminar) alTerminar();
+      }
+    );
+  }
+
+  // Abre el enlace con un equipo. Aqui YA no queda enlace anterior: de eso se ocupa
+  // cambiarDeEquipo(), que es quien decide si habia algo que cerrar antes.
+  function abrirEnlace(mac, name, emparejada) {
+    const bt = window.bluetoothSerial;
+    // Los rotulos de espera se ponen AQUI y no en el manejador del clic: entre pulsar la
+    // fila y llegar a esta linea puede haber pasado un disconnect(), y olvidarEnlace()
+    // deja escrito "Sin equipo". Ponerlos antes seria dejar que el cierre del poste viejo
+    // borrara el aviso del nuevo.
+    if (btStatusDot) btStatusDot.className = 'status-dot';
+    if (btBtnText) btBtnText.textContent = 'Esperando equipo';
+    if (nodeNameEl) nodeNameEl.textContent = 'IDENTIFICANDO...';
+    if (!emparejada) {
+      // El emparejamiento lo pide ANDROID, no la app, y su dialogo sale por encima de
+      // esta pantalla. Avisado antes es un paso mas; sin avisar es una ventana rara que
+      // se cancela por instinto y deja un "no se pudo conectar" sin explicacion.
+      showToast('Android va a pedir vincular este equipo');
+      addEvent('cyan', 'Conectando a ' + name + ' (' + mac + '), que NO esta emparejado ' +
+                       'en este telefono: Android pedira vincular antes de abrir el ' +
+                       'enlace. Acepte ese aviso del sistema.');
+    }
+    bt.connect(
+      mac,
+      () => {
+        state.connected = true;
+        if (btnDevice) btnDevice.className = 'btn-top btn-device connected';
+        actualizarBotonDesconectar();
+        showToast(`🔗 Enlazado a: ${name}`);
+        addEvent('green', `Bluetooth conectado: ${name} (${mac})`);
+
+        // N-75: sin esto la app no oye al equipo. El firmware emite $STATUS solo,
+        // cada segundo, asi que NO se pide nada al conectar (N-66: GET_STATUS no
+        // existe en ninguna punta y lo primero que veia el tecnico era un $ERR).
+        bt.subscribe(
+          '\n',
+          (data) => {
+            if (data && String(data).trim()) parseNmeaTelemetry(String(data).trim());
+          },
+          (err) => console.warn('Error en suscripcion serie:', err)
+        );
+      },
+      (err) => {
+        // LAS DOS DESGRACIAS ENTRAN POR AQUI Y NO SON LA MISMA -- ver 6.pre. Con
+        // state.connected ya en true el socket llego a abrir, o sea que esto es una
+        // CAIDA; con state.connected en false es que no abrio nunca. Decirle "no se pudo
+        // conectar" a alguien que lleva diez minutos operando el cruce le manda a buscar
+        // el fallo donde no esta.
+        const seCayo = state.connected === true;
+        olvidarEnlace();
+        if (seCayo) {
+          showToast('⚠️ Se perdió el enlace con ' + name);
+          addEvent('red', 'ENLACE PERDIDO con ' + name + ' (' + mac + '): ' +
+                          String(err || '') + '. La app ya NO esta hablando con ese ' +
+                          'poste: lo que quedo en pantalla es lo ultimo que dijo, no lo ' +
+                          'que hace ahora. Vuelva a conectar para seguir operando.');
+        } else {
+          // NO CONECTAR NO ES CONECTAR. Se dice, y se deja el estado en falso: pintar
+          // "Enlazado" sobre un socket que no abrio es lo que hizo que el banco
+          // gastara cuatro pasos buscando el fallo en el modulo.
+          showToast('❌ No se pudo conectar');
+          addEvent('red', `Bluetooth NO conectado a ${name} (${mac}): ${err}. ` +
+                          (emparejada
+                            ? 'Comprueba que el equipo este encendido y a la vista.'
+                            : 'Este equipo no estaba emparejado: si cancelo el aviso de ' +
+                              'vinculacion de Android, vuelva a pulsarlo y acepte.'));
+        }
+      }
+    );
+  }
+
+  // La puerta unica para elegir equipo. Un solo enlace a la vez, y el cambio se anuncia
+  // NOMBRANDO LOS DOS POSTES: con dos modulos que se llaman casi igual (N-129),
+  // enterarse tarde de a cual se le esta hablando es el error caro de esta app.
+  function cambiarDeEquipo(mac, name, emparejada, veniaDe) {
+    // Se guarda para poder RECONECTAR sin volver a buscar. Es el dato que le faltaba a
+    // la app cuando el equipo se reinicia solo: sabia con quien HABIA hablado pero no
+    // si aquella fila estaba emparejada, que es lo que decide si Android va a pedir
+    // vinculacion al reintentar.
+    state.ultimoEquipo = { mac: mac, name: name, emparejada: !!emparejada };
+
+    // SE DESCONECTA SIEMPRE QUE HAYA HABIDO UN ENLACE ANTES, aunque la app ya lo de por
+    // caido. Y ese "aunque" es el bloqueo de campo del 04/09, no una precaucion:
+    //
+    //   "no conecta despues de que el maestro se apaga y prende. Y se apaga y se
+    //    prende, no vuelve a conectar... reinicie la aplicacion y comenzo."
+    //
+    // MEDIDO en el plugin, y es la carrera de 6.pre vista desde el otro lado. Cuando el
+    // equipo se reinicia, su socket muere y el hilo de lectura cae en connectionLost()
+    // (BluetoothSerialService.java:467). Si el tecnico pulsa la fila para reintentar, la
+    // primera linea de connect() SUSTITUYE connectCallback por el del intento nuevo
+    // (BluetoothSerial.java:110-113) y el error de la conexion MUERTA aterriza encima:
+    // la app pinta "no se pudo conectar" sobre un enlace que estaba abriendo bien. Desde
+    // fuera se ve exactamente como lo describio el responsable -- no vuelve a conectar --
+    // y cerrar la app "lo arregla" porque estrena el plugin entero.
+    //
+    // disconnect() rompe la carrera: pone `connectCallback = null` ANTES de parar el
+    // servicio (BluetoothSerial.java:122-125), asi que el connectionLost del socket
+    // muerto ya no tiene a quien avisar. Sobre un servicio ya parado es inofensivo --
+    // stop() es idempotente --, asi que se paga una llamada de mas por no depender de
+    // que state.connected acierte.
+    const habiaSocket = state.connected || !!state.deviceMac;
+    if (veniaDe) {
+      showToast('Soltando ' + veniaDe + ' para ir a ' + name);
+      addEvent('cyan', 'CAMBIO DE POSTE: la app se desconecta de ' + veniaDe + ' para ' +
+                       'conectarse a ' + name + '. El Bluetooth clasico es punto a ' +
+                       'punto: no se puede hablar con los dos a la vez.');
+    } else if (habiaSocket) {
+      addEvent('cyan', 'Se cierra el enlace anterior antes de abrir el nuevo, para que ' +
+                       'un socket muerto -por ejemplo el que deja el equipo al ' +
+                       'reiniciarse- no se confunda con un fallo del intento de ahora.');
+    }
+    if (habiaSocket) {
+      desconectarEquipo(() => abrirEnlace(mac, name, emparejada));
+      return;
+    }
+    abrirEnlace(mac, name, emparejada);
+  }
+
+  // RECONECTAR CON EL ULTIMO EQUIPO, SIN CERRAR LA APP NI VOLVER A BUSCAR.
+  //
+  // Es la mitad que faltaba del bloqueo: la app YA sabia declarar la caida -- el
+  // vigilante de silencio de abajo lleva ahi desde antes de este encargo, con su cota
+  // de TIMEOUT_ENLACE_MS -- pero despues de declararla no ofrecia nada, y el unico
+  // camino de vuelta era el que uso el responsable: cerrar y abrir.
+  function reconectarUltimoEquipo() {
+    const eq = state.ultimoEquipo;
+    if (!eq || !eq.mac) {
+      showToast('No hay ningun equipo al que volver');
+      return;
+    }
+    showToast('Reconectando con ' + eq.name + '...');
+    addEvent('cyan', 'Reintento de enlace con ' + eq.name + ' (' + eq.mac + '). Se ' +
+                     'cierra primero el socket anterior: si el equipo se reinicio, el ' +
+                     'que quedaba abierto es de una sesion que ya no existe.');
+    // Pasa por la MISMA puerta que elegir una fila: si reconectar tuviera su propio
+    // camino, seria una segunda copia del orden desconectar-antes-de-conectar, y la
+    // proxima vez que ese orden cambie solo se acordaria uno de los dos.
+    cambiarDeEquipo(eq.mac, eq.name, eq.emparejada, '');
+  }
+
   // N-124: EL OYENTE VIVE EN EL CONTENEDOR, NO EN CADA FILA.
   //
   // Las filas ya no las trae index.html: las pinta pintarEquipos() con lo que devuelve
@@ -3123,6 +3496,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!dev) return;
       const name = dev.getAttribute('data-name');
       const mac = dev.getAttribute('data-mac');
+      // '0' = el escaneo lo encontro encendido pero este telefono no lo conoce. Android
+      // va a abrir su propio dialogo de vinculacion al conectar, y el tecnico tiene que
+      // saberlo ANTES de pulsar: si no, ve aparecer una ventana del sistema encima de la
+      // app y la respuesta natural es cancelarla.
+      const emparejada = dev.getAttribute('data-emparejado') !== '0';
+      // DE QUE POSTE SE VIENE, LEIDO AQUI Y NO MAS ABAJO. Doce lineas mas adelante este
+      // mismo manejador machaca state.deviceName y pone state.connected en false, asi que
+      // preguntarlo despues seria preguntarle al equipo nuevo de donde viene. Con dos
+      // modulos que se llaman casi igual (N-129), ese es justo el dato que hay que
+      // acertar para poder decir "suelto A y voy a B".
+      const veniaDe = state.connected ? (state.deviceName || state.deviceMac || '') : '';
       // Sin direccion no hay a quien llamar: connect() marca el MAC. Una fila sin el no
       // se pinta (ver pintarEquipos), y si aun asi llegara aqui se para ANTES de tocar
       // el estado, para no dejar la app "eligiendo" un equipo al que no puede llamar.
@@ -3192,36 +3576,10 @@ document.addEventListener('DOMContentLoaded', () => {
       // ordenes que no tenian por donde salir, y el operario las veia aceptadas.
       if (typeof window !== 'undefined' && window.bluetoothSerial &&
           typeof window.bluetoothSerial.connect === 'function') {
-        window.bluetoothSerial.connect(
-          mac,
-          () => {
-            state.connected = true;
-            if (btnDevice) btnDevice.className = 'btn-top btn-device connected';
-            showToast(`🔗 Enlazado a: ${name}`);
-            addEvent('green', `Bluetooth conectado: ${name} (${mac})`);
-
-            // N-75: sin esto la app no oye al equipo. El firmware emite $STATUS solo,
-            // cada segundo, asi que NO se pide nada al conectar (N-66: GET_STATUS no
-            // existe en ninguna punta y lo primero que veia el tecnico era un $ERR).
-            window.bluetoothSerial.subscribe(
-              '\n',
-              (data) => {
-                if (data && String(data).trim()) parseNmeaTelemetry(String(data).trim());
-              },
-              (err) => console.warn('Error en suscripcion serie:', err)
-            );
-          },
-          (err) => {
-            // NO CONECTAR NO ES CONECTAR. Se dice, y se deja el estado en falso: pintar
-            // "Enlazado" sobre un socket que no abrio es lo que hizo que el banco
-            // gastara cuatro pasos buscando el fallo en el modulo.
-            state.connected = false;
-            if (btnDevice) btnDevice.className = 'btn-top btn-device';
-            showToast('❌ No se pudo conectar');
-            addEvent('red', `Bluetooth NO conectado a ${name} (${mac}): ${err}. ` +
-                            `Comprueba que el equipo este emparejado en Ajustes de Android.`);
-          }
-        );
+        // EL BLUETOOTH CLASICO ES PUNTO A PUNTO: para hablar con el otro poste hay que
+        // soltar este. Si habia un enlace abierto se cierra A PROPOSITO y se dice de que
+        // poste se sale, ANTES de abrir el siguiente. Ver el bloque 6.pre de arriba.
+        cambiarDeEquipo(mac, name, emparejada, veniaDe);
       } else {
         // Fuera del APK no hay radio. Se declara en vez de simular un enlace.
         state.connected = false;
@@ -3242,34 +3600,92 @@ document.addEventListener('DOMContentLoaded', () => {
   // escrito a mano. Una de ellas empezaba por 98:D3:31 -prefijo de los HC-05, los
   // modulos que el ESP32 sustituyo el 28/08- y la otra era relleno, asi que connect()
   // marcaba un numero que no existe por muy bien que N-122 hubiera puesto la llamada.
+  // LO QUE SE HA VISTO EN ESTA BUSQUEDA, POR MAC. Dos fuentes escriben aqui y no
+  // llegan a la vez: list() devuelve los emparejados en milisegundos y
+  // discoverUnpaired() tarda lo que dure el barrido de Android. Sin un acumulador la
+  // segunda tanda borraria a la primera, que es justo la que el tecnico esta mirando
+  // mientras espera.
+  //
+  // EL EMPAREJAMIENTO GANA CUANDO UN EQUIPO SALE EN LAS DOS LISTAS: es lo que decide si
+  // al pulsar la fila Android va a pedir vinculacion o no, y eso hay que acertarlo.
+  let equiposVistos = new Map();
+  // Por que la lista esta como esta. Va SIEMPRE, tenga filas o no: una lista vacia y una
+  // lista corta significan cosas distintas segun lo que se haya podido buscar, y esta
+  // frase es lo unico que lo dice.
+  let notaLista = '';
+
   function mensajeEnLista(texto) {
-    if (!btDeviceListContainer) return;
-    btDeviceListContainer.innerHTML = '';
-    const p = document.createElement('p');
-    p.className = 'modal-desc';
-    p.textContent = texto;
-    btDeviceListContainer.appendChild(p);
+    notaLista = texto;
+    repintarEquipos();
   }
 
-  function pintarEquipos(dispositivos) {
-    if (!btDeviceListContainer) return 0;
+  // N-129: LOS DOS MODULOS SE LLAMAN CASI IGUAL, Y ESE "CASI" ES TODA LA DIFERENCIA.
+  //
+  // MEDIDO en ESP32_Expansion/include/contrato.h:258-259: el rotulo es ROTULO_PREFIJO
+  // "SEM-" mas la serie mas "-M" o "-E", y el modulo lo aprende del $STATUS para la
+  // arrancada SIGUIENTE; hasta entonces se anuncia con ROTULO_PROVISIONAL =
+  // "SEM-SIN-MATRICULA". O sea que dos modulos virgenes se llaman EXACTAMENTE IGUAL en
+  // la lista del telefono. Reportado desde el banco: "como tienen nombres tan similares,
+  // para no confundirnos, a ver cual es cual".
+  //
+  // Lo unico que la app puede hacer SIN INVENTAR es separar la letra final y ensenarla
+  // aparte. NO se escribe MAESTRO ni ESCLAVO en la fila: la punta la declara el equipo
+  // en NODE: del $STATUS cuando habla, y ponerla aqui seria la misma invencion que los
+  // dos data-mac escritos a mano que N-124 tuvo que retirar. Se pinta la letra que el
+  // modulo dice tener, no la conclusion que esa letra sugiere.
+  function sufijoDeRotulo(nombre) {
+    const txt = String(nombre || '');
+    if (txt === 'SEM-SIN-MATRICULA') return { letra: '', virgen: true };
+    const m = /^SEM-.+-([ME])$/.exec(txt);
+    return { letra: m ? m[1] : '', virgen: false };
+  }
+
+  // Mete lo que devuelve una fuente en el acumulador. `emparejados` dice de cual viene, y
+  // es un dato del TELEFONO, no del equipo: un modulo encendido al lado sale "sin
+  // emparejar" aunque sea el mismo poste de ayer, porque lo que falta es la vinculacion.
+  function pintarEquipos(dispositivos, emparejados) {
     const lista = Array.isArray(dispositivos) ? dispositivos : [];
-    btDeviceListContainer.innerHTML = '';
-    let pintados = 0;
+    let nuevos = 0;
     lista.forEach(d => {
       // El MAC es lo unico que connect() sabe marcar, y el plugin lo entrega en
-      // `address` o en `id` segun la version. Un equipo sin direccion no se pinta: una
+      // `address` o en `id` segun la version. Un equipo sin direccion no se guarda: una
       // fila que no se puede pulsar es peor que una fila que no esta.
       const mac = d && (d.address || d.id);
       if (!mac) return;
-      const nombre = (d && d.name && String(d.name).trim()) || String(mac);
+      const clave = String(mac);
+      const yaEstaba = equiposVistos.get(clave);
+      if (yaEstaba && yaEstaba.emparejado) return;
+      if (!yaEstaba) nuevos += 1;
+      equiposVistos.set(clave, {
+        mac: clave,
+        nombre: (d && d.name && String(d.name).trim()) || clave,
+        emparejado: !!emparejados
+      });
+    });
+    repintarEquipos();
+    return nuevos;
+  }
 
+  function repintarEquipos() {
+    if (!btDeviceListContainer) return 0;
+    btDeviceListContainer.innerHTML = '';
+    let pintados = 0;
+    // Los emparejados arriba: son los que conectan de un toque. Dentro de cada grupo, por
+    // nombre, para que dos modulos hermanos caigan juntos y la letra final quede una
+    // debajo de otra, que es donde se ve la diferencia.
+    const orden = Array.from(equiposVistos.values()).sort((a, b) => {
+      if (a.emparejado !== b.emparejado) return a.emparejado ? -1 : 1;
+      return a.nombre.localeCompare(b.nombre);
+    });
+    orden.forEach(eq => {
       const item = document.createElement('div');
-      item.className = 'bt-device-item';
-      item.setAttribute('data-name', nombre);
-      item.setAttribute('data-mac', String(mac));
-      // NO se escribe data-node: una fila no puede saber que punta hay al otro lado.
-      // Lo dice el equipo en NODE: del $STATUS.
+      item.className = 'bt-device-item' + (eq.emparejado ? '' : ' sin-emparejar');
+      item.setAttribute('data-name', eq.nombre);
+      item.setAttribute('data-mac', eq.mac);
+      // data-emparejado lo lee el manejador de clic para avisar ANTES de conectar de que
+      // Android va a pedir vinculacion. NO se escribe data-node: una fila no puede saber
+      // que punta hay al otro lado. Lo dice el equipo en NODE: del $STATUS.
+      item.setAttribute('data-emparejado', eq.emparejado ? '1' : '0');
 
       const icono = document.createElement('div');
       icono.className = 'bt-dev-icon';
@@ -3278,19 +3694,43 @@ document.addEventListener('DOMContentLoaded', () => {
       const info = document.createElement('div');
       info.className = 'bt-dev-info';
       const titulo = document.createElement('strong');
-      // textContent y no innerHTML: el nombre lo pone el modulo del otro lado, no la
-      // app, y un texto que llega de fuera no se inyecta como marcado.
-      titulo.textContent = nombre;
+      const suf = sufijoDeRotulo(eq.nombre);
+      if (suf.letra) {
+        // La letra sale del nombre en un <span> propio y no en negrita dentro del texto:
+        // el CSS le da recuadro y color, y es lo unico que el ojo tiene que comparar
+        // entre dos filas que por lo demas dicen lo mismo.
+        // textContent en las dos piezas y no innerHTML: el nombre lo pone el modulo del
+        // otro lado, y un texto que llega de fuera no se inyecta como marcado.
+        const base = document.createElement('span');
+        base.textContent = eq.nombre.slice(0, eq.nombre.length - 1);
+        const letra = document.createElement('span');
+        letra.className = 'bt-dev-sufijo';
+        letra.textContent = suf.letra;
+        titulo.appendChild(base);
+        titulo.appendChild(letra);
+      } else {
+        titulo.textContent = eq.nombre;
+      }
       const detalle = document.createElement('small');
-      detalle.textContent = 'MAC: ' + mac;
+      detalle.textContent = 'MAC: ' + eq.mac;
       info.appendChild(titulo);
       info.appendChild(detalle);
+      if (suf.virgen) {
+        // El caso que hace peligroso a todo lo demas: sin matricula aprendida las DOS
+        // puntas se anuncian con este mismo nombre, asi que la fila no distingue nada.
+        // Se dice en la fila, que es donde se elige, y no en un manual.
+        const aviso = document.createElement('small');
+        aviso.className = 'bt-dev-aviso';
+        aviso.textContent = 'sin matricula: las DOS puntas se llaman asi. Hasta que el ' +
+                            'equipo hable solo las separa el MAC.';
+        info.appendChild(aviso);
+      }
 
       const etiqueta = document.createElement('span');
-      etiqueta.className = 'bt-dev-badge';
-      // "emparejado" es lo unico que consta de esta fila. Poner "Maestro" o "Esclavo"
-      // seria la misma invencion que los dos MAC que se acaban de retirar.
-      etiqueta.textContent = 'emparejado';
+      etiqueta.className = 'bt-dev-badge' + (eq.emparejado ? '' : ' sin-emparejar');
+      // "emparejado" / "sin emparejar" es lo unico que consta de esta fila. Poner
+      // "Maestro" o "Esclavo" seria la misma invencion que los dos MAC que se retiraron.
+      etiqueta.textContent = eq.emparejado ? 'emparejado' : 'sin emparejar';
 
       item.appendChild(icono);
       item.appendChild(info);
@@ -3298,6 +3738,12 @@ document.addEventListener('DOMContentLoaded', () => {
       btDeviceListContainer.appendChild(item);
       pintados += 1;
     });
+    if (notaLista) {
+      const p = document.createElement('p');
+      p.className = 'modal-desc';
+      p.textContent = notaLista;
+      btDeviceListContainer.appendChild(p);
+    }
     return pintados;
   }
 
@@ -3307,40 +3753,76 @@ document.addEventListener('DOMContentLoaded', () => {
   // radio" cada vez que se abre el modal en un navegador seria ruido; callarselo
   // cuando alguien PIDE la busqueda seria lo otro, que es peor: se le contesta que no
   // se pudo buscar, que no es lo mismo que no haber encontrado.
+  //
+  // =========================================================================
+  // 6.ter list() NO BUSCA: LEE. LA BUSQUEDA DE VERDAD ES discoverUnpaired()
+  // =========================================================================
+  // REPORTE DE BANCO DEL 04/09, con las dos placas encendidas: "cuando intentas
+  // conectarte por Bluetooth al otro ESP, solamente me sale el maestro... apagaste el
+  // maestro para ver si encuentras el Bluetooth del esclavo. No aparece. Para que me
+  // salga, yo creo que tengo que desvincular ese".
+  //
+  // Y tenia razon en el diagnostico: list() devuelve getBondedDevices(), o sea lo que
+  // ESTE telefono tiene emparejado en Ajustes de Android, NO lo que hay encendido al
+  // lado. El propio comentario de abajo ya lo decia bien desde N-124 -"CERO EMPAREJADOS
+  // NO ES CERO EQUIPOS"-, y esa frase honesta era todo lo que la app hacia: describir
+  // con precision una busqueda que no buscaba. Es §3.quinquies leido por la mitad -no
+  // simular el dato que falta- sin la otra mitad, que es IR A POR EL cuando se puede.
+  //
+  // MEDIDO en el plugin instalado, no supuesto (node_modules/cordova-plugin-bluetooth-
+  // serial):
+  //   www/bluetoothSerial.js:111  discoverUnpaired: function (success, failure)
+  //   src/android/.../BluetoothSerial.java:291  registra un BroadcastReceiver de
+  //     ACTION_FOUND, llama a bluetoothAdapter.startDiscovery(), y devuelve el array
+  //     entero en ACTION_DISCOVERY_FINISHED. Cada elemento trae {name, address, id}.
+  //
+  // POR QUE LAS DOS Y NO SOLO EL DESCUBRIMIENTO: el barrido de Android tarda lo suyo y
+  // no siempre ve un modulo que ya esta emparejado y a mano. Se pinta primero lo que
+  // list() da al instante -que es con lo que el tecnico conecta de un toque- y encima
+  // se anaden los que aparezcan.
+  //
+  // Y SI NO ESTA, NO SE TAPA. Si el plugin de este APK no trae discoverUnpaired -o si
+  // falla-, la lista se queda con los emparejados y se DICE que no se llego a buscar
+  // los demas. Un "no hay mas equipos" sobre una busqueda que no ocurrio es la mentira
+  // que este apartado existe para no repetir.
   function escanearEquipos(porPeticion) {
-    const hayRadio = typeof window !== 'undefined' && window.bluetoothSerial &&
-                     typeof window.bluetoothSerial.list === 'function';
+    const bt = (typeof window !== 'undefined') ? window.bluetoothSerial : null;
+    const hayRadio = bt && typeof bt.list === 'function';
     if (!hayRadio) {
       if (!porPeticion) return;
       showToast('Escaneo no disponible fuera del APK');
       addEvent('red', 'Escaneo Bluetooth no realizado: no hay radio disponible en ' +
                       'este entorno. No se sabe que equipos hay, que no es lo mismo ' +
                       'que no haberlos encontrado.');
+      equiposVistos = new Map();
       mensajeEnLista('Sin radio en este entorno: no se pudo buscar. Esta lista está ' +
                      'vacía porque no hubo búsqueda, no porque no haya equipos.');
       return;
     }
+    // Cada busqueda parte de cero: una lista que acumula entre escaneos ensena equipos
+    // que ya no estan, y en un cruce eso manda a conectar contra un poste apagado.
+    equiposVistos = new Map();
+    notaLista = '';
     // El rotulo NO nombra el modulo. En obra ya se ha cambiado de radio mas de una vez
     // -del HC-05 al ESP32-, asi que un texto que diga "HC-05" queda desmintiendo al
     // equipo el dia que se sustituya. "El enlace" vale para todos.
     if (porPeticion) showToast('🔍 Buscando equipos...');
-    window.bluetoothSerial.list(
+    bt.list(
       (dispositivos) => {
-        const pintados = pintarEquipos(dispositivos);
+        const pintados = pintarEquipos(dispositivos, true);
         if (!pintados) {
           // CERO EMPAREJADOS NO ES CERO EQUIPOS. list() devuelve lo que ESTE telefono
           // tiene emparejado en Ajustes de Android, no lo que hay encendido al lado.
-          mensajeEnLista('Este teléfono no tiene ningún equipo emparejado. El ' +
-                         'emparejamiento se hace en Ajustes de Android; aquí solo se ' +
-                         'listan los que ya lo están.');
+          // Ya no es el final del camino -debajo se busca de verdad-, pero sigue siendo
+          // el dato que explica por que la lista esta vacia en este instante.
           addEvent('red', 'Escaneo Bluetooth: 0 equipos emparejados en este telefono. ' +
-                          'Empareje el modulo en Ajustes de Android y repita. No se ha ' +
-                          'buscado equipos nuevos: list() solo lee los emparejados.');
-          return;
+                          'list() solo lee los emparejados; la busqueda de los demas ' +
+                          'va a continuacion.');
+        } else {
+          addEvent('green', 'Escaneo Bluetooth: ' + pintados + ' equipo(s) ' +
+                            'emparejado(s) listados con su MAC real.');
         }
-        showToast(pintados + ' equipo(s) emparejado(s)');
-        addEvent('green', 'Escaneo Bluetooth: ' + pintados + ' equipo(s) emparejado(s) ' +
-                          'listados con su MAC real.');
+        buscarNoEmparejados(porPeticion);
       },
       (err) => {
         // No se finge un resultado vacio: no encontrar y no poder buscar son cosas
@@ -3364,12 +3846,125 @@ document.addEventListener('DOMContentLoaded', () => {
           : 'El escaneo falló: no se sabe qué equipos hay. Si se repite, compruebe en Ajustes de ' +
             'Android → Aplicaciones → IOT VIAL → Permisos que «Dispositivos cercanos» está ' +
             'permitido; sin ese permiso Android no deja ver los equipos emparejados.');
+        // Se busca igual: que no se puedan LEER los emparejados no dice nada de si se
+        // pueden DESCUBRIR los demas, y son dos permisos distintos en Android 12+
+        // (BLUETOOTH_CONNECT contra BLUETOOTH_SCAN). Dar por perdidas las dos por una
+        // seria descartar por eliminacion con la tabla incompleta.
+        buscarNoEmparejados(porPeticion);
+      }
+    );
+  }
+
+  // La segunda mitad del escaneo. Va aparte porque su resultado se AÑADE al de list() y
+  // llega mucho mas tarde: mientras tanto la lista de emparejados ya esta en pantalla.
+  function buscarNoEmparejados(porPeticion) {
+    const bt = (typeof window !== 'undefined') ? window.bluetoothSerial : null;
+    if (!bt || typeof bt.discoverUnpaired !== 'function') {
+      // NO SE TAPA CON UN SILENCIO. Sin esta llamada la lista es la de siempre -solo
+      // emparejados-, y quien la mire tiene que saber que lo que no sale puede estar
+      // encendido delante de el.
+      notaLista = 'Solo se listan los equipos EMPAREJADOS: esta versión no puede buscar ' +
+                  'los que no lo están. Si falta un poste, empárejelo en Ajustes de ' +
+                  'Android → Bluetooth y vuelva a pulsar Buscar.';
+      repintarEquipos();
+      if (porPeticion) {
+        addEvent('red', 'Busqueda de equipos NO emparejados no realizada: esta version ' +
+                        'de la app no dispone de discoverUnpaired(). Lo que no aparece ' +
+                        'en la lista no esta descartado, esta sin buscar.');
+      }
+      return;
+    }
+    notaLista = 'Buscando también los equipos NO emparejados… (Android tarda unos ' +
+                'segundos; los emparejados ya están arriba)';
+    repintarEquipos();
+    if (porPeticion) showToast('🔍 Buscando también los no emparejados…');
+    bt.discoverUnpaired(
+      (dispositivos) => {
+        const nuevos = pintarEquipos(dispositivos, false);
+        if (nuevos) {
+          notaLista = 'Los marcados «sin emparejar» están encendidos cerca pero este ' +
+                      'teléfono no los conoce: al pulsarlos Android pedirá vincular ' +
+                      'antes de conectar.';
+          addEvent('green', 'Busqueda de no emparejados: ' + nuevos + ' equipo(s) ' +
+                            'nuevo(s) encontrado(s) encendidos cerca.');
+        } else {
+          // CERO ENCONTRADOS SI ES UN DATO AQUI, al reves que en list(): esta busqueda
+          // si mira lo que hay encendido. Lo que sigue sin cubrir -y por eso se dice- es
+          // el modulo que esta ya conectado a OTRO telefono: ese no se anuncia.
+          notaLista = 'La búsqueda terminó sin encontrar equipos nuevos sin emparejar. ' +
+                      'Un módulo ya conectado a otro teléfono no se anuncia.';
+          addEvent('cyan', 'Busqueda de no emparejados: terminada, ningun equipo nuevo.');
+        }
+        repintarEquipos();
+      },
+      (err) => {
+        var txt = String(err || '');
+        // Es OTRO permiso que el de list(): en Android 12+ el barrido pide
+        // BLUETOOTH_SCAN, y en las versiones anteriores ubicacion. El plugin pide
+        // ACCESS_COARSE_LOCATION el solo (BluetoothSerial.java:216-221) y NO pide
+        // BLUETOOTH_SCAN, asi que en un telefono moderno este es el camino que se cae.
+        var esPermiso = /permis|security|denied|denegad|location|ubicac/i.test(txt);
+        notaLista = (esPermiso
+          ? 'No se pudieron buscar los NO emparejados: falta el permiso «Dispositivos ' +
+            'cercanos» o «Ubicación». Ajustes de Android → Aplicaciones → IOT VIAL → ' +
+            'Permisos. Arriba solo están los ya emparejados.'
+          : 'No se pudieron buscar los NO emparejados (' + txt + '). Arriba solo están ' +
+            'los ya emparejados: lo que falte está SIN BUSCAR, no descartado.');
+        repintarEquipos();
+        addEvent('red', 'Busqueda de no emparejados fallida: ' + txt + '. La lista de ' +
+                        'arriba son solo emparejados; no se sabe que mas hay encendido.');
+        if (porPeticion) showToast('No se pudo buscar los no emparejados');
       }
     );
   }
 
   if (btnScanBluetoothLive) {
     btnScanBluetoothLive.addEventListener('click', () => escanearEquipos(true));
+  }
+
+  // El boton de desconectar SOLO existe mientras hay enlace. Un mando que no desconecta
+  // nada es un mando que no hace nada, y esta pantalla ya tuvo cuatro de esos (N-75).
+  // Se refresca desde aqui y desde olvidarEnlace(), que son los dos unicos sitios donde
+  // state.connected cambia de valor.
+  // EL MISMO BOTON CONTESTA A LAS DOS SITUACIONES, PORQUE SON LA MISMA PREGUNTA: que
+  // hago con el equipo que tengo delante. Con enlace vivo, soltarlo; con un enlace que
+  // se cayo, volver a el. Dos botones -- uno de ellos siempre apagado -- serian otra vez
+  // la botonera en gris que el responsable acaba de mandar quitar de la pantalla del
+  // Esclavo.
+  function actualizarBotonDesconectar() {
+    if (!btnBtDisconnect) return;
+    const eq = state.ultimoEquipo;
+    if (state.connected) {
+      btnBtDisconnect.style.display = 'block';
+      btnBtDisconnect.classList.remove('reconectar');
+      // NOMBRA EL POSTE DEL QUE SE VA A SALIR. Con dos modulos que se llaman casi igual
+      // (N-129), un "Desconectar" a secas deja al tecnico soltando el que no era.
+      btnBtDisconnect.textContent = '🔌 Desconectar de ' +
+                                    (state.deviceName || state.deviceMac || 'este poste');
+    } else if (eq && eq.mac) {
+      btnBtDisconnect.style.display = 'block';
+      btnBtDisconnect.classList.add('reconectar');
+      btnBtDisconnect.textContent = '🔄 Reconectar con ' + eq.name;
+    } else {
+      // Sin equipo previo no hay nada que ofrecer: un boton que no puede hacer nada es
+      // el adorno que da verde de CLAUDE.md 8.bis, con forma de interfaz.
+      btnBtDisconnect.style.display = 'none';
+    }
+  }
+
+  if (btnBtDisconnect) {
+    btnBtDisconnect.addEventListener('click', () => {
+      if (!state.connected) { reconectarUltimoEquipo(); closeModal(btModal); return; }
+      const quien = state.deviceName || state.deviceMac || 'el equipo';
+      showToast('Desconectando de ' + quien);
+      // Sin `alTerminar`: aqui no se va a conectar nada detras. La lista se queda como
+      // estaba para que el siguiente poste este a un toque, que es de lo que se quejaba
+      // el banco -"tengo que reiniciar la aplicacion"-.
+      desconectarEquipo(() => {
+        actualizarBotonDesconectar();
+        showToast('Sin equipo: elija otro de la lista');
+      });
+    });
   }
 
   // =========================================================================
@@ -3620,14 +4215,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnDevice && btModal) {
     btnDevice.addEventListener('click', () => {
-      openModal(btModal);
-      // N-124: la lista ya no viene en el HTML, asi que el modal se abriria vacio y
-      // haria falta un segundo toque para ver algo. Con radio se rellena al abrir -es
-      // la misma llamada que hace el boton-; sin radio esto vuelve en silencio y queda
-      // el aviso del HTML diciendo que hay que pulsar Buscar.
-      escanearEquipos(false);
+      abrirModalDeEquipos();
     });
   }
+
+  // Los dos atajos de "conectarse al otro poste" abren esta MISMA puerta, y no una copia
+  // suya: la eleccion del equipo sigue siendo del tecnico sobre la lista real. La app no
+  // sabe que MAC es el otro poste -- y adivinarlo seria volver a los dos data-mac
+  // escritos a mano que N-124 tuvo que retirar --, asi que lo que hace el atajo es
+  // llevarle a la lista, no elegir por el.
+  function abrirModalDeEquipos() {
+    if (!btModal) return;
+    openModal(btModal);
+    // El modal es tambien el sitio desde donde se SUELTA un poste, asi que al abrirlo el
+    // boton tiene que decir la verdad de este instante -y nombrar el equipo del que se
+    // saldria-. Ver 6.pre.
+    actualizarBotonDesconectar();
+    // N-124: la lista ya no viene en el HTML, asi que el modal se abriria vacio y haria
+    // falta un segundo toque para ver algo. Con radio se rellena al abrir -es la misma
+    // llamada que hace el boton-; sin radio esto vuelve en silencio y queda el aviso del
+    // HTML diciendo que hay que pulsar Buscar.
+    escanearEquipos(false);
+  }
+
+  if (btnIrAlEsclavo) {
+    btnIrAlEsclavo.addEventListener('click', () => {
+      addEvent('cyan', 'El POSTE 1 no publica el estado del POSTE 2: para verlo hay que ' +
+                       'conectarse a el. Abriendo la lista de equipos.');
+      abrirModalDeEquipos();
+    });
+  }
+  if (btnIrAlMaestro) {
+    btnIrAlMaestro.addEventListener('click', () => {
+      addEvent('cyan', 'El cruce se opera desde el POSTE 1. Abriendo la lista de equipos ' +
+                       'para conectarse a el.');
+      abrirModalDeEquipos();
+    });
+  }
+
   if (modalBtClose && btModal) {
     modalBtClose.addEventListener('click', () => closeModal(btModal));
   }
@@ -3877,8 +4502,31 @@ document.addEventListener('DOMContentLoaded', () => {
     actualizarDemanda();
 
     if (eraConectado) {
+      // ESTO ES UNA INFERENCIA, NO UN AVISO DEL SISTEMA, y se dice con esas palabras.
+      // Nadie ha notificado nada: lo unico que consta es que no llega telemetria, y de
+      // ahi se DEDUCE que el enlace no esta. MEDIDO en las dos puntas: el $STATUS sale
+      // cada 2000 ms (Maestro/src/bluetooth.cpp, `ahora - tUltimaTelemetria >= 2000`, y
+      // su comentario nombra a este vigilante y su cota de 5000 ms), asi que
+      // TIMEOUT_ENLACE_MS son dos periodos y medio. El aviso REAL, cuando el plugin lo
+      // manda, entra por el callback de fallo de connect() -- ver 6.pre -- y ese si dice
+      // "se ha caido" en vez de deducirlo.
+      //
+      // Y AQUI SE OFRECE LA SALIDA, que es lo que faltaba. Reportado el 04/09: "no
+      // conecta despues de que el maestro se apaga y prende... reinicie la aplicacion y
+      // comenzo". La app declaraba la caida correctamente y despues no daba ningun
+      // camino de vuelta, asi que el unico que quedaba era cerrarla.
       addEvent('red', 'Enlace perdido: el equipo lleva mas de ' +
-                      (TIMEOUT_ENLACE_MS / 1000) + ' s sin emitir telemetria.');
+                      (TIMEOUT_ENLACE_MS / 1000) + ' s sin emitir telemetria. Es una ' +
+                      'DEDUCCION del silencio, no un aviso del sistema. Si el equipo se ' +
+                      'reinicio, el socket anterior ya no sirve: pulse el icono de ' +
+                      'antena y despues RECONECTAR. No hace falta cerrar la app.');
+      // El socket que queda es de una sesion que ya no existe. Se suelta AQUI para que
+      // el siguiente intento arranque limpio, y porque mientras siga contando como
+      // abierto la guarda de enviarComandoFirmware() deja salir ordenes que no tienen
+      // por donde irse -- que es el defecto de N-122 otra vez, ahora por caducidad.
+      if (state.connected) desconectarEquipo(null);
+      actualizarBotonDesconectar();
+      showToast('⚠️ Enlace perdido - se puede reconectar');
       state.huboCaida = true;
       // LA CAIDA SE ANOTA SIN VALOR DE ENLACE. En este instante no se ha medido nada
       // -por eso es una caida-, asi que la columna del enlace queda VACIA. El ultimo

@@ -1121,6 +1121,67 @@ body {
 .bt-dev-badge { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: var(--radius-pill); background: rgba(0, 240, 255, 0.2); color: var(--cyan-neon); }
 .bt-dev-badge.esclavo { background: rgba(255, 179, 0, 0.2); color: var(--amber-lamp); }
 
+/* EMPAREJADO Y SIN EMPAREJAR NO SE ELIGEN IGUAL, ASI QUE NO SE PINTAN IGUAL.
+   Pulsar uno sin emparejar hace que ANDROID abra su dialogo de vinculacion encima de
+   la app; el tecnico tiene que verlo venir en la fila, no descubrirlo con la ventana
+   del sistema delante. El borde discontinuo dice "a este le falta algo" sin leer, y la
+   etiqueta ambar lo dice con palabras: los dos canales, porque a pleno sol el color
+   solo no basta -y el ambar es ademas el unico token de acento que ya esta medido
+   contra el fondo en test_funcional_app.py, asi que no se inventa un color nuevo-. */
+.bt-device-item.sin-emparejar { border-style: dashed; border-color: rgba(255, 179, 0, 0.45); background: rgba(255, 179, 0, 0.05); }
+.bt-device-item.sin-emparejar:hover { background: rgba(255, 179, 0, 0.12); border-color: var(--amber-lamp); }
+.bt-dev-badge.sin-emparejar { background: rgba(255, 179, 0, 0.2); color: var(--amber-lamp); }
+
+/* N-129: LA LETRA FINAL ES TODA LA DIFERENCIA ENTRE LOS DOS POSTES.
+   SEM-<serie>-M y SEM-<serie>-E se distinguen en UN caracter al final de una cadena
+   larga y monoespaciada. Recuadrada y con el tamano subido deja de ser el ultimo
+   caracter de un texto y pasa a ser lo primero que se compara entre dos filas. NO dice
+   que poste es -eso lo declara el equipo en NODE: del $STATUS-: dice que letra trae. */
+.bt-dev-sufijo {
+  display: inline-block;
+  margin-left: 2px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.3;
+  background: rgba(0, 240, 255, 0.18);
+  color: var(--cyan-neon);
+  border: 1px solid rgba(0, 240, 255, 0.45);
+}
+
+/* El aviso de "sin matricula" es el unico caso en que las dos filas son IDENTICAS, asi
+   que su texto no puede irse en el gris de los sellos de hora: va en ambar, que es el
+   color con el que esta app dice "ojo con esto". */
+.bt-dev-info small.bt-dev-aviso { color: var(--amber-lamp); font-family: inherit; font-size: 10px; line-height: 1.3; }
+
+/* Los dos mandos del modal, separados: pegados se pulsa el que no era, y BUSCAR y
+   DESCONECTAR hacen cosas opuestas. El alto minimo es el mismo 44 px que exige
+   herramientas_medir_pulsables.js para cualquier objetivo. */
+.bt-modal-actions { display: flex; flex-direction: column; gap: 10px; }
+.btn-bt-desconectar {
+  background: rgba(255, 179, 0, 0.12);
+  border: 1px solid var(--amber-lamp);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  min-height: 44px;
+  color: var(--amber-lamp);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+}
+.btn-bt-desconectar:active { background: rgba(255, 179, 0, 0.24); }
+/* El mismo boton, la otra situacion: con el enlace caido lo que ofrece es VOLVER, y eso
+   no es un aviso -que es lo que dice el ambar- sino la accion que se espera que pulses.
+   En cian, que es el color de accion de esta app. */
+.btn-bt-desconectar.reconectar {
+  background: rgba(0, 240, 255, 0.12);
+  border-color: var(--cyan-neon);
+  color: var(--cyan-neon);
+}
+.btn-bt-desconectar.reconectar:active { background: rgba(0, 240, 255, 0.24); }
+
 /* ==========================================================================
    Floating Bottom Glass Navigation
    ========================================================================== */
@@ -1694,18 +1755,40 @@ body {
   /* Mandos mas compactos SIN tocar el area de pulsacion util: se recorta el
    * relleno vertical, no el ancho ni la altura minima que exige un dedo con
    * guante -48 px es el minimo de accesibilidad y se respeta-. */
-  .pad-btn { padding: 8px 6px; gap: 4px; min-height: 48px; }
-  .pad-icon { font-size: 20px; }
+  .pad-btn { padding: 6px 6px; gap: 3px; min-height: 48px; }
+  .pad-icon { font-size: 18px; }
   .pad-text small { display: none; }
 
   /* Lo que NO se usa a diario baja: el aviso de punta y el volver al menu se
    * quedan donde estan, pero dejan de empujar a los mandos hacia fuera porque
    * ya no hay nada entre el semaforo y ellos. */
 
-  /* El semaforo se compacta, NO se encoge: la lampara sigue igual de grande
+  /* ~~El semaforo se compacta, NO se encoge: la lampara sigue igual de grande
    * -es lo que hay que ver de un vistazo-; lo que se recorta es el aire y los
    * rotulos de alrededor. Un semaforo pequeno en un movil al sol es peor que
-   * un scroll. */
+   * un scroll.~~
+   *
+   * 🔴 REVOCADO POR EL RESPONSABLE EL 04/09, CON LA FOTO DEL BANCO DELANTE
+   * (evidencia/WhatsApp Image 2026-09-04 at 8.38.32 PM.jpeg): "no le permite en esa
+   * pantalla al operador ver los semaforos y operarlos, la linea de abajo obstruye;
+   * tocaria hacer mas pequenos los semaforos".
+   *
+   * El parrafo tachado no se borra -una decision tachada con su motivo no se vuelve a
+   * proponer- pero su premisa era falsa y la foto la tumba: la alternativa no era
+   * "lampara grande contra un scroll", era lampara grande contra MANDOS QUE NO SE
+   * PUEDEN PULSAR. Medido con herramientas_medir_consola.js sobre este mismo arbol,
+   * antes de tocar nada: 131 px del ultimo mando diario tapados a 320x568, 87 a
+   * 360x640 y 46 a 390x664. Un mando debajo de una barra flotante no es incomodo: es
+   * inalcanzable, y encima el dedo cae en la pestana y se sale de la pantalla.
+   *
+   * Asi que la lampara SI encoge, y lo hace por escalones de alto de pantalla: 48 px
+   * en una pantalla que da de si, 38 aqui, 30 en las muy cortas. */
+  .lamp { width: 34px; height: 34px; }
+  .semaforo-housing { gap: 5px; width: 52px; border-radius: 20px; padding: 6px 0; }
+  .semaforo-label { font-size: 9px; letter-spacing: 0.2px; margin-bottom: 3px; }
+  .phase-desc { margin-top: 2px; }
+  .dual-semaforos { padding: 2px 0; }
+
   .semaforo-col { gap: 4px; }
   .dual-semaforos { gap: 8px; }
   .app-container { padding-top: 6px; }
@@ -1719,11 +1802,40 @@ body {
  * cada poste, que el operario deduce por su posicion, y el contador se acerca
  * a las lamparas. Sigue sin tocarse el tamano de la lampara. */
 @media (max-height: 600px) {
-  .semaforo-col > .semaforo-rotulo,
-  .semaforo-col > .poste-label { display: none; }
-  .countdown-center { transform: scale(0.74); }
-  .pad-btn { padding: 6px 6px; }
+  /* 🔴 ESTAS DOS LINEAS NO OCULTABAN NADA, Y EL COMENTARIO DE ARRIBA AFIRMABA QUE SI.
+   *
+   *     .semaforo-col > .semaforo-rotulo,
+   *     .semaforo-col > .poste-label { display: none; }
+   *
+   * MEDIDO el 04/09: `grep 'class="[^"]*poste-label' index.html` -> 0, y lo mismo
+   * `semaforo-rotulo`. La clase que el HTML pone de verdad es `.semaforo-label`, asi
+   * que la regla llevaba desde que se escribio apuntando al aire mientras el parrafo
+   * de encima decia "se retira tambien el rotulo de cada poste". Es la prueba muerta
+   * de CLAUDE.md 3.bis en CSS: una regla que no puede fallar, con una frase al lado
+   * que la da por hecha. Nadie lo noto porque el sintoma -26 px de mas- es justo del
+   * tamano que no se ve hasta que algo mas grande empuja.
+   *
+   * Y NO SE ARREGLA OCULTANDO EL ROTULO, que es lo que la regla queria. Con N-129 -las
+   * dos puntas anunciandose casi igual- POSTE 1 y POSTE 2 son lo unico que dice cual
+   * columna es cual, y este mismo dia se ha reforzado esa distincion en el modal de
+   * equipos. Se COMPACTA: los mismos 26 px bajan a la mitad y el rotulo se queda. Si
+   * hicieran falta esos 13 px, lo decide quien decide sobre lo que ve un operario. */
+  .semaforo-label { font-size: 9px; letter-spacing: 0.2px; margin-bottom: 2px; }
+
+  /* Segundo escalon de la lampara. El primero -38 px- deja el ultimo mando aun tapado
+   * a 320x568; la cifra sale del instrumento, no de la vista. */
+  .lamp { width: 27px; height: 27px; }
+  .semaforo-housing { gap: 4px; width: 42px; border-radius: 16px; padding: 5px 0; }
+
+  .countdown-center { transform: scale(0.68); }
+  /* El area util del mando NO baja de los 48 px que ya exigia la regla de 740: lo que
+   * se recorta es el relleno y el icono, no el objetivo del dedo. Lo comprueba
+   * herramientas_medir_pulsables.js, que sigue exigiendo 44x44 en los ocho anchos. */
+  .pad-btn { padding: 4px 6px; gap: 2px; }
+  .pad-icon { font-size: 16px; }
   .card-traffic { padding: 6px 10px; }
+  .dual-semaforos { padding: 2px 0; }
+  .phase-desc { margin-top: 2px; }
 
   /* OCHO PIXELES, Y SE SABE PARA QUE SIRVE CADA UNO. A 320x568 la ultima fila de la
      reja quedaba PEGADA a la barra de pestanas flotante -medido: el borde de arriba
@@ -1744,3 +1856,63 @@ body {
   .operario-pad-card { padding: 8px 12px; }
   .pad-header { margin-bottom: 4px; }
 }
+
+/* ==========================================================================
+   DOS PANTALLAS, PORQUE SON DOS COSAS (decision del responsable, 04/09)
+   ==========================================================================
+   Contra el POSTE 1 esta app es la CONSOLA DE OPERACION del cruce; contra el POSTE 2 es
+   una VENTANA DE DIAGNOSTICO y no se opera. Hasta hoy intentaba ser las dos, y contra el
+   Esclavo ensenaba cuatro mandos apagados y una columna de SIN DATOS: las dos mitades
+   mintiendo por omision. Lo que sigue son los estilos de la mitad que faltaba. */
+
+/* El hueco que no se puede rellenar OFRECE LA ACCION en vez de anunciar la carencia.
+   Va con el ancho de su columna y con los 44 px de alto que exige
+   herramientas_medir_pulsables.js para cualquier objetivo. */
+.btn-ir-al-otro {
+  margin-top: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 6px;
+  background: rgba(0, 240, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.45);
+  border-radius: var(--radius-md);
+  color: var(--cyan-neon);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+  cursor: pointer;
+}
+.btn-ir-al-otro:active { background: rgba(0, 240, 255, 0.22); }
+
+/* La tarjeta de diagnostico se pinta en AMBAR y no en cian: no es un mando, es un aviso
+   de que esta pantalla no manda. El ambar es ademas el unico acento cuyo contraste ya
+   esta medido contra --bg-surface en test_funcional_app.py, asi que no entra un color
+   nuevo sin cuenta detras. */
+.diag-card { border-color: rgba(255, 179, 0, 0.35); }
+.badge-diag {
+  background: rgba(255, 179, 0, 0.18);
+  border: 1px solid var(--amber-lamp);
+  color: var(--amber-lamp);
+}
+.diag-desc { font-size: 12px; color: var(--text-secondary); margin: 8px 0 6px; line-height: 1.45; }
+.diag-lista { margin: 0 0 10px 16px; padding: 0; font-size: 11px; color: var(--text-secondary); line-height: 1.55; }
+.diag-lista code { font-family: var(--font-mono); color: var(--amber-lamp); }
+.diag-log-cab { font-size: 10px; font-weight: 800; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 6px; }
+/* Alto acotado y con scroll propio: el registro crece solo y sin tope empujaria la
+   botonera de emergencia fuera de la pantalla, que es justo lo que mide
+   herramientas_medir_consola.js. */
+.diag-log { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.diag-log-item {
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border-left: 3px solid var(--text-muted);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+}
+.diag-log-item .diag-log-hora { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-right: 6px; }
+.diag-log-item.green { border-left-color: var(--green-lamp); }
+.diag-log-item.red { border-left-color: var(--red-text); }
+.diag-log-item.cyan { border-left-color: var(--cyan-neon); }
+.diag-log-vacio { font-size: 11px; color: var(--text-muted); line-height: 1.45; }

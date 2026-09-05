@@ -121,7 +121,22 @@ const NMEAParser = {
         // Desde N-108 las dos puntas MARCAN la ausencia en vez de inventarse la cifra,
         // asi que el valor llegaba bueno y era el parser quien lo estropeaba. Ahora el
         // marcador se devuelve tal cual y decide quien pinta, que sabe declararlo.
-        case 'T': data.restante = parseInt(v, 10) || 0; break;
+        //
+        // 🔴 Y ESE ARREGLO ALCANZO A RF, RTT Y BAT Y DEJO FUERA A `T`, JUSTO DEBAJO DE
+        // ESTE PARRAFO. Diez lineas explicando por que el `|| 0` esta mal y el `case`
+        // siguiente conservandolo: la frase justificadora no protege al codigo que
+        // tiene debajo, solo tapa que sigue ahi. Se cierra el 04/09 con N-139, que es
+        // cuando `T` paso a poder valer "--": el Esclavo lo manda SIEMPRE asi
+        // (Esclavo/src/bluetooth.cpp:776, "T:--" literal en el snprintf) y el Maestro
+        // cuando no sabe cuanto falta (Maestro/src/bluetooth.cpp:833, "T:%s"). Con el
+        // `|| 0` la app habria pintado un CERO -"faltan 0 segundos, cambia ya"- sobre
+        // los dos casos en que el equipo acaba de decir que no lo sabe.
+        //
+        // Y OJO AL CASO QUE OBLIGA A NO COLAPSARLO: `T:0` es LEGITIMO -el ultimo
+        // segundo de la fase-, asi que 0 y "no se sabe" tienen que llegar distintos a
+        // quien pinta. Por eso se usa la misma _numeroOMarca() que los otros tres y no
+        // un `|| null`: devuelve el 0 como numero y el "--" como texto.
+        case 'T': data.restante = _numeroOMarca(v, parseInt, 10); break;
         case 'RF': data.rf = _numeroOMarca(v, parseInt, 10); break;
         case 'RTT': data.rtt = _numeroOMarca(v, parseInt, 10); break;
         case 'BAT': data.bat = _numeroOMarca(v, parseFloat); break;

@@ -471,6 +471,16 @@ const DiarioOrdenes = {
   // segundos que miro: un lector puede ver que la ventana no daba para la maniobra.
   VENTANA_EFECTO_MS: 95000,
 
+  // A PARTIR DE AQUI UN CAMBIO YA NO SE ATRIBUYE SIN AVISAR (04/09).
+  //
+  // El $STATUS sale cada 2000 ms, asi que una orden obedecida se nota en la trama
+  // SIGUIENTE o en la de despues. Seis segundos son tres periodos: holgura de sobra
+  // para una respuesta y su latencia, y muy por debajo de los 95 s de la ventana, que
+  // existen para el unico caso legitimo que tarda -SET_MODO:MENU, que ejecuta tras el
+  // todo-rojo-. Entre uno y otro esta la tierra de nadie donde la atribucion deja de
+  // ser una medida y pasa a ser una coincidencia.
+  EFECTO_INMEDIATO_MS: 6000,
+
   // Antiguedad maxima del $STATUS que se usa como "lo que habia antes". El firmware
   // emite uno cada 2000 ms (Maestro/src/bluetooth.cpp), asi que tres periodos son de
   // sobra. Un $STATUS de hace medio minuto NO sirve de "antes": entre el y la orden
@@ -829,10 +839,40 @@ const DiarioOrdenes = {
              ' s que van (se mira hasta ' + this._seg(this.VENTANA_EFECTO_MS) + ' s)';
     }
     if (est === 'CAMBIO') {
-      const l = Object.keys(reg.cambios).map(k =>
-        k + ': ' + reg.cambios[k].de + ' -> ' + reg.cambios[k].a +
-        ' (a los ' + this._seg(reg.cambios[k].ms - reg.ms) + ' s)');
-      return 'CAMBIO: ' + l.join(' · ');
+      // UN CAMBIO TARDIO NO SE ATRIBUYE: SE ENSENA CON LA DUDA DELANTE.
+      //
+      // Lo destapo el primer diario de campo del 04/09, y era la linea que quitaba
+      // credibilidad a todo lo demas:
+      //
+      //     ORDEN   CMD:FORZAR_ROJO
+      //     EFECTO  MODO: AMBAR -> AUTO (a los 79,4 s)
+      //
+      // FORZAR_ROJO no cambia el modo a AUTO. Eso paso 79 s despues y lo causo otra
+      // cosa. La ventana es de 95 s por un motivo bueno -SET_MODO:MENU contesta
+      // SALIENDO_TODO_ROJO y ejecuta hasta DESPEJE_SEG_MAX despues- pero esa misma
+      // holgura convierte cualquier evento posterior en un "efecto".
+      //
+      // NO se acorta la ventana: acortarla haria que el caso legitimo -el que motivo
+      // los 95 s- pasara a decir "no cambio nada", que es peor: una afirmacion falsa
+      // en vez de una atribucion dudosa.
+      //
+      // Se marca. Igual que ya se hace con los rechazos que no nombran orden
+      // -"ATRIBUIDA POR DESCARTE"-: el dato se ensena y la duda va pegada a el, para
+      // que quien lo lea no tenga que saberse los tiempos del firmware de memoria.
+      const l = Object.keys(reg.cambios).map(k => {
+        const dt = reg.cambios[k].ms - reg.ms;
+        const tarde = dt > this.EFECTO_INMEDIATO_MS;
+        return k + ': ' + reg.cambios[k].de + ' -> ' + reg.cambios[k].a +
+               ' (a los ' + this._seg(dt) + ' s' + (tarde ? ', TARDIO' : '') + ')';
+      });
+      const hayTardios = Object.keys(reg.cambios)
+        .some(k => (reg.cambios[k].ms - reg.ms) > this.EFECTO_INMEDIATO_MS);
+      return 'CAMBIO: ' + l.join(' · ') + (hayTardios
+        ? String.fromCharCode(10) + '                     ' +
+          '[los marcados TARDIO llegaron mas de ' +
+          this._seg(this.EFECTO_INMEDIATO_MS) + ' s despues de la orden: pueden ser ' +
+          'de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]'
+        : '');
     }
     // SIN_CAMBIO. La unica frase que afirma algo, y solo se llega aqui con un $STATUS
     // antes, otro despues y los mismos valores en los dos.

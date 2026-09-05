@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-09-04
-HEAD         : d73bf17   rama: main-nuevo
+HEAD         : b5fb473   rama: main-nuevo
 Arbol        : CON CAMBIOS SIN COMMITEAR
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -28,13 +28,13 @@ RESULTADOS
   PASS      arnes del automatico              RESULTADO: 71/71 comprobaciones OK
   PASS      arnes de las dos puntas           RESULTADO: 42/42 comprobaciones OK
   PASS      arnes del Degradado a dos puntas  RESULTADO: 18/18 comprobaciones OK
-  ABORTADO  simulador del puente ESP32        [ABORTADO] arnes de la app (jsdom) no arranco: 'ABORT app.js no se pudo evaluar: Invalid or unexpected token'
+  PASS      simulador del puente ESP32        RESULTADO: 86/86 comprobaciones del contrato del puente en PASS
 ------------------------------------------------------------------------------
-  RESUMEN: 19 PASS | 0 FALLA | 1 ABORTADO
+  RESUMEN: 20 PASS | 0 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a d73bf17 y re-corriendo
+firmware. Esta acta se verifica volviendo a b5fb473 y re-corriendo
 python 01_Firmware/compuerta.py.
 
 AVISO: el arbol tenia cambios sin commitear al medir. Estas
-cifras NO corresponden exactamente a d73bf17.
+cifras NO corresponden exactamente a b5fb473.

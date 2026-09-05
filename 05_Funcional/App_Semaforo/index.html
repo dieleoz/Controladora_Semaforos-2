@@ -72,6 +72,14 @@
               <div class="lamp green" id="s1-green"></div>
             </div>
             <div class="semaforo-state-text" id="s1-text">SIN DATOS</div>
+            <!-- UN HUECO QUE NO SE PUEDE RELLENAR OFRECE LA ACCION, NO ANUNCIA LA
+                 CARENCIA. El $STATUS trae UN solo ESTADO -el del que lo manda-, asi que
+                 estando en el POSTE 2 no hay forma de saber las luces del POSTE 1: eso
+                 es firmware y no esta hecho. Lo que si se puede hacer es llevar al
+                 tecnico al otro poste de un toque. Decision del responsable, 04/09. -->
+            <button class="btn-ir-al-otro" id="btn-ir-al-maestro" style="display:none;">
+              Conectarse al POSTE 1
+            </button>
           </div>
 
           <!-- Countdown Center Ring -->
@@ -98,8 +106,56 @@
               <div class="lamp green" id="s2-green"></div>
             </div>
             <div class="semaforo-state-text" id="s2-text">SIN DATOS</div>
+            <button class="btn-ir-al-otro" id="btn-ir-al-esclavo" style="display:none;">
+              Conectarse al POSTE 2
+            </button>
           </div>
         </div>
+      </div>
+
+      <!-- ===============================================================
+           VENTANA DE DIAGNOSTICO DEL POSTE 2 (ESCLAVO)
+           ===============================================================
+           Decision del responsable, 04/09: "al conectarnos a una ventana de esclavo,
+           sera para diagnostico... ademas no puede permitir operar, pero si
+           diagnosticar. La pantalla confunde."
+
+           La confusion tenia causa: esta misma pantalla intentaba ser las dos cosas, y
+           contra el Esclavo ensenaba cuatro mandos de ciclo APAGADOS -el Esclavo no
+           tiene esas ramas en su despachador- mas una columna entera de SIN DATOS. Dos
+           mitades mintiendo por omision. Aqui se cambian los mandos muertos por lo que
+           esta ventana si sabe: que publica el Esclavo y que NO publica.
+
+           Solo se ve con un ESCLAVO confirmado por NODE: del $STATUS. -->
+      <div class="card diag-card" id="panel-diagnostico" style="display:none;">
+        <div class="traffic-header">
+          <span class="card-tag">VENTANA DE DIAGNÓSTICO · POSTE 2</span>
+          <span class="badge badge-diag">NO SE OPERA EL CRUCE</span>
+        </div>
+        <p class="diag-desc">
+          El cruce se manda desde el <strong>POSTE 1 (Maestro)</strong>. Esta ventana es
+          para ver qué le llega a este poste y qué hace con ello.
+        </p>
+        <!-- LO QUE ESTA PUNTA PUBLICA Y LO QUE NO, MEDIDO EN EL FUENTE Y NO SUPUESTO.
+             Esclavo/src/bluetooth.cpp:776 manda literalmente
+               MODO:SUBORDINADO,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s
+             o sea que de los siete campos, CUATRO son marcas fijas. Dejar los huecos en
+             blanco los haria pasar por medidas que aun no llegaron; se dice cuales no
+             existen, para que nadie los espere. -->
+        <ul class="diag-lista">
+          <li><strong>Sí publica:</strong> su estado de luces, su hora y su serie.</li>
+          <li><strong>NO publica:</strong> batería, calidad de radio ni latencia — el
+              firmware del Esclavo manda <code>BAT:--</code>, <code>RF:--</code> y
+              <code>RTT:--</code> fijos. No están medidos, así que no se pintan.</li>
+          <li><strong>Tampoco publica</strong> cuánto falta para el cambio
+              (<code>T:--</code>): la cuenta atrás la lleva el Maestro.</li>
+        </ul>
+        <div class="diag-log-cab">Últimos movimientos de este enlace</div>
+        <!-- Lo rellena renderDiagnostico() con state.events, que es la MISMA lista que
+             pinta la pestana de Eventos: no hay una segunda copia del registro que
+             alguien tenga que sincronizar. Aqui salen los ultimos, para no obligar a
+             cambiar de pestana con el poste delante. -->
+        <div class="diag-log" id="diag-log"></div>
       </div>
 
 
@@ -108,7 +164,12 @@
            =============================================================== -->
       <div class="card operario-pad-card">
         <div class="pad-header">
-          <h3>🎮 BOTONERA DE CAMPO</h3>
+          <!-- El rotulo lo cambia aplicarModoPantalla(): contra el POSTE 2 esta tarjeta
+               deja de ser una botonera de ciclo -el Esclavo no tiene esas ramas- y se
+               queda solo con las emergencias, que si son suyas. Un titulo que siga
+               diciendo "BOTONERA" sobre dos botones de emergencia promete mandos que no
+               estan. -->
+          <h3 id="pad-titulo">🎮 BOTONERA DE CAMPO</h3>
           <!-- A QUE POSTE ESTA CONECTADO, CON LAS PALABRAS QUE USA LA PANTALLA.
                "MAESTRO" y "ESCLAVO" son el vocabulario del protocolo y no significan
                nada para un banderillero; POSTE 1 y POSTE 2 son los rotulos que estan
@@ -704,14 +765,23 @@
            la declara el equipo en NODE: del $STATUS, no una fila escrita a mano. -->
       <div class="bt-device-list" id="bt-device-list-container">
         <p class="modal-desc" id="bt-lista-vacia">
-          Pulse <strong>Buscar</strong> para ver los equipos emparejados.
-          No hay lista guardada.
+          Pulse <strong>Buscar</strong> para ver los equipos. Se listan los
+          <strong>emparejados</strong> y también los que estén
+          <strong>encendidos cerca sin emparejar</strong>. No hay lista guardada.
         </p>
       </div>
 
+      <!-- El Bluetooth clasico es punto a punto: para hablar con el otro poste hay que
+           soltar este. Reportado desde el banco el 04/09 -"tengo que reiniciar la
+           aplicacion"-, porque cerrar el enlace no estaba a mano en ninguna pantalla.
+           El boton SOLO sale con un enlace abierto: uno que no desconecta nada es un
+           mando que no hace nada, y esta app ya pago eso. -->
       <div class="bt-modal-actions">
         <button class="btn-primary-bt" id="btn-scan-bluetooth-live">
           🔍 Buscar Módulos Bluetooth
+        </button>
+        <button class="btn-bt-desconectar" id="btn-bt-disconnect" style="display:none;">
+          🔌 Desconectar de este poste
         </button>
       </div>
     </div>
