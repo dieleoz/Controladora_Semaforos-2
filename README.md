@@ -300,11 +300,24 @@ tenía el módulo SPP; **lo que se enchufa, no**.
 |---|---|---|
 | ~~**Pantalla LCD ST7920** (las dos puntas)~~ | **este PCB no permite ampliación** — el proyecto anterior sí, y de ahí venía todo lo que se había desarrollado para ampliarlo. Nada de eso era físicamente realizable soldando sobre una placa que no lo admite. La pantalla ocupaba **cinco pines** —`PB3` `PB4` `PB5` `PB6` `PB7`, `pines.h:85-89`— y el Bluetooth necesita `PB6`/`PB7`: **no había de dónde sacarlos** | toda la operación pasa por la app |
 | ~~**Módulo Bluetooth SPP dedicado** (`HC-05` / `JDY-30`)~~ | lo sustituye el ESP32 por el mismo `J17` | **no se compran**: la línea `A1` del Manual 15 está anulada |
-| ~~**Botón 3 (`PB14`, `J16` p10) y Botón 4 (`PB15`, `J16` p12)**~~ | sus pines son los que necesitan las cámaras | 🔴 `botonCancelar()` = Botón 4 es **hoy la única salida de los ocho modos**: ver el aviso de abajo |
+| ~~**Los CUATRO botones**~~ | los pines de 3 y 4 son los que necesitan las cámaras, y el 05/09 el responsable retiró la botonera entera: **«todo por app»** | ✅ **YA ESTÁ HECHO EN FIRMWARE, medido el 05/09**: `botonAceptar()` y `botonCancelar()` son `return false;` en las dos puntas, y `BOTON1`/`BOTON2` **no se leen en ningún sitio** (`grep -c` = 0). Lo que **sigue vivo** es la lectura de `PB9`/`PB13` que alimenta al mando |
 
-**Y una vía que se planteó retirar y NO se retira — decidido el 31/08:**
+**Y una vía que se conservó el 31/08 y cuyo HARDWARE ya no existe — 05/09:**
 
-| se conserva | medida que lo sostiene |
+> 🟡 **El responsable ha dicho el 05/09 que el mando de relés ya no se monta: «ya no tenemos
+> mandos de A y B, sólo la app».** El código **sigue entero y sigue leyendo `PB9`/`PB13`**, y
+> **no se ha retirado**, porque retirarlo no es neutro y las dos consecuencias están medidas:
+>
+> 1. **`mando_ambarLocal()` dejaría de armarse nunca**, y de esa bandera cuelgan **cinco lectores
+>    que la usan para VETAR**. El veto de SFTY-21 no queda inerte: **queda abierto**.
+> 2. **El Esclavo se quedaría sin su única puerta viva al Modo Degradado** — `degradado_entrar()`
+>    tiene dos llamadores: `menu.cpp:227`, muerto con la pantalla, y `mando.cpp:148`, la
+>    secuencia `A.B.A.B`.
+>
+> **Lo que decide qué pasa con esto es `A-11`**, y está en `DECISIONES.md`: darle a la app la
+> llave de una puerta que ya está construida cuesta mucho menos que retirar el modo.
+
+| lo que sostenía conservarlo, y sigue siendo cierto | medida |
 |---|---|
 | ✅ **El mando de relés, en sus canales A y B** — `MANDO_A` = Botón 1 = `PB9` (`J16` p5) y `MANDO_B` = Botón 2 = `PB13` (`J16` p8), `botones.cpp:119-120` | El mando **nunca usó C ni D**: `grep "BOTON[1-4]" Maestro/src/mando.cpp` da **cero**. Y se conservan **los dos** canales, no uno: el veto de SFTY-21 —`ambarLocal`— **sólo lo arma `B·B·B`** (`Esclavo/src/mando.cpp:246-248` y `:129-132`). Con un solo canal no hay `B·B·B` que dar |
 
