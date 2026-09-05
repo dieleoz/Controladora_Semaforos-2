@@ -97,6 +97,106 @@ cable, y conviene un segundo terminal emparejado.
 
 ---
 
+## 0.0.duovicies.bis LOS CUATRO AGENTES DE LA MADRUGADA — tres arreglaron el instrumento y uno construyo obra
+
+Se lanzaron cuatro en paralelo sobre ficheros disjuntos. **Ninguno de los cuatro cerro lo que
+venia a cerrar sin destapar antes algo que estaba escrito como hecho.**
+
+### `N-154` · el `$STATUS` no cabia en su peor caso, y por BUFFER eran 169 B (`e43a8e7`)
+
+**LA COTA BUENA ES EL BUFFER DE CADA CAMPO, NO SU RANGO NI SU TIPO.** Es lo unico que `snprintf`
+garantiza sin fiarse de otro modulo. El apunte de N-153 decia **162 B por tipo**; medido por
+buffer eran **169** contra un techo de 155 — **25 de mas, no 7**. Y **el Esclavo cabia por UN
+byte**, sin que nadie lo hubiera mirado nunca.
+
+Hoy no truncaba porque los valores reales son cortos. Y **una trama truncada no da un dato malo**:
+sale bien formada hasta la mitad, no casa el CRC, y la app la descarta entera. El sintoma seria
+*«el equipo se callo»*, que manda a mirar el cable.
+
+Maestro **169 -> 141 B** (margen +3), Esclavo **127 -> 123**. **+48 B de flash en el Maestro, CERO
+en el Esclavo, y sin agrandar ningun buffer.** Las cotas **se derivan**: `CUENTA_ATRAS_MAX_SEG`
+sale de `limites_ciclo.h` —un `900` a mano habria sido la quinta copia de N-137— y
+`RTT_PUBLICABLE_MAX_MS` es el propio umbral de orfandad de SFTY-6, porque **por encima de ahi no
+hay enlace que medir**.
+
+> **Y el cambio de fondo no es el tamano: es de que se fia el buffer.** Antes, de una invariante de
+> otro fichero. Ahora, de una guarda que corre en la misma funcion y en cada emision.
+
+Cuando un valor se sale se publica **`!`**, ni numero ni `--`: el `--` ya significa *«todavia no lo
+se»*, y aplastar ahi un valor imposible **lo esconderia entre los huecos normales**.
+
+🔴 **Residual escrito en vez de disimulado:** los 3 B que quedan **no dan para el campo `CAM:`**
+—son 11 caracteres con su coma—. O se acota `HORA:` —validar hora/minuto/segundo lo baja de 11 a 8
+y devuelve justo 3 B— o se sube `payload` a **155**, que es el techo real. Y
+`bluetooth_reportarAlarma()` tiene el mismo defecto en pequeno, **medido y sin arreglar**:
+`tramo[40]` pide 52 caracteres por tipo. Es menos grave —trunca un buffer INTERNO, asi que el
+`$ALARM` sale bien formado y solo se queda sin el `SINRESP`— y no pierde la trama.
+
+### `N-155` · `app_11` no juzgaba NINGUNA linea (`2d17678`)
+
+El pack de rangos de tiempos estaba en verde **midiendo el vacio**. Al ensenarle a juzgar aparecio
+lo que ya no se puede desver, y es lo unico que hoy tiene la compuerta en rojo:
+
+> 🔴 **`modo_inteligente.cpp:123` corta un verde a los 15 s**, cuando el minimo vial que fijo el
+> responsable el 04/09 (`D-5`) son **3 minutos**. Y esa comparacion **no pasa ni por `SET_TIEMPOS`
+> ni por el menu**: ninguna de las dos guardas la toca. El cruce puede alternar por debajo del
+> minimo **sin que nadie haya configurado nada**.
+
+Esta en el **unico modo que usa las camaras**. Con una camara pegada en «hay presencia», esa punta
+recibe verdes de ese tamano ciclo tras ciclo mientras la otra corre a 3 minutos. **Estaba escrito
+ANTES de comprar las camaras: el hardware nuevo no lo trae, lo ENCUENTRA.**
+
+**La compuerta se queda en `19 PASS · 1 FALLA` a proposito. Eso no es una regresion: es el
+hallazgo.** Bajarle el liston al pack para que se ponga verde seria ajustar la medida hasta que de
+el resultado que gusta.
+
+🟡 **Y es una decision VIAL, no mecanica.** El arreglo es una linea y esta verificado por inyeccion,
+pero subir ese piso a 3 min **cambia lo que hace el Modo Inteligente**: deja de poder alternar por
+demanda dentro del primer verde. **Pendiente del responsable.**
+
+### `N-156` · el `$ACK` del reloj, y el Degradado del Esclavo sin puerta (`5846cee`, `d020f3c`)
+
+`CMD:LEER_RTC` —consultar el reloj **sin cambiarlo**, en Maestro, Esclavo y telefono, que es lo que
+pidio el responsable en `A-9`—. Al construirlo aparecieron dos cosas que no se buscaban:
+
+- **`N-118` REFUTADO con la medida del propio banco.** Los `0,6 V` de `MANDO_A`/`MANDO_B` eran
+  sintoma del firmware **viejo** (`INPUT_PULLUP`), corregido en `346ea5f`. Y es moot: **ya no hay
+  mando**.
+- 🔴 **El Esclavo NO TIENE NINGUNA VIA para entrar en Modo Degradado.**
+  `grep -c "SET_MODO" Esclavo/src/bluetooth.cpp` da **0**. El modo existe, esta construido y
+  probado, y **nadie puede pedirlo en esa punta**. Abierto como **`A-11`**, y no lo cierra un
+  agente: anadirle `SET_MODO` al Esclavo **cambia quien arbitra el ciclo**.
+
+### `N-157` · fase 1 de `D-13`: la camara se vigila a si misma (`4b90f98`)
+
+**Cero efecto vial**, y comprobado por diff, no por el informe: la unica funcion vial en las 238
+lineas nuevas es `semaforo_plumaArriba()`, **y se lee**. El bloque es **identico byte a byte en las
+dos puntas**.
+
+Dos alarmas de mantenimiento —`CAM_PEGADA` a 20 min, `CAM_CIEGA` a 6 h **de paso abierto**— y un
+contador que **observa** la transicion en vez de vetarla: vetarla exigiria entrar en
+`escribirPines()`, que es **SFTY-28** y necesita la derogacion escrita de **`A-1.bis`**. Ese
+contador es el dato que decidira si la fase 2 se construye.
+
+**El umbral de `PEGADA` se deriva** del techo del ciclo y el pack lo recalcula del C++ cada vez
+(N-71). **El de `CIEGA` NO sale de ninguna constante del firmware, y asi esta escrito**: cuanto
+tarda el siguiente vehiculo es propiedad de la carretera, y fabricarle una derivacion seria `A-7`
+otra vez.
+
+🔴 **Lo que queda SIN EJERCER y no debe leerse como aprobado:** `CAM_CIEGA` a su valor de produccion
+son 6 h, **no ejecutable en una sesion de banco**. Ejercerla exige cargar una compilacion con el
+umbral reducido, **y esa compilacion no es la que va a campo**. El camino esta comprobado en su
+**forma**, no en su **tiempo**.
+
+### Lo que los cuatro tienen en comun
+
+**Tres de los cuatro arreglaron un INSTRUMENTO, no el firmware** —un buffer que se fiaba de otro
+fichero, un pack que juzgaba cero lineas, un motivo de huerfano que era falso—. Y el cuarto dejo su
+getter **huerfano a proposito**, con el motivo **medido**: el `$STATUS` no admite hoy el campo
+`CAM:`.
+
+**Ninguno toco la calle.** Sigue corriendo `e303485` del 31/07.
+
 ## 0.0.unvicies EL DIA DE LAS CAMARAS (05/09) — lo que se decidio y lo que se destapo
 
 > **El detalle de cada decision vive en [`DECISIONES.md`](DECISIONES.md).** Aqui queda el

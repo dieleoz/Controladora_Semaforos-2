@@ -91,8 +91,10 @@ que el tramo quedo vacio. Es configurable de 10 a 90 s y hoy esta en 15.
 
 ## Verificacion
 
-Compuerta **20 PASS · 0 FALLA · 0 ABORTADO**. Banco **1081/1081 en 75 packs**. Maestro
-**86,0 %** (`56256` B), Esclavo **66,1 %** (`40572` B), app en DOM **226/226**.
+Compuerta **19 PASS · 1 FALLA · 0 ABORTADO**, o sea que **sale con `1`**. Banco
+**1150/1151 en 76 packs**. Maestro **87,0 %** (`57008` B), Esclavo **63,0 %** (`41276` B),
+app en DOM **226/226**. El único `FALLA` es `app_11`: el límite de 15 s de
+`modo_inteligente.cpp:123`, por debajo del mínimo vial de 3 min de `D-5`.
 
 > **Y lo que ese verde significa, que es lo de siempre:** los modelos y los arneses de PC
 > no encuentran nada. **No dice que el firmware funcione en la tarjeta.** Esta noche hubo
@@ -160,14 +162,14 @@ nombre y apellido.
 
 ## 📏 VERIFICACIÓN EN ESCRITORIO — lo que dice la última acta
 
-**Compuerta:** 🔴 **19 PASS | 0 FALLA | 1 ABORTADO**, así que **no sale con `0`: sale con `2`**, que es su código de ABORTADO. **El abortado es `simulador de app y bluetooth`**, que no sabe con qué comparar el campo `ESC:` que N-149 estrenó el 05/09: **mientras siga abortado, todo lo que ese instrumento vigilaba entra sin mirar** (`CLAUDE.md` §3.quater). **El banco por packs está entero —1081/1081 en 75 packs— y las cinco comprobaciones `documentos_*` dentro.** Cifras **copiadas del acta
+**Compuerta:** 🔴 **19 PASS | 1 FALLA | 0 ABORTADO**, así que **no sale con `0`: sale con `1`**. El `ABORTADO` de `simulador de app y bluetooth` —que no supo comparar el campo `ESC:` estrenado por N-149— duró unas horas el 05/09 y está cerrado: hoy da **12/12**. **El `FALLA` es `app_11_rangos_de_tiempos`, y es un HALLAZGO, no una regresión del banco:** `modo_inteligente.cpp:123` corta un verde a los **15 s**, por debajo del mínimo vial de **3 min** que fijó el responsable (`D-5`), fuera de `SET_TIEMPOS` y fuera del menú. **El arreglo es del firmware y es una decisión VIAL pendiente** — subir ese piso cambia lo que hace el Modo Inteligente. Banco **1150/1151 en 76 packs**, con las seis comprobaciones `documentos_*` dentro. Cifras **copiadas del acta
 `evidencia/2026-09-05_compuerta.txt`**, no escritas a mano — lo comprueban `documentos_01` y
 `documentos_04` en cada corrida.
 
 | | |
 |---|---|
-| Flash | Maestro **85.8 %** (**56256** de 65536 B → **9.280 B libres**) · Esclavo **61.9 %** (40572 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | **1081/1081** en **75 packs** |
+| Flash | Maestro **87.0 %** (**57008** de 65536 B → **8.528 B libres**) · Esclavo **63.0 %** (41276 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | **1150/1151 comprobaciones** en **76 packs** — con **`app_11` en `FALLA`**: el límite de 15 s de `modo_inteligente.cpp:123` por debajo del mínimo vial de 3 min (`D-5`). Hallazgo abierto, no regresión |
 | Arneses que compilan C++ real | 271/271 pantalla · 73/73 automático · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | app: 32/32 + 55/55 unitarios + 226/226 jsdom + 58/58 funcional |
