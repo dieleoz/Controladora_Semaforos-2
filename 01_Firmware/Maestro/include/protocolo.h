@@ -173,6 +173,41 @@
 // la orfandad lo saque, y parado es la direccion segura-.
 #define CMD_GO_AMBAR       0x13
 
+// N-142 (04/09): EL ESCLAVO AVISA DE QUE LE PUSIERON AMBAR DE EMERGENCIA.
+//
+// El unico paquete que va del Esclavo al Maestro por iniciativa del Esclavo aparte de
+// CMD_DEMANDA. Nace de un bloqueo reportado en banco:
+//
+//   "como me conecte a la aplicacion del Esclavo y le di ambar, esta quedo en ambar
+//    intermitente. Si me conecto otra vez al Maestro, esto ya no me recibe nada"
+//
+// LO QUE PASABA: el ambar de emergencia enganchaba un CERROJO -el Esclavo dejaba de
+// obedecer y de ACUSAR las ordenes de radio-, el Maestro agotaba reintentos, caia a
+// C_FALLO y rechazaba todo. La unica salida era CANCELAR_AMBAR, que solo acepta el
+// Esclavo y con PIN, y para llegar alli hay que desvincular el Maestro en Ajustes de
+// Android. Un operario podia dejar el cruce trabado y no poder soltarlo desde el otro
+// poste.
+//
+// Y ANTES DE ESO, LA VENTANA PEOR: el Esclavo avisaba al TELEFONO y no al Maestro, y
+// ademas seguia contestando PONG, asi que el enlace le parecia perfecto al Maestro. Si
+// el Maestro estaba en VERDE, durante el resto de esa fase -hasta 3 minutos- convivian
+// Maestro en verde y Esclavo en ambar, y los dos sentidos podian entrar al carril.
+//
+// LA DECISION DEL RESPONSABLE (04/09), y son DOS mitades que solo funcionan juntas:
+//
+//   1. El Esclavo AVISA por radio al enganchar. El Maestro se va a MODO_AMBAR en el
+//      acto: deja de ciclar y de dar verdes. El ambar del operario se RESPETA.
+//   2. Y el ambar pedido POR LA APP deja de ser un cerrojo frente a la radio. El del
+//      MANDO fisico -B.B.B- lo sigue siendo, que es quien de verdad demuestra que hay
+//      alguien subido al gabinete.
+//
+// La segunda sin la primera dejaria el boton inutil -la siguiente orden del Maestro le
+// quitaria el ambar en segundos-. La primera sin la segunda deja el bloqueo si el aviso
+// se pierde. Juntas: el caso normal lo respeta el Maestro, y si el aviso no llega, la
+// siguiente orden recupera el cruce en vez de trabarlo. Es la misma estructura que
+// N-134 del reves.
+#define CMD_AMBAR_ESCLAVO  0x14
+
 // N-130: EL PARAM DE CMD_ACK_DEMANDA DICE SI LA DEMANDA SE VA A ATENDER O NO.
 //
 // Hasta el 04/09 el Maestro acusaba la demanda SIEMPRE y armaba su bandera SIEMPRE,

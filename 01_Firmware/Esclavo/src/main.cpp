@@ -417,6 +417,29 @@ void loop() {
 
     } else if (pkt.command == CMD_GO_RED) {
       tUltimoComando = millis();
+      // N-142 (04/09): EL AMBAR DE LA APP YA NO VETA LA RADIO. EL DEL MANDO SI.
+      //
+      // N-142 (04/09): LOS DOS VETOS SE QUEDAN. EL BLOQUEO SE ARREGLA POR ARRIBA.
+      //
+      // Se iba a abrir esta guarda -y luego solo esta, dejando el verde vetado- para
+      // desatascar el cruce, y el banco paro las dos versiones. Tenia razon: sin el veto
+      // aqui, el ambar que pidio el operario dura hasta el siguiente latido del Maestro,
+      // unos 3 s, y el equipo se vuelve atras solo delante de quien lo pidio.
+      //
+      // Y AL MEDIRLO APARECIO QUE EL VETO NO ERA LA CAUSA DEL BLOQUEO. La causa es que
+      // esta punta no ACUSA: el Maestro agota reintentos a ciegas, cae a C_FALLO y desde
+      // ahi rechaza todo. El silencio es deliberado y correcto -acusar un rojo que no se
+      // ha encendido dejaria al Maestro dando verde convencido de que aqui hay rojo- pero
+      // obligaba al Maestro a ADIVINAR.
+      //
+      // Con CMD_AMBAR_ESCLAVO ya no adivina: se le dice. El Maestro se va a MODO_AMBAR,
+      // deja de ciclar y DEJA DE PREGUNTAR, asi que no hay reintentos, no hay C_FALLO y
+      // no hay bloqueo. El cerrojo se queda entero -que es lo que protege a quien esta en
+      // la calzada- y lo que desaparece es la ceguera del otro extremo.
+      //
+      // Lo que quedaba del bloqueo -no poder llegar al Esclavo para cancelar- era de la
+      // app, y se cerro el mismo dia: discoverUnpaired() y la reconexion sin reiniciar.
+
       // SFTY-21: con el ambar pedido desde el mando (B.B.B) no se obedece NI SE
       // ACUSA RECIBO. Ver mando.h: acusar sin encender la luz dejaria al Maestro
       // dando verde a su lado convencido de que aqui hay rojo. Callando, agota sus
@@ -437,6 +460,19 @@ void loop() {
       // N-83: la misma pareja de guardas. Sin la de Bluetooth el ambar de la app
       // duraria hasta el siguiente verde, y ese es el peor final de los dos: el
       // operario pidio precaucion para los dos sentidos y el equipo le da paso a uno.
+      //
+      // N-142 (04/09): AQUI EL VETO DE LA APP SE QUEDA, Y EN EL GO_RED NO. LA ASIMETRIA
+      // ES EL ARREGLO ENTERO.
+      //
+      // El cerrojo se iba a quitar de las dos para desatascar el cruce, y el banco lo
+      // paro: sin el aqui, un GO_GREEN que llegue antes de que el Maestro procese el
+      // aviso LE DA VERDE a la punta donde alguien acaba de pedir ambar. Eso es lo que el
+      // cerrojo existe para impedir y no se toca.
+      //
+      // Es el mismo criterio con el que este proyecto reparte el PIN: SE GUARDA LO QUE
+      // ABRE PASO, NO LO QUE LO PARA. El verde abre; el rojo para. Por eso el GO_RED pasa
+      // -y con el se acaba el bloqueo, porque el Maestro siempre puede llevar el cruce a
+      // rojo- y el GO_GREEN no.
       if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
         semaforo_iniciarTransicionAVerde(); // Transición Rojo -> Amarillo -> Verde
         // El backstop de verde maximo ya no se rearma aqui: lo hace el vigilante

@@ -470,6 +470,21 @@ static void procesarComando(const char* cmd) {
       const bool yaEnAmbar = (semaforo_estado() == S_FALLO);
       semaforo_iniciarFallo();
       ambarEmergencia = true;
+
+      // N-142 (04/09): SE LE DICE AL MAESTRO. Antes solo se le decia al TELEFONO.
+      //
+      // Sin este aviso el Maestro no tenia forma de enterarse -y encima esta punta sigue
+      // contestando PONG estando en ambar, asi que el enlace le parecia perfecto-. Si el
+      // Maestro estaba en VERDE cuando alguien engancho aqui el ambar, durante el resto
+      // de esa fase -hasta 3 minutos con los tiempos de hoy- convivian Maestro en verde y
+      // Esclavo en ambar, y los dos sentidos podian entrar al carril.
+      //
+      // Se manda SIN esperar acuse y sin reintento, igual que CMD_GO_AMBAR: quedarse
+      // esperando retrasaria la respuesta al operario, que es lo urgente. Si se pierde,
+      // la red sigue siendo la de siempre -el Maestro agota reintentos en el siguiente
+      // cambio y cae a fallo-, solo que tarda mas.
+      protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO);
+
       if (yaEnAmbar) {
         enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO");
       } else {

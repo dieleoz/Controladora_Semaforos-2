@@ -194,6 +194,24 @@ void loop() {
      coordinador_actualizar_background();
   }
 
+  // N-142 (04/09): EL ESCLAVO PIDIO AMBAR DESDE SU TELEFONO. SE LLEVA EL CRUCE ENTERO.
+  //
+  // El aviso llega por radio (CMD_AMBAR_ESCLAVO) y lo anota el coordinador; aqui se
+  // consume, porque la respuesta es un CAMBIO DE MODO y el modo no lo decide la maquina
+  // del ciclo. Ese reparto no se cambia por una prisa.
+  //
+  // VA DESPUES del refresco de fondo y ANTES del switch de cambio de modo, para que la
+  // entrada en MODO_AMBAR se atienda en esta misma vuelta y no en la siguiente: el
+  // operario que lo pidio esta de pie delante del cruce.
+  //
+  // SI YA ESTAMOS EN AMBAR NO SE HACE NADA, y no es una optimizacion: modo_ambar_setup()
+  // manda un todo-rojo y vuelve a ordenar el ambar, asi que reentrar por cada aviso
+  // repetido -el operario puede pulsar tres veces, y lo hizo en banco- reiniciaria la
+  // secuencia cada vez.
+  if (coordinador_hayAmbarDelEsclavo() && modo != MODO_AMBAR) {
+    modoActual_set(MODO_AMBAR);
+  }
+
   if (modo != modoAnterior) {
     // N-20: SALIR del Degradado por CUALQUIER via borra el indicador de la pila, y por
     // eso se hace aqui y no dentro de cada destino. Del Degradado se sale por al menos

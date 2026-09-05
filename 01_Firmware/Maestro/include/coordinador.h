@@ -47,6 +47,14 @@ int coordinador_segundosRestantesFase();
 bool coordinador_hayDemandaRemota();
 void coordinador_limpiarDemandaRemota();
 
+// N-142: devuelve true UNA vez si el Esclavo aviso de que le pusieron ambar de emergencia
+// desde su telefono, y consume el aviso al leerlo -no es un estado, es un suceso-.
+//
+// Lo consulta main.cpp y no el coordinador, porque la respuesta es un CAMBIO DE MODO y el
+// modo no lo decide la maquina del ciclo. Ver el porque completo en coordinador.cpp, en la
+// rama de CMD_AMBAR_ESCLAVO.
+bool coordinador_hayAmbarDelEsclavo();
+
 // ---------------------------------------------------------------------------
 // Telemetria de calidad de enlace (V8.1)
 //

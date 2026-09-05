@@ -35,9 +35,20 @@ static bool handshakeOk = false;
 static unsigned long tUltimoPing = 0;
 static unsigned long tUltimaRxEsclavo = 0;
 static bool demandaRemotaPendiente = false;
+// N-142: el Esclavo aviso de que le pusieron ambar de emergencia. Se anota aqui y lo
+// consume main.cpp, que es quien puede cambiar de modo: llamar a modoActual_set()
+// desde dentro del coordinador seria que la maquina del ciclo decidiera el modo del
+// equipo, y ese reparto no se cambia por una prisa.
+static bool ambarPedidoPorEsclavo = false;
 
 bool coordinador_hayDemandaRemota() {
   return demandaRemotaPendiente;
+}
+
+bool coordinador_hayAmbarDelEsclavo() {
+  const bool r = ambarPedidoPorEsclavo;
+  ambarPedidoPorEsclavo = false;   // se consume al leerlo: es un aviso, no un estado
+  return r;
 }
 
 void coordinador_limpiarDemandaRemota() {
@@ -617,6 +628,29 @@ void coordinador_actualizar() {
 
     if (pkt.command == CMD_PING) {
       protocolo_enviarPaquete(CMD_PONG);
+    } else if (pkt.command == CMD_AMBAR_ESCLAVO) {
+      // N-142 (04/09): EL ESCLAVO AVISA DE QUE LE PUSIERON AMBAR DE EMERGENCIA.
+      //
+      // El operario que esta de pie junto al Poste 2 pidio ambar desde su telefono. Esta
+      // punta no tenia forma de enterarse: el Esclavo avisaba al telefono y no por radio,
+      // y ademas sigue contestando PONG estando en ambar, asi que el enlace parecia
+      // perfecto. Si esta punta estaba en VERDE, seguia dandolo -hasta 3 minutos- con el
+      // otro lado en ambar, y los dos sentidos podian entrar al carril.
+      //
+      // Se lleva el cruce a MODO_AMBAR, que es el estado seguro y el que el operario
+      // pidio: deja de ciclar, pone ambar aqui y ordena rojo alla antes de callarse
+      // -modo_ambar_setup()-. Con eso el ambar del Esclavo se RESPETA porque esta punta
+      // obedece, no porque el otro extremo este trabado, que es lo que hacia antes.
+      //
+      // NO SE ACUSA. El Esclavo lo manda sin esperar respuesta y sin reintento -su
+      // operario esta esperando delante-, asi que un acuse no lo leeria nadie. Lo que
+      // hace las veces de confirmacion es que el cruce entero se pare, que se ve.
+      //
+      // Y la red de abajo sigue puesta: si esta trama se pierde, esta punta agotara sus
+      // reintentos en el siguiente cambio y caera a C_FALLO igual que antes. Lo que se
+      // gana es no esperar hasta ahi.
+      ambarPedidoPorEsclavo = true;
+
     } else if (pkt.command == CMD_DEMANDA) {
       // N-130: NO SE ACUSA LO QUE NO SE VA A ATENDER.
       //
