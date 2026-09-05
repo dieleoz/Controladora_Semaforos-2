@@ -55,6 +55,21 @@ void coordinador_limpiarDemandaRemota();
 // rama de CMD_AMBAR_ESCLAVO.
 bool coordinador_hayAmbarDelEsclavo();
 
+// N-152: y el aviso de que lo RETIRA, con el mismo trato -se consume al leerlo-.
+//
+// Quien lo consume tiene que comprobar ADEMAS que el ambar vigente sea el del Esclavo
+// (modo_ambar_origenEsclavo()): esta funcion dice que el Poste 2 lo pidio, no que se
+// deba obedecer. Ver protocolo.h, cabecera de CMD_CANCELA_AMBAR_ESCLAVO.
+bool coordinador_hayCancelaAmbarDelEsclavo();
+
+// N-152: escucha la radio SIN hablar, para el unico modo en que el Maestro no la lee.
+//
+// En MODO_AMBAR nadie llama a coordinador_actualizar(), que es el unico sitio del
+// Maestro donde se lee el UART; sin esto la cancelacion del Esclavo llegaria y no la
+// leeria nadie. NO responde, NO emite latido, NO toca la maquina de estados y NO
+// refresca la telemetria: SFTY-21 pide callar, y callar es no transmitir.
+void coordinador_escucharEnAmbar();
+
 // ---------------------------------------------------------------------------
 // Telemetria de calidad de enlace (V8.1)
 //

@@ -208,6 +208,45 @@
 // N-134 del reves.
 #define CMD_AMBAR_ESCLAVO  0x14
 
+// N-152 (05/09): Y EL ESCLAVO AVISA TAMBIEN DE QUE LO RETIRA. ES N-142 AL REVES.
+//
+// N-142 cerro el aviso al ARMAR y dejo abierto el de CANCELAR. Medido: en
+// Esclavo/src/bluetooth.cpp la rama CANCELAR_AMBAR limpiaba el latch y contestaba al
+// TELEFONO, y el unico protocolo_enviarPaquete() de ese fichero era el del armado.
+//
+// La consecuencia es peor que la del defecto original, porque N-142 la creo: al armar,
+// el Maestro se va a MODO_AMBAR. Al cancelar desde el Poste 2, el Esclavo levanta su
+// veto y se queda esperando la siguiente orden del Maestro... que NO EXISTE, porque en
+// MODO_AMBAR el Maestro calla a proposito (SFTY-21). El cruce queda en ambar hasta que
+// alguien camine hasta el Poste 1. El $ACK RESULT:RETIRADO decia "el Maestro movera la
+// luz con su siguiente orden" y esa frase habia dejado de ser cierta.
+//
+// LAS CUATRO DECISIONES DE DISENO, y ninguna es "copiar N-142":
+//
+//   1. EL MAESTRO NO SALE DE CUALQUIER AMBAR. Solo del que ENTRO POR ESTE AVISO. A
+//      MODO_AMBAR se llega tambien por B.B.B, por SET_MODO:AMBAR y desde el Degradado,
+//      y esos los pidio una persona que puede estar en la calzada del Poste 1. El
+//      Maestro no podia distinguirlos: el origen se anota ahora junto al MOTIVO que ya
+//      se pintaba en pantalla -ver modo_ambar.h-, porque el motivo ES el origen.
+//   2. SE SALE AL TODO-ROJO, NO AL CICLO. Reanudar seria dar verde a un cruce cuyo
+//      Poste 1 no ha mirado nadie. Se entra en MODO_MANUAL por la misma puerta que
+//      N-147: coordinador_forzarRojoTotal(), que no programa ningun cambio.
+//   3. NO SE ACUSA, igual que CMD_AMBAR_ESCLAVO y por el mismo motivo -el operario del
+//      Poste 2 ya tiene su respuesta por Bluetooth-. Lo que confirma es que el cruce
+//      pase de ambar a rojo, que se ve desde donde esta de pie.
+//   4. LA RED, SI ESTA TRAMA SE PIERDE: aqui NO sirve la de N-142 -el Maestro callado
+//      no agota reintentos ni cae a C_FALLO: no pregunta nada-. La red es que la
+//      SEGUNDA pulsacion de CANCELAR_AMBAR reenvia el aviso en vez de contestar
+//      "no hay ambar vigente" delante de un semaforo en ambar, que era un callejon.
+//
+// Y HAY UNA QUINTA QUE NO ES DE DISENO SINO DE VIDA: en MODO_AMBAR el Maestro NO LEIA
+// LA RADIO. Censado: protocolo_hayPaqueteDisponible() se llama en un solo sitio,
+// coordinador_actualizar(), y main.cpp excluye MODO_AMBAR de la unica llamada que
+// queda en ese modo. Un CMD_CANCELA_AMBAR_ESCLAVO copiado de N-142 habria llegado al
+// UART y no lo habria leido nadie: declarado y no ejercido. Por eso existe
+// coordinador_escucharEnAmbar(), que ESCUCHA sin hablar -callar es no transmitir-.
+#define CMD_CANCELA_AMBAR_ESCLAVO  0x15
+
 // N-130: EL PARAM DE CMD_ACK_DEMANDA DICE SI LA DEMANDA SE VA A ATENDER O NO.
 //
 // Hasta el 04/09 el Maestro acusaba la demanda SIEMPRE y armaba su bandera SIEMPRE,

@@ -41,6 +41,12 @@ static bool demandaRemotaPendiente = false;
 // equipo, y ese reparto no se cambia por una prisa.
 static bool ambarPedidoPorEsclavo = false;
 
+// N-152: y el aviso de que lo RETIRA. Es otra bandera y no un valor mas de la de
+// arriba: "armo" y "cancelo" son dos sucesos que pueden llegar en cualquier orden y
+// que main.cpp atiende en sitios distintos. Una sola variable contestando a dos
+// preguntas no puede contestar bien a ninguna (CLAUDE.md 8.ter).
+static bool cancelaAmbarPedidaPorEsclavo = false;
+
 bool coordinador_hayDemandaRemota() {
   return demandaRemotaPendiente;
 }
@@ -49,6 +55,46 @@ bool coordinador_hayAmbarDelEsclavo() {
   const bool r = ambarPedidoPorEsclavo;
   ambarPedidoPorEsclavo = false;   // se consume al leerlo: es un aviso, no un estado
   return r;
+}
+
+bool coordinador_hayCancelaAmbarDelEsclavo() {
+  const bool r = cancelaAmbarPedidaPorEsclavo;
+  cancelaAmbarPedidaPorEsclavo = false;   // mismo trato: es un aviso, no un estado
+  return r;
+}
+
+// N-152: LO QUE SE OYE EN MODO_AMBAR, QUE HASTA HOY NO ERA NADA.
+//
+// EL CENSO QUE OBLIGA A QUE ESTA FUNCION EXISTA, y sin el todo lo demas seria una rama
+// muerta: protocolo_hayPaqueteDisponible() se llama en UN SOLO sitio de todo el
+// Maestro -coordinador_actualizar()-, y en MODO_AMBAR nadie lo llama: main.cpp excluye
+// ese modo del refresco de fondo y modo_ambar_loop() solo refresca la lampara. O sea
+// que el Maestro en ambar tiene la radio MUDA Y SORDA. Copiar N-142 tal cual habria
+// dejado la trama del Esclavo entrando por el UART sin que nadie la leyera: declarado
+// y no ejercido, que es como el banco del 3-4/09 paso con cinco defectos dentro.
+//
+// CALLAR NO ES NO OIR, y esa es toda la licencia que se toma sobre SFTY-21. Lo que esa
+// regla protege es que este extremo no EMITA en Degradado ni en Ambar -una orden vieja
+// contradiciendo la fase, o un latido que le desarme la orfandad al otro-. Escuchar no
+// hace ninguna de las dos cosas. Por eso esto NO es coordinador_actualizar(): no
+// responde PONG, no emite latido, no toca la maquina de estados, y no refresca
+// tUltimaRxEsclavo ni la telemetria -si lo hiciera, el enlace se pintaria vivo por
+// tramas que este modo no contesta-.
+//
+// SOLO SE ATIENDEN LOS DOS AVISOS DEL AMBAR. Lo demas que llegue se descarta a
+// proposito: en este modo no hay ciclo que acuse ni demanda que atender, y hoy esas
+// tramas ya se perdian -sin leer- dentro del buffer del UART.
+void coordinador_escucharEnAmbar() {
+  RF_Packet pkt;
+  if (!protocolo_hayPaqueteDisponible(&pkt)) return;
+
+  if (pkt.command == CMD_AMBAR_ESCLAVO) {
+    cancelaAmbarPedidaPorEsclavo = false;   // llego un armado despues: manda el ultimo
+    ambarPedidoPorEsclavo = true;
+  } else if (pkt.command == CMD_CANCELA_AMBAR_ESCLAVO) {
+    ambarPedidoPorEsclavo = false;
+    cancelaAmbarPedidaPorEsclavo = true;
+  }
 }
 
 void coordinador_limpiarDemandaRemota() {
@@ -676,6 +722,22 @@ void coordinador_actualizar() {
       // reintentos en el siguiente cambio y caera a C_FALLO igual que antes. Lo que se
       // gana es no esperar hasta ahi.
       ambarPedidoPorEsclavo = true;
+      cancelaAmbarPedidaPorEsclavo = false;
+
+    } else if (pkt.command == CMD_CANCELA_AMBAR_ESCLAVO) {
+      // N-152: EL ESCLAVO RETIRA SU AMBAR DE EMERGENCIA.
+      //
+      // El camino normal de esta trama es el otro -coordinador_escucharEnAmbar(),
+      // porque cuando el Esclavo cancela lo habitual es que este extremo ESTE en el
+      // ambar al que lo llevo N-142-. Esta rama cubre el resto: si el aviso del armado
+      // se perdio, este extremo sigue ciclando y la cancelacion llega por aqui.
+      //
+      // Se anota y ya. Quien decide es main.cpp, y ademas exige que el ambar vigente
+      // sea el del Esclavo: si no lo es, el aviso se consume sin efecto y ESO ES LO
+      // CORRECTO -el ambar de una persona de este poste no lo levanta el otro extremo-.
+      // Fuera de MODO_AMBAR no hay nada de lo que salir, y tampoco pasa nada.
+      ambarPedidoPorEsclavo = false;
+      cancelaAmbarPedidaPorEsclavo = true;
 
     } else if (pkt.command == CMD_DEMANDA) {
       // N-130: NO SE ACUSA LO QUE NO SE VA A ATENDER.

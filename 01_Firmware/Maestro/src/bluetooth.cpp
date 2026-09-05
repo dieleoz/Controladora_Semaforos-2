@@ -534,6 +534,13 @@ static void procesarComando(const char* cmd) {
     // ambar-, y por eso NO se hace desde el aviso del Esclavo (N-142, main.cpp), que
     // llega repetido. Aqui lo pide una persona pulsando un boton: repetirlo es
     // exactamente lo que quiere.
+    // N-152 (05/09): ESTE AMBAR LO PIDE ALGUIEN DE ESTE POSTE, Y ESO SE ESCRIBE.
+    //
+    // Dos cosas a la vez, porque son la misma. La pantalla del gabinete heredaba el
+    // motivo anterior -este era el unico de los cuatro caminos al ambar que no fijaba
+    // ninguno-, y ademas es lo que impide que el aviso de cancelacion del Esclavo saque
+    // al cruce de un ambar que pidio una persona de aqui. Ver modo_ambar.h.
+    modo_ambar_fijarMotivo("Ambar pedido desde", "la app (celular)");
     const bool yaEnModo = (modoActual_get() == MODO_AMBAR);
     modoActual_set(MODO_AMBAR);
     if (yaEnModo) {

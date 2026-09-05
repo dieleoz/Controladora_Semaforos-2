@@ -519,10 +519,44 @@ static void procesarComando(const char* cmd) {
     // vuelve a mover la luz es el Maestro con su siguiente orden. Por eso el RESULT dice
     // RETIRADO y no OK -un OK se leeria como "el ambar ya no esta", y sigue estando hasta
     // que llegue esa orden-.
+    // N-152 (05/09): Y SE LE DICE AL MAESTRO, QUE ES LA MITAD QUE FALTABA.
+    //
+    // La frase de arriba -"quien vuelve a mover la luz es el Maestro con su siguiente
+    // orden"- era cierta cuando se escribio y N-142 la dejo falsa el 04/09: desde
+    // entonces el Maestro se va a MODO_AMBAR al recibir el aviso del armado, y en ese
+    // modo CALLA a proposito (SFTY-21). O sea que no hay siguiente orden. El operario
+    // del Poste 2 cancelaba, veia su ACK, y el cruce seguia en ambar hasta que alguien
+    // caminara hasta el Poste 1. El porque completo esta en protocolo.h, en la cabecera
+    // de CMD_CANCELA_AMBAR_ESCLAVO; aqui vive el cuando.
+    //
+    // Se manda SIN esperar acuse y sin reintento, igual que el aviso del armado: el
+    // operario esta esperando delante y lo que confirma es que el cruce se mueva.
     if (!ambarEmergencia) {
-      // No se finge una revocacion que no ocurrio: si el operario no sabe que no habia
-      // nada que quitar, se ira creyendo que desactivo algo que sigue puesto por otra via.
-      enviarTramaConCrc("$ERR,CMD:CANCELAR_AMBAR,DESC:NO_HAY_AMBAR_VIGENTE");
+      // N-152: LA RED DE LA TRAMA PERDIDA, Y ADEMAS LA SALIDA DE UN CALLEJON.
+      //
+      // Si el aviso de arriba se pierde, el Maestro sigue callado en su ambar y NO hay
+      // red que lo saque: la de N-142 -agotar reintentos y caer a C_FALLO- no vale aqui
+      // porque un Maestro que no pregunta nada no puede agotar nada. Lo unico que queda
+      // de este lado es que el operario vuelva a pulsar, y eso hasta hoy contestaba
+      // "NO_HAY_AMBAR_VIGENTE" delante de un semaforo que estaba en ambar: el latch ya
+      // se habia quitado en la primera pulsacion, asi que la segunda no tenia salida.
+      //
+      // La condicion no es "no hay latch": es que ESTA PUNTA SIGA EN AMBAR y que no lo
+      // sostenga el mando. Si la luz ya no esta en ambar no hay nada que pedir, y si el
+      // latch del gabinete esta puesto esta punta no va a obedecer igualmente.
+      //
+      // NO PROMETE que el ambar se vaya: el Maestro puede estar en un ambar que pidio
+      // otra persona -y entonces ignora el aviso a proposito-. Dice lo que hizo, que es
+      // volver a pedirlo. Es el mismo reparto que SOLICITAR_PASO: esta punta pide.
+      if (semaforo_estado() == S_FALLO && !mando_ambarLocal()) {
+        protocolo_enviarPaquete(CMD_CANCELA_AMBAR_ESCLAVO);
+        enviarTramaConCrc("$ACK,CMD:CANCELAR_AMBAR,RESULT:REENVIADO_AL_MAESTRO");
+        bluetooth_reportarEvento("APP_BLUETOOTH", "CANCELA_AMBAR_REENVIADA");
+      } else {
+        // No se finge una revocacion que no ocurrio: si el operario no sabe que no habia
+        // nada que quitar, se ira creyendo que desactivo algo que sigue puesto por otra via.
+        enviarTramaConCrc("$ERR,CMD:CANCELAR_AMBAR,DESC:NO_HAY_AMBAR_VIGENTE");
+      }
     } else {
       ambarEmergencia = false;
       if (mando_ambarLocal()) {
@@ -530,8 +564,15 @@ static void procesarComando(const char* cmd) {
         // main.cpp son "!mando_ambarLocal() && !bluetooth_ambarEmergencia()", asi que con
         // el del gabinete puesto la luz sigue vetada. Contestar OK a secas mandaria al
         // tecnico a esperar un cambio que no va a llegar hasta que alguien haga A.A.A.
+        //
+        // N-152: Y POR ESO TAMPOCO SE AVISA AL MAESTRO. Esta punta SIGUE en ambar, asi
+        // que pedirle al Maestro que salga del suyo dejaria el cruce con una punta en
+        // rojo y la otra en ambar, y al Maestro mandando ordenes que esta punta no
+        // obedece ni acusa -que es exactamente el bloqueo que N-142 cerro-. El aviso
+        // sale cuando el ambar se va de verdad, no cuando se quita uno de los dos.
         enviarTramaConCrc("$ACK,CMD:CANCELAR_AMBAR,RESULT:RETIRADO_QUEDA_MANDO");
       } else {
+        protocolo_enviarPaquete(CMD_CANCELA_AMBAR_ESCLAVO);
         enviarTramaConCrc("$ACK,CMD:CANCELAR_AMBAR,RESULT:RETIRADO");
       }
       bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_REVOCADO");

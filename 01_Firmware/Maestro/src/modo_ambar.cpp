@@ -23,10 +23,29 @@
 static const char* ambarL1 = "Ambar intermitente";
 static const char* ambarL2 = "";
 
+// N-152: de quien es el ambar vigente. Arranca en false -un equipo recien encendido no
+// esta en un ambar que pidiera nadie- y lo apaga cualquier motivo local. El porque de
+// que viva pegado al motivo, en modo_ambar.h.
+static bool origenEsclavo = false;
+
 void modo_ambar_fijarMotivo(const char* linea1, const char* linea2) {
   ambarL1 = linea1;
   ambarL2 = linea2;
+  // N-152: quien fija motivo esta pidiendo el ambar DESDE ESTE POSTE. Apagar aqui es lo
+  // que hace que la distincion no dependa de acordarse en cada uno de los sitios que
+  // entran al modo: es la misma puerta por la que ya pasaban todos.
+  origenEsclavo = false;
 }
+
+void modo_ambar_fijarMotivoDelEsclavo() {
+  // El motivo se escribe aqui y no en main.cpp para que las dos lineas y el origen sean
+  // el mismo gesto: no se puede declarar uno y olvidar el otro.
+  ambarL1 = "Ambar pedido desde";
+  ambarL2 = "el Poste 2 (radio)";
+  origenEsclavo = true;
+}
+
+bool modo_ambar_origenEsclavo() { return origenEsclavo; }
 
 void modo_ambar_setup() {
   // Ciclo detenido y orden de rojo al Esclavo mientras el radio aun sirva. Despues el

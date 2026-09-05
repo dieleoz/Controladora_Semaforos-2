@@ -75,9 +75,23 @@ COMANDOS_PERMITIDOS = {
     #      es lo que el PIN existe para custodiar.
     #   3. Sin el, el latch no tenia mas salida que subir al gabinete -y ademas se caia
     #      solo, que era peor: la maquina deshaciendo una proteccion que puso una persona.
+    #
+    # N-152 (05/09): EL MOTIVO SE COMPLETA, NO SE REESCRIBE. La entrada sigue midiendo
+    # lo mismo -que este comando no llame a ninguna funcion que encienda un verde-, y eso
+    # no ha cambiado. Lo que cambio es lo que el comando HACE ADEMAS: ahora manda una
+    # trama por radio pidiendole al Maestro que salga de SU ambar, y el Maestro sale al
+    # todo-rojo. Un motivo de lista blanca es una afirmacion sobre el codigo (CLAUDE.md
+    # 2.ter): dejarlo describiendo el comando de antes seria un defecto con permiso.
+    #
+    # Por que se acepta la parte nueva, y es comprobable en costura_14: el Maestro solo
+    # sale del ambar QUE PIDIO ESTA PUNTA -no del que pidio una persona del Poste 1-, y
+    # sale al todo-rojo que no programa ningun cambio. O sea que sigue sin abrir paso:
+    # para el cruce en rojo y deja que decida quien esta alli.
     "CANCELAR_AMBAR":   "retira el latch del ambar de la app; NO enciende nada, pero "
                         "levanta el veto y el siguiente verde del Maestro se obedece. "
-                        "Pide PIN, y el verde lo sigue decidiendo el Maestro (R-3)",
+                        "Pide PIN, y el verde lo sigue decidiendo el Maestro (R-3). "
+                        "N-152: ademas AVISA al Maestro por radio, que sale de su ambar "
+                        "-solo si era el que pidio esta punta- al todo-rojo, no al ciclo",
     "FORZAR_ROJO":      "presente solo para RECHAZARLO ensenando el nombre nuevo",
     "SOLICITAR_PASO":   "PIDE al Maestro; no enciende nada en esta punta",
     "TEST_LEDS":        "presente solo para RECHAZARLO con un motivo legible",

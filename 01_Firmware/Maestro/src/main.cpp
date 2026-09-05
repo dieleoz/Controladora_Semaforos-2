@@ -192,6 +192,19 @@ void loop() {
   ModoSistema modo = modoActual_get();
   if (modo != MODO_AUTOMATICO && modo != MODO_DEGRADADO && modo != MODO_AMBAR) {
      coordinador_actualizar_background();
+  } else if (modo == MODO_AMBAR) {
+     // N-152 (05/09): EN AMBAR SE CALLA, PERO SE OYE. Y HASTA HOY NO SE OIA.
+     //
+     // Censado, no leido: protocolo_hayPaqueteDisponible() se llama en UN solo sitio
+     // del Maestro -coordinador_actualizar()-, y la linea de arriba lo excluye en este
+     // modo. O sea que el Maestro en ambar tenia la radio muda Y SORDA, y la
+     // cancelacion del Esclavo habria entrado por el UART sin lector.
+     //
+     // Va en este mismo if y no en modo_ambar_loop() a proposito: la exclusion de
+     // SFTY-21 se decide aqui, y su excepcion tiene que leerse al lado, no en otro
+     // fichero. Ademas asi el aviso queda anotado ANTES de que se consuma treinta
+     // lineas mas abajo, en la misma vuelta.
+     coordinador_escucharEnAmbar();
   }
 
   // N-142 (04/09): EL ESCLAVO PIDIO AMBAR DESDE SU TELEFONO. SE LLEVA EL CRUCE ENTERO.
@@ -200,16 +213,60 @@ void loop() {
   // consume, porque la respuesta es un CAMBIO DE MODO y el modo no lo decide la maquina
   // del ciclo. Ese reparto no se cambia por una prisa.
   //
-  // VA DESPUES del refresco de fondo y ANTES del switch de cambio de modo, para que la
-  // entrada en MODO_AMBAR se atienda en esta misma vuelta y no en la siguiente: el
-  // operario que lo pidio esta de pie delante del cruce.
+  // VA DESPUES del refresco de fondo y ANTES del switch de cambio de modo: el operario
+  // que lo pidio esta de pie delante del cruce.
+  //
+  // OJO, LA FRASE QUE SEGUIA AQUI ERA FALSA Y SE CORRIGE (N-152, 05/09). Decia que asi
+  // "la entrada en MODO_AMBAR se atiende en esta misma vuelta y no en la siguiente".
+  // Medido: 'modo' es una COPIA leida veinte lineas mas arriba, asi que el
+  // "if (modo != modoAnterior)" de aqui abajo compara el valor VIEJO y modo_ambar_setup()
+  // corre en la vuelta siguiente. Se anota en vez de borrarse -y no se cambia el codigo-
+  // porque el efecto real es de una vuelta de loop, imperceptible, y tocar el orden de
+  // este bloque por una frase equivocada costaria mas de lo que arregla. Lo que no puede
+  // quedarse es la frase: una cuenta dentro de un comentario envejece con la autoridad
+  // de un dato (CLAUDE.md 3.bis, N-71).
   //
   // SI YA ESTAMOS EN AMBAR NO SE HACE NADA, y no es una optimizacion: modo_ambar_setup()
   // manda un todo-rojo y vuelve a ordenar el ambar, asi que reentrar por cada aviso
   // repetido -el operario puede pulsar tres veces, y lo hizo en banco- reiniciaria la
   // secuencia cada vez.
   if (coordinador_hayAmbarDelEsclavo() && modo != MODO_AMBAR) {
+    // N-152: SE ANOTA DE QUIEN ES ESTE AMBAR, y con eso se pinta el motivo de verdad.
+    // Hasta hoy esta entrada no fijaba motivo, asi que la pantalla del gabinete
+    // heredaba el anterior -tras un B.B.B decia "Ambar pedido desde el mando (B.B.B)"
+    // para un ambar que habia pedido el Poste 2-. El origen y el motivo son la misma
+    // pregunta y por eso los fija una sola llamada.
+    modo_ambar_fijarMotivoDelEsclavo();
     modoActual_set(MODO_AMBAR);
+  }
+
+  // N-152 (05/09): Y EL ESCLAVO RETIRA SU AMBAR. EL CRUCE SALE, PERO AL TODO-ROJO.
+  //
+  // Es N-142 en la direccion contraria y NO es su copia. Las dos diferencias:
+  //
+  //   1. SOLO SE SALE DEL AMBAR QUE PIDIO EL ESCLAVO. modo_ambar_origenEsclavo() lo
+  //      distingue del que pidio alguien de este poste -B.B.B, la app, el Degradado-.
+  //      Ese puede estar protegiendo a quien esta en la calzada del Poste 1, y el otro
+  //      extremo no tiene por que saberlo. Si el origen no es el suyo, el aviso ya se
+  //      consumio arriba y aqui no pasa nada: es el rechazo, y es silencioso a
+  //      proposito -no hay a quien contestarle desde este modo-.
+  //
+  //   2. NO SE VUELVE AL CICLO: se va a MODO_MANUAL, que entra por
+  //      coordinador_forzarRojoTotal() y NO PROGRAMA NINGUN CAMBIO (N-147). Reanudar el
+  //      Automatico daria verde a un cruce cuyo Poste 1 no ha mirado nadie: el Esclavo
+  //      dijo "ya no retengo el ambar", no "ya se puede pasar". El todo-rojo es la
+  //      direccion segura y ademas devuelve la radio: desde ahi el operario decide.
+  //
+  // NO SE ACUSA, igual que en N-142 y por lo mismo -el operario del Poste 2 ya tiene su
+  // respuesta por Bluetooth-. Lo que confirma es que el cruce pase de ambar a rojo.
+  //
+  // Se lee modoActual_get() y no la copia 'modo' de arriba: entre las dos hay un
+  // modoActual_set(), y una guarda que mirase el valor viejo se estaria preguntando por
+  // un modo que ya cambio.
+  if (coordinador_hayCancelaAmbarDelEsclavo()
+      && modoActual_get() == MODO_AMBAR
+      && modo_ambar_origenEsclavo()) {
+    modoActual_set(MODO_MANUAL);
   }
 
   if (modo != modoAnterior) {
