@@ -13,10 +13,10 @@ contra lo que se programa.
 >
 > | | estado a 31/08 | MEDIDO en |
 > |---|---|---|
-> | El firmware del ESP32 de expansión | 🟢 **existe y compila** — `35.6 %` de flash (`1121001` de `3145728` B) | `evidencia/2026-08-31_compuerta.txt:16` · árbol en `01_Firmware/ESP32_Expansion/` (8 `.h` + 8 `.cpp`) |
-> | El rol nuevo en la compuerta (§7.1) | 🟢 **dado de alta** | `01_Firmware/compuerta.py:114` `_ROLES = (..., "ESP32_Expansion")`, `:118` la regex, `:97` `RUTAS_MINIMAS_ESPERADAS = 45`, `:692` `compilar("esp32", "ESP32_Expansion")` |
-> | Los nueve packs de §7.2 | 🟢 **existen los nueve** | `01_Firmware/Simulaciones/banco/packs/esp32_01…esp32_09` |
-> | `BLQ-1` | 🟢 **CERRADO** — ver §6.1 | `ESTADO.md:23` · `roadmap.md:215` (N-107) |
+> | El firmware del ESP32 de expansión | 🟢 **existe y compila** — ~~`35.6 %` (`1121001` B)~~ → 🔵 **`35.7 %`, `1122137` de `3145728` B** *(acta del 05/09; la cifra del 31/08 se deja tachada porque **una cifra de flash caduca con cada commit**, y la que vale es la de la última corrida)* | `grep -n "compila esp32" evidencia/2026-08-31_compuerta.txt` → **`16:`** *(línea verificada el 05/09: sigue siendo la 16)* · árbol en `01_Firmware/ESP32_Expansion/` (8 `.h` + 8 `.cpp`) |
+> | El rol nuevo en la compuerta (§7.1) | 🟢 **dado de alta** | `01_Firmware/compuerta.py` — se localiza por símbolo, no por número: `grep -n '_ROLES =' compuerta.py` · `grep -n '_RE_TRIPLE =' compuerta.py` · `grep -n 'RUTAS_MINIMAS_ESPERADAS =' compuerta.py` (hoy **45**) · `grep -n 'compilar("esp32"' compuerta.py`. ~~`:114`, `:118`, `:97`, `:692`~~ — **de los cuatro números del 31/08 sólo dos seguían siendo ciertos el 05/09** (`:114` y `:97`); la regex es `:117` y la compilación `:905` |
+> | Los nueve packs de §7.2 | 🟢 **existen los nueve** — 🔵 **y el 05/09 ya son ONCE**: se añadieron `esp32_10_parte_de_arranque` y `esp32_11_bien_formada_no_es_cierta` | `ls 01_Firmware/Simulaciones/banco/packs/ | grep esp32` |
+> | `BLQ-1` | 🟢 **CERRADO** — ver §6.1 | `grep -n 'BLQ-1' ESTADO.md` · `grep -n 'N-107' roadmap.md`. ~~`ESTADO.md:23` · `roadmap.md:215`~~ — **los dos números habían caducado ya el 05/09**: la fila de `BLQ-1` vive hoy en la línea 151 de `ESTADO.md` y en la 1583 de `roadmap.md`, y N-107 en la 3013 |
 >
 > 🛑 **Y lo que NO cambia: nada de esto ha pasado banco, y no hay una sola tarjeta con un ESP32
 > conectado a `J17`.** Que compile y que los packs den verde es exactamente lo que `CLAUDE.md` §3
@@ -52,16 +52,22 @@ alguien escribió; una placa dice lo que se fabricó.
 dos veces mientras se escribía esto, y las dos van anotadas porque el siguiente agente va a usar
 los mismos comandos:
 
-1. **Una lectura del fichero no es una medida.** La primera lectura de
-   `Esclavo/src/bluetooth.cpp:78` se transcribió como `SerialBT.begin(115200)` y estuvo a punto de
-   publicarse como *«corrección: las dos puntas van a velocidades distintas»*. `grep`, `sed -n
-   '78p'` y `od -c` sobre la misma línea dan **`9600`**. Manda la medida, no la lectura:
+1. **Una lectura del fichero no es una medida.** La primera lectura del `SerialBT.begin()` del
+   Esclavo se transcribió como `SerialBT.begin(115200)` y estuvo a punto de publicarse como
+   *«corrección: las dos puntas van a velocidades distintas»*. `grep` y `od -c` sobre la misma
+   línea dan **`9600`**. Manda la medida, no la lectura:
 
    ```
-   $ sed -n '78p' Esclavo/src/bluetooth.cpp | od -c
+   $ sed -n '78p' Esclavo/src/bluetooth.cpp | od -c        # 31/08, cuando era la línea 78
    0000000       S   e   r   i   a   l   B   T   .   b   e   g   i   n
    0000020   (   9   6   0   0   )   ;  \n
    ```
+
+   > ⚠️ **Y este recuadro es su propio ejemplo.** El `sed -n '78p'` de arriba **ya no funciona**:
+   > el 05/09 esa llamada vive en la línea **164** del Esclavo y en la **136** del Maestro. El
+   > mandato se conserva con su fecha porque la medida fue buena; **el comando que hay que correr
+   > hoy es el que no lleva número**:
+   > `grep -n 'SerialBT.begin' 01_Firmware/{Maestro,Esclavo}/src/bluetooth.cpp`.
 
 2. **`grep -i "OSF"` casa dentro de `MOSFET`.** El censo de *«¿existe ya algo de `DS3231`?»* devolvió
    diez líneas de `pines.h` que no tenían nada que ver. Es el mismo error de forma que el `(segment `
@@ -87,13 +93,25 @@ los mismos comandos:
 **MEDIDO** — los dos pines que cierran la puerta al reloj en el STM32:
 
 ```
-01_Firmware/Maestro/include/pines.h:46   #define CAM_DEMANDA_PIN    PB0
-01_Firmware/Maestro/include/pines.h:63   #define LED_TESTIGO        PB8   // -> R16 1K -> LED D5
+$ grep -n 'CAM_DEMANDA_PIN\|LED_TESTIGO' 01_Firmware/Maestro/include/pines.h
+46:#define CAM_DEMANDA_PIN    PB0  // -> R64 10K + C25 100nF -> bornera J14 (antirrebote 1 ms)
+63:#define LED_TESTIGO        PB8  // -> R16 1K -> LED D5. NO es entrada de camara
 ```
 
-`pines.h:59-62` deja escrito además que `PB8` se queda **en alta impedancia a propósito**, y
-`pines.h:64-67` enumera los cuatro pines que de verdad quedan libres (`PA11`, `PA12`, `PA15`,
-`PC13`) — **ninguno de ellos es un par I²C por hardware**. La línea `PIN-0` está anulada.
+*(Los dos números se **re-verificaron el 05/09** y siguen siendo los buenos. Se dejan porque
+aportan —son dos `#define` concretos— y porque el `grep` de arriba los vuelve a encontrar el día
+que se muevan.)*
+
+El mismo fichero deja escrito además que `PB8` se queda **en alta impedancia a propósito**
+—`grep -n 'alta impedancia' 01_Firmware/Maestro/include/pines.h`— y enumera los cuatro pines
+que de verdad quedan libres (`PA11`, `PA12`, `PA15`, `PC13`) —`grep -n 'PA11' 01_Firmware/Maestro/include/pines.h`—,
+**ninguno de ellos un par I²C por hardware**. La línea `PIN-0` está anulada.
+
+> ⚠️ ~~`pines.h:59-62` deja escrito que `PB8` se queda en alta impedancia… y `pines.h:64-67`
+> enumera los cuatro pines libres~~ — **LOS DOS RANGOS ERAN FALSOS Y NADIE LO NOTÓ.** Medido el
+> 05/09: la alta impedancia se razona en **`:55-57`** y los cuatro pines libres están en
+> **`:61`**, o sea **dentro** del bloque que la primera cita se saltaba. Se tacha en vez de
+> renumerarse: el número nuevo caduca igual que el viejo, y lo que no caduca es el `grep`.
 
 ### 1.2 La frase que gobierna todo el diseño
 
@@ -126,6 +144,101 @@ dependa del ESP32 para seguir siendo seguro se rechaza**, por cómoda que sea. E
 nombra porque ya está propuesta en el Manual 17 §3.2 vía B— el reloj de software en el STM32
 disciplinado por el ESP32.
 
+### 1.3 🔴 Lo que este módulo NO hace, y por qué no es una omisión
+
+> **De cada cámara el sistema consume UN CONTACTO SECO. No hay red, no hay imagen, no hay vídeo,
+> y no hay analítica en el controlador.** — `DECISIONES.md` **D-12**, 05/09.
+
+**Por qué este apartado existe, que es la mitad del valor:** hasta el 05/09 este documento **no
+prometía** nada de red ni de cámaras —y ese silencio ERA el hueco—. **No hubo una sola frase que
+tachar: lo que faltaba era la negativa explícita.** Medido sobre la versión anterior a esta
+pasada:
+
+```
+$ git show HEAD:05_Funcional/18_Especificacion_Firmware_ESP32.md \
+    | grep -icE 'c[aá]mara|wifi|http|imagen|v[ií]deo|onvif|rtsp|captura|anal[ií]tica|servidor'
+2
+```
+
+**Dos líneas en 1.380** —una sobre los pines que *«las cámaras necesitan»* y otra sobre el
+`ESP32-S2`—, y **ninguna de las dos decía qué puede y qué no puede este módulo**. Sobre ese
+silencio, **dos revisiones del 05/09 recomendaron «imágenes y auditoría»** heredando la idea de
+una propuesta del 04/09 **sin comprobar que hubiera camino**. Es el hallazgo de §6.5 de este
+mismo documento aplicado al revés: *lo que el fuente no hace y la especificación calla, alguien
+lo propone.*
+
+**MEDIDO el 05/09 sobre `01_Firmware/ESP32_Expansion/`, con su control negativo al lado —que es
+lo que separa un «no aparece» de un hallazgo (`CLAUDE.md` §4)—:**
+
+```
+$ cd 01_Firmware/ESP32_Expansion
+$ grep -rowE '\bWiFi\b|\bHTTPClient\b|\bWebServer\b|\besp_camera\b|\bONVIF\b|\blwip\b' \
+       src include platformio.ini | wc -l
+0
+
+$ grep -rh '#include' src include | sort -u
+   -> Arduino.h, BluetoothSerial.h, Wire.h, Preferences.h, esp_task_wdt.h,
+      esp_system.h, stdio.h, string.h  +  las ocho cabeceras propias. NADA MAS.
+
+$ xtensa-esp32-elf-nm .pio/build/esp32_expansion/firmware.elf \
+    | grep -icE ' [TtWw] .*(esp_wifi_init|esp_wifi_start|httpd_start|lwip_socket|esp_camera_init)'
+0
+```
+
+> 🟢 **CONTROL NEGATIVO — el buscador SABE encontrar.** Los mismos comandos, sobre lo que sí
+> está: `BluetoothSerial` → **4**, `Serial2` → **3**, `Wire` → **13**, y el `nm` sobre
+> `esp_task_wdt_reset|esp_spp` → **10**. Un cero medido con un buscador que no ve nada vale cero;
+> éstos son ceros de un buscador que acaba de encontrar cuatro cosas.
+>
+> El toolchain vive en `C:\.platformio\packages\toolchain-xtensa-esp32\bin\` —**fuera de la ruta
+> con `ñ`**, N-44—, y el `.elf` es el que dejó la última compilación de la compuerta.
+
+**Lo que queda escrito, punto por punto:**
+
+| | el ESP32 de expansión |
+|---|---|
+| **WiFi** | ❌ no lo levanta, no lo enlaza y no lo referencia. Cero símbolos `esp_wifi_*` en el `.elf` |
+| **HTTP / servidor web** | ❌ no hay `HTTPClient`, `WebServer` ni `httpd_start` |
+| **Sockets / `lwip`** | ❌ cero. **La pila TCP/IP ni siquiera se enlaza** |
+| **ONVIF / RTSP** | ❌ no aparece la palabra en ningún fichero del proyecto |
+| **Cámara** | ❌ ni `esp_camera_init` ni un solo `#include` de nada relacionado |
+| **Analítica** | ❌ no la hace, y **no la haría aunque quisiera**: no tiene de dónde sacar un píxel |
+| lo que **sí** hace | SPP (`BluetoothSerial`), `Serial2` hacia el STM32, I²C (`Wire`) para el `DS3231`, NVS (`Preferences`) para el rótulo, y el TWDT |
+
+**Y el camino de cámara del sistema, entero, para que nadie lo busque aquí:**
+
+> **El único consumo de cámara del sistema es UN CONTACTO SECO leído por el STM32 en `PB14`
+> (`CAM_C_PIN`, `J16` p10) y `PB15` (`CAM_D_PIN`, `J16` p12). El ESP32 NO PARTICIPA.** No lee esos
+> pines, no los ve, y ninguna trama del protocolo de §3 los transporta.
+>
+> `grep -n 'CAM_C_PIN\|CAM_D_PIN' 01_Firmware/Maestro/include/pines.h 01_Firmware/Maestro/src/botones.cpp`
+> — están declarados en `pines.h` (`:148-149`, verificado el 05/09) y **leídos de verdad** en
+> `botones.cpp`: `camara_leerPin(CAM_J16[i])`, dos llamadas. No es un `pinMode()` sin
+> `digitalRead()` —no es `CAM_UMBRAL_PIN` otra vez—, y **las dos puntas del camino están en el
+> Maestro: ninguna en el ESP32**. Es `DECISIONES.md` **D-2** (los dos pines son las cámaras) y **D-3**
+> (`M3` cerrada: se cablean a `J16`).
+
+**La CONSECUENCIA, que es lo que hay que leer antes de proponer nada:**
+
+> 🔴 **El CONTROLADOR no ve imagen. Nunca.** Con un bit por cámara, **una cámara = una salida =
+> UN significado**, y con dos cámaras hay **dos significados para todo el cruce** (`DECISIONES.md`
+> **A-1**, abierta). De ahí sale lo que D-12 declara y este documento no puede ablandar: **toda la
+> inteligencia vive en la CONFIGURACIÓN de la cámara**, y el manual de parametrización pasa de
+> documento de apoyo a **entregable principal**.
+>
+> ⚠️ **Y la mitad que D-12 CORRIGIÓ el mismo 05/09, que hay que escribir bien porque el encargo
+> de esta pasada la traía al revés.** ~~*«Sin imágenes no hay soporte de accidentes ni
+> auditoría»*~~ → **la cámara SÍ graba en su propia microSD** (`DS-2CD2683G2-IZS`, hasta 512 GB,
+> ficha oficial — **D-10**), así que el soporte de accidentes y la auditoría **sí son posibles:
+> en la cámara, no en nuestro firmware.** Es una tarjeta que hay que comprar y configurar, y **no
+> toca una línea de código** — `DECISIONES.md` **A-0**, abierta. Lo que sigue siendo cierto sin
+> matices: **por aquí no pasa una imagen, y nada de lo que este documento especifica la verá**.
+
+> 🛑 **Regla de rechazo, hermana de la de §1.2:** cualquier propuesta que necesite que el ESP32
+> vea, mueva, sirva o guarde una imagen —Raspberry, Nano, servidor local, ONVIF, un `HTTPClient`
+> «sólo para subir el evento»— **está proponiendo un equipo distinto**, no una función más. No
+> se discute aquí: se lleva a `DECISIONES.md`, que es donde D-12 la derogó una vez.
+
 ---
 
 ## 2. El enlace físico
@@ -141,8 +254,9 @@ disciplinado por el ESP32.
 **MEDIDO** en el firmware, las dos puntas:
 
 ```
-01_Firmware/Maestro/src/bluetooth.cpp:28   static HardwareSerial SerialBT(PB7, PB6);
-01_Firmware/Esclavo/src/bluetooth.cpp:26   static HardwareSerial SerialBT(PB7, PB6);
+$ grep -n 'HardwareSerial SerialBT' 01_Firmware/{Maestro,Esclavo}/src/bluetooth.cpp
+01_Firmware/Maestro/src/bluetooth.cpp:29:static HardwareSerial SerialBT(PB7, PB6); // USART1 remapeado: PB7 RX, PB6 TX
+01_Firmware/Esclavo/src/bluetooth.cpp:28:static HardwareSerial SerialBT(PB7, PB6); // USART1 remapeado: PB7 RX, PB6 TX
 ```
 
 > ⚠️ **El primer argumento es RX y el segundo es TX** (firma del framework
@@ -150,8 +264,15 @@ disciplinado por el ESP32.
 > comentario del propio fuente lo confirma —`// USART1 remapeado: PB7 RX, PB6 TX`—, pero el orden
 > se invierte solo al leerlo rápido, y un cruce de estos hilos no da error: da silencio.
 >
-> 📌 **Corrección de deriva:** el Manual 17 §1.4 cita `Maestro/src/bluetooth.cpp:25`. Hoy es **`:28`**.
-> El fichero se ha movido tres líneas desde el 28/08. La cita del Esclavo (`:26`) sigue exacta.
+> 📌 **Corrección de deriva, y la lección de que se haya tenido que corregir DOS veces.** El
+> Manual 17 §1.4 cita `Maestro/src/bluetooth.cpp:25`; el 31/08 este documento anotó que ya era
+> `:28`, y ~~*«la cita del Esclavo (`:26`) sigue exacta»*~~ **también había caducado para el
+> 05/09**: hoy son **`:29`** y **`:28`**.
+>
+> 🔴 **Corregir un número por otro número no arregla nada — lo demuestra este párrafo, que
+> caducó en cinco días.** El ancla que no caduca es
+> `grep -n "HardwareSerial SerialBT" 01_Firmware/Maestro/src/bluetooth.cpp`, y es la que se usa
+> de aquí en adelante en este documento.
 
 ### 2.2 Masa común, obligatoria — y la medida que va antes
 
@@ -166,7 +287,9 @@ módulo no es el que se cree y se para antes de conectar.
 
 ### 2.3 El nombre del pin 3 sigue en disputa
 
-**ESCRITO** y sin cerrar (Manual 17 §1.4, `MAPEO_TARJETA_KICAD.md` §6.bis, `pines.h:77-84`): la
+**ESCRITO** y sin cerrar (Manual 17 §1.4, `MAPEO_TARJETA_KICAD.md` §6.bis, y el propio
+`pines.h` — `grep -n 'LCD_PSB' 01_Firmware/Maestro/include/pines.h`, que hoy da `:78` y `:88`,
+y `grep -n 'PENDIENTE DE CONFIRMAR' 01_Firmware/Maestro/include/pines.h`): la
 etiqueta de red del esquemático llama al pin 3 `RS(A0)`; el firmware lo llama `LCD_PSB`. **Los dos
 nombres no pueden ser ciertos a la vez.** Con la LCD retirada la duda ya no amenaza a la pantalla,
 pero el hilo del ESP32 va a un sitio con dos nombres. Se cierra siguiendo el hilo hasta la pata
@@ -184,9 +307,9 @@ el 31/08/2026.
 
 | | valor | dónde está MEDIDO |
 |---|---|---|
-| Velocidad | **9600 bps** | `Maestro:70` · `Esclavo:78` — `SerialBT.begin(9600)` |
-| Formato | **8N1** | **por defecto del framework**: nadie lo eligió — ver el aviso |
-| Periférico | `USART1` remapeado a `PB6`/`PB7` | `Maestro:28` · `Esclavo:26` |
+| Velocidad | **9600 bps** | `grep -n 'SerialBT.begin' …/bluetooth.cpp` — hoy `Maestro:136` · `Esclavo:164`. ~~`Maestro:70` · `Esclavo:78`~~ |
+| Formato | **8N1** | **por defecto del framework**: nadie lo eligió — ver el aviso. No hay línea que citar, y **ése es el hallazgo** |
+| Periférico | `USART1` remapeado a `PB6`/`PB7` | `grep -n 'HardwareSerial SerialBT' …/bluetooth.cpp` — hoy `Maestro:29` · `Esclavo:28`. ~~`Maestro:28` · `Esclavo:26`~~ |
 | Caudal efectivo | **960 B/s** (10 bits por byte con arranque y parada) | cuenta |
 
 > ⚠️ **Las dos puntas van a 9600, y hay que decir que se comprobó.** El encargo de esta pasada las
@@ -200,29 +323,38 @@ el 31/08/2026.
 
 ### 3.2 La trama de ENTRADA al STM32 (lo que el ESP32 escribe hacia `PB7`)
 
-**MEDIDO** — el bucle receptor, idéntico en las dos puntas (`Maestro:389-400`, `Esclavo:295-306`):
+**MEDIDO** — el bucle receptor, idéntico en las dos puntas. Se localiza con
+`grep -n 'while (SerialBT.available' 01_Firmware/{Maestro,Esclavo}/src/bluetooth.cpp`
+(hoy `Maestro:807` · `Esclavo:724`; el 31/08 eran `:389` y `:295`):
 
 ```c
 while (SerialBT.available() > 0) {
   char c = (char)SerialBT.read();
-  if (c == '\n' || c == '\r') {           // Maestro:391  Esclavo:297
+  if (c == '\n' || c == '\r') {
     if (btIdxIn > 0) {
       btBufIn[btIdxIn] = '\0';
       procesarComando(btBufIn);
       btIdxIn = 0;
+      j17RegistrarLinea(ahora);   // 🔵 05/09: se anota DESPUES de despachar (A3)
     }
-  } else if (btIdxIn < sizeof(btBufIn) - 1) {   // Maestro:397  Esclavo:303
+  } else if (btIdxIn < sizeof(btBufIn) - 1) {
     btBufIn[btIdxIn++] = c;
   }
 }
 ```
+
+> 🔵 **05/09 — el bloque cambió y las cuatro reglas de abajo NO.** ~~El bucle del 31/08 no
+> tenía la llamada a `j17RegistrarLinea()`~~: hoy la lleva, y se anota **la línea recibida, se
+> haya reconocido o no**. Para el puente **no cambia nada** —E-1 a E-4 siguen exactas—, pero se
+> escribe porque un bloque citado que ya no es literal es la puerta de N-89: *al tocar la forma
+> de un bloque que alguien lee por texto, hay que comprobar que sigue midiendo lo que decía.*
 
 De ahí salen **cuatro reglas duras**, y ninguna es negociable desde el ESP32:
 
 | # | regla | consecuencia si se incumple |
 |---|---|---|
 | **E-1** | **Terminador obligatorio: `\r` o `\n`.** Cualquiera de los dos vale, y los dos juntos también (el segundo cae con `btIdxIn == 0` y no hace nada) | **sin terminador el despachador no dispara NUNCA.** El comando se queda en el buffer, mudo |
-| **E-2** | **63 caracteres útiles como máximo.** `btBufIn[64]` (`Maestro:31`, `Esclavo:29`) con la guarda `btIdxIn < sizeof(btBufIn) - 1` | 🔴 **el exceso se descarta EN SILENCIO**, y lo que llega al despachador es una **línea truncada** que se compara como si estuviera completa |
+| **E-2** | **63 caracteres útiles como máximo.** `btBufIn[64]` —`grep -n 'btBufIn\[64\]' …/bluetooth.cpp`, hoy `Maestro:32` · `Esclavo:31`; ~~`Maestro:31`, `Esclavo:29`~~— con la guarda `btIdxIn < sizeof(btBufIn) - 1` | 🔴 **el exceso se descarta EN SILENCIO**, y lo que llega al despachador es una **línea truncada** que se compara como si estuviera completa |
 | **E-3** | **Una línea vacía no es nada.** `if (btIdxIn > 0)` descarta el terminador suelto | inofensivo, pero el ESP32 no debe contarlo como comando entregado |
 | **E-4** | **El STM32 NO valida el checksum de entrada** | ver §3.4 |
 
@@ -237,24 +369,30 @@ De ahí salen **cuatro reglas duras**, y ninguna es negociable desde el ESP32:
 
 **La cuenta de E-2, y de dónde sale cada número. MEDIDO el 31/08 sobre el emisor vivo:**
 
-El emisor es `enviarComandoFirmware()` — `05_Funcional/App_Semaforo/app.js:205-221` —, y la línea que
-compone es, literal del fuente:
+El emisor es **`enviarComandoFirmware()`** — `05_Funcional/App_Semaforo/app.js`, y se localiza con
+`grep -n 'function enviarComandoFirmware' 05_Funcional/App_Semaforo/app.js` (hoy `:338`;
+~~`:205-221`~~ el 31/08). Las tres ramas de composición salen de `grep -n 'rawCmd = ' …/app.js`
+(hoy `:386`, `:388`, `:390`). Literal del fuente:
 
 ```js
-rawCmd = `CMD:PIN:${pin}:${comando}:${args}\r\n`;   // app.js:218
-rawCmd = 'CMD:' + comando + '\r\n';                 // app.js:216, los cuatro SIN_PIN
+rawCmd = `CMD:PIN:${pin}:${comando}:${args}\r\n`;   // la rama con PIN y argumentos
+rawCmd = 'CMD:' + comando + '\r\n';                 // los cuatro SIN_PIN
 ```
+
+> 📌 **Las tres copias de `app.js` son el MISMO fichero, y eso hace que una sola cita valga.**
+> Medido el 05/09: `md5sum app.js www/app.js android/app/src/main/assets/public/app.js` da
+> **`2bc3700f7aa23b1b165469f1c921baa6`** en las tres. Este documento cita **la de la raíz**.
 
 Los caracteres **útiles** son los que llegan al `btBufIn` del STM32: **sin** el `\r\n`, que E-1
 consume como terminador y nunca se guarda. Sobre esa definición:
 
 | comando compuesto | útiles | margen sobre 63 | de dónde sale |
 |---|---|---|---|
-| `CMD:PIN:1234:SET_RTC:2026-08-31,23:59:59` | **40** | **23** | hora en `HH:MM:SS` de 24 h — **es el formato que la app compone HOY**, `horaLocal24()`, `app.js:289-292` |
-| `CMD:PIN:1234:SET_RTC:2026-08-31,6:25:00 p. m.` | **45** | **18** | 🔴 el que componía **antes** del arreglo del 31/08: `toLocaleTimeString()` en el locale de campo `es-CO` daba `"6:25:00 p. m."` (`app.js:264-281`) |
-| `CMD:PIN:1234:SET_TIEMPOS:255,255,255` | 36 | 27 | `app.js:1252`, con los tres campos en su valor más largo |
+| `CMD:PIN:1234:SET_RTC:2026-08-31,23:59:59` | **40** | **23** | hora en `HH:MM:SS` de 24 h — **es el formato que la app compone HOY**: `grep -n 'function horaLocal24' …/app.js` (hoy `:495`; ~~`:289-292`~~) |
+| `CMD:PIN:1234:SET_RTC:2026-08-31,6:25:00 p. m.` | **45** | **18** | 🔴 el que componía **antes** del arreglo del 31/08: `toLocaleTimeString()` en el locale de campo `es-CO` daba `"6:25:00 p. m."`. El porqué del cambio sigue escrito en el fuente: `grep -n 'toLocaleTimeString' …/app.js` (hoy `:470`; ~~`:264-281`~~) |
+| `CMD:PIN:1234:SET_TIEMPOS:255,255,255` | 36 | 27 | con los tres campos en su valor más largo: `grep -n "enviarComandoFirmware('SET_TIEMPOS'" …/app.js` (hoy `:4424`; ~~`:1252`~~) |
 | `CMD:PIN:1234:SET_MODO:INTELIGENTE` | 33 | 30 | el `SET_MODO` de literal más largo |
-| `CMD:AMBAR_EMERGENCIA` | 20 | 43 | rama sin PIN, `app.js:216` |
+| `CMD:AMBAR_EMERGENCIA` | 20 | 43 | rama sin PIN — la de `rawCmd = 'CMD:' + comando` · ~~`app.js:216`~~ |
 
 > 🔴 **El número que se publica es el de hoy, y hoy vale 40 con 23 de margen. Pero lo que gobierna
 > E-2 no es el número: es el CÁLCULO, y por eso se escribe entero.** La cifra se movió **cinco
@@ -270,12 +408,14 @@ consume como terminador y nunca se guarda. Sobre esa definición:
 
 ### 3.3 La trama de SALIDA del STM32 (lo que el ESP32 lee de `PB6`)
 
-**MEDIDO** — `enviarTramaConCrc()`, `Maestro:43-48`, `Esclavo:51-56`:
+**MEDIDO** — `enviarTramaConCrc()`. Se localiza con
+`grep -n 'enviarTramaConCrc(const char' 01_Firmware/{Maestro,Esclavo}/src/bluetooth.cpp`
+(hoy `Maestro:104` · `Esclavo:132`; ~~`Maestro:43-48`, `Esclavo:51-56`~~ el 31/08):
 
 ```c
 static void enviarTramaConCrc(const char* payload) {
   uint8_t crc = calcularChecksum(payload + 1);   // Salta el '$' inicial
-  char tramaCompleta[140];
+  char tramaCompleta[160];                       // 🔵 N-108: 160, ~~140~~
   snprintf(tramaCompleta, sizeof(tramaCompleta), "%s*%02X\r\n", payload, crc);
   SerialBT.print(tramaCompleta);
 }
@@ -289,23 +429,61 @@ $<payload>*<XOR8 en 2 hex mayúsculas>\r\n
 
 | # | regla | MEDIDO en |
 |---|---|---|
-| **S-1** | Empieza por `$`, termina por `\r\n`. **Siempre los dos bytes** | `Maestro:46` · `Esclavo:54` |
-| **S-2** | El checksum es **XOR-8 sobre el payload SALTANDO el `$` inicial**, y **parando en el `*`** | `calcularChecksum()`, `Maestro:34-41` · `Esclavo:42-49` |
-| **S-3** | Se imprime en **una sola llamada** a `print()` — el STM32 no parte tramas por su cuenta | `Maestro:47` · `Esclavo:55` |
+| **S-1** | Empieza por `$`, termina por `\r\n`. **Siempre los dos bytes** | el `snprintf` de `enviarTramaConCrc()` — `grep -n 'snprintf(tramaCompleta' …/bluetooth.cpp` (hoy `Maestro:112` · `Esclavo:140`; ~~`Maestro:46` · `Esclavo:54`~~) |
+| **S-2** | El checksum es **XOR-8 sobre el payload SALTANDO el `$` inicial**, y **parando en el `*`** | `grep -n 'calcularChecksum(const char' …/bluetooth.cpp` (hoy `Maestro:95` · `Esclavo:123`; ~~`Maestro:34-41` · `Esclavo:42-49`~~) |
+| **S-3** | Se imprime en **una sola llamada** a `print()` — el STM32 no parte tramas por su cuenta | `grep -n 'SerialBT.print(tramaCompleta)' …/bluetooth.cpp` (hoy `Maestro:113` · `Esclavo:141`; ~~`Maestro:47` · `Esclavo:55`~~) |
 | **S-4** | Tamaño máximo en el cable: **132 B** | ver la cuenta abajo |
 
 **La cuenta de S-4, MEDIDA sobre los `snprintf` reales:**
 
 | trama | buffer del payload | tope de payload | **tope en el cable** |
 |---|---|---|---|
-| `$STATUS` | ~~`payload[128]` (`Maestro:425`, `Esclavo:326`)~~ → 🔵 **Maestro: `payload[144]` (`Maestro:928`)** · Esclavo: `payload[128]` (`Esclavo:789`) | ~~127~~ → **143** (Maestro) · 127 (Esclavo) | ~~**132 B**~~ → **148 B** (Maestro) · 132 B (Esclavo) |
-| `$ALARM` / `$EVENT` | `payload[100]` (`Maestro:81`/`:95`, `Esclavo:89`/`:103`) | 99 | **104 B** |
-| `$ERR,...DEGRADADO` | `p[80]` (`Maestro:244`) | 79 | **84 B** |
-| literales `$ACK` / `$ERR` | — | el más largo medido: **61** | **66 B** |
-| envoltorio | ~~`tramaCompleta[140]`~~ → **`tramaCompleta[160]`** (`Maestro:111`) | — | 🔵 **ya NO cabe «con holgura»: es el tope, y hay un pack que lo vigila** — ver el recuadro |
+| `$STATUS` | ~~`payload[128]`~~ → 🔵 **Maestro `payload[144]`** · Esclavo `payload[128]` | ~~127~~ → **143** (Maestro) · 127 (Esclavo) | ~~**132 B**~~ → **148 B** (Maestro) · 132 B (Esclavo) |
+| `$ALARM` | ~~`payload[100]`~~ → 🔴 **`payload[144]` en las DOS puntas** — ver el recuadro | ~~99~~ → **143** | ~~104 B~~ → **148 B** |
+| `$EVENT` | ~~`payload[100]`~~ → 🔴 **`payload[112]` en las DOS puntas** — ver el recuadro | ~~99~~ → **111** | ~~104 B~~ → **116 B** |
+| `$ERR,...DEGRADADO` | `p[80]` | 79 | **84 B** |
+| literales `$ACK` / `$ERR` | — | el más largo medido: **61** *(re-medido el 05/09: sigue siendo 61)* | **66 B** |
+| envoltorio | ~~`tramaCompleta[140]`~~ → **`tramaCompleta[160]`** | — | 🔵 **ya NO cabe «con holgura»: es el tope, y hay un pack que lo vigila** — ver el recuadro |
+
+> 📌 **CÓMO SE LOCALIZA CADA FILA, que es lo que sustituye a la columna de números.** Los seis
+> buffers se encuentran con **un solo comando**, y por eso repetir el ancla seis veces sobraba:
+>
+> ```
+> $ grep -n 'char payload\[\|char p\[80\]\|char tramaCompleta\[' \
+>       01_Firmware/{Maestro,Esclavo}/src/bluetooth.cpp
+> Maestro:111 tramaCompleta[160]   Maestro:172 payload[144] ($ALARM)
+> Maestro:192 payload[112] ($EVENT)  Maestro:606 p[80]   Maestro:968 payload[144] ($STATUS)
+> Esclavo:139 tramaCompleta[160]   Esclavo:206 payload[144] ($ALARM)
+> Esclavo:226 payload[112] ($EVENT)  Esclavo:830 payload[128] ($STATUS)
+> ```
+>
+> *(Corrido el 05/09. Los números de arriba son el resultado de ESE día y **no** se citan en el
+> cuerpo del documento: lo que se cita es el comando.)*
+
+> 🔴 **AFIRMACIÓN FALSA CORREGIDA EL 05/09 — `$ALARM` y `$EVENT` NO comparten buffer, y
+> ninguno de los dos mide 100.** ~~*«`$ALARM` / `$EVENT` → `payload[100]`, tope 99, 104 B en el
+> cable»*~~ era cierto el 31/08 y dejó de serlo con **N-108**, que los separó: `$ALARM` subió a
+> **144** y `$EVENT` a **112**, en las dos puntas. El propio fuente lo explica —*«con 100 la
+> trama se cortaba por la HORA sin que nada lo dijera»*—, o sea que **el número que este
+> documento publicaba describía justo el defecto que ya se había arreglado**.
+>
+> **Consecuencia para el puente, y no es cosmética:** el tope duro del cable **sube de 132 B a
+> 148 B**. Un buffer de entrada del ESP32 dimensionado con el 104 de la fila vieja habría
+> truncado un `$ALARM` largo —que es la trama que sale **justo cuando hace falta**—. P-2 pide
+> **512 B** y sigue siendo suficiente; lo que no servía era la cuenta.
 
 El literal más largo que emite el firmware hoy, medido:
 `$ERR,CMD:REINICIAR_RELOJ,DESC:SIGUE_PARADO_VEA_CONSULTA_RELOJ` — 61 B de payload, 66 en el cable.
+Se recalcula sin citar ninguna línea:
+
+```
+$ grep -ohE '"\$(ACK|ERR)[^"]*"' 01_Firmware/{Maestro,Esclavo}/src/bluetooth.cpp \
+    | tr -d '"' | awk '{print length, $0}' | sort -rn | head -1
+61 $ERR,CMD:REINICIAR_RELOJ,DESC:SIGUE_PARADO_VEA_CONSULTA_RELOJ
+```
+
+*(Corrido el 05/09: **sigue siendo 61**, y ahora la cifra la produce un comando en vez de una
+lectura.)*
 
 > ⚠️ **Un borde que el ESP32 no puede arreglar y tiene que tolerar:** `$STATUS` se compone con
 > `snprintf` en `payload[128]`. Si `SERIE:`, `MODO:` y `ESTADO:` crecieran, `snprintf` **trunca el
@@ -337,9 +515,24 @@ El literal más largo que emite el firmware hoy, medido:
 > 🔴 **El STM32 EMITE checksum pero NO VALIDA el de entrada.**
 
 **MEDIDO, y esta parte sí lo estaba:** `procesarComando()` arranca directamente con
-`strcmp(cmd, "CMD:FORZAR_ROJO")` (`Maestro:145`) y `strcmp(cmd, "CMD:AMBAR_EMERGENCIA")`
-(`Esclavo:130`). **No hay una sola llamada a `calcularChecksum()` en el camino de recepción**, en
-ninguna de las dos puntas.
+`strcmp(cmd, "CMD:FORZAR_ROJO")` en el Maestro y `strcmp(cmd, "CMD:AMBAR_EMERGENCIA")` en el
+Esclavo — `grep -n 'strcmp(cmd, "CMD:' 01_Firmware/{Maestro,Esclavo}/src/bluetooth.cpp`, hoy
+`Maestro:466` y `Esclavo:381`; ~~`Maestro:145`, `Esclavo:130`~~ el 31/08.
+
+**Y la propiedad que importa se comprueba con un `grep` que no lleva número ninguno**, que es lo
+que hace que no caduque:
+
+```
+$ grep -n 'calcularChecksum' 01_Firmware/{Maestro,Esclavo}/src/bluetooth.cpp
+Maestro:95   static uint8_t calcularChecksum(...)   <- la definicion
+Maestro:105  crc = calcularChecksum(payload + 1);   <- el UNICO llamador, y es al EMITIR
+Esclavo:123  static uint8_t calcularChecksum(...)
+Esclavo:133  crc = calcularChecksum(payload + 1);
+```
+
+**Dos líneas por punta, y las dos en el camino de salida. No hay una sola llamada a
+`calcularChecksum()` en el camino de recepción**, en ninguna de las dos puntas. *(Re-corrido el
+05/09.)*
 
 ---
 
@@ -352,16 +545,44 @@ ninguna de las dos puntas.
 > extremos**.
 
 ~~*«El `*XX` que la app añade —`nmea_parser.js:20-21`, `formatearComando()`— llega al `strcmp` como
-parte de la cadena y hace que el comando no case»*~~, y de ahí ~~*«el ESP32 SÍ valida: comprueba
+parte de la cadena y hace que el comando no case»*~~ —*y la propia cita `:20-21` no aterrizaba en
+nada: esas líneas son el comentario de cabecera del módulo, no una función*—, y de ahí ~~*«el ESP32 SÍ valida: comprueba
 `$`, `*` y que el XOR-8 case; si no casa, descarta y contesta `$ERR` él mismo»*~~.
 
 **Los dos extremos son falsos. MEDIDO el 31/08, cada uno por separado:**
 
 | # | lo que decía | lo MEDIDO | dónde |
 |---|---|---|---|
-| **1** | la app añade `*XX` (y `$`) | 🔴 **NO los añade.** El emisor vivo compone literalmente `CMD:PIN:1234:SET_MODO:AUTO\r\n` — sin `$` delante y sin `*XX` detrás | `enviarComandoFirmware()`, `05_Funcional/App_Semaforo/app.js:205-221`; las tres ramas de composición en `:216`, `:218`, `:220` |
-| **2** | la función se llama `formatearComando()` | 🔴 **NO EXISTE.** `grep -rn "formatearComando"` sobre toda la app da **cero**. La función es **`formatearTrama()`**, y vive en **`js/nmea_parser.js:19-22`**, no en la raíz | `05_Funcional/App_Semaforo/js/nmea_parser.js:19` |
-| **2.bis** | *(implícito: que ese módulo esté en el camino)* | 🔴 **`NMEAParser` no tiene un solo llamador en la app.** Está cargado por `index.html:589` y **nadie lo usa**: los únicos usos vivos están en `tests/`. Su `generarComando()` (`:129-135`) sí produce `$CMD:…*XX`, y con el `$` delante **no casaría con ningún `strcmp`** — pero esa cadena **nunca sale al aire** | `index.html:589` · `js/nmea_parser.js:129-135` |
+| **1** | la app añade `*XX` (y `$`) | 🔴 **NO los añade.** El emisor vivo compone literalmente `CMD:PIN:1234:SET_MODO:AUTO\r\n` — sin `$` delante y sin `*XX` detrás | `grep -n 'function enviarComandoFirmware' …/app.js` y `grep -n 'rawCmd = ' …/app.js` (las tres ramas). ~~`app.js:205-221`, `:216`, `:218`, `:220`~~ |
+| **2** | la función se llama `formatearComando()` | 🔴 **NO EXISTE.** `grep -rn "formatearComando" 05_Funcional/App_Semaforo/` da **cero** *(re-corrido el 05/09)*. La función es **`formatearTrama()`**, y vive en `js/nmea_parser.js`, no en la raíz | `grep -n 'formatearTrama' 05_Funcional/App_Semaforo/js/nmea_parser.js` → hoy `:86` y `:303`. ~~`js/nmea_parser.js:19-22`~~ — **aquel rango era el del `const NMEAParser`, no el de la función** |
+| **2.bis** | *(implícito: que ese módulo esté en el camino)* | 🟡 **LA MITAD DE ESTA FILA ES FALSA DESDE EL 31/08 — ver el recuadro.** ~~*«`NMEAParser` no tiene un solo llamador en la app»*~~. Lo que **sigue** siendo cierto, y era el argumento: su `generarComando()` produce `$CMD:…*XX`, y con el `$` delante **no casaría con ningún `strcmp`** — pero **esa cadena nunca sale al aire, porque a `generarComando()` no lo llama nadie** | `grep -n 'NMEAParser' 05_Funcional/App_Semaforo/app.js` · `grep -rn 'generarComando' 05_Funcional/App_Semaforo/`. ~~`index.html:589`, `js/nmea_parser.js:129-135`~~ |
+
+> 🔴 **AFIRMACIÓN FALSA, encontrada el 05/09 al censar las citas de este documento — y llevaba
+> refutada DENTRO del propio documento desde el 01/09.** La fila `2.bis` decía
+> *«`NMEAParser`… nadie lo usa: los únicos usos vivos están en `tests/`»*. Medido:
+>
+> ```
+> $ grep -n 'NMEAParser' 05_Funcional/App_Semaforo/app.js
+> 904:  // … mientras NMEAParser.validarTrama() llevaba meses escrita y sin un solo…
+> 919:    const v = NMEAParser.validarTrama(linea);      <- LLAMADOR VIVO
+> 3142: // … y NMEAParser.parseStatus() …                  (comentario)
+> 3153: // … en vez de llamar a NMEAParser.camposDeTrama() … (comentario)
+> 3158:    return NMEAParser.camposDeTrama(parts);       <- LLAMADOR VIVO
+> ```
+>
+> **Dos llamadores vivos, no cero.** Y §3.4.b, doce apartados más abajo, ya lo decía —*«REFUTADO
+> el 01/09… `parseNmeaTelemetry()` empieza por `juzgarTrama(line)`, que llama a
+> `NMEAParser.validarTrama()`»*—. **El documento se contradecía a sí mismo durante cinco días** y
+> nadie lo notó, porque las dos mitades eran plausibles por separado y **nadie vuelve a medir una
+> razón que ya está escrita**. Es `CLAUDE.md` §3.bis exacto: *una razón es una AFIRMACIÓN SOBRE EL
+> CÓDIGO —o sea algo que se comprueba, no que se escribe—, y al heredarla se vuelve a medir.*
+>
+> ⚠️ **Lo que NO cambia, y por eso §3.4.a sigue entera en pie:** el módulo se usa **para validar
+> de bajada**, y **`generarComando()` sigue sin un solo llamador** — `grep -rn 'generarComando'
+> 05_Funcional/App_Semaforo/` da su definición y los `tests/`, nada más. La conclusión de la
+> sección —*el ESP32 no debe exigir `$` ni `*XX` a lo que llega de la app*— **nunca colgó de esta
+> fila**: cuelga de la fila 1, que sigue medida. Y obliga a corregir la fila de `nmea_parser.js`
+> del **Anexo**, que decía lo mismo — corregida.
 
 🔴 **Lo que costó, y va escrito porque es la lección y no la anécdota:** el agente que escribió el
 firmware del ESP32 **siguió esta sección al pie de la letra en su primera versión**. Un puente que
@@ -432,12 +653,18 @@ que alguien olvidara hacerlo la función nueva se caería en silencio.*
 
 ### 3.5 La autenticación es un literal en claro
 
-**MEDIDO**, las dos puntas:
+**MEDIDO**, las dos puntas — y el ancla es el literal, que es justo lo que se está denunciando:
 
 ```
-01_Firmware/Maestro/src/bluetooth.cpp:166   strncmp(cmd, "CMD:PIN:1234:", 13) == 0
-01_Firmware/Esclavo/src/bluetooth.cpp:164   strncmp(cmd, "CMD:PIN:1234:", 13) != 0
+$ grep -n 'strncmp(cmd, "CMD:PIN:1234:"' 01_Firmware/{Maestro,Esclavo}/src/bluetooth.cpp
+01_Firmware/Maestro/src/bluetooth.cpp:487:  if (strncmp(cmd, "CMD:PIN:1234:", 13) == 0) {
+01_Firmware/Esclavo/src/bluetooth.cpp:455:  if (strncmp(cmd, "CMD:PIN:1234:", 13) != 0) {
 ```
+
+*(~~`Maestro:166`, `Esclavo:164`~~ el 31/08. Corrido el 05/09: **una línea por punta y ni una
+más**, así que el comando sirve también de **censo** —el día que salga una tercera, hay una copia
+del contrato—. **Ojo con acortar el patrón:** buscar sólo `CMD:PIN:1234:` devuelve **cinco**,
+porque casa dentro de comentarios. Es §4 en pequeño: el buscador responde y no sabe encontrar.)*
 
 **El PIN es `1234`, va escrito en el fuente, y viaja en claro por el enlace serie y por el aire
 Bluetooth.** Se escribe tal cual, sin maquillarlo:
@@ -445,13 +672,20 @@ Bluetooth.** Se escribe tal cual, sin maquillarlo:
 - **El ESP32 lo TRANSPORTA. No lo mejora, no lo sustituye, no lo almacena y no lo compara.** Un
   puente que validara el PIN sería una segunda copia del contrato que alguien tendría que
   sincronizar — y el día que difieran, un comando funcionaría por una puerta y sería rechazado por
-  la otra. Es el mismo razonamiento que el propio `bluetooth.cpp:161-164` da para no partir la
-  cadena de comparaciones.
+  la otra. Es el mismo razonamiento que el propio fuente da para no partir la cadena de
+  comparaciones — `grep -n 'dos contratos que alguien' 01_Firmware/Maestro/src/bluetooth.cpp`,
+  hoy `:484`. ~~`bluetooth.cpp:161-164`~~: aquel rango no señalaba a ese razonamiento ni siquiera
+  el 31/08.
 - **Es una limitación conocida, no un defecto que este documento arregle.** Cambiar el esquema de
   autenticación es una decisión con dueño (§9 `AB-7`), toca las dos puntas y la app, y no cabe en
   la especificación de un puente.
 - Lo que sí se anota, porque hoy no está escrito en ningún sitio: **tres órdenes del Maestro y una
-  del Esclavo entran SIN PIN**, y es deliberado (`Maestro:136-144` y `:154-164`, `Esclavo:110-129`).
+  del Esclavo entran SIN PIN**, y es deliberado. El porqué vive en el fuente y se localiza con
+  `grep -n 'El PIN guarda lo que ABRE' 01_Firmware/Maestro/src/bluetooth.cpp` (hoy `:462`); la
+  rama que las deja pasar, con
+  `grep -n 'SET_MODO:MENU' 01_Firmware/Maestro/src/bluetooth.cpp`.
+  ~~`Maestro:136-144` y `:154-164`, `Esclavo:110-129`~~ — **los tres rangos habían caducado**
+  *(re-verificado el 05/09: la exención del Maestro vive hoy en `:466` y `:488-491`)*.
   Son `CMD:FORZAR_ROJO`, `CMD:SET_MODO:MENU`, `CMD:SET_MODO:ALCANCE` y `CMD:AMBAR_EMERGENCIA`. El
   puente **no puede exigir PIN a lo que el firmware exime**: si lo hiciera, la caída segura pedida
   delante de un accidente necesitaría recordar una clave.
@@ -460,42 +694,74 @@ Bluetooth.** Se escribe tal cual, sin maquillarlo:
 
 El puente tiene que dejarlos pasar **íntegros**. Se listan para que nadie los deduzca.
 
+> 📌 **CÓMO SE LOCALIZA CADA FILA DE LAS DOS TABLAS — y por qué ya NO llevan columna de
+> números.** La primera columna **ya ES el ancla**: cada comando es un literal que el `strcmp` del
+> despachador compara, así que **un solo comando encuentra las veinte filas**, y repetir el número
+> veinte veces sólo multiplicaba por veinte lo que había que renumerar:
+>
+> ```
+> $ grep -n 'strcmp(accion, "\|strncmp(accion, "' \
+>       01_Firmware/{Maestro,Esclavo}/src/bluetooth.cpp     # las ramas CON PIN
+> $ grep -n 'strcmp(cmd, "CMD:' \
+>       01_Firmware/{Maestro,Esclavo}/src/bluetooth.cpp     # las ramas SIN PIN
+> ```
+>
+> **Medido el 05/09: 14 ramas con PIN en el Maestro y 6 en el Esclavo**, y ninguno de los
+> ~~dieciocho números~~ que esta tabla publicaba el 31/08 seguía siendo cierto. *(Para una fila
+> concreta: `grep -n 'SET_TIEMPOS:' …/bluetooth.cpp`.)*
+
 #### Maestro — `01_Firmware/Maestro/src/bluetooth.cpp`
 
-| línea | comando (tal como llega) | PIN |
-|---|---|---|
-| `:145` | `CMD:FORZAR_ROJO` | **no** |
-| `:166` | prefijo `CMD:PIN:1234:` → el resto es la *acción* | — |
-| `:168-170` | `CMD:SET_MODO:MENU` · `CMD:SET_MODO:ALCANCE` (sin prefijo de PIN) | **no** |
-| `:177` | `SET_MODO:AUTO` | sí |
-| `:182` | `SET_MODO:MANUAL` | sí |
-| `:187` | `SET_MODO:AMBAR` | sí |
-| `:191` | `SET_MODO:MENU` | sí (o sin PIN por `:169`) |
-| `:212` | `SET_MODO:ALCANCE` | sí (o sin PIN por `:170`) |
-| `:223` | `SET_MODO:INTELIGENTE` | sí |
-| `:234` | `SET_MODO:DEGRADADO` | sí |
-| `:253` | `FORZAR_ROJO` | sí |
-| `:257` | `MANUAL:CAMBIAR_TURNO` | sí |
-| `:271` | `TEST_LEDS` | sí |
-| `:275` | `SET_TIEMPOS:<v>,<r>,<d>` | sí |
-| `:295` | `SET_RTC:YYYY-MM-DD,HH:MM:SS` | sí |
-| `:330` | `REINICIAR_RELOJ` | sí |
-| `:345` | `DEMANDA` | sí |
-| `:362` | *(cualquier otra)* → `$ERR,CMD:DESCONOCIDO` | — |
+| comando (tal como llega) | PIN |
+|---|---|
+| `CMD:FORZAR_ROJO` | **no** |
+| prefijo `CMD:PIN:1234:` → el resto es la *acción* | — |
+| `CMD:SET_MODO:MENU` · `CMD:SET_MODO:ALCANCE` (sin prefijo de PIN) | **no** |
+| `SET_MODO:AUTO` | sí |
+| `SET_MODO:MANUAL` | sí |
+| `SET_MODO:AMBAR` | sí |
+| `SET_MODO:MENU` | sí (o sin PIN) |
+| `SET_MODO:ALCANCE` | sí (o sin PIN) |
+| `SET_MODO:INTELIGENTE` | sí |
+| `SET_MODO:DEGRADADO` | sí |
+| `FORZAR_ROJO` | sí |
+| `MANUAL:CAMBIAR_TURNO` | sí |
+| `TEST_LEDS` | sí |
+| `SET_TIEMPOS:<v>,<r>,<d>` | sí |
+| `SET_RTC:YYYY-MM-DD,HH:MM:SS` | sí |
+| `REINICIAR_RELOJ` | sí |
+| `DEMANDA` | sí |
+| *(cualquier otra)* → `$ERR,CMD:DESCONOCIDO` | — |
 
 #### Esclavo — `01_Firmware/Esclavo/src/bluetooth.cpp`
 
-| línea | comando | PIN | nota |
-|---|---|---|---|
-| `:130` | `CMD:AMBAR_EMERGENCIA` | **no** | |
-| `:157` | `CMD:FORZAR_ROJO` | **no** | 🔴 **rechazado a propósito**: `$ERR,...DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` (N-83) |
-| `:164` | prefijo `CMD:PIN:1234:` | — | |
-| `:171` | `AMBAR_EMERGENCIA` | sí | |
-| `:176` | `FORZAR_ROJO` | sí | rechazado igual que `:157` |
-| `:184` | `SOLICITAR_PASO` | sí | el Esclavo **pide**, no ordena (SFTY-27) |
-| `:202` | `TEST_LEDS` | sí | 🔴 **rechazado a propósito**: encendería un verde en esta punta |
-| `:215` | `SET_RTC:...` | sí | |
-| `:259` | *(cualquier otra)* → `$ERR,CMD:DESCONOCIDO,...EN_ESCLAVO` | — | |
+| comando | PIN | nota |
+|---|---|---|
+| `CMD:AMBAR_EMERGENCIA` | **no** | |
+| `CMD:FORZAR_ROJO` | **no** | 🔴 **rechazado a propósito**: `$ERR,...DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` (N-83) |
+| prefijo `CMD:PIN:1234:` | — | |
+| `AMBAR_EMERGENCIA` | sí | |
+| 🆕 `CANCELAR_AMBAR` | sí | 🔴 **FALTABA EN ESTE CENSO — añadido el 05/09.** Existe en el fuente (`grep -n 'strcmp(accion, "CANCELAR_AMBAR"' …/Esclavo/src/bluetooth.cpp`) y contesta **tres** `RESULT:` distintos más un `$ERR` con motivo. Ver el aviso de abajo |
+| `FORZAR_ROJO` | sí | rechazado igual que la forma sin PIN |
+| `SOLICITAR_PASO` | sí | el Esclavo **pide**, no ordena (SFTY-27) |
+| `TEST_LEDS` | sí | 🔴 **rechazado a propósito**: encendería un verde en esta punta |
+| `SET_RTC:...` | sí | |
+| *(cualquier otra)* → `$ERR,CMD:DESCONOCIDO,...EN_ESCLAVO` | — | |
+
+> 🔴 **UN COMANDO QUE ESTE CENSO NO LISTABA, y el apartado dice literalmente *«se listan para
+> que nadie los deduzca»*.** `CANCELAR_AMBAR` entró en el Esclavo después del 31/08 y esta tabla
+> no se volvió a censar. **No es un fallo de numeración: es un HUECO**, y de la clase peor —un censo
+> incompleto no deja rastro de lo que le falta, mientras que un número malo al menos chirría—.
+>
+> Para el puente **no cambia ninguna regla** —transporta bytes, no enumera comandos, y ése es
+> justo el motivo por el que B-1 y §6.2 están escritas así—. **Lo que demuestra es por qué están
+> escritas así:** un puente que llevara dentro la lista de comandos habría **descartado
+> `CANCELAR_AMBAR` en silencio** desde el día que nació, y el síntoma en campo habría sido *«el
+> ámbar de emergencia no se puede retirar desde el teléfono»*.
+>
+> **Cómo se evita que vuelva a pasar, que no es «revisar mejor»:** este censo se **regenera** con
+> el comando de arriba en vez de mantenerse a mano. `grep -n 'strcmp(accion, "' …` es la lista, y
+> la tabla es su copia legible.
 
 > 🔴 **Las dos puntas NO atienden la misma lista, y el puente no puede unificarlas.** `TEST_LEDS`
 > se acepta en el Maestro (`:271`) y se rechaza con motivo en el Esclavo (`:202`). `FORZAR_ROJO`
@@ -548,11 +814,11 @@ El puente tiene que dejarlos pasar **íntegros**. Se listan para que nadie los d
 
 | prefijo | quién la compone | MEDIDO en |
 |---|---|---|
-| **`$STATUS`** | telemetría periódica, ~~**cada 1000 ms**~~ → **cada 2000 ms** *(bajada el 04/09 por decisión del responsable, en las **dos** puntas del STM32)* | `Maestro:403`, `:427` · `Esclavo:309`, `:328` |
-| **`$ACK`** | confirmación de un comando | ~~32 literales en el Maestro~~ → **MEDIDO el 31/08: `grep -c '"$ACK' ` da **17** en el Maestro y **4** en el Esclavo.** El 32 no era el recuento de ninguna de las dos columnas *(se parece a los 33 de sumar `$ACK` + `$ERR` del Maestro, pero eso es otra cosa)* |
-| **`$ERR`** | rechazo con motivo | **MEDIDO el 31/08: 16 en el Maestro, 8 en el Esclavo.** ~~«idem, misma cadena»~~ — no son las mismas cifras y la fila lo daba por hecho |
-| **`$ALARM`** | `bluetooth_reportarAlarma()` | `Maestro:82` · `Esclavo:90` |
-| **`$EVENT`** | `bluetooth_reportarEvento()` — bitácora de quién movió qué | `Maestro:96` · `Esclavo:104` |
+| **`$STATUS`** | telemetría periódica, ~~**cada 1000 ms**~~ → **cada 2000 ms** *(bajada el 04/09 por decisión del responsable, en las **dos** puntas del STM32)* | `grep -n 'tUltimaTelemetria >= 2000' …/bluetooth.cpp`. ~~`Maestro:403`, `:427` · `Esclavo:309`, `:328`~~ |
+| **`$ACK`** | confirmación de un comando | ~~32 literales en el Maestro~~ → ~~**17** en el Maestro y **4** en el Esclavo (31/08)~~ → 🔴 **RE-MEDIDO EL 05/09: 20 y 14.** Ver el recuadro |
+| **`$ERR`** | rechazo con motivo | ~~**16 en el Maestro, 8 en el Esclavo** (31/08)~~ → 🔴 **RE-MEDIDO EL 05/09: 18 y 11.** ~~«idem, misma cadena»~~ — no son las mismas cifras y la fila lo daba por hecho |
+| **`$ALARM`** | `bluetooth_reportarAlarma()` | `grep -n 'void bluetooth_reportarAlarma' …/bluetooth.cpp`. ~~`Maestro:82` · `Esclavo:90`~~ |
+| **`$EVENT`** | `bluetooth_reportarEvento()` — bitácora de quién movió qué | `grep -n 'void bluetooth_reportarEvento' …/bluetooth.cpp`. ~~`Maestro:96` · `Esclavo:104`~~ |
 
 > 📌 **Corrección al encargo: son CINCO prefijos, no cuatro.** `$EVENT` faltaba en la lista de
 > partida y **no es marginal**. Un puente que filtrara por una lista de cuatro prefijos **se comería
@@ -561,12 +827,17 @@ El puente tiene que dejarlos pasar **íntegros**. Se listan para que nadie los d
 > fallo de campo.
 >
 > ⚠️ **Y las dos cifras con que se justificaba estaban mal las dos. Re-MEDIDO el 31/08, segunda
-> pasada:**
+> pasada — y re-medido OTRA VEZ el 05/09, con el resultado de que las dos habían vuelto a caducar:**
 >
-> | | decía | MEDIDO | cómo |
-> |---|---|---|---|
-> | ramas del despachador del Maestro que emiten `$EVENT` | ~~14~~ | **16** | `grep -n "bluetooth_reportarEvento" Maestro/src/bluetooth.cpp` → 17 líneas, de las que `:87` es **la definición** y no una llamada. Las 16 llamadas van de `:148` a `:355` |
-> | dónde lo consume la app | ~~`app.js:814-815`~~ | **`app.js:976-977`** | `:814` no habla de `$EVENT`; la rama real es `else if (header === '$EVENT')` con el comentario *«`$EVENT` es la bitacora del propio equipo -quien movio que y desde donde-»* |
+> | | decía 31/08 | decía 2ª pasada | **05/09** | cómo se mide |
+> |---|---|---|---|---|
+> | ramas del despachador del Maestro que emiten `$EVENT` | ~~14~~ | ~~16~~ | **19** | `grep -c "bluetooth_reportarEvento" 01_Firmware/Maestro/src/bluetooth.cpp` → **20** líneas, **una de ellas la definición** → 19 llamadas. **La resta hay que hacerla, y es justo donde se equivocó el primer censo** |
+> | dónde lo consume la app | ~~`app.js:814-815`~~ | ~~`app.js:976-977`~~ | `grep -n "=== '\\$EVENT'" …/app.js` → hoy **`:3421`** | la rama real es `else if (header === '$EVENT')`, con el comentario *«`$EVENT` es la bitacora del propio equipo -quien movio que y desde donde-»* justo debajo |
+>
+> 🔴 **Tres números para la misma propiedad en seis días — 14, 16, 19 — y la cita de la app
+> corregida DOS veces.** No es que se contara mal las tres veces: es que **la propiedad crece con
+> el firmware y un número copiado a mano no**. Lo que se publica de aquí en adelante es **el
+> comando**; la cifra que devuelva ese día es la buena.
 >
 > **La conclusión no cambia y por eso el error es instructivo:** las dos cifras estaban mal, las dos
 > apuntaban en la misma dirección que la conclusión, y **ninguna de las dos se habría notado nunca**
@@ -577,20 +848,51 @@ El puente tiene que dejarlos pasar **íntegros**. Se listan para que nadie los d
 **MEDIDO en la segunda pasada, para que no haya que volver a contarlo:**
 
 ```
-$ grep -c '"$ACK'  Maestro/src/bluetooth.cpp  ->  17      Esclavo -> 4
-$ grep -c '"$ERR'  Maestro/src/bluetooth.cpp  ->  16      Esclavo -> 8
-$ grep -n "bluetooth_reportarEvento" Maestro/src/bluetooth.cpp | wc -l  ->  17
-                                              (:87 es la definicion; 16 son llamadas)
+                                        31/08      05/09
+$ grep -c '"$ACK'  Maestro/src/bluetooth.cpp   17    ->   20
+$ grep -c '"$ACK'  Esclavo/src/bluetooth.cpp    4    ->   14
+$ grep -c '"$ERR'  Maestro/src/bluetooth.cpp   16    ->   18
+$ grep -c '"$ERR'  Esclavo/src/bluetooth.cpp    8    ->   11
+$ grep -c "bluetooth_reportarEvento" Maestro/src/bluetooth.cpp
+                                               17    ->   20
+   (una de esas lineas es la DEFINICION; las llamadas son una menos: 16 -> 19)
 ```
+
+> 🔴 **LAS CUATRO CIFRAS DEL 31/08 ESTABAN CADUCADAS EL 05/09, y ninguna se había notado.**
+> El Esclavo es el que más se movió —sus `$ACK` pasaron de **4 a 14**, más del triple—, y el
+> motivo tiene nombre: las cinco respuestas de `AMBAR_EMERGENCIA` y el `CANCELAR_AMBAR` que
+> §3.6 tampoco listaba.
+>
+> **Lo que esto le dice al puente sigue siendo lo mismo, y por eso el número nunca fue el
+> punto:** «cuántos `$ACK` hay» es una cifra que crece sola, y **un puente que enumerara
+> respuestas tendría que recompilarse cada vez que crece**. B-1 y la tercera regla del recuadro
+> de `AMBAR_EMERGENCIA` —*el puente NO ENUMERA los `RESULT:`*— no son prudencia: son la única
+> forma de que estos cuatro números no le importen a nadie.
 
 **Plantillas literales, MEDIDAS:**
 
 ```
-Maestro:82   $ALARM,NODE:MAESTRO,EVENTO:%s,CAUSA:%s,ACCION:%s,HORA:%s
-Maestro:96   $EVENT,NODE:MAESTRO,ORIGEN:%s,DETALLE:%s,HORA:%s
-Maestro:427  $STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%lu,RF:%d%%,RTT:%lums,BAT:12.6,HORA:%s     <-- VIEJO
-Esclavo:328  $STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:%lu,RF:98%%,RTT:85ms,BAT:12.6,HORA:%s  <-- VIEJO
+   $ALARM,NODE:MAESTRO,EVENTO:%s,CAUSA:%s,ACCION:%s,HORA:%s                    <-- VIEJO
+   $EVENT,NODE:MAESTRO,ORIGEN:%s,DETALLE:%s,HORA:%s
+   $STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%lu,RF:%d%%,RTT:%lums,BAT:12.6,HORA:%s     <-- VIEJO
+   $STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:%lu,RF:98%%,RTT:85ms,BAT:12.6,HORA:%s  <-- VIEJO
 ```
+
+*(Las cuatro se localizan con
+`grep -n 'snprintf(payload' 01_Firmware/{Maestro,Esclavo}/src/bluetooth.cpp`. ~~`Maestro:82`,
+`Maestro:96`, `Maestro:427`, `Esclavo:328`~~.)*
+
+> 🔴 **Y la del `$ALARM` también cambió, no sólo las dos marcadas VIEJO.** Medido el 05/09, la
+> plantilla real de las dos puntas lleva **un `%s` más** —el último tramo del enlace, N-108—:
+>
+> ```
+> $ALARM,NODE:MAESTRO,EVENTO:%s,CAUSA:%s,%s,ACCION:%s,HORA:%s
+> ```
+>
+> Es el mismo cambio que subió su buffer de 100 a 144 (§3.3). **Para el puente no cambia nada**
+> —no enumera campos—, **pero para la app sí**: un parser que contara campos por posición
+> desplazaría `ACCION:` y `HORA:` una casilla. Es el argumento de §3.7 para leer **por clave**,
+> ahora con un caso real detrás.
 
 *(Que `RF:98%`, `RTT:85ms` y `BAT:12.6` sean literales fijos en el Esclavo es telemetría fabricada,
 ya levantada en el Manual 17 §2.6. **No es cosa del puente** y no se arregla aquí; se anota para que
@@ -600,9 +902,13 @@ nadie crea que el ESP32 los mide.)*
 > sustituirse porque el cambio es el que este apartado pedía. Lo que hay hoy:
 >
 > ```
-> Maestro:929  $STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s
-> Esclavo:791  $STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s
+> $ grep -n '\$STATUS,NODE' 01_Firmware/{Maestro,Esclavo}/src/bluetooth.cpp     # 05/09
+> Maestro:970  $STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s
+> Esclavo:832  $STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s
 > ```
+>
+> *(~~`Maestro:929`, `Esclavo:791`~~ — escritas el 05/09 por la mañana y ya desplazadas por la
+> tarde. **Es el argumento entero de esta pasada en dos líneas.**)*
 >
 > **Tres cosas que el puente tiene que saber, y ninguna le pide hacer nada distinto:**
 >
@@ -623,7 +929,8 @@ nadie crea que el ESP32 los mide.)*
 
 > 🔵 **Y un acoplamiento que hay que dejar escrito, porque desde el 04/09 algo cuelga de él:
 > `$STATUS` es la única trama que lleva `SERIE:` y `NODE:` a la vez, y de ahí —y sólo de ahí— sale el
-> rótulo Bluetooth del módulo** (§6.5, `src/puente.cpp:205-206`). Es una dependencia **de un campo,
+> rótulo Bluetooth del módulo** (§6.5 — `grep -n 'transporte_aprenderRotulo' 01_Firmware/ESP32_Expansion/src/puente.cpp`,
+hoy `:321`; ~~`src/puente.cpp:205-206`~~). Es una dependencia **de un campo,
 > no de un formato**: quien acorte un campo de `$STATUS` para ganar los 8 B de margen de `AB-5` tiene
 > que dejar `SERIE:` y `NODE:` en pie, o el puente deja de aprender su nombre **en silencio** y todos
 > los módulos se quedan en `SEM-SIN-MATRICULA`.
@@ -670,19 +977,24 @@ A **9600 8N1 = 960 B/s**. La cuenta, con los tamaños medidos de §3.3:
 >
 > | | |
 > |---|---|
-> | qué watchdog | **Task Watchdog Timer del IDF**, con *panic* — **reinicia**, no sólo avisa (`src/vigilante.cpp:24`) |
-> | periodo | **2 s** — `ESP32_WDT_MS 2000UL` (`include/contrato.h:102`) |
-> | dónde se arma | `setup()`, **antes** del SPP y del I²C (`src/main.cpp:58`) — requisito `W-5` |
-> | qué tarea vigila | la que bombea bytes (`esp_task_wdt_add(NULL)`, `src/vigilante.cpp:40`) — `W-1` |
-> | dónde se alimenta | una vez por vuelta del `loop()`, al final (`src/main.cpp:89`) |
-> | fuera del bucle interior | ✅ `W-3` respetado; el `while` interior está topado en `PUENTE_MAX_ITER 64` |
+> | qué watchdog | **Task Watchdog Timer del IDF**, con *panic* — **reinicia**, no sólo avisa | `grep -n 'esp_task_wdt_init' src/vigilante.cpp` · ~~`:24`~~ |
+> | periodo | **2 s** — `ESP32_WDT_MS 2000UL` | `grep -n 'ESP32_WDT_MS' include/contrato.h` — `:102`, **re-verificado el 05/09** |
+> | dónde se arma | `setup()`, **antes** del SPP y del I²C — requisito `W-5` | `grep -n 'vigilante_armar' src/main.cpp` · ~~`src/main.cpp:58`~~ |
+> | qué tarea vigila | la que bombea bytes (`esp_task_wdt_add(NULL)`) — `W-1` | `grep -n 'esp_task_wdt_add' src/vigilante.cpp` · ~~`:40`~~ |
+> | dónde se alimenta | una vez por vuelta del `loop()`, al final | `grep -n 'vigilante_alimentar' src/main.cpp` — la **última** de las cuatro · ~~`src/main.cpp:89`~~ |
+> | fuera del bucle interior | ✅ `W-3` respetado; el `while` interior está topado en `PUENTE_MAX_ITER 64` | `grep -n 'PUENTE_MAX_ITER' include/contrato.h` |
+>
+> *(Los cinco números de la versión del 02/09 habían caducado los cinco el 05/09. Se sustituyen
+> por el símbolo, que es lo único que no se mueve al añadir una línea más arriba. Todas las rutas
+> de esta tabla son relativas a `01_Firmware/ESP32_Expansion/`.)*
 >
 > Lo vigilan dos packs del banco: `esp32_01_watchdog_desigualdad` y `esp32_02_watchdog_alimentado`.
 >
 > 🟠 **Lo que sigue SIN VERIFICAR, y no se disimula:** `ESP32_ARRANQUE_MS` vale **1500 ms** y lleva su
-> propio marcador de que **nadie lo ha medido** (`contrato.h:120-121`,
-> `ESP32_ARRANQUE_MEDIDO 0`). El margen de la desigualdad de §4.2 se apoya en ese número: **es un
-> supuesto, no una medida**. Es `AB-3`, y se cierra con el módulo en la mano.
+> propio marcador de que **nadie lo ha medido** — `grep -n 'ESP32_ARRANQUE_MEDIDO' include/contrato.h`,
+> hoy `:121` con valor `0`, y el propio fichero rotula ese cero como *«0 = SIN VERIFICAR (AB-3)»*.
+> El margen de la desigualdad de §4.2 se apoya en ese número: **es un supuesto, no una medida**.
+> Es `AB-3`, y se cierra con el módulo en la mano.
 >
 > 🔴 **Y lo que un watchdog NO resuelve sigue igual de abierto:** rescata al ESP32 **colgado**; no
 > hace nada por uno **muerto o desalimentado**, y **SFTY-6 no lo ve** porque mira la radio, no `J17`.
@@ -694,13 +1006,19 @@ esto **nada garantizaba** que lo estuviera.
 ### 4.1 Lo MEDIDO
 
 ```
-01_Firmware/Maestro/src/main.cpp:53    IWatchdog.begin(4000000);   <- 4 s
-01_Firmware/Maestro/src/main.cpp:130   IWatchdog.reload();
-01_Firmware/Esclavo/src/main.cpp:238   IWatchdog.begin(4000000);   <- 4 s
-01_Firmware/Esclavo/src/main.cpp:318   IWatchdog.reload();
+$ grep -n 'IWatchdog\.' 01_Firmware/{Maestro,Esclavo}/src/main.cpp   # el punto excluye el #include
+01_Firmware/Maestro/src/main.cpp:53:  IWatchdog.begin(4000000);    <- 4 s
+01_Firmware/Maestro/src/main.cpp:130: IWatchdog.reload();
+01_Firmware/Esclavo/src/main.cpp:238: IWatchdog.begin(4000000);    <- 4 s
+01_Firmware/Esclavo/src/main.cpp:318: IWatchdog.reload();
 
-01_Firmware/Repetidor/src/   grep -rniE "watchdog|esp_task_wdt|WDT"  ->  CERO coincidencias
+$ grep -rniE "watchdog|esp_task_wdt|WDT" 01_Firmware/Repetidor/src/   ->  CERO coincidencias
 ```
+
+*(🟢 **Las cuatro se re-verificaron el 05/09 y las cuatro siguen exactas** — son las únicas
+citas de línea de este documento que han sobrevivido intactas desde el 31/08. Se dejan escritas
+porque **aportan**: son cuatro llamadas concretas, no un rango. El `grep` de arriba las vuelve a
+encontrar el día que se muevan.)*
 
 **Los dos STM32 tienen watchdog a 4 s con refresco en el bucle.** ~~El ESP32 de este proyecto no
 tiene ninguno.~~
@@ -710,9 +1028,10 @@ tiene ninguno.~~
 > | | watchdog |
 > |---|---|
 > | **`01_Firmware/Repetidor/`** — el ESP32 del repetidor | ❌ **sigue sin tener.** `grep -rniE "watchdog\|esp_task_wdt\|WDT"` sobre esa carpeta da **cero** |
-> | **`01_Firmware/ESP32_Expansion/`** — el puente de `J17`, el de esta especificación | ✅ **SÍ tiene**, TWDT a 2 s (`src/vigilante.cpp:24`) |
+> | **`01_Firmware/ESP32_Expansion/`** — el puente de `J17`, el de esta especificación | ✅ **SÍ tiene**, TWDT a 2 s — `grep -n 'esp_task_wdt_init' 01_Firmware/ESP32_Expansion/src/vigilante.cpp` · ~~`:24`~~ |
 >
-> La frase de `OPTIMIZACIONES.md:55` habla del **Repetidor** y sigue siendo cierta para él. **No es
+> La frase de `OPTIMIZACIONES.md` —`grep -n 'Repetidor ESP32 no implementa watchdog' OPTIMIZACIONES.md`,
+> hoy **`:319`**; ~~`:55`~~— habla del **Repetidor** y sigue siendo cierta para él. **No es
 > cierta para el puente**, que es el sujeto de este documento. Confundir los dos es fácil y aquí ya
 > pasó: se conserva la distinción escrita.
 
@@ -729,9 +1048,12 @@ El encargo de esta pasada pedía escribir esta desigualdad:
 **MEDIDO:** la constante existe y vale eso, en las dos puntas:
 
 ```
-01_Firmware/Maestro/include/protocolo.h:149   #define SFTY6_SILENCIO_MS   25000UL
-01_Firmware/Esclavo/include/protocolo.h:149   #define SFTY6_SILENCIO_MS   25000UL
+$ grep -n '#define SFTY6_SILENCIO_MS' 01_Firmware/{Maestro,Esclavo}/include/protocolo.h
+01_Firmware/Maestro/include/protocolo.h:149:#define SFTY6_SILENCIO_MS   25000UL
+01_Firmware/Esclavo/include/protocolo.h:149:#define SFTY6_SILENCIO_MS   25000UL
 ```
+
+*(🟢 Re-verificado el 05/09: **la misma línea en las dos puntas, y sigue siendo la 149**.)*
 
 **Pero la desigualdad, tal cual, tiene la forma correcta y el par de constantes equivocado para el
 rol de PUENTE.** Se corrige, y la corrección es el hallazgo más importante de esta sección.
@@ -739,12 +1061,15 @@ rol de PUENTE.** Se corrige, y la corrección es el hallazgo más importante de 
 **MEDIDO — qué vigila de verdad SFTY-6:**
 
 ```
-01_Firmware/Maestro/src/coordinador.cpp:656
+$ grep -n 'SFTY6_SILENCIO_MS' 01_Firmware/Maestro/src/coordinador.cpp 01_Firmware/Esclavo/src/main.cpp
+01_Firmware/Maestro/src/coordinador.cpp:798:
     bool tieneComunicacion = (tUltimaRxEsclavo > 0) && (millis() - tUltimaRxEsclavo <= SFTY6_SILENCIO_MS);
-
-01_Firmware/Esclavo/src/main.cpp:555
+01_Firmware/Esclavo/src/main.cpp:632:
     if (!degradado_gobiernaLuz() && millis() - tUltimoComando > SFTY6_SILENCIO_MS) {
 ```
+
+*(~~`coordinador.cpp:656`, `Esclavo/src/main.cpp:555`~~ el 31/08. El código es el mismo; los dos
+números se habían movido **142 y 77 líneas**.)*
 
 Las dos variables —`tUltimaRxEsclavo` y `tUltimoComando`— se alimentan del **enlace de radio LoRa**
 entre Maestro y Esclavo. **Ninguna de las dos lee un solo byte de `SerialBT`.**
@@ -777,18 +1102,23 @@ Así que hay **dos** cotas, no una, y **manda la más estricta**:
 
 | rol | qué lo vigila | cota | de dónde sale |
 |---|---|---|---|
-| **Repetidor** (LoRa) | SFTY-6 | `T_wdt + T_arranque < 25000 ms` | `protocolo.h:149` (C++) |
-| **Puente** (`J17`/BT) | 🔴 **nada en el equipo** — solo la app | `T_wdt + T_arranque < 5000 ms` | `app.js:1359` (JS) |
+| **Repetidor** (LoRa) | SFTY-6 | `T_wdt + T_arranque < 25000 ms` | `SFTY6_SILENCIO_MS` en `protocolo.h` (C++) |
+| **Puente** (`J17`/BT) | 🔴 **nada en el equipo** — solo la app | `T_wdt + T_arranque < 5000 ms` | `TIMEOUT_ENLACE_MS` en `app.js` (JS) — ~~`:1359`~~ |
 
 **MEDIDO** — la cota del puente, que es la que gobierna:
 
 ```
-05_Funcional/App_Semaforo/android/app/src/main/assets/public/app.js:1359
-    const TIMEOUT_ENLACE_MS = 5000;
-
-app.js:1413   if (Date.now() - state.ultimoStatusMs > TIMEOUT_ENLACE_MS) marcarSinEnlace();
-app.js:1406   addEvent('red', 'Enlace perdido: el equipo lleva mas de ' + ...
+$ grep -n "const TIMEOUT_ENLACE_MS\|'Enlace perdido: el equipo\|TIMEOUT_ENLACE_MS) marcarSinEnlace" \
+    05_Funcional/App_Semaforo/app.js
+4897:  const TIMEOUT_ENLACE_MS = 5000;
+4976:      addEvent('red', 'Enlace perdido: el equipo lleva mas de ' + ...
+5007:    if (Date.now() - state.ultimoStatusMs > TIMEOUT_ENLACE_MS) marcarSinEnlace();
 ```
+
+*(~~`:1359`, `:1413`, `:1406`~~ el 31/08 — y además citados sobre la **copia de los assets de
+Android**, que es byte a byte la misma que la de la raíz. **La constante no se ha movido de valor:
+sigue en `5000`, y ése es el número que gobierna la desigualdad.** Lo que se movió fueron
+**3.500 líneas** de sitio.)*
 
 **La desigualdad que va en el firmware y en el pack:**
 
@@ -848,8 +1178,16 @@ otro nombre: un `pinMode()` sin `digitalRead()`, con documentación encima. Regl
 
 ```
 $ grep -rnE "DS3231|Wire\.|0x68|\bOSF\b"  Maestro/{src,include} Esclavo/{src,include} Repetidor/src
-   ->  CERO coincidencias
+   ->  CERO coincidencias                                          <-- 31/08
+   ->  UNA, y es un COMENTARIO                                     <-- 05/09
+      Maestro/src/bluetooth.cpp:717:  // el ESP32 pone la hora en el DS3231 y contesta
 ```
+
+> ⚠️ **El comando publicado dejó de devolver lo que decía, y por eso se corrige en vez de
+> repetirse.** La única coincidencia nueva es **prosa dentro de un `$ERR`** del Maestro, no
+> código: **la conclusión no cambia** —no hay driver de `DS3231` ni I²C propio en ninguna punta
+> del STM32—, pero *«CERO coincidencias»* ya era falso. `CLAUDE.md` §4: un cero publicado que hoy
+> vale uno es un instrumento que dejó de medir, aunque su conclusión siga en pie.
 
 *(Con `-i` y sin `\b`, este mismo comando devuelve diez líneas de `pines.h` porque `OSF` casa dentro
 de `MOSFET`. Ver §0.bis: el buscador respondía y no sabía encontrar.)*
@@ -900,7 +1238,7 @@ SFTY-21 y la entrada al Modo Degradado. En el ESP32:
 - **Nace `false`.** No hay valor por defecto optimista.
 - **Los tres motivos se distinguen** en lo que se contesta: no es lo mismo *«no hay reloj»* que
   *«hay reloj y perdió la hora»* que *«el bus no responde»*. Es lo mismo que el Maestro hace con
-  `SIN_CRISTAL_VEA_CONSULTA_RELOJ` frente a `FORMATO_INVALIDO` (`Maestro:308-318`).
+  `SIN_CRISTAL_VEA_CONSULTA_RELOJ` frente a `FORMATO_INVALIDO` — `grep -n 'DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ' 01_Firmware/Maestro/src/bluetooth.cpp` · ~~`Maestro:308-318`~~.
 - **Y el censo de llamadores es parte del trabajo, no un paso posterior** (N-73): una función
   *«¿tengo hora?»* declarada, documentada y **sin un solo llamador** es la Caja Negra de Alarmas
   otra vez.
@@ -916,9 +1254,11 @@ creyendo que dejó el reloj puesto.*
 
 **Ese defecto no se arregla mudándose de micro. Se muda con él si nadie lo escribe.**
 
-**El molde de cómo se hace bien vive en el mismo fichero: `SET_TIEMPOS`** (`Maestro:275-294`) —
-pregunta **dentro** del `if` y tiene **un `$ERR` por cada motivo de rechazo**. Un despachador se
-escribe copiándolo.
+**El molde de cómo se hace bien vive en el mismo fichero: `SET_TIEMPOS`** — se abre con
+`grep -n 'SET_TIEMPOS:\", 12' 01_Firmware/Maestro/src/bluetooth.cpp` y sus cuatro respuestas con
+`grep -n 'CMD:SET_TIEMPOS,' 01_Firmware/Maestro/src/bluetooth.cpp` — **tres `$ERR` con motivo
+distinto y un solo `$ACK`**, y el `$ACK` cuelga del último `else`. ~~`Maestro:275-294`~~. Un
+despachador se escribe copiándolo.
 
 **Motivos de rechazo que la rama `SET_RTC` del ESP32 tiene que saber distinguir, enumerados:**
 
@@ -932,8 +1272,8 @@ escribe copiándolo.
 | 6 | El `OSF` **sigue puesto** tras la escritura | `DESC:OSCILADOR_PARADO_CAMBIE_PILA` | relectura del `0x0F` |
 | 7 | La hora entró pero **no se pudo propagar** al STM32 | `$ACK,...,RESULT:HORA_PUESTA_SIN_PROPAGAR` | el `$ACK` del STM32 no llegó |
 
-> ⚠️ **El motivo 7 es un `$ACK`, no un `$ERR`, y la distinción es la que el Maestro ya hace en
-> `:325`.** *«Los tres finales son distintos y el operario necesita los tres distintos: no hay con
+> ⚠️ **El motivo 7 es un `$ACK`, no un `$ERR`, y la distinción es la que el Maestro ya hace** —
+> `grep -n 'Los tres finales son distintos' 01_Firmware/Maestro/src/bluetooth.cpp` · ~~`:325`~~.** *«Los tres finales son distintos y el operario necesita los tres distintos: no hay con
 > qué contar el tiempo; la hora no entró; la hora entró y va camino del Esclavo.»* Aquí son más de
 > tres, y siguen teniendo que ser distintos.
 
@@ -950,8 +1290,8 @@ escribe copiándolo.
 | **R-5** | **La terna se escribe ATÓMICA**: o entran hora, minuto y segundo (y la fecha), o no entra nada | una escritura a medias deja el reloj en una hora que nadie pidió, y la deja pareciendo válida |
 | **R-6** | **Se valida ANTES de escribir**, con la trama entera en la mano | rechazar a mitad es la escritura a medias de R-5 |
 | **R-7** | 🔴 **La validación de rango es por BARRIDO, no por muestra** | comprobar «la hora» y dar por buenos los minutos es exactamente `PESOS_SUMA` (N-51): un número que parece cubrir todos los casos sin haber evaluado ninguno |
-| **R-8** | **Se relee después de escribir** y se compara | es lo que hace `ajustarRelojVerificado()` (`Maestro:127-133`). Y **los segundos no se comparan**: entre escribir y releer el RTC puede haber avanzado uno — el comentario del Maestro en `:129-132` explica por qué eso es el lado seguro del error |
-| **R-9** | Los rangos viven **en un sitio**, no en dos | `Maestro:277-281` da el motivo: dos copias son un contrato que alguien sincroniza, y el día que difieran una punta deja pasar lo que la otra rechaza |
+| **R-8** | **Se relee después de escribir** y se compara | es lo que hace `ajustarRelojVerificado()` — `grep -n 'ajustarRelojVerificado' 01_Firmware/Maestro/src/bluetooth.cpp` · ~~`Maestro:127-133`~~. Y **los segundos no se comparan**: entre escribir y releer el RTC puede haber avanzado uno, y el comentario de esa misma función explica por qué eso es el lado seguro del error · ~~`:129-132`~~ |
+| **R-9** | Los rangos viven **en un sitio**, no en dos | `grep -n 'seria una segunda copia que alguien' 01_Firmware/Maestro/src/bluetooth.cpp` · ~~`Maestro:277-281`~~ — dos copias son un contrato que alguien sincroniza, y el día que difieran una punta deja pasar lo que la otra rechaza |
 
 ---
 
@@ -967,22 +1307,27 @@ escribe copiándolo.
 > **Tres confirmaciones independientes**, que es lo que lo cierra y no una sola: el nombre del
 > módulo, el núcleo `LX6` —el `S3` es `LX7` y el `C3` es RISC-V— y el perfil Bluetooth declarado.
 >
-> **ESCRITO** en `ESTADO.md:23` y `roadmap.md:215` (**N-107**), leídos el 31/08.
+> **ESCRITO** en `ESTADO.md` y `roadmap.md` (**N-107**), leídos el 31/08 — hoy se encuentran con
+> `grep -n 'BLQ-1' ESTADO.md` y `grep -n 'N-107' roadmap.md`. ~~`ESTADO.md:23`, `roadmap.md:215`~~:
+> **los dos habían caducado**.
 >
 > ⚠️ **Lo que este cierre NO cierra, y hay que decirlo porque un bloqueo resuelto contagia
 > optimismo a los de al lado:** sigue **SIN VERIFICAR** el tiempo de arranque del módulo y el de
 > reemparejar el SPP (`AB-3`), sigue sin comprarse el `DS3231` (`A6`) y sin pedirse la fuente
 > propia (`A5`), y **no hay una sola tarjeta con un ESP32 conectado a `J17`**. Queda además una
 > pregunta menor y no bloqueante: **30 o 38 pines** de la placa DevKitC, para las hembrillas
-> (`roadmap.md:204`) — se resuelve con un pie de rey.
+> — `grep -n '30 o 38' roadmap.md`, hoy `:1472` y `:1726`; ~~`roadmap.md:204`~~, que **es
+> una línea en blanco** — se resuelve con un pie de rey.
 
 **La tabla que sigue se conserva porque es el razonamiento que hizo del chip un bloqueo, y hace
 falta para entender por qué la respuesta importaba tanto.** Es §8.quater aplicado a un documento:
 esto **se conserva**, no se borra — medía algo que sigue valiendo el día que alguien proponga
 cambiar de módulo.
 
-**ESCRITO** en `15_Lista_de_Compras_Hardware.md:102-104` y replicado en
-`10_Manual_Modulo_Bluetooth_Telemetria.md:83-84`:
+**ESCRITO** en `15_Lista_de_Compras_Hardware.md` — `grep -n 'solo BLE' 15_Lista_de_Compras_Hardware.md`,
+hoy `:279`; ~~`:102-104`~~, que hoy es la fila `A1′` del conteo de pines — y replicado en
+`10_Manual_Modulo_Bluetooth_Telemetria.md` — `grep -n 'No BLE. No Web Bluetooth' 10_Manual_Modulo_Bluetooth_Telemetria.md`,
+hoy `:83`; ~~`:83-84`~~:
 
 | familia | Bluetooth | ¿la app conecta? | consecuencia |
 |---|---|---|---|
@@ -991,14 +1336,16 @@ cambiar de módulo.
 | **`ESP32-S2`** | **ninguno** (solo WiFi) | ❌ | 🛑 idem, y encima sin radio Bluetooth |
 
 **Por qué es un bloqueo y no un detalle:** el apartado 1 del Manual 10 está **congelado por
-escrito** (`10_Manual...:26`, `:146-148`): *«Bluetooth Clásico SPP. No BLE. No Web Bluetooth. Y no
-es negociable sin reabrir este apartado por escrito.»* La razón está medida y pagada:
+escrito** — `grep -n 'negociable sin reabrir' 10_Manual_Modulo_Bluetooth_Telemetria.md` devuelve
+**una sola línea**, hoy `:83`; ~~`:26`, `:146-148`~~ —: *«Bluetooth Clásico SPP. No BLE. No Web
+Bluetooth. Y no es negociable sin reabrir este apartado por escrito.»* La razón está medida y pagada:
 `navigator.bluetooth` **no puede ver un SPP** —la API no existe para ese perfil— y eso ya costó una
 versión entera de la app.
 
 > **Cómo se responde, y no admite atajo:** se lee la **serigrafía del blindaje metálico** del
 > módulo. `ESP32-WROOM-32E` es una respuesta; `ESP32-S3-WROOM-1` es otra. 🔴 **El rótulo del
-> vendedor no distingue** (`10_Manual...:91`, `:100`).
+> vendedor no distingue** — `grep -n 'el rótulo del vendedor no distingue' 10_Manual_Modulo_Bluetooth_Telemetria.md`,
+> hoy `:268`; ~~`:91`, `:100`~~.
 >
 > ~~**SIN VERIFICAR:** nadie ha leído la serigrafía de los módulos que llegaron a obra el 28/08~~ →
 > 🟢 **RESUELTO el 31/08**, ver el recuadro de §6.1. *(La línea `A1′` de `15_Lista...:198` sigue
@@ -1068,27 +1415,33 @@ hace y la especificación calla no lo revisa nadie.**
 
 **Lo que hace hoy el puente, MEDIDO:**
 
-| | | MEDIDO en |
+> 📌 **Las nueve filas viven en DOS ficheros y se localizan por símbolo.** Rutas relativas a
+> `01_Firmware/ESP32_Expansion/`. **Ninguno de los nueve números del 04/09 seguía siendo exacto el
+> 05/09** —siete se habían movido una línea y `puente.cpp` **ciento dieciséis**—, así que la
+> columna dice ahora **con qué se encuentra cada cosa**, no dónde estaba.
+
+| | | cómo se localiza |
 |---|---|---|
-| El nombre SPP se fija **al abrir el perfil** | `spp.begin(rotulo)` | `src/transporte_app.cpp:37` |
-| El rótulo del arranque sale de la **NVS** | `Preferences`, espacio `"puente"`, clave `"rotulo"` | `src/transporte_app.cpp:23-25` |
-| Si no hay nada guardado, se anuncia el **provisional** | `SEM-SIN-MATRICULA` | `include/contrato.h:259` · `transporte_app.cpp:30` |
-| El bueno se **aprende del `$STATUS`** que ya se retransmite | `SERIE:` + `NODE:` → `SEM-<serie>-M` / `-E` | `src/puente.cpp:205-206` · `transporte_app.cpp:81-104` |
-| Y se guarda para la **SIGUIENTE arrancada** | `memoria.putString("rotulo", candidato)` | `src/transporte_app.cpp:113` |
-| **No se re-rotula en caliente** | cerrar y reabrir el perfil **tira la sesión** del operario | `src/transporte_app.cpp:109-111` |
-| Una escritura **por arrancada**, no por trama | `aprendido[]` corta la repetición: el equipo emite un `$STATUS` cada 2 s y una escritura por trama **se come la NVS en semanas** | `src/transporte_app.cpp:15-16`, `:102-104` |
-| Un `NODE:` que no se reconoce **no se rotula a medias** | `return`, **sin valor por defecto** | `src/transporte_app.cpp:97` |
-| Un campo que no está o no cabe **no se completa** | `campo()` devuelve `false`; *«un rótulo a medias es un rótulo equivocado y esto lo va a leer un técnico para decidir a qué poste se conecta»* | `src/transporte_app.cpp:64-79` |
+| El nombre SPP se fija **al abrir el perfil** | `spp.begin(rotulo)` | `grep -n 'spp.begin' src/transporte_app.cpp` · ~~`:37`~~ |
+| El rótulo del arranque sale de la **NVS** | `Preferences`, espacio `"puente"`, clave `"rotulo"` | `grep -n 'memoria.getString' src/transporte_app.cpp` · ~~`:23-25`~~ |
+| Si no hay nada guardado, se anuncia el **provisional** | `SEM-SIN-MATRICULA` | `grep -rn 'ROTULO_PROVISIONAL' include/contrato.h src/transporte_app.cpp` — **`contrato.h:259` re-verificado el 05/09** |
+| El bueno se **aprende del `$STATUS`** que ya se retransmite | `SERIE:` + `NODE:` → `SEM-<serie>-M` / `-E` | `grep -n 'transporte_aprenderRotulo' src/puente.cpp src/transporte_app.cpp` · ~~`puente.cpp:205-206`~~, que hoy es `:321` |
+| Y se guarda para la **SIGUIENTE arrancada** | `memoria.putString("rotulo", candidato)` | `grep -n 'putString' src/transporte_app.cpp` — **`:113` re-verificado** |
+| **No se re-rotula en caliente** | cerrar y reabrir el perfil **tira la sesión** del operario | `grep -n 'No se re-rotula en caliente' src/transporte_app.cpp` — **`:109` re-verificado** |
+| Una escritura **por arrancada**, no por trama | `aprendido[]` corta la repetición: el equipo emite un `$STATUS` cada 2 s y una escritura por trama **se come la NVS en semanas** | `grep -n 'aprendido' src/transporte_app.cpp` · ~~`:15-16`, `:102-104`~~ |
+| Un `NODE:` que no se reconoce **no se rotula a medias** | `return`, **sin valor por defecto** | `grep -n 'no se rotula a medias' src/transporte_app.cpp` · ~~`:97`~~ |
+| Un campo que no está o no cabe **no se completa** | `campo()` devuelve `false`; *«un rótulo a medias es un rótulo equivocado y esto lo va a leer un técnico para decidir a qué poste se conecta»* | `grep -n 'static bool campo(' src/transporte_app.cpp` · ~~`:64-79`~~ |
 
 **Por qué la letra final la decide el equipo y no una opción de compilación** —está escrito en el
-fuente, `transporte_app.cpp:90-93—`: **el mismo binario sirve a las dos puntas.** Un firmware
+fuente: `grep -n 'el mismo' 01_Firmware/ESP32_Expansion/src/transporte_app.cpp`; ~~`:90-93`~~, que
+**aterrizaba en una línea en blanco**—: **el mismo binario sirve a las dos puntas.** Un firmware
 distinto por punta sería una segunda copia que alguien tendría que sincronizar, y **el día que se
 cruzaran los dos postes se llamarían igual**.
 
 **Y encaja con las reglas de §6.2 sin romper ninguna, que es lo que hay que comprobar antes de
 aceptar que el puente haga algo más:** `transporte_aprenderRotulo()` se llama **desde el camino de
 retransmisión** y *observa*: no altera la trama, no decide si sube, y no origina nada hacia el STM32
-(`src/puente.cpp:205-206`). **B-1 y B-5 siguen intactas** *(y siguen siéndolo tras N-145: lo que el
+(mismo `grep -n 'transporte_aprenderRotulo' src/puente.cpp` de la tabla). **B-1 y B-5 siguen intactas** *(y siguen siéndolo tras N-145: lo que el
 sello de hora toca es una trama, y `transporte_aprenderRotulo()` no toca ninguna. La única excepción
 a B-5 es `B-5.bis` de §6.3 y no es ésta)*.
 
@@ -1119,19 +1472,27 @@ banco**), y no hay una sola tarjeta con un ESP32 conectado a `J17`.
 ### 7.1 🔴 Primero: sin un rol nuevo, el fuente del ESP32 es INVISIBLE
 
 > 🟢 **HECHO el 31/08 — y el razonamiento se queda entero, porque es el que hay que repetir el día
-> que aparezca un quinto rol.** MEDIDO hoy en `01_Firmware/compuerta.py`: `:114` el `_ROLES` ya trae
-> `"ESP32_Expansion"`, `:118` la regex lo incluye, `:97` el suelo subió a
-> `RUTAS_MINIMAS_ESPERADAS = 45`, y `:692` compila el proyecto (`compilar("esp32",
-> "ESP32_Expansion")`). Los nueve packs de §7.2 existen los nueve en
-> `banco/packs/esp32_01…esp32_09`. **Lo que sigue describe cómo se hizo, no lo que falta.**
+> que aparezca un quinto rol.** Se comprueba con cuatro `grep` sobre `01_Firmware/compuerta.py`, y
+> **ninguno lleva número a propósito**: `grep -n '_ROLES =' compuerta.py` —trae ya
+> `"ESP32_Expansion"`—, `grep -n '_RE_TRIPLE =' compuerta.py`, `grep -n 'RUTAS_MINIMAS_ESPERADAS ='
+> compuerta.py` —el suelo subió a **45**— y `grep -n 'compilar("esp32"' compuerta.py`.
+> ~~`:114`, `:118`, `:97`, `:692`~~ — **dos de los cuatro habían caducado el 05/09.**
+>
+> Los packs de §7.2 se cuentan con `ls 01_Firmware/Simulaciones/banco/packs/ | grep esp32`:
+> **hoy son ONCE**, no nueve —`esp32_10_parte_de_arranque` y `esp32_11_bien_formada_no_es_cierta`
+> se añadieron después—. **Lo que sigue describe cómo se hizo, no lo que falta.**
 
 **MEDIDO cuando se escribió esta sección, y sigue siendo la estructura que hay que tocar:**
 
 ```
-01_Firmware/compuerta.py:88   _ROLES = ("Maestro", "Esclavo", "Repetidor")
-01_Firmware/compuerta.py:91-95  _RE_TRIPLE = re.compile(r'["\'](Maestro|Esclavo|Repetidor)["\']...')
-01_Firmware/compuerta.py:128    if not any((r, carpeta, fichero) in rutas for r in _ROLES):
+_ROLES = ("Maestro", "Esclavo", "Repetidor")                    <-- ESTADO DEL 31/08
+_RE_TRIPLE = re.compile(r'["\'](Maestro|Esclavo|Repetidor)["\']...')
+if not any((r, carpeta, fichero) in rutas for r in _ROLES):
 ```
+
+*(**Bloque histórico: así estaba `compuerta.py` ANTES del cambio, y por eso no lleva números.**
+~~`:88`, `:91-95`, `:128`~~ eran los de aquel día y hoy señalan a otra cosa. El estado de hoy se
+lee con los `grep` del recuadro verde de arriba.)*
 
 La guarda de rutas censa las tuplas `("Maestro","src","mando.cpp")` que los instrumentos declaran, y
 **solo reconoce esos tres roles**. Un fuente bajo un cuarto directorio **no lo puede nombrar ningún
@@ -1145,12 +1506,17 @@ pack**, así que:
 
 **Lo que hay que tocar, y va en el mismo commit que el primer `.cpp` del ESP32:**
 
-1. `compuerta.py:88` — añadir el rol al `_ROLES`.
-2. `compuerta.py:91-95` — añadirlo a la alternativa del `_RE_TRIPLE`.
-3. `compuerta.py:657` y alrededores — el bloque de compilación, si el ESP32 se compila en la
-   compuerta (ver §7.4).
-4. `RUTAS_MINIMAS_ESPERADAS` (`compuerta.py:87`) — **sube** con las rutas nuevas. El suelo existe
-   justamente para que un censo que se queda ciego lo diga en vez de dar verde.
+1. `_ROLES` — añadir el rol *(`grep -n '_ROLES =' compuerta.py`)*.
+2. `_RE_TRIPLE` — añadirlo a la alternativa de la regex *(`grep -n '_RE_TRIPLE =' compuerta.py`)*.
+3. El bloque de compilación, si el ESP32 se compila en la compuerta *(`grep -n 'compilar(' compuerta.py`)*
+   — ver §7.4.
+4. `RUTAS_MINIMAS_ESPERADAS` — **sube** con las rutas nuevas *(`grep -n 'RUTAS_MINIMAS_ESPERADAS ='
+   compuerta.py`)*. El suelo existe justamente para que un censo que se queda ciego lo diga en vez
+   de dar verde.
+
+*(~~`:88`, `:91-95`, `:657`, `:87`~~ — los cuatro números de esta lista de tareas habían caducado
+el 05/09. **Una lista de pasos que cita líneas manda a alguien a editar la línea equivocada**, que
+es peor que una cita mala en prosa.)*
 
 > ⚠️ **Y el nombre del rol se elige una vez.** `CLAUDE.md` §5: mover o renombrar un `.cpp` rompe un
 > instrumento, y la guarda **no vigila contenido que se muda de fichero**. El árbol del ESP32 se
@@ -1163,7 +1529,7 @@ sus constantes del fuente en cada corrida — sin valor por defecto, nunca**.
 
 | # | pack | propiedad que vigila | lee de |
 |---|---|---|---|
-| **1** | `esp32_01_watchdog_desigualdad` | 🔴 `ESP32_WDT_MS + ESP32_ARRANQUE_MS < min(TIMEOUT_ENLACE_MS, SFTY6_SILENCIO_MS)`, **bidireccional** (que quepa **y** que no lo desborde sin sentido) | los cuatro números, de sus tres fuentes: el `.cpp` del ESP32, `protocolo.h:149` y `app.js:1359` |
+| **1** | `esp32_01_watchdog_desigualdad` | 🔴 `ESP32_WDT_MS + ESP32_ARRANQUE_MS < min(TIMEOUT_ENLACE_MS, SFTY6_SILENCIO_MS)`, **bidireccional** (que quepa **y** que no lo desborde sin sentido) | los cuatro números, de sus tres fuentes: `contrato.h` del ESP32, `SFTY6_SILENCIO_MS` en `protocolo.h` y `TIMEOUT_ENLACE_MS` en `app.js`. ~~`protocolo.h:149` y `app.js:1359`~~ — **el pack los relee por símbolo, que es justo lo que este documento acaba de aprender** |
 | **2** | `esp32_02_watchdog_alimentado` | el `esp_task_wdt_reset()` existe, está **dentro de la tarea registrada** con `esp_task_wdt_add()`, y **NO** está dentro del `while` interior (W-3) | el `.cpp` del puente, por texto |
 | **3** | `esp32_03_ack_que_mira` | 🔴 **toda rama que conteste `$ACK` evalúa el retorno de la llamada dentro de su `if`**, y toda vía de rechazo tiene su `$ERR` con motivo propio | el despachador del ESP32 |
 | **4** | `esp32_04_osf` | el `OSF` se **lee** en el arranque, **decide** el valor de `esp_reloj_enHora()`, y **solo** se limpia tras una escritura confirmada (R-1…R-4) | el driver del `DS3231` |
@@ -1230,7 +1596,7 @@ Como mínimo hacen falta dos cosas, y las dos van en la compuerta:
 
 | | qué | punto ciego declarado |
 |---|---|---|
-| **compilación** | que el proyecto del ESP32 **compile** en la compuerta, como ya hace `compilar("repetidor", "Repetidor")` (`compuerta.py:657`) | compilar no es funcionar |
+| **compilación** | que el proyecto del ESP32 **compile** en la compuerta, como ya hace `compilar("repetidor", "Repetidor")` — `grep -n 'compilar("repetidor"' compuerta.py` · ~~`:657`~~ | compilar no es funcionar |
 | **arnés de contrato** | compilar el **parser/validador de tramas real** del ESP32 en el PC y ejercerlo con tramas buenas y malas | no hay radio, no hay SPP, no hay `DS3231`: es el modelo, no la tarjeta |
 
 > ⚠️ **Y aquí hay una trampa de entorno que ya costó dos `ABORTADO` (N-44):** el arnés de contrato
@@ -1287,9 +1653,9 @@ Es la sección C del Manual 17, aplicada aquí.
 | | |
 |---|---|
 | **Nada de esto ha pasado banco** | y **ni un verde de `compuerta.py` lo autoriza**: ese `0` dice que los modelos y los arneses de PC no encuentran nada, y **ninguno toca la tarjeta** |
-| ~~**El firmware del ESP32 no existe**~~ | 🟢 **existe y compila al `35.6 %`** (`evidencia/2026-08-31_compuerta.txt:16`). Lo que **no** cambia: **compilar no es funcionar**, y **no ha pasado banco** |
-| ~~**El chip que llegó a obra**~~ | 🟢 **`BLQ-1` CERRADO el 31/08**: `ESP32-WROOM-32` clásico, hay SPP (§6.1, `ESTADO.md:23`, N-107) |
-| **Que el enlace `J17` funcione** | `13_Manual...:99`: *«tampoco está verificado en banco el enlace Bluetooth sobre `J17` p2/p3: la compuerta pasó, y la compuerta no toca la tarjeta»* |
+| ~~**El firmware del ESP32 no existe**~~ | 🟢 **existe y compila al `35.6 %`** — `grep -n "compila esp32" evidencia/2026-08-31_compuerta.txt`. Lo que **no** cambia: **compilar no es funcionar**, y **no ha pasado banco** |
+| ~~**El chip que llegó a obra**~~ | 🟢 **`BLQ-1` CERRADO el 31/08**: `ESP32-WROOM-32` clásico, hay SPP (§6.1 · `grep -n 'BLQ-1' ESTADO.md` · N-107). ~~`ESTADO.md:23`~~ |
+| **Que el enlace `J17` funcione** | `grep -n 'verificado en banco el enlace Bluetooth' 05_Funcional/13_Manual_Modulo_Expansion_I2C_y_Compras.md` — hoy `:135`; ~~`13_Manual...:99`~~ —: *«tampoco está verificado en banco el enlace Bluetooth sobre `J17` p2/p3: la compuerta pasó, y la compuerta no toca la tarjeta»* |
 | **El `DS3231`** | **no se ha comprado** (`A6`). Su dirección `0x68`, sus pull-ups y su `OSF` son datasheet, no medida sobre el módulo real |
 | **La fuente propia (`A5`)** | **no está pedida**. Sin ella no se conecta nada: el ESP32 tumbaría el riel del STM32 |
 | **El pico de 500 mA del ESP32** | ESCRITO en el Manual 15, **no medido** sobre el módulo real |
@@ -1316,7 +1682,7 @@ deja abierto: no se inventa una decisión para que el documento parezca cerrado.
 
 | id | qué está abierto | dueño | qué desbloquea |
 |---|---|---|---|
-| ~~**`BLQ-1`**~~ | 🟢 **CERRADO el 31/08.** Es un **`ESP32-WROOM-32` clásico**: `Xtensa LX6 dual-core`, `Bluetooth v4.2 BR/EDR + BLE`. **Hay SPP**, la app conecta sin tocar el transporte y **el Manual 10 §1 no se reabre** (§6.1, `ESTADO.md:23`, `roadmap.md:215` N-107). Queda una pregunta menor y no bloqueante: **30 o 38 pines** de la DevKitC, para las hembrillas | ~~el responsable~~ **resuelto** | desbloqueó la compra (`A1′`) y §6 entera |
+| ~~**`BLQ-1`**~~ | 🟢 **CERRADO el 31/08.** Es un **`ESP32-WROOM-32` clásico**: `Xtensa LX6 dual-core`, `Bluetooth v4.2 BR/EDR + BLE`. **Hay SPP**, la app conecta sin tocar el transporte y **el Manual 10 §1 no se reabre** (§6.1 · `grep -n 'BLQ-1' ESTADO.md` · `grep -n 'N-107' roadmap.md`; ~~`ESTADO.md:23`, `roadmap.md:215`~~). Queda una pregunta menor y no bloqueante: **30 o 38 pines** de la DevKitC, para las hembrillas | ~~el responsable~~ **resuelto** | desbloqueó la compra (`A1′`) y §6 entera |
 | **`AB-1`** | 🔴 **Nada en el equipo vigila al puente.** MEDIDO en §4.2: SFTY-6 mira la radio, no `J17`. Un ESP32 colgado es **invisible** para el STM32. ¿Se acepta que el único testigo sea la app, o el STM32 tiene que notar el silencio del puente? | **el responsable** *(es una decisión vial: cambia lo que el equipo hace cuando se queda sin operador)* | el alcance del watchdog y si hace falta un SFTY nuevo |
 | ~~**`AB-2`**~~ | ✅ **DECIDIDA el 31/08 y la mitad que faltaba el 04/09.** ~~*Cómo se opera el equipo si el ESP32 se cuelga, sin pantalla, sin pulsadores y sin mando*~~ → el mando **se queda** en los canales `A` y `B` (Manual 17 §3.3, opción 3), y el cruce **se opera desde el Maestro** (§3.7). 🔴 **Lo que sigue abierto no es la decisión, es su demostración:** el mando **no se pudo pulsar en banco** (N-118), el fuente se corrigió el 04/09 y **no se ha cargado en ninguna tarjeta**. El watchdog sigue cubriendo el colgado y **no** el muerto ni el desenchufado | ~~el responsable~~ **decidida; falta la carga verificada** | ya no bloquea el alcance de §6; **sí** bloquea que se pueda vender como salida de emergencia |
 | **`AB-9`** | 🔴 **NUEVA (04/09): dos módulos vírgenes se anuncian con el MISMO nombre.** El rótulo bueno se aprende del `$STATUS` y entra **en la siguiente arrancada** (§6.5); hasta entonces las dos puntas dicen `SEM-SIN-MATRICULA`. Y `AB-2` acaba de convertir ese rótulo en **lo que le dice al operario a qué poste caminar** (§17 3.7). ¿Se cubre por procedimiento —una vuelta de energía a cada módulo antes de irse, firmada en el acta— o el firmware da un provisional distinto por módulo? Las cuatro opciones, en el Manual 17 §3.8 | **el responsable** | si hay que tocar el firmware del puente antes de la primera puesta en marcha |
@@ -1337,11 +1703,11 @@ deja abierto: no se inventa una decisión para que el documento parezca cerrado.
 |---|---|
 | ~~`01_Firmware/compuerta.py`~~ | 🟢 **hecho el 31/08**: `:114` el rol, `:118` la regex, `:97` el suelo (45), `:692` la compilación |
 | ~~`01_Firmware/Simulaciones/banco/packs/`~~ | 🟢 **hecho el 31/08**: existen `esp32_01` … `esp32_09` |
-| `05_Funcional/15_Lista_de_Compras_Hardware.md` | 🟠 `:198` marca la línea `A1′` **🛑 BLOQUEADA por `BLQ-1`**, y `BLQ-1` está **cerrado** desde el 31/08. Deriva pendiente |
-| `05_Funcional/App_Semaforo/js/nmea_parser.js` | 🟠 **módulo sin un solo llamador** (§3.4.a): cargado por `index.html:589` y usado sólo en `tests/`. Habla un protocolo (`$…*XX`) que **ninguna punta de este sistema habla**. Es N-73 en JavaScript, y ya indujo un defecto de firmware. ¿Se retira o se documenta como muerto? **No se decide desde aquí** |
-| `OPTIMIZACIONES.md` | `:55` — SFTY-1 dice *«El Repetidor ESP32 no implementa watchdog»*. Cuando lo implemente, esa frase queda falsa |
-| `05_Funcional/17_...md` §1.4 | cita `Maestro/src/bluetooth.cpp:25`; hoy es `:28` |
-| `05_Funcional/17_...md` §3.3 | cita `Maestro/src/main.cpp:52`; hoy es `:53` |
+| ~~`05_Funcional/15_Lista_de_Compras_Hardware.md`~~ | 🔴 **ESTA FILA ERA FALSA, y se retira midiendo, no borrando.** ~~*«`:198` marca la línea `A1′` 🛑 BLOQUEADA por `BLQ-1`… deriva pendiente»*~~. Medido el 05/09: `grep -c '🛑 BLOQUEADA' 05_Funcional/15_Lista_de_Compras_Hardware.md` da **0**, y la fila `A1′` de ese fichero dice hoy **🟢 DESBLOQUEADA el 31/08**. La deriva **ya la cerró alguien** y este Anexo seguía reclamándola — *una lista de trabajo que no se re-mide manda a arreglar lo que ya está arreglado* |
+| ~~`05_Funcional/App_Semaforo/js/nmea_parser.js`~~ | 🔴 **ESTA FILA TAMBIÉN ERA FALSA en su premisa.** ~~*«módulo sin un solo llamador… usado sólo en `tests/`»*~~ — `grep -n 'NMEAParser' 05_Funcional/App_Semaforo/app.js` da **dos llamadores vivos** (`validarTrama`, `camposDeTrama`): ver el recuadro rojo de §3.4.a. 🟠 **Lo que SÍ queda abierto, acotado a la mitad que se midió:** `generarComando()` habla un protocolo (`$…*XX`) que **ninguna punta de este sistema habla** y **sigue sin un solo llamador fuera de `tests/`** — `grep -rn 'generarComando' 05_Funcional/App_Semaforo/`. Es N-73 en JavaScript, y ya indujo un defecto de firmware. ¿Se retira **esa función** o se documenta como muerta? **No se decide desde aquí** |
+| `OPTIMIZACIONES.md` | SFTY-1 dice *«El Repetidor ESP32 no implementa watchdog»* — `grep -n 'Repetidor ESP32 no implementa watchdog' OPTIMIZACIONES.md`, hoy `:319`; ~~`:55`~~. Cuando lo implemente, esa frase queda falsa |
+| `05_Funcional/17_...md` §1.4 | cita `Maestro/src/bluetooth.cpp:25`; ~~hoy es `:28`~~ → **hoy es `:29`** *(re-medido el 05/09; la corrección que este Anexo pedía ya se había quedado corta antes de aplicarse)* |
+| `05_Funcional/17_...md` §3.3 | cita `Maestro/src/main.cpp:52`; hoy es `:53` — 🟢 **sigue exacto el 05/09** |
 | ~~`05_Funcional/5_Manual_Puente_ESP32.md`~~ | 🟢 **corregido el 31/08**: lleva recuadro que separa los **dos ESP32** y avisa de la **colisión de GPIO** (`GPIO16`/`17`/`22` sirven a cosas distintas en cada rol). Sigue describiendo sólo el rol Repetidor, que es su asunto |
 | `05_Funcional/10_...Bluetooth...md` | congelado en SPP, y sigue mandando enchufar un `HC-05` en `J17` (Manual 17 §B, Orden 2) |
 | `ESTADO.md` / `roadmap.md` | `BLQ-1` y `AB-1`…`AB-8` no están anotados como abiertos con dueño |
@@ -1359,18 +1725,67 @@ pasada: **445/445, 39 packs, 0 FALLA, 0 ABORTADO**. Este documento no toca códi
 
 | § | qué estaba mal | clase de error |
 |---|---|---|
-| **§3.4** | 🔴 **`formatearComando()` no existe y la app no añade `*XX`.** Sobre esa frase falsa —**con la palabra MEDIDO encima**— la sección ordenaba al ESP32 validar `$`, `*` y XOR-8. El firmware lo obedeció en su primera versión y **habría descartado el 100 % de los comandos reales** | `CLAUDE.md` §4 segunda cara: **lo que TÚ reportas también es un instrumento** |
+| **§3.4** | 🔴 **`formatearComando()` no existe y la app no añade `*XX`.** *(Re-corrido el 05/09: sigue dando cero.)* Sobre esa frase falsa —**con la palabra MEDIDO encima**— la sección ordenaba al ESP32 validar `$`, `*` y XOR-8. El firmware lo obedeció en su primera versión y **habría descartado el 100 % de los comandos reales** | `CLAUDE.md` §4 segunda cara: **lo que TÚ reportas también es un instrumento** |
 | **§3 `E-2`** | la cifra de `41 caracteres` no cuadraba: la cadena mide **40**, y la que la app componía de verdad en el locale de campo medía **45** | una foto de un día publicada como constante |
-| **§3.7** | `$EVENT`: se decía **14** ramas y `app.js:814-815`. MEDIDO: **16** ramas y `app.js:976-977` | dos cifras que apoyaban una conclusión correcta, y que **nadie iba a comprobar por eso mismo** |
+| **§3.7** | `$EVENT`: se decía **14** ramas y ~~`app.js:814-815`~~. MEDIDO entonces: **16** ramas y ~~`app.js:976-977`~~ *(las dos son citas HISTÓRICAS: se dejan tachadas como registro de lo que dijo cada pasada, y ninguna de las dos señala hoy a nada)*. 🔴 **RE-MEDIDO el 05/09: 19 ramas, y la rama de la app está en `:3421`** — *las dos correcciones del 31/08 habían vuelto a caducar* | dos cifras que apoyaban una conclusión correcta, y que **nadie iba a comprobar por eso mismo** |
 | **§6, §9** | `BLQ-1` dado por abierto; está **cerrado** desde el 31/08 | deriva entre documentos |
 | **cabecera, §7.1, §7.5, §8, Anexo** | el firmware, el rol de la compuerta y los nueve packs se daban por inexistentes; **existen los tres** | deriva |
 
 **Lo que sí se re-midió y estaba bien** —se anota porque una lista de errores sin la lista de
 aciertos no dice si la revisión fue exhaustiva o afortunada—: los baudios (`9600` en las dos
-puntas), `SerialBT(PB7, PB6)` en `Maestro:28` y `Esclavo:26`, `btBufIn[64]`, `payload[128]`,
-`payload[100]`, `p[80]`, `tramaCompleta[140]`, los recuentos `$ACK` 17/4 y `$ERR` 16/8,
-`IWatchdog.begin(4000000)` en las dos puntas, `SFTY6_SILENCIO_MS 25000UL`,
-`TIMEOUT_ENLACE_MS = 5000` y que la numeración `SFTY-x` llega a **29**.
+puntas), `SerialBT(PB7, PB6)`, `btBufIn[64]`, `payload[128]`, `payload[100]`, `p[80]`,
+`tramaCompleta[140]`, los recuentos `$ACK` 17/4 y `$ERR` 16/8, `IWatchdog.begin(4000000)` en las
+dos puntas, `SFTY6_SILENCIO_MS 25000UL`, `TIMEOUT_ENLACE_MS = 5000` y que la numeración `SFTY-x`
+llega a **29**.
+
+---
+
+### 🔴 Tercera pasada — 05/09/2026: el censo de las CITAS, y lo que dijo de esta lista
+
+**El encargo era otro** —censar las citas `fichero:línea` de este documento y curarlas—, pero el
+censo contestó primero a la lista de arriba, y la respuesta es el hallazgo:
+
+> 🔴 **De los trece «aciertos» re-medidos el 31/08, SIETE habían caducado para el 05/09** —y
+> uno de ellos, `payload[100]`, describía un **defecto que ya se había arreglado** (N-108).
+> Los que aguantan: `9600`, `btBufIn[64]`, `p[80]`, `SFTY6_SILENCIO_MS 25000UL`,
+> `TIMEOUT_ENLACE_MS = 5000` y `SFTY-29`.
+
+| lo re-medido el 31/08 | seguía cierto el 05/09 |
+|---|---|
+| `9600` en las dos puntas | 🟢 sí |
+| `SerialBT(PB7, PB6)` en `Maestro:28` y `Esclavo:26` | 🔴 **el código sí, los dos números no** (`:29` y `:28`) |
+| `btBufIn[64]` | 🟢 sí (los números no) |
+| `payload[128]` | 🟡 sólo el Esclavo; el Maestro subió a `144` |
+| `payload[100]` | 🔴 **no**: `$ALARM` → `144`, `$EVENT` → `112` |
+| `p[80]` | 🟢 sí |
+| `tramaCompleta[140]` | 🔴 **no**: `160` |
+| `$ACK` 17/4 · `$ERR` 16/8 | 🔴 **no**: 20/14 y 18/11 |
+| `IWatchdog.begin(4000000)` | 🟢 sí, **y las cuatro líneas siguen exactas** |
+| `SFTY6_SILENCIO_MS 25000UL` · `TIMEOUT_ENLACE_MS = 5000` · `SFTY-29` | 🟢 sí |
+
+**La conclusión operativa, y es toda la tercera pasada en una frase:**
+
+> 🔴 **Una lista de «esto se re-midió y estaba bien» tiene fecha de caducidad, y no la lleva
+> escrita.** Es peor que una cifra sola: una cifra suelta se duda, pero **una lista de aciertos
+> compra confianza sobre lo que ya no mide**, y el siguiente lector la usa como base en vez de
+> volver a medir. Por eso lo que este documento publica de aquí en adelante es **el comando que
+> produce el número**, no el número — y por eso esta tabla lleva **dos** columnas de fecha.
+
+**Lo que la tercera pasada corrigió, además de las citas:**
+
+| | qué |
+|---|---|
+| §1.3 **NUEVA** | qué **NO** hace este módulo —sin red, sin imagen, sin cámara, sin analítica— con la medida y su control negativo (`DECISIONES.md` **D-12**) |
+| §3.3 | `$ALARM`/`$EVENT` no comparten buffer de 100 B: son 144 y 112, y el **tope del cable sube de 132 B a 148 B** |
+| §3.4.a | `NMEAParser` **sí** tiene llamadores — el documento se contradecía a sí mismo desde el 01/09 |
+| §3.6 | falta `CANCELAR_AMBAR` en el censo de comandos del Esclavo, y **las dos tablas pierden la columna de números** |
+| §3.7 | tres cifras del `$EVENT` en seis días (14 → 16 → 19), y la plantilla de `$ALARM` con un `%s` más |
+| §5.1 | el `grep` publicado ya no devuelve «CERO», sino una —y es prosa, no código— |
+| Anexo | **dos filas eran falsas**: la de `15_Lista` (ya desbloqueada) y la de `nmea_parser.js` |
+
+🛑 **Y lo que la tercera pasada NO cambia, igual que las dos anteriores: nada ha pasado banco, no
+hay una sola tarjeta con un ESP32 en `J17`, y este documento sigue sin tocar código ni
+instrumentos.**
 
 **Ninguna afirmación se borró: las cuatro están tachadas con lo medido al lado.** *Una causa que se
 cae se marca refutada; la que desaparece en silencio vuelve a proponerse, y la segunda vez ya nadie

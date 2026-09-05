@@ -24,7 +24,20 @@
 //
 // Y LO ENCONTRO UNA REVISION EXTERNA, NO EL PACK QUE EXISTE PARA ESTO: maestro_10 censa
 // enums de un solo valor "que ademas se COMPARAN" y solo miraba `==`. Un `case` es una
-// comparacion. El pack se afila en el mismo commit; si no, esto vuelve.
+// comparacion.
+//
+// 🔴 Y AQUI DECIA "el pack se afila en el mismo commit; si no, esto vuelve". NO SE AFILO,
+// y la frase se quedo prometiendolo: es exactamente 2.ter -una frase que sostiene un verde
+// y que no comprueba nadie-, escrita por quien hizo el cambio y en el mismo commit. La
+// encontro una revision externa leyendo, no un test.
+//
+// Lo que paso, medido: se anadio `case` al detector y se INYECTO el defecto en este .cpp
+// para comprobarlo. EL PACK SIGUIO DANDO 12/12. El censo aislado si lo encuentra -el enum
+// se detecta y el `case` tambien-, asi que hay una tercera causa sin localizar. Un parche
+// que no se ha visto fallar es un adorno que da verde (8.bis), asi que se revirtio.
+//
+// QUEDA ABIERTO: maestro_10 es el UNICO pack que censa esta forma, y hoy solo mira `==`.
+// Un enum de un valor dentro de un switch volveria a entrar sin que nada lo delate.
 // N-137 (04/09): AQUI PONIA `maxVerde = 2` MINUTOS, POR DEBAJO DEL MINIMO VIAL.
 //
 // Este modo configura el coordinador por su cuenta -no pasa por SET_TIEMPOS-, asi que

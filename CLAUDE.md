@@ -769,6 +769,34 @@ enlazador lo descarta— o no serlo —`8a45ae7` y `f37581f` pesan igual y difie
 decide en ninguna de las dos direcciones.** Un `md5sum` antes de mandar a alguien al banco ahorra
 cargas enteras.
 
+## 4.sexies Se cita el SIMBOLO, no el numero de linea
+
+> **Un numero de linea caduca solo, en silencio, y con la autoridad de un dato. Un simbolo
+> sobrevive a que alguien inserte veinte lineas encima.**
+
+Medido el 05/09 con un censo propio, con borde declarado y control negativo, sobre los tres
+documentos de arquitectura: **178 de 240 citas juzgables no señalaban al sitio — el 74 %.**
+
+**Y este repositorio ya intento la cura equivocada.** El 31/08 se renumeraron a mano tres
+citas de `17_...md` «para dejarlas al dia»: **las seis estan caducadas hoy**. Renumerar
+genera numeros nuevos que caducan en una semana, y el trabajo se repite entero.
+
+> **La regla: se cita el simbolo y se publica el `grep` que lo encuentra.** Un numero de
+> linea solo vale (a) **fechado a un commit concreto** —`git show <hash>:fichero` lo
+> verifica para siempre—, o (b) **pegado como salida literal de un `grep`** en un bloque de
+> codigo. Y **todo `grep` que se publique se corre antes**: un `grep` que no encuentra es la
+> misma cita rota una capa arriba.
+
+**La demostracion salio sola, y es la mejor parte:** el agente que hizo el trabajo verifico
+a mano que el `<script src="js/config.js">` estaba en `index.html:937` y lo escribio.
+**Antes de cerrar su propia sesion ya era la 949** en una de las dos copias de la app.
+
+**Y el ancla barata ya existia:** el firmware lleva las marcas `N-xxx` del roadmap en sus
+comentarios. `grep -rn "N-133" Maestro` da las cuatro puntas de un cambio de una vez;
+`N-142` vive en 10 ficheros. No habia que inventar nada.
+
+---
+
 ## 5. Los instrumentos leen el fuente por ruta
 
 Los validadores no incluyen el firmware: lo **parsean**, y direccionan cada archivo por tuplas

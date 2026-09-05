@@ -24,6 +24,27 @@ HEAD `3733544`, rama `main-nuevo`, **arbol LIMPIO** (lo dice la propia acta).
 Este documento esta escrito **en ASCII sin acentos**, como el resto de lo que se parsea o se lee en
 consola de Windows en este repositorio.
 
+> 🔵 **COMO SE CITA EL FUENTE EN ESTE DOCUMENTO — cambiado el 05/09, y el motivo es una medida, no
+> una preferencia de estilo.**
+>
+> Un censo mecanico —con control negativo: una cita inventada a proposito la marca— conto en este
+> documento **272 citas `fichero:linea`** vivas —sin contar las que el propio documento ya lleva
+> tachadas—. Pudo juzgar **155** (las demas no nombran ningun simbolo al lado, asi que ninguna
+> maquina puede decir si aciertan), y de esas **111 no apuntan a donde dicen**. No es que se escribieran mal: **un numero de linea caduca en cuanto alguien inserta
+> veinte lineas encima**, y en este repositorio se insertan todas las semanas. Renumerarlas a mano
+> es repetir el mismo trabajo dentro de siete dias — y este documento ya lo hizo una vez: el punto
+> 7 de la seccion B renumero tres citas el 31/08 y **las tres vuelven a estar caducadas hoy**.
+>
+> **Desde esta pasada se cita el SIMBOLO y se deja escrito el `grep` que lo encuentra:** una
+> funcion, un `#define`, una constante, el literal de un comando, o la **marca `N-xxx`** que el
+> propio fuente lleva en sus comentarios —el firmware de este repositorio las trae, y por eso
+> valen como ancla—. Un simbolo sobrevive a que el fichero se reordene por dentro; un numero no.
+>
+> **Donde el numero siga aportando** —una constante concreta, una fila de tabla— **se deja, pero
+> verificado en esta pasada y con esa fecha al lado.** Y una cita que apuntaba a algo que ya no
+> existe no es una cita mal numerada: es una **afirmacion falsa**, y va tachada con su motivo. Las
+> que aparecieron estan marcadas 🔴 **AFIRMACION FALSA** donde estaban.
+
 > **Este documento no cambia ningun otro fichero.** Todo lo que otro documento necesita corregir
 > esta listado en la seccion B y en el anexo final, y **no se ha tocado**. Habia otros trabajos en
 > vuelo sobre el mismo arbol el dia que se escribio.
@@ -96,11 +117,22 @@ activa en ALTO, para los cuatro pines y sin excepcion.**
 **De ahi salen dos conclusiones distintas, una buena y una mala:**
 
 - 🟢 **El camino de camara es correcto, y ademas esta EJERCIDO.** `pinMode(INPUT)` pelado con
-  deteccion contra `HIGH` —lo que N-67 dejo en `modo_inteligente.cpp:46` y `:25`— es exactamente lo
-  que el cobre pide. El **paso 21** cableo `p10` contra `p11` (`3,3 V`) en normalmente abierto y **el
-  equipo no pidio paso solo, ni con el cable puesto ni sin el**: **no hay demandas fantasma**. La
-  consecuencia operativa de §2.2 —*"mientras esto no se mida, no se cablea camara a `J16`"*— **queda
-  levantada.**
+  deteccion contra `HIGH` —lo que N-67 dejo, y que **desde N-97 vive en `botones.cpp`, no en
+  `modo_inteligente.cpp`**: `camara_leerPin()` y los tres `pinMode(..., INPUT)` de
+  `botones_setup()`— es exactamente lo que el cobre pide. El **paso 21** cableo `p10` contra `p11`
+  (`3,3 V`) en normalmente abierto y **el equipo no pidio paso solo, ni con el cable puesto ni sin
+  el**: **no hay demandas fantasma**. La consecuencia operativa de §2.2 —*"mientras esto no se
+  mida, no se cablea camara a `J16`"*— **queda levantada.**
+  > ~~`modo_inteligente.cpp:46` y `:25`~~ → 🔴 **AFIRMACION FALSA, corregida el 05/09.** Ahi no hay
+  > camara: lo que hay en esas lineas son los comentarios de **N-97** —que explica que el
+  > `pinMode(CAM_DEMANDA_PIN, INPUT)` **se fue de esa funcion** porque un modo no es dueno de una
+  > entrada fisica— y de **N-135**. El camino de camara se localiza asi, y sale igual en las dos
+  > puntas:
+  > ```
+  > grep -n "camara_leerPin" Maestro/src/botones.cpp Maestro/include/botones.h
+  > grep -n "pinMode(CAM_" Maestro/src/botones.cpp Esclavo/src/botones.cpp
+  > grep -n "N-97" Maestro/src/modo_inteligente.cpp
+  > ```
 - 🔴 **El camino de mando ESTABA invertido, y no era un matiz de estilo: EN BANCO NO SE PUDO PULSAR
   (N-118).** El firmware que se llevo —`617bd00`— leia `INPUT_PULLUP` y `== LOW`. Con el pin en
   `0,6 V` en reposo la lectura cruda ya era `LOW` **desde el arranque**, el antirrebote lo sembraba
@@ -109,8 +141,14 @@ activa en ALTO, para los cuatro pines y sin excepcion.**
   comportamiento** (paso 29).
   > 🟢 **ESTADO DE HOY, 04/09 — el fuente ya no es el defecto.** `346ea5f` deja `pinMode(BOTON1,
   > INPUT)` / `pinMode(BOTON2, INPUT)` pelados y `digitalRead(b.pin) == HIGH` en **las dos puntas**
-  > (`Maestro/src/botones.cpp:40`, `:160-161`; `Esclavo/src/botones.cpp:54`, `:178-179`) — el mismo
-  > arreglo que N-67 le hizo a la camara.
+  > —`botones.cpp`, funcion `botones_setup()` para los `pinMode` y el lector antirrebotado
+  > `actualizar()` para la comparacion, con la marca `N-118` encima de los dos—: el mismo arreglo
+  > que N-67 le hizo a la camara. Se localiza asi, y **da las dos puntas de una vez**:
+  > ```
+  > grep -n "pinMode(BOTON[12], INPUT)" Maestro/src/botones.cpp Esclavo/src/botones.cpp
+  > grep -n "digitalRead(b.pin) == HIGH" Maestro/src/botones.cpp Esclavo/src/botones.cpp
+  > grep -n "N-118" Maestro/src/botones.cpp Esclavo/src/botones.cpp
+  > ```
   >
   > 🔴 **Y sigue PENDIENTE de ejercer en tarjeta**, que es lo unico que lo cerraria: **nadie ha
   > visto todavia a este equipo obedecer un `A·A·A`**, y no se prueba sobre la Maestro con el corto
@@ -119,6 +157,62 @@ activa en ALTO, para los cuatro pines y sin excepcion.**
   > ⚠️ **Cambia el GESTO DE PRUEBA, y esto es lo que se lleva al banco:** ~~tocar `J16` p5 contra
   > masa~~ → **cerrar `p5` contra `p4` y `p8` contra `p7`, que son los `3,3 V` del pin contiguo**.
   > El gesto viejo es el del paso 29, el que acabo con el Maestro caliente.
+
+### 🟢 D-12 — EL CONTRATO REAL DE LAS CAMARAS: **UN CONTACTO SECO, y nada mas**
+
+> **De cada camara el sistema consume UN CONTACTO SECO. No hay red, no hay imagen, no hay video, y
+> no hay analitica en el controlador.** (`DECISIONES.md`, fila **D-12**, 05/09.)
+
+**Va aqui, junto a la medida de `J16`, porque es exactamente lo que esa medida dice y nadie lo
+habia escrito:** lo que llega del conector es **un contacto que se cierra o no se cierra**, leido
+por `camara_leerPin()` como un nivel alto. Un bit. El firmware no sabe —ni puede saber— si detras
+de ese contacto hay una AcuSense, un lazo inductivo o un pulsador. El propio `pines.h` ya lo
+rotula asi: *"J16 p10 - camara de contacto seco"*.
+
+**MEDIDO el 05/09, y se publica el control negativo al lado porque §4 obliga a descartar al
+buscador antes de creerse un cero:**
+
+| que se busco | en donde | resultado |
+|---|---|---|
+| `WiFi`, `HTTPClient`, `WebServer`, `esp_camera`, `ONVIF`, `rtsp`, `mqtt`, `lwip` | `01_Firmware/ESP32_Expansion/src` + `include` + `platformio.ini` | **0 en todos** |
+| simbolos `esp_wifi_init` / `esp_wifi_start` / `httpd_start` / `lwip_socket` / `esp_camera_init` **enlazados** | `ESP32_Expansion/.pio/build/esp32_expansion/firmware.elf`, con `xtensa-esp32-elf-nm` | **0 definidos** |
+| **control negativo** — que el buscador SI encuentra | los mismos ficheros | `BluetoothSerial` **4** · `Serial2` **3** · `Wire` **13** |
+
+```
+cd 01_Firmware/ESP32_Expansion
+grep -rowE "\bWiFi\b|\bHTTPClient\b|\bWebServer\b|\besp_camera\b|\bONVIF\b|\blwip\b" src include platformio.ini
+grep -rowE "\bBluetoothSerial\b|\bSerial2\b|\bWire\b" src include platformio.ini    <-- el control negativo
+```
+
+**Las dos consecuencias, y la segunda es la que duele:**
+
+1. 🟢 **Toda la inteligencia vive en la CONFIGURACION DE LA CAMARA**, no en el controlador. El
+   `9_Manual_Parametrizacion_Camara_IA.md` deja de ser documento de apoyo y pasa a ser
+   **entregable principal**: es donde se decide que significa el contacto.
+2. 🟠 **El CONTROLADOR no ve imagen, y por eso D-12 deroga la propuesta de *"imagenes y
+   auditoria en la Raspberry o la Nano"*** que **dos revisiones recomendaron el 05/09 heredando la
+   idea sin comprobar que existiera camino**.
+   > ✏️ **CORREGIDO EL MISMO 05/09, y se deja escrito lo que decia porque el matiz cambia una
+   > compra:** ~~*"sin imagenes NO hay soporte de accidentes ni auditoria"*~~ → **la camara SI
+   > graba, en su propia microSD** —`DS-2CD2683G2-IZS`, hasta 512 GB por ficha oficial—, asi que
+   > **el soporte de accidentes y la auditoria si son posibles: EN LA CAMARA, no en nuestro
+   > firmware**. Es una tarjeta que hay que **comprar y configurar**, y **no toca una linea de
+   > codigo**. Queda abierta como **`A-0`** en `DECISIONES.md` —que tamano, cuantos dias de
+   > retencion, y si graba continuo o por evento—.
+   >
+   > **La fila de `DECISIONES.md` manda sobre este parrafo**, y este bloque se escribio con la
+   > version anterior de esa fila: es exactamente el caso que el encabezado de `DECISIONES.md`
+   > describe.
+
+> ⚠️ **Y lo que este apartado NO dice, para que no se lea de mas:** que el sistema consuma un solo
+> bit por camara **no es un defecto de la camara**. La Hikvision `DS-2CD2683G2-IZS` (D-10) graba y
+> analiza por su cuenta; lo que no hay es **camino desde ella hasta este controlador** para nada
+> que no sea el contacto. Si algun dia se quiere imagen, es un equipo nuevo en el armario, no una
+> version del firmware.
+>
+> **Y la consecuencia que decide `A-1`:** con dos camaras y un bit cada una, **el cruce entero
+> tiene DOS significados**, no dos canales de informacion. Uno esta tomado —presencia antes de
+> bajar la pluma—; el otro es la pregunta abierta.
 
 > 🛑 **Lo que eso le hace a §3.3, y hay que leerlo entero.** La decision del 31/08 —*"se conserva el
 > mando en `A` y `B`"*— se eligio porque era la unica salida fisica de ultimo recurso que **ya estaba
@@ -191,14 +285,15 @@ ficheros** —el `.cpp` y el `.h`—, y por eso va aparte y no se mezcla con aqu
 
 | # | que cambia | donde se comprueba | nivel |
 |---|---|---|---|
-| **1** | **El minimo del ciclo sube de 1 a 3 minutos.** Cierra `N75-1`, abierta desde el 26/08 (§3.4) | `Maestro/src/modo_automatico.cpp:51-53` | **MEDIDO** |
+| **1** | **El minimo del ciclo sube de 1 a 3 minutos.** Cierra `N75-1`, abierta desde el 26/08 (§3.4) | `Maestro/include/limites_ciclo.h`, constantes `VERDE_MIN_MIN` / `ROJO_MIN_MIN` / `DESPEJE_SEG_MIN` · `grep -n "VERDE_MIN_MIN" Maestro/include/limites_ciclo.h` | **MEDIDO** |
 | **2** | **DECISION DEL RESPONSABLE: el cruce se opera DESDE EL MAESTRO.** Se descarta relevar el mando por radio desde el Esclavo | **§3.7, nueva** | **decision** |
-| **3** | **N-130: el acuse de la demanda dice si se va a atender**, y la bandera solo se arma si hay quien la consuma | `include/protocolo.h:151-172` (las dos puntas) · `Maestro/src/coordinador.cpp:620-642` · `Esclavo/src/main.cpp:525-544` | **MEDIDO** |
+| **3** | **N-130: el acuse de la demanda dice si se va a atender**, y la bandera solo se arma si hay quien la consuma | la marca `N-130` en las cuatro puntas del cambio: `grep -rn "N-130" Maestro/src/coordinador.cpp Maestro/include/protocolo.h Esclavo/src/main.cpp Esclavo/include/protocolo.h` | **MEDIDO** |
 | — | 🔴 **ABIERTA, nueva:** el rotulo Bluetooth de un modulo virgen es **el mismo en las dos puntas** hasta la segunda arrancada | **§3.8, nueva** | **MEDIDO** |
 
 ### 1 · El minimo del ciclo sube de 1 a 3 minutos
 
-**MEDIDO** en `01_Firmware/Maestro/src/modo_automatico.cpp:51-53`:
+**MEDIDO** en `01_Firmware/Maestro/include/limites_ciclo.h` — `grep -n "VERDE_MIN_MIN"
+Maestro/include/limites_ciclo.h`:
 
 ```
    static const uint8_t VERDE_MIN_MIN = 3,  VERDE_MIN_MAX = 15;
@@ -206,8 +301,15 @@ ficheros** —el `.cpp` y el `.h`—, y por eso va aparte y no se mezcla con aqu
    static const uint8_t DESPEJE_SEG_MIN = 10, DESPEJE_SEG_MAX = 90;
 ```
 
+> ~~`01_Firmware/Maestro/src/modo_automatico.cpp:51-53`~~ → 🔴 **AFIRMACION FALSA, corregida el
+> 05/09: ya no es ese fichero.** Las seis constantes **se mudaron a `include/limites_ciclo.h` por
+> N-137**, y este mismo documento lo cuenta unas lineas mas abajo sin haber corregido la cita de
+> arriba. En `modo_automatico.cpp` ya solo quedan **usos**, no la declaracion:
+> `static int minRojo = ROJO_MIN_MIN, minVerde = VERDE_MIN_MIN, segEstatico = DESPEJE_SEG_MIN;`.
+
 **El porque, con las palabras del responsable: «tres minutos es la minima distancia de seguridad».**
-El razonamiento largo esta escrito en el propio fichero (`:22-50`) y **no se copia aqui**: dos
+El razonamiento largo esta escrito **en la cabecera de `limites_ciclo.h`** —el bloque *"LOS LIMITES
+DEL CICLO VIVEN AQUI, Y EN UN SOLO SITIO"*— y **no se copia aqui**: dos
 versiones de un motivo son dos cosas que alguien tiene que sincronizar, y este documento ya sabe
 como acaba eso. En una linea: en un paso alternado de un solo carril, un camion pesado tarda entre
 5 y 8 s **solo en reaccionar y arrancar**; con un verde de 60 s lo que se produce no es una cola, es
@@ -217,8 +319,10 @@ un conductor convencido de que el semaforo esta averiado.
 valida por comodidad, pero **la app no es la unica que puede hablar por `J17`**: cualquier otra cosa
 en ese cable —o una APK vieja, que el 04/09 se demostro que sobreviven en los telefonos— puede
 mandar `SET_TIEMPOS` con un minuto. La guarda esta en `modoAutomatico_fijarTiempos()`
-(`modo_automatico.cpp:57-60`) y el rechazo sale por `$ERR,CMD:SET_TIEMPOS,DESC:RANGO`
-(`Maestro/src/bluetooth.cpp:573`). **Una guarda que solo vive en la interfaz es de cortesia.**
+—`grep -n "bool modoAutomatico_fijarTiempos" Maestro/src/modo_automatico.cpp`— y el rechazo sale
+por el literal `$ERR,CMD:SET_TIEMPOS,DESC:RANGO`, que se localiza con
+`grep -n "DESC:RANGO" Maestro/src/bluetooth.cpp`. **Una guarda que solo vive en la interfaz es de
+cortesia.**
 
 **COSTE ACEPTADO A SABIENDAS, y va escrito porque se paga en la proxima sesion de banco:** ya **no
 se puede probar en mesa con ciclos de un minuto**. Un banco cae del lado de esperar tres minutos, no
@@ -229,25 +333,47 @@ visita tiene que contar tres minutos por paso al escribir los tiempos.**
 > los seis limites estaban escritos a mano en TRES sitios y tres lenguajes.** Hoy los tres coinciden
 > y hay un pack que los relee en cada corrida —`app_11_rangos_de_tiempos`, que lee el C++, el
 > `enRango(...)` de `app.js` y los `min=`/`max=` de `index.html`—. **MEDIDO** en
-> `01_Firmware/Simulaciones/banco/packs/app_11_rangos_de_tiempos.py:3-8`, `:34-37`.
+> `01_Firmware/Simulaciones/banco/packs/app_11_rangos_de_tiempos.py` — su cabecera y su
+> `DESCRIPCION`, que se localizan con
+> `grep -n "DESCRIPCION" Simulaciones/banco/packs/app_11_rangos_de_tiempos.py`.
 >
-> 🔴 **Y el hueco que ese pack NO cubre, medido en esta misma pasada: hay un CUARTO sitio, y
-> hoy dice lo contrario que el firmware.** `05_Funcional/App_Semaforo/js/config.js:10-17` declara
-> `LIMITES_TIEMPO` con `VERDE_MIN_MIN: 1` y `ROJO_MIN_MIN: 1`, bajo el comentario *«Rangos de
-> Tiempos Permitidos por Firmware»* — **que hoy es falso**. `index.html:718` lo carga, y `grep` de
-> `IOT_CONFIG` y de `LIMITES_TIEMPO` sobre la app **da cero consumidores fuera de `tests/`**: es un
-> huerfano de los de N-73 **con una cifra caducada dentro y una frase que la presenta como medida**.
-> **No se toca desde este documento** —la app la lleva otro trabajo—; queda en el Anexo, punto 6.
+> ~~🔴 **Y el hueco que ese pack NO cubre, medido en esta misma pasada: hay un CUARTO sitio, y hoy
+> dice lo contrario que el firmware.** `05_Funcional/App_Semaforo/js/config.js:10-17` declara
+> `LIMITES_TIEMPO` con `VERDE_MIN_MIN: 1` y `ROJO_MIN_MIN: 1`, bajo el comentario «Rangos de Tiempos
+> Permitidos por Firmware» — que hoy es falso. `index.html:718` lo carga~~
+>
+> → 🔴 **AFIRMACION FALSA, corregida el 05/09. El cuarto sitio YA NO EXISTE: se borro el 04/09**, en
+> el mismo dia en que este parrafo lo denunciaba. `js/config.js` conserva **solo el comentario que
+> explica la retirada** —*"LOS LIMITES DE TIEMPO SE RETIRAN DE AQUI (04/09/2026). NO SE ACTUALIZAN:
+> SE BORRAN"*—, y el censo lo confirma: `grep -rn "LIMITES_TIEMPO" 05_Funcional/App_Semaforo`
+> devuelve **solo lineas de comentario**, ninguna declaracion. La cita a `index.html:718` tampoco
+> apuntaba a nada: el `<script src="js/config.js">` se localiza con
+> `grep -n 'src="js/config.js"' App_Semaforo/www/index.html`.
+>
+> 🔴 **Y este pie de pagina se demostro a si mismo en HORAS.** Al hacer esta pasada se escribio
+> aqui *"esta en la linea 937"*, verificado a mano. **Antes de terminar la misma sesion ya no era
+> cierto para las dos copias**: `App_Semaforo/index.html` lo tiene en la **949** y
+> `App_Semaforo/www/index.html` en la **937**. Un numero verificado por uno mismo, el mismo dia,
+> caducado antes de cerrar el fichero. **Eso es lo que esta pasada viene a arreglar.**
+>
+> ⚠️ **Lo que de aquel parrafo SIGUE siendo cierto, y por eso no se borra entero:** el resto de
+> `IOT_CONFIG` tampoco tiene consumidores —lo dice el propio fichero, *"AVISO APARTE, y no se
+> arregla en este commit"*—, asi que el huerfano de los de N-73 **no ha desaparecido: ha
+> adelgazado**. Queda en el Anexo, punto 6. **No se toca desde este documento**: la app la lleva
+> otro trabajo.
 
 ### 2 · La demanda que se acusaba y no se atendia (N-130)
 
 **El defecto, MEDIDO por censo y no por lectura.** El Esclavo contestaba
-`$ACK,CMD:SOLICITAR_PASO,RESULT:PEDIDO_AL_MAESTRO` (`Esclavo/src/bluetooth.cpp:543`) y el Maestro
-armaba `demandaRemotaPendiente` **siempre**. `grep` de esa bandera contra sus llamadores:
+`$ACK,CMD:SOLICITAR_PASO,RESULT:PEDIDO_AL_MAESTRO` —`grep -n "PEDIDO_AL_MAESTRO"
+Esclavo/src/bluetooth.cpp`— y el Maestro armaba `demandaRemotaPendiente` **siempre**. El censo es
+este, y lo que importa de el **no son los numeros de linea: es que salga UN SOLO fichero
+consumidor**, asi que se deja el comando y no su salida de un dia:
 
 ```
-   grep -rn "coordinador_hayDemandaRemota|coordinador_limpiarDemandaRemota" Maestro/src
-      ->  modo_inteligente.cpp:87, :102, :110, :124     <-- UN SOLO FICHERO
+   grep -rn "coordinador_hayDemandaRemota\|coordinador_limpiarDemandaRemota" Maestro/src
+      ->  coordinador.cpp        las dos DEFINICIONES
+      ->  modo_inteligente.cpp   los CUATRO usos      <-- UN SOLO FICHERO CONSUMIDOR
 ```
 
 **En Modo Manual y en Modo Automatico nadie la lee.** El operario de pie junto al Poste 2 pulsaba,
@@ -257,11 +383,14 @@ dos ramas parecia mal escrita leida por separado.
 
 **Lo que hay hoy, MEDIDO:**
 
+*(Las tres filas se localizan por simbolo, no por numero. `grep -rn "N-130" Maestro Esclavo` da las
+cuatro puntas del cambio de una vez.)*
+
 | donde | que hace |
 |---|---|
-| `Maestro/include/protocolo.h:171-172` (identico en el `Esclavo`) | `DEMANDA_ACEPTADA 0` / `DEMANDA_RECHAZADA 1` |
-| `Maestro/src/coordinador.cpp:636-641` | la bandera **solo se arma si el modo la va a consumir**, y el acuse viaja con el motivo en el byte `param` |
-| `Esclavo/src/main.cpp:541-543` | si llega `DEMANDA_RECHAZADA`, levanta el evento `MAESTRO / DEMANDA_NO_ATENDIDA_MODO_ACTUAL` |
+| `protocolo.h`, los dos `#define` (identicos en las dos puntas) — `grep -n "DEMANDA_ACEPTADA" Maestro/include/protocolo.h` | `DEMANDA_ACEPTADA 0` / `DEMANDA_RECHAZADA 1` |
+| `Maestro/src/coordinador.cpp`, la rama de `CMD_DEMANDA` bajo la marca `N-130` | la bandera **solo se arma si el modo la va a consumir**, y el acuse viaja con el motivo en el byte `param` |
+| `Esclavo/src/main.cpp`, la rama `pkt.command == CMD_ACK_DEMANDA` — `grep -n "CMD_ACK_DEMANDA" Esclavo/src/main.cpp` | si llega `DEMANDA_RECHAZADA`, levanta el evento `MAESTRO / DEMANDA_NO_ATENDIDA_MODO_ACTUAL` |
 
 **Dos detalles del diseno que conviene no perder, porque son los que lo hacen barato:**
 
@@ -273,14 +402,16 @@ dos ramas parecia mal escrita leida por separado.
   inventada.**
 
 **Y el molde estaba dentro del mismo sistema:** la rama `DEMANDA` **local** del Maestro ya rechazaba
-fuera del Modo Inteligente —`$ERR,CMD:DEMANDA,DESC:SOLO_EN_MODO_INTELIGENTE`,
-`Maestro/src/bluetooth.cpp:649-652`—. Lo que faltaba era la misma regla **al otro lado de la radio**.
+fuera del Modo Inteligente —`grep -n "SOLO_EN_MODO_INTELIGENTE" Maestro/src/bluetooth.cpp` da la
+unica linea que emite `$ERR,CMD:DEMANDA,DESC:SOLO_EN_MODO_INTELIGENTE`—. Lo que faltaba era la
+misma regla **al otro lado de la radio**.
 
 > ⚠️ **Lo que N-130 NO cierra, y va escrito al lado:** el rechazo llega a la app como **evento de
 > bitacora**, no como `$ERR` —y esta razonado: un `$ERR` habria que casarlo con una orden contestada
 > cientos de milisegundos antes, y con dos pulsaciones seguidas la app no sabria a cual corresponde
-> (`Esclavo/src/main.cpp:534-537`)—. **Que la app pinte ese evento y el operario lo lea NO se ha
-> comprobado.** Sin eso el cierre es medio: se deja de mentir, pero puede no decirse nada.
+> — el razonamiento esta escrito dentro de la propia rama `CMD_ACK_DEMANDA` del Esclavo,
+> `grep -n "CMD_ACK_DEMANDA" Esclavo/src/main.cpp`—. **Que la app pinte ese evento y el operario lo
+> lea NO se ha comprobado.** Sin eso el cierre es medio: se deja de mentir, pero puede no decirse nada.
 
 ### 3 · La decision del responsable
 
@@ -320,31 +451,39 @@ sigue se ha cargado en una tarjeta ni se ha ejercido con un telefono delante.**
 
 | # | que cambia | donde se comprueba | nivel |
 |---|---|---|---|
-| **1** | **N-134: EL AMBAR SE ORDENA.** `CMD_GO_AMBAR` (`0x13`) en vez de esperar la orfandad de 25 s. **Decision del responsable** | `Maestro/include/protocolo.h:174` y `Esclavo/include/protocolo.h:174` · `Maestro/src/modo_ambar.cpp:57` · `Esclavo/src/main.cpp:394` | **MEDIDO** |
-| **2** | **N-133: los tiempos del ciclo automatico sobreviven al corte.** Entran en el respaldo con pila, `DR9`/`DR10` | `Maestro/src/respaldo.cpp:68-69`, `:230-252` · `modo_automatico.cpp:110-117`, `:141` | **MEDIDO** |
-| **3** | **N-42: el Modo Automatico arranca corriendo.** Se retira el asistente de tres fases, huerfano desde que `botonAceptar()` devuelve `false` | `Maestro/src/modo_automatico.cpp:152-190` | **MEDIDO** |
-| **4** | **N-135: el `enum` de un solo valor.** Ver el bloque propio de abajo — **es el hallazgo, no el cambio** | `Maestro/src/modo_automatico.cpp:13-37`, `:97` | **MEDIDO** |
-| **5** | **N-106 CERRADO:** el ambar de la app sale del Degradado por el todo-rojo, y contesta cinco cosas distintas | `Esclavo/src/bluetooth.cpp:293-308`, `:381-428`, `:468-490` | **MEDIDO** |
-| **6** | **La app cambia de barrera:** para ABRIR paso pregunta si se ha mirado el tramo, no el PIN. Y el PIN caduca — cierra `AB-9` | `App_Semaforo/www/app.js:1709-1710`, `:1796-1810`, `:1941`, `:1954` · `www/index.html:788-806` | **MEDIDO** |
-| — | 🔴 **ABIERTA, nueva:** `respaldo_borrar()` no limpia los dos registros que N-133 estrena, y los sella como validos. **§3.9** | `Maestro/src/respaldo.cpp:193-201` contra `:157-158` | **MEDIDO** |
+| **1** | **N-134: EL AMBAR SE ORDENA.** `CMD_GO_AMBAR` (`0x13`) en vez de esperar la orfandad de 25 s. **Decision del responsable** | `#define CMD_GO_AMBAR` en los dos `protocolo.h` · la rama `pkt.command == CMD_GO_AMBAR` de `Esclavo/src/main.cpp` · `grep -rn "CMD_GO_AMBAR" Maestro Esclavo` y `grep -rn "N-134" Maestro Esclavo` | **MEDIDO** |
+| **2** | **N-133: los tiempos del ciclo automatico sobreviven al corte.** Entran en el respaldo con pila, `DR9`/`DR10` | `respaldo_guardarTiemposCiclo()` y los `REG_CICLO_RV` / `REG_CICLO_DESPEJE` de `Maestro/src/respaldo.cpp` · `grep -rn "N-133" Maestro` | **MEDIDO** |
+| **3** | **N-42: el Modo Automatico arranca corriendo.** Se retira el asistente de tres fases, huerfano desde que `botonAceptar()` devuelve `false` | `modoAutomatico_setup()` de `Maestro/src/modo_automatico.cpp` · `grep -n "N-42" Maestro/src/modo_automatico.cpp` | **MEDIDO** |
+| **4** | **N-135: el `enum` de un solo valor.** Ver el bloque propio de abajo — **es el hallazgo, no el cambio** | la cabecera de `Maestro/src/modo_automatico.cpp` y `modoAutomatico_enMarcha()` · `grep -n "N-135" Maestro/src/modo_automatico.cpp Maestro/src/modo_inteligente.cpp` | **MEDIDO** |
+| **5** | **N-106 CERRADO:** el ambar de la app sale del Degradado por el todo-rojo, y contesta cinco cosas distintas | las ramas `strcmp(cmd, "CMD:AMBAR_EMERGENCIA")` y `strcmp(accion, "AMBAR_EMERGENCIA")` de `Esclavo/src/bluetooth.cpp` · `grep -n -e "CMD:AMBAR_EMERGENCIA,RESULT" -e "CMD:AMBAR_EMERGENCIA,DESC" Esclavo/src/bluetooth.cpp` da **las cinco respuestas distintas**, repetidas en los dos bloques —el sin PIN y el con PIN— porque son *el mismo bloque letra por letra* | **MEDIDO** |
+| **6** | **La app cambia de barrera:** para ABRIR paso pregunta si se ha mirado el tramo, no el PIN. Y el PIN caduca — cierra `AB-9` | `App_Semaforo/www/app.js`: `VIA_VIGENCIA_MS`, `confirmarVia()`, `caducarPin()` y la lista `SIN_PIN` · `grep -n -e VIA_VIGENCIA_MS -e "function confirmarVia" -e "function caducarPin" -e "const SIN_PIN" App_Semaforo/www/app.js` | **MEDIDO** |
+| — | 🔴 **ABIERTA, nueva:** `respaldo_borrar()` no limpia los dos registros que N-133 estrena, y los sella como validos. **§3.9** | `respaldo_borrar()` contra la suma que si los incluye — `grep -n -e "void respaldo_borrar" -e REG_CICLO_RV Maestro/src/respaldo.cpp` | **MEDIDO** |
 
 ### 1 · N-134 — el ambar se ordena, y el rojo previo NO se toca
 
 **El defecto, en pasado:** poner ambar desde el Maestro dejaba al Esclavo en ROJO. Nadie se lo
 decia. Lo que acababa llevandolo a ambar era la **orfandad**: dejaba de oir al Maestro y a los
-`SFTY6_SILENCIO_MS` (**25 s**, `protocolo.h:149` en las dos puntas) se iba solo. Las dos puntas
+`SFTY6_SILENCIO_MS` (**25 s** — `grep -n "define SFTY6_SILENCIO_MS" Maestro/include/protocolo.h
+Esclavo/include/protocolo.h` da el mismo valor en las dos puntas, verificado el 05/09) se iba solo. Las dos puntas
 acababan en ambar **con hasta 25 s de diferencia**, y en banco eso se vio como *"a veces los dos, a
 veces solo el maestro"*.
 
 **Las dos mitades del diseno, que son lo que hay que no perder:**
 
-- **El rojo previo se queda como intermedio seguro.** `modo_ambar_setup()` manda `CMD_GO_RED`
-  **primero** (`modo_ambar.cpp:36` -> `coordinador_forzarRojoTotal()`, `coordinador.cpp:554-562`) y
-  el ambar despues. **No se salta de un verde a un ambar intermitente.**
+- **El rojo previo se queda como intermedio seguro.** `modo_ambar_setup()` llama a
+  `coordinador_forzarRojoTotal()` **primero** —y esa funcion es la que manda `CMD_GO_RED`— y el
+  ambar despues. **No se salta de un verde a un ambar intermitente.**
+  ```
+  grep -n "coordinador_forzarRojoTotal" Maestro/src/modo_ambar.cpp Maestro/src/coordinador.cpp
+  ```
 - **La orfandad sigue como RED, no como camino.** El Esclavo **no refresca** `tUltimoComando` al
-  atender esta orden (`Esclavo/src/main.cpp:404-407`), a proposito: si la orden se pierde en el
-  aire, el fallback de `main.cpp:596-599` se lo lleva a ambar igual. **Las dos vias desembocan en la
-  misma puerta**, `semaforo_iniciarFallo()`.
+  atender esta orden —el comentario que lo razona esta en la propia rama de `CMD_GO_AMBAR` de
+  `Esclavo/src/main.cpp`—, a proposito: si la orden se pierde en el aire, el **fallback de
+  `SFTY6_SILENCIO_MS`** se lo lleva a ambar igual. **Las dos vias desembocan en la misma puerta**,
+  `semaforo_iniciarFallo()`.
+  ```
+  grep -n "tUltimoComando\|semaforo_iniciarFallo" Esclavo/src/main.cpp
+  ```
 
 **Es el molde correcto y conviene decir por que:** el camino nuevo **no retira** el viejo, lo
 adelanta. Un `CMD_GO_AMBAR` perdido degrada al comportamiento de ayer, no al silencio.
@@ -360,8 +499,9 @@ comportamiento.** Al retirar las tres fases del asistente (N-42) quedo esto:
    bool modoAutomatico_enMarcha() { return fase == CORRIENDO; }
 ```
 
-Con un solo enumerador la comparacion es **cierta siempre**, y el compilador lo demuestra
-(`modo_automatico.cpp:19-24`): `movs r0, #1` / `bx lr`. **La variable ni se reserva.**
+Con un solo enumerador la comparacion es **cierta siempre**, y el compilador lo demuestra:
+`movs r0, #1` / `bx lr`. **La variable ni se reserva.** El bloque retirado y esta cuenta siguen
+escritos en la cabecera del fichero — `grep -n "N-135" Maestro/src/modo_automatico.cpp`.
 
 **Lo que costo, que es la forma que hay que reconocer:** de `enMarcha()` cuelgan las dos guardas de
 `SET_TIEMPOS`, asi que el equipo contestaba `$ERR,CMD:SET_TIEMPOS,DESC:EN_MARCHA_PARE_EL_MODO` **a
@@ -377,37 +517,93 @@ ESCRITURA**: los tiempos no se podian guardar nunca.
 > decia que el `enum` sobrevivia porque *"se lee mejor preguntando por la fase que por una bandera
 > suelta"*. Es una **afirmacion sobre el codigo sin comprobar** — exactamente lo que la seccion 2.2
 > de este documento ya sabe que hay que medir. Hoy es
-> `return modoActual_get() == MODO_AUTOMATICO;` (`:97`), y `ModoSistema` tiene siete valores.
+> `bool modoAutomatico_enMarcha() { return modoActual_get() == MODO_AUTOMATICO; }`
+> —`grep -n "modoAutomatico_enMarcha" Maestro/src/modo_automatico.cpp`—, y `ModoSistema` tiene
+> siete valores.
 
-**Y queda uno vivo del mismo patron, medido en esta misma pasada:**
-`Maestro/src/modo_inteligente.cpp:14` declara `enum FaseInt { INT_CORRIENDO };` y **se compara** en
-`:40` y `:62`. **No se toca desde este documento** —no se ha analizado que cuelga de esa
-comparacion—, pero **es el mismo constructo** y va al Anexo, punto 12.
+~~**Y queda uno vivo del mismo patron, medido en esta misma pasada:** `Maestro/src/modo_inteligente.cpp:14`
+declara `enum FaseInt { INT_CORRIENDO };` y **se compara** en `:40` y `:62`. **No se toca desde este
+documento** —no se ha analizado que cuelga de esa comparacion—, pero **es el mismo constructo** y va
+al Anexo, punto 12.~~
+
+→ 🔴 **AFIRMACION FALSA desde el 05/09, y se corrige aqui: ese `enum` YA NO EXISTE.** Se retiro en
+la pasada de N-135 del dia siguiente. `grep -n "FaseInt" Maestro/src/modo_inteligente.cpp` devuelve
+**dos lineas, y las dos son COMENTARIO** —el bloque *"N-135 OTRA VEZ, EN EL FICHERO DE AL LADO
+(05/09). Aqui habia: enum FaseInt { INT_CORRIENDO }; ..."*—. No queda declaracion, ni `switch`, ni
+comparacion.
+
+> ⚠️ **Y lo que ese comentario deja escrito vale mas que el enum retirado, porque es un hueco del
+> instrumento:** el `switch` era **inerte** —no colgaba ninguna guarda de el, al contrario que en
+> `modo_automatico.cpp`, donde costo `SET_TIEMPOS` entero—, **y lo encontro una revision externa, no
+> el pack que existe para esto**: `maestro_10` censaba enums de un solo valor *"que ademas se
+> COMPARAN"* y **solo miraba `==`**. Un `case` tambien es una comparacion. Es `CLAUDE.md`
+> §4.quinquies literal: **el instrumento decidio no mirar una frontera y no lo llevaba escrito.**
+>
+> 🔴 **Y AQUI SALE UN HALLAZGO NUEVO DEL 05/09, QUE NO ES DE ESTE DOCUMENTO PERO SALE DE
+> COMPROBARLO.** El comentario que `modo_inteligente.cpp` deja escrito dice *«El pack se afila en el
+> mismo commit; si no, esto vuelve»*. **Medido: no se afilo.** El censo de
+> `maestro_10_coordinador_alcanzable.py` sigue siendo, letra por letra,
+> `if _re.search(r"==\s*%s|%s\s*==" % (_vals[0], _vals[0]), _t):` — **solo `==`, ningun `case`** —
+> y es el unico pack del banco que censa esta forma
+> (`grep -ln "len(_vals) != 1" Simulaciones/banco/packs/*.py` da **un fichero**). O sea que **un
+> `enum` de un solo valor usado en un `switch` volveria a entrar sin que nada lo delate**, que es
+> exactamente lo que la frase prometia impedir. Es `CLAUDE.md` §2.ter: **una frase que sostiene un
+> verde y que no comprueba nadie.** **No se toca desde este documento** —`01_Firmware/` lo lleva
+> otro trabajo—; **el punto 12 del Anexo cambia de sujeto pero NO se cierra.**
 
 ### 3 · La barrera de la app cambia de pregunta
 
-**Es decision del responsable y no una preferencia de interfaz.** Para las dos ordenes que **abren
-paso** —`MANUAL:CAMBIAR_TURNO` y `SET_MODO:AUTO`— la app ya **no pide el PIN**: pregunta si el
-operario **ha mirado el tramo** (`app.js:1941`, `:1954`; el dialogo, `index.html:788-806`).
+**Es decision del responsable y no una preferencia de interfaz.** Para las ordenes que **abren
+paso** la app ya **no pide el PIN**: pregunta si el operario **ha mirado el tramo**. El dialogo es
+`#via-modal` en `index.html`, con sus dos botones *«Todavia no»* / *«He mirado: el tramo esta
+libre»*, y la puerta en el JS es `confirmarVia()`.
+
+```
+grep -n 'id="via-modal"' App_Semaforo/www/index.html
+grep -n "function confirmarVia\|confirmarVia(" App_Semaforo/www/app.js
+```
 
 **El porque, en una linea:** el equipo no sabe si quedan vehiculos en el tramo y el operario si. **Un
 PIN demuestra quien eres; no demuestra que hayas mirado.**
 
-**Las tres propiedades que lo hacen una barrera y no un adorno, MEDIDAS:**
+**Las tres propiedades que lo hacen una barrera y no un adorno, MEDIDAS** —y la lista de a que
+ordenes se aplica **sale de la tabla `VIA_MANIOBRA`, no de esta prosa**:
 
 | | |
 |---|---|
-| **Solo en lo que ABRE paso** | poner rojo, poner ambar y volver al menu **no preguntan nada** (`app.js:1796-1800`, y `SIN_PIN` en `:281`). Preguntar para PARAR ensena a decir que si sin leer |
-| **Se pregunta aunque el PIN este puesto** | no son dos llaves de la misma puerta (`app.js:1807-1809`) |
-| **El vale caduca a los 30 s Y al cambiar la fase** | `VIA_VIGENCIA_MS`, `app.js:1810`, `:1843-1849`. El tramo que se miro ya no es el que se va a abrir |
+| **Solo en lo que ABRE paso** | son **TRES** ordenes y estan en `VIA_MANIOBRA`: `MANUAL:CAMBIAR_TURNO`, `SET_MODO:AUTO` y **`SET_MODO:AMBAR`**. Poner **rojo total** (`FORZAR_ROJO`) y **volver al menu** (`SET_MODO:MENU`) **no preguntan nada** — no estan en esa tabla. Preguntar para PARAR ensena a decir que si sin leer |
+| **Se pregunta aunque el PIN este puesto** | no son dos llaves de la misma puerta: el manejador de `btnOpAuto` y el de `btnOpStep` llaman a `confirmarVia()` **sin mirar `state.pinVerificado`**. La lista `SIN_PIN` es otra cosa distinta (`grep -n "const SIN_PIN" App_Semaforo/www/app.js`) |
+| **El vale caduca a los 30 s Y al cambiar la fase** | `VIA_VIGENCIA_MS` y `viaConfirmadaVigente()` — `grep -n -e VIA_VIGENCIA_MS -e "function viaConfirmadaVigente" App_Semaforo/www/app.js`. El tramo que se miro ya no es el que se va a abrir |
 
-**Y `AB-9` se cierra:** el PIN caduca a los **60 s** de irse la app al fondo y a los **5 min** sin
-mandar ordenes (`app.js:1709-1710`).
+> ✏️ **CORREGIDO EL 05/09, y no es un matiz de redaccion: ~~«poner ambar no pregunta nada»~~ es
+> FALSO para el MODO ambar.** `SET_MODO:AMBAR` **si pasa por `confirmarVia()`**
+> (`grep -n "confirmarVia('SET_MODO:AMBAR'" App_Semaforo/www/app.js`), y la app lleva escrito el
+> porque, que es vial y no de interfaz: *«los DOS postes quedan en intermitente a la vez, asi que se
+> podra entrar al corredor por las dos puntas. No es un rojo y no para a nadie»*. En un carril unico
+> eso son dos vehiculos de frente — **abre paso**, y por eso pregunta.
+>
+> **Lo que si es cierto, y es la distincion que hay que conservar:** el **latch de emergencia**
+> `AMBAR_EMERGENCIA` —que es otro comando, no este— **no pregunta** y ademas va **sin PIN**, a
+> proposito. Confundir los dos «ambar» es lo que hacia falsa la frase de arriba.
+>
+> ⚠️ **Y un detalle operativo que no estaba escrito en ningun sitio:** `SET_MODO:AMBAR` es **la
+> unica orden de la botonera que pasa por LAS DOS barreras** — primero `pedirPin()`, y **despues**
+> `confirmarVia()`. Las otras dos que abren paso llevan **solo** el vale de via. En el poste eso se
+> nota: al operario se le piden cuatro digitos **y ademas** una respuesta sobre el tramo.
+> `grep -n "btnOpAmber.addEventListener" -A 6 App_Semaforo/www/app.js` lo ensena en seis lineas.
+
+**Y `AB-9` se cierra:** el PIN caduca a los **60 s** de irse la app al fondo (`PIN_GRACIA_FONDO_MS`)
+y a los **5 min** sin mandar ordenes (`PIN_INACTIVIDAD_MS`), por `caducarPin()`.
+
+```
+grep -n "PIN_GRACIA_FONDO_MS\|PIN_INACTIVIDAD_MS\|function caducarPin" App_Semaforo/www/app.js
+```
 
 > 🔴 **PERO SU MITAD MAS IMPORTANTE ES `SIN VERIFICAR`, Y ESO NO SE PUEDE PINTAR DE VERDE.** Los dos
-> caminos cuelgan de sucesos del navegador —`visibilitychange`, `pagehide`, `pageshow`
-> (`app.js:1755-1763`)—. **No hay un solo `pause` ni `resume` de Cordova**: `grep` de `'pause'`,
-> `'resume'` y `blur` sobre `app.js` da **cero**.
+> caminos cuelgan de sucesos del navegador —`visibilitychange`, `pagehide` y `pageshow`, los tres
+> registrados junto a `marcarFondo()` / `volverDelFondo()`—. **No hay un solo `pause` ni `resume` de
+> Cordova**: `grep -cE "'pause'|'resume'|\bblur\b" App_Semaforo/www/app.js` da **0**, verificado el
+> 05/09.
 >
 > **El escenario que esta barrera existe para cubrir es el telefono guardado en el bolsillo con la
 > pantalla apagada, y ese es exactamente el que nadie ha ejercido.** Es `CLAUDE.md` §2.ter en
@@ -416,7 +612,8 @@ mandar ordenes (`app.js:1709-1710`).
 ### 4 · Lo que este bloque NO cierra
 
 - **N-42 sigue contando como abierta.** El comentario del fuente
-  (`modo_automatico.cpp:154`) dice *"medido y confirmado en banco el 04/09"*. **Eso es ESCRITO, no
+  —`grep -n "confirmado en banco" Maestro/src/modo_automatico.cpp`, sigue ahi el 05/09— dice
+  *"EL DEFECTO QUE ESTO CIERRA, medido y confirmado en banco el 04/09"*. **Eso es ESCRITO, no
   MEDIDO**, y **contradice** lo que sostiene el resto de este documento y el informe de banco: el
   equipo **nunca llego a operar** por falta de app (N-122), y por eso la regresion *"no se confirmo
   ni se descarto"*. **Las dos frases no pueden ser ciertas a la vez, y este documento no elige: se
@@ -483,10 +680,10 @@ que.**
 
 | # | que cambia | donde se comprueba | nivel |
 |---|---|---|---|
-| **N-142** | **El Esclavo AVISA por radio de su ambar de emergencia.** `CMD_AMBAR_ESCLAVO` (`0x14`). Antes el Maestro no se enteraba y podia seguir dando VERDE **hasta 3 minutos** con el otro lado en ambar | `Maestro/include/protocolo.h:209` y `Esclavo/include/protocolo.h:209` · `Esclavo/src/bluetooth.cpp:486` · `Maestro/src/coordinador.cpp:657` · `Maestro/src/main.cpp:199-213` | **MEDIDO** en fuente · 🔴 **SIN EJERCER en tarjeta** |
+| **N-142** | **El Esclavo AVISA por radio de su ambar de emergencia.** `CMD_AMBAR_ESCLAVO` (`0x14`). Antes el Maestro no se enteraba y podia seguir dando VERDE **hasta 3 minutos** con el otro lado en ambar | `#define CMD_AMBAR_ESCLAVO` en los dos `protocolo.h` · el `protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO)` del Esclavo · las **dos** ramas que lo reciben en `Maestro/src/coordinador.cpp` · `grep -rn "CMD_AMBAR_ESCLAVO" Maestro Esclavo` | **MEDIDO** en fuente · 🔴 **SIN EJERCER en tarjeta** |
 | **N-146** | **`SET_MODO:AMBAR` contestaba `RESULT:OK` y no encendia nada.** Ahora re-arma y contesta **`REARMADO`**, que es distinto de `OK` | `Maestro/src/bluetooth.cpp:487-516` | **MEDIDO** — la cinta y el fuente |
 | **N-147** | **En Modo Manual el equipo hacia un ciclo que nadie pidio.** Entraba por la puerta del Automatico | `Maestro/src/modo_manual.cpp:57-81` · `Maestro/src/bluetooth.cpp:475-479` · `Maestro/src/coordinador.cpp:587-617` | **MEDIDO** |
-| **N-149** | **Campo `ESC:<ROJO\|VERDE\|AMBAR\|?>` en el `$STATUS` del Maestro.** Lo que el Maestro sabe del Esclavo, en la trama | `Maestro/src/coordinador.cpp:945-950` · `Maestro/src/bluetooth.cpp:929-931` · `Maestro/include/coordinador.h:142` | **MEDIDO** |
+| **N-149** | **Campo `ESC:` en el `$STATUS` del Maestro, con cuatro valores —`ROJO`, `VERDE`, `AMBAR` y `?`—.** Lo que el Maestro sabe del Esclavo, en la trama | `coordinador_estadoEsclavo()` —declarada en `Maestro/include/coordinador.h`, definida en `coordinador.cpp` y consumida por el `snprintf` del `$STATUS`— · `grep -rn "coordinador_estadoEsclavo" Maestro` · el campo en la trama: `grep -n ",ESC:%s" Maestro/src/bluetooth.cpp` | **MEDIDO** |
 | **N-145** | **La hora sale del `DS3231` del ESP32.** El puente rellena el hueco `HORA:--:--:--` al pasar la trama y recalcula el checksum | `ESP32_Expansion/src/puente.cpp:198-245`, `:333` | **MEDIDO** en fuente · 🛑 **SIN UN SOLO `DS3231` REAL** — ver el aviso |
 | — | 🔴 **HALLAZGO DE CINTA, y aqui NO se le escribe causa:** `BAT:--` en **todas** las tramas | ver el bloque 6 | **MEDIDO** el sintoma |
 | — | 🔴 **APLAZADA por el responsable a despues del banco: la MATRICULACION por ID de Bluetooth.** §3.8 | — | decision abierta |
@@ -554,7 +751,7 @@ la mentira tapaba **una salida de emergencia**.
 
 > ⚠️ **Lo que esto le pide a la app y a quien lea el diario de ordenes:** `REARMADO` es un **exito**,
 > no un rechazo. Una interfaz que solo distinga `RESULT:OK` de `$ERR` lo pintara como error o lo
-> ignorara. El literal esta en `Maestro/src/bluetooth.cpp:512`.
+> ignorara. El literal se localiza con `grep -n "RESULT:REARMADO" Maestro/src/bluetooth.cpp`.
 
 ---
 
@@ -579,10 +776,12 @@ programado**. Dos mitades, las dos reportadas desde el banco:
 NUNCA**, y cada pulsacion contesta `OK`. **Obedecer y no avanzar no deja rastro de averia** — es la
 misma forma que N-146, en otro modo.
 
-**Manual entra ahora por `coordinador_forzarRojoTotal()`** (`modo_manual.cpp:81`, y el mismo cambio
-en la rama `SET_MODO:MANUAL` de `bluetooth.cpp:478`): **mismo todo-rojo, misma luz, mismo
-`CMD_GO_RED`, mismo reset de replay**, pero termina en `C_IDLE` y **sin plazo**. Y el despeje **ya
-cumplido no se vuelve a cobrar** (`coordinador.cpp:604-616`).
+**Manual entra ahora por `coordinador_forzarRojoTotal()`** —`grep -n "coordinador_forzarRojoTotal"
+Maestro/src/modo_manual.cpp Maestro/src/bluetooth.cpp`, y el mismo cambio en la rama
+`strcmp(accion, "SET_MODO:MANUAL")`—: **mismo todo-rojo, misma luz, mismo `CMD_GO_RED`, mismo reset
+de replay**, pero termina en `C_IDLE` y **sin plazo**. Y el despeje **ya cumplido no se vuelve a
+cobrar** —la marca `N-147` dentro de `coordinador_pedirCambio()`:
+`grep -n "N-147" Maestro/src/coordinador.cpp`—.
 
 > 🔴 **SFTY-4 NO SE DEBILITA, y esto no es una frase de cortesia: es lo que hay que comprobar antes de
 > aceptar el cambio.** Los `case QV_MASTER` y `QV_ESCLAVO` —los que van **de un VERDE a otro**— pasan
@@ -693,12 +892,25 @@ falla—, y **la cura de verdad es que el STM32 deje de publicar un campo de un 
 > mayuscula en `app.js`.
 >
 > 🟢 **CERRADO POR EL AGENTE DE LA APP EN `6282b2a` (05/09), y se re-midio aqui antes de escribirlo:**
-> `state.hora` tiene ya lector —`app.js:1826-1830`, que pinta la hora del equipo— y la guarda del
-> escritor pasa a `if (data.HORA !== undefined)` (`app.js:3236-3237`). **Este documento no lo cierra:
-> lo constata.**
+> `state.hora` tiene ya lector —la funcion `pintarHoraEquipo()`— y la guarda del escritor pasa a
+> `if (data.HORA !== undefined)`. **Este documento no lo cierra: lo constata.**
+>
+> ```
+> grep -n "function pintarHoraEquipo"   App_Semaforo/www/app.js
+> grep -n "data.HORA !== undefined"     App_Semaforo/www/app.js
+> ```
+>
+> 🔴 **Y al re-medirlo el 05/09 aparece algo que NO es una cita mal numerada y hay que decirlo:
+> las DOS COPIAS de `app.js` YA NO SON LA MISMA.** `App_Semaforo/app.js` y `App_Semaforo/www/app.js`
+> tenian el **mismo `md5` esa misma manana** y hoy difieren —**5.197 lineas contra 5.055**—; lo
+> mismo con `index.html`. Los dos ficheros llevan el arreglo (`data.HORA !== undefined`), asi que
+> **no hay contradiccion de comportamiento**, pero **una cita a `app.js` ya no dice a cual de los
+> dos se refiere**, y el que se empaqueta en la APK es el de `www/`. Se comprueba con
+> `md5sum App_Semaforo/app.js App_Semaforo/www/app.js`. **No se toca desde este documento** —la app
+> la lleva otro trabajo—: **queda anotado como abierto.**
 >
 > ⚠️ **Lo que sigue en pie y no lo cierra ese commit: las DOS claves distintas siguen existiendo.**
-> `js/nmea_parser.js:166` y `:203` escriben `data.hora`; `app.js` lee `data.HORA`. Hoy no rompe nada
+> los dos `case 'HORA': data.hora = v;` de `js/nmea_parser.js` —`grep -n "data.hora" App_Semaforo/www/js/nmea_parser.js` da **dos**— escriben `data.hora`; `app.js` lee `data.HORA`. Hoy no rompe nada
 > porque el camino que usa `app.js` es el suyo, **pero son dos parsers del mismo protocolo con
 > convenios distintos**, y eso es una trampa esperando a que alguien cambie de camino. **Es de la
 > app y no se toca desde aqui.**
@@ -737,10 +949,10 @@ Nada se ha borrado: lo superado va tachado con su motivo, en su sitio.** Lo que 
 | **2** | `J16` p5 y p8 **vacios a proposito** como colchon | 🔴 **era la linea mas danina del documento: mandaba dejar sin cablear el mando.** `p5` y `p8` **van cableados**. §1.7 |
 | **3** | colchon de **10,2 / 22,9 / 27,9 mm** entre los 12 V y las senales | 🔴 **REFUTADO: eso es distancia entre PADS.** Cobre a cobre son **1,405 / 1,408 / 4,269 / 1,359 mm** (`MAPEO_TARJETA_KICAD.md:576-588`). **El orden se INVIERTE: `p12` es el PEOR punto, no el mejor.** §1.7 y M4 |
 | **4** | §3.3 abierta, cinco opciones sin elegir | ✅ **DECIDIDA: opcion 3, «dejar el mando de reles».** Coste cero. §3.3 |
-| **5** | §2.3 *"desde Bluetooth no hay vuelta, no hay `SET_MODO:MENU`"* | 🟢 **REFUTADA (N-100): existe** — `bluetooth.cpp:191`, y con ella `ALCANCE`, `INTELIGENTE`, `DEGRADADO`, `REINICIAR_RELOJ` y `DEMANDA`. **La Fase 1 esta hecha** (`d34cfe2`, N-78) |
-| **6** | §2.5 *"`SET_RTC` puede contestar `RESULT:OK` en silencio"* | ✅ **CERRADO en N-80**: cinco ramas, `bluetooth.cpp:295-328` |
-| **7** | §2.4 cita `main.cpp:401`, `:408`, `:526` | ⚠️ **caducadas: son `:406`, `:416`, `:540`** |
-| **8** | el censo de comandos del Esclavo (§2.3) | ⚠️ **le faltaba `CMD:AMBAR_EMERGENCIA`** (`Esclavo/src/bluetooth.cpp:130`), que entra **sin PIN** |
+| **5** | §2.3 *"desde Bluetooth no hay vuelta, no hay `SET_MODO:MENU`"* | 🟢 **REFUTADA (N-100): existe** — la rama `strcmp(accion, "SET_MODO:MENU")` de `Maestro/src/bluetooth.cpp`, y con ella `ALCANCE`, `INTELIGENTE`, `DEGRADADO`, `REINICIAR_RELOJ` y `DEMANDA`. **La Fase 1 esta hecha** (`d34cfe2`, N-78) |
+| **6** | §2.5 *"`SET_RTC` puede contestar `RESULT:OK` en silencio"* | ✅ **CERRADO en N-80**: cinco ramas —`grep -n "CMD:SET_RTC," Maestro/src/bluetooth.cpp`— |
+| **7** | §2.4 citaba ~~`main.cpp:401`, `:408`, `:526`~~, y el 31/08 se **renumeraron** a ~~`:406`, `:416`, `:540`~~ | 🔴 **05/09: LAS SEIS ESTAN CADUCADAS, y es el mejor argumento de por que este documento dejo de citar numeros.** `Maestro/src/main.cpp` tiene **316 lineas**: ninguno de los seis existe. Los tres consumidores se localizan con `grep -n "mando_ambarLocal" Esclavo/src/main.cpp` |
+| **8** | el censo de comandos del Esclavo (§2.3) | ⚠️ **le faltaba `CMD:AMBAR_EMERGENCIA`** —`grep -n 'strcmp(cmd, "CMD:AMBAR_EMERGENCIA")' Esclavo/src/bluetooth.cpp`—, que entra **sin PIN** |
 | **9** | — | 🔴 **NUEVO, N-106:** ese `AMBAR_EMERGENCIA` **no saca al Esclavo del Modo Degradado**, mientras el `B·B·B` del mando si. **Medido por lectura, NO ejecutado.** `ESTADO.md` §N-106 |
 | **10** | — | 🟠 **NUEVO, N-105:** cuatro documentos mandan cablear camaras sobre pines que no son entradas de camara. **En curso por otro agente.** `ESTADO.md` §N-105 |
 
@@ -829,9 +1041,9 @@ Todo esta MEDIDO en `01_Firmware/Maestro/include/pines.h`.
 | 🔴 Rojo peaton / Verde peaton | `PA6` `PA7` | `J11` `J9` | `pines.h:15-16` — **DECLARADOS Y MUERTOS** |
 | Barrera (talanquera) | `PB2` | `J15` | `pines.h:31` |
 | 🔴 Buzzer | `PB1` | `J13` | `pines.h:20` — **DECLARADO Y MUERTO** |
-| Radio LoRa (`USART3`) | `PB10` TX · `PB11` RX · `PB12` DE/~RE | `J12` | `pines.h:112-114`, `:19` |
+| Radio LoRa (`USART3`) | `PB10` TX · `PB11` RX · `PB12` DE/~RE | `J12` | `#define RS485_OUT_TX` / `RS485_OUT_RX` / `LORA_DE_RE` en `pines.h` — `grep -n -e RS485_OUT_ -e LORA_DE_RE Maestro/include/pines.h` |
 | Camara de demanda | `PB0` | `J14` | `pines.h:46` |
-| 🆕 Camaras `C` / `D` | `PB14` `PB15` | `J16` p10 / p12 | `pines.h:124-125` — ~~**NO cablear hasta `M3`**~~ → ✅ **M3 CERRADA el 03/09: se pueden cablear.** `0 V` en reposo y sin demandas fantasma (paso 21) |
+| 🆕 Camaras `C` / `D` | `PB14` `PB15` | `J16` p10 / p12 | `#define CAM_C_PIN` / `CAM_D_PIN` en `pines.h`, ya rotulados *"camara de contacto seco"* — `grep -n "define CAM_._PIN" Maestro/include/pines.h` — ~~**NO cablear hasta `M3`**~~ → ✅ **M3 CERRADA el 03/09: se pueden cablear.** `0 V` en reposo y sin demandas fantasma (paso 21) |
 
 > ## 🔴 TRES DE ESTAS SALIDAS NO EXISTEN MÁS QUE EN LA TABLA (medido el 02/09)
 >
@@ -866,7 +1078,7 @@ Todo esta MEDIDO en `01_Firmware/Maestro/include/pines.h`.
 
 ```
 01_Firmware/Maestro/src/bluetooth.cpp:25   static HardwareSerial SerialBT(PB7, PB6);
-01_Firmware/Esclavo/src/bluetooth.cpp:26   static HardwareSerial SerialBT(PB7, PB6);
+Esclavo/src/bluetooth.cpp   static HardwareSerial SerialBT(PB7, PB6);   <- grep -n "HardwareSerial SerialBT"
 01_Firmware/Maestro/include/bluetooth.h:7  "PB6 TX, PB7 RX ... Sale por el conector J17, posiciones 3 y 2"
 ```
 
@@ -918,17 +1130,25 @@ puede tumbar al que manda.
 **MEDIDO el 31/08, y es el porque de conservar los DOS canales y no uno:**
 
 ```
-   Maestro/src/botones.cpp:119-120   MANDO_A <- BOTON1(PB9) · MANDO_B <- BOTON2(PB13)
-   Maestro/src/botones.cpp:131-132   botonAceptar() = BOTON3(PB14) · botonCancelar() = BOTON4(PB15)
-   grep "BOTON[1-4]" Maestro/src/mando.cpp          ->  CERO: el mando NO usa C ni D
-   Esclavo/src/mando.cpp:246-248     B.B.B -> ACC_AMBAR
-   Esclavo/src/mando.cpp:132         case ACC_AMBAR: ambarLocal = true;   <- UNICO armador
-   Esclavo/src/main.cpp:406,:416,:540   los tres if negados que vetan
+   grep -n "mando_registrarPulso"  Maestro/src/botones.cpp   ->  MANDO_A <- BOTON1(PB9)
+                                                                 MANDO_B <- BOTON2(PB13)
+   grep -c "BOTON[1-4]"            Maestro/src/mando.cpp     ->  0   el mando NO usa C ni D
+   grep -n "ACC_AMBAR"             Esclavo/src/mando.cpp     ->  B.B.B -> ACC_AMBAR, y
+                                                                 ambarLocal = true  <- UNICO armador
+   grep -c "mando_ambarLocal"      Esclavo/src/main.cpp      ->  3   los tres if negados que vetan
 ```
 
+> ⚠️ **De aquel censo del 31/08 hay UNA linea que ya no se puede repetir, y se dice en vez de
+> borrarla:** decia *"`botonAceptar()` = `BOTON3`(`PB14`) · `botonCancelar()` = `BOTON4`(`PB15`)"*.
+> **Hoy las dos funciones devuelven `false` a secas** —`grep -n "bool botonAceptar\|bool
+> botonCancelar" Maestro/src/botones.cpp`— y esos dos pines **son camaras**. Lo que sigue en pie es
+> lo unico que aquel censo tenia que demostrar: **el mando no los tocaba entonces y no los toca
+> ahora.**
+
 El mando vive **entero** en `A` y `B`. Los pines que las camaras necesitan —`PB14`, `PB15`— son los
-dos que el mando **no toca**: `botones.cpp:112-118` lo deja escrito en el fuente
-(*"Solo se le pasan A (Boton 1) y B (Boton 2). El Boton 3 EJECUTA y el 4 sale"*). Asi que las camaras
+dos que el mando **no toca**: el propio `botones.cpp` lo deja escrito encima de los dos
+`mando_registrarPulso()` (*"Solo hay A (Boton 1) y B (Boton 2), que son justo los dos que el mando
+necesita. El 3 EJECUTABA y el 4 salia..."*) — `grep -n "mando_registrarPulso" Maestro/src/botones.cpp`. Asi que las camaras
 entran **sin** que `ambarLocal` deje de armarse: `A.A.A`, `B.B.B` y `A.B.A.B` siguen funcionando.
 
 > ⚠️ **Las lineas de arriba se midieron el 31/08 sobre el arbol de ese momento, y ESE MISMO DIA otro
@@ -1027,13 +1247,22 @@ footprint (`Molex_KK-254_AE-6410-16A_1x16_P2.54mm_Vertical`, 16 pads, tanto en `
 
 | entrada | pin | conector | ayuda de la placa | quien la declara | quien la lee |
 |---|---|---|---|---|---|
-| **`CAM_DEMANDA_PIN`** | `PB0` | **`J14`** | 🟢 **`R64` 10 kOhm + `C25` 100 nF — antirrebote RC de 1 ms EN LA PLACA** (`pines.h:43-46`) | Maestro: `botones.cpp:176` · Esclavo: `main.cpp:288` | Maestro: `modo_inteligente.cpp:97` y `:135` · Esclavo: `main.cpp:350` |
-| **`CAM_C_PIN`** | `PB14` | **`J16` p10** | 🟠 **`R67` 10 kOhm a masa, MEDIDA en cobre: `9,93 kOhm`. SIN condensador** | `botones.cpp:177` (Maestro) · `:194` (Esclavo) | `camaras_actualizar()`, `botones.cpp:144-152` (Maestro) · `:164-172` (Esclavo) |
-| **`CAM_D_PIN`** | `PB15` | **`J16` p12** | 🟠 **`R68` 10 kOhm a masa, MEDIDA: `9,94 kOhm`. SIN condensador** | `botones.cpp:178` (Maestro) · `:195` (Esclavo) | idem |
+| **`CAM_DEMANDA_PIN`** | `PB0` | **`J14`** | 🟢 **`R64` 10 kOhm + `C25` 100 nF — antirrebote RC de 1 ms EN LA PLACA**, escrito encima del `#define` | Maestro: `pinMode(CAM_DEMANDA_PIN, INPUT)` en `botones_setup()` · Esclavo: el mismo `pinMode` en `setup()` de `main.cpp` | Maestro: `camara_leerPin(CAM_DEMANDA_PIN)` en `modoInteligente_loop()` · Esclavo: `digitalRead(CAM_DEMANDA_PIN) == HIGH` en `main.cpp` |
+| **`CAM_C_PIN`** | `PB14` | **`J16` p10** | 🟠 **`R67` 10 kOhm a masa, MEDIDA en cobre: `9,93 kOhm`. SIN condensador** | `pinMode(CAM_C_PIN, INPUT)` en `botones_setup()`, **las dos puntas** | `camaras_actualizar()` — y su siembra `camaras_sembrar()`, **las dos puntas** |
+| **`CAM_D_PIN`** | `PB15` | **`J16` p12** | 🟠 **`R68` 10 kOhm a masa, MEDIDA: `9,94 kOhm`. SIN condensador** | `pinMode(CAM_D_PIN, INPUT)` en `botones_setup()` | idem |
+
+**Las seis casillas de las dos ultimas columnas salen de tres `grep`, y ninguno lleva numero:**
+
+```
+grep -n "pinMode(CAM_" Maestro/src/botones.cpp Esclavo/src/botones.cpp Esclavo/src/main.cpp
+grep -n "camara_leerPin\|digitalRead(CAM_DEMANDA_PIN)" Maestro/src Esclavo/src -r
+grep -n "camaras_actualizar\|camaras_sembrar" Maestro/src/botones.cpp Esclavo/src/botones.cpp
+```
 
 **Las tres son `INPUT` PELADO y ACTIVAS EN ALTO**, y el gesto es **cerrar el contacto seco contra los
-3,3 V del propio conector** — nunca contra masa. La cuenta que lo demuestra esta entera en
-`pines.h:102-110`.
+3,3 V del propio conector** — nunca contra masa. La cuenta que lo demuestra esta entera en la
+cabecera de `pines.h`, bajo el rotulo *"POR QUE ACTIVO EN ALTO, Y POR QUE ESO NO ES UNA
+PREFERENCIA"* — `grep -n "POR QUE ACTIVO EN ALTO" Maestro/include/pines.h`.
 
 **COMO CONVERGEN, que es lo que hay que saber antes de tocar nada:**
 
@@ -1073,10 +1302,11 @@ encender no es una deteccion, es un estado**. Es N-26 aplicado a la camara.
 > (`CLAUDE.md` §9.bis: un commit no protege de un destornillador).
 
 > ⚠️ **UN SOLO SITIO DONDE LAS TRES NO CONVERGEN, Y NO ES UN DEFECTO — SE ESCRIBE CON LA MEDIDA AL
-> LADO PARA QUE NADIE VAYA A «ARREGLARLO»:** `modo_inteligente.cpp:135` calcula `presenciaActual`
-> mirando **solo** `CAM_DEMANDA_PIN` y la demanda remota, **sin** `demanda_hayLocal()`. O sea que las
-> dos de `J16` **no cuentan ahi**. **Medido: ese numero solo alimenta `lcd_dibujarInteligente()`
-> (`:138`) — es el contador de presencia de la PANTALLA, y la pantalla se retira** (§1.6). No decide
+> LADO PARA QUE NADIE VAYA A «ARREGLARLO»:** `modo_inteligente.cpp` calcula `presenciaActual`
+> —`grep -n "presenciaActual" Maestro/src/modo_inteligente.cpp`— mirando **solo**
+> `CAM_DEMANDA_PIN` y la demanda remota, **sin** `demanda_hayLocal()`. O sea que las dos de `J16`
+> **no cuentan ahi**. **Medido: ese numero solo alimenta `lcd_dibujarInteligente()` — es el
+> contador de presencia de la PANTALLA, y la pantalla se retira** (§1.6). No decide
 > ninguna luz ni ninguna orden. **Si algun dia ese contador se publica en la telemetria, entonces si
 > hay que meter `demanda_hayLocal()` — y no antes.**
 
@@ -1214,12 +1444,18 @@ cerrar el contacto contra los 3,3 V del propio conector, o sea **entrada activa 
 **Lo que decia el firmware — `617bd00`, el que fue al banco. ~~Lo que dice el firmware~~:**
 
 ```
-   01_Firmware/Maestro/src/botones.cpp:50-53   pinMode(BOTONn, INPUT_PULLUP);
-   01_Firmware/Maestro/src/botones.cpp:19      bool lecturaCruda = (digitalRead(b.pin) == LOW);
-   01_Firmware/Esclavo/src/botones.cpp:70-73   pinMode(BOTONn, INPUT_PULLUP);
-   01_Firmware/Esclavo/src/botones.cpp:33      bool lecturaCruda = (digitalRead(b.pin) == LOW);
-   01_Firmware/Esclavo/src/botones.cpp:16      "Entradas en INPUT_PULLUP y pulsador contra masa: pulsado = LOW"
+   Maestro/src/botones.cpp   pinMode(BOTONn, INPUT_PULLUP);
+   Maestro/src/botones.cpp   bool lecturaCruda = (digitalRead(b.pin) == LOW);
+   Esclavo/src/botones.cpp   pinMode(BOTONn, INPUT_PULLUP);
+   Esclavo/src/botones.cpp   bool lecturaCruda = (digitalRead(b.pin) == LOW);
+   Esclavo/src/botones.cpp   "Entradas en INPUT_PULLUP y pulsador contra masa: pulsado = LOW"
 ```
+
+*(Sin numeros de linea a proposito: esto describe `617bd00`, un arbol que ya no es el de hoy, y
+un numero de aquel arbol no se puede verificar contra este. Lo que sigue verificandose es la
+AUSENCIA del `pinMode`, no la de la palabra —los comentarios que explican la retirada SI la
+nombran—: `grep -c "pinMode.*INPUT_PULLUP" Maestro/src/botones.cpp Esclavo/src/botones.cpp` da
+**0 y 0**, 05/09.)*
 
 O sea **pull-UP interno, activo en BAJO**. Los dos no podian ser ciertos.
 
@@ -1227,10 +1463,9 @@ O sea **pull-UP interno, activo en BAJO**. Los dos no podian ser ciertos.
 > las cuatro lineas de arriba son:
 >
 > ```
->    01_Firmware/Maestro/src/botones.cpp:160-161   pinMode(BOTON1, INPUT); pinMode(BOTON2, INPUT);
->    01_Firmware/Maestro/src/botones.cpp:40        bool lecturaCruda = (digitalRead(b.pin) == HIGH);
->    01_Firmware/Esclavo/src/botones.cpp:178-179   pinMode(BOTON1, INPUT); pinMode(BOTON2, INPUT);
->    01_Firmware/Esclavo/src/botones.cpp:54        bool lecturaCruda = (digitalRead(b.pin) == HIGH);
+>    grep -n "pinMode(BOTON[12], INPUT)"       Maestro/src/botones.cpp Esclavo/src/botones.cpp
+>    grep -n "digitalRead(b.pin) == HIGH"      Maestro/src/botones.cpp Esclavo/src/botones.cpp
+>    grep -c "pinMode.*INPUT_PULLUP"           Maestro/src/botones.cpp Esclavo/src/botones.cpp   -> 0 y 0
 > ```
 >
 > **El fuente y el netlist ya coinciden.** 🔴 **Lo que falta es la tarjeta**: sin carga verificada
@@ -1244,8 +1479,9 @@ cierra `roadmap.md` N-67 (linea 552) es esta:
 > `3,3 x 10/50 = 0,66 V`, que el micro lee **LOW**. El firmware habria visto **demanda permanente
 > desde el arranque, sin ninguna camara conectada**.
 
-La camara se arreglo: `pinMode(CAM_DEMANDA_PIN, INPUT)` y deteccion contra `HIGH`
-(`Maestro/src/modo_inteligente.cpp:19-25`, `:44`; `Esclavo/src/main.cpp:288`, `:350`).
+La camara se arreglo: `pinMode(CAM_DEMANDA_PIN, INPUT)` y deteccion contra `HIGH` — y **desde
+N-97 el `pinMode` del Maestro vive en `botones_setup()`, no en `modoInteligente_setup()`**:
+`grep -rn "CAM_DEMANDA_PIN" Maestro/src Esclavo/src`.
 ~~**Los cuatro pines de boton, con topologia identica en el netlist, siguen en `INPUT_PULLUP` y
 `== LOW`.**~~ → 🟢 **CADUCADO el 04/09: ya no queda ninguno.** `PB14`/`PB15` pasaron a camara en
 N-67/31-08, y `PB9`/`PB13` en `346ea5f`. **Los cuatro leen `INPUT` pelado y `== HIGH`**, que es lo
@@ -1310,14 +1546,14 @@ llamadores; su parrafo de consecuencia esta refutado por el recuadro de arriba.
 
 | modo | quien sale | linea |
 |---|---|---|
-| Degradado | `botonCancelar()` | `modo_degradado.cpp:443` |
+| Degradado | `botonCancelar()` | `modo_degradado.cpp` |
 | Alcance | `botonCancelar()` | `modo_alcance.cpp:50` |
-| Ambar | `botonCancelar()` | `modo_ambar.cpp:42` |
-| Automatico | `botonCancelar()` | `modo_automatico.cpp:80` |
-| Manual | `botonCancelar()` | `modo_manual.cpp:21` |
-| Inteligente | `botonCancelar()` | `modo_inteligente.cpp:65` |
+| Ambar | `botonCancelar()` | `modo_ambar.cpp` |
+| Automatico | `botonCancelar()` | `modo_automatico.cpp` |
+| Manual | `botonCancelar()` | `modo_manual.cpp` |
+| Inteligente | `botonCancelar()` | `modo_inteligente.cpp` |
 | Ajustar hora | `botonCancelar()` | `modo_hora.cpp:262` |
-| Menu (subir de nivel) | `botonCancelar()` | `menu.cpp:151` |
+| Menu (subir de nivel) | `botonCancelar()` | `menu.cpp` |
 
 **MEDIDO** el juego completo de comandos que atiende el Maestro por Bluetooth
 (`Maestro/src/bluetooth.cpp:108-181`):
@@ -1354,11 +1590,11 @@ llamadores; su parrafo de consecuencia esta refutado por el recuadro de arriba.
 >
 > 🔴 **Y ese comando tiene un defecto abierto: N-106.** `grep -in degradado
 > Esclavo/src/bluetooth.cpp` da **CERO** — el ambar de emergencia de la app **no llama a
-> `degradado_salir()`**, mientras el `B.B.B` del mando si (`mando.cpp:133-138`). Las dos vias que el
+> `degradado_salir()`**, mientras el `B.B.B` del mando si (`grep -n "degradado_salir" Esclavo/src/mando.cpp Maestro/src/mando.cpp`). Las dos vias que el
 > propio fuente declara equivalentes (`bluetooth.cpp:32-39`) **no lo son en Degradado**. Detalle,
 > consecuencia razonada y el arnes que hay que ver fallar: `ESTADO.md`, seccion **N-106**.
 
-El Maestro tiene **ocho** modos (`bluetooth.cpp:185-196`: `MENU`, `MANUAL`, `AUTO`, `INTELIGENTE`,
+El Maestro tiene **ocho** modos (`grep -n 'strcmp(accion, "SET_MODO:' Maestro/src/bluetooth.cpp`: `MENU`, `MANUAL`, `AUTO`, `INTELIGENTE`,
 `ALCANCE`, `HORA`, `DEGRADADO`, `AMBAR`). ~~Desde Bluetooth se alcanzan **tres**. Y **no hay
 `SET_MODO:MENU`**.~~ → **REFUTADO (N-100): hoy se alcanzan `AUTO`, `MANUAL`, `AMBAR`, `MENU`,
 `ALCANCE`, `INTELIGENTE` y `DEGRADADO` — siete de los ocho** (`HORA` no, y `SET_RTC` la sustituye).
@@ -1370,15 +1606,20 @@ El Maestro tiene **ocho** modos (`bluetooth.cpp:185-196`: `MENU`, `MANUAL`, `AUT
 > mando— y cortar la energia.~~
 >
 > 🟢 **REFUTADO el 31/08, y se conserva porque explica por que la Fase 1 iba primero.** El
-> razonamiento era correcto **y se atendio**: `SET_MODO:MENU` esta en `bluetooth.cpp:191` desde
+> razonamiento era correcto **y se atendio**: la rama `strcmp(accion, "SET_MODO:MENU")` de `bluetooth.cpp` existe desde
 > `d34cfe2`. La puerta de un solo sentido no llego a existir.
 >
-> **Lo que sigue en pie es la parte de la app:** MEDIDO el 28/08 en
-> `05_Funcional/App_Semaforo/app.js`, la app manda `SET_MODO` con `AUTO`, `MANUAL` y `AMBAR`
-> (`app.js:436`, `:452`, `index.html:267`), `MANUAL:CAMBIAR_TURNO` (`:444`), `FORZAR_ROJO`
-> (`:461`), `SOLICITAR_PASO` (`index.html:271`), `SET_TIEMPOS` (`:819`), `SET_RTC` (`:865`, `:877`)
-> y `TEST_LEDS` (`:900`). **Esa medida es del 28/08 y `caef8a1` toco la app despues**: hay que
-> recontarla antes de citarla —`ESTADO.md`, fila `APP-APK`—. Con el firmware ya sirviendo siete
+> **Lo que sigue en pie es la parte de la app**, y **se ha vuelto a contar el 05/09 porque la de
+> antes era del 28/08 y `caef8a1` toco la app despues** —que es justo lo que este parrafo pedia—.
+> El censo no se hace por numero de linea sino por el **unico emisor** que la app tiene:
+>
+> ```
+> grep -n "enviarComandoFirmware(" App_Semaforo/www/app.js      ->  20 llamadas
+> grep -n "SOLO_MAESTRO\|SOLO_ESCLAVO"  App_Semaforo/www/app.js  ->  las dos listas de enrutado
+> ```
+>
+> Salen `SET_MODO` con `AUTO`, `MANUAL` y `AMBAR`, `MANUAL:CAMBIAR_TURNO`, `FORZAR_ROJO`,
+> `SOLICITAR_PASO`, `SET_TIEMPOS`, `SET_RTC` y `TEST_LEDS`. Con el firmware ya sirviendo siete
 > modos, lo que falta comprobar es **si la app tiene boton para cada uno**, que es otra pregunta.
 
 ### 2.4 🔴 Retirar el mando no deja tres `if` inertes: **borra un veto**
@@ -1430,8 +1671,9 @@ no depende del mando *en general* sino **del canal `B` en particular**: conserva
 lo borraria igual que retirarlo entero, y conservar `B` lo salva entero. Es la razon medida por la
 que la decision del 31/08 conserva **los dos** canales.
 
-El comentario de `main.cpp:396-400` explica el porque: con el ambar pedido desde el piso con
-`B·B·B`, el Esclavo **no obedece ni acusa recibo**, para que el Maestro agote reintentos y el
+El comentario que lo explica esta en **`Esclavo/src/main.cpp`, bajo la etiqueta `SFTY-21`**
+—`grep -n "SFTY-21: con el ambar pedido desde el mando" Esclavo/src/main.cpp`—: con el ambar
+pedido desde el piso con `B·B·B`, el Esclavo **no obedece ni acusa recibo**, para que el Maestro agote reintentos y el
 **cruce entero** termine en ambar, que es lo que el operario pidio.
 
 > **Al retirar el mando, `mando_ambarLocal()` pasa a devolver siempre `false` y esos tres `if` se
@@ -1448,12 +1690,12 @@ El comentario de `main.cpp:396-400` explica el porque: con el ambar pedido desde
 > la unica que no exige escribir una barrera nueva y verla fallar antes de fiarse de ella.
 >
 > **Lo que si conviene escribir, aunque ya no sea urgente:** un pack que exija que `ACC_AMBAR`
-> (`mando.cpp:132`) siga siendo el **unico** armador de `ambarLocal` y que los tres consumidores
+> (`grep -n "ACC_AMBAR" Esclavo/src/mando.cpp`) siga siendo el **unico** armador de `ambarLocal` y que los tres consumidores
 > sigan siendo tres y negados. Hoy esa propiedad vive en la lectura de un documento, y los
 > documentos no fallan cuando alguien borra una linea (`CLAUDE.md` §3.bis, N-71).
 >
 > ⚠️ **Y queda un segundo veto, el de la app, con un defecto abierto: N-106.** `bluetooth_ambarEmergencia()`
-> acompana a `mando_ambarLocal()` en los tres `if`, pero su armador —`Esclavo/src/bluetooth.cpp:130`,
+> acompana a `mando_ambarLocal()` en los tres `if`, pero su armador —la rama `strcmp(cmd, "CMD:AMBAR_EMERGENCIA")` de `Esclavo/src/bluetooth.cpp`,
 > `:171`— **no sale del Modo Degradado** como si hace `ACC_AMBAR`. Ver `ESTADO.md` §N-106: medido por
 > lectura, **no ejecutado**, y se cierra con un arnes visto fallar.
 
@@ -1463,7 +1705,7 @@ El comentario de `main.cpp:396-400` explica el porque: con el ambar pedido desde
 > porque el analisis es correcto y es el que motivo el arreglo — y porque una causa que desaparece en
 > silencio se vuelve a proponer (`CLAUDE.md` §4).
 >
-> **MEDIDO el 31/08 sobre `01_Firmware/Maestro/src/bluetooth.cpp:295-328`: hoy `SET_RTC` tiene CINCO
+> **MEDIDO el 31/08, y revalidado el 05/09 con `grep -c "CMD:SET_RTC," Maestro/src/bluetooth.cpp` → **5**: hoy `SET_RTC` tiene CINCO
 > ramas y ninguna contesta sin mirar.**
 >
 > ```
@@ -1493,16 +1735,20 @@ El comentario de `main.cpp:396-400` explica el porque: con el ambar pedido desde
    01_Firmware/Maestro/src/bluetooth.cpp:175   enviarTramaConCrc("$ACK,CMD:SET_RTC,RESULT:OK");
 ```
 
-*(Esas tres lineas son las de `3733544`. Tras `d34cfe2` el bloque vive en `:295-328` — ver arriba.)*
+*(Esas tres lineas son las de `3733544`, y **por eso llevan numero: una cita fechada a un commit
+concreto es legitima** — se verifica con `git show 3733544:...`, no contra el arbol de hoy. Lo que
+no vale es citar por numero el arbol de HOY. Tras `d34cfe2` el bloque de `SET_RTC` se localiza con
+`grep -n "CMD:SET_RTC," Maestro/src/bluetooth.cpp` — ver arriba.)*
 
 `bluetooth.cpp` valida **el formato** de la trama (`sscanf(...) == 6`) y sobre esa validacion
 contesta `OK`. **No consulta el resultado de `reloj_ajustar()`, que no devuelve nada.** El rechazo
-por falta de oscilador esta escrito con toda intencion en `reloj.cpp:280-290` —y la razon es buena:
+por falta de oscilador esta escrito con toda intencion en `reloj.cpp`, dentro de `reloj_hayCristal()` y su comentario —`grep -n "reloj_hayCristal" Maestro/src/reloj.cpp`—, y la razon es buena:
 escribir una hora que nadie hace avanzar dejaria `horaValida` en `true` y sobre esa mentira el
 Maestro empujaria la hora al Esclavo y autorizaria el Modo Degradado—. Lo que falta es **que se
 entere el que pregunta**.
 
-**Y no es hipotetico.** `roadmap.md:3376` (N-17) y `roadmap.md:3366` (N-37) cierran, con medida de
+**Y no es hipotetico.** Las entradas **N-17** y **N-37** del `roadmap.md` —`grep -n "N-17\|N-37"
+roadmap.md`, las dos siguen vivas el 05/09— cierran, con medida de
 banco del 01/08/2026: **el cristal `Y2` no oscila en las tarjetas actuales.** Tres eliminaciones
 documentadas: `VBAT` a 3 V con la tarjeta apagada, el reintento de N-25 cada 30 s y `REINICIAR
 RELOJ` devolviendo `SIGUE PARADO`.
@@ -1514,7 +1760,7 @@ RELOJ` devolviendo `SIGUE PARADO`.
 > (`bluetooth.cpp:230-235`), que es la unica pista, y esta al lado de un `OK`.
 >
 > ~~El firmware ya tiene el dato: `reloj_hayCristal()` (`reloj.cpp:219`). Lo que falta es que
-> `SET_RTC` lo mire antes de contestar.~~ → ✅ **HECHO en `d34cfe2` (N-80): `bluetooth.cpp:309` lo
+> `SET_RTC` lo mire antes de contestar.~~ → ✅ **HECHO en `d34cfe2` (N-80): la rama `SET_RTC` de `bluetooth.cpp` lo
 > mira.** Ver el recuadro de la cabecera de este apartado.
 
 ### 2.6 🟠 Telemetria fabricada: que campos de `$STATUS` son datos y cuales son texto
@@ -1540,7 +1786,7 @@ a la tabla.** No se borra porque es lo que este apartado consiguio que se arregl
 | `SERIE` | dato (UID de silicio) | dato |
 | `MODO` | dato | 🔴 **literal `SUBORDINADO`** |
 | `ESTADO` | dato | dato |
-| `T` | 🟠 **`(millis()/1000) % 60`** — `bluetooth.cpp:242` | 🟠 **igual** — `bluetooth.cpp:208` |
+| `T` | 🟠 **`(millis()/1000) % 60`** | 🟠 **igual** — *(las dos casillas describen `617bd00`; **hoy no queda ni un `millis()/1000` en el `$STATUS` de ninguna de las dos puntas** — verificado el 05/09 —, y lo que hay es el recuadro de abajo)* |
 | `RF` | dato (`coordinador_calidadEnlace()`) | 🔴 **literal `98%`** |
 | `RTT` | dato (`coordinador_tiempoRespuestaMs()`) | 🔴 **literal `85ms`** |
 | `BAT` | 🔴 **literal `12.6`** | 🔴 **literal `12.6`** |
@@ -1598,12 +1844,20 @@ transcurridos en fase actual"* — y no lo es.
 
 **ESCRITO**, y coherente en tres sitios:
 
-- `roadmap.md:3357` (N-19): *"El Maestro tiene mando; el Esclavo no. La tarjeta ya tiene las cuatro
-  entradas (`PB9`, `PB13`, `PB14`, `PB15`) — **falta solo el receptor**"*.
-- `05_Funcional/8_Procedimiento_Modo_Degradado.md:127-128`: *"El Esclavo no tiene receptor de mando
-  de relés (pendiente N-19). La tarjeta ya trae las cuatro entradas; **falta comprar e instalar el
+- ~~`roadmap.md:3357` (N-19)~~ → 🔴 **AFIRMACION FALSA desde el 05/09, y el motivo es
+  instructivo: `grep -c "N-19" roadmap.md` da CERO.** La entrada **ya no esta en el roadmap** —se
+  fue al historico en `b327550`, *"docs(roadmap): arranca hoy - estado del proyecto, no bitacora"*—,
+  asi que la cita no apuntaba a otra linea: apuntaba a un fichero que **ya no contiene el texto**.
+  *(Control: `N-73` da 4 y `N-118` da 14 en ese mismo fichero, o sea que el buscador ve.)* El texto
+  sobrevive donde se sigue usando: `04_Manuales/MANUAL_MANDO_4_RELES.md` y `ESTADO.md` —
+  `grep -rn "N-19" 04_Manuales ESTADO.md OPTIMIZACIONES.md`. Decia: *"El Maestro tiene mando; el
+  Esclavo no. La tarjeta ya tiene las cuatro entradas (`PB9`, `PB13`, `PB14`, `PB15`) — **falta
+  solo el receptor**"*.
+- `05_Funcional/8_Procedimiento_Modo_Degradado.md`, en dos sitios —`grep -n "N-19"
+  05_Funcional/8_Procedimiento_Modo_Degradado.md`—: *"El Esclavo no tiene receptor de mando de
+  relés (pendiente N-19). La tarjeta ya trae las cuatro entradas; **falta comprar e instalar el
   receptor**"*.
-- `04_Manuales/MANUAL_MANDO_4_RELES.md:352`: la advertencia de exigir **codigo independiente por
+- `04_Manuales/MANUAL_MANDO_4_RELES.md`, el apartado del codigo por punta: la advertencia de exigir **codigo independiente por
   unidad** *"al comprarlo"*.
 
 **MEDIDO:** en el protocolo de 80 pruebas, la seccion 8 (mando de 4 reles, 8 pruebas) y la 13
@@ -1629,7 +1883,7 @@ tanda que `ESTADO.md` declara *"implementada y compilando. NO probada en banco"*
 > |---|---|---|
 > | 8 — Mando de 4 reles (8) | caen **8** | el mando **se conserva** en `A` y `B` (§1.6). `A.A.A` y `B.B.B` siguen existiendo |
 > | 13 — Blindaje del mando N-53 (2) | caen **2** | el mando se conserva; lo que cae es la mitad de *pantalla AJUSTAR HORA* |
-> | 9 — Modo Degradado (12) | caen 7, sobreviven 5 con asterisco | el asterisco **se retira**: `SET_MODO:DEGRADADO` existe (`bluetooth.cpp:234`), y `A.B.A.B` tambien |
+> | 9 — Modo Degradado (12) | caen 7, sobreviven 5 con asterisco | el asterisco **se retira**: `SET_MODO:DEGRADADO` existe —`grep -n 'strcmp(accion, "SET_MODO:DEGRADADO")' Maestro/src/bluetooth.cpp`—, y `A.B.A.B` tambien |
 > | 5 — Modo Manual (10) · 7 — Reloj (11) · 10 — Interfaz del Esclavo (5) | caen | **no se mueven**: son pantalla y menu, y eso si se retira |
 >
 > **Recontarlo es trabajo de la reescritura del Manual 3 (Orden 5 de la seccion B), una prueba por
@@ -1795,8 +2049,12 @@ sin ninguna via construida; la via elegida es la unica que ya estaba construida.
    01_Firmware/Repetidor/src/            grep -rn "watchdog|esp_task_wdt|WDT"  ->  CERO coincidencias
 ```
 
-**El ESP32 de este proyecto no tiene watchdog.** Lo dice tambien `roadmap.md:2706`, en la casilla
-de H-3: *"(El Repetidor ESP32 sigue sin watchdog.)"*, y `MAPEO_TARJETA_KICAD.md` §5 lo lista como
+**El ESP32 de este proyecto no tiene watchdog.** ~~Lo dice tambien `roadmap.md:2706`, en la casilla
+de H-3: *"(El Repetidor ESP32 sigue sin watchdog.)"*~~ → 🔴 **AFIRMACION FALSA desde el 05/09:
+esa frase ya no esta en el `roadmap.md`** —`grep -c "sigue sin watchdog" roadmap.md` da **0**, y el
+control es que `N-17` en ese mismo fichero da **5**—. La entrada se fue al historico con
+`b327550`. Lo que **si** sigue en pie, y es lo que sostiene el parrafo, es la medida sobre el
+propio fuente del repetidor. Y `MAPEO_TARJETA_KICAD.md` §5 lo lista como
 ventaja de portar el repetidor al STM32.
 
 **Y hay precedente escrito de que un ESP32 de este proyecto se queda clavado y tumba el enlace.**
@@ -1838,7 +2096,8 @@ comentarios y `ESTADO.md`).
 > desarrollo esta en la revision del 04/09 (tarde) de la cabecera, y largo en
 > `modo_automatico.cpp:22-50`.
 >
-> **MEDIDO** en `01_Firmware/Maestro/src/modo_automatico.cpp:51-52`:
+> **MEDIDO** en `01_Firmware/Maestro/include/limites_ciclo.h` (N-137 los mudo ahi desde
+> `modo_automatico.cpp`) — `grep -n "VERDE_MIN_MIN" Maestro/include/limites_ciclo.h`:
 >
 > ```
 >    static const uint8_t VERDE_MIN_MIN = 3,  VERDE_MIN_MAX = 15;
@@ -1847,7 +2106,7 @@ comentarios y `ESTADO.md`).
 >
 > **Y va en el C++, no en la app**, que es la otra mitad de la decision: la app puede quedarse vieja
 > y **no es la unica que puede hablar por `J17`**. El firmware rechaza con
-> `$ERR,CMD:SET_TIEMPOS,DESC:RANGO` (`Maestro/src/bluetooth.cpp:573`), y el rango lo comprueba
+> `$ERR,CMD:SET_TIEMPOS,DESC:RANGO` (`grep -n "DESC:RANGO" Maestro/src/bluetooth.cpp`), y el rango lo comprueba
 > `modoAutomatico_fijarTiempos()` (`:57-60`), no el despachador — que solo traduce texto a numeros.
 >
 > ⚠️ **Coste aceptado a sabiendas: ya no se puede probar en mesa con ciclos de un minuto.**
@@ -1880,7 +2139,12 @@ el C++"*.~~ → **la decision se tomo, y su sitio era exactamente ese.**
 > 🔴 **Con un hueco medido el mismo dia: hay un CUARTO sitio y el pack no lo mira.**
 > `App_Semaforo/js/config.js:10-17` declara `LIMITES_TIEMPO` con `VERDE_MIN_MIN: 1` y
 > `ROJO_MIN_MIN: 1`, bajo el comentario *«Rangos de Tiempos Permitidos por Firmware»*. Esta
-> **cargado** por `index.html:718` y **sin un solo consumidor** fuera de `tests/`. Anexo, punto 6.
+> ~~**cargado** por `index.html:718` y **sin un solo consumidor** fuera de `tests/`~~ → 🔴 **05/09:
+> `LIMITES_TIEMPO` YA NO EXISTE** (borrado el 04/09; queda solo el comentario que lo explica). El
+> `<script src="js/config.js">` sigue ahi, pero **no en ~~`:718`~~ y tampoco en un numero fijo**:
+> hoy es la `949` en `App_Semaforo/index.html` y la `937` en `App_Semaforo/www/index.html`. El
+> ancla es `grep -n 'src="js/config.js"' App_Semaforo/www/index.html`. Lo que sigue abierto es el
+> **resto** de `IOT_CONFIG`, que tampoco tiene consumidores. Anexo, punto 6.
 
 ### 3.5 🟡 La Camara 1: se queda en `PB0`/`J14`, o se muda a `J16`
 
@@ -2007,7 +2271,7 @@ una carencia.**
 > prolijidad de montaje y pasa a ser parte de esta decision.** Como funciona esta en el Manual 18
 > §6.5; **lo que abre, en §3.8, y esta ABIERTO.**
 
-**Lo que la app ya hace, MEDIDO** (`App_Semaforo/app.js:2051-2058`): lleva la lista `SOLO_MAESTRO`
+**Lo que la app ya hace, MEDIDO** (`grep -n "SOLO_MAESTRO\|SOLO_ESCLAVO" App_Semaforo/www/app.js`): lleva la lista `SOLO_MAESTRO`
 —`SET_MODO`, `MANUAL:CAMBIAR_TURNO`, `SET_TIEMPOS`, `TEST_LEDS`, `DEMANDA`, `REINICIAR_RELOJ`,
 `FORZAR_ROJO`— y **avisa a que punta va cada orden** en vez de mandarla al cable contra la punta
 equivocada. **La decision no obliga a tocar la app: la app ya la implementaba.**
@@ -2381,7 +2645,7 @@ driver hay que escribirlo en el ESP32.
 > 🟢 **REBAJADO EL 31/08.** Este apartado daba las cuatro vias por muertas. Con el mando conservado
 > en `A` y `B` (§1.6), **solo cae la cuarta** —la entrada por pantalla—. `A·B·A·B`, `A·A·A` y `B·B·B`
 > se ejecutan igual que hoy, y ademas ahora hay una **quinta** via nueva que este documento negaba:
-> `SET_MODO:DEGRADADO` por Bluetooth (`Maestro/src/bluetooth.cpp:234`, MEDIDO el 31/08).
+> `SET_MODO:DEGRADADO` por Bluetooth (`grep -n 'strcmp(accion, "SET_MODO:DEGRADADO")' Maestro/src/bluetooth.cpp`, MEDIDO el 31/08 y revalidado el 05/09).
 >
 > **La tabla de averias de `:311-312` vuelve a tener accion que ejecutar**, que era el agujero grave
 > de esta ficha: `B·B·B` sigue siendo la primera accion ante los dos escenarios de riesgo residual.
@@ -2402,7 +2666,7 @@ retirado, ese procedimiento **no tiene accion que ejecutar**.
 > desfasado, porque un procedimiento desfasado se nota y uno inventado no.~~
 >
 > 🟢 **REFUTADO el 31/08 y el bloqueo se levanta, por partida doble.** La via de sustitucion **existe
-> en firmware** —`SET_MODO:DEGRADADO` en `bluetooth.cpp:234`, entrada; `SET_MODO:MENU` en `:191`, que
+> en firmware** —las ramas `strcmp(accion, "SET_MODO:DEGRADADO")`, entrada, y `strcmp(accion, "SET_MODO:MENU")` de `bluetooth.cpp`, que
 > en Degradado pide la salida por el todo-rojo (`:196-205`)— **y ademas las vias originales de mando
 > no se han ido**. Este documento ya se puede actualizar: lo que hay que reescribir es **una** de sus
 > cuatro vias, no las cuatro.
@@ -2439,7 +2703,7 @@ de §3.3.
 
 Ademas `:96-102` documenta el veto de §2.4 —*"En el Esclavo, `B·B·B` desobedece al Maestro a
 proposito"*—, que es la parte que **no** queda inerte al retirar el mando. **Sigue vigente y sigue
-activo** (`Esclavo/src/main.cpp:406`, `:416`, `:540`).
+activo** —los tres `if` negados: `grep -n "mando_ambarLocal" Esclavo/src/main.cpp`—.
 
 > ~~**Este manual no se borra: se marca retirado y se conserva.**~~ → **Ni se borra ni se marca
 > retirado: se corrige el numero de canales y se queda.** La razon por la que `B·B·B` existia sigue
@@ -2479,7 +2743,7 @@ invita a rellenarlas igual.
 | `05_Funcional/13_Manual_Modulo_Expansion_I2C_y_Compras.md` | su §4 entera: las rutas de bus I2C sobre el STM32 dejan de hacer falta si el I2C vive en el ESP32 |
 | `04_Manuales/MANUAL_CONFIGURACION_BLUETOOTH.md` | comandos AT de `HC-05` |
 | `05_Funcional/14_Manual_App_Movil_IOT_VIAL.md` | la app pasa de accesorio a **unica interfaz** |
-| `ESTADO.md` | §2 dice `USART1` en `PA9`/`PA10` (ya es `PB6`/`PB7`) y *"SFTY-6 a los 12s"* (son **25 s**, `protocolo.h:149`) |
+| `ESTADO.md` | §2 dice `USART1` en `PA9`/`PA10` (ya es `PB6`/`PB7`) y *"SFTY-6 a los 12s"* (son **25 s**: `grep -n "define SFTY6_SILENCIO_MS" Maestro/include/protocolo.h`) |
 | `OPTIMIZACIONES.md` | la trazabilidad `SFTY-x -> codigo -> prueba`, sobre todo SFTY-21 (§2.4) |
 | `CLAUDE.md` | §6 sigue valiendo entera; §10 y el mapa de instrumentos hay que revisarlos |
 
@@ -2531,13 +2795,13 @@ permiso.
 | 🔴 **La causa de N-116** | la tarjeta Maestro tiene un corto entre `3,3 V` y `GND` **medido**, y **la causa esta abierta**. El firmware queda descartado por censo —ninguna de las 9 salidas toca un pin de `J16`—, y eso **no nombra a nadie mas** |
 | 🔴 **Que el mando `A`/`B` funcione con la polaridad corregida** | ~~la correccion de `botones.cpp` **no esta escrita ni cargada**~~ → 🟢 **escrita el 04/09 en `346ea5f`, las dos puntas.** 🔴 **NO cargada y NO ejercida**, y el unico intento de pulsarlo acabo en el incidente de N-116. **Nadie ha visto nunca a este equipo obedecer un `A·A·A`.** El gesto de la proxima prueba es `p5`-`p4` y `p8`-`p7`, **no contra masa**, y no sobre la Maestro |
 
-| 🔴 **Que el minimo de 3 minutos aguante en la tarjeta** | el cambio esta **MEDIDO en el fuente** (`modo_automatico.cpp:51-53`) y **no se ha cargado en ninguna tarjeta**. Trae ademas un coste de banco declarado: **ya no hay ciclos de un minuto para probar en mesa**, y la proxima visita tiene que contar tres minutos por paso |
+| 🔴 **Que el minimo de 3 minutos aguante en la tarjeta** | el cambio esta **MEDIDO en el fuente** (`Maestro/include/limites_ciclo.h`, constante `VERDE_MIN_MIN`) y **no se ha cargado en ninguna tarjeta**. Trae ademas un coste de banco declarado: **ya no hay ciclos de un minuto para probar en mesa**, y la proxima visita tiene que contar tres minutos por paso |
 | 🔴 **Que N-130 se VEA desde la app** | el rechazo llega como evento `MAESTRO / DEMANDA_NO_ATENDIDA_MODO_ACTUAL` (`Esclavo/src/main.cpp:542`), no como `$ERR`. **Que la app lo pinte y el operario lo lea NO se ha comprobado**, y sin eso el cierre es medio: se deja de mentir, pero puede no decirse nada |
 | 🔴 **El coste de flash de los cambios del 04/09 por la tarde** | **no medido por la compuerta.** El acta de `624eb37` es anterior a ellos, y la lectura directa del `.elf` **no reconcilia** con el delta reportado. La discrepancia esta publicada en la revision del 04/09 (tarde); **el numero bueno sale de correr la compuerta sobre el arbol de hoy** |
 | 🔴 **El rotulo Bluetooth** | **nadie lo ha visto en un telefono.** §3.7 apoya en el una decision operativa —a que poste camina el operario— y §3.8 deja abierto que **dos modulos virgenes se llaman igual** hasta una vuelta de energia |
 | 🔴 **Que el ambar ordenado (N-134) llegue a la otra punta** | el comando existe y las dos puntas lo comparten (`protocolo.h:174`), **MEDIDO sobre fichero**. **Nadie ha visto salir el `CMD_GO_AMBAR` de un Maestro ni entrar en un Esclavo**, y era en banco donde se veia el sintoma que este cambio arregla —*"a veces los dos, a veces solo el maestro"*—. La red de la orfandad de 25 s sigue puesta, asi que un fallo degrada al comportamiento de ayer |
 | 🔴 **Que la primera arrancada tras N-133 deje los tiempos en los minimos** | la subida de firma esta **MEDIDA** (`respaldo.cpp:76`), pero `respaldo_borrar()` **no limpia `DR9`/`DR10`** y los sella como validos (**§3.9**). En un equipo actualizado con pila buena **el resultado depende de bytes que nadie ha leido**. **Se mira en el poste, no se supone** |
-| 🔴 **Que el PIN de la app caduque EN LA APK** | los dos plazos estan **MEDIDOS** en el fuente (`app.js:1709-1710`), pero cuelgan de `visibilitychange` / `pagehide` y **no hay `pause` de Cordova**. **Nadie lo ha visto caducar con el telefono en el bolsillo y la pantalla apagada**, que es el unico escenario para el que existe. **SIN VERIFICAR** |
+| 🔴 **Que el PIN de la app caduque EN LA APK** | los dos plazos estan **MEDIDOS** en el fuente (`PIN_GRACIA_FONDO_MS` y `PIN_INACTIVIDAD_MS` de `App_Semaforo/www/app.js`), pero cuelgan de `visibilitychange` / `pagehide` y **no hay `pause` de Cordova**. **Nadie lo ha visto caducar con el telefono en el bolsillo y la pantalla apagada**, que es el unico escenario para el que existe. **SIN VERIFICAR** |
 | 🔴 **Que N-106 salga de verdad por el todo-rojo** | el camino esta **MEDIDO** (`Esclavo/src/bluetooth.cpp:293-308`) y **no se ha ejercido ni en tarjeta ni en arnes**. `CLAUDE.md` §8.bis pide ver fallar el instrumento antes de fiarse, y para este camino **no se ha hecho** |
 | 🔴 **La causa del `FORMATO_INVALIDO` del Courier RTC** | **SIN DIAGNOSTICAR.** La app lo traduce a lenguaje de obra desde el 04/09, y eso **hace legible el sintoma sin decir nada de la causa**. Aqui no se propone ninguna |
 
@@ -2558,20 +2822,20 @@ Se conservan tachados: una tarea que desaparece en silencio se vuelve a pedir.**
 
 1. ~~**`SET_MODO:MENU`** en `Maestro/src/bluetooth.cpp`, y su boton en la app. **Antes** de ignorar
    los pulsadores (§2.3).~~ → ✅ **HECHO en `d34cfe2` (N-78)**, con los otros cinco:
-   `bluetooth.cpp:191` `MENU`, `:212` `ALCANCE`, `:223` `INTELIGENTE`, `:234` `DEGRADADO`, `:330`
+   las ramas `strcmp(accion, "SET_MODO:...")` de `bluetooth.cpp` —`MENU`, `ALCANCE`, `INTELIGENTE`, `DEGRADADO`— y
    `REINICIAR_RELOJ`, `:345` `DEMANDA` (MEDIDO el 31/08). 🟡 **Lo que queda es la mitad de la app:
    comprobar que hay boton para cada uno** — `ESTADO.md`, fila `APP-APK`.
 2. ~~**Quien hereda el veto de `mando_ambarLocal()`** en `Esclavo/src/main.cpp:401`, `:408`, `:526`.
    **Antes** de retirar `mando.cpp` (§2.4).~~ → ✅ **RESUELTO POR DECISION el 31/08: no se retira
-   `mando.cpp`.** El mando se conserva en `A` y `B`, el armador `ACC_AMBAR` (`mando.cpp:132`) se
+   `mando.cpp`.** El mando se conserva en `A` y `B`, el armador `ACC_AMBAR` (`grep -n "ACC_AMBAR" Esclavo/src/mando.cpp`) se
    queda y **no hay veto que heredar**. *(De paso: las tres lineas citadas estaban caducadas — son
    `:406`, `:416`, `:540`.)* 🟡 **Queda un pack** que exija que `ACC_AMBAR` siga siendo el unico
    armador y los consumidores sigan siendo tres y negados.
 3. ~~**`SET_RTC` tiene que mirar `reloj_hayCristal()`** antes de contestar `RESULT:OK`
-   (`bluetooth.cpp:175`, `reloj.cpp:290`) (§2.5).~~ → ✅ **HECHO en `d34cfe2` (N-80)**:
+   (la rama `SET_RTC` de `bluetooth.cpp` y `reloj_hayCristal()` de `reloj.cpp`) (§2.5).~~ → ✅ **HECHO en `d34cfe2` (N-80)**:
    `bluetooth.cpp:309`. Cinco ramas, `:295-328`. Ver §2.5.
 3.bis ~~🔴 **NUEVO (31/08) — N-106: el ambar de emergencia de la app no sale del Degradado en el
-   Esclavo.** `Esclavo/src/bluetooth.cpp:130` y `:171` arman el latch y llaman a
+   Esclavo.** Las dos ramas `AMBAR_EMERGENCIA` de `Esclavo/src/bluetooth.cpp` —la sin PIN y la con PIN— arman el latch y llaman a
    `semaforo_iniciarFallo()`, pero **no** a `degradado_salir()`.~~ → ✅ **HECHO el 04/09.**
    `salidaDegradadoIniciada()` (`Esclavo/src/bluetooth.cpp:302-308`) preguntada en las **dos**
    puertas, `:402` y `:481`. **Y el envoltorio es la parte que hay que no perder:**
@@ -2587,14 +2851,35 @@ Se conservan tachados: una tarea que desaparece en silencio se vuelve a pedir.**
 3.ter 🔴 **NUEVO (04/09) — `respaldo_borrar()` no limpia `DR9`/`DR10` y los sella como validos.**
    Detalle, escenarios y las tres opciones en **§3.9**. Va **antes** de dar por buena la puesta en
    marcha de ningun equipo actualizado, porque su caso de uso principal **es** esa primera arrancada.
-3.quater 🔴 **NUEVO (04/09) — el `enum` de un solo valor que queda vivo.**
+3.quater ✅ ~~**NUEVO (04/09) — el `enum` de un solo valor que queda vivo.**
    `Maestro/src/modo_inteligente.cpp:14` declara `enum FaseInt { INT_CORRIENDO };` y **lo compara**
-   en `:40` y `:62`. Es el **mismo constructo** que N-135, y N-135 demostro que la comparacion se
-   reduce a `movs r0, #1`. **No se ha analizado que cuelga de esa comparacion**, y por eso esto es
-   una tarea y no una acusacion: **la pregunta es si esa guarda puede dar las dos respuestas.**
-4. **La telemetria fabricada:** `BAT:12.6` en las dos puntas, y `RF:98%` / `RTT:85ms` /
-   `MODO:SUBORDINADO` en el Esclavo. Se retiran o se marcan; no se dejan con aspecto de medida
-   (§2.6). Y el campo `T:` no es tiempo de fase — el comentario de `bluetooth.cpp:241` dice que si.
+   en `:40` y `:62`.~~ → **CERRADO EL 05/09: el `enum` se retiro.**
+   `grep -n "FaseInt" Maestro/src/modo_inteligente.cpp` devuelve **dos lineas y las dos son
+   comentario** —el bloque *"N-135 OTRA VEZ, EN EL FICHERO DE AL LADO"*—. Era **inerte**: no
+   colgaba ninguna guarda de el.
+   > 🔴 **PERO LO QUE ESTE PUNTO ABRIA NO SE CIERRA CON EL, Y CAMBIA DE SUJETO:** lo encontro
+   > una revision externa y **no el pack que existe para esto**. El censo de
+   > `maestro_10_coordinador_alcanzable.py` sigue mirando **solo `==`** —
+   > `if _re.search(r"==\s*%s|%s\s*==" % ...)` — y **un `case` tambien es una comparacion**. El
+   > comentario del fuente afirma que *"el pack se afila en el mismo commit"*; **medido el 05/09: no
+   > se afilo**, y es el unico pack que censa esta forma
+   > (`grep -ln "len(_vals) != 1" Simulaciones/banco/packs/*.py` → **1 fichero**). **Queda
+   > ABIERTO**, y no es firmware: es el vigilante.
+4. ✅ ~~**La telemetria fabricada:** `BAT:12.6` en las dos puntas, y `RF:98%` / `RTT:85ms` en el
+   Esclavo. Se retiran o se marcan; no se dejan con aspecto de medida (§2.6). Y el campo `T:` no es
+   tiempo de fase — el comentario de `bluetooth.cpp:241` dice que si.~~ → **HECHO, y las dos
+   mitades por separado (05/09):**
+   - 🟢 **Los literales se retiraron** por N-108: hoy los dos `$STATUS` llevan `BAT:--`, y el del
+     Esclavo ademas `RF:--` y `T:--`. `grep -n "BAT:--" Maestro/src/bluetooth.cpp
+     Esclavo/src/bluetooth.cpp` da **una linea por punta**. Detalle en §2.6.
+   - 🔴 **La frase del campo `T:` era una AFIRMACION FALSA, y por partida doble.** Hoy `T:` **SI**
+     es tiempo de fase en el Maestro —sale de `coordinador_segundosRestantesFase()` y, si no hay,
+     de `modoAutomatico_segundosRestantesFase()`, con `--` cuando no hay cuenta que dar—, y el
+     comentario que se citaba **no habla de eso**: la linea que se citaba trata del umbral de
+     silencio de `LATIDO_MS`. `grep -n "segundosRestantesFase" Maestro/src/bluetooth.cpp`.
+   - 🟠 **Lo unico que sobrevive del punto es `MODO:SUBORDINADO`** en el Esclavo, que **sigue
+     siendo un literal** —y esta razonado en el propio fuente, no es un descuido—:
+     `grep -n "MODO:SUBORDINADO" Esclavo/src/bluetooth.cpp`.
 5. **La polaridad de `botones.cpp`** en las dos puntas, ~~si M3 dice que el netlist tiene razon~~
    (§2.2). Con su pack, como N-67 tuvo el suyo. 🔴 **Y desde el 31/08 esto SUBE de prioridad, no
    baja:** con los pulsadores 3 y 4 retirados, `PB9` y `PB13` dejan de ser *"pines que se van"* y
@@ -2620,16 +2905,18 @@ Se conservan tachados: una tarea que desaparece en silencio se vuelve a pedir.**
    >    **no contra masa**.
 6. ~~**`VERDE_MIN_MIN`** (`modo_automatico.cpp:31`) cuando llegue el numero, **atado a la app** en
    el mismo commit (N75-1 y N75-2, §3.4).~~ → ✅ **HECHO el 04/09.** El numero llego —**3 minutos**—
-   y entro atado: `modo_automatico.cpp:51-53`, `app.js` con `enRango(verde, 3, 15)`, `index.html`
+     y entro atado —y **desde N-137 la constante vive en `Maestro/include/limites_ciclo.h`**, no en
+     `modo_automatico.cpp`—: `app.js` con `enRango(verde, 3, 15)`, `index.html`
    con `min="3"`, y el pack **`app_11_rangos_de_tiempos`** releyendo los tres del fuente en cada
    corrida.
    > 🔴 **Queda un CUARTO sitio que ese pack no mira, y hoy dice lo contrario que el
    > firmware:** `05_Funcional/App_Semaforo/js/config.js:10-17` — `LIMITES_TIEMPO` con
    > `VERDE_MIN_MIN: 1` y `ROJO_MIN_MIN: 1`, bajo el comentario *«Rangos de Tiempos Permitidos por
-   > Firmware»*. `index.html:718` lo carga y **no lo consume nadie fuera de `tests/`** (`grep` de
+   > Firmware»*. ~~`index.html:718` lo carga~~ —el `<script>` se encuentra con `grep -n 'src="js/config.js"' App_Semaforo/www/index.html`— y **no lo consume nadie fuera de `tests/`** (`grep` de
    > `IOT_CONFIG` y de `LIMITES_TIEMPO` sobre la app). Es un huerfano de los de N-73 **con una cifra
    > caducada dentro**: o se borra, o se ata al pack. **No se toca desde este documento.**
-7. **Comentarios que ya mienten:** `Esclavo/src/main.cpp:399` dice *"cae a C_FALLO en ~12,5 s"* con
+7. **Comentarios que ya mienten:** un comentario de `Esclavo/src/main.cpp` —`grep -n "12,5 s"
+   Esclavo/src/main.cpp`, sigue ahi el 05/09— dice *"cae a C_FALLO en ~12,5 s"* con
    `SFTY6_SILENCIO_MS` en 25 000. Es lo que `CLAUDE.md` avisa de los comentarios que sobreviven a un
    numero.
 
@@ -2639,7 +2926,7 @@ Se conservan tachados: una tarea que desaparece en silencio se vuelve a pedir.**
    31/08: los del MANDO conservan su sujeto entero** (`A.A.A`, `B.B.B`, `A.B.A.B`, `ACC_AMBAR` y el
    veto de §2.4 siguen existiendo). Se quedan sin sujeto los de **pantalla y menu**, y **solo la
    parte de `botones.cpp` que mira los flancos 3 y 4** — los flancos 1 y 2 siguen alimentando a
-   `mando_registrarPulso()` (`botones.cpp:119-120`). Hay que decidir uno por uno si se borran, se
+   `mando_registrarPulso()` (`grep -n "mando_registrarPulso" Maestro/src/botones.cpp`). Hay que decidir uno por uno si se borran, se
    invierten o se conservan (`CLAUDE.md` §8.quater), **con la cuenta comparada antes y despues**,
    que es la unica red para esta clase de deriva (§5 de `CLAUDE.md`). **Retirar de mas aqui es
    exactamente el error que la decision del 31/08 evita en el firmware.**
@@ -2654,10 +2941,11 @@ Se conservan tachados: una tarea que desaparece en silencio se vuelve a pedir.**
     funciones que devuelven un **literal** (`return false;`), y esta devolvia una **comparacion**. La
     forma era distinta y la consecuencia identica. Es un **trinquete, no un absoluto** —un `enum` de
     un valor que nadie compara puede ser legitimo—, y su primer sujeto vivo esta en
-    `modo_inteligente.cpp:14`.
+    `modo_inteligente.cpp`. 🔴 **05/09: el `enum` YA NO EXISTE** (retirado por N-135); lo que
+      queda abierto es que el pack `maestro_10` **sigue mirando solo `==` y no `case`**.
 13. 🔴 **NUEVO (04/09) — que la caducidad del PIN se ejerza EN LA APK, no en un navegador.** Es la
     unica mitad `SIN VERIFICAR` de la barrera nueva de la app, y es justo la que importa: los dos
-    plazos cuelgan de `visibilitychange` / `pagehide` (`app.js:1755-1763`) y **no hay `pause` de
+    plazos cuelgan de `visibilitychange` / `pagehide` (`grep -n "visibilitychange\|pagehide" App_Semaforo/www/app.js`) y **no hay `pause` de
     Cordova**. **Se cronometra con un telefono en el bolsillo y la pantalla apagada.** Un arnes de
     DOM en un navegador de escritorio **no puede contestar esta pregunta**, y darlo por medido ahi
     seria declarar sin ejercer.
