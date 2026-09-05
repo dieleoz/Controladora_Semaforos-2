@@ -55,7 +55,78 @@ regla **§2.bis de `CLAUDE.md`**, que existe por esto.
 > Desde el 03/09 hay una segunda, y es mejor: **¿esto desatasca uno de los 5 pasos que el banco no
 > pudo correr?** Lo que no conteste a ninguna de las dos, no se escribe.
 
-### 0.0.septendecies EL MANDO **NO SE RETIRA**: A y B se quedan, sin usar y SIN TOCAR EL CODIGO
+### 0.0.octodecies SFTY-29 · LAS CAMARAS COMO VETO — la regla existe declarada y SIN CONSTRUIR
+
+`OPTIMIZACIONES.md:401` la tiene registrada como **«solo diseno»**: *«Presencia como veto
+del todo-rojo y sensor de pluma»*. Lo que el responsable describio el 04/09 es exactamente
+esa regla, y aqui queda con lo que se ha MEDIDO y con lo que sigue SIN DECIDIR.
+
+### Lo que la talanquera hace HOY, medido
+
+`Maestro/src/semaforo.cpp:100-102` — es una **funcion pura de la luz**, sin camara ninguna:
+
+```c
+digitalWrite(MOTOR_TALANQUERA,
+             ((verde && !testLedsActivo) || estado == S_FALLO) ? ABRIR : CERRAR);
+```
+
+Verde -> arriba · Rojo -> abajo · Ambar (`S_FALLO`) -> arriba · **sin energia -> baja
+sola**, porque el pin cae a `LOW` y el MOSFET no conduce (SFTY-28).
+
+### 🔴 LAS DOS CAMARAS NO SON EL MISMO PROBLEMA: FALLAN EN DIRECCIONES OPUESTAS
+
+**Camara de la BARRERA** — *presencia -> no bajar la pluma*:
+
+| falla como | consecuencia |
+|---|---|
+| pegada en «hay presencia» | la pluma **no baja** con el semaforo en rojo. El responsable lo declara aceptable: *«hoy en dia esa mierda funciona asi y a todo el mundo le da igual»* |
+| pegada en «no hay» | baja sobre un coche — **pero eso es exactamente lo que pasa HOY**, sin camara |
+
+> **Esa camara SOLO PUEDE MEJORAR.** No hay modo de fallo que empeore el estado actual. Y
+> su unico hueco lo cierra la alarma que el propio responsable enuncio: *«la barrera no ha
+> bajado porque la camara tiene alarma presencial hace 8 dias, vaya a darle
+> mantenimiento»*.
+
+**Camara de SALIDA** — *presencia -> no cambiar a rojo*:
+
+| falla como | consecuencia |
+|---|---|
+| pegada en «hay presencia» | 🔴 **el semaforo NO CAMBIA NUNCA.** Un sentido con verde permanente y el otro esperando su turno para siempre — y ahi la gente cruza igual |
+
+Lo dijo el: *«si esta camara falla, esa joda no sirve»*. **Tenia razon, y la diferencia es
+medible: una es un enclavamiento que falla HACIA SEGURO y la otra HACIA PELIGROSO.**
+
+### Tres consecuencias tecnicas que condicionan como se configura
+
+1. **Hoy el firmware lee FLANCO; un veto necesita NIVEL.** `camaras_actualizar()`
+   (`botones.cpp:144-152`) dispara en el flanco de subida y llama a `demanda_solicitar()`.
+   Vetar es preguntar *«hay presencia AHORA»*: otra lectura del mismo pin.
+2. **La solucion la dijo el responsable sin darse cuenta:** *«paralelo al cambio a rojo,
+   lanza leer camara»* — o sea **una lectura EN EL INSTANTE de la transicion**, no un veto
+   continuo. Un vistazo puntual esta mucho menos expuesto a un sensor pegado.
+3. **Un veto CON TOPE DE TIEMPO deja de ser peligroso.** *«No aguanto mas de N segundos;
+   pasado eso cambio igual y levanto alarma»*. Es el mismo patron de su alarma de
+   mantenimiento aplicado al ciclo, y convierte el enclavamiento de la camara de salida de
+   fail-dangerous en fail-safe.
+
+### 🟡 LO QUE SIGUE SIN DECIDIR, y es del responsable
+
+- **¿La camara de salida VETA el ciclo o solo AVISA?** El mismo dudo: *«para modo
+  automatico no se, no parece que sea»*, y apunto que quiza vale mas para **imagenes y
+  auditoria** —accidentes, soportes— guardadas en la Raspberry o la Nano.
+- Si veta: **cuantos segundos como maximo**.
+- **Lectura en el instante del cambio, o veto continuo.**
+- 🔴 **Que pasa si la camara esta MUDA** —no «no hay presencia», sino sin responder—.
+  Presencia y silencio no son lo mismo y **hoy el pin no los distingue**: un cable suelto
+  lee igual que «via libre». Con `INPUT` pelado y pull-down, una camara desconectada dice
+  «no hay nadie».
+- Y su propio aviso, que va escrito porque condiciona todo lo demas: *«hay que hacer un
+  laboratorio… no se como se comporta esa camara. No es una camara asi super fiable, ni
+  super rapida»*. **Nada de esto se decide sin esa medida.**
+
+---
+
+## 0.0.septendecies EL MANDO **NO SE RETIRA**: A y B se quedan, sin usar y SIN TOCAR EL CODIGO
 
 > 🔴 **Esta seccion se escribio primero al reves, y se corrige aqui en vez de reescribirse,
 > porque el error es la parte que vale.** Se llego a lanzar un agente a retirar el mando
