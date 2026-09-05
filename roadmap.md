@@ -214,6 +214,71 @@ ORDENES aparte de la cinta cruda -que se corta a 300 tramas y en una sesion ya s
 379-. Y el PIN sale **tapado** al exportar: hoy el `1234` viaja en claro dentro de cada
 trama que se manda por WhatsApp.
 
+### 0.0.quater · LO QUE SE DECIDIO SOBRE LA AUTORIZACION, y las pruebas que hubo que repartir
+
+**Decision del responsable (04/09): EL OPERARIO DEJA DE TECLEAR EL PIN para lo que ABRE
+paso.** Lo sustituye una confirmacion: *"¿Confirma que no quedan vehiculos en el tramo?"*.
+
+El motivo no es comodidad, aunque tambien: **el equipo no sabe si queda alguien en el
+tramo y el operario si**. Un PIN demuestra QUIEN eres; no demuestra que hayas MIRADO la
+via. Y un banderillero que da paso cada tres minutos no va a teclear `1234` cada vez -sus
+palabras: *"no va a querer estar escribiendo 1234"*-.
+
+**Las tres reglas para que la pregunta no se vuelva invisible**, que son la mitad del
+diseno:
+
+1. **Solo en lo que ABRE paso.** Poner rojo, poner ambar, parar: **no se pregunta nunca**.
+   Es la direccion segura, y es el criterio que el firmware ya usaba para el PIN
+   -`SIN_PIN` incluye `FORZAR_ROJO` y `AMBAR_EMERGENCIA` a proposito-. Preguntar para
+   parar ensena a decir que si sin leer.
+2. **La pregunta dice QUE MIRAR, no "¿esta seguro?"**. Obliga a levantar la vista.
+3. **No sale dos veces seguidas por lo mismo** si el ciclo no ha cambiado de fase.
+
+**Y el PIN caduca**, que no lo hacia nunca: `state.pinVerificado` se encendia en una linea
+y **no se apagaba en ninguna**. Se cierra al pasar la app a segundo plano -con **60 s de
+gracia**, porque el funcional reporta por WhatsApp y saldria de la app cada dos por tres- y
+a los **5 minutos** sin mandar ninguna orden.
+
+> **Lo que NADA de esto arregla, y va escrito para que no se lea como cerrado:**
+> `state.correctPin = '1234'` sigue **en claro en el fuente de la app**. Eso no es una
+> caducidad, es como se autoriza. Va con la V2.
+
+#### Las once pruebas que celebraban la barrera retirada (§8.quater)
+
+`test_dom_execution.js` cayo a **117 PASS + 11 FALLA**. Se repartieron una por una,
+contando cuantas propiedades afirma cada una, y **ninguna se borro**:
+
+| destino | cuantas | por que |
+|---|---|---|
+| **invertidas** | 2 | exigian *"la orden que mueve luces abre el teclado de PIN"*. Ahora exigen el aviso de via abierto **y el de PIN cerrado**: fue una SUSTITUCION, no un anadido. Dos barreras seguidas no suman, ensenan a decir que si |
+| **mudadas** | 4 | el flujo del PIN se muda **literal** a `btn-op-amber`. El PIN no se retiro: se retiro de DOS ordenes |
+| **repartida** | 1 | afirmaba dos cosas. Una muda; la otra se convierte en el control positivo de la via |
+| **conservadas** | 4 | no estaban mal: caian por cascada porque ese bloque era el unico que autorizaba la sesion |
+
+**El total sube a 142, no baja a 126**, y esa diferencia es la comprobacion que importa:
+**el control positivo -que TRAS confirmar la via la orden SALE al cable-**. Sin el, una
+guarda que no dejara pasar nada aprobaria las inversiones igual de bien que la correcta.
+Es la tapia de §8.sexies.
+
+> 🔴 **Y §8.sexies se reprodujo LITERAL al inyectar el defecto:** al quitar la guarda de
+> via, la linea que comprobaba *"no sale ningun byte"* **NO CAYO** -otra barrera mas abajo
+> frenaba el envio igual-. Lo unico que cazo la regresion fueron las lineas que miran el
+> **ORDEN** de las barreras, y la que vio salir al cable
+> `CMD:PIN:1234:MANUAL:CAMBIAR_TURNO` **sin que nadie mirara la calzada**.
+
+**Dos pruebas llevaban verdes midiendo nada, y no lo habia reportado nadie:** *"con 4
+digitos validos el modal se cierra"* y *"[btn-op-auto] no vuelve a pedir el PIN"* daban
+`[OK]` **entre fallas**, porque el teclado de PIN no se abria NUNCA y *"esta cerrado"* era
+vacuamente cierto (§3.bis). Ahora vuelven a medir.
+
+#### Lo que sigue abierto de esto, y es del responsable
+
+| | |
+|---|---|
+| **AMBAR sigue pidiendo PIN y DAR PASO no** | operativamente es raro: al banderillero le queda con clave justo la direccion segura. Tiene salida sin clave por `ROJO TOTAL` / `AMBAR EMERGENCIA`, que van en `SIN_PIN` |
+| **`CANCELAR_AMBAR` tambien ABRE paso** | lo dice su propio comentario, y quedo con PIN y sin confirmacion. Es el candidato mas claro a llevar el aviso de via |
+| **Sin telemetria la fase no acota** | `estadoLuces` vale `null` en los dos lados, asi que lo unico que estrecha la ventana de "no repreguntar" son los 30 s |
+
 ### 0.1 · Lo unico que hay que hacer, en orden — tras la SESION 2 de banco (04/09)
 
 > 🟢 **EL BLUETOOTH ESTA CERRADO CON EVIDENCIA FISICA.** La sesion 2 confirmo **N-117** y **N-122** en
