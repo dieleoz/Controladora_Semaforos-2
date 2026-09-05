@@ -70,8 +70,24 @@ function Compilar-Fuente($origen, $nombreObjeto) {
 # demanda_hayLocal() en el mismo OR que la camara, o sea que la ventana de 3 s de la
 # demanda a mano es parte del camino que decide cuando cambia una luz. Un sustituto
 # aqui seria una segunda copia de esa ventana escrita a mano.
-Write-Host "Compilando coordinador.cpp, semaforo.cpp, modo_automatico.cpp, modo_inteligente.cpp, demanda.cpp y mando.cpp (los MISMOS del firmware) y el arnes..." -ForegroundColor Cyan
+# D-13 (05/09): SE SUMA botones.cpp REAL (Bloque F).
+#
+# Hasta hoy este fichero NO SE COMPILABA EN NINGUN ARNES DEL PROYECTO: aqui se
+# sustituia por un botones.h de once lineas con las definiciones puestas a mano en
+# arnes_automatico.cpp. O sea que el vigilante de camaras de J16 -las dos alarmas,
+# la siembra de N-26, el contador de vetos de la fase 2- solo estaba medido por
+# packs que leen texto, y los dos defectos que se arreglaron hoy son de
+# COMPORTAMIENTO EN EL TIEMPO: un pin sin camara que a las 6 h de paso abierto
+# alarmaba de una camara inexistente, y un campo CAM: que con una camara por poste
+# no podia decir OK jamas. Ningun pack de texto puede ver ninguno de los dos, y
+# camara_03_vigilante -675 lineas, en verde- no los vio.
+#
+# Ademas es lo que permite ejercer la pregunta del encargo: si una deteccion en el
+# PIN de J16 llega hasta el Modo Inteligente. Con el stub, J14 y J16 eran el mismo
+# bool y la respuesta salia que si por construccion.
+Write-Host "Compilando coordinador.cpp, semaforo.cpp, modo_automatico.cpp, modo_inteligente.cpp, demanda.cpp, mando.cpp y botones.cpp (los MISMOS del firmware) y el arnes..." -ForegroundColor Cyan
 Compilar-Fuente (Join-Path $MAESTRO 'src\coordinador.cpp')     'coordinador.o'
+Compilar-Fuente (Join-Path $MAESTRO 'src\botones.cpp')         'botones.o'
 Compilar-Fuente (Join-Path $MAESTRO 'src\semaforo.cpp')        'semaforo.o'
 Compilar-Fuente (Join-Path $MAESTRO 'src\modo_automatico.cpp') 'modo_automatico.o'
 Compilar-Fuente (Join-Path $MAESTRO 'src\modo_inteligente.cpp') 'modo_inteligente.o'

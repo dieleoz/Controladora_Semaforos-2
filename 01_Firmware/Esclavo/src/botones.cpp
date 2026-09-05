@@ -225,12 +225,42 @@ static uint16_t camVetos = 0;
 static const char* const CAM_NOMBRE[2] = {"CAM_C", "CAM_D"};
 
 const char* camara_estado() {
-  EstadoCamara peor = camEstado[0] > camEstado[1] ? camEstado[0] : camEstado[1];
+  // LA PEOR DE LAS DOS, PERO SOLO ENTRE LAS QUE TIENEN ALGO QUE DECIR.
+  //
+  // Con UNA CAMARA POR POSTE (D-13) el otro pin esta vacio, y un pin vacio arranca en
+  // CAM_DESCONOCIDA y no sale de ahi nunca -no puede dar un flanco-. Con el mayor-que a
+  // secas eso significaba que "?" pesaba mas que "OK" para siempre y EL CAMPO CAM: NO
+  // PODIA DECIR "OK" EN NINGUN EQUIPO REAL. Un campo que solo sabe decir una cosa es el
+  // enum de un solo valor de 3.septies con otra ropa.
+  //
+  // La regla es la misma que la del silencio en vigilante_tick(), y por eso se apoya en
+  // la MISMA bandera y no en una segunda condicion que alguien tendria que mantener
+  // igual: SIN FLANCO NO SE JUZGA EL SILENCIO. Pero el NIVEL si se juzga siempre -PEGADA
+  // no necesita flanco, se siembra en camaras_sembrar()-, asi que un contacto trabado en
+  // un pin que nunca dio un flanco SIGUE SALIENDO al aire.
+  //
+  // Y MIENTRAS NINGUNA HAYA DICHO NADA, "?" - no "OK". El "?" honesto de A-6 se conserva
+  // entero para el unico instante en que de verdad no se sabe nada: entre el arranque y
+  // la primera deteccion. Contestar "OK" ahi seria pintar un dato que no se tiene, que es
+  // justo lo que este repositorio le quito a la app.
+  EstadoCamara peor = CAM_DESCONOCIDA;
+  bool juzgable = false;
+  for (int i = 0; i < 2; i++) {
+    if (!camHuboFlanco[i] && camEstado[i] != CAM_PEGADA) {
+      continue;
+    }
+    if (!juzgable || camEstado[i] > peor) {
+      peor = camEstado[i];
+    }
+    juzgable = true;
+  }
+  if (!juzgable) {
+    return "?";
+  }
   switch (peor) {
-    case CAM_PEGADA:      return "PEGADA";
-    case CAM_CIEGA:       return "CIEGA";
-    case CAM_DESCONOCIDA: return "?";
-    default:              return "OK";
+    case CAM_PEGADA: return "PEGADA";
+    case CAM_CIEGA:  return "CIEGA";
+    default:         return "OK";
   }
 }
 
@@ -298,6 +328,41 @@ static void vigilante_nivel(int i, bool alto, unsigned long ahora) {
   }
 }
 
+// QUE ES "HAY PRESENCIA" EN UNA CAMARA DE J16. UNA SOLA DEFINICION, Y AQUI.
+//
+// Lo contestan dos consumidores que preguntan por motivos distintos y necesitan la MISMA
+// respuesta: el contador de vetos de la fase 2 -abajo, en vigilante_tick()- y, en el
+// Maestro, camara_presenciaJ16(), que es lo que deja al Modo Inteligente sostener una
+// fase mientras hay cola. Escribir la condicion dos veces seria el defecto que este
+// repositorio ya paga en otros sitios: dos formulas que solo la disciplina mantiene
+// iguales. El pack camara_03_vigilante comprueba que sigue habiendo UNA.
+//
+// SON DOS TERMINOS Y HACEN FALTA LOS DOS:
+//
+//   camAnt[i] - EL NIVEL de esta misma vuelta. Contesta al contacto que esta cerrado
+//        AHORA. Lo lee camaras_actualizar() una vez por iteracion; no se relee aqui,
+//        porque una segunda lectura seria otro instante y ademas arrastra el delay(5).
+//
+//   el flanco todavia vigente - EL PULSO. El rele de la camara cierra ~1 s por deteccion
+//        y ABRE entre coche y coche: con solo el nivel, una cola de vehiculos se leeria
+//        como huecos de "no hay nadie" cada vez que el contacto se abre, y quien decide
+//        el semaforo muestrea justo en un hueco tarde o temprano. Medido: sin este
+//        termino el verde con trafico continuo en J16 terminaba en el suelo (Bloque F).
+//
+// Y "VIGENTE" NO SE INVENTA AQUI: es demanda_ventanaMs(), el UNICO plazo que este
+// firmware ya tiene para "esta demanda sigue en pie". Un numero propio seria el decimo
+// "~1 s del rele" de A-7. La diferencia con demanda_hayLocal(), que usa ese mismo plazo,
+// es que camUltimoFlanco[] SI se renueva en cada flanco -vigilante_flanco()- mientras que
+// la ventana de demanda.cpp no se prolonga: por eso aquella deja huecos y esta no.
+//
+// camHuboFlanco[] es N-26: sin el, con millis() casi en cero contra un camUltimoFlanco[]
+// tambien en cero la resta cae DENTRO de la ventana, y el arranque regalaria una
+// presencia que nadie provoco.
+static bool camara_presencia(int i, unsigned long ahora) {
+  return camAnt[i]
+         || (camHuboFlanco[i] && (ahora - camUltimoFlanco[i]) <= demanda_ventanaMs());
+}
+
 // EL RELOJ DEL VIGILANTE, y el unico sitio del fichero donde se mira la pluma.
 //
 // EL SILENCIO SE ACUMULA SOLO CON LA PLUMA ARRIBA, y ese es el "con el ciclo corriendo"
@@ -312,6 +377,41 @@ static void vigilante_tick(unsigned long ahora) {
 
   if (arriba) {
     for (int i = 0; i < 2; i++) {
+      // UN PIN QUE NUNCA HA DADO UN FLANCO NO SE VIGILA - Y ESE ES EL CASO NORMAL.
+      //
+      // HAY UNA CAMARA POR POSTE (D-13, y las compras son 2 unidades para 2 postes), asi
+      // que en todos los equipos que se monten UNO DE ESTOS DOS PINES ESTA VACIO. Con el
+      // pull-down de 10K de la placa un pin vacio lee bajo para siempre: nunca da un
+      // flanco. Sin esta linea acumulaba silencio como si fuera una camara y, cumplido el
+      // plazo, emitia $ALARM CAM_CIEGA DE UNA CAMARA QUE NO EXISTE -el manual manda
+      // entonces al tecnico a mirar una bornera vacia-. Y ademas CIEGA pesa mas que OK,
+      // asi que ese pin tapaba en el campo CAM: el estado de la camara que si esta.
+      //
+      // LO QUE ESTA ELECCION CUESTA, ESCRITO EN VEZ DE DISIMULADO: asi NO se detecta una
+      // camara que este muerta DESDE EL DIA DE LA INSTALACION. Nunca dio un flanco, luego
+      // el firmware no la distingue de un conector vacio; es A-6 letra por letra -el pin
+      // no distingue silencio de via libre-, y no hay bit que lo arregle.
+      //
+      // LO QUE LO COMPENSA NO ES FIRMWARE, Y ESTA MEDIDO: el paso de instalacion del
+      // Manual 9 hace que el instalador PROVOQUE una deteccion delante de la camara y
+      // compruebe que el equipo la acusa. Ese es el primer flanco. O sea que el vigilante
+      // empieza a vigilar EXACTAMENTE cuando el instalador ha demostrado que la camara
+      // ve, y ni un segundo antes.
+      //
+      // Y vale igual despues de cada reinicio: camHuboFlanco[] arranca en false, asi que
+      // tras un corte la vigilancia de silencio queda desarmada hasta la primera
+      // deteccion. Es deliberado -al encender no sabemos nada de esta camara-, pero deja
+      // un hueco real: una camara que muera en el mismo corte que reinicia al equipo no
+      // se anuncia. Va anotado como residual, no disimulado.
+      //
+      // ESTO NO TOCA LA OTRA ALARMA. Un contacto ya cerrado desde antes del arranque
+      // tampoco da flancos, y ese SI se detecta: PEGADA cuelga del NIVEL, su cronometro
+      // se siembra en camaras_sembrar() y vive en vigilante_nivel(), que no pasa por
+      // aqui. Un pin vacio no puede dispararla -lee bajo siempre-, que es justo la
+      // diferencia entre las dos.
+      if (!camHuboFlanco[i]) {
+        continue;
+      }
       camSinFlancoMs[i] += dt;
       if (camSinFlancoMs[i] >= CAM_CIEGA_MS
           && camEstado[i] != CAM_CIEGA && camEstado[i] != CAM_PEGADA) {
@@ -329,18 +429,13 @@ static void vigilante_tick(unsigned long ahora) {
   // (A-1.bis). Por eso el contador se construye ANTES que el veto y no despues: es el
   // que dice si el veto merece la pena.
   //
-  // "Hay presencia" se contesta con el nivel de la vuelta anterior o con un flanco
-  // todavia vigente, y "vigente" NO se inventa aqui: es el mismo plazo con el que este
-  // firmware ya decide que una demanda sigue en pie -demanda_ventanaMs()-.
-  //
-  // camHuboFlanco[] existe por N-26: sin el, con millis() casi en cero contra un
-  // camUltimoFlanco[] tambien en cero la resta cae DENTRO de la ventana, y la primera
-  // bajada de pluma tras el arranque contaria un veto que nadie provoco.
+  // "Hay presencia" se pregunta a camara_presencia(), que es la UNICA definicion que
+  // tiene este fichero y la que usa tambien el Modo Inteligente. Aqui vivia la condicion
+  // escrita a mano; al ganar un segundo consumidor se saco arriba en vez de copiarse.
   if (camPlumaAnt && !arriba) {
     bool presencia = false;
     for (int i = 0; i < 2; i++) {
-      if (camAnt[i]
-          || (camHuboFlanco[i] && (ahora - camUltimoFlanco[i]) <= demanda_ventanaMs())) {
+      if (camara_presencia(i, ahora)) {
         presencia = true;
       }
     }

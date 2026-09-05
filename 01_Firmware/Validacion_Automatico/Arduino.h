@@ -17,6 +17,7 @@
 
 #define OUTPUT 1
 #define INPUT 0
+#define INPUT_PULLUP 2
 #define LOW 0
 #define HIGH 1
 
@@ -34,9 +35,30 @@ inline void digitalWrite(int pin, int valor) {
   arnes_escrituras++;
 }
 
+// digitalRead() LEE EL MISMO arnes_pines[] EN EL QUE ESCRIBE digitalWrite(). Desde que
+// botones.cpp REAL se compila aqui (D-13 fase 1), las entradas de camara son pines de ese
+// mismo array: el escenario cierra el contacto poniendo el pin a HIGH y camara_leerPin()
+// -la funcion de verdad, con su antirrebote- lo lee. Un pin que el escenario no ha tocado
+// vale 0, que es exactamente lo que da el pull-down de 10K de la placa en una bornera
+// vacia; ese es el caso que hay que poder ejercer.
+inline int digitalRead(int pin) {
+  return (pin >= 0 && pin < 64) ? arnes_pines[pin] : LOW;
+}
+
 extern unsigned long arnes_millis_valor;   // lo mueve el arnes, nunca solo
 inline unsigned long millis() { return arnes_millis_valor; }
 
-// coordinador.cpp y semaforo.cpp no llaman a delay(); modo_automatico.cpp tampoco.
-// No se define: si algun dia alguno empezara a usarlo, mejor un error de enlazado
-// que un arnes que se queda dormido de verdad esperando un delay() de minutos.
+// delay() NO MUEVE EL RELOJ, Y ESO ES UNA DECISION CON SU MOTIVO, NO UN OLVIDO.
+//
+// Antes no existia -"mejor un error de enlazado que un arnes dormido"- y esa razon sigue
+// valiendo para un delay() de minutos. La necesita camara_leerPin() de botones.cpp, que
+// hace delay(5) entre sus dos lecturas del pin: es el antirrebote por software, y sin el
+// no hay forma de compilar el fichero real.
+//
+// SE DEJA COMO NO-OP QUE CUENTA, y no como un avance de arnes_millis_valor, porque este
+// arnes MIDE DURACIONES DE FASE con el mismo reloj: hacer que el antirrebote de la camara
+// empujase millis() convertiria "cuanto dura el verde" en una funcion de cuantas veces se
+// leyo un pin, y la cifra medida dejaria de ser la del firmware. Lo que se pierde queda
+// anotado: este arnes NO mide el coste en tiempo de loop de los delay() de camara_leerPin().
+extern unsigned long arnes_delays;
+inline void delay(unsigned long ms) { arnes_delays += ms; }

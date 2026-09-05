@@ -56,6 +56,33 @@ bool botonCancelar();
 bool camara_leerPin(uint8_t pin);
 
 // ---------------------------------------------------------------------------
+// LA PRESENCIA SOSTENIDA EN LAS DOS CAMARAS DE J16. 05/09/2026.
+//
+// ESTE GETTER SI ES DEL MAESTRO SOLO, Y NO ES UNA ASIMETRIA NUEVA: ES SFTY-27. El Esclavo
+// PIDE y el Maestro DECIDE, asi que la unica punta que necesita saber "hay cola AHORA" es
+// esta; en el Esclavo seria un huerfano por construccion -no tiene Modo Inteligente-. El
+// bloque del vigilante de mas abajo si es identico en las dos.
+//
+// POR QUE HACE FALTA, Y ES LO QUE LA MEDIDA DEL 05/09 SACO: las camaras de J16 ya entraban
+// en el Modo Inteligente -por flanco, via demanda_solicitar() y demanda_hayLocal()-, o sea
+// que la frase "el modo no ve la camara de J16" era FALSA. Pero PEDIR y SOSTENER no son la
+// misma pregunta:
+//
+//   PEDIR PASO es un suceso, y un flanco lo cuenta bien. Ese camino se queda como estaba.
+//   ALARGAR UNA FASE es un nivel -"hay cola AHORA"-, y un flanco no puede contestarlo.
+//
+// La ventana de demanda_hayLocal() dura 3 s y NO se prolonga con cada deteccion: la
+// siguiente peticion dentro de la ventana se descarta como peticion nueva, asi que entre
+// dos peticiones aceptadas siempre queda un hueco en el que "hay cola" contesta que no. Y
+// modo_inteligente.cpp muestrea esa respuesta en cada vuelta: basta caer en un hueco para
+// que la fase termine en el suelo. Medido en el arnes, no razonado (Bloque F).
+//
+// Es exactamente el mismo reparto que el firmware ya hacia con J14: el Maestro lee PB0 POR
+// NIVEL y el Esclavo POR FLANCO, y el comentario de botones.cpp lo explica con estas mismas
+// dos palabras. Lo que faltaba era aplicarselo a las camaras nuevas.
+bool camara_presenciaJ16();
+
+// ---------------------------------------------------------------------------
 // EL VIGILANTE DE LAS DOS CAMARAS - D-13 FASE 1 (A-6). 05/09/2026.
 // ESTE BLOQUE ES IDENTICO EN LAS DOS PUNTAS, igual que el de arriba y por el mismo
 // motivo: J16 tiene un solo dueno.
@@ -84,13 +111,19 @@ bool camara_leerPin(uint8_t pin);
 // sabe nada no puede quedar tapada por la otra: eso seria pintar un dato que no se
 // tiene, que es justo lo que este repositorio retiro de la app.
 //
-// TODAVIA NO TIENE LLAMADOR, Y ESO ESTA MEDIDO, NO OLVIDADO. El campo CAM: hoy NO CABE
-// en el $STATUS: con T, RF y RTT en el tope de su tipo el payload da 162 B contra un
-// techo de 155, y la cuenta esta hecha en Maestro/src/bluetooth.cpp, junto al snprintf
-// del $STATUS. El getter se deja listo para que anadir el campo sea una linea el dia
-// que se acoten RF y T donde se producen. Va anotado en costura_10_funciones_muertas
-// con ese motivo, y el trinquete de ese pack FALLA en cuanto gane llamador: es lo que
-// obliga a sacarlo de la lista en el mismo commit en que se conecte.
+// YA TIENE LLAMADOR: el snprintf del $STATUS de bluetooth.cpp, desde D-13 (05/09). Aqui
+// ponia "TODAVIA NO TIENE LLAMADOR, Y ESO ESTA MEDIDO, NO OLVIDADO", con la cuenta de
+// bytes que en su dia lo impedia. Esa frase se quedo describiendo un equipo que ya no
+// existe -es 2.ter: una frase que sostiene un verde y que no comprueba nadie- y se
+// corrige en vez de borrarse, para que se vea que el trinquete de costura_10 hizo su
+// trabajo cuando el getter gano llamador.
+//
+// LO QUE PUBLICA, Y LA UNICA VEZ QUE DICE "?": la peor de las dos camaras entre las que
+// tienen algo que decir. Con UNA camara por poste el otro pin esta vacio y no puede dar
+// un flanco nunca, asi que su "?" no cuenta -si no, el campo no podria decir "OK" en
+// ningun equipo real-. Un contacto trabado SI cuenta aunque no haya dado flancos, porque
+// PEGADA cuelga del nivel. Y mientras ninguna haya dicho nada -entre el arranque y la
+// primera deteccion- el campo dice "?", que es lo unico cierto en ese rato.
 const char* camara_estado();
 
 // EL PRODUCTO DE LA FASE 1: cuantas veces HABRIA ACTUADO el veto de la pluma de la

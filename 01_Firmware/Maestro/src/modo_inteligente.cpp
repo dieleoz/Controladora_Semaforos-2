@@ -156,6 +156,57 @@ void modoInteligente_loop() {
   {
       coordinador_actualizar();
 
+      // ==============================================================
+      // PRESENCIA VEHICULAR: LAS TRES ENTRADAS, Y POR DONDE ENTRA CADA UNA
+      // ==============================================================
+      // Se leen UNA SOLA VEZ POR VUELTA y las comparte todo el modo -la decision y la
+      // pantalla-. Antes la pantalla se hacia su propia lectura unas lineas mas abajo, y
+      // ademas solo miraba J14: el operario podia ver "0 presencia" mientras el modo
+      // estaba manteniendo el verde por una deteccion. Dos formulas de "hay coches" que
+      // solo la disciplina mantiene iguales son el defecto que este fichero ya paga en
+      // otros sitios; ahora lo que se dibuja es LO MISMO que decide.
+      //
+      // De paso ahorra una llamada a camara_leerPin() por vuelta, y esa llamada no es
+      // gratis: lleva delay(5) dentro cuando el pin esta alto.
+      //
+      // ---- SENTIDO 1 (esta punta) -------------------------------------------------
+      //   J14 / CAM_DEMANDA_PIN (PB0)  -> se lee AQUI, POR NIVEL. Es la entrada que el
+      //        responsable dejo abierta para un posible fin de carrera de barrera; no se
+      //        retira.
+      //   J16 / CAM_C_PIN y CAM_D_PIN  -> POR NIVEL, con camara_presenciaJ16(), que
+      //        devuelve lo que camaras_actualizar() acaba de leer en esta misma vuelta.
+      //        Es la camara que el responsable decidio instalar el 05/09, y desde aqui
+      //        entra por DOS caminos que contestan a dos preguntas distintas:
+      //          - PEDIR PASO, por flanco: camaras_actualizar() llama a
+      //            demanda_solicitar(), que sale por demanda_hayLocal() -el tercer
+      //            termino de este OR-. Ese camino ya existia y no se toca.
+      //          - SOSTENER LA FASE, por nivel: este termino. Hacia falta porque la
+      //            ventana de demanda_hayLocal() son 3 s y NO se prolonga con cada
+      //            deteccion, asi que entre dos peticiones aceptadas queda un hueco en el
+      //            que "hay cola" contesta que no; y basta que el muestreo caiga en un
+      //            hueco para que la fase termine en el suelo. Sin este termino la camara
+      //            de J16 llegaba al modo y casi no podia alargar nada. Medido en el
+      //            Bloque F de Validacion_Automatico, no razonado.
+      //        Es el mismo reparto que el firmware ya hacia con J14 -el Maestro la lee
+      //        POR NIVEL porque el Maestro DECIDE (SFTY-27)-, aplicado a las nuevas.
+      //   la app / DEMANDA por Bluetooth -> por la misma puerta, demanda_hayLocal(). Un
+      //        atajo propio se saltaria el suelo y el techo de la fase.
+      //
+      // QUE PASA SI J14 Y J16 DAN SENAL A LA VEZ: nada distinto. Esto es un OR de tres
+      // booleanos, asi que dos presencias simultaneas valen exactamente lo mismo que una
+      // -no se suman, no se cuentan, no hay doble efecto, y el techo de la fase sigue
+      // siendo el mismo-. Lo unico que de verdad comparten es la ventana de silencio de
+      // demanda.cpp: si J16 dispara dentro de los 3 s de una peticion anterior,
+      // demanda_solicitar() la descarta COMO PETICION NUEVA -no se pierde la presencia,
+      // que ya la sostiene el nivel- y la ventana NO se prolonga: cuenta desde la primera.
+      //
+      // ---- SENTIDO 2 (la otra punta) ----------------------------------------------
+      //   La camara del Esclavo manda CMD_DEMANDA por radio -> demanda remota.
+      const bool demandaLocalS1  = camara_leerPin(CAM_DEMANDA_PIN)
+                                   || camara_presenciaJ16()
+                                   || demanda_hayLocal();
+      const bool demandaRemotaS2 = coordinador_hayDemandaRemota();
+
       if (coordinador_listoParaContar()) {
         if (primeraVezCorriendo) {
           tEstadoDesde = millis();
@@ -189,19 +240,6 @@ void modoInteligente_loop() {
         const unsigned long tiempoActual = millis() - tEstadoDesde;
 
         bool forzarCambio = false;
-
-        // ==============================================================
-        // PRESENCIA VEHICULAR POR CAMARAS ACUSENSE
-        // ==============================================================
-        // Camara 1 (Maestro): CAM_DEMANDA_PIN, sentido 1.
-        // Camara 3 (Esclavo): manda CMD_DEMANDA por radio -> demanda remota, sentido 2.
-        //
-        // La demanda pedida a mano por Bluetooth entra POR AQUI, en el mismo OR que la
-        // camara, y no por un camino propio hasta el coordinador: asi se le aplican los
-        // dos limites que gobiernan a la camara -el suelo y el techo de la fase-. Un
-        // atajo se los saltaria, y ademas partiria el turno sin que el ciclo se enterase.
-        const bool demandaLocalS1 = camara_leerPin(CAM_DEMANDA_PIN) || demanda_hayLocal();
-        const bool demandaRemotaS2 = coordinador_hayDemandaRemota();
 
         // Quien pide paso es el lado que NO lo tiene, y quien puede alargar es el que si.
         const bool otroLadoPide     = enRojo ? demandaLocalS1  : demandaRemotaS2;
@@ -241,7 +279,13 @@ void modoInteligente_loop() {
       static const char* estadoAnt = "";
       static int presenciaAnt = -1;
       const char* actual = coordinador_nombreEstadoMaster();
-      int presenciaActual = (camara_leerPin(CAM_DEMANDA_PIN) ? 1 : 0) + (coordinador_hayDemandaRemota() ? 1 : 0);
+
+      // LO QUE SE DIBUJA ES LO QUE DECIDE, y no una segunda lectura. Aqui se llamaba otra
+      // vez a camara_leerPin(CAM_DEMANDA_PIN), o sea que la pantalla contaba SOLO la
+      // camara de J14: una deteccion de J16 -que es donde el responsable decidio poner la
+      // camara el 05/09- alargaba la fase sin aparecer en el contador de presencia. El
+      // operario veia un cruce que no cambiaba y un cero al lado.
+      int presenciaActual = (demandaLocalS1 ? 1 : 0) + (demandaRemotaS2 ? 1 : 0);
 
       if (strcmp(actual, estadoAnt) != 0 || presenciaActual != presenciaAnt) {
         lcd_dibujarInteligente(actual, presenciaActual, true);

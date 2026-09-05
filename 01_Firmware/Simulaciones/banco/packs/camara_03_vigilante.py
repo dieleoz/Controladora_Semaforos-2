@@ -55,8 +55,8 @@ PUNTAS = ("Maestro", "Esclavo")
 # Las funciones del vigilante. Si alguna se renombra el pack ABORTA en vez de aprobar: un
 # patron que no encuentra nada NO demuestra que no haya nada (CLAUDE.md 4).
 VIGILANTE = ("camara_estado", "camara_vetosPluma", "camara_alarmar",
-             "camara_recuperada", "vigilante_flanco", "vigilante_nivel",
-             "vigilante_tick")
+             "camara_recuperada", "camara_presencia", "vigilante_flanco",
+             "vigilante_nivel", "vigilante_tick")
 
 # Nada de esto puede aparecer dentro de una funcion del vigilante. La fase 1 no actua:
 # cuenta y avisa. Si alguna vez hace falta que actue, eso es la fase 2, contradice SFTY-28
@@ -371,15 +371,29 @@ def correr(b, fw):
     # el UNICO plazo que este firmware ya tiene para esa misma pregunta.
     for punta in PUNTAS:
         tick = cuerpos[(punta, "vigilante_tick")]
+        presencia = cuerpos[(punta, "camara_presencia")]
         b.verificar(
-            "demanda_ventanaMs()" in tick
-            and re.search(r"camUltimoFlanco\[i\]\)\s*<=\s*\d", tick) is None,
+            "demanda_ventanaMs()" in presencia
+            and re.search(r"camUltimoFlanco\[i\]\)\s*<=\s*\d", presencia) is None,
             "%s: la vigencia de una deteccion se pregunta a demanda_ventanaMs(), no a un "
             "numero escrito aqui: un solo plazo para las dos preguntas" % punta,
-            "%s: vigilante_tick() decide la vigencia con un numero propio en vez de con "
+            "%s: camara_presencia() decide la vigencia con un numero propio en vez de con "
             "demanda_ventanaMs(). Son dos definiciones de 'todavia en pie' que solo la "
             "disciplina mantiene iguales, y ese es el defecto que A-7 lleva abierto desde "
             "el 04/09 -un numero nuestro que luego nos citamos-" % punta)
+
+        # Y LA DEFINICION UNICA TIENE QUE ESTAR ENCHUFADA. Hasta el 05/09 la condicion
+        # vivia escrita dentro de vigilante_tick(); al ganar un segundo consumidor se saco
+        # a camara_presencia() en vez de copiarse. Una definicion correcta que el contador
+        # de vetos no llamase seria la funcion huerfana de N-73, y ademas devolveria el
+        # firmware a tener dos formulas de "hay coche".
+        b.verificar(
+            re.search(r"camara_presencia\s*\(\s*i\s*,", tick) is not None,
+            "%s: el contador de vetos pregunta por camara_presencia(), o sea que la "
+            "definicion de 'hay coche' es UNA y la comparten sus dos consumidores" % punta,
+            "%s: vigilante_tick() no llama a camara_presencia(). O se ha vuelto a escribir "
+            "la condicion a mano -dos formulas que solo la disciplina mantiene iguales- o "
+            "el contador de vetos dejo de mirar la presencia" % punta)
 
         # Y ese getter devuelve LA constante, no una copia suya.
         dem = fw.codigo(punta, "src", "demanda.cpp")
@@ -398,10 +412,10 @@ def correr(b, fw):
         #    nadie provoco. Es el mismo agujero que el ACEPTAR fantasma de N-26, y el
         #    contador de la fase 1 existe justo para que su numero se pueda creer.
         b.verificar(
-            "camHuboFlanco[i]" in tick,
-            "%s: el contador de vetos exige que HAYA HABIDO un flanco antes de creerse la "
+            "camHuboFlanco[i]" in presencia,
+            "%s: la presencia exige que HAYA HABIDO un flanco antes de creerse la "
             "ventana: el arranque no regala un veto" % punta,
-            "%s: vigilante_tick() no consulta camHuboFlanco[]. Con millis() cerca de cero "
+            "%s: camara_presencia() no consulta camHuboFlanco[]. Con millis() cerca de cero "
             "y camUltimoFlanco[] en cero la resta cae dentro de la ventana, asi que la "
             "primera bajada de pluma tras cada arranque contaria una presencia que no "
             "existio - y el numero que tiene que decidir la fase 2 empezaria mintiendo "
@@ -415,6 +429,57 @@ def correr(b, fw):
             "%s: el contador de vetos no satura. Al desbordar volveria a cero, y el unico "
             "numero que la fase 5 tiene para decidir diria 'casi nunca pasa' justo despues "
             "de que haya pasado 65.536 veces" % punta)
+
+    # =============================================================================
+    # 5.quater LA CAMARA DE J16 LLEGA AL MODO QUE DECIDE (Maestro, 05/09)
+    # =============================================================================
+    #
+    # SOLO EL MAESTRO, Y NO ES UNA ASIMETRIA NUEVA: ES SFTY-27. El Esclavo PIDE y el
+    # Maestro DECIDE, asi que la unica punta que necesita saber "hay cola AHORA" es esta;
+    # el Esclavo no tiene Modo Inteligente y el getter alli seria un huerfano.
+    #
+    # POR QUE ESTA COMPROBACION EXISTE. El 05/09 se reporto que "el vigilante mira J16 y el
+    # modo lee J14, o sea que el modo no recibe demanda de la camara". Era FALSO -entraba
+    # por flanco, via demanda_solicitar()/demanda_hayLocal()- pero solo servia para PEDIR
+    # PASO: la ventana de demanda.cpp no se prolonga con cada deteccion, asi que entre dos
+    # peticiones aceptadas queda un hueco y el modo, que muestrea, terminaba la fase en el
+    # suelo. Medido en Validacion_Automatico (Bloque F): 363000 ms contra los 720000 del
+    # techo. Lo que se anadio es el termino de PRESENCIA SOSTENIDA.
+    #
+    # ESTO NO SUSTITUYE AL ARNES, Y SE DICE PARA QUE NO SE LEA COMO PERMISO: aqui solo se
+    # comprueba que el cable esta puesto -que el getter existe, que sale de la definicion
+    # unica y que el modo lo llama-. Que con trafico en J16 la fase se alargue de verdad
+    # hasta el techo lo mide el Bloque F ejecutando el C++, y ningun pack de texto puede.
+    # NO sale de cuerpos[], que solo trae las funciones de VIGILANTE y ademas las exige en
+    # LAS DOS puntas. Esta vive solo en el Maestro, asi que se parsea aparte -y si el
+    # patron no la encuentra, ABORTA: un "no aparece" no es un hallazgo hasta haber
+    # descartado al buscador.
+    cuerpo_j16 = _cuerpo(codigo["Maestro"], "camara_presenciaJ16")
+    if cuerpo_j16 is None:
+        raise fw.Abortado(
+            "no se encuentra camara_presenciaJ16() en Maestro/src/botones.cpp. Un patron "
+            "que no encuentra nada NO demuestra que no haya nada (CLAUDE.md 4)")
+    else:
+        b.verificar(
+            re.search(r"camara_presencia\s*\(\s*i\s*,", cuerpo_j16) is not None
+            and "camara_leerPin" not in cuerpo_j16,
+            "Maestro: camara_presenciaJ16() sale de camara_presencia() -la definicion "
+            "unica- y no se hace su propia lectura de los pines",
+            "Maestro: camara_presenciaJ16() no pregunta por camara_presencia(), o relee "
+            "los pines por su cuenta. Lo primero devuelve el firmware a dos formulas de "
+            "'hay coche'; lo segundo da un SEGUNDO valor en la misma vuelta, y quien "
+            "decide el semaforo estaria mirando otro instante que el vigilante que juzga "
+            "esa misma camara")
+
+        inteligente = fw.codigo("Maestro", "src", "modo_inteligente.cpp")
+        b.verificar(
+            re.search(r"camara_presenciaJ16\s*\(\s*\)", inteligente) is not None,
+            "Maestro: el Modo Inteligente lee las camaras de J16 -camara_presenciaJ16()- "
+            "y no solo la de J14. Es donde el responsable decidio poner la camara",
+            "Maestro: modo_inteligente.cpp NO llama a camara_presenciaJ16(). Entonces la "
+            "unica camara del poste solo puede PEDIR paso por la ventana de demanda.cpp, "
+            "que deja huecos: la fase se acaba en el suelo y la camara no aporta nada al "
+            "trafico. Es el defecto que se midio el 05/09 en el Bloque F del arnes")
 
     # =============================================================================
     # 6. LAS TRAMAS CABEN. ES N-108, REHECHO SOBRE LOS LITERALES DE ESTE VIGILANTE

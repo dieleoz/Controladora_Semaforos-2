@@ -87,6 +87,9 @@
 unsigned long arnes_millis_valor = 0;
 int arnes_pines[64];
 unsigned long arnes_escrituras = 0;
+// Cuanto tiempo de delay() pidio el firmware. No mueve el reloj (ver Arduino.h);
+// se acumula para poder DECIR cuanto no se esta modelando, en vez de callarlo.
+unsigned long arnes_delays = 0;
 
 // ---------------------------------------------------------------------------
 // LECTURA DE CONSTANTES DEL C++ REAL. Mismo contrato que
@@ -277,10 +280,25 @@ static bool pinesCoincidenConEstado() {
 }
 
 // ---------------------------------------------------------------------------
-// BOTONES SIMULADOS. Cada bool se consume solo (como el real: leerlo lo gasta).
+// LOS BOTONES YA NO SE SIMULAN: botones.cpp REAL SE COMPILA AQUI (D-13, 05/09).
+//
+// Aqui vivian seis definiciones -botones_setup(), botones_actualizar() y los cuatro
+// botonX()- sobre cuatro bools, mas un camara_leerPin() que devolvia otro bool. Con eso,
+// botones.cpp no se compilaba en NINGUN arnes del proyecto y su vigilante de camaras
+// -675 lineas de pack mirandolo- no se habia ejecutado nunca.
+//
+// SE RETIRARON Y NO SE PIERDE COBERTURA, y esto esta censado antes de tocarlo, no
+// despues: de los seis, los unicos que algun fuente compilado aqui llama son
+// botonCancelar() -modo_automatico.cpp y modo_inteligente.cpp- y nada mas.
+// botonArriba(), botonAbajo() y botonAceptar() tienen CERO llamadores en este binario
+// desde que el asistente de tres pantallas del Automatico se retiro (N-42), y los bools
+// que los movian no se ponian a true en ningun escenario salvo Arriba/Abajo, que nadie
+// leia. El botonCancelar() real devuelve false SIEMPRE -sus pines son camaras desde el
+// 31/08-, que es exactamente lo que devolvia el bool, que nunca se armaba.
+//
+// Lo que se GANA es lo que no se podia medir: el flanco de J16 lo produce ahora
+// camaras_actualizar() de verdad, sobre un pin de verdad, con su antirrebote de verdad.
 // ---------------------------------------------------------------------------
-static bool g_pulsarArriba = false, g_pulsarAbajo = false;
-static bool g_pulsarAceptar = false, g_pulsarCancelar = false;
 
 // N-73: la Caja Negra. El stub no puede limitarse a callar: si solo devolviera vacio,
 // el arnes enlazaria y nadie sabria si la alarma se emite o no -que es exactamente el
@@ -296,21 +314,24 @@ void bluetooth_reportarAlarma(const char* evento, const char* causa, const char*
   std::snprintf(g_ultimaAlarmaCausa,  sizeof(g_ultimaAlarmaCausa),  "%s", causa);
   g_alarmasEmitidas++;
 }
-void bluetooth_reportarEvento(const char*, const char*) {}
+// El $EVENT del vigilante tambien se guarda: los "CAMARA_RECUPERADA" y los
+// "VETO_HABRIA_ACTUADO_N:" son la otra mitad de lo que la fase 1 produce, y un escenario
+// que solo mirase las alarmas no podria distinguir "no alarmo" de "alarmo y se recupero".
+char g_ultimoEventoTipo[48] = "";
+char g_ultimoEventoDetalle[48] = "";
+int  g_eventosEmitidos = 0;
+void bluetooth_reportarEvento(const char* tipo, const char* detalle) {
+  std::snprintf(g_ultimoEventoTipo, sizeof(g_ultimoEventoTipo), "%s", tipo);
+  std::snprintf(g_ultimoEventoDetalle, sizeof(g_ultimoEventoDetalle), "%s", detalle);
+  g_eventosEmitidos++;
+}
 
-void botones_setup() {}
-void botones_actualizar() {}
-bool botonArriba()   { bool v = g_pulsarArriba;   g_pulsarArriba = false;   return v; }
-bool botonAbajo()    { bool v = g_pulsarAbajo;    g_pulsarAbajo = false;    return v; }
-bool botonAceptar()  { bool v = g_pulsarAceptar;  g_pulsarAceptar = false;  return v; }
-bool botonCancelar() { bool v = g_pulsarCancelar; g_pulsarCancelar = false; return v; }
-
-// Simula al operario pulsando ACEPTAR una vez y deja que el modo lo procese. Se usa
-// para atravesar el asistente (CONFIG_ROJO -> CONFIG_VERDE -> CONFIG_ESTATICO ->
-// CORRIENDO) con los valores por defecto, exactamente como haria alguien que solo
-// confirma tres veces sin tocar nada.
+// Lo que hacia pulsarAceptar(): tres confirmaciones para atravesar el asistente del
+// Automatico. El asistente se retiro con N-42 -modoAutomatico_setup() deja el modo en
+// marcha directamente- y botonAceptar() devuelve false desde el 31/08, asi que lo unico
+// que quedaba de aquello era llamar al loop. Se conserva el nombre para no reescribir
+// once llamadas por un cambio que no cambia comportamiento.
 static void pulsarAceptar() {
-  g_pulsarAceptar = true;
   modoAutomatico_loop();
 }
 
@@ -330,21 +351,26 @@ void lcd_dibujarInteligente(const char*, int, bool) { g_lcdRedibujos++; }
 void menu_setup() {}
 
 // ---------------------------------------------------------------------------
-// A-12: LA CAMARA SIMULADA. Es lo unico del Bloque E que el arnes mueve.
+// LA CAMARA YA NO SE SIMULA: SE CIERRA EL CONTACTO EN EL PIN.
 //
-// camara_leerPin() real vive en botones.cpp -antirrebote de 1 ms sobre el pin- y
-// ese fichero no se compila aqui: lo que este arnes mide no es el antirrebote sino
-// QUE PUEDE HACER una deteccion con el ciclo en marcha. La respuesta que se exige
-// es asimetrica y por eso hay que ejercerla: puede ALARGAR una fase y no puede
-// ACORTARLA. Un unico bool, movido por el escenario, es exactamente la superficie
-// que el modo ve.
+// Aqui habia un `static bool g_camaraLocal` y un camara_leerPin() propio que lo
+// devolvia. Con botones.cpp real compilado, camara_leerPin() es LA DE VERDAD -con su
+// digitalRead(), su delay(5) y su segunda lectura-, asi que el escenario deja de mover
+// un bool y pasa a mover EL PIN. La diferencia no es cosmetica: J14 y J16 son pines
+// distintos, y con un solo bool detras de todos ellos la pregunta "una deteccion en J16
+// llega al Modo Inteligente?" salia que si por construccion.
 // ---------------------------------------------------------------------------
-static bool g_camaraLocal = false;
 
-bool camara_leerPin(uint8_t pin) {
-  (void)pin;
-  return g_camaraLocal;
+// Cierra o abre el contacto seco de una entrada de camara. No pasa por digitalWrite()
+// a proposito: eso contaria como una escritura de salida del firmware y ensuciaria
+// arnes_escrituras, que es lo que mide la barrera de pines de luz.
+static void cerrarContacto(int pin, bool cerrado) {
+  arnes_pines[pin] = cerrado ? HIGH : LOW;
 }
+
+// El nombre viejo, conservado para los escenarios del Bloque E que ya existian: mueve la
+// camara de J14 (PB0), que es la que modo_inteligente.cpp lee POR NIVEL.
+static void camaraJ14(bool hayCoche) { cerrarContacto(CAM_DEMANDA_PIN, hayCoche); }
 
 // ---------------------------------------------------------------------------
 // N-52: modoActual_get()/set() PASAN A SER DE VERDAD (antes set() era un no-op y
@@ -547,10 +573,12 @@ static void arrancarAutomaticoPorDefecto() {
   mando_setup();                   // N-52: limpia secBoton/pendiente del mando
   g_modoActual = MODO_AUTOMATICO;  // lo que main.cpp ya habria fijado al entrar
   // N-52: limpia flancos de boton que hubieran quedado sin consumir -un pulso de
-  // A/B del Bloque D que CORRIENDO no llego a leer, por ejemplo-. botones_setup()
-  // real arranca igual de limpio; que este arnes simule los cuatro botones con
-  // bools sueltos no debe dejar arrastre de un bloque de prueba al siguiente.
-  g_pulsarArriba = g_pulsarAbajo = g_pulsarAceptar = g_pulsarCancelar = false;
+  // A/B del Bloque D que CORRIENDO no llego a leer, por ejemplo-. Desde el 05/09 esto
+  // lo hace botones_setup() REAL, que es ademas lo que hace el equipo al arrancar: y
+  // de paso siembra camAnt[] y camAltoDesde[] leyendo los pines (N-26 aplicado a las
+  // camaras), que es la unica forma de que un bloque no arrastre al siguiente una
+  // camara que quedo con el contacto cerrado.
+  botones_setup();
   modoAutomatico_setup();          // fase = CONFIG_ROJO
   pulsarAceptar();                 // -> CONFIG_VERDE
   pulsarAceptar();                 // -> CONFIG_ESTATICO
@@ -585,8 +613,11 @@ static void arrancarAutomaticoPorDefecto() {
 static void pasoPrincipal(bool pulsarA = false, bool pulsarB = false) {
   if (pulsarA) mando_registrarPulso(MANDO_A);
   if (pulsarB) mando_registrarPulso(MANDO_B);
-  if (pulsarA) g_pulsarArriba = true;
-  if (pulsarB) g_pulsarAbajo = true;
+  // El flanco del boton fisico ya no se finge con un bool: pulsarA/pulsarB alimentan
+  // mando_registrarPulso() arriba -que es el camino que este bloque mide- y ademas se
+  // llama a botones_actualizar() REAL, que es quien lee J16 y quien mueve el vigilante.
+  // Sin esta llamada las camaras no avanzarian ni un tick en todo el arnes.
+  botones_actualizar();
 
   semaforo_actualizar();
   if (modoActual_get() == MODO_AUTOMATICO) {
@@ -669,10 +700,12 @@ static bool configurarTiempos(int verdeMin, int rojoMin, int despejeSeg) {
 static void arrancarInteligente() {
   coordinador_setup();
   mando_setup();
-  g_camaraLocal = false;
+  camaraJ14(false);
+  cerrarContacto(CAM_C_PIN, false);
+  cerrarContacto(CAM_D_PIN, false);
   g_demandaRemotaEncolada = false;
   coordinador_limpiarDemandaRemota();
-  g_pulsarArriba = g_pulsarAbajo = g_pulsarAceptar = g_pulsarCancelar = false;
+  botones_setup();
   g_modoActual = MODO_INTELIGENTE;   // lo que main.cpp habria fijado al entrar
   modoInteligente_setup();
 }
@@ -680,7 +713,7 @@ static void arrancarInteligente() {
 static void arrancarAutomatico() {
   coordinador_setup();
   mando_setup();
-  g_pulsarArriba = g_pulsarAbajo = g_pulsarAceptar = g_pulsarCancelar = false;
+  botones_setup();
   g_modoActual = MODO_AUTOMATICO;
   modoAutomatico_setup();
 }
@@ -1704,7 +1737,7 @@ int main() {
     // -- E3: con trafico propio y NADIE enfrente, alarga hasta el techo ------------
     const unsigned long TECHO_MS = V_CFG_MS * (unsigned long)FACTOR_TECHO;
     arrancarInteligente();
-    g_camaraLocal = true;              // coches en mi sentido, todo el rato
+    camaraJ14(true);                   // coches en mi sentido, todo el rato
     long verdeLargo = medirFase([](){ modoInteligente_loop(); }, S_VERDE, PASO,
                                 TECHO_MS * 3UL);
     char m4[260];
@@ -1727,7 +1760,7 @@ int main() {
 
     // -- E4: si el OTRO lado pide paso, se cambia en el suelo aunque yo tenga cola ---
     arrancarInteligente();
-    g_camaraLocal = true;
+    camaraJ14(true);
     encolarDemandaRemota();
     long verdeCedido = medirFase([](){ modoInteligente_loop(); }, S_VERDE, PASO,
                                  TECHO_MS * 3UL);
@@ -1770,7 +1803,7 @@ int main() {
     comprobar(configurarTiempos(V_SAT, R_CFG, D_CFG),
               "E6b: SET_TIEMPOS acepta los 10 minutos de verde");
     arrancarInteligente();
-    g_camaraLocal = true;
+    camaraJ14(true);
     long verdeSat = medirFase([](){ modoInteligente_loop(); }, S_VERDE, PASO,
                               V_SAT_MS * (unsigned long)FACTOR_TECHO * 2UL);
     char m8[260];
@@ -1796,7 +1829,7 @@ int main() {
               "E7a: se vuelve a los minimos de fabrica, que es con lo que arranca un "
               "equipo al que nadie ha mandado tiempos");
     arrancarInteligente();
-    g_camaraLocal = true;
+    camaraJ14(true);
     const unsigned long V_MIN_MS = (unsigned long)MIN_VERDE_DEFECTO * 60000UL;
     long verdeMin = medirFase([](){ modoInteligente_loop(); }, S_VERDE, PASO,
                               V_MIN_MS * (unsigned long)FACTOR_TECHO * 3UL);
@@ -1810,8 +1843,284 @@ int main() {
               (unsigned long)verdeMin >= V_MIN_MS * (unsigned long)FACTOR_TECHO - TOL &&
               (unsigned long)verdeMin <= V_MIN_MS * (unsigned long)FACTOR_TECHO + TOL, m9);
 
-    g_camaraLocal = false;
+    camaraJ14(false);
     g_demandaRemotaEncolada = false;
+  }
+
+  // ===========================================================================
+  // BLOQUE F - EL VIGILANTE DE CAMARAS DE J16, EJECUTADO (D-13 fase 1, 05/09)
+  // ===========================================================================
+  //
+  // POR QUE ESTE BLOQUE EXISTE, Y ES LA PARTE QUE HAY QUE LEER:
+  //
+  // camara_03_vigilante son 675 lineas de Python que miran botones.cpp -2,8 lineas de
+  // pack por cada linea de C++ vigilada- y esta en VERDE. No vio ninguno de los dos
+  // defectos que este bloque caza, y no por estar mal escrito: mide la FORMA -que el
+  // enum tenga cuatro valores, que el getter este en el snprintf, que un umbral sea mayor
+  // que el otro-, y los dos defectos son de COMPORTAMIENTO EN EL TIEMPO. El propio pack
+  // lo dice en su cabecera: "NO EJERCE EL TIEMPO... eso solo lo demuestra una tarjeta -o
+  // un arnes que compile este .cpp-". Este es ese arnes.
+  //
+  // Y ANTES DE HOY botones.cpp NO SE COMPILABA EN NINGUN SITIO. Validacion_Automatico lo
+  // sustituia por once lineas de stub, asi que el vigilante entero -las dos alarmas, la
+  // siembra, el contador de vetos- no se habia ejecutado nunca fuera de una tarjeta.
+  std::printf("\n-- Bloque F: el vigilante de camaras de J16, ejecutado (D-13) --\n");
+  {
+    // Los tres plazos se releen del C++ REAL. Si el patron desaparece esto ABORTA en vez
+    // de medir contra un numero de ayer (CLAUDE.md 3.bis: sin valor por defecto, nunca).
+    long CIEGA_MS = leerConstante("botones.cpp",
+        R"(CAM_CIEGA_MS\s*=\s*(\d+)UL)",
+        "el plazo de silencio con la pluma arriba que declara CIEGA a una camara");
+    long PEGADA_MS = leerConstante("botones.cpp",
+        R"(CAM_PEGADA_MS\s*=\s*(\d+)UL)",
+        "el plazo de contacto fijo que declara PEGADA a una camara");
+    long VENTANA_MS = leerConstante("demanda.cpp",
+        R"(SILENCIO_MS\s*=\s*(\d+))",
+        "la ventana de silencio entre demandas, que es la vigencia de una deteccion");
+
+    comprobar(CIEGA_MS > PEGADA_MS,
+              "F0: CAM_CIEGA_MS > CAM_PEGADA_MS, leidos los dos del C++. Si fuera al reves "
+              "un contacto trabado se anunciaria como CIEGA -el diagnostico CONTRARIO- y "
+              "el tecnico saldria a buscar un cable cortado teniendo un rele cerrado");
+
+    // Deja el equipo con J16 como diga el escenario y el vigilante recien sembrado. NO se
+    // toca el reloj hacia atras: se avanza, que es lo unico que hace un equipo.
+    auto reiniciarVigilante = [&](bool camC, bool camD) {
+      cerrarContacto(CAM_C_PIN, camC);
+      cerrarContacto(CAM_D_PIN, camD);
+      camaraJ14(false);
+      arnes_millis_valor += 60000UL;
+      botones_setup();          // siembra camAnt[] y camAltoDesde[] leyendo los pines
+      g_alarmasEmitidas = 0;
+      g_eventosEmitidos = 0;
+      g_ultimaAlarmaEvento[0] = 0;
+      g_ultimaAlarmaCausa[0] = 0;
+    };
+
+    // ABRE EL PASO DE VERDAD. El silencio solo corre con la pluma arriba, y "arriba" sale
+    // de semaforo_plumaArriba(), que devuelve LO QUE escribirPines() dejo en el pin. Se
+    // levanta llamando al semaforo real: fabricar aqui la condicion seria una segunda
+    // copia de SFTY-28, que es justo lo que el firmware evita.
+    auto abrirPaso = [&]() {
+      semaforo_forzarVerde();
+      semaforo_actualizar();
+    };
+
+    // Corre 'ms' de reloj con la pluma como este, en pasos de 'pasoMs', llamando a
+    // botones_actualizar() REAL en cada uno -que es donde vive el vigilante-.
+    auto correrConPluma = [&](unsigned long ms, unsigned long pasoMs) {
+      unsigned long hecho = 0;
+      while (hecho < ms) {
+        arnes_millis_valor += pasoMs;
+        semaforo_actualizar();
+        botones_actualizar();
+        hecho += pasoMs;
+      }
+    };
+
+    // Una deteccion completa: el contacto cierra y vuelve a abrir, que es lo que hace el
+    // rele de la AcuSense. El flanco lo toma camaras_actualizar() de verdad.
+    auto deteccion = [&](int pin) {
+      cerrarContacto(pin, true);
+      arnes_millis_valor += 500UL;
+      botones_actualizar();
+      cerrarContacto(pin, false);
+      arnes_millis_valor += 500UL;
+      botones_actualizar();
+    };
+
+    const unsigned long PASO_F = 60000UL;   // 1 min de reloj por vuelta
+
+    // -- F1: EL PIN VACIO NO ALARMA. Es el defecto 2, y el control que no existia -----
+    //
+    // HAY UNA CAMARA POR POSTE (D-13), asi que uno de los dos pines de J16 esta vacio en
+    // TODOS los equipos que se monten. Antes de hoy ese pin acumulaba silencio como si
+    // fuera una camara y, cumplido el plazo, emitia $ALARM CAM_CIEGA de algo que no
+    // existe: el manual mandaba al tecnico a mirar una bornera vacia.
+    reiniciarVigilante(false, false);
+    abrirPaso();
+    comprobar(semaforo_plumaArriba(),
+              "F1a: la pluma esta ARRIBA -medido con semaforo_plumaArriba() sobre el pin "
+              "que escribio semaforo.cpp-, o sea que el cronometro de silencio del "
+              "vigilante SI esta corriendo. Sin esta linea, F1 seria una tapia");
+    correrConPluma((unsigned long)CIEGA_MS * 2UL, PASO_F);
+    char f1[320];
+    std::snprintf(f1, sizeof(f1),
+        "F1: CON LAS DOS BORNERAS DE J16 VACIAS Y %lu ms de paso abierto -el DOBLE del "
+        "plazo de %ld ms-, el vigilante NO emite ni una alarma (emitidas: %d). Un pin sin "
+        "camara no ha dado nunca un flanco, y lo que nunca ha visto no puede quedarse "
+        "ciego. Antes de este arreglo aqui salia CAM_CIEGA de una camara inexistente",
+        (unsigned long)CIEGA_MS * 2UL, CIEGA_MS, g_alarmasEmitidas);
+    comprobar(g_alarmasEmitidas == 0, f1);
+
+    char f1b[300];
+    std::snprintf(f1b, sizeof(f1b),
+        "F1b: y el campo CAM: de ese equipo dice '%s'. Con las dos vacias -o antes de la "
+        "primera deteccion- lo unico cierto es el '?', y eso es lo que publica: no se "
+        "inventa un OK de una camara que no ha demostrado nada", camara_estado());
+    comprobar(std::strcmp(camara_estado(), "?") == 0, f1b);
+
+    // -- F2: LA CAMARA CONECTADA SI LLEGA A CIEGA. El control positivo de 8.sexies ----
+    //
+    // Sin este caso, F1 estaria midiendo una tapia: un vigilante que no alarmase NUNCA
+    // pasaria F1 igual de bien que el correcto. Lo que se exige aqui es que la misma
+    // pieza que se callo con el pin vacio SI hable cuando la camara existe y calla.
+    reiniciarVigilante(false, false);
+    deteccion(CAM_C_PIN);                  // el gesto del instalador (Manual 9)
+    comprobar(g_alarmasEmitidas == 0 && std::strcmp(camara_estado(), "OK") == 0,
+              "F2a: tras la PRIMERA deteccion -la que el instalador provoca delante de la "
+              "camara- el campo CAM: pasa de '?' a 'OK' y no hay alarma. Ese flanco es lo "
+              "que ARMA la vigilancia: el vigilante empieza a vigilar cuando el instalador "
+              "ha demostrado que la camara ve, y ni un segundo antes");
+    abrirPaso();
+    correrConPluma((unsigned long)CIEGA_MS + PASO_F * 2UL, PASO_F);
+    char f2[340];
+    std::snprintf(f2, sizeof(f2),
+        "F2 (CONTROL POSITIVO): la camara que SI esta conectada y despues calla %ld ms de "
+        "paso abierto acaba anunciada: %d alarma(s), la ultima '%s' con causa '%s', y el "
+        "campo CAM: dice '%s'. Sin esta comprobacion, F1 aprobaria un vigilante que no "
+        "alarma nunca (CLAUDE.md 8.sexies)",
+        CIEGA_MS, g_alarmasEmitidas, g_ultimaAlarmaEvento, g_ultimaAlarmaCausa,
+        camara_estado());
+    comprobar(g_alarmasEmitidas == 1 &&
+              std::strcmp(g_ultimaAlarmaEvento, "CAM_CIEGA") == 0 &&
+              std::strcmp(g_ultimaAlarmaCausa, "CAM_C_SIN_FLANCO") == 0 &&
+              std::strcmp(camara_estado(), "CIEGA") == 0, f2);
+
+    // -- F3: EL PIN VACIO NO EMPEORA EL CAM: DE LA CAMARA BUENA ----------------------
+    //
+    // Es la tercera cara del defecto 2: CIEGA pesa mas que el '?' y el '?' mas que OK, asi
+    // que un pin vacio que se declarase ciego TAPABA para siempre el estado de la camara
+    // que si esta -y con una camara por poste, eso es todos los equipos-.
+    deteccion(CAM_C_PIN);                  // pasa un coche: la camara demuestra que ve
+    char f3[300];
+    std::snprintf(f3, sizeof(f3),
+        "F3: con CAM_C recuperada por un flanco y CAM_D VACIA todo el rato, el campo CAM: "
+        "dice '%s' y no queda tapado por el pin vacio. La alarma se cierra por su prueba "
+        "contraria, y el vecino mudo no opina", camara_estado());
+    comprobar(std::strcmp(camara_estado(), "OK") == 0, f3);
+
+    // Y el pin vacio TAMPOCO puede tapar una alarma de verdad: el NIVEL si se juzga
+    // siempre, aunque no haya habido flanco nunca. Un contacto trabado desde antes del
+    // arranque -el caso que mas tarda en descubrirse solo- sigue saliendo.
+    reiniciarVigilante(true, false);       // CAM_C ya cerrada al encender, CAM_D vacia
+    abrirPaso();
+    correrConPluma((unsigned long)PEGADA_MS + PASO_F * 2UL, PASO_F);
+    char f3b[340];
+    std::snprintf(f3b, sizeof(f3b),
+        "F3b: un contacto CERRADO DESDE ANTES DEL ARRANQUE -que no da flancos, igual que "
+        "un pin vacio- sigue anunciandose: %d alarma(s), '%s' causa '%s', CAM: dice '%s'. "
+        "Esta es la linea que separa las dos: el SILENCIO no se juzga sin flanco, el NIVEL "
+        "si. Si el arreglo de F1 hubiera callado tambien esto, habria cambiado un falso "
+        "positivo por un falso negativo",
+        g_alarmasEmitidas, g_ultimaAlarmaEvento, g_ultimaAlarmaCausa, camara_estado());
+    comprobar(g_alarmasEmitidas >= 1 &&
+              std::strcmp(g_ultimaAlarmaEvento, "CAM_PEGADA") == 0 &&
+              std::strcmp(camara_estado(), "PEGADA") == 0, f3b);
+
+    // -- F4: UNA DETECCION EN J16 MUEVE EL MODO INTELIGENTE --------------------------
+    //
+    // LA FRASE DEL ENCARGO ERA FALSA, Y SE DEJA ESCRITA: "el vigilante mira J16 y el modo
+    // lee J14, o sea que el modo no recibe demanda de la camara". El modo SI la recibia:
+    // camaras_actualizar() llama a demanda_solicitar() en cada flanco de J16 y eso sale
+    // por demanda_hayLocal(), que es un termino del mismo OR; y main.cpp llama a
+    // botones_actualizar() en todas las vueltas y en todos los modos.
+    //
+    // LO QUE SI ESTABA ROTO, Y SOLO SE VE CORRIENDOLO: ese camino sirve para PEDIR PASO,
+    // no para SOSTENER una fase. La ventana de demanda_hayLocal() dura VENTANA_MS y NO se
+    // prolonga con cada deteccion -la peticion que cae dentro se descarta como peticion
+    // nueva-, asi que entre dos peticiones aceptadas hay siempre un hueco en el que "hay
+    // cola" contesta que no. modo_inteligente.cpp muestrea eso en cada vuelta: basta caer
+    // en un hueco para terminar la fase en el suelo. Por eso se anadio el termino de
+    // NIVEL, camara_presenciaJ16(). Los escenarios de abajo son la medida.
+    {
+      long FACTOR = leerConstante("modo_inteligente.cpp",
+          R"(TECHO_POR_SUELO\s*=\s*(\d+))",
+          "el factor del que se deriva el techo del Modo Inteligente");
+      const int V_F = 6, R_F = 5, D_F = 10;
+      const unsigned long V_F_MS = (unsigned long)V_F * 60000UL;
+      const unsigned long TECHO_F_MS = V_F_MS * (unsigned long)FACTOR;
+      const unsigned long PASO_I = 500UL;
+      const unsigned long TOL_F = 3UL * PASO_I;
+
+      comprobar((unsigned long)VENTANA_MS < V_F_MS,
+                "F4a: la ventana de demanda_hayLocal() leida del C++ es MUCHO mas corta "
+                "que la fase que se va a medir, o sea que este escenario ejerce de verdad "
+                "el hueco entre peticiones y no un caso donde no cabria");
+
+      // F4c - CONTROL NEGATIVO DEL ESCENARIO: sin ninguna camara, el verde dura el suelo.
+      // Sin esto, "el verde llego al techo" no diria nada: podria llegar solo.
+      camaraJ14(false);
+      cerrarContacto(CAM_C_PIN, false);
+      cerrarContacto(CAM_D_PIN, false);
+      comprobar(configurarTiempos(V_F, R_F, D_F),
+                "F4b: SET_TIEMPOS acepta los tiempos del escenario de J16");
+      arrancarInteligente();
+      long verdeSinCamara = medirFase([](){ botones_actualizar(); modoInteligente_loop(); },
+                                      S_VERDE, PASO_I, TECHO_F_MS * 3UL);
+      char f4c[300];
+      std::snprintf(f4c, sizeof(f4c),
+          "F4c (CONTROL): con las TRES borneras de camara vacias el verde dura %ld ms, que "
+          "es el suelo configurado (%lu). Sin este caso, ver el techo en F4 no probaria "
+          "que lo movio la camara", verdeSinCamara, V_F_MS);
+      comprobar(verdeSinCamara >= 0 &&
+                (unsigned long)verdeSinCamara >= V_F_MS - TOL_F &&
+                (unsigned long)verdeSinCamara <= V_F_MS + TOL_F, f4c);
+
+      // F4 - LA MEDIDA. Trafico continuo VISTO POR LA CAMARA DE J16 y nadie enfrente.
+      // El contacto se cierra y se abre como lo hace el rele de la AcuSense con una cola
+      // de vehiculos: detecciones seguidas, ninguna sostenida. J14 sigue VACIA.
+      camaraJ14(false);
+      cerrarContacto(CAM_D_PIN, false);
+      arrancarInteligente();
+      long verdeJ16 = medirFase(
+          [](){
+            // El rele de la camara: cerrado dos vueltas, abierto una. Es el pulso de una
+            // cola de vehiculos, no un contacto trabado -eso es CAM_PEGADA y lo mide F3b-.
+            static int fase = 0;
+            fase = (fase + 1) % 3;
+            arnes_pines[CAM_C_PIN] = (fase == 0) ? LOW : HIGH;
+            botones_actualizar();
+            modoInteligente_loop();
+          },
+          S_VERDE, PASO_I, TECHO_F_MS * 3UL);
+      char f4[360];
+      std::snprintf(f4, sizeof(f4),
+          "F4: UNA DETECCION EN J16 MUEVE EL MODO INTELIGENTE. Con la camara SOLO en J16 "
+          "-J14 vacia- y nadie pidiendo paso enfrente, el verde se alarga hasta %ld ms: el "
+          "techo son %lu y el suelo %lu. Con el camino de flanco a secas se quedaba en el "
+          "suelo, porque la ventana de %ld ms deja huecos entre peticiones aceptadas",
+          verdeJ16, TECHO_F_MS, V_F_MS, VENTANA_MS);
+      comprobar(verdeJ16 >= 0 &&
+                (unsigned long)verdeJ16 >= TECHO_F_MS - TOL_F &&
+                (unsigned long)verdeJ16 <= TECHO_F_MS + TOL_F, f4);
+
+      // Y LO QUE PASA SI LAS DOS DAN SENAL A LA VEZ, que es lo que el encargo pedia medir:
+      // NADA DISTINTO. Es un OR, no una suma: el techo lo cierra igual.
+      camaraJ14(true);
+      arrancarInteligente();
+      long verdeAmbas = medirFase(
+          [](){
+            static int fase2 = 0;
+            fase2 = (fase2 + 1) % 3;
+            arnes_pines[CAM_C_PIN] = (fase2 == 0) ? LOW : HIGH;
+            botones_actualizar();
+            modoInteligente_loop();
+          },
+          S_VERDE, PASO_I, TECHO_F_MS * 3UL);
+      char f4d[340];
+      std::snprintf(f4d, sizeof(f4d),
+          "F4d: CON J14 Y J16 DANDO SENAL A LA VEZ el verde dura %ld ms - EXACTAMENTE lo "
+          "mismo que con J16 sola (%ld ms). Las presencias no se suman ni se cuentan: es "
+          "un OR, y el techo de la fase lo cierra igual. Dos camaras no pueden monopolizar "
+          "el carril mas que una", verdeAmbas, verdeJ16);
+      comprobar(verdeAmbas >= 0 && labs(verdeAmbas - verdeJ16) <= (long)TOL_F, f4d);
+
+      camaraJ14(false);
+      cerrarContacto(CAM_C_PIN, false);
+      cerrarContacto(CAM_D_PIN, false);
+      g_demandaRemotaEncolada = false;
+    }
   }
 
   // ===========================================================================

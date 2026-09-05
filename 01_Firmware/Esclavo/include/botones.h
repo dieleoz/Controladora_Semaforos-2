@@ -103,13 +103,19 @@ bool camara_leerPin(uint8_t pin);
 // sabe nada no puede quedar tapada por la otra: eso seria pintar un dato que no se
 // tiene, que es justo lo que este repositorio retiro de la app.
 //
-// TODAVIA NO TIENE LLAMADOR, Y ESO ESTA MEDIDO, NO OLVIDADO. El campo CAM: hoy NO CABE
-// en el $STATUS: con T, RF y RTT en el tope de su tipo el payload da 162 B contra un
-// techo de 155, y la cuenta esta hecha en Maestro/src/bluetooth.cpp, junto al snprintf
-// del $STATUS. El getter se deja listo para que anadir el campo sea una linea el dia
-// que se acoten RF y T donde se producen. Va anotado en costura_10_funciones_muertas
-// con ese motivo, y el trinquete de ese pack FALLA en cuanto gane llamador: es lo que
-// obliga a sacarlo de la lista en el mismo commit en que se conecte.
+// YA TIENE LLAMADOR: el snprintf del $STATUS de bluetooth.cpp, desde D-13 (05/09). Aqui
+// ponia "TODAVIA NO TIENE LLAMADOR, Y ESO ESTA MEDIDO, NO OLVIDADO", con la cuenta de
+// bytes que en su dia lo impedia. Esa frase se quedo describiendo un equipo que ya no
+// existe -es 2.ter: una frase que sostiene un verde y que no comprueba nadie- y se
+// corrige en vez de borrarse, para que se vea que el trinquete de costura_10 hizo su
+// trabajo cuando el getter gano llamador.
+//
+// LO QUE PUBLICA, Y LA UNICA VEZ QUE DICE "?": la peor de las dos camaras entre las que
+// tienen algo que decir. Con UNA camara por poste el otro pin esta vacio y no puede dar
+// un flanco nunca, asi que su "?" no cuenta -si no, el campo no podria decir "OK" en
+// ningun equipo real-. Un contacto trabado SI cuenta aunque no haya dado flancos, porque
+// PEGADA cuelga del nivel. Y mientras ninguna haya dicho nada -entre el arranque y la
+// primera deteccion- el campo dice "?", que es lo unico cierto en ese rato.
 const char* camara_estado();
 
 // EL PRODUCTO DE LA FASE 1: cuantas veces HABRIA ACTUADO el veto de la pluma de la
