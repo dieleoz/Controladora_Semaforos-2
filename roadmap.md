@@ -97,6 +97,39 @@ cable, y conviene un segundo terminal emparejado.
 
 ---
 
+## 0.0.quinvicies EL REPARTO DE PINES, CERRADO (05/09) — no se vuelve a preguntar
+
+**Decidido por el responsable. Esto deja de estar abierto.**
+
+| bornera | pin | queda como |
+|---|---|---|
+| **`J16` p10** | `PB14` · `CAM_C_PIN` | ✅ **LA CÁMARA** — una por poste |
+| **`J16` p12** | `PB15` · `CAM_D_PIN` | pin de cámara **vacío** — y por eso **no se vigila hasta que dé su primer flanco** |
+| **`J16` p5 / p8** | `PB9` / `PB13` | **el mando**, `A` y `B`. Su código **no se toca** (`D-1`) |
+| **`J14`** | `PB0` | **libre**, y es el candidato del fin de carrera de barrera |
+
+**Los cuatro pines de `J16` son `INPUT` pelado y activos en ALTO**, con 3,3 V en `p9`/`p11` para
+cerrar contra ellos. Y **`p1` lleva 12 V crudos** — sin opto, sin serie, sin clamp—: taparlo es
+obligatorio en cada equipo (`N-120`).
+
+### Los dos hechos que gobiernan cualquier uso futuro de estos pines
+
+1. 🔴 **`p5` y `p8` NO están libres, y cada uno hace DOS trabajos:** mueven el cursor
+   (`botonArriba()`/`botonAbajo()`, con llamadores vivos) **y alimentan el reconocedor de
+   secuencias del mando** (`botones.cpp:480-481`). Un fin de carrera ahí **dispararía órdenes por
+   accidente** — `B.B.B` es ámbar local con su cerrojo de SFTY-21, `A.B.A.B` es entrar en
+   Degradado. **El cruce obedeciendo a una pluma.** Usarlos para otra cosa exige **cortar antes esa
+   alimentación**, que es una línea y es una decisión.
+2. ✅ **`J14`/`PB0` es el único pin de entrada del proyecto con antirrebote por hardware**
+   —`R64` 10 K + `C25` 100 nF = 1 ms— y **no alimenta ninguna secuencia**. Es el sitio correcto
+   para un contacto mecánico, que es lo que rebota.
+
+### Y el defecto que esta decisión destapó, en construcción
+
+**El vigilante miraba `J16` y el Modo Inteligente leía `J14`**, así que con la cámara en
+cualquiera de las dos borneras **una mitad estaba ciega**. La lista de compras decía *«son las dos
+que el firmware lee hoy»*: falso en las dos direcciones.
+
 ## 0.0.quatervicies COMO SE REPARTE EL TRABAJO ENTRE SUBAGENTES — y el orden de lo que queda
 
 > **EL LIMITE NO ES CUANTOS AGENTES CABEN: ES QUE DOS NO ESCRIBAN EL MISMO FICHERO.**
