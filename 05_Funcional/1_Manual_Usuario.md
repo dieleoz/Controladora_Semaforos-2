@@ -5,6 +5,97 @@ Todas las operaciones están alineadas al **Manual de Señalización Vial de Col
 
 ---
 
+## 🔴 05/09/2026 — EL EQUIPO SE OPERA **SÓLO POR APP**. SIN TELÉFONO NO HAY MANDO DE NINGUNA CLASE
+
+**Esto va lo primero porque cambia lo que hay que llevar en el bolsillo antes de salir al poste**, y
+porque deja sin efecto todo lo que este manual dice más abajo sobre el mando de relés y los
+pulsadores.
+
+### 1. El mando de relés NO EXISTE — decisión `D-1`, confirmada el 05/09
+
+Palabras del responsable: *«ya no tenemos mandos de A y B, sólo la app, los quitamos»*.
+
+* 🛑 **El hardware se fue.** No hay emisor de 4 canales en la mano del operario, **el receptor RF
+  nunca se compró**, y no hay pulsadores cableados a `J16`. Las tres secuencias de §7 —`A·A·A`,
+  `B·B·B` y `A·B·A·B`— **siguen escritas en el firmware y ya no se pueden pronunciar**: no queda
+  nada físico con que cerrar `J16` p5 ni p8.
+* 🟢 **El código del mando se queda dentro del firmware, y NO por inercia.** Retirarlo **abriría**
+  un veto de seguridad en vez de dejarlo inerte, y además tumbaría el banco. El porqué está medido
+  en `17_Arquitectura_28-08_y_Decisiones_Abiertas.md` §2.4. **Con el mando desmontado, la marca de
+  ámbar local simplemente no se arma nunca — que es lo correcto.**
+* **Para el operario el efecto es uno solo y no tiene letra pequeña: la app es la ÚNICA superficie
+  de mando del equipo.**
+
+⚠️ **Y hay una mitad del aviso viejo que se conserva entera:** `J16` p5 y p8 siguen llegando a
+`PB9`/`PB13`, que el firmware lee **activo en ALTO**. **Cualquier cosa que cierre p5 o p8 contra los
+3,3 V del pin contiguo compone una secuencia de mando.** Si en algún gabinete quedara un pulsador
+cableado ahí, ese pulsador **sí cambia el modo del semáforo** — y **`SIN VERIFICAR`** si queda
+alguno montado en algún equipo.
+
+### 2. 🔴 SIN TELÉFONO NO HAY FORMA DE OPERAR EL EQUIPO — `D-16`
+
+**No es una avería: es una propiedad DECLARADA de este sistema**, y es la consecuencia directa de
+`D-1`. Retirado el mando **no queda ninguna vía local**: sin un teléfono que conecte por Bluetooth
+**no se puede** poner ámbar, ni volver a Automático, ni parar el cruce, ni ajustar tiempos, ni
+cambiar de modo.
+
+🛑 **La idea de que «siempre queda el mando desde el suelo» YA NO VALE.** Nunca estuvo escrita en
+ninguna parte, y por eso seguía viva. Quien la dé por buena sale al poste sin la única herramienta
+que opera el equipo.
+
+⚠️ **Cortar y devolver la energía NO devuelve el mando.** Al energizar, el equipo se queda **EN
+ESPERA DE SELECCIÓN DE MODO** —🔴 rojo fijo, o 🟡 ámbar intermitente si no hay radio— hasta que
+alguien le ordene un modo **desde la app**. Ver §3.
+
+### 3. 📱 EL TELÉFONO ES HERRAMIENTA CRÍTICA — lo que se lleva al poste
+
+**Va en la lista de material, al mismo nivel que el multímetro y la escalera:**
+
+* **El teléfono con la APK del paquete instalada**, y **cargado** antes de salir.
+* **Cable de carga**, y **batería externa** si la jornada es larga. Un móvil sin batería deja el
+  poste sin mando de ninguna clase.
+* 🟢 **Un SEGUNDO terminal, ya emparejado con los dos postes.** No es un lujo: es el único repuesto
+  que existe. Emparejar por primera vez delante del cruce, con prisa, es justo lo que falla.
+* **Los dos postes emparejados en Ajustes de Android ANTES de subir**, y saber cuál es cuál
+  (`SEM-<serie>-M` = Maestro, `SEM-<serie>-E` = Esclavo). Ver §8.
+
+### 4. 🛑 SI EL TELÉFONO NO CONECTA — **NO HAY PROCEDIMIENTO CERRADO**
+
+**Se dice con estas palabras a propósito: `NO HAY PROCEDIMIENTO CERRADO`.** Lo que sigue es lo que
+se sabe, no una receta probada. Inventar una sería peor que declarar el hueco.
+
+**Lo que sí se sabe, porque pasó esta semana:** para poder conectarse al **Esclavo** hubo que
+**desvincular el Maestro en Ajustes de Android**. Con los dos equipos emparejados a la vez, el
+teléfono no llegaba al segundo.
+
+Lo que se puede intentar, en este orden:
+
+1. **Mirar a qué poste apunta el nombre** del módulo en la lista de la app. Un módulo recién puesto
+   anuncia `SEM-SIN-MATRICULA`, y entonces **los dos postes se llaman igual** (§8).
+2. **Desvincular en Ajustes de Android el OTRO poste** —el que no se quiere operar— y volver a
+   emparejar el que hace falta. **Es lo que funcionó esta semana.**
+3. **Apagar y encender el Bluetooth del teléfono**, y volver a pulsar *«Buscar Módulos Bluetooth»*
+   en la app. El orden es siempre **emparejar en Ajustes primero, buscar en la app después**.
+4. **Probar con el segundo terminal.** Si el segundo entra, el problema es del teléfono y no del
+   equipo.
+
+🔴 **Y si nada de eso funciona, hay que decirlo tal cual: el poste se queda sin mando.** El equipo
+seguirá haciendo lo que estuviera haciendo, o se irá a **ámbar intermitente** por SFTY-6 si pierde
+el enlace de radio —que es **seguro pero no es operable**—. **No hay segunda vía.** Lo que toca
+entonces es **avisar**, no improvisar en el gabinete.
+
+### 5. ✅ `N-118` SE CIERRA — y por dos motivos, no uno
+
+* **El defecto era del firmware viejo, no del cobre.** `MANDO_A`/`MANDO_B` se leían con
+  `INPUT_PULLUP` peleando contra las `R65`/`R66` de 10 kΩ a masa, y el pin se quedaba en `0,6 V`:
+  bajo permanente, sin flancos. **Corregido en `346ea5f`** —las dos puntas en `INPUT` pelado y
+  activo en ALTO—.
+* **Y además ya da igual: no hay mando que conectar.** Donde este manual —o cualquier otro— dé
+  `N-118` por abierto, diga *«el mando no responde»* o *«falta ejercerlo en tarjeta»*, **está
+  caducado.**
+
+---
+
 > ## 🔴 BANCO DEL 3–4/09/2026 — TRES COSAS DE ESTE MANUAL CAMBIAN DE SIGNIFICADO
 >
 > **Es la primera vez que la tarjeta se ejerce cargada desde el 31/07.** Nada de esto se descubre
@@ -15,20 +106,14 @@ Todas las operaciones están alineadas al **Manual de Señalización Vial de Col
 >    espera a que se le ordene uno **desde la app**. Mientras espera muestra **🔴 rojo fijo** si hay
 >    comunicación con la otra punta, y **🟡 ámbar intermitente** si no la hay. En banco se
 >    interpretó como fallo del equipo, y no lo era. Ver §3.
-> 2. **El mando de relés `A`/`B` ESTUVO SORDO EN BANCO (`N-118`), Y EL FIRMWARE YA ESTÁ CORREGIDO —
->    PERO NO SE HA EJERCIDO EN TARJETA.** Hay que separar dos cosas que no son la misma:
->    * **El defecto, en pasado:** `MANDO_A`/`MANDO_B` se leían con `INPUT_PULLUP` y `== LOW`, y con
->      las `R65`/`R66` (10 kΩ a masa) el pin se quedaba en **0,6 V — BAJO permanente**. No había
->      flanco, así que **ninguna de las tres secuencias de §7 era alcanzable**.
->    * **Hoy:** las **dos puntas** leen esos pines con `pinMode(..., INPUT)` **pelado** y
->      `digitalRead(...) == HIGH` —**activo en ALTO**, igual que las cámaras—. **MEDIDO en el
->      fuente:** `Maestro/src/botones.cpp:160-161` y `:223`, `Esclavo/src/botones.cpp:178-179` y
->      `:232`. **Cambia el gesto de prueba:** ya **no** es un cable a masa, es **cerrar contra los
->      3,3 V del pin de al lado** — `J16` **p5 contra p4** para el canal `A`, **p8 contra p7** para
->      el `B`.
->    * ⚠️ **Lo que NO se puede decir todavía:** que el mando funcione. **El firmware corregido no se
->      ha cargado ni ejercido en tarjeta**; lo único medido es el fuente. Hasta esa prueba, **no
->      cuente con respaldo físico**: opere por la app. Ver §7.
+> 2. ~~**El mando de reles `A`/`B` ESTUVO SORDO EN BANCO (`N-118`), Y EL FIRMWARE YA ESTA CORREGIDO —
+>    PERO NO SE HA EJERCIDO EN TARJETA.**~~ → 🟢 **CADUCADO EL 05/09, Y `N-118` QUEDA CERRADO.** El
+>    defecto era del **firmware viejo** —`INPUT_PULLUP` peleando contra las `R65`/`R66` de 10 kΩ a
+>    masa, el pin clavado en `0,6 V`—, y está **corregido en `346ea5f`** en las dos puntas. **Y
+>    además ya no hay mando que conectar** (`D-1`, 05/09): no hay emisor, no hay receptor RF y no
+>    hay pulsadores en `J16`. **Lo que hay que llevarse de aquí es lo de arriba: se opera sólo por
+>    app.** Se conserva tachado y no se borra porque describe con exactitud lo que se vio en banco
+>    el 3–4/09, y quien tenga el informe delante tiene que poder cruzarlo.
 > 3. **La app sólo conecta con la APK del 04/09**
 >    (**la APK del 04/09 que acompaña a este paquete** — su nombre exacto y su `md5` estan en `LEEME_PRIMERO.md`, en la raíz del `.zip`, que es el único sitio donde no caducan). Hasta esa versión la app **nunca abría el socket
 >    Bluetooth**: se pintaba «Enlazado» por haber pulsado una fila de la lista, y los comandos se
@@ -190,23 +275,30 @@ Todas las operaciones están alineadas al **Manual de Señalización Vial de Col
 > dónde recibir esa orden**. Se hace desde la app, y donde la app todavía no llega está escrito
 > abajo en voz alta, sin darlo por trasladado.
 >
-> **Y sigue en pie lo único que quedaba de aquel aviso:** **no accione los botones del gabinete «a
-> ver qué pasa»**. Ya no pueden confirmar una hora falsa, pero `PB9` y `PB13` son **el mando**, y
-> tres pulsos seguidos cambian el modo del semáforo. Ver §7.
+> ~~**Y sigue en pie lo único que quedaba de aquel aviso:** **no accione los botones del gabinete
+> «a ver qué pasa»**. Ya no pueden confirmar una hora falsa, pero `PB9` y `PB13` son **el mando**, y
+> tres pulsos seguidos cambian el modo del semáforo.~~ → **05/09: no hay botones ni mando** (`D-1`).
+> **Lo que sobrevive del aviso es el conector**, y va abajo. Ver §7.
 >
-> 🟠 **MATIZ DEL 04/09, y tiene dos mitades que hay que leer juntas (`N-118`):**
+> 🟠 ~~**MATIZ DEL 04/09, y tiene dos mitades que hay que leer juntas (`N-118`):**~~
 >
-> * **En banco, el 3–4/09, esos pulsos NO cambiaban nada.** Con `INPUT_PULLUP` + `== LOW`, las
+> * ~~**En banco, el 3–4/09, esos pulsos NO cambiaban nada.** Con `INPUT_PULLUP` + `== LOW`, las
 >   `R65`/`R66` (10 kΩ a masa) dejaban `PB9`/`PB13` en **0,6 V — BAJO permanente**: no había flanco
->   y el reconocedor de secuencias nunca arrancaba.
-> * **El firmware de hoy lee esos pines al revés** —`INPUT` pelado y `== HIGH`, **activo en ALTO**,
->   en las dos puntas (`Maestro/src/botones.cpp:160-161`, `Esclavo/src/botones.cpp:178-179`)—, así
->   que **el aviso vuelve a valer en cuanto ese firmware esté cargado**. Y en un equipo cargado los
->   pines quedan **en reposo a 0 V por las mismas `R65`/`R66`**: lo que ahora dispara es **cerrar
->   contra 3,3 V**, no tocar masa.
+>   y el reconocedor de secuencias nunca arrancaba.~~
+> * ~~**El firmware de hoy lee esos pines al revés** —`INPUT` pelado y `== HIGH`, **activo en
+>   ALTO**, en las dos puntas—, así que **el aviso vuelve a valer en cuanto ese firmware esté
+>   cargado**.~~
 >
-> **Por eso no se tacha:** quien lea sólo la mitad del banco desconfiará de unos botones que el
-> firmware nuevo vuelve a atender. **Lo que aún no está medido es la tarjeta.** Ver §7.
+> 🟢 **REESCRITO EL 05/09, y cambia de sujeto: YA NO HAY BOTONES QUE ACCIONAR NI MANDO QUE
+> ACCIONARLOS** (`D-1`). El emisor, el receptor RF y los pulsadores **no existen**, así que la frase
+> *«no accione los botones del gabinete»* se ha quedado sin quien la desobedezca. **`N-118` queda
+> cerrado**: era el firmware viejo, corregido en `346ea5f`.
+>
+> ⚠️ **Lo que SÍ sigue en pie, y es lo que hay que llevarse:** `J16` p5 y p8 llegan enteros a
+> `PB9`/`PB13`, leídos **activos en ALTO**. **Cualquier cosa que los cierre contra los 3,3 V del
+> pin contiguo compone una secuencia de mando** —tres cierres seguidos cambian el modo del
+> semáforo—. No es un aviso sobre botones: **es un aviso sobre ese conector.** Ver el bloque del
+> 05/09 al principio de este manual y §7.
 
 ---
 
@@ -385,10 +477,17 @@ ver el recuadro de la cabecera; el efecto para el operario es el mismo, pero la 
 a creer que se había borrado el código, y no)*. Lo que sigue describe la interfaz vigente; debajo
 queda lo que decía antes, tachado, para que se vea qué se perdió y qué lo sustituye.
 
-> 🛑 **Y desde el 31/08 hay una segunda mitad que este apartado no decía: la app es la superficie de
-> mando PRINCIPAL, y el mando de relés es la de ÚLTIMO RECURSO — pero sólo en el Maestro.** En el
+> 🛑 ~~**Y desde el 31/08 hay una segunda mitad que este apartado no decía: la app es la superficie
+> de mando PRINCIPAL, y el mando de relés es la de ÚLTIMO RECURSO — pero sólo en el Maestro.** En el
 > Esclavo el reparto es el contrario para todo lo que sea cambiar de modo: **allí la app no puede**,
-> y el mando es lo único que hay. **Ver §9**, que es donde está la tabla completa.
+> y el mando es lo único que hay.~~
+>
+> 🔴 **CADUCADO EL 05/09 (`D-1`): NO HAY «ÚLTIMO RECURSO». LA APP ES LA ÚNICA SUPERFICIE DE MANDO
+> DEL EQUIPO**, en las dos puntas. El mando de relés se retiró como hardware —emisor, receptor y
+> pulsadores— y **lo que se lee arriba describía un repuesto que ya no existe**. Lo que **no**
+> caduca es la asimetría entre postes: en el Esclavo la app sigue sin poder cambiar de modo, y
+> ahora **ya no hay nada que lo supla**. **Ver §9**, que es donde está la tabla completa, y el
+> bloque `D-16` del principio.
 
 > ## 🔴 04/09 — LA APP CAMBIÓ DE BARRERA: PARA ABRIR PASO NO PIDE PIN, PREGUNTA SI HA MIRADO EL TRAMO
 >
@@ -447,9 +546,11 @@ queda lo que decía antes, tachado, para que se vea qué se perdió y qué lo su
   > dicho todavía qué hacer. Lo que sí es un dato a mirar es **cuál de los dos** sale, porque
   > distingue *«falta la orden»* de *«falta la orden Y falta la radio»*.
   >
-  > 🛑 **Y su consecuencia dura:** si la app no conecta, **el equipo se queda ahí**. Hoy no hay
-  > ninguna otra forma DEMOSTRADA de sacarlo de esa espera: el mando de relés tiene el firmware
-  > corregido pero **sin ejercer en tarjeta** — ver §7 (`N-118`) y §8.
+  > 🛑 **Y su consecuencia dura, que desde el 05/09 es DEFINITIVA y no una casilla pendiente:** si
+  > la app no conecta, **el equipo se queda ahí**. ~~el mando de relés tiene el firmware corregido
+  > pero sin ejercer en tarjeta~~ → **no hay mando: se retiró como hardware** (`D-1`). **No existe
+  > ninguna otra vía de sacarlo de esa espera**, y cortar y devolver la energía lo deja otra vez
+  > igual. Es `D-16`, y está dicho entero en el bloque del 05/09, al principio de este manual.
 - **Arranque:** al ordenar un modo desde la app (`CMD:PIN:1234:SET_MODO:AUTO` / `:MANUAL` /
   `:AMBAR`), el sistema aplica el Despeje All-Red en ambos extremos antes de abrir ningún carril.
 
@@ -807,6 +908,29 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 
 Para permitir la operación del semáforo a nivel del suelo sin colisionar con la edición de parámetros en pantalla:
 
+> ## 🛑 05/09/2026 — **NADA DE ESTE APARTADO SE PUEDE EJECUTAR: EL MANDO NO EXISTE** (`D-1`)
+>
+> **Se conserva entero y no se borra**, porque el vocabulario sigue compilado dentro del firmware y
+> porque una tabla que desaparece en silencio se vuelve a proponer como novedad. Pero **todo lo que
+> este apartado manda hacer —accionar `A`, accionar `B`, contar destellos, puentear `J16`— ya no
+> tiene con qué hacerse.**
+>
+> | qué hacía falta | qué hay hoy |
+> |---|---|
+> | Emisor de 4 canales en la mano del operario | ⛔ **retirado** *(«ya no tenemos mandos de A y B, sólo la app, los quitamos», 05/09)* |
+> | Receptor RF en el poste *(línea `A9` del Manual 15)* | ⛔ **NUNCA se compró** |
+> | Pulsadores cableados a `J16` p5 y p8 | ⛔ **no hay** — y **`SIN VERIFICAR`** si queda alguno montado en algún gabinete |
+>
+> 🟢 **Lo que SIGUE dentro del firmware, y por qué no se toca:** `mando.cpp` se queda en las dos
+> puntas. No es inercia: de él cuelga el veto de ámbar local del Esclavo, y retirarlo **abriría** ese
+> veto en vez de dejarlo inerte. Con el mando desmontado la marca **no se arma nunca**, que es el
+> comportamiento correcto. El censo medido está en `17_Arquitectura_28-08_y_Decisiones_Abiertas.md`
+> §2.4.
+>
+> 🔴 **Y la consecuencia para quien opera: la app es la única superficie de mando** (`D-16`). Ver el
+> bloque del 05/09 al principio de este manual.
+
+
 > ## 🔴 CORREGIDO EL 31/08 — LA TABLA QUE HABÍA AQUÍ NO ERA LA DEL EQUIPO
 >
 > **Lo que este apartado publicaba era la REDEFINICIÓN PROPUESTA de V9.0, escrita en pasado como si
@@ -825,7 +949,7 @@ Para permitir la operación del semáforo a nivel del suelo sin colisionar con l
 > | ~~**`B · A · B · A`** (≤18s)~~ | ~~✋ Modo Manual (Operario)~~ | ⛔ **NO EXISTE — y no hay ninguna secuencia de mando para el Modo Manual** |
 > | ~~**`A · A · B · B`** (≤18s)~~ | ~~📷 Modo Inteligente (Cámaras IA)~~ | ⛔ **NO EXISTE — y no hay ninguna secuencia de mando para el Modo Inteligente** |
 
-> ## 🟠 04/09 — **`N-118`: EL MANDO ESTUVO SORDO EN BANCO. EL FIRMWARE YA ESTÁ ARREGLADO Y FALTA EJERCERLO EN TARJETA**
+> ## ✅ 04/09 — ~~**`N-118`: EL MANDO ESTUVO SORDO EN BANCO. EL FIRMWARE YA ESTÁ ARREGLADO Y FALTA EJERCERLO EN TARJETA**~~ → **CERRADO EL 05/09**
 >
 > **El vocabulario de abajo siempre estuvo bien escrito y compilado.** Lo que faltaba era forma de
 > pronunciarlo, y eso es lo que ha cambiado. Son dos cosas distintas y hay que leerlas por separado.
@@ -847,43 +971,51 @@ Para permitir la operación del semáforo a nivel del suelo sin colisionar con l
 > `:232`. **Las `R65`/`R66` dejan de ser el problema y pasan a ser el reposo**: fijan el pin a 0 V
 > cuando nadie acciona, que es justo lo que quiere una entrada activa en alto.
 >
-> 🔵 **Y CAMBIA EL GESTO CON EL QUE SE PRUEBA. Esto es lo que hay que llevar al poste:**
+> 🔵 ~~**Y CAMBIA EL GESTO CON EL QUE SE PRUEBA. Esto es lo que hay que llevar al poste:**~~
 >
-> | | ~~antes (activo en BAJO)~~ | **hoy (activo en ALTO)** |
+> | | ~~antes (activo en BAJO)~~ | ~~hoy (activo en ALTO)~~ |
 > |---|---|---|
-> | Canal `A` | ~~puentear `J16` p5 a masa~~ | **cerrar `J16` p5 contra p4 (3,3 V)** |
-> | Canal `B` | ~~puentear `J16` p8 a masa~~ | **cerrar `J16` p8 contra p7 (3,3 V)** |
+> | ~~Canal `A`~~ | ~~puentear `J16` p5 a masa~~ | ~~cerrar `J16` p5 contra p4 (3,3 V)~~ |
+> | ~~Canal `B`~~ | ~~puentear `J16` p8 a masa~~ | ~~cerrar `J16` p8 contra p7 (3,3 V)~~ |
 >
-> 🛑 **Y por eso el receptor RF del mando YA NO ES UNA DECISIÓN ABIERTA: se compra NORMALMENTE
-> ABIERTO (`NO`).** En reposo el contacto queda abierto y `R65`/`R66` mantienen el pin en 0 V; al
-> accionar, cierra contra los 3,3 V y produce el **flanco de subida** que el firmware busca. Un
-> receptor `NC` tendría el pin en alto permanente —el equipo leyendo pulsación continua—, y además
-> un canal caído o un receptor sin alimentación quedarían en reposo con `NO`, que es la dirección
-> segura: **el mando no manda nada en vez de mandar solo.**
+> 🛑 ~~**Y por eso el receptor RF del mando YA NO ES UNA DECISIÓN ABIERTA: se compra NORMALMENTE
+> ABIERTO (`NO`).**~~ → **CADUCADO EL 05/09: no se compra ningún receptor. El mando se retiró**
+> (`D-1`), así que **no hay gesto de prueba que llevar al poste ni línea de compra que decidir**.
+> Se conserva tachado porque el razonamiento eléctrico sigue siendo correcto y porque la línea `A9`
+> del Manual 15 todavía la da por pedida — **ése es el documento que queda falso, no éste.**
 >
-> ### ⚠️ Lo que NO se puede decir todavía
+> ### ⚠️ ~~Lo que NO se puede decir todavía~~ → **lo que ya no hay que decir**
 >
-> **Que el mando funcione.** Lo medido es el fuente, no la tarjeta: **el firmware corregido no se ha
-> cargado ni se ha ejercido en banco**, y `N-118` no se cierra con una lectura de código. Hasta esa
-> prueba, y para todo lo que se planifique desde hoy:
+> ~~**Que el mando funcione.** Lo medido es el fuente, no la tarjeta: el firmware corregido no se ha
+> cargado ni se ha ejercido en banco, y `N-118` no se cierra con una lectura de código.~~
 >
-> * **No cuente con respaldo físico operativo.** La app por Bluetooth sigue siendo la vía de mando
->   con la que se opera.
-> * 🔴 **En el ESCLAVO eso sigue cerrando el círculo, porque allí la app no manda de modo** (§9):
->   mientras el arreglo no se ejerza, **no hay forma demostrada de cambiarle el modo al Esclavo** —
->   ni entrar ni salir del Degradado, ni quitar un `ambarLocal` ya puesto.
+> 🟢 **`N-118` se cierra el 05/09 y no por una carga verificada, sino porque el sujeto desapareció:**
+> el defecto era del firmware viejo —corregido en `346ea5f`— y **ya no hay mando que conectar**.
+>
+> 🔴 **Lo que NO desaparece con él, y es lo que hay que leer aquí:**
+>
+> * **La app por Bluetooth es la única vía de mando, en las dos puntas** (`D-16`).
+> * **En el ESCLAVO eso cierra el círculo del todo, no a medias** (§9): allí la app no cambia de
+>   modo, y **ya no hay mando que lo supla**. Hoy **no hay ninguna forma de ordenarle un modo al
+>   Esclavo estando delante de él** — se opera desde el Maestro.
 
 ### ✅ EL VOCABULARIO REAL — MEDIDO en `Maestro/src/mando.cpp:201-238` y `Esclavo/src/mando.cpp` (31/08)
 
-**Son TRES secuencias, y no hay más.** *(Escritas en el firmware. **En el banco del 3–4/09 ninguna se
-pudo accionar**; el firmware de hoy ya lee los pines activo en ALTO y **falta ejercerlo en tarjeta** —
-ver el recuadro `N-118` de arriba, con el gesto de prueba que cambió.)*
+**Son TRES secuencias, y no hay más.** *(Escritas en el firmware, y ahí siguen. ~~En el banco del
+3–4/09 ninguna se pudo accionar; el firmware de hoy ya lee los pines activo en ALTO y falta
+ejercerlo en tarjeta.~~ → **05/09: no hay con qué accionarlas. El mando se retiró** (`D-1`) — ver el
+recuadro del principio de este apartado.)*
 
 | Secuencia | Modo Activado | Confirmación Lumínica | Dónde está |
 |---|---|---|---|
 | **`A · A · A`** (≤ 12 s) | 🟢 **Modo Automático** | **2 destellos rojos** | `mando.cpp:226-228` · `DESTELLOS_AUTOMATICO = 2` (`:45`) |
 | **`B · B · B`** (≤ 12 s) | 🟡 **Modo Ámbar (Seguro)** | **3 destellos rojos** | `mando.cpp:230-235` · `DESTELLOS_AMBAR = 3` (`:46`) |
 | **`A · B · A · B`** (≤ 18 s) | 🕒 **Modo Degradado (Reloj RTC)** | **4 destellos rojos** | `mando.cpp:203-219` · `DESTELLOS_DEGRADADO = 4` (`:47`) |
+
+> ⚠️ **Lo que sigue describe cómo se comporta el firmware, NO un procedimiento ejecutable.** Desde
+> el 05/09 no hay con qué accionar ninguna de las tres secuencias (`D-1`, recuadro de arriba). Se
+> conserva porque el código sigue compilado y porque un día podría volver a haber mando; **hoy no se
+> puede llevar al poste.**
 
 * **Las ventanas son dos constantes distintas y las dos están medidas:** `VENTANA_TRIPLE_MS = 12000`
   (12 s, `mando.cpp:38`) para las de tres pulsos, y `VENTANA_CUADRUPLE_MS` (18 s) para `A·B·A·B`.
@@ -899,25 +1031,31 @@ ver el recuadro `N-118` de arriba, con el gesto de prueba que cambió.)*
   5 m de altura»*.
 * ⚠️ **Un error a mitad de secuencia no hace nada.** Si el operario se equivoca, lo único que ha
   hecho es no activar el modo; no hay estado intermedio que deshacer.
-* 👁️ **La confirmación no necesita app, ni cable, ni una segunda persona: son las propias luces.**
+* 👁️ ~~**La confirmación no necesita app, ni cable, ni una segunda persona: son las propias luces.**
   Los destellos de la tabla se cuentan **desde el suelo**, que es donde está quien acciona el mando.
-  Un **ámbar rápido de 2 s** en vez de destellos significa **rechazado**, no *«no me oyó»*.
-* 🛑 **Y al PROBARLO, hágalo DESDE OTRO MODO.** Si el equipo ya está en el modo que la secuencia
-  pide, `MODO:` **no cambia** —el firmware entra por la rama
-  `if (modoActual_get() == MODO_AUTOMATICO) modoAutomatico_setup();`— y quien mire la app o el
-  terminal **no distingue nada**, aunque el mando haya funcionado perfectamente. **Cuente los
-  destellos: ésos se ven siempre.**
+  Un **ámbar rápido de 2 s** en vez de destellos significa **rechazado**, no *«no me oyó»*.~~ →
+  **caducado el 05/09: no hay nadie accionando desde el suelo** (`D-1`).
+* 🛑 ~~**Y al PROBARLO, hágalo DESDE OTRO MODO.** Si el equipo ya está en el modo que la secuencia
+  pide, `MODO:` **no cambia**, y quien mire la app o el terminal **no distingue nada**, aunque el
+  mando haya funcionado perfectamente. **Cuente los destellos: ésos se ven siempre.**~~ →
+  **caducado el 05/09: no hay mando que probar** (`D-1`).
 
-> 🛑 **Y una advertencia de operación que sale de la misma medida: `A` y `B` son los MISMOS PINES
-> que los pulsadores 1 y 2 del gabinete** (`MANDO_A` = `PB9` = `J16` p5, `MANDO_B` = `PB13` = `J16`
-> p8). El mando de relés va cableado **en paralelo** con ellos. **Pulsar tres veces seguidas el
-> botón 1 del gabinete cambia el modo del semáforo exactamente igual que hacerlo desde el suelo.**
+> 🛑 **Y una advertencia de operación que sale de la misma medida, REESCRITA EL 05/09 porque cambia
+> de sujeto: `A` y `B` son los MISMOS PINES que los pulsadores 1 y 2** (`MANDO_A` = `PB9` = `J16`
+> p5, `MANDO_B` = `PB13` = `J16` p8). ~~El mando de relés va cableado **en paralelo** con ellos.
+> **Pulsar tres veces seguidas el botón 1 del gabinete cambia el modo del semáforo exactamente igual
+> que hacerlo desde el suelo.**~~ → **Ya no hay ni mando ni pulsadores** (`D-1`).
 >
-> 🟠 **MATIZ DEL 04/09 (`N-118`): en el banco del 3–4/09 no cambiaba nada, ni desde el gabinete ni
+> ⚠️ **Lo que queda es un aviso sobre el CONECTOR, y ése sigue entero:** `J16` p5 y p8 llegan sin
+> nada en serie a `PB9`/`PB13`, leídos **activos en ALTO**. **Tres cierres seguidos contra los
+> 3,3 V del pin contiguo cambian el modo del semáforo**, los haga quien los haga —un pulsador que
+> quedara montado, una punta de prueba, un cable suelto—. **No se maniobra en `J16` p5/p8 con el
+> equipo en servicio.**
+>
+> 🟠 ~~**MATIZ DEL 04/09 (`N-118`): en el banco del 3–4/09 no cambiaba nada, ni desde el gabinete ni
 > desde el suelo** — el mismo pin, el mismo camino, y ese camino clavado en BAJO por la lectura
-> `INPUT_PULLUP` + `== LOW` contra `R65`/`R66`. **El firmware de hoy lo lee activo en ALTO y el
-> efecto vuelve en cuanto esté cargado**; lo que no ha cambiado nunca es el reparto de pines, que
-> es lo que hay que conocer para no accionar el mando sin querer desde el gabinete.
+> `INPUT_PULLUP` + `== LOW` contra `R65`/`R66`.~~ → **Caducado: era el firmware viejo, corregido en
+> `346ea5f`, y `N-118` queda CERRADO el 05/09.**
 
 > 🔴 **LO QUE NO TIENE MANDO, dicho entero porque es lo que se echa de menos en obra:** **no hay
 > secuencia para el Modo Manual ni para el Modo Inteligente.** Esos dos se ordenan **sólo desde la
@@ -940,15 +1078,22 @@ saber, porque el gesto es idéntico y el resultado no:
 > (los tres `if` de `Esclavo/src/main.cpp:406`, `:416` y `:540`). Es desobediencia a propósito: si
 > alguien dejó el poste en ámbar porque hay gente trabajando delante, el Maestro no se lo quita.
 >
-> **Para quitarlo hay que ir al poste y hacer `A·A·A`** — que es lo único que baja esa marca
-> (`mando.cpp:116`). **No hay forma de quitarla desde la app**, ni desde el Maestro.
+> ~~**Para quitarlo hay que ir al poste y hacer `A·A·A`** — que es lo único que baja esa marca.
+> **No hay forma de quitarla desde la app**, ni desde el Maestro.~~
 >
-> ⚠️ **04/09 (`N-118`) — en banco esa marca NI SE PONÍA NI SE QUITABA**, porque `B·B·B` y `A·A·A` no
-> se podían accionar. Era un empate que no tranquilizaba, **y con el firmware ya corregido el empate
-> se deshace en los dos sentidos a la vez**: en cuanto el arreglo se cargue y se ejerza, `B·B·B`
-> vuelve a poner la marca y `A·A·A` vuelve a ser lo único que la baja. **Sigue sin haber forma de
-> bajarla desde la app**, así que la protección y su cerradura siguen siendo la misma pieza y siguen
-> exigiendo ir al poste.
+> 🟢 **DESDE EL 05/09 ESTE PÁRRAFO YA NO DESCRIBE NINGUNA SITUACIÓN ALCANZABLE, y es la dirección
+> buena:** sin mando, `B·B·B` no se puede accionar, así que **la marca no se pone nunca**. El
+> cerrojo que no tenía llave **se ha quedado sin cerradura que abrir**. Su consecuencia práctica:
+> `CANCELAR_AMBAR` desde la app **ya no puede contestar `RETIRADO_QUEDA_MANDO`** — esa respuesta
+> existe justo para el caso que ya no ocurre. **El código se queda igualmente** y no es inercia: es
+> lo que impide que el veto pase de *no armado* a *abierto* (`17_...md` §2.4).
+>
+> ⚠️ ~~**04/09 (`N-118`) — en banco esa marca NI SE PONÍA NI SE QUITABA**, porque `B·B·B` y `A·A·A`
+> no se podían accionar. En cuanto el arreglo se cargue y se ejerza, `B·B·B` vuelve a poner la marca
+> y `A·A·A` vuelve a ser lo único que la baja.~~ → 🔴 **CADUCADO EL 05/09: el empate no se deshace,
+> se vuelve permanente y por otro motivo.** Retirado el mando, **ninguna de las dos secuencias se
+> puede accionar nunca**, así que la marca ni se pone ni hace falta bajarla. `N-118` queda cerrado y
+> **no es lo que decide esto**: lo decide que el mando ya no existe (`D-1`).
 
 * **Inhibición de UI (N-53):** Mientras el equipo esté en pantallas de configuración (`AJUSTAR HORA`, `CONFIG_TIEMPOS`), el receptor del mando se inhibe al 100%, evitando que los pulsos de edición disparen cambios de modo involuntarios.
   > ⚠️ ~~**28/08 — esta protección sigue en el firmware, pero ahora protege un menú que nadie ve.**
@@ -969,10 +1114,16 @@ saber, porque el gesto es idéntico y el resultado no:
   > **Se conserva tachado**: describe con exactitud un riesgo que estuvo abierto tres días, y quien
   > lo leyera hoy como vigente estaría desconfiando del mando por el motivo equivocado.
   >
-  > ⚠️ **Lo que sí sigue vigente de N-53, y no ha cambiado:** el mando va **en paralelo** con los
-  > pulsadores 1 y 2 del gabinete, así que una ráfaga de pulsaciones sigue siendo una secuencia. La
-  > protección que hoy vale no es la inhibición sino la **ventana de tiempo** (12 s / 18 s) y la
-  > **confirmación por destellos**.
+  > ⚠️ ~~**Lo que sí sigue vigente de N-53, y no ha cambiado:** el mando va **en paralelo** con los
+  > pulsadores 1 y 2 del gabinete, así que una ráfaga de pulsaciones sigue siendo una secuencia.~~ →
+  > **05/09: no hay mando ni pulsadores** (`D-1`), así que N-53 se queda **sin sujeto por los dos
+  > lados** — ni hay menú que inhibir ni hay quien accione.
+  >
+  > 🟢 **Lo único que sigue protegiendo, y protege a un conector:** la **ventana de tiempo**
+  > (12 s / 18 s) y la **confirmación por destellos** siguen en el firmware. Si alguna vez algo
+  > cierra `J16` p5/p8 por accidente, hacen falta **tres cierres dentro de la ventana** para
+  > componer una orden, y el equipo **contesta con destellos**. No es una vía de mando: es el
+  > residuo que impide que un roce cambie el modo.
 
 ---
 
@@ -1142,6 +1293,26 @@ distinguen.**
 > tecleó `1234` en el diálogo del sistema operativo esperando que enlazara. Son dos cosas distintas
 > y sólo una existe.
 
+**3.bis 🔴 CON LOS DOS POSTES EMPAREJADOS A LA VEZ, EL TELÉFONO PUEDE NO LLEGAR AL SEGUNDO — y
+esta semana hubo que DESVINCULAR uno para entrar en el otro.**
+
+> **Pasó esta semana, con el equipo delante: para poder conectarse al ESCLAVO hubo que desvincular
+> el MAESTRO en Ajustes de Android.** No se apuntó como avería del equipo porque no lo es; se apunta
+> aquí porque **es lo que un técnico se va a encontrar en el poste** y porque, sin escribirlo, la
+> siguiente persona vuelve a perder el rato.
+>
+> **`SIN VERIFICAR`: por qué pasa.** No se ha medido si es cosa de Android, del perfil SPP del
+> `ESP32`, de la app o de los tres. **No se inventa una causa aquí** — este repositorio ya pagó una
+> causa plausible y falsa escrita como medida.
+>
+> **Lo que se sabe hacer, y funcionó:** desvincular en **Ajustes de Android** el poste que no se va
+> a operar, emparejar el que hace falta, y **después** pulsar «Buscar Módulos Bluetooth» en la app.
+>
+> 🛑 **Y por qué esto no es un detalle: es `D-16` en la práctica.** Retirado el mando de relés, un
+> emparejamiento que falla **deja el poste sin mando de ninguna clase**. Dos técnicos con el mismo
+> equipo emparejado, o un móvil sin batería, producen el mismo resultado. Ver el bloque del 05/09 al
+> principio de este manual.
+
 **4. ~~Ese PIN de la app NO CADUCA. Riesgo conocido y ABIERTO (`AB-9`).~~** → 🟢 **EL PIN SÍ CADUCA
 DESDE EL 04/09. Se tacha en vez de borrarse, porque quien leyera esto como vigente dejaría el
 teléfono desbloqueado creyendo que da igual.**
@@ -1162,9 +1333,9 @@ teléfono desbloqueado creyendo que da igual.**
 > cronometre en el teléfono, la barrera real sigue siendo quién tiene el aparato en la mano.**
 >
 > **Lo que eso significa en obra:** si alguien deja el teléfono desbloqueado y otra persona lo coge,
-> **manda sobre el cruce sin teclear nada** — y mientras el mando de relés no se haya visto entrar
-> en tarjeta (§7, `N-118`), la app es la única vía de mando comprobada: eso es todo el mando del
-> equipo.
+> **manda sobre el cruce sin teclear nada** — y ~~mientras el mando de relés no se haya visto entrar
+> en tarjeta (§7, `N-118`)~~ **desde el 05/09, con el mando retirado (`D-1`)**, la app **es la única
+> vía de mando que existe**: eso es todo el mando del equipo.
 >
 > ⚠️ **Se escribe como riesgo conocido, no como algo resuelto.** Cuánto debe durar una sesión
 > autorizada —y si debe caducar por tiempo, por inactividad o al cambiar de nodo— **es decisión del
@@ -1288,7 +1459,7 @@ teléfono desbloqueado creyendo que da igual.**
 | `FORZAR_ROJO` | ✅ **sí, y para de verdad** (`:412` sin PIN, `:520` con PIN) | 🛑 **NO.** Contesta `$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` (`:448`, `:524`) y **no para nada** |
 | `TEST_LEDS` | ✅ sí (`:538`) | 🛑 **rechazado a propósito** (`:550`): `NO_EN_SERVICIO_USE_EL_MAESTRO` |
 | Menú local / botones | ❌ sin sujeto | ❌ sin sujeto |
-| **Mando de relés (A y B)** | 🟠 **No se pudo accionar en banco (`N-118`). Firmware corregido, SIN ejercer en tarjeta** | 🟠 **Igual — y aquí es además la única vía de mando de la punta** |
+| **Mando de relés (A y B)** | ⛔ **NO EXISTE (`D-1`, 05/09).** ~~No se pudo accionar en banco (`N-118`); firmware corregido, sin ejercer en tarjeta~~ | ⛔ **NO EXISTE — y aquí es lo grave: era la única vía de mando de esta punta** |
 
 > ✏️ **CORRECCIÓN DEL 04/09 — la fila del ámbar de emergencia decía «✅ sí» en las DOS puntas y era
 > falsa en la del Maestro.** `grep -n "AMBAR_EMERGENCIA" Maestro/src/bluetooth.cpp` → **cero
@@ -1320,48 +1491,54 @@ teléfono desbloqueado creyendo que da igual.**
 > gobierna el botón `DEMANDA` del propio Maestro: fuera del Modo Inteligente contesta
 > `$ERR,CMD:DEMANDA,DESC:SOLO_EN_MODO_INTELIGENTE`.
 
-> 🟠 **ESA FILA HA CAMBIADO DOS VECES Y HAY QUE LEER LAS DOS.** **04/09, medido en banco:** con la
-> lectura antigua (`INPUT_PULLUP` + `== LOW`), las `R65`/`R66` (10 kΩ a masa) dejaban `PB9` y `PB13`
-> en **0,6 V — BAJO permanente**, así que **nunca había flanco y ninguna secuencia se reconocía**, en
-> ninguna de las dos puntas. **Ese mismo día, medido en el fuente:** las dos puntas pasan a `INPUT`
-> pelado y `== HIGH` —**activo en ALTO**—, y el gesto de accionamiento pasa a ser **cerrar contra los
-> 3,3 V del pin de al lado** (`J16` p5-p4 canal `A`, p8-p7 canal `B`). **El arreglo no se ha cargado
-> ni ejercido en tarjeta, así que la fila no se pone en verde.** Ver §7.
+> 🟠 **ESA FILA HA CAMBIADO TRES VECES Y LA ÚLTIMA LAS CIERRA.** ~~**04/09, medido en banco:** con
+> la lectura antigua (`INPUT_PULLUP` + `== LOW`), las `R65`/`R66` (10 kΩ a masa) dejaban `PB9` y
+> `PB13` en **0,6 V — BAJO permanente**, así que nunca había flanco. **Ese mismo día, medido en el
+> fuente:** las dos puntas pasan a `INPUT` pelado y `== HIGH`, y el gesto pasa a ser cerrar contra
+> los 3,3 V del pin de al lado.~~
+>
+> 🔴 **05/09 — LA FILA NO SE PONE EN VERDE NI EN NARANJA: SE VA.** El mando de relés **se retiró como
+> hardware** (`D-1`): no hay emisor, el receptor RF **nunca se compró** y no hay pulsadores. `N-118`
+> queda **cerrado** —era el firmware viejo, arreglado en `346ea5f`— y **deja de importar**, porque no
+> hay nada que conectar a esos pines. **Lo que queda escrito arriba se conserva tachado** para que
+> quien tenga el informe de banco del 3–4/09 delante pueda cruzarlo.
 
-### 🛑 La consecuencia, dicha en voz alta
+### 🛑 La consecuencia, dicha en voz alta — **y desde el 05/09 ya no está pendiente de nada**
 
-**En el Esclavo, entrar o salir del Modo Degradado NO se puede hacer desde la app.** Sólo con el
+**En el Esclavo, entrar o salir del Modo Degradado NO se puede hacer desde la app.** ~~Sólo con el
 mando de relés (`A·B·A·B` para entrar, `A·A·A` o `B·B·B` para salir). Y el **receptor RF de ese
-mando NUNCA SE COMPRÓ** *(línea `A9` del Manual 15)*.
+mando NUNCA SE COMPRÓ** *(línea `A9` del Manual 15)*.~~
 
-> 🛑 **Y AL 04/09 SIGUEN FALTANDO LAS DOS COSAS, aunque una haya dejado de estar abierta.**
->
-> * **Qué receptor comprar YA NO es una decisión abierta: NORMALMENTE ABIERTO (`NO`).** Con el
->   firmware de hoy leyendo activo en ALTO, un `NO` deja el pin en 0 V en reposo —lo fijan
->   `R65`/`R66`— y produce el flanco de subida al cerrar. Un `NC` dejaría el pin en alto
->   permanente. Y con `NO`, un canal caído o un receptor sin alimentación quedan en reposo: **el
->   mando no manda nada en vez de mandar solo.** Sigue **sin comprarse**.
-> * **Y el mando tampoco se ha visto entrar ni cableado** (`N-118`, §7): el firmware está corregido
->   pero **no ejercido en tarjeta**. Comprar el receptor no cierra por sí solo esta casilla; hace
->   falta la prueba de banco del mando con el firmware nuevo dentro.
->
-> **Sumado a que el Esclavo no tiene `SET_MODO` por Bluetooth (fila 1 de esta tabla), HOY NO HAY
-> NINGUNA FORMA DEMOSTRADA DE ORDENARLE UN MODO AL ESCLAVO ESTANDO DELANTE DE ÉL:** ni la app, ni el
-> mando, ni los botones, ni la pantalla. Lo único que el Esclavo sigue aceptando de la app es lo que
-> ya dice esta tabla —ámbar de emergencia, solicitar paso y `SET_RTC`—, que **no es cambiar de
-> modo**.
->
-> **Lo que sí sigue funcionando es el Esclavo obedeciendo al Maestro por radio**, que es su trabajo
-> normal. Lo que ha desaparecido es **la vía local**: el técnico que está junto al poste 2 **no puede
-> decidir nada allí**, tiene que ir al Maestro. Con el enlace de radio caído, tampoco desde allí.
+🔴 **05/09 (`D-1`): TAMPOCO CON EL MANDO, PORQUE EL MANDO NO EXISTE.** Se retiró como hardware
+—emisor, receptor y pulsadores—, y la línea `A9` del Manual 15 **deja de ser una compra pendiente**.
+Lo que era *«falta comprar el receptor»* pasa a ser *«no va a haber receptor»*.
 
-> **Sin ese receptor, la única forma de entrar o salir del Degradado en el Esclavo es SUBIR AL
-> GABINETE** — y ni así, porque allí arriba lo que había era el menú de la pantalla, que hoy **no
-> tiene display y no puede confirmar nada**.
+> 🛑 ~~**Y AL 04/09 SIGUEN FALTANDO LAS DOS COSAS, aunque una haya dejado de estar abierta.**~~
+>
+> * ~~**Qué receptor comprar YA NO es una decisión abierta: NORMALMENTE ABIERTO (`NO`).** Sigue
+>   **sin comprarse**.~~ → **Caducado: no se compra.**
+> * ~~**Y el mando tampoco se ha visto entrar ni cableado** (`N-118`, §7): el firmware está
+>   corregido pero **no ejercido en tarjeta**.~~ → **Caducado: `N-118` cerrado, y no hay mando que
+>   ejercer.**
+
+🔴 **LO QUE SÍ QUEDA, Y AHORA ES DEFINITIVO: NO HAY NINGUNA FORMA DE ORDENARLE UN MODO AL ESCLAVO
+ESTANDO DELANTE DE ÉL.** Ni la app —no existe ni un solo `SET_MODO` en esa punta—, ni el mando, ni
+los botones, ni la pantalla. Lo único que el Esclavo acepta de la app es lo que ya dice esta tabla
+—ámbar de emergencia, retirarlo, solicitar paso y `SET_RTC`—, que **no es cambiar de modo**.
+
+**Lo que sí sigue funcionando es el Esclavo obedeciendo al Maestro por radio**, que es su trabajo
+normal. Lo que ha desaparecido es **la vía local**: el técnico que está junto al Poste 2 **no puede
+decidir nada allí**, tiene que ir al Maestro. **Con el enlace de radio caído, tampoco desde allí.**
+
+> 🛑 **Y la salida que este apartado dejaba escrita como último recurso ya no está:** ~~*«sin ese
+> receptor, la única forma de entrar o salir del Degradado en el Esclavo es SUBIR AL GABINETE»*~~ —
+> arriba no hay nada que pulsar: el menú de la pantalla **no tiene display y no puede confirmar
+> nada**. **Subir al gabinete no es una vía de mando; es sólo cortar la energía**, y al devolverla
+> el equipo se queda **EN ESPERA DE SELECCIÓN DE MODO** (§3).
 >
 > **Eso deshace justo lo que se había ganado:** *«el técnico ya no tiene que subir con escalera a
-> 5 metros en el Esclavo»*. Para el estado y las alarmas sigue siendo cierto; **para el Degradado,
-> hoy no.**
+> 5 metros en el Esclavo»*. Para el estado y las alarmas sigue siendo cierto; **para cambiar de modo
+> en esa punta, hoy no hay vía de ninguna clase.** Es `D-16`.
 
 ### ✅ ~~🔴 DEFECTO ABIERTO~~ — el ámbar de emergencia de la app **YA** saca al Esclavo del Modo Degradado (`N-106`, cerrado el 04/09)
 
@@ -1374,15 +1551,15 @@ mando NUNCA SE COMPRÓ** *(línea `A9` del Manual 15)*.
 > app ya habrá mostrado un `RESULT:OK`.~~
 >
 > ~~✅ **Mientras esto siga abierto, en el ESCLAVO en Modo Degradado use el MANDO (`B·B·B`), no la
-> app.**~~ → 🛑 **ESA INSTRUCCIÓN YA NO VALE, y mantenerla sería lo peligroso**: mandaba a usar la
-> única vía que **no se puede accionar** —el receptor RF del mando nunca se compró y `N-118` sigue
-> sin ejercerse—, en lugar de la que sí existe.
+> app.**~~ → 🛑 **ESA INSTRUCCIÓN YA NO VALE, y mantenerla sería lo peligroso**: mandaba a usar una
+> vía que **no se puede accionar** —el receptor RF del mando **nunca se compró**, y desde el 05/09
+> el mando **está retirado** (`D-1`)—, en lugar de la que sí existe. **Use la app.**
 
 **Lo que hay HOY, MEDIDO en `Esclavo/src/bluetooth.cpp`** *(en el fuente; no ejercido en tarjeta)*:
 
 | vía | ¿saca del Degradado? |
 |---|---|
-| **Mando, `B·B·B`** | ✅ sí, por el todo-rojo de despedida (`Esclavo/src/mando.cpp:129-141`) |
+| ~~**Mando, `B·B·B`**~~ | ~~✅ sí, por el todo-rojo de despedida~~ → ⛔ **no accionable desde el 05/09: no hay mando** (`D-1`). El código sigue ahí, y por eso se deja la fila |
 | **App, `CMD:AMBAR_EMERGENCIA`** | ✅ **sí** — `salidaDegradadoIniciada()` (`:302-308`), preguntada en las **dos** puertas: sin PIN (`:402`) y con PIN (`:481`) |
 
 **Y el `RESULT:OK` ya no sale pase lo que pase: hay cinco respuestas y cada una dice algo distinto.**

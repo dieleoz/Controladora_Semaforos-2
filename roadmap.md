@@ -63,7 +63,7 @@ quitamos»*. `D-1` queda completa con su lado de hardware y nace `D-16`.
 ### Las dos mitades, que hay que leer juntas
 
 **El HARDWARE se fue** (lista de compras rev. 3, 28/08). **El CODIGO se queda**, y no por
-inercia: `mando_ambarLocal()` tiene **seis lectores** y su veto es SFTY-21. Retirarlo dejaria
+inercia: `mando_ambarLocal()` tiene **CINCO llamadas vivas** y su veto es SFTY-21. Retirarlo dejaria
 los `if` **siempre verdaderos** —el veto no queda inerte, **queda abierto**— y ademas **el
 banco se caeria en ABORTADO, no en rojo**: dos `raise` disparan solos y los dos modelos leen
 constantes de `mando.cpp` **en el import**.
@@ -314,7 +314,7 @@ medible: una es un enclavamiento que falla HACIA SEGURO y la otra HACIA PELIGROS
 > usa.»* — y en su tabla de descartes: *«**El veto de §2.4 se queda donde esta**»*.
 
 **Y el motivo es exactamente §3.ter, que este repositorio ya tenia escrito sobre este mismo
-getter:** `mando_ambarLocal()` tiene **SEIS** lectores —los tres vetos de
+getter:** `mando_ambarLocal()` tiene **CINCO** llamadas vivas —los tres vetos de
 `Esclavo/src/main.cpp` (`:453`, `:476`, `:617`) y dos de `bluetooth.cpp` (`:551`, `:562`,
 que deciden si `CANCELAR_AMBAR` contesta `RETIRADO` o `RETIRADO_QUEDA_MANDO`)—. Retirar el
 armador de esa bandera vuelve los `if` siempre verdaderos y **el veto de SFTY-21 no queda

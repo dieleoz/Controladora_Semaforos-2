@@ -142,7 +142,7 @@ Paso **dos veces la misma noche**, el 05/09, y la segunda con un agente ya lanza
 La segunda la paro el responsable: *«ayer definimos no quitar los botones de A y B por los
 danos al software, y seguir sin usarlos y sin tocar el codigo»*. El agente estaba midiendo
 y no alcanzo a editar. **Y el motivo que el dio es el que este fichero ya tenia escrito**
-—§3.ter, sobre ese mismo getter—: `mando_ambarLocal()` tiene seis lectores y retirar su
+—§3.ter, sobre ese mismo getter—: `mando_ambarLocal()` tiene cinco llamadas vivas y retirar su
 armador deja el veto de SFTY-21 **abierto**, no inerte.
 
 ### Las dos cosas que hay que hacer distinto

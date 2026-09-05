@@ -6,9 +6,11 @@
 real: el equipo se midio con multimetro los dias 3 y 4)**, **04 de septiembre de 2026, mas tarde el
 mismo dia (tres cambios de firmware y una decision del responsable, medidos SOBRE FICHEROS)** y
 **04 de septiembre de 2026, de noche (cinco cambios mas, una decision y un hallazgo nuevo, tambien
-SOBRE FICHEROS)**. Las cuatro revisiones estan al principio; **la del banco va la primera a
-proposito** —es la unica medida en cobre—, y detras las dos del mismo dia en orden. **Nada de lo
-superado se ha borrado.**
+SOBRE FICHEROS)** y **05 de septiembre de 2026 (`D-1` completa y `D-16`: el mando de reles se retira
+como HARDWARE y la app queda como unica superficie de mando)**. Las cinco revisiones estan al
+principio; **la del 05/09 va la primera porque DEROGA a las otras en dos filas**, y detras la del
+banco —que es la unica medida en cobre— y las dos del mismo dia en orden. **Nada de lo superado se
+ha borrado.**
 
 **Acta de compuerta de referencia:** `evidencia/2026-08-28_compuerta.txt` — `15 PASS | 0 FALLA | 0 ABORTADO`,
 HEAD `3733544`, rama `main-nuevo`, **arbol LIMPIO** (lo dice la propia acta).
@@ -51,7 +53,155 @@ consola de Windows en este repositorio.
 
 ---
 
-## 🔴 REVISION DEL 03-04/09/2026 — EL BANCO CORRIO. Leer esto ANTES que todo lo demas
+## 🔴 REVISION DEL 05/09/2026 — `D-1` COMPLETA Y `D-16`: LA APP ES LA UNICA SUPERFICIE DE MANDO
+
+**Va DELANTE de la revision del banco, y no por ser la mas nueva: es que la deroga en dos filas.**
+El banco del 3-4/09 dejo `N-118` abierto —*"el mando `A`/`B` no se pudo pulsar; firmware corregido y
+sin ejercer en tarjeta"*— y **§3.3** dejo escrito que la salida de ultimo recurso del equipo era ese
+mando. **Las dos cosas caducan el 05/09, y por el mismo motivo: el mando ya no existe como
+hardware.**
+
+**La decision vigente es `D-1` de `DECISIONES.md`, en la raiz del repositorio. Si un parrafo de este
+documento la contradice, el parrafo esta caducado.**
+
+### 1 · `D-1` completa — el HARDWARE se fue, el CODIGO se queda, y las dos mitades van JUNTAS
+
+Palabras del responsable, 05/09: *«ya no tenemos mandos de A y B, solo la app, los quitamos»*.
+
+| | |
+|---|---|
+| **El hardware** | ⛔ **se fue.** No hay emisor de 4 canales en la mano del operario, el **receptor RF nunca se compro** (§2.7) y no hay pulsadores cableados a `J16`. Asi estaba escrito ya en la lista de compras **rev. 3 del 28/08**; la marcha atras del 31/08 conservo el mando **para que el equipo tuviera una superficie de mando de ultimo recurso** (§3.3), y **esa razon es la que decae** |
+| **El codigo** | 🟢 **se queda, y NO por inercia.** Retirarlo **abre** un veto de seguridad en vez de dejarlo inerte, y ademas tumba el banco **en `ABORTADO`, no en rojo**. Los dos motivos estan medidos en el punto 2 |
+
+🔴 **Se escriben juntas porque por separado se leen al reves.** El 05/09 se lanzo un agente a
+retirar el mando de las dos puntas sobre la primera mitad de esa frase, y **hubo que matarlo** —es
+el caso que motivo `CLAUDE.md` §2.quinquies y la existencia misma de `DECISIONES.md`—.
+
+🟢 **Y lo que pasa de verdad con el mando desmontado es lo correcto: la bandera `ambarLocal`
+simplemente NO SE ARMA NUNCA.** No es lo mismo que retirar su armador. Un veto que no se arma esta
+**cerrado**; un veto sin armador esta **abierto**, y la diferencia se ve en el punto 2.b.
+
+### 2 · La asimetria del codigo del mando, MEDIDA — para que nadie vuelva a proponer retirarlo
+
+**a) El veto: CINCO llamadas vivas, y un solo armador.**
+
+```
+$ grep -rn "mando_ambarLocal()" 01_Firmware/Esclavo/src/main.cpp 01_Firmware/Esclavo/src/bluetooth.cpp
+main.cpp:453:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
+main.cpp:476:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
+main.cpp:617:    if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() &&
+bluetooth.cpp:9:#include "mando.h"   // R-3: mando_ambarLocal(), para no prometer un ambar que no se quita
+bluetooth.cpp:551:      if (semaforo_estado() == S_FALLO && !mando_ambarLocal()) {
+bluetooth.cpp:562:      if (mando_ambarLocal()) {
+
+$ grep -n "ambarLocal = true" 01_Firmware/Esclavo/src/mando.cpp            ->  1 linea, case ACC_AMBAR
+$ grep -n "confirmarYActuar(ACC_AMBAR" 01_Firmware/Esclavo/src/mando.cpp   ->  1 linea, la de B.B.B
+```
+
+**Los tres de `main.cpp` son los que §2.4 lleva describiendo desde el 28/08** —vetan `CMD_GO_RED`,
+`CMD_GO_GREEN` y la recuperacion de `S_FALLO`—. **Los dos de `bluetooth.cpp` son POSTERIORES** y
+salieron de N-142 y N-152: deciden que contesta `CANCELAR_AMBAR`, y son los que evitan que la app
+prometa una revocacion que el otro cerrojo no permite (`RESULT:RETIRADO_QUEDA_MANDO`).
+
+> ⚠️ **Discrepancia declarada, y se deja escrita en vez de arreglarse de tapadillo:** `D-1` dice
+> **«seis lectores»**; el censo de hoy da **cinco llamadas ejecutables** mas el `#include` que las
+> habilita. **De donde sale el sexto queda `SIN VERIFICAR`.** La conclusion no cambia —cinco
+> llamadas y un solo armador—, pero **§2.4 de este mismo documento decia TRES**, contadas cuando
+> `bluetooth.cpp` todavia no leia la bandera: la cifra vieja no era falsa, **es que envejecio**, y
+> es exactamente el motivo por el que aqui se cita el simbolo y se publica el `grep`.
+
+**b) Y el banco no se caeria en rojo: se caeria en `ABORTADO`** — que es peor, porque un `ABORTADO`
+no dice nada del firmware y deja pasar sin mirar todo lo que ese pack vigilaba (`CLAUDE.md`
+§3.quater).
+
+Los dos modelos leen constantes de `mando.cpp` **en el import**, no dentro de una prueba:
+
+```
+$ grep -n "MANDO = \|_ESC_MANDO = " 01_Firmware/Simulaciones/banco/modelos/*.py
+esclavo.py:28:_ESC_MANDO = ("Esclavo", "src", "mando.cpp")
+maestro.py:31:MANDO     = ("Maestro", "src", "mando.cpp")
+```
+
+Y `banco/fuente.py` **aborta** cuando el fichero no esta o la constante no aparece —*"sin valor por
+defecto, nunca"*—. **EJERCIDO el 05/09, no leido:**
+
+```
+$ python -c "from banco import fuente; fuente.constante(('Esclavo','src','mando.cpp'), r'NO_EXISTE=(0)', 'prueba')"
+Abortado -> no se pudo leer del C++ la constante de prueba ... Sin ese numero el banco
+            mediria otra cosa que el firmware y seguiria dando PASS.
+
+$ python -c "from banco import fuente; fuente.ruta('Esclavo','src','mando.cpp.RETIRADO')"
+Abortado -> no existe el fuente Esclavo\src\mando.cpp.RETIRADO
+```
+
+**c) Cuantos packs se llevaria por delante: TRECE.** Es la union de los que importan uno de los dos
+modelos y los que direccionan `mando.cpp` ellos mismos:
+
+```
+$ cd 01_Firmware/Simulaciones/banco
+$ grep -rlE "from banco.modelos.(esclavo|maestro)" packs/*.py   ->  10   (importan el modelo)
+$ grep -rl  '"mando.cpp"'                          packs/*.py   ->   3   (direccionan el .cpp)
+  -> union, 13 ficheros:
+     camara_02_j16 · documentos_04_cifras_sin_vigilante · esclavo_01_latch_ambar
+     esclavo_02_inhibicion_menu · esclavo_03_par_config · esclavo_04_desfase
+     esclavo_05_hora_atomica · esclavo_08_ambar_en_degradado · maestro_01_mando
+     maestro_02_respaldo · maestro_03_puerta_degradado · maestro_04_sync_horaria
+     maestro_05_ciclo_sin_radio
+```
+
+**Y `mando.cpp` es uno de los tres ficheros que la tabla de trazabilidad de `OPTIMIZACIONES.md` pone
+debajo de SFTY-21.** Retirarlo no deja SFTY-21 sin vigilancia: lo deja **sin vigilancia y sin aviso
+de que falta** — que es el hueco que `CLAUDE.md` §3 describe como el peor de los dos.
+
+### 3 · 🔴 `D-16` — SIN TELEFONO NO HAY FORMA DE OPERAR EL EQUIPO
+
+**Es una propiedad DECLARADA de este sistema, no una averia**, y es consecuencia directa de `D-1`:
+retirado el mando, **la app es la unica superficie de mando**. Ni ambar, ni volver a automatico, ni
+parar el cruce, ni ajustar tiempos, ni cambiar de modo.
+
+**Lo que significa para la arquitectura, que es lo que este documento tiene que contestar:**
+
+| | antes de `D-1` | desde el 05/09 |
+|---|---|---|
+| **Superficies de mando del cruce** | app *(Bluetooth, por poste)* **y** mando de reles *(RF, desde el suelo)* | **la app, y nada mas** |
+| **Si el ESP32 se cuelga o se desenchufa** | quedaban `A.A.A`, `B.B.B` y `A.B.A.B` desde el piso — §3.3 | 🔴 **no queda nada.** El STM32 sigue haciendo lo suyo y **no hay quien le hable** |
+| **Punto unico de fallo** | el enlace de radio, y el ESP32 a medias | 🔴 **el ESP32 de esa punta Y el telefono del operario**, los dos criticos |
+| **Que resuelve cortar y devolver la energia** | volver a arrancar con el mando disponible | **nada**: el equipo vuelve a quedar EN ESPERA DE SELECCION DE MODO |
+| **En el Esclavo, cambiar de modo** | solo con el mando *(no hay `SET_MODO` por Bluetooth en esa punta)* | ⛔ **no hay ninguna via**, ni local ni remota. Se opera desde el Maestro |
+
+🔴 **Y no es teorico: esta semana hubo que DESVINCULAR EL MAESTRO en Ajustes de Android para poder
+conectarse al Esclavo.** Un movil sin bateria, un emparejamiento que falla o **dos tecnicos con el
+mismo equipo emparejado** dejan el poste sin mando de ninguna clase.
+
+**Lo que hay que escribir en consecuencia, y ya esta escrito donde toca:** el telefono pasa a ser
+**herramienta critica** —bateria, cable de carga y un **segundo terminal ya emparejado**— y va en el
+manual del operario, no en un anexo: `05_Funcional/1_Manual_Usuario.md`, bloque del 05/09 al
+principio.
+
+> 🛑 **`SIN VERIFICAR` — y es el hueco que esta decision abre, dicho en voz alta:** **no hay
+> procedimiento cerrado para «el telefono no conecta»**. Lo unico que se sabe hacer es lo que
+> funciono esta semana —desvincular en Ajustes el poste que no se va a operar—, y **por que pasa no
+> se ha medido**: no se sabe si es de Android, del perfil SPP del `ESP32`, de la app o de los tres.
+> **Aqui no se escribe una causa.** Este repositorio ya pago una causa plausible y falsa publicada
+> con la palabra *medido* encima (`CLAUDE.md` §4).
+
+### 4 · Lo que esta revision DEROGA de este mismo documento
+
+**Nada se borra. Cada fila queda tachada en su sitio, con su motivo.**
+
+| donde | que decia | por que caduca |
+|---|---|---|
+| **§3.3** | la opcion elegida el 31/08 era **dejar el mando de reles** como salida de ultimo recurso si el ESP32 se cuelga | **la opcion elegida ya no existe.** El agujero que ese apartado daba por tapado **vuelve a estar abierto**, y ahora tiene nombre escrito: `D-16` |
+| **§2.2 y §2.4** | `N-118` abierto: *"firmware corregido, sin ejercer en tarjeta"* | ✅ **`N-118` CERRADO.** Era el firmware viejo —`INPUT_PULLUP` contra las `R65`/`R66`, pin en `0,6 V`—, arreglado en `346ea5f`; **y ademas ya da igual: no hay mando que conectar** |
+| **§1.6** | *"Mando de 4 reles → SE CONSERVA en los canales A y B"* | **se conserva el CODIGO, no el equipo.** La fila se parte en dos |
+| **§2.4** | *"tres consumidores, todos en `main.cpp`"* | **hoy son CINCO**, en dos ficheros. La cifra envejecio con N-142 y N-152 |
+| **§2.7** | *"del mando no se retira equipo en servicio: nunca se compro el receptor"* | 🟢 **sigue siendo cierto, y ahora es definitivo**: no habia equipo que desmontar y **ya no se va a comprar** |
+| **anexo, punto 5** | *"falta la carga verificada en tarjeta"* del mando | **no hay tarjeta que verificar para eso.** Lo que si sigue faltando es el **pack visto fallar** de la polaridad, que mide otra cosa |
+| **seccion B, ordenes 3 y 4** | `8_Procedimiento_Modo_Degradado.md` conserva tres de sus cuatro vias; `04_Manuales/MANUAL_MANDO_4_RELES.md` *"sale de la lista de falsos"* | 🔴 **los dos vuelven a la lista de documentos falsos.** Ver sus fichas, actualizadas abajo |
+
+---
+
+## 🔴 REVISION DEL 03-04/09/2026 — EL BANCO CORRIO. Leer esto ~~ANTES QUE TODO LO DEMAS~~ **justo despues del bloque del 05/09**, que lo deroga en dos filas
 
 **Los dias 3 y 4 de septiembre de 2026 este equipo estuvo en un banco, con multimetro, sobre el
 paquete V9.0 (commit `617bd00`).** Informe: `evidencia/Informe_Pruebas_Banco_Semaforos_V9.0.pdf`.
@@ -91,7 +241,7 @@ no los mete en ningun cajon**. Repartidos como el cuerpo los describe, la cuenta
 |---|---|---|
 | **M3** | *"la medida que desbloquea las camaras"*, **pendiente**, y sobre ella colgaba *"mientras esto no se mida, no se cablea camara a `J16`"* | ✅ **CERRADA el 03/09.** Numeros en la tabla de abajo y en la seccion A · M3 |
 | **§2.2** | *"contradiccion: el netlist dice activo en ALTO, el firmware dice activo en BAJO, y no se puede decidir desde aqui"* | 🔴 **LA DECIDE EL COBRE (N-118): activo en ALTO los CUATRO.** No era una contradiccion — era **un fuente equivocado** en `A` y `B` |
-| **§2.4 y §3.3** | el veto de `mando_ambarLocal()` se queda, y `B·B·B` es la salida fisica de ultimo recurso | 🔴 **EL MANDO `A`/`B` NO SE PUDO PULSAR EN BANCO (N-118)** — con `617bd00`, el pin en `0,6 V` permanente y el firmware leyendo activo en BAJO: no habia transicion que detectar. 🟢 **El fuente ya esta corregido en las dos puntas (`346ea5f`)**; 🔴 **sin ejercer en tarjeta** |
+| **§2.4 y §3.3** | el veto de `mando_ambarLocal()` se queda, y `B·B·B` es la salida fisica de ultimo recurso | 🔴 **EL MANDO `A`/`B` NO SE PUDO PULSAR EN BANCO (N-118)** — con `617bd00`, el pin en `0,6 V` permanente y el firmware leyendo activo en BAJO: no habia transicion que detectar. 🟢 **El fuente ya esta corregido en las dos puntas (`346ea5f`)**; ~~🔴 sin ejercer en tarjeta~~ → 🔴 **05/09: `N-118` CERRADO y la fila entera CADUCADA — el mando se retiro como hardware (`D-1`). El veto de `mando_ambarLocal()` se queda en el codigo; `B·B·B` deja de ser una salida** |
 | — | — | 🔴 **NUEVO, N-120: la tarjeta protege sus 9 SALIDAS y no protege NINGUNA de sus 5 ENTRADAS de campo.** Abre una decision de diseno para V2, y es del responsable: **§3.6** |
 | — | — | 🔴 **NUEVO, N-116: la tarjeta Maestro esta FUERA DE SERVICIO.** Corto MEDIDO entre `3,3 V` y `GND`. **No se reenergiza** |
 | **N-42** | *"el Modo Automatico no mueve las luces"*, regresion abierta | ⚠️ **NI CONFIRMADA NI DESCARTADA.** El equipo nunca llego a operar —falto la app—. Sigue abierta y sigue siendo lo primero de la proxima sesion |
@@ -1204,7 +1354,7 @@ puede tumbar al que manda.
 |---|---|
 | Pantalla LCD (las dos puntas) | toda la operacion de menu pasa por la app |
 | ~~Los cuatro pulsadores (`PB9`, `PB13`, `PB14`, `PB15`)~~ → **solo `BOTON3` (`PB14`) y `BOTON4` (`PB15`)** | libera `J16` **p10 y p12**, que es lo que las camaras necesitan. ~~**rompe la unica salida de modo**~~ → **§2.3 REFUTADA: la salida por app ya existe** |
-| ~~Mando de 4 reles~~ → 🟢 **SE CONSERVA en los canales A y B** | `MANDO_A` = `BOTON1` = `PB9` = `J16` p5 · `MANDO_B` = `BOTON2` = `PB13` = `J16` p8. **El veto de §2.4 se queda donde esta** |
+| ~~Mando de 4 reles~~ → ~~🟢 **SE CONSERVA en los canales A y B**~~ → 🔴 **05/09 (`D-1`): el HARDWARE se retira; el CODIGO se queda** | `MANDO_A` = `BOTON1` = `PB9` = `J16` p5 · `MANDO_B` = `BOTON2` = `PB13` = `J16` p8. **El veto de §2.4 se queda donde esta** — y con el mando desmontado su bandera **no se arma nunca**, que es lo correcto. Los pines siguen leidos activos en ALTO: **lo que entre por `J16` p5/p8 sigue componiendo secuencias** |
 | Modulo Bluetooth SPP dedicado (`HC-05`/`JDY-30`) | lo sustituye el ESP32 — ver §3.1 |
 
 **MEDIDO el 31/08, y es el porque de conservar los DOS canales y no uno:**
@@ -1216,6 +1366,8 @@ puede tumbar al que manda.
    grep -n "ACC_AMBAR"             Esclavo/src/mando.cpp     ->  B.B.B -> ACC_AMBAR, y
                                                                  ambarLocal = true  <- UNICO armador
    grep -c "mando_ambarLocal"      Esclavo/src/main.cpp      ->  3   los tres if negados que vetan
+                                    (05/09: y DOS MAS en Esclavo/src/bluetooth.cpp, que
+                                     entraron con N-142 y N-152. Hoy son CINCO llamadas.)
 ```
 
 > ⚠️ **De aquel censo del 31/08 hay UNA linea que ya no se puede repetir, y se dice en vez de
@@ -1480,8 +1632,15 @@ conector de senal de toda la tarjeta que trae 12 V.**
 > `botones.cpp` **estaba** invertido en `A` y `B`, en las dos puntas. La camara ya se corrigio en
 > N-67 y por eso el camino de camara sale bien; el camino de mando **no se habia corregido**, y es
 > N-67 otra vez — con la diferencia de que ahora esta **medido**, no deducido. 🟢 **Corregido el
-> 04/09 en `346ea5f`, en las dos puntas** —`INPUT` pelado y `== HIGH`—; 🔴 **sin ejercer en
-> tarjeta**.
+> 04/09 en `346ea5f`, en las dos puntas** —`INPUT` pelado y `== HIGH`—; ~~🔴 **sin ejercer en
+> tarjeta**~~ → ✅ **`N-118` CERRADO el 05/09, y por dos motivos a la vez: el arreglo esta en el
+> fuente, y el mando se retiro como hardware (`D-1`), asi que no queda nada que ejercer en esos dos
+> pines.**
+>
+> ⚠️ **Lo que NO cierra con `N-118`, y hay que separarlo:** los pines siguen leidos **activos en
+> ALTO** y siguen llegando enteros a `PB9`/`PB13`. **Cualquier cosa que cierre `J16` p5 o p8 contra
+> los 3,3 V del borne contiguo sigue componiendo secuencias de mando.** Deja de ser una via de
+> operacion y pasa a ser una **precaucion de maniobra sobre ese conector**.
 >
 > **Y la cuenta de `0,66 V` que este apartado reprodujo de N-67 se confirma en la punta del
 > multimetro: `0,6 V`.** No es una coincidencia amable — es la unica parte de todo este documento que
@@ -1712,6 +1871,22 @@ El Maestro tiene **ocho** modos (`grep -n 'strcmp(accion, "SET_MODO:' Maestro/sr
 
 ### 2.4 🔴 Retirar el mando no deja tres `if` inertes: **borra un veto**
 
+> 🔴 **AL DIA EL 05/09 — Y ESTE APARTADO ES LA RAZON MEDIDA DE LA MITAD DE `D-1` QUE MAS SE LEE AL
+> REVES.** El **hardware** del mando se retira; **este codigo NO**. Lo que sigue explica por que, y
+> el 05/09 le anadio dos datos:
+>
+> 1. **Los consumidores ya no son tres, son CINCO** —tres en `Esclavo/src/main.cpp` y **dos nuevos
+>    en `Esclavo/src/bluetooth.cpp`**, llegados con N-142 y N-152—. La cuenta de abajo no era falsa:
+>    **envejecio**. Es la misma clase de deriva que este documento describe con los numeros de
+>    linea, aplicada a un recuento.
+> 2. **Retirarlo tumbaria el banco en `ABORTADO`, no en rojo** —trece packs, medido y ejercido en la
+>    revision del 05/09, punto 2.b—. Un `ABORTADO` no dice nada del firmware: **abre la puerta y no
+>    deja rastro de que falta** (`CLAUDE.md` §3.quater).
+>
+> 🟢 **Y la diferencia que decide todo, en una linea: con el mando desmontado la bandera NO SE ARMA
+> NUNCA —el veto queda CERRADO—; retirando su armador los `if` se vuelven siempre verdaderos —el
+> veto queda ABIERTO—.** No es lo mismo, y es la unica frase de este apartado que hay que recordar.
+
 > 🔵 **ACTUALIZADO EL 31/08: la decision del responsable es CONSERVAR el mando en `A` y `B`, asi que
 > el veto NO se retira y no hay que decidir quien lo hereda.** Este apartado se conserva entero —es
 > el analisis que justifica la decision— con dos correcciones dentro: las tres lineas citadas
@@ -1727,14 +1902,39 @@ El Maestro tiene **ocho** modos (`grep -n 'strcmp(accion, "SET_MODO:' Maestro/sr
 > version silenciosa de lo que se temia: los tres `if` eran siempre-verdaderos, y ningun `git diff`
 > lo delataba. **La barrera no se borro: se quedo sin quien la arme.**
 >
-> 🟢 **Y esto es lo que cambia con `346ea5f`: el armador vuelve a ser alcanzable EN EL FUENTE**
-> —`PB13` en `INPUT` pelado y `== HIGH`, las dos puntas—. 🔴 **En la tarjeta, sin verificar.** Hasta
-> que una carga verificada demuestre que `B·B·B` arma `ACC_AMBAR`, **lo que hay escrito arriba sigue
-> siendo la descripcion del equipo real**, y el pack que exija que `ACC_AMBAR` es el unico armador
-> (punto 8 del Anexo) sigue sin escribirse.
+> 🟢 ~~**Y esto es lo que cambia con `346ea5f`: el armador vuelve a ser alcanzable EN EL FUENTE**
+> —`PB13` en `INPUT` pelado y `== HIGH`, las dos puntas—. 🔴 **En la tarjeta, sin verificar.**~~
+>
+> 🔴 **AL DIA EL 05/09: el armador vuelve a ser alcanzable en el FUENTE y deja de serlo en el
+> MUNDO.** `346ea5f` arreglo la polaridad —y con eso **`N-118` queda cerrado**—, pero el mando se
+> retiro como hardware (`D-1`), asi que **nadie va a pulsar `B·B·B` nunca**. El resultado observable
+> es el mismo que describia el banco —`mando_ambarLocal()` devuelve siempre `false`— **y la causa es
+> la contraria**: alli era un defecto que el firmware podia arreglar; hoy es la ausencia deliberada
+> del accionador. **Un veto que no se arma esta cerrado, no roto.**
+>
+> ⚠️ **Y lo que sigue faltando no es una carga: es el pack.** El que exija que `ACC_AMBAR` sea el
+> **unico** armador de `ambarLocal` (punto 8 del Anexo) **sigue sin escribirse**, y ahora importa
+> mas, no menos: es lo unico que impediria que una limpieza futura se lleve por delante el armador
+> creyendo que ya no hace falta.
 
-**MEDIDO**: `mando_ambarLocal()` (`Esclavo/src/mando.cpp:103`) tiene tres consumidores, todos en
-`Esclavo/src/main.cpp`, y **los tres son negados**:
+~~**MEDIDO**: `mando_ambarLocal()` tiene tres consumidores, todos en `Esclavo/src/main.cpp`, y **los
+tres son negados**~~ → **RE-CENSADO EL 05/09: son CINCO, en DOS ficheros.** Se cita el simbolo, no la
+linea (`CLAUDE.md` §4.sexies):
+
+```
+$ grep -rn "mando_ambarLocal()" 01_Firmware/Esclavo/src/main.cpp 01_Firmware/Esclavo/src/bluetooth.cpp
+main.cpp:453:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {        <- CMD_GO_RED
+main.cpp:476:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {        <- CMD_GO_GREEN
+main.cpp:617:    if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() &&          <- salir de S_FALLO
+bluetooth.cpp:551:      if (semaforo_estado() == S_FALLO && !mando_ambarLocal()) {   <- N-152, CANCELAR_AMBAR
+bluetooth.cpp:562:      if (mando_ambarLocal()) {                                    <- RETIRADO_QUEDA_MANDO
+```
+
+**Los tres primeros vetan; los dos de `bluetooth.cpp` deciden QUE CONTESTA la app** —y existen para
+no prometerle al tecnico una revocacion que el otro cerrojo no permite—. **Con el mando desmontado,
+`RESULT:RETIRADO_QUEDA_MANDO` deja de ser alcanzable**, y eso es correcto: la marca no se pone.
+
+La tabla de abajo es el censo del 31/08, conservado con sus tres filas y sus lineas ya caducadas:
 
 | ~~linea (28/08)~~ | **linea real, MEDIDA el 31/08** | que veta hoy |
 |---|---|---|
@@ -1773,7 +1973,10 @@ pedido desde el piso con `B·B·B`, el Esclavo **no obedece ni acusa recibo**, p
 > app, o la decision explicita y escrita de que ese veto ya no existe— y el pack que lo vigile.~~
 >
 > 🟢 **RESUELTO EL 31/08 POR DECISION, NO POR CODIGO: el mando se conserva en `A` y `B`, asi que el
-> armador se queda y no hay nada que heredar.** Los tres `if` siguen vetando de verdad. Es la salida
+> armador se queda y no hay nada que heredar.** ~~Los tres `if` siguen vetando de verdad.~~ →
+> **05/09: los CINCO siguen ahi, y la decision se mantiene con el hardware ya retirado** (`D-1`).
+> **Lo que se conserva es el codigo, no el equipo**, y por eso este apartado gana importancia en vez
+> de perderla: es el unico sitio donde esta escrito por que no se toca. Es la salida
 > mas barata de las que habia sobre la mesa —cuesta cero bytes de flash y cero lineas— y es tambien
 > la unica que no exige escribir una barrera nueva y verla fallar antes de fiarse de ella.
 >
@@ -1956,6 +2159,16 @@ tanda que `ESTADO.md` declara *"implementada y compilando. NO probada en banco"*
 > los ocho hallazgos que **abarata** la decision, y por eso conviene tenerlo escrito: nadie tiene
 > que subir a un poste a desmontar nada.
 >
+> 🟢 **AL DIA EL 05/09, Y ESTE APARTADO ES EL QUE MEJOR ENVEJECE: `D-1` retira el mando y NO CUESTA
+> UNA VISITA.** No habia receptor que desmontar porque **nunca se compro**, y la linea `A9` de la
+> lista de compras pasa de *"se pide"* a **no se pide**. La correccion de esa linea es del Manual 15,
+> **no de este documento**.
+>
+> 🔴 **Y la vuelta de tuerca del 05/09, que es lo que hay que leer aqui: lo que SE RETIRA es el
+> codigo... y precisamente el codigo NO se retira.** Este apartado decia *"se retira codigo y papel"*
+> pensando en una limpieza; la decision del 05/09 hace lo contrario —**se va el equipo y se queda el
+> codigo**— y el motivo esta en §2.4. Lo unico que se retira de verdad es **papel**.
+>
 > **La excepcion es §2.4.** El receptor no existe, pero **el veto que el mando aporta en el
 > firmware si existe y esta activo**. Retirar codigo que nunca tuvo hardware detras sigue cambiando
 > el comportamiento del equipo.
@@ -2079,7 +2292,34 @@ no se compra nada"*. **N-37 midio uno**; el otro sigue SIN VERIFICAR.
 > silencioso. Un reloj de software que el ESP32 disciplina significa que **si el ESP32 no esta, el
 > reloj se va yendo** — y nadie lo ve, porque el unico tablero es el ESP32.
 
-### 3.3 ✅ ~~🔴~~ Sin pantalla, sin pulsadores ~~y sin mando~~: como se opera el equipo si el ESP32 se cuelga — **DECIDIDA EL 31/08**
+### 3.3 🔴 ~~✅~~ Sin pantalla, sin pulsadores ~~y sin mando~~ **y AHORA SI SIN MANDO**: como se opera el equipo si el ESP32 se cuelga — ~~**DECIDIDA EL 31/08**~~ → **REABIERTA Y CONTESTADA EL 05/09 POR `D-16`: NO SE OPERA**
+
+> 🔴 **05/09 — LA OPCION QUE ESTE APARTADO ELIGIO YA NO EXISTE, ASI QUE EL AGUJERO VUELVE A ESTAR
+> ABIERTO. Y esta vez la respuesta esta escrita en vez de suponerse.**
+>
+> El 31/08 se eligio **dejar el mando de reles** como salida de ultimo recurso —era la unica opcion
+> que costaba cero, porque ya estaba construida—. El 05/09 el responsable retira **el hardware** del
+> mando (`D-1`): *«ya no tenemos mandos de A y B, solo la app, los quitamos»*. **La fila elegida se
+> cae de la tabla.**
+>
+> ⚠️ **Y hay que decir cual queda en su sitio, porque este apartado se escribio justo para no
+> decidir por eliminacion:** la que vuelve es la ultima —*aceptar el ambar como estado final*—, que
+> el 31/08 se retiro de la mesa por ser *"la que habia que firmar"*. **Hoy esta firmada, y con
+> nombre: `D-16`.**
+>
+> **Lo que eso significa, sin adornos:**
+>
+> * Un ESP32 colgado, muerto o desenchufado **deja esa punta sin ninguna superficie de mando**. No
+>   hay boton, ni menu, ni mando desde el piso.
+> * **Cortar y devolver la energia no lo arregla**: el equipo vuelve a quedarse EN ESPERA DE
+>   SELECCION DE MODO, esperando una orden que solo puede llegar por la app.
+> * **El telefono del operario pasa a ser parte del sistema**, no una herramienta auxiliar. Va
+>   escrito en `05_Funcional/1_Manual_Usuario.md`, en el bloque del 05/09.
+>
+> 🟡 **Y la opcion 1 —watchdog en el ESP32— deja de ser un complemento y pasa a ser lo unico que
+> queda sobre la mesa.** No cubre el ESP32 muerto ni desenchufado, asi que **no cierra `D-16`**;
+> lo que hace es reducir el caso mas probable de los tres. **Sigue sin construirse**, y su medida
+> sigue siendo la de abajo: `grep -rn "esp_task_wdt" 01_Firmware/Repetidor/src` da **cero**.
 
 > 🔴 **AVISO DEL 04/09, ANTES DE LEER NADA DE ESTE APARTADO: la opcion elegida NO ESTABA
 > CONSTRUIDA, Y TODAVIA NO ESTA DEMOSTRADA.** El banco midio `J16` p5 y p8 en **`0,6 V`
@@ -2103,20 +2343,27 @@ no se compra nada"*. **N-37 midio uno**; el otro sigue SIN VERIFICAR.
 > contra `p4` y `p8` contra `p7`** (los `3,3 V` contiguos), y **no sobre la tarjeta Maestro** con el
 > corto de N-116.
 >
-> ✅ **DECIDIDA POR EL RESPONSABLE EL 31/08: se elige la opcion 3 de la tabla de abajo — DEJAR EL
-> MANDO DE RELES**, en los canales `A` y `B`. La tabla se conserva entera: una decision entre
-> alternativas escritas solo se puede revisar si las alternativas siguen escritas.
+> ✅ ~~**DECIDIDA POR EL RESPONSABLE EL 31/08: se elige la opcion 3 de la tabla de abajo — DEJAR EL
+> MANDO DE RELES**, en los canales `A` y `B`.~~ → 🔴 **DEROGADA EL 05/09 (`D-1`): esa opcion se
+> quedo sin hardware.** La tabla se conserva entera —**y ahora se ve para que servia**: una decision
+> entre alternativas escritas se puede revisar; una tomada por eliminacion, no.
 >
-> **Que resuelve, exactamente:** un ESP32 colgado —o muerto, o desenchufado, que es lo que el
+> ~~**Que resuelve, exactamente:** un ESP32 colgado —o muerto, o desenchufado, que es lo que el
 > watchdog **no** cubre— deja el equipo con `A.A.A` (volver a Automatico), `B.B.B` (ambar desde
 > cualquier estado) y `A.B.A.B` (Degradado) desde el piso, sin escalera y sin pantalla. **El equipo
-> deja de quedarse sin ninguna superficie de mando**, que era el agujero que abria este apartado.
+> deja de quedarse sin ninguna superficie de mando**, que era el agujero que abria este apartado.~~
 >
-> **Que NO resuelve, y va escrito al lado:** el mando esta en el **Maestro**; el Esclavo tiene las
-> cuatro entradas pero **no tiene receptor comprado** (§2.7). Asi que la salida fisica de ultimo
-> recurso existe **en una punta de las dos**, y en el Esclavo sigue existiendo solo como cobre. Si se
-> quiere en las dos, hay que comprar el segundo receptor — es la linea de N-19 que lleva abierta
-> desde el principio.
+> 🔴 **05/09: NO RESUELVE NADA, porque el accionador no existe.** El agujero que este parrafo daba
+> por tapado **es exactamente el que describe `D-16`**.
+>
+> ~~**Que NO resuelve, y va escrito al lado:** el mando esta en el **Maestro**; el Esclavo tiene las
+> cuatro entradas pero **no tiene receptor comprado** (§2.7). Si se quiere en las dos, hay que
+> comprar el segundo receptor — es la linea de N-19 que lleva abierta desde el principio.~~
+>
+> 🔴 **05/09: no hay receptor en ninguna de las dos, y no se va a comprar.** La linea `A9` de la
+> lista de compras deja de ser una compra pendiente. **En las dos puntas la salida fisica de ultimo
+> recurso existe solo como cobre**, y ese cobre no es una via de mando: es un conector que hay que
+> tratar con cuidado (§2.2).
 >
 > **Y las otras opciones no quedan derogadas por esta:** el **watchdog del ESP32** (opcion 1) sigue
 > siendo barato y sigue siendo la Fase 5, y ahora es *complemento*, no sustituto. Lo que esta
@@ -2160,7 +2407,11 @@ comentarios y `ESTADO.md`).
 > Un cruce en ambar intermitente no mata a nadie, y por eso SFTY-6 esta bien puesto. Pero con la
 > pantalla, los pulsadores y el mando retirados, **un ESP32 colgado deja el equipo sin ninguna
 > superficie de mando**: no hay boton que pulsar, no hay menu que navegar, no hay mando desde el
-> piso. La unica accion disponible es cortar la energia y volver a darla, y eso lo tiene que hacer
+> piso.
+>
+> 🔴 **ESTE PARRAFO SE ESCRIBIO EL 28/08 COMO ADVERTENCIA HIPOTETICA. DESDE EL 05/09 DESCRIBE EL
+> EQUIPO REAL**, y esa es toda la diferencia entre `D-16` y lo que habia antes: la frase no ha
+> cambiado — ha dejado de ser un supuesto. La unica accion disponible es cortar la energia y volver a darla, y eso lo tiene que hacer
 > alguien subiendo al gabinete — que es exactamente el viaje que toda esta arquitectura pretende
 > evitar.
 >
@@ -2171,9 +2422,9 @@ comentarios y `ESTADO.md`).
 > |---|---|---|
 > | Watchdog en el ESP32 (`esp_task_wdt`) | bajo, firmware nuevo del ESP32 | el ESP32 colgado se reinicia solo. **No** cubre el ESP32 muerto o desenchufado — 🟡 **sigue viva como complemento (Fase 5)** |
 > | Un solo pulsador de servicio superviviente | un pulsador y un pin; **hereda §2.2** | da una salida fisica de ultimo recurso — 🟡 innecesaria si el mando se queda |
-> | **✅ ELEGIDA (31/08) — Dejar el mando de reles del Maestro** | cero — **es no retirarlo** | conserva `A·A·A`, `B·B·B`, `A·B·A·B` y el veto de §2.4 |
+> | ~~**✅ ELEGIDA (31/08) — Dejar el mando de reles del Maestro**~~ | ~~cero — **es no retirarlo**~~ | ⛔ **05/09: sin hardware.** El **veto de §2.4 se conserva igualmente** —el codigo no se toca—, pero `A·A·A`, `B·B·B` y `A·B·A·B` **no se pueden accionar** |
 > | `J2` (SWD) como consola de servicio | 🔴 **descartado**: `MAPEO_TARJETA_KICAD.md` §7 — `J2` es la unica via de carga de firmware, no se reutiliza | — |
-> | ~~Aceptar el ambar como estado final y subir al gabinete~~ | cero | ⛔ **retirada de la mesa el 31/08**: era la que habia que firmar, y la decision fue no firmarla |
+> | Aceptar el ambar como estado final ~~y subir al gabinete~~ | cero | 🔴 **VUELVE, Y ESTA FIRMADA: es `D-16` (05/09).** ~~retirada de la mesa el 31/08~~ — y el *subir al gabinete* tampoco vale: arriba no hay nada que pulsar |
 
 ### 3.4 ✅ ~~🟠~~ El minimo de tiempo por sentido (N75-1) — **DECIDIDA EL 04/09/2026**
 
@@ -2773,9 +3024,15 @@ driver hay que escribirlo en el ESP32.
 
 ### Orden 3 · ~~🔴~~ 🟡 `05_Funcional/8_Procedimiento_Modo_Degradado.md` — ~~sus cuatro vias son botones retirados~~ **tres de sus cuatro vias SOBREVIVEN**
 
-> 🟢 **REBAJADO EL 31/08.** Este apartado daba las cuatro vias por muertas. Con el mando conservado
+> 🔴 **05/09 — VUELVE A SUBIR, Y CASI ENTERO: `D-1` retira el mando como HARDWARE, asi que las tres
+> vias de secuencia dejan de ser ejecutables otra vez.** De las cinco que este apartado llego a
+> contar **queda UNA**: `SET_MODO:DEGRADADO` por Bluetooth… **y solo en el MAESTRO**, porque en el
+> Esclavo no existe ni un `SET_MODO`. **Consecuencia dura, y hay que escribirla en esa ficha: en el
+> ESCLAVO no hay hoy NINGUNA via de entrar ni de salir del Modo Degradado.**
+>
+> 🟢 ~~**REBAJADO EL 31/08.** Este apartado daba las cuatro vias por muertas. Con el mando conservado
 > en `A` y `B` (§1.6), **solo cae la cuarta** —la entrada por pantalla—. `A·B·A·B`, `A·A·A` y `B·B·B`
-> se ejecutan igual que hoy, y ademas ahora hay una **quinta** via nueva que este documento negaba:
+> se ejecutan igual que hoy~~, y ademas ahora hay una **quinta** via nueva que este documento negaba:
 > `SET_MODO:DEGRADADO` por Bluetooth (`grep -n 'strcmp(accion, "SET_MODO:DEGRADADO")' Maestro/src/bluetooth.cpp`, MEDIDO el 31/08 y revalidado el 05/09).
 >
 > **La tabla de averias de `:311-312` vuelve a tener accion que ejecutar**, que era el agujero grave
@@ -2806,9 +3063,18 @@ retirado, ese procedimiento **no tiene accion que ejecutar**.
 > procedimiento reescrito describe lo que el firmware **dice** hacer, no lo que se ha visto hacer. Se
 > marca asi dentro del propio documento.
 
-### Orden 4 · ~~🔴~~ 🟢 `04_Manuales/MANUAL_MANDO_4_RELES.md` — ~~vende `B·B·B` como salida de emergencia~~ **SALE DE LA LISTA DE FALSOS**
+### Orden 4 · 🔴 ~~🟢~~ `04_Manuales/MANUAL_MANDO_4_RELES.md` — ~~SALE DE LA LISTA DE FALSOS~~ → **VUELVE, Y ENTERO: DESCRIBE UN EQUIPO QUE NO EXISTE**
 
-> 🟢 **RETIRADO DE ESTA LISTA EL 31/08: este manual vuelve a ser VIGENTE.** El mando se conserva en
+> 🔴 **05/09 — ESTE MANUAL SE MARCA RETIRADO.** `D-1` retira el mando de reles como hardware, asi
+> que el documento entero describe **un accionador que no esta**. No se borra —el vocabulario sigue
+> compilado en `mando.cpp` y algun dia podria volver a haber mando—, pero **se marca en su cabecera
+> y no se entrega como procedimiento**. La correccion es de ese fichero, **no de este documento**.
+>
+> ⚠️ **Y la parte que hay que NO tirar con el:** su apartado del veto —*"En el Esclavo, `B·B·B`
+> desobedece al Maestro a proposito"*— **sigue describiendo codigo vivo** (§2.4). Marcar el manual
+> como retirado no autoriza a retirar ese codigo.
+>
+> 🟢 ~~**RETIRADO DE ESTA LISTA EL 31/08: este manual vuelve a ser VIGENTE.**~~ El mando se conserva en
 > `A` y `B` (§1.6), asi que `A·A·A`, `B·B·B` y `A·B·A·B` siguen existiendo y el manual sigue
 > describiendo el equipo. **No hay que marcarlo retirado.**
 >
@@ -2965,7 +3231,15 @@ Se conservan tachados: una tarea que desaparece en silencio se vuelve a pedir.**
    `mando.cpp`.** El mando se conserva en `A` y `B`, el armador `ACC_AMBAR` (`grep -n "ACC_AMBAR" Esclavo/src/mando.cpp`) se
    queda y **no hay veto que heredar**. *(De paso: las tres lineas citadas estaban caducadas — son
    `:406`, `:416`, `:540`.)* 🟡 **Queda un pack** que exija que `ACC_AMBAR` siga siendo el unico
-   armador y los consumidores sigan siendo tres y negados.
+   armador ~~y los consumidores sigan siendo tres y negados~~.
+   > 🔴 **AL DIA EL 05/09, y este punto SUBE de prioridad en vez de cerrarse.** `D-1` retira el
+   > mando como **hardware** y deja el **codigo**, asi que desde hoy el armador es un trozo de
+   > firmware **sin accionador visible** — justo la forma que invita a una limpieza futura. **Lo
+   > unico que lo protegeria es ese pack, y sigue sin escribirse.**
+   >
+   > **Y su enunciado cambia: los consumidores ya no son tres.** Son **cinco**, en dos ficheros
+   > —`Esclavo/src/main.cpp` y `Esclavo/src/bluetooth.cpp`—, por N-142 y N-152. Un pack escrito
+   > contra el numero 3 acusaria hoy a un firmware correcto. Ver §2.4.
 3. ~~**`SET_RTC` tiene que mirar `reloj_hayCristal()`** antes de contestar `RESULT:OK`
    (la rama `SET_RTC` de `bluetooth.cpp` y `reloj_hayCristal()` de `reloj.cpp`) (§2.5).~~ → ✅ **HECHO en `d34cfe2` (N-80)**:
    `bluetooth.cpp:309`. Cinco ramas, `:295-328`. Ver §2.5.
@@ -3035,9 +3309,16 @@ Se conservan tachados: una tarea que desaparece en silencio se vuelve a pedir.**
    >    ya dentro, la unica forma honesta de exigirlo es **inyectar la polaridad vieja en el `.cpp`
    >    real y comprobar que el pack baja la cuenta y cambia el codigo de salida**. Sin eso el
    >    arreglo entro sin testigo, que es exactamente lo que este punto pedia evitar.
-   > 2. 🔴 **La carga verificada en tarjeta.** Y **no en una tarjeta con un corto** (N-116): se
+   > 2. ~~🔴 **La carga verificada en tarjeta.** Y **no en una tarjeta con un corto** (N-116): se
    >    prueba sobre la que esta sana, y con el gesto nuevo —`p5` contra `p4`, `p8` contra `p7`—,
-   >    **no contra masa**.
+   >    **no contra masa**.~~ → ⛔ **CADUCADA EL 05/09: no hay mando que ejercer** (`D-1`), asi que
+   >    esa carga **no se pide**. **`N-118` queda CERRADO** por el arreglo del fuente mas la
+   >    desaparicion del sujeto.
+   >
+   > 🔴 **Lo que NO caduca es la mitad 1** —el pack visto fallar sobre la polaridad—, y ahora sirve
+   > para otra cosa: **los cuatro pines de `J16` se leen igual** (activos en ALTO) y los dos de
+   > camara **si** se cablean. Un pack que ate esa polaridad al netlist sigue haciendo falta
+   > (punto 9).
 6. ~~**`VERDE_MIN_MIN`** (`modo_automatico.cpp:31`) cuando llegue el numero, **atado a la app** en
    el mismo commit (N75-1 y N75-2, §3.4).~~ → ✅ **HECHO el 04/09.** El numero llego —**3 minutos**—
      y entro atado —y **desde N-137 la constante vive en `Maestro/include/limites_ciclo.h`**, no en
@@ -3065,6 +3346,11 @@ Se conservan tachados: una tarea que desaparece en silencio se vuelve a pedir.**
    invierten o se conservan (`CLAUDE.md` §8.quater), **con la cuenta comparada antes y despues**,
    que es la unica red para esta clase de deriva (§5 de `CLAUDE.md`). **Retirar de mas aqui es
    exactamente el error que la decision del 31/08 evita en el firmware.**
+   > 🟢 **AL DIA EL 05/09, y la respuesta es la misma: NO se tocan.** `D-1` retira el **hardware**
+   > del mando y conserva su **codigo**, asi que los packs del mando **siguen teniendo sujeto** —lo
+   > que miden es `mando.cpp`, y `mando.cpp` sigue ahi—. **Trece packs se irian a `ABORTADO` si
+   > alguien lo retirara**, y un `ABORTADO` no dice nada del firmware (revision del 05/09, punto
+   > 2.b). **Que el operario ya no accione el mando no es motivo para retirar lo que lo vigila.**
 9. **Un pack que ate la polaridad de los cuatro pines de boton al netlist**, como
    `camara_01_demanda` ato la de `PB0`.
 10. **Un pack que ate `VERDE_MIN_MIN` del `.cpp` a los limites de `app.js`** (N75-2).
