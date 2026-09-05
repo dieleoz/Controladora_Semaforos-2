@@ -2609,31 +2609,43 @@ document.addEventListener('DOMContentLoaded', () => {
     // NUNCA, y la cuenta atras quedaria muerta sin que ninguna prueba lo dijera. Hasta
     // que el campo exista, _segundosDeEspera() devuelve null a proposito y el texto sale
     // sin cifra, que es exactamente lo que la app sabe.
-    'EN_MARCHA_PARE_EL_MODO': (data) => {
-      const seg = _segundosDeEspera(data);
-      const cuanto = seg === null
-        ? 'Espere a que el ciclo termine el cambio y a que salgan los vehiculos que ' +
-          'quedan en el tramo, y repita.'
-        : 'Faltan unos ' + seg + ' s: es lo que el equipo necesita para terminar el ' +
-          'cambio y dejar salir a los vehiculos que quedan en el tramo.';
-      return {
-        texto: 'El equipo esta EN MARCHA y esa orden no se puede aplicar sin pararlo. ' +
-               cuanto + ' Para pararlo del todo, VOLVER AL MENU.',
-        toast: seg === null ? 'El equipo esta en marcha: pare el modo y repita'
-                            : 'El equipo esta en marcha: faltan unos ' + seg + ' s'
-      };
-    }
+    // 🔴 AQUI NO VA UNA CUENTA ATRAS, Y NO ES QUE FALTE: ES QUE SERIA MENTIRA.
+    //
+    // Se comprobo el 04/09 antes de construirla. Los TRES sitios que emiten este motivo
+    // rechazan por una condicion que EL TIEMPO NO CAMBIA:
+    //
+    //   SET_TIEMPOS ............ el ciclo automatico esta en marcha
+    //   SET_MODO:ALCANCE ....... el equipo esta en Modo Degradado
+    //   SET_MODO:INTELIGENTE ... el equipo esta en Modo Degradado
+    //
+    // En ninguno "esperar" sirve de nada: por muchos segundos que pasen el equipo sigue
+    // en el mismo modo. Un contador diciendo "faltan 47 s" prometeria que aguantando se
+    // arregla, y el tecnico se quedaria mirando el telefono hasta rendirse. El propio
+    // literal del firmware lo dice bien -PARE_EL_MODO-, y la traduccion decia lo
+    // contrario que el literal que traducia.
+    //
+    // Y NO ES EL MISMO CASO QUE EL AVISO DE VIA. Alli se pregunta porque el equipo no
+    // sabe si quedan vehiculos y el operario si; aqui no hay nada que mirar: hay que
+    // sacar el equipo del modo.
+    'EN_MARCHA_PARE_EL_MODO': () => ({
+      texto: 'El equipo esta EN MARCHA y esa orden no se puede aplicar mientras lo este. ' +
+             'ESPERAR NO SIRVE: hay que sacarlo del modo con VOLVER AL MENU, dar la orden, ' +
+             'y volver a entrar. Los tiempos no se tocan con el ciclo corriendo porque ' +
+             'bajar uno a mitad de fase acortaria la fase EN CURSO, y una de esas fases es ' +
+             'el todo-rojo que deja salir a los vehiculos del tramo.',
+      toast: 'Saque el equipo del modo (VOLVER AL MENU) y repita: esperar no sirve'
+    })
   };
 
-  // LA CIFRA DE LA CUENTA ATRAS, CUANDO EXISTA. Hoy devuelve null y esa es toda su
-  // implementacion: el firmware todavia no manda el dato y el nombre del campo no esta
-  // decidido. El dia que lo este, se lee AQUI -una linea, un solo sitio- y el texto de
-  // arriba se compone solo. Lo que no se hace mientras tanto es adivinar un nombre y
-  // dejar una busqueda que no encuentra nada nunca haciendose pasar por una lectura.
-  function _segundosDeEspera(data) {
-    if (!data) return null;
-    return null;
-  }
+  // Aqui vivia _segundosDeEspera(), el hueco reservado para una cuenta atras. Se retira
+  // el 04/09 al comprobar que esa cuenta NO DEBE EXISTIR: los tres motivos que la
+  // habrian usado rechazan por una condicion que el tiempo no cambia -el modo-, asi que
+  // cualquier cifra prometeria que esperando se arregla. El porque completo esta arriba,
+  // en la entrada de EN_MARCHA_PARE_EL_MODO.
+  //
+  // Se BORRA en vez de dejarse devolviendo null: una funcion que no llama nadie y que
+  // ademas no puede llegar a devolver nada util es la version silenciosa de la prueba
+  // muerta -§3.bis-, y encima con un comentario encima anunciandola como pendiente.
 
   // Resuelve una entrada de las dos tablas de rechazo: puede ser el objeto directo o
   // una funcion de los campos de la trama, para los motivos que traen un dato dentro.
