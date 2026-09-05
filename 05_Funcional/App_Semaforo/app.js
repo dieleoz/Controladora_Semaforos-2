@@ -2235,7 +2235,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // no es eso: en este poste no existe. Contra el Maestro y sin punta identificada
     // vuelven, porque ahi la respuesta si depende del momento.
     for (const par of MANDOS_DE_CICLO) {
-      if (par[0]) par[0].style.display = '';
+      if (par[0]) par[0].style.display = enEsclavo ? 'none' : '';
     }
     if (padTituloEl) {
       padTituloEl.textContent = enEsclavo

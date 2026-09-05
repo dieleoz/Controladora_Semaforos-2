@@ -186,12 +186,44 @@ body {
   text-overflow: ellipsis;
 }
 
-/* Misma razon para el nodo: es el otro texto de la cabecera que puede crecer. */
+/* Misma razon para el nodo: es el otro texto de la cabecera que puede crecer.
+ *
+ * 🔴 PERO EL TOPE SE LE COMIA LO QUE MENOS PUEDE PERDERSE. Reportado desde el banco el
+ * 04/09 con la foto delante -- "IDENTIFICAN..." cortado en la cabecera -- y MEDIDO
+ * despues sobre este mismo arbol, poniendo cada rotulo posible y comparando scrollWidth
+ * contra clientWidth:
+ *
+ *     320px  IDENTIFICANDO...    105 -> 93   TRUNCA
+ *     320px  MAESTRO (POSTE 1)   112 -> 96   TRUNCA
+ *     412px  MAESTRO (POSTE 1)   112 -> 94   TRUNCA
+ *     360px  MAESTRO (POSTE 1)   112 -> 112  ok
+ *
+ * Y el 412 truncando MAS que el 360 es la pista de que el `max-width` no era la causa:
+ * a 412 el tope son 173 px y solo llegaban 94. Lo que aprieta es la FILA -- `#node-name`
+ * y `.rssi-text` son hermanos flex, y como este tiene `overflow: hidden` puede encogerse
+ * hasta nada mientras el otro no --, y ademas `.site-name` de arriba crece con el ancho
+ * (46vw) y se lleva el sitio. Es §4.ter otra vez: la causa vive en un sitio distinto del
+ * sintoma, y una sola medida a un solo ancho no la encuentra.
+ *
+ * EL REPARTO SE INVIERTE, Y NO ES ESTETICA: con dos modulos que se anuncian casi igual
+ * (N-129), "MAESTRO (POSTE 1)" es la unica frase de la pantalla que dice a que poste se
+ * le esta mandando. "(sin enlace)" puede recortarse -- lo mismo lo dice el punto de
+ * estado, el badge del cruce y el rotulo del boton --; el nombre del poste, no. */
 #node-name {
-  max-width: 42vw;
+  flex: 0 0 auto;
+  max-width: 60vw;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* El que cede es este. `min-width: 0` hace falta porque un hijo flex no baja de su ancho
+   de contenido salvo que se le diga (§4.ter), y sin el se llevaria el sitio del rotulo
+   del poste igual que antes. */
+.rssi-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .site-arrow {
