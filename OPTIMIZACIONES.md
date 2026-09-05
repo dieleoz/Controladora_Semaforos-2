@@ -333,7 +333,40 @@ la que determina el coste de la ráfaga de SFTY-11 y el peor caso de reintentos 
 - **SFTY-15 (V8.3):** **Diagnóstico de línea**. `protocolo.cpp` cuenta bytes recibidos, tramas válidas y tramas descartadas por CRC. La pantalla **PRUEBA ALCANCE** los muestra en su fila inferior, separando tres fallos que antes se veían todos como "no hay comunicación": `RX 0 - nada llega` (cobertura, canal o antena), `RX 4k - BASURA` (llegan bytes pero ninguna trama válida: cableado, línea flotando o radio atascada) y `RX 36 9 tr` (enlace correcto). Los contadores se ponen a cero al entrar a la pantalla.
 - **SFTY-16 (V8.3):** **Puente que valida antes de retransmitir**. El repetidor ESP32 dejó de ser un passthrough ciego: ahora reconoce el formato (4 bytes con CRC-8 Maxim) y **solo relaya tramas válidas**. Si el par RS485 de entrada queda flotando, el ruido se descarta dentro del ESP32 y no llega al aire. Antes, ese ruido mantenía la transmisión permanentemente activa y la radio de salida saturaba el canal (fallo de campo del 31/07: LED TX fijo en B2). Además la transmisión solo se activa cuando hay algo real que enviar, no ante el primer byte. Compilar con `-D PUENTE_TRANSPARENTE` revierte al comportamiento anterior.
 - **SFTY-17 (V8.4):** **Retardo de cortesía del Esclavo antes de responder** (`RETARDO_RESPUESTA_MS = 200`). En modo repetidor hay una radio intermedia (B2) que acaba de **transmitir** la orden y necesita tiempo para volver a **recepción**. Si el Esclavo contesta de inmediato, su respuesta sale mientras B2 sigue conmutando y **B2 no la oye**: el enlace funciona en un sentido y no vuelve nada. Observado en campo el 31/07 con el contador del puente marcando `C<-Esclavo = 1 byte` en dos minutos mientras la ida fluía. La respuesta se **programa**, no se bloquea el bucle, así que el parpadeo de ámbar y el watchdog siguen atendidos. En enlace directo es inofensivo: el Maestro espera hasta 3.500 ms.
-- **SFTY-18 (V8.5):** **Reloj de tiempo real con hora declarada no fiable por defecto**. El Maestro usa el RTC interno del STM32 con el cristal `Y2` de 32.768 kHz que la tarjeta ya traía y una pila CR2032 en `VBAT` (ver [`03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`](03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md) §4). No ocupa ningún pin: el I²C por hardware está copado por LCD y RS-485, así que un módulo externo habría obligado a I²C por software. **La regla de seguridad no es tener reloj, es saber cuándo no se tiene:** al ajustar la hora se escribe también un año marcador, y al arrancar `reloj_enHora()` solo devuelve `true` si ese marcador sobrevivió. Pila agotada, primera puesta en marcha o dominio de respaldo corrupto ⇒ **`false`**, y toda función que dependa de la hora debe abstenerse. Un reloj sin poner en hora que se cree válido es peor que no tener reloj: activaría la operación nocturna a deshora. **V8.6:** se añade la pantalla **AJUSTAR HORA** —quinta opción del menú— que es la única vía para poner el reloj y, por tanto, el requisito previo de SFTY-20 y SFTY-21. Se edita **dígito a dígito** con el dígito activo subrayado: con un solo botón de subir, poner los minutos como valor completo costaría hasta 59 pulsaciones, y además la edición por dígitos **funciona igual con el mando de relés**, que solo entrega pulsos y no admite repetición por mantener pulsado. Se trabaja sobre una copia y solo se escribe al RTC al confirmar, de modo que entrar por error y salir con el Botón 4 no altera la hora. La pantalla **no arranca ciclos**: mantiene el mismo estado seguro que el menú.
+- **SFTY-18 (V8.5):** **Reloj de tiempo real con hora declarada no fiable por defecto**. El Maestro usa el RTC interno del STM32 con el cristal `Y2` de 32.768 kHz que la tarjeta ya traía y una pila CR2032 en `VBAT` (ver [`03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`](03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md) §4). No ocupa ningún pin: el I²C por hardware está copado por LCD y RS-485, así que un módulo externo habría obligado a I²C por software. **La regla de seguridad no es tener reloj, es saber cuándo no se tiene:** al ajustar la hora se escribe también un año marcador, y al arrancar `reloj_enHora()` solo devuelve `true` si ese marcador sobrevivió. Pila agotada, primera puesta en marcha o dominio de respaldo corrupto ⇒ **`false`**, y toda función que dependa de la hora debe abstenerse. Un reloj sin poner en hora que se cree válido es peor que no tener reloj: activaría la operación nocturna a deshora. ~~**V8.6:** se añade la pantalla **AJUSTAR HORA** —quinta opción del menú— que es la única vía para poner el reloj y, por tanto, el requisito previo de SFTY-20 y SFTY-21. Se edita **dígito a dígito** con el dígito activo subrayado: con un solo botón de subir, poner los minutos como valor completo costaría hasta 59 pulsaciones, y además la edición por dígitos **funciona igual con el mando de relés**, que solo entrega pulsos y no admite repetición por mantener pulsado. Se trabaja sobre una copia y solo se escribe al RTC al confirmar, de modo que entrar por error y salir con el Botón 4 no altera la hora. La pantalla **no arranca ciclos**: mantiene el mismo estado seguro que el menú.~~
+
+> 🔴 **TACHADO EL 05/09/2026: `MODO_HORA` ES INALCANZABLE, ASÍ QUE «LA ÚNICA VÍA PARA PONER EL
+> RELOJ» NO ES NINGUNA VÍA.** Y en la tabla de trazabilidad de este mismo documento esa frase vale
+> doble: describía como cubierto el requisito previo de SFTY-20 y SFTY-21.
+>
+> **Medido, no razonado.** El modo tiene **un solo armador** y cuelga de un botón que hoy devuelve
+> `false`:
+>
+> ```
+> $ grep -r "modoActual_set(MODO_HORA)" 01_Firmware/Maestro 01_Firmware/Esclavo --include=*.cpp
+> 01_Firmware/Maestro/src/menu.cpp:        case 1:  modoActual_set(MODO_HORA);      break;
+>
+> $ grep -r "bool botonAceptar" 01_Firmware/Maestro/src/botones.cpp
+> bool botonAceptar() { return false; }
+> ```
+>
+> Ese `case` vive dentro de `if (botonAceptar())`. Con la pantalla y la botonera retiradas el
+> 05/09, **la rama no corre nunca** — y «salir con el Botón 4» tampoco: `botonCancelar()` es
+> igualmente `return false;`. La segunda mitad del párrafo —edición dígito a dígito, copia de
+> trabajo, no arranca ciclos— sigue siendo **cierta sobre el código** de `modo_hora.cpp`; lo que
+> ha dejado de existir es **la puerta**.
+>
+> ✅ **EL CAMINO VIVO ES BLUETOOTH CONTRA EL ESP32 DE `J17`, QUE ES DONDE ESTÁ EL RELOJ CON
+> PILA:** `CMD:SET_RTC:<...>` lo escribe y `CMD:LEER_RTC` lo consulta
+> (`01_Firmware/ESP32_Expansion/src/despachador.cpp`, `01_Firmware/Maestro/src/bluetooth.cpp`).
+> **La regla de seguridad de SFTY-18 no cambia** —`reloj_enHora()` sigue siendo el que decide, y
+> toda función que dependa de la hora sigue debiendo abstenerse cuando dice `false`—. Lo que
+> cambia es por dónde entra la hora.
+>
+> **Se tacha en vez de borrarse** porque la frase «quinta opción del menú» está copiada en varios
+> manuales y volvería a proponerse; y porque *declarar no es ejercer* (§2.ter de `CLAUDE.md`): esta
+> línea llevaba meses describiendo una vía que ningún operario podía recorrer, y ningún instrumento
+> la contradecía porque las frases no se compilan.
 
 ---
 
@@ -602,8 +635,35 @@ la fila.
 > propio, que **no hereda** el verde del Modo Automático. Al ser fijo, el tope de 255 s del byte de
 > `CMD_CONFIG` no puede alcanzarse.
 >
-> **Pendientes conocidos:** el Esclavo **no tiene mando de relés** (N-19) y el estado del modo **no
-> persiste** a un corte de energía (N-20).
+> ~~**Pendientes conocidos:** el Esclavo **no tiene mando de relés** (N-19) y el estado del modo **no
+> persiste** a un corte de energía (N-20).~~
+>
+> 🔴 **TACHADO EL 05/09/2026: LOS DOS «PENDIENTES CONOCIDOS» ESTÁN CERRADOS DESDE HACE MÁS DE UN
+> MES, Y ESTA LÍNEA SEGUÍA ANUNCIÁNDOLOS.** Es peor que una omisión: un pendiente falso hace que
+> nadie vaya a mirar si la pieza existe.
+>
+> - **N-19 se cerró el 01/08/2026.** `01_Firmware/Esclavo/src/mando.cpp` existe, tiene su
+>   `ACC_DEGRADADO` y llama a `degradado_entrar()`:
+>
+>   ```
+>   $ grep -r "degradado_entrar()" 01_Firmware/Esclavo/src --include=*.cpp
+>   01_Firmware/Esclavo/src/mando.cpp:      // degradado_entrar(): una sola puerta, un solo criterio.
+>   01_Firmware/Esclavo/src/mando.cpp:      degradado_entrar();
+>   01_Firmware/Esclavo/src/menu.cpp:        ultimoRechazo = degradado_entrar();
+>   01_Firmware/Esclavo/src/modo_degradado.cpp:RechazoDegradado degradado_entrar() {
+>   01_Firmware/Esclavo/src/modo_degradado.cpp:  if (degradado_entrar() != DEG_ACEPTADO) {
+>   ```
+>
+>   Lo confirma [`04_Manuales/MANUAL_MANDO_4_RELES.md`](04_Manuales/MANUAL_MANDO_4_RELES.md):
+>   *«Firmware del mando — Esclavo: ✅ `Esclavo/src/mando.cpp` (añadido el 01/08/2026, N-19)»*.
+>   ⚠️ **Lo que SÍ sigue pendiente, y ese manual lo dice en la misma tabla, es el RECEPTOR FÍSICO:
+>   no está comprado ni instalado en ninguna de las dos puntas, y nada de esto se ha ejercitado
+>   con un mando físico conectado.** Es la distinción de §2.ter: el firmware está *declarado y
+>   construido*; lo que nadie ha *ejercido* es el conjunto con hardware.
+> - **N-20 se cerró:** el estado sí persiste. `respaldo_guardarDegradado()` lo escribe y `main.cpp`
+>   lo borra **en el único punto por el que pasan todas las salidas** —si el modo cambió, el
+>   Degradado se acabó—, precisamente para que un olvido en una de las cuatro vías de salida no
+>   deje al equipo reanudando un modo del que ya se había salido.
 
 ### La decisión de operación
 
@@ -613,9 +673,48 @@ la fila.
 |---|---|
 | Pérdida de radio | **Ámbar intermitente**, exactamente como hoy. **No se toca** |
 | Modo Degradado | **Caso especial de activación MANUAL**, confirmado por un operario |
-| Puesta en marcha del Degradado | **Desde la pantalla**: validar la hora, confirmar el otro extremo, iniciar y verificar |
-| Salida del Degradado | Desde la pantalla, **o con `A·A·A` desde el piso** para reintentar Automático |
+| Puesta en marcha del Degradado | ~~**Desde la pantalla**~~ **Desde la app por Bluetooth** (`SET_MODO:DEGRADADO`) **o con `A·B·A·B` desde el piso**: validar la hora, confirmar el otro extremo, iniciar y verificar |
+| Salida del Degradado | ~~Desde la pantalla~~ **Desde la app** (`SET_MODO:MENU` en el Maestro, `AMBAR_EMERGENCIA` en el Esclavo), **o con `A·A·A` desde el piso** para reintentar Automático |
 | Entrada automática | **NUNCA** |
+
+> 🔴 **CORREGIDO EL 05/09/2026: LA PANTALLA SE RETIRÓ, Y ERA EL ÚNICO CAMINO QUE ESTA TABLA
+> NOMBRABA PARA ENTRAR.** Los dos caminos vivos estaban construidos y sin escribir aquí. Medido
+> sobre el fuente, no razonado:
+>
+> | | Maestro | Esclavo |
+> |---|---|---|
+> | **entrar** | app: `SET_MODO:DEGRADADO` → `modo_degradado_evaluarEntrada()` y sólo si da `MDG_OK`, `modoActual_set(MODO_DEGRADADO)` (`Maestro/src/bluetooth.cpp`) · mando: `A·B·A·B` (`Maestro/src/mando.cpp`) | mando: `A·B·A·B` → `degradado_entrar()` (`Esclavo/src/mando.cpp`) |
+> | **salir** | app: `SET_MODO:MENU` → `modo_degradado_pedirSalida()`, que pasa por el todo-rojo · mando: `A·A·A` (Automático) o `B·B·B` (Ámbar) | app: `AMBAR_EMERGENCIA` → `salidaDegradadoIniciada()` (`Esclavo/src/bluetooth.cpp`) · mando: `A·A·A` (obedecer) o `B·B·B` (ámbar), **las dos por `degradado_salir()`** |
+>
+> **La secuencia de ENTRADA es `A·B·A·B`, no `A·A·A`.** `A·A·A` es «a ver si volvió el radio»
+> —Automático en el Maestro, volver a obedecer en el Esclavo—, y por eso sí sirve para SALIR. Se
+> anota porque el documento nombraba `A·A·A` sin decir cuál era la de entrada, y en el poste eso
+> son cuatro pulsos alternados contra tres iguales.
+>
+> 🟠 **Y UNA ASIMETRÍA MEDIDA ENTRE LAS DOS PUNTAS, que se anota y NO se toca:** las dos vías de
+> salida del **Esclavo** por mando pasan por `degradado_salir()` —o sea, por el todo-rojo de
+> despedida, y el comentario del fuente dice por qué: *«devolver el mando desde un verde por reloj
+> directamente a lo que el Maestro ordene sería encadenar dos autoridades sin cerrar el paso en
+> medio»*—. En el **Maestro**, `A·A·A` hace `modoActual_set(MODO_AUTOMATICO)` **sin pasar por
+> `modo_degradado_pedirSalida()`**, que es justo la puerta que el despachador de Bluetooth se
+> obliga a usar *(«EN DEGRADADO NO SE SALTA AL MENU… es la MISMA puerta que el botón 4»)*. El
+> indicador de respaldo sí se borra —`main.cpp` lo hace en el único punto por el que pasan todas
+> las salidas—, así que **no hay reanudación fantasma**; lo que se salta es el todo-rojo. **No se
+> arregla desde un documento: es firmware y es vial.**
+>
+> 🔴 **Y EL HUECO QUE ESTE CENSO DESTAPÓ, QUE NO ES UNA ERRATA: EL ESCLAVO NO TIENE CAMINO POR APP
+> PARA *ENTRAR* EN DEGRADADO.** Sale por `AMBAR_EMERGENCIA` y entra sólo por el mando de relés
+> —cuyo **receptor físico no está comprado**—. Como la entrada es deliberadamente local en cada
+> punta *(«un técnico validó ambos extremos»)*, un operario con la app puede poner el Maestro en
+> Degradado y **no tiene con qué poner el Esclavo**. Se anota, **no se arregla aquí**: añadir una
+> puerta a un modo que enciende un verde sin confirmación del otro extremo es una decisión del
+> responsable, no de un documento.
+>
+> ⚠️ **`salidaDegradadoIniciada()` del Esclavo no es un alias de `degradado_salir()`, y esa
+> diferencia es el molde bueno:** `degradado_salir()` es `void` y **abandona en silencio** desde
+> `DEG_INACTIVO`, `DEG_SALIENDO` y `DEG_RENDIDO`. El envoltorio pregunta **la misma guarda** antes
+> y devuelve `bool`, para que el `$ACK` diga lo que de verdad pasó —`SALIENDO_TODO_ROJO`, no `OK`—
+> en vez de ser el «OK mudo» que este repositorio persigue.
 
 ### Por qué manual y no automático
 
@@ -641,9 +740,25 @@ habilitó un modo especial" es un procedimiento; "la máquina decidió operar a 
 ### Procedimiento de puesta en marcha
 
 1. Confirmar que **ambas unidades tienen la hora puesta y coincidente**
-2. Entrar a **MODO DEGRADADO** desde la pantalla, en cada unidad
+   *(por Bluetooth: `CMD:LEER_RTC` en cada punta; se pone con `CMD:SET_RTC:<...>` — la pantalla
+   `AJUSTAR HORA` ya no es una vía, ver SFTY-18)*
+2. ~~Entrar a **MODO DEGRADADO** desde la pantalla, en cada unidad~~
+   → **Maestro:** `SET_MODO:DEGRADADO` desde la app, **o** `A·B·A·B` con el mando.
+   → **Esclavo:** `A·B·A·B` con el mando. ⛔ **Hoy no hay otra**, y el receptor de relés **no está
+   comprado**: ver el aviso de la tabla de arriba. **Este paso es el único que decide, y en el
+   Esclavo no es ejecutable con el material que hay.**
 3. Iniciar
 4. **Verificar visualmente que los dos semáforos alternan correctamente**
+
+> 🔴 **CORREGIDO EL 05/09/2026, Y ES EL PASO QUE MÁS IMPORTA DEL DOCUMENTO.** El paso 2 decía
+> *«desde la pantalla»* y la pantalla se retiró: **el único paso que toma una decisión no se podía
+> ejecutar**. Y en un documento de trazabilidad `SFTY-x → código → prueba` eso vale doble —§2.ter
+> de `CLAUDE.md`: *un paso que nadie puede ejecutar se cuenta como cubierto sin serlo*—.
+>
+> **Lo que este procedimiento SIGUE sin poder cerrar, y no es redacción:** con el receptor de
+> relés sin comprar, la puesta en marcha del Degradado **en el Esclavo no tiene ninguna vía
+> ejecutable hoy**. No es un defecto del firmware —las dos puertas están construidas y medidas—;
+> es que ninguna de las dos tiene con qué abrirse en esa punta. Va al responsable, no a un pack.
 
 ### La deriva y el margen
 
@@ -1914,6 +2029,16 @@ de que se pueda añadir sin volver a discutir el todo-rojo entero.
 ---
 
 ## 🚧 SFTY-28 — Talanquera acoplada al estado del semaforo (**IMPLEMENTADA la regla; abiertas las decisiones de operacion**)
+
+> ⏸️ **PENDIENTE ANOTADO EL 05/09/2026 — NO EJECUTADO AQUÍ, A PROPÓSITO.** El responsable dijo que
+> *«la barrera puede no bajar y el semáforo cambia igual»*, lo que **deroga** el sentido único de
+> esta regla. Pero la derogación formal es **`A-1.bis` de [`DECISIONES.md`](DECISIONES.md)** —*«¿se
+> deroga SFTY-28 (la talanquera sigue a la luz, nunca al revés)?»*—, y va **con la fase 2 de D-13,
+> en otro lote**. Esta sección **no se reescribe todavía**.
+>
+> Se anota en vez de ejecutarse por §2.quinquies de `CLAUDE.md`: *una frase nueva no deroga una
+> decisión escrita*. Y con más razón porque el cambio **retira una barrera** —el veto de la pluma—,
+> que es la dirección en la que un malentendido no se nota hasta que alguien está en la calzada.
 
 > **Estado:** anotado el 26/08/2026 y **construido el 27/08** en las dos puntas.
 >
