@@ -51,7 +51,13 @@ si es como se acumula un `20/20` que no acerca una tarjeta (§2.bis).
    **Y urge:** con `MANDO_B` al aire `mando_ambarLocal()` no se arma nunca, los tres `if`
    de `Esclavo/src/main.cpp` (`:406`, `:416`, `:540`) quedan siempre verdaderos y **el
    veto de SFTY-21 no queda inerte: queda ABIERTO.**
-2. **N-145 no se puede dar por probada.** Falta **comprar el `DS3231`** (linea `A6`) y
+2. ~~**N-145 no se puede dar por probada. Falta comprar el `DS3231`**~~ ✅ **RESUELTO
+   05/09 por el responsable: CADA ESP32 LLEVA SU RELOJ CON PILA PROPIA.** El
+   `HORA:22:19:58` de la cinta es real y **N-145 SI esta confirmada en cobre**. La
+   contradiccion era de la lista de compras, no del banco: `15_...md` linea `A6` sigue
+   diciendo «NO se compro» y **esta caducada**. *(Y estaba escrito desde el 28/08 en la
+   propia lista: «el `DS3231` se cuelga del `ESP32` por I2C con pila propia».)* Lo que
+   sigue sin verificar es la direccion `0x68` sobre el modulo. ~~Falta
    verificar `0x68` sobre el modulo. El firmware esta entero en las dos mitades. Sin la
    pieza las tramas salen con `--:--:--`, que es el arreglo **callandose bien** — no
    confundirlo con que falle.
