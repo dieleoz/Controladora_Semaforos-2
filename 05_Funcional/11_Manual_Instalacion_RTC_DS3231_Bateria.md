@@ -139,12 +139,36 @@ En la PCB de fábrica, `R5` es una resistencia puente de **0 Ω** que une el pin
 > pulsadores que lo hacían **ya no existen**:
 >
 > ```
->   Maestro/src/botones.cpp:280-281   bool botonAceptar()  { return false; }
+>   Maestro/src/botones.cpp:305-306   bool botonAceptar()  { return false; }
 >                                     bool botonCancelar(){ return false; }
 > ```
 >
-> `J16` p10 y p12 pasaron a ser entradas de cámara el 31/08. **La puerta está tapiada por los dos
-> lados**, y por Bluetooth no existe ningún comando que abra esa pantalla.
+> `J16` p10 y p12 pasaron a ser entradas de cámara el 31/08 —`CAM_C_PIN` y `CAM_D_PIN`—. **La puerta
+> está tapiada por los dos lados**, y por Bluetooth no existe ningún comando que abra esa pantalla.
+
+> ## 🕐 Y DESDE EL 04–05/09, LA HORA QUE SE VE EN LA APP **NO SALE DE ESTE RELOJ** (`N-145`)
+>
+> **Este manual describe el RTC de la placa STM32.** Ese reloj **sigue parado** —el cristal `Y2` está
+> confirmado muerto (`N-17`)— y `SET_RTC` contra el STM32 sigue contestando
+> `$ERR,…,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ`. **Eso no ha cambiado.**
+>
+> Lo que ha cambiado es **de dónde sale la hora que el operario ve**: el STM32 publica un **hueco
+> honesto** (`HORA:--:--:--`) y **el módulo `ESP32` lo rellena al pasar la trama**, con la hora de
+> **su propio `DS3231`** —el de la línea `A6`, colgado de `GPIO21`/`GPIO22`— y recalculando el
+> checksum.
+>
+> | | |
+> |---|---|
+> | **El `DS3231` de A6 no arbitra** | si algún día el STM32 pone una hora de verdad, el módulo **no la toca**: sólo rellena el hueco. El apaño **se apaga solo** cuando deje de hacer falta |
+> | **Nunca inventa** | bus mudo, oscilador parado (`OSF`), modo 12 h o registros incoherentes → **el hueco sale como está** |
+> | 🛑 **Y por eso, SIN `DS3231` conectado la hora sigue saliendo en blanco** | **eso NO es una avería del apaño: es el apaño negándose a mentir.** Un `DS3231` sin pila entrega una fecha **perfectamente formada y falsa**, que es lo que costó `N-144` |
+>
+> 🔴 **Nada de esto se ha probado sobre un `DS3231` real: el módulo NO ESTÁ COMPRADO (`A6`) y su
+> dirección I²C `0x68` está SIN VERIFICAR sobre el módulo.** **`N-145` no se puede dar por probada.**
+>
+> ⚠️ **Y el residual, escrito en vez de disimulado: desde la telemetría sola, la app NO PUEDE SABER
+> cuál de los dos relojes selló la hora.** Hoy siempre es el del módulo, porque el otro no existe,
+> pero **la trama no lo dice**.
 
 ### 4.1 ✅ Cómo se leen HOY esos mismos bits: por Bluetooth
 

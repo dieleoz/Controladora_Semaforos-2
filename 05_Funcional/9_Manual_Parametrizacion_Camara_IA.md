@@ -69,10 +69,10 @@ nunca. Nada se borra: el texto viejo queda tachado en su sitio con el motivo.*
 > existe desde que arranca la tarjeta y no solo mientras un modo está puesto:
 >
 > ```
-> :87   if (digitalRead(pin) == HIGH) {          // <-- ACTIVO EN ALTO
-> :155  pinMode(CAM_DEMANDA_PIN, INPUT);         // <-- INPUT PELADO, sin pull-up
-> :156  pinMode(CAM_C_PIN, INPUT);               //     las tres, en el arranque
-> :157  pinMode(CAM_D_PIN, INPUT);
+> :108  if (digitalRead(pin) == HIGH) {          // <-- ACTIVO EN ALTO
+> :176  pinMode(CAM_DEMANDA_PIN, INPUT);         // <-- INPUT PELADO, sin pull-up
+> :177  pinMode(CAM_C_PIN, INPUT);               //     las tres, en el arranque
+> :178  pinMode(CAM_D_PIN, INPUT);
 >
 > // el porque, en pines.h:41-46 (N-67):
 > //   PB0 lleva R64 de 10 kOhm A MASA -pull-DOWN- y C25 de 100 nF tambien a masa;
@@ -194,12 +194,12 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
 
 | pin | qué es | ¿cámara? | nivel |
 |---|---|---|---|
-| **`PB0`** (`J14`) | `CAM_DEMANDA_PIN`, con `R64` 10 kΩ + `C25` 100 nF (antirrebote 1 ms) | ✅ **Sí** | ✅ **MEDIDO** (`pines.h:43-46`; declarada en `botones.cpp:155`; leída en `modo_inteligente.cpp:86`, `:124` y `Esclavo/src/main.cpp:350`) |
-| **`PB8`** | `LED_TESTIGO` → `R16` 1 kΩ → LED `D5` | ❌ **No es entrada de nada** | ✅ **MEDIDO** (`pines.h:63`; `modo_inteligente.cpp:38` lo deja en alta impedancia) |
-| **`PB9`** (`J16` p5) | `BOTON1` = **`MANDO_A`** del mando de relés | 🛑 **NUNCA.** `A·A·A` en 12 s = Modo Automático | ✅ **MEDIDO** (`pines.h:122`, `botones.cpp:139`, `mando.cpp:225-227`) |
-| **`PB13`** (`J16` p8) | `BOTON2` = **`MANDO_B`** | 🛑 **NUNCA.** `B·B·B` = Ámbar **y arma `ambarLocal`**, que veta las órdenes de radio | ✅ **MEDIDO** (`pines.h:123`, `botones.cpp:140`, `mando.cpp:230-234`, `Esclavo/src/mando.cpp:132`) |
-| **`PB14`** (`J16` **p10**) | **`CAM_C_PIN` — entrada de cámara de DEMANDA**, con **`R67` 10 kΩ a masa CONFIRMADA en cobre: 9,93 kΩ** | ✅ **Sí — firmware Y cobre** | ✅ **MEDIDO EN EL FUENTE** (`pines.h:124`; `pinMode(INPUT)` en `botones.cpp:156`; leída por flanco en `botones.cpp:126-133`) **y MEDIDO EN BANCO el 04/09** (`M3`, paso 20: 9,93 kΩ a masa, 0 V con energía) |
-| **`PB15`** (`J16` **p12**) | **`CAM_D_PIN` — entrada de cámara de DEMANDA**, con **`R68` 10 kΩ a masa CONFIRMADA en cobre: 9,94 kΩ** | ✅ **Sí — firmware Y cobre** | ✅ **MEDIDO EN EL FUENTE** (`pines.h:125`; `pinMode(INPUT)` en `botones.cpp:157`) **y MEDIDO EN BANCO el 04/09** (`M3`, paso 20: 9,94 kΩ a masa, 0 V con energía) |
+| **`PB0`** (`J14`) | `CAM_DEMANDA_PIN`, con `R64` 10 kΩ + `C25` 100 nF (antirrebote 1 ms) | ✅ **Sí** | ✅ **MEDIDO** (`pines.h:43-46`; declarada en `botones.cpp:176`; leída en `modo_inteligente.cpp:97`, `:135` y `Esclavo/src/main.cpp:350`) |
+| **`PB8`** | `LED_TESTIGO` → `R16` 1 kΩ → LED `D5` | ❌ **No es entrada de nada** | ✅ **MEDIDO** (`pines.h:63`; `modo_inteligente.cpp:47` lo deja en alta impedancia) |
+| **`PB9`** (`J16` p5) | `BOTON1` = **`MANDO_A`** del mando de relés | 🛑 **NUNCA.** `A·A·A` en 12 s = Modo Automático | ✅ **MEDIDO** (`pines.h:134`, `botones.cpp:163`, `mando.cpp:225-226`) |
+| **`PB13`** (`J16` p8) | `BOTON2` = **`MANDO_B`** | 🛑 **NUNCA.** `B·B·B` = Ámbar **y arma `ambarLocal`**, que veta las órdenes de radio | ✅ **MEDIDO** (`pines.h:135`, `botones.cpp:164`, `mando.cpp:230-231`, `Esclavo/src/mando.cpp:132`) |
+| **`PB14`** (`J16` **p10**) | **`CAM_C_PIN` — entrada de cámara de DEMANDA**, con **`R67` 10 kΩ a masa CONFIRMADA en cobre: 9,93 kΩ** | ✅ **Sí — firmware Y cobre** | ✅ **MEDIDO EN EL FUENTE** (`pines.h:136`; `pinMode(INPUT)` en `botones.cpp:177`; leída por flanco en `botones.cpp:144-152`) **y MEDIDO EN BANCO el 04/09** (`M3`, paso 20: 9,93 kΩ a masa, 0 V con energía) |
+| **`PB15`** (`J16` **p12**) | **`CAM_D_PIN` — entrada de cámara de DEMANDA**, con **`R68` 10 kΩ a masa CONFIRMADA en cobre: 9,94 kΩ** | ✅ **Sí — firmware Y cobre** | ✅ **MEDIDO EN EL FUENTE** (`pines.h:137`; `pinMode(INPUT)` en `botones.cpp:178`) **y MEDIDO EN BANCO el 04/09** (`M3`, paso 20: 9,94 kΩ a masa, 0 V con energía) |
 
 > ### ✅ QUÉ CAMBIÓ EL 31/08 EN ESTAS DOS FILAS — Y QUÉ NO
 >
@@ -208,16 +208,53 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
 > falsas hoy:**
 >
 > ```
->   Maestro/src/botones.cpp:280-281   bool botonAceptar()  { return false; }
+>   Maestro/src/botones.cpp:305-306   bool botonAceptar()  { return false; }
 >                                     bool botonCancelar(){ return false; }
->   Maestro/src/botones.cpp:156-157   pinMode(CAM_C_PIN, INPUT);
+>   Maestro/src/botones.cpp:177-178   pinMode(CAM_C_PIN, INPUT);
 >                                     pinMode(CAM_D_PIN, INPUT);
->   Maestro/src/botones.cpp:126-133   flanco de subida -> demanda_solicitar()
->   Esclavo/src/botones.cpp:294-295, :176-177, :147-154   identico
+>   Maestro/src/botones.cpp:144-152   flanco de subida -> demanda_solicitar()
+>   Esclavo/src/botones.cpp:316-317, :194-195, :164-172   identico
 > ```
 >
 > **Son cámaras de DEMANDA**, exactamente como la de `J14`: piden paso. **No son cámaras de umbral**
 > y no miden el despeje — el despeje sigue siendo por tiempo (`cfgDespejeSeg`).
+
+> ### 🟢 QUÉ PASA CUANDO EL CONTACTO CIERRA — el camino completo, censado el 05/09
+>
+> **Las tres entradas acaban en la MISMA puerta**, y conviene saberlo antes de parametrizar el relé
+> de la AcuSense, porque la ventana de silencio la comparten:
+>
+> ```
+>    J16 p10 (PB14) --+
+>                     +--> camaras_actualizar()  --FLANCO DE SUBIDA-->  demanda_solicitar()
+>    J16 p12 (PB15) --+     botones.cpp:144-152                          demanda.cpp:13
+>                                                                              |
+>                                                                     demanda_hayLocal()
+>                                                                              |
+>    J14 (PB0) -----------------------------------------------> camara_leerPin(CAM_DEMANDA_PIN)
+>                                                                              |
+>                                                        modo_inteligente.cpp:97:
+>                                              camara_leerPin(CAM_DEMANDA_PIN) || demanda_hayLocal()
+> ```
+>
+> | propiedad | valor | dónde |
+> |---|---|---|
+> | **Ventana de silencio entre demandas** | **3 000 ms**, y es **la misma** para la cámara y para el botón de la app | `SILENCIO_MS`, `demanda.cpp:8` |
+> | **Las de `J16` se toman POR FLANCO**, no por nivel | el relé cierra ~1 s; leer el nivel repetiría la petición cada vuelta del `loop` | `botones.cpp:144-152` |
+> | **La de `J14` se lee POR NIVEL** | tiene el antirrebote `RC` de la placa | `modo_inteligente.cpp:97` |
+> | **Un contacto YA CERRADO al encender NO es una detección** | se siembra el nivel real en el arranque: no vuelve a pedir hasta que se **ABRA** y se cierre otra vez | `camaras_sembrar()`, `botones.cpp:129-135` |
+>
+> ⚠️ **Consecuencia de parametrización, y es la que decide NO/NC:** con la salida en **NC** el
+> contacto está cerrado en reposo, así que **el pin nace ALTO**, la siembra lo marca como «ya
+> disparado» y **no habrá flanco hasta que pase un coche y el relé ABRA y vuelva a cerrar**. Con
+> **NO** el reposo es abierto y cada detección da su flanco. **La configuración prevista es NO**, y
+> el criterio negativo del ensayo —*en reposo no debe pedir paso*— es lo que lo comprueba.
+>
+> 🔵 **Y un sitio donde las tres NO convergen, que NO es un defecto:** `modo_inteligente.cpp:135`
+> calcula el contador de presencia mirando **sólo** `PB0` y la demanda remota. **Medido: ese número
+> sólo alimenta `lcd_dibujarInteligente()` (`:138`) — es el contador de la PANTALLA, y la pantalla se
+> retira.** No decide ninguna luz. Se escribe con la medida al lado para que nadie vaya a
+> «arreglarlo».
 
 > ## 🟢 04/09 — `M3` CERRADA EN BANCO: **`PB14`/`PB15` YA SE CABLEAN**
 >
@@ -460,11 +497,11 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 
 | lo que este manual afirma | nivel |
 |---|---|
-| La entrada de cámara es **activa en ALTO** y no se cablea contra `GND` | ✅ **MEDIDO EN EL FUENTE** (`Maestro/src/botones.cpp:87-93`, y su razonamiento en `pines.h:103-109`) |
-| `PB0`/`J14` con `R64` 10 kΩ + `C25` 100 nF es una entrada de cámara con firmware | ✅ **MEDIDO** (`pines.h:43-46`; `botones.cpp:155`; `modo_inteligente.cpp:86`, `:124`; `Esclavo/src/main.cpp:350`) |
+| La entrada de cámara es **activa en ALTO** y no se cablea contra `GND` | ✅ **MEDIDO EN EL FUENTE** (`Maestro/src/botones.cpp:105-112`, y su razonamiento en `pines.h:103-110`) |
+| `PB0`/`J14` con `R64` 10 kΩ + `C25` 100 nF es una entrada de cámara con firmware | ✅ **MEDIDO** (`pines.h:43-46`; `botones.cpp:176`; `modo_inteligente.cpp:97`, `:135`; `Esclavo/src/main.cpp:350`) |
 | `PB8` es el `LED_TESTIGO`, no una entrada | ✅ **MEDIDO** (`pines.h:63`) |
-| `PB9`/`PB13` son los canales `A` y `B` del mando y **no admiten cámara** | ✅ **MEDIDO** (`pines.h:122-123`, `botones.cpp:139-140`, `mando.cpp:225-234`) |
-| **`PB14`/`PB15` son `CAM_C_PIN`/`CAM_D_PIN`, entradas de cámara de DEMANDA** | ✅ **MEDIDO el 02/09** (`pines.h:124-125`, `botones.cpp:156-157`, `:126-133`). **`botonAceptar()`/`botonCancelar()` devuelven `false` siempre** (`botones.cpp:280-281`) |
+| `PB9`/`PB13` son los canales `A` y `B` del mando y **no admiten cámara** | ✅ **MEDIDO** (`pines.h:134-135`, `botones.cpp:163-164`, `mando.cpp:225-231`) |
+| **`PB14`/`PB15` son `CAM_C_PIN`/`CAM_D_PIN`, entradas de cámara de DEMANDA** | ✅ **MEDIDO el 02/09** (`pines.h:136-137`, `botones.cpp:177-178`, `:144-152`). **`botonAceptar()`/`botonCancelar()` devuelven `false` siempre** (`botones.cpp:280-281`) |
 | Las separaciones de cobre de `J16` contra los 12 V | ✅ **MEDIDO** sobre el `.kicad_pcb` (`MAPEO_TARJETA_KICAD.md:576-588`) |
 | Que el **firmware** de `J16` p10/p12 esté escrito | ✅ **HECHO Y MEDIDO** |
 | ~~Que `R65`–`R68` estén montadas y la polaridad de `J16` sea la del netlist~~ | 🟢 **MEDIDO EN BANCO el 04/09 — `M3` CERRADA** (paso 20): `p10` **9,93 kΩ**, `p12` **9,94 kΩ** a masa, los dos a **0 V** con energía. Pull-**DOWN** real ⇒ **activo en ALTO**. ~~🔴 NO VERIFICADO, pendiente~~ |

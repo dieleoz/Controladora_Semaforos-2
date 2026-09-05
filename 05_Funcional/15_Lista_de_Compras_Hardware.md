@@ -561,14 +561,43 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 >   (`Maestro/src/bluetooth.cpp:336`, `SIN_CRISTAL_VEA_CONSULTA_RELOJ`; `Esclavo/src/bluetooth.cpp:268`,
 >   `SIN_CRISTAL`). Antes contestaba `RESULT:OK`
 >   sin haber puesto nada, y el técnico se iba del poste creyendo que dejó el reloj puesto; eso se
->   arregló, pero **el reloj sigue sin ponerse**. **`A6` es la pieza que lo destraba, y su firmware
->   —el del `ESP32`— tampoco existe todavía.**
+>   arregló, pero **el reloj sigue sin ponerse**. **`A6` es la pieza que lo destraba**, ~~y su
+>   firmware —el del `ESP32`— tampoco existe todavía~~.
+>
+>   > 🟢 **CADUCADA ESA ÚLTIMA FRASE EL 04–05/09, Y SE TACHA EN VEZ DE BORRARSE PORQUE INVIERTE LA
+>   > PRIORIDAD DE ESTA LÍNEA.** **El firmware del `ESP32` para este reloj YA ESTÁ ESCRITO, y el de
+>   > los dos sentidos:**
+>   >
+>   > | | dónde | estado |
+>   > |---|---|---|
+>   > | **Leer y poner en hora el `DS3231`** | `ESP32_Expansion/src/reloj_ds3231.cpp` — completo, con barrera `OSF`, bit 12/24 h y validación por barrido | ✅ **escrito** |
+>   > | **Atender `SET_RTC` contra SU reloj**, con las siete ramas colgando de lo que devolvió `reloj_ajustar()` | mismo módulo | ✅ **escrito** |
+>   > | 🆕 **Publicar la hora hacia la app** (`N-145`, 05/09): el puente **sella el hueco `HORA:--:--:--`** que el STM32 declara y **recalcula el checksum** | `src/puente.cpp:198-245` | ✅ **escrito** |
+>   >
+>   > 🛑 **Y por eso `A6` deja de ser «una pieza pendiente» y pasa a ser LA ÚNICA COSA QUE FALTA PARA
+>   > PODER PROBAR NADA DE ESTO:**
+>   >
+>   > * **Sin un `DS3231` en el bus, las tramas seguirán saliendo con `HORA:--:--:--`.** Eso es el
+>   >   firmware **negándose a inventar** —cota 3 del sello—, **no el firmware fallando**. Quien lo
+>   >   pruebe sin módulo **no puede concluir nada**.
+>   > * 🔴 **La dirección I²C `0x68` está SIN VERIFICAR sobre el módulo real.** Es la del datasheet, y
+>   >   lo dice el propio fuente: `ESP32_Expansion/include/contrato.h:185-188`.
+>   > * 🔴 **`N-145` NO SE PUEDE DAR POR PROBADA** mientras `A6` no se compre y se conecte.
+>   >
+>   > **La consecuencia de compras, en una línea: `A6` ya no espera a ningún diagnóstico — lo que
+>   > espera es a que alguien la pida.**
 > * **Cantidad 1, y el porqué:** el Esclavo **ya toma la hora del Maestro por radio**
 >   (`CMD_HORA_*`, SFTY-23), así que no necesita reloj propio. Si el responsable quiere que cada
 >   poste mantenga hora **sin depender del enlace**, son **2** — es una decisión, no un olvido.
-> * 🔴 **Sigue sin haber driver, y eso no es una avería.** Ver el aviso del bloque B, que se mantiene
->   entero: **al enchufarlo no dará la hora, porque no hay código que le hable** — ahora en el
->   `ESP32`, cuyo firmware tampoco está escrito.
+> * ~~🔴 **Sigue sin haber driver, y eso no es una avería.** Ver el aviso del bloque B, que se
+>   mantiene entero: **al enchufarlo no dará la hora, porque no hay código que le hable** — ahora en
+>   el `ESP32`, cuyo firmware tampoco está escrito.~~
+>   → 🟢 **CADUCADO EL 04–05/09: el driver EXISTE** (`ESP32_Expansion/src/reloj_ds3231.cpp`) **y el
+>   camino de vuelta hacia la app también** (`N-145`). Lo que **sí** sigue siendo cierto del aviso
+>   viejo, y por eso no se borra entero: **al enchufarlo puede no dar la hora igualmente** — un
+>   `ZS-042` con la pila equivocada, con el oscilador parado (`OSF`) o en modo 12 h **no entrega hora
+>   válida, y el firmware entonces publica el hueco a propósito**. Ver el aviso de recepción de
+>   abajo. 🔴 **Y nada de esto se ha ejercido sobre un módulo real: SIN VERIFICAR.**
 
 > ⚠️ **AVISO DE RECEPCIÓN de A6 — se hace ANTES de darle corriente, no al montar:**
 >

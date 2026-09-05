@@ -298,11 +298,11 @@ $<payload>*<XOR8 en 2 hex mayúsculas>\r\n
 
 | trama | buffer del payload | tope de payload | **tope en el cable** |
 |---|---|---|---|
-| `$STATUS` | `payload[128]` (`Maestro:425`, `Esclavo:326`) | 127 | **132 B** |
+| `$STATUS` | ~~`payload[128]` (`Maestro:425`, `Esclavo:326`)~~ → 🔵 **Maestro: `payload[144]` (`Maestro:928`)** · Esclavo: `payload[128]` (`Esclavo:789`) | ~~127~~ → **143** (Maestro) · 127 (Esclavo) | ~~**132 B**~~ → **148 B** (Maestro) · 132 B (Esclavo) |
 | `$ALARM` / `$EVENT` | `payload[100]` (`Maestro:81`/`:95`, `Esclavo:89`/`:103`) | 99 | **104 B** |
 | `$ERR,...DEGRADADO` | `p[80]` (`Maestro:244`) | 79 | **84 B** |
 | literales `$ACK` / `$ERR` | — | el más largo medido: **61** | **66 B** |
-| envoltorio | `tramaCompleta[140]` | — | cabe con holgura |
+| envoltorio | ~~`tramaCompleta[140]`~~ → **`tramaCompleta[160]`** (`Maestro:111`) | — | 🔵 **ya NO cabe «con holgura»: es el tope, y hay un pack que lo vigila** — ver el recuadro |
 
 El literal más largo que emite el firmware hoy, medido:
 `$ERR,CMD:REINICIAR_RELOJ,DESC:SIGUE_PARADO_VEA_CONSULTA_RELOJ` — 61 B de payload, 66 en el cable.
@@ -311,8 +311,26 @@ El literal más largo que emite el firmware hoy, medido:
 > `snprintf` en `payload[128]`. Si `SERIE:`, `MODO:` y `ESTADO:` crecieran, `snprintf` **trunca el
 > payload** y el CRC se calcula sobre lo truncado. La trama sale **bien formada y con checksum
 > correcto**, pero **cortada a mitad de campo**. El puente no debe descartarla por eso —es válida— y
-> el parser de la app tiene que sobrevivir a un último campo incompleto. Hoy el caso largo realista
-> mide 119 B de payload, con 8 de margen. **Es poco margen y nadie lo vigila.** Ver §9 `AB-5`.
+> el parser de la app tiene que sobrevivir a un último campo incompleto. ~~Hoy el caso largo realista
+> mide 119 B de payload, con 8 de margen. **Es poco margen y nadie lo vigila.**~~ Ver §9 `AB-5`.
+
+> 🔵 **ACTUALIZADO EL 05/09 (N-149), Y LAS DOS MITADES DE LA FRASE TACHADA CAMBIARON:**
+>
+> **1. La cifra.** El `$STATUS` del Maestro estrena el campo `ESC:` y su buffer sube a **144 B**. El
+> peor caso está **medido sobre los literales del propio firmware** —el modo más largo es
+> `INTELIGENTE`, el estado más largo `FALLO COM`—: **125 caracteres + NUL = 126 B**, o sea **18 B de
+> holgura** dentro de los 144.
+>
+> **2. Y ya no es cierto que «nadie lo vigila».** `esp32_07_presupuesto_bytes` exige
+> `tramaCompleta >= payload + 5` —el `*XX` y el `\r\n` que `enviarTramaConCrc()` añade después—, y
+> **tumbó la primera versión de este cambio**, que había puesto `payload[160]` «por si acaso»:
+> `tramaCompleta` mide 160, así que un payload de 160 **se habría truncado en el ÚLTIMO paso**,
+> saliendo al cable bien formado hasta la mitad. Es `CLAUDE.md` §4 contra una cuenta a ojo — y es la
+> primera vez que el margen de esta trama lo decide un instrumento y no una estimación.
+>
+> ⚠️ **Lo que sigue sin vigilarse es el Esclavo**, que se quedó en `payload[128]`. Su trama es más
+> corta —no lleva `ESC:` y sus `T`, `RF` y `RTT` son `--`—, pero **el margen concreto no está
+> medido**: **SIN VERIFICAR**.
 
 ### 3.4 La asimetría deliberada del checksum
 
@@ -368,7 +386,7 @@ que alguien lo llama.**
 | dirección | ¿hay checksum en el cable? | qué hace el puente |
 |---|---|---|
 | **app ⟶ STM32** | 🔴 **NO.** La app no lo pone (medida 1 de arriba) | **Los bytes se reenvían VERBATIM**: los mismos que mandó la app, sin quitar nada y **sin añadir nada**, con su `\r\n`. La **única** comprobación de este sentido es el **tope de longitud** (E-2): lo que no cabe se descarta y **se dice**, con un `$ERR` marcado como del puente (`NODE:PUENTE`) |
-| **STM32 ⟶ app** | ✅ **SÍ.** Lo pone `enviarTramaConCrc()` (`Maestro:43-48`, `Esclavo:51-56`) | **El puente lo verifica** antes de retransmitir. Una trama con CRC malo es ruido de cable, y el ruido no sube al teléfono. Se cuenta lo descartado (P-3) |
+| **STM32 ⟶ app** | ✅ **SÍ.** Lo pone `enviarTramaConCrc()` (`Maestro:43-48`, `Esclavo:51-56`) | **El puente lo verifica** antes de retransmitir. Una trama con CRC malo es ruido de cable, y el ruido no sube al teléfono. Se cuenta lo descartado (P-3). 🔵 **Y desde N-145 (05/09) este sentido —y SÓLO este— tiene UNA excepción acotada: si la trama trae el hueco `HORA:--:--:--`, el puente lo SELLA con la hora de su `DS3231` y RECALCULA el checksum.** Ver el recuadro de abajo y `B-5` en §6.3 |
 
 > 🔴 **No se puede validar el checksum de lo que llega de la app, porque la app no lo pone.** No es
 > una relajación de SFTY-16 ni una comodidad: **es que no hay nada que validar**, y exigirlo sería
@@ -506,7 +524,25 @@ El puente tiene que dejarlos pasar **íntegros**. Se listan para que nadie los d
 >    `$ACK`. Es §6.4 literal: **silencio no es orden**, y tampoco es confirmación.
 > 3. **Los literales de `RESULT:` crecen, y el puente no los enumera.** Cualquier tabla de respuestas
 >    escrita dentro del ESP32 sería una segunda copia que alguien tendría que sincronizar. El puente
->    **relaya la trama verbatim**, checksum incluido, y quien la interpreta es la app.
+>    ~~**relaya la trama verbatim**, checksum incluido~~ → 🔵 **ACOTADO EL 05/09 (N-145): relaya la
+>    trama **sin interpretarla**, y la única cosa que puede cambiar de ella es el hueco
+>    `HORA:--:--:--` —y entonces recalcula el checksum—.** La frase de arriba se escribió cuando el
+>    puente no tocaba **ni un byte**, y **dejarla tal cual sería una excepción con motivo sin
+>    verificar** (`CLAUDE.md` §3.bis). **Lo que la frase quería decir sigue entero y es lo que
+>    importa: el puente NO ENUMERA los `RESULT:`, NO los traduce y NO decide qué significan** — quien
+>    la interpreta es la app.
+>
+> 🛑 **Y la razón de que sellar la hora NO sea «originar» (B-1) ni «componer un `$STATUS`» (B-3):**
+> el sello **no crea el campo, rellena un hueco que el STM32 declaró**, y sólo cuando el propio STM32
+> dijo que no lo tiene. Si el STM32 pone una hora, esta función **no encuentra el literal y no hace
+> nada**: el puente **no arbitra entre dos relojes**. Y si el `DS3231` no contesta —bus mudo, `OSF`,
+> modo 12 h, registros incoherentes— **el hueco sale como estaba**. **NUNCA INVENTA.** Las tres cotas
+> completas, en `Manual 17`, revisión del 04-05/09, bloque 5.
+>
+> 🔴 **Lo que esto NO está: probado sobre un `DS3231` real.** La dirección `0x68` es la del datasheet
+> y está **SIN VERIFICAR sobre el módulo** (`include/contrato.h:185-188`); el módulo **no se ha
+> comprado** (línea `A6`). **Sin `DS3231` conectado las tramas seguirán saliendo con `--:--:--`, y
+> eso es el arreglo callándose bien, no el arreglo fallando.**
 
 ### 3.7 Censo completo de las tramas que el STM32 emite
 
@@ -552,13 +588,38 @@ $ grep -n "bluetooth_reportarEvento" Maestro/src/bluetooth.cpp | wc -l  ->  17
 ```
 Maestro:82   $ALARM,NODE:MAESTRO,EVENTO:%s,CAUSA:%s,ACCION:%s,HORA:%s
 Maestro:96   $EVENT,NODE:MAESTRO,ORIGEN:%s,DETALLE:%s,HORA:%s
-Maestro:427  $STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%lu,RF:%d%%,RTT:%lums,BAT:12.6,HORA:%s
-Esclavo:328  $STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:%lu,RF:98%%,RTT:85ms,BAT:12.6,HORA:%s
+Maestro:427  $STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%lu,RF:%d%%,RTT:%lums,BAT:12.6,HORA:%s     <-- VIEJO
+Esclavo:328  $STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:%lu,RF:98%%,RTT:85ms,BAT:12.6,HORA:%s  <-- VIEJO
 ```
 
 *(Que `RF:98%`, `RTT:85ms` y `BAT:12.6` sean literales fijos en el Esclavo es telemetría fabricada,
 ya levantada en el Manual 17 §2.6. **No es cosa del puente** y no se arregla aquí; se anota para que
 nadie crea que el ESP32 los mide.)*
+
+> 🔵 **RELEÍDO EL 05/09 — LAS DOS LÍNEAS DE ARRIBA YA NO SON LAS DEL FIRMWARE.** Se tachan en vez de
+> sustituirse porque el cambio es el que este apartado pedía. Lo que hay hoy:
+>
+> ```
+> Maestro:929  $STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s
+> Esclavo:791  $STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s
+> ```
+>
+> **Tres cosas que el puente tiene que saber, y ninguna le pide hacer nada distinto:**
+>
+> 1. **`BAT`, y en el Esclavo también `T`, `RF` y `RTT`, son ahora `--`** (N-108, N-139/N-143): la
+>    telemetría fabricada **se retiró en vez de maquillarse**. El puente **no rellena ninguno**.
+> 2. 🆕 **El Maestro emite un campo que el Esclavo NO emite: `ESC:<ROJO|VERDE|AMBAR|?>`** (N-149) —lo
+>    que el Maestro sabe del Esclavo—. **Las dos puntas dejaron de emitir los mismos campos, A
+>    PROPÓSITO.** El puente sigue sin enumerar campos, así que no le afecta; **a la app sí**: un campo
+>    que sólo dice el Maestro tiene que leerse **con red**, o en el poste del Esclavo llega
+>    `undefined` y la pantalla lo pinta como si fuera un dato.
+> 3. **El `?` de `ESC` significa «el enlace está caído y esta punta no lo sabe», NO «sin medida».**
+>    No comparte marca con los `--`, y eso es deliberado.
+>
+> ⚠️ **Y el acoplamiento nuevo, que sí es del puente:** el literal **`HORA:--:--:--`** del STM32 es
+> ahora **carga estructural** —es lo que el sello de `B-5.bis` busca—. Quien lo cambie o quite el
+> campo `HORA:` **apaga el sello en silencio**. Lo vigila un escenario del
+> `simulador_puente_esp32.py`, que exige que el Maestro **real** siga emitiéndolo.
 
 > 🔵 **Y un acoplamiento que hay que dejar escrito, porque desde el 04/09 algo cuelga de él:
 > `$STATUS` es la única trama que lleva `SERIE:` y `NODE:` a la vez, y de ahí —y sólo de ahí— sale el
@@ -978,6 +1039,7 @@ derecho a emitir, y cualquiera que añada uno pasa por ese fichero y justifica p
 | # | regla | por qué |
 |---|---|---|
 | **B-5** | **Una trama entra entera y sale entera.** El puente no la corta en dos escrituras ni concatena dos en una | el receptor del otro lado delimita por `\r`/`\n` (E-1): una trama partida entrega dos líneas, y las dos son basura |
+| **B-5.bis** | 🔵 **NUEVA (05/09, N-145) — LA ÚNICA EXCEPCIÓN, Y VIVE AQUÍ PORQUE ES DONDE VIVE LA REGLA.** El puente **puede sellar el hueco `HORA:--:--:--`** de una trama del equipo, y entonces **recalcula el checksum**. Nada más: no parte, no une, no filtra, no reordena y **no añade ni quita un byte** | poner esta excepción en otro fichero habría sido `HUERFANOS_CONOCIDOS` con otra forma (`CLAUDE.md` §3.bis): una lista de excepciones lejos de la regla que excepciona **es una lista de defectos con permiso** |
 | **B-6** | **Se valida ANTES de retransmitir**, no después | es SFTY-16 aplicado al puente, y es lo que ya hace el Repetidor (`5_Manual_Puente_ESP32.md` §3): *«ese ruido se descarta dentro del ESP32 y nunca llega al aire»* |
 | **B-7** | Una trama que **no cabe** o **no valida** se descarta **contándolo**, y el contador es legible | P-3 otra vez |
 
@@ -1026,7 +1088,9 @@ cruzaran los dos postes se llamarían igual**.
 **Y encaja con las reglas de §6.2 sin romper ninguna, que es lo que hay que comprobar antes de
 aceptar que el puente haga algo más:** `transporte_aprenderRotulo()` se llama **desde el camino de
 retransmisión** y *observa*: no altera la trama, no decide si sube, y no origina nada hacia el STM32
-(`src/puente.cpp:205-206`). **B-1 y B-5 siguen intactas.**
+(`src/puente.cpp:205-206`). **B-1 y B-5 siguen intactas** *(y siguen siéndolo tras N-145: lo que el
+sello de hora toca es una trama, y `transporte_aprenderRotulo()` no toca ninguna. La única excepción
+a B-5 es `B-5.bis` de §6.3 y no es ésta)*.
 
 > 🔵 **Desde el 04/09 esto dejó de ser prolijidad de montaje.** El responsable decidió que
 > **el cruce se opera desde el Maestro** (Manual 17 §3.7): no se relevan `SET_MODO` ni
@@ -1257,8 +1321,8 @@ deja abierto: no se inventa una decisión para que el documento parezca cerrado.
 | ~~**`AB-2`**~~ | ✅ **DECIDIDA el 31/08 y la mitad que faltaba el 04/09.** ~~*Cómo se opera el equipo si el ESP32 se cuelga, sin pantalla, sin pulsadores y sin mando*~~ → el mando **se queda** en los canales `A` y `B` (Manual 17 §3.3, opción 3), y el cruce **se opera desde el Maestro** (§3.7). 🔴 **Lo que sigue abierto no es la decisión, es su demostración:** el mando **no se pudo pulsar en banco** (N-118), el fuente se corrigió el 04/09 y **no se ha cargado en ninguna tarjeta**. El watchdog sigue cubriendo el colgado y **no** el muerto ni el desenchufado | ~~el responsable~~ **decidida; falta la carga verificada** | ya no bloquea el alcance de §6; **sí** bloquea que se pueda vender como salida de emergencia |
 | **`AB-9`** | 🔴 **NUEVA (04/09): dos módulos vírgenes se anuncian con el MISMO nombre.** El rótulo bueno se aprende del `$STATUS` y entra **en la siguiente arrancada** (§6.5); hasta entonces las dos puntas dicen `SEM-SIN-MATRICULA`. Y `AB-2` acaba de convertir ese rótulo en **lo que le dice al operario a qué poste caminar** (§17 3.7). ¿Se cubre por procedimiento —una vuelta de energía a cada módulo antes de irse, firmada en el acta— o el firmware da un provisional distinto por módulo? Las cuatro opciones, en el Manual 17 §3.8 | **el responsable** | si hay que tocar el firmware del puente antes de la primera puesta en marcha |
 | **`AB-3`** | 🟠 **`ESP32_ARRANQUE_MS` y el tiempo de reemparejar SPP: SIN VERIFICAR.** Son el hueco de la desigualdad de §4.2, y **se miden con el módulo en la mano**, no se estiman | **quien monte**, con visto bueno técnico | el número concreto del watchdog, y qué tiene que decirle la app al operario tras un reinicio |
-| **`AB-4`** | 🟠 **El `Y2`: se repara, o el STM32 lleva reloj de software disciplinado por el ESP32.** La vía B **cuelga el reloj del semáforo del accesorio** — contra §1.2. Antes hay una medida pendiente que puede ahorrar la compra entera (`ESTADO.md` `B5`) | **el responsable** | si el `DS3231` del ESP32 basta o hay que tocar el STM32 |
-| **`AB-5`** | 🟡 **`$STATUS` tiene 8 B de margen** antes de que `snprintf` trunque el payload (§3.3), y **nada lo vigila**. ¿Se acorta un campo, se sube el buffer, o se añade un pack que mida el margen? | técnico | evita una trama cortada a mitad de campo el día que crezca un literal |
+| **`AB-4`** | 🟠 **El `Y2`: se repara, o el STM32 lleva reloj de software disciplinado por el ESP32.** La vía B **cuelga el reloj del semáforo del accesorio** — contra §1.2. Antes hay una medida pendiente que puede ahorrar la compra entera (`ESTADO.md` `B5`). 🔵 **05/09 (N-145): sigue abierta, y ahora hay una TERCERA vía en marcha que no es ninguna de las dos** — el STM32 publica un hueco honesto y **el puente lo sella al pasar** (`B-5.bis`). Eso **tapa el síntoma en la app y NO da reloj al semáforo**: el Modo Degradado sigue colgando del reloj del STM32. 🛑 **Y no está probado: sin `DS3231` comprado (`A6`) ni dirección `0x68` verificada, esta vía SIGUE SIN EJERCER** | **el responsable** | si el `DS3231` del ESP32 basta o hay que tocar el STM32 |
+| ~~**`AB-5`**~~ | 🟢 **RESUELTA A MEDIAS EL 05/09 (N-149), y se dice qué mitad.** ~~*`$STATUS` tiene 8 B de margen y nada lo vigila*~~ → **el buffer del Maestro subió a `payload[144]`, el peor caso está MEDIDO en `126 B` (18 B de holgura) y lo vigila `esp32_07_presupuesto_bytes`**, que además tumbó la primera versión del cambio. 🟠 **Sigue abierta para el ESCLAVO**, que se quedó en `payload[128]` y **cuyo margen no está medido: SIN VERIFICAR** | técnico | evita una trama cortada a mitad de campo el día que crezca un literal — **hoy sólo en la punta del Maestro** |
 | **`AB-6`** | 🟡 **El nombre real del pin 3 de `J17`**: `RS(A0)` en el esquemático contra `LCD_PSB` en el firmware. Se cierra **siguiendo el hilo**, no leyendo más código | **quien monte** | el cableado del ESP32 |
 | **`AB-7`** | 🟡 **El PIN `1234` en claro en el fuente y en el aire** (§3.5). Es una limitación conocida. Cambiar el esquema toca las dos puntas y la app, y **no cabe en la especificación de un puente** | **el responsable** | nada de este documento; se anota para que no se dé por resuelto |
 | **`AB-8`** | 🟡 **Los números de `SFTY-x` de los packs nuevos.** La numeración llega hoy a `SFTY-29`. **Asignar uno es del responsable**, y hasta entonces los packs no se etiquetan | **el responsable** | la tabla de trazabilidad de `OPTIMIZACIONES.md` |

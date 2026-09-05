@@ -55,7 +55,91 @@ regla **§2.bis de `CLAUDE.md`**, que existe por esto.
 > Desde el 03/09 hay una segunda, y es mejor: **¿esto desatasca uno de los 5 pasos que el banco no
 > pudo correr?** Lo que no conteste a ninguna de las dos, no se escribe.
 
-### 0.0.bis · 🔴 REPORTE DE CAMPO DEL 04/09, TARDE — LAS DOS PLACAS YA HABLAN, Y APARECIO N-42 ENTERO
+### 0.0.quaterdecies CIERRE DE LA SESION DE BANCO DEL 04-05/09 — lo que la CINTA cerro y lo que dejo abierto
+
+> **Los cinco defectos de esta sesion salieron de una CINTA DE TRAMAS y de un DIARIO DE
+> ORDENES, no de una revision.** Los instrumentos de PC estaban en `20/20` mientras dos
+> de ellos vivian dentro. Es §2.ter con fecha nueva.
+
+### CONFIRMADO EN COBRE — la cinta del 05/09 a las 22:19, con `42a52cd` cargado
+
+| | la evidencia, literal |
+|---|---|
+| **N-146** | `$ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO` a las 22:19:40, con el `ESTADO` pasando de `ROJO` a `FALLO COM` |
+| **N-149** | `ESC:AMBAR` y `ESC:ROJO` viajando en todos los `$STATUS` del Maestro |
+| **N-145** | `HORA:22:19:58` — el campo dejo de ser `--:--:--` |
+
+### N-151 — DAR PASO EN UN MODO SIN COORDINADOR TRABABA EL CRUCE PARA SIEMPRE
+
+**Lo que la cinta enseña, y el sintoma no se parecia a la causa:** el equipo en
+`MODO:AMBAR` y **tres `MANUAL:CAMBIAR_TURNO` en 40 s**, los tres contestados
+`$ERR,CMD:CAMBIAR_TURNO,DESC:EN_TRANSICION_REINTENTE`. El operario leia *«el cruce esta
+cambiando de fase, repita al terminar»* y **el cambio no terminaba nunca**.
+
+**La causa, medida:** `main.cpp` EXCLUYE a `MODO_AMBAR` y a `MODO_DEGRADADO` del refresco
+de fondo —en esos dos el Maestro calla en la radio **a proposito**— y sus `loop()` no
+llaman al coordinador. Alli la maquina esta **congelada**. La PRIMERA pulsacion si entraba
+—`estadoC` valia `C_IDLE`— y dejaba el coordinador en una transicion que **ya no avanza**.
+Desde ahi, todas las demas caian en el `if (estadoC != C_IDLE) return;` **hasta que
+alguien cambiara de modo**.
+
+El equipo dijo que **si** a una orden que no iba a ejecutar, **y se quedo peor que antes
+de pedirla**. Es la barrera de salidas (§6) en su forma mas cara, y el mensaje era encima
+mentiroso: no habia ninguna transicion en curso.
+
+**Arreglo:** se rechaza de entrada con `MODO_SIN_CICLO_SALGA_PRIMERO`. El modo se mira
+**antes** que el estado del coordinador, y el orden importa: al reves, la primera
+pulsacion en ambar volveria a colarse y a trabar el cruce.
+
+**Instrumento:** `maestro_12_dar_paso_sin_coordinador`. No nombra ni un modo a mano: lee
+la lista de excluidos de la condicion de `main.cpp`, resuelve el `loop()` de cada uno por
+el `switch`, mira cual de ellos llama al coordinador, y exige que la guarda del
+despachador rechace **exactamente** los congelados. Con su mitad positiva —que no rechace
+de mas, o dejaria el boton muerto en Manual— y dos controles negativos que inyectan los
+dos defectos.
+
+### La linea FALSA de `pines.h`, encontrada revisando las spec y no por un test
+
+`pines.h:98-99` decia que `BOTON1`/`BOTON2` son `INPUT_PULLUP` **activos en BAJO**. El
+fuente hace `pinMode(INPUT)` pelado (`botones.cpp:160-161`) y lee `== HIGH`
+(`botones.cpp:40`) — **justo lo contrario**. Y lo contradecia el texto de N-118 **treinta
+lineas mas abajo del mismo fichero**, mas la medida en cobre del 03/09.
+
+Es la cabecera que todo el mundo lee **antes de cablear**. Los comentarios no compilan.
+
+### 🔴 LO QUE QUEDA ABIERTO — el orden es el de lo que duele
+
+1. **N-150 · al aplicar tiempos el cruce se queda en rojo para siempre.** Para fijar
+   tiempos hay que sacar el equipo del ciclo y la app manda al **menu**; alli el
+   coordinador manda `CMD_GO_RED` cada 3 s, que es su trabajo. Y al aceptarlos **nadie
+   vuelve a arrancar el ciclo**. **Decision pendiente:** que la app lo arranque sola es
+   comodo pero **abre paso sin que nadie lo pulse**, y eso es lo que §6 prohibe.
+2. **`CANCELAR_AMBAR` no manda nada por radio** — el hermano de N-142 en la otra
+   direccion. Cancelar desde el Poste 2 deja al Maestro en ambar.
+3. **`MANDO_A`/`MANDO_B` a `0,6 V`** (N-118). Con `MANDO_B` al aire el veto de SFTY-21
+   **no queda inerte: queda ABIERTO**.
+4. **N-145 sin poder probarse**: no hay `DS3231` comprado (`A6`) y `0x68` sigue SIN
+   VERIFICAR sobre modulo real.
+5. **Matriculacion por ID de Bluetooth.** `RF_Packet` = 4 bytes **sin campo de
+   direccion**; el CRC cubre 3.
+6. **Dos parsers en la app**: `nmea_parser.js` escribe `data.hora`, `app.js` lee
+   `data.HORA`. **La que se prueba no es la que se instala.**
+7. **`BAT:--` — y la causa SI esta medida**, al contrario de lo que se escribio antes en
+   esta misma sesion: N-108 lo puso en `--` a proposito porque `grep -rn analogRead` da
+   **cero** en las cuatro carpetas. Falta el divisor, no el firmware. *(Corregido: se
+   habia anotado como «hallazgo sin causa», y lo refuto un agente midiendo.)*
+8. **`J16` p1 lleva 12 V crudos**: taparlo es obligatorio en cada equipo (N-120).
+
+### Decision del responsable, tomada esta noche
+
+**En Manual, `DAR PASO` alterna rojo/verde como el automatico, disparado por el boton.**
+Termina en **rojo+verde**, no en rojo+ambar. El todo-rojo de despeje entre un verde y el
+siguiente **se queda** —el automatico tambien lo hace— y es lo que garantiza que el tramo
+quedo vacio. Configurable de 10 a 90 s, hoy en 15.
+
+---
+
+## 0.0.bis · 🔴 REPORTE DE CAMPO DEL 04/09, TARDE — LAS DOS PLACAS YA HABLAN, Y APARECIO N-42 ENTERO
 
 **Lo bueno primero: hay comunicacion entre las dos placas.** Es la primera vez. El bloqueo fisico de
 la segunda tarjeta que este documento daba por vigente **ya no existe**.
@@ -518,7 +602,8 @@ CMD:PIN:****:SET_RTC:2026-09-04,20:45:58
 El `$ERR` viene del STM32, que recibe la misma linea porque el puente reenvia VERBATIM -es
 su contrato- e intenta poner SU reloj, el del cristal `Y2` muerto desde N-17.
 
-Y **no era un fallo de formato**: medido, el Maestro quita `` y `
+Y **no era un fallo de formato**: medido, el Maestro quita `
+` y `
 ` al montar la linea,
 asi que el `sscanf` devuelve 6. Era la SEGUNDA rama -"escribi y al releer no cuadra"- que
 **reusaba el motivo de formato**. N-138 la separa: ahora dice `NO_QUEDO_PUESTA`.

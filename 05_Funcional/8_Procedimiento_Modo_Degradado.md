@@ -88,21 +88,34 @@
 > `3_Protocolo_Pruebas_Rigurosas.md` esté firmada, este procedimiento **no autoriza operación en vía
 > abierta al tráfico**.
 >
-> **Las cifras, COPIADAS del acta `evidencia/2026-09-04_compuerta.txt` (HEAD `624eb37`), no escritas
-> a mano** *(la revisión anterior publicaba «20/20 funcional, 10/10 repetidor, 83/83 de pantalla» y
-> las tres estaban caducadas)*:
+> **Las cifras, COPIADAS del acta `evidencia/2026-09-04_compuerta.txt` tal como está HOY, no
+> escritas a mano:**
 >
-> | instrumento | acta del 04/09 |
+> | instrumento | acta del 04/09 (HEAD `6d075a5`) |
 > |---|---|
 > | simulador funcional | `9/9 PASS` |
 > | simulador de repetidor | `10/10 PASS` |
 > | arnés de pantalla | `271/271` *(Maestro 145 + Esclavo 126)* |
 > | arnés del Degradado a dos puntas | `18/18` |
-> | banco por packs | `974/974` · 67 packs PASS |
-> | **resumen de la compuerta** | **20 PASS · 0 FALLA · 0 ABORTADO** |
+> | banco por packs | 🔴 **`981/998` · 67 packs PASS, 2 FALLA** — la fila entera está marcada `FALLA` |
+> | simulador del puente ESP32 | 🔴 **`ABORTADO`** — `IndexError: list index out of range` |
+> | **resumen de la compuerta** | 🔴 **18 PASS · 1 FALLA · 1 ABORTADO** |
 >
-> 🛑 **Y ese `20 PASS` no es un permiso.** Dice que los modelos y los arneses de PC no encuentran
-> nada. **No dice que este modo funcione en la tarjeta**, y este modo **no ha pisado hardware**.
+> 🛑 **LA COMPUERTA NO ESTÁ EN VERDE, Y ESO CAMBIA CÓMO SE LEE TODO ESTE DOCUMENTO.** La revisión
+> anterior publicaba aquí `974/974 · 67 packs PASS` y `20 PASS · 0 FALLA · 0 ABORTADO`, citando el
+> **mismo nombre de fichero** con HEAD `624eb37`. Ese acta ya no existe: **el fichero se reescribió
+> el mismo día con una corrida posterior** y hoy dice otra cosa. Se conserva escrito el número viejo
+> porque el fallo no es la cifra, es el mecanismo: **un acta con la fecha en el nombre se puede
+> sobrescribir sin que nada avise**, y un documento que la cita por nombre envejece en silencio.
+> *(Es la misma forma que este repositorio ya conoce: un hash en un documento caduca solo.)*
+>
+> **Y el acta trae además su propio aviso, que se copia entero:** *«el árbol tenía cambios sin
+> commitear al medir. Estas cifras NO corresponden exactamente a `6d075a5`»*.
+>
+> 🛑 **Un `ABORTADO` no dice NADA del firmware** —no es un aprobado— y un `981/998` dice que hay
+> **17 comprobaciones que no cumplen**. Hasta que las dos filas rojas se cierren, de este documento
+> no se puede afirmar que esté verificado ni el modelo; y ni con la compuerta verde estaría
+> verificada la tarjeta, porque **este modo no ha pisado hardware**.
 
 ---
 
@@ -148,6 +161,37 @@ pueda saltar: es una puerta en firmware.
 | 3 | Esa sincronización es **reciente** — menos de **2 h** | Basta con que el radio haya estado vivo hace poco | `Falta: la ultima sync es muy vieja` |
 | 4 | Hay una **medida de desfase** contra el Esclavo | La toma el Maestro por radio (`CMD_DELTA`) | `Falta: sin medida de desfase valida` |
 | 5 | Ese desfase está **dentro de ±3 s** | — | `Desfase fuera de tolerancia (+-3s)` |
+
+> ## 🛑 04/09 — LA PRIMERA VUELTA DE ENERGÍA CON ESTE FIRMWARE BORRA EL RELOJ, ASÍ QUE **NINGUNA** DE LAS CINCO SE CUMPLE
+>
+> **Y no es un fallo: está diseñado así.** `N-133` mete los tiempos del ciclo automático en el
+> respaldo con pila, y para eso **cambia el formato** de ese respaldo: la firma sube de `0x5EB1` a
+> **`0x5EB2`** (`Maestro/src/respaldo.cpp:76`, idéntico en el Esclavo). Un equipo que arranca con
+> este firmware **no reconoce la firma vieja y borra el respaldo entero** — que es lo correcto:
+> leer con esta aritmética unos bytes escritos con otra daría un dato que parece bueno.
+>
+> **Lo que eso le hace a ESTE procedimiento, que es lo que hay que saber antes de subir:**
+>
+> | condición | tras la primera arrancada |
+> |---|---|
+> | 1 · reloj puesto en hora | 🛑 **se perdió** |
+> | 2 · hubo al menos una sincronización RF | 🛑 **se perdió** |
+> | 3 · esa sincronización es de hace menos de 2 h | 🛑 no aplica: no hay ninguna |
+> | 4 y 5 · medida de desfase y su tolerancia | 🛑 no hay medida |
+>
+> **Es decir: el primer intento de entrar en Degradado tras cargar este firmware VA A SER RECHAZADO,
+> y el rechazo es correcto.** El `$ERR` de `SET_MODO:DEGRADADO` dirá cuál falta —contesta el motivo
+> concreto, `Maestro/src/bluetooth.cpp:501`—, y **quien no sepa esto va a leerlo como una avería del
+> equipo o de la radio.**
+>
+> ✅ **Qué hacer:** poner la hora (`SET_RTC` desde la app en el **Maestro**), **esperar a que haya
+> sincronizado con el Esclavo por radio**, y volver a pedir el modo. **Pasa una sola vez**, en el
+> primer arranque tras la carga.
+>
+> ⚠️ **Y lo que sigue sin sobrevivir a un corte, aunque el respaldo esté conectado: la pertenencia
+> al Modo Degradado.** No hay registro de *«esta punta estaba en Degradado»*, así que un corte de
+> energía **no lo reanuda** — el equipo vuelve a la espera de selección de modo. Es la dirección
+> segura, pero **hay que rehacer la entrada en las dos puntas, con su verificación visual**.
 
 ### Por qué la condición 3 existe y no es burocracia
 
@@ -470,8 +514,15 @@ enlaza"*.
 ```
 
 Volver a Automático **no necesita protección**, y por eso la secuencia es corta: si el radio sigue
-muerto, el propio sistema se corrige a los 12 s (SFTY-6) y cae a ámbar, que es justo donde se quería
-estar. **El peor caso de intentar Automático es volver al ámbar.**
+muerto, el propio sistema se corrige a los ~~12~~ **25 s** (SFTY-6) y cae a ámbar, que es justo donde
+se quería estar. **El peor caso de intentar Automático es volver al ámbar.**
+
+> ✏️ **CORREGIDO EL 04/09 — este párrafo publicaba 12 s y son 25 desde `N-71`.** **MEDIDO:**
+> `SFTY6_SILENCIO_MS 25000UL`, en `Maestro/include/protocolo.h:149` **y** en
+> `Esclavo/include/protocolo.h:149` *(el mismo número en las dos puntas, que es parte de la
+> propiedad)*. El manual `1_Manual_Usuario.md §4` ya lo traía bien; **este documento se había quedado
+> con el número viejo**, y no es cosmético: quien espere 12 s y no vea ámbar concluirá que el equipo
+> no obedeció, cuando lo que le falta es **esperar el doble**. **Cuente 25 s antes de decidir nada.**
 
 ### Para irse a ámbar y dejarlo así
 
@@ -514,9 +565,35 @@ estar. **El peor caso de intentar Automático es volver al ámbar.**
 
 ### 5.bis 🟠 El ámbar de emergencia desde la app, y la jerarquía de las dos vías
 
-> 🛑 **ESPECIFICACIÓN DEL 31/08/2026. NADA DE ESTO HA PASADO BANCO,** y el firmware de hoy **no** se
-> comporta como dice este apartado: `CMD:AMBAR_EMERGENCIA` **no sale del Modo Degradado** y contesta
-> `RESULT:OK` pase lo que pase. Es el defecto **N-106**, abierto.
+> ✅ **AL DÍA EL 04/09/2026 — `N-106` ESTÁ CERRADO EN EL FUENTE, y este apartado ya NO describe algo
+> que el firmware incumple.** Lo que sigue vigente sin cambios es la otra mitad: **NADA DE ESTO HA
+> PASADO BANCO.**
+>
+> ~~*«el firmware de hoy no se comporta como dice este apartado: `CMD:AMBAR_EMERGENCIA` no sale del
+> Modo Degradado y contesta `RESULT:OK` pase lo que pase. Es el defecto N-106, abierto»*~~ →
+> 🛑 **CADUCADO.** Se tacha en vez de borrarse: quien lo leyera y lo diera por vigente estaría
+> desconfiando del botón equivocado, y mandaría a un operario a subir a un poste sin necesidad.
+>
+> **MEDIDO en el fuente** *(no ejercido en tarjeta)*, `Esclavo/src/bluetooth.cpp`:
+>
+> * **`salidaDegradadoIniciada()` (`:302-308`)** llama a `degradado_salir()` **y devuelve si la
+>   salida arrancó de verdad**. El porqué del envoltorio está escrito en `:293-301` y es la parte
+>   reutilizable: `degradado_salir()` es `void` y **abandona en silencio** desde `DEG_INACTIVO` y
+>   desde `DEG_SALIENDO`, así que llamarla suelta y contestar `$ACK` detrás **habría sido el mismo
+>   «OK mudo»** que este documento denunciaba. Pregunta la **misma** guarda que ella —`DEG_ENTRANDO`
+>   o `DEG_ACTIVO`—, no una parecida.
+> * **Las dos puertas —sin PIN (`:381`) y con PIN (`:468`)— llevan el mismo bloque letra por letra**,
+>   y lo vigilan los packs `esclavo_07` y `esclavo_08`.
+>
+> **Y el `RESULT` ya no es `OK` pase lo que pase: son cinco respuestas distintas** *(la tabla
+> completa con sus `DESC:` sigue viviendo en el Manual 10 §4.5, y aquí sigue sin copiarse — ver más
+> abajo el porqué)*.
+>
+> ⚠️ **Lo que este cierre NO trae, y hay que leerlo antes de cambiar la práctica de campo:** es
+> **MEDIDO sobre fichero**, y **nadie lo ha ejercido** ni en tarjeta ni en arnés. La regla de
+> `CLAUDE.md` §8.bis —*ver fallar el instrumento antes de fiarse del arreglo*— **no se ha cumplido
+> todavía para este camino**. Hasta entonces la instrucción de obra sigue siendo la de siempre y no
+> depende de ningún firmware: **verificar las dos puntas con los ojos**.
 
 **La jerarquía, que es decisión del responsable y no una preferencia de diseño:**
 
@@ -534,11 +611,17 @@ MANDO»*— y **hoy no es cierto en Modo Degradado**:
 
 | vía | qué hace hoy en Degradado | ¿sale por el todo-rojo? |
 |---|---|---|
-| Mando, `B·B·B` | `mando.cpp:129-141`: si el Degradado gobierna la luz, `degradado_salir()` | **sí** |
-| App, `AMBAR_EMERGENCIA` | `bluetooth.cpp:130-136` y `:171-176`: `semaforo_iniciarFallo()` a secas | **no** |
+| Mando, `B·B·B` | `Esclavo/src/mando.cpp:129-141`: si el Degradado gobierna la luz, `degradado_salir()` | **sí** |
+| App, `AMBAR_EMERGENCIA` | ~~`bluetooth.cpp:130-136` y `:171-176`: `semaforo_iniciarFallo()` a secas~~ → ✅ **04/09:** `bluetooth.cpp:402` y `:481` preguntan `salidaDegradadoIniciada()` | ✅ **sí** |
 
 **Decisión del responsable, 31/08:** la vía de la app **sale del Degradado de forma ordenada, igual
-que `B·B·B`**, por el todo-rojo de despedida.
+que `B·B·B`**, por el todo-rojo de despedida. ✅ **Implementada el 04/09 (`N-106`), MEDIDA en el
+fuente y sin ejercer.**
+
+> 🔵 **Y la razón vial va escrita en el propio firmware, que es donde tiene que estar**
+> (`Esclavo/src/bluetooth.cpp:368-373`): saltar de un **verde por reloj** directo a ámbar
+> intermitente *«le daría a quien ya venía lanzado una señal que invita a negociar el paso mientras
+> aún cree tener prioridad»*. Por eso el Degradado entra y sale **siempre** por todo-rojo.
 
 #### Lo que el funcional VE cuando lo pide con el Degradado en marcha
 
@@ -723,8 +806,28 @@ Escrito aquí porque una limitación documentada vale más que una promesa:
 - **No hay prueba de banco ni de campo todavía.** Todo lo anterior está validado en simulador.
 - **El Esclavo no tiene receptor de mando** (N-19). Todo lo que este documento dice del mando aplica
   **solo al Maestro**.
-- **El estado no sobrevive a un corte de energía** (N-20). `respaldo.cpp` está escrito pero sin
-  conectar.
+- ~~**El estado no sobrevive a un corte de energía** (N-20). `respaldo.cpp` está escrito pero sin
+  conectar.~~ → 🛑 **CADUCADO EL 04/09: `respaldo.cpp` SÍ está conectado.** **MEDIDO:**
+  `respaldo_setup()` se llama en las dos puntas —`Maestro/src/main.cpp:77` y
+  `Esclavo/src/main.cpp:267`—. Lo que sobrevive al corte no es *«el estado»* en general, y por eso
+  la frase corta se sustituye por la lista:
+
+  | qué | registro | unidad |
+  |---|---|---|
+  | verde y despeje del **ciclo Degradado** | `DR2` / `DR3` | **segundos** |
+  | banderas y sello de la sincronización | `DR4`–`DR8` | — |
+  | 🆕 **rojo, verde y despeje del ciclo AUTOMÁTICO** (`N-133`, 04/09) | `DR9` / `DR10` | **minutos** el rojo y el verde · **segundos** el despeje |
+
+  > ⚠️ **OJO A LA UNIDAD, y el propio fuente avisa** (`Maestro/include/respaldo.h:54-56`): las dos
+  > parejas **no son lo mismo**. Las del Degradado van en segundos; las del Automático, el rojo y el
+  > verde van en **minutos**. Confundirlas al leer un valor guardado da un ciclo 60 veces más largo
+  > o más corto del que alguien configuró.
+  >
+  > 🔴 **Y lo que sigue SIN sobrevivir, que es lo que este procedimiento necesitaba:** no hay
+  > registro de *«esta punta estaba en Degradado»*. Un corte de energía en Degradado **no lo
+  > reanuda**: el equipo vuelve a la espera de selección de modo. Eso es correcto y es la dirección
+  > segura —reanudar solo un verde por reloj sin que nadie mire las dos puntas es exactamente lo que
+  > este modo existe para evitar—, pero **hay que saberlo antes de irse del cruce**.
 - **La configuración del ciclo se sincroniza pero todavía no se consume** en el cálculo del ciclo
   (N-18): hoy ambas puntas usan los 30/30 fijos compilados. Mientras los dos firmwares sean de la
   misma versión, coinciden — **pero flashear versiones distintas en cada punta rompería la fase sin

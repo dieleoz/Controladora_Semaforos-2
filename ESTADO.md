@@ -1,4 +1,84 @@
-# ESTADO — Dónde está parado el proyecto HOY (V9.0)
+# ESTADO — cierre de la sesion de banco del 04-05/09/2026
+
+> **Esto es lo que hay que procesar manana.** Escrito al cerrar, con el equipo delante y
+> las cintas encima. Lo de mas abajo del separador es historico.
+
+## Lo que quedo CERRADO y CONFIRMADO EN COBRE esta noche
+
+Las cintas del 05/09 a las 22:19 lo demuestran, no lo afirman — cargaron `42a52cd`:
+
+| | evidencia en la cinta |
+|---|---|
+| **N-146** el ambar re-armado | `$ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO` a las 22:19:40, y el `ESTADO` pasa de `ROJO` a `FALLO COM` |
+| **N-149** el Esclavo en la trama | `ESC:AMBAR` y `ESC:ROJO` viajando en todos los `$STATUS` |
+| **N-145** la hora del DS3231 | `HORA:22:19:58` — el campo dejo de ser `--:--:--` |
+| **N-142** el aviso del ambar | el `ESC:` sigue al ambar del Esclavo sin esperar los 25 s |
+
+## Lo que se ARREGLO despues de esas cintas y NO se ha probado en tarjeta
+
+- **N-151 — DAR PASO en un modo sin coordinador trababa el cruce para siempre.** Es el
+  defecto que la cinta destapo: el equipo en `MODO:AMBAR` y tres `MANUAL:CAMBIAR_TURNO`
+  en 40 s, los tres con `EN_TRANSICION_REINTENTE`. `main.cpp` excluye a `MODO_AMBAR` y
+  `MODO_DEGRADADO` del refresco de fondo y sus `loop()` no llaman al coordinador: alli la
+  maquina esta **congelada**. La primera pulsacion entraba y dejaba el coordinador en una
+  transicion que ya no avanza; desde ahi, todas las demas se rechazaban **hasta cambiar de
+  modo**. Ahora se rechaza de entrada con `MODO_SIN_CICLO_SALGA_PRIMERO`, que es verdad.
+  Lo vigila `maestro_12_dar_paso_sin_coordinador`.
+- **La linea falsa de `pines.h`**: decia que `BOTON1`/`BOTON2` son `INPUT_PULLUP` activos
+  en BAJO. El fuente hace `INPUT` pelado y lee `== HIGH`. Es la cabecera que todo el mundo
+  lee antes de cablear.
+
+## 🔴 ABIERTO — por orden de lo que duele
+
+1. **N-150 — al aplicar tiempos el cruce se queda en rojo para siempre.** Para fijar
+   tiempos hay que sacar el equipo del ciclo y la app manda al **menu**; en el menu el
+   coordinador manda `CMD_GO_RED` cada 3 s a las dos puntas, que es su trabajo. Y al
+   aceptar los tiempos **nadie vuelve a arrancar el ciclo**: `enviarComandoFirmware(
+   'SET_TIEMPOS', ...)` y ahi se acaba. Los 4 minutos no llegan nunca.
+   **Decision pendiente del responsable:** que la app arranque el ciclo sola tras el
+   `$ACK` es comodo pero **abre paso sin que nadie lo pulse** —lo que el apartado 6
+   prohibe—; la alternativa es decirselo y que lo pulse el.
+2. **`CANCELAR_AMBAR` no manda nada por radio.** El unico `protocolo_enviarPaquete` de
+   ese fichero es el `:486` de armado. Cancelar desde el Poste 2 deja al **Maestro en
+   ambar** y obliga a caminar al Poste 1. Es el hermano de N-142 en la otra direccion.
+3. **`MANDO_A` / `MANDO_B` no responden** — `0,6 V` en reposo (N-118), `J16` p5 y p8.
+   **Van cableados**: con `MANDO_B` al aire `mando_ambarLocal()` no se arma nunca y los
+   tres `if` de `Esclavo/src/main.cpp` (`:406`, `:416`, `:540`) quedan siempre
+   verdaderos. **El veto de SFTY-21 no queda inerte: queda ABIERTO.**
+4. **N-145 no se puede dar por probada.** Sin `DS3231` en el bus las tramas salen con
+   `--:--:--`, que es el arreglo callandose bien. `0x68` sigue **SIN VERIFICAR** sobre
+   modulo real y la pieza **no esta comprada** (linea `A6`).
+5. **Matriculacion por ID de Bluetooth**, no por nombre y sin hacerlo a mano. Aplazada a
+   despues del banco por decision del responsable. Dato duro que la condiciona:
+   `RF_Packet` son 4 bytes `{msgID, command, param, crc}` y **no tiene campo de
+   direccion**; el CRC cubre 3.
+6. **Dos parsers en la app con convenios distintos**: `nmea_parser.js` escribe
+   `data.hora` en minuscula y `app.js` lee `data.HORA`. **La que se prueba no es la que
+   se instala.** Falta un pack que exija que las dos listas de campos coincidan.
+7. **`BAT:--`** — y la causa **si esta medida**, al contrario de lo que se escribio
+   antes: N-108 lo puso en `--` a proposito porque `grep -rn analogRead` sobre las cuatro
+   carpetas da **cero**. Falta el divisor y la entrada analogica, no el firmware.
+8. **`J16` p1 lleva 12 V crudos.** Taparlo es **obligatorio en cada equipo que se monte**
+   (N-120), no una cautela de banco.
+
+## Decision del responsable, tomada esta noche y sin escribir hasta ahora
+
+**En Manual, `DAR PASO` alterna rojo/verde como el automatico, disparado por el boton.**
+El ciclo termina en rojo+verde, **no** en rojo+ambar. Y el todo-rojo de despeje entre un
+verde y el siguiente **se queda**: el automatico tambien lo hace, y es lo que garantiza
+que el tramo quedo vacio. Es configurable de 10 a 90 s y hoy esta en 15.
+
+## Verificacion
+
+Compuerta **20 PASS · 0 FALLA · 0 ABORTADO**. Banco **1030/1030 en 72 packs**. Maestro
+**86,0 %** (`56384` B), Esclavo **66,1 %** (`43336` B), app en DOM **207/207**.
+
+> **Y lo que ese verde significa, que es lo de siempre:** los modelos y los arneses de PC
+> no encuentran nada. **No dice que el firmware funcione en la tarjeta.** Esta noche hubo
+> dos pruebas: N-146 y N-147 pasaron las 20 comprobaciones sin despeinarlas, y los
+> encontro una cinta.
+
+---
 
 **Actualizado:** 5 de Septiembre de 2026, madrugada · rama **`main-nuevo`** · **HEAD `8e9e8a9`**
 · remoto `origin` = `github.com/dieleoz/Controladora_Semaforos-2`
@@ -59,14 +139,14 @@ nombre y apellido.
 
 ## 📏 VERIFICACIÓN EN ESCRITORIO — lo que dice la última acta
 
-**Compuerta:** 🔴 **19 PASS | 0 FALLA | 1 ABORTADO**, así que **no sale con `0`: sale con `2`**, que es su código de ABORTADO. **El abortado es `simulador de app y bluetooth`**, que no sabe con qué comparar el campo `ESC:` que N-149 estrenó el 05/09: **mientras siga abortado, todo lo que ese instrumento vigilaba entra sin mirar** (`CLAUDE.md` §3.quater). **El banco por packs está entero —1025/1025 en 71 packs— y las cinco comprobaciones `documentos_*` dentro.** Cifras **copiadas del acta
+**Compuerta:** 🔴 **19 PASS | 0 FALLA | 1 ABORTADO**, así que **no sale con `0`: sale con `2`**, que es su código de ABORTADO. **El abortado es `simulador de app y bluetooth`**, que no sabe con qué comparar el campo `ESC:` que N-149 estrenó el 05/09: **mientras siga abortado, todo lo que ese instrumento vigilaba entra sin mirar** (`CLAUDE.md` §3.quater). **El banco por packs está entero —1030/1030 en 72 packs— y las cinco comprobaciones `documentos_*` dentro.** Cifras **copiadas del acta
 `evidencia/2026-09-04_compuerta.txt`**, no escritas a mano — lo comprueban `documentos_01` y
 `documentos_04` en cada corrida.
 
 | | |
 |---|---|
-| Flash | Maestro **85.9 %** (**56308** de 65536 B → **9.228 B libres**) · Esclavo **66.1 %** (43336 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | **1025/1025** en **71 packs** |
+| Flash | Maestro **86.0 %** (**56384** de 65536 B → **9.228 B libres**) · Esclavo **66.1 %** (43336 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | **1030/1030** en **72 packs** |
 | Arneses que compilan C++ real | 271/271 pantalla · 71/71 automático · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** |
 | Puente ESP32 | **93/93** |
 | App | app: 32/32 + 55/55 unitarios + 207/207 jsdom + 58/58 funcional |

@@ -3,12 +3,23 @@
 **Para:** el funcional y el auditor.
 **Fecha del documento:** 28 de agosto de 2026.
 **Revisado:** 31 de agosto de 2026 (decision del responsable), **04 de septiembre de 2026 (banco
-real: el equipo se midio con multimetro los dias 3 y 4)** y **04 de septiembre de 2026, mas tarde el
-mismo dia (tres cambios de firmware y una decision del responsable, medidos SOBRE FICHEROS)**. Las
-tres revisiones estan al principio; **la del banco va la primera a proposito** —es la unica medida en
-cobre—, y detras la de la tarde. **Nada de lo superado se ha borrado.**
+real: el equipo se midio con multimetro los dias 3 y 4)**, **04 de septiembre de 2026, mas tarde el
+mismo dia (tres cambios de firmware y una decision del responsable, medidos SOBRE FICHEROS)** y
+**04 de septiembre de 2026, de noche (cinco cambios mas, una decision y un hallazgo nuevo, tambien
+SOBRE FICHEROS)**. Las cuatro revisiones estan al principio; **la del banco va la primera a
+proposito** —es la unica medida en cobre—, y detras las dos del mismo dia en orden. **Nada de lo
+superado se ha borrado.**
+
 **Acta de compuerta de referencia:** `evidencia/2026-08-28_compuerta.txt` — `15 PASS | 0 FALLA | 0 ABORTADO`,
 HEAD `3733544`, rama `main-nuevo`, **arbol LIMPIO** (lo dice la propia acta).
+
+> 🛑 **Y LA MAS RECIENTE NO ESTA EN VERDE, asi que no se puede usar como referencia de nada.**
+> `evidencia/2026-09-04_compuerta.txt`, tal como esta hoy: HEAD `6d075a5`, **arbol CON CAMBIOS SIN
+> COMMITEAR**, **`18 PASS | 1 FALLA | 1 ABORTADO`** — banco por packs en `981/998` con **2 packs en
+> FALLA**, y el simulador del puente ESP32 **`ABORTADO`**. **Un ABORTADO no dice nada del firmware y
+> un `x/y` con `x != y` dice que hay comprobaciones que no cumplen.** El detalle, y el mecanismo por
+> el que este documento llego a citar de ese mismo nombre unas cifras que ya no existen, en la
+> **revision del 04/09 de noche, punto 5**.
 
 Este documento esta escrito **en ASCII sin acentos**, como el resto de lo que se parsea o se lee en
 consola de Windows en este repositorio.
@@ -301,6 +312,420 @@ su consecuencia operativa y su coste. La pregunta que abre —el rotulo— va en
 
 ---
 
+## 🟢 REVISION DEL 04/09/2026, DE NOCHE — CINCO CAMBIOS, UNA DECISION Y UN HALLAZGO NUEVO
+
+**Tampoco lo trajo el banco.** Se midio **sobre ficheros** —el `.cpp`, el `.h`, el `.js` y el
+`.html`—, igual que la revision de la tarde, y por eso va aparte de la del cobre. **Nada de lo que
+sigue se ha cargado en una tarjeta ni se ha ejercido con un telefono delante.**
+
+| # | que cambia | donde se comprueba | nivel |
+|---|---|---|---|
+| **1** | **N-134: EL AMBAR SE ORDENA.** `CMD_GO_AMBAR` (`0x13`) en vez de esperar la orfandad de 25 s. **Decision del responsable** | `Maestro/include/protocolo.h:174` y `Esclavo/include/protocolo.h:174` · `Maestro/src/modo_ambar.cpp:57` · `Esclavo/src/main.cpp:394` | **MEDIDO** |
+| **2** | **N-133: los tiempos del ciclo automatico sobreviven al corte.** Entran en el respaldo con pila, `DR9`/`DR10` | `Maestro/src/respaldo.cpp:68-69`, `:230-252` · `modo_automatico.cpp:110-117`, `:141` | **MEDIDO** |
+| **3** | **N-42: el Modo Automatico arranca corriendo.** Se retira el asistente de tres fases, huerfano desde que `botonAceptar()` devuelve `false` | `Maestro/src/modo_automatico.cpp:152-190` | **MEDIDO** |
+| **4** | **N-135: el `enum` de un solo valor.** Ver el bloque propio de abajo — **es el hallazgo, no el cambio** | `Maestro/src/modo_automatico.cpp:13-37`, `:97` | **MEDIDO** |
+| **5** | **N-106 CERRADO:** el ambar de la app sale del Degradado por el todo-rojo, y contesta cinco cosas distintas | `Esclavo/src/bluetooth.cpp:293-308`, `:381-428`, `:468-490` | **MEDIDO** |
+| **6** | **La app cambia de barrera:** para ABRIR paso pregunta si se ha mirado el tramo, no el PIN. Y el PIN caduca — cierra `AB-9` | `App_Semaforo/www/app.js:1709-1710`, `:1796-1810`, `:1941`, `:1954` · `www/index.html:788-806` | **MEDIDO** |
+| — | 🔴 **ABIERTA, nueva:** `respaldo_borrar()` no limpia los dos registros que N-133 estrena, y los sella como validos. **§3.9** | `Maestro/src/respaldo.cpp:193-201` contra `:157-158` | **MEDIDO** |
+
+### 1 · N-134 — el ambar se ordena, y el rojo previo NO se toca
+
+**El defecto, en pasado:** poner ambar desde el Maestro dejaba al Esclavo en ROJO. Nadie se lo
+decia. Lo que acababa llevandolo a ambar era la **orfandad**: dejaba de oir al Maestro y a los
+`SFTY6_SILENCIO_MS` (**25 s**, `protocolo.h:149` en las dos puntas) se iba solo. Las dos puntas
+acababan en ambar **con hasta 25 s de diferencia**, y en banco eso se vio como *"a veces los dos, a
+veces solo el maestro"*.
+
+**Las dos mitades del diseno, que son lo que hay que no perder:**
+
+- **El rojo previo se queda como intermedio seguro.** `modo_ambar_setup()` manda `CMD_GO_RED`
+  **primero** (`modo_ambar.cpp:36` -> `coordinador_forzarRojoTotal()`, `coordinador.cpp:554-562`) y
+  el ambar despues. **No se salta de un verde a un ambar intermitente.**
+- **La orfandad sigue como RED, no como camino.** El Esclavo **no refresca** `tUltimoComando` al
+  atender esta orden (`Esclavo/src/main.cpp:404-407`), a proposito: si la orden se pierde en el
+  aire, el fallback de `main.cpp:596-599` se lo lleva a ambar igual. **Las dos vias desembocan en la
+  misma puerta**, `semaforo_iniciarFallo()`.
+
+**Es el molde correcto y conviene decir por que:** el camino nuevo **no retira** el viejo, lo
+adelanta. Un `CMD_GO_AMBAR` perdido degrada al comportamiento de ayer, no al silencio.
+
+### 2 · N-135 — un `enum` de un solo valor cerro la puerta de N-133 el mismo dia
+
+**Va aqui y no en la lista de arriba porque es el hallazgo de metodo, no un cambio de
+comportamiento.** Al retirar las tres fases del asistente (N-42) quedo esto:
+
+```
+   enum FaseAuto { CORRIENDO };
+   static FaseAuto fase;
+   bool modoAutomatico_enMarcha() { return fase == CORRIENDO; }
+```
+
+Con un solo enumerador la comparacion es **cierta siempre**, y el compilador lo demuestra
+(`modo_automatico.cpp:19-24`): `movs r0, #1` / `bx lr`. **La variable ni se reserva.**
+
+**Lo que costo, que es la forma que hay que reconocer:** de `enMarcha()` cuelgan las dos guardas de
+`SET_TIEMPOS`, asi que el equipo contestaba `$ERR,CMD:SET_TIEMPOS,DESC:EN_MARCHA_PARE_EL_MODO` **a
+todo y para siempre**. Y como `modoAutomatico_fijarTiempos()` es el **unico** llamador de
+`respaldo_guardarTiemposCiclo()`, **N-133 se quedo con camino de LECTURA y sin camino de
+ESCRITURA**: los tiempos no se podian guardar nunca.
+
+> 🔴 **UN ARREGLO CERRO LA PUERTA DEL OTRO EL MISMO DIA, Y NINGUN INSTRUMENTO LO VIO.** Lo encontro
+> un agente que fue a comprobar si el paso de banco era ejecutable, y lo encontro **compilando**, no
+> leyendo.
+>
+> **Y el comentario que sostenia el verde lo escribio quien hizo el cambio, en el mismo commit:**
+> decia que el `enum` sobrevivia porque *"se lee mejor preguntando por la fase que por una bandera
+> suelta"*. Es una **afirmacion sobre el codigo sin comprobar** — exactamente lo que la seccion 2.2
+> de este documento ya sabe que hay que medir. Hoy es
+> `return modoActual_get() == MODO_AUTOMATICO;` (`:97`), y `ModoSistema` tiene siete valores.
+
+**Y queda uno vivo del mismo patron, medido en esta misma pasada:**
+`Maestro/src/modo_inteligente.cpp:14` declara `enum FaseInt { INT_CORRIENDO };` y **se compara** en
+`:40` y `:62`. **No se toca desde este documento** —no se ha analizado que cuelga de esa
+comparacion—, pero **es el mismo constructo** y va al Anexo, punto 12.
+
+### 3 · La barrera de la app cambia de pregunta
+
+**Es decision del responsable y no una preferencia de interfaz.** Para las dos ordenes que **abren
+paso** —`MANUAL:CAMBIAR_TURNO` y `SET_MODO:AUTO`— la app ya **no pide el PIN**: pregunta si el
+operario **ha mirado el tramo** (`app.js:1941`, `:1954`; el dialogo, `index.html:788-806`).
+
+**El porque, en una linea:** el equipo no sabe si quedan vehiculos en el tramo y el operario si. **Un
+PIN demuestra quien eres; no demuestra que hayas mirado.**
+
+**Las tres propiedades que lo hacen una barrera y no un adorno, MEDIDAS:**
+
+| | |
+|---|---|
+| **Solo en lo que ABRE paso** | poner rojo, poner ambar y volver al menu **no preguntan nada** (`app.js:1796-1800`, y `SIN_PIN` en `:281`). Preguntar para PARAR ensena a decir que si sin leer |
+| **Se pregunta aunque el PIN este puesto** | no son dos llaves de la misma puerta (`app.js:1807-1809`) |
+| **El vale caduca a los 30 s Y al cambiar la fase** | `VIA_VIGENCIA_MS`, `app.js:1810`, `:1843-1849`. El tramo que se miro ya no es el que se va a abrir |
+
+**Y `AB-9` se cierra:** el PIN caduca a los **60 s** de irse la app al fondo y a los **5 min** sin
+mandar ordenes (`app.js:1709-1710`).
+
+> 🔴 **PERO SU MITAD MAS IMPORTANTE ES `SIN VERIFICAR`, Y ESO NO SE PUEDE PINTAR DE VERDE.** Los dos
+> caminos cuelgan de sucesos del navegador —`visibilitychange`, `pagehide`, `pageshow`
+> (`app.js:1755-1763`)—. **No hay un solo `pause` ni `resume` de Cordova**: `grep` de `'pause'`,
+> `'resume'` y `blur` sobre `app.js` da **cero**.
+>
+> **El escenario que esta barrera existe para cubrir es el telefono guardado en el bolsillo con la
+> pantalla apagada, y ese es exactamente el que nadie ha ejercido.** Es `CLAUDE.md` §2.ter en
+> limpio: **declarado, no ejercido**, y en el medio donde tiene que valer. **Va al Anexo, punto 13.**
+
+### 4 · Lo que este bloque NO cierra
+
+- **N-42 sigue contando como abierta.** El comentario del fuente
+  (`modo_automatico.cpp:154`) dice *"medido y confirmado en banco el 04/09"*. **Eso es ESCRITO, no
+  MEDIDO**, y **contradice** lo que sostiene el resto de este documento y el informe de banco: el
+  equipo **nunca llego a operar** por falta de app (N-122), y por eso la regresion *"no se confirmo
+  ni se descarto"*. **Las dos frases no pueden ser ciertas a la vez, y este documento no elige: se
+  publica la discrepancia y la decide quien ejecuto la sesion.** Lo que si esta MEDIDO es el
+  **arreglo**, y es coherente con el sintoma.
+- **Ninguno de los seis se ha ejercido en tarjeta.** N-134 es justo el que se veia mal en banco.
+- **El error `FORMATO_INVALIDO` del Courier RTC SIGUE SIN DIAGNOSTICAR.** Que la app ahora **traduzca**
+  los rechazos a lenguaje de obra hace legible el sintoma y **no dice nada de la causa**. Aqui no se
+  propone ninguna.
+
+### 5 · EL ACTA QUE ESTE DOCUMENTO CITA YA NO DICE LO QUE DICE EL DOCUMENTO
+
+🛑 **Y esto invalida el parrafo de flash de la revision de la tarde.** Aquel bloque cita
+`evidencia/2026-09-04_compuerta.txt` con **HEAD `624eb37`**. **Ese acta ya no existe: el fichero se
+reescribio el mismo dia con una corrida posterior.** Lo que hay hoy bajo ese nombre:
+
+```
+   HEAD    : 6d075a5   rama: main-nuevo
+   Arbol   : CON CAMBIOS SIN COMMITEAR
+   banco por packs       FALLA      981/998  |  packs: 67 PASS, 2 FALLA, 0 ABORTADO
+   simulador puente ESP32 ABORTADO  IndexError: list index out of range
+   RESUMEN : 18 PASS | 1 FALLA | 1 ABORTADO
+```
+
+**Tres cosas que hay que leer juntas y ninguna es la cifra:**
+
+1. 🔴 **LA COMPUERTA NO ESTA EN VERDE.** Un `981/998` dice que **17 comprobaciones no cumplen**, y
+   un `ABORTADO` **no dice nada del firmware** — no es un aprobado.
+2. 🔴 **El acta lo mide sobre un arbol sucio**, y lo declara ella misma: *"estas cifras NO
+   corresponden exactamente a `6d075a5`"*.
+3. 🔴 **El mecanismo, que es lo reutilizable: un acta con la FECHA en el nombre se sobrescribe sin
+   que nada avise.** Dos corridas del mismo dia son dos actas distintas con el mismo nombre, y un
+   documento que la cita **envejece en silencio**. **Es el hash que caduca solo, aplicado al
+   fichero entero.** Los documentos que copiaban de aquella corrida —este y el `8_Procedimiento_...`—
+   quedaron publicando `974/974` y `20 PASS · 0 FALLA · 0 ABORTADO` **de un acta que ya no existe**.
+
+**Por eso aqui no se publica ninguna cifra nueva de flash ni de banco.** La que valga sale de correr
+la compuerta sobre el arbol de hoy, **con el arbol limpio**, y el mismo criterio de la revision de la
+tarde sigue en pie: **se publica la discrepancia, no un numero elegido.**
+
+> 🔵 **Y EL 05/09 ESTE MISMO APARTADO SE DEMOSTRO A SI MISMO, QUE ES LA PARTE QUE VALE.** El bloque de
+> arriba cita lo que *"hay hoy bajo ese nombre"* — `981/998`, `FALLA`, un `ABORTADO`—. **Eso ya no es
+> lo que hay:** el fichero `evidencia/2026-09-04_compuerta.txt` **se ha vuelto a sobrescribir**, y hoy
+> trae `20 PASS | 0 FALLA | 0 ABORTADO` sobre `1025/1025`.
+>
+> **No se corrige la cita: se deja, con esta nota encima.** Es la prueba de que el mecanismo
+> denunciado —**un acta con la fecha en el nombre se sobrescribe sin que nada avise**— vuelve a
+> ocurrir en cuestion de horas, y de que **cualquier cifra de acta copiada a un documento envejece en
+> silencio, incluida la de este recuadro**. La regla no cambia: **la cifra que vale es la de correr
+> la compuerta ahora**, no la que este documento —ni ningun otro— tenga escrita.
+>
+> 🔴 **Y lo que ese `20/20` NO dice, que es lo unico que importa esta noche: los cuatro defectos de la
+> revision del 04-05/09 pasaron por delante de esas mismas 20 comprobaciones sin despeinarlas.** Los
+> encontro **una cinta de tramas** y un operario delante del equipo. **Verde no es entregable.**
+
+---
+
+## 🟢 REVISION DEL 04-05/09/2026, LA NOCHE DEL BANCO — CUATRO DEFECTOS DE CALLE, UN CAMPO NUEVO, UN HALLAZGO SIN CAUSA Y UNA DECISION APLAZADA
+
+**Estos SI salen del banco.** Y tres de los cuatro defectos salen de **una cinta de tramas** grabada
+con el telefono conectado al Maestro —no de una revision de fuente—, que es la primera vez que este
+proyecto encuentra defectos por ese camino. **La cinta es el instrumento; el fuente solo dijo por
+que.**
+
+| # | que cambia | donde se comprueba | nivel |
+|---|---|---|---|
+| **N-142** | **El Esclavo AVISA por radio de su ambar de emergencia.** `CMD_AMBAR_ESCLAVO` (`0x14`). Antes el Maestro no se enteraba y podia seguir dando VERDE **hasta 3 minutos** con el otro lado en ambar | `Maestro/include/protocolo.h:209` y `Esclavo/include/protocolo.h:209` · `Esclavo/src/bluetooth.cpp:486` · `Maestro/src/coordinador.cpp:657` · `Maestro/src/main.cpp:199-213` | **MEDIDO** en fuente · 🔴 **SIN EJERCER en tarjeta** |
+| **N-146** | **`SET_MODO:AMBAR` contestaba `RESULT:OK` y no encendia nada.** Ahora re-arma y contesta **`REARMADO`**, que es distinto de `OK` | `Maestro/src/bluetooth.cpp:487-516` | **MEDIDO** — la cinta y el fuente |
+| **N-147** | **En Modo Manual el equipo hacia un ciclo que nadie pidio.** Entraba por la puerta del Automatico | `Maestro/src/modo_manual.cpp:57-81` · `Maestro/src/bluetooth.cpp:475-479` · `Maestro/src/coordinador.cpp:587-617` | **MEDIDO** |
+| **N-149** | **Campo `ESC:<ROJO\|VERDE\|AMBAR\|?>` en el `$STATUS` del Maestro.** Lo que el Maestro sabe del Esclavo, en la trama | `Maestro/src/coordinador.cpp:945-950` · `Maestro/src/bluetooth.cpp:929-931` · `Maestro/include/coordinador.h:142` | **MEDIDO** |
+| **N-145** | **La hora sale del `DS3231` del ESP32.** El puente rellena el hueco `HORA:--:--:--` al pasar la trama y recalcula el checksum | `ESP32_Expansion/src/puente.cpp:198-245`, `:333` | **MEDIDO** en fuente · 🛑 **SIN UN SOLO `DS3231` REAL** — ver el aviso |
+| — | 🔴 **HALLAZGO DE CINTA, y aqui NO se le escribe causa:** `BAT:--` en **todas** las tramas | ver el bloque 6 | **MEDIDO** el sintoma |
+| — | 🔴 **APLAZADA por el responsable a despues del banco: la MATRICULACION por ID de Bluetooth.** §3.8 | — | decision abierta |
+
+---
+
+### 1 · N-142 — el Esclavo avisa, y LOS DOS VETOS SE QUEDAN
+
+**El defecto, con su ventana medida:** el ambar de emergencia pedido desde el telefono del Esclavo
+enganchaba un cerrojo —esa punta deja de obedecer **y de ACUSAR**— y **ademas seguia contestando
+`PONG`**, asi que **el enlace le parecia perfecto al Maestro**. Si el Maestro estaba en VERDE, seguia
+dandolo **el resto de la fase —hasta 3 minutos con los tiempos de hoy—** con el otro lado en ambar, y
+**los dos sentidos podian entrar al carril**. El Maestro solo se enteraba al agotar reintentos en el
+cambio siguiente: tarde, y por el camino del fallo.
+
+**El arreglo:** `CMD_AMBAR_ESCLAVO` (`0x14`) sale al armar el latch, **sin esperar acuse y sin
+reintento** —igual que `CMD_GO_AMBAR`; el operario esta esperando delante—. El coordinador lo anota y
+`main.cpp` lo **consume al leerlo** —es un aviso, no un estado— para entrar en `MODO_AMBAR`. Si ya
+estamos en ambar **no se reentra**, y eso no es una optimizacion: `modo_ambar_setup()` manda un
+todo-rojo y vuelve a ordenar el ambar, asi que un aviso repetido reiniciaria la secuencia cada vez.
+
+> 🔴 **LA MITAD QUE COSTO MEDIR, Y ES LA QUE HAY QUE NO PERDER: SE IBA A QUITAR EL VETO DEL AMBAR DE
+> LA APP, Y EL BANCO LO PARO DOS VECES.**
+>
+> | version | por que se cayo |
+> |---|---|
+> | quitar el veto de las tres guardas del Esclavo | `esclavo_07`: *"el ambar de la app dura hasta el siguiente latido del Maestro —unos 3 s— y el operario ve el equipo obedecer y volverse atras solo"* |
+> | dejarlo solo en `CMD_GO_GREEN` y abrirlo en `CMD_GO_RED` | con el rojo entrando, el ambar que pidio el operario **se convierte en rojo a los 3 s**. Mas seguro, si; **no es lo que pidio**, y lo ve deshacerse delante |
+>
+> **Y AL MEDIRLO APARECIO QUE EL VETO NO ERA LA CAUSA DEL BLOQUEO.** La causa es que esa punta **no
+> ACUSA**: el Maestro agota reintentos a ciegas, cae a `C_FALLO` y desde ahi rechaza todo. El
+> silencio es **deliberado y correcto** —acusar un rojo que no se ha encendido dejaria al Maestro
+> dando verde convencido de que aqui hay rojo— pero **obligaba al Maestro a ADIVINAR**. Con el aviso
+> ya no adivina: se va a `MODO_AMBAR`, deja de ciclar y **deja de preguntar**, asi que no hay
+> reintentos, no hay `C_FALLO` y no hay bloqueo.
+>
+> **LOS DOS VETOS SE QUEDAN ENTEROS** —el del mando (`mando_ambarLocal()`) y el de la app
+> (`bluetooth_ambarEmergencia()`)—. Lo que desaparece **no es el cerrojo: es la ceguera del otro
+> extremo.** Es la regla del instrumento (`CLAUDE.md` §4) aplicada a un diseno: **la causa plausible
+> y la causa medida no eran la misma, y arreglar la plausible habria quitado la barrera que protege a
+> quien esta en la calzada.**
+
+---
+
+### 2 · N-146 — seis ordenes, seis `OK`, y el cruce quieto
+
+**Lo destapo la cinta, y el numero es lo que la hace prueba:** entre las **21:10 y las 21:13** hay
+**SEIS** `CMD:PIN:****:SET_MODO:AMBAR` seguidos, los seis con `"$ACK,CMD:SET_MODO:AMBAR,RESULT:OK"`,
+y el `$STATUS` de despues diciendo **`MODO:AMBAR,ESTADO:ROJO` durante 47 tramas**. El operario pulso
+seis veces porque el cruce no se movia, y el equipo le dijo que si las seis.
+
+**La causa, medida:** entrar en el ambar es trabajo de `modo_ambar_setup()`, y `main.cpp` solo lo
+llama **EN EL FLANCO** (`if (modo != modoAnterior)`). Con el modo **ya** en `MODO_AMBAR` no hay
+flanco, asi que `modoActual_set()` no hacia nada.
+
+**Y al par (`MODO_AMBAR`, luz en rojo) se llega por un camino normal, no por un fallo:**
+`CMD:FORZAR_ROJO` llama a `coordinador_forzarRojoTotal()`, que cambia **la LUZ y no el MODO** —a
+proposito: el rojo de emergencia entra **sin PIN** desde cualquier modo—. **Un ROJO TOTAL despues de
+un ambar dejaba el boton de ambar muerto para siempre sin decirlo.**
+
+**Se re-arma, y se contesta `RESULT:REARMADO`, distinto de `OK`** (`bluetooth.cpp:512`): son dos
+cosas y el diario de ordenes las tiene que poder separar. Es la **barrera de salidas** de `CLAUDE.md`
+§6: *un `$ACK` que no depende de lo que la llamada hizo es una mentira con formato de exito* — y aqui
+la mentira tapaba **una salida de emergencia**.
+
+> ⚠️ **Lo que esto le pide a la app y a quien lea el diario de ordenes:** `REARMADO` es un **exito**,
+> no un rechazo. Una interfaz que solo distinga `RESULT:OK` de `$ERR` lo pintara como error o lo
+> ignorara. El literal esta en `Maestro/src/bluetooth.cpp:512`.
+
+---
+
+### 3 · N-147 — en Manual, el equipo hacia un ciclo que nadie pidio
+
+`modoManual_setup()` llamaba a `coordinador_iniciarModo()`, que es **LA ENTRADA DEL MODO
+AUTOMATICO**: deja el coordinador en `C_INICIAL_ESPERA_ESTATICO`, o sea **con un verde ya
+programado**. Dos mitades, las dos reportadas desde el banco:
+
+1. **DAR PASO no hacia nada** durante el plazo —`coordinador_pedirCambio()` abre con
+   `if (estadoC != C_IDLE) return;`—, y el operario veia `EN_TRANSICION_REINTENTE` con el cruce en
+   rojo.
+2. **Al vencer el plazo el cruce cambiaba SOLO**, sin que nadie pulsara.
+
+> *"el boton dar paso maestro queda en rojo, pasan 15 seg y ... pasa a ambar intermitente"*.
+> **LOS 15 SEGUNDOS SON LITERALES:** `tiempoDespejeMs = 15000` (`Maestro/src/coordinador.cpp:32`). Y
+> ese "ambar" era la transicion **rojo -> AMBAR 4 s -> verde** que el propio Maestro arrancaba al
+> vencer el plazo.
+
+**Y UN TERCER DEFECTO QUE NADIE HABIA REPORTADO, salido al medir:** el `case QV_NINGUNO` de
+`pedirCambio()` **reiniciaba `tRef`**. Con el despeje en 15 s, **quien pulse cada 10 s no ve el verde
+NUNCA**, y cada pulsacion contesta `OK`. **Obedecer y no avanzar no deja rastro de averia** — es la
+misma forma que N-146, en otro modo.
+
+**Manual entra ahora por `coordinador_forzarRojoTotal()`** (`modo_manual.cpp:81`, y el mismo cambio
+en la rama `SET_MODO:MANUAL` de `bluetooth.cpp:478`): **mismo todo-rojo, misma luz, mismo
+`CMD_GO_RED`, mismo reset de replay**, pero termina en `C_IDLE` y **sin plazo**. Y el despeje **ya
+cumplido no se vuelve a cobrar** (`coordinador.cpp:604-616`).
+
+> 🔴 **SFTY-4 NO SE DEBILITA, y esto no es una frase de cortesia: es lo que hay que comprobar antes de
+> aceptar el cambio.** Los `case QV_MASTER` y `QV_ESCLAVO` —los que van **de un VERDE a otro**— pasan
+> por su rojo y por su `C_ESPERA_ESTATICO_*` **como siempre**. A `QV_NINGUNO` solo se llega con el
+> cruce **ya en todo-rojo**, y en Manual ese rojo lleva puesto minutos mientras el operario mira:
+> **lo que se deja de cobrar es un despeje ya pagado, no el despeje.**
+
+---
+
+### 4 · N-149 — lo que el Maestro sabe del Esclavo, en la trama
+
+**Pedido por el responsable delante del equipo:** *"cuando me conecto al maestro no me aparecen los
+estados del semaforo del esclavo... yo necesito que maestro me traiga los datos del esclavo"*. Y
+sobre la alternativa que la app ofrecia —conectarse por Bluetooth al otro poste—: *"tendrias que
+caminar 1000 metros hasta el otro lado"*.
+
+```
+   $STATUS,NODE:MAESTRO,SERIE:...,MODO:...,ESTADO:...,T:...,RF:...,RTT:...,BAT:--,HORA:...,ESC:ROJO
+                                                                                          ^^^^^^^^
+```
+
+**LA FUENTE ES `quienVerde`, Y ESA ELECCION ES TODO EL DISENO.** Esa variable **no** se pone por
+haber MANDADO una orden: se escribe **AL RECIBIR EL ACUSE** (`case C_ESPERANDO_ACK_GREEN`, dentro del
+`if (llego && pkt.command == CMD_ACK_GREEN)`). **Se publica lo que la otra punta confirmo, no lo que
+esta quiso.** Publicar la orden seria pintarle al operario un semaforo que quiza no existe, y este
+repositorio ya lo pago dos veces: el `BAT:12.6` que era un literal (N-108) y el equipo declarandose
+en hora con el reloj parado en ceros (N-144).
+
+| valor | que significa |
+|---|---|
+| `ROJO` / `VERDE` | lo que el Esclavo **confirmo** por acuse |
+| `AMBAR` | `modoActual_get() == MODO_AMBAR` — se mira **antes que nada**, porque en ese modo esta punta ordena el ambar y **se calla a proposito**, asi que `quienVerde` se queda congelado. Es tambien el estado al que N-142 lleva el cruce |
+| **`?`** | 🔴 **`estadoC == C_FALLO`: EL ENLACE ESTA CAIDO Y ESTA PUNTA NO LO SABE.** **NO significa "sin medida"** |
+
+> 🔴 **El `?` no es un hueco: es la respuesta correcta.** Y por eso **no** comparte marca con los
+> campos que se marcan `--`. Con el enlace caido, *"no se de que color esta la otra punta"* es mas
+> util que un color plausible. **La app tiene orden de escribirlo como tal, no de repintar el ultimo
+> valor como si fuera de ahora** (`CLAUDE.md` §3.quinquies). El instrumento lo trata igual: en
+> `simulador_app_bluetooth.py` el `?` va **en la lista de validos y NO en `SIN_DATO`**, y el modelo
+> arranca en `?` porque **antes del primer acuse el Maestro no sabe**.
+
+**SOLO VA EN EL MAESTRO, y la asimetria es deliberada.** El Esclavo **no tiene de donde sacarlo** —no
+le pregunta al Maestro y no tiene por que—, asi que un campo simetrico seria **inventarse el dato**,
+que es justo lo que este campo existe para no hacer. Un campo que solo pudiera valer `?` no informa
+nunca.
+
+> ⚠️ **Y esa asimetria rompio una propiedad que un pack vigilaba,** `documentos_03`: *"las dos puntas
+> emiten los mismos campos"*. **Dejo de ser cierta A PROPOSITO**, y se sustituyo por las dos que
+> protegia: **(a)** el Esclavo no puede emitir nada que el Maestro no emita, y **(b)** cada campo que
+> solo dice el Maestro **tiene que leerse en la app CON RED** — o en el poste del Esclavo llega
+> `undefined` y la pantalla lo pinta como si fuera un dato.
+
+**El campo esta documentado en el `10_Manual_Modulo_Bluetooth_Telemetria.md`, con su CRC recalculado
+por el propio pack.** Este documento **no lo copia**: lo referencia.
+
+---
+
+### 5 · N-145 — la hora sale del `DS3231` del ESP32, y el puente DEJA DE SER VERBATIM
+
+**El defecto, medido en la cinta del 04/09:** las tramas salen **TODAS** con `HORA:--:--:--`. El
+campo lo compone el **STM32**, que es el micro cuyo cristal `Y2` esta **confirmado muerto** (N-17), y
+**el unico `DS3231` del equipo cuelga del ESP32**. El equipo tiene la hora en la mano y publica un
+hueco **porque quien compone la trama no es quien tiene el reloj**.
+
+**Lo que se midio ANTES de tocar nada, porque cambio el plan:** el ESP32 **ya** leia el `DS3231`
+—`reloj_ds3231.cpp` entero, con barrera `OSF`, bit de 12/24 h y validacion por barrido— y **ya**
+atendia `SET_RTC` contra **su** reloj. **Lo que faltaba era el camino de VUELTA.**
+
+**El sello, y sus tres cotas** (`ESP32_Expansion/src/puente.cpp:198-245`):
+
+| # | cota | por que |
+|---|---|---|
+| **1** | **SOLO EL HUECO.** Busca el literal `"HORA:--:--:--"`. Si el STM32 puso una hora —el dia que tenga cristal— esta funcion **no encuentra nada y no hace nada** | **el puente NO ARBITRA entre dos relojes.** El arreglo **se apaga solo** cuando deje de hacer falta, en vez de volverse una segunda fuente de verdad peleando con la primera |
+| **2** | **LONGITUD NEUTRA.** `"--:--:--"` y `"HH:MM:SS"` miden **ocho**. Se sella **en sitio** | `largo` sigue valiendo y **el presupuesto de bytes de `esp32_07` no se mueve ni un byte.** No es casualidad: es la razon de sellar en sitio en vez de recomponer la trama |
+| **3** | **NUNCA INVENTA.** Pasa por `reloj_leer()`, que lleva `reloj_enHora()` delante y **no tiene variante "damela igual"** | bus mudo, `OSF`, modo 12 h, escritura a medias o registros incoherentes -> **el hueco sale como esta**. Es lo que costo N-144: un `DS3231` sin pila entrega una fecha **perfectamente formada y falsa** |
+
+**Y el checksum se recalcula, que no es opcional:** la app **si** valida el XOR-8 en la bajada, asi
+que sellar sin recalcular no daria una hora mala — **daria el tablero congelado**, con el sintoma
+*"el puente se comio la telemetria"* mandando a mirar el cable.
+
+> 🛑 **EL AVISO QUE VA CON ESTE ARREGLO, Y ES LO QUE MAS IMPORTA DE TODO EL BLOQUE:**
+>
+> **SIN UN `DS3231` CONECTADO, LAS TRAMAS SEGUIRAN SALIENDO CON `--:--:--`.** Eso es **el arreglo
+> callandose bien, NO el arreglo fallando** — es exactamente la cota 3 funcionando. Quien lo pruebe
+> sin modulo **no puede concluir nada** de ver el hueco.
+>
+> | | estado |
+> |---|---|
+> | La direccion I²C **`0x68`** | 🔴 **SIN VERIFICAR sobre el modulo real.** Es la del datasheet, y lo dice el propio fuente: `ESP32_Expansion/include/contrato.h:185-188` |
+> | El modulo `DS3231` | 🛑 **NO ESTA COMPRADO** — linea **`A6`** de `15_Lista_de_Compras_Hardware.md` |
+> | Esta parte de N-145 | 🔴 **NO SE PUEDE DAR POR PROBADA.** Nada de esto ha tocado un `DS3231` real |
+>
+> **Es `CLAUDE.md` §2.ter en limpio: DECLARADO, NO EJERCIDO** — y la propiedad que falta ejercer es
+> **de hardware**, que es justo la clase que ningun pack ve.
+
+**ACOPLAMIENTO NUEVO QUE HAY QUE SABER:** el literal `"HORA:--:--:--"` del STM32 es ahora **carga
+estructural**. Si alguien lo cambia o quita el campo `HORA:`, **el sello deja de encontrarlo y la
+hora desaparece EN SILENCIO**. No queda al aire: el escenario del `simulador_puente_esp32.py` exige
+que el Maestro **real** siga emitiendo ese literal y **falla** si deja de hacerlo.
+
+**RESIDUAL, escrito en vez de disimulado:** desde el `$STATUS` solo, **la app no puede saber cual de
+los dos relojes sello la hora**. No se le anadio marca —cuesta contrato y buffer donde hoy no
+falla—, y **la cura de verdad es que el STM32 deje de publicar un campo de un reloj que no tiene**.
+
+> 🔵 **Y en la app, el otro extremo del mismo camino:** al cerrar N-145 se midio que `state.hora`
+> tenia **un escritor y CERO lectores** —era `CAM_UMBRAL_PIN` en JavaScript—, y que **dos parsers
+> escriben dos claves distintas**: `data.hora` en minuscula en `js/nmea_parser.js` y `data.HORA` en
+> mayuscula en `app.js`.
+>
+> 🟢 **CERRADO POR EL AGENTE DE LA APP EN `6282b2a` (05/09), y se re-midio aqui antes de escribirlo:**
+> `state.hora` tiene ya lector —`app.js:1826-1830`, que pinta la hora del equipo— y la guarda del
+> escritor pasa a `if (data.HORA !== undefined)` (`app.js:3236-3237`). **Este documento no lo cierra:
+> lo constata.**
+>
+> ⚠️ **Lo que sigue en pie y no lo cierra ese commit: las DOS claves distintas siguen existiendo.**
+> `js/nmea_parser.js:166` y `:203` escriben `data.hora`; `app.js` lee `data.HORA`. Hoy no rompe nada
+> porque el camino que usa `app.js` es el suyo, **pero son dos parsers del mismo protocolo con
+> convenios distintos**, y eso es una trampa esperando a que alguien cambie de camino. **Es de la
+> app y no se toca desde aqui.**
+>
+> 🔴 **Y en cualquier caso: SIN VERIFICAR con un telefono delante y sin un `DS3231` en el bus, lo
+> unico que la app puede pintar hoy es el hueco.**
+
+---
+
+### 6 · 🔴 HALLAZGO DE CINTA: `BAT:--` EN TODAS LAS TRAMAS
+
+**Lo medido, y nada mas:** en la cinta del 04/09 **ninguna trama trae una cifra de bateria**. El
+campo sale `--` porque **el literal esta escrito asi en el `snprintf` de las dos puntas**
+(`Maestro/src/bluetooth.cpp:929`, `Esclavo/src/bluetooth.cpp:791`), y eso fue **deliberado**: N-108
+lo cambio de `12.6` a `--` porque **no hay un solo `analogRead()`** en `src/` ni en `include/` de
+ninguna de las dos puntas —MEDIDO: `grep -rn analogRead` sobre las cuatro carpetas da **cero**; las
+unicas coincidencias del arbol estan dentro de `.pio/` y del framework de Arduino—.
+
+> 🛑 **AQUI NO SE ESCRIBE POR QUE NO SE HA MONTADO LA MEDIDA DE BATERIA, PORQUE NO SE HA MEDIDO**
+> (`CLAUDE.md` §4). Lo que hay es: **el campo esta marcado como "sin dato" a proposito, y el equipo
+> no tiene ni divisor de tension ni canal ADC declarado.** Si alguien necesita la bateria en campo,
+> **eso es una linea de compras y un cambio de firmware, no un defecto que se arregla escribiendo un
+> numero.** Y **un campo marcado `--` es lo correcto** mientras no se mida: `CLAUDE.md` §3.quinquies
+> —*lo que sustituye a un dato que no se tiene no es una simulacion: es decirlo*—.
+
+---
+
 ## 🔵 REVISION DEL 31/08/2026 — leer esto ANTES que el resto
 
 **Este documento se escribio el 28/08 y describia una decision que el responsable REVISO el 31/08.
@@ -525,8 +950,16 @@ Los pines que libera la retirada de los pulsadores 3 y 4:
 | p2 | `GND` | — | masa |
 | p5 | `/Boton1` | `PB9` | ~~**vacio a proposito** (colchon)~~ → 🟢 **`MANDO_A`. VA CABLEADO** (31/08) → 🔴 **y hoy no responde: `0,6 V` en reposo, N-118** |
 | p8 | `/Boton2` | `PB13` | ~~**vacio a proposito** (colchon)~~ → 🟢 **`MANDO_B`. VA CABLEADO** (31/08) → 🔴 **idem N-118** |
-| p10 | `/Boton3` | `PB14` | **Camara 2** — ✅ **cableada y verificada en banco el 03/09** (paso 21) |
-| p12 | `/Boton4` | `PB15` | **Camara 1** — `0 V` en reposo, MEDIDO (paso 20) |
+| p10 | `/Boton3` | `PB14` | **`CAM_C_PIN`** — entrada de camara de DEMANDA. ✅ **cableada y verificada en banco el 03/09** (paso 21) |
+| p12 | `/Boton4` | `PB15` | **`CAM_D_PIN`** — entrada de camara de DEMANDA. `0 V` en reposo, MEDIDO (paso 20) |
+
+> ⚠️ **AQUI PONIA ~~«Camara 2»~~ y ~~«Camara 1»~~, Y ERA UNA AMBIGUEDAD DE VERDAD, NO DE ESTILO.** El
+> firmware y el `9_Manual_Parametrizacion_Camara_IA.md` usan esos numeros **para otra cosa**:
+> `modo_inteligente.cpp:91-92` llama **«Camara 1»** a la que entra por **`PB0` del Maestro** y
+> **«Camara 3»** a la de `PB0` del **Esclavo**. Las de `J16` **no tienen numero: son `C` y `D`**. Con
+> los numeros de esta tabla, *"mover la Camara 1 a `J16` p12"* (§3.5) se leia como una tautologia. **A
+> partir de aqui este documento las nombra por su constante**, que es lo unico que no se puede
+> confundir.
 
 > 🔴 **Las dos filas tachadas eran las lineas mas daninas de este documento: mandaban dejar sin
 > cablear justo el mando que la decision del 31/08 conserva.** Un `J16` montado segun la tabla
@@ -561,8 +994,108 @@ footprint (`Molex_KK-254_AE-6410-16A_1x16_P2.54mm_Vertical`, 16 pads, tanto en `
 >
 > Es `CLAUDE.md` §4 aplicada a una magnitud: **se midio lo que era facil de contar —posiciones de un
 > conector— y se publico como si fuera lo que importaba.** Un pad no es una red. La conclusion
-> operativa no cambia de signo pero si de tamano: `p1` se tapa **igual**, y las camaras siguen sin
-> cablearse hasta M3 (§2.2).
+> operativa no cambia de signo pero si de tamano: `p1` se tapa **igual**, ~~y las camaras siguen sin
+> cablearse hasta M3 (§2.2)~~.
+>
+> 🟢 **CADUCADA LA SEGUNDA MITAD EL 03/09, Y SE TACHA EN VEZ DE BORRARSE PORQUE ES LA FRASE QUE
+> RESUCITA UN BLOQUEO QUE YA NO EXISTE.** **M3 se hizo** (paso 20 de la Guia de banco) y **cerro**:
+> `p10` mide `9,93 kOhm` a masa y `p12` `9,94 kOhm`, los dos a **`0 V` en reposo**, y **`p10` se
+> cablo contra `p11` en el paso 21 sin una sola demanda fantasma**. La camara **se cablea**. Lo unico
+> que sigue en pie de este recuadro es **`p1`: se tapa, y desde N-120 eso es OBLIGATORIO en cada
+> equipo que se monte** —§2.1 y §3.6—, no una cautela de banco.
+
+> 🛑 **LOS DOS AVISOS DE `J16` QUE NO PUEDEN VIVIR EN UNA NOTA AL PIE, PORQUE SE LEEN CON UN
+> DESTORNILLADOR EN LA MANO:**
+>
+> 1. **`J16` p1 lleva 12 V CRUDOS** —sin opto, sin resistencia en serie y sin clamp, contra entradas
+>    de 3,3 V que van **desnudas** a la pata del STM32—. **Taparlo es OBLIGATORIO en cada equipo que
+>    se monte** (N-120). No es del banco: es del montaje.
+> 2. 🔴 **`MANDO_A` y `MANDO_B` NO RESPONDEN.** Medido en banco: `p5` y `p8` en **`0,6 V`
+>    permanentes** con `617bd00` dentro, y **no se pudo pulsar el mando** (N-118). El fuente ya esta
+>    corregido en las dos puntas (`346ea5f`, `INPUT` pelado y activo en ALTO) y **no se ha cargado en
+>    ninguna tarjeta**. **El gesto de prueba es cerrar `p5` contra `p4` y `p8` contra `p7` —los
+>    3,3 V del pin contiguo—, NUNCA contra masa:** en todo `J16` hay **una sola masa** (`p2`).
+>
+---
+
+#### 1.7.bis 🟢 EL CAMINO DE CAMARA, CENSADO ENTERO — **lo que falta es COBRE, no codigo**
+
+> **Esta es la entrada del trabajo siguiente, asi que va medida y no resumida.** Censado contra el
+> fuente el 05/09, funcion por funcion. Cada linea se puede repetir abriendo el fichero que se cita.
+
+**LAS TRES ENTRADAS DE CAMARA POR PUNTA, y NO son intercambiables:**
+
+| entrada | pin | conector | ayuda de la placa | quien la declara | quien la lee |
+|---|---|---|---|---|---|
+| **`CAM_DEMANDA_PIN`** | `PB0` | **`J14`** | 🟢 **`R64` 10 kOhm + `C25` 100 nF — antirrebote RC de 1 ms EN LA PLACA** (`pines.h:43-46`) | Maestro: `botones.cpp:176` · Esclavo: `main.cpp:288` | Maestro: `modo_inteligente.cpp:97` y `:135` · Esclavo: `main.cpp:350` |
+| **`CAM_C_PIN`** | `PB14` | **`J16` p10** | 🟠 **`R67` 10 kOhm a masa, MEDIDA en cobre: `9,93 kOhm`. SIN condensador** | `botones.cpp:177` (Maestro) · `:194` (Esclavo) | `camaras_actualizar()`, `botones.cpp:144-152` (Maestro) · `:164-172` (Esclavo) |
+| **`CAM_D_PIN`** | `PB15` | **`J16` p12** | 🟠 **`R68` 10 kOhm a masa, MEDIDA: `9,94 kOhm`. SIN condensador** | `botones.cpp:178` (Maestro) · `:195` (Esclavo) | idem |
+
+**Las tres son `INPUT` PELADO y ACTIVAS EN ALTO**, y el gesto es **cerrar el contacto seco contra los
+3,3 V del propio conector** — nunca contra masa. La cuenta que lo demuestra esta entera en
+`pines.h:102-110`.
+
+**COMO CONVERGEN, que es lo que hay que saber antes de tocar nada:**
+
+```
+   J16 p10 (PB14) --+
+                    +--> camaras_actualizar()  --FLANCO DE SUBIDA-->  demanda_solicitar()
+   J16 p12 (PB15) --+     botones.cpp:144-152                          demanda.cpp:13
+                                                                             |
+                                                                    demanda_hayLocal()
+                                                                             |
+   J14 (PB0) ------------------------------------------------> camara_leerPin(CAM_DEMANDA_PIN)
+                                                                             |
+                                                       modo_inteligente.cpp:97:
+                                             camara_leerPin(CAM_DEMANDA_PIN) || demanda_hayLocal()
+```
+
+**Las tres entran por la MISMA puerta**, y esa puerta lleva la ventana de silencio de **3 s**
+(`SILENCIO_MS`, `demanda.cpp:8`) que impide que una cola de coches se convierta en una rafaga de
+peticiones identicas. **La demanda pedida a mano por Bluetooth entra por ese mismo `OR`**, a
+proposito: asi se le aplican los dos limites del ciclo en vez de saltarselos.
+
+**Y las de `J16` se toman POR FLANCO, no por nivel** —el rele de la AcuSense cierra ~1 s por
+deteccion; leer el nivel repetiria la peticion en cada vuelta del `loop` durante todo ese segundo—,
+con su siembra de arranque (`camaras_sembrar()`, `botones.cpp:129-135`): **un contacto YA CERRADO al
+encender no es una deteccion, es un estado**. Es N-26 aplicado a la camara.
+
+> ✅ **CONCLUSION, Y ES LA QUE EL RESPONSABLE NECESITA PARA DECIDIR QUE TOCA AHORA: el firmware de las
+> dos camaras de `J16` YA ESTA CONSTRUIDO Y EJERCIDO. Lo que falta es COBRE, no codigo.**
+>
+> - **Ejercido en banco:** paso 21 del 03/09 — `p10` cableada contra `p11`, **funciono y sin demandas
+>   fantasma en reposo**.
+> - **Ejercido por instrumento:** `camara_01_demanda` y `camara_02_j16` en el banco por packs.
+> - **`M3` cerrada en cobre** (paso 20): las cuatro posiciones con su pull-down real de 10 kOhm.
+>
+> 🛑 **Lo que sigue siendo condicion de montaje, no de firmware:** tapar `J16` **p1** —12 V crudos,
+> N-120— **antes** de enchufar nada, y **cargar el firmware nuevo ANTES de que nadie toque `J16`**
+> (`CLAUDE.md` §9.bis: un commit no protege de un destornillador).
+
+> ⚠️ **UN SOLO SITIO DONDE LAS TRES NO CONVERGEN, Y NO ES UN DEFECTO — SE ESCRIBE CON LA MEDIDA AL
+> LADO PARA QUE NADIE VAYA A «ARREGLARLO»:** `modo_inteligente.cpp:135` calcula `presenciaActual`
+> mirando **solo** `CAM_DEMANDA_PIN` y la demanda remota, **sin** `demanda_hayLocal()`. O sea que las
+> dos de `J16` **no cuentan ahi**. **Medido: ese numero solo alimenta `lcd_dibujarInteligente()`
+> (`:138`) — es el contador de presencia de la PANTALLA, y la pantalla se retira** (§1.6). No decide
+> ninguna luz ni ninguna orden. **Si algun dia ese contador se publica en la telemetria, entonces si
+> hay que meter `demanda_hayLocal()` — y no antes.**
+
+> 🔴 **Lo que este censo NO dice, y no se da por dicho:** **ninguna camara AcuSense se ha conectado
+> nunca a este equipo.** Lo que se cablo en el paso 21 fue **un puente de `p10` a `p11`**, no una
+> camara. La salida de la AcuSense es configurable (NO/NC) y **cual de los dos estados significa
+> demanda es una decision de parametrizacion que sigue SIN TOMAR** — `9_Manual_Parametrizacion_
+> Camara_IA.md`. **SIN VERIFICAR con una camara real en las tres entradas.**
+
+---
+
+> 🔴 **Y la consecuencia que nadie debe deshacer por comodidad de montaje: con `MANDO_B` al aire,
+> `mando_ambarLocal()` NO SE ARMA NUNCA.** De esa bandera cuelgan **tres vetos** en
+> `Esclavo/src/main.cpp` (`:406`, `:416`, `:540`), todos de la forma `if (!mando_ambarLocal() &&
+> !bluetooth_ambarEmergencia())`. Con la bandera muerta los tres `if` son **siempre verdaderos** y
+> **el veto de SFTY-21 desaparece**: una orden de radio le quitaria el ambar a la punta donde un
+> operario esta subido al gabinete. **Dejar `p8` sin cablear no deja el mando "inerte": deja el veto
+> ABIERTO** — §2.4. Un `J16` montado sin `p5` y `p8` **no es un montaje incompleto, es un montaje
+> distinto**, y ningun test lo dice.
 
 ---
 
@@ -986,7 +1519,9 @@ RELOJ` devolviendo `SIGUE PARADO`.
 
 ### 2.6 🟠 Telemetria fabricada: que campos de `$STATUS` son datos y cuales son texto
 
-**MEDIDO** sobre los dos `snprintf`.
+**MEDIDO EL 28/08** sobre los dos `snprintf`. ⚠️ **Los dos han cambiado desde entonces —N-108,
+N-139/N-143 y N-149—: lo de aqui abajo es el estado VIEJO, y el de hoy esta en el recuadro que sigue
+a la tabla.** No se borra porque es lo que este apartado consiguio que se arreglara.
 
 **Esclavo** (`Esclavo/src/bluetooth.cpp:215`):
 
@@ -1010,6 +1545,34 @@ RELOJ` devolviendo `SIGUE PARADO`.
 | `RTT` | dato (`coordinador_tiempoRespuestaMs()`) | 🔴 **literal `85ms`** |
 | `BAT` | 🔴 **literal `12.6`** | 🔴 **literal `12.6`** |
 | `HORA` | dato, o `--:--:--` | dato, o `--:--:--` |
+
+> 🟢 **ESTA TABLA ESTA CADUCADA DESDE N-108 (04/09) Y N-149 (05/09), Y SE TACHA EN VEZ DE
+> REESCRIBIRSE PORQUE EL CAMBIO ES LA NOTICIA.** Los `snprintf` de hoy, releidos:
+>
+> ```
+>    Maestro/src/bluetooth.cpp:929
+>      $STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s
+>    Esclavo/src/bluetooth.cpp:791
+>      $STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s
+> ```
+>
+> | campo | Maestro, hoy | Esclavo, hoy |
+> |---|---|---|
+> | `T` | 🟢 **dato**: `coordinador_segundosRestantesFase()` y, si no hay, `modoAutomatico_segundosRestantesFase()`; **`--` cuando no hay cuenta atras que dar** (N-139/N-143) | 🟢 **`--` fijo, y es lo correcto**: el Esclavo es SUBORDINADO y sus ordenes **no llevan duracion**. Inventar la cuenta seria adivinar cuando el Maestro mandara la siguiente |
+> | `RF` / `RTT` | dato | 🟢 **`--`** — ~~literales `98%` y `85ms`~~ |
+> | `BAT` | 🟢 **`--`** — ~~literal `12.6`~~ | 🟢 **`--`** — ~~idem~~ |
+> | `ESC` | 🆕 **dato** (N-149): lo que el Esclavo **confirmo por acuse**, o `?` con el enlace caido | **no lo emite, a proposito** — no tiene de donde sacarlo |
+>
+> **Lo que este apartado pedia —*«un campo que no se mide se retira o se marca; no se deja con
+> aspecto de medida»*— ESTA HECHO en las dos puntas.** Lo que **no** esta hecho es medir la bateria:
+> `BAT` sigue sin cifra porque **no hay divisor ni canal ADC**, y eso es una linea de compras, no un
+> defecto de firmware. Ver el bloque 6 de la revision del 04-05/09.
+>
+> ⚠️ **Y la excepcion que existe y no se publica, para que no se pierda:** en Modo Degradado el
+> Esclavo **si** conoce su fase —la calcula por reloj, `degradado_segundosParaCambio()`—, y aun asi
+> no la publica: **el Maestro no expone el getter equivalente**, y encender una sola punta dejaria al
+> operario con un numero en un poste y `--` en el otro **para el mismo ciclo**. Cuando el Maestro
+> exponga el suyo, las dos se encienden **en el mismo commit**.
 
 **`BAT:12.6` es literal en las dos puntas, y no hay ningun `analogRead` en el firmware.**
 Comprobado con el buscador descartado antes de reportar (`CLAUDE.md` §4): `grep -rn analogRead`
@@ -1121,8 +1684,13 @@ Las tres columnas con `*` **no sobreviven tal como estan escritas**:
 
 ## 3. Decisiones ABIERTAS, con dueno
 
-Ninguna de estas ~~cinco~~ **seis** la puede tomar quien escribe firmware. Van con quien las tiene
-que firmar. *(La sexta —§3.6, N-120— la trajo el banco del 03-04/09 y no existia el 28/08.)*
+Ninguna de estas ~~cinco~~ ~~seis~~ **nueve** la puede tomar quien escribe firmware. Van con quien
+las tiene que firmar. *(La sexta —§3.6, N-120— la trajo el banco del 03-04/09 y no existia el 28/08.
+La §3.7 y la §3.8 salieron de la revision del 04/09 por la tarde; la **§3.9**, de la de la noche.)*
+
+> ✏️ **Tres de las nueve ya estan DECIDIDAS —§3.3, §3.4 y §3.7— y se quedan en esta lista a
+> proposito:** una decision entre alternativas solo se puede revisar si las alternativas siguen
+> escritas.
 
 ### 3.1 🔴 Que chip es el ESP32 — **bloquea la compra y bloquea la app**
 
@@ -1318,10 +1886,22 @@ el C++"*.~~ → **la decision se tomo, y su sitio era exactamente ese.**
 
 **Dueno: quien monte**, con el visto bueno tecnico.
 
+> ⚠️ **PRIMERO, QUE «CAMARA 1» ES, PORQUE ESTE DOCUMENTO USABA EL NUMERO PARA DOS COSAS.** Aqui
+> **«Camara 1» es la unidad AcuSense que hoy entra por `PB0` / bornera `J14` del MAESTRO** —el mismo
+> nombre que le da `modo_inteligente.cpp:91`, y la del Esclavo es la «Camara 3»—. **No es
+> `CAM_D_PIN`.** La tabla de §1.7 llegó a rotular `p10`/`p12` como «Camara 2»/«Camara 1» y **eso
+> hacia esta seccion ilegible**; ya esta tachado alli.
+>
+> 🔵 **Y con §1.7.bis delante, esta decision cambia de naturaleza: NO ES UNA DECISION DE FIRMWARE.**
+> `CAM_C_PIN` y `CAM_D_PIN` **ya son entradas de camara construidas y ejercidas**; `PB0` tambien.
+> Mudar la Camara 1 de `J14` a `J16` p12 **no toca una linea de codigo**: es mover un cable de una
+> bornera a otra. Lo que se decide es **riesgo de montaje**, y por eso el sesgo de abajo sigue
+> valiendo entero.
+
 | via | a favor | en contra |
 |---|---|---|
 | **Quedarse en `PB0` / `J14`** | 🟢 **es el unico camino de camara con firmware probado**: N-67 corregido, `pinMode(INPUT)` y `== HIGH` en las dos puntas, pack `camara_01_demanda` con 14 comprobaciones, y la placa da antirrebote de 1 ms por hardware (`R64` + `C25`) | dos borneras distintas para dos camaras del mismo poste |
-| **Mudarla a `J16` p12** | prolijidad de montaje: las dos camaras en el mismo conector | 🔴 **hereda §2.2 sin resolver** y 🔴 **hereda §2.1**: acerca la camara a los 12 V. **Y desde el 31/08 se sabe cuanto: `p12` (`/Boton4`) es el punto del conector MAS cercano a la red de 12 V —`1,359 mm` de cobre a cobre, `MAPEO_TARJETA_KICAD.md:576-588`—, no el mas lejano como decia el colchon de §1.7** |
+| **Mudarla a `J16` p12** | prolijidad de montaje: las dos camaras en el mismo conector. 🟢 **Y desde §1.7.bis, `p12` ya tiene firmware construido y ejercido: la mudanza no es codigo, es un cable** | ~~🔴 **hereda §2.2 sin resolver**~~ → 🟢 **§2.2 CERRADA en cobre el 03/09 (M3/N-118): activo en ALTO, que es como el firmware de camara ya lee.** Este contra **desaparece**. Y 🔴 **hereda §2.1**, que NO desaparece: acerca la camara a los 12 V. **Y desde el 31/08 se sabe cuanto: `p12` (`/Boton4`) es el punto del conector MAS cercano a la red de 12 V —`1,359 mm` de cobre a cobre, `MAPEO_TARJETA_KICAD.md:576-588`—, no el mas lejano como decia el colchon de §1.7** |
 
 > **Este documento no toma la decision, pero deja escrito el sesgo:** mover una funcion que
 > **funciona con firmware probado** a un conector cuya polaridad esta en contradiccion medida y que
@@ -1491,6 +2071,113 @@ operario a que poste caminar**.
 **SIN VERIFICAR, y es la mitad que mas pesa:** **nadie ha visto este rotulo en la lista de
 emparejados de un telefono.** No hay una sola tarjeta con un ESP32 conectado a `J17`, y el Bluetooth
 **no subio en toda la sesion de banco del 3-4/09** (N-117 / N-122, arreglados **sin banco**).
+
+---
+
+> 🔴 **AMPLIADA EL 04-05/09 — EL RESPONSABLE DESCARTO LAS CUATRO OPCIONES DE ARRIBA Y APLAZO LA
+> DECISION A DESPUES DEL BANCO.**
+>
+> Su frase sobre como se matricula hoy —mirando los **NOMBRES** de los Bluetooth— fue ***"es pura
+> mierda"***, y lo que pidio son **dos** requisitos, no uno:
+>
+> | # | requisito |
+> |---|---|
+> | **1** | La matriculacion se hace por **ID de Bluetooth** (la direccion del modulo), **no por su nombre** |
+> | **2** | **Sin intervencion manual.** Nadie teclea, nadie empareja a mano, nadie lee una etiqueta |
+>
+> **Esto no es una quinta fila de la tabla de arriba: la tumba entera.** Las cuatro opciones giraban
+> sobre **como rotular**, y el requisito dice que **el rotulo no es la identidad**. La opcion 1
+> —"cubrirlo por procedimiento"— es exactamente la intervencion manual que el requisito 2 prohibe.
+>
+> 🛑 **APLAZADO POR EL RESPONSABLE A DESPUES DEL BANCO. AQUI NO SE DISENA NADA**, y esa es la
+> decision correcta esta noche: hay gente en banco y esto no bloquea ninguno de los pasos.
+>
+> **EL DATO DURO QUE CONDICIONA EL DISENO, Y VA ESCRITO AHORA PARA QUE NO SE PROPONGA LO IMPOSIBLE
+> DENTRO DE UN MES** — MEDIDO en `Maestro/include/protocolo.h:242-248`, identico en el Esclavo:
+>
+> ```
+>    struct RF_Packet {
+>        uint8_t msgID;
+>        uint8_t command;
+>        uint8_t param;
+>        uint8_t crc;
+>    };
+> ```
+>
+> **Son CUATRO BYTES Y NO HAY CAMPO DE DIRECCION.** El `crc` cubre **los tres anteriores**. O sea:
+>
+> - **el enlace de radio no sabe a quien va dirigido un paquete** — hoy funciona porque hay
+>   exactamente **dos** radios en enlace directo (`CLAUDE.md` §10);
+> - **una matricula que viaje por radio no cabe** sin cambiar la trama, y cambiar la trama toca
+>   **las dos puntas, el CRC, la proteccion de replay y todos los packs que la modelan**;
+> - **la identidad que hoy existe de verdad es la del STM32** —`identidad_serie()` lee el UID del
+>   silicio— y el ESP32 **no la conoce hasta oir un `$STATUS`**.
+>
+> **Lo que esto NO dice:** no dice que haya que ampliar `RF_Packet`, ni que el ID de Bluetooth deba
+> viajar por radio. **Dice cual es el terreno**, para que quien lo disene no descubra el limite
+> despues de escribirlo. **SIN VERIFICAR:** nadie ha comprobado que la pila SPP del ESP32 exponga la
+> direccion del **remoto** conectado por la interfaz que usa `transporte_app.cpp`; es la primera
+> medida que hace falta y **no se ha hecho**.
+
+### 3.9 🔴 NUEVA Y ABIERTA (04/09, de noche) — el borrado del respaldo no limpia los dos registros que N-133 estrena
+
+**Dueno: quien decida el firmware**, y va aqui y no en el Anexo porque **lo que hay que decidir no
+es como se arregla sino quien tiene la responsabilidad de limpiar** — el borrador o el lector.
+
+**MEDIDO** en `01_Firmware/Maestro/src/respaldo.cpp` *(el fichero es identico en el Esclavo)*:
+
+```
+   :157-158   calcularSuma()      s = s*31 + leerReg(REG_CICLO_RV);
+                                  s = s*31 + leerReg(REG_CICLO_DESPEJE);     <- SI entran en la suma
+   :193-201   respaldo_borrar()   DR2, DR3, DR4, DR5, DR6  a cero
+                                  DR9 y DR10  NO SE TOCAN                    <- y luego sellar()
+```
+
+**O sea: los dos registros nuevos entran en el checksum pero NO en el borrado, y `sellar()` los
+firma como contenido valido sin haberlos limpiado.**
+
+**Por que importa justo AHORA, y no antes:** `respaldo_borrar()` corre desde `respaldo_setup():185`
+**cuando el contenido se declara invalido** — que es exactamente lo que la subida de firma de N-133
+(`0x5EB1` -> `0x5EB2`) provoca en **la primera arrancada de cada equipo actualizado**. Es su caso de
+uso principal, no un borde.
+
+| escenario | que pasa hoy |
+|---|---|
+| equipo nuevo o pila agotada | `DR9`/`DR10` valen cero; `respaldo_tiemposCiclo()` se niega a devolver un cero (`:249`) y el equipo cae a sus minimos. ✅ **correcto** |
+| **equipo ACTUALIZADO, pila buena** | `DR9`/`DR10` llevan lo que dejara el arranque anterior. Se **sellan como validos** y el lector los devuelve. 🔴 **el caso sin cubrir** |
+
+**Lo unico que hoy lo frena es una segunda barrera en otro fichero:** la revalidacion de rango de
+`modo_automatico.cpp:110-117` (`3..15 / 3..15 / 10..90`). **Un par de bytes que cayera dentro de las
+tres ventanas pasaria**, y el cruce arrancaria con un ciclo que nadie configuro.
+
+> 🔴 **Y esto contradice por escrito lo que el propio header promete**, `Maestro/include/respaldo.h:58-61`:
+> *"respaldo_setup() encuentra el contenido invalido y borra: entonces respaldo_tiemposCiclo()
+> devuelve false y el equipo arranca con sus minimos, que es la direccion segura"*. **La frase
+> describe un borrado que no ocurre.** Es una afirmacion sobre el codigo, escrita al lado del
+> codigo, que **nadie comprobo** — la misma forma de N-122.
+
+> **Que hay que decidir, con las opciones escritas para que no se elija por eliminacion:**
+>
+> | opcion | coste | que resuelve |
+> |---|---|---|
+> | **Anadir `DR9`/`DR10` a `respaldo_borrar()`** | dos lineas | cierra el hueco donde nacio. Es el simetrico de lo que ya hace con los otros cinco |
+> | **Que el lector exija ademas una bandera propia**, como `respaldo_hayCiclo()` hace con `FLAG_CICLO` | una bandera mas en `DR4` | distingue *"no configurado"* de *"borrado a medias"*, que hoy no se distinguen |
+> | **Dejarlo y confiar en la revalidacion de rango** | cero | 🔴 **apoya una propiedad de seguridad en un fichero que no sabe que la sostiene**, y el header seguiria mintiendo |
+>
+> **Este documento no elige.** Lo que si deja escrito es que **la tercera es una decision**, no el
+> estado por defecto.
+
+**Y hay una segunda mitad, del mismo censo, mas pequena pero de la misma familia:** el comentario de
+`respaldo.cpp:228` justifica el rechazo del cero diciendo que si no *"`respaldo_hayTiemposCiclo()`
+mentiria"*. **Esa funcion no existe en el arbol.** La analoga que si existe es `respaldo_hayCiclo()`
+(`:254`), y es la del **Degradado**, no la del automatico. Un comentario que nombra una funcion
+inexistente es una nota que ya no se puede comprobar leyendo — y es como se llega a documentar una
+Caja Negra que nadie llama.
+
+> ⚠️ **Nada de esto se ha ejercido: es MEDIDO sobre fichero.** Y **no hay ningun pack que mire el
+> borrado**: `Validacion_Respaldo` compila `calcularSuma()` y Horner, y su punto ciego declarado es
+> justamente que **no ejerce el arranque** (`CLAUDE.md` §8). **Antes de tocar una linea aqui va el
+> arnes, visto fallar** — uno que naciera en verde no mediria nada.
 
 ---
 
@@ -1848,6 +2535,11 @@ permiso.
 | 🔴 **Que N-130 se VEA desde la app** | el rechazo llega como evento `MAESTRO / DEMANDA_NO_ATENDIDA_MODO_ACTUAL` (`Esclavo/src/main.cpp:542`), no como `$ERR`. **Que la app lo pinte y el operario lo lea NO se ha comprobado**, y sin eso el cierre es medio: se deja de mentir, pero puede no decirse nada |
 | 🔴 **El coste de flash de los cambios del 04/09 por la tarde** | **no medido por la compuerta.** El acta de `624eb37` es anterior a ellos, y la lectura directa del `.elf` **no reconcilia** con el delta reportado. La discrepancia esta publicada en la revision del 04/09 (tarde); **el numero bueno sale de correr la compuerta sobre el arbol de hoy** |
 | 🔴 **El rotulo Bluetooth** | **nadie lo ha visto en un telefono.** §3.7 apoya en el una decision operativa —a que poste camina el operario— y §3.8 deja abierto que **dos modulos virgenes se llaman igual** hasta una vuelta de energia |
+| 🔴 **Que el ambar ordenado (N-134) llegue a la otra punta** | el comando existe y las dos puntas lo comparten (`protocolo.h:174`), **MEDIDO sobre fichero**. **Nadie ha visto salir el `CMD_GO_AMBAR` de un Maestro ni entrar en un Esclavo**, y era en banco donde se veia el sintoma que este cambio arregla —*"a veces los dos, a veces solo el maestro"*—. La red de la orfandad de 25 s sigue puesta, asi que un fallo degrada al comportamiento de ayer |
+| 🔴 **Que la primera arrancada tras N-133 deje los tiempos en los minimos** | la subida de firma esta **MEDIDA** (`respaldo.cpp:76`), pero `respaldo_borrar()` **no limpia `DR9`/`DR10`** y los sella como validos (**§3.9**). En un equipo actualizado con pila buena **el resultado depende de bytes que nadie ha leido**. **Se mira en el poste, no se supone** |
+| 🔴 **Que el PIN de la app caduque EN LA APK** | los dos plazos estan **MEDIDOS** en el fuente (`app.js:1709-1710`), pero cuelgan de `visibilitychange` / `pagehide` y **no hay `pause` de Cordova**. **Nadie lo ha visto caducar con el telefono en el bolsillo y la pantalla apagada**, que es el unico escenario para el que existe. **SIN VERIFICAR** |
+| 🔴 **Que N-106 salga de verdad por el todo-rojo** | el camino esta **MEDIDO** (`Esclavo/src/bluetooth.cpp:293-308`) y **no se ha ejercido ni en tarjeta ni en arnes**. `CLAUDE.md` §8.bis pide ver fallar el instrumento antes de fiarse, y para este camino **no se ha hecho** |
+| 🔴 **La causa del `FORMATO_INVALIDO` del Courier RTC** | **SIN DIAGNOSTICAR.** La app lo traduce a lenguaje de obra desde el 04/09, y eso **hace legible el sintoma sin decir nada de la causa**. Aqui no se propone ninguna |
 
 > 🛑 **La compuerta del 28/08 salio con `15 PASS | 0 FALLA | 0 ABORTADO` y eso no autoriza nada de
 > este documento.** Lo dice el acta y lo dice `CLAUDE.md` §3: ese `0` significa que *los modelos y
@@ -1878,11 +2570,28 @@ Se conservan tachados: una tarea que desaparece en silencio se vuelve a pedir.**
 3. ~~**`SET_RTC` tiene que mirar `reloj_hayCristal()`** antes de contestar `RESULT:OK`
    (`bluetooth.cpp:175`, `reloj.cpp:290`) (§2.5).~~ → ✅ **HECHO en `d34cfe2` (N-80)**:
    `bluetooth.cpp:309`. Cinco ramas, `:295-328`. Ver §2.5.
-3.bis 🔴 **NUEVO (31/08) — N-106: el ambar de emergencia de la app no sale del Degradado en el
+3.bis ~~🔴 **NUEVO (31/08) — N-106: el ambar de emergencia de la app no sale del Degradado en el
    Esclavo.** `Esclavo/src/bluetooth.cpp:130` y `:171` arman el latch y llaman a
-   `semaforo_iniciarFallo()`, pero **no** a `degradado_salir()`, que es lo que si hace el `B.B.B` del
-   mando (`mando.cpp:133-138`). **MEDIDO POR LECTURA, no ejecutado.** Va **primero el arnes, visto
-   fallar** (`CLAUDE.md` §8.bis); el arreglo despues. Detalle en `ESTADO.md` §N-106.
+   `semaforo_iniciarFallo()`, pero **no** a `degradado_salir()`.~~ → ✅ **HECHO el 04/09.**
+   `salidaDegradadoIniciada()` (`Esclavo/src/bluetooth.cpp:302-308`) preguntada en las **dos**
+   puertas, `:402` y `:481`. **Y el envoltorio es la parte que hay que no perder:**
+   `degradado_salir()` es `void` y **abandona en silencio** desde `DEG_INACTIVO` y `DEG_SALIENDO`,
+   asi que llamarla suelta y contestar `$ACK` detras habria sido **el mismo OK mudo** que N-106
+   denunciaba; por eso el envoltorio pregunta **la misma guarda que ella**, no una parecida
+   (`:293-301`). El `RESULT` pasa de uno a **cinco**.
+   > 🔴 **ESTE PUNTO NO SE CIERRA DEL TODO, y se deja abierto a proposito con la mitad que falta:**
+   > el arreglo entro **sin el arnes visto fallar** que este mismo punto pedia (`CLAUDE.md` §8.bis).
+   > Con el arreglo ya dentro, la unica forma honesta de exigirlo es **inyectar el
+   > `semaforo_iniciarFallo()` a secas en el `.cpp` real y comprobar que un pack baja la cuenta y
+   > cambia el codigo de salida**. Sin eso, entro sin testigo.
+3.ter 🔴 **NUEVO (04/09) — `respaldo_borrar()` no limpia `DR9`/`DR10` y los sella como validos.**
+   Detalle, escenarios y las tres opciones en **§3.9**. Va **antes** de dar por buena la puesta en
+   marcha de ningun equipo actualizado, porque su caso de uso principal **es** esa primera arrancada.
+3.quater 🔴 **NUEVO (04/09) — el `enum` de un solo valor que queda vivo.**
+   `Maestro/src/modo_inteligente.cpp:14` declara `enum FaseInt { INT_CORRIENDO };` y **lo compara**
+   en `:40` y `:62`. Es el **mismo constructo** que N-135, y N-135 demostro que la comparacion se
+   reduce a `movs r0, #1`. **No se ha analizado que cuelga de esa comparacion**, y por eso esto es
+   una tarea y no una acusacion: **la pregunta es si esa guarda puede dar las dos respuestas.**
 4. **La telemetria fabricada:** `BAT:12.6` en las dos puntas, y `RF:98%` / `RTT:85ms` /
    `MODO:SUBORDINADO` en el Esclavo. Se retiran o se marcan; no se dejan con aspecto de medida
    (§2.6). Y el campo `T:` no es tiempo de fase — el comentario de `bluetooth.cpp:241` dice que si.
@@ -1940,6 +2649,22 @@ Se conservan tachados: una tarea que desaparece en silencio se vuelve a pedir.**
 11. **Los tres packs `documentos_*`** vigilan lo que README, `ESTADO.md`, `OPTIMIZACIONES.md` y el
     Manual 10 **dicen haber medido**. Cambiar el Manual 10 sin mirarlos deja el banco en rojo — o,
     peor, en verde vigilando una frase que ya no esta.
+12. 🔴 **NUEVO (04/09) — un pack que censE los `enum` de un solo valor QUE ADEMAS SE COMPARAN.**
+    N-135 costo el camino de escritura de N-133 y **ningun instrumento lo vio**: `maestro_10` censaba
+    funciones que devuelven un **literal** (`return false;`), y esta devolvia una **comparacion**. La
+    forma era distinta y la consecuencia identica. Es un **trinquete, no un absoluto** —un `enum` de
+    un valor que nadie compara puede ser legitimo—, y su primer sujeto vivo esta en
+    `modo_inteligente.cpp:14`.
+13. 🔴 **NUEVO (04/09) — que la caducidad del PIN se ejerza EN LA APK, no en un navegador.** Es la
+    unica mitad `SIN VERIFICAR` de la barrera nueva de la app, y es justo la que importa: los dos
+    plazos cuelgan de `visibilitychange` / `pagehide` (`app.js:1755-1763`) y **no hay `pause` de
+    Cordova**. **Se cronometra con un telefono en el bolsillo y la pantalla apagada.** Un arnes de
+    DOM en un navegador de escritorio **no puede contestar esta pregunta**, y darlo por medido ahi
+    seria declarar sin ejercer.
+14. 🔴 **NUEVO (04/09) — un pack que ate el borrado del respaldo a su checksum.** La regla es
+    mecanica y por eso se puede vigilar: **todo registro que entre en `calcularSuma()` tiene que
+    salir en `respaldo_borrar()`.** Hoy son diez contra cinco (§3.9). Es la clase de desigualdad que
+    `CLAUDE.md` avisa que **no puede vivir en un comentario**.
 
 **Documentos:** los de la seccion B, en el orden de la seccion B.
 

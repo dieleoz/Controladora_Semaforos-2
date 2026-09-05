@@ -90,6 +90,39 @@ como *BLOQUEADO*. Repartidos como el cuerpo los describe, la cuenta que cuadra a
 | **Paso 29 — mando de relés** | **ABORTADO por seguridad** (el Maestro se sobrecalentó y quedó pendiente de inspección en frío). ~~**Pero la sordera del mando no necesita ese paso para estar diagnosticada, y lo está por el paso 20:** la red de 10 kΩ a masa que la placa trae en esos pines —las `R65`–`R68` de `CLAUDE.md §9.bis`— deja `J16` p5/p8 en **`0,6 V` permanentes**, o sea BAJO fijo. **Nunca hay flanco**, así que el mando está sordo de fábrica~~ 🔧 **CADUCADO el mismo 04/09 por `N-118`, y se tacha en vez de borrarse porque es la frase que resucita el gesto peligroso.** Ese `0,6 V` **lo ponía el firmware**, no el cobre: era el `INPUT_PULLUP` contra esos 10 kΩ. Con `BOTON1`/`BOTON2` en `INPUT` pelado y **activo en ALTO** (`346ea5f`), los 10 kΩ pasan a ser el **reposo correcto**. **El mando NO está sordo de fábrica**; lo que cambia es el gesto: **`p5` contra `p4` y `p8` contra `p7` — los 3,3 V del pin contiguo, NUNCA contra masa** (`J16` tiene una sola masa, `p2`) |
 | **La fuente `12 V → 5 V` de la placa del módulo** | **No medida con carga real:** toda la sesión se alimentó por USB. Pendiente antes de campo |
 
+### 🔵 LA SEGUNDA NOCHE (4–5/09) — CUATRO DEFECTOS QUE ENCONTRÓ **UNA CINTA DE TRAMAS**, NO UN PACK
+
+> **Esto es lo que esta página tenía que aprender, y llegó solo.** Ninguno de los cuatro es una
+> propiedad del fuente que un pack pudiera ver: **los tres primeros salieron de LEER LA CINTA de lo
+> que el equipo contestó**, con el teléfono conectado. **Es un instrumento nuevo, y es el primero en
+> mucho tiempo que no es Python.**
+
+| # | qué se encontró | cómo se encontró | estado del arreglo |
+|---|---|---|---|
+| **N-142** | El ámbar de emergencia del Esclavo **no llegaba al Maestro**, que podía seguir dando VERDE **hasta 3 min** con el otro lado en ámbar | **reportado en banco** por el operario | ✅ firmware escrito · 🔴 **SIN EJERCER en tarjeta** |
+| **N-146** | `SET_MODO:AMBAR` contestaba `OK` **seis veces seguidas** y no encendía nada | 🎞️ **la cinta**: 6 órdenes, 6 `OK`, y `MODO:AMBAR,ESTADO:ROJO` durante **47 tramas** | ✅ escrito (`REARMADO`) · 🔴 **SIN EJERCER** |
+| **N-147** | En Manual el cruce **cambiaba solo a los 15 s** y DAR PASO se rechazaba. **Y un tercer defecto que nadie reportó**: pulsar DAR PASO **reiniciaba el plazo**, así que pulsando rápido no se veía el verde nunca | reportado + **medido en el `.cpp`** | ✅ escrito · 🔴 **SIN EJERCER** |
+| **N-149** | Desde el Maestro **no se veía el estado del Esclavo** | pedido en banco | ✅ campo `ESC:` · 🔴 **SIN EJERCER** |
+| **N-145** | La hora salía **en blanco en TODAS las tramas** | 🎞️ **la cinta** | ✅ el puente sella el hueco · 🛑 **NO SE PUEDE PROBAR: no hay `DS3231` comprado (`A6`)** |
+| — | **`BAT:--` en todas las tramas** | 🎞️ **la cinta** | 🔴 **NO ES UN DEFECTO A ARREGLAR:** el equipo **no tiene divisor ni entrada analógica**. El `--` es el marcado correcto (`N-108`). **Aquí no se escribe causa de por qué no se montó la medida: no se ha medido** |
+
+> 🔴 **LO QUE ESTA TABLA DICE DE LA COBERTURA, Y ES LO INCÓMODO: los cinco pasaron la compuerta en
+> verde.** Ninguno era una propiedad que un modelo de PC pudiera ver — **tres son «el equipo obedece
+> y no avanza», que es exactamente lo que no deja rastro**. La compuerta responde *«los modelos y los
+> arneses de PC no encuentran nada»*, y esta noche volvió a demostrarse que **eso no es un
+> entregable**.
+>
+> ✅ **Lo que SÍ hicieron los instrumentos, y hay que anotarlo entero:** tres packs **cazaron los
+> arreglos** —`esp32_07` tumbó un buffer de 160 que se habría truncado en el último paso;
+> `app_03_sin_ok_mudo` acusó la rama nueva del ámbar; `documentos_03` detectó que las dos puntas
+> dejaban de emitir los mismos campos— y el `simulador_app_bluetooth` **abortó** ante un campo
+> desconocido en vez de ignorarlo. **La puerta se cerró sola** (`CLAUDE.md` §3.quater al revés).
+
+> 🎞️ **EL HUECO DE COBERTURA QUE ESTO DESTAPA, Y NO SE CIERRA CON UN PACK:** **nadie estaba grabando
+> las tramas hasta el 04/09.** Los tres defectos de arriba llevaban ahí desde antes, y lo único que
+> hizo falta para verlos fue **guardar lo que el equipo contestó y leerlo después**. **Una cinta de
+> tramas por sesión de banco debería ser parte del procedimiento**, no una casualidad de esa noche.
+
 ---
 
 ## 🧪 LO QUE ESTA PÁGINA TIENE QUE APRENDER DEL BANCO

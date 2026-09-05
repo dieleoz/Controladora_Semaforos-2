@@ -165,6 +165,43 @@
 
 ---
 
+> # 🟢 04/09/2026, MÁS TARDE EL MISMO DÍA — LA APP CAMBIÓ DE BARRERA
+>
+> **Es el cambio que más se nota en la mano del operario, y va aquí arriba porque quien baje
+> directamente a un procedimiento de más abajo lo va a encontrar describiendo un teclado que ya no
+> aparece.** Todo lo de esta caja está **MEDIDO en el fuente de la app** y **nada se ha ejercido con
+> un equipo delante**.
+>
+> | # | qué cambia | dónde está contado |
+> |---|---|---|
+> | **1** | 🔴 **El operario ya NO teclea el PIN para dar paso ni para arrancar el ciclo.** En su lugar la app le pregunta **si ha mirado el tramo** | **§4.bis.4**, nueva |
+> | **2** | ✅ **NUNCA se pregunta para PARAR** —rojo total, ámbar—. Es la dirección segura | **§4.bis.4** |
+> | **3** | 🟢 **El PIN CADUCA**: 60 s de gracia al guardarse el teléfono, y 5 min sin mandar órdenes. Cierra `AB-9` | **§4.bis.3**, reescrita |
+> | **4** | 🆕 **Hay un DIARIO DE ÓRDENES**, aparte de la cinta de tramas. **Es lo que hay que exportar y mandar cuando algo falle** | **§5.4.2.bis**, nueva |
+> | **5** | 🆕 **Los rechazos del equipo se traducen** y dicen qué hacer en el poste — **22 + 1 = 23** motivos | **§5.4.2.ter**, nueva |
+> | **6** | 🟢 **Los tiempos del ciclo ya no se pierden** al entrar en Automático ni al cortar la luz (`N-133`), **y en Automático no se pueden cambiar** (`N-42`/`N-135`) | **§5.5.1**, corregida |
+>
+> ## 🔴 El porqué del nº 1, que es lo único que hay que recordar de esta caja
+>
+> > **El equipo no sabe si quedan vehículos en el tramo, y el operario sí. Un PIN demuestra QUIÉN
+> > ERES; no demuestra que hayas MIRADO.**
+>
+> Cuatro dígitos delante de un cruce parado no protegen a nadie del riesgo real de esa orden —que
+> alguien siga dentro del tramo—, y **enseñan a teclear deprisa**. La pregunta que sí protege es la
+> que no se puede contestar sin levantar la vista.
+>
+> ## ⚠️ Y lo que esta caja NO dice
+>
+> * **El PIN no ha desaparecido de la trama.** Sigue viajando y el firmware lo sigue exigiendo donde
+>   siempre; lo que cambió es **a quién se le pregunta en la pantalla**.
+> * **`SET_MODO:AMBAR`, `CANCELAR_AMBAR`, `SET_MODO:DEGRADADO` y `TEST_LEDS` SIGUEN pidiendo PIN.**
+>   La tabla completa de qué pide qué está en **§4.bis.4**.
+> * 🛑 **El error `FORMATO_INVALIDO` del Courier RTC SIGUE SIN DIAGNOSTICAR.** Que la app ahora lo
+>   traduzca a lenguaje de obra **no lo explica ni lo repara**: sólo hace legible el síntoma. **No
+>   hay causa escrita en ninguna parte, y aquí no se propone ninguna.**
+
+---
+
 ## 1. 🌟 INTRODUCCIÓN Y ARQUITECTURA DE 2 ROLES
 
 La aplicación móvil **IOT-VIAL V9.0** elimina la fricción operativa en obra separando claramente la experiencia en **dos perfiles de usuario**:
@@ -192,6 +229,8 @@ La aplicación móvil **IOT-VIAL V9.0** elimina la fricción operativa en obra s
 │          Esclavo -> AMBAR EMERGENCIA  = CMD:AMBAR_EMERGENCIA (ambar,     │
 │                     talanquera ABIERTA). FORZAR_ROJO da $ERR alli.       │
 │   • Cero contrasenas ni formularios complejos para el operario de obra.  │
+│     04/09: y ahora tampoco PIN para DAR PASO ni para arrancar el ciclo   │
+│     -en su lugar, la confirmacion de via de 4.bis.4-. Ver la nota abajo. │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ 🛡️ MODO TÉCNICO / ADMINISTRADOR (PIN '1234'):                           │
 │   • Tiempos de ciclo: Verde 3-15m, Rojo 3-15m, Despeje 10-90s            │
@@ -364,24 +403,112 @@ el mismo binario sirve a las dos puntas y **el nombre lo aprende del campo `NODE
 >
 > **Si el teléfono pide un PIN de emparejamiento, no está hablando con este módulo.**
 
-### 4.bis.3 🛑 El PIN de la app NO CADUCA NUNCA — `AB-9`, ABIERTO
+### 4.bis.3 ✅ ~~🛑 El PIN de la app NO CADUCA NUNCA — `AB-9`, ABIERTO~~ → **AHORA CADUCA (04/09)**
 
-**Se teclea una vez y el teléfono queda autorizado hasta que se cierra la app.** No hay expiración
-por tiempo, ni bloqueo por inactividad, ni cierre al cambiar de nodo.
+> 🛑 **LO QUE ESTE APARTADO DECÍA HASTA EL 04/09, conservado tachado porque una barrera que aparece
+> sin dejar rastro de que faltaba se vuelve a quitar:**
+>
+> ~~**Se teclea una vez y el teléfono queda autorizado hasta que se cierra la app.** No hay
+> expiración por tiempo, ni bloqueo por inactividad, ni cierre al cambiar de nodo. Si alguien guarda
+> el teléfono desbloqueado en el bolsillo, el siguiente que lo coja manda sobre el cruce sin teclear
+> nada.~~
 
-> 🔴 **Lo que eso significa:** si alguien **guarda el teléfono desbloqueado en el bolsillo**, el
-> siguiente que lo coja **manda sobre el cruce sin teclear nada**. Y con la app como superficie de
-> mando principal —y, mientras el arreglo del mando de relés no se ejerza en tarjeta (`N-118`), como
-> **única vía comprobada**—, eso es todo el mando del equipo.
+**Hoy el permiso caduca por DOS caminos, y el técnico lo va a notar. MEDIDO en
+`App_Semaforo/www/app.js:1709-1710`:**
+
+```js
+   const PIN_GRACIA_FONDO_MS = 60 * 1000;        // 60 s
+   const PIN_INACTIVIDAD_MS  = 5 * 60 * 1000;    // 5 min
+```
+
+| se cierra la sesión cuando… | el plazo | dónde |
+|---|---|---|
+| **la app se va al fondo** —se guarda el teléfono, se cambia de aplicación, se contesta una llamada— **y tarda en volver más de 60 s** | **60 s de gracia** | `app.js:1742-1753` |
+| **pasan 5 minutos sin mandar ni una orden**, con la app delante | **5 min** | `app.js:1765-1774`, vigilado cada 10 s desde `:3948` |
+
+**Los 60 s de gracia son la mitad que hace esto usable, y por eso van escritos:** mirar un mensaje o
+consultar una foto del plano **no** cierra la sesión; guardarse el teléfono, sí. Y *«sin mandar
+ninguna orden»* significa exactamente eso —**haber enviado**, no haber tocado la pantalla
+(`app.js:388-389`)—: leer telemetría durante cinco minutos **no** mantiene abierta la autorización.
+
+**Al caducar, la app baja el rol de `TÉCNICO` a `OPERARIO`** y descarta también la confirmación de
+vía que hubiera pendiente (`app.js:1716-1736`). No es un aviso: es que hay que volver a teclear.
+
+> ⚠️ **Y lo que hay que decirle al técnico para que no lo lea como una avería:** si vuelve al
+> teléfono y la pestaña `Técnico` ya no está, **no se ha desconectado el Bluetooth ni se ha caído el
+> equipo**. El enlace sigue; lo que caducó es el permiso. Se vuelve a entrar con los mismos cuatro
+> dígitos.
+
+> 🔴 **LO QUE NO ESTÁ VERIFICADO, Y ES PRECISAMENTE LO QUE ESTA BARRERA PROMETE — clasificado `SIN
+> VERIFICAR`, no `MEDIDO`.** Los dos caminos cuelgan de **sucesos del navegador**:
+> `visibilitychange`, `pagehide` y `pageshow` (`app.js:1755-1763`). **No hay un solo `pause` ni
+> `resume` de Cordova**, que es el par que un WebView empaquetado emite con seguridad — `grep` de
+> `'pause'`, `'resume'` y `blur` sobre `app.js` da **cero**.
 >
-> ⚠️ **Se escribe como riesgo conocido, NO como algo resuelto.** `§5.4.3` cuenta lo que sí se
-> arregló —que el PIN ya no se puede armar con el teclado cerrado—, y eso **no es esto**: aquello
-> garantiza que **alguien tecleó** cuatro dígitos; esto es **cuánto dura** ese permiso después.
+> **En un navegador de escritorio eso funciona y se ha ejercido. En la APK, sobre un teléfono real,
+> con la pantalla apagada y el móvil en el bolsillo, NADIE LO HA VISTO CADUCAR.** El escenario que
+> esta barrera existe para cubrir es **exactamente** ese, y es el único que no se ha probado.
+> **Hasta que alguien lo cronometre con el teléfono en la mano, la única barrera demostrada sigue
+> siendo quién tiene el teléfono.**
 >
-> **Cuánto debe durar una sesión autorizada es decisión del responsable**, porque el coste va en los
-> dos sentidos: una sesión que caduca demasiado pronto obliga a teclear el PIN delante de un cruce
-> parado, y ese fue exactamente el argumento que hizo que no caducara. Mientras siga así, **la única
-> barrera real es quién tiene el teléfono**.
+> *(Es la forma de `CLAUDE.md` §2.ter: la caducidad está **declarada** y no está **ejercida** en el
+> medio donde tiene que valer.)*
+
+### 4.bis.4 🟢 NUEVO EL 04/09 — PARA ABRIR PASO, LA APP YA NO PIDE EL PIN: PREGUNTA SI HA MIRADO EL TRAMO
+
+> **Es el cambio que más se nota en la mano del operario, y el motivo hay que leerlo entero porque
+> no es una comodidad: el equipo no sabe si quedan vehículos en el tramo, y el operario sí. Un PIN
+> demuestra QUIÉN ERES; no demuestra que hayas mirado.**
+
+**Las dos órdenes que ABREN paso ya no piden cuatro dígitos. Piden una confirmación de vía.**
+**MEDIDO** en `App_Semaforo/www/app.js:1941` y `:1954` — y ninguna de las dos llama ya a
+`pedirPin()`:
+
+| botón | orden | qué pregunta hoy |
+|---|---|---|
+| **DAR PASO** | `MANUAL:CAMBIAR_TURNO` | *«DAR PASO: el sentido que ahora tiene verde va a quedar en rojo y el otro va a arrancar. Mire el tramo entero antes de aceptar.»* |
+| **AUTOMÁTICO** | `SET_MODO:AUTO` | *«AUTOMATICO: el equipo va a empezar a dar verdes solo, sin volver a preguntar. Mire el tramo entero antes de aceptar.»* |
+
+**La pregunta que encabeza el diálogo es «¿No quedan vehículos en el tramo?»**, y debajo lleva la
+lista de lo que hay que mirar —**el tramo entero hasta la otra punta**, curvas y cambios de rasante,
+vehículos parados o lentos, maquinaria, y gente trabajando o cruzando la calzada—. Los dos botones
+son **«Todavía no»** y **«He mirado: el tramo está libre»** (`index.html:788-806`).
+
+#### Las tres reglas de cuándo aparece, y ninguna es evidente
+
+1. 🛑 **NUNCA se pregunta para PARAR.** Poner rojo total, poner ámbar y volver al menú **no
+   preguntan nada**. Está escrito en el propio fuente (`app.js:1796-1800`) y el motivo es el que
+   importa: **preguntar para parar enseña a decir que sí sin leer**, y el día que la pregunta llegue
+   en serio ya nadie la lee. Es además el mismo criterio que el firmware usa para el PIN —
+   `FORZAR_ROJO` y `AMBAR_EMERGENCIA` están en la lista **sin PIN** a propósito (`app.js:281`).
+2. ⚠️ **Se pregunta AUNQUE EL PIN YA ESTÉ PUESTO.** No son dos llaves de la misma puerta, y el
+   fuente lo dice con estas palabras (`app.js:1807-1809`): *«el técnico que tecleó su clave hace
+   diez minutos tampoco ha mirado el tramo»*. Un técnico en modo `TÉCNICO` verá la pregunta igual.
+3. ⏱️ **El «he mirado» CADUCA a los 30 s, y también en cuanto cambian las luces**
+   (`VIA_VIGENCIA_MS = 30 * 1000`, `app.js:1810` y `:1843-1849`). Confirmar la vía y luego
+   entretenerse dos minutos **no vale**: hay que volver a mirar. Y si el cruce cambió de fase entre
+   el «he mirado» y la orden, **el vale se cae solo**, porque el tramo que se miró ya no es el tramo
+   que se va a abrir.
+
+#### Qué sigue pidiendo PIN — que NO es «nada»
+
+**La confirmación de vía NO ha sustituido al PIN en todas partes.** Censado el 04/09 sobre
+`app.js`:
+
+| orden | ¿pide PIN? | ¿pregunta por el tramo? |
+|---|---|---|
+| `MANUAL:CAMBIAR_TURNO` (**DAR PASO**) · `SET_MODO:AUTO` | ❌ no | ✅ **sí** |
+| `FORZAR_ROJO` (**ROJO TOTAL**) · `AMBAR_EMERGENCIA` · `SET_MODO:MENU` · `SET_MODO:ALCANCE` | ❌ no *(lista `SIN_PIN`, `app.js:281`)* | ❌ no — **es la dirección segura** |
+| `SET_MODO:AMBAR` (`:1964`) · `CANCELAR_AMBAR` (`:2036`) · `SET_MODO:DEGRADADO` (`:2221`) · `TEST_LEDS` (`:3547`) · todos los botones de la pestaña Técnico (`:3022`) | ✅ **sí** | ❌ no |
+
+> 🔵 **`CANCELAR_AMBAR` es el caso que parece contradictorio y no lo es:** *retirar* el ámbar pide
+> PIN mientras *ponerlo* no lo pide. Devolver el cruce a dar verdes **abre paso**, y eso es
+> justamente lo que el PIN custodia (`app.js:2025`).
+
+> ⚠️ **Y una precisión sobre el cable, para que nadie concluya de más: el PIN NO ha desaparecido de
+> la trama.** La app sigue construyendo `CMD:PIN:1234:…` (`app.js:342-350`) y el firmware sigue
+> exigiéndolo donde siempre. **Lo que cambió es a quién se le pregunta en la pantalla, no lo que
+> viaja por `J17`.** Un `CMD:PIN:` interceptado en el aire vale hoy lo mismo que ayer.
 
 ---
 
@@ -416,7 +543,7 @@ NMEA. **La forma es `CMD:PIN:1234:<ACCION>` — con dos puntos**, que es como la
 | `CMD:FORZAR_ROJO` | `:412` | **Sin PIN**, a propósito. Rojo total |
 | `CMD:SET_MODO:MENU` | `:436` | **Sin PIN** (alias). No abre paso |
 | `CMD:SET_MODO:ALCANCE` | `:437` | **Sin PIN** (alias) |
-| `CMD:PIN:1234:SET_MODO:AUTO` | `:444` | ⚠️ ver el aviso de §5.5: **reinicia los tiempos a 1/1/15** |
+| `CMD:PIN:1234:SET_MODO:AUTO` | `:444` | ~~⚠️ **reinicia los tiempos a 1/1/15**~~ → 🟢 **04/09: YA NO.** Respeta los tiempos guardados y los recupera del respaldo (`N-133` + `N-42`). Ver §5.5.1 |
 | `CMD:PIN:1234:SET_MODO:MANUAL` | `:449` | |
 | `CMD:PIN:1234:SET_MODO:AMBAR` | `:454` | **Es un MODO, no el latch de emergencia.** El Maestro no tiene `AMBAR_EMERGENCIA` |
 | `CMD:PIN:1234:SET_MODO:MENU` | `:458` | **sustituye al botón *Cancelar*** retirado. En Degradado sale por todo-rojo |
@@ -444,7 +571,7 @@ Cualquier otra cosa: `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO` (`:663`).
 | Trama | Línea | Qué hace |
 |---|---|---|
 | `$LATIDO` | `:340` | 🆕 **04/09.** Igual que en el Maestro: **no se contesta**, sólo cierra un silencio |
-| `CMD:AMBAR_EMERGENCIA` | `:381` | **Sin PIN.** Ámbar intermitente + latch que **veta las órdenes de radio** |
+| `CMD:AMBAR_EMERGENCIA` | `:381` | **Sin PIN.** Ámbar intermitente + latch que **veta las órdenes de radio**. 🟢 **04/09 (`N-106`): y si el Degradado gobierna la luz, SALE de él por el todo-rojo** — el `RESULT` ya no es `OK` siempre, son **cinco**. Ver abajo |
 | `CMD:PIN:1234:AMBAR_EMERGENCIA` | `:468` | Lo mismo, con PIN. **El mismo bloque letra por letra** — lo vigilan `esclavo_07` y `esclavo_08` |
 | `CMD:PIN:1234:CANCELAR_AMBAR` | `:491` | 🆕 **faltaba en este manual.** **Retira** el latch, **con PIN**. `RETIRADO` · `RETIRADO_QUEDA_MANDO` · `$ERR,…,DESC:NO_HAY_AMBAR_VIGENTE` |
 | `CMD:PIN:1234:SOLICITAR_PASO` | `:532` | **Pide**, no ordena. `PEDIDO_AL_MAESTRO` / `$ERR,…,DESC:REPITA_EN_UNOS_SEGUNDOS`. **Y el `PEDIDO_AL_MAESTRO` se puede desmentir después — `N-130`, abajo** |
@@ -486,6 +613,19 @@ Cualquier otra cosa: `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO`
 > es una mentira con formato de éxito** — y una app que no lee la diferencia la reintroduce en la
 > pantalla.
 
+> ✏️ **DISCREPANCIA MEDIDA EL 04/09, y se publica en vez de taparse: el título de este apartado dice
+> CINCO ramas y la tabla enseña CUATRO** —y el párrafo de debajo dice *«las cuatro»*—. **No se
+> arregla aquí escribiendo una quinta fila a mano**: inventar la que falta es exactamente lo que este
+> repositorio castiga. **La lista buena sale de censar el despachador** (`Maestro/src/bluetooth.cpp`,
+> rama `SET_RTC` desde `:578`), y ese censo no se ha hecho en esta pasada. **Mientras tanto, la regla
+> de campo no depende de la cuenta: lea el `RESULT:` o el `DESC:` que llegue, y si no lo reconoce, la
+> app se lo enseña en crudo** marcado como *«motivo sin traducir»* (§5.4.2.ter). **Lo que no vale es
+> tratar cualquiera de ellas como «enviado».**
+>
+> 🛑 **Y de las que sí están medidas, una sigue SIN DIAGNOSTICAR: `FORMATO_INVALIDO`.** Aparece en el
+> Courier RTC, la app ya lo traduce, y **nadie sabe por qué se produce**. Traducir un síntoma no es
+> repararlo, y aquí no se propone ninguna causa.
+
 ---
 
 ## 5.4 🆕 LO QUE LA APP HACE DESDE EL 01/09 Y ANTES NO — tres cosas que se notan en campo
@@ -514,6 +654,96 @@ un filtro *Sólo rechazadas* y la posibilidad de **guardar el registro en un fic
 
 > 💡 **Es el instrumento que hay que abrir cuando algo no cuadra**, y también donde se leen los
 > `$EVENT` en bruto — el `ORIGEN:RELOJ` con los bits del reloj, entre ellos.
+>
+> 🔴 **PERO NO ES LO QUE HAY QUE MANDAR CUANDO ALGO FALLE.** La cinta es **el cable**: trae lo que
+> pasó por él, en orden y sin interpretar, **y nada más**. Una orden que la app frenó antes de
+> escribir un byte **no aparece aquí**, porque por el cable no pasó. Para reportar una avería se
+> exporta **el Diario**, que es lo que cuenta abajo.
+
+### 5.4.2.bis 🆕 EL **DIARIO DE ÓRDENES** — y es LO QUE HAY QUE MANDAR CUANDO ALGO FALLE
+
+**Es un registro nuevo del 04/09, distinto de la cinta y con otra pregunta detrás.** La cinta
+contesta *«¿qué salió exactamente por el cable?»*; el Diario contesta **«¿y qué pasó?»**. Están los
+dos porque **ninguno de los dos responde a la otra pregunta** (`App_Semaforo/www/js/depuracion.js:3-9`).
+
+**Una línea por ORDEN, con su terna `orden / respuesta / efecto`** — formato literal del fuente
+(`depuracion.js:398-400`):
+
+```text
+   18:14:26  ORDEN      CMD:PIN:****:SET_MODO:AUTO
+   18:14:26  RESPUESTA  $ACK,CMD:SET_MODO:AUTO,RESULT:OK   (+0,3 s)
+             EFECTO     NO CAMBIO NADA: MODO siguio en AUTO y ESTADO en R1_R2
+```
+
+**El `EFECTO` es la columna que ningún otro instrumento tenía**, y es la que caza el defecto que
+este proyecto persigue por nombre: **un `$ACK` que dice `OK` y no mueve nada.** El Diario compara el
+`MODO` y el `ESTADO` de los `$STATUS` de antes y de después (`CAMPOS_EFECTO`, `depuracion.js:485`) y
+lo escribe en la misma línea. Un `RESULT:OK` con un *«NO CAMBIÓ NADA»* al lado es un hallazgo, no
+una anécdota.
+
+| dato | valor | dónde |
+|---|---|---|
+| Órdenes que guarda | **120** | `TOPE`, `depuracion.js:453` |
+| Espera para casar la respuesta | **5 s** | `VENTANA_RESPUESTA_MS`, `:460` |
+| Espera para casar el efecto | **95 s** | `VENTANA_EFECTO_MS`, `:472` |
+| ¿Sobrevive a cerrar la app? | 🛑 **NO** — `PERSISTE: false` (`:519`) | vive en memoria |
+
+> 🛑 **Y eso último manda sobre el procedimiento: el Diario NO SE GUARDA SOLO.** Si se cierra la app
+> —o caduca la sesión y alguien la reinicia— **se pierde**. **Se exporta ANTES de irse del poste**,
+> no al llegar a la oficina.
+
+#### El procedimiento de reporte, en tres pasos
+
+1. **En cuanto algo no cuadre, NO cierre la app.** Vaya a modo Técnico → pestaña `Tramas`.
+2. **Exporte el Diario** con su botón. Sale un fichero de texto llamado
+   **`Ordenes_<cruce>_AAAA-MM-DD.txt`** (`app.js:1372-1397`). Si no se puede guardar fichero, el
+   otro botón lo copia al portapapeles.
+3. **Adjunte también la cinta** si el problema huele a enlace —ruido, tramas rotas, silencios—:
+   sale como **`Tramas_<cruce>_AAAA-MM-DD.txt`** (`app.js:1141-1172`). **Son dos ficheros distintos
+   y no se sustituyen.**
+
+> ✅ **El PIN sale TAPADO con asteriscos en los dos ficheros**, y el propio encabezado del Diario lo
+> dice: *«El PIN sale tapado con asteriscos; al equipo se le manda entero»* (`depuracion.js:903`).
+> El tapado está aplicado **por separado en cada registro** —`depuracion.js:595-598` y `:666` en el
+> Diario, `:223` en la cinta— con este comentario al lado, que explica por qué no basta con hacerlo
+> una vez: *«los dos registros se exportan por separado y una barrera que cubre uno deja el otro
+> abierto»*. **Un Diario exportado se puede mandar por correo sin repasarlo a mano.**
+
+> 🔵 **Y la diferencia que hace útil al Diario en el caso peor:** una orden que la app **bloqueó**
+> —sin PIN, sin confirmar la vía, o dirigida a la punta equivocada— **sí entra en el Diario**, con
+> su motivo, y **no** entra en la cinta (`app.js:334-338`). Es decir: el Diario enseña **las órdenes
+> que el operario creyó dar y no salieron**, que es exactamente lo que nadie podía ver antes.
+
+### 5.4.2.ter 🆕 LOS RECHAZOS DEL EQUIPO YA SE TRADUCEN — y dicen qué hacer en el poste
+
+Antes, un `$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL` llegaba a la pantalla tal cual. Hoy la app lo traduce
+a lenguaje de obra y **dice qué hacer**.
+
+**CENSADO EL 04/09, y la cuenta se publica desglosada porque no es un solo número:**
+
+| tabla | entradas | qué traduce | dónde |
+|---|---|---|---|
+| `ERR_MOTIVO` | **22** | el `DESC:` del rechazo | `app.js:2459-2638` |
+| `ERR_TEXTO` | **1** — `CANCELAR_AMBAR\|NO_HAY_AMBAR_VIGENTE` | pares `CMD\|DESC` que sólo tienen sentido juntos | `app.js:2413-2421` |
+| | **23 en total** | | resueltas por `_traducirRechazo()`, `:2652-2657` |
+
+> ✏️ **El «23» se desglosa a propósito, y esta nota es el motivo.** Al medirlo aparecieron **tres**
+> números distintos que se parecen: las **22** entradas de `ERR_MOTIVO`, las **23** de las dos
+> tablas juntas, y un **23** que aparece en un comentario del propio `app.js:2430` refiriéndose a
+> otra cosa —los literales `DESC:` que existen **en el firmware**—. **Los tres son ciertos y ninguno
+> es el otro.** Publicar «23 motivos» a secas habría sido correcto por casualidad.
+
+**Los seis del reloj son un grupo aparte** —`SIN_RELOJ_NO_RESPONDE`, `ESCRITURA_FALLIDA`,
+`NO_QUEDO_PUESTA`, `OSCILADOR_PARADO_CAMBIE_PILA`, `MOTIVO_NO_CONTEMPLADO` y
+`SIGUE_PARADO_VEA_CONSULTA_RELOJ`— y ahí hay que leer el aviso de la cabecera de este manual: **el
+error `FORMATO_INVALIDO` del Courier RTC sigue SIN DIAGNOSTICAR.** Que la app ahora lo traduzca
+**no lo arregla ni lo explica**: sólo hace legible el síntoma.
+
+> ✅ **Y lo que la app hace con un motivo que NO conoce está bien hecho y hay que saberlo:** lo
+> enseña **en crudo**, marcado con *«motivo sin traducir en esta versión de la app»*
+> (`app.js:2935`). **No lo esconde y no se inventa una explicación.** Si ve esa marca, el motivo
+> real está en la pestaña `Tramas` y hay que reportarlo tal cual: significa que el firmware ha
+> crecido por delante de esta APK.
 
 ### 5.4.3 El **PIN ya no se puede armar con el teclado cerrado**
 
@@ -527,9 +757,14 @@ esté delante del operario (`app.js:2554-2556`, aplicado en `:2561`, `:2574`, `:
 > abierto **significa que alguien tecleó cuatro dígitos**, que es lo que el PIN existía para
 > garantizar.
 >
-> 🛑 **Y lo que este arreglo NO cubre, para que no se lea como si la barrera estuviera cerrada:
-> ese permiso NO CADUCA (`AB-9`, abierto).** Garantizar que alguien tecleó el PIN **no es lo mismo
-> que** garantizar que quien manda ahora es quien lo tecleó. Ver `§4.bis.3`.
+> ✅ **AL DÍA EL 04/09.** ~~*«lo que este arreglo NO cubre: ese permiso NO CADUCA (`AB-9`,
+> abierto)»*~~ → **`AB-9` está cerrado en el fuente**: el permiso caduca a los **60 s** de guardarse
+> el teléfono y a los **5 min** sin mandar órdenes. Ver `§4.bis.3`, **incluido su aviso `SIN
+> VERIFICAR`**: la caducidad por segundo plano cuelga de sucesos del navegador y **nadie la ha visto
+> disparar en la APK, con la pantalla apagada**, que es el escenario para el que existe.
+>
+> **Las dos mitades siguen siendo distintas y las dos hacen falta:** este apartado garantiza que
+> **alguien tecleó** cuatro dígitos; `§4.bis.3` es **cuánto dura** ese permiso después.
 
 ### 5.4.4 El puente **dice por qué arrancó** al reconectar
 
@@ -584,13 +819,57 @@ lo que sale de ahí no es una cola: es un conductor convencido de que el semáfo
 > `.cpp`, y **si algún día divergen, el que manda es el firmware**. Ofrecer un valor que el equipo
 > va a rechazar es el defecto que este proyecto ya conoce con otro nombre.
 
-> 🛑 **Y un aviso ABIERTO, medido el 04/09 y SIN DIAGNOSTICAR, que afecta a lo que la app enseña:**
-> los valores por defecto del modo siguen siendo **1 min / 1 min / 15 s** (`modo_automatico.cpp:13`
-> y `:94`) y **no pasan por la guarda** —`modoAutomatico_fijarTiempos()` sólo se ejerce desde
-> `SET_TIEMPOS`—. **`SET_MODO:AUTO` llama a `modoAutomatico_setup()`, que reescribe los tres valores
-> a `1, 1, 15`**: unos tiempos aceptados con `$ACK` **se pierden al arrancar el modo**.
-> *No se propone aquí un arreglo, y la app no debe fingir uno: mientras esto siga así, lo que la
-> pantalla muestre después de un `SET_MODO:AUTO` puede no ser lo que el equipo está usando.*
+> 🟢 **CERRADO EL 04/09 POR LA TARDE (`N-133` + `N-42`). Este aviso estaba ABIERTO y ya no lo está:**
+>
+> ~~*«los valores por defecto del modo siguen siendo 1 min / 1 min / 15 s (`modo_automatico.cpp:13`
+> y `:94`) y no pasan por la guarda. `SET_MODO:AUTO` llama a `modoAutomatico_setup()`, que reescribe
+> los tres valores a `1, 1, 15`: unos tiempos aceptados con `$ACK` se pierden al arrancar el
+> modo»*~~ → 🛑 **CADUCADO.**
+>
+> **MEDIDO hoy en `Maestro/src/modo_automatico.cpp`, y son tres cambios, no uno:**
+>
+> 1. **Los valores por defecto ya no son `1,1,15`: son los propios mínimos** — `static int minRojo =
+>    ROJO_MIN_MIN, minVerde = VERDE_MIN_MIN, segEstatico = DESPEJE_SEG_MIN;` (`:53-54`), o sea
+>    **3 min / 3 min / 10 s**. El `1, 1, 15` sobrevive sólo en el comentario que lo tacha (`:44`).
+> 2. **`modoAutomatico_setup()` YA NO PISA LOS TIEMPOS.** En su lugar llama a
+>    `recuperarTiemposGuardados()` (`:181`) y respeta lo que haya.
+> 3. **Y ahora sobreviven al corte de energía** (`N-133`): `modoAutomatico_fijarTiempos()` los
+>    escribe en el respaldo con pila (`:141`) y el arranque los relee, **revalidando el rango
+>    aunque el checksum apruebe** (`:110-117`) — porque un equipo actualizado puede traer guardado
+>    un ciclo de 1 minuto perfectamente íntegro, escrito cuando 1 era legal. **Un dato íntegro no es
+>    un dato válido.**
+>
+> ✅ **Consecuencia para la app: lo que la pantalla muestre después de un `SET_MODO:AUTO` ya SÍ es lo
+> que el equipo está usando.** La app no tiene que fingir nada ni advertir de nada aquí.
+>
+> ⚠️ **Sigue siendo MEDIDO sobre fichero. Nadie lo ha cargado en una tarjeta.**
+
+#### 🛑 Y una consecuencia operativa NUEVA que el técnico va a encontrarse: en Automático NO se pueden cambiar los tiempos
+
+**Hay que salir del modo, poner los tiempos, y volver a entrar.** El equipo contesta
+`$ERR,CMD:SET_TIEMPOS,DESC:EN_MARCHA_PARE_EL_MODO` (`Maestro/src/bluetooth.cpp:568-570`), y hay una
+**segunda guarda dentro del propio `modoAutomatico_fijarTiempos()`** (`modo_automatico.cpp:129`)
+para el que llegue por otro camino.
+
+**No es capricho, y el motivo va escrito porque es vial:** la duración se recalcula en cada vuelta a
+partir de esas variables, así que **bajar un tiempo a mitad de fase acortaría la fase EN CURSO — y
+una de esas fases es el todo-rojo de despeje**. Recortar un despeje ya empezado es abrir el otro
+sentido sobre un tramo que todavía no está vacío.
+
+> ⚠️ **Y un detalle que la app enseña mal y hay que conocer al leer la pantalla:** la segunda guarda
+> —la de dentro del setter— devuelve `false`, y el despachador traduce **todo** `false` a
+> `DESC:RANGO`. **Un rechazo por «el modo está en marcha» que llegue por ese camino se pinta como si
+> fuera un rango fuera de límites.** Si el técnico ve `RANGO` con unos tiempos que sabe correctos,
+> **lo primero que hay que comprobar es si el Modo Automático está corriendo.**
+
+> 🔵 **De dónde salía todo esto, porque es la parte reutilizable (`N-135`, horas después de
+> `N-42`):** al retirar el asistente quedó un `enum FaseAuto { CORRIENDO; }` de **un solo valor**, y
+> `modoAutomatico_enMarcha()` lo comparaba. Una comparación con un único enumerador es **cierta
+> siempre** —el compilador la reduce a `movs r0, #1`—, así que el equipo contestaba
+> `EN_MARCHA_PARE_EL_MODO` **a todo y para siempre**, en todos los modos, desde antes del `setup()`.
+> Y como ese setter es el **único** llamador de `respaldo_guardarTiemposCiclo()`, `N-133` se había
+> quedado **con camino de lectura y sin camino de escritura**. Hoy es
+> `return modoActual_get() == MODO_AUTOMATICO;` (`:97`), que sí puede dar las dos respuestas.
 
 ### 5.5.2 🟢 DECISIÓN: el cruce se opera desde el MAESTRO
 

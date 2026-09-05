@@ -10,13 +10,30 @@
 > |---|---|---|
 > | **Dónde va** | **uno por poste**, en cada equipo | **un poste intermedio propio**, entre Maestro y Esclavo |
 > | **De qué cuelga** | del conector **`J17`** de la tarjeta del semáforo | de **dos radios** E90-DTU (B1 y B2), por RS-485 |
-> | **Qué hace** | **puente Bluetooth SPP ⟷ `J17`** (sustituye al módulo SPP) **+ reloj `DS3231`** por I²C | enlaza **dos radios back-to-back** para salvar una curva ciega o una montaña |
+> | **Qué hace** | **puente Bluetooth SPP ⟷ `J17`** (sustituye al módulo SPP) **+ reloj `DS3231`** por I²C. 🔵 **Y desde `N-145` (05/09), UNA cosa más y sólo una: SELLA el hueco `HORA:--:--:--` de las tramas del equipo con la hora de su `DS3231`, y recalcula el checksum** — ver el recuadro de abajo | enlaza **dos radios back-to-back** para salvar una curva ciega o una montaña |
 > | **Cuántas radios toca** | **ninguna** | **cuatro** en total en el sistema |
 > | **Firmware** | 🟢 `01_Firmware/ESP32_Expansion/` | 🟠 `01_Firmware/Repetidor/` |
 > | **Cómo se llama en Bluetooth** | 🔵 **se auto-rotula `SEM-<serie>-M` o `SEM-<serie>-E`** *(y `SEM-SIN-MATRICULA` mientras no lo ha aprendido)* | **no ofrece Bluetooth SPP.** Si busca un `SEM-…` y no sale, puede que tenga delante el otro |
 > | **Estado hoy** | firmware escrito y compilando; **sin pasar banco** | **NO DESPLEGADO.** Fuera de la configuración vigente |
 > | **Documento** | `05_Funcional/18_Especificacion_Firmware_ESP32.md` | **éste** |
 >
+> ### 🔵 05/09 (`N-145`) — EL DE EXPANSIÓN DEJÓ DE SER ESTRICTAMENTE «VERBATIM», Y SE DICE CUÁNTO
+>
+> **Hasta el 05/09 el puente de expansión no cambiaba ni un byte de lo que pasaba.** Ahora cambia
+> **una cosa y sólo una**, y conviene tenerlo escrito aquí porque este manual es donde se comparan
+> las dos placas:
+>
+> | | |
+> |---|---|
+> | **Qué toca** | el literal **`HORA:--:--:--`** de una trama del equipo, y nada más. Si el STM32 puso una hora, **no encuentra el hueco y no hace nada** |
+> | **Por qué recalcula el checksum** | la app **sí** valida el XOR-8 en la bajada. Sellar sin recalcular no daría una hora mala: **daría el tablero congelado**, con el síntoma *«el puente se comió la telemetría»* mandando a mirar el cable |
+> | **Qué NO hace** | no parte, no une, no filtra, no reordena, **no añade ni quita un byte** y **no origina** ninguna trama. Y **nunca inventa la hora**: si el `DS3231` no es fiable, el hueco sale como está |
+>
+> 🔴 **Esto NO afecta al ESP32 del REPETIDOR, que es el de este manual: el repetidor sigue validando
+> FORMATO y no tocando NADA.** El sello vive en `ESP32_Expansion/src/puente.cpp`, en el otro
+> firmware. 🛑 **Y sin un `DS3231` conectado —no está comprado, línea `A6`— la hora seguirá saliendo
+> en blanco: eso es el arreglo callándose bien, no fallando.**
+
 > ### 🔵 04/09 — LA FORMA MÁS BARATA DE SABER QUÉ PLACA TIENE DELANTE, ANTES DE CARGAR NADA
 >
 > **Desde el 04/09 el ESP32 de EXPANSIÓN dice de qué poste cuelga en su propio nombre Bluetooth.**

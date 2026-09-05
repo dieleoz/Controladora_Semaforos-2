@@ -75,6 +75,45 @@ Todas las operaciones están alineadas al **Manual de Señalización Vial de Col
 
 ---
 
+> ## 🟢 04/09/2026, MÁS TARDE EL MISMO DÍA — CINCO COSAS MÁS, Y DOS CAMBIAN LO QUE HACE EL OPERARIO
+>
+> **Los cinco están MEDIDOS en el fuente y NINGUNO se ha ejercido en tarjeta.** Sigue vigente lo de
+> arriba: **nada sube a campo sin banco pasado.**
+>
+> | # | qué cambia | dónde |
+> |---|---|---|
+> | **1** | 🔴 **EL ÁMBAR SE ORDENA (`N-134`).** Antes, poner ámbar desde el Maestro dejaba al Esclavo en ROJO y era él quien se iba a ámbar **25 s después, por orfandad**. En banco se veía como *«a veces los dos, a veces sólo el maestro»*. Hoy hay `CMD_GO_AMBAR` (`0x13`); **el rojo previo se queda como intermedio seguro** y **la orfandad de 25 s sigue como red** si la orden se pierde. **Decisión del responsable** | §4 |
+> | **2** | 🟢 **LOS TIEMPOS DEL CICLO SOBREVIVEN AL CORTE (`N-133`).** 🛑 **Pero la primera vuelta de energía con este firmware BORRA los tiempos guardados y el reloj** — es correcto y está diseñado así. **Léalo antes de reportarlo como avería** | §3 · §1 |
+> | **3** | 🟢 **EL MODO AUTOMÁTICO ARRANCA CORRIENDO, sin cuestionario (`N-42`).** Y su consecuencia: **estando en Automático NO se pueden cambiar los tiempos** — hay que salir, ponerlos y volver a entrar | §1 · §3 |
+> | **4** | ✅ **`N-106` CERRADO:** el ámbar de emergencia de la app **sí** saca al Esclavo del Degradado, por el todo-rojo, y contesta **cinco cosas distintas** en vez de `OK` siempre | §9 |
+> | **5** | 🔴 **LA APP CAMBIÓ DE BARRERA:** para **dar paso** y para **arrancar el ciclo** ya no se teclea el PIN — la app pregunta **si ha mirado el tramo**. **Nunca pregunta para PARAR.** Y el PIN **caduca** | §3 · Manual 14 |
+>
+> ### 🔴 El nº 5, dicho entero, porque es lo que cambia en la mano del operario
+>
+> > **El equipo no sabe si quedan vehículos en el tramo, y el operario sí. Un PIN demuestra QUIÉN
+> > ERES; no demuestra que hayas MIRADO.**
+>
+> * **DAR PASO** y **AUTOMÁTICO** abren un diálogo que pregunta **«¿No quedan vehículos en el
+>   tramo?»**, con la lista de lo que hay que mirar, y dos botones: *«Todavía no»* y *«He mirado: el
+>   tramo está libre»*.
+> * 🛑 **ROJO TOTAL y ÁMBAR no preguntan nada, ni PIN ni tramo.** Es deliberado: **es la dirección
+>   segura, y preguntar para parar enseña a decir que sí sin leer.**
+> * ⏱️ El «he mirado» **caduca a los 30 s** y **también en cuanto cambian las luces**: el tramo que
+>   se miró ya no es el tramo que se va a abrir.
+> * 🟢 **El PIN caduca**: a los **60 s** de guardarse el teléfono (con esa gracia, para que consultar
+>   un mensaje no cierre la sesión) y a los **5 min sin mandar ninguna orden**. **El técnico lo va a
+>   notar**, y no es una desconexión: el enlace sigue.
+>
+> **El detalle de todo esto —qué órdenes siguen pidiendo PIN, el DIARIO DE ÓRDENES que hay que
+> exportar cuando algo falle, y los 23 motivos de rechazo ya traducidos— está en
+> `14_Manual_App_Movil_IOT_VIAL.md`, §4.bis.3, §4.bis.4 y §5.4.2.bis.**
+>
+> ⚠️ **Y lo que NO ha cambiado, para que nadie concluya de más:** el PIN **sigue viajando en la
+> trama** y el firmware lo sigue exigiendo donde siempre. Lo que cambió es **a quién se le pregunta
+> en la pantalla**.
+
+---
+
 > ## 🔴 CAMBIO DEL 28/08/2026, **AL DÍA EL 31/08/2026** — LA PANTALLA DEJA DE SERVIR, Y EL MENÚ YA NO SE PUEDE EJECUTAR
 >
 > **El equipo va montado en alto y la pantalla no se lee desde el suelo.** Una LCD de 128×64 dentro
@@ -264,21 +303,48 @@ Cuando se solicita el cambio de vía, el sistema debe entrar en un estado de **R
   > ⚠️ **Coste declarado, para que no aparezca como sorpresa en banco: ya no se puede probar en mesa
   > con ciclos de 1 minuto.** Se aceptó a sabiendas.
   >
-  > 🛑 **Y LO QUE ESE MÍNIMO NO CUBRE — MEDIDO EL 04/09 Y SIN DIAGNOSTICAR:** los **valores por
-  > defecto** del modo siguen siendo **1 min de rojo y 1 min de verde** (`modo_automatico.cpp:13` y
-  > `:94`), y **no pasan por la guarda**: `modoAutomatico_fijarTiempos()` (`:57`) sólo se ejerce
-  > desde `SET_TIEMPOS`. Al entrar en Modo Automático desde la app, `modoAutomatico_setup()` (`:94`)
-  > **reescribe los tres valores a `1, 1, 15`**, así que unos tiempos aceptados por `SET_TIEMPOS`
-  > **se pierden al arrancar el modo**. *No se propone aquí un arreglo: se deja medido y abierto —
-  > qué debe hacer el arranque es una decisión del responsable, porque es lo que ve un conductor.*
+  > 🟢 **LOS DOS AVISOS QUE HABÍA AQUÍ SE CIERRAN EL 04/09 POR LA TARDE (`N-133`, `N-42`,
+  > `N-135`). Se conservan tachados, con lo que los sustituye debajo:**
   >
-  > ⚠️ **Y en el mismo camino hay una segunda cosa medida que este manual no puede callar:** ese
-  > `modoAutomatico_setup()` deja el modo en la fase `CONFIG_ROJO` del asistente de pantalla, que
-  > sólo avanza con `botonAceptar()` — **y `botonAceptar()` devuelve `false` siempre** desde el
-  > 31/08. En esa fase **`coordinador_actualizar()` no se llama** (sólo se llama en `CORRIENDO`,
-  > `:156`). **Esto es consistente con el síntoma de la regresión abierta `N-42` —«el Modo
-  > Automático no mueve las luces»— pero NO se publica aquí como su causa: nadie lo ha ejercido en
-  > tarjeta.** Es una lectura del fuente, y una lectura no cierra un defecto.
+  > ~~*«los valores por defecto del modo siguen siendo 1 min de rojo y 1 min de verde
+  > (`modo_automatico.cpp:13` y `:94`), y no pasan por la guarda. Al entrar en Modo Automático,
+  > `modoAutomatico_setup()` reescribe los tres valores a `1, 1, 15`, así que unos tiempos aceptados
+  > por `SET_TIEMPOS` se pierden al arrancar el modo»*~~
+  >
+  > ~~*«ese `modoAutomatico_setup()` deja el modo en la fase `CONFIG_ROJO` del asistente de pantalla,
+  > que sólo avanza con `botonAceptar()` — y `botonAceptar()` devuelve `false` siempre»*~~
+  >
+  > **Lo que hay HOY, MEDIDO en `Maestro/src/modo_automatico.cpp`:**
+  >
+  > | | antes | hoy |
+  > |---|---|---|
+  > | Valores por defecto | `1, 1, 15` escritos a mano | **los propios mínimos**: `minRojo = ROJO_MIN_MIN, minVerde = VERDE_MIN_MIN, segEstatico = DESPEJE_SEG_MIN` (`:53-54`) → **3 min · 3 min · 10 s** |
+  > | Al entrar en Automático | reescribía los tres | **respeta los que haya** y llama a `recuperarTiemposGuardados()` (`:181`) |
+  > | Al cortar la luz | se perdían | **sobreviven** en el respaldo con pila (`N-133`) |
+  > | El asistente `CONFIG_ROJO` | huérfano, sin botón que lo aceptara | **retirado entero** (`:152-179`) — el modo **arranca corriendo** |
+  >
+  > 🔴 **Y la causa de `N-42` YA NO ES UNA LECTURA: está escrita en el fuente con su mecanismo
+  > completo, y es peor de lo que este manual sospechaba.** No era sólo que las luces no se
+  > movieran. `coordinador_actualizar()` vivía **dentro** del `case CORRIENDO`, y `main.cpp`
+  > **excluye a `MODO_AUTOMATICO` del respaldo de fondo** —con un comentario que decía *«ya se llama
+  > en modo_automatico.cpp»*, **cierto sobre el papel y falso en ejecución**—. Así que en Automático
+  > **el Maestro se quedaba MUDO en la radio: ni un `PING`**. El Esclavo, sin oír nada durante
+  > `SFTY6_SILENCIO_MS`, **se iba a ámbar por orfandad haciendo lo correcto**, y desde fuera parecía
+  > un fallo de comunicaciones. **El Maestro estaba VIVO pero no HABLANDO, que no es lo mismo.**
+  >
+  > Hoy la llamada al coordinador es **incondicional** (`:206`).
+  >
+  > ⚠️ **PERO EL ESTADO DE `N-42` NO SE DECLARA CERRADO EN ESTE MANUAL, Y HAY QUE EXPLICAR POR QUÉ.**
+  > El comentario del fuente dice *«medido y confirmado en banco el 04/09»*. **Eso es `ESCRITO`, no
+  > `MEDIDO`**, y choca de frente con lo que todo el resto de este paquete sostiene: en el banco del
+  > 3–4/09 **el equipo nunca llegó a operar** —se queda esperando selección de modo y la app no
+  > conectaba (`N-122`)—, y por eso `N-42` *«no se confirmó ni se descartó»*. **Las dos frases no
+  > pueden ser ciertas a la vez.**
+  >
+  > **Lo que este manual publica, que es lo único que puede sostener:** el **arreglo** está `MEDIDO`
+  > en el fuente y es coherente con el síntoma. **Si `N-42` llegó a verse en la tarjeta y cuándo lo
+  > decide quien ejecutó la sesión**, no este documento. Hasta entonces **sigue contando como
+  > abierto**, y sigue siendo lo primero de la próxima visita.
   >
   > ⚠️ **Y hay un techo que no es una decisión sino el tipo de dato: los tres son `uint8_t`.** Un
   > `uint8_t` no pasa de **255**, así que **el «999 s» que este párrafo prometía no fue nunca
@@ -324,6 +390,38 @@ queda lo que decía antes, tachado, para que se vea qué se perdió y qué lo su
 > Esclavo el reparto es el contrario para todo lo que sea cambiar de modo: **allí la app no puede**,
 > y el mando es lo único que hay. **Ver §9**, que es donde está la tabla completa.
 
+> ## 🔴 04/09 — LA APP CAMBIÓ DE BARRERA: PARA ABRIR PASO NO PIDE PIN, PREGUNTA SI HA MIRADO EL TRAMO
+>
+> **Es lo que más se nota en la mano del operario, y el motivo es lo único que hay que recordar:**
+>
+> > **El equipo no sabe si quedan vehículos en el tramo, y el operario sí. Un PIN demuestra QUIÉN
+> > ERES; no demuestra que hayas MIRADO.**
+>
+> | lo que se pulsa | qué pide la app hoy |
+> |---|---|
+> | **DAR PASO** · **AUTOMÁTICO** | 🟢 **la confirmación de vía** — *«¿No quedan vehículos en el tramo?»*, con la lista de qué mirar. **Ya no pide PIN** |
+> | **ROJO TOTAL** · **ÁMBAR EMERGENCIA** · **VOLVER AL MENÚ** | 🛑 **nada: ni PIN ni pregunta.** Es la **dirección segura** |
+> | **ÁMBAR** (modo) · **RETIRAR ÁMBAR** · **DEGRADADO** · `TEST_LEDS` y la pestaña Técnica | 🔵 **el PIN, como siempre** |
+>
+> **Por qué no se pregunta para PARAR, que es la mitad que se lee mal:** **preguntar para parar
+> enseña a decir que sí sin leer**, y el día que la pregunta llegue en serio ya nadie la lee. Poner
+> rojo o ámbar no abre paso a nadie: **no hay riesgo que confirmar.**
+>
+> ⏱️ **El «he mirado» caduca a los 30 s, y también en cuanto cambian las luces.** Confirmar y luego
+> entretenerse no vale: **el tramo que se miró ya no es el tramo que se va a abrir.**
+>
+> 🟢 **Y el PIN, donde sigue haciendo falta, ahora CADUCA:** a los **60 s** de guardarse el teléfono
+> —esos 60 s de gracia son para que consultar un mensaje no cierre la sesión— y a los **5 minutos
+> sin mandar ninguna orden. El técnico lo va a notar**, y **no es una desconexión**: el enlace
+> Bluetooth sigue, lo que caducó es el permiso. Se vuelve a entrar con los mismos cuatro dígitos.
+>
+> **El detalle completo está en `14_Manual_App_Movil_IOT_VIAL.md` §4.bis.3 y §4.bis.4.**
+>
+> 🛑 **Y lo que NO está comprobado, dicho aquí y no sólo allí:** la caducidad por guardarse el
+> teléfono cuelga de sucesos del navegador y **nadie la ha visto disparar en la APK con la pantalla
+> apagada** — que es el único caso para el que existe. **Hasta que alguien lo cronometre, la barrera
+> real sigue siendo quién tiene el teléfono.**
+
 - **Regla de Oro (Independencia de Red) — SIGUE VIGENTE, cambia la vía.** El operario DEBE poder
   operar el equipo **incluso si las radios están apagadas o no hay comunicación con el Esclavo**. Eso
   se conserva: **el Bluetooth es un enlace corto e independiente de la radio de largo alcance**, así
@@ -354,6 +452,65 @@ queda lo que decía antes, tachado, para que se vea qué se perdió y qué lo su
   > corregido pero **sin ejercer en tarjeta** — ver §7 (`N-118`) y §8.
 - **Arranque:** al ordenar un modo desde la app (`CMD:PIN:1234:SET_MODO:AUTO` / `:MANUAL` /
   `:AMBAR`), el sistema aplica el Despeje All-Red en ambos extremos antes de abrir ningún carril.
+
+  > 🟢 **Y desde el 04/09 el Modo Automático ARRANCA CORRIENDO, sin cuestionario (`N-42`).** El
+  > asistente de tres preguntas —`CONFIG_ROJO` → `CONFIG_VERDE` → `CONFIG_ESTATICO`— **se ha
+  > retirado entero**: era de la época de la pantalla LCD, su única salida era `botonAceptar()`, y
+  > esa función devuelve `false` siempre desde el 31/08. **El equipo entraba en el cuestionario y no
+  > salía nunca.** Hoy hay **una sola puerta** y el modo empieza a ciclar con los tiempos que tenga
+  > guardados. Ver §1.
+
+### 🛑 PUESTA EN MARCHA — LA PRIMERA VUELTA DE ENERGÍA CON ESTE FIRMWARE BORRA LOS TIEMPOS GUARDADOS
+
+> **Va aquí, en voz alta y antes de que nadie lo vea pasar, porque si no se dice alguien va a
+> reportar como avería un comportamiento que está diseñado así.**
+
+**Qué ocurre:** `N-133` mete los tiempos del ciclo automático dentro del respaldo con pila, y para
+eso **cambia el FORMATO de ese respaldo**. La firma que lo identifica sube de `0x5EB1` a **`0x5EB2`**
+(`Maestro/src/respaldo.cpp:76`, idéntico en el Esclavo). **Un equipo que arranca con este firmware
+encuentra la firma vieja, no la reconoce y BORRA el respaldo entero.**
+
+**Qué se pierde en esa primera arrancada, y es más que los tiempos:**
+
+| | |
+|---|---|
+| los tiempos del ciclo | vuelven a los **mínimos: 3 min de verde, 3 min de rojo, 10 s de despeje** |
+| la hora y la autorización de sincronización | se pierden — **hay que volver a poner el reloj** |
+| el ciclo guardado del Modo Degradado | se pierde |
+
+**Es CORRECTO y es la dirección segura.** El propio fuente lo razona (`respaldo.cpp:71-81`): dar por
+buena una firma vieja significaría leer con esta aritmética unos bytes escritos con otra, y
+*«arrancar limpio»* es lo que evita un ciclo que nadie configuró. **Pasa UNA sola vez**, en el primer
+arranque tras cargar; a partir de ahí los tiempos sobreviven a los cortes.
+
+> ✅ **Lo que hay que hacer en la puesta en marcha, en este orden:**
+>
+> 1. Cargar el firmware y **darle la primera vuelta de energía**.
+> 2. **Poner la hora** (`SET_RTC` desde la app) — se perdió, y sin ella no se puede entrar en
+>    Degradado.
+> 3. **Poner los tiempos del ciclo** (`SET_TIEMPOS`) **con el Modo Automático PARADO** — ver el
+>    aviso de §1: en marcha el equipo los rechaza.
+> 4. 🔴 **LEER LO QUE QUEDÓ, no darlo por hecho.** Entre en Automático y compruebe en la app que los
+>    tiempos son los que puso.
+
+> 🔴 **Y el porqué del paso 4, que es un HALLAZGO de esta revisión y no una precaución genérica.**
+> `respaldo_borrar()` (`respaldo.cpp:193-201`) pone a cero cinco registros —`DR2` a `DR6`— **y NO
+> toca los dos que `N-133` acaba de estrenar**, `DR9` y `DR10`, que son justamente donde viven los
+> tiempos del ciclo. Acto seguido `sellar()` calcula el checksum **incluyéndolos** (`:157-158`), o
+> sea que **los sella como contenido válido sin haberlos limpiado**.
+>
+> **En un equipo nuevo o con la pila agotada esos registros valen cero y no pasa nada** —el lector
+> se niega a devolver un cero (`:249`) y el equipo cae a los mínimos, que es lo que promete el
+> propio header (`respaldo.h:58-61`)—. **El caso que no está cubierto es justo el de esta
+> actualización:** una tarjeta con pila buena, cuyo respaldo viejo se declara inválido por la firma,
+> puede llevar en `DR9`/`DR10` lo que dejara el arranque anterior. Si esos bytes cayeran dentro de
+> `3–15 / 3–15 / 10–90`, la revalidación de rango de `modo_automatico.cpp:110-117` **los daría por
+> buenos** y el cruce arrancaría con un ciclo que nadie configuró.
+>
+> **No se propone aquí un arreglo ni se dictamina la probabilidad de que ocurra: se publica la
+> medida.** Es una decisión de firmware —a quién le toca limpiar esos dos registros— y va al
+> responsable. **Lo que sí puede hacer quien esté en el poste cuesta diez segundos: mirar los
+> tiempos después de la primera arrancada.**
 
 ### 🛑 Lo que se pierde y NO tiene sustituto todavía
 
@@ -411,6 +568,39 @@ binario** (`modo_alcance.cpp`) y ya no tiene dónde dibujarse. De lo que mostrab
    > **Consecuencia práctica en obra:** un corte de radio de, por ejemplo, 15 segundos **ya no
    > manda el cruce a ámbar**. Si alguien había aprendido que «a los 12 segundos se pone en
    > ámbar», el equipo de hoy aguanta **más del doble** antes de hacerlo.
+
+   > ## 🟢 `N-134` (04/09) — EL ÁMBAR SE ORDENA. LOS 25 s PASAN DE SER EL CAMINO A SER LA RED
+   >
+   > **El defecto, en pasado, y es el que se veía en banco como *«a veces se van los dos, a veces
+   > sólo el maestro»*:** al poner ámbar desde el Maestro, el Esclavo **se quedaba en ROJO**. Nadie
+   > se lo decía. Lo que acababa llevándolo a ámbar era **la orfandad**: dejaba de oír al Maestro y,
+   > pasados los 25 s de `SFTY-6`, se iba solo. **Las dos puntas acababan en ámbar, pero con hasta
+   > 25 segundos de diferencia** — y el operario que miraba desde un extremo veía un cruce a medias
+   > y concluía, razonablemente, que el equipo no le había obedecido.
+   >
+   > **Lo que hay hoy, MEDIDO:** existe una orden explícita, **`CMD_GO_AMBAR` = `0x13`**
+   > (`Maestro/include/protocolo.h:174`, **el mismo número en el `Esclavo`**). El Maestro la manda
+   > al entrar en ámbar (`Maestro/src/modo_ambar.cpp:57`) y el Esclavo la atiende
+   > (`Esclavo/src/main.cpp:394`). **Decisión del responsable.**
+   >
+   > **Y las dos mitades que hacen que esto no sea sólo «un comando más»:**
+   >
+   > 1. 🔴 **EL ROJO PREVIO SE QUEDA, y es el intermedio seguro.** `modo_ambar_setup()` sigue
+   >    mandando **`CMD_GO_RED` primero** (`modo_ambar.cpp:36` → `coordinador_forzarRojoTotal()`,
+   >    `coordinador.cpp:554-562`) y sólo después el ámbar. **No se salta de un verde a un ámbar
+   >    intermitente**: al que ya venía lanzado eso le da una señal que invita a negociar el paso
+   >    mientras aún cree tener prioridad.
+   > 2. ✅ **LA ORFANDAD DE 25 s SIGUE AHÍ, Y AHORA ES LA RED.** El Esclavo **no refresca** su
+   >    contador de silencio al recibir esta orden (`main.cpp:404-407`), a propósito: **si la orden
+   >    se pierde en el aire, el equipo se va a ámbar igual**, por el camino de siempre
+   >    (`main.cpp:596-599`). Las dos vías desembocan en la misma puerta, `semaforo_iniciarFallo()`.
+   >
+   > **Lo que cambia para quien está en el cruce:** el ámbar en la punta remota **llega en seguida
+   > en vez de hasta 25 segundos después**. Si tarda esos 25 s, ya no es lo normal — **es que la
+   > orden no llegó**, y eso es un dato sobre la radio.
+   >
+   > ⚠️ **MEDIDO sobre el fuente. No se ha ejercido en tarjeta**, y era justamente en banco donde
+   > se veía el síntoma.
 2. **Auto-Recuperación Autónoma (Self-Healing Real):** Al restablecerse la señal de radio, el sistema **NO requiere reinicio manual**. Limpia automáticamente el registro de duplicados (`protocolo_resetReplayProtection()`), fuerza Rojo Estático (All-Red) de 15 segundos en ambos semáforos para limpiar la vía y reanuda el ciclo lumínico sin intervención técnica.
 3. **Cuelgue de Procesador (Ruido EMI):** El Watchdog interno (`IWatchdog` activo a 4.0s) reinicia el procesador ante interferencias severas.
 
@@ -1001,7 +1191,7 @@ distinguen.**
 | | **MAESTRO** | **ESCLAVO** |
 |---|---|---|
 | Cambiar de modo desde la app | ✅ **Sí.** `SET_MODO:AUTO` · `MANUAL` · `AMBAR` · `MENU` · `ALCANCE` · `INTELIGENTE` · `DEGRADADO` (`:444+`) | 🛑 **NO. No existe ni un solo `SET_MODO`** — `grep -n "SET_MODO" Esclavo/src/bluetooth.cpp` → **CERO coincidencias** |
-| Ámbar de emergencia desde la app | 🛑 **NO existe `AMBAR_EMERGENCIA` en el Maestro** — re-censado el 04/09. Lo que hay es `SET_MODO:AMBAR` (`:454`, **con PIN**, y es un **modo**, no un latch) y `FORZAR_ROJO` | ✅ sí — `CMD:AMBAR_EMERGENCIA` (`:381` sin PIN, `:468` con PIN). Arma un **latch** que veta las órdenes de radio |
+| Ámbar de emergencia desde la app | 🛑 **NO existe `AMBAR_EMERGENCIA` en el Maestro** — re-censado el 04/09. Lo que hay es `SET_MODO:AMBAR` (**con PIN**, y es un **modo**, no un latch) y `FORZAR_ROJO`. 🔵 **05/09 (N-146): si el equipo YA estaba en modo ámbar, esa orden RE-ARMA y contesta `RESULT:REARMADO` en vez de `OK`** | ✅ sí — `CMD:AMBAR_EMERGENCIA` (`:381` sin PIN, `:468` con PIN). Arma un **latch** que veta las órdenes de radio. 🟢 **05/09 (N-142): y AHORA AVISA AL MAESTRO por radio (`CMD_AMBAR_ESCLAVO`), que se va a modo ámbar en el acto.** Antes el Maestro podía seguir dando VERDE **hasta 3 minutos** con este lado en ámbar |
 | Retirar el ámbar de emergencia | ❌ no aplica: no hay latch que retirar | ✅ `CANCELAR_AMBAR` (`:491`, **con PIN**). Contesta `RETIRADO` o `RETIRADO_QUEDA_MANDO` |
 | Pedir paso | ✅ `DEMANDA` (`:645`, **sólo en Modo Inteligente**) | ✅ `SOLICITAR_PASO` (`:532`) *(se lo pide al Maestro)* — ver `N-130` abajo |
 | Poner los tiempos | ✅ `SET_TIEMPOS` (`:542`) | ❌ no — los tiempos los lleva el Maestro |
@@ -1083,36 +1273,187 @@ mando NUNCA SE COMPRÓ** *(línea `A9` del Manual 15)*.
 > 5 metros en el Esclavo»*. Para el estado y las alarmas sigue siendo cierto; **para el Degradado,
 > hoy no.**
 
-### 🔴 DEFECTO ABIERTO — el ámbar de emergencia de la app NO saca al Esclavo del Modo Degradado
+### ✅ ~~🔴 DEFECTO ABIERTO~~ — el ámbar de emergencia de la app **YA** saca al Esclavo del Modo Degradado (`N-106`, cerrado el 04/09)
 
-**MEDIDO POR LECTURA** *(nadie lo ha ejercido todavía en banco ni en arnés)*: las dos vías de ámbar
-de emergencia **no hacen lo mismo**, y el firmware afirma por escrito que sí.
+> 🛑 **LO QUE ESTE APARTADO DECÍA, conservado tachado porque manda a un operario a un poste y hay
+> que poder ver qué se le decía antes:**
+>
+> ~~**MEDIDO POR LECTURA:** las dos vías de ámbar de emergencia **no hacen lo mismo**. Mando `B·B·B`
+> ✅ sale por el todo-rojo; app `CMD:AMBAR_EMERGENCIA` 🛑 **no** —no pregunta por el Degradado ni
+> llama a `degradado_salir()`—, así que el ámbar pedido desde el teléfono **puede caerse solo** y la
+> app ya habrá mostrado un `RESULT:OK`.~~
+>
+> ~~✅ **Mientras esto siga abierto, en el ESCLAVO en Modo Degradado use el MANDO (`B·B·B`), no la
+> app.**~~ → 🛑 **ESA INSTRUCCIÓN YA NO VALE, y mantenerla sería lo peligroso**: mandaba a usar la
+> única vía que **no se puede accionar** —el receptor RF del mando nunca se compró y `N-118` sigue
+> sin ejercerse—, en lugar de la que sí existe.
+
+**Lo que hay HOY, MEDIDO en `Esclavo/src/bluetooth.cpp`** *(en el fuente; no ejercido en tarjeta)*:
 
 | vía | ¿saca del Degradado? |
 |---|---|
-| **Mando, `B·B·B`** | ✅ **sí**, por el todo-rojo de despedida (`Esclavo/src/mando.cpp:138`) |
-| **App, `CMD:AMBAR_EMERGENCIA`** | 🛑 **no.** No pregunta por el Degradado ni llama a `degradado_salir()` |
+| **Mando, `B·B·B`** | ✅ sí, por el todo-rojo de despedida (`Esclavo/src/mando.cpp:129-141`) |
+| **App, `CMD:AMBAR_EMERGENCIA`** | ✅ **sí** — `salidaDegradadoIniciada()` (`:302-308`), preguntada en las **dos** puertas: sin PIN (`:402`) y con PIN (`:481`) |
 
-> 🛑 **Lo que eso significa para quien está delante del cruce:** en Modo Degradado, el ámbar de
-> emergencia pedido desde el teléfono **puede caerse solo** —el sostenedor del Degradado sigue
-> escribiendo luz en su siguiente vuelta— **y encima la app ya habrá mostrado un `RESULT:OK`**.
-> Es decir: **el botón de pánico de la app puede no parar el cruce exactamente en el modo donde más
-> falta hace**, y decir que sí lo hizo.
+**Y el `RESULT:OK` ya no sale pase lo que pase: hay cinco respuestas y cada una dice algo distinto.**
+
+| lo que contesta | qué significa para quien está delante |
+|---|---|
+| `RESULT:OK` | el ámbar **ya está encendido** |
+| `RESULT:YA_EN_AMBAR_LATCH_PUESTO` | ya estaba en ámbar; **lo que esta orden ha añadido es la protección**, no la luz |
+| `RESULT:SALIENDO_TODO_ROJO` | 🔴 **va en camino y TARDA de 10 a 90 s** — el todo-rojo de despedida. **No es un cuelgue** |
+| `RESULT:SALIDA_YA_EN_CURSO` | el equipo ya se estaba rindiendo por el límite de 48 h; el ámbar llegará solo |
+| `$ERR,…,DESC:SALIDA_A_ROJO_EN_CURSO_REPITA` | 🛑 **NO se ha armado nada.** Otro pidió una salida que acaba en ROJO. Mientras dura, el cruce está en todo-rojo —**más seguro que el ámbar que se pide**—. **Repita al terminar** |
+
+> ⏱️ **La regla de campo que sale de esta tabla, y es la única que hay que recordar: `SALIENDO_TODO_ROJO`
+> significa *va en camino*, NO *ya está*. No se vaya del cruce hasta ver el ámbar con los ojos.**
 >
-> ✅ **Mientras esto siga abierto, en el ESCLAVO en Modo Degradado use el MANDO (`B·B·B`), no la
-> app.** Y si no hay mando, se sube.
+> 🔵 **El porqué de que tarde, que no es lentitud sino diseño:** saltar de un **verde por reloj**
+> directo a ámbar intermitente le daría a quien ya venía lanzado una señal que invita a negociar el
+> paso **mientras aún cree tener prioridad**. Por eso el Degradado entra y sale **siempre** por
+> todo-rojo, y por eso cuesta lo mismo que el `B·B·B`.
+
+> ⚠️ **Y lo que este cierre NO trae, para que no se lea como un permiso.** Es **MEDIDO sobre
+> fichero**: **nadie lo ha ejercido**, ni en tarjeta ni en arnés. `CLAUDE.md` §8.bis pide **ver
+> fallar el instrumento antes de fiarse del arreglo**, y para este camino eso **no se ha hecho
+> todavía**.
 >
-> 🟠 **PERO ESA SALIDA NO ESTÁ DEMOSTRADA HOY (`N-118`, §7): en el banco del 3–4/09 el `B·B·B` no se
-> pudo accionar**, y subir al gabinete tampoco servía, porque allí arriba era el mismo pin. **El
-> firmware ya lo lee activo en ALTO y la salida vuelve en cuanto se cargue y se ejerza** — pero
-> hasta esa prueba **hay que contar con que en el Esclavo en Modo Degradado no hay ninguna vía
-> comprobada de ámbar de emergencia**: la de la app puede caerse sola y decir que no. **Mientras
-> tanto `N-106` es un defecto sin rodeo, no un defecto con rodeo.**
+> **Mientras tanto, la instrucción de obra es la que no depende de ningún firmware y ya estaba
+> escrita: verificar las dos puntas con los ojos, al entrar y al salir.**
+
+---
+
+---
+
+## 10. 🟢 LO QUE CAMBIÓ LA NOCHE DEL 04–05/09 — cuatro comportamientos que se ven desde la calle
+
+> **Los cuatro salen de la sesión de banco**, y tres de ellos de **una cinta de tramas** grabada con
+> el teléfono conectado al Maestro. **Ninguno estaba en el firmware que se llevó al banco.**
+
+### 10.1 🔴 El ámbar del Poste 2 ya no deja al Poste 1 dando verde (`N-142`)
+
+**Lo que pasaba, y es lo más grave de los cuatro:** si un operario ponía **ámbar de emergencia desde
+la app en el Esclavo**, el Maestro **no se enteraba** — y encima el Esclavo **seguía contestando al
+latido**, así que **el enlace le parecía perfecto**. Con el Maestro en VERDE, seguía dándolo **el
+resto de esa fase, hasta 3 minutos con los tiempos de hoy**, con el otro lado en ámbar
+intermitente: **los dos sentidos podían entrar al carril**.
+
+**Lo que hace ahora:** el Esclavo **avisa por radio** al enganchar el ámbar, y el Maestro **se va a
+modo ámbar en el acto**. Deja de ciclar, deja de dar verdes y **deja de preguntar**.
+
+> ✅ **Y esto también deshace el bloqueo que se vio en banco** —*"si me conecto otra vez al Maestro,
+> esto ya no me recibe nada"*—. La causa **no era el veto del ámbar**, como se pensó al principio: era
+> que esa punta **no acusa recibo** mientras está en ámbar, así que el Maestro agotaba reintentos a
+> ciegas y caía a fallo. Con el aviso ya no adivina.
 >
-> ⚠️ **Está anotado como `N-106` y NO está arreglado.** El arreglo espera decisiones del
-> responsable —qué *debe* hacer el ámbar de la app en Degradado: salir ordenado como `B·B·B`, o
-> quedarse— porque **es lo que ve un conductor**. Y antes de tocar una línea de firmware hay que
-> ver fallar el arnés que lo mide: uno que naciera en verde no mediría nada.
+> 🛑 **LOS DOS VETOS DEL ÁMBAR SE QUEDAN, y esto no se toca por comodidad:** mientras hay ámbar
+> pedido —por el mando físico `B·B·B` **o** por la app— **una orden de radio no le quita el ámbar a
+> esa punta**. Se probó a quitarlo y **el banco lo paró dos veces**: sin el veto, el ámbar que pidió
+> el operario **se deshace solo a los ~3 s delante de él**.
+
+### 10.2 🔴 El botón de ámbar podía quedar muerto sin decirlo (`N-146`)
+
+**Lo que pasaba:** entre las **21:10 y las 21:13** del 04/09 el operario pulsó **seis veces** «poner
+ámbar», el equipo contestó **`OK` las seis**, y el cruce siguió **en rojo durante 47 tramas
+seguidas**.
+
+**La causa:** el equipo entra en ámbar **sólo al cambiar de modo**. Si ya estaba en modo ámbar y
+alguien le había dado **ROJO TOTAL** —que cambia la **luz** y no el **modo**, a propósito, porque el
+rojo de emergencia entra sin PIN—, la orden de ámbar **no tenía nada que cambiar**: no hacía nada, y
+decía que sí.
+
+**Lo que hace ahora:** **re-arma el ámbar**, y contesta **`REARMADO`** en vez de `OK`.
+
+> ⚠️ **Para quien lea el diario de órdenes: `REARMADO` es un ÉXITO, no un error.** Significa *"ya
+> estaba en ámbar y lo he vuelto a encender"*. Son dos cosas distintas y por eso se dicen distinto.
+
+### 10.3 🔴 En Modo Manual el cruce cambiaba solo (`N-147`)
+
+**Lo que pasaba, reportado desde el banco:** *«el botón dar paso maestro queda en rojo, pasan 15 seg
+y … pasa a ámbar intermitente»*.
+
+| # | mitad del defecto |
+|---|---|
+| **1** | **DAR PASO se rechazaba** durante el plazo, y el cruce se quedaba en rojo |
+| **2** | **al vencer el plazo, el cruce cambiaba SOLO**, sin que nadie pulsara |
+
+**La causa:** el Modo Manual **entraba por la puerta del Modo Automático**, que deja un verde ya
+programado. **Los 15 segundos son literales** — es el tiempo de despeje del cruce.
+
+**Y un tercer defecto que nadie había reportado, salido al medir:** **cada pulsación de DAR PASO
+reiniciaba el plazo**. Quien pulsara cada 10 segundos **no veía el verde nunca**, y cada pulsación
+contestaba `OK`. **Obedecer y no avanzar no deja rastro de avería.**
+
+**Lo que hace ahora:** en Manual el equipo **se pone en todo-rojo y se queda quieto**. *«El operador
+en manual no debería llevar un ciclo, sino que, como está ahí parado viéndolo, que se cambie de
+inmediato»* — decisión del responsable.
+
+> 🛑 **LO QUE NO SE HA DEBILITADO, Y HAY QUE SABERLO ANTES DE PROBARLO: el despeje sigue entero
+> cuando hay algo que despejar.** Un cambio **de verde a verde** —el caso normal del cruce— sigue
+> pasando por **su rojo y su despeje completos** (`SFTY-4`). Lo único que se dejó de cobrar es un
+> despeje **ya pagado**: en Manual el cruce lleva minutos en rojo mientras el operario mira, y
+> hacerle esperar 15 s más no vacía nada que no estuviera vacío.
+
+### 10.4 🟢 Desde el Maestro se ve el semáforo del Esclavo (`N-149`)
+
+**Pedido en banco:** *«cuando me conecto al maestro no me aparecen los estados del semáforo del
+esclavo… yo necesito que maestro me traiga los datos del esclavo»*. Y sobre la alternativa de
+conectarse al otro poste: *«tendrías que caminar 1000 metros hasta el otro lado»*.
+
+La telemetría del **Maestro** lleva ahora un campo con el estado del **Esclavo**:
+
+| valor | qué significa |
+|---|---|
+| **ROJO** / **VERDE** | lo que el Esclavo **confirmó** — no lo que el Maestro le ordenó |
+| **ÁMBAR** | el cruce está en modo ámbar |
+| **?** | 🔴 **el enlace está caído y esta punta no sabe de qué color está la otra.** **NO** significa «sin medida» |
+
+> 🔵 **Por qué se publica lo confirmado y no lo ordenado:** una orden puede perderse en el aire. Un
+> tablero que pinte el color que el Maestro **quiso** le enseña al operario un semáforo que quizá no
+> existe. Este equipo ya pagó eso dos veces —los `12,6 V` de batería que eran un número escrito a
+> mano, y el equipo declarándose «en hora» con el reloj parado en ceros—.
+>
+> ⚠️ **El campo sólo lo emite el MAESTRO.** El Esclavo no lo emite porque **no tiene de dónde
+> sacarlo**: no le pregunta al Maestro y no tiene por qué. Un campo que sólo pudiera valer `?` no
+> informaría nunca.
+
+### 10.5 🕐 La hora: de dónde sale ahora, y por qué puede seguir saliendo en blanco (`N-145`)
+
+El campo de **hora** de la telemetría lo compone el **STM32**, que es justo el micro **sin reloj**
+—su cristal `Y2` está confirmado muerto—. El único reloj del equipo (`DS3231`) **cuelga del módulo
+`ESP32`**. Desde ahora **el módulo rellena ese hueco al pasar la trama** y recalcula su checksum.
+
+> 🛑 **AVISO, Y ES LA PARTE QUE HAY QUE LEER ANTES DE PROBARLO:**
+>
+> **SIN UN `DS3231` CONECTADO, LA HORA SEGUIRÁ SALIENDO EN BLANCO (`--:--:--`).** Eso **no es un
+> fallo**: es el módulo negándose a inventar una hora que no tiene. Un `DS3231` sin pila entrega una
+> fecha **perfectamente formada y falsa**, y este equipo prefiere el hueco.
+>
+> | | estado |
+> |---|---|
+> | El módulo `DS3231` | 🛑 **NO ESTÁ COMPRADO** (línea `A6` de la lista de compras) |
+> | Su dirección en el bus | 🔴 **SIN VERIFICAR sobre el módulo real** |
+> | Esta parte | 🔴 **NO SE PUEDE DAR POR PROBADA.** Nada de esto ha tocado un `DS3231` real |
+
+### 10.6 🔴 La batería NO se mide, y el equipo lo dice
+
+En **todas** las tramas de la cinta del 04/09 el campo de batería sale **`--`**. **Eso es
+deliberado**: el equipo **no tiene ni divisor de tensión ni entrada analógica** para medirla, y antes
+publicaba un `12.6` fijo escrito a mano que hacía que nadie preguntara por la alimentación.
+
+> **Un campo marcado `--` es lo correcto mientras no se mida.** Si hace falta la batería en campo,
+> **eso es una pieza que comprar y firmware que escribir** — no un número que rellenar.
+
+### 10.7 📱 Lo que cambió en la APP la misma noche, y aquí sólo se apunta
+
+**No se detalla en este manual** —vive en `14_Manual_App_Movil_IOT_VIAL.md`, que lo lleva otra
+mano—, pero un operario lo va a ver y conviene que no le sorprenda:
+
+| | |
+|---|---|
+| 🆕 **Al pedir ÁMBAR, la app pregunta si ha mirado el corredor** (`N-148`) | Pedido en banco: *«cuando le das en manual en ámbar, debería salirte un aviso diciendo: ¿está usted seguro que no hay vehículos en el corredor?»*. **Y el motivo por el que antes no preguntaba era falso**: se creía que el ámbar «es la dirección segura», y **medido en el `.cpp` no lo es** — el ámbar deja intermitente **en las DOS puntas**, o sea que en un carril único **se entra por los dos lados a la vez**. Es la orden que **más abre paso** de la botonera |
+| 🆕 **El estado del Poste 2 se enciende en la consola del Poste 1** (`N-149`, ver §10.4) | y sus cuatro salidas **no se colapsan**: el color se pinta; el `?` sale como *«SIN DATO DEL POSTE 2»* **con la causa al lado**; un equipo con firmware anterior sale como *«este equipo no lo publica»*; y un valor que no se reconoce sale **en crudo, sin adivinar** |
+| 🟢 **La hora del equipo se pinta** — antes la app la recibía y la tiraba | 🔴 **y seguirá saliendo en blanco mientras no haya `DS3231`**, ver §10.5 |
 
 ---
 

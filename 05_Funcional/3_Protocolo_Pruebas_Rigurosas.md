@@ -686,10 +686,53 @@ porque se mueven cada hora: viven en las actas de `evidencia/`, con su fecha y e
 
 ## 📑 SECCIÓN 5 — MODO MANUAL Y MEDIDA DE ENLACE
 
+> ## 🔵 05/09 — EL MODO MANUAL CAMBIÓ DE COMPORTAMIENTO (`N-147`). LEA ESTO ANTES DE 5.1
+>
+> **Lo que pasaba, reportado en el banco del 04/09:** *«el botón dar paso maestro queda en rojo,
+> pasan 15 seg y … pasa a ámbar intermitente»*. El Modo Manual **entraba por la puerta del Modo
+> Automático**, que deja un verde ya programado: **DAR PASO se rechazaba durante 15 s** —el tiempo de
+> despeje— **y al vencer el plazo el cruce cambiaba solo**, sin que nadie pulsara.
+>
+> **Y un tercer defecto que nadie había reportado:** **cada pulsación reiniciaba el plazo**, así que
+> pulsando cada 10 s **no se veía el verde nunca** y cada pulsación contestaba `OK`.
+>
+> **Lo que hace ahora:** al entrar en Manual el equipo **se pone en todo-rojo y se queda quieto, sin
+> plazo ninguno**. La primera pulsación de DAR PASO **se acepta**.
+>
+> 🛑 **`SFTY-4` NO SE HA DEBILITADO, y la prueba 5.2 es la que lo comprueba:** un cambio **de verde a
+> verde** sigue pasando por **su todo-rojo y su despeje completos**. Lo único que se dejó de cobrar es
+> un despeje **ya cumplido**.
+>
+> 🔴 **NADA DE ESTO SE HA EJERCIDO EN TARJETA.** Las pruebas 5.0, 5.1 y 5.2 son justo las que lo
+> deciden.
+
+**5.0 🆕 Al entrar en Manual, el equipo NO programa nada** — *(prueba nueva, `N-147`)*
+- *Acción:* desde cualquier modo, mandar `CMD:PIN:1234:SET_MODO:MANUAL` y **NO tocar nada durante 60
+  segundos**, con el cronómetro en la mano y mirando las dos puntas.
+- *Esperado:* el cruce va a **todo-rojo** y **se queda ahí**. 🛑 **Si a los ~15 s se pone en ámbar y
+  luego da un verde que nadie pidió, el defecto NO está arreglado.**
+- Tiempo observado hasta cualquier movimiento espontáneo: ________ s *(lo correcto es: ninguno)*
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+
+**5.0-bis 🆕 Pulsar rápido no esconde el verde** — *(prueba nueva, el tercer defecto de `N-147`)*
+- *Acción:* en Manual y con el cruce en rojo, mandar `MANUAL:CAMBIAR_TURNO` **tres veces seguidas,
+  separadas ~5 segundos**, sin esperar a que nada acabe.
+- *Esperado:* **el verde llega.** 🛑 **Si cada orden contesta `OK` y el cruce nunca abre, es el
+  defecto de `tRef` y NO está arreglado** — obedecer y no avanzar es la peor forma de fallar, porque
+  no deja rastro de avería.
+- ¿Llegó el verde? `[ ] SÍ  [ ] NO` — ¿en cuántas órdenes? ________
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+
 **5.1 Primer cambio de carril** — ♻️ **SE REESCRIBE** *(antes: «presionar Botón 1»)*
 - *Acción:* con `CMD:PIN:1234:SET_MODO:MANUAL` puesto, mandar `CMD:PIN:1234:MANUAL:CAMBIAR_TURNO`.
 - *Esperado:* `$ACK,CMD:CAMBIAR_TURNO,RESULT:OK` y cambio de vía respetando el todo-rojo (mínimo 5 s)
   y los 4 s de Amarillo.
+  > ⚠️ **MATIZ DEL 05/09 (`N-147`), y hay que anotarlo o esta prueba se lee como un fallo:** si el
+  > cruce **ya lleva un rato en todo-rojo** —que es lo normal recién entrado en Manual— **el despeje
+  > ya está cumplido y NO se vuelve a cobrar**: el verde puede entrar **enseguida**, tras sus 4 s de
+  > Amarillo. **Eso es lo correcto, no un salto de barrera.** El despeje que sí tiene que verse
+  > entero es el de **verde a verde**, y lo mide la prueba 5.2.
+- ¿Cuánto tardó en abrir desde la orden? ________ s
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
 **5.2 Cambios sucesivos** — ♻️ **SE REESCRIBE**
@@ -1515,6 +1558,55 @@ RF y RTT del Esclavo: ______ / ______   (deben salir 98% y 85ms fijos)
   > rojo y hacía ámbar con la pluma arriba, que es casi lo contrario. **Provóquelo y copie la
   > respuesta.**
 
+**12.4-bis 🆕 El ámbar después de un ROJO TOTAL — el botón que se quedaba muerto** (`N-146`)
+- *Por qué existe:* en la cinta del 04/09 hay **seis** órdenes de ámbar seguidas, las **seis
+  contestadas `RESULT:OK`**, y el cruce **en rojo durante 47 tramas**. El equipo obedecía y no
+  encendía nada. **Esta prueba es la única que lo caza, y el orden de los tres pasos ES la prueba.**
+- *Acción:* **exactamente en este orden**, sobre el **Maestro**:
+  1. `CMD:PIN:1234:SET_MODO:AMBAR` → el cruce se pone en **ámbar intermitente**.
+  2. `CMD:FORZAR_ROJO` (sin PIN) → el cruce se pone en **ROJO TOTAL**. *(El modo sigue siendo ÁMBAR:
+     `FORZAR_ROJO` cambia la LUZ, no el MODO. Eso es deliberado.)*
+  3. `CMD:PIN:1234:SET_MODO:AMBAR` **otra vez**.
+- *Esperado en el paso 3:* el cruce **vuelve a ámbar intermitente**, y la respuesta es
+  **`$ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO`** — 🔵 **`REARMADO`, no `OK`. Las dos son un ÉXITO**;
+  se dicen distinto porque son dos cosas distintas y el diario de órdenes tiene que poder
+  separarlas.
+- 🛑 **Si contesta `OK` y el cruce SIGUE EN ROJO, el defecto NO está arreglado**, y es grave: es una
+  **salida de emergencia** que dice que sí y no hace nada.
+- Respuesta literal del paso 3: ______________________________________
+- ¿Volvió el ámbar? `[ ] SÍ  [ ] NO`
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+
+**12.4-ter 🆕 El ámbar del Poste 2 llega al Poste 1** (`N-142`) — **necesita las DOS puntas vivas y
+el enlace de radio en pie**
+- *Por qué existe, y es lo más grave que se encontró:* si un operario ponía ámbar de emergencia desde
+  la app **en el Esclavo**, el Maestro **no se enteraba** — y el Esclavo **seguía contestando al
+  latido**, así que el enlace le parecía perfecto—. Con el Maestro en VERDE, **seguía dándolo hasta
+  3 minutos** con el otro lado en ámbar: **los dos sentidos podían entrar al carril**.
+- *Acción:* con el cruce **ciclando en Automático** y esperando a que **el MAESTRO esté en VERDE**,
+  mandar al **Esclavo** `CMD:AMBAR_EMERGENCIA` (sin PIN).
+- *Esperado:* el Esclavo pasa a ámbar intermitente **y el MAESTRO también, en segundos** — no en
+  minutos y no esperando a que se agote nada. El Maestro **deja de ciclar**.
+- 🛑 **Si el Maestro sigue en verde, PARE la prueba y anótelo: es la ventana de verde simultáneo.**
+- Tiempo desde la orden hasta que el **Maestro** deja el verde: ________ s
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+- > ⚠️ **Y compruebe también lo que NO debe pasar, que es la otra mitad (`SFTY-21`):** mientras el
+  > ámbar del Esclavo esté puesto, **el Maestro no puede quitárselo**. Si en algún momento el Esclavo
+  > **se sale solo del ámbar** a los pocos segundos, eso es el veto caído y **es un `NO CUMPLE`**,
+  > aunque el cruce parezca funcionar. Se sale con `CANCELAR_AMBAR` **con PIN, y desde el Esclavo**.
+
+**12.4-quater 🆕 El campo del estado del Esclavo en la telemetría del Maestro** (`N-149`)
+- *Acción:* conectado al **Maestro**, mirar una trama `$STATUS` y localizar el campo **`ESC:`** (va
+  el último). Después **desconectar la antena del Esclavo** y esperar a que el enlace caiga.
+- *Esperado:* con enlace, `ESC:` dice **`ROJO`**, **`VERDE`** o **`AMBAR`**; **sin enlace dice `?`**.
+- 🔵 **El `?` significa «el enlace está caído y esta punta no sabe de qué color está la otra». NO
+  significa «sin medida», y NO es un hueco: es la respuesta correcta.**
+- ⚠️ **El ESCLAVO no emite este campo, y es a propósito** — no tiene de dónde sacarlo. **Que falte
+  en la telemetría del Esclavo NO es un fallo.**
+- Trama literal con enlace: ______________________________________
+- Trama literal sin enlace: ______________________________________
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
+
 **12.5 Selector de cruces en el corredor (multicruce con un teléfono)** — ⏸️ **SE APLAZA**
 - **Falta:** dos módulos ESP32 montados con nombres distinguibles, la app, y dos cruces. Depende
   entera de 12.1.
@@ -1524,8 +1616,24 @@ RF y RTT del Esclavo: ______ / ______   (deben salir 98% y 85ms fijos)
 - *Qué mediría:* capturar la hora en el Maestro, desplazarse hasta el Esclavo e inyectarla
   compensando el tiempo de viaje.
 - ~~**Falta: el reloj `DS3231`**, que va montado **sobre la placa del ESP32** — la que no existe — con
-  su propia pila.~~ **04/09: el `DS3231` está montado y cableado** (I²C por `GPIO21`/`GPIO22`, paso
-  22), con la masa común contra la STM32 medida en `0 V` (paso 23).
+  su propia pila.~~ ~~**04/09: el `DS3231` está montado y cableado** (I²C por `GPIO21`/`GPIO22`, paso
+  22), con la masa común contra la STM32 medida en `0 V` (paso 23).~~
+  > 🛑 **ESA FRASE ES FALSA Y SE TACHA — 05/09. EL `DS3231` NO ESTÁ COMPRADO NI CONECTADO, y la
+  > confusión es exactamente la que `CLAUDE.md` §2.ter describe: se citó un PROTOCOLO como si fuera
+  > un RESULTADO.** El «paso 22» de la Guía de banco se titula *«la placa del módulo: cómo tiene que
+  > ser»* — **es un dibujo de cómo debe quedar cableado, no un acta de que se cableó**. Lo que sí es
+  > un resultado es el paso 23: la **masa común** medida en `0 V`, y esa medida **no necesita
+  > reloj**.
+  >
+  > **La Guía de banco de esta noche lo dice con todas las letras y hay que respetarlo al firmar:**
+  > *«el `DS3231` no está comprado … márcalo "No se pudo probar" y escribe "no hay DS3231". NO lo
+  > marques "NO CUMPLE"»*. **Un paso que no se pudo ejercer no es un suspenso — y tampoco un
+  > aprobado.** Línea `A6` de la lista de compras.
+  >
+  > 🔵 **Y lo que sí cambió el 05/09 (`N-145`), que NO desbloquea esta prueba:** el firmware del
+  > módulo **ya lee su `DS3231` y ya rellena el hueco de hora** de las tramas del equipo. **Sin
+  > módulo en el bus, la hora seguirá saliendo `--:--:--`, y eso es el firmware negándose a inventar,
+  > no fallando.** Quien vea el hueco sin `DS3231` delante **no puede concluir nada**.
 - 🔴 **Lo que falta es la app, y no es un detalle de conveniencia:** al revisar el firmware del
   puente se confirmó que **la hora del `DS3231` sólo se lee y se ajusta con `SET_RTC` por Bluetooth.
   No existe otra vía para consultarla en banco** (paso 27, bloqueado). Mientras el módulo no se
