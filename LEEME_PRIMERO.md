@@ -1,12 +1,14 @@
-# LÉEME PRIMERO — paquete de FIRMWARE del 04/09/2026, noche
+# LÉEME PRIMERO — paquete del 04/09/2026, noche
 
-## 1. Qué es esto y qué NO es
+## 1. Qué es esto
 
-**Esto es SÓLO FIRMWARE.** No lleva APK: la app está a medio arreglar en este momento y
-sale en el paquete siguiente. **La que tenéis instalada sigue sirviendo** para cargar y
-probar esto.
+**Firmware Y APK.** En campo corre `V8.4`, commit `e303485`, del 31/07/2026. Este paquete
+es `7dfb8c7`.
 
-En campo corre `V8.4`, commit `e303485`, del 31/07/2026. Este paquete es `920e52c`.
+**La APK trae un arreglo que se ve nada más abrirla:** la barra de pestañas tapaba hasta
+**131 px** de la botonera —un botón entero a 320 px— y ya no tapa nada. Lo destapó una
+foto vuestra, no un instrumento: el que debía medirlo daba «sin hallazgos» porque medía
+contra el borde de la pantalla y la barra **flota encima**.
 
 ## 2. ¿Ha pasado banco? **NO — pero esta noche se probó mucho, y funcionó.**
 
@@ -67,9 +69,10 @@ soltarlo desde el otro poste.** Está pendiente de decidir cómo se cierra.
 STM32, que es el micro **sin** reloj; el DS3231 vive en el ESP32. Acotado, va en la
 siguiente.
 
-**La app:** no reconecta si el equipo se reinicia (hay que cerrarla y abrirla), la barra de
-pestañas tapa hasta **131 px** de mandos, y el `--` que el firmware manda ahora se pinta
-como **0**. Las tres están en arreglo.
+**La app:** 🟢 la barra ya no tapa los mandos. Sigue abierto que **no reconecta si el
+equipo se reinicia** —hay que cerrarla y abrirla, y los equipos se reinician solos: hay
+`EVT:ARRANQUE,CAUSA:SUBIDA_DE_TENSION` en vuestras cintas— y que el `--` que el firmware
+manda ahora se pinte como **0** en el anillo. Las dos en arreglo.
 
 **El puente H no se cablea todavía:** faltan la corriente nominal y de arranque del
 motorreductor.
@@ -82,6 +85,7 @@ vuestras cintas. Es el `LM2596`, no el firmware.
 | | |
 |---|---|
 | `ACTA_verificacion.txt` | la corrida: fecha, `HEAD`, toolchain |
+| `IOT_VIAL_Semaforos_2026-09-04_7dfb8c7_SIN_BANCO.apk` | la app, verificada entrada por entrada contra el fuente |
 | `01_Firmware/` | **fuente** para PlatformIO. Sin binarios: se compilan del código que se revisa |
 | `02_Manuales/` | manuales y la guía de banco — **todavía sin lo de esta noche** |
 
