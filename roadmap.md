@@ -312,6 +312,66 @@ en vez de *"sin datos del esclavo"*. Tambien suyo.
 
 ---
 
+### 0.0.undecies · EL CIERRE DEL RELOJ, y el defecto que quedaba debajo
+
+**El misterio del `FORMATO_INVALIDO` esta cerrado, y lo cerro el DIARIO DE ORDENES**, no
+una deduccion. Tres `SET_RTC` seguidos en la cinta del 04/09:
+
+```
+CMD:PIN:****:SET_RTC:2026-09-04,20:45:58
+  -> $ACK,NODE:PUENTE,...,RESULT:OK,FECHA:2026-09-04,HORA:20:45:58   <- el DS3231 QUEDO PUESTO
+  -> $ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO                          <- el STM32, cristal muerto
+```
+
+**El reloj funciona.** El `$ACK` viene del PUENTE y devuelve la fecha y la hora escritas.
+El `$ERR` viene del STM32, que recibe la misma linea porque el puente reenvia VERBATIM -es
+su contrato- e intenta poner SU reloj, el del cristal `Y2` muerto desde N-17.
+
+Y **no era un fallo de formato**: medido, el Maestro quita `` y `
+` al montar la linea,
+asi que el `sscanf` devuelve 6. Era la SEGUNDA rama -"escribi y al releer no cuadra"- que
+**reusaba el motivo de formato**. N-138 la separa: ahora dice `NO_QUEDO_PUESTA`.
+
+#### N-145 🔴 EL EQUIPO TIENE HORA Y PUBLICA QUE NO LA TIENE
+
+El campo `HORA:` del `$STATUS` **lo rellena el STM32**, o sea el micro que **NO tiene**
+reloj. Por eso la cinta dice `HORA:--:--:--` con el DS3231 en hora y con pila.
+
+Es la misma forma de N-139 -el contador que contaba el segundero- una capa mas arriba:
+**quien publica el dato no es quien lo sabe**. Desde la decision del 28/08 el reloj vive en
+el ESP32; el campo se quedo donde estaba. **Acotado:** el puente ya compone tramas propias.
+
+#### Y N-144, que salio de la misma cinta
+
+El Maestro paso de mandar `HORA:--:--:--` a mandar **`HORA:00:00:00`** justo despues de
+intentar el Courier. **No es medianoche: es un contador parado con la bandera de "tengo
+hora" puesta.** `reloj_ajustar()` la enciende al escribir y la verificacion posterior
+avisaba del fallo **sin retirarla**.
+
+> 🔴 **Y de esa bandera cuelga la autorizacion del MODO DEGRADADO**, el que da verdes
+> guiandose SOLO por el reloj, sin confirmacion de la otra punta. Un reloj en ceros que se
+> declara valido es exactamente la entrada que ese modo no debe aceptar. Cerrado.
+
+---
+
+### 0.0.duodecies · LO QUE FALTA PARA QUE LA APP SIRVA EN EL POSTE
+
+Por orden de lo que impide usarla, no de lo que cuesta:
+
+| # | que | por que bloquea |
+|---|---|---|
+| **1** | 🔴 **no reconecta si el equipo se reinicia** | *"se apaga y se prende, no vuelve a conectar... reinicie la app y comenzo"*. Y los equipos se reinician solos: hay `$EVENT,EVT:ARRANQUE,CAUSA:SUBIDA_DE_TENSION` en las cintas. En un poste, de noche, cerrar y abrir la app no vale. La causa esta medida: **`app.js` no llama a `disconnect()` en ninguna parte** y `state.connected` se queda en `true` sobre un socket que Android ya cerro |
+| **2** | 🔴 **la barra de pestañas TAPA los mandos** | medido tras arreglar el instrumento: **131 px a 320 px**, 87 a 360, 46 a 390. El operario no puede pulsar lo que no ve |
+| **3** | 🔴 **`parseInt("--") \|\| 0`** | el firmware ya manda `--` donde no sabe, y la app lo pinta como **0**: justo la mentira que se acaba de quitar del firmware. En `app.js:2756` y `js/nmea_parser.js:124`, este ultimo **con diez lineas encima explicando por que ese `\|\| 0` esta mal** |
+| **4** | el Esclavo no aparece sin desvincular en Ajustes | `list()` solo devuelve emparejados; `discoverUnpaired()` existe y no se usa |
+| **5** | los `RESULT` distintos de `OK` se tragan | `YA_EN_AMBAR_LATCH_PUESTO` se ve como "no pasa nada" |
+| **6** | las dos pantallas | rediseno, puede esperar a la siguiente entrega |
+
+**Y una que no es de la app:** *"este modo degradado, ¿que putas es eso? No lo he
+probado"* — y eso que la app se lo explica al pulsarlo. **La explicacion no esta
+aterrizando**, y es el modo que da verdes guiandose solo por el reloj. No se arregla con
+mas texto: se arregla decidiendo si ese boton debe estar donde esta.
+
 ### 0.0.octies · 🔴 EL BLOQUEO DEL CRUCE, Y COMO SE PROCEDE (04/09, noche)
 
 **Lo reportado, y es lo mas grave de la sesion:** *"como me conecte a la aplicacion del
