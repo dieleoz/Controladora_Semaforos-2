@@ -411,6 +411,62 @@ impide que vuelva.
 
 ---
 
+## 3.septies Al retirar casos de una maquina de estados, comprueba que sus GUARDAS sigan pudiendo ser falsas
+
+> **Un `enum` de un solo valor no es un estado: es una constante disfrazada, y el
+> compilador lo demuestra.**
+
+Pasó el 04/09, **horas después** de arreglar N-42 y por culpa de ese mismo arreglo. Al
+retirar las tres fases del asistente del Modo Automático quedó esto, con un comentario
+al lado que decía que el `enum` sobrevivía porque *«se lee mejor preguntando por la fase
+que por una bandera suelta»*:
+
+```cpp
+enum FaseAuto { CORRIENDO };
+static FaseAuto fase;
+bool modoAutomatico_enMarcha() { return fase == CORRIENDO; }
+```
+
+Se leía mejor y **ya no preguntaba nada**. Medido con el compilador del proyecto, no
+razonado:
+
+```
+arm-none-eabi-g++ -Os -S -mcpu=cortex-m3 -mthumb
+enMarcha:  movs r0, #1
+           bx   lr
+```
+
+La variable ni se reserva. Con un solo enumerador la comparación es cierta **siempre, y
+desde antes de que corra el `setup()`, en todos los modos**.
+
+**Lo que costó, y es la forma que hay que reconocer:** de `enMarcha()` cuelgan las dos
+guardas de `SET_TIEMPOS`, así que el equipo contestaba
+`$ERR,CMD:SET_TIEMPOS,DESC:EN_MARCHA_PARE_EL_MODO` **a todo y para siempre**. Y como
+`modoAutomatico_fijarTiempos()` es el **único** llamador de
+`respaldo_guardarTiemposCiclo()`, el arreglo de N-133 se quedó con **camino de lectura y
+sin camino de escritura**: los tiempos no se podían guardar nunca.
+
+> 🔴 **Un arreglo cerró la puerta del otro el mismo día, y ningún instrumento lo vio.**
+> Lo encontró un agente que fue a comprobar si el paso de banco era ejecutable, y lo
+> encontró **compilando**, no leyendo. La compuerta estaba en verde.
+
+**Es la hermana de §3.ter.** Allí, retirar código dejó una bandera que nunca vale `true`;
+aquí, retirar casos dejó una comparación que nunca vale `false`. **La misma pregunta en
+las dos direcciones: ¿esta guarda puede dar las dos respuestas?**
+
+**Y el censo que lo caza no es el mismo que ya existía.** `maestro_10` censaba funciones
+que devuelven un **literal** —`return false;`, el caso de `botonAceptar()`—; ésta devolvía
+una *comparación*. La forma era distinta y la consecuencia idéntica. Se le añadió la
+hermana: **un `enum` de un solo valor que además se COMPARA**. Es un trinquete, no un
+absoluto — un `enum` de un valor que nadie compara puede ser legítimo.
+
+**Corolario sobre el comentario:** la frase que sostenía el verde la escribió quien hizo
+el cambio, en el mismo commit, y era una **afirmación sobre el código sin comprobar** —
+justo lo que §3.bis prohíbe para las excepciones de huérfanos. Un comentario que explica
+por qué algo sobrevive a una limpieza es exactamente donde hay que dudar.
+
+---
+
 ## 3.quater Un ABORTADO es una puerta abierta, no una casilla pendiente
 
 > **Mientras un instrumento esta abortado, todo lo que vigilaba entra sin mirar.**

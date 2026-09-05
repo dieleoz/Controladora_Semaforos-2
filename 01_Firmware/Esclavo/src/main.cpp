@@ -391,6 +391,30 @@ void loop() {
         tUltimoComando = millis();
       }
       programarRespuesta(CMD_PONG); // SFTY-17: se responde tras el retardo de cortesia
+    } else if (pkt.command == CMD_GO_AMBAR) {
+      // N-134 (04/09): EL AMBAR ORDENADO. Reportado en banco: "si le vuelvo a ambar,
+      // ese cambia a ambar pero este no" -y luego, 25 s despues, si-.
+      //
+      // Se reutiliza semaforo_iniciarFallo(), que es EXACTAMENTE la misma puerta por la
+      // que esta punta entra en ambar por orfandad unas lineas mas abajo. No es una luz
+      // nueva ni un camino nuevo: es el mismo destino alcanzado por orden en vez de por
+      // temporizador. Inventar aqui un ambar propio seria una segunda forma de encender
+      // la misma lampara, y el dia que se toque una se olvidaria la otra.
+      //
+      // NO se toca tUltimoComando: si se refrescara, esta punta creeria que el Maestro
+      // sigue hablando y la orfandad -que es la red cuando esta orden se pierde- se
+      // desarmaria justo despues de usarla. El Maestro se calla a continuacion a
+      // proposito, asi que el silencio que viene es el esperado.
+      //
+      // SFTY-21: mismo veto que la orfandad. Con el Modo Degradado gobernando la luz no
+      // se obedece: alli decide el reloj con la configuracion que el Maestro dejo
+      // verificada en las dos puntas, y una orden por radio que la contradiga es
+      // justamente lo que el Degradado existe para no tener que atender.
+      if (!degradado_gobiernaLuz() && semaforo_estado() != S_FALLO) {
+        semaforo_iniciarFallo();
+        protocolo_resetReplayProtection();
+      }
+
     } else if (pkt.command == CMD_GO_RED) {
       tUltimoComando = millis();
       // SFTY-21: con el ambar pedido desde el mando (B.B.B) no se obedece NI SE

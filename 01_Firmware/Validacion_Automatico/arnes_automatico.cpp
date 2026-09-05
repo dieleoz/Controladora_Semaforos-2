@@ -347,6 +347,29 @@ void reloj_fijarEnero() {}
 
 void respaldo_marcarSync(uint32_t) {}   // N-49: ahora recibe el contador del RTC
 
+// N-133/N-135: EL RESPALDO DE LOS TIEMPOS DEL CICLO, DOBLADO CON MEMORIA DE VERDAD.
+//
+// No es un stub vacio a proposito. Un doble que devolviera siempre "no hay nada
+// guardado" dejaria el camino de recuperacion de modo_automatico.cpp sin ejercer, y
+// este arnes existe para ejecutar ese .cpp, no para enlazarlo. Con memoria, guardar y
+// recuperar se recorren de verdad.
+//
+// No replica el checksum ni la FIRMA -eso lo mide maestro_02_respaldo sobre el
+// respaldo.cpp real-: aqui solo importa que lo que se guardo es lo que vuelve.
+static uint8_t _bkRojo = 0, _bkVerde = 0, _bkDespeje = 0;
+
+void respaldo_guardarTiemposCiclo(uint8_t rojoMin, uint8_t verdeMin, uint8_t despejeSeg) {
+  // Misma negativa que el real: un cero no es configuracion, es ausencia de ella.
+  if (rojoMin == 0 || verdeMin == 0 || despejeSeg == 0) return;
+  _bkRojo = rojoMin; _bkVerde = verdeMin; _bkDespeje = despejeSeg;
+}
+
+bool respaldo_tiemposCiclo(uint8_t* rojoMin, uint8_t* verdeMin, uint8_t* despejeSeg) {
+  if (_bkRojo == 0 || _bkVerde == 0 || _bkDespeje == 0) return false;
+  *rojoMin = _bkRojo; *verdeMin = _bkVerde; *despejeSeg = _bkDespeje;
+  return true;
+}
+
 // ---------------------------------------------------------------------------
 // EL ESCLAVO SIMULADO. Esto es lo unico de este arnes que "actua": contesta al
 // protocolo como lo haria (o no) el otro extremo, con la latencia y el

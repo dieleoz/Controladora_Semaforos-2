@@ -1,5 +1,6 @@
 // ===== src/modo_automatico.cpp =====
 #include "modo_automatico.h"
+#include "modos.h"      // N-135: enMarcha() pregunta por el MODO, no por una fase
 #include "respaldo.h"   // N-133: los tiempos del ciclo sobreviven al corte
 #include "botones.h"
 #include "semaforo.h"
@@ -9,11 +10,31 @@
 #include "modos.h"
 #include <string.h>
 
-// N-42 (04/09): SE FUERON LAS TRES FASES DE CONFIGURACION. Queda una sola, y por eso
-// el enum sobrevive: modoAutomatico_enMarcha() -de la que cuelga la guarda de
-// SET_TIEMPOS- se lee mejor preguntando por la fase que por una bandera suelta.
-enum FaseAuto { CORRIENDO };
-static FaseAuto fase;
+// N-135 (04/09, HORAS DESPUES DE N-42): AQUI HABIA UN ENUM DE UN SOLO VALOR, Y ESO NO
+// ES UNA MAQUINA DE ESTADOS: ES UNA CONSTANTE DISFRAZADA.
+//
+// Al retirar las tres fases del asistente quedo `enum FaseAuto { CORRIENDO };` con su
+// `static FaseAuto fase;`, y el comentario que habia aqui decia que el enum sobrevivia
+// porque enMarcha() "se lee mejor preguntando por la fase". Se leia mejor y YA NO
+// PREGUNTABA NADA. Medido con el compilador del proyecto, no razonado:
+//
+//     bool modoAutomatico_enMarcha() { return modoActual_get() == MODO_AUTOMATICO; }
+//     arm-none-eabi-g++ -Os -S -mcpu=cortex-m3 -mthumb  ->   movs r0, #1
+//                                                            bx   lr
+//
+// Con un solo enumerador la comparacion es cierta SIEMPRE, y desde antes de que corra
+// modoAutomatico_setup(): en todos los modos, menu incluido. De enMarcha() cuelgan las
+// dos guardas de SET_TIEMPOS, asi que el equipo contestaba
+// $ERR,CMD:SET_TIEMPOS,DESC:EN_MARCHA_PARE_EL_MODO A TODO Y PARA SIEMPRE. Y como
+// modoAutomatico_fijarTiempos() es el UNICO llamador de respaldo_guardarTiemposCiclo(),
+// N-133 se quedo con camino de LECTURA y sin camino de ESCRITURA: los tiempos no se
+// podian guardar nunca. Un arreglo cerro la puerta del otro y ningun instrumento lo vio.
+//
+// LA PREGUNTA CORRECTA ES OTRA, y es la que siempre quiso ser: el ciclo esta en marcha
+// si el equipo ESTA EN ESTE MODO. Eso no puede degenerar -MODO_AUTOMATICO es uno de
+// nueve- y ademas dice la verdad: desde N-42, entrar al modo ES ponerse a correr.
+//
+// Un estado que no puede tener dos valores no es un estado. Se retiran los dos.
 static const uint8_t VERDE_MIN_MIN = 3,  VERDE_MIN_MAX = 15;
 static const uint8_t ROJO_MIN_MIN  = 3,  ROJO_MIN_MAX  = 15;
 static const uint8_t DESPEJE_SEG_MIN = 10, DESPEJE_SEG_MAX = 90;
@@ -73,7 +94,7 @@ void modoAutomatico_pedirArranqueDirecto() { /* N-42: ya no hace falta, ver arri
 // sabiendas: un banco cae del lado de esperar tres minutos, no del lado de dejar el
 // limite de laboratorio suelto en una carretera.
 
-bool modoAutomatico_enMarcha() { return fase == CORRIENDO; }
+bool modoAutomatico_enMarcha() { return modoActual_get() == MODO_AUTOMATICO; }
 
 // N-133: recupera los tiempos guardados, si los hay Y si siguen siendo legales.
 //
@@ -166,7 +187,6 @@ void modoAutomatico_setup() {
   coordinador_iniciarModo();   // empieza SIEMPRE por todo-rojo y su despeje
   tEstadoDesde = millis();
   primeraVezCorriendo = true;
-  fase = CORRIENDO;
   lcd_dibujarAutomatico(coordinador_nombreEstadoMaster(), minRojo, minVerde);
 }
 
@@ -177,35 +197,36 @@ void modoAutomatico_loop() {
     return;
   }
 
-  switch (fase) {
-    case CORRIENDO: {
-      coordinador_actualizar();
+  // N-135: LA LLAMADA AL COORDINADOR ES INCONDICIONAL, Y ESO NO ES ESTILO.
+  // main.cpp EXCLUYE a este modo del refresco de fondo, asi que si esta llamada
+  // quedara dentro de una rama que pudiera no alcanzarse, el Maestro se quedaria
+  // mudo en la radio -que es exactamente N-42-. Aqui vivia dentro de un `switch`
+  // de un solo caso; al retirarlo quedo un bloque suelto que segun se mire parece
+  // condicional. Se deja plana: lo que no tiene rama no se puede dejar sin visitar.
+  coordinador_actualizar();
 
-      if (coordinador_listoParaContar()) {
-        if (primeraVezCorriendo) {
-          tEstadoDesde = millis();
-          primeraVezCorriendo = false;
-        }
-
-        unsigned long duracion = (semaforo_estado() == S_ROJO)
-                                    ? (unsigned long)minRojo * 60000UL
-                                    : (unsigned long)minVerde * 60000UL;
-
-        if (millis() - tEstadoDesde >= duracion) {
-          coordinador_pedirCambio();
-          tEstadoDesde = millis();
-        }
-      } else {
-        primeraVezCorriendo = true;
-      }
-
-      static const char* estadoAnt = "";
-      const char* actual = coordinador_nombreEstadoMaster();
-      if (strcmp(actual, estadoAnt) != 0) {
-        lcd_dibujarAutomatico(actual, minRojo, minVerde);
-        estadoAnt = actual;
-      }
-      break;
+  if (coordinador_listoParaContar()) {
+    if (primeraVezCorriendo) {
+      tEstadoDesde = millis();
+      primeraVezCorriendo = false;
     }
+
+    unsigned long duracion = (semaforo_estado() == S_ROJO)
+                                ? (unsigned long)minRojo * 60000UL
+                                : (unsigned long)minVerde * 60000UL;
+
+    if (millis() - tEstadoDesde >= duracion) {
+      coordinador_pedirCambio();
+      tEstadoDesde = millis();
+    }
+  } else {
+    primeraVezCorriendo = true;
+  }
+
+  static const char* estadoAnt = "";
+  const char* actual = coordinador_nombreEstadoMaster();
+  if (strcmp(actual, estadoAnt) != 0) {
+    lcd_dibujarAutomatico(actual, minRojo, minVerde);
+    estadoAnt = actual;
   }
 }

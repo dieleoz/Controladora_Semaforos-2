@@ -148,6 +148,72 @@ corte de luz          ->  3 / 3 / 10   nunca se guardaron
 **Y esto es deuda propia:** el hallazgo se levanto por la manana, se arreglo **el valor** al que
 vuelven (de 1 a 3, N-131) y **no se arreglo que vuelvan**. Se anoto como abierto en vez de cerrarse.
 
+### 0.0.ter 🟢 LO ARREGLADO LA NOCHE DEL 04/09, y un defecto PROPIO que casi entra
+
+| | que | estado |
+|---|---|---|
+| **N-42** | el Modo Automatico no movia las luces **y dejaba al Maestro MUDO en la radio**. Se retira el asistente entero: una sola puerta, el modo arranca corriendo | 🟢 cerrado, `ceb8cc5` |
+| **N-133** | los tiempos del ciclo no se guardaban en ningun sitio. Van al respaldo (`DR9`/`DR10`), dentro del checksum, `FIRMA` a `0x5EB2` | 🟢 cerrado |
+| **N-134** | el ambar se ORDENA, no se deduce. `CMD_GO_AMBAR` (`0x13`); el rojo previo se queda como intermedio seguro y **la orfandad de 25 s se queda como red** -decision del responsable- | 🟢 cerrado |
+| **N-135** | 🔴 **defecto PROPIO, introducido por el arreglo de N-42 y cazado horas despues** | 🟢 cerrado |
+
+#### N-135 — un `enum` de un solo valor no es un estado, y cerro la puerta de N-133
+
+Al retirar las tres fases del asistente quedo `enum FaseAuto { CORRIENDO };` con su
+`static FaseAuto fase;`, y un comentario **escrito en el mismo commit** diciendo que el
+enum sobrevivia porque `enMarcha()` *"se lee mejor preguntando por la fase"*. Se leia
+mejor y **ya no preguntaba nada**. Medido con el compilador, no razonado:
+
+```
+arm-none-eabi-g++ -Os -S -mcpu=cortex-m3 -mthumb
+enMarcha:  movs r0, #1
+           bx   lr
+```
+
+De esa funcion cuelgan las dos guardas de `SET_TIEMPOS`, asi que el equipo contestaba
+`EN_MARCHA_PARE_EL_MODO` **a todo y para siempre**; y como `fijarTiempos()` es el UNICO
+llamador de `respaldo_guardarTiemposCiclo()`, **N-133 se quedo con camino de lectura y sin
+camino de escritura**. Un arreglo cerro la puerta del otro el mismo dia.
+
+> 🔴 **Lo encontro un agente que fue a comprobar si el paso de banco era ejecutable, y
+> lo encontro COMPILANDO. La compuerta estaba en verde.** Ni la compuerta ni los 68 packs
+> lo vieron: `maestro_10` censaba funciones que devuelven un LITERAL, y esta devolvia una
+> COMPARACION. La forma distinta, la consecuencia identica.
+
+Arreglado: `enMarcha()` pregunta por el MODO -`modoActual_get() == MODO_AUTOMATICO`-, que
+no puede degenerar. Se retiran el enum y la variable. La regla queda en `CLAUDE.md`
+**§3.septies**, y `maestro_10` gana la hermana del censo: **un enum de un solo valor que
+ademas se COMPARA**.
+
+#### Lo que el reporte de campo de la noche confirmo o refuto
+
+| lo reportado | veredicto |
+|---|---|
+| *"rojo total se cambia de una, de una"* | ✅ **propaga bien**. Refuta lo que yo habia escrito: `coordinador_forzarRojoTotal()` manda `CMD_GO_RED` (`coordinador.cpp:558`) |
+| *"le vuelvo a ambar, ese cambia pero este no"* | confirmado → **N-134** |
+| *"se retardo 25 segundos"*, *"27 segundos el poste"* | la orfandad, exacta. Confirma N-42 |
+| *"rechazo por el equipo, formato invalido"* en el Courier RTC | 🔴 **SIN DIAGNOSTICAR.** El formato cuadra por los dos lados sobre el papel. **No se puede saber porque la cinta de tramas solo graba lo que ENTRA**: 300 tramas y ninguna es la que se mando |
+
+#### 🔴 Lo que ese ultimo caso deja escrito, y vale mas que el propio fallo
+
+**La cinta de tramas no graba lo que la app ENVIA.** Se perdieron veinte minutos deduciendo
+un formato por los dos lados en vez de leerlo. Es la regla del instrumento en su forma mas
+cara, y el responsable lo dijo mejor: *"cada comando debe ser capturado en los logs, asi
+sabras que envia, que responde, que se activa, sin mas"*.
+
+Y no basta con grabar los tres: hay que **poder verlos juntos**. La terna
+
+```
+ORDEN      CMD:PIN:****:SET_MODO:AUTO
+RESPUESTA  $ACK,CMD:SET_MODO:AUTO,RESULT:OK
+EFECTO     x MODO:AUTO pero ESTADO:ROJO durante 45 s - nada cambio
+```
+
+**es N-42 visible de un vistazo, sin diagnostico y sin reunion.** Va como DIARIO DE
+ORDENES aparte de la cinta cruda -que se corta a 300 tramas y en una sesion ya se tiraron
+379-. Y el PIN sale **tapado** al exportar: hoy el `1234` viaja en claro dentro de cada
+trama que se manda por WhatsApp.
+
 ### 0.1 · Lo unico que hay que hacer, en orden — tras la SESION 2 de banco (04/09)
 
 > 🟢 **EL BLUETOOTH ESTA CERRADO CON EVIDENCIA FISICA.** La sesion 2 confirmo **N-117** y **N-122** en

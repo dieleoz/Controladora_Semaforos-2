@@ -128,6 +128,22 @@ uint32_t reloj_contadorSegundos() { return (uint32_t)(arnes_millis_valor / 1000U
 void reloj_fijarEnero() {}
 void respaldo_marcarSync(uint32_t) {}
 
+// N-133/N-135: los tiempos del ciclo, doblados con memoria de verdad.
+// Un doble que devolviera siempre "no hay nada" dejaria sin ejercer el camino de
+// recuperacion de modo_automatico.cpp, que es justo el .cpp que este arnes ejecuta.
+static uint8_t _bkRojo = 0, _bkVerde = 0, _bkDespeje = 0;
+
+void respaldo_guardarTiemposCiclo(uint8_t rojoMin, uint8_t verdeMin, uint8_t despejeSeg) {
+  if (rojoMin == 0 || verdeMin == 0 || despejeSeg == 0) return;
+  _bkRojo = rojoMin; _bkVerde = verdeMin; _bkDespeje = despejeSeg;
+}
+
+bool respaldo_tiemposCiclo(uint8_t* rojoMin, uint8_t* verdeMin, uint8_t* despejeSeg) {
+  if (_bkRojo == 0 || _bkVerde == 0 || _bkDespeje == 0) return false;
+  *rojoMin = _bkRojo; *verdeMin = _bkVerde; *despejeSeg = _bkDespeje;
+  return true;
+}
+
 // ---------------------------------------------------------------------------
 // LA RADIO: DOS COLAS Y NADA MAS.
 //

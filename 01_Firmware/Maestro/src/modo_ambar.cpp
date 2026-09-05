@@ -13,6 +13,7 @@
 #include "modo_ambar.h"
 #include "semaforo.h"
 #include "coordinador.h"
+#include "protocolo.h"   // N-134: la orden de ambar al Esclavo
 #include "lcd.h"
 #include "menu.h"
 #include "modos.h"
@@ -33,6 +34,28 @@ void modo_ambar_setup() {
   // a su propio ambar por orfandad (SFTY-6). Se usa el mecanismo que ya
   // existe y esta probado en campo en vez de inventar una orden nueva de "pon ambar".
   coordinador_forzarRojoTotal();
+
+  // N-134 (04/09): Y SE LE ORDENA EL AMBAR, en vez de dejar que lo deduzca.
+  //
+  // El rojo de arriba SE QUEDA y es lo primero a proposito: es el intermedio seguro.
+  // Si la orden de ambar se perdiera, el Esclavo queda PARADO -no dando paso- hasta
+  // que la orfandad lo saque, y parado es la direccion segura.
+  //
+  // Antes solo iba el rojo y el ambar del Esclavo llegaba 25 s despues, por orfandad
+  // (SFTY-6). El estado final era el correcto, pero nadie lo habia ordenado: era el
+  // Esclavo rindiendose. En banco se vio como "a veces los dos pasan a ambar, a veces
+  // solo el maestro" -segun cuanto mirase uno- y el operario pulsaba tres veces en
+  // catorce segundos porque no veia cambiar la otra punta.
+  //
+  // LA ORFANDAD SE QUEDA COMO RED, decidido por el responsable el 04/09: si la radio se
+  // cae justo en este instante, el Esclavo sigue yendo a ambar a los 25 s por su cuenta.
+  // Se gana el caso bueno sin perder el malo.
+  //
+  // No se espera ACK: esta punta se calla a continuacion -main.cpp no llama al
+  // coordinador en este modo- y quedarse esperando una respuesta que nadie va a atender
+  // seria bloquear el arranque del modo por una trama de cortesia.
+  protocolo_enviarPaquete(CMD_GO_AMBAR);
+
   semaforo_iniciarFallo();
   lcd_dibujarDegradadoAmbar(ambarL1, ambarL2);
 }

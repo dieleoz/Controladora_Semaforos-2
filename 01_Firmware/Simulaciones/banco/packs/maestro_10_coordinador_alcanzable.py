@@ -417,6 +417,63 @@ def correr(b, fw):
 
     main = _sin_literales(fw.codigo("Maestro", "src", "main.cpp"))
 
+    # --- 10.0 UN ENUM DE UN SOLO VALOR NO ES UN ESTADO: ES UNA CONSTANTE DISFRAZADA ---
+    #
+    # Añadida el 04/09 el mismo dia, y por un defecto que este pack NO cazo. Al cerrar
+    # N-42 se retiraron las tres fases del asistente y quedo:
+    #
+    #     enum FaseAuto { CORRIENDO };
+    #     static FaseAuto fase;
+    #     bool modoAutomatico_enMarcha() { return fase == CORRIENDO; }
+    #
+    # Con un solo enumerador esa comparacion es cierta SIEMPRE. Medido con el compilador
+    # del proyecto -no razonado-: `arm-none-eabi-g++ -Os -S -mcpu=cortex-m3 -mthumb` la
+    # pliega a `movs r0, #1 / bx lr`. La variable ni se reserva.
+    #
+    # LO QUE COSTO: de esa funcion cuelgan las dos guardas de SET_TIEMPOS, asi que el
+    # equipo contestaba EN_MARCHA_PARE_EL_MODO a todo y para siempre; y como
+    # modoAutomatico_fijarTiempos() es el unico llamador de respaldo_guardarTiemposCiclo(),
+    # los tiempos no se podian guardar nunca. Un arreglo cerro la puerta de otro.
+    #
+    # POR QUE ESTE PACK NO LO VIO: censa funciones que devuelven un LITERAL
+    # -`return false;`-, y esta devolvia una comparacion. La forma era distinta; la
+    # consecuencia, la misma. Esto es la hermana de aquella comprobacion.
+    #
+    # ES UN TRINQUETE, NO UN ABSOLUTO: un enum de un valor puede ser legitimo si nadie lo
+    # compara -un marcador de tipo, una lista que va a crecer-. Lo que se prohibe es que
+    # ademas se COMPARE, porque entonces la comparacion no puede ser falsa.
+    _enums_de_uno = []
+    for _f in _ficheros_src(fw) if "_ficheros_src" in dir() else []:
+        pass
+    import os, re as _re
+    _dir = os.path.dirname(fw.ruta("Maestro", "src", "main.cpp"))
+    for _n in sorted(os.listdir(_dir)):
+        if not _n.endswith(".cpp"):
+            continue
+        _t = _sin_literales(fw.codigo("Maestro", "src", _n))
+        for _m in _re.finditer(r"enum\s+(\w+)\s*\{([^}]*)\}", _t):
+            _vals = [x.strip() for x in _m.group(2).split(",") if x.strip()]
+            if len(_vals) != 1:
+                continue
+            # Solo molesta si ademas se COMPARA contra su unico valor.
+            if _re.search(r"==\s*%s|%s\s*==" % (_vals[0], _vals[0]), _t):
+                _enums_de_uno.append("%s: enum %s { %s }" % (_n, _m.group(1), _vals[0]))
+
+    verificar(
+        not _enums_de_uno,
+        "ningun enum de UN SOLO valor se usa en una comparacion: toda guarda que "
+        "pregunta por un estado puede dar las dos respuestas",
+        "hay un enum de un solo valor que ADEMAS se compara: %s. Esa comparacion es "
+        "cierta siempre y el compilador la pliega a una constante -medido: movs r0,#1-. "
+        "Lo que cuelgue de ella deja de ser una guarda sin que nada lo delate"
+        % _enums_de_uno)
+
+    control_negativo(
+        bool(__import__("re").search(r"enum\s+\w+\s*\{([^},]*)\}",
+                                     "enum Fase { CORRIENDO };")),
+        "el detector reconoce la forma de un enum de un solo valor cuando se le pone "
+        "delante: no aprueba por no saber mirar")
+
     # --- 10.1 EL CENSO DE EXCLUSIONES ---------------------------------------------
     # De donde sale la lista: del propio main.cpp. Una lista escrita a mano aqui
     # envejeceria sin avisar el dia que alguien anada o quite un modo, y este pack

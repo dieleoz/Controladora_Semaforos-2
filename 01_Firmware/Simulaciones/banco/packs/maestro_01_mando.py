@@ -226,25 +226,47 @@ def correr(b, fw):
               f"La lista de modos excluidos de coordinador_actualizar_background() cambio: "
               f"{sorted(excluidos_bg)}. El modelo de abajo ya no describe el firmware.")
 
+    # ESTA COMPROBACION SE INVIRTIO EL 04/09, Y ELLA MISMA LO PIDIO (§8.quater).
+    #
+    # Exigia que coordinador_actualizar() viviera UNICAMENTE dentro de `case CORRIENDO`,
+    # y no por descuido: era la premisa del modelo de abajo -"el asistente de
+    # configuracion no bombea el semaforo"-, escrita cuando ese asistente existia. Su
+    # propio mensaje de fallo decia "el fallo 1.7 podria estar corregido y esta prueba
+    # hay que rehacerla". Se cumplio: N-42 retiro el asistente entero.
+    #
+    # Y aquel asistente resulto ser algo peor que "no bombea": era una TRAMPA SIN SALIDA
+    # -su unica puerta era botonAceptar(), que devuelve false desde el 31/08-, de modo
+    # que el Maestro se quedaba MUDO en la radio y el Esclavo se iba a ambar por
+    # orfandad. Lo cazo el banco fisico, no este pack.
+    #
+    # Se INVIERTE en vez de borrarse porque la propiedad que vigilaba sigue haciendo
+    # falta, del reves: main.cpp EXCLUYE a este modo del latido de fondo, asi que la
+    # llamada al coordinador tiene que ser INCONDICIONAL. Si volviera a meterse en una
+    # rama, el Maestro puede volver a callarse.
+    #
+    # La forma profunda de esta propiedad -alcanzabilidad real de la llamada desde cada
+    # estado- vive en maestro_10_coordinador_alcanzable. Aqui se comprueba lo que este
+    # pack necesita para que su modelo no describa un firmware que ya no existe.
     _auto = _codigo("Maestro", "src", "modo_automatico.cpp")
-    _pos_corriendo = _auto.find("case CORRIENDO")
-    _pos_llamada = _auto.find("coordinador_actualizar()")
-    auto_solo_corriendo = (_pos_corriendo != -1 and _pos_llamada != -1 and
-                           _pos_llamada > _pos_corriendo)
-    verificar(auto_solo_corriendo,
-              "modo_automatico.cpp llama a coordinador_actualizar() UNICAMENTE dentro de "
-              "'case CORRIENDO': el asistente de configuracion no bombea el semaforo. "
-              "(Se comprueba para que el modelo no invente el fallo que va a reportar.)",
-              "modo_automatico.cpp ya llama a coordinador_actualizar() fuera de CORRIENDO: "
-              "el fallo 1.7 podria estar corregido y esta prueba hay que rehacerla.")
+    _sin_asistente = ("case CORRIENDO" not in _auto and "CONFIG_ROJO" not in _auto)
+    _llamada_suelta = re.search(r"\n  coordinador_actualizar\(\);", _auto) is not None
+    verificar(_sin_asistente and _llamada_suelta,
+              "modo_automatico.cpp ya no tiene asistente y llama a coordinador_actualizar() "
+              "SIN CONDICION: ningun estado del modo puede dejar al Maestro mudo en la "
+              "radio, que es lo que main.cpp da por supuesto al excluirlo del fondo.",
+              "la llamada a coordinador_actualizar() de modo_automatico.cpp ha vuelto a "
+              "quedar dentro de una rama, o ha reaparecido el asistente. main.cpp excluye "
+              "este modo del latido de fondo, asi que un estado que no llegue a esa llamada "
+              "deja al Maestro VIVO PERO SIN HABLAR: es N-42 otra vez, y el sintoma en "
+              "banco es el Esclavo yendose a ambar solo a los 25 s.")
 
     # Tabla de estados del Maestro. Para cada uno: (bombea semaforo_actualizar,
     # inhibe secuencias, esta ya en estado seguro por si mismo).
     # CORRECCION DEL 01/08/2026, tras arreglarse el fallo 1.7.
     #
-    # Las dos premisas de arriba siguen siendo ciertas -main.cpp excluye esos tres modos
-    # del latido de fondo, y modo_automatico.cpp solo llama al coordinador en CORRIENDO-,
-    # pero YA NO BASTAN para concluir que el asistente no bombea: main.cpp llama ahora a
+    # ACTUALIZADO EL 04/09: la segunda premisa cambio de signo -ya no hay asistente, y la
+    # llamada al coordinador es incondicional (N-42)-. La conclusion de este parrafo no
+    # cambia, y conviene saber por que: main.cpp llama a
     # semaforo_actualizar() de forma INCONDICIONAL al principio del loop(), fuera de
     # cualquier if, de modo que la maquina de luces avanza en todos los modos.
     #

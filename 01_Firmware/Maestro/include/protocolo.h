@@ -151,6 +151,28 @@
 #define CMD_DEMANDA        0x11
 #define CMD_ACK_DEMANDA    0x12
 
+// N-134 (04/09): EL AMBAR SE ORDENA, NO SE DEDUCE.
+//
+// Hasta hoy, poner el cruce en ambar desde el Maestro dejaba al Esclavo en ROJO y era
+// el propio Esclavo quien pasaba a ambar 25 s despues, por ORFANDAD (SFTY-6). El
+// resultado era el correcto, pero por casualidad afortunada: el ambar del Esclavo no lo
+// ordenaba nadie, era el Esclavo rindiendose. Reportado en banco el 04/09 como "a veces
+// los dos pasan a ambar, a veces solo el maestro" -depende de cuanto mire uno-, y el
+// operario pulsaba tres veces en catorce segundos porque no veia cambiar la otra punta.
+//
+// Y una casualidad afortunada no es una garantia: el dia que alguien toque
+// SFTY6_SILENCIO_MS, el ambar del cruce cambia de tiempo sin que nadie lo relacione.
+//
+// LO QUE NO SE TOCA, y es decision del responsable del 04/09: la orfandad SE QUEDA como
+// red. La orden acelera el caso normal; si la radio se cae justo en ese instante, el
+// Esclavo sigue yendo a ambar a los 25 s por su cuenta. Se gana el caso bueno sin
+// perder el malo.
+//
+// EL ROJO PREVIO TAMPOCO SE TOCA: modo_ambar_setup() sigue mandando CMD_GO_RED primero.
+// Es el intermedio seguro -si esta orden se pierde, el Esclavo queda PARADO hasta que
+// la orfandad lo saque, y parado es la direccion segura-.
+#define CMD_GO_AMBAR       0x13
+
 // N-130: EL PARAM DE CMD_ACK_DEMANDA DICE SI LA DEMANDA SE VA A ATENDER O NO.
 //
 // Hasta el 04/09 el Maestro acusaba la demanda SIEMPRE y armaba su bandera SIEMPRE,
