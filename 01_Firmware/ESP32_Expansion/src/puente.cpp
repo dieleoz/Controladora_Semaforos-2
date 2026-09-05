@@ -114,13 +114,36 @@ static void desdeLaApp() {
         continue;
       }
 
-      // VERBATIM. Los mismos bytes que mando la app, sin quitar nada y sin anadir nada.
-      bool propagada = (enlace_escribirLinea(deApp, largoUtil) > 0);
+      // ---------------------------------------------------------------------
+      // LA UNICA LINEA QUE NO CRUZA EL CABLE, Y LA REGLA NO ES UNA LISTA DE COMANDOS
+      //
+      // Todo lo demas sigue VERBATIM: los mismos bytes que mando la app, sin quitar
+      // nada y sin anadir nada. SET_RTC incluido -se atiende aqui Y sigue viaje-,
+      // porque es una orden que el STM32 tambien conoce.
+      //
+      // Lo que este `if` se queda es lo que va dirigido al PUENTE Y A NADIE MAS. El
+      // criterio esta en despachador.h con su medida: reenviar CMD:LEER_RTC hace que
+      // las dos puntas contesten $ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO -medido sobre
+      // su bluetooth.cpp compilado-, o sea un rechazo ROJO en la app acusando al
+      // operario de una clave que no tecleo, cada vez que pregunta la hora. Es el mismo
+      // defecto por el que "$LATIDO" tiene rama muda en el Maestro.
+      //
+      // NO ES "el puente conociendo el protocolo del STM32": es el puente conociendo EL
+      // SUYO. El protocolo del equipo puede crecer todo lo que quiera sin tocar este
+      // fichero; lo que no puede es que una orden este a la vez en las dos listas, y eso
+      // lo recalcula un pack leyendo los dos despachadores del STM32 en cada corrida.
+      //
+      // Y `propagada` nace en false por lo mismo que la barrera del reloj nace abajo: si
+      // no se escribio en el cable, no se propago. La rama que atiende esta linea no lo
+      // mira -no hay cable que cruzar-, pero un true de cortesia aqui seria un dato
+      // falso esperando a que alguien lo lea.
+      bool propagada = false;
+      if (!despachador_esParaElPuente(deApp)) {
+        propagada = (enlace_escribirLinea(deApp, largoUtil) > 0);
+      }
 
-      // El reloj del puente se atiende DESPUES de haber reenviado, y sin poder vetar el
-      // reenvio: una rama que pudiera quedarse una trama seria el puente conociendo
-      // comandos, que es el diseno que obliga a recompilarlo cada vez que el protocolo
-      // crece.
+      // El reloj del puente se atiende DESPUES de haber reenviado -cuando se reenvia-,
+      // porque `propagada` es parte de la respuesta y no se puede saber antes.
       despachador_observar(deApp, propagada);
       continue;
     }

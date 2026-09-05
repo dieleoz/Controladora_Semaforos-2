@@ -34,6 +34,26 @@ PUNTAS = ("Maestro", "Esclavo")
 APP_JS = ("05_Funcional", "App_Semaforo", "app.js")
 APP_HTML = ("05_Funcional", "App_Semaforo", "index.html")
 
+# EL TERCER DESPACHADOR, Y NO ESTABA (A-9, 05/09).
+#
+# Este pack decia "todo comando que la app manda, ALGUNA PUNTA tiene que atenderlo", y
+# leia dos ficheros: los bluetooth.cpp del Maestro y del Esclavo. Era cierto cuando se
+# escribio y dejo de serlo el dia que el ESP32 se puso en medio: desde entonces hay un
+# TERCER aparato que atiende comandos de la app -su propio despachador- y este censo no
+# lo abria.
+#
+# LO QUE ESO OCULTABA, MEDIDO Y NO SUPUESTO: `despachador.cpp` atiende SET_RTC: desde el
+# 31/08 y este pack nunca lo vio. Que SET_RTC saliera igual en verde era CASUALIDAD -el
+# Maestro conserva su rama muda para consumir la orden, y esa rama es lo que el censo
+# encontraba-. El dia que esa rama se retirara, este pack habria acusado a la app de
+# mandar un comando que nadie atiende... con el puente atendiendolo.
+#
+# Y con LEER_RTC ya no hay casualidad: es un comando que SOLO el puente puede contestar
+# -las dos puntas devuelven $ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO, medido sobre su
+# bluetooth.cpp compilado-, asi que sin este tercer lector el pack acusaria a la app de
+# un huerfano que no lo es.
+BT_PUENTE = ("ESP32_Expansion", "src", "despachador.cpp")
+
 # Comandos que el firmware atiende pero que NO tienen por que estar en la app: son
 # de servicio o los dispara otra cosa. Se listan aqui para que la comprobacion de la
 # direccion contraria signifique algo en vez de aprobar siempre.
@@ -50,6 +70,29 @@ def _atiende(fw, punta):
     # Tambien la forma sin PIN, que es deliberada para el rojo de emergencia.
     sin_pin = set(re.findall(r'strcmp\s*\(\s*cmd\s*,\s*"CMD:([^"]+)"', codigo))
     return exactos | prefijos | sin_pin
+
+
+def _atiende_el_puente(fw):
+    """Los comandos que el despachador del ESP32 atiende. Leidos del C++.
+
+    Son de DOS formas y las dos cuentan, porque significan cosas distintas:
+
+      strstr(linea, "SET_RTC:")     el puente lo atiende Y la linea SIGUE VIAJE al
+                                    STM32. Es un comando compartido.
+      strcmp(linea, CMD_LEER_RTC)   la linea se queda aqui: es del puente y de nadie
+                                    mas (despachador_esParaElPuente).
+
+    La segunda forma se lee de la CONSTANTE, no del strcmp, porque el literal vive en
+    un `static const char CMD_X[] = "CMD:X";` y compararlo por nombre de variable
+    dejaria fuera justo el texto que viaja por el cable."""
+    codigo = fw.codigo(*BT_PUENTE)
+    atiende = set()
+    # La forma compartida: prefijo con ':' detras, igual que en el STM32.
+    atiende |= set(re.findall(r'strstr\s*\(\s*\w+\s*,\s*"([A-Z0-9_]+):"', codigo))
+    # La forma exclusiva: la constante con la linea entera, "CMD:" incluido.
+    atiende |= set(re.findall(r'static\s+const\s+char\s+\w+\[\]\s*=\s*"CMD:([A-Z0-9_:]+)"',
+                              codigo))
+    return atiende
 
 
 def _envia(fw):
@@ -108,11 +151,25 @@ def correr(b, fw):
                 "despachador es una cadena de strcmp() y si cambio de forma este pack "
                 "estaria comparando contra un conjunto vacio, que aprueba cualquier "
                 "cosa" % p)
-    todos = atiende["Maestro"] | atiende["Esclavo"]
+    # EL TERCER DESPACHADOR SE LEE APARTE Y SE EXIGE NO VACIO, por la misma razon que
+    # los otros dos: un censo vacio aprueba cualquier cosa. Y aqui el suelo importa mas,
+    # porque este lector es NUEVO -si su regex se queda atras, el pack volveria a acusar
+    # a la app de huerfanos que el puente si atiende, y esta vez con la excusa de que
+    # "antes pasaba".
+    puente = _atiende_el_puente(fw)
+    if not puente:
+        raise fw.Abortado(
+            "no se pudo leer del despachador del ESP32 (%s) ni un solo comando. Atiende "
+            "SET_RTC: desde el 31/08 y LEER_RTC desde el 05/09, asi que un censo vacio "
+            "significa que el fuente cambio de forma -no que el puente no atienda nada-, "
+            "y aprobar con el conjunto vacio seria acusar a la app de huerfanos que si "
+            "tienen quien los conteste" % "/".join(BT_PUENTE))
+
+    todos = atiende["Maestro"] | atiende["Esclavo"] | puente
     b.verificar(
         True,
-        "despachadores leidos del C++: Maestro %s | Esclavo %s"
-        % (sorted(atiende["Maestro"]), sorted(atiende["Esclavo"])),
+        "despachadores leidos del C++: Maestro %s | Esclavo %s | PUENTE %s"
+        % (sorted(atiende["Maestro"]), sorted(atiende["Esclavo"]), sorted(puente)),
         "no deberia llegarse aqui")
 
     envia = _envia(fw)
@@ -126,12 +183,13 @@ def correr(b, fw):
                        for c in envia if c not in todos and c.split(":")[0] not in todos)
     b.verificar(
         not huerfanos,
-        "los %d comandos que manda la app los atiende alguna punta: %s"
+        "los %d comandos que manda la app los atiende alguna punta O EL PUENTE: %s"
         % (len(envia), sorted(envia)),
-        "la app manda %s y NINGUNA punta los conoce. El despachador cae al else y "
-        "contesta $ERR,CMD:DESCONOCIDO: el tecnico ve un error que no significa nada, "
-        "y si el comando se manda al conectar -como GET_STATUS- lo ve SIEMPRE"
-        % huerfanos)
+        "la app manda %s y no los conoce NI una punta NI el puente. El despachador que "
+        "los reciba cae al else y contesta $ERR,CMD:DESCONOCIDO -o peor, al no llevar "
+        "PIN, $ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO, que acusa al operario de una clave "
+        "que no tecleo-: el tecnico ve un error que no significa nada, y si el comando "
+        "se manda al conectar -como GET_STATUS- lo ve SIEMPRE" % huerfanos)
 
     # ---- 2. Y al reves: lo que el firmware ofrece, la app lo puede usar ----
     # Esta direccion es la que caza el trabajo hecho y no expuesto. No cuenta como
@@ -173,6 +231,14 @@ def correr(b, fw):
     b.control_negativo(
         "CMD_INVENTADO" not in todos,
         "un comando inventado no aparece como atendido por ninguna punta")
+    # EL LECTOR NUEVO TIENE QUE SABER ENCONTRAR Y SABER NO ENCONTRAR. Sin las dos
+    # mitades, un regex roto dejaria el censo del puente vacio y el ABORTADO de arriba
+    # seria lo unico que lo dijera... el dia que alguien lo mirara.
+    b.control_negativo(
+        "LEER_RTC" in puente and "SET_RTC" in puente,
+        "el lector del tercer despachador encuentra sus DOS formas: la compartida "
+        "(strstr de SET_RTC:, que ademas sigue viaje al STM32) y la exclusiva (la "
+        "constante CMD:LEER_RTC, que se queda en el puente)")
     b.control_negativo(
         bool(re.findall(r"executeCommand\(\s*'([^']+)'", "executeCommand('X_INVENTADO')")),
         "el lector de comandos de la app encuentra un executeCommand con literal")

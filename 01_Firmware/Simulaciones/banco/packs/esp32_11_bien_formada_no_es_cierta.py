@@ -389,13 +389,36 @@ def correr(b, fw):
         "nunca es la version silenciosa de la prueba muerta: documenta una capacidad de "
         "diagnostico que el firmware no tiene" % ", ".join(sinArmar))
 
-    # ---- HALLAZGO QUE ACOMPANA AL BARRIDO, Y NO CUENTA COMO COMPROBACION -------
+    # ---- EL CENSO DE LLAMADORES DE reloj_motivo(), QUE EL 05/09 DEJO DE SER UN
+    #      HALLAZGO Y PASO A SER UNA COMPROBACION ----------------------------------
     #
-    # No es un verificar porque el arreglo NO vive en este modulo: el llamador que
-    # falta hay que escribirlo en el despachador o en main.cpp, y acusar desde aqui
-    # pondria roja la compuerta por un fichero que este camino no toca. Se anota para
-    # que exista rastro; un hueco sin rastro es peor que un ABORTADO, porque el
-    # ABORTADO al menos grita.
+    # AQUI ESTABA UN reportar(), Y SE ESCRIBE POR QUE YA NO LO ES.
+    #
+    # Decia: "los N motivos se arman y NADIE los lee: reloj_motivo() no tiene llamador
+    # fuera de su propio modulo [...] Es la Caja Negra de Alarmas de N-73 a medio
+    # construir". Era cierto, y no era un verificar por la razon correcta: NINGUN
+    # firmware del momento podia aprobarlo, porque el llamador que faltaba habia que
+    # escribirlo en otro fichero. Una comprobacion que ningun firmware puede aprobar no
+    # es una comprobacion, es una nota (CLAUDE.md 2, el alias de CMD_DELTA).
+    #
+    # A-9 (05/09) escribio ese llamador: `MotivoSinHora m = reloj_motivo();` en la rama
+    # LEER_RTC de despachador.cpp, y de el cuelgan siete $ERR que separan los siete
+    # motivos. O sea que la propiedad pasa a ser alcanzable, y desde ese momento un
+    # reportar() SERIA EL ERROR CONTRARIO: el hallazgo dejaria de emitirse en silencio
+    # -reportar() no cuenta- y nadie se enteraria el dia que alguien retirase el
+    # llamador y devolviese la funcion a la lista de huerfanas.
+    #
+    # 🔴 Y LA PREDICCION QUE ESTE FICHERO HIZO ERA FALSA, lo que vale mas que el arreglo:
+    # decia "el arreglo NO es de este fichero: es un $EVENT en el bucle principal cuando
+    # la barrera cambia de estado". El arreglo que entro es OTRO -una consulta bajo
+    # demanda, CMD:LEER_RTC-, y la diferencia importa: un $EVENT automatico habria
+    # contado que la barrera cambio, y lo que el responsable pidio es poder PREGUNTAR.
+    # Se deja escrito en vez de borrarlo: una prediccion que se cae y desaparece se
+    # vuelve a proponer dentro de un mes.
+    #
+    # LO QUE ESTA COMPROBACION SIGUE SIN CUBRIR, y va escrito al lado: que haya llamador
+    # no significa que el motivo LLEGUE A UN OJO. Que los siete motivos tengan cada uno
+    # su rama y su texto lo mide esp32_12_consulta_de_reloj, que es su sitio.
     llamadores = []
     for carpeta, ext in (("src", ".cpp"), ("include", ".h")):
         for f in fw.fuentes_de("ESP32_Expansion", carpeta, ext):
@@ -404,21 +427,15 @@ def correr(b, fw):
             if _llama(fw.codigo("ESP32_Expansion", carpeta, f), "reloj_motivo"):
                 llamadores.append("%s/%s" % (carpeta, f))
 
-    if not llamadores:
-        b.reportar(
-            "los %d motivos se arman y NADIE los lee: reloj_motivo() no tiene llamador "
-            "fuera de su propio modulo" % len(motivos),
-            ["El censo -grep de la invocacion, no de la mencion- no halla una sola "
-             "llamada a reloj_motivo() en el resto del rol %s." % ROL,
-             "Es la Caja Negra de Alarmas de N-73 a medio construir: la funcion esta "
-             "declarada, definida, documentada en la cabecera y sin quien la use.",
-             "Lo que se pierde es concreto y ya se pago una vez: cuando la relectura "
-             "periodica de R-4 descubre a las tres de la manana que la hora dejo de "
-             "ser fiable, el modulo lo APUNTA en una variable y no lo DICE. El unico "
-             "camino que hoy contesta algo es el $ACK de SET_RTC, que solo corre "
-             "cuando hay un tecnico delante escribiendo la hora.",
-             "El arreglo NO es de este fichero: es un $EVENT en el bucle principal "
-             "cuando la barrera cambia de estado. Va anotado, no contado."])
+    b.verificar(
+        bool(llamadores),
+        "los %d motivos se arman Y ALGUIEN LOS LEE: reloj_motivo() tiene llamador fuera "
+        "de su propio modulo (%s)" % (len(motivos), ", ".join(llamadores)),
+        "reloj_motivo() se arma en %d sitios y NO TIENE UN SOLO LLAMADOR fuera de "
+        "reloj_ds3231. Es la Caja Negra de Alarmas de N-73: declarada, definida, "
+        "documentada en la cabecera y sin quien la use. Lo que se pierde es concreto: "
+        "cuando la relectura periodica de R-4 descubre que la hora dejo de ser fiable, "
+        "el modulo lo APUNTA en una variable y nadie puede preguntarselo" % len(motivos))
 
     # ---- CONTROLES NEGATIVOS ---------------------------------------------------
     #

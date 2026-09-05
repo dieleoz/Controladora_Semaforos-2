@@ -600,6 +600,20 @@
         <p class="card-sub">
           El equipo dice tener: <strong id="equipo-hora">sin datos del equipo</strong>
         </p>
+        <!-- A-9 (05/09): LA CONSULTA VA ENCIMA DEL BOTON QUE PISA LA HORA, Y ESE ORDEN
+             ES EL ARREGLO.
+             Hasta hoy la unica forma de LEER el reloj era MANDARLO: el $ACK de SET_RTC
+             devuelve FECHA:/HORA: releidas del chip, asi que COMPROBAR si el cruce esta
+             en hora obligaba a CAMBIARSELA - y con eso se pierde justo el dato que se
+             buscaba, que es cuanto se habia desviado.
+             Y hay DOS relojes por cruce -un DS3231 con pila por ESP32- sin nada que los
+             sincronice ni los compare (A-9). Esta consulta no los sincroniza: los hace
+             VISIBLES. El desfase entre los dos sale de restar el error de cada uno
+             contra el reloj del celular, asi que la caminata entre postes se cancela.
+             Cero efecto vial: no toca el reloj, no toca una luz y no pide PIN. -->
+        <button class="btn-secondary-bt" id="btn-leer-rtc" style="width: 100%; margin-bottom: 8px;">
+          🔎 Consultar reloj (no cambia nada)
+        </button>
         <button class="btn-save-site" id="btn-sync-rtc">
           ⏱️ Sincronizar (<span id="rtc-sync-digits">--:--:--</span>)
         </button>

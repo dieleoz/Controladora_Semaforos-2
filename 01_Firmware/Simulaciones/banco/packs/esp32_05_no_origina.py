@@ -65,6 +65,50 @@ EMITE_HACIA_LA_APP = {
         "motivo 7: la hora entro aqui y la linea no llego entera al equipo",
     "$ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,":
         "la hora entro, se releyo y va camino del equipo",
+    # ---------------------------------------------------------------------------
+    # A-9 (05/09) - LA CONSULTA DE RELOJ. NUEVE LITERALES, Y EL MOTIVO ES EL MISMO
+    # PARA LOS NUEVE, MEDIDO Y NO REDACTADO.
+    #
+    # Los tres hechos que hay que comprobar de cada uno -y que se comprueban en los
+    # apartados 2 a 5 de este mismo pack, no aqui-:
+    #   1. Salen por puente_emitirPropio(), o sea hacia la APP. Ninguno pasa por
+    #      enlace_escribirLinea(), que es la unica puerta hacia el STM32.
+    #   2. Llevan NODE:PUENTE, asi que el operario no diagnostica el poste equivocado.
+    #   3. NO ORDENAN NADA: LEER_RTC es una consulta de solo lectura. No escribe el
+    #      reloj -no hay una sola llamada a reloj_ajustar() en su rama-, no toca una luz
+    #      y no cambia un modo. Es el unico comando del puente del que se puede decir
+    #      que el equipo queda EXACTAMENTE igual que antes de mandarlo.
+    #
+    # Y hay una cuarta cosa que este pack NO puede ver y que por eso se mide en
+    # esp32_12_consulta_de_reloj: que los ocho $ERR cubran uno a uno los valores del
+    # enum MotivoSinHora. Un motivo sin rama dejaria la consulta SIN CONTESTAR, y una
+    # consulta muda se lee como equipo colgado.
+    # ---------------------------------------------------------------------------
+    "$ACK,NODE:PUENTE,CMD:LEER_RTC,RESULT:OK,":
+        "la consulta: la hora releida del chip en este instante. No escribe nada",
+    "$ERR,NODE:PUENTE,CMD:LEER_RTC,DESC:NUNCA_SE_PUSO_PONGA_LA_HORA":
+        "SIN_HORA_NUNCA_SE_PUSO: modulo virgen. Se arregla con un SET_RTC",
+    "$ERR,NODE:PUENTE,CMD:LEER_RTC,DESC:OSCILADOR_PARADO_CAMBIE_PILA":
+        "SIN_HORA_OSCILADOR_PARADO: OSF==1. Mismo literal que SET_RTC porque es el "
+        "mismo arreglo -la pila-, y dos textos para una averia se leen como dos averias",
+    "$ERR,NODE:PUENTE,CMD:LEER_RTC,DESC:SIN_RELOJ_NO_RESPONDE":
+        "SIN_HORA_BUS_MUDO: el I2C no contesta. Mismo literal que SET_RTC por lo mismo",
+    "$ERR,NODE:PUENTE,CMD:LEER_RTC,DESC:ESCRITURA_A_MEDIAS_REPITA_SET_RTC":
+        "SIN_HORA_ESCRITURA_A_MEDIAS: la duda se pega y solo la levanta un SET_RTC entero",
+    "$ERR,NODE:PUENTE,CMD:LEER_RTC,DESC:MODO_12H_PONGA_LA_HORA":
+        "SIN_HORA_FORMATO_12H: hasta 12 h de error con el oscilador sano. No se le "
+        "reescribe el bit al chip -seria cambiarle la hora a un equipo de la calle-",
+    "$ERR,NODE:PUENTE,CMD:LEER_RTC,DESC:REGISTROS_INCOHERENTES":
+        "SIN_HORA_REGISTROS_INCOHERENTES: es el unico DESC que NO nombra el arreglo, "
+        "porque hay dos posibles -repetir o cambiar el modulo- y el firmware no los "
+        "distingue. Nombrar uno seria elegir la reparacion a cara o cruz",
+    "$ERR,NODE:PUENTE,CMD:LEER_RTC,DESC:BARRERA_INCOHERENTE":
+        "SIN_HORA_NINGUNO con reloj_leer() en false: la barrera se contradice. Es un "
+        "defecto del firmware del puente, no del reloj, y va nombrado distinto para que "
+        "no mande a nadie a cambiar una pila sana",
+    "$ERR,NODE:PUENTE,CMD:LEER_RTC,DESC:MOTIVO_NO_CONTEMPLADO":
+        "un valor nuevo del enum sin rama: se contesta en vez de dejar la consulta muda",
+
     "$EVENT,NODE:PUENTE,EVT:ARRANQUE,CAUSA:%s,ARRANQUES:%lu,PERRO:%s,WDT_MS:%lu":
         "el parte de arranque: por que arranco el puente y cuantas veces lleva "
         "arrancando. Revisado a mano el 01/09 y aprobado por tres cosas: va a la APP "

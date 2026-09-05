@@ -222,6 +222,31 @@ class Contrato:
         # agujeros el mismo dia; el ultimo, un Modo Inteligente configurando 2 minutos
         # de verde por debajo del minimo vial. Este simulador ABORTO en la corrida
         # siguiente: §5, lee el fuente por ruta y la ruta cambio.
+        # A-9 (05/09) - LO QUE EL PUENTE SE QUEDA, LEIDO DEL PREDICADO DEL C++.
+        #
+        # No es una lista escrita aqui, y el motivo es el de siempre: un comando nuevo
+        # tecleado a mano en este fichero se aprobaria a si mismo, y uno olvidado dejaria
+        # el modelo reenviando algo que el puente real se queda -o sea, midiendo un
+        # puente que no existe-. Se leen las constantes que despachador_esParaElPuente()
+        # nombra, con su literal, que es el texto exacto que viaja por el cable.
+        desp = fw.codigo("ESP32_Expansion", "src", "despachador.cpp")
+        _exige(desp, r"bool\s+despachador_esParaElPuente\s*\(",
+               "el predicado que decide que linea NO cruza el cable",
+               "ESP32_Expansion/src/despachador.cpp")
+        _consts = dict(re.findall(
+            r'static\s+const\s+char\s+(\w+)\[\]\s*=\s*"([^"]*)"', desp))
+        _pred = desp[desp.find("bool despachador_esParaElPuente"):]
+        _pred = _pred[:_pred.find("\n}") + 2]
+        self.reclamadas = sorted(
+            lit for nom, lit in _consts.items()
+            if re.search(r"\b%s\b" % re.escape(nom), _pred))
+        if not self.reclamadas:
+            raise fw.Abortado(
+                "despachador_esParaElPuente() existe y no se le pudo leer ni una orden "
+                "reclamada. O compara contra otra cosa o el buscador se quedo ciego, y "
+                "en los dos casos este modelo reenviaria al STM32 una linea que el "
+                "puente real se queda: mediria un puente que no existe")
+
         auto = fw.codigo("Maestro", "include", "limites_ciclo.h")
         self.rangos = {}
         for nombre in ("VERDE_MIN", "ROJO_MIN", "DESPEJE_SEG"):
@@ -603,8 +628,14 @@ class RelojDelPuente:
 
 
 class Puente:
-    def __init__(self, util_max, reloj=None):
+    def __init__(self, util_max, reloj=None, reclamadas=()):
         self.util_max = util_max
+        # A-9: las lineas que este puente se queda. Vacia por defecto para que los doce
+        # escenarios que ya existian sigan midiendo LO MISMO que median -mismo motivo
+        # que el reloj: si el defecto fuera "veta algo", este cambio habria movido en
+        # silencio lo que llega al STM32 en escenarios que no van de eso-.
+        self.reclamadas = tuple(reclamadas)
+        self.reclamadasVistas = 0
         self.buf_app = ""
         self.buf_stm = ""
         self.hacia_stm32 = []   # una entrada por ESCRITURA, no por trama
@@ -652,6 +683,21 @@ class Puente:
             self.rechazos_largo += 1
             self._responder("$ERR,CMD:LONGITUD,DESC:EXCEDE_%d_%s"
                             % (self.util_max, MARCA_PROPIA))
+            return
+        # A-9 - LA LINEA QUE VA DIRIGIDA AL PUENTE NO CRUZA EL CABLE.
+        #
+        # Modela despachador_esParaElPuente() + la guarda de desdeLaApp(), y va DESPUES
+        # de las dos comprobaciones de arriba a proposito: una linea reclamada que venga
+        # con el checksum roto o demasiado larga sigue siendo ruido, y el puente contesta
+        # por el motivo que corresponde en vez de atenderla.
+        #
+        # POR QUE SE MIDE ESTO Y NO SE DA POR BUENO: reenviarla hace que las dos puntas
+        # REALES contesten $ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO -y el escenario A9 se
+        # lo pregunta a los dos .exe, no a este comentario-, o sea un rechazo rojo en la
+        # app acusando al operario de una clave que no tecleo cada vez que consulta la
+        # hora.
+        if util in self.reclamadas:
+            self.reclamadasVistas += 1
             return
         self._entregar(util)
 
@@ -2390,6 +2436,171 @@ def escenario_n145(t, c, maestro, app, util_max):
          "de otro agente."])
 
 
+def escenario_a9(t, c, maestro, esclavo, app, util_max):
+    t.titulo("A9 - la consulta de reloj: quien la contesta, y quien NO la ve pasar")
+
+    # =============================================================================
+    # POR QUE ESTE ESCENARIO ES EL QUE VALE, Y NO OTRO PACK.
+    #
+    # El veto del puente se apoya en una afirmacion sobre las dos puntas del STM32:
+    # "reenviar CMD:LEER_RTC hace que contesten $ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO".
+    # Esa frase esta escrita en despachador.h con la palabra MEDIDO encima, y CLAUDE.md
+    # 4 dice exactamente que hacer con eso: un informe -propio o de un agente- NO es una
+    # medida. Aqui se reproduce contra el bluetooth.cpp COMPILADO de las dos puntas, en
+    # cada corrida, y si algun dia deja de ser verdad el escenario lo dice en vez de
+    # heredar la frase.
+    #
+    # Es la unica pieza del banco donde la app REAL, el puente y el STM32 REAL se
+    # encuentran. Un pack de Python leyendo .cpp puede comprobar que la guarda esta
+    # escrita; solo esto puede comprobar que, con la guarda puesta, POR EL CABLE NO PASA
+    # NADA y el operario recibe una respuesta.
+    # =============================================================================
+
+    if not c.reclamadas:
+        raise fw.Abortado(
+            "el contrato no trae ni una orden reclamada por el puente. Sin ella este "
+            "escenario mediria el veto sobre el conjunto vacio, que aprueba siempre")
+
+    # -----------------------------------------------------------------------------
+    # (a) LA MEDIDA QUE SOSTIENE EL DISENO, REPRODUCIDA. No se cita: se corre.
+    # -----------------------------------------------------------------------------
+    for orden in c.reclamadas:
+        for nombre, punta in (("MAESTRO", maestro), ("ESCLAVO", esclavo)):
+            salidas = punta.rx(orden + "\r\n")
+            rechazos = [s.strip() for s in salidas
+                        if s.startswith("$ERR") and "AUTH_FAILED" in s]
+            t.verificar(
+                bool(rechazos),
+                "el %s REAL, si le llega %r, contesta %s: por eso el puente NO se la "
+                "reenvia" % (nombre, orden, rechazos[0] if rechazos else "?"),
+                "el %s REAL ya NO contesta $ERR,...,AUTH_FAILED a %r: contesto %r. La "
+                "razon escrita del veto ha caducado y hay que volver a decidirlo. Si esa "
+                "punta ha aprendido la orden, ahora hay DOS aparatos contestando una "
+                "sola -el defecto que D-15 cerro- y ademas esa rama no se ejecuta nunca, "
+                "porque el puente se queda la linea"
+                % (nombre, orden, [s.strip() for s in salidas] or "silencio"))
+
+    # -----------------------------------------------------------------------------
+    # (b) CON EL VETO PUESTO, POR EL CABLE NO PASA NADA. Es la propiedad entera.
+    # -----------------------------------------------------------------------------
+    puente = Puente(util_max, RelojDelPuente(None), c.reclamadas)
+    for orden in c.reclamadas:
+        puente.desde_app(orden + "\r\n")
+    t.verificar(
+        puente.hacia_stm32 == []
+        and puente.reclamadasVistas == len(c.reclamadas),
+        "las %d orden(es) reclamadas entran al puente y NO SALE NI UNA ESCRITURA hacia "
+        "el STM32 (%d reconocidas, 0 en el cable)"
+        % (len(c.reclamadas), puente.reclamadasVistas),
+        "el puente reenvio %r al STM32. Con eso, cada consulta de reloj le devuelve al "
+        "operario un rechazo rojo por una clave que no tecleo -medido en (a)-, que es el "
+        "mismo defecto por el que $LATIDO tiene rama muda en el Maestro"
+        % puente.hacia_stm32)
+
+    # Y LO QUE NO SE RECLAMA SIGUE PASANDO. Sin esta mitad, un veto que se quedara CON
+    # TODO daria verde en la linea de arriba igual de bien que el veto correcto: es la
+    # tapia de CLAUDE.md 8.sexies -"sin el caso que exige que si pase lo que debe pasar,
+    # no se esta midiendo enrutado, se esta midiendo una tapia"-.
+    normal = c.prefijo_pin["Maestro"] + "SET_MODO:AUTO"
+    puente2 = Puente(util_max, RelojDelPuente(None), c.reclamadas)
+    puente2.desde_app(normal + "\r\n")
+    t.verificar(
+        puente2.hacia_stm32 == [normal + "\n"] and puente2.reclamadasVistas == 0,
+        "y una orden que NO es del puente sigue cruzando entera y verbatim (%r)" % normal,
+        "una orden normal dejo de llegar al STM32: el puente entrego %r. El veto se esta "
+        "quedando lineas que no son suyas, y esas desaparecen sin que nadie las conteste"
+        % puente2.hacia_stm32)
+
+    # -----------------------------------------------------------------------------
+    # (c) Y EL OPERARIO RECIBE UNA RESPUESTA: la app REAL anota los relojes.
+    #
+    # Se le entrega a la app el $ACK que el puente emite, con el $STATUS delante para que
+    # sepa a que poste esta conectada -el acuse viene marcado NODE:PUENTE, que identifica
+    # al MODULO y no al POSTE-. Lo que se mide es el efecto en el registro que el tecnico
+    # lee, no una cadena de este fichero.
+    # -----------------------------------------------------------------------------
+    salidas = maestro.avanzar(c.periodo_ms["Maestro"] + 1)
+    status = next((s for s in salidas if s.startswith("$STATUS")), None)
+    if status is None:
+        raise fw.Abortado(
+            "el Maestro REAL no emitio $STATUS: sin el, la app no sabe a que poste esta "
+            "conectada y este escenario mediria la rama de 'no se anota', no la buena")
+    app.entregar(status)
+    antes, _ = app.entregar(status)
+
+    ack = envolver(c, "Maestro",
+                   "$ACK,NODE:PUENTE,CMD:LEER_RTC,RESULT:OK,"
+                   "FECHA:2026-09-05,HORA:22:19:58")
+    dom, _ = app.entregar(ack)
+
+    t.verificar(
+        dom.get("eventos", -1) > antes.get("eventos", 0)
+        and "CONSULTA DE RELOJ" in dom.get("ultimo", ""),
+        "la app REAL recibe el acuse del puente y lo deja ARRIBA DEL TODO en su "
+        "registro: %r" % dom.get("ultimo", "")[:80],
+        "la app REAL no dejo la consulta en lo alto de su registro: el ultimo evento es "
+        "%r. Un dato que sale del chip, cruza el Bluetooth y no llega a la pantalla es "
+        "la prueba muerta con forma de telemetria -verde, emitiendo, y sin que nadie lo "
+        "vea-" % dom.get("ultimo", ""))
+
+    # LOS TRES RELOJES Y LO QUE FALTA, EN LA MISMA LINEA. No basta con que la app diga
+    # algo: lo que el responsable pidio es VER los tres. Y con un solo poste visitado, la
+    # unica respuesta honesta es nombrar al que falta -"no consta en esta sesion"- en vez
+    # de publicar un desfase que no se ha medido.
+    linea = dom.get("ultimo", "")
+    t.verificar(
+        "celular" in linea and "NO CONSTA EN ESTA SESION" in linea,
+        "con UN solo poste visitado la app ensena su reloj y el del celular, y dice cual "
+        "falta en vez de inventar un desfase",
+        "con un solo poste la app no nombra al que falta ni al celular: %r. Un desfase "
+        "necesita los DOS relojes contra la referencia comun; publicar algo con uno solo "
+        "seria una cuenta hecha sobre un dato que no se tiene" % linea)
+
+    # -----------------------------------------------------------------------------
+    # (d) LA CAMINATA: el otro poste, y el numero que nadie calculaba.
+    #
+    # Se reproduce lo que hace el tecnico: consultar aqui, andar hasta el otro poste,
+    # conectarse y volver a consultar. La app REAL guarda la primera lectura y, con la
+    # segunda, publica el DESFASE entre los dos DS3231 del cruce -que es lo que A-9 dice
+    # que nadie mide: los dos ESP32 no se hablan y nada los sincroniza-.
+    #
+    # 🔴 LA PROPIEDAD QUE SE EJERCE AQUI, Y ES LA QUE VALE: LA CAMINATA SE CANCELA. Entre
+    # las dos lecturas pasa tiempo real -este escenario avanza el arnes del Esclavo un
+    # periodo entero de telemetria entre medias-, y el desfase que sale NO lo incluye,
+    # porque cada poste se mide contra el reloj del telefono y luego se restan. Se le dan
+    # a proposito DOS relojes de equipo IGUALES: si la resta arrastrara la caminata, el
+    # desfase saldria distinto de cero y esto caeria.
+    # -----------------------------------------------------------------------------
+    salidasE = esclavo.avanzar(c.periodo_ms["Esclavo"] + 1)
+    statusE = next((s for s in salidasE if s.startswith("$STATUS")), None)
+    if statusE is None:
+        raise fw.Abortado(
+            "el Esclavo REAL no emitio $STATUS: sin el, la app no puede atribuir la "
+            "segunda lectura al otro poste y este escenario mediria dos veces el mismo")
+    app.entregar(statusE)
+    dom2, _ = app.entregar(ack)
+    linea2 = dom2.get("ultimo", "")
+
+    t.verificar(
+        "DESFASE MEDIDO" in linea2 and "NO CONSTA EN ESTA SESION" not in linea2,
+        "vistos LOS DOS postes, la app publica el desfase entre sus relojes: %r"
+        % linea2[-140:],
+        "con los dos postes vistos la app sigue sin publicar un desfase: %r. Es el unico "
+        "numero que dice si el cruce esta en hora, y hasta A-9 no lo calculaba nadie: los "
+        "dos DS3231 corren libres desde que un tecnico se la puso, en ese poste, en esa "
+        "visita" % linea2)
+
+    t.verificar(
+        "DESFASE MEDIDO entre los dos relojes del cruce: 0 s" in linea2,
+        "y con las dos puntas dando LA MISMA hora el desfase sale 0 s pese al tiempo "
+        "transcurrido entre las dos lecturas: la caminata se cancela porque cada poste "
+        "se mide contra el reloj del telefono y luego se restan",
+        "con las dos puntas dando la misma hora el desfase NO salio 0 s: %r. Entonces la "
+        "resta esta arrastrando el tiempo que pasa entre las dos visitas, y el numero "
+        "que el operario lee no es el desfase de los relojes: es cuanto tardo en andar"
+        % linea2[-140:])
+
+
 def main():
     print("=" * 78)
     print(" SIMULADOR DEL PUENTE ESP32 - app REAL <-> modelo del ESP32 <-> STM32 REAL")
@@ -2436,6 +2647,7 @@ def main():
         escenario_f6(t, c, maestro, util_max)
         escenario_f7(t, c, maestro, app, util_max)
         escenario_asterisco(t, c, maestro, app, util_max)
+        escenario_a9(t, c, maestro, esclavo, app, util_max)
         # N-145 va EL ULTIMO porque toca el estado del arnes del Maestro -le quita el
         # cristal para reproducir el defecto- y lo devuelve al terminar. Ir el ultimo
         # hace que un fallo a mitad no le cambie la medida a ningun otro escenario.

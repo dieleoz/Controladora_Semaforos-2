@@ -200,8 +200,21 @@ function estadoTablero() {
     rf: texto('rf-quality'),
     nodo: texto('node-name'),
     eventos: log ? log.children.length : -1,
+    // EL TOPE SUBE DE 120 A 400 EL 05/09 (A-9), Y SE ESCRIBE POR QUE.
+    //
+    // 120 caracteres bastaban mientras lo unico que se miraba de un evento era su
+    // cabecera -"Rechazo de Firmware...", "ORIGEN:ESP32"-. La linea de los tres relojes
+    // NO cabe ahi: se cortaba justo antes del celular y del desfase, o sea antes de lo
+    // que hay que medir, y el escenario habria acusado a la app de no publicar algo que
+    // publicaba. Es CLAUDE.md 4 con el instrumento como sospechoso: el borde contra el
+    // que se compara era del arnes, no de la app.
+    //
+    // Subirlo es seguro y se comprobo antes de tocarlo: los cuatro consumidores de este
+    // campo hacen comprobaciones de SUBCADENA (`in`), no de igualdad, asi que un texto
+    // mas largo contiene lo mismo que contenia. Se deja tope -no se quita- porque este
+    // canal es una linea de stdout por trama y un evento sin cota la partiria.
     ultimo: log && log.children.length ? (log.children[0].textContent || '')
-      .replace(/\s+/g, ' ').trim().slice(0, 120) : ''
+      .replace(/\s+/g, ' ').trim().slice(0, 400) : ''
   };
 }
 

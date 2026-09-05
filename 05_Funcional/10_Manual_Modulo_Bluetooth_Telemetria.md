@@ -776,6 +776,42 @@ El checksum se calcula aplicando la operación **XOR bit a bit** de todos los by
 > `RESULT:OK` (la puso en su DS3231) y el STM32 `DESC:NO_QUEDO_PUESTA` (en el suyo no).
 > **Las dos eran ciertas**, y juntas una contradicción sobre la misma orden.
 
+> ### 🔍 `LEER_RTC` — consultar el reloj SIN cambiarlo (A-9, 05/09)
+>
+> **Hasta hoy la única forma de LEER el reloj era MANDARLO:** el `$ACK` de `SET_RTC` devuelve
+> `FECHA:`/`HORA:` releídas del chip. O sea que **comprobar** si el cruce estaba en hora
+> obligaba a **cambiársela**, y con eso se perdía justo el dato que se buscaba: **cuánto se
+> había desviado**.
+>
+> La app manda `CMD:LEER_RTC`, **sin PIN** —no abre paso, no para nada y no cambia nada—, y
+> **esa línea NO cruza a la controladora**: el puente se la queda porque es suya. *(Medido
+> sobre el `bluetooth.cpp` compilado de las dos puntas: reenviada, las dos contestan
+> `$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO` — un rechazo en rojo acusando al operario de una
+> clave que no tecleó, cada vez que pregunta la hora.)*
+>
+> Respuesta buena, con la hora **releída del chip en ese instante**:
+> `$ACK,NODE:PUENTE,CMD:LEER_RTC,RESULT:OK,FECHA:2026-09-05,HORA:22:19:58*XX`
+>
+> **Y lo que contesta cuando NO sabe, que es lo que de verdad importa:** un DS3231 sin pila
+> entrega una fecha **perfectamente formada y falsa**, así que **aquí no se rellena nada** —
+> sale `$ERR` con **un motivo por avería**:
+>
+> | `DESC:` | qué pasa | qué se hace |
+> |---|---|---|
+> | `NUNCA_SE_PUSO_PONGA_LA_HORA` | módulo virgen | sincronizar |
+> | `OSCILADOR_PARADO_CAMBIE_PILA` | el `OSF` dice que el oscilador se paró | **cambiar la pila** y volver a poner la hora |
+> | `SIN_RELOJ_NO_RESPONDE` | el bus I²C no contesta | destornillador: módulo, cableado, SDA/SCL |
+> | `ESCRITURA_A_MEDIAS_REPITA_SET_RTC` | una puesta en hora se cortó a mitad | repetir y comprobar el acuse |
+> | `MODO_12H_PONGA_LA_HORA` | registro en 12 h: hasta **12 h de error** con el módulo sano | sincronizar |
+> | `REGISTROS_INCOHERENTES` | lo que hay dentro no compone fecha | **dos causas posibles**: sincronice; si vuelve, cambie el módulo |
+> | `BARRERA_INCOHERENTE` | el puente se contradice a sí mismo | **no es del reloj**: repórtelo |
+> | `MOTIVO_NO_CONTEMPLADO` | firmware más nuevo que la app | no dé la hora por buena |
+>
+> ⚠️ **Un cruce tiene DOS relojes y nada los sincroniza.** Por eso la app **compara**: guarda
+> el error de cada poste contra el reloj del celular y los resta, así que **la caminata entre
+> postes se cancela**. Con un solo poste no publica desfase: **dice cuál falta**. La lista
+> vive en memoria y **no sobrevive a que Android cierre la app**.
+
 ### 4.2 Telemetría Periódica ($STATUS) — Emitida cada 2 segundos *(cadencia bajada a **2000 ms** el 04/09, decision del responsable, en las DOS puntas — MEDIDO: `Maestro/src/bluetooth.cpp:851`, `Esclavo/src/bluetooth.cpp:768`. Un tecnico que cronometre con «1 segundo» declara caido un enlace sano.)*
 $$\text{Formato: }\$STATUS,NODE:\langle N\rangle,SERIE:\langle S\rangle,MODO:\langle M\rangle,ESTADO:\langle E\rangle,T:\langle S\rangle,RF:\langle R\rangle\%,RTT:\langle T\rangle ms,BAT:\langle V\rangle,HORA:\langle H\rangle,ESC:\langle C\rangle,PLUMA:\langle P\rangle*\langle CRC\rangle\backslash r\backslash n$$
 

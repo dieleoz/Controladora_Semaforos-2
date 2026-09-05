@@ -136,26 +136,69 @@ def correr(b, fw):
     #
     # La forma prohibida es exactamente la de N-80: llamar, y contestar $ACK sin que
     # entre medias haya un `if` que interrogue lo que devolvio.
+    #
+    # 🔴 ESTA COMPROBACION SE REESCRIBE EL 05/09 (A-9), Y EL PORQUE ES LA REGLA.
+    #
+    # La version anterior media POR POSICION EN EL FICHERO: tomaba el PRIMER
+    # reloj_ajustar() y exigia que todo `"$ACK` estuviera detras y con un `r ==` entre
+    # medias. Eso valia mientras el despachador tuviera UN SOLO COMANDO. Con dos, se
+    # rompe en las dos direcciones y ninguna es aceptable:
+    #
+    #   el $ACK nuevo ARRIBA   -> "un $ACK antes de llamar siquiera". Es un FALSO
+    #                             POSITIVO: el $ACK de LEER_RTC no puede depender de
+    #                             reloj_ajustar() porque esa consulta NO ESCRIBE.
+    #   el $ACK nuevo ABAJO    -> pasa VACUAMENTE. El tramo `entre` arrastraria los
+    #                             `r == RELOJ_ERR_*` de SET_RTC y esta comprobacion
+    #                             aprobaria el $ACK de LEER_RTC sin haber mirado nada.
+    #
+    # Y la segunda es la peligrosa, porque sale en VERDE: bastaba mover diez lineas de
+    # sitio para que el pack dejara de medir. Es N-89 exacto -"al tocar la FORMA de un
+    # bloque que un pack lee por texto, hay que comprobar que el pack sigue sabiendo
+    # fallar"-, solo que aqui la forma que importa es el ORDEN.
+    #
+    # LA REGLA NUEVA NO DEPENDE DEL ORDEN NI DEL NUMERO DE COMANDOS: para cada `"$ACK`,
+    # se busca la llamada al reloj MAS CERCANA POR DELANTE -sea reloj_ajustar() o
+    # reloj_leer()- y se exige que SU resultado se haya interrogado. Es la propiedad de
+    # N-80 dicha por acuse y no por fichero: un $ACK promete algo, y lo que promete tiene
+    # que salir de haber preguntado al chip, no de haberlo llamado.
     if not llamadas:
         raise fw.Abortado(
             "sin llamada a reloj_ajustar() no hay nada entre lo que medir: este pack "
-            "compara la POSICION del $ACK contra la de la llamada y la de su test")
-    posLlamada = llamadas[0].start()
+            "compara cada $ACK contra la llamada al reloj que lo precede")
+
+    # Las dos funciones que un $ACK de este despachador puede estar acusando. Se leen
+    # como pareja porque son las dos unicas que hablan con el chip: una escribe y otra
+    # lee, y las dos pueden decir que no.
+    llamadasReloj = sorted(
+        [(m.start(), "reloj_ajustar") for m in re.finditer(r"\breloj_ajustar\s*\(", desp)] +
+        [(m.start(), "reloj_leer") for m in re.finditer(r"\breloj_leer\s*\(", desp)])
 
     mudos = []
     for m in re.finditer(r'"\$ACK', desp):
-        if m.start() < posLlamada:
-            mudos.append("un $ACK antes de llamar siquiera")
+        previas = [(pos, cual) for pos, cual in llamadasReloj if pos < m.start()]
+        if not previas:
+            mudos.append("un $ACK sin NINGUNA llamada al reloj por delante: %s"
+                         % desp[m.start():m.start() + 46])
             continue
-        entre = desp[posLlamada:m.start()]
-        if not re.search(r"\br\s*[=!]=", entre):
-            mudos.append(desp[m.start():m.start() + 46])
+        pos, cual = previas[-1]
+        if cual == "reloj_ajustar":
+            # El retorno se guarda en `r` y se interroga con `r ==` / `r !=`. Es la
+            # forma que el fichero usa, y se mide entre la llamada y el $ACK.
+            interrogada = bool(re.search(r"\br\s*[=!]=", desp[pos:m.start()]))
+        else:
+            # reloj_leer() devuelve el bool en la propia condicion: `if (reloj_leer(&x))`
+            # o `if (!reloj_leer(&x))`. _consumido() mira justo eso en el punto de la
+            # llamada, y es el mismo bloque probado que usa app_03.
+            interrogada = _consumido(desp, pos)
+        if not interrogada:
+            mudos.append("%s sin interrogar antes de %s"
+                         % (cual, desp[m.start():m.start() + 46]))
 
     b.verificar(
         not mudos,
-        "los %d $ACK del despachador viven detras de un test del resultado: la "
-        "confirmacion depende de lo que la escritura contesto"
-        % len(re.findall(r'"\$ACK', desp)),
+        "los %d $ACK del despachador viven detras de una llamada al reloj INTERROGADA "
+        "(la mas cercana por delante, sea reloj_ajustar o reloj_leer): la confirmacion "
+        "depende de lo que el chip contesto" % len(re.findall(r'"\$ACK', desp)),
         "HAY $ACK MUDOS: %s. El tecnico recibe una confirmacion de algo que puede no "
         "haber ocurrido -bus mudo, pila agotada, escritura a medias-, se va del poste, "
         "y el reloj se queda como estaba sin que nada lo diga" % " | ".join(mudos))
@@ -219,3 +262,34 @@ def correr(b, fw):
             for m in re.finditer(r'"\$ACK', sinTest)),
         "guardar el resultado y NO interrogarlo tampoco cuela: consumir el valor no es "
         "lo mismo que mirarlo")
+
+    # 🔴 EL CONTROL QUE JUSTIFICA LA REESCRITURA DE 2026-09-05, Y SIN EL ESTO SERIA
+    # PALABRERIA: un SEGUNDO comando, colocado DETRAS de un SET_RTC impecable, con su
+    # propia lectura SIN interrogar. La version anterior de este pack lo aprobaba -el
+    # tramo entre el primer reloj_ajustar() y ese $ACK contiene los `r ==` del comando
+    # de arriba-, o sea que un defecto real entraba en VERDE por estar bien colocado.
+    dosComandos = (
+        '{ ResultadoReloj r = reloj_ajustar(&f); '
+        '  if (r != RELOJ_OK) { emitir("$ERR,DESC:X"); } '
+        '  else { FechaHora a; if (!reloj_leer(&a)) { emitir("$ERR,DESC:Y"); } '
+        '         else { emitir("$ACK,CMD:SET_RTC,RESULT:OK"); } } '
+        '  FechaHora b; reloj_leer(&b); '
+        '  emitir("$ACK,CMD:LEER_RTC,RESULT:OK"); }')
+    _reloj = sorted(
+        [(mm.start(), "reloj_ajustar")
+         for mm in re.finditer(r"\breloj_ajustar\s*\(", dosComandos)] +
+        [(mm.start(), "reloj_leer")
+         for mm in re.finditer(r"\breloj_leer\s*\(", dosComandos)])
+    def _mudo(texto, llamadas_, mm):
+        previas = [(p, c) for p, c in llamadas_ if p < mm.start()]
+        if not previas:
+            return True
+        p, c = previas[-1]
+        return (not re.search(r"\br\s*[=!]=", texto[p:mm.start()])) if c == "reloj_ajustar" \
+               else (not _consumido(texto, p))
+    acks = list(re.finditer(r'"\$ACK', dosComandos))
+    b.control_negativo(
+        (not _mudo(dosComandos, _reloj, acks[0])) and _mudo(dosComandos, _reloj, acks[1]),
+        "con DOS comandos, el detector aprueba el $ACK que interrogo su lectura y acusa "
+        "al que no, aunque este COLOCADO DETRAS de un comando impecable: la regla mira "
+        "la llamada mas cercana, no la posicion en el fichero")

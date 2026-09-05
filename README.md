@@ -94,13 +94,13 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 
 | Comprobación | Estado | |
 |---|---|---|
-| guarda de rutas de los instrumentos | ✅ | 62 rutas parseadas, todas existen |
-| banco por packs *(74 packs)* | ✅ | **1058/1058** — **74 packs en `PASS`, 0 en `FALLA`**. El NUMERADOR lo publica esta tabla y `documentos_01` NO lo vigila a proposito -se estaria midiendo a si mismo-, asi que se copia del acta tal como viene, con su rojo si lo trae. |
+| guarda de rutas de los instrumentos | ✅ | 63 rutas parseadas, todas existen |
+| banco por packs *(75 packs)* | ✅ | **1077/1077** — **75 packs en `PASS`, 0 en `FALLA`**. El NUMERADOR lo publica esta tabla y `documentos_01` NO lo vigila a proposito -se estaria midiendo a si mismo-, asi que se copia del acta tal como viene, con su rojo si lo trae. |
 | compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **85.8 %** · 61.9 % · 20.6 % · 35.7 % — *el Maestro ocupa **56256 de 65536 B**, o sea **9.228 B libres**; el Esclavo, **40572 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.7 % — 1.122.137 de 3.145.728 B |
-| simulador del puente ESP32 | ✅ | **93/93** — las tres puntas: `bluetooth.cpp` compilado, la app en jsdom, y solo el ESP32 modelado |
+| simulador del puente ESP32 | ✅ | **101/101** — las tres puntas: `bluetooth.cpp` compilado, la app en jsdom, y solo el ESP32 modelado |
 | simulador de app y bluetooth | ⛔ | **`ABORTADO`** — *«el firmware emite el campo `ESC` en `$STATUS` y este instrumento no sabe con qué compararlo»*. Lo estrenó **N-149** el 05/09. **Un `ABORTADO` no dice nada del firmware, y mientras dure, todo lo que este instrumento vigilaba entra sin mirar** (`CLAUDE.md` §3.quater) |
 | **app ejecutada en DOM** | ✅ | **226/226** — y lo que mide creció: la app **valida el checksum** desde el 01/09 (`validarTrama()` tenía 4 copias y **cero llamadores**), tiene una **pestaña de depuración** con las tramas en crudo y las rechazadas **con su motivo**, y su barrera de PIN ya no se puede armar con el teclado cerrado. — — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden** *(desde N-75: el rewrite sacó el gestor de cruces, el parser NMEA y el Courier a módulos, y el arnés seguía evaluando sólo `app.js`)*, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
 | test funcional de la app | ✅ | **58/58** — también conectado el 27/08. Decía «22/22» a mano y ejecuta 34; su prueba de Courier RTC era una tautología |

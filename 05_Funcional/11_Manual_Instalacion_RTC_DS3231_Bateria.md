@@ -490,3 +490,21 @@ interno `J17`. El reloj está bien; lo que falla es el enlace de dentro.
 
 ⚠️ **Si la app se cierra entre poste y poste, el registro se pierde** y hay que rehacer los
 dos. La app lo dirá —*«no consta en esta sesión»*— en vez de dar por bueno lo que no vio.
+
+
+### 🔎 Y desde el 05/09 se puede CONSULTAR sin cambiar nada
+
+1. Conéctese con la app y pulse **🔎 Consultar reloj (no cambia nada)**. Manda `CMD:LEER_RTC`,
+   **sin PIN y sin escribir**: es la lectura que antes no existía — **hasta hoy había que
+   CAMBIAR la hora para poder verla**.
+   - `RESULT:OK` con `FECHA:`/`HORA:` → ésa es la hora que el DS3231 **tiene ahora mismo**.
+   - `$ERR ... DESC:` → **no hay hora que enseñar**, y el motivo dice cuál de las ocho averías
+     es. Tabla completa en el Manual 10, §4.1.
+   - **`NODE:PUENTE` significa que contesta el ESP32, no el micro del semáforo.** El `Y2` del
+     STM32 sigue muerto (N-17) y **ya no atiende `SET_RTC`** (D-15): una orden, un acuse.
+2. **Repita la consulta en el OTRO poste.** Cada punta lleva **su propio DS3231 con pila** y
+   nada los sincroniza, así que **un poste en hora no es un cruce en hora**. Con las dos
+   lecturas en la misma sesión, la app publica en el registro **el desfase entre los dos
+   relojes** — restando el error de cada uno contra el celular, de modo que el tiempo de la
+   caminata no cuenta. **Ése es el único número que dice si el cruce está en hora, y hasta hoy
+   no lo calculaba nadie.**

@@ -274,6 +274,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const courierSnapshotText = document.getElementById('courier-snapshot-text');
   const courierTimerDigits = document.getElementById('courier-timer-digits');
   const btnSyncRtc = document.getElementById('btn-sync-rtc');
+  // A-9: la consulta de SOLO LECTURA. Ver su manejador, mas abajo.
+  const btnLeerRtc = document.getElementById('btn-leer-rtc');
   const rtcSyncDigits = document.getElementById('rtc-sync-digits');
   // N-150: el primer LECTOR que ha tenido nunca state.hora. Ver pintarHoraEquipo().
   const equipoHoraEl = document.getElementById('equipo-hora');
@@ -335,7 +337,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Y la exencion vale para LAS DOS ordenes de emergencia, no solo para la que dice
   // "rojo": la caida segura del Esclavo es su ambar, y una caida segura que pide clave
   // no es una caida segura. El criterio no cambia con el nombre del literal.
-  const SIN_PIN = ['FORZAR_ROJO', 'AMBAR_EMERGENCIA', 'SET_MODO:MENU', 'SET_MODO:ALCANCE'];
+  // LEER_RTC entra aqui por el criterio que el firmware ya tiene escrito, no por
+  // comodidad: "el PIN guarda lo que ABRE paso o mueve luces; no lo que las para"
+  // (Maestro/src/bluetooth.cpp, la rama de FORZAR_ROJO). Una consulta de reloj no abre,
+  // no para y no cambia nada -contesta el puente releyendo su chip, y ni siquiera llega
+  // al micro del semaforo-. Y hay una razon de campo encima: si el reloj esta mal, hay
+  // que poder MIRARLO antes de decidir si se toca, no despues de teclear la llave que
+  // lo cambia.
+  const SIN_PIN = ['FORZAR_ROJO', 'AMBAR_EMERGENCIA', 'SET_MODO:MENU', 'SET_MODO:ALCANCE',
+                   'LEER_RTC'];
 
   // DEVUELVE SI LA ORDEN LLEGO A SALIR, y el que llama TIENE QUE MIRARLO.
   //
@@ -2910,6 +2920,114 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // A-9 - LOS TRES RELOJES EN UNA SOLA LINEA DEL REGISTRO
+  // ---------------------------------------------------------------------------
+  // ES EL LECTOR QUE LE FALTABA A RelojDelCruce, y no una segunda copia de el.
+  //
+  // Lo que ya habia -anotar(), falta(), desfaseSeg()- lo estrena SET_RTC, o sea el
+  // camino que ESCRIBE la hora. Para comprobar si el cruce esta en hora habia que
+  // CAMBIARSELA, y con eso se pierde justo el dato que se buscaba: cuanto se habia
+  // desviado. Desde LEER_RTC hay un camino que solo mira, y las dos puertas alimentan
+  // la MISMA tabla: se restan lecturas de la misma sesion vengan de donde vengan.
+  //
+  // POR QUE SON TRES RELOJES Y NO DOS. El desfase entre los dos DS3231 se calcula
+  // contra el del telefono, que es la referencia comun -y por eso la caminata entre
+  // postes se cancela: da igual que pasen dos minutos o dos dias-. Pero esa referencia
+  // TAMBIEN puede estar mal: un telefono con la hora automatica apagada, o en otra zona
+  // horaria, deja los dos postes "desviados" por igual y el desfase entre ellos
+  // perfecto. Si el celular no sale en el registro, quien lea el parte manana no puede
+  // distinguir un cruce en hora de un cruce que coincide con un telefono equivocado.
+  //
+  // 🛑 EL LIMITE, ESCRITO EN VEZ DE DISIMULADO -es el mismo de RelojDelCruce y no se
+  // repara aqui-: esta tabla vive en MEMORIA. Aguanta la caminata entre postes, que es
+  // para lo que existe, y NO sobrevive a que Android mate la app. Por eso lo que falta
+  // se dice "no consta en esta sesion" y no "el otro poste no se ha visto": la app no
+  // puede saber lo que no vio, y las dos frases no significan lo mismo.
+  function _relojLegible(p) {
+    return p ? (p.fecha + ' ' + p.hora) : null;
+  }
+
+  // El parrafo del registro. Devuelve SIEMPRE las tres columnas -las que se saben y las
+  // que no, dichas- y el desfase cuando se puede calcular. Un solo sitio que redacta,
+  // para que las cuatro salidas no puedan divergir en el texto.
+  function textoRelojDelCruce(poste, telMs) {
+    // LA HORA SE COMPONE CON horaLocal24()/fechaLocalISO(), NO A MANO AQUI.
+    //
+    // Son las dos funciones que ya existen porque toLocaleTimeString() metio el reloj
+    // 12 h tarde y toISOString() metio el dia de manana cada noche (seccion 1.bis). Un
+    // segundo formateador escrito aqui seria una tercera copia del mismo acierto, y la
+    // que se queda vieja el dia que alguien arregle las otras dos.
+    const t = new Date(telMs);
+    const cel = fechaLocalISO(t) + ' ' + horaLocal24(t);
+
+    // EL QUE FALTA SE PREGUNTA A falta(), NO SE DEDUCE AQUI. Es la funcion que ya sabe
+    // que postes tiene un cruce, y preguntarle mantiene una sola definicion: si manana
+    // un cruce tuviera tres puntas, un `poste === 'MAESTRO' ? ... : ...` escrito aqui
+    // seguiria diciendo que solo hay dos, en verde y sin que nada fallara.
+    const otro = RelojDelCruce.falta()[0] ||
+                 (poste === 'MAESTRO' ? 'ESCLAVO' : 'MAESTRO');
+    const aqui = RelojDelCruce.postes[poste];
+    const alla = RelojDelCruce.postes[otro];
+
+    let s = 'Reloj del cruce · ' + poste + ' (conectado): ' + (_relojLegible(aqui) || '?');
+    if (alla) {
+      // LA LECTURA DEL OTRO POSTE VA CON LA HORA A LA QUE SE TOMO, y no es adorno: es
+      // de otra visita. Sin ese sello, dos valores puestos uno al lado del otro se leen
+      // como simultaneos, y entonces la diferencia CRUDA entre ellos parece el desfase
+      // -que es justo el numero equivocado, porque incluye la caminata-.
+      s += ' · ' + otro + ' (visto a las ' + horaLocal24(new Date(alla.telMs)) +
+           '): ' + _relojLegible(alla);
+    } else {
+      s += ' · ' + otro + ': NO CONSTA EN ESTA SESION';
+    }
+    s += ' · celular: ' + cel;
+
+    const d = RelojDelCruce.desfaseSeg();
+    if (d === null) {
+      s += '. FALTA ' + otro + ': conectese a ese poste y vuelva a consultar. Con un ' +
+           'solo poste NO se ha validado el cruce, y esta lista no sobrevive a que ' +
+           'Android cierre la app: si se cerro entre poste y poste, hay que repetir los dos.';
+    } else {
+      s += '. DESFASE MEDIDO entre los dos relojes del cruce: ' + d + ' s (cada poste ' +
+           'contra el celular, restados: la caminata no cuenta).' +
+           (Math.abs(d) <= 5 ? '' :
+            ' REVISELO: son dos relojes independientes con pila propia y nada los ' +
+            'vuelve a juntar solo.');
+    }
+    // NO SE DEVUELVE UN CAMPO `falta` QUE NADIE LEE. La ausencia del otro poste ya
+    // esta DICHA en el texto y medida en `desfase === null`; un tercer campo con la
+    // misma informacion es una copia mas que sincronizar y un lector menos que la mire.
+    return { texto: s, desfase: d };
+  }
+
+  // LA PUERTA UNICA POR LA QUE SE ANOTA UNA LECTURA DE RELOJ, la escriba SET_RTC o la
+  // lea LEER_RTC. Devuelve el texto que va al registro, o el motivo por el que no se
+  // pudo anotar. Que las dos ordenes pasen por aqui es lo que garantiza que el desfase
+  // se calcule igual venga de donde venga; dos copias serian dos formas de restar.
+  function anotarLecturaDeReloj(data, rotulo) {
+    const telMs = Date.now();
+    if (!RelojDelCruce.anotar(state.node, data.FECHA, data.HORA, telMs)) {
+      // El poste lo dice NODE: del $STATUS, NO este $ACK: el acuse viene marcado
+      // NODE:PUENTE -es del ESP32, que es quien tiene el reloj- y eso identifica al
+      // MODULO, no al POSTE. Sin $STATUS no se anota: una lectura atribuida al poste
+      // equivocado fabrica un desfase entre un reloj y el mismo reloj.
+      return { anotado: false, tono: 'amber',
+               texto: rotulo + ': la app AUN NO SABE a que poste esta conectada (no ha ' +
+                      'llegado ningun $STATUS con NODE). No se anota: repita cuando el ' +
+                      'tablero identifique el equipo.' };
+    }
+    const r = textoRelojDelCruce(state.node, telMs);
+    return {
+      anotado: true,
+      // Verde SOLO con los dos postes vistos y dentro de 5 s. Un poste solo no es un
+      // cruce validado, asi que no se pinta como si lo fuera.
+      tono: (r.desfase !== null && Math.abs(r.desfase) <= 5) ? 'green'
+            : (r.desfase === null ? 'amber' : 'red'),
+      texto: rotulo + ' · ' + r.texto
+    };
+  }
+
   const ACK_TEXTO = {
     'CANCELAR_AMBAR|RETIRADO': {
       tono: 'green',
@@ -3086,6 +3204,19 @@ document.addEventListener('DOMContentLoaded', () => {
              'conectandose al otro.',
       toast: 'Hora puesta en ESTE poste - falta el otro'
     },
+    // A-9. LA CONSULTA QUE NO CAMBIA NADA, Y POR ESO SE PUEDE HACER CON EL EQUIPO EN
+    // MARCHA. Este texto NO repite los tres relojes ni el desfase: eso lo escribe
+    // anotarLecturaDeReloj() en la linea de al lado, porque es un dato que cambia en
+    // cada consulta y una tabla estatica no puede llevarlo. Lo que dice aqui es lo
+    // unico que la RESPUESTA garantiza: que el modulo hablo y que la hora la acaba de
+    // releer de su chip.
+    'LEER_RTC|OK': {
+      tono: 'green',
+      texto: 'Puente: consulta de reloj contestada. La hora de abajo es la RELEIDA del ' +
+             'chip en este instante, no una copia guardada. Esta orden no ha cambiado ' +
+             'nada: ni el reloj, ni una luz, ni un modo.',
+      toast: 'Reloj consultado - vea el desfase abajo'
+    },
     'SET_RTC|HORA_PUESTA_SIN_PROPAGAR': {
       tono: 'red',
       texto: 'Equipo: la hora entro en el reloj de ESTE poste, pero la orden NO llego ' +
@@ -3107,6 +3238,86 @@ document.addEventListener('DOMContentLoaded', () => {
              'gabinete o de un fallo de comunicacion (SFTY-6), y esta orden no quita ' +
              'ninguno de los dos.',
       toast: 'No habia ambar de la app que retirar'
+    },
+
+    // =======================================================================
+    // A-9 - LOS SIETE "NO SE" DE LA CONSULTA DE RELOJ
+    // =======================================================================
+    // POR QUE ESTOS SI SE TRADUCEN, cuando la regla de arriba dice que un rechazo se
+    // lee como rechazo lleve el texto que lleve.
+    //
+    // Porque aqui el rechazo NO es el final del asunto: es el dato. El operario ha
+    // preguntado la hora, y la respuesta util no es "no se pudo" sino QUE ES LO QUE
+    // FALLA -y sobre todo si el arreglo lo lleva en el bolsillo (repetir la orden), en
+    // la caja (una pila) o en la furgoneta (un modulo)-. Los siete literales del puente
+    // separan justo eso, y perder esa separacion en la pantalla es tirar el trabajo que
+    // el firmware hizo para no dar un "no se pudo" generico.
+    //
+    // 🔴 Y LOS SIETE DICEN LO MISMO EN LA PRIMERA FRASE: LA HORA NO SE PINTA. Un
+    // DS3231 sin pila entrega una fecha PERFECTAMENTE FORMADA y falsa, asi que la unica
+    // salida honesta de todos ellos es la misma -no hay hora que ensenar-, y lo que
+    // cambia detras es el arreglo. Es N-144: un cero con forma de hora es peor que un
+    // hueco, porque el hueco no engana a nadie.
+    'LEER_RTC|NUNCA_SE_PUSO_PONGA_LA_HORA': {
+      texto: 'Puente: NO HAY HORA que ensenar en este poste, y no es una averia: es que ' +
+             'nadie se la ha puesto todavia desde que el modulo arranco. Se arregla ' +
+             'desde aqui mismo, con el boton de sincronizar de abajo.',
+      toast: 'Este poste no tiene hora puesta todavia'
+    },
+    'LEER_RTC|OSCILADOR_PARADO_CAMBIE_PILA': {
+      texto: 'Puente: NO HAY HORA FIABLE. El reloj tiene marcado que su oscilador se ' +
+             'paro en algun momento, asi que lo que sus registros contengan no vale ' +
+             'aunque tenga pinta de fecha. Es la pila del modulo del reloj: se cambia y ' +
+             'se vuelve a poner la hora. Poner la hora sin cambiarla la pierde otra vez ' +
+             'al primer corte.',
+      toast: 'Reloj parado: cambie la pila del modulo'
+    },
+    'LEER_RTC|SIN_RELOJ_NO_RESPONDE': {
+      texto: 'Puente: NO HAY HORA. El reloj no contesta por su bus, asi que no es que ' +
+             'esté en hora o no: es que no está. Modulo desenchufado, mal cableado, o ' +
+             'SDA y SCL cruzados. Esto se arregla con destornillador, no repitiendo la ' +
+             'orden.',
+      toast: 'El modulo de reloj no responde'
+    },
+    'LEER_RTC|ESCRITURA_A_MEDIAS_REPITA_SET_RTC': {
+      texto: 'Puente: NO HAY HORA FIABLE. Una puesta en hora anterior se corto a mitad ' +
+             'y el modulo se quedo con parte vieja y parte nueva: puede componer una ' +
+             'fecha perfectamente valida y equivocada. La duda no se levanta sola - ' +
+             'vuelva a sincronizar y compruebe que esta vez acusa OK.',
+      toast: 'Puesta de hora a medias: vuelva a sincronizar'
+    },
+    'LEER_RTC|MODO_12H_PONGA_LA_HORA': {
+      texto: 'Puente: NO HAY HORA FIABLE. El reloj esta guardando la hora en formato de ' +
+             '12 horas, y leida asi puede ir hasta DOCE HORAS equivocada con el modulo ' +
+             'perfectamente sano. No se le toca el ajuste por nuestra cuenta -seria ' +
+             'cambiarle la hora a un equipo que esta en la calle-: sincronice desde ' +
+             'abajo y queda corregido de paso.',
+      toast: 'Reloj en formato 12 h: sincronice para corregirlo'
+    },
+    'LEER_RTC|REGISTROS_INCOHERENTES': {
+      texto: 'Puente: NO HAY HORA. Lo que hay dentro del reloj no compone una fecha ' +
+             '(un mes 19, un dia 0). SON DOS AVERIAS POSIBLES Y EL EQUIPO NO PUEDE ' +
+             'DISTINGUIRLAS: una puesta en hora cortada -se arregla sincronizando- o un ' +
+             'modulo/bus que devuelve basura -se arregla cambiando el modulo-. Pruebe lo ' +
+             'primero; si vuelve a salir esto, es lo segundo.',
+      toast: 'El reloj devuelve una fecha imposible'
+    },
+    // Este NO es una averia del reloj: es una contradiccion del propio firmware del
+    // puente -su barrera dice que hay hora y su lectura dice que no-. Se nombra distinto
+    // a proposito, porque manda a un sitio distinto: al que escribio el firmware, no al
+    // que subio al poste.
+    'LEER_RTC|BARRERA_INCOHERENTE': {
+      texto: 'Puente: el modulo se contradice a si mismo -dice tener hora fiable y no ' +
+             'ha podido entregarla-. Esto NO es una averia del reloj ni se arregla en el ' +
+             'poste: es un defecto del firmware del puente. Anote la hora y el poste y ' +
+             'reportelo; no toque el reloj.',
+      toast: 'Contradiccion en el puente: reportelo, no toque el reloj'
+    },
+    'LEER_RTC|MOTIVO_NO_CONTEMPLADO': {
+      texto: 'Puente: no entrego la hora y dio un motivo que ni esta app ni su propio ' +
+             'despachador saben nombrar. Es firmware mas nuevo que esta app, o un caso ' +
+             'que nadie cableo. No de la hora de este poste por buena.',
+      toast: 'Motivo de reloj desconocido: no de la hora por buena'
     }
   };
 
@@ -3643,33 +3854,17 @@ document.addEventListener('DOMContentLoaded', () => {
       // MODULO, no al POSTE. Si todavia no ha llegado ningun $STATUS no se anota nada y
       // se dice: una lectura atribuida al poste equivocado fabrica un desfase entre un
       // reloj y el mismo reloj.
-      if (cual === 'SET_RTC' && data.FECHA && data.HORA) {
-        if (RelojDelCruce.anotar(state.node, data.FECHA, data.HORA, Date.now())) {
-          const falta = RelojDelCruce.falta();
-          if (falta.length) {
-            addEvent('amber', 'Reloj del cruce: anotado ' + state.node + ' (' +
-                              data.FECHA + ' ' + data.HORA + '). FALTA ' + falta.join(' y ') +
-                              ': conectese a ese poste y repita. Mirando un solo poste NO ' +
-                              'se ha validado el cruce.');
-          } else {
-            // LOS DOS POSTES VISTOS. Aqui sale el unico numero que mide de verdad si el
-            // cruce esta en hora, y que hasta hoy no calculaba nadie: cuanto se separan
-            // los dos relojes. El telefono es la referencia comun, asi que la caminata
-            // entre postes no cuenta.
-            const d = RelojDelCruce.desfaseSeg();
-            const abs = Math.abs(d);
-            addEvent(abs <= 5 ? 'green' : 'red',
-                     'Reloj del cruce: los DOS postes vistos en esta sesion. Desfase ' +
-                     'medido entre sus relojes: ' + d + ' s' +
-                     (abs <= 5 ? '.' : ' - REVISELO: son dos relojes independientes y ' +
-                                       'nada los vuelve a juntar solo.'));
-          }
-        } else {
-          addEvent('amber', 'Reloj del cruce: hora puesta, pero la app AUN NO SABE a que ' +
-                            'poste esta conectada (no ha llegado ningun $STATUS con NODE). ' +
-                            'No se anota: repita cuando el tablero identifique el equipo.');
-        }
-      }
+      //
+      // 🔴 Y DESDE A-9 SON DOS PUERTAS, NO UNA. Las dos anotan en la MISMA tabla, por
+      // la MISMA funcion, y por eso una lectura de LEER_RTC en un poste se resta contra
+      // una escritura de SET_RTC en el otro sin que nada tenga que saberlo. Lo que
+      // cambia entre las dos es el rotulo -lo que el operario acaba de hacer-, no la
+      // cuenta.
+      const relojDeEsteAcuse =
+        ((cual === 'SET_RTC' || cual === 'LEER_RTC') && data.FECHA && data.HORA)
+          ? anotarLecturaDeReloj(
+              data, cual === 'LEER_RTC' ? 'CONSULTA DE RELOJ' : 'Hora puesta')
+          : null;
       const dicho = ACK_TEXTO[clave];
       if (dicho) {
         addEvent(dicho.tono, dicho.texto);
@@ -3683,6 +3878,18 @@ document.addEventListener('DOMContentLoaded', () => {
                           (data.RESULT ? ' (' + data.RESULT + ')' : ''));
         showToast('Aceptado por el equipo: ' + cual);
       }
+      // LA LINEA DE LOS TRES RELOJES VA LA ULTIMA, O SEA ARRIBA DEL TODO EN LA PANTALLA.
+      //
+      // addEvent() hace unshift, asi que el ULTIMO en anotarse es el PRIMERO que se lee.
+      // El acuse generico dice lo mismo en cada consulta -"el modulo contesto"-; lo que
+      // cambia, y lo unico que el operario ha venido a mirar, es el desfase. Se anota
+      // despues para que sea eso lo que quede encima.
+      //
+      // Y LA ANOTACION EN SI YA OCURRIO ARRIBA, antes de pintar nada: si esto se moviera
+      // a un `if` mas abajo que pudiera saltarse -un `return` nuevo entre medias-, la
+      // lectura se perderia y el desfase se calcularia sin ella. Lo que se mueve es
+      // DONDE SE PINTA, no donde se mide.
+      if (relojDeEsteAcuse) addEvent(relojDeEsteAcuse.tono, relojDeEsteAcuse.texto);
       // N-150: EL MANDO PARA VOLVER A ARRANCAR SE ABRE AQUI Y NO AL PULSAR APLICAR.
       //
       // La diferencia es la de CLAUDE.md 6 leida desde este lado del cable: colgarlo
@@ -3737,6 +3944,29 @@ document.addEventListener('DOMContentLoaded', () => {
       // palabra que se puede citar.
       const cabecera = 'Rechazo de Firmware' + delPuente + ': [' + (data.CMD || '?') + '] ' +
                        (data.DESC || '');
+
+      // A-9 - UN RELOJ QUE NO CONTESTA NO ES UNA COLUMNA VACIA: ES EL CRUCE SIN VALIDAR.
+      //
+      // Los siete literales de arriba dicen QUE le pasa a ESTE reloj. Lo que ninguno
+      // puede decir -porque es un dato de la sesion, no de la trama- es la consecuencia
+      // sobre el CRUCE: si el otro poste ya estaba anotado, el desfase se queda sin
+      // calcular, y esa es justo la comprobacion que el operario venia a hacer.
+      //
+      // Y AQUI NO SE ANOTA NADA, que es la mitad que importa. La tentacion seria
+      // guardar la lectura anterior de este poste "para no perderla": eso convertiria
+      // una hora de hace media hora en la de ahora, y el desfase saldria calculado
+      // sobre un dato que el equipo acaba de declarar no fiable. Es N-144 en la app.
+      if (data.CMD === 'LEER_RTC') {
+        const otro = RelojDelCruce.falta().filter(p => p !== state.node);
+        addEvent('red',
+          'CONSULTA DE RELOJ: este poste (' + (state.node || 'sin identificar') + ') NO ' +
+          'ha entregado hora, asi que NO se anota nada y el desfase del cruce SIGUE SIN ' +
+          'MEDIR' + (otro.length === 0 && state.node
+            ? ' (el otro poste si consta en esta sesion, pero un desfase necesita los dos).'
+            : ' (tampoco consta el otro poste en esta sesion).') +
+          ' El motivo concreto va en la linea de al lado.');
+      }
+
       const negado = _traducirRechazo(data);
       if (negado) {
         addEvent('red', cabecera + ' -> ' + negado.texto);
@@ -4829,6 +5059,24 @@ document.addEventListener('DOMContentLoaded', () => {
                        `traslado ${comp.elapsedSeg}s). Espere el acuse del equipo.`);
 
       if (btnCourierInject) btnCourierInject.disabled = true;
+    });
+  }
+
+  // A-9 - LA CONSULTA. VA ANTES QUE EL BOTON QUE PISA LA HORA, y ese orden es el
+  // arreglo: hasta hoy la unica forma de LEER el reloj era MANDARLO -el $ACK de SET_RTC
+  // devuelve la hora releida del chip-, o sea que comprobar si el cruce estaba en hora
+  // obligaba a cambiarsela, y con eso se perdia justo el dato que se buscaba.
+  if (btnLeerRtc) {
+    btnLeerRtc.addEventListener('click', () => {
+      // NO SE PINTA NADA AQUI, y es lo mismo que N-150 con el arranque tras tiempos:
+      // lo unico que esta funcion sabe es que la orden salio. Los tres relojes y el
+      // desfase los escribe el ACUSE, que es lo unico que ha visto un chip.
+      if (!enviarComandoFirmware('LEER_RTC')) return;
+      showToast('Consulta de reloj enviada');
+      addEvent('cyan', 'CONSULTA DE RELOJ enviada al puente de este poste. No cambia ' +
+                       'nada: ni el reloj, ni una luz, ni un modo. Espere el acuse; si ' +
+                       'no llega, este poste no tiene puente ESP32 detras del conector ' +
+                       'y su hora no se puede consultar desde aqui.');
     });
   }
 
