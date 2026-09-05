@@ -120,3 +120,62 @@ de la fase 1** («el veto habría actuado N veces»). Los eventos ya caen solos 
 - **Ningún tope que fuerce la bajada** de la pluma: devolvería el peligro que el veto evita.
   Tope → **alarma**, nunca acción.
 - **El ciclo del semáforo no se toca.** Las cámaras no dan ni quitan verde.
+
+---
+
+## D-14 · LA ENTRADA DE ALARMA — la vía que NO depende de la casilla bloqueada
+
+**Verificado en el manual del fabricante, y sin la coletilla que bloquea la otra vía.**
+
+Hasta ahora sólo se miraba la **salida** de la cámara. La **entrada** abre el canal contrario:
+**el controlador le dice algo a la cámara**.
+
+| qué dice el manual | dónde |
+|---|---|
+| *Record Schedule*, tipo **Alarm**: *«When alarm input is enabled and trigger recording is selected as linkage method, the video is recorded after receiving alarm signal from external alarm input device»* | PDF p.48 / impresa 36 |
+| *Trigger Recording*: *«the device records the video about the detected alarm event»* — **SIN nota de modelos** | PDF p.82 / impresa 70 |
+| Y la nota *«only supported by certain models»* acompaña **sólo** a `Trigger Alarm Output`, `Flashing Light` y `Audible Warning` | PDF p.79, 82, 83 |
+
+> 🟢 **Consecuencia: «el controlador cierra un contacto en ROJO → la cámara graba» NO depende
+> de `Trigger Alarm Output`.** Es la única vía documentada de punta a punta hoy.
+
+### Y trae algo que no habíamos pedido: la cámara sabe hacer la AND
+
+El *Record Schedule* admite **`Motion & Alarm`** — graba **sólo si hay movimiento Y señal en la
+entrada— y también `Motion | Alarm`** (PDF p.48 / impresa 36).
+
+**Con el contacto cerrado en rojo, `Motion & Alarm` graba exactamente «algo se movió mientras
+el carril estaba cerrado».** Es la invasión, filtrada **por la cámara**, sin necesitar que la
+analítica accione ningún relé. La AND que íbamos a hacer en el controlador **ya la hace ella**.
+
+### 🔴 Lo que falta, y es documentación que NO tenemos
+
+**El manual DELEGA el cableado**: *«Make sure the external alarm device is connected. **See
+Quick Start Guide for cable connection**»* (PDF p.56 / impresa 44). **La Quick Start Guide no
+está en disco.**
+
+Por eso `ALARM IN`, `G`, `1A`, `1B` quedan **`SIN VERIFICAR`**: no hay diagrama de cable en
+ninguna de las dos fuentes. Lo único que acota es que la ficha dice **`1 input, 1 output`**
+(p.3): si `1A` y `1B` fueran dos salidas, diría «2 outputs». **Que sean los dos terminales de
+un único contacto es DEDUCCIÓN, no lectura de diagrama.** Y de `G` no se sabe si es común de
+la entrada, de la salida o de las dos.
+
+**Hace falta la Quick Start Guide antes de cablear nada.**
+
+### Otros `SIN VERIFICAR` que este repaso deja cerrados como tales
+
+- **`Delay` de la salida: CERO números en 110 páginas.** Sólo la definición. **A-7 confirmada:
+  el «~1 s» no sale de Hikvision, sale de un manual nuestro.**
+- **Qué espera eléctricamente la entrada**: sin tensión, sin corriente, y las palabras *«dry
+  contact»* y *«relay»* **no aparecen** en las 110 páginas.
+- **`Alarm Type` de la entrada**: el manual documenta el valor **`NO`**; **`NC` no aparece
+  nunca** → sin verificar que sea configurable.
+- **Corriente mínima de conmutación** de la salida, y si es relé mecánico o de estado sólido.
+- Y **dos horarios en serie otra vez** (el de la entrada y el del *Record Schedule*), igual
+  que A-8.
+
+### ⚠️ La recopilación `.docx` contradice a la ficha oficial
+
+Dice **256 GB** de microSD donde la ficha del 03/03/2023 dice **512 GB** (p.3), y recomienda
+**NTP**, que choca con D-12 (la cámara no tiene red hacia nuestro sistema). **No es fuente del
+fabricante y no se cita como tal.**
