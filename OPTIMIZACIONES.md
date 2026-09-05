@@ -375,7 +375,7 @@ implementar aparece vacía en vez de aparentar cobertura.
 | SFTY-3 | `*/src/protocolo.cpp` · `Repetidor/src/main.cpp` | — |
 | SFTY-4 | `Maestro/src/coordinador.cpp` · `Maestro/src/modo_automatico.cpp` | — |
 | SFTY-5 | `Maestro/src/semaforo.cpp` · `Esclavo/src/semaforo.cpp` | ✅ `Validacion_Automatico/arnes_automatico.cpp` — **arnés C++, invisible para el censo de packs**, ver abajo |
-| **SFTY-6** | `*/include/protocolo.h` *(el umbral)* · `Maestro/src/coordinador.cpp` · `Esclavo/src/main.cpp` | ✅ `costura_08_silencio` · `costura_09_presupuesto_radio` · `maestro_04_sync_horaria` |
+| **SFTY-6** | `*/include/protocolo.h` *(el umbral)* · `Maestro/src/coordinador.cpp` · `Esclavo/src/main.cpp` | ✅ `costura_08_silencio` · `costura_09_presupuesto_radio` · `costura_13_ambar_ordenado` · `maestro_04_sync_horaria` |
 | SFTY-7 | `Maestro/include/coordinador.h` · `Maestro/src/coordinador.cpp` | — |
 | SFTY-8 | `*/src/protocolo.cpp` | — |
 | SFTY-9 | `Maestro/src/coordinador.cpp` · `Maestro/src/main.cpp` | — |
@@ -390,7 +390,7 @@ implementar aparece vacía en vez de aparentar cobertura.
 | **SFTY-18** | `Maestro/src/reloj.cpp` · `Maestro/include/reloj.h` · `ESP32_Expansion` *(el reloj del puente)* | ✅ `esp32_04_osf` · ✅ `esp32_11_bien_formada_no_es_cierta` |
 | **SFTY-19** | **— solo diseño, ver abajo.** La única mención en el código es una advertencia en `reloj.h` aclarando que este modo **no** se apoya en el RTC | — |
 | SFTY-20 | `Maestro/include/modo_hora.h` · `ESP32_Expansion/include/reloj_ds3231.h` *(sólo referencias; el modo no existe)* | — |
-| **SFTY-21** | `*/src/modo_degradado.cpp` · `*/src/mando.cpp` · `*/include/ciclo_degradado.h` | ✅ `esclavo_01_latch_ambar` · `esclavo_02_inhibicion_menu` · `esclavo_07_ambar_emergencia` · `esclavo_08_ambar_en_degradado` · `maestro_01_mando` · `maestro_05_ciclo_sin_radio` · `costura_02_fase_ciclo` · `costura_06_reanudacion` · `costura_12_margen_deriva` · `camara_02_j16` |
+| **SFTY-21** | `*/src/modo_degradado.cpp` · `*/src/mando.cpp` · `*/include/ciclo_degradado.h` | ✅ `esclavo_01_latch_ambar` · `esclavo_02_inhibicion_menu` · `esclavo_07_ambar_emergencia` · `esclavo_08_ambar_en_degradado` · `maestro_01_mando` · `maestro_05_ciclo_sin_radio` · `costura_02_fase_ciclo` · `costura_06_reanudacion` · `costura_12_margen_deriva` · `costura_13_ambar_ordenado` · `camara_02_j16` |
 | SFTY-22 | `Maestro/src/lcd.cpp` · `Maestro/include/modo_ambar.h` *(sólo referencias; la pantalla no existe)* | — |
 | **SFTY-23** | `Maestro/src/coordinador.cpp` · `Esclavo/src/config_ciclo.cpp` *(Fase 2)* · `*/src/reloj.cpp` | ✅ `esclavo_03_par_config` · `esclavo_04_desfase` · `esclavo_05_hora_atomica` · `maestro_04_sync_horaria` |
 | SFTY-24 | **— solo diseño.** Cero etiquetas en el firmware | — |
