@@ -95,8 +95,19 @@
 // posiciones pasan a ser entradas de camara. No es un cambio de nombre: cambia el modo
 // del pin, la polaridad con la que se lee y quien lo lee.
 //
-//   J16 p5   PB9    BOTON1      Arriba / mando A   INPUT_PULLUP, activo en BAJO
-//   J16 p8   PB13   BOTON2      Abajo  / mando B   INPUT_PULLUP, activo en BAJO
+//   J16 p5   PB9    BOTON1      Arriba / mando A   INPUT pelado,  activo en ALTO
+//   J16 p8   PB13   BOTON2      Abajo  / mando B   INPUT pelado,  activo en ALTO
+//
+//   ^ ESTA PUNTA SE QUEDO SIN ARREGLAR EL 05/09, Y ES LA QUE MAS IMPORTA (N-118).
+//     El arreglo de 273b315 corrigio la misma frase falsa en el Maestro y NO TOCO EL
+//     ESCLAVO: durante unas horas el Poste 2 -el que esta a 1000 m, al que no se llega
+//     andando- llevo la cabecera equivocada. Lo encontro una revision externa, no un
+//     test, porque los comentarios no compilan.
+//
+//     Lo falso era "INPUT_PULLUP, activo en BAJO". El fuente de ESTA punta hace
+//     pinMode(BOTON1, INPUT) pelado -botones.cpp:178-179- y lee digitalRead(b.pin) ==
+//     HIGH -botones.cpp:54-. Y lo respalda la medida en cobre del 03/09: pull-down real
+//     de 10 kOhm en las cuatro posiciones de J16, con 3,3 V en la de al lado.
 //   J16 p10  PB14   CAM_C_PIN   camara             INPUT pelado,  activo en ALTO
 //   J16 p12  PB15   CAM_D_PIN   camara             INPUT pelado,  activo en ALTO
 //

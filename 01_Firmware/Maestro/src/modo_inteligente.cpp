@@ -12,8 +12,19 @@
 #include <string.h>
 #include "limites_ciclo.h"   // N-137: el minimo vial, no un 2 escrito a mano
 
-enum FaseInt { INT_CORRIENDO };
-static FaseInt faseI;
+// N-135 OTRA VEZ, EN EL FICHERO DE AL LADO (05/09). Aqui habia:
+//
+//     enum FaseInt { INT_CORRIENDO };
+//     static FaseInt faseI;      ... switch (faseI) { case INT_CORRIENDO: ... }
+//
+// Un enum de UN SOLO valor no es un estado: es una constante disfrazada, y el switch de
+// abajo era un envoltorio que no podia elegir nada. Inerte hoy -no colgaba ninguna guarda
+// de el, al contrario que en modo_automatico.cpp, donde costo SET_TIEMPOS entero- pero es
+// la misma forma, y se retira antes de que alguien cuelgue una guarda.
+//
+// Y LO ENCONTRO UNA REVISION EXTERNA, NO EL PACK QUE EXISTE PARA ESTO: maestro_10 censa
+// enums de un solo valor "que ademas se COMPARAN" y solo miraba `==`. Un `case` es una
+// comparacion. El pack se afila en el mismo commit; si no, esto vuelve.
 // N-137 (04/09): AQUI PONIA `maxVerde = 2` MINUTOS, POR DEBAJO DEL MINIMO VIAL.
 //
 // Este modo configura el coordinador por su cuenta -no pasa por SET_TIEMPOS-, asi que
@@ -46,7 +57,6 @@ void modoInteligente_setup() {
   // diodo, y con INPUT_PULLUP quedaria a medio encender por 40 uA de fuga.
   pinMode(LED_TESTIGO, INPUT);
 
-  faseI = INT_CORRIENDO;
   // Mismo motivo que el inicializador: reentrar en el modo no puede devolver el
   // cruce por debajo del minimo vial.
   maxVerde = VERDE_MIN_MIN;
@@ -69,8 +79,7 @@ void modoInteligente_loop() {
     return;
   }
 
-  switch (faseI) {
-    case INT_CORRIENDO: {
+  {
       coordinador_actualizar();
 
       if (coordinador_listoParaContar()) {
@@ -139,7 +148,5 @@ void modoInteligente_loop() {
         estadoAnt = actual;
         presenciaAnt = presenciaActual;
       }
-      break;
-    }
   }
 }

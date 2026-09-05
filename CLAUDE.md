@@ -499,7 +499,7 @@ impide que vuelva.
 
 > 🔴 **Y el censo tiene una segunda dirección: retirar código NO es neutro cuando otros dependen de
 > que una bandera pueda ser CIERTA.** `mando_ambarLocal()` —`Esclavo/src/mando.cpp:103`, un getter
-> de una línea— tiene **tres consumidores** en `Esclavo/src/main.cpp` (`:406`, `:416`, `:540`), y
+> de una línea— tiene **tres consumidores** en `Esclavo/src/main.cpp` (`:453`, `:476`, `:617` — medidos el 05/09; decian `:406`, `:416`, `:540`), y
 > los tres la usan para **vetar**: `if (!mando_ambarLocal() && !bluetooth_ambarEmergencia())`. Es
 > la desobediencia deliberada que documenta `mando.h`: mientras un operario pidió ámbar local, una
 > orden de radio **no** saca a esa punta del ámbar.
@@ -740,7 +740,7 @@ hasta que se demuestre que sabía mirar.
 
 ---
 
-## 4.bis Un sospechoso se elige por ficheros, no por el mensaje del commit## 4.bis Un sospechoso se elige por ficheros, no por el mensaje del commit
+## 4.bis Un sospechoso se elige por ficheros, no por el mensaje del commit
 
 > **Antes de nombrar un culpable, cruza el commit contra los ficheros que toca.**
 

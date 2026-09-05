@@ -160,7 +160,7 @@ nombre y apellido.
 
 | | |
 |---|---|
-| Flash | Maestro **86.3 %** (**56588** de 65536 B → **9.228 B libres**) · Esclavo **66.3 %** (43464 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Flash | Maestro **86.3 %** (**56588** de 65536 B → **8.948 B libres**) · Esclavo **66.3 %** (43464 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
 | Banco por packs | **1053/1053** en **74 packs** |
 | Arneses que compilan C++ real | 271/271 pantalla · 71/71 automático · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** |
 | Puente ESP32 | **93/93** |
