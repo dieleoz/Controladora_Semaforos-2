@@ -252,7 +252,7 @@ unos **8 dias de reloj** con el ciclo corriendo.
 
 | | estado real el 05/09 |
 |---|---|
-| **Los cuatro botones** | ✅ **ya fuera**: `botonAceptar()`/`botonCancelar()` son `return false;` en las dos puntas, y `BOTON1`/`BOTON2` **no se leen en ningun sitio** (`grep -c` = 0) |
+| **Los cuatro botones** | ⚠️ **DOS fuera y DOS VIVOS**: `botonAceptar()`/`botonCancelar()` son `return false;` —los de `PB14`/`PB15`, **los pines que ahora son cámaras**—, pero `botonArriba()`/`botonAbajo()` devuelven `consumir(0)`/`consumir(1)` **con llamadores vivos**, y leen `BOTON1`/`BOTON2`, **que son los pines del mando**. ~~«`BOTON1`/`BOTON2` no se leen en ningun sitio, `grep -c` = 0»~~ — **FALSO, escrito por mí el 05/09**: el `grep` buscaba `BOTON1_PIN`, que no es como se llama (`botones.cpp:394-398`). 🔴 **Lo que alguien cierre en `J16` p5/p8 SIGUE ENTRANDO al firmware** |
 | **La pantalla LCD** | ❌ **sigue enlazada**: 17 llamadas `lcd_` en el Maestro, 8 en el Esclavo, y `menu.cpp` entero detras |
 | **El mando `A`/`B`** | ❌ **sigue vivo** en `PB9`/`PB13` (`botones.cpp:480-481` y `:491-492`) |
 
