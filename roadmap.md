@@ -279,6 +279,94 @@ vacuamente cierto (§3.bis). Ahora vuelven a medir.
 | **`CANCELAR_AMBAR` tambien ABRE paso** | lo dice su propio comentario, y quedo con PIN y sin confirmacion. Es el candidato mas claro a llevar el aviso de via |
 | **Sin telemetria la fase no acota** | `estadoLuces` vale `null` en los dos lados, asi que lo unico que estrecha la ventana de "no repreguntar" son los 30 s |
 
+### 0.0.octies · 🔴 EL BLOQUEO DEL CRUCE, Y COMO SE PROCEDE (04/09, noche)
+
+**Lo reportado, y es lo mas grave de la sesion:** *"como me conecte a la aplicacion del
+Esclavo y le di ambar, esta quedo en ambar intermitente. Si me conecto otra vez al Maestro,
+esto ya no me recibe nada... si intentas en modo manual cambiarlos, no te responde el
+esclavo"*.
+
+#### La cadena, medida entera
+
+1. El ambar de emergencia del Esclavo **engancha un latch** (`ambarEmergencia = true`).
+2. Con el latch puesto **el Esclavo no obedece NI ACUSA** `CMD_GO_RED` ni `CMD_GO_GREEN`
+   —`Esclavo/src/main.cpp:430` y `:440`, la guarda `!mando_ambarLocal() &&
+   !bluetooth_ambarEmergencia()` envuelve tambien al ACK—. **Eso es SFTY-21 y esta bien**:
+   quien esta de pie en el poste gana sobre quien manda desde lejos.
+3. El Maestro agota sus reintentos, cae a `C_FALLO`, y desde ahi **rechaza** `DAR PASO` con
+   `EN_TRANSICION_REINTENTE`. Visto desde fuera: *"ya no me recibe nada"*.
+4. **La unica salida es `CANCELAR_AMBAR`, que solo acepta el Esclavo, con PIN.**
+5. Y para llegar a el hay que **desvincular el Maestro en Ajustes de Android** y emparejar
+   el Esclavo, porque la app pide la lista con `list()`, que solo devuelve emparejados.
+
+> 🔴 **Un operario puede dejar el cruce trabado desde su telefono y no poder soltarlo
+> desde el otro poste.** Eso es lo grave, mas que el ambar en si.
+
+#### Y la ventana que lo precede, tambien medida
+
+El Esclavo avisa **al telefono y no al Maestro**: en esa rama no sale ni una trama por
+radio. Y un Esclavo en ambar **sigue contestando PONG** —`main.cpp:389-393`, el PING no
+refresca su reloj de silencio pero si se responde—, asi que el enlace le parece perfecto al
+Maestro. Si el Maestro estaba en VERDE cuando se engancho el ambar, **durante el resto de
+esa fase —hasta 3 minutos— conviven Maestro en verde y Esclavo en ambar**, y los dos
+sentidos pueden entrar al carril. La red existe —el Maestro cae a fallo en la siguiente
+transicion— pero **solo salta en la transicion**, no al instante.
+
+#### COMO SE PROCEDE, y la asimetria que NO se toca
+
+**Se decide (04/09):** poner el ambar **no pide PIN** —parar es la direccion segura— y
+**quitarlo SI** —devuelve el cruce a dar verdes, o sea ABRE paso—. Ese criterio es correcto
+y se conserva.
+
+**Y NO se permite soltar el latch desde el Maestro.** Se planteo y se descarta: esa
+proteccion existe para el caso en que alguien puso el ambar porque hay un operario en la
+calzada, y una orden remota no debe revocarla. **El bloqueo es real, pero su causa no es
+que falte la orden: es que no se puede llegar al Esclavo.**
+
+| # | que se hace | donde |
+|---|---|---|
+| 1 | **El Esclavo AVISA por radio al enganchar**, y el Maestro lleva el cruce a estado seguro en el acto en vez de enterarse en la siguiente transicion | firmware, las dos puntas |
+| 2 | **El Maestro lo PUBLICA en su `$STATUS`**: *"el Poste 2 tiene ambar de emergencia puesto"*, en vez de parecer averiado | firmware |
+| 3 | **La app encuentra el Esclavo sin pelearse con Android** (`discoverUnpaired`), y se puede **cambiar de poste** sin reiniciar | app |
+| 4 | **La app enseña lo que SI tiene del Esclavo** —estado, modo, señal, hora— y el hueco dice *"Conectarse al esclavo"*, no *"sin datos"* | app |
+
+**Lo tercero es lo que de verdad desbloquea**, y ya esta en marcha.
+
+**Anotado para la V2, no para ahora:** que la emergencia del Esclavo sea **rojo en su lado**
+en vez de ambar. Nunca podria entrar en conflicto —si el Maestro esta en verde, el Esclavo
+en rojo es el ciclo normal— y no dependeria de que llegue ninguna trama. Hoy el Esclavo **no
+tiene rojo propio**: `FORZAR_ROJO` se le retiro con motivo —*"prometia rojo y hacia ambar con
+la pluma arriba, que es casi lo contrario"*— y darselo es trabajo de verdad.
+
+---
+
+### 0.0.nonies · N-141 — Modo Manual tenia la MISMA trampa que N-42, y nadie la habia mirado
+
+`DAR PASO` no funcionaba porque `modo_manual.cpp` entraba en una fase `CONFIG_ESTATICO`
+cuya **unica salida era `botonAceptar()`**, que devuelve `false` desde el 31/08. El
+coordinador nunca llegaba a `C_IDLE` y el equipo contestaba `EN_TRANSICION_REINTENTE`.
+
+**El cambio de sentido NO habia que construirlo:** `coordinador_pedirCambio()` ya lo hace
+entero —verde a rojo directo, todo-rojo de despeje, y los 4 s de ambar SOLO de rojo a
+verde, que es justo lo que pidio el responsable—. Faltaba poder LLEGAR.
+
+> 🔴 **Y dentro del mismo fichero estaban la quinta, sexta y septima copia del piso de
+> despeje: `segEstatico = 3` en el inicializador, `= 5` en el setup y un piso de `5` con el
+> rotulo "Piso minimo" encima.** El minimo vial son **10**. N-137 centralizo los limites ese
+> mismo dia y **no vio este fichero porque su codigo estaba muerto**: no habia sintoma que
+> buscar. **Un arreglo ingenuo que se limitara a quitar la fase habria ACTIVADO un despeje de
+> 5 s en un cruce en servicio.** El defecto de interfaz y el vial vivian en la misma linea.
+
+Se retira la fase, el `enum` entero (§3.septies) y las tres copias. Manual **ya no configura
+tiempos**: conserva el despeje del Automatico —que si pasa por `limites_ciclo.h`— o los 15 s
+del coordinador. **Flash: 58.368 -> 55.868 B, o sea 2.500 B LIBERADOS.**
+
+**Y lo que NO se reactiva sin decision del responsable:** el mando A/B daba paso desde el
+suelo (`:45-47`), muerto desde el 31/08. Al quitar la fase reviviria solo, y eso significa que
+**un pulso suelto de A o de B cambia el sentido del trafico**. Dar paso ABRE paso: anadir una
+via nueva de abrirlo —y ademas un mando a distancia— no se cuela dentro del arreglo de otra
+cosa. Queda pendiente de decidir.
+
 ### 0.0.septies · 🟢 EL BANCO DEL 04/09 POR LA NOCHE — lo que se cerro EN COBRE y los cuatro defectos nuevos
 
 **N-42 CERRADO EN COBRE.** Palabras del responsable, con el equipo delante: *"ahi cambia ese

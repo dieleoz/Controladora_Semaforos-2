@@ -59,6 +59,21 @@ CONOCIDAS = {
         # llamador -bluetooth.cpp la consulta para publicar el $EVENT de cambio de
         # estado del enlace-, y una huerfana que gano llamador y se queda anotada es
         # justo lo que este pack persigue: la lista dejaria de poder fallar.
+        # N-141 (04/09): lcd_dibujarConfigValor se queda SIN LLAMADOR, y el motivo es
+        # comprobable -que es lo que §3.bis exige de una excepcion-:
+        #
+        #   1. Sus DOS unicos llamadores eran los asistentes de configuracion de
+        #      modo_automatico.cpp y modo_manual.cpp. Los dos se retiraron el 04/09
+        #      (N-42 y N-141) porque su unica salida era botonAceptar(), que devuelve
+        #      false desde el 31/08: eran trampas sin salida, no pantallas.
+        #   2. La pantalla LCD esta RETIRADA por decision del 28/08. Una funcion que
+        #      dibuja un campo de configuracion en una pantalla que no existe no puede
+        #      ganar llamador legitimo.
+        #
+        # No se borra de lcd.cpp en este commit: ese fichero lo compila de verdad
+        # Validacion_LCD, y retirar simbolos de ahi es un trabajo aparte con su propia
+        # medida. Si algun dia lo gana, este pack lo dira -y eso es lo que persigue-.
+        "lcd_dibujarConfigValor",
         "coordinador_intentarHandshake",
         "coordinador_medirDesfase", "coordinador_reiniciarConexion",
     },

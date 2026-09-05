@@ -8,14 +8,54 @@
 #include "modos.h"
 #include <string.h>
 
-enum FaseManual { CONFIG_ESTATICO, CORRIENDO };
-static FaseManual fase;
-static int segEstatico = 3;
+// N-141 (04/09/2026): MODO MANUAL TENIA LA MISMA TRAMPA QUE N-42, Y SEGUIA ABIERTA.
+//
+// Aqui habia `enum FaseManual { CONFIG_ESTATICO, CORRIENDO };` con un asistente de una
+// sola pregunta -"Tiempo Rojo Estatico"- cuya UNICA salida era `if (botonAceptar())`. Y
+// botonAceptar() devuelve `false` SIEMPRE desde deeeab4 (31/08), cuando BOTON3 y BOTON4
+// pasaron a ser entradas de camara.
+//
+// O sea que el modo entraba en CONFIG_ESTATICO y no salia nunca. Reportado en banco el
+// 04/09: "en dar paso, Maestro queda en rojo y esclavo queda en ambar titilando; eso no
+// esta bien". El operario pulsaba DAR PASO y el equipo contestaba
+// $ERR,CMD:CAMBIAR_TURNO,DESC:EN_TRANSICION_REINTENTE, porque el coordinador nunca
+// llegaba a C_IDLE.
+//
+// EL CAMBIO DE SENTIDO NO HABIA QUE CONSTRUIRLO: ya existe entero en
+// coordinador_pedirCambio() -verde a rojo directo, todo-rojo de despeje, y los 4 s de
+// ambar SOLO al pasar de rojo a verde, que es justo lo que pidio el responsable-. Lo
+// unico que faltaba era poder LLEGAR a el.
+//
+// SE RETIRA EL ENUM ENTERO, no se deja con un valor. Es §3.septies literal: en el
+// Automatico, dejar `enum FaseAuto { CORRIENDO }` convirtio enMarcha() en una constante
+// -el compilador la plegaba a `movs r0,#1`- y rompio SET_TIEMPOS durante horas. Censado
+// antes de borrar: modo_manual.h no expone ningun getter, asi que de esta fase no cuelga
+// ninguna bandera fuera de este fichero.
+//
+// -------------------------------------------------------------------------------------
+// Y AQUI VIVIAN LA QUINTA, SEXTA Y SEPTIMA COPIA DEL PISO DE DESPEJE
+// -------------------------------------------------------------------------------------
+//
+// `static int segEstatico = 3;` -TRES segundos-, `segEstatico = 5;` en el setup, y un
+// `if (segEstatico < 5) segEstatico = 5;` con el rotulo "Piso minimo 5s despeje" encima.
+// El minimo vial son DIEZ (DESPEJE_SEG_MIN, limites_ciclo.h): es el tiempo que garantiza
+// que el tramo quedo VACIO antes de dar verde al otro lado.
+//
+// N-137 centralizo los limites ese mismo dia y NO VIO ESTE FICHERO, porque su codigo
+// estaba muerto y no habia sintoma que buscar. 🔴 Un arreglo ingenuo que se limitara a
+// quitar la fase HABRIA ACTIVADO un despeje de 5 s en un cruce en servicio: el defecto
+// de interfaz y el defecto vial estaban en la misma linea.
+//
+// Se van con la fase. Este modo YA NO CONFIGURA TIEMPOS: conserva el despeje que dejo
+// el Automatico -que si pasa por limites_ciclo.h- o los 15 s por defecto del propio
+// coordinador. Los dos estan por encima del minimo. Manual es para dar paso a mano, no
+// para reconfigurar el cruce; para eso esta SET_TIEMPOS, que tiene la guarda.
 
 void modoManual_setup() {
-  fase = CONFIG_ESTATICO;
-  segEstatico = 5;
-  lcd_dibujarConfigValor("Tiempo Rojo Estatico", segEstatico, "seg");
+  // Arranca corriendo. Una sola puerta, como el Automatico desde N-42: el coordinador
+  // empieza por todo-rojo y su despeje, y cuando llega a C_IDLE el paso ya se puede dar.
+  coordinador_iniciarModo();
+  lcd_dibujarManual(semaforo_nombreEstado());
 }
 
 void modoManual_loop() {
@@ -25,32 +65,28 @@ void modoManual_loop() {
     return;
   }
 
-  if (fase == CONFIG_ESTATICO) {
-    bool redibujar = false;
-    if (botonArriba()) { segEstatico++; if (segEstatico > 99) segEstatico = 99; redibujar = true; }
-    if (botonAbajo())  { segEstatico--; if (segEstatico < 5) segEstatico = 5; redibujar = true; } // FIX H-2: Piso mínimo 5s despeje
-    if (botonAceptar()) {
-      coordinador_configurar((unsigned long)segEstatico * 1000UL, 0, 0);
-      coordinador_iniciarModo();
-      fase = CORRIENDO;
-      lcd_dibujarManual(semaforo_nombreEstado());
-      return;
-    }
-    if (redibujar) lcd_dibujarConfigValor("Tiempo Rojo Estatico", segEstatico, "seg");
-    return;
-  }
+  // EL MANDO A/B NO DA PASO, Y ES UNA DECISION PENDIENTE, NO UN OLVIDO.
+  //
+  // Aqui habia `if (botonArriba() || botonAbajo()) coordinador_pedirCambio();`, muerto
+  // desde el 31/08 por estar detras de la fase inalcanzable. Al retirar la fase reviviria
+  // SOLO, y con el mando de reles conectado eso significa que UN PULSO SUELTO de A o de B
+  // cambia el sentido del trafico.
+  //
+  // No se reactiva sin que el responsable lo decida: dar paso ABRE paso, y anadir una via
+  // nueva de abrirlo -que ademas es un mando a distancia- no es una consecuencia
+  // colateral que deba colarse dentro del arreglo de otra cosa. Hoy el paso se da desde
+  // la app, que ademas pregunta si el tramo esta despejado.
+  //
+  // Las secuencias A.A.A y B.B.B del mando siguen funcionando: mando.cpp lee los mismos
+  // flancos y este bloque no las consumia.
 
-  static const char* estadoAnt = "";
-  // Botón 1 (Arriba) o Botón 2 (Abajo): Conmutar carril respetando tiempo de despeje All-Red
-  if (botonArriba() || botonAbajo()) {
-    coordinador_pedirCambio();
-  }
-  // SFTY-12: Botón 3 (OK/Aceptar) en Modo Manual fuerza ROJO FIJO CONTINUO en Maestro y Esclavo de forma INDEFINIDA
-  if (botonAceptar()) {
-    coordinador_forzarRojoTotal();
-  }
+  // SFTY-12 tambien se queda fuera por lo mismo: colgaba de botonAceptar(), que no puede
+  // ser cierto. El rojo fijo se pide hoy con FORZAR_ROJO desde la app -sin PIN, porque
+  // parar es la direccion segura- y esa via SI esta ejercida.
+
   coordinador_actualizar();
 
+  static const char* estadoAnt = "";
   const char* actual = coordinador_nombreEstadoMaster();
   if (strcmp(actual, estadoAnt) != 0) {
     lcd_dibujarManual(actual);
