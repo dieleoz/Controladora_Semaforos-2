@@ -302,47 +302,6 @@ static bool pedirCambioVerificado() {
   return true;
 }
 
-// reloj_ajustar() empieza con "if (!rtcOperativo) return;" -y reloj_hayCristal()
-// devuelve ese mismo rtcOperativo-, y ademas descarta la llamada ENTERA si algun campo
-// se sale de rango. Lo primero lo pregunta el llamante, porque tiene motivo propio; lo
-// segundo no se puede preguntar antes sin copiar aqui los rangos de reloj.cpp, asi que
-// se MIDE despues: se relee la hora que quedo puesta.
-//
-// El desempate importa cuando el reloj YA estaba en hora: ahi reloj_enHora() sigue
-// diciendo true aunque el ajuste se haya descartado entero, y sin releer se contestaria
-// OK sobre una hora que no es la que mandaron.
-static bool ajustarRelojVerificado(uint8_t h, uint8_t mi, uint8_t s, uint8_t d) {
-  reloj_ajustar(h, mi, s, d);
-  // Los segundos no se comparan: entre escribir y releer el RTC puede haber avanzado
-  // uno. Si el minuto avanza justo en ese hueco esto contesta que no pudo, con la hora
-  // bien puesta -es el lado seguro del error, y el operario repite-.
-  const bool quedo = reloj_enHora() && reloj_hora() == h && reloj_minuto() == mi;
-
-  // N-144 (04/09): SI NO QUEDO PUESTA, SE RETIRA LA BANDERA. Antes se avisaba y se
-  // dejaba el equipo creyendo que tenia hora.
-  //
-  // reloj_ajustar() pone horaValida = true al terminar de escribir, y esta funcion
-  // comprobaba DESPUES si habia quedado. Cuando no quedaba -que con el cristal Y2
-  // muerto (N-17) es el caso NORMAL, no el raro- se contestaba el $ERR y horaValida se
-  // quedaba en true. El equipo publicaba entonces HORA:00:00:00 en su $STATUS: no es
-  // medianoche, es un contador que no avanza con la bandera de "tengo hora" puesta.
-  //
-  // Visto en la cinta de campo del 04/09: hasta esa tarde el Maestro mandaba
-  // HORA:--:--:-- y despues de intentar el Courier RTC paso a mandar HORA:00:00:00. La
-  // orden habia fallado y el equipo se habia quedado convencido de lo contrario.
-  //
-  // Y NO ES SOLO COSMETICO, que es por lo que se arregla: de reloj_enHora() cuelga la
-  // autorizacion del MODO DEGRADADO -el que da verdes guiandose SOLO por el reloj, sin
-  // confirmacion de la otra punta-. Un reloj parado en ceros que se declara valido es
-  // exactamente la entrada que ese modo no debe aceptar.
-  //
-  // Se retira aqui y no dentro de reloj.cpp a proposito: quien sabe si "quedo puesta"
-  // es quien comparo lo que mando con lo que releyo, y ese es este. reloj_ajustar() no
-  // conoce la hora que le pidieron una vez ha escrito.
-  if (!quedo) reloj_invalidarHora();
-  return quedo;
-}
-
 // --- LOS BITS DEL RELOJ, POR EL UNICO CAMINO QUE QUEDA ABIERTO --------------------
 //
 // N-114 - DOS $ERR DE ESTE FICHERO MANDAN AL TECNICO A UNA PANTALLA TAPIADA.
@@ -676,70 +635,39 @@ static void procesarComando(const char* cmd) {
       bluetooth_reportarEvento("APP_BLUETOOTH", "TIEMPOS_CAMBIADOS");
     }
   } else if (strncmp(accion, "SET_RTC:", 8) == 0) {
-    // CMD:PIN:1234:SET_RTC:YYYY-MM-DD,HH:MM:SS
+    // D-15 - ESTA PUNTA YA NO PONE LA HORA, Y POR ESO NO CONTESTA A LA ORDEN.
     //
-    // ESTE COMANDO CONTESTABA OK SIN HABER PUESTO NADA, y con N-17 confirmado en
-    // hardware -el cristal Y2 que no oscila- ese era el caso NORMAL, no el raro: sin
-    // oscilador reloj_ajustar() se abstiene a proposito -escribir dejaria una hora en
-    // un contador que nadie hace avanzar-, y aqui se mandaba la confirmacion igual. El
-    // tecnico se iba del poste creyendo que dejo el reloj puesto.
+    // EL DEFECTO QUE SE CIERRA AQUI, Y NO ES DE FORMA: el operario mandaba UNA orden de
+    // poner la hora y le contestaban DOS aparatos. El puente decia
+    // "$ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK" -la puso en SU DS3231, que es cierto- y
+    // cuatro segundos despues esta punta decia "$ERR,CMD:SET_RTC,DESC:NO_QUEDO_PUESTA"
+    // -en el suyo no entro, que TAMBIEN es cierto-. Las dos respuestas eran verdad y
+    // juntas eran una contradiccion sobre la orden del tecnico, que no tiene como saber
+    // cual de los dos relojes le importa.
     //
-    // Los tres finales son distintos y el operario necesita los tres distintos: no hay
-    // con que contar el tiempo; la hora no entro; la hora entro y va camino del Esclavo.
+    // POR QUE LA CURA ES CALLARSE Y NO CONTESTAR MEJOR. No hay $ERR bueno para esto: un
+    // $ERR,CMD:SET_RTC de esta punta SIGUE siendo un segundo acuse a una sola orden, por
+    // muy bien redactado que este. D-15 lo dice en una linea -"es el UNICO que contesta a
+    // SET_RTC"-, y el unico es el que tiene el reloj. Una orden, un acuse.
     //
-    // El %c del final es el mismo cierre que lleva SET_TIEMPOS, y por el mismo motivo:
-    // sin el, "...,18:25:00CMD:FORZAR_ROJO" -dos ordenes pegadas en el buffer- convierte
-    // sus 6 campos, pone la hora y contesta OK, tirando la orden de emergencia que venia
-    // detras. Aqui ademas la basura entra en un comando que ESCRIBE en el RTC: se rechaza
-    // antes de tocar nada.
-    int y, mo, d, h, mi, s;
-    char sobra = 0;
-    if (sscanf(accion + 8, "%d-%d-%d,%d:%d:%d%c", &y, &mo, &d, &h, &mi, &s, &sobra) != 6) {
-      enviarTramaConCrc("$ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO");
-    } else if (!reloj_hayCristal()) {
-      // No se nombra ninguna pieza: N-45 quito "Es Y2: toca hardware" de la pantalla
-      // por senalar un componente sin haberlo medido, y con Y2 nuevo seguia diciendo lo
-      // mismo. Lo que el micro VE lo cuenta CONSULTA RELOJ.
-      enviarTramaConCrc("$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ");
-      // Y aqui van los bits que esa consulta ensenaba, porque su pantalla ya no se
-      // puede abrir. DETRAS del $ERR y no delante: el $ERR es la respuesta a la orden y
-      // el diagnostico la acompana, igual que j17RegistrarLinea() se anota despues de
-      // despachar y no antes.
-      reportarBitsDelReloj();
-    } else if (!ajustarRelojVerificado((uint8_t)h, (uint8_t)mi, (uint8_t)s, (uint8_t)d)) {
-      // N-138 (04/09): ESTE MOTIVO YA NO SE REUSA, Y LO DESTAPO EL BANCO.
-      //
-      // Aqui se contestaba FORMATO_INVALIDO -"se reusa el motivo que ya existe para una
-      // trama que no sirve"-, o sea EL MISMO que la rama de arriba, que si es de formato.
-      // Dos causas distintas con una sola respuesta, y el tecnico no puede saber cual es.
-      //
-      // Se vio en campo el 04/09 y hubo que leer el diario de ordenes entero para
-      // entenderlo: el ESP32 pone la hora en el DS3231 y contesta
-      // "$ACK,NODE:PUENTE,...,RESULT:OK,FECHA:...,HORA:..." -o sea, el reloj QUEDO
-      // PUESTO-, y cuatro segundos despues llegaba este $ERR diciendo "formato invalido"
-      // sobre la MISMA trama que el puente acababa de aceptar. Quien lo lea concluye que
-      // la app manda la fecha mal, y la app la manda bien.
-      //
-      // Lo que pasa de verdad: el puente reenvia la linea VERBATIM -es su contrato-, asi
-      // que esta punta tambien la recibe e intenta poner SU reloj, el del STM32. El
-      // ajuste no queda -se relee y no cuadra- y eso NO es un problema de formato.
-      //
-      // El nombre se toma del que el ESP32 ya usa para este mismo caso
-      // (RELOJ_ERR_NO_QUEDO_PUESTA), en vez de inventar uno: un motivo que significa lo
-      // mismo y se llama distinto segun quien conteste obliga al que lee a saber de que
-      // punta vino, y ese dato no siempre esta.
-      enviarTramaConCrc("$ERR,CMD:SET_RTC,DESC:NO_QUEDO_PUESTA");
-    } else if (!coordinador_sincronizarHora()) {
-      // HOY ESTE CAMINO NO PUEDE OCURRIR: sincronizarHora() solo se niega si
-      // !reloj_enHora(), que la linea de arriba acaba de comprobar. Se deja porque su
-      // bool existe y no se tira, y porque es lo unico que se enterara el dia que a esa
-      // funcion le anadan otra precondicion -la hora quedaria puesta aqui y el Esclavo
-      // no la recibiria, que es medio arreglo y se lee como entero-.
-      enviarTramaConCrc("$ACK,CMD:SET_RTC,RESULT:HORA_PUESTA_SIN_PROPAGAR");
-    } else {
-      enviarTramaConCrc("$ACK,CMD:SET_RTC,RESULT:OK");
-      bluetooth_reportarEvento("APP_BLUETOOTH", "RTC_AJUSTADO_Y_SYNC");
-    }
+    // Y NO SE CAE AL else DE COMANDO DESCONOCIDO, QUE ES POR LO QUE LA RAMA SIGUE AQUI.
+    // Sin este strncmp la linea llegaria al final del despachador y saldria
+    // "$ERR,CMD:DESCONOCIDO": otra vez dos respuestas, y encima una que acusa a la app de
+    // mandar algo que no existe. La rama se conserva para CONSUMIR la orden en silencio.
+    //
+    // POR QUE EL SILENCIO NO DEJA AL TECNICO A CIEGAS, MEDIDO Y NO SUPUESTO: el SerialBT
+    // de esta punta es USART1 por PB6/PB7 al conector J17 (:29), y al otro lado de J17
+    // esta el ESP32 (contrato.h, GPIO16/17). O sea que NO HAY CAMINO por el que un
+    // SET_RTC llegue hasta aqui sin haber pasado antes por despachador_observar() del
+    // puente, y esa funcion contesta SIEMPRE -siete finales distintos, uno por motivo-.
+    // El acuse existe; lo emite quien puede saber si la hora quedo puesta.
+    //
+    // EL $EVENT NO ES UN ACUSE Y POR ESO SI CABE. Va al REGISTRO DE EVENTOS de la app
+    // -que ya lo pinta, cero lineas de JavaScript-, no a la orden: el emparejador de la
+    // app casa por CMD:SET_RTC y aqui no sale ese campo. Sirve para el dia que alguien
+    // monte un modulo Bluetooth tonto en J17 en vez del puente: entonces no habria acuse
+    // ninguno, y esta linea es lo unico que diria por que.
+    bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
   } else if (strcmp(accion, "REINICIAR_RELOJ") == 0) {
     // N-31. PIDE PIN porque BORRA LA HORA Y TODO EL RESPALDO -ciclo acordado, marca de
     // sincronizacion e indicador del Degradado-, o sea la autorizacion de la que cuelga

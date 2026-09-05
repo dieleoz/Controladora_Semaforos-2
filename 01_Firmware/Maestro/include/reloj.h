@@ -154,16 +154,35 @@ uint32_t reloj_segundosDelDia();
 // sin reanudar -en ambar- mientras la otra reanuda y da verde.
 void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo = 0, uint8_t dia = 0);
 
-// N-144: retira la bandera de "tengo hora" cuando el ajuste NO quedo puesto.
+// 🔴 D-15 (05/09) - ESTA PUNTA YA NO TIENE CAMINO DE ESCRITURA, Y LO QUE ESO COSTO
+// SE DEJA ESCRITO AQUI PORQUE ES DONDE HARA FALTA.
 //
-// reloj_ajustar() la enciende al terminar de escribir. Quien puede saber si de verdad
-// quedo es quien comparo lo que mando con lo que releyo -bluetooth.cpp-, y hasta hoy
-// avisaba del fallo y dejaba la bandera puesta: el equipo publicaba HORA:00:00:00, que
-// no es medianoche sino un contador que no avanza declarandose valido.
+// Habia dos llamadores de reloj_ajustar(): la rama SET_RTC de bluetooth.cpp y la
+// pantalla AJUSTAR HORA. La primera se retiro -el reloj es del DS3231 del ESP32 y solo
+// el contesta a SET_RTC-, y la segunda cuelga de botonAceptar(), que es "return false"
+// desde que PB14/PB15 pasaron a ser camaras (D-2). O sea que hoy NADIE puede poner en
+// hora este RTC, y horaValida solo la puede encender reloj_setup()/reloj_actualizar()
+// leyendo el dominio de respaldo -que con Y2 muerto (N-17) no arranca nunca-.
 //
-// Importa mas de lo que parece porque de reloj_enHora() cuelga la autorizacion del Modo
-// Degradado, que da verdes guiandose SOLO por el reloj.
-void reloj_invalidarHora();
+// CONSECUENCIA MEDIDA, NO DEDUCIDA: reloj_enHora() de esta punta es hoy FALSO SIEMPRE,
+// y de esa bandera cuelga la autorizacion del Modo Degradado
+// (modo_degradado.cpp: "if (!reloj_enHora()) return MDG_FALTA_HORA;"), la
+// sincronizacion horaria por radio (coordinador_sincronizarHora) y la medida de desfase
+// (coordinador_medirDesfase). Los tres estan bloqueados, y lo estaban ya antes de D-15
+// por el cristal: D-15 no los rompe, los deja bloqueados POR CONSTRUCCION del fuente en
+// vez de por una averia de hardware.
+//
+// LO QUE SE RETIRO CON EL CAMINO, Y POR QUE NO SE GUARDO DE ADORNO: reloj_invalidarHora()
+// existia para N-144 -un ajuste que NO quedaba dejaba horaValida en true, el equipo
+// publicaba HORA:00:00:00 y eso no es medianoche, es un contador parado declarandose
+// valido-. Sin camino de escritura no hay ajuste fallido que retractar, asi que la
+// funcion se quedaba sin sujeto: una huerfana con motivo escrito es "una lista de
+// defectos con permiso" (CLAUDE.md 3.bis), y envejece peor que el codigo.
+//
+// 🔴 EL DIA QUE SE CABLEE EL DS3231 A ESTA PUNTA (via B del Manual 17 3.2, abierta como
+// AB-4), N-144 VUELVE CON EL: quien escriba ese camino tiene que releer lo que escribio
+// y RETIRAR la bandera si no cuadra, no solo avisar. Es la mitad que costo la cinta de
+// campo del 04/09.
 
 // --- Franja nocturna configurable -----------------------------------------
 //

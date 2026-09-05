@@ -617,63 +617,30 @@ static void procesarComando(const char* cmd) {
     enviarTramaConCrc("$ERR,CMD:TEST_LEDS,DESC:NO_EN_SERVICIO_USE_EL_MAESTRO");
     bluetooth_reportarEvento("APP_BLUETOOTH", "TEST_LEDS_RECHAZADO");
   } else if (strncmp(accion, "SET_RTC:", 8) == 0) {
-    // CMD:PIN:1234:SET_RTC:YYYY-MM-DD,HH:MM:SS (Inyeccion Courier RTC)
+    // D-15 - ESTA PUNTA YA NO PONE LA HORA, Y POR ESO NO CONTESTA A LA ORDEN.
     //
-    // NO SE CONTESTA OK SIN HABER MIRADO SI SE PUDO. reloj_ajustar() no devuelve
-    // nada y rechaza EN SILENCIO en dos sitios -sin oscilador, reloj.cpp:173; con
-    // cifras fuera de rango, reloj.cpp:175-, asi que el $ACK incondicional de antes
-    // era una promesa que nadie habia comprobado. Con N-17 confirmado en hardware
-    // -el cristal Y2 no oscila en las tarjetas actuales- ese OK falso es hoy la
-    // respuesta HABITUAL, no un caso raro: el tecnico se va del poste convencido de
-    // que dejo el reloj puesto, y esta punta sigue sin hora.
+    // Es la misma rama que el Maestro y por el mismo motivo, pero AQUI PESA MAS: el
+    // Esclavo no tiene pantalla ni menu, asi que su reloj NUNCA tuvo mas via que esta.
+    // Retirarla deja a reloj_ajustar() de esta punta con UN solo llamador -el manejador
+    // de CMD_HORA_S de main.cpp, o sea la radio-, que es exactamente lo que reloj.h de
+    // aqui ya declaraba como unica via ("aqui no hay teclado con el que un operario
+    // pueda ponerlo en hora, la unica via es la radio").
     //
-    // AQUI NO HAY reloj_hayCristal(): esa funcion solo la declara el reloj.h del
-    // Maestro. La pregunta equivalente en esta punta es reloj_contadorSegundos(),
-    // que reserva el 0 para "no hay reloj" y devuelve 1 antes que un cero real
-    // (reloj.cpp:131 y 143), de modo que su cero significa exactamente "el RTC no
-    // esta operativo". Se pregunta ANTES para no escribir sobre un contador parado.
+    // 🔴 Y ESA VIA TAMPOCO CORRE HOY, y se escribe en vez de disimularse: CMD_HORA_S lo
+    // manda coordinador_sincronizarHora() del Maestro, que empieza con
+    // "if (!reloj_enHora()) return false;" sobre el reloj del Maestro -cuyo Y2 esta
+    // CONFIRMADO MUERTO (N-17)-. O sea que el reloj del STM32 del Esclavo no lo pone
+    // nadie, ni antes de este cambio ni despues. Lo que este cambio quita no es una via
+    // que funcionaba: es un ACUSE que contradecia al del puente.
     //
-    // Y no se propaga nada despues: el Esclavo no tiene coordinador.cpp, su hora
-    // viaja por radio desde el Maestro. Aqui solo se responde la verdad.
+    // El DS3231 con pila de ESTA punta cuelga de SU PROPIO ESP32, y a ese si le llega la
+    // orden -el puente de cada poste atiende el SET_RTC que entra por su Bluetooth-. Por
+    // eso el tecnico tiene que conectarse a LOS DOS postes: no hay ningun camino que
+    // lleve la hora de un DS3231 al otro.
     //
-    // Las cifras se acotan tambien aqui, ademas de en reloj.cpp, porque si no un
-    // ajuste descartado por rango sobre un reloj que YA estaba en hora dejaria
-    // reloj_enHora() en true y volveria a contestar OK sin haber escrito nada. Se
-    // reusa FORMATO_INVALIDO -una hora imposible es tan mal formato como una trama
-    // que no casa- para no gastar flash en un literal nuevo. El dia se exige 1..31
-    // porque el Courier manda siempre la fecha completa; el 0 de "no toques la
-    // fecha" no llega nunca por esta puerta.
-    //
-    // EL %c DE MAS NO SE LEE NUNCA: ESTA PARA QUE sscanf DELATE LO QUE SOBRA.
-    //
-    // sscanf cuenta CAMPOS CONVERTIDOS y no exige que la cadena se acabe. Con dos ordenes
-    // en el mismo buffer -"...,18:25:00CMD:AMBAR_EMERGENCIA", que es lo que queda cuando una
-    // trama entra a medias y la siguiente se le concatena- esto convertia sus 6 campos,
-    // ponia la hora y contestaba "$ACK,CMD:SET_RTC,RESULT:OK", tirando sin aviso la orden
-    // que venia detras -que en esta punta es justo la de emergencia-.
-    //
-    // Con el %c detras la cuenta separa los dos casos: una cadena que se acaba convierte 6
-    // -el %c se queda sin nada que leer- y una con basura pegada convierte 7. Se exige el 6
-    // EXACTO: ante dos ordenes pegadas la respuesta segura es no ejecutar ninguna y
-    // decirlo, no adivinar cual era.
-    int y, mo, d, h, mi, s;
-    char sobra = 0;
-    if (sscanf(accion + 8, "%d-%d-%d,%d:%d:%d%c", &y, &mo, &d, &h, &mi, &s, &sobra) == 6 &&
-        h >= 0 && h <= 23 && mi >= 0 && mi <= 59 && s >= 0 && s <= 59 &&
-        d >= 1 && d <= 31) {
-      if (reloj_contadorSegundos()) reloj_ajustar((uint8_t)h, (uint8_t)mi, (uint8_t)s, (uint8_t)d);
-      // Con las cifras ya acotadas y el oscilador en marcha, reloj_ajustar() no
-      // puede rechazar: reloj_enHora() distingue entonces el ajuste hecho del que
-      // no se pudo intentar.
-      if (reloj_enHora()) {
-        enviarTramaConCrc("$ACK,CMD:SET_RTC,RESULT:OK");
-        bluetooth_reportarEvento("APP_BLUETOOTH", "COURIER_RTC_INYECTADO");
-      } else {
-        enviarTramaConCrc("$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL");
-      }
-    } else {
-      enviarTramaConCrc("$ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO");
-    }
+    // El $EVENT no es un acuse -no lleva campo CMD:- y va al registro que la app ya
+    // pinta. Ver la rama gemela del Maestro para el censo completo del camino.
+    bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
   } else {
     enviarTramaConCrc("$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO");
   }

@@ -458,3 +458,35 @@ sobre chip real, SIN VERIFICAR.**
 
 ---
 *Manual técnico oficial de instalación de pila RTC V9.0. El «Plan B» del `DS3231` sobre `PB0`/`PB8` está ANULADO — apartado 5.*
+
+---
+
+## 🔴 HAY DOS RELOJES POR CRUCE, Y NADA LOS SINCRONIZA
+
+Cada ESP32 lleva **su** DS3231 con **su** pila. **No existe ningún camino que los ponga de
+acuerdo:** los dos ESP32 no se hablan —sin WiFi, sin ESP-NOW, sin radio: sus únicos objetos
+de entrada/salida son su propio STM32 y el teléfono—, y la única sincronización horaria del
+equipo va por LoRa **entre los dos STM32**, cuyos relojes están muertos (`Y2`, N-17).
+
+> **Consecuencia operativa: poner la hora en un poste NO pone en hora el cruce.**
+> Hay que conectarse a **los dos**, uno detrás de otro, **con el mismo teléfono y en la
+> misma sesión de la app**.
+
+### Procedimiento — los dos postes, o no cuenta
+
+1. Conéctese al **poste 1**. Espere a que el tablero identifique el equipo (`MAESTRO` o
+   `ESCLAVO`): hasta entonces la app no sabe a cuál atribuir la lectura y **se niega a
+   anotar**.
+2. Mande la hora. El puente contesta con la hora **releída del chip**, no con la que usted
+   mandó.
+3. La app anota el poste y **avisa de cuál falta**.
+4. Vaya al **poste 2** y repita **sin cerrar la app**.
+5. Con los dos vistos, la app publica el **desfase medido entre los dos relojes**. Es el
+   único sitio donde ese número existe.
+
+⚠️ **`RESULT:HORA_PUESTA_SIN_PROPAGAR` no habla del otro poste.** Significa que la hora entró
+en el DS3231 y la orden **no llegó a la controladora de ese mismo armario** por el cable
+interno `J17`. El reloj está bien; lo que falla es el enlace de dentro.
+
+⚠️ **Si la app se cierra entre poste y poste, el registro se pierde** y hay que rehacer los
+dos. La app lo dirá —*«no consta en esta sesión»*— en vez de dar por bueno lo que no vio.

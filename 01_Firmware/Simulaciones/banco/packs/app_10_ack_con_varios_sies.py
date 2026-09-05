@@ -59,6 +59,18 @@ DESCRIPCION = "toda orden con mas de un RESULT posible tiene un texto distinto p
 APP_JS = ("05_Funcional", "App_Semaforo", "app.js")
 BT_MAESTRO = ("Maestro", "src", "bluetooth.cpp")
 BT_ESCLAVO = ("Esclavo", "src", "bluetooth.cpp")
+# 🔴 D-15 (05/09) - EL TERCER EMISOR, Y SIN EL ESTE PACK ACUSABA A LA APP DE INVENTARSE
+# DOS RESPUESTAS QUE EL EQUIPO SI DA.
+#
+# Cuando el STM32 dejo de atender SET_RTC, sus dos $ACK -RESULT:OK y
+# RESULT:HORA_PUESTA_SIN_PROPAGAR- desaparecieron de los dos bluetooth.cpp, y este pack
+# los declaro huerfanos en ACK_TEXTO. Era falso: no se han dejado de emitir, se emiten
+# desde OTRO MICRO. El censo miraba dos de los tres sitios donde vive el contrato.
+#
+# Es CLAUDE.md 5 en su forma menos visible: la guarda de rutas vigila ficheros que
+# desaparecen, no CONTENIDO QUE SE MUDA DE FICHERO. Aqui el contenido se mudo de
+# procesador, y el instrumento siguio buscando donde ya no estaba.
+BT_PUENTE = ("ESP32_Expansion", "src", "despachador.cpp")
 
 # Las dos tablas de la app, por el nombre con el que estan declaradas. No es una lista
 # de textos escrita a mano: es la DIRECCION donde vive la tabla, igual que los packs del
@@ -67,8 +79,13 @@ BT_ESCLAVO = ("Esclavo", "src", "bluetooth.cpp")
 TABLA_ACK = "ACK_TEXTO"
 TABLA_ERR = "ERR_TEXTO"
 
-_ACK_CPP = re.compile(r'"\$ACK,CMD:([A-Z_:0-9]+),RESULT:([A-Z_0-9]+)"')
-_ERR_CPP = re.compile(r'"\$ERR,CMD:([A-Z_:0-9]+),DESC:([A-Z_0-9]+)"')
+# El NODE: opcional y el cierre [,"] no son un aflojamiento del patron: son las DOS
+# formas reales del literal. El puente marca sus tramas con NODE:PUENTE porque un $ERR
+# suyo que pareciera del STM32 manda a diagnosticar el poste equivocado (B-4), y sus
+# $ACK siguen con ",FECHA:%04d-..." en la misma cadena, asi que nunca cierran con
+# comilla detras del RESULT. Con el patron anterior el puente era invisible.
+_ACK_CPP = re.compile(r'"\$ACK,(?:NODE:[A-Z_]+,)?CMD:([A-Z_:0-9]+),RESULT:([A-Z_0-9]+)[,"]')
+_ERR_CPP = re.compile(r'"\$ERR,(?:NODE:[A-Z_]+,)?CMD:([A-Z_:0-9]+),DESC:([A-Z_0-9]+)[,"]')
 
 
 def _tabla(js, nombre):
@@ -133,11 +150,11 @@ def correr(b, fw):
     js = fw.texto_repo(*APP_JS)
 
     # -------------------------------------------------------------------------
-    b.titulo("1. Que puede contestar el C++, recalculado de las dos puntas")
+    b.titulo("1. Que puede contestar el C++, recalculado de las dos puntas Y DEL PUENTE")
     # -------------------------------------------------------------------------
     acks = {}
     errs = {}
-    for partes in (BT_MAESTRO, BT_ESCLAVO):
+    for partes in (BT_MAESTRO, BT_ESCLAVO, BT_PUENTE):
         codigo = fw.codigo(*partes)
         for cmd, res in _ACK_CPP.findall(codigo):
             acks.setdefault(cmd, set()).add(res)

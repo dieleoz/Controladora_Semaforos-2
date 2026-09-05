@@ -2841,6 +2841,75 @@ document.addEventListener('DOMContentLoaded', () => {
   // sus claves contra los literales del C++ en las dos direcciones: una respuesta que
   // el firmware manda y la tabla no nombra, y una que la tabla nombra y el firmware ya
   // no manda. Las dos hacen dano y no son la misma averia.
+  // ---------------------------------------------------------------------------
+  // D-15 - EL RELOJ DEL CRUCE SON DOS RELOJES, Y HASTA HOY LA APP ENSENABA UNO.
+  //
+  // EL DEFECTO, EN UNA LINEA: el tecnico ponia la hora en el poste que tenia delante,
+  // leia "Hora puesta y propagada" y se iba creyendo que habia dejado el CRUCE en hora.
+  // No habia dejado en hora mas que la mitad.
+  //
+  // POR QUE NO ES UN CAMPO NUEVO EN EL $STATUS, que era la otra salida posible. Medido,
+  // no elegido:
+  //
+  //   1. NO HAY CAMINO. El DS3231 de cada poste cuelga de SU PROPIO ESP32, y ese ESP32
+  //      solo habla con su STM32 (verbatim, y solo en el sentido app -> STM32: es B-1) y
+  //      con el telefono que tenga delante. Para que el $STATUS del Maestro llevara el
+  //      reloj del Esclavo, el dato tendria que ir DS3231(E) -> ESP32(E) -> STM32(E) ->
+  //      radio -> STM32(M) -> ESP32(M) -> app. Eso cruza B-1, estrena un comando de radio
+  //      y obliga al STM32 a publicar un campo de un reloj que no es suyo, que es
+  //      EXACTAMENTE el error de categoria que D-15 acaba de quitar de en medio.
+  //   2. NO CABE. El peor caso del $STATUS por tipo son 162 B contra un techo de 155, y
+  //      ya no cabia antes de anadir nada (N-153). Un campo mas empeora un desbordamiento
+  //      conocido, y la salida limpia es acotar RF y T donde se producen -no aqui-.
+  //   3. NO HACE FALTA. El puente ya devuelve, por poste, la hora RELEIDA del chip en su
+  //      $ACK (FECHA:/HORA:), y el $STATUS ya dice en NODE: a que poste esta conectada la
+  //      app. Con esas dos cosas la comprobacion se hace aqui y cuesta CERO bytes de
+  //      cable.
+  //
+  // Y DE PROPINA MIDE LO QUE NADIE MEDIA: el desfase entre los dos DS3231. No hay ningun
+  // camino que los sincronice entre si -ni radio entre ESP32, ni nada que lleve la hora
+  // de uno al otro-, asi que cada uno corre libre desde que alguien se la puso. El unico
+  // instrumento posible es este: comparar las dos lecturas contra el reloj del telefono,
+  // que es la referencia comun.
+  //
+  // 🛑 EL LIMITE, ESCRITO EN VEZ DE DISIMULADO: esto vive en memoria de la app, no en
+  // disco. Aguanta lo que dura la caminata entre postes -que es para lo que existe-, y NO
+  // sobrevive a que Android mate la app. Cuando falta un poste se dice "no consta en esta
+  // sesion", que es lo unico cierto: la app no puede saber lo que no vio. No se inventa
+  // persistencia sin haberla probado.
+  const RelojDelCruce = {
+    postes: {},
+
+    // `poste` sale de NODE: del $STATUS. Si no se sabe a que poste se esta conectado NO
+    // SE ANOTA NADA: atribuir la lectura al poste equivocado es peor que no tenerla,
+    // porque produce un desfase inventado entre un reloj y el mismo reloj.
+    anotar(poste, fecha, hora, telMs) {
+      if (!poste || (poste !== 'MAESTRO' && poste !== 'ESCLAVO')) return false;
+      const f = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha || '');
+      const h = /^(\d{2}):(\d{2}):(\d{2})$/.exec(hora || '');
+      if (!f || !h) return false;
+      const equipoMs = new Date(+f[1], +f[2] - 1, +f[3], +h[1], +h[2], +h[3]).getTime();
+      if (!isFinite(equipoMs)) return false;
+      this.postes[poste] = { fecha, hora, equipoMs, telMs };
+      return true;
+    },
+
+    falta() {
+      return ['MAESTRO', 'ESCLAVO'].filter(p => !this.postes[p]);
+    },
+
+    // EL DESFASE ENTRE LOS DOS DS3231, con el telefono de referencia comun.
+    //
+    // De cada poste se guarda el error contra el telefono en el instante de su acuse
+    // -equipo menos telefono-, y se restan. Asi la caminata entre postes se cancela: da
+    // igual que entre las dos lecturas pasen dos minutos o dos dias.
+    desfaseSeg() {
+      const m = this.postes.MAESTRO, e = this.postes.ESCLAVO;
+      if (!m || !e) return null;
+      return Math.round(((m.equipoMs - m.telMs) - (e.equipoMs - e.telMs)) / 1000);
+    }
+  };
+
   const ACK_TEXTO = {
     'CANCELAR_AMBAR|RETIRADO': {
       tono: 'green',
@@ -2990,20 +3059,40 @@ document.addEventListener('DOMContentLoaded', () => {
              'la botonera.',
       toast: 'Tiempos guardados - el cruce sigue en ROJO hasta que arranque el ciclo'
     },
+    // 🔴 D-15 (05/09) - LOS DOS TEXTOS DE ABAJO DECIAN ALGO QUE YA NO PASA, Y ERA LO
+    // PEOR QUE PODIAN DECIR: PROMETIAN LA OTRA PUNTA.
+    //
+    // Decian "hora puesta en el Maestro y propagada al Esclavo" y "entro en el MAESTRO
+    // pero NO se propago al ESCLAVO". Los dos describian el $ACK del STM32, que
+    // propagaba por radio con coordinador_sincronizarHora(). Ese comando ya no lo
+    // atiende el STM32: quien contesta es el puente, y el puente NO PROPAGA NADA -pone
+    // la hora en el DS3231 de SU poste y ahi se acaba-.
+    //
+    // Dejar el texto viejo habria sido la mentira con formato de exito una capa mas
+    // arriba: el firmware deja de mentir y la app sigue diciendo lo mismo. El tecnico
+    // leia "propagada", se iba, y el otro poste seguia con la hora que tuviera.
+    //
+    // El RESULT del puente significa OTRA COSA, y es lo que ahora se traduce:
+    //   OK                        la hora entro en el DS3231 de ESTE poste Y la linea
+    //                             llego entera al STM32 de ESTE poste.
+    //   HORA_PUESTA_SIN_PROPAGAR  entro en el DS3231 de ESTE poste y la linea NO llego a
+    //                             su STM32. "Propagar" aqui es J17 -el cable de dentro
+    //                             del armario-, NO la otra punta del cruce.
     'SET_RTC|OK': {
       tono: 'green',
-      texto: 'Equipo: hora puesta en el Maestro y propagada al Esclavo.',
-      toast: 'Hora puesta y propagada'
+      texto: 'Equipo: hora puesta y RELEIDA del reloj de ESTE poste. Ojo: esto NO toca ' +
+             'el otro poste - cada uno lleva su propio reloj con pila y no hay nada que ' +
+             'los sincronice entre si. El cruce no queda en hora hasta que se repita ' +
+             'conectandose al otro.',
+      toast: 'Hora puesta en ESTE poste - falta el otro'
     },
-    // La hora entro AQUI y no salio hacia la otra punta. Es medio arreglo, y un "OK" lo
-    // haria pasar por entero: el Esclavo se quedaria con la hora vieja, que es
-    // exactamente de lo que cuelga la autorizacion del Modo Degradado.
     'SET_RTC|HORA_PUESTA_SIN_PROPAGAR': {
       tono: 'red',
-      texto: 'Equipo: la hora entro en el MAESTRO pero NO se propago al ESCLAVO. La ' +
-             'otra punta sigue con la hora anterior, y de esa hora cuelga la ' +
-             'autorizacion del Modo Degradado. Repita la sincronizacion.',
-      toast: 'Hora puesta solo en el Maestro: NO llego al Esclavo'
+      texto: 'Equipo: la hora entro en el reloj de ESTE poste, pero la orden NO llego ' +
+             'entera a su controladora por el cable interno (J17). El reloj esta bien; ' +
+             'lo que falla es el enlace de dentro del armario. Y sigue faltando el otro ' +
+             'poste, que es un reloj aparte.',
+      toast: 'Hora puesta, pero la orden no llego a la controladora'
     }
   };
 
@@ -3542,6 +3631,45 @@ document.addEventListener('DOMContentLoaded', () => {
       DiarioOrdenes.verRespuesta('$ACK', data, line, Date.now());
       const cual = data.CMD || '?';
       const clave = cual + '|' + (data.RESULT || '');
+      // D-15: EL ACUSE DEL RELOJ SE ANOTA POR POSTE, Y ES LO QUE CONVIERTE
+      // "puse la hora aqui" EN "el cruce esta en hora".
+      //
+      // Se engancha al ACUSE y no al envio, por lo mismo que el mando de arrancar el
+      // ciclo (N-150): lo unico que sabe si la hora quedo dentro es la respuesta, y
+      // ademas el puente devuelve la hora RELEIDA del chip, no la que se mando.
+      //
+      // El poste lo dice NODE: del $STATUS, no este $ACK: el acuse viene marcado
+      // NODE:PUENTE -es del ESP32, que es quien tiene el reloj- y eso identifica al
+      // MODULO, no al POSTE. Si todavia no ha llegado ningun $STATUS no se anota nada y
+      // se dice: una lectura atribuida al poste equivocado fabrica un desfase entre un
+      // reloj y el mismo reloj.
+      if (cual === 'SET_RTC' && data.FECHA && data.HORA) {
+        if (RelojDelCruce.anotar(state.node, data.FECHA, data.HORA, Date.now())) {
+          const falta = RelojDelCruce.falta();
+          if (falta.length) {
+            addEvent('amber', 'Reloj del cruce: anotado ' + state.node + ' (' +
+                              data.FECHA + ' ' + data.HORA + '). FALTA ' + falta.join(' y ') +
+                              ': conectese a ese poste y repita. Mirando un solo poste NO ' +
+                              'se ha validado el cruce.');
+          } else {
+            // LOS DOS POSTES VISTOS. Aqui sale el unico numero que mide de verdad si el
+            // cruce esta en hora, y que hasta hoy no calculaba nadie: cuanto se separan
+            // los dos relojes. El telefono es la referencia comun, asi que la caminata
+            // entre postes no cuenta.
+            const d = RelojDelCruce.desfaseSeg();
+            const abs = Math.abs(d);
+            addEvent(abs <= 5 ? 'green' : 'red',
+                     'Reloj del cruce: los DOS postes vistos en esta sesion. Desfase ' +
+                     'medido entre sus relojes: ' + d + ' s' +
+                     (abs <= 5 ? '.' : ' - REVISELO: son dos relojes independientes y ' +
+                                       'nada los vuelve a juntar solo.'));
+          }
+        } else {
+          addEvent('amber', 'Reloj del cruce: hora puesta, pero la app AUN NO SABE a que ' +
+                            'poste esta conectada (no ha llegado ningun $STATUS con NODE). ' +
+                            'No se anota: repita cuando el tablero identifique el equipo.');
+        }
+      }
       const dicho = ACK_TEXTO[clave];
       if (dicho) {
         addEvent(dicho.tono, dicho.texto);

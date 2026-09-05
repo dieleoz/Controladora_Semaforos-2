@@ -765,6 +765,17 @@ Todas las tramas viajan a **9600 baudios (8N1)** y finalizan en `\r\n`.
 ### 4.1 Cálculo del Checksum NMEA (*XX)
 El checksum se calcula aplicando la operación **XOR bit a bit** de todos los bytes contenidos entre el carácter `$` inicial y el asterisco `*` (ambos excluidos), formateado como dos caracteres hexadecimales en mayúsculas (`00` a `FF`).
 
+> ### 🔵 `SET_RTC` — el único comando cuyo acuse NO lo emite el STM32 (D-15, 05/09)
+>
+> El reloj es el **DS3231 con pila del ESP32**, así que **contesta él**, y sus tramas van
+> marcadas `NODE:PUENTE`. Las dos puntas del STM32 **reconocen** la orden y la **consumen en
+> silencio** —si no, caería al `else` y saldría `$ERR,CMD:DESCONOCIDO`, que sería otra vez
+> dos respuestas—, y dejan un `$EVENT` con `DETALLE:SET_RTC_LO_ACUSA_EL_PUENTE`.
+>
+> **Una orden, un acuse.** Hasta el 05/09 contestaban **los dos aparatos**: el puente
+> `RESULT:OK` (la puso en su DS3231) y el STM32 `DESC:NO_QUEDO_PUESTA` (en el suyo no).
+> **Las dos eran ciertas**, y juntas una contradicción sobre la misma orden.
+
 ### 4.2 Telemetría Periódica ($STATUS) — Emitida cada 2 segundos *(cadencia bajada a **2000 ms** el 04/09, decision del responsable, en las DOS puntas — MEDIDO: `Maestro/src/bluetooth.cpp:851`, `Esclavo/src/bluetooth.cpp:768`. Un tecnico que cronometre con «1 segundo» declara caido un enlace sano.)*
 $$\text{Formato: }\$STATUS,NODE:\langle N\rangle,SERIE:\langle S\rangle,MODO:\langle M\rangle,ESTADO:\langle E\rangle,T:\langle S\rangle,RF:\langle R\rangle\%,RTT:\langle T\rangle ms,BAT:\langle V\rangle,HORA:\langle H\rangle,ESC:\langle C\rangle,PLUMA:\langle P\rangle*\langle CRC\rangle\backslash r\backslash n$$
 

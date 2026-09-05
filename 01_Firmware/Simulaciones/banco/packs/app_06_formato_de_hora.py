@@ -174,14 +174,36 @@ def _sscanf_enteros(cadena, formato):
     return fuera
 
 
-def _formato_del_cpp(fw, punta):
-    """El formato del sscanf de SET_RTC, leido de SU rama del despachador.
+def _formato_del_cpp(fw):
+    """El formato del sscanf de SET_RTC, leido de QUIEN LO PARSEA HOY: el puente.
 
-    No vale el primer sscanf del fichero: la primera version de este pack lo hacia asi
-    y leyo el '%d,%d,%d' de SET_TIEMPOS, que esta antes. Lo cazo el propio pack al
-    comparar las dos puntas -el Maestro daba un formato y el Esclavo otro-, que es
-    justo para lo que sirve esa comparacion. Se entra en la rama por su literal y se
-    busca dentro."""
+    🔴 D-15 (05/09) - ESTE LECTOR SE MUDO, Y LA MUDANZA ES LA MITAD DEL ARREGLO.
+
+    Hasta hoy leia la rama SET_RTC de los DOS bluetooth.cpp del STM32 y exigia que las
+    dos declararan el mismo formato. Esa comprobacion tenia sentido mientras las dos
+    puntas PARSEABAN la cadena: la app manda una sola y con formatos distintos habria
+    entrado bien en una y mal en la otra.
+
+    Con D-15 el reloj es el DS3231 del ESP32 y el STM32 ya no atiende SET_RTC: los dos
+    sscanf desaparecieron. Dejar el lector donde estaba habria dejado este pack en
+    ABORTADO -que es una puerta abierta, no una casilla pendiente (CLAUDE.md 3.quater)-,
+    y aflojarlo a "si no hay sscanf, pasa" lo habria dejado en VERDE midiendo nada.
+
+    Se muda al unico parser que queda. Y la comprobacion de "las dos puntas dicen lo
+    mismo" NO se muda con el: seria vacuamente cierta -hay un solo firmware de ESP32,
+    corriendo en los dos postes, asi que comparar su formato consigo mismo aprueba
+    siempre-. Lo que ocupa su sitio es la comprobacion 1.bis, que exige que los STM32
+    hayan dejado de parsear de verdad."""
+    codigo = fw.codigo("ESP32_Expansion", "src", "despachador.cpp")
+    m = re.search(r'strstr\s*\([^,]+,\s*"%s:"' % re.escape(COMANDO), codigo)
+    if not m:
+        return None
+    m2 = re.search(r'sscanf\s*\([^,]+,\s*"([^"]+)"', codigo[m.end():])
+    return m2.group(1) if m2 else None
+
+
+def _rama_set_rtc_del_stm32(fw, punta):
+    """El bloque de la rama SET_RTC de una punta del STM32, o None si ya no existe."""
     codigo = fw.codigo(punta, "src", "bluetooth.cpp")
     m = re.search(r'strn?cmp\s*\(\s*accion\s*,\s*"%s:"' % re.escape(COMANDO), codigo)
     if not m:
@@ -189,11 +211,7 @@ def _formato_del_cpp(fw, punta):
     i = codigo.find("{", m.end())
     if i < 0:
         return None
-    rama = _bloque(codigo, i)
-    if rama is None:
-        return None
-    m2 = re.search(r'sscanf\s*\([^,]+,\s*"([^"]+)"', rama)
-    return m2.group(1) if m2 else None
+    return _bloque(codigo, i)
 
 
 def _envios(js):
@@ -365,24 +383,46 @@ def correr(b, fw):
     courier = _sin_comentarios(fw.texto_repo(*COURIER_JS))
     fuentes = (js, courier)
 
-    # ---- 1. El formato lo dice el C++, y las dos puntas tienen que decir lo mismo ----
-    formatos = {p: _formato_del_cpp(fw, p) for p in PUNTAS}
-    faltan = [p for p, f in formatos.items() if f is None]
-    if faltan:
+    # ---- 1. El formato lo dice el C++ DEL QUE PARSEA, que desde D-15 es el puente ----
+    formato = _formato_del_cpp(fw)
+    if formato is None:
         raise fw.Abortado(
-            "no se hallo el sscanf de %s en bluetooth.cpp de %s. Ese formato es quien "
-            "decide que orden llevan la fecha y la hora y que se acepta; sin el, este "
-            "pack estaria comprobando la app contra una suposicion"
-            % (COMANDO, ", ".join(faltan)))
+            "no se hallo el sscanf de %s en ESP32_Expansion/src/despachador.cpp. Ese "
+            "formato es quien decide que orden llevan la fecha y la hora y que se "
+            "acepta, y desde D-15 el puente es el UNICO que lo parsea; sin el, este "
+            "pack estaria comprobando la app contra una suposicion" % COMANDO)
 
-    b.verificar(
-        formatos["Maestro"] == formatos["Esclavo"],
-        "las dos puntas leen SET_RTC con el mismo formato: %r" % formatos["Maestro"],
-        "el Maestro lee %r y el Esclavo %r. La app manda UNA sola cadena: con formatos "
-        "distintos, la misma orden entraria bien en una punta y mal en la otra"
-        % (formatos["Maestro"], formatos["Esclavo"]))
+    # ---- 1.bis. Y LOS DOS STM32 HAN DEJADO DE PARSEARLO DE VERDAD ----
+    #
+    # Ocupa el sitio de la comprobacion que antes exigia que las dos puntas declararan
+    # el MISMO formato. Aquella ya no tiene sujeto -solo queda un parser- y mantenerla
+    # comparando el ESP32 consigo mismo seria aprobar siempre.
+    #
+    # Esta si sabe fallar, y vigila la direccion que importa: que nadie devuelva el
+    # segundo parser. Dos aparatos parseando la misma orden es como se llego a los DOS
+    # ACUSES OPUESTOS que D-15 vino a cerrar -el puente decia OK porque la puso en su
+    # DS3231 y el STM32 decia NO_QUEDO_PUESTA porque en el suyo no-, las dos ciertas.
+    for punta in PUNTAS:
+        rama = _rama_set_rtc_del_stm32(fw, punta)
+        if rama is None:
+            raise fw.Abortado(
+                "el %s ya no tiene rama SET_RTC ninguna en bluetooth.cpp. Se espera que "
+                "SIGA existiendo para CONSUMIR la orden en silencio: sin ella la linea "
+                "cae al else del despachador y sale $ERR,CMD:DESCONOCIDO, que es otra "
+                "vez una segunda respuesta a una sola orden" % punta)
+        b.verificar(
+            "sscanf" not in rama,
+            "el %s reconoce SET_RTC pero YA NO LO PARSEA: cero sscanf en su rama" % punta,
+            "el %s ha vuelto a parsear SET_RTC. D-15 dice que el reloj es del DS3231 del "
+            "ESP32 y que solo el contesta; un segundo parser aqui devuelve los dos acuses "
+            "opuestos a una sola orden" % punta)
+        b.verificar(
+            "CMD:SET_RTC" not in rama,
+            "el %s no emite ningun $ACK ni $ERR con CMD:SET_RTC: una orden, un acuse" % punta,
+            "el %s ha vuelto a contestar a CMD:SET_RTC. El acuse es del que tiene el "
+            "reloj (D-15); dos aparatos contestando a una orden es el defecto que se "
+            "cerro el 05/09" % punta)
 
-    formato = formatos["Maestro"]
     campos_formato = formato.split(",")
     b.verificar(
         len(campos_formato) == 2 and campos_formato[0].count("%d") == 3

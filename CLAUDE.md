@@ -462,6 +462,18 @@ Su corolario: cuando el instrumento y el razonamiento no coinciden, **manda la m
 > gcc?"*: le **exige enlazar** un `main()` vacío antes de fiarse. Es `PASS` contra `ABORTADO`
 > aplicado al propio compilador — y vale para cualquier herramienta que el banco dé por sentada.
 >
+> 🔴 **Y N-44 SIGUE VIVO: el 05/09 la compuerta cayo a `13 PASS · 7 ABORTADO` y nadie se
+> entero.** Los siete arneses que compilan C++ real se fueron a la vez porque `ld` no abre
+> la ruta con `ñ` de `Diego.Zuñiga` —reproducido, no supuesto: `crt2.o` existe y mide
+> 9.870 B—. Volvio a `20/20` copiando el toolchain a **`D:	oolchain\mingw64`**, que es un
+> candidato que `compuerta.py` ya prueba.
+>
+> **ESA COPIA NO ESTA EN EL REPOSITORIO: es una dependencia de la maquina.** Si desaparece,
+> la proxima sesion mide **siete comprobaciones menos** y el acta lo dice en una linea que
+> nadie lee cuando el resumen de arriba parece normal. **Es la razon de que un ABORTADO
+> tenga que leerse SIEMPRE**, y de que el numero de PASS sin el total al lado no signifique
+> nada.
+
 > Su otra mitad: **un instrumento no puede depender del entorno de quien lo llama.** `compilar.ps1`
 > moría en `Get-FileHash` porque el `PSModulePath` que hereda la sesión mezcla los módulos de
 > PowerShell 7 con los de la extensión del IDE y el autocargado de PS 5.1 se queda sin encontrar

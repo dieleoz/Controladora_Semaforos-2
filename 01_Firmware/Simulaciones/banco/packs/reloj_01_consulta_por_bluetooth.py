@@ -207,12 +207,47 @@ def correr(b, fw):
     # "todas las puertas llevan los bits" sobre un conjunto vacio: eso aprueba siempre.
     puertas = [m.start() for m in re.finditer(
         r'enviarTramaConCrc\(\s*"\$ERR[^"]*%s[^"]*"\s*\)' % MARCA, codigo)]
-    if len(puertas) < 2:
+    # 🔴 D-15 (05/09) - ERAN DOS PUERTAS Y AHORA ES UNA. SE BAJA EL SUELO Y SE ANADE LA
+    # COMPROBACION QUE LO SOSTIENE, QUE ES LA MITAD QUE NO SE PUEDE OMITIR.
+    #
+    # Las dos puertas eran SET_RTC y REINICIAR_RELOJ. La de SET_RTC se retiro entera: con
+    # el reloj en el DS3231 del ESP32, esta punta ya no atiende ese comando -no lo parsea
+    # y no lo acusa-, asi que no tiene donde colgar un "vea CONSULTA RELOJ".
+    #
+    # Bajar el suelo de 2 a 1 A SECAS habria sido aflojar el instrumento hasta que diera
+    # verde, que es justo lo que este repositorio castiga: con "len < 1" el pack aprobaria
+    # igual el dia que alguien se cargara TAMBIEN la puerta de REINICIAR_RELOJ. Por eso el
+    # suelo baja Y la comprobacion 1.bis de abajo exige que la puerta que falta falte POR
+    # EL MOTIVO QUE CREEMOS -la rama entera se fue-, y no porque alguien borrara el
+    # literal dejando la rama contestando.
+    if len(puertas) < 1:
         raise fw.Abortado(
-            "el Maestro tiene %d $ERR que nombren %s y se esperaban los dos "
-            "(SET_RTC y REINICIAR_RELOJ). O el literal cambio o la rama se movio; en "
-            "los dos casos este pack estaria midiendo un fichero que ya no es el suyo"
-            % (len(puertas), MARCA))
+            "el Maestro no tiene ni un $ERR que nombre %s. Queda UNA puerta viva "
+            "(REINICIAR_RELOJ) desde que D-15 retiro la de SET_RTC; si tampoco esta, o "
+            "el literal cambio o la rama se movio, y en los dos casos este pack estaria "
+            "midiendo un fichero que ya no es el suyo" % MARCA)
+
+    # ---- 1.bis. LA PUERTA QUE FALTA, FALTA POR EL MOTIVO QUE CREEMOS ----------
+    #
+    # No basta con que el literal haya desaparecido: hace falta que la rama SET_RTC haya
+    # dejado de contestar. Si alguien quitara solo el "vea CONSULTA RELOJ" y dejara el
+    # $ERR, el tecnico volveria a recibir un rechazo a secas -y ademas seguiria habiendo
+    # dos acuses a una sola orden, que es lo que D-15 cerro-.
+    m_rama = re.search(r'strncmp\s*\(\s*accion\s*,\s*"SET_RTC:"', codigo)
+    if m_rama is None:
+        raise fw.Abortado(
+            "el Maestro ya no reconoce SET_RTC ni para consumirlo. Se espera que la rama "
+            "SIGA existiendo y calle: sin ella la orden cae al else y sale "
+            "$ERR,CMD:DESCONOCIDO, que es otra vez una segunda respuesta")
+    rama_rtc = _bloque_que_contiene(codigo, m_rama.start())
+    b.verificar(
+        "CMD:SET_RTC" not in rama_rtc,
+        "la puerta de SET_RTC no falta por un literal borrado: la rama entera dejo de "
+        "contestar (cero $ACK y cero $ERR con CMD:SET_RTC). Por eso no necesita bits: "
+        "quien acusa es el puente, que es quien tiene el reloj (D-15)",
+        "la rama SET_RTC del Maestro vuelve a contestar a CMD:SET_RTC. Entonces SI "
+        "necesita los bits del reloj otra vez -y ademas devuelve el defecto de los dos "
+        "acuses opuestos a una sola orden que D-15 cerro el 05/09")
 
     # ---- 2. CADA UNA lleva los bits DENTRO DE SU PROPIA RAMA -----------------
     #
@@ -366,9 +401,14 @@ def correr(b, fw):
     if "reloj_diagnostico" not in fw.texto("Esclavo", "include", "reloj.h"):
         b.reportar(
             "el Esclavo tiene la misma puerta muerta y NO tiene con que contestarla",
-            ["Esclavo/src/bluetooth.cpp contesta $ERR,CMD:SET_RTC,DESC:SIN_CRISTAL y "
-             "ahi se acaba: esa punta no tiene pantalla, no tiene menu y no tiene "
-             "CONSULTA RELOJ que consultar.",
+            ["🔴 CORREGIDO 05/09: aqui se leia 'el Esclavo contesta "
+             "$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL y ahi se acaba'. Con D-15 esa frase paso "
+             "a ser FALSA -esa rama ya no contesta nada- y una frase falsa dentro de un "
+             "reportar() envejece igual que dentro de una excepcion: nadie la recompila. "
+             "Lo que queda cierto es lo de abajo, y se mide en vez de afirmarse.",
+             "Esa punta no tiene pantalla, no tiene menu y no tiene CONSULTA RELOJ que "
+             "consultar; y desde D-15 tampoco tiene la puerta de SET_RTC por la que antes "
+             "al menos se sabia que el reloj no estaba.",
              "Y no puede tenerla todavia: Esclavo/include/reloj.h NO declara "
              "reloj_diagnostico() ni RelojDiag -cero apariciones-, asi que el emisor "
              "del Maestro no se puede copiar aqui sin tocar reloj.cpp.",
