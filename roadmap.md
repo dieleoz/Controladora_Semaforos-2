@@ -279,6 +279,39 @@ vacuamente cierto (§3.bis). Ahora vuelven a medir.
 | **`CANCELAR_AMBAR` tambien ABRE paso** | lo dice su propio comentario, y quedo con PIN y sin confirmacion. Es el candidato mas claro a llevar el aviso de via |
 | **Sin telemetria la fase no acota** | `estadoLuces` vale `null` en los dos lados, asi que lo unico que estrecha la ventana de "no repreguntar" son los 30 s |
 
+### 0.0.decies · 🎯 DECISION: DOS PANTALLAS, PORQUE SON DOS COSAS (04/09, noche)
+
+Palabras del responsable, y resuelve varios sintomas de golpe: *"al conectarnos al maestro,
+ese front debe mostrarnos data de todo, incluso de lo que obtiene del esclavo. Y al
+conectarnos a una ventana de esclavo, sera para diagnostico: logs de cuando conecta o no, y
+estado de las ordenes que recibe del maestro. Ademas no puede permitir operar, pero si
+diagnosticar. La pantalla confunde."*
+
+| conectado a | que es | que enseña |
+|---|---|---|
+| **MAESTRO** | la **consola de operacion** | todo el cruce: sus luces Y las del Esclavo, modo, tiempos, enlace, hora. Es donde se opera |
+| **ESCLAVO** | una ventana de **DIAGNOSTICO** | cuando conecto y cuando no, que ordenes recibio del Maestro y que hizo con ellas, su bateria, su hora, su señal. **NO se opera desde aqui** |
+
+**Por que esto arregla mas de lo que parece:**
+
+- La pantalla de hoy intenta ser las dos y por eso confunde: enseña una botonera de operacion
+  cuando estas en el Esclavo, con casi todo desactivado, y una columna de `SIN DATOS` cuando
+  estas en el Maestro. **Las dos mitades mienten por omision.**
+- Cierra la peticion de *"que el Maestro traiga los datos del esclavo"*, que hoy no puede
+  porque el `$STATUS` lleva **un solo ESTADO, el del que la manda**.
+- Y le da sentido a conectarse al Esclavo: **no es una consola degradada, es el sitio donde se
+  diagnostica** —que es exactamente cuando hace falta ir alli, con el enlace caido—.
+
+**El hueco vacio deja de anunciar una carencia y ofrece la accion:** *"Conectarse al esclavo"*
+en vez de *"sin datos del esclavo"*. Tambien suyo.
+
+> **Lo que esto NO cambia, y hay que decirlo:** el ambar de emergencia del Esclavo **se queda**.
+> Es la unica emergencia que tiene esa punta —no tiene rojo propio— y quitarla dejaria al
+> operario de ese poste sin nada. Lo que se arregla es que el Maestro se entere (§0.0.octies),
+> no que el operario pierda su boton.
+
+---
+
 ### 0.0.octies · 🔴 EL BLOQUEO DEL CRUCE, Y COMO SE PROCEDE (04/09, noche)
 
 **Lo reportado, y es lo mas grave de la sesion:** *"como me conecte a la aplicacion del
