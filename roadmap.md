@@ -97,6 +97,105 @@ cable, y conviene un segundo terminal emparejado.
 
 ---
 
+## 0.0.tervicies LO QUE EL RESPONSABLE DECIDIO LA NOCHE DEL 05/09 — cuatro decisiones y una condicion
+
+### 1 · `A-12` · EL MODO INTELIGENTE PASA A USAR LOS TIEMPOS QUE CONFIGURA EL OPERARIO
+
+**El defecto, medido:** `modo_inteligente.cpp` **no lee ni uno** de los tiempos que manda
+`SET_TIEMPOS`. Se fija los suyos en el arranque y no vuelve a mirar:
+
+```
+static int maxVerde = VERDE_MIN_MIN;   // el SUELO del rango, siempre 3 min
+maxVerde = VERDE_MIN_MIN;              // linea 75, y nadie mas lo escribe nunca
+```
+
+Asi que **si el operario configura 6 minutos porque ese tramo es largo, en Modo Inteligente el
+cruce corre a 3** — y encima la Regla 1 puede cortar el verde a los **15 s**. La app manda bien el
+dato; **es el firmware el que lo tira.** Y por eso ninguna guarda lo veia: ese modo **no pasa por
+`SET_TIEMPOS`**.
+
+> 🔴 **Y el «arreglo de una linea» habria matado el modo.** `maxVerde` ya vale 3 min, asi que
+> subir el piso de la Regla 1 a 3 min deja **suelo = techo**: el verde duraria siempre 3 min
+> exactos y **las camaras quedarian inertes justo en el unico modo que las usa**. Es §3.septies
+> otra vez —una guarda que ya no puede dar las dos respuestas—. **Son DOS numeros, no uno.**
+
+**El modelo decidido, y su propiedad de seguridad:**
+
+| | |
+|---|---|
+| **La fase dura lo que se configura** — 3, 4, 5, 6 min **segun la distancia de cada cruce** | igual que el Automatico |
+| Cumplido ese tiempo, **si el otro lado pide paso → cambia** | igual que el Automatico |
+| Si el otro lado **NO** pide nada y en el mio sigue habiendo trafico → **mantiene**, hasta el techo | esto es lo que aportan las camaras |
+| **Techo = el DOBLE del tiempo configurado** | decidido el 05/09 |
+
+> ✅ **LA PROPIEDAD QUE HACE QUE ESTO SEA SEGURO: con las camaras muertas, el Modo Inteligente se
+> comporta EXACTAMENTE como el Automatico.** Si la camara nunca dice «hay coches», el modo nunca
+> alarga: degrada al comportamiento conocido, sin verdes de 15 s ni esperas raras.
+
+**Y las camaras dejan de poder ACORTAR un verde** —que es lo peligroso, porque es lo que hace que
+el conductor crea que el equipo esta averiado y adelante en rojo (`D-5`)— **y solo pueden
+alargarlo cuando no hay nadie esperando al otro lado**, que no molesta a nadie.
+
+> 🟡 **LA CONDICION QUE PUSO EL RESPONSABLE, Y NO ES UN ADORNO:** *«el doble **si un funcional
+> revisa el manual y este manual de uso es claro**»*. Un verde que unas veces dura 3 min y otras 6
+> **parece una averia** a quien lo mira desde la acera. **Sin ese manual el numero correcto llega a
+> la calle y vuelve reportado como defecto.** El manual es parte de la entrega, no un paso
+> posterior.
+
+### 2 · `A-1.bis` · LA BARRERA PUEDE NO BAJAR, Y EL SEMAFORO CAMBIA IGUAL
+
+Palabras del responsable: *«el semaforo cambia, la talanquera a lo mejor ni baja si existe una
+alarma presente, no importa, pero es seguridad para no danar un vehiculo, **todo puede operar en
+normalidad sin la barrera**»*.
+
+**Esto es mucho mas estrecho que «derogar SFTY-28», y por eso es seguro:** la camara puede
+**impedir que la pluma baje**, y **nunca** puede impedir que una luz cambie. El peor modo de fallo
+—camara pegada en «hay presencia»— acaba en **pluma siempre arriba**, que es exactamente lo que se
+acaba de declarar operable. **El trafico no se entera.**
+
+### 3 · EL PLAZO DE LA CAMARA CIEGA SUBE DE 6 h A 4 DIAS, Y EL MODO SE DECLARA AVERIADO
+
+*«si una camara se estropea, la camara no cambia por dias, pasa a modo fallo y debe pedir se
+revise la camara, que se yo 4 dias sin alarmas»*.
+
+**Y el motivo es bueno: una camara rota no se arregla rapido, asi que no hay ninguna prisa por
+acusarla — y si hay mucho coste en acusarla de mas.** Una alarma que salta un domingo sin trafico
+manda a alguien a un poste sano, y a la tercera vez nadie las mira. 4 dias de **paso abierto** son
+unos **8 dias de reloj** con el ciclo corriendo.
+
+> **La segunda mitad vale mas que el numero: «fallo de ese modo».** No es una alarma mas — es que
+> **el Modo Inteligente se declare averiado y pida revision**. Encaja con la propiedad de arriba:
+> con la camara ciega el modo ya se comporta como el Automatico, **solo que sin saberlo**. Con
+> esto deja de ser «sin saberlo».
+
+**Y las dos averias opuestas llevan plazos opuestos, a proposito:**
+
+| averia | plazo | por que |
+|---|---|---|
+| **CIEGA** (no ve nada) | **4 dias** | mientras tanto **no molesta a nadie**: el modo degrada al Automatico |
+| **PEGADA** (ve siempre) | **20 min** | **si hace dano**: alargaria el verde hasta el techo en cada ciclo |
+
+### 4 · BOTONES Y PANTALLA FUERA — y de las tres cosas UNA YA ESTABA HECHA
+
+*«los botones a, b, c y d los eliminamos, la pantalla LCD tambien, la app la tenemos»*.
+**Medido antes de tocar nada:**
+
+| | estado real el 05/09 |
+|---|---|
+| **Los cuatro botones** | ✅ **ya fuera**: `botonAceptar()`/`botonCancelar()` son `return false;` en las dos puntas, y `BOTON1`/`BOTON2` **no se leen en ningun sitio** (`grep -c` = 0) |
+| **La pantalla LCD** | ❌ **sigue enlazada**: 17 llamadas `lcd_` en el Maestro, 8 en el Esclavo, y `menu.cpp` entero detras |
+| **El mando `A`/`B`** | ❌ **sigue vivo** en `PB9`/`PB13` (`botones.cpp:480-481` y `:491-492`) |
+
+> 🔴 **Y RETIRAR EL MANDO NO ES NEUTRO — son dos barreras, las dos medidas:**
+>
+> 1. **`mando_ambarLocal()` deja de armarse nunca**, y de esa bandera cuelgan **cinco lectores** que
+>    la usan para **VETAR**. El veto de SFTY-21 no queda inerte: **queda abierto** (§3.ter).
+> 2. **El Esclavo se queda sin su unica puerta viva al Degradado.** `degradado_entrar()` tiene dos
+>    llamadores: `menu.cpp:227` —muerto con la pantalla— y `mando.cpp:148`, la secuencia `A.B.A.B`.
+>
+> **No se ejecuta en la misma frase que se dice.** Lo barato y sin barreras amputadas es lo
+> contrario: **darle a la app la llave de la puerta que ya existe** (`A-11`).
+
 ## 0.0.duovicies.bis LOS CUATRO AGENTES DE LA MADRUGADA — tres arreglaron el instrumento y uno construyo obra
 
 Se lanzaron cuatro en paralelo sobre ficheros disjuntos. **Ninguno de los cuatro cerro lo que

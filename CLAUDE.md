@@ -466,6 +466,29 @@ Su corolario: cuando el instrumento y el razonamiento no coinciden, **manda la m
 > de deducciones cuesta media sesion y ademas se defiende sola, porque cada eslabon es
 > razonable. **La medida barata va primero, no cuando se acaban las ideas.**
 
+> 🔴 **Y una QUINTA cara, del 05/09, que llego al responsable con la palabra «medido» encima: UN
+> CERO DE `grep` NO ES «NO HAY», ES «MI PATRON NO ENCONTRO».** Se le dijo que **el Esclavo no
+> tiene ningun camino para entrar en Modo Degradado**, apoyado en esto:
+>
+> ```
+> grep -c 'modoActual_set(MODO_DEGRADADO)' Esclavo/src/*.cpp   ->  0
+> ```
+>
+> El cero es cierto. **Y el Esclavo entra por `degradado_entrar()`, que es otro simbolo y tiene
+> DOS llamadores** —`mando.cpp:148` por la secuencia `A.B.A.B`, y `menu.cpp:227`, muerto—. La
+> puerta esta construida; lo que se retiro es el hardware que la abre.
+>
+> **La forma del error es la de KiCad y la de `shutil.which()`, pero el sujeto es peor: no era una
+> herramienta que faltara ni un formato raro, era que UN CONCEPTO SE LLAMA DISTINTO EN CADA PUNTA.**
+> Antes de publicar un «no existe» sobre una capacidad, se busca **la capacidad por sus dos
+> nombres posibles** —el setter generico y la funcion propia— o se busca al reves: **quien la
+> APAGA**, que casi siempre esta al lado de quien la enciende.
+>
+> Y el agravante que lo hace regla: **una ausencia se convierte en una decision del responsable**.
+> Aquel cero le habria hecho elegir entre «anadir un modo» y «retirarlo», cuando la opcion real y
+> barata —darle a la app la llave de una puerta ya hecha— **no estaba en la mesa porque yo habia
+> medido mal**. Es §2.quater: las opciones son un instrumento.
+
 > **Un instrumento que existe no es un instrumento que mide (N-44).** `gcc` estaba instalado,
 > respondía `--version` y compilaba a `.o`; su `ld` no enlazaba nada porque el toolchain vivía bajo
 > una ruta con `ñ`. Los dos arneses que compilan C++ real cayeron a `ABORTADO` de un día para otro
@@ -977,6 +1000,41 @@ Antes de proponer estructura:
 - Cada cambio estructural anota la cifra de flash antes y después. Si sube más de ~2 %, se
   revisa antes de seguir.
 
+## 7.bis La cota de un buffer es el BUFFER de cada campo, no su tipo ni su rango
+
+> **Es lo unico que `snprintf` garantiza sin fiarse de otro fichero.**
+
+El 05/09 el peor caso del `$STATUS` del Maestro estaba apuntado en **162 B por tipo**. Medido por
+**buffer** eran **169** contra un techo de 155: **25 de mas, no 7**. Y el Esclavo **cabia por un
+byte** sin que nadie lo hubiera mirado nunca.
+
+**Una trama truncada no da un dato malo, y por eso no se encuentra:** sale bien formada hasta la
+mitad, no casa el CRC, y la app la descarta entera. El sintoma es *«el equipo se callo»*, que
+manda a mirar el cable.
+
+**Se acota donde se produce; no se agrandan buffers.** Y el cambio de fondo no es el tamano:
+
+> **Antes el buffer se fiaba de una invariante de OTRO fichero. Despues, de una guarda que corre
+> en la misma funcion y en cada emision.**
+
+**Las cotas se DERIVAN, no se escriben.** `CUENTA_ATRAS_MAX_SEG` sale de `limites_ciclo.h` —un
+`900` a mano habria sido la quinta copia de N-137— y el tope del `RTT` es el propio umbral de
+orfandad de SFTY-6: **por encima del techo de silencio no hay enlace que medir**. Un `9999`
+inventado es `A-7` otra vez.
+
+**Y cuando un valor se sale se publica `!`, ni el numero ni `--`.** El `--` ya significa *«todavia
+no lo se»* —sin muestras, sin hora, sin cuenta atras— y aplastar ahi un valor imposible **lo
+esconderia entre los huecos normales**. `!` dice *«llego algo que no puede ser»*, que es un
+hallazgo.
+
+**El pack que lo vigila tiene que medir las DOS mitades**, y `esp32_07` solo tenia una: comparaba
+`tramaCompleta >= payload + 5`, que es una cota entre dos buffers. Falta la otra —**que el peor
+caso REAL quepa**—, resolviendo cada `%s` siguiendo el fuente y **ABORTANDO si no sabe acotar un
+argumento**. Y su hermana, que es el fallo contrario: **que cada buffer aguante el valor mas largo
+que su propia cota permite**.
+
+---
+
 ## 8. Los simuladores validan el modelo, no el código
 
 `simulador_sistema_v7_6.py` y los packs del banco son **Python escrito a mano** que reimplementa
@@ -1249,7 +1307,7 @@ vigente: 2 radios en enlace directo, **sin repetidor**.
 |---|---|
 | `01_Firmware/Maestro`, `Esclavo`, `Repetidor` | firmware |
 | `01_Firmware/compuerta.py` | **la única forma correcta de verificar** |
-| `01_Firmware/Simulaciones/` | simuladores, y `banco/` con los **74 packs** |
+| `01_Firmware/Simulaciones/` | simuladores, y `banco/` con los **76 packs** |
 | `01_Firmware/Validacion_LCD/` | arnés de pantalla (compila el `lcd.cpp` real) |
 | `01_Firmware/Validacion_Ciclo/` · `_Respaldo/` · `_Automatico/` | los otros tres que compilan C++ real — ver §8 |
 | `OPTIMIZACIONES.md` | las reglas `SFTY-x` y la **trazabilidad regla → código → prueba** |
