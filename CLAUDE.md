@@ -569,6 +569,45 @@ demostrada es un modo dia, no un color mas brillante.
 
 ---
 
+## 4.quinquies Un instrumento mide contra un borde, y el borde puede no ser el que importa
+
+> **Una captura de campo puede REFUTAR a un instrumento. §4.ter dice que una captura a un
+> solo ancho no prueba una interfaz; esta es su otra mitad.**
+
+El 04/09 llegó una foto del banco con un botón de la botonera **asomando por encima y por
+debajo de la barra de pestañas**: el operario no podía verlo ni pulsarlo. Y
+`herramientas_medir_consola.js` —escrito ese mismo día justo para eso— daba **«sin
+hallazgos»** sobre esa pantalla, a los cuatro anchos.
+
+No estaba roto. Medía **contra `window.innerHeight`**, y `.bottom-nav` es
+`position: fixed`:
+
+> **Un botón puede estar dentro del viewport Y ESTAR CUBIERTO.** «Cabe» y «se ve» no son
+> lo mismo, y el instrumento sólo sabía comprobar lo primero.
+
+Al enseñarle a buscar el **techo útil** —el borde superior de lo que flota encima— la misma
+pantalla dio: **131 px tapados a 320 px, 87 a 360, 46 a 390**. La foto tenía razón y las
+cuatro medidas estaban mal.
+
+**Es la TERCERA vez en un día que un instrumento propio mira menos de lo que dice:**
+
+| | decía | miraba de verdad |
+|---|---|---|
+| el censo de mandos | «todo cabe» | ignoraba lo que flota encima |
+| el censo de palabras partidas | «ninguna» | sólo los `<strong>` de cuatro ids |
+| el censo de enums de un valor | «ninguno» | sólo `== VALOR`, no `case VALOR:` |
+
+**La regla: cuando un instrumento compara contra un borde, un umbral o una lista, escribe
+al lado CUÁL es ese borde y por qué es el correcto.** Los tres fallaron en la misma
+frontera —lo que el instrumento decidió no mirar— y ninguno lo llevaba escrito.
+
+**Y el corolario que más vale, porque contradice el instinto:** cuando la foto de campo y
+el instrumento no coinciden, **§4 dice que manda la medida — pero la foto TAMBIÉN es una
+medida**, y es la única tomada sobre el aparato real. El instrumento es el sospechoso
+hasta que se demuestre que sabía mirar.
+
+---
+
 ## 4.bis Un sospechoso se elige por ficheros, no por el mensaje del commit## 4.bis Un sospechoso se elige por ficheros, no por el mensaje del commit
 
 > **Antes de nombrar un culpable, cruza el commit contra los ficheros que toca.**
