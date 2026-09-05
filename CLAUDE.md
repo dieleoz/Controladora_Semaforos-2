@@ -82,6 +82,51 @@ segunda mitad — **cuando el verde cuesta más que lo que certifica, el verde E
 
 ---
 
+## 2.quater LAS OPCIONES QUE LE PONES DELANTE AL RESPONSABLE SON UN INSTRUMENTO
+
+> **Una pregunta bien hecha sobre un diagnostico sin medir le hace decidir algo que no
+> existe — y encima le deja la culpa del resultado.**
+
+Paso el 04/09 y costo dos vueltas de banco. Se le planteo al responsable una eleccion
+limpia sobre el cerrojo del ambar de emergencia del Esclavo, con sus dos opciones y sus
+consecuencias, y contesto: *«b, sin cerrojo cuando viene de la app»*. Contesto bien **a
+una pregunta que no habia que hacerle**.
+
+**La pregunta se sostenia sobre una causa que nadie habia medido:** que el cerrojo era
+lo que trababa el cruce. Al implementar la (b), el pack `esclavo_07` la paro con un
+mensaje que era mejor que el razonamiento que la habia propuesto:
+
+> *«el ambar de la app dura hasta el siguiente latido del Maestro -unos 3 s- y el
+> operario ve el equipo obedecer y volverse atras solo»*
+
+Se probo una segunda version —dejar el veto solo en lo que ABRE paso y abrirlo en lo que
+PARA— y tambien se cayo. **Y solo entonces se midio la cadena entera**: la causa del
+bloqueo no era el cerrojo, era que esa punta **no ACUSA**. El Maestro agotaba reintentos
+a ciegas, caia a `C_FALLO` y desde ahi rechazaba todo. Con el aviso por radio (N-142) el
+Maestro deja de adivinar, deja de preguntar, y el bloqueo desaparece **sin tocar el
+cerrojo** — que es justo lo que protege a quien esta en la calzada.
+
+**O sea que la respuesta correcta a aquella pregunta era: la pregunta no va.**
+
+### Las tres cosas que hay que hacer distinto
+
+1. **Antes de ofrecer una eleccion, mide la causa.** Un menu de opciones tiene la misma
+   autoridad que un dato —mas, porque parece que ya se ha investigado— y quien lo recibe
+   asume que las dos opciones son las que hay.
+2. **Si hay que preguntar sin haber medido, se dice en la pregunta.** *«Esto es lo que
+   creo que pasa y NO lo he medido»* cambia la respuesta que da el responsable, y esa es
+   toda la diferencia entre consultarle y delegarle una apuesta.
+3. **Cuando el banco tumba una decision suya, se le devuelve con la medida, no se
+   ejecuta igual.** Ese dia el instrumento tenia razon **dos veces seguidas** contra el
+   razonamiento que habia redactado las opciones.
+
+> 🔴 **Y el corolario que mas incomoda: «el responsable lo decidio» NO es cobertura.** El
+> apartado 4 dice que un informe no es una medida; esto es su hermana en la otra
+> direccion — **una decision tomada sobre un informe malo hereda el error, y ademas lo
+> blinda**, porque a partir de ahi ya nadie vuelve a mirar la causa: esta decidido.
+
+---
+
 ## 2.ter DECLARAR NO ES EJERCER — por qué el banco pasó con cinco defectos dentro
 
 > **La pregunta del 04/09, y hay que contestarla bien porque es la que más vale: si el banco corrió
@@ -205,8 +250,8 @@ python 01_Firmware/Simulaciones/banco/correr.py --listar
 python 01_Firmware/Simulaciones/banco/correr.py --pack esclavo_03
 ```
 
-**La migración terminó el 05/08: no quedan validadores monolíticos.** El banco son **67 packs**
-—`974/974` comprobaciones en el acta del 04/09—, un fichero corto por propiedad, que se corre solo
+**La migración terminó el 05/08: no quedan validadores monolíticos.** El banco son **71 packs**
+—`1025` comprobaciones en el acta del 05/09—, un fichero corto por propiedad, que se corre solo
 en un segundo.
 
 > ⚠️ **Y ese crecimiento no es una medalla, es un aviso.** El 28/08 eran 38 packs y `405/405`. Hoy
@@ -355,6 +400,25 @@ Su corolario: cuando el instrumento y el razonamiento no coinciden, **manda la m
 > hallazgo grave de firmware—. Al correr el comando disparó **una cuarta que nadie había listado**,
 > y no había ningún defecto de firmware. Eliminar entre opciones incompletas es adivinar con tabla.
 
+> 🔴 **Y su CUARTA cara, del 05/09, que no cuesta un commit sino la sesion entera: razonar
+> donde bastaba LEER.** Con el banco reportando *«DAR PASO deja el Maestro en rojo y a los
+> 15 s el Esclavo se va a ambar»* se encadenaron cinco hipotesis sin abrir un fichero —que
+> si la escritura en flash del respaldo bloqueaba el bus, que si el PING estaba suprimido
+> durante la espera de ACK, que si el Maestro se quedaba mudo en algun modo—. **Todas
+> plausibles, todas falsas.** La respuesta estaba en una linea:
+>
+> ```
+> static unsigned long tiempoDespejeMs = 15000;
+> ```
+>
+> Los «15 segundos» del reporte eran esa constante, literal. Y el Modo Manual entraba por
+> la puerta del Automatico, que programa un verde para dentro de ese plazo.
+>
+> **La regla: cuando el sintoma trae un NUMERO, ese numero se busca en el fuente ANTES de
+> construir la primera hipotesis.** Un `grep` de una cifra cuesta diez segundos; una cadena
+> de deducciones cuesta media sesion y ademas se defiende sola, porque cada eslabon es
+> razonable. **La medida barata va primero, no cuando se acaban las ideas.**
+
 > **Un instrumento que existe no es un instrumento que mide (N-44).** `gcc` estaba instalado,
 > respondía `--version` y compilaba a `.o`; su `ld` no enlazaba nada porque el toolchain vivía bajo
 > una ruta con `ñ`. Los dos arneses que compilan C++ real cayeron a `ABORTADO` de un día para otro
@@ -464,6 +528,38 @@ absoluto — un `enum` de un valor que nadie compara puede ser legítimo.
 el cambio, en el mismo commit, y era una **afirmación sobre el código sin comprobar** —
 justo lo que §3.bis prohíbe para las excepciones de huérfanos. Un comentario que explica
 por qué algo sobrevive a una limpieza es exactamente donde hay que dudar.
+
+---
+
+## 3.octies `correr.py` NO es `compuerta.py`: el banco es UNA fila de veinte
+
+> **Un `70 PASS, 0 FALLA` del banco por packs no dice nada de las otras diecinueve
+> filas — y una de ellas puede estar en ABORTADO por el mismo cambio que acabas de
+> comitear.**
+
+Paso el 05/09. Se anadio el campo `ESC:` al `$STATUS` del Maestro, se corrio
+`banco/correr.py` —que es rapido y da la cifra bonita—, salio `1015/1018` con todo lo
+propio en verde, y se comiteo. **La compuerta completa salia con codigo `2`**: el
+`simulador_app_bluetooth.py`, que es OTRA de las veinte filas y no un pack, estaba en
+
+> `[ABORTADO] el firmware emite el campo 'ESC' en $STATUS y este instrumento no sabe con
+> que compararlo`
+
+Lo encontro un agente que corrio la compuerta de verdad, no el que hizo el cambio.
+
+**La confusion es facil y por eso va escrita: `correr.py` mide los packs; `compuerta.py`
+mide los packs Y los cuatro arnes que compilan C++ real Y los dos simuladores Y los
+tests de la app.** Son cosas distintas, dan cifras distintas y salen por codigos
+distintos. Una cifra del banco no autoriza un commit.
+
+> ✅ **Y el ABORTADO estaba BIEN hecho, que es la mitad util de la historia.** Aquel
+> instrumento aborta ante un campo que no conoce en vez de saltarselo. La alternativa
+> —ignorar lo desconocido— habria dado **verde midiendo un campo menos**, en silencio y
+> para siempre. Al escribir un lector de contratos, la rama del campo desconocido se
+> escribe abortando: *preferimos no medir a medir de menos sin decirlo.*
+
+**La regla, en una linea: antes de comitear se corre `compuerta.py`, completo. El
+`correr.py` es para iterar, no para autorizar.**
 
 ---
 
@@ -702,8 +798,8 @@ que nadie pidió.
 
 ## 7. Presupuesto de flash
 
-64 KB por micro; el Maestro va por el **89,2 %** —`58456` de `65536` B, o sea **7.080 B libres**—
-y el Esclavo por el **65,9 %** (acta del 02/09). **Ya no queda margen cómodo**: a este nivel una
+64 KB por micro; el Maestro va por el **85,9 %** —`56308` de `65536` B, o sea **9.228 B libres**—
+y el Esclavo por el **66,1 %** (`43336` B; acta del 05/09). **Ya no queda margen cómodo**: a este nivel una
 función nueva de tamaño medio no entra sin haber medido antes de qué está hecho el porcentaje.
 Antes de proponer estructura:
 
@@ -928,9 +1024,46 @@ es `botonCancelar()` (`Maestro/include/pines.h:94-95`, `Maestro/src/botones.cpp:
 
 **Por eso la regla no es «van en el mismo commit» —un commit no protege de un destornillador—: es
 que el firmware nuevo tiene que ESTAR CARGADO EN LA TARJETA antes de que nadie enchufe nada.** Se
-exige la carga verificada, no el merge. Y mientras la polaridad de esos cuatro pines siga en
-contradicción entre el netlist y el fuente (medida `M3` de `05_Funcional/17_...`), **no se cablea
-cámara a `J16`** ni con el orden correcto.
+exige la carga verificada, no el merge.
+
+> ✅ **`M3` ESTÁ CERRADA DESDE EL 03/09 Y LAS CÁMARAS SE CABLEAN. Lo que sigue debajo describía el
+> mundo anterior y se conserva tachado, no borrado.** ~~mientras la polaridad de esos cuatro pines
+> siga en contradicción entre el netlist y el fuente, **no se cablea cámara a `J16`**~~
+>
+> **Medido en cobre** —multímetro, conector vacío, paso 20 de la Guía, 03/09/2026—: el pull-down de
+> **10 kOhm** que declaraba el netlist **es real y está en las cuatro posiciones** (`R65`–`R68` con
+> su 100 nF). `p10` (`PB14`) y `p12` (`PB15`) dan **0 V en reposo**; con 3,3 V en la posición de al
+> lado, el gesto que pide el conector es cerrar contra los 3,3 V: **activa en ALTO, los cuatro pines
+> y sin excepción** — que es justo lo que el firmware ya hacía. El **paso 21** cableó `p10` contra
+> `p11` en normalmente abierto y funcionó, **sin demandas fantasma**.
+>
+> **`p10` = Cámara 2 (verificada en banco) · `p12` = Cámara 1.** Y `BOTON3`/`BOTON4` ya no existen:
+> `botonAceptar()` y `botonCancelar()` son `return false;` (`botones.cpp:305-306`).
+>
+> 🔴 **Lo que SÍ sigue abierto de ese conector, y no es la cámara:** `MANDO_A` (`PB9`, p5) y
+> `MANDO_B` (`PB13`, p8) **no responden — 0,6 V en reposo, N-118**. El mando **SE CONSERVA** en esos
+> dos canales y **van cableados**: una versión anterior de la spec mandaba dejarlos vacíos «de
+> colchón», y con `MANDO_B` al aire `ambarLocal` no se arma nunca y **se pierde el veto de SFTY-21
+> sin que ningún test lo diga**. Y `J16` p1 lleva **12 V crudos**: taparlo es **obligatorio en cada
+> equipo que se monte** (N-120), no una cautela de banco.
+
+> 🔴 **Y LA LECCIÓN QUE VALE MÁS QUE EL DATO, del 05/09: ESTE FICHERO TAMBIÉN CADUCA, Y ES EL PEOR
+> SITIO DONDE PUEDE PASAR.** La medida `M3` se cerró el **03/09** en
+> `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`, y este apartado siguió **dos días**
+> diciendo que estaba abierta. El 05/09 se le contestó al responsable *«las cámaras de `J16` están
+> bloqueadas por M3»* **citando este párrafo**, y se le mandó a un agente que estaba escribiendo la
+> guía de banco. Lo corrigió él: *«revisa, ya lo habíamos discutido, en las spec»*.
+>
+> **CLAUDE.md se carga en cada sesión, así que una regla caducada aquí no envejece como un
+> documento: se recita con autoridad y sin que nadie vaya a la fuente.** Es §2.ter —una frase que
+> sostiene una decisión y que nadie comprueba— aplicada al fichero de reglas.
+>
+> **Las dos cosas que hay que hacer distinto:**
+> 1. **Una regla de este fichero que dependa de una MEDIDA lleva la medida y su fecha al lado**, y
+>    dice dónde vive la fuente. Sin eso no hay forma de saber si sigue viva.
+> 2. **Antes de contestar sobre cobre, conectores, pines o compras se abre la spec**, aunque este
+>    fichero parezca contestar. `05_Funcional/17_...` gana a `CLAUDE.md` en todo lo que sea
+>    hardware medido: es donde se anotan las medidas, y este fichero sólo las resume.
 
 > ✅ **Matiz del 31/08, y baja el coste de M3.** La contradicción es entre el netlist y
 > **`botones.cpp`** (`INPUT_PULLUP` + `== LOW`). El camino de **cámara** ya lee al revés
@@ -958,7 +1091,7 @@ vigente: 2 radios en enlace directo, **sin repetidor**.
 |---|---|
 | `01_Firmware/Maestro`, `Esclavo`, `Repetidor` | firmware |
 | `01_Firmware/compuerta.py` | **la única forma correcta de verificar** |
-| `01_Firmware/Simulaciones/` | simuladores, y `banco/` con los **67 packs** |
+| `01_Firmware/Simulaciones/` | simuladores, y `banco/` con los **71 packs** |
 | `01_Firmware/Validacion_LCD/` | arnés de pantalla (compila el `lcd.cpp` real) |
 | `01_Firmware/Validacion_Ciclo/` · `_Respaldo/` · `_Automatico/` | los otros tres que compilan C++ real — ver §8 |
 | `OPTIMIZACIONES.md` | las reglas `SFTY-x` y la **trazabilidad regla → código → prueba** |

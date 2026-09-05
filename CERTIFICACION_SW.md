@@ -1,6 +1,6 @@
 # 📜 Registro de Validación de Software
 
-**Fecha de esta revisión:** 31 de agosto de 2026
+**Fecha de esta revisión:** 5 de septiembre de 2026
 **Alcance:** STM32F103 (Maestro / Esclavo) + ESP32 (Repetidor) + banco de simulación en Python
 **Naturaleza de este documento:** registro interno de validación **en escritorio**.
 
@@ -8,7 +8,11 @@
 >
 > La certificación funcional la emite el **Ingeniero Funcional / Auditor de Tránsito** tras ejecutar
 > las pruebas físicas de `05_Funcional/3_Protocolo_Pruebas_Rigurosas.md` y firmar el acta.
-> **A la fecha de esta revisión ese acta no está firmada, y no hay ninguna prueba de banco completa.**
+> **A la fecha de esta revisión ese acta NO está firmada.** Sí hubo banco: el 3-4/09 se ejecutó la
+> guía de 29 pasos sobre `617bd00` con dos tarjetas cargadas (**24 de 29 pasos**, informe en
+> `evidencia/Informe_Pruebas_Banco_Semaforos_V9.0.pdf`) y el 04/09 por la noche hubo una segunda
+> sesión. **Ninguna de las dos cubrió la versión que hay hoy en el árbol**, y de ellas salieron los
+> defectos que la tabla de abajo lista como abiertos.
 >
 > **Lo único que aquí se registra es lo que midieron los modelos y los arneses de PC.** Un verde de
 > `01_Firmware/compuerta.py` dice exactamente eso: *que los modelos y los arneses de PC no encuentran
@@ -25,8 +29,8 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 `documentos_04_cifras_sin_vigilante`, que es lo que impide que este documento envejezca en silencio.
 
 > 🔴 **Lo que ese acta dice de sí misma, y hay que leer antes de firmar nada:**
-> `HEAD c509b13`, rama `main-nuevo`, y **`Arbol: CON CAMBIOS SIN COMMITEAR`**. El acta lo avisa en su
-> última línea: *«estas cifras NO corresponden exactamente a `c509b13`»*. Un registro de validación
+> `HEAD 8e9e8a9`, rama `main-nuevo`, y **`Arbol: CON CAMBIOS SIN COMMITEAR`**. El acta lo avisa en su
+> última línea: *«estas cifras NO corresponden exactamente a `8e9e8a9`»*. Un registro de validación
 > que se firma sobre un árbol sucio no es reproducible; para que lo sea hay que volver a correr la
 > compuerta con el árbol limpio.
 
@@ -36,19 +40,19 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 
 | Verificación | Resultado medido | Método |
 |---|---|---|
-| Compilación Maestro (STM32F103) | **56056 B de Flash — 85.5 %** de 65536 B (quedan **9480 B**) | `pio run` |
-| Compilación Esclavo (STM32F103) | **43324 B de Flash — 66.1 %** de 65536 B | `pio run` |
+| Compilación Maestro (STM32F103) | **56308 B de Flash — 85.9 %** de 65536 B (quedan **9228 B**) | `pio run` |
+| Compilación Esclavo (STM32F103) | **43336 B de Flash — 66.1 %** de 65536 B | `pio run` |
 | Compilación Repetidor (ESP32) | **270497 B de Flash — 20,6 %** de 1310720 B | `pio run` |
-| Guarda de rutas de los instrumentos | **60 rutas** parseadas, todas existen | `compuerta.py` |
+| Guarda de rutas de los instrumentos | **61 rutas** parseadas, todas existen | `compuerta.py` |
 | Banco de simulación funcional | **9/9 PASS** | `simulador_sistema_v7_6.py` |
 | Escenarios de repetidor | **10/10 PASS** | `simulador_repetidor.py` |
-| Banco por packs | **1008/1008 comprobaciones**, **70 packs** | `banco/correr.py` |
+| Banco por packs | **1025/1025 comprobaciones**, **71 packs** | `banco/correr.py` |
 | Arnés de pantalla (compila el `lcd.cpp` real) | **271/271** (Maestro 145/145 · Esclavo 126/126) | `Validacion_LCD/compilar.ps1` |
 | Arnés del ciclo degradado | **22/22** | `Validacion_Ciclo` |
 | Arnés del Modo Automático | **71/71** | `Validacion_Automatico` |
 | App — test funcional | **58/58** | suite funcional de la app |
 | App — test unitarios | **32/32** | suite unitaria de la app |
-| App — ejecutada en DOM | **128/128** | arnés jsdom |
+| App — ejecutada en DOM | **201/201** | arnés jsdom |
 
 > ### ⛔ Cifras que este documento publicó hasta el 31/08/2026 — ANULADAS, conservadas con su motivo
 >
@@ -59,8 +63,8 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 >
 > | publicaba | medido hoy | por qué importa |
 > |---|---|---|
-> | ~~Maestro: 42.620 B (65,0 %)~~ | **56056 B (85.5 %)** | 🔴 **El error grave.** Quien planificase con el 65 % creería tener **~23 KB libres**; quedan **9480 B**. Con esa cifra se propone estructura que **no cabe** |
-> | ~~Esclavo: 15.480 B (23,6 %)~~ | **43324 B (66.1 %)** | Casi el triple de ocupación real |
+> | ~~Maestro: 42.620 B (65,0 %)~~ | **56308 B (85.9 %)** | 🔴 **El error grave.** Quien planificase con el 65 % creería tener **~23 KB libres**; quedan **9228 B**. Con esa cifra se propone estructura que **no cabe** |
+> | ~~Esclavo: 15.480 B (23,6 %)~~ | **43336 B (66.1 %)** | Casi el triple de ocupación real |
 > | ~~Repetidor: 269.197 B (20,5 %)~~ | **270497 B (20,6 %)** | El acta mide **una** compilación de repetidor, no dos |
 > | ~~Compilación Repetidor diagnóstico: 270.257 B (20,6 %)~~ | — | ⛔ **Retirada.** La compuerta no la mide: publicar una fila sin medida detrás la hace leerse como medida |
 > | ~~Banco funcional 9/9~~ | **9/9** — las 20 de entonces incluian 11 pruebas que no median nada; se retiraron con su evidencia una a una | |
@@ -69,7 +73,7 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 > | ~~RAM: 3.576 B / 1.752 B / 21.624 B~~ | — | ⛔ **Retiradas: la compuerta NO mide RAM.** Sólo compila y lee el porcentaje de flash. La RAM se mide con `arm-none-eabi-nm` sobre el `.elf` (`CLAUDE.md` §7), y ese número no está en ningún acta |
 
 > El banco por packs y los simuladores son **modelos en Python escritos a mano**: reimplementan lo que
-> hace el C++. Un `1008/1008` acredita coherencia del modelo, **no** el comportamiento del firmware sobre
+> hace el C++. Un `1025/1025` acredita coherencia del modelo, **no** el comportamiento del firmware sobre
 > hardware. Los únicos que compilan C++ real son cuatro arneses, y cada uno tiene su punto ciego
 > declarado en `CLAUDE.md` §8.
 
@@ -77,7 +81,7 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 
 | Pendiente | Motivo |
 |---|---|
-| **Pruebas de banco físico** (Fase 4 de `ORDEN_EJECUCION.md`) | No ejecutadas. **No hay ninguna medición sobre hardware real de esta versión.** |
+| **Pruebas de banco físico** (Fase 4 de `ORDEN_EJECUCION.md`) | **Parciales.** El banco del 3-4/09 dejó 24 de 29 pasos verificados sobre `617bd00`, y la sesión del 04/09 por la noche cerró N-42 en cobre. **Nada de lo arreglado después del 04/09 —N-142, N-146, N-147— ha tocado una tarjeta.** |
 | **Pruebas de campo** | La última ronda se ejecutó con firmware previo y radios a 0.3 kbps. No comparable. |
 | **Modo Inteligente** | El banco de simulación no lo modela. Sin cobertura de prueba. |
 | **Telemetría de enlace** | Compilada y revisada, **sin prueba automática**: el arnés de pantalla le inyecta valores para dibujar, no ejecuta la lógica del coordinador. Requiere banco. |
@@ -119,6 +123,11 @@ Ninguna regla esta marcada [F]: no hay pruebas de campo validas para esta versio
 | Ref | Defecto | Severidad |
 |---|---|---|
 | **N-106** | El ámbar de emergencia pedido por la app **no saca al Esclavo del Modo Degradado**, y aun así se contesta `$ACK`. `app_03_sin_ok_mudo` lo tiene en rojo a propósito, con el defecto delante | 🔴 Abierto |
+| **N-145** | El campo `HORA:` del `$STATUS` lo rellena el **STM32**, que es el micro **sin reloj**; el `DS3231` vive en el ESP32. En la cinta del 04/09 **todas** las tramas dicen `HORA:--:--:--` | 🔴 Abierto |
+| **N-148** | La app **no pide confirmación de vía** al dar ámbar en Manual; en `DAR PASO` sí | 🟠 Abierto |
+| **N-149** | El `$STATUS` del Maestro **no traía ningún campo del Esclavo** (verificado en la cinta del 04/09). En el árbol se está añadiendo `ESC:<ROJO\|VERDE\|AMBAR\|?>` — **sin banco** | 🟠 En curso |
+| **BAT** | `BAT:--` en **todas** las tramas de la cinta del 04/09: la batería no se mide nunca. **Sin causa medida** | 🟠 Abierto |
+| **Matriculación** | Emparejar Maestro/Esclavo **por ID de Bluetooth y sin intervención manual**. Aplazado a después del banco por decisión del responsable. `RF_Packet` son **4 bytes** `{msgID, command, param, crc}` y **no tiene campo de dirección**; el CRC cubre 3 bytes | 🟠 Aplazado |
 | **N-3** | Operación intermitente por bajo flujo (`MANUAL_USUARIO.md §2`) no implementada | Requisito pendiente |
 | **N-5** | Modo Inteligente da la cámara por viva el primer minuto tras arrancar | Menor |
 | **M3** | Contradicción medida entre el netlist (pull-**down**, activo en ALTO) y `botones.cpp` (`INPUT_PULLUP`, activo en BAJO) en `J16`. **Bloquea el cableado de cámaras** | 🔴 Bloqueante para hardware |
@@ -130,7 +139,7 @@ Ninguna regla esta marcada [F]: no hay pruebas de campo validas para esta versio
 ## ✍️ Responsables
 
 ```text
-Fecha: 31 de agosto de 2026
+Fecha: 5 de septiembre de 2026
 Lugar: Laboratorio de Control Vial y Desarrollo de Firmware
 
 ESTE REGISTRO NO ES UNA AUTORIZACION DE PUESTA EN SERVICIO.
@@ -143,7 +152,7 @@ Matricula profesional: ______________________  Firma: ___________________
 
 Estado del repositorio en el momento de emision:
   Rama local:  main-nuevo
-  HEAD:        c509b13   -- con cambios SIN COMMITEAR al medir (lo dice el acta)
+  HEAD:        8e9e8a9   -- con cambios SIN COMMITEAR al medir (lo dice el acta)
   Remoto:      https://github.com/dieleoz/2semaforos_3estados.git
   Sincronizado con origin:  [ ] Si   [ ] No -- commits locales sin publicar: ____
 

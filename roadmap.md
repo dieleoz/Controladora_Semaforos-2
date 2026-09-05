@@ -214,6 +214,197 @@ ORDENES aparte de la cinta cruda -que se corta a 300 tramas y en una sesion ya s
 379-. Y el PIN sale **tapado** al exportar: hoy el `1234` viaja en claro dentro de cada
 trama que se manda por WhatsApp.
 
+### 0.0.terdecies · LA NOCHE DEL 04 AL 05/09 — tres defectos de calle cerrados, y lo que la CINTA dejo abierto
+
+**Los tres salieron de la sesion de banco del 04/09 por la noche y de la cinta de tramas que
+dejo.** Ninguno es una propiedad del fuente que un pack hubiera encontrado solo: dos los reporto
+el responsable operando el equipo, y el tercero lo destapo el diario de ordenes.
+
+| | que | estado |
+|---|---|---|
+| **N-142** | el Esclavo se iba a su ambar de emergencia y **el Maestro no se enteraba**: podia seguir dando VERDE hasta 3 minutos con el otro lado en ambar | 🟢 cerrado, `6274acc` |
+| **N-146** | `SET_MODO:AMBAR` contestaba `RESULT:OK` y **no encendia nada** | 🟢 cerrado, `8e9e8a9` |
+| **N-147** | en Modo Manual el equipo hacia **un ciclo que nadie pidio** | 🟢 cerrado, `8e9e8a9` |
+
+> 🔴 **Ninguno de los tres ha tocado una tarjeta.** Estan compilados y con el banco por packs
+> encima; eso dice lo de siempre —que los modelos y los arneses de PC no encuentran nada—. La
+> siguiente carga es la que decide.
+
+#### N-142 — el Esclavo AVISA por radio, y los dos vetos SE QUEDAN
+
+**El defecto, medido entero en `0.0.octies`:** el ambar de emergencia del Esclavo engancha un
+latch, y con el latch puesto esa punta **no obedece NI ACUSA** `CMD_GO_RED` ni `CMD_GO_GREEN`. El
+Maestro agotaba reintentos a ciegas y caia a `C_FALLO`, desde donde rechaza todo. Y peor: el
+Esclavo en ambar **sigue contestando PONG**, asi que el enlace le parecia perfecto al Maestro. Si
+el Maestro estaba en VERDE cuando se engancho el ambar, **hasta 3 minutos con los dos sentidos
+pudiendo entrar al carril**.
+
+**Lo hecho:** `CMD_AMBAR_ESCLAVO` (`0x14`). El Esclavo lo manda al armar el latch, sin esperar
+acuse y sin reintento —su operario esta delante—, igual que `CMD_GO_AMBAR`. El coordinador lo
+anota y `main.cpp` lo consume para entrar en `MODO_AMBAR`: la respuesta es un cambio de MODO, y el
+modo no lo decide la maquina del ciclo. Se consume al leerlo —es un aviso, no un estado— o el
+Maestro no podria salir nunca.
+
+> 🔴 **LA MITAD QUE MAS VALE, Y ES LA QUE NO SE HIZO: EL BANCO PARO LA DECISION (b) DOS VECES.**
+>
+> Se iba a quitar el veto del ambar de la app de las guardas del Esclavo para desatascar el cruce.
+> El pack `esclavo_07` lo tumbo:
+>
+> ```
+> "el ambar de la app dura hasta el siguiente latido del Maestro -unos 3 s- y el
+>  operario ve el equipo obedecer y volverse atras solo"
+> ```
+>
+> La segunda version dejaba el veto solo en `CMD_GO_GREEN` —lo que ABRE paso— y lo abria en
+> `CMD_GO_RED`. Tambien se cae: con el rojo entrando, el ambar que pidio el operario se convierte
+> en rojo a los 3 s. Mas seguro, pero **no es lo que pidio, y lo ve deshacerse delante**.
+>
+> **Y al medirlo aparecio que el veto NO ERA LA CAUSA DEL BLOQUEO.** La causa es que esa punta **no
+> ACUSA**, y el silencio es deliberado y correcto —acusar un rojo que no se ha encendido dejaria al
+> Maestro dando verde convencido de que aqui hay rojo—, pero **obligaba al Maestro a ADIVINAR**. Con
+> el aviso ya no adivina: se va a `MODO_AMBAR`, deja de ciclar y **deja de preguntar**, asi que no
+> hay reintentos, no hay `C_FALLO` y no hay bloqueo. **Los dos vetos se quedan enteros** —son lo que
+> protege a quien esta en la calzada— y lo que desaparece es la ceguera del otro extremo.
+>
+> Es §8.bis en su forma util: el instrumento no aprobo el arreglo, **lo rechazo dos veces y mando a
+> medir**. La causa que se creia obvia era falsa.
+
+#### N-146 — seis `OK` seguidos y el cruce sin moverse: lo destapo una CINTA, no una lectura
+
+**De donde salio:** la cinta de tramas del 04/09 a las **21:10**. Seis
+`CMD:PIN:****:SET_MODO:AMBAR` seguidos, los seis con `$ACK,CMD:SET_MODO:AMBAR,RESULT:OK`, y el
+`$STATUS` de despues diciendo `MODO:AMBAR,ESTADO:ROJO` durante **47 tramas**. El operario pulso
+seis veces en tres minutos porque el cruce no se movia, y el equipo le dijo que si las seis.
+
+**La causa, medida:** entrar en el ambar es trabajo de `modo_ambar_setup()`, y `main.cpp` **solo lo
+llama EN EL FLANCO** de cambio de modo. Con el modo ya en `MODO_AMBAR` no hay flanco, asi que el
+`modoActual_set()` de la rama no hace absolutamente nada.
+
+**Y al par (`MODO_AMBAR`, luz en rojo) se llega por un camino NORMAL, no por un fallo:**
+`CMD:FORZAR_ROJO` llama a `coordinador_forzarRojoTotal()`, que cambia **la LUZ y no el MODO** —a
+proposito: el rojo de emergencia entra sin PIN desde cualquier modo—. Un ROJO TOTAL despues de un
+ambar deja exactamente ese par, y a partir de ahi **el boton de ambar queda muerto para siempre sin
+decirlo**.
+
+**Lo hecho:** se re-arma, y **se contesta `RESULT:REARMADO`, distinto de `OK`**, porque son dos
+cosas distintas y el diario de ordenes las tiene que poder separar. Es la barrera de salidas
+(`CLAUDE.md` §6): un `$ACK` que no depende de lo que se hizo es una mentira con formato de exito, y
+aqui ademas la mentira tapaba **una salida de emergencia**. Re-armar no es gratis —manda un
+todo-rojo y vuelve a ordenar el ambar—, y por eso **no** se hace desde el aviso del Esclavo
+(N-142), que llega repetido: aqui lo pide una persona pulsando un boton, y repetirlo es exactamente
+lo que quiere.
+
+#### N-147 — Manual entraba por LA PUERTA DEL AUTOMATICO
+
+**Lo reportado desde el banco, y son dos mitades del mismo numero:** *"el boton dar paso maestro
+queda en rojo, pasan 15 seg y ... pasa a ambar intermitente"*.
+
+`modoManual_setup()` llamaba a `coordinador_iniciarModo()`, que es **la entrada del Modo
+Automatico**: deja el coordinador en `C_INICIAL_ESPERA_ESTATICO`, o sea **con un verde ya
+programado** para dentro de `tiempoDespejeMs`. De ahi salen las dos mitades:
+
+1. **`DAR PASO` no hace nada durante ese plazo.** `coordinador_pedirCambio()` abre con
+   `if (estadoC != C_IDLE) return;`, asi que la orden se rechaza —`EN_TRANSICION_REINTENTE`— y el
+   cruce se queda en rojo.
+2. **Al vencer el plazo el cruce cambia SOLO**, sin que nadie haya pulsado.
+
+**Los "15 segundos" del reporte son literales:** `tiempoDespejeMs` vale **15000 ms** por defecto, y
+ese ambar es la transicion rojo -> AMBAR 4 s -> verde que el propio Maestro arranca al vencer el
+plazo. El equipo estaba haciendo un ciclo que nadie pidio.
+
+**Y debajo habia un tercero que nadie habia reportado:** el `case QV_NINGUNO` de
+`coordinador_pedirCambio()` hacia `tRef = millis()` en **cada pulsacion**. Un operario que pulsa
+cada 10 s con el despeje en 15 s **no ve el verde nunca**, y cada pulsacion le contesta `OK`. Es la
+peor forma de fallar: obedecer y no avanzar. Ademas cobraba un despeje **ya pagado**: a ese `case`
+se llega solo con el cruce en todo-rojo, y en Manual ese rojo lleva puesto desde que se entro al
+modo.
+
+**Lo hecho:** Manual entra por `coordinador_forzarRojoTotal()` —el **mismo** todo-rojo, misma luz,
+mismo `CMD_GO_RED`, mismo reset de replay— que termina en `C_IDLE` con `quienVerde` en
+`QV_NINGUNO`: el cruce parado **sin plazo ninguno** y la primera pulsacion aceptada. Y el despeje ya
+cumplido no se vuelve a cobrar.
+
+> **SFTY-4 NO se debilita, y esta es la linea que hay que releer si alguien vuelve aqui:** los otros
+> dos `case` —`QV_MASTER` y `QV_ESCLAVO`— son los que van de un VERDE a otro, y **esos siguen
+> pasando por su rojo y su `C_ESPERA_ESTATICO_*` como siempre**. Lo que se deja de hacer es cobrar
+> dos veces un despeje que ya corrio con el cruce parado.
+
+**La definicion del modo la fijo el responsable el 04/09:** *"en manual, dar paso es simplemente el
+operador le da y cambia... el operador en manual no deberia llevar un ciclo, sino que, como esta
+ahi parado viendolo, que se cambie de inmediato"*.
+
+#### Lo que esta noche deja ABIERTO
+
+| # | que | de quien es |
+|---|---|---|
+| **N-145** | el campo `HORA:` del `$STATUS` lo rellena el **STM32**, el micro **sin reloj**. Ver `0.0.undecies` | agente sobre el ESP32 |
+| **N-148** | la app **no pide confirmacion de via** al dar ambar en Manual; en `DAR PASO` si | agente sobre la app |
+| **N-149** | el `$STATUS` del Maestro **no traia nada del Esclavo**. Firmware hecho en `8e9e8a9`; **dejo `simulador de app y bluetooth` en ABORTADO** -no sabe con que comparar el campo `ESC`-, y un ABORTADO es una puerta abierta (§3.quater) | firmware hecho, **instrumento por arreglar** |
+| **BAT:--** | la bateria no se mide nunca | **sin causa medida** |
+| **Matriculacion** | emparejar por **ID de Bluetooth**, no por nombre, y sin mano | aplazado tras el banco |
+
+##### N-149 — el `$STATUS` del Maestro no traia NADA del Esclavo
+
+**Verificado en la cinta del 04/09: ningun campo.** Ni estado, ni modo, ni nada de la otra punta.
+El responsable, delante del equipo: *"cuando me conecto al maestro no me aparecen los estados del
+semaforo del esclavo... yo necesito que maestro me traiga los datos del esclavo"*. Y sobre la
+alternativa que la app ofrecia —un boton para conectarse por Bluetooth al otro poste—: *"tendrias
+que caminar 1000 metros hasta el otro lado"*. **Un cruce se opera desde un sitio o no se opera.**
+
+Anadido en `8e9e8a9` un campo **`ESC:<ROJO|VERDE|AMBAR|?>`** al `$STATUS` del Maestro. **Sin banco**, y con un instrumento en ABORTADO detras -ver la tabla de arriba-. Lo que hay que
+dejar escrito porque es el diseno entero: **la fuente es `quienVerde`, que NO se pone por haber
+MANDADO una orden sino al recibir el ACUSE**, asi que lo que se publica es **lo que la otra punta
+confirmo**. El `?` no es un hueco: es la respuesta correcta con el enlace caido. Publicar la orden
+seria pintarle al operario un semaforo que quiza no existe, y este repositorio ya lo pago dos veces
+—el `12,6 V` de bateria que era un literal (N-108) y el equipo declarandose en hora con el reloj en
+ceros (N-144)—.
+
+##### BAT:-- en todas las tramas de la cinta
+
+**El hallazgo, y nada mas que el hallazgo: en la cinta del 04/09 el campo `BAT:` sale `--` en todas
+las tramas. La bateria no se mide nunca.**
+
+🔴 **No se escribe aqui ninguna causa, porque no se ha medido ninguna.** `CLAUDE.md` §4 lo prohibe
+expresamente, y este roadmap ya pago una causa *"plausible y falsa"* con la palabra «medido»
+encima. Lo que hay que hacer antes de proponer nada es mirar si existe divisor y entrada analogica
+que lo lea, y eso es una medida sobre la tarjeta, no una lectura de codigo.
+
+##### Y un hallazgo sobre el propio vigilante, medido al escribir esto
+
+`documentos_05_copias_coherentes` caza *"estados de compuerta imposibles"* con esta regla:
+
+```python
+malas = [(p, f, e) for p, f, e in rx.findall(t) if (int(f) > 0) != (e != "0")]
+```
+
+O sea: **da por imposible cualquier codigo de salida distinto de `0` sin un `FALLA` delante.** Pero
+la compuerta tiene **tres** codigos —`0` PASS, `1` FALLA, `2` ABORTADO (`CLAUDE.md` §3)—, y el acta
+del 05/09 es justo el caso que la regla no contempla: **19 PASS | 0 FALLA | 1 ABORTADO, exit `2`**.
+Al escribir esa linea verdadera en `ESTADO.md`, el pack la acuso de estar escrita a mano.
+
+**No es un fallo grave y no se ha tocado el pack** —esta fuera del encargo de esta pasada, y
+tocarlo sin verlo fallar seria ajustar el instrumento hasta que de verde—. Se anota porque es
+§4.quinquies otra vez: **el instrumento compara contra un borde -«exit 0 o hay FALLA»- y ese borde
+no es el que importa**, porque ignora el tercer codigo. Mientras siga asi, un `ABORTADO` publicado
+honestamente con su exit `2` no se puede escribir en los tres documentos.
+
+##### MATRICULACION / EMPAREJAMIENTO — aplazado, con el requisito ya definido
+
+**Decision del responsable (04/09):** *"detras del banco, primero cierra lo del banco"*. No se toca
+hasta que el banco este cerrado.
+
+**El requisito lo define su propia frase, y conviene copiarla entera porque descarta la solucion
+facil:** *"el escucho los nombres... es pura mierda. Tienes que ir a mirar que nombre tiene y cual
+es el ID del Bluetooth, y luego si matricularlo como maestro y como esclavo, no hacerlo a la
+mano"*. O sea: **por ID de Bluetooth, no por nombre, y sin intervencion manual.**
+
+> 🔴 **El dato tecnico duro que condiciona el diseno, y por eso se deja escrito hoy: `RF_Packet` son
+> 4 bytes `{msgID, command, param, crc}` y NO TIENE CAMPO DE DIRECCION.** El CRC cubre 3 bytes. Una
+> matriculacion que necesite decir *a quien* va dirigida una trama de radio **no cabe en la trama de
+> hoy**: o se cambia el formato —y con el, las dos puntas, el repetidor y todos los packs que lo
+> parsean— o la matriculacion vive solo del lado Bluetooth y la radio sigue siendo punto a punto.
+> Esa eleccion es de diseno y no esta hecha.
+
 ### 0.0.quater · LO QUE SE DECIDIO SOBRE LA AUTORIZACION, y las pruebas que hubo que repartir
 
 **Decision del responsable (04/09): EL OPERARIO DEJA DE TECLEAR EL PIN para lo que ABRE
@@ -340,6 +531,11 @@ reloj. Por eso la cinta dice `HORA:--:--:--` con el DS3231 en hora y con pila.
 Es la misma forma de N-139 -el contador que contaba el segundero- una capa mas arriba:
 **quien publica el dato no es quien lo sabe**. Desde la decision del 28/08 el reloj vive en
 el ESP32; el campo se quedo donde estaba. **Acotado:** el puente ya compone tramas propias.
+
+> **SIGUE ABIERTO al cerrar la noche del 04-05/09, y el responsable lo confirmo DOS VECES:**
+> *"estamos enviando la hora a la STM32 y tiene que ser al modulo ESP32 que tiene el reloj"*.
+> **En todas las tramas de la cinta sale `HORA:--:--:--`.** Hay un agente trabajando en la parte
+> del ESP32; nada de esto esta probado en tarjeta.
 
 #### Y N-144, que salio de la misma cinta
 
@@ -947,6 +1143,7 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 | ~~**BLQ-1**~~ | 🟢 **CERRADO el 31/08.** Es un **`ESP32-WROOM-32` clasico**: `Xtensa LX6 dual-core` y `Bluetooth v4.2 **BR/EDR** + BLE` — hay **SPP**. La app conecta sin tocar el transporte y el apartado 1 del Manual 10 **no se reabre**. Ver **N-107** | — |
 | ~~**M3**~~ | 🟢 **CERRADA EN BANCO el 03/09, paso 20.** El pull-down es **real y de 10 kOhm**: `p10` mide **9,93 kOhm** a masa y `p12` **9,94 kOhm**, los dos a **0 V** con energia. El camino de camara —`INPUT` pelado, activo en ALTO— es correcto y **no hay demandas fantasma**: el paso 21 lo confirmo con y sin el cable puesto. La misma medida condena el mando: ver **N-118** | — |
 | **A5** | 🔴 **La fuente propia del ESP32 desde 12 V.** No esta pedida y hace falta | comprarla |
+| **MATRIC** | 🟠 **Matriculacion / emparejamiento por ID de Bluetooth, no por nombre, y sin mano.** Aplazado por decision suya —*"detras del banco, primero cierra lo del banco"*—. 🔴 El dato que condiciona el diseno: **`RF_Packet` son 4 bytes `{msgID, command, param, crc}` y no tiene campo de direccion**; el CRC cubre 3. Ver `0.0.terdecies` | decidir si se cambia el formato de trama o la matriculacion vive solo del lado Bluetooth |
 | ~~**N75-1**~~ | 🟢 **CERRADA el 04/09. Son 3 minutos**, y el motivo es del responsable, literal: *"es la minima distancia de seguridad"*. La guarda vive en `modo_automatico.cpp` -no en la app, que no es la unica que habla por `J17`- y `app_11_rangos_de_tiempos` cruza los seis numeros del C++, `app.js` y el HTML en cada corrida. Coste aceptado a sabiendas: ya no se prueba en mesa con ciclos de un minuto | — |
 | **N-129** | 🔴 **El rotulo Bluetooth pasa a la ruta critica al decidirse que se opera DESDE EL MAESTRO.** Si el operario tiene que conectarse al poste correcto, tiene que poder distinguirlo ANTES de caminar. Medido: el ESP32 aprende `SEM-<serie>-M` / `-E` del `$STATUS` y **lo guarda para la SIGUIENTE arrancada** -no se re-rotula en caliente a proposito, para no tirar la sesion de quien esta dando una orden-. O sea que **un modulo virgen anuncia `SEM-SIN-MATRICULA` en su primer arranque, y las DOS puntas se llaman igual**. Hace falta una vuelta de energia despues de que el STM32 hable | decidir si se documenta como paso de puesta en marcha o se cambia el momento del rotulado |
 | ~~**N-130**~~ | 🟢 **CERRADO el 04/09.** El Maestro ya no arma la bandera si el modo no la va a consumir, y el acuse viaja con motivo en el `param` -`DEMANDA_ACEPTADA` (0) / `DEMANDA_RECHAZADA`-, sin gastar codigo de comando ni tocar la trama. El Esclavo avisa con `MAESTRO / DEMANDA_NO_ATENDIDA_MODO_ACTUAL`. Pack `costura_12_acuse_de_demanda`, visto fallar: 27/30 con el defecto reinyectado, 30/30 al restaurar. Coste medido con el MISMO instrumento en los dos extremos: **Maestro +36 B, Esclavo +116 B** | — |
@@ -997,6 +1194,7 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 | **Documentos** | roadmap · README · `.map` · **`INDICE_CRUZADO.md`** · **la especificacion de la placa portadora** · manuales 1, 2, 3, 5, 9, 10, 11, 12, 14, 15, 17, 18 · `MANUAL_MANDO`, `MANUAL_CONFIGURACION_BLUETOOTH` · `CERTIFICACION_SW` · `OPTIMIZACIONES` · **el encargo de banco** |
 | **La guia de campo** | reescrita **para el tecnico**: 29 pasos `HAZ / COMPRUEBA / TIENES QUE VER / ANOTA`, con el montaje de mesa dentro |
 | **Decisiones** | BLQ-1 cerrado · el mando se conserva en A y B · la pantalla no se retira · R-1 a R-4 del ambar · el `sscanf` se arregla |
+| **La noche del 04-05/09** | **N-142** (el Esclavo avisa de su ambar, `6274acc`) · **N-146** (`SET_MODO:AMBAR` contestaba OK sin encender nada) · **N-147** (Manual hacia un ciclo que nadie pidio). **Los tres SIN tocar tarjeta.** Ver `0.0.terdecies` |
 
 ### Defectos ABIERTOS, con instrumento que los ve
 
@@ -1011,6 +1209,10 @@ retirar funciones. Todo lo que sigue cuelga de ahi.
 | 🔴 **el `` cruzado** | 32 de 289 pares confirman OTRA orden | en curso |
 | 🔴 **N-42** | el Modo Automatico no mueve las luces en banco | **el banco del 03/09 NO la confirmo ni la descarto**: el equipo nunca llego a Modo Automatico porque falto la app. Se decide repitiendo el paso 7 |
 | 🔴 **el verde simultaneo** | lo sostiene un modelo de Python, no el codigo | **solo se cierra en banco**, y el banco no llego a ejercerlo |
+| 🔴 **N-145** | el `HORA:` del `$STATUS` lo publica el STM32, que **no tiene reloj**; el `DS3231` vive en el ESP32. Toda la cinta del 04/09 dice `HORA:--:--:--` | **abierto**, agente sobre el ESP32 |
+| 🟠 **N-148** | la app no pide confirmacion de via al dar ambar en Manual; en `DAR PASO` si | **abierto**, agente sobre la app |
+| 🟠 **N-149** | el `$STATUS` del Maestro no traia **ningun** campo del Esclavo (verificado en la cinta) | **en curso**: `ESC:` en el arbol, **sin banco** |
+| 🟠 **BAT:--** | la bateria no se mide nunca — en **todas** las tramas de la cinta del 04/09 | **abierto y SIN CAUSA MEDIDA**. No se escribe una hasta medirla |
 | 🟠 **el PIN 1234 en claro** | y las ordenes mas peligrosas no lo piden | sin elevar a riesgo de seguridad. **El banco aclaro un punto de proceso**: el ESP32 empareja por *Just Works*, asi que el 1234 es PIN de comando de la app, **no** de emparejamiento |
 
 ### Lo que falta para cerrar — al dia el 04/09
