@@ -6,7 +6,9 @@
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`  
 **Normativa Aplicable:** Manual de Señalización Vial de Colombia (Resolución 2024 - MinTransporte)  
 **Fecha de Emisión:** 26 de Agosto de 2026  
-**Última revisión:** 5 de septiembre de 2026 (2.ª del día) — 🔑 **AHORA EMPIEZA POR ENTRAR EN LA CÁMARA, Y ESE ES EL CAMBIO IMPORTANTE.**
+**Última revisión:** 5 de septiembre de 2026 (3.ª del día) — 🔧 **YA HAY PASO A PASO DE CÓMO SE CABLEA A LA PLACA Y DÓNDE: el nuevo §4.bis.** Es lo que faltaba: el manual sabía entrar en la cámara y configurar la analítica, pero **no decía con qué hilos se une a la tarjeta**. Trae alimentación (PoE `802.3at` Clase 4 o `12 V` directos a batería, con los `26 Ah/día` que eso cuesta), los **dos** hilos del contacto seco a `J16`, por qué la entrada `IN1`/`GND1` **hoy no se cablea**, la comprobación con multímetro y una **ficha que se rellena y se devuelve**. 🔴 **Y cierra una lectura que podía cablearse mal: `1A` y `1B` son UNA PAREJA —los dos bornes de UN contacto—, no dos salidas**, leído del diagrama de la Guía rápida que llegó hoy a `04_Manuales/`.
+
+*Revisión anterior (05/09/2026, 2.ª del día): 🔑 **AHORA EMPIEZA POR ENTRAR EN LA CÁMARA, Y ESE ES EL CAMBIO IMPORTANTE.***
 Con la cámara delante, el reporte del funcional fue **«no encuentro ni la IP»**: un manual de
 parametrización que arranca en la analítica no le sirve a quien todavía no ha visto el login. El
 bloque 🔑 de la cabecera lleva ahora el descubrimiento con **SADP —que ya está en el repositorio,
@@ -74,7 +76,10 @@ nunca. Nada se borra: el texto viejo queda tachado en su sitio con el motivo.*
 >
 > 1. **Tapar físicamente el pin 1 de `J16`** —tapón, funda termorretráctil o el propio conector con
 >    la posición 1 sin terminal—. **Es obligatorio**, no recomendado, y se hace **equipo por equipo**.
-> 2. Sólo entonces se llevan los hilos a **p10 / p12**, con retorno por **p2 (`GND`)**.
+> 2. Sólo entonces se llevan los hilos a **p10 / p12**, ~~con retorno por **p2 (`GND`)**~~
+>    ⛔ **CORREGIDO el 05/09: son DOS hilos y no hay tercero a masa** — el contacto cierra
+>    contra los **3,3 V** del borne contiguo (`p9` para `p10`, `p11` para `p12`) y la corriente
+>    vuelve a masa **por `R67`/`R68`, dentro de la propia tarjeta**. Ver **§4.bis.5**.
 > 3. **En el p1 no se conecta nada, nunca.**
 >
 > ⚠️ **Y sigue en pie la confusión que quema módulos:** `J16` y `J17` **comparten footprint y son
@@ -85,6 +90,24 @@ nunca. Nada se borra: el texto viejo queda tachado en su sitio con el motivo.*
 > sobretensión que entre por el hilo de campo. La protección de verdad —**2K2 en serie en las cinco
 > entradas**— es una modificación de la **revisión V2 de la placa**, y está anotada como línea de
 > compra en `15_Lista_de_Compras_Hardware.md` (bloque **E**). **Hoy no existe en el cobre.**
+
+### 🔧 ¿VIENE USTED A CABLEAR? VAYA DIRECTO AL **§4.bis**
+
+**El paso a paso del cableado —qué hilo va a qué borne, en qué orden, y cómo se comprueba que
+quedó bien— está en el apartado §4.bis, y está escrito para ejecutarse de pie delante del
+gabinete, sin leer el resto del manual.** Lo demás de este documento explica **por qué**; §4.bis
+dice **cómo**.
+
+| si viene a… | vaya a |
+|---|---|
+| **cablear la cámara a la placa** | **§4.bis** — alimentación, los dos hilos del contacto, la comprobación con multímetro y la ficha que se rellena |
+| **entrar en la cámara** *(no encuentra la IP)* | el bloque 🔑 de aquí abajo |
+| **parametrizar la analítica** | **§4**, Pasos 0 a 4 |
+| **saber qué está medido y qué no** | **§7** |
+
+🛑 **Y las dos cosas que no se saltan por prisa, las dos en §4.bis:** el **firmware nuevo tiene que
+estar ya cargado y verificado en la tarjeta** antes de enchufar un hilo, y **`J16` p1 se tapa** en
+cada equipo. **Un commit no protege de un destornillador.**
 
 > ## 🔑 EMPIEZA AQUÍ: **ENTRAR EN LA CÁMARA.** No se parametriza lo que no se ve (05/09/2026)
 >
@@ -530,9 +553,9 @@ La cámara Hikvision AcuSense incorpora un procesador de inteligencia artificial
 | qué | valor | nivel y fuente |
 |---|---|---|
 | **¿Tiene salida de alarma (contacto seco)?** | ✅ **SÍ. `1 output`** | 📖 **ESCRITO** — ficha, pág. 3, fila *Alarm* |
-| **¿Y entrada de alarma?** | ✅ **SÍ, `1 input`.** *(Este diseño **no la usa**: el equipo no le manda nada a la cámara)* | 📖 **ESCRITO** — ficha, pág. 3, fila *Alarm* |
+| **¿Y entrada de alarma?** | ✅ **SÍ, `1 input`** (`IN1` + `GND1`). **Hoy NO se cablea**, y el porqué está escrito en **§4.bis.6**: es la vía de `D-14`, y le faltan dos cosas — el régimen eléctrico (🔴 **`SIN VERIFICAR`**: no lo publica ninguna de las tres fuentes del fabricante) y qué canal de la placa se le asigna | 📖 **ESCRITO** — ficha, pág. 3, fila *Alarm* |
 | **Régimen del contacto** | **máx. `24 V DC` / `24 V AC`, `1 A`** | 📖 **ESCRITO** — ficha, pág. 3 |
-| **Bornes físicos** | **`1A` y `1B`** la salida · `IN1` y `GND1` la entrada | 📖 **ESCRITO** — Guía rápida, pág. 8 |
+| **Bornes físicos** | **`1A` + `1B` son UNA PAREJA — los dos bornes de UN contacto**, no dos salidas · la entrada es **`IN1` + `GND1`**, otra pareja | 📖 **ESCRITO, y leído del diagrama el 05/09** — Guía rápida `UD40284B`, **PDF pág. 9 de 40, impresa 8**: *«1A and 1B, 2A and 2B, 3A and 3B are **three pairs** of alarm outputs»*. **Cómo se cablea: §4.bis.5** |
 | **¿`NO`/`NC` configurable?** | 🔴 **SIN VERIFICAR** — ver el bloque 🎥 de la cabecera y **§4 Paso 4** | — |
 | **¿Duración del pulso configurable a `1 s`?** | 🔴 **SIN VERIFICAR.** Existe el parámetro `Delay` (*«the time duration that the alarm output remains after an alarm occurs»*, manual pág. 68) — **pero el manual no publica sus valores seleccionables**, y `1 s` puede no estar entre ellos | 📖 el parámetro, **ESCRITO** · 🔴 el valor `1 s`, **SIN VERIFICAR** |
 
@@ -722,7 +745,8 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
  │   ~~NO SE CABLEAN todavia: falta la medida M3~~ <-- M3 CERRADA EN BANCO     │
  │     el 04/09: 9,93 y 9,94 kOhm a masa, los dos a 0 V.  YA SE CABLEAN.       │
  │   - Contacto seco CONTRA LOS 3,3 V del borne de al lado:  p9 para p10,      │
- │     p11 para p12.  Retorno de masa por p2.  ACTIVO EN ALTO.                 │
+ │     p11 para p12.  ACTIVO EN ALTO.  Y SON DOS HILOS: no hay un tercero      │
+ │     a masa. La corriente vuelve por R67/R68 dentro de la placa (4.bis.5).   │
  │                                                                             │
  │ • CAMARA 2 / 4 (Umbral):  NO EXISTE EN V9.0 - PB8 es un LED, no una entrada │
  │                                                                             │
@@ -1149,7 +1173,7 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 > | destino | reposo del pin lo fija | cómo se cablea el contacto | configuración |
 > |---|---|---|---|
 > | **`PB0` / `J14`** (el de hoy) | ✅ **MEDIDO**: `R64` 10 kΩ a masa + `C25` 100 nF (`pines.h:43-46`) | entre el pin y el borne de **3,3 V** de `J14` — **NO contra `GND`** | **`NO`**, pulso **1 s** |
-> | **`J16` p10 / p12** | ✅ **MEDIDO EN BANCO el 04/09** (`M3`, paso 20): **9,93 kΩ** y **9,94 kΩ** a masa, los dos a **0 V** con energía. Pull-**DOWN** real de 10 kΩ | entre el pin de señal y el borne de **3,3 V contiguo** (`p9` para `p10`, `p11` para `p12`), retorno de masa por `p2` | **`NO`**, pulso **1 s** |
+> | **`J16` p10 / p12** | ✅ **MEDIDO EN BANCO el 04/09** (`M3`, paso 20): **9,93 kΩ** y **9,94 kΩ** a masa, los dos a **0 V** con energía. Pull-**DOWN** real de 10 kΩ | entre el pin de señal y el borne de **3,3 V contiguo** (`p9` para `p10`, `p11` para `p12`). **Dos hilos, sin tercero a masa** — §4.bis.5 | **`NO`**, pulso **1 s** |
 >
 > ~~**Según lo que dé la medida M3**, con la tarjeta energizada y `J16` vacío:~~ ⛔ **Esta tabla de
 > tres ramas ya no se ejecuta: `M3` la resolvió en la primera.** Se conserva porque **es el
@@ -1244,6 +1268,329 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 
 ---
 
+## 4.bis 🔌 CABLEADO A LA PLACA — EL PASO A PASO, CON EL DESTORNILLADOR DELANTE DEL GABINETE
+
+**Este apartado es para quien está de pie delante del equipo, con la cámara en la mano y sin
+contexto de este proyecto.** Todo lo que hace falta para ejecutarlo está aquí: no hay que leer los
+apartados anteriores para cablear, aunque sí para entender por qué.
+
+**Lo que se cablea hoy son DOS hilos por cámara.** Nada más. Ni red, ni vídeo, ni datos: el sistema
+consume **un contacto seco** de cada cámara *(`D-12` de `DECISIONES.md`)*.
+
+### 4.bis.0 🛑 EL ORDEN, Y NO ES UNA PREFERENCIA: FIRMWARE PRIMERO, HILO DESPUÉS
+
+**Antes de enchufar un solo hilo en `J16`, el firmware nuevo tiene que estar CARGADO Y VERIFICADO EN
+LA TARJETA.** No basta con que el cambio esté comiteado, ni mergeado, ni aprobado: **un commit no
+protege de un destornillador.**
+
+```text
+  CON EL FIRMWARE NUEVO DENTRO  ->  SEGURO
+    pinMode(CAM_C_PIN, INPUT) pelado + R67 10K a masa  =  el pin esta a 0 V
+    y no ejecuta nada.  Es una entrada de camara.
+
+  CON EL FIRMWARE VIEJO DENTRO  ->  PELIGROSO
+    PB14 sigue siendo botonAceptar(), leido ACTIVO EN BAJO.  Cualquier cosa
+    que un instalador enchufe en J16 p10 puede pulsar "Aceptar" en un equipo
+    QUE ESTA EN LA CALLE gobernando un cruce.
+```
+
+**La asimetría es el punto:** cargar el firmware primero **no puede hacer daño** —un pin en `INPUT`
+pelado no manda nada—; cablear primero **sí**. Por eso no vale «van en el mismo commit»: **se exige
+la carga verificada en la tarjeta, no el merge.**
+
+**Cómo se comprueba cada afirmación de este bloque, con el símbolo y su búsqueda:**
+
+```text
+  grep -rn "CAM_C_PIN" 01_Firmware/Maestro/include/pines.h
+      -> #define CAM_C_PIN  PB14   // J16 p10
+  grep -rn "pinMode(CAM_C_PIN" 01_Firmware/Maestro/src/botones.cpp
+      -> pinMode(CAM_C_PIN, INPUT);      <-- INPUT PELADO, sin pull interno
+  grep -n -A6 "bool camara_leerPin" 01_Firmware/Maestro/src/botones.cpp
+      -> if (digitalRead(pin) == HIGH)   <-- ACTIVO EN ALTO
+  Lo mismo, identico, en 01_Firmware/Esclavo/  (pines.h y src/botones.cpp)
+```
+
+✅ **MEDIDO el 05/09** ejecutando esas tres búsquedas sobre el fuente de las **dos** puntas.
+
+### 4.bis.1 Lo que hay que tener a mano
+
+| | |
+|---|---|
+| **Multímetro** | con posición de **continuidad** y de **tensión continua**. Es la herramienta de este apartado, y no es opcional |
+| **Tapón para `J16` p1** | tapón ciego, funda termorretráctil, o el propio conector armado **sin terminal en la posición 1** |
+| **Cable de dos hilos** por cámara | para el contacto seco. **Sin polaridad**, así que da igual el color de cada uno |
+| **La alimentación de la cámara** | inyector PoE **802.3at** o el cable de **12 V** a batería. Ver **4.bis.2** |
+| **El firmware ya cargado** | ver **4.bis.0**. Si esto no está hecho, **no se sigue** |
+
+### 4.bis.2 PASO 1 — ALIMENTAR LA CÁMARA (y el número que decide la batería)
+
+La cámara admite **dos formas de alimentación, y basta con una**:
+
+| forma | qué hace falta | consumo | fuente |
+|---|---|---|---|
+| **PoE** | inyector o switch **`802.3at` (PoE+), Clase 4**. Un `802.3af` **NO** basta | **máx. `15 W`**, 42,5–57 V, 0,36 a 0,27 A | 📖 ficha, pág. 4, *Power Supply* y *Power Consumption and Current* |
+| **12 V DC** | jack coaxial **Ø 5,5 mm** | **`1,08 A`, máx. `13 W`** | 📖 ficha, pág. 4 |
+
+**Tensión admisible: `12 V DC ± 25 %`, o sea de `9 V` a `15 V`** *(ficha, pág. 4, fila Power
+Supply)*. Ese rango cubre entero el vaivén de una batería de plomo de 12 V —de ~10,5 V descargada a
+~14,4 V en carga—, así que **no hace falta convertidor**.
+
+🛑 **LA CÁMARA VA DIRECTA A LA BATERÍA. NUNCA AL REGULADOR DE 5 V DE LA TARJETA.**
+
+```text
+  BATERIA 12 V ---+--- camara  (1,08 A)          <-- ASI SI
+                  |
+                  +--- J1 de la tarjeta --> LM7805 --> 5 V --> LM1117 --> 3,3 V --> STM32
+
+  1,08 A por el LM7805 (12 -> 5 V lineal) son 7,5 W de disipacion EN EL
+  REGULADOR QUE MANTIENE VIVO AL MICRO QUE GOBIERNA EL SEMAFORO.
+```
+
+🛑 **Y el número que hay que poner delante de quien dimensiona la energía, porque no lo decide este
+manual:**
+
+```text
+  Por poste, una camara:      13 W               (maximo de ficha)
+  En 24 h:                    13 W x 24 h  =  312 Wh
+  A 12 V, eso es:             312 / 12     =   26 Ah/dia   SOLO LA CAMARA
+```
+
+🔵 **`13 W` es el MÁXIMO de la ficha, no el consumo medio**: incluye los IR a plena potencia de
+noche. **Cuánto menos consume de día es 🔴 `SIN VERIFICAR`**, y se mide con pinza amperimétrica con
+la cámara montada, no antes.
+
+### 4.bis.3 PASO 2 — IDENTIFICAR LA BORNERA: `J16`, NO `J17`
+
+⚠️ **`J16` y `J17` comparten footprint y son idénticos a la vista** —`Molex KK-254`, uno al lado del
+otro—. Enchufar la cámara en `J17` no cablea nada; enchufar el módulo Bluetooth en `J16` **le mete
+12 V y lo quema**.
+
+**Se distinguen con el multímetro, no con la vista:**
+
+1. Multímetro en **tensión continua**, punta negra a masa, punta roja en la **posición 1** del
+   conector, con el equipo **encendido**.
+2. **Si marca ≈ 12 V, es `J16`** — ahí va la cámara.
+3. **Si no marca 12 V, es `J17`** — ahí NO va la cámara. Se busca el otro.
+
+✅ **MEDIDO** sobre el `.kicad_pcb`: `J16` p1 es la red `12V`, y `J17` no reparte 12 V en ningún pin
+*(`03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`, apartados «`J16` — botones» y «`J17`»)*.
+
+### 4.bis.4 PASO 3 — 🛑 TAPAR EL PIN 1 DE `J16`. OBLIGATORIO, EQUIPO POR EQUIPO
+
+**`J16` p1 lleva 12 V crudos, y es el único conector de señal de toda la tarjeta que los trae.** Las
+cinco entradas de campo van **desnudas al pin del STM32** —sin resistencia en serie, sin
+optoacoplador, sin clamp—, así que un roce de 12 V contra cualquiera de ellas llega directo a la
+patilla del micro que gobierna el semáforo. **El 04/09 una tarjeta Maestro quedó con un
+cortocircuito de 3,3 V a masa en banco.**
+
+1. **Tapar físicamente la posición 1** —tapón, termorretráctil, o armar el conector sin terminal ahí—.
+2. **Comprobar que quedó tapada** antes de seguir.
+3. **En el p1 no se conecta nada, nunca.**
+
+🛑 **Esto es la decisión `D-4` de `DECISIONES.md`: se hace en CADA equipo que se monte.** No es
+cautela de banco ni una recomendación.
+
+🔴 **Lo que tapar el pin NO arregla:** protege del error de cableado, **no** de una sobretensión que
+entre por el hilo de campo. La protección de verdad —**2K2 en serie en las cinco entradas**— es una
+modificación de la **revisión V2 de la placa** y **hoy no existe en el cobre**.
+
+### 4.bis.5 PASO 4 — LA SALIDA DE ALARMA A LA PLACA: **`1A` y `1B` SON UNA PAREJA**
+
+🔴 **ESTO ES LO QUE MÁS SE LEE MAL, Y HAY QUE DECIRLO CON TODAS LAS LETRAS: `1A` y `1B` NO SON DOS
+SALIDAS. SON LOS DOS BORNES DE UNA SOLA.** Un contacto tiene dos extremos; ésos son sus nombres. Si
+alguien los cablea como si fueran dos salidas independientes, **lo hace mal**.
+
+**Lo dice la guía rápida, literal:**
+
+```text
+  ALARM OUT   Alarm output interface
+              1A and 1B, 2A and 2B, 3A and 3B are THREE PAIRS of alarm outputs
+
+  ALARM IN    Alarm input interface
+              IN1 and GND1, IN2 and GND2 are TWO PAIRS of alarm inputs
+```
+
+✅ **VERIFICADO el 05/09 leyendo la página con los ojos**, no con un extractor: la guía rápida que
+está en `04_Manuales/` es un **PDF de imagen —40 páginas y CERO caracteres de texto, medido con
+`PyMuPDF`—**, así que la página se renderizó a PNG y se miró. Es la **página 9 de las 40 del PDF,
+impresa como página 8**, tabla *Interface / Description*.
+
+**Nuestra cámara tiene `1 input, 1 output`** *(ficha, pág. 3, fila Alarm)*, luego de esos tres pares
+**le corresponde el primero**:
+
+| lo que trae la cámara | bornes | qué es |
+|---|---|---|
+| **la salida** *(`1 output`)* | **`1A`** + **`1B`** | **un contacto**, con sus dos extremos. **Es lo que se cablea hoy** |
+| **la entrada** *(`1 input`)* | **`IN1`** + **`GND1`** | **hoy NO se cablea.** Ver **4.bis.6** |
+
+⚠️ **Y el aviso de la propia guía, que va pegado a esa tabla:** *«The interface varies with the
+models. Please refer to the product datasheet for details.»* Los tres pares son de los modelos que
+los llevan; **el nuestro trae uno**.
+
+#### Qué cámara va a qué poste, y a qué pines
+
+**Hay UNA cámara por poste** *(`D-13` de `DECISIONES.md`)*, y **cada una se cablea a la tarjeta de SU
+PROPIO poste**. No se llevan las dos a la misma placa: el Esclavo transmite su demanda al Maestro por
+radio, no por cobre.
+
+| poste | tarjeta | bornera y pines | queda libre |
+|---|---|---|---|
+| **Poste del Maestro** | la del Maestro | **`J16` p10** *(señal)* y **`J16` p9** *(3,3 V)* | `p12` y `p11` |
+| **Poste del Esclavo** | la del Esclavo | **`J16` p10** *(señal)* y **`J16` p9** *(3,3 V)* | `p12` y `p11` |
+
+**Por qué `p10` y no `p12`, y es una medida, no un gusto:** sobre el cobre, la separación real hasta
+la red de 12 V es de **4,269 mm en `p10`** *(red `/Boton3`)* y de sólo **1,359 mm en `p12`** *(red
+`/Boton4`, el peor de toda la placa)*. ✅ **MEDIDO** sobre el `.kicad_pcb`
+*(`03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`, apartado «La distancia real entre los 12 V y las
+señales»)*. **Con una sola cámara por tarjeta, va en el pin con más margen.**
+
+#### Los cinco pasos del contacto
+
+1. **Comprobar que el `PASO 3` está hecho:** `J16` p1 tapado. Si no lo está, se para aquí.
+2. **Un hilo de `1A` a `J16` p10** —el pin de señal, `PB14` / `CAM_C_PIN`—.
+3. **El otro hilo de `1B` a `J16` p9** —los 3,3 V del borne de al lado—.
+4. **No importa cuál va a cuál: es un contacto y NO TIENE POLARIDAD.** `1A` a `p9` y `1B` a `p10`
+   funciona exactamente igual.
+5. **Y son DOS hilos, sólo dos. No se lleva un tercero a masa.**
+
+```text
+        CAMARA                                TARJETA (J16)
+   +---------------+                    +----------------------+
+   |           1A  |------- hilo 1 -----| p9   3,3 V           |
+   |  (contacto)   |                    |                      |
+   |           1B  |------- hilo 2 -----| p10  PB14 (senal)    |
+   +---------------+                    |        |             |
+                                        |        R67 10K       |
+                                        |        |             |
+                                        |       GND            |
+                                        |                      |
+                                        | p1  12 V  <-- TAPADO |
+                                        +----------------------+
+
+   CONTACTO ABIERTO  ->  R67 tira el pin a masa   ->  0 V    ->  no hay demanda
+   CONTACTO CERRADO  ->  los 3,3 V llegan al pin  ->  3,3 V  ->  DEMANDA
+```
+
+🛑 **POR QUÉ CONTRA LOS 3,3 V Y NO CONTRA MASA — es el error que ya costó `N-105`.** La entrada es
+**ACTIVA EN ALTO**: el pin nace en 0 V por la resistencia `R67` de **10 kΩ a masa**, así que llevar
+el contacto a `GND` lo deja en 0 V **abierto y cerrado**, y **la cámara no dispara nunca**. El ensayo
+saldría *«sin detección»* sin que nada esté roto. ✅ **MEDIDO en cobre el 03-04/09**: 9,93 kΩ en
+`p10` y 9,94 kΩ en `p12`, los dos a 0 V con la tarjeta energizada.
+
+⛔ **Y aquí se retira una frase que este mismo manual repetía: ~~«retorno de masa por `p2`»~~.** Ese
+tercer hilo **no existe en este circuito y no hay que ponerlo**. El contacto es seco y flotante: la
+corriente sale de los 3,3 V del `p9`, cruza el contacto, entra por el `p10` y **vuelve a masa por
+`R67`, dentro de la propia tarjeta**. La prueba de que ése era el diseño está en la otra bornera de
+cámara: **`J14` tiene exactamente dos pads, y ninguno de los dos es masa** —`p1` es la señal (`PB0`)
+y `p2` son los 3,3 V—. ✅ **MEDIDO** sobre el `.kicad_pcb`. *(Si alguien quiere aterrizar la malla de
+un cable apantallado, eso es otra cosa y **no se decide en este manual**: no va a `J16` p2 sin
+preguntar.)*
+
+🟢 **El régimen del contacto sobra, y es una cuenta:** aguanta `24 V` y `1 A` *(ficha, pág. 3)* y aquí
+conmuta `3,3 V` y `3,3 / 10000 = 330 µA`. Margen de **7,3 veces** en tensión y **3.030 veces** en
+corriente. **La pregunta que sí queda abierta es la contraria** —si `330 µA` es *demasiado poca*
+corriente para un contacto sin baño de oro—: está desarrollada en **§1.1.1** y es 🔴 `SIN VERIFICAR`.
+
+### 4.bis.6 PASO 5 — LA ENTRADA DE ALARMA (`IN1` / `GND1`): **HOY NO SE CABLEA**
+
+**Se dejan sin conectar, y este manual dice por qué en vez de callarlo.**
+
+`IN1`/`GND1` es la vía **contraria** a todo lo demás de este documento: no es la cámara avisando al
+controlador, es **el controlador diciéndole algo a la cámara**. Es la vía de la decisión **`D-14`**:
+*el controlador cierra un contacto cuando la luz está en rojo, y la cámara graba*. Tiene valor —la
+cámara sabe hacer la `AND` ella sola, con `Motion & Alarm` en su *Record Schedule*— **pero no está
+lista para cablearse**, y le faltan **dos cosas distintas**:
+
+| lo que falta | estado |
+|---|---|
+| **Qué espera eléctricamente esa entrada** | 🔴 **`SIN VERIFICAR`** — ver la medida de abajo |
+| **Qué canal de la placa se le asigna** | 🟡 **SIN DECIDIR.** El `p12`/`p11` de `J16` queda libre, pero **no está asignado**, y el firmware no tiene hoy ninguna salida hacia la cámara |
+
+🔴 **Lo eléctrico no es un descuido de este manual: NO LO PUBLICA EL FABRICANTE.** El manual de
+usuario **delega el cableado en la guía rápida**, y la guía rápida **no lo trae**:
+
+```text
+  Manual de usuario, "Set Alarm Input" / "Before You Start", PDF pag. 56 (impresa 44):
+     "Make sure the external alarm device is connected.
+      See Quick Start Guide for cable connection."
+
+  Guia rapida, 40 paginas: la palabra "alarm" aparece SOLO en la pagina 9 (impresa 8),
+  dentro de la tabla Interface/Description.  NI UN DIAGRAMA DE CABLE, ni una tension,
+  ni una corriente, ni un color de hilo.
+```
+
+✅ **Y el buscador está descartado (`CLAUDE.md` §4), porque un «no aparece» no es un hallazgo hasta
+haber descartado al buscador.** Medido el 05/09 sobre las **110 páginas** del manual de usuario, con
+búsqueda **insensible a mayúsculas**, sobre los 160.348 caracteres que el extractor sí devuelve:
+
+| lo buscado | veces que aparece en las 110 páginas |
+|---|---|
+| `relay` | **0** |
+| `dry contact` | **0** |
+| `Normally Open` y `Normally Closed` | **0** |
+| `mA` | **0** |
+| `Alarm Type` *(el desplegable — y es de la ENTRADA, no de la salida)* | **1** — PDF pág. 57, impresa 45 |
+
+**El extractor no está ciego:** sobre ese mismo texto, `Alarm Input` sí aparece —en tres páginas— y
+`Quick Start Guide` también —en cuatro—. **Lo que no está es el dato eléctrico.**
+
+🛑 **Consecuencia práctica, y es la única frase que hay que recordar de este apartado: `IN1` y `GND1`
+se dejan sin conectar y se aíslan.** No se les enchufa «algo parecido a un contacto» a ver qué pasa:
+es una entrada cuyo régimen no publica nadie, en un equipo que cuesta lo que cuesta.
+
+### 4.bis.7 PASO 6 — COMPROBAR QUE QUEDÓ BIEN, ANTES DE DAR LA INSTALACIÓN POR BUENA
+
+**Cuatro comprobaciones. No se firma la instalación sin las cuatro, y se anotan los números, no los
+«correcto».** Las dos primeras son con el multímetro en el pin; las dos últimas son de
+comportamiento.
+
+1. **Reposo, sin nadie delante de la cámara.** Multímetro en tensión continua entre `J16` p10 y masa.
+   **Tiene que dar `0 V`.** Si da otra cosa, el contacto está cerrado o hay un hilo donde no debe:
+   **se para**.
+2. **Con el contacto cerrado** —cruzando delante de la cámara, o puenteando `1A` con `1B` a
+   propósito—. **Tiene que dar `3,3 V`.** Si sigue en 0 V, el contacto no cierra o los hilos están en
+   pines equivocados.
+3. **Criterio negativo, CON EL CABLE PUESTO:** en reposo, con la cámara conectada y nadie delante,
+   **el equipo no debe pedir paso solo**. Se observa un ciclo entero.
+4. **Criterio negativo, SIN EL CABLE:** se desconecta el cable de `J16` y se repite. **Tampoco debe
+   pedir paso solo.**
+
+**Por qué las dos últimas y no una sola:** el cable de campo es una antena, y `p10`/`p12` **no llevan
+antirrebote de placa** —su único filtro son los 5 ms por software de `camara_leerPin()`—. La falsa
+activación aparece **con el cable puesto**, que es justo el caso que una prueba de mesa se salta.
+
+✅ **Este par ya se ejerció en banco el 04/09** *(paso 21 de la sesión)*: en reposo, con el cable y
+sin él, **cero falsas activaciones**. Aun así **se repite en cada instalación**: lo que se midió es
+*esa* tarjeta con *ese* cable.
+
+#### 📋 Ficha de instalación — se rellena y se devuelve
+
+**Esta ficha es parte del entregable.** Un hueco sin rellenar es una medida que no se hizo.
+
+| # | qué se anota | valor |
+|---|---|---|
+| **1** | Equipo *(Maestro o Esclavo)* y nº de poste | ______________________ |
+| **2** | ¿`J16` p1 **tapado**? *(sí / no)* | ______________________ |
+| **3** | ¿Firmware nuevo **cargado y verificado** ANTES de cablear? *(sí / no)*, y su hash | ______________________ |
+| **4** | Alimentación usada *(PoE 802.3at o 12 V a batería)* | ______________________ |
+| **5** | Pines usados *(p10 con p9, u otros — y por qué)* | ______________________ |
+| **6** | Tensión en `p10` **en reposo** *(se espera 0 V)* | ____________ V |
+| **7** | Tensión en `p10` **con el contacto cerrado** *(se espera 3,3 V)* | ____________ V |
+| **8** | Falsas demandas **con el cable puesto**, un ciclo entero *(nº)* | ____________ |
+| **9** | Falsas demandas **sin el cable**, un ciclo entero *(nº)* | ____________ |
+| **10** | ¿`IN1` y `GND1` han quedado **sin conectar y aislados**? *(sí / no)* | ______________________ |
+| **11** | Fecha, hora y quién lo hizo | ______________________ |
+
+### 4.bis.8 Lo que este apartado NO autoriza
+
+| | |
+|---|---|
+| **No autoriza a instalar en calle** | autoriza a **cablear**. La cámara real contra este equipo —zona, umbral, clasificador, duración del pulso— **sigue sin pasar banco** |
+| **No sustituye al `Paso 0` del §4** | si la casilla `Trigger Alarm Output` no existe en la regla de intrusión, **el contacto no cerrará nunca** y este cableado no sirve de nada. Eso se comprueba **con la cámara delante y antes de subir a un poste** |
+| **No cierra los `SIN VERIFICAR` del §7** | el `NO`/`NC` de la salida, los valores de `Delay` y el retardo de disparo se cierran con los **ensayos del §6**, no con el destornillador |
+
+---
+
 ## 5. Dinámica de Control y Seguridad Vial
 
 1. **Llegada de Vehículo al Sentido 1:**
@@ -1318,7 +1665,7 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
  │ 3. Con energia y J16 vacio: el pin en reposo debe estar a 0 V.              │
  │    MEDIDO 04/09: los dos a 0 V.                                             │
  │ 4. Contacto seco 1A/1B entre el pin de senal y el borne de 3,3 V contiguo   │
- │    (p9 para p10, p11 para p12). Retorno de masa por p2.                     │
+ │    (p9 para p10, p11 para p12). SON DOS HILOS: nada a p2. Ver 4.bis.5.                     │
  │ 5. Al detectar vehiculo: el equipo registra demanda y abre verde tras el    │
  │    despeje de seguridad.                                                    │
  │ 6. CRITERIO NEGATIVO, obligatorio y con MAS peso que en J14: en reposo,     │
@@ -1374,7 +1721,7 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 > | lo que este manual afirma | nivel y fuente |
 > |---|---|
 > | **La cámara TIENE salida de alarma por contacto seco** — `1 input, 1 output` | 📖 **ESCRITO** — ficha `V5.5.113`, pág. 3. **Es lo que sostiene todo el cableado a `J16`** |
-> | Los bornes son **`1A`/`1B`** (salida) e `IN1`/`GND1` (entrada) | 📖 **ESCRITO** — Guía rápida `UD40284B`, pág. 8 |
+> | Los bornes son **`1A`+`1B`** (salida) e **`IN1`+`GND1`** (entrada), **y cada uno de esos dos es UNA PAREJA: los dos extremos de un contacto, no dos señales** | 📖 **ESCRITO** — Guía rápida `UD40284B`, **PDF pág. 9 de 40, impresa 8**. 🟢 **El 05/09 dejó de ser deducción y pasó a ser lectura**: la guía llegó a `04_Manuales/` y, por ser un **PDF de imagen** (40 páginas, **cero** caracteres de texto — medido), la página se **renderizó y se miró** |
 > | **Régimen del contacto: `24 V DC` / `24 V AC`, `1 A` máx.** — sobra frente a los `3,3 V` / `330 µA` que le pide el equipo | 📖 **ESCRITO** — ficha, pág. 3 · la comparación es una **cuenta**, con sus dos entradas a la vista en §1.1.1 |
 > | **Corriente MÍNIMA de conmutación y material del contacto** — importa porque `330 µA` es régimen de *carga seca* | 🔴 **SIN VERIFICAR.** La ficha no lo publica. **No bloquea** (el paso 21 funcionó), pero es pregunta para quien firme la V2 |
 > | **Que la regla de intrusión pueda ENLAZARSE a la salida de alarma** | 🔴 **SIN VERIFICAR, y es el eslabón que decide el diseño.** El manual documenta `Trigger Alarm Output` (pág. 67) con la nota *«only supported by certain models»*, y **la fila *Linkage Method* de la ficha (pág. 4) no lo menciona**. Lo cierra el **Paso 0** en diez minutos |

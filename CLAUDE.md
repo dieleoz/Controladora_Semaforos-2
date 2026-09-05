@@ -830,7 +830,8 @@ colgado al coordinador esperando un `S_VERDE` que no llegaría—.
 > los pines de la pantalla a `U8X8_PIN_NONE` (Maestro `:76-77`, Esclavo `:92-93`) y la
 > librería se salta el `pinMode` y el `digitalWrite` cuando el pin es `NONE`. **Están hoy en
 > alta impedancia, con pista hasta `J17` p4, p1 y p5**: son los únicos GPIO libres del
-> proyecto **con bornera ya cableada**. Y son pines de JTAG, lo que aquí **no cuesta nada**:
+> proyecto **con bornera ya cableada**. Y de los tres **solo `PB3` y `PB4` son de JTAG** —`PB5`
+> no lo es, y decir «los tres» era falso—; en los que si lo son **no cuesta nada**:
 > `pinmap.c:281` llama a `pin_DisconnectDebug()` dentro de `pin_function()`, que hace
 > `__HAL_AFIO_REMAP_SWJ_NOJTAG()` — suelta JTAG y **conserva SWD**.
 >
@@ -842,10 +843,21 @@ colgado al coordinador esperando un `S_VERDE` que no llegaría—.
 > desensamblado** — pero cierra la puerta a una cabeza peatonal o a un zumbador.
 >
 > 🔴 **Y LO QUE NINGÚN DOCUMENTO DECÍA, y decide si esos bornes se pueden enchufar a algo:
-> EL BORNE NO ESTÁ A 0 V EN REPOSO, ESTÁ A ~12 V.** Cada uno de los diez drenadores lleva un
+> EL BORNE NO ESTÁ A 0 V EN REPOSO, ESTÁ A ~12 V.** **NUEVE de los diez** drenadores llevan un
 > **pull-up de 1 kΩ + LED al riel de 12 V** (`R23`, `R28`, `R33`, `R38`, `R43`, `R48`, `R53`,
 > `R58`, `R63`, `R73`) que está **en el cobre, no en el conector**: no se evita dejando un
-> hilo sin poner. Con el MOSFET abierto el borne sube a ~12 V con ~10 mA disponibles. *(Y
+> hilo sin poner. Con el MOSFET abierto el borne sube a ~12 V con ~10 mA **calculados** —la corriente
+> es la cuenta `(12 - Vf)/1 kΩ`, no una sonda—.
+>
+> 🔴 **Y EL DECIMO ES LA EXCEPCION, EN UN CANAL DE LUZ VIVO: `D21`, el LED del canal
+> `Q6` → `J8` → `VERDE2`, TIENE EL CATODO SIN CONECTAR.** Red `unconnected-(D21-K-Pad1)`,
+> **cero pistas en el `.kicad_pcb` y cero hilos en el `.kicad_sch`** —su gemelo `D23` los
+> tiene en los dos extremos—. Ese canal **no tiene indicador luminoso**, y **`J8` p2 FLOTA
+> en reposo** en vez de subir a ~12 V como los otros nueve. **Nadie lo habia anotado
+> nunca**, y queda `SIN VERIFICAR` si es defecto o decision.
+>
+> *(Y son **DIEZ** cadenas de potencia —`Q1`–`Q10`, `U6`–`U15`—, no nueve: dos documentos
+> decian nueve y se tacharon con su motivo el 05/09.)* *(Y
 > encaja con lo medido en banco: `J15` daba «0 V en rojo, 12 V en ámbar» — es exactamente
 > este circuito con la sonda entre p1 y p2.)*
 >

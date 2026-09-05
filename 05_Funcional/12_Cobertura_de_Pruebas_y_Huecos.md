@@ -1,7 +1,9 @@
 # 🧪 COBERTURA DE PRUEBAS Y HUECOS — V9.0
 
 **Fecha:** 26 de Agosto de 2026
-**Última revisión:** 4 de septiembre de 2026 — **la primera con una sesión de banco detrás**
+**Última revisión:** 5 de septiembre de 2026 — **la primera que censa una superficie que este
+documento no sabía mirar: la de un componente comprado y no medido** (las cámaras). La revisión
+del 4 de septiembre fue la primera con una sesión de banco detrás
 **Método:** censo automático de la superficie de entrada del firmware cruzado contra ~~los 20 packs~~
 **los packs del banco**. **No es una opinión: cada fila se levantó con una búsqueda sobre el código**,
 y el comando que la produce está anotado para que cualquiera la repita.
@@ -175,6 +177,226 @@ una fila de la lista (N-122).
 > **Un huérfano se acepta por una razón, y una razón es una AFIRMACIÓN SOBRE EL CÓDIGO — o sea, algo
 > que se comprueba, no que se escribe.** El pack estaba bien y el trinquete estaba bien: lo que
 > nadie medía era **la frase de la excepción**. Se mide al añadir la entrada, y también al heredarla.
+
+---
+
+## 📷 05/09 — EL HUECO QUE ORDENA A TODOS LOS DEMÁS: **NINGUNA CÁMARA HA TOCADO NUNCA ESTE SISTEMA**
+
+> **Se han comprado dos `DS-2CD2683G2-IZS` (`DECISIONES.md` D-10). Este documento lleva desde el
+> 26/08 censando la superficie de entrada del firmware, y las cámaras aparecen en él como una
+> entrada más. No lo son: son el único sujeto del sistema del que NO EXISTE UNA SOLA MEDIDA.**
+
+Todo lo que este repositorio dice de cámaras se ha ejercido **con un pulsador suelto o con un puente
+de cable**. Está escrito en el propio informe del banco del 3–4/09, y es correcto lo que hicieron:
+
+| lo que se probó | con qué | paso |
+|---|---|---|
+| que el borne de `J14` conmuta | **puenteando dos bornes a mano** | 17 y 18 |
+| que `J16` p10 cableado no pide paso solo | **un cable a p11, en normalmente-abierto** | 21 |
+| que `PB14`/`PB15` tienen 10 kΩ reales a masa | ohmímetro, sin cámara | 20 |
+
+**Ninguno de los tres necesitaba una cámara y ninguno la tuvo.** Lo que miden es cierto: **el camino
+eléctrico existe**. Lo que no dicen —y no pueden decir— es qué manda por él una `DS-2CD2683G2-IZS`.
+
+### 1. Y el modo que las consume es obra DECLARADA, no EJERCIDA — en las dos direcciones a la vez
+
+Es `CLAUDE.md` §2.ter en su forma más completa que se ha visto en este repositorio: **hay firmware
+escrito, hay documentación que lo describe, y no hay ni un instrumento ni una tarjeta debajo.**
+
+```
+01_Firmware$ grep -rl modo_inteligente Validacion_* compuerta.py
+(sin salida - ningun arnes que compile C++ real lo toca)
+```
+
+- **Ningún arnés lo compila.** Los cuatro que compilan C++ de verdad —`Validacion_LCD`, `_Ciclo`,
+  `_Respaldo`, `_Automatico`— no incluyen `modo_inteligente.cpp`. Lo leen **tres packs, por texto**.
+  Es el punto ciego del `CLAUDE.md` §8 en su forma pura: *un `PASS` del modelo no prueba el código*,
+  y aquí **ni siquiera hay modelo**: hay lectura de cadenas.
+- **Ninguna tarjeta lo ha corrido.** El informe del banco del 3–4/09 lo dice con estas palabras:
+  *«nunca apareció la luz verde en ningún poste»* y *«sin cámara de demanda real»*.
+- **Y sólo se entra por la app**, que es justo lo que no conectó en esa sesión: la vía del menú está
+  muerta —`menu.cpp` cuelga de `botonAceptar()`, que devuelve `false` siempre— y el mando no tiene
+  secuencia para él.
+
+> 🔴 **O sea que el Modo Inteligente lleva meses sin que nada lo mire: ni un compilador, ni un
+> modelo, ni un pin.** Y no aparece como hueco en ningún recuento, porque **los packs que lo leen por
+> texto cuentan como cobertura suya**. Es el `x/y` que no baja: el hueco no deja rastro de que falta.
+
+### 2. Y ese mismo modo VIOLA el mínimo vial, en el fuente, desde antes de comprar la cámara
+
+```
+01_Firmware$ grep -rn "15000UL" --include=*.cpp Maestro
+Maestro/src/modo_inteligente.cpp:123:        if (tiempoActual >= 15000UL) {
+
+01_Firmware$ grep -rn "VERDE_MIN_MIN =" --include=*.h Maestro
+Maestro/include/limites_ciclo.h:54:static const uint8_t VERDE_MIN_MIN = 3,  VERDE_MIN_MAX = 15;
+```
+
+**`modo_inteligente.cpp` permite cortar el verde a los 15 segundos** —constante escrita a mano, que
+no pasa por `limites_ciclo.h`— mientras **`VERDE_MIN_MIN = 3` MINUTOS**, decidido por el responsable
+el 04/09 y razonado en ese mismo fichero: *«un conductor convencido de que el semáforo está averiado,
+adelantando en rojo»* (`DECISIONES.md` D-5).
+
+**Con una cámara pegada en «hay presencia», o con cola continua, el Esclavo recibe 15 s de verde por
+ciclo y el Maestro tres minutos.** Con las dos cámaras ruidosas el cruce alterna al mínimo
+indefinidamente. **Es exactamente el defecto que N-137 cerró en la configuración del coordinador
+—`maxVerde = 2` minutos— y que sigue abierto en la guarda de al lado, en la misma función.**
+
+> **Y la señal de método, que es lo que esta página tiene que aprender:** las tres copias que N-131,
+> N-133 y N-137 encontraron eran **tiempos escritos a mano fuera del fichero de límites**, y de ahí
+> salió el pack `app_11_rangos_de_tiempos`, que **censa TODOS los `.cpp` del Maestro**. Ésta es la
+> cuarta copia y **el pack no la ve.**
+
+**Y su borde está medido, no supuesto** — es el propio filtro del pack, en `app_11_rangos_de_tiempos`:
+
+```python
+VARS = {"minRojo": (r_min, r_max), "minVerde": (v_min, v_max),
+        "segEstatico": (d_min, d_max), "maxVerde": (v_min, v_max)}
+for m in re.finditer(r"(%s)\s*(?:=|<|>)\s*(\d+)" % "|".join(VARS), _t):
+```
+
+> **El censo busca CUATRO NOMBRES DE VARIABLE.** La guarda de los 15 s no usa ninguno: es
+> `if (tiempoActual >= 15000UL)`. **El fichero está dentro del alcance y la línea no**, que es peor
+> que quedarse fuera — el pack informa de que ha mirado `modo_inteligente.cpp` y ha mirado justo lo
+> que no era. Es `CLAUDE.md` §4.quinquies: *cuando un instrumento compara contra una lista, escribe
+> al lado cuál es esa lista y por qué es la correcta*. Aquí la lista es correcta para lo que N-137
+> arregló —**`maxVerde = VERDE_MIN_MIN` sigue vigilado**— y ciega para lo que quedó al lado.
+
+### 3. En Automático y en Manual, una detección de cámara HOY NO HACE NADA
+
+Medido con el censo de llamadas —`grep` de la declaración contra los llamadores, que es como se
+cuenta esto y no leyendo:
+
+```
+01_Firmware$ grep -rn "demanda_hayLocal" --include=*.cpp --include=*.h Maestro Esclavo
+Maestro/include/demanda.h:30:bool demanda_hayLocal();
+Maestro/src/demanda.cpp:28:bool demanda_hayLocal() {
+Maestro/src/modo_inteligente.cpp:119:        bool demandaLocalS1 = camara_leerPin(CAM_DEMANDA_PIN) || demanda_hayLocal();
+
+01_Firmware$ grep -rn "hayDemandaRemota" --include=*.cpp --include=*.h Maestro
+Maestro/include/coordinador.h:47:bool coordinador_hayDemandaRemota();
+Maestro/src/coordinador.cpp:50:bool coordinador_hayDemandaRemota() {
+Maestro/src/modo_inteligente.cpp:120:        bool demandaRemotaS2 = coordinador_hayDemandaRemota();
+Maestro/src/modo_inteligente.cpp:157:      int presenciaActual = (camara_leerPin(CAM_DEMANDA_PIN) ? 1 : 0) + ...
+```
+
+**Las dos banderas de demanda tienen UN SOLO lector, y es el fichero que nadie ejerce.** El flanco
+de una cámara en `J16` entra por `camaras_actualizar()` y llama a `demanda_solicitar()`, que **arma
+un temporizador que fuera del Modo Inteligente no lee nadie**.
+
+> ✅ **Y esto NO es un defecto abierto: la mitad remota ya está tapada a propósito y bien.** N-130
+> hizo que el Maestro **no arme** `demandaRemotaPendiente` salvo en Modo Inteligente, y que el acuse
+> al Esclavo **diga cuál de las dos cosas es** en vez de mentir con un `OK`. Es la barrera de salidas
+> del §6 aplicada a través de la radio.
+>
+> 🔴 **Lo que sigue sin estar tapado es la mitad LOCAL**, y es la que se va a cablear ahora: en
+> Automático y en Manual, un coche delante de la cámara del propio poste **arma una bandera que
+> nadie lee y no produce ni un evento**. No es peligroso —una cámara **pide**, no ordena— pero
+> significa que **cablear las dos cámaras hoy no cambia absolutamente nada en los dos únicos modos
+> que se operan**, y eso hay que decirlo antes de que alguien suba a un poste a montarlas.
+
+**Y hay un coste que sí se paga, con la cámara del Esclavo:** `demanda_solicitar()` del Esclavo manda
+`CMD_DEMANDA` por radio **en todos los modos** —`demanda.cpp` de esa punta, sin guarda de modo—, en
+un canal de `2,4 kbps` semidúplex que también lleva `GO_RED`/`ACK_RED`. *[**SIN MEDIR**: el impacto
+probablemente es pequeño, pero es una colisión posible en el instante que más importa. Se escribe
+como pregunta, no como hallazgo.]*
+
+### 4. La constante que se apoya en una cifra nuestra — y DOS packs verdes vigilándola (A-7)
+
+```
+01_Firmware$ grep -rn "cerrado ~1 s\|cierra ~1 s\|PULSO_RELE_MS = " \
+             --include=*.cpp --include=*.py Maestro Esclavo Simulaciones/banco/packs
+Maestro/src/botones.cpp:135:// El rele de la camara mantiene el contacto cerrado ~1 s por deteccion: leer el nivel
+Maestro/src/demanda.cpp:5:// de la camara AcuSense cierra ~1 s por deteccion, y un coche detras de otro dispara
+Esclavo/src/botones.cpp:155:// El rele de la camara mantiene el contacto cerrado ~1 s por deteccion: leer el nivel
+Esclavo/src/demanda.cpp:6:// de la camara AcuSense cierra ~1 s por deteccion, y un coche detras de otro dispara
+Esclavo/src/main.cpp:342:  // El rele de la camara mantiene el contacto cerrado ~1 s por deteccion; leer el nivel
+Simulaciones/banco/packs/camara_01_demanda.py:39:# El rele de la camara AcuSense cierra ~1 s por deteccion (Manual 9, paso 3 de la
+Simulaciones/banco/packs/camara_01_demanda.py:43:PULSO_RELE_MS = 1000
+Simulaciones/banco/packs/camara_02_j16.py:89:# El rele de la camara AcuSense cierra ~1 s por deteccion (Manual 9). La ventana de
+Simulaciones/banco/packs/camara_02_j16.py:92:PULSO_RELE_MS = 1000
+```
+
+`DECISIONES.md` **A-7** ya lo tenía escrito citando un sitio. **Son nueve, y la segunda mitad es
+peor que la primera:** dos packs del banco comprueban `SILENCIO_MS > PULSO_RELE_MS` y **salen en
+verde midiendo contra un `1000` que nadie ha medido nunca**, atribuido en el propio comentario a
+*«Manual 9, paso 3 de la parametrización»* — **que es un manual NUESTRO, no de Hikvision**. El
+manual del fabricante define el parámetro `Delay` y **no publica ni un valor en 110 páginas**.
+
+> 🔴 **Es la forma exacta que este documento ya conoce: una comprobación verde porque una frase
+> escrita al lado la justifica, y la frase no la comprueba nadie** (`CLAUDE.md` §2.ter y §3.bis). La
+> diferencia con `BluetoothDriver` es que aquí la frase **no está en una lista de excepciones**:
+> está en un comentario y en una constante, que es donde nadie va a buscarla.
+>
+> **La cura no es un pack más:** es medir el `Delay` real con la cámara delante y **derivar**
+> `SILENCIO_MS > Delay + rearme`. Es el ensayo `C-2` de la §14 de `3_Protocolo_Pruebas_Rigurosas.md`.
+
+### 5. Lo que este documento NO censa, y por eso las cámaras se le escapan enteras
+
+**Este documento se llama «Cobertura de pruebas y huecos» y censa UNA superficie: la del fuente.**
+El banco del 3–4/09 ya lo demostró con tres defectos que ningún `grep` podía ver. **Las cámaras son
+la misma lección, pero completa: de las ocho preguntas que hay que contestarles, NINGUNA es una
+propiedad del código.**
+
+| lo que hay que saber de la cámara | qué clase de cosa es | con qué se mide |
+|---|---|---|
+| si `Trigger Alarm Output` está en el menú de Intrusión | **una casilla de una web**, y el fabricante dice *«only supported by certain models»* | mirarla, 10 minutos |
+| qué valores admite el `Delay`, y si hay «Manual» | **una lista desplegable** que el manual no publica | mirarla y copiarla |
+| qué hace el contacto mientras el objetivo sigue dentro | **el comportamiento de un relé**, no documentado | multímetro y cronómetro |
+| cuánto tarda de la entrada al cierre, de noche y con lluvia | **un tiempo real**, 30 veces | cronómetro |
+| si es relé seco y qué hace al arrancar | **una resistencia y un transitorio** | ohmímetro |
+| qué espera eléctricamente la entrada de alarma | **una tensión y una corriente** que no están escritas | el diagrama que falta |
+| si los dos horarios de armado están puestos, con un reloj que deriva | **una hora real, de madrugada** | volver de noche |
+| cuánto consume de verdad con los IR encendidos | **una corriente** | pinza amperimétrica |
+
+**Los ocho ensayos, con su hueco de respuesta, están escritos en la §14 de
+`3_Protocolo_Pruebas_Rigurosas.md`** como `C-1` … `C-8`. **No se pueden escribir aquí como packs, y
+escribirlos como packs sería exactamente el error que el `CLAUDE.md` §2.bis mide en 2,31 a 1.**
+
+> **El orden importa y sale de ahí: `C-1` va primero porque decide si hay diseño.** Si la casilla no
+> está, la cámara **no puede darle un bit al controlador** y se cae entero el reparto de
+> `DECISIONES.md` D-13; lo que queda en pie es D-14 —el controlador cierra un contacto y la cámara
+> **graba**—, que es la única vía documentada de punta a punta hoy.
+
+### 6. Dos hallazgos del propio repaso de hoy, que son sobre la DOCUMENTACIÓN y no sobre el firmware
+
+**a) «La Quick Start Guide no está en disco» es falso — y la conclusión que se sacaba de ahí, cierta
+por otro motivo.**
+
+```
+$ ls 04_Manuales/*Quick_Start*
+04_Manuales/assets.hikvision.com_prd_normal_all_doc_sm000058893_UD40284B_Baseline_1-3_Series_Multilingual_Quick_Start_Guide_20241115.pdf
+```
+
+**Sí está, y tiene 40 páginas.** Lo que pasa es que **no trae el diagrama de cable**: medido página a
+página, son **8 páginas de dibujos de montaje mecánico y 32 de textos regulatorios en veinte
+idiomas**. Y **ninguna de las 40 tiene capa de texto** —cero caracteres extraíbles en el fichero
+entero—, así que **cualquier búsqueda de texto sobre ella devuelve cero por el formato, no por lo
+que dice.** Es `CLAUDE.md` §4 en su versión de `MAPEO_TARJETA_KICAD.md`: *el buscador estaba, respondía,
+y aun así no sabía encontrar*.
+
+> ✅ **Y al mirarla como imagen apareció lo que sí trae, que cierra una deducción escrita como
+> deducción.** Su página impresa 8 lleva una tabla de interfaces que dice, literal: *«ALARM OUT:
+> 1A and 1B, 2A and 2B, 3A and 3B are three pairs of alarm outputs»* y *«ALARM IN: IN1 and GND1,
+> IN2 and GND2 are two pairs of alarm inputs»*. **`1A` y `1B` son los dos terminales del MISMO
+> contacto: es lectura, ya no deducción.** Lo que sigue sin estar en ninguna fuente es la **tensión y
+> la corriente** que espera la entrada, y el **material del contacto**.
+
+**b) «La cámara no tiene NTP» es impreciso, y la imprecisión importa porque envejece mal.**
+
+Medido sobre las 110 páginas del manual: **`NTP` aparece 7 veces**, todas en *Time Settings*
+(PDF pág. 87 / impresa 75). **La cámara SÍ trae cliente NTP.** Lo que no tiene en este diseño es
+**red a ningún sitio** (`DECISIONES.md` D-12), así que el NTP no le sirve de nada y la hora entra una
+sola vez, desde el portátil del que la configura, con *«Sync. with computer time»* — y a partir de
+ahí **deriva sola**. **La conclusión de A-8 no cambia —24×7 en los dos horarios es la única
+configuración que no depende de ese reloj— pero el motivo hay que escribirlo bien**, porque una
+frase falsa sobre el producto es la que alguien usará dentro de tres meses para descartar una opción
+que sí existía.
+
+> **Y el contraste de fuentes que sale de aquí, y vale para las tres:** el manual de usuario que hay
+> en disco es la versión **`5.7.20`**; los menús que se van a mirar pueden ser de otra. **Que no
+> coincidan no es un contratiempo: es un hallazgo**, y por eso el `C-1` de la §14 empieza anotando la
+> versión de firmware de cada cámara antes de tocar nada.
 
 ---
 
@@ -459,6 +681,16 @@ plan es **el 3** —direccionamiento de pareja— y **confirmar el 5**.
   `Guia_Cableado_y_Pruebas_Banco.html` y en el informe devuelto,
   `evidencia/Informe_Pruebas_Banco_Semaforos_V9.0.pdf`. **Un censo del fuente que se lea como censo
   del equipo es exactamente el error que esta página existe para no cometer.**
+
+- 🆕 **Y desde el 05/09, tampoco mide los COMPONENTES COMPRADOS.** Las dos cámaras
+  `DS-2CD2683G2-IZS` son hoy el único sujeto del sistema del que **no existe una sola medida**, y las
+  ocho preguntas que hay que hacerles **no son propiedades del código**: una casilla de un menú web,
+  una lista desplegable, la duración de un pulso, un tiempo de respuesta, una corriente, un reloj que
+  deriva. **Aquí no puede haber una fila para ninguna.** Están escritas como ensayos ejecutables, con
+  su hueco de respuesta, en la **§14 de `3_Protocolo_Pruebas_Rigurosas.md`** (`C-1` … `C-8`).
+  **Escribirlas como packs sería la industria de sustitución que el `CLAUDE.md` §2.bis mide en 2,31
+  a 1: un instrumento nuevo que certifica otra vez lo ya certificado, en vez de contestar la pregunta
+  abierta.**
 
 
 ---

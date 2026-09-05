@@ -63,6 +63,7 @@ hoy no llevan casilla**.
 | ⏸️ **SE APLAZA** | Necesita algo que **no existe todavía**. Va escrito qué falta | **No** |
 | 🚫 **SE RETIRA** | Medía algo que **ya no existe** | **No** |
 | ⛔ **NO EJECUTABLE EN ESTA PLACA** *(marca nueva, 04/09)* | La propiedad **sigue viva y la prueba sigue siendo buena**, pero el estado **medido** del hardware impide provocar la condición. Va con el número que lo demuestra al lado | **La tiene, y se tacha con el motivo** — nunca `CUMPLE`, nunca `NO CUMPLE` |
+| 🎥 **MEDIDA DE CÁMARA** *(marca nueva, 05/09)* | **No es una prueba del equipo: es un dato que sólo existe con la cámara delante.** Cualquier valor es una respuesta válida; lo que no vale es dejarlo en blanco. Viven todas en la **§14** | **Hueco de respuesta siempre.** Casilla `CUMPLE`/`NO CUMPLE` **sólo** cuando hay un umbral que algún resultado pueda suspender |
 
 > 🆕 **Por qué hizo falta una cuarta marca el 04/09.** Las tres de arriba reparten por lo que dice
 > **el firmware**: se reescribe, se aplaza o se retira. El banco del 3–4/09 trajo un cuarto motivo
@@ -106,6 +107,13 @@ hoy no llevan casilla**.
 | 🚫 **SE RETIRA** | **21** | §1 (1) · §4 (2) · §5 (2) · §7 (5) · §8 (3) · §10 (5) · §11 (1) · §13 (2) |
 | ➕ **NUEVAS** | **4** | 8.9 · 9.15 · 9.16 · 12.7 |
 | | **86** | |
+
+> 🎥 **Y las OCHO medidas de la §14 no entran en ese 86, ni en el denominador del acta.** Se han
+> comprado las cámaras el 05/09 y hay ocho preguntas que sólo se contestan con una delante. **No son
+> pruebas del equipo bajo prueba**: son datos de un componente que todavía no está integrado, y tres
+> de ellos son la fuente de constantes que hoy están escritas sin haberse medido. Van como `C-1` …
+> `C-8` justamente para que nadie las sume: **contarlas subiría el denominador sin que el semáforo
+> haya hecho nada más**.
 
 > **Sobre el número: son 82 identificadores, no 80.** El resumen de la revisión anterior sumaba `80`
 > porque `6.0` y `6.0-bis` no llevaban línea `CUMPLE` aunque sí llevaban casillas de respuesta.
@@ -1495,13 +1503,22 @@ Y a los 3 minutos, seguia en AMBAR?       [ ] SI   [ ] NO, volvio a: ___________
   > Esclavo encendiera verde por su cuenta al detectar un vehículo, estaría abriendo un carril sin
   > que nadie compruebe el otro.
 
-**11.3 Inmunidad a peatones, sombras y lluvia (filtro AcuSense)** — ⏸️ **SE APLAZA**
+**11.3 Inmunidad a peatones, sombras y lluvia (filtro AcuSense)** — 🚚 **SE MUDA A LA §14 (`C-7`)**
+*(05/09 — dejó de estar aplazada: lo que le faltaba ya está comprado)*
 - *Qué mediría:* que el filtro *«sólo vehículo»* ignore a una persona que camina, salta o agita los
   brazos frente al lente.
-- **Falta: la cámara real.** Es una propiedad **del procesador de la cámara**, no del semáforo: con
-  un pulsador suelto no se puede ejercer, y sustituirla por el pulsador sería firmar una casilla que
-  no midió nada.
-- **No se firma.**
+- ~~**Falta: la cámara real.**~~ 🟢 **Ese motivo caducó el 05/09: hay dos `DS-2CD2683G2-IZS`
+  compradas** (`DECISIONES.md` D-10). Sigue siendo verdad lo que decía el resto —es una propiedad
+  **del procesador de la cámara**, no del semáforo, y sustituirla por el pulsador sería firmar una
+  casilla que no midió nada—, pero **ya se puede ejercer**.
+- **No se firma aquí, y no porque falte nada: porque se mide en otro sitio.** Va a `C-7` de la §14,
+  y allí cambia en dos cosas que importan:
+  - **la región es el BARRIDO DE LA PLUMA**, no la zona de espera (D-13), así que el sujeto ya no es
+    sólo el peatón: son los faros, el **reflejo IR sobre la propia pluma**, las sombras y la lluvia;
+  - **no hay filtro «sólo vehículo» que marcar** — `Detection Target` no está documentado para
+    Intrusión —, así que lo que se ajusta y se anota es el **`Size Filter`**.
+- > **Se muda con su motivo, no se borra.** Una prueba que desaparece en silencio vuelve a
+  > proponerse dentro de un mes, y la segunda vez nadie recuerda que ya estaba escrita.
 
 **11.4 Independencia entre las entradas de cámara y los pulsadores** — 🚫 **SE RETIRA**
 - *Por qué:* medía que las activaciones en `PB0`/`PB8` no interfirieran con los pulsadores `PB9`,
@@ -1747,6 +1764,549 @@ En el ESCLAVO:
 
 ---
 
+## 📑 SECCIÓN 14 — LA CÁMARA `DS-2CD2683G2-IZS`: LAS OCHO MEDIDAS QUE SÓLO SE CONTESTAN CON ELLA DELANTE
+
+> 🎥 **Sección nueva del 05/09, y no es una sección más.** Se han comprado **dos cámaras Hikvision
+> `DS-2CD2683G2-IZS`** (`DECISIONES.md` D-10). Hasta hoy **todo lo que este documento dice de cámaras
+> se probó con un pulsador suelto o con un puente de cable**: pasos 17, 18 y 21 de la Guía de banco.
+> **Ninguna cámara ha tocado nunca este sistema.**
+
+**Lo que esta sección NO es, y hay que leerlo antes de firmar nada.** No certifica el semáforo:
+certifica **la cámara y su contacto**. Los ocho puntos de abajo son **medidas**, no pruebas del
+firmware — cuatro de ellos ni siquiera dependen de que haya un semáforo conectado —, y **de tres de
+ellos sale una constante o una decisión de diseño que hoy está escrita sin haberse medido**.
+
+**Por qué existen: las ocho preguntas no se pueden contestar desde el PC.** Un pack de Python
+encuentra propiedades del código fuente. Ninguna de estas ocho lo es: son **una casilla de un menú
+web, la duración de un pulso, una corriente, un reloj que deriva y un contacto que se oxida**. Es la
+otra superficie del `CLAUDE.md` §2.bis — la que se cobró el banco del 3–4/09 — aplicada a un
+componente que acaba de llegar.
+
+### Cómo se numeran y cómo se firman
+
+Van como **`C-1` … `C-8`**, no como `14.1`, **a propósito**: no son pruebas del equipo bajo prueba y
+**no entran en el denominador del acta**. Cada una lleva su hueco de respuesta.
+
+| marca | qué significa | qué se firma |
+|---|---|---|
+| 🎥 **MEDIDA** | un dato que sólo existe con la cámara delante. **Cualquier valor es una respuesta válida** — lo que no vale es dejarlo en blanco | **el dato**, no una casilla |
+| ✅ **CON CRITERIO** | además del dato hay un umbral que algún resultado puede suspender | **el dato Y la casilla** |
+| 🛑 **BLOQUEADA** | falta documentación o material que no está en esta sesión. Va escrito exactamente qué falta | **nada.** No se firma |
+
+> 🔴 **La regla que gobierna toda la sección, y viene de `CLAUDE.md` §2:** *una prueba que ningún
+> resultado puede aprobar no es una prueba*. `C-1` es el ejemplo puro: la casilla está o no está, y
+> las dos respuestas son ciertas. Ponerle un `CUMPLE` sería inventar un suspenso para Hikvision.
+> **Lo que sí decide es qué diseño se construye**, y eso va escrito debajo de cada respuesta.
+
+### Antes de empezar — lo que hace falta encima de la mesa
+
+- **La cámara**, su fuente de `12 V DC` (jack Ø 5,5 mm) **o** un inyector PoE+ `802.3at`.
+- **Un PC con navegador y un cable de red directo a la cámara.** Toda la configuración de esta
+  sección se hace por su web: **el controlador no habla con la cámara** (`DECISIONES.md` D-12).
+- **Un multímetro** con continuidad y medida de tensión, y **una pinza amperimétrica de DC** o una
+  fuente con lectura de corriente (para `C-8`).
+- **Un cronómetro** — el del teléfono vale — y algo con que grabar vídeo de la propia escena.
+- **La versión de firmware de la cámara, anotada antes de tocar nada.** El manual que hay en disco
+  es el **`5.7.20`**; si la cámara trae otra, los menús pueden no coincidir y eso **es en sí un
+  hallazgo**, no un contratiempo.
+
+```text
+  Firmware de la camara, leido en Configuration > System > System Settings:
+     Camara 1 .... V______________________   Numero de serie ____________________
+     Camara 2 .... V______________________   Numero de serie ____________________
+  Manual usado como referencia: UD28967B-C, v5.7.20  (110 pag., en 04_Manuales/)
+  Coincide el menu con el manual?   [ ] SI   [ ] NO -> anotar la diferencia abajo
+     ______________________________________________________________________
+```
+
+---
+
+### 🔴 C-1 · ¿EXISTE `Trigger Alarm Output` EN LA REGLA DE *INTRUSION DETECTION*? — 🎥 **MEDIDA**
+
+**Es la primera y decide todas las demás.** Son diez minutos con la cámara delante.
+
+**Lo que se sabe hoy, medido sobre el manual y no recordado:** `Trigger Alarm Output` está
+documentado como método de enlace en *2.8.2 Linkage Method Settings* — **manual `UD28967B-C`, PDF
+pág. 79 / impresa 67** — y lleva encima esta nota literal:
+
+```text
+  Note
+  This function is only supported by certain models.
+```
+
+**Ninguna fuente en disco dice si la `DS-2CD2683G2-IZS` es uno de esos modelos.** La ficha técnica
+dice `1 input, 1 output` en la fila *Alarm*, que es que el **hardware** existe; la nota de arriba
+habla de si el **menú** lo ofrece. **No son la misma pregunta**, y por eso hace falta mirar.
+
+*Procedimiento:*
+1. Entrar a la cámara, `Configuration → Event → Smart Event → Intrusion Detection` (en algunos
+   modelos: `VCA → Smart Event → Intrusion Detection` — manual PDF pág. 60 / impresa 48).
+2. Marcar `Enable`, dibujar una región cualquiera — **para esta medida da igual dónde**.
+3. Bajar a **`Linkage Method`** y **leer la lista entera de casillas, copiándola tal cual**.
+
+```text
+  LISTA LITERAL DE CASILLAS DE "Linkage Method" EN INTRUSION DETECTION
+  (se copia lo que se ve, en el orden en que sale, aunque no se entienda)
+
+  1 ______________________________  5 ______________________________
+  2 ______________________________  6 ______________________________
+  3 ______________________________  7 ______________________________
+  4 ______________________________  8 ______________________________
+```
+
+*La respuesta, y hay que marcar una:*
+
+- [ ] **`Trigger Alarm Output` ESTÁ** → el diseño de `DECISIONES.md` **D-13 sigue en pie**. Se
+  continúa por `C-2`.
+- [ ] **`Trigger Alarm Output` NO ESTÁ** → 🛑 **PARAR Y AVISAR AL RESPONSABLE ANTES DE SEGUIR.** La
+  cámara **no puede darle un bit al controlador**, y con él se cae entero el diseño de un contacto
+  por poste. Lo que queda en pie es la vía contraria, **D-14**: el controlador cierra un contacto en
+  la `ALARM IN` de la cámara y la cámara **graba**. `C-2`, `C-3`, `C-4` y `C-7` **dejan de tener
+  sentido** y se marcan «sin objeto», no «no ejecutable».
+- [ ] **Está pero sale en gris / no se deja marcar** → se anota **exactamente** qué dice el aviso al
+  intentarlo: ______________________________________________________________
+
+*Y las dos comprobaciones que van pegadas a ésta, porque un bit que significa dos cosas no significa
+ninguna:*
+
+- ¿Hay **otras reglas armadas** (Motion, Tampering, Line Crossing, Video Loss, Alarm Input…) que
+  **también** tengan marcado `Trigger Alarm Output`? Se listan todas y **se desmarcan todas menos
+  Intrusión**: `Trigger Alarm Output` **sólo en esta regla** (D-13).
+  - Reglas que lo tenían marcado al llegar: ______________________________________
+  - ¿Se desmarcaron?  `[ ] SÍ  [ ] NO, motivo: ____________________________________`
+- ¿Existe una lista **`Alarm Output No.`** y cuántas salidas ofrece? ________________
+  *(La ficha dice `1 output`; si el menú ofrece 2 ó 3, el menú es genérico y la placa manda.)*
+
+- Resultado: 🎥 **DATO ANOTADO** — *(esta medida no lleva `CUMPLE`/`NO CUMPLE`: ver la regla del
+  encabezado de la sección)*
+
+---
+
+### C-2 · EL `Delay` DE LA SALIDA — Y QUÉ HACE EL CONTACTO MIENTRAS EL COCHE SIGUE AHÍ — 🎥 **MEDIDA**
+
+**De aquí sale una constante del firmware, y hoy esa constante se apoya en una cifra que nos
+inventamos nosotros.** Es `DECISIONES.md` **A-7**, y está medido en el repositorio:
+
+```text
+01_Firmware$ grep -rn "cerrado ~1 s\|cierra ~1 s\|PULSO_RELE_MS = " \
+             --include=*.cpp --include=*.py Maestro Esclavo Simulaciones/banco/packs
+Maestro/src/botones.cpp:135:// El rele de la camara mantiene el contacto cerrado ~1 s por deteccion: leer el nivel
+Maestro/src/demanda.cpp:5:// de la camara AcuSense cierra ~1 s por deteccion, y un coche detras de otro dispara
+Esclavo/src/botones.cpp:155:// El rele de la camara mantiene el contacto cerrado ~1 s por deteccion: leer el nivel
+Esclavo/src/demanda.cpp:6:// de la camara AcuSense cierra ~1 s por deteccion, y un coche detras de otro dispara
+Esclavo/src/main.cpp:342:  // El rele de la camara mantiene el contacto cerrado ~1 s por deteccion; leer el nivel
+Simulaciones/banco/packs/camara_01_demanda.py:39:# El rele de la camara AcuSense cierra ~1 s por deteccion (Manual 9, paso 3 de la
+Simulaciones/banco/packs/camara_01_demanda.py:43:PULSO_RELE_MS = 1000
+Simulaciones/banco/packs/camara_02_j16.py:89:# El rele de la camara AcuSense cierra ~1 s por deteccion (Manual 9). La ventana de
+Simulaciones/banco/packs/camara_02_j16.py:92:PULSO_RELE_MS = 1000
+```
+
+**Cinco comentarios del firmware y DOS packs del banco descansan sobre ese `~1 s`, y su fuente
+citada es un manual NUESTRO — no Hikvision.** Los dos packs comparan `SILENCIO_MS` contra ese
+`PULSO_RELE_MS = 1000` y salen en **verde midiendo contra un número que nadie ha medido nunca.** El manual del fabricante define el parámetro `Delay`
+—*«the time duration that the alarm output remains after an alarm occurs»*, **PDF pág. 80 / impresa
+68**— y **no publica ni uno solo de sus valores en 110 páginas**.
+
+*Procedimiento:*
+1. `Configuration → Event → Basic Event → Alarm Output`, bloque **`Automatic Alarm`**.
+2. **Desplegar `Delay` y copiar la lista entera**, en su orden.
+3. Elegir **el valor más pequeño que no sea `Manual`** y guardar.
+
+```text
+  VALORES QUE OFRECE EL DESPLEGABLE "Delay"  (copiar literal, con sus unidades)
+  ______________________________________________________________________________
+  ______________________________________________________________________________
+
+  El MINIMO que ofrece (sin contar "Manual") .......... ____________
+  Aparece la opcion "Manual" en la lista?  [ ] SI   [ ] NO
+     -> Si aparece: NO SE ELIGE NUNCA. Con "Manual" el rele se queda cerrado hasta
+        que alguien lo borre a mano desde el navegador: el pin quedaria ALTO para
+        siempre, no habria un solo flanco mas, y el equipo dejaria de recibir
+        demanda de ese carril SIN DAR NINGUN SINTOMA.
+        (El manual la documenta como valor de Delay: PDF pag. 80 / impresa 68.)
+  Valor que se deja configurado ....................... ____________
+```
+
+*Y ahora la parte que el manual no contesta de ninguna manera, y es la que decide la constante:*
+
+**Con el `Delay` en su mínimo, se pone un objeto quieto dentro de la región y se deja ahí dos
+minutos**, con el multímetro en continuidad sobre `1A`–`1B` (o mejor, grabando el zumbador del
+multímetro en vídeo con la hora a la vista).
+
+```text
+  MIENTRAS EL OBJETIVO SIGUE DENTRO DE LA REGION, EL CONTACTO:
+     [ ] se queda CERRADO todo el rato, y solo abre cuando el objeto se va
+     [ ] cierra, abre al agotarse el Delay, y NO vuelve a cerrar aunque siga ahi
+     [ ] cierra, abre, y VUELVE A CERRAR cada cierto tiempo
+             -> hueco entre cierres, medido: ______ s   ______ s   ______ s
+     [ ] otra cosa: ____________________________________________________
+
+  DURACION DEL PULSO, medida con cronometro, tres veces (objeto que entra y sale):
+     1) ______ s     2) ______ s     3) ______ s     media ______ s
+```
+
+*Qué se hace con el número, y esto va escrito para que no se olvide:*
+
+- Si la media **no sale `~1 s`**, los **cinco comentarios** del firmware de arriba **están mintiendo
+  con la autoridad de un dato medido** y hay que corregirlos. **No se corrigen en esta sesión** —el
+  firmware no se toca en banco— pero **se anota aquí que hay que hacerlo**, con el número.
+- La ventana de silencio del firmware es `SILENCIO_MS = 3000` (`demanda.cpp`, las dos puntas). La
+  desigualdad que tiene que cumplirse es **`SILENCIO_MS > Delay + tiempo de rearme`**. Con el dato
+  de arriba se puede comprobar por primera vez:
+
+```text
+  Delay elegido ______ s  +  rearme observado ______ s  =  ______ s
+  Es MENOR que los 3 s de SILENCIO_MS?   [ ] SI, la desigualdad se cumple
+                                         [ ] NO -> HALLAZGO. Se anota y se avisa:
+                                             una misma deteccion se contaria dos veces
+```
+
+- Resultado: 🎥 **DATO ANOTADO** — Observación: ________________________________________
+
+---
+
+### C-3 · TIEMPO DE RESPUESTA: ENTRADA EN LA REGIÓN → CONTACTO CERRADO — ✅ **CON CRITERIO**
+
+**Por qué importa y no es un capricho de precisión:** si la cámara tarda más en cerrar que lo que
+tarda el vehículo en llegar a la pluma, el bit **llega tarde** y el veto que se está pensando para la
+fase 5 no protege a nadie. Es el único número de la sección que se puede convertir en distancia.
+
+*Preparación:* `Threshold` **al mínimo** (su definición literal es *«the threshold for the time of
+the object loitering in the region»*, manual **PDF pág. 61 / impresa 49**: es un temporizador de
+permanencia, así que **el tiempo de respuesta nunca puede ser menor que el `Threshold`**),
+`Sensitivity` alta, `Size Filter` puesto, y el `Delay` de `C-2`.
+
+*Procedimiento:* **treinta pasadas como mínimo, en tres condiciones.** Se cronometra desde que el
+objetivo **cruza la línea de la región** hasta que el multímetro pita.
+
+```text
+  Threshold configurado ______   Sensitivity ______   Size Filter min ______ max ______
+
+  A) DE DIA, con luz natural            (10 pasadas)
+     ___ ___ ___ ___ ___ ___ ___ ___ ___ ___   segundos
+     minimo ______  maximo ______  media ______   fallos (no cerro) ______
+
+  B) DE NOCHE, con los IR encendidos    (10 pasadas)
+     ___ ___ ___ ___ ___ ___ ___ ___ ___ ___   segundos
+     minimo ______  maximo ______  media ______   fallos (no cerro) ______
+
+  C) CON LLUVIA o con la manguera       (10 pasadas)
+     ___ ___ ___ ___ ___ ___ ___ ___ ___ ___   segundos
+     minimo ______  maximo ______  media ______   fallos (no cerro) ______
+        Si no llueve y no hay manguera: [ ] NO EJECUTADA, motivo anotado.
+        NO se rellena con los numeros del apartado A.
+```
+
+*Criterio, y es lo único de `C-3` que se puede suspender:* **el peor caso de las treinta —el máximo
+de las tres tandas— es el número que vale.** Una media buena con un máximo de ocho segundos no sirve
+para nada: en la calle el que decide es el peor.
+
+- Peor caso de las 30: ______ s · ¿alguna pasada NO cerró el contacto? ______ de 30
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — *(CUMPLE = las 30 cerraron y el peor caso está por debajo
+  de lo que el responsable fije como aceptable. **Si nadie lo ha fijado, se deja SIN FIRMAR y se
+  anota el número**: firmar contra un umbral que no existe es inventarlo.)*
+- Umbral aceptable, si el responsable lo fijó ese día: ______ s — quién lo fijó: ____________
+
+---
+
+### C-4 · EL CONTACTO: ¿ES RELÉ SECO DE VERDAD, Y QUÉ HACE AL ARRANCAR? — ✅ **CON CRITERIO**
+
+**Lo que hay medido hoy y lo que no.** La ficha dice `1 output (max. 24 V DC / 24 V AC, 1 A)`. La
+guía rápida que hay en disco trae, en su **página impresa 8**, una tabla de interfaces que dice
+literalmente:
+
+```text
+  ALARM OUT   Alarm output interface.
+              1A and 1B, 2A and 2B, 3A and 3B are three pairs of alarm outputs
+  ALARM IN    Alarm input interface.
+              IN1 and GND1, IN2 and GND2 are two pairs of alarm inputs
+  Note: The interface varies with the models.
+        Please refer to the product manual for details.
+```
+
+**Eso cierra una deducción que estaba escrita como deducción:** `1A` y `1B` son **los dos terminales
+del MISMO contacto**, no dos salidas — lo dice la palabra *pairs*. Lo que **sigue sin estar en
+ninguna parte** es si ese contacto es **mecánico o de estado sólido**, su **corriente mínima de
+conmutación** y su **material**. Medido sobre las 110 páginas del manual de usuario: las palabras
+**`relay`, `dry contact`, `Normally Open` y `Normally Closed` aparecen CERO veces**.
+
+*Procedimiento — con la cámara SIN alimentar primero:*
+
+```text
+  1) SIN ALIMENTAR, ohmimetro entre 1A y 1B:
+        Resistencia ________ ohmios      [ ] circuito abierto (OL)
+     -> Un rele seco sin alimentar esta ABIERTO o CERRADO segun su tipo, pero
+        NUNCA da una resistencia intermedia estable. Si sale un valor de unos
+        pocos cientos de ohmios o cambia al invertir las puntas, NO es un
+        contacto seco: es un semiconductor. Se anota y se avisa.
+        Invirtiendo las puntas da lo mismo?   [ ] SI   [ ] NO -> HALLAZGO
+
+  2) SIN ALIMENTAR, voltimetro en DC entre 1A y 1B:
+        Tension propia ________ V   -> tiene que ser 0. Si no lo es, la salida
+                                       lleva tension propia y NO es contacto seco.
+
+  3) YA ALIMENTADA y en reposo (sin alarma):
+        Continuidad 1A-1B:  [ ] ABIERTO -> es NO, es lo que este diseno espera
+                            [ ] CERRADO -> es NC. PARAR: con el cableado de J16
+                                           eso es demanda permanente. Buscar si
+                                           hay ajuste NO/NC y anotarlo abajo.
+        Existe un ajuste NO/NC en el menu?  [ ] SI, se llama ______________
+                                            [ ] NO aparece por ningun lado
+```
+
+*Y la parte que nadie ha mirado nunca, que es el arranque:*
+
+**Por qué importa, con el símbolo del firmware delante:** el Maestro y el Esclavo siembran el nivel
+de reposo de las entradas de cámara **una sola vez, en el arranque** —`camaras_sembrar()` en
+`botones.cpp` de las dos puntas—, y a partir de ahí piden paso **por flanco**. Un contacto que dé un
+pulso mientras la cámara arranca, con el semáforo ya en marcha, **es un flanco: es una petición de
+paso que nadie hizo**.
+
+```text
+  4) ARRANQUE DE LA CAMARA con el multimetro en continuidad puesto:
+        Al darle energia, el contacto 1A-1B:
+           [ ] no se mueve en ningun momento
+           [ ] da UN pulso     -> duracion ______ s, a los ______ s de encender
+           [ ] da VARIOS pulsos -> cuantos ______
+           [ ] se queda cerrado y abre a los ______ s
+        Cuanto tarda desde que se le da energia hasta que ya detecta
+        (primera deteccion buena despues de encender) ............ ______ s
+
+  5) REINICIO EN MARCHA (Reboot desde el menu, con la camara ya caliente):
+        El contacto 1A-1B durante el reinicio:
+           [ ] no se mueve   [ ] da ______ pulsos de ______ s
+        Y durante un corte de energia BRUSCO (quitar el jack):
+           [ ] no se mueve   [ ] da ______ pulsos de ______ s
+```
+
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — *(CUMPLE = es contacto seco sin tensión propia, abierto en
+  reposo, **y no da ningún pulso ni al arrancar ni al reiniciar ni al cortar**. Cualquier pulso en
+  esos tres momentos es un `NO CUMPLE` y hay que escribirlo: el firmware no puede distinguirlo de un
+  coche.)*
+- Observación: ______________________________________________________________________
+
+---
+
+### C-5 · QUÉ ESPERA ELÉCTRICAMENTE LA **ENTRADA** DE ALARMA (`IN1`/`GND1`) — 🛑 **BLOQUEADA**
+
+**Esta no se puede contestar hoy y se deja escrita como pregunta, no como paso.** Es la vía de
+`DECISIONES.md` **D-14** —el controlador cierra un contacto y la cámara graba— y **es la única que no
+depende de la casilla de `C-1`**, así que si `C-1` sale mal, ésta pasa a ser la vía principal.
+
+**Lo que está `SIN VERIFICAR`, y por qué la búsqueda no es el problema:**
+
+- El manual de usuario **delega el cableado**: *«Make sure the external alarm device is connected.
+  **See Quick Start Guide for cable connection**»* (PDF pág. 56 / impresa 44).
+- **La Quick Start Guide SÍ está en disco** —`04_Manuales/…UD40284B_Baseline_1-3_Series_Multilingual_Quick_Start_Guide_20241115.pdf`,
+  40 páginas— **y NO trae ese diagrama.** Medido: sus 40 páginas son **8 de dibujos de montaje
+  mecánico y 32 de textos regulatorios en veinte idiomas**, y **ninguna tiene capa de texto** (cero
+  caracteres extraíbles en las 40), así que **buscarla con `grep` da cero por el formato del fichero,
+  no por lo que dice**. Lo único que aporta es la tabla de interfaces de `C-4`.
+- Medido sobre el manual de usuario: **`dry contact` = 0 apariciones · `relay` = 0 · `Normally
+  Open` = 0 · `Normally Closed` = 0**, en 110 páginas. **No hay tensión, no hay corriente, y no hay
+  diagrama.**
+- Del **`Alarm Type`** de la entrada el manual sólo dice *«Select Alarm Input NO. and Alarm Type from
+  the dropdown list»* (PDF pág. 57 / impresa 45) — **sin publicar sus valores**.
+
+**Lo que sí se puede hacer con la cámara delante, y es lo que se pide:** *no cablear nada*, sólo
+**mirar y copiar**.
+
+```text
+  ABRIR Configuration > Event > Basic Event > Alarm Input Y COPIAR:
+     Valores del desplegable "Alarm Type": _______________________________
+     Numero de entradas que ofrece: ______   (la ficha dice 1)
+
+  MIRAR LA COLETA DE CABLES DE LA CAMARA Y COPIAR LAS ETIQUETAS, UNA A UNA,
+  con su color, tal como vienen impresas (esto es lo que sustituye al diagrama):
+     ______________________  ______________________  ______________________
+     ______________________  ______________________  ______________________
+
+  Viene una hoja de papel dentro de la caja con el diagrama de cables?
+     [ ] SI -> SE FOTOGRAFIA ENTERA Y SE ADJUNTA. Cierra este bloqueo.
+     [ ] NO
+```
+
+> 🛑 **Hasta que exista ese diagrama —de la caja, o pedido a Hikvision— NO SE CONECTA NADA A
+> `IN1`/`GND1`.** Meter tensión en una entrada que espera contacto seco, o al revés, se paga con la
+> cámara. Y no hay prisa: **D-14 no bloquea a D-13**, sólo es su alternativa.
+
+- Resultado: 🛑 **NO SE FIRMA.** Falta: ______________________________________________
+
+---
+
+### C-6 · LOS **DOS** `Arming Schedule`, Y UN RELOJ QUE NADIE PONE EN HORA — 🎥 **MEDIDA**
+
+**El hallazgo que hay detrás, y es de los que no se ven en taller:** en esta cámara hay **dos
+horarios de armado puestos en serie**, y **fuera de cualquiera de los dos el relé no cierra**:
+
+| horario | dónde vive | verificado |
+|---|---|---|
+| el de **la regla** | *Intrusion Detection* → `Arming Schedule` | manual PDF pág. 61 / impresa 49, paso 7 |
+| el de **la salida** | `Alarm Output` → `Automatic Alarm` → *set arming schedule* | manual PDF pág. 80 / impresa 68, paso 2 |
+
+**Y el reloj sobre el que corren los dos no lo mantiene nadie.** La cámara **sí trae cliente NTP**
+—`Configuration → System → System Settings → Time Settings`, manual PDF pág. 87 / impresa 75— pero
+en este diseño **no tiene red a ningún sitio** (`DECISIONES.md` D-12: ni WiFi, ni servidor, ni ONVIF,
+ni una sola línea del ESP32 que le hable). Lo que queda es *«Sync. with computer time»*, que es **una
+puesta en hora de una vez, desde el portátil del que la configura**. A partir de ahí **deriva sola**,
+y en un corte de alimentación puede perderse entera.
+
+> 🔴 **Un horario que no es 24×7 sobre un reloj que deriva es una avería con fecha de aparición.**
+> Si el armado va de 06:00 a 22:00 y el reloj se atrasa media hora, la cámara deja de ver a las 21:30
+> **sin dar ningún síntoma**. Por eso `DECISIONES.md` A-8 propone **24×7 en los dos**: es la única
+> configuración que no depende del reloj.
+
+*Procedimiento — y la segunda mitad NO es de taller:*
+
+```text
+  PARTE 1, en taller (10 minutos)
+     Horario POR DEFECTO de la regla, tal como venia .... ____________________
+     Horario POR DEFECTO de la salida, tal como venia ... ____________________
+        (Si venian ya en "All day", se anota igual: es un dato, no un no-hallazgo.)
+     Se dejan los DOS en 24x7?  [ ] SI   [ ] NO, motivo: ____________________
+     Hora que marca la camara nada mas encenderla, antes de tocarla:
+        ______:______   del ______/______/________
+     Hora real en ese momento:  ______:______   del ______/______/________
+        Diferencia .......... ______
+
+  PARTE 2, LA QUE NO SE PUEDE HACER EN TALLER  (hay que volver de madrugada)
+     Se pone la camara en hora, se anota, y SE LE QUITA LA ENERGIA un rato.
+        Hora puesta ______:______   Minutos sin energia ______
+     Al volver a darle energia:
+        Hora que marca ______:______   Hora real ______:______  Dif. ______
+        [ ] conservo la hora   [ ] la perdio   [ ] arranco en una fecha de fabrica
+     >>> Y LA MEDIDA QUE DECIDE, DE MADRUGADA, CON LA CAMARA YA INSTALADA: <<<
+        Fecha y hora reales del ensayo ......... ______/______  ______:______
+        Se provoca una deteccion de verdad delante de la camara.
+        Cerro el contacto 1A-1B?   [ ] SI   [ ] NO
+        Si NO cerro: es el horario de armado, y hay que decir CUAL de los dos:
+           [ ] el de la regla   [ ] el de la salida   [ ] no se pudo determinar
+
+     Fecha en que se hara esta parte 2, si no se hace hoy: ____/____/______
+     Quien la hara: ______________________
+```
+
+> ⚠️ **La parte 2 no se firma con la parte 1.** Un ensayo de taller a las once de la mañana da
+> `CUMPLE` con los dos horarios mal puestos y con el reloj cuatro horas atrasado. **Si la parte 2 no
+> se ejecuta, esta medida queda abierta y se dice así** — no se firma la mitad y se cuenta entera.
+
+- Resultado: 🎥 **DATO ANOTADO** · parte 2 `[ ] EJECUTADA  [ ] PENDIENTE`
+- Observación: ______________________________________________________________________
+
+---
+
+### C-7 · FALSOS POSITIVOS EN EL BARRIDO DE LA PLUMA — ✅ **CON CRITERIO**
+
+**Dónde apunta la cámara, que es lo que hace que esta medida sea distinta de la vieja 11.3:** la
+región de *Intrusion Detection* va sobre **el barrido de la pluma** —no sobre la zona de espera—
+(`DECISIONES.md` D-13). Un vehículo que espera correctamente **para antes de la pluma y no entra en
+la región**: si dispara, es un falso positivo.
+
+**Y aquí no se filtra por tipo de objetivo.** Bajo una pluma que baja importa igual una moto, una
+persona o un perro grande, y además `Detection Target` **no está documentado para Intrusión** en el
+manual. El filtro que se usa es **`Size Filter`**, y su ajuste sale de este ensayo.
+
+*Las cuatro condiciones, y ninguna se sustituye por otra:*
+
+```text
+  Con la region ya dibujada sobre el barrido de la pluma y SIN filtro de objetivo.
+  Se cuentan DISPAROS DEL RELE en 15 minutos de observacion por condicion.
+
+  a) FAROS DE NOCHE, un vehiculo pasando por el carril contrario y barriendo
+     la region con la luz, sin entrar en ella ......... ______ disparos falsos
+  b) REFLEJO IR SOBRE LA PROPIA PLUMA (la pluma pintada reflectante devuelve
+     los infrarrojos a la camara). Se ejerce SUBIENDO Y BAJANDO LA PLUMA de
+     noche, sin nada mas en la escena .................. ______ disparos falsos
+        -> La pluma en movimiento ES un objeto que entra en la region.
+           Si dispara, NO es un defecto de la camara: es que la region esta
+           mal dibujada y hay que reencuadrarla. Se anota cual de las dos cosas.
+        [ ] se reencuadro la region   [ ] se dejo asi, motivo: ______________
+  c) SOMBRAS de dia, con el sol bajo, moviendose por la region ... ______
+  d) LLUVIA o manguera, de noche y con IR (es el peor caso: las gotas
+     iluminadas por el IR son objetos brillantes cerca del lente) .. ______
+
+  AJUSTE FINAL AL QUE SE LLEGO:
+     Sensitivity ______   Size Filter minimo ______   maximo ______
+     Threshold ______     (tiene que seguir siendo el de C-3, o se rehace C-3)
+  >>> SI SE TOCA EL Size Filter O LA Sensitivity DESPUES DE C-3, C-3 SE REPITE.
+      Los dos ajustes cambian el tiempo de respuesta.  [ ] se repitio C-3
+```
+
+- **Criterio:** `CUMPLE` = **cero disparos falsos en las cuatro condiciones** con un ajuste que
+  **sigue detectando un vehículo real** — y eso último se comprueba **inmediatamente después**, con
+  tres pasadas buenas: ¿las tres cerraron el contacto? ______ de 3.
+  *(Un `Size Filter` tan estrecho que no dispara nunca da cero falsos positivos y es inútil. Sin las
+  tres pasadas buenas, esta medida no vale.)*
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ______________________________
+
+---
+
+### C-8 · CONSUMO REAL, DE NOCHE Y CON LOS IR ENCENDIDOS — 🎥 **MEDIDA**
+
+**Por qué es una medida del sistema y no de la cámara:** el equipo va a batería. La ficha del
+fabricante da `12 V DC`, **`1,08 A`, máx. `13 W`**, y esa cifra sola decide el tamaño de la batería y
+del panel de cada poste:
+
+```text
+  Por poste, una camara:      13 W
+  En 24 h:                    13 W x 24 h  =  312 Wh
+  A 12 V, eso es:             312 / 12     =   26 Ah/dia   SOLO LA CAMARA
+```
+
+**`13 W` es el máximo de la ficha, no el consumo medio**, y el máximo incluye los IR a plena potencia.
+Lo que hace falta es el consumo **real**, medido, en las dos condiciones — porque el número que
+dimensiona la batería es el de **la noche**, que es cuando los IR están encendidos y el panel no da
+nada.
+
+*Procedimiento:* pinza amperimétrica de DC sobre el positivo, o fuente con lectura de corriente.
+**No se mide por PoE si el equipo va a ir a 12 V:** son dos caminos distintos y el número que
+interesa es el de la batería.
+
+```text
+  Tension de alimentacion durante la medida ......... ______ V
+
+  a) DE DIA, con los IR APAGADOS, escena quieta ...... ______ A  = ______ W
+  b) DE DIA, con los IR APAGADOS, escena con movimiento y analitica corriendo
+                                                       ______ A  = ______ W
+  c) DE NOCHE, IR ENCENDIDOS, escena quieta ......... ______ A  = ______ W
+  d) DE NOCHE, IR ENCENDIDOS, con movimiento ........ ______ A  = ______ W
+  e) PICO al arrancar (el valor mas alto que se vea) . ______ A  = ______ W
+
+  LA CUENTA QUE VA AL RESPONSABLE, hecha con los numeros de arriba y no con la ficha:
+     Horas de noche al dia que se asumen ............ ______ h
+     Consumo diario = (dia_W x horas_dia + noche_W x horas_noche) / 12 V
+                    = ____________________________________  = ______ Ah/dia
+     Por poste, sumando el resto del equipo ......... ______ Ah/dia
+     Bateria instalada hoy en el poste .............. ______ Ah
+     Dias de autonomia sin sol ...................... ______
+```
+
+> ⚠️ **Y una regla que ya está escrita y no se negocia con esta medida salga lo que salga: la cámara
+> NO cuelga del `LM7805` de la tarjeta.** `1,08 A` por un regulador lineal de 12 a 5 V son 7,5 W de
+> disipación. La cámara va **directa a la batería**, en su propio ramal y con su propio fusible.
+
+- Resultado: 🎥 **DATO ANOTADO** — Observación: _____________________________________
+
+---
+
+### Lo que esta sección DEJA ABIERTO a propósito
+
+**No se escribe como paso lo que hoy no se puede medir.** Va aquí, con hueco, para que quien esté
+delante pueda contestarlo si resulta que sí puede — y para que se vea que falta si no:
+
+- **¿Cuál es el tiempo de respuesta aceptable?** (`C-3`). Es una **decisión vial**, del responsable,
+  y no la puede tomar quien ejecuta el banco. Hoy no existe. Decidido: ______ s por ______________
+- **¿Se compran las microSD y se activa la grabación?** (`DECISIONES.md` A-0). No toca firmware y es
+  lo único de las cámaras que da valor **sin escribir una línea de código**. Decidido: __________
+- **¿Qué significa el segundo bit?** (`A-1`). Uno está tomado —presencia antes de bajar la pluma—;
+  el otro, no. **Ninguna medida de esta sección lo decide**, y por eso no se pregunta aquí.
+- **La corriente mínima de conmutación del contacto y su material.** No está en ninguna fuente, y
+  **no se puede medir en una tarde**: es un fallo de envejecimiento, de meses. Se anota como riesgo
+  conocido, no como ensayo. *(El equipo le pide al contacto `3,3 V / 330 µA`, que es régimen de
+  carga seca.)*
+
+---
+
 ## 📊 RESUMEN DE RESULTADOS
 
 > **Sólo se cuentan las pruebas que llevan casilla.** Las aplazadas y las retiradas **no suman ni al
@@ -1808,6 +2368,11 @@ Seccion  9 — Modo Degradado ...........................  ___ / 14   (12 + 9.15
    Degradado (9.7 es la verificacion visual de dos ciclos, la clave de la seccion).
    Se marcan "no ejecutable" con su motivo, NUNCA "NO CUMPLE" ni "CUMPLE".
 Seccion 11 — Camaras de demanda .......................  ___ / 2
+Seccion 14 — Las 8 medidas de la camara Hikvision ....  NO PUNTUA
+   Son C-1 a C-8 y NO entran en el denominador: no son pruebas del equipo, son
+   datos de un componente que aun no esta integrado. Llevan hueco de respuesta
+   y solo tres llevan casilla CUMPLE/NO CUMPLE. Sus datos van al bloque de
+   abajo "DATOS MEDIDOS - CAMARA".
 Seccion 12 — Telemetria y ordenes .....................  ___ / 4    (3 + 12.7)
                                                          -----------------
                                  TOTAL DEL 31/08         ___ / 52
@@ -1824,8 +2389,11 @@ Seccion 12 — Telemetria y ordenes .....................  ___ / 4    (3 + 12.7)
 
 
 NO EJECUTABLES EN ESTA RONDA  (no se firman, no se cuentan)
-   APLAZADAS ... 13   Seccion 6 entera (6) . 8.9 . 9.12 . 9.13 . 11.3 . 12.1 . 12.5 . 12.6
-                      (12 heredadas de la revision anterior + 8.9, que es nueva)
+   APLAZADAS ... 12   Seccion 6 entera (6) . 8.9 . 9.12 . 9.13 . 12.1 . 12.5 . 12.6
+                      (11 heredadas de la revision anterior + 8.9, que es nueva)
+                      11.3 YA NO ESTA AQUI: el 05/09 se compraron las camaras, o sea
+                      que su motivo -"falta la camara real"- caduco. Se muda a C-7
+                      de la Seccion 14. No se firma en la 11, se mide en la 14.
    RETIRADAS ... 21   1.2 . 4.1 . 4.3 . 5.6 . 5.7 . 7.2 . 7.3 . 7.4 . 7.10 . 7.11
                       8.1 . 8.6 . 8.8 . Seccion 10 entera (5) . 11.4 . 13.1 . 13.2
 
@@ -1872,6 +2440,40 @@ DATOS MEDIDOS  (no cuentan como CUMPLE/NO CUMPLE: son registro para el acta)
      N-118: se comprueba el md5 antes de reportar nada.
      Si las resistencias difieren de estas, NO son las mismas placas o algo cambio:
      eso es un hallazgo por si solo y se anota antes de seguir.
+```
+
+### 🎥 DATOS MEDIDOS — CÁMARA `DS-2CD2683G2-IZS` (se copian de la §14)
+
+**No cuentan como `CUMPLE`/`NO CUMPLE`.** Son los cinco números de la §14 que salen de esta sesión y
+entran en una decisión de diseño, de firmware o de energía. **El resto de las respuestas se queda en
+la §14 y no se duplica aquí** — dos copias de un dato son dos datos que acaban discrepando.
+
+```text
+  C-1  Existe "Trigger Alarm Output" en Intrusion Detection?
+          [ ] SI -> el diseno D-13 sigue en pie
+          [ ] NO -> PARAR. Se cae el bit por poste; queda la via D-14 (grabacion)
+          [ ] no se pudo mirar, motivo: ______________________________________
+
+  C-2  Delay minimo que ofrece la camara ......... ______      (elegido ______)
+       Duracion medida del pulso del rele ........ ______ s
+          -> Si NO es ~1 s, hay CINCO comentarios del firmware y DOS packs del
+             banco (PULSO_RELE_MS = 1000) apoyados en un numero falso. Se anota
+             aqui y se arregla fuera de banco. NO se toca firmware en la sesion.
+
+  C-3  Peor caso de las 30 pasadas ............... ______ s
+       Pasadas que NO cerraron el contacto ....... ______ de 30
+
+  C-4  Es contacto seco, sin tension propia?  [ ] SI   [ ] NO
+       Da algun pulso al arrancar o reiniciar? [ ] NO  [ ] SI -> ______ pulsos
+          -> Un pulso en el arranque es una peticion de paso que nadie hizo.
+
+  C-8  Consumo de NOCHE con IR encendidos ........ ______ A a ______ V
+       Consumo diario calculado .................. ______ Ah/dia
+          (la ficha dice 13 W max -> 26 Ah/dia; este es el numero real)
+
+  QUEDA ABIERTO Y SE DICE ASI:
+       C-5 (entrada de alarma) ... [ ] BLOQUEADA, falta el diagrama de cable
+       C-6 parte 2 (madrugada) ... [ ] EJECUTADA   [ ] PENDIENTE, fecha ________
 ```
 
 ### Pruebas NO CUMPLE — detalle para el equipo de desarrollo

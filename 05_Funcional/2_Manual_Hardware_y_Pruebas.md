@@ -11,7 +11,7 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 | **Botonera de `J16`** | ⚠️ **SE PARTE EN DOS (31/08/2026)** | ~~*Se queda en AMBOS, botones 1 a 4*~~ → **quedan 2 pulsadores** (`PB9` p5 y `PB13` p8, mando `A`/`B`); **`PB14` p10 y `PB15` p12 pasan a CÁMARAS**. Ver §3 y §6 |
 | **Cámaras IA de demanda (1 y 3)** | ✅ **1 en Maestro + 1 en Esclavo** | Contacto seco `1A`/`1B` en `PB0`. Operativas. Ver §7 |
 | **Cámaras IA en `J16` (`C` y `D`)** | 🟢 **YA ESTÁN EN EL FIRMWARE (31/08)** | `CAM_C_PIN` = `PB14`, `CAM_D_PIN` = `PB15`. **`INPUT` pelado, activo en ALTO.** ~~⚠️ **No se cablean hasta la medida `M3`**~~ *(`M3` **CERRADA** en el paso 20 del banco del 03/09: el pull-down de 10 kΩ es real, `9,93`/`9,94 kΩ` y `0 V` en reposo)* ni antes de **tapar `J16` p1 (12 V crudos)** — obligatorio desde N-120. Ver §7 |
-| **Talanquera de barrera (`J15`)** | ✅ **PROBADA EN COBRE (04/09)** y **bien diseñada** | `PB2` → `R70` 220 Ω → `U15` (`TLP127`, **aísla**) → `R72` 220 Ω → puerta de `Q10` (`IRLZ44N`) → `J15`. ⚠️ El diodo de rueda libre `D30` es un `1N4148` y **queda corto para un motor real** — va a la V2. Ver §10 |
+| **Talanquera de barrera (`J15`)** | ✅ **PROBADA EN COBRE (04/09)** y **bien diseñada** | `PB2` → `R70` 220 Ω → `U15` (`TLP127`, **separa el pin del micro, NO la masa** — §11) → `R72` 220 Ω → puerta de `Q10` (`IRLZ44N`) → `J15`. 🔴 **`J15` p2 está a ~12 V en reposo** (`R73` 1 kΩ + `D29` al riel de 12 V), no a 0 V — §11. ⚠️ El diodo de rueda libre `D30` es un `1N4148` y **queda corto para un motor real** — va a la V2. Ver §10 |
 | ~~**Cámaras IA de umbral (2 y 4)**~~ | 🛑 **NO SE INSTALAN EN `PB8`** | **`PB8` NO es entrada de cámara:** alimenta el LED testigo `D5` por `R16` de 1 kΩ. Se renombró a `LED_TESTIGO` (`pines.h:63`) y **`CAM_UMBRAL_PIN` ya no existe en el fuente** — N-64. Ver §7 |
 | **Módulo de expansión ESP32** | 🟢 **IDENTIFICADO Y CON FIRMWARE (31/08)** | `ESP32-WROOM-32` clásico (**BT v4.2 BR/EDR → hay SPP**) por **`J17`** p2/p3 = `PB7`/`PB6` (`USART1` **remapeado**), ~~p6 = 3,3 V~~ 🛑 **p6 NO SE CONECTA** (pico de ~500 mA sobre el mismo `LM7805` del STM32 — Manual 1 §8; el módulo lleva **fuente propia**, línea `A5`, **sin pedir**), p7 = GND **(masa común obligatoria)**. **Sustituye al módulo SPP discreto** y trae ~~el reloj `DS3231` con pila propia~~ **el DRIVER del `DS3231`** (`ESP32_Expansion/src/reloj_ds3231.cpp`, `GPIO21`/`GPIO22`); 🛑 **el módulo NO está comprado (`A6`) y `0x68` sigue SIN VERIFICAR** — `contrato.h:185-186` lo dice en el propio fuente. **El firmware existe; la pieza no**, y sin ella la hora sale `--:--:--`, que es correcto. ⛔ **`J16` NO es `J17`: lleva 12 V.** Ver §8 |
 | **Mando de 4 Relés Anti-Colisión** | ⚠️ **SE CONSERVA, sobre 2 canales** | ~~*Cableado en paralelo con `PB9`..`PB15`*~~ → **solo `A` (`PB9`) y `B` (`PB13`)**. `C` y `D` se retiran. **Las tres secuencias siguen funcionando.** Ver §6 |
@@ -42,7 +42,7 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 >
 > | | protección en serie |
 > |---|---|
-> | Las **9 salidas** de la placa | ✅ **220 Ω + optoacoplador `TLP127`** — p. ej. `PA0` (`/S1`) → `R19` 220 Ω → `U6` `TLP127` → potencia |
+> | Las ~~**9 salidas**~~ → **10 salidas** de la placa | ✅ **220 Ω + optoacoplador `TLP127`** — p. ej. `PA0` (`/S1`) → `R19` 220 Ω → `U6` `TLP127` → potencia. 🔴 **Son DIEZ, no nueve: `Q1`–`Q10` y `U6`–`U15`, contados en el `.kicad_pcb` el 05/09.** Censo completo en §11 |
 > | Las **5 entradas de campo** (`PB0`, `PB9`, `PB13`, `PB14`, `PB15`) | 🔴 **NADA.** Van directas al pin del micro |
 >
 > **Consecuencia inmediata y sin discusión:** tapar físicamente `J16` p1 —los 12 V— deja de ser una
@@ -967,7 +967,12 @@ Para detección vehicular por demanda en obra vial (analítica embebida sin comp
 > **Leído del `.kicad_pcb`, red por red.** No es una impresión ni una lectura de esquemático: es el
 > fichero de cobre.
 >
-> ### Las 9 salidas van blindadas
+> ### ~~Las 9 salidas van blindadas~~ → **Las DIEZ salidas llevan opto, y «blindadas» dice de más**
+>
+> 🔴 **Dos correcciones del 05/09, las dos medidas sobre el mismo fichero de cobre. Se tachan con su
+> motivo porque una cifra que desaparece en silencio vuelve a escribirse:** (a) las cadenas de
+> potencia son **DIEZ** —`Q1`–`Q10`, `U6`–`U15`—, no nueve; (b) *«blindadas»* es cierto para el **pin
+> del micro** y falso para la **masa**. Censo completo, con los comandos, en **§11**.
 >
 > Cada una lleva **220 Ω en serie + optoacoplador `TLP127`**. Cadena completa de ejemplo:
 >
@@ -975,8 +980,19 @@ Para detección vehicular por demanda en obra vial (analítica embebida sin comp
 >    PA0  (/S1)  ->  R19  220 Ω  ->  U6  TLP127  ->  etapa de potencia
 > ```
 >
-> El opto **aísla galvánicamente**: pase lo que pase en el lado de potencia, no hay camino de
-> corriente hacia el micro.
+> ~~El opto **aísla galvánicamente**: pase lo que pase en el lado de potencia, no hay camino de
+> corriente hacia el micro.~~
+>
+> 🔴 **TACHADO EL 05/09 CON SU MOTIVO — es MEDIO cierto, y la mitad que falla es la que decide qué
+> se puede colgar de esas borneras.** Medido sobre el `.kicad_pcb`: **hay UNA sola red `GND` en toda
+> la tarjeta, con 103 pads y un plano de cobre en las DOS capas** (`F.Cu` y `B.Cu`). Esa red incluye
+> **el cátodo del LED del opto** (`U6` p3 … `U15` p3) **y la fuente de los diez MOSFET** (`Q1` p3 …
+> `Q10` p3). El opto separa el **pin del micro** del nodo de puerta; **no crea una masa separada**.
+>
+> **Lo que sigue siendo cierto y no se toca:** no hay camino de corriente **desde el drenador hacia
+> el pin del `U1`** — el mérito del diseño está ahí y por eso el opto vale. **Lo que deja de poderse
+> decir:** que lo que se cuelgue de esas borneras esté aislado del controlador. **No lo está:
+> comparte su masa.** Cuentas, comandos de medida y consecuencias en **§11**.
 >
 > ### Las 5 entradas de campo van DESNUDAS
 >
@@ -1316,12 +1332,22 @@ Cadena completa, leída del `.kicad_pcb`:
 
 ```text
    PB2  ->  R70 220 Ω  ->  U15  TLP127  ->  R72 220 Ω  ->  puerta de Q10 (IRLZ44N)  ->  J15
-                           [  A Í S L A  ]                        D30 al riel de 12 V
+                     [ separa el PIN, NO la MASA ]                D30 al riel de 12 V
+                                                          R73 1K + D29 LED al riel de 12 V
 ```
 
-* **`U15` es un `TLP127`: aísla galvánicamente.** La etapa de potencia **no puede inyectar corriente
-  al micro**, pase lo que pase del lado del motor. Es exactamente lo contrario de lo que ocurre con
-  las cinco entradas de campo (**§7**): aquí la barrera existe y está bien puesta.
+* ~~**`U15` es un `TLP127`: aísla galvánicamente.** La etapa de potencia **no puede inyectar corriente
+  al micro**, pase lo que pase del lado del motor.~~ 🔴 **TACHADO EL 05/09: medio cierto.** Lo que
+  `U15` separa es **el pin del `U1` del nodo de puerta de `Q10`**, y eso sí protege al micro. Lo que
+  **no** hace es crear una masa aparte: **hay una sola red `GND` en la tarjeta**, y en ella están el
+  cátodo del LED de `U15` y la fuente de `Q10`. **Un motor colgado de `J15` comparte la masa del
+  controlador.** Ver **§11**.
+* 🔴 **Y `J15` p2 NO está a 0 V en reposo: está a ~12 V.** Falta en este diagrama, y estaba en el
+  cobre desde el primer día: `R73` 1 kΩ + `D29` (LED) van del riel de 12 V al drenador de `Q10`. Es
+  lo que explica la medida de banco *«en rojo `0 V`, en ámbar `12 V`»* que hasta hoy estaba anotada
+  **sin causa**. Ver **§11**.
+* **Aquí la barrera hacia el pin del micro existe y está bien puesta** — es exactamente lo contrario
+  de lo que ocurre con las cinco entradas de campo (**§7**).
 * **En banco, el 04/09, la talanquera funcionó por `J15`.**
 
 ### ⚠️ Pero hay un hallazgo real, y va a la V2: `D30` está infradimensionado
@@ -1331,10 +1357,260 @@ gobernada por un **`IRLZ44N`**. Un motor real devuelve al abrir bastante más de
 
 | | |
 |---|---|
-| Lo que **NO** pasa | 🟢 **el STM32 no corre peligro** — `U15` lo aísla. Ese es el mérito del diseño y por eso se dice arriba |
+| Lo que **NO** pasa | 🟢 **el pin del STM32 no corre peligro** — `U15` separa la pata del micro del nodo de puerta. Ese es el mérito del diseño. 🔴 **Lo que sí llega igual: la masa.** Ver §11 |
 | Lo que **SÍ** pasa | 🔴 el retorno inductivo se lleva **`D30`**, y detrás **`Q10`** |
 
 **Va a la V2 como cambio de componente**, no como parche de campo: es un diodo, no una decisión de
 arquitectura. Mientras tanto la talanquera funciona — lo que no conviene es darla por eterna en cuanto
 se le cuelgue un motor grande.
 
+---
+
+## 11. 🧭 EL CENSO DE COBRE DEL 05/09 — lo que las diez borneras de potencia hacen de verdad
+
+> **Todo este apartado sale de UN fichero: `01_Firmware/Controladora_Semaforos/Controladora_Semaforos/Controladora_Semaforos.kicad_pcb`
+> (2.158.421 B) y de su `.kicad_sch`.** Es cobre, no esquema de bloques. Los comandos van pegados
+> para que cualquiera los repita, y **cada uno se corrió antes de escribirlo**.
+
+### 11.0 ⚠️ Antes de nada: el buscador de este fichero engaña, y ya publicó una mentira
+
+KiCad separa sus tokens con **tabulador y salto de línea**, no con espacio. Buscar la pista con un
+espacio detrás da **cero**, y un cero se lee como *«no hay»*:
+
+```text
+$ grep -c "(segment " Controladora_Semaforos.kicad_pcb
+0                                    <-- FALSO
+$ grep -oE "\(segment\b" Controladora_Semaforos.kicad_pcb | wc -l
+1447                                 <-- REAL
+```
+
+Sobre ese cero se llegó a publicar que el fichero de cobre estaba **VACÍO**. No lo está: **185
+huellas, 1.447 pistas, 89 vías, 485 pads y 117 redes**, más un plano de masa. **Quien repita este
+censo usa `\b`, nunca un espacio** — y si le sale un cero, mide el fichero por otro camino antes de
+escribir que algo falta.
+
+### 11.1 Las DIEZ cadenas de potencia, una por fila
+
+Todas son **el mismo molde**: pin del `U1` → `R` 220 Ω → opto `TLP127` → `R` 10 K a masa + `R`
+220 Ω a la puerta → MOSFET `IRLZ44N` de lado bajo → bornera, con `1N4148` de rueda libre al riel de
+12 V.
+
+| MOSFET | bornera | pin U1 | GPIO | red | opto | firmware que lo mueve |
+|---|---|---|---|---|---|---|
+| `Q1` | `J3` | 10 | `PA0` | `/S1` | `U6` | ✅ `ROJO1` |
+| `Q2` | `J4` | 11 | `PA1` | `/S2` | `U7` | ✅ `AMARILLO1` |
+| `Q3` | `J5` | 12 | `PA2` | `/S3` | `U8` | ✅ `VERDE1` |
+| `Q4` | `J6` | 13 | `PA3` | `/S4` | `U9` | ✅ `ROJO2` |
+| `Q5` | `J7` | 14 | `PA4` | `/S5` | `U10` | ✅ `AMARILLO2` |
+| `Q6` | `J8` | 15 | `PA5` | `/S6` | `U11` | ✅ `VERDE2` |
+| `Q7` | `J9` | 17 | `PA7` | `/S8` | `U12` | 🔴 **NADA** — `VERDE_PEATON` |
+| `Q9` | `J11` | 16 | `PA6` | `/S7` | `U14` | 🔴 **NADA** — `ROJO_PEATON` |
+| `Q8` | `J13` | 19 | `PB1` | `/Buzzer` | `U13` | 🔴 **NADA** — `BUZZER` |
+| `Q10` | `J15` | 20 | `PB2` | `/Motor` | `U15` | ✅ `MOTOR_TALANQUERA`, probada en banco el 04/09 |
+
+**Son diez, no nueve.** El *«las 9 salidas»* de §7 y de N-120 se corrige aquí; se tacha allí con su
+motivo y no se borra. Los símbolos del firmware están en `Maestro/include/pines.h` y la numeración de
+pines del `U1` sale del propio `.kicad_sch` (`STM32F103C8Tx`, LQFP48).
+
+### 11.2 🔴 EL BORNE NO ESTÁ A 0 V EN REPOSO: ESTÁ A ~12 V
+
+**Éste es el hallazgo que cambia lo que se puede enchufar ahí, y no estaba en ningún documento.**
+
+En **nueve** de los diez drenadores hay, **en el cobre**, un **pull-up de 1 kΩ + LED al riel de
+12 V**: `R23`, `R28`, `R33`, `R38`, `R43`, `R48`, `R53`, `R58`, `R63`, `R73`, cada uno con su LED
+(`D12`, `D13`, `D15`, `D17`, `D19`, `D21`, `D23`, `D25`, `D27`, `D29`).
+
+```text
+   +12 V ---[ R 1K ]---|>|--- DRENADOR ------ bornera p2
+                      LED         |
+                                 [Q] IRLZ44N
+                                  |
+                                 GND
+```
+
+* **MOSFET conduciendo** (el firmware escribe el pin ALTO): el borne cae a **~0 V** y el LED luce.
+* **MOSFET abierto** (reposo, o firmware sin escribir el pin): el borne **sube a ~12 V**.
+
+**Esto no se evita dejando un hilo sin poner: está en la placa, no en el conector.**
+
+**La corriente disponible es una cuenta, no una medida:** `(12 V menos Vf del LED, ~2 V) / 1 kΩ` da
+**~10 mA**. **La tensión en vacío y esos 10 mA quedan `SIN VERIFICAR` con multímetro** — se miden
+entre p2 y masa con la bornera desconectada, y son dos minutos de banco.
+
+> ✅ **Y explica una medida de banco que llevaba desde el 04/09 anotada SIN CAUSA.** El informe
+> apuntó de `J15`: *«en rojo `0 V`, en ámbar `12 V`»*. Con la sonda entre **p1 y p2** eso es
+> exactamente este circuito: en rojo el firmware cierra la pluma, el pin va BAJO, el MOSFET se abre,
+> el drenador sube a 12 V por `R73` y la diferencia p1-p2 se queda en **~0 V**; en ámbar el pin va
+> ALTO, el MOSFET conduce, el drenador cae y esa diferencia pasa a **~12 V**. *(La polaridad del
+> firmware está en `Maestro/include/pines.h`, `TALANQUERA_ABRIR = HIGH`. **Que la sonda estuviera
+> entre p1 y p2 es DEDUCCIÓN de esas dos cosas, no una lectura del informe: `SIN VERIFICAR`.**)*
+
+#### 🔴 Y la excepción, que es un hallazgo nuevo: `J8` (`VERDE2`) NO tiene ese pull-up
+
+`D21` —el LED del canal de `Q6`/`J8`— tiene el **cátodo sin conectar**, en el esquemático y en el
+cobre:
+
+```text
+$ grep -oE '\(net [0-9]+ "unconnected-\(D21-K-Pad1\)"\)' Controladora_Semaforos.kicad_pcb
+(net 47 "unconnected-(D21-K-Pad1)")
+$ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)' Controladora_Semaforos.kicad_pcb
+(net 49 "Net-(D23-K)")            <-- D23, el LED gemelo de J9, SI llega al drenador
+```
+
+Y hay **cero pistas** sobre esa red (`net 47`) y **cero hilos** en el `.kicad_sch` en ese pin,
+mientras su gemelo `D23` los tiene en los dos extremos. `R48` y `D21` **están montados** y forman un
+muñón colgado del riel de 12 V que **no llega a ninguna parte**.
+
+**Consecuencia práctica, y es la única fila de la tabla de 11.1 que se comporta distinta:** con el
+MOSFET abierto, **`J8` p2 queda FLOTANDO**, no a 12 V. Y `J8` es `VERDE2` — una de las seis luces
+vivas.
+
+> ⚠️ **Lo que este documento NO dice: si esto es un defecto o una decisión.** No hay ninguna nota en
+> el repositorio que lo mencione. **`SIN VERIFICAR`** que la placa soldada coincida con el fichero en
+> este punto: se comprueba con un multímetro entre `J8` p1 y p2, comparando contra `J7` p1-p2 en el
+> mismo estado de luz. **Dos minutos, y es la medida que lo cierra.**
+
+### 11.3 🔴 Un MOSFET a masa NO es un contacto seco
+
+Se escribe aquí porque es la conclusión de obra de los dos apartados anteriores, y porque el
+vocabulario de este proyecto usa *«contacto seco»* todo el rato — con razón — **para las ENTRADAS de
+cámara**, que sí lo son. **Las salidas no.**
+
+| lo que un contacto seco garantiza | lo que estas borneras dan |
+|---|---|
+| dos terminales sin referencia a nada | p1 es el **riel de 12 V** de la tarjeta y p2 cuelga del **drenador** |
+| ninguna tensión propia | **~12 V en reposo** con ~10 mA disponibles, en nueve de los diez |
+| masa independiente del que manda | **la MISMA masa del controlador** — ver 11.4 |
+| se puede invertir | **no**: el MOSFET conduce en un solo sentido, y es de lado bajo |
+
+**Ni siquiera es un colector abierto limpio**, porque el pull-up le pone tensión propia. Lo que hay
+es una **salida conmutada a masa, con 12 V de reposo y masa común**.
+
+### 11.4 🔴 «El opto aísla galvánicamente» — la mitad que falla
+
+Medido: **hay UNA sola red `GND` en toda la tarjeta**, y ninguna otra que se le parezca.
+
+```text
+$ grep -oE '\(net [0-9]+ "[^"]*GND[^"]*"\)' Controladora_Semaforos.kicad_pcb | sort -u
+(net 1 "GND")
+```
+
+Esa red tiene **103 pads** y un **plano de cobre en las dos capas** (`F.Cu` y `B.Cu`). Dentro están,
+a la vez:
+
+* el **cátodo del LED de cada opto** (`U6` p3 hasta `U15` p3) — o sea, el lado que mira al micro;
+* la **fuente de cada MOSFET** (`Q1` p3 hasta `Q10` p3) — o sea, el lado de potencia;
+* las cuatro patas `VSS` del `U1`, y `J16` p2 y `J17` p7 y p9.
+
+**Qué queda en pie y qué se cae:**
+
+| | |
+|---|---|
+| ✅ **sigue siendo cierto** | no hay camino de corriente **del drenador a la pata del `U1`**. Ése es el mérito del diseño, y por eso `J15` es *«bien diseñada»* frente a las cinco entradas desnudas de §7 |
+| 🔴 **deja de poderse decir** | que lo colgado de esas borneras esté **aislado del controlador**. Comparte su masa, y comparte también su riel de 12 V por p1 |
+
+**En obra esto se traduce en una sola frase:** un retorno de masa sucio de un motor, de una cabeza
+peatonal o de un zumbador **entra en la masa del STM32**, aunque el opto esté ahí. El opto protege
+al **pin**; no aísla al **equipo**.
+
+### 11.5 Tres canales de potencia completos, fabricados y sin una línea de firmware detrás
+
+`J9` (`VERDE_PEATON`, `PA7`), `J11` (`ROJO_PEATON`, `PA6`) y `J13` (`BUZZER`, `PB1`). Están enteros
+en la placa —opto, MOSFET, diodo, LED, bornera— y **el firmware no los toca en ninguna de las dos
+puntas**:
+
+```text
+$ grep -rn -e ROJO_PEATON -e VERDE_PEATON -e BUZZER Maestro/src Esclavo/src
+Maestro/src/main.cpp:35://   ROJO_PEATON y VERDE_PEATON, que estaban sin custodia.
+
+$ grep -rn -e pinMode -e digitalWrite -e digitalRead Maestro/src Esclavo/src \
+      | grep -e PEATON -e BUZZER
+(sin salida)
+```
+
+Ni un `pinMode`, ni un `digitalWrite`. **Si alguien cablea una cabeza peatonal a `J9`/`J11` o un
+zumbador a `J13`, no se enciende nunca y no hay mensaje de error.**
+
+**Cuánto cuesta darle vida a uno — medido, no estimado.** Desensamblando el `.elf` construido, un
+`pinMode(PIN, OUTPUT)` con pin constante y un `digitalWrite(PIN, valor)` ocupan **8 bytes cada uno**
+en Thumb-2:
+
+```text
+$ arm-none-eabi-objdump -d Maestro/.pio/build/maestro/firmware.elf
+  (dentro del simbolo _Z14semaforo_setupv)
+    2101      movs r1, #1            <-- 2 B
+    2012      movs r0, #18           <-- 2 B   (MOTOR_TALANQUERA)
+    f002 f979 bl   pinMode           <-- 4 B
+  (dentro del simbolo _ZL13escribirPinesbbb)
+    4629      mov  r1, r5            <-- 2 B
+    20c4      movs r0, #196          <-- 2 B
+    f002 faae bl   digitalWrite      <-- 4 B
+```
+
+O sea **16 B** por canal encendido. ⚠️ **Ese 16 es un SUELO, no el coste de la función.** Es lo que
+cuestan las **dos llamadas**; no incluye ni un byte de lo que **decide** el valor —una fase peatonal,
+un temporizador, un patrón de zumbido—. **Publicar el 16 sin esta frase sería vender barato algo que
+todavía no se ha diseñado.** Y el margen de flash es el que es: el acta de `compuerta.py` del
+05/09 deja al Maestro en **86,5 %** (`56656` de `65536` B). **Ese número se lee del acta de
+`evidencia/`, no de aquí**: cambia con cada corrida, y una cifra copiada a mano en un manual caduca
+sola.
+
+> 🟡 **`SIN VERIFICAR`: que `J9`, `J11` y `J13` estén REALMENTE SOLDADOS en la tarjeta física.**
+> El esquemático los marca `in_bom=yes`, `dnp=no`, `on_board=yes` —o sea que el diseño dice que van—,
+> pero **nadie los ha mirado en cobre**. Lo más cerca que hay es **`J15`, el gemelo exacto, que sí
+> funcionó en banco el 04/09**. Eso hace probable que estén; **no lo demuestra**. Se comprueba a ojo
+> y con continuidad, y es lo primero antes de contar con ellos para nada.
+
+> 🟡 **Y lo que este manual NO decide, porque no le toca:** gastar uno de esos tres canales **cierra
+> la puerta a una cabeza peatonal o a un zumbador en esta placa** — no hay más molde libre. **No
+> existe ninguna decisión escrita que renuncie a ellos.** Queda como pregunta abierta, con dueño, en
+> `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md` §3.10.
+
+### 11.6 Los pines libres son SEIS, no tres — y tres de ellos ya tienen bornera
+
+A `ROJO_PEATON` (`PA6`), `VERDE_PEATON` (`PA7`) y `BUZZER` (`PB1`) hay que sumar **`PB3`, `PB4` y
+`PB5`**, los de la pantalla. `lcd.cpp` los pasó a `U8X8_PIN_NONE` cuando el volcado al cable se
+retiró, y la librería **se salta el `pinMode` y el `digitalWrite` cuando el pin es `NONE`** — está
+leído en `U8x8lib.cpp`, función `u8x8_gpio_and_delay_arduino()`, donde los dos caminos preguntan
+`if (u8x8->pins[i] != U8X8_PIN_NONE)` y `if (i != U8X8_PIN_NONE)` antes de tocar nada.
+
+**Quedan en alta impedancia, y con pista hasta una bornera ya montada:**
+
+| GPIO | símbolo | bornera | red del `.kicad_pcb` |
+|---|---|---|---|
+| `PB3` | `LCD_SCLK` | `J17` p4 | `/SCL` |
+| `PB4` | `LCD_CS` | `J17` p1 | `/CS` |
+| `PB5` | `LCD_SID` | `J17` p5 | `/SI` |
+
+**Son los únicos GPIO libres del proyecto con bornera ya cableada.** `J9`/`J11`/`J13` traen etapa de
+potencia pero no dan una entrada; éstos dan pin desnudo con conector.
+
+> ⚠️ **Lo que cuesta usarlos, y lo que NO cuesta.**
+>
+> **No cuesta el depurador.** `PB3` y `PB4` son patas de **JTAG** (`JTDO` y `NJTRST`), pero el
+> framework las libera conservando SWD: `pin_function()` llama a `pin_DisconnectDebug()`, y en
+> `PinAF_STM32F1.h`, función `pinF1_DisconnectDebug()`, eso hace `__HAL_AFIO_REMAP_SWJ_NOJTAG()` para
+> `PA_15`, `PB_3` y `PB_4` — *«JTAG-DP Disabled and SW-DP enabled»*, literal del fuente. **La carga
+> por SWD sigue funcionando.** *(`PB5` **no** es pin de JTAG: no aparece en esa lista. Donde se haya
+> escrito que los tres lo son, es falso.)*
+>
+> **Sí cuesta la pantalla.** Devolverlos al LCD exige **dos** cosas, no una: reponer los pines en
+> `lcd.cpp` **y** sacar el ESP32 de `J17`. Y `J17` p1, p4 y p5 son posiciones **del mismo conector en
+> el que vive el ESP32**, así que lo que se cuelgue de ellas convive con él. **Que eso no le moleste
+> al módulo NO está medido: `SIN VERIFICAR`.**
+
+### 11.7 Cómo repetir este censo entero
+
+```text
+cd 01_Firmware/Controladora_Semaforos/Controladora_Semaforos
+wc -c Controladora_Semaforos.kicad_pcb                                # 2158421
+grep -oE '\(footprint\b' Controladora_Semaforos.kicad_pcb | wc -l     # 185
+grep -oE '\(segment\b'   Controladora_Semaforos.kicad_pcb | wc -l     # 1447
+grep -oE '\(via\b'       Controladora_Semaforos.kicad_pcb | wc -l     # 89
+grep -oE '\(pad\b'       Controladora_Semaforos.kicad_pcb | wc -l     # 485
+grep -oE '\(net [0-9]+ "[^"]*"\)' Controladora_Semaforos.kicad_pcb | sort -u | wc -l   # 117
+```
+
+Para las redes por componente hace falta **emparejar paréntesis** (el fichero anida `pad` dentro de
+`footprint`); un `grep` de línea suelta **no basta, y da resultados que parecen buenos**. Es la misma
+trampa de 11.0, una capa más adentro.

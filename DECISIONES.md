@@ -49,8 +49,8 @@ Si el encargo contradice una fila, eso no es una orden: **es una pregunta.**
 | **A-4** | **¿Qué pasa con `MENU` si se replantea la interfaz?** | Es el estado «parado» del que depende fijar tiempos: `C_MENU_IDLE` fuerza rojo a las dos puntas |
 | ~~**A-5**~~ ✅ | ~~¿Había un DS3231 en el banco?~~ **RESUELTA 05/09: sí — cada ESP32 lleva su reloj con pila propia**, y así estaba escrito desde el 28/08 en la lista de compras. `HORA:22:19:58` es real y **N-145 queda confirmada en cobre**. La contradicción era de la lista (`A6` dice «NO se compró» y está caducada), no del banco. Sigue sin verificar `0x68` sobre el módulo |
 | **A-6** | **La vigilancia de la propia cámara — y va PRIMERO** | No compite por el bit: **es la condición previa de todas las demás**, porque con `INPUT` pelado y pull-down **el pin no distingue silencio de vía libre**. «N horas sin flanco con el ciclo corriendo» se calcula sobre cualquier bit. Sólo eventos, sin efecto vial: es **el instrumento del laboratorio**, y cuenta cuántas veces habría actuado un veto **antes** de darle autoridad. La enunció el responsable («lleva 8 días…») y **no existe** |
-| **A-7** | 🔴 **El `~1 s` del relé es CIRCULAR: nos lo inventamos y luego nos citamos** | `demanda.cpp` de las dos puntas justifica `SILENCIO_MS = 3000` con *«el relé de la AcuSense cierra ~1 s por detección»*, y `camara_01_demanda.py:39` lo atribuye a **«Manual 9, paso 3»** — que es **una instrucción NUESTRA**, no un dato de Hikvision. **El manual oficial no publica ni un valor de `Delay` en 110 páginas.** La cura: medir el `Delay` real, fijarlo al **mínimo** que admita, y **derivar** `SILENCIO_MS > Delay + rearme` con un pack que relea las dos cifras. Es N-71 otra vez |
-| **A-8** | **Los DOS horarios de armado, y la cámara sin NTP** | Hay **dos `Arming Schedule` en serie** —el de la regla y el de la propia salida de alarma— y fuera de cualquiera **el relé no cierra**. Y la cámara **no tiene NTP** (D-12: sin red), así que su horario corre sobre un reloj que **deriva y se pierde en un corte**. La única configuración que no depende de ese reloj es **24×7 en los dos**. Se comprueba de madrugada tras un corte, no en taller |
+| **A-7** | 🔴 **El `~1 s` del relé es CIRCULAR: nos lo inventamos y luego nos citamos** | `demanda.cpp` de las dos puntas justifica `SILENCIO_MS = 3000` con *«el relé de la AcuSense cierra ~1 s por detección»*, y un pack lo atribuye a **«Manual 9, paso 3»** — que es **una instrucción NUESTRA**, no un dato de Hikvision. **El manual oficial no publica ni un valor de `Delay` en 110 páginas.** 🔴 **Y es peor de lo que se escribió: el «~1 s» vive en NUEVE sitios** —cinco comentarios de firmware y **DOS PACKS con `PULSO_RELE_MS = 1000`** que comprueban `SILENCIO_MS > PULSO_RELE_MS` y **salen VERDES contra un número que nadie ha medido**. El instrumento certifica la invención. La cura: medir el `Delay` real, fijarlo al **mínimo** que admita, y **derivar** `SILENCIO_MS > Delay + rearme` con un pack que relea las dos cifras. Es N-71 otra vez |
+| **A-8** | **Los DOS horarios de armado, y el reloj de la cámara sin sincronizar** | Hay **dos `Arming Schedule` en serie** —el de la regla y el de la propia salida de alarma— y fuera de cualquiera **el relé no cierra**. Y la cámara **no PUEDE USAR NTP** —el cliente existe, `NTP` sale 7 veces en el manual; lo que no hay es **red** (D-12)—, así que su horario corre sobre un reloj que **deriva y se pierde en un corte**. La única configuración que no depende de ese reloj es **24×7 en los dos**. Se comprueba de madrugada tras un corte, no en taller |
 
 ---
 
@@ -152,8 +152,24 @@ analítica accione ningún relé. La AND que íbamos a hacer en el controlador *
 ### 🔴 Lo que falta, y es documentación que NO tenemos
 
 **El manual DELEGA el cableado**: *«Make sure the external alarm device is connected. **See
-Quick Start Guide for cable connection**»* (PDF p.56 / impresa 44). **La Quick Start Guide no
-está en disco.**
+Quick Start Guide for cable connection**»* (PDF p.56 / impresa 44).
+
+✅ **CORREGIDO el 05/09: la Quick Start Guide SÍ está en disco** —`04_Manuales/...UD40284B...
+Quick_Start_Guide_20241115.pdf`, 40 páginas—. Lo que pasa es que **no tiene capa de texto**:
+cero caracteres extraíbles en las 40, así que **cualquier búsqueda da cero POR EL FORMATO**
+(§4 aplicada a un fichero, igual que el `.kicad_pcb`). **Al renderizarla como imagen y
+mirarla, la página 8 dice literal:**
+
+> *«`1A` and `1B`, `2A` and `2B`, `3A` and `3B` are **three pairs of alarm outputs**»*
+> *«`IN1` and `GND1`, `IN2` and `GND2` are **two pairs of alarm inputs**»*
+
+🟢 **Así que `1A`+`1B` = UN contacto ya es LECTURA, no deducción.** Nuestra cámara tiene
+`1 input, 1 output`, luego le corresponden `1A`+`1B` (salida) e `IN1`+`GND1` (entrada). Y su
+propio aviso: *«The interface varies with the models»*.
+
+**Lo que la Quick Start Guide NO trae es diagrama de cable ni régimen eléctrico** — es un
+folleto genérico de 8 páginas de montaje y 32 de textos legales. La delegación del manual
+**acaba en un callejón sin salida**.
 
 Por eso `ALARM IN`, `G`, `1A`, `1B` quedan **`SIN VERIFICAR`**: no hay diagrama de cable en
 ninguna de las dos fuentes. Lo único que acota es que la ficha dice **`1 input, 1 output`**

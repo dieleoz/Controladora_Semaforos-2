@@ -1064,6 +1064,86 @@ Todo esta MEDIDO en `01_Firmware/Maestro/include/pines.h`.
 > **vacuamente cierta** para los dos peatonales: nadie los escribe porque nadie los escribe. La
 > talanquera sí entró dentro de `escribirPines()` el 27/08 (`ESTADO.md`, fila `A2`).
 
+> ## 🔴 AMPLIADO EL 05/09 CON UN CENSO DE COBRE — y son SEIS pines libres, no tres
+>
+> **El bloque de arriba sigue entero y no se toca: es cierto.** Lo que faltaba es la otra mitad, y
+> cambia tres cifras que este documento publica como hechos. Todo lo de abajo sale del
+> `.kicad_pcb` (2.158.421 B), del `.kicad_sch` y del desensamblado del `.elf`. **El censo completo,
+> con los comandos pegados, está en `05_Funcional/2_Manual_Hardware_y_Pruebas.md` §11.**
+>
+> ### 1 · Los tres canales muertos están COMPLETOS en la placa
+>
+> No es que "haya optos y MOSFET": es que `J9`, `J11` y `J13` son **el mismo molde exacto** que la
+> talanquera de `J15`, **que sí funcionó en banco el 04/09**. Pin del `U1` → `R` 220 Ω → opto
+> `TLP127` → `R` 10 K a masa más `R` 220 Ω a la puerta → `IRLZ44N` de lado bajo → bornera, con
+> `1N4148` de rueda libre. Diez cadenas iguales, `Q1`–`Q10` con `U6`–`U15`.
+>
+> **Encender uno cuesta 16 B de flash**, medidos desensamblando el `.elf`: un `pinMode` con pin
+> constante y un `digitalWrite` ocupan 8 B cada uno en Thumb-2. ⚠️ **Ese 16 es un SUELO**: son las
+> dos llamadas, y no incluye nada de lo que **decide** el valor.
+>
+> ### 2 · 🔴 EL BORNE NO ESTÁ A 0 V EN REPOSO: ESTÁ A ~12 V
+>
+> **Ningún documento de este repositorio lo decía, y decide si esos bornes se pueden enchufar a
+> algo.** Nueve de los diez drenadores llevan un **pull-up de 1 kΩ más LED al riel de 12 V**
+> (`R23`, `R28`, `R33`, `R38`, `R43`, `R48`, `R53`, `R58`, `R63`, `R73`), y está **en el cobre, no
+> en el conector**: no se evita dejando un hilo sin poner. Con el MOSFET abierto el borne sube a
+> **~12 V**, con **~10 mA** disponibles por la cuenta `(12 menos ~2 de LED) / 1 kΩ`.
+>
+> ✅ **Explica una medida de banco que llevaba desde el 04/09 anotada SIN CAUSA:** `J15` daba *«en
+> rojo `0 V`, en ámbar `12 V`»*, que es exactamente este circuito con la sonda entre p1 y p2. *(Que
+> la sonda estuviera ahí es DEDUCCIÓN a partir de `TALANQUERA_ABRIR = HIGH`, no una lectura del
+> informe: `SIN VERIFICAR`.)*
+>
+> 🔴 **Consecuencia de vocabulario, y no es un matiz: un MOSFET a masa NO es un contacto seco**, y
+> aquí ni siquiera es un colector abierto limpio. Este proyecto usa *«contacto seco»* con razón para
+> las **entradas** de cámara; **las salidas no lo son**.
+>
+> 🔴 **Y la excepción, que es un hallazgo nuevo: `J8` (`VERDE2`, `PA5`) NO tiene ese pull-up.** `D21`
+> —su LED— tiene el cátodo **sin conectar**, en el esquemático y en el cobre: la red se llama
+> `unconnected-(D21-K-Pad1)`, no tiene ni una pista, y su gemelo `D23` sí llega al drenador. Con el
+> MOSFET abierto, `J8` p2 **queda FLOTANDO**, no a 12 V. **`SIN VERIFICAR` si es defecto o decisión**
+> — no hay una sola nota sobre ello en el repositorio, y se cierra con un multímetro entre `J8` p1 y
+> p2 comparado contra `J7`.
+>
+> ### 3 · 🔴 «El opto aísla galvánicamente» es MEDIO CIERTO, y la mitad que falla importa
+>
+> Es la frase con la que `2_Manual_Hardware_y_Pruebas.md` concluía que *«la etapa de potencia no
+> puede inyectar corriente al micro»*. **Se ha tachado allí con su motivo el 05/09.**
+>
+> Medido: **hay UNA sola red `GND` en toda la tarjeta**, con **103 pads** y **plano de cobre en las
+> dos capas**. En ella están a la vez el **cátodo del LED de cada opto** y la **fuente de cada
+> MOSFET**. El opto separa el **pin del micro** del nodo de puerta; **no crea una masa separada**.
+> **Cualquier cosa colgada de esos bornes comparte la masa del controlador** — y su riel de 12 V, por
+> p1.
+>
+> Lo que sigue en pie: no hay camino de corriente del drenador a la pata del `U1`. Ése es el mérito
+> del diseño, y por eso `J15` sigue siendo *«bien diseñada»* frente a las cinco entradas desnudas de
+> §2.1. Lo que deja de poderse decir es que lo colgado esté **aislado del equipo**.
+>
+> ### 4 · Los pines libres son SEIS: hay que sumar `PB3`, `PB4` y `PB5`
+>
+> `lcd.cpp` pasó los pines de la pantalla a `U8X8_PIN_NONE`, y la librería **se salta el `pinMode` y
+> el `digitalWrite` cuando el pin es `NONE`** (`U8x8lib.cpp`, función `u8x8_gpio_and_delay_arduino()`:
+> `if (u8x8->pins[i] != U8X8_PIN_NONE)` y `if (i != U8X8_PIN_NONE)`). **Están hoy en alta impedancia,
+> con pista hasta `J17`**: `PB3` a p4 (red `/SCL`), `PB4` a p1 (`/CS`) y `PB5` a p5 (`/SI`). **Son los
+> únicos GPIO libres del proyecto con bornera ya cableada.**
+>
+> **Que dos de ellos sean patas de JTAG no cuesta nada aquí**, y conviene decirlo bien: `pin_function()`
+> llama a `pin_DisconnectDebug()`, que en `PinAF_STM32F1.h`, función `pinF1_DisconnectDebug()`, hace
+> `__HAL_AFIO_REMAP_SWJ_NOJTAG()` para `PA_15`, `PB_3` y `PB_4` — *«JTAG-DP Disabled and SW-DP
+> enabled»*, literal del fuente. **SWD se conserva.** ⚠️ **`PB5` NO es pin de JTAG**: no está en esa
+> lista, y decir que los tres lo son es falso.
+>
+> ⚠️ **Lo que sí cuesta: `J17` es el conector donde vive el ESP32.** Lo que se cuelgue de p1, p4 o p5
+> convive con el módulo. **Que eso no le moleste NO está medido: `SIN VERIFICAR`.**
+>
+> ### 5 · Y la decisión que esto abre, que NO se toma aquí
+>
+> Gastar uno de los tres canales de `J9`/`J11`/`J13` **cierra la puerta a una cabeza peatonal o a un
+> zumbador en esta placa**: no hay más molde libre. **No existe ninguna decisión escrita que renuncie
+> a ellos.** Va a **§3.10**, abierta y con dueño.
+
 ### 1.3 Que se lleva el ESP32
 
 | funcion | como | estado |
@@ -1359,8 +1439,16 @@ conector de senal de toda la tarjeta que trae 12 V.**
 > 🔴 **AMPLIADO EL 04/09 — N-120, y sube de precaucion a obligacion.** El banco confirmo en cobre lo
 > que este apartado deducia del netlist, **y encontro que es peor de lo que decia**: no es que `J16`
 > no tenga aislamiento, es que **ninguna de las 5 entradas de campo de la tarjeta lo tiene**,
-> mientras **las 9 salidas** llevan `220 Ohm` en serie y opto `TLP127`. La proteccion de esta placa
-> es **asimetrica**, y esta entera del lado por el que no entra nada.
+> mientras ~~**las 9 salidas**~~ → **las DIEZ salidas** llevan `220 Ohm` en serie y opto `TLP127`. La
+> proteccion de esta placa es **asimetrica**, y esta entera del lado por el que no entra nada.
+>
+> 🔴 **Dos correcciones del 05/09, medidas sobre el mismo fichero de cobre y tachadas con su motivo:**
+> (a) **son DIEZ cadenas, no nueve** —`Q1`-`Q10` con `U6`-`U15`—, que es lo que este mismo documento
+> ya decia bien tres parrafos mas arriba; (b) **"aislamiento" dice de mas**: el opto separa el PIN del
+> micro del nodo de puerta, pero **hay UNA sola red `GND` en la tarjeta**, con 103 pads y plano en las
+> dos capas, y en ella estan el catodo del LED del opto **y** la fuente del MOSFET. **Lo colgado de
+> esas borneras comparte la masa del controlador.** Ver el bloque del censo en §1.2 y el detalle en
+> `2_Manual_Hardware_y_Pruebas.md` §11.
 >
 > **Por eso `p1` deja de taparse «en banco» y pasa a taparse EN CADA EQUIPO QUE SE MONTE**, con el
 > pin retirado del conector volante — que es como se hizo en el paso 4 y es lo que se documenta,
@@ -2447,6 +2535,49 @@ Caja Negra que nadie llama.
 
 ---
 
+### 3.10 🔴 NUEVA Y ABIERTA (05/09) — hay TRES canales de potencia libres, y gastar uno cierra una puerta
+
+**El censo de cobre del 05/09** (`2_Manual_Hardware_y_Pruebas.md` §11) encontro que `J9`
+(`VERDE_PEATON`, `PA7`), `J11` (`ROJO_PEATON`, `PA6`) y `J13` (`BUZZER`, `PB1`) no son "pines
+sueltos": son **tres etapas de potencia completas y fabricadas**, identicas a la de la talanquera de
+`J15` **que si funciono en banco el 04/09**. Opto `TLP127`, MOSFET `IRLZ44N`, diodo de rueda libre,
+LED testigo y bornera. Encender uno cuesta **16 B de flash** de suelo, medidos por desensamblado.
+
+**Lo que hay que decidir no es tecnico, es de alcance:** son **los tres unicos canales de potencia
+libres de esta placa**. El que se gaste **ya no esta** para lo que llevaba escrito encima.
+
+| si se gasta en… | lo que se pierde a cambio |
+|---|---|
+| `J9` / `J11` — la pareja peatonal | **la cabeza peatonal de este cruce**, que es para lo que estan rotulados desde el dia uno |
+| `J13` — el zumbador | **el aviso acustico**, que es la unica salida no visual del equipo |
+| nada (se dejan como estan) | cero coste, y **tres canales fabricados sin usar** en una placa que ya no tiene mas moldes libres |
+
+> **Este documento NO elige, y no por prudencia: porque no hay ninguna decision escrita que renuncie
+> a ellos.** `DECISIONES.md` no tiene ni una fila sobre los peatonales ni sobre el zumbador. Lo que
+> se ha escrito hasta hoy —en este mismo documento y en el Manual 2— es que **estan MUERTOS en el
+> firmware**, que es una descripcion del estado, **no una renuncia**. Confundir las dos cosas es como
+> se derogan decisiones de palabra (`CLAUDE.md` §2.quinquies).
+
+**Lo que hace falta para poder decidirla:**
+
+1. 🟡 **`SIN VERIFICAR`: que `J9`, `J11` y `J13` esten REALMENTE SOLDADOS.** El esquematico los marca
+   `in_bom=yes`, `dnp=no`, `on_board=yes`, pero **nadie los ha mirado en cobre**. Lo mas cerca que hay
+   es `J15`, el gemelo, que si funciono. Eso lo hace probable; **no lo demuestra**. Es una inspeccion
+   a ojo mas continuidad, y va **antes** que la decision.
+2. **Si el cruce lleva o no paso peatonal.** Es una pregunta de obra, no de firmware, y la contesta el
+   responsable.
+3. **Que quede claro que lo que se cuelgue ahi comparte la masa del controlador** —hay una sola red
+   `GND` en la tarjeta— **y que el borne esta a ~12 V en reposo**, no a 0 V. Las dos cosas cambian que
+   se puede conectar. Detalle en `2_Manual_Hardware_y_Pruebas.md` §11.2 y §11.4.
+
+> ⚠️ **Y una cuarta cosa que NO es parte de esta decision pero se cruza con ella:** los **otros tres**
+> pines libres —`PB3`, `PB4`, `PB5`, los del LCD— **no** traen etapa de potencia, pero **si traen
+> bornera ya cableada** (`J17` p4, p1 y p5). Si lo que hace falta es una **entrada** o una senal de
+> nivel logico, esos son el sitio y **no cuestan ninguno de los tres canales**. Si lo que hace falta
+> es **mandar 12 V a algo**, no sirven. Son dos preguntas distintas y conviene no mezclarlas.
+
+---
+
 ## A. Las cinco medidas de multimetro, en orden
 
 > 🔴 **El motivo por el que esta seccion existe: hoy no hay ni una fila «VERIFICADO EN LA PLACA» en
@@ -2784,7 +2915,7 @@ permiso.
 
 | | |
 |---|---|
-| ~~**Nada del cobre**~~ → **casi nada del cobre** | ✅ **el banco del 03-04/09 dejo las primeras filas medidas**: `J16` p5/p8/p10/p12, `J17` p2/p3 y sus tensiones, `J14`, `J15` y las masas del modulo. **Todo lo demas de esta tarjeta sigue siendo netlist y esquematico** |
+| ~~**Nada del cobre**~~ → **casi nada del cobre** | ✅ **el banco del 03-04/09 dejo las primeras filas medidas**: `J16` p5/p8/p10/p12, `J17` p2/p3 y sus tensiones, `J14`, `J15` y las masas del modulo. **Todo lo demas de esta tarjeta sigue siendo netlist y esquematico** — ⚠️ **y el censo del 05/09 NO cambia esto: es lectura del `.kicad_pcb`, no punta sobre la placa.** Lo que si hace es decir **que** hay que medir, y esta abajo en cuatro filas nuevas |
 | ~~**El chip que llego a obra**~~ | ✅ **CERRADO: `ESP32-WROOM-32` clasico**, BR/EDR + BLE. Era lo mas barato y lo mas bloqueante, y ya no bloquea |
 | **El pico de 500 mA del ESP32** | ESCRITO en el Manual 15, no medido sobre el modulo real. 🔴 **Y sigue sin medirse por un motivo nuevo: en banco el modulo se alimento por USB, no por la fuente `12 V -> 5 V` de la placa definitiva** (paso 22, parcial) |
 | ~~**Que el enlace `J17` funcione**~~ | ✅ **el enlace fisico SI:** continuidad a las patas 42/43, masa comun por debajo de 50 mV, `GPIO17` en 3,3 V y el montaje definitivo encendido sin calentamiento ni reinicios (pasos 5, 23 y 24). 🔴 **Lo que sigue sin verificarse es que por ese enlace hable alguien**: el Bluetooth no subio en toda la sesion (N-117 / N-122, arreglados **sin banco**) |
@@ -2792,7 +2923,7 @@ permiso.
 | ~~**Que las camaras funcionen en `PB14`/`PB15`**~~ | 🟡 **a medias, y hay que decir cual mitad.** ✅ **el cableado si**: `p10` cablado contra `p11` en normalmente abierto, `0 V` en reposo, **sin demandas fantasma con cable y sin el** (pasos 20 y 21). 🔴 **La concesion de paso NO**: depende del Modo Automatico, que no se pudo seleccionar sin app |
 | **El firmware del ESP32** | ~~**no existe**~~ → **existe, compila y se cargo sin errores** (`01_Firmware/ESP32_Expansion/`), con su `DS3231` por `GPIO21`/`GPIO22`. 🔴 **Lo que no esta demostrado es que funcione**: el modulo no se anuncio de forma fiable en el telefono en toda la sesion |
 | **La regresion N-42** | el Modo Automatico no mueve las luces en banco, y **sigue abierta**. 🔴 **El banco del 03-04/09 NI la confirmo NI la descarto** —el equipo nunca llego a operar, porque se queda esperando seleccion de modo y la app no conecto—. **Un ABORTADO no es un PASS**: sigue siendo lo primero de la proxima sesion |
-| 🔴 **La causa de N-116** | la tarjeta Maestro tiene un corto entre `3,3 V` y `GND` **medido**, y **la causa esta abierta**. El firmware queda descartado por censo —ninguna de las 9 salidas toca un pin de `J16`—, y eso **no nombra a nadie mas** |
+| 🔴 **La causa de N-116** | la tarjeta Maestro tiene un corto entre `3,3 V` y `GND` **medido**, y **la causa esta abierta**. El firmware queda descartado por censo —ninguna de las salidas de potencia toca un pin de `J16`; ~~9~~ **son 10, censadas el 05/09**—, y eso **no nombra a nadie mas** |
 | 🔴 **Que el mando `A`/`B` funcione con la polaridad corregida** | ~~la correccion de `botones.cpp` **no esta escrita ni cargada**~~ → 🟢 **escrita el 04/09 en `346ea5f`, las dos puntas.** 🔴 **NO cargada y NO ejercida**, y el unico intento de pulsarlo acabo en el incidente de N-116. **Nadie ha visto nunca a este equipo obedecer un `A·A·A`.** El gesto de la proxima prueba es `p5`-`p4` y `p8`-`p7`, **no contra masa**, y no sobre la Maestro |
 
 | 🔴 **Que el minimo de 3 minutos aguante en la tarjeta** | el cambio esta **MEDIDO en el fuente** (`Maestro/include/limites_ciclo.h`, constante `VERDE_MIN_MIN`) y **no se ha cargado en ninguna tarjeta**. Trae ademas un coste de banco declarado: **ya no hay ciclos de un minuto para probar en mesa**, y la proxima visita tiene que contar tres minutos por paso |
@@ -2804,6 +2935,10 @@ permiso.
 | 🔴 **Que el PIN de la app caduque EN LA APK** | los dos plazos estan **MEDIDOS** en el fuente (`PIN_GRACIA_FONDO_MS` y `PIN_INACTIVIDAD_MS` de `App_Semaforo/www/app.js`), pero cuelgan de `visibilitychange` / `pagehide` y **no hay `pause` de Cordova**. **Nadie lo ha visto caducar con el telefono en el bolsillo y la pantalla apagada**, que es el unico escenario para el que existe. **SIN VERIFICAR** |
 | 🔴 **Que N-106 salga de verdad por el todo-rojo** | el camino esta **MEDIDO** (`Esclavo/src/bluetooth.cpp:293-308`) y **no se ha ejercido ni en tarjeta ni en arnes**. `CLAUDE.md` §8.bis pide ver fallar el instrumento antes de fiarse, y para este camino **no se ha hecho** |
 | 🔴 **La causa del `FORMATO_INVALIDO` del Courier RTC** | **SIN DIAGNOSTICAR.** La app lo traduce a lenguaje de obra desde el 04/09, y eso **hace legible el sintoma sin decir nada de la causa**. Aqui no se propone ninguna |
+| 🔴 **Que `J9`, `J11` y `J13` esten SOLDADOS en la tarjeta** | 🆕 **05/09.** El esquematico los marca `in_bom=yes`, `dnp=no`, `on_board=yes`, y el `.kicad_pcb` trae sus huellas, sus optos (`U12`, `U13`, `U14`) y sus MOSFET (`Q7`, `Q8`, `Q9`). **Nadie los ha mirado en cobre.** Lo mas cerca es `J15`, el gemelo exacto, que si funciono en banco el 04/09 — eso los hace probables, **no ciertos**. Es una inspeccion a ojo mas continuidad, y va antes de §3.10 |
+| 🔴 **Los ~12 V de reposo y los ~10 mA de las borneras de potencia** | 🆕 **05/09. Leidos del cobre, NO medidos con multimetro.** El pull-up de 1 kOhm mas LED al riel de 12 V esta en el netlist (`R23`, `R28`, `R33`, `R38`, `R43`, `R48`, `R53`, `R58`, `R63`, `R73`) y la corriente sale de una **cuenta**, no de una sonda. Se cierra en dos minutos midiendo p2 contra masa con la bornera desconectada |
+| 🔴 **Si el `D21` sin conectar de `J8` es defecto o decision** | 🆕 **05/09.** El catodo del LED del canal de `VERDE2` esta **sin conectar** en el esquematico y en el cobre (red `unconnected-(D21-K-Pad1)`, cero pistas), asi que `J8` p2 **flota** en reposo mientras los otros nueve suben a 12 V. **No hay ni una nota en el repositorio sobre ello.** Se cierra comparando `J8` p1-p2 contra `J7` p1-p2 con el mismo estado de luz |
+| 🔴 **Que `PB3`/`PB4`/`PB5` se puedan usar con el ESP32 puesto** | 🆕 **05/09.** Estan libres y en alta impedancia, con pista a `J17` p4, p1 y p5 — **el mismo conector donde vive el modulo**. Que lo que se cuelgue de esas tres posiciones no le moleste **no esta medido**. Lo que si esta leido del fuente es que usarlos **no cuesta el SWD**: `pinF1_DisconnectDebug()` hace `NOJTAG`, no `SWJ_DISABLE` |
 
 > 🛑 **La compuerta del 28/08 salio con `15 PASS | 0 FALLA | 0 ABORTADO` y eso no autoriza nada de
 > este documento.** Lo dice el acta y lo dice `CLAUDE.md` §3: ese `0` significa que *los modelos y
