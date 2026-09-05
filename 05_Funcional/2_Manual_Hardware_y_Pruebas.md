@@ -13,7 +13,7 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 | **Cámaras IA en `J16` (`C` y `D`)** | 🟢 **YA ESTÁN EN EL FIRMWARE (31/08)** | `CAM_C_PIN` = `PB14`, `CAM_D_PIN` = `PB15`. **`INPUT` pelado, activo en ALTO.** ~~⚠️ **No se cablean hasta la medida `M3`**~~ *(`M3` **CERRADA** en el paso 20 del banco del 03/09: el pull-down de 10 kΩ es real, `9,93`/`9,94 kΩ` y `0 V` en reposo)* ni antes de **tapar `J16` p1 (12 V crudos)** — obligatorio desde N-120. Ver §7 |
 | **Talanquera de barrera (`J15`)** | ✅ **PROBADA EN COBRE (04/09)** y **bien diseñada** | `PB2` → `R70` 220 Ω → `U15` (`TLP127`, **aísla**) → `R72` 220 Ω → puerta de `Q10` (`IRLZ44N`) → `J15`. ⚠️ El diodo de rueda libre `D30` es un `1N4148` y **queda corto para un motor real** — va a la V2. Ver §10 |
 | ~~**Cámaras IA de umbral (2 y 4)**~~ | 🛑 **NO SE INSTALAN EN `PB8`** | **`PB8` NO es entrada de cámara:** alimenta el LED testigo `D5` por `R16` de 1 kΩ. Se renombró a `LED_TESTIGO` (`pines.h:63`) y **`CAM_UMBRAL_PIN` ya no existe en el fuente** — N-64. Ver §7 |
-| **Módulo de expansión ESP32** | 🟢 **IDENTIFICADO Y CON FIRMWARE (31/08)** | `ESP32-WROOM-32` clásico (**BT v4.2 BR/EDR → hay SPP**) por **`J17`** p2/p3 = `PB7`/`PB6` (`USART1` **remapeado**), p6 = 3,3 V, p7 = GND. **Sustituye al módulo SPP discreto** y trae el reloj `DS3231` con pila propia. ⛔ **`J16` NO es `J17`: lleva 12 V.** Ver §8 |
+| **Módulo de expansión ESP32** | 🟢 **IDENTIFICADO Y CON FIRMWARE (31/08)** | `ESP32-WROOM-32` clásico (**BT v4.2 BR/EDR → hay SPP**) por **`J17`** p2/p3 = `PB7`/`PB6` (`USART1` **remapeado**), ~~p6 = 3,3 V~~ 🛑 **p6 NO SE CONECTA** (pico de ~500 mA sobre el mismo `LM7805` del STM32 — Manual 1 §8; el módulo lleva **fuente propia**, línea `A5`, **sin pedir**), p7 = GND **(masa común obligatoria)**. **Sustituye al módulo SPP discreto** y trae ~~el reloj `DS3231` con pila propia~~ **el DRIVER del `DS3231`** (`ESP32_Expansion/src/reloj_ds3231.cpp`, `GPIO21`/`GPIO22`); 🛑 **el módulo NO está comprado (`A6`) y `0x68` sigue SIN VERIFICAR** — `contrato.h:185-186` lo dice en el propio fuente. **El firmware existe; la pieza no**, y sin ella la hora sale `--:--:--`, que es correcto. ⛔ **`J16` NO es `J17`: lleva 12 V.** Ver §8 |
 | **Mando de 4 Relés Anti-Colisión** | ⚠️ **SE CONSERVA, sobre 2 canales** | ~~*Cableado en paralelo con `PB9`..`PB15`*~~ → **solo `A` (`PB9`) y `B` (`PB13`)**. `C` y `D` se retiran. **Las tres secuencias siguen funcionando.** Ver §6 |
 
 > 📱 **El Módulo Bluetooth en el Esclavo resuelve la operación desde el suelo:** Gracias al módulo Bluetooth de diagnóstico estándar Baliza instalado en el Esclavo (`USART1` por `J17`), el operario puede consultar el estado, ver alarmas y operar el Esclavo desde el celular sin necesidad de subir al poste a 5 metros de altura.
@@ -247,7 +247,7 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 >
 > > ## ✅ 31/08 — EL RIESGO DE «CONFIRMAR UNA HORA A CIEGAS» SE HA CERRADO POR CONSTRUCCIÓN
 > >
-> > **MEDIDO** en `Maestro/src/botones.cpp:280-281` y su equivalente del Esclavo:
+> > **MEDIDO** en `Maestro/src/botones.cpp:305-306` y su equivalente del Esclavo:
 > >
 > > ```
 > >   bool botonAceptar() { return false; }
@@ -485,7 +485,7 @@ saberlo.
 >
 > ### ✅ 31/08 — SUPERADO EN SU MITAD PELIGROSA. QUEDAN DOS PULSADORES, NINGUNO CONFIRMA
 >
-> **MEDIDO** (`botones.cpp:280-281` en ambas puntas): `botonAceptar()` y `botonCancelar()` devuelven
+> **MEDIDO** (`botones.cpp:305-306` (Maestro) / `:316-317` (Esclavo) en ambas puntas): `botonAceptar()` y `botonCancelar()` devuelven
 > **`false` siempre**, porque `PB14` y `PB15` **ya no son pulsadores**, son `CAM_C_PIN` y
 > `CAM_D_PIN`. El cursor se puede mover con `A`/`B`; **no se puede confirmar nada**, y por tanto
 > **no se puede dejar una hora inventada dada por buena**.
@@ -706,7 +706,7 @@ Con ~1,4 µA de consumo por `VBAT`, la autonomía teórica supera los **15 años
 > 🛑 **`CONSULTA RELOJ` YA NO SE PUEDE ABRIR (medido el 02/09).** La pantalla se sigue dibujando,
 > pero está dentro de `CONFIGURACION` y llegar ahí necesita **dos pulsaciones de *Aceptar***
 > (`menu.cpp:111`, `:129`); `botonAceptar()` devuelve `false` siempre desde que `PB14`/`PB15` son
-> cámaras (`botones.cpp:280-281`). **Sus cuatro líneas de diagnóstico tampoco viajan en `$STATUS`.**
+> cámaras (`botones.cpp:305-306` (Maestro) / `:316-317` (Esclavo)). **Sus cuatro líneas de diagnóstico tampoco viajan en `$STATUS`.**
 >
 > ✅ **Pero el diagnóstico NO se ha perdido: se mudó a un `$EVENT`.** Ver el bloque del 01/09, más
 > abajo, que es donde está el procedimiento que sí se puede ejecutar hoy.
@@ -889,18 +889,29 @@ Para detección vehicular por demanda en obra vial (analítica embebida sin comp
 > puntas), declarados en `botones.cpp` con **`pinMode(..., INPUT)` pelado** y leídos **activos en
 > ALTO**.
 >
-> ⚠️ **Pero NO se cablea nada a `J16` todavía**, por dos motivos independientes:
+> ⚠️ ~~**Pero NO se cablea nada a `J16` todavía**, por dos motivos independientes:~~ → 🟢 **QUEDA UN
+> MOTIVO, NO DOS. LAS CÁMARAS SE CABLEAN.**
 >
-> 1. **La medida `M3` sigue pendiente.** Con `INPUT` pelado el pin necesita **resistencia real a masa
->    en la placa** o queda flotando y el ruido dispara demandas fantasma. `PB0` la tiene declarada
->    (`R64` 10 kΩ + `C25` 100 nF); de `PB14`/`PB15` **solo lo dice el netlist y nadie lo ha medido en
->    cobre**. `M3` ya no es bloqueante por contradicción de polaridad —el camino de cámara lee al
->    revés que el de botón, así que coincide con el netlist—: hoy es la **confirmación que parametriza
->    la cámara**, y se hace **antes** de cablear.
+> 1. ~~**La medida `M3` sigue pendiente.** Con `INPUT` pelado el pin necesita **resistencia real a
+>    masa en la placa**… de `PB14`/`PB15` **solo lo dice el netlist y nadie lo ha medido en cobre**.~~
+>    🛑 **CADUCADO EL 03/09 Y SE TACHA CON SU MOTIVO — este bloque era el último de este documento
+>    que daba `M3` por pendiente, y contradecía a `:13` y `:539` del propio fichero.**
+>    **`M3` ESTÁ CERRADA CON MULTÍMETRO** (paso 20 del banco, 03/09): el pull-down de **10 kΩ es real
+>    y está en las CUATRO posiciones** (`R65`–`R68`) — **p5 `9,92 kΩ` / `0,6 V` · p8 `9,92` / `0,6` ·
+>    p10 `9,93` / **`0 V`** · p12 `9,94` / **`0 V`**—, y el **paso 21 cableó p10 contra p11 en
+>    normalmente abierto y funcionó, SIN demandas fantasma**. La placa soldada **sí** es la del
+>    netlist. Lo confirma `Maestro/include/pines.h:123-138`, que lo dejó escrito el mismo día:
+>    *«Ya se puede cablear camara a J16»*.
 > 2. **`J16` p1 lleva 12 V CRUDOS** —sin opto, sin serie, sin clamp— a nueve posiciones de p10 y once
 >    de p12. ~~**Se tapa físicamente antes de enchufar nada.**~~ → **04/09: tapar p1 es OBLIGATORIO en
 >    cada equipo, no una precaución de banco.** El motivo del ascenso está en el bloque de abajo
 >    (N-120): las entradas no tienen **nada** que limite lo que entra por ellas.
+>    🔴 **ÉSTE SIGUE EN PIE Y NO SE RELAJA: es hoy el único requisito previo a cablear `J16`.**
+>
+> 🔴 **Y lo que `M3` NO levanta, porque no era su sujeto:** `MANDO_A` (`PB9`, p5) y `MANDO_B`
+> (`PB13`, p8) **siguen sin responder — `0,6 V` en reposo (N-118)**. Eso es **cobre, no firmware**:
+> el fuente ya lee los cuatro pines igual (`INPUT` pelado, activo en ALTO). **El mando SE CONSERVA,
+> va cableado y hoy no se usa; su código no se toca.**
 >
 > *(La salida de alarma de la AcuSense es configurable NO/NC, así que se elige qué estado significa
 > demanda **sin tocar placa ni firmware**.)*
@@ -1039,11 +1050,15 @@ Desde el 28/08 esto **no es un accesorio de diagnóstico: es la interfaz del equ
 
 ### El cableado
 
+> 🛑 **ESTE DIAGRAMA MANDABA ALIMENTAR EL MÓDULO DESDE `J17` p6, Y ESO ESTÁ PROHIBIDO — 05/09.**
+> El Manual 1 §8 lo retiró el 31/08 y **este manual, que es el que tiene delante quien cablea, no
+> se enteró.** Se corrige aquí y se deja el motivo, porque la consecuencia es vial.
+
 ```text
-       MÓDULO BLUETOOTH (BALIZA)                      TARJETA CONTROLADORA STM32
+       MÓDULO ESP32 DE EXPANSIÓN                      TARJETA CONTROLADORA STM32
   ┌─────────────────────────────────┐              ┌───────────────────────────────┐
-  │   [ VCC ] ──────────────────────┼──────────────┼──► J17 pos. 6   (3,3 V)       │
-  │   [ GND ] ──────────────────────┼──────────────┼──► J17 pos. 7   (GND)         │
+  │   [ VIN/5V ] ◄── DC-DC CONMUTADO desde 12 V     NO SE ALIMENTA DE LA TARJETA   │
+  │   [ GND ] ──────────────────────┼──────────────┼──► J17 pos. 7   (GND) OBLIGATORIA
   │   [ TXD ] ──────────────────────┼──────────────┼──► J17 pos. 2 = PB7 (USART1 RX)│
   │   [ RXD ] ──────────────────────┼──────────────┼──► J17 pos. 3 = PB6 (USART1 TX)│
   └─────────────────────────────────┘              └───────────────────────────────┘
@@ -1054,8 +1069,25 @@ Desde el 28/08 esto **no es un accesorio de diagnóstico: es la interfaz del equ
 |---|---|---|---|
 | **2** | `RST` | **`PB7`** — `USART1_RX` | **`TXD`** |
 | **3** | `RS(A0)` | **`PB6`** — `USART1_TX` | **`RXD`** |
-| **6** | `3,3 V` | — | `VCC` |
-| **7** | `GND` | — | `GND` |
+| ~~**6**~~ | ~~`3,3 V`~~ | — | 🛑 ~~`VCC`~~ **NO SE CONECTA** |
+| **7** | `GND` | — | `GND` — **masa común OBLIGATORIA** |
+
+> 🔴 **POR QUÉ `p6` NO SE CONECTA, y por qué esto no es una cautela de banco.** **MEDIDO en el
+> `.kicad_pcb`: `J17` p6 y p8 son `/3.3V`, y p7 y p9 son `GND`.** Ese riel de 3,3 V cuelga del
+> **mismo `LM7805` que alimenta al STM32 que gobierna el semáforo**. Un `ESP32-WROOM-32` pide
+> **picos de ~500 mA** al encender la radio: a esa corriente el 7805 disipa ~3,5 W sin disipador, y
+> **si el riel se hunde un instante se reinicia el micro que mueve las luces**.
+>
+> **El síntoma en campo no se parece a un fallo de alimentación:** parece un cuelgue aleatorio del
+> controlador. Por eso el accesorio de diagnóstico **no puede colgar del que gobierna el cruce**.
+>
+> 🛑 **Si ya se cableó un ESP32 a `J17` p6 siguiendo la versión anterior de este manual:
+> DESCONECTE ESE HILO ANTES DE ENERGIZAR.**
+>
+> ⚠️ **Y lo que esto deja pendiente, dicho para que no se lea como resuelto:** el módulo necesita
+> **su propia fuente DC-DC conmutada 12 V → 5 V (≥ 1 A)** — línea **`A5`** de compras, **que NO se
+> ha pedido**. Sin ella no se monta el ESP32. La masa común de `p7` **sí** es obligatoria, y su
+> medida (paso 23, `0 V` entre masas) es de las pocas de esa sesión que es un resultado y no un plan.
 
 * **Es el `USART1` REMAPEADO, no un segundo puerto serie.** El STM32F103 permite sacar el `USART1`
   por `PB6`/`PB7` en lugar de `PA9`/`PA10`, **pero solo por un sitio a la vez**. El firmware ya está
@@ -1104,7 +1136,7 @@ Trazado red por red sobre el esquemático (`Controladora_Semaforos.kicad_sch`):
 
 ### Telemetría, caja negra y seguridad
 
-* **Telemetría:** emisión cada 1 s de
+* **Telemetría:** emisión ~~cada 1 s~~ **cada 2 s** de *(cadencia bajada a **2000 ms** el 04/09, decision del responsable, en las DOS puntas — MEDIDO: `Maestro/src/bluetooth.cpp:851`, `Esclavo/src/bluetooth.cpp:768`. Un tecnico que cronometre con «1 segundo» declara caido un enlace sano.)* 
   `$STATUS,NODE:...,SERIE:...,MODO:...,ESTADO:...,T:...,RF:...%,RTT:...ms,BAT:...,HORA:...*XX\r\n`.
 * **Caja Negra:** registro instantáneo de caídas de radio con hora del RTC
   (`$ALARM,NODE:...,EVENTO:FALLO_RF,CAUSA:SILENCIO_25000ms,ACCION:CAMBIO_A_AMBAR,HORA:...*XX\r\n`).

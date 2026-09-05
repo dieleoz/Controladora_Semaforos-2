@@ -312,14 +312,27 @@ comandos de radio nuevos.~~
 
 ### 2.bis Los comandos de radio, uno a uno
 
-`protocolo.h` define 18. `costura_03_comandos.py` no se toca desde la Fase 2:
+~~`protocolo.h` define 18.~~ → **`protocolo.h` define 21** (**MEDIDO el 05/09**:
+`grep -cE "^#define CMD_" Maestro/include/protocolo.h` → `21`).
 
 ```
 CMD_GO_GREEN  CMD_GO_RED  CMD_ACK_GREEN  CMD_PING  CMD_PONG  CMD_ACK_RED
 CMD_HORA_D  CMD_HORA_H  CMD_HORA_M  CMD_HORA_S  CMD_ACK_HORA
 CMD_DELTA  CMD_DELTA_RESP  CMD_CONFIG_VERDE  CMD_CONFIG_DESPEJE  CMD_ACK_CONFIG
-CMD_DEMANDA  CMD_ACK_DEMANDA          <- los dos nuevos, sin cubrir
+CMD_DEMANDA  CMD_ACK_DEMANDA           <- ya cubiertos por costura_12_acuse_de_demanda
+CMD_GO_AMBAR              (0x13)       <- N-134, cubierto por costura_13_ambar_ordenado
+CMD_AMBAR_ESCLAVO         (0x14)       <- N-142
+CMD_CANCELA_AMBAR_ESCLAVO (0x15)       <- N-152, cubierto por costura_14_cancela_ambar
 ```
+
+> 🛑 **FALTABAN TRES, Y SON JUSTO LOS DEL ÁMBAR — corregido el 05/09.** La lista se quedó en 18
+> mientras N-134, N-142 y N-152 añadían `0x13`, `0x14` y `0x15`. **Es el defecto que este documento
+> existe para no cometer:** un comando que no está en ningún cajón es **un hueco sin rastro** —y
+> §3 de `CLAUDE.md` lo dice en una línea: *un instrumento que no está en la compuerta no mide nada,
+> y no deja rastro de que falta*—.
+>
+> ⚠️ **Y `CMD_ACK_DEMANDA` ya no está «sin cubrir»**: lo mide `costura_12_acuse_de_demanda`. La
+> etiqueta *«los dos nuevos, sin cubrir»* se heredó de la edición en que lo estaban.
 
 ---
 

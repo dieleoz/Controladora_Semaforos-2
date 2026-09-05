@@ -157,16 +157,29 @@ El encargo del 5 de agosto citaba **otra rama y otro `HEAD`**, y sus apartados 3
 
 | Qué cambió | Medido en | Qué significa para la sesión |
 |---|---|---|
-| **`botonAceptar()` y `botonCancelar()` devuelven `false` siempre.** Los pulsadores 3 y 4 dejaron de existir: sus pines pasan a ser entradas de cámara | `Maestro/src/botones.cpp:280-281` · `Esclavo/src/botones.cpp:294-295` | **No hay forma de aceptar ni cancelar nada, ni de abrir un menú.** Toda la operación pasa por comandos |
+| **`botonAceptar()` y `botonCancelar()` devuelven `false` siempre.** Los pulsadores 3 y 4 dejaron de existir: sus pines pasan a ser entradas de cámara | ~~`Maestro/src/botones.cpp:280-281` · `Esclavo/src/botones.cpp:294-295`~~ → **`Maestro/src/botones.cpp:305-306` · `Esclavo/src/botones.cpp:316-317`** *(re-medido el 05/09: `grep -n "^bool botonAceptar"`; las dos citas viejas señalaban a comentarios, no al código)* | **No hay forma de aceptar ni cancelar nada, ni de abrir un menú.** Toda la operación pasa por comandos |
 | **La pantalla no se retira, pero deja de conducir sus pines.** `PB3`/`PB4`/`PB5` quedan en alta impedancia porque comparten `J17` con el ESP32 | `Maestro/src/lcd.cpp:74-75` · `Esclavo/src/lcd.cpp:92-93` | **No hay imagen.** Nada de lo que se leía en pantalla se puede leer. **No es una avería: no lleve una pantalla de repuesto** |
 | **El mando de relés SE CONSERVA**, en `A` = `PB9` = `J16` p5 y `B` = `PB13` = `J16` p8 | `Maestro/src/mando.cpp:202-235` · `Esclavo/src/mando.cpp:218-250` | `A·A·A`, `B·B·B` y `A·B·A·B` siguen en el firmware. **Pero el receptor de radio nunca se compró**: ~~hoy sólo se pueden inyectar los pulsos con un cable~~ → 🔴 **MEDIDO EL 3/09: con `617bd00` no se podían inyectar de ninguna forma.** El pin está en 0,6 V en reposo y aquel `botones.cpp` lo leía activo en BAJO: nunca había flanco (**N-118**). 🟢 **Corregido en `346ea5f`** —`INPUT` pelado y `== HIGH`, las dos puntas—, y el pulso se inyecta ahora **contra los 3,3 V del pin contiguo** (`p5`–`p4`, `p8`–`p7`). 🔴 **Sin ejercer en tarjeta: el mando existe en el código y todavía no se ha visto en la mano** |
 | **El umbral de silencio son 25 s, no 12** | `SFTY6_SILENCIO_MS = 25000UL` — `Maestro/include/protocolo.h:149` y `Esclavo/include/protocolo.h:149` | Al cortar la radio se cronometran **~25 s**. Si sale alrededor de 12, **el firmware cargado no es el nuevo**. ✅ **Medido: ~20 s en tres cortes** — es el firmware nuevo, y la diferencia va en la dirección segura, pero **no está explicada**: se vuelve a cronometrar con reloj |
 | **`VENTANA_TRIPLE_MS = 12000` sigue siendo 12 s, y es correcto** | `Maestro/src/mando.cpp:38` · `Esclavo/src/mando.cpp:42` | Es la ventana para encadenar `A·A·A` o `B·B·B`. **No son los 25 s de arriba: son cosas distintas y no se confunden** |
-| **El ESP32 de expansión tiene firmware nuevo**, va en `J17`, con Bluetooth SPP y reloj `DS3231` | `01_Firmware/ESP32_Expansion/` | ~~**La placa que lo lleva NO EXISTE**, ni su fuente está pedida~~ → ✅ **construida y montada el 4/09** (paso 22), con su fuente y su `DS3231`. **Módulo confirmado `ESP32-WROOM-32` clásico** — BR/EDR, el perfil que el SPP necesita. 🔴 **Lo que faltó fue el enlace**, no el hardware |
+| **El ESP32 de expansión tiene firmware nuevo**, va en `J17`, con Bluetooth SPP y reloj `DS3231` | `01_Firmware/ESP32_Expansion/` | ~~**La placa que lo lleva NO EXISTE**, ni su fuente está pedida~~ → ✅ **construida y montada el 4/09** (paso 23 y 24), con su fuente. ~~y su `DS3231`~~ 🛑 **«y su `DS3231`» ES FALSO — 05/09: el módulo NO ESTÁ COMPRADO** (`A6`). **Módulo ESP32 confirmado `ESP32-WROOM-32` clásico** — BR/EDR, el perfil que el SPP necesita. 🔴 **Lo que faltó fue el enlace**, no el hardware |
 
 *(Los `fichero:linea` de arriba son **MEDIDOS**. Los de `bluetooth.cpp` se citan en el Protocolo por
 **literal y sin número de línea** a propósito: esos dos ficheros los está tocando otro trabajo en el
 mismo árbol, y una línea citada que se mueve manda al lector a un sitio que no dice lo que promete.)*
+
+> 🔴 **Y esa nota se cumplió CONTRA ESTA MISMA TABLA — 05/09.** Se re-midieron sus seis citas una
+> por una. **Cinco seguían exactas** (`protocolo.h:149` las dos puntas · `mando.cpp:38`/`:42` ·
+> `mando.cpp:202-235`/`:218-250` · `lcd.cpp:74-75`/`:92-93`); **la de `botones.cpp` había derivado
+> 25 líneas en el Maestro y 22 en el Esclavo**, y va corregida arriba.
+>
+> **La lección, que es la de `CLAUDE.md` §4 y vale más que el arreglo: la palabra «MEDIDOS» de
+> esta nota no medía nada.** Estaba escrita **debajo** de las citas, se heredó de una edición
+> anterior y **nadie la volvió a ejercer** cuando el fuente creció. Una etiqueta de calidad que no
+> se recalcula es una afirmación sobre el código sin comprobar — exactamente la lista de
+> excepciones con motivos sin verificar de §3.bis, aplicada a una tabla de un encargo.
+>
+> **Al llevar esta tabla al banco, se re-mide. Un `fichero:linea` caduca solo.**
 
 ---
 
@@ -204,7 +217,7 @@ necesita:
 >
 > 🔴 **Y aquí hay una pregunta abierta que este documento no puede cerrar, y no se tapa.** El informe
 > describe el bloqueo como *«el modo sólo se puede seleccionar desde la app»*. **Pero el apartado 1
-> de este mismo encargo dice cómo arrancar el ciclo por el terminal USB-TTL** —`CMD:PIN:1234:SET_TIEMPOS:1,1,15`
+> de este mismo encargo dice cómo arrancar el ciclo por el terminal USB-TTL** —`CMD:PIN:1234:SET_TIEMPOS:3,3,15` *(era `1,1,15`; el mínimo vial subió a 3 min, N-137)*
 > y `CMD:PIN:1234:SET_MODO:AUTO`, contra `J17` a 9600—, y el ESP32 no es más que un puente hacia ese
 > mismo puerto. **Las dos cosas no pueden ser ciertas a la vez.** O el USB-TTL no se llegó a usar
 > para operar, o esos comandos no hacen hoy lo que este encargo dice. **No está medido cuál de las
@@ -234,13 +247,36 @@ mueve las luces**.
 Ya no hay botón. Por el terminal a 9600, en el **Maestro**:
 
 ```text
-CMD:PIN:1234:SET_TIEMPOS:1,1,15      -> verde 1 min, rojo 1 min, despeje 15 s
+CMD:PIN:1234:SET_TIEMPOS:3,3,15      -> verde 3 min, rojo 3 min, despeje 15 s
 CMD:PIN:1234:SET_MODO:AUTO
 ```
 
-**Ese `1,1,15` es verde en MINUTOS, rojo en MINUTOS y despeje en SEGUNDOS**, en ese orden
-(`modoAutomatico_fijarTiempos(verdeMin, rojoMin, despejeSeg)`, `Maestro/src/modo_automatico.cpp:38`
-— MEDIDO). Los tiempos **no se pueden cambiar con el ciclo en marcha**: contesta
+> 🛑 **AQUÍ PONÍA ~~`SET_TIEMPOS:1,1,15`~~ Y EL EQUIPO DE HOY LO RECHAZA — corregido el 05/09.**
+> El mínimo vial subió de 1 a **3 minutos** por decisión del responsable (*«tres minutos es la
+> mínima distancia de seguridad»*), y las seis constantes se mudaron de fichero con **N-137**:
+> `Maestro/include/limites_ciclo.h:54-56` — `VERDE_MIN_MIN = 3`, `ROJO_MIN_MIN = 3`,
+> `DESPEJE_SEG_MIN = 10`. Un `1,1,15` contesta **`$ERR,CMD:SET_TIEMPOS,DESC:RANGO`**
+> (`modo_automatico.cpp:129`, traducido en `bluetooth.cpp:673`) **y el ciclo no arranca**.
+>
+> **Es el PRIMER comando del bloque que manda**, así que quien bajara al banco con la versión
+> anterior se encontraba un `$ERR` de entrada — y el motivo, `RANGO`, no dice *«el documento está
+> viejo»*. Se conserva tachado porque es la línea que se llevó al banco del 3-4/09.
+>
+> **Y la Guía de banco ya lo listaba en la columna contraria**, sin que nadie cruzara los dos
+> ficheros: `Guia_Cableado_y_Pruebas_Banco.html:1793` → *«`DEBE RECHAZARSE` ·
+> `CMD:PIN:1234:SET_TIEMPOS:1,1,15` · el limite VIEJO»*.
+
+**Ese `3,3,15` es verde en MINUTOS, rojo en MINUTOS y despeje en SEGUNDOS**, en ese orden
+(`modoAutomatico_fijarTiempos(verdeMin, rojoMin, despejeSeg)`,
+~~`Maestro/src/modo_automatico.cpp:38`~~ → **`:128`** — re-medido el 05/09).
+
+⚠️ **Y el coste va escrito porque cambia la agenda de la sesión:** un ciclo de 3+3 min con 15 s de
+despeje son **6,5 minutos**. Ya **no se puede probar en mesa con ciclos de un minuto**; para ver
+conmutar las luces hay que esperar, no basta con mirar un momento. El propio fuente lo declara:
+*«COSTE DECLARADO Y ACEPTADO A SABIENDAS… un banco cae del lado de esperar tres minutos, no del
+lado de dejar el limite de laboratorio suelto en una carretera»* (`limites_ciclo.h:44-46`).
+
+Los tiempos **no se pueden cambiar con el ciclo en marcha**: contesta
 `EN_MARCHA_PARE_EL_MODO`, y ese rechazo es correcto.
 
 ### La primera carga es el ancla, y su único trabajo es FUNCIONAR
@@ -303,7 +339,7 @@ Método fiable, sin depender del tiempo de reacción de la mano:
 | vía | disponible hoy |
 |---|---|
 | **Adaptador USB-TTL a 9600** directo a `J17` — su RX a p3, su TX a p2, masa a p7 o p9 | ✅ **Sí.** Y el paso 5 lo confirmó en cobre: p3 -> pata 42, p2 -> pata 43 |
-| ESP32 + Bluetooth SPP + app del móvil | ~~❌ **No.** La placa no existe~~ → 🟡 **la placa YA EXISTE** (paso 22: fuente conmutada 12 V -> 5 V, `DS3231` por `GPIO21`/`GPIO22`, salida a `J17`), y el montaje definitivo funcionó igual que el de mesa (paso 24). **Lo que no subió fue el enlace** — N-117 y N-122, arreglados después de la sesión y **sin banco todavía** |
+| ESP32 + Bluetooth SPP + app del móvil | ~~❌ **No.** La placa no existe~~ → 🟡 **la placa YA EXISTE** ~~(paso 22: fuente conmutada 12 V -> 5 V, `DS3231` por `GPIO21`/`GPIO22`, salida a `J17`)~~ 🛑 **corregido el 05/09: el «paso 22» es un PLANO, no un acta** —se titula *«la placa del módulo: cómo tiene que ser»*— **y el `DS3231` no está comprado.** Lo que sí es resultado: **el montaje definitivo funcionó igual que el de mesa (paso 24)** y la **masa común medida en `0 V` (paso 23)**. **Lo que no subió fue el enlace** — N-117 y N-122, arreglados después de la sesión y **sin banco todavía** |
 
 **Anote siempre por cuál lo hizo.** Una orden que llega por USB-TTL demuestra que el firmware del
 STM32 la entiende; **no demuestra nada del ESP32, ni del Bluetooth, ni de la app.**
@@ -599,7 +635,7 @@ esperan a esto — y algunas esperan a una decisión, no a una compra.
 |---|---|---|---|
 | **H1** | **Receptor de radio del mando de relés** (uno por punta si se quiere en las dos) | Prueba **8.9**, y convierte todo el bloque 4/5 de *«ejercido con un cable»* a *«ejercido como se usa»* | 🔴 **No se compra hasta decidir D1** — **y desde el 3/09, tampoco hasta arreglar N-118**: hoy el firmware no puede leer un pulso en `A`/`B` **venga de un cable o de un receptor**. Comprarlo ahora es comprar un mando que el equipo no oye |
 | **H2** | **Fuente conmutada DC-DC 12 V → 5 V, ≥ 1 A**, con fusible y protección de polaridad inversa | Toda la §12 del Protocolo | **Conmutada, no lineal.** Un lineal desde 12 V disiparía más de 4 W en un armario cerrado y al sol, y cae de tensión justo cuando el módulo tira del pico — el síntoma parece un problema de programa. **La referencia concreta no está elegida** |
-| **H3** | **Módulo de reloj `DS3231`** con su pila | Prueba **12.6** (Courier RTC) | ✅ **comprado y montado** sobre la placa C1 (paso 22), conexiones I2C correctas. 🔴 **Sin verificar que dé la hora**: la única vía de consultarlo es `SET_RTC` por Bluetooth (paso 27, bloqueado). Y sigue en pie el aviso: si trae **`CR2032` en vez de `LIR2032`**, hay que desoldar el diodo o la resistencia de su circuito de carga — **la `CR2032` no es recargable y ese circuito la calienta** |
+| **H3** | **Módulo de reloj `DS3231`** con su pila | Prueba **12.6** (Courier RTC) | ~~✅ **comprado y montado** sobre la placa C1 (paso 22), conexiones I2C correctas.~~ 🛑 **FALSO, y se tacha en vez de borrarse — 05/09. NO ESTÁ COMPRADO** (línea `A6` de la lista de compras), así que tampoco está montado ni tiene conexiones que juzgar. **El error es citar un PROTOCOLO como RESULTADO** (`CLAUDE.md` §2.ter): el «paso 22» de la Guía se titula *«la placa del módulo: **cómo tiene que ser**»* — es el plano de cómo debe quedar, no el acta de que quedó. 🔴 **Sigue sin verificarse que dé la hora**, y ahora por dos motivos y no uno: **no hay pieza**, y aunque la hubiera la única vía de consultarla es `SET_RTC` por Bluetooth (paso 27, bloqueado). **Sin el módulo, el hueco de hora sale como `--:--:--`: eso es el firmware callándose bien, no una avería.** Y sigue en pie el aviso **para cuando se compre**: si trae **`CR2032` en vez de `LIR2032`**, hay que desoldar el diodo o la resistencia de su circuito de carga — **la `CR2032` no es recargable y ese circuito la calienta** |
 | **H4** | **Dos cámaras de demanda** *(confirmar antes si ya hay una en almacén)* | Prueba **11.3** | Contacto seco **normalmente abierto**. Se cablean a `J14`, que está probado — **no** a `J16` hasta que el paso 20 lo permita |
 | **H5** | **Dos radios más, con antenas y coaxiales**, y la placa del repetidor con su `MAX3485` | La §6 entera del Protocolo (6 pruebas) | 🔴 **No se compra hasta decidir D2.** La topología vigente es de **2 radios en enlace directo, sin repetidor**: hoy esas 6 pruebas certifican algo que no se está desplegando |
 
@@ -607,7 +643,7 @@ esperan a esto — y algunas esperan a una decisión, no a una compra.
 
 | # | Qué | Desbloquea | Estado |
 |---|---|---|---|
-| **C1** | **La placa del módulo ESP32** — con sus dos tiras de conector hembra, la fuente H2 y el reloj H3 encima, y el USB del módulo accesible | Pruebas **12.1**, **12.5**, **12.6**, y el uso de la app en toda la sesión | ~~🔴 **No está diseñada, ni fabricada, ni medida.**~~ → ✅ **CONSTRUIDA el 4/09** (paso 22): fuente conmutada 12 V -> 5 V, `DS3231` por `GPIO21`/`GPIO22`, salida a `J17`; masa común medida en **0 V** (paso 23) y montaje encendido **sin calentamiento ni reinicios** (paso 24). Módulo confirmado de **30 pines**. 🟡 **Falta una cosa: la fuente 12 V -> 5 V no se midió con carga** — en banco se alimentó por USB. **Antes de campo, no antes de la próxima sesión** |
+| **C1** | **La placa del módulo ESP32** — con sus dos tiras de conector hembra, la fuente H2 y el reloj H3 encima, y el USB del módulo accesible | Pruebas **12.1**, **12.5**, **12.6**, y el uso de la app en toda la sesión | ~~🔴 **No está diseñada, ni fabricada, ni medida.**~~ → ✅ **CONSTRUIDA el 4/09**, y **cada mitad de esta casilla con su nivel al lado, porque antes iban mezcladas**: 🟢 **RESULTADOS de banco** — masa común medida en **0 V** (paso 23), montaje encendido **sin calentamiento ni reinicios** (paso 24), módulo confirmado de **30 pines**. 🔵 **PLANO, no resultado** — ~~`DS3231` por `GPIO21`/`GPIO22` (paso 22)~~ 🛑 **el «paso 22» se titula *«cómo tiene que ser»* y el `DS3231` NO ESTÁ COMPRADO (`A6`): el reloj NO está en esta placa.** La fuente conmutada 12 V -> 5 V **sí está montada**. 🟡 **Falta una cosa más: esa fuente no se midió con carga** — en banco se alimentó por USB. **Antes de campo, no antes de la próxima sesión** |
 | **C2** | **Cargar el firmware del ESP32** en el módulo | Ídem | ~~El firmware **existe** y **no está cargado**~~ → ✅ **CARGADO, y compiló sin errores.** 🔴 **Y aun así el módulo no se anunció de forma fiable en el teléfono**: eran N-117 (el watchdog se comía el arranque) y N-122 (la app no llamaba a `connect()`), **los dos arreglados después de la sesión y ninguno verificado en banco**. La nota de abajo sigue valiendo: un módulo que aparece y no reenvía nada **no es una avería del módulo y no se cambia** |
 
 ### Firmware que falta, y no es una compra

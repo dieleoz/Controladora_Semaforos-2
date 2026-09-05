@@ -62,17 +62,42 @@ CMD:PIN:1234:MANUAL:CAMBIAR_TURNO\r\n    -> Alterna paso al sentido opuesto
 CMD:PIN:1234:SET_MODO:AMBAR\r\n          -> Destello de precaución 1 Hz
 CMD:PIN:1234:FORZAR_ROJO\r\n             -> Rojo total en ambos sentidos
 CMD:FORZAR_ROJO\r\n                      -> Excepción de seguridad (Rojo sin PIN)
-CMD:PIN:1234:SET_TIEMPOS:2,2,15\r\n      -> Verde: 2m, Rojo: 2m, Despeje: 15s
+CMD:PIN:1234:SET_TIEMPOS:3,3,15\r\n      -> Verde: 3m, Rojo: 3m, Despeje: 15s (minimos vigentes)
+   (aqui ponia 2,2,15 y el equipo lo RECHAZA: 2 < VERDE_MIN_MIN = 3 -> $ERR,...,DESC:RANGO)
 CMD:PIN:1234:SET_RTC:2026-08-28,14:30:00 -> Sincroniza RTC DS3231
 CMD:PIN:1234:TEST_LEDS\r\n               -> Secuencia de prueba 6s
 ```
 
 ### 3.2 Formato de Respuestas y Telemetría Emitida por STM32
-```text
-$ACK,CMD:SET_MODO:AUTO,RESULT:OK*2E\r\n
-$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO*3A\r\n
-$STATUS,NODE:MAESTRO,MODO:AUTO,ESTADO:V1_R2,RESTANTE:38,TOT:45,BAT:12.6,RF:98,RTT:76,SERIE:M-2026-A1B2*1F\r\n
-```
+> 🛑 **LOS TRES EJEMPLOS QUE HABÍA AQUÍ TENÍAN EL CHECKSUM MAL, Y LA TERCERA TRAMA NO ES LA QUE
+> EMITE EL MICRO. Se tachan con su motivo — 05/09.**
+>
+> ```text
+> ~~$ACK,CMD:SET_MODO:AUTO,RESULT:OK*2E\r\n~~                              publicado *2E · real *2F
+> ~~$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO*3A\r\n~~                        publicado *3A · real *5C
+> ~~$STATUS,...,RESTANTE:38,TOT:45,BAT:12.6,...,SERIE:M-2026-A1B2*1F\r\n~~ publicado *1F · real *45
+> ```
+>
+> **Recalculado el 05/09 con la regla que este mismo apartado publica dos líneas más abajo** —XOR
+> de 8 bits de todo lo que va entre `$` y `*`—: **los tres fallan.** En el apartado que explica cómo
+> se calcula el checksum, y con la casilla de §7 marcada afirmando que se validó.
+>
+> **Y la tercera trama está mal más allá del checksum** (medido contra
+> `Maestro/src/bluetooth.cpp:970` e `identidad.cpp:63`):
+>
+> | lo que ponía | lo que emite el equipo |
+> |---|---|
+> | `RESTANTE:38,TOT:45` | **no existen**: el campo es `T:` |
+> | *(faltaban)* | `HORA:` y **`ESC:`**, que va el último y sólo en el Maestro |
+> | `SERIE:M-2026-A1B2` | son **24 bits en hexadecimal** (`& 0xFFFFFFUL`), p. ej. `A3F19C` |
+> | `BAT:12.6` | **`BAT:--`** — ver N-108: no hay un solo `analogRead()` en las cuatro carpetas |
+>
+> 🔴 **Este apartado DEJA DE PUBLICAR EJEMPLOS PROPIOS, y ése es el arreglo de verdad.** Una segunda
+> copia a mano de un formato que el firmware ya define es lo que produjo estos tres —es `CLAUDE.md`
+> §3.bis: *un dato repetido a mano es una copia que alguien tiene que sincronizar*—. **La trama
+> vigente, con sus campos y sus checksums recalculados en cada corrida por
+> `documentos_03_trama_status`, vive en `10_Manual_Modulo_Bluetooth_Telemetria.md` §4.2 y §4.3, y
+> en ningún otro sitio.**
 * **Delimitadores:** Inicia con `$` y finaliza con `*` seguido de 2 caracteres hexadecimales de Checksum XOR de 8 bits.
 
 ---

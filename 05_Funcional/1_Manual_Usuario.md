@@ -169,8 +169,8 @@ Todas las operaciones están alineadas al **Manual de Señalización Vial de Col
 >
 > | | dónde | qué hace |
 > |---|---|---|
-> | `botonAceptar()` | `Maestro/src/botones.cpp:280` · igual en el Esclavo | **devuelve `false` SIEMPRE** |
-> | `botonCancelar()` | `Maestro/src/botones.cpp:281` · igual en el Esclavo | **devuelve `false` SIEMPRE** |
+> | `botonAceptar()` | `Maestro/src/botones.cpp:305` · igual en el Esclavo | **devuelve `false` SIEMPRE** |
+> | `botonCancelar()` | `Maestro/src/botones.cpp:306` · igual en el Esclavo | **devuelve `false` SIEMPRE** |
 > | `PB14` (`J16` p10) | `Maestro/include/pines.h:124` | ya no es `BOTON3`: es **`CAM_C_PIN`**, entrada de cámara |
 > | `PB15` (`J16` p12) | `Maestro/include/pines.h:125` | ya no es `BOTON4`: es **`CAM_D_PIN`**, entrada de cámara |
 >
@@ -623,8 +623,34 @@ Para garantizar comunicación inquebrantable en zonas de montaña con alta inter
 ## 6. Integración de Cámaras IA AcuSense para Demanda Vehicular (Modo Inteligente)
 
 Para detección inteligente de flujo vehicular en pasos alternados de obra sin requerir computadores externos en el remolque:
-* **Conexión Hardware:** Salida de alarma de relé de la cámara (`1A`/`1B`) al pin **`PB0` (Demanda)**
-  con masa `GND`, por la bornera **`J14`**.
+* **Conexión Hardware:** Salida de alarma de relé de la cámara (`1A`/`1B`) a la bornera **`J14`**:
+  un hilo a **`p1`** (`/Puerta` → **`PB0`**) y el otro a **`p2`** (**`3,3 V`** del propio conector).
+
+> 🛑 **AQUÍ PONÍA ~~«con masa `GND`, por la bornera `J14`»~~ Y ERA FALSO EN LAS DOS MITADES — 05/09.**
+>
+> **MEDIDO EN COBRE**, extrayendo las redes de los pads de `J14` del `.kicad_pcb` real (2.091.460 B),
+> no del esquemático:
+>
+> ```
+> ===== J14   (Conn_01x02)
+>    p1  -> /Puerta      (= PB0, la entrada de demanda)
+>    p2  -> /3.3V
+> ```
+>
+> **`J14` tiene DOS posiciones y NINGUNA es masa.** No hay `GND` en ese conector, así que la
+> instrucción no se podía ni ejecutar. Y si el instalador buscaba la masa en otro punto de la placa
+> y cerraba contra ella, **la demanda no se produce nunca**: el firmware lee ese pin **activo en
+> ALTO** —`Esclavo/src/main.cpp:350`, `bool demandaCamaraActual = (digitalRead(CAM_DEMANDA_PIN) ==
+> HIGH);`, y `Maestro` por `camara_leerPin()` en `botones.cpp:105`—.
+>
+> **El gesto correcto es el mismo que en `J16`: cerrar el contacto seco contra los 3,3 V del pin de
+> al lado.** La placa lo tiene previsto —`R64` de 10 kΩ **a masa** más `C25` de 100 nF, o sea un
+> pull-down con antirrebote de 1 ms (`pines.h:43-46`)—, que es justo lo que hace falta para que el
+> reposo sea `0 V` y el cierre a 3,3 V sea la detección.
+>
+> ⚠️ **Es el mismo error de polaridad que N-118, en la bornera que sí se cablea hoy.** La salida de
+> la AcuSense es configurable (NO/NC), así que se elige qué estado significa demanda **sin tocar
+> placa ni firmware** — pero el hilo va a `p1` y `p2`, no a una masa.
 
 > 🛑 **CORREGIDO EL 04/09 — SON DOS CÁMARAS EN EL CRUCE, UNA POR POSTE. NO TRES POR TARJETA.**
 >
@@ -1065,11 +1091,24 @@ distinguen.**
 > tecleó `1234` en el diálogo del sistema operativo esperando que enlazara. Son dos cosas distintas
 > y sólo una existe.
 
-**4. Ese PIN de la app NO CADUCA. Riesgo conocido y ABIERTO (`AB-9`).**
+**4. ~~Ese PIN de la app NO CADUCA. Riesgo conocido y ABIERTO (`AB-9`).~~** → 🟢 **EL PIN SÍ CADUCA
+DESDE EL 04/09. Se tacha en vez de borrarse, porque quien leyera esto como vigente dejaría el
+teléfono desbloqueado creyendo que da igual.**
 
-> 🛑 **Se teclea una vez y el teléfono queda autorizado hasta que se cierra la app.** No hay tiempo
-> de expiración, ni bloqueo por inactividad, ni recuento de órdenes: **una sesión desbloqueada lo
-> sigue estando dentro del bolsillo**.
+> 🛑 ~~**Se teclea una vez y el teléfono queda autorizado hasta que se cierra la app.** No hay tiempo
+> de expiración, ni bloqueo por inactividad, ni recuento de órdenes.~~
+>
+> **MEDIDO en `App_Semaforo/app.js`:** el PIN caduca **a los 60 s de irse la app al fondo**
+> (`PIN_GRACIA_FONDO_MS = 60 * 1000`, `:1918`, aplicado en `:1959`) y **a los 5 min sin mandar
+> ninguna orden** (`PIN_INACTIVIDAD_MS = 5 * 60 * 1000`, `:1919`, aplicado en `:1980-1981`).
+>
+> 🔴 **Este bloque contradecía a la cabecera de este mismo manual y a su §3**, que ya lo decían bien
+> desde el 04/09 (`:104-105` y `:164-167`). Era la corrección que no llegó hasta aquí.
+>
+> ⚠️ **Y lo que SÍ sigue abierto de `AB-9`, que es la mitad que se conserva:** la caducidad por irse
+> al fondo **cuelga de sucesos del navegador** (`visibilitychange` / `pagehide` / `pageshow`) y
+> **nadie la ha visto disparar en la APK con la pantalla apagada**. **Hasta que alguien lo
+> cronometre en el teléfono, la barrera real sigue siendo quién tiene el aparato en la mano.**
 >
 > **Lo que eso significa en obra:** si alguien deja el teléfono desbloqueado y otra persona lo coge,
 > **manda sobre el cruce sin teclear nada** — y mientras el mando de relés no se haya visto entrar
@@ -1084,7 +1123,7 @@ distinguen.**
 
 ### Telemetría en vivo — y qué campos NO son medidas
 
-* **Emisión periódica de `$STATUS,...` cada 1 segundo.** Formato real, leído del firmware:
+* **Emisión periódica de `$STATUS,...` ~~cada 1 segundo~~ cada 2 segundos.** *(cadencia bajada a **2000 ms** el 04/09, decision del responsable, en las DOS puntas — MEDIDO: `Maestro/src/bluetooth.cpp:851`, `Esclavo/src/bluetooth.cpp:768`. Un tecnico que cronometre con «1 segundo» declara caido un enlace sano.)* Formato real, leído del firmware:
   `$STATUS,NODE:...,SERIE:...,MODO:...,ESTADO:...,T:...,RF:...%,RTT:...ms,BAT:...,HORA:...*XX`
 
 > 🔴 **Tres campos de esa trama NO son medidas, y hay que saberlo antes de decidir con ellos.**

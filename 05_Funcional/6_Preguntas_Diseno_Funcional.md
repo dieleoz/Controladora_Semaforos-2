@@ -40,10 +40,18 @@ Este documento recopila los puntos clave de diseño funcional y operativo acorda
    **Las tres son ACTIVAS EN ALTO**: el contacto seco cierra contra **3,3 V**, no contra masa.
    Contra masa **la cámara no dispara nunca** y no hay síntoma. **`PB9` y `PB13` NO admiten cámara.**
 2. **Cero Computadores Edge Externos (CERRADO):** Se descarta el uso de Raspberry Pi, Jetson Nano, conversores USB y switches Ethernet. La detección de vehículos corre directamente dentro de la cámara (DSP AcuSense) y entra por pulsos limpios de hardware a la placa. ✅ **Sigue cerrado y sigue siendo cierto.**
-3. **Respuesta Adaptativa (CERRADO):** Cada pulso de detección solicita verde para el sentido correspondiente. Se garantiza un piso inquebrantable de **15 segundos mínimos de All-Red (Todo-Rojo)** antes de conmutar de un carril al opuesto. *(Corregido: el pulso entra por `PB0`, `PB14` o `PB15`, ~~`PB9`~~.)*
-   **MEDIDO** en `Maestro/src/modo_inteligente.cpp:42` (`segEstatico = 15`) y `:90` (15 s mínimos de
-   verde antes de permitir alternancia). ⚠️ **Son del Modo Inteligente y están fijados en el código**;
-   no se confundan con el despeje configurable del Modo Automático, que va de 10 a 90 s (§2.1).
+3. **Respuesta Adaptativa (CERRADO):** Cada pulso de detección solicita verde para el sentido correspondiente. ~~Se garantiza un piso inquebrantable de **15 segundos mínimos de All-Red (Todo-Rojo)** antes de conmutar de un carril al opuesto.~~ *(Corregido: el pulso entra por `PB0`, `PB14` o `PB15`, ~~`PB9`~~.)*
+   🛑 **EL TODO-ROJO DEL MODO INTELIGENTE SON 10 s, NO 15 — corregido el 05/09, y la cita tampoco
+   era la que decía.** **MEDIDO:** `modo_inteligente.cpp:25` y `:53` fijan
+   `segEstatico = DESPEJE_SEG_MIN`, y `Maestro/include/limites_ciclo.h:56` da
+   **`DESPEJE_SEG_MIN = 10`**. ~~`modo_inteligente.cpp:42` (`segEstatico = 15`)~~ — esa línea es hoy
+   un comentario sobre polaridad, y el `15` se escribió antes de que N-137 (04/09) centralizara las
+   seis constantes en `limites_ciclo.h`.
+   **Lo que SÍ son 15 s** es el **verde mínimo** antes de permitir alternancia —
+   `modo_inteligente.cpp:100-101`, `if (tiempoActual >= 15000UL)`, ~~`:90`~~— y el **despeje por
+   defecto del Modo Manual**, `tiempoDespejeMs = 15000` (`modo_manual.cpp:70`), que es el número que
+   se sintió en banco. ⚠️ **Son del Modo Inteligente y están fijados en el código**; no se confundan
+   con el despeje configurable del Modo Automático, que va de 10 a 90 s (§2.1).
 
    > 🔴 **AMPLIADO EL 04/09 — N-130, y limita este apartado: la demanda SÓLO se atiende en Modo
    > Inteligente.** Censo de llamadores de la bandera `demandaRemotaPendiente`, hecho con `grep` y no
@@ -153,10 +161,16 @@ Este documento recopila los puntos clave de diseño funcional y operativo acorda
 5. 🆕 **El cruce se opera DESDE EL MAESTRO — DECIDIDO EL 04/09/2026.** Se descartó hacer transparente
    el mando desde el Esclavo: **no se relevan `SET_MODO` ni `MANUAL:CAMBIAR_TURNO` por radio.**
 
-   **MEDIDO** por censo de despachadores: el Maestro atiende **14** comandos
-   (`Maestro/src/bluetooth.cpp:444-664`) y el Esclavo **5** —`AMBAR_EMERGENCIA`, `CANCELAR_AMBAR`,
-   `SOLICITAR_PASO`, más `FORZAR_ROJO` y `TEST_LEDS` que rechaza a propósito—
-   (`Esclavo/src/bluetooth.cpp:468-561`). **El Esclavo pide; no ordena** (SFTY-27): `SOLICITAR_PASO`
+   **RE-MEDIDO el 05/09** por censo de despachadores (`grep -nE 'strcmp\(accion|strncmp\(accion'`):
+   el Maestro atiende **14** comandos (~~`:444-664`~~ → **`Maestro/src/bluetooth.cpp:498-763`**) y el
+   Esclavo ~~**5**~~ → **6** —`AMBAR_EMERGENCIA` (`:468`), `CANCELAR_AMBAR` (`:506`),
+   `SOLICITAR_PASO` (`:588`), **`SET_RTC:` (`:619`)**, más `FORZAR_ROJO` (`:580`) y `TEST_LEDS`
+   (`:606`) que rechaza a propósito— (~~`:468-561`~~ → **`Esclavo/src/bluetooth.cpp:468-679`**).
+   🛑 **Faltaba `SET_RTC`, y el rango citado cortaba el despachador por la mitad** —dejaba fuera 4 de
+   los 6—. Es `CLAUDE.md` §4.quinquies: *el instrumento comparaba contra un borde equivocado*. **Y no
+   es cosmético: §5.3 apoyaba en ese «5» una decisión sobre qué queda operable con el Maestro
+   caído**, y el sexto comando **pone la hora**, que es la condición de entrada al Degradado
+   (`SYNC_FRESCA_MS`, 2 h). **El Esclavo pide; no ordena** (SFTY-27): `SOLICITAR_PASO`
    manda la misma demanda que la cámara y **el Maestro decide, aplica el todo-rojo y ordena**.
 
    🔴 **CONSECUENCIA OPERATIVA, y es la que hay que llevar a obra: el operario tiene que saber a qué
@@ -235,26 +249,57 @@ corrija **antes** de la primera puesta en campo.
 
 ## 4. Decisiones abiertas por la revisión del 01/08/2026
 
-1. **Persistencia del estado del Modo Degradado (N-20).** Hoy vive en RAM: un microcorte deja esa
-   punta en ámbar mientras la otra sigue dando verde por reloj — **que es exactamente el riesgo
-   residual nº 2**. El módulo que lo guardaría en los registros de respaldo, alimentados por la misma
-   pila ya instalada, **está escrito pero sin conectar**. ¿Se prioriza antes de ir a campo?
+> 🛑 **LAS DOS PRIMERAS PREGUNTAS DE ESTA LISTA YA ESTABAN CONTESTADAS POR EL CÓDIGO, y se tachan
+> con su medida — 05/09.** Una pregunta cerrada que sigue en una lista de decisiones abiertas hace
+> que alguien **vuelva a decidir algo ya decidido**, y encima sobre un diagnóstico falso. Es
+> `CLAUDE.md` §2.quater desde el otro lado: *las opciones que le pones delante al responsable son un
+> instrumento*.
+
+1. ~~**Persistencia del estado del Modo Degradado (N-20).** Hoy vive en RAM… El módulo que lo
+   guardaría en los registros de respaldo **está escrito pero sin conectar**. ¿Se prioriza antes de
+   ir a campo?~~
+   ✅ **CERRADA EN CÓDIGO. Censo de llamadores con `grep`, no lectura:**
+   `respaldo_guardarDegradado()` tiene **cinco puntos de escritura** —`modo_degradado.cpp:356`,
+   `:377`, `:442`, `:464` y `Maestro/src/main.cpp:281`— y `modo_degradado_reanudarTrasCorte()`
+   (`modo_degradado.cpp:326`) **se llama en el arranque**, `Maestro/src/main.cpp:95`. **Está
+   conectado en las dos direcciones**, escritura y lectura.
+   🔴 **Lo que sigue abierto es la PRUEBA, no el módulo: el microcorte con reanudación NO se ha
+   ejercido en tarjeta.** El riesgo residual nº 2 no desaparece por estar el código escrito.
    ⚠️ *No confundir con autorización por adelantado ("si pierdes el radio X minutos, entra"): eso es
    entrada automática con pasos extra y sigue descartado.*
-2. **Configuración del ciclo recibida pero no consumida (N-18).** El Esclavo **almacena** la
-   configuración que le llega por radio, pero el cálculo del ciclo degradado todavía usa los 30/30
-   fijos compilados. Mientras las dos puntas lleven la misma versión de firmware coinciden — **pero
-   nadie vigila que la lleven**. ¿Se cierra esto antes de campo, o basta con la comprobación de
-   versión en el acta de pruebas?
+2. ~~**Configuración del ciclo recibida pero no consumida (N-18).** El Esclavo **almacena** la
+   configuración… pero el cálculo del ciclo degradado todavía usa los 30/30 fijos compilados…
+   **nadie vigila que la lleven**.~~
+   ✅ **CERRADA EN CÓDIGO, y las dos mitades de la pregunta se caen por separado.**
+   **(a) El Esclavo SÍ la consume:** `Esclavo/src/modo_degradado.cpp:117` (`rojoObligatorioMs()`),
+   `:126-127` (`calcularFase()`) y `:415-416`. **No queda ningún 30/30 compilado en ese fichero**
+   —medido con dos patrones, para descartar al buscador—.
+   **(b) Y sí hay quien lo vigila:** `:202-203` **rechaza la entrada** al modo si no ha llegado la
+   configuración — `DEG_RECHAZO_SIN_CONFIG` y `DEG_RECHAZO_CICLO_NULO`.
+   Las dos puntas corren 30/30 **porque el Maestro se los manda**, no por coincidencia de versión:
+   `Maestro/src/modo_degradado.cpp:249` envía `DEG_VERDE_SEG` / `DEG_DESPEJE_SEG` (`:74-75`).
 3. **Margen de flash del Maestro (N-21).** ~~Tras el Modo Degradado va al **80,2 %**. Lo pendiente
    —persistencia conectada, pantalla informativa en ámbar y modo nocturno— lo dejaría sobre el
    **85 %**: ajustado pero viable.~~ **Una función grande más ya no cabría.** ¿Se acota el alcance
    funcional, o se evalúa el cambio de microcontrolador con su verificación chip a chip?
 
-   > ⚠️ **CIFRA CADUCADA, y la pregunta no está respondida: está más apretada.** El acta de la
-   > compuerta del 04/09 —`evidencia/2026-09-04_compuerta.txt`, `HEAD 624eb37`— publica **`89,3 %`**
-   > (`58496` de `65536` B), o sea **`7.040` B libres**. El **`85 %`** que este punto daba como
-   > escenario de llegada **ya se pasó**, y lo que lo listaba como pendiente sigue pendiente.
+   > ⚠️ **CIFRA CADUCADA, y la pregunta no está respondida: está más apretada.**
+   > ~~El acta de la compuerta del 04/09 —`evidencia/2026-09-04_compuerta.txt`, `HEAD 624eb37`—
+   > publica **`89,3 %`** (`58496` de `65536` B), o sea **`7.040` B libres**.~~
+   >
+   > 🛑 **ESA ACTA YA NO EXISTE, y las cuatro cifras eran falsas — 05/09.** El fichero **se
+   > reescribió sobre el mismo nombre** (`d2a510f`, *«cifras del acta con el arbol quieto»*), así que
+   > lo que hoy publica es otra cosa: **`HEAD e0e835d` · `86,3 %` · `56588` de `65536` B ·
+   > `8.948` B libres**. Ni el hash ni el porcentaje ni los dos recuentos coincidían.
+   >
+   > **Otros dos documentos de esta misma carpeta ya lo habían avisado** —`17_Arquitectura…:433` y
+   > `8_Procedimiento_Modo_Degradado.md:106`, los dos con la frase *«ese acta ya no existe»*—: **este
+   > era el único que seguía citándolo como vigente.** La información estaba; faltó cruzar ficheros.
+   >
+   > 🔴 **Y la cura no es escribir aquí el número nuevo, porque volverá a caducar: la cifra vigente
+   > se lee del acta más reciente de `evidencia/`, con su HEAD al lado.** El acta del 05/09 lleva
+   > `HEAD c954e74`. El **`85 %`** que este punto daba como escenario de llegada **ya se pasó
+   > igualmente**, y lo que lo listaba como pendiente sigue pendiente.
    > 🔴 **Y el árbol de hoy tiene cambios posteriores a esa acta sin medir por la compuerta**: la cifra
    > que valga sale de una corrida nueva, no de aquí (`17_...md`, revisión del 04/09 por la tarde).
 4. **Prueba de banco del reloj (N-15 / N-17).** Sigue sin hacerse: ni contraste contra hora patrón, ni

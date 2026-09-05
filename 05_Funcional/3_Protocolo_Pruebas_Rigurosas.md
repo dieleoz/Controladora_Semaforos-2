@@ -40,13 +40,13 @@ Tres cosas cambiaron en el equipo y las tres invalidan procedimiento escrito:
 
 | Qué cambió | Dónde está medido | Consecuencia para este documento |
 |---|---|---|
-| **`botonAceptar()` y `botonCancelar()` devuelven `false` siempre.** Los pulsadores 3 y 4 dejaron de ser pulsadores: sus pines (`PB14`, `PB15` = `J16` p10/p12) pasan a ser entradas de cámara | `Maestro/src/botones.cpp:280-281` · `Esclavo/src/botones.cpp:294-295` — **MEDIDO** | **No se puede aceptar ni cancelar nada.** Todo paso que diga *«pulse Botón 3»*, *«confirme»*, *«entre en CONFIGURACION»* o *«recorra el menú»* **no se puede ejecutar** |
+| **`botonAceptar()` y `botonCancelar()` devuelven `false` siempre.** Los pulsadores 3 y 4 dejaron de ser pulsadores: sus pines (`PB14`, `PB15` = `J16` p10/p12) pasan a ser entradas de cámara | `Maestro/src/botones.cpp:305-306` · `Esclavo/src/botones.cpp:316-317` — **MEDIDO** | **No se puede aceptar ni cancelar nada.** Todo paso que diga *«pulse Botón 3»*, *«confirme»*, *«entre en CONFIGURACION»* o *«recorra el menú»* **no se puede ejecutar** |
 | **La pantalla no se retira, pero deja de conducir sus pines.** `PB3`/`PB4`/`PB5` quedan en alta impedancia porque comparten el conector `J17` con el ESP32 | `Maestro/src/lcd.cpp:74-75` · `Esclavo/src/lcd.cpp:92-93` (los cuatro pines a `U8X8_PIN_NONE`); el porqué, en el comentario de `lcd.cpp:18-73` — **MEDIDO** | **No hay imagen.** El framebuffer se sigue componiendo y no se vuelca al cable. Todo paso que diga *«la pantalla muestra»* o *«anote lo que muestra»* **no se puede ejecutar** |
 | **El mando de relés SE CONSERVA**, en los canales `A` (`PB9` = `J16` p5) y `B` (`PB13` = `J16` p8). Las tres secuencias siguen en el firmware | `Maestro/src/mando.cpp:202-235` · `Esclavo/src/mando.cpp:218-250` — **MEDIDO**. Ventanas: `VENTANA_TRIPLE_MS = 12000` (`mando.cpp:38` Maestro, `:42` Esclavo) y `VENTANA_CUADRUPLE_MS = 18000` (`:39` / `:43`) | ~~Las secuencias se pueden **ejercer**~~ ~~**— corregido el 04/09: NO se pueden.** Siguen en el firmware, pero los dos pines miden `0,6 V` en reposo, así que **no hay flanco que darles**: ni con el puente a mano ni con el receptor, que además **nunca se compró**.~~ 🔧 **Corregido otra vez el 04/09, después de N-118, y esta vez con el fuente delante:** el `0,6 V` era obra del `INPUT_PULLUP` que el firmware ponía, y **ese firmware ya no existe** — `botones.cpp` lee `BOTON1`/`BOTON2` en `INPUT` pelado y **activo en ALTO** en las dos puntas. **El flanco sí se puede dar; lo que cambia es cómo: p5 contra p4, p8 contra p7 (3,3 V del pin de al lado), NUNCA contra masa.** Lo que sigue faltando es **una tarjeta con la que ejercerlo** —la Maestro está fuera de servicio por N-116— y el **receptor, que nunca se compró**. Ver §0.3 |
 
 > ⚠️ **Y una consecuencia que no es evidente y hay que decir en voz alta.** Con `botonAceptar()`
 > siempre `false`, `menu_estaAbierto()` no puede ser cierto nunca, así que **el mando del Esclavo ya
-> no está inhibido en ningún caso** (`Esclavo/src/botones.cpp:291-293`, **MEDIDO**). La regla
+> no está inhibido en ningún caso** (`Esclavo/src/botones.cpp:316-317`, **MEDIDO**). La regla
 > *«con el menú abierto el mando se ignora»* no está rota: **se quedó sin sujeto**.
 
 ---
@@ -247,19 +247,32 @@ SET_RTC:AAAA-MM-DD,HH:MM:SS
 cadencia, el valor que tiene que dar es **2 s, no 1 s**):
 
 ```text
-$STATUS,NODE:MAESTRO,SERIE:..,MODO:..,ESTADO:..,T:..,RF:..%,RTT:..ms,BAT:12.6,HORA:HH:MM:SS*CRC
-$STATUS,NODE:ESCLAVO,SERIE:..,MODO:SUBORDINADO,ESTADO:..,T:..,RF:98%,RTT:85ms,BAT:12.6,HORA:..*CRC
+$STATUS,NODE:MAESTRO,SERIE:..,MODO:..,ESTADO:..,T:..,RF:..,RTT:..,BAT:--,HORA:HH:MM:SS,ESC:..*CRC
+$STATUS,NODE:ESCLAVO,SERIE:..,MODO:SUBORDINADO,ESTADO:..,T:--,RF:--,RTT:--,BAT:--,HORA:..*CRC
 $ALARM,NODE:..,EVENTO:..,CAUSA:..,ACCION:..,HORA:..*CRC
 $EVENT,NODE:..,ORIGEN:..,DETALLE:..,HORA:..*CRC
 ```
 
-> ⚠️ **Campos que NO son medidas y no se reportan como avería** (**MEDIDO**: son literales dentro
-> del `snprintf`, no valores leídos):
-> - **`BAT:12.6`** en las dos puntas.
-> - **`RF:98%` y `RTT:85ms` en el Esclavo.** En el Maestro sí son medidos.
-> - **`T:`** es `(millis()/1000)%60`, **no** el tiempo que le queda a la fase.
+> 🛑 **LAS DOS TRAMAS DE ARRIBA ESTABAN MAL EN CINCO CAMPOS — corregidas el 05/09 contra el
+> `snprintf` real** (`Maestro/src/bluetooth.cpp:970`, `Esclavo/src/bluetooth.cpp:832`). El aviso que
+> las acompañaba era correcto **en 2026-08**; N-108 retiró esos literales el 04/09 y el formato
+> cambió debajo.
+>
+> ⚠️ **Campos MARCADOS con `--` porque el equipo no tiene con qué medirlos. Un `--` ES la respuesta
+> correcta: no es una avería y no es un hueco.**
+> - ~~**`BAT:12.6`** en las dos puntas.~~ → **`BAT:--` en las dos.** No hay **un solo**
+>   `analogRead()` en las cuatro carpetas de firmware — **MEDIDO, `grep` sin una sola llamada** (las
+>   dos coincidencias son comentarios). Sin divisor ni entrada analógica no hay batería que leer.
+> - ~~**`RF:98%` y `RTT:85ms` en el Esclavo.**~~ → **`RF:--` y `RTT:--` en el Esclavo.** En el
+>   Maestro **sí** son medidos, y publican `--` mientras no haya muestras.
+> - ~~**`T:`** es `(millis()/1000)%60`, **no** el tiempo que le queda a la fase.~~ → 🔴 **AL REVÉS
+>   DESDE EL 04/09: en el MAESTRO `T:` SÍ son los segundos que le quedan a la fase**
+>   (`modoAutomatico_segundosRestantesFase()`), y `--` cuando ese plazo no existe. **En el ESCLAVO es
+>   `--` siempre**: esa punta es subordinada y no conoce el plazo.
+> - 🆕 **`ESC:` va SÓLO en la trama del Maestro y es el ÚLTIMO campo** (N-149), con valores
+>   `ROJO`/`VERDE`/`AMBAR`/`?`. **Que falte en el `$STATUS` del Esclavo no es un fallo.**
 > - **`MODO:SUBORDINADO` en el Esclavo es fijo**, así que **desde el `$STATUS` del Esclavo no se
->   puede ver si está en Modo Degradado.** Sólo lo insinúa `ESTADO:`.
+>   puede ver si está en Modo Degradado.** Sólo lo insinúa `ESTADO:`. *(Esto no ha cambiado.)*
 >
 > `HORA:` cae a `--:--:--` cuando el reloj no está en hora. **Eso es un dato, no un fallo.**
 
@@ -404,7 +417,7 @@ pulsador.
 
 | Falta | Consecuencia |
 |---|---|
-| ~~**La placa del módulo ESP32** — no está diseñada, ni fabricada, ni medida~~ · 🆕 **EXISTE y está armada** (paso 22): fuente conmutada, `DS3231` por I²C en `GPIO21`/`GPIO22`, salida a `J17`. **Lo que falta es que el módulo se anuncie en el teléfono** (pasos 10 y 25) | §12 sigue aplazada, **por otra razón**: hay hardware, no hay enlace. El chip está descartado como causa —es un `ESP32-WROOM-32` clásico, con el `BR/EDR` que el `SPP` de la app necesita— y el firmware cargó sin errores. **La causa está abierta** |
+| ~~**La placa del módulo ESP32** — no está diseñada, ni fabricada, ni medida~~ · 🆕 **EXISTE y está armada**: fuente conmutada, salida a `J17` ~~(paso 22): … `DS3231` por I²C en `GPIO21`/`GPIO22`~~ 🛑 **corregido el 05/09 — ver §12.6 de este mismo documento, que ya lo había tachado: el «paso 22» es el PLANO (*«cómo tiene que ser»*), no un acta, y el `DS3231` NO ESTÁ COMPRADO.** **Lo que falta es que el módulo se anuncie en el teléfono** (pasos 10 y 25) | §12 sigue aplazada, **por otra razón**: hay hardware, no hay enlace. El chip está descartado como causa —es un `ESP32-WROOM-32` clásico, con el `BR/EDR` que el `SPP` de la app necesita— y el firmware cargó sin errores. **La causa está abierta** |
 | ~~**La fuente del ESP32** (DC-DC 12 V→5 V, ≥1 A) — no está pedida ni elegida la referencia~~ · 🆕 **está montada, y SIN MEDIR CON CARGA REAL** | El banco entero se alimentó **por USB**. **Medir esa fuente con 12 V de verdad es un pendiente propio**, independiente del Bluetooth, y va antes de campo |
 | ~~**El reloj `DS3231`** — va sobre esa placa, que no existe~~ · 🆕 **montado y cableado** | La §12.6 (Courier RTC) **sigue aplazada**, y ahora se sabe por qué exactamente: **la única vía para leer o poner esa hora es `SET_RTC` desde la app**. Sin enlace, ese reloj no es verificable desde fuera por ninguna vía (paso 27) |
 | **El receptor de radio del mando** — nunca se compró | Ver §0.3. ~~⚠️ **Y hoy es peor que una compra pendiente:** los pines del mando miden `0,6 V` en reposo, así que **el receptor tampoco funcionaría** si llegara mañana~~ 🔧 **Caducado el 04/09 (N-118): ese `0,6 V` lo ponía el `INPUT_PULLUP` del firmware, y ya no está.** Con `INPUT` pelado y activo en ALTO, un receptor de contacto seco **sí produciría flanco** cerrando contra los 3,3 V del pin vecino. Vuelve a ser lo que era: **una compra pendiente**, con su decisión de polaridad de salida (NO/NC) y la de N-19 —mismo código o códigos distintos— **antes** de pedirlo |
@@ -551,7 +564,7 @@ porque se mueven cada hora: viven en las actas de `evidencia/`, con su fecha y e
   > Si ya lo hizo allí, traiga aquí los números y no lo repita.*
 
 **1.4 Arranque de modo sin ciclos fantasma** — ♻️ **SE REESCRIBE** *(antes: «presionar Botón 3»)*
-- *Acción:* mandar `CMD:PIN:1234:SET_TIEMPOS:1,1,15` y después `CMD:PIN:1234:SET_MODO:AUTO`.
+- *Acción:* mandar `CMD:PIN:1234:SET_TIEMPOS:3,3,15` *(era `1,1,15`; el mínimo vial subió a 3 min con N-137 y `1,1,15` hoy da `DESC:RANGO`)* y después `CMD:PIN:1234:SET_MODO:AUTO`.
 - *Esperado:* la primera contesta `$ACK,CMD:SET_TIEMPOS,RESULT:OK`; la segunda,
   `$ACK,CMD:SET_MODO:AUTO,RESULT:OK`, y el equipo entra **directo al Despeje Todo-Rojo**, sin
   parpadeos ni saltos de estado extraños.
@@ -601,10 +614,22 @@ porque se mueven cada hora: viven en las actas de `evidencia/`, con su fecha y e
 
 ## 📑 SECCIÓN 3 — MODO AUTOMÁTICO
 
-> **Configuración de la prueba:** `CMD:PIN:1234:SET_TIEMPOS:1,1,15` — **verde 1 minuto, rojo
-> 1 minuto, despeje 15 segundos**. Ese es el orden y esas son las unidades: los dos primeros en
-> **minutos** y el tercero en **segundos** (`modoAutomatico_fijarTiempos(verdeMin, rojoMin,
-> despejeSeg)`, `Maestro/src/modo_automatico.cpp:38` — **MEDIDO**).
+> **Configuración de la prueba:** ~~`CMD:PIN:1234:SET_TIEMPOS:1,1,15` — **verde 1 minuto, rojo
+> 1 minuto, despeje 15 segundos**~~ 🛑 **CADUCADO (N-137, 04/09): el mínimo vial subió a TRES
+> minutos y `1,1,15` contesta hoy `$ERR,CMD:SET_TIEMPOS,DESC:RANGO`.** La configuración vigente es
+> **`CMD:PIN:1234:SET_TIEMPOS:3,3,15`** — verde 3 min, rojo 3 min, despeje 15 s. Ese es el orden y
+> esas son las unidades: los dos primeros en **minutos** y el tercero en **segundos**
+> (`modoAutomatico_fijarTiempos(verdeMin, rojoMin, despejeSeg)`,
+> ~~`Maestro/src/modo_automatico.cpp:38`~~ → **`:128`**; los límites, en
+> **`Maestro/include/limites_ciclo.h:54-56`** — verde y rojo **3-15 min**, despeje **10-90 s**.
+> Re-medido el 05/09: las seis constantes **se mudaron de fichero** con N-137, así que la ruta vieja
+> ya no las contiene).
+>
+> ⚠️ **Y el coste va escrito, porque cambia la agenda de la sesión:** ya **NO** se puede probar en
+> mesa con ciclos de un minuto. Un ciclo completo son **~6,5 min**, así que **el «Verde 60 s» de
+> 3.2 y 3.3 pasa a 180 s, y los «5 ciclos ≈ 12 min» de 3.5 pasan a ≈ 33 min.** Lo dice el propio
+> fuente: *«COSTE DECLARADO Y ACEPTADO A SABIENDAS… un banco cae del lado de esperar tres minutos,
+> no del lado de dejar el limite de laboratorio suelto en una carretera»* (`limites_ciclo.h:44-46`).
 >
 > **Los tiempos no se pueden cambiar con el ciclo en marcha**: contesta
 > `$ERR,CMD:SET_TIEMPOS,DESC:EN_MARCHA_PARE_EL_MODO`, y ese rechazo es correcto — bajar un tiempo a
@@ -1066,7 +1091,7 @@ Desfase calculado: ________ s
 
 **8.6 Con el menú abierto, las secuencias se ignoran** — 🚫 **SE RETIRA**
 - *Por qué:* **la condición no se puede provocar.** `menu_estaAbierto()` no puede ser cierto, porque
-  se abre con `botonAceptar()` y ése devuelve `false` siempre (`Esclavo/src/botones.cpp:291-293`,
+  se abre con `botonAceptar()` y ése devuelve `false` siempre (`Esclavo/src/botones.cpp:316-317`,
   **MEDIDO**). La función `secuenciasInhibidas()` sigue en el fuente de las dos puntas y **se ha
   quedado sin sujeto**.
 - **No se firma.**
@@ -1525,18 +1550,40 @@ Y a los 3 minutos, seguia en AMBAR?       [ ] SI   [ ] NO, volvio a: ___________
 
 **12.2 Telemetría periódica `$STATUS`** — ♻️ **SE REESCRIBE**
 - *Acción:* con el terminal a 9600 en cada punta, observar el flujo un minuto.
-- *Esperado:* **una trama por segundo** en cada punta, con su checksum, en el formato de §0.2.
+- *Esperado:* ~~**una trama por segundo**~~ **una trama cada 2 s** en cada punta, con su checksum, en
+  el formato de §0.2 *(cadencia bajada a 2000 ms el 04/09, decisión del responsable — medido en
+  `Maestro/src/bluetooth.cpp:851` y `Esclavo/src/bluetooth.cpp:768`)*.
   Comprobar que aparece `MODO:` y que **cambia** al mandar un `SET_MODO`.
-- *Y lo que hay que confirmar que NO es una medida* —copie los valores y compruebe que **no varían**:
+- *Y lo que hay que confirmar que el equipo NO INVENTA* —copie los valores:
 
 ```text
-BAT del Maestro tras 5 min: ______   BAT del Esclavo: ______   (los dos deben salir 12.6 fijos)
-RF y RTT del Esclavo: ______ / ______   (deben salir 98% y 85ms fijos)
+BAT del Maestro tras 5 min: ______   BAT del Esclavo: ______   (los dos deben salir "--")
+T / RF / RTT del Esclavo: ____ / ____ / ____              (los tres deben salir "--")
+Campo ESC: del Maestro: ______                            (ROJO / VERDE / AMBAR / ?)
 ```
 
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > **No son averías y no se reportan como tales**, pero **tampoco se usan para decidir nada**. Un
-  > campo que siempre da el mismo número no es un dato: es un adorno con formato de medida.
+
+> 🛑 **ESTA PRUEBA EXIGÍA EL DEFECTO, y por eso se invierte — 05/09.** Pedía *«los dos deben salir
+> **`12.6` fijos**»* y *«deben salir **`98%` y `85ms` fijos**»*, que es **exactamente lo que N-108
+> retiró el 04/09 por inventarse una medida**. Tal como estaba escrita, **un firmware arreglado
+> salía `NO CUMPLE`**.
+>
+> **MEDIDO** —`Maestro/src/bluetooth.cpp:970` y `Esclavo/src/bluetooth.cpp:832`—: el `snprintf` de
+> las dos puntas lleva **`BAT:--`** literal, y el del Esclavo además **`T:--,RF:--,RTT:--`**. La
+> causa está medida y no es un hueco: **`grep -rn analogRead` sobre `Maestro/{src,include}` y
+> `Esclavo/{src,include}` devuelve DOS coincidencias y las dos son COMENTARIOS** —cero llamadas—.
+> Sin divisor de tensión ni entrada analógica **no hay batería que leer**.
+>
+> **Lo que se comprueba ahora es lo contrario de lo que se pedía: que el equipo se NIEGUE a publicar
+> un número que no ha medido. Un `--` es un `CUMPLE`; un `12.6` sería el hallazgo.**
+>
+> **Y se conserva entera la frase que sigue valiendo**, que era la mitad buena de la prueba vieja:
+> *un campo que siempre da el mismo número no es un dato, es un adorno con formato de medida.* Eso
+> es justo lo que el `--` corrige — no se reporta como avería y tampoco se usa para decidir nada.
+>
+> 🆕 **`ESC:` sólo va en la trama del MAESTRO y va el último** (N-149). Que **falte** en el `$STATUS`
+> del Esclavo **no es un fallo**.
 
 **12.3 Caja Negra de Alarmas `$ALARM`** — ♻️ **SE REESCRIBE** *(la cifra estaba mal)*
 - *Qué cambia:* la revisión anterior mandaba cortar la antena **12 s** y esperar una alarma cuyo

@@ -286,8 +286,8 @@ python 01_Firmware/Simulaciones/banco/correr.py --listar
 python 01_Firmware/Simulaciones/banco/correr.py --pack esclavo_03
 ```
 
-**La migración terminó el 05/08: no quedan validadores monolíticos.** El banco son **71 packs**
-—`1025` comprobaciones en el acta del 05/09—, un fichero corto por propiedad, que se corre solo
+**La migración terminó el 05/08: no quedan validadores monolíticos.** El banco son **74 packs**
+—`1053` comprobaciones en el acta del 05/09—, un fichero corto por propiedad, que se corre solo
 en un segundo.
 
 > ⚠️ **Y ese crecimiento no es una medalla, es un aviso.** El 28/08 eran 38 packs y `405/405`. Hoy
@@ -834,7 +834,7 @@ que nadie pidió.
 
 ## 7. Presupuesto de flash
 
-64 KB por micro; el Maestro va por el **85,9 %** —`56308` de `65536` B, o sea **9.228 B libres**—
+64 KB por micro; el Maestro va por el **86,3 %** —`56568` de `65536` B, o sea **8.968 B libres**—
 y el Esclavo por el **66,1 %** (`43336` B; acta del 05/09). **Ya no queda margen cómodo**: a este nivel una
 función nueva de tamaño medio no entra sin haber medido antes de qué está hecho el porcentaje.
 Antes de proponer estructura:
@@ -1147,7 +1147,7 @@ vigente: 2 radios en enlace directo, **sin repetidor**.
 |---|---|
 | `01_Firmware/Maestro`, `Esclavo`, `Repetidor` | firmware |
 | `01_Firmware/compuerta.py` | **la única forma correcta de verificar** |
-| `01_Firmware/Simulaciones/` | simuladores, y `banco/` con los **71 packs** |
+| `01_Firmware/Simulaciones/` | simuladores, y `banco/` con los **74 packs** |
 | `01_Firmware/Validacion_LCD/` | arnés de pantalla (compila el `lcd.cpp` real) |
 | `01_Firmware/Validacion_Ciclo/` · `_Respaldo/` · `_Automatico/` | los otros tres que compilan C++ real — ver §8 |
 | `OPTIMIZACIONES.md` | las reglas `SFTY-x` y la **trazabilidad regla → código → prueba** |

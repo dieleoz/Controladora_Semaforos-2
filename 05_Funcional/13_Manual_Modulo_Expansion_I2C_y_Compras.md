@@ -45,18 +45,54 @@
 ---
 
 > [!CAUTION]
-> ### 🛑 ESTADO REAL DEL FIRMWARE (CLARIDAD TÉCNICA)
-> **Nada de lo que se compra en la §5 tiene driver en el firmware de hoy. Ni el expansor, ni el reloj.**
+> ### 🛑 ESTE MANUAL DESCRIBE UNA ARQUITECTURA QUE SE RETIRÓ EL 31/08/2026. NO SE EJECUTA
 >
-> | Pieza | ¿Hay driver en el firmware? | Qué pasa al enchufarla hoy |
+> **El bus I²C sobre el STM32 no se va a montar.** El `DS3231` vive desde el 31/08 en el **módulo de
+> expansión ESP32** —`GPIO21` (`SDA`) / `GPIO22` (`SCL`), con pila propia—, y el `PCF8574` **queda
+> retirado**: no porque fuera malo, sino porque el problema que resolvía desapareció. Ver
+> `12_Cobertura_de_Pruebas_y_Huecos.md` §6.
+>
+> **Lo que de este manual SIGUE VIGENTE y hay que leer:** §3 y la fe de erratas `J14`/`J15` —riesgo
+> eléctrico real y medido—, §4.1 (el censo de pines, la única medida red por red del cobre), el
+> aviso de la pila `CR2032` contra `LIR2032` del `ZS-042`, y §7.0 (comprobaciones con el pito antes
+> de energizar). **Lo que NO se ejecuta:** §1 (desoldar `C25`), la elección de ruta de §4.2 y §6, y
+> la parte de §5 que compra para ese bus.
+
+> ### 🛑 Y EL AVISO AL COMPRADOR QUE HABÍA AQUÍ ERA FALSO — se tacha con su motivo, 05/09
+>
+> ~~**Nada de lo que se compra en la §5 tiene driver en el firmware de hoy. Ni el expansor, ni el reloj.**~~
+>
+> | Pieza | ~~¿Hay driver?~~ **MEDIDO el 05/09** | Qué pasa al enchufarla hoy |
 > |---|:---:|---|
-> | **Expansor `PCF8574`** | ❌ **No existe** | La LCD **no** mostrará ningún mensaje de detección |
-> | **Reloj `DS3231` `ZS-042`** | ❌ **No existe** | 🔴 **No dará la hora. El equipo la seguirá pidiendo por pantalla o por radio, como si el módulo no estuviera. ESO NO ES UNA AVERÍA DEL MÓDULO: es que no hay código que le hable.** No lo devuelva al mostrador ni lo dé por defectuoso |
+> | **Expansor `PCF8574`** | ❌ **No existe** — y **da igual: la propuesta está retirada** | No se compra |
+> | **Reloj `DS3231` `ZS-042`** | ~~❌ **No existe**~~ → 🟢 **SÍ EXISTE** | ~~🔴 No dará la hora… no hay código que le hable~~ 🛑 **FALSO.** Enchufado **al ESP32** hay software que lo lee |
 >
-> **Medido el 28/08**, `grep -rniE "DS3231|Wire\.|0x68"` sobre `01_Firmware/Maestro/{src,include}` y
-> `01_Firmware/Esclavo/{src,include}`: **cero coincidencias de código**. Las únicas apariciones de
-> «I2C» en el fuente son comentarios que explican por qué **no** hay bus. *(El mismo buscador sobre
-> `SerialBT` devuelve 14 líneas en esas rutas: el buscador sabe encontrar.)*
+> ~~**Medido el 28/08**, `grep -rniE "DS3231|Wire\.|0x68"` sobre `01_Firmware/Maestro/{src,include}` y
+> `01_Firmware/Esclavo/{src,include}`: **cero coincidencias de código**.~~
+>
+> 🔴 **POR QUÉ ESTE MANUAL DIJO LO CONTRARIO, y es la lección que se queda: el grep miraba DOS de las
+> TRES carpetas.** El driver vive en una tercera, `01_Firmware/ESP32_Expansion/`. Un cero de un
+> buscador que no mira donde está la cosa se lee como *«no hay»* — es `CLAUDE.md` §4, y aquí sostuvo
+> **un aviso al comprador en negrita**. El párrafo incluso se defendía diciendo *«el buscador sabe
+> encontrar»*, probándolo con `SerialBT`… **en esas mismas dos carpetas**. Un control que se ejecuta
+> dentro del alcance equivocado confirma el alcance, no el hallazgo.
+>
+> ```
+> RE-MEDIDO el 05/09:
+> grep -rni "ds3231" 01_Firmware --include=*.cpp --include=*.h | wc -l   ->  57
+> wc -l 01_Firmware/ESP32_Expansion/src/reloj_ds3231.cpp                 ->  336 lineas
+> grep -n "Wire.begin" .../reloj_ds3231.cpp   ->  :119 Wire.begin(DS3231_SDA, DS3231_SCL)
+> llamadores: reloj_setup() <- main.cpp:161 · reloj_revisar() <- main.cpp:173
+>             reloj_leer()  <- despachador.cpp:96,:120 · puente.cpp:222
+> y el propio grep del manual, tal cual, YA NO DA CERO: Maestro/src/bluetooth.cpp:717
+> ```
+>
+> 🔴 **LO QUE SÍ SIGUE SIENDO CIERTO, y es lo que el comprador necesita: NO HAY `DS3231` COMPRADO**
+> (línea `A6`), y la dirección `0x68` sigue **SIN VERIFICAR sobre un módulo real**. **N-145 no se
+> puede dar por probada.** Sin la pieza, el hueco de hora sale como **`--:--:--`** — y eso **no es
+> una avería: es el firmware callándose bien**, que es justo lo que este recuadro quería proteger y
+> decía por el motivo equivocado. **Enchufado al STM32 sigue sin pasar nada**: ahí nunca hubo driver
+> y no lo va a haber.
 >
 > * Este documento es una **guía de taller para compras, preparación de hardware y modificaciones en
 >   la PCB** para cuando se desarrolle la versión V9.0 (`roadmap.md` N-54 / N-55).

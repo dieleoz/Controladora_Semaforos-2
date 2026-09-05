@@ -11,9 +11,9 @@
 > firmware devuelve *«no pulsado»* de forma permanente para los dos:
 >
 > ```
->   Maestro/src/botones.cpp:280-281   bool botonAceptar()  { return false; }
+>   Maestro/src/botones.cpp:305-306   bool botonAceptar()  { return false; }
 >                                     bool botonCancelar(){ return false; }
->   Esclavo/src/botones.cpp:294-295   identico
+>   Esclavo/src/botones.cpp:316-317   identico
 > ```
 >
 > **No intente ejecutar ningún paso que diga «pulse Botón 3», «pulse Botón 4» o «navegue al menú».**
@@ -88,34 +88,50 @@
 > `3_Protocolo_Pruebas_Rigurosas.md` esté firmada, este procedimiento **no autoriza operación en vía
 > abierta al tráfico**.
 >
-> **Las cifras, COPIADAS del acta `evidencia/2026-09-04_compuerta.txt` tal como está HOY, no
-> escritas a mano:**
+> **Las cifras, COPIADAS del acta más reciente `evidencia/2026-09-05_compuerta.txt`, no escritas a
+> mano:**
 >
-> | instrumento | acta del 04/09 (HEAD `6d075a5`) |
+> | instrumento | acta del 05/09 (HEAD `aeb6ce7`) |
 > |---|---|
 > | simulador funcional | `9/9 PASS` |
 > | simulador de repetidor | `10/10 PASS` |
 > | arnés de pantalla | `271/271` *(Maestro 145 + Esclavo 126)* |
 > | arnés del Degradado a dos puntas | `18/18` |
-> | banco por packs | 🔴 **`981/998` · 67 packs PASS, 2 FALLA** — la fila entera está marcada `FALLA` |
-> | simulador del puente ESP32 | 🔴 **`ABORTADO`** — `IndexError: list index out of range` |
-> | **resumen de la compuerta** | 🔴 **18 PASS · 1 FALLA · 1 ABORTADO** |
+> | banco por packs | `1053/1053` · **74 packs PASS, 0 FALLA, 0 ABORTADO** |
+> | simulador del puente ESP32 | `93/93` |
+> | **resumen de la compuerta** | **20 PASS · 0 FALLA · 0 ABORTADO** |
 >
-> 🛑 **LA COMPUERTA NO ESTÁ EN VERDE, Y ESO CAMBIA CÓMO SE LEE TODO ESTE DOCUMENTO.** La revisión
-> anterior publicaba aquí `974/974 · 67 packs PASS` y `20 PASS · 0 FALLA · 0 ABORTADO`, citando el
-> **mismo nombre de fichero** con HEAD `624eb37`. Ese acta ya no existe: **el fichero se reescribió
-> el mismo día con una corrida posterior** y hoy dice otra cosa. Se conserva escrito el número viejo
-> porque el fallo no es la cifra, es el mecanismo: **un acta con la fecha en el nombre se puede
-> sobrescribir sin que nada avise**, y un documento que la cita por nombre envejece en silencio.
-> *(Es la misma forma que este repositorio ya conoce: un hash en un documento caduca solo.)*
+> 🛑 **LAS TRES FILAS ROJAS DE LA REVISIÓN ANTERIOR ERAN FALSAS, Y SE TACHAN CON SU MOTIVO — 05/09.**
+> Aquí ponía ~~`981/998` · 67 packs PASS, 2 FALLA~~, ~~`ABORTADO` del simulador del puente~~ y
+> ~~`18 PASS · 1 FALLA · 1 ABORTADO`~~, citando el acta del 04/09 con HEAD ~~`6d075a5`~~. **Medido:
+> ese fichero, hoy, dice `HEAD e0e835d` y `20 PASS | 0 FALLA | 0 ABORTADO`, con el banco en
+> `1053/1053` sobre 74 packs.** Ninguna de las tres filas rojas existe en ninguna acta del
+> repositorio. Las otras cuatro filas —`9/9`, `10/10`, `271/271`, `18/18`— **sí coincidían**, y eso
+> es lo que hacía el error difícil de ver.
+>
+> ⚠️ **Y este documento se había advertido a sí mismo de esto, en este mismo párrafo:** *«un acta
+> con la fecha en el nombre se puede sobrescribir sin que nada avise, y un documento que la cita
+> por nombre envejece en silencio»*. **Volvió a pasarle.** Escribir el aviso no es aplicarlo: la
+> cura es **citar el HEAD al lado de la cifra y releerla del fichero**, que es lo que hace la tabla
+> de arriba.
 >
 > **Y el acta trae además su propio aviso, que se copia entero:** *«el árbol tenía cambios sin
-> commitear al medir. Estas cifras NO corresponden exactamente a `6d075a5`»*.
+> commitear al medir. Estas cifras NO corresponden exactamente a `aeb6ce7`»*.
 >
-> 🛑 **Un `ABORTADO` no dice NADA del firmware** —no es un aprobado— y un `981/998` dice que hay
-> **17 comprobaciones que no cumplen**. Hasta que las dos filas rojas se cierren, de este documento
-> no se puede afirmar que esté verificado ni el modelo; y ni con la compuerta verde estaría
-> verificada la tarjeta, porque **este modo no ha pisado hardware**.
+> 🔴 **Y aquí va el dato que más vale de esta corrección, porque volvió a pasar MIENTRAS se escribía:
+> el fichero `evidencia/2026-09-05_compuerta.txt` se reescribió TRES veces el mismo día**, y en una
+> de esas versiones intermedias el HEAD era `c954e74`, en otra `e0e835d`. **Un acta cuyo nombre es
+> la fecha no identifica una corrida: identifica un día.** Por eso la tabla de arriba lleva el HEAD
+> pegado a la cifra — y por eso, si el HEAD de esta línea no coincide con el del fichero, **manda el
+> fichero y esta tabla hay que releerla**, no al revés.
+>
+> 🔴 **LO QUE NO CAMBIA AL PASAR DE ROJO A VERDE, y es lo único que importa aquí: un `20/20` dice
+> que los modelos y los arneses de un PC no encuentran nada. NO dice que el firmware funcione en la
+> tarjeta, y ESTE MODO NO HA PISADO HARDWARE.** El párrafo anterior concluía *«hasta que las dos
+> filas rojas se cierren, de este documento no se puede afirmar que esté verificado ni el modelo»*
+> — ya están cerradas, **y la conclusión operativa es exactamente la misma**: sigue sin estar
+> verificada la tarjeta. **Verde no es entregable.** Y `ABORTADO` no es `PASS`, aunque hoy no haya
+> ninguno: si aparece uno, este documento vuelve a no poder afirmar nada.
 
 ---
 

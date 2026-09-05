@@ -186,9 +186,46 @@ hay alguien mirando.
 
 3. **Léalo en la pestaña `Eventos`** de la app. Es la pestaña 2 y la ven los dos roles.
 
-*(Medido: `Maestro/src/bluetooth.cpp:305-333` compone el detalle y `:542` / `:577` lo emiten, detrás
-de `SIN_CRISTAL_VEA_CONSULTA_RELOJ` y de `SIGUE_PARADO_VEA_CONSULTA_RELOJ`. El mismo camino existe
-en el Esclavo.)*
+*(Re-medido el 05/09: ~~`Maestro/src/bluetooth.cpp:305-333`~~ → **`Maestro/src/bluetooth.cpp:392-421`**
+compone el detalle y ~~`:542` / `:577`~~ → **`:708` / `:761`** lo emiten, detrás de
+`SIN_CRISTAL_VEA_CONSULTA_RELOJ` y de `SIGUE_PARADO_VEA_CONSULTA_RELOJ`.)*
+
+> 🛑 ~~**El mismo camino existe en el Esclavo.**~~ **NO EXISTE, Y ESTE APARTADO NO SE PUEDE
+> EJECUTAR EN EL POSTE DEL ESCLAVO. Medido el 05/09 con tres patrones, porque un «no aparece»
+> no es un hallazgo hasta descartar al buscador (`CLAUDE.md` §4):**
+>
+> ```
+> grep -rn "reportarBitsDelReloj" Esclavo/src Esclavo/include        -> VACIO
+> grep -rn "ORIGEN:RELOJ|RelojDiag|lseOn|VEA_CONSULTA_RELOJ" Esclavo/ -> 1 sola linea, y es
+>                                    Esclavo/src/bluetooth.cpp:221   un COMENTARIO, no codigo
+> grep -n '"\$ERR,CMD:SET_RTC' Esclavo/src/bluetooth.cpp:672
+>       enviarTramaConCrc("$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL");      <- a secas
+>
+> y en el Maestro si esta:
+> Maestro/src/bluetooth.cpp:392  static void reportarBitsDelReloj() {
+> Maestro/src/bluetooth.cpp:708  reportarBitsDelReloj();
+> Maestro/src/bluetooth.cpp:761  reportarBitsDelReloj();
+> ```
+>
+> **Qué le pasa al técnico que siga estos tres pasos en un Esclavo:** el equipo contesta
+> `$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL` —**sin** el sufijo `_VEA_CONSULTA_RELOJ`, o sea que ni
+> siquiera nombra la consulta— y **no emite ningún `$EVENT,ORIGEN:RELOJ` detrás**. En la pestaña
+> `Eventos` **no aparece nada**. Repetirá el comando, no verá bits, y concluirá que fallan la app
+> o el enlace. **Este procedimiento funciona en la mitad de los equipos.**
+>
+> **Es `CLAUDE.md` §2.ter en su forma más cara: la frase «el mismo camino existe en el Esclavo»
+> era una afirmación sobre el código que nadie comprobó**, y encima iba dentro de un paréntesis
+> que empieza con la palabra *«Medido»*. Las dos mitades de la frase tenían distinto valor de
+> verdad y se publicaron con la misma etiqueta.
+>
+> **Qué hacer mientras esto no se cierre:** 🔴 **el diagnóstico del reloj se toma en el poste del
+> MAESTRO.** Un `SET_RTC` rechazado en el Esclavo **no dice nada** sobre el estado de su `Y2` — y
+> eso es exactamente `BLQ-2` (§5.4), el cristal de la segunda tarjeta sin diagnosticar: hoy **no
+> hay instrumento para diagnosticarlo por Bluetooth**.
+>
+> 🟠 **Decisión pendiente, y NO es de este manual: ¿se porta `reportarBitsDelReloj()` al Esclavo**
+> —unas 30 líneas, con el Esclavo al 66,3 % de flash (acta del 05/09)— **o se documenta que el
+> diagnóstico del reloj es sólo del Maestro? Dueño: el responsable.**
 
 > ⚠️ **`CNT:--` no es `CNT:0`, y la diferencia es el diagnóstico.** `--` significa *no se pudo leer
 > el contador* —el periférico no tiene reloj y leerlo sería un fallo de bus—; `0` significa *se leyó
@@ -320,26 +357,74 @@ con la autoridad de una cuenta hecha**. El choque quedó anotado como `N-57` (`r
   del STM32**, y **nunca es recargable**. La del `DS3231` puede tener que serlo. Son pilas distintas
   en equipos distintos.
 
-### 5.3 🛑 Un `DS3231` conectado hoy se queda MUDO, y eso es lo esperado — no una avería
+### 5.3 ~~🛑 Un `DS3231` conectado hoy se queda MUDO, y eso es lo esperado — no una avería~~ → 🟢 EL DRIVER EXISTE Y ESTÁ LLAMADO. Lo que falta es la PIEZA
 
-> **MEDIDO EL 31/08, con `grep` sobre todo `01_Firmware/`:**
+> 🛑 **TODO ESTE APARTADO ERA FALSO Y SE TACHA EN VEZ DE BORRARSE — 05/09.** No estaba mal
+> escrito: estaba **CADUCADO**. La medida de abajo es real, y era cierta **el 31/08**; el
+> `ESP32_Expansion` se escribió después. Publicada sin fecha operativa al lado, una medida
+> vieja se lee como el estado de hoy — y ésta le decía a quien está en el poste que el
+> **síntoma esperado es el silencio**, que es justo lo que le haría dar por buena una avería.
+
+> ~~**MEDIDO EL 31/08, con `grep` sobre todo `01_Firmware/`:**~~
 >
 > ```
-> grep -rni "ds3231" 01_Firmware --include=*.cpp --include=*.h   ->  0 coincidencias
-> grep -rn  "Wire\.|#include <Wire" Maestro/src Esclavo/src      ->  0 coincidencias
+> grep -rni "ds3231" 01_Firmware --include=*.cpp --include=*.h   ->  0 coincidencias     <-- CIERTO EL 31/08
+> grep -rn  "Wire\.|#include <Wire" Maestro/src Esclavo/src      ->  0 coincidencias     <-- SIGUE CIERTO
 > ```
 >
-> **No hay driver de `DS3231` en ninguna punta del STM32.** Y el del ESP32 **tampoco existe**: el
+> ~~**No hay driver de `DS3231` en ninguna punta del STM32.** Y el del ESP32 **tampoco existe**: el
 > único fuente del ESP32 en el repositorio es `01_Firmware/Repetidor/src/main.cpp` (un solo fichero,
-> 8.348 B) y **no menciona `DS3231`, ni `Wire`, ni `GPIO21`/`GPIO22`**.
+> 8.348 B) y **no menciona `DS3231`, ni `Wire`, ni `GPIO21`/`GPIO22`**.~~
 
-**Consecuencia para quien esté en el poste:** si alguien conecta un `DS3231` —donde sea— **hoy no
-pasa nada**. No hay software que lo lea. **El síntoma esperado es el silencio**, y confundirlo con un
-módulo defectuoso hace que se devuelva un módulo bueno y se gaste la sesión buscando un fallo de
-hardware que no existe.
+> **RE-MEDIDO EL 05/09, el mismo comando sobre el mismo árbol:**
+>
+> ```
+> grep -rni "ds3231" 01_Firmware --include=*.cpp --include=*.h | wc -l    ->  57 coincidencias
+> wc -l 01_Firmware/ESP32_Expansion/src/reloj_ds3231.cpp                  ->  336 lineas
+> wc -l 01_Firmware/ESP32_Expansion/include/reloj_ds3231.h                ->  141 lineas
+> grep -n "Wire" 01_Firmware/ESP32_Expansion/src/reloj_ds3231.cpp         ->  #include <Wire.h> (:5)
+> ```
+>
+> **Las dos mitades de aquella frase se caen por separado:**
+>
+> | lo que decía | lo que se mide hoy |
+> |---|---|
+> | *«el driver del ESP32 tampoco existe»* | **existe**: `ESP32_Expansion/src/reloj_ds3231.cpp`, 336 líneas |
+> | *«el único fuente del ESP32 es `Repetidor/src/main.cpp`»* | **hay dos proyectos ESP32.** `Repetidor` (`platformio.ini`: `platform = espressif32`, `board = esp32dev`) **y** `ESP32_Expansion`, con **8 `.cpp` y 8 `.h`** |
+> | *«no hay driver en ninguna punta del STM32»* | **sigue siendo cierto**, y es correcto: el `DS3231` cuelga del ESP32, no del STM32 (§5.2) |
+>
+> **Y no es un huérfano** —§2.ter de `CLAUDE.md`, declarar no es ejercer—: se censaron los
+> llamadores uno a uno y el driver **está cableado al resto del firmware**.
+>
+> ```
+> reloj_setup()    <- ESP32_Expansion/src/main.cpp:161
+> reloj_revisar()  <- ESP32_Expansion/src/main.cpp:173
+> reloj_leer()     <- ESP32_Expansion/src/despachador.cpp:96, :120 · src/puente.cpp:222
+> reloj_ajustar()  <- ESP32_Expansion/src/despachador.cpp:41
+> ```
+>
+> *(De paso, y anotado sin arreglarlo porque el firmware no es de este manual: `reloj_motivo()`
+> y `reloj_rangoValido()` **no tienen llamador fuera de su propio `.cpp`**. No cambia nada de lo
+> de arriba; queda escrito para que no se cuente como cobertura lo que nadie ejerce.)*
 
-`05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md` §1.3 lo clasifica con las dos palabras
-exactas: **«decidido, sin construir»**.
+**Consecuencia para quien esté en el poste — CORREGIDA, y es la contraria de la que decía este
+apartado:** ~~si alguien conecta un `DS3231` —donde sea— **hoy no pasa nada**. No hay software que lo
+lea. **El síntoma esperado es el silencio**~~. Hoy **sí hay software que lo lee**, y está en el ESP32.
+Lo que no hay es **la pieza**:
+
+> 🔴 **`A6` — el módulo `DS3231` NO ESTÁ COMPRADO, y la dirección `0x68` sigue SIN VERIFICAR sobre
+> un módulo real (N-145, parcial).** Sin la pieza, el hueco de hora sale en las tramas como
+> **`--:--:--`** — y eso **no es una avería: es el firmware callándose bien**, que es exactamente
+> lo que este apartado quería proteger y decía al revés.
+>
+> **Lo que NO se puede concluir todavía, y por eso N-145 no se da por probada:** que el driver
+> lea de verdad un `DS3231` físico. Eso son 336 líneas que **nunca han visto el chip**. Es
+> `CLAUDE.md` §2.ter otra vez: el código está, el llamador está, y **la pieza no**.
+
+~~`05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md` §1.3 lo clasifica con las dos palabras
+exactas: **«decidido, sin construir»**.~~ → 🔧 **Esa clasificación también caducó para el software.**
+Hoy el reparto correcto es: **el driver, CONSTRUIDO y llamado · el módulo, SIN COMPRAR · la lectura
+sobre chip real, SIN VERIFICAR.**
 
 ### 5.4 🟡 Lo que queda ABIERTO, y de quién es
 
@@ -361,7 +446,7 @@ exactas: **«decidido, sin construir»**.
 | `PB0` = cámara de demanda · `PB8` = `LED_TESTIGO` | ✅ **MEDIDO EN EL FUENTE** (`pines.h:46`, `:63`, las dos puntas) |
 | No hay driver de `DS3231` ni I²C en ninguna punta, ni en el ESP32 | ✅ **MEDIDO** (`grep`, 31/08) |
 | La LCD y `CONSULTA RELOJ` siguen **dibujándose** en el firmware de hoy | ✅ **MEDIDO EN EL FUENTE** (`main.cpp:46`, `lcd.cpp:483`) |
-| …pero **`CONSULTA RELOJ` ya no es alcanzable**: necesita dos `botonAceptar()`, que devuelve `false` | ✅ **MEDIDO el 02/09** (`menu.cpp:111`, `:129`; `botones.cpp:280-281`) |
+| …pero **`CONSULTA RELOJ` ya no es alcanzable**: necesita dos `botonAceptar()`, que devuelve `false` | ✅ **MEDIDO el 02/09** (`menu.cpp:111`, `:129`; `botones.cpp:305-306` (Maestro) / `:316-317` (Esclavo)) |
 | Los seis bits salen hoy por `$EVENT,ORIGEN:RELOJ`, detrás de los dos `$ERR` que nombran esa pantalla | ✅ **MEDIDO el 02/09** (`Maestro/src/bluetooth.cpp:305-333`, emitido en `:542` y `:577`) |
 | El `DS3231` va al ESP32 por `GPIO21`/`GPIO22` | 📖 **LEÍDO** en los documentos de decisión (doc 17 §1.3, `ESTADO.md:80`, `:124`). **Sin construir y sin hardware que medir** |
 | Que retirar `R5` y montar la `CR2032` funcione en la tarjeta que usted tiene delante | 🔴 **NO VERIFICADO en esa tarjeta.** El procedimiento de los apartados 2-4 es el mismo desde el 26/08 y **la única medida de banco que existe es la del 01/08 sobre UNA tarjeta** |

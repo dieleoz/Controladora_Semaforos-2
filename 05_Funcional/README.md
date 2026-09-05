@@ -26,7 +26,7 @@ Esta carpeta centraliza los manuales de operación, guía de cableado, protocolo
 > | **Menú en dos niveles** (`CONFIGURACION` como cuarta opción) | `1_Manual_Usuario.md §3` |
 > | Pantalla **AJUSTAR HORA** y **sincronización horaria por radio** | `1_Manual_Usuario.md §4` |
 > | **MODO DEGRADADO** — operación por reloj sin radio | **`8_Procedimiento_Modo_Degradado.md`** |
-> | **Mando de 4 relés** y sus secuencias desde el piso | `1_Manual_Usuario.md §6` · `2_Manual_Hardware_y_Pruebas.md §6` |
+> | **Mando de 2 canales (`A`/`B`)** y sus secuencias desde el piso ~~4 relés~~ *(el receptor tenía 4; `C` y `D` se retiraron el 31/08 al pasar `PB14`/`PB15` a cámaras — ninguna secuencia los usaba)* | `1_Manual_Usuario.md §6` · `2_Manual_Hardware_y_Pruebas.md §6` |
 > | El **Esclavo ahora tiene pantalla y menú propios** | `1_Manual_Usuario.md §7` |
 > | **Pila `CR2032`** del reloj en ambas tarjetas | `2_Manual_Hardware_y_Pruebas.md §5` |
 >
@@ -61,8 +61,20 @@ Esta carpeta centraliza los manuales de operación, guía de cableado, protocolo
 > | entrada | pin | bornera | antirrebote de placa | estado |
 > |---|---|---|---|---|
 > | `CAM_DEMANDA_PIN` | `PB0` | `J14` | ✅ `R64` 10 kΩ + `C25` 100 nF | ✅ **cableable hoy** |
-> | `CAM_C_PIN` | `PB14` | `J16` p10 | ❌ ninguno | 🟠 firmware listo — **NO cablear hasta `M3`** |
-> | `CAM_D_PIN` | `PB15` | `J16` p12 | ❌ ninguno | 🟠 firmware listo — **NO cablear hasta `M3`** |
+> | `CAM_C_PIN` | `PB14` | `J16` p10 | ❌ ninguno *(pull-down `R67` 10 kΩ ✅)* | ~~🟠 **NO cablear hasta `M3`**~~ → ✅ **`M3` CERRADA el 03/09 — CABLEABLE** |
+> | `CAM_D_PIN` | `PB15` | `J16` p12 | ❌ ninguno *(pull-down `R68` 10 kΩ ✅)* | ~~🟠 **NO cablear hasta `M3`**~~ → ✅ **`M3` cerrada — CABLEABLE** |
+>
+> 🛑 **Las dos filas de arriba bloqueaban trabajo YA AUTORIZADO, y se tachan con su motivo — 05/09.**
+> `M3` se cerró el **03/09 con multímetro** (paso 20 del banco): pull-down real de **10 kΩ** en las
+> **cuatro** posiciones de `J16` (`R65`–`R68`), `p10` **9,93 kΩ / 0 V** y `p12` **9,94 kΩ / 0 V** en
+> reposo, y el **paso 21** cableó `p10` contra `p11` **sin demandas fantasma**. La medida ya estaba
+> publicada en `17_Arquitectura...md` y en `6_Preguntas_Diseno_Funcional.md` §1.1 **desde el 04/09**:
+> lo que faltaba era que alguien cruzara los ficheros. **Este README es el que dice «EMPIECE POR
+> AQUÍ», así que su copia caducada pesa más que las otras.**
+>
+> 🔴 **Y lo que esa medida NO levanta: `J16` p1 reparte 12 V CRUDOS** —sin opto, sin serie, sin
+> clamp—. **Taparlo es obligatorio en cada equipo que se monte** (N-120), no una cautela de banco:
+> un contacto de `p1` a `p10` o `p12` mete 12 V en una pata de 3,3 V.
 >
 > **Las tres son de DEMANDA y activas en ALTO**: el contacto cierra contra **3,3 V**, no contra masa.
 >
@@ -95,28 +107,36 @@ Esta carpeta centraliza los manuales de operación, guía de cableado, protocolo
 
 ## 📄 Índice de Manuales y Documentos Core:
 
-1. 📘 **[1_Manual_Usuario.md](file:///d:/@Proyect/Controladora_Semaforos/05_Funcional/1_Manual_Usuario.md)** / **`1_Manual_Usuario.docx`**  
+1. 📘 **[1_Manual_Usuario.md](1_Manual_Usuario.md)** / **`1_Manual_Usuario.docx`**  
    Manual de operación y secuencia de luces seguras bajo la **Resolución 2024 de MinTransporte Colombia**.
    Incluye el **menú de dos niveles**, **AJUSTAR HORA**, el **mando de 4 relés** y el **menú propio del Esclavo**.
-2. 📘 **[2_Manual_Hardware_y_Pruebas.md](file:///d:/@Proyect/Controladora_Semaforos/05_Funcional/2_Manual_Hardware_y_Pruebas.md)** / **`2_Manual_Hardware_y_Pruebas.docx`**  
+2. 📘 **[2_Manual_Hardware_y_Pruebas.md](2_Manual_Hardware_y_Pruebas.md)** / **`2_Manual_Hardware_y_Pruebas.docx`**  
    Guía de ensamblaje, cableado de borneras RS485 `485_A` / `485_B` (A a A, B a B) y flasheo en PlatformIO.
    Incluye la **pila `CR2032` del reloj** (§5) y el **mando de relés**, con la advertencia de que **el Esclavo no tiene receptor** (§6).
-3. 📘 **[3_Protocolo_Pruebas_Rigurosas.md](file:///d:/@Proyect/Controladora_Semaforos/05_Funcional/3_Protocolo_Pruebas_Rigurosas.md)** / **`3_Protocolo_Pruebas_Rigurosas.docx`**  
+3. 📘 **[3_Protocolo_Pruebas_Rigurosas.md](3_Protocolo_Pruebas_Rigurosas.md)** / **`3_Protocolo_Pruebas_Rigurosas.docx`**  
    Checklist obligatorio de pruebas de laboratorio y campo para certificar el equipo antes de puesta en marcha.
-   **68 pruebas**, con las Secciones **7 (reloj y sincronización)**, **8 (mando)**, **9 (Modo Degradado)** y **10 (interfaz del Esclavo)** nuevas.
-4. 📘 **[4_Manual_Configuracion_Radios.md](file:///d:/@Proyect/Controladora_Semaforos/05_Funcional/4_Manual_Configuracion_Radios.md)** / **`4_Manual_Configuracion_Radios.docx`**  
+   ~~**68 pruebas**, con las Secciones **7 (reloj y sincronización)**, **8 (mando)**, **9 (Modo Degradado)** y **10 (interfaz del Esclavo)** nuevas.~~
+   🔴 **AQUÍ NO VA UN TOTAL, y no es un descuido: es lo que el propio documento exige — 05/09.**
+   La cifra «68» **no aparece en el Protocolo**: `grep -c "68" 3_Protocolo_Pruebas_Rigurosas.md` da
+   **0**, con y sin frontera de palabra. Lo que ese documento publica es el reparto de los **82**
+   identificadores de la revisión anterior (49 reescritas · 12 aplazadas · 21 retiradas · 4 nuevas),
+   y **se niega expresamente a publicar un total nuevo** porque el denominador lo recorta quien
+   ejecute la sesión. **Este README publicaba justo la cifra que el documento se niega a inventar.**
+   ⚠️ **Y la Sección 10 (interfaz del Esclavo) está RETIRADA entera, no es nueva.** Las nuevas
+   vigentes son la **7 (reloj)**, la **8 (mando)** y la **9 (Modo Degradado)**.
+4. 📘 **[4_Manual_Configuracion_Radios.md](4_Manual_Configuracion_Radios.md)** / **`4_Manual_Configuracion_Radios.docx`**  
    Configuración de radios industriales **E90-DTU** con `RF_Setting4.6.exe` y DIP switches `M0`/`M1`.
-5. 📘 **[5_Manual_Puente_ESP32.md](file:///d:/@Proyect/Controladora_Semaforos/05_Funcional/5_Manual_Puente_ESP32.md)** / **`5_Manual_Puente_ESP32.docx`**  
+5. 📘 **[5_Manual_Puente_ESP32.md](5_Manual_Puente_ESP32.md)** / **`5_Manual_Puente_ESP32.docx`**  
    Instrucciones para la instalación del puente repetidor con ESP32 (Modo 4 Radios para curvas ciegas).
-6. 📘 **[6_Preguntas_Diseno_Funcional.md](file:///d:/@Proyect/Controladora_Semaforos/05_Funcional/6_Preguntas_Diseno_Funcional.md)** / **`6_Preguntas_Diseno_Funcional.docx`**  
+6. 📘 **[6_Preguntas_Diseno_Funcional.md](6_Preguntas_Diseno_Funcional.md)** / **`6_Preguntas_Diseno_Funcional.docx`**  
    Cuestionario y parámetros de diseño de obra, y la **detección vehicular por contacto seco**.
    Contiene la decisión **CERRADA** de *«Cero Computadores Edge Externos»* (§2): la analítica corre
    **dentro de la cámara**, y al equipo llega **un pulso de hardware** — no vídeo ni datos.
-7. 📡 **[7_Especificacion_Antenas.md](file:///d:/@Proyect/Controladora_Semaforos/05_Funcional/7_Especificacion_Antenas.md)** / **`7_Especificacion_Antenas.docx`**  
+7. 📡 **[7_Especificacion_Antenas.md](7_Especificacion_Antenas.md)** / **`7_Especificacion_Antenas.docx`**  
    **Especificación para fabricación de antenas bajo pedido.** Documento para entregar al proveedor:
    sintonía a **171 MHz**, ROE ≤ 1,5:1 en 168–174 MHz, sin plano de tierra y con **reporte de medición
    de ROE exigido como entregable**. Resuelve la causa del alcance de 3 cuadras medido el 31/07.
-8. 🕹️ **[8_Procedimiento_Modo_Degradado.md](file:///d:/@Proyect/Controladora_Semaforos/05_Funcional/8_Procedimiento_Modo_Degradado.md)** / **`8_Procedimiento_Modo_Degradado.docx`**  
+8. 🕹️ **[8_Procedimiento_Modo_Degradado.md](8_Procedimiento_Modo_Degradado.md)** / **`8_Procedimiento_Modo_Degradado.docx`**  
    **Procedimiento de campo del MODO DEGRADADO.** Requisitos previos, activación **en las dos puntas**
    con verificación visual de ambas, el **límite duro de 48 h**, la salida —también verificada en
    ambas puntas— y los **riesgos residuales aceptados por el cliente**. **Obligatorio leerlo antes de

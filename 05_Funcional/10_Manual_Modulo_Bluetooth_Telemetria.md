@@ -2,7 +2,32 @@
 
 **Sistema:** Controladora de Semáforos Móviles de 3 Estados (Maestro y Esclavo V9.0)  
 **Transporte de Diagnóstico:** Bluetooth Serial **SPP (Clásico)** — **no BLE** (Estándar Probado en Proyecto Baliza). **El transporte NO cambia.**  
-**Módulo que lo lleva:** ~~`HC-05` / `JDY-30` dedicado~~ → **`ESP32` clásico haciendo de puente SPP** *(decisión de obra del 28/08, ver §1.9)*. 🛑 **Condicionado a `BLQ-1`: la referencia del ESP32 que llegó a obra sigue SIN LEER.**  
+**Módulo que lo lleva:** ~~`HC-05` / `JDY-30` dedicado~~ → **`ESP32` clásico haciendo de puente SPP** *(decisión de obra del 28/08, ver §1.9)*. ~~🛑 **Condicionado a `BLQ-1`: la referencia del ESP32 que llegó a obra sigue SIN LEER.**~~ ✅ **`BLQ-1` CERRADO el 31/08 — ver el recuadro de abajo.**
+
+> ## ✅ 05/09 — `BLQ-1` ESTÁ CERRADO DESDE EL 31/08. ESTE MANUAL YA NO BLOQUEA EL MONTAJE
+>
+> 🛑 **Este documento condicionaba a `BLQ-1` el montaje, la compra y hasta su propio diagrama de
+> conexión —en SEIS sitios (`:5`, `:44`, `:211`, `:226-251`, `:253`, `:437`)— por una pregunta que
+> se contestó hace cinco días.** Y es el manual que él mismo describe como *«el único documento de la
+> entrega con dibujo de conexión del módulo»*, así que su bloqueo paraba la instalación entera.
+>
+> **MEDIDO:** el módulo es un **`ESP32-WROOM-32` clásico**, con **`BR/EDR` y por tanto SPP**.
+> Consta cerrado en **`ESTADO.md:151`** (*«CERRADO el 31/08… El apartado 1 del Manual 10 **no se
+> reabre**»*), en **`roadmap.md:1509`** (N-107) y en **`15_Lista_de_Compras_Hardware.md:112`**. Y
+> **`14_Manual_App_Movil_IOT_VIAL.md:96` ya lo decía con todas las letras: *«`BLQ-1` está CERRADO.
+> Si algún documento lo da por abierto, está caducado»*** — éste era ese documento.
+>
+> 🔴 **Y la lección de N-107, que corrige el método que este manual exigía:** `BLQ-1` **no lo cerró
+> el banco leyendo la serigrafía**; lo cerró **la ficha técnica del artículo comprado**, que ya lo
+> declaraba. *«Antes de declarar algo bloqueado por una medida física, censa qué fuentes escritas
+> pueden responderlo ya. Un bloqueo que se puede levantar leyendo no es un bloqueo.»*
+>
+> **Todo lo que abajo siga marcado ~~🛑 Condicionado a `BLQ-1`~~ describe el mundo anterior al 31/08
+> y NO bloquea ni el montaje ni la compra.**
+>
+> 🔴 **Lo que SÍ sigue bloqueando el montaje, y no es el chip: la línea `A5`, la fuente propia
+> DC-DC 12 V→5 V del ESP32, que NO SE HA PEDIDO.** Sin ella el módulo cuelga del `LM7805` que
+> alimenta al STM32 que gobierna el cruce (§2.3.bis). **`J17` p6 no se conecta.**
 **Software Móvil:** App Android (.apk) con Frontend Reactivo Dark-Theme (Estándar IOT-VIAL)  
 **Propósito:** Telemetría en tiempo real, caja negra de alarmas, test de banco, sincronización Courier RTC y control desde el suelo con PIN  
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `MAPEO_TARJETA_KICAD.md`  
@@ -740,7 +765,7 @@ Todas las tramas viajan a **9600 baudios (8N1)** y finalizan en `\r\n`.
 ### 4.1 Cálculo del Checksum NMEA (*XX)
 El checksum se calcula aplicando la operación **XOR bit a bit** de todos los bytes contenidos entre el carácter `$` inicial y el asterisco `*` (ambos excluidos), formateado como dos caracteres hexadecimales en mayúsculas (`00` a `FF`).
 
-### 4.2 Telemetría Periódica ($STATUS) — Emitida cada 1 segundo
+### 4.2 Telemetría Periódica ($STATUS) — Emitida cada 2 segundos *(cadencia bajada a **2000 ms** el 04/09, decision del responsable, en las DOS puntas — MEDIDO: `Maestro/src/bluetooth.cpp:851`, `Esclavo/src/bluetooth.cpp:768`. Un tecnico que cronometre con «1 segundo» declara caido un enlace sano.)*
 $$\text{Formato: }\$STATUS,NODE:\langle N\rangle,SERIE:\langle S\rangle,MODO:\langle M\rangle,ESTADO:\langle E\rangle,T:\langle S\rangle,RF:\langle R\rangle\%,RTT:\langle T\rangle ms,BAT:\langle V\rangle,HORA:\langle H\rangle,ESC:\langle C\rangle*\langle CRC\rangle\backslash r\backslash n$$
 
 **Ejemplo Maestro en Modo Automático:**

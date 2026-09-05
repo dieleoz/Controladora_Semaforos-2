@@ -6,13 +6,27 @@ Este documento indica los pasos exactos para configurar los parámetros de las r
 
 > ## ⚠️ CAMBIO OBLIGATORIO EN ESTA VERSIÓN — LEER ANTES DE PROBAR
 >
-> **La velocidad aérea (Air Data Rate) debe cambiarse de `0.3 kbps` a `2.4 kbps` en LAS CUATRO RADIOS.**
+> ### 📌 Primero: cuántas radios tiene usted montadas
 >
-> Sin este ajuste el sistema **seguirá cayendo en fallo de comunicación al paso de cada ciclo**, y el
-> **modo repetidor no funcionará en absoluto**. No es opcional ni cosmético: es la corrección principal
-> de esta entrega. Las radios que no se reconfiguren reproducirán el fallo anterior.
+> 🔴 **LA CONFIGURACIÓN VIGENTE SON 2 RADIOS EN ENLACE DIRECTO, SIN REPETIDOR.** Todo lo que este
+> manual dice de *«las cuatro radios»*, de `B1`/`B2` y del canal `10` describe el **Modo Repetidor,
+> que HOY NO ESTÁ MONTADO** — se conserva porque es reinstalable (§3), no porque esté en uso.
+> **Este aviso faltaba, y era el único de los cuatro documentos de radio que no lo llevaba:**
+> `7_Especificacion_Antenas.md:138-140` sí lo declara bien (*«Dos antenas cubren el montaje vigente
+> —Maestro y Esclavo en enlace directo—»*). Añadido el 05/09.
+>
+> **La velocidad aérea (Air Data Rate) debe cambiarse de `0.3 kbps` a `2.4 kbps` en TODAS LAS RADIOS
+> DEL ENLACE** ~~en LAS CUATRO RADIOS~~ — **hoy son DOS**; cuatro sólo si se reinstala el repetidor.
+>
+> Sin este ajuste el sistema **seguirá cayendo en fallo de comunicación al paso de cada ciclo**~~, y el
+> **modo repetidor no funcionará en absoluto**~~ *(el modo repetidor no está montado hoy)*. No es
+> opcional ni cosmético: es la corrección principal de esta entrega. Las radios que no se
+> reconfiguren reproducirán el fallo anterior.
 >
 > Todas las radios del enlace deben quedar con **el mismo** Air Data Rate, o no se comunicarán entre sí.
+>
+> **Y `M0`/`M1` van ambos en `OFF` durante la operación** (los `ON` de §2 son sólo para entrar en
+> modo configuración).
 
 ---
 
@@ -140,8 +154,16 @@ Repita el procedimiento completo en cada radio y marque:
 
 ## 5. La sincronización horaria NO exige tocar las radios
 
-Desde la V8.7 el Maestro envía **la hora y la configuración del ciclo** al Esclavo por el mismo enlace
-(comandos `0x07`–`0x0F`), al confirmar la hora y luego **una vez por hora** mientras haya enlace.
+Desde la V8.7 el Maestro envía **la hora, la FECHA y la configuración del ciclo** al Esclavo por el
+mismo enlace —comandos `0x07`–`0x0F` **y `0x10`** ~~(comandos `0x07`–`0x0F`)~~—, al confirmar la hora
+y luego **una vez por hora** mientras haya enlace.
+
+> ⚠️ **`CMD_HORA_D` —el DÍA DEL MES— vale `0x10`, FUERA del bloque de los demás, y el rango que este
+> apartado publicaba lo dejaba fuera.** Medido: `Maestro/include/protocolo.h:54`
+> (`#define CMD_HORA_D 0x10`), enviado en `coordinador.cpp:328` y atendido en
+> `Esclavo/src/main.cpp:488`. Un filtro de `0x07` a `0x0F` en un analizador de tramas **no vería la
+> fecha** — y es justo la trama que impide que las dos puntas lleven **calendarios desacoplados**,
+> que es lo que `protocolo.h:41` describe: *«va PRIMERO en la secuencia»*.
 
 **No hay nada que reconfigurar en la radio por esto:**
 
