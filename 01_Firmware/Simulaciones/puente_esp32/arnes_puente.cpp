@@ -108,6 +108,16 @@ static uint8_t rlj_h = 18, rlj_m = 25, rlj_s = 0, rlj_dia = 31;
 static uint32_t rlj_cnt = 1000;
 
 bool reloj_enHora() { return rlj_enHora; }
+
+// N-144: la contrapartida de reloj_ajustar(). Este arnes compila el bluetooth.cpp REAL de
+// las dos puntas, y ese fichero la llama cuando el ajuste NO quedo puesto.
+//
+// EL DOBLE NO ES VACIO: apaga la bandera de verdad, sobre el mismo rlj_enHora que dobla
+// reloj_enHora() aqui arriba. Un stub que no hiciera nada dejaria sin ejercer justo el
+// camino que N-144 arreglo -el equipo declarandose EN HORA con el reloj parado en ceros,
+// que es de donde cuelga la autorizacion del Modo Degradado-, y este arnes existe para
+// EJECUTAR ese fichero, no para enlazarlo.
+void reloj_invalidarHora() { rlj_enHora = false; }
 bool reloj_hayCristal() { return rlj_cristal; }
 uint8_t reloj_hora() { return rlj_h; }
 uint8_t reloj_minuto() { return rlj_m; }
