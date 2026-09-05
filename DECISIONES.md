@@ -31,6 +31,7 @@ Si el encargo contradice una fila, eso no es una orden: **es una pregunta.**
 | **D-9** | **La hora la pone el DS3231 del ESP32**; el STM32 no tiene reloj (`Y2` muerto, N-17) | 04/09 | el puente rellena el hueco `HORA:--:--:--` al pasar la trama y recalcula el CRC | «la hora la lleva el RTC interno del STM32» |
 | **D-10** | **Cámara comprada: Hikvision `DS-2CD2683G2-IZS`** | 05/09 | tiene salida de alarma (`1 in, 1 out, 24 V/1 A`, ficha oficial) | los modelos anteriores de la lista |
 | **D-11** | **Al aplicar tiempos, la app AVISA y da el botón: NO arranca el ciclo sola** | 05/09 | arrancar el ciclo abre paso, y hacerlo automáticamente se salta la confirmación de vía (§6) | — |
+| **D-12** | **De cada cámara el sistema consume UN CONTACTO SECO. No hay red, no hay imagen, no hay vídeo, y no hay analítica en el controlador** | 05/09 | medido: cero `WiFi`, `HTTPClient`, servidor u ONVIF en todo el ESP32; el STM32 sólo lee un pin. **Consecuencia: toda la inteligencia vive en la CONFIGURACIÓN de la cámara**, y el manual de parametrización pasa de documento de apoyo a entregable principal. **Y lo que se pierde: sin imágenes NO hay soporte de accidentes ni auditoría** — que era el uso que el responsable les había encontrado | «imágenes y auditoría en la Raspberry o la Nano», propuesto el 04/09 y recomendado por dos revisiones el 05/09 **sin comprobar que hubiera camino** |
 
 ---
 
@@ -38,7 +39,7 @@ Si el encargo contradice una fila, eso no es una orden: **es una pregunta.**
 
 | # | pregunta | qué falta para poder decidirla |
 |---|---|---|
-| **A-1** | **¿La segunda cámara veta el ciclo, sólo avisa, o se queda en imágenes?** | Medido: hoy **no hace nada en Automático ni Manual**, y el único modo que la usa corta el verde a **15 s** contra el mínimo de 3 min. Recomendado: imágenes, o el aviso a la caja negra de **+60 B** que sirve de instrumento para el laboratorio |
+| **A-1** | **¿Qué significa cada uno de los DOS bits que tenemos?** | Ver **D-12**: no hay red ni imágenes, así que **una cámara = una salida = UN significado**, y con dos cámaras hay **dos significados para todo el cruce**. Uno está tomado (presencia antes de bajar la pluma). El otro está por decidir entre: **vehículo detenido en el tramo**, **invasión en rojo**, **espera prolongada**, o **vigilancia de la propia cámara**. Todos como EVENTO, no como control |
 | **A-2** | **¿Qué se pone en `J16` p5 y p8?** | Quedan libres si algún día se retira el mando — hoy **no se retira** (D-1). Idea sin decidir: **fin de carrera de la talanquera**, que hoy es **lazo abierto** |
 | **A-3** | **¿A quién le habla el operario al poner la hora?** | El ESP32 contesta `$ACK` y el STM32 `$ERR NO_QUEDO_PUESTA`. **Las dos son ciertas** |
 | **A-4** | **¿Qué pasa con `MENU` si se replantea la interfaz?** | Es el estado «parado» del que depende fijar tiempos: `C_MENU_IDLE` fuerza rojo a las dos puntas |
