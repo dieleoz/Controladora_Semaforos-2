@@ -4,9 +4,68 @@
 **Referencia de diseño:** SFTY-21 (`OPTIMIZACIONES.md`)
 **Implementación:** `01_Firmware/Maestro/src/mando.cpp`, `include/mando.h`, `src/botones.cpp`
 **Fecha:** 1 de agosto de 2026
-**Última revisión:** 31 de agosto de 2026 — **el mando NO se retira. Ver el aviso de cabecera.**
+~~**Última revisión:** 31 de agosto de 2026 — **el mando NO se retira.**~~
+**Última revisión:** **5 de septiembre de 2026** — 🛑 **el mando NO EXISTE COMO HARDWARE. El
+CÓDIGO se queda. Las dos cosas a la vez: ver la cabecera de estado.**
 
-> # ✅ DECISIÓN DEL 31/08/2026 — EL MANDO SE CONSERVA EN `A` Y `B`. SE RETIRAN `C` Y `D`
+---
+
+> # 🛑 ESTADO (05/09/2026) — NO HAY MANDO. EL EQUIPO SE OPERA SÓLO POR APP
+>
+> **Decisión `D-1` de `DECISIONES.md`**, confirmada por el responsable el 05/09: *«ya no tenemos
+> mandos de A y B, sólo la app»*. **Este manual describe un equipo que no se compró y que no se
+> va a comprar.** Léalo como registro de diseño, **nunca como instrucción de campo**.
+>
+> ## Las dos mitades de `D-1`, y hay que sostener las dos
+>
+> | | |
+> |---|---|
+> | 🛑 **El HARDWARE se fue** | Nunca se compró receptor de relés (lista de compras rev. 3, 28/08) y ya no se va a comprar. **No hay equipo en servicio que desmontar** |
+> | ✅ **El CÓDIGO se queda, y el motivo está MEDIDO** | `mando_ambarLocal()` tiene **cinco llamadas vivas** —tres vetos en `Esclavo/src/main.cpp` y dos decisiones de `CANCELAR_AMBAR` en `Esclavo/src/bluetooth.cpp`— y su veto **es SFTY-21**. Retirar el armador deja esos `if` **siempre verdaderos**: el veto **no queda inerte, queda abierto**. Y el banco caería en **`ABORTADO`, no en rojo**: son **trece packs**, porque los dos modelos leen constantes de `mando.cpp` **en el import** |
+>
+> ## ⚠️ Y los pines SE SIGUEN LEYENDO. Esto es lo que hay que saber antes de tocar `J16`
+>
+> Que el pulsador se haya retirado **no deja el camino inerte**. `botones_actualizar()` lee
+> `BOTON1` (`PB9`, `J16` p5) y `BOTON2` (`PB13`, p8) en cada vuelta, con `pinMode(…, INPUT)`
+> pelado y **activo en ALTO** (N-118, corregido en `346ea5f`), y llama a
+> `mando_registrarPulso(MANDO_A/B)` en cada flanco. **`mando.cpp` sigue reconociendo `A·A·A`,
+> `B·B·B` y `A·B·A·B`.**
+>
+> 🔴 **O sea: lo que alguien cierre en `J16` p5 o p8 ENTRA AL FIRMWARE y puede disparar un
+> cambio de modo.** La spec da hoy esos dos pines como **LIBRES Y SIN CABLEAR**
+> (`05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`, que **gana a este manual en
+> todo lo que sea cobre**). Y `J16` p1 lleva **12 V crudos**: **taparlo es obligatorio en cada
+> equipo que se monte** (`D-4`, N-120).
+>
+> ## 🔴 Lo que la retirada se llevó por delante y NO estaba escrito: §6 se quedó SIN SUJETO
+>
+> **La §6 de este manual describe una protección —inhibir las secuencias con el menú abierto—
+> que hoy no protege de nada, y en el Esclavo NO PUEDE ser cierta jamás.** No es que esté de
+> más: es que la guarda dejó de poder dar las dos respuestas. **Está medida y desarrollada en el
+> aviso de la propia §6.** Si alguna vez vuelve un pulsador a `J16` p5/p8, esa barrera **no
+> vuelve sola**.
+>
+> ## 🛑 Y `D-16`, que es la consecuencia de esto y va en el manual del operario
+>
+> **Sin teléfono no hay forma de operar el equipo.** Retirado el mando, la app es la **única**
+> superficie de mando: ni ámbar, ni volver a automático, ni parar el cruce. **Es una propiedad
+> declarada del sistema, no una avería.**
+>
+> En el **Esclavo** eso llegó a ser peor —esa punta se quedó sin ninguna vía de modo—, y es el
+> hueco `A-11`. **Se está cerrando por Bluetooth el 05/09**: ya tiene `SET_MODO:DEGRADADO` como
+> entrada, y la salida va por `AMBAR_EMERGENCIA` / `FORZAR_ROJO`. **La entrada tiene comando
+> propio y la salida no** — el censo medido y el porqué de que eso importe están en el aviso de
+> §9. **Manda `A-11` en `DECISIONES.md`, no este manual.**
+
+---
+
+> ## 📕 HISTÓRICO — la decisión del 31/08. Superada por `D-1`, se conserva y no se borra
+>
+> **Su razonamiento sigue siendo el que sostiene la mitad viva de `D-1`** (conservar el código),
+> y por eso se lee entero. Lo que caducó es *«va cableado»*, no *«el veto se abre si lo
+> borras»*.
+
+> # ~~✅ DECISIÓN DEL 31/08/2026 — EL MANDO SE CONSERVA EN `A` Y `B`. SE RETIRAN `C` Y `D`~~
 >
 > **Este manual sale de la lista de documentos falsos.** Lo que sigue vigente se marca; lo superado
 > se tacha con su motivo.
@@ -447,11 +506,17 @@ de cada modo, la salida del Degradado incluida** — que es justo donde se cuela
 cambio que no debería cambiar comportamiento. Devolviendo `false`, `git grep botonCancelar` sigue
 listando **en una sola lista** todo lo que la retirada de `C` y `D` se llevó por delante.
 
-> ### 🔴 Consecuencia que hay que leer entera: en el ESCLAVO, el mando es ahora la ÚNICA vía
+> ### 🔴 Consecuencia que hay que leer entera: en el ESCLAVO, el mando ~~es ahora~~ **FUE** la ÚNICA vía
 >
-> El Esclavo **no tiene `SET_MODO` por Bluetooth** (`§4.4` del Manual 10: el Maestro es el único que
+> > ⚠️ **CADUCADO EL 05/09, EN LAS DOS MITADES, Y EN DIRECCIONES OPUESTAS.** (1) El mando **se
+> > retiró como hardware** (`D-1`), así que dejó de poder ser la vía de nadie. (2) Y el Esclavo
+> > **ya tiene `SET_MODO:DEGRADADO` por Bluetooth**, añadido ese mismo día —el censo está en el
+> > aviso de §9—, así que la premisa de abajo tampoco se sostiene. **Se conserva porque la tabla
+> > sigue documentando bien qué se perdió al enmudecer *Aceptar*.**
+>
+> ~~El Esclavo **no tiene `SET_MODO` por Bluetooth** (`§4.4` del Manual 10: el Maestro es el único que
 > arbitra el ciclo). Con *Aceptar* mudo, **el sustituto de esos dos botones en esta punta no es la
-> app — es el mando de relés**:
+> app — es el mando de relés**:~~
 >
 > | Lo que se perdió | Dónde estaba | Con qué se sustituye |
 > |---|---|---|
@@ -476,15 +541,89 @@ listando **en una sola lista** todo lo que la retirada de `C` y `D` se llevó po
 
 ---
 
-## 6. 🔒 Las secuencias se ignoran con el menú abierto
+## 6. ~~🔒 Las secuencias se ignoran con el menú abierto~~ 🔴 **ESTA PROTECCIÓN SE QUEDÓ SIN SUJETO**
 
-**Regla:** mientras haya un cursor capaz de **confirmar** algo, las secuencias del mando
-**no se reconocen** (`secuenciasInhibidas()`).
+> # 🔴 NO SE REFORZÓ: SE QUEDÓ SIN SUJETO. Y EN EL ESCLAVO YA NO PUEDE SER CIERTA
+>
+> **Ésta es la consecuencia menos visible de retirar la botonera, y es la única de este
+> documento que puede morder a alguien en el futuro.** La regla de abajo describe una
+> **interacción entre dos cosas muertas**: un menú que no se puede recorrer y un mando que no
+> está montado. Pero las dos mitades no murieron igual, y la diferencia es la que importa.
+>
+> ## Medido, punta por punta
+>
+> **MAESTRO — la guarda vive a medias:**
+>
+> ```
+> $ grep -n "static bool secuenciasInhibidas" -A 4 Maestro/src/mando.cpp
+> 89:static bool secuenciasInhibidas() {
+> 90-  ModoSistema m = modoActual_get();
+> 91-  return (m == MENU || m == MODO_HORA);
+> 92-}
+> ```
+>
+> * `m == MENU` ✅ **sigue pudiendo ser cierta**: se entra por `SET_MODO:MENU` desde la app.
+> * `m == MODO_HORA` 🛑 **no puede ser cierta nunca.** `AJUSTAR HORA` es un modo **al que no se
+>   puede entrar**: su única puerta es la opción 1 del submenú, detrás de dos `botonAceptar()`,
+>   y **por Bluetooth no existe `SET_MODO:HORA`** — hay siete ramas `strcmp(accion,
+>   "SET_MODO…")` en `Maestro/src/bluetooth.cpp` y ninguna es `HORA`. Lo dice el propio
+>   firmware: *«El equipo estaba mandando a leer un instrumento que nadie puede abrir»*.
+>
+> **ESCLAVO — la guarda NO puede ser cierta jamás:**
+>
+> ```
+> $ grep -n "bool menu_estaAbierto" -A 2 Esclavo/src/menu.cpp
+> 161:bool menu_estaAbierto() {
+> 162:  return pantalla != P_MENU;
+> 163:}
+> ```
+>
+> `pantalla` arranca en `P_MENU`, y **la única salida de `P_MENU` es `if (aceptar)`** —
+> `botonAceptar()`, que devuelve `false` siempre—. `secuenciasInhibidas()` del Esclavo **es
+> exactamente esa llamada**, así que es **permanentemente falsa**.
+>
+> ## 🔴 Y el firmware ya lo escribió… como efecto lateral BUENO
+>
+> El bloque sobre `botonAceptar()` en `Esclavo/src/botones.cpp` dice: *«con ACEPTAR mudo, la
+> pantalla del Esclavo no puede bajar del listado, así que `menu_estaAbierto()` es siempre falso
+> y el mando deja de poder quedarse inhibido por una pantalla que alguien olvidó abierta
+> (SFTY-21)»*.
+>
+> **Es cierto, y es media verdad.** Es cierto que desaparece el riesgo de *inhibición eterna*
+> que esta misma §6 avisaba abajo (*«el mando no responde nunca en el Esclavo»*). **La media que
+> falta es que la barrera no queda inerte: queda abierta**, exactamente como el veto de
+> `mando_ambarLocal()` que `D-1` conserva por escrito. **Es el mismo error en la otra dirección
+> —una guarda que ya no puede ser falsa en vez de una bandera que ya no puede ser cierta— y hoy
+> no lo ve ningún instrumento**, porque el firmware sigue siendo correcto: sin pulsos que
+> inhibir no hay diferencia observable.
+>
+> ## ⚠️ Cuándo se cobra esto, y qué hay que hacer entonces
+>
+> **Mientras `J16` p5/p8 estén sin cablear, no hay síntoma.** El día que alguien cierre algo
+> ahí —y la salida `(b)` de `A-11` en `DECISIONES.md` propone justo eso: *«volver a poner dos
+> pulsadores en `J16` p5 y p8 del Esclavo, CERO firmware»*— **esas secuencias no las inhibe
+> nada**, y los pines se siguen leyendo activos en ALTO.
+>
+> 🔴 **Por eso `A-11` no es sólo «cero firmware»: reponer los pulsadores repone el mando y NO
+> repone su inhibición.** Va escrito aquí para que quien evalúe esa salida lo sepa **antes** de
+> decidir, y no después.
+>
+> ## ✅ Lo que ya NO puede pasar, y por qué el riesgo de abajo es histórico
+>
+> El veneno que esta sección describe —*ráfaga de pulsos → el cursor llega a `AJUSTAR HORA` →
+> unos pulsos más CONFIRMAN una hora inventada*— **es hoy imposible**: confirmar exige
+> `botonAceptar()`. **El riesgo de SFTY-18 por esta vía está cerrado por construcción.** Lo que
+> queda abierto es lo de arriba: la guarda que ya no puede ser cierta.
 
-| Unidad | Dónde se inhibe |
-|---|---|
-| **Maestro** | En `MENU` y en `AJUSTAR HORA` |
-| **Esclavo** | Cuando el menú está abierto (`menu_estaAbierto()`), con **regreso automático al listado por inactividad** |
+> ### 📕 HISTÓRICO — la regla original. Se conserva, no se borra
+
+~~**Regla:** mientras haya un cursor capaz de **confirmar** algo, las secuencias del mando
+**no se reconocen** (`secuenciasInhibidas()`).~~
+
+| Unidad | Dónde se inhibía | **hoy** |
+|---|---|---|
+| **Maestro** | En `MENU` y en `AJUSTAR HORA` | ⚠️ **`MENU` sí; `AJUSTAR HORA` es inalcanzable** |
+| **Esclavo** | Cuando el menú está abierto (`menu_estaAbierto()`), con **regreso automático al listado por inactividad** | 🔴 **nunca: `menu_estaAbierto()` es siempre `false`** |
 
 > ### ⚠️ El criterio del Maestro NO se puede copiar literalmente al Esclavo
 >
@@ -519,12 +658,18 @@ enlace y Ámbar Intermitente sin él. **No hay nada de lo que rescatar a nadie.*
 **Y desde el piso se distingue sin ver la pantalla: si las luces están ciclando, el menú no
 está abierto.**
 
-### Refuerzo por estructura, no solo por código
+### ~~Refuerzo por estructura, no solo por código~~ 🛑 **el refuerzo desapareció con el Botón 3**
 
-El menú de dos niveles (V8.7) coloca `AJUSTAR HORA` y `MODO DEGRADADO` **un nivel por
+> 🛑 **El argumento de abajo se apoyaba entero en el Botón 3, y el Botón 3 ya no existe.**
+> `PB14` es hoy `CAM_C_PIN`, una entrada de cámara cableada y verificada en banco el 03/09, y
+> `botonAceptar()` devuelve `false`. **Ya no hay «un nivel por debajo» al que bajar**, así que
+> tampoco hay estructura que refuerce nada: **la protección no cuelga hoy de dos cosas ni de
+> una.** Se conserva tachado porque explica por qué el menú se partió en dos niveles.
+
+~~El menú de dos niveles (V8.7) coloca `AJUSTAR HORA` y `MODO DEGRADADO` **un nivel por
 debajo**, y para bajar hace falta el **Botón 3 — el único que las secuencias del mando
 tienen prohibido usar**. Así el requisito no cuelga de una sola comprobación en el
-firmware: **la estructura del menú lo refuerza por su cuenta**.
+firmware: **la estructura del menú lo refuerza por su cuenta**.~~
 
 ---
 
@@ -638,8 +783,45 @@ salida de emergencia con requisitos no es una salida de emergencia.**
 
 ## 9. ⚠️ La salida también debe poder hacerse desde el piso
 
-Si se puede **entrar** al Modo Degradado desde el suelo pero para **salir** hay que subir, el
-mando no sirve. El escenario típico es *"dejó de llover, a ver si volvió el radio"*: `A·A·A`.
+> ### 🔴 DESDE EL PISO, YA NO. Y el requisito se mudó al teléfono, no desapareció
+>
+> **Este requisito sigue siendo correcto**, y decirlo es más útil que tacharlo. Lo que cambió es
+> quién lo cumple: **desde el suelo ya no hay forma** —el mando se retiró (`D-1`) y la pantalla
+> no se monta—, así que **las dos vías físicas que esta sección da por supuestas se fueron a la
+> vez**. Es el hueco `A-11` de `DECISIONES.md`.
+>
+> ✅ **Se está cerrando por Bluetooth. Censo del despachador del Esclavo a fecha de esta revisión
+> (05/09):**
+>
+> ```
+> $ grep -n 'strcmp(accion, "' Esclavo/src/bluetooth.cpp
+> 537:  if (strcmp(accion, "AMBAR_EMERGENCIA") == 0) {
+> 575:  } else if (strcmp(accion, "CANCELAR_AMBAR") == 0) {
+> 649:  } else if (strcmp(accion, "FORZAR_ROJO") == 0) {
+> 657:  } else if (strcmp(accion, "SOLICITAR_PASO") == 0) {
+> 675:  } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
+> 744:  } else if (strcmp(accion, "TEST_LEDS") == 0) {
+> ```
+>
+> **`SET_MODO:DEGRADADO` es la ENTRADA**, y es de hoy. **La SALIDA no tiene comando propio**:
+> sale por `AMBAR_EMERGENCIA` y por `FORZAR_ROJO`, que pasan por el envoltorio
+> `salidaDegradadoIniciada()` — bien hecho, porque **repregunta la misma guarda** que
+> `degradado_salir()` en vez de contestar `$ACK` a ciegas.
+>
+> 🔴 **Y el aviso de esta §9 sigue aplicando palabra por palabra, sólo que al teléfono:** *«si se
+> puede entrar desde el suelo pero para salir hay que subir, el mando no sirve»*. **La entrada
+> tiene comando propio y la salida no**, así que la asimetría que esta sección describe —una
+> punta fuera del Degradado y la otra dentro— **se sigue evitando por la disciplina del
+> operario, no por el diseño de la interfaz.** Quien cierre `A-11` que lea esto antes.
+>
+> ⚠️ **Esto se movió mientras se redactaba esta revisión.** Vuelva a correr ese `grep` antes de
+> fiarse del párrafo, y consulte `A-11` en `DECISIONES.md`, que es quien manda. **Este manual no
+> cierra `A-11`.** Lo que sí aporta, y va en el aviso de §6: la salida `(b)` de `A-11` —reponer
+> dos pulsadores en `J16` p5/p8— **repone el mando pero NO repone su inhibición**.
+
+~~Si se puede **entrar** al Modo Degradado desde el suelo pero para **salir** hay que subir, el
+mando no sirve.~~ **Sigue siendo verdad, y por eso `A-11` está abierta.** El escenario típico
+es *"dejó de llover, a ver si volvió el radio"*: `A·A·A`.
 
 > ### 🚨 Riesgo: salida asimétrica
 >

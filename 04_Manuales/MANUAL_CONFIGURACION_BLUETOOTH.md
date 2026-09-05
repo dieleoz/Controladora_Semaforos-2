@@ -186,7 +186,10 @@ demanda: `Maestro/include/demanda.h` y `Esclavo/include/demanda.h`.
 > **`PA9`/`PA10` sigue siendo válido eléctricamente, pero NO SALE A NINGUNA BORNERA:** habría que
 > soldar en las patas del micro o del `MAX3485 U2`. Queda como alternativa de laboratorio.
 >
-> ⛔ **Y `J16` NO es `J17`.** `J16` es la botonera y **su posición 1 lleva 12 V crudos**; el módulo
+> ⛔ **Y `J16` NO es `J17`.** ~~`J16` es la botonera~~ → **`J16` fue la botonera; hoy es el
+> conector de las CÁMARAS** (`p10` = `CAM_C_PIN`, `p12` = `CAM_D_PIN`, `D-2`/`D-3`), con `p5` y
+> `p8` **libres de cobre pero todavía leídos por el firmware**. **Su posición 1 lleva 12 V
+> crudos** —taparla es obligatorio en cada equipo (`D-4`, N-120)—; el módulo
 > es de 3,3 V. Confundirlos lo quema sin aviso previo. El procedimiento para distinguirlos **con
 > multímetro** —y el aviso de contar los pines desde el pin 1, porque símbolo y footprint no tienen
 > el mismo número de posiciones— está en `05_Funcional/2_Manual_Hardware_y_Pruebas.md §8`. **Este

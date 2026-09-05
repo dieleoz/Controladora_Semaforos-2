@@ -90,3 +90,6 @@ deep_sort/
 # Ojo al comprobarlo: `git check-ignore -v` responde que si, citando una linea en
 # blanco como patron. Quien manda es `git status`, que lo lista como no rastreado.
 01_Firmware/.compuerta_prueba_gcc/
+
+# Herramientas de fabricante descargadas: no se versionan (69 MB de instalador)
+04_Manuales/SADP*/

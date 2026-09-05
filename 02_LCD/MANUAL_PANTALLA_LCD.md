@@ -4,11 +4,70 @@
 **Módulo:** Pantalla Gráfica Autónoma ST7920 (128×64 píxeles)
 **Librería:** U8g2 (`U8G2_ST7920_128X64_F_SW_SPI`)
 **Fecha de revisión:** 1 de agosto de 2026
+**Última revisión:** **5 de septiembre de 2026** — 🛑 **cabecera de estado: la pantalla NO SE
+MONTA. Nada de lo que sigue describe un equipo que se pueda mirar.**
 
-> ## ⚠️ ESTE DOCUMENTO SE REESCRIBIÓ EL 01/08/2026
+---
+
+> # 🛑 ESTADO — ESTE DOCUMENTO DESCRIBE UNA PANTALLA QUE NO SE MONTA (05/09/2026)
+>
+> **Todo lo que sigue —pinout, menú, las diez pantallas del Maestro, las cinco del Esclavo—
+> describe una interfaz que EXISTE EN EL CÓDIGO y que NO EXISTE EN NINGÚN POSTE.** Léalo como
+> especificación y como registro histórico, **nunca como instrucción de campo**.
+>
+> ## Las tres cosas que hay que tener claras a la vez
+>
+> | | |
+> |---|---|
+> | 🛑 **El módulo ST7920 no se monta** | Decidido el **28/08/2026** (`roadmap.md`, «Lo decidido, con fecha»), confirmado por el responsable el **05/09**: *«la pantalla LCD ya no va, pues los pines y el equipo lo quitamos»*. **El motivo no fue la pantalla**: el Bluetooth necesitaba `PB6`/`PB7`, que eran suyos, y este PCB no admite ampliación (**N-104**) |
+> | 🛑 **Los pines no conducen** | Los cuatro pines del objeto U8g2 están en `U8X8_PIN_NONE`, y `U8x8lib.cpp` comprueba `if (u8x8->pins[i] != U8X8_PIN_NONE)` antes de cada `pinMode` y cada `digitalWrite`. **`PB3`/`PB4`/`PB5` están en alta impedancia** |
+> | ✅ **El código NO se retira** | **`D-6`** de `DECISIONES.md` (04/09): *«La pantalla LCD NO se retira — 271 comprobaciones cuelgan de ella»*. `lcd.cpp` y `menu.cpp` se compilan hoy, y `Validacion_LCD` es **una de las 20 filas de la compuerta**, en **271/271** |
+>
+> ```
+> $ grep -n "U8X8_PIN_NONE" Maestro/src/lcd.cpp Esclavo/src/lcd.cpp | grep -i "u8g2("
+> Maestro/src/lcd.cpp:74:static U8G2_ST7920_128X64_F_SW_SPI u8g2(U8G2_R0, U8X8_PIN_NONE, U8X8_PIN_NONE,
+> Esclavo/src/lcd.cpp:92:static U8G2_ST7920_128X64_F_SW_SPI u8g2(U8G2_R0, U8X8_PIN_NONE, U8X8_PIN_NONE,
+> ```
+>
+> ⚠️ **No diga «la pantalla no existe»: es falso y rompe la compuerta.** El arnés compila
+> `lcd.cpp` y `menu.cpp` de verdad y publica 271 comprobaciones. **Lo correcto es: existe en el
+> código, no se monta en el poste, y no conduce ningún pin.**
+>
+> ## 🛑 Y la botonera tampoco. Todo se opera por la app
+>
+> `botonAceptar()` y `botonCancelar()` devuelven `false` desde el **31/08** (`J16` p10 y p12 son
+> entradas de cámara), y el **05/09** el mando de relés se retiró como hardware (**`D-1`** de
+> `DECISIONES.md`: *«el equipo se opera SÓLO POR APP. Y su CÓDIGO no se toca»*).
+>
+> ```
+> $ grep -n "bool botonAceptar" Maestro/src/botones.cpp Esclavo/src/botones.cpp
+> Maestro/src/botones.cpp:616:bool botonAceptar() { return false; }
+> Esclavo/src/botones.cpp:615:bool botonAceptar() { return false; }
+> ```
+>
+> **Consecuencia directa y medida, que afecta a casi todo lo que sigue: NINGÚN MENÚ DE ESTE
+> DOCUMENTO SE PUEDE RECORRER.** El cursor sube y baja —`botonArriba()`/`botonAbajo()` siguen
+> leyendo `PB9`/`PB13`— pero **no hay forma de seleccionar**. Lo que sustituye a cada opción
+> perdida está censado, llamador a llamador, en el bloque de comentario que hay encima de
+> `botonAceptar()` en `Maestro/src/botones.cpp`.
+>
+> ## 🔴 Lo que la retirada dejó sin cerrar — y no lo dice ningún otro documento
+>
+> | | medido |
+> |---|---|
+> | **§5.3 `AJUSTAR HORA` es un modo AL QUE NO SE PUEDE ENTRAR** | Única puerta: opción 1 del submenú, detrás de dos `botonAceptar()`. Y **por Bluetooth no existe `SET_MODO:HORA`**: hay **siete** ramas `strcmp(accion, "SET_MODO…")` y ninguna es `HORA`. Lo dice el propio firmware: *«El equipo estaba mandando a leer un instrumento que nadie puede abrir»*. **Sustituto vigente: `SET_RTC:` y `REINICIAR_RELOJ` por app** |
+> | **§5.6 `PRUEBA ALCANCE` PARA EL CRUCE y no entrega nada** | Se entra por `SET_MODO:ALCANCE`, `modoAlcance_setup()` llama a `coordinador_forzarMenu()` —rojo fijo— y su **único** consumidor es `lcd_dibujarAlcance()`. Escrito como pendiente de firmware en `04_Manuales/MANUAL_EXACTO_RADIOS_E90_DTU.md` §6 |
+> | **§6 En el Esclavo, la inhibición del mando se quedó SIN SUJETO** | `menu_estaAbierto()` es `pantalla != P_MENU`, y **la única salida de `P_MENU` es `if (aceptar)`**. La guarda **no puede ser cierta jamás**. Ver el aviso de §6 |
+>
+> 🔴 **Nada de este documento se BORRA.** Es el registro de por qué se puso la pantalla y por
+> qué se quitó. Una vía borrada en silencio vuelve a proponerse.
+
+---
+
+> ## 📕 HISTÓRICO — ESTE DOCUMENTO SE REESCRIBIÓ EL 01/08/2026. Superado, se conserva
 >
 > La versión anterior describía un **menú plano de 4 opciones** y afirmaba que el Esclavo
-> no tenía interfaz. **Las dos cosas son falsas hoy.** Lo que cambió:
+> no tenía interfaz. **Las dos cosas eran falsas el 01/08.** Lo que cambió:
 >
 > | Antes (V8.1) | Hoy (V8.7) |
 > |---|---|
@@ -39,7 +98,28 @@ gráfica sobre la **ST7920 (128×64)** conectada a las controladoras STM32 ("Blu
 
 ## 2. Hardware y pinout (SPI de 3 hilos)
 
-La ST7920 soporta modo paralelo y modo serie. El firmware la configura en **modo serie**
+> ### 🛑 NO SE CABLEA NADA DE ESTA TABLA. `PB6` Y `PB7` SON HOY EL ENLACE CON EL ESP32
+>
+> **De todo este documento, ésta es la única sección que puede hacer daño si se copia**, y por
+> eso el aviso va aquí y no sólo en la cabecera.
+>
+> `PB6` y `PB7` dejaron de ser de la pantalla el **28/08** (N-76): hoy son el **UART hacia el
+> ESP32 del Bluetooth**, `SerialBT(PB7, PB6)` sobre **USART1 remapeado**, en el conector
+> **`J17`**. Colgar un módulo LCD de esos dos hilos **enfrenta dos salidas *push-pull* en el
+> mismo conductor**. `PB3`/`PB4`/`PB5` no conducen —`U8X8_PIN_NONE`— y son los **únicos GPIO
+> libres del proyecto con pista hasta bornera** (`J17` p4, p1, p5): están reservados, no
+> disponibles.
+>
+> ⚠️ **Y `J17` no es un conector de pantalla aunque el netlist lo llame así.** El nombre viejo
+> sobrevive en el esquemático; lo que hay detrás está medido en banco (paso 5): continuidad
+> `J17` p3 → pata 42 y p2 → pata 43, **sin 12 V en ninguna posición**. La fuente que manda
+> sobre esto es `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`, **no este
+> manual**.
+>
+> La tabla se conserva **tachada** porque es el registro de qué ocupaba cada pin cuando se
+> decidió N-104, y esa cuenta es la que explica por qué no había de dónde sacar pines.
+
+~~La ST7920 soporta modo paralelo y modo serie.~~ El firmware la configura en **modo serie**
 bajando `PSB` a **LOW**. **El pinout es idéntico en Maestro y Esclavo** (`include/pines.h`
 de ambos proyectos), lo que permite intercambiar tarjetas en campo sin recablear.
 
@@ -70,12 +150,32 @@ de ambos proyectos), lo que permite intercambiar tarjetas en campo sin recablear
 
 ## 3. Botonera física y mando de relés
 
-Cuatro botones con pull-up, mismos pines en las dos unidades:
+> ### 🛑 NO HAY BOTONERA. Y de los cuatro pines, DOS SON CÁMARAS y DOS SIGUEN LEYÉNDOSE
+>
+> Esta lista es de **agosto**. Hoy, medido:
+>
+> | pin | decía aquí | **hoy** |
+> |---|---|---|
+> | `PB9` (`J16` p5) | `BOTON1` / Arriba | ⚠️ **`BOTON1` SIGUE VIVO Y SIGUE LEYENDO EL PIN** — alimenta `botonArriba()` y `mando_registrarPulso(MANDO_A)`. El **pulsador** se retiró (`D-1`); **el código no** |
+> | `PB13` (`J16` p8) | `BOTON2` / Abajo | ⚠️ **ídem** — `botonAbajo()` y `MANDO_B` |
+> | `PB14` (`J16` p10) | `BOTON3`, OK | 🎯 **`CAM_C_PIN`: entrada de cámara.** Cableada y **verificada en banco el 03/09** (paso 21) |
+> | `PB15` (`J16` p12) | `BOTON4`, Cancelar | 🎯 **`CAM_D_PIN`: entrada de cámara** |
+>
+> 🔴 **Lo que hay que sacar de la fila 1 y 2, porque no es evidente:** que el mando se haya
+> retirado **no deja esos pines inertes**. `botones_actualizar()` los sigue leyendo cada vuelta,
+> con `pinMode(BOTON1, INPUT)` pelado y **activo en ALTO** (N-118, `346ea5f`). **Lo que alguien
+> cierre en `J16` p5 o p8 entra al firmware** y compone secuencias de mando. La spec los da hoy
+> como **LIBRES Y SIN CABLEAR**; ver `05_Funcional/17_…`, que gana a este manual en cobre.
+>
+> ⛔ **Y `J16` p1 lleva 12 V crudos a un conector de señal directa al micro. Taparlo es
+> obligatorio en cada equipo que se monte** (**`D-4`**, N-120), no una cautela de banco.
 
-* **PB9 (`BOTON1`, "A" / Arriba)** — sube en el menú, incrementa valores.
-* **PB13 (`BOTON2`, "B" / Abajo)** — baja en el menú, decrementa valores.
-* **PB14 (`BOTON3`, OK)** — selecciona, confirma, avanza de dígito.
-* **PB15 (`BOTON4`, Cancelar)** — aborta y regresa al menú.
+~~Cuatro botones con pull-up, mismos pines en las dos unidades:~~
+
+* ~~**PB9 (`BOTON1`, "A" / Arriba)** — sube en el menú, incrementa valores.~~
+* ~~**PB13 (`BOTON2`, "B" / Abajo)** — baja en el menú, decrementa valores.~~
+* ~~**PB14 (`BOTON3`, OK)** — selecciona, confirma, avanza de dígito.~~ 🛑 **`return false;`**
+* ~~**PB15 (`BOTON4`, Cancelar)** — aborta y regresa al menú.~~ 🛑 **`return false;`**
 
 > ### ⚠️ Los mismos contactos los acciona un mando de relés desde el suelo
 >
@@ -95,6 +195,23 @@ Cuatro botones con pull-up, mismos pines en las dos unidades:
 ---
 
 ## 4. El menú de dos niveles del Maestro
+
+> ### 🛑 EL MENÚ SE DIBUJA, EL CURSOR SE MUEVE, Y NO SE PUEDE SELECCIONAR NADA
+>
+> `MENU` **sigue siendo un modo alcanzable** —por `SET_MODO:MENU` desde la app—, y dentro de él
+> `botonArriba()`/`botonAbajo()` siguen moviendo el cursor. **Lo que no existe es la
+> confirmación:** las dos ramas `if (botonAceptar())` de `menu.cpp` cuelgan de una función que
+> devuelve `false` siempre. **Ni se entra a un modo desde la raíz, ni se baja a
+> `CONFIGURACION`.**
+>
+> Todo lo que sigue en §4 y §5 describe, por tanto, **geometría que el arnés sí mide y
+> operación que nadie puede ejecutar**. Se conserva entero: es lo que `Validacion_LCD` compila.
+>
+> **Los sustitutos existen y están censados uno a uno** en el comentario que precede a
+> `botonAceptar()` en `Maestro/src/botones.cpp` — `SET_MODO:AUTO|MANUAL|AMBAR|MENU|ALCANCE|
+> INTELIGENTE|DEGRADADO`, `SET_TIEMPOS:`, `MANUAL:CAMBIAR_TURNO`, `SET_RTC:`,
+> `REINICIAR_RELOJ`. **Con una excepción, y va escrita porque nadie más la escribe:
+> `AJUSTAR HORA` (`MODO_HORA`) no tiene `SET_MODO` que lo sustituya** — ver §5.3.
 
 ### 4.1 Estructura actual
 
@@ -198,9 +315,44 @@ Maestro fija Rojo.
 Ver §4. La firma admite un **título opcional**; sin título pinta `MODO SEMAFORO`. Se dejó
 opcional para no tocar las llamadas ya existentes.
 
-### 📺 5.3 `AJUSTAR HORA` (`lcd_dibujarAjusteHora`) — **nueva**
-Única vía para poner el reloj del Maestro (SFTY-18), y **requisito previo del Modo
-Degradado**. Se edita **dígito a dígito**, con el dígito activo **subrayado**.
+### 📺 5.3 `AJUSTAR HORA` (`lcd_dibujarAjusteHora`) — ~~**nueva**~~ 🛑 **INALCANZABLE**
+
+> #### 🛑 A ESTA PANTALLA NO SE PUEDE ENTRAR — y ya no es la vía para poner el reloj
+>
+> **`MODO_HORA` tiene una sola puerta**, la opción 1 del submenú `CONFIGURACION`, y llegar ahí
+> exige **dos** pulsaciones de *Aceptar*. **Y por Bluetooth no existe `SET_MODO:HORA`:**
+>
+> ```
+> $ grep -n 'strcmp(accion, "SET_MODO' Maestro/src/bluetooth.cpp
+> 515:  if (strcmp(accion, "SET_MODO:AUTO") == 0) {
+> 520:  } else if (strcmp(accion, "SET_MODO:MANUAL") == 0) {
+> 527:  } else if (strcmp(accion, "SET_MODO:AMBAR") == 0) {
+> 570:  } else if (strcmp(accion, "SET_MODO:MENU") == 0) {
+> 591:  } else if (strcmp(accion, "SET_MODO:ALCANCE") == 0) {
+> 602:  } else if (strcmp(accion, "SET_MODO:INTELIGENTE") == 0) {
+> 613:  } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
+> ```
+>
+> **Siete ramas, ninguna `HORA`.** El buscador sabe encontrar `SET_MODO` —encontró siete—, así
+> que el cero de `HORA` es un hallazgo y no un fallo de búsqueda. Lo dice además el propio
+> firmware, en el bloque de `Maestro/src/bluetooth.cpp` sobre los bits del dominio de respaldo:
+> *«la puerta está tapiada por DOS sitios a la vez, y por Bluetooth no existe `SET_MODO:HORA`.
+> El equipo estaba mandando a leer un instrumento que nadie puede abrir»*.
+>
+> ✅ **QUÉ LO SUSTITUYE, que sí existe:** la hora se pone con **`SET_RTC:`** desde la app, y el
+> dominio de respaldo se reinicia con **`REINICIAR_RELOJ`** (los dos por Bluetooth, con PIN).
+> Y desde **`D-15`** (05/09) **el reloj lo lleva el `DS3231` del ESP32 de cada punta**, no el
+> STM32: el `Y2` del micro está muerto (N-17). Con **`D-17`** el reloj además se puede
+> **consultar** sin cambiarlo (`CMD:LEER_RTC`).
+>
+> ⚠️ **Lo que NO cubre el sustituto, y va escrito en vez de taparse:** el aviso *«RELOJ SIN
+> PONER EN HORA»* de esta pantalla no tiene equivalente visual en el poste. Quien quiera saber
+> si el reloj está puesto **necesita el teléfono**. Es un caso particular de **`D-16`**: *sin
+> teléfono no hay forma de operar el equipo*, y eso es una propiedad declarada del sistema, no
+> una avería.
+
+~~Única vía para poner el reloj del Maestro (SFTY-18), y **requisito previo del Modo
+Degradado**.~~ Se edita **dígito a dígito**, con el dígito activo **subrayado**.
 ```text
 +--------------------------------+
 |       AJUSTAR HORA             |
@@ -279,8 +431,50 @@ Asistente de tiempos de Modo Automático y de Rojo estático en Manual.
 +--------------------------------+
 ```
 
-### 📺 5.6 `PRUEBA ALCANCE` (`lcd_dibujarAlcance`)
-Herramienta de campo para medir hasta dónde hay cobertura real, en vez de estimarla a ojo.
+### 📺 5.6 `PRUEBA ALCANCE` (`lcd_dibujarAlcance`) — 🔴 **PARA EL CRUCE Y NO ENTREGA NADA**
+
+> #### 🔴 Se puede ENTRAR (por app), pero lo que mide no sale del equipo
+>
+> **`MODO_ALCANCE` sigue siendo alcanzable** —`SET_MODO:ALCANCE`, rama 5 de las siete—, y ésa
+> es justamente la parte mala: el operario **puede** entrar, el equipo **se para**, y **no
+> recibe nada a cambio**.
+>
+> * `modoAlcance_setup()` llama a `coordinador_forzarMenu()`: **rojo fijo en las dos puntas**
+>   con enlace, ámbar intermitente sin él. El cruce **deja de ciclar**.
+> * Su **único** consumidor es `lcd_dibujarAlcance()`, que pinta sobre un framebuffer cuyos
+>   pines están en `U8X8_PIN_NONE`.
+> * Y la salida documentada abajo —*«`4=Menu`»*— **tampoco funciona**: `modoAlcance_loop()`
+>   sale con `if (botonCancelar())`, que devuelve `false` siempre. **La única salida real es
+>   `SET_MODO:MENU` desde la app.**
+>
+> **Lo que de verdad falta es firmware, y está medido:** de los cinco números que esta pantalla
+> enseña, **tres ya salen por Bluetooth** en el `$STATUS` y el `$ALARM` del Maestro (`RF:`,
+> `RTT:`, `SINRESP:`). **Los otros dos no salen por ningún sitio**, y el tercer contador —el que
+> distingue *«llega basura»* de *«no llega nada»*— **no lo lee absolutamente nadie**:
+>
+> ```
+> $ grep -rn "protocolo_tramasDescartadas" Maestro/src/
+> Maestro/src/protocolo.cpp:162:unsigned long protocolo_tramasDescartadas() { return cntDescartadas; }
+> ```
+>
+> **Una sola línea: la definición. Cero llamadores.** El contador se incrementa en cada trama
+> descartada y nadie lo lee jamás. Es un `pinMode()` sin `digitalRead()` con otra ropa, y el
+> banco ya lo tiene anotado con su motivo: `costura_10_funciones_muertas.py` lo lista como
+> huérfana **del Maestro** y explica que *«sigue huérfana en el MAESTRO, donde nadie los publica
+> todavía»*.
+>
+> 🔴 **Y la asimetría demuestra que es un hueco, no un diseño: el ESCLAVO SÍ LOS PUBLICA.** Los
+> tres van en su `$ALARM` como `RX:%lu,OK:%lu,RUIDO:%lu` desde `Esclavo/src/bluetooth.cpp`.
+> **Misma API en las dos puntas** (`protocolo_bytesRecibidos`, `protocolo_tramasValidas`,
+> `protocolo_tramasDescartadas` están declaradas igual en los dos `protocolo.h`), publicada en
+> una y encerrada en la otra.
+>
+> **Pendiente de firmware, escrito como tal:** publicar `RX:`/`OK:`/`RUIDO:` del Maestro por
+> Bluetooth, como ya hace el Esclavo. Mientras no exista, **`PRUEBA ALCANCE` no es una
+> herramienta de campo: es un modo que para el cruce a cambio de nada.** Ver
+> `04_Manuales/MANUAL_EXACTO_RADIOS_E90_DTU.md` §6, que es donde se manda usarla.
+
+~~Herramienta de campo para medir hasta dónde hay cobertura real, en vez de estimarla a ojo.~~
 ```text
 +--------------------------------+   +--------------------------------+
 |       PRUEBA ALCANCE           |   |       PRUEBA ALCANCE           |
@@ -390,11 +584,21 @@ está el borde.
 
 Documentado por honestidad, no como funcionalidad:
 
-| Función | Estado |
-|---|---|
-| `lcd_dibujarNoDisponible()` | **Código muerto.** Nadie la llama fuera de `lcd.cpp` |
-| `lcd_dibujarTextoRecibido()` | **Código muerto.** Depuración de RS485 |
-| `lcd_dibujarConfigMinutos()` | **Código muerto.** La reemplazó `lcd_dibujarConfigValor()` |
+> ⚠️ **Esta tabla envejeció, y en la dirección menos obvia: las tres ya no están en `lcd.cpp`.**
+> Hoy sólo quedan sus **declaraciones en `lcd.h`**, sin definición y sin llamador — no cuestan
+> flash, cuestan que alguien las busque. Y **la huérfana de verdad es otra**: desde el 04/09 el
+> banco anota `lcd_dibujarConfigValor` en la lista de huérfanas conocidas del Maestro
+> (`banco/packs/costura_10_funciones_muertas.py`), con su motivo medido: sus dos únicos
+> llamadores eran los asistentes de configuración de `modo_automatico.cpp` y `modo_manual.cpp`,
+> retirados por N-42 y N-141 **porque su única salida era `botonAceptar()`** — eran trampas sin
+> salida, no pantallas. **La cuenta vive en el pack, no en esta tabla.**
+
+| Función | Estado el 01/08 | **hoy** |
+|---|---|---|
+| `lcd_dibujarNoDisponible()` | ~~Código muerto en `lcd.cpp`~~ | **fuera de `lcd.cpp`; sólo declarada en `lcd.h`** |
+| `lcd_dibujarTextoRecibido()` | ~~Código muerto. Depuración de RS485~~ | **ídem** |
+| `lcd_dibujarConfigMinutos()` | ~~Código muerto. La reemplazó `lcd_dibujarConfigValor()`~~ | **ídem** |
+| `lcd_dibujarConfigValor()` | *en uso* | 🔴 **huérfana desde el 04/09** (N-141), anotada en el pack con su motivo |
 
 > No se puede documentar como "pantalla del equipo" algo que el operario nunca verá.
 > Ocupan flash en un Maestro que va al **80,2 %** (§8) — su retiro es una decisión de
@@ -402,11 +606,69 @@ Documentado por honestidad, no como funcionalidad:
 
 ---
 
-## 6. 🆕 La pantalla del Esclavo (`Esclavo/src/lcd.cpp`, `menu.cpp`)
+## 6. ~~🆕~~ La pantalla del Esclavo (`Esclavo/src/lcd.cpp`, `menu.cpp`) — 🛑 **NO SE MONTA**
 
-> **Esto no estaba documentado en ningún sitio.** Hasta el 01/08/2026 el Esclavo no tenía
-> interfaz en firmware (issue **N-16**). Hoy tiene `lcd.cpp`, `botones.cpp`, `menu.cpp` y
-> `modo_degradado.cpp` propios.
+> ### 🔴 EL MENÚ DEL ESCLAVO ESTÁ CONGELADO EN SU PRIMERA PANTALLA — y eso APAGÓ una barrera
+>
+> **Ésta es la consecuencia de seguridad de retirar la botonera, y no la escribe ningún otro
+> documento.** No es que la pantalla no se vea: es que **una guarda de SFTY-21 dejó de poder
+> ser cierta**.
+>
+> ```
+> $ grep -n "bool menu_estaAbierto" -A 2 Esclavo/src/menu.cpp
+> 161:bool menu_estaAbierto() {
+> 162:  return pantalla != P_MENU;
+> 163:}
+> ```
+>
+> `pantalla` arranca en `P_MENU`, y **la única salida de `P_MENU` es `if (aceptar)`** —
+> `botonAceptar()`, que devuelve `false` siempre—. O sea que **`menu_estaAbierto()` es
+> permanentemente `false`**, y `secuenciasInhibidas()` del Esclavo, que es exactamente esa
+> llamada, **no puede ser cierta jamás**.
+>
+> **Y esto ya lo dejó escrito el firmware, presentándolo como efecto lateral bueno** (bloque
+> sobre `botonAceptar()` en `Esclavo/src/botones.cpp`): *«con ACEPTAR mudo, la pantalla del
+> Esclavo no puede bajar del listado, así que `menu_estaAbierto()` es siempre falso y el mando
+> deja de poder quedarse inhibido por una pantalla que alguien olvidó abierta»*.
+>
+> ⚠️ **Es cierto y es media verdad, y la otra media hay que decirla:** la protección **no quedó
+> reforzada, se quedó SIN SUJETO**. Mientras nadie cablee `J16` p5/p8 no hay diferencia
+> observable —no hay pulsos que inhibir—. **El día que alguien cierre algo ahí, esas secuencias
+> no las inhibe nada**, y los pines se siguen leyendo (`INPUT` pelado, activo en ALTO). Ver el
+> aviso de §6 de `04_Manuales/MANUAL_MANDO_4_RELES.md`, donde está el desarrollo.
+>
+> ## ⚠️ Y lo que esta pantalla se llevaba: entrar y salir del Degradado en esta punta
+>
+> Con la pantalla fuera y el mando retirado (`D-1`), el Esclavo se quedó **sin ninguna vía
+> física** para entrar o salir del Modo Degradado: el menú de arriba era una de las dos, y el
+> `A·B·A·B` del mando la otra. Es el hueco `A-11` de `DECISIONES.md`.
+>
+> ✅ **Se está cerrando por Bluetooth, y a fecha de esta revisión (05/09) el censo del despachador
+> del Esclavo da esto:**
+>
+> ```
+> $ grep -n 'strcmp(accion, "' Esclavo/src/bluetooth.cpp
+> 537:  if (strcmp(accion, "AMBAR_EMERGENCIA") == 0) {
+> 575:  } else if (strcmp(accion, "CANCELAR_AMBAR") == 0) {
+> 649:  } else if (strcmp(accion, "FORZAR_ROJO") == 0) {
+> 657:  } else if (strcmp(accion, "SOLICITAR_PASO") == 0) {
+> 675:  } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
+> 744:  } else if (strcmp(accion, "TEST_LEDS") == 0) {
+> ```
+>
+> **`SET_MODO:DEGRADADO` es la ENTRADA**, y es de hoy. **La SALIDA no es un comando propio**: se
+> obtiene por `AMBAR_EMERGENCIA` y `FORZAR_ROJO`, que llaman al envoltorio
+> `salidaDegradadoIniciada()` — y ese envoltorio está bien hecho, porque **repregunta la misma
+> guarda** que `degradado_salir()` en vez de contestar `$ACK` a ciegas.
+>
+> ⚠️ **Esto se movió mientras se redactaba esta revisión** (`Esclavo/src/bluetooth.cpp` lo ganó el
+> 05/09). **Antes de fiarse de este párrafo, vuelva a correr ese `grep`** y consulte `A-11` en
+> `DECISIONES.md`, que es quien manda. Este manual no cierra `A-11`.
+
+> 📕 **HISTÓRICO — se conserva.** *«Esto no estaba documentado en ningún sitio.* Hasta el
+> 01/08/2026 el Esclavo no tenía interfaz en firmware (issue **N-16**). Hoy tiene `lcd.cpp`,
+> `botones.cpp`, `menu.cpp` y `modo_degradado.cpp` propios.*»* — ✅ **y esos cuatro ficheros
+> siguen compilando**: el arnés publica `ESCLAVO 126/126`.
 
 ### 6.1 Qué NO tiene, y por qué
 
@@ -593,7 +855,25 @@ protocolo** — es lectura de lo que ya circula.
 
 ---
 
-## 8. Arnés de validación de pantalla — **83/83**
+## 8. Arnés de validación de pantalla — ~~**83/83**~~ → ✅ **271/271, Y ESTA SECCIÓN SIGUE VIGENTE**
+
+> ### ✅ ESTO NO SE TACHA. ES LO ÚNICO DE ESTA CARPETA QUE SIGUE MIDIENDO ALGO HOY
+>
+> **El arnés existe, corre y mide, aunque nadie monte la pantalla.** Compila el `lcd.cpp` y el
+> `menu.cpp` **reales** contra un framebuffer en memoria, y por eso es una de las **20 filas de
+> `compuerta.py`**. Del acta del 05/09:
+>
+> ```
+> PASS  arnes de pantalla   MAESTRO  145/145 comprobaciones OK | ESCLAVO  126/126 comprobaciones OK | TOTAL 271/271
+> ```
+>
+> **Esas 271 comprobaciones son el motivo escrito de `D-6`** (*«La pantalla LCD NO se retira —
+> 271 comprobaciones cuelgan de ella»*). Borrar `lcd.cpp` o `menu.cpp` **tira una fila entera de
+> la compuerta**, y un `ABORTADO` es una puerta abierta, no una casilla pendiente.
+>
+> ⚠️ **Lo que este verde SÍ dice y lo que NO:** dice que la geometría de las pantallas es
+> correcta sobre un framebuffer de PC. **No dice que haya una pantalla** — y hoy no la hay. Es
+> el caso extremo de *verde no es entregable*: el instrumento está sano y su sujeto no se monta.
 
 `01_Firmware/Validacion_LCD/` · ejecutar con `compilar.ps1` · requiere GCC (MinGW-w64).
 
@@ -635,14 +915,25 @@ se compila**.
 
 | Limitación | Consecuencia |
 |---|---|
-| **No valida ninguna pantalla del Esclavo.** `compilar.ps1` solo enlaza `Maestro/src/lcd.cpp` y `Maestro/src/menu.cpp` | Las 5 vistas del Esclavo (§6) **nunca han pasado por comprobación geométrica**. El gancho `LCD_VALIDACION_NATIVA` ya está puesto en `Esclavo/src/lcd.cpp`: añadirlo es cuestión de una línea en `compilar.ps1` |
+| ~~**No valida ninguna pantalla del Esclavo.**~~ ✅ **RESUELTO** | ~~Las 5 vistas del Esclavo (§6) **nunca han pasado por comprobación geométrica**~~ → el acta del 05/09 publica **`ESCLAVO 126/126`**: el arnés valida **las dos puntas**. La línea de `compilar.ps1` se añadió |
 | No ejercita la lógica del coordinador | La telemetría (SFTY-14) y los contadores (SFTY-15) se **inyectan a mano**. El arnés valida el **dibujo**, no el dato |
-| No hay prueba de banco de las pantallas nuevas | `AJUSTAR HORA`, `MODO DEGRADADO`, rechazo y ámbar **no se han visto sobre una ST7920 real**. Contraste de la pantalla, ángulo de visión y legibilidad bajo sol **no están verificados** |
+| No hay prueba de banco de las pantallas nuevas | `AJUSTAR HORA`, `MODO DEGRADADO`, rechazo y ámbar **no se han visto sobre una ST7920 real** → 🛑 **y ya no se verán: no se monta ninguna.** Deja de ser un pendiente y pasa a ser permanente |
 | El layout de **5 opciones** no lo usa ninguna pantalla real | Está probado geométricamente en el código pero **nunca ha estado en un poste** |
 
 ---
 
 ## 9. Consumo de recursos
+
+> ### ⚠️ CIFRAS DE AGOSTO. Las de hoy salen del acta, no de aquí
+>
+> Del acta del **05/09** (`evidencia/2026-09-05_compuerta.txt`): **Maestro `57360` B — 87,5 %**;
+> **Esclavo `41340` B — 63,1 %**. La tabla de abajo se conserva porque documenta el **coste que
+> tuvo la pantalla**, que es parte del porqué de N-104.
+>
+> 🔴 **Y ojo con la lectura fácil: retirar la pantalla del CÓDIGO no es la reserva de flash que
+> parece.** `D-6` la conserva por 271 comprobaciones, y §7 de `CLAUDE.md` avisa de que un delta
+> exige medir **los dos extremos** con un `.elf` de verdad. **Los ~18,9 KB que cita el roadmap
+> son una ESTIMACIÓN, no un desensamblado.**
 
 | Recurso | V7.6 | V8.1 | **V8.7 (01/08/2026)** |
 |---|---|---|---|
@@ -674,8 +965,13 @@ recompiló para redactar este documento.*
 
 Se dejan escritas porque una limitación documentada vale más que una suposición cómoda.
 
-1. **¿Se validará el Esclavo con el arnés?** El gancho está puesto y cuesta una línea. Hoy
-   sus 5 vistas son las únicas del sistema sin comprobación geométrica.
+> ### ⚠️ De las cuatro preguntas de abajo, UNA está contestada y TRES dejaron de importar
+>
+> Se conservan las cuatro. Una pregunta que se borra en silencio vuelve a hacerse.
+
+1. ~~**¿Se validará el Esclavo con el arnés?** El gancho está puesto y cuesta una línea. Hoy
+   sus 5 vistas son las únicas del sistema sin comprobación geométrica.~~
+   → ✅ **CONTESTADA: sí, y ya está.** Acta del 05/09, `ESCLAVO 126/126`.
 2. **¿Qué versión es "la de la pantalla"?** El código rotula estos cambios como **V8.7**;
    el encabezado de `roadmap.md` sigue en **V8.5**. Este manual adopta **V8.7** por seguir
    al código, pero la numeración debería unificarse.
@@ -685,4 +981,26 @@ Se dejan escritas porque una limitación documentada vale más que una suposici�
    el Esclavo distingue `NUNCA`, `45m`, `12h30m` y `>48h`. El Maestro **no tiene el
    enclavamiento `>48h` en la pantalla**, así que ante un desbordamiento de `millis()`
    mostraría un número pequeño y falso, que es justo lo que el Esclavo evita a propósito.
-   **Merece revisarse en firmware.**
+   ~~**Merece revisarse en firmware.**~~ → ⚠️ **Deja de ser urgente porque nadie lee esa
+   pantalla, pero NO se cierra: el enclavamiento `>48h` es una regla de vida del Modo
+   Degradado, y si algún día ese estado se publica por Bluetooth el defecto viaja con él.**
+
+---
+
+## 11. 🔴 Preguntas que abre la RETIRADA, y que no estaban en §10
+
+Van aquí porque no las cierra este documento y porque una vía sin dueño se pierde.
+
+1. **¿Se publican por Bluetooth los contadores de línea del Maestro?** `RX:`/`OK:`/`RUIDO:` ya
+   salen en el `$ALARM` del **Esclavo**; en el Maestro `protocolo_tramasDescartadas()` **no
+   tiene un solo llamador**. Sin eso, `PRUEBA ALCANCE` para el cruce a cambio de nada (§5.6).
+2. **¿Qué hace `MODO_ALCANCE` si nadie puede leerlo?** Hoy es un modo alcanzable por app que
+   **fuerza rojo fijo** y cuyo único consumidor dibuja sobre un framebuffer invisible. O se le
+   da salida por Bluetooth, o se retira la entrada. **Dejarlo así es la peor de las tres.**
+3. **¿Se retiran del `lcd.h` del Maestro las tres declaraciones sin definición?**
+   `lcd_dibujarNoDisponible`, `lcd_dibujarTextoRecibido` y `lcd_dibujarConfigMinutos` **ya no
+   están en `lcd.cpp`** —§5.10 las daba por código muerto *dentro* del `.cpp`, y esa frase
+   envejeció—: hoy son **declaraciones huérfanas en el header**. No cuestan flash; cuestan que
+   alguien las busque.
+4. **¿Cómo sabe el operario que el reloj no está puesto, sin teléfono?** El aviso *«RELOJ SIN
+   PONER EN HORA»* vivía sólo en §5.3. Caso particular de **`D-16`**.

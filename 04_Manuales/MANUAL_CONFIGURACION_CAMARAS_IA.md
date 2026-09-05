@@ -175,11 +175,22 @@ entradas más** en `J16`, pendientes de `M3` (§0.ter):
 
 | Pin | Lo que realmente es | Referencia |
 |---|---|---|
-| **`PB9`** (`J16` p5) | **`BOTON1` = `MANDO_A`**, canal `A` del mando de relés | `pines.h:122`, `mando.cpp:225-227` |
-| **`PB13`** (`J16` p8) | **`BOTON2` = `MANDO_B`**, canal `B` del mando de relés | `pines.h:123`, `mando.cpp:230-234` |
+| **`PB9`** (`J16` p5) | **`BOTON1` = `MANDO_A`**, canal `A` del mando de relés | símbolos `BOTON1` en `pines.h`, `MANDO_A` en `mando.cpp` |
+| **`PB13`** (`J16` p8) | **`BOTON2` = `MANDO_B`**, canal `B` del mando de relés | símbolos `BOTON2` en `pines.h`, `MANDO_B` en `mando.cpp` |
 | **`PB8`** | **`LED_TESTIGO`** — `R16` 1 kΩ → LED `D5`. **Salida, no bornera** | `pines.h:63` |
 | `PA9` / `PA10` | `RS485_IN` — el MAX3485 `U2` y la bornera `J10`. **NO es el Bluetooth** | `pines.h:127-139` |
 | `PB6` / `PB7` (`J17`) | **USART1 remapeado — aquí sí está el Bluetooth / ESP32** | `bluetooth.cpp:28` |
+
+> ### ⚠️ 05/09: EL MANDO SE RETIRÓ COMO HARDWARE, Y ESO **NO** HACE SEGUROS ESTOS DOS PINES
+>
+> **`D-1` retiró el equipo, no el código** —y lo dice por escrito: *«el CÓDIGO no se toca»*—.
+> `botones_actualizar()` sigue leyendo `BOTON1`/`BOTON2` en cada vuelta, con `pinMode(…, INPUT)`
+> pelado y **activo en ALTO**, y sigue llamando a `mando_registrarPulso(MANDO_A/B)` en cada
+> flanco. `mando.cpp` sigue reconociendo `A·A·A`, `B·B·B` y `A·B·A·B`.
+>
+> **O sea que el aviso de abajo NO caduca: vale hoy exactamente igual, y ahora sin ningún
+> pulsador legítimo compitiendo por el pin.** La spec da `J16` p5 y p8 como **libres y sin
+> cablear** (`05_Funcional/17_…`) — *libres de cobre*, **no** *libres de firmware*.
 
 🔴 **Conectar un relé de cámara a `PB9` o `PB13` no inyecta «pulsaciones de menú»: compone
 SECUENCIAS DE MANDO.** Tres pulsos de tráfico dentro de la ventana de 12 s hacen `A·A·A` o `B·B·B`,
