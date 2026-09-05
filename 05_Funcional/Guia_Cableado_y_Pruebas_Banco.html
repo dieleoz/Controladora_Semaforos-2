@@ -170,8 +170,15 @@
   .diagrama pre { margin: 0; font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji";
     font-size: .76rem; line-height: 1.45; color: var(--tinta-2); white-space: pre; }
 
+  /* Un <code> es UNA palabra sin espacios, y el navegador no parte palabras: un literal
+     largo -«$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA» son 57 caracteres-
+     ensancha el parrafo, el parrafo ensancha la hoja y la hoja se corta por la derecha en
+     un telefono. MEDIDO con ese literal dentro y sin esta linea: 140 / 162 / 192 / 232 px
+     de desborde a 412 / 390 / 360 / 320. No se acorta el literal -es el que hay que
+     reconocer en la pantalla del movil-: se le deja partirse. */
   code { font-family: "IBM Plex Mono", Consolas, "Courier New", monospace, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"; font-size: .9em;
-    background: var(--linea-2); padding: .06em .3em; border-radius: 2px; }
+    background: var(--linea-2); padding: .06em .3em; border-radius: 2px;
+    overflow-wrap: anywhere; }
 
   /* ---------- campos ---------- */
   .ident { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
@@ -324,7 +331,19 @@
     }
     body { background: #fff; color: #000; font-size: 9.5pt; line-height: 1.35; }
     .hoja { padding: 0; gap: .8rem; max-width: none; }
-    .barra, .noimprimir, .detalle-cab { display: none !important; }
+    .barra, .noimprimir { display: none !important; }
+
+    /* 🔴 Y AQUI ESTABA `.detalle-cab`, QUE DEJABA EL ARREGLO DEL 02/09 EN NADA (04/09 tarde).
+       El div «detalle-cab» es el PADRE de los seis <details>. Un `display:none` en el padre
+       saca del arbol de pintado a TODA su descendencia, y el `details { display:block
+       !important }` de aqui abajo NO lo puede levantar: no hay forma de que un hijo se pinte
+       dentro de un padre que no se pinta. O sea que los 12.600 caracteres seguian sin salir
+       en el PDF -las conexiones de bornera, la placa del modulo y «lo que esta visita NO
+       decide»- con un parrafo escrito justo encima afirmando que si salian.
+       Es la misma forma que el repositorio ya conoce: el instrumento estaba verde porque una
+       FRASE al lado lo justificaba, y las frases no se compilan. Medido: el bloque son
+       ~19.000 caracteres de la hoja. Se quita de la lista, y se quita tambien el
+       `noimprimir` de la etiqueta del div, que hacia exactamente lo mismo por otro nombre. */
 
     /* 🔴 AQUI ESTABA `details` TAMBIEN, Y SE LLEVABA 12.600 CARACTERES AL PDF.
        Entre lo que NO salia impreso: «Consulta · que va en cada bornera» -las
@@ -377,8 +396,13 @@
     <p class="sub"><b>Las explicaciones no están aquí, están abajo en «El detalle»</b>, con un enlace
       en cada paso. <b>No hay que leerlo antes de empezar</b>: se va a él cuando algo no sale. Las dos
       tarjetas son iguales; cambia qué cámara y qué barrera cuelgan de cada una.</p>
+    <p class="sub">🛑 <b>Antes de nada, lee el recuadro «LO QUE YA SABEMOS»</b>, aquí debajo. Lo que
+      se reportó de <b>los cuatro modos de la ventana inicial</b> ya está diagnosticado —con fichero
+      y línea—, y <b>el firmware que traes cargado arregla la mitad</b>. Lo que se te pide hoy no es
+      volver a diagnosticarlo: es <b>comprobar que el arreglo funcionó</b> y <b>cronometrar lo que
+      sigue igual</b> (pasos 30 a 33). <b>Si vuelves a diagnosticar, se pierde la sesión.</b></p>
     <div class="meta">
-      <span>revisión del <b>04 · 09 · 2026</b></span><span>31 pasos</span>
+      <span>revisión del <b>04 · 09 · 2026 · noche</b></span><span>36 pasos</span><span>firmware con N-42 y N-133 arreglados</span>
     </div>
   </header>
 
@@ -429,6 +453,128 @@
       <li><b>VERDE en los dos postes a la vez, aunque sea un instante: corta la alimentación y
         avisa.</b> Es lo único que se para en el acto.</li>
     </ol>
+  </div>
+
+  <!-- ===================================================================
+       LO QUE YA SABEMOS QUE FALLA. Escrito la tarde del 04/09, cuando por
+       primera vez las dos placas se hablaron y aparecieron los sintomas de
+       los cuatro modos. Las dos causas estan LEIDAS EN EL FUENTE, con
+       fichero y linea, no deducidas del sintoma. Lo que se le pide al banco
+       no es que las diagnostique otra vez: es que las CRONOMETRE, porque el
+       reloj es lo unico que las distingue de cualquier otra explicacion.
+       =================================================================== -->
+  <div class="parar" id="ya-sabemos">
+    <b>🛑 LO QUE YA SABEMOS · UNA COSA ARREGLADA QUE HAY QUE PROBAR, Y UNA QUE SIGUE IGUAL</b>
+    <p><b>Esto es del 4 de Septiembre, y cambia el día.</b> Por primera vez las dos placas se
+      hablan, y eso destapó lo que se reportó: <b>«los cuatro modos de la ventana inicial no
+      funcionan»</b>. <b>No eran cuatro fallos: eran dos causas.</b> <b>Una está arreglada en el
+      firmware que traes cargado</b> y <b>la otra sigue exactamente igual, a propósito</b>. Saber
+      cuál es cuál es lo que evita que se pierda la sesión.</p>
+    <p>🟢 <b>Lo que necesitamos de ti no es el diagnóstico: es el CRONÓMETRO.</b> Los pasos
+      <b>30, 31, 32 y 33</b> son medidas de reloj. <b>Si el cronómetro dice otra cosa que lo escrito
+      aquí, manda el cronómetro</b> — se escribe tal cual y se da por refutado lo de abajo.</p>
+
+    <p><b>🟢 CAUSA 1 · ARREGLADA. El Modo Automático ya arranca corriendo — y probarlo es el
+      objetivo de esta carga.</b></p>
+    <p><b>Lo que pasaba hasta ayer, y por qué se cuenta:</b> al mandar «Modo Automático» el equipo
+      contestaba <code>$ACK … RESULT:OK</code>, el Maestro se ponía en ROJO <b>y ahí se quedaba</b>,
+      y a los ~25 s el Esclavo se iba a ámbar él solo. El modo entraba en un <b>cuestionario de
+      tiempos de la pantalla</b> cuya única salida era el botón <b>Aceptar</b>, que <b>devuelve
+      siempre «no pulsado»</b> desde que los botones 3 y 4 pasaron a ser entradas de cámara. Como no
+      llegaba a «corriendo», el ciclo no corría <b>y no salía ni una trama al aire</b>.</p>
+    <p><b>Qué cambió:</b> <b>se ha retirado el cuestionario entero</b>. Hay <b>una sola puerta</b> y
+      el modo <b>arranca corriendo</b>. Ahora el ciclo se mueve, el Maestro habla por la radio y
+      <b>el Esclavo NO debe irse a ámbar</b> estando en Automático.</p>
+    <p class="porque">Medido en el fuente que traes: <code>Maestro/src/modo_automatico.cpp:15</code>
+      (el enum es <code>{ CORRIENDO }</code>, sin fases) y <code>:125-171</code> ·
+      <code>Maestro/src/bluetooth.cpp:444</code>.</p>
+    <p>🔴 <b>Y por eso el paso 30 es la prueba más valiosa del día, aunque parezca la más
+      aburrida.</b> Ya no confirma una causa: <b>es la prueba de que el arreglo funcionó.</b> <b>Si
+      el Esclavo se va a ámbar en Automático, el arreglo NO sirvió y hay una segunda causa que
+      nadie ha visto todavía.</b> <b>Ese resultado vale más que todo lo demás de la hoja: escríbelo
+      con todo el detalle que puedas.</b></p>
+    <p><b>🟠 Y esto sigue siendo verdad y hay que saberlo aunque ya no sea el fallo:</b> <b>«el
+      Maestro está en rojo, luego hay comunicación» NO se deduce.</b> Una placa encendida, con la
+      luz puesta y <b>contestando a la app</b>, no demuestra que esté emitiendo por la radio:
+      <b>la app entra por Bluetooth, que es otro cable y otro chip</b>. <b>Vivo no es hablando.</b>
+      Si el Esclavo se va a ámbar, <b>no es una avería del Esclavo</b>: es que lleva 25 s sin oír al
+      Maestro y se pone en el único estado seguro que puede decidir solo (SFTY-6). <b>El fallo, si
+      lo hay, está en la punta que calla — no en la que avisa.</b></p>
+
+    <p><b>🔴 CAUSA 2 · SIGUE IGUAL, Y NO POR OLVIDO. El ámbar y el rojo total no llegan igual a las
+      dos puntas: no hay propagación de ámbar diseñada.</b></p>
+    <p><b>Esto NO se ha tocado en la carga nueva</b> —el arreglo de la causa 1 no lo roza—, así que
+      <b>lo que veas aquí va a ser lo mismo que viste el 04/09</b>. <b>No es que el arreglo se haya
+      quedado a medias: es que esto es una decisión vial que no está tomada</b>, y está en la
+      pregunta 12 esperando respuesta. <b>Los pasos 31 y 32 miden esto y siguen valiendo enteros.</b></p>
+    <div class="tabla-envoltorio">
+      <table>
+        <thead><tr><th>lo que mandas</th><th>dónde existe</th><th>qué le pasa a la OTRA punta</th></tr></thead>
+        <tbody>
+          <tr><td><code>SET_MODO:AMBAR</code></td><td><b>sólo en el Maestro</b></td>
+            <td>El ámbar del Maestro <b>empieza mandando ROJO al Esclavo</b>, así que el Esclavo se
+              pone <b>en rojo al instante</b>. Y como después el Maestro calla, el Esclavo se va a
+              <b>ámbar solo, a los ~25 s</b>, <b>por orfandad</b> — no porque se lo hayan
+              ordenado</td></tr>
+          <tr><td><code>AMBAR_EMERGENCIA</code></td><td><b>sólo en el Esclavo</b></td>
+            <td><b>El Maestro no se entera.</b> No existe ninguna orden que se lo diga</td></tr>
+          <tr><td><code>FORZAR_ROJO</code> <b>en el Maestro</b></td><td>sí</td>
+            <td>🟢 <b>Esta sí propaga:</b> el Esclavo se pone en rojo <b>al instante</b></td></tr>
+          <tr><td><code>FORZAR_ROJO</code> <b>en el Esclavo</b></td><td><b>rechazado</b></td>
+            <td>Contesta <code>$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA</code> y
+              <b>no se mueve nada. Eso es lo correcto hoy, no un fallo</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><b>Por eso «a veces los dos, a veces sólo el maestro, a veces sólo el esclavo»:</b> depende
+      de <b>a qué poste estabas conectado</b> y de <b>cuánto esperaste</b>. Con el ámbar puesto
+      desde el Maestro, a los 10 s ves uno y a los 30 s ves los dos — <b>y es el mismo equipo
+      haciendo exactamente lo mismo las dos veces</b>. <b>No es intermitencia, ni un mal contacto,
+      ni la radio.</b></p>
+    <p class="porque">Medido en: <code>Maestro/src/modo_ambar.cpp:30-36</code> ·
+      <code>Maestro/src/coordinador.cpp:554-562</code> ·
+      <code>Esclavo/src/bluetooth.cpp:381, 448-450</code> ·
+      <code>Esclavo/src/main.cpp:572</code> (<code>SFTY6_SILENCIO_MS = 25000</code>).</p>
+
+    <p><b>🟠 TERCERA, menor · «Poste 2: no informa» no es un fallo nuevo.</b> El mensaje que cada
+      equipo manda al teléfono lleva <b>un solo campo de estado: el suyo</b>. No hay hueco para el
+      estado de la otra punta, así que <b>conectado al Maestro nunca vas a ver al Esclavo</b>, esté
+      como esté. Está en <code>Maestro/src/bluetooth.cpp:787</code>.</p>
+
+    <p><b>🟢 Y LO SEGUNDO QUE TRAE ESTA CARGA: los tiempos del ciclo ya SOBREVIVEN al corte de
+      luz.</b> Hasta ayer los tiempos que fijabas con <code>SET_TIEMPOS</code> vivían <b>sólo en
+      memoria viva</b>: el equipo contestaba <code>$ACK</code>, y un corte de luz —o entrar en el
+      modo— los devolvía a los mínimos <b>sin avisar</b>. El técnico se iba del poste creyendo que
+      había dejado el ciclo puesto. <b>Ahora se guardan en el respaldo con pila propia</b>, entran
+      en su suma de comprobación, y al recuperarlos <b>se les vuelve a mirar el rango</b> aunque la
+      suma apruebe. <b>Eso se prueba en el paso 33</b>, que hasta hoy no se podía hacer.</p>
+    <div class="parar" style="margin-top:.5rem">
+      <b>🛑 LA PRIMERA VUELTA DE ENERGÍA CON ESTE FIRMWARE BORRA EL RESPALDO. ES CORRECTO Y ESTÁ
+        DISEÑADO ASÍ</b>
+      <p>El respaldo lleva una <b>firma de formato</b>, y esta carga <b>la cambia</b> —el sitio
+        donde ahora van los tiempos del ciclo antes no existía—. Un equipo que se encuentre la firma
+        vieja <b>tira el contenido y empieza limpio</b>, porque leer los datos de antes con el
+        reparto de ahora sería inventarse un ciclo que nadie configuró.</p>
+      <p><b>Consecuencia práctica, y si no se dice alguien reporta un defecto que no existe:</b> la
+        <b>PRIMERA</b> vez que enciendas con este programa <b>el equipo arranca con los mínimos</b>,
+        aunque le hubieras puesto tiempos antes. <b>Eso no es el fallo de N-133: es la firma nueva
+        haciendo su trabajo.</b> <b>La prueba del paso 33 vale a partir de la SEGUNDA vuelta de
+        energía</b> — pones tiempos, cortas, y miras.</p>
+    </div>
+
+    <p><b>🛑 LO QUE NO HAY QUE HACER HOY, porque ya está descartado por lectura del programa:</b>
+      no cambies el módulo Bluetooth, no cambies la radio ni la antena, no recablees
+      <code>J12</code>, y <b>no des por rota la tarjeta del Esclavo por irse a ámbar</b>: irse a
+      ámbar cuando lleva 25 s sin oír al Maestro <b>es lo que tiene que hacer</b>. ⚠️ <b>Lo que sí
+      hay que comprobar es que entró el binario NUEVO</b> —paso 2 y paso 2.bis—: casi todo lo de
+      arriba <b>cambia según qué programa haya dentro</b>, y con el viejo volverás a ver el fallo
+      entero y lo reportarás como si no estuviera arreglado.</p>
+    <div class="anota">
+      <p class="porque">Antes de tocar nada, y en una línea: ¿qué modo tenía cada equipo cuando
+        viste el fallo? <input type="text" id="a0ya" placeholder="p. ej. Maestro en Automático, Esclavo sin tocar"></p>
+      <p class="porque">¿Te habías conectado al Maestro o al Esclavo cuando pusiste ámbar / rojo
+        total? <input type="text" id="a0yb" placeholder="Maestro / Esclavo / a los dos, uno detrás de otro"></p>
+    </div>
   </div>
 
   <div class="marco">
@@ -650,6 +796,14 @@
         <p><b>HAZ:</b> equipo encendido, <code>J16</code> <b>vacío</b>, nadie tocando nada. Mide
           contra masa (<code>J16</code> p2) las cuatro posiciones de señal.</p>
         <p><b>TIENES QUE VER:</b> <b>0 V en las CUATRO</b>.</p>
+        <!-- ESTA TABLA IBA SIN .tabla-envoltorio, Y ERA LA UNICA DE LAS TRECE (04/09 tarde).
+             Con `table { min-width: 30rem }` y sin contenedor que haga scroll, ensanchaba el
+             DOCUMENTO ENTERO y cortaba la hoja por la derecha en cualquier telefono. MEDIDO en el
+             navegador antes de envolverla: 169 / 191 / 221 / 261 px de desborde a 412 / 390 / 360 /
+             320 px, y ninguna otra tabla de la hoja aportaba un pixel. Es el mismo defecto que ya
+             se pago una vez: una captura a 412 px no habria ensenado nada porque a 412 tambien
+             desbordaba. Envuelta, se desliza sola dentro de su marco. -->
+        <div class="tabla-envoltorio">
         <table>
           <thead><tr><th>posición</th><th>qué es</th><th>antes del 04/09</th><th>ahora tiene que dar</th><th>lo que mides</th></tr></thead>
           <tbody>
@@ -659,6 +813,7 @@
             <tr><td><b>p12</b></td><td>cámara D</td><td>0 V</td><td><b>0 V</b></td><td><input type="text" id="m2b12" placeholder="___ V"></td></tr>
           </tbody>
         </table>
+        </div>
         <p class="porque"><b>Por qué funciona:</b> la placa lleva 10 kΩ a masa en las cuatro señales.
           Con el pull-up interno encendido —el programa viejo— ese pull-up peleaba contra los 10 kΩ y
           dejaba el pin en <b>0,6 V</b>. Sin pull-up —el programa nuevo— no hay nada que empuje hacia
@@ -769,7 +924,26 @@
       <p class="ver"><b class="et">Ver</b> Las lámparas encienden y <b>cambian de color solas</b>.
         ⚠️ <b>El zumbador de <code>J13</code> no suena nunca: está en la placa y el programa no lo
         enciende. NO es avería y no hay que cambiarlo.</b></p>
+      <div class="marco" style="margin-top:.4rem">
+        <b>🟢 ESTE PASO VUELVE A SER EJECUTABLE — y hay que decir por qué estuvo bloqueado</b>
+        <p><b>El equipo arranca en el MENÚ</b>, y en el menú <b>nadie pide el cambio de fase</b>: el
+          enlace de radio se mantiene vivo, pero <b>las luces se quedan quietas</b>. Eso <b>no ha
+          cambiado y es lo normal</b>. Para verlas ciclar hay que <b>entrar en un modo</b>, y eso se
+          hace desde el teléfono o con el USB-TTL a 9600 — <b>o sea que este paso se hace después
+          del enlace de los pasos 9 a 14</b>, aunque esté escrito más arriba.</p>
+        <p><b>La puerta que se usa es <code>CMD:PIN:1234:SET_MODO:AUTO</code>.</b> ✏️ <b>Hasta el
+          04/09 esa puerta estaba cerrada</b> —el Modo Automático se quedaba en un cuestionario del
+          que no salía— y esta guía mandaba entrar por <code>SET_MODO:INTELIGENTE</code> como rodeo.
+          <b>El firmware que traes lo arregla</b>, así que <b>se entra por Automático, que además es
+          lo que hay que probar hoy.</b></p>
+        <p>🔴 <b>Y aquí está el valor de contarlo:</b> si al mandar <code>SET_MODO:AUTO</code>
+          <b>las luces siguen sin moverse</b>, <b>eso es una regresión y es el hallazgo de la
+          sesión</b> — no lo apuntes como «no se pudo»: apúntalo como <b>NO lo vi</b> y escribe qué
+          contestó el equipo, palabra por palabra.</p>
+      </div>
       <div class="anota">
+        <p class="porque">¿Cómo pusiste el ciclo en marcha? <input type="text" id="a6a" placeholder="SET_MODO:AUTO por app / por USB-TTL / no se pudo">
+          &nbsp; ¿Ciclaron después de eso? <input type="text" id="a6b" class="en-linea"></p>
         <div class="tres">
           <label class="si"><input type="radio" name="p6" value="si"> Lo vi</label>
           <label class="no"><input type="radio" name="p6" value="no"> NO lo vi</label>
@@ -790,7 +964,16 @@
         otro. 🔴 <b>Verde en los dos a la vez, aunque sea un instante: corta la alimentación y
         avisa.</b> ⚠️ <b>Las luces de peatón (<code>J11</code>, <code>J9</code>) no encienden nunca:
         el programa no las mueve. Sólo hay seis luces. NO es avería.</b></p>
+      <p class="porque">🟢 <b>Igual que el paso 6: sin un modo corriendo no hay verdes que comparar.
+        Este paso se hace en MODO AUTOMÁTICO</b> (<code>CMD:PIN:1234:SET_MODO:AUTO</code>). ✏️ Hasta
+        el 04/09 había que entrar por <s><code>SET_MODO:INTELIGENTE</code></s> porque el Automático
+        no arrancaba; <b>el firmware que traes lo arregla</b>. ⚠️ <b>Con los mínimos vigentes el
+        verde dura 3 minutos</b>, así que <b>ver dos ciclos enteros son unos 13 minutos</b>: cuenta
+        con ello y no lo des por parado a los treinta segundos. <b>La comprobación de seguridad vale
+        entera en cualquier modo</b> —verde en los dos a la vez, aunque sea un instante, se para y se
+        avisa—. Anota con qué modo lo mediste.</p>
       <div class="anota">
+        <p class="porque">¿Con qué modo lo mediste? <input type="text" id="a7d" placeholder="INTELIGENTE / MANUAL / otro / no se pudo"></p>
         <p class="porque">Orden de colores en un poste:</p>
         <textarea id="a7a" placeholder="p.ej.: verde -> ámbar -> rojo -> (los dos en rojo) -> ..."></textarea>
         <p class="porque" style="margin-top:.3rem">Segundos con los dos en rojo: <input type="text" id="a7b" class="en-linea">
@@ -1049,6 +1232,15 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
   </div>
 
   <h2><span class="n">05</span> La talanquera</h2>
+  <p class="sub" style="margin-top:.4rem">🟢 <b>Los pasos 15 y 16 piden un ciclo en marcha</b>
+    —«con qué luz sube» y «cuándo baja» no significan nada con las luces quietas—. <b>Pon el ciclo
+    con <code>CMD:PIN:1234:SET_MODO:AUTO</code></b> y mide entonces. ✏️ <b>Hasta el 04/09 estos dos
+    pasos estaban bloqueados</b>: el Automático no arrancaba y había que entrar por
+    <s><code>SET_MODO:INTELIGENTE</code></s>. <b>El firmware que traes lo arregla.</b> ⚠️ <b>Con
+    verdes de 3 minutos, la pluma tarda en moverse</b>: no lo des por muerto pronto. <b>Si no
+    pudiste poner el ciclo en marcha, van a «No se pudo» con el motivo escrito</b> — y <b>eso ya
+    sería una regresión</b>, dilo. <b>Lo que sí se marca «NO cumple» es una pluma que sube en
+    ROJO</b>, sea cual sea el modo.</p>
 
   <div class="fila" id="f15">
     <div class="fn">15</div>
@@ -1106,6 +1298,16 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
   <p class="sub"><b>Las entradas se simulan con un cable, pero no con el mismo gesto:</b> en
     <code>J14</code> el cable va <b>entre sus dos bornes</b>; en <code>J16</code> va del pin
     <b>a los 3,3 V</b>, nunca a masa. Y <code>J16</code> <b>no se cablea hasta el paso 20</b>.</p>
+  <p class="sub">🛑 <b>«Le concede el verde» sólo puede pasar en MODO INTELIGENTE, y eso afecta a los
+    pasos 19 y 21.</b> La petición de la cámara <b>únicamente la atiende ese modo</b>: en el menú, en
+    Automático o en Manual la entrada se lee y <b>no mueve el cruce</b>. ⚠️ <b>Esto NO lo arregla la
+    carga del 04/09 y no es un descuido de ella:</b> el Automático da los verdes <b>por reloj</b>, no
+    por demanda, y eso es lo que tiene que hacer. <b>Así que estos dos pasos —y sólo estos dos— se
+    hacen en <code>CMD:PIN:1234:SET_MODO:INTELIGENTE</code></b>, puesto desde el MAESTRO, y se
+    anota. <b>Sin ese modo, un «no responde» no acusa a la cámara ni a la placa: no hay quien
+    atienda la petición</b>, y marcarlo «NO cumple» mandaría a alguien a buscar un fallo que no está
+    ahí. La otra mitad del paso —<b>«si pide paso sin que nadie pase, para y anótalo»</b>— <b>sí vale
+    en cualquier modo</b> y es la que hay que mirar con el cable puesto y sin tocar nada.</p>
 
   <div class="fila" id="f17">
     <div class="fn">17</div>
@@ -1183,10 +1385,18 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
         los pines <b>5, 8, 10 y 12</b> contra el pin <b>2 (masa)</b> y contra el <b>4 (3,3 V)</b>.
         <b>(b) Con energía</b>, continua: esos cuatro contra masa.</p>
       <p class="ver"><b class="et">Ver</b> <b>Bien:</b> ~<b>10 kΩ a masa</b>, abierto a 3,3 V, y en
-        (b) <b>casi 0 V en 10 y 12</b> → se puede cablear. 🔴 <b>Mal:</b> abierto a masa, o 3,3 V en
-        reposo → <b>NO se cablea</b>: anota y sigue. <b>En (a) los cuatro dan igual</b>; el que se
-        salga es el hallazgo. <b>En (b) no</b>: lo normal es <b>5 y 8 altos, 10 y 12 casi cero</b>,
-        y si dieran los cuatro igual, <b>eso</b> es el hallazgo.</p>
+        (b) <b>casi 0 V en los CUATRO</b> → se puede cablear. 🔴 <b>Mal:</b> abierto a masa, o 3,3 V
+        en reposo → <b>NO se cablea</b>: anota y sigue. <b>Los cuatro dan igual en (a) y en (b)</b>;
+        el que se salga es el hallazgo.</p>
+      <p class="porque">✏️ <b>04/09 · CORREGIDO, y esto habría hecho reportar un defecto que no
+        existe.</b> Aquí ponía <s>«en (b) lo normal es 5 y 8 altos, 10 y 12 casi cero, y si dieran
+        los cuatro igual, eso es el hallazgo»</s>. <b>Es al revés con el firmware de este
+        paquete:</b> el mando ya <b>no</b> enciende la resistencia interna hacia arriba
+        (<code>pinMode(BOTON1, INPUT)</code> pelado, <code>Maestro/src/botones.cpp:160-161</code>),
+        así que <b>los cuatro tienen que dar casi 0 V</b> y <b>eso es lo correcto</b>. Es
+        exactamente lo que mide el <b>paso 2.bis</b>, y los dos pasos estaban <b>diciendo lo
+        contrario dentro de la misma hoja</b>. <b>Si te salen 5 y 8 a ~0,6 V, no es un hallazgo: es
+        que se cargó el binario viejo</b> — vuelve al paso 2.</p>
       <div class="anota">
         <div class="tabla-envoltorio" style="margin:.2rem 0 .4rem">
           <table>
@@ -1469,8 +1679,13 @@ CON EL PIN MAL, en cualquiera:   CMD:PIN:0000:SET_MODO:AUTO</pre>
           casilla</b>; no se baja el límite por comodidad de la prueba.</p>
       </div>
       <p><b class="et">Haz</b> Contra el <b>MAESTRO</b>, y con el modo automático <b>parado</b>
-        —con el ciclo en marcha lo rechaza por otro motivo distinto, y entonces la prueba no mide lo
-        que quiere medir—:</p>
+        —sácalo con <code>CMD:SET_MODO:MENU</code>; con el ciclo en marcha lo rechaza por otro motivo
+        distinto, y entonces la prueba no mide lo que quiere medir—:</p>
+      <p class="porque">🛑 <b>Si TODAS te contestan
+        <code>EN_MARCHA_PARE_EL_MODO</code> —también las dos que deberían aceptarse— no sigas
+        probando rangos: no estás midiendo el rango, estás chocando con otra guarda.</b> Es lo que
+        mira el <b>paso 33</b>. <b>Anótalo, marca «No se pudo» con ese motivo</b> y ve allí: de los
+        límites de 3 minutos no se sabrá nada hasta que alguna orden pase.</p>
       <div class="diagrama" style="margin:.3rem 0">
 <pre>DEBE ACEPTARSE   CMD:PIN:1234:SET_TIEMPOS:3,3,10     el minimo justo
                  CMD:PIN:1234:SET_TIEMPOS:15,15,90   el maximo justo
@@ -1501,11 +1716,23 @@ Y CON EL CICLO EN MARCHA, cualquiera de ellas -> EN_MARCHA_PARE_EL_MODO</pre>
         <textarea id="t28b" placeholder="Qué pasó · si aceptó un valor bajo, cuál y qué contestó"></textarea>
         <p class="porque" style="margin-top:.45rem">⚠️ <b>Y una cosa aparte, que no es el rango:</b>
           después de fijar tiempos, <b>entra en Modo Automático desde la app</b> y vuelve a mirar qué
-          tiempos usa el equipo. <b>Si no son los que pusiste, anótalo tal cual</b> — hay una lectura
-          del fuente que apunta a que el arranque los reescribe, <b>y nadie la ha ejercido en
-          tarjeta</b>. No lo des por diagnosticado: sólo dinos lo que viste.</p>
+          tiempos usa el equipo. <b>Si no son los que pusiste, anótalo tal cual.</b></p>
+        <p class="porque">🟢 <b>ESTA MITAD YA SE PUEDE MEDIR, y hasta el 04/09 no se podía.</b>
+          «Los tiempos con los que ciclaba después» exige que el ciclo <b>cicle</b>, y el Automático
+          no llegaba a arrancar. <b>Con el firmware que traes, arranca.</b> ✏️ <b>Y se corrigen dos
+          cosas que esta guía daba por ciertas:</b> el modo <b>ya no reescribe los tiempos al
+          entrar</b> —ni a <s>1 / 1 / 15</s> ni a <s>3 / 3 / 10</s>—, <b>respeta los que haya</b>; y
+          además <b>los recupera del respaldo</b> si el equipo viene de un corte. <b>Lo que tiene que
+          pasar ahora es que salgan los MISMOS que pusiste</b>, y si no salen, <b>eso es el
+          hallazgo</b>. Está en <code>Maestro/src/modo_automatico.cpp:90-97, 125-171</code>.</p>
+        <p class="porque">⚠️ <b>Y no te sorprendas si <code>SET_TIEMPOS</code> te contesta
+          <code>EN_MARCHA_PARE_EL_MODO</code> más que antes:</b> ahora el Automático <b>está en
+          marcha desde que entras</b>, y los tiempos <b>no se tocan con el ciclo corriendo</b>. Es
+          deliberado —bajarlos a mitad de fase acortaría un todo-rojo ya empezado—. <b>Sal del modo,
+          fija los tiempos, y vuelve a entrar.</b></p>
         <p class="porque">Tiempos que pusiste: <input type="text" id="a28bd" class="en-linea">
-          &nbsp; Tiempos con los que ciclaba después: <input type="text" id="a28be" class="en-linea"></p>
+          &nbsp; Tiempos con los que ciclaba después: <input type="text" id="a28be" class="en-linea">
+          &nbsp; ¿Llegó a ciclar? <input type="text" id="a28bf" class="en-linea"></p>
       </div>
     </div>
   </div>
@@ -1636,6 +1863,321 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
     <textarea id="lib6" style="min-height:2.4rem"></textarea>
   </div>
 
+  <!-- ===================================================================
+       APARTADO 08.bis - LOS TRES CRONOMETRAJES DEL 04/09.
+       El bloque rojo de arriba dice QUE pasa y POR QUE. Estos tres pasos
+       son lo unico que puede confirmarlo o tumbarlo, y no miden una luz:
+       miden un TIEMPO. Los 25 s de orfandad y los 0 s de una orden que
+       propaga se parecen en la foto y no se parecen en nada en el reloj.
+       =================================================================== -->
+  <h2><span class="n">08.bis</span> Los cuatro cronometrajes del reporte del 04/09</h2>
+  <p class="sub" style="margin-top:.4rem"><b>Éstos son los pasos que cierran lo de la tarde del
+    04/09</b>, y no se parecen a los demás: <b>aquí lo que se anota es un número de segundos</b>, no
+    un «sí» o un «no». <b>Un ámbar a los 25 s y un ámbar al instante son dos equipos distintos</b>
+    aunque en la foto se vean iguales, y el reloj es lo único que los distingue. Hacen falta <b>las
+    dos tarjetas encendidas y hablándose</b> (paso 8 en verde) y el teléfono o el USB-TTL conectado
+    al poste que se diga en cada paso.</p>
+  <div class="parar">
+    <b>🛑 LOS CUATRO CAMBIARON DE SIGNIFICADO CON LA CARGA NUEVA, Y NO TODOS EN EL MISMO SENTIDO</b>
+    <div class="tabla-envoltorio">
+      <table>
+        <thead><tr><th>paso</th><th>antes del 04/09 medía…</th><th>hoy mide…</th></tr></thead>
+        <tbody>
+          <tr><td><b>30</b> · los ~25 s del Automático</td>
+            <td>si el Maestro se quedaba mudo — <b>confirmaba la causa</b></td>
+            <td>🔴 <b>que el arreglo FUNCIONÓ.</b> Es una <b>prueba de no regresión</b>, y el
+              resultado que hay que temer es el contrario del de ayer</td></tr>
+          <tr><td><b>31</b> · el ámbar del Maestro</td>
+            <td>si el ámbar se propaga o el Esclavo se queda solo</td>
+            <td>🟢 <b>lo mismo, sin cambios.</b> Ese comportamiento <b>no se ha tocado</b> y sigue
+              siendo deliberado</td></tr>
+          <tr><td><b>32</b> · el rojo total</td>
+            <td>a qué punta llega desde cada poste</td>
+            <td>🟢 <b>lo mismo, sin cambios</b></td></tr>
+          <tr><td><b>33</b> · los tiempos tras el corte</td>
+            <td><b>no existía: no se podía hacer</b></td>
+            <td>🟢 <b>que los tiempos sobreviven al corte de luz</b> (lo nuevo de esta carga)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="marco">
+    <b>⏱️ Cómo se cronometra, para que los tres números se puedan comparar</b>
+    <p><b>El cronómetro arranca en el instante en que el equipo CONTESTA</b> —cuando ves el
+      <code>$ACK</code> o el <code>$ERR</code> en la pantalla—, no cuando pulsas. <b>Y se para
+      cuando la luz del otro poste cambia</b>, no cuando te das cuenta. Si no puedes ver los dos
+      postes a la vez, <b>dilo</b>: el número seguirá valiendo, pero con esa reserva escrita.</p>
+    <p><b>Referencia que ya conoces: el paso 8 midió estos mismos 25 s cortando la radio.</b> Si
+      aquí te sale la misma cifra, es el mismo mecanismo — el Esclavo lleva 25 s sin oír al Maestro.
+      <b>Si te sale muy distinta, ESO es el hallazgo</b> y hay que replantear la causa.</p>
+  </div>
+
+  <div class="fila alto" id="f30">
+    <div class="fn">30</div>
+    <div class="fc">
+      <p class="ft">Modo Automático: <b>que el Esclavo NO se vaya a ámbar</b> — la prueba del arreglo</p>
+      <div class="parar">
+        <b>🔴 ÉSTE ES EL PASO MÁS VALIOSO DEL DÍA, Y CAMBIÓ DE SENTIDO</b>
+        <p>Escrito ayer, este paso <b>cronometraba los 25 s para confirmar que el Maestro se quedaba
+          mudo</b>. <b>Eso ya está arreglado en el firmware que traes.</b> Hoy el paso mide lo
+          contrario: <b>que NO pase</b>. <b>Es una prueba de que el arreglo funcionó</b>, y el
+          resultado que hay que temer es justo el que ayer se esperaba.</p>
+        <p>🛑 <b>Si el Esclavo se va a ámbar en Automático, el arreglo NO sirvió y hay una segunda
+          causa que nadie ha visto todavía.</b> <b>Ese resultado vale más que todo lo demás de esta
+          hoja</b>: escríbelo con todo el detalle que puedas —qué hacía cada poste, en qué segundo,
+          qué contestó el equipo— y <b>avisa antes de seguir con el resto de la sesión</b>.</p>
+      </div>
+      <p><b class="et">Haz</b> Las dos tarjetas encendidas y con radio. Conéctate al <b>MAESTRO</b>.
+        <b>Antes de mandar nada</b>, mira si las luces se están moviendo y apúntalo. Manda
+        <code>CMD:PIN:1234:SET_MODO:AUTO</code> (o el botón «Modo Automático» de la app) y
+        <b>arranca el cronómetro en cuanto conteste</b>. <b>No toques nada más</b> y mira el
+        <b>ESCLAVO durante DOS MINUTOS enteros</b> — el número que importa está en los primeros 30 s,
+        pero hay que esperar para poder escribir «no se fue». <b>Tres veces</b>, dando tensión de
+        nuevo a las dos tarjetas entre una y otra.</p>
+      <p class="ver"><b class="et">Ver</b> El Maestro contesta <code>$ACK … RESULT:OK</code>,
+        <b>las luces empiezan a ciclar</b> y <b>el Esclavo se queda obedeciendo: NO se va a
+        ámbar</b>. <b>Ese «no pasó nada» es el veredicto:</b></p>
+      <div class="diagrama" style="margin:.3rem 0">
+<pre>NADA en 2 min   ->  🟢 EL ARREGLO FUNCIONO. El Maestro esta hablando y el Esclavo
+                    le sigue. Es lo que se viene a comprobar.
+
+AMBAR a ~25 s   ->  🔴 REGRESION. El Maestro volvio a quedarse mudo, o hay una
+                    SEGUNDA causa. Es el hallazgo de la sesion: para y avisa.
+
+AMBAR INMEDIATO ->  🔴 Tampoco es orfandad -25 s son 25 s-. Es otra cosa distinta
+                    de todo lo diagnosticado. Anotalo tal cual.
+
+NO CICLAN LAS LUCES pero el Esclavo aguanta  ->  el enlace vive y el ciclo no
+                    arranca: son dos fallos distintos. Dilo asi, separado.</pre>
+      </div>
+      <p class="porque">⚠️ <b>Con los tiempos mínimos el primer cambio de luz tarda hasta 3 minutos.</b>
+        <b>No confundas «todavía no le toca» con «no cicla»</b>: lo que se mira en los primeros dos
+        minutos es <b>el Esclavo</b>, no el reloj del ciclo.</p>
+      <div class="anota">
+        <p class="porque">Antes de mandar la orden, ¿se movían las luces?
+          <input type="text" id="a30a" placeholder="sí, ciclaban / no, quietas / no lo miré">
+          &nbsp; ¿En qué modo estaba? <input type="text" id="a30b" class="en-linea"></p>
+        <p class="porque">Qué contestó el Maestro, literal: <input type="text" id="a30c"></p>
+        <div class="tabla-envoltorio" style="margin:.2rem 0 .4rem">
+          <table>
+            <thead><tr><th>vez</th><th>s hasta el ámbar del Esclavo (o «nada en 2 min»)</th><th>¿ciclaron las luces?</th></tr></thead>
+            <tbody>
+              <tr><td><b>1</b></td><td><input type="text" id="a30d" placeholder="nada / ___ s"></td><td><input type="text" id="a30e" placeholder="sí / no"></td></tr>
+              <tr><td><b>2</b></td><td><input type="text" id="a30f" placeholder="nada / ___ s"></td><td><input type="text" id="a30g" placeholder="sí / no"></td></tr>
+              <tr><td><b>3</b></td><td><input type="text" id="a30h" placeholder="nada / ___ s"></td><td><input type="text" id="a30i" placeholder="sí / no"></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="porque">¿Pudiste ver los dos postes a la vez? <input type="text" id="a30j" class="en-linea">
+          &nbsp; ¿Cuánto esperaste antes de darlo por bueno? <input type="text" id="a30k" class="en-linea"></p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p30" value="si"> El Esclavo NO se fue a ámbar · el arreglo funcionó</label>
+          <label class="no"><input type="radio" name="p30" value="no"> Se fue a ámbar · REGRESIÓN, avisar</label>
+          <label class="np"><input type="radio" name="p30" value="np"> No se pudo cronometrar</label>
+        </div>
+        <textarea id="t30" placeholder="Las tres veces y qué viste · si se fue a ámbar, en qué segundo y qué hacía el Maestro en ese momento: es el dato que más vale de la hoja"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="fila alto" id="f31">
+    <div class="fn">31</div>
+    <div class="fc">
+      <p class="ft">Ámbar desde el Maestro: <b>¿lo sigue el Esclavo al instante o a los 25 s?</b></p>
+      <p class="porque">🟢 <b>Este paso NO ha cambiado con la carga nueva, y es a propósito.</b> El
+        ámbar, el rojo total y la propagación entre puntas <b>siguen exactamente igual</b>: el
+        arreglo del Modo Automático no los roza. <b>Lo que midas aquí va a ser lo mismo que se vio
+        el 04/09</b>, y no es que el arreglo se haya quedado a medias — <b>es la decisión vial de la
+        pregunta 12, que sigue sin tomar</b>. <b>Se mide igual</b>: sin el número, la decisión se
+        toma a ojo.</p>
+      <p><b class="et">Haz</b> Con las dos hablándose y el Maestro <b>fuera</b> de Modo Automático
+        —déjalo en el menú—, conéctate al <b>MAESTRO</b> y
+        manda <code>CMD:PIN:1234:SET_MODO:AMBAR</code>. <b>Cronómetro en cuanto conteste</b>, y
+        <b>mira el ESCLAVO apuntando DOS tiempos</b>: cuándo se pone en <b>ROJO</b> y cuándo se pone
+        en <b>ÁMBAR intermitente</b>. <b>Dos veces.</b></p>
+      <p class="ver"><b class="et">Ver</b> <b>Son dos sucesos distintos, no uno:</b> el Esclavo se
+        pone en <b>ROJO casi al instante</b> (el ámbar del Maestro empieza mandando rojo al otro) y
+        en <b>ÁMBAR a los 23-28 s</b>, por orfandad. <b>Eso separa «obedeció» de «se quedó
+        solo»:</b></p>
+      <div class="diagrama" style="margin:.3rem 0">
+<pre>ROJO ~0 s  +  AMBAR ~25 s   ->  ES LO ESPERADO. No hay propagacion de ambar:
+                                lo que llega es una orden de ROJO, y el ambar
+                                se lo pone el Esclavo solo por dejar de oir.
+
+AMBAR EN LOS DOS, A LA VEZ  ->  Habria propagacion de ambar, y el programa NO la
+                                tiene. Anotalo: seria el hallazgo del dia.
+
+EL ESCLAVO NO HACE NADA     ->  Tampoco cuadra. Anota los dos minutos esperados.</pre>
+      </div>
+      <div class="anota">
+        <p class="porque">Qué contestó el Maestro, literal: <input type="text" id="a31a">
+          &nbsp; ¿En qué modo lo dejaste antes? <input type="text" id="a31b" class="en-linea"></p>
+        <div class="tabla-envoltorio" style="margin:.2rem 0 .4rem">
+          <table>
+            <thead><tr><th>vez</th><th>s hasta el ROJO del Esclavo</th><th>s hasta el ÁMBAR del Esclavo</th></tr></thead>
+            <tbody>
+              <tr><td><b>1</b></td><td><input type="text" id="a31c" placeholder="___ s"></td><td><input type="text" id="a31d" placeholder="___ s"></td></tr>
+              <tr><td><b>2</b></td><td><input type="text" id="a31e" placeholder="___ s"></td><td><input type="text" id="a31f" placeholder="___ s"></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="porque">¿El ámbar del Maestro empezó al instante? <input type="text" id="a31g" class="en-linea">
+          &nbsp; ¿Intermitente o fijo, en cada poste? <input type="text" id="a31h"></p>
+        <p class="porque">Y al revés, si te da tiempo: pon <code>CMD:AMBAR_EMERGENCIA</code> en el
+          <b>ESCLAVO</b> y mira el <b>MAESTRO</b> dos minutos. ¿Hizo algo?
+          <input type="text" id="a31i" placeholder="nada / se fue a ámbar a los __ s / otra cosa"></p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p31" value="si"> Rojo al instante y ámbar a ~25 s</label>
+          <label class="no"><input type="radio" name="p31" value="no"> Otra cosa · anotada arriba</label>
+          <label class="np"><input type="radio" name="p31" value="np"> No se pudo cronometrar</label>
+        </div>
+        <textarea id="t31" placeholder="Los cuatro números y qué viste en cada poste · si el Esclavo no pasó por rojo, dilo: es lo que más cambia el diagnóstico"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="fila" id="f32">
+    <div class="fn">32</div>
+    <div class="fc">
+      <p class="ft">Rojo total: <b>desde qué poste llega a los dos</b></p>
+      <p class="porque">🟢 <b>Este paso tampoco ha cambiado con la carga nueva.</b> El rojo total se
+        comporta igual que el 04/09 en las dos puntas.</p>
+      <p><b class="et">Haz</b> <b>(a)</b> conéctate al <b>MAESTRO</b> y manda
+        <code>CMD:FORZAR_ROJO</code>; mira los dos
+        postes y cronometra. <b>(b)</b> conéctate al <b>ESCLAVO</b> y manda <b>la misma orden</b>;
+        copia la respuesta literal y mira si se movió algo. <b>Copia las dos respuestas tal
+        cual.</b></p>
+      <p class="ver"><b class="et">Ver</b> <b>(a)</b> Los <b>dos</b> en rojo, el Esclavo <b>casi al
+        instante</b>. <b>(b)</b> El Esclavo contesta
+        <code>$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA</code> y <b>no se mueve
+        nada</b> — 🟢 <b>eso es lo correcto hoy, no un fallo</b>: en esa punta la orden se llama
+        <code>AMBAR_EMERGENCIA</code>. 🔴 <b>Lo que sí sería un fallo es que (b) contestara
+        <code>$ACK</code>.</b></p>
+      <p class="porque">✏️ <b>Aquí ponía una trampa que ya no existe</b> —<s>«si haces (a) en Modo
+        Automático el Maestro ya está mudo y el Esclavo se irá a ámbar a los 25 s»</s>—: eso era la
+        causa 1, <b>arreglada en la carga que traes</b>. <b>Ahora este paso se puede hacer en
+        cualquier modo.</b> ⚠️ <b>Lo que sí conviene saber:</b> el rojo total deja el cruce
+        <b>parado indefinidamente en las dos puntas</b>, así que <b>para salir hay que mandar otra
+        orden</b> —volver a entrar en un modo—. <b>No esperes a que se recupere solo.</b></p>
+      <div class="anota">
+        <div class="tabla-envoltorio" style="margin:.2rem 0 .4rem">
+          <table>
+            <thead><tr><th>desde</th><th>respuesta literal</th><th>qué hizo el Maestro</th><th>qué hizo el Esclavo</th><th>s hasta que el otro cambió</th></tr></thead>
+            <tbody>
+              <tr><td><b>(a) Maestro</b></td><td><input type="text" id="a32a"></td><td><input type="text" id="a32b"></td><td><input type="text" id="a32c"></td><td><input type="text" id="a32d" placeholder="___ s"></td></tr>
+              <tr><td><b>(b) Esclavo</b></td><td><input type="text" id="a32e"></td><td><input type="text" id="a32f"></td><td><input type="text" id="a32g"></td><td><input type="text" id="a32h" placeholder="___ s"></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="porque">¿En qué modo estaba el Maestro al hacerlo? <input type="text" id="a32i" class="en-linea">
+          &nbsp; Tras (a), ¿el Esclavo aguantó en rojo más de 1 min? <input type="text" id="a32j" class="en-linea"></p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p32" value="si"> (a) los dos en rojo · (b) $ERR y nada se mueve</label>
+          <label class="no"><input type="radio" name="p32" value="no"> Otra cosa · anotada arriba</label>
+          <label class="np"><input type="radio" name="p32" value="np"> No se pudo</label>
+        </div>
+        <textarea id="t32" placeholder="Las dos respuestas literales · si (b) contestó $ACK, escríbelo entero: es el caso grave"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="fila alto" id="f33">
+    <div class="fn">33</div>
+    <div class="fc">
+      <p class="ft">Los tiempos del ciclo <b>sobreviven al corte de luz</b> — la prueba de lo nuevo</p>
+      <div class="parar">
+        <b>🛑 DOS COSAS QUE HAY QUE SABER ANTES DE EMPEZAR, O SE REPORTA UN DEFECTO QUE NO EXISTE Y
+          SE PIERDE OTRO QUE SÍ</b>
+        <p><b>1 · La PRIMERA vuelta de energía con este programa borra el respaldo, y es
+          correcto.</b> El respaldo lleva una firma de formato y esta carga <b>la cambia</b>: el
+          sitio donde ahora van los tiempos del ciclo antes no existía, así que un equipo que se
+          encuentre la firma vieja <b>tira el contenido y empieza limpio</b> en vez de leer los datos
+          de antes con el reparto de ahora. <b>Consecuencia: la primera vez que enciendas, el equipo
+          arranca con los mínimos aunque le hubieras puesto tiempos ayer. Eso NO es el fallo.</b>
+          <b>Esta prueba empieza a valer en la SEGUNDA vuelta de energía.</b></p>
+        <p><b>2 · Leído en el fuente de esta carga —y comprobado compilándolo— hay un bloqueo que
+          probablemente te pare en el punto (b), y queremos que lo midas tú.</b> La guarda que impide
+          tocar los tiempos con el ciclo corriendo <b>parece estar activa siempre</b>, también con el
+          equipo parado en el menú. Si es así, <code>SET_TIEMPOS</code> contestará
+          <code>EN_MARCHA_PARE_EL_MODO</code> <b>hagas lo que hagas</b>, y entonces esta prueba <b>no
+          se puede completar</b>. <b>No lo des por hecho y no lo des por descartado: mándanos la
+          respuesta literal</b>, que es lo único que lo decide.</p>
+      </div>
+      <p><b class="et">Haz</b> <b>(a)</b> Con el programa nuevo ya dentro, <b>dale una vuelta de
+        energía completa</b> a la tarjeta del Maestro y espera a que arranque. <b>Ésa es la que
+        borra el respaldo viejo</b>; a partir de aquí cuenta.
+        <b>(b)</b> Conéctate al <b>MAESTRO</b>, sácalo del Automático con
+        <code>CMD:SET_MODO:MENU</code>, y manda <code>CMD:PIN:1234:SET_TIEMPOS:3,3,90</code>.
+        <b>Copia la respuesta literal</b>. <b>Si no dice <code>$ACK</code>, para aquí</b> y salta al
+        recuadro de abajo.
+        <b>(c)</b> Con el <code>$ACK</code> en la mano, <b>quita la corriente del todo</b> —treinta
+        segundos, no un parpadeo— y vuelve a darla.
+        <b>(d)</b> Entra en <code>CMD:PIN:1234:SET_MODO:AUTO</code> y <b>cronometra el todo-rojo del
+        principio</b>, que es lo primero que hace el modo.</p>
+      <p class="ver"><b class="et">Ver</b> <b>Ese todo-rojo inicial dura lo que valga el
+        despeje</b>, y por eso se pide 90: es la única de las tres cifras que se mide en minuto y
+        medio en vez de en un cuarto de hora.</p>
+      <div class="diagrama" style="margin:.3rem 0">
+<pre>TODO-ROJO INICIAL ~90 s  ->  🟢 LOS TIEMPOS SOBREVIVIERON AL CORTE. Es lo que
+                             se viene a comprobar, y hasta hoy no se podia.
+
+TODO-ROJO INICIAL ~10 s  ->  🔴 Volvio al minimo: los tiempos NO sobrevivieron.
+                             Comprueba que la vuelta de energia de (a) se hizo
+                             ANTES de poner los tiempos; si se hizo, es el fallo.
+
+SET_TIEMPOS contesta EN_MARCHA_PARE_EL_MODO en el punto (b), estando en el MENU
+                         ->  🔴 NO SE PUEDE PONER NINGUN TIEMPO, POR NINGUNA VIA.
+                             Marca NO CUMPLE, pega la respuesta literal y avisa:
+                             es un hallazgo, no un despiste tuyo.</pre>
+      </div>
+      <div class="parar" style="margin-top:.4rem">
+        <b>🛑 Si (b) te contesta <code>EN_MARCHA_PARE_EL_MODO</code> con el equipo en el MENÚ</b>
+        <p><b>No sigas probando combinaciones ni busques otro modo desde el que mandarlo.</b> Prueba
+          <b>una sola cosa más</b>, que es la que distingue los dos casos: <b>quita y devuelve la
+          corriente</b> y manda <code>SET_TIEMPOS</code> <b>como primera orden, sin haber entrado en
+          ningún modo</b>. <b>Si aun así contesta lo mismo, la puerta está cerrada del todo</b> y no
+          hay forma de configurar el ciclo desde el teléfono. <b>Eso vuelve inalcanzable la prueba de
+          (c) y (d)</b>: márcalas «No se pudo» con este motivo, no las marques rojas — <b>de ellas no
+          se sabe nada</b>.</p>
+      </div>
+      <div class="anota">
+        <p class="porque">(a) ¿Diste la vuelta de energía antes de poner los tiempos?
+          <input type="text" id="a33a" class="en-linea">
+          &nbsp; ¿Con qué tiempos arrancó esa primera vez? <input type="text" id="a33b" class="en-linea"></p>
+        <p class="porque">(b) Respuesta literal a <code>SET_TIEMPOS:3,3,90</code>:</p>
+        <textarea id="a33c" placeholder="pega la trama entera, tal cual salió"></textarea>
+        <p class="porque" style="margin-top:.3rem">¿En qué modo estaba el equipo al mandarlo?
+          <input type="text" id="a33d" class="en-linea">
+          &nbsp; Repetido tras la vuelta de energía, sin entrar en ningún modo, ¿qué contestó?
+          <input type="text" id="a33e"></p>
+        <div class="tabla-envoltorio" style="margin:.2rem 0 .4rem">
+          <table>
+            <thead><tr><th>medida</th><th>lo que pusiste</th><th>lo que salió después del corte</th></tr></thead>
+            <tbody>
+              <tr><td><b>despeje</b> · todo-rojo inicial</td><td><input type="text" id="a33f" placeholder="90 s"></td><td><input type="text" id="a33g" placeholder="___ s cronometrados"></td></tr>
+              <tr><td><b>verde</b></td><td><input type="text" id="a33h" placeholder="3 min"></td><td><input type="text" id="a33i" placeholder="si te dio tiempo a medirlo"></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p33" value="si"> Los tiempos sobrevivieron al corte</label>
+          <label class="no"><input type="radio" name="p33" value="no"> NO sobrevivieron · volvió al mínimo</label>
+          <label class="np"><input type="radio" name="p33" value="np"> No se pudo · no dejó fijar tiempos</label>
+        </div>
+        <textarea id="t33" placeholder="Si no dejó fijar tiempos, pega las DOS respuestas literales -la del menú y la del arranque en frío-: son las que deciden · si el todo-rojo salió corto, di cuántos segundos exactos"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="libre">
+    <b>Con los cuatro cronómetros delante: ¿cuadran con lo que dice el bloque rojo de arriba?</b>
+    <p><b>Contesta aunque cuadre todo.</b> Un «cuadra» escrito cierra el diagnóstico; un hueco
+      obliga a repetir la sesión. Y si no cuadra, <b>manda el cronómetro</b>: la lectura del programa
+      se da por refutada y se vuelve a mirar. <b>Lo que más nos interesa hoy es el paso 30</b> —que
+      el Esclavo NO se fuera a ámbar— <b>y la respuesta literal del 33</b>.</p>
+    <textarea id="lib6b" style="min-height:3rem" placeholder="¿el Esclavo aguantó los dos minutos en Automático, las tres veces? · ¿el ámbar y el rojo total siguieron igual que el 04/09? · ¿te dejó fijar tiempos? · ¿algo que no encaje con lo escrito arriba?"></textarea>
+  </div>
+
   <h2><span class="n">09</span> Si conectas el módulo y no llega nada</h2>
   <p class="sub" style="margin-top:.4rem"><b>Aquí se va la primera hora si se improvisa. En este
     orden, y no cambies piezas hasta el final.</b></p>
@@ -1742,17 +2284,27 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
   </div>
 
   <div class="libre">
-    <b>9 · 🔴 Al entrar en Modo Automático el equipo vuelve a 1 / 1 / 15. ¿Qué debe hacer?</b>
-    <p><b>El mínimo del ciclo subió a 3 minutos el 04/09 y esa guarda funciona</b> — pero sólo la
-      cruza la orden <code>SET_TIEMPOS</code>. <b>Los valores con los que arranca el modo siguen
-      siendo 1 min de rojo, 1 min de verde y 15 s de despeje</b>, y no pasan por ella. Leído en el
-      fuente, entrar en Modo Automático desde la app <b>reescribe los tres</b>, así que unos tiempos
-      que el equipo acaba de aceptar con <code>$ACK</code> <b>se perderían al arrancar el modo</b>.</p>
-    <p>🛑 <b>Esto NO está diagnosticado y no se propone aquí ningún arreglo.</b> Es una lectura del
-      código; <b>nadie lo ha ejercido en tarjeta</b> —el paso 28 bis pide justo esa medida—. Y la
-      decisión no es técnica: <b>con qué tiempos debe arrancar un cruce al que nadie le ha dicho
-      todavía cuáles quiere es una decisión vial</b>, y las decisiones viales son tuyas.</p>
-    <textarea id="pa9" style="min-height:3rem" placeholder="¿arranca con los ultimos tiempos guardados? · ¿arranca siempre en 3/3/10, el minimo? · ¿se niega a arrancar hasta que alguien fije tiempos? · y si lo mediste en la tarjeta: que tiempos pusiste y con cuales ciclo"></textarea>
+    <b>9 · 🟢 Los tiempos del ciclo ya no se pierden. Lo que queda por decidir es con cuáles arranca
+      un equipo nuevo</b>
+    <p>✏️ <b>Esta pregunta se ha quedado a medias de sitio dos veces en un día, y se cuenta entero
+      porque el histórico es el dato.</b> Decía que al entrar en Modo Automático el equipo volvía a
+      <s>1 / 1 / 15</s>; se corrigió a <s>3 / 3 / 10</s>; y con la carga del 04/09 <b>ya no reescribe
+      nada</b>: <b>respeta los tiempos que haya</b> y además <b>los recupera del respaldo</b> si el
+      equipo viene de un corte de luz, comprobándoles el rango otra vez aunque la suma apruebe.
+      <b>La mitad grave está cerrada</b> — quien fija un ciclo y se va del poste ya no se lo
+      encuentra deshecho.</p>
+    <p><b>Lo que sigue siendo tuyo y no lo decide ningún programa:</b> <b>con qué tiempos debe
+      arrancar un cruce al que NADIE le ha dicho todavía cuáles quiere.</b> Hoy arranca con los
+      mínimos —3 min de rojo, 3 de verde, 10 s de despeje—, que es una respuesta razonable pero no
+      es una decisión tomada. Y va con ella una segunda: <b>si el equipo arranca con unos tiempos
+      que nadie eligió, ¿debe decirlo</b> —en la app, en la bitácora— <b>o es aceptable que se calle
+      y el técnico lo descubra cronometrando?</b></p>
+    <p>🛑 <b>Y hay una tercera, que puede convertir todo lo anterior en teoría:</b> el <b>paso 33</b>
+      comprueba si <code>SET_TIEMPOS</code> deja fijar algo. <b>Si vuelve con
+      <code>EN_MARCHA_PARE_EL_MODO</code>, no hay forma de configurar el ciclo desde el teléfono</b>,
+      y entonces la pregunta de arriba deja de ser «con cuáles arranca» y pasa a ser <b>«con cuáles
+      se queda para siempre»</b>. <b>Mira ese paso antes de contestar aquí.</b></p>
+    <textarea id="pa9" style="min-height:3rem" placeholder="¿arranca en 3/3/10, el minimo, y se acepta? · ¿o se niega a arrancar hasta que alguien fije tiempos? · ¿debe AVISAR de que los tiempos no los eligio nadie? · y lo que dijo el paso 33: ¿te dejo fijar tiempos, si o no?"></textarea>
   </div>
 
   <div class="libre">
@@ -1766,6 +2318,56 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
       <code>SEM-SIN-MATRICULA</code> en los DOS postes</b> hasta que se le da una vuelta de energía
       (paso 10).</p>
     <textarea id="pa10" style="min-height:2.4rem" placeholder="¿se rotulan los postes fisicamente en obra? · ¿la vuelta de energia al modulo entra en la puesta en marcha? · ¿que distancia hay entre los dos postes en el frente tipico?"></textarea>
+  </div>
+
+  <div class="libre">
+    <b>11 &middot; 🔴 La talanquera con <code>L298N</code>: falta el dato del motor, y sin él no se puede cablear</b>
+    <p><b>Lo que está decidido (04/09):</b> va un <code>L298N</code> por barrera, <b>fuera de la
+      placa</b>, y en el <b>esquema simple</b> &mdash; <code>J15</code> gobierna <code>ENA</code>, la
+      dirección queda fija. <b>La pluma sube con señal y baja por su peso.</b> Sin inversor, sin
+      finales de carrera cableados a la tarjeta y sin firmware nuevo.</p>
+    <p>🛑 <b>NO SE CABLEA TODAVÍA</b>, y el motivo es una cuenta, no una precaución:
+      el <code>L298N</code> es un Darlington bipolar y <b>cae entre 2&nbsp;V (a 1&nbsp;A) y 4,9&nbsp;V
+      (a 2&nbsp;A)</b>. Con un motor de <b>12&nbsp;V</b> eso deja <b>7 a 10&nbsp;V en bornes</b>, y
+      <b>el par cae con el CUADRADO de la tensión</b>: a 8&nbsp;V tienes menos de la mitad. Además
+      son <b>2&nbsp;A por canal</b> y un motorreductor de pluma arranca típicamente entre
+      <b>3 y 8&nbsp;A</b>. Una pluma que se queda a medio subir es peor que no tener barrera: el
+      conductor no sabe si va a terminar.</p>
+    <p><b>Lo que la placa da, medido en el cobre:</b> <code>PB2</code> &rarr; opto <code>TLP127</code>
+      (<code>U15</code>) &rarr; MOSFET <code>IRLZ44N</code> (<code>Q10</code>) &rarr; <code>J15</code>,
+      que es un conector de <b>DOS pines</b>. O sea <b>una sola línea de control</b>, y además
+      <b><code>J15</code> conmuta MASA, no entrega 5&nbsp;V</b>: la entrada del <code>L298N</code>
+      necesita su propio <i>pull-up</i> a los 5&nbsp;V del módulo. En la PCB <b>no hay ningún puente
+      H</b> &mdash; censado: cero <code>L298</code>, <code>L293</code>, <code>DRV8x</code>,
+      <code>BTS7x</code>, <code>TB6612</code>, <code>IBT</code> y <code>BTN8x</code>.</p>
+    <p><b>Y hay una alternativa que hace lo mismo con las mismas dos entradas:</b> el
+      <code>BTS7960</code> / módulo <code>IBT-2</code>. MOSFET, <b>43&nbsp;A</b>, caída de
+      milivoltios, sin disipador. La fila <b>A4</b> de la lista de compras hay que tocarla igual
+      &mdash;hoy pide un módulo de relé&mdash;, así que si se toca, conviene decidir cuál.</p>
+    <p><b>Lo que necesitamos de ti son dos números de la placa del motorreductor</b>, y con ellos
+      se cierra: si el <code>L298N</code> vale o hay que ir al <code>BTS7960</code>.</p>
+    <div class="campo"><label for="pa11a">Corriente NOMINAL del motorreductor (A, de su placa)</label><input type="text" id="pa11a" placeholder="p. ej. 1,8 A"></div>
+    <div class="campo"><label for="pa11b">Corriente de ARRANQUE o de bloqueo (A) &mdash; es la que decide</label><input type="text" id="pa11b" placeholder="p. ej. 5,5 A · si no viene en la placa, dilo"></div>
+    <textarea id="pa11c" style="min-height:2.4rem" placeholder="¿el actuador trae final de carrera propio arriba? (con el esquema simple es lo unico que para la subida) · ¿la pluma baja sola por su peso, o necesita empuje? · modelo y referencia del motorreductor"></textarea>
+  </div>
+
+  <div class="libre">
+    <b>12 · 🔴 El ámbar de emergencia sólo para UN poste. ¿Debe parar los dos, y en cuánto tiempo?</b>
+    <p><b>Ésta es la pregunta que trae el reporte del 04/09, y es vial, no técnica.</b> Hoy, medido
+      en el programa: <b>no hay propagación de ámbar</b>. Cuando pones ámbar en el Maestro, el
+      Esclavo recibe <b>ROJO al instante</b> y se pone en <b>ámbar él solo 25 s después</b>, por
+      haber dejado de oír. Y el ámbar de emergencia del Esclavo <b>no llega al Maestro de ninguna
+      manera</b>.</p>
+    <p><b>La cuenta que hay debajo, para que la decisión no sea a ojo:</b> durante esos 25 s el
+      cruce está <b>en rojo por los dos lados</b> —parado, no peligroso— y luego <b>los dos en ámbar
+      intermitente</b>. O sea que <b>el estado intermedio es seguro</b>; lo que se discute es si
+      <b>25 s de cruce parado</b> antes del ámbar son aceptables para quien está delante con una
+      emergencia. <b>Bajarlos tiene coste</b>: ese mismo umbral es el que protege contra una radio
+      con ruido, y acortarlo manda el cruce a ámbar por nada (ya pasó en campo, con lluvia).</p>
+    <p>🛑 <b>Aquí no se propone ningún arreglo y no se toca nada hasta que contestes.</b> Y si la
+      respuesta es «que se propague», <b>eso es una orden nueva en el protocolo de radio</b>, o sea
+      firmware en las dos puntas y un banco entero detrás.</p>
+    <textarea id="pa12" style="min-height:3rem" placeholder="¿se acepta que la otra punta tarde 25 s en irse a ambar, estando en rojo mientras tanto? · ¿o hace falta una orden que propague el ambar al instante? · ¿el ambar de emergencia del Poste 2 debe llegar al Poste 1? · ¿y el rojo total desde el Poste 2, que hoy se rechaza?"></textarea>
   </div>
 
   <h2><span class="n">10</span> Cierre</h2>
@@ -1803,16 +2405,19 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
   <!-- =================================================================== -->
   <!-- ======================== CAPA 2: EL DETALLE ======================== -->
   <!-- =================================================================== -->
-  <div class="detalle-cab noimprimir">
+  <div class="detalle-cab">
     <h2>El detalle · sólo lo que cambia lo que haces con las manos</h2>
     <p class="sub" style="margin-top:.5rem">Diagramas, tablas de bornera y los cuatro sitios donde el
       porqué evita romper algo. <b>No hay que leerlo antes de empezar</b>: la hoja de arriba es lo que
       se lleva al banco.</p>
-    <p class="sub"><b>✏️ Corregido el 04/09: aquí ponía <s>«y no se imprime»</s>, y desde el 02/09 es
-      falso.</b> Estos bloques <b>SÍ salen en el PDF</b> —se despliegan solos al imprimir, con el
-      botón y con <code>Ctrl+P</code>— porque dentro van las conexiones de bornera, la placa del
-      módulo y <b>«lo que esta visita NO decide»</b>. <b>Lo que no se imprime no se contesta</b>, y
-      esto es justo lo que hay que poner delante de quien tiene que contestarlo.</p>
+    <p class="sub"><b>✏️ Corregido el 04/09 por la mañana, y VUELTO A CORREGIR el 04/09 por la
+      tarde, que es lo que hay que contar.</b> Por la mañana se quitó <code>details</code> de la
+      línea que los ocultaba al imprimir y se escribió aquí que ya salían. <b>No salían.</b> El
+      contenedor de todo este apartado seguía en esa misma línea, y un bloque oculto <b>oculta
+      también a sus hijos</b>: el arreglo no podía funcionar, y encima llevaba debajo un párrafo
+      afirmando que funcionaba. <b>Ahora sí salen</b> —se despliegan solos con el botón y con
+      <code>Ctrl+P</code>—, y dentro van las conexiones de bornera, la placa del módulo y <b>«lo que
+      esta visita NO decide»</b>. <b>Lo que no se imprime no se contesta.</b></p>
 
     <details id="d2"><summary>Paso 2 · por qué la carga va ANTES de tocar <code>J16</code></summary><div class="dcuerpo">
       <p>El programa nuevo es el que convierte los pines 10 y 12 de <code>J16</code> en <b>entradas de
@@ -1881,15 +2486,22 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
       <p>Por el plano esa resistencia está en la placa, pero <b>el plano y el programa llevan tiempo
         en contradicción sobre esos cuatro pines y nadie lo ha medido nunca en una tarjeta real</b>.
         Eso es lo que cierra este paso.</p>
-      <h4>Por qué en (a) sí y en (b) no dan lo mismo</h4>
-      <p><b>Sin energía</b> sólo hay resistencia de placa, y las cuatro son iguales. <b>Con energía</b>
-        el programa ya trata los pines distinto a propósito: <b>5 y 8 son mando y llevan resistencia
-        interna hacia arriba; 10 y 12 son cámara y no la llevan.</b></p>
+      <h4>Por qué en (a) y en (b) los cuatro dan lo mismo</h4>
+      <p class="porque">✏️ <b>04/09: este apartado decía lo contrario</b> —<s>«el programa trata los
+        pines distinto: 5 y 8 llevan resistencia interna hacia arriba; 10 y 12 no»</s>— y se quedó
+        sin corregir cuando cambió el firmware. <b>Ya no es así.</b></p>
+      <p><b>Sin energía</b> sólo hay resistencia de placa, y las cuatro son iguales. <b>Con
+        energía</b> tampoco cambia: desde el 04/09 <b>ninguno de los cuatro enciende la resistencia
+        interna hacia arriba</b> —el mando pasó a leerse igual que las cámaras—, así que <b>los 10 kΩ
+        de la placa tiran los cuatro pines a masa y los cuatro dan casi 0 V</b>. Ver el paso 2.bis,
+        que usa justo eso para saber en diez segundos si entró el binario nuevo.</p>
       <h4>Y esto dice si el mando del paso 29 va a responder</h4>
-      <p>El puente funciona <b>porque 5 y 8 están en reposo arriba</b> y el cable a masa los baja.
-        <b>Si en (b) salieran bajos en reposo</b>, el equipo ya vería esas entradas como accionadas y
-        <b>el puente no produciría ningún pulso</b>. Anota esos dos valores aunque el paso 21 no se
-        vaya a hacer.</p>
+      <p>El puente funciona <b>porque los cuatro están en reposo ABAJO</b> y el cable a los 3,3 V del
+        pin de al lado los sube: <b>ése es el flanco</b>. <b>Si en (b) salieran altos en reposo</b>,
+        el equipo ya vería esas entradas como accionadas y <b>el puente no produciría ningún
+        pulso</b> — que es exactamente lo que pasaba con el firmware viejo y por lo que el mando
+        estuvo sordo desde el primer día. Anota esos dos valores aunque el paso 21 no se vaya a
+        hacer.</p>
       <h4>Qué se hace con el resultado</h4>
       <p><b>Si sale bien</b>, la cámara de <code>J16</code> se cablea como la de <code>J14</code>:
         contacto normalmente abierto <b>cerrando contra 3,3 V</b>. <b>Si sale mal</b>, se anotan los
@@ -1965,10 +2577,16 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
     </div></details>
 
     <details id="d29"><summary>Paso 29 · el mando sin receptor</summary><div class="dcuerpo">
-      <h4>Por qué un cable a masa es exactamente lo que hace el relé</h4>
+      <h4>Por qué un puente contra los 3,3 V es exactamente lo que hace el relé</h4>
+      <p class="porque">✏️ <b>04/09: este título decía <s>«por qué un cable a MASA es exactamente lo
+        que hace el relé»</s></b> y se quedó sin corregir cuando se corrigió el párrafo de debajo.
+        <b>Es al revés desde el firmware de este paquete</b>, y un título que contradice a su propio
+        texto manda al banco a hacer el gesto viejo.</p>
       <p><b>Comprobado sobre el programa de las dos puntas:</b> las entradas <code>A</code> y
-        <code>B</code> —<code>J16</code> p5 y p8— llevan <b>resistencia interna hacia arriba</b> y se
-        leen <b>activas en ALTO desde el 04/09</b> (<s>activas en BAJO</s>). Y el relé del receptor va cableado <b>EN PARALELO con el
+        <code>B</code> —<code>J16</code> p5 y p8— se declaran como <b>entrada pelada, sin
+        resistencia interna</b> (<s>llevan resistencia interna hacia arriba</s>) y se
+        leen <b>activas en ALTO desde el 04/09</b> (<s>activas en BAJO</s>): en reposo los 10 kΩ de
+        la placa las dejan en <b>0 V</b>, y lo que las acciona es <b>subirlas a 3,3 V</b>. Y el relé del receptor va cableado <b>EN PARALELO con el
         pulsador del gabinete</b>: <b>eléctricamente son el mismo contacto</b>. No es una
         aproximación — es el mismo suceso eléctrico.</p>
       <p><b>Lo que el puente NO demuestra:</b> que los pulsos lleguen <b>por radio desde el piso</b>.
@@ -2079,10 +2697,26 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
             <tr><td><b>Zumbador y luces de peatón</b></td>
               <td><b>No se prueban porque no hay nada que probar — y no son averías</b></td></tr>
             <tr><td><b>Con qué tiempos ARRANCA el Modo Automático</b></td>
-              <td>🔴 <b>Sin decidir, y sin diagnosticar.</b> El mínimo de 3 min lo cruza
-                <code>SET_TIEMPOS</code>, pero el arranque del modo vuelve a 1/1/15 según el fuente.
-                <b>Se mide en el paso 28 bis y se decide en la pregunta 9</b> — aquí no se propone
-                ningún arreglo</td></tr>
+              <td>🟠 <b>Medio cerrado.</b> El modo ya <b>no reescribe</b> los tiempos (<s>a 1/1/15</s>,
+                <s>a 3/3/10</s>) y <b>los recupera del respaldo tras un corte</b>. Queda por decidir
+                <b>con cuáles arranca un equipo que nadie ha configurado</b>, y si debe avisarlo.
+                <b>Se mide en los pasos 28 bis y 33, y se decide en la pregunta 9</b></td></tr>
+            <tr><td><b>Si <code>SET_TIEMPOS</code> deja fijar algo</b></td>
+              <td>🔴 <b>Sin comprobar en tarjeta, y es lo primero que hay que mirar.</b> La lectura
+                del fuente dice que la guarda «el ciclo está en marcha» <b>puede estar activa
+                siempre</b>. <b>Lo decide el paso 33</b>: si contesta
+                <code>EN_MARCHA_PARE_EL_MODO</code> en el menú, no hay forma de configurar el ciclo
+                desde el teléfono</td></tr>
+            <tr><td><b>Que el ámbar y el rojo total lleguen a las DOS puntas</b></td>
+              <td>🔴 <b>Sin decidir, y es lo que trajo el reporte del 04/09.</b> Hoy el ámbar
+                <b>no se propaga</b>: la otra punta cae a ámbar sola, 25 s después, por dejar de oír.
+                <b>Se mide en los pasos 30, 31 y 32 y se decide en la pregunta 12.</b> Este banco
+                <b>no cambia nada</b>: lo mide y lo pregunta</td></tr>
+            <tr><td><b>Por qué el Modo Automático no arrancaba</b></td>
+              <td>🟢 <b>Diagnosticado Y ARREGLADO en la carga que traes.</b> Esta visita <b>no lo
+                diagnostica otra vez: comprueba que el arreglo funcionó</b> (paso 30). <b>Si el
+                Esclavo se va a ámbar en Automático, hay una segunda causa</b> y eso sí es un
+                hallazgo</td></tr>
             <tr><td><b>Que el mando se opere desde el Esclavo</b></td>
               <td>🟢 <b>Ya decidido el 04/09, y en contra: el cruce se opera desde el MAESTRO.</b>
                 Este banco no lo revisa; lo que sí anota es la consecuencia de obra (pregunta 10)</td></tr>
@@ -2166,7 +2800,12 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
     // Los pasos que contestan lo que se pregunto al encargar la visita.
     // Lo unico escrito a mano es CUALES; el texto sale de cada paso, y si
     // uno deja de existir el parte lo dice en vez de callarselo.
-    var CLAVE = ['f7', 'f12', 'f15', 'f16', 'f19', 'f20', 'f21', 'f29'];
+    // 04/09: entran f30, f31, f32 y f33. Son los cronometrajes del reporte de banco
+    // y hoy son LA respuesta que se pide -f30 comprueba que el arreglo del Modo
+    // Automatico funciono, f33 que los tiempos sobreviven al corte-. Si no aparecen
+    // aqui, vuelven sepultados entre 36 pasos.
+    var CLAVE = ['f7', 'f12', 'f15', 'f16', 'f19', 'f20', 'f21', 'f29',
+                 'f30', 'f31', 'f32', 'f33'];
 
     var SELLO = { si: 'Sí', no: 'NO CUMPLE', np: 'NO SE PUDO PROBAR',
                   sm: 'sin marcar' };

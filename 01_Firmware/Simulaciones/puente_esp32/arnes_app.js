@@ -138,6 +138,24 @@ if (typeof window._btSubscribeCb !== 'function') {
   process.exit(2);
 }
 
+// N-136 (04/09): LA VIA DESPEJADA, QUE ES LA BARRERA NUEVA DEL OPERARIO.
+//
+// Desde hoy las ordenes que ABREN paso -AUTOMATICO y DAR PASO- ya no piden PIN: piden
+// que el operario confirme que ha mirado el tramo. Este arnes conduce la app REAL, asi
+// que dejo de escribir ordenes al pulsar AUTOMATICO y el simulador ABORTO. Hizo lo
+// correcto: la app cambio y el que conducia no lo sabia.
+//
+// Se pulsa el boton REAL del aviso, igual que el PIN se teclea por su teclado real. No
+// se toca ninguna bandera interna: si manana la barrera cambia de forma, esto vuelve a
+// romperse -que es lo que tiene que pasar-.
+function confirmarVia() {
+  const modal = document.getElementById('via-modal');
+  if (!modal || !modal.classList.contains('active')) return false;
+  const b = document.getElementById('btn-via-confirmar');
+  if (b) b.click();
+  return !modal.classList.contains('active');
+}
+
 function tecleaPin() {
   const modal = document.getElementById('pin-modal');
   if (!modal || !modal.classList.contains('active')) return false;
@@ -248,6 +266,7 @@ function atender(linea) {
     const btn = document.querySelector(`[data-cmd="${orden}"]`);
     if (!btn) { process.stdout.write('ERR sin boton data-cmd=' + orden + '\n'); return; }
     btn.click();
+    confirmarVia();   // N-136: la via va antes; si no toca, no hace nada
     tecleaPin();          // si la app pide PIN, se teclea por su teclado REAL
     volcarTx();
     process.stdout.write('OK ' + orden + '\n');
@@ -257,6 +276,7 @@ function atender(linea) {
     if (!el) { process.stdout.write('ERR sin elemento ' + linea.slice(4) + '\n'); return; }
     escrituras = [];
     el.click();
+    confirmarVia();
     tecleaPin();
     volcarTx();
     process.stdout.write('OK ' + linea.slice(4) + '\n');

@@ -240,6 +240,20 @@ void modo_degradado_setup() {}
 // respaldo.cpp escribe en los registros de respaldo del RTC. Sin RTC no hay donde.
 void respaldo_marcarSync(uint32_t) {}
 
+// N-133/N-135: los tiempos del ciclo, doblados CON MEMORIA y no con un stub vacio.
+// Uno que devolviera siempre "no hay nada guardado" dejaria sin ejercer el camino de
+// recuperacion de modo_automatico.cpp, que es uno de los .cpp que este arnes compila.
+static uint8_t _bkR = 0, _bkV = 0, _bkD = 0;
+void respaldo_guardarTiemposCiclo(uint8_t r, uint8_t v, uint8_t d) {
+  if (r == 0 || v == 0 || d == 0) return;   // misma negativa que el real
+  _bkR = r; _bkV = v; _bkD = d;
+}
+bool respaldo_tiemposCiclo(uint8_t* r, uint8_t* v, uint8_t* d) {
+  if (_bkR == 0 || _bkV == 0 || _bkD == 0) return false;
+  *r = _bkR; *v = _bkV; *d = _bkD;
+  return true;
+}
+
 // lcd.cpp y botones.cpp: los pide modo_automatico.cpp, que si es real.
 void lcd_dibujarAutomatico(const char*, int, int) {}
 void lcd_dibujarConfigValor(const char*, int, const char*) {}

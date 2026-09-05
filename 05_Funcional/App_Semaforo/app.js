@@ -52,6 +52,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // autorizacion. Esta bandera dice si alguien lo puso en esta sesion.
     pinVerificado: false,
     accionPendiente: null,
+    // LA AUTORIZACION CADUCA (04/09). Hasta hoy `pinVerificado` se ponia a `true` en
+    // UNA linea y no se apagaba en NINGUNA: ni al cerrar el teclado, ni al cambiar de
+    // punta, ni al caerse el enlace, ni con el tiempo. El operario teclea, se guarda
+    // el telefono, y el siguiente que lo coja manda ordenes sin teclear nada. Lo dejo
+    // escrito el propio arnes de DOM -"hoy dura lo que dure el proceso"- y quien
+    // decide cuanto tiene que durar es el responsable, que lo decidio el 04/09.
+    //
+    //   ocultaDesdeMs   instante en que la app se fue a segundo plano, o null si esta
+    //                   delante. Los 60 s de gracia se cuentan desde aqui.
+    //   ultimaOrdenMs   instante de la ultima orden que SALIO al cable. No es "la
+    //                   ultima vez que alguien toco la pantalla": mirar el tablero no
+    //                   renueva una autorizacion para mandar.
+    ocultaDesdeMs: null,
+    ultimaOrdenMs: null,
+    // EL VALE DE VIA DESPEJADA, que NO es el PIN y no lo sustituye en ningun otro
+    // sitio. { orden, ms, fase }: que maniobra se confirmo, cuando, y en que fase
+    // estaba el cruce cuando el operario miro. Las tres hacen falta para saber si lo
+    // que vio sigue siendo lo que hay. Ver 4.bis.
+    confirmacionVia: null,
+    accionViaPendiente: null,
+    ordenViaPendiente: null,
     // El equipo esta HABLANDO (llega $STATUS). Distinta de connected, que solo dice
     // que el socket serie esta abierto. Ver el watchdog de enlace mas abajo.
     telemetriaViva: false,
@@ -150,6 +171,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnDepuCopiar = document.getElementById('btn-depu-copiar');
   const btnDepuLimpiar = document.getElementById('btn-depu-limpiar');
 
+  // El diario de ordenes. Vive en la misma pestana que la cinta pero en su propia
+  // tarjeta y con sus propias salidas: son dos registros distintos y se exportan por
+  // separado, porque lo que se manda por WhatsApp es el diario y no los 300 bytes.
+  const diarioResumenEl = document.getElementById('diario-resumen');
+  const diarioListaEl = document.getElementById('diario-lista');
+  const diarioNotaEl = document.getElementById('diario-nota');
+  const diarioTextoEl = document.getElementById('diario-texto');
+  const btnDiarioExport = document.getElementById('btn-diario-export');
+  const btnDiarioCopiar = document.getElementById('btn-diario-copiar');
+  const btnDiarioLimpiar = document.getElementById('btn-diario-limpiar');
+
   // Operario Field Buttons
   const btnOpAuto = document.getElementById('btn-op-auto');
   const btnOpStep = document.getElementById('btn-op-step');
@@ -175,6 +207,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const chkDegradadoVerificado = document.getElementById('chk-degradado-verificado');
   const btnDegradadoCancelar = document.getElementById('btn-degradado-cancelar');
   const btnDegradadoConfirmar = document.getElementById('btn-degradado-confirmar');
+
+  // El dialogo de VIA DESPEJADA. Es el que sustituye al teclado de PIN en las dos
+  // ordenes que ABREN paso desde la botonera de campo. Ver 4.bis.
+  const viaModal = document.getElementById('via-modal');
+  const modalViaClose = document.getElementById('modal-via-close');
+  const viaManiobraEl = document.getElementById('via-maniobra');
+  const btnViaCancelar = document.getElementById('btn-via-cancelar');
+  const btnViaConfirmar = document.getElementById('btn-via-confirmar');
 
   // Courier RTC Elements
   const btnCourierCapture = document.getElementById('btn-courier-capture');
@@ -255,11 +295,48 @@ document.addEventListener('DOMContentLoaded', () => {
   // lo que permite copiarlo: pulsar un boton no es saber que el equipo obedecio, y
   // ni siquiera es saber que la orden salio.
   function enviarComandoFirmware(comando, args = '') {
+    const orden = _ordenDeCable(comando, args);
     // La excepcion es el rojo de emergencia: bluetooth.cpp:70-82 lo acepta SIN PIN a
     // proposito -el PIN guarda lo que abre paso, no lo que lo para-.
-    if (!SIN_PIN.includes(comando) && !state.pinVerificado) {
-      console.warn('[TX BLOQUEADO] sin PIN verificado:', comando);
-      addEvent('red', 'Comando ' + comando + ' no enviado: falta autorizacion con PIN.');
+    //
+    // Y LA SEGUNDA PUERTA, del 04/09: el VALE DE VIA DESPEJADA. El firmware no cambia
+    // -sigue exigiendo CMD:PIN:1234: y la app se lo sigue poniendo-, lo que cambia es
+    // A QUIEN se lo pide la app. Para las dos ordenes que abren paso desde la botonera
+    // de campo el operario ya no teclea una clave: contesta una pregunta sobre la via.
+    // El motivo esta en 4.bis y no es de comodidad: un PIN demuestra QUIEN eres y no
+    // demuestra que hayas MIRADO, que es lo unico que el equipo no puede saber.
+    if (!SIN_PIN.includes(comando) && !state.pinVerificado &&
+        !viaConfirmadaVigente(orden)) {
+      // EL AVISO TIENE QUE NOMBRAR LA BARRERA QUE FALTO, Y HASTA HOY NOMBRABA LA OTRA.
+      //
+      // Este texto decia "falta autorizacion con PIN" para las dos puertas. Desde que
+      // SET_MODO:AUTO y MANUAL:CAMBIAR_TURNO pasan por el vale de via, a esas dos NO
+      // les falta una clave: les falta que alguien mire la calzada. Un aviso que nombra
+      // la barrera equivocada manda al operario a teclear cuatro digitos que nadie le
+      // va a pedir, delante de un cruce parado.
+      //
+      // El censo del texto se hizo antes de tocarlo -grep "falta autorizacion" sobre
+      // app.js, js/, index.html, los dos arneses y banco/packs: UN solo sitio, este-,
+      // asi que no hay una segunda copia que quede diciendo lo viejo.
+      //
+      // Cual toca lo decide VIA_MANIOBRA, que es la misma tabla con la que confirmarVia()
+      // redacta la pregunta: si una orden esta ahi, su puerta es la via.
+      const porVia = Object.prototype.hasOwnProperty.call(VIA_MANIOBRA, orden);
+      const motivo = porVia
+        ? 'falta confirmar que la via esta despejada'
+        : 'falta la autorizacion con PIN';
+      console.warn('[TX BLOQUEADO] ' + motivo + ':', comando);
+      addEvent('red', 'Comando ' + comando + ' no enviado: ' + motivo + '.' + (porVia
+        ? ' Si acaba de confirmarla, el vale ya no vale: caduca a los ' +
+          Math.round(VIA_VIGENCIA_MS / 1000) + ' s y tambien en cuanto el cruce cambia ' +
+          'de fase. Vuelva a pulsar y conteste otra vez.'
+        : ''));
+      // UNA ORDEN QUE NO SALIO TAMBIEN VA AL DIARIO -y NO a la cinta-. Para el que esta
+      // de pie, "pulse y no paso nada" tiene el mismo aspecto tanto si la app se planto
+      // como si el equipo no contesto, y son dos averias distintas. La cinta es el
+      // cable: por el cable no paso ni un byte, asi que ahi no se anota.
+      DiarioOrdenes.anotarOrden(orden, null, Date.now(), { salio: false, motivo: motivo });
+      renderDiario();
       return false;
     }
     const pin = state.correctPin;
@@ -272,7 +349,10 @@ document.addEventListener('DOMContentLoaded', () => {
       rawCmd = `CMD:PIN:${pin}:${comando}\r\n`;
     }
 
-    console.log('[TX BLUETOOTH STM32]:', rawCmd.trim());
+    // EL PIN SE TAPA EN LA CONSOLA TAMBIEN. No es donde mas duele -la consola no se
+    // exporta-, pero un volcado de logcat viaja igual de facil que un fichero y la
+    // regla es la misma: el unico sitio donde la clave va entera es el cable.
+    console.log('[TX BLUETOOTH STM32]:', RegistroCrudo.taparPin(rawCmd.trim()));
 
     // 1. Si está en App Nativa Android (APK con Bluetooth físico)
     if (typeof window !== 'undefined' && window.bluetoothSerial && state.connected) {
@@ -300,6 +380,39 @@ document.addEventListener('DOMContentLoaded', () => {
         // Modo offline sin servidor puente
       });
     }
+
+    // El sello de actividad se pone AQUI y no en el manejador del boton: lo que
+    // renueva la autorizacion es haber mandado algo, no haber tocado la pantalla. Un
+    // telefono encendido encima del capo no manda nada, y es justo el caso que la
+    // caducidad por inactividad cubre.
+    const salidaMs = Date.now();
+    state.ultimaOrdenMs = salidaMs;
+
+    // ---- EL REGISTRO DE LO QUE SALE (04/09) -------------------------------
+    //
+    // LA CINTA SOLO GRABABA LO QUE ENTRA, y eso costo veinte minutos de banco: la
+    // inyeccion de hora del Courier devolvia "formato invalido", se exportaron las 300
+    // tramas y LA ORDEN QUE SE MANDO NO ESTABA EN NINGUNA. Se dedujo el formato leyendo
+    // las dos puntas en vez de leerlo.
+    //
+    // SE ANOTA LA TRAMA TAL Y COMO SALIO, no un resumen del estilo "se envio
+    // SET_MODO:AUTO". La diferencia no es de estilo: cuando se inyecto el defecto en la
+    // guarda de via, la comprobacion de "no sale ningun byte" NO cayo -otra barrera mas
+    // abajo frenaba igual- y lo unico que delato el fallo fue el CONTENIDO de la trama
+    // que si salio. Un resumen reconstruido no habria ensenado el
+    // CMD:PIN:****:MANUAL:CAMBIAR_TURNO que se escribio sin que nadie mirara la calzada.
+    //
+    // Y VA DESPUES DE ESCRIBIR, no antes: lo que se registra es lo que la app hizo. El
+    // veredicto ENVIADA significa exactamente lo que dice el parrafo de aqui abajo -"se
+    // escribio a la salida"-, ni un milimetro mas.
+    RegistroCrudo.anotar(rawCmd, { enviada: true, tipo: 'CMD' }, salidaMs);
+    // Y la MISMA orden abre su entrada en el diario, que es donde se le juntaran la
+    // respuesta del equipo y lo que se vea cambiar despues. Son dos registros porque la
+    // cinta se corta a 300 tramas y en una sola sesion de banco se tiraron 379: metiendo
+    // los envios dentro, se llena antes y expulsa justo lo que se busca.
+    DiarioOrdenes.anotarOrden(orden, rawCmd, salidaMs);
+    renderDepuracion();
+    renderDiario();
 
     // `true` significa EXACTAMENTE "la orden se escribio a la salida", ni un milimetro
     // mas. No dice que el equipo la recibiera -la radio puede estar caida-, ni que la
@@ -868,10 +981,20 @@ document.addEventListener('DOMContentLoaded', () => {
   function _textoContadores(c) {
     const min = Math.round(c.ventanaMs / 60000);
     if (!c.total) {
-      return 'En los ultimos ' + min + ' minutos no ha entrado ninguna trama.';
+      return 'En los ultimos ' + min + ' minutos no ha entrado ni salido ninguna trama.';
     }
-    let t = 'Ultimos ' + min + ' min: ' + c.total + ' tramas · ' +
+    // LO QUE ENTRO Y LO QUE SALIO, POR SEPARADO. Sumarlos convertiria "el equipo hablo
+    // poco" en "el equipo hablo mucho" segun cuanto hubiera pulsado el tecnico, que es
+    // justo el numero que se mira para saber si la radio va bien.
+    if (!c.entradas) {
+      return 'Ultimos ' + min + ' min: no ha entrado ninguna trama del equipo. ' +
+             (c.enviadas ? 'Si salieron ' + c.enviadas + ' ordenes de esta app: se ' +
+                           'escribieron al cable y nadie contesto.'
+                         : '');
+    }
+    let t = 'Ultimos ' + min + ' min: ' + c.entradas + ' tramas · ' +
             c.aceptadas + ' aceptadas · ' + c.rechazadas + ' rechazadas';
+    if (c.enviadas) t += ' · ' + c.enviadas + ' ordenes enviadas';
     if (c.conReparos) {
       t += ' · ' + c.conReparos + ' aceptadas con algun campo sin medida';
     }
@@ -907,8 +1030,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // La declaracion de lo que esta cinta NO es. Va siempre a la vista, no en un
       // pliegue: un tecnico que la exporte creyendo que se lleva la noche entera se
       // va del poste con menos de lo que cree.
-      let n = 'Esta cinta vive en la MEMORIA de la app y cabe ' +
-              RegistroCrudo.TOPE + ' tramas -unos ' +
+      let n = 'Esta cinta guarda las DOS direcciones: lo que entro del equipo y las ' +
+              'ordenes que esta app escribio al cable (el PIN sale tapado). Vive en la ' +
+              'MEMORIA de la app y cabe ' + RegistroCrudo.TOPE + ' tramas -unos ' +
               Math.round(RegistroCrudo.horizonteMinutos()) + ' minutos de trafico ' +
               'seguido-. Al cerrar la app se pierde: exportela antes de bajar del ' +
               'poste. Lo que si sobrevive al cierre es la bitacora del enlace de la ' +
@@ -958,8 +1082,20 @@ document.addEventListener('DOMContentLoaded', () => {
       hora.textContent = _horaDe(r.ms);
       const marca = document.createElement('span');
       marca.className = 'depu-marca';
-      marca.textContent = r.veredicto === RegistroCrudo.RECHAZADA
-        ? 'RECHAZADA · ' + r.motivo : 'ACEPTADA' + (r.tipo ? ' · ' + r.tipo : '');
+      // LOS TRES VEREDICTOS, CADA UNO CON SU PALABRA. Esta linea decia
+      // `RECHAZADA ? ... : 'ACEPTADA'`, o sea que TODO lo que no fuera rechazado se
+      // rotulaba como aceptado: al entrar ENVIADA, las ordenes salientes se habrian
+      // pintado "ACEPTADA · CMD" -la app diciendo que pinto una trama que ella misma
+      // escribio-. Un dos-ramas donde hay tres casos no falla: miente en el tercero.
+      //
+      // La FLECHA va delante y es lo que se lee de un vistazo recorriendo la lista:
+      // "<--" entro, "-->" salio. El color no decide nada por su cuenta.
+      marca.textContent =
+        r.veredicto === RegistroCrudo.ENVIADA
+          ? '--> ENVIADA' + (r.tipo ? ' · ' + r.tipo : '')
+          : (r.veredicto === RegistroCrudo.RECHAZADA
+              ? '<-- RECHAZADA · ' + r.motivo
+              : '<-- ACEPTADA' + (r.tipo ? ' · ' + r.tipo : ''));
       cab.appendChild(hora);
       cab.appendChild(marca);
       fila.appendChild(cab);
@@ -1084,6 +1220,218 @@ document.addEventListener('DOMContentLoaded', () => {
     btnDepuRechazadas.addEventListener('click', () => {
       state.depuSoloRechazadas = true;
       renderDepuracion();
+    });
+  }
+
+  // ---- El diario de ordenes ----------------------------------------------
+  //
+  // TRES LINEAS POR ORDEN: QUE SE MANDO, QUE CONTESTO EL EQUIPO Y QUE SE VIO CAMBIAR.
+  // Juntas y en ese orden, un defecto se lee sin diagnosticarlo -es N-42 en tres
+  // renglones-. Separadas, hay que cruzar la cinta con la memoria de quien pulso.
+  //
+  // Cada una de las tres se pinta con SU estado, y cuatro de los estados posibles son
+  // "no lo se" dicho de cuatro maneras. Eso es deliberado: el unico veredicto que
+  // AFIRMA algo -"no cambio nada"- exige haber comparado dos $STATUS de verdad, uno de
+  // antes y otro de despues. Todo lo demas se declara (CLAUDE.md 3.quinquies).
+
+  // Los estados que la vista pinta como "esto es un hallazgo" y no como rutina. El
+  // color NUNCA va solo: la palabra va escrita al lado, porque a pleno sol y con la
+  // pantalla sucia el color es lo primero que se pierde.
+  const DIARIO_CLASE = {
+    LLEGO: 'diario-ok',
+    ESPERANDO: 'diario-espera',
+    SIN_RESPUESTA: 'diario-malo',
+    NO_SALIO: 'diario-malo',
+    CAMBIO: 'diario-ok',
+    SIN_CAMBIO: 'diario-malo',
+    NO_SE_PUDO_VER: 'diario-nosabe',
+    NO_APLICA: 'diario-nosabe'
+  };
+
+  function _textoResumenDiario(c) {
+    if (!c.ordenes && !c.sueltas) {
+      return 'Todavia no se ha dado ninguna orden en esta sesion.';
+    }
+    let t = c.ordenes + ' ordenes';
+    if (c.noSalieron) t += ' · ' + c.noSalieron + ' no llegaron a salir';
+    if (c.enCurso) t += ' · ' + c.enCurso + ' en curso';
+    if (c.sinRespuesta) t += ' · ' + c.sinRespuesta + ' sin respuesta';
+    if (c.rechazadas) t += ' · ' + c.rechazadas + ' rechazadas por el equipo';
+    if (c.sinCambio) t += ' · ' + c.sinCambio + ' no movieron MODO ni ESTADO';
+    if (c.noSePudoVer) t += ' · ' + c.noSePudoVer + ' con efecto que no se pudo ver';
+    if (c.sueltas) t += ' · ' + c.sueltas + ' respuestas sueltas';
+    return t;
+  }
+
+  function renderDiario() {
+    if (!diarioListaEl && !diarioResumenEl && !diarioNotaEl) return;
+    // Misma salida temprana que la cinta y por el mismo motivo: no se repinta una
+    // vista que nadie mira. Y con la misma consecuencia -el conmutador de pestanas
+    // tiene que llamar aqui al abrir, o la vista se abriria en blanco con el diario
+    // lleno, que es justo la mentira que esta pantalla existe para no contar-.
+    const seccion = document.getElementById('tab-depuracion');
+    if (seccion && !seccion.classList.contains('active')) return;
+
+    const ahora = Date.now();
+    // Se cuenta UNA vez y se reparte: contadores() recorre el diario entero y resuelve
+    // los dos veredictos de cada entrada, y llamarlo dos veces por render lo hace dos
+    // veces por trama con el equipo delante.
+    const c = DiarioOrdenes.contadores(ahora);
+    if (diarioResumenEl) {
+      diarioResumenEl.textContent = _textoResumenDiario(c);
+    }
+    if (diarioNotaEl) {
+      // LO QUE ESTE DIARIO NO SABE, SIEMPRE A LA VISTA Y NO EN UN PLIEGUE. Un tecnico
+      // que lea "NO CAMBIO NADA" y entienda "el equipo desobedecio" se lleva del poste
+      // una conclusion que este registro no puede sostener.
+      let n = 'Este diario vive en la MEMORIA de la app y cabe ' + DiarioOrdenes.TOPE +
+              ' ordenes. Al cerrar la app se pierde: exportelo antes de bajar del poste. ' +
+              'Y no sabe tanto como parece: sabe que la app escribio la orden al cable, ' +
+              'no que el equipo la recibiera; ve lo que el equipo DICE por $STATUS, no ' +
+              'las luces del poste; y no se entera de ordenes dadas desde otro telefono, ' +
+              'desde el mando de reles o desde los botones de la tarjeta.';
+      if (c.descartados) {
+        n += ' RECORTADO: se tiraron las ' + c.descartados + ' entradas mas antiguas al ' +
+             'llegar al tope.';
+      }
+      diarioNotaEl.textContent = n;
+    }
+
+    if (!diarioListaEl) return;
+    diarioListaEl.innerHTML = '';
+    const vista = DiarioOrdenes.recientes(40);
+    if (!vista.length) {
+      const vacio = document.createElement('p');
+      vacio.className = 'depu-vacio';
+      // NUNCA una orden de ejemplo. Igual que la cinta: lo que sustituye a un dato que
+      // no se tiene no es una simulacion, es decirlo.
+      vacio.textContent = 'Todavia no se ha dado ninguna orden en esta sesion. Esta ' +
+        'lista se llena sola al pulsar un mando; aqui no se ensena ningun ejemplo.';
+      diarioListaEl.appendChild(vacio);
+      return;
+    }
+
+    vista.forEach(r => {
+      const fila = document.createElement('div');
+      fila.className = 'diario-fila';
+
+      if (r.clase === 'RESPUESTA_SUELTA') {
+        fila.className += ' diario-suelta';
+        fila.appendChild(_filaDiario('diario-nosabe', _horaDe(r.ms), 'RESP. SUELTA',
+                                     r.respuesta.linea));
+        const p = document.createElement('div');
+        p.className = 'diario-porque';
+        p.textContent = r.respuesta.motivoSuelta;
+        fila.appendChild(p);
+        diarioListaEl.appendChild(fila);
+        return;
+      }
+
+      const estR = DiarioOrdenes.estadoRespuesta(r, ahora);
+      const estE = DiarioOrdenes.estadoEfecto(r, ahora);
+      if (!r.salio || estR === 'SIN_RESPUESTA' || estE === 'SIN_CAMBIO') {
+        fila.className += ' diario-conhallazgo';
+      }
+
+      fila.appendChild(_filaDiario('', _horaDe(r.ms), 'ORDEN',
+                                   DiarioOrdenes.textoOrden(r)));
+      fila.appendChild(_filaDiario(DIARIO_CLASE[estR] || '',
+                                   estR === 'LLEGO' ? _horaDe(r.respuesta.ms) : '',
+                                   'RESPUESTA', DiarioOrdenes.textoRespuesta(r, ahora)));
+      fila.appendChild(_filaDiario(DIARIO_CLASE[estE] || '', '', 'EFECTO',
+                                   DiarioOrdenes.textoEfecto(r, ahora)));
+      diarioListaEl.appendChild(fila);
+    });
+  }
+
+  // Una de las tres lineas. Por textContent: aqui hay texto que vino del cable y no se
+  // interpreta como HTML ni de broma.
+  function _filaDiario(clase, hora, rotulo, texto) {
+    const l = document.createElement('div');
+    l.className = 'diario-linea ' + clase;
+    const h = document.createElement('span');
+    h.className = 'diario-hora';
+    h.textContent = hora;
+    const e = document.createElement('span');
+    e.className = 'diario-rotulo';
+    e.textContent = rotulo;
+    const c = document.createElement('span');
+    c.className = 'diario-cuerpo';
+    c.textContent = texto;
+    l.appendChild(h);
+    l.appendChild(e);
+    l.appendChild(c);
+    return l;
+  }
+
+  // ---- Sacar el diario del poste ----------------------------------------
+  //
+  // LAS MISMAS DOS SALIDAS QUE LA CINTA, y por los mismos dos motivos: en el cruce
+  // puede no haber internet, y dentro de un WebView una descarga puede no llegar a
+  // ninguna parte sin que la pagina se entere.
+  function textoDiario() {
+    return DiarioOrdenes.aTexto(Date.now(), {
+      Cruce: state.site,
+      Equipo: state.node === null ? 'sin identificar (ningun $STATUS con NODE)' : state.node,
+      Serie: state.serie === null ? 'sin identificar' : state.serie
+    });
+  }
+
+  function nombreFicheroDiario() {
+    return 'Ordenes_' + state.site.replace(/[\s\·\/]+/g, '_') + '_' +
+           new Date().toISOString().slice(0, 10) + '.txt';
+  }
+
+  if (btnDiarioExport) {
+    btnDiarioExport.addEventListener('click', () => {
+      if (!DiarioOrdenes.todas().length) {
+        showToast('El diario esta vacio: no se ha dado ninguna orden que sacar');
+        return;
+      }
+      const blob = new Blob([textoDiario()], { type: 'text/plain;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = nombreFicheroDiario();
+      link.click();
+      showToast('Fichero pedido. Si no aparece, use Copiar y pegue el texto');
+    });
+  }
+
+  if (btnDiarioCopiar) {
+    btnDiarioCopiar.addEventListener('click', () => {
+      if (!diarioTextoEl) return;
+      const texto = textoDiario();
+      diarioTextoEl.value = texto;
+      diarioTextoEl.hidden = false;
+      try {
+        diarioTextoEl.focus();
+        diarioTextoEl.select();
+      } catch (e) {
+        // Seleccionar puede negarse en algun WebView; el texto ya esta a la vista.
+      }
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(texto).then(
+          () => showToast('Diario en el portapapeles, y tambien abajo para revisarlo'),
+          () => showToast('El portapapeles se nego: el texto esta abajo, seleccionelo')
+        );
+      } else {
+        showToast('El texto esta abajo, seleccionado: peguelo donde quiera');
+      }
+    });
+  }
+
+  if (btnDiarioLimpiar) {
+    btnDiarioLimpiar.addEventListener('click', () => {
+      if (typeof window.confirm === 'function' &&
+          !window.confirm('Se vacia el diario de ordenes de esta sesion. Si no lo ha ' +
+                          'exportado, se pierde.')) return;
+      DiarioOrdenes.limpiar();
+      if (diarioTextoEl) {
+        diarioTextoEl.value = '';
+        diarioTextoEl.hidden = true;
+      }
+      renderDiario();
+      addEvent('cyan', 'Diario de ordenes vaciado a peticion del usuario.');
     });
   }
 
@@ -1336,6 +1684,214 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // =========================================================================
+  // 3.bis LA AUTORIZACION CADUCA: 60 s DE GRACIA EN SEGUNDO PLANO, 5 min SIN MANDAR
+  // =========================================================================
+  // MEDIDO el 04/09: `state.pinVerificado` se ponia a `true` en UNA linea -validatePin()-
+  // y no se apagaba en NINGUNA. No es una duracion larga: es que no habia duracion. El
+  // arnes de DOM tuvo que montar un navegador entero para poder medir una sesion sin
+  // autorizar, y dejo la frase escrita: "hoy dura lo que dure el proceso". En la calle
+  // eso significa que el operario teclea, se guarda el telefono, y el siguiente que lo
+  // coja manda ordenes que mueven luces sin teclear nada.
+  //
+  // SON DOS REGLAS Y HACEN FALTA LAS DOS, porque cada una cubre lo que la otra no ve:
+  //
+  //   SEGUNDO PLANO CON 60 s DE GRACIA. Salir de la app es soltarla. La gracia no es
+  //   una concesion: el funcional reporta por WhatsApp desde el mismo telefono y sin
+  //   ella estaria re-tecleando el PIN cada dos por tres, que es como se acaba
+  //   escribiendo la clave en el capo con un rotulador.
+  //
+  //   5 min SIN MANDAR NINGUNA ORDEN. Cubre el caso que la anterior no ve: el telefono
+  //   encendido y olvidado encima del capo, con la app delante. Ahi no hay ningun
+  //   `visibilitychange` que salte nunca.
+  //
+  // Y lo que cuenta como actividad es HABER MANDADO, no haber tocado: el sello vive en
+  // enviarComandoFirmware(), no en un oyente de la pantalla.
+  const PIN_GRACIA_FONDO_MS = 60 * 1000;
+  const PIN_INACTIVIDAD_MS = 5 * 60 * 1000;
+
+  // Se dice con un toast y no con un modal a proposito. Un dialogo que hay que cerrar
+  // se planta delante de un operario que puede estar en mitad de una maniobra; lo que
+  // hay que hacer -volver a teclear- ya se lo va a pedir el propio boton en cuanto lo
+  // pulse. La caducidad se AVISA, no se cobra con un paso mas.
+  function caducarPin(motivo) {
+    if (!state.pinVerificado) return;
+    state.pinVerificado = false;
+    // Los tres restos que closeModal() ya limpiaba al cerrar el teclado se limpian
+    // tambien aqui: unos digitos buenos que sobrevivan a la caducidad la convierten en
+    // un adorno -bastaria con un OK para rearmar la sesion sin teclear-.
+    state.pin = '';
+    state.accionPendiente = null;
+    state.confirmacionVia = null;
+    state.accionViaPendiente = null;
+    state.ultimaOrdenMs = null;
+    updatePinDisplay();
+    if (pinModal) closeModal(pinModal);
+    // El PIN es lo unico que sube a Tecnico, asi que al caducar se baja. Dejar las
+    // pestanas de ajustes abiertas con la autorizacion apagada seria ensenar un menu
+    // en el que ninguna orden va a salir.
+    if (state.role === 'TECNICO') setRole('OPERARIO');
+    showToast('Autorizacion caducada: hay que teclear el PIN otra vez');
+    addEvent('cyan', 'Autorizacion caducada (' + motivo + '). La siguiente orden que ' +
+                     'lo necesite volvera a pedir el PIN.');
+  }
+
+  // Irse a segundo plano solo APUNTA LA HORA. Quien decide es la vuelta: mientras la
+  // app no este delante, nadie puede mandar nada, asi que caducar durante la ausencia
+  // no protege de nada y ademas obligaria a un temporizador que el sistema operativo
+  // puede no dejar correr.
+  function marcarFondo() {
+    if (state.ocultaDesdeMs === null) state.ocultaDesdeMs = Date.now();
+  }
+
+  function volverDelFondo() {
+    if (state.ocultaDesdeMs === null) return;
+    const fuera = Date.now() - state.ocultaDesdeMs;
+    state.ocultaDesdeMs = null;
+    if (fuera > PIN_GRACIA_FONDO_MS) {
+      caducarPin('la app estuvo ' + Math.round(fuera / 1000) + ' s en segundo plano');
+    }
+  }
+
+  // Los dos sucesos, y no uno: `visibilitychange` es el que dispara al cambiar de app
+  // dentro del sistema, y `pagehide` cubre la salida que no lo emite -el navegador que
+  // congela la pestana, la vuelta atras del sistema-. Apuntar dos veces no hace dano
+  // porque marcarFondo() no pisa el sello que ya haya.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) marcarFondo(); else volverDelFondo();
+  });
+  window.addEventListener('pagehide', marcarFondo);
+  window.addEventListener('pageshow', volverDelFondo);
+
+  function vigilarAutorizacion() {
+    if (!state.pinVerificado || state.ultimaOrdenMs === null) return;
+    // Con la app en segundo plano el reloj de inactividad no corre: esa ausencia ya la
+    // juzga la regla de los 60 s al volver, y contarla dos veces caducaria a los 60 s
+    // una sesion que la gracia acababa de perdonar.
+    if (state.ocultaDesdeMs !== null) return;
+    if (Date.now() - state.ultimaOrdenMs > PIN_INACTIVIDAD_MS) {
+      caducarPin('pasaron ' + (PIN_INACTIVIDAD_MS / 60000) + ' min sin mandar ninguna orden');
+    }
+  }
+
+  // =========================================================================
+  // 3.ter LO QUE ABRE PASO NO SE GUARDA CON UN PIN: SE GUARDA MIRANDO LA VIA
+  // =========================================================================
+  // DECISION DEL RESPONSABLE, 04/09, y el porque hay que respetarlo al leer el codigo:
+  //
+  //   EL EQUIPO NO SABE SI QUEDAN VEHICULOS EN EL TRAMO. EL OPERARIO SI.
+  //
+  // Un PIN demuestra QUIEN eres. No demuestra que hayas MIRADO. Para una orden que
+  // ABRE paso, la barrera util es la segunda, no la primera: el dato que falta no esta
+  // en el telefono ni en el poste, esta en la calzada y solo lo tiene el que esta de
+  // pie delante. Asi que las dos ordenes que abren paso desde la botonera de campo
+  // dejan de pedir clave y pasan a pedir una respuesta sobre la via.
+  //
+  // El PIN NO se retira: sigue entero para el tecnico -tiempos, modos, reloj, test de
+  // focos, reiniciar reloj- y sigue viajando en la trama. El firmware no cambia por
+  // esto: lo pone la app.
+  //
+  // LAS TRES REGLAS QUE IMPIDEN QUE LA PREGUNTA SE VUELVA INVISIBLE, que son la parte
+  // que de verdad decide si esto sirve para algo:
+  //
+  //   1. SOLO EN LO QUE ABRE PASO. Poner rojo, poner ambar y volver al menu NO
+  //      preguntan nunca. Es la direccion segura, y es el mismo criterio que el
+  //      firmware ya usa para el PIN -SIN_PIN incluye FORZAR_ROJO y AMBAR_EMERGENCIA a
+  //      proposito-. Preguntar para PARAR ensena a decir que si sin leer, y el dia que
+  //      la pregunta llegue en serio ya no se lee.
+  //   2. LA PREGUNTA DICE QUE MIRAR, no "esta seguro". "Esta seguro" se contesta con el
+  //      dedo; "mire hasta la curva" obliga a levantar la vista. Por eso el dialogo
+  //      lleva la lista de lo que hay que mirar y el boton no se llama "Aceptar".
+  //   3. NO SALE DOS VECES SEGUIDAS POR LO MISMO. Si acaba de contestar hace menos de
+  //      30 s y el ciclo NO ha cambiado de fase, no se le vuelve a preguntar.
+  //
+  // Y una decision que va escrita porque no se ve en el codigo: se pregunta AUNQUE el
+  // PIN este verificado. No son dos llaves de la misma puerta: el tecnico que tecleo su
+  // clave hace diez minutos tampoco ha mirado el tramo.
+  const VIA_VIGENCIA_MS = 30 * 1000;
+
+  // La orden tal y como viaja por el cable, que es la unica forma de nombrarla que no
+  // se puede confundir: SET_MODO:AUTO abre paso y SET_MODO:AMBAR no, y las dos llegan
+  // aqui como el mismo `comando` con distinto `args`.
+  function _ordenDeCable(comando, args) {
+    return args ? comando + ':' + args : comando;
+  }
+
+  // QUE HAY QUE MIRAR, por maniobra. No es un rotulo: es la regla 2. Un texto generico
+  // -"confirme la operacion"- se contesta sin levantar la vista, que es exactamente lo
+  // que esta pregunta existe para impedir.
+  const VIA_MANIOBRA = {
+    'MANUAL:CAMBIAR_TURNO':
+      'DAR PASO: el sentido que ahora tiene verde va a quedar en rojo y el otro va a ' +
+      'arrancar. Mire el tramo entero antes de aceptar.',
+    'SET_MODO:AUTO':
+      'AUTOMATICO: el equipo va a empezar a dar verdes solo, sin volver a preguntar. ' +
+      'Mire el tramo entero antes de aceptar.'
+  };
+
+  // El vale sigue valiendo. Las TRES condiciones son la regla 3, y ninguna sobra:
+  //
+  //   - la MISMA orden. Haber mirado para dar paso no autoriza a arrancar el ciclo.
+  //   - menos de 30 s. Un tramo de obra se llena en menos de un minuto.
+  //   - la MISMA fase. Si el cruce cambio de luces desde que miro, lo que vio ya no es
+  //     lo que hay -y tras un CAMBIAR_TURNO aceptado la fase cambia sola, asi que la
+  //     segunda pulsacion vuelve a preguntar, que es lo correcto-.
+  //
+  // Sin telemetria `estadoLuces` vale null en los dos lados de la comparacion y la fase
+  // deja de acotar: lo unico que queda estrechando la ventana son los 30 s. Va escrito
+  // porque es una perdida real de la regla, no un detalle: sin equipo hablando la app
+  // no puede saber que el cruce cambio.
+  function viaConfirmadaVigente(orden) {
+    const vale = state.confirmacionVia;
+    if (!vale || vale.orden !== orden) return false;
+    if (Date.now() - vale.ms > VIA_VIGENCIA_MS) return false;
+    if (vale.fase !== state.estadoLuces) return false;
+    return true;
+  }
+
+  // Devuelve si se puede seguir SIN preguntar. Si hay que preguntar, abre el dialogo y
+  // deja la pulsacion en cola: se REPITE el click al confirmar, igual que hace
+  // pedirPin(), en vez de ejecutar media accion desde dentro del dialogo. Repetir es lo
+  // que garantiza que las barreras de arriba -la de punta- se vuelvan a evaluar con lo
+  // que el equipo diga AHORA y no con lo que decia cuando se abrio el dialogo.
+  function confirmarVia(orden, reintento) {
+    if (viaConfirmadaVigente(orden)) return true;
+    state.accionViaPendiente = reintento;
+    state.ordenViaPendiente = orden;
+    if (viaManiobraEl) {
+      viaManiobraEl.textContent = VIA_MANIOBRA[orden] ||
+        ('Esta orden ABRE paso: ' + orden + '. Mire el tramo entero antes de aceptar.');
+    }
+    openModal(viaModal);
+    return false;
+  }
+
+  if (btnViaConfirmar) {
+    btnViaConfirmar.addEventListener('click', () => {
+      // Se recoge ANTES de cerrar, por el mismo motivo que validatePin(): cerrar el
+      // dialogo cancela la cola, y esta accion no se cancela -se acaba de autorizar-.
+      const accion = state.accionViaPendiente;
+      const orden = state.ordenViaPendiente;
+      closeModal(viaModal);
+      if (!accion || !orden) return;
+      // La fase se sella AQUI, en el instante en que el operario dice que miro. Sellarla
+      // al mandar diria "la fase de cuando salio la orden", que es otra cosa.
+      state.confirmacionVia = { orden: orden, ms: Date.now(), fase: state.estadoLuces };
+      accion();
+    });
+  }
+
+  if (btnViaCancelar) {
+    btnViaCancelar.addEventListener('click', () => {
+      closeModal(viaModal);
+      addEvent('cyan', 'Orden cancelada en el aviso de via: no se dio paso.');
+    });
+  }
+
+  if (modalViaClose) {
+    modalViaClose.addEventListener('click', () => closeModal(viaModal));
+  }
+
+  // =========================================================================
   // 4. BOTONERA DE CAMPO DEL OPERARIO (ACCIONES A 1 TOQUE)
   // =========================================================================
   // PULSAR UN BOTON NO ES SABER QUE EL EQUIPO OBEDECIO.
@@ -1370,13 +1926,23 @@ document.addEventListener('DOMContentLoaded', () => {
   //
   // La guarda va ANTES del PIN, igual que en el despachador de data-cmd: pedir una
   // clave para una orden que no se va a mandar es hacer teclear al operario delante de
-  // un cruce parado para nada.
+  // un cruce parado para nada. Y el mismo orden vale para el aviso de via: pedirle que
+  // mire el tramo para una orden que no se va a mandar es peor todavia, porque lo que
+  // se gasta ahi no es tiempo, es la credibilidad de la pregunta.
+  //
+  // ESTOS DOS MANDOS YA NO PIDEN PIN: PIDEN LA VIA (04/09, ver 3.ter). Son los dos que
+  // ABREN paso. El tercero de la reja -AMBAR- no pregunta nada nuevo y conserva su
+  // guarda de PIN: es la direccion segura, y preguntar para parar ensena a decir que si
+  // sin leer.
   if (btnOpAuto) {
     btnOpAuto.addEventListener('click', () => {
       const punta = puntaCorrecta('SET_MODO');
       if (punta) { avisarOtraPunta('SET_MODO:AUTO', punta); return; }
-      if (!state.pinVerificado) { pedirPin(() => btnOpAuto.click()); return; }
-      enviarComandoFirmware('SET_MODO', 'AUTO');
+      if (!confirmarVia('SET_MODO:AUTO', () => btnOpAuto.click())) return;
+      // Se consume el bool en vez de apoyarse en la guarda de PIN de arriba, que ya no
+      // esta: sin mirar lo que devuelve, la linea de abajo anunciaria "orden enviada"
+      // de una orden que el emisor pudo no escribir (app_05_sin_exito_mudo).
+      if (!enviarComandoFirmware('SET_MODO', 'AUTO')) return;
       addEvent('cyan', 'Operario: orden MODO AUTOMATICO enviada al equipo.');
     });
   }
@@ -1385,8 +1951,8 @@ document.addEventListener('DOMContentLoaded', () => {
     btnOpStep.addEventListener('click', () => {
       const punta = puntaCorrecta('MANUAL:CAMBIAR_TURNO');
       if (punta) { avisarOtraPunta('MANUAL:CAMBIAR_TURNO', punta); return; }
-      if (!state.pinVerificado) { pedirPin(() => btnOpStep.click()); return; }
-      enviarComandoFirmware('MANUAL:CAMBIAR_TURNO');
+      if (!confirmarVia('MANUAL:CAMBIAR_TURNO', () => btnOpStep.click())) return;
+      if (!enviarComandoFirmware('MANUAL:CAMBIAR_TURNO')) return;
       addEvent('cyan', 'Operario: orden CAMBIAR TURNO enviada al equipo.');
     });
   }
@@ -1855,6 +2421,230 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // =========================================================================
+  // 4.sexies EL MOTIVO DEL RECHAZO SE TRADUCE A LO QUE HAY QUE HACER EN EL POSTE
+  // =========================================================================
+  // REPORTE DE BANCO DEL 04/09: "al pedir la hora de RTC de maestro a esclavo, cuando
+  // se envia me devuelve error". Eso es TODO lo que el tecnico podia saber, y no es
+  // culpa del firmware: el equipo si dice que falla. MEDIDO con grep sobre los tres
+  // despachadores -Maestro/src/bluetooth.cpp, Esclavo/src/bluetooth.cpp y
+  // ESP32_Expansion/src/despachador.cpp-: hay 23 literales de DESC distintos, y seis de
+  // ellos son SOLO del reloj. La app no leia ninguno para nada mas que imprimirlo en
+  // crudo detras de la palabra "Rechazo de Firmware".
+  //
+  // Y esos seis mandan a sitios OPUESTOS con el mismo aspecto en pantalla:
+  // SIN_RELOJ_NO_RESPONDE es un destornillador -el bus no contesta, y una de las causas
+  // es SDA y SCL cruzadas-; NO_QUEDO_PUESTA es una pila. Leidos como "error", los dos
+  // se contestan igual: repitiendo la orden, que en el primer caso no puede funcionar
+  // nunca.
+  //
+  // POR QUE ES UNA TABLA APARTE Y NO MAS FILAS DE ERR_TEXTO, que es la pregunta que hay
+  // que contestar antes de escribir una segunda tabla en este repositorio:
+  //
+  //   - ERR_TEXTO se direcciona por CMD|DESC y traduce lo que depende de la ORDEN.
+  //     NO_HAY_AMBAR_VIGENTE solo significa algo sabiendo que se pidio RETIRAR AMBAR.
+  //     Esa tabla la vigila app_10 contra los $ERR de las dos bluetooth.cpp.
+  //   - ERR_MOTIVO se direcciona por DESC a secas y traduce lo que NO depende de la
+  //     orden: una pila agotada se cambia igual la mandara quien la mandara. Es ademas
+  //     la unica forma de cubrir los seis del PUENTE, que viven en el despachador del
+  //     ESP32 -un fichero que app_10 no censa-.
+  //
+  // La regla para no acabar con la misma frase en las dos: un motivo esta en UNA de las
+  // dos, nunca en las dos. Si al escribir una entrada hay que nombrar la orden para que
+  // se entienda, va en ERR_TEXTO; si no, va aqui.
+  //
+  // Y LO QUE NO SE TRADUCE SE ENSENA EN CRUDO, que es la mitad que impide que esto se
+  // convierta en un filtro. El firmware puede ganar motivos manana sin que esta tabla
+  // se entere: un literal feo en pantalla es incomodo y util; tragarselo es volver al
+  // "error" de hoy, que es de donde venimos.
+  const ERR_MOTIVO = {
+    // --- EL RELOJ. Los seis del puente (ESP32_Expansion/src/despachador.cpp) ---
+    'SIN_RELOJ_NO_RESPONDE': {
+      texto: 'El modulo de reloj NO CONTESTA en el bus. Esto no se arregla repitiendo la ' +
+             'orden: o el modulo no esta puesto, o el cableado no llega, o SDA y SCL van ' +
+             'cruzadas. Revise el conector antes de volver a mandar la hora.',
+      toast: 'El reloj no contesta: revise el cableado SDA/SCL'
+    },
+    'ESCRITURA_FALLIDA': {
+      texto: 'El reloj SI contesta, pero no acepto la escritura: la hora NO quedo puesta. ' +
+             'Repita una vez. Si vuelve a salir lo mismo, el modulo esta fallando y hay ' +
+             'que cambiarlo.',
+      toast: 'El reloj no acepto la escritura: la hora no entro'
+    },
+    'NO_QUEDO_PUESTA': {
+      texto: 'La hora se escribio, el modulo dijo que si, y al releerla NO coincidia. Eso ' +
+             'apunta a la PILA del modulo de reloj: cambiela y repita. La hora que hay ' +
+             'dentro ahora mismo no es la que usted mando.',
+      toast: 'La hora no quedo puesta: cambie la pila del reloj'
+    },
+    'OSCILADOR_PARADO_CAMBIE_PILA': {
+      texto: 'La hora entro en los registros pero el reloj NO ESTA CONTANDO: el oscilador ' +
+             'sigue parado. Cambie la pila del modulo. Mientras no cuente, el equipo no ' +
+             'tiene hora aunque en pantalla salga una.',
+      toast: 'El reloj no cuenta: cambie la pila'
+    },
+    'MOTIVO_NO_CONTEMPLADO': {
+      texto: 'El puente rechazo la orden por un motivo que su propio firmware no sabe ' +
+             'nombrar. Apunte la hora y avise: es un caso nuevo, no una averia conocida, ' +
+             'y no hay nada que tocar en el poste con este dato.',
+      toast: 'Rechazo por un motivo que el firmware no sabe nombrar'
+    },
+    'LINEA_DEMASIADO_LARGA': {
+      texto: 'La orden llego al puente mas larga de lo que cabe y se descarto ENTERA: no ' +
+             'salio nada hacia el equipo. Si se repite siempre con la misma orden, el ' +
+             'dato que lleva dentro es demasiado largo.',
+      toast: 'El puente descarto la orden: llego demasiado larga'
+    },
+
+    // --- EL RELOJ. Los tres del STM32 ---
+    //
+    // Los dos del Maestro nombran "la consulta del reloj", y N-114 midio que esa
+    // consulta es MODO_HORA, a la que hoy NO SE PUEDE LLEGAR: se arma con dos
+    // botonAceptar() y botonAceptar() devuelve false desde que PB14/PB15 dejaron de ser
+    // pulsadores. Lo que SI pasa es que el firmware emite reportarBitsDelReloj() justo
+    // detras de estos dos rechazos (bluetooth.cpp:608 y :643), y ese $EVENT lo pinta
+    // esta misma app en el REGISTRO DE EVENTOS. Se manda alli, que es donde el dato
+    // esta de verdad, en vez de repetir el nombre de una pantalla tapiada.
+    'SIN_CRISTAL_VEA_CONSULTA_RELOJ': {
+      texto: 'El Maestro no tiene reloj en marcha, asi que no acepta la hora. NO busque ' +
+             'la consulta del reloj en la pantalla del gabinete: no se puede abrir. El ' +
+             'equipo acaba de publicar los bits del reloj en el REGISTRO DE EVENTOS de ' +
+             'esta app, justo debajo de este aviso: lealos ahi.',
+      toast: 'Sin reloj en marcha: los bits estan en Registro de Eventos'
+    },
+    'SIGUE_PARADO_VEA_CONSULTA_RELOJ': {
+      texto: 'Se reinicio el reloj y SIGUE PARADO. NO busque la consulta del reloj en la ' +
+             'pantalla del gabinete: no se puede abrir. El equipo acaba de publicar los ' +
+             'bits del reloj en el REGISTRO DE EVENTOS de esta app, justo debajo de este ' +
+             'aviso: son los que dicen si el problema es la pila, el cristal o el firmware.',
+      toast: 'El reloj sigue parado: los bits estan en Registro de Eventos'
+    },
+    'SIN_CRISTAL': {
+      texto: 'Esa unidad no tiene reloj en marcha y por eso no acepta la hora. Ponga la ' +
+             'hora en el MAESTRO: desde alli se propaga. Si el Maestro tampoco la ' +
+             'acepta, el problema es de reloj y no de la app.',
+      toast: 'Esa unidad no tiene reloj en marcha'
+    },
+
+    // --- LOS QUE NO SON DEL RELOJ ---
+    'FORMATO_INVALIDO': {
+      texto: 'El equipo no pudo leer los datos de la orden: llegaron incompletos o mal ' +
+             'formados, y NO se ejecuto nada. Vuelva a rellenar el campo y repita. Si ' +
+             'pasa siempre con la misma orden, avise: el aviso es del equipo, no del enlace.',
+      toast: 'El equipo no pudo leer los datos de la orden'
+    },
+    'RANGO': {
+      texto: 'Un valor de la orden se sale del rango que el equipo acepta y por eso la ' +
+             'rechazo entera. Los limites los ensena el propio formulario: corrija el ' +
+             'valor que este fuera y repita.',
+      toast: 'Un valor va fuera del rango que acepta el equipo'
+    },
+    'EN_TRANSICION_REINTENTE': {
+      texto: 'El cruce esta en mitad de un cambio de fase y no admite otra orden ahora ' +
+             'mismo. NO es un fallo: espere a que termine el cambio y repita. Si insiste ' +
+             'durante la transicion seguira saliendo lo mismo.',
+      toast: 'El cruce esta cambiando de fase: repita al terminar'
+    },
+    'REPITA_EN_UNOS_SEGUNDOS': {
+      texto: 'El equipo esta ocupado con lo anterior y no puede atender esta orden todavia. ' +
+             'Espere unos segundos y repita. No hace falta tocar nada.',
+      toast: 'El equipo esta ocupado: repita en unos segundos'
+    },
+    'SOLO_EN_MODO_INTELIGENTE': {
+      texto: 'Esa orden solo vale con el equipo en Modo Inteligente, y ahora esta en otro ' +
+             'modo. Ponga el equipo en Inteligente primero, o use la orden que corresponda ' +
+             'al modo en que esta.',
+      toast: 'Solo vale en Modo Inteligente'
+    },
+    'PIN_INVALIDO': {
+      texto: 'El equipo RECHAZO la clave: la orden no se ejecuto. El PIN que manda la app ' +
+             'sale del selector del modal de enlace; si al equipo le cambiaron el suyo, ' +
+             'hay que cambiarlo alli.',
+      toast: 'El equipo rechazo la clave'
+    },
+    'COMANDO_NO_SOPORTADO': {
+      texto: 'El equipo NO CONOCE esa orden. Suele significar que la app o el manual son ' +
+             'anteriores al firmware que hay cargado, o al reves. Anote la orden y la ' +
+             'version del equipo antes de seguir probando.',
+      toast: 'El equipo no conoce esa orden'
+    },
+    'COMANDO_NO_SOPORTADO_EN_ESCLAVO': {
+      texto: 'Esa orden no la atiende el ESCLAVO. La mayoria de los mandos viven en el ' +
+             'MAESTRO: enlace con el otro poste y repitala alli.',
+      toast: 'Esa orden no la atiende el Esclavo: use el Maestro'
+    },
+    'NO_EN_SERVICIO_USE_EL_MAESTRO': {
+      texto: 'El ESCLAVO rechaza el test de focos a proposito: la secuencia enciende VERDE ' +
+             'sin mirar nada, y ese verde saldria mientras el Maestro puede estar dando ' +
+             'paso al otro sentido. Hagalo desde el Maestro.',
+      toast: 'El test de focos se hace desde el Maestro'
+    },
+    'RENOMBRADO_USE_AMBAR_EMERGENCIA': {
+      texto: 'En el ESCLAVO la parada de emergencia ya no se llama ROJO TOTAL: alli la ' +
+             'maniobra es AMBAR INTERMITENTE con la talanquera ABIERTA, y el mando que la ' +
+             'pide es AMBAR EMERGENCIA. Use ese, que esta en la misma botonera.',
+      toast: 'En el Esclavo use AMBAR EMERGENCIA, no ROJO TOTAL'
+    },
+    'SALIDA_A_ROJO_EN_CURSO_REPITA': {
+      texto: 'La unidad esta saliendo a todo-rojo ahora mismo y no admite la orden hasta ' +
+             'que termine. Espere a que acabe la salida y repita: el ambar entrara ' +
+             'entonces, no antes.',
+      toast: 'Hay una salida a todo-rojo en curso: repita al acabar'
+    },
+    'YA_VUELVE_AL_MENU': {
+      texto: 'El equipo YA estaba volviendo al menu, asi que esta orden no anade nada. No ' +
+             'es un fallo: la vuelta atras ya estaba pedida y sigue su curso.',
+      toast: 'El equipo ya volvia al menu'
+    },
+
+    // EL MOTIVO QUE VA A CAMBIAR, Y POR ESO ES UNA FUNCION Y NO UN OBJETO.
+    //
+    // Decision del responsable del 04/09: en vez de un rechazo seco, el equipo va a
+    // decir CUANTOS SEGUNDOS faltan para poder parar el modo. Ese cambio es de firmware
+    // y lo esta tocando otro; aqui queda el sitio hecho y NADA MAS.
+    //
+    // LO QUE NO SE HACE, Y ES LO IMPORTANTE: no se inventa el nombre del campo que
+    // traera la cifra. Adivinarlo seria escribir una segunda copia de un contrato que
+    // todavia no existe -y este repositorio ya pago tres veces esa clase de copia-, con
+    // el agravante de que un nombre inventado no falla: simplemente no encuentra nada
+    // NUNCA, y la cuenta atras quedaria muerta sin que ninguna prueba lo dijera. Hasta
+    // que el campo exista, _segundosDeEspera() devuelve null a proposito y el texto sale
+    // sin cifra, que es exactamente lo que la app sabe.
+    'EN_MARCHA_PARE_EL_MODO': (data) => {
+      const seg = _segundosDeEspera(data);
+      const cuanto = seg === null
+        ? 'Espere a que el ciclo termine el cambio y a que salgan los vehiculos que ' +
+          'quedan en el tramo, y repita.'
+        : 'Faltan unos ' + seg + ' s: es lo que el equipo necesita para terminar el ' +
+          'cambio y dejar salir a los vehiculos que quedan en el tramo.';
+      return {
+        texto: 'El equipo esta EN MARCHA y esa orden no se puede aplicar sin pararlo. ' +
+               cuanto + ' Para pararlo del todo, VOLVER AL MENU.',
+        toast: seg === null ? 'El equipo esta en marcha: pare el modo y repita'
+                            : 'El equipo esta en marcha: faltan unos ' + seg + ' s'
+      };
+    }
+  };
+
+  // LA CIFRA DE LA CUENTA ATRAS, CUANDO EXISTA. Hoy devuelve null y esa es toda su
+  // implementacion: el firmware todavia no manda el dato y el nombre del campo no esta
+  // decidido. El dia que lo este, se lee AQUI -una linea, un solo sitio- y el texto de
+  // arriba se compone solo. Lo que no se hace mientras tanto es adivinar un nombre y
+  // dejar una busqueda que no encuentra nada nunca haciendose pasar por una lectura.
+  function _segundosDeEspera(data) {
+    if (!data) return null;
+    return null;
+  }
+
+  // Resuelve una entrada de las dos tablas de rechazo: puede ser el objeto directo o
+  // una funcion de los campos de la trama, para los motivos que traen un dato dentro.
+  function _traducirRechazo(data) {
+    const entrada = ERR_TEXTO[(data.CMD || '?') + '|' + (data.DESC || '')] ||
+                    ERR_MOTIVO[data.DESC || ''];
+    if (!entrada) return null;
+    return typeof entrada === 'function' ? entrada(data) : entrada;
+  }
+
+  // =========================================================================
   // 4.bis INGESTA DE TELEMETRIA DEL EQUIPO ($STATUS / $ALARM / $ERR)
   //
   // N-75: el rewrite de V9.0 borro este camino entero. La app quedo SORDA: mandaba
@@ -1901,6 +2691,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (header === '$STATUS') {
       const data = _camposNmea(parts);
+
+      // EL EFECTO DE UNA ORDEN SOLO LO SABE EL EQUIPO, Y LO CUENTA AQUI. Esta llamada
+      // es la unica via por la que el diario se entera de si algo cambio: alimenta la
+      // ventana de las ordenes abiertas y se queda como "lo que hay ahora", que sera el
+      // "lo que habia antes" de la siguiente orden. Va lo primero, antes de pintar
+      // nada, para que el instante que se apunta sea el de la trama y no el del render.
+      DiarioOrdenes.verStatus(data, Date.now());
 
       // Cada $STATUS es la prueba de que el equipo sigue ahi. El watchdog de abajo la
       // usa para decidir si el tablero puede seguir mostrando lo que muestra.
@@ -2053,6 +2850,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // distintas cuando el enlace es una radio. Ahora la unica confirmacion que se
       // muestra viene del equipo.
       const data = _camposNmea(parts);
+      // LA RESPUESTA SE PEGA A SU ORDEN EN EL DIARIO, por el CMD que el firmware
+      // devuelve. Lo que ese CMD garantiza esta censado en DiarioOrdenes.ALIAS_CMD y
+      // CMD_SIN_ORDEN, con el grep que lo midio: casi todas vuelven con el literal
+      // exacto, SET_TIEMPOS/SET_RTC vuelven sin argumentos y MANUAL:CAMBIAR_TURNO
+      // vuelve como CAMBIAR_TURNO. Lo que no case NO se atribuye a ojo.
+      DiarioOrdenes.verRespuesta('$ACK', data, line, Date.now());
       const cual = data.CMD || '?';
       const clave = cual + '|' + (data.RESULT || '');
       const dicho = ACK_TEXTO[clave];
@@ -2080,6 +2883,11 @@ document.addEventListener('DOMContentLoaded', () => {
       renderRegistroEnlace();
     } else if (header === '$ERR') {
       const data = _camposNmea(parts);
+      // Igual que el $ACK: la negativa se pega a la orden que la provoco. Con una
+      // salvedad medida y escrita en CMD_SIN_ORDEN: AUTH_FAILED y DESCONOCIDO NO
+      // nombran la orden rechazada, asi que solo se atribuyen si quedaba una sola
+      // esperando -y entonces se dice que fue por descarte-.
+      DiarioOrdenes.verRespuesta('$ERR', data, line, Date.now());
       // Un rechazo del firmware NO se oculta: si el equipo dijo que no, la pantalla
       // tiene que decirlo tambien, o el operario se va creyendo que la orden entro.
       //
@@ -2087,12 +2895,32 @@ document.addEventListener('DOMContentLoaded', () => {
       // literal, leido tal cual, se confunde con una averia. No lo es: es el equipo
       // diciendo que no habia nada que quitar, y eso es una respuesta util -significa
       // que si el cruce sigue en ambar, viene de otro sitio-.
-      const negado = ERR_TEXTO[(data.CMD || '?') + '|' + (data.DESC || '')];
+      // Quien rechaza importa tanto como por que: seis de los motivos del reloj los
+      // emite el PUENTE (el ESP32), no el micro del semaforo, y quien va a destapar un
+      // conector necesita saber cual de los dos modulos se esta quejando. El campo NODE
+      // solo lo traen las tramas del puente; en las del STM32 no existe y no se inventa.
+      const delPuente = data.NODE === 'PUENTE' ? ' (PUENTE, modulo ESP32)' : '';
+
+      // EL LITERAL EN CRUDO NO SE SUSTITUYE POR LA TRADUCCION: VAN LOS DOS, Y EN ESE
+      // ORDEN. La traduccion es para el que esta delante del poste ahora; el literal es
+      // para el que lea esto despues -el registro se exporta a CSV y a WhatsApp, y
+      // NO_QUEDO_PUESTA es el termino con el que se busca en el roadmap y con el que se
+      // reporta-. Cambiar uno por otro habria ganado una frase util y perdido la unica
+      // palabra que se puede citar.
+      const cabecera = 'Rechazo de Firmware' + delPuente + ': [' + (data.CMD || '?') + '] ' +
+                       (data.DESC || '');
+      const negado = _traducirRechazo(data);
       if (negado) {
-        addEvent('red', negado.texto);
+        addEvent('red', cabecera + ' -> ' + negado.texto);
         showToast(negado.toast);
       } else {
-        addEvent('red', 'Rechazo de Firmware: [' + (data.CMD || '?') + '] ' + (data.DESC || ''));
+        // FALLBACK, Y SE QUEDA A PROPOSITO -es la mitad que impide que la tabla de
+        // arriba se convierta en un filtro-. Un motivo nuevo del firmware tiene que
+        // llegar a la pantalla aunque nadie le haya escrito todavia su traduccion: en
+        // crudo es feo y util; tragado es el "error" a secas del que venimos. Y se dice
+        // que la app no lo sabe traducir, para que quien lo lea sepa que le falta app,
+        // no que le falte equipo.
+        addEvent('red', cabecera + ' (motivo sin traducir en esta version de la app)');
         showToast('Rechazado por el equipo: ' + (data.DESC || 'ver eventos'));
       }
     }
@@ -2100,6 +2928,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // estan puestos: hacerlo arriba ensenaria la trama sin ellos y el usuario veria la
     // linea cambiar sola.
     renderDepuracion();
+    // El diario tambien: una misma trama puede haberle puesto la respuesta a una orden
+    // y el efecto a otras tres.
+    renderDiario();
   }
 
   // Despachador unico de los botones que declaran su orden en data-cmd. Un solo sitio
@@ -2731,7 +3562,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // $STATUS por segundo eso serian sesenta filas de DOM por segundo gastando
       // bateria para nadie-, asi que al abrirla hay que pintarla aqui o se abriria en
       // blanco enseñando "todavia no ha entrado ninguna trama" con la cinta llena.
-      if (targetId === 'tab-depuracion') renderDepuracion();
+      if (targetId === 'tab-depuracion') { renderDepuracion(); renderDiario(); }
     });
   });
 
@@ -2765,6 +3596,14 @@ document.addEventListener('DOMContentLoaded', () => {
       state.accionPendiente = null;
       updatePinDisplay();
     }
+    // Y lo mismo con el aviso de via, por el motivo de la segunda mitad del comentario
+    // de arriba: cerrar es CANCELAR. Una orden que abre paso no se ejecuta porque el
+    // operario conteste el dialogo SIGUIENTE, que puede ser de otra maniobra. No se
+    // toca `confirmacionVia`: ese es el vale ya concedido y tiene su propia vigencia.
+    if (modal === viaModal) {
+      state.accionViaPendiente = null;
+      state.ordenViaPendiente = null;
+    }
   }
 
   if (btnDevice && btModal) {
@@ -2791,7 +3630,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalSiteClose.addEventListener('click', () => closeModal(siteModal));
   }
 
-  [btModal, siteModal, pinModal, degradadoModal].forEach(m => {
+  [btModal, siteModal, pinModal, degradadoModal, viaModal].forEach(m => {
     if (m) {
       m.addEventListener('click', (e) => {
         if (e.target === m) closeModal(m);
@@ -3084,9 +3923,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Y la cinta de tramas nace VACIA Y DICIENDOLO. Es la vista donde mas tentador seria
   // dejar un ejemplo "para que se vea el formato": no lo lleva.
   renderDepuracion();
+  renderDiario();
   marcarSinEnlace();
   // Arranca sin punta: los dos mandos de emergencia a la vista, cada uno con su poste
   // escrito. En cuanto se sepa cual hay delante quedara solo el que corresponde.
   actualizarEmergencia();
   setInterval(vigilarEnlace, 1000);
+  // La caducidad por inactividad se mira una vez cada 10 s y no cada segundo: el limite
+  // son 5 min y la precision que se gana no la nota nadie, mientras que un temporizador
+  // menos por segundo si se nota en la bateria de un telefono que pasa el turno con la
+  // pantalla encendida al sol.
+  setInterval(vigilarAutorizacion, 10000);
 });

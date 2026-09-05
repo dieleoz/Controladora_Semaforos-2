@@ -518,12 +518,59 @@
          inventa.
          =================================================================== -->
     <section class="tab-content admin-only" id="tab-depuracion">
+
+      <!-- EL DIARIO DE ÓRDENES VA ARRIBA, ANTES DE LA CINTA, Y NO ES ORDEN ALFABÉTICO.
+
+           La cinta contesta a "qué bytes pasaron"; el diario contesta a "y qué pasó".
+           La segunda es la pregunta que se hace de pie en el poste, así que va primero.
+           Son DOS registros y no dos vistas del mismo: la cinta se corta a 300 tramas y
+           en una sola sesión de banco se tiraron 379 — metiendo los envíos dentro se
+           llenaría antes y expulsaría justo lo que se busca.
+
+           Las tres líneas de cada entrada —ORDEN, RESPUESTA, EFECTO— se leen juntas y en
+           ese orden porque así un defecto se ve sin diagnosticarlo. Y cada una lleva su
+           estado escrito con PALABRAS y no sólo con color: a pleno sol el color es lo
+           primero que se pierde. -->
+      <div class="card">
+        <div class="card-header-flex">
+          <h3>📋 Diario de órdenes</h3>
+          <span class="badge">QUÉ SE MANDÓ</span>
+        </div>
+        <p class="card-sub">Cada orden con <strong>lo que se envió, lo que el equipo contestó y lo que se vio cambiar</strong>. El PIN sale tapado.</p>
+
+        <div class="depu-contadores" id="diario-resumen"></div>
+
+        <div class="diario-lista" id="diario-lista"></div>
+
+        <p class="card-sub depu-nota" id="diario-nota"></p>
+
+        <!-- LAS DOS SALIDAS, y ninguna necesita internet: el texto se compone en el
+             teléfono. Son las mismas que la cinta y por el mismo motivo — dentro de un
+             WebView una descarga puede no llegar a ninguna parte sin que la página se
+             entere, así que la de copiar es la que no puede fallar. -->
+        <div class="feed-actions">
+          <button class="btn-export" id="btn-diario-export">
+            <span>📥 Guardar el diario</span>
+          </button>
+          <button class="btn-share" id="btn-diario-copiar">
+            <span>📋 Copiar / mostrar texto</span>
+          </button>
+        </div>
+        <textarea class="depu-texto" id="diario-texto" readonly hidden
+                  aria-label="Texto del diario de órdenes para copiar"></textarea>
+        <div class="feed-actions">
+          <button class="btn-share" id="btn-diario-limpiar">
+            <span>🗑️ Vaciar el diario</span>
+          </button>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header-flex">
           <h3>🧪 Tramas en crudo</h3>
           <span class="badge">DEPURACIÓN</span>
         </div>
-        <p class="card-sub">Lo que entró por el Bluetooth, <strong>tal y como entró</strong>, con las rechazadas y su motivo.</p>
+        <p class="card-sub">Lo que pasó por el Bluetooth <strong>en las dos direcciones</strong>, tal y como pasó: <code>&lt;--</code> lo que entró, <code>--&gt;</code> lo que la app envió, con las rechazadas y su motivo.</p>
 
         <div class="depu-contadores" id="depu-contadores"></div>
 
@@ -715,6 +762,45 @@
       <div class="degradado-acciones">
         <button class="btn-secondary-bt" id="btn-degradado-cancelar">Cancelar</button>
         <button class="btn-degradado" id="btn-degradado-confirmar" disabled>Entrar en Degradado</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ¿Queda algún vehículo en el tramo?  (04/09)
+       LA BARRERA DE LO QUE ABRE PASO YA NO ES UN PIN.
+
+       El equipo no sabe si quedan vehículos en el tramo; el operario sí. Un PIN
+       demuestra QUIÉN eres y no demuestra que hayas MIRADO, así que para una orden
+       que abre paso la barrera útil es ésta y no aquélla.
+
+       Tres cosas de este diálogo NO son estilo, son la razón de que sirva:
+
+       1. Sólo sale en lo que ABRE paso. Poner rojo, poner ámbar y volver al menú no
+          preguntan nunca: preguntar para PARAR enseña a decir que sí sin leer.
+       2. Dice QUÉ MIRAR y no "¿está seguro?". La lista de abajo es la pregunta; el
+          botón sólo la firma. Por eso no se llama "Aceptar".
+       3. El botón que confirma va a la DERECHA y el de cancelar a la izquierda, igual
+          que en el diálogo del Degradado: dos mandos con el mismo sitio en pantalla se
+          pulsan sin mirar, y aquí eso es lo que se busca evitar en el otro sentido.
+
+       Es un modal propio del DOM y NO un confirm() del navegador: el nativo bloquea el
+       hilo -colgó una corrida E2E, N75-4- y sólo deja una línea de texto. -->
+  <div class="modal-overlay" id="via-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4>🚧 ¿No quedan vehículos en el tramo?</h4>
+        <button class="modal-close" id="modal-via-close">✕</button>
+      </div>
+      <p class="modal-desc" id="via-maniobra">Esta orden abre paso.</p>
+      <ul class="via-lista">
+        <li><strong>Mire el tramo entero</strong>, hasta la otra punta: si no ve el final, no lo confirme.</li>
+        <li>Curvas, cambios de rasante y todo lo que tape la vista.</li>
+        <li>Vehículos <strong>parados o lentos</strong> dentro del tramo, y maquinaria.</li>
+        <li>Gente trabajando en la calzada o cruzando.</li>
+      </ul>
+      <div class="degradado-acciones">
+        <button class="btn-secondary-bt btn-via-alto" id="btn-via-cancelar">Todavía no</button>
+        <button class="btn-degradado btn-via-alto" id="btn-via-confirmar">He mirado: el tramo está libre</button>
       </div>
     </div>
   </div>
