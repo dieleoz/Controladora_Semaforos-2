@@ -263,6 +263,23 @@ def _sin_dato_o(conv):
     return convertir
 
 
+def _uno_de(*validos):
+    """Un campo cuyo dominio es cerrado: fuera de esa lista, ABORTA.
+
+    Un `lambda v: v` acepta cualquier cosa, y para un campo de texto libre -SERIE, HORA-
+    es lo correcto. Para uno cuyo valor decide lo que se PINTA en un semaforo no lo es:
+    si el firmware empezara a emitir un quinto valor, la app lo pintaria como pueda y
+    este instrumento diria que todo va bien. Aborta -no falla-, porque un valor que no
+    se sabe leer no dice nada del firmware: dice que el instrumento se quedo atras."""
+    def convertir(v):
+        t = str(v).strip()
+        if t not in validos:
+            raise Abortar(f"$STATUS trae un valor que este instrumento no sabe leer: "
+                          f"{t!r}. Los admitidos son {', '.join(validos)}")
+        return t
+    return convertir
+
+
 # Si el firmware estrena un campo que no este aqui, esto ABORTA: preferimos no medir a
 # medir de menos en silencio, que es como se pierden los campos nuevos.
 CAMPOS = {
@@ -275,6 +292,18 @@ CAMPOS = {
     "RTT":    ("rtt",      _sin_dato_o(lambda v: int(re.match(r"\d+", v).group(0)))),
     "BAT":    ("bat",      _sin_dato_o(lambda v: float(re.match(r"[\d.]+", v).group(0)))),
     "HORA":   ("hora",     lambda v: v),
+    # N-149 (05/09): el color que el Maestro tiene CONFIRMADO del Esclavo.
+    #
+    # No es "lambda v: v" como los demas textos, y la diferencia es el motivo de que
+    # este campo exista: sus valores son un conjunto CERRADO -tres colores y el "?" de
+    # no lo se-. Aceptar cualquier cadena dejaria pasar el defecto que este campo
+    # previene, que es publicar un color inventado; el "?" es un valor legitimo y por
+    # eso va en la lista y no en SIN_DATO -no significa "sin medida", significa "el
+    # enlace esta caido y esta punta no lo sabe"-.
+    #
+    # Solo lo emite el Maestro. El Esclavo no tiene de donde sacarlo, y ese asimetria
+    # la vigila documentos_03_trama_status: aqui basta con saber leerlo.
+    "ESC":    ("esc",      _uno_de("ROJO", "VERDE", "AMBAR", "?")),
 }
 
 
@@ -290,6 +319,10 @@ class MicroModelado:
         self.rf = 98
         self.rtt = 85
         self.hora_seg = 14 * 3600 + 32 * 60 + 5   # 14:32:05
+        # N-149: el Maestro arranca sin nada confirmado del Esclavo. "?" y no un color,
+        # porque antes del primer acuse esta punta NO SABE, y ese es justo el estado que
+        # el campo existe para poder decir.
+        self.esc = "?"
         self.dia = 26
         self.millis_ms = 0                        # el contador de 32 bits del micro
         self.tramas_emitidas = 0
@@ -331,9 +364,22 @@ class MicroModelado:
             "RF": str(self.rf),
             "RTT": str(self.rtt),
             "HORA": f"{h:02d}:{m:02d}:{s:02d}",
+            "ESC": self.esc,   # N-149
         }
 
+    # N-149: los cuatro valores de ESC, en rotacion.
+    #
+    # Con un valor fijo el campo viajaria en todas las tramas diciendo lo mismo, y la
+    # comparacion de ida y vuelta lo aprobaria sin haber ejercido nunca el "?" ni el
+    # AMBAR. Seria un campo mas en la cuenta y una comprobacion muerta: exactamente la
+    # forma que 3.bis describe -un PASS de algo que nadie ha visto fallar-. Rotando, el
+    # parser REAL de la app tiene que devolver los cuatro tal cual, incluido el "?", que
+    # es el unico que no es una palabra y el que un parser descuidado colapsaria a vacio.
+    _ESC_CICLO = ("?", "ROJO", "VERDE", "AMBAR")
+
     def avanzar_segundo(self):
+        self.esc = self._ESC_CICLO[(self._ESC_CICLO.index(self.esc) + 1)
+                                   % len(self._ESC_CICLO)]
         self.hora_seg = (self.hora_seg + 1) % 86400
         if self.hora_seg == 0:
             self.dia = (self.dia % 31) + 1
