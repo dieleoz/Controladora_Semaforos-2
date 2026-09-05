@@ -766,11 +766,11 @@ Todas las tramas viajan a **9600 baudios (8N1)** y finalizan en `\r\n`.
 El checksum se calcula aplicando la operación **XOR bit a bit** de todos los bytes contenidos entre el carácter `$` inicial y el asterisco `*` (ambos excluidos), formateado como dos caracteres hexadecimales en mayúsculas (`00` a `FF`).
 
 ### 4.2 Telemetría Periódica ($STATUS) — Emitida cada 2 segundos *(cadencia bajada a **2000 ms** el 04/09, decision del responsable, en las DOS puntas — MEDIDO: `Maestro/src/bluetooth.cpp:851`, `Esclavo/src/bluetooth.cpp:768`. Un tecnico que cronometre con «1 segundo» declara caido un enlace sano.)*
-$$\text{Formato: }\$STATUS,NODE:\langle N\rangle,SERIE:\langle S\rangle,MODO:\langle M\rangle,ESTADO:\langle E\rangle,T:\langle S\rangle,RF:\langle R\rangle\%,RTT:\langle T\rangle ms,BAT:\langle V\rangle,HORA:\langle H\rangle,ESC:\langle C\rangle*\langle CRC\rangle\backslash r\backslash n$$
+$$\text{Formato: }\$STATUS,NODE:\langle N\rangle,SERIE:\langle S\rangle,MODO:\langle M\rangle,ESTADO:\langle E\rangle,T:\langle S\rangle,RF:\langle R\rangle\%,RTT:\langle T\rangle ms,BAT:\langle V\rangle,HORA:\langle H\rangle,ESC:\langle C\rangle,PLUMA:\langle P\rangle*\langle CRC\rangle\backslash r\backslash n$$
 
 **Ejemplo Maestro en Modo Automático:**
 ```text
-$STATUS,NODE:MAESTRO,SERIE:A3F19C,MODO:AUTO,ESTADO:V1_R2,T:24,RF:98%,RTT:82ms,BAT:12.6,HORA:18:25:00,ESC:ROJO*19\r\n
+$STATUS,NODE:MAESTRO,SERIE:A3F19C,MODO:AUTO,ESTADO:V1_R2,T:24,RF:98%,RTT:82ms,BAT:12.6,HORA:18:25:00,ESC:ROJO,PLUMA:ARRIBA*41\r\n
 ```
 
 > 🔵 **`ESC` (N-149) — y este campo SÓLO SALE DEL MAESTRO.** Es el único campo asimétrico
@@ -794,6 +794,15 @@ $STATUS,NODE:MAESTRO,SERIE:A3F19C,MODO:AUTO,ESTADO:V1_R2,T:24,RF:98%,RTT:82ms,BA
 > Maestro la app es la consola de operación y enseña el cruce entero; conectado al Esclavo
 > es sólo diagnóstico.**
 >
+> 🔵 **`PLUMA` (N-153) — la posición de la talanquera de LA PUNTA QUE EMITE**: `ARRIBA` o
+> `ABAJO`. **Lo emiten las DOS**, porque las dos placas llevan el motor en `PB2` — no es
+> asimétrico como `ESC`. Sale del valor que se escribió en el pin, no de recalcular la
+> fórmula.
+>
+> ⚠️ **Con la decisión D-13 habrá ratos de LUZ ROJA CON LA PLUMA ARRIBA** —la cámara ve a
+> alguien debajo y la barrera no baja—. **Eso no es una avería**, y la app lo dice con esas
+> palabras.
+
 > **Quien escriba un parser contra esta trama tiene que leer `ESC` con valor por defecto**,
 > porque en el poste del Esclavo no llega. El pack `documentos_03_trama_status` lo exige en
 > cada corrida.

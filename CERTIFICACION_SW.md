@@ -40,16 +40,16 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 
 | Verificación | Resultado medido | Método |
 |---|---|---|
-| Compilación Maestro (STM32F103) | **56568 B de Flash — 86.3 %** de 65536 B (quedan **9228 B**) | `pio run` |
-| Compilación Esclavo (STM32F103) | **43464 B de Flash — 66.3 %** de 65536 B | `pio run` |
+| Compilación Maestro (STM32F103) | **56656 B de Flash — 86.5 %** de 65536 B (quedan **9228 B**) | `pio run` |
+| Compilación Esclavo (STM32F103) | **43548 B de Flash — 66.4 %** de 65536 B | `pio run` |
 | Compilación Repetidor (ESP32) | **270497 B de Flash — 20,6 %** de 1310720 B | `pio run` |
 | Guarda de rutas de los instrumentos | **62 rutas** parseadas, todas existen | `compuerta.py` |
 | Banco de simulación funcional | **9/9 PASS** | `simulador_sistema_v7_6.py` |
 | Escenarios de repetidor | **10/10 PASS** | `simulador_repetidor.py` |
-| Banco por packs | **1053/1053 comprobaciones**, **74 packs** | `banco/correr.py` |
+| Banco por packs | **1057/1057 comprobaciones**, **74 packs** | `banco/correr.py` |
 | Arnés de pantalla (compila el `lcd.cpp` real) | **271/271** (Maestro 145/145 · Esclavo 126/126) | `Validacion_LCD/compilar.ps1` |
 | Arnés del ciclo degradado | **22/22** | `Validacion_Ciclo` |
-| Arnés del Modo Automático | **71/71** | `Validacion_Automatico` |
+| Arnés del Modo Automático | **73/73** | `Validacion_Automatico` |
 | App — test funcional | **58/58** | suite funcional de la app |
 | App — test unitarios | **32/32** | suite unitaria de la app |
 | App — ejecutada en DOM | **201/201** | arnés jsdom |
@@ -63,8 +63,8 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 >
 > | publicaba | medido hoy | por qué importa |
 > |---|---|---|
-> | ~~Maestro: 42.620 B (65,0 %)~~ | **56568 B (86.3 %)** | 🔴 **El error grave.** Quien planificase con el 65 % creería tener **~23 KB libres**; quedan **9228 B**. Con esa cifra se propone estructura que **no cabe** |
-> | ~~Esclavo: 15.480 B (23,6 %)~~ | **43464 B (66.3 %)** | Casi el triple de ocupación real |
+> | ~~Maestro: 42.620 B (65,0 %)~~ | **56656 B (86.5 %)** | 🔴 **El error grave.** Quien planificase con el 65 % creería tener **~23 KB libres**; quedan **9228 B**. Con esa cifra se propone estructura que **no cabe** |
+> | ~~Esclavo: 15.480 B (23,6 %)~~ | **43548 B (66.4 %)** | Casi el triple de ocupación real |
 > | ~~Repetidor: 269.197 B (20,5 %)~~ | **270497 B (20,6 %)** | El acta mide **una** compilación de repetidor, no dos |
 > | ~~Compilación Repetidor diagnóstico: 270.257 B (20,6 %)~~ | — | ⛔ **Retirada.** La compuerta no la mide: publicar una fila sin medida detrás la hace leerse como medida |
 > | ~~Banco funcional 9/9~~ | **9/9** — las 20 de entonces incluian 11 pruebas que no median nada; se retiraron con su evidencia una a una | |
@@ -73,7 +73,7 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 > | ~~RAM: 3.576 B / 1.752 B / 21.624 B~~ | — | ⛔ **Retiradas: la compuerta NO mide RAM.** Sólo compila y lee el porcentaje de flash. La RAM se mide con `arm-none-eabi-nm` sobre el `.elf` (`CLAUDE.md` §7), y ese número no está en ningún acta |
 
 > El banco por packs y los simuladores son **modelos en Python escritos a mano**: reimplementan lo que
-> hace el C++. Un `1053/1053` acredita coherencia del modelo, **no** el comportamiento del firmware sobre
+> hace el C++. Un `1057/1057` acredita coherencia del modelo, **no** el comportamiento del firmware sobre
 > hardware. Los únicos que compilan C++ real son cuatro arneses, y cada uno tiene su punto ciego
 > declarado en `CLAUDE.md` §8.
 

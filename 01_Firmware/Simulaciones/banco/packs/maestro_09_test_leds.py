@@ -134,6 +134,34 @@ def _condicion_pluma(cuerpo):
     return m.group(1).strip(), m.group(2), m.group(3)
 
 
+def _sin_asignacion(expr, codigo):
+    """Desenvuelve la condicion cuando viene dentro de una asignacion a la bandera.
+
+    N-153. La orden de la pluma pasa a ser
+
+        digitalWrite(MOTOR_TALANQUERA,
+                     (plumaAbierta = ((verde && !testLedsActivo) || estado == S_FALLO))
+                         ? TALANQUERA_ABRIR : TALANQUERA_CERRAR);
+
+    porque el $STATUS publica ahora esa posicion y el valor tiene que salir del MISMO
+    parentesis que mueve el pin: una copia de la formula en la linea de al lado seria la
+    que se queda vieja el dia que la condicion cambie.
+
+    LA EXCEPCION SE MIDE, NO SE ESCRIBE (CLAUDE.md 3.bis). No se acepta cualquier
+    asignacion: solo la que asigna a la bandera que devuelve semaforo_plumaArriba(),
+    leida del propio fuente. Con cualquier otro identificador esto devuelve la expresion
+    tal cual y el pack ABORTA como hacia antes -que es lo correcto: una expresion que no
+    se entiende no se aprueba-."""
+    m = re.match(r"^\(\s*([A-Za-z_]\w*)\s*=\s*(.+)\)$", expr.strip())
+    if not m:
+        return expr
+    cuerpo = _cuerpo(codigo, "semaforo_plumaArriba")
+    publica = re.search(r"return\s+([A-Za-z_]\w*)\s*;", cuerpo or "")
+    if not publica or publica.group(1) != m.group(1):
+        return expr
+    return m.group(2).strip()
+
+
 def _evaluar_pluma(cond, bandera, verde, test, fallo):
     """Evalua la condicion REAL del C++ con la tabla de verdad dada.
 
@@ -331,6 +359,10 @@ def correr(b, fw):
             "Sin la condicion no hay nada que evaluar, y dar PASS aqui seria aprobar "
             "una barrera que no se ha mirado")
     expr, ramaCierto, ramaFalso = cond
+    # N-153: la condicion puede venir envuelta en la asignacion de la bandera que el
+    # $STATUS publica. Se desenvuelve SOLO si esa bandera es la que devuelve el getter,
+    # comprobado sobre el fuente; en cualquier otro caso se deja como esta y se aborta.
+    expr = _sin_asignacion(expr, codigo)
 
     desconocidos = sorted(set(_IDENT.findall(expr)) -
                           {"verde", bandera, "estado", "S_FALLO"})

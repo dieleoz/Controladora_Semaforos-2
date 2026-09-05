@@ -1614,6 +1614,68 @@ const marcaHoraInicial = htmlContent.match(/id="equipo-hora"[^>]*>([^<]*)</);
 assert(!!marcaHoraInicial && !/\d{1,2}:\d{2}/.test(marcaHoraInicial[1]),
   `El HTML no nace con una hora de relleno donde va la del equipo: "${marcaHoraInicial ? marcaHoraInicial[1].trim() : '(no se hallo el elemento)'}"`);
 
+// =========================================================================
+// 13. LA PLUMA SE DIBUJA, Y ROJO+ARRIBA NO ES UNA AVERIA (N-153, 05/09)
+// =========================================================================
+// MEDIDO ANTES DE ESCRIBIR NADA: "talanquera|pluma|barrera" daba 28 coincidencias en
+// app.js y NINGUNA era un estado -todas explican lo que hace un boton-. El operario no
+// podia saber si la barrera estaba arriba o abajo AHORA. Y no era que la app lo
+// ignorase: el equipo no lo publicaba.
+//
+// ESTE BLOQUE MIDE EL CAMINO QUE CORRE EN EL TELEFONO, igual que el 12: la rama de
+// $STATUS de app.js y pintarPluma(). El viaje de ida y vuelta del campo por el parser
+// lo mide simulador_app_bluetooth.py con dominio cerrado; lo que solo se puede medir
+// aqui es lo que queda ESCRITO en la pantalla, que es lo unico que lee el operario.
+const plumaDom = document.getElementById('pluma-estado');
+assert(!!plumaDom, 'La consola tiene donde ensenar el estado de la talanquera');
+
+// 13.1 ABAJO: lo normal, y se dice sin adornos.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:17:00:00,ESC:VERDE,PLUMA:ABAJO');
+assert(/PLUMA ABAJO/.test(plumaDom.textContent) && !/ARRIBA/.test(plumaDom.textContent)
+       && plumaDom.hidden === false,
+  `Con PLUMA:ABAJO la fila lo dice y no dice lo contrario: "${plumaDom.textContent}"`);
+
+// 13.2 ARRIBA CON VERDE: es el ciclo normal, y NO se le pone encima el aviso de averia.
+// Sin esta linea, una app que escribiera SIEMPRE el aviso aprobaria 13.3 sola.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:VERDE,T:20,RF:97,RTT:70,BAT:12.9,HORA:17:00:02,ESC:ROJO,PLUMA:ARRIBA');
+assert(/PLUMA ARRIBA/.test(plumaDom.textContent) && !/AVER/i.test(plumaDom.textContent),
+  `Con verde, la pluma arriba es el ciclo y no se anuncia como excepcion: "${plumaDom.textContent}"`);
+
+// 13.3 ARRIBA CON ROJO: el caso que trae D-13 -una camara ve presencia debajo y la
+// barrera no baja-. Hoy un operario eso lo lee como averia y llama. La pantalla lo tiene
+// que DECIR, no insinuarlo, asi que se exige la palabra entera.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:17:00:04,ESC:VERDE,PLUMA:ARRIBA');
+assert(/PLUMA ARRIBA/.test(plumaDom.textContent) && /NO es aver/i.test(plumaDom.textContent),
+  `Con la luz en ROJO y la pluma ARRIBA la pantalla declara que no es una averia: "${plumaDom.textContent}"`);
+
+// 13.4 EL CAMPO DEJA DE VENIR -firmware anterior a N-153-. No se puede quedar el ARRIBA
+// de la trama de arriba pintado como si fuera de ahora: una barrera de hace un rato no
+// es una barrera, y quien la lee cruza por debajo (CLAUDE.md 3.quinquies).
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:17:00:06,ESC:VERDE');
+assert(/no la publica/i.test(plumaDom.textContent) && !/PLUMA ARRIBA/.test(plumaDom.textContent),
+  `Una trama SIN PLUMA declara la carencia y borra el valor anterior: "${plumaDom.textContent}"`);
+
+// 13.5 UN VALOR VACIO SI VINO, y no es lo mismo que no venir: acusar de firmware viejo a
+// un equipo que acaba de mandar el campo taparia el unico sintoma de un %s vacio en el
+// snprintf del C++. Es la misma distincion que ya se exige en 11.4 para ESC.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:17:00:08,ESC:VERDE,PLUMA:');
+assert(!/no la publica/i.test(plumaDom.textContent),
+  `Un PLUMA: vacio NO se lee como "este equipo no lo publica": el campo vino: "${plumaDom.textContent}"`);
+
+// 13.6 UN LITERAL QUE LA APP NO CONOCE SE ENSENA EN CRUDO. Callarlo dejaria la fila en
+// blanco el dia que el firmware estrene un valor, y una fila en blanco no se distingue
+// de una app vieja.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:17:00:10,ESC:VERDE,PLUMA:ARIBA');
+assert(/ARIBA/.test(plumaDom.textContent) && /NO RECONOCIDA/i.test(plumaDom.textContent),
+  `Un valor de PLUMA que la tabla no conoce sale a la vista: "${plumaDom.textContent}"`);
+
+// 13.7 LA PLUMA ES SIEMPRE LA DEL POSTE QUE HABLA, y el rotulo tiene que decirlo: las
+// dos placas son la misma y las dos publican la SUYA. Un rotulo fijo mandaria al tecnico
+// a mirar la barrera del otro poste, que esta a 1000 m.
+conectarComo('ESCLAVO', 'SERIE:SEM-E-01,MODO:SUBORDINADO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:17:00:12,PLUMA:ABAJO');
+assert(/POSTE 2/.test(plumaDom.textContent) && /PLUMA ABAJO/.test(plumaDom.textContent),
+  `Contra el ESCLAVO la fila habla del POSTE 2, que es donde esta esa barrera: "${plumaDom.textContent}"`);
+
 console.log('='.repeat(80));
 console.log(` RESULTADO JSDOM: ${testsPassed} PASS | ${testsFailed} FALLAS`);
 console.log('='.repeat(80));

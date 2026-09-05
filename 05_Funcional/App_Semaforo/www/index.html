@@ -117,6 +117,18 @@
             </button>
           </div>
         </div>
+
+        <!-- LA TALANQUERA DEL POSTE CON EL QUE SE HABLA (N-153, 05/09).
+             Viaja en el campo PLUMA del $STATUS de las dos puntas: cada placa tiene su
+             motor en PB2, asi que este renglon es SIEMPRE el poste que habla y nunca el
+             de enfrente. Lo escribe pintarPluma().
+
+             NACE OCULTO Y ES DELIBERADO: sin punta identificada no hay barrera que
+             atribuir, y en esa pantalla -la de antes del primer $STATUS- el ultimo mando
+             diario acaba a 493 px con la barra de pestanas empezando a 497 px en un
+             telefono de 320 px. Un renglon fijo ahi taparia un mando. Medido, no
+             supuesto. -->
+        <div class="pluma-estado" id="pluma-estado" hidden>PLUMA</div>
       </div>
 
       <!-- ===============================================================

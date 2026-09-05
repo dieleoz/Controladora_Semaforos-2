@@ -579,6 +579,32 @@ body {
   max-width: 130px;
 }
 
+/* LA FILA DE LA TALANQUERA (N-153).
+ *
+ * Va DEBAJO de las dos columnas y a todo el ancho de la tarjeta, no dentro de una
+ * columna: a 320 px cada columna mide unos 75 px y cualquier frase se partiria en
+ * cuatro lineas -que es el defecto que herramientas_medir_consola.js cuenta como
+ * "palabras partidas"-. Y a todo el ancho cabe la frase entera, que es lo que hay que
+ * poder leer: "esto no es una averia" no se puede insinuar en dos palabras.
+ *
+ * El color y el fondo los pone pintarPluma() en linea, porque dependen de la PAREJA
+ * (luz, pluma) y no del elemento. Aqui solo va lo que no cambia.
+ *
+ * El borde izquierdo grueso es el mismo recurso que ya usan los avisos de la app: se
+ * ve de reojo sin tener que leer, que es como se mira un tablero de pie. */
+.pluma-estado {
+  margin-top: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--text-muted);
+  border-left-width: 3px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.3px;
+  text-align: center;
+}
+
 /* ==========================================================================
    Metrics Grid
    ========================================================================== */
@@ -1912,6 +1938,9 @@ body {
   .card-traffic { padding: 6px 10px; }
   .dual-semaforos { padding: 2px 0; }
   .phase-desc { margin-top: 2px; }
+  /* En la pantalla mas corta la fila de la pluma se compacta como todo lo demas, pero
+   * NO se oculta: es el unico sitio donde se dice si la barrera esta arriba. */
+  .pluma-estado { margin-top: 4px; padding: 3px 6px; font-size: 10px; }
 
   /* OCHO PIXELES, Y SE SABE PARA QUE SIRVE CADA UNO. A 320x568 la ultima fila de la
      reja quedaba PEGADA a la barra de pestanas flotante -medido: el borde de arriba

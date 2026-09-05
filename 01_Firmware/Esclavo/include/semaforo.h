@@ -68,3 +68,17 @@ bool semaforo_senalEnCurso();
 // Test de lámparas de 6 segundos en taller (2s Rojo -> 2s Amarillo -> 2s Verde)
 void semaforo_iniciarTestLeds();
 bool semaforo_testLedsEnCurso();
+
+// ---------------------------------------------------------------------------
+// N-153 - EL ESTADO DE LA PLUMA, PUBLICADO.
+//
+// Devuelve lo que escribirPines() escribio la ultima vez en MOTOR_TALANQUERA: true si
+// quedo ARRIBA. No recalcula la condicion de SFTY-28 -eso serian dos formulas que
+// alguien tendria que mantener iguales-, devuelve la bandera que la propia orden dejo
+// puesta.
+//
+// EXISTE PARA QUE LA APP PUEDA DIBUJARLA. Con D-13 va a haber ratos de LUZ ROJA CON LA
+// PLUMA ARRIBA -presencia debajo, la barrera no baja-, y un operario que hoy vea eso
+// lo lee como averia. Publicarlo no depende de las camaras y cierra el hueco antes.
+// ---------------------------------------------------------------------------
+bool semaforo_plumaArriba();

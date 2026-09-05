@@ -221,6 +221,14 @@ const NMEAParser = {
         // que este fichero documenta haber quitado tres casos mas arriba, con la
         // agravante de que aqui el valor inventado es una LUZ.
         case 'ESC': data.esc = v; break;
+        // N-153: el estado de la TALANQUERA de la punta que habla. Lo emiten las DOS
+        // -las dos placas llevan el motor en PB2-, asi que aqui no hay asimetria que
+        // recordar. Se devuelve TAL CUAL y sin defecto, por el mismo motivo que ESC:
+        // quien pinta tiene que poder distinguir "no vino" -firmware anterior- de
+        // "vino ARRIBA" de "vino un literal que no conozco", y un valor inventado aqui
+        // seria una BARRERA inventada, que es peor que una luz inventada: el conductor
+        // le hace mas caso a la barrera que a la lampara.
+        case 'PLUMA': data.pluma = v; break;
       }
     }
 

@@ -827,10 +827,27 @@ void bluetooth_loop() {
     // publicarlo en una sola punta dejaria al operario con un numero en un poste y "--"
     // en el otro para el MISMO ciclo. Cuando el Maestro exponga el suyo, las dos se
     // encienden en el mismo commit.
+    // N-153: PLUMA: - ESTA PUNTA TAMBIEN TIENE TALANQUERA, Y TAMBIEN LA PUBLICA.
+    //
+    // No es simetria de oficio: las dos placas son la MISMA y las dos llevan el motor en
+    // PB2 -pines.h:31, "opto U15 -> MOSFET Q10 -> bornera J15" en las dos puntas-, asi
+    // que cada equipo publica LA SUYA, la que el tecnico tiene delante en ese poste. Es
+    // lo contrario del caso de ESC:, que solo emite el Maestro porque el Esclavo no
+    // tiene a quien preguntarle por el otro poste.
+    //
+    // El valor no se recalcula aqui: lo da semaforo.cpp, que es el unico que decide
+    // (SFTY-28) y deja anotado lo que escribio en el pin.
+    //
+    // EL BUFFER SE QUEDA EN 128, MEDIDO IGUAL QUE EL DEL MAESTRO: la parte fija de esta
+    // plantilla mide 90 caracteres y sus cuatro %s por su maximo son SERIE 6 + ESTADO 9
+    // -"FALLO COM"- + HORA 8 + PLUMA 6 = 29. Total 119 caracteres + NUL = 120 B, con 8 B
+    // de holgura. Los cuatro campos que esta punta no puede medir viajan marcados con
+    // "--" dentro de la propia plantilla, asi que no suman rango.
     char payload[128];
     snprintf(payload, sizeof(payload),
-             "$STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s",
-             serieTxt, estadoStr, horaBuf);
+             "$STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s,PLUMA:%s",
+             serieTxt, estadoStr, horaBuf,
+             semaforo_plumaArriba() ? "ARRIBA" : "ABAJO");
 
     enviarTramaConCrc(payload);
 

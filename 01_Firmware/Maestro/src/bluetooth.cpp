@@ -954,22 +954,60 @@ void bluetooth_loop() {
     // Maestro -no le pregunta y no tiene por que-, asi que anadirle un campo simetrico
     // seria inventarse el dato, que es justo lo que este campo existe para no hacer.
     //
-    // EL BUFFER SUBE A 144, Y EL NUMERO ESTA MEDIDO, NO ESTIMADO.
+    // N-153: PLUMA: - EL ESTADO DE LA TALANQUERA, QUE ES UN ELEMENTO QUE SE MUEVE Y
+    // HASTA HOY NO SALIA DEL MICRO.
     //
-    // La primera version de este cambio puso 160 "por si acaso" y el banco la tumbo:
+    // El valor NO se recalcula aqui: se pregunta a semaforo.cpp, que es el unico que
+    // decide (SFTY-28) y que deja anotado lo que acaba de escribir en el pin. Una
+    // segunda copia de la condicion en este fichero seria la que se queda vieja cuando
+    // la de alla cambie -y D-13 la va a cambiar-, y eso ya se ha pagado tres veces.
+    //
+    // VA EN LAS DOS PUNTAS, y no es una simetria de oficio: las dos placas son la MISMA
+    // y las dos tienen su talanquera en PB2 -pines.h:31, "opto U15 -> MOSFET Q10 ->
+    // bornera J15" en las dos-, asi que cada punta publica LA SUYA. No es el caso de
+    // ESC:, que es asimetrico porque el Esclavo no tiene de donde sacar el dato del
+    // otro poste; aqui cada equipo tiene el suyo delante.
+    //
+    // EL BUFFER SE QUEDA EN 144, Y EL NUMERO ESTA MEDIDO, NO ESTIMADO.
+    //
+    // La primera version del campo ESC: puso 160 "por si acaso" y el banco la tumbo:
     // esp32_07_presupuesto_bytes exige tramaCompleta >= payload + 5 -el *XX y el CRLF que
     // enviarTramaConCrc anade despues-, y tramaCompleta mide 160. Un payload de 160 se
     // habria truncado en el ULTIMO paso, saliendo al cable bien formado hasta la mitad.
-    // Es la regla del instrumento (CLAUDE.md 4) contra mi propia cuenta a ojo.
+    // Es la regla del instrumento (CLAUDE.md 4) contra la cuenta a ojo.
     //
-    // El peor caso se compone de los literales del propio firmware -el modo mas largo es
-    // INTELIGENTE, el estado mas largo FALLO COM- y da 125 caracteres + NUL = 126 B. Con
-    // 144 quedan 18 B de holgura y se cumple 144 + 5 <= 160.
+    // EL PEOR CASO, RECALCULADO DESDE LOS LITERALES DE ESTE FICHERO (05/09). La parte
+    // fija de la plantilla mide 78 caracteres, y cada %s por su maximo:
+    //
+    //   SERIE   6   identidad_texto() escribe 6 hex en char[7]
+    //   MODO   11   el literal mas largo de obtenerNombreModo(): INTELIGENTE/DESCONOCIDO
+    //   ESTADO  9   "FALLO COM", el mas largo de semaforo_nombreEstado()
+    //   T       3   coordinador/modo dan segundos de fase: el techo es VERDE_MIN_MAX=15
+    //               min = 900 s (limites_ciclo.h), o sea tres cifras
+    //   RF      4   "100%", porque calidadEnlace() es (respondidos*100)/muestras con
+    //               respondidos <= muestras, y el -1 sale por la rama del "--"
+    //   RTT     6   "9999ms"
+    //   HORA    8   formato fijo HH:MM:SS
+    //   ESC     5   "VERDE", el mas largo de coordinador_estadoEsclavo()
+    //   PLUMA   6   "ARRIBA"
+    //
+    //   78 + 58 = 136 caracteres + NUL = 137 B.  Con 144 quedan 7 B y 144 + 5 <= 160.
+    //
+    // 🛑 EL RESIDUAL, ESCRITO EN VEZ DE DISIMULADO. Esa cuenta usa el RANGO de tres
+    // numeros que gobiernan OTROS modulos -T, RF y RTT-, no la capacidad de sus buffers,
+    // que es lo que este fichero puede garantizar solo. Con los tres a su tope de TIPO
+    // el payload seria de 162 B, y NO CABE: tramaCompleta mide 160, asi que el techo de
+    // cualquier payload son 155 B. No cabia tampoco antes de este campo -el tope de tipo
+    // eran 149 B contra payload[144]-, y con PLUMA: deja de poder caber por definicion.
+    // Los 7 B de holgura absorben el unico de los tres cuyo tope de tipo si entra: un
+    // RTT de 12 caracteres -unsigned long entero- da 143 B. Anotado para el roadmap; la
+    // salida limpia es acotar RF y T donde se producen, no ensanchar aqui.
     char payload[144];
     snprintf(payload, sizeof(payload),
-             "$STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s",
+             "$STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s,PLUMA:%s",
              serieTxt, modoStr, estadoStr, tTxt, rfTxt, rttTxt, horaBuf,
-             coordinador_estadoEsclavo());
+             coordinador_estadoEsclavo(),
+             semaforo_plumaArriba() ? "ARRIBA" : "ABAJO");
 
     enviarTramaConCrc(payload);
 

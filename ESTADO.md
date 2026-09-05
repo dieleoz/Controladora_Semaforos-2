@@ -85,8 +85,8 @@ que el tramo quedo vacio. Es configurable de 10 a 90 s y hoy esta en 15.
 
 ## Verificacion
 
-Compuerta **20 PASS · 0 FALLA · 0 ABORTADO**. Banco **1053/1053 en 74 packs**. Maestro
-**86,0 %** (`56568` B), Esclavo **66,1 %** (`43464` B), app en DOM **218/218**.
+Compuerta **20 PASS · 0 FALLA · 0 ABORTADO**. Banco **1057/1057 en 74 packs**. Maestro
+**86,0 %** (`56656` B), Esclavo **66,1 %** (`43548` B), app en DOM **226/226**.
 
 > **Y lo que ese verde significa, que es lo de siempre:** los modelos y los arneses de PC
 > no encuentran nada. **No dice que el firmware funcione en la tarjeta.** Esta noche hubo
@@ -154,17 +154,17 @@ nombre y apellido.
 
 ## 📏 VERIFICACIÓN EN ESCRITORIO — lo que dice la última acta
 
-**Compuerta:** 🔴 **19 PASS | 0 FALLA | 1 ABORTADO**, así que **no sale con `0`: sale con `2`**, que es su código de ABORTADO. **El abortado es `simulador de app y bluetooth`**, que no sabe con qué comparar el campo `ESC:` que N-149 estrenó el 05/09: **mientras siga abortado, todo lo que ese instrumento vigilaba entra sin mirar** (`CLAUDE.md` §3.quater). **El banco por packs está entero —1053/1053 en 74 packs— y las cinco comprobaciones `documentos_*` dentro.** Cifras **copiadas del acta
+**Compuerta:** 🔴 **19 PASS | 0 FALLA | 1 ABORTADO**, así que **no sale con `0`: sale con `2`**, que es su código de ABORTADO. **El abortado es `simulador de app y bluetooth`**, que no sabe con qué comparar el campo `ESC:` que N-149 estrenó el 05/09: **mientras siga abortado, todo lo que ese instrumento vigilaba entra sin mirar** (`CLAUDE.md` §3.quater). **El banco por packs está entero —1057/1057 en 74 packs— y las cinco comprobaciones `documentos_*` dentro.** Cifras **copiadas del acta
 `evidencia/2026-09-05_compuerta.txt`**, no escritas a mano — lo comprueban `documentos_01` y
 `documentos_04` en cada corrida.
 
 | | |
 |---|---|
-| Flash | Maestro **86.3 %** (**56568** de 65536 B → **8.968 B libres**) · Esclavo **66.3 %** (43464 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | **1053/1053** en **74 packs** |
-| Arneses que compilan C++ real | 271/271 pantalla · 71/71 automático · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** |
+| Flash | Maestro **86.5 %** (**56656** de 65536 B → **8.880 B libres**) · Esclavo **66.4 %** (43548 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | **1057/1057** en **74 packs** |
+| Arneses que compilan C++ real | 271/271 pantalla · 73/73 automático · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** |
 | Puente ESP32 | **93/93** |
-| App | app: 32/32 + 55/55 unitarios + 218/218 jsdom + 58/58 funcional |
+| App | app: 32/32 + 55/55 unitarios + 226/226 jsdom + 58/58 funcional |
 
 🔴 **Y el verde sigue sin ser un entregable — ahora con el contraejemplo delante en vez de como
 advertencia.** Son **34.532 líneas de instrumento contra 14.976 de firmware —2,31 a 1—**, y el

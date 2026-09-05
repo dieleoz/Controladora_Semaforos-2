@@ -73,6 +73,7 @@ APP_JS = ("05_Funcional", "App_Semaforo", "app.js")
 # por su tupla de ruta.
 TABLA_ESTADOS = "ESTADOS"
 TABLA_MODOS = "MODOS"
+TABLA_PLUMA = "PLUMA_LEYENDA"
 
 
 def _bloque(texto, i):
@@ -146,6 +147,20 @@ def _claves_de_tabla(js, nombre):
             i = j
         i += 1
     return claves
+
+
+def _literales_de_pluma(fw, punta):
+    """Los dos literales que el C++ puede poner en el campo PLUMA de $STATUS.
+
+    N-153. No salen de un switch: van escritos en el ternario que alimenta al snprintf,
+    que es la MISMA forma que ya obligo a censar aparte el MODO:SUBORDINADO del Esclavo.
+    Un censo que solo mirara switches no los veria, y esta lista se compara contra una
+    tabla de la app que decide lo que se pinta de una BARRERA FISICA: el conductor le
+    hace mas caso a la barrera que a la lampara, asi que un literal que la app no sepa
+    pintar deja en pantalla un texto en crudo justo donde hay que decidir si se cruza."""
+    codigo = fw.codigo(punta, "src", "bluetooth.cpp")
+    m = re.search(r'semaforo_plumaArriba\(\)\s*\?\s*"([^"]*)"\s*:\s*"([^"]*)"', codigo)
+    return [m.group(1), m.group(2)] if m else None
 
 
 def _modo_fijo_del_esclavo(fw):
@@ -278,6 +293,72 @@ def correr(b, fw):
         "el badge de la app conoce el modo %s y ninguna punta lo emite: es una rama "
         "que no se ejecuta nunca ocupando el sitio de las que si hacen falta"
         % ", ".join(sobran_m))
+
+    # ---- 4.bis. Y lo mismo con PLUMA:, que decide lo que se pinta de una BARRERA ----
+    #
+    # N-153 (05/09). El campo es nuevo y su dominio son DOS literales, asi que la
+    # tentacion es darlo por evidente. Se mide por lo mismo que ESTADO y MODO: no hay
+    # nada en el firmware que impida cambiar "ARRIBA" por otra palabra, y la app se
+    # quedaria pintando el literal en crudo -que es lo correcto que hace, pero es un
+    # sintoma, no un tablero-. MEDIDO: se inyecto ese cambio exacto el 05/09 y NINGUN
+    # instrumento lo vio; el simulador de app no puede, porque su modelo se inventa el
+    # valor en vez de leerlo del C++.
+    literales = {}
+    for punta in PUNTAS:
+        lit = _literales_de_pluma(fw, punta)
+        if lit is None:
+            raise fw.Abortado(
+                "%s: no se pudo leer del C++ el ternario que rellena PLUMA: en el "
+                "$STATUS. Es el unico sitio donde estan esos dos literales; sin ellos "
+                "este pack compararia la tabla de la app contra un conjunto vacio y la "
+                "aprobaria entera" % punta)
+        literales[punta] = lit
+
+    b.verificar(
+        literales["Maestro"] == literales["Esclavo"],
+        "las dos puntas escriben los MISMOS literales en PLUMA y en el mismo orden: %s"
+        % ", ".join(literales["Maestro"]),
+        "el Maestro puede emitir PLUMA:%s y el Esclavo PLUMA:%s. La app es UNA, y las "
+        "dos placas son la misma placa: si el vocabulario difiere, el tecnico ve la "
+        "barrera de un poste dibujada y la del otro en crudo"
+        % ("/".join(literales["Maestro"]), "/".join(literales["Esclavo"])))
+
+    emitibles_pluma = sorted(set(literales["Maestro"]) | set(literales["Esclavo"]))
+    claves_pluma = _claves_de_tabla(js, TABLA_PLUMA)
+    if not claves_pluma:
+        raise fw.Abortado(
+            "no se hallo en app.js la tabla `const %s = { ... }` con sus claves. Es "
+            "donde la app declara que sabe dibujar la pluma; si se movio o cambio de "
+            "forma, este pack no esta midiendo la pantalla de nadie" % TABLA_PLUMA)
+
+    faltan_p = [v for v in emitibles_pluma if v not in claves_pluma]
+    b.verificar(
+        not faltan_p,
+        "la app sabe dibujar los %d valores de PLUMA que el firmware puede emitir (%s)"
+        % (len(emitibles_pluma), ", ".join(emitibles_pluma)),
+        "el firmware puede emitir PLUMA:%s y la app no tiene entrada para %s. Se pinta "
+        "el literal en crudo -que es lo unico honesto que puede hacer-, pero eso es un "
+        "sintoma en la pantalla de operacion, no un tablero"
+        % ("/".join(emitibles_pluma), ", ".join(faltan_p)))
+
+    sobran_p = [v for v in claves_pluma if v not in emitibles_pluma]
+    b.verificar(
+        not sobran_p,
+        "la app no sabe dibujar ninguna posicion de la pluma que el firmware no pueda "
+        "emitir",
+        "la app sabe dibujar PLUMA:%s y ninguna punta lo emite: es una rama que no se "
+        "ejecuta nunca ocupando el sitio de las que si hacen falta, y el sitio por "
+        "donde entra un vocabulario que no es el del equipo" % ", ".join(sobran_p))
+
+    b.control_negativo(
+        _literales_de_pluma.__doc__ is not None and
+        re.search(r'semaforo_plumaArriba\(\)\s*\?\s*"([^"]*)"\s*:\s*"([^"]*)"',
+                  'x = semaforo_plumaArriba() ? "ARRIBA" : "ABAJO";').group(1) == "ARRIBA"
+        and re.search(r'semaforo_plumaArriba\(\)\s*\?\s*"([^"]*)"\s*:\s*"([^"]*)"',
+                      'x = otraCosa() ? "ARRIBA" : "ABAJO";') is None,
+        "el lector del ternario de PLUMA saca los dos literales y NO acepta un ternario "
+        "de otra funcion: si el campo dejara de salir de semaforo_plumaArriba(), el "
+        "pack aborta en vez de medir el ternario de al lado")
 
     # ---- 5. Y tiene declarada una salida para lo que NO reconozca ----
     #

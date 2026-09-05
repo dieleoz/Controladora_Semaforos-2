@@ -304,6 +304,19 @@ CAMPOS = {
     # Solo lo emite el Maestro. El Esclavo no tiene de donde sacarlo, y ese asimetria
     # la vigila documentos_03_trama_status: aqui basta con saber leerlo.
     "ESC":    ("esc",      _uno_de("ROJO", "VERDE", "AMBAR", "?")),
+    # N-153 (05/09): el estado de la TALANQUERA de la punta que emite.
+    #
+    # Dominio CERRADO por el mismo motivo que ESC:, y aqui pesa mas todavia. Este campo
+    # decide lo que se pinta de una BARRERA FISICA, y el conductor le hace mas caso a la
+    # barrera que a la lampara -por eso se pone-. Un `lambda v: v` aceptaria "ARIBA" con
+    # una erre menos y este instrumento diria que todo va bien mientras la app pinta un
+    # literal en crudo.
+    #
+    # Solo dos valores, y no hay un "?" como en ESC: la punta que emite SIEMPRE sabe lo
+    # que acaba de escribir en su propio pin -semaforo_plumaArriba() devuelve la bandera
+    # que dejo puesta la orden-, asi que un tercer valor de "no lo se" seria un estado
+    # que el firmware no puede alcanzar. Lo emiten las DOS puntas.
+    "PLUMA":  ("pluma",    _uno_de("ARRIBA", "ABAJO")),
 }
 
 
@@ -323,6 +336,10 @@ class MicroModelado:
         # porque antes del primer acuse esta punta NO SABE, y ese es justo el estado que
         # el campo existe para poder decir.
         self.esc = "?"
+        # N-153: el equipo arranca con la pluma ABAJO, que es lo que hace semaforo_setup()
+        # -digitalWrite(MOTOR_TALANQUERA, TALANQUERA_CERRAR) antes de nada-. Empezar por
+        # ARRIBA seria modelar un arranque que el firmware no tiene.
+        self.pluma = "ABAJO"
         self.dia = 26
         self.millis_ms = 0                        # el contador de 32 bits del micro
         self.tramas_emitidas = 0
@@ -365,6 +382,7 @@ class MicroModelado:
             "RTT": str(self.rtt),
             "HORA": f"{h:02d}:{m:02d}:{s:02d}",
             "ESC": self.esc,   # N-149
+            "PLUMA": self.pluma,   # N-153
         }
 
     # N-149: los cuatro valores de ESC, en rotacion.
@@ -377,9 +395,21 @@ class MicroModelado:
     # es el unico que no es una palabra y el que un parser descuidado colapsaria a vacio.
     _ESC_CICLO = ("?", "ROJO", "VERDE", "AMBAR")
 
+    # N-153: y la pluma ALTERNA, por la misma razon. Con un valor fijo el campo viajaria
+    # en las 8.700 tramas diciendo "ABAJO" y el viaje de ida y vuelta jamas habria
+    # ejercido "ARRIBA": una comprobacion muerta con forma de campo nuevo (3.bis). Al
+    # alternar cada segundo modelado, el parser real de la app tiene que devolver los dos
+    # tal cual, y el dominio cerrado de arriba es lo que impide que se cuele un tercero.
+    #
+    # NO se sincroniza con _ESC_CICLO a proposito: son dos periodos distintos -4 y 2-, y
+    # asi las cuatro parejas (ESC, PLUMA) aparecen en el muestreo en vez de solo dos.
+    _PLUMA_CICLO = ("ABAJO", "ARRIBA")
+
     def avanzar_segundo(self):
         self.esc = self._ESC_CICLO[(self._ESC_CICLO.index(self.esc) + 1)
                                    % len(self._ESC_CICLO)]
+        self.pluma = self._PLUMA_CICLO[(self._PLUMA_CICLO.index(self.pluma) + 1)
+                                       % len(self._PLUMA_CICLO)]
         self.hora_seg = (self.hora_seg + 1) % 86400
         if self.hora_seg == 0:
             self.dia = (self.dia % 31) + 1

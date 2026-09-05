@@ -45,6 +45,18 @@ static unsigned long tInicioTest = 0;
 // desincronizarse entre ellas.
 static const unsigned long TEST_FASE_MS = 2000;
 
+// --- N-153: LO QUE LA PLUMA ESTA HACIENDO, PARA PODER PUBLICARLO -----------
+//
+// La talanquera es el unico elemento del equipo que SE MUEVE, y el conductor le hace
+// mas caso que a la lampara. Hasta hoy no salia del micro: el $STATUS no la llevaba y
+// la app solo la nombraba dentro de los textos que explican botones, nunca como
+// estado, asi que el operario no podia saber si la barrera estaba arriba o abajo.
+//
+// GUARDA LO QUE SE ESCRIBIO EN EL PIN. No es una segunda cuenta de la condicion: se
+// asigna dentro de la propia orden de escribirPines(), que es el unico sitio que
+// decide (SFTY-28).
+static bool plumaAbierta = false;
+
 static void escribirPines(bool rojo, bool amarillo, bool verde) {
   digitalWrite(ROJO1, rojo);
   digitalWrite(ROJO2, rojo);
@@ -97,8 +109,16 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   // equipo SIN ENERGIA no ejecuta esta linea: el pin cae a LOW, el MOSFET no conduce y
   // la pluma BAJA -SFTY-28-. Equipo vivo que sabe que fallo, abre; equipo muerto,
   // cierra. Las dos son ciertas y hay que leerlas juntas.
+  //
+  // N-153: Y LA MISMA ORDEN DEJA ANOTADO LO QUE ACABA DE MANDAR, para que el $STATUS
+  // pueda publicarlo. La asignacion va DENTRO del parentesis de la condicion, y no en
+  // una linea de al lado, porque una segunda escritura de esta formula seria una
+  // SEGUNDA COPIA: el dia que la condicion cambie -y va a cambiar, D-13 trae el veto de
+  // la pluma- la copia se queda vieja sin que nada falle, que es lo que este
+  // repositorio lleva pagando. Aqui el pin y la bandera salen del mismo parentesis y no
+  // pueden discrepar.
   digitalWrite(MOTOR_TALANQUERA,
-               ((verde && !testLedsActivo) || estado == S_FALLO)
+               (plumaAbierta = ((verde && !testLedsActivo) || estado == S_FALLO))
                    ? TALANQUERA_ABRIR : TALANQUERA_CERRAR);
 }
 
@@ -209,6 +229,9 @@ void semaforo_setup() {
   // durante los dos segundos de bienvenida.
   pinMode(MOTOR_TALANQUERA, OUTPUT);
   digitalWrite(MOTOR_TALANQUERA, TALANQUERA_CERRAR);
+  // La bandera dice lo que dice el pin, tambien aqui: este digitalWrite no pasa por
+  // escribirPines(), asi que es el unico sitio donde hay que repetirlo.
+  plumaAbierta = false;
 
   semaforo_apagarTodo();
 }
@@ -258,6 +281,12 @@ void semaforo_iniciarTestLeds() {
 
 bool semaforo_testLedsEnCurso() {
   return testLedsActivo;
+}
+
+// N-153: lo ULTIMO que se le mando al pin de la pluma. Lo publica el campo PLUMA: del
+// $STATUS; ver el porque de que sea una bandera y no un recalculo sobre plumaAbierta.
+bool semaforo_plumaArriba() {
+  return plumaAbierta;
 }
 
 void semaforo_iniciarFallo() {

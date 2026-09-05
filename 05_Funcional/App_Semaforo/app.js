@@ -37,6 +37,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // radio". Lo que no se hace en ninguno de los dos es dejar el semaforo del POSTE 2
     // con el ultimo color pintado como si fuera de ahora (CLAUDE.md 3.quinquies).
     esc: null,
+    // LA TALANQUERA DEL POSTE CON EL QUE SE HABLA (N-153, 05/09). Viaja en el campo
+    // PLUMA: del $STATUS de LAS DOS puntas -las dos placas son la misma y las dos
+    // tienen su motor en PB2-, asi que este dato es SIEMPRE el del poste que habla y
+    // nunca el del otro. Cuatro valores y ninguno se colapsa con otro:
+    //
+    //   null       el campo NO VINO: equipo con firmware anterior a N-153.
+    //   'ARRIBA'   la barrera esta levantada: por debajo se pasa.
+    //   'ABAJO'    la barrera esta bajada.
+    //   otra cosa  un literal que esta app no conoce. Se ensena EN CRUDO, no se adivina.
+    //
+    // POR QUE IMPORTA QUE SE VEA: es el unico elemento del equipo que SE MUEVE, y el
+    // conductor le hace mas caso que a la lampara -por eso se pone-. Hasta hoy la app lo
+    // nombraba solo dentro de los textos que explican botones, nunca como estado, asi
+    // que el operario no podia saber si estaba arriba o abajo AHORA.
+    pluma: null,
     // null = NADIE HA DICHO CUANTO FALTA. No es 0: 0 es el ultimo segundo de la
     // fase, que es un dato, y esto es la ausencia de dato. Ver N-139 y
     // updateCountdownRing().
@@ -177,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const cdNumEl = document.getElementById('cd-num');
   const ringProgressEl = document.getElementById('ring-progress');
   const phaseDescEl = document.getElementById('phase-desc');
+  const plumaEl = document.getElementById('pluma-estado');   // N-153
   const badgeModoEl = document.getElementById('badge-modo');
 
   // Metrics
@@ -1556,6 +1572,26 @@ document.addEventListener('DOMContentLoaded', () => {
     'AMBAR': { lampara: 'amber', texto: 'ÁMBAR',         color: 'var(--amber-lamp)' }
   };
 
+  // =========================================================================
+  // LA PLUMA, QUE ES LO UNICO DEL EQUIPO QUE SE MUEVE (N-153, 05/09)
+  // =========================================================================
+  // MEDIDO ANTES DE ESCRIBIR NADA: "talanquera", "pluma" y "barrera" daban 28
+  // coincidencias en este fichero y NINGUNA era un estado. Todas explican lo que hace
+  // un boton -"pone ambar y ABRE la talanquera"-, o sea que un operario delante del
+  // cruce no podia saber si la barrera estaba arriba o abajo AHORA. Y no era que la app
+  // lo ignorara: el equipo no lo publicaba. Desde N-153 viaja en el campo PLUMA del
+  // $STATUS de las dos puntas.
+  //
+  // POR QUE ES EL DATO QUE MAS FALTA, y no un adorno mas del tablero: el conductor le
+  // hace mas caso a la barrera que a la lampara -por eso se pone-. Con D-13 va a haber
+  // ratos de LUZ ROJA CON LA PLUMA ARRIBA -una camara ve presencia debajo y la barrera
+  // no baja-, y eso HOY un operario lo lee como averia y llama. La pantalla tiene que
+  // DECIRLO, no insinuarlo, y por eso la frase esta escrita entera abajo.
+  //
+  // LAS CUATRO SALIDAS NO SE COLAPSAN, igual que con ESC: arriba, abajo, el campo que
+  // no viene -firmware anterior- y un literal que esta tabla no conoce, que se ensena en
+  // crudo. La quinta -sin enlace- va aparte porque no es un valor: es que lo que hay en
+  // pantalla ya no vale.
   // MODO: los diez literales que las dos puntas pueden emitir. Nueve son los `case`
   // de obtenerNombreModo() (Maestro/src/bluetooth.cpp:367-379) y el decimo es el
   // literal fijo que el Esclavo escribe dentro de su propio snprintf,
@@ -1602,6 +1638,109 @@ document.addEventListener('DOMContentLoaded', () => {
         ? '❔ MODO NO RECONOCIDO: ' + state.modo
         : 'SIN DATOS DE MODO';
     }
+  }
+
+  const PLUMA_LEYENDA = {
+    'ARRIBA': '▲ PLUMA ARRIBA',
+    'ABAJO':  '▼ PLUMA ABAJO'
+  };
+
+  // LO QUE SIGNIFICA CADA PAREJA (luz, pluma), QUE ES LO QUE DE VERDAD SE LEE.
+  //
+  // La pluma sola no dice si lo que pasa es normal: ARRIBA con verde es el ciclo y no
+  // hay nada que explicar; ARRIBA sin verde es justo lo que hay que explicar. Se decide
+  // con el ESTADO que ya esta en pantalla y no con una segunda copia de la regla del
+  // firmware -la regla vive en semaforo.cpp, SFTY-28, y aqui solo se LEE el resultado-.
+  //
+  // LAS FRASES SON CORTAS Y ESTA MEDIDO POR QUE. A 320 px esta fila da unos 54
+  // caracteres por linea; la mas larga de aqui son dos lineas -unos 30 px- y el hueco
+  // que hay entre el ultimo mando y la barra de pestanas en esa pantalla son 79 px.
+  // Una explicacion de cinco lineas taparia un mando, que es el defecto que la foto de
+  // campo del 04/09 destapo. Lo que no se recorta es la palabra que importa: AVERIA.
+  function _fraseDeLaPareja(pluma) {
+    if (pluma === 'ARRIBA') {
+      if (state.estadoLuces === 'VERDE') return 'acompaña al verde';
+      // SFTY-6: el ambar intermitente sube la pluma A PROPOSITO -politica del cliente,
+      // 27/08-. Se dice aqui aunque la tabla ESTADOS ya lo diga, porque quien mira la
+      // barrera puede no estar mirando la lampara.
+      if (state.estadoLuces === 'FALLO COM') return 'sin enlace: se pasa con precaución';
+      if (state.estadoLuces === 'ROJO' || state.estadoLuces === 'AMARILLO') {
+        // D-13. Con las camaras habra ratos de LUZ ROJA CON LA PLUMA ARRIBA: hay algo
+        // debajo y la barrera no baja. Hoy un operario eso lo lee como averia y llama.
+        // La frase lo DICE, no lo insinua.
+        return 'con la luz en ' + (state.estadoLuces === 'ROJO' ? 'ROJO' : 'ÁMBAR')
+             + ' · NO es avería: no baja mientras haya alguien debajo';
+      }
+      return null;
+    }
+    // Verde con la barrera abajo es la direccion SEGURA y esta admitida en SFTY-28 -la
+    // barrera puede ser mas restrictiva que la lampara-, pero el que espera delante
+    // necesita saber que la luz no basta.
+    if (pluma === 'ABAJO' && state.estadoLuces === 'VERDE') {
+      return 'verde, pero espere a que suba';
+    }
+    return null;
+  }
+
+  function pintarPluma() {
+    if (!plumaEl) return;
+    const decir = (txt, color, fondo) => {
+      plumaEl.hidden = false;
+      plumaEl.textContent = txt;
+      plumaEl.style.color = color || 'var(--text-muted)';
+      plumaEl.style.borderColor = color || 'var(--text-muted)';
+      plumaEl.style.background = fondo || 'transparent';
+    };
+
+    // SIN PUNTA IDENTIFICADA NO HAY POSTE AL QUE ATRIBUIR UNA BARRERA, y la fila se
+    // OCULTA en vez de escribir "sin datos". No es cosmetica y el numero esta medido: en
+    // esa pantalla -la de antes del primer $STATUS, con los DOS mandos de emergencia a
+    // la vista- el ultimo mando diario termina a 493 px y la barra de pestanas empieza a
+    // 497 px en un telefono de 320 px. Cuatro pixeles. Una fila mas ahi tapa un mando,
+    // que es el defecto que la foto de campo del 04/09 destapo. La ausencia ya la
+    // declara el tablero entero: "SIN ENLACE - sin datos del equipo".
+    if (!state.node) { plumaEl.hidden = true; return; }
+
+    const rotulo = state.node === 'ESCLAVO' ? 'POSTE 2' : 'POSTE 1';
+
+    // El enlace caido va ANTES que el valor: lo guardado es de hace rato, y una barrera
+    // de hace rato no es una barrera. Un "PLUMA ARRIBA" viejo tiene la misma cara que
+    // uno de ahora y quien lo lee cruza por debajo.
+    if (!state.telemetriaViva) {
+      decir(rotulo + ' · PLUMA: sin enlace, el dato ya no vale');
+      return;
+    }
+
+    // El campo NO VINO: equipo con firmware anterior a N-153. Se dice CUAL es la
+    // carencia y no "sin datos" a secas, por lo mismo que en pintarAjeno(): un equipo
+    // viejo y una radio caida mandan al tecnico a sitios opuestos.
+    //
+    // Y "no vino" es SOLO null/undefined. Un PLUMA con el valor vacio SI vino y cae
+    // abajo, en el camino del literal desconocido, para que se vea.
+    if (state.pluma === null || state.pluma === undefined) {
+      decir(rotulo + ' · PLUMA: este equipo no la publica (firmware anterior)');
+      return;
+    }
+
+    const texto = PLUMA_LEYENDA[state.pluma];
+    if (!texto) {
+      // Un literal que esta tabla no conoce se ENSENA, igual que hace pintarBadgeModo()
+      // con un MODO nuevo. Callarlo dejaria la fila en blanco el dia que el firmware
+      // estrene un valor, y una fila en blanco no se distingue de una app vieja.
+      decir(rotulo + ' · PLUMA NO RECONOCIDA: "' + state.pluma + '"');
+      return;
+    }
+
+    const frase = _fraseDeLaPareja(state.pluma);
+    // EL COLOR NO ES EL DE LA LUZ, Y ESO ES DELIBERADO. Verde aqui significaria "puede
+    // pasar", y la pareja rojo+arriba no autoriza a nadie: quien autoriza es el
+    // semaforo. Arriba con verde va en verde; arriba sin verde, en ambar -hay algo que
+    // explicar-; abajo, neutro, que es lo normal.
+    const color = state.pluma === 'ABAJO' ? 'var(--text-muted)'
+                : (state.estadoLuces === 'VERDE' ? 'var(--green-lamp)' : 'var(--amber-lamp)');
+    const fondo = (state.pluma === 'ARRIBA' && state.estadoLuces !== 'VERDE')
+                ? 'rgba(255,179,0,0.12)' : 'transparent';
+    decir(rotulo + ' · ' + texto + (frase ? ' · ' + frase : ''), color, fondo);
   }
 
   function renderLights() {
@@ -1700,6 +1839,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     pintarBadgeModo();
+    // N-153: la fila de la pluma se pinta AQUI ARRIBA y no al final, para que salga por
+    // los tres caminos de esta funcion -sin punta, ESTADO no reconocido y el normal-.
+    // Solo lee state, asi que no depende de nada que se calcule mas abajo.
+    pintarPluma();
 
     if (!state.node) {
       // Ni siquiera se sabe QUE punta hay al otro lado, asi que no hay columna que
@@ -3234,7 +3377,17 @@ document.addEventListener('DOMContentLoaded', () => {
       // un dato que no se tiene no es un color, es decirlo.
       const escAntes = state.esc;
       state.esc = data.ESC !== undefined ? data.ESC : null;
-      if (data.MODO !== undefined || data.ESTADO !== undefined || state.esc !== escAntes) {
+      // N-153: LA PLUMA SE ASIGNA CON LA MISMA REGLA QUE ESC:, Y POR EL MISMO MOTIVO.
+      //
+      // Puede dejar de venir por un camino normal -el equipo de enfrente tiene firmware
+      // anterior a N-153-, y en ese caso el ultimo valor visto es de otro rato. Un
+      // `if (data.PLUMA !== undefined)` dejaria en pantalla una barrera ARRIBA que nadie
+      // ha vuelto a confirmar, que es la peor de las tres salidas: el operario cruza
+      // fiandose de una barrera que puede llevar bajada un minuto.
+      const plumaAntes = state.pluma;
+      state.pluma = data.PLUMA !== undefined ? data.PLUMA : null;
+      if (data.MODO !== undefined || data.ESTADO !== undefined || state.esc !== escAntes
+          || state.pluma !== plumaAntes) {
         renderLights();
       }
       // El control de DEMANDA se abre y se cierra con el MODO que acaba de llegar, no
@@ -4940,6 +5093,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // camino que la pinta, sin un segundo escritor.
     state.hora = null;
     pintarHoraEquipo();
+    // N-153: LA PLUMA ENVEJECE COMO LA HORA, Y PEOR. Un "PLUMA ARRIBA" de hace diez
+    // minutos tiene la misma cara que uno de ahora, y quien lo lee cruza por debajo. Se
+    // retira el valor y se dice que no hay enlace; pintarPluma() sabe distinguir eso de
+    // un equipo que no publica el campo.
+    state.pluma = null;
+    pintarPluma();
     if (rssiTextEl) rssiTextEl.textContent = '(sin enlace)';
     if (s1Text) { s1Text.textContent = 'SIN DATOS'; s1Text.style.color = 'var(--text-muted)'; }
     if (s2Text) { s2Text.textContent = 'SIN DATOS'; s2Text.style.color = 'var(--text-muted)'; }

@@ -182,6 +182,19 @@ static long violacionesEnclavamiento = 0;
 // estado, esto siga cazandolo.
 static long violacionesTalanquera = 0;
 
+// N-153. LO QUE EL EQUIPO PUBLICA DE LA PLUMA TIENE QUE SER LO QUE HAY EN EL PIN.
+//
+// Desde N-153 el $STATUS lleva un campo PLUMA que sale de semaforo_plumaArriba(), y la
+// app dibuja la barrera con el. Un getter que se desincronice del pin no rompe ninguna
+// luz -el cruce sigue funcionando igual- y por eso ningun pack de texto puede verlo:
+// barrera_03 comprueba la FORMA de la orden, no su resultado. Lo unico que puede medir
+// esto es un arnes que compile semaforo.cpp de verdad, escriba el pin y pregunte al
+// getter en el MISMO instante, que es lo que se hace aqui en cada tick.
+//
+// Y lo que se compara no es la formula: es el pin. Recalcular la condicion aqui seria
+// una tercera copia de SFTY-28 -y las copias es justo lo que este campo evita-.
+static long discrepanciasPluma = 0;
+
 static void vigilarEnclavamiento() {
   if ((arnes_pines[ROJO1] == HIGH && arnes_pines[VERDE1] == HIGH) ||
       (arnes_pines[ROJO2] == HIGH && arnes_pines[VERDE2] == HIGH)) {
@@ -191,6 +204,9 @@ static void vigilarEnclavamiento() {
       arnes_pines[VERDE1] != HIGH && arnes_pines[VERDE2] != HIGH &&
       semaforo_estado() != S_FALLO) {
     violacionesTalanquera++;
+  }
+  if (semaforo_plumaArriba() != (arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR)) {
+    discrepanciasPluma++;
   }
 }
 
@@ -1402,6 +1418,12 @@ int main() {
     // escribirse -o el arnes dejara de conocer el pin- la comprobacion de arriba
     // seguiria en verde midiendo un pin que nadie toca.
     long antes = violacionesTalanquera;
+    // N-153: y tambien el contador de PLUMA. Falsear el pin a mano dispara los DOS
+    // vigilantes -el getter sigue diciendo lo que escribio el firmware, que es
+    // justamente lo que el otro invariante mide-, y dejarlo contado convertiria este
+    // control negativo en un fallo del vigilante de al lado. Medido: sin esta linea el
+    // arnes cae a 72/73 acusando a un firmware sano.
+    long antesPluma = discrepanciasPluma;
     int guardaP = arnes_pines[MOTOR_TALANQUERA];
     int guardaV1 = arnes_pines[VERDE1], guardaV2 = arnes_pines[VERDE2];
     arnes_pines[MOTOR_TALANQUERA] = TALANQUERA_ABRIR;
@@ -1411,9 +1433,36 @@ int main() {
     arnes_pines[MOTOR_TALANQUERA] = guardaP;
     arnes_pines[VERDE1] = guardaV1; arnes_pines[VERDE2] = guardaV2;
     violacionesTalanquera = antes;
+    discrepanciasPluma = antesPluma;
     comprobar(detecta,
               "control negativo: el vigilante de la pluma SI cuenta una violacion "
               "cuando la talanquera esta arriba con los dos verdes apagados");
+  }
+  comprobar(discrepanciasPluma == 0,
+            "en NINGUN instante del barrido semaforo_plumaArriba() dijo algo distinto "
+            "de lo que habia en el pin (N-153: es el valor que viaja en PLUMA del "
+            "$STATUS y con el que la app dibuja la barrera; un getter desincronizado "
+            "no rompe ninguna luz y ningun pack de texto podria verlo)");
+  {
+    // Control negativo del vigilante de arriba, por lo mismo que el de la talanquera:
+    // una comprobacion que nadie ha visto fallar es un adorno que da verde. Se falsea
+    // el PIN -no el getter, que es codigo real- y se exige que la discrepancia salte.
+    long antesD = discrepanciasPluma;
+    long antesT = violacionesTalanquera;
+    int guardaP = arnes_pines[MOTOR_TALANQUERA];
+    arnes_pines[MOTOR_TALANQUERA] =
+        semaforo_plumaArriba() ? TALANQUERA_CERRAR : TALANQUERA_ABRIR;
+    vigilarEnclavamiento();
+    bool cazado = (discrepanciasPluma == antesD + 1);
+    arnes_pines[MOTOR_TALANQUERA] = guardaP;
+    // Los dos contadores se restauran: falsear el pin puede disparar tambien el
+    // invariante de SFTY-28, y dejarlo contado convertiria este control en un fallo
+    // del otro.
+    discrepanciasPluma = antesD;
+    violacionesTalanquera = antesT;
+    comprobar(cazado,
+              "control negativo: el vigilante de PLUMA SI cuenta una discrepancia "
+              "cuando el pin dice lo contrario que el getter");
   }
   comprobar(!g_senalExcedioPresupuesto,
               "D9 (FUZZ): en 600 pulsos pseudoaleatorios de A/B -con huecos entre "
