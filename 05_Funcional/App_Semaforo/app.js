@@ -52,6 +52,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // nombraba solo dentro de los textos que explican botones, nunca como estado, asi
     // que el operario no podia saber si estaba arriba o abajo AHORA.
     pluma: null,
+    // LO QUE EL EQUIPO SABE DE SUS CAMARAS (D-13 fase 1, 05/09). Viaja en el campo
+    // CAM: del $STATUS de LAS DOS puntas y es LA PEOR de las dos camaras de ese
+    // poste. Cinco salidas y ninguna se colapsa con otra:
+    //
+    //   null       el campo NO VINO: equipo con firmware anterior a D-13.
+    //   'OK'       las dos ven y ninguna esta pegada.
+    //   '?'        el EQUIPO dice que todavia no consta que vean. NO es 'OK' y
+    //              tampoco es null: null es que la app no tiene dato.
+    //   'CIEGA'    lleva horas sin una sola deteccion.
+    //   'PEGADA'   contacto fijo: afirma presencia y no se suelta.
+    //
+    // POR QUE IMPORTA QUE SE VEA: en fase 1 el vigilante no toca el ciclo, solo
+    // cuenta. O sea que una camara pegada NO se nota en la calle -el cruce sigue
+    // ciclando- y la unica forma de enterarse es esta. Y en fase 2, de este dato
+    // cuelga si la pluma baja.
+    cam: null,
     // null = NADIE HA DICHO CUANTO FALTA. No es 0: 0 es el ultimo segundo de la
     // fase, que es un dato, y esto es la ausencia de dato. Ver N-139 y
     // updateCountdownRing().
@@ -203,6 +219,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const rfSelloEl = document.getElementById('rf-sello');
   const batVoltageEl = document.getElementById('bat-voltage');
   const batStatusEl = document.getElementById('bat-status');
+  const camEstadoEl = document.getElementById('cam-estado');     // D-13
+  const camDetalleEl = document.getElementById('cam-detalle');   // D-13
 
   // Bitacora del enlace (pestana de eventos)
   const registroTiraEl = document.getElementById('registro-tira');
@@ -1751,6 +1769,74 @@ document.addEventListener('DOMContentLoaded', () => {
     const fondo = (state.pluma === 'ARRIBA' && state.estadoLuces !== 'VERDE')
                 ? 'rgba(255,179,0,0.12)' : 'transparent';
     decir(rotulo + ' · ' + texto + (frase ? ' · ' + frase : ''), color, fondo);
+  }
+
+  // =========================================================================
+  // LAS CAMARAS, QUE SON LO QUE VA A DECIDIR SI LA PLUMA BAJA (D-13 fase 1, 05/09)
+  // =========================================================================
+  // El equipo publica UNA sola palabra en CAM: y es LA PEOR de sus dos camaras. El
+  // orden de gravedad vive en el enum de botones.cpp -OK < ? < CIEGA < PEGADA- y aqui
+  // solo se LEE: una segunda copia de ese orden en este fichero seria la que se queda
+  // vieja el dia que la de alla cambie, y D-13 la va a cambiar.
+  //
+  // '?' NO ES 'OK', Y ES LA MITAD QUE MAS IMPORTA DE ESTA TABLA. Es el estado con el
+  // que arranca el vigilante: por esos pines todavia no ha pasado nada, asi que NO se
+  // sabe si la camara ve. Pintarlo en verde -o dejarlo caer en la misma casilla que
+  // "sin datos"- seria decirle al operario que la deteccion esta comprobada cuando lo
+  // unico que consta es que nadie la ha ejercido. Por eso el firmware le da mas peso
+  // que a OK y por eso aqui tiene fila propia.
+  //
+  // Y '?' TAMPOCO ES '--', que es la otra confusion facil. '--' es la APP diciendo que
+  // no tiene dato -no hay enlace, o el campo no vino-; '?' es el EQUIPO diciendo que el
+  // dato que tiene es "todavia no lo se". Mandan a sitios distintos: uno a mirar la
+  // radio, el otro a esperar o a provocar una deteccion.
+  const CAM_LEYENDA = {
+    'OK':     { texto: 'OK',           frase: 'las dos ven y ninguna esta pegada',
+                color: 'var(--green-lamp)' },
+    '?':      { texto: 'SIN COMPROBAR', frase: 'aun no ha pasado nada por esos pines: no consta que vean',
+                color: 'var(--text-muted)' },
+    'CIEGA':  { texto: 'CIEGA',        frase: 'lleva horas sin una sola deteccion: puede estar tapada o sin corriente',
+                color: 'var(--amber-lamp)' },
+    'PEGADA': { texto: 'PEGADA',       frase: 'contacto fijo: dice que hay alguien y no se suelta',
+                color: 'var(--red-lamp)' }
+  };
+
+  function pintarCamaras() {
+    if (!camEstadoEl && !camDetalleEl) return;
+    const decir = (valor, frase, color) => {
+      if (camEstadoEl) {
+        camEstadoEl.textContent = valor;
+        camEstadoEl.style.color = color || 'var(--text-muted)';
+      }
+      if (camDetalleEl) camDetalleEl.textContent = frase;
+    };
+
+    // El enlace caido va PRIMERO: lo guardado es de hace rato, y una camara que estaba
+    // bien hace diez minutos no dice nada de la de ahora. Se retira igual que la hora y
+    // la pluma, y con el marcador de ausencia de esta app, que es '--'.
+    if (!state.telemetriaViva) {
+      decir('--', 'Sin enlace: el dato ya no vale');
+      return;
+    }
+
+    // El campo NO VINO: equipo con firmware anterior a D-13. Se dice CUAL es la
+    // carencia y no "sin datos" a secas, por lo mismo que en la pluma: un equipo viejo
+    // y una radio caida mandan al tecnico a sitios opuestos.
+    if (state.cam === null || state.cam === undefined) {
+      decir('--', 'Este equipo no las publica (firmware anterior)');
+      return;
+    }
+
+    const info = CAM_LEYENDA[state.cam];
+    if (!info) {
+      // LLEGO ALGO QUE NO PUEDE SER, y eso NO es '--'. '--' significa "todavia no lo
+      // se" y aplastar aqui un valor imposible lo esconderia entre los huecos normales.
+      // El literal en crudo va al renglon de abajo: sin el, el que mira no puede decir
+      // si el equipo estreno una palabra o si la trama llego rota.
+      decir('!', 'Valor no reconocido: "' + state.cam + '"', 'var(--red-lamp)');
+      return;
+    }
+    decir(info.texto, info.frase, info.color);
   }
 
   function renderLights() {
@@ -3686,6 +3772,13 @@ document.addEventListener('DOMContentLoaded', () => {
       // fiandose de una barrera que puede llevar bajada un minuto.
       const plumaAntes = state.pluma;
       state.pluma = data.PLUMA !== undefined ? data.PLUMA : null;
+      // D-13: LAS CAMARAS SE ASIGNAN CON LA MISMA REGLA QUE ESC: Y PLUMA:, Y POR EL
+      // MISMO MOTIVO. El campo puede DEJAR de venir por un camino normal -el equipo
+      // de enfrente tiene firmware anterior a D-13-, y un `if (data.CAM !== undefined)`
+      // dejaria en pantalla un 'OK' que nadie ha vuelto a confirmar. Se pinta SIEMPRE,
+      // aunque el campo no venga: pintarCamaras() sabe declarar la ausencia.
+      state.cam = data.CAM !== undefined ? data.CAM : null;
+      pintarCamaras();
       if (data.MODO !== undefined || data.ESTADO !== undefined || state.esc !== escAntes
           || state.pluma !== plumaAntes) {
         renderLights();
@@ -5475,6 +5568,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // un equipo que no publica el campo.
     state.pluma = null;
     pintarPluma();
+    // D-13: LAS CAMARAS ENVEJECEN COMO LA PLUMA. Un 'OK' de hace diez minutos tiene
+    // la misma cara que uno de ahora, y este campo es el unico sitio donde una camara
+    // pegada se nota -en fase 1 el vigilante no toca el ciclo-. Se retira por el mismo
+    // camino que lo pinta, sin un segundo escritor.
+    state.cam = null;
+    pintarCamaras();
     if (rssiTextEl) rssiTextEl.textContent = '(sin enlace)';
     if (s1Text) { s1Text.textContent = 'SIN DATOS'; s1Text.style.color = 'var(--text-muted)'; }
     if (s2Text) { s2Text.textContent = 'SIN DATOS'; s2Text.style.color = 'var(--text-muted)'; }

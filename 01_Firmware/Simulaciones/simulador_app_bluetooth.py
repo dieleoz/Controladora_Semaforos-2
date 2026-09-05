@@ -317,6 +317,20 @@ CAMPOS = {
     # que dejo puesta la orden-, asi que un tercer valor de "no lo se" seria un estado
     # que el firmware no puede alcanzar. Lo emiten las DOS puntas.
     "PLUMA":  ("pluma",    _uno_de("ARRIBA", "ABAJO")),
+    # D-13 fase 1 (05/09): lo que el vigilante sabe de las dos camaras de esa punta,
+    # resumido en LA PEOR de las dos.
+    #
+    # Dominio CERRADO, y aqui el motivo tiene un nombre: el "?" NO es un "sin dato".
+    # Es un valor que el firmware EMITE -el estado con el que arranca el vigilante,
+    # "todavia no consta que esta camara vea"- y por eso va en la lista y no en
+    # SIN_DATO. Meterlo alli lo convertiria en un hueco y este instrumento dejaria de
+    # poder distinguir "el equipo no lo sabe" de "el campo no vino", que es justo la
+    # confusion que el campo existe para evitar.
+    #
+    # Los cuatro valores salen del switch de camara_estado() en botones.cpp, y que la
+    # lista de aqui sea esa lista lo comprueba camara_03_vigilante contra el C++: aqui
+    # basta con saber leerlos. Lo emiten las DOS puntas.
+    "CAM":    ("cam",      _uno_de("OK", "?", "CIEGA", "PEGADA")),
 }
 
 
@@ -340,6 +354,11 @@ class MicroModelado:
         # -digitalWrite(MOTOR_TALANQUERA, TALANQUERA_CERRAR) antes de nada-. Empezar por
         # ARRIBA seria modelar un arranque que el firmware no tiene.
         self.pluma = "ABAJO"
+        # D-13: el equipo arranca con las dos camaras en CAM_DESCONOCIDA -asi las
+        # declara botones.cpp-, y camara_estado() publica la PEOR, que es "?".
+        # Empezar por "OK" seria modelar un arranque que el firmware no tiene, y
+        # ademas el unico valor cuyo mal manejo no se ve: un "?" pintado como OK.
+        self.cam = "?"
         self.dia = 26
         self.millis_ms = 0                        # el contador de 32 bits del micro
         self.tramas_emitidas = 0
@@ -383,6 +402,7 @@ class MicroModelado:
             "HORA": f"{h:02d}:{m:02d}:{s:02d}",
             "ESC": self.esc,   # N-149
             "PLUMA": self.pluma,   # N-153
+            "CAM": self.cam,       # D-13
         }
 
     # N-149: los cuatro valores de ESC, en rotacion.
@@ -405,11 +425,24 @@ class MicroModelado:
     # asi las cuatro parejas (ESC, PLUMA) aparecen en el muestreo en vez de solo dos.
     _PLUMA_CICLO = ("ABAJO", "ARRIBA")
 
+    # D-13: y las camaras rotan por sus CUATRO valores, por el mismo motivo que ESC.
+    # Con un valor fijo el campo viajaria en las 8.700 tramas diciendo lo mismo y el
+    # viaje de ida y vuelta nunca habria ejercido ni el "?" ni el "PEGADA": una
+    # comprobacion muerta con forma de campo nuevo (CLAUDE.md 3.bis). El "?" es el que
+    # mas importa que viaje, porque es el unico que un parser descuidado colapsa a
+    # vacio o convierte en "OK".
+    #
+    # El periodo es 4, igual que _ESC_CICLO, y NO se sincroniza con el de la pluma
+    # -que es 2-: asi las parejas (CAM, PLUMA) aparecen todas en el muestreo.
+    _CAM_CICLO = ("?", "OK", "CIEGA", "PEGADA")
+
     def avanzar_segundo(self):
         self.esc = self._ESC_CICLO[(self._ESC_CICLO.index(self.esc) + 1)
                                    % len(self._ESC_CICLO)]
         self.pluma = self._PLUMA_CICLO[(self._PLUMA_CICLO.index(self.pluma) + 1)
                                        % len(self._PLUMA_CICLO)]
+        self.cam = self._CAM_CICLO[(self._CAM_CICLO.index(self.cam) + 1)
+                                   % len(self._CAM_CICLO)]
         self.hora_seg = (self.hora_seg + 1) % 86400
         if self.hora_seg == 0:
             self.dia = (self.dia % 31) + 1

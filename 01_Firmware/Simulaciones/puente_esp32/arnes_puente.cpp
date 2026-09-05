@@ -144,6 +144,21 @@ uint8_t reloj_finNoche() { return 5; }
 bool reloj_esHorarioNocturno() { return false; }
 const char* reloj_textoHora() { return "18:25:00"; }
 
+// D-13 fase 1 (05/09): el campo CAM: del $STATUS, sustituido en las DOS puntas.
+//
+// botones.cpp NO se compila aqui -este arnes mide el contrato del puente, no el
+// vigilante de las camaras-, asi que la funcion que rellena el campo la pone el
+// arnes. DEVUELVE EL ESTADO DE ARRANQUE, que es lo que el firmware real publica
+// cuando nadie ha ejercido todavia esos pines: camEstado[] nace en CAM_DESCONOCIDA
+// y camara_estado() publica la PEOR de las dos. Un "OK" aqui seria modelar un
+// arranque que el equipo no tiene, y ademas dejaria sin viajar el unico valor de
+// este campo que un lector descuidado colapsa.
+//
+// Los cuatro valores SI se ejercen, pero en el instrumento que puede: el viaje de
+// ida y vuelta con dominio cerrado lo mide simulador_app_bluetooth.py, y que la
+// lista sea la del C++ lo mide camara_03_vigilante.
+const char* camara_estado() { return "?"; }
+
 #if defined(PUNTA_MAESTRO)
 #include "reloj.h"   // struct RelojDiag: solo la declara el reloj.h del Maestro
 // N-114 - EL SUSTITUTO DE LA CONSULTA DEL RELOJ, Y POR QUE DEVUELVE UN IMPOSIBLE.

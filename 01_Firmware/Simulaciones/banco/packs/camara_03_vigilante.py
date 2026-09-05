@@ -551,39 +551,70 @@ def correr(b, fw):
             % (fn, m[:170], e[:170]))
 
     # =============================================================================
-    # 8. EL GETTER DEL CAMPO CAM: ESTA LISTO Y TODAVIA NO CONECTADO - Y ESO SE MIDE
+    # 8. EL CAMPO CAM: ESTA PUBLICADO EN LAS DOS PUNTAS Y SALE DEL GETTER
     # =============================================================================
     #
-    # Es el MOTIVO de su excepcion en costura_10_funciones_muertas, y CLAUDE.md 3.bis exige
-    # que un motivo se MIDA y no se redacte: "una lista de excepciones con motivos sin
-    # verificar es una lista de defectos con permiso". El motivo escrito alli es que el
-    # campo CAM: no cabe hoy en el $STATUS -162 B por tipo contra un techo de 155, la
-    # cuenta esta en Maestro/src/bluetooth.cpp-, asi que lo comprobable es esto: que el
-    # getter exista declarado en las dos puntas y que el $STATUS siga sin el campo.
+    # AQUI ESTUVO LA COMPROBACION CONTRARIA, Y SE INVIERTE EN VEZ DE BORRARSE
+    # (CLAUDE.md 8.quater). Hasta el 05/09 esta seccion exigia que NINGUNA plantilla
+    # de $STATUS llevara CAM:, y no era un descuido: era el MOTIVO medido de la
+    # excepcion de camara_estado en costura_10 -el campo no cabia en el peor caso de
+    # la trama-. Conectado el getter, esa comprobacion empezo a exigir el defecto,
+    # que es exactamente la prueba que 8.quater manda revisar una por una.
     #
-    # SI ESTA COMPROBACION TE HA TRAIDO AQUI EN ROJO, lo mas probable es que acabes de
-    # conectar CAM:. Entonces toca, EN EL MISMO COMMIT: quitar esta comprobacion, sacar
-    # camara_estado del CONOCIDAS de costura_10 -que tambien va a fallar, y por lo mismo- y
-    # rehacer el peor caso del $STATUS.
+    # De los cuatro destinos, este es 'se invierte': lo que medía -la relacion entre
+    # el getter y la plantilla- sigue siendo la propiedad util; lo que cambia es de
+    # que lado esta el verde. La excepcion de costura_10 se retiro en el MISMO
+    # cambio, que es lo que aquella comprobacion pedia por escrito.
+    #
+    # Y NO BASTA CON QUE EL CAMPO ESTE: TIENE QUE SALIR DEL GETTER. Un CAM: relleno
+    # con un literal o con una copia local de la regla de gravedad daria una trama
+    # bien formada y un tablero que no mide nada -la version silenciosa de la prueba
+    # muerta-, y ademas seria la segunda copia de una condicion que este repositorio
+    # ya ha pagado tres veces. Se comprueban las dos mitades por separado porque
+    # fallan por motivos distintos.
     for punta in PUNTAS:
         b.verificar(
             re.search(r"const\s+char\s*\*\s*camara_estado\s*\(\s*\)\s*;", cabecera[punta])
             is not None,
-            "%s: camara_estado() esta declarada y lista para el campo CAM:" % punta,
+            "%s: camara_estado() esta declarada y es la fuente del campo CAM:" % punta,
             "%s: camara_estado() no se declara en botones.h. El campo CAM: de D-13 se "
             "queda sin fuente, y sin el 'no llega bit' y 'no hay nadie' vuelven a ser "
             "indistinguibles" % punta)
 
-    en_status = [p for p in PUNTAS
-                 if re.search(r"\$STATUS[^\"]*CAM:", fw.codigo(p, "src", "bluetooth.cpp"))]
+    sin_campo = [p for p in PUNTAS
+                 if re.search(r"\$STATUS[^\"]*CAM:%s", fw.codigo(p, "src", "bluetooth.cpp"))
+                 is None]
     b.verificar(
-        not en_status,
-        "el campo CAM: todavia no esta en la plantilla del $STATUS de ninguna punta: es el "
-        "motivo MEDIDO de la excepcion de camara_estado en costura_10, no una frase",
-        "el $STATUS de %s ya publica CAM:. Entonces camara_estado() tiene llamador y su "
-        "excepcion en costura_10 caduco: hay que retirarla en el mismo commit, y rehacer "
-        "el peor caso del $STATUS -que ya no cabia por tipo antes de este campo-"
-        % ", ".join(en_status))
+        not sin_campo,
+        "las DOS puntas publican CAM: en su plantilla de $STATUS: lo que el vigilante "
+        "sabe sale del micro",
+        "el $STATUS de %s NO lleva CAM:. Las dos placas son la misma y las dos tienen "
+        "sus camaras en J16, asi que el tecnico veria el estado de la deteccion en un "
+        "poste y nada en el otro -y una fila vacia no se distingue de una camara sana-"
+        % ", ".join(sin_campo))
+
+    # El ARGUMENTO, no solo el nombre del campo. Se lee la lista de argumentos del
+    # snprintf del $STATUS -la parte que va detras del literal de formato- y se exige
+    # que camara_estado() este ahi. Con esto, rellenar CAM: con un literal o con una
+    # variable local calculada aparte FALLA, aunque la trama siga siendo valida.
+    for punta in PUNTAS:
+        codigo = fw.codigo(punta, "src", "bluetooth.cpp")
+        m = re.search(r'snprintf\(\s*payload\s*,[^,]+,\s*"\$STATUS(?:[^"\\]|\\.)*"\s*(.*?)\);',
+                      codigo, re.S)
+        if m is None:
+            raise fw.Abortado(
+                "%s: no se hallo el snprintf del $STATUS en bluetooth.cpp. Sin el no se "
+                "puede saber de donde sale el campo CAM:, y dar por bueno lo que no se "
+                "ha leido es aprobar sin mirar" % punta)
+        b.verificar(
+            re.search(r"\bcamara_estado\s*\(\s*\)", m.group(1)) is not None,
+            "%s: el CAM: del $STATUS se rellena LLAMANDO a camara_estado(), no con una "
+            "copia de la regla de gravedad" % punta,
+            "%s: el $STATUS lleva CAM: y camara_estado() NO esta entre sus argumentos. "
+            "O es un literal -un campo que no mide nada con forma de telemetria- o es "
+            "una segunda copia del orden de gravedad, que es la que se queda vieja el "
+            "dia que la de botones.cpp cambie" % punta)
+
 
     # =============================================================================
     # 9. CONTROLES NEGATIVOS

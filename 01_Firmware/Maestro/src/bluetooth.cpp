@@ -11,6 +11,7 @@
 #include "modos.h"
 #include "reloj.h"
 #include "identidad.h"
+#include "botones.h"       // D-13: camara_estado(), la fuente del campo CAM:
 #include <string.h>
 #include <stdio.h>
 
@@ -157,14 +158,71 @@ void bluetooth_reportarAlarma(const char* evento, const char* causa, const char*
   // fichero que decide el ciclo para anadir telemetria. Este modulo ya sabe preguntarlo.
   //
   // Y se marcan igual que en el $STATUS: sin muestras no hay cifra, hay "--".
+  //
+  // ACOTADO DONDE SE PRODUCE (05/09). ES N-154 OTRA VEZ, EN PEQUENO Y EN UN BUFFER
+  // INTERNO.
+  //
+  // Aqui ponia tramo[40] con los tres numeros a su tope de TIPO -"%d" de un int son 11
+  // caracteres y "%lu" de un unsigned long son 10-, y con los 17 de la parte fija la
+  // cuenta daba 52 contra los 39 que un char[40] guarda: TRECE DE MAS. No truncaba en
+  // la calle porque los valores reales son cortos, que es la definicion de una barrera
+  // que no protege de nada.
+  //
+  // POR QUE ES MENOS GRAVE QUE EL DE LA TRAMA, Y CONVIENE SABER POR QUE LO ES: lo que
+  // se corta es este buffer, no el payload. El $ALARM sale bien formado y con su
+  // checksum bueno, asi que la alarma LLEGA; lo que se queda por el camino es el final
+  // del tramo -el SINRESP-, que es justo el numero que separa "lleva tres latidos sin
+  // contestar" de "lleva doscientos". No se pierde la alarma: se pierde el dato por el
+  // que la alarma se anade.
+  //
+  // LAS TRES COTAS YA ESTABAN DECLARADAS EN coordinador.h Y NINGUNA SE EJERCIA AQUI
+  // (2.ter, DECLARAR NO ES EJERCER). Son las mismas que el $STATUS ya compara, y se usa
+  // el mismo marcador y con el mismo significado: "--" es "todavia no lo se" y "!" es
+  // "llego un valor que no puede ser". Nunca un numero aplastado.
   const int rf = coordinador_calidadEnlace();
-  char tramo[40];
+  const unsigned long rtt = coordinador_tiempoRespuestaMs();
+  const int sinResp = coordinador_latidosSinRespuesta();
+
+  char rfTxt[5];    // "100%"    + NUL, garantizado por la guarda de CALIDAD_ENLACE_MAX
+  char rttTxt[8];   // "25000ms" + NUL, por la de RTT_PUBLICABLE_MAX_MS
+  char srTxt[4];    // "999"     + NUL, por la de LATIDOS_SIN_RESPUESTA_MAX
   if (rf < 0) {
-    snprintf(tramo, sizeof(tramo), "RF:--,RTT:--,SINRESP:%d", coordinador_latidosSinRespuesta());
+    strncpy(rfTxt, "--", sizeof(rfTxt));
+    strncpy(rttTxt, "--", sizeof(rttTxt));
   } else {
-    snprintf(tramo, sizeof(tramo), "RF:%d%%,RTT:%lums,SINRESP:%d",
-             rf, coordinador_tiempoRespuestaMs(), coordinador_latidosSinRespuesta());
+    if (rf > CALIDAD_ENLACE_MAX) {
+      strncpy(rfTxt, "!", sizeof(rfTxt));
+    } else {
+      snprintf(rfTxt, sizeof(rfTxt), "%d%%", rf);
+    }
+    if (rtt > RTT_PUBLICABLE_MAX_MS) {
+      strncpy(rttTxt, "!", sizeof(rttTxt));
+    } else {
+      snprintf(rttTxt, sizeof(rttTxt), "%lums", rtt);
+    }
   }
+  // El "< 0" no es adorno: el contador es un int y un negativo no es "no hay dato", es
+  // un numero imposible. Se separa del camino normal por lo mismo que en el campo T:
+  // del $STATUS -significan cosas distintas y el tecnico tiene que poder verlas
+  // distintas-.
+  if (sinResp < 0 || sinResp > LATIDOS_SIN_RESPUESTA_MAX) {
+    strncpy(srTxt, "!", sizeof(srTxt));
+  } else {
+    snprintf(srTxt, sizeof(srTxt), "%d", sinResp);
+  }
+
+  // EL PEOR CASO DEL TRAMO, POR BUFFER Y NO POR RANGO -lo unico que snprintf garantiza:
+  //
+  //   parte fija   17   "RF:" + "," + "RTT:" + "," + "SINRESP:"
+  //   RF            4   rfTxt[5]
+  //   RTT           7   rttTxt[8]
+  //   SINRESP       3   srTxt[4]
+  //
+  //   17 + 14 = 31 caracteres + NUL = 32 B, que es exactamente lo que guarda tramo[32].
+  //   Margen CERO, y esta escrito: no es holgura olvidada, es la cuenta cuadrada. Si
+  //   alguien ensancha uno de los tres buffers o anade un campo, el pack falla.
+  char tramo[32];
+  snprintf(tramo, sizeof(tramo), "RF:%s,RTT:%s,SINRESP:%s", rfTxt, rttTxt, srTxt);
 
   // 144 y no 100. El peor caso MEDIDO sumando los literales que de verdad se pasan
   // -CAUSA:REINTENTOS_AGOTADOS con RF:100%, RTT de 4 cifras y SINRESP:999- son 128 B, y
@@ -940,7 +998,24 @@ void bluetooth_loop() {
     // ESC:, que es asimetrico porque el Esclavo no tiene de donde sacar el dato del
     // otro poste; aqui cada equipo tiene el suyo delante.
     //
-    // EL BUFFER SE QUEDA EN 144, Y AHORA EL PEOR CASO CABE DE VERDAD (05/09).
+    // D-13 fase 1 (05/09): CAM: - LO QUE EL VIGILANTE DE LAS CAMARAS SABE, QUE HASTA
+    // HOY NO SALIA DEL MICRO.
+    //
+    // camara_estado() publica LA PEOR de las dos camaras y no una por cada una, y eso
+    // no es ahorro de bytes: el operario no tiene que hacer el maximo de dos campos
+    // para saber si puede fiarse de la deteccion. El orden de gravedad vive en el enum
+    // de botones.cpp -OK < ? < CIEGA < PEGADA-, en un solo sitio.
+    //
+    // "?" NO ES "OK", Y ESA ES LA MITAD QUE MAS IMPORTA. Es el estado de arranque:
+    // todavia no ha pasado nada por esos pines, asi que no se sabe si la camara ve.
+    // Por eso pesa MAS que OK en el enum y por eso el campo lo publica en vez de
+    // colapsarlo: "no lo se" y "esta bien" mandan al tecnico a sitios opuestos, y esta
+    // punta no puede inventarse el que le falta.
+    //
+    // VA EN LAS DOS PUNTAS, como PLUMA: y por lo mismo -las dos placas son la misma y
+    // las dos tienen sus dos camaras en J16-, no como ESC:, que es asimetrico.
+    //
+    // EL BUFFER SUBE A 155, Y EL PEOR CASO CABE (05/09).
     //
     // La primera version del campo ESC: puso 160 "por si acaso" y el banco la tumbo:
     // esp32_07_presupuesto_bytes exige tramaCompleta >= payload + 5 -el *XX y el CRLF que
@@ -956,7 +1031,7 @@ void bluetooth_loop() {
     //
     // EL PEOR CASO SE ACOTA POR BUFFER, NO POR RANGO NI POR TIPO. Es lo unico que
     // snprintf garantiza sin creerse a nadie: en un char x[N] no entran mas de N-1
-    // caracteres, pase lo que pase aguas arriba. Parte fija de la plantilla: 78.
+    // caracteres, pase lo que pase aguas arriba. Parte fija de la plantilla: 83.
     //
     //   SERIE   6   serieTxt[7]  -- identidad_texto() escribe 6 hex y el NUL
     //   MODO   11   literal: el mas largo de obtenerNombreModo() (INTELIGENTE/DESCONOCIDO)
@@ -968,25 +1043,48 @@ void bluetooth_loop() {
     //   HORA   11   horaBuf[12]  -- tres uint8_t con %02u: "255:255:255" es el tope
     //   ESC     5   literal: "VERDE", el mas largo de coordinador_estadoEsclavo()
     //   PLUMA   6   literal: "ARRIBA"
+    //   CAM     6   literal: "PEGADA", el mas largo de camara_estado()
     //
-    //   78 + 62 = 140 caracteres + NUL = 141 B. En payload[144] quedan 3 B, y con el
-    //   envoltorio son 145 B de los 160 de tramaCompleta.
+    //   83 + 68 = 151 caracteres + NUL = 152 B. En payload[155] quedan 3 B, y con el
+    //   envoltorio son 156 B de los 160 de tramaCompleta.
     //
     // ANTES DE ACOTAR, LA MISMA CUENTA DABA 168 CARACTERES -25 de mas-, porque tTxt,
     // rfTxt, rttTxt y horaBuf estaban dimensionados para el tipo (12, 13, 16 y 16).
     // No truncaba en la calle porque los valores reales son cortos; o sea que lo que
     // impedia el fallo era la suerte, no el codigo.
     //
-    // LOS 3 B QUE QUEDAN NO DAN PARA EL CAMPO CAM: DE D-13 -son 11 caracteres con su
-    // coma-. Cuando entre, o se acota HORA: -validar hora/minuto/segundo baja el campo
-    // de 11 a 8 y devuelve 3 B- o se sube payload a 155, que es el techo real que fija
-    // tramaCompleta. Queda escrito para que no se decida a ojo el dia que toque.
-    char payload[144];
+    // D-13 (05/09): EL CAMPO CAM: ENTRA, Y EL BUFFER SUBE A 155 -- QUE ES EL TECHO, NO
+    // UN "POR SI ACASO".
+    //
+    // El apunte de N-154 dejaba escritas las DOS salidas para hacerle sitio, y decia que
+    // no se decidiera a ojo. Medidas las dos, con el peor caso por buffer:
+    //
+    //   (a) acotar HORA:   valida hora/minuto/segundo y baja el campo de 11 a 8, o sea
+    //                      horaBuf[12] -> [9]. Devuelve EXACTAMENTE 3 B: el peor caso
+    //                      pasa de 151 a 148 y payload[144] guarda 143. SIGUE SIN CABER
+    //                      POR 5 B. No es que sea peor opcion: es que NO ALCANZA SOLA.
+    //   (b) payload -> 155  el peor caso son 151 y quedan 3 B. Cabe.
+    //
+    // 155 NO ES UN NUMERO HOLGADO ELEGIDO A OJO: es el maximo que tramaCompleta[160]
+    // admite -payload mas el cierre "*XX" con su CR y su LF-, y esp32_07_presupuesto_bytes lo
+    // exige en la misma corrida (bufTrama >= bufStatus + 5, que con 155 queda en 160 >= 160, sin holgura
+    // que gastar). Al ponerlo en el techo, las dos cotas del pack se vuelven la MISMA y
+    // la unica que puede fallar es la que importa: que el CONTENIDO quepa.
+    //
+    // LO QUE CUESTA, DICHO Y NO ESCONDIDO: el peor segundo del presupuesto de J17 se
+    // calcula sobre la CAPACIDAD del buffer, no sobre el contenido, asi que sube del
+    // 48,1% al 52,3% de los 960 B/s. Sigue cabiendo con mas de 450 B/s de sobra.
+    //
+    // Y (a) NO SE GASTA HOY A PROPOSITO: es un lever que no pierde valor esperando -los
+    // 3 B seguiran ahi- y hoy no compra nada, porque el que decide es (b). El dia que
+    // haga falta un campo mas, esa es la carta que queda.
+    char payload[155];
     snprintf(payload, sizeof(payload),
-             "$STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s,PLUMA:%s",
+             "$STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s,PLUMA:%s,CAM:%s",
              serieTxt, modoStr, estadoStr, tTxt, rfTxt, rttTxt, horaBuf,
              coordinador_estadoEsclavo(),
-             semaforo_plumaArriba() ? "ARRIBA" : "ABAJO");
+             semaforo_plumaArriba() ? "ARRIBA" : "ABAJO",
+             camara_estado());
 
     enviarTramaConCrc(payload);
 

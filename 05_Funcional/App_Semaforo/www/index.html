@@ -340,6 +340,28 @@
             <div class="progress-bar green" id="bat-prog" style="width: 0%;"></div>
           </div>
         </div>
+
+        <!-- LAS CAMARAS DE J16 (D-13 fase 1, 05/09).
+
+             Viaja en el campo CAM: del $STATUS de LAS DOS puntas: las dos placas son
+             la misma y las dos llevan sus dos camaras en J16, asi que este renglon es
+             SIEMPRE el del poste que habla. El equipo publica LA PEOR de las dos y el
+             orden de gravedad lo decide botones.cpp; aqui solo se lee. Lo escribe
+             pintarCamaras().
+
+             POR QUE VA EN LA REJA DE TELEMETRIA Y NO JUNTO A LA PLUMA: encima de la
+             botonera el hueco medido a 320 px eran 4 px -por eso la fila de la pluma
+             nace oculta-, y un renglon fijo mas ahi tapa un mando, que es el defecto
+             que destapo la foto de campo del 04/09. Esta reja bajo DEBAJO de los
+             mandos el 04/09, asi que no compite por ese hueco. -->
+        <div class="card metric-card">
+          <div class="metric-head">
+            <span class="metric-icon">👁</span>
+            <span class="metric-label">CÁMARAS J16</span>
+          </div>
+          <div class="metric-value cyan" id="cam-estado">--</div>
+          <div class="metric-sub" id="cam-detalle">Sin datos del equipo</div>
+        </div>
       </div>
 
     </section>

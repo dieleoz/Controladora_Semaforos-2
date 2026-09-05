@@ -74,6 +74,7 @@ APP_JS = ("05_Funcional", "App_Semaforo", "app.js")
 TABLA_ESTADOS = "ESTADOS"
 TABLA_MODOS = "MODOS"
 TABLA_PLUMA = "PLUMA_LEYENDA"
+TABLA_CAM = "CAM_LEYENDA"
 
 
 def _bloque(texto, i):
@@ -359,6 +360,102 @@ def correr(b, fw):
         "el lector del ternario de PLUMA saca los dos literales y NO acepta un ternario "
         "de otra funcion: si el campo dejara de salir de semaforo_plumaArriba(), el "
         "pack aborta en vez de medir el ternario de al lado")
+
+    # ---- 4.ter. Y lo mismo con CAM:, donde ademas hay un valor que NO ES UN ESTADO ----
+    #
+    # D-13 fase 1 (05/09). Las dos direcciones se miden igual que con ESTADO, MODO y
+    # PLUMA. Lo que hace a este campo distinto -y lo que obliga a la comprobacion de
+    # abajo- es que uno de sus cuatro valores no dice como esta la camara: dice que NO SE
+    # SABE. El "?" es el estado con el que arranca el vigilante, cuando por esos pines
+    # todavia no ha pasado nada.
+    #
+    # POR QUE ESO NO SE PUEDE PINTAR COMO OK, y por que vale una comprobacion propia: en
+    # fase 1 el vigilante NO toca el ciclo -solo cuenta-, asi que una camara que no ve no
+    # se nota en la calle. Esta pantalla es el unico sitio donde alguien se entera. Un
+    # "?" pintado como OK le dice al operario que la deteccion esta comprobada cuando lo
+    # unico que consta es que nadie la ha ejercido, y de ese dato cuelga en fase 2 si la
+    # barrera baja o no.
+    literales_cam = {}
+    for punta in PUNTAS:
+        cuerpo = _cuerpo_funcion(fw.codigo(punta, "src", "botones.cpp"), "camara_estado")
+        if cuerpo is None:
+            raise fw.Abortado(
+                "%s: no se hallo camara_estado() en botones.cpp. Es el unico sitio donde "
+                "estan los literales que viajan en CAM:; sin ellos este pack compararia "
+                "la tabla de la app contra un conjunto vacio y la aprobaria entera" % punta)
+        lits = re.findall(r'return\s+"([^"]*)"\s*;', cuerpo)
+        if not lits:
+            raise fw.Abortado(
+                "%s: camara_estado() no dio ni un `return \"...\";`. O cambio de forma o "
+                "el buscador se quedo atras -y medir cero valores sale en verde-" % punta)
+        literales_cam[punta] = lits
+
+    b.verificar(
+        literales_cam["Maestro"] == literales_cam["Esclavo"],
+        "las dos puntas emiten los MISMOS literales en CAM y en el mismo orden: %s"
+        % ", ".join(literales_cam["Maestro"]),
+        "el Maestro puede emitir CAM:%s y el Esclavo CAM:%s. La app es UNA y las dos "
+        "placas son la misma: si el vocabulario difiere, el tecnico ve el estado de la "
+        "deteccion dibujado en un poste y en crudo en el otro"
+        % ("/".join(literales_cam["Maestro"]), "/".join(literales_cam["Esclavo"])))
+
+    emitibles_cam = sorted(set(literales_cam["Maestro"]) | set(literales_cam["Esclavo"]))
+    claves_cam = _claves_de_tabla(js, TABLA_CAM)
+    if not claves_cam:
+        raise fw.Abortado(
+            "no se hallo en app.js la tabla `const %s = { ... }` con sus claves. Es "
+            "donde la app declara que sabe leer el estado de las camaras; si se movio o "
+            "cambio de forma, este pack no esta midiendo la pantalla de nadie" % TABLA_CAM)
+
+    faltan_c = [v for v in emitibles_cam if v not in claves_cam]
+    b.verificar(
+        not faltan_c,
+        "la app sabe pintar los %d valores de CAM que el firmware puede emitir (%s)"
+        % (len(emitibles_cam), ", ".join(emitibles_cam)),
+        "el firmware puede emitir CAM:%s y la app no tiene entrada para %s. Se pinta el "
+        "marcador de valor imposible -que es lo unico honesto que puede hacer-, pero eso "
+        "es un sintoma en la pantalla, no un tablero: y en fase 1 esta pantalla es el "
+        "UNICO sitio donde una camara pegada se nota"
+        % ("/".join(emitibles_cam), ", ".join(faltan_c)))
+
+    sobran_c = [v for v in claves_cam if v not in emitibles_cam]
+    b.verificar(
+        not sobran_c,
+        "la app no sabe pintar ningun estado de camara que el firmware no pueda emitir",
+        "la app sabe pintar CAM:%s y ninguna punta lo emite: es una rama que no se "
+        "ejecuta nunca ocupando el sitio de las que si hacen falta, y el sitio por donde "
+        "entra un vocabulario que no es el del equipo" % ", ".join(sobran_c))
+
+    # LA QUE DE VERDAD IMPORTA: que la entrada del "?" no lo venda como una camara sana.
+    # Se mira el TEXTO de esa entrada y su COLOR, y las dos mitades hacen falta: una app
+    # que escribiera "SIN COMPROBAR" en verde lampara pasaria la primera sola, y una que
+    # dijera "OK (sin comprobar)" en gris pasaria la segunda.
+    m_desc = re.search(r"'\?'\s*:\s*\{", js)
+    if not m_desc:
+        raise fw.Abortado(
+            "no se hallo la entrada del valor '?' en la tabla %s de app.js. Es el estado "
+            "de arranque del vigilante y el unico cuyo mal manejo no se ve: sin ella este "
+            "pack no puede comprobar que no se pinte como una camara sana" % TABLA_CAM)
+    entrada = _bloque(js, m_desc.end() - 1)
+    b.verificar(
+        entrada is not None
+        and re.search(r"\bOK\b", entrada, re.I) is None
+        and "green" not in entrada.lower(),
+        "la entrada del '?' ni dice OK ni se pinta en verde: la camara sin comprobar no "
+        "se vende como comprobada",
+        "la entrada del '?' de %s dice OK o se pinta en verde. '?' es el estado de "
+        "arranque del vigilante -por esos pines todavia no ha pasado nada-, y en fase 1 "
+        "el vigilante NO toca el ciclo: una camara que no ve no se nota en la calle y "
+        "esta pantalla es el unico sitio donde alguien se entera. Pintarlo como sano es "
+        "decirle al operario que la deteccion esta comprobada cuando lo unico que consta "
+        "es que nadie la ha ejercido: %r" % (TABLA_CAM, (entrada or "")[:160]))
+
+    b.control_negativo(
+        re.search(r"\bOK\b", "{ texto: 'OK', frase: 'las dos ven' }", re.I) is not None
+        and re.search(r"\bOK\b", "{ texto: 'SIN COMPROBAR', frase: 'no consta' }", re.I)
+        is None,
+        "el lector de la entrada del '?' distingue una que dice OK de una que no: si "
+        "midiera por otra cosa, aprobaria las dos igual")
 
     # ---- 5. Y tiene declarada una salida para lo que NO reconozca ----
     #

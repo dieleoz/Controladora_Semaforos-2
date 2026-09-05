@@ -229,6 +229,16 @@ const NMEAParser = {
         // seria una BARRERA inventada, que es peor que una luz inventada: el conductor
         // le hace mas caso a la barrera que a la lampara.
         case 'PLUMA': data.pluma = v; break;
+        // D-13 fase 1 (05/09): lo que el vigilante de las camaras sabe. Lo emiten las
+        // DOS puntas -las dos placas llevan sus camaras en J16- y su valor es LA PEOR
+        // de las dos. Se devuelve TAL CUAL y sin defecto, por lo mismo que ESC: y
+        // PLUMA:, y aqui hay ademas un valor que lo hace obligatorio: el equipo puede
+        // decir '?', que significa 'todavia no consta que esta camara vea'. Un
+        // `|| 'OK'` aqui -o un colapso a vacio- convertiria ese 'no lo se' en una
+        // deteccion comprobada, que es el mismo `|| 0` que este fichero documenta
+        // haber quitado del RF, con la agravante de que de esto cuelga si la barrera
+        // baja o no.
+        case 'CAM': data.cam = v; break;
       }
     }
 

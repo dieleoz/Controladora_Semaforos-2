@@ -143,6 +143,18 @@ static const unsigned long RTT_PUBLICABLE_MAX_MS = SFTY6_SILENCIO_MS;
 // Latidos consecutivos sin respuesta. 0 con el enlace sano.
 int coordinador_latidosSinRespuesta();
 
+// LA COTA DE ARRIBA, PARA QUIEN TENGA QUE IMPRIMIRLA. El contador NO es libre: quien lo
+// incrementa lo para en seco -"else if (latidosSinRespuesta < 999) latidosSinRespuesta++"
+// en coordinador.cpp-, asi que tres cifras es todo lo que puede salir de aqui, no las
+// once que exige un int con %d. Se declara junto al getter para que el $ALARM pueda
+// dimensionar su tramo por el rango que el modulo promete y no por el tipo.
+//
+// Y ESTE 999 ES UNA COPIA, ASI QUE SE MIDE EN VEZ DE CREERSE (CLAUDE.md 3.bis): el numero
+// vive de verdad en la guarda del .cpp, y esp32_07_presupuesto_bytes recalcula la igualdad
+// leyendo esa guarda en cada corrida. El dia que alguien mueva uno de los dos sin el otro,
+// el pack lo dice -que es lo que una constante repetida sin vigilancia no hace-.
+static const int LATIDOS_SIN_RESPUESTA_MAX = 999;
+
 // ---------------------------------------------------------------------------
 // SFTY-23: Sincronizacion horaria por radio (lado MAESTRO)
 //

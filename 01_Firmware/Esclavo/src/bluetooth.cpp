@@ -6,6 +6,7 @@
 #include "demanda.h"
 #include "reloj.h"
 #include "identidad.h"
+#include "botones.h"       // D-13: camara_estado(), la fuente del campo CAM:
 #include "mando.h"           // R-3: mando_ambarLocal(), para no prometer un ambar que no se quita
 #include "modo_degradado.h"  // N-106: la salida ordenada y sus dos finales
 #include <string.h>
@@ -194,7 +195,32 @@ void bluetooth_reportarAlarma(const char* evento, const char* causa, const char*
   // OK cuenta las 3 copias de cada rafaga (SFTY-11), asi que ni el numerador es de
   // mensajes. Un porcentaje sobre eso seria el RF:98% de antes con otra forma: peor, de
   // hecho, porque se moveria y por eso nadie sospecharia de el.
-  char tramo[44];
+  // ACOTADO DONDE SE PRODUCE (05/09), Y AQUI LA COTA ES EL TIPO -- QUE ES LA RESPUESTA
+  // HONESTA, NO LA COMODA.
+  //
+  // El gemelo del Maestro pedia 52 caracteres en un tramo[40]; este pedia 44 en un
+  // tramo[44], que guarda 43. UNO de mas, y nadie lo habia mirado nunca. La cuenta, por
+  // buffer y no por rango:
+  //
+  //   parte fija   14   "RX:" + "," + "OK:" + "," + "RUIDO:"
+  //   RX           10   "%lu" de un unsigned long: 4294967295
+  //   OK           10
+  //   RUIDO        10
+  //
+  //   14 + 30 = 44 caracteres + NUL = 45 B.
+  //
+  // AQUI NO HAY COTA QUE DECLARAR, Y ESA ES LA DIFERENCIA CON EL MAESTRO. Alla los tres
+  // numeros son medidas con techo -un porcentaje, un RTT por encima del cual ya no hay
+  // enlace, un contador que se para en 999- y por eso el arreglo fue una guarda. Estos
+  // tres son CONTADORES LIBRES de protocolo.cpp: cuentan bytes y tramas desde el
+  // arranque y nadie los detiene. Con 960 B/s el de bytes llega a diez cifras en unos
+  // 51 dias, o sea dentro de la vida de un poste. Inventarles un techo para poder
+  // estrechar el buffer seria una cota escrita en vez de medida, y el numero real se
+  // publicaria como "!" mintiendo sobre que paso.
+  //
+  // O sea que lo que se acota es el BUFFER a lo que el tipo puede escribir, y se deja
+  // dicho por que no hay nada mas que apretar. El coste es 1 B de pila.
+  char tramo[45];
   snprintf(tramo, sizeof(tramo), "RX:%lu,OK:%lu,RUIDO:%lu",
            protocolo_bytesRecibidos(), protocolo_tramasValidas(),
            protocolo_tramasDescartadas());
@@ -817,24 +843,45 @@ void bluetooth_loop() {
     // escribir eran 15 caracteres. La cuenta buena -la que rehace esp32_07 sin creerse a
     // nadie- acota cada campo por SU BUFFER:
     //
-    //   parte fija de la plantilla  90   (los cuatro campos que esta punta no mide
+    //   parte fija de la plantilla  95   (los cuatro campos que esta punta no mide
     //                                     viajan como "--" DENTRO del literal)
     //   SERIE                        6   serieTxt[7]
     //   ESTADO                       9   literal "FALLO COM", el mas largo
     //   HORA                        11   horaBuf[12]
     //   PLUMA                        6   literal "ARRIBA"
+    //   CAM                          6   literal "PEGADA", el mas largo de camara_estado()
     //
-    //   90 + 32 = 122 caracteres + NUL = 123 B, con 5 B de holgura, y 127 B con el
-    //   envoltorio de los 160 de tramaCompleta.
+    //   95 + 38 = 133 caracteres + NUL = 134 B, y con el envoltorio 138 B de los 160 de
+    //   tramaCompleta.
     //
     // Con horaBuf[16] la misma cuenta daba 126 caracteres y el margen era 1 B: cabia,
     // pero por los pelos y sin que nadie lo hubiera mirado. Aqui no habia trama que no
     // cupiera -eso era el Maestro-; lo que habia era la misma cuenta hecha por rango.
-    char payload[128];
+    //
+    // D-13 fase 1 (05/09): CAM: - LA MISMA CAMARA QUE VIGILA EL MAESTRO, EN ESTE POSTE.
+    //
+    // Va en las DOS puntas por lo mismo que PLUMA:: las dos placas son la misma y las
+    // dos llevan sus camaras en J16, asi que cada equipo publica LAS SUYAS. No es el
+    // caso de ESC:, que solo lo emite el Maestro porque el Esclavo no tiene a quien
+    // preguntarle por el otro poste.
+    //
+    // Y el valor es el PEOR de las dos camaras -el orden de gravedad vive en el enum de
+    // botones.cpp, OK < ? < CIEGA < PEGADA-, con "?" pesando MAS que OK a proposito:
+    // es el estado de arranque, o sea "todavia no se si esta camara ve", que no es lo
+    // mismo que "esta bien".
+    //
+    // EL BUFFER SUBE DE 128 A 155, Y NO ES HOLGURA: 155 es el maximo que tramaCompleta
+    // [160] admite -payload mas el cierre "*XX" con su CR y su LF-, el mismo techo que el
+    // Maestro. Con las dos puntas en el techo, la cota que puede fallar es UNA y es la que importa: que el
+    // contenido quepa. Aqui el campo cabia subiendo a 134; se pone en el mismo sitio que
+    // el Maestro para que las dos plantillas se midan contra el mismo borde y no haya
+    // que recordar cual de los dos numeros era el de cada punta.
+    char payload[155];
     snprintf(payload, sizeof(payload),
-             "$STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s,PLUMA:%s",
+             "$STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s,PLUMA:%s,CAM:%s",
              serieTxt, estadoStr, horaBuf,
-             semaforo_plumaArriba() ? "ARRIBA" : "ABAJO");
+             semaforo_plumaArriba() ? "ARRIBA" : "ABAJO",
+             camara_estado());
 
     enviarTramaConCrc(payload);
 

@@ -397,6 +397,137 @@ def correr(b, fw):
             "PERFECTAMENTE VALIDO se truncaria. La guarda no lo veria pasar, porque no "
             "esta fuera de rango" % (nombre, cap, cap - 1, texto_tope, len(texto_tope)))
 
+    # ---- 2.quater D-13: Y EL TRAMO DEL $ALARM, QUE ES EL MISMO DEFECTO EN PEQUENO ----
+    #
+    # bluetooth_reportarAlarma() arma en un buffer INTERNO el ultimo tramo del enlace y
+    # lo mete despues en el payload. Ese buffer tenia el mismo defecto que la trama de
+    # N-154 -dimensionado por debajo de lo que su propio snprintf puede escribir- y
+    # nadie lo medía: el Maestro pedia 52 caracteres en un char[40] y el Esclavo 44 en
+    # un char[44], que guarda 43.
+    #
+    # POR QUE SE MIDE APARTE Y NO CON LA MISMA CUENTA DEL $STATUS: aqui no todo sale de
+    # un buffer. El Esclavo mete tres contadores de protocolo.cpp con %lu, y esos son
+    # numeros libres -no hay cota que declarar, ver el porque escrito junto al snprintf-.
+    # Asi que a las conversiones numericas se les da su tope de TIPO, que es el unico
+    # borde cierto cuando no hay rango que prometer, Y ESE BORDE VA ESCRITO AQUI DEBAJO
+    # (CLAUDE.md 4.quinquies: un instrumento que compara contra un borde dice cual es).
+    # Cualquier conversion que esta tabla no conozca ABORTA: preferimos no medir a medir
+    # de menos sin decirlo.
+    #
+    # LO QUE ESTA CUENTA NO CUBRE, ESCRITO PARA QUE NO PASE POR COBERTURA: mide el TRAMO,
+    # no el $ALARM entero. El payload del $ALARM se compone ademas con literales y con
+    # buffers `causa[...]` que viven en coordinador.cpp y en main.cpp, y por buffer NO
+    # cabe hoy en payload[144] -esta medido y anotado en el informe de este cambio-. No
+    # se mete aqui porque el arreglo esta en ficheros que este cambio no toca, y un
+    # instrumento que falla por algo que nadie puede arreglar desde aqui es un FALLA
+    # permanente, que es lo que CLAUDE.md 3 prohibe.
+    ANCHO_POR_TIPO = {
+        # El tope de cada conversion, en caracteres, con el signo cuando lo lleva.
+        "%d": len("-2147483648"),   # int de 32 bits
+        "%u": len("4294967295"),    # unsigned de 32 bits
+        "%lu": len("4294967295"),   # unsigned long de 32 bits en Cortex-M3
+    }
+
+    def _peor_tramo(punta):
+        """(peor caso en caracteres, capacidad del buffer) del tramo del $ALARM."""
+        codigo = fw.codigo(punta, "src", "bluetooth.cpp")
+        cuerpo = _cuerpo_funcion(codigo, "bluetooth_reportarAlarma")
+        if cuerpo is None:
+            raise _abortar("bluetooth_reportarAlarma()", "bluetooth.cpp del %s" % punta)
+        m = re.search(r"char\s+tramo\s*\[\s*(\d+)\s*\]", cuerpo)
+        if not m:
+            raise _abortar("la declaracion de tramo[]", "el $ALARM del %s" % punta)
+        cap = int(m.group(1))
+        escrituras = re.findall(
+            r'snprintf\(\s*tramo\s*,[^,]+,\s*"((?:[^"\\]|\\.)*)"\s*(.*?)\);',
+            cuerpo, re.S)
+        if not escrituras:
+            raise _abortar("el snprintf que rellena tramo[]", "el $ALARM del %s" % punta)
+        peor = 0
+        for fmt, cola in escrituras:
+            args, prof, act = [], 0, ""
+            for c in cola.strip().lstrip(","):
+                if c in "([":
+                    prof += 1
+                elif c in ")]":
+                    prof -= 1
+                if c == "," and prof == 0:
+                    args.append(act.strip())
+                    act = ""
+                    continue
+                act += c
+            if act.strip():
+                args.append(act.strip())
+            convs = re.findall(r"%[0-9]*l?[usd]", fmt)
+            # El "%%" del RF ya no esta, pero si vuelve tiene que contar UNO y no dos.
+            fijo = len(re.sub(r"%[0-9]*l?[usd]", "", fmt).replace("%%", "%"))
+            if len(convs) != len(args):
+                raise _Falta(
+                    "el tramo del $ALARM del %s tiene %d conversiones y %d argumentos"
+                    % (punta, len(convs), len(args)))
+            total = fijo
+            for conv, arg in zip(convs, args):
+                if conv == "%s":
+                    total += _ancho_arg(fw, punta, arg, cuerpo)
+                elif conv in ANCHO_POR_TIPO:
+                    total += ANCHO_POR_TIPO[conv]
+                else:
+                    raise _Falta(
+                        "el tramo del $ALARM del %s usa la conversion %r y esta cuenta "
+                        "no sabe acotarla. Una estimacion aqui es lo que trunco el "
+                        "$ALARM de N-108" % (punta, conv))
+            peor = max(peor, total)
+        return peor, cap
+
+    for punta in ("Maestro", "Esclavo"):
+        try:
+            peorT, capT = _peor_tramo(punta)
+        except _Falta as e:
+            raise fw.Abortado(str(e))
+        b.verificar(
+            peorT <= capT - 1,
+            "el peor tramo del $ALARM del %s son %d caracteres y tramo[%d] guarda %d"
+            % (punta, peorT, capT, capT - 1),
+            "EL TRAMO DEL $ALARM DEL %s NO CABE: %d caracteres en un tramo[%d] que "
+            "guarda %d. No se pierde la trama -es un buffer interno, asi que el $ALARM "
+            "sale bien formado y con su checksum bueno-: se pierde el FINAL del tramo, "
+            "que es el dato por el que la alarma lleva tramo. El sintoma es una alarma "
+            "que llega entera y a la que le falta justo el numero que se fue a buscar"
+            % (punta.upper(), peorT, capT, capT - 1))
+
+    # La cota de los latidos sin respuesta es una COPIA -vive en coordinador.h para que
+    # el emisor pueda dimensionar, y de verdad la impone la guarda de coordinador.cpp-,
+    # asi que se recalcula la igualdad en vez de creersela (CLAUDE.md 3.bis).
+    tope_sr = fw.constante(("Maestro", "include", "coordinador.h"),
+                           r"LATIDOS_SIN_RESPUESTA_MAX\s*=\s*(\d+)",
+                           "la cota declarada de los latidos sin respuesta")
+    freno_sr = fw.constante(("Maestro", "src", "coordinador.cpp"),
+                            r"latidosSinRespuesta\s*<\s*(\d+)\s*\)",
+                            "el freno real del contador de latidos sin respuesta")
+    b.verificar(
+        tope_sr == freno_sr,
+        "la cota declarada de SINRESP (%d) es la que el contador respeta de verdad: la "
+        "guarda de coordinador.cpp lo para en %d" % (tope_sr, freno_sr),
+        "coordinador.h declara LATIDOS_SIN_RESPUESTA_MAX = %d y el contador se para en "
+        "%d. El $ALARM dimensiona su buffer por el primero: si el segundo es mayor, un "
+        "valor legal se trunca; si es menor, la cota sobra y el buffer paga un byte que "
+        "nadie usa. Los dos numeros van juntos o no valen" % (tope_sr, freno_sr))
+
+    m_sr = re.search(r"char\s+srTxt\s*\[\s*(\d+)\s*\]",
+                     fw.codigo("Maestro", "src", "bluetooth.cpp"))
+    if not m_sr:
+        raise fw.Abortado(
+            "no se hallo la declaracion de srTxt en el $ALARM del Maestro: es el buffer "
+            "que la cota de SINRESP dimensiona, y sin el no hay nada que comprobar")
+    b.verificar(
+        len("%d" % tope_sr) <= int(m_sr.group(1)) - 1,
+        "srTxt[%s] aguanta el valor mas largo que su cota permite (%r, %d caracteres)"
+        % (m_sr.group(1), "%d" % tope_sr, len("%d" % tope_sr)),
+        "srTxt[%s] guarda %d caracteres y el tope legal de su cota es %r: un valor "
+        "PERFECTAMENTE VALIDO se truncaria, y la guarda no lo veria pasar porque no "
+        "esta fuera de rango"
+        % (m_sr.group(1), int(m_sr.group(1)) - 1, "%d" % tope_sr))
+
     # ---- 3. La cadencia, leida del C++ ---------------------------------------
     cadencias = {}
     for punta in ("Maestro", "Esclavo"):
@@ -509,6 +640,25 @@ def correr(b, fw):
         not (len("%d" % (max(verdeMax, rojoMax) * 60)) <= 3 - 1),
         "con un tTxt[3] la cota de %d s no cabria y el pack lo dice: la comprobacion "
         "mira el tope LEGAL, no solo el buffer" % cotaT)
+
+    # --- D-13: los dos de la cuenta del tramo del $ALARM ----------------------
+    #
+    # Sobre bloques SINTETICOS, por el motivo de N-89: un control negativo que reutilizara
+    # el fuente bueno mediria lo mismo que la comprobacion y no demostraria nada.
+    b.control_negativo(
+        len(re.findall(r"%[0-9]*l?[usd]",
+                       'snprintf(tramo, sizeof(tramo), "RF:%d%%,RTT:%lums,SINRESP:%d", '
+                       'rf, rtt, sr);')) == 3
+        and ANCHO_POR_TIPO["%d"] + ANCHO_POR_TIPO["%lu"] + ANCHO_POR_TIPO["%d"]
+            + len("RF:%,RTT:ms,SINRESP:") > 40 - 1,
+        "con los tres numeros a su tope de TIPO -que es como estaba escrito hasta hoy- la "
+        "cuenta dice que el tramo NO cabe en un char[40]: son 52 caracteres. La "
+        "comprobacion reacciona al tipo del argumento, no solo al tamano del buffer")
+
+    b.control_negativo(
+        "%f" not in ANCHO_POR_TIPO,
+        "y una conversion que la tabla de topes no conoce ABORTA en vez de saltarsela: "
+        "medir de menos en silencio es lo que dejo pasar el truncamiento de N-108")
 
     b.control_negativo(
         "CUENTA_ATRAS_MAX_SEG" not in

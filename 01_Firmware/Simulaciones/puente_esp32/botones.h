@@ -12,3 +12,8 @@ bool botonArriba();
 bool botonAbajo();
 bool botonAceptar();
 bool botonCancelar();
+
+// D-13 (05/09): bluetooth.cpp REAL llama a esta para rellenar el campo CAM: del
+// $STATUS, asi que la firma tiene que estar o no compila. La definicion esta en
+// arnes_puente.cpp y devuelve el estado de ARRANQUE del vigilante, no un OK.
+const char* camara_estado();

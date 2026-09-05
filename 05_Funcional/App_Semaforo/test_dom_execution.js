@@ -1676,6 +1676,76 @@ conectarComo('ESCLAVO', 'SERIE:SEM-E-01,MODO:SUBORDINADO,ESTADO:ROJO,T:--,RF:--,
 assert(/POSTE 2/.test(plumaDom.textContent) && /PLUMA ABAJO/.test(plumaDom.textContent),
   `Contra el ESCLAVO la fila habla del POSTE 2, que es donde esta esa barrera: "${plumaDom.textContent}"`);
 
+// =========================================================================
+// 14. LAS CAMARAS SE PUBLICAN, Y '?' NO SE PINTA COMO OK (D-13 fase 1, 05/09)
+// =========================================================================
+// EN FASE 1 EL VIGILANTE NO TOCA EL CICLO: solo cuenta. O sea que una camara PEGADA no
+// se nota en la calle -el cruce sigue ciclando igual- y esta pantalla es el unico sitio
+// donde alguien se puede enterar. Por eso lo que aqui se mide no es que el campo llegue
+// -eso ya lo mide el simulador campo a campo- sino QUE QUEDA ESCRITO, que es lo unico
+// que lee el operario.
+//
+// Y LA LINEA QUE MAS VALE ES LA DE '?'. Es el estado de arranque del vigilante: por esos
+// pines todavia no ha pasado nada. Colapsarlo a OK -o dejarlo caer en la casilla de
+// "sin datos"- le diria al operario que la deteccion esta comprobada cuando lo unico
+// que consta es que nadie la ha ejercido.
+const camDom = document.getElementById('cam-estado');
+const camDetDom = document.getElementById('cam-detalle');
+assert(!!camDom && !!camDetDom,
+  'La consola tiene donde ensenar el estado de las camaras de J16');
+
+// 14.1 OK: las dos ven. Es el unico caso en que la palabra OK puede aparecer.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:18:00:00,ESC:VERDE,PLUMA:ABAJO,CAM:OK');
+assert(/OK/.test(camDom.textContent) && !/--/.test(camDom.textContent),
+  `Con CAM:OK la reja lo dice y no lo confunde con un hueco: "${camDom.textContent}"`);
+
+// 14.2 '?' NO ES OK, Y ESTA ES LA LINEA QUE CAZA LA CONFUSION. Se exige las dos cosas:
+// que NO aparezca la palabra OK y que el texto diga que no consta. Con solo la primera,
+// una app que pintara el hueco '--' pasaria; con solo la segunda, una que escribiera
+// "OK (sin comprobar)" tambien.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:18:00:02,ESC:VERDE,PLUMA:ABAJO,CAM:?');
+assert(!/OK/i.test(camDom.textContent + ' ' + camDetDom.textContent)
+       && /(SIN COMPROBAR|no consta)/i.test(camDom.textContent + ' ' + camDetDom.textContent),
+  `Un CAM:? no se pinta como OK y se dice que no consta: "${camDom.textContent}" / "${camDetDom.textContent}"`);
+
+// 14.3 Y TAMPOCO SE COLAPSA CON '--', que significa otra cosa: '--' es la APP diciendo
+// que no tiene dato; '?' es el EQUIPO diciendo que su dato es "todavia no lo se". Uno
+// manda a mirar la radio y el otro a provocar una deteccion.
+assert(camDom.textContent.trim() !== '--',
+  `Un CAM:? que vino en la trama NO se pinta con el hueco de "no hay dato": "${camDom.textContent}"`);
+
+// 14.4 PEGADA: el caso que en fase 1 no se ve en la calle. Tiene que salir la palabra.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:18:00:04,ESC:VERDE,PLUMA:ABAJO,CAM:PEGADA');
+assert(/PEGADA/.test(camDom.textContent),
+  `Con CAM:PEGADA la reja lo nombra: "${camDom.textContent}"`);
+
+// 14.5 CIEGA, que es la contraria y no se puede confundir con la de arriba.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:18:00:06,ESC:VERDE,PLUMA:ABAJO,CAM:CIEGA');
+assert(/CIEGA/.test(camDom.textContent) && !/PEGADA/.test(camDom.textContent),
+  `Con CAM:CIEGA la reja lo dice y no dice la contraria: "${camDom.textContent}"`);
+
+// 14.6 EL CAMPO DEJA DE VENIR -firmware anterior a D-13-. No se puede quedar el CIEGA
+// de arriba pintado como si fuera de ahora, y la carencia se dice CUAL es: un equipo
+// viejo y una radio caida mandan al tecnico a sitios opuestos.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:18:00:08,ESC:VERDE,PLUMA:ABAJO');
+assert(/no las publica/i.test(camDetDom.textContent) && !/CIEGA/.test(camDom.textContent),
+  `Una trama SIN CAM declara la carencia y borra el valor anterior: "${camDom.textContent}" / "${camDetDom.textContent}"`);
+
+// 14.7 UN LITERAL QUE LA TABLA NO CONOCE ES '!', NO '--'. Los dos marcadores significan
+// cosas distintas en esta app y no se mezclan: '--' es "todavia no lo se" y '!' es
+// "llego algo que no puede ser". Y el literal en crudo va al renglon de abajo, porque
+// sin el no se distingue un firmware que estreno una palabra de una trama rota.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:18:00:10,ESC:VERDE,PLUMA:ABAJO,CAM:PEGDA');
+assert(camDom.textContent.trim() === '!' && /PEGDA/.test(camDetDom.textContent),
+  `Un CAM: que la tabla no conoce se marca con "!" y ensena el literal: "${camDom.textContent}" / "${camDetDom.textContent}"`);
+
+// 14.8 EL ESCLAVO TAMBIEN LAS PUBLICA: las dos placas son la misma y las dos llevan sus
+// camaras en J16. Un tablero que solo supiera leerlo del Maestro dejaria el poste 2 sin
+// el unico sitio donde su camara pegada se nota.
+conectarComo('ESCLAVO', 'SERIE:SEM-E-01,MODO:SUBORDINADO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:18:00:12,PLUMA:ABAJO,CAM:PEGADA');
+assert(/PEGADA/.test(camDom.textContent),
+  `Contra el ESCLAVO la reja ensena SUS camaras: "${camDom.textContent}"`);
+
 console.log('='.repeat(80));
 console.log(` RESULTADO JSDOM: ${testsPassed} PASS | ${testsFailed} FALLAS`);
 console.log('='.repeat(80));
