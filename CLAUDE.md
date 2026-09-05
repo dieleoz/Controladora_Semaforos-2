@@ -797,6 +797,36 @@ si alguna no existe. No la desactives: es la red de la migración a `lib/Common`
 destellos del mando —que *interceptan* las escrituras en vez de rodearlas, para no dejar
 colgado al coordinador esperando un `S_VERDE` que no llegaría—.
 
+> 🔴 **Y LOS PINES MUERTOS NO SON TRES, SON SEIS — medido el 05/09.** A los tres de abajo
+> hay que sumar **`PB3` (`LCD_SCLK`), `PB4` (`LCD_CS`) y `PB5` (`LCD_SID`)**: `lcd.cpp` pasó
+> los pines de la pantalla a `U8X8_PIN_NONE` (Maestro `:76-77`, Esclavo `:92-93`) y la
+> librería se salta el `pinMode` y el `digitalWrite` cuando el pin es `NONE`. **Están hoy en
+> alta impedancia, con pista hasta `J17` p4, p1 y p5**: son los únicos GPIO libres del
+> proyecto **con bornera ya cableada**. Y son pines de JTAG, lo que aquí **no cuesta nada**:
+> `pinmap.c:281` llama a `pin_DisconnectDebug()` dentro de `pin_function()`, que hace
+> `__HAL_AFIO_REMAP_SWJ_NOJTAG()` — suelta JTAG y **conserva SWD**.
+>
+> 🔴 **Y hay TRES CANALES DE POTENCIA COMPLETOS, fabricados y sin una línea de firmware
+> detrás:** `J9` (`VERDE_PEATON`, `PA7`), `J11` (`ROJO_PEATON`, `PA6`) y `J13` (`BUZZER`,
+> `PB1`). Cada uno es `R` 220 Ω → opto `TLP127` → `R` 10 K + 220 Ω → MOSFET `IRLZ44N` →
+> bornera, con su diodo de rueda libre. El molde es el mismo de la talanquera (`J15`), que
+> **sí funcionó en banco el 04/09**. Gastar uno cuesta **16 B de flash, medidos por
+> desensamblado** — pero cierra la puerta a una cabeza peatonal o a un zumbador.
+>
+> 🔴 **Y LO QUE NINGÚN DOCUMENTO DECÍA, y decide si esos bornes se pueden enchufar a algo:
+> EL BORNE NO ESTÁ A 0 V EN REPOSO, ESTÁ A ~12 V.** Cada uno de los diez drenadores lleva un
+> **pull-up de 1 kΩ + LED al riel de 12 V** (`R23`, `R28`, `R33`, `R38`, `R43`, `R48`, `R53`,
+> `R58`, `R63`, `R73`) que está **en el cobre, no en el conector**: no se evita dejando un
+> hilo sin poner. Con el MOSFET abierto el borne sube a ~12 V con ~10 mA disponibles. *(Y
+> encaja con lo medido en banco: `J15` daba «0 V en rojo, 12 V en ámbar» — es exactamente
+> este circuito con la sonda entre p1 y p2.)*
+>
+> ⚠️ **Y «el opto aísla galvánicamente» es MEDIO CIERTO.** `2_Manual…:1322` lo usa para
+> concluir que la etapa de potencia no puede inyectar corriente al micro. Medido: **hay UNA
+> sola red `GND` de 103 pads**, que incluye el cátodo del LED del opto y la fuente del
+> MOSFET. El opto separa el **pin del micro** del nodo de puerta; **no crea una masa
+> separada**. Cualquier cosa colgada de esos bornes **comparte la masa del controlador**.
+
 > ⚠️ **Y la regla dice OCHO pines donde el firmware mueve SEIS (N-96, 31/08).** `escribirPines()`
 > escribe `ROJO1/2`, `AMARILLO1/2` y `VERDE1/2` — seis—. **`ROJO_PEATON` (`PA6`), `VERDE_PEATON`
 > (`PA7`) y el `BUZZER` (`PB1`) están declarados en `pines.h` y MUERTOS en las dos puntas**: sin
