@@ -95,8 +95,20 @@
 // posiciones pasan a ser entradas de camara. No es un cambio de nombre: cambia el modo
 // del pin, la polaridad con la que se lee y quien lo lee.
 //
-//   J16 p5   PB9    BOTON1      Arriba / mando A   INPUT_PULLUP, activo en BAJO
-//   J16 p8   PB13   BOTON2      Abajo  / mando B   INPUT_PULLUP, activo en BAJO
+//   J16 p5   PB9    BOTON1      Arriba / mando A   INPUT pelado,  activo en ALTO
+//   J16 p8   PB13   BOTON2      Abajo  / mando B   INPUT pelado,  activo en ALTO
+//
+//   ^ ESAS DOS FILAS DECIAN "INPUT_PULLUP, activo en BAJO" Y ERA FALSO (05/09). El
+//     fuente hace pinMode(BOTON1, INPUT) pelado -botones.cpp:160-161- y lee
+//     digitalRead(b.pin) == HIGH -botones.cpp:40-, o sea justo lo contrario. Y lo
+//     contradecia el texto de N-118 TREINTA LINEAS MAS ABAJO EN ESTE MISMO FICHERO,
+//     mas la medida en cobre del 03/09: pull-down real de 10 kOhm en las cuatro
+//     posiciones (R65-R68), con 3,3 V en la de al lado. El gesto es cerrar contra los
+//     3,3 V, y es el MISMO para los cuatro pines de J16, sin excepcion.
+//
+//     Se anota en vez de corregirse en silencio porque esta es la cabecera que todo el
+//     mundo lee primero, y una frase falsa aqui gobierna lo que alguien cablea. Lo
+//     encontro un agente revisando las spec, no un test: los comentarios no compilan.
 //   J16 p10  PB14   CAM_C_PIN   camara             INPUT pelado,  activo en ALTO
 //   J16 p12  PB15   CAM_D_PIN   camara             INPUT pelado,  activo en ALTO
 //

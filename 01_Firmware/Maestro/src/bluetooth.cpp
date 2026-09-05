@@ -267,6 +267,35 @@ static void j17RegistrarLinea(unsigned long ahora) {
 // coordinador_pedirCambio() empieza con "if (estadoC != C_IDLE) return;", y
 // coordinador_listoParaContar() es literalmente "return estadoC == C_IDLE": no es una
 // aproximacion a la guarda, es la guarda leida por la unica puerta publica que hay.
+// N-151 (05/09): DAR PASO EN UN MODO DONDE EL COORDINADOR NO CORRE DEJABA EL CRUCE
+// TRABADO PARA SIEMPRE. Lo destapo una cinta, y el sintoma no se parecia a la causa.
+//
+// EN LA CINTA: el equipo en MODO:AMBAR, y tres MANUAL:CAMBIAR_TURNO seguidos en 40 s
+// contestados "$ERR,CMD:CAMBIAR_TURNO,DESC:EN_TRANSICION_REINTENTE". El operario leia
+// "el cruce esta cambiando de fase, repita al terminar" y el cambio no terminaba nunca.
+//
+// POR QUE: main.cpp EXCLUYE a MODO_AMBAR y a MODO_DEGRADADO del refresco de fondo -en
+// esos dos modos el Maestro calla en la radio A PROPOSITO- y sus loop() no llaman al
+// coordinador. O sea que alli la maquina del coordinador ESTA CONGELADA.
+//
+// La PRIMERA pulsacion si entraba -estadoC valia C_IDLE- y dejaba el coordinador en un
+// estado de transicion. Y ese estado YA NO AVANZA, porque no hay quien lo haga avanzar.
+// A partir de ahi, todas las demas caen en el "if (estadoC != C_IDLE) return;" de
+// pedirCambio() y contestan EN_TRANSICION_REINTENTE HASTA QUE ALGUIEN CAMBIE DE MODO.
+// El mensaje era ademas mentiroso: no habia ninguna transicion en curso.
+//
+// Es la barrera de salidas (CLAUDE.md 6) en su forma mas cara: el equipo dijo que SI a
+// una orden que no iba a ejecutar, y encima se quedo peor que antes de pedirla. La
+// guarda de abajo se pregunta lo unico que decide -si en este modo alguien mueve el
+// coordinador- y contesta con un motivo que es verdad.
+static bool modoMueveElCoordinador() {
+  // La lista es la MISMA de main.cpp, y por eso se escribe aqui su porque en vez de
+  // repetir la condicion: si manana un tercer modo deja de llamar al coordinador, este
+  // sitio hay que tocarlo. Lo vigila maestro_12_dar_paso_sin_coordinador.
+  const ModoSistema m = modoActual_get();
+  return m != MODO_AMBAR && m != MODO_DEGRADADO;
+}
+
 static bool pedirCambioVerificado() {
   if (!coordinador_listoParaContar()) return false;
   coordinador_pedirCambio();
@@ -588,7 +617,12 @@ static void procesarComando(const char* cmd) {
     //
     // No se fuerza el cambio: el rechazo es correcto -partir un despeje por la mitad es
     // justo lo que no se puede hacer-. Lo que faltaba era DECIRLO.
-    if (pedirCambioVerificado()) {
+    // N-151: el modo se mira ANTES que el estado del coordinador, y el orden importa.
+    // Al reves, la primera pulsacion en ambar volveria a colarse -alli estadoC vale
+    // C_IDLE- y volveria a trabar el cruce, que es el defecto entero.
+    if (!modoMueveElCoordinador()) {
+      enviarTramaConCrc("$ERR,CMD:CAMBIAR_TURNO,DESC:MODO_SIN_CICLO_SALGA_PRIMERO");
+    } else if (pedirCambioVerificado()) {
       enviarTramaConCrc("$ACK,CMD:CAMBIAR_TURNO,RESULT:OK");
       bluetooth_reportarEvento("APP_BLUETOOTH", "CAMBIAR_TURNO_MANUAL");
     } else {
