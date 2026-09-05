@@ -154,6 +154,17 @@ uint32_t reloj_segundosDelDia();
 // sin reanudar -en ambar- mientras la otra reanuda y da verde.
 void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo = 0, uint8_t dia = 0);
 
+// N-144: retira la bandera de "tengo hora" cuando el ajuste NO quedo puesto.
+//
+// reloj_ajustar() la enciende al terminar de escribir. Quien puede saber si de verdad
+// quedo es quien comparo lo que mando con lo que releyo -bluetooth.cpp-, y hasta hoy
+// avisaba del fallo y dejaba la bandera puesta: el equipo publicaba HORA:00:00:00, que
+// no es medianoche sino un contador que no avanza declarandose valido.
+//
+// Importa mas de lo que parece porque de reloj_enHora() cuelga la autorizacion del Modo
+// Degradado, que da verdes guiandose SOLO por el reloj.
+void reloj_invalidarHora();
+
 // --- Franja nocturna configurable -----------------------------------------
 //
 // ATENCION: HOY SE GUARDA SOLO EN RAM. No sobrevive a un corte de energia.

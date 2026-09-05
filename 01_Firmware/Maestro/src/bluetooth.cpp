@@ -286,7 +286,31 @@ static bool ajustarRelojVerificado(uint8_t h, uint8_t mi, uint8_t s, uint8_t d) 
   // Los segundos no se comparan: entre escribir y releer el RTC puede haber avanzado
   // uno. Si el minuto avanza justo en ese hueco esto contesta que no pudo, con la hora
   // bien puesta -es el lado seguro del error, y el operario repite-.
-  return reloj_enHora() && reloj_hora() == h && reloj_minuto() == mi;
+  const bool quedo = reloj_enHora() && reloj_hora() == h && reloj_minuto() == mi;
+
+  // N-144 (04/09): SI NO QUEDO PUESTA, SE RETIRA LA BANDERA. Antes se avisaba y se
+  // dejaba el equipo creyendo que tenia hora.
+  //
+  // reloj_ajustar() pone horaValida = true al terminar de escribir, y esta funcion
+  // comprobaba DESPUES si habia quedado. Cuando no quedaba -que con el cristal Y2
+  // muerto (N-17) es el caso NORMAL, no el raro- se contestaba el $ERR y horaValida se
+  // quedaba en true. El equipo publicaba entonces HORA:00:00:00 en su $STATUS: no es
+  // medianoche, es un contador que no avanza con la bandera de "tengo hora" puesta.
+  //
+  // Visto en la cinta de campo del 04/09: hasta esa tarde el Maestro mandaba
+  // HORA:--:--:-- y despues de intentar el Courier RTC paso a mandar HORA:00:00:00. La
+  // orden habia fallado y el equipo se habia quedado convencido de lo contrario.
+  //
+  // Y NO ES SOLO COSMETICO, que es por lo que se arregla: de reloj_enHora() cuelga la
+  // autorizacion del MODO DEGRADADO -el que da verdes guiandose SOLO por el reloj, sin
+  // confirmacion de la otra punta-. Un reloj parado en ceros que se declara valido es
+  // exactamente la entrada que ese modo no debe aceptar.
+  //
+  // Se retira aqui y no dentro de reloj.cpp a proposito: quien sabe si "quedo puesta"
+  // es quien comparo lo que mando con lo que releyo, y ese es este. reloj_ajustar() no
+  // conoce la hora que le pidieron una vez ha escrito.
+  if (!quedo) reloj_invalidarHora();
+  return quedo;
 }
 
 // --- LOS BITS DEL RELOJ, POR EL UNICO CAMINO QUE QUEDA ABIERTO --------------------

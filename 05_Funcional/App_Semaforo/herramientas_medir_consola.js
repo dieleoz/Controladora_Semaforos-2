@@ -92,9 +92,35 @@ const PANTALLAS = [
       const finOtros = otros.length
         ? Math.round(Math.max(...otros.map(o => o.getBoundingClientRect().bottom))) : null;
 
-      // 1. ¿Cabe todo en una pantalla? El ultimo mando tiene que terminar por
-      //    encima del borde inferior del viewport, con el semaforo aun visible.
+      // 1. ¿Cabe todo en una pantalla?
       const finUltimoMando = cajas.length ? Math.max(...cajas.map(c => c.bottom)) : null;
+
+      // 🔴 Y EL TECHO NO ES EL BORDE DE LA PANTALLA: ES LA BARRA QUE FLOTA ENCIMA.
+      //
+      // ESTE INSTRUMENTO DIO "SIN HALLAZGOS" SOBRE UNA PANTALLA CON UN MANDO TAPADO, y
+      // lo destapo una captura de campo del 04/09: la barra de pestañas -Trafico /
+      // Eventos- esta en position fixed y se dibuja POR ENCIMA de la botonera. En la
+      // foto se ve un boton amarillo asomando por arriba y por abajo de la barra.
+      //
+      // Medir contra window.innerHeight da por bueno todo lo que este dentro del
+      // viewport, y un boton puede estar dentro Y ESTAR CUBIERTO. Es §4 sobre el propio
+      // instrumento: el buscador respondia, y aun asi no sabia encontrar.
+      //
+      // El techo util es el borde SUPERIOR de la barra flotante, no el del viewport. Se
+      // busca la barra por su posicion calculada -fixed o sticky- y no por su clase: una
+      // lista de selectores escrita a mano es una lista que alguien tiene que acordarse
+      // de actualizar.
+      let techoUtil = vh, tapador = null;
+      for (const el of document.querySelectorAll('body *')) {
+        if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') continue;
+        const cs = getComputedStyle(el);
+        if (cs.position !== 'fixed' && cs.position !== 'sticky') continue;
+        const c = el.getBoundingClientRect();
+        // Solo cuenta lo que flota ABAJO y ocupa ancho: una barra, no un icono suelto.
+        if (!c.height || c.width < 0.5 * window.innerWidth) continue;
+        if (c.bottom < vh * 0.6) continue;
+        if (c.top < techoUtil) { techoUtil = c.top; tapador = el.className || el.id || el.tagName; }
+      }
 
       // 2. ¿Se parten las palabras?
       //
@@ -128,7 +154,7 @@ const PANTALLAS = [
       }
 
       return {
-        vh,
+        vh, techoUtil, tapador,
         semTop: sem ? Math.round(sem.top) : null,
         semBottom: sem ? Math.round(sem.bottom) : null,
         finUltimoMando: finUltimoMando === null ? null : Math.round(finUltimoMando),
@@ -139,14 +165,17 @@ const PANTALLAS = [
       };
     });
 
-    const scrollParaMandar = r.finUltimoMando !== null && r.finUltimoMando > r.vh;
-    const px = r.finUltimoMando === null ? null : r.finUltimoMando - r.vh;
+    // El techo es la barra flotante si la hay, no el borde de la pantalla.
+    const scrollParaMandar = r.finUltimoMando !== null && r.finUltimoMando > r.techoUtil;
+    const px = r.finUltimoMando === null ? null : r.finUltimoMando - r.techoUtil;
 
     console.log(`\n== ${w}x${h}  ${desc} ==`);
     console.log(`   alto del documento        : ${r.alto} px  (viewport ${r.vh})`);
     console.log(`   semaforo                  : ${r.semTop} .. ${r.semBottom} px`);
+    console.log(`   techo util (barra flotante): ${r.techoUtil} px` +
+      (r.tapador ? `  <- la tapa "${r.tapador}"` : '  (no hay barra flotante)'));
     console.log(`   ultimo mando DIARIO en    : ${r.finUltimoMando} px  ` +
-      (scrollParaMandar ? `-> ${px} px FUERA DE PANTALLA` : '-> DENTRO'));
+      (scrollParaMandar ? `-> ${px} px TAPADO O FUERA` : '-> VISIBLE Y PULSABLE'));
     console.log(`   lo no diario termina en   : ${r.finOtros} px  (puede quedar debajo)`);
     if (r.partidas.length) {
       for (const p of r.partidas) {

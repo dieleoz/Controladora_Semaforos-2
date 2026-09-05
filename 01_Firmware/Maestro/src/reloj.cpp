@@ -198,6 +198,13 @@ bool reloj_reiniciarDominioRespaldo() {
 
 bool reloj_enHora() { return horaValida; }
 
+// N-144: la contrapartida que faltaba. Ver reloj.h para el porque.
+//
+// No toca el RTC: no hay nada que borrar alli -si el ajuste no quedo es porque el
+// contador no avanza-, y escribirle mas seria insistir sobre lo mismo. Lo que se
+// corrige es la CREENCIA del firmware, que es lo que estaba mal.
+void reloj_invalidarHora() { horaValida = false; }
+
 uint8_t reloj_hora() { return horaValida ? rtc.getHours() : 0; }
 uint8_t reloj_minuto() { return horaValida ? rtc.getMinutes() : 0; }
 uint8_t reloj_segundo() { return horaValida ? rtc.getSeconds() : 0; }
