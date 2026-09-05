@@ -55,7 +55,40 @@ regla **§2.bis de `CLAUDE.md`**, que existe por esto.
 > Desde el 03/09 hay una segunda, y es mejor: **¿esto desatasca uno de los 5 pasos que el banco no
 > pudo correr?** Lo que no conteste a ninguna de las dos, no se escribe.
 
-### 0.0.quaterdecies CIERRE DE LA SESION DE BANCO DEL 04-05/09 — lo que la CINTA cerro y lo que dejo abierto
+### 0.0.quindecies PLAN DE CIERRE — que cierra cada pendiente, y cual NO lo cierra nadie desde el PC
+
+> **La mitad util de este plan es la segunda tabla.** Cuatro de los ocho pendientes **no
+> se pueden cerrar escribiendo codigo**, y confundirlos con los otros cuatro es como se
+> acumula un `20/20` que no acerca una tarjeta (§2.bis).
+
+### Los que SI se cierran con firmware o app
+
+| | que es | que lo cierra | estado |
+|---|---|---|---|
+| **N-150** | al aplicar tiempos el cruce se queda en rojo para siempre | la app, encadenando al `$ACK,CMD:SET_TIEMPOS,RESULT:OK` un aviso claro **y una accion explicita** que arranque el ciclo. **No se arranca solo**: es un cambio de modo que ABRE PASO, y §6 prohibe que la maquina opere un modo que nadie pidio | en curso |
+| **N-152** | `CANCELAR_AMBAR` no manda nada por radio: el Maestro se queda en ambar y hay que caminar al Poste 1 | el aviso de vuelta, hermano de N-142. **Y no es copiarlo:** al `MODO_AMBAR` se llega tambien por el `B.B.B`, por el watchdog y desde el telefono del Maestro, asi que salir de un ambar **que pidio otra persona** seria peor que el defecto | en curso |
+| **dos parsers en la app** | `nmea_parser.js` escribe `data.hora`, `app.js` lee `data.HORA`. **La que se prueba no es la que se instala** | un parser, un convenio, y un pack que exija que la probada sea la usada | en curso |
+
+### 🛑 Los que NO cierra ningun agente, y por que
+
+| | que falta de verdad |
+|---|---|
+| **`MANDO_A` / `MANDO_B` a `0,6 V`** (N-118) | **una medida en cobre y probablemente un cable.** `J16` p5 y p8 van cableados y no responden. No es firmware: el fuente ya lee `INPUT` pelado activo en ALTO, que es lo que el conector pide. Y **urge**: con `MANDO_B` al aire `mando_ambarLocal()` no se arma nunca, los tres `if` de `Esclavo/src/main.cpp` quedan siempre verdaderos y **el veto de SFTY-21 no queda inerte: queda ABIERTO** |
+| **N-145 · la hora** | **comprar el `DS3231`** (linea `A6`) y verificar `0x68` sobre el modulo. El firmware esta entero en las dos mitades. Sin la pieza, las tramas salen con `--:--:--` y eso es el arreglo **callandose bien**: no confundirlo con que falle |
+| **`BAT:--`** | **un divisor de tension y una entrada analogica.** La causa esta MEDIDA: `grep -rn analogRead` sobre las cuatro carpetas da **cero**, y N-108 puso el `--` a proposito para que nadie leyera un 12,6 V que era un literal |
+| **matriculacion por ID de Bluetooth** | **una decision de protocolo del responsable, y cuesta bytes.** `RF_Packet` son 4 bytes `{msgID, command, param, crc}` y **no tiene campo de direccion**; el CRC cubre 3. Meter direccionamiento cambia el contrato de la radio en las dos puntas. Aplazado por el a despues del banco |
+
+### Y lo que este plan NO promete
+
+**Nada de lo cerrado esta noche ha pasado banco.** N-151 y N-152 se arreglaron **despues**
+de la ultima cinta, asi que de ellos no hay una sola prueba en tarjeta. El `20/20` dice
+que los modelos y los arneses de PC no encuentran nada — y esta misma sesion dio dos
+contraejemplos: N-146 y N-147 pasaron esas veinte comprobaciones sin despeinarlas, y los
+encontro una cinta de tramas.
+
+---
+
+## 0.0.quaterdecies CIERRE DE LA SESION DE BANCO DEL 04-05/09 — lo que la CINTA cerro y lo que dejo abierto
 
 > **Los cinco defectos de esta sesion salieron de una CINTA DE TRAMAS y de un DIARIO DE
 > ORDENES, no de una revision.** Los instrumentos de PC estaban en `20/20` mientras dos
