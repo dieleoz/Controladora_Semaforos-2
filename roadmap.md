@@ -55,7 +55,81 @@ regla **§2.bis de `CLAUDE.md`**, que existe por esto.
 > Desde el 03/09 hay una segunda, y es mejor: **¿esto desatasca uno de los 5 pasos que el banco no
 > pudo correr?** Lo que no conteste a ninguna de las dos, no se escribe.
 
-### 0.0.octodecies SFTY-29 · LAS CAMARAS COMO VETO — la regla existe declarada y SIN CONSTRUIR
+### 0.0.novodecies 🔴 LAS CAMARAS NO HACEN NADA EN LOS MODOS QUE SE USAN — y el modo que las usa mete el ruido que se temia
+
+> **Se afirmo tres veces esta noche que «el firmware de las dos camaras ya esta puesto, lo
+> que falta es cobre». ES FALSO en Automatico y en Manual, que es donde se opera el cruce.**
+> Lo destapo una revision externa a la que se le pidio expresamente que comprobara esa
+> afirmacion en vez de heredarla.
+
+### El censo, en una linea
+
+`demanda_hayLocal()` tiene **UN SOLO LECTOR** en todo el Maestro:
+`modo_inteligente.cpp:106`. Y `coordinador_hayDemandaRemota()` solo se arma **si
+`modoActual_get() == MODO_INTELIGENTE`** (`coordinador.cpp:758`).
+
+| modo | que hace una deteccion de camara |
+|---|---|
+| **AUTOMATICO** | fija un `tUltima` que **nadie lee**. `modo_automatico.cpp` ni incluye `demanda.h` |
+| **MANUAL** | lo mismo: nada |
+| **DEGRADADO / AMBAR** | la trama del Esclavo **ni se lee** |
+| **INTELIGENTE** | aqui si, y es el unico |
+
+Lo que si corre en todos los modos es la LECTURA del pin —`botones_actualizar()` sin
+condicion en `main.cpp:144`—, que es lo que hacia parecer que estaba construido. **Leer no
+es consumir.** §2.ter otra vez, y esta vez el que la recito fui yo.
+
+### 🔴 Y EL MODO QUE LAS USA VIOLA EL MINIMO DE 3 MINUTOS, EN EL FUENTE
+
+`modo_inteligente.cpp` corta el verde a los **15 s** —constante escrita a mano— mientras
+`limites_ciclo.h:54` fija `VERDE_MIN_MIN = 3` **minutos**, decidido por el responsable el
+04/09 por seguridad vial.
+
+**Consecuencia medida:** con la camara del Maestro pegada en «hay presencia» —o con cola
+continua— el **Esclavo recibe 15 s de verde por ciclo y el Maestro 3 minutos**. Con las dos
+camaras ruidosas, el cruce alterna al minimo indefinidamente: 15 s + despeje + 4 s de
+ambar, en los dos sentidos.
+
+> **Eso es exactamente «meter ruido», y estaba en el codigo antes de comprar la camara.**
+> Y viola la regla que `modo_automatico.cpp:83-91` justifica asi: *«conductor convencido de
+> que el semaforo esta averiado, adelantando en rojo»*. La rompe **justo el modo que usa
+> camaras**.
+
+### El Modo Inteligente es obra DECLARADA, no ejercida
+
+- **Ningun arnes lo compila.** `grep -rl modo_inteligente Validacion_* compuerta.py` -> vacio.
+  Lo leen tres packs **por texto**. Es el punto ciego de §8 en su forma pura.
+- **Ninguna tarjeta lo ha corrido.** El informe del banco del 3-4/09 dice *«nunca aparecio
+  la luz verde en ningun poste»* y *«sin camara de demanda real»*.
+- Solo se entra por la app: la via del menu esta muerta -`menu.cpp:111` cuelga de
+  `botonAceptar()`, que devuelve `false` siempre- y el mando no tiene secuencia para el.
+
+### La recomendacion, y el coste MEDIDO compilando
+
+| | que es | flash | veredicto |
+|---|---|---|---|
+| **imagenes / auditoria** | lo que apunto el responsable | **0 B** | **lo sensato hoy** |
+| **B · aviso a la caja negra** | al pedir el cambio verde->rojo, si hay presencia, un `$EVENT`. Cero efecto vial | **+60 B** | **la unica que toca firmware sin poder degradar nada** — y es el INSTRUMENTO que el laboratorio necesita: cuenta cuantas veces habria actuado un veto **antes** de darle autoridad |
+| **A · veto con tope** (SFTY-29) | extiende el todo-rojo hasta un tope, luego cambia y alarma | **+100 B** | fail-safe en los tres modos, **pero su beneficio es una suposicion** hasta tener la camara delante |
+| **C · demanda en Inteligente** | ya existe | 0 | **NO**: modo no ejercido + el defecto de los 15 s |
+| **D · demanda en Auto/Manual** | conectar `demanda_hayLocal()` al ciclo | — | **NO**: en Manual la camara «da paso», que es la via que el responsable rechazo para el mando A/B |
+
+### Y tres cosas mas que aparecieron
+
+1. 🔴 **La alarma de «8 dias sin detectar» que el responsable enuncio NO EXISTE en el
+   firmware.** Y sin ella, la camara de la barrera muda equivale a «baja sobre el coche»
+   -o sea, lo de hoy-: aceptable solo CON esa alarma.
+2. **La camara del Esclavo en Auto/Manual no es inofensiva:** manda **3 copias de
+   `CMD_DEMANDA`** por deteccion en un canal de **2,4 kbps semiduplex** que tambien lleva
+   `GO_RED`/`ACK_RED`, y lo hace **sin guarda** (`demanda.cpp:26`). *[SIN MEDIR: el impacto
+   probablemente es pequeno, pero es una colision posible en el instante que mas importa.]*
+3. **`camara_leerPin()` hace `delay(5)`** con el pin en alto (`botones.cpp:105-111`).
+   Leerla POR NIVEL en cada vuelta cuesta 5 ms/vuelta mientras haya presencia: inofensivo
+   para el watchdog de 4 s, pero condiciona como se implementa un veto.
+
+---
+
+## 0.0.octodecies SFTY-29 · LAS CAMARAS COMO VETO — la regla existe declarada y SIN CONSTRUIR
 
 `OPTIMIZACIONES.md:401` la tiene registrada como **«solo diseno»**: *«Presencia como veto
 del todo-rojo y sensor de pluma»*. Lo que el responsable describio el 04/09 es exactamente

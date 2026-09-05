@@ -91,7 +91,7 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 62 rutas parseadas, todas existen |
 | banco por packs *(74 packs)* | ✅ | **1053/1053** — **74 packs en `PASS`, 0 en `FALLA`**. El NUMERADOR lo publica esta tabla y `documentos_01` NO lo vigila a proposito -se estaria midiendo a si mismo-, asi que se copia del acta tal como viene, con su rojo si lo trae. |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **86.3 %** · 66.3 % · 20.6 % · 35.7 % — *el Maestro ocupa **56588 de 65536 B**, o sea **9.228 B libres**; el Esclavo, **43464 B*** |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **86.3 %** · 66.3 % · 20.6 % · 35.7 % — *el Maestro ocupa **56568 de 65536 B**, o sea **9.228 B libres**; el Esclavo, **43464 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.7 % — 1.122.137 de 3.145.728 B |

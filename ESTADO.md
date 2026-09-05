@@ -86,7 +86,7 @@ que el tramo quedo vacio. Es configurable de 10 a 90 s y hoy esta en 15.
 ## Verificacion
 
 Compuerta **20 PASS · 0 FALLA · 0 ABORTADO**. Banco **1053/1053 en 74 packs**. Maestro
-**86,0 %** (`56588` B), Esclavo **66,1 %** (`43464` B), app en DOM **218/218**.
+**86,0 %** (`56568` B), Esclavo **66,1 %** (`43464` B), app en DOM **218/218**.
 
 > **Y lo que ese verde significa, que es lo de siempre:** los modelos y los arneses de PC
 > no encuentran nada. **No dice que el firmware funcione en la tarjeta.** Esta noche hubo
@@ -160,7 +160,7 @@ nombre y apellido.
 
 | | |
 |---|---|
-| Flash | Maestro **86.3 %** (**56588** de 65536 B → **8.948 B libres**) · Esclavo **66.3 %** (43464 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Flash | Maestro **86.3 %** (**56568** de 65536 B → **8.968 B libres**) · Esclavo **66.3 %** (43464 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
 | Banco por packs | **1053/1053** en **74 packs** |
 | Arneses que compilan C++ real | 271/271 pantalla · 71/71 automático · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** |
 | Puente ESP32 | **93/93** |
