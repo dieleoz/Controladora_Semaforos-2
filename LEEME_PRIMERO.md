@@ -1,89 +1,95 @@
-# LÉEME PRIMERO — paquete del 04/09/2026
+# LÉEME PRIMERO — paquete del 04/09/2026, noche
 
 ## 1. Qué corre hoy en la calle, y que esto NO es eso
 
-**En campo corre `V8.4`, commit `e303485`, del 31/07/2026.**
-
-Este paquete es `2e24f97`. Todo lo que hay dentro es posterior a lo que está instalado.
+**En campo corre `V8.4`, commit `e303485`, del 31/07/2026.** Este paquete es `944c18d`.
 
 ## 2. ¿Ha pasado banco? **NO.**
 
-Con esas palabras, porque es lo único que importa antes de decidir instalar nada.
+Con esas palabras, porque es lo único que importa antes de instalar nada.
 
-La **sesión 2 de banco (3–4/09)** paró con defectos. Lo que va en este paquete son los
-arreglos **posteriores a esa sesión**, verificados en el PC y **sin volver a la tarjeta**.
+La compuerta sale **20 PASS · 0 FALLA · 0 ABORTADO** y el banco **998/998 en 69 packs**.
+Eso dice exactamente esto: *los modelos y los arneses de PC no encuentran nada*. **No dice
+que el firmware funcione en la tarjeta.**
 
-La compuerta sale en **`20 PASS · 0 FALLA · 0 ABORTADO`** y el banco por packs en
-**`985/985` sobre 68 packs**. Eso significa exactamente esto: *los modelos y los arneses de
-PC no encuentran nada*. **No dice que el firmware funcione en la tarjeta.**
+Y hoy hay dos pruebas de ello, con fecha:
 
-La prueba está en este mismo paquete: los tres defectos que pararon el banco del 3–4/09
-pasaron esas mismas 20 comprobaciones sin despeinarlas.
+- Los cuatro fallos que reportasteis esta tarde **pasaron esas mismas comprobaciones sin
+  despeinarlas**.
+- Y un defecto que introdujimos nosotros a media tarde —`N-135`— **estuvo en verde en la
+  compuerta y en los 68 packs**. Lo encontró un agente **compilando**, no leyendo.
 
-## 3. 🔴 Lo que está roto o abierto, y hay que leer antes de tocar
+## 3. 🎯 Lo que hay que probar, y es lo que desbloquea
 
-### 3.1 · El Modo Automático no mueve las luces en la tarjeta (`N-42`) — SIN CERRAR
+**Cargad las dos puntas y probad el Modo Automático.** Es lo que estaba roto.
 
-Sigue abierto y **no está diagnosticado**. Una lectura del fuente de esta sesión apunta a
-que `modoAutomatico_setup()` deja el modo en fase `CONFIG_ROJO`, que sólo avanza con
-`botonAceptar()`, y ése devuelve `false` desde el 31/08. En esa fase
-`coordinador_actualizar()` no se llama. **Es una lectura de código, no un diagnóstico:**
-nadie lo ha ejercido en tarjeta. No se cambia nada sobre esa base.
+**El paso 30 de la guía es el más valioso de la sesión:** poned Automático y **mirad al
+Esclavo dos minutos**. El resultado bueno es **que no pase nada**.
 
-### 3.2 · 🔴 No hay puente H en la PCB, y sólo sale UNA línea de control a la pluma
+- Si el Esclavo **ya no** se va a ámbar solo → el arreglo funcionó.
+- Si **sigue** yéndose a ámbar a los ~25 s → hay una segunda causa, y eso es información
+  que hoy no tenemos. Anotadlo, no lo deis por sabido.
 
-Censado sobre el `.kicad_pcb`: de `L298`, `L293`, `DRV8x`, `BTS7x`, `TB6612`, `IBT` y
-`BTN8x` hay **cero**. La talanquera es un MOSFET de lado bajo —`PB2` → opto `U15` →
-`Q10` → `J15`— y `J15` es un `Conn_01x02`: **dos bornes, un sentido**.
+🛑 **Un aviso para que nadie reporte un defecto que no existe:** la firma del respaldo
+cambió, así que **la PRIMERA vuelta de energía con este firmware BORRA los tiempos
+guardados** y el equipo arranca con los mínimos (3 / 3 / 10). Es correcto y está
+diseñado así. La prueba de que los tiempos sobreviven al corte **vale desde la segunda
+vuelta**.
 
-**Está decidido poner un `L298N` por barrera, y ESO NO SE CABLEA TODAVÍA.** Un puente H
-necesita dos entradas de control y de esta placa sale una. Además `J15` conmuta **masa**,
-no entrega 5 V. Y con un motor de 12 V el `L298N` cae entre 2 y 5 V, que en par es más de
-la mitad. **Pendiente de decidir el esquema y de conocer la corriente del motorreductor.**
-
-### 3.3 · No se cablean tres cámaras: **son DOS, una por poste**
-
-El manual anterior listaba tres entradas y alguien podía leer tres cámaras. Los tres
-bornes —`J14`/`PB0`, `J16` p10/`PB14`, `J16` p12/`PB15`— acaban en la **misma** petición de
-paso. **La cámara va a `J14`**, que es el único con antirrebote por hardware
-(`R64` 10K + `C25` 100nF). Corregido en los manuales de este paquete.
-
-### 3.4 · El rótulo Bluetooth no es fiable el primer día
-
-El ESP32 aprende su nombre (`SEM-<serie>-M` / `-E`) del `$STATUS` y **lo guarda para la
-arrancada siguiente**. Un módulo virgen anuncia `SEM-SIN-MATRICULA`, y **los dos postes se
-llaman igual** hasta que se les da una vuelta de energía después de que el STM32 hable.
-
-## 4. Qué trae de nuevo
-
-- **El ciclo no baja de 3 minutos.** Decisión vial del responsable: *«es la mínima
-  distancia de seguridad»*. La guarda vive en el firmware, no en la app.
-  **Coste aceptado a sabiendas: ya no se puede probar en mesa con ciclos de un minuto.**
-- **`N-131`** — esa guarda era media guarda: había cinco sitios más con el mínimo viejo
-  escrito a mano, incluido un despeje que por pantalla bajaba a 5 s. Cerrado.
-- **`N-130`** — el equipo ya no dice que sí a lo que no va a hacer. Pedir paso desde el
-  Esclavo con el cruce fuera de Modo Inteligente ahora **se rechaza y se avisa**, en vez de
-  contestar «pedido al Maestro» y no mover nada.
-- **App:** todo lo que se pulsa llega a 44×44 px, ningún par de objetivos pegado, y la
-  pantalla dice **a qué poste estás conectado y qué mandos tiene** antes de pulsar.
-- Manuales y guía de cableado corregidos: ámbar de emergencia del Maestro (no existe),
-  parar el Esclavo con `FORZAR_ROJO` (está rechazado), despeje de «5 a 999 s» (imposible).
-
-## 5. Qué hay en el paquete
+## 4. Qué se arregló
 
 | | |
 |---|---|
-| `IOT_VIAL_Semaforos_2026-09-04_2e24f97_SIN_BANCO.apk` | la app, verificada byte a byte contra el fuente |
-| `ACTA_verificacion.txt` | el acta de la corrida: fecha, `HEAD`, toolchain |
+| **`N-42`** | el Automático no movía las luces **y dejaba al Maestro mudo en la radio**. Por eso el Esclavo se iba a ámbar solo: era orfandad, no un fallo de radio |
+| **`N-133`** | los tiempos del ciclo **no se guardaban en ningún sitio**. Ahora sobreviven al corte |
+| **`N-134`** | el ámbar **se ordena** en vez de que el Esclavo lo dedujera 25 s después |
+| **`N-135`** | 🔴 defecto **nuestro**, introducido esta tarde por el arreglo de `N-42` y cazado horas después |
+
+**Y la app:** todo lo que se pulsa llega a 44×44 px; el PIN caduca; el operario **deja de
+teclear `1234`** para dar paso y confirma en su lugar que ha mirado el tramo; y los
+errores del equipo **se traducen** a lo que hay que hacer en el poste.
+
+## 5. 🔴 Lo que sigue roto o abierto
+
+### 5.1 · El reloj: `FORMATO_INVALIDO` — SIN DIAGNOSTICAR
+
+El formato cuadra por los dos lados sobre el papel. **No se ha podido saber más porque la
+cinta de tramas sólo grababa lo que ENTRA**: 300 tramas y ninguna era la que se mandó.
+
+**Este paquete trae el arreglo del instrumento, no del fallo:** la app ahora graba también
+lo que **sale**, y lleva un **diario de órdenes** con la terna *orden / respuesta / efecto*.
+Repetid la inyección de hora y **mandad el diario**: dirá en una línea qué está mal.
+
+### 5.2 · El puente H no se cablea todavía
+
+Está decidido un `L298N` por barrera, **fuera de la placa**, en el esquema simple: `J15`
+gobierna `ENA`, la pluma sube con señal y baja por su peso. **Faltan dos números de la
+placa del motorreductor: corriente nominal y de arranque.** Con 12 V el `L298N` cae entre
+2 y 5 V, y el par baja más de la mitad. Pregunta 11 de la guía.
+
+### 5.3 · El ESP32 se reinicia por tensión
+
+En vuestra cinta hay **dos arranques en siete minutos** (`SUBIDA_DE_TENSION`,
+`TENSION_BAJA`). Es la alimentación, no el firmware: falta el `LM2596` desde la batería.
+
+### 5.4 · Cámaras: son **DOS**, una por poste
+
+El manual anterior listaba tres entradas y se podía leer «tres cámaras». **La cámara va a
+`J14`**, que es el único borne con antirrebote por hardware.
+
+## 6. Qué hay dentro
+
+| | |
+|---|---|
+| `IOT_VIAL_Semaforos_2026-09-04_944c18d_SIN_BANCO.apk` | verificada entrada por entrada contra el fuente |
+| `ACTA_verificacion.txt` | la corrida: fecha, `HEAD`, toolchain |
 | `01_Firmware/` | **fuente** para PlatformIO. Sin binarios: se compilan del código que se revisa |
-| `02_Manuales/` | `.docx` y `.md` |
+| `02_Manuales/` | manuales y la **guía de banco de 36 pasos** |
 
-**El orden de trabajo es: firmware primero, cargado y verificado en la tarjeta; el cableado
-después.** Nunca al revés. Un commit no protege de un destornillador.
+**El orden es: firmware primero, cargado y verificado en la tarjeta; el cableado después.**
+Nunca al revés. Un commit no protege de un destornillador.
 
-## 6. Carga por SWD
+## 7. Carga por SWD
 
-`mode=UR` con `-e all`, y no se cambia. Si falla, **se reintenta** — enganchar es cuestión
-de *timing* y puede fallar varias veces con `Unable to get core ID`. Eso no es falta de
-cableado. `HOTPLUG` con un firmware que se cuelga al arrancar deja
-`failed to erase memory`.
+`mode=UR` con `-e all`, y no se cambia. Si falla, **reintenta** — enganchar es cuestión de
+*timing*. `HOTPLUG` con un firmware que se cuelga al arrancar deja `failed to erase memory`.

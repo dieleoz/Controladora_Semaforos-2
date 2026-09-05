@@ -1,17 +1,17 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-09-04
-HEAD         : 72755e0   rama: main-nuevo
-Arbol        : LIMPIO
+HEAD         : 6d075a5   rama: main-nuevo
+Arbol        : CON CAMBIOS SIN COMMITEAR
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
 GCC de host  : gcc.exe (MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders, r3) 16.1.0
 
 RESULTADOS
 ------------------------------------------------------------------------------
-  PASS      guarda de rutas                   58 rutas parseadas, todas existen
-  PASS      compila maestro                   Flash: [========= ]  89.3% (used 58532 bytes from 65536 bytes)
-  PASS      compila esclavo                   Flash: [=======   ]  66.1% (used 43336 bytes from 65536 bytes)
+  PASS      guarda de rutas                   59 rutas parseadas, todas existen
+  PASS      compila maestro                   Flash: [========= ]  89.0% (used 58320 bytes from 65536 bytes)
+  PASS      compila esclavo                   Flash: [=======   ]  66.1% (used 43344 bytes from 65536 bytes)
   PASS      compila repetidor                 Flash: [==        ]  20.6% (used 270497 bytes from 1310720 bytes)
   PASS      compila esp32                     Flash: [====      ]  35.7% (used 1121985 bytes from 3145728 bytes)
   PASS      simulador funcional               VEREDICTO FINAL: 9/9 PASS (SISTEMA V8.0 DEFINITIVA CERTIFICADO)
@@ -20,18 +20,21 @@ RESULTADOS
   PASS      test funcional de la app          [TEST] RESUMEN: 58/58 comprobaciones funcionales de la app en PASS
   PASS      test unitarios de la app          RESUMEN DE PRUEBAS: 32 PASS | 0 FALLAS  (Total: 32)
   PASS      test unitarios TDD de la app      RESUMEN TDD: 55 PASS | 0 FALLAS  (Total: 55)
-  PASS      app ejecutada en DOM              RESULTADO JSDOM: 128 PASS | 0 FALLAS
-  PASS      banco por packs                   RESUMEN: 985/985 comprobaciones  |  packs: 68 PASS, 0 FALLA, 0 ABORTADO
+  PASS      app ejecutada en DOM              RESULTADO JSDOM: 142 PASS | 0 FALLAS
+  FALLA     banco por packs                   RESUMEN: 981/998 comprobaciones  |  packs: 67 PASS, 2 FALLA, 0 ABORTADO
   PASS      arnes de pantalla                 MAESTRO  145/145 comprobaciones OK | ESCLAVO  126/126 comprobaciones OK | TOTAL    271/271 comprobaciones OK
   PASS      arnes del ciclo                   RESULTADO: 22/22 comprobaciones OK
   PASS      arnes del respaldo                respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
   PASS      arnes del automatico              RESULTADO: 71/71 comprobaciones OK
   PASS      arnes de las dos puntas           RESULTADO: 42/42 comprobaciones OK
   PASS      arnes del Degradado a dos puntas  RESULTADO: 18/18 comprobaciones OK
-  PASS      simulador del puente ESP32        RESULTADO: 86/86 comprobaciones del contrato del puente en PASS
+  ABORTADO  simulador del puente ESP32        [ABORTADO] excepcion a mitad de la medida: IndexError: list index out of range
 ------------------------------------------------------------------------------
-  RESUMEN: 20 PASS | 0 FALLA | 0 ABORTADO
+  RESUMEN: 18 PASS | 1 FALLA | 1 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a 72755e0 y re-corriendo
+firmware. Esta acta se verifica volviendo a 6d075a5 y re-corriendo
 python 01_Firmware/compuerta.py.
+
+AVISO: el arbol tenia cambios sin commitear al medir. Estas
+cifras NO corresponden exactamente a 6d075a5.
