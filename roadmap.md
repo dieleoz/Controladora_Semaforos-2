@@ -55,7 +55,49 @@ regla **§2.bis de `CLAUDE.md`**, que existe por esto.
 > Desde el 03/09 hay una segunda, y es mejor: **¿esto desatasca uno de los 5 pasos que el banco no
 > pudo correr?** Lo que no conteste a ninguna de las dos, no se escribe.
 
-### 0.0.unvicies EL DIA DE LAS CAMARAS (05/09) — lo que se decidio y lo que se destapo
+### 0.0.duovicies TODO POR APP — el mando desaparece del gabinete, y con el N-118
+
+**Confirmado por el responsable el 05/09:** *«ya no tenemos mandos de A y B, solo la app, los
+quitamos»*. `D-1` queda completa con su lado de hardware y nace `D-16`.
+
+### Las dos mitades, que hay que leer juntas
+
+**El HARDWARE se fue** (lista de compras rev. 3, 28/08). **El CODIGO se queda**, y no por
+inercia: `mando_ambarLocal()` tiene **seis lectores** y su veto es SFTY-21. Retirarlo dejaria
+los `if` **siempre verdaderos** —el veto no queda inerte, **queda abierto**— y ademas **el
+banco se caeria en ABORTADO, no en rojo**: dos `raise` disparan solos y los dos modelos leen
+constantes de `mando.cpp` **en el import**.
+
+Con el mando desmontado, esa bandera **simplemente no se arma nunca**. Que es lo correcto.
+
+### N-118 se cierra, y era DOS cosas contadas como una
+
+1. Los **`0,6 V` en reposo** eran sintoma del **firmware VIEJO** —`INPUT_PULLUP` peleando
+   contra los 10 kOhm de la placa—, corregido en `346ea5f`, que paso los dos pines a `INPUT`
+   pelado con lectura `== HIGH`. **Nadie lo volvio a medir con el binario nuevo dentro.**
+2. Y ya da igual: **no hay mando que conectar**. Los pines quedan libres.
+
+> 🔴 **Media sesion contandolo como «lo mas urgente de todo lo abierto» y como «un cable o un
+> multimetro».** Ni una cosa ni la otra: **no habia defecto de placa que arreglar**. Es la
+> forma de §4 aplicada a un sintoma que ya tenia su causa corregida en el fuente y nadie
+> volvio a medir.
+
+### 🔴 Y lo que SI es real, y no estaba escrito en ninguna parte
+
+**`D-16`: sin telefono no hay forma de operar el equipo.** Ni ambar, ni volver a automatico,
+ni parar el cruce. **Es una propiedad DECLARADA del sistema, no una averia** — pero la idea
+de que *«siempre queda el mando desde el suelo»* seguia viva en la cabeza de todos.
+
+Y no es teorica: esta semana hubo que **desvincular el Maestro en Ajustes de Android** para
+poder conectarse al Esclavo. Un movil sin bateria, un emparejamiento que falla o dos tecnicos
+con el mismo equipo **dejan el poste sin mando de ninguna clase**.
+
+**Consecuencia operativa que va al manual: el telefono es herramienta critica.** Bateria,
+cable, y conviene un segundo terminal emparejado.
+
+---
+
+## 0.0.unvicies EL DIA DE LAS CAMARAS (05/09) — lo que se decidio y lo que se destapo
 
 > **El detalle de cada decision vive en [`DECISIONES.md`](DECISIONES.md).** Aqui queda el
 > arco del dia y los hallazgos, que es lo que este fichero sabe hacer.
