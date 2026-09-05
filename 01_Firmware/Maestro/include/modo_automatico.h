@@ -40,6 +40,24 @@ int modoAutomatico_segundosRestantesFase();
 // Devuelve false y NO cambia nada si algun valor esta fuera de rango.
 bool modoAutomatico_fijarTiempos(uint8_t verdeMin, uint8_t rojoMin, uint8_t despejeSeg);
 
+// A-12: los tiempos de ciclo CONFIGURADOS, para el modo que no los decide pero los
+// necesita. Los tres punteros son obligatorios y se escriben siempre.
+//
+// El Modo Inteligente los usa como SUELO de la fase en curso -el verde configurado
+// cuando esa punta esta en verde, el rojo cuando esta en rojo- y deriva de ahi su
+// techo. Hasta el 05/09 se fabricaba los suyos con VERDE_MIN_MIN y el cruce corria a
+// 3 minutos aunque el operario hubiera configurado 6.
+//
+// Se lee de aqui y no se copia: el dueno de estos tres numeros es este fichero, que es
+// donde vive la guarda de SET_TIEMPOS y el respaldo que los sobrevive a un corte. Una
+// segunda copia en el otro modo es N-137 otra vez.
+//
+// Si nadie ha configurado nada -ni por SET_TIEMPOS ni por un respaldo valido- devuelve
+// los MINIMOS VIALES de limites_ciclo.h, que es de donde salen los inicializadores.
+// Nunca devuelve cero: un suelo de cero dejaria el cruce alternando sin plazo.
+void modoAutomatico_tiemposCiclo(uint8_t* verdeMin, uint8_t* rojoMin,
+                                 uint8_t* despejeSeg);
+
 // True mientras el ciclo esta corriendo. Se consulta antes de aceptar tiempos nuevos:
 // cambiarlos a mitad de ciclo podria ACORTAR el todo-rojo que ya esta en curso, y ese
 // es justo el tiempo que garantiza que el tramo quedo vacio.

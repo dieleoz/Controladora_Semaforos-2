@@ -30,6 +30,19 @@
 // del otro lado cae al estado seguro en vez de quedarse esperando o de aceptar
 // cualquier cosa como buena.
 //
+// A-12 (05/09): SE SUMAN modo_inteligente.cpp Y demanda.cpp REALES (Bloque E). El
+// Modo Inteligente no leia ni uno de los tiempos que configura el operario y su
+// Regla 1 podia cortar un verde a los 15 s. La propiedad que hace seguro el arreglo
+// es de COMPORTAMIENTO -"con las camaras muertas se comporta EXACTAMENTE como el
+// Automatico"- y no se puede leer en el fuente: hay que correr LOS DOS modos con la
+// MISMA configuracion y comparar las dos duraciones con la misma regla. Eso es lo que
+// hace el Bloque E, y por eso vive aqui y no en un pack.
+//
+// LO QUE EL BLOQUE E NO CUBRE, escrito para que no se lea como permiso: la camara es
+// un bool que mueve el arnes. El antirrebote de 1 ms de camara_leerPin() vive en
+// botones.cpp, que aqui NO se compila, y el cableado de J16 es cobre -M3-. Lo que se
+// mide es que hace una deteccion con el ciclo en marcha, no como se detecta.
+//
 // N-52: SE SUMA mando.cpp REAL (Bloque D). senalActiva -el static de semaforo.cpp
 // que congela escribirPines() mientras dura una senal del mando- SOLO lo pone
 // mando.cpp; hasta ahora ese fichero no se compilaba aqui y esa rama de
@@ -64,6 +77,8 @@
 #include "mando.h"           // N-52: real, solo necesita Arduino.h
 #include "modo_ambar.h"      // N-52: real, idem -- modo_ambar.cpp NO se compila
 #include "modo_degradado.h"  // N-52: real, idem -- modo_degradado.cpp NO se compila
+#include "modo_inteligente.h" // A-12: real, y su .cpp SI se compila (Bloque E)
+#include "demanda.h"          // A-12: real, y su .cpp tambien -- entra en el OR
 
 // ---------------------------------------------------------------------------
 // EL RELOJ SIMULADO Y LOS PINES OBSERVADOS. Los declara extern Arduino.h; existen
@@ -310,8 +325,26 @@ void lcd_dibujarAutomatico(const char* nombreEstado, int, int) {
   (void)nombreEstado;
 }
 void lcd_dibujarConfigValor(const char*, int, const char*) { g_lcdRedibujos++; }
+void lcd_dibujarInteligente(const char*, int, bool) { g_lcdRedibujos++; }
 
 void menu_setup() {}
+
+// ---------------------------------------------------------------------------
+// A-12: LA CAMARA SIMULADA. Es lo unico del Bloque E que el arnes mueve.
+//
+// camara_leerPin() real vive en botones.cpp -antirrebote de 1 ms sobre el pin- y
+// ese fichero no se compila aqui: lo que este arnes mide no es el antirrebote sino
+// QUE PUEDE HACER una deteccion con el ciclo en marcha. La respuesta que se exige
+// es asimetrica y por eso hay que ejercerla: puede ALARGAR una fase y no puede
+// ACORTARLA. Un unico bool, movido por el escenario, es exactamente la superficie
+// que el modo ve.
+// ---------------------------------------------------------------------------
+static bool g_camaraLocal = false;
+
+bool camara_leerPin(uint8_t pin) {
+  (void)pin;
+  return g_camaraLocal;
+}
 
 // ---------------------------------------------------------------------------
 // N-52: modoActual_get()/set() PASAN A SER DE VERDAD (antes set() era un no-op y
@@ -448,7 +481,26 @@ void protocolo_enviarPaquete(uint8_t cmd, uint8_t param) {
   g_entrante.tEntrega = arnes_millis_valor + g_latenciaEsclavoMs;
 }
 
+// A-12: LA DEMANDA DEL OTRO LADO, QUE NO ES UNA RESPUESTA SINO UNA TRAMA ESPONTANEA.
+//
+// El Esclavo simulado de arriba solo REACCIONA a lo que el Maestro le manda. CMD_DEMANDA
+// no es eso: la levanta la camara del sentido 2 cuando le da la gana, y viaja sola. Se
+// encola aparte para no pisar una respuesta en vuelo -si compartiera el hueco, encolar
+// una demanda mientras el coordinador espera un ACK_GREEN borraria ese ACK y el arnes
+// mediria una orfandad que el firmware no tiene-.
+static bool g_demandaRemotaEncolada = false;
+
+static void encolarDemandaRemota() { g_demandaRemotaEncolada = true; }
+
 bool protocolo_hayPaqueteDisponible(RF_Packet* destino) {
+  if (g_demandaRemotaEncolada && !g_entrante.hay) {
+    g_demandaRemotaEncolada = false;
+    RF_Packet d = { 0, 0, 0, 0 };
+    d.command = CMD_DEMANDA;
+    *destino = d;
+    g_ultimaEntregaMs = arnes_millis_valor;
+    return true;
+  }
   if (!g_entrante.hay) return false;
   if (arnes_millis_valor < g_entrante.tEntrega) return false;
   *destino = g_entrante.pkt;
@@ -584,11 +636,84 @@ static long bombearPrincipal(unsigned long pasoMs, unsigned long presupuestoMs, 
   return bombearGenerico(pasoMs, presupuestoMs, [](){ pasoPrincipal(); }, condicion);
 }
 
+// ---------------------------------------------------------------------------
+// A-12 — EL BOMBEO DEL MODO INTELIGENTE, Y POR QUE ES OTRO.
+//
+// bombear() llama a modoAutomatico_loop() a pelo. Para el Bloque E hace falta el
+// otro loop, y ademas hay que poder correr LOS DOS con la MISMA configuracion y el
+// MISMO paso para que la comparacion de duraciones signifique algo: la propiedad
+// que sostiene todo el modo es "con las camaras muertas se comporta EXACTAMENTE
+// como el Automatico", y eso solo se puede afirmar midiendo las dos cosas con la
+// misma regla.
+// ---------------------------------------------------------------------------
+template <typename Cond>
+static long bombearInteligente(unsigned long pasoMs, unsigned long presupuestoMs,
+                               Cond condicion) {
+  return bombearGenerico(pasoMs, presupuestoMs, [](){ modoInteligente_loop(); },
+                         condicion);
+}
+
+// Deja el equipo con unos tiempos de ciclo CONFIGURADOS -los que mandaria el
+// operario por SET_TIEMPOS- y entra en el modo que se pida, desde cero.
+//
+// El orden importa: modoAutomatico_fijarTiempos() se niega mientras
+// modoAutomatico_enMarcha(), asi que la configuracion se hace con el equipo FUERA
+// del Automatico, igual que en el equipo real -es la misma guarda que rechaza con
+// $ERR,CMD:SET_TIEMPOS,DESC:EN_MARCHA_PARE_EL_MODO-.
+static bool configurarTiempos(int verdeMin, int rojoMin, int despejeSeg) {
+  g_modoActual = MENU;
+  return modoAutomatico_fijarTiempos((uint8_t)verdeMin, (uint8_t)rojoMin,
+                                     (uint8_t)despejeSeg);
+}
+
+static void arrancarInteligente() {
+  coordinador_setup();
+  mando_setup();
+  g_camaraLocal = false;
+  g_demandaRemotaEncolada = false;
+  coordinador_limpiarDemandaRemota();
+  g_pulsarArriba = g_pulsarAbajo = g_pulsarAceptar = g_pulsarCancelar = false;
+  g_modoActual = MODO_INTELIGENTE;   // lo que main.cpp habria fijado al entrar
+  modoInteligente_setup();
+}
+
+static void arrancarAutomatico() {
+  coordinador_setup();
+  mando_setup();
+  g_pulsarArriba = g_pulsarAbajo = g_pulsarAceptar = g_pulsarCancelar = false;
+  g_modoActual = MODO_AUTOMATICO;
+  modoAutomatico_setup();
+}
+
+// Cuanto dura la fase de VERDE del Maestro, medida sobre lo que semaforo.cpp
+// escribio: desde que el coordinador queda listo para contar con la luz en verde
+// hasta que deja de estar en verde. Es la unica cifra que el operario ve en la
+// calle, y la misma para los dos modos.
+//
+// Devuelve -1 si no se llego a verde o si el verde no termino dentro del
+// presupuesto: un -1 se distingue de un numero, que es justo lo que hace falta para
+// que un modo que se queda pegado no se confunda con uno que dura mucho.
+template <typename Paso>
+static long medirFase(Paso paso, EstadoSemaforo color, unsigned long pasoMs,
+                      unsigned long presupuestoMs) {
+  if (bombearGenerico(pasoMs, presupuestoMs, paso,
+        [color](){ return semaforo_estado() == color && coordinador_listoParaContar(); }) < 0) {
+    return -1;
+  }
+  // EL FINAL DE LA FASE ES EL INSTANTE EN QUE EL MODO PIDE EL CAMBIO, y ese instante
+  // se lee en el coordinador: pedirCambio() lo saca de C_IDLE. Medir "hasta que la luz
+  // cambie" solo valdria para el verde -del rojo se sale por un despeje que dura otra
+  // cosa- y entonces las dos fases no serian comparables entre si ni entre modos.
+  return bombearGenerico(pasoMs, presupuestoMs, paso,
+        [](){ return !coordinador_listoParaContar(); });
+}
+
 int main() {
   std::printf("==============================================================\n");
   std::printf(" ARNES DEL CICLO AUTOMATICO - coordinador.cpp + semaforo.cpp +\n");
-  std::printf(" modo_automatico.cpp + mando.cpp REALES, compilados y ejecutados\n");
-  std::printf(" en el PC (Bloque D / N-52: el mando de reles)\n");
+  std::printf(" modo_automatico.cpp + mando.cpp + modo_inteligente.cpp REALES,\n");
+  std::printf(" compilados y ejecutados en el PC (Bloque D / N-52: el mando de\n");
+  std::printf(" reles; Bloque E / A-12: el Modo Inteligente contra el Automatico)\n");
   std::printf("==============================================================\n");
 
   // -------------------------------------------------------------------------
@@ -1479,6 +1604,217 @@ int main() {
   }
 
   // ===========================================================================
+  // BLOQUE E: EL MODO INTELIGENTE — modo_inteligente.cpp REAL, contra el Automatico
+  // ===========================================================================
+  //
+  // A-12 (05/09). Este modo se fijaba los tiempos por su cuenta -VERDE_MIN_MIN en el
+  // arranque, y nadie mas los escribia nunca- y su Regla 1 podia cortar un verde a los
+  // 15 SEGUNDOS. Un operario que configuraba 6 minutos veia el cruce correr a 3, y la
+  // app no tenia la culpa: mandaba bien el dato.
+  //
+  // LO QUE SE MIDE AQUI, Y POR QUE NINGUN PACK PODIA HACERLO: la propiedad que hace
+  // seguro este modo es de COMPORTAMIENTO -"con las camaras muertas hace exactamente lo
+  // que el Automatico"- y solo se puede afirmar corriendo los dos modos con la misma
+  // configuracion y comparando las dos duraciones. Leer el fuente diria que las lineas
+  // estan; no diria que las dos fases duran lo mismo.
+  //
+  // 🔴 LO QUE ESTE BLOQUE NO EJERCE, ESCRITO PARA QUE NO SE LEA COMO APROBADO: la
+  // recuperacion PEREZOSA del respaldo. modoAutomatico_tiemposCiclo() llama a
+  // recuperarTiemposGuardados() la PRIMERA vez que alguien pregunta, para el equipo que
+  // vuelve de un corte y entra directo a Inteligente sin pasar por el Automatico. En
+  // este proceso los Bloques A-D ya han corrido modoAutomatico_setup() decenas de veces,
+  // asi que esa primera vez ya paso y aqui no se puede volver a provocar. Lo que SI se
+  // ejerce es recuperarTiemposGuardados() en si -por la puerta del setup()-; lo que no,
+  // es que el getter la dispare. Queda como residual de A-12.
+  std::printf("\n-- Bloque E: el Modo Inteligente sobre el C++ real (A-12) --\n");
+  {
+    // Las dos cifras que gobiernan el modo se releen del C++. Ni una escrita a mano: si
+    // el patron desaparece, esto ABORTA en vez de medir contra un numero de ayer.
+    long VERDE_MAX = leerConstante("limites_ciclo.h",
+        R"(VERDE_MIN_MAX\s*=\s*(\d+))",
+        "el maximo de verde del rango vial, que es donde satura el techo");
+    long FACTOR_TECHO = leerConstante("modo_inteligente.cpp",
+        R"(TECHO_POR_SUELO\s*=\s*(\d+))",
+        "el factor del que se deriva el techo a partir del suelo configurado");
+
+    const unsigned long PASO = 500UL;
+    const unsigned long TOL  = 3UL * PASO;   // dos bordes de muestreo mas holgura
+
+    // -- E1/E2: el suelo es el CONFIGURADO, y coincide con el Automatico -----------
+    //
+    // 6 minutos de verde y 5 de rojo: numeros que NO son ninguno de los limites del
+    // rango, para que un firmware que se cayera a los minimos -el defecto de A-12- de
+    // una cifra distinta y no una que se pueda confundir con la buena.
+    const int V_CFG = 6, R_CFG = 5, D_CFG = 10;
+    const unsigned long V_CFG_MS = (unsigned long)V_CFG * 60000UL;
+    const unsigned long R_CFG_MS = (unsigned long)R_CFG * 60000UL;
+
+    arnes_millis_valor += 10000000UL;
+    g_modoEsclavo = ESC_CORRECTO;
+    g_latenciaEsclavoMs = 50;
+
+    comprobar(configurarTiempos(V_CFG, R_CFG, D_CFG),
+              "E1: SET_TIEMPOS acepta 6 min de verde, 5 de rojo y 10 s de despeje con el "
+              "equipo parado -es la misma guarda del firmware, no una puerta del arnes-");
+
+    arrancarInteligente();
+    long verdeInt = medirFase([](){ modoInteligente_loop(); }, S_VERDE, PASO,
+                              V_CFG_MS * 4UL);
+    char m1[220];
+    std::snprintf(m1, sizeof(m1),
+        "E1: EL MODO INTELIGENTE CORRE CON EL VERDE CONFIGURADO: %ld ms medidos contra "
+        "los %lu ms de los 6 minutos que mando el operario. Con el defecto de A-12 aqui "
+        "salian %lu ms -VERDE_MIN_MIN- y la app no tenia la culpa",
+        verdeInt, V_CFG_MS, (unsigned long)MIN_VERDE_DEFECTO * 60000UL);
+    comprobar(verdeInt >= 0 &&
+              (unsigned long)verdeInt >= V_CFG_MS - TOL &&
+              (unsigned long)verdeInt <= V_CFG_MS + TOL, m1);
+
+    long rojoInt = medirFase([](){ modoInteligente_loop(); }, S_ROJO, PASO,
+                             R_CFG_MS * 4UL);
+    char m2[200];
+    std::snprintf(m2, sizeof(m2),
+        "E1b: y el ROJO tambien sale del configurado, no del mismo numero que el verde: "
+        "%ld ms contra los %lu ms de los 5 minutos. Antes las dos fases se configuraban "
+        "con la MISMA variable (maxVerde) en las tres posiciones", rojoInt, R_CFG_MS);
+    comprobar(rojoInt >= 0 &&
+              (unsigned long)rojoInt >= R_CFG_MS - TOL &&
+              (unsigned long)rojoInt <= R_CFG_MS + TOL, m2);
+
+    // EL CONTROL POSITIVO (§8.sexies). Sin este caso lo de arriba mide una tapia: que
+    // una fase dure 6 minutos no dice que el modo degrade bien, dice que el numero
+    // llego. Lo que hay que exigir es que el MISMO ciclo, con la MISMA configuracion y
+    // la misma regla de medida, de lo mismo en los dos modos.
+    arrancarAutomatico();
+    long verdeAuto = medirFase([](){ modoAutomatico_loop(); }, S_VERDE, PASO,
+                               V_CFG_MS * 4UL);
+    long rojoAuto = medirFase([](){ modoAutomatico_loop(); }, S_ROJO, PASO,
+                              R_CFG_MS * 4UL);
+    char m3[260];
+    std::snprintf(m3, sizeof(m3),
+        "E2 (CONTROL POSITIVO): CON LAS CAMARAS MUDAS EL INTELIGENTE ES EL AUTOMATICO. "
+        "Verde %ld vs %ld ms, rojo %ld vs %ld ms, medidos con la misma regla sobre los "
+        "dos .cpp reales. Esta es la propiedad que hace seguro el modo: si la camara "
+        "nunca dice 'hay coches', no se alarga nada y se degrada a lo conocido",
+        verdeInt, verdeAuto, rojoInt, rojoAuto);
+    comprobar(verdeAuto >= 0 && rojoAuto >= 0 &&
+              labs(verdeInt - verdeAuto) <= (long)TOL &&
+              labs(rojoInt - rojoAuto) <= (long)TOL, m3);
+
+    // -- E3: con trafico propio y NADIE enfrente, alarga hasta el techo ------------
+    const unsigned long TECHO_MS = V_CFG_MS * (unsigned long)FACTOR_TECHO;
+    arrancarInteligente();
+    g_camaraLocal = true;              // coches en mi sentido, todo el rato
+    long verdeLargo = medirFase([](){ modoInteligente_loop(); }, S_VERDE, PASO,
+                                TECHO_MS * 3UL);
+    char m4[260];
+    std::snprintf(m4, sizeof(m4),
+        "E3: con la camara local viendo trafico y NADIE pidiendo paso enfrente, el verde "
+        "se ALARGA hasta el techo: %ld ms contra los %lu del suelo y los %lu del techo "
+        "(el doble). Esto es lo unico que aportan las camaras, y solo cuando no molesta "
+        "a nadie", verdeLargo, V_CFG_MS, TECHO_MS);
+    comprobar(verdeLargo >= 0 &&
+              (unsigned long)verdeLargo >= TECHO_MS - TOL &&
+              (unsigned long)verdeLargo <= TECHO_MS + TOL, m4);
+
+    char m5[240];
+    std::snprintf(m5, sizeof(m5),
+        "E3b (§3.septies): SUELO Y TECHO SON DOS NUMEROS DISTINTOS -%lu y %lu ms-, asi "
+        "que la guarda del techo puede dar las dos respuestas. El 'arreglo de una linea' "
+        "-subir el piso a 3 min y dejar maxVerde en 3- los habria igualado y habria "
+        "dejado las camaras INERTES en el unico modo que las usa", V_CFG_MS, TECHO_MS);
+    comprobar(verdeLargo >= 0 && (unsigned long)verdeLargo > V_CFG_MS + TOL, m5);
+
+    // -- E4: si el OTRO lado pide paso, se cambia en el suelo aunque yo tenga cola ---
+    arrancarInteligente();
+    g_camaraLocal = true;
+    encolarDemandaRemota();
+    long verdeCedido = medirFase([](){ modoInteligente_loop(); }, S_VERDE, PASO,
+                                 TECHO_MS * 3UL);
+    char m6[240];
+    std::snprintf(m6, sizeof(m6),
+        "E4: con trafico propio PERO con el otro lado pidiendo paso, el verde termina en "
+        "el suelo y no en el techo: %ld ms contra %lu. Alargar cuando hay alguien "
+        "esperando enfrente seria monopolizar el carril, y eso no es lo que se decidio",
+        verdeCedido, V_CFG_MS);
+    comprobar(verdeCedido >= 0 &&
+              (unsigned long)verdeCedido >= V_CFG_MS - TOL &&
+              (unsigned long)verdeCedido <= V_CFG_MS + TOL, m6);
+
+    // -- E5: NINGUNA camara puede ACORTAR por debajo del suelo ---------------------
+    //
+    // Las dos gritando desde el primer instante del verde. Antes, esto lo cortaba a los
+    // 15 s -`tiempoActual >= 15000UL`-, medio minuto por debajo de los 3 minutos que
+    // fijo el responsable el 04/09 (D-5): por debajo del minimo el conductor se convence
+    // de que el semaforo esta averiado y adelanta en rojo.
+    char m7[260];
+    std::snprintf(m7, sizeof(m7),
+        "E5 (LA ASIMETRIA QUE PROTEGE): con la camara local y la demanda remota activas "
+        "desde el primer instante, el verde NO baja del suelo: %ld ms, y el suelo son "
+        "%lu. Una camara puede ALARGAR una fase; ACORTARLA por debajo del minimo vial no "
+        "lo puede hacer nadie", verdeCedido, V_CFG_MS);
+    comprobar(verdeCedido >= 0 && (unsigned long)verdeCedido >= V_CFG_MS - TOL, m7);
+
+    // -- E6: el techo SATURA al maximo del rango vial ------------------------------
+    //
+    // 10 minutos configurados: el doble son 20 y el rango llega a 15. Si el techo se
+    // saliera, el cruce correria un plazo que la propia guarda de SET_TIEMPOS
+    // rechazaria si alguien intentara configurarlo a mano.
+    const int V_SAT = 10;
+    const unsigned long V_SAT_MS = (unsigned long)V_SAT * 60000UL;
+    const unsigned long TECHO_SAT_MS = (unsigned long)VERDE_MAX * 60000UL;
+    comprobar((unsigned long)V_SAT * (unsigned long)FACTOR_TECHO > (unsigned long)VERDE_MAX,
+              "E6a: con 10 minutos configurados el doble (20) SE SALE del maximo del "
+              "rango (15), o sea que este escenario ejerce la saturacion de verdad y no "
+              "un caso donde el recorte no haria falta");
+    comprobar(configurarTiempos(V_SAT, R_CFG, D_CFG),
+              "E6b: SET_TIEMPOS acepta los 10 minutos de verde");
+    arrancarInteligente();
+    g_camaraLocal = true;
+    long verdeSat = medirFase([](){ modoInteligente_loop(); }, S_VERDE, PASO,
+                              V_SAT_MS * (unsigned long)FACTOR_TECHO * 2UL);
+    char m8[260];
+    std::snprintf(m8, sizeof(m8),
+        "E6: EL TECHO SE SATURA AL MAXIMO DEL RANGO: con 10 min configurados y trafico "
+        "propio el verde dura %ld ms -los %lu del maximo vial-, no los %lu del doble sin "
+        "recortar", verdeSat, TECHO_SAT_MS, V_SAT_MS * (unsigned long)FACTOR_TECHO);
+    comprobar(verdeSat >= 0 &&
+              (unsigned long)verdeSat >= TECHO_SAT_MS - TOL &&
+              (unsigned long)verdeSat <= TECHO_SAT_MS + TOL, m8);
+
+    // -- E7: con la configuracion de fabrica, el suelo son los MINIMOS y no cero -----
+    //
+    // Un suelo de cero dejaria el cruce alternando sin plazo, y ese camino no se deja
+    // abierto aunque hoy no lo recorra nadie.
+    //
+    // NO SE PUEDE VACIAR EL RESPALDO DESDE AQUI, y se dice en vez de disimularse: el
+    // respaldo_guardarTiemposCiclo() real -y su sustituto- ignoran los ceros a
+    // proposito, porque un cero no es configuracion sino ausencia de ella. Lo que se
+    // ejerce es lo que un equipo de fabrica tiene: los minimos.
+    comprobar(configurarTiempos((int)MIN_VERDE_DEFECTO, (int)MIN_ROJO_DEFECTO,
+                                (int)SEG_ESTATICO_DEFECTO),
+              "E7a: se vuelve a los minimos de fabrica, que es con lo que arranca un "
+              "equipo al que nadie ha mandado tiempos");
+    arrancarInteligente();
+    g_camaraLocal = true;
+    const unsigned long V_MIN_MS = (unsigned long)MIN_VERDE_DEFECTO * 60000UL;
+    long verdeMin = medirFase([](){ modoInteligente_loop(); }, S_VERDE, PASO,
+                              V_MIN_MS * (unsigned long)FACTOR_TECHO * 3UL);
+    char m9[260];
+    std::snprintf(m9, sizeof(m9),
+        "E7: con la configuracion de fabrica el suelo son los %lu ms del minimo vial "
+        "-nunca cero- y el techo su doble: el verde con trafico propio dura %ld ms. Es la "
+        "misma pareja de numeros, derivada, no dos constantes que alguien sincroniza",
+        V_MIN_MS, verdeMin);
+    comprobar(verdeMin >= 0 &&
+              (unsigned long)verdeMin >= V_MIN_MS * (unsigned long)FACTOR_TECHO - TOL &&
+              (unsigned long)verdeMin <= V_MIN_MS * (unsigned long)FACTOR_TECHO + TOL, m9);
+
+    g_camaraLocal = false;
+    g_demandaRemotaEncolada = false;
+  }
+
+  // ===========================================================================
   comprobar(violacionesEnclavamiento == 0,
             "en NINGUN instante de todo el barrido -los nueve bloques- coincidieron "
             "ROJO y VERDE encendidos a la vez en la misma cara (SFTY-2, medido sobre "
@@ -1493,7 +1829,8 @@ int main() {
   std::printf(" RESULTADO: %d/%d comprobaciones OK\n", total - fallos, total);
   std::printf("==============================================================\n");
   std::printf(" Medido sobre coordinador.cpp + semaforo.cpp + modo_automatico.cpp +\n");
-  std::printf(" mando.cpp REALES (N-52), compilados para el PC. %lu redibujos de\n",
+  std::printf(" mando.cpp (N-52) + modo_inteligente.cpp y demanda.cpp (A-12) REALES,\n");
+  std::printf(" compilados para el PC. %lu redibujos de\n",
               g_lcdRedibujos);
   std::printf(" pantalla observados, %lu escrituras de pin observadas. Peor duracion\n",
               arnes_escrituras);

@@ -57,10 +57,25 @@ function Compilar-Fuente($origen, $nombreObjeto) {
     $script:objetos += $o
 }
 
-Write-Host "Compilando coordinador.cpp, semaforo.cpp, modo_automatico.cpp y mando.cpp (los MISMOS del firmware) y el arnes..." -ForegroundColor Cyan
+# A-12 (05/09): SE SUMAN modo_inteligente.cpp Y demanda.cpp REALES (Bloque E).
+#
+# El Modo Inteligente no leia ni uno de los tiempos que configura el operario -se
+# fijaba VERDE_MIN_MIN en el arranque- y su Regla 1 podia cortar un verde a los 15 s.
+# Al arreglarlo aparece una propiedad que NADIE ejercia y que es la que hace seguro
+# todo el modo: CON LAS CAMARAS MUERTAS SE COMPORTA EXACTAMENTE COMO EL AUTOMATICO.
+# Eso no se puede leer en el fuente, hay que correrlo, y hay que correr LOS DOS MODOS
+# con la misma configuracion para poder compararlos.
+#
+# demanda.cpp entra REAL y no como sustituto: modo_inteligente.cpp mete
+# demanda_hayLocal() en el mismo OR que la camara, o sea que la ventana de 3 s de la
+# demanda a mano es parte del camino que decide cuando cambia una luz. Un sustituto
+# aqui seria una segunda copia de esa ventana escrita a mano.
+Write-Host "Compilando coordinador.cpp, semaforo.cpp, modo_automatico.cpp, modo_inteligente.cpp, demanda.cpp y mando.cpp (los MISMOS del firmware) y el arnes..." -ForegroundColor Cyan
 Compilar-Fuente (Join-Path $MAESTRO 'src\coordinador.cpp')     'coordinador.o'
 Compilar-Fuente (Join-Path $MAESTRO 'src\semaforo.cpp')        'semaforo.o'
 Compilar-Fuente (Join-Path $MAESTRO 'src\modo_automatico.cpp') 'modo_automatico.o'
+Compilar-Fuente (Join-Path $MAESTRO 'src\modo_inteligente.cpp') 'modo_inteligente.o'
+Compilar-Fuente (Join-Path $MAESTRO 'src\demanda.cpp')         'demanda.o'
 Compilar-Fuente (Join-Path $MAESTRO 'src\mando.cpp')           'mando.o'
 Compilar-Fuente (Join-Path $AQUI 'arnes_automatico.cpp')       'arnes_automatico.o'
 

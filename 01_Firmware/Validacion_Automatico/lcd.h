@@ -11,3 +11,7 @@
 
 void lcd_dibujarAutomatico(const char* nombreEstado, int minRojo, int minVerde);
 void lcd_dibujarConfigValor(const char* etiqueta, int valor, const char* unidad);
+
+// A-12: la unica llamada de pantalla que hace modo_inteligente.cpp. Igual que las
+// dos de arriba, la definicion solo cuenta redibujos.
+void lcd_dibujarInteligente(const char* nombreEstado, int autosEsperando, bool iaActiva);

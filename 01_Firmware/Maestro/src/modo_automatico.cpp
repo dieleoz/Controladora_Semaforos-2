@@ -61,6 +61,11 @@ static unsigned long tEstadoDesde = 0;
 static int restanteFaseSeg = SIN_CUENTA_ATRAS;
 static bool primeraVezCorriendo = true;
 
+// A-12 (05/09): el respaldo se lee UNA VEZ, la primera que alguien pregunta por los
+// tiempos, no solo al entrar a este modo. El porque, entero, sobre
+// modoAutomatico_tiemposCiclo().
+static bool respaldoLeido = false;
+
 // SFTY-21: peticion de arranque sin asistente, desde el mando de reles (A.A.A).
 // arranqueDirecto DESAPARECE como concepto: ahora TODAS las entradas al modo son
 // directas, asi que no queda de que escapar. La funcion publica se conserva vacia
@@ -102,7 +107,23 @@ void modoAutomatico_pedirArranqueDirecto() { /* N-42: ya no hace falta, ver arri
 
 bool modoAutomatico_enMarcha() { return modoActual_get() == MODO_AUTOMATICO; }
 
-int modoAutomatico_segundosRestantesFase() { return restanteFaseSeg; }
+// LA FRASE QUE SOSTIENE EL "--" DEL $STATUS VIVIA EN OTRO FICHERO Y ERA FALSA (05/09).
+//
+// bluetooth.cpp escribe, sobre la llamada a esta funcion: "el modo solo contesta si es
+// el suyo: fuera del Automatico devuelve SIN_CUENTA_ATRAS". No lo hacia.
+// restanteFaseSeg es un static y SALIR del modo no lo toca: se quedaba con el ultimo
+// valor que tuvo, asi que en Inteligente o en Manual la app publicaba una cuenta atras
+// CONGELADA de una fase que ya no existe. Y un numero quieto es peor que un "--",
+// porque parece que sigue contando -lo dice el propio comentario de abajo-.
+//
+// Se contesta por el MODO, no por el residuo. Es §2.ter: una frase escrita al lado de
+// un comportamiento, que nadie comprueba porque las frases no se compilan. Sale a la
+// luz con A-12 porque el Inteligente pasa a ser un modo con tiempos configurados de
+// verdad, y su cuenta atras -que no la tiene- se confundiria con la del Automatico.
+int modoAutomatico_segundosRestantesFase() {
+  if (!modoAutomatico_enMarcha()) return SIN_CUENTA_ATRAS;
+  return restanteFaseSeg;
+}
 
 // N-133: recupera los tiempos guardados, si los hay Y si siguen siendo legales.
 //
@@ -117,12 +138,44 @@ int modoAutomatico_segundosRestantesFase() { return restanteFaseSeg; }
 // otros dos-: medio ciclo del respaldo y medio de los minimos es un ciclo que nadie
 // configuro nunca.
 static void recuperarTiemposGuardados() {
+  respaldoLeido = true;
   uint8_t r = 0, v = 0, d = 0;
   if (!respaldo_tiemposCiclo(&r, &v, &d)) return;
   if (r < ROJO_MIN_MIN  || r > ROJO_MIN_MAX)  return;
   if (v < VERDE_MIN_MIN || v > VERDE_MIN_MAX) return;
   if (d < DESPEJE_SEG_MIN || d > DESPEJE_SEG_MAX) return;
   minRojo = r; minVerde = v; segEstatico = d;
+}
+
+// A-12 (05/09): LA VENTANA A LOS TIEMPOS CONFIGURADOS, PORQUE EL MODO INTELIGENTE NO
+// LOS PODIA VER Y SE FABRICABA LOS SUYOS.
+//
+// minVerde/minRojo/segEstatico vivian `static` aqui -invisibles para el resto del
+// firmware- y modo_inteligente.cpp arrancaba el coordinador con VERDE_MIN_MIN, o sea
+// 3 minutos SIEMPRE. Un operario que configura 6 porque ese tramo es largo veia el
+// cruce correr a 3 en cuanto entraba en Inteligente, y ninguna guarda lo delataba
+// porque ese modo no pasa por SET_TIEMPOS.
+//
+// SE ABRE UNA VENTANA, NO SE COPIAN LOS NUMEROS. Pasarle los valores al otro fichero
+// para que los guarde por su cuenta seria la sexta copia de N-137, y el dia que
+// difieran gana la que no lleva encima el comentario de seguridad.
+//
+// Y SE RECUPERA EL RESPALDO ANTES DE CONTESTAR, que es la mitad que faltaba: hasta hoy
+// recuperarTiemposGuardados() solo corria dentro de modoAutomatico_setup(). Un equipo
+// que vuelve de un corte y entra DIRECTO a Inteligente -SET_MODO:INTELIGENTE desde la
+// app, o el menu- habria leido los minimos de fabrica teniendo los tiempos buenos
+// guardados en los BKP a dos centimetros. Se lee una vez y no en cada vuelta: los BKP
+// son memoria de respaldo, no un sitio donde repicar.
+//
+// SIN COMPROBAR LOS PUNTEROS A PROPOSITO: una guarda que ningun llamador puede hacer
+// falsa no es una guarda, es la constante disfrazada de §3.septies. Los tres punteros
+// son obligatorios y asi lo dice la cabecera.
+void modoAutomatico_tiemposCiclo(uint8_t* verdeMin, uint8_t* rojoMin,
+                                 uint8_t* despejeSeg) {
+  if (!respaldoLeido) recuperarTiemposGuardados();
+  *verdeMin   = (uint8_t)minVerde;
+  *rojoMin    = (uint8_t)minRojo;
+  *despejeSeg = (uint8_t)segEstatico;
 }
 
 bool modoAutomatico_fijarTiempos(uint8_t verdeMin, uint8_t rojoMin, uint8_t despejeSeg) {
