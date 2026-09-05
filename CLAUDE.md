@@ -1012,6 +1012,15 @@ salida**. `Validacion_Automatico` se conectó tras verlo caer a `25/26` con `VER
 por debajo del enclavamiento de `aplicarSalidas()`. El firmware se restaura acto seguido y se
 verifica con `git diff HEAD` **vacío** — no con la impresión de haberlo restaurado.
 
+> 🔴 **Y CUIDADO CON COMO SE RESTAURA, que costo un cambio entero el 05/09.** Un agente
+> deshizo su inyeccion con `git checkout -- <fichero>` y **se llevo por delante todo su
+> trabajo en ese fichero**, no solo el defecto. Lo cazo por `git status` y lo rehizo.
+>
+> **Con trabajo SIN COMITEAR, `git checkout` no es «deshacer la inyeccion»: es «volver a
+> HEAD».** Se restaura desde una copia hecha ANTES de inyectar —`cp` al scratchpad— y se
+> verifica por **hash**, no por `git diff HEAD` vacio, que con cambios propios en vuelo
+> **nunca lo estara**.
+
 ## 8.quater Al arreglar un defecto, busca las pruebas que lo celebraban
 
 > **Un banco maduro contiene pruebas que EXIGEN el comportamiento defectuoso.** No por descuido:

@@ -39,6 +39,31 @@ python 01_Firmware/compuerta.py             # el acta que acompana al paquete
 > del IDE. Es el mismo fallo que ya documenta `CLAUDE.md` §4 para `Get-FileHash`. Se usa
 > `zipfile` de Python, que no depende del entorno de quien llama.
 
+> 🔴 **Y EL CONVERSOR TIENE DOS DEFECTOS MEDIDOS QUE MUTILAN EL ENTREGABLE EN SILENCIO
+> (05/09). Los dos se ven bien en Markdown y llegan rotos al Word.**
+>
+> 1. **Parte las tablas por `|` sin respetar `\|`**, y luego trunca con
+>    `fila[:len(cabecera)]`: **una celda con una barra escapada se lleva por delante el
+>    resto de su fila**. Le pasaba a la fila de `ESC:<ROJO|VERDE|AMBAR|?>` desde antes de
+>    que nadie lo notara. **Regla practica hasta que se arregle: ninguna barra dentro de una
+>    celda.**
+> 2. **Aplasta TODO un bloque `>` en UN SOLO PARRAFO** unido por espacios. Un hueco de
+>    respuesta —`______`— o un paso numerado dentro de una cita **llega machacado**.
+>    **Regla: los huecos y los pasos van en vinetas o en bloques cercados**, que si salen
+>    verbatim. Nunca dentro de un blockquote.
+>
+> **Y como se comprueba, que es la parte reutilizable:** se extraen **parrafos Y celdas de
+> tabla** del `.docx` y se **cuentan contra el `.md`** —huecos y casillas— acotado al tramo
+> nuevo. Es §4.quater aplicada al otro extremo del canal: alli era la hoja de impresion, aqui
+> es el conversor, y el sintoma es el mismo —se ve bien y vuelve incompleto—.
+
+> ⚠️ **Y el conversor regenera TODOS los `.docx`, tambien los que otro agente tiene en
+> vuelo.** El 05/09 dos agentes se pisaron asi: uno regenero el lote y otro restauro los
+> suyos, y un `.docx` quedo **byte a byte igual al comiteado antiguo mientras su `.md` ya
+> tenia la seccion nueva** — o sea, el Word se entrega SIN lo nuevo y `git status` ni lo
+> lista. **Se pasa el filtro (`convertir_a_word.py 9`) y se comprueba que cada `.md`
+> modificado tiene su `.docx` modificado tambien.**
+
 Los `.md` de `05_Funcional/` son la **fuente unica**. Los `.docx` se generan; editarlos a mano
 crea dos copias que divergen — ya paso. El conversor solo mira el **primer nivel** de la carpeta:
 un documento movido a `05_Funcional/historico/` deja de generarse, que es como se retira un

@@ -55,7 +55,43 @@ regla **§2.bis de `CLAUDE.md`**, que existe por esto.
 > Desde el 03/09 hay una segunda, y es mejor: **¿esto desatasca uno de los 5 pasos que el banco no
 > pudo correr?** Lo que no conteste a ninguna de las dos, no se escribe.
 
-### 0.0.vicies LAS DECISIONES SE MUDAN A `DECISIONES.md` — este fichero deja de ser donde se buscan
+### 0.0.unvicies EL DIA DE LAS CAMARAS (05/09) — lo que se decidio y lo que se destapo
+
+> **El detalle de cada decision vive en [`DECISIONES.md`](DECISIONES.md).** Aqui queda el
+> arco del dia y los hallazgos, que es lo que este fichero sabe hacer.
+
+### Lo decidido
+
+`D-12` de cada camara se consume **UN CONTACTO SECO y nada mas** · `D-13` **las dos camaras
+igual**, vigilando el barrido de la pluma, **y el significado lo pone el estado del
+semaforo** —un bit, cinco lecturas— · `D-14` **la ENTRADA de alarma graba, y NO depende de
+la casilla bloqueada** · `D-15` **el reloj lo contesta quien lo tiene**.
+
+### Lo que se destapo, y casi todo corrige algo que estaba escrito como hecho
+
+| | qué |
+|---|---|
+| 🔴 **Dos relojes por cruce y nada los sincroniza** | Y **hoy nos salva un cristal roto, no un diseño**: el Degradado calcula con el reloj muerto del STM32, así que el margen de 29 s **no lo gasta nadie**. Con `AB-4` cambia de dueño: la deriva mejora 50×, **y el desfase inicial no tiene cota**. `A-9` |
+| 🔴 **`D21` con el cátodo al aire, en un canal de luz VIVO** | `Q6` → `J8` → **`VERDE2`**. Ese canal no tiene indicador y su borne **flota** en vez de estar a 12 V como los otros nueve. **Nadie lo había anotado nunca** |
+| 🔴 **La compuerta cayó a `13 PASS / 7 ABORTADO`** durante la sesión | `ld` no abre la ruta con `ñ` — **N-44 sigue vivo**. Volvió con una copia del toolchain **que no está en el repositorio** |
+| 🔴 **`reloj_enHora()` del Maestro ya era FALSO SIEMPRE** | Los tres escritores exigen `Y2`, que está muerto. La máquina de sincronización entera **no podía disparar** |
+| **Las cámaras no hacen nada en Auto ni en Manual** | `demanda_hayLocal()` tiene **un solo lector**, y es el modo que ningún arnés compila y ninguna tarjeta ha corrido |
+| **El `~1 s` del relé vive en NUEVE sitios** | Cinco comentarios y **dos packs** que salen verdes contra un número que **nos inventamos** |
+| **178 de 240 citas no señalaban al sitio** | El 74 %. Ahora cero, y con la regla de §4.sexies para que no vuelvan |
+| **El opto «aísla galvánicamente» es medio falso** | Separa el pin, **no la masa**: una sola red `GND` de 103 pads |
+| **El manual mandaba un hilo que no existe** | *«Retorno de masa por `p2`»*, en cuatro sitios. El contacto vuelve por `R67`, dentro de la placa |
+| **`1A`/`1B` ya es LECTURA** | La Quick Start Guide **sí estaba en disco** — pero **sin capa de texto**, así que toda búsqueda daba cero **por el formato**. Se renderizó y se miró |
+
+### Y lo que no cambia
+
+**Nada de esto ha tocado una tarjeta.** El `20/20` dice que los modelos y los arneses de PC
+no encuentran nada, y esta sesión volvió a dar el contraejemplo: **el defecto del ámbar y el
+del Modo Manual pasaron esas veinte comprobaciones sin despeinarlas**, y los encontró una
+cinta de tramas.
+
+---
+
+## 0.0.vicies LAS DECISIONES SE MUDAN A `DECISIONES.md` — este fichero deja de ser donde se buscan
 
 > **Una revision externa lo midio el 05/09: este roadmap tiene 4.700 lineas, `CLAUDE.md`
 > dice que no hace falta leerlo entero, y un agente que hace `grep` encuentra la version
