@@ -1052,6 +1052,279 @@ assert(!errorExport,
 assert(!document.getElementById('tab-estado').innerHTML.includes('RECHAZADA'),
   'La pantalla de operación no ha recibido ni una palabra de la de depuración');
 
+
+// =========================================================================
+// 10. EL DIARIO DE ORDENES: LA TERNA ORDEN / RESPUESTA / EFECTO
+// =========================================================================
+// POR QUE VIVE AQUI Y NO EN UN SCRATCHPAD (CLAUDE.md 3). El diario nacio el 04/09 de
+// una perdida real de banco -el Courier devolvia "formato invalido", se exportaron 300
+// tramas y LA ORDEN QUE SE MANDO NO ESTABA EN NINGUNA-, y los trece chequeos que lo
+// ejercian se escribieron en un fichero de sesion que se borra al cerrarla. Un
+// instrumento que no esta en la compuerta no mide nada Y NO DEJA RASTRO DE QUE FALTA:
+// manana alguien refactoriza la rama del $ACK y el diario deja de correlacionar en
+// silencio, con los 142 verdes de arriba intactos. Se absorben aqui, que es el unico
+// arnes que EJECUTA la app y que la compuerta cuenta.
+//
+// Las siete propiedades que se miden, en el orden en que se leen tres lineas del
+// diario: que la orden se anota tal cual salio, que la respuesta se pega a SU orden,
+// que el unico alias del firmware se respeta, que un rechazo que no nombra la orden no
+// se reparte a ojo, que el efecto no afirma sobre datos que no tiene, que el PIN sale
+// tapado por los dos lados y entero al cable, y que una orden que la app freno entra en
+// el diario pero NO en la cinta.
+document.querySelector('.nav-item[data-tab="tab-depuracion"]').click();
+const diarioLista = document.getElementById('diario-lista');
+const diarioTexto = document.getElementById('diario-texto');
+const diarioResumen = document.getElementById('diario-resumen');
+assert(!!diarioLista && !!diarioTexto && !!diarioResumen,
+  'El diario de ordenes tiene su propia vista, separada de la cinta en crudo');
+
+// Los dos registros a cero, con los botones de la app -que de paso quedan ejercidos-.
+// Vaciar el diario borra tambien el ultimo $STATUS visto, que es lo que hace falta para
+// que el bloque del efecto empiece sin un "antes" heredado de la seccion anterior.
+window.confirm = () => true;
+document.getElementById('btn-depu-limpiar').click();
+document.getElementById('btn-diario-limpiar').click();
+assert(window.DiarioOrdenes.todas().length === 0 && window.RegistroCrudo.todas().length === 0,
+  'El boton de vaciar el diario lo deja a cero, igual que el de la cinta');
+
+const D = window.DiarioOrdenes;
+const R = window.RegistroCrudo;
+
+// La punta vuelve a ser el MAESTRO: la seccion 9 dejo un ESCLAVO delante y SET_MODO
+// esta en SOLO_MAESTRO, asi que sin esto los botones avisarian de la otra punta y no
+// saldria una sola orden -y las lineas de abajo pasarian por la razon equivocada-.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:MANUAL,ESTADO:R1_R2,T:31,RF:97,RTT:70,BAT:12.9,HORA:15:00:00');
+assert(nodeNameEl.textContent.includes('MAESTRO'),
+  `La app tiene delante al MAESTRO antes de dar ninguna orden: ${nodeNameEl.textContent}`);
+
+// -------------------------------------------------------------------------
+// 10.1 UNA ORDEN QUE SALE SE ANOTA CON VEREDICTO ENVIADA, Y TAL CUAL SALIO
+// -------------------------------------------------------------------------
+// Es la mitad que faltaba en la cinta hasta el 04/09: grababa lo que ENTRA. Y se exige
+// la trama LITERAL, no un resumen: cuando se inyecto el defecto en la guarda de via, la
+// linea de "no sale ningun byte" NO cayo -otra barrera mas abajo frenaba igual- y lo
+// unico que delato el fallo fue el CONTENIDO de la trama que si salio.
+sentFrames = [];
+btnAmber.click();
+const enviadas = R.todas().filter(x => x.veredicto === R.ENVIADA);
+assert(enviadas.length === 1,
+  `Una orden que sale deja UNA anotacion con veredicto ENVIADA en la cinta (${enviadas.length})`);
+assert(enviadas.length === 1 && /^CMD:PIN:\*{4}:SET_MODO:AMBAR\r\n$/.test(enviadas[0].linea),
+  `y es la trama TAL CUAL se escribio, con su CR LF y sin reconstruir: ${JSON.stringify(enviadas[0] && enviadas[0].linea)}`);
+const ordenAmbar = D.todas().filter(x => x.clase === 'ORDEN').pop();
+assert(!!ordenAmbar && ordenAmbar.orden === 'SET_MODO:AMBAR' && ordenAmbar.salio === true,
+  `y la MISMA orden abre su entrada en el diario: ${ordenAmbar ? ordenAmbar.orden : '(ninguna)'}`);
+assert(!!ordenAmbar && ordenAmbar.linea === (enviadas[0] && enviadas[0].linea),
+  'con la misma linea literal en los dos registros: uno no es el resumen del otro');
+
+// -------------------------------------------------------------------------
+// 10.2 EL PIN SALE TAPADO POR LOS DOS LADOS, Y ENTERO AL CABLE
+// -------------------------------------------------------------------------
+// Lo que se exporta se manda por WhatsApp: es el uso real, no una hipotesis. Se tapa AL
+// ANOTAR y no al pintar, asi que hay que comprobarlo en los CUATRO sitios por los que
+// sale -las dos vistas y las dos exportaciones-, porque una barrera que cubre uno deja
+// el otro abierto. Y el equipo tiene que seguir recibiendo la clave entera: el firmware
+// la exige, y una app que tapa hacia el cable deja de mandar ordenes.
+assert(sentFrames.length === 1 && sentFrames[0] === 'CMD:PIN:1234:SET_MODO:AMBAR\r\n',
+  `Al cable sale el PIN ENTERO: ${JSON.stringify(sentFrames[0] || '')}`);
+assert(R.todas().every(x => x.linea.indexOf('1234') < 0),
+  'y en la cinta no queda un solo PIN en claro');
+assert(D.todas().every(x => !x.linea || x.linea.indexOf('1234') < 0),
+  'ni en el diario, que se exporta aparte');
+document.getElementById('btn-depu-copiar').click();
+document.getElementById('btn-diario-copiar').click();
+assert(depuTexto.value.indexOf('CMD:PIN:1234') < 0 && depuTexto.value.indexOf('CMD:PIN:****') >= 0,
+  'La exportacion de la cinta lleva **** donde iba la clave');
+assert(diarioTexto.value.indexOf('CMD:PIN:1234') < 0 && diarioTexto.value.indexOf('CMD:PIN:****') >= 0,
+  'La exportacion del diario tambien: son dos ficheros distintos y los dos viajan');
+const vistaDiario = depuLista.textContent + diarioLista.textContent;
+assert(vistaDiario.indexOf('CMD:PIN:1234') < 0 && vistaDiario.indexOf('CMD:PIN:****') >= 0,
+  'y la pantalla ensena **** con el telefono en la mano de cualquiera');
+
+// -------------------------------------------------------------------------
+// 10.3 LA RESPUESTA SE PEGA A SU ORDEN, Y LO QUE NO CASA NO SE REPARTE A OJO
+// -------------------------------------------------------------------------
+const ackAmbar = 'ACK,CMD:SET_MODO:AMBAR,RESULT:OK';
+window._btSubscribeCb(`$${ackAmbar}*${xorNmea(ackAmbar)}\n`);
+assert(!!ordenAmbar.respuesta && ordenAmbar.respuesta.cmd === 'SET_MODO:AMBAR',
+  `El $ACK se pega a la orden que lo provoco: ${ordenAmbar.respuesta ? ordenAmbar.respuesta.cmd : '(sin respuesta)'}`);
+assert(!!ordenAmbar.respuesta && ordenAmbar.respuesta.atribucion === 'EXACTA',
+  `y el diario publica COMO caso, no solo que caso: ${ordenAmbar.respuesta ? ordenAmbar.respuesta.atribucion : '-'}`);
+assert(D.todas().filter(x => x.clase === 'RESPUESTA_SUELTA').length === 0,
+  'y no queda ninguna respuesta suelta cuando la casacion era posible');
+
+// EL CONTROL QUE LE FALTA A TODA CASACION (CLAUDE.md 8.sexies): un diario que pegara
+// CUALQUIER respuesta a la ultima orden aprobaria las tres lineas de arriba igual de
+// bien. Un $ACK de un comando que esta app no ha mandado tiene que quedarse SUELTO.
+const ackAjeno = 'ACK,CMD:REINICIAR_RELOJ,RESULT:OK';
+window._btSubscribeCb(`$${ackAjeno}*${xorNmea(ackAjeno)}\n`);
+const sueltas1 = D.todas().filter(x => x.clase === 'RESPUESTA_SUELTA');
+assert(sueltas1.length === 1 && sueltas1[0].respuesta.cmd === 'REINICIAR_RELOJ',
+  `Un $ACK de una orden que esta app no dio queda SUELTO en vez de pegarse a la ultima (${sueltas1.length})`);
+assert(sueltas1.length === 1 && /otro telefono|mando de reles/.test(sueltas1[0].respuesta.motivoSuelta),
+  'y con el motivo escrito: puede venir de otro telefono o del mando de reles, que es un dato y no un fallo');
+
+// La segunda forma de casar, que es la de las ordenes con argumentos: el equipo
+// contesta CMD:SET_TIEMPOS a un SET_TIEMPOS:3,4,25. Se marca POR_CABECERA y la frase lo
+// dice, porque no es lo mismo que devuelva el literal entero.
+document.querySelector('.nav-item[data-tab="tab-tiempos"]').click();
+inputVerde.value = '3'; inputRojo.value = '4'; inputDespeje.value = '25';
+btnAplicarTiempos.click();
+document.querySelector('.nav-item[data-tab="tab-depuracion"]').click();
+const ackTiempos = 'ACK,CMD:SET_TIEMPOS,RESULT:OK';
+window._btSubscribeCb(`$${ackTiempos}*${xorNmea(ackTiempos)}\n`);
+const ordenTiempos = D.todas().filter(x => x.clase === 'ORDEN' && x.orden.indexOf('SET_TIEMPOS') === 0).pop();
+assert(!!ordenTiempos && !!ordenTiempos.respuesta && ordenTiempos.respuesta.atribucion === 'POR_CABECERA',
+  `SET_TIEMPOS:3,4,25 casa con CMD:SET_TIEMPOS por cabecera: ${ordenTiempos && ordenTiempos.respuesta ? ordenTiempos.respuesta.atribucion : '(sin respuesta)'}`);
+assert(!!ordenTiempos && D.textoRespuesta(ordenTiempos, Date.now()).includes('sin los argumentos que se mandaron'),
+  'y la frase avisa de que el equipo contesto sin los argumentos: no es el literal entero');
+
+// -------------------------------------------------------------------------
+// 10.4 MANUAL:CAMBIAR_TURNO VUELVE COMO CAMBIAR_TURNO: EL UNICO ALIAS
+// -------------------------------------------------------------------------
+// Medido en Maestro/src/bluetooth.cpp:524-536 -se recibe "MANUAL:CAMBIAR_TURNO" y se
+// acusa "CAMBIAR_TURNO"-. Es la linea que mas facil se pierde en un refactor y la que
+// mas cuesta perder: sin ella la unica orden de DAR PASO del operario quedaria SIEMPRE
+// sin respuesta en el diario, y un hueco ahi se lee como averia del equipo.
+sentFrames = [];
+btnStep.click();
+document.getElementById('btn-via-confirmar').click();
+assert(sentFrames.some(f => f.indexOf('MANUAL:CAMBIAR_TURNO') >= 0),
+  `Confirmada la via, DAR PASO sale al cable: ${sentFrames.join(' | ')}`);
+const ackTurno = 'ACK,CMD:CAMBIAR_TURNO,RESULT:OK';
+window._btSubscribeCb(`$${ackTurno}*${xorNmea(ackTurno)}\n`);
+const ordenTurno = D.todas().filter(x => x.clase === 'ORDEN' && x.orden === 'MANUAL:CAMBIAR_TURNO').pop();
+assert(!!ordenTurno && !!ordenTurno.respuesta && ordenTurno.respuesta.atribucion === 'POR_ALIAS',
+  `y el $ACK,CMD:CAMBIAR_TURNO se le pega POR_ALIAS: ${ordenTurno && ordenTurno.respuesta ? ordenTurno.respuesta.atribucion : '(sin respuesta)'}`);
+assert(!!ordenTurno && D.textoRespuesta(ordenTurno, Date.now()).includes('lo hace asi el firmware'),
+  'y la frase dice que la traduccion es del firmware, no una interpretacion del diario');
+// El control negativo del alias: que exista uno no puede volverse "casi todo casa".
+assert(D.casa('CAMBIAR_TURNO', 'MANUAL:CAMBIAR_TURNO') === 'POR_ALIAS' &&
+       D.casa('SET_MODO:AUTO', 'MANUAL:CAMBIAR_TURNO') === null &&
+       Object.keys(D.ALIAS_CMD).length === 1,
+  `Es el UNICO alias y no traduce nada mas: ${JSON.stringify(D.ALIAS_CMD)}`);
+
+// -------------------------------------------------------------------------
+// 10.5 AUTH_FAILED Y DESCONOCIDO NO NOMBRAN NINGUNA ORDEN
+// -------------------------------------------------------------------------
+// Medido con grep de '$ERR,CMD:' sobre los tres despachadores: el Maestro y el Esclavo
+// emiten AUTH_FAILED y DESCONOCIDO sin el literal que se mando, y el puente ESP32 emite
+// DESCONOCIDO. Con UNA sola orden esperando se atribuye Y SE DICE que fue por descarte;
+// con dos o mas no se atribuye a ninguna. Un diario que reparte respuestas a ojo es peor
+// que uno con huecos, porque el hueco se ve.
+document.getElementById('btn-diario-limpiar').click();
+btnAmber.click();
+const soloUna = D.todas().filter(x => x.clase === 'ORDEN').pop();
+const errAuth = 'ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO';
+window._btSubscribeCb(`$${errAuth}*${xorNmea(errAuth)}\n`);
+assert(!!soloUna && !!soloUna.respuesta && soloUna.respuesta.atribucion === 'POR_DESCARTE',
+  `Con UNA sola orden esperando, el rechazo que no la nombra se le atribuye: ${soloUna && soloUna.respuesta ? soloUna.respuesta.atribucion : '(sin respuesta)'}`);
+assert(!!soloUna && D.textoRespuesta(soloUna, Date.now()).includes('ATRIBUIDA POR DESCARTE'),
+  'y el diario DICE que fue por descarte y que puede no ser de esa orden');
+
+document.getElementById('btn-diario-limpiar').click();
+btnAmber.click();
+btnAmber.click();
+const dosPendientes = D.todas().filter(x => x.clase === 'ORDEN');
+assert(dosPendientes.length === 2 && dosPendientes.every(x => !x.respuesta),
+  `Dos ordenes salen y las dos quedan esperando: ${dosPendientes.length}`);
+window._btSubscribeCb(`$${errAuth}*${xorNmea(errAuth)}\n`);
+assert(dosPendientes.every(x => !x.respuesta),
+  'Con DOS esperando, AUTH_FAILED no se le cuelga a ninguna: seria adivinar');
+const sueltas2 = D.todas().filter(x => x.clase === 'RESPUESTA_SUELTA');
+assert(sueltas2.length === 1 && sueltas2[0].respuesta.motivoSuelta.indexOf('2 esperando') >= 0,
+  `y queda suelta diciendo CUANTAS habia esperando: ${sueltas2.length ? sueltas2[0].respuesta.motivoSuelta.slice(-60) : '-'}`);
+const errDesc = 'ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO';
+window._btSubscribeCb(`$${errDesc}*${xorNmea(errDesc)}\n`);
+assert(D.todas().filter(x => x.clase === 'RESPUESTA_SUELTA').length === 2 &&
+       dosPendientes.every(x => !x.respuesta),
+  'DESCONOCIDO se trata igual que AUTH_FAILED: los dos estan censados como "no nombran la orden"');
+
+// -------------------------------------------------------------------------
+// 10.6 EL EFECTO NO AFIRMA SOBRE DATOS QUE NO TIENE
+// -------------------------------------------------------------------------
+// La unica frase que AFIRMA es "NO CAMBIO NADA", y solo se llega ahi con un $STATUS
+// antes, otro despues y los mismos valores en los dos. Las otras cuatro son "no lo se"
+// dicho de cuatro maneras. Y todas publican cuantos segundos y cuantas tramas se
+// miraron, porque la ventana esta atada a DESPEJE_SEG_MAX del C++ y si ese techo sube,
+// el que lea el registro tiene que poder ver que la ventana no daba para la maniobra.
+document.getElementById('btn-diario-limpiar').click();
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:MANUAL,ESTADO:R1_R2,T:31,RF:97,RTT:70,BAT:12.9,HORA:15:01:00');
+btnAmber.click();
+const oEfecto = D.todas().filter(x => x.clase === 'ORDEN').pop();
+const t0 = oEfecto.ms;
+assert(D.textoEfecto(oEfecto, t0).indexOf('todavia no se puede ver') >= 0 &&
+       D.textoEfecto(oEfecto, t0).indexOf('no ha llegado ningun $STATUS') >= 0,
+  `Recien salida y sin trama detras, el efecto declara el silencio en vez de decir "sin cambio": ${D.textoEfecto(oEfecto, t0)}`);
+for (let i = 0; i < 3; i++) {
+  conectarComo('MAESTRO', `SERIE:SEM-M-01,MODO:MANUAL,ESTADO:R1_R2,T:31,RF:97,RTT:70,BAT:12.9,HORA:15:0${2 + i}:00`);
+}
+const frEspera = D.textoEfecto(oEfecto, t0 + 1000);
+assert(frEspera.indexOf('sin cambio todavia') >= 0 && frEspera.indexOf('3 $STATUS') >= 0 &&
+       frEspera.indexOf('se mira hasta 95,0 s') >= 0,
+  `Con tramas detras y la ventana abierta dice "todavia", y publica 3 tramas y los segundos: ${frEspera}`);
+const frCerrada = D.textoEfecto(oEfecto, t0 + D.VENTANA_EFECTO_MS + 1);
+assert(frCerrada.indexOf('NO CAMBIO NADA') >= 0 && frCerrada.indexOf('3 $STATUS de los 95,0 s') >= 0,
+  `Cerrada la ventana con $STATUS a los dos lados SI afirma, y con la cuenta al lado: ${frCerrada}`);
+// El control positivo: una frase que no supiera decir CAMBIO aprobaria las tres de
+// arriba igual de bien -seria un diario que siempre dice que no paso nada-.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:MANUAL,ESTADO:V1_R2,T:31,RF:97,RTT:70,BAT:12.9,HORA:15:05:00');
+assert(D.textoEfecto(oEfecto, t0 + D.VENTANA_EFECTO_MS + 1).indexOf('CAMBIO: ESTADO: R1_R2 -> V1_R2') >= 0,
+  `y cuando algo SI se mueve lo nombra campo a campo: ${D.textoEfecto(oEfecto, t0 + D.VENTANA_EFECTO_MS + 1)}`);
+// Y la mitad que mas duele: sin $STATUS con el que comparar, ni siquiera con la ventana
+// cerrada se puede escribir "no cambio nada". Vaciar el diario borra el ultimo $STATUS
+// visto, asi que esta orden sale sin "antes".
+document.getElementById('btn-diario-limpiar').click();
+btnAmber.click();
+const oSinAntes = D.todas().filter(x => x.clase === 'ORDEN').pop();
+const frSinDatos = D.textoEfecto(oSinAntes, oSinAntes.ms + D.VENTANA_EFECTO_MS + 1);
+assert(frSinDatos.indexOf('NO SE PUDO VER') >= 0 && frSinDatos.indexOf('NO CAMBIO NADA') < 0,
+  `Sin un $STATUS con el que comparar se DECLARA que no se pudo ver, no se afirma: ${frSinDatos}`);
+
+// -------------------------------------------------------------------------
+// 10.7 UNA ORDEN FRENADA ENTRA EN EL DIARIO Y NO EN LA CINTA
+// -------------------------------------------------------------------------
+// Para el que esta de pie delante del poste, "pulse y no paso nada" es el mismo sintoma
+// tanto si la app se planto como si el equipo no contesto, y son averias distintas. Por
+// eso la orden que no salio TAMBIEN se anota. Lo que no se hace es meterla en la cinta:
+// por el cable no paso un byte, y la cinta es el cable.
+//
+// Se mide sobre una app recien montada porque en la de arriba el PIN ya esta tecleado y
+// no queda ninguna barrera que frenar. SET_TIEMPOS es el llamador sin guarda propia mas
+// facil de ejercer: lo para el `if` de dentro del emisor.
+//
+// LO QUE ESTA LINEA NO CUBRE, y va escrito para que no se lea de mas: de los dos motivos
+// que ese `if` sabe redactar -"falta la autorizacion con PIN" y "falta confirmar que la
+// via esta despejada"- solo el primero es alcanzable desde la interfaz. Censados los
+// catorce llamadores de enviarComandoFirmware(), los cuatro que llegan a la guarda sin
+// PIN propio -SET_MODO:DEGRADADO, SET_TIEMPOS y los dos SET_RTC- no estan en
+// VIA_MANIOBRA, y los dos que si lo estan sellan el vale y repiten el click en el mismo
+// tick, asi que la guarda los ve ya autorizados. El motivo de via queda sin ejercer.
+const frenada = montarAppLimpia();
+const wF = frenada.d.defaultView;
+frenada.d.getElementById('num-tiempo-verde').value = '5';
+frenada.d.getElementById('num-tiempo-rojo').value = '5';
+frenada.d.getElementById('num-tiempo-despeje').value = '30';
+frenada.tramas.length = 0;
+wF.RegistroCrudo.limpiar();
+wF.DiarioOrdenes.limpiar();
+frenada.d.getElementById('btn-aplicar-tiempos').click();
+assert(frenada.tramas.length === 0,
+  `Sin PIN el emisor se planta y no escribe un byte: ${frenada.tramas.join(' | ')}`);
+const noSalio = wF.DiarioOrdenes.todas().filter(x => x.clase === 'ORDEN');
+assert(noSalio.length === 1 && noSalio[0].salio === false,
+  `pero la orden SI entra en el diario, marcada como no salida (${noSalio.length})`);
+assert(noSalio.length === 1 && /PIN|via/.test(noSalio[0].motivoNoSalio || ''),
+  `con el motivo por el que se freno, no un "no paso nada": ${noSalio.length ? noSalio[0].motivoNoSalio : '-'}`);
+assert(noSalio.length === 1 &&
+       wF.DiarioOrdenes.textoOrden(noSalio[0]).indexOf('no esta en la cinta') >= 0,
+  'y el propio diario avisa de que esa orden no esta en la cinta, para que nadie la busque alli');
+assert(wF.RegistroCrudo.todas().filter(x => x.veredicto === wF.RegistroCrudo.ENVIADA).length === 0,
+  'y en la cinta no hay ni una ENVIADA: por el cable no paso un byte');
+const cF = wF.DiarioOrdenes.contadores(Date.now());
+assert(cF.ordenes === 1 && cF.noSalieron === 1 && cF.sinRespuesta === 0,
+  `Los contadores la cuentan como "no llego a salir" y no como una orden sin respuesta: ${JSON.stringify(cF)}`);
+
 console.log('='.repeat(80));
 console.log(` RESULTADO JSDOM: ${testsPassed} PASS | ${testsFailed} FALLAS`);
 console.log('='.repeat(80));
