@@ -1,95 +1,94 @@
-# LÉEME PRIMERO — paquete del 04/09/2026, noche
+# LÉEME PRIMERO — paquete de FIRMWARE del 04/09/2026, noche
 
-## 1. Qué corre hoy en la calle, y que esto NO es eso
+## 1. Qué es esto y qué NO es
 
-**En campo corre `V8.4`, commit `e303485`, del 31/07/2026.** Este paquete es `944c18d`.
+**Esto es SÓLO FIRMWARE.** No lleva APK: la app está a medio arreglar en este momento y
+sale en el paquete siguiente. **La que tenéis instalada sigue sirviendo** para cargar y
+probar esto.
 
-## 2. ¿Ha pasado banco? **NO.**
+En campo corre `V8.4`, commit `e303485`, del 31/07/2026. Este paquete es `920e52c`.
 
-Con esas palabras, porque es lo único que importa antes de instalar nada.
+## 2. ¿Ha pasado banco? **NO — pero esta noche se probó mucho, y funcionó.**
 
-La compuerta sale **20 PASS · 0 FALLA · 0 ABORTADO** y el banco **998/998 en 69 packs**.
-Eso dice exactamente esto: *los modelos y los arneses de PC no encuentran nada*. **No dice
-que el firmware funcione en la tarjeta.**
+Con esas palabras. Lo que sí ocurrió el 04/09 por la noche:
 
-Y hoy hay dos pruebas de ello, con fecha:
+🟢 **El Modo Automático quedó cerrado EN COBRE.** Con el equipo delante: *«ahí cambia ese
+ámbar y este a verde. Ahora está funcionando»*, con los 3 minutos puestos.
 
-- Los cuatro fallos que reportasteis esta tarde **pasaron esas mismas comprobaciones sin
-  despeinarlas**.
-- Y un defecto que introdujimos nosotros a media tarde —`N-135`— **estuvo en verde en la
-  compuerta y en los 68 packs**. Lo encontró un agente **compilando**, no leyendo.
+🟢 **La confirmación de vía funciona y convenció:** *«se le preguntó, no lo puede cambiar
+así porque sí»*.
 
-## 3. 🎯 Lo que hay que probar, y es lo que desbloquea
+🟢 **El corte de comunicación se recupera solo**, y el modo elegido sobrevive al corte.
 
-**Cargad las dos puntas y probad el Modo Automático.** Es lo que estaba roto.
+La compuerta sale **1008/1008 en 70 packs** y los cuatro binarios compilan. Eso dice que
+*los modelos y los arneses de PC no encuentran nada*. **No dice que el firmware funcione en
+la tarjeta** — y esta misma noche hay dos pruebas de ello: un defecto nuestro (`N-135`)
+estuvo en verde en la compuerta y en los 68 packs hasta que un agente lo encontró
+**compilando** una función de tres líneas.
 
-**El paso 30 de la guía es el más valioso de la sesión:** poned Automático y **mirad al
-Esclavo dos minutos**. El resultado bueno es **que no pase nada**.
+## 3. 🎯 Qué probar con esta carga
 
-- Si el Esclavo **ya no** se va a ámbar solo → el arreglo funcionó.
-- Si **sigue** yéndose a ámbar a los ~25 s → hay una segunda causa, y eso es información
-  que hoy no tenemos. Anotadlo, no lo deis por sabido.
+**Lo que más vale es comprobar que se arregló lo que reportasteis anoche:**
 
-🛑 **Un aviso para que nadie reporte un defecto que no existe:** la firma del respaldo
-cambió, así que **la PRIMERA vuelta de energía con este firmware BORRA los tiempos
-guardados** y el equipo arranca con los mínimos (3 / 3 / 10). Es correcto y está
-diseñado así. La prueba de que los tiempos sobreviven al corte **vale desde la segunda
-vuelta**.
+| | qué mirar | resultado bueno |
+|---|---|---|
+| **`DAR PASO` en Manual** | pulsar y ver el cruce | **cambia el sentido**: el verde pasa a rojo y el otro a verde, con 4 s de ámbar sólo al pasar de rojo a verde |
+| **El contador** | mirarlo en Automático | **baja**, y baja durante los 3 minutos — no sólo en el todo-rojo |
+| **El ámbar** | ponerlo desde el Maestro | el Esclavo lo sigue **al instante**, no a los 25 s |
+| **El reloj** | inyectar hora y mirar el diario | el `$ERR` del STM32 ya no dice «formato inválido»: dice **`NO_QUEDO_PUESTA`**, que es la verdad |
 
-## 4. Qué se arregló
+🛑 **Y un aviso para que nadie reporte un defecto que no existe:** la firma del respaldo
+cambió, así que **la primera vuelta de energía con este firmware borra los tiempos
+guardados** y el equipo arranca con los mínimos (3 / 3 / 10). Es correcto y está diseñado
+así. La prueba de que sobreviven al corte **vale desde la segunda vuelta**.
 
-| | |
-|---|---|
-| **`N-42`** | el Automático no movía las luces **y dejaba al Maestro mudo en la radio**. Por eso el Esclavo se iba a ámbar solo: era orfandad, no un fallo de radio |
-| **`N-133`** | los tiempos del ciclo **no se guardaban en ningún sitio**. Ahora sobreviven al corte |
-| **`N-134`** | el ámbar **se ordena** en vez de que el Esclavo lo dedujera 25 s después |
-| **`N-135`** | 🔴 defecto **nuestro**, introducido esta tarde por el arreglo de `N-42` y cazado horas después |
+## 4. Qué se arregló, y de dónde salió cada cosa
 
-**Y la app:** todo lo que se pulsa llega a 44×44 px; el PIN caduca; el operario **deja de
-teclear `1234`** para dar paso y confirma en su lugar que ha mirado el tramo; y los
-errores del equipo **se traducen** a lo que hay que hacer en el poste.
+| | qué era | de dónde salió |
+|---|---|---|
+| **`N-141`** | **`DAR PASO` no funcionaba**: Modo Manual tenía la misma trampa que `N-42` — un asistente cuya única salida es un botón que ya no existe | vuestro reporte |
+| **`N-143`** | **el contador de la fase larga**. `N-139` lo arregló a medias: la cuenta la hacía el coordinador y el coordinador **no sabe** cuánto dura esa fase | vuestro reporte, dos veces |
+| **`N-139`** | el contador **no contaba la fase: contaba el segundero del equipo** (`millis()/1000 % 60`) | vuestro reporte |
+| **`N-144`** | 🔴 el equipo se declaraba **en hora con el reloj parado en ceros** — y de esa bandera cuelga la autorización del Modo Degradado | vuestra cinta |
+| **`N-137`** | 🔴 el **Modo Inteligente corría a 2 minutos**, por debajo del mínimo vial | revisión cruzada |
+| **`N-138`** | el `FORMATO_INVALIDO` del reloj era un mensaje **mentiroso** | el diario de órdenes |
+| **`N-134`** | el ámbar **se ordena** en vez de que el Esclavo lo dedujera 25 s después | vuestro reporte |
 
-## 5. 🔴 Lo que sigue roto o abierto
+**Casi todo salió del banco.** Los instrumentos de PC vieron dos de los siete.
 
-### 5.1 · El reloj: `FORMATO_INVALIDO` — SIN DIAGNOSTICAR
+## 5. 🔴 Lo que sigue roto, y no lo arregla esta carga
 
-El formato cuadra por los dos lados sobre el papel. **No se ha podido saber más porque la
-cinta de tramas sólo grababa lo que ENTRA**: 300 tramas y ninguna era la que se mandó.
+**El bloqueo del cruce.** El ámbar de emergencia del Esclavo engancha un cerrojo que sólo
+se suelta desde el propio Esclavo, con PIN — y para llegar ahí hay que desvincular el
+Maestro en Ajustes de Android. **Un operario puede dejar el cruce trabado y no poder
+soltarlo desde el otro poste.** Está pendiente de decidir cómo se cierra.
 
-**Este paquete trae el arreglo del instrumento, no del fallo:** la app ahora graba también
-lo que **sale**, y lleva un **diario de órdenes** con la terna *orden / respuesta / efecto*.
-Repetid la inyección de hora y **mandad el diario**: dirá en una línea qué está mal.
+**El equipo tiene hora y publica que no la tiene** (`N-145`). El campo `HORA:` lo rellena el
+STM32, que es el micro **sin** reloj; el DS3231 vive en el ESP32. Acotado, va en la
+siguiente.
 
-### 5.2 · El puente H no se cablea todavía
+**La app:** no reconecta si el equipo se reinicia (hay que cerrarla y abrirla), la barra de
+pestañas tapa hasta **131 px** de mandos, y el `--` que el firmware manda ahora se pinta
+como **0**. Las tres están en arreglo.
 
-Está decidido un `L298N` por barrera, **fuera de la placa**, en el esquema simple: `J15`
-gobierna `ENA`, la pluma sube con señal y baja por su peso. **Faltan dos números de la
-placa del motorreductor: corriente nominal y de arranque.** Con 12 V el `L298N` cae entre
-2 y 5 V, y el par baja más de la mitad. Pregunta 11 de la guía.
+**El puente H no se cablea todavía:** faltan la corriente nominal y de arranque del
+motorreductor.
 
-### 5.3 · El ESP32 se reinicia por tensión
-
-En vuestra cinta hay **dos arranques en siete minutos** (`SUBIDA_DE_TENSION`,
-`TENSION_BAJA`). Es la alimentación, no el firmware: falta el `LM2596` desde la batería.
-
-### 5.4 · Cámaras: son **DOS**, una por poste
-
-El manual anterior listaba tres entradas y se podía leer «tres cámaras». **La cámara va a
-`J14`**, que es el único borne con antirrebote por hardware.
+**El ESP32 se reinicia por tensión** — hay `EVT:ARRANQUE,CAUSA:SUBIDA_DE_TENSION` en
+vuestras cintas. Es el `LM2596`, no el firmware.
 
 ## 6. Qué hay dentro
 
 | | |
 |---|---|
-| `IOT_VIAL_Semaforos_2026-09-04_944c18d_SIN_BANCO.apk` | verificada entrada por entrada contra el fuente |
 | `ACTA_verificacion.txt` | la corrida: fecha, `HEAD`, toolchain |
 | `01_Firmware/` | **fuente** para PlatformIO. Sin binarios: se compilan del código que se revisa |
-| `02_Manuales/` | manuales y la **guía de banco de 36 pasos** |
+| `02_Manuales/` | manuales y la guía de banco — **todavía sin lo de esta noche** |
 
-**El orden es: firmware primero, cargado y verificado en la tarjeta; el cableado después.**
-Nunca al revés. Un commit no protege de un destornillador.
+**Firmware primero, cargado y verificado en la tarjeta; el cableado después.** Nunca al
+revés.
 
 ## 7. Carga por SWD
 
-`mode=UR` con `-e all`, y no se cambia. Si falla, **reintenta** — enganchar es cuestión de
+`mode=UR` con `-e all`, y no se cambia. Si falla, **reintenta**: enganchar es cuestión de
 *timing*. `HOTPLUG` con un firmware que se cuelga al arrancar deja `failed to erase memory`.
