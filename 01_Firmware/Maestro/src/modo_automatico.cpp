@@ -55,6 +55,10 @@
 static int minRojo = ROJO_MIN_MIN, minVerde = VERDE_MIN_MIN,
            segEstatico = DESPEJE_SEG_MIN;
 static unsigned long tEstadoDesde = 0;
+// N-143: lo que falta de la fase LARGA, en segundos, o SIN_CUENTA_ATRAS. Lo lee
+// bluetooth.cpp para el campo T: del $STATUS cuando el coordinador no tiene cuenta
+// propia. Vive aqui porque aqui esta el plazo, y en ningun otro sitio.
+static int restanteFaseSeg = SIN_CUENTA_ATRAS;
 static bool primeraVezCorriendo = true;
 
 // SFTY-21: peticion de arranque sin asistente, desde el mando de reles (A.A.A).
@@ -97,6 +101,8 @@ void modoAutomatico_pedirArranqueDirecto() { /* N-42: ya no hace falta, ver arri
 // limite de laboratorio suelto en una carretera.
 
 bool modoAutomatico_enMarcha() { return modoActual_get() == MODO_AUTOMATICO; }
+
+int modoAutomatico_segundosRestantesFase() { return restanteFaseSeg; }
 
 // N-133: recupera los tiempos guardados, si los hay Y si siguen siendo legales.
 //
@@ -217,12 +223,39 @@ void modoAutomatico_loop() {
                                 ? (unsigned long)minRojo * 60000UL
                                 : (unsigned long)minVerde * 60000UL;
 
+    // N-143 (04/09): SE PUBLICA LO QUE FALTA. Es la fase que el operario MIRA.
+    //
+    // El responsable, dos veces: "debe ser un contador decreciente, de saber cuanto
+    // tiempo falta para el cambio; hoy es un contador creciente que no aporta".
+    //
+    // N-139 arreglo el campo T: para que fueran los segundos que faltan, pero la cuenta
+    // la hace el coordinador y el coordinador NO SABE cuanto dura esta fase:
+    // coordinador_configurar() recibe los dos tiempos de ciclo SIN NOMBRE y los tira
+    // -mirese su firma-. Solo conoce el despeje. Asi que la unica fase con cuenta atras
+    // era el todo-rojo de 10-90 s, y la LARGA -3 a 15 min, o sea casi todo el tiempo que
+    // el cruce esta funcionando- seguia diciendo "--". Justo la que se mira.
+    //
+    // POR QUE SE PUBLICA DESDE AQUI Y NO SE RECONSTRUYE EN EL COORDINADOR: alli seria
+    // una segunda copia del ciclo escrita a mano -R-9- y ademas MENTIRIA en dos de los
+    // tres modos que lo usan: en Manual la fase acaba cuando alguien pulsa, y en
+    // Inteligente el tiempo configurado es un MAXIMO, no una duracion. Quien sabe cuanto
+    // falta es quien pone el plazo, y es este fichero.
+    //
+    // PISO, no redondeo, igual que la del coordinador: vale N al entrar y 0 durante el
+    // ultimo segundo. El operario nunca ve un numero MAYOR que lo que de verdad queda.
+    const unsigned long va = millis() - tEstadoDesde;
+    restanteFaseSeg = (va >= duracion) ? 0 : (int)((duracion - va) / 1000UL);
+
     if (millis() - tEstadoDesde >= duracion) {
       coordinador_pedirCambio();
       tEstadoDesde = millis();
     }
   } else {
     primeraVezCorriendo = true;
+    // Fuera de C_IDLE manda el coordinador -hay un despeje o una transicion en curso- y
+    // el que tiene la cuenta buena es el. Se marca para no publicar una cifra vieja: un
+    // numero congelado es peor que un "--", porque parece que sigue contando.
+    restanteFaseSeg = SIN_CUENTA_ATRAS;
   }
 
   static const char* estadoAnt = "";

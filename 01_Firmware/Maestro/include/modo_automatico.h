@@ -18,6 +18,18 @@ void modoAutomatico_loop();
 // modoAutomatico_setup().
 void modoAutomatico_pedirArranqueDirecto();
 
+// N-143: los segundos que faltan de la fase LARGA -el verde o el rojo de 3 a 15 min-, o
+// SIN_CUENTA_ATRAS cuando manda el coordinador (un despeje o una transicion en curso) o
+// cuando el equipo no esta en este modo.
+//
+// La cuenta vive en modo_automatico.cpp y no en el coordinador porque el PLAZO lo pone
+// este fichero: coordinador_configurar() recibe los dos tiempos de ciclo SIN NOMBRE y los
+// descarta -mirese su firma-, asi que alli solo se conoce el despeje. Reconstruirla en el
+// coordinador seria una segunda copia del ciclo escrita a mano, y ademas mentiria en los
+// otros dos modos que lo usan: en Manual la fase acaba cuando alguien pulsa, y en
+// Inteligente el tiempo configurado es un MAXIMO, no una duracion.
+int modoAutomatico_segundosRestantesFase();
+
 // N-69: fijar los tiempos del ciclo desde fuera del asistente -hoy, desde el Bluetooth-.
 //
 // Los limites viven en el .cpp y son DUROS: quien decide si un valor es aceptable es el

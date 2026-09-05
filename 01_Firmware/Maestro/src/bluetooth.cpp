@@ -812,7 +812,26 @@ void bluetooth_loop() {
     // nulo-, no para el rango que hoy garantiza otro modulo. Es la misma razon que ya
     // esta escrita quince lineas mas arriba para rfTxt.
     char tTxt[12];
-    const int faseRestanteSeg = coordinador_segundosRestantesFase();
+    // N-143 (04/09): SE PREGUNTA PRIMERO AL COORDINADOR Y DESPUES AL MODO, Y EL ORDEN
+    // NO ES ARBITRARIO.
+    //
+    // El coordinador sabe los despejes y las transiciones -las fases CORTAS-; el modo
+    // sabe la fase LARGA, que es la de 3 a 15 minutos y la unica que el operario mira de
+    // verdad. Con N-139 solo se publicaba la primera, asi que la mayor parte del tiempo
+    // el contador decia "--". El responsable lo dijo dos veces: "debe ser un contador
+    // decreciente, de saber cuanto tiempo falta para el cambio".
+    //
+    // El coordinador va PRIMERO porque cuando el tiene cuenta -un todo-rojo en curso- esa
+    // es la que manda: el modo esta esperando a que termine y su plazo largo todavia no
+    // ha empezado a correr. Preguntar al reves publicaria el numero de una fase que aun
+    // no ha comenzado.
+    int faseRestanteSeg = coordinador_segundosRestantesFase();
+    if (faseRestanteSeg == SIN_CUENTA_ATRAS) {
+      // Y el modo solo contesta si es el suyo: fuera del Automatico devuelve
+      // SIN_CUENTA_ATRAS y aqui se queda el "--", que es lo correcto -en Manual la fase
+      // acaba cuando alguien pulsa, y en Inteligente el tiempo es un maximo-.
+      faseRestanteSeg = modoAutomatico_segundosRestantesFase();
+    }
     if (faseRestanteSeg == SIN_CUENTA_ATRAS) {
       strncpy(tTxt, "--", sizeof(tTxt));
     } else {
