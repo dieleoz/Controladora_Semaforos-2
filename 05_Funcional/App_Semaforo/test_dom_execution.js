@@ -418,10 +418,10 @@ assert(!!avisoPunta && avisoPunta.textContent.includes('MANUAL:CAMBIAR_TURNO') &
 // Los otros dos mandos de la botonera, con el mismo criterio y por separado: que uno
 // consulte la punta no dice nada del de al lado -el hueco de N-83 fueron exactamente
 // estos tres, y el resto de la app si preguntaba-.
-// Y desde el 04/09 los dos ya no tienen la MISMA barrera detras -btn-op-auto ABRE paso
-// y pregunta por la via; btn-op-amber para y conserva el PIN-, asi que se exigen los dos
-// dialogos cerrados en los dos botones: el que le toca a cada uno mide su orden, y el
-// otro impide que un cambio de guarda deje esta linea vacuamente verde.
+// Los dos tienen detras barreras distintas -btn-op-auto pide SOLO la via; btn-op-amber
+// pide el PIN y DESPUES la via (N-148)-, asi que se exigen los dos dialogos cerrados en
+// los dos botones: el que le toca a cada uno mide su orden, y el otro impide que un
+// cambio de guarda deje esta linea vacuamente verde.
 ['btn-op-auto', 'btn-op-amber'].forEach(id => {
   sentFrames = [];
   document.getElementById(id).click();
@@ -575,23 +575,40 @@ assert(sentFrames.some(f => f.includes('CMD:PIN:1234:SET_MODO:AUTO')),
 //
 // Se muda con su BLOQUE LITERAL (CLAUDE.md 3.bis: no se reescribe logica ya probada)
 // al mando de AMBAR. No es un boton cualquiera: es de la MISMA botonera, va a la MISMA
-// punta y conserva la guarda de PIN a proposito -es la direccion segura, y preguntar
-// por la via para PARAR ensena a decir que si sin leer-.
+// punta y conserva la guarda de PIN.
 //
 // Borrarlas se habria llevado por delante el flujo del PIN entero, que en este arnes
 // no lo mide nadie mas: las cuatro puertas de mas abajo -SOLICITAR_PASO, el PIN de la
 // sesion al cambiar de punta, el Courier y SET_TIEMPOS- se apoyan en que alguien lo
 // tecleo AQUI. Eso es lo que las tiro a las once: no eran once defectos, era este
 // bloque siendo el unico que autorizaba la sesion.
+//
+// 🔴 N-148 (05/09): AQUI HABIA UNA LINEA QUE CELEBRABA EL DEFECTO Y ADEMAS NO PODIA
+// FALLAR. Decia `assert(!viaModal.active, 'y NO pregunta por la via: lo que para el
+// trafico no necesita que nadie mire el tramo')`. Las dos mitades estaban mal:
+//
+//   - LA FRASE ERA FALSA. SET_MODO:AMBAR no para el trafico: modo_ambar_setup() pone
+//     ambar intermitente en ESTA punta y manda CMD_GO_AMBAR a la otra, o sea que deja
+//     entrar al corredor por los dos lados a la vez. Es la orden que MAS abre paso de
+//     la botonera. Lo pidio el responsable el 05/09 y lo confirma el C++.
+//   - Y LA LINEA NO PODIA FALLAR NI CON LA GUARDA PUESTA, que es peor: el PIN va
+//     DELANTE de la via, asi que en ese instante -teclado abierto, PIN sin teclear- el
+//     aviso de via no ha salido todavia ni tiene por que. Habria seguido en verde
+//     despues del arreglo, midiendo nada (CLAUDE.md 3.bis).
+//
+// Se INVIERTE a lo unico que aqui distingue una app con guarda de una sin ella: que la
+// via se pregunte DESPUES del PIN y ANTES de que salga un byte. La linea que mide el
+// ORDEN es la que caza la regresion; la del resultado final no cae sola (CLAUDE.md
+// 8.sexies).
 const btnAmber = document.getElementById('btn-op-amber');
 sentFrames = [];
 btnAmber.click();
 assert(sentFrames.length === 0,
   `Sin PIN verificado no sale NADA por el canal serie: ${sentFrames.join(' | ')}`);
 assert(pinModal.classList.contains('active'),
-  'La orden que PARA -AMBAR- sigue abriendo el teclado de PIN en vez de autorizarse sola');
+  'AMBAR sigue abriendo el teclado de PIN en vez de autorizarse solo');
 assert(!viaModal.classList.contains('active'),
-  'y NO pregunta por la via: lo que para el trafico no necesita que nadie mire el tramo');
+  'y el aviso de via NO se adelanta al teclado: sellar "he mirado" y meter luego cuatro digitos con guantes deja el tramo sin vigilar mientras se teclea');
 
 // Un PIN equivocado no autoriza: el modal sigue abierto y no sale ninguna trama.
 ['9', '9', '9', '9'].forEach(d => {
@@ -604,17 +621,31 @@ assert(pinModal.classList.contains('active') && sentFrames.length === 0,
   document.querySelector(`.pin-btn[data-key="${d}"]`).click();
 });
 assert(!pinModal.classList.contains('active'), 'Con 4 digitos validos el modal se cierra');
+// INVERTIDA (N-148). Aqui se exigia que la orden saliera con el PIN recien tecleado. Ya
+// no sale: el PIN dice QUIEN eres y esta orden abre el corredor por los dos lados, asi
+// que detras del teclado queda la pregunta por el tramo. Lo que se conserva entero es
+// que sin ella NO SALE UN BYTE.
+assert(sentFrames.length === 0 && viaModal.classList.contains('active'),
+  `Tecleado el PIN, AMBAR pregunta por el tramo y todavia no manda nada: ${sentFrames.join(' | ')}`);
+assert(viaManiobra.textContent.includes('AMBAR') && viaManiobra.textContent.includes('dos'),
+  `y el aviso dice QUE maniobra y que abre las DOS puntas, no "confirme la operacion": "${viaManiobra.textContent.slice(0, 70)}..."`);
+// EL CONTROL POSITIVO DE LA INVERSION (CLAUDE.md 8.sexies): sin esto, una guarda que no
+// dejara pasar nada aprobaria las dos lineas de arriba igual de bien. Y es ademas donde
+// se comprueba que el PIN de la sesion sigue viajando entero en la trama.
+document.getElementById('btn-via-confirmar').click();
 assert(sentFrames.some(f => f.includes('CMD:PIN:1234:SET_MODO:AMBAR')),
-  `La orden sale con el PIN recien tecleado: ${sentFrames.join(' | ')}`);
+  `Confirmado el tramo, la orden sale con el PIN que se acaba de teclear: ${sentFrames.join(' | ')}`);
 
 // Y una vez verificado en la sesion no se vuelve a pedir en cada pulsacion: el
-// operario esta en mitad de la calzada, no delante de un formulario.
+// operario esta en mitad de la calzada, no delante de un formulario. El vale de via
+// tampoco, mientras sea la MISMA orden, dentro de los 30 s y sin que la fase haya
+// cambiado: es la regla 3 de 3.ter, y esta es la unica linea que la ejerce en verde.
 sentFrames = [];
 btnAmber.click();
 assert(sentFrames.some(f => f.includes('CMD:PIN:1234:SET_MODO:AMBAR')),
-  `[btn-op-amber] con el PIN ya verificado la orden sale directa: ${sentFrames.join(' | ')}`);
-assert(!pinModal.classList.contains('active'),
-  '[btn-op-amber] no vuelve a pedir el PIN dentro de la misma sesion');
+  `[btn-op-amber] con el PIN y el tramo ya confirmados la orden sale directa: ${sentFrames.join(' | ')}`);
+assert(!pinModal.classList.contains('active') && !viaModal.classList.contains('active'),
+  '[btn-op-amber] no vuelve a pedir ni el PIN ni el tramo dentro de la misma sesion y la misma fase');
 
 // -------------------------------------------------------------------------
 // LA MITAD QUE NO EXISTIA ANTES DEL 04/09: EL PIN NO SUPLE A LA VIA
@@ -1090,6 +1121,26 @@ assert(window.DiarioOrdenes.todas().length === 0 && window.RegistroCrudo.todas()
 const D = window.DiarioOrdenes;
 const R = window.RegistroCrudo;
 
+// N-148: AMBAR PREGUNTA POR EL TRAMO, ASI QUE EN ESTA SECCION HAY QUE CONTESTARLE.
+//
+// Lo que se mide de aqui abajo es EL DIARIO -que una orden que sale se anota, que el
+// $ACK se le pega, que el efecto no afirma sobre lo que no vio-, no la guarda. La
+// guarda se ejerce entera en 6.bis-2, con sus dos mitades y su control positivo.
+//
+// El `if` no es tolerancia: el vale de via dura 30 s y vale para la MISMA orden y la
+// MISMA fase, asi que la primera pulsacion tras cada `conectarComo` que cambie de fase
+// abre el aviso y las siguientes no. Un helper que clicara el confirmar a ciegas
+// reventaria en las segundas -no hay dialogo que cerrar- y uno que no lo clicara nunca
+// dejaria media seccion midiendo ordenes que no salieron. Lo que NO hace este helper es
+// tragarse el caso de "no salio nada": eso lo siguen exigiendo las lineas de abajo, una
+// por una, sobre las tramas de verdad.
+function darAmbar() {
+  btnAmber.click();
+  if (viaModal.classList.contains('active')) {
+    document.getElementById('btn-via-confirmar').click();
+  }
+}
+
 // La punta vuelve a ser el MAESTRO: la seccion 9 dejo un ESCLAVO delante y SET_MODO
 // esta en SOLO_MAESTRO, asi que sin esto los botones avisarian de la otra punta y no
 // saldria una sola orden -y las lineas de abajo pasarian por la razon equivocada-.
@@ -1105,7 +1156,7 @@ assert(nodeNameEl.textContent.includes('MAESTRO'),
 // linea de "no sale ningun byte" NO cayo -otra barrera mas abajo frenaba igual- y lo
 // unico que delato el fallo fue el CONTENIDO de la trama que si salio.
 sentFrames = [];
-btnAmber.click();
+darAmbar();
 const enviadas = R.todas().filter(x => x.veredicto === R.ENVIADA);
 assert(enviadas.length === 1,
   `Una orden que sale deja UNA anotacion con veredicto ENVIADA en la cinta (${enviadas.length})`);
@@ -1213,7 +1264,7 @@ assert(D.casa('CAMBIAR_TURNO', 'MANUAL:CAMBIAR_TURNO') === 'POR_ALIAS' &&
 // con dos o mas no se atribuye a ninguna. Un diario que reparte respuestas a ojo es peor
 // que uno con huecos, porque el hueco se ve.
 document.getElementById('btn-diario-limpiar').click();
-btnAmber.click();
+darAmbar();
 const soloUna = D.todas().filter(x => x.clase === 'ORDEN').pop();
 const errAuth = 'ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO';
 window._btSubscribeCb(`$${errAuth}*${xorNmea(errAuth)}\n`);
@@ -1223,8 +1274,8 @@ assert(!!soloUna && D.textoRespuesta(soloUna, Date.now()).includes('ATRIBUIDA PO
   'y el diario DICE que fue por descarte y que puede no ser de esa orden');
 
 document.getElementById('btn-diario-limpiar').click();
-btnAmber.click();
-btnAmber.click();
+darAmbar();
+darAmbar();
 const dosPendientes = D.todas().filter(x => x.clase === 'ORDEN');
 assert(dosPendientes.length === 2 && dosPendientes.every(x => !x.respuesta),
   `Dos ordenes salen y las dos quedan esperando: ${dosPendientes.length}`);
@@ -1250,7 +1301,7 @@ assert(D.todas().filter(x => x.clase === 'RESPUESTA_SUELTA').length === 2 &&
 // el que lea el registro tiene que poder ver que la ventana no daba para la maniobra.
 document.getElementById('btn-diario-limpiar').click();
 conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:MANUAL,ESTADO:R1_R2,T:31,RF:97,RTT:70,BAT:12.9,HORA:15:01:00');
-btnAmber.click();
+darAmbar();
 const oEfecto = D.todas().filter(x => x.clase === 'ORDEN').pop();
 const t0 = oEfecto.ms;
 assert(D.textoEfecto(oEfecto, t0).indexOf('todavia no se puede ver') >= 0 &&
@@ -1275,7 +1326,7 @@ assert(D.textoEfecto(oEfecto, t0 + D.VENTANA_EFECTO_MS + 1).indexOf('CAMBIO: EST
 // cerrada se puede escribir "no cambio nada". Vaciar el diario borra el ultimo $STATUS
 // visto, asi que esta orden sale sin "antes".
 document.getElementById('btn-diario-limpiar').click();
-btnAmber.click();
+darAmbar();
 const oSinAntes = D.todas().filter(x => x.clase === 'ORDEN').pop();
 const frSinDatos = D.textoEfecto(oSinAntes, oSinAntes.ms + D.VENTANA_EFECTO_MS + 1);
 assert(frSinDatos.indexOf('NO SE PUDO VER') >= 0 && frSinDatos.indexOf('NO CAMBIO NADA') < 0,
@@ -1298,8 +1349,17 @@ assert(frSinDatos.indexOf('NO SE PUDO VER') >= 0 && frSinDatos.indexOf('NO CAMBI
 // via esta despejada"- solo el primero es alcanzable desde la interfaz. Censados los
 // catorce llamadores de enviarComandoFirmware(), los cuatro que llegan a la guarda sin
 // PIN propio -SET_MODO:DEGRADADO, SET_TIEMPOS y los dos SET_RTC- no estan en
-// VIA_MANIOBRA, y los dos que si lo estan sellan el vale y repiten el click en el mismo
-// tick, asi que la guarda los ve ya autorizados. El motivo de via queda sin ejercer.
+// VIA_MANIOBRA, y los TRES que si lo estan -SET_MODO:AUTO, MANUAL:CAMBIAR_TURNO y,
+// desde N-148, SET_MODO:AMBAR- sellan el vale y repiten el click en el mismo tick, asi
+// que la guarda los ve ya autorizados. El motivo de via queda sin ejercer.
+//
+// Y con AMBAR hay que decir ademas POR DONDE se exige, porque no es por el mismo sitio:
+// su guarda de via vive SOLO en el oyente del boton, no en enviarComandoFirmware() -ese
+// `if` se satisface con el PIN de la sesion, que AMBAR conserva-. Censados los catorce
+// llamadores y los cinco data-cmd del HTML, `btn-op-amber` es el UNICO camino por el que
+// SET_MODO:AMBAR llega al emisor, asi que una puerta basta. El dia que aparezca un
+// segundo llamador, la pregunta por el tramo no viajara con el: hay que moverla al
+// emisor o repetirla alli.
 const frenada = montarAppLimpia();
 const wF = frenada.d.defaultView;
 frenada.d.getElementById('num-tiempo-verde').value = '5';
@@ -1324,6 +1384,152 @@ assert(wF.RegistroCrudo.todas().filter(x => x.veredicto === wF.RegistroCrudo.ENV
 const cF = wF.DiarioOrdenes.contadores(Date.now());
 assert(cF.ordenes === 1 && cF.noSalieron === 1 && cF.sinRespuesta === 0,
   `Los contadores la cuentan como "no llego a salir" y no como una orden sin respuesta: ${JSON.stringify(cF)}`);
+
+// =========================================================================
+// 11. EL ESTADO DEL OTRO POSTE EN LA CONSOLA DEL MAESTRO (N-149, 05/09)
+// =========================================================================
+// DECISION DEL RESPONSABLE: "cuando me conecto al maestro no me aparecen los estados
+// del semaforo del esclavo... yo necesito que maestro me traiga los datos del esclavo".
+// Y sobre el atajo que la app ofrecia en su lugar: "hay un problema porque ahi esta
+// haciendo la conexion por Bluetooth, pero tendrias que caminar 1000 metros hasta el
+// otro lado".
+//
+// El dato viaja en un campo nuevo del $STATUS del MAESTRO -ESC:<ROJO|VERDE|AMBAR|?>-
+// y lo que este bloque mide NO es que se pinte: es que las CUATRO respuestas posibles
+// se distingan en pantalla. Pintar es la parte facil; la que se cobra en la calzada es
+// no inventar un color cuando no hay dato (CLAUDE.md 3.quinquies).
+//
+//   ESC:VERDE    se pinta la lampara del POSTE 2
+//   ESC:?        el Maestro dice que NO LO SABE -radio entre postes caida-
+//   sin ESC:     firmware anterior: la app no puede saber nada del otro poste
+//   ESC:<otro>   un literal que la tabla no conoce se ensena EN CRUDO
+//
+// Los dos del medio se pintan igual de vacios y se DICEN distinto a proposito: uno
+// manda a actualizar el firmware y el otro a mirar la radio.
+const s2Red = document.getElementById('s2-red');
+const s2Amber = document.getElementById('s2-amber');
+const s2Green = document.getElementById('s2-green');
+const s2Text = document.getElementById('s2-text');
+const s1TextDom = document.getElementById('s1-text');
+const phaseDescDom = document.getElementById('phase-desc');
+assert(!!s2Red && !!s2Amber && !!s2Green && !!s2Text,
+  'La columna del POSTE 2 existe en el DOM: sus tres lamparas y su texto');
+
+// 11.1 CON DATO: la lampara del otro poste se enciende y el texto lo nombra.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:VERDE,T:20,RF:97,RTT:70,BAT:12.9,HORA:16:00:00,ESC:ROJO');
+assert(s2Red.classList.contains('active') && !s2Green.classList.contains('active') &&
+       !s2Amber.classList.contains('active'),
+  `Con ESC:ROJO se enciende la roja del POSTE 2 y solo ella: rojo=${s2Red.className} verde=${s2Green.className}`);
+assert(s2Text.textContent.includes('ROJO'),
+  `y el texto del POSTE 2 lo dice: "${s2Text.textContent}"`);
+// EL CONTROL POSITIVO, sin el cual una app que encendiera SIEMPRE la roja aprobaria lo
+// de arriba igual de bien (CLAUDE.md 8.sexies).
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:16:00:02,ESC:VERDE');
+assert(s2Green.classList.contains('active') && !s2Red.classList.contains('active'),
+  `Con ESC:VERDE cambia de lampara: la roja se apaga y se enciende la verde: rojo=${s2Red.className} verde=${s2Green.className}`);
+assert(s2Text.textContent.includes('VERDE'),
+  `y el texto del POSTE 2 lo sigue: "${s2Text.textContent}"`);
+// Y las DOS columnas dicen cosas distintas a la vez, que es lo que se pidio: el poste
+// conectado en ROJO y el otro en VERDE. Si una pintara a la otra, esto cae.
+assert(s1TextDom.textContent.includes('ROJO'),
+  `y a la vez el POSTE 1 pinta lo SUYO -ESTADO:ROJO-, no lo del otro: "${s1TextDom.textContent}"`);
+
+// 11.2 CON '?': no se inventa color. Y se dice POR QUE, que es la mitad util.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:16:00:04,ESC:?');
+assert(!s2Red.classList.contains('active') && !s2Amber.classList.contains('active') &&
+       !s2Green.classList.contains('active'),
+  'Con ESC:? no queda ninguna lampara del POSTE 2 encendida: el ultimo color no se repinta como si fuera de ahora');
+assert(/SIN DATO/i.test(s2Text.textContent) && /no lo sabe/i.test(s2Text.textContent),
+  `y la pantalla DICE que el POSTE 1 no lo sabe, en vez de quedarse muda: "${s2Text.textContent}"`);
+assert(/enlace entre/i.test(phaseDescDom.textContent),
+  `y la linea del centro nombra la causa que hay que ir a mirar: "${phaseDescDom.textContent}"`);
+
+// 11.3 SIN EL CAMPO: un equipo con firmware anterior no puede dejar dato pegado.
+// Se inyecta DESPUES de una trama con ESC bueno a proposito: el defecto que esto
+// vigila no es "no pinta nada", es "sigue pintando lo de la trama anterior".
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:16:00:06,ESC:VERDE');
+assert(s2Green.classList.contains('active'), 'control: la verde del POSTE 2 queda encendida antes de quitar el campo');
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:16:00:08');
+assert(!s2Green.classList.contains('active'),
+  'Una trama SIN ESC: apaga la lampara que dejo la anterior: un dato que dejo de venir no sigue en pantalla');
+assert(/SIN DATO/i.test(s2Text.textContent) && /no lo publica/i.test(s2Text.textContent),
+  `y se declara la carencia REAL -este equipo no publica el campo-, que manda a un sitio distinto que el '?': "${s2Text.textContent}"`);
+
+// 11.4 UN LITERAL DESCONOCIDO SE ENSENA EN CRUDO, no se traga. Es lo mismo que hace
+// pintarBadgeModo() con un MODO nuevo: sin esto, el dia que el firmware estrene un
+// valor la columna se queda en blanco y eso es indistinguible de una radio caida.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:16:00:10,ESC:AMARILLO');
+assert(s2Text.textContent.includes('AMARILLO'),
+  `Un valor de ESC que la tabla no conoce sale EN CRUDO en la pantalla: "${s2Text.textContent}"`);
+assert(!s2Red.classList.contains('active') && !s2Amber.classList.contains('active') &&
+       !s2Green.classList.contains('active'),
+  'y no se adivina una lampara para el: no reconocerlo y encender algo serian cosas opuestas');
+// Y el campo VACIO no se confunde con el campo AUSENTE, que es la unica pareja de esta
+// tabla que se puede colapsar sin que se note: un `ESC:` sin nada dentro SI llego, asi
+// que acusar al equipo de tener firmware viejo taparia el unico sintoma que deja un %s
+// vacio en el snprintf del C++.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:16:00:11,ESC:');
+assert(!/no lo publica/i.test(s2Text.textContent),
+  `Un ESC: vacio NO se lee como "este equipo no publica el campo": el campo vino: "${s2Text.textContent}"`);
+
+// 11.5 CONTRA EL ESCLAVO NO CAMBIA NADA: esa punta no emite ESC: -no tiene a quien
+// preguntarle- y su ventana es de DIAGNOSTICO. La columna del POSTE 1 conserva la
+// frase de siempre. Sin esta linea, un `state.esc` que sobreviviera al cambio de poste
+// pintaria en el POSTE 1 el dato que dejo un Maestro hace dos minutos.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:16:00:12,ESC:VERDE');
+conectarComo('ESCLAVO', 'SERIE:SEM-E-01,MODO:SUBORDINADO,ESTADO:ROJO,T:--,RF:--,RTT:--,BAT:--,HORA:16:00:14');
+assert(s1TextDom.textContent.includes('no viaja en esta trama'),
+  `Contra el ESCLAVO la columna del POSTE 1 sigue declarando que ese dato no viaja: "${s1TextDom.textContent}"`);
+assert(!s1TextDom.textContent.includes('VERDE'),
+  'y NO hereda el ESC: que publico el Maestro hace dos tramas: es dato de otro equipo');
+
+// =========================================================================
+// 12. LA HORA DEL EQUIPO SE PINTA (N-150, 05/09)
+// =========================================================================
+// El campo HORA: llega en cada $STATUS desde hace meses y `state.hora` tenia UN
+// escritor y CERO lectores. Lo destapo un censo, no una queja de campo. Y empieza a
+// costar esta noche: el puente ESP32 ya sella la hora del DS3231 en la trama, asi que
+// HORA: deja de ser "--:--:--" y trae hora buena.
+//
+// ESTE BLOQUE MIDE EL CAMINO QUE CORRE EN EL TELEFONO -la rama de $STATUS de app.js-,
+// que NO es el que miden los dos ficheros de unitarios: aquellos llaman a
+// NMEAParser.parseStatus(), que la app no usa para pintar (ver el comentario de
+// js/nmea_parser.js). Sin estas lineas, la hora podia estar verde en tres suites y no
+// aparecer en ninguna pantalla, que es exactamente como llego hasta hoy.
+const equipoHoraEl = document.getElementById('equipo-hora');
+assert(!!equipoHoraEl, 'La consola tiene donde ensenar la hora que el equipo dice tener');
+
+// 12.1 HORA BUENA: se pinta tal cual, sin reformatear y SIN TRUNCAR por el split(':').
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:18:25:03,ESC:ROJO');
+assert(equipoHoraEl.textContent === '18:25:03',
+  `La hora del equipo se pinta ENTERA -no "18", que es lo que da un split(':') sin limite-: "${equipoHoraEl.textContent}"`);
+
+// 12.2 EL EQUIPO DICE QUE NO LA TIENE. Es lo que escribe su firmware cuando
+// reloj_enHora() es falso, y no es un hueco de la app: es un dato, y de los caros -de
+// esa hora cuelga la autorizacion del Modo Degradado-.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:--:--:--,ESC:ROJO');
+assert(/SIN HORA/i.test(equipoHoraEl.textContent) && !/18:25/.test(equipoHoraEl.textContent),
+  `Con HORA:--:--:-- se declara que el equipo NO tiene hora puesta y NO se queda la anterior: "${equipoHoraEl.textContent}"`);
+
+// 12.3 EL TERCER TEXTO, QUE ES EL CONTROL DE LOS DOS DE ARRIBA. Una pantalla que
+// escribiera SIEMPRE "SIN HORA" aprobaria 12.2 sola, y una que escribiera siempre lo que
+// venga aprobaria 12.1 sola. Con un valor que no es ni hora ni guiones tienen que salir
+// TRES textos distintos, y ese es el unico resultado que no puede dar una constante.
+//
+// Y se ensena EN CRUDO por lo mismo que un MODO desconocido en el badge: el dia que el
+// campo cambie de forma, un hueco en blanco es indistinguible de un enlace caido.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:AYER,ESC:ROJO');
+assert(/AYER/.test(equipoHoraEl.textContent) && !/SIN HORA/i.test(equipoHoraEl.textContent),
+  `Un HORA: que no es ni hora ni guiones sale EN CRUDO y no se disfraza de las otras dos: "${equipoHoraEl.textContent}"`);
+
+// 12.4 Y LO QUE SE VE ANTES DE QUE NADIE HABLE lo pone el HTML, no el painter, asi que
+// se comprueba en el HTML: una hora de relleno en el fuente se leeria como la del equipo
+// durante los dos segundos que tarda el primer $STATUS -y para siempre si nunca llega-.
+// No se mide sobre una app montada porque montarAppLimpia() inyecta un $STATUS al
+// arrancar: ahi ya hay dato, y esta linea dejaria de medir lo que dice medir.
+const marcaHoraInicial = htmlContent.match(/id="equipo-hora"[^>]*>([^<]*)</);
+assert(!!marcaHoraInicial && !/\d{1,2}:\d{2}/.test(marcaHoraInicial[1]),
+  `El HTML no nace con una hora de relleno donde va la del equipo: "${marcaHoraInicial ? marcaHoraInicial[1].trim() : '(no se hallo el elemento)'}"`);
 
 console.log('='.repeat(80));
 console.log(` RESULTADO JSDOM: ${testsPassed} PASS | ${testsFailed} FALLAS`);

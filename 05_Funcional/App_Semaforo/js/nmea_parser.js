@@ -85,6 +85,29 @@ const NMEAParser = {
 
   /**
    * Parsea una trama de telemetría $STATUS
+   *
+   * 🔴 ESTA FUNCION NO ES LA QUE CORRE EN EL TELEFONO, Y HAY QUE SABERLO ANTES DE LEER
+   * SUS PRUEBAS EN VERDE (censo del 05/09, N-150).
+   *
+   * MEDIDO -grep de `NMEAParser.` sobre app.js y js/*.js-: lo UNICO que la app llama de
+   * este modulo es validarTrama(). El $STATUS que se pinta lo parte `_camposNmea()`,
+   * dentro de app.js, que es OTRO codigo con OTRO contrato: devuelve las claves TAL CUAL
+   * vienen -data.HORA, data.ESTADO, data.ESC- y esta devuelve las suyas en minuscula y
+   * renombradas -data.hora, data.estado-. Los unicos llamadores de parseStatus() son
+   * tests/test_unitarios.js y test_unitarios_app.js.
+   *
+   * O sea: LA QUE SE PRUEBA NO ES LA QUE SE INSTALA. Es la segunda copia escrita a mano
+   * que este repositorio ya ha pagado tres veces (CLAUDE.md 3.bis), con el agravante de
+   * que la copia es la que tiene las pruebas. Un arreglo aqui -por ejemplo el `case ESC`
+   * de abajo- NO llega a la pantalla de nadie por si solo.
+   *
+   * NO SE FUSIONAN HOY, y el motivo va escrito porque es una decision y no un olvido:
+   * `_camposNmea()` alimenta ademas a DiarioOrdenes.verStatus(), a reparosDeStatus() y
+   * al censo de documentos_03 -que lee `data.X` en mayusculas dentro de la rama de
+   * $STATUS de app.js-, asi que cambiarla toca cuatro caminos a la vez la noche antes de
+   * una sesion de banco. Lo que SI se puede hacer sin riesgo, y es lo que falta, es un
+   * pack que exija que las dos listas de campos coincidan; hoy no lo vigila nadie,
+   * porque el censo de huerfanos de app_07 mira MODULOS y este modulo si tiene llamador.
    */
   parseStatus(payload) {
     // Contrato REAL, leido de 01_Firmware/Maestro/src/bluetooth.cpp:216. Antes este
@@ -141,6 +164,14 @@ const NMEAParser = {
         case 'RTT': data.rtt = _numeroOMarca(v, parseInt, 10); break;
         case 'BAT': data.bat = _numeroOMarca(v, parseFloat); break;
         case 'HORA': data.hora = v; break;
+        // N-149: lo que el MAESTRO sabe del ESCLAVO. Solo viaja en el $STATUS del
+        // Maestro, y su cuarto valor -'?'- NO es un color: es esa punta declarando que
+        // no lo sabe. Se devuelve TAL CUAL, sin traducir y sin defecto: quien pinta
+        // (renderLights) es el que sabe distinguir "no vino" de "vino un ?" de "vino un
+        // color", y son tres cosas distintas. Un `|| 'ROJO'` aqui seria el mismo `|| 0`
+        // que este fichero documenta haber quitado tres casos mas arriba, con la
+        // agravante de que aqui el valor inventado es una LUZ.
+        case 'ESC': data.esc = v; break;
       }
     }
 

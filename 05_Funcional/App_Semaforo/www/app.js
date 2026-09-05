@@ -22,6 +22,21 @@ document.addEventListener('DOMContentLoaded', () => {
     serie: null,
     modo: null, // 'AUTO', 'MANUAL', 'AMBAR', 'ROJO_TOTAL'
     estadoLuces: null, // V1_R2, Y1_R2, R1_R2, R1_V2, R1_Y2, AMBAR_FAIL, ALL_RED
+    // LO QUE EL MAESTRO SABE DEL ESCLAVO (N-149, 05/09). Viaja en el campo ESC: del
+    // $STATUS del MAESTRO y SOLO de el; el Esclavo no lo emite -no tiene a quien
+    // preguntarle-. Tres valores distintos y ninguno se colapsa con otro:
+    //
+    //   null   el campo NO VINO. Es un equipo con firmware anterior a N-149, o el
+    //          $STATUS de un Esclavo. La app no puede saber nada del otro poste.
+    //   '?'    vino, y el MAESTRO declara que NO LO SABE: enlace de radio caido, o
+    //          todavia sin la primera respuesta del Esclavo.
+    //   ROJO / VERDE / AMBAR   lo que el Maestro tiene por ultimo dato del otro poste.
+    //
+    // Los dos primeros se pintan IGUAL de vacios y se DICEN distinto, porque mandan a
+    // sitios distintos: uno es "actualice el firmware", el otro es "vaya a mirar la
+    // radio". Lo que no se hace en ninguno de los dos es dejar el semaforo del POSTE 2
+    // con el ultimo color pintado como si fuera de ahora (CLAUDE.md 3.quinquies).
+    esc: null,
     // null = NADIE HA DICHO CUANTO FALTA. No es 0: 0 es el ultimo segundo de la
     // fase, que es un dato, y esto es la ausencia de dato. Ver N-139 y
     // updateCountdownRing().
@@ -50,6 +65,14 @@ document.addEventListener('DOMContentLoaded', () => {
     rfTramo: null,
     rfUltimaMuestraMs: null,
     battery: null,
+    // LA HORA QUE EL EQUIPO DICE TENER. Hasta el 05/09 esta variable tenia UN escritor
+    // y CERO lectores: el campo HORA: llegaba en cada $STATUS, se guardaba aqui y no lo
+    // pintaba nadie. Es la version de dato de la funcion huerfana de CLAUDE.md 3.bis, y
+    // lo destapo un censo -no una queja de campo-, que es como hay que encontrarlas.
+    // El lector es pintarHoraEquipo(). Tres valores y ninguno se colapsa con otro:
+    // null = el equipo no ha hablado; "--:--:--" = el equipo dice que NO tiene la hora
+    // puesta (y de esa hora cuelga la autorizacion del Modo Degradado); HH:MM:SS = la
+    // hora de su DS3231.
     hora: null,
     pin: '',
     correctPin: '1234',
@@ -236,6 +259,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const courierTimerDigits = document.getElementById('courier-timer-digits');
   const btnSyncRtc = document.getElementById('btn-sync-rtc');
   const rtcSyncDigits = document.getElementById('rtc-sync-digits');
+  // N-150: el primer LECTOR que ha tenido nunca state.hora. Ver pintarHoraEquipo().
+  const equipoHoraEl = document.getElementById('equipo-hora');
   const btnStartTestLeds = document.getElementById('btn-start-test-leds');
 
   // Form Tiempos
@@ -1501,6 +1526,33 @@ document.addEventListener('DOMContentLoaded', () => {
                    frase: 'FALLO COM: ámbar intermitente y TALANQUERA ARRIBA, se pasa con precaución' }
   };
 
+  // =========================================================================
+  // EL VOCABULARIO DE ESC:, QUE NO ES EL DE ESTADO: Y POR ESO ES OTRA TABLA
+  // =========================================================================
+  // N-149 (05/09). Decision del responsable: "cuando me conecto al maestro no me
+  // aparecen los estados del semaforo del esclavo... yo necesito que maestro me traiga
+  // los datos del esclavo". Y sobre lo que la app ofrecia hasta hoy -un boton para
+  // conectarse al otro poste-: "hay un problema porque ahi esta haciendo la conexion
+  // por Bluetooth, pero tendrias que caminar 1000 metros hasta el otro lado".
+  //
+  // POR QUE NO SE REUSA `ESTADOS`, que es la pregunta que hay que contestar antes de
+  // escribir una segunda tabla en este repositorio: son DOS campos distintos con DOS
+  // vocabularios distintos. ESTADO: sale de semaforo_nombreEstado() y puede valer
+  // "AMARILLO" o "FALLO COM"; ESC: es un resumen que el Maestro compone de lo que sabe
+  // del otro poste y su tercer valor es "AMBAR". Meter las claves de uno en la tabla
+  // del otro haria FALLAR a app_04_valores_de_status con razon -diria que la app sabe
+  // pintar un ESTADO que ninguna punta emite-, y ese pack es el que caza que el tablero
+  // no hable el idioma de un simulador.
+  //
+  // Lo que NO esta en esta tabla es '?' y esta escrito aparte a proposito: '?' no es un
+  // color, es el Maestro declarando que no lo sabe. Darle una fila aqui lo convertiria
+  // en un estado mas y es justo lo contrario de lo que significa.
+  const ESC_LUZ = {
+    'ROJO':  { lampara: 'red',   texto: 'ROJO (ESPERA)', color: 'var(--red-text)' },
+    'VERDE': { lampara: 'green', texto: 'VERDE (PASO)',  color: 'var(--green-lamp)' },
+    'AMBAR': { lampara: 'amber', texto: 'ÁMBAR',         color: 'var(--amber-lamp)' }
+  };
+
   // MODO: los diez literales que las dos puntas pueden emitir. Nueve son los `case`
   // de obtenerNombreModo() (Maestro/src/bluetooth.cpp:367-379) y el decimo es el
   // literal fijo que el Esclavo escribe dentro de su propio snprintf,
@@ -1559,18 +1611,89 @@ document.addEventListener('DOMContentLoaded', () => {
     // que usa la cabecera al leer NODE:.
     const esEsclavo = state.node === 'ESCLAVO';
     const propias = esEsclavo ? [s2Red, s2Amber, s2Green] : [s1Red, s1Amber, s1Green];
+    const ajenas = esEsclavo ? [s1Red, s1Amber, s1Green] : [s2Red, s2Amber, s2Green];
     const textoPropio = esEsclavo ? s2Text : s1Text;
     const textoAjeno = esEsclavo ? s1Text : s2Text;
     const rotuloAjeno = esEsclavo ? 'POSTE 1 · MAESTRO' : 'POSTE 2 · ESCLAVO';
 
-    // EL OTRO EXTREMO NO SE PINTA NUNCA. Sus tres lamparas se quedan apagadas por el
-    // forEach de arriba, y el texto de debajo dice por que: tres lamparas apagadas a
-    // secas se leen como "ese poste esta apagado", que seria otra afirmacion sin
-    // medida. Lo que consta es que ESTA trama no habla de el.
-    function declararAjeno() {
-      if (!textoAjeno) return;
-      textoAjeno.textContent = 'SIN DATOS · no viaja en esta trama';
-      textoAjeno.style.color = 'var(--text-muted)';
+    // EL OTRO EXTREMO, QUE DESDE N-149 A VECES SI SE PUEDE PINTAR.
+    //
+    // Hasta el 04/09 esto era `declararAjeno()` y no tenia mas remedio: el $STATUS
+    // llevaba UN solo ESTADO -el del que lo manda- y el Maestro no publicaba el del
+    // otro. Ahora publica ESC:, y la consola de operacion pinta LOS DOS POSTES.
+    //
+    // LAS TRES SALIDAS SON DISTINTAS Y NINGUNA SE COLAPSA CON OTRA, que es todo lo que
+    // este bloque tiene que hacer bien (CLAUDE.md 3.quinquies): tres lamparas apagadas
+    // a secas se leen como "ese poste esta apagado", y el ultimo color conocido
+    // repintado se lee como el de ahora. Las dos serian afirmaciones sin medida.
+    //
+    // Devuelve la frase con la que la linea del centro nombra al otro poste, para que
+    // el rotulo y la columna no se puedan desincronizar: los escribe la misma decision.
+    function pintarAjeno() {
+      // Las tres del otro poste se apagan al entrar y solo se vuelve a encender una si
+      // hay dato de AHORA. Hoy el forEach de la cabecera de renderLights() ya las dejo
+      // apagadas y esta linea no cambia nada; se escribe igual porque la propiedad que
+      // importa -"una trama sin ESC: no puede dejar encendida la lampara de la trama
+      // anterior"- tiene que vivir donde se decide, y no depender de que el barrido de
+      // arriba siga estando ahi el dia que alguien lo mueva.
+      ajenas.forEach(l => { if (l) l.classList.remove('active'); });
+      const decir = (txt, color) => {
+        if (!textoAjeno) return;
+        textoAjeno.textContent = txt;
+        textoAjeno.style.color = color || 'var(--text-muted)';
+      };
+
+      // Contra el ESCLAVO no hay nada del POSTE 1 y no lo va a haber: esa punta no
+      // emite ESC: -no tiene a quien preguntarle- y esta pantalla es la ventana de
+      // DIAGNOSTICO, no la consola de operacion. Se conserva la frase de siempre.
+      if (state.node !== 'MAESTRO') {
+        decir('SIN DATOS · no viaja en esta trama');
+        return rotuloAjeno + ' no informa';
+      }
+
+      // El campo NO VINO: firmware anterior a N-149. Se dice CUAL es la carencia, no
+      // "sin datos" a secas: sin eso, un equipo viejo y una radio caida se leen igual
+      // en pantalla y mandan al tecnico a sitios opuestos.
+      //
+      // Y "no vino" es SOLO null/undefined. Un campo ESC con el valor vacio SI vino -el
+      // equipo publico el campo y no puso nada dentro- y cae abajo, en el camino del
+      // literal desconocido, para que se vea. Meterlo aqui acusaria de firmware viejo a
+      // un equipo que acaba de mandar el campo, y taparia el unico sintoma que tiene un
+      // %s vacio en el snprintf del C++.
+      //
+      // (El nombre del campo va SIN comillas invertidas a proposito. app_01_comandos
+      // censa lo que la app manda buscando una raiz en mayusculas entre comillas
+      // invertidas seguida de dos puntos y de algo pegado detras -asi es como se ve una
+      // plantilla de trama-, y NO distingue una plantilla de un comentario. Escrito con
+      // ellas, este parrafo hacia FALLAR al pack acusando a la app de mandar un comando
+      // que ninguna punta conoce. Medido las dos veces, y las dos veces por el mismo
+      // motivo: primero con el nombre del campo y luego con la palabra que lo describe.)
+      if (state.esc === null || state.esc === undefined) {
+        decir('SIN DATO DEL POSTE 2 · este equipo no lo publica');
+        return rotuloAjeno + ': el POSTE 1 no publica su estado (firmware anterior)';
+      }
+
+      // El Maestro contesta que NO LO SABE. Es un dato, y de los buenos: dice que la
+      // radio entre postes no esta entregando.
+      if (state.esc === '?') {
+        decir('SIN DATO DEL POSTE 2 · el POSTE 1 no lo sabe', 'var(--amber-lamp)');
+        return rotuloAjeno + ': el POSTE 1 dice que NO SABE como esta (enlace entre ' +
+               'postes caído o aún sin respuesta)';
+      }
+
+      const luz = ESC_LUZ[state.esc];
+      if (!luz) {
+        // Un literal que esta tabla no conoce se ENSENA en crudo, igual que hace
+        // pintarBadgeModo() con un MODO nuevo. Callarlo dejaria la columna en blanco el
+        // dia que el firmware estrene un valor, y una columna en blanco es
+        // indistinguible de una radio caida.
+        decir('POSTE 2 NO RECONOCIDO: "' + state.esc + '"');
+        return rotuloAjeno + ': valor no reconocido "' + state.esc + '"';
+      }
+
+      ajenas[{ red: 0, amber: 1, green: 2 }[luz.lampara]].classList.add('active');
+      decir(luz.texto, luz.color);
+      return rotuloAjeno + ': ' + luz.texto;
     }
 
     pintarBadgeModo();
@@ -1592,15 +1715,18 @@ document.addEventListener('DOMContentLoaded', () => {
       // Llego un ESTADO que no esta en el enum del firmware. No se adivina: se ensena
       // el literal. Es lo que hace visible el desajuste en vez de dejar la pantalla
       // congelada, que es justo como este defecto sobrevivio.
-      declararAjeno();
+      // El otro poste SE SIGUE PINTANDO: ESC: es un campo aparte y que el Maestro no
+      // sepa nombrar SU luz no dice nada de lo que sabe de la otra punta. Tirar los dos
+      // datos por uno malo seria perder el unico que quedaba bueno.
+      const frAjeno = pintarAjeno();
       if (textoPropio) {
         textoPropio.textContent = 'ESTADO NO RECONOCIDO';
         textoPropio.style.color = 'var(--text-muted)';
       }
       if (phaseDescEl) {
-        phaseDescEl.textContent = state.estadoLuces
+        phaseDescEl.textContent = (state.estadoLuces
           ? 'ESTADO no reconocido: "' + state.estadoLuces + '"'
-          : 'SIN ESTADO en la última trama';
+          : 'SIN ESTADO en la última trama') + ' · ' + frAjeno;
       }
       return;
     }
@@ -1610,15 +1736,16 @@ document.addEventListener('DOMContentLoaded', () => {
       textoPropio.textContent = info.texto;
       textoPropio.style.color = info.color;
     }
-    declararAjeno();
+    const frAjeno = pintarAjeno();
 
     // La linea del centro deja de anunciar una FASE DEL CRUCE -"FASE: SENTIDO 1"-,
     // que es una afirmacion sobre los dos postes, y pasa a decir DE QUIEN es el dato
     // que se esta viendo y que dice. Es la misma diferencia de arriba, escrita donde
-    // el operario la lee.
+    // el operario la lee. Desde N-149 la segunda mitad ya no es siempre "no informa":
+    // la escribe pintarAjeno(), que es quien decidio que se pinto en esa columna.
     if (phaseDescEl) {
       phaseDescEl.textContent = (esEsclavo ? 'ESCLAVO' : 'MAESTRO') + ': ' + info.frase +
-                                ' · ' + rotuloAjeno + ' no informa';
+                                ' · ' + frAjeno;
     }
   }
 
@@ -1658,6 +1785,61 @@ document.addEventListener('DOMContentLoaded', () => {
     const clase = info ? info.anillo : 'red';
     ringProgressEl.className = 'ring-fill ' + clase;
     cdNumEl.className = 'ring-num ' + clase;
+  }
+
+  // =========================================================================
+  // 2.quater LA HORA DEL EQUIPO, QUE LLEGABA DESDE SIEMPRE Y NO LA LEIA NADIE
+  // =========================================================================
+  // N-150 (05/09). MEDIDO CON UN CENSO, no reportado desde el campo: `state.hora` tenia
+  // un solo escritor -la rama de $STATUS- y NINGUN lector en app.js, en js/*.js ni en
+  // index.html. El campo HORA: viaja en cada trama de las dos puntas desde hace meses y
+  // la app lo guardaba para nada. Es exactamente la forma de CLAUDE.md 3.bis -la funcion
+  // declarada, documentada y sin un solo llamador- aplicada a un DATO en vez de a una
+  // funcion, y con el mismo final: se paga cuando alguien necesita mirarlo y no esta.
+  //
+  // Y esta noche empieza a costar de verdad: el puente ESP32 ya sella la hora del DS3231
+  // en la trama, asi que HORA: deja de ser "--:--:--" y trae hora buena. Un dato que
+  // acaba de empezar a existir y que ninguna pantalla ensena es un dato que no existe.
+  //
+  // LAS TRES RESPUESTAS SON DISTINTAS Y NINGUNA SE INVENTA NADA (CLAUDE.md 3.quinquies):
+  //
+  //   sin datos      el equipo no ha hablado, o el enlace se cayo y esta hora ya
+  //                  envejecio. Un reloj parado pintado como si corriera es el peor de
+  //                  los datos viejos: los demas se quedan quietos y este MIENTE
+  //                  moviendose... o peor, no moviendose mientras el mundo avanza.
+  //   SIN HORA       el equipo dice "--:--:--", que es lo que escribe su firmware cuando
+  //                  reloj_enHora() es falso (Maestro/src/bluetooth.cpp). NO es un fallo
+  //                  de la app ni un hueco: es el equipo declarando que no tiene hora, y
+  //                  de esa hora cuelga la autorizacion del Modo Degradado.
+  //   HH:MM:SS       la hora de su DS3231, tal cual vino. No se reformatea ni se compara
+  //                  con la del telefono aqui: el boton de debajo es el que sincroniza y
+  //                  quien decide es el que lee las dos.
+  //
+  // Lo que NO se hace es dar la hora por buena porque tenga forma de hora: un valor que
+  // no case con HH:MM:SS se ensena EN CRUDO, igual que un MODO desconocido en el badge.
+  function pintarHoraEquipo() {
+    if (!equipoHoraEl) return;
+    const decir = (txt, color) => {
+      equipoHoraEl.textContent = txt;
+      equipoHoraEl.style.color = color;
+    };
+    if (state.hora === null || state.hora === undefined) {
+      decir('sin datos del equipo', 'var(--text-muted)');
+      return;
+    }
+    const crudo = String(state.hora).trim();
+    if (/^\d{2}:\d{2}:\d{2}$/.test(crudo)) {
+      decir(crudo, 'var(--green-lamp)');
+      return;
+    }
+    // Los guiones del firmware, y el vocabulario de ausencia que ya usan RF, RTT y BAT.
+    // Se leen igual porque significan lo mismo, que es la razon de que esa lista sea una
+    // sola (RF_NO_MEDIDO).
+    if (/^-+:-+:-+$/.test(crudo) || RF_NO_MEDIDO.indexOf(crudo.toUpperCase()) >= 0) {
+      decir('SIN HORA PUESTA · hay que sincronizar', 'var(--amber-lamp)');
+      return;
+    }
+    decir('valor no reconocido: "' + crudo + '"', 'var(--text-muted)');
   }
 
   // =========================================================================
@@ -1817,11 +1999,34 @@ document.addEventListener('DOMContentLoaded', () => {
   // LAS TRES REGLAS QUE IMPIDEN QUE LA PREGUNTA SE VUELVA INVISIBLE, que son la parte
   // que de verdad decide si esto sirve para algo:
   //
-  //   1. SOLO EN LO QUE ABRE PASO. Poner rojo, poner ambar y volver al menu NO
-  //      preguntan nunca. Es la direccion segura, y es el mismo criterio que el
-  //      firmware ya usa para el PIN -SIN_PIN incluye FORZAR_ROJO y AMBAR_EMERGENCIA a
-  //      proposito-. Preguntar para PARAR ensena a decir que si sin leer, y el dia que
-  //      la pregunta llegue en serio ya no se lee.
+  //   1. SOLO EN LO QUE ABRE PASO. Poner rojo y volver al menu NO preguntan nunca. Es
+  //      la direccion segura, y es el mismo criterio que el firmware ya usa para el
+  //      PIN -SIN_PIN incluye FORZAR_ROJO a proposito-. Preguntar para PARAR ensena a
+  //      decir que si sin leer, y el dia que la pregunta llegue en serio ya no se lee.
+  //
+  //      🔴 Y AQUI ESTABA ESCRITO "PONER AMBAR" EN ESA MISMA LISTA. ERA FALSO, Y LO
+  //      CORRIGE N-148 (05/09) A PETICION DEL RESPONSABLE: "cuando le das en manual en
+  //      ambar, deberia salirte un aviso diciendo: ¿esta usted seguro que no hay
+  //      vehiculos en el corredor?".
+  //
+  //      No es una preferencia suya contra una regla nuestra: la regla estaba mal
+  //      clasificada, y se mide en el C++, no se opina. SET_MODO:AMBAR llama a
+  //      modo_ambar_setup() (Maestro/src/modo_ambar.cpp), que hace DOS cosas:
+  //      semaforo_iniciarFallo() en ESTA punta y protocolo_enviarPaquete(CMD_GO_AMBAR)
+  //      a la otra. O sea AMBAR INTERMITENTE EN LOS DOS EXTREMOS a la vez -es el mismo
+  //      final que el firmware describe en su propio acuse de AMBAR_EMERGENCIA:
+  //      "talanquera ABIERTA: no es un rojo, los dos sentidos pasan con precaucion"-.
+  //
+  //      En un carril unico de 1000 m con un poste en cada punta, eso NO para el
+  //      trafico: lo deja entrar por LOS DOS LADOS al mismo tiempo. De todas las
+  //      ordenes de esta botonera es la que mas abre paso, no la que menos. DAR PASO
+  //      abre un sentido; el ambar abre los dos.
+  //
+  //      Lo que sigue sin preguntar es la EMERGENCIA -AMBAR_EMERGENCIA del Esclavo y
+  //      ROJO TOTAL del Maestro-, y ahi el motivo no es que no abra paso: es que se da
+  //      viendo un accidente y una pregunta delante seria un paso mas entre el operario
+  //      y la maniobra. La linea no la traza "abre o para", la traza "hay tiempo de
+  //      mirar o no lo hay".
   //   2. LA PREGUNTA DICE QUE MIRAR, no "esta seguro". "Esta seguro" se contesta con el
   //      dedo; "mire hasta la curva" obliga a levantar la vista. Por eso el dialogo
   //      lleva la lista de lo que hay que mirar y el boton no se llama "Aceptar".
@@ -1849,7 +2054,15 @@ document.addEventListener('DOMContentLoaded', () => {
       'arrancar. Mire el tramo entero antes de aceptar.',
     'SET_MODO:AUTO':
       'AUTOMATICO: el equipo va a empezar a dar verdes solo, sin volver a preguntar. ' +
-      'Mire el tramo entero antes de aceptar.'
+      'Mire el tramo entero antes de aceptar.',
+    // El texto NO dice "se pone en ambar", que es lo que el rotulo del boton ya dice y
+    // no informa de nada. Dice lo que eso significa en la calzada, que es lo unico que
+    // hace levantar la vista: los dos extremos en intermitente dejan entrar por los dos
+    // lados a la vez, y en un carril unico eso es dos vehiculos de frente.
+    'SET_MODO:AMBAR':
+      'AMBAR: los DOS postes quedan en intermitente a la vez, asi que se podra entrar ' +
+      'al corredor por las dos puntas. No es un rojo y no para a nadie. Mire el tramo ' +
+      'entero antes de aceptar.'
   };
 
   // El vale sigue valiendo. Las TRES condiciones son la regla 3, y ninguna sobra:
@@ -1955,9 +2168,35 @@ document.addEventListener('DOMContentLoaded', () => {
   // se gasta ahi no es tiempo, es la credibilidad de la pregunta.
   //
   // ESTOS DOS MANDOS YA NO PIDEN PIN: PIDEN LA VIA (04/09, ver 3.ter). Son los dos que
-  // ABREN paso. El tercero de la reja -AMBAR- no pregunta nada nuevo y conserva su
-  // guarda de PIN: es la direccion segura, y preguntar para parar ensena a decir que si
-  // sin leer.
+  // ABREN paso.
+  //
+  // N-148 (05/09): EL TERCERO -AMBAR- PIDE LAS DOS COSAS, Y EL ORDEN ESTA MEDIDO.
+  //
+  // Que tambien abre paso esta razonado arriba, en 3.ter. Lo que aqui hay que decidir es
+  // si la via SUSTITUYE al PIN -como en los otros dos- o se SUMA. Se suma, y por dos
+  // motivos que no son de estilo:
+  //
+  //   1. Retirarle el PIN a esta orden es una decision vial que nadie ha tomado. El
+  //      responsable pidio ANADIR el aviso, no quitar la clave, y una orden que deja el
+  //      cruce en intermitente por los dos lados no se afloja de paso.
+  //   2. Es la unica puerta que teclea el PIN en el arnes de DOM. Ponerla detras de la
+  //      via dejaria el bloque del "teclado fantasma" saliendo verde por el motivo
+  //      equivocado -nadie confirmo el tramo- y el PIN dejaria de estar medido por
+  //      nadie. Es CLAUDE.md 8.sexies: la barrera de abajo tapando a la de arriba.
+  //
+  // Y EL PIN VA DELANTE DE LA VIA, no al reves. El vale de via SELLA LA FASE en el
+  // instante en que el operario dice que miro (viaConfirmadaVigente), asi que tiene que
+  // ser lo ULTIMO antes de que la trama salga: con el teclado en medio, entre "he
+  // mirado" y la orden caben los veinte segundos que se tarda en teclear cuatro
+  // digitos con guantes, y en un tramo de obra eso es tiempo de sobra para que entre
+  // un vehiculo.
+  //
+  // Lo que NO cambia y va escrito porque es una decision, no un olvido: se pregunta en
+  // TODOS los modos, no solo en Manual. El responsable lo pidio para Manual -que es
+  // desde donde se usa-, pero la orden es la misma desde AUTO o desde MENU y abre el
+  // corredor igual. Colgar la pregunta de state.modo tendria ademas el defecto de
+  // 3.septies al reves: sin telemetria state.modo vale null y la guarda dejaria de
+  // preguntar justo cuando la app no sabe nada del cruce.
   if (btnOpAuto) {
     btnOpAuto.addEventListener('click', () => {
       const punta = puntaCorrecta('SET_MODO');
@@ -1986,8 +2225,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const punta = puntaCorrecta('SET_MODO');
       if (punta) { avisarOtraPunta('SET_MODO:AMBAR', punta); return; }
       if (!state.pinVerificado) { pedirPin(() => btnOpAmber.click()); return; }
-      enviarComandoFirmware('SET_MODO', 'AMBAR');
-      addEvent('cyan', 'Operario: orden MODO AMBAR enviada al equipo.');
+      if (!confirmarVia('SET_MODO:AMBAR', () => btnOpAmber.click())) return;
+      // Se consume el bool por lo mismo que en los dos de arriba: sin mirarlo, la linea
+      // de abajo anunciaria "orden enviada" de una orden que el emisor pudo no escribir
+      // (app_05_sin_exito_mudo).
+      if (!enviarComandoFirmware('SET_MODO', 'AMBAR')) return;
+      addEvent('cyan', 'Operario: orden MODO AMBAR enviada al equipo. Deja los DOS ' +
+                       'postes en intermitente: espere el acuse, que dice si el ambar ' +
+                       'acaba de entrar o si ya estaba y se ha vuelto a encender.');
     });
   }
 
@@ -2211,12 +2456,19 @@ document.addEventListener('DOMContentLoaded', () => {
   //   POSTE 1 (MAESTRO)  consola de OPERACION: el ciclo, los tiempos, el modo.
   //   POSTE 2 (ESCLAVO)  ventana de DIAGNOSTICO: que le llega y que hace con ello.
   //
-  // 🔴 LO QUE NO SE PUEDE HACER TODAVIA, Y NO SE SIMULA. La consola del Maestro NO
-  // puede ensenar las luces del Esclavo: el $STATUS lleva UN solo ESTADO, el del que lo
-  // manda (Maestro/src/bluetooth.cpp:833 y Esclavo/src/bluetooth.cpp:776, un campo
-  // ESTADO por trama), y el Maestro no publica el del otro. Eso es firmware y no esta
-  // hecho. El sitio queda hecho y el hueco declarado -- y en vez de anunciar la carencia
-  // OFRECE LA ACCION: "Conectarse al POSTE 2". Tambien decision del responsable.
+  // ✅ LO QUE HASTA EL 04/09 NO SE PODIA HACER, Y DESDE N-149 SI. Aqui estaba escrito
+  // que la consola del Maestro NO podia ensenar las luces del Esclavo, porque el
+  // $STATUS llevaba UN solo ESTADO -el del que lo manda- y el Maestro no publicaba el
+  // del otro. Ya lo publica, en el campo ESC:, y renderLights() pinta las DOS columnas.
+  //
+  // El motivo de que se arreglara ahi y no aqui lo dio el responsable el 05/09, y es el
+  // que hay que conservar: "hay un problema porque ahi esta haciendo la conexion por
+  // Bluetooth, pero tendrias que caminar 1000 metros hasta el otro lado". Una consola
+  // que para ensenar el otro extremo del cruce exige caminar hasta el no es una consola.
+  //
+  // El atajo "Conectarse al POSTE 2" SE QUEDA, y cambia lo que significa: ya no es el
+  // unico modo de ver ese poste -- es el modo de abrir su ventana de DIAGNOSTICO, que
+  // sigue teniendo cosas que ESC: no lleva (su bitacora, lo que le llega del Maestro).
   //
   // 🟠 LO QUE ESTA FUNCION NO DECIDE, Y VA ESCRITO PARA QUE LO DECIDA QUIEN DEBE: los
   // DOS MANDOS DE EMERGENCIA SE QUEDAN en la ventana del Esclavo. "No operar" se ha
@@ -2426,12 +2678,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // texto unico deshace ese trabajo en la ultima pantalla, que es la unica que alguien
   // lee de pie en la calzada.
   //
-  // MEDIDO en las dos bluetooth.cpp: son CUATRO ordenes con mas de un RESULT posible.
+  // MEDIDO en las dos bluetooth.cpp: son CINCO ordenes con mas de un RESULT posible.
   //
   //   CANCELAR_AMBAR    RETIRADO / RETIRADO_QUEDA_MANDO
   //   AMBAR_EMERGENCIA  OK / YA_EN_AMBAR_LATCH_PUESTO / SALIENDO_TODO_ROJO /
   //                     SALIDA_YA_EN_CURSO
   //   SET_MODO:MENU     OK / SALIENDO_TODO_ROJO
+  //   SET_MODO:AMBAR    OK / REARMADO          <- N-146, 05/09
   //   SET_RTC           OK / HORA_PUESTA_SIN_PROPAGAR
   //
   // Y TODAS TIENEN LA MISMA FORMA DE TRAMPA: uno de los literales dice "aceptada, pero
@@ -2495,6 +2748,36 @@ document.addEventListener('DOMContentLoaded', () => {
              'salida en curso (rendicion por el limite de 48 h) que termina en ambar; ' +
              'esta orden no la arranca, lo que anade es que ese ambar quede protegido.',
       toast: 'Aceptada - ya habia una salida en curso que acaba en ambar'
+    },
+    // N-146 (05/09). LAS DOS ENTRADAS DE ABAJO NACEN DE UNA CINTA DE BANCO, NO DE UNA
+    // REVISION: el 04/09 a las 21:10 el operario pulso AMBAR SEIS VECES en tres
+    // minutos, el equipo contesto OK las seis y el cruce no se movio. El firmware
+    // arreglo su mitad -ahora RE-ARMA el ambar y contesta distinto en cada caso-, pero
+    // si la app pintara los dos literales con el mismo texto el operario seguiria sin
+    // poder distinguir la pulsacion que SI encendio algo de las cinco que no.
+    //
+    // Y LA DIFERENCIA NO ES DE MATIZ, es la que decide si se va del poste:
+    //   OK        el equipo NO estaba en ambar y entra ahora. El cambio de luz es el
+    //             normal del arranque del modo.
+    //   REARMADO  ya estaba en MODO_AMBAR con la luz en otra cosa -a ese par se llega
+    //             por un ROJO TOTAL, que mueve la luz y no el modo-, y el ambar se ha
+    //             vuelto a encender. Re-armar no es gratis: modo_ambar_setup() manda un
+    //             todo-rojo y vuelve a ordenar el ambar a las dos puntas, asi que la
+    //             luz tarda en asentarse y esta es la pulsacion que hay que mirar.
+    'SET_MODO:AMBAR|OK': {
+      tono: 'red',
+      texto: 'Equipo: MODO AMBAR puesto AHORA. No estaba en ambar y acaba de entrar. ' +
+             'Los DOS postes quedan en ambar intermitente: no es un rojo, los dos ' +
+             'sentidos pasan con precaucion. No se vaya sin ver las dos puntas.',
+      toast: 'Modo ambar: acaba de entrar'
+    },
+    'SET_MODO:AMBAR|REARMADO': {
+      tono: 'red',
+      texto: 'Equipo: YA ESTABA en modo ambar pero con la luz en otra cosa -un ROJO ' +
+             'TOTAL lo deja asi-, y el ambar se ha VUELTO A ENCENDER con esta orden. ' +
+             'La unidad pasa por un todo-rojo y vuelve a ordenar el ambar a las dos ' +
+             'puntas: espere a verlo. Si pulso varias veces, ESTA es la que movio la luz.',
+      toast: 'Ya estaba en modo ambar: el ambar se ha vuelto a encender'
     },
     'SET_MODO:MENU|OK': {
       tono: 'green',
@@ -2866,7 +3149,21 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.ESTADO !== undefined) {
         state.estadoLuces = data.ESTADO;
       }
-      if (data.MODO !== undefined || data.ESTADO !== undefined) {
+      // N-149: EL ESTADO DEL OTRO POSTE, Y SE ASIGNA SIEMPRE -TAMBIEN CUANDO NO VIENE-.
+      //
+      // Los dos `if` de arriba solo escriben si el campo llego, y ahi es correcto: MODO
+      // y ESTADO los emite CADA trama de las dos puntas, asi que "no vino" solo pasa con
+      // una trama rota y conservar el anterior es lo razonable.
+      //
+      // Con ESC: no. Puede DEJAR de venir por dos caminos normales -se cambia de poste y
+      // ahora habla un Esclavo, o el equipo de enfrente tiene firmware anterior a
+      // N-149-, y en los dos el ultimo valor que se vio es de otro equipo o de otro rato.
+      // Un `if (data.ESC !== undefined)` dejaria el semaforo del POSTE 2 pintado con ese
+      // color como si fuera de ahora, que es exactamente 3.quinquies: lo que sustituye a
+      // un dato que no se tiene no es un color, es decirlo.
+      const escAntes = state.esc;
+      state.esc = data.ESC !== undefined ? data.ESC : null;
+      if (data.MODO !== undefined || data.ESTADO !== undefined || state.esc !== escAntes) {
         renderLights();
       }
       // El control de DEMANDA se abre y se cierra con el MODO que acaba de llegar, no
@@ -2931,8 +3228,14 @@ document.addEventListener('DOMContentLoaded', () => {
             : 'Medida del equipo';
         }
       }
-      if (data.HORA) {
+      // N-150: SE GUARDA Y AHORA ADEMAS SE PINTA. Y la guarda pasa de `if (data.HORA)`
+      // a `!== undefined` por el mismo motivo que ESTADO lo hizo unas lineas mas arriba:
+      // con la truthy, un campo HORA que llegara VACIO no entraba y la pantalla se quedaba
+      // con la hora anterior pintada como si fuera de ahora. Un campo que llega vacio es
+      // un dato -dice que el equipo no supo rellenarlo-, no una trama sin campo.
+      if (data.HORA !== undefined) {
         state.hora = data.HORA;
+        pintarHoraEquipo();
       }
       // Los reparos se apuntan AQUI ABAJO y no en el juez, y el sitio importa: a esta
       // altura ya esta decidido lo que se pinto -la lectura de enlace y state.battery
@@ -4240,8 +4543,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnIrAlEsclavo) {
     btnIrAlEsclavo.addEventListener('click', () => {
-      addEvent('cyan', 'El POSTE 1 no publica el estado del POSTE 2: para verlo hay que ' +
-                       'conectarse a el. Abriendo la lista de equipos.');
+      addEvent('cyan', 'Las luces del POSTE 2 ya salen en esta pantalla (el POSTE 1 las ' +
+                       'publica). Esto abre su ventana de DIAGNOSTICO, que es lo que no ' +
+                       'viaja en la trama. Abriendo la lista de equipos.');
       abrirModalDeEquipos();
     });
   }
@@ -4482,6 +4786,13 @@ document.addEventListener('DOMContentLoaded', () => {
     pintarEnlace(ENLACE_SIN_DATO);
     if (batVoltageEl) batVoltageEl.textContent = '-- V';
     if (batStatusEl) batStatusEl.textContent = 'Sin datos del equipo';
+    // N-150: LA HORA TAMBIEN ENVEJECE, Y PEOR QUE LAS DEMAS. El contador, el RF y la
+    // bateria se quedan quietos y quietos ya parecen viejos; un reloj que se quedo en
+    // 18:25:03 sigue teniendo cara de hora buena diez minutos despues, y el tecnico lo
+    // compara con el suyo y concluye que el equipo va atrasado. Se retira por el mismo
+    // camino que la pinta, sin un segundo escritor.
+    state.hora = null;
+    pintarHoraEquipo();
     if (rssiTextEl) rssiTextEl.textContent = '(sin enlace)';
     if (s1Text) { s1Text.textContent = 'SIN DATOS'; s1Text.style.color = 'var(--text-muted)'; }
     if (s2Text) { s2Text.textContent = 'SIN DATOS'; s2Text.style.color = 'var(--text-muted)'; }

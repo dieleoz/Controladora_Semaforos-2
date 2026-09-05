@@ -492,7 +492,18 @@ const DiarioOrdenes = {
   // ESTA HACIENDO el equipo. No se meten aqui T, RF, RTT ni BAT: se mueven solos cada
   // trama y cualquier orden "cambiaria" algo, que es la forma facil de tener un diario
   // que siempre dice que si.
-  CAMPOS_EFECTO: ['MODO', 'ESTADO'],
+  //
+  // N-149: ENTRA ESC:, y el criterio no es "cambia poco" -ESTADO tampoco: en Automatico
+  // se mueve cada pocos segundos- sino "dice QUE ESTA HACIENDO el equipo". ESC es lo
+  // que el Maestro sabe de la OTRA punta, y es justo el dato que faltaba el 04/09:
+  // aquel operario pulso AMBAR seis veces porque no veia moverse el otro poste, y el
+  // diario no podia decirle si se habia movido o no. Con ESC dentro, la ventana de
+  // efecto de una orden publica tambien "ESC: ROJO -> AMBAR", que es la mitad de la
+  // maniobra que no se ve desde donde esta el que pulsa.
+  //
+  // Y su valor '?' cuenta como cualquier otro a proposito: "ESC: AMBAR -> ?" es un
+  // cambio de verdad -la radio entre postes dejo de entregar-, no un hueco que tapar.
+  CAMPOS_EFECTO: ['MODO', 'ESTADO', 'ESC'],
 
   // LA UNICA ORDEN CUYO LITERAL NO VUELVE IGUAL, y esto es una AFIRMACION SOBRE EL
   // CODIGO, o sea algo que se mide (CLAUDE.md 3.bis, la lista de excepciones con

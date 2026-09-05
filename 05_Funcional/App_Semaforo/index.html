@@ -73,10 +73,16 @@
             </div>
             <div class="semaforo-state-text" id="s1-text">SIN DATOS</div>
             <!-- UN HUECO QUE NO SE PUEDE RELLENAR OFRECE LA ACCION, NO ANUNCIA LA
-                 CARENCIA. El $STATUS trae UN solo ESTADO -el del que lo manda-, asi que
-                 estando en el POSTE 2 no hay forma de saber las luces del POSTE 1: eso
-                 es firmware y no esta hecho. Lo que si se puede hacer es llevar al
-                 tecnico al otro poste de un toque. Decision del responsable, 04/09. -->
+                 CARENCIA. Estando en el POSTE 2 no hay forma de saber las luces del
+                 POSTE 1: el $STATUS del Esclavo trae UN solo ESTADO -el suyo- y esa
+                 punta no tiene a quien preguntarle por la otra. Lo que si se puede
+                 hacer es llevar al tecnico al otro poste de un toque. Decision del
+                 responsable, 04/09.
+
+                 EL SENTIDO CONTRARIO YA NO ES UN HUECO (N-149, 05/09): desde el POSTE 1
+                 las luces del POSTE 2 SI viajan, en el campo ESC: del $STATUS del
+                 Maestro, y renderLights() las pinta en la columna de al lado. Este
+                 boton es el del POSTE 2 mirando al 1, que es el que sigue sin dato. -->
             <button class="btn-ir-al-otro" id="btn-ir-al-maestro" style="display:none;">
               Conectarse al POSTE 1
             </button>
@@ -533,6 +539,21 @@
       <div class="card">
         <h3>⏱️ Sincronizar reloj DS3231</h3>
         <p class="card-sub">Con la hora del teléfono.</p>
+        <!-- N-150 (05/09): LA HORA QUE EL EQUIPO DICE TENER, QUE HASTA HOY NO SE PINTABA
+             EN NINGUNA PARTE.
+             El campo HORA: viaja en cada $STATUS desde hace meses y `state.hora` tenia
+             UN escritor y CERO lectores: la app la recibia y la tiraba. Lo destapo un
+             censo, no una queja, y a partir de esta noche importa mas -el puente ESP32
+             ya sella la hora del DS3231 en la trama, asi que deja de ser --:--:-- para
+             traer hora de verdad-.
+             VA AQUI Y NO EN LA PANTALLA DE OPERACION porque aqui es donde SE DECIDE:
+             debajo esta el boton que la pisa con la del telefono, y nadie puede decidir
+             si sincroniza sin ver antes lo que el equipo tiene. Una hora suelta en el
+             tablero de campo seria un dato mas que mirar con un coche encima; aqui es
+             la mitad izquierda de una comparacion. -->
+        <p class="card-sub">
+          El equipo dice tener: <strong id="equipo-hora">sin datos del equipo</strong>
+        </p>
         <button class="btn-save-site" id="btn-sync-rtc">
           ⏱️ Sincronizar (<span id="rtc-sync-digits">--:--:--</span>)
         </button>
