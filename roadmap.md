@@ -97,6 +97,76 @@ cable, y conviene un segundo terminal emparejado.
 
 ---
 
+## 0.0.quatervicies COMO SE REPARTE EL TRABAJO ENTRE SUBAGENTES — y el orden de lo que queda
+
+> **EL LIMITE NO ES CUANTOS AGENTES CABEN: ES QUE DOS NO ESCRIBAN EL MISMO FICHERO.**
+
+Con el arbol compartido nadie avisa: **`git add -A` barre lo que el otro tiene en vuelo, y la
+historia queda mintiendo** (§8.quinquies). Ya paso el 27/08 —un commit titulado «N-71» que
+contiene **solo el acta**— y volvio a pasar el 05/09, cuando un `git add 01_Firmware/` se llevo el
+trabajo a medias de otro agente.
+
+**Las tres reglas que salen de eso, y son de operacion, no de estilo:**
+
+1. **A cada agente se le da la LISTA de ficheros que posee, y la lista de los que tiene
+   prohibidos.** Por nombre. Un encargo por «tema» no reparte nada: dos temas distintos caen en
+   `bluetooth.cpp` constantemente.
+2. **Ningun agente hace `git add` ni `git commit`.** Comitea el que coordina, **con rutas
+   explicitas y mirando el INDICE antes** — `git diff --cached --name-only—, que es lo unico que ve
+   esta clase de fallo (§8.quinquies, segunda via).
+3. **Un agente que solo CENSA lee con `git show HEAD:<ruta>`, no del arbol.** Si no, informa sobre
+   media frase de otro agente y ese hallazgo es ruido.
+
+### Y una cuarta que aparecio el 05/09, porque no estaba escrita
+
+> 🔴 **Un cambio de firmware de un agente puede dejar ROJO un pack cuyo arreglo esta en los
+> ficheros de OTRO.**
+
+Paso literalmente: el agente del campo `CAM:` lo anadio al `$STATUS` de las dos puntas, y eso puso
+`documentos_03_trama_status` en `FALLA` porque el manual que documenta esa trama **es del lote de
+otro agente**. Se arreglo por casualidad —el segundo agente lo vio y lo documento—, y esa
+casualidad no es un metodo.
+
+**La regla: al repartir, se mira que el pack que vigila una propiedad y el fichero que la produce
+caigan en el MISMO lote.** Cuando no se puede, se dice en los dos encargos.
+
+### El orden de lo que queda, y por que es ese
+
+**Lo que se puede hacer en paralelo hoy** — ficheros disjuntos, ningun solape:
+
+| lote | ficheros | de que decision sale |
+|---|---|---|
+| **Modo Inteligente con los tiempos del operario** | `modo_inteligente.cpp`, `modo_automatico.*`, `app_11` | decision del 05/09 · **es el unico `FALLA` de la compuerta** |
+| **Campo `CAM:` y la fila en la app** | `bluetooth.cpp` de las dos puntas, la app, `esp32_07`, `costura_10` | `A-13`, tecnica |
+| **Censo de las spec contra el firmware** | **ninguno — solo lee** | encargo del responsable |
+
+**Lo que va DETRAS y no puede solaparse:**
+
+- **La camara ciega de 6 h a 4 dias** y el modo declarandose averiado → toca `botones.cpp` y
+  `camara_03`, **los mismos que el lote del `CAM:`**. Espera a que ese libere.
+- **La pluma que puede no bajar** (fase 2 de `D-13`) → toca `semaforo.cpp`, que es la **barrera de
+  salidas** (§6). No se mete en el mismo turno que otro cambio de firmware.
+- **El boton de Degradado del poste 2** → **espera una respuesta del responsable** (`A-11`).
+- **El manual que explica por que un verde a veces dura el doble** → es la **condicion** que puso el
+  responsable para el techo del doble. Va con el cambio, no despues.
+
+### Y lo que se le pide a un agente ARQUITECTO al final, que no es re-medir
+
+Los packs ya miden. Lo que ningun pack contesta son estas tres, y son las que este proyecto ha
+fallado:
+
+1. **¿Esto acerca una tarjeta cargada, o la sustituye?** (§2.bis). En campo corre `e303485` del
+   **31/07**. La medida es firmware contra instrumento, y ya iba **2,31 : 1**.
+2. **¿Que esta DECLARADO y no EJERCIDO?** (§2.ter). Aparecio cinco veces en un dia, y el 05/09 una
+   mas: el Degradado del poste 2, descrito en los manuales y sin puerta viva.
+3. **¿Se contradicen entre si las decisiones nuevas?** Cuatro en una noche. La que mas pesa: retirar
+   el mando **abre el veto de SFTY-21** —cinco lectores— y **deja al Esclavo sin puerta al
+   Degradado**.
+
+**Y se le dice que ponga en duda los datos del que le encarga**: el 05/09 un `grep` mal hecho llego
+al responsable con la palabra «medido» encima, y le habria hecho decidir entre dos opciones cuando
+la barata —que existia— no estaba en la mesa.
+
 ## 0.0.tervicies LO QUE EL RESPONSABLE DECIDIO LA NOCHE DEL 05/09 — cuatro decisiones y una condicion
 
 ### 1 · `A-12` · EL MODO INTELIGENTE PASA A USAR LOS TIEMPOS QUE CONFIGURA EL OPERARIO
