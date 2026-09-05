@@ -279,6 +279,54 @@ vacuamente cierto (§3.bis). Ahora vuelven a medir.
 | **`CANCELAR_AMBAR` tambien ABRE paso** | lo dice su propio comentario, y quedo con PIN y sin confirmacion. Es el candidato mas claro a llevar el aviso de via |
 | **Sin telemetria la fase no acota** | `estadoLuces` vale `null` en los dos lados, asi que lo unico que estrecha la ventana de "no repreguntar" son los 30 s |
 
+### 0.0.septies · 🟢 EL BANCO DEL 04/09 POR LA NOCHE — lo que se cerro EN COBRE y los cuatro defectos nuevos
+
+**N-42 CERRADO EN COBRE.** Palabras del responsable, con el equipo delante: *"ahi cambia ese
+amarillo y este a verde. Ahora esta funcionando"*. El Modo Automatico mueve las luces, con
+los 3 minutos puestos y confirmados: *"creo que esta minimo 3, no? Minimo 3, si"*.
+
+**Y LA CONFIRMACION DE VIA CONVENCIO:** *"dice: no quedan vehiculos en el tramo... se le
+pregunto, no lo puede cambiar asi porque si"*. Ademas quedo resuelta una duda suya que
+conviene dejar escrita: **confirmar la via NO acorta el ciclo** — el equipo termina sus 3
+minutos igual. Su criterio: *"y si se los cambia, esta mal"*. No se los cambia.
+
+#### 🟢 Y EL DIARIO DE ORDENES DIAGNOSTICO EL RELOJ EN UN SOLO EXPORT
+
+Lo que no se pudo en veinte minutos de deduccion, lo dijo la primera exportacion:
+
+```
+20:01:28  ORDEN      CMD:PIN:****:SET_RTC:2026-09-04,20:01:28
+20:01:28  RESPUESTA  $ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-09-04,HORA:20:01:28
+20:01:32  RESPUESTA SUELTA  $ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO
+```
+
+**El reloj SI se pone.** El `$ACK` viene del **PUENTE** —el ESP32 con el DS3231— y devuelve la
+fecha y la hora que quedaron escritas. Cuatro segundos despues llega un `$ERR` **sin
+`NODE:PUENTE`**: es del STM32, que recibe la misma linea porque el puente reenvia VERBATIM
+—es su contrato—, intenta poner **su** reloj —el del cristal muerto de N-17— y falla.
+
+> **La leccion de metodo: el instrumento se arreglo por la manana y por la noche pago el
+> arreglo entero.** Es lo contrario de §2.bis: aqui el instrumento no sustituyo a la tarjeta,
+> le contesto una pregunta que la tarjeta no sabia formular.
+
+#### Los cuatro defectos nuevos
+
+| | que | estado |
+|---|---|---|
+| **N-137** | 🔴 **el Modo Inteligente configuraba el cruce con 2 MINUTOS de verde**, por debajo del minimo vial. Escribia los tiempos por su cuenta sin pasar por la guarda — y era el modo que la guia recomendaba como salida | 🟢 cerrado |
+| **N-138** | el `FORMATO_INVALIDO` del reloj era un **mensaje mentiroso**: reusaba el motivo de formato para decir "no quedo puesta". Dos causas, una sola respuesta | 🟢 cerrado |
+| **N-139** | 🔴 **el contador de la app no cuenta la fase: cuenta el segundero del equipo.** `T: = (millis()/1000) % 60` — va de 0 a 59 y vuelve a empezar, este el semaforo donde este. El comentario dice "segundos transcurridos en fase actual" **y no lo es** | 🔴 abierto |
+| **N-140** | 🔴 **`DAR PASO` en manual deja Maestro en rojo y Esclavo en ambar titilando.** El responsable: *"eso no esta bien... sera que haga el switcheo, uno verde, el otro rojo, y luego invertirlos"* | 🔴 abierto, falta confirmar la definicion |
+
+**N-137 es la TERCERA vez el mismo dia que un limite vital vivia en un sitio y estaba escrito
+a mano en otro.** Por eso los seis numeros se mudaron a `Maestro/include/limites_ciclo.h`, un
+solo fichero que todos los modos leen, con el porque de los 3 minutos en su cabecera. Cuatro
+instrumentos ABORTARON en la corrida siguiente —§5, leen por ruta— y los cuatro se
+reapuntaron: eso es la guarda funcionando, no un estorbo.
+
+**Y N-139 es otra vez la forma de §2.ter:** un campo DECLARADO como tiempo de fase que nadie
+EJERCIO nunca. La app lo pinta fielmente; el numero no significa nada.
+
 ### 0.0.quinquies · 🎯 LO QUE HAY QUE MEDIR EN LA PROXIMA CARGA — paquete `944c18d`
 
 **La prueba que mas vale de la sesion es el paso 30, y su resultado bueno esta escrito al

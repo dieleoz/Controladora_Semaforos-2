@@ -90,6 +90,16 @@ static std::string dirDeEsteArchivo() {
 // de trabajo: el arnes puede invocarse desde cualquier sitio (compilar.ps1, la
 // compuerta, o a mano) y la ruta tiene que seguir siendo la misma.
 static const std::string MAESTRO_SRC = dirDeEsteArchivo() + "/../Maestro/src/";
+// N-137 (04/09): los seis limites del ciclo se mudaron de modo_automatico.cpp a
+// include/limites_ciclo.h -vivian `static` y por eso otros modos no los veian, lo que
+// produjo tres agujeros el mismo dia-. Este arnes ABORTO en la corrida siguiente, que
+// es §5 funcionando: lee el fuente POR RUTA y la ruta cambio. Se resuelve por nombre
+// de fichero, no anadiendo un segundo directorio a cada llamada.
+static const std::string MAESTRO_INC = dirDeEsteArchivo() + "/../Maestro/include/";
+static std::string rutaDe(const std::string& archivo) {
+  return (archivo.size() > 2 && archivo.substr(archivo.size() - 2) == ".h")
+           ? MAESTRO_INC + archivo : MAESTRO_SRC + archivo;
+}
 
 static void abortar(const std::string& motivo) {
   std::fprintf(stdout, "\n[ABORTADO] %s\n", motivo.c_str());
@@ -101,7 +111,7 @@ static void abortar(const std::string& motivo) {
 }
 
 static std::string leerArchivoFuente(const std::string& nombre) {
-  std::string ruta = MAESTRO_SRC + nombre;
+  std::string ruta = rutaDe(nombre);   // N-137: .h en include/, .cpp en src/
   std::ifstream f(ruta.c_str());
   if (!f) abortar("no se pudo abrir el fuente real " + ruta);
   std::ostringstream ss;
@@ -605,13 +615,13 @@ int main() {
   //
   // Ahora se leen las constantes por nombre. Sin valor por defecto, igual que antes:
   // si alguien las renombra, esto vuelve a ABORTAR en vez de medir otra cosa.
-  long MIN_ROJO_DEFECTO = leerConstante("modo_automatico.cpp",
+  long MIN_ROJO_DEFECTO = leerConstante("limites_ciclo.h",
       R"(ROJO_MIN_MIN\s*=\s*(\d+))",
       "el minimo de rojo, que es tambien el valor de arranque del asistente");
-  long MIN_VERDE_DEFECTO = leerConstante("modo_automatico.cpp",
+  long MIN_VERDE_DEFECTO = leerConstante("limites_ciclo.h",
       R"(VERDE_MIN_MIN\s*=\s*(\d+))",
       "el minimo de verde, que es tambien el valor de arranque del asistente");
-  long SEG_ESTATICO_DEFECTO = leerConstante("modo_automatico.cpp",
+  long SEG_ESTATICO_DEFECTO = leerConstante("limites_ciclo.h",
       R"(DESPEJE_SEG_MIN\s*=\s*(\d+))",
       "el despeje All-Red minimo, que es tambien el de arranque");
   (void)MIN_ROJO_DEFECTO;

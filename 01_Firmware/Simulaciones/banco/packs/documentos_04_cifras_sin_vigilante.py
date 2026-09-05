@@ -235,7 +235,7 @@ def correr(b, fw):
     # =================================================================================
     b.titulo("1. El rango de despeje (SFTY-4) releido de modo_automatico.cpp")
 
-    RUTA_AUT = ("Maestro", "src", "modo_automatico.cpp")
+    RUTA_AUT = ("Maestro", "include", "limites_ciclo.h")
     dmin = fw.constante(RUTA_AUT, r"DESPEJE_SEG_MIN\s*=\s*(\d+)", "el piso de despeje")
     dmax = fw.constante(RUTA_AUT, r"DESPEJE_SEG_MAX\s*=\s*(\d+)", "el techo de despeje")
 

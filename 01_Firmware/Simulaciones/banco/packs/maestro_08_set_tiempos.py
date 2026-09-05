@@ -28,7 +28,16 @@ import re
 NOMBRE = "maestro_08_set_tiempos"
 DESCRIPCION = "los limites de los tiempos viven en el C++, rechazan antes de tocar nada y no se aplican en marcha"
 
-FUENTE = ("Maestro", "src", "modo_automatico.cpp")
+# N-137 (04/09): SON DOS FUENTES, y separarlas fue el arreglo.
+#
+# Los seis limites vivian `static` dentro de modo_automatico.cpp -invisibles para los
+# demas modos-, y eso produjo tres agujeros el mismo dia; el ultimo, un Modo
+# Inteligente configurando 2 minutos de verde por debajo del minimo vial. Se mudaron a
+# include/limites_ciclo.h. Este pack ABORTO en la corrida siguiente -§5: los
+# instrumentos leen por ruta y mover contenido rompe al que lee- y ahora lee cada cosa
+# donde esta: los NUMEROS del header, y la GUARDA que los aplica del .cpp.
+FUENTE_LIMITES = ("Maestro", "include", "limites_ciclo.h")
+FUENTE         = ("Maestro", "src", "modo_automatico.cpp")
 BT = ("Maestro", "src", "bluetooth.cpp")
 
 LIMITES = ("VERDE_MIN_MIN", "VERDE_MIN_MAX", "ROJO_MIN_MIN", "ROJO_MIN_MAX",
@@ -54,7 +63,10 @@ def _cuerpo(codigo, firma):
 def correr(b, fw):
     b.titulo("SET_TIEMPOS: los limites mandan, y mandan antes de tocar nada")
 
-    codigo = fw.codigo(*FUENTE)
+    # Los limites y la guarda que los aplica ya no viven en el mismo fichero. Se
+    # concatenan para que el resto del pack siga leyendo de un solo texto, y si
+    # cualquiera de los dos falta, fw.codigo() ABORTA -que es lo correcto-.
+    codigo = fw.codigo(*FUENTE_LIMITES) + chr(10) + fw.codigo(*FUENTE)
 
     # ---- 1. Los seis limites se LEEN del C++, sin valor por defecto ----
     valores = {}

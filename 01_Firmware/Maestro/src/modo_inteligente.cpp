@@ -10,10 +10,19 @@
 #include "modos.h"
 #include "protocolo.h"
 #include <string.h>
+#include "limites_ciclo.h"   // N-137: el minimo vial, no un 2 escrito a mano
 
 enum FaseInt { INT_CORRIENDO };
 static FaseInt faseI;
-static int maxVerde = 2, segEstatico = 15;
+// N-137 (04/09): AQUI PONIA `maxVerde = 2` MINUTOS, POR DEBAJO DEL MINIMO VIAL.
+//
+// Este modo configura el coordinador por su cuenta -no pasa por SET_TIEMPOS-, asi que
+// la guarda de los 3 minutos no lo tocaba. Y era el modo que la guia de banco
+// recomendaba como salida mientras el Automatico estuvo roto: el cruce habria corrido
+// con verdes de 2 minutos justo donde el responsable dijo que el minimo son 3.
+//
+// Los limites salen ahora de limites_ciclo.h, que es el unico sitio donde viven.
+static int maxVerde = VERDE_MIN_MIN, segEstatico = DESPEJE_SEG_MIN;
 static unsigned long tEstadoDesde = 0;
 static bool primeraVezCorriendo = true;
 
@@ -38,8 +47,10 @@ void modoInteligente_setup() {
   pinMode(LED_TESTIGO, INPUT);
 
   faseI = INT_CORRIENDO;
-  maxVerde = 2; // 2 min max verde
-  segEstatico = 15; // 15 seg all-red
+  // Mismo motivo que el inicializador: reentrar en el modo no puede devolver el
+  // cruce por debajo del minimo vial.
+  maxVerde = VERDE_MIN_MIN;
+  segEstatico = DESPEJE_SEG_MIN;
   
   coordinador_configurar((unsigned long)segEstatico * 1000UL,
                           (unsigned long)maxVerde * 60000UL,

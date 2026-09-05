@@ -33,7 +33,11 @@ import re
 NOMBRE = "app_11_rangos_de_tiempos"
 DESCRIPCION = "los rangos de tiempos dicen lo mismo en el C++, en app.js y en el HTML"
 
-CPP = ("Maestro", "src", "modo_automatico.cpp")
+# N-137 (04/09): los limites se mudaron a include/limites_ciclo.h. Este pack ABORTO en
+# la corrida siguiente, que es §5 haciendo su trabajo: los instrumentos leen el fuente
+# POR RUTA, y mover contenido rompe al que lee. Un ABORTADO grita; lo que no se puede
+# permitir es que siguiera midiendo sobre un fichero que ya no los tiene.
+CPP = ("Maestro", "include", "limites_ciclo.h")
 APP_JS = ("05_Funcional", "App_Semaforo", "app.js")
 APP_HTML = ("05_Funcional", "App_Semaforo", "index.html")
 
@@ -50,7 +54,7 @@ def correr(b, fw):
         m = re.search(r"%s\s*=\s*(\d+)" % nombre, cpp)
         if not m:
             raise fw.Abortado(
-                "no se halla %s en Maestro/src/modo_automatico.cpp. Sin el rango del C++ "
+                "no se halla %s en Maestro/include/limites_ciclo.h. Sin el rango del C++ "
                 "no hay contra que comparar, y comparar contra un valor supuesto seria "
                 "inventar la referencia" % nombre)
         return int(m.group(1))
@@ -195,13 +199,32 @@ def correr(b, fw):
     # Ninguna de las tres copias tenia el comentario de seguridad encima. Ese es el
     # patron y por eso se vigila: cuando un minimo vive en una constante y ademas
     # escrito a mano en otro sitio, el dia que difieran gana el que NO lleva el aviso.
+    # 🔴 Y SE CENSAN TODOS LOS .cpp DEL MAESTRO, NO SOLO modo_automatico (N-137).
+    #
+    # Esta comprobacion nacio mirando un solo fichero, y esa era su mitad ciega. El mismo
+    # 04/09 aparecio un TERCER agujero por el mismo motivo: modo_inteligente.cpp
+    # configuraba el coordinador con `maxVerde = 2` MINUTOS -por debajo del minimo vial-,
+    # y no pasaba por SET_TIEMPOS, asi que ninguna guarda lo tocaba. Encima era el modo
+    # que la guia de banco recomendaba como salida mientras el Automatico estuvo roto.
+    #
+    # Los limites viven ahora en include/limites_ciclo.h, un solo sitio. Lo que se vigila
+    # aqui es que NINGUN .cpp del Maestro escriba a mano un tiempo de ciclo fuera de
+    # rango, se llame la variable como se llame en cada modo.
+    import os
+    VARS = {"minRojo": (r_min, r_max), "minVerde": (v_min, v_max),
+            "segEstatico": (d_min, d_max), "maxVerde": (v_min, v_max)}
     lineas_malas = []
-    for m in re.finditer(r"(minRojo|minVerde|segEstatico)\s*(?:=|<|>)\s*(\d+)", cpp):
-        var, val = m.group(1), int(m.group(2))
-        lo, hi = {"minRojo": (r_min, r_max), "minVerde": (v_min, v_max),
-                  "segEstatico": (d_min, d_max)}[var]
-        if not (lo <= val <= hi):
-            lineas_malas.append("%s con %d (el rango es %d-%d)" % (var, val, lo, hi))
+    _dir = os.path.dirname(fw.ruta("Maestro", "src", "modo_automatico.cpp"))
+    for _n in sorted(x for x in os.listdir(_dir) if x.endswith(".cpp")):
+        _t = fw.codigo("Maestro", "src", _n)
+        # Se quitan los comentarios: si no, el pack acusa a la documentacion que explica
+        # el defecto retirado. Ya paso con la cuarta copia de js/config.js.
+        _t = re.sub(r"//.*", "", _t)
+        for m in re.finditer(r"(%s)\s*(?:=|<|>)\s*(\d+)" % "|".join(VARS), _t):
+            var, val = m.group(1), int(m.group(2))
+            lo, hi = VARS[var]
+            if not (lo <= val <= hi):
+                lineas_malas.append("%s: %s con %d (el rango es %d-%d)" % (_n, var, val, lo, hi))
 
     b.verificar(
         not lineas_malas,

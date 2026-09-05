@@ -1,5 +1,6 @@
 // ===== src/modo_automatico.cpp =====
 #include "modo_automatico.h"
+#include "limites_ciclo.h"   // N-137: los limites, en un solo sitio
 #include "modos.h"      // N-135: enMarcha() pregunta por el MODO, no por una fase
 #include "respaldo.h"   // N-133: los tiempos del ciclo sobreviven al corte
 #include "botones.h"
@@ -35,9 +36,10 @@
 // nueve- y ademas dice la verdad: desde N-42, entrar al modo ES ponerse a correr.
 //
 // Un estado que no puede tener dos valores no es un estado. Se retiran los dos.
-static const uint8_t VERDE_MIN_MIN = 3,  VERDE_MIN_MAX = 15;
-static const uint8_t ROJO_MIN_MIN  = 3,  ROJO_MIN_MAX  = 15;
-static const uint8_t DESPEJE_SEG_MIN = 10, DESPEJE_SEG_MAX = 90;
+// N-137: las seis constantes se mudan a include/limites_ciclo.h. Vivian `static` aqui,
+// o sea invisibles para los demas modos, y eso produjo TRES agujeros distintos el
+// mismo dia -el ultimo, un Modo Inteligente configurando 2 minutos-. El porque
+// completo, y el de los 3 minutos, estan en la cabecera de ese fichero.
 
 // LOS VALORES DE ARRANQUE SALEN DE LOS LIMITES, NO SE ESCRIBEN A MANO (04/09).
 //

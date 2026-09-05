@@ -89,15 +89,15 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 
 | Comprobación | Estado | |
 |---|---|---|
-| guarda de rutas de los instrumentos | ✅ | 59 rutas parseadas, todas existen |
-| banco por packs *(69 packs)* | 🔴 | **998/998** — **todos en `PASS`**. Los ultimos en entrar vigilan lo que la V9.0 estrena: `enlace_01_transporte` (pines, velocidad, buffer y framing del puerto por el que habla el ESP32, que hasta N-94 no miraba nadie), `camara_02_j16`, los nueve del ESP32 y `costura_11_lcd_sin_bus`. |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.0 %** · 66.1 % · 20,6 % · 35,7 % — *7.216 B libres en el Maestro tras las Fases 1 y 2, `AiBus` y N-90* |
+| guarda de rutas de los instrumentos | ✅ | 60 rutas parseadas, todas existen |
+| banco por packs *(70 packs)* | 🔴 | **1008/1008** — **todos en `PASS`**. Los ultimos en entrar vigilan lo que la V9.0 estrena: `enlace_01_transporte` (pines, velocidad, buffer y framing del puerto por el que habla el ESP32, que hasta N-94 no miraba nadie), `camara_02_j16`, los nueve del ESP32 y `costura_11_lcd_sin_bus`. |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.1 %** · 66.1 % · 20,6 % · 35,7 % — *7.168 B libres en el Maestro tras las Fases 1 y 2, `AiBus` y N-90* |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35,6 % — 1.121.001 de 3.145.728 B |
 | simulador del puente ESP32 | ✅ | **86/86** — las tres puntas: `bluetooth.cpp` compilado, la app en jsdom, y solo el ESP32 modelado |
 | simulador de app y bluetooth | ✅ | 5/5 — **conectado el 27/08**: existía desde el 26/08 y no estaba en el acta |
-| **app ejecutada en DOM** | ✅ | **142/142** — y lo que mide creció: la app **valida el checksum** desde el 01/09 (`validarTrama()` tenía 4 copias y **cero llamadores**), tiene una **pestaña de depuración** con las tramas en crudo y las rechazadas **con su motivo**, y su barrera de PIN ya no se puede armar con el teclado cerrado. — — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden** *(desde N-75: el rewrite sacó el gestor de cruces, el parser NMEA y el Courier a módulos, y el arnés seguía evaluando sólo `app.js`)*, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
+| **app ejecutada en DOM** | ✅ | **183/183** — y lo que mide creció: la app **valida el checksum** desde el 01/09 (`validarTrama()` tenía 4 copias y **cero llamadores**), tiene una **pestaña de depuración** con las tramas en crudo y las rechazadas **con su motivo**, y su barrera de PIN ya no se puede armar con el teclado cerrado. — — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden** *(desde N-75: el rewrite sacó el gestor de cruces, el parser NMEA y el Courier a módulos, y el arnés seguía evaluando sólo `app.js`)*, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
 | test funcional de la app | ✅ | **58/58** — también conectado el 27/08. Decía «22/22» a mano y ejecuta 34; su prueba de Courier RTC era una tautología |
 | test unitarios TDD de la app | ✅ | **55/55** — la **segunda** suite unitaria, que hasta el 01/09 **no estaba en la compuerta**: 23 pruebas verdes que no medían nada |
 | test unitarios de la app | ✅ | **32/32** — seis suites sin DOM: NMEA y *checksums*, generador de comandos y barrera de PIN, validación de `SET_TIEMPOS`, Courier RTC, gestor de cruces y escala de 20 cruces. **Faltaba en esta tabla hasta el 28/08**: el acta lo medía y el README no lo nombraba, así que el auditor no tenía forma de saber que existía |
@@ -170,7 +170,7 @@ escribir que eso no se hace: decía `✅ 829/829, los 59 packs en PASS` citando 
 > no es eso, y qué sigue roto. Un lector que empieza por *"100% PASS"* no llega a la línea que
 > importa. El método está en la skill `entregar`.
 
-> ### 📦 El banco son 69 packs — la migración terminó el 05/08, y creció con V9.0
+> ### 📦 El banco son 70 packs — la migración terminó el 05/08, y creció con V9.0
 >
 > *(Este rótulo decía **34** mientras la tabla de arriba y el acta que ella cita decían **38**. Un
 > documento que se contradice a sí mismo en dos párrafos es el caso que ya cazó N-62 con las rutas;

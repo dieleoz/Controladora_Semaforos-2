@@ -486,6 +486,10 @@ int main() {
   const std::string PROTO_M = RAIZ + "/Maestro/include/protocolo.h";
   const std::string COORD   = RAIZ + "/Maestro/src/coordinador.cpp";
   const std::string AUTOM   = RAIZ + "/Maestro/src/modo_automatico.cpp";
+  // N-137 (04/09): los seis limites del ciclo se mudaron a include/limites_ciclo.h.
+  // Vivian `static` dentro del .cpp -invisibles para los demas modos- y eso produjo
+  // tres agujeros el mismo dia. Este arnes ABORTO al cambiarlo, que es §5 funcionando.
+  const std::string LIMITES = RAIZ + "/Maestro/include/limites_ciclo.h";
 
   // Los codigos de comando van en hexadecimal en protocolo.h; leerNumero() lee decimal.
   {
@@ -511,7 +515,7 @@ int main() {
   // no puedan divergir. Este arnes ABORTO al cambiarlo -leia el patron viejo- y eso es
   // lo correcto: §5, mover contenido rompe al que lee por patron, y un ABORTADO avisa
   // mientras que un numero supuesto no.
-  DESPEJE_POR_DEFECTO_S  = leerNumero(AUTOM, R"(DESPEJE_SEG_MIN\s*=\s*(\d+))", "despeje por defecto");
+  DESPEJE_POR_DEFECTO_S  = leerNumero(LIMITES, R"(DESPEJE_SEG_MIN\s*=\s*(\d+))", "despeje por defecto");
 
   std::printf("\n Constantes releidas del C++ real: silencio SFTY-6 = %lu ms,\n",
               SFTY6_SILENCIO_MS_V);

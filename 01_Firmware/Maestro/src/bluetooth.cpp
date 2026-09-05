@@ -607,10 +607,28 @@ static void procesarComando(const char* cmd) {
       // despachar y no antes.
       reportarBitsDelReloj();
     } else if (!ajustarRelojVerificado((uint8_t)h, (uint8_t)mi, (uint8_t)s, (uint8_t)d)) {
-      // El ajuste se descarto ENTERO por un campo fuera de rango. Los rangos siguen
-      // viviendo en reloj.cpp, que es quien conoce el calendario; aqui solo se relee lo
-      // que quedo puesto y se reusa el motivo que ya existe para una trama que no sirve.
-      enviarTramaConCrc("$ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO");
+      // N-138 (04/09): ESTE MOTIVO YA NO SE REUSA, Y LO DESTAPO EL BANCO.
+      //
+      // Aqui se contestaba FORMATO_INVALIDO -"se reusa el motivo que ya existe para una
+      // trama que no sirve"-, o sea EL MISMO que la rama de arriba, que si es de formato.
+      // Dos causas distintas con una sola respuesta, y el tecnico no puede saber cual es.
+      //
+      // Se vio en campo el 04/09 y hubo que leer el diario de ordenes entero para
+      // entenderlo: el ESP32 pone la hora en el DS3231 y contesta
+      // "$ACK,NODE:PUENTE,...,RESULT:OK,FECHA:...,HORA:..." -o sea, el reloj QUEDO
+      // PUESTO-, y cuatro segundos despues llegaba este $ERR diciendo "formato invalido"
+      // sobre la MISMA trama que el puente acababa de aceptar. Quien lo lea concluye que
+      // la app manda la fecha mal, y la app la manda bien.
+      //
+      // Lo que pasa de verdad: el puente reenvia la linea VERBATIM -es su contrato-, asi
+      // que esta punta tambien la recibe e intenta poner SU reloj, el del STM32. El
+      // ajuste no queda -se relee y no cuadra- y eso NO es un problema de formato.
+      //
+      // El nombre se toma del que el ESP32 ya usa para este mismo caso
+      // (RELOJ_ERR_NO_QUEDO_PUESTA), en vez de inventar uno: un motivo que significa lo
+      // mismo y se llama distinto segun quien conteste obliga al que lee a saber de que
+      // punta vino, y ese dato no siempre esta.
+      enviarTramaConCrc("$ERR,CMD:SET_RTC,DESC:NO_QUEDO_PUESTA");
     } else if (!coordinador_sincronizarHora()) {
       // HOY ESTE CAMINO NO PUEDE OCURRIR: sincronizarHora() solo se niega si
       // !reloj_enHora(), que la linea de arriba acaba de comprobar. Se deja porque su

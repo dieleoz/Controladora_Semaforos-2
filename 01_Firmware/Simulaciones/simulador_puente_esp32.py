@@ -217,13 +217,18 @@ class Contrato:
         # va en MINUTOS, no en segundos-. Ya paso: F7 media una rafaga que nunca
         # ocurria porque el comando que la provoca estaba mal formado, y el escenario
         # acusaba al firmware de no emitir un $EVENT que no tenia por que emitir.
-        auto = fw.codigo("Maestro", "src", "modo_automatico.cpp")
+        # N-137 (04/09): los seis limites se mudaron a include/limites_ciclo.h. Vivian
+        # `static` dentro del .cpp -invisibles para los demas modos-, y eso produjo TRES
+        # agujeros el mismo dia; el ultimo, un Modo Inteligente configurando 2 minutos
+        # de verde por debajo del minimo vial. Este simulador ABORTO en la corrida
+        # siguiente: §5, lee el fuente por ruta y la ruta cambio.
+        auto = fw.codigo("Maestro", "include", "limites_ciclo.h")
         self.rangos = {}
         for nombre in ("VERDE_MIN", "ROJO_MIN", "DESPEJE_SEG"):
             lo = int(_uno(auto, r"%s_MIN\s*=\s*(\d+)" % nombre,
-                          "el minimo de %s" % nombre, "Maestro/src/modo_automatico.cpp"))
+                          "el minimo de %s" % nombre, "Maestro/include/limites_ciclo.h"))
             hi = int(_uno(auto, r"%s_MAX\s*=\s*(\d+)" % nombre,
-                          "el maximo de %s" % nombre, "Maestro/src/modo_automatico.cpp"))
+                          "el maximo de %s" % nombre, "Maestro/include/limites_ciclo.h"))
             self.rangos[nombre] = (lo, hi)
 
     def tiempos_validos(self):
