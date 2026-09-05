@@ -433,6 +433,40 @@
             💾 Aplicar tiempos
           </button>
         </form>
+
+        <!-- N-150 (05/09): EL CRUCE NO VUELVE A ARRANCAR SOLO, Y NADIE LO DECIA.
+             Reportado con el equipo delante: "le coloque 4 minutos y 15 seg, se
+             cambia el tiempo, se le da aplicar tiempos y se queda en rojo maestro y
+             esclavo y no cambian".
+
+             Es cierto y es correcto por partes: para fijar tiempos hay que sacar el
+             equipo del ciclo -el firmware rechaza SET_TIEMPOS con
+             EN_MARCHA_PARE_EL_MODO-, y en el menu el coordinador manda CMD_GO_RED a
+             las dos puntas cada 3 s. Lo que faltaba es que alguien volviera a arrancar
+             el ciclo, y ese alguien NO puede ser la app sola: arrancar el Automatico
+             ABRE PASO, y CLAUDE.md 6 dice que la maquina no decide sola operar de un
+             modo que nadie pidio.
+
+             Asi que aqui no se arranca nada: se DICE lo que pasa y se pone el mando a
+             mano, con su aviso de via detras. Sale SOLO cuando el equipo ha acusado
+             los tiempos -$ACK,CMD:SET_TIEMPOS,RESULT:OK-, no al pulsar Aplicar: un
+             aviso que aparece por haber pulsado estaria contando lo que la app hizo y
+             no lo que el equipo acepto. -->
+        <div class="card card-parado" id="aviso-tiempos-parado" hidden>
+          <strong class="parado-titulo">⛔ Tiempos guardados — el cruce sigue PARADO EN ROJO</strong>
+          <p class="parado-texto">
+            Para poder cambiar los tiempos hubo que sacar el equipo del ciclo, y ahí
+            sigue: los dos postes están en rojo y ninguno va a cambiar solo. Los
+            tiempos nuevos empiezan a contar cuando el ciclo arranque.
+          </p>
+          <button type="button" class="btn-degradado btn-via-alto" id="btn-arrancar-ciclo">
+            ▶ ARRANCAR EL CICLO AHORA
+          </button>
+          <small class="hint">
+            Es la misma orden que AUTOMÁTICO de la botonera, y abre paso: antes de
+            salir le va a preguntar si ha mirado el tramo.
+          </small>
+        </div>
       </div>
     </section>
 

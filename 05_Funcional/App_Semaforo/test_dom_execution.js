@@ -905,6 +905,89 @@ const lastEvent = eventItems[0];
 assert(lastEvent && lastEvent.textContent.includes('Rechazo de Firmware: [SET_TIEMPOS] RANGO'), `La app muestra y registra el error de firmware $ERR,CMD:SET_TIEMPOS,DESC:RANGO sin ocultarlo`);
 
 // =========================================================================
+// 8.bis N-150: LOS TIEMPOS ENTRAN Y EL CRUCE SE QUEDA EN ROJO
+// =========================================================================
+// Reportado el 05/09 con el equipo delante: "se le da aplicar tiempos y se queda en
+// rojo maestro y esclavo y no cambian". El defecto no era del firmware -el menu deja
+// el cruce en rojo A PROPOSITO, con CMD_GO_RED cada 3 s- sino que el ultimo paso es de
+// una persona y la app no lo decia ni lo ofrecia.
+//
+// LO QUE SE MIDE AQUI ES EL ENCADENADO, NO EL CARTEL. Que exista un div se ve leyendo
+// el HTML; lo que hay que ejercer es que ese cartel dependa de LO QUE VOLVIO y no de lo
+// que se mando, y que el mando que ofrece siga pasando por el aviso de via. Las cuatro
+// lineas de abajo caen todas si alguien "simplifica" colgandolo del submit.
+const avisoParado = document.getElementById('aviso-tiempos-parado');
+const btnArrancar = document.getElementById('btn-arrancar-ciclo');
+assert(!!avisoParado && !!btnArrancar,
+  'N-150: el aviso de "el cruce sigue parado" y su mando existen en el DOM');
+
+// LA SITUACION REAL DEL REPORTE, puesta con una trama y no tocando internos: el
+// operario ya saco el equipo al MENU -es lo que hay que hacer para que acepte los
+// tiempos- y el cruce esta en ROJO en las dos puntas. De paso caduca el vale de via
+// que la seccion 5 dejo vivo para SET_MODO:AUTO: el vale sella la FASE, y la fase
+// acaba de cambiar. Sin esto el bloque 4 mediria la vigencia del vale en vez de la
+// barrera, y pasaria por el motivo equivocado.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:MENU,ESTADO:R1_R2,T:--,RF:97,RTT:70,BAT:12.9,HORA:14:33:30');
+
+// 1. EL CONTROL, Y VA PRIMERO. En este punto la app YA mando un SET_TIEMPOS al cable
+//    -cinco lineas mas arriba- y lo unico que ha vuelto es un $ERR de RANGO. Si el
+//    cartel estuviera colgado del envio, ya estaria abierto: estaria ofreciendo
+//    arrancar el ciclo con los tiempos VIEJOS mientras el operario cree que son los
+//    que acaba de teclear. Sin esta linea, la de abajo pasaria igual con el defecto
+//    dentro (CLAUDE.md 8.sexies: una comprobacion que no puede fallar sola es adorno).
+assert(avisoParado.hidden === true,
+  'N-150: tras MANDAR los tiempos y recibir un $ERR, el cartel sigue cerrado: cuelga del acuse, no del envio');
+
+// 2. Y con el $ACK del equipo se abre.
+const ackTiemposOk = 'ACK,CMD:SET_TIEMPOS,RESULT:OK';
+const errEnMarcha = 'ERR,CMD:SET_TIEMPOS,DESC:EN_MARCHA_PARE_EL_MODO';
+window._btSubscribeCb(`$${ackTiemposOk}*${xorNmea(ackTiemposOk)}\n`);
+assert(avisoParado.hidden === false,
+  'N-150: con $ACK,CMD:SET_TIEMPOS,RESULT:OK el cartel se abre y explica que el cruce sigue en rojo');
+
+// 3. Y el acuse NO se pinta con el generico "ACEPTADA" en verde. Es la trampa que
+//    ACK_TEXTO existe para evitar: un si a secas sobre algo que todavia no ha pasado.
+const eventoTiempos = document.querySelectorAll('.event-item')[0];
+assert(eventoTiempos && eventoTiempos.textContent.includes('TIEMPOS GUARDADOS') &&
+       eventoTiempos.textContent.includes('ROJO'),
+  `N-150: el acuse de SET_TIEMPOS dice que el cruce sigue parado, no solo "ACEPTADA": "${eventoTiempos ? eventoTiempos.textContent.slice(0, 70) : '(sin evento)'}..."`);
+
+// 4. EL MANDO NO ARRANCA NADA SOLO. Arrancar el Automatico ABRE PASO, asi que tiene
+//    que pasar por el aviso de via igual que el boton de la botonera (CLAUDE.md 6).
+const btnViaConfirmarN150 = document.getElementById('btn-via-confirmar');
+sentFrames = [];
+btnArrancar.click();
+assert(sentFrames.length === 0,
+  `N-150: el mando de arrancar NO manda nada por si solo: ${sentFrames.join(' | ')}`);
+assert(viaModal.classList.contains('active'),
+  'N-150: el mando de arrancar pasa por el aviso de via, porque la orden ABRE paso');
+assert(document.getElementById('via-maniobra').textContent.includes('AUTOMATICO'),
+  'N-150: y el aviso nombra la maniobra que se va a hacer (AUTOMATICO), no "confirme"');
+
+// 5. Confirmada la via, sale la MISMA orden que la botonera. Un literal propio aqui
+//    seria una segunda puerta de salida para SET_MODO:AUTO.
+sentFrames = [];
+btnViaConfirmarN150.click();
+assert(sentFrames.some(f => f.includes('SET_MODO:AUTO')),
+  `N-150: confirmada la via, arranca el ciclo con SET_MODO:AUTO: ${sentFrames.join(' | ')}`);
+
+// 6. Y EL CARTEL SE RETIRA CUANDO EL EQUIPO DICE QUE CICLA, no cuando la app manda.
+//    Mientras el $STATUS no traiga MODO:AUTO el cartel sigue puesto, que es lo correcto:
+//    la orden pudo perderse en la radio despues de salir.
+assert(avisoParado.hidden === false,
+  'N-150: mandada la orden, el cartel SIGUE puesto: mandar no es que el equipo cicle');
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:V1_R2,T:31,RF:97,RTT:70,BAT:12.9,HORA:14:34:00');
+assert(avisoParado.hidden === true,
+  'N-150: y se retira cuando el equipo declara MODO:AUTO en su $STATUS');
+
+// 7. El rechazo por ciclo en marcha dice los TRES pasos, y el tercero es el que faltaba.
+window._btSubscribeCb(`$${errEnMarcha}*${xorNmea(errEnMarcha)}\n`);
+const eventoEnMarcha = document.querySelectorAll('.event-item')[0];
+assert(eventoEnMarcha && eventoEnMarcha.textContent.includes('VOLVER AL MENU') &&
+       eventoEnMarcha.textContent.includes('ARRANQUE EL CICLO'),
+  `N-150: EN_MARCHA_PARE_EL_MODO nombra los tres pasos, arranque incluido: "${eventoEnMarcha ? eventoEnMarcha.textContent.slice(0, 70) : '(sin evento)'}..."`);
+
+// =========================================================================
 // 9. MODO DEPURACION: LAS TRAMAS EN CRUDO, LAS RECHAZADAS Y SU MOTIVO
 // =========================================================================
 // Aqui vive la mitad MUDADA de la seccion 4 (CLAUDE.md 8.sexies). Alli se exigia que

@@ -979,6 +979,50 @@ body {
 
 
 /* ==========================================================================
+   N-150: el aviso de "aceptado, pero el cruce sigue parado"
+   ==========================================================================
+   NO ESTRENA UN SOLO COLOR, y es deliberado. Los ratios de contraste de esta app se
+   recalculan del propio CSS en cada corrida (test_funcional_app.py) sobre una paleta
+   concreta; un hex nuevo aqui seria un color que nadie ha medido, justo en el cartel
+   que tiene que leerse de pie y al sol. Se usan --red-lamp y --text-primary, que ya
+   pasan la cuenta.
+
+   El borde grueso a la izquierda es el mismo recurso que ya usa la tarjeta de tiempos
+   -no es decoracion: es lo que hace que el bloque se vea como un aviso y no como otro
+   parrafo mas- y el fondo va tenido de rojo apenas lo justo para separarlo de la
+   tarjeta que lo contiene sin bajar el contraste del texto que lleva encima. */
+.card-parado {
+  margin-top: 14px;
+  border-left: 4px solid var(--red-lamp);
+  background: rgba(255, 30, 68, 0.10);
+}
+
+.parado-titulo {
+  display: block;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.parado-texto {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+/* El rotulo del boton es largo a proposito -dice lo que hace, no "Aceptar"-, asi que
+   a 320 px parte en dos lineas. Sin esto la caja fija de .btn-via-alto le recortaria
+   la segunda: la altura crece con el texto y el minimo de 56 px se conserva como
+   MINIMO, que es lo que exige el censo de pulsables. */
+.card-parado .btn-via-alto {
+  height: auto;
+  padding: 12px 10px;
+  white-space: normal;
+}
+
+
+/* ==========================================================================
    Admin Banners & Forms
    ========================================================================== */
 .card-admin-banner {

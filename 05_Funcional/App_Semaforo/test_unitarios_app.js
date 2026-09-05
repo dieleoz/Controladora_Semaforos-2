@@ -13,6 +13,26 @@
 
 const assert = require('assert');
 
+// 🔴 ESTE FICHERO ERA LA TERCERA COPIA DEL PARSER, Y LA PEOR DE LAS TRES (05/09).
+//
+// La cabecera de arriba dice "Modulos Puros de la App", y esa frase era el problema: lo
+// que habia debajo NO eran los modulos de la app, eran reimplementaciones a mano del
+// checksum, del parser y del generador de comandos, escritas en este mismo fichero y
+// probadas contra si mismas. 29 comprobaciones en verde que no tocaban una sola linea de
+// lo que se instala en el telefono.
+//
+// La forma es la de CLAUDE.md 3.bis -"una segunda copia del firmware escrita a mano que
+// alguien sincroniza"- con la vuelta de tuerca de que aqui la copia es la que tiene las
+// pruebas. Y ya habia derivado: el bucle de abajo partia los campos con
+// `tokens[i].split(':')` mirando `pair.length`, que es OTRO criterio que el primer ':'
+// de N-62. Acertaba por casualidad en HORA y nadie lo habia comprobado nunca.
+//
+// Desde hoy el checksum y el parser SON los de js/nmea_parser.js. Lo que este fichero
+// conserva propio es solo la FORMA de su resultado -{type, ...} y {error:'BAD_CHECKSUM'}-,
+// porque sus 29 assert la usan y cambiarla seria reescribir la suite entera para
+// arreglar el parser: dos cosas distintas en un commit.
+const NMEAParser = require('./js/nmea_parser.js');
+
 let totalTests = 0;
 let passedTests = 0;
 let failedTests = 0;
@@ -33,12 +53,10 @@ function runTest(suiteName, testName, testFn) {
 // IMPLEMENTACIÓN DE FUNCIONES A TESTEAR (Módulos Puros de la App)
 // -----------------------------------------------------------------------------
 
+// El XOR ya no se reimplementa: se llama al de la app. Era byte a byte el mismo codigo,
+// y "el mismo codigo" mantenido en dos sitios es el que deja de serlo sin avisar.
 function calcularChecksumNmea(cadena) {
-  let crc = 0;
-  for (let i = 0; i < cadena.length; i++) {
-    crc ^= cadena.charCodeAt(i);
-  }
-  return crc.toString(16).toUpperCase().padStart(2, '0');
+  return NMEAParser.calcularChecksum(cadena);
 }
 
 function formatearTramaNmea(payload) {
@@ -62,20 +80,13 @@ function parseNmeaTelemetry(line) {
     return { error: 'BAD_CHECKSUM', expected: expectedCrc, received: checksumReceived };
   }
 
+  // EL BUCLE PROPIO SE RETIRA. Partia con split(':') y decidia por `pair.length`, que
+  // es un criterio distinto del que corre en el telefono -el PRIMER ':' de N-62-. Daba
+  // el mismo resultado en las tramas de esta suite y nadie habia comprobado que lo diera
+  // en las demas: un valor con TRES ':' o uno que empiece por ':' se leen distinto en
+  // los dos. Ahora se parte con la funcion de la app, que es la que hay que probar.
   const tokens = payloadSinDollar.split(',');
-  const type = tokens[0];
-  const data = { type };
-
-  for (let i = 1; i < tokens.length; i++) {
-    const pair = tokens[i].split(':');
-    if (pair.length === 2) {
-      data[pair[0]] = pair[1];
-    } else if (pair.length > 2) {
-      data[pair[0]] = pair.slice(1).join(':');
-    }
-  }
-
-  return data;
+  return Object.assign({ type: tokens[0] }, NMEAParser.camposDeTrama(tokens));
 }
 
 function buildCommand(pin, cmdName, params = '') {

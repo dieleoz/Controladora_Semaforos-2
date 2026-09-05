@@ -18,6 +18,58 @@ function _numeroOMarca(v, conv, base) {
 
 const NMEAParser = {
   /**
+   * EL UNICO SITIO QUE PARTE UNA TRAMA EN CAMPOS. Devuelve las claves TAL CUAL VIAJAN.
+   *
+   * Hasta el 05/09 esta operacion -partir por ',' y luego por el PRIMER ':'- estaba
+   * escrita TRES veces, en tres ficheros, con tres contratos distintos:
+   *
+   *   app.js  _camposNmea()          claves verbatim. ES LA QUE CORRE EN EL TELEFONO,
+   *                                  y sirve a las CINCO cabeceras que la app lee.
+   *   este fichero  parseStatus()    su propio bucle, y detras un switch que RENOMBRA
+   *                                  a minuscula. Solo $STATUS.
+   *   test_unitarios_app.js          una tercera copia, con `pair.length` en vez del
+   *                                  primer ':', y solo la ejercen sus propias pruebas.
+   *
+   * Tres copias de una regla que ya se equivoco una vez: N-62 -HORA:18:25:00 truncado a
+   * "18" por un split(':') sin limite- hubo que arreglarlo en cada copia por separado, y
+   * la tercera sigue sin arreglar hoy (usa pair.length, que casualmente acierta). Esto es
+   * exactamente la "segunda copia del firmware escrita a mano que alguien sincroniza" de
+   * CLAUDE.md 3.bis, aplicada al parser en vez de al modelo.
+   *
+   * EL CONVENIO QUE GANA ES EL DEL CABLE, y el motivo no es de gusto:
+   *
+   *   1. Es el que corre en el telefono. Cambiar la app al otro convenio dejaria CIEGO
+   *      al censo de documentos_03_trama_status, que cuenta los `data.X` en mayusculas
+   *      de la rama de $STATUS: encontraria CERO campos y aprobaria vacuamente. Un
+   *      instrumento que deja de medir sin ponerse rojo es N-89 otra vez.
+   *   2. No lleva lista. El switch de parseStatus() enumera los campos, asi que es una
+   *      copia mas del contrato que alguien tiene que sincronizar; esto no puede
+   *      quedarse viejo porque no sabe que campos existen.
+   *   3. Sirve a las cinco cabeceras. El switch solo sabe de $STATUS y DESCARTA en
+   *      silencio lo que no nombra -los cuatro contadores de $ALARM, por ejemplo-.
+   *
+   * El bloque viene LITERAL de _camposNmea() en app.js (CLAUDE.md 3.bis: reescribir
+   * logica ya probada para renombrar llamadas es como se cuelan los errores).
+   *
+   * Recibe las PARTES ya separadas por ',' -incluida la cabecera en el indice 0, que se
+   * salta- porque asi la recibe el juez de la app, que ya ha partido la trama para
+   * decidir el tipo. Partirla otra vez seria una cuarta copia de medio bucle.
+   */
+  camposDeTrama(parts) {
+    const data = {};
+    for (let i = 1; i < parts.length; i++) {
+      // N-62: el separador de campo es ',' y el de clave/valor es el PRIMER ':'.
+      // Con split(':') a secas, HORA:18:25:00 entraba como '18' y el reloj en vivo
+      // mostraba la hora truncada. Se corta por el primer ':' y el resto es valor.
+      const sep = parts[i].indexOf(':');
+      const k = sep > 0 ? parts[i].slice(0, sep) : null;
+      const v = sep > 0 ? parts[i].slice(sep + 1) : undefined;
+      if (k && v !== undefined) data[k] = v;
+    }
+    return data;
+  },
+
+  /**
    * Calcula el checksum XOR estándar NMEA (formato hexadecimal de 2 caracteres)
    */
   calcularChecksum(payload) {
@@ -84,30 +136,28 @@ const NMEAParser = {
   },
 
   /**
-   * Parsea una trama de telemetría $STATUS
+   * LA VISTA TIPADA de un $STATUS: los mismos campos, con nombre corto y ya convertidos.
    *
-   * 🔴 ESTA FUNCION NO ES LA QUE CORRE EN EL TELEFONO, Y HAY QUE SABERLO ANTES DE LEER
-   * SUS PRUEBAS EN VERDE (censo del 05/09, N-150).
+   * QUE CAMBIO EL 05/09 Y QUE NO. Antes esto tenia SU PROPIO bucle de partir la trama, y
+   * ahi estaba el defecto: dos parsers, dos convenios, y el que tenia las pruebas no era
+   * el que corria en el telefono. Ahora parte con camposDeTrama() -la MISMA funcion que
+   * usa la app-, y lo unico que queda aqui es la capa de arriba: renombrar y convertir.
    *
-   * MEDIDO -grep de `NMEAParser.` sobre app.js y js/*.js-: lo UNICO que la app llama de
-   * este modulo es validarTrama(). El $STATUS que se pinta lo parte `_camposNmea()`,
-   * dentro de app.js, que es OTRO codigo con OTRO contrato: devuelve las claves TAL CUAL
-   * vienen -data.HORA, data.ESTADO, data.ESC- y esta devuelve las suyas en minuscula y
-   * renombradas -data.hora, data.estado-. Los unicos llamadores de parseStatus() son
-   * tests/test_unitarios.js y test_unitarios_app.js.
+   * O sea que ya no hay dos parsers. Hay UNO, y encima una vista.
    *
-   * O sea: LA QUE SE PRUEBA NO ES LA QUE SE INSTALA. Es la segunda copia escrita a mano
-   * que este repositorio ya ha pagado tres veces (CLAUDE.md 3.bis), con el agravante de
-   * que la copia es la que tiene las pruebas. Un arreglo aqui -por ejemplo el `case ESC`
-   * de abajo- NO llega a la pantalla de nadie por si solo.
+   * POR QUE ESTA VISTA NO SE RETIRA, que es la pregunta honesta: tiene un consumidor de
+   * produccion fuera de la app. `01_Firmware/Simulaciones/simulador_app_bluetooth.py`
+   * -que corre en la compuerta- carga ESTE fichero con node y compara campo a campo lo
+   * que el micro modelado emitio contra lo que el parser devuelve, y su tabla CAMPOS
+   * espera estos nombres cortos Y ESTOS TIPOS: `restante` entero, `rf`/`rtt` entero o
+   * marca, `bat` decimal, `esc` de un conjunto cerrado. Borrarla dejaria ese arnes en
+   * ABORTADO, que es una puerta abierta y no una casilla pendiente (CLAUDE.md 3.quater).
    *
-   * NO SE FUSIONAN HOY, y el motivo va escrito porque es una decision y no un olvido:
-   * `_camposNmea()` alimenta ademas a DiarioOrdenes.verStatus(), a reparosDeStatus() y
-   * al censo de documentos_03 -que lee `data.X` en mayusculas dentro de la rama de
-   * $STATUS de app.js-, asi que cambiarla toca cuatro caminos a la vez la noche antes de
-   * una sesion de banco. Lo que SI se puede hacer sin riesgo, y es lo que falta, es un
-   * pack que exija que las dos listas de campos coincidan; hoy no lo vigila nadie,
-   * porque el censo de huerfanos de app_07 mira MODULOS y este modulo si tiene llamador.
+   * LO QUE SIGUE ABIERTO, escrito aqui para que no se lea como cerrado: el `switch` de
+   * abajo es una LISTA de campos, o sea una copia mas del contrato del cable. Desde hoy
+   * la vigila `app_12_un_solo_parser`, que exige que esta lista y la que la app lee de
+   * verdad en su rama de $STATUS sean la MISMA. Mientras esa lista exista hay algo que
+   * sincronizar; lo que ya no hay es alguien que lo sincronice a mano sin que nadie mire.
    */
   parseStatus(payload) {
     // Contrato REAL, leido de 01_Firmware/Maestro/src/bluetooth.cpp:216. Antes este
@@ -123,13 +173,12 @@ const NMEAParser = {
     // tiene que notarse, no rellenarse.
     const data = { tipo: 'STATUS' };
 
-    for (let i = 1; i < tokens.length; i++) {
-      // El separador de clave/valor es el PRIMER ':' y no cualquiera: HORA:18:25:00
-      // se trunca a '18' con un split(':') a secas (N-62).
-      const sep = tokens[i].indexOf(':');
-      if (sep <= 0) continue;
-      const k = tokens[i].slice(0, sep);
-      const v = tokens[i].slice(sep + 1);
+    // El bucle propio que habia aqui SE RETIRA: era la segunda copia de la regla del
+    // primer ':' -la de N-62-, y una regla arreglada en dos sitios es una regla que
+    // alguien va a arreglar en uno.
+    const crudos = this.camposDeTrama(tokens);
+    for (const k of Object.keys(crudos)) {
+      const v = crudos[k];
       switch (k) {
         case 'NODE': data.node = v; break;
         case 'SERIE': data.serie = v; break;
@@ -190,11 +239,9 @@ const NMEAParser = {
     if (tokens[0] !== 'ALARM') return null;
 
     const data = { tipo: 'ALARM' };
-    for (let i = 1; i < tokens.length; i++) {
-      const sep = tokens[i].indexOf(':');
-      if (sep <= 0) continue;
-      const k = tokens[i].slice(0, sep);
-      const v = tokens[i].slice(sep + 1);
+    const crudos = this.camposDeTrama(tokens);
+    for (const k of Object.keys(crudos)) {
+      const v = crudos[k];
       switch (k) {
         case 'NODE': data.node = v; break;
         case 'EVENTO': data.codigo = v; break;
@@ -208,14 +255,40 @@ const NMEAParser = {
 
   /**
    * Parsea una trama de error $ERR
+   *
+   * 🔴 ESTA FUNCION LEIA UN PROTOCOLO QUE NINGUNA PUNTA HABLA, Y SUS PRUEBAS TAMBIEN.
+   *
+   * Lo que habia era lectura POR POSICION: `cmd: tokens[1]`, `desc: tokens.slice(2)`.
+   * Sobre la trama REAL -`ERR,CMD:SET_TIEMPOS,DESC:RANGO`, que es la que emiten las dos
+   * bluetooth.cpp y el despachador del ESP32- eso devuelve `cmd = "CMD:SET_TIEMPOS"` y
+   * `desc = "DESC:RANGO"`: el nombre del campo pegado delante del valor, en los dos.
+   *
+   * Y no saltaba porque la unica prueba que la ejercia le daba de comer
+   * `'ERR,SET_MODO,PIN_INCORRECTO'`, una trama SIN claves que no sale de ningun micro
+   * de este proyecto. Es la forma exacta que CLAUDE.md 3.quater ya conto una vez -"un
+   * parser de un protocolo que ninguna punta habla"-, sostenida por un ejemplo inventado.
+   * La prueba se invierte junto con esto (CLAUDE.md 8.quater).
+   *
+   * Se lee con la MISMA camposDeTrama() que el resto, que es lo que hace que no pueda
+   * volver a desviarse: no queda ningun sitio donde escribir un segundo criterio.
    */
   parseError(payload) {
     const tokens = payload.split(',');
     if (tokens[0] !== 'ERR') return null;
+    const crudos = this.camposDeTrama(tokens);
+    // Sin defecto inventado para CMD. El 'UNKNOWN' que habia aqui es el mismo `|| 0`
+    // que este fichero documenta haber quitado de BAT y de T: un valor de relleno que
+    // se lee como dato. Si la trama no dice que orden rechazo, lo que hay que devolver
+    // es que no lo dice.
     return {
       tipo: 'ERR',
-      cmd: tokens[1] || 'UNKNOWN',
-      desc: tokens.slice(2).join(',')
+      cmd: crudos.CMD,
+      desc: crudos.DESC,
+      // El $ERR del PUENTE trae NODE:PUENTE y el del STM32 no lo trae. Quien va a
+      // destapar un conector necesita saber cual de los dos modulos se queja, y la app
+      // ya lo distingue en su rama de $ERR: aqui se devuelve para que las dos puntas
+      // del contrato digan lo mismo.
+      node: crudos.NODE
     };
   },
 

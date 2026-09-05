@@ -268,6 +268,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const numTiempoVerde = document.getElementById('num-tiempo-verde');
   const numTiempoRojo = document.getElementById('num-tiempo-rojo');
   const numTiempoDespeje = document.getElementById('num-tiempo-despeje');
+  // N-150: el cartel de "aceptado, pero el cruce sigue parado" y su mando. Ver 7.bis.
+  const avisoTiemposParado = document.getElementById('aviso-tiempos-parado');
+  const btnArrancarCiclo = document.getElementById('btn-arrancar-ciclo');
 
   // Events Feed & Export
   const eventFeedEl = document.getElementById('event-feed');
@@ -2715,6 +2718,29 @@ document.addEventListener('DOMContentLoaded', () => {
              'por radio. Hay que ir al poste y hacer la secuencia en el mando.',
       toast: 'QUEDA el ambar del mando: hay que ir al poste'
     },
+    // N-152 (05/09). LITERAL NUEVO DEL ESCLAVO, y es de los que NO se pueden pintar en
+    // verde: la orden se acepto y lo que el operario pidio TODAVIA NO HA PASADO.
+    //
+    // Leido de Esclavo/src/bluetooth.cpp:553 y de su rama entera, no del nombre: se llega
+    // aqui cuando el operario pulsa RETIRAR AMBAR por SEGUNDA vez. El latch de esta punta
+    // ya se quito en la primera pulsacion -por eso no entra por la rama de RETIRADO-,
+    // pero el cruce sigue en ambar porque el que lo sostiene ahora es el MAESTRO, que
+    // desde N-142 se va a MODO_AMBAR al enterarse del armado y en ese modo CALLA a
+    // proposito (SFTY-21). Lo que hace esta pulsacion es VOLVER A MANDARLE el aviso.
+    //
+    // Y NO PROMETE QUE EL AMBAR SE VAYA -el propio firmware lo dice-: el Maestro puede
+    // estar en un ambar que pidio otra persona, y entonces ignora el aviso a proposito.
+    // Un "retirado" aqui seria la mentira con formato de exito de CLAUDE.md 6.
+    'CANCELAR_AMBAR|REENVIADO_AL_MAESTRO': {
+      tono: 'red',
+      texto: 'Equipo: en ESTA punta ya no queda ambar puesto desde la app -se quito en ' +
+             'la pulsacion anterior-, asi que lo que se ha hecho ahora es VOLVER A ' +
+             'PEDIRSELO AL MAESTRO, que es quien sostiene el ambar del cruce. NO esta ' +
+             'garantizado que se vaya: si el ambar del Maestro lo pidio otra persona, esa ' +
+             'punta ignora el aviso a proposito. Mire el cruce; si en unos segundos no se ' +
+             'mueve, el ambar viene del Poste 1 y hay que resolverlo alli.',
+      toast: 'Reenviado al Maestro: mire el cruce, no esta garantizado que se vaya'
+    },
     'AMBAR_EMERGENCIA|OK': {
       tono: 'red',
       texto: 'Equipo: AMBAR DE EMERGENCIA puesto. Intermitente en las dos vias y ' +
@@ -2792,6 +2818,34 @@ document.addEventListener('DOMContentLoaded', () => {
              'Degradado y la salida pasa por un TODO ROJO de transicion; el menu llega ' +
              'cuando ese todo-rojo termine.',
       toast: 'Aceptada - sale del Degradado por todo-rojo antes de llegar al menu'
+    },
+    // N-150 (05/09). ESTA ENTRADA NO LA PEDIA app_10, Y HAY QUE DECIR POR QUE ESTA.
+    //
+    // SET_TIEMPOS tiene UN SOLO RESULT en el C++ -RESULT:OK, Maestro/src/bluetooth.cpp:668-,
+    // asi que el pack no la exige: con un solo si, el generico "orden ACEPTADA" no
+    // confunde con nada. Ese razonamiento es correcto PARA EL ACUSE y falso para lo que
+    // el operario necesita saber, y el 05/09 lo cobro con el equipo delante: "se le da
+    // aplicar tiempos y se queda en rojo maestro y esclavo y no cambian".
+    //
+    // Lo que pasaba es exactamente lo que el firmware promete y nada mas: los tiempos
+    // QUEDARON GUARDADOS. Lo que no dijo nadie es que el equipo esta fuera del ciclo
+    // -tuvo que estarlo para aceptar la orden- y que ahi se queda. El generico lo
+    // pintaba en VERDE con la palabra ACEPTADA delante, que es la trampa que este mismo
+    // fichero describe seis entradas mas arriba: un si a secas sobre algo que todavia
+    // no ha pasado.
+    //
+    // O sea: el criterio "varios RESULT" es el sintoma, y la propiedad de debajo es
+    // "el acuse dice que si a algo que el operario no ha terminado". Aqui se cumple con
+    // un solo RESULT, asi que la entrada va aunque el pack no la reclame.
+    'SET_TIEMPOS|OK': {
+      tono: 'red',
+      texto: 'Equipo: TIEMPOS GUARDADOS. Pero el cruce NO esta ciclando y no va a ' +
+             'empezar solo: para aceptar los tiempos el equipo tuvo que estar fuera ' +
+             'del ciclo, y sigue fuera -las dos puntas en ROJO-. Los tiempos nuevos ' +
+             'entran cuando alguien arranque el ciclo. El mando para hacerlo esta ' +
+             'debajo del formulario de tiempos, y tambien es el boton AUTOMATICO de ' +
+             'la botonera.',
+      toast: 'Tiempos guardados - el cruce sigue en ROJO hasta que arranque el ciclo'
     },
     'SET_RTC|OK': {
       tono: 'green',
@@ -3031,13 +3085,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Y NO ES EL MISMO CASO QUE EL AVISO DE VIA. Alli se pregunta porque el equipo no
     // sabe si quedan vehiculos y el operario si; aqui no hay nada que mirar: hay que
     // sacar el equipo del modo.
+    // N-150: LA SEGUNDA MITAD DE LA FRASE FALTABA, Y ES LA QUE COSTO EL CRUCE PARADO.
+    //
+    // "y volver a entrar" estaba escrito y no dice COMO ni avisa de lo que pasa entre
+    // medias. El operario del 05/09 hizo los dos primeros pasos -saco el equipo al
+    // menu, mando los tiempos- y se quedo delante de un cruce en rojo esperando a que
+    // arrancara solo. El paso que falta es suyo, y una instruccion que nombra tres
+    // pasos y detalla dos deja al que la lee parado justo en el tercero.
     'EN_MARCHA_PARE_EL_MODO': () => ({
       texto: 'El equipo esta EN MARCHA y esa orden no se puede aplicar mientras lo este. ' +
-             'ESPERAR NO SIRVE: hay que sacarlo del modo con VOLVER AL MENU, dar la orden, ' +
-             'y volver a entrar. Los tiempos no se tocan con el ciclo corriendo porque ' +
-             'bajar uno a mitad de fase acortaria la fase EN CURSO, y una de esas fases es ' +
-             'el todo-rojo que deja salir a los vehiculos del tramo.',
-      toast: 'Saque el equipo del modo (VOLVER AL MENU) y repita: esperar no sirve'
+             'ESPERAR NO SIRVE. Son TRES pasos y el tercero tambien es suyo: 1) VOLVER AL ' +
+             'MENU -el cruce queda en ROJO en las dos puntas mientras tanto-; 2) mande los ' +
+             'tiempos; 3) ARRANQUE EL CICLO con AUTOMATICO, porque el equipo NO vuelve a ' +
+             'arrancar solo. Los tiempos no se tocan con el ciclo corriendo porque bajar ' +
+             'uno a mitad de fase acortaria la fase EN CURSO, y una de esas fases es el ' +
+             'todo-rojo que deja salir a los vehiculos del tramo.',
+      toast: 'VOLVER AL MENU, mande los tiempos, y ARRANQUE con AUTOMATICO: son tres pasos'
     })
   };
 
@@ -3073,18 +3136,26 @@ document.addEventListener('DOMContentLoaded', () => {
   // NODE, SERIE, MODO, ESTADO, T, RF, RTT, BAT, HORA -y el pack documentos_03 exige
   // que esta lista y la del firmware sean la misma-.
   // =========================================================================
+  // EL CUERPO DE ESTA FUNCION SE MUDO A js/nmea_parser.js EL 05/09, Y ESO ES EL ARREGLO.
+  //
+  // Habia DOS parsers con DOS convenios: este -claves verbatim, el que corre en el
+  // telefono- y NMEAParser.parseStatus() -claves en minuscula y renombradas-, y de los
+  // dos el que tenia pruebas unitarias era el que NO se instala. Un arreglo en aquel no
+  // llegaba a la pantalla de nadie, y las suyas seguian en verde.
+  //
+  // Ahora hay UNO. El que gana es el convenio del cable -las claves tal cual viajan-,
+  // por tres motivos medidos que estan escritos enteros en camposDeTrama(); el resumen
+  // es que es el que corre, el que no lleva lista que sincronizar, y el que sirve a las
+  // cinco cabeceras que esta app lee. parseStatus() sigue existiendo porque tiene un
+  // consumidor de produccion fuera de la app -simulador_app_bluetooth.py, que corre en
+  // la compuerta-, pero ya no PARTE la trama: la parte esta misma funcion.
+  //
+  // Se conserva el nombre local en vez de llamar a NMEAParser.camposDeTrama() en las
+  // cinco ramas: un solo punto de entrada deja la mudanza en una linea y no en cinco, y
+  // las ramas siguen leyendose igual. Lo que NO se conserva es una segunda copia de la
+  // regla del primer ':'.
   function _camposNmea(parts) {
-    const data = {};
-    for (let i = 1; i < parts.length; i++) {
-      // N-62: el separador de campo es ',' y el de clave/valor es el PRIMER ':'.
-      // Con split(':') a secas, HORA:18:25:00 entraba como '18' y el reloj en vivo
-      // mostraba la hora truncada. Se corta por el primer ':' y el resto es valor.
-      const sep = parts[i].indexOf(':');
-      const k = sep > 0 ? parts[i].slice(0, sep) : null;
-      const v = sep > 0 ? parts[i].slice(sep + 1) : undefined;
-      if (k && v !== undefined) data[k] = v;
-    }
-    return data;
+    return NMEAParser.camposDeTrama(parts);
   }
 
   function parseNmeaTelemetry(line) {
@@ -3170,6 +3241,15 @@ document.addEventListener('DOMContentLoaded', () => {
       // con lo que la app haya pedido: pedir Inteligente no es estar en Inteligente.
       if (data.MODO) {
         actualizarDemanda();
+      }
+      // N-150: EL CARTEL SE RETIRA CUANDO EL EQUIPO DICE QUE YA CICLA, no cuando la app
+      // manda la orden de arrancar. Un $ACK de SET_MODO:AUTO solo dice que la orden se
+      // acepto; el unico dato que vuelve FALSO el texto del cartel -"el cruce no esta
+      // ciclando"- es que el propio equipo declare MODO:AUTO. Colgarlo del envio, o
+      // incluso del acuse, dejaria el cartel retirado sobre un cruce que sigue parado
+      // si la orden se perdio despues, que es la mitad silenciosa de este mismo defecto.
+      if (data.MODO === 'AUTO') {
+        mostrarArranqueTrasTiempos(false);
       }
       // N-139: `T:` YA NO ES UN NUMERO SIEMPRE, Y ESTA LINEA LO PINTABA COMO 0.
       //
@@ -3321,6 +3401,22 @@ document.addEventListener('DOMContentLoaded', () => {
         addEvent('green', 'Equipo: orden [' + cual + '] ACEPTADA' +
                           (data.RESULT ? ' (' + data.RESULT + ')' : ''));
         showToast('Aceptado por el equipo: ' + cual);
+      }
+      // N-150: EL MANDO PARA VOLVER A ARRANCAR SE ABRE AQUI Y NO AL PULSAR APLICAR.
+      //
+      // La diferencia es la de CLAUDE.md 6 leida desde este lado del cable: colgarlo
+      // del envio abriria el cartel tambien cuando el equipo va a contestar
+      // $ERR,DESC:RANGO o DESC:EN_MARCHA_PARE_EL_MODO -o cuando no contesta nada-, y
+      // entonces estaria ofreciendo arrancar un ciclo con los tiempos VIEJOS mientras
+      // el operario cree que son los que acaba de teclear. Se cuelga del acuse, que es
+      // lo unico que sabe si los tiempos entraron.
+      //
+      // Y NO SE ARRANCA NADA DESDE AQUI: se ensena el mando. Arrancar el Automatico
+      // ABRE PASO, y esa decision no la toma la app -"la maquina no decide sola operar
+      // de un modo que nadie pidio"-. Lo que la app puede hacer, y hasta hoy no hacia,
+      // es no dejar al operario deduciendo que le toca a el.
+      if (data.CMD === 'SET_TIEMPOS' && data.RESULT === 'OK') {
+        mostrarArranqueTrasTiempos(true);
       }
     } else if (header === '$EVENT') {
       // $EVENT es la bitacora del propio equipo -quien movio que y desde donde-. No la
@@ -4332,6 +4428,57 @@ document.addEventListener('DOMContentLoaded', () => {
       // llega por $ACK/$ERR, que ya tienen quien los pinte.
       showToast(`Orden enviada: Verde ${verde}m · Rojo ${rojo}m · Despeje ${despeje}s`);
       addEvent('cyan', `Orden SET_TIEMPOS enviada al equipo: Verde=${verde}min, Rojo=${rojo}min, Despeje=${despeje}seg. Espere el acuse.`);
+    });
+  }
+
+  // =========================================================================
+  // 7.bis N-150: LOS TIEMPOS ENTRAN, EL CRUCE SE QUEDA EN ROJO, Y NADIE LO DECIA
+  // =========================================================================
+  // Reportado el 05/09 con el equipo delante: "le coloque 4 minutos y 15 seg, se cambia
+  // el tiempo, se le da aplicar tiempos y se queda en rojo maestro y esclavo y no
+  // cambian". Los cuatro minutos nunca llegaron a contar.
+  //
+  // NADA DE LO QUE PASO ESTABA ROTO, y por eso costo verlo. Para fijar tiempos hay que
+  // sacar el equipo del ciclo -el firmware rechaza SET_TIEMPOS con
+  // EN_MARCHA_PARE_EL_MODO mientras el Automatico corre-, y en el menu el coordinador
+  // del Maestro manda CMD_GO_RED a las dos puntas cada 3 s: el cruce parado en rojo es
+  // lo que el menu HACE, a proposito. Lo que faltaba es el ultimo paso, que es de una
+  // persona: volver a arrancar el ciclo.
+  //
+  // POR QUE LA APP NO LO ARRANCA SOLA, que es la parte que hay que defender y no
+  // esconder. Encadenar un SET_MODO:AUTO al $ACK de los tiempos es de una linea y es
+  // exactamente lo que CLAUDE.md 6 prohibe: seria un cambio de modo que ABRE PASO sin
+  // que nadie lo pulse, decidido por el telefono, sobre un tramo que nadie ha mirado.
+  // El aviso de via que protege al boton AUTOMATICO de la botonera existe justo para
+  // que esa orden no salga sin que alguien levante la vista; automatizarla lo saltaria
+  // entero. "La maquina no decide sola operar de un modo que nadie pidio."
+  //
+  // Lo que SI es responsabilidad de la app, y era el hueco de verdad: no dejar que el
+  // operario tenga que DEDUCIR que le toca a el. El cruce en rojo se explica, y el
+  // mando para arrancarlo se pone donde esta mirando -debajo del formulario que acaba
+  // de rellenar-, con su aviso de via detras como cualquier otra orden que abre paso.
+  function mostrarArranqueTrasTiempos(visible) {
+    if (!avisoTiemposParado) return;
+    avisoTiemposParado.hidden = !visible;
+  }
+
+  if (btnArrancarCiclo) {
+    btnArrancarCiclo.addEventListener('click', () => {
+      // SE REENVIA AL BOTON DE LA BOTONERA EN VEZ DE REPETIR SU CUERPO, y no es
+      // comodidad: es lo unico que garantiza que este mando pase por las MISMAS tres
+      // barreras que el otro -la punta correcta, el aviso de via, y el bool de
+      // enviarComandoFirmware()-. Copiar las cuatro lineas aqui crearia una segunda
+      // puerta de salida para SET_MODO:AUTO, que es como se abren los agujeros que este
+      // repositorio ya ha pagado: el dia que alguien anada una barrera a la botonera,
+      // esta copia se quedaria sin ella y nada lo diria.
+      //
+      // Ademas mantiene el censo de app_01 midiendo lo que mide: el literal
+      // 'SET_MODO','AUTO' sigue existiendo en UN solo sitio del fuente.
+      if (!btnOpAuto) {
+        showToast('No se encuentra el mando AUTOMATICO en esta pantalla');
+        return;
+      }
+      btnOpAuto.click();
     });
   }
 

@@ -57,8 +57,47 @@ const parsedAlarm = NMEAParser.parseAlarm('ALARM,NODE:MAESTRO,EVENTO:RADIO_FAIL,
 assert(parsedAlarm && parsedAlarm.codigo === 'RADIO_FAIL', 'Parser detecta trama $ALARM por clave EVENTO');
 assert(parsedAlarm && parsedAlarm.accion === 'AMBAR', 'Parser lee la ACCION que tomo el equipo');
 
-const parsedErr = NMEAParser.parseError('ERR,SET_MODO,PIN_INCORRECTO');
-assert(parsedErr && parsedErr.cmd === 'SET_MODO', 'Parser detecta trama $ERR');
+// [INVERTIDA el 05/09, CLAUDE.md 8.quater] Esta linea EXIGIA el defecto.
+//
+// Le daba de comer 'ERR,SET_MODO,PIN_INCORRECTO' -campos por POSICION, sin claves- y
+// ninguna punta emite eso. Las dos bluetooth.cpp y el despachador del ESP32 mandan
+// 'ERR,CMD:SET_TIEMPOS,DESC:RANGO'. Sobre la trama de verdad el parser viejo devolvia
+// cmd = 'CMD:SET_TIEMPOS' -el nombre del campo pegado al valor- y esta prueba seguia en
+// verde, porque medía el parser contra un protocolo inventado a su medida.
+//
+// Ahora se le da la trama REAL y se exige el valor limpio. La prueba no se borra ni se
+// reescribe entera: lo que afirmaba -"el parser distingue una trama $ERR"- sigue
+// valiendo; lo que cambia es contra qué.
+const parsedErr = NMEAParser.parseError('ERR,CMD:SET_TIEMPOS,DESC:RANGO');
+assert(parsedErr && parsedErr.cmd === 'SET_TIEMPOS',
+  'Parser lee el CMD de un $ERR real por su CLAVE, no por posicion (cmd=CMD:... era el defecto)');
+assert(parsedErr && parsedErr.desc === 'RANGO',
+  'y lee el DESC igual: es el literal con el que se busca el motivo en el roadmap');
+
+// Y EL CONTROL QUE LE FALTABA A LA INVERSION. Un parser que devolviera siempre
+// undefined pasaria las dos lineas de arriba si se hubieran escrito al reves; y uno que
+// se inventara un 'UNKNOWN' -que es lo que hacia el viejo con el CMD ausente- diria que
+// sabe algo que no sabe. Sobre una trama $ERR SIN claves no hay nada que leer, y eso es
+// lo que tiene que devolver.
+const errSinClaves = NMEAParser.parseError('ERR,SET_MODO,PIN_INCORRECTO');
+assert(errSinClaves && errSinClaves.cmd === undefined,
+  'Control negativo: ante un $ERR sin claves el parser no inventa un CMD ("UNKNOWN" era relleno)');
+
+// EL PARSER QUE SE PRUEBA ES EL QUE CORRE EN EL TELEFONO (05/09).
+//
+// Hasta hoy no lo era: la app partia las tramas con su propio _camposNmea() y este
+// fichero probaba parseStatus(), que es otro codigo. Ahora los dos entran por
+// camposDeTrama(), asi que estas cuatro lineas ejercen la funcion que de verdad viaja
+// en la APK. El pack app_12_un_solo_parser vigila que siga siendo asi.
+const campos = NMEAParser.camposDeTrama('$STATUS,HORA:18:25:00,T:--,ESC:?'.split(','));
+assert(campos.HORA === '18:25:00',
+  'camposDeTrama corta por el PRIMER : y no trunca HORA a 18 (N-62)');
+assert(campos.T === '--',
+  'camposDeTrama devuelve la MARCA de ausencia tal cual, sin convertirla en 0');
+assert(campos.ESC === '?',
+  'camposDeTrama no traduce: "?" es el Maestro diciendo que no sabe el color del Esclavo');
+assert(Object.keys(campos).length === 3,
+  'camposDeTrama no inventa campos: solo devuelve los que traia la trama');
 
 // 3. Generación y Validación de Comandos con PIN
 console.log('\n--- 3. Comandos con PIN y Validación de Rangos ---');
