@@ -30,6 +30,7 @@ Si el encargo contradice una fila, eso no es una orden: **es una pregunta.**
 | **D-8** | **El ámbar de emergencia conserva SUS DOS VETOS** (mando y app) | 04/09 | el banco tumbó **dos veces** la versión sin cerrojo. Al medirlo, el veto **no era** la causa del bloqueo: lo era que esa punta no acusaba | la decisión «(b), sin cerrojo cuando viene de la app» |
 | **D-9** | **La hora la pone el DS3231 del ESP32**; el STM32 no tiene reloj (`Y2` muerto, N-17) | 04/09 | el puente rellena el hueco `HORA:--:--:--` al pasar la trama y recalcula el CRC | «la hora la lleva el RTC interno del STM32» |
 | **D-10** | **Cámara comprada: Hikvision `DS-2CD2683G2-IZS`** | 05/09 | tiene salida de alarma (`1 in, 1 out, 24 V/1 A`, ficha oficial) | los modelos anteriores de la lista |
+| **D-13** | **LAS DOS CÁMARAS LLEVAN LA MISMA CONFIGURACIÓN. Una sola regla: *Intrusion Detection* sobre el BARRIDO DE LA PLUMA —no la zona de espera—. El SIGNIFICADO lo pone el estado del semáforo, no la cámara** | 05/09 | Con **una cámara por poste**, dar «un significado a cada una» no es repartir: es **proteger un poste y el otro no**. Y el estado de la luz es lo único que el controlador tiene y la cámara no sabe, así que **un bit da cinco lecturas** sin gastar significados. Un vehículo que espera correctamente para **antes** de la pluma: no entra en la región | «un significado por cámara»; ~~«vehículo detenido en el tramo»~~; ~~«conteo entradas/salidas»~~ |
 | **D-11** | **Al aplicar tiempos, la app AVISA y da el botón: NO arranca el ciclo sola** | 05/09 | arrancar el ciclo abre paso, y hacerlo automáticamente se salta la confirmación de vía (§6) | — |
 | **D-12** | **De cada cámara el sistema consume UN CONTACTO SECO. No hay red, no hay imagen, no hay vídeo, y no hay analítica en el controlador** | 05/09 | medido: cero `WiFi`, `HTTPClient`, servidor u ONVIF en todo el ESP32; el STM32 sólo lee un pin. **Consecuencia: toda la inteligencia vive en la CONFIGURACIÓN de la cámara**, y el manual de parametrización pasa de documento de apoyo a entregable principal. **Y lo que se pierde: el CONTROLADOR no ve imagen.** ⚠️ **CORREGIDO el 05/09: la cámara SÍ graba en su propia microSD (hasta 512 GB, ficha oficial)**, así que el soporte de accidentes y la auditoría **sí son posibles** — en la cámara, no en nuestro firmware. Es una tarjeta que hay que comprar y configurar, y no toca una línea de código | «imágenes y auditoría en la Raspberry o la Nano», propuesto el 04/09 y recomendado por dos revisiones el 05/09 **sin comprobar que hubiera camino** |
 
@@ -60,3 +61,44 @@ Si el encargo contradice una fila, eso no es una orden: **es una pregunta.**
    silencio vuelve a proponerse dentro de un mes.
 3. Si la decisión **retira una barrera**, además se censa quién depende de ella antes de
    tocar nada (`CLAUDE.md` §3.ter).
+
+---
+
+## D-13 · El diseño de las cámaras, desarrollado
+
+### En la cámara — **las dos igual**
+
+*Intrusion Detection* sobre **el barrido de la pluma**. `Threshold` al mínimo · `Sensitivity`
+alta · `Size Filter` que excluya perros y hojas · **sin filtro de objetivo** (bajo la pluma
+importa también una moto o una persona, y además `Detection Target` **no está documentado**
+para Intrusión) · `Trigger Alarm Output` **sólo en esta regla** (el enlace es común a todas
+las armadas: si Motion o Tampering también lo marcan, el bit deja de significar una cosa) ·
+`Delay` al **mínimo** que admita · **los DOS `Arming Schedule` a 24×7** (A-8).
+
+### En el controlador — **un bit, cinco lecturas**
+
+| flanco cuando… | significa | qué hace |
+|---|---|---|
+| va a **bajar la pluma** | presencia debajo | **no baja**, `$EVENT`, reintenta cada N s. Si persiste → `$ALARM`. **La pluma sigue arriba** — la luz ya está en rojo |
+| **rojo** con la pluma abajo | **invasión** | `$EVENT` con hora |
+| **verde** | paso normal | cuenta silenciosa: alimenta el vigilante |
+| **N horas sin flanco** con el ciclo corriendo | cámara ciega o tapada | `$ALARM` |
+| **nivel alto sostenido > T** | cámara pegada | `$ALARM` |
+
+### Orden de ejecución — y las dos primeras fases NO tocan el ciclo
+
+| | qué | depende de |
+|---|---|---|
+| **1** | instalar · activar · IP · **microSD y grabación** | 🔴 **comprar las tarjetas** (A-0). Cero firmware, valor inmediato |
+| **2** | **mirar la casilla `Trigger Alarm Output`** | 10 min con la cámara delante. **Decide todo lo demás** |
+| **3** | medir el **`Delay`** y el tiempo de respuesta | de ahí se **deriva** `SILENCIO_MS > Delay + rearme` (A-7) |
+| **4** | firmware fase 1: **sólo el vigilante y los eventos** | **cero efecto vial.** Es el contador que dice si el veto merece la pena |
+| **5** | firmware fase 2: **el veto de la pluma** | **sólo si la fase 4 da números que lo justifiquen**, y con la derogación de SFTY-28 escrita (A-1.bis) |
+
+### Lo que NO se hace, y no es negociable
+
+- **Nada que AUTORICE por ausencia** — acortar el despeje, dar verde antes. Una cámara
+  desconectada lee «no hay nadie».
+- **Ningún tope que fuerce la bajada** de la pluma: devolvería el peligro que el veto evita.
+  Tope → **alarma**, nunca acción.
+- **El ciclo del semáforo no se toca.** Las cámaras no dan ni quitan verde.
