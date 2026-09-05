@@ -279,6 +279,56 @@ vacuamente cierto (§3.bis). Ahora vuelven a medir.
 | **`CANCELAR_AMBAR` tambien ABRE paso** | lo dice su propio comentario, y quedo con PIN y sin confirmacion. Es el candidato mas claro a llevar el aviso de via |
 | **Sin telemetria la fase no acota** | `estadoLuces` vale `null` en los dos lados, asi que lo unico que estrecha la ventana de "no repreguntar" son los 30 s |
 
+### 0.0.quinquies · 🎯 LO QUE HAY QUE MEDIR EN LA PROXIMA CARGA — paquete `944c18d`
+
+**La prueba que mas vale de la sesion es el paso 30, y su resultado bueno esta escrito al
+reves de lo habitual: QUE NO PASE NADA.** Poner Automatico y mirar al Esclavo dos minutos.
+
+| lo que se vea | que significa |
+|---|---|
+| el Esclavo **ya no** se va a ambar solo | N-42 cerrado en cobre |
+| **sigue** yendose a los ~25 s | hay una SEGUNDA causa, y es informacion que hoy no tenemos |
+| las luces no ciclan pero el Esclavo aguanta | dos fallos distintos, no uno |
+
+🛑 **Aviso que evita un defecto inventado:** la FIRMA del respaldo cambio, asi que la
+PRIMERA vuelta de energia con este firmware **borra los tiempos guardados** y el equipo
+arranca con los minimos. Es correcto y esta disenado asi. La prueba de N-133 vale **desde
+la segunda vuelta**.
+
+**Para el reloj:** repetir la inyeccion de hora y mandar **el DIARIO DE ORDENES**, no la
+cinta. Ahi saldra la trama que salio del telefono y el `DESC` que devolvio el equipo, en
+dos lineas. Es lo que falto esta tarde y por lo que el `FORMATO_INVALIDO` sigue sin
+diagnosticar.
+
+---
+
+### 0.0.sexies · EL BALANCE DE LA SESION, y no es comodo
+
+**Tres instrumentos distintos celebraban comportamientos que hoy cambiaron**, y los tres
+hubo que repartir uno por uno en vez de reescribirlos hasta que dieran verde:
+
+| instrumento | que celebraba |
+|---|---|
+| `maestro_01_mando` | que `coordinador_actualizar()` viviera SOLO dentro de `case CORRIENDO` — era la premisa de su modelo, y su propio mensaje pedia rehacerla |
+| `test_dom_execution` | que la orden que mueve luces **abriera el teclado de PIN**. Once comprobaciones |
+| `simulador_puente_esp32` | que pulsar AUTOMATICO escribiera una orden **sin preguntar nada** — este ABORTO la compuerta |
+
+**Y el dato que resume el dia: la compuerta estuvo en verde mientras dentro habia un
+defecto NUESTRO** -N-135- **que rompia `SET_TIEMPOS` entero.** Lo encontro un agente
+compilando una funcion de tres lineas, no leyendola. Ni la compuerta ni los 68 packs lo
+vieron.
+
+> **Lo que eso deja escrito, y ya estaba en §2.ter con otras palabras: un `20/20` dice que
+> los modelos y los arneses de PC no encuentran nada. Sigue sin decir que el firmware
+> funcione en la tarjeta — y hoy ni siquiera dijo que el firmware fuera consistente
+> consigo mismo.**
+
+**Lo que si funciono, y conviene saberlo para repetirlo:** los tres hallazgos que mas
+valen del dia salieron de **cruzar trabajo entre agentes** — uno fue a comprobar si un paso
+de banco era ejecutable y encontro N-135; otro conto las pruebas una por una y corrigio el
+reparto de un tercero; otro censo los `DESC` y encontro **23** donde se le habian dicho 5,
+con dos nombres mal. Ninguno salio de mirar mas rato el mismo fichero.
+
 ### 0.1 · Lo unico que hay que hacer, en orden — tras la SESION 2 de banco (04/09)
 
 > 🟢 **EL BLUETOOTH ESTA CERRADO CON EVIDENCIA FISICA.** La sesion 2 confirmo **N-117** y **N-122** en
