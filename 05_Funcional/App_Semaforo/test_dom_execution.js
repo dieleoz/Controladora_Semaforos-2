@@ -341,6 +341,13 @@ assert(!!btnAmbarEmerg, 'Boton tactico de Ambar de Emergencia presente en el DOM
 btnAmbarEmerg.click();
 
 const pinModal = document.getElementById('pin-modal');
+// El segundo dialogo, del 04/09: lo que ABRE paso ya no pide el PIN, pide la via. Se
+// declara aqui arriba porque a partir de este punto NINGUNA comprobacion de orden de
+// barreras vale mirando solo el teclado: btn-op-step y btn-op-auto ya no lo abren, asi
+// que un `!pinModal.active` sobre ellos pasaria a ser vacuamente cierto -verde midiendo
+// nada, CLAUDE.md 3.bis-.
+const viaModal = document.getElementById('via-modal');
+assert(!!viaModal, 'El aviso de VIA DESPEJADA (04/09) existe en el DOM');
 assert(!pinModal.classList.contains('active'),
   'El Ambar de Emergencia NO pide PIN: se da desde el suelo, viendo el accidente');
 assert(sentFrames.some(f => f.includes('CMD:AMBAR_EMERGENCIA') && !f.includes('PIN')),
@@ -372,11 +379,18 @@ assert(sentFrames.length === 0,
 // tiene esas ramas (Esclavo/src/bluetooth.cpp) y contestaria $ERR,CMD:DESCONOCIDO,
 // que es el error que parece un boton roto.
 //
-// Y LO QUE SE MIDE NO ES SOLO "NO SALE": ES QUE NO SE PIDE LA CLAVE. La guarda de
-// punta va DELANTE del PIN, y ese orden es la mitad util del arreglo. Si alguien la
-// pone detras, el operario teclea cuatro digitos delante de un cruce parado para que
-// la app le diga entonces que la orden no era para esta punta. Un teclado que aparece
-// es la senal de que el orden se invirtio, asi que se mira el modal, no solo el cable.
+// Y LO QUE SE MIDE NO ES SOLO "NO SALE": ES QUE NO SE PIDE NADA AL OPERARIO. La guarda
+// de punta va DELANTE de la que autoriza, y ese orden es la mitad util del arreglo. Si
+// alguien la pone detras, el operario contesta delante de un cruce parado para que la
+// app le diga entonces que la orden no era para esta punta. Un dialogo que aparece es
+// la senal de que el orden se invirtio, asi que se miran los modales, no solo el cable.
+//
+// 04/09: se miran LOS DOS. Esta orden ya no abre el teclado -abre el aviso de via-, asi
+// que mirar solo `pin-modal` dejaria de medir el orden y seguiria en verde: es el caso
+// exacto de CLAUDE.md 8.sexies -"al quitar la guarda, la linea del RESULTADO no cae"-,
+// y las lineas del ORDEN son las unicas que lo cazan. Y el coste de invertirlo aqui es
+// peor que con el PIN: lo que se gasta pidiendo mirar el tramo para una orden que no se
+// va a mandar no es tiempo, es la credibilidad de la pregunta.
 sentFrames = [];
 const btnStep = document.getElementById('btn-op-step');
 assert(!!btnStep, 'Boton tactico de cambio de turno presente en el DOM');
@@ -385,6 +399,8 @@ assert(sentFrames.length === 0,
   `CAMBIAR_TURNO es del Maestro: contra un Esclavo NO sale al cable: ${sentFrames.join(' | ')}`);
 assert(!pinModal.classList.contains('active'),
   'Contra un Esclavo NO se pide el PIN de una orden que no se va a mandar: la guarda de punta va DELANTE del teclado');
+assert(!viaModal.classList.contains('active'),
+  'ni se le pide que MIRE EL TRAMO para una orden que no se va a mandar: la guarda de punta va DELANTE del aviso de via');
 
 // Aqui vivia "con PIN erroneo no se autoriza nada", que tecleaba 9999 en el modal.
 // INVERTIDA, y no a un segundo "el modal sigue cerrado" -esa linea no podria fallar
@@ -402,6 +418,10 @@ assert(!!avisoPunta && avisoPunta.textContent.includes('MANUAL:CAMBIAR_TURNO') &
 // Los otros dos mandos de la botonera, con el mismo criterio y por separado: que uno
 // consulte la punta no dice nada del de al lado -el hueco de N-83 fueron exactamente
 // estos tres, y el resto de la app si preguntaba-.
+// Y desde el 04/09 los dos ya no tienen la MISMA barrera detras -btn-op-auto ABRE paso
+// y pregunta por la via; btn-op-amber para y conserva el PIN-, asi que se exigen los dos
+// dialogos cerrados en los dos botones: el que le toca a cada uno mide su orden, y el
+// otro impide que un cambio de guarda deje esta linea vacuamente verde.
 ['btn-op-auto', 'btn-op-amber'].forEach(id => {
   sentFrames = [];
   document.getElementById(id).click();
@@ -409,6 +429,8 @@ assert(!!avisoPunta && avisoPunta.textContent.includes('MANUAL:CAMBIAR_TURNO') &
     `[${id}] SET_MODO es del Maestro: contra un Esclavo NO sale al cable: ${sentFrames.join(' | ')}`);
   assert(!pinModal.classList.contains('active'),
     `[${id}] tampoco abre el teclado de PIN: la guarda de punta va delante`);
+  assert(!viaModal.classList.contains('active'),
+    `[${id}] ni el aviso de via: la guarda de punta va delante de las dos`);
 });
 
 // =========================================================================
@@ -421,6 +443,31 @@ assert(!!avisoPunta && avisoPunta.textContent.includes('MANUAL:CAMBIAR_TURNO') &
 // vez verificado no se vuelve a pedir en cada pulsacion". Vuelven LITERALES, sobre
 // los MISMOS tres botones que las median (CLAUDE.md 3.bis: no se reescribe logica ya
 // probada), cambiando solo la punta que hay al otro lado.
+//
+// 04/09 - SEGUNDO REPARTO, Y LA MITAD DEL PIN SE MUDA OTRA VEZ.
+//
+// El responsable decidio que el operario deje de teclear el PIN para lo que ABRE paso:
+// lo sustituye "?Confirma que no quedan vehiculos en el tramo?". El motivo no es
+// comodidad y hay que leerlo antes de tocar nada de aqui abajo: EL EQUIPO NO SABE SI
+// QUEDAN VEHICULOS EN EL TRAMO, EL OPERARIO SI. Un PIN demuestra QUIEN eres, no que
+// hayas MIRADO la via; y un banderillero que da paso cada tres minutos no teclea 1234
+// cada vez -acaba escribiendo la clave en el capo con un rotulador, o dandosela a
+// cualquiera-. `MANUAL:CAMBIAR_TURNO` y `SET_MODO:AUTO` pasan al aviso de via; el PIN
+// se queda INTACTO para el tecnico: tiempos, modos, reloj, test de focos, y el AMBAR
+// de esta misma botonera, que PARA en vez de abrir.
+//
+// Las once comprobaciones que cayeron median DOS cosas a la vez -"lo que mueve luces
+// se autoriza antes de salir" y "asi es como funciona el teclado de PIN"-, y ninguno
+// de los tres destinos de CLAUDE.md 8.quater vale para el conjunto: borrarlas se lleva
+// el flujo del PIN, que no lo mide nadie mas en este arnes; invertirlas todas convierte
+// nueve comprobaciones en repeticiones del mismo hecho. SE REPARTEN (8.sexies): la
+// mitad de "que autorizacion falta" se invierte donde estaba, y la del PIN se muda con
+// su BLOQUE LITERAL al mando de AMBAR, que sigue exigiendolo.
+//
+// Y EL ORDEN DE LOS DOS BLOQUES ES PARTE DE LA MEDIDA: el de la via va PRIMERO, con la
+// sesion sin PIN. Asi lo que se demuestra no es "la via ademas del PIN" sino que LA VIA
+// SOLA autoriza, que es la decision. Puesto al reves, el PIN de la sesion taparia la
+// puerta nueva y el bloque de la via pasaria sin ejercerla.
 //
 // Que este bloque vaya DESPUES del anterior no es cosmetico: el flujo del PIN solo se
 // puede medir con la clave sin verificar, y el bloque del Esclavo tiene que correr con
@@ -457,13 +504,94 @@ conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:V1_R2,T:31,RF:97,RTT:70
 assert(nodeNameEl.textContent.includes('MAESTRO'),
   `La app conmuta a MAESTRO con el $STATUS de la otra punta: ${nodeNameEl.textContent}`);
 
-// La primera orden que MUEVE luces tiene que pedir el PIN.
+// -------------------------------------------------------------------------
+// LA ORDEN QUE ABRE PASO SE AUTORIZA MIRANDO LA VIA - INVERTIDA (04/09)
+// -------------------------------------------------------------------------
+// SE CONSERVA, y no es la misma linea que la de debajo: sigue exigiendo que sin
+// autorizar NO salga un byte. Lo unico que ha cambiado es QUE autorizacion falta.
 sentFrames = [];
 btnStep.click();
 assert(sentFrames.length === 0,
+  `Sin confirmar la via no sale NADA por el canal serie: ${sentFrames.join(' | ')}`);
+
+// INVERTIDA: hasta el 04/09 esta linea exigia `pinModal.active`. Y se exigen LAS DOS
+// mitades porque la decision fue una SUSTITUCION, no un anadido. Si alguien deja el
+// teclado delante del aviso, el operario teclea igual y la pregunta que de verdad
+// importa se acaba contestando sin levantar la vista: dos barreras seguidas no suman,
+// ensenan a decir que si.
+assert(viaModal.classList.contains('active'),
+  'La orden que ABRE paso abre el aviso de via en vez de autorizarse sola');
+assert(!pinModal.classList.contains('active'),
+  'y NO pide ademas el PIN: la via SUSTITUYE al teclado en lo que abre paso');
+// El aviso nombra LA MANIOBRA, no "confirme la operacion". Un texto generico se
+// contesta sin mirar, que es justo lo que la pregunta existe para impedir.
+const viaManiobra = document.getElementById('via-maniobra');
+assert(viaManiobra.textContent.includes('DAR PASO'),
+  `El aviso dice que maniobra se va a hacer: "${viaManiobra.textContent.slice(0, 55)}..."`);
+
+// -------------------------------------------------------------------------
+// EL CONTROL POSITIVO DE LA INVERSION: TRAS CONFIRMAR, LA ORDEN SALE AL CABLE
+// -------------------------------------------------------------------------
+// CLAUDE.md 8.sexies, y es la parte que mas vale: una guarda que no dejara pasar NADA
+// haria pasar las tres lineas de arriba igual de bien que la guarda correcta. Sin esto
+// no se estaria midiendo la barrera nueva - se estaria midiendo una tapia.
+//
+// Y sale con el PIN DENTRO de la trama: el firmware no ha cambiado -sigue exigiendo
+// CMD:PIN:1234:- y lo pone la app. Lo que cambio es a QUIEN se lo pide la app. Que la
+// sesion NO tenga el PIN verificado en este punto es lo que convierte esta linea en la
+// prueba de que la via SOLA autoriza.
+document.getElementById('btn-via-confirmar').click();
+assert(!viaModal.classList.contains('active'),
+  'Al confirmar la via el aviso se cierra: quien confirma no se queda con el dialogo delante');
+assert(sentFrames.some(f => f.includes('CMD:PIN:1234:MANUAL:CAMBIAR_TURNO')),
+  `Tras confirmar la via la orden SALE al cable, con el PIN que pone la app: ${sentFrames.join(' | ')}`);
+
+// -------------------------------------------------------------------------
+// EL VALE DE VIA ES DE UNA ORDEN, NO DE LA SESION - INVERTIDA
+// -------------------------------------------------------------------------
+// Aqui vivia "[btn-op-auto] con el PIN ya verificado la orden sale directa". Ya no
+// dice eso: haber mirado el tramo para DAR PASO no autoriza a arrancar el ciclo, que
+// es otra maniobra y deja al equipo dando verdes solo sin volver a preguntar. Es la
+// primera condicion de viaConfirmadaVigente() -`vale.orden !== orden`- y esta es la
+// unica linea que la ejerce.
+sentFrames = [];
+document.getElementById('btn-op-auto').click();
+assert(sentFrames.length === 0 && viaModal.classList.contains('active'),
+  `[btn-op-auto] el vale de CAMBIAR_TURNO no arranca el ciclo: vuelve a preguntar por el tramo: ${sentFrames.join(' | ')}`);
+assert(viaManiobra.textContent.includes('AUTOMATICO'),
+  `y pregunta por SU maniobra, no repite la de la orden anterior: "${viaManiobra.textContent.slice(0, 55)}..."`);
+document.getElementById('btn-via-confirmar').click();
+assert(sentFrames.some(f => f.includes('CMD:PIN:1234:SET_MODO:AUTO')),
+  `[btn-op-auto] con su propia via confirmada la orden SALE al cable: ${sentFrames.join(' | ')}`);
+
+// =========================================================================
+// 6.bis-2 EL FLUJO DEL PIN, MUDADO ENTERO AL MANDO QUE SIGUE PIDIENDOLO
+// =========================================================================
+// CLAUDE.md 8.sexies, cuarto destino: SE REPARTE. Las lineas de arriba afirmaban dos
+// cosas, y solo una ha cambiado. La otra -"asi es como funciona el teclado de PIN":
+// pide, rechaza el equivocado, acepta el bueno, dispara la orden que esperaba y no
+// vuelve a pedir en la sesion- sigue viva palabra por palabra, porque el PIN no se ha
+// retirado: se ha retirado de DOS ordenes.
+//
+// Se muda con su BLOQUE LITERAL (CLAUDE.md 3.bis: no se reescribe logica ya probada)
+// al mando de AMBAR. No es un boton cualquiera: es de la MISMA botonera, va a la MISMA
+// punta y conserva la guarda de PIN a proposito -es la direccion segura, y preguntar
+// por la via para PARAR ensena a decir que si sin leer-.
+//
+// Borrarlas se habria llevado por delante el flujo del PIN entero, que en este arnes
+// no lo mide nadie mas: las cuatro puertas de mas abajo -SOLICITAR_PASO, el PIN de la
+// sesion al cambiar de punta, el Courier y SET_TIEMPOS- se apoyan en que alguien lo
+// tecleo AQUI. Eso es lo que las tiro a las once: no eran once defectos, era este
+// bloque siendo el unico que autorizaba la sesion.
+const btnAmber = document.getElementById('btn-op-amber');
+sentFrames = [];
+btnAmber.click();
+assert(sentFrames.length === 0,
   `Sin PIN verificado no sale NADA por el canal serie: ${sentFrames.join(' | ')}`);
 assert(pinModal.classList.contains('active'),
-  'La orden que mueve luces abre el teclado de PIN en vez de autorizarse sola');
+  'La orden que PARA -AMBAR- sigue abriendo el teclado de PIN en vez de autorizarse sola');
+assert(!viaModal.classList.contains('active'),
+  'y NO pregunta por la via: lo que para el trafico no necesita que nadie mire el tramo');
 
 // Un PIN equivocado no autoriza: el modal sigue abierto y no sale ninguna trama.
 ['9', '9', '9', '9'].forEach(d => {
@@ -476,19 +604,39 @@ assert(pinModal.classList.contains('active') && sentFrames.length === 0,
   document.querySelector(`.pin-btn[data-key="${d}"]`).click();
 });
 assert(!pinModal.classList.contains('active'), 'Con 4 digitos validos el modal se cierra');
-assert(sentFrames.some(f => f.includes('CMD:PIN:1234:MANUAL:CAMBIAR_TURNO')),
+assert(sentFrames.some(f => f.includes('CMD:PIN:1234:SET_MODO:AMBAR')),
   `La orden sale con el PIN recien tecleado: ${sentFrames.join(' | ')}`);
 
 // Y una vez verificado en la sesion no se vuelve a pedir en cada pulsacion: el
 // operario esta en mitad de la calzada, no delante de un formulario.
-['btn-op-auto', 'btn-op-amber'].forEach(id => {
-  sentFrames = [];
-  document.getElementById(id).click();
-  assert(sentFrames.some(f => f.includes('CMD:PIN:1234:SET_MODO:')),
-    `[${id}] con el PIN ya verificado la orden sale directa: ${sentFrames.join(' | ')}`);
-  assert(!pinModal.classList.contains('active'),
-    `[${id}] no vuelve a pedir el PIN dentro de la misma sesion`);
-});
+sentFrames = [];
+btnAmber.click();
+assert(sentFrames.some(f => f.includes('CMD:PIN:1234:SET_MODO:AMBAR')),
+  `[btn-op-amber] con el PIN ya verificado la orden sale directa: ${sentFrames.join(' | ')}`);
+assert(!pinModal.classList.contains('active'),
+  '[btn-op-amber] no vuelve a pedir el PIN dentro de la misma sesion');
+
+// -------------------------------------------------------------------------
+// LA MITAD QUE NO EXISTIA ANTES DEL 04/09: EL PIN NO SUPLE A LA VIA
+// -------------------------------------------------------------------------
+// Es la comprobacion que sostiene la decision entera. Si un PIN verificado sirviera
+// para lo que ABRE paso, la pregunta por el tramo seria un tramite que se salta solo
+// con haber tecleado antes, y el operario volveria a dar paso sin mirar.
+//
+// La fase cambia -que es exactamente lo que pasa en la calle en cuanto el equipo
+// obedece un CAMBIAR_TURNO-, asi que el vale de mas arriba deja de valer: es la tercera
+// condicion de viaConfirmadaVigente(). Se hace inyectando el $STATUS que lo declara, no
+// tocando internos de la app.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:MANUAL,ESTADO:R1_V2,T:31,RF:97,RTT:70,BAT:12.9,HORA:14:31:30');
+sentFrames = [];
+btnStep.click();
+assert(sentFrames.length === 0 && viaModal.classList.contains('active'),
+  `Con el PIN de la sesion verificado y la fase cambiada, la orden que abre paso VUELVE a pedir la via: ${sentFrames.join(' | ')}`);
+// Y "Todavia no" no manda nada, que es la otra mitad de una pregunta de verdad: si la
+// respuesta negativa no parase la orden, preguntar seria teatro.
+document.getElementById('btn-via-cancelar').click();
+assert(sentFrames.length === 0 && !viaModal.classList.contains('active'),
+  `Contestar "todavia no" cierra el aviso y NO manda la orden: ${sentFrames.join(' | ')}`);
 
 // Y las dos emergencias, ahora del reves. El par completo es lo que demuestra que el
 // boton esta vivo y enrutado, no escondido: contra el Esclavo salia el ambar y se
@@ -628,14 +776,22 @@ limpia.d.getElementById('btn-pin-ok').click();
 assert(!pinD1.classList.contains('filled'),
   'Con el teclado cerrado las pulsaciones no entran ni en el buffer: el primer punto sigue vacio');
 // Y la sesion NO quedo autorizada, que se mide como se mide en la calle: pidiendo algo.
-limpia.d.getElementById('btn-op-step').click();
+//
+// EL VEHICULO SE MUDA A `btn-op-amber` (04/09), y no es cosmetico. Con `btn-op-step`,
+// que desde hoy se autoriza mirando la via, un `tramas.length === 0` seguiria saliendo
+// VERDE por el motivo equivocado: nadie confirmo el tramo. La linea pasaria a no decir
+// nada del PIN -que es lo unico que este bloque existe para medir- y el teclado fantasma
+// podria volver sin que este arnes se enterara. Es CLAUDE.md 8.sexies exacto: la barrera
+// de abajo tapando a la de arriba. AMBAR es de la misma botonera y conserva el PIN, asi
+// que el bloque se muda LITERAL y vuelve a medir lo suyo.
+limpia.d.getElementById('btn-op-amber').click();
 assert(limpia.tramas.length === 0,
   `Tras teclear el PIN con el modal cerrado la sesion sigue SIN autorizar: ${limpia.tramas.join(' | ')}`);
 assert(pinModal2.classList.contains('active'),
   'y la orden que mueve luces abre el teclado en vez de salir con una autorizacion que nadie dio');
 
 // (2) CERRAR EL TECLADO CANCELA LA ORDEN QUE ESPERABA DETRAS.
-// pedirPin() dejo CAMBIAR_TURNO en cola. El operario se arrepiente y cierra con la X.
+// pedirPin() dejo SET_MODO:AMBAR en cola. El operario se arrepiente y cierra con la X.
 limpia.d.getElementById('modal-pin-close').click();
 // Mas tarde alguien teclea el PIN por OTRO motivo: subir a Tecnico desde la cabecera.
 limpia.d.getElementById('btn-toggle-role').click();
