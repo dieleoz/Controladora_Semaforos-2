@@ -300,7 +300,7 @@ tenía el módulo SPP; **lo que se enchufa, no**.
 |---|---|---|
 | ~~**Pantalla LCD ST7920** (las dos puntas)~~ | **este PCB no permite ampliación** — el proyecto anterior sí, y de ahí venía todo lo que se había desarrollado para ampliarlo. Nada de eso era físicamente realizable soldando sobre una placa que no lo admite. La pantalla ocupaba **cinco pines** —`PB3` `PB4` `PB5` `PB6` `PB7`, `pines.h:85-89`— y el Bluetooth necesita `PB6`/`PB7`: **no había de dónde sacarlos** | toda la operación pasa por la app |
 | ~~**Módulo Bluetooth SPP dedicado** (`HC-05` / `JDY-30`)~~ | lo sustituye el ESP32 por el mismo `J17` | **no se compran**: la línea `A1` del Manual 15 está anulada |
-| ~~**Los CUATRO botones**~~ | los pines de 3 y 4 son los que necesitan las cámaras, y el 05/09 el responsable retiró la botonera entera: **«todo por app»** | ✅ **YA ESTÁ HECHO EN FIRMWARE, medido el 05/09**: `botonAceptar()` y `botonCancelar()` son `return false;` en las dos puntas, y `BOTON1`/`BOTON2` **no se leen en ningún sitio** (`grep -c` = 0). Lo que **sigue vivo** es la lectura de `PB9`/`PB13` que alimenta al mando |
+| ~~**Los CUATRO botones**~~ | los pines de 3 y 4 son los que necesitan las cámaras, y el 05/09 el responsable retiró la botonera entera: **«todo por app»** | ✅ **La BOTONERA como interfaz está fuera**: `botonAceptar()` y `botonCancelar()` son `return false;` en las dos puntas, así que **ningún pulsador ejecuta ya nada**. 🔴 **Y `BOTON1`/`BOTON2` SÍ SE LEEN** — `pinMode(BOTON1, INPUT)` y `b1.pin = BOTON1`, `Maestro/src/botones.cpp:394-398`— porque **`Botón 1` y `Botón 2` SON `Mando A` y `Mando B`: los mismos dos pines con dos nombres**. Por eso «los botones fuera» y «el mando vivo» son las dos ciertas. *(Una versión anterior de esta celda decía «no se leen en ningún sitio, `grep -c` = 0»: el `grep` buscaba `BOTON1_PIN`, que no es como se llama. §4 — un cero no es «no hay».)* |
 
 **Y una vía que se conservó el 31/08 y cuyo HARDWARE ya no existe — 05/09:**
 
@@ -373,7 +373,7 @@ las 8 luces"* es la clase de frase que se copia de documento en documento sin qu
   ficheros** —el `.cpp`, el `.h`, el `.kicad_sch` y el `.kicad_pcb`—. Un fichero dice lo que alguien
   dibujó; una placa dice lo que se fabricó, y lo que alguien reparó después.
 - 🔴 **`SET_MODO:MENU` va ANTES de dejar de atender los pulsadores, no después.** Hoy se entra a un
-  modo por el menú y se sale con el Botón 4; por Bluetooth se alcanzan **tres** de los ocho modos y
+  modo por el menú y se sale con el Botón 4; ~~por Bluetooth se alcanzan **tres** de los ocho modos~~ — **REFUTADO el 05/09: son SIETE de ocho.** `SET_MODO:MENU` existe (`Maestro/src/bluetooth.cpp`, `grep -n 'SET_MODO:MENU'`), entra **sin PIN** y sale de todos los modos; en Degradado pide la salida ordenada. El único inalcanzable es `MODO_HORA`, que sólo arma `menu.cpp` detrás de un `botonAceptar()` muerto. `ESTADO.md` lo llevaba tachado desde el 31/08 (N-100) **y este README no**, así que durante seis días el documento de entrada hacía parecer imposible el «todo por app» que ya estaba hecho. Lo que sigue debajo describe el mundo anterior y se conserva tachado: ~~y
   no existe la vuelta al menú. Sin ese comando, cada modo es **una puerta de un solo sentido**: se
   entra desde el celular y no se sale más que cortando la energía.
 - 🟠 **Sin pantalla, `$STATUS` es el único tablero que existe** — y hoy trae `BAT:12.6` literal en
@@ -573,7 +573,7 @@ las 8 luces"* es la clase de frase que se copia de documento en documento sin qu
 > puede esconder una opción donde el cursor sí llega.
 >
 > 🔴 **Lo que hay que leer antes de dar el menú por prescindible:** `botonCancelar()` es hoy **la
-> única salida de los ocho modos**, y desde Bluetooth sólo se alcanzan tres, sin vuelta al menú.
+> única salida de los ocho modos**, ~~y desde Bluetooth sólo se alcanzan tres, sin vuelta al menú~~ — **falso, refutado el 05/09: son siete de ocho y `SET_MODO:MENU` existe**.
 > **`SET_MODO:MENU` va antes de retirar nada**, no después.
 
 Dos niveles, porque una lista plana ya no cabía en los 64 px de alto:
