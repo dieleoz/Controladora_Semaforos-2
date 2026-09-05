@@ -28,38 +28,53 @@ Las cintas del 05/09 a las 22:19 lo demuestran, no lo afirman — cargaron `42a5
   en BAJO. El fuente hace `INPUT` pelado y lee `== HIGH`. Es la cabecera que todo el mundo
   lee antes de cablear.
 
+## Cerrado DESPUES de la ultima cinta — y por tanto SIN PRUEBA EN TARJETA
+
+| | commit | lo que enseño de paso |
+|---|---|---|
+| **N-151** DAR PASO en un modo sin coordinador trababa el cruce | `273b315` | el equipo decia que SI a una orden que no iba a ejecutar, y se quedaba PEOR que antes de pedirla |
+| **N-152** `CANCELAR_AMBAR` no avisaba al Maestro | `d6ce67e` | **en `MODO_AMBAR` el Maestro estaba SORDO**: un comando copiado de N-142 habria entrado sin lector |
+| **N-150** el ciclo no arrancaba tras aplicar tiempos | `414b962` | `ACK_TEXTO` no tenia `SET_TIEMPOS|OK`: el generico lo pintaba **en verde** |
+| **los parsers de la app** | `414b962` | eran **TRES**, y `parseError()` leia por posicion con una prueba de un formato que ningun micro emite |
+
+> **Los cuatro se arreglaron despues de la cinta de las 22:19.** De ninguno hay una sola
+> prueba en cobre. Que la compuerta este en `20/20` no dice nada de eso.
+
 ## 🔴 ABIERTO — por orden de lo que duele
 
-1. **N-150 — al aplicar tiempos el cruce se queda en rojo para siempre.** Para fijar
-   tiempos hay que sacar el equipo del ciclo y la app manda al **menu**; en el menu el
-   coordinador manda `CMD_GO_RED` cada 3 s a las dos puntas, que es su trabajo. Y al
-   aceptar los tiempos **nadie vuelve a arrancar el ciclo**: `enviarComandoFirmware(
-   'SET_TIEMPOS', ...)` y ahi se acaba. Los 4 minutos no llegan nunca.
-   **Decision pendiente del responsable:** que la app arranque el ciclo sola tras el
-   `$ACK` es comodo pero **abre paso sin que nadie lo pulse** —lo que el apartado 6
-   prohibe—; la alternativa es decirselo y que lo pulse el.
-2. **`CANCELAR_AMBAR` no manda nada por radio.** El unico `protocolo_enviarPaquete` de
-   ese fichero es el `:486` de armado. Cancelar desde el Poste 2 deja al **Maestro en
-   ambar** y obliga a caminar al Poste 1. Es el hermano de N-142 en la otra direccion.
-3. **`MANDO_A` / `MANDO_B` no responden** — `0,6 V` en reposo (N-118), `J16` p5 y p8.
-   **Van cableados**: con `MANDO_B` al aire `mando_ambarLocal()` no se arma nunca y los
-   tres `if` de `Esclavo/src/main.cpp` (`:406`, `:416`, `:540`) quedan siempre
-   verdaderos. **El veto de SFTY-21 no queda inerte: queda ABIERTO.**
-4. **N-145 no se puede dar por probada.** Sin `DS3231` en el bus las tramas salen con
-   `--:--:--`, que es el arreglo callandose bien. `0x68` sigue **SIN VERIFICAR** sobre
-   modulo real y la pieza **no esta comprada** (linea `A6`).
-5. **Matriculacion por ID de Bluetooth**, no por nombre y sin hacerlo a mano. Aplazada a
-   despues del banco por decision del responsable. Dato duro que la condiciona:
-   `RF_Packet` son 4 bytes `{msgID, command, param, crc}` y **no tiene campo de
-   direccion**; el CRC cubre 3.
-6. **Dos parsers en la app con convenios distintos**: `nmea_parser.js` escribe
-   `data.hora` en minuscula y `app.js` lee `data.HORA`. **La que se prueba no es la que
-   se instala.** Falta un pack que exija que las dos listas de campos coincidan.
-7. **`BAT:--`** — y la causa **si esta medida**, al contrario de lo que se escribio
-   antes: N-108 lo puso en `--` a proposito porque `grep -rn analogRead` sobre las cuatro
-   carpetas da **cero**. Falta el divisor y la entrada analogica, no el firmware.
-8. **`J16` p1 lleva 12 V crudos.** Taparlo es **obligatorio en cada equipo que se monte**
+**Los cuatro primeros NO los cierra nadie escribiendo codigo.** Confundirlos con los que
+si es como se acumula un `20/20` que no acerca una tarjeta (§2.bis).
+
+1. **`MANDO_A` / `MANDO_B` no responden** — `0,6 V` en reposo (N-118), `J16` p5 y p8.
+   **Van cableados.** Falta una medida en cobre y probablemente un cable: el fuente ya lee
+   `INPUT` pelado activo en ALTO, que es lo que el conector pide.
+   **Y urge:** con `MANDO_B` al aire `mando_ambarLocal()` no se arma nunca, los tres `if`
+   de `Esclavo/src/main.cpp` (`:406`, `:416`, `:540`) quedan siempre verdaderos y **el
+   veto de SFTY-21 no queda inerte: queda ABIERTO.**
+2. **N-145 no se puede dar por probada.** Falta **comprar el `DS3231`** (linea `A6`) y
+   verificar `0x68` sobre el modulo. El firmware esta entero en las dos mitades. Sin la
+   pieza las tramas salen con `--:--:--`, que es el arreglo **callandose bien** — no
+   confundirlo con que falle.
+3. **`BAT:--`** — falta un **divisor de tension** y una entrada analogica. La causa esta
+   MEDIDA: `grep -rn analogRead` sobre las cuatro carpetas da **cero**, y N-108 puso el
+   `--` a proposito para que nadie leyera un 12,6 V que era un literal.
+4. **`J16` p1 lleva 12 V crudos.** Taparlo es **obligatorio en cada equipo que se monte**
    (N-120), no una cautela de banco.
+
+5. **Matriculacion por ID de Bluetooth**, no por nombre y sin hacerlo a mano. Es una
+   **decision de protocolo del responsable** y cuesta bytes: `RF_Packet` son 4 bytes
+   `{msgID, command, param, crc}` y **no tiene campo de direccion**; el CRC cubre 3. Meter
+   direccionamiento cambia el contrato de la radio en las dos puntas.
+6. **`validateTiempos()` de los unitarios de la app sigue en 1..15 min** cuando el C++ y
+   `app.js` estan en **3..15**. **No falla porque ninguno de sus siete casos toca el
+   borde**: no prueba ni 1 ni 2. Es una copia vieja **que no puede fallar**, y lleva la
+   palabra «probado» encima. Invertirla es un §8.quater aparte.
+7. **`buildCommand()`** de esa misma suite sigue siendo copia a mano de
+   `generarComando()`, que tiene cero llamadores **a proposito**. Unificarlo mueve la
+   pregunta abierta del `*XX` que vigila `simulador_puente_esp32.py`.
+8. **Retirar `parseStatus()` de verdad** exige tocar `simulador_app_bluetooth.py` y
+   `documentos_03`. Hoy queda como **vista tipada** encima del unico partidor, no como un
+   segundo parseo — que era el defecto.
 
 ## Decision del responsable, tomada esta noche y sin escribir hasta ahora
 

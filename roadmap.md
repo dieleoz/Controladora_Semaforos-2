@@ -55,7 +55,89 @@ regla **§2.bis de `CLAUDE.md`**, que existe por esto.
 > Desde el 03/09 hay una segunda, y es mejor: **¿esto desatasca uno de los 5 pasos que el banco no
 > pudo correr?** Lo que no conteste a ninguna de las dos, no se escribe.
 
-### 0.0.quindecies PLAN DE CIERRE — que cierra cada pendiente, y cual NO lo cierra nadie desde el PC
+### 0.0.sexdecies LOS TRES QUE SE CERRARON CON CODIGO — y lo que cada uno enseño de paso
+
+> **Ninguno de los tres se parecia a lo que se creia que era.** Los tres se abrieron
+> pensando que eran un arreglo pequeno y los tres destaparon algo mas grande al medirlos.
+
+### N-152 · el Maestro ESTABA SORDO en `MODO_AMBAR` (`d6ce67e`)
+
+El encargo era «copiar N-142 en la direccion contraria». Al censar aparecio que
+`protocolo_hayPaqueteDisponible()` se llama **en UN SOLO SITIO de todo el Maestro**
+—`coordinador_actualizar()`— y que `main.cpp:193` excluye `MODO_AMBAR` de la unica llamada
+que queda en ese modo.
+
+> **Un comando nuevo copiado de N-142 habria entrado por el UART SIN LECTOR.** El arreglo
+> entero habria sido codigo declarado y no ejercido, con la compuerta en verde. Es §2.ter
+> en el sitio donde mas caro sale: no en un `pinMode()` sin `digitalRead()`, sino en una
+> trama de seguridad.
+
+De ahi `coordinador_escucharEnAmbar()`: **callar es no transmitir, no quedarse sordo.**
+
+**Y la pregunta que decidio el diseno:** al `MODO_AMBAR` se llega por cuatro caminos —el
+`B.B.B`, el watchdog, `SET_MODO:AMBAR` desde este telefono, y el aviso del Esclavo— y los
+cuatro hacian el **mismo** `modoActual_set()` sin dejar constancia. Sin distinguirlos, el
+Poste 2 habria podido retirar un ambar que puso alguien que sigue en la calzada del Poste
+1. El origen se anota **pegado al MOTIVO que ya se pintaba en pantalla**, porque es la
+misma pregunta. **Gana quien esta aqui de pie.**
+
+*De paso: la entrada de N-142 no fijaba motivo, asi que tras un `B.B.B` la pantalla decia
+«Ambar pedido desde el mando (B.B.B)» para un ambar del Poste 2. **Mentia.***
+
+Sale a **todo-rojo**, no al ciclo: el Esclavo dijo *«ya no retengo el ambar»*, no *«ya se
+puede pasar»*.
+
+### N-150 · el `$ACK` verde que no habia terminado nada (`414b962`)
+
+`ACK_TEXTO` **no tenia entrada `SET_TIEMPOS|OK`**, asi que caia en el generico *«orden
+ACEPTADA»* pintado **en verde**: justo la trampa que esa tabla existe para evitar.
+
+**Lo que NO se hizo, y es la decision:** arrancar el ciclo al recibir el `$ACK` es lo
+comodo, y **abre paso saltandose el aviso de via** —la unica barrera que obliga a levantar
+la vista—. Se avisa y se le da la accion; la pulsa el operario. El boton **reenvia** al que
+ya existe en vez de repetir su cuerpo, asi que pasa por las mismas tres barreras y el
+literal vive en un solo sitio.
+
+### Los parsers · eran TRES, y uno se probaba contra si mismo (`414b962`)
+
+El tercero vivia en `test_unitarios_app.js`: checksum, parser y generador reimplementados
+a mano, partiendo por **otro criterio** y acertando **por casualidad** sobre sus propias
+tramas. Y `parseStatus()` no era solo de tests: la carga
+`simulador_app_bluetooth.py`, lo que impedia retirarla sin dejar ciego a `documentos_03`
+(N-89 otra vez).
+
+**Defecto vivo encontrado de paso:** `parseError()` leia **por posicion**. Sobre la trama
+real `ERR,CMD:SET_TIEMPOS,DESC:RANGO` devolvia `cmd = "CMD:SET_TIEMPOS"`. Estaba en verde
+porque su unica prueba le daba un formato **que ningun micro emite**.
+
+### Y los dos packs nuevos cazaron defectos DE SI MISMOS
+
+No por lectura: por sus propios controles negativos (§8.bis funcionando).
+
+- `costura_14` tenia el **buscador ciego** —`_llamadas_stmt()` excluye parentesis dentro de
+  los argumentos y los motivos llevan `"el mando (B.B.B)"`—: daba `FALLA` acusando al
+  firmware de un agujero que no tenia.
+- Y su comprobacion 4 leia `modoManual_loop()` en vez de `modoManual_setup()`: hay **dos**
+  `switch` sobre el modo en `main.cpp` y casaban con el mismo patron. **Aprobaba en verde
+  midiendo la funcion equivocada.**
+
+### 🔴 Lo que se dejo ESCRITO y SIN ARREGLAR, a proposito
+
+**`validateTiempos()` de los unitarios sigue en 1..15 min** cuando el C++ y `app.js` estan
+en **3..15**. No falla porque **ninguno de sus siete casos toca el borde**: no prueba ni 1
+ni 2. Es una copia vieja **que no puede fallar** — la clase que §3.bis llama prueba muerta,
+y la peor, porque lleva la palabra «probado» encima. Invertirla es un §8.quater aparte.
+
+### Y lo que ninguno de los tres es
+
+**Nada de esto ha tocado una tarjeta.** N-150, N-151 y N-152 se arreglaron **despues** de
+la ultima cinta de banco. El `20/20` dice que los modelos y los arneses de PC no encuentran
+nada, y esta misma sesion dio dos contraejemplos: N-146 y N-147 pasaron esas veinte
+comprobaciones sin despeinarlas, y los encontro una cinta de tramas.
+
+---
+
+## 0.0.quindecies PLAN DE CIERRE — que cierra cada pendiente, y cual NO lo cierra nadie desde el PC
 
 > **La mitad util de este plan es la segunda tabla.** Cuatro de los ocho pendientes **no
 > se pueden cerrar escribiendo codigo**, y confundirlos con los otros cuatro es como se
@@ -65,9 +147,9 @@ regla **§2.bis de `CLAUDE.md`**, que existe por esto.
 
 | | que es | que lo cierra | estado |
 |---|---|---|---|
-| **N-150** | al aplicar tiempos el cruce se queda en rojo para siempre | la app, encadenando al `$ACK,CMD:SET_TIEMPOS,RESULT:OK` un aviso claro **y una accion explicita** que arranque el ciclo. **No se arranca solo**: es un cambio de modo que ABRE PASO, y §6 prohibe que la maquina opere un modo que nadie pidio | en curso |
-| **N-152** | `CANCELAR_AMBAR` no manda nada por radio: el Maestro se queda en ambar y hay que caminar al Poste 1 | el aviso de vuelta, hermano de N-142. **Y no es copiarlo:** al `MODO_AMBAR` se llega tambien por el `B.B.B`, por el watchdog y desde el telefono del Maestro, asi que salir de un ambar **que pidio otra persona** seria peor que el defecto | en curso |
-| **dos parsers en la app** | `nmea_parser.js` escribe `data.hora`, `app.js` lee `data.HORA`. **La que se prueba no es la que se instala** | un parser, un convenio, y un pack que exija que la probada sea la usada | en curso |
+| **N-150** | al aplicar tiempos el cruce se queda en rojo para siempre | aviso colgado del `$ACK` **y una accion explicita**. **No se arranca solo**: abrir paso saltandose el aviso de via es lo que §6 prohibe | ✅ `414b962` |
+| **N-152** | `CANCELAR_AMBAR` no manda nada por radio | el aviso de vuelta, **y no era copiar N-142** | ✅ `d6ce67e` |
+| **los parsers** | `nmea_parser.js` escribe `data.hora`, `app.js` lee `data.HORA` | un solo partidor, y un pack que exige que la probada sea la usada | ✅ `414b962` — **eran TRES** |
 
 ### 🛑 Los que NO cierra ningun agente, y por que
 
