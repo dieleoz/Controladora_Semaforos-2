@@ -32,3 +32,8 @@ bool demanda_hayLocal() {
   // sin poder pedirla otra vez- o un solape que la alargue sin que nadie lo pida.
   return !primera && (millis() - tUltima) <= SILENCIO_MS;
 }
+
+// El unico sitio del que sale este numero hacia fuera. El porque, en demanda.h.
+unsigned long demanda_ventanaMs() {
+  return SILENCIO_MS;
+}

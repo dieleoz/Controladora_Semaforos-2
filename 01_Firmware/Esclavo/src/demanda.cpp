@@ -26,3 +26,8 @@ bool demanda_solicitar() {
   protocolo_enviarPaquete(CMD_DEMANDA);
   return true;
 }
+
+// El unico sitio del que sale este numero hacia fuera. El porque, en demanda.h.
+unsigned long demanda_ventanaMs() {
+  return SILENCIO_MS;
+}

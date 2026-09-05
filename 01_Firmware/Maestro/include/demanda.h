@@ -28,3 +28,19 @@ bool demanda_solicitar();
 // "cede el paso si hay demanda remota Y NO hay cola local": con la cola local siempre
 // puesta, el Maestro no le cederia el paso al otro sentido nunca mas.
 bool demanda_hayLocal();
+
+// ---------------------------------------------------------------------------
+// LA VENTANA DE SILENCIO, PUBLICADA. D-13 fase 1, 05/09/2026.
+//
+// ES UN GETTER, NO UNA SEGUNDA DECLARACION. El numero sigue viviendo -solo- en
+// demanda.cpp y no se copia a ningun sitio. El motivo es N-137: cuando un plazo vive
+// en una constante Y ADEMAS escrito a mano en otro fichero, el dia que difieran gana
+// el que NO lleva encima el comentario que lo explica.
+//
+// QUIEN LA NECESITA Y PARA QUE. El vigilante de camaras de botones.cpp cuenta cuantas
+// veces HABRIA actuado el veto de la pluma de la fase 2, y para eso tiene que decidir
+// si una deteccion "sigue en pie" en el instante en que la pluma baja. Esa pregunta ya
+// tiene UNA respuesta en este firmware -la de demanda_hayLocal(), justo aqui arriba- y
+// se reutiliza en vez de inventar un segundo plazo: dos definiciones de "vigente" que
+// solo la disciplina mantiene iguales son el defecto que este repositorio ya paga.
+unsigned long demanda_ventanaMs();

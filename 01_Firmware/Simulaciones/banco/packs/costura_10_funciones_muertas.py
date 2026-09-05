@@ -76,6 +76,25 @@ CONOCIDAS = {
         "lcd_dibujarConfigValor",
         "coordinador_intentarHandshake",
         "coordinador_medirDesfase", "coordinador_reiniciarConexion",
+        # D-13 fase 1 (05/09): la fuente del campo CAM: del $STATUS, escrita y todavia
+        # SIN CONECTAR. Y el motivo NO es una frase: es una medida, que es lo que §3.bis
+        # exige de una excepcion -"una lista de excepciones con motivos sin verificar es
+        # una lista de defectos con permiso"-.
+        #
+        #   1. EL CAMPO NO CABE HOY. El peor caso por TIPO del $STATUS son 162 B contra
+        #      un techo de 155, y la cuenta esta hecha y escrita en Maestro/src/
+        #      bluetooth.cpp, junto al snprintf. Ya no cabia ANTES de este campo: es un
+        #      residual declarado, no un descuido.
+        #   2. Y ESO SE COMPRUEBA, no se cree: camara_03_vigilante mide que
+        #      camara_estado() esta declarada en las dos puntas y que la plantilla del
+        #      $STATUS sigue sin CAM:. Las dos mitades del motivo, en cada corrida.
+        #
+        # Se deja escrita en vez de esperar porque sin ella el vigilante no tiene por
+        # donde publicar lo que sabe, y "no llega bit" y "no hay nadie" siguen siendo
+        # indistinguibles (A-6). El dia que se acoten RF y T donde se producen, el campo
+        # es una linea - y este trinquete FALLA en ese mismo commit, que es justo lo que
+        # obliga a sacarla de aqui.
+        "camara_estado",
     },
     "Esclavo": {
         # N-133 (04/09): los dos accesos a los tiempos del ciclo AUTOMATICO.
@@ -108,6 +127,19 @@ CONOCIDAS = {
         # El Esclavo NO enciende luces por su cuenta: rechaza TEST_LEDS y no fuerza
         # verde. Que estas dos no tengan llamador es la barrera funcionando.
         "semaforo_iniciarTestLeds", "semaforo_forzarVerde",
+        # D-13 fase 1 (05/09): la misma de arriba y por el mismo motivo medido. En esta
+        # punta hay ademas una segunda razon comprobable: el bloque de camaras de
+        # botones.cpp y botones.h es IDENTICO en las dos puntas y hay dos packs que lo
+        # exigen -camara_02_j16 sobre el camino de camara y camara_03_vigilante sobre las
+        # siete funciones del vigilante-, asi que esta declaracion no PUEDE no estar aqui:
+        # retirarla del Esclavo separaria a los gemelos y los dos packs caerian.
+        #
+        # AQUI ESTUVO ESCRITO "el Esclavo no tiene $STATUS propio", Y ERA FALSO: lo tiene,
+        # en Esclavo/src/bluetooth.cpp, con su NODE:ESCLAVO y su PLUMA:. Se tacha en vez
+        # de borrarse porque es exactamente el motivo sin medir que §3.bis prohibe, y lo
+        # caza el mismo pack: camara_03_vigilante comprueba la ausencia de CAM: en LAS DOS
+        # plantillas, no solo en la del Maestro.
+        "camara_estado",
     },
 }
 

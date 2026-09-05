@@ -21,3 +21,19 @@
 // Devuelve false si la peticion se descarto por caer dentro de la ventana de silencio,
 // para que el llamante pueda decirselo al operario en vez de fingir que se envio.
 bool demanda_solicitar();
+
+// ---------------------------------------------------------------------------
+// LA VENTANA DE SILENCIO, PUBLICADA. D-13 fase 1, 05/09/2026.
+//
+// ES UN GETTER, NO UNA SEGUNDA DECLARACION. El numero sigue viviendo -solo- en
+// demanda.cpp y no se copia a ningun sitio. El motivo es N-137: cuando un plazo vive
+// en una constante Y ADEMAS escrito a mano en otro fichero, el dia que difieran gana
+// el que NO lleva encima el comentario que lo explica.
+//
+// QUIEN LA NECESITA Y PARA QUE. El vigilante de camaras de botones.cpp cuenta cuantas
+// veces HABRIA actuado el veto de la pluma de la fase 2, y para eso tiene que decidir
+// si una deteccion "sigue en pie" en el instante en que la pluma baja. Esa pregunta ya
+// la contesta este plazo -es el que gobierna demanda_solicitar()- y se reutiliza en vez
+// de inventar un segundo: dos definiciones de "vigente" que solo la disciplina mantiene
+// iguales son el defecto que este repositorio ya paga.
+unsigned long demanda_ventanaMs();

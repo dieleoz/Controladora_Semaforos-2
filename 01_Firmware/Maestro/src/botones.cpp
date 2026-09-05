@@ -3,6 +3,8 @@
 #include "pines.h"
 #include "mando.h"
 #include "demanda.h"
+#include "semaforo.h"
+#include "bluetooth.h"
 
 struct Boton {
   int pin;
@@ -116,6 +118,224 @@ bool camara_leerPin(uint8_t pin) {
 static const uint8_t CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN};
 static bool camAnt[2] = {false, false};
 
+// ---------------------------------------------------------------------------------
+// EL VIGILANTE - D-13 FASE 1 (A-6), 05/09/2026. IDENTICO EN LAS DOS PUNTAS.
+//
+// Por que existe, y por que va ANTES que cualquier veto, esta escrito en botones.h.
+// Aqui van los dos numeros y de que estan hechos.
+//
+// -------------------------------------------------------------------------------
+// CAM_PEGADA_MS - CUANTO PUEDE DURAR UNA PRESENCIA LEGITIMA BAJO LA PLUMA
+// -------------------------------------------------------------------------------
+// La camara vigila EL BARRIDO DE LA PLUMA, no la zona de espera (D-13): un vehiculo
+// que espera correctamente para ANTES y no entra en la region. Lo unico que la ocupa
+// es alguien CRUZANDO, y solo se cruza con la pluma arriba, o sea durante un verde y
+// su despeje.
+//
+// El techo de eso son los MAXIMOS del ciclo, que viven en limites_ciclo.h:
+//
+//     VERDE_MIN_MAX (15 min) + DESPEJE_SEG_MAX (90 s) = 16,5 min
+//
+// Por encima de ese techo ninguna cola de vehiculos explica un contacto que lleva
+// cerrado SIN ABRIRSE NI UNA VEZ. Se toman 20 min, el primer redondo por encima, y el
+// margen no es decorativo: la pluma tambien se queda arriba en S_FALLO -ambar
+// intermitente-, donde el paso es libre y la region puede ir muy cargada.
+//
+// LO QUE ESTA ALARMA NO SABE DISTINGUIR, ESCRITO EN VEZ DE DISIMULADO: un rele trabado
+// y un vehiculo parado veinte minutos debajo de la pluma dan EL MISMO NIVEL, y este
+// firmware no tiene con que separarlos. Las dos cosas necesitan que alguien vaya a
+// mirar, asi que avisar es correcto en los dos casos; lo que NO seria correcto es que
+// la trama dijera "averia". Por eso la CAUSA dice CONTACTO_FIJO y no AVERIA.
+//
+// Y LA DESIGUALDAD NO SE QUEDA EN ESTE COMENTARIO. Es N-71 letra por letra -un techo
+// que vivia en prosa dejo dos reintentos inejecutables durante meses-: el pack
+// camara_03_vigilante recalcula en cada corrida, leyendo los tres numeros del C++, que
+//     CAM_PEGADA_MS > (VERDE_MIN_MAX * 60 + DESPEJE_SEG_MAX) * 1000
+static const unsigned long CAM_PEGADA_MS = 1200000UL;
+
+// -------------------------------------------------------------------------------
+// CAM_CIEGA_MS - CUANTO PASO ABIERTO SIN UN SOLO FLANCO ES DEMASIADO
+// -------------------------------------------------------------------------------
+// ESTE NUMERO NO SALE DE NINGUNA CONSTANTE DEL FIRMWARE, Y SE DICE ASI EN VEZ DE
+// VESTIRLO DE CUENTA. Cuanto tarda en pasar el siguiente vehiculo es una propiedad de
+// LA CARRETERA, no del equipo; fabricarle una derivacion seria el "~1 s del rele" de
+// A-7 otra vez: un numero nuestro que despues nos citamos como si fuera del fabricante.
+//
+// Lo que si es del equipo son las dos cosas que lo acotan, y las dos las comprueba el
+// pack:
+//
+//   1. NO CUENTA TIEMPO DE RELOJ: cuenta tiempo CON LA PLUMA ARRIBA. Con el cruce
+//      parado -menu, rojo total, esta punta sin turno- nadie puede cruzar el barrido, y
+//      una camara callada esta diciendo la verdad. Ese es el "con el ciclo corriendo"
+//      de D-13, medido sobre lo unico que de verdad abre el paso.
+//   2. TIENE QUE SER MAYOR QUE CAM_PEGADA_MS. Una camara pegada tampoco da flancos, o
+//      sea que su cronometro de silencio corre igual; si este numero fuera el menor, un
+//      contacto trabado se anunciaria como CIEGA -el diagnostico CONTRARIO- y el
+//      tecnico saldria a buscar un cable cortado teniendo un rele cerrado.
+//
+// Se toman 6 h de paso abierto. Con el ciclo minimo de D-5 -3 min por sentido- cada
+// poste tiene el paso abierto aproximadamente la mitad del tiempo, asi que son del
+// orden de 12 h de reloj: NO PUEDE dispararse dentro de una sola noche sin trafico, que
+// es el unico silencio largo que es legitimo. Y llega mas de diez veces antes que la
+// unica referencia que habia -"lleva 8 dias con presencia", que es como el responsable
+// lo descubrio a ojo-.
+//
+// SE PODRA BAJAR CUANDO HAYA DATOS, y los datos los da esta misma fase 1: sus eventos
+// son los que diran cuanto silencio hay de verdad en este cruce. Hoy no hay ninguno.
+static const unsigned long CAM_CIEGA_MS = 21600000UL;
+
+// EL ORDEN DE LOS VALORES ES LA GRAVEDAD, y por eso el campo CAM: se resuelve con un
+// simple mayor-que en vez de con una cadena de ifs que alguien tendria que mantener
+// ordenada. "?" pesa mas que "OK" a proposito; el porque, en botones.h.
+enum EstadoCamara { CAM_OK, CAM_DESCONOCIDA, CAM_CIEGA, CAM_PEGADA };
+
+static EstadoCamara camEstado[2] = {CAM_DESCONOCIDA, CAM_DESCONOCIDA};
+static unsigned long camAltoDesde[2] = {0, 0};
+static unsigned long camSinFlancoMs[2] = {0, 0};
+static unsigned long camUltimoFlanco[2] = {0, 0};
+static bool camHuboFlanco[2] = {false, false};
+static unsigned long camTickAnt = 0;
+static bool camPlumaAnt = false;
+static uint16_t camVetos = 0;
+
+// Los dos nombres que salen al aire, indexados por la MISMA i que CAM_J16[]. Se
+// escriben una vez en vez de repetirse dentro de cada snprintf, por el mismo motivo por
+// el que CAM_J16[] es una sola tabla: dos listas paralelas acaban desalineadas y la
+// alarma sale culpando a la camara de al lado.
+static const char* const CAM_NOMBRE[2] = {"CAM_C", "CAM_D"};
+
+const char* camara_estado() {
+  EstadoCamara peor = camEstado[0] > camEstado[1] ? camEstado[0] : camEstado[1];
+  switch (peor) {
+    case CAM_PEGADA:      return "PEGADA";
+    case CAM_CIEGA:       return "CIEGA";
+    case CAM_DESCONOCIDA: return "?";
+    default:              return "OK";
+  }
+}
+
+uint16_t camara_vetosPluma() {
+  return camVetos;
+}
+
+// La alarma de una camara. Las dos que hay salen por esta puerta para que el peor caso
+// de bytes sea UNO SOLO y se pueda medir: el $ALARM lleva ademas el tramo del enlace y
+// la hora, y N-108 costo una trama truncada por no haber hecho antes esta cuenta. El
+// pack la rehace leyendo estos literales y el snprintf de bluetooth.cpp.
+//
+// ACCION:NINGUNA NO ES RELLENO. Ese campo significa "medida de seguridad vial
+// ejecutada", y la fase 1 no ejecuta ninguna: no veta, no baja la pluma, no toca una
+// luz. Escribir ahi cualquier otra cosa seria el $ACK que no mira lo que devolvio la
+// llamada (CLAUDE.md 6), trasladado a la caja negra.
+static void camara_alarmar(int i, const char* evento, const char* motivo) {
+  char causa[28];
+  snprintf(causa, sizeof(causa), "%s_%s", CAM_NOMBRE[i], motivo);
+  bluetooth_reportarAlarma(evento, causa, "NINGUNA");
+}
+
+// Una alarma que no se cierra nunca deja al operario sin saber si aquello se arreglo:
+// las dos vuelven a OK por su prueba contraria, y las dos lo dicen.
+static void camara_recuperada(int i) {
+  char detalle[24];
+  snprintf(detalle, sizeof(detalle), "%s_RECUPERADA", CAM_NOMBRE[i]);
+  bluetooth_reportarEvento("CAMARA", detalle);
+}
+
+// UN FLANCO ES LA UNICA PRUEBA POSITIVA DE QUE LA CAMARA VE. Reinicia su cronometro de
+// silencio y, si estaba anunciada CIEGA, la devuelve a OK con su evento.
+//
+// AQUI EL ESTADO NO PUEDE SER PEGADA, y por eso no se pregunta por el: un flanco es una
+// subida, o sea que el contacto tuvo que ABRIRSE antes, y abrirse es justo lo que cierra
+// PEGADA en vigilante_nivel(). Preguntarlo seria una guarda que no puede ser falsa
+// (CLAUDE.md 3.septies).
+static void vigilante_flanco(int i, unsigned long ahora) {
+  camUltimoFlanco[i] = ahora;
+  camHuboFlanco[i] = true;
+  camAltoDesde[i] = ahora;
+  camSinFlancoMs[i] = 0;
+  if (camEstado[i] == CAM_CIEGA) {
+    camara_recuperada(i);
+  }
+  camEstado[i] = CAM_OK;
+}
+
+// EL NIVEL SOSTENIDO. Es la unica de las dos alarmas que puede dispararse SIN que la
+// camara haya dado nunca un flanco -un contacto que ya venia cerrado al encender-, y
+// por eso su cronometro se siembra en camaras_sembrar() y no aqui: sin esa siembra, el
+// rele trabado desde ANTES del arranque seria precisamente el unico que no se detecta.
+// Es N-26 aplicado al vigilante.
+static void vigilante_nivel(int i, bool alto, unsigned long ahora) {
+  if (!alto) {
+    if (camEstado[i] == CAM_PEGADA) {
+      camEstado[i] = CAM_OK;
+      camara_recuperada(i);
+    }
+    return;
+  }
+  if ((ahora - camAltoDesde[i]) >= CAM_PEGADA_MS && camEstado[i] != CAM_PEGADA) {
+    camEstado[i] = CAM_PEGADA;
+    camara_alarmar(i, "CAM_PEGADA", "CONTACTO_FIJO");
+  }
+}
+
+// EL RELOJ DEL VIGILANTE, y el unico sitio del fichero donde se mira la pluma.
+//
+// EL SILENCIO SE ACUMULA SOLO CON LA PLUMA ARRIBA, y ese es el "con el ciclo corriendo"
+// de D-13: con la pluma abajo nadie puede cruzar el barrido y una camara callada no
+// esta fallando. Se lee semaforo_plumaArriba(), que devuelve LO QUE escribirPines() dejo
+// puesto en el pin y no una segunda formula de SFTY-28 que alguien tendria que mantener
+// igual a la primera.
+static void vigilante_tick(unsigned long ahora) {
+  const bool arriba = semaforo_plumaArriba();
+  const unsigned long dt = ahora - camTickAnt;
+  camTickAnt = ahora;
+
+  if (arriba) {
+    for (int i = 0; i < 2; i++) {
+      camSinFlancoMs[i] += dt;
+      if (camSinFlancoMs[i] >= CAM_CIEGA_MS
+          && camEstado[i] != CAM_CIEGA && camEstado[i] != CAM_PEGADA) {
+        camEstado[i] = CAM_CIEGA;
+        camara_alarmar(i, "CAM_CIEGA", "SIN_FLANCO");
+      }
+    }
+  }
+
+  // EL CONTADOR QUE JUSTIFICA LA FASE 2, Y NADA MAS QUE ESO.
+  //
+  // Se mira en el instante en que la pluma ACABA DE BAJAR, que es el mismo en el que la
+  // fase 2 la habria dejado arriba. Esto OBSERVA una transicion ya hecha: vetarla
+  // exigiria entrar en escribirPines(), y eso es SFTY-28 y necesita derogacion escrita
+  // (A-1.bis). Por eso el contador se construye ANTES que el veto y no despues: es el
+  // que dice si el veto merece la pena.
+  //
+  // "Hay presencia" se contesta con el nivel de la vuelta anterior o con un flanco
+  // todavia vigente, y "vigente" NO se inventa aqui: es el mismo plazo con el que este
+  // firmware ya decide que una demanda sigue en pie -demanda_ventanaMs()-.
+  //
+  // camHuboFlanco[] existe por N-26: sin el, con millis() casi en cero contra un
+  // camUltimoFlanco[] tambien en cero la resta cae DENTRO de la ventana, y la primera
+  // bajada de pluma tras el arranque contaria un veto que nadie provoco.
+  if (camPlumaAnt && !arriba) {
+    bool presencia = false;
+    for (int i = 0; i < 2; i++) {
+      if (camAnt[i]
+          || (camHuboFlanco[i] && (ahora - camUltimoFlanco[i]) <= demanda_ventanaMs())) {
+        presencia = true;
+      }
+    }
+    if (presencia) {
+      if (camVetos < 65535) {
+        camVetos++;
+      }
+      char detalle[28];
+      snprintf(detalle, sizeof(detalle), "VETO_HABRIA_ACTUADO_N:%u", camara_vetosPluma());
+      bluetooth_reportarEvento("CAMARA_PLUMA", detalle);
+    }
+  }
+  camPlumaAnt = arriba;
+}
+
 // N-26 APLICADO A LAS CAMARAS. Un contacto YA CERRADO al encender no es una deteccion:
 // es un estado, exactamente igual que un boton ya pulsado. Sin sembrar camAnt[], la
 // primera vuelta del loop encontraria nivel alto con anterior en false -que es la
@@ -127,8 +347,16 @@ static bool camAnt[2] = {false, false};
 // se ABRA y se cierre otra vez. Al encender no sabemos cuanto lleva asi, solo que nadie
 // acaba de detectar nada.
 static void camaras_sembrar() {
+  const unsigned long ahora = millis();
+  camTickAnt = ahora;
+  camPlumaAnt = semaforo_plumaArriba();
   for (int i = 0; i < 2; i++) {
     camAnt[i] = camara_leerPin(CAM_J16[i]);
+    // Y EL CRONOMETRO DE PEGADA SE SIEMBRA IGUAL, por el mismo motivo una capa mas
+    // abajo: un contacto ya cerrado no va a dar el flanco que lo pondria en marcha, asi
+    // que sin esta linea el rele trabado desde antes del encendido -el caso que mas
+    // tarda en descubrirse solo- seria justo el unico que no se detecta nunca.
+    camAltoDesde[i] = ahora;
   }
 }
 
@@ -140,14 +368,20 @@ static void camaras_sembrar() {
 // sabrian nada el uno del otro.
 //
 // NADA DE AQUI ESCRIBE UN PIN DE LUZ, y no es un detalle de estilo: solo semaforo.cpp los
-// toca. Una camara PIDE; no ordena.
+// toca. Una camara PIDE; no ordena. El vigilante que cuelga de estas mismas lecturas
+// tampoco: cuenta y avisa.
 static void camaras_actualizar() {
+  const unsigned long ahora = millis();
+  vigilante_tick(ahora);
+
   for (int i = 0; i < 2; i++) {
-    const bool ahora = camara_leerPin(CAM_J16[i]);
-    if (ahora && !camAnt[i]) {
+    const bool nivel = camara_leerPin(CAM_J16[i]);
+    if (nivel && !camAnt[i]) {
       demanda_solicitar();
+      vigilante_flanco(i, ahora);
     }
-    camAnt[i] = ahora;
+    vigilante_nivel(i, nivel, ahora);
+    camAnt[i] = nivel;
   }
 }
 
