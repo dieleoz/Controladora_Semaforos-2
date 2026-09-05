@@ -18,7 +18,7 @@ abrir el fichero que citaba.
 
 ## 0. Qué nivel de prueba tiene cada cosa de este documento
 
-> 🔴 **SIGUE SIENDO CIERTO: nada de este documento está verificado con multímetro sobre el cobre.**
+> ✅ **YA NO ES CIERTO — corregido el 05/09: `J16` SÍ está medido con multímetro (M3, 03/09).**
 > Lo que cambia hoy es que ya no hay solo dos niveles, sino **tres**, y el intermedio existía desde
 > el principio sin que nadie lo mirara.
 
@@ -71,9 +71,9 @@ con continuidad.** Un mapeo leído de un dibujo es una hipótesis muy buena; le�
 
 ### Estado de verificación de lo que este documento afirma
 
-**La tercera columna está vacía en todo lo que este documento afirma sobre la tarjeta.** La única
-casilla marcada es la del cristal `Y2`, y no se ganó con puntas sobre el cobre sino en banco (N-37).
-Eso es lo que hay que ver de un vistazo.
+> 🔴 ~~**La tercera columna está vacía en todo lo que este documento afirma sobre la tarjeta.**~~ →
+> ✅ **CADUCADO EL 03/09: `M3` puso las puntas sobre `J16`** (Guía de banco, pasos 20 y 21). Se marca y
+> no se borra. Lo que **sigue** sin medir es todo lo demás: `J17`, `J2`, `J10`/`J12` y las diez cadenas.
 
 | afirmación | 📐 ESQ | 🟦 PCB | 🔬 MULT | dónde |
 |---|:---:|:---:|:---:|---|
@@ -84,8 +84,8 @@ Eso es lo que hay que ver de un vistazo.
 | Los 5 V no salen a ningún conector | ✅ | ✅ *(15 pads en la red, ninguno de conector)* | ⬜ | §8.1 |
 | **Los dos MAX3485 se alimentan de 3,3 V, no de 5 V** | ✅ | ✅ **corregido** | ⬜ | §2, §7.bis.4 |
 | `PA11`/`PA12`/`PA15`/`PC13` sin conexión | ✅ | ✅ *(`unconnected-` en `U1` p32/33/38/2)* | ⬜ | §8.3 |
-| **`J16` p5/p8/p10/p12 → `U1` p46/p26/p27/p28, sin nada en serie** | ✅ | ✅ **trazado pista a pista** | ⬜ | **§7.bis** |
-| **`R65`–`R68` van a GND (pull-DOWN, activo en ALTO)** | ✅ | ✅ **resuelto** | ⬜ | **§7.bis** |
+| **`J16` p5/p8/p10/p12 → `U1` p46/p26/p27/p28, sin nada en serie** | ✅ | ✅ **trazado pista a pista** | 🟡 **p10 en banco** *(paso 21: cerrado contra p11 movió `CAM_C_PIN`)* | **§7.bis** |
+| **`R65`–`R68` van a GND (pull-DOWN, activo en ALTO)** | ✅ | ✅ **resuelto** | ✅ **M3, 03/09 — las CUATRO posiciones, `0 V` en reposo** | **§7.bis** |
 | **`J16` p4/p7/p9/p11 y `J14` p2 son el mismo nudo de 3,3 V** | ✅ | ✅ **resuelto** | ⬜ | **§7.bis** |
 | **Separación real 12 V ↔ señal en `J16`** | ~10 mm *(estimado)* | ✅ **1,359 mm medidos** | ⬜ | **§7.bis** |
 | `J17` p1–p5 → `U1` p40/p43/p42/p39/p41 | ✅ | ✅ | ⬜ | §7 |
@@ -188,7 +188,7 @@ Identificadas en el esquemático. **Conviene conocerlas antes de modificar la pl
 | **`R9`, `R11`** | **4,7 kΩ** | **Polarización *fail-safe* del bus de la radio** (`J12`) |
 | `R1`, `R2`, `R3` | 10 kΩ | Pull-ups / divisores generales |
 | `R4` | 1 MΩ | — |
-| 🔴 **`R65`–`R68`** | **10 kΩ** | **Pull-DOWN de los cuatro botones (`J16` p5/p8/p10/p12) — un extremo en la señal y el otro en `GND`.** 🟦 Confirmado sobre el cobre. **Hacen la entrada activa en ALTO, y el firmware la lee activa en BAJO: ver §7.bis.3** |
+| ✅ **`R65`–`R68`** | **10 kΩ** | **Pull-DOWN de las cuatro posiciones de `J16` (p5/p8/p10/p12) — un extremo en la señal, el otro en `GND`.** 🟦 Cobre y 🔬 **multímetro (M3, 03/09)**. **Entrada activa en ALTO, y desde `346ea5f` el firmware TAMBIÉN lee activa en ALTO: la contradicción está CERRADA — ver §7.bis.3** |
 | **`R64`** | **10 kΩ** | Pull-DOWN de la cámara de demanda (`J14` p1, `PB0`). Mismo patrón: a `GND`, con `C25` |
 | `C26`–`C29` | 100 nF | Antirrebote de los botones, **en paralelo a `GND`** — no en serie con la señal |
 | `R16` | 1 kΩ | Limitadora del LED testigo `D5` (`PB8`) |
@@ -348,8 +348,8 @@ cambiar el acceso al puerto serie. Pendiente de decisión.
 | 🟠 **`USART1` por su salida ORIGINAL — hoy SIN USAR** | `PA9` TX · `PA10` RX · `PA8` DE/~RE | **MAX3485 `U2`** → bornera **`J10`** *(vacía)* · term. `R6`. **Desde N-76 el `USART1` sale remapeado por `PB6`/`PB7`, no por aquí** — y solo puede salir por un sitio a la vez, así que `U2` y `J10` quedan libres |
 | LCD ST7920 (**3 hilos de datos, y solo tres desde N-76**) | `PB3` `PB4` `PB5` | Conector **`J17`** p4, p1, p5 — ver §6.bis y §7 |
 | 🟢 **Módulo Bluetooth / ESP32 (`USART1` REMAPEADO)** | **`PB6` TX · `PB7` RX** | Conector **`J17`** p3 y p2 — **antes eran `PSB`/`RST` de la pantalla**, ver §6.bis y §7 |
-| Botones 1–4 y Mando RF | `PB9` · `PB13` · `PB14` · `PB15` | Conector **`J16`** (pines 5, 8, 10, 12) — ver §7 y **§7.bis** |
-| 🔴 **Polaridad de los botones** | `R65`–`R68` 10 kΩ a **`GND`** | **Pull-DOWN: entrada activa en ALTO.** El firmware usa `INPUT_PULLUP` y lee `LOW` como pulsado — **contradicción abierta, ver §7.bis.3** |
+| **Mando `A`/`B`** *(`BOTON1`/`BOTON2`)* | `PB9` · `PB13` | **`J16`** p5 · p8. ✅ **`INPUT` pelado, activo en ALTO** (`346ea5f`, N-118) — casa con el pull-DOWN `R65`/`R66`. 🔴 **El mando FÍSICO se retiró** (`DECISIONES.md` `D-1`, 05/09); su **código se queda**. Qué se cablea aquí es **`A-2`, abierto** — y el firmware **sigue leyendo estos pines** |
+| 🆕 **Cámaras `C` y `D`** *(`CAM_C_PIN`/`CAM_D_PIN`, ex-`BOTON3`/`BOTON4`)* | `PB14` · `PB15` | **`J16`** p10 · p12. `INPUT` pelado, **activo en ALTO** — **las cuatro posiciones de `J16` son la misma polaridad**, sin excepción (§7.bis.3). **Cableadas y verificadas en banco el 03/09** (paso 21) |
 | **Cristal RTC** | `PC14` · `PC15` | **`Y2` 32.768 kHz** |
 | **Pila RTC** | `VBAT` (pin 1) | **vía `R5` (desoldada) — ver §4** |
 | **Cámara de demanda** | `PB0` | ✅ **Resuelto.** La línea trae `R64` 10K + `C25` 100nF → bornera `J14`: antirrebote de ~1 ms que la placa ya da. Entrada **activa en alto** |
@@ -484,7 +484,7 @@ Nivel **📐 ESQUEMÁTICO**, salvo lo marcado con 🟦, que está además trazad
 > al pinchar una punta o un hilo por esa zona no se está tan lejos de la potencia como sugiere el
 > hecho de que `J17` no reparta 12 V.
 
-### `J16` — botones (y **futuras cámaras**)
+### `J16` — **mando `A`/`B` (p5/p8) y CÁMARAS (p10/p12)** · ~~botones (y **futuras** cámaras)~~
 
 Mismo desajuste: símbolo `Conn_01x12_Pin`, footprint `1x16`. **Confirmado en el PCB:** hay 16 pads,
 los 4 últimos sin red ninguna.
@@ -495,18 +495,18 @@ los 4 últimos sin red ninguna.
 | 2 | `GND` | — |
 | **3** | **SIN RED** | — |
 | 4 | `3,3 V` | — |
-| 5 | `Boton1` | `PB9` (`U1` p46) |
+| 5 | `Boton1` *(nombre de la red)* | `PB9` = **`BOTON1` / mando `A`** — `U1` p46 |
 | **6** | **SIN RED** | — |
 | 7 | `3,3 V` | — |
-| 8 | `Boton2` | `PB13` (`U1` p26) |
+| 8 | `Boton2` *(nombre de la red)* | `PB13` = **`BOTON2` / mando `B`** — `U1` p26 |
 | 9 | `3,3 V` | — |
-| 10 | `Boton3` | `PB14` (`U1` p27) |
+| 10 | `Boton3` *(nombre de la red)* | `PB14` = 🆕 **`CAM_C_PIN` — LA CÁMARA**, ya no un botón — `U1` p27 |
 | 11 | `3,3 V` | — |
-| 12 | `Boton4` | `PB15` (`U1` p28) |
+| 12 | `Boton4` *(nombre de la red)* | `PB15` = 🆕 **`CAM_D_PIN` — cámara, posición HOY VACÍA** — `U1` p28 |
 | **13–16** | **sin red** | pads que existen en el cobre y **no** en el esquema |
 
-Cada botón lleva su antirrebote en placa (`R65`–`R68` + `C26`–`C29`). **`J16` es el único conector de
-señal que trae 12 V** (pin 1) además de 3,3 V.
+> 🔴 **`Boton3` y `Boton4` son NOMBRES DE RED DEL KiCad, no funciones vivas.** Desde `deeeab4` esos dos pines son `CAM_C_PIN`/`CAM_D_PIN`, y `botonAceptar()`/`botonCancelar()` no tienen sujeto: `$ grep -n "bool botonAceptar" 01_Firmware/Maestro/src/botones.cpp` → `539:bool botonAceptar() { return false; }`. **El nombre del cobre no se cambia** —el `.kicad_pcb` dice `/Boton3`— pero **quien cablee tiene que leer la tercera columna, no la segunda.** Cada posición lleva su antirrebote en placa (`R65`–`R68` + `C26`–`C29`).
+> **`J16` es el único conector de señal que trae 12 V** (pin 1), y **su p1 se tapa en cada equipo que se monte** — `DECISIONES.md` `D-4`, N-120. No es cautela de banco.
 
 ### `J2` — SWD
 
@@ -529,7 +529,7 @@ en serie; p1 y p4 caen en los nudos generales de `GND` y 3,3 V.
 
 ---
 
-## 7.bis 🟦 `J16` TRAZADO SOBRE EL COBRE — es donde van a ir las cámaras
+## 7.bis 🟦 `J16` TRAZADO SOBRE EL COBRE — ~~es donde **van a ir** las cámaras~~ → **YA ESTÁN AHÍ** (banco 03/09, paso 21)
 
 Todo lo de esta sección es nivel **PCB**: sale de seguir las 1.447 pistas del `.kicad_pcb`, no de
 leer el esquemático. **Ninguna fila está medida con multímetro.**
@@ -541,14 +541,14 @@ netlist se usó solo para **contrastar**: el instrumento se da por bueno porque 
 componentes de cobre halladas contiene dos redes distintas** —serían decenas si el transformado de
 coordenadas estuviera mal— y porque **459 de los 485 pads tocan cobre trazado**.
 
-### 1. Cada botón llega a su pin del micro, y no hay nada en serie
+### 1. Cada posición de `J16` llega a su pin del micro, y no hay nada en serie
 
-| `J16` | red | llega a | GPIO | pistas | vías | **todo el cobre de esa red** |
+| `J16` | red del PCB | llega a | GPIO — **qué es HOY** | pistas | vías | **todo el cobre de esa red** |
 |---|---|---|---|---|---|---|
-| **p5** | `/Boton1` | **`U1` p46** ✅ | `PB9` | 14 | 3 | `J16`.5 · `U1`.46 · `R65`.2 · `C26`.1 |
-| **p8** | `/Boton2` | **`U1` p26** ✅ | `PB13` | 20 | 1 | `J16`.8 · `U1`.26 · `R66`.2 · `C27`.1 |
-| **p10** | `/Boton3` | **`U1` p27** ✅ | `PB14` | 26 | 2 | `J16`.10 · `U1`.27 · `R67`.2 · `C28`.1 |
-| **p12** | `/Boton4` | **`U1` p28** ✅ | `PB15` | 31 | 3 | `J16`.12 · `U1`.28 · `R68`.2 · `C29`.1 |
+| **p5** | `/Boton1` | **`U1` p46** ✅ | `PB9` — **mando `A`** | 14 | 3 | `J16`.5 · `U1`.46 · `R65`.2 · `C26`.1 |
+| **p8** | `/Boton2` | **`U1` p26** ✅ | `PB13` — **mando `B`** | 20 | 1 | `J16`.8 · `U1`.26 · `R66`.2 · `C27`.1 |
+| **p10** | `/Boton3` | **`U1` p27** ✅ | `PB14` — 🆕 **`CAM_C_PIN`, la cámara** | 26 | 2 | `J16`.10 · `U1`.27 · `R67`.2 · `C28`.1 |
+| **p12** | `/Boton4` | **`U1` p28** ✅ | `PB15` — 🆕 **`CAM_D_PIN`, vacío** | 31 | 3 | `J16`.12 · `U1`.28 · `R68`.2 · `C29`.1 |
 
 > ✅ **"No hay nada en medio" se confirma, y conviene decir en qué sentido.** En cada red hay
 > exactamente cuatro pads. Dos son los extremos (`J16` y `U1`); los otros dos son `R65` y `C26`, y
@@ -594,9 +594,9 @@ de 3,3 V** sin ninguna protección en medio (§7.bis.1: no hay nada en serie).
 > de **0,099 mm** (pad `R28`.2 contra una pista de `GND`), y **ninguna pareja de pistas** de redes
 > distintas baja de 0,200 mm en toda la tarjeta.
 
-### 3. 🔴 `R65`–`R68` van a **GND**: son pull-DOWN, y el firmware dice lo contrario
+### 3. ✅ `R65`–`R68` van a **GND**: son pull-DOWN — ~~y el firmware dice lo contrario~~ **CERRADO (M3 / N-118)**
 
-**Ésta era la contradicción de polaridad, y el PCB la cierra en la dirección del esquemático.**
+**Ésta era la contradicción de polaridad. El PCB la cerró en la dirección del esquemático, el multímetro la confirmó (`M3`, 03/09) y `346ea5f` alineó el firmware. Hoy NO hay contradicción.**
 
 | | `R65` | `R66` | `R67` | `R68` |
 |---|---|---|---|---|
@@ -612,31 +612,62 @@ activa en ALTO**.
 de un pin de 3,3 V —p4/p5, p7/p8, p9/p10, p11/p12—, que es el patrón de un pulsador que **cierra
 3,3 V contra la señal**. Hay un solo pin de `GND` en todo `J16` (p2), no uno por botón.
 
-> 🔴 **El firmware hace lo contrario.** En `01_Firmware/Maestro/src/botones.cpp`:
+> 🔴 ~~**El firmware hace lo contrario.**~~ → ✅ **YA NO. Se tacha y no se borra.** Hasta `346ea5f`
+> (`fix(N-118): el mando A/B pasa a activo en ALTO - lo decide el cobre`) este documento tenía razón
+> y el firmware estaba mal. **Hoy las dos puntas leen lo que el cobre pide**, y se cita el símbolo,
+> no la línea:
 >
 > ```
-> pinMode(BOTON1, INPUT_PULLUP);
-> bool lecturaCruda = (digitalRead(b.pin) == LOW);   // LOW = pulsado
+> $ grep -rn "INPUT_PULLUP" 01_Firmware/Maestro/src/botones.cpp 01_Firmware/Esclavo/src/botones.cpp
+> 01_Firmware/Maestro/src/botones.cpp:26:  // Aqui ponia `== LOW` con los pines en INPUT_PULLUP, y eso llevaba mal desde el primer
+> 01_Firmware/Esclavo/src/botones.cpp:42:  // Aqui ponia `== LOW` con los pines en INPUT_PULLUP, y eso llevaba mal desde el primer
 > ```
 >
-> Pull-up interno y **activo en BAJO**, contra un pull-down externo de 10 kΩ y un conector que
-> reparte 3,3 V. **Las dos cosas no pueden ser ciertas a la vez.**
+> **Las dos únicas apariciones que quedan son COMENTARIOS que cuentan el defecto ya arreglado.** Lo
+> que se ejecuta hoy, medido el 05/09 por símbolo:
 >
-> **Lo que eso predice, que es comprobable:** el pull-up interno del STM32F103 está especificado
-> entre 30 kΩ y 50 kΩ. Contra los 10 kΩ a masa forma un divisor que deja el pin en reposo a
-> **0,83 V (30 k) · 0,66 V (40 k) · 0,55 V (50 k)**, todos por debajo del `V_IL` de 0,3·VDD ≈
-> 0,99 V. Es decir: **en reposo el pin lee LOW, y el firmware lo interpreta como "pulsado"** —los
-> cuatro botones, permanentemente—.
+> ```
+> $ grep -n "pinMode(BOTON1\|pinMode(CAM_C_PIN\|lecturaCruda" 01_Firmware/Maestro/src/botones.cpp
+> 42:  bool lecturaCruda = (digitalRead(b.pin) == HIGH);
+> 394:  pinMode(BOTON1, INPUT);
+> 411:  pinMode(CAM_C_PIN, INPUT);
+> ```
 >
-> ⚠️ **Esto es una cuenta, no una medida**, y descansa en dos cosas que el `.kicad_pcb` no puede
-> decir: que `R65`–`R68` estén **realmente montadas** en la tarjeta física, y cómo está cableado el
-> pulsador al otro lado de `J16`, que va fuera de la placa. **Va al multímetro**, y es la primera
-> fila que conviene cerrar: se mide la tensión en `J16` p5 con el equipo encendido y nadie tocando
-> nada. Si da ~0,7 V, la cuenta de arriba es correcta.
+> `INPUT` **pelado** y **activo en ALTO**, en las cuatro posiciones y sin excepción — el reposo lo fija
+> el pull-down de la placa, que es para lo que está. **Lo mismo en el Esclavo** (`:412` / `:428`, lectura
+> en `:56`).
 >
-> Nótese que `botones.cpp` ya lleva un tratamiento explícito (N-26) para *"un botón ya pulsado al
-> encender"*. **Que ese caso hiciera falta es coherente con lo de arriba** — pero eso es una
-> sospecha, no una prueba, y se anota como tal.
+> ### ✅ Y la cuenta de este documento se comprobó con puntas — acertó, y de una forma que enseña
+>
+> La predicción que estaba escrita aquí era: *el pull-up interno (30–50 kΩ) contra los 10 kΩ a masa deja
+> el pin a* **0,83 / 0,66 / 0,55 V**, *por debajo del* `V_IL` *de 0,3·VDD ≈ 0,99 V, **así que en reposo el
+> pin lee LOW y el firmware viejo lo cree "pulsado", los cuatro, permanentemente**.*
+>
+> **Medido en el paso 20 de la Guía de banco, 03/09, con `617bd00` dentro de la tarjeta:**
+>
+> | | `R` a masa medida | tensión en reposo | `pinMode` de ese binario |
+> |---|---|---|---|
+> | `MANDO_A` (p5) · `MANDO_B` (p8) | **9,92–9,94 kΩ** | **0,6 V** | `INPUT_PULLUP` |
+> | `CAM_C` (p10) · `CAM_D` (p12) | **9,92–9,94 kΩ** | **0 V** | `INPUT` pelado |
+>
+> **Mismo cobre, distinto `pinMode`, distinta tensión** — las dos ramas del experimento en la misma
+> tabla. Los `0,6 V` no eran un defecto de placa: eran **exactamente la cuenta de arriba**, y su ausencia
+> en p10/p12 es el control negativo que nadie pidió. `R65`–`R68` **están montadas de verdad** en la
+> tarjeta física, que era la primera de las dos cosas que el `.kicad_pcb` no podía decir.
+>
+> **Y la segunda se cerró en el paso 21:** `p10` cableado contra `p11` (3,3 V) en normalmente abierto
+> movió `CAM_C_PIN` **sin una sola demanda fantasma**. El gesto que pide este conector es **cerrar
+> contra los 3,3 V**, no contra masa — coherente con que haya **un solo pin de `GND` en todo `J16`**
+> (p2, arriba): un contacto por posición contra masa necesitaría una masa por posición, y no la hay.
+>
+> ⚠️ **Lo que esto NO cierra:** que un pin en `INPUT` pelado y **sin nada enchufado** queda a merced del
+> pull-down y de nada más. Eso está bien —`0 V` medidos— pero significa que **la protección contra el
+> ruido es esa resistencia y solo esa**: entre la bornera y la pata del micro no hay nada en serie
+> (§7.bis.1), ni clamp, ni opto.
+>
+> Nótese que `botones.cpp` lleva un tratamiento explícito (N-26) para *"un botón ya pulsado al
+> encender"*. **Con el firmware viejo ese caso saltaba siempre**; con el de hoy es lo que debe ser, una
+> siembra de flanco al arrancar.
 
 ### 4. ✅ `J16` p4/p7/p9/p11 y `J14` p2 son el mismo nudo de 3,3 V
 
@@ -740,6 +771,10 @@ la segunda vez ya nadie recuerda que se comprobó.
 | **28/08 → 28/08** | separación 12 V ↔ señal en `J16`: *"~10 mm por el paso del conector"* (estimado) | **cierto entre pads (10,160 mm), engañoso en cobre: la red de 12 V se acerca a 1,359 mm** | §7.bis.2 |
 | **28/08 → 28/08** | §3 no listaba `R64`–`R68` | son los pull-**DOWN** de los botones y de la cámara, **a `GND`** | §3, §7.bis.3 |
 | **28/08 → 28/08** | 🟠 *"5 V (RS-485 y optos)"* | **los MAX3485 van a 3,3 V**: `U2` p8 y `U3` p8 están en el nudo del STM32. Los 5 V solo tocan los diez optos, `U4`, `U5`, `C13`/`C14` y `R17` | §2, §7.bis.4 |
+| 28/08 → **05/09** | 🔴 *"el firmware lee los botones con `INPUT_PULLUP` + activo en BAJO — **contradicción abierta**"* | **ERA CIERTO Y YA NO LO ES.** `346ea5f` (N-118) puso las dos puntas en `INPUT` pelado + `== HIGH`. Las dos únicas apariciones de `INPUT_PULLUP` que quedan en `botones.cpp` son **comentarios que cuentan el defecto arreglado** | §3, §6, §7.bis.3 |
+| 28/08 → **05/09** | 🔴 *"la columna 🔬 está vacía entera: nadie ha puesto una punta en esta tarjeta"* | **`M3` la puso el 03/09** (pasos 20 y 21 de la Guía de banco): `R65`–`R68` medidas en **9,92–9,94 kΩ**, y el paso 21 movió `CAM_C_PIN` cerrando p10 contra p11. **`J16` está a nivel 🔬**; el resto de la tarjeta no | §0 |
+| 28/08 → **05/09** | 🔴 `J16` p10/p12 llamados ***"`Boton3`" y "`Boton4`"*** en §6, §7 y §7.bis, y §7.bis titulada *"donde **van a ir** las cámaras"*, **en futuro** | **`deeeab4` los renombró a `CAM_C_PIN`/`CAM_D_PIN`** y `botonAceptar()`/`botonCancelar()` son `return false;`. **Ya no es futuro: `M3` cerró el 03/09 y `p10` se cableó y verificó en banco el mismo día.** `/Boton3` y `/Boton4` **siguen siendo los nombres de red del cobre** y por eso no se tocan — pero **quien cablea lee la función, no la red** | §6, §7, §7.bis.1 |
+| 28/08 → **05/09** | *"`J16` — **botones** y Mando RF"*, sin decir qué es cada posición | **p5/p8 = mando `A`/`B`** (hardware **retirado** el 05/09, `DECISIONES.md` `D-1`; **el código se queda** y **sigue leyendo esos pines**) · **p10 = la cámara** · **p12 = cámara, vacío**. Qué se cablea en p5/p8 es **`A-2`, abierto** | §6, §7 |
 
 **Cómo se midió, que es la parte reutilizable:** no se leyó el dibujo — se **trazó la conectividad**.
 Se parsea el `.kicad_sch`, se sitúan los pines de cada símbolo aplicando su rotación y espejo, se unen
@@ -774,11 +809,17 @@ el transformado de coordenadas estuviera mal, aparecerían decenas.
 1. **El nombre real del pin 3 de `J17`** (`RS(A0)` en el esquema contra `PSB` en el firmware) —
    §6.bis. **El PCB no lo cierra**: el nombre en disputa es el de la pata del display, al otro lado
    del conector.
-2. 🔴 **La polaridad de los botones** — §7.bis.3. El PCB dice **pull-DOWN a `GND`** (activo en ALTO)
-   y el firmware dice `INPUT_PULLUP` + activo en BAJO. **Es la fila más barata de cerrar y la que
-   más cambia:** medir `J16` p5 contra `GND` con el equipo encendido y nadie tocando nada.
-3. **Todo lo demás de este documento**, en el sentido de §0. Buena parte ha subido hoy de 📐 a 🟦
-   —**lo que se mandó fabricar**—, pero **la columna 🔬 sigue vacía entera**: nadie ha puesto una
-   punta en esta tarjeta. La primera persona que la tenga delante y un multímetro puede convertir
-   filas de 🟦 en 🔬, y conviene que lo anote **fila a fila en la tabla de §0**, porque hoy no hay
-   ni una sola.
+2. ~~🔴 **La polaridad de los botones** — §7.bis.3.~~ → ✅ **CERRADA EL 03/09 (`M3` / N-118).** El
+   multímetro dio la razón al PCB —pull-DOWN real de 10 kΩ en las cuatro posiciones— y `346ea5f`
+   alineó el firmware: **`INPUT` pelado, activo en ALTO, las cuatro**. Se tacha y no se borra.
+3. **Todo lo demás de este documento**, en el sentido de §0. Buena parte subió el 28/08 de 📐 a 🟦
+   —**lo que se mandó fabricar**— y el 03/09 **`J16` subió a 🔬**. **El resto de la columna 🔬 sigue
+   vacío**: `J17`, `J2`, `J10`/`J12`, las diez cadenas de potencia y el nudo de 3,3 V **no los ha
+   tocado una punta**. Quien tenga la tarjeta delante y un multímetro puede convertir más filas, y
+   conviene que lo anote **fila a fila en la tabla de §0**.
+4. 🔴 **NUEVO, y no se cierra desde un fichero: `J8` p2 (`VERDE2`) flota en reposo, y sólo ése.** El
+   LED `D21` de ese canal tiene el **cátodo sin conectar** —red `unconnected-(D21-K-Pad1)`, cero
+   pistas y cero hilos, mientras su gemelo `D23` los tiene en los dos extremos—. Los otros **nueve**
+   drenadores suben a ~12 V por su pull-up de 1 kΩ + LED; **éste no**, y además ese canal **no tiene
+   testigo luminoso**. Queda `SIN VERIFICAR` si es defecto de diseño o decisión. Es `A-10` de
+   `DECISIONES.md`, y **es comprobación de banco**, no de firmware.
