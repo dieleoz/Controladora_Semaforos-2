@@ -721,8 +721,6 @@ void bluetooth_loop() {
       strncpy(horaBuf, "--:--:--", sizeof(horaBuf));
     }
 
-    unsigned long tFaseSeg = (ahora / 1000UL) % 60UL;
-
     char serieTxt[7];
     identidad_texto(serieTxt);
 
@@ -751,10 +749,32 @@ void bluetooth_loop() {
     // Y por decision del responsable (31/08) NO se anade RSSI: no se mide potencia. Lo
     // que hay se llega a latidos, y el estado del enlace se indica visualmente -abajo, en
     // el $EVENT, y en el $ALARM de la caida-.
+    //
+    // T TAMBIEN SE MARCA, Y POR EL MISMO MOTIVO QUE LOS OTROS TRES (04/09).
+    //
+    // Aqui ponia `(ahora / 1000UL) % 60UL` -el SEGUNDERO DEL TIEMPO ENCENDIDO, de 0 a
+    // 59 y vuelta a empezar-, publicado en un campo que promete los segundos que le
+    // quedan a la fase. Igual que el BAT:12.6, se movia y por eso parecia un dato.
+    //
+    // POR QUE ESTA PUNTA NO PUEDE DAR EL NUMERO, censado y no supuesto: el Esclavo es
+    // SUBORDINADO. Su luz la decide el Maestro con CMD_GO_GREEN / CMD_GO_RED, y esas
+    // tramas no llevan duracion: dicen QUE hacer, no HASTA CUANDO. El plazo del despeje
+    // y el del verde viven en el coordinador del Maestro y en sus modos; aqui no llega
+    // ninguno de los dos. Inventar una cuenta atras seria adivinar cuando el otro
+    // extremo va a mandar la siguiente orden.
+    //
+    // LA EXCEPCION QUE SI EXISTE, ESCRITA PARA QUE NO SE PIERDA: en Modo Degradado esta
+    // punta SI conoce su fase, porque la calcula por reloj, y el numero ya esta hecho en
+    // degradado_segundosParaCambio() -que hoy solo lo usa la pantalla del menu-. No se
+    // publica aqui a proposito: el Maestro NO tiene el getter equivalente -su
+    // modo_degradado.cpp calcula el restante para el LCD y no lo expone-, asi que
+    // publicarlo en una sola punta dejaria al operario con un numero en un poste y "--"
+    // en el otro para el MISMO ciclo. Cuando el Maestro exponga el suyo, las dos se
+    // encienden en el mismo commit.
     char payload[128];
     snprintf(payload, sizeof(payload),
-             "$STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:%lu,RF:--,RTT:--,BAT:--,HORA:%s",
-             serieTxt, estadoStr, tFaseSeg, horaBuf);
+             "$STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s",
+             serieTxt, estadoStr, horaBuf);
 
     enviarTramaConCrc(payload);
 

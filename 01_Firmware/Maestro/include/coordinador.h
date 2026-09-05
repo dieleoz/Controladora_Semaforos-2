@@ -17,6 +17,32 @@ bool coordinador_comunicacionPerdida();
 void coordinador_reiniciarConexion();
 const char* coordinador_nombreEstadoMaster();
 
+// ---------------------------------------------------------------------------
+// T: del $STATUS -- SEGUNDOS QUE FALTAN PARA QUE TERMINE LA FASE.
+//
+// Hasta el 04/09 este campo lo calculaba bluetooth.cpp como (millis()/1000) % 60:
+// el SEGUNDERO DEL TIEMPO QUE LLEVA ENCENDIDO EL EQUIPO, subiendo de 0 a 59 y
+// volviendo a empezar, estuviera el semaforo en verde, en rojo o en despeje. El
+// comentario que llevaba encima decia "segundos transcurridos en fase actual" y no
+// lo era: la app pintaba fielmente un numero que no significaba nada. Reportado
+// desde el banco por el responsable -"el tiempo no esta retrocediendo, sino que
+// esta aumentando... deberia empezar en 30 y disminuir"-.
+//
+// SIN_CUENTA_ATRAS NO ES CERO, Y ESA DIFERENCIA ES TODO EL ARREGLO. Cero significa
+// "esta fase se acaba ahora mismo"; SIN_CUENTA_ATRAS significa "en esta fase no hay
+// cuenta atras que dar". Quien publique el valor marca el segundo caso con "--", la
+// misma convencion que ya llevan RF, RTT, BAT y HORA en esa misma trama. Un cero
+// puesto donde no se sabe es el BAT:12.6 de N-108 otra vez: un numero con aspecto de
+// medida que impide preguntar.
+//
+// EL CENSO de en que estados hay numero y en cuales no vive en coordinador.cpp,
+// encima de la implementacion: es una propiedad de la maquina de estados, y ahi es
+// donde se puede comprobar contra ella en vez de contra este resumen.
+// ---------------------------------------------------------------------------
+static const int SIN_CUENTA_ATRAS = -1;
+
+int coordinador_segundosRestantesFase();
+
 // --- Demanda vehicular de cámaras IA AcuSense (Sentido 2 / Esclavo) ---
 bool coordinador_hayDemandaRemota();
 void coordinador_limpiarDemandaRemota();

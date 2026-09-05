@@ -788,8 +788,36 @@ void bluetooth_loop() {
       strncpy(horaBuf, "--:--:--", sizeof(horaBuf));
     }
 
-    // Cuenta de segundos transcurridos en fase actual (T:)
-    unsigned long tFaseSeg = (ahora / 1000UL) % 60UL;
+    // T: SEGUNDOS QUE FALTAN PARA QUE TERMINE LA FASE (04/09).
+    //
+    // AQUI PONIA `(ahora / 1000UL) % 60UL` CON EL COMENTARIO "segundos transcurridos
+    // en fase actual" ENCIMA. No era eso: `ahora` es millis(), asi que el campo era el
+    // SEGUNDERO DEL TIEMPO ENCENDIDO, de 0 a 59 y vuelta a empezar, dijera lo que
+    // dijera el semaforo. Es la forma exacta de un campo DECLARADO que nadie ejercia:
+    // el nombre y el comentario prometian una cosa y la cuenta hacia otra, y como el
+    // numero se movia, parecia vivo. Reportado desde el banco: "el tiempo no esta
+    // retrocediendo, sino que esta aumentando... deberia empezar en 30 y disminuir".
+    //
+    // EL DUENO DEL PLAZO ES EL COORDINADOR, y contesta -1 cuando en esa fase no hay
+    // cuenta atras que dar. Ese caso se marca "--", igual que RF, RTT, BAT y HORA: es
+    // la convencion que ya tiene esta trama, no una nueva. La lista completa de en que
+    // estados no hay numero -y por que- esta sobre coordinador_segundosRestantesFase().
+    //
+    // OCUPACION DEL CABLE: SIN CAMBIO. El campo media 1 o 2 caracteres (0..59) y sigue
+    // midiendo 1 o 2: "--" son dos, y el mayor despeje que admite el firmware son 90 s
+    // (DESPEJE_SEG_MAX en limites_ciclo.h) o 99 s por el Manual, o sea dos digitos. El
+    // 48,1% del peor segundo que mide esp32_07_presupuesto_bytes no se mueve.
+    //
+    // El buffer se dimensiona para el TIPO -un int con %d cabe en 11 caracteres mas el
+    // nulo-, no para el rango que hoy garantiza otro modulo. Es la misma razon que ya
+    // esta escrita quince lineas mas arriba para rfTxt.
+    char tTxt[12];
+    const int faseRestanteSeg = coordinador_segundosRestantesFase();
+    if (faseRestanteSeg == SIN_CUENTA_ATRAS) {
+      strncpy(tTxt, "--", sizeof(tTxt));
+    } else {
+      snprintf(tTxt, sizeof(tTxt), "%d", faseRestanteSeg);
+    }
 
     char serieTxt[7];
     identidad_texto(serieTxt);
@@ -802,8 +830,8 @@ void bluetooth_loop() {
     // Vuelve a haber cifra cuando haya divisor y una entrada analogica que lo lea.
     char payload[128];
     snprintf(payload, sizeof(payload),
-             "$STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%lu,RF:%s,RTT:%s,BAT:--,HORA:%s",
-             serieTxt, modoStr, estadoStr, tFaseSeg, rfTxt, rttTxt, horaBuf);
+             "$STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s",
+             serieTxt, modoStr, estadoStr, tTxt, rfTxt, rttTxt, horaBuf);
 
     enviarTramaConCrc(payload);
 

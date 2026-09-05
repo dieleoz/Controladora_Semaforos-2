@@ -860,6 +860,81 @@ const char* coordinador_nombreEstadoMaster() {
   return semaforo_nombreEstado();
 }
 
+// --- T: del $STATUS: lo que FALTA, no lo que lleva encendido (04/09) --------
+//
+// EL CENSO, QUE ES LO QUE DECIDE ESTA FUNCION Y NO UNA PREFERENCIA. De los once
+// estados de EstadoCoord, este fichero es dueno del plazo en TRES. En los otros ocho
+// el plazo vive en otro sitio, o no existe, y por eso devuelven SIN_CUENTA_ATRAS en
+// vez de un numero que habria que inventarse:
+//
+//   C_INICIAL_ESPERA_ESTATICO      SI. Es el todo-rojo de despeje (SFTY-4). El plazo
+//   C_ESPERA_ESTATICO_TRAS_MASTER  es tRef + tiempoDespejeMs, y la cuenta de abajo NO
+//   C_ESPERA_ESTATICO_TRAS_ESCLAVO es una copia de nada: es LA MISMA condicion que
+//                                  dispara la transicion en el switch de
+//                                  coordinador_actualizar(). Si una cambia, la otra
+//                                  deja de compilar o deja de coincidir a la vista.
+//
+//   C_INICIAL_MASTER_A_VERDE   NO. La transicion rojo->ambar->verde la cronometra
+//   C_MASTER_A_VERDE           semaforo.cpp; aqui solo se espera a semaforo_estable().
+//   C_MASTER_A_ROJO            Este fichero no sabe cuanto le queda al ambar.
+//
+//   C_ESPERANDO_ACK_GREEN      NO. Hay plazo -TIMEOUT_ACK_MS- pero NO ES EL FIN DE LA
+//   C_ESPERANDO_ACK_RED        FASE: al agotarse se REINTENTA, hasta CICLO_MAX_REINTENTOS
+//                              veces. Una cuenta atras que llega a cero y no cambia
+//                              nada ensena a no mirarla, igual que un FALLA permanente.
+//
+//   C_IDLE                     NO, Y ES EL CASO QUE MAS DUELE, porque es la fase larga:
+//                              el verde o el rojo de 3 a 15 minutos. Su plazo NO VIVE
+//                              AQUI. Lo lleva tEstadoDesde en modo_automatico.cpp -y su
+//                              gemelo en modo_inteligente.cpp-, que es quien decide
+//                              cuando llamar a coordinador_pedirCambio(). Este fichero
+//                              recibe minRojoMs y minVerdeMs en coordinador_configurar()
+//                              y LOS TIRA: mirese la firma, los dos parametros no tienen
+//                              ni nombre. Reconstruir la cuenta aqui seria una segunda
+//                              copia del ciclo escrita a mano que nadie sincroniza -lo
+//                              que este repositorio ya pago tres veces-, y ademas
+//                              mentiria en dos de los tres modos: en Manual la fase
+//                              acaba cuando alguien pulsa, y en Inteligente cuando una
+//                              camara ve un coche, con el tiempo configurado como
+//                              MAXIMO y no como duracion. Cerrarlo pide que el modo
+//                              publique su propio plazo; no cabe dentro de este fichero.
+//
+//   C_MENU_IDLE                NO. Rojo fijo o ambar por menu: no hay fase que termine.
+//   C_FALLO                    NO. Ambar intermitente por SFTY-6; termina cuando vuelva
+//                              el enlace, y cuando eso pase no lo sabe nadie.
+//
+// Y LA GUARDA DE MODO NO ES DEFENSA POR SI ACASO: ESTA MEDIDA. En MODO_DEGRADADO y en
+// MODO_AMBAR el Maestro calla en la radio a proposito, asi que main.cpp EXCLUYE a los
+// dos de coordinador_actualizar_background() y estadoC se queda CONGELADO en el valor
+// que tuviera al entrar. Si eso fue uno de los tres despejes, la resta de abajo daria
+// 0 para siempre: "la fase se acaba ahora mismo", publicado cada 2 s durante horas.
+// El Degradado tiene su propia cuenta atras -ciclo_degradado_restante()- y no pasa por
+// aqui; mientras no la publique nadie, lo unico cierto en esos dos modos es "--".
+//
+// LA CUENTA ES PISO, NO REDONDEO. Vale exactamente N en el instante de entrar en la
+// fase y 0 durante el ultimo segundo; al cambiar la fase pasa a SIN_CUENTA_ATRAS. Asi
+// el numero que ve el operario nunca es MAYOR que lo que de verdad queda, que es la
+// direccion segura de equivocarse en un semaforo.
+int coordinador_segundosRestantesFase() {
+  const ModoSistema modo = modoActual_get();
+  if (modo == MODO_DEGRADADO || modo == MODO_AMBAR) return SIN_CUENTA_ATRAS;
+
+  switch (estadoC) {
+    case C_INICIAL_ESPERA_ESTATICO:
+    case C_ESPERA_ESTATICO_TRAS_MASTER:
+    case C_ESPERA_ESTATICO_TRAS_ESCLAVO: {
+      const unsigned long transcurrido = millis() - tRef;
+      // El >= es el mismo que el del switch. Si el bucle se retraso y la transicion
+      // aun no se ha ejecutado, lo que queda es cero, no un numero negativo enorme:
+      // la resta de unsigned long por debajo de cero daria 4.294.967 s.
+      if (transcurrido >= tiempoDespejeMs) return 0;
+      return (int)((tiempoDespejeMs - transcurrido) / 1000UL);
+    }
+    default:
+      return SIN_CUENTA_ATRAS;
+  }
+}
+
 // --- SFTY-14: Telemetria de calidad de enlace (V8.1) -----------------------
 
 int coordinador_calidadEnlace() {
