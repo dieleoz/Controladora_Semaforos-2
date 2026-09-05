@@ -168,6 +168,42 @@ razon para amputar el firmware.
 reposo, N-118—. **Van cableados**, y con `MANDO_B` al aire la bandera no se arma nunca.
 Eso se cierra con multimetro y cable, no con un `git rm`.
 
+### Lo que habria costado retirarlo, MEDIDO — el inventario alcanzo a terminar
+
+El agente lanzado por error dejo hecho el censo antes de que lo pararan, y convierte
+*«por los danos al software»* en una cifra. **No es que hubiera habido que retocar packs:
+el banco se habria caido en ABORTADO, que es peor que en rojo** —§2: un ABORTADO no dice
+nada del firmware—.
+
+| | acoplamiento |
+|---|---|
+| `maestro_01_mando` | **15 comprobaciones**, y solo 3 sobreviven (son de `main.cpp`, no del mando) |
+| `esclavo_01_latch_ambar` | **7** comprobaciones + 2 hallazgos, el pack entero |
+| `esclavo_02_inhibicion_menu` | **7** comprobaciones, el pack entero |
+| `camara_02_j16` | lee `Esclavo/src/mando.cpp` **directamente**, y censa los tres vetos |
+| `documentos_04` | **relee constantes de `mando.cpp`** para su exencion de vocabulario |
+
+**Y dos `raise fw.Abortado` que disparan solos:**
+
+- `esclavo_07`: *«no se hallo en main.cpp ni una guarda con `mando_ambarLocal()`»* — salta en
+  cuanto ese getter sale de `main.cpp`.
+- `esclavo_08`: *«`mando.cpp` del Esclavo ya no consulta `degradado_gobiernaLuz()`»* —
+  `mando.cpp` es **el molde** contra el que se mide el ambar de la app.
+
+**Y el golpe de gracia:** `modelos/maestro.py` y `modelos/esclavo.py` leen **seis constantes
+cada uno de `mando.cpp` a NIVEL DE MODULO** —`VENTANA_TRIPLE_MS`, `DESTELLOS_*`,
+`RECHAZO_AMBAR_MS`—. Eso revienta **en el import**, o sea que se lleva por delante a todo
+pack que importe el modelo, no solo a los que hablan del mando.
+
+Ademas la **guarda de rutas** de `compuerta.py` censa la tupla `("Esclavo","src",
+"mando.cpp")` por regex **sin saltarse los comentarios**: con el fichero borrado y la tupla
+citada en cualquier `.py` -incluida la prosa de la propia `compuerta.py`-, aborta tambien.
+
+> **La leccion, y es de metodo:** la decision del 31/08 decia *«por los danos al software»*
+> sin numeros, y eso la hacia facil de derogar de palabra. **Un motivo medido no se deroga
+> por descuido.** Es §2.ter aplicado a las decisiones: una razon escrita es una afirmacion
+> sobre el codigo, y esta ahora esta comprobada.
+
 ### 🟡 Lo que SI queda abierto para asignar: `J14`, y la idea del fin de carrera
 
 El responsable la planteo **sin decidir**: *«a lo mejor para fin de carrera de la barrera»*.
