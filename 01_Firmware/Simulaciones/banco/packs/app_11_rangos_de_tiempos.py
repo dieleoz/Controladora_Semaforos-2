@@ -458,10 +458,11 @@ def correr(b, fw):
                         (_fn, _ini + m.start(), m.group(0).strip(), _ms, _en_puerta))
         return malas, fuera
 
-    fases_malas, fuera_de_puerta = [], []
+    fases_malas, fuera_de_puerta, fases_ficheros = [], [], set()
     for _n, _t in CPPS:
         _malas, _fuera = _censar_fases(_t)
         for _fn, _p, _txt, _ms, _ in _malas:
+            fases_ficheros.add(_n)
             fases_malas.append(
                 "%s:%d dentro de %s(): '%s' -> %d ms = %.2f min, y el minimo vial es "
                 "%d min (rango %d-%d min)"
@@ -481,22 +482,34 @@ def correr(b, fw):
                 "creyendoselo: lo que un instrumento decide NO mirar es donde fallaron",
                 "los tres censos del 04/09, y ninguno lo llevaba escrito."])
 
+    # El "por que duele" se ARMA con lo que se acuso, no se escribe fijo. Una coletilla
+    # fija sobre las camaras pegada a un hallazgo de otro fichero seria una frase que
+    # sostiene un veredicto y que no comprueba nadie -§2.ter-, y el pack tiene que poder
+    # acusar a cualquier modo sin mentir sobre cual.
+    _duele = ("Esa comparacion decide cuando se puede CORTAR un verde en marcha y no "
+              "pasa ni por SET_TIEMPOS ni por el menu, asi que ninguna de las dos "
+              "guardas la toca: el cruce puede alternar por debajo del minimo sin que "
+              "nadie haya configurado nada. ")
+    if "modo_inteligente.cpp" in fases_ficheros:
+        _duele += (
+            "Y esta en modo_inteligente.cpp, que es el UNICO modo que usa las camaras: "
+            "con una camara pegada en 'hay presencia' esa punta recibe verdes de ese "
+            "tamano ciclo tras ciclo mientras la otra corre a %d minutos, y con las dos "
+            "ruidosas el cruce alterna al minimo indefinidamente. Estaba escrito ANTES "
+            "de comprar las camaras: el hardware nuevo no lo trae, lo encuentra. " % F_MIN)
+
     b.verificar(
         not fases_malas,
         "ningun limite de fase escrito como literal de tiempo baja del minimo vial: las "
         "funciones que pueden cortar un verde o un rojo miden contra las constantes de "
         "limites_ciclo.h, no contra un numero suelto",
         "HAY UN LIMITE DE FASE POR DEBAJO DEL MINIMO VIAL, ESCRITO A MANO Y FUERA DE "
-        "TODA GUARDA: %s. Esa comparacion decide cuando se puede CORTAR un verde y no "
-        "pasa ni por SET_TIEMPOS ni por el menu, asi que ninguna de las dos guardas la "
-        "toca. DUELE ASI: es el UNICO modo que usa las camaras, y con una camara pegada "
-        "en 'hay presencia' esa punta recibe verdes de ese tamano ciclo tras ciclo "
-        "mientras la otra corre a %d minutos; con las dos ruidosas el cruce alterna al "
-        "minimo indefinidamente. Y estaba escrito antes de comprar las camaras: no lo "
-        "trae el hardware nuevo, lo encuentra. El responsable fijo %d minutos por "
-        "sentido el 04/09 (D-5) porque por debajo el conductor se convence de que el "
-        "semaforo esta averiado y adelanta en rojo. EL ARREGLO ES DEL FIRMWARE -sacar "
-        "el numero de limites_ciclo.h-, no de este pack" % (fases_malas, F_MIN, F_MIN))
+        "TODA GUARDA: %s. %sEl responsable fijo %d minutos por sentido el 04/09 (D-5) "
+        "porque por debajo el conductor se convence de que el semaforo esta averiado y "
+        "adelanta en rojo. EL ARREGLO ES DEL FIRMWARE -sacar el numero de "
+        "limites_ciclo.h-, no de este pack: bajarle el listo al instrumento para que se "
+        "ponga verde es ajustar la medida hasta que de el resultado que gusta"
+        % (fases_malas, _duele, F_MIN))
 
     # ---- CONTROLES NEGATIVOS ---------------------------------------------------
     b.control_negativo(

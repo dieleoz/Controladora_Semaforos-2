@@ -408,8 +408,14 @@
       la pantalla del Maestro y la hora—. <b>Los pasos 31, 33 y el punto 2 de aquí abajo CAMBIARON
       de resultado esperado por su culpa</b>, y están marcados con ✏️. <b>Si mides con la hoja de la
       tarde en la cabeza, vas a apuntar al revés.</b></p>
+    <p class="sub">🆕 <b>Y esta revisión trae TRES pasos nuevos que no estaban el 04/09.</b> Han
+      llegado las <b>dos cámaras Hikvision <code>DS-2CD2683G2-IZS</code></b>, y las dos medidas que
+      desbloquean todo el diseño de cámaras —<b>pasos 39 y 40</b>, apartado <b>08.quater</b>— sólo
+      vivían en el documento del auditor. <b>No tocan la tarjeta</b>: se hacen con la cámara y un PC
+      sobre la mesa. El tercero es el <b>paso 7.bis</b>, el LED indicador de <code>VERDE2</code>, y
+      se mira en los mismos ciclos del paso 7.</p>
     <div class="meta">
-      <span>revisión del <b>04 · 09 · 2026 · noche · 2ª carga</b></span><span>41 pasos</span><span>firmware con N-42, N-133, N-134, N-142, N-145, N-146, N-147 y N-149</span>
+      <span>revisión del <b>04 · 09 · 2026 · noche · 2ª carga · cámaras el <b>05 · 09</b></span><span>44 pasos</span><span>firmware con N-42, N-133, N-134, N-142, N-145, N-146, N-147 y N-149</span>
     </div>
   </header>
 
@@ -832,8 +838,17 @@
         <tr><td><b>Funda termorretráctil</b></td><td>Paso 4. <b>No es opcional</b></td></tr>
         <tr><td><b>Cables sueltos de punta fina</b> y un <b>pulsador</b></td><td>Simular entradas: pasos 19, 21, 29</td></tr>
         <tr><td><b>Tres puentes hembra-hembra</b> y un <b>cargador USB</b></td><td>Pasos 9 a 14</td></tr>
-        <tr><td><b>Cronómetro</b></td><td>Pasos 7, 8, 14, 19</td></tr>
+        <tr><td><b>Cronómetro</b></td><td>Pasos 7, 8, 14, 19 <b>y 40</b></td></tr>
         <tr><td><b>Móvil Android</b> con la app</td><td>Pasos 10 a 14 y 25 a 29</td></tr>
+        <tr><td>🆕 <b>Las dos cámaras Hikvision</b> y su <b>fuente de 12 V DC</b> (jack Ø 5,5 mm)
+          <b>o</b> un inyector <b>PoE+ <code>802.3at</code></b></td><td>Pasos 39 y 40. <b>Sin
+          alimentación no hay menú que mirar</b></td></tr>
+        <tr><td>🆕 <b>Portátil con navegador</b> y un <b>cable de red directo a la cámara</b></td>
+          <td>Pasos 39 y 40. Toda la configuración de la cámara se hace por su web: <b>el controlador
+          no le habla a la cámara</b></td></tr>
+        <tr><td>🆕 <b>Algo con que grabar vídeo</b> —el móvil vale— y <b>un objeto que se pueda
+          dejar quieto</b> dentro de la región</td><td>Paso 40. Se graba el pito del multímetro con la
+          hora a la vista y luego se cuenta</td></tr>
       </tbody>
     </table>
   </div>
@@ -883,8 +898,20 @@
         <textarea id="t2" placeholder="Intentos · si hubo que usar BOOT0 · mensaje de error literal"></textarea>
       </div>
     </div>
+  </div>
 
-    <div class="fila">
+  <!-- 05/09 - ESTE PASO ESTABA DENTRO DEL PASO 2, Y POR ESO SALIA ILEGIBLE EN EL PDF.
+       Su div.fila colgaba del div.fila del paso 2, que es un grid de dos columnas
+       (2.2rem 1fr): un TERCER hijo cae en la columna de 2,2 rem. MEDIDO en el
+       navegador, en pantalla a 412 y a 1280 px Y en @media print sobre A4: la fila
+       daba 35 px y su .fc 0 px -una palabra por linea-, cuando las otras cuarenta
+       llegan a 718. El PDF es el canal de vuelta: esto se imprimia, pero no se podia
+       leer, que para el que rellena es lo mismo que no estar.
+       Y habia una segunda mitad, en el parte de la hoja 1: censar() busca los .tres
+       como DESCENDIENTES, asi que esta casilla se contaba DOS VECES -una bajo el
+       titulo del paso 2, que es otro paso-. Se cierra el paso 2 aqui arriba y el
+       2.bis pasa a ser su hermano. -->
+  <div class="fila">
       <div class="fn">2.bis</div>
       <div class="fc">
         <div class="ft">🎯 Comprueba que entró el binario NUEVO, con el multímetro y en diez segundos</div>
@@ -905,10 +932,10 @@
         <table>
           <thead><tr><th>posición</th><th>qué es</th><th>antes del 04/09</th><th>ahora tiene que dar</th><th>lo que mides</th></tr></thead>
           <tbody>
-            <tr><td><b>p5</b></td><td>mando A</td><td>0,6 V</td><td><b>0 V</b></td><td><input type="text" id="m2b5" placeholder="___ V"></td></tr>
-            <tr><td><b>p8</b></td><td>mando B</td><td>0,6 V</td><td><b>0 V</b></td><td><input type="text" id="m2b8" placeholder="___ V"></td></tr>
-            <tr><td><b>p10</b></td><td>cámara C</td><td>0 V</td><td><b>0 V</b></td><td><input type="text" id="m2b10" placeholder="___ V"></td></tr>
-            <tr><td><b>p12</b></td><td>cámara D</td><td>0 V</td><td><b>0 V</b></td><td><input type="text" id="m2b12" placeholder="___ V"></td></tr>
+            <tr><td><b>p5</b></td><td>mando A</td><td>0,6 V</td><td><b>0 V</b></td><td><input type="text" id="a2b5" placeholder="___ V"></td></tr>
+            <tr><td><b>p8</b></td><td>mando B</td><td>0,6 V</td><td><b>0 V</b></td><td><input type="text" id="a2b8" placeholder="___ V"></td></tr>
+            <tr><td><b>p10</b></td><td>cámara C</td><td>0 V</td><td><b>0 V</b></td><td><input type="text" id="a2b10" placeholder="___ V"></td></tr>
+            <tr><td><b>p12</b></td><td>cámara D</td><td>0 V</td><td><b>0 V</b></td><td><input type="text" id="a2b12" placeholder="___ V"></td></tr>
           </tbody>
         </table>
         </div>
@@ -931,7 +958,6 @@
         </div>
         <textarea id="t2b" placeholder="¿Coinciden las cuatro? · ¿qué multímetro usaste? · si p5/p8 dan 0,6 V: ¿repetiste la carga? ¿qué pasó?"></textarea>
       </div>
-    </div>
   </div>
 
   <h2><span class="n">02</span> Los dos conectores que se parecen</h2>
@@ -1082,6 +1108,64 @@
           <label class="np"><input type="radio" name="p7" value="np"> No se pudo</label>
         </div>
         <textarea id="t7" placeholder="Si NO o no se pudo: qué viste exactamente"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="fila" id="f7b">
+    <div class="fn">7<br>bis</div>
+    <div class="fc">
+      <p class="ft">🆕 El LED indicador del canal de <code>VERDE2</code> (<code>J8</code>) <a href="#d7b">detalle</a></p>
+      <p><b class="et">Haz</b> <b>Sin parar nada: mientras corren los ciclos del paso 7</b>, mira la
+        fila de LED que hay junto a los transistores de salida. <b>Son diez, uno por canal.</b> Con
+        el <b>Poste 2 en VERDE</b>, mira si enciende el del canal de <code>J8</code>. <b>Si no sabes
+        cuál es, no lo busques en el plano</b>: con el cruce ciclando, <b>nueve encienden con su
+        salida y el de <code>J8</code> sería el que no</b> — y eso ya es la respuesta.</p>
+      <p><b class="et">Haz</b> <b>Y la segunda mitad, con el multímetro y dos minutos:</b> equipo
+        <b>encendido</b>, desenchufa la bornera de <code>J8</code> (<code>VERDE2</code>) y la de
+        <code>J5</code> (<code>VERDE1</code>), y con <b>esas dos luces apagadas</b> mide <b>el pin 2
+        de cada una contra masa</b>. <code>J5</code> es el control: es el mismo circuito en el otro
+        sentido.</p>
+      <p class="ver"><b class="et">Ver</b> <b>En reposo, el p2 de un canal sano sube a ~12 V</b> —la
+        placa lleva <b>1 kΩ + LED al riel de 12 V</b> en cada canal, y eso está <b>en el cobre, no en
+        el conector</b>—. <b>Lo que se pregunta es qué da <code>J8</code>.</b> ⚠️ <b>Ese ~12 V está
+        CALCULADO del plano y nunca se ha medido con un multímetro</b> —hasta hoy es
+        <b><code>SIN VERIFICAR</code></b>—: esta medida cierra las dos cosas de una vez.</p>
+      <p class="porque">🔴 <b>Por qué se pregunta, y por qué NO es un problema de programa.</b> En
+        <b>nueve</b> de los diez canales de salida ese pull-up con su LED está completo. En el décimo
+        —<code>Q6</code> → <code>J8</code> → <code>VERDE2</code>— <b>el LED <code>D21</code> tiene el
+        cátodo sin conectar</b>: red <code>unconnected-(D21-K-Pad1)</code>, <b>cero pistas</b> en el
+        <code>.kicad_pcb</code> y <b>cero hilos</b> en el esquema, mientras su gemelo <code>D23</code>
+        los tiene en los dos extremos. <code>R48</code> y <code>D21</code> <b>están montados</b> y
+        forman un muñón colgado de los 12 V que no llega a ninguna parte. <b>La luz no depende de
+        eso</b>: el programa manda esa salida igual que las otras nueve y el banco ya vio ciclar las
+        seis luces. <b>Lo que faltaría es el INDICADOR</b>, y que <code>J8</code> p2 quede
+        <b>flotando</b> en reposo en vez de subir a 12 V como los otros nueve.</p>
+      <p class="porque">🛑 <b>Y las dos respuestas valen, así que ninguna es un callejón.</b> <b>Si NO
+        enciende</b>, el plano tenía razón y <b>es cobre</b>: hay que saberlo <b>antes de fabricar
+        más tarjetas</b>, y por eso el parte lo imprime entre lo que no cumple. <b>Si SÍ enciende</b>,
+        entonces <b>la placa soldada no coincide con el fichero</b> —alguien la parcheó, o el fichero
+        no es el de esta tanda— y eso es un hallazgo igual de gordo: <b>anótalo tal cual</b>.
+        <b>Nadie había mirado esto nunca</b> y no hay ni una nota en el repositorio, así que hoy
+        <b>no se sabe si es un defecto o una decisión</b>.</p>
+      <div class="anota">
+        <p class="porque">Con <code>VERDE2</code> encendido, ¿enciende su LED? <input type="text" id="a7ba" class="en-linea">
+          &nbsp; ¿Y el de <code>VERDE1</code> (<code>J5</code>), que es el control? <input type="text" id="a7bb" class="en-linea"></p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p7b1" value="si"> Enciende, igual que los otros</label>
+          <label class="no"><input type="radio" name="p7b1" value="no"> NO enciende — ese canal no tiene indicador</label>
+          <label class="np"><input type="radio" name="p7b1" value="np"> No se pudo (no se ven los LED / no cicló)</label>
+        </div>
+        <textarea id="t7b1" placeholder="¿Cuántos LED cuentas en la fila? ¿cuál es el que no enciende? · si enciende, ¿hay algún hilo o puente añadido a mano cerca de D21?"></textarea>
+        <p class="porque" style="margin-top:.45rem">Con la luz APAGADA y la bornera fuera:
+          <code>J8</code> p2 contra masa <input type="text" id="a7bc" class="en-linea"> V
+          &nbsp; <code>J5</code> p2 contra masa <input type="text" id="a7bd" class="en-linea"> V</p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p7b2" value="si"> Los dos a ~12 V</label>
+          <label class="no"><input type="radio" name="p7b2" value="no"> <code>J8</code> NO llega a 12 V (flota o casi 0 V)</label>
+          <label class="np"><input type="radio" name="p7b2" value="np"> No se pudo medir</label>
+        </div>
+        <textarea id="t7b2" placeholder="¿Es estable la lectura de J8 o baila? · si no se pudo, por qué"></textarea>
       </div>
     </div>
   </div>
@@ -2660,6 +2744,190 @@ CON modulo de reloj conectado:
     <textarea id="lib6c" style="min-height:3rem" placeholder="¿qué orden contestó OK o REARMADO sin que la luz cambiara? · ¿en qué modo estaba el equipo? · ¿lo repetiste y pasó lo mismo? · si grabaste tramas otra vez, dilo: es lo que más vale"></textarea>
   </div>
 
+  <h2><span class="n">08.quater</span> Las dos cámaras Hikvision · las dos medidas que desbloquean el diseño</h2>
+  <p class="sub" style="margin-top:.4rem">Han llegado <b>dos <code>DS-2CD2683G2-IZS</code></b>, una
+    por poste. <b>Estos dos pasos no tocan la tarjeta ni la necesitan</b>: se hacen con la cámara,
+    su fuente y un portátil, <b>sobre la mesa</b>, y se pueden hacer aunque el Maestro siga con el
+    corto. <b>Son las dos únicas medidas de toda la visita que no se pueden sacar de ningún
+    documento</b> &mdash;lo hemos intentado: están <b>leídas las 110 páginas del manual y las 40 de
+    la guía rápida</b>&mdash;.</p>
+
+  <div class="parar">
+    <b>🛑 La cámara NO se cablea a la tarjeta en esta visita, y no es prudencia: falta el diagrama</b>
+    <ol>
+      <li><b>Nadie sabe qué espera eléctricamente su entrada de alarma ni qué régimen admite su
+        salida.</b> El manual <b>delega</b> el cableado en la guía rápida &mdash;<i>«See Quick Start
+        Guide for cable connection»</i>&mdash; y la guía rápida <b>no trae diagrama de cable ni datos
+        eléctricos</b>. Las palabras <i>«dry contact»</i> y <i>«relay»</i> <b>no aparecen en las 110
+        páginas</b>. Que <code>1A</code> y <code>1B</code> sean los dos terminales de un <b>único</b>
+        contacto es <b>DEDUCCIÓN</b> de que la ficha diga <code>1 input, 1 output</code>, <b>no la
+        lectura de un diagrama</b>; y de <code>G</code> <b>no se sabe</b> si es común de la entrada,
+        de la salida o de las dos. Todo eso queda <b><code>SIN VERIFICAR</code></b>.</li>
+      <li><b>Lo único que se enchufa hoy es el multímetro en continuidad sobre
+        <code>1A</code>&ndash;<code>1B</code></b>, que no mete tensión en ningún sitio. <b>Ningún
+        hilo va de la cámara a la tarjeta.</b></li>
+      <li><b>Y el orden de siempre, que no cambia por haber llegado las cámaras: el programa nuevo
+        está DENTRO de la tarjeta antes de que nadie enchufe nada en <code>J16</code></b> &mdash;con
+        la carga <b>verificada</b> (paso 2), no con la intención de cargarla&mdash;. <b>Un commit no
+        protege de un destornillador.</b></li>
+    </ol>
+  </div>
+
+  <p class="sub">♻️ <b>Lo de la tarjeta ya está en esta hoja y no se repite aquí</b>: la medida que
+    autoriza a cablear <code>J16</code> es el <b>paso 20</b>, ejercer p10 y p12 el <b>21</b>, la
+    entrada con antirrebote (<code>J14</code>) los <b>17, 18 y 19</b>, los <b>0 V</b> del mando
+    &mdash;que con el programa viejo daban <b>0,6 V</b>&mdash; el <b>2.bis</b>, y <b>tapar
+    <code>J16</code> p1</b> el punto 5 del recuadro de arriba y la tabla de borneras del detalle.
+    <b>Ahí no hay nada nuevo que hacer.</b></p>
+
+  <div class="fila alto" id="f39">
+    <div class="fn">39</div>
+    <div class="fc">
+      <p class="ft">🔴 ¿Existe la casilla <code>Trigger Alarm Output</code>? <a href="#dcam">detalle</a></p>
+      <p><b class="et">Haz</b> Cámara alimentada y el portátil enchufado a ella por red. Entra por el
+        navegador y ve a <code>Configuration &rarr; Event &rarr; Smart Event &rarr; Intrusion
+        Detection</code> &mdash;en algunos modelos el menú es <code>VCA &rarr; Smart Event &rarr;
+        Intrusion Detection</code>&mdash;. Marca <code>Enable</code>, dibuja una región
+        <b>cualquiera</b> &mdash;<b>para esta medida da igual dónde</b>&mdash;, baja a la pestaña
+        <b><code>Linkage Method</code></b> y <b>copia la lista entera de casillas, tal cual y en el
+        orden en que salen</b>, aunque no se entiendan. <b>Son diez minutos.</b></p>
+      <p class="ver"><b class="et">Ver</b> <b>Si la casilla <code>Trigger Alarm Output</code> está o
+        no está en esa lista.</b> <b>Las dos respuestas son ciertas y las dos valen</b>; la que no
+        vale es dejarlo en blanco.</p>
+      <p class="porque">🔴 <b>Por qué estos diez minutos deciden todo lo demás.</b> Esa casilla es la
+        que hace que la cámara <b>cierre su relé físico</b> (<code>1A</code>/<code>1B</code>), y
+        <b>ese relé es lo único que el controlador sabe leer</b>: de la cámara el sistema consume
+        <b>un contacto seco y nada más</b> &mdash;no hay red, ni imagen, ni vídeo, ni analítica
+        dentro del controlador&mdash;. <b>Sin esa casilla la cámara detecta perfectamente y no se lo
+        cuenta al semáforo jamás.</b></p>
+      <p class="porque">⚠️ <b>Y la duda es legítima, no una manera de curarse en salud: hay dos
+        documentos oficiales que no coinciden.</b> El manual la documenta como método de enlace
+        (<code>UD28967B-C</code>, PDF 79 / impresa 67) <b>con esta coletilla literal encima</b>:
+        <i>«This function is only supported by certain models.»</i> Y <b>la ficha de ESTE modelo, en
+        su fila <i>Linkage Method</i>, no la menciona</b>. La ficha sí dice <code>1 input, 1
+        output</code> en la fila <i>Alarm</i> &mdash;o sea que <b>el hardware existe</b>&mdash;, pero
+        la nota habla de si <b>el menú lo ofrece</b>. <b>No son la misma pregunta</b>, y no hay
+        ninguna fuente en disco que diga si esta cámara es uno de esos modelos. <b>Lo desempata la
+        cámara que tienes delante, y nadie más.</b></p>
+      <div class="parar" style="margin-top:.5rem">
+        <b>🛑 Si la casilla NO ESTÁ: para, avísanos y NO improvises</b>
+        <p><b>No es un suspenso de la cámara: es la respuesta que cambia nuestro diseño</b> &mdash;el
+          parte lo va a imprimir entre lo que no cumple porque es donde tiene que leerse
+          primero&mdash;. Se cae entero el camino del bit por <code>J16</code>/<code>J14</code>.
+          <b>Lo que queda en pie es la vía contraria</b>, y está leída en el manual <b>sin esa
+          coletilla</b>: el <b>controlador cierra un contacto en la ENTRADA de alarma de la cámara y
+          la cámara graba</b>. <b>Pero eso no se monta hoy ni se prueba de oído</b> &mdash;sigue sin
+          diagrama de cable&mdash;: se anota y se decide fuera del banco.</p>
+        <p><b>Y el paso 40 no se deja en blanco:</b> se marca <b>«No se pudo»</b> con el motivo
+          escrito <b>«sin objeto: el 39 dijo que la casilla no está»</b>. Un hueco callado se lee
+          como despiste; ese motivo se lee como una respuesta.</p>
+      </div>
+      <div class="anota">
+        <p class="porque">Cámara 1 · firmware y n.º de serie <input type="text" id="a39a" placeholder="Configuration &gt; System &gt; System Settings"></p>
+        <p class="porque">Cámara 2 · firmware y n.º de serie <input type="text" id="a39b" placeholder="si sólo hay una encendida, dilo"></p>
+        <p class="porque">¿Coincide el menú con el manual <code>UD28967B-C v5.7.20</code>? <input type="text" id="a39c" placeholder="sí / no: qué difiere — una diferencia YA es un hallazgo"></p>
+        <p class="porque" style="margin-top:.4rem">Lista LITERAL de casillas de <code>Linkage Method</code>, en su orden — cópiala aunque no la entiendas:</p>
+        <textarea id="a39d" style="min-height:6rem" placeholder="1 ......&#10;2 ......&#10;3 ......&#10;4 ......&#10;5 ......&#10;6 ......&#10;7 ......&#10;8 ......"></textarea>
+        <p class="porque" style="margin-top:.4rem">Si sale en gris o no se deja marcar, ¿qué dice el aviso, literal? <input type="text" id="a39e"></p>
+        <p class="porque">¿Qué OTRAS reglas tenían marcado <code>Trigger Alarm Output</code> al llegar? <input type="text" id="a39f" placeholder="Motion / Tampering / Line Crossing / Video Loss / Alarm Input / ninguna">
+          &nbsp; ¿Se desmarcaron todas menos Intrusión? <input type="text" id="a39g" class="en-linea"></p>
+        <p class="porque">¿Hay una lista <code>Alarm Output No.</code>? ¿Cuántas salidas ofrece? <input type="text" id="a39h" placeholder="la ficha dice 1; si el menú ofrece 2 ó 3, el menú es genérico"></p>
+        <p class="porque">⚖️ <b>Un bit que significa dos cosas no significa ninguna:</b> si Motion o
+          Tampering también cierran ese relé, el controlador no puede saber qué le están contando.
+          <b>Por eso se desmarcan todas menos Intrusión</b>, y por eso se anota cuáles estaban.</p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p39" value="si"> ESTÁ · el diseño de un contacto por poste sigue en pie</label>
+          <label class="no"><input type="radio" name="p39" value="no"> NO ESTÁ · hay que parar y avisar</label>
+          <label class="np"><input type="radio" name="p39" value="np"> No se pudo mirar</label>
+        </div>
+        <textarea id="t39" placeholder="Si no se pudo: por qué —sin cámara, sin fuente, sin PC, sin cable de red— · si está pero con otro nombre, escribe el nombre exacto que viste"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="fila alto" id="f40">
+    <div class="fn">40</div>
+    <div class="fc">
+      <p class="ft">🔴 El <code>Delay</code> de la salida, y qué hace el contacto mientras el coche sigue ahí <a href="#dcam">detalle</a></p>
+      <p><b class="et">Haz</b> <b>(a)</b> <code>Configuration &rarr; Event &rarr; Basic Event &rarr;
+        Alarm Output</code>, bloque <code>Automatic Alarm</code>. <b>Despliega <code>Delay</code> y
+        copia la lista entera de valores</b>, con sus unidades y en su orden. <b>(b)</b> Elige <b>el
+        más pequeño que no sea <code>Manual</code></b> y guarda. <b>(c)</b> Con el multímetro en
+        <b>continuidad sobre <code>1A</code>&ndash;<code>1B</code></b>, deja <b>un objeto quieto
+        dentro de la región dos minutos</b> y mira qué hace el contacto. <b>(d)</b> Y <b>cronometra
+        el pulso tres veces</b>, con algo que entra y sale.</p>
+      <p class="ver"><b class="et">Ver</b> <b>Cualquier número es una respuesta buena.</b> Lo que se
+        busca no es un valor concreto: es <b>que exista un valor medido</b>, y que
+        <b><code>Delay</code> + rearme quepa por debajo de los 3 s</b> que el programa espera entre
+        dos peticiones del mismo carril.</p>
+      <div class="parar" style="margin-top:.5rem">
+        <b>⚠️ <code>Delay = Manual</code> NO SE ELIGE NUNCA</b>
+        <p>Con <code>Manual</code> el relé <b>se queda enclavado</b> hasta que alguien lo borre a
+          mano desde el navegador. El pin del controlador quedaría <b>ALTO para siempre</b>, <b>no
+          habría un solo flanco más</b>, y ese carril <b>dejaría de pedir paso sin dar ningún
+          síntoma</b>: ni una alarma, ni un LED, ni una traza. <b>El manual lo documenta como valor
+          de <code>Delay</code></b> (PDF 80 / impresa 68), así que <b>va a estar en la lista</b>
+          &mdash;se copia, y no se elige&mdash;.</p>
+      </div>
+      <p class="porque">🔴 <b>Por qué este número, y no es curiosidad: de él sale una constante de
+        nuestro programa que hoy nos INVENTAMOS y luego nos citamos a nosotros mismos.</b> El
+        firmware de las dos puntas espera <b>3 s de silencio</b> entre dos peticiones del mismo
+        carril, y lo justifica con un comentario que dice <i>«el relé de la cámara cierra ~1 s por
+        detección»</i>. <b>Ese «~1 s» vive en NUEVE sitios</b> &mdash;cinco comentarios del firmware
+        y <b>dos pruebas del banco</b> que salen <b>en verde</b> comparando contra él&mdash; y <b>su
+        fuente citada es un manual NUESTRO, no Hikvision</b>. El manual del fabricante <b>define</b>
+        el parámetro &mdash;<i>«the time duration that the alarm output remains after an alarm
+        occurs»</i>&mdash; y <b>no publica ni uno solo de sus valores en 110 páginas</b>. <b>Tu
+        número rompe el círculo.</b></p>
+      <p class="porque">⚠️ <b>Y si la media no sale ~1 s, esos cinco comentarios están mintiendo con
+        la autoridad de un dato medido.</b> <b>No se corrigen hoy</b> &mdash;el firmware no se toca
+        en banco&mdash;: se anota aquí, con el número, y se arregla después.</p>
+      <div class="anota">
+        <p class="porque">Valores que ofrece el desplegable <code>Delay</code>, literal y en su orden:</p>
+        <textarea id="a40a" style="min-height:4rem" placeholder="p. ej.: 5 s, 10 s, 30 s, 1 min, ... , Manual"></textarea>
+        <p class="porque" style="margin-top:.4rem">El MÍNIMO que ofrece, sin contar <code>Manual</code> <input type="text" id="a40b" class="en-linea">
+          &nbsp; ¿Aparece <code>Manual</code> en la lista? <input type="text" id="a40c" class="en-linea">
+          &nbsp; Valor que dejas configurado <input type="text" id="a40d" class="en-linea"></p>
+        <p class="porque" style="margin-top:.4rem"><b>Mientras el objetivo SIGUE dentro de la
+          región, el contacto…</b> — marca con una X la que viste, y sólo una:</p>
+        <div class="tabla-envoltorio" style="margin:.2rem 0 .4rem">
+          <table>
+            <thead><tr><th>lo que hace el contacto</th><th>marca</th></tr></thead>
+            <tbody>
+              <tr><td><b>1</b> · se queda <b>CERRADO</b> todo el rato, y sólo abre cuando el objeto se va</td><td><input type="text" id="a40e"></td></tr>
+              <tr><td><b>2</b> · cierra, <b>abre al agotarse el <code>Delay</code></b>, y NO vuelve a cerrar aunque siga ahí</td><td><input type="text" id="a40f"></td></tr>
+              <tr><td><b>3</b> · cierra, abre, y <b>VUELVE a cerrar</b> cada cierto tiempo</td><td><input type="text" id="a40g"></td></tr>
+              <tr><td><b>4</b> · otra cosa — escríbela en el hueco de abajo</td><td><input type="text" id="a40h"></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="porque">Si vuelve a cerrar, hueco entre cierres <input type="text" id="a40i" class="en-linea"> s
+          &nbsp; y otra vez <input type="text" id="a40j" class="en-linea"> s</p>
+        <p class="porque">Duración del pulso, cronómetro — 1ª vez <input type="text" id="a40k" class="en-linea"> s
+          &nbsp; 2ª vez <input type="text" id="a40l" class="en-linea"> s
+          &nbsp; 3ª vez <input type="text" id="a40m" class="en-linea"> s
+          &nbsp; media <input type="text" id="a40n" class="en-linea"> s</p>
+        <p class="porque"><code>Delay</code> elegido <input type="text" id="a40o" class="en-linea"> s
+          &nbsp; + rearme observado <input type="text" id="a40p" class="en-linea"> s
+          &nbsp; = <input type="text" id="a40q" class="en-linea"> s &nbsp; — ¿cabe por debajo de los <b>3 s</b>?</p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p40" value="si"> SÍ cabe · la desigualdad se cumple</label>
+          <label class="no"><input type="radio" name="p40" value="no"> 🔴 NO cabe · una misma detección se contaría dos veces</label>
+          <label class="np"><input type="radio" name="p40" value="np"> No se pudo medir</label>
+        </div>
+        <textarea id="t40" placeholder="Si no se pudo: por qué · si el 39 dijo que la casilla no está, escribe aquí «sin objeto: el 39 dijo que la casilla no está» · si la media no sale ~1 s, dilo con el número"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="libre">
+    <b>¿Viste algo en el menú de la cámara que no cuadre con lo que dice este papel?</b>
+    <p><b>Trabajamos con un manual de una versión de firmware que puede no ser la tuya</b>, y con una
+      ficha que no coincide con él. <b>Cualquier menú que no esté, que se llame distinto o que
+      aparezca de más es un dato</b>, no un estorbo.</p>
+    <textarea id="lib9" style="min-height:3rem" placeholder="menús que no están donde dice · nombres distintos · avisos raros al guardar · ¿hay microSD dentro? · ¿pide contraseña de activación la primera vez?"></textarea>
+  </div>
+
   <h2><span class="n">09</span> Si conectas el módulo y no llega nada</h2>
   <p class="sub" style="margin-top:.4rem"><b>Aquí se va la primera hora si se improvisa. En este
     orden, y no cambies piezas hasta el final.</b></p>
@@ -3110,6 +3378,59 @@ CON modulo de reloj conectado:
         Maestro esos dos sí son medidas y sí cambian.</b></p>
     </div></details>
 
+    <details id="d7b"><summary>Paso 7.bis · el LED que le falta a <code>VERDE2</code>, y por qué la luz funciona igual</summary><div class="dcuerpo">
+      <h4>Qué hay en el cobre, en los diez canales de salida</h4>
+      <p>Cada una de las diez salidas de potencia es la misma cadena: el micro manda un opto, el opto
+        manda un MOSFET y el MOSFET tira del borne a masa. <b>Y colgando de ese mismo punto hay un
+        pull-up de 1 kΩ con un LED al riel de 12 V</b>, que es el testigo del canal:</p>
+      <div class="diagrama">
+<pre>   +12 V ---[ R 1K ]---|&gt;|--- DRENADOR ------ bornera p2
+                      LED         |
+                                 [Q] IRLZ44N
+                                  |
+                                 GND
+
+   MOSFET conduciendo (la luz esta encendida) -> p2 cae a ~0 V y el LED LUCE
+   MOSFET abierto     (la luz esta apagada)   -> p2 SUBE a ~12 V y el LED no luce</pre>
+      </div>
+      <p><b>Eso está en la placa, no en el conector</b>: no se evita dejando un hilo sin poner.</p>
+      <h4>Y el décimo canal es la excepción</h4>
+      <p>El LED del canal <code>Q6</code> &rarr; <code>J8</code> &rarr; <code>VERDE2</code> es
+        <code>D21</code>, y <b>tiene el cátodo sin conectar</b>. Medido sobre los ficheros de la
+        placa, no recordado:</p>
+      <div class="diagrama">
+<pre>$ grep -oE '\(net [0-9]+ "unconnected-\(D21-K-Pad1\)"\)' Controladora_Semaforos.kicad_pcb
+(net 47 "unconnected-(D21-K-Pad1)")
+
+$ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.kicad_pcb
+(net 49 "Net-(D23-K)")        &lt;-- D23, el LED gemelo, SI llega al drenador</pre>
+      </div>
+      <p><b>Cero pistas</b> sobre esa red en el cobre y <b>cero hilos</b> en el esquema, mientras el
+        gemelo los tiene en los dos extremos. <code>R48</code> y <code>D21</code> <b>están
+        montados</b>: forman un muñón colgado de los 12 V que no llega a ninguna parte.</p>
+      <h4>Por qué esto NO es un problema de programa, y por eso se pregunta aquí</h4>
+      <p>El firmware escribe esa salida <b>exactamente igual que las otras nueve</b> &mdash;la función
+        que mueve los pines no distingue un canal de otro&mdash;, y el banco <b>ya vio ciclar las seis
+        luces</b>. <b>Lo que faltaría es el indicador, no la luz.</b> Y en reposo, <b><code>J8</code>
+        p2 quedaría flotando</b> en vez de subir a 12 V como los otros nueve, que es lo segundo que se
+        comprueba con el multímetro.</p>
+      <h4>Qué se hace con cada respuesta</h4>
+      <ul>
+        <li><b>No enciende y <code>J8</code> p2 no llega a 12 V</b> &rarr; la placa coincide con el
+          fichero y <b>es un defecto de cobre</b>. <b>Hay que saberlo antes de fabricar más
+          tarjetas</b>, y es lo único que decide esta comprobación.</li>
+        <li><b>Enciende</b> &rarr; entonces <b>la placa soldada NO coincide con el fichero</b>: o
+          alguien la parcheó, o el fichero no es el de esta tanda. <b>Es un hallazgo igual de
+          gordo</b> y hay que mirar si hay un hilo añadido a mano cerca de <code>D21</code>.</li>
+        <li><b>No se pudo</b> &rarr; se escribe el motivo. <b>Nadie ha mirado esto nunca</b> y hoy no
+          se sabe si es defecto o decisión: no hay ni una nota en todo el repositorio.</li>
+      </ul>
+      <p>⚠️ <b>El ~12 V de los otros nueve es una CUENTA, no una medida:</b> sale de
+        <code>(12 V &minus; la caída del LED) / 1 kΩ</code> y está <b><code>SIN VERIFICAR</code></b>
+        con multímetro desde que se escribió. <b>Esta misma medida lo cierra de paso</b>, y por eso se
+        piden los dos números y no sólo el de <code>J8</code>.</p>
+    </div></details>
+
     <details id="d29"><summary>Paso 29 · el mando sin receptor</summary><div class="dcuerpo">
       <h4>Por qué un puente contra los 3,3 V es exactamente lo que hace el relé</h4>
       <p class="porque">✏️ <b>04/09: este título decía <s>«por qué un cable a MASA es exactamente lo
@@ -3152,6 +3473,92 @@ CON modulo de reloj conectado:
       <p><b>Por qué el Esclavo debe ignorar la app con el ámbar puesto:</b> es desobediencia
         deliberada. <b>Mientras un operario pidió ámbar local puede haber alguien trabajando delante
         de ese poste</b>, y una orden remota no debe sacarlo del ámbar.</p>
+    </div></details>
+
+    <details id="dcam"><summary>Pasos 39 y 40 · las cámaras Hikvision: qué decide cada respuesta, y qué sigue <code>SIN VERIFICAR</code></summary><div class="dcuerpo">
+      <h4>Todo el diseño cuelga de un solo bit, y de una casilla</h4>
+      <p>De cada cámara el sistema consume <b>un contacto seco y nada más</b>: <b>no hay red, no hay
+        imagen, no hay vídeo y no hay analítica dentro del controlador</b> &mdash;censado: cero
+        <code>WiFi</code>, cero <code>HTTPClient</code>, cero servidor, cero ONVIF&mdash;. El micro
+        sólo lee un pin. <b>Consecuencia: toda la inteligencia vive en la CONFIGURACIÓN de la
+        cámara</b>, y por eso estas dos medidas valen más que cualquier cosa que podamos programar
+        nosotros esta semana.</p>
+      <p><b>Las dos cámaras llevan la MISMA configuración</b> &mdash;una regla de <i>Intrusion
+        Detection</i> sobre el barrido de la pluma&mdash;, y <b>el significado lo pone el estado del
+        semáforo, no la cámara</b>: el mismo bit dice cosas distintas según la luz que haya en ese
+        momento. Con una cámara por poste, dar «un significado a cada una» no sería repartir: sería
+        <b>proteger un poste y el otro no</b>.</p>
+      <h4>La contradicción documental que sólo se puede desempatar con la cámara delante</h4>
+      <div class="tabla-envoltorio">
+        <table>
+          <thead><tr><th>fuente</th><th>qué dice</th><th>dónde</th></tr></thead>
+          <tbody>
+            <tr><td>Manual <code>UD28967B-C</code></td>
+              <td><code>Trigger Alarm Output</code> es un método de enlace <b>&mdash; con la nota
+                <i>«This function is only supported by certain models.»</i></b></td>
+              <td>PDF 79 / impresa 67</td></tr>
+            <tr><td>Ficha del <code>DS-2CD2683G2-IZS</code></td>
+              <td>fila <i>Linkage Method</i>: <b>no la menciona</b></td><td>&mdash;</td></tr>
+            <tr><td>La misma ficha</td>
+              <td>fila <i>Alarm</i>: <code>1 input, 1 output</code>, <code>24 V / 1 A</code> &mdash;
+                o sea que <b>el hardware existe</b></td><td>p. 3</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><b>Que el hardware exista y que el menú lo ofrezca no son la misma pregunta</b>, y ninguna
+        fuente en disco contesta la segunda.</p>
+      <h4>Si la casilla NO está: la vía contraria, que sí está leída de punta a punta</h4>
+      <p>El manual documenta la <b>ENTRADA</b> de alarma <b>sin ninguna nota de modelos</b>: <i>«When
+        alarm input is enabled and trigger recording is selected as linkage method, the video is
+        recorded after receiving alarm signal from external alarm input device»</i> (PDF 48 / impresa
+        36) y <i>«the device records the video about the detected alarm event»</i> (PDF 82 / impresa
+        70). <b>La nota de «certain models» acompaña sólo a <code>Trigger Alarm Output</code>,
+        <code>Flashing Light</code> y <code>Audible Warning</code></b> (PDF 79, 82 y 83).</p>
+      <p>🟢 <b>O sea que «el controlador cierra un contacto en rojo &rarr; la cámara graba» NO depende
+        de la casilla del paso 39.</b> Y trae algo que no habíamos pedido: el <i>Record Schedule</i>
+        admite <b><code>Motion &amp; Alarm</code></b> (PDF 48 / impresa 36), que graba <b>sólo si hay
+        movimiento Y señal en la entrada</b> &mdash;o sea, <b>«algo se movió mientras el carril estaba
+        cerrado»</b>, filtrado por la propia cámara&mdash;.</p>
+      <p>🛑 <b>Pero eso no se cablea hoy</b>, y el motivo es el mismo por el que no se cablea la
+        salida: <b>no hay diagrama</b>.</p>
+      <h4>Lo que queda <code>SIN VERIFICAR</code>, y va escrito para que nadie lo dé por sabido</h4>
+      <ul>
+        <li><b>El diagrama de cable de la cámara.</b> El manual delega: <i>«See Quick Start Guide for
+          cable connection»</i> (PDF 56 / impresa 44). <b>La guía rápida está en disco</b> &mdash;40
+          páginas&mdash; y <b>sólo dice qué es cada terminal</b>: <i>«1A and 1B, 2A and 2B, 3A and 3B
+          are three pairs of alarm outputs»</i>, <i>«IN1 and GND1, IN2 and GND2 are two pairs of alarm
+          inputs»</i> (p. 8), con su aviso <i>«The interface varies with the models»</i>. <b>Diagrama
+          de cable y régimen eléctrico: no los trae.</b> La delegación acaba en un callejón sin
+          salida.</li>
+        <li>⚠️ <b>Y ese fichero no se puede buscar con <code>grep</code>: no tiene capa de texto</b>
+          &mdash;cero caracteres extraíbles en las 40 páginas&mdash;. Cualquier búsqueda da cero
+          <b>por el formato, no porque no esté</b>. Hay que abrirlo y mirarlo.</li>
+        <li><b>Qué espera eléctricamente la entrada:</b> sin tensión, sin corriente, y las palabras
+          <i>«dry contact»</i> y <i>«relay»</i> <b>no aparecen en las 110 páginas</b>.</li>
+        <li><b><code>Alarm Type</code> de la entrada:</b> el manual documenta <code>NO</code>;
+          <b><code>NC</code> no aparece nunca</b>, así que ni siquiera consta que sea configurable.</li>
+        <li><b>Corriente mínima de conmutación</b> de la salida, y <b>si es relé mecánico o de estado
+          sólido</b>: no se dice en ningún sitio.</li>
+        <li><b>Que <code>1A</code>+<code>1B</code> sean un único contacto</b> es <b>deducción</b> de
+          que la ficha diga <code>1 output</code>. De <code>G</code> no se sabe si es común de la
+          entrada, de la salida o de las dos.</li>
+      </ul>
+      <h4>Los dos horarios en serie, que se dejan a 24×7 y no es por comodidad</h4>
+      <p>Hay <b>dos <code>Arming Schedule</code></b> encadenados &mdash;el de la regla y el de la
+        propia salida de alarma&mdash; y <b>fuera de cualquiera de los dos el relé no cierra</b>. Y el
+        horario corre sobre <b>el reloj de la cámara, que no se puede sincronizar</b>: el cliente
+        <code>NTP</code> existe en el menú, pero <b>no hay red</b> hacia nuestro sistema, así que ese
+        reloj <b>deriva y se pierde en cada corte</b>. <b>La única configuración que no depende de él
+        es 24×7 en los dos.</b> Comprobarlo de verdad es <b>mirarlo de madrugada después de un
+        corte</b>, no en taller: hoy queda <b><code>SIN VERIFICAR</code></b>.</p>
+      <h4>Y lo que las cámaras NO van a hacer, hoy ni con el bit funcionando</h4>
+      <ul>
+        <li><b>Nada que autorice por ausencia</b> &mdash;acortar el despeje, dar verde antes&mdash;.
+          Una cámara desconectada lee «no hay nadie».</li>
+        <li><b>Ningún tope que fuerce la bajada de la pluma.</b> Un tope que baja igual devuelve el
+          peligro que se quería evitar: <b>tope &rarr; alarma, nunca acción.</b></li>
+        <li><b>El ciclo del semáforo no se toca.</b> Las cámaras no dan ni quitan verde.</li>
+      </ul>
     </div></details>
 
     <details id="d31"><summary>Consulta · qué va en cada bornera</summary><div class="dcuerpo">
@@ -3291,6 +3698,33 @@ CON modulo de reloj conectado:
             <tr><td><b>Que el mando se opere desde el Esclavo</b></td>
               <td>🟢 <b>Ya decidido el 04/09, y en contra: el cruce se opera desde el MAESTRO.</b>
                 Este banco no lo revisa; lo que sí anota es la consecuencia de obra (pregunta 10)</td></tr>
+            <tr><td><b>El cableado de la cámara a la tarjeta</b></td>
+              <td>🔴 <b><code>SIN VERIFICAR</code>, y por eso NO se cablea.</b> Ni el manual de 110
+                páginas ni la guía rápida traen <b>diagrama de cable ni régimen eléctrico</b>. Que
+                <code>1A</code>+<code>1B</code> sean un único contacto es <b>deducción</b> de la
+                ficha, no lectura de un plano, y de <code>G</code> no se sabe si es común de entrada,
+                de salida o de las dos. <b>Los pasos 39 y 40 se hacen con la cámara sola, sobre la
+                mesa</b></td></tr>
+            <tr><td><b>Si la cámara puede darle un bit al controlador</b></td>
+              <td>🔴 <b>Es la pregunta abierta más cara del proyecto, y la contesta el paso 39</b> en
+                diez minutos. Hoy hay <b>dos documentos oficiales que no coinciden</b>: el manual
+                documenta <code>Trigger Alarm Output</code> con la nota <i>«only supported by certain
+                models»</i> y la ficha de este modelo no la menciona. <b>Si no está, se cae el diseño
+                de un contacto por poste</b> y hay que decidir fuera del banco</td></tr>
+            <tr><td><b>La ventana de silencio del firmware (los 3 s)</b></td>
+              <td>🟠 <b>El paso 40 trae el número que hoy falta</b> &mdash;el <code>Delay</code> real
+                del relé&mdash;, pero <b>el firmware no se toca en banco</b>. La constante se deriva
+                después, con el dato delante, y con una prueba que relea las dos cifras</td></tr>
+            <tr><td><b>Si <code>D21</code> es un defecto de placa o una decisión</b></td>
+              <td>🔴 <b>Nadie lo ha mirado nunca</b>: no hay una sola nota en el repositorio. El
+                <b>paso 7.bis</b> mira si el canal de <code>VERDE2</code> enciende su LED. <b>No
+                afecta a la luz</b> &mdash;el programa manda esa salida igual que las otras nueve&mdash;;
+                afecta al <b>indicador</b> y a que ese borne <b>flote</b> en reposo. <b>Si es
+                defecto, hay que saberlo antes de fabricar más</b></td></tr>
+            <tr><td><b>Las microSD y la grabación en la cámara</b></td>
+              <td>🟠 <b>Fuera de esta visita.</b> La cámara graba en su propia tarjeta, y eso
+                <b>no toca una línea de nuestro programa</b>. Falta comprarlas y decidir retención:
+                es una decisión, no una medida</td></tr>
             <tr><td><b>Que el cruce funcione en la calle</b></td>
               <td><b>Es una sesión de comprobación, no una puesta en servicio.</b> Nada de lo que se
                 pruebe aquí autoriza a dejar el equipo trabajando en la vía</td></tr>
@@ -3380,9 +3814,17 @@ CON modulo de reloj conectado:
     // quinto (f38, la hora) lo mas probable es que vuelva como "no se pudo" por no haber
     // DS3231: esa respuesta tambien hay que verla en la primera hoja, porque un "no se
     // pudo" con motivo es una respuesta y un hueco no.
-    var CLAVE = ['f7', 'f12', 'f15', 'f16', 'f19', 'f20', 'f21', 'f29',
+    // 05/09: entran f7b, f39 y f40. Los dos ultimos son las dos medidas de la camara
+    // Hikvision que hoy no se pueden sacar de ningun documento -f39 decide si el diseno
+    // de un contacto por poste sigue en pie, y f40 trae el numero del que sale una
+    // constante del firmware que hoy nos inventamos-. f7b es el LED de VERDE2: si no
+    // enciende es cobre, y hay que saberlo antes de fabricar mas tarjetas. Los tres
+    // contestan preguntas que estaban ABIERTAS al encargar la visita, que es el criterio
+    // de esta lista.
+    var CLAVE = ['f7', 'f7b', 'f12', 'f15', 'f16', 'f19', 'f20', 'f21', 'f29',
                  'f30', 'f31', 'f32', 'f33',
-                 'f34', 'f35', 'f36', 'f37', 'f38'];
+                 'f34', 'f35', 'f36', 'f37', 'f38',
+                 'f39', 'f40'];
 
     var SELLO = { si: 'Sí', no: 'NO CUMPLE', np: 'NO SE PUDO PROBAR',
                   sm: 'sin marcar' };
@@ -3711,7 +4153,8 @@ CON modulo de reloj conectado:
       // --- lo que se preguntó al encargar la visita ---
       var b4 = bloque('Las respuestas que se pidieron',
         'Los pasos que contestan a lo que se preguntó: si la talanquera sube y ' +
-        'con qué luz, si la cámara cambió algo, y si el equipo habla con el móvil.');
+        'con qué luz, si la cámara cambió algo, si el equipo habla con el móvil, ' +
+        'y las dos medidas de la cámara Hikvision que desbloquean el diseño.');
       CLAVE.forEach(function (id) {
         var p = c.porId[id];
         if (!p) {
