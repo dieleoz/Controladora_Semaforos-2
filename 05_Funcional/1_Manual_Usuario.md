@@ -648,9 +648,23 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 > pull-down con antirrebote de 1 ms (`pines.h:43-46`)—, que es justo lo que hace falta para que el
 > reposo sea `0 V` y el cierre a 3,3 V sea la detección.
 >
-> ⚠️ **Es el mismo error de polaridad que N-118, en la bornera que sí se cablea hoy.** La salida de
+> ⚠️ **Es el mismo error de polaridad que N-118, en la bornera que sí se cablea hoy.** ~~La salida de
 > la AcuSense es configurable (NO/NC), así que se elige qué estado significa demanda **sin tocar
-> placa ni firmware** — pero el hilo va a `p1` y `p2`, no a una masa.
+> placa ni firmware**~~ — pero el hilo va a `p1` y `p2`, no a una masa.
+>
+> > 🔴 **TACHADO EL 05/09: esa frase está `SIN VERIFICAR` y sostenía decisiones desde el 31/08.**
+> > **Ninguna fuente oficial de este modelo dice que la salida sea `NO`/`NC` configurable.** Medido
+> > sobre los PDF de `04_Manuales/`: la ficha sólo dice `1 output (max. 24VDC/24 VAC, 1 A)`; en las
+> > **110 páginas** del manual de usuario las palabras `Normally Open` / `Normally Closed` **no
+> > aparecen ni una vez**, y el desplegable `Alarm Type` está documentado **sólo para la ENTRADA**
+> > *(pág. 44)* — de la salida sólo se documentan `Alarm Output No.`, `Alarm Name` y `Delay`
+> > *(pág. 68)*.
+> >
+> > **Por qué importa aquí y no es una pega de papel:** si la salida resultara ser **`NC`** —cerrada
+> > en reposo—, el pin **nacería en ALTO** y, por la siembra de arranque del firmware
+> > (`camaras_sembrar()`), **no habría flanco hasta que el relé abriera y cerrara otra vez**: el
+> > equipo arrancaría **sin ver la primera demanda**. Lo cierra el `ENSAYO 1` del **Manual 9 §6**,
+> > con un multímetro y en dos minutos. **Hasta entonces no se da por elegida la polaridad.**
 
 > 🛑 **CORREGIDO EL 04/09 — SON DOS CÁMARAS EN EL CRUCE, UNA POR POSTE. NO TRES POR TARJETA.**
 >
@@ -726,6 +740,43 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 > «Aceptar» en un equipo que está en la calle**.
 * 🛑 **Las cámaras de umbral (2 y 4) NO se instalan en V9.0, y no hay dónde conectarlas.** Medido el 27/08 sobre el esquemático: el pin `PB8` que los manuales daban por suyo **alimenta un LED testigo (`D5` por `R16` 1 kΩ)** — no es una bornera ni una entrada. El paso alternado lo regulan las cámaras de **demanda** y el **todo-rojo temporizado** (`cfgDespejeSeg`), que es el criterio conservador. Ver Manual 9 y `roadmap.md` N-64.
 * **Procesamiento:** La cámara Hikvision AcuSense ejecuta su analítica embebida (Detección de Intrusión con filtro `☑ Solo Vehículo`) y cierra su contacto seco al detectar presencia vehicular.
+
+> ## 📜 QUÉ ES —Y QUÉ NO ES— UNA «CÁMARA IA» EN ESTE EQUIPO (D-12, 05/09/2026)
+>
+> **Va aquí arriba y no en una nota al pie, porque el nombre promete más de lo que el sistema hace.**
+>
+> **De cada cámara este equipo recibe UNA SOLA COSA: un contacto seco. Dos hilos y un bit**, que vale
+> *«hay vehículo»* o *«no hay»*. Nada más cruza de la cámara al semáforo.
+>
+> | | |
+> |---|---|
+> | ❌ **El semáforo NO ve imágenes** | Ni las guarda, ni las manda, ni las enseña. **No hay pantalla donde mirar lo que ve la cámara**, ni en el equipo ni en la app |
+> | ❌ **El semáforo NO hace análisis de imagen** | Toda la inteligencia está **dentro de la cámara**; el equipo sólo lee un pin. Por eso **la cámara se configura una vez en taller** y ahí se decide todo lo que sabrá distinguir |
+> | ❌ **No hay red entre la cámara y el equipo** | En el poste no hay switch ni cable de datos. El cable de red de la cámara **sólo se usa el día que se parametriza** |
+> | ❌ **No cuenta vehículos** | Es presencia sí/no. El número que la pantalla llama *«Autos»* vale **0, 1 o 2** y significa *«en cuántas puntas hay demanda»*, no cuántos coches hay |
+>
+> ### 🟢 Lo que sí se puede tener, si se quiere: grabación EN LA CÁMARA
+>
+> La cámara comprada admite **tarjeta de memoria microSD de hasta 512 GB** *(ficha oficial, pág. 3)* y
+> sabe **grabar por evento**. Así que **revisar un accidente o auditar lo que pasó SÍ es posible** —
+> pero conviene saber cómo funciona de verdad, para no contar con lo que no hay:
+>
+> * Las imágenes se quedan **dentro de la cámara**. El semáforo no las ve.
+> * **La tarjeta no viene puesta ni está comprada.**
+> * Sin red en el poste, para verlas hay que **subir al equipo y retirar la tarjeta**.
+> * **Nadie ha decidido todavía** cuántos días se guardan ni quién las revisa.
+>
+> ### ⚠️ Una cámara sólo PIDE paso; nunca lo AUTORIZA
+>
+> **Si una cámara se avería, se queda sin corriente o alguien le corta el cable, su contacto queda en
+> reposo — y el reposo significa «no hay nadie».** El equipo **no puede distinguir** una cámara
+> callada de una vía vacía.
+>
+> Por eso está construido de forma que **una cámara nunca abre paso por sí sola**: sólo **pide**, y
+> quien decide es el ciclo, con su **todo-rojo de despeje por tiempo**. **Una cámara rota degrada el
+> servicio —el cruce reparte por tiempo, como si no hubiera cámara— pero no crea una situación
+> peligrosa.** Si un día parece que un sentido «ya no pide paso», **la primera sospecha es la cámara
+> o su alimentación**, no el semáforo.
 * **Seguridad:** Cada cambio de sentido respeta el tiempo de **Despeje Todo-Rojo** configurado ~~en pantalla~~ **(28/08: desde la app)** antes de habilitar el verde al sentido con demanda.
 
 > 🔴 **28/08 — QUÉ MIDE DE VERDAD EL MODO INTELIGENTE, Y QUÉ NO.** Medido sobre

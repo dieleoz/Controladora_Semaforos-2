@@ -465,12 +465,49 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 >
 > | 🔴 `SIN VERIFICAR` | por qué importa aquí |
 > |---|---|
-> | **Que la analítica pueda ENLAZARSE a la salida de alarma** | **Es el eslabón del que cuelga `A7` entera.** El manual documenta `Trigger Alarm Output` con la nota *«only supported by certain models»*, y la fila *Linkage Method* de la ficha **no lo menciona**. **Se comprueba en 10 minutos** con la cámara delante — Manual 9 §4 Paso 0 |
+> | **Que la analítica pueda ENLAZARSE a la salida de alarma** | **Es el eslabón del que cuelga `A7` entera.** 🟢 **05/09 — MEJORA, leyendo el manual de usuario que ya está en `04_Manuales/`: el camino está documentado entero.** La regla de intrusión remite a `Linkage Method Settings` *(PDF pág. 61 · impresa 49)* y ahí figura **`Trigger Alarm Output`** *(PDF pág. 79 · impresa 67)*. 🔴 **Pero NO se cierra**: debajo sigue la nota *«only supported by certain models»*, y **ninguna fuente dice si esta cámara es uno de ellos**. **Se comprueba en 10 minutos** con la cámara delante — Manual 9 §4 Paso 0 |
 > | Que la salida sea **`NO`/`NC` configurable** | La frase *«la salida de la AcuSense es configurable NO/NC»* circula por varios documentos **y no la sostiene ninguna fuente**: `Alarm Type` sólo está documentado para la **entrada**. **Lo mide el `ENSAYO 1`** |
 > | **Corriente mínima de conmutación** del contacto | A `330 µA` es *carga seca*, régimen donde un contacto sin oro puede oxidarse con los meses. **Y la línea `E1` —2K2 en serie— la bajaría a `270 µA`: las dos cuentas hay que mirarlas JUNTAS** antes de firmar la V2 |
 >
 > 🟢 **Ninguna de las tres bloquea la compra —ya está hecha— ni el cableado que `M3` desbloqueó.**
 > Bloquean **dar por cerrada la puesta en marcha**, que es distinto.
+>
+> ### 📜 QUÉ SE ESTÁ COMPRANDO DE VERDAD CON ESTAS DOS CÁMARAS (D-12, 05/09)
+>
+> **Se compran dos cámaras de 8 MP para que el semáforo reciba de cada una UN BIT.** Dicho así suena
+> pobre, y por eso va escrito: es lo que hay, y quien firma la compra tiene que saberlo.
+>
+> | lo que el sistema **SÍ** obtiene | lo que **NO** obtiene, aunque la cámara lo tenga |
+> |---|---|
+> | **Un contacto seco por cámara** — dos hilos a `J16`, un bit: *hay vehículo* / *no hay* | ❌ **Ninguna imagen ni vídeo llega al controlador.** No hay red de la cámara a la tarjeta |
+> | La **clasificación AcuSense** *(vehículo / persona)* hecha **dentro** de la cámara | ❌ **Ningún cómputo en el controlador**: el STM32 lee un pin. **No se compra ninguna Raspberry, Jetson, NVR ni PC** — y no hacen falta |
+> | Robustez de intemperie `IP67`/`IK10`, `-30` a `60 °C` | ❌ **`ONVIF`, `ISAPI`, `SDK` y `RTSP` existen en la cámara y este sistema NO los usa.** Se pagan y no se aprovechan: es el precio de comprar una cámara de catálogo |
+>
+> 🟢 **PERO OJO CON DARLO POR PERDIDO — corregido el 05/09:** que el controlador no vea imágenes **no
+> significa que no haya imágenes**. La cámara admite **microSD/SDHC/SDXC de hasta `512 GB`** *(ficha,
+> pág. 3, verificada en el PDF)* y sabe **grabar y capturar por evento** *(ficha, pág. 4, fila
+> `Linkage Method`)*. **El soporte de accidentes y la auditoría SÍ son posibles con la cámara ya
+> comprada, y sin tocar una línea de firmware.**
+>
+> 🆕 **Y eso abre DOS líneas de compra que hoy no están en esta lista:**
+>
+> 1. **La tarjeta microSD** — 🔴 **NO comprada, no presupuestada.** Una de resistencia industrial
+>    (`high endurance`, pensada para grabación continua) no es la de un teléfono. *(Nota de fuentes:
+>    la ficha de 2023 dice `512 GB`; el `.docx` del 05/09 apunta que alguna edición indica `256 GB` —
+>    **se compra mirando la ficha del lote que llegue**.)*
+> 2. **Quién y cómo las recupera** — sin red en el poste, **las imágenes se sacan subiendo a retirar
+>    la tarjeta**. La alternativa *(FTP o NAS)* **exige red hasta el poste, que no existe y no está
+>    presupuestada**.
+>
+> 🛑 **Y una decisión que no es de compras y no puede quedarse sin dueño:** cuántos días se guardan
+> las imágenes, quién las mira, quién las borra y **qué pasa con la privacidad de quien pase por
+> delante**. **Este documento no lo decide** — se anota para que no se descubra después de instalar.
+>
+> ⚠️ **Por último, la restricción que reparte el recurso escaso: `1 input, 1 output` (ficha, pág. 3).
+> UNA salida por cámara = UN significado por cámara.** Con dos cámaras hay **dos significados para
+> todo el cruce**: uno ya está tomado *(presencia de vehículo)* y **el otro está sin decidir**
+> (`A-1` de `DECISIONES.md`). **Comprar una tercera cámara no es la respuesta hasta que se sepa qué
+> tiene que decir** — y menos con el modelo marcado `Discontinued`.
 
 > 🔌 **Cómo queda montado lo que se pide en A1′, A5 y A6 — para que las tres líneas se lean juntas:**
 >

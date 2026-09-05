@@ -6,14 +6,29 @@
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`  
 **Normativa Aplicable:** Manual de Señalización Vial de Colombia (Resolución 2024 - MinTransporte)  
 **Fecha de Emisión:** 26 de Agosto de 2026  
-**Última revisión:** 5 de septiembre de 2026 — 🎥 **LA CÁMARA YA TIENE NOMBRE Y FICHA: `DS-2CD2683G2-IZS`.**
+**Última revisión:** 5 de septiembre de 2026 (2.ª del día) — 🔑 **AHORA EMPIEZA POR ENTRAR EN LA CÁMARA, Y ESE ES EL CAMBIO IMPORTANTE.**
+Con la cámara delante, el reporte del funcional fue **«no encuentro ni la IP»**: un manual de
+parametrización que arranca en la analítica no le sirve a quien todavía no ha visto el login. El
+bloque 🔑 de la cabecera lleva ahora el descubrimiento con **SADP —que ya está en el repositorio,
+en `04_Manuales/SADP＿EN/SADP.exe`—**, la **activación** (la cámara sale **inactiva**, y eso es lo
+que más despista), la IP y el acceso web, con **qué hacer cuando la lista sale vacía**.
+Se añade además **📜 EL CONTRATO** *(D-12)*: **de cada cámara el sistema consume UN CONTACTO SECO**
+—sin red, sin imagen, sin analítica en el controlador—, lo que convierte **este documento en el
+entregable principal** de la parte de cámaras. 🟢 **Y se CORRIGE una afirmación de este mismo día:**
+decía que *«sin imágenes no hay soporte de accidentes ni auditoría»* y **es falso** — la cámara
+graba por su cuenta en **microSD de hasta 512 GB** *(ficha, pág. 3)*. Está tachado con su motivo.
+🔴 **Aviso que vale para todo el documento: el manual de usuario que citamos es de la `5.7.20` y el
+firmware vigente de la cámara es la `5.7.23`** — las rutas de menú pueden no coincidir con la
+pantalla.
+
+*Revisión anterior (05/09/2026): 🎥 **LA CÁMARA YA TIENE NOMBRE Y FICHA: `DS-2CD2683G2-IZS`.**
 La pregunta que podía tirar el diseño —*¿este modelo concreto tiene salida de alarma por contacto
 seco?*— **está contestada, y la respuesta es SÍ**: `1 input, 1 output (max. 24VDC/24 VAC, 1 A)`, con
 los bornes `1A`/`1B` que este manual ya citaba. **El camino de `J16` sigue en pie y no hay que
 rediseñar nada.** Lo que **sí** se ha caído es una frase que llevaba meses sosteniendo decisiones sin
 que nadie la comprobara: *«la salida de la AcuSense es configurable NO/NC»* — **eso no lo dice
 ninguna fuente oficial de este modelo**. Ver el bloque 🎥 de la cabecera y **§1.1**, **§4 Paso 4** y
-**§7**.
+**§7**.*
 
 *Revisión anterior (04/09/2026): 🟢 **`M3` ESTÁ CERRADA EN BANCO (paso 20): el
 pull-down de `J16` p10 y p12 es REAL y de 10 kΩ.** Con eso **desaparece el único bloqueo que quedaba
@@ -70,6 +85,235 @@ nunca. Nada se borra: el texto viejo queda tachado en su sitio con el motivo.*
 > sobretensión que entre por el hilo de campo. La protección de verdad —**2K2 en serie en las cinco
 > entradas**— es una modificación de la **revisión V2 de la placa**, y está anotada como línea de
 > compra en `15_Lista_de_Compras_Hardware.md` (bloque **E**). **Hoy no existe en el cobre.**
+
+> ## 🔑 EMPIEZA AQUÍ: **ENTRAR EN LA CÁMARA.** No se parametriza lo que no se ve (05/09/2026)
+>
+> **Este bloque está delante de todo lo demás porque es donde el trabajo se paró de verdad.** El
+> 05/09, con la cámara delante, el reporte fue literal: **«el funcional no encuentra ni la IP»**. Un
+> manual que arranca en la analítica no le sirve a quien todavía no ha visto la pantalla de login.
+>
+> ### 🟢 La herramienta YA ESTÁ EN EL REPOSITORIO. No hay que descargar nada
+>
+> ```text
+>   04_Manuales/SADP＿EN/SADP.exe          <-- 72 MB, verificado en disco el 05/09
+> ```
+>
+> > 🛑 **COPIA ESA RUTA TAL CUAL.** El carácter entre `SADP` y `EN` **no es un guion bajo normal**: es
+> > `＿` (*fullwidth low line*, `U+FF3F`). Si se teclea un `_` corriente **la carpeta no aparece**, y
+> > el técnico concluye que la herramienta no está cuando sí está. Es exactamente la clase de
+> > «no aparece» que este proyecto obliga a descartar antes de reportarlo.
+>
+> ### Los cuatro pasos, en orden, y lo que atasca en cada uno
+>
+> | | qué se hace | lo que despista |
+> |---|---|---|
+> | **1** | **Encontrar la cámara.** Ejecutar `SADP.exe` y buscar dispositivos en línea | 🔵 **SADP la ve AUNQUE su IP no esté en tu rango** — usa descubrimiento por difusión, no una petición a su IP. Por eso es la herramienta correcta justo cuando «no aparece la IP» |
+> | **2** | **Activarla.** Sale **INACTIVA de fábrica**: usuario `admin` y **sin contraseña ninguna** | 🔴 **ESTO ES LO QUE MÁS DESPISTA.** No es que la contraseña esté mal: **es que todavía no hay contraseña, y la cámara no contesta hasta que se le pone una.** La columna `Status` de SADP dirá `Inactive` |
+> | **3** | **Ponerle IP** del rango de ustedes, desde SADP, con la contraseña recién creada | Hay que **volver a escribir la contraseña** para que acepte el cambio de IP (`Modify`) |
+> | **4** | **Entrar por navegador** a la IP nueva | Ver el aviso de `http` / `https` de abajo |
+>
+> **Fuente de los pasos 1-3:** manual de usuario, cap. 1 *«Device Activation and Accessing»*, §1.1.1
+> *Activate via SADP* — **PDF pág. 13, impresa 1**. Leído del PDF que está en `04_Manuales/`.
+>
+> ### 🆘 Si la lista de SADP sale VACÍA
+>
+> Antes de dar por muerta la cámara, se descarta al buscador (`CLAUDE.md` §4). Por orden de
+> probabilidad:
+>
+> 1. **El firewall de Windows** está bloqueando el descubrimiento. Es la causa más común: SADP
+>    escucha por **UDP** y Windows lo bloquea de serie en redes «públicas». Permitir `SADP.exe` en el
+>    firewall, o marcar la red como «privada».
+> 2. **El PC está en otra VLAN o en otro switch.** El descubrimiento **no cruza routers**: el
+>    portátil y la cámara tienen que estar en el **mismo dominio de difusión**. Lo más seguro es un
+>    cable directo entre portátil y cámara.
+> 3. **La cámara no tiene alimentación.** Si se alimenta por **PoE**, el puerto del switch tiene que
+>    dar PoE de verdad (**802.3at, Clase 4** — ficha, pág. 4); un puerto sin PoE deja la cámara
+>    muerta y **no enciende ningún testigo visible desde abajo**. Alternativa: **12 VDC** por el
+>    conector coaxial de 5,5 mm.
+> 4. **Hay más de una tarjeta de red** en el portátil (Wi-Fi + cable, o una VPN levantada) y SADP
+>    está escuchando por la que no es. Desactivar el Wi-Fi y las VPN mientras se busca.
+>
+> > 🔴 **Y una trampa que deja fuera a quien ya lleva un rato intentándolo:** el manual documenta un
+> > **bloqueo por intentos fallidos activado de fábrica** — *«If admin user performs seven failed
+> > password attempts (five attempts for user/operator), the IP address is blocked for 30 minutes»*
+> > (**PDF pág. 16, impresa 4**). Si se han hecho varios intentos a ciegas, **puede que la cámara
+> > esté bloqueando el PC durante media hora** y no haya nada que arreglar salvo esperar. Se apaga en
+> > `Configuration → System → Security → Security Service`.
+>
+> ### 🌐 `http://` o `https://` — y aquí NO vale la respuesta corta
+>
+> > ⚠️ **Circula la idea de que «es `https://`, no `http://`». Las fuentes NO dicen eso**, y se
+> > comprueba antes de escribirlo:
+> > * El manual (**PDF pág. 91, impresa 79**) presenta HTTPS como algo que **se habilita**: *«Check
+> >   Enable to access the camera via HTTP **or** HTTPS protocol»*, y sólo si además se marca
+> >   **`Enable HTTPS Browsing`** el acceso queda **restringido a HTTPS**.
+> > * El `.docx` de la cámara lista **las dos** URL como válidas: `http://192.168.1.64/` y
+> >   `https://192.168.1.64/`.
+> >
+> > **Lo que hay que hacer, entonces:** probar **`http://<IP>`** primero. Si no contesta, probar
+> > **`https://<IP>`** — y entonces **el navegador va a avisar del certificado**: es normal (la
+> > cámara trae uno autofirmado) y hay que **aceptar y continuar**.
+>
+> ### Datos de fábrica
+>
+> | | valor | de dónde sale |
+> |---|---|---|
+> | **IP** | `192.168.1.64` | ✅ **Manual de usuario, PDF pág. 15 / impresa 3** *(«The default IP address of the device is 192.168.1.64»)* |
+> | Máscara | `255.255.255.0` · **GW** `192.168.1.1` | `.docx` §3 *(no aparece en los dos PDF)* |
+> | Usuario | `admin` *(no se puede cambiar)* | `.docx` §3 |
+> | Contraseña | **ninguna — activación obligatoria** | ✅ **Manual, PDF pág. 13** |
+> | Longitud de contraseña | **mínimo 8**, con mayúsculas, minúsculas, números y símbolos | ✅ **Manual, PDF págs. 13 y 15**, literal |
+> | Puertos: HTTP `80` · HTTPS `443` · RTSP `554` · SDK `8000` · descubrimiento SADP **UDP `37020`** | | 🟡 `.docx` §4 — **el número `37020` NO aparece en ninguno de los dos PDF oficiales** *(medido: cero coincidencias)*. Se publica citando su fuente, que es la recopilación del responsable, no el fabricante |
+>
+> > 🔴 **`SIN VERIFICAR`: el tope de 16 caracteres de la contraseña.** El `.docx` dice *«8 a 16»*. En
+> > las **110 páginas** del manual oficial la cadena `16 characters` **no aparece ni una vez**
+> > (medido); lo único que el fabricante escribe es *«a minimum of 8 characters»*. **El mínimo es
+> > dato; el máximo no.** Se anota por si alguien elige una contraseña larga y la cámara la rechaza:
+> > no sería un fallo, sería este límite sin confirmar.
+>
+> ### ⚠️ DOS AVISOS DE VERSIÓN, y valen para TODO este manual
+>
+> 1. 🔴 **El manual de usuario que tenemos es de la `5.7.20`; el firmware vigente de la cámara es la
+>    `5.7.23`** *(`.docx` §1: build 260320, 20/03/2026)*. **El manual es MÁS VIEJO que el firmware**,
+>    así que **las rutas de menú que aquí se citan pueden no coincidir con lo que el técnico vea en
+>    pantalla.** Si una ruta no está donde se dice, **lo primero que hay que sospechar es esto**, no
+>    un error del técnico. Cada ruta de este documento lleva su página; si discrepa, **manda la
+>    pantalla** y se anota la diferencia.
+>    > *(El propio manual lo avisa de sí mismo, pág. 2: «subject to change without notice, due to
+>    > firmware updates or other reasons».)*
+> 2. 🟡 **SADP está DESCONTINUADA** — sin actualizaciones desde abril de 2026. **La sustituye
+>    `HiTools Delivery`** *(V2.1.1.2)*. **Aquí se documenta SADP porque es la que está instalada y
+>    con ella se entra**, y funciona; se deja escrito el relevo para que dentro de seis meses nadie
+>    busque una herramienta muerta ni se extrañe de no encontrar descargas.
+>
+> **Con la cámara ya accesible, sigue en el §4 Paso 0** —que es la comprobación que decide si todo
+> el camino de `J16` sirve— y luego el resto del apartado 4.
+
+> ## 📜 EL CONTRATO, ENTERO Y EN POSITIVO — **DE CADA CÁMARA EL SISTEMA CONSUME UN BIT** (D-12, 05/09/2026)
+>
+> **Esto es lo primero que hay que entender de este manual, y es más pobre de lo que suena
+> «cámara IA».** Va aquí arriba, y no en una nota al pie, porque es lo que decide qué se puede
+> prometer y qué no.
+>
+> ### Lo que el sistema consume
+>
+> ```text
+>   [ CAMARA HIKVISION ]                       [ TARJETA STM32 ]
+>          |                                          |
+>    analitica embebida                                |
+>    (dentro de la camara)                             |
+>          |                                          |
+>          v                                          |
+>     rele de alarma  ---- DOS HILOS, UN BIT ---->  digitalRead(pin)
+>          1A / 1B         contacto seco             activo en ALTO
+>
+>   Y NADA MAS CRUZA ESA FRONTERA.
+> ```
+>
+> **UN CONTACTO SECO POR CÁMARA. Un bit: abierto o cerrado.** Eso es todo lo que el controlador
+> recibe de una cámara, y todo lo que puede recibir por este camino.
+>
+> ### Lo que NO hay — y no es una carencia temporal, es el diseño
+>
+> | | |
+> |---|---|
+> | ❌ **No hay red entre la cámara y el controlador** | En el poste no hay switch, ni router, ni cable de datos. El `RJ45` de la cámara se usa **una vez, en taller**, para configurarla; después no va a ninguna parte |
+> | ❌ **No hay imagen, ni vídeo, ni instantánea** | Nada en el controlador recibe, guarda ni reenvía un solo píxel |
+> | ❌ **No hay analítica en el controlador** | El STM32 no clasifica nada: lee un pin. La clasificación *vehículo / persona* ocurre **dentro de la cámara**, y el resultado llega convertido en ese único bit |
+> | ❌ **No hay ONVIF, ni ISAPI, ni SDK, ni FTP en el equipo** | La ficha de la cámara los lista *(pág. 3: «Open Network Video Interface (Profile S, Profile G), ISAPI, SDK»)* — **son capacidades de la cámara que este sistema no usa** |
+>
+> > ✅ **MEDIDO el 05/09, no heredado.** En todo el fuente del `ESP32` de expansión
+> > (`01_Firmware/ESP32_Expansion/src` + `include`, 8 `.cpp` y 8 `.h`) hay **cero** coincidencias de
+> > `WiFi`, `HTTPClient`, `WebServer`, `AsyncWebServer`, `WiFiClient`, `ONVIF`, `RTSP`, `esp_camera`,
+> > `MQTT` y `Ethernet`. Sus únicos `#include` de sistema son `Arduino.h`, `BluetoothSerial.h`,
+> > `Wire.h`, `Preferences.h`, `esp_task_wdt.h` y `esp_system.h`. Y en el STM32, las tres entradas de
+> > cámara se leen con `digitalRead()` y nada más — `camara_leerPin()`, `botones.cpp:105-111`.
+> >
+> > ⚠️ **El matiz honesto, porque el dato bruto dice otra cosa y alguien lo va a mirar:** en el
+> > `firmware.map` del ESP32 **sí** aparecen enlazadas `libesp_wifi.a`, `liblwip.a` y
+> > `libnet80211.a`. **No las pide este proyecto**: las arrastra el arranque del ESP-IDF y la capa de
+> > **coexistencia del Bluetooth** (`libesp_system.a(startup.c.obj)` pidiendo `g_coex_adapter_funcs`,
+> > y `libbt.a(bt.c.obj)` pidiendo `esp_coex_version_get`). **Ningún objeto del proyecto aparece como
+> > causa**, y no hay una sola llamada a `WiFi.begin()` ni a `esp_wifi_start()`. Está enlazada y
+> > **nunca se arranca**.
+>
+> ### 🟢 EL SOPORTE DE ACCIDENTES Y LA AUDITORÍA **SÍ SON POSIBLES** — EN LA CÁMARA, NO EN EL CONTROLADOR
+>
+> > ⛔ **CORREGIDO EL 05/09, y se deja escrito cómo se cayó.** Este bloque decía:
+> > ~~«Lo que se pierde: sin imágenes NO hay soporte de accidentes ni auditoría»~~ →
+> > **FALSO, y la ficha lo desmiente en una línea.** Se escribió razonando desde *«el controlador no
+> > recibe imágenes»* —que es cierto— hasta *«luego no hay imágenes»* —que no se sigue—. La cámara
+> > **graba por su cuenta**, y eso no depende de nuestro firmware ni de una sola línea de código.
+> > Es §4 otra vez: una conclusión plausible publicada sin medir la fuente que la contradecía.
+>
+> ✅ **VERIFICADO leyendo el PDF de la ficha, no citando de memoria:**
+>
+> | qué | dónde lo dice |
+> |---|---|
+> | **Ranura microSD/SDHC/SDXC de hasta 512 GB**, a bordo | Ficha, **pág. 3**, fila *On-board Storage*: *«Built-in memory card slot, support microSD/microSDHC/microSDXC card, up to 512 GB»* |
+> | **Sabe grabar y capturar por evento**, y subir a FTP o NAS | Ficha, **pág. 4**, fila *Linkage Method*: *«Upload to FTP/memory card/NAS, notify surveillance center, trigger recording, trigger capture, send email»* |
+> | **Almacenamiento en red y ANR** *(rellena los huecos cuando vuelve el enlace)* | `DS-2CD2683G2-IZS_Ficha_Tecnica_y_Configuracion.docx`, §2.3 |
+>
+> **Lo que eso significa, dicho sin adornos:** si el responsable quiere **soporte de accidentes o
+> auditoría**, la cámara que ya ha comprado **puede darlo** — poniéndole una tarjeta de memoria y
+> configurando la grabación. **No hay que tocar el firmware, ni la placa, ni el contrato del bit.**
+>
+> ⚠️ **Pero es un CAMINO SEPARADO, y hay que saber lo que arrastra antes de contar con él:**
+>
+> * **Las imágenes no pasan por el controlador.** El semáforo no las ve, no las guarda y no las
+>   reenvía. Siguen sin existir *para el sistema de control*: el bit sigue siendo el bit.
+> * **La tarjeta microSD no está comprada** — no está en `15_Lista_de_Compras_Hardware.md`, y a
+>   512 GB no es una compra trivial. *(Nota de fuentes: la ficha de 2023 dice **512 GB** y el `.docx`
+>   del 05/09 apunta que alguna edición indica 256 GB. **Se compra mirando la ficha del lote que
+>   llegue**, no este manual.)*
+> * **Alguien tiene que ir a recogerla.** Sin red en el poste, las imágenes se sacan **subiendo al
+>   equipo y retirando la tarjeta**. La alternativa —FTP o NAS— **exige red hasta el poste, que hoy
+>   no existe**.
+> * **Nadie ha definido la política**: cuántos días se guardan, quién las mira, quién las borra, y
+>   qué pasa con la privacidad de quien pase por delante. 🔴 **Eso no lo decide este manual.**
+>
+> > 🔴 **SIN VERIFICAR:** que la grabación por evento y la salida de alarma **puedan armarse a la vez
+> > sobre la misma regla** de intrusión. Las dos aparecen como *Linkage Method* de la misma regla
+> > (manual de usuario, **PDF pág. 79 / impresa 67**), lo que hace pensar que sí, pero **no está
+> > comprobado con la cámara delante** y no se escribe como hecho.
+>
+> ### 🎯 LA CONSECUENCIA QUE ASCIENDE A ESTE MANUAL: TODA LA INTELIGENCIA VIVE EN LA CONFIGURACIÓN
+>
+> Si lo único que cruza es un bit, **lo que decide si ese bit vale algo es cómo quede configurada la
+> cámara**: la **zona** que se dibuja, la **analítica** que se elige, la **sensibilidad**, el
+> **filtro de tamaño / clasificador** y el **horario**. Eso —y sólo eso— es lo que convierte el bit
+> en *«hay un vehículo esperando»* en vez de *«se movió una sombra»*.
+>
+> > 🔴 **Por eso este documento NO es un manual de apoyo: es el ENTREGABLE PRINCIPAL de la parte de
+> > cámaras.** No hay ninguna otra capa donde corregir un error de parametrización. Un firmware
+> > impecable leyendo un bit mal configurado da un cruce que abre solo cuando pasa un pájaro. **Lo
+> > que aquí se configure mal, no lo arregla nadie más abajo.**
+>
+> ### ⚠️ UNA CÁMARA = UNA SALIDA = **UN SOLO SIGNIFICADO**
+>
+> ✅ **Verificado en la ficha oficial** (`DS-2CD2683G2-IZS_Datasheet_V5.5.113_20230303.pdf`, pág. 3,
+> fila *Alarm*, leída del PDF): **`1 input, 1 output (max. 24VDC/24 VAC, 1 A)`**. **Una salida. No
+> tres.**
+>
+> Así que una cámara **no puede decir dos cosas distintas**: su relé está cerrado o abierto, y ese
+> estado significa **una** cosa que se decide al configurarla. Con **dos cámaras por cruce** hay
+> exactamente **DOS significados para todo el cruce**, y son un recurso escaso que se reparte una vez.
+>
+> | | |
+> |---|---|
+> | Significado **1** | 🟢 **TOMADO:** presencia de vehículo (demanda de paso) |
+> | Significado **2** | 🟡 **SIN DECIDIR** — es la pregunta **A-1** de `DECISIONES.md`, y **no se decide en este manual** |
+>
+> **Antes de dibujar una zona hay que saber qué significa esa cámara**, porque la zona, la analítica
+> y el umbral se eligen **en función del significado** — no al revés. Un bit configurado para
+> *«pasó alguien»* no sirve para *«hay alguien esperando»*, y volver atrás obliga a subir al poste.
+>
+> > 🛑 **Y la regla de seguridad que ordena los dos significados, sea cual sea el segundo:** una
+> > cámara **desconectada, sin alimentación o averiada deja el pin en reposo**, y el reposo se lee
+> > como **«no hay nadie»**. **El pin no distingue silencio de vía libre.** Por eso **nada donde la
+> > AUSENCIA de presencia AUTORICE algo**: una cámara sólo puede **pedir**, nunca **permitir**. Es
+> > `SFTY-27`, y es la razón por la que el todo-rojo de despeje es temporizado y no depende de que
+> > una cámara diga que el tramo está vacío.
 
 > ## 🎥 LA CÁMARA COMPRADA ES UNA `DS-2CD2683G2-IZS` — Y SÍ TIENE SALIDA DE ALARMA (05/09/2026)
 >
@@ -370,9 +614,28 @@ La cámara Hikvision AcuSense incorpora un procesador de inteligencia artificial
 | **Intemperie** | **`IP67`**, **`IK10`**, **`-30 °C` a `+60 °C`** | 📖 **ESCRITO** — ficha, págs. 4 y 5 |
 | **Tamaño y peso** | **`308,5 × 97,9 × 93 mm`**, **`1.385 g`** | 📖 **ESCRITO** — ficha, pág. 4 |
 
-> 🟢 **Para lo que este equipo necesita, la óptica sobra y esa es toda la conclusión.** La demanda
-> vehicular sólo pregunta *«¿hay un vehículo esperando?»* — eso es **Detectar**, el escalón más bajo
-> del DORI, y a gran angular son **97 m**. Un carril de aproximación cabe entero.
+> 🟡 **La óptica va sobrada para encuadrar la vía — pero OJO CON LEER EL DORI COMO ALCANCE ÚTIL.**
+> A gran angular el escalón **Detectar** son **97 m**, así que **un carril de aproximación cabe
+> entero** y el encuadre no es el problema.
+>
+> > ⛔ **CORREGIDO EL 05/09.** Aquí ponía: ~~«La demanda vehicular sólo pregunta “¿hay un vehículo
+> > esperando?” — eso es **Detectar**, el escalón más bajo del DORI, y a gran angular son 97 m»~~ →
+> > **la equivalencia es falsa, y es de las que se cuelan por sonar razonables.**
+> >
+> > **`Detectar` en la norma DORI significa *«hay un objeto»*, no *«es un vehículo»*.** Nuestro bit
+> > **no** lo levanta una silueta: lo levanta la analítica AcuSense **clasificando** —y clasificar
+> > pide **más píxeles por metro que detectar**, que es justo para lo que existen los escalones
+> > `Reconocer` (`19–58 m`) e `Identificar` (`9–29 m`).
+> >
+> > 🔴 **Así que los `97–290 m` NO son el alcance útil de la analítica, y no se publican como tal.**
+> > Son una **cifra de laboratorio** medida con un objetivo normalizado, no una promesa sobre a qué
+> > distancia esta cámara va a decir «vehículo» en una vía real con lluvia, contraluz y una zona
+> > dibujada a mano.
+> >
+> > **A qué distancia funciona de verdad la clasificación en ESTE montaje: `SIN VERIFICAR`.** Ninguna
+> > de las tres fuentes oficiales publica ese número, y **no se estima**: se mide con la cámara
+> > montada, en el sitio, mirando si el evento salta con el vehículo donde de verdad se detiene. Es
+> > el `ENSAYO 2` del §6 quien lo cierra — y por eso ese ensayo no es opcional.
 >
 > ✅ **Y hay una noticia vial buena, que además retira un paso de este manual: ESTA CÁMARA NO TIENE
 > LUZ BLANCA.** La ficha lista *Supplement Light Type: **IR***, sin fila de luz blanca ni ColorVu.
@@ -636,12 +899,63 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 > (**pág. 85**). El manual advierte además que *«certain VCA functions are mutually exclusive»*:
 > **activar una analítica puede apagar otra**, así que se habilita **sólo la de intrusión**.
 
+> ### 🟢 05/09 — EL CAMINO ESTÁ DOCUMENTADO DE PUNTA A PUNTA EN EL MANUAL OFICIAL (pero sigue `SIN VERIFICAR`)
+>
+> **Leído del PDF que está en `04_Manuales/`, no de la web.** Los dos eslabones existen y **encajan**:
+>
+> | eslabón | qué dice, literal | dónde |
+> |---|---|---|
+> | La regla de intrusión **enlaza a los métodos de vinculación** | *«For the linkage method settings, refer to **Linkage Method Settings**»* — paso 7 de `Set Intrusion Detection` | **PDF pág. 61 · impresa 49** |
+> | Los métodos de vinculación **incluyen disparar la salida de alarma** | *«**Trigger Alarm Output** — If the device has been connected to an alarm output device, and the alarm output No. has been configured, the device sends alarm information to the connected alarm output device when an alarm is triggered»* | **PDF pág. 79 · impresa 67** |
+>
+> **O sea: `Detección de Intrusión` → `Linkage Method` → `Trigger Alarm Output` es un camino que el
+> fabricante documenta**, y el hardware existe en este modelo *(ficha pág. 3: `1 input, 1 output`)*.
+> Eso es **bastante más de lo que había el 04/09**, cuando lo único citable era la fila *Linkage
+> Method* de la ficha, que no lo menciona.
+>
+> > 🔴 **Y AUN ASÍ NO SE MARCA VERIFICADO, porque la frase que sobra sigue ahí.** Debajo de
+> > `Trigger Alarm Output` el manual escribe: **«*This function is only supported by certain
+> > models*»** (misma página). **Es una condición sobre el modelo, y no la resuelve ningún documento
+> > que tengamos**: ni la ficha ni el manual dicen si la `DS-2CD2683G2-IZS` es uno de esos modelos.
+> >
+> > Que el hardware traiga `1 output` **hace probable** que sí, pero *«probable»* no es una de las
+> > tres respuestas que este proyecto acepta. **Lo cierra mirar la pantalla**, que es lo que este
+> > Paso 0 manda hacer, y cuesta diez minutos con la cámara delante.
+
+> ### 🔴 Y SIGUE `SIN VERIFICAR` EL CLASIFICADOR SOBRE ESTA ANALÍTICA — medido en el manual el 05/09
+>
+> Al leer las dos secciones seguidas aparece una asimetría que **confirma** el aviso que ya llevaba
+> este manual y **no** lo relaja:
+>
+> | analítica | reglas que el manual le documenta | ¿incluye `Detection Target` (persona/vehículo)? |
+> |---|---|---|
+> | `Set Intrusion Detection` *(**PDF 60-61 · impresa 48-49**)* | `Sensitivity`, `Threshold`, y filtro de tamaño *(`Set Size Filter`, paso 4)* | ❌ **NO aparece** |
+> | `Set Line Crossing Detection` *(**PDF 62 · impresa 50**)* | `Direction`, `Sensitivity`, **`Detection Target`**, `Target Validity` | ✅ **Sí, literal**: *«Human and vehicle are available»* |
+>
+> **La casilla que filtra «sólo vehículo» está documentada en Cruce de Línea y NO en Intrusión.** Es
+> el §4 Paso 3 de este manual, y por eso ahí sigue marcado `SIN VERIFICAR`: **puede existir en
+> pantalla y no estar en el papel** —el manual es de la `5.7.20` y el firmware va por la `5.7.23`—,
+> pero **hasta verlo no se escribe como hecho**. 🟢 **Lo que sí está en la ficha** (pág. 4) es que la
+> familia soporta *«Line crossing detection, intrusion detection — Supports human and vehicle targets
+> classification»*: la capacidad existe; **dónde está la casilla, es lo que falta por ver.**
+>
+> > **Qué hacer si en pantalla NO hay clasificador en Intrusión, para no improvisar delante del
+> > poste:** es una decisión de diseño, no un ajuste — y está planteada en el **§1.1.4** de este
+> > manual, que compara las cinco analíticas. **Sin filtro de vehículo, una persona o una rama
+> > levantan el bit**, y eso cambia lo que ese bit significa. **No lo decide el técnico en taller.**
+
 ### Paso 1: Acceso Inicial y Activación
 
 **Manual, capítulo 1 «Device Activation and Accessing», págs. 1-2.**
 
+> 🔑 **Si todavía no se ha conseguido entrar en la cámara, este paso NO es donde empezar:** está
+> desarrollado con sus atascos —lista vacía, bloqueo por intentos, `http`/`https`— en el bloque
+> **🔑 EMPIEZA AQUÍ: ENTRAR EN LA CÁMARA** de la cabecera. Aquí queda el procedimiento en limpio.
+
 1. Conectar la cámara por **cable Ethernet** (1 × RJ45 10/100) a un portátil **en la misma subred**.
-2. Ejecutar **SADP** *(descargable de `hikvision.com`)* y **buscar los dispositivos en línea**.
+2. Ejecutar **SADP** y **buscar los dispositivos en línea**. 🟢 **No hay que descargarla: está en el
+   repositorio, en `04_Manuales/SADP＿EN/SADP.exe`** *(ojo al carácter `＿`, que no es un guion bajo
+   normal — ver la cabecera)*. 🟡 SADP está **descontinuada**; su relevo es **HiTools Delivery**.
 3. Seleccionar la cámara en la lista e **introducir la contraseña de administrador**, dos veces.
    > 🛑 **Requisito literal del manual:** *«a minimum of 8 characters, including upper case letters,
    > lower case letters, numbers, and special characters»*. **Una cámara sin activar no se configura**
@@ -687,8 +1001,11 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 4. 🔵 **Opcional, y lo documenta el manual:** `Configuration → PTZ` → ☑ **`Enable PTZ Lock`**
    (**pág. 14**) **bloquea zoom y foco**, para que una pulsación accidental no desencuadre la vía.
 
-> 🟢 **La óptica sobra para esta tarea, y está medido en la ficha:** para saber si *hay* un vehículo
-> basta el escalón **Detectar** del DORI, que a `2,8 mm` alcanza **`97 m`** *(ficha, pág. 2)*.
+> 🟡 **El ENCUADRE va sobrado** *(el escalón `Detectar` del DORI alcanza `97 m` a `2,8 mm` — ficha,
+> pág. 2)*, **pero eso no dice a qué distancia la analítica CLASIFICA un vehículo.** ~~«para saber si
+> *hay* un vehículo basta el escalón **Detectar**»~~ ⛔ **corregido el 05/09: `Detectar` es *«hay un
+> objeto»*, no *«es un vehículo»*.** El porqué completo y qué se hace en su lugar, en **§1.1.3**.
+> **Lo que manda para enfocar es dónde se DETIENEN los vehículos, no los 97 m.**
 
 #### 2.b — Luz nocturna
 
@@ -1093,7 +1410,16 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 
 ---
 
-## 8. 📋 LO PRIMERO QUE HAY QUE HACER CUANDO LLEGUE LA CÁMARA
+## 8. 📋 LO PRIMERO QUE HAY QUE HACER ~~CUANDO LLEGUE~~ **AHORA QUE YA ESTÁ** LA CÁMARA
+
+> 🟢 **05/09: LA CÁMARA YA ESTÁ AQUÍ.** Este apartado se escribió esperándola; hoy es una lista de
+> tareas pendientes, no una previsión.
+>
+> 🔑 **PERO EL PASO CERO DE TODOS ES ENTRAR EN ELLA**, y ahí es donde el trabajo se paró: *«no
+> encuentro ni la IP»*. **Si todavía no se ha visto la pantalla de login, nada de esta tabla se puede
+> hacer** — empezar por el bloque **🔑 EMPIEZA AQUÍ: ENTRAR EN LA CÁMARA** de la cabecera
+> *(descubrimiento con `SADP.exe`, que ya está en el repositorio; activación, porque la cámara sale
+> **inactiva**; IP y acceso web)*. Las cuatro comprobaciones de abajo vienen después.
 
 **Cuatro comprobaciones, en este orden, antes de dibujar una sola zona o cablear un solo hilo.**
 Cada una cierra un `SIN VERIFICAR` de la tabla del §7, y **las cuatro juntas no llevan media hora**.

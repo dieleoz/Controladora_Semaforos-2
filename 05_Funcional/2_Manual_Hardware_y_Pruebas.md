@@ -865,7 +865,46 @@ ellas. Un mando que se comporte distinto obliga a rehacer ambas.
 
 ---
 
-## 7. 📷 Conexión del Sistema de 4 Cámaras IA (Hikvision AcuSense)
+## 7. 📷 Conexión de las Cámaras (Hikvision AcuSense) — ~~Sistema de 4 Cámaras IA~~
+
+> 🛑 **«4 Cámaras» se tacha el 05/09: EN EL CRUCE HAY DOS, UNA POR POSTE.** El «4» venía de contar
+> *bornes de entrada* como si fueran cámaras, y de las dos «cámaras de umbral» que **no existen**
+> (`PB8` es un LED testigo — N-64, ver el bloque de abajo). Lo comprado son **2 × `DS-2CD2683G2-IZS`**
+> *(`15_Lista_de_Compras_Hardware.md`, fila `A2`)*. Que un manual de montaje diga «4» hace que
+> alguien pida el doble de soportes, de cable y de alimentación.
+
+> ### 📜 EL CONTRATO DE LA CÁMARA, PARA QUIEN LA VA A MONTAR (D-12, 05/09/2026)
+>
+> **De cada cámara este equipo consume UN CONTACTO SECO: dos hilos y un bit.** Eso es todo lo que
+> cruza de la cámara al controlador.
+>
+> * ❌ **No hay red entre la cámara y la tarjeta.** En el poste no va switch, ni router, ni cable de
+>   datos. **El `RJ45` de la cámara sólo se usa en taller**, para configurarla, y después no va a
+>   ninguna parte. *(Si alguien previó una canalización de datos hasta el gabinete: no hace falta.)*
+> * ❌ **La tarjeta no recibe imagen ni vídeo, y no hace analítica.** El STM32 hace `digitalRead()`
+>   de un pin y nada más. La clasificación *vehículo / persona* ocurre **dentro de la cámara**.
+> * ✅ **Lo que SÍ hay que llevar a cada cámara es ALIMENTACIÓN**, y no es despreciable: **12 VDC,
+>   máx. `13 W`** por cámara *(o PoE 802.3at Clase 4, máx. `15 W`)* — ficha, pág. 4. **Dos cámaras =
+>   `26 W` que hoy no están en el presupuesto de energía del poste.**
+> * ✅ **Y un SOPORTE de fijación por cámara.** Pesa **`1.385 g`** *(ficha, pág. 4)* y mide
+>   **`308,5 mm`** de largo: no se cuelga de cualquier sitio, y **nadie lo ha especificado todavía**
+>   *(está anotado como hueco en la lista de compras)*.
+>
+> 🟢 **Lo que la cámara sí puede hacer por su cuenta, para que nadie lo dé por perdido:** admite
+> **microSD de hasta 512 GB** *(ficha, pág. 3)* y sabe grabar por evento, así que **el soporte de
+> accidentes y la auditoría son posibles EN LA CÁMARA** — sin tocar el firmware. Pero **esas imágenes
+> no pasan por el controlador**, y sin red en el poste **se recuperan subiendo a retirar la tarjeta**.
+> La tarjeta **no está comprada** y la política de retención **no está definida**. Ver **Manual 9**.
+>
+> ⚠️ **Una cámara = una salida = UN SIGNIFICADO.** La ficha dice **`1 input, 1 output`** (pág. 3):
+> **una sola salida por cámara**, así que cada cámara sólo puede decir **una** cosa. Hoy el
+> significado tomado es **«hay vehículo esperando»**; el segundo está **sin decidir** (`A-1` de
+> `DECISIONES.md`) y **no lo decide el instalador**.
+>
+> 🛑 **Y la regla que no se salta al montar:** una cámara **desconectada o sin corriente deja el pin
+> en reposo, y el reposo se lee como «no hay nadie»**. El pin **no distingue silencio de vía libre**.
+> Por eso una cámara sólo **pide** paso, nunca **autoriza** — y por eso el todo-rojo de despeje es
+> **temporizado** y no espera a que ninguna cámara diga que el tramo está vacío.
 
 Para detección vehicular por demanda en obra vial (analítica embebida sin computadores externos):
 
@@ -913,8 +952,15 @@ Para detección vehicular por demanda en obra vial (analítica embebida sin comp
 > el fuente ya lee los cuatro pines igual (`INPUT` pelado, activo en ALTO). **El mando SE CONSERVA,
 > va cableado y hoy no se usa; su código no se toca.**
 >
-> *(La salida de alarma de la AcuSense es configurable NO/NC, así que se elige qué estado significa
-> demanda **sin tocar placa ni firmware**.)*
+> ~~*(La salida de alarma de la AcuSense es configurable NO/NC, así que se elige qué estado significa
+> demanda sin tocar placa ni firmware.)*~~
+>
+> 🔴 **TACHADO EL 05/09 — `SIN VERIFICAR`, y llevaba desde el 31/08 sosteniendo decisiones.**
+> **Ninguna fuente oficial de este modelo lo dice.** Medido sobre los PDF de `04_Manuales/`: la ficha
+> dice `1 output (max. 24VDC/24 VAC, 1 A)` **y nada más**; en las **110 páginas** del manual de
+> usuario `Normally Open` / `Normally Closed` **no aparecen ni una vez**, y `Alarm Type` sólo está
+> documentado para la **ENTRADA** *(pág. 44)*. Lo cierra el **`ENSAYO 1`** del **Manual 9 §6**, con un
+> multímetro. **Hasta entonces no se da por elegida la polaridad de la salida.**
 
 > ## 🔴 04/09 (N-120) — LA PLACA PROTEGE SUS SALIDAS Y **NO** PROTEGE SUS ENTRADAS
 >
@@ -984,7 +1030,11 @@ Para detección vehicular por demanda en obra vial (analítica embebida sin comp
 > `digitalRead()`»*: **ya no hay `pinMode()` que sobre**, porque ya no hay pin de cámara ahí. Si algún
 > documento sigue describiendo `PB8` como *«Umbral de tramo»* con función activa, **está caducado**.
 
-* **Salida de Alarma de la Cámara:** Contacto seco libre de potencial (`1A` y `1B` del conector de alarma de la cámara Hikvision, configurado en N/O a 1s).
+* **Salida de Alarma de la Cámara:** Contacto seco libre de potencial (`1A` y `1B` del conector de alarma de la cámara Hikvision, ~~configurado en N/O a 1s~~ **con el pulso ajustado a `1 s` en el campo `Delay`**).
+  > 🔴 **05/09: «configurado en N/O» se tacha — `SIN VERIFICAR` que la salida sea `NO`/`NC`
+  > configurable en este modelo** *(ver el bloque de arriba y el `ENSAYO 1` del Manual 9 §6)*. El
+  > **`Delay`** sí está documentado *(manual de usuario, pág. 68: «the time duration that the alarm
+  > output remains after an alarm occurs»)*.
 * **Analítica Embebida:** La cámara ejecuta internamente su algoritmo AcuSense (Detección de Intrusión con filtro `☑ Solo Vehículo`), ignorando peatones, ramas y sombras.
 * **Seguridad Vial Inquebrantable:** Cada transición de sentido impone automáticamente el tiempo de **Despeje Todo-Rojo (`cfgDespejeSeg`)** configurado en pantalla antes de habilitar el verde con demanda.
 

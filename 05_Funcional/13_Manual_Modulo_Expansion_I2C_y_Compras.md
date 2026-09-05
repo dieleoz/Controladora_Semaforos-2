@@ -557,8 +557,8 @@ Todos estos componentes se consiguen en cualquier mostrador de electrónica loca
                                 ESQUEMA ELÉCTRICO DE LA PLACA HIJA
  ====================================================================================================
 
-  [1. ENTRADA CÁMARA 1 (DEMANDA)]              [2. ENTRADA CÁMARA 2 (UMBRAL TRAMO)]
-  Bornera J1 (Cámara 1):                       Bornera J2 (Cámara 2):
+  [1. ENTRADA CAMARA 1 (DEMANDA)]              [2. ENTRADA CAMARA 2 (ver aviso debajo)]
+  Bornera J1 (Camara 1):                       Bornera J2 (Camara 2):
   Pin 1: +12V Entrada                          Pin 1: +12V Entrada
   Pin 2: Señal Relé Cámara                     Pin 2: Señal Relé Cámara
     │                                            │
@@ -575,6 +575,26 @@ Todos estos componentes se consiguen en cualquier mostrador de electrónica loca
                                                  (ambas lineas con pull-up de 4.7 kOhm a 3.3 V)
  ====================================================================================================
 ```
+
+> ### 🛑 05/09 — DOS CORRECCIONES AL DIAGRAMA DE ARRIBA, QUE ES DE UNA PLACA QUE NO SE HA FABRICADO
+>
+> 1. **~~«CÁMARA 2 (UMBRAL TRAMO)»~~ ⛔ NO EXISTE, y no es que falte: es que no hay tal función.**
+>    La *«cámara de umbral»* venía de creer que `PB8` era una entrada; **`PB8` es el LED testigo `D5`
+>    por `R16` de 1 kΩ** (N-64), y el símbolo `CAM_UMBRAL_PIN` **ya no existe en el fuente de ninguna
+>    de las dos puntas**. **Las cámaras de este equipo son todas de DEMANDA: piden paso, no miden
+>    ocupación de tramo.** Si una copia impresa manda cablear una cámara de umbral, **esa copia está
+>    caducada**.
+> 2. **Las borneras de cámara NO se llaman `J1` y `J2`.** En la tarjeta real la entrada de cámara es
+>    **`J14`** (`PB0`) y, desde el 31/08, **`J16` p10 y p12** (`PB14`/`PB15`). `J1`/`J2` son
+>    rótulos de este esquema hipotético y **no corresponden a nada en el cobre** — cablear guiándose
+>    por ellos es el mismo error que mandó la talanquera a `J14`.
+>
+> 🔵 **Y el contrato, que aquí ahorra trabajo:** de cada cámara el sistema consume **un contacto seco
+> y nada más** — sin red, sin imagen, sin analítica en el controlador (**D-12**). O sea que **esta
+> placa hija de entradas optoacopladas no tiene nada que ver con las cámaras que hoy se instalan**:
+> las dos que se cablean van **directas a `J16`**, que ya tiene su pull-down de 10 kΩ medido en cobre
+> (`M3` cerrada, 03/09). **No hace falta `PCF8574` ni placa hija para leer cámaras.** El detalle, en
+> **`9_Manual_Parametrizacion_Camara_IA.md`**.
 
 **Dónde aterrizan `SDA` y `SCL` según la ruta de §4.2 — este manual ya no lo da por decidido:**
 
