@@ -587,8 +587,34 @@ void coordinador_pedirCambio() {
 
   switch (quienVerde) {
     case QV_NINGUNO:
-      tRef = millis();
-      estadoC = C_INICIAL_ESPERA_ESTATICO;
+      // N-147 (05/09): EL DESPEJE YA CUMPLIDO NO SE VUELVE A CUMPLIR.
+      //
+      // Aqui ponia "tRef = millis(); estadoC = C_INICIAL_ESPERA_ESTATICO;", y eso tenia
+      // dos defectos que se suman:
+      //
+      //   - REINICIABA EL PLAZO EN CADA PULSACION. Un operario que pulsa DAR PASO cada
+      //     10 s con el despeje en 15 s no ve el verde NUNCA, y cada pulsacion le
+      //     contesta OK. Es la peor forma de fallar: obedecer y no avanzar.
+      //   - Y COBRABA UN DESPEJE QUE YA ESTABA PAGADO. A este case se llega SOLO con el
+      //     cruce en todo-rojo -quienVerde == QV_NINGUNO-, y en Manual ese rojo lleva
+      //     puesto desde que se entro al modo: minutos, mientras el operario mira. Hacerle
+      //     esperar 15 s mas no vacia nada que no estuviera vacio.
+      //
+      // LO QUE NO SE TOCA, Y ES LA MITAD QUE IMPORTA: el despeje sigue entero cuando hay
+      // algo que despejar. Los otros dos case -QV_MASTER y QV_ESCLAVO- son los que van de
+      // un VERDE a otro, y esos pasan por su rojo y por su C_ESPERA_ESTATICO_* como
+      // siempre. SFTY-4 no se debilita: se deja de cobrar dos veces.
+      //
+      // La condicion es la MISMA que la del case C_INICIAL_ESPERA_ESTATICO de mas abajo,
+      // a proposito: si una cambia, la otra queda a la vista al lado.
+      if (millis() - tRef >= tiempoDespejeMs) {
+        semaforo_iniciarTransicionAVerde();
+        estadoC = C_INICIAL_MASTER_A_VERDE;
+      } else {
+        // Falta despeje: se espera lo que QUEDA. tRef NO se toca -es cuando empezo el
+        // rojo-, que es justo lo que arreglaba el primer defecto de arriba.
+        estadoC = C_INICIAL_ESPERA_ESTATICO;
+      }
       break;
 
     case QV_MASTER:
@@ -888,6 +914,38 @@ bool coordinador_listoParaContar() {
 
 bool coordinador_comunicacionPerdida() {
   return estadoC == C_FALLO;
+}
+
+// --- N-149: LO QUE EL MAESTRO SABE DEL ESCLAVO, Y SOLO ESO ----------------------
+//
+// Pedido por el responsable el 04/09, delante del equipo: "cuando me conecto al maestro
+// no me aparecen los estados del semaforo del esclavo... yo necesito que maestro me
+// traiga los datos del esclavo". Y sobre la alternativa que la app ofrecia -un boton
+// para conectarse por Bluetooth al otro poste-: "tendrias que caminar 1000 metros hasta
+// el otro lado". Un cruce se opera desde un sitio o no se opera.
+//
+// LA FUENTE ES quienVerde, Y ESA ELECCION ES TODO EL DISENO. Esa variable NO se pone
+// por haber MANDADO una orden: se pone al recibir el acuse -QV_ESCLAVO se escribe en el
+// case C_ESPERANDO_ACK_GREEN, dentro del "if (llego && pkt.command == CMD_ACK_GREEN)"-.
+// O sea que lo que se publica es LO QUE LA OTRA PUNTA CONFIRMO, no lo que esta punta
+// quiso. Publicar la orden seria pintarle al operario un semaforo que quiza no existe, y
+// este repositorio ya pago eso dos veces: el 12,6 V de bateria que era un literal
+// (N-108) y el equipo declarandose en hora con el reloj parado en ceros (N-144).
+//
+// POR ESO EXISTE EL "?", Y NO ES UN HUECO: ES LA RESPUESTA CORRECTA. Con el enlace caido
+// esta punta no sabe de que color esta la otra, y decirlo es mas util que un color
+// plausible. La app tiene orden de escribirlo como "sin dato", no de pintar el ultimo
+// valor como si fuera de ahora (CLAUDE.md 3.quinquies).
+//
+// EL AMBAR SE MIRA ANTES QUE NADA porque en MODO_AMBAR esta punta ordena el ambar y se
+// calla a proposito -main.cpp no llama al coordinador en ese modo-, asi que quienVerde
+// se queda congelado en lo que fuera. Es tambien el modo al que N-142 lleva el cruce
+// cuando el Esclavo avisa de SU ambar, asi que este es el caso en que las dos puntas
+// estan en ambar y ademas se sabe.
+const char* coordinador_estadoEsclavo() {
+  if (modoActual_get() == MODO_AMBAR) return "AMBAR";
+  if (estadoC == C_FALLO) return "?";
+  return (quienVerde == QV_ESCLAVO) ? "VERDE" : "ROJO";
 }
 
 const char* coordinador_nombreEstadoMaster() {

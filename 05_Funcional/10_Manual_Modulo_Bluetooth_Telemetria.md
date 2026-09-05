@@ -741,12 +741,37 @@ Todas las tramas viajan a **9600 baudios (8N1)** y finalizan en `\r\n`.
 El checksum se calcula aplicando la operación **XOR bit a bit** de todos los bytes contenidos entre el carácter `$` inicial y el asterisco `*` (ambos excluidos), formateado como dos caracteres hexadecimales en mayúsculas (`00` a `FF`).
 
 ### 4.2 Telemetría Periódica ($STATUS) — Emitida cada 1 segundo
-$$\text{Formato: }\$STATUS,NODE:\langle N\rangle,SERIE:\langle S\rangle,MODO:\langle M\rangle,ESTADO:\langle E\rangle,T:\langle S\rangle,RF:\langle R\rangle\%,RTT:\langle T\rangle ms,BAT:\langle V\rangle,HORA:\langle H\rangle*\langle CRC\rangle\backslash r\backslash n$$
+$$\text{Formato: }\$STATUS,NODE:\langle N\rangle,SERIE:\langle S\rangle,MODO:\langle M\rangle,ESTADO:\langle E\rangle,T:\langle S\rangle,RF:\langle R\rangle\%,RTT:\langle T\rangle ms,BAT:\langle V\rangle,HORA:\langle H\rangle,ESC:\langle C\rangle*\langle CRC\rangle\backslash r\backslash n$$
 
 **Ejemplo Maestro en Modo Automático:**
 ```text
-$STATUS,NODE:MAESTRO,SERIE:A3F19C,MODO:AUTO,ESTADO:V1_R2,T:24,RF:98%,RTT:82ms,BAT:12.6,HORA:18:25:00*42\r\n
+$STATUS,NODE:MAESTRO,SERIE:A3F19C,MODO:AUTO,ESTADO:V1_R2,T:24,RF:98%,RTT:82ms,BAT:12.6,HORA:18:25:00,ESC:ROJO*19\r\n
 ```
+
+> 🔵 **`ESC` (N-149) — y este campo SÓLO SALE DEL MAESTRO.** Es el único campo asimétrico
+> de la trama, y la asimetría es deliberada. Toma cuatro valores: `ROJO`, `VERDE`, `AMBAR`
+> y `?`.
+>
+> **Qué significa exactamente, porque no es «el color de la lámpara del Poste 2».** Es el
+> color que el **Esclavo confirmó** por radio: sale de `quienVerde`, que el coordinador del
+> Maestro sólo escribe al recibir el acuse (`CMD_ACK_GREEN`), nunca al mandar la orden.
+> Publicar la orden en vez del acuse pintaría un semáforo que quizá no existe, que es el
+> error que este proyecto ya pagó con el `BAT:12.6` literal (N-108) y con el equipo
+> declarándose en hora con el reloj parado en ceros (N-144).
+>
+> **`?` no es un hueco: es la respuesta correcta.** Con el enlace caído el Maestro no sabe
+> de qué color está la otra punta, y decirlo vale más que un color plausible. La app tiene
+> que escribirlo como *sin dato*, nunca pintar el último valor como si fuera de ahora.
+>
+> **Por qué el Esclavo no lo emite.** No tiene de dónde sacarlo: no le pregunta el color al
+> Maestro y no existe función que lo devuelva. Un campo que sólo pudiera valer `?` sería un
+> dato que nunca informa. Y encaja con la decisión de las dos pantallas: **conectado al
+> Maestro la app es la consola de operación y enseña el cruce entero; conectado al Esclavo
+> es sólo diagnóstico.**
+>
+> **Quien escriba un parser contra esta trama tiene que leer `ESC` con valor por defecto**,
+> porque en el poste del Esclavo no llega. El pack `documentos_03_trama_status` lo exige en
+> cada corrida.
 
 > **`SERIE` (N-62).** El firmware lo emite desde `f7d613f` y este manual no lo documentaba:
 > la especificación describía una trama que ya no salía del micro. Son **24 bits en

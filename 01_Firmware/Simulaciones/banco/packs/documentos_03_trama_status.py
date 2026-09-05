@@ -100,15 +100,44 @@ def correr(b, fw):
 
     campos = {p: _campos(t) for p, t in tramas.items()}
 
-    # ---- 1. Las dos puntas emiten el mismo contrato ----
+    # ---- 1. El Esclavo no inventa campos, y lo que solo dice el Maestro la app lo
+    #         sabe echar de menos (N-149, 05/09) ----
+    #
+    # ESTA COMPROBACION EXIGIA QUE LAS DOS PUNTAS EMITIERAN EXACTAMENTE LO MISMO, y esa
+    # simetria dejo de ser cierta a proposito. El responsable decidio que las dos
+    # pantallas son distintas: conectado al MAESTRO la app es la consola de operacion y
+    # ensena el cruce entero -incluido el Esclavo-; conectado al ESCLAVO es solo
+    # diagnostico y no opera. "La pantalla confunde", con esas palabras.
+    #
+    # Y el motivo de la asimetria SE MIDE, no se declara: el Esclavo no emite
+    # ESC: porque NO TIENE DE DONDE SACARLO -no le pregunta el color al Maestro y no
+    # tiene funcion que lo devuelva-. Hacerle emitir un campo que solo puede valer "?"
+    # seria un dato que nunca informa, o sea la prueba muerta de CLAUDE.md 3.bis pasada
+    # a una trama.
+    #
+    # LO QUE SE MIDE AHORA ES LA PROPIEDAD QUE LA SIMETRIA PROTEGIA, y es mas fuerte que
+    # ella: que el tecnico no vea una consola rota al cambiar de poste. Se parte en dos.
+    #
+    #   a) EL ESCLAVO NO PUEDE DECIR NADA QUE EL MAESTRO NO DIGA. La direccion importa:
+    #      un campo de mas en el Maestro es informacion que el otro poste no tiene, y la
+    #      app lo puede ocultar; un campo de mas en el ESCLAVO es un contrato que solo
+    #      existe en un poste, que es el caso que nadie recordaria mantener.
+    #   b) CADA CAMPO QUE SOLO DICE EL MAESTRO TIENE QUE ESTAR LEIDO CON RED EN LA APP.
+    #      Si el parser lo lee a pelo, en el poste del Esclavo llega `undefined` y la
+    #      pantalla pinta un hueco -o peor, "undefined"- sin decir por que. Se exige un
+    #      valor por defecto o una guarda explicita: ?? , || , ?. , un ternario o un if.
+    #      Es la misma regla que el apartado 3.quinquies -lo que sustituye a un dato que
+    #      no se tiene no es una invencion: es decirlo-, medida sobre el parser.
+    solo_maestro = [c for c in campos["Maestro"] if c not in campos["Esclavo"]]
     b.verificar(
-        campos["Maestro"] == campos["Esclavo"],
-        "las dos puntas emiten los mismos campos y en el mismo orden: %s"
-        % ", ".join(campos["Maestro"]),
-        "el Maestro emite %s y el Esclavo %s. La app es una sola: si el contrato "
-        "difiere entre puntas, el tecnico ve una consola distinta en cada poste sin "
-        "que nada se lo advierta"
-        % (", ".join(campos["Maestro"]), ", ".join(campos["Esclavo"])))
+        all(c in campos["Maestro"] for c in campos["Esclavo"]),
+        "el Esclavo no emite ningun campo que el Maestro no emita (Maestro: %s | solo "
+        "del Maestro: %s)"
+        % (", ".join(campos["Maestro"]), ", ".join(solo_maestro) or "ninguno"),
+        "el Esclavo emite %s, que el Maestro no. Un contrato que solo existe en un poste "
+        "es el que nadie recuerda mantener, y el tecnico ve una consola distinta en cada "
+        "sitio sin que nada se lo advierta"
+        % ", ".join(c for c in campos["Esclavo"] if c not in campos["Maestro"]))
 
     emitidos = campos["Maestro"]
 
@@ -138,6 +167,21 @@ def correr(b, fw):
             "no se hallo la rama de $STATUS en app.js: fallo el buscador. Aprobar "
             "aqui seria dar por bueno un parser que no se ha leido")
     leidos = sorted(set(re.findall(r"data\.([A-Z_]+)", rama)))
+    # (b) de la comprobacion 1: los campos que solo dice el Maestro, leidos con red.
+    _RED = r"data\.%s\s*(?:\?\?|\|\||\?\.|\?)|data\.%s\s*===\s*undefined|"            r"if\s*\(\s*!?\s*data\.%s|typeof\s+data\.%s"
+    sin_red = [c for c in solo_maestro
+               if re.search(r"data\.%s" % c, rama)
+               and not re.search(_RED % (c, c, c, c), rama)]
+    b.verificar(
+        not sin_red,
+        "los campos que solo emite el Maestro (%s) los lee la app con valor por defecto "
+        "o guarda, asi que en el poste del Esclavo se echan de menos en vez de pintarse "
+        "vacios" % (", ".join(solo_maestro) or "ninguno"),
+        "la app lee %s a pelo, y ese campo NO sale del Esclavo: conectado a ese poste "
+        "llega undefined y la pantalla lo pinta como si fuera un dato. Lo que sustituye "
+        "a un dato que no se tiene no es un hueco mudo: es decirlo"
+        % ", ".join(sin_red))
+
     fantasmas = [c for c in leidos if c not in emitidos]
     b.verificar(
         not fantasmas,

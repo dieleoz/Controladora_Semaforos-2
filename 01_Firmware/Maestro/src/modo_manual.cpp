@@ -54,7 +54,31 @@
 void modoManual_setup() {
   // Arranca corriendo. Una sola puerta, como el Automatico desde N-42: el coordinador
   // empieza por todo-rojo y su despeje, y cuando llega a C_IDLE el paso ya se puede dar.
-  coordinador_iniciarModo();
+  // N-147 (05/09): EN MANUAL NO SE PROGRAMA NINGUN CAMBIO. LO PIDE EL OPERARIO O NO PASA.
+  //
+  // Aqui ponia coordinador_iniciarModo(), que es LA ENTRADA DEL MODO AUTOMATICO: deja el
+  // coordinador en C_INICIAL_ESPERA_ESTATICO, o sea con un verde ya programado para
+  // dentro de tiempoDespejeMs. En Manual eso produce las dos mitades del defecto que se
+  // reporto desde el banco el 04/09, y las dos se miden en el mismo numero:
+  //
+  //   1. DAR PASO NO HACE NADA durante esos segundos. coordinador_pedirCambio() abre con
+  //      "if (estadoC != C_IDLE) return;", asi que la orden se rechaza -el operario ve
+  //      EN_TRANSICION_REINTENTE- y el cruce se queda en rojo.
+  //   2. Y AL ACABAR LA ESPERA EL CRUCE CAMBIA SOLO, sin que nadie haya pulsado.
+  //
+  // "el boton dar paso maestro queda en rojo, pasan 15 seg y ... pasa a ambar
+  // intermitente". Los 15 s no son una coincidencia: tiempoDespejeMs vale 15000 ms por
+  // defecto, y ese ambar es la transicion rojo->AMBAR 4 s->verde que el propio Maestro
+  // arranca al vencer el plazo. El equipo estaba haciendo un ciclo que nadie pidio.
+  //
+  // Lo decidio el responsable el 04/09, y es la definicion del modo: "en manual, dar
+  // paso es simplemente el operador le da y cambia... el operador en manual no deberia
+  // llevar un ciclo, sino que, como esta ahi parado viendolo, que se cambie de inmediato".
+  //
+  // coordinador_forzarRojoTotal() hace el MISMO todo-rojo -misma luz, mismo CMD_GO_RED,
+  // mismo reset de replay- y termina en C_IDLE con quienVerde en QV_NINGUNO. O sea: el
+  // cruce parado sin plazo ninguno, y la primera pulsacion aceptada.
+  coordinador_forzarRojoTotal();
   lcd_dibujarManual(semaforo_nombreEstado());
 }
 

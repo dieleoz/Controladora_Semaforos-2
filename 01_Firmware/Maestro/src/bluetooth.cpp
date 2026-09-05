@@ -5,6 +5,7 @@
 #include "demanda.h"
 #include "modo_automatico.h"
 #include "modo_degradado.h"
+#include "modo_ambar.h"
 #include "semaforo.h"
 #include "menu.h"
 #include "modos.h"
@@ -471,13 +472,47 @@ static void procesarComando(const char* cmd) {
     enviarTramaConCrc("$ACK,CMD:SET_MODO:AUTO,RESULT:OK");
     bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_AUTO");
   } else if (strcmp(accion, "SET_MODO:MANUAL") == 0) {
+    // N-147: en Manual se entra por el todo-rojo QUE NO PROGRAMA NADA. El porque
+    // completo esta en modoManual_setup(); aqui se repite la llamada y no el motivo.
     modoActual_set(MODO_MANUAL);
-    coordinador_iniciarModo();
+    coordinador_forzarRojoTotal();
     enviarTramaConCrc("$ACK,CMD:SET_MODO:MANUAL,RESULT:OK");
     bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_MANUAL");
   } else if (strcmp(accion, "SET_MODO:AMBAR") == 0) {
+    // N-146 (05/09): EL AMBAR CONTESTABA OK Y NO ENCENDIA NADA. LO DESTAPO UNA CINTA.
+    //
+    // En la cinta del 04/09 a las 21:10 hay SEIS "CMD:PIN:****:SET_MODO:AMBAR" seguidos,
+    // los seis con "$ACK,CMD:SET_MODO:AMBAR,RESULT:OK", y el $STATUS de despues dice
+    // "MODO:AMBAR,ESTADO:ROJO" en los 47 que siguen. El operario pulso seis veces en tres
+    // minutos porque el cruce no se movia, y el equipo le dijo OK las seis.
+    //
+    // POR QUE: entrar en el ambar es trabajo de modo_ambar_setup(), y main.cpp solo lo
+    // llama EN EL FLANCO -"if (modo != modoAnterior)"-. Con el modo ya en MODO_AMBAR no
+    // hay flanco, asi que modoActual_set() aqui no hace absolutamente nada.
+    //
+    // Y AL PAR (MODO_AMBAR, luz en rojo) SE LLEGA POR UN CAMINO NORMAL, no por un fallo:
+    // CMD:FORZAR_ROJO llama a coordinador_forzarRojoTotal(), que cambia LA LUZ y no el
+    // MODO -a proposito: el rojo de emergencia entra sin PIN desde cualquier modo-. Un
+    // ROJO TOTAL despues de un ambar deja exactamente ese par, y a partir de ahi el boton
+    // de ambar queda muerto para siempre sin decirlo.
+    //
+    // Se re-arma. Es la barrera de salidas (CLAUDE.md 6): un $ACK que no depende de lo
+    // que se hizo es una mentira con formato de exito, y aqui ademas la mentira tapaba
+    // una salida de emergencia. Y se contesta DISTINTO en los dos casos, porque son dos
+    // cosas distintas y el diario de ordenes las tiene que poder separar.
+    //
+    // Re-armar no es gratis -modo_ambar_setup() manda un todo-rojo y vuelve a ordenar el
+    // ambar-, y por eso NO se hace desde el aviso del Esclavo (N-142, main.cpp), que
+    // llega repetido. Aqui lo pide una persona pulsando un boton: repetirlo es
+    // exactamente lo que quiere.
+    const bool yaEnModo = (modoActual_get() == MODO_AMBAR);
     modoActual_set(MODO_AMBAR);
-    enviarTramaConCrc("$ACK,CMD:SET_MODO:AMBAR,RESULT:OK");
+    if (yaEnModo) {
+      modo_ambar_setup();
+      enviarTramaConCrc("$ACK,CMD:SET_MODO:AMBAR,RESULT:REARMADO");
+    } else {
+      enviarTramaConCrc("$ACK,CMD:SET_MODO:AMBAR,RESULT:OK");
+    }
     bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_AMBAR");
   } else if (strcmp(accion, "SET_MODO:MENU") == 0) {
     // EN DEGRADADO NO SE SALTA AL MENU. Se pide la salida, que es el todo-rojo de 30 s
@@ -871,10 +906,29 @@ void bluetooth_loop() {
     // informando de la bateria, esta impidiendo que nadie pregunte por ella: el tecnico
     // ve el numero bueno y descarta la alimentacion como causa sin haberla mirado.
     // Vuelve a haber cifra cuando haya divisor y una entrada analogica que lo lea.
-    char payload[128];
+    // N-149: ESC: SOLO VA EN EL $STATUS DEL MAESTRO, y esa asimetria es deliberada.
+    //
+    // Conectado al Maestro la app es la CONSOLA DE OPERACION y ensena el cruce entero;
+    // conectada al Esclavo es DIAGNOSTICO y no opera. El Esclavo no sabe nada del
+    // Maestro -no le pregunta y no tiene por que-, asi que anadirle un campo simetrico
+    // seria inventarse el dato, que es justo lo que este campo existe para no hacer.
+    //
+    // EL BUFFER SUBE A 144, Y EL NUMERO ESTA MEDIDO, NO ESTIMADO.
+    //
+    // La primera version de este cambio puso 160 "por si acaso" y el banco la tumbo:
+    // esp32_07_presupuesto_bytes exige tramaCompleta >= payload + 5 -el *XX y el CRLF que
+    // enviarTramaConCrc anade despues-, y tramaCompleta mide 160. Un payload de 160 se
+    // habria truncado en el ULTIMO paso, saliendo al cable bien formado hasta la mitad.
+    // Es la regla del instrumento (CLAUDE.md 4) contra mi propia cuenta a ojo.
+    //
+    // El peor caso se compone de los literales del propio firmware -el modo mas largo es
+    // INTELIGENTE, el estado mas largo FALLO COM- y da 125 caracteres + NUL = 126 B. Con
+    // 144 quedan 18 B de holgura y se cumple 144 + 5 <= 160.
+    char payload[144];
     snprintf(payload, sizeof(payload),
-             "$STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s",
-             serieTxt, modoStr, estadoStr, tTxt, rfTxt, rttTxt, horaBuf);
+             "$STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s",
+             serieTxt, modoStr, estadoStr, tTxt, rfTxt, rttTxt, horaBuf,
+             coordinador_estadoEsclavo());
 
     enviarTramaConCrc(payload);
 

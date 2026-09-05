@@ -191,6 +191,61 @@ def _ignorados(bloque, vigiladas):
     return fuera
 
 
+def _bloque_hacia_atras(texto, cierre):
+    """El '{' que abre el '}' que hay en `cierre`. -1 si no cuadra."""
+    prof = 0
+    i = cierre
+    while i >= 0:
+        if texto[i] == "}":
+            prof += 1
+        elif texto[i] == "{":
+            prof -= 1
+            if prof == 0:
+                return i
+        i -= 1
+    return -1
+
+
+def _todos_los_lados_contestan(bloque):
+    """True si el bloque parte en if/else y LOS DOS lados mandan una trama.
+
+    QUE ARREGLA ESTO, Y POR QUE NO ES UNA EXCEPCION (CLAUDE.md 4.quinquies).
+
+    La propiedad que este pack defiende no es "hay un $ERR": es QUE NINGUN CAMINO DEJE
+    AL TELEFONO SIN RESPUESTA. El $ERR era el sustituto, y funcionaba mientras el unico
+    motivo para mirar un resultado fuera decidir si se rechaza.
+
+    Con N-146 aparecio el caso que el sustituto no sabe ver: SET_MODO:AMBAR mira
+    modoActual_get() para saber si el equipo YA estaba en ambar -y entonces re-arma- o si
+    entra ahora. Los dos finales son exitos y los dos se contestan, con literales
+    distintos a proposito para que el diario de ordenes los pueda separar. No hay camino
+    mudo, y sin embargo faltaba el $ERR.
+
+    Cobrarle un $ERR a esa rama habria empujado a inventarse un rechazo que no existe, o
+    -peor- a quitar la distincion entre los dos finales para que el detector callara.
+    Ajustar el firmware hasta que el instrumento de verde es exactamente lo que este
+    repositorio castiga, asi que se afila el instrumento: se mide la propiedad, no su
+    sustituto.
+
+    LO QUE NO SE AFLOJA: un solo lado que conteste no basta, y una rama sin else tampoco.
+    Con eso, la rama que llama y calla en el camino malo -el defecto original- sigue
+    cayendo igual. Lo comprueba el control negativo de este mismo pack."""
+    for m in re.finditer(r"\}\s*else\s*\{", bloque):
+        cierre = bloque.index("}", m.start())
+        abre = _bloque_hacia_atras(bloque, cierre)
+        if abre < 0:
+            continue
+        lado_if = bloque[abre:cierre + 1]
+        j = bloque.index("{", m.start() + 1)
+        lado_else = _bloque(bloque, j)
+        if lado_else is None:
+            continue
+        contesta = lambda t: ('"$ACK' in t) or ('"$ERR' in t)
+        if contesta(lado_if) and contesta(lado_else):
+            return True
+    return False
+
+
 def _veredicto(bloque, vigiladas):
     """(hay_algo_que_verificar, motivo_de_fallo o None)."""
     llamadas = [n for n in sorted(vigiladas)
@@ -205,10 +260,10 @@ def _veredicto(bloque, vigiladas):
     if ign:
         return True, ("llama a %s y TIRA lo que devuelve -o no comprueba su guarda- "
                       "y aun asi manda $ACK" % ", ".join("%s()" % n for n in ign))
-    if '"$ERR' not in bloque:
-        return True, ("mira el resultado de %s pero no tiene NI UN $ERR: el camino "
-                      "en que la llamada dice que no se queda sin respuesta, y el "
-                      "telefono se queda esperando o da por bueno el $ACK anterior"
+    if '"$ERR' not in bloque and not _todos_los_lados_contestan(bloque):
+        return True, ("mira el resultado de %s y deja un camino SIN RESPUESTA: ni hay "
+                      "$ERR ni los dos lados del if/else contestan, asi que el telefono "
+                      "se queda esperando o da por bueno el $ACK anterior"
                       % ", ".join("%s()" % n for n in llamadas))
     return True, None
 

@@ -135,3 +135,8 @@ bool coordinador_configConfirmada();
 // de antiguedad -el tope de 48 h del Modo Degradado- debe leer "muy vieja", jamas
 // "recien hecha".
 unsigned long coordinador_msDesdeUltimaSync();
+// N-149: el color que la OTRA punta confirmo, para el campo ESC: del $STATUS.
+// Devuelve "ROJO", "VERDE", "AMBAR" o "?" -este ultimo cuando el enlace esta caido y
+// por tanto no se sabe-. Nunca devuelve un color por haber mandado una orden: el porque
+// completo esta sobre la definicion, en coordinador.cpp.
+const char* coordinador_estadoEsclavo();
