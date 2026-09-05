@@ -127,6 +127,42 @@ cerrojo** — que es justo lo que protege a quien esta en la calzada.
 
 ---
 
+## 2.quinquies UNA FRASE NUEVA NO DEROGA UNA DECISION ESCRITA — se comprueba antes de ejecutarla
+
+> **Lo dicho de viva voz en mitad de un turno describe una intencion. Lo escrito en la spec
+> describe una decision tomada, con su motivo. Cuando chocan, se PREGUNTA — no se ejecuta.**
+
+Paso **dos veces la misma noche**, el 05/09, y la segunda con un agente ya lanzado:
+
+| | la frase | lo que la spec decia |
+|---|---|---|
+| **M3** | se contesto *«las camaras de `J16` estan bloqueadas por M3»* citando `CLAUDE.md` §9.bis | **M3 cerrada el 03/09**, con medidas en cobre, en `05_Funcional/17_...` |
+| **el mando** | *«quitamos los comandos de rele A, B, C, D y E»* -> se lanzo un agente a **retirar el mando entero de las dos puntas** | *«el mando **SE CONSERVA** en los canales A y B… **el veto de §2.4 se queda donde esta**»*, decidido el 31/08 |
+
+La segunda la paro el responsable: *«ayer definimos no quitar los botones de A y B por los
+danos al software, y seguir sin usarlos y sin tocar el codigo»*. El agente estaba midiendo
+y no alcanzo a editar. **Y el motivo que el dio es el que este fichero ya tenia escrito**
+—§3.ter, sobre ese mismo getter—: `mando_ambarLocal()` tiene seis lectores y retirar su
+armador deja el veto de SFTY-21 **abierto**, no inerte.
+
+### Las dos cosas que hay que hacer distinto
+
+1. **Antes de ejecutar un cambio de alcance, abrir la spec y buscar si ya estaba decidido.**
+   Cuesta un `grep`. Si lo estaba y la frase nueva lo contradice, **eso es la pregunta**:
+   *«la spec dice X desde el 31/08 y por este motivo — ¿lo derogamos?»*. Casi siempre la
+   frase nueva es un resumen impreciso de algo mas pequeno; en este caso «quitar el mando»
+   significaba «los pines C y D ya son camaras».
+2. **Y con mas razon si el cambio RETIRA una barrera.** Un alcance que crece se corrige
+   despues; una proteccion amputada por un malentendido no se nota hasta que alguien esta
+   en la calzada. La direccion segura es no tocar y preguntar.
+
+> **Corolario, y es la razon de que esto sea una seccion y no una nota:** delegar amplifica
+> el error. Una frase mal entendida se convierte en un encargo de mil lineas para un agente
+> que la ejecuta bien y a fondo. **El encargo es un instrumento** (§2.quater): antes de
+> lanzarlo, se comprueba que lo que le pides no lo desdice un documento del repositorio.
+
+---
+
 ## 2.ter DECLARAR NO ES EJERCER — por qué el banco pasó con cinco defectos dentro
 
 > **La pregunta del 04/09, y hay que contestarla bien porque es la que más vale: si el banco corrió

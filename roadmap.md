@@ -55,7 +55,66 @@ regla **§2.bis de `CLAUDE.md`**, que existe por esto.
 > Desde el 03/09 hay una segunda, y es mejor: **¿esto desatasca uno de los 5 pasos que el banco no
 > pudo correr?** Lo que no conteste a ninguna de las dos, no se escribe.
 
-### 0.0.sexdecies LOS TRES QUE SE CERRARON CON CODIGO — y lo que cada uno enseño de paso
+### 0.0.septendecies EL MANDO **NO SE RETIRA**: A y B se quedan, sin usar y SIN TOCAR EL CODIGO
+
+> 🔴 **Esta seccion se escribio primero al reves, y se corrige aqui en vez de reescribirse,
+> porque el error es la parte que vale.** Se llego a lanzar un agente a retirar el mando
+> entero de las dos puntas. Lo paro el responsable: *«ayer definimos no quitar los botones
+> de A y B por los danos al software, y seguir sin usarlos y sin tocar el codigo»*. El
+> agente estaba midiendo y no alcanzo a editar nada.
+
+### La decision, que ya estaba escrita desde el 31/08
+
+`05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md` lo dice en dos sitios:
+
+> *«el mando SE CONSERVA en los canales `A` y `B` (`MANDO_A`=`BOTON1`=`PB9`=`J16` p5 ·
+> `MANDO_B`=`BOTON2`=`PB13`=`J16` p8). Se retiran **solo** `BOTON3` (`PB14`, p10) y
+> `BOTON4` (`PB15`, p12), que son los que las camaras necesitan y los que el mando no
+> usa.»* — y en su tabla de descartes: *«**El veto de §2.4 se queda donde esta**»*.
+
+**Y el motivo es exactamente §3.ter, que este repositorio ya tenia escrito sobre este mismo
+getter:** `mando_ambarLocal()` tiene **SEIS** lectores —los tres vetos de
+`Esclavo/src/main.cpp` (`:453`, `:476`, `:617`) y dos de `bluetooth.cpp` (`:551`, `:562`,
+que deciden si `CANCELAR_AMBAR` contesta `RETIRADO` o `RETIRADO_QUEDA_MANDO`)—. Retirar el
+armador de esa bandera vuelve los `if` siempre verdaderos y **el veto de SFTY-21 no queda
+inerte: queda abierto**. Tocar eso para ganar flash es cambiar una proteccion de calzada
+por unos bytes.
+
+**Asi que el codigo del mando NO SE TOCA.** Se queda como esta, sin llamadores nuevos y sin
+borrar nada. Que las lineas no respondan hoy (`0,6 V`, N-118) es un asunto de cobre, no una
+razon para amputar el firmware.
+
+### El reparto de `J16`, cerrado
+
+| | pin | bornera | queda |
+|---|---|---|---|
+| `BOTON1` | `PB9` | p5 | **`MANDO_A`** — se conserva, **cableado**, hoy sin usar |
+| `BOTON2` | `PB13` | p8 | **`MANDO_B`** — se conserva, **cableado**, hoy sin usar |
+| `BOTON3` | `PB14` | p10 | **Camara** (`CAM_C_PIN`) — en firmware y medida en cobre |
+| `BOTON4` | `PB15` | p12 | **Camara** (`CAM_D_PIN`) — idem |
+
+🔴 Y sigue en pie lo que ya estaba: `MANDO_A` y `MANDO_B` **no responden** —`0,6 V` en
+reposo, N-118—. **Van cableados**, y con `MANDO_B` al aire la bandera no se arma nunca.
+Eso se cierra con multimetro y cable, no con un `git rm`.
+
+### 🟡 Lo que SI queda abierto para asignar: `J14`, y la idea del fin de carrera
+
+El responsable la planteo **sin decidir**: *«a lo mejor para fin de carrera de la barrera»*.
+
+**Por que la idea vale, medido:** hoy la talanquera es **lazo abierto**.
+`MOTOR_TALANQUERA` (`PB2` -> opto `U15` -> MOSFET `Q10` -> bornera `J15`) solo ESCRIBE
+—`semaforo.cpp:100-102` y `:210-211`— y **nadie lee si la barrera se movio**. Si el brazo
+se atasca a medias, el firmware cree que esta cerrada: un actuador en la via sin
+confirmacion.
+
+**Lo que NO esta decidido**, y hace falta antes de escribir una linea: de que pin cuelga
+—con `A` y `B` conservados, `J16` ya no ofrece dos entradas libres—, si se ponen los dos
+finales o uno, que hace el firmware cuando el brazo no llega al que espera, y si eso es un
+`$ALARM` o un cambio de estado. Son decisiones del responsable.
+
+---
+
+## 0.0.sexdecies LOS TRES QUE SE CERRARON CON CODIGO — y lo que cada uno enseño de paso
 
 > **Ninguno de los tres se parecia a lo que se creia que era.** Los tres se abrieron
 > pensando que eran un arreglo pequeno y los tres destaparon algo mas grande al medirlos.
