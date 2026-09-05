@@ -104,6 +104,29 @@ no sobre la intencion:
 
 **El nombre del `.zip` lleva el commit**, igual que la APK: `Paquete_..._<fecha>_<hash>_SIN_BANCO.zip`.
 
+> 🔴 **Y EL NOMBRE LLEVA UN COMMIT QUE HAY QUE CUMPLIR: EL CONTENIDO SALE DE `HEAD`, NO DEL DISCO
+> (05/09).** `git ls-files` da las RUTAS versionadas; `z.write(ruta)` lee **el arbol de trabajo**.
+> Son cosas distintas, y con agentes escribiendo a la vez la diferencia es el paquete entero.
+>
+> Aquella noche habia dos agentes editando manuales y la guia de banco. El `.zip` se armo con
+> `git ls-files` —creyendo cumplir la regla de "partir de los ficheros versionados"— y salio con
+> **19 documentos a medias**, incluidos `17_Arquitectura...`, `18_Especificacion_Firmware_ESP32.md`
+> y la `Guia_Cableado_y_Pruebas_Banco.html`, que estaban abiertos en ese momento. **Con el nombre
+> de un commit encima**, o sea prometiendo un contenido que no era.
+>
+> Se armo con `git show HEAD:<ruta>` para **todo lo versionado**, y del disco salen solo las dos
+> cosas que no lo estan a proposito: la APK y el acta.
+>
+> **La comprobacion que lo caza, y es la cuarta de la lista de abajo:** por cada documento del zip,
+> comparar su md5 contra `git show HEAD:<su ruta>`. Tiene que dar **cero diferencias**. Un paquete
+> cuyo contenido no es el de su hash no es un paquete: es una version sin nombre.
+
+> ⚠️ **Y las cifras del acta CADUCAN mientras el paquete se prepara.** Esa misma noche el acta se
+> movio **cuatro veces** porque habia agentes comiteando firmware y anadiendo packs. Las cifras se
+> copian **DESPUES de la ultima compuerta completa e inmediatamente antes de comprimir**, no
+> cuando se escriben los documentos. Si entre la copia y el `.zip` corre otra compuerta, se
+> vuelven a copiar.
+
 > ⚠️ **Y cada vez que cambia un fichero web, la APK anterior queda obsoleta.** Paso tres veces en
 > una tarde: se toca `style.css`, la APK del disco ya no lleva el fuente que dice, y su nombre
 > sigue apuntando a un commit que ya no la describe. **Recompilar y renombrar es parte del cambio,
@@ -203,6 +226,8 @@ hardware, se le pide al funcional, no se dictamina aqui.
       que el `17_Arquitectura_28-08...` y las revisiones de la lista de compras salgan en `.docx`.
 - [ ] Recuento de artefactos de compilacion en el `stage` = **0**.
 - [ ] El LEEME dice si ha pasado banco, en la primera pantalla.
+- [ ] **Cero diferencias entre el contenido del `.zip` y `HEAD`**, comprobado por md5 documento a
+      documento. Si hay agentes trabajando, esto NO es una formalidad: es la comprobacion.
 - [ ] **Un solo encargo vigente.** Si hay dos documentos que dicen cosas distintas sobre lo mismo,
       el viejo se archiva en `historico/` con una cabecera que explique por que se cae. No se
       borra: una causa que desaparece en silencio vuelve a proponerse.
