@@ -250,7 +250,7 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 |---|---|---|---|
 | ~~**A1**~~ Módulo Bluetooth SPP | ~~2 × `HC-05` / `JDY-30`~~ | **nunca llegaron, y ya no se piden** | ⛔ **ANULADA el 28/08.** El `ESP32` los sustituye |
 | **A1′** `ESP32` como módulo SPP | — *(línea nueva del 28/08)* | **Llegaron módulos `ESP32-WROOM-32` clásicos** —referencia **CONFIRMADA por ficha** el 31/08—, **cantidad todavía sin anotar** | 🟢 **DESBLOQUEADA el 31/08 (`BLQ-1` cerrado).** ~~🛑 BLOQUEADA hasta leer qué referencia llegó~~ — **el motivo desapareció: hay SPP.** Lo que queda antes de comprar **más** es contar pines (30/38), y eso bloquea la portadora `A8`, no el firmware |
-| **A2** Cámaras de demanda | 2 × AcuSense | sin novedad | pendiente *(confirmar si ya hay una en almacén)* |
+| **A2** Cámaras de demanda | 2 × AcuSense | 🟢 **05/09: COMPRADAS, y el modelo ya es un dato: `DS-2CD2683G2-IZS`.** Ficha oficial verificada — **tiene salida de alarma por contacto seco** *(`1 output`, `24 V`/`1 A`)*, así que el cableado a `J16` sigue en pie | 🟢 **CUBIERTA en la compra.** ~~pendiente *(confirmar si ya hay una en almacén)*~~ · 🔴 **Pero NO puesta en marcha:** quedan 3 comprobaciones antes de instalar —enlace analítica→relé, `NO`/`NC` y clasificador—, ver el bloque 📷 y **Manual 9 §8**. ⚠️ **Y arrastra `13 W` por poste y un SOPORTE que nadie ha especificado** |
 | **A3** Antenas + coaxiales | 2 + 2 | sin novedad | pendiente |
 | **A4** Módulos de 1 relé | 2 | sin novedad | pendiente |
 | **A5** Fuente propia del `ESP32` | — *(línea nueva del 28/08)* | **NO se ha pedido, y es LO QUE BLOQUEA EL MONTAJE** | 🔴 **NO cubierta.** Sin ella el `ESP32` reinicia el STM32 del semáforo. **31/08: pasa a exigir DC-DC CONMUTADO, no lineal** — ver `A5`. ⏸️ **04/09: SIN MOVIMIENTO en cuatro días, y ninguna referencia elegida** |
@@ -420,7 +420,7 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 |:---:|---|:---:|---|---|
 | ~~A1~~ | ~~**Módulo Bluetooth SPP** `HC-05` / `JDY-30`~~ ⛔ **NO SE COMPRA.** El `ESP32` lo sustituye (decisión de obra del 28/08). *La fila no se borra: un hueco se vuelve a proponer, una fila tachada con su motivo no* | ~~2~~ → **0** | — | **Manual 10** §1 *(sigue mandando en el transporte: SPP, no BLE)* |
 | **A1′** | **`ESP32` clásico** `WROOM-32` / `-32D` / `-32E` / `-32U` sobre placa **DevKitC / NodeMCU**. Hace de módulo SPP **y** sostiene el `DS3231` de A6. ⛔ **Ni «el más grande» ni «el más nuevo»: eso es un `S3` y no habla SPP — ver el aviso del bloque 0.** ⚠️ **El formato de pines (30 o 38) se CUENTA antes de pedir más y antes de fabricar `A8`** | **2** *(1 por poste)* — 🟢 **DESBLOQUEADA 31/08**, ~~🛑 BLOQUEADA~~. **Descontar lo que haya en almacén: la cantidad recibida sigue sin anotarse** | Consola de servicio por celular en cada poste (evita subir con escalera al Esclavo) **+ el bus I²C del reloj** | **Manual 10** §1 y §2 · `roadmap.md` **N-107** *(la ficha que cierra `BLQ-1`)* |
-| A2 | **Cámara IA** Hikvision AcuSense varifocal motorizada `DS-2CD3643G2-LIZSU` **o equivalente** | **2** *(ver nota)* | Demanda vehicular: una por poste, contacto seco a `PB0`. **Son las dos que el firmware lee hoy** | **Manual 9** |
+| A2 | **Cámara IA** Hikvision AcuSense varifocal motorizada. ~~`DS-2CD3643G2-LIZSU` **o equivalente**~~ ⛔ **era un modelo de REFERENCIA** → 🟢 **COMPRADA: `DS-2CD2683G2-IZS` (2,8–12 mm)**, 8 MP bullet AcuSense. **Ficha verificada el 05/09** | **2** *(ver nota)* | Demanda vehicular: una por poste, contacto seco a `PB0`. **Son las dos que el firmware lee hoy**. ✅ **Tiene salida de alarma: `1 output`, `24 V`/`1 A` máx** — el cableado planeado sigue en pie | **Manual 9** §1.1 |
 | A3 | **Antenas VHF y coaxiales** | **2 + 2** | Recuperar alcance: las genéricas de «LoRa» costaban 15–20 dB y dejaban la cobertura en 3 cuadras | **Manual 7** §BOM *(lleva modelo, conectores y adaptadores)* |
 | A4 | **Módulo de 1 relé optoacoplado, con jumper `JD-VCC`** | **2** *(1 por poste)* | **La talanquera.** El firmware ya la manda (SFTY-28, 27/08) y la tarjeta ya expone la señal: se conecta a la bornera **`J15`** (red `Motor`, `PB2` → opto `U15` → MOSFET `Q10`). 🔴 **NO a `J14`, que es la ENTRADA de la cámara — ver la fe de erratas de la cabecera.** **No hace falta `PCF8574` ni MOSFET nuevo** | **Manual 13** §3 *(la etapa de potencia y el cuadro `J14`/`J15`)*; el jumper `JD-VCC` y su porqué, en el aviso del bloque **B** de esta misma lista |
 | **A5** | 🔴 **Fuente propia para cada `ESP32`: convertidor DC-DC CONMUTADO (*switching*) reductor, `12 V → 5 V`, ≥ 1 A**, con sus borneras y su cable. **CONMUTADO, NO LINEAL — y no es una preferencia: ver la cuenta de abajo.** ~~(un módulo `LM2596` o `MP1584` sirve)~~ ⛔ **retirado el 31/08: ninguna referencia concreta está elegida** | **2** *(1 por `ESP32`)* | **Que el `ESP32` no cuelgue del `LM7805` de la tarjeta.** A 500 mA de pico el `7805` disipa 3,5 W sin disipador, y al hundirse el riel de 3,3 V **se reinicia el STM32 que gobierna el semáforo** | **Manual 10** §1 *(la regla)* — ⚠️ **la pieza sigue sin especificarse en ningún manual: ver el aviso de abajo** |
@@ -428,6 +428,49 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 | **A7** | **Juego de conexión de las cámaras a `J16`**: conector hembra del footprint de `J16` con sus terminales de crimpar, y cable de 2 hilos apantallado por cámara. 🟢 **04/09: `M3` CERRADA — ya se puede CONECTAR, no sólo comprar.** ⚠️ **Y el juego incluye con qué TAPAR el p1 de 12 V** *(tapón, funda termorretráctil o el conector sin terminal en esa posición)*: no es opcional | **2 juegos** | Llevar el contacto seco de la cámara a los pines que **liberan los pulsadores 3 y 4** ~~el mando~~ (`PB14`/`PB15`), **contra los 3,3 V del borne contiguo** (`p9` para `p10`, `p11` para `p12`). **No hace falta `PCF8574` ni ninguna placa hija** | **Manual 13** §3 *(borneras)* · `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md` §7 *(el mapa pin a pin de `J16`)* · **Manual 9** *(polaridad, `M3` y el `ENSAYO 4`)* |
 | **A8** | 🔴 **PLACA PORTADORA DEL `ESP32`** — **línea nueva del 31/08; hasta hoy esto NO ERA UNA LÍNEA DE COMPRAS y hacía falta igual.** Lleva, como mínimo: **PCB**, **hembrillas** para el módulo (que es de formato protoboard y va enchufado, no soldado), **conectores** de entrada de 12 V y de salida a `J17`, **fusible**, **protección de inversión de polaridad** y **condensadores** de desacoplo y de reserva | **2** *(1 por poste)* — 🛑 **NO SE FABRICA todavía** | Que el `ESP32` y su `A5` y su `A6` sean **un conjunto montable y reemplazable**, en vez de tres módulos sueltos con cables volantes dentro de un armario que vibra en un remolque | 🔴 **`05_Funcional/19_Especificacion_Placa_Portadora_ESP32.md`** *(otro agente la está escribiendo en este mismo árbol — **aquí NO se duplica**: si al leer esto ese fichero no existe todavía, es que ese trabajo no ha entrado, y **se espera a que entre en vez de inventar la especificación aquí**)* |
 | **A9** | 🟢 **RECEPTOR RF DEL MANDO DE RELÉS — SE PIDE** *(el emisor de 4 canales que el operario lleva en la mano ya existe; **el receptor NUNCA se compró**)*. Salidas de **contacto seco MOMENTÁNEO**, canales **A** y **B**, alimentación de 12 V, y **salida `NO` (normalmente abierto)**. ~~🛑 04/09: falta DECIDIR si `NO` o `NC`, decisión del responsable~~ → **caducado el mismo 04/09: lo decide el cobre — `J16` tiene una sola masa (`p2`) y 3,3 V en cada posición contigua, así que la entrada es activa en ALTO; y `NC` dejaría un canal caído leyéndose como pulsación.** Ver el bloque de abajo | **2** *(1 por poste)* — ⚠️ **el del ESCLAVO es el crítico** | 🛑 **Es la ÚNICA vía de mando que le queda al Esclavo** — ver el aviso de abajo, que es lo que cambió de prioridad el 31/08 | ⚠️ **Ningún manual lo especifica todavía.** El vocabulario que tiene que producir está **MEDIDO** en `Esclavo/src/mando.cpp:240-248` y `Maestro/src/mando.cpp:201-238`; **la polaridad y el estado del pin, MEDIDOS EN BANCO el 03–04/09** |
+
+> ## 📷 05/09 — `A2` YA NO ES GENÉRICA: LA CÁMARA COMPRADA ES UNA `DS-2CD2683G2-IZS`
+>
+> **Ficha oficial consultada el 05/09:** `DS-2CD2683G2-IZS_Datasheet_V5.5.113_20230303.pdf`,
+> descargada de `hikvision.com`. El desglose completo, con el manual de usuario y la guía rápida
+> citados página a página, está en **`9_Manual_Parametrizacion_Camara_IA.md` §1.1**.
+>
+> ✅ **Lo que confirma la compra y NO obliga a cambiar nada de esta lista:**
+>
+> | | |
+> |---|---|
+> | **Salida de alarma** | `1 input, **1 output**` — **el contacto seco existe**, y sus bornes son `1A`/`1B`, tal como `A7` y el Manual 9 ya decían |
+> | **Régimen** | `24 V DC` / `24 V AC`, `1 A` máx. — **sobra** frente a los `3,3 V` y `330 µA` que le pide `J16` |
+> | **Alimentación** | `12 V DC ± 25 %` → **`9` a `15 V`**: **cubre entero el vaivén de una batería de plomo**. No hace falta convertidor para la cámara |
+>
+> 🛑 **Y las TRES cosas nuevas que esta línea de compra arrastra, y que antes no estaban:**
+>
+> 1. **`13 W` POR CÁMARA, CONTINUOS** *(`12 V`, `1,08 A`; ficha pág. 4)*. Son **`26 Ah/día` por
+>    poste** sólo de cámara — **una cifra que dimensiona batería y panel**, del mismo orden que todo
+>    lo demás del equipo junto. **No es una decisión de esta lista: es un número para quien firme la
+>    energía**, y hasta hoy no estaba escrito en ninguna parte.
+>    ⚠️ **La cámara va DIRECTA A BATERÍA, no al `LM7805` de la tarjeta** — es la misma regla de `A5`.
+> 2. **🆕 Falta una línea de compra: EL SOPORTE.** `1.385 g` y `30,8 cm` en lo alto de un poste
+>    **móvil** son carga de viento y palanca, y **ningún documento de este proyecto especifica la
+>    fijación**. Hikvision lista opcionales (`DS-1275ZJ-S-SUS` de poste vertical, `DS-1260ZJ` y
+>    `DS-1280ZJ-S` de caja de conexiones; ficha pág. 5). 🔴 **SIN VERIFICAR cuál aplica: no se elige
+>    aquí.**
+> 3. ⚠️ **La página oficial del modelo lo marca como `Discontinued`** *(consultada el 05/09)*. **No
+>    afecta a las dos unidades ya compradas**, pero **sí a repuestos y a una tercera cámara**: si el
+>    diseño va a necesitar más *(la segunda por poste de SFTY-29 sigue sin pedirse)*, **conviene
+>    decidirlo antes de que desaparezca del canal**.
+>
+> 🔴 **Y lo que NO se puede dar por bueno todavía, porque ninguna fuente oficial lo dice** *(detalle y
+> cómo se cierra cada uno, en el Manual 9 §7 y §8)*:
+>
+> | 🔴 `SIN VERIFICAR` | por qué importa aquí |
+> |---|---|
+> | **Que la analítica pueda ENLAZARSE a la salida de alarma** | **Es el eslabón del que cuelga `A7` entera.** El manual documenta `Trigger Alarm Output` con la nota *«only supported by certain models»*, y la fila *Linkage Method* de la ficha **no lo menciona**. **Se comprueba en 10 minutos** con la cámara delante — Manual 9 §4 Paso 0 |
+> | Que la salida sea **`NO`/`NC` configurable** | La frase *«la salida de la AcuSense es configurable NO/NC»* circula por varios documentos **y no la sostiene ninguna fuente**: `Alarm Type` sólo está documentado para la **entrada**. **Lo mide el `ENSAYO 1`** |
+> | **Corriente mínima de conmutación** del contacto | A `330 µA` es *carga seca*, régimen donde un contacto sin oro puede oxidarse con los meses. **Y la línea `E1` —2K2 en serie— la bajaría a `270 µA`: las dos cuentas hay que mirarlas JUNTAS** antes de firmar la V2 |
+>
+> 🟢 **Ninguna de las tres bloquea la compra —ya está hecha— ni el cableado que `M3` desbloqueó.**
+> Bloquean **dar por cerrada la puesta en marcha**, que es distinto.
 
 > 🔌 **Cómo queda montado lo que se pide en A1′, A5 y A6 — para que las tres líneas se lean juntas:**
 >
@@ -1051,7 +1094,9 @@ de banco (tarea `B5`), y hasta entonces **no se pide nada de este bloque**:
 
 ## Resumen para autorizar — al **04/09/2026**
 
-**Se pide hoy:** 2 cámaras AcuSense de demanda *(confirmar si ya hay una)* · 2 antenas VHF con sus 2
+**Se pide hoy:** ~~2 cámaras AcuSense de demanda *(confirmar si ya hay una)*~~ ⛔ **05/09: YA COMPRADAS
+— `DS-2CD2683G2-IZS`. Sale de la lista de pedido y entra en la de puesta en marcha** *(y deja detrás
+una línea nueva sin pedir: **el SOPORTE de fijación**, ver el bloque 📷)* · 2 antenas VHF con sus 2
 coaxiales · 2 módulos de 1 relé con jumper `JD-VCC` · 🔴 **2 fuentes DC-DC CONMUTADAS 12 V → 5 V
 ≥ 1 A** (A5) · **1 módulo `DS3231` `ZS-042` con su pila** (A6) · **2 juegos de conector y cable para
 `J16`, con qué tapar el p1 de 12 V incluido** (A7) · 🟢 **2 receptores RF de mando, contacto seco

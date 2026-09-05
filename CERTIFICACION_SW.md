@@ -24,7 +24,7 @@
 ## 🧾 De dónde salen las cifras de este documento
 
 **Todas las cifras de la tabla siguiente están copiadas del acta
-[`evidencia/2026-09-04_compuerta.txt`](evidencia/2026-09-04_compuerta.txt), no escritas a mano.**
+[`evidencia/2026-09-05_compuerta.txt`](evidencia/2026-09-05_compuerta.txt), no escritas a mano.**
 Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 `documentos_04_cifras_sin_vigilante`, que es lo que impide que este documento envejezca en silencio.
 

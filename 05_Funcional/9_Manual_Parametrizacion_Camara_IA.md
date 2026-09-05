@@ -1,17 +1,26 @@
 # 📷 MANUAL DE CONFIGURACIÓN Y PARAMETRIZACIÓN — CÁMARAS IA ACUSENSE PARA SEMÁFOROS MÓVILES (V9.0)
 
 **Sistema:** Controladora de Semáforos Móviles de 3 Estados (Maestro y Esclavo V9.0)  
-**Cámara Certificada:** Hikvision AcuSense Varifocal Motorizada (DS-2CD3643G2-LIZSU o equivalente)  
+**Cámara Certificada:** ~~Hikvision AcuSense Varifocal Motorizada (DS-2CD3643G2-LIZSU o equivalente)~~ ⛔ **RETIRADO el 05/09: era un modelo de REFERENCIA con «o equivalente» detrás, no el comprado.** → **Hikvision `DS-2CD2683G2-IZS` (2.8 – 12 mm)**, bullet AcuSense varifocal motorizada de 8 MP. **Es la cámara que el responsable ha comprado**, y desde hoy toda cifra de óptica, alarma o consumo de este manual sale de **su** ficha oficial, con la cita al lado — ver **§1.1**.  
 **Topología del Sistema:** Analítica Deep Learning Embebida (sin PC externo) + contacto seco a la tarjeta. **Tres entradas de cámara por punta:** la bornera **`J14`** (`PB0`, con antirrebote RC de 1 ms en la placa) y **`J16` p10 / p12** (`PB14`/`PB15`, **sin antirrebote de placa**, y con la medida **`M3` YA CERRADA EN BANCO** el 04/09: **se pueden cablear**)  
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`  
 **Normativa Aplicable:** Manual de Señalización Vial de Colombia (Resolución 2024 - MinTransporte)  
 **Fecha de Emisión:** 26 de Agosto de 2026  
-**Última revisión:** 4 de septiembre de 2026 — 🟢 **`M3` ESTÁ CERRADA EN BANCO (paso 20): el
+**Última revisión:** 5 de septiembre de 2026 — 🎥 **LA CÁMARA YA TIENE NOMBRE Y FICHA: `DS-2CD2683G2-IZS`.**
+La pregunta que podía tirar el diseño —*¿este modelo concreto tiene salida de alarma por contacto
+seco?*— **está contestada, y la respuesta es SÍ**: `1 input, 1 output (max. 24VDC/24 VAC, 1 A)`, con
+los bornes `1A`/`1B` que este manual ya citaba. **El camino de `J16` sigue en pie y no hay que
+rediseñar nada.** Lo que **sí** se ha caído es una frase que llevaba meses sosteniendo decisiones sin
+que nadie la comprobara: *«la salida de la AcuSense es configurable NO/NC»* — **eso no lo dice
+ninguna fuente oficial de este modelo**. Ver el bloque 🎥 de la cabecera y **§1.1**, **§4 Paso 4** y
+**§7**.
+
+*Revisión anterior (04/09/2026): 🟢 **`M3` ESTÁ CERRADA EN BANCO (paso 20): el
 pull-down de `J16` p10 y p12 es REAL y de 10 kΩ.** Con eso **desaparece el único bloqueo que quedaba
 para cablear cámara a `J16`**, y la **polaridad la decide el cobre: ACTIVO EN ALTO**. Y con el mismo
 banco entra un aviso que **no se puede separar de este manual**: `J16` p1 lleva **12 V crudos** y las
 cinco entradas de campo van **desnudas al pin del STM32** — ver el bloque 🛑 de la cabecera, que es
-lo primero que se lee. Ver apartados 2.1, 4, 6 y 7.
+lo primero que se lee. Ver apartados 2.1, 4, 6 y 7.*
 
 *Revisión anterior (02/09/2026): **`J16` p10 y p12 ya son entradas de cámara en el firmware.** Este
 manual las describía como los pulsadores* Aceptar *y* Cancelar *y decía que «ningún firmware los lee
@@ -61,6 +70,108 @@ nunca. Nada se borra: el texto viejo queda tachado en su sitio con el motivo.*
 > sobretensión que entre por el hilo de campo. La protección de verdad —**2K2 en serie en las cinco
 > entradas**— es una modificación de la **revisión V2 de la placa**, y está anotada como línea de
 > compra en `15_Lista_de_Compras_Hardware.md` (bloque **E**). **Hoy no existe en el cobre.**
+
+> ## 🎥 LA CÁMARA COMPRADA ES UNA `DS-2CD2683G2-IZS` — Y SÍ TIENE SALIDA DE ALARMA (05/09/2026)
+>
+> **La pregunta que había que contestar antes que ninguna otra, porque de ella colgaba todo el
+> cableado:** este manual, `15_Lista_de_Compras_Hardware.md` y el mapa de `J16` **dan por hecho que
+> la cámara entrega un CONTACTO SECO**. Si el modelo comprado no lo llevara, el camino de `J16` no
+> serviría y habría que irse al relé de un NVR o a un evento por red hacia el `ESP32` — **otro
+> diseño**.
+>
+> ```text
+>   FICHA OFICIAL Hikvision, DS-2CD2683G2-IZS, V5.5.113 (03/03/2023), pagina 3, fila "Alarm":
+>
+>       Alarm      1 input, 1 output  (max. 24VDC/24 VAC, 1 A)
+> ```
+>
+> ### ✅ **SÍ. Tiene UNA salida de alarma y UNA entrada. El diseño de `J16` SIGUE EN PIE.**
+>
+> Y los bornes son **exactamente los que este manual ya citaba**: la Guía Rápida oficial
+> (`UD40284B`, 15/11/2024, pág. 8) rotula `ALARM OUT` como *«1A and 1B»* y `ALARM IN` como *«IN1 and
+> GND1»*. **No hay que cambiar ni un hilo de lo escrito.**
+>
+> ⚠️ **Una sola salida por cámara.** La ficha dice `1 output`, no tres: **una cámara = un contacto =
+> una demanda**. Los *«2A/2B, 3A/3B»* que menciona la Guía Rápida son de otros modelos de la misma
+> familia — la propia Guía avisa: *«The interface varies with the models. Please refer to the product
+> datasheet»*, y la ficha de ÉSTE dice uno.
+>
+> ### 🔴 PERO TENER LA SALIDA NO BASTA: LA ANALÍTICA TIENE QUE PODER ACCIONARLA — y ahí las dos fuentes oficiales NO dicen lo mismo
+>
+> **Es el eslabón del que cuelga todo el diseño**, y hay que enseñarlo tal cual está, porque las dos
+> fuentes son del propio fabricante y se contradicen:
+>
+> | fuente oficial | qué dice |
+> |---|---|
+> | Manual de usuario, **pág. 67**, *Linkage Method Settings* | **`Trigger Alarm Output` EXISTE** como método de enlace… con esta nota literal debajo: *«**This function is only supported by certain models**»* |
+> | **Ficha del modelo, pág. 4**, fila *Linkage Method* | *«Upload to FTP/memory card/NAS, notify surveillance center, trigger recording, trigger capture, send email»* — **y NO menciona la salida de alarma** |
+> | Ficha del modelo, **pág. 3**, fila *Alarm* | `1 input, **1 output**` — **el hardware está** |
+>
+> 🔴 **Veredicto honesto: `SIN VERIFICAR`. La cámara TIENE la salida; que la regla de intrusión pueda
+> ENLAZARSE a ella no lo confirma ninguna fuente de este modelo, y la fila que debería listarlo no lo
+> lista.**
+>
+> 🟢 **Se resuelve en DIEZ MINUTOS, sin desmontar nada, y es lo PRIMERO que hay que hacer cuando
+> llegue la cámara** — antes de dibujar zonas y antes de tocar un hilo:
+>
+> ```text
+>   1. Configuration -> Event -> Smart Event -> Intrusion Detection
+>   2. Marcar Enable y bajar a "Linkage Method" / "Metodo de Vinculacion"
+>   3. MIRAR SI EXISTE LA CASILLA  "Trigger Alarm Output" / "Disparar Salida de Alarma"
+>
+>      SI ESTA  -> el diseno de J16 vale entero. Se sigue con el paso 4 del apartado 4.
+>      NO ESTA  -> SE PARA Y SE AVISA. El contacto seco no se puede accionar desde la
+>                  analitica, y la demanda tendria que entrar por otro camino
+>                  -relé de un NVR, o evento de red hacia el ESP32-.  Eso es OTRO DISENO
+>                  y NO se decide en este manual.
+> ```
+>
+> 🛑 **Si esa casilla no está, no se cablea nada a `J16` por parte de la cámara** — no porque sea
+> peligroso, sino porque **no serviría**, y un hilo puesto «por si acaso» en un conector que lleva
+> 12 V crudos en el p1 es exactamente el riesgo que el aviso de arriba intenta evitar.
+>
+> ### 📏 La escala de tres niveles, la misma que usa el documento 17 — y aquí hace falta una raya más
+>
+> | | qué significa |
+> |---|---|
+> | ✅ **MEDIDO** | **medido en ESTE proyecto** — en cobre, en banco o en el fuente. Es lo único que ha tocado el equipo real |
+> | 📖 **ESCRITO** | **lo dice la ficha o el manual oficial de Hikvision, y se puede citar** — pero **nadie lo ha visto en una cámara de este proyecto**. Un dato de fabricante es una afirmación, no una medida |
+> | 🔴 **SIN VERIFICAR** | **ninguna fuente citable lo dice.** No se rellena con lo que parece razonable |
+>
+> 🛑 **`ESCRITO` NO ES `MEDIDO`, y aquí importa más que de costumbre**, porque **todo lo que este
+> manual sabe de la cámara es `ESCRITO`**: la cámara no ha estado nunca delante de esta tarjeta. Lo
+> `MEDIDO` de este manual es la TARJETA —`M3`, el paso 21, el fuente—, no la óptica.
+>
+> ### 🔴 Y lo que se ha CAÍDO al poner la ficha real delante: dos frases que nadie había comprobado
+>
+> | la frase | qué dice la fuente oficial |
+> |---|---|
+> | *«la salida de la AcuSense es **configurable `NO`/`NC`**»* — está en `CLAUDE.md` §9.bis, en el §4 Paso 4 de este manual y sostiene decisiones desde el 31/08 | 🔴 **SIN VERIFICAR.** La ficha dice `1 output (max. 24VDC/24 VAC, 1 A)` **y nada más**. En el manual de usuario oficial (`UD28967B-C`, v5.7.20) el desplegable **`Alarm Type` existe sólo para la ENTRADA** (*Set Alarm Input*, pág. 44, paso 3); los únicos parámetros documentados de la **salida** son `Alarm Output No.`, `Alarm Name` y `Delay` (*Automatic Alarm*, pág. 68). **Las palabras `Normally Open` / `Normally Closed` no aparecen ni una vez en las 110 páginas** |
+> | *«clasificador ☑ Vehículo / ☐ Humano sobre **Detección de Intrusión**»* — es el §4 Paso 3, y es lo que hace que el `ENSAYO 2` deba salir bien | 🔴 **SIN VERIFICAR para ESA analítica.** El manual oficial documenta **`Detection Target`** en *Line Crossing*, *Region Entrance* y *Region Exiting*… **y NO en `Set Intrusion Detection`** (pág. 48-49), cuyas únicas reglas listadas son `Sensitivity` y `Threshold`. Ver **§4 Paso 3** |
+>
+> 🔎 **Y antes de escribir esos dos `SIN VERIFICAR`, se descartó al buscador (`CLAUDE.md` §4):** los
+> PDF son texto extraíble —`Alarm Type` **sí** aparece, y `Detection Target` **sí** aparece cuatro
+> veces—, y una búsqueda de `"NO/NC"` restringida a `hikvision.com` **devuelve resultados de sobra**
+> en fichas de radares, centrales de alarma y barreras, donde Hikvision lo escribe así de claro:
+> *«4 Relay Outputs(NO/NC)»*. **El buscador sabe encontrar `NO/NC` en las fichas de Hikvision. En la
+> de esta cámara no está.** Un cero aquí sí se lee como «no lo dice».
+>
+> 🟢 **Ninguna de las dos bloquea nada, y esto es lo que hay que entender:** las dos **las contesta la
+> propia cámara en diez minutos**, con los ensayos que este manual **ya tiene escritos** —el
+> `ENSAYO 1` mide si el contacto está abierto o cerrado en reposo y cuánto dura el pulso; el
+> `ENSAYO 2` mide si un peatón dispara—. **No hace falta un documento nuevo: hace falta enchufar la
+> cámara y anotar dos números.** Ver §6, donde los dos ensayos llevan ya su casilla.
+>
+> ### 👷 Y son DOS TRABAJOS DISTINTOS, que casi nunca hace la misma persona
+>
+> | | quién y dónde | qué hace | dónde está en este manual |
+> |---|---|---|---|
+> | **A. CONFIGURAR LA CÁMARA** | en **taller**, con un portátil y cable de red, **una sola vez** | IP y contraseña · zoom y foco · analítica, zona y sensibilidad · vincular el evento a la salida de alarma · desarmar los eventos básicos | **§4**, pasos 1 a 4 |
+> | **B. CABLEAR** | en **el poste o el banco**, con destornillador y multímetro, **en cada equipo** | tapar `J16` p1 · llevar `1A`/`1B` al pin de señal y a los 3,3 V del borne contiguo · alimentar la cámara | **§2.1**, **§6** y el bloque 🛑 de arriba |
+>
+> 🛑 **El que cablea no abre el navegador de la cámara, y el que la configura no toca `J16`.** Por eso
+> el aviso de los 12 V va arriba del todo y repetido: **es del trabajo B**, y quien lo hace puede no
+> haber leído nunca el §4.
 
 > ## 🛑 AVISO DE POLARIDAD — EL CONTACTO SECO **NO** VA CONTRA `GND` (31/08/2026)
 >
@@ -138,10 +249,12 @@ La cámara Hikvision AcuSense incorpora un procesador de inteligencia artificial
  │                ARQUITECTURA AUTÓNOMA DE DETECCIÓN VEHICULAR                 │
  ├─────────────────────────────────────────────────────────────────────────────┤
  │                                                                             │
- │   [ CÁMARA HIKVISION ACUSENSE (Analítica Embebida) ]                        │
- │           │                                                                 │
- │           ▼ (Detección por Intrusión: Clasificador ☑ Solo Vehículo)         │
- │   [ SALIDA DE ALARMA N/O (Bornes 1A / 1B - Contacto Seco) ]                 │
+ │   [ HIKVISION DS-2CD2683G2-IZS  -  AcuSense, analitica embebida ]           │
+ │           │                       8 MP - varifocal motorizada 2,8-12 mm     │
+ │           ▼ (Deteccion por Intrusion: Clasificador ☑ Solo Vehiculo)         │
+ │             ^^^^ el clasificador SOBRE INTRUSION esta SIN VERIFICAR: ver 4  │
+ │   [ SALIDA DE ALARMA (Bornes 1A / 1B - Contacto Seco, 24 V / 1 A max) ]     │
+ │             ^^^^ que sea "N/O" y CONFIGURABLE esta SIN VERIFICAR: ver 4     │
  │           │                                                                 │
  │           ▼ (2 Hilos directos por cámara)                                  │
  │   [ TARJETA CONTROLADORA STM32 - bornera J14, entrada PB0 ]                 │
@@ -151,6 +264,173 @@ La cámara Hikvision AcuSense incorpora un procesador de inteligencia artificial
  │                                                                             │
  └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 1.1 La cámara real, dato a dato — y qué significa cada dato AQUÍ
+
+**Fuente única de esta tabla, y se cita entera para que cualquiera pueda ir a comprobarla:**
+
+| | |
+|---|---|
+| **Ficha técnica** | `DS-2CD2683G2-IZS_Datasheet_V5.5.113_20230303.pdf`, 6 páginas, descargada de `hikvision.com` el 05/09/2026 |
+| **Manual de usuario** | `UD28967B-C_Network-Camera_User-Manual_5.7.20_20240131.PDF`, 110 páginas, misma procedencia |
+| **Guía rápida** | `UD40284B_Baseline_1-3_Series_Multilingual_Quick_Start_Guide_20241115.pdf`, 40 páginas |
+
+> 🛑 **Todas las filas de abajo son 📖 `ESCRITO` salvo donde diga otra cosa.** Son datos del
+> fabricante sobre su producto: **se pueden citar y no se han medido**. Este manual no ha tenido una
+> `DS-2CD2683G2-IZS` delante ni una sola vez.
+
+### 1.1.1 Lo que decide si el diseño de `J16` vale — la alarma
+
+| qué | valor | nivel y fuente |
+|---|---|---|
+| **¿Tiene salida de alarma (contacto seco)?** | ✅ **SÍ. `1 output`** | 📖 **ESCRITO** — ficha, pág. 3, fila *Alarm* |
+| **¿Y entrada de alarma?** | ✅ **SÍ, `1 input`.** *(Este diseño **no la usa**: el equipo no le manda nada a la cámara)* | 📖 **ESCRITO** — ficha, pág. 3, fila *Alarm* |
+| **Régimen del contacto** | **máx. `24 V DC` / `24 V AC`, `1 A`** | 📖 **ESCRITO** — ficha, pág. 3 |
+| **Bornes físicos** | **`1A` y `1B`** la salida · `IN1` y `GND1` la entrada | 📖 **ESCRITO** — Guía rápida, pág. 8 |
+| **¿`NO`/`NC` configurable?** | 🔴 **SIN VERIFICAR** — ver el bloque 🎥 de la cabecera y **§4 Paso 4** | — |
+| **¿Duración del pulso configurable a `1 s`?** | 🔴 **SIN VERIFICAR.** Existe el parámetro `Delay` (*«the time duration that the alarm output remains after an alarm occurs»*, manual pág. 68) — **pero el manual no publica sus valores seleccionables**, y `1 s` puede no estar entre ellos | 📖 el parámetro, **ESCRITO** · 🔴 el valor `1 s`, **SIN VERIFICAR** |
+
+> 🟢 **El régimen sobra por tres órdenes de magnitud, y esa parte es una cuenta, no una opinión.**
+> El contacto va a conmutar **3,3 V** contra un pull-down de **10 kΩ** (`M3`, MEDIDO en cobre el
+> 03-04/09):
+>
+> ```text
+>   Lo que el contacto aguanta (ficha):     24 V   /  1 A
+>   Lo que este equipo le pide:            3,3 V   /  3,3 / 10000 = 330 uA
+>
+>   Margen en tension:   24 / 3,3    =   7,3 veces
+>   Margen en corriente:  1 / 0,00033 = 3030 veces
+> ```
+>
+> **Un contacto de 24 V y 1 A no se rompe conmutando 3,3 V.** Por ese lado no hay ningún problema.
+>
+> 🔴 **Pero el margen enorme abre la pregunta CONTRARIA, y es la que hay que hacerle a quien firme:
+> ¿hay corriente SUFICIENTE?** Un relé seco conmutando **330 µA a 3,3 V** trabaja en lo que la
+> industria llama *carga seca* (*dry circuit*, típicamente por debajo de 1 mA), un régimen donde los
+> contactos sin baño de oro pueden criar una película de óxido y **dejar de hacer contacto fiable al
+> cabo de meses** — un fallo intermitente, en la calle, de los peores de diagnosticar.
+>
+> **La ficha NO publica corriente mínima de conmutación ni material de contacto: eso es
+> 🔴 `SIN VERIFICAR`, y no se rellena adivinando.** Se anota aquí porque:
+> 1. **No bloquea nada hoy** — el `ENSAYO 4` ya ejerció el gesto real en banco el 04/09 y funcionó.
+>    Lo que ese ensayo **no** puede medir es el envejecimiento.
+> 2. **Es una pregunta para quien firme la V2 de la placa, no una decisión de este manual.** Y
+>    **tiene un vecino:** la línea `E1` de `15_Lista_de_Compras_Hardware.md` propone **2K2 en serie**
+>    en las cinco entradas de campo; con ella la corriente por el contacto **baja** a
+>    `3,3 / 12200 = 270 µA`. Las dos cuentas tiran en el mismo sentido y **hay que mirarlas juntas**.
+
+### 1.1.2 Alimentación — y el número que hay que poner delante del responsable
+
+| qué | valor | nivel y fuente |
+|---|---|---|
+| **Consumo a 12 V DC** | **`1,08 A`, máx. `13 W`** | 📖 **ESCRITO** — ficha, pág. 4, *Power Consumption and Current* |
+| **Tensión admisible** | **`12 V DC ± 25 %`** → de **`9 V` a `15 V`** | 📖 **ESCRITO** — ficha, pág. 4, *Power Supply* |
+| **PoE** | **`802.3at` (PoE+), Clase 4**, 42,5–57 V, máx. `15 W` | 📖 **ESCRITO** — ficha, pág. 4 |
+| **Conector de alimentación** | jack coaxial **Ø 5,5 mm** | 📖 **ESCRITO** — ficha, pág. 4 |
+
+> 🟢 **La buena noticia, y es real:** el rango `9 – 15 V` **cubre entero el vaivén de una batería de
+> plomo de 12 V** (de ~10,5 V descargada a ~14,4 V en carga). **La cámara se alimenta directamente
+> de la batería del equipo: no hace falta convertidor.**
+>
+> 🛑 **Y la que hay que decir en voz alta, porque es una decisión del responsable y no de este
+> manual: `13 W` POR CÁMARA, DE FORMA CONTINUA, EN UN EQUIPO QUE VA A BATERÍA.**
+>
+> ```text
+>   Por poste, una camara:      13 W
+>   En 24 h:                    13 W x 24 h  =  312 Wh
+>   A 12 V, eso es:             312 / 12     =   26 Ah/dia   SOLO LA CAMARA
+> ```
+>
+> **26 Ah al día por poste es una cifra que decide el tamaño de la batería y del panel**, y es del
+> mismo orden o mayor que todo lo demás del equipo junto. **No es un problema de este manual y no se
+> resuelve aquí**: se pone el número delante de quien dimensiona la energía, que es lo que §2.quater
+> de `CLAUDE.md` pide —**medir la causa antes de ofrecer opciones**—.
+>
+> ⚠️ **Lo que sí es una regla, y ya está escrita para el `ESP32`:** la cámara **NO cuelga del
+> `LM7805` de la tarjeta**. `1,08 A` por un regulador lineal de 12 a 5 V son **7,5 W de disipación**;
+> por el de 12 V no pasa, porque va directa a batería. Es la misma lección de la línea `A5` de la
+> lista de compras: **lo que consume de verdad se cuelga de la batería, no del regulador que mantiene
+> vivo al STM32 que gobierna el semáforo.**
+>
+> 🔵 **`13 W` es el MÁXIMO de la ficha, no el consumo medio** — incluye los IR a plena potencia de
+> noche. De día será menos. **Cuánto menos: 🔴 `SIN VERIFICAR`**, y se mide con una pinza
+> amperimétrica el día que la cámara esté montada, no antes.
+
+### 1.1.3 Óptica y alcance — lo único que hace falta para encuadrar la vía
+
+| qué | valor | nivel y fuente |
+|---|---|---|
+| **Resolución** | **8 MP, `3840 × 2160`**, sensor `1/2.8"` | 📖 **ESCRITO** — ficha, pág. 2 |
+| **Óptica** | **varifocal MOTORIZADA, `2,8 – 12 mm`**, `F1.6`, iris fijo | 📖 **ESCRITO** — ficha, pág. 2 |
+| **Campo de visión** | **horizontal `108°` a `30°`** · vertical `56°` a `17°` · diagonal `131°` a `35°` | 📖 **ESCRITO** — ficha, pág. 2 |
+| **DORI** *(a `2,8 mm` … a `12 mm`)* | **Detectar `97 – 290 m`** · Observar `38 – 115 m` · Reconocer `19 – 58 m` · Identificar `9 – 29 m` | 📖 **ESCRITO** — ficha, pág. 2 |
+| **Luz de apoyo** | **IR `850 nm`, alcance hasta `60 m`.** Tipo de luz suplementaria: **IR y sólo IR** | 📖 **ESCRITO** — ficha, pág. 2 |
+| **Intemperie** | **`IP67`**, **`IK10`**, **`-30 °C` a `+60 °C`** | 📖 **ESCRITO** — ficha, págs. 4 y 5 |
+| **Tamaño y peso** | **`308,5 × 97,9 × 93 mm`**, **`1.385 g`** | 📖 **ESCRITO** — ficha, pág. 4 |
+
+> 🟢 **Para lo que este equipo necesita, la óptica sobra y esa es toda la conclusión.** La demanda
+> vehicular sólo pregunta *«¿hay un vehículo esperando?»* — eso es **Detectar**, el escalón más bajo
+> del DORI, y a gran angular son **97 m**. Un carril de aproximación cabe entero.
+>
+> ✅ **Y hay una noticia vial buena, que además retira un paso de este manual: ESTA CÁMARA NO TIENE
+> LUZ BLANCA.** La ficha lista *Supplement Light Type: **IR***, sin fila de luz blanca ni ColorVu.
+> **No hay nada que desactivar y no hay riesgo de deslumbrar de frente a un conductor** — que era
+> justo lo que el §4 Paso 2 mandaba evitar. Ver el tachado allí.
+>
+> ⚠️ **Lo que el peso y el tamaño sí obligan a mirar, y no es cosa de este manual:** `1.385 g` y
+> `30,8 cm` en lo alto de un poste **móvil** son carga de viento y palanca. **El soporte no está
+> especificado en ningún documento de este proyecto: 🔴 `SIN VERIFICAR`.** Hikvision lista soportes
+> opcionales (`DS-1275ZJ-S-SUS` de poste vertical, `DS-1260ZJ` / `DS-1280ZJ-S` de caja de
+> conexiones) en la pág. 5 de la ficha.
+
+### 1.1.4 Analítica — qué trae, y cuál es la que debe disparar la demanda
+
+| qué | valor | nivel y fuente |
+|---|---|---|
+| **Perimeter Protection (*deep learning*)** | **Cruce de línea** (*Line Crossing*) y **Intrusión** (*Intrusion Detection*). *«Supports human and vehicle targets classification»* | 📖 **ESCRITO** — ficha, pág. 4 |
+| **Eventos básicos** | Detección de movimiento **con clasificación humano/vehículo**, sabotaje de vídeo, excepción | 📖 **ESCRITO** — ficha, pág. 3 |
+| **Otras analíticas del manual** | *Region Entrance*, *Region Exiting*, *Unattended Baggage*, *Object Removal*, detección de rostro | 📖 **ESCRITO** — manual, págs. 46-56 |
+| **Interfaces de integración** | ONVIF (Profile S y G), ISAPI, SDK · 1 × RJ45 10/100 | 📖 **ESCRITO** — ficha, pág. 3 |
+
+### 🎯 CUÁL DE LAS ANALÍTICAS ES LA NUESTRA — «hay alguien ESPERANDO», no «algo PASÓ por aquí»
+
+**Ésta es la pregunta que decide si el semáforo le da verde a un carril vacío**, y se contesta con
+las definiciones literales del manual oficial, no con criterio propio. **Lo que este equipo necesita
+saber es que hay un vehículo DETENIDO esperando paso** — porque las tres entradas de cámara acaban
+en `demanda_solicitar()` (✅ **MEDIDO** en el fuente, `botones.cpp:148`): *piden paso*.
+
+| analítica | qué dice el manual oficial que detecta | ¿es «esperando»? |
+|---|---|---|
+| **Detección de Intrusión** *(Intrusion Detection)* | *«objects **entering and loitering** in a predefined virtual region»*, y su regla `Threshold` es *«the threshold for the time of the object **loitering** in the region. If the time that one object **stays** exceeds the threshold, the alarm is triggered»* | ✅ **SÍ. Es la única que mide PERMANENCIA** |
+| Cruce de Línea *(Line Crossing)* | *«objects **crossing** a predefined virtual line»* | 🛑 **NO.** Es un evento de paso: dispara con el vehículo **que ya se fue** |
+| Región de Entrada *(Region Entrance)* | *«objects **entering** a predefined virtual region from the outside place»* | ⚠️ **A medias.** Dispara **al entrar**, sin exigir que se quede |
+| Región de Salida *(Region Exiting)* | *«objects **exiting** from a predefined virtual region»* | 🛑 **NO.** Es lo contrario de lo que se busca |
+| Detección de Movimiento *(básica)* | movimiento en una zona, con clasificación humano/vehículo | 🛑 **NO.** Un vehículo **detenido** deja de moverse y **dejaría de pedir paso** |
+
+> ✅ **DECISIÓN, Y ESTÁ RAZONADA SOBRE LA FUENTE: `DETECCIÓN DE INTRUSIÓN`.** No es la que traía este
+> manual por casualidad ni por costumbre: **es la única de las cinco cuyo parámetro de regla mide el
+> TIEMPO QUE EL OBJETO SE QUEDA.** Esa palabra —*loitering*, permanecer— es exactamente *«hay un
+> vehículo esperando»*, y es lo que separa una demanda real de un coche que pasó de largo.
+>
+> 🛑 **Y por eso la Detección de Movimiento básica queda descartada aunque tenga el clasificador de
+> vehículo:** el movimiento **cesa cuando el coche frena**. Una demanda que se apaga justo cuando el
+> vehículo termina de detenerse es la peor de todas — pediría paso al que pasa y no al que espera.
+>
+> 🔴 **Lo que queda abierto de esta elección, y no es la elección: el CLASIFICADOR.** El manual
+> oficial documenta `Detection Target` (☑ Vehículo / ☐ Humano) en *Line Crossing*, *Region Entrance*
+> y *Region Exiting*, **y no lo lista en `Set Intrusion Detection`** (págs. 48-49), cuyas reglas
+> publicadas son sólo `Sensitivity` y `Threshold`. **Pero la ficha del modelo sí afirma que la
+> Perimeter Protection —cruce de línea E intrusión— *«supports human and vehicle targets
+> classification»* (pág. 4).** Las dos fuentes oficiales no dicen lo mismo.
+>
+> **Cómo se resuelve, y cuesta un minuto con la cámara delante:** al configurar la regla de intrusión
+> se **mira si la casilla `Detection Target` está**. Si está, se marca ☑ Vehículo y se acabó. Si no
+> está, **hay una decisión vial que NO se toma en este manual** y que se le lleva al responsable, con
+> las dos opciones ya medidas: quedarse en intrusión sin filtro *(un peatón parado en el arcén
+> pediría paso)* o irse a *Region Entrance* con filtro de vehículo *(no exige permanencia)*. **Lo que
+> decide entre las dos es el `ENSAYO 2`, que ya está escrito en §6.**
 
 ---
 
@@ -313,18 +593,129 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 [ PASO 1: Red y Acceso ] ──► [ PASO 2: Óptica y Luz ] ──► [ PASO 3: Analítica AcuSense ] ──► [ PASO 4: Salida Relé ]
 ```
 
-### Paso 1: Acceso Inicial
-1. Conectar la cámara por cable Ethernet a una laptop con el software *Hikvision SADP* o navegador web.
-2. Asignar contraseña segura y fijar IP estática de taller (ej. `192.168.1.61` para Cámara 1, `.62` para Cámara 2, etc.).
+> ## 📖 DE DÓNDE SALE CADA PANTALLA DE ESTE APARTADO (05/09/2026)
+>
+> **Todo el paso a paso de abajo está contrastado, pantalla por pantalla, contra el manual de usuario
+> oficial de esta cámara.** No está escrito «de memoria de cómo son las Hikvision»:
+>
+> | | |
+> |---|---|
+> | **Documento** | **`UD28967B-C_Network-Camera_User-Manual_5.7.20_20240131.PDF`** — *Network Camera User Manual*, 110 páginas |
+> | **De dónde** | `hikvision.com`, pestaña **Resources → Technical documents → User Manual** de la página de producto de la `DS-2CD2683G2-IZS`. Descargado el **05/09/2026** |
+> | **Complementos** | Ficha `DS-2CD2683G2-IZS_Datasheet_V5.5.113_20230303.pdf` · Guía rápida `UD40284B_..._20241115.pdf` |
+>
+> **Cada paso lleva su página.** Y lo que **no** se ha podido confirmar contra ese documento lleva
+> escrito **`SIN VERIFICAR`** con esas palabras — **no se ha rellenado con lo que parecía razonable**,
+> porque quien lea esto va a estar delante de la cámara dando por hecho que alguien lo comprobó.
+>
+> ⚠️ **Los nombres de menú van en inglés y en español.** El manual oficial está en inglés; la interfaz
+> web de la cámara tiene español entre sus 33 idiomas (ficha, pág. 4), **pero la traducción exacta de
+> cada rótulo es 🔴 `SIN VERIFICAR`**. Si un rótulo en español no aparece tal cual, **manda el
+> inglés**, que es el que sale del documento.
+
+### Paso 0: ANTES DE NADA — comprobar que la analítica puede accionar el relé
+
+> 🛑 **Este paso es nuevo (05/09) y va el primero porque puede ahorrar todo el resto.** Ver el bloque
+> 🔴 de la cabecera: **que la regla de intrusión se pueda enlazar a la salida de alarma es
+> `SIN VERIFICAR`**, y si no se puede, el diseño de `J16` no sirve y hay que parar y avisar.
+
+1. Alimentar la cámara y entrar por navegador (Paso 1).
+2. Ir a **`Configuration → Event → Smart Event → Intrusion Detection`**
+   *(Configuración → Evento → Evento Inteligente → Detección de Intrusión)*.
+   **Manual, pág. 48.** En algunos modelos la ruta es **`VCA → Smart Event → Intrusion Detection`** —
+   *el propio manual da las dos*, así que si una no existe, se prueba la otra.
+3. Marcar **`Enable`** y bajar hasta **`Linkage Method`** *(Método de Vinculación)*.
+4. **MIRAR SI EXISTE LA CASILLA `Trigger Alarm Output`** *(Disparar Salida de Alarma)*.
+   * **Si está** → el diseño vale entero. Seguir con el Paso 1.
+   * **Si NO está** → 🛑 **PARAR Y AVISAR.** No se cablea la cámara a `J16`: no serviría.
+
+> ⚠️ **Y una condición previa que el manual avisa y es fácil de pasar por alto:** *«For certain device
+> models, you need to **enable the smart event function on VCA Resource page** first»* (**pág. 48**).
+> Si *Intrusion Detection* no aparece o aparece en gris, ir a **`VCA → VCA Resource`** —o
+> **`Configuration → System → System Settings → VCA Resource`**— **habilitar la función y guardar**
+> (**pág. 85**). El manual advierte además que *«certain VCA functions are mutually exclusive»*:
+> **activar una analítica puede apagar otra**, así que se habilita **sólo la de intrusión**.
+
+### Paso 1: Acceso Inicial y Activación
+
+**Manual, capítulo 1 «Device Activation and Accessing», págs. 1-2.**
+
+1. Conectar la cámara por **cable Ethernet** (1 × RJ45 10/100) a un portátil **en la misma subred**.
+2. Ejecutar **SADP** *(descargable de `hikvision.com`)* y **buscar los dispositivos en línea**.
+3. Seleccionar la cámara en la lista e **introducir la contraseña de administrador**, dos veces.
+   > 🛑 **Requisito literal del manual:** *«a minimum of 8 characters, including upper case letters,
+   > lower case letters, numbers, and special characters»*. **Una cámara sin activar no se configura**
+   > — es el primer paso obligatorio, no una recomendación de seguridad.
+4. Pulsar **`Activate`**. El estado pasa a **`Active`**.
+5. **Fijar la IP de taller:** seleccionar el equipo, cambiar la IP a la subred del portátil *(o marcar
+   `Enable DHCP`)*, escribir la contraseña de administrador y pulsar **`Modify`**.
+   * Sugerencia de reparto, **que es una convención de este proyecto y no del fabricante**:
+     `192.168.1.61` la cámara del Maestro, `192.168.1.62` la del Esclavo.
+
+> 🔵 **Alternativas documentadas, por si no hay SADP a mano:** activación **por navegador web**
+> (pág. 3) o con **iVMS-4200** (pág. 2). Las tres valen y están en el mismo capítulo.
+>
+> 🟢 **La IP es SÓLO de taller.** Una vez configurada, **la cámara habla con el semáforo por el
+> contacto seco, no por red**: en el poste no hay switch, ni router, ni cable de datos. La red se usa
+> el día que se parametriza y nunca más.
 
 ### Paso 2: Ajuste Óptico y Nocturno
-1. Ir a **Configuración > Imagen > Pantalla**:
-   * **Zoom:** Ajustar en **Gran Angular Máximo (2.7 mm)** para obtener el campo de visión máximo ($102.4^\circ$).
-   * **Enfoque:** Presionar **One-Touch Focus** (Autofoco).
-   * **Precintar:** No volver a mover el zoom.
-2. Ir a **Configuración > Imagen > Ajustes de Luz Suplementaria**:
-   * **Modo de Luz:** Seleccionar **Solo IR (Infrarrojo 850 nm)**.
-   * **Luz Blanca:** **DESACTIVADA** (evita deslumbrar de frente a los conductores en carretera).
+
+#### 2.a — Zoom y enfoque
+
+~~1. Ir a **Configuración > Imagen > Pantalla**: **Zoom:** Ajustar en **Gran Angular Máximo (2.7 mm)** para obtener el campo de visión máximo ($102.4^\circ$). **Enfoque:** Presionar **One-Touch Focus** (Autofoco).~~
+
+⛔ **RETIRADO EL 05/09, y por tres motivos distintos, cada uno con su fuente:**
+
+| lo que decía | qué pasa de verdad |
+|---|---|
+| *«Configuración > Imagen > Pantalla»* para el zoom | **Ahí no está.** `Configuration → Image → Display Settings` (**pág. 24**) es brillo, contraste y WDR. **El zoom y el foco se mueven desde la vista en vivo**, en *Lens Parameters Adjustment* (**pág. 14**) |
+| *«2.7 mm»* y *«102.4°»* | **No son de esta cámara.** La `DS-2CD2683G2-IZS` es **`2,8 – 12 mm`** con **FOV horizontal `108°` a `30°`** *(ficha, pág. 2)*. Eran las cifras del modelo de referencia que se retiró de la cabecera |
+| *«One-Touch Focus»* | 🔴 **Ese rótulo NO aparece en el manual.** Lo que sí está documentado es **`Auxiliary Focus`** *(Enfoque Auxiliar)* y **`Lens Initialization`** *(Inicialización de Lente)*, **pág. 13** |
+
+**El procedimiento correcto:**
+
+1. Desde la **vista en vivo**, abrir la **página de ajuste rápido** y usar **`Lens Parameters
+   Adjustment`** *(Ajuste de Parámetros de Lente)* — **manual, pág. 14**:
+   * **`Zoom`:** llevarlo al **gran angular máximo (`2,8 mm`)**, que da el campo de visión más ancho:
+     **`108°` horizontal** *(ficha, pág. 2)*. Es lo que permite mover el semáforo de sitio sin
+     reencuadrar — ver §3.
+   * **`Focus`:** ajustar hasta ver nítida la zona donde se detendrán los vehículos.
+2. Si no enfoca bien, usar **`Auxiliary Focus`** *(pág. 13)*. Y si sigue sin enfocar, el manual manda
+   este orden exacto: **`Lens Initialization` primero, y después `Auxiliary Focus` otra vez**.
+3. **No volver a mover el zoom.** *(Precinto: es una práctica de este proyecto, no del fabricante.)*
+4. 🔵 **Opcional, y lo documenta el manual:** `Configuration → PTZ` → ☑ **`Enable PTZ Lock`**
+   (**pág. 14**) **bloquea zoom y foco**, para que una pulsación accidental no desencuadre la vía.
+
+> 🟢 **La óptica sobra para esta tarea, y está medido en la ficha:** para saber si *hay* un vehículo
+> basta el escalón **Detectar** del DORI, que a `2,8 mm` alcanza **`97 m`** *(ficha, pág. 2)*.
+
+#### 2.b — Luz nocturna
+
+~~2. Ir a **Configuración > Imagen > Ajustes de Luz Suplementaria**: **Modo de Luz:** Seleccionar **Solo IR**. **Luz Blanca:** **DESACTIVADA** (evita deslumbrar de frente a los conductores en carretera).~~
+
+⛔ **RETIRADO EL 05/09 — la ruta era otra, y la mitad del paso no existe en esta cámara:**
+
+| lo que decía | qué pasa de verdad |
+|---|---|
+| *«Configuración > Imagen > Ajustes de Luz Suplementaria»* | La ruta documentada es **`Configuration → System → System Settings → External Device`**, apartado *Supplement Light Settings* — **manual, págs. 77-78** |
+| *«**Luz Blanca: DESACTIVADA**»* | ✅ **NO HAY LUZ BLANCA QUE DESACTIVAR.** La ficha lista *Supplement Light Type: **IR***, sin fila de luz blanca ni ColorVu *(pág. 2)*. El manual describe los modos `IR / White Light / Mix / Off` **como opciones genéricas de la gama** *(pág. 77)*, y avisa: *«**When the device supports supplement light**, you can select supplement light mode»* |
+
+**El procedimiento correcto:**
+
+1. Ir a **`Configuration → System → System Settings → External Device`** *(pág. 78)*.
+2. **`Supplement Light Mode`** *(Modo de Luz Suplementaria)*: dejarlo en **`IR Mode`**.
+   * 🔵 **Si el desplegable no aparece, no es un fallo:** esta cámara **sólo tiene IR** y puede no
+     ofrecer la elección. **IR `850 nm`, alcance hasta `60 m`** *(ficha, pág. 2)*.
+3. **`Smart Supplement Light`**: **dejarlo activado**. El manual lo define como *«avoids over exposure
+   when the supplement light is on»* *(pág. 77)* — evita que un vehículo cercano salga quemado de
+   noche y deje de clasificarse.
+4. **`Brightness Adjustment Mode`**: **`Auto`** *(pág. 78)*.
+
+> ✅ **Y ésta es una buena noticia vial que conviene dejar escrita:** al no haber luz blanca,
+> **esta cámara NO PUEDE deslumbrar de frente a un conductor**. El riesgo que el texto viejo trataba
+> de evitar **no existe en este modelo** — no por haberlo configurado bien, sino porque el hardware
+> no lo lleva.
 
 ### Paso 3: Configuración de la Analítica Inteligente
 
@@ -334,17 +725,57 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 >
 > **No configure ninguna con *Detección de Cruce de Línea*.** El bloque de *«Cámaras 2 y 4
 > (Umbral)»* de más abajo queda tachado: describe una función que no existe en este equipo.
+>
+> ✅ **Y la analítica elegida —`Detección de Intrusión`— está razonada sobre la definición literal del
+> fabricante, no por costumbre: es la única cuya regla mide el TIEMPO QUE EL VEHÍCULO SE QUEDA**, que
+> es lo que distingue *«hay uno esperando»* de *«pasó uno»*. **La comparación de las cinco analíticas
+> está en §1.1.4** y conviene leerla antes de cambiar nada aquí.
 
 #### Para TODAS las cámaras (Demanda de Cola - Aproximación):
-1. Ir a **Configuración > Eventos > Evento Inteligente > Detección de Intrusión** (*Intrusion Detection*).
-2. Marcar ☑ **Habilitar** (*Enable*).
-3. **Dibujar Región:** Dibujar un rectángulo amplio que cubra el **90% del encuadre inferior y central** (zona donde se detendrán los vehículos).
-4. **Parámetros:**
-   * **Tiempo de Permanencia (*Threshold*):** Configurar en **`1s`**.
-   * **Sensibilidad (*Sensitivity*):** Configurar en **`50`**.
-5. **Clasificación de Objetivo (*Detection Target*):**
-   * ☑ **Vehículo (*Vehicle*)**
-   * ☐ **Humano (*Human*)** *(Desmarcado: ignora peatones, ramas, lluvia y sombras)*.
+
+**Manual, *Set Intrusion Detection*, págs. 48-49.** Los pasos van en el orden del manual.
+
+1. Ir a **`Configuration → Event → Smart Event → Intrusion Detection`**
+   *(Configuración → Evento → Evento Inteligente → Detección de Intrusión)*.
+   En algunos modelos la ruta es **`VCA → Smart Event → Intrusion Detection`**: **el manual da las
+   dos** y no dice cuál corresponde a ésta — se prueba la primera y si no está, la segunda.
+   > ⚠️ Si la opción no aparece, **habilitarla antes en `VCA Resource`** — ver el Paso 0.
+2. Marcar ☑ **`Enable`** *(Habilitar)*.
+3. **Seleccionar la región** y dibujarla con **`Draw Area`**: un polígono amplio que cubra el
+   **encuadre inferior y central**, donde se detienen los vehículos. *(El «90 %» es un criterio de
+   este proyecto —ver §3, la regla de oro de movilidad—, no una cifra del fabricante.)*
+4. **`Size Filter`** *(filtro de tamaño)* — **paso 4 del manual, y este manual no lo tenía**:
+   fijar **tamaño mínimo y máximo** del objetivo. El manual: *«Only targets whose size are between
+   the maximum size and the minimum size trigger the detection»*.
+   > 🟢 **Es la herramienta contra los falsos disparos**, y aquí vale doble: un mínimo por encima de
+   > una persona **descarta peatones por TAMAÑO**, sin depender del clasificador —que es justo lo que
+   > está `SIN VERIFICAR` para esta analítica—. **Se ajusta con el `ENSAYO 2` delante.**
+5. **Reglas** *(paso 5 del manual)*:
+   * **`Threshold`** *(Tiempo de Permanencia)*: **`1 s`**. Definición literal: *«the threshold for the
+     time of the object **loitering** in the region. If the time that one object **stays** exceeds the
+     threshold, the alarm is triggered»*. **Es el parámetro que convierte «pasó» en «está
+     esperando»**, y **suma al retardo total** — ver el Paso 4.
+   * **`Sensitivity`** *(Sensibilidad)*: **`50`**. Definición literal: *«Sensitivity = 100 − S1/ST ×
+     100»*, donde `S1` es la parte del objetivo que entra en la región y `ST` el objetivo completo.
+     **A `50`, medio vehículo dentro de la zona ya dispara.**
+     > 🔵 **`1 s` y `50` son los valores de partida de ESTE proyecto**, no una recomendación del
+     > fabricante: 🔴 **`SIN VERIFICAR` contra una cámara real.** Se afinan con los ensayos del §6.
+   * **`Detection Target`** *(Clasificación de Objetivo)*: **☑ Vehículo · ☐ Humano**.
+     > 🔴 **`SIN VERIFICAR` QUE ESTA CASILLA EXISTA EN ESTA ANALÍTICA.** El manual la documenta en
+     > *Line Crossing*, *Region Entrance* y *Region Exiting*, **y no la lista en `Set Intrusion
+     > Detection`** — mientras la ficha afirma que la Perimeter Protection *«supports human and
+     > vehicle targets classification»* *(pág. 4)*. **Si la casilla está, se marca. Si no está, se
+     > anota y se avisa**, y se compensa con el `Size Filter` del punto 4 hasta que el responsable
+     > decida. Ver §1.1.4.
+6. **`Arming Schedule`** *(Programación Horaria)* — **paso 7 del manual, y este manual NO lo tenía**:
+   > 🛑 **DEJARLA EN 24 × 7. Es obligatorio y es fácil de olvidar.** La programación horaria es *«the
+   > valid time of the device tasks»* (**pág. 67**): **fuera de ella la cámara NO dispara**. Un
+   > semáforo que deja de aceptar demanda de madrugada porque nadie miró esta pantalla es un fallo de
+   > calle que **ningún ensayo de taller de día encontraría**. Se arrastra la barra hasta cubrir los
+   > siete días completos.
+7. **`Linkage Method`** *(Método de Vinculación)*: ☑ **`Trigger Alarm Output`** — se detalla en el
+   **Paso 4**, porque es donde está el punto delicado.
+8. Pulsar **`Save`** *(Guardar)*.
 
 #### ~~Para Cámaras 2 y 4 (Umbral de Cruce de Tramo):~~ ⛔ NO SE CONFIGURA ASÍ NINGUNA CÁMARA
 1. ~~Ir a **Configuración > Eventos > Evento Inteligente > Detección de Cruce de Línea** (*Line Crossing Detection*).~~
@@ -364,9 +795,39 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 ### Paso 4: Configuración de la Salida de Relé (Contacto Seco)
 
 > 🟢 **04/09 — LA SALIDA VA EN `NO`, EN LAS TRES ENTRADAS, Y YA NO DEPENDE DE NINGUNA MEDIDA
-> PENDIENTE.** La salida de la AcuSense **es configurable `NO`/`NC`**, así que se elige **qué estado
-> significa demanda sin tocar placa ni firmware**; lo que decide cuál es la correcta **es el cobre**,
-> y el cobre está medido.
+> PENDIENTE.** ~~La salida de la AcuSense **es configurable `NO`/`NC`**~~, así que se elige **qué
+> estado significa demanda sin tocar placa ni firmware**; lo que decide cuál es la correcta **es el
+> cobre**, y el cobre está medido.
+>
+> ### ⛔ 05/09 — LA FRASE TACHADA ARRIBA SE CAE: `NO`/`NC` CONFIGURABLE ES 🔴 `SIN VERIFICAR`
+>
+> **Lo que sigue en pie:** *«lo que decide cuál es la correcta es el cobre, y el cobre está medido»*.
+> **`M3` y el paso 21 no se tocan** — el pull-down de 10 kΩ es real y el equipo necesita que el
+> contacto **CIERRE** para leer ALTO. **La necesidad es la misma; lo que se cae es dar por hecho que
+> la cámara deja elegirlo.**
+>
+> | fuente oficial de la `DS-2CD2683G2-IZS` | qué dice sobre `NO`/`NC` de la SALIDA |
+> |---|---|
+> | Ficha, pág. 3, fila *Alarm* | `1 input, 1 output (max. 24VDC/24 VAC, 1 A)` — **y nada más** |
+> | Manual, *Set Alarm Input*, pág. 44 | el desplegable **`Alarm Type`** existe… **para la ENTRADA**: *«Select Alarm Input NO. and **Alarm Type** from the dropdown list»* |
+> | Manual, *Automatic Alarm*, pág. 68 | los únicos parámetros de la **SALIDA** son **`Alarm Output No.`**, **`Alarm Name`** y **`Delay`** |
+> | Las 110 páginas del manual | **`Normally Open` / `Normally Closed` no aparecen ni una sola vez** |
+>
+> 🔎 **Y el buscador está descartado (`CLAUDE.md` §4):** `Alarm Type` **sí** se encuentra en el PDF, y
+> una búsqueda de `"NO/NC"` limitada a `hikvision.com` devuelve fichas donde el fabricante lo escribe
+> sin ambigüedad —*«4 Relay Outputs(NO/NC)»* en sus radares y centrales—. **Hikvision sabe escribir
+> `NO/NC` cuando lo hay. En la ficha de esta cámara no está.**
+>
+> 🟢 **Por qué esto NO bloquea el montaje, y es importante entenderlo:** el diseño necesita
+> **`NO` — abierto en reposo, cerrado al detectar**, que es el comportamiento natural de una salida de
+> alarma. **Lo más probable es que ya sea así de fábrica y no haya nada que elegir.** Pero *probable*
+> no es *medido*, y esto se comprueba **en diez segundos con un multímetro**, sin abrir un menú:
+> **es el `ENSAYO 1` del §6, que ya está escrito.**
+>
+> | lo que dé el `ENSAYO 1` en REPOSO | qué significa | qué se hace |
+> |---|---|---|
+> | **circuito ABIERTO** *(sin pitido)* | la salida es **`NO`**. **Es lo que este diseño necesita** | ✅ **Nada. Se sigue.** |
+> | **circuito CERRADO** *(pita en reposo)* | la salida se comporta como **`NC`** | 🛑 **Se para.** Buscar `Alarm Type` en la pantalla de salida; **si no existe la opción, el pin nacería ALTO** y —por la siembra de `camaras_sembrar()`— **no habría flanco hasta que el relé abriera y cerrara otra vez**. Es la inversión que costó `N-67`. **Se avisa antes de cablear** |
 >
 > | destino | reposo del pin lo fija | cómo se cablea el contacto | configuración |
 > |---|---|---|---|
@@ -395,14 +856,74 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 > son 9,93 y 9,94 kΩ. **Y el paso 21 lo confirmó por el otro lado:** en reposo, con y sin el cable
 > puesto, **el equipo no pide paso por sí solo** — cero demandas fantasma.
 
-1. Ir a **Configuración > Eventos > Salida de Alarma** (*Alarm Output*):
-   * **Salida:** `Alarma 1` (Bornes físicos `1A` y `1B`).
-   * **Estado por Defecto:** **`NO` (Normally Open / Normalmente Abierto)**.
-   * **Duración del Pulso:** **`1s`** (un segundo).
-2. Ir a la pestaña **Método de Vinculación (*Linkage Method*)** del evento inteligente configurado y marcar:
-   * ☑ **Disparar Salida de Alarma 1** (*Trigger Alarm Output*).
-3. **DESARMAR EVENTOS BÁSICOS:** Ir a *Detección de Movimiento básica*, *Sabotaje de Video* y *Excepción* y asegurarse de que la casilla "Disparar Salida de Alarma" esté **desmarcada**. *(Una salida = Un significado único de vehículo)*.
-4. Hacer clic en **Guardar** (*Save*).
+**Manual, *Alarm Output* y *Automatic Alarm*, págs. 67-68. Los rótulos van tal como salen del manual.**
+
+1. Ir a **`Configuration → Event → Basic Event → Alarm Output`**
+   *(Configuración → Evento → Evento Básico → Salida de Alarma)* — **manual, pág. 67**.
+   Configurar la **`Automatic Alarm`** *(Alarma Automática)* — **pág. 68**:
+   * **`Alarm Output No.`** *(N.º de Salida)*: **`A->1`**, la única que tiene esta cámara
+     *(ficha: `1 output`)*. Son los bornes físicos **`1A`** y **`1B`** *(Guía rápida, pág. 8)*.
+   * **`Alarm Name`** *(Nombre)*: libre. Sugerencia: `DEMANDA`.
+   * **`Delay`** *(Retención del relé)*: **el valor MÁS CORTO que ofrezca el desplegable**, idealmente
+     **`1 s`**. Ver el bloque ⏱️ de abajo — **es el parámetro delicado de toda esta pantalla**.
+   * **`Arming Schedule`**: **24 × 7**, igual que en el Paso 3 y por el mismo motivo.
+   * ~~**Estado por Defecto:** **`NO` (Normally Open / Normalmente Abierto)**~~
+     ⛔ **RETIRADO: ese campo NO está documentado para la salida.** Ver el bloque ⛔ de arriba. **Lo
+     que hay que hacer en su lugar es MEDIR el reposo con el `ENSAYO 1`.**
+2. Volver a la regla de **`Intrusion Detection`** del Paso 3, ir a **`Linkage Method`**
+   *(Método de Vinculación)* y marcar ☑ **`Trigger Alarm Output`** *(Disparar Salida de Alarma)* —
+   **manual, pág. 67**.
+   > 🔴 **Éste es el punto que el Paso 0 manda comprobar antes que nada.** El manual advierte
+   > *«**This function is only supported by certain models**»*, y la fila *Linkage Method* de la ficha
+   > de este modelo **no menciona la salida de alarma**. **Si la casilla no está, se para y se
+   > avisa** — el diseño de `J16` dependería de otro camino.
+3. **DESARMAR LOS EVENTOS BÁSICOS.** Entrar uno por uno y **dejar `Trigger Alarm Output`
+   DESMARCADO** *(una salida = un único significado: «hay un vehículo esperando»)*:
+   * **`Configuration → Event → Basic Event → Motion Detection`** *(pág. 40)*
+   * **`Configuration → Event → Basic Event → Video Tampering`** *(pág. 43)*
+   * **`Configuration → Event → Basic Event → Exception`** *(pág. 43)*
+   > 🛑 **No es cosmética.** *Exception* salta, entre otras, con **pérdida de red o de disco**: si
+   > estuviera enlazada al relé, **el semáforo recibiría una demanda de paso cada vez que la cámara
+   > tuviera un problema interno**. Una avería de la cámara no es un vehículo esperando.
+4. Pulsar **`Save`** *(Guardar)* en cada pantalla.
+
+> ## ⏱️ CUÁNTO TARDA Y CUÁNTO DURA EL CONTACTO — y por qué esto le importa al firmware
+>
+> **El firmware detecta el FLANCO DE SUBIDA, no el nivel** (✅ **MEDIDO**: `camaras_actualizar()`,
+> `Maestro/src/botones.cpp:144-152`). **Un contacto que se queda pegado NO vuelve a pedir paso hasta
+> que se suelte y cierre otra vez.** De ahí que la retención del relé no sea un detalle.
+>
+> ### Lo que tarda en cerrar
+>
+> | tramo | valor | nivel |
+> |---|---|---|
+> | Vehículo entra en la zona → **la analítica lo da por válido** | **≥ el `Threshold` configurado** — con `1 s`, **un segundo como mínimo**. Es su definición literal: la alarma salta cuando *«the time that one object stays exceeds the threshold»* | 📖 **ESCRITO** — manual, pág. 49 |
+> | La analítica dispara → **el contacto cierra** | 🔴 **SIN VERIFICAR.** El manual **no publica** el retardo interno de la salida de alarma | 🔴 |
+> | **Total detección → contacto cerrado** | 🔴 **SIN VERIFICAR**, pero **no menor que el `Threshold`** | — |
+>
+> 🟢 **No es crítico, y conviene decirlo para que nadie lo persiga:** el equipo responde a una demanda
+> con un ciclo de **amarillo `4 s` + despeje todo-rojo** por delante. **Un retardo de uno o dos
+> segundos en el contacto se pierde dentro de eso.** Lo que sí importa es que el contacto **suelte**.
+>
+> ### Lo que dura cerrado — el `Delay`, y sus tres casos
+>
+> **`Delay`** está documentado —*«the time duration that the alarm output remains after an alarm
+> occurs»*, manual pág. 68—, **pero el manual NO publica los valores del desplegable**:
+> 🔴 **que `1 s` esté disponible es `SIN VERIFICAR`.**
+>
+> | si el `Delay` disponible es… | qué pasa en el equipo |
+> |---|---|
+> | **`1 s` – `3 s`** | ✅ **Ideal.** Cada vehículo que espera da su flanco. El firmware ya ignora repeticiones dentro de **`3 000 ms`** (`SILENCIO_MS`, `demanda.cpp:8` — ✅ **MEDIDO**), así que **por debajo de 3 s el valor exacto da igual** |
+> | **`5 s` – `30 s`** | ⚠️ **Funciona, con menos finura.** El contacto tarda en soltarse, así que **una cola de vehículos produce UNA demanda por cada `Delay`** en vez de una por vehículo. **No es peligroso** —el ciclo ya tiene sus mínimos— pero **el carril tarda más en volver a pedir paso**. Se anota el valor real en la ficha de ensayo |
+> | **`Manual`** *(el manual lo lista como opción, pág. 68)* | 🛑 **NO SE USA JAMÁS.** El relé **se queda cerrado hasta que alguien lo borre a mano** desde el navegador. El pin quedaría ALTO para siempre, **no habría un solo flanco más**, y el equipo **dejaría de recibir demanda de ese carril sin dar ningún síntoma** |
+>
+> 🔴 **Y un hallazgo que sale de cruzar esto con el firmware, y que hay que dejar por escrito:** el
+> comentario que justifica los `3 000 ms` de `SILENCIO_MS` dice *«el rele de la camara AcuSense cierra
+> ~1 s por deteccion»* (`Maestro/src/demanda.cpp:4-7`). **Ese «~1 s» es exactamente el dato que acaba
+> de quedar `SIN VERIFICAR`**: una constante del firmware apoyada en un comportamiento de la cámara
+> que nadie ha medido nunca. **No se toca el firmware por esto** —los tres casos de la tabla lo
+> aguantan— pero **el `ENSAYO 1` tiene que anotar el número real**, y si no sale `~1 s`, ese
+> comentario hay que corregirlo.
 
 ---
 
@@ -426,14 +947,32 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
  │                         BANCO DE PRUEBAS EN TALLER                          │
  ├─────────────────────────────────────────────────────────────────────────────┤
  │                                                                             │
- │ • ENSAYO 1: CONTINUIDAD DEL RELÉ                                            │
- │   - Conectar multímetro en modo continuidad en los bornes 1A y 1B.          │
+ │ • ENSAYO 1: CONTINUIDAD DEL RELE                                            │
+ │   - Conectar multimetro en modo continuidad en los bornes 1A y 1B.          │
  │   - Reposo: Circuito abierto (sin pito).                                    │
- │   - Al pasar una maqueta o vehículo: Pita exactamente 1 segundo y se abre.  │
+ │   - Al pasar una maqueta o vehiculo: cierra y vuelve a abrir.               │
+ │                                                                             │
+ │   >>> ESTE ENSAYO CIERRA TRES "SIN VERIFICAR". SE ANOTAN LOS TRES: <<<      │
+ │                                                                             │
+ │   [ 1 ] EN REPOSO EL CONTACTO ESTA:   [ ] ABIERTO -> es NO, correcto        │
+ │                                       [ ] CERRADO -> PARAR Y AVISAR (ver 4) │
+ │   [ 2 ] EL PULSO DURA:  ______ segundos   (medidos, no supuestos)           │
+ │         Si no son ~1 s, hay que corregir el comentario de demanda.cpp:4-7   │
+ │   [ 3 ] VALORES QUE OFRECE EL DESPLEGABLE "Delay": ____________________     │
+ │         Si la lista incluye "Manual", NO SE ELIGE NUNCA (ver 4).            │
  │                                                                             │
  │ • ENSAYO 2: INMUNIDAD A PEATONES                                            │
  │   - Una persona camina o salta frente al lente.                             │
- │   - Criterio: El relé permanece ABIERTO (cero falsos disparos).             │
+ │   - Criterio: El rele permanece ABIERTO (cero falsos disparos).             │
+ │                                                                             │
+ │   >>> Y ES EL QUE DECIDE SI HACE FALTA EL CLASIFICADOR: <<<                 │
+ │                                                                             │
+ │   [ 4 ] LA CASILLA "Detection Target" EN INTRUSION:                         │
+ │             [ ] SI ESTA -> marcar Vehiculo, desmarcar Humano. Repetir.      │
+ │             [ ] NO ESTA -> subir el MINIMO del Size Filter hasta que el     │
+ │                            peaton deje de disparar, y anotar el valor.      │
+ │             Si ni aun asi para de disparar: NO SE INSTALA. Se avisa: la     │
+ │             demanda por peaton da verde a un carril sin vehiculos.          │
  │                                                                             │
  │ • ENSAYO 3: CONMUTACION EN SEMAFORO                                         │
  │   ~~- Conectar 1A/1B al pin PB0 y GND de la tarjeta STM32.~~  <-- ANULADO   │
@@ -507,7 +1046,38 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 | ~~Que `R65`–`R68` estén montadas y la polaridad de `J16` sea la del netlist~~ | 🟢 **MEDIDO EN BANCO el 04/09 — `M3` CERRADA** (paso 20): `p10` **9,93 kΩ**, `p12` **9,94 kΩ** a masa, los dos a **0 V** con energía. Pull-**DOWN** real ⇒ **activo en ALTO**. ~~🔴 NO VERIFICADO, pendiente~~ |
 | Que en reposo el equipo **no pida paso solo**, con y sin el cable puesto | ✅ **MEDIDO EN BANCO el 04/09** (paso 21): **cero falsas activaciones** |
 | Que las cinco entradas de campo van **desnudas** al pin del STM32 y que `J16` p1 lleva **12 V crudos** | ✅ **MEDIDO EN BANCO el 04/09.** Es un **defecto de diseño de la V1**, no una advertencia de manual: se mitiga tapando el p1, y se corrige en la **V2** |
-| Los parámetros de la AcuSense (zona, umbral 1 s, sensibilidad 50, clasificador) | 📖 **LEÍDO** del manual del fabricante. **No verificado contra una cámara de este proyecto** |
+| ~~Los parámetros de la AcuSense (zona, umbral 1 s, sensibilidad 50, clasificador)~~ | ⛔ **Fila sustituida el 05/09 por el bloque de abajo, que la desglosa**: decía «LEÍDO del manual del fabricante» cuando **el manual del fabricante no se había abierto** — las cifras venían de un modelo de referencia distinto |
+
+> ### 📷 05/09 — LA CÁMARA REAL, CLAIM A CLAIM: `DS-2CD2683G2-IZS`
+>
+> **Ninguna fila de aquí abajo ha tocado una cámara.** Todo lo que dice `ESCRITO` sale de un documento
+> oficial de Hikvision que se puede abrir y comprobar; todo lo que dice `SIN VERIFICAR` **no lo dice
+> ninguna fuente**, y no se ha rellenado.
+>
+> | lo que este manual afirma | nivel y fuente |
+> |---|---|
+> | **La cámara TIENE salida de alarma por contacto seco** — `1 input, 1 output` | 📖 **ESCRITO** — ficha `V5.5.113`, pág. 3. **Es lo que sostiene todo el cableado a `J16`** |
+> | Los bornes son **`1A`/`1B`** (salida) e `IN1`/`GND1` (entrada) | 📖 **ESCRITO** — Guía rápida `UD40284B`, pág. 8 |
+> | **Régimen del contacto: `24 V DC` / `24 V AC`, `1 A` máx.** — sobra frente a los `3,3 V` / `330 µA` que le pide el equipo | 📖 **ESCRITO** — ficha, pág. 3 · la comparación es una **cuenta**, con sus dos entradas a la vista en §1.1.1 |
+> | **Corriente MÍNIMA de conmutación y material del contacto** — importa porque `330 µA` es régimen de *carga seca* | 🔴 **SIN VERIFICAR.** La ficha no lo publica. **No bloquea** (el paso 21 funcionó), pero es pregunta para quien firme la V2 |
+> | **Que la regla de intrusión pueda ENLAZARSE a la salida de alarma** | 🔴 **SIN VERIFICAR, y es el eslabón que decide el diseño.** El manual documenta `Trigger Alarm Output` (pág. 67) con la nota *«only supported by certain models»*, y **la fila *Linkage Method* de la ficha (pág. 4) no lo menciona**. Lo cierra el **Paso 0** en diez minutos |
+> | **Que la salida sea `NO`/`NC` configurable** | 🔴 **SIN VERIFICAR.** `Alarm Type` sólo está documentado para la **entrada** (pág. 44); la salida sólo tiene `No.`, `Name` y `Delay` (pág. 68). **`Normally Open`/`Closed` no aparecen en las 110 páginas.** Lo cierra el **`ENSAYO 1`** |
+> | **Que el pulso pueda fijarse en `1 s`** | 🔴 **SIN VERIFICAR.** El parámetro `Delay` existe y está definido (pág. 68); **sus valores seleccionables no se publican**. Lo cierra el **`ENSAYO 1`** |
+> | **Retardo entre detección y cierre del contacto** | 🔴 **SIN VERIFICAR.** Lo único acotado: **no es menor que el `Threshold`** configurado, por definición del propio parámetro (pág. 49) |
+> | **`Detección de Intrusión` es la analítica correcta** — es la única cuya regla mide *permanencia* (`Threshold` = *«time of the object loitering»*) | 📖 **ESCRITO** — manual, págs. 48-49. **El razonamiento completo, con las cinco analíticas comparadas, en §1.1.4** |
+> | **El clasificador `☑ Vehículo` sobre la Detección de Intrusión** | 🔴 **SIN VERIFICAR, y las dos fuentes oficiales discrepan.** El manual lista `Detection Target` en *Line Crossing*, *Region Entrance* y *Region Exiting* **y no en `Set Intrusion Detection`**; la ficha (pág. 4) dice que la Perimeter Protection *«supports human and vehicle targets classification»*. Lo cierra el **`ENSAYO 2`** |
+> | Umbral **`1 s`** y sensibilidad **`50`** | 🔴 **SIN VERIFICAR.** Son los valores de partida **de este proyecto**, no una recomendación del fabricante. Se afinan con los ensayos |
+> | **Alimentación: `12 V DC ± 25 %` (`9`–`15 V`), `1,08 A`, máx. `13 W`** · PoE `802.3at` **Clase 4**, máx. `15 W` | 📖 **ESCRITO** — ficha, pág. 4. **El rango cubre entero el vaivén de una batería de plomo de 12 V** |
+> | **`26 Ah/día` por poste sólo de cámara** | 🧮 **CUENTA**, con sus entradas escritas al lado (§1.1.2). **Es un dato para quien dimensione la energía, no una decisión de este manual** |
+> | Óptica **`2,8`–`12 mm`**, FOV horizontal **`108°`–`30°`**, DORI Detectar **`97`–`290 m`**, 8 MP | 📖 **ESCRITO** — ficha, pág. 2 |
+> | **No hay luz blanca que desactivar: la luz de apoyo es IR `850 nm` y sólo IR** | 📖 **ESCRITO** — ficha, pág. 2. **Retira un paso del §4 y elimina el riesgo de deslumbrar a un conductor** |
+> | **Rutas de menú del §4** *(SADP, `Lens Parameters Adjustment`, `External Device`, `Smart Event → Intrusion Detection`, `Basic Event → Alarm Output`, `VCA Resource`)* | 📖 **ESCRITO** — manual `UD28967B-C` v5.7.20, con la página al lado de cada paso. **Ninguna se ha ejecutado contra una cámara** |
+> | La **traducción al español** de cada rótulo de menú | 🔴 **SIN VERIFICAR.** La interfaz tiene español (ficha, pág. 4), pero los rótulos exactos no se han visto. **Manda el inglés del manual** |
+> | El **soporte de fijación** al poste, para `1.385 g` y `30,8 cm` | 🔴 **SIN VERIFICAR.** No está especificado en ningún documento de este proyecto |
+>
+> 🛑 **Y el aviso que va con la tabla: `ESCRITO` NO ES `MEDIDO`.** Este manual describe una cámara que
+> **nunca ha estado delante de esta tarjeta**. Lo `MEDIDO` de este documento es la **tarjeta** —`M3`,
+> el paso 21, el fuente del firmware—; **de la cámara no hay ni una sola medida propia todavía.**
 
 > 🟢 **Lo que SÍ ha pasado banco de este manual, y sólo eso:** la medida `M3` (paso 20) y el ensayo
 > de falsa activación (paso 21). **Con eso, cablear cámara a `J16` deja de estar bloqueado.**
@@ -522,4 +1092,23 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 > firmware funcione en la tarjeta (`CLAUDE.md` §3).
 
 ---
-*Manual técnico oficial de integración y configuración de Cámaras IA para Semáforos Móviles V9.0. Polaridad corregida el 31/08 (`N-105`): el contacto seco cierra contra 3,3 V, no contra `GND`. **Confirmada en cobre el 04/09 con el cierre de `M3`**, que además levanta el bloqueo para cablear `J16` p10/p12 — con el pin 1 de esa misma bornera **tapado**.*
+
+## 8. 📋 LO PRIMERO QUE HAY QUE HACER CUANDO LLEGUE LA CÁMARA
+
+**Cuatro comprobaciones, en este orden, antes de dibujar una sola zona o cablear un solo hilo.**
+Cada una cierra un `SIN VERIFICAR` de la tabla del §7, y **las cuatro juntas no llevan media hora**.
+
+| # | qué se comprueba | dónde | si sale mal |
+|---|---|---|---|
+| **1** | **¿Existe la casilla `Trigger Alarm Output` en la regla de intrusión?** | **§4 Paso 0** | 🛑 **PARAR.** El contacto seco no se puede accionar desde la analítica → el camino de `J16` no sirve y hay que replantear por dónde entra la demanda. **No lo decide este manual** |
+| **2** | **¿Está la salida ABIERTA en reposo?** *(o sea, ¿es `NO`?)* | **`ENSAYO 1`**, §6 | 🛑 **PARAR.** Con el contacto cerrado en reposo el pin nace ALTO y **no habrá flanco** hasta que el relé abra y cierre. Ver §4 Paso 4 |
+| **3** | **¿Cuánto dura el pulso, y qué valores de `Delay` ofrece?** | **`ENSAYO 1`**, §6 | ⚠️ Si sólo hay valores largos, **funciona con menos finura**: se anota y se sigue. **`Manual` no se elige jamás** |
+| **4** | **¿Existe `Detection Target`, y aguanta el `ENSAYO 2` de peatones?** | **`ENSAYO 2`**, §6 | ⚠️ Sin clasificador se sube el mínimo del **`Size Filter`**. Si aun así un peatón pide paso, **se avisa**: sería dar verde a un carril sin vehículos |
+
+> 🛑 **Y lo que NO cambia por mucho que las cuatro salgan bien:** antes de llevar un hilo a `J16` hay
+> que **tapar el pin 1**, que lleva **12 V crudos**, y tener el **firmware nuevo ya cargado y
+> verificado** en la tarjeta. Ver el bloque 🛑 de la cabecera y §2.1. **Un commit no protege de un
+> destornillador.**
+
+---
+*Manual técnico oficial de integración y configuración de Cámaras IA para Semáforos Móviles V9.0. Polaridad corregida el 31/08 (`N-105`): el contacto seco cierra contra 3,3 V, no contra `GND`. **Confirmada en cobre el 04/09 con el cierre de `M3`**, que además levanta el bloqueo para cablear `J16` p10/p12 — con el pin 1 de esa misma bornera **tapado**. **Cámara real incorporada el 05/09: `DS-2CD2683G2-IZS`, con su ficha, su manual de usuario y su guía rápida citados página a página — y con lo que esas tres fuentes NO dicen marcado `SIN VERIFICAR`, no rellenado.***

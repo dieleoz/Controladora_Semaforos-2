@@ -1108,6 +1108,26 @@ exige la carga verificada, no el merge.
 > salida de la AcuSense es configurable (NO/NC), así que se elige qué estado significa demanda sin
 > tocar placa ni firmware.
 >
+> 🔴 **ESA ÚLTIMA FRASE ES `SIN VERIFICAR`, Y LA ESCRIBÍ AQUÍ YO EL 05/09 SIN COMPROBARLA.**
+> Al ir a redactar el manual de la cámara con la ficha real delante: el desplegable
+> `Alarm Type` (NO/NC) está documentado **sólo para la ENTRADA** de alarma (manual de
+> usuario `UD28967B-C` v5.7.20, pág. 44); la **salida** sólo expone `No.`, `Name` y
+> `Delay` (pág. 68), y *Normally Open / Normally Closed* **no aparece ni una vez en 110
+> páginas**. Se descartó al buscador (§4): la misma búsqueda restringida a hikvision.com
+> sí devuelve NO/NC en fichas de radares y centrales, o sea que el término se usa cuando
+> existe.
+>
+> **Es la tercera vez en una noche que este fichero recita algo sin medir** —M3, la
+> polaridad de `BOTON1`/`BOTON2`, y esto—, y las tres veces la fuente buena estaba en
+> `05_Funcional/`. Lo cierra un ensayo de diez minutos con la cámara delante, escrito en
+> `9_Manual_Parametrizacion_Camara_IA.md`.
+>
+> 🔴 **Y el que de verdad decide sigue abierto: que la ANALÍTICA pueda accionar el relé.**
+> Tener la salida no basta. El manual de usuario dice de `Trigger Alarm Output` que *«only
+> supported by certain models»*, y la fila *Linkage Method* de la ficha **no la menciona**.
+> Las dos fuentes son oficiales y se contradicen. Si no se puede enlazar, el camino de
+> `J16` no sirve y hay que ir por relé de NVR o por evento de red — **otro diseño**.
+>
 > **Lo que M3 sigue decidiendo, y es su tercer resultado posible:** con `INPUT` pelado el pin
 > necesita **resistencia real a masa en la placa** o queda flotando y el ruido dispara demandas
 > fantasma. `PB0` la tiene declarada (`pines.h:43-46`, `R64` 10K + `C25` 100nF); de `PB14`/`PB15`

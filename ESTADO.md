@@ -155,7 +155,7 @@ nombre y apellido.
 ## 📏 VERIFICACIÓN EN ESCRITORIO — lo que dice la última acta
 
 **Compuerta:** 🔴 **19 PASS | 0 FALLA | 1 ABORTADO**, así que **no sale con `0`: sale con `2`**, que es su código de ABORTADO. **El abortado es `simulador de app y bluetooth`**, que no sabe con qué comparar el campo `ESC:` que N-149 estrenó el 05/09: **mientras siga abortado, todo lo que ese instrumento vigilaba entra sin mirar** (`CLAUDE.md` §3.quater). **El banco por packs está entero —1053/1053 en 74 packs— y las cinco comprobaciones `documentos_*` dentro.** Cifras **copiadas del acta
-`evidencia/2026-09-04_compuerta.txt`**, no escritas a mano — lo comprueban `documentos_01` y
+`evidencia/2026-09-05_compuerta.txt`**, no escritas a mano — lo comprueban `documentos_01` y
 `documentos_04` en cada corrida.
 
 | | |

@@ -80,7 +80,7 @@
 >
 > La tabla de abajo es verdad. **Lee lo que mide antes de lo que puntúa.**
 
-**Verificación actual** — cifras **copiadas del acta** `evidencia/2026-09-04_compuerta.txt`, que
+**Verificación actual** — cifras **copiadas del acta** `evidencia/2026-09-05_compuerta.txt`, que
 genera `python 01_Firmware/compuerta.py` en una sola corrida. No se escriben a mano — y desde
 **N-62** eso ya no es una promesa: el pack `documentos_01_cifras_del_acta` compara esta tabla
 contra la última acta en cada corrida del banco. Cuando se escribió por primera vez, **falló**:
@@ -214,7 +214,7 @@ escribir que eso no se hace: decía `✅ 829/829, los 59 packs en PASS` citando 
 > los `lcd.cpp` y `menu.cpp` reales, pero contra un framebuffer en el PC, no contra la ST7920.
 
 **Certificado en campo:** 31 de Julio de 2026 *(V8.4, dos radios en enlace directo)*  
-**Última actualización del repositorio:** 4 de Septiembre de 2026 *(la cifra vigente y su hash de HEAD están en el acta que cita la tabla de arriba —`evidencia/2026-09-04_compuerta.txt`—, y no se repiten aquí: este pie llevaba `14 PASS` sobre HEAD `2cde016` cuando el acta ya medía otra cosa, y un recuento viejo no se lee como viejo, se lee como medida.)*
+**Última actualización del repositorio:** 4 de Septiembre de 2026 *(la cifra vigente y su hash de HEAD están en el acta que cita la tabla de arriba —`evidencia/2026-09-05_compuerta.txt`—, y no se repiten aquí: este pie llevaba `14 PASS` sobre HEAD `2cde016` cuando el acta ya medía otra cosa, y un recuento viejo no se lee como viejo, se lee como medida.)*
 
 > 🟢 **El 3 y 4 de Septiembre esto SÍ pasó por banco, y este pie decía lo contrario hasta hoy.** El
 > funcional ejecutó la guía de 29 pasos sobre `617bd00` con dos tarjetas cargadas: **24 completos, 4
