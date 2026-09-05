@@ -27,7 +27,7 @@
 import re
 
 NOMBRE = "esp32_06_no_parte_tramas"
-DESCRIPCION = "una trama entra entera y sale entera, validada antes de retransmitir y con lo descartado contado"
+DESCRIPCION = "una trama entra entera y sale entera -salvo el hueco de HORA (N-145)-, validada antes de retransmitir y con lo descartado contado"
 
 ROL = "ESP32_Expansion"
 
@@ -169,6 +169,110 @@ def correr(b, fw):
         "los contadores existen y NO se exponen. Un contador que nadie puede leer es la "
         "version silenciosa de no contar nada")
 
+    # ---- 6. N-145: EL SELLO DE HORA, QUE ES LA UNICA EXCEPCION A "SALE ENTERA" --
+    #
+    # 🔴 POR QUE ESTAS COMPROBACIONES ESTAN AQUI Y NO EN UN PACK NUEVO.
+    #
+    # Este es el pack que dice "una trama entra entera y sale entera". Desde N-145 eso
+    # tiene UNA excepcion, y una excepcion que vive en otro fichero es una excepcion que
+    # nadie vuelve a mirar: es la lista de HUERFANOS_CONOCIDOS de N-122 con otra forma.
+    # El sitio de la excepcion es al lado de la regla que acota.
+    #
+    # Y no miden lo mismo que el simulador. El simulador ejerce el LAZO -el Maestro real
+    # emite el hueco, la app real acepta el sello-, pero su puente es un modelo en
+    # Python: un defecto metido en este C++ no le mueve la cuenta ni un poco. Lo que
+    # sigue son propiedades del FUENTE, y son las unicas que caen si alguien rompe el
+    # sello de verdad. Se comprobo inyectando (CLAUDE.md 8.bis).
+    sello = _cuerpo(puente, r"static\s+bool\s+sellarHoraSiFaltaba\s*\([^)]*\)")
+    if sello is None:
+        raise fw.Abortado(
+            "no se hallo sellarHoraSiFaltaba() en %s/src/puente.cpp. Es el unico sitio "
+            "donde este puente modifica una trama del equipo: sin poder leerlo no se "
+            "puede comprobar que no inventa una hora, y eso es ABORTADO, no PASS" % ROL)
+
+    # 6.1 LA BARRERA DEL RELOJ MANDA, Y LA ESCRITURA VA DETRAS DE ELLA.
+    #
+    # Es la comprobacion que N-144 pago: aquel dia el equipo se declaro EN HORA con el
+    # reloj parado en ceros y publico HORA:00:00:00, y de esa bandera cuelga la
+    # autorizacion del Modo Degradado. Aqui el equivalente seria escribir en el hueco lo
+    # que el chip devuelva sin preguntar a reloj_leer(), que ya lleva reloj_enHora()
+    # delante y no tiene variante "damela igual".
+    iLeer = sello.find("reloj_leer")
+    iEscribe = sello.find("memcpy")
+    b.verificar(
+        iLeer >= 0 and iEscribe >= 0 and iLeer < iEscribe
+        and re.search(r"if\s*\(\s*!\s*reloj_leer\s*\([^)]*\)\s*\)\s*return\s+false\s*;",
+                      sello) is not None,
+        "N-145: el sello pregunta a reloj_leer() ANTES de escribir en la trama, y se "
+        "va sin tocar nada si la barrera esta abajo (leer=%d, escribir=%d)"
+        % (iLeer, iEscribe),
+        "el sello escribe en la trama sin que la barrera del reloj lo autorice "
+        "(leer=%d, escribir=%d). Un DS3231 sin pila devuelve una fecha PERFECTAMENTE "
+        "FORMADA y falsa: rellenar el hueco con ella es N-144 mudado de micro, y un cero "
+        "que parece una hora es peor que un hueco porque el hueco no engana a nadie"
+        % (iLeer, iEscribe))
+
+    # 6.2 EL CHECKSUM SE RECALCULA, Y DESPUES DE ESCRIBIR LA HORA.
+    #
+    # El orden es la comprobacion: recalcular antes de sellar deja la trama con la hora
+    # nueva y el checksum de la vieja, o sea descartada por la app EN SILENCIO. El
+    # sintoma no seria "la hora esta mal": seria el tablero congelado, que manda a
+    # diagnosticar el cable.
+    iCrc = sello.find("trama_checksum")
+    b.verificar(
+        iCrc >= 0 and iEscribe >= 0 and iEscribe < iCrc,
+        "N-145: el checksum se recalcula DESPUES de sellar la hora (escribir=%d, "
+        "checksum=%d): la app valida el XOR-8 en la bajada y una trama sellada con el "
+        "checksum viejo no se pinta" % (iEscribe, iCrc),
+        "el sello no recalcula el checksum despues de escribir la hora (escribir=%d, "
+        "checksum=%d). parseNmeaTelemetry() -> juzgarTrama() -> validarTrama() la "
+        "descarta sin decir nada, y el tablero se queda congelado" % (iEscribe, iCrc))
+
+    # 6.3 EL SELLO ES NEUTRO EN LONGITUD, Y LA CUENTA SE REHACE DESDE EL FUENTE.
+    #
+    # Los tres numeros se releen: el hueco que se busca, el formato con que se rellena y
+    # el guardia que compara. Ninguno se teclea aqui. Si dejaran de coincidir, el C++
+    # escribiria fuera del hueco que reservo -y `largo` dejaria de valer en
+    # desdeElEquipo(), asi que el terminador se repondria en el sitio equivocado-.
+    mHueco = re.search(r'#define\s+HUECO_HORA\s+"([^"]*)"', puente)
+    mFmt = re.search(r'snprintf\s*\(\s*hhmmss\s*,[^,]*,\s*"([^"]*)"', sello)
+    mGuardia = re.search(r"n\s*!=\s*(\d+)", sello)
+    if mHueco is None or mFmt is None or mGuardia is None:
+        raise fw.Abortado(
+            "no se pudieron releer del fuente los tres numeros del sello de N-145 "
+            "(hueco=%s, formato=%s, guardia=%s) en %s/src/puente.cpp. Sin ellos esta "
+            "desigualdad se estaria escribiendo a mano, que es justo lo que un banco "
+            "que no puede fallar no demuestra"
+            % (mHueco is not None, mFmt is not None, mGuardia is not None, ROL))
+
+    largoHueco = len(mHueco.group(1).partition(":")[2])
+    largoSello = len(re.sub(r"%02d", "XX", mFmt.group(1)))
+    largoGuardia = int(mGuardia.group(1))
+    b.verificar(
+        largoHueco == largoSello == largoGuardia,
+        "N-145: el sello no cambia la longitud de la trama: el hueco %r mide %d, el "
+        "formato %r rinde %d y el guardia exige %d"
+        % (mHueco.group(1), largoHueco, mFmt.group(1), largoSello, largoGuardia),
+        "EL SELLO NO ES NEUTRO EN LONGITUD: el hueco mide %d, lo que se escribe mide %d "
+        "y el guardia exige %d. Sellar EN SITIO solo vale si los tres son iguales; si no "
+        "lo son, el memcpy pisa lo que hay detras del hueco y `largo` deja de valer en "
+        "desdeElEquipo()" % (largoHueco, largoSello, largoGuardia))
+
+    # 6.4 Y SE SELLA DENTRO DE LA VENTANA CORRECTA: despues de validar, antes de enviar.
+    #
+    # Sellar antes de trama_valida() obligaria a recalcular el checksum de algo que puede
+    # ser ruido de cable: el puente estaria FABRICANDO tramas validas a partir de basura,
+    # que es exactamente lo que el sentido de vuelta existe para no hacer.
+    iSella = hacia.find("sellarHoraSiFaltaba")
+    b.verificar(
+        iSella >= 0 and iValida < iSella < iEnvia,
+        "N-145: se sella DESPUES de validar el checksum y ANTES de enviar (validar=%d, "
+        "sellar=%d, enviar=%d)" % (iValida, iSella, iEnvia),
+        "el sello no esta entre la validacion y el envio (validar=%d, sellar=%d, "
+        "enviar=%d). Antes de validar, el puente recalcularia el checksum de ruido de "
+        "cable y lo convertiria en una trama bien formada; despues de enviar, no serviria "
+        "de nada" % (iValida, iSella, iEnvia))
+
     # ---- CONTROLES NEGATIVOS -------------------------------------------------
     partida = ('{ haciaSTM32.write(datos, n); haciaSTM32.write("\\r\\n", 2); }')
     b.control_negativo(
@@ -185,3 +289,25 @@ def correr(b, fw):
     b.control_negativo(
         len(re.findall(r"descartadas(?:Crc|Largo)\+\+", "{ return; }")) < 3,
         "un puente que descartara sin contar se detecta")
+
+    # N-145: los tres controles del sello. Cada uno es el defecto EXACTO que su
+    # comprobacion de arriba vigila, escrito aparte para que la prueba tenga que saber
+    # decir que no. Sin ellos, las cuatro de N-145 podrian estar aprobando cualquier cosa
+    # -que es lo que hacia la prueba 2.8 de N-51 con su break siempre cierto-.
+    sinBarrera = ('{ char* h = strstr(l, HUECO_HORA); memcpy(h + 5, chip, 8); '
+                  'reloj_leer(&fh); }')
+    b.control_negativo(
+        not (sinBarrera.find("reloj_leer") < sinBarrera.find("memcpy")),
+        "un sello que escribe en la trama ANTES de preguntar a la barrera del reloj se "
+        "detecta: es N-144 mudado de micro")
+
+    crcAntes = '{ trama_checksum(l + 1); memcpy(h + 5, hhmmss, 8); }'
+    b.control_negativo(
+        not (crcAntes.find("memcpy") < crcAntes.find("trama_checksum")),
+        "un sello que recalcula el checksum ANTES de escribir la hora se detecta: la "
+        "trama saldria bien formada y la app la tiraria en silencio")
+
+    b.control_negativo(
+        len(re.sub(r"%02d", "XX", "%02d:%02d:%02d.%1d")) != largoHueco,
+        "un formato que rindiera mas caracteres que el hueco se detecta: la cuenta "
+        "reacciona al formato, no lo da por bueno")

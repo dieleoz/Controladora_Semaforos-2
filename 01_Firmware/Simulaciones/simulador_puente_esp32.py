@@ -572,9 +572,38 @@ class AppReal:
 
 MARCA_PROPIA = "ORIGEN:ESP32"
 
+# N-145 - EL HUECO QUE EL STM32 DECLARA CUANDO NO TIENE RELOJ.
+#
+# No se teclea "--:--:--" en cada escenario: el literal vive aqui una vez, y el
+# escenario N145 comprueba ANTES de usarlo que el firmware REAL lo emite de verdad. Si
+# el Maestro dejara de publicarlo -porque le pusieron cristal, o porque cambio el
+# formato- ese escenario FALLA en vez de seguir midiendo contra una cadena inventada.
+HUECO_HORA = "HORA:--:--:--"
+
+
+class RelojDelPuente:
+    """El DS3231 del ESP32, modelado por SU BARRERA y no por su chip.
+
+    Aqui no hay registros, ni OSF, ni BCD, ni bit de 12/24 h: todo eso lo mide
+    esp32_04_osf y esp32_11 sobre el C++ real de reloj_ds3231.cpp, y repetirlo aqui
+    seria la segunda copia escrita a mano que este repositorio ya sabe como acaba.
+
+    Lo unico que el PUENTE ve del reloj es lo que reloj_leer() le contesta, y eso tiene
+    exactamente dos formas: una hora, o nada. `None` es "la barrera esta abajo", y cubre
+    de golpe los seis motivos por los que puede estarlo -bus mudo, oscilador parado,
+    modo 12 h, escritura a medias, registros incoherentes, nunca se puso-. Lo que este
+    modelo tiene que probar no es cual de los seis: es que el puente se comporta igual
+    ante todos ellos, que es dejar el hueco como esta."""
+
+    def __init__(self, hhmmss=None):
+        self.hhmmss = hhmmss
+
+    def leer(self):
+        return self.hhmmss
+
 
 class Puente:
-    def __init__(self, util_max):
+    def __init__(self, util_max, reloj=None):
         self.util_max = util_max
         self.buf_app = ""
         self.buf_stm = ""
@@ -583,6 +612,16 @@ class Puente:
         self.rechazos_crc = 0
         self.rechazos_largo = 0
         self.crc_malos_del_cable = 0
+
+        # N-145: SIN RELOJ POR DEFECTO, Y ESO NO ES PEREZA.
+        #
+        # Los doce escenarios que ya existian construyen Puente(util_max) sin segundo
+        # argumento, y tienen que seguir midiendo LO MISMO que median: un puente sin
+        # reloj es byte a byte el de antes del sello. Si el defecto fuera un reloj puesto
+        # a una hora cualquiera, este cambio habria movido en silencio la trama que doce
+        # escenarios comparan, y ninguno lo habria dicho.
+        self.reloj = reloj
+        self.selladas = 0
 
     # ---- app -> STM32 --------------------------------------------------------
     def desde_app(self, datos):
@@ -666,7 +705,42 @@ class Puente:
             if self._validar(linea) is None:
                 self.crc_malos_del_cable += 1
                 continue
-            self._subir(linea + "\r\n")
+            self._subir(self._sellar(linea) + "\r\n")
+
+    def _sellar(self, linea):
+        """N-145 - LA UNICA MODIFICACION QUE ESTE PUENTE HACE A UNA TRAMA DEL EQUIPO.
+
+        Modela sellarHoraSiFaltaba() de puente.cpp, y las cuatro decisiones que copia
+        son las cuatro que hay que poder romper por separado:
+
+          1. VA DESPUES DE VALIDAR. Sellar antes obligaria a recalcular el checksum de
+             algo que puede ser ruido de cable, y entonces el puente FABRICARIA tramas
+             validas a partir de basura.
+          2. SOLO EL HUECO. Si el STM32 puso una hora, aqui no pasa nada. El puente no
+             arbitra entre dos relojes: rellena el que falta y calla cuando ya hay uno,
+             asi que el arreglo se apaga solo el dia que el STM32 tenga cristal.
+          3. NUNCA INVENTA. Con la barrera abajo -reloj None, o reloj sin hora- la trama
+             sale IDENTICA, con su "--:--:--". Es N-144 traido aqui: un cero que parece
+             una hora es peor que un hueco, porque el hueco no engana a nadie.
+          4. EL CHECKSUM SE RECALCULA. La app valida el XOR-8 en la bajada
+             -parseNmeaTelemetry() -> juzgarTrama() -> NMEAParser.validarTrama()-, asi
+             que una trama sellada con el checksum viejo no se pinta: se descarta en
+             silencio y el tablero se congela. El escenario N145 lo ejerce contra el
+             juez REAL de la app, no contra esta funcion."""
+        if HUECO_HORA not in linea:
+            return linea
+        if not linea.startswith("$") or "*" not in linea:
+            return linea
+        if self.reloj is None:
+            return linea
+        hora = self.reloj.leer()
+        if hora is None:
+            return linea
+
+        sellada = linea.replace(HUECO_HORA, "HORA:" + hora, 1)
+        cuerpo, _, _cola = sellada[1:].partition("*")
+        self.selladas += 1
+        return "$%s*%02X" % (cuerpo, checksum(cuerpo))
 
     def _subir(self, linea):
         """F2/F7 - UNA TRAMA, UNA ESCRITURA, EN UNA LINEA A PROPOSITO.
@@ -2138,6 +2212,184 @@ def escenario_asterisco(t, c, maestro, app, util_max):
 
 # =====================================================================================
 
+def escenario_n145(t, c, maestro, app, util_max):
+    t.titulo("N145 - la hora la pone el micro que TIENE reloj, y solo si la tiene")
+
+    # -----------------------------------------------------------------------------
+    # (a) EL DEFECTO, MEDIDO SOBRE EL FIRMWARE REAL. No se da por supuesto.
+    #
+    # Se le quita el cristal al Maestro -RTC 0 0, que es lo que N-17 confirmo en
+    # hardware: Y2 no oscila- y se le deja emitir su telemetria. Lo que salga es lo que
+    # sale hoy del poste, compuesto por bluetooth.cpp y no por este fichero.
+    # -----------------------------------------------------------------------------
+    maestro.ajustar("RTC 0 0")
+    salidas = maestro.avanzar(c.periodo_ms["Maestro"] + 1)
+    status = next((s for s in salidas if s.startswith("$STATUS")), None)
+
+    if status is None:
+        raise fw.Abortado(
+            "el Maestro REAL no emitio $STATUS al avanzar un periodo de telemetria. Sin "
+            "esa trama este escenario no puede medir el hueco de HORA, y darlo por "
+            "bueno seria PASS sobre algo que no corrio")
+
+    t.verificar(
+        HUECO_HORA in status,
+        "el STM32 REAL sin cristal publica %r en su $STATUS: el campo lo compone el "
+        "micro que NO tiene reloj, y por eso sale hueco" % HUECO_HORA,
+        "el $STATUS del Maestro REAL no trae %r: %r. O el firmware cambio de formato, o "
+        "cambio de fuente de hora; en los dos casos el resto de este escenario estaria "
+        "midiendo contra una cadena inventada" % (HUECO_HORA, status.strip()))
+
+    original = status.strip()
+
+    # -----------------------------------------------------------------------------
+    # (b) SIN HORA FIABLE EN EL PUENTE, LA TRAMA SALE IDENTICA. Es la comprobacion que
+    #     mas vale de las siete, porque es la que N-144 costo: aquel dia el equipo se
+    #     declaro EN HORA con el reloj parado en ceros y publico HORA:00:00:00. Un cero
+    #     que parece una hora es peor que un hueco. Aqui se exige IDENTIDAD BYTE A BYTE,
+    #     no "no pone ceros": cualquier relleno inventado la rompe, se parezca a lo que
+    #     se parezca.
+    # -----------------------------------------------------------------------------
+    ciego = Puente(util_max, RelojDelPuente(None))
+    ciego.desde_stm32(status)
+    salio_ciego = ciego.hacia_app[0].strip() if ciego.hacia_app else ""
+    t.verificar(
+        salio_ciego == original and ciego.selladas == 0,
+        "con la barrera del DS3231 ABAJO la trama sale identica, con su %r: el puente "
+        "no inventa una hora nunca (0 sellos)" % HUECO_HORA,
+        "con el reloj sin hora fiable el puente entrego %r en vez de %r. Rellenar el "
+        "hueco sin poder leer el reloj es N-144 otra vez: de reloj_enHora() cuelga la "
+        "autorizacion del Modo Degradado, y un contador parado que se declara valido es "
+        "justo la entrada que ese modo no debe aceptar" % (salio_ciego, original))
+
+    # -----------------------------------------------------------------------------
+    # (c) CON HORA FIABLE, EL HUECO SE RELLENA - Y LA LONGITUD NO CAMBIA.
+    #
+    # La longitud importa porque el sello es EN SITIO: "--:--:--" y "HH:MM:SS" miden
+    # ocho, y "*XX" mide lo mismo antes y despues. Si esto dejara de ser cierto, el
+    # presupuesto de bytes de esp32_07 estaria midiendo una trama que ya no existe y el
+    # C++ estaria escribiendo fuera del hueco que reservo.
+    # -----------------------------------------------------------------------------
+    LA_HORA = "21:14:30"
+    puente = Puente(util_max, RelojDelPuente(LA_HORA))
+    puente.desde_stm32(status)
+    sellada = puente.hacia_app[0].strip() if puente.hacia_app else ""
+
+    t.verificar(
+        ("HORA:" + LA_HORA) in sellada and HUECO_HORA not in sellada
+        and puente.selladas == 1,
+        "con hora fiable el puente sella el hueco: HORA:%s" % LA_HORA,
+        "el puente no sello la hora: entrego %r. El DS3231 es el UNICO reloj del equipo "
+        "y su hora no llegaba a la app" % sellada)
+
+    t.verificar(
+        len(sellada) == len(original),
+        "y la trama mide lo mismo antes y despues (%d B): el sello es EN SITIO, asi que "
+        "no mueve un solo byte del presupuesto de J17" % len(sellada),
+        "la trama paso de %d B a %d B al sellarla. El sello tiene que ser neutro en "
+        "longitud: si no lo es, `largo` deja de valer en puente.cpp y el terminador se "
+        "repone en el sitio equivocado" % (len(original), len(sellada)))
+
+    # -----------------------------------------------------------------------------
+    # (d) Y EL JUEZ ES LA APP REAL, NO ESTE FICHERO.
+    #
+    # NMEAParser.validarTrama() es el codigo que de verdad decide si la trama se pinta.
+    # Preguntarselo a el es lo que separa "el checksum lo recalcule bien" de "el checksum
+    # lo recalcule como yo creo que se calcula".
+    # -----------------------------------------------------------------------------
+    juicio = app.juzgar(sellada + "\r\n")
+    t.verificar(
+        bool(juicio.get("valida")),
+        "y la app REAL la acepta: NMEAParser.validarTrama() dice que si sobre la trama "
+        "sellada, o sea que el checksum se recalculo bien",
+        "la app REAL RECHAZA la trama sellada (%r). Sellar sin recalcular el checksum no "
+        "deja la hora mal: deja el tablero CONGELADO, porque la trama se descarta en "
+        "silencio y el sintoma se lee como 'el puente se comio la telemetria'" % juicio)
+
+    # AQUI NO SE ANADE UN "y la app la pinta". Se probo y se retiro: el tablero que el
+    # arnes expone -modo, fase, contador, rf, nodo, eventos- NO INCLUYE LA HORA, porque
+    # la app no la pinta en ningun sitio (ver el reportar() del final). Una linea que
+    # comprobara que el tablero "se movio" pasaria igual con el sello puesto y sin el:
+    # seria un adorno que no puede fallar sin que falle la de arriba.
+
+    # CONTROL NEGATIVO: la comprobacion (d) tiene que saber decir que NO.
+    #
+    # Se fabrica el defecto exacto que (d) vigila -la hora cambiada y el checksum de
+    # antes- y se le pregunta al MISMO juez. Sin esto, un juez que aprobara cualquier
+    # cosa haria pasar (d) igual de bien que uno correcto.
+    mal_sellada = original.replace(HUECO_HORA, "HORA:" + LA_HORA, 1)
+    juicio_malo = app.juzgar(mal_sellada + "\r\n")
+    t.control_negativo(
+        not juicio_malo.get("valida"),
+        "una trama sellada SIN recalcular el checksum la rechaza la app REAL: el juez "
+        "de (d) sabe distinguir el caso malo")
+
+    # -----------------------------------------------------------------------------
+    # (e) Y NO SE PISA UNA HORA QUE EL STM32 SI PUSO.
+    #
+    # El dia que el Maestro tenga cristal, esta funcion tiene que APAGARSE SOLA. Un
+    # puente que sellara siempre seria una segunda fuente de verdad peleando con la
+    # primera, y el operario no tendria como saber cual esta leyendo.
+    # -----------------------------------------------------------------------------
+    maestro.ajustar("RTC 1 1")
+    salidas = maestro.avanzar(c.periodo_ms["Maestro"] + 1)
+    con_hora = next((s for s in salidas if s.startswith("$STATUS")), None)
+
+    if con_hora is None or HUECO_HORA in con_hora:
+        raise fw.Abortado(
+            "no se pudo obtener del Maestro REAL un $STATUS CON hora puesta (%r). Sin "
+            "el, la propiedad 'el puente no pisa la hora del equipo' no se ejerce, y "
+            "una propiedad que no se ejerce no se aprueba" % (con_hora,))
+
+    con_hora = con_hora.strip()
+    otro = Puente(util_max, RelojDelPuente("03:03:03"))
+    otro.desde_stm32(con_hora + "\r\n")
+    salio = otro.hacia_app[0].strip() if otro.hacia_app else ""
+    t.verificar(
+        salio == con_hora and otro.selladas == 0,
+        "si el STM32 YA puso la hora, el puente no la toca: la trama sale identica "
+        "aunque el DS3231 diga otra cosa (0 sellos)",
+        "el puente PISO la hora del equipo: %r paso a %r. Con dos relojes en el sistema, "
+        "el que manda tiene que ser uno solo y estar escrito cual" % (con_hora, salio))
+
+    # Se devuelve el arnes a su estado de partida. Un escenario que deja el firmware
+    # tocado le cambia la medida al siguiente sin decirselo.
+    maestro.ajustar("RTC 1 1")
+
+    t.reportar(
+        "N-145 TIENE UNA TERCERA PATA, Y NO ESTA EN NINGUNO DE LOS DOS FIRMWARES",
+        ["El defecto se cuenta como 'el STM32 compone la hora y no tiene reloj'. Son",
+         "TRES tramos, y el tercero esta en la app y no lo cierra este arreglo:",
+         "",
+         "  1. el STM32 compone HORA: y su cristal Y2 esta muerto (N-17)  -> hueco",
+         "  2. el ESP32 tiene el DS3231 y no lo publicaba                 -> SELLADO AQUI",
+         "  3. la app RECIBE la hora y NO LA PINTA                        -> ABIERTO",
+         "",
+         "MEDIDO, con dos formas de busqueda distintas (CLAUDE.md 4):",
+         "",
+         "  05_Funcional/App_Semaforo/app.js:68     hora: null        (el estado)",
+         "  05_Funcional/App_Semaforo/app.js:3153   state.hora = data.HORA;",
+         "",
+         "y ESE ES EL UNICO ESCRITOR. `state.hora` NO TIENE UN SOLO LECTOR en app.js,",
+         "en js/*.js ni en index.html; no hay ningun id de la pantalla que lo muestre",
+         "-el unico que suena a reloj es 'courier-timer-digits', que es el temporizador",
+         "del Courier RTC, no la hora del equipo-.",
+         "",
+         "Es CAM_UMBRAL_PIN otra vez, en JavaScript: un pinMode() sin digitalRead(),",
+         "con la diferencia de que aqui el dato SI llega y se tira al llegar.",
+         "",
+         "Y hay una segunda copia del mismo camino que tampoco consume nadie:",
+         "  js/nmea_parser.js:143 y :180   data.hora = v;",
+         "que ademas usa la clave en MINUSCULAS mientras app.js:3153 lee data.HORA de",
+         "su propio parser en linea. Dos parsers, dos claves, cero lectores.",
+         "",
+         "CONSECUENCIA PRACTICA PARA EL BANCO DE ESTA NOCHE: con este arreglo cargado,",
+         "la hora del DS3231 YA VIAJA en el $STATUS y se puede ver con un terminal SPP",
+         "o en la pestana de depuracion, pero NO va a aparecer en el tablero de la app",
+         "hasta que alguien pinte state.hora. No se toca desde aqui: 05_Funcional/ es",
+         "de otro agente."])
+
+
 def main():
     print("=" * 78)
     print(" SIMULADOR DEL PUENTE ESP32 - app REAL <-> modelo del ESP32 <-> STM32 REAL")
@@ -2184,6 +2436,10 @@ def main():
         escenario_f6(t, c, maestro, util_max)
         escenario_f7(t, c, maestro, app, util_max)
         escenario_asterisco(t, c, maestro, app, util_max)
+        # N-145 va EL ULTIMO porque toca el estado del arnes del Maestro -le quita el
+        # cristal para reproducir el defecto- y lo devuelve al terminar. Ir el ultimo
+        # hace que un fallo a mitad no le cambie la medida a ningun otro escenario.
+        escenario_n145(t, c, maestro, app, util_max)
 
     except fw.Abortado as e:
         print("\n[ABORTADO] %s" % e)

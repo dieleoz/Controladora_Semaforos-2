@@ -7,6 +7,13 @@
 //   - NO ORIGINA (B-1). Todo lo que sale hacia el STM32 procede del buffer de entrada
 //     de la app. No hay un solo literal de comando en el camino de escritura.
 //   - NO PARTE NI UNE TRAMAS (B-5). Una entra entera y sale entera.
+//   - Y DESDE N-145 TIENE UNA EXCEPCION, LA UNICA, ESCRITA AQUI PARA QUE NADIE LEA LA
+//     LINEA DE ARRIBA COMO UN ABSOLUTO QUE YA NO ES: en el sentido equipo -> app, un
+//     "HORA:--:--:--" puede salir relleno con la hora del DS3231 de este modulo. Ni un
+//     byte mas ni uno menos -"--:--:--" y "HH:MM:SS" miden ocho-, solo sobre el HUECO
+//     -si el STM32 puso una hora, no se toca-, y solo si la barrera del reloj la da por
+//     fiable -si no, el hueco se queda-. El porque, con la medida del 04/09 y las tres
+//     cotas del cambio, esta entero sobre sellarHoraSiFaltaba() en puente.cpp.
 //   - NO FILTRA POR PREFIJO. Son cinco -$STATUS, $ACK, $ERR, $ALARM y $EVENT- y un
 //     puente que filtrara por cuatro se comeria la bitacora entera. Se valida el
 //     FORMATO, no el contenido: asi el protocolo puede crecer sin recompilar el puente.
