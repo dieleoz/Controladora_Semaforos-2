@@ -737,7 +737,12 @@ void bluetooth_loop() {
 
     const char* estadoStr = semaforo_nombreEstado();
 
-    char horaBuf[16];
+    // 12 y no 16, igual que en el Maestro y por el mismo motivo (05/09). %02u sobre los
+    // uint8_t de reloj.h no pasa de tres cifras por campo, asi que lo mas largo que este
+    // snprintf puede escribir son 11 caracteres. El pack del presupuesto acota cada
+    // campo por SU BUFFER -lo unico que snprintf garantiza sin modelar tipos-, asi que
+    // un buffer holgado no es prudencia: es margen que se resta del payload.
+    char horaBuf[12];
     if (reloj_enHora()) {
       snprintf(horaBuf, sizeof(horaBuf), "%02u:%02u:%02u", reloj_hora(), reloj_minuto(), reloj_segundo());
     } else {
@@ -805,11 +810,26 @@ void bluetooth_loop() {
     // El valor no se recalcula aqui: lo da semaforo.cpp, que es el unico que decide
     // (SFTY-28) y deja anotado lo que escribio en el pin.
     //
-    // EL BUFFER SE QUEDA EN 128, MEDIDO IGUAL QUE EL DEL MAESTRO: la parte fija de esta
-    // plantilla mide 90 caracteres y sus cuatro %s por su maximo son SERIE 6 + ESTADO 9
-    // -"FALLO COM"- + HORA 8 + PLUMA 6 = 29. Total 119 caracteres + NUL = 120 B, con 8 B
-    // de holgura. Los cuatro campos que esta punta no puede medir viajan marcados con
-    // "--" dentro de la propia plantilla, asi que no suman rango.
+    // EL BUFFER SE QUEDA EN 128, Y LA CUENTA SE REHACE POR BUFFER, NO POR RANGO (05/09).
+    //
+    // Aqui ponia "HORA 8" porque el formato es HH:MM:SS. Es el rango, no la cota: %02u
+    // sobre un uint8_t llega a tres cifras, y con horaBuf[16] lo que snprintf permitia
+    // escribir eran 15 caracteres. La cuenta buena -la que rehace esp32_07 sin creerse a
+    // nadie- acota cada campo por SU BUFFER:
+    //
+    //   parte fija de la plantilla  90   (los cuatro campos que esta punta no mide
+    //                                     viajan como "--" DENTRO del literal)
+    //   SERIE                        6   serieTxt[7]
+    //   ESTADO                       9   literal "FALLO COM", el mas largo
+    //   HORA                        11   horaBuf[12]
+    //   PLUMA                        6   literal "ARRIBA"
+    //
+    //   90 + 32 = 122 caracteres + NUL = 123 B, con 5 B de holgura, y 127 B con el
+    //   envoltorio de los 160 de tramaCompleta.
+    //
+    // Con horaBuf[16] la misma cuenta daba 126 caracteres y el margen era 1 B: cabia,
+    // pero por los pelos y sin que nadie lo hubiera mirado. Aqui no habia trama que no
+    // cupiera -eso era el Maestro-; lo que habia era la misma cuenta hecha por rango.
     char payload[128];
     snprintf(payload, sizeof(payload),
              "$STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s,PLUMA:%s",

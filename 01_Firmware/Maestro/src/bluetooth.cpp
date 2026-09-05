@@ -794,22 +794,55 @@ void bluetooth_loop() {
     // Con "--" el tablero dice lo unico cierto: todavia no se sabe. Es la misma regla
     // que ya se aplica a HORA cuando el reloj no esta en hora.
     const int rfCalidad = coordinador_calidadEnlace();
-    // 13 y no 8: calidadEnlace() devuelve 0..100 por construccion, pero eso lo sabe el
-    // coordinador, no este fichero -y no lo sabe el compilador, que avisa con -Wall-. Un
-    // buffer dimensionado por una invariante que vive en OTRO modulo es el que se rompe
-    // en silencio el dia que ese modulo cambie; se dimensiona para el tipo, que es lo
-    // unico que este lado puede garantizar.
-    char rfTxt[13];
-    char rttTxt[16];
+    const unsigned long rttMs = coordinador_tiempoRespuestaMs();
+
+    // AQUI PONIA rfTxt[13] Y rttTxt[16], DIMENSIONADOS PARA EL TIPO, Y ESE ERA EL
+    // DEFECTO (05/09). El razonamiento escrito era bueno -"un buffer dimensionado por
+    // una invariante que vive en OTRO modulo es el que se rompe en silencio el dia que
+    // ese modulo cambie"- y su conclusion era mala: sumando los tres campos de rango
+    // ajeno a su tope de TIPO, este $STATUS pedia mas de lo que cabe en payload[144], y
+    // ademas mas que el techo de 155 B que impone tramaCompleta[160]. No es una holgura
+    // que se agota: es una trama que NO CABE, y una trama truncada se descarta ENTERA
+    // por checksum. Hoy no truncaba porque los valores REALES son cortos, que es la
+    // definicion de una barrera que no protege de nada.
+    //
+    // LO QUE CAMBIA NO ES EL TAMANO: ES DE QUE SE FIA. Ya no se fia de una invariante
+    // que vive en otro fichero; se fia de la GUARDA que hay tres lineas mas abajo, que
+    // corre en esta misma funcion y en cada emision. La cota la declara el modulo que la
+    // promete -coordinador.h, junto a la funcion- y aqui se COMPRUEBA antes de imprimir.
+    //
+    // Y ACOTAR NO ES RECORTAR EN SILENCIO: si el valor se sale de su rango declarado se
+    // publica "!", que no es un numero ni es "--". "--" ya significa "todavia no lo se"
+    // -no hay muestras, no hay hora, no hay cuenta atras- y aplastar ahi un valor
+    // imposible lo escondería entre los huecos normales. "!" dice lo unico cierto: llego
+    // un valor que no puede ser, y eso es un HALLAZGO. El parser de la app devuelve tal
+    // cual lo que no entiende (nmea_parser.js, _numeroOMarca), asi que llega a quien
+    // pinta sin convertirse en un cero.
+    char rfTxt[5];    // "100%" + NUL, garantizado por la guarda de CALIDAD_ENLACE_MAX
+    char rttTxt[8];   // "25000ms" + NUL, garantizado por la de RTT_PUBLICABLE_MAX_MS
     if (rfCalidad < 0) {
       strncpy(rfTxt, "--", sizeof(rfTxt));
       strncpy(rttTxt, "--", sizeof(rttTxt));
     } else {
-      snprintf(rfTxt, sizeof(rfTxt), "%d%%", rfCalidad);
-      snprintf(rttTxt, sizeof(rttTxt), "%lums", coordinador_tiempoRespuestaMs());
+      if (rfCalidad > CALIDAD_ENLACE_MAX) {
+        strncpy(rfTxt, "!", sizeof(rfTxt));
+      } else {
+        snprintf(rfTxt, sizeof(rfTxt), "%d%%", rfCalidad);
+      }
+      if (rttMs > RTT_PUBLICABLE_MAX_MS) {
+        strncpy(rttTxt, "!", sizeof(rttTxt));
+      } else {
+        snprintf(rttTxt, sizeof(rttTxt), "%lums", rttMs);
+      }
     }
 
-    char horaBuf[16];
+    // 12 y no 16, y los 4 B NO eran gratis. %02u sobre los uint8_t de reloj.h no pasa de
+    // tres cifras por campo, asi que lo mas largo que este snprintf puede escribir son
+    // 11 caracteres ("255:255:255", con el reloj diciendo cualquier cosa). El pack del
+    // presupuesto acota cada campo por SU BUFFER -que es lo unico que snprintf garantiza
+    // sin modelar tipos-, asi que un buffer holgado no es prudencia: es margen que se
+    // resta del payload y que la cuenta tiene que dar por gastado.
+    char horaBuf[12];
     if (reloj_enHora()) {
       snprintf(horaBuf, sizeof(horaBuf), "%02u:%02u:%02u", reloj_hora(), reloj_minuto(), reloj_segundo());
     } else {
@@ -836,10 +869,15 @@ void bluetooth_loop() {
     // (DESPEJE_SEG_MAX en limites_ciclo.h) o 99 s por el Manual, o sea dos digitos. El
     // 48,1% del peor segundo que mide esp32_07_presupuesto_bytes no se mueve.
     //
-    // El buffer se dimensiona para el TIPO -un int con %d cabe en 11 caracteres mas el
-    // nulo-, no para el rango que hoy garantiza otro modulo. Es la misma razon que ya
-    // esta escrita quince lineas mas arriba para rfTxt.
-    char tTxt[12];
+    // EL BUFFER SE DIMENSIONA PARA EL RANGO, Y LO QUE LO SOSTIENE ES LA GUARDA DE ABAJO
+    // (05/09). Aqui ponia tTxt[12] "para el TIPO -un int con %d cabe en 11 caracteres-,
+    // no para el rango que hoy garantiza otro modulo". Ese razonamiento sumado a los de
+    // RF: y RTT: daba un $STATUS que no cabe ni en payload[144] ni en el techo de 155 B
+    // de tramaCompleta[160]: el porque entero esta sobre CUENTA_ATRAS_MAX_SEG, en
+    // coordinador.h. La cota la promete el modulo que produce el numero y aqui se
+    // comprueba; fuera de rango se publica "!", que no es "--" -eso ya significa "en
+    // esta fase no hay cuenta atras"- sino "llego un valor imposible".
+    char tTxt[4];
     // N-143 (04/09): SE PREGUNTA PRIMERO AL COORDINADOR Y DESPUES AL MODO, Y EL ORDEN
     // NO ES ARBITRARIO.
     //
@@ -862,6 +900,12 @@ void bluetooth_loop() {
     }
     if (faseRestanteSeg == SIN_CUENTA_ATRAS) {
       strncpy(tTxt, "--", sizeof(tTxt));
+    } else if (faseRestanteSeg < 0 || faseRestanteSeg > CUENTA_ATRAS_MAX_SEG) {
+      // El "< 0" no es redundante con la rama de arriba: SIN_CUENTA_ATRAS es UN valor
+      // (-1), y cualquier otro negativo -una resta que se fue, un contador sin
+      // inicializar- no es "no hay cuenta", es un numero imposible. Se separan porque
+      // significan cosas distintas y porque el operario tiene que poder distinguirlas.
+      strncpy(tTxt, "!", sizeof(tTxt));
     } else {
       snprintf(tTxt, sizeof(tTxt), "%d", faseRestanteSeg);
     }
@@ -896,7 +940,7 @@ void bluetooth_loop() {
     // ESC:, que es asimetrico porque el Esclavo no tiene de donde sacar el dato del
     // otro poste; aqui cada equipo tiene el suyo delante.
     //
-    // EL BUFFER SE QUEDA EN 144, Y EL NUMERO ESTA MEDIDO, NO ESTIMADO.
+    // EL BUFFER SE QUEDA EN 144, Y AHORA EL PEOR CASO CABE DE VERDAD (05/09).
     //
     // La primera version del campo ESC: puso 160 "por si acaso" y el banco la tumbo:
     // esp32_07_presupuesto_bytes exige tramaCompleta >= payload + 5 -el *XX y el CRLF que
@@ -904,32 +948,39 @@ void bluetooth_loop() {
     // habria truncado en el ULTIMO paso, saliendo al cable bien formado hasta la mitad.
     // Es la regla del instrumento (CLAUDE.md 4) contra la cuenta a ojo.
     //
-    // EL PEOR CASO, RECALCULADO DESDE LOS LITERALES DE ESTE FICHERO (05/09). La parte
-    // fija de la plantilla mide 78 caracteres, y cada %s por su maximo:
+    // 🛑 PERO ESA COMPROBACION ERA SOLO LA MITAD, Y LA QUE FALTABA ES LA QUE IMPORTA:
+    // "el envoltorio cabe el payload" es una cota entre DOS BUFFERS. Que el CONTENIDO
+    // quepa en el payload no lo comprobaba nadie, y NO CABIA -ni antes de PLUMA:-.
+    // esp32_07 lo mide ahora, y por eso esta cuenta no es un comentario decorativo: si
+    // deja de cuadrar, el pack falla.
     //
-    //   SERIE   6   identidad_texto() escribe 6 hex en char[7]
-    //   MODO   11   el literal mas largo de obtenerNombreModo(): INTELIGENTE/DESCONOCIDO
-    //   ESTADO  9   "FALLO COM", el mas largo de semaforo_nombreEstado()
-    //   T       3   coordinador/modo dan segundos de fase: el techo es VERDE_MIN_MAX=15
-    //               min = 900 s (limites_ciclo.h), o sea tres cifras
-    //   RF      4   "100%", porque calidadEnlace() es (respondidos*100)/muestras con
-    //               respondidos <= muestras, y el -1 sale por la rama del "--"
-    //   RTT     6   "9999ms"
-    //   HORA    8   formato fijo HH:MM:SS
-    //   ESC     5   "VERDE", el mas largo de coordinador_estadoEsclavo()
-    //   PLUMA   6   "ARRIBA"
+    // EL PEOR CASO SE ACOTA POR BUFFER, NO POR RANGO NI POR TIPO. Es lo unico que
+    // snprintf garantiza sin creerse a nadie: en un char x[N] no entran mas de N-1
+    // caracteres, pase lo que pase aguas arriba. Parte fija de la plantilla: 78.
     //
-    //   78 + 58 = 136 caracteres + NUL = 137 B.  Con 144 quedan 7 B y 144 + 5 <= 160.
+    //   SERIE   6   serieTxt[7]  -- identidad_texto() escribe 6 hex y el NUL
+    //   MODO   11   literal: el mas largo de obtenerNombreModo() (INTELIGENTE/DESCONOCIDO)
+    //   ESTADO  9   literal: "FALLO COM", el mas largo de semaforo_nombreEstado()
+    //   T       3   tTxt[4]      -- "900" es el techo, y lo sostiene la guarda de
+    //                               CUENTA_ATRAS_MAX_SEG, no una creencia sobre el modo
+    //   RF      4   rfTxt[5]     -- "100%", sostenido por la guarda de CALIDAD_ENLACE_MAX
+    //   RTT     7   rttTxt[8]    -- "25000ms", por la de RTT_PUBLICABLE_MAX_MS
+    //   HORA   11   horaBuf[12]  -- tres uint8_t con %02u: "255:255:255" es el tope
+    //   ESC     5   literal: "VERDE", el mas largo de coordinador_estadoEsclavo()
+    //   PLUMA   6   literal: "ARRIBA"
     //
-    // 🛑 EL RESIDUAL, ESCRITO EN VEZ DE DISIMULADO. Esa cuenta usa el RANGO de tres
-    // numeros que gobiernan OTROS modulos -T, RF y RTT-, no la capacidad de sus buffers,
-    // que es lo que este fichero puede garantizar solo. Con los tres a su tope de TIPO
-    // el payload seria de 162 B, y NO CABE: tramaCompleta mide 160, asi que el techo de
-    // cualquier payload son 155 B. No cabia tampoco antes de este campo -el tope de tipo
-    // eran 149 B contra payload[144]-, y con PLUMA: deja de poder caber por definicion.
-    // Los 7 B de holgura absorben el unico de los tres cuyo tope de tipo si entra: un
-    // RTT de 12 caracteres -unsigned long entero- da 143 B. Anotado para el roadmap; la
-    // salida limpia es acotar RF y T donde se producen, no ensanchar aqui.
+    //   78 + 62 = 140 caracteres + NUL = 141 B. En payload[144] quedan 3 B, y con el
+    //   envoltorio son 145 B de los 160 de tramaCompleta.
+    //
+    // ANTES DE ACOTAR, LA MISMA CUENTA DABA 168 CARACTERES -25 de mas-, porque tTxt,
+    // rfTxt, rttTxt y horaBuf estaban dimensionados para el tipo (12, 13, 16 y 16).
+    // No truncaba en la calle porque los valores reales son cortos; o sea que lo que
+    // impedia el fallo era la suerte, no el codigo.
+    //
+    // LOS 3 B QUE QUEDAN NO DAN PARA EL CAMPO CAM: DE D-13 -son 11 caracteres con su
+    // coma-. Cuando entre, o se acota HORA: -validar hora/minuto/segundo baja el campo
+    // de 11 a 8 y devuelve 3 B- o se sube payload a 155, que es el techo real que fija
+    // tramaCompleta. Queda escrito para que no se decida a ojo el dia que toque.
     char payload[144];
     snprintf(payload, sizeof(payload),
              "$STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s,PLUMA:%s",

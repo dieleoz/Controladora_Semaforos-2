@@ -1,6 +1,11 @@
 // ===== include/coordinador.h =====
 #pragma once
 #include <Arduino.h>
+// Los dos se incluyen por las COTAS de abajo, y las cotas se DERIVAN de aqui en vez de
+// escribirse a mano: limites_ciclo.h da el techo de la fase larga y protocolo.h el de
+// SFTY-6. Un numero copiado a mano en este fichero seria la cuarta copia de N-137.
+#include "limites_ciclo.h"
+#include "protocolo.h"
 
 void coordinador_setup();
 void coordinador_reiniciarConexion();
@@ -40,6 +45,34 @@ const char* coordinador_nombreEstadoMaster();
 // donde se puede comprobar contra ella en vez de contra este resumen.
 // ---------------------------------------------------------------------------
 static const int SIN_CUENTA_ATRAS = -1;
+
+// --- LA COTA DEL CAMPO T:, Y POR QUE VIVE AQUI Y NO EN EL EMISOR (05/09) ----
+//
+// EL DEFECTO QUE CIERRA. bluetooth.cpp dimensionaba tTxt PARA EL TIPO -un int con %d
+// son 11 caracteres- porque no podia fiarse del rango que promete OTRO modulo, y lo
+// dejaba escrito: "un buffer dimensionado por una invariante que vive en otro modulo es
+// el que se rompe en silencio el dia que ese modulo cambie". El instinto era bueno y la
+// consecuencia era mala: con T:, RF: y RTT: a su tope de tipo el $STATUS pedia 162 B
+// contra un techo de 155 -tramaCompleta[160] menos el *XX y el CRLF-, o sea que NO
+// CABIA, y una trama truncada no llega a medias: sale bien formada hasta el corte, el
+// checksum se calcula sobre lo que quedo y la app la descarta ENTERA. El sintoma en
+// campo es "el equipo se callo", que manda a mirar el cable.
+//
+// LA SALIDA NO ES ENSANCHAR BUFFERS -eso mueve el problema y se come flash que no
+// sobra-: es ACOTAR DONDE SE PRODUCE. La cota se declara junto a la funcion que la
+// promete, o sea aqui, y el emisor la comprueba antes de imprimir. Asi el buffer se
+// puede dimensionar para el RANGO sin fiarse de nadie: lo que sostiene el tamano no es
+// una creencia sobre este modulo, es una guarda que el emisor ejecuta.
+//
+// EL NUMERO SE DERIVA, NO SE ESCRIBE. Las dos funciones que alimentan T: dan:
+//   coordinador_segundosRestantesFase()   0..DESPEJE_SEG_MAX (90 s)
+//   modoAutomatico_segundosRestantesFase() 0..max(VERDE_MIN_MAX, ROJO_MIN_MAX) x 60
+// El segundo es el techo, y sale de limites_ciclo.h. Escribir "900" aqui seria la
+// QUINTA copia a mano de un limite del ciclo -N-131, N-133 y N-137 fueron las tres
+// primeras-, y el dia que el responsable suba el maximo a 20 min esta cota se mueve
+// sola o no se mueve: por eso es una expresion y no un literal.
+static const int CUENTA_ATRAS_MAX_SEG =
+    (int)(VERDE_MIN_MAX > ROJO_MIN_MAX ? VERDE_MIN_MAX : ROJO_MIN_MAX) * 60;
 
 int coordinador_segundosRestantesFase();
 
@@ -85,8 +118,27 @@ void coordinador_escucharEnAmbar();
 // Devuelve -1 mientras no haya ninguna muestra todavia.
 int coordinador_calidadEnlace();
 
+// La cota de arriba, para quien tenga que imprimirla. El 100 NO es un redondeo ni una
+// preferencia: la cuenta es (respondidos * 100) / muestrasLatido con respondidos <=
+// muestrasLatido por construccion -respondidos son los bits a 1 de una mascara de
+// muestrasLatido bits-, asi que el cociente no puede pasar de 100. El unico valor fuera
+// de [0, 100] que la funcion produce hoy es el -1 de "aun sin muestras", y ese tiene su
+// propia rama. Se declara para que el emisor pueda dimensionar "100%" -cuatro
+// caracteres- en vez de los doce que exige un int con %d.
+static const int CALIDAD_ENLACE_MAX = 100;
+
 // Tiempo de respuesta suavizado del ultimo latido, en ms. 0 si no hay muestras.
 unsigned long coordinador_tiempoRespuestaMs();
+
+// LA COTA DEL RTT PUBLICABLE, Y NO ES UN NUMERO INVENTADO. Este RTT es la media
+// exponencial de millis() - tLatidoEnviado sobre latidos que el Esclavo CONTESTA.
+// Por encima de SFTY6_SILENCIO_MS ya no hay enlace que medir: a ese silencio SFTY-6 se
+// lleva el cruce a ambar, asi que un RTT mayor no es una latencia alta, es una medida
+// que no significa nada -un latido que se quedo en vuelo mientras el ciclo agotaba sus
+// reintentos, o un contador que se fue-. Se hereda del techo de orfandad en vez de
+// fijar un "9999" propio: son 5 cifras, y el dia que alguien mueva SFTY6_SILENCIO_MS
+// esta cota se mueve con el.
+static const unsigned long RTT_PUBLICABLE_MAX_MS = SFTY6_SILENCIO_MS;
 
 // Latidos consecutivos sin respuesta. 0 con el enlace sano.
 int coordinador_latidosSinRespuesta();
