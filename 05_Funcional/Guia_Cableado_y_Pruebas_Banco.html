@@ -849,6 +849,12 @@
         <tr><td>🆕 <b>Algo con que grabar vídeo</b> —el móvil vale— y <b>un objeto que se pueda
           dejar quieto</b> dentro de la región</td><td>Paso 40. Se graba el pito del multímetro con la
           hora a la vista y luego se cuenta</td></tr>
+        <tr><td>🆕 <b>Un puente suelto que se pueda DEJAR PUESTO 20 minutos</b> en <code>J16</code>
+          (no una punta sujeta con la mano)</td><td>Pasos 21.bis y 21.quater</td></tr>
+        <tr><td>🆕 <b>Dos esperas largas que NO se miran sentado: 20 min y 30 min</b></td>
+          <td>Pasos <b>21.bis</b> y <b>21.ter</b>. <b>Arráncalas pronto y sigue con otros pasos</b>:
+          si las dejas para el final se quedan sin hacer, y el <b>21.ter es el único paso del día
+          que puede acusar al vigilante de cámaras</b></td></tr>
       </tbody>
     </table>
   </div>
@@ -1480,6 +1486,10 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
   <p class="sub"><b>Las entradas se simulan con un cable, pero no con el mismo gesto:</b> en
     <code>J14</code> el cable va <b>entre sus dos bornes</b>; en <code>J16</code> va del pin
     <b>a los 3,3 V</b>, nunca a masa. Y <code>J16</code> <b>no se cablea hasta el paso 20</b>.</p>
+  <p class="sub">🆕 <b>Y este apartado creció el 05/09: el programa que llevas VIGILA esas dos
+    entradas y avisa cuando dejan de comportarse como una cámara</b> (pasos <b>21.bis</b>,
+    <b>21.ter</b> y <b>21.quater</b>). <b>Vigila: no manda.</b> Los avisos <b>no mueven el cruce</b>
+    — el recuadro de después del paso 21 dice exactamente qué hace y qué no.</p>
   <p class="sub">🛑 <b>«Le concede el verde» sólo puede pasar en MODO INTELIGENTE, y eso afecta a los
     pasos 19 y 21.</b> La petición de la cámara <b>únicamente la atiende ese modo</b>: en el menú, en
     Automático o en Manual la entrada se lee y <b>no mueve el cruce</b>. ⚠️ <b>Esto NO lo arregla la
@@ -1632,6 +1642,185 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
           <label class="np"><input type="radio" name="p21" value="np"> No se cableó</label>
         </div>
         <textarea id="t21" placeholder="Si no se cableó, por qué · si no responde, qué hace"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================================
+       D-13 FASE 1 - EL VIGILANTE DE LAS CAMARAS. Anadido el 05/09 tras el commit
+       4b90f98. VA AQUI Y NO EN UN APARTADO NUEVO a proposito: el gesto es el mismo
+       puente del paso 21 y el conector es el mismo J16, asi que el que ya tiene el
+       cable en la mano hace estos tres seguidos.
+
+       LO QUE HAY QUE VIGILAR AL EDITAR ESTO: los tres pasos son .fila normales, o
+       sea que salen en @media print como los otros cuarenta -no llevan `noimprimir`
+       ni viven dentro de un <details>-, y f21b, f21c y f21d entran en la lista CLAVE
+       del parte de la primera hoja. Si alguien los mete dentro de un plegable, el PDF
+       -que es el canal de vuelta- deja de traer sus respuestas. 4.quater.
+       ============================================================================ -->
+  <div class="marco" id="vigilante">
+    <b>🆕 El vigilante de las cámaras · lo que el programa nuevo hace, y lo que NO hace</b>
+    <p><b>El programa que llevas vigila las dos entradas de <code>J16</code> y avisa por la cinta de
+      tramas cuando una de ellas deja de comportarse como una cámara.</b> Aparecen dos avisos nuevos
+      —<code>CAM_PEGADA</code> y <code>CAM_CIEGA</code>— y dos líneas de cierre.</p>
+    <div class="tabla-envoltorio" style="margin:.2rem 0 .5rem">
+      <table>
+        <thead><tr><th>Qué sale</th><th>Cuándo</th><th>Qué significa</th></tr></thead>
+        <tbody>
+          <tr><td><code>$ALARM …EVENTO:CAM_PEGADA,CAUSA:CAM_C_CONTACTO_FIJO</code></td>
+              <td>el contacto lleva <b>20 min</b> cerrado <b>sin abrirse ni una vez</b></td>
+              <td>algo mantiene cerrada esa entrada</td></tr>
+          <tr><td><code>$ALARM …EVENTO:CAM_CIEGA,CAUSA:CAM_C_SIN_FLANCO</code></td>
+              <td><b>6 h de PASO ABIERTO</b> sin ver un solo vehículo</td>
+              <td>la cámara puede estar <b>tapada, desenfocada, sin alimentación o con el cable
+                cortado</b></td></tr>
+          <tr><td><code>$EVENT,ORIGEN:CAMARA,DETALLE:CAM_C_RECUPERADA</code></td>
+              <td>la entrada vuelve a comportarse</td>
+              <td>el aviso se cierra <b>solo</b>: no hay que rearmar nada</td></tr>
+          <tr><td><code>$EVENT,ORIGEN:CAMARA_PLUMA,DETALLE:VETO_HABRIA_ACTUADO_N:&lt;n&gt;</code></td>
+              <td>la pluma baja habiendo presencia debajo</td>
+              <td>un contador. <b>La pluma baja igual</b> — ver abajo</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><code>CAM_C</code> es <code>J16</code> <b>p10</b> y <code>CAM_D</code> es <code>J16</code>
+      <b>p12</b>. <b>No son «la cámara 1 y la 2»</b>: esos números son de otras dos entradas
+      (<code>PB0</code>), y confundirlos manda a alguien a revisar el borne equivocado.</p>
+    <p>🛑 <b><code>ACCION:NINGUNA</code> no es un hueco de la trama: es el dato.</b> Ese campo dice
+      qué medida de seguridad vial ejecutó el equipo, y <b>esta versión no ejecuta ninguna</b>. No
+      veta, no baja la pluma, no toca una luz, no cambia un tiempo. <b>El cruce funciona exactamente
+      igual con las dos alarmas puestas.</b> Son <b>avisos de mantenimiento</b> —«que alguien vaya a
+      mirar esa cámara»—, <b>no fallos de seguridad</b>: 🔴 <b>un cruce NO se para por esto.</b></p>
+    <p>🛑 <b>Y lo que <code>CAM_PEGADA</code> NO sabe distinguir, escrito en vez de disimulado:</b>
+      un <b>relé trabado</b> y un <b>vehículo parado veinte minutos debajo de la pluma</b> dan el
+      <b>mismo nivel</b>, y este equipo no tiene con qué separarlos. Las dos cosas piden que alguien
+      vaya a mirar, así que avisar es correcto en los dos casos — por eso la causa dice
+      <code>CONTACTO_FIJO</code> y <b>no «avería»</b>. Si vas a mirar y hay un camión parado, <b>no
+      es un defecto del equipo</b>: anótalo tal cual.</p>
+    <p>⏱️ <b><code>CAM_CIEGA</code> cuenta 6 h de PASO ABIERTO, no 6 h de reloj.</b> El cronómetro
+      sólo corre con la <b>pluma arriba</b>: con el cruce en menú, en rojo total o con el turno en la
+      otra punta, nadie puede cruzar y una cámara callada está diciendo la verdad. Con el ciclo
+      mínimo cada poste tiene el paso abierto <b>~la mitad del tiempo</b>, o sea del orden de
+      <b>12 h de reloj</b>: <b>no puede dispararse dentro de una sola noche sin tráfico.</b></p>
+  </div>
+
+  <div class="parar">
+    <b>🔴 Lo que este banco NO puede probar de esto, y no se disimula</b>
+    <p><b><code>CAM_CIEGA</code> a su valor de producción son 6 h de paso abierto: NO es ejecutable
+      en una sesión de banco.</b> Está comprobado en su <b>forma</b> —que la trama se compone y sale
+      bien— <b>pero no en su tiempo</b>. Ejercerlo de verdad exigiría cargar una compilación con el
+      umbral reducido, <b>y esa compilación no es la que va a campo</b>: probaría un programa
+      distinto del que se queda dentro.</p>
+    <p><b>Así que este residual vuelve en el parte como residual, no como casilla verde.</b> El paso
+      <b>21.ter</b> sí prueba la mitad que sí es ejecutable —<b>que el cronómetro NO corre con el
+      paso cerrado</b>—, y esa es la puerta que impide que la alarma salte sola. Lo que queda sin
+      ejercer es el <b>número</b>.</p>
+  </div>
+
+  <div class="fila" id="f21b">
+    <div class="fn">21<br>bis</div>
+    <div class="fc">
+      <p class="ft">El aviso <code>CAM_PEGADA</code> a los <b>20 minutos</b>, y que se cierre solo</p>
+      <p><b class="et">Haz</b> <b>(a)</b> Con el equipo encendido y la cinta de tramas a la vista
+        —app o USB-TTL a 9600—, <b>puentea <code>J16</code> p10 contra p9</b> y <b>déjalo puesto</b>.
+        Apunta <b>la hora exacta</b> en que lo pusiste. <b>(b)</b> A los <b>20 min</b> mira la cinta.
+        <b>(c)</b> <b>Quita el puente</b> y mira otra vez.</p>
+      <div class="marco">
+        <b>⏱️ Esta espera se solapa con otros pasos: no te sientes a mirarla</b>
+        <p>Pon el puente, anota la hora y <b>sigue por el apartado 07</b>. Vuelve a la cinta a los
+          20 min. <b>p9 y p11 son los dos 3,3 V</b> —medidos en cobre el 03/09, paso 20— y <b>vale
+          cualquiera de los dos</b>; el paso 21 usó p11. 🔴 <b>Contra 3,3 V, NUNCA contra masa</b>,
+          y <b>comprueba otra vez que <code>J16</code> p1 sigue tapado</b> antes de meter la mano:
+          ese pin lleva <b>12 V crudos</b> a un conector de señal directa al micro.</p>
+      </div>
+      <p class="ver"><b class="et">Ver</b> <b>(b)</b> Una línea
+        <code>$ALARM …EVENTO:CAM_PEGADA,CAUSA:CAM_C_CONTACTO_FIJO,…,ACCION:NINGUNA</code>.
+        <b>(c)</b> Al quitar el puente,
+        <code>$EVENT,…,ORIGEN:CAMARA,DETALLE:CAM_C_RECUPERADA</code>.
+        🟢 <b>Y lo que importa tanto como la alarma: el cruce NO cambia de comportamiento</b> —ni con
+        el puente puesto, ni cuando salta el aviso, ni al quitarlo—. <b>Si el semáforo hace algo
+        distinto, eso SÍ es un hallazgo</b> y hay que anotarlo: esta versión no debe tocar el ciclo.
+        ⚠️ <b>Y si la alarma no llega, mira antes la hora que apuntaste</b>: 20 min son 20 min, y un
+        «no llegó» a los 12 no acusa a nada.</p>
+      <div class="anota">
+        <p class="porque">Puente puesto a las <input type="text" id="a21f" class="en-linea">
+          &nbsp; ¿En qué pin cerraste? <input type="text" id="a21g" class="en-linea" placeholder="p9 / p11">
+          &nbsp; El <code>$ALARM</code> llegó a las <input type="text" id="a21h" class="en-linea"></p>
+        <p class="porque">¿Salió el <code>RECUPERADA</code> al quitarlo?
+          <input type="text" id="a21i" class="en-linea">
+          &nbsp; ¿El semáforo hizo algo distinto en todo el rato?
+          <input type="text" id="a21j" placeholder="no / sí: qué hizo y cuándo"></p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p21b" value="si"> Alarma a los ~20 min y se cierra sola</label>
+          <label class="no"><input type="radio" name="p21b" value="no"> NO llegó, llegó a destiempo, o el cruce cambió</label>
+          <label class="np"><input type="radio" name="p21b" value="np"> No se pudo</label>
+        </div>
+        <textarea id="t21b" placeholder="Pega la línea entera de la cinta · si no llegó, cuánto esperaste · si el cruce cambió, qué hizo"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="fila alto" id="f21c">
+    <div class="fn">21<br>ter</div>
+    <div class="fc">
+      <p class="ft">La <b>puerta de la pluma</b>: con el paso cerrado, <b>30 min sin una sola alarma</b></p>
+      <p><b class="et">Haz</b> <b><code>J16</code> DESCONECTADO</b> —sin puente y sin nada
+        enchufado— y el equipo en <b>MENÚ</b> o en <b>ROJO TOTAL</b>. Anota la hora, deja la cinta
+        grabando y <b>espera 30 min</b> sin tocar el equipo. <b>Vale hacerlo mientras comes o
+        mientras corre otro paso</b>, pero el equipo tiene que quedarse en ese estado todo el rato:
+        si alguien lo pone en Automático a mitad, el paso <b>no cuenta</b> y hay que repetirlo.</p>
+      <p class="ver"><b class="et">Ver</b> 🟢 <b>Ninguna alarma de cámara en esos 30 min.</b>
+        Ni <code>CAM_PEGADA</code> ni <code>CAM_CIEGA</code>.
+        🔴 <b>Si sale una, PARA y anótala con su hora:</b> significa que el vigilante está contando
+        <b>tiempo de reloj</b> en vez de <b>tiempo de paso abierto</b>, y con eso puesto en un cruce
+        real <b>cada noche tranquila produciría una alarma falsa</b> — que es la forma más rápida de
+        que nadie vuelva a hacer caso a estos avisos.</p>
+      <p class="porque">📌 <b>Por qué este paso vale más que el 21.bis:</b> es el <b>único de los
+        tres que puede acusar al firmware</b>. Los otros dos comprueban que el vigilante
+        <b>habla</b>; éste comprueba que <b>se calla cuando debe</b>. Un vigilante que alarmara
+        siempre pasaría los otros dos igual de bien.</p>
+      <div class="anota">
+        <p class="porque">Empezó a las <input type="text" id="a21k" class="en-linea">
+          &nbsp; terminó a las <input type="text" id="a21l" class="en-linea">
+          &nbsp; ¿En qué estado estuvo? <input type="text" id="a21m" class="en-linea" placeholder="MENÚ / ROJO TOTAL"></p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p21c" value="si"> 30 min y ninguna alarma</label>
+          <label class="no"><input type="radio" name="p21c" value="no"> Salió alguna alarma</label>
+          <label class="np"><input type="radio" name="p21c" value="np"> No se pudo</label>
+        </div>
+        <textarea id="t21c" placeholder="Si salió alguna: pega la línea con su hora · si no se pudo, por qué"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="fila" id="f21d">
+    <div class="fn">21<br>quater</div>
+    <div class="fc">
+      <p class="ft">El contador <code>VETO_HABRIA_ACTUADO_N</code> · <b>el número que decide si la fase 2 se construye</b></p>
+      <p><b class="et">Haz</b> Con el <b>puente de p10 puesto</b> (el del 21.bis), haz que la
+        <b>pluma baje</b> —deja que el ciclo la baje solo, o pásalo a rojo—. Repítelo
+        <b>tres o cuatro veces</b> y apunta el valor de <code>N</code> cada vez.</p>
+      <p class="ver"><b class="et">Ver</b> Cada vez que la pluma baja con el puente puesto sale
+        <code>$EVENT,…,ORIGEN:CAMARA_PLUMA,DETALLE:VETO_HABRIA_ACTUADO_N:&lt;n&gt;</code> con
+        <b><code>N</code> subiendo de uno en uno</b>.
+        🛑 <b>Y la pluma BAJA IGUAL: esto cuenta, no impide.</b> Si la vieras quedarse arriba, eso
+        <b>sí</b> es un hallazgo — esta versión no debe tocar la pluma.
+        ⚠️ <b>La primera bajada después de encender no debe regalar un veto</b>: si al arrancar el
+        equipo, <b>sin</b> haber puesto tú el puente, ya sale un <code>N:1</code>, anótalo.</p>
+      <p class="porque">📌 <b>Para qué sirve este número, porque no es telemetría de adorno:</b> es
+        <b>cuántas veces la pluma habría bajado con alguien debajo</b> en un cruce real. Es el
+        <b>único dato</b> con el que se puede decidir si merece la pena construir la fase 2 —la que
+        de verdad vetaría esa bajada—. Hoy ese número <b>no existe</b>, y por eso se pregunta.</p>
+      <div class="anota">
+        <p class="porque">Valores de <code>N</code> que viste, en orden:
+          <input type="text" id="a21n" placeholder="1, 2, 3…">
+          &nbsp; ¿La pluma bajó las tres/cuatro veces? <input type="text" id="a21o" class="en-linea"></p>
+        <div class="tres">
+          <label class="si"><input type="radio" name="p21d" value="si"> Sube de uno en uno y la pluma baja igual</label>
+          <label class="no"><input type="radio" name="p21d" value="no"> No sube, salta números, o la pluma se quedó arriba</label>
+          <label class="np"><input type="radio" name="p21d" value="np"> No se pudo</label>
+        </div>
+        <textarea id="t21d" placeholder="Pega las líneas · si la pluma se quedó arriba, en qué momento"></textarea>
       </div>
     </div>
   </div>
@@ -3725,6 +3914,22 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
               <td>🟠 <b>Fuera de esta visita.</b> La cámara graba en su propia tarjeta, y eso
                 <b>no toca una línea de nuestro programa</b>. Falta comprarlas y decidir retención:
                 es una decisión, no una medida</td></tr>
+            <tr><td>🆕 <b>Que <code>CAM_CIEGA</code> salte de verdad a las 6 h</b></td>
+              <td>🔴 <b>NO es ejecutable en esta sesión, y no se disimula como aprobado.</b> Son
+                <b>6 h de PASO ABIERTO</b> —del orden de 12 h de reloj—; ejercerlo exigiría cargar
+                una compilación con el umbral reducido, <b>y esa compilación no es la que va a
+                campo</b>. Está comprobado en su <b>forma</b>, no en su <b>tiempo</b>. Lo que sí se
+                prueba es <b>la puerta que impide que salte sola</b>: el <b>paso 21.ter</b></td></tr>
+            <tr><td>🆕 <b>Si se construye la fase 2 del veto de pluma</b></td>
+              <td>🟠 <b>No se pregunta aquí, y es deliberado: el dato con el que se decide todavía
+                no existe.</b> Lo produce esta misma fase 1 —el contador
+                <code>VETO_HABRIA_ACTUADO_N</code> del <b>paso 21.quater</b>, y después el mismo
+                contador en el poste—. <b>Ofrecer hoy la elección sería pedir una decisión sobre una
+                causa sin medir</b>; lo que esta visita hace es traer el número</td></tr>
+            <tr><td>🆕 <b>Bajar el umbral de <code>CAM_CIEGA</code> por debajo de las 6 h</b></td>
+              <td>🟠 <b>Fuera de esta visita.</b> Cuánto silencio es normal en este cruce es una
+                propiedad <b>de la carretera</b>, no del equipo, y hoy <b>no hay ni un dato</b>. Los
+                eventos de la fase 1 son los que lo dirán. <b>El firmware no se toca en banco</b></td></tr>
             <tr><td><b>Que el cruce funcione en la calle</b></td>
               <td><b>Es una sesión de comprobación, no una puesta en servicio.</b> Nada de lo que se
                 pruebe aquí autoriza a dejar el equipo trabajando en la vía</td></tr>
@@ -3821,7 +4026,15 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
     // enciende es cobre, y hay que saberlo antes de fabricar mas tarjetas. Los tres
     // contestan preguntas que estaban ABIERTAS al encargar la visita, que es el criterio
     // de esta lista.
-    var CLAVE = ['f7', 'f7b', 'f12', 'f15', 'f16', 'f19', 'f20', 'f21', 'f29',
+    // 05/09 (tarde): entran f21b, f21c y f21d, los tres del vigilante de camaras
+    // (D-13 fase 1). Los tres contestan algo que HOY no se puede sacar de ningun
+    // documento: f21c es el unico de los tres que puede ACUSAR al firmware -que el
+    // cronometro no corre con el paso cerrado- y f21d trae el contador de vetos, que
+    // es el unico dato con el que se decide si la fase 2 se construye. f21b es el que
+    // ensena que la alarma existe y que el cruce NO cambia con ella puesta, que es lo
+    // que hay que poder afirmar antes de mandar esto a un poste.
+    var CLAVE = ['f7', 'f7b', 'f12', 'f15', 'f16', 'f19', 'f20', 'f21',
+                 'f21b', 'f21c', 'f21d', 'f29',
                  'f30', 'f31', 'f32', 'f33',
                  'f34', 'f35', 'f36', 'f37', 'f38',
                  'f39', 'f40'];

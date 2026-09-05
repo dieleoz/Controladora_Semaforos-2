@@ -878,6 +878,45 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 > servicio —el cruce reparte por tiempo, como si no hubiera cámara— pero no crea una situación
 > peligrosa.** Si un día parece que un sentido «ya no pide paso», **la primera sospecha es la cámara
 > o su alimentación**, no el semáforo.
+>
+> ### 🆕 05/09 — EL EQUIPO YA SABE AVISAR DE QUE UNA CÁMARA DEJÓ DE VER (D-13 fase 1)
+>
+> **La frase de arriba —«no puede distinguir una cámara callada de una vía vacía»— era cierta y ya
+> no lo es del todo. Se corrige aquí en vez de borrarse, porque el matiz es justo lo que hay que
+> entender.**
+>
+> Las dos entradas de cámara de `J16` —`CAM_C` = **p10** y `CAM_D` = **p12**— **se vigilan solas**, y
+> el equipo lo anuncia por Bluetooth:
+>
+> | Aviso | Cuándo aparece | Qué hay que hacer |
+> |---|---|---|
+> | **`CAM_PEGADA`** | el contacto lleva **20 minutos** cerrado **sin abrirse ni una vez** | ir a mirar. Puede ser el relé de la cámara trabado… **o un vehículo parado ahí debajo** |
+> | **`CAM_CIEGA`** | **6 horas de paso abierto** sin ver un solo vehículo | ir a mirar la cámara: **tapada, desenfocada, sin corriente o con el cable cortado** |
+> | **`RECUPERADA`** | la entrada vuelve a comportarse | **nada**: el aviso se cierra solo |
+>
+> 🛑 **ESTO NO PARA NI TOCA EL CRUCE, Y ES LO PRIMERO QUE HAY QUE SABER.** Los dos avisos llevan
+> escrito `ACCION:NINGUNA`, y ese campo **es el dato**, no un hueco: significa que el equipo **no
+> ejecutó ninguna medida vial**. No veta, no baja la pluma, no cambia una luz ni un tiempo. **El
+> cruce funciona exactamente igual con los dos avisos puestos.** Son **avisos de mantenimiento**:
+> 🔴 **un cruce NO se para por una cámara sucia.**
+>
+> 🛑 **Y `CAM_PEGADA` no distingue un relé trabado de un camión parado veinte minutos debajo de la
+> pluma: dan la misma señal.** Por eso el aviso dice `CONTACTO_FIJO` y **no «avería»**. Las dos cosas
+> piden que alguien vaya a mirar; si al llegar hay un vehículo parado, **la cámara está bien**.
+>
+> ⏱️ **`CAM_CIEGA` cuenta 6 horas DE PASO ABIERTO, no 6 horas de reloj.** El contador sólo corre
+> mientras la pluma está arriba —con el cruce en menú, en rojo total o con el turno en el otro
+> poste nadie puede cruzar, y una cámara callada está diciendo la verdad—. Con el ciclo mínimo eso
+> es del orden de **12 horas de reloj**, así que **no puede saltar en una sola noche sin tráfico**.
+>
+> ⚠️ **Lo que sigue igual, y por eso la frase de arriba no se borra:** esto **no** hace que una
+> cámara abra paso, y **no** cubre la cámara de `J14` (`PB0`), que es la que hoy pide paso de verdad.
+> Lo que cubre son las **dos entradas de `J16`**.
+>
+> 🔴 **Y lo que todavía NO está probado en una tarjeta:** que `CAM_CIEGA` salte de verdad a las 6 h.
+> **No es ejecutable en una sesión de banco** —haría falta cargar un programa con el plazo acortado,
+> y ése no es el que va a campo—, así que está comprobado en su **forma** y no en su **tiempo**. Se
+> escribe aquí en vez de dejarlo pasar por bueno.
 * **Seguridad:** Cada cambio de sentido respeta el tiempo de **Despeje Todo-Rojo** configurado ~~en pantalla~~ **(28/08: desde la app)** antes de habilitar el verde al sentido con demanda.
 
 > 🔴 **28/08 — QUÉ MIDE DE VERDAD EL MODO INTELIGENTE, Y QUÉ NO.** Medido sobre

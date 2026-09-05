@@ -813,12 +813,34 @@ El checksum se calcula aplicando la operación **XOR bit a bit** de todos los by
 > vive en memoria y **no sobrevive a que Android cierre la app**.
 
 ### 4.2 Telemetría Periódica ($STATUS) — Emitida cada 2 segundos *(cadencia bajada a **2000 ms** el 04/09, decision del responsable, en las DOS puntas — MEDIDO: `Maestro/src/bluetooth.cpp:851`, `Esclavo/src/bluetooth.cpp:768`. Un tecnico que cronometre con «1 segundo» declara caido un enlace sano.)*
-$$\text{Formato: }\$STATUS,NODE:\langle N\rangle,SERIE:\langle S\rangle,MODO:\langle M\rangle,ESTADO:\langle E\rangle,T:\langle S\rangle,RF:\langle R\rangle\%,RTT:\langle T\rangle ms,BAT:\langle V\rangle,HORA:\langle H\rangle,ESC:\langle C\rangle,PLUMA:\langle P\rangle*\langle CRC\rangle\backslash r\backslash n$$
+$$\text{Formato: }\$STATUS,NODE:\langle N\rangle,SERIE:\langle S\rangle,MODO:\langle M\rangle,ESTADO:\langle E\rangle,T:\langle S\rangle,RF:\langle R\rangle\%,RTT:\langle T\rangle ms,BAT:\langle V\rangle,HORA:\langle H\rangle,ESC:\langle C\rangle,PLUMA:\langle P\rangle,CAM:\langle K\rangle*\langle CRC\rangle\backslash r\backslash n$$
 
 **Ejemplo Maestro en Modo Automático:**
 ```text
-$STATUS,NODE:MAESTRO,SERIE:A3F19C,MODO:AUTO,ESTADO:V1_R2,T:24,RF:98%,RTT:82ms,BAT:12.6,HORA:18:25:00,ESC:ROJO,PLUMA:ARRIBA*41\r\n
+$STATUS,NODE:MAESTRO,SERIE:A3F19C,MODO:AUTO,ESTADO:V1_R2,T:24,RF:98%,RTT:82ms,BAT:12.6,HORA:18:25:00,ESC:ROJO,PLUMA:ARRIBA,CAM:OK*1C\r\n
 ```
+
+> 🔵 **`CAM` (D-13 fase 1) — el estado de las cámaras de `J16`, y lo emiten LAS DOS puntas.**
+> Cuatro valores, y **es el PEOR de las dos cámaras de esa punta**, no una por campo:
+>
+> | valor | significa |
+> |---|---|
+> | `OK` | las dos han dado flancos y ninguna está pegada |
+> | `?` | **todavía no se sabe** — al encender, hasta que una dé su primer flanco |
+> | `CIEGA` | una lleva **6 h de paso abierto** sin ver un vehículo |
+> | `PEGADA` | una lleva **20 min** con el contacto cerrado sin abrirse |
+>
+> **`?` pesa más que `OK` a propósito**, y ése es todo el diseño del campo: si una cámara se sabe
+> buena y de la otra no se sabe nada, publicar `OK` **taparía** la desconocida. La gravedad va en
+> el orden del `enum`, así que el peor se resuelve con un mayor-que y no con una cadena de `if`
+> que alguien tendría que mantener ordenada.
+>
+> 🛑 **Ninguno de esos cuatro valores mueve el cruce.** El vigilante de cámaras **avisa y no
+> manda**: ver **§4.3.bis**, donde está lo que sí hay que saber antes de mandar a nadie a un poste
+> por esto.
+>
+> ⚠️ **Y un parser tiene que leerlo con valor por defecto**, igual que `ESC`: este campo **no
+> existía en `4b90f98`** y una app anterior no lo trae.
 
 > 🔵 **`ESC` (N-149) — y este campo SÓLO SALE DEL MAESTRO.** Es el único campo asimétrico
 > de la trama, y la asimetría es deliberada. Toma cuatro valores: `ROJO`, `VERDE`, `AMBAR`
@@ -868,14 +890,105 @@ $STATUS,NODE:MAESTRO,SERIE:A3F19C,MODO:AUTO,ESTADO:V1_R2,T:24,RF:98%,RTT:82ms,BA
 
 ### 4.3 Trama de Alarma Inmediata ($ALARM) — Emitida ante incidentes
 ```text
-$ALARM,NODE:MAESTRO,EVENTO:FALLO_RF,CAUSA:SILENCIO_25000ms,ACCION:CAMBIO_A_AMBAR,HORA:17:54:58*3D\r\n
+$ALARM,NODE:MAESTRO,EVENTO:FALLO_RF,CAUSA:SILENCIO_25000ms,RF:--,RTT:--,SINRESP:5,ACCION:CAMBIO_A_AMBAR,HORA:17:54:58*18\r\n
 ```
 
-> **Los dos checksums de arriba estaban mal** (`*4F` y `*3B` frente a los `*42` y `*43`
-> reales), y llevaban desde el 26/08 en el manual y en el `.docx`. Un ejemplo con checksum
+> 🔴 **ESTE EJEMPLO LLEVABA TRES CAMPOS DE MENOS, y el checksum del manual estaba BIEN — que
+> es exactamente lo que lo hacía difícil de ver.** Aquí ponía
+> ~~`$ALARM,NODE:MAESTRO,EVENTO:FALLO_RF,CAUSA:SILENCIO_25000ms,ACCION:CAMBIO_A_AMBAR,HORA:17:54:58*3D`~~,
+> sin `RF:`, `RTT:` ni `SINRESP:`. El firmware los emite **desde N-108**: los compone
+> `bluetooth_reportarAlarma()`, entre la `CAUSA` y la `ACCION`, y salen en **todas** las
+> alarmas, no sólo en las de radio.
+>
+> ```
+> grep -n "ALARM,NODE:" Maestro/src/bluetooth.cpp Esclavo/src/bluetooth.cpp
+> grep -n "SINRESP:" Maestro/src/bluetooth.cpp
+> ```
+>
+> **Y el pack no podía cazarlo, por una razón que vale la pena escribir:** lo que
+> `documentos_03_trama_status` comprueba de estos ejemplos es que **cada uno cuadre con su
+> propio XOR**, no que describan la trama que sale del micro. Un ejemplo obsoleto con su
+> checksum recalculado es **internamente coherente y falso**, y un instrumento verde encima.
+> Quien escribiera un parser contra este apartado se encontraría tres campos que no espera.
+>
+> **Los dos checksums que estaban mal antes** (`*4F` y `*3B` frente a los `*42` y `*43`
+> reales) llevaban desde el 26/08 en el manual y en el `.docx`. Un ejemplo con checksum
 > inválido en el mismo apartado que explica cómo calcularlo es una trampa para quien escriba
 > un parser: descarta la trama buena y busca el fallo donde no está. Ahora los recalcula el
 > pack `documentos_03_trama_status` sobre **todos** los ejemplos de este manual.
+
+#### 🆕 4.3.bis Las alarmas de CÁMARA (D-13 fase 1, `4b90f98`) — **avisan y no tocan el cruce**
+
+El firmware vigila las dos entradas de cámara de `J16` —`CAM_C` = **p10**, `CAM_D` = **p12**— y
+emite dos alarmas nuevas y dos eventos de cierre. **Las emiten las DOS puntas**, con el mismo
+código: `NODE:` es lo único que cambia.
+
+```text
+$ALARM,NODE:MAESTRO,EVENTO:CAM_PEGADA,CAUSA:CAM_C_CONTACTO_FIJO,RF:98%,RTT:82ms,SINRESP:0,ACCION:NINGUNA,HORA:18:25:00*57
+$ALARM,NODE:MAESTRO,EVENTO:CAM_CIEGA,CAUSA:CAM_D_SIN_FLANCO,RF:98%,RTT:82ms,SINRESP:0,ACCION:NINGUNA,HORA:18:25:00*57
+$EVENT,NODE:MAESTRO,ORIGEN:CAMARA,DETALLE:CAM_C_RECUPERADA,HORA:18:25:00*5F
+$EVENT,NODE:MAESTRO,ORIGEN:CAMARA_PLUMA,DETALLE:VETO_HABRIA_ACTUADO_N:3,HORA:18:25:00*03
+```
+
+| campo | valores | qué significa |
+|---|---|---|
+| `EVENTO` | `CAM_PEGADA` | el contacto lleva **20 min** cerrado **sin abrirse ni una vez** |
+| `EVENTO` | `CAM_CIEGA` | **6 h de PASO ABIERTO** sin un solo flanco |
+| `CAUSA` | `CAM_C_CONTACTO_FIJO` · `CAM_D_CONTACTO_FIJO` | qué entrada, y qué se observó |
+| `CAUSA` | `CAM_C_SIN_FLANCO` · `CAM_D_SIN_FLANCO` | idem |
+| `ACCION` | **`NINGUNA`, siempre** | ver abajo — **no es un hueco** |
+| `DETALLE` | `CAM_C_RECUPERADA` · `CAM_D_RECUPERADA` | la alarma **se cierra sola**; no hay que rearmar nada |
+| `DETALLE` | `VETO_HABRIA_ACTUADO_N:<n>` | contador de la fase 2. `<n>` es un `uint16_t` que **satura en 65535**, no da la vuelta |
+
+> 🛑 **`ACCION:NINGUNA` NO ES RELLENO: es el dato que decide si esto para un cruce o no.** Ese
+> campo significa *«medida de seguridad vial ejecutada»*, y la fase 1 **no ejecuta ninguna**: no
+> veta, no baja la pluma, no toca una luz, no cambia un tiempo. **El cruce funciona exactamente
+> igual con las dos alarmas puestas.** Son **avisos de mantenimiento** —«que alguien vaya a mirar
+> esa cámara»—, **no fallos de seguridad**.
+>
+> **Quien escriba la app, el tablero o el aviso al operario tiene que pintarlas así.** Una alarma
+> de cámara que se muestre con la misma cara que un `FALLO_RF` hace que alguien pare un cruce por
+> una cámara sucia. Escribir en ese campo cualquier otra cosa sería el `$ACK` que no mira lo que
+> devolvió la llamada (§6 de `CLAUDE.md`) trasladado a la caja negra.
+
+> 🛑 **Lo que `CAM_PEGADA` NO SABE DISTINGUIR, y por eso la causa dice `CONTACTO_FIJO` y no
+> «avería»:** un **relé trabado** y un **vehículo parado veinte minutos debajo de la pluma** dan
+> **el mismo nivel**, y este firmware no tiene con qué separarlos. Las dos cosas piden que alguien
+> vaya a mirar, así que avisar es correcto en los dos casos; **llamarlo avería no lo sería**.
+
+> ⏱️ **`CAM_CIEGA` cuenta 6 h de PASO ABIERTO, no 6 h de reloj.** El cronómetro sólo corre con la
+> **pluma arriba**: con el cruce en menú, en rojo total o con el turno en la otra punta nadie puede
+> cruzar el barrido, y una cámara callada está diciendo la verdad. Con el ciclo mínimo cada poste
+> tiene el paso abierto **~la mitad del tiempo** —del orden de **12 h de reloj**—, así que **no
+> puede dispararse dentro de una sola noche sin tráfico**, que es el único silencio largo legítimo.
+
+> 🔴 **RESIDUAL, Y NO SE LEE COMO APROBADO: `CAM_CIEGA` a su valor de producción NO es ejecutable
+> en una sesión de banco.** Está comprobado en su **forma** —la trama se compone y sale bien— **y
+> no en su tiempo**. Ejercerlo exigiría cargar una compilación con el umbral reducido, **y esa
+> compilación no es la que va a campo**. Lo que sí se ejerce en banco es la puerta que impide que
+> salte sola: que el cronómetro **no corre con el paso cerrado** (paso **21.ter** de la guía).
+
+> ⚠️ **`CAM_C` y `CAM_D` no son «la cámara 1 y la 2».** Esos números son de **otras** dos entradas
+> —las de `PB0`, una por punta—. Las de `J16` **no tienen número: son `C` y `D`**, y confundirlos
+> manda a un técnico a revisar el borne equivocado.
+
+> ⚠️ **Estas cuatro tramas son TODO lo que el vigilante publica por su cuenta.** El firmware
+> además calcula un estado por punta —`OK` · `?` · `CIEGA` · `PEGADA`, y publica **el peor de las
+> dos cámaras**, con `?` pesando más que `OK` para que una cámara desconocida no quede tapada por
+> la otra—. **Dónde viaja ese estado lo dice §4.2, que es la especificación del `$STATUS`, y no se
+> copia aquí**: una segunda copia de un formato se queda describiendo una trama que ya cambió, que
+> es exactamente lo que le pasó al ejemplo de arriba.
+>
+> ⚠️ **Ese estado viaja en el `$STATUS`, en el campo `CAM:` — está en §4.2 con sus cuatro valores.**
+> **En `4b90f98`, el commit de la fase 1, ese campo NO salía**: el getter estaba declarado sin
+> llamador a propósito y con el motivo medido en `costura_10_funciones_muertas`, porque el `$STATUS`
+> no cabía en su peor caso. Se conectó **después**, con el presupuesto de bytes rehecho. **Un parser
+> tiene que leerlo con valor por defecto**, porque una app anterior a ese cambio no lo trae.
+>
+> **Y quien lo verifique no tiene que creerse este párrafo:** `documentos_03_trama_status` compara
+> **campo a campo** la plantilla del `.cpp` contra §4.2 en cada corrida del banco, y
+> `camara_03_vigilante` comprueba las dos mitades del vigilante. Si un día la trama cambia y el
+> manual no, la compuerta lo dice.
 
 ### 4.4 Comandos desde la App hacia la Controladora (Protegidos por PIN)
 ```text

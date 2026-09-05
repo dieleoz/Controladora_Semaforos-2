@@ -431,6 +431,29 @@ un temporizador que fuera del Modo Inteligente no lee nadie**.
 > significa que **cablear las dos cámaras hoy no cambia absolutamente nada en los dos únicos modos
 > que se operan**, y eso hay que decirlo antes de que alguien suba a un poste a montarlas.
 
+> 🆕 **ACTUALIZACIÓN DEL 05/09 (`4b90f98`, D-13 fase 1) — la mitad local YA NO ES INVISIBLE, pero
+> sigue sin mover el cruce, y las dos mitades hay que decirlas juntas.**
+>
+> | | antes de `4b90f98` | hoy |
+> |---|---|---|
+> | ¿un flanco de `J16` **mueve** el cruce en Automático o Manual? | **no** | **NO — sin cambio.** El vigilante *observa*: no hay una sola escritura de pin en las 238 líneas nuevas |
+> | ¿un flanco de `J16` **deja rastro** en esos modos? | **no**: bandera que nadie lee, cero eventos | **sí.** Alimenta el vigilante en **todos los modos**, y de ahí salen `CAM_PEGADA`, `CAM_CIEGA`, `CAM_*_RECUPERADA` y el contador `VETO_HABRIA_ACTUADO_N` |
+> | ¿se puede saber desde fuera si la cámara **sigue viva**? | **no**, y era el hueco | **sí** — es exactamente lo que cierra la fase 1 |
+>
+> **O sea que la frase de arriba —«no produce ni un evento»— dejó de ser cierta y se corrige aquí en
+> vez de borrarse.** Lo que **no** ha cambiado, y por eso el aviso al que va a subir a un poste sigue
+> en pie: **cablear las dos cámaras hoy no le da un verde a nadie fuera del Modo Inteligente.** Lo
+> que da es **telemetría de la propia cámara**, y el **contador con el que se decide si se construye
+> la fase 2** —la que sí vetaría la bajada de pluma con alguien debajo—.
+>
+> 🔴 **Y el residual, que no se disimula como cubierto:** `CAM_CIEGA` a su valor de producción son
+> **6 h de PASO ABIERTO** y **NO es ejecutable en una sesión de banco**. Está comprobado en su
+> **forma**, no en su **tiempo**; ejercerlo exigiría cargar una compilación con el umbral reducido,
+> **y esa compilación no es la que va a campo**. Lo que sí se ejerce es la **puerta** —que el
+> cronómetro no corre con el paso cerrado—, y es el paso **21.ter** de la guía de banco. **Un pack
+> verde sobre la forma de esa trama no es la alarma ejercida**, y confundir las dos cosas es §2.ter
+> otra vez.
+
 **Y hay un coste que sí se paga, con la cámara del Esclavo:** `demanda_solicitar()` del Esclavo manda
 `CMD_DEMANDA` por radio **en todos los modos** —`demanda.cpp` de esa punta, sin guarda de modo—, en
 un canal de `2,4 kbps` semidúplex que también lleva `GO_RED`/`ACK_RED`. *[**SIN MEDIR**: el impacto

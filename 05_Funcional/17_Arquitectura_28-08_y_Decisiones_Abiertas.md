@@ -1480,7 +1480,7 @@ footprint (`Molex_KK-254_AE-6410-16A_1x16_P2.54mm_Vertical`, 16 pads, tanto en `
 | entrada | pin | conector | ayuda de la placa | quien la declara | quien la lee |
 |---|---|---|---|---|---|
 | **`CAM_DEMANDA_PIN`** | `PB0` | **`J14`** | 🟢 **`R64` 10 kOhm + `C25` 100 nF — antirrebote RC de 1 ms EN LA PLACA**, escrito encima del `#define` | Maestro: `pinMode(CAM_DEMANDA_PIN, INPUT)` en `botones_setup()` · Esclavo: el mismo `pinMode` en `setup()` de `main.cpp` | Maestro: `camara_leerPin(CAM_DEMANDA_PIN)` en `modoInteligente_loop()` · Esclavo: `digitalRead(CAM_DEMANDA_PIN) == HIGH` en `main.cpp` |
-| **`CAM_C_PIN`** | `PB14` | **`J16` p10** | 🟠 **`R67` 10 kOhm a masa, MEDIDA en cobre: `9,93 kOhm`. SIN condensador** | `pinMode(CAM_C_PIN, INPUT)` en `botones_setup()`, **las dos puntas** | `camaras_actualizar()` — y su siembra `camaras_sembrar()`, **las dos puntas** |
+| **`CAM_C_PIN`** | `PB14` | **`J16` p10** | 🟠 **`R67` 10 kOhm a masa, MEDIDA en cobre: `9,93 kOhm`. SIN condensador** | `pinMode(CAM_C_PIN, INPUT)` en `botones_setup()`, **las dos puntas** | `camaras_actualizar()` — su siembra `camaras_sembrar()` — y 🆕 **el vigilante de `D-13` fase 1** (`vigilante_flanco()`, `vigilante_nivel()`, `vigilante_tick()`), **las dos puntas** |
 | **`CAM_D_PIN`** | `PB15` | **`J16` p12** | 🟠 **`R68` 10 kOhm a masa, MEDIDA: `9,94 kOhm`. SIN condensador** | `pinMode(CAM_D_PIN, INPUT)` en `botones_setup()` | idem |
 
 **Las seis casillas de las dos ultimas columnas salen de tres `grep`, y ninguno lleva numero:**
@@ -1501,15 +1501,28 @@ PREFERENCIA"* — `grep -n "POR QUE ACTIVO EN ALTO" Maestro/include/pines.h`.
 ```
    J16 p10 (PB14) --+
                     +--> camaras_actualizar()  --FLANCO DE SUBIDA-->  demanda_solicitar()
-   J16 p12 (PB15) --+     botones.cpp:144-152                          demanda.cpp:13
-                                                                             |
-                                                                    demanda_hayLocal()
-                                                                             |
+   J16 p12 (PB15) --+           |                                            |
+                                +--> vigilante_flanco() / _nivel()    demanda_hayLocal()
+                                     (D-13 fase 1: cuenta y avisa,           |
+                                      NO llama a demanda_solicitar())        |
    J14 (PB0) ------------------------------------------------> camara_leerPin(CAM_DEMANDA_PIN)
                                                                              |
-                                                       modo_inteligente.cpp:97:
                                              camara_leerPin(CAM_DEMANDA_PIN) || demanda_hayLocal()
 ```
+
+> 🔴 **AQUI HABIA TRES CITAS POR NUMERO DE LINEA Y LAS TRES ESTABAN O SE QUEDARON CADUCAS — se
+> sustituyen por simbolo, que es §4.sexies.** ~~`botones.cpp:144-152`~~ y ~~`botones.cpp:129-135`~~
+> apuntaban a `camaras_actualizar()` y a `camaras_sembrar()`; tras `4b90f98` esas lineas son
+> **comentarios del vigilante** (`sed -n '144,152p'` devuelve la nota de `CAM_PEGADA`), y las
+> funciones estan hoy en `:373` y `:349`. Y ~~`modo_inteligente.cpp:97`~~ era ya **una linea en
+> blanco**: el `OR` vive en `:119`. **Se citan asi, y el `grep` esta corrido:**
+>
+> ```
+> grep -n "static void camaras_actualizar\|static void camaras_sembrar" Maestro/src/botones.cpp
+> grep -n "vigilante_flanco\|vigilante_nivel\|vigilante_tick" Maestro/src/botones.cpp Esclavo/src/botones.cpp
+> grep -n "demanda_hayLocal()" Maestro/src/modo_inteligente.cpp
+> grep -n "bool demanda_solicitar" Maestro/src/demanda.cpp
+> ```
 
 **Las tres entran por la MISMA puerta**, y esa puerta lleva la ventana de silencio de **3 s**
 (`SILENCIO_MS`, `demanda.cpp:8`) que impide que una cola de coches se convierta en una rafaga de
@@ -1528,6 +1541,28 @@ encender no es una deteccion, es un estado**. Es N-26 aplicado a la camara.
 >   fantasma en reposo**.
 > - **Ejercido por instrumento:** `camara_01_demanda` y `camara_02_j16` en el banco por packs.
 > - **`M3` cerrada en cobre** (paso 20): las cuatro posiciones con su pull-down real de 10 kOhm.
+
+> 🆕 **05/09 — Y AHORA ESAS DOS ENTRADAS ADEMAS SE VIGILAN SOLAS: `D-13` FASE 1 (`4b90f98`, `A-6`).**
+> **Vigila; no manda.** Es lo que hay que retener antes de nada: en las 238 lineas nuevas la unica
+> funcion vial que aparece es `semaforo_plumaArriba()`, **y SE LEE** — cero escrituras de pin. **El
+> cruce funciona exactamente igual con las dos alarmas puestas**, y por eso las tramas llevan
+> `ACCION:NINGUNA`, que **es el dato y no un hueco**.
+>
+> | | umbral | de donde sale |
+> |---|---|---|
+> | `CAM_PEGADA` (`CONTACTO_FIJO`) | **20 min** de contacto cerrado sin abrirse | **DERIVADO** del techo del ciclo — `VERDE_MIN_MAX + DESPEJE_SEG_MAX = 16,5 min`, y 20 es el primer redondo por encima. **La desigualdad la recalcula `camara_03_vigilante` del C++ en cada corrida** (N-71): no vive en un comentario |
+> | `CAM_CIEGA` (`SIN_FLANCO`) | **6 h de PASO ABIERTO** | 🟠 **NO sale de ninguna constante del firmware, y asi esta escrito.** Cuanto tarda el siguiente vehiculo es propiedad **de la carretera**; fabricarle una derivacion seria `A-7` otra vez. Lo que si es del equipo, y el pack lo comprueba: **cuenta con la pluma arriba, no reloj**, y **tiene que ser mayor que `CAM_PEGADA_MS`** —una camara pegada tampoco da flancos, y con el orden invertido un rele trabado se anunciaria `CIEGA`, el diagnostico CONTRARIO— |
+>
+> **El contador `camVetos` OBSERVA la bajada de pluma con presencia debajo; no la veta.** Vetarla
+> exigiria entrar en `escribirPines()`, que es **SFTY-28** y necesita la derogacion escrita de
+> `A-1.bis`. **Ese contador es el dato con el que se decidira si la fase 2 se construye**, y hoy no
+> existe: por eso se construyo antes el contador que el veto.
+>
+> 🔴 **LO QUE NO DEBE LEERSE COMO APROBADO:** `CAM_CIEGA` a su valor de produccion **no es ejecutable
+> en una sesion de banco** —son 6 h de paso abierto, del orden de 12 h de reloj—. Esta comprobado en
+> su **FORMA**, no en su **TIEMPO**; ejercerlo exigiria una compilacion con el umbral reducido, **y
+> esa no es la que va a campo**. Lo que si se ejerce en banco es la **puerta**: que el cronometro
+> **no corre con el paso cerrado** — paso **21.ter** de `Guia_Cableado_y_Pruebas_Banco.html`.
 >
 > 🛑 **Lo que sigue siendo condicion de montaje, no de firmware:** tapar `J16` **p1** —12 V crudos,
 > N-120— **antes** de enchufar nada, y **cargar el firmware nuevo ANTES de que nadie toque `J16`**
@@ -1552,7 +1587,9 @@ encender no es una deteccion, es un estado**. Es N-26 aplicado a la camara.
 
 > 🔴 **Y la consecuencia que nadie debe deshacer por comodidad de montaje: con `MANDO_B` al aire,
 > `mando_ambarLocal()` NO SE ARMA NUNCA.** De esa bandera cuelgan **tres vetos** en
-> `Esclavo/src/main.cpp` (`:406`, `:416`, `:540`), todos de la forma `if (!mando_ambarLocal() &&
+> `Esclavo/src/main.cpp` (~~`:406`, `:416`, `:540`~~ → **`:453`, `:476`, `:617`, re-medidos el 05/09;
+se citan por el `grep` que los encuentra, §4.sexies: `grep -n "mando_ambarLocal()" Esclavo/src/main.cpp`),
+todos de la forma `if (!mando_ambarLocal() &&
 > !bluetooth_ambarEmergencia())`. Con la bandera muerta los tres `if` son **siempre verdaderos** y
 > **el veto de SFTY-21 desaparece**: una orden de radio le quitaria el ambar a la punta donde un
 > operario esta subido al gabinete. **Dejar `p8` sin cablear no deja el mando "inerte": deja el veto
