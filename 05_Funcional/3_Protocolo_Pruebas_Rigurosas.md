@@ -40,14 +40,24 @@ Tres cosas cambiaron en el equipo y las tres invalidan procedimiento escrito:
 
 | Qué cambió | Dónde está medido | Consecuencia para este documento |
 |---|---|---|
-| **`botonAceptar()` y `botonCancelar()` devuelven `false` siempre.** Los pulsadores 3 y 4 dejaron de ser pulsadores: sus pines (`PB14`, `PB15` = `J16` p10/p12) pasan a ser entradas de cámara | `Maestro/src/botones.cpp:305-306` · `Esclavo/src/botones.cpp:316-317` — **MEDIDO** | **No se puede aceptar ni cancelar nada.** Todo paso que diga *«pulse Botón 3»*, *«confirme»*, *«entre en CONFIGURACION»* o *«recorra el menú»* **no se puede ejecutar** |
+| **`botonAceptar()` y `botonCancelar()` devuelven `false` siempre.** Los pulsadores 3 y 4 dejaron de ser pulsadores: sus pines (`PB14`, `PB15` = `J16` p10/p12) pasan a ser **entradas de cámara** | ~~`Maestro/src/botones.cpp:305-306` · `Esclavo/src/botones.cpp:316-317`~~ → **se cita el símbolo, §4.sexies:** `grep -n "bool botonAceptar\|bool botonCancelar" Maestro/src/botones.cpp Esclavo/src/botones.cpp` — **RE-MEDIDO el 05/09** *(los números viejos ya no señalaban ahí)* | **No se puede aceptar ni cancelar nada.** Todo paso que diga *«pulse Botón 3»*, *«confirme»*, *«entre en CONFIGURACION»* o *«recorra el menú»* **no se puede ejecutar** |
+| 🔴 **PERO `botonArriba()` y `botonAbajo()` NO están muertos — y esta fila faltaba.** Devuelven `consumir(0)`/`consumir(1)`, alimentados por `digitalRead(b.pin) == HIGH` sobre `BOTON1`=`PB9` (`J16` p5) y `BOTON2`=`PB13` (`J16` p8) | `grep -rn "botonArriba\|botonAbajo" Maestro/src Esclavo/src` — **MEDIDO el 05/09**: tienen llamadores vivos en `menu.cpp` y `modo_hora.cpp` de las dos puntas | **«Los cuatro botones están fuera» es MEDIA VERDAD y no se puede escribir así en un protocolo.** Fuera está el **pulsador** (`D-1`: no se monta) y fuera están **Aceptar/Cancelar** (el código). **Arriba y Abajo siguen leyendo cobre**, así que **lo que se cierre en `p5`/`p8` contra los 3,3 V entra al firmware** — y por eso esos pines quedan **sin cablear**, no «disponibles» |
 | **La pantalla no se retira, pero deja de conducir sus pines.** `PB3`/`PB4`/`PB5` quedan en alta impedancia porque comparten el conector `J17` con el ESP32 | `Maestro/src/lcd.cpp:74-75` · `Esclavo/src/lcd.cpp:92-93` (los cuatro pines a `U8X8_PIN_NONE`); el porqué, en el comentario de `lcd.cpp:18-73` — **MEDIDO** | **No hay imagen.** El framebuffer se sigue componiendo y no se vuelca al cable. Todo paso que diga *«la pantalla muestra»* o *«anote lo que muestra»* **no se puede ejecutar** |
 | **El mando de relés SE CONSERVA**, en los canales `A` (`PB9` = `J16` p5) y `B` (`PB13` = `J16` p8). Las tres secuencias siguen en el firmware | `Maestro/src/mando.cpp:202-235` · `Esclavo/src/mando.cpp:218-250` — **MEDIDO**. Ventanas: `VENTANA_TRIPLE_MS = 12000` (`mando.cpp:38` Maestro, `:42` Esclavo) y `VENTANA_CUADRUPLE_MS = 18000` (`:39` / `:43`) | ~~Las secuencias se pueden **ejercer**~~ ~~**— corregido el 04/09: NO se pueden.** Siguen en el firmware, pero los dos pines miden `0,6 V` en reposo, así que **no hay flanco que darles**: ni con el puente a mano ni con el receptor, que además **nunca se compró**.~~ 🔧 **Corregido otra vez el 04/09, después de N-118, y esta vez con el fuente delante:** el `0,6 V` era obra del `INPUT_PULLUP` que el firmware ponía, y **ese firmware ya no existe** — `botones.cpp` lee `BOTON1`/`BOTON2` en `INPUT` pelado y **activo en ALTO** en las dos puntas. **El flanco sí se puede dar; lo que cambia es cómo: p5 contra p4, p8 contra p7 (3,3 V del pin de al lado), NUNCA contra masa.** Lo que sigue faltando es **una tarjeta con la que ejercerlo** —la Maestro está fuera de servicio por N-116— y el **receptor, que nunca se compró**. Ver §0.3 |
 
 > ⚠️ **Y una consecuencia que no es evidente y hay que decir en voz alta.** Con `botonAceptar()`
 > siempre `false`, `menu_estaAbierto()` no puede ser cierto nunca, así que **el mando del Esclavo ya
-> no está inhibido en ningún caso** (`Esclavo/src/botones.cpp:316-317`, **MEDIDO**). La regla
-> *«con el menú abierto el mando se ignora»* no está rota: **se quedó sin sujeto**.
+> no está inhibido en ningún caso**. La regla *«con el menú abierto el mando se ignora»* no está
+> rota: **se quedó sin sujeto**.
+>
+> > ✅ **RE-MEDIDO EL 05/09 y CONFIRMADO — se conserva tal cual, y ahora citado por símbolo**
+> > *(la cita vieja `Esclavo/src/botones.cpp:316-317` ya no señalaba ahí)*:
+> > `menu_estaAbierto()` devuelve `pantalla != P_MENU`, y `pantalla` sólo cambia con `botonAceptar()`.
+> > **El propio firmware lo lleva escrito al lado** — `grep -n "menu_estaAbierto" Maestro/src/botones.cpp Esclavo/src/botones.cpp Esclavo/src/mando.cpp Esclavo/src/menu.cpp`:
+> > *«no puede bajar del listado, asi que menu_estaAbierto() es siempre falso y el mando deja…»*.
+> > **Y con `D-1` la consecuencia práctica se apaga sola**: sin mando montado nadie compone una
+> > secuencia — pero la inhibición sigue **sin sujeto**, no restaurada, y eso importa el día que
+> > alguien cablee algo en `p5`/`p8`.
 
 ---
 

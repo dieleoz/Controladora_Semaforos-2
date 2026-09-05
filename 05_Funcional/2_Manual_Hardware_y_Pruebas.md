@@ -229,14 +229,31 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 > una línea**. Su firmware vive en `01_Firmware/ESP32_Expansion/` y **la compuerta lo compila como una
 > suite más** (`compila esp32`); la cifra de flash se lee del acta de `evidencia/`.
 >
-> ### 2. `J16` se parte: dos pulsadores y dos cámaras
+> ### 2. `J16` se parte: ~~dos pulsadores y dos cámaras~~ → **DOS PINES LIBRES Y DOS CÁMARAS**
 >
 > ```text
->    J16 p5    PB9    BOTON1 / mando A    INPUT pelado,  activo en ALTO   <- SE QUEDA
->    J16 p8    PB13   BOTON2 / mando B    INPUT pelado,  activo en ALTO   <- SE QUEDA
->    J16 p10   PB14   CAM_C_PIN           INPUT pelado,  activo en ALTO   <- ERA "Aceptar"
->    J16 p12   PB15   CAM_D_PIN           INPUT pelado,  activo en ALTO   <- ERA "Cancelar"
+>    J16 p5    PB9    BOTON1 / mando A    INPUT pelado,  activo en ALTO   <- LIBRE, sin cablear
+>    J16 p8    PB13   BOTON2 / mando B    INPUT pelado,  activo en ALTO   <- LIBRE, sin cablear
+>    J16 p10   PB14   CAM_C_PIN           INPUT pelado,  activo en ALTO   <- CAMARA (era "Aceptar")
+>    J16 p12   PB15   CAM_D_PIN           INPUT pelado,  activo en ALTO   <- CAMARA (era "Cancelar")
 > ```
+>
+> > 🔴 **05/09 — AQUÍ PONÍA `<- SE QUEDA` EN LAS DOS PRIMERAS FILAS Y CONTRADECÍA A LA TABLA DE
+> > BORNERAS DE ESTE MISMO MANUAL (§3), QUE YA DICE «⛔ nada. No se cablea».** Un manual que se
+> > desmiente a sí mismo a 330 líneas de distancia manda al instalador a hacer lo que lea primero.
+> > **Manda `D-1`: el hardware del mando se retiró (confirmado el 05/09) y su CÓDIGO se queda.**
+> >
+> > ⚠️ **Y «libre» no es «muerto», que es la parte que un resumen se come.** El firmware **sigue
+> > leyendo `p5` y `p8`**: `BOTON1`/`BOTON2` alimentan `botonArriba()`/`botonAbajo()`, que **no**
+> > son `return false;` —a diferencia de `botonAceptar()`/`botonCancelar()`, que sí lo son— y
+> > tienen llamadores vivos en `menu.cpp` y `modo_hora.cpp` de las dos puntas. **Lo que se cierre
+> > ahí contra los 3,3 V entra al firmware y compone secuencias de mando.** Por eso quedan **sin
+> > cablear**, no «disponibles».
+> >
+> > ```
+> > grep -n "bool botonAceptar\|bool botonCancelar\|bool botonArriba\|bool botonAbajo" Maestro/src/botones.cpp Esclavo/src/botones.cpp
+> > grep -rn "botonArriba\|botonAbajo" Maestro/src Esclavo/src
+> > ```
 >
 > > 🔧 **04/09 — las dos primeras filas se han corregido, y el motivo NO es cosmético.** Decían
 > > ~~`INPUT_PULLUP, activo en BAJO`~~, que es lo que el firmware hacía **hasta el 04/09** y lo que

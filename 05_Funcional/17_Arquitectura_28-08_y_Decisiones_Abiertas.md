@@ -1396,27 +1396,83 @@ entran **sin** que `ambarLocal` deje de armarse: `A.A.A`, `B.B.B` y `A.B.A.B` si
 
 Los pines que libera la retirada de los pulsadores 3 y 4:
 
-| `J16` | red | GPIO | uso nuevo |
+> 🛑 **LA COLUMNA «red» ES EL NOMBRE DE LA RED EN EL NETLIST DE KiCAD, NO EL PAPEL DEL PIN.** Se
+> llaman `/Boton1`..`/Boton4` porque asi se bautizaron las pistas cuando la placa se diseno con
+> botonera, y **ese nombre no se puede cambiar sin retocar el `.kicad_sch`**. **Lo que decide que
+> se cablea ahi es la ultima columna.** `p10` y `p12` **son ENTRADAS DE CAMARA**: quien lea
+> `/Boton3` como *«boton 3»* y cablee un pulsador esta cableando en el borne de una camara.
+
+| `J16` | red **(netlist KiCad — nombre heredado, NO es el papel)** | GPIO | uso nuevo · **esto es lo que manda** |
 |---|---|---|---|
 | p1 | `/12V` | — | 🔴 **12 V crudos. Se tapa** — ver §2.1 y **N-120: es OBLIGATORIO, no una cautela de banco** |
 | p2 | `GND` | — | masa |
-| p5 | `/Boton1` | `PB9` | ~~**vacio a proposito** (colchon)~~ → 🟢 **`MANDO_A`. VA CABLEADO** (31/08) → 🔴 **y hoy no responde: `0,6 V` en reposo, N-118** |
-| p8 | `/Boton2` | `PB13` | ~~**vacio a proposito** (colchon)~~ → 🟢 **`MANDO_B`. VA CABLEADO** (31/08) → 🔴 **idem N-118** |
-| p10 | `/Boton3` | `PB14` | **`CAM_C_PIN`** — entrada de camara de DEMANDA. ✅ **cableada y verificada en banco el 03/09** (paso 21) |
-| p12 | `/Boton4` | `PB15` | **`CAM_D_PIN`** — entrada de camara de DEMANDA. `0 V` en reposo, MEDIDO (paso 20) |
+| p5 | `/Boton1` | `PB9` | ~~**vacio a proposito** (colchon)~~ → ~~🟢 **`MANDO_A`. VA CABLEADO** (31/08)~~ → 🔧 **CADUCADO EL 05/09 (`D-1`): el mando NO se monta, asi que `p5` queda LIBRE Y SIN CABLEAR.** ⚠️ **Pero el firmware SIGUE LEYENDO este pin** —`BOTON1` alimenta `botonArriba()`, con llamadores vivos— o sea que **lo que se cierre aqui contra `p4` mueve cosas dentro**. ~~`0,6 V` en reposo, N-118~~ → **refutado el 05/09: eran del firmware viejo con `INPUT_PULLUP`** |
+| p8 | `/Boton2` | `PB13` | ~~**vacio a proposito** (colchon)~~ → ~~🟢 **`MANDO_B`. VA CABLEADO** (31/08)~~ → 🔧 **CADUCADO EL 05/09 (`D-1`): idem `p5` — LIBRE Y SIN CABLEAR, y el firmware sigue leyendolo** (`BOTON2` → `botonAbajo()`) |
+| p10 | `/Boton3` | `PB14` | 🎯 **`CAM_C_PIN` — ENTRADA DE CAMARA de DEMANDA.** ~~«Boton 3 / Aceptar»~~ ✅ **cableada y verificada en banco el 03/09** (paso 21). Y desde `4b90f98` ademas **se vigila sola** (§1.7.bis) |
+| p12 | `/Boton4` | `PB15` | 🎯 **`CAM_D_PIN` — ENTRADA DE CAMARA de DEMANDA.** ~~«Boton 4 / Cancelar-Menu»~~ `0 V` en reposo, MEDIDO (paso 20). Idem vigilancia |
+
+> 🔴 **`p5`/`p8`: POR QUE NO BASTA CON «el mando se retiro» — MEDIDO EL 05/09, y es la mitad que un
+> resumen se come.** De los cuatro getters de boton, **dos estan muertos y dos NO**:
+>
+> | | hoy | consecuencia |
+> |---|---|---|
+> | `botonAceptar()` · `botonCancelar()` | **`return false;`** en las dos puntas | **nada de `p10`/`p12` ejecuta ni cancela**. Es lo que libera esos dos pines para las camaras |
+> | `botonArriba()` · `botonAbajo()` | 🔴 **VIVOS** — `consumir(0)`/`consumir(1)`, alimentados por `digitalRead(b.pin) == HIGH` sobre `BOTON1`=`PB9` y `BOTON2`=`PB13`, **con llamadores vivos en `menu.cpp` y `modo_hora.cpp` de las dos puntas** | **lo que se cierre en `p5`/`p8` contra los 3,3 V sigue entrando al firmware**, y ademas compone secuencias del mando (§2.4) |
+>
+> ```
+> grep -n "bool botonAceptar\|bool botonCancelar\|bool botonArriba\|bool botonAbajo" Maestro/src/botones.cpp Esclavo/src/botones.cpp
+> grep -rn "botonArriba\|botonAbajo" Maestro/src Esclavo/src
+> grep -n "pinMode(BOTON[12], INPUT)\|b[12].pin = BOTON[12]" Maestro/src/botones.cpp Esclavo/src/botones.cpp
+> ```
+>
+> **Por eso «los cuatro botones estan fuera» es media verdad y no se escribe asi en ningun sitio:**
+> fuera esta el **pulsador** (el plastico), y fuera estan **Aceptar** y **Cancelar** (el codigo).
+> **Arriba y Abajo siguen leyendo cobre**, y ese cobre esta a un milimetro y medio de los 12 V de
+> `p1` (§1.7 abajo). **`p5` y `p8` se dejan sin cablear, y no se puentean «para probar»** fuera del
+> paso 29 de la guia.
 
 > ⚠️ **AQUI PONIA ~~«Camara 2»~~ y ~~«Camara 1»~~, Y ERA UNA AMBIGUEDAD DE VERDAD, NO DE ESTILO.** El
 > firmware y el `9_Manual_Parametrizacion_Camara_IA.md` usan esos numeros **para otra cosa**:
-> `modo_inteligente.cpp:91-92` llama **«Camara 1»** a la que entra por **`PB0` del Maestro** y
+> ~~`modo_inteligente.cpp:91-92` llama **«Camara 1»** a la que entra por **`PB0` del Maestro**~~ y
 > **«Camara 3»** a la de `PB0` del **Esclavo**. Las de `J16` **no tienen numero: son `C` y `D`**. Con
 > los numeros de esta tabla, *"mover la Camara 1 a `J16` p12"* (§3.5) se leia como una tautologia. **A
 > partir de aqui este documento las nombra por su constante**, que es lo unico que no se puede
 > confundir.
+>
+> ✏️ **05/09 — LA MITAD TACHADA DE ARRIBA YA NO ES CIERTA, Y LA DECISION SIGUE EN PIE IGUAL. Se
+> corrige el motivo en vez de dejarlo envejecer** (§2.ter: una frase que sostiene una decision y que
+> nadie comprueba). **Medido, con el control negativo al lado porque §4 obliga a descartar al
+> buscador antes de creerse un cero:**
+>
+> ```
+> grep -rni "camara 1|camara 2|camara 3" Maestro/src Maestro/include Esclavo/src Esclavo/include
+>   -> UNA sola linea:  Esclavo/src/main.cpp:340  "// Camara 3 (PB0): el FLANCO es lo que pide paso"
+> control negativo -- que el buscador SI encuentra:  grep -rn "CAM_C_PIN|CAM_D_PIN"  -> multiples
+> ```
+>
+> **O sea que el comentario «Camara 1» del Maestro ya no existe en el fuente**, pero **«Camara 3» si**
+> —y ademas los numeros **siguen vivos en `9_Manual_Parametrizacion_Camara_IA.md`**, donde *«Camara 1»*
+> es la de `PB0` del Maestro y *«Camara 3»* la de `PB0` del Esclavo. **Numerar `p10`/`p12` como
+> «Camara 2» y «Camara 1» volveria a chocar con esa numeracion**, asi que **se mantienen `C` y `D`**.
+>
+> 🔴 **Y esto es una DECISION ESCRITA, no una preferencia de estilo: no se deroga con una frase de
+> pasillo** (`CLAUDE.md` §2.quinquies). Si alguien quiere renumerarlas, la pregunta es *«la spec dice
+> `C`/`D` desde el 31/08 y por este motivo — ¿lo derogamos, y que pasa con la Camara 3?»*, y se
+> cambia **a la vez** aqui, en el Manual 9, en la guia de banco y en las tramas `CAM_C_*`/`CAM_D_*`
+> que el firmware ya emite. **A medias es peor que como esta.**
 
 > 🔴 **Las dos filas tachadas eran las lineas mas daninas de este documento: mandaban dejar sin
 > cablear justo el mando que la decision del 31/08 conserva.** Un `J16` montado segun la tabla
 > anterior deja `MANDO_A` y `MANDO_B` al aire, y con `B` al aire `ambarLocal` no se arma nunca
 > (§2.4). El colchon habria costado el veto de SFTY-21 sin que ningun test lo dijera.
+>
+> ✏️ **05/09 — Y ESE RAZONAMIENTO CAMBIO DE SENTIDO CON `D-1`, asi que se anota en vez de dejarlo
+> mandando cobre.** Con el mando **desmontado** (`D-1`, hardware confirmado retirado el 05/09) la
+> bandera `mando_ambarLocal()` **no se arma nunca — y eso es lo correcto**: el veto de SFTY-21 sigue
+> escrito y sus cinco llamadas vivas siguen ahi, simplemente nadie lo pide. **Lo que NO se puede
+> hacer es retirar el CODIGO del mando** —ahi el veto pasaria de *no pedido* a *abierto*—, y eso lo
+> decide `D-1`/`A-11`, no esta tabla. **Consecuencia de montaje: `p5` y `p8` quedan LIBRES y sin
+> cablear**, que es justo lo contrario de lo que decia la fila de 31/08.
 
 **Y el colchon en si tampoco media lo que decia.** Esto es lo que estaba escrito, con el paso del
 footprint (`Molex_KK-254_AE-6410-16A_1x16_P2.54mm_Vertical`, 16 pads, tanto en `J16` como en `J17`):

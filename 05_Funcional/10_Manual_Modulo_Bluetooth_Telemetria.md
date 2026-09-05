@@ -439,12 +439,20 @@ el `VCC` si alguien cuenta desde el borde equivocado.
   1. Multimetro en tension continua, negra a masa del chasis.
   2. Punta roja en la POSICION 1 del conector, con la tarjeta alimentada.
 
-       ~12 V  -> es J16.  ES LA BOTONERA. NO ENCHUFE AQUI EL MODULO.
+       ~12 V  -> es J16.  ES EL CONECTOR DE LAS CAMARAS.
+                          NO ENCHUFE AQUI EL MODULO, Y TAPE SU POSICION 1.
        ~3,3 V o 0 V -> es J17.  Confirmelo con el paso 3.
 
   3. Confirmacion de J17: debe haber 3,3 V en las posiciones 6 y 8,
      y masa en las 7 y 9.  J17 NO TIENE 12 V EN NINGUNA POSICION.
 ```
+
+> ✏️ **05/09 — aquí ponía ~~«es `J16`. ES LA BOTONERA»~~ y ese rótulo caducó.** **`J16` ya no es la
+> botonera: es el conector de las CÁMARAS.** `p10` = `CAM_C_PIN` y `p12` = `CAM_D_PIN` (`PB14`/`PB15`);
+> `p5` y `p8` quedan **libres y sin cablear** desde `D-1`. **La instrucción de no enchufar el módulo
+> ahí no cambia** —sigue habiendo 12 V en `p1` y sigue quemándolo—, pero llamarlo «la botonera»
+> mandaba a buscar unos pulsadores que ya no se montan, y **hacía leer `p10` como un botón cuando es
+> el borne de una cámara**. Se añade lo que sí hay que hacer con ese pin: **taparlo** (N-120).
 
 > ⚠️ **Y el conector se orienta midiendo, no contando huecos.** El símbolo del esquemático de `J17`
 > tiene **13 posiciones** y su footprint en la placa tiene **16** (el de `J16`: 12 en el símbolo, 16

@@ -473,6 +473,67 @@
   </div>
 
   <!-- ===================================================================
+       BOTONERA Y PANTALLA. Anadido el 05/09 porque el responsable lo repitio
+       todo el dia y ningun documento lo decia en la hoja que se lleva al poste.
+       LAS DOS MITADES SON DISTINTAS Y SE MIDIERON UNA A UNA -- no se copio de
+       ningun resumen:
+         botonAceptar()/botonCancelar() -> return false;  (botones.cpp:539-540
+             Maestro, :550-551 Esclavo). MUERTOS.
+         botonArriba()/botonAbajo()     -> consumir(0/1), alimentados por
+             digitalRead(b.pin)==HIGH sobre BOTON1=PB9 y BOTON2=PB13, con SIETE
+             llamadores vivos (menu.cpp, modo_hora.cpp de las dos puntas). VIVOS.
+       Decir "los cuatro botones estan fuera" habria borrado un aviso de
+       seguridad que sigue siendo cierto. Es un .parar normal: se imprime.
+       =================================================================== -->
+  <div class="parar" id="sin-botonera">
+    <b>🛑 EN ESTE EQUIPO NO HAY BOTONERA NI PANTALLA · todo se opera desde el TELÉFONO</b>
+    <p><b>No busques botones en el gabinete y no busques una pantalla LCD: no se montan.</b> Lo
+      decidió el proyecto el 28/08 (la pantalla) y el 05/09 (la botonera y el mando). <b>La app es la
+      única superficie de mando del equipo.</b> Si te quedas sin teléfono, <b>no hay forma de operar
+      el cruce</b> — eso es una propiedad declarada del sistema, <b>no una avería que haya que
+      reportar</b>.</p>
+    <p>🔴 <b>Ningún paso de esta hoja te pide pulsar un botón del equipo ni navegar un menú en una
+      pantalla. Si encuentras uno, es un error de esta hoja: márcalo «No se pudo» y escríbelo.</b>
+      Un paso que nadie puede ejecutar no es un paso pendiente — <b>es un hueco que se cuenta como
+      cubierto</b>.</p>
+    <p>⚠️ <b>Y cuando esta hoja dice «el equipo en MENÚ» NO te está mandando a una pantalla.</b>
+      <code>MENU</code> es un <b>modo</b> del equipo —el estado de reposo en el que arranca— y se
+      pide <b>por la app o por el USB-TTL</b>: <code>CMD:SET_MODO:MENU</code>. Se comprueba
+      <b>mirando las luces y la trama</b>, no un display.</p>
+    <div class="tabla-envoltorio" style="margin:.2rem 0 .4rem">
+      <table>
+        <thead><tr><th>Lo que había</th><th>Dónde está hoy</th></tr></thead>
+        <tbody>
+          <tr><td><b>Botón 3 «Aceptar»</b> — <code>J16</code> p10 (<code>PB14</code>)</td>
+              <td>🛑 <b>ya no es un botón: es <code>CAM_C_PIN</code>, ENTRADA DE CÁMARA.</b> Quien
+                cablee ahí un pulsador está cableando en el borne de una cámara</td></tr>
+          <tr><td><b>Botón 4 «Cancelar / Menú»</b> — <code>J16</code> p12 (<code>PB15</code>)</td>
+              <td>🛑 <b>ya no es un botón: es <code>CAM_D_PIN</code>, ENTRADA DE CÁMARA</b></td></tr>
+          <tr><td><b>Botones 1 y 2 «Arriba / Abajo»</b> — <code>J16</code> p5 y p8
+              (<code>PB9</code>/<code>PB13</code>)</td>
+              <td>⚠️ <b>el pulsador NO se monta</b> (mando retirado, <code>D-1</code>) — <b>pero el
+                firmware SIGUE LEYENDO esos dos pines</b>. Ver el aviso rojo de aquí abajo</td></tr>
+          <tr><td><b>La pantalla LCD ST7920 y su menú</b></td>
+              <td><b>no se monta.</b> El código sigue dentro del binario, pero sus pines están en
+                <code>U8X8_PIN_NONE</code>: <b>no hay display que conectar</b>, y sus pines de
+                <code>J17</code> quedaron libres</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>🔴 <b>EL AVISO QUE NO SE PUEDE QUITAR AUNQUE NO HAYA BOTONERA, Y ESTÁ MEDIDO HOY:</b> de los
+      cuatro botones, <b>dos siguen vivos en el firmware</b>. <b>«Aceptar» y «Cancelar» están
+      muertos</b> —sus funciones devuelven siempre «no pulsado»—, pero <b>«Arriba» y «Abajo» NO</b>:
+      el firmware sigue leyendo <code>J16</code> <b>p5 y p8</b> y esas lecturas tienen <b>siete usos
+      vivos</b> dentro. <b>Cualquier cosa que cierre p5 o p8 contra los 3,3 V del pin de al lado
+      sigue moviendo cosas dentro del equipo</b> —y compone secuencias de mando—. <b>Por eso p5 y p8
+      se dejan SIN CABLEAR y no se puentean «para probar» fuera del paso 29.</b></p>
+    <p class="porque">Medido el 05/09 sobre el fuente de las dos puntas, y así se localiza:
+      <code>grep -n "bool botonAceptar\|bool botonCancelar\|bool botonArriba\|bool botonAbajo" Maestro/src/botones.cpp Esclavo/src/botones.cpp</code>
+      · <code>grep -rn "botonArriba\|botonAbajo" Maestro/src Esclavo/src</code>. <b>Se cita el
+      símbolo y no el número de línea: los números caducan solos.</b></p>
+  </div>
+
+  <!-- ===================================================================
        LO QUE YA SABEMOS QUE FALLA. Escrito la tarde del 04/09, cuando por
        primera vez las dos placas se hablaron y aparecieron los sintomas de
        los cuatro modos. Las dos causas estan LEIDAS EN EL FUENTE, con
@@ -1343,7 +1404,7 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
         ⚠️ <b>La batería sale siempre <code>--</code>: no hay nada que la mida.</b> El contador de
         segundos <b>no</b> es el tiempo que queda de fase. <b>Un <code>--</code> es un dato: anótalo.</b></p>
       <div class="anota">
-        <p class="porque">Qué enseñaba la pantalla:</p>
+        <p class="porque">Qué enseñaba la pantalla <b>DE LA APP</b> <span style="font-weight:400">(el equipo no lleva pantalla)</span>:</p>
         <textarea id="a12a" style="min-height:2.6rem" placeholder="copia los números tal cual"></textarea>
         <p class="porque" style="margin-top:.3rem">¿Campos con <code>--</code>? <input type="text" id="a12b"></p>
         <p class="porque">¿Cambiaba cada segundo? <input type="text" id="a12c" class="en-linea">
@@ -1944,7 +2005,7 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
         ⚠️ <b>El modo del Esclavo sale SIEMPRE con el mismo texto: desde el teléfono NO se puede ver
         si está en Modo Degradado. Se mira por las luces.</b> Y la batería sale siempre <code>--</code>.</p>
       <div class="anota">
-        <p class="porque">Qué enseñaba la pantalla:</p>
+        <p class="porque">Qué enseñaba la pantalla <b>DE LA APP</b> <span style="font-weight:400">(el equipo no lleva pantalla)</span>:</p>
         <textarea id="a26a" style="min-height:2.6rem" placeholder="copia los números"></textarea>
         <p class="porque" style="margin-top:.3rem">Con el equipo apagado, la app: <input type="text" id="a26b" placeholder="dijo que no hay enlace / siguió animando / otra cosa"></p>
         <div class="tres">
@@ -2079,7 +2140,7 @@ Y CON EL CICLO EN MARCHA, cualquiera de ellas -> EN_MARCHA_PARE_EL_MODO</pre>
         <textarea id="a28ba" style="min-height:4rem" placeholder="3,3,10:&#10;15,15,90:&#10;2,3,10:&#10;1,1,15:&#10;3,3,9:&#10;con el ciclo en marcha:"></textarea>
         <p class="porque" style="margin-top:.3rem">Si mandaste desde la app, ¿te dejó <b>teclear</b>
           un 1? <input type="text" id="a28bb" class="en-linea">
-          &nbsp; ¿Qué rango ofrecía la pantalla? <input type="text" id="a28bc" class="en-linea"></p>
+          &nbsp; ¿Qué rango ofrecía la app? <input type="text" id="a28bc" class="en-linea"></p>
         <div class="tres">
           <label class="si"><input type="radio" name="p28b" value="si"> Acepta 3 y RECHAZA 1</label>
           <label class="no"><input type="radio" name="p28b" value="no"> Aceptó algo por debajo de 3</label>
@@ -2190,9 +2251,14 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
       <p class="ver"><b class="et">Ver</b> <b>Cuenta los destellos: son la respuesta, y no hacen
         falta ni la app ni un cable.</b> Están en el firmware (`mando.cpp`) y se ven <b>desde el
         suelo</b> — está diseñado así porque quien acciona el mando está a 5 m sin pantalla. <b>Si no
-        responde, repite antes de darlo por roto.</b> Mientras destella no acepta pulsos nuevos, y
-        <b>con el menú abierto no reconoce las secuencias</b> — <b>si las luces ciclan, el menú no
-        está abierto</b>. En el Esclavo, <code>A·A·A</code> lo devuelve a <b>obedecer al Maestro</b>.</p>
+        responde, repite antes de darlo por roto.</b> Mientras destella no acepta pulsos nuevos.
+        ⚠️ <b>Aquí ponía que <s>«con el menú abierto no reconoce las secuencias»</s> y que <s>«si
+        las luces ciclan, el menú no está abierto»</s>. MEDIDO el 05/09: ese caso NO PUEDE
+        DARSE.</b> <code>menu_estaAbierto()</code> vale <code>pantalla != P_MENU</code>, y a esa
+        pantalla sólo se entra con <b>Aceptar</b>, que devuelve siempre «no pulsado»: <b>el menú
+        no se puede abrir</b>. <b>Así que si el mando no responde, el menú NO es la
+        explicación</b> — buscar ahí es perseguir una causa que no existe; mire los cuatro
+        motivos reales del detalle. En el Esclavo, <code>A·A·A</code> lo devuelve a <b>obedecer al Maestro</b>.</p>
       <div class="marco">
         <b>⚠️ Si además quiere cruzarlo con la app, hágalo DESDE OTRO MODO</b>
         <p>La app <b>sí</b> enseña el modo del equipo. Pero si el equipo <b>ya está</b> en el modo que
@@ -2276,7 +2342,7 @@ A . B . A . B   en menos de 18 s   ->  4 destellos ROJOS   modo reducido
   <div class="marco">
     <b>⏱️ Cómo se cronometra, para que los tres números se puedan comparar</b>
     <p><b>El cronómetro arranca en el instante en que el equipo CONTESTA</b> —cuando ves el
-      <code>$ACK</code> o el <code>$ERR</code> en la pantalla—, no cuando pulsas. <b>Y se para
+      <code>$ACK</code> o el <code>$ERR</code> en la pantalla del móvil—, no cuando pulsas. <b>Y se para
       cuando la luz del otro poste cambia</b>, no cuando te das cuenta. Si no puedes ver los dos
       postes a la vez, <b>dilo</b>: el número seguirá valiendo, pero con esa reserva escrita.</p>
     <p><b>Referencia que ya conoces: el paso 8 midió estos mismos 25 s cortando la radio.</b> Si
@@ -3655,10 +3721,18 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
         <li><b>Se pasó la ventana</b>: los toques van seguidos, no espaciados.</li>
         <li><b>Mientras destella no acepta pulsos nuevos</b> — está contestando.</li>
       </ul>
-      <p><b>Y la quinta, que se ve sin pantalla: con el menú abierto las secuencias no se
-        reconocen.</b> Es deliberado —una ráfaga de pulsos con el menú abierto podría confirmar una
-        hora inventada, y con hora falsa el modo reducido se creería autorizado—. <b>Si las luces
-        están ciclando, el menú no está abierto.</b></p>
+      <p>🔴 <b>Y la que era la quinta SE CAE, medida el 05/09 — se tacha con su motivo en vez
+        de borrarse, porque una vía que desaparece en silencio se vuelve a proponer:</b>
+        <s>«con el menú abierto las secuencias no se reconocen; si las luces ciclan, el menú no
+        está abierto»</s>. <b>Ese caso ya no puede darse.</b> <code>menu_estaAbierto()</code>
+        devuelve <code>pantalla != P_MENU</code> y a esa pantalla sólo se entra con <b>Aceptar</b>,
+        que devuelve siempre «no pulsado» desde que <code>J16</code> p10 y p12 son cámaras —
+        <b>el menú no se puede abrir</b>. La <b>intención</b> seguía siendo buena (una ráfaga de
+        pulsos con el menú abierto podría confirmar una hora inventada, y con hora falsa el modo
+        reducido se creería autorizado), pero <b>la protección se quedó SIN SUJETO, no
+        reforzada</b>. <b>Consecuencia para el banco: si el mando no responde, el menú NO es la
+        causa.</b> Y de montaje: el día que alguien cablee algo en <code>p5</code>/<code>p8</code>,
+        esas secuencias <b>no las inhibe nada</b>.</p>
       <p><b>Por qué el Esclavo debe ignorar la app con el ámbar puesto:</b> es desobediencia
         deliberada. <b>Mientras un operario pidió ámbar local puede haber alguien trabajando delante
         de ese poste</b>, y una orden remota no debe sacarlo del ámbar.</p>

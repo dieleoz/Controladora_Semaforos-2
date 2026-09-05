@@ -1444,6 +1444,14 @@ la red de 12 V es de **4,269 mm en `p10`** *(red `/Boton3`)* y de sólo **1,359 
 *(`03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`, apartado «La distancia real entre los 12 V y las
 señales»)*. **Con una sola cámara por tarjeta, va en el pin con más margen.**
 
+> ⚠️ **`/Boton3` y `/Boton4` son NOMBRES DE RED DEL NETLIST, no el papel del pin — y aquí es donde
+> más se malinterpretan, porque van al lado de una medida de cobre.** Las pistas se bautizaron así
+> cuando la placa se diseñó con botonera, y **el nombre no se puede cambiar sin retocar el
+> `.kicad_sch`**. **Hoy `J16` p10 es `CAM_C_PIN` y p12 es `CAM_D_PIN`: los dos son ENTRADAS DE
+> CÁMARA.** Quien lea *«/Boton3»* como «el botón 3» y cablee ahí un pulsador está cableando en el
+> borne de una cámara. **La botonera no se monta** (`D-1`, 05/09) y **`botonAceptar()`/`botonCancelar()`
+> —los que colgaban de estos dos pines— devuelven `false` siempre**.
+
 #### Los cinco pasos del contacto
 
 1. **Comprobar que el `PASO 3` está hecho:** `J16` p1 tapado. Si no lo está, se para aquí.

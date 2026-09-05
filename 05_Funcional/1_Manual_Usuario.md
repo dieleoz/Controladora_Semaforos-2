@@ -252,12 +252,23 @@ entonces es **avisar**, no improvisar en el gabinete.
 >
 > **Lo que hay HOY, MEDIDO en el fuente el 31/08:**
 >
-> | | dónde | qué hace |
+> | | cómo se localiza *(símbolo, no número de línea)* | qué hace |
 > |---|---|---|
-> | `botonAceptar()` | `Maestro/src/botones.cpp:305` · igual en el Esclavo | **devuelve `false` SIEMPRE** |
-> | `botonCancelar()` | `Maestro/src/botones.cpp:306` · igual en el Esclavo | **devuelve `false` SIEMPRE** |
-> | `PB14` (`J16` p10) | `Maestro/include/pines.h:124` | ya no es `BOTON3`: es **`CAM_C_PIN`**, entrada de cámara |
-> | `PB15` (`J16` p12) | `Maestro/include/pines.h:125` | ya no es `BOTON4`: es **`CAM_D_PIN`**, entrada de cámara |
+> | `botonAceptar()` | `grep -n "bool botonAceptar" Maestro/src/botones.cpp Esclavo/src/botones.cpp` | 🛑 **devuelve `false` SIEMPRE**, en las dos puntas |
+> | `botonCancelar()` | `grep -n "bool botonCancelar" Maestro/src/botones.cpp Esclavo/src/botones.cpp` | 🛑 **devuelve `false` SIEMPRE**, en las dos puntas |
+> | `botonArriba()` · `botonAbajo()` | `grep -rn "botonArriba\|botonAbajo" Maestro/src Esclavo/src` | 🔴 **VIVOS** — `consumir(0)`/`consumir(1)`, alimentados por `digitalRead(b.pin) == HIGH` sobre `BOTON1`=`PB9` y `BOTON2`=`PB13`, y **con llamadores vivos** en `menu.cpp` y `modo_hora.cpp` de las dos puntas |
+> | `PB14` (`J16` p10) | `grep -n "define CAM_C_PIN" Maestro/include/pines.h` | ya no es `BOTON3`: es **`CAM_C_PIN`**, entrada de cámara |
+> | `PB15` (`J16` p12) | `grep -n "define CAM_D_PIN" Maestro/include/pines.h` | ya no es `BOTON4`: es **`CAM_D_PIN`**, entrada de cámara |
+>
+> > ✏️ **05/09 — ESTA TABLA CITABA `botones.cpp:305` y `:306`, Y LOS DOS NÚMEROS ESTÁN CADUCOS**
+> > *(hoy son `:539-540` en el Maestro y `:550-551` en el Esclavo, y volverán a moverse)*. Se pasa a
+> > citar el **símbolo con el `grep` que lo encuentra**, corrido antes de publicarlo: un número de
+> > línea caduca solo, en silencio, y con la autoridad de un dato.
+> >
+> > 🔴 **Y la fila nueva de `botonArriba()`/`botonAbajo()` es la que faltaba, y no es un detalle:**
+> > **«los cuatro botones están fuera» es MEDIA VERDAD.** Fuera está el **pulsador de plástico**, y
+> > fuera están **Aceptar** y **Cancelar** —esos sí devuelven siempre «no pulsado»—. **Arriba y
+> > Abajo siguen leyendo cobre.** Ver el aviso de §7 sobre `J16` p5/p8.
 >
 > **`ACEPTAR` era el botón que EJECUTA y `CANCELAR` el que SALE. Los dos se han quedado sin pin.**
 > Los pulsadores 3 y 4 pasaron a ser entradas de cámara, así que:
@@ -266,8 +277,12 @@ entonces es **avisar**, no improvisar en el gabinete.
 >   nunca es cierto. Ni una hora, ni un tiempo, ni un modo.
 > * **No se puede salir de ningún modo con el botón** — `menu.cpp:148` pregunta por
 >   `botonCancelar()`, que nunca es cierto.
-> * **El cursor todavía se mueve** —`botonArriba()`/`botonAbajo()` cuelgan de `PB9`/`PB13`, que
->   siguen vivos— pero **no lleva a ninguna parte**, y no hay display donde verlo.
+> * 🔴 **El cursor todavía se mueve, y esto SIGUE SIENDO CIERTO el 05/09 — se conserva, no se
+>   corrige** —`botonArriba()`/`botonAbajo()` cuelgan de `PB9`/`PB13`, **medido hoy**— pero **no
+>   lleva a ninguna parte**, y no hay display donde verlo. **Lo que significa para quien está
+>   delante del gabinete: lo que se cierre en `J16` p5 o p8 contra los 3,3 V del pin de al lado
+>   SIGUE ENTRANDO AL FIRMWARE**, aunque ya no haya pulsadores ni mando que lo accione. **Por eso
+>   esos dos pines se dejan sin cablear.**
 >
 > 🛑 **CONSECUENCIA PARA QUIEN USA ESTE MANUAL: cualquier procedimiento de aquí abajo que empiece
 > por «navegue al menú», «entre en `CONFIGURACION`», «suba hasta…» o «pulse Aceptar» NO SE PUEDE
