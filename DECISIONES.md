@@ -55,6 +55,8 @@ Si el encargo contradice una fila, eso no es una orden: **es una pregunta.**
 
 ---
 
+| **A-10** | **`D21`: el LED indicador de `VERDE2` con una pata al aire — ¿enciende o no?** | ✅ **Resuelto el alcance por el responsable: NO ES PROBLEMA DE FIRMWARE.** *«El firmware lo enciende, así que no es problema; es una revisión o confirmación del funcional en el `.html`.»* El firmware manda esa salida igual que las otras nueve —`escribirPines()` no distingue—, así que lo único que puede faltar es el **indicador**, no la luz. Pasa a ser una **comprobación de banco** en la guía: mirar si ese LED enciende con `VERDE2` activo. Si no enciende, es cobre y hay que saberlo **antes de fabricar más** |
+
 ## Cómo se cambia una fila
 
 1. Se escribe la nueva, con **fecha y motivo medido**. Un motivo sin números se deroga de
