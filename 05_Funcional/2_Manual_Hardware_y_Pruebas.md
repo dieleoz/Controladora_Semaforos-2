@@ -8,13 +8,13 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 |---|---|---|
 | **Pila `CR2032` en `VBAT`** | ✅ **Instalada en AMBAS tarjetas** (Maestro y Esclavo) | Alimentación directa RTC (R5 retirado). Ver §5 |
 | **Pantalla LCD ST7920** | 🛑 **SE RETIRA (28/08/2026)** | No se lee desde el suelo. Sus pines `PB6`/`PB7` (conector `J17`) pasan al módulo Bluetooth. Ver §3 y §8 |
-| **Botonera de `J16`** | ⚠️ **SE PARTE EN DOS (31/08/2026)** | ~~*Se queda en AMBOS, botones 1 a 4*~~ → **quedan 2 pulsadores** (`PB9` p5 y `PB13` p8, mando `A`/`B`); **`PB14` p10 y `PB15` p12 pasan a CÁMARAS**. Ver §3 y §6 |
+| **Botonera de `J16`** | 🛑 **SE RETIRA ENTERA (05/09/2026)** | ~~*Se queda en AMBOS, botones 1 a 4*~~ · ~~31/08: **quedan 2 pulsadores** (`PB9` p5 y `PB13` p8, mando `A`/`B`)~~ → **05/09 (`D-1`): tampoco quedan esos dos. `PB9` p5 y `PB13` p8 quedan LIBRES y sin cablear**; **`PB14` p10 y `PB15` p12 pasan a CÁMARAS**. **El código del mando NO se retira** — ver §6. Ver §3 y §6 |
 | **Cámaras IA de demanda (1 y 3)** | ✅ **1 en Maestro + 1 en Esclavo** | Contacto seco `1A`/`1B` en `PB0`. Operativas. Ver §7 |
 | **Cámaras IA en `J16` (`C` y `D`)** | 🟢 **YA ESTÁN EN EL FIRMWARE (31/08)** | `CAM_C_PIN` = `PB14`, `CAM_D_PIN` = `PB15`. **`INPUT` pelado, activo en ALTO.** ~~⚠️ **No se cablean hasta la medida `M3`**~~ *(`M3` **CERRADA** en el paso 20 del banco del 03/09: el pull-down de 10 kΩ es real, `9,93`/`9,94 kΩ` y `0 V` en reposo)* ni antes de **tapar `J16` p1 (12 V crudos)** — obligatorio desde N-120. Ver §7 |
 | **Talanquera de barrera (`J15`)** | ✅ **PROBADA EN COBRE (04/09)** y **bien diseñada** | `PB2` → `R70` 220 Ω → `U15` (`TLP127`, **separa el pin del micro, NO la masa** — §11) → `R72` 220 Ω → puerta de `Q10` (`IRLZ44N`) → `J15`. 🔴 **`J15` p2 está a ~12 V en reposo** (`R73` 1 kΩ + `D29` al riel de 12 V), no a 0 V — §11. ⚠️ El diodo de rueda libre `D30` es un `1N4148` y **queda corto para un motor real** — va a la V2. Ver §10 |
 | ~~**Cámaras IA de umbral (2 y 4)**~~ | 🛑 **NO SE INSTALAN EN `PB8`** | **`PB8` NO es entrada de cámara:** alimenta el LED testigo `D5` por `R16` de 1 kΩ. Se renombró a `LED_TESTIGO` (`pines.h:63`) y **`CAM_UMBRAL_PIN` ya no existe en el fuente** — N-64. Ver §7 |
 | **Módulo de expansión ESP32** | 🟢 **IDENTIFICADO Y CON FIRMWARE (31/08)** | `ESP32-WROOM-32` clásico (**BT v4.2 BR/EDR → hay SPP**) por **`J17`** p2/p3 = `PB7`/`PB6` (`USART1` **remapeado**), ~~p6 = 3,3 V~~ 🛑 **p6 NO SE CONECTA** (pico de ~500 mA sobre el mismo `LM7805` del STM32 — Manual 1 §8; el módulo lleva **fuente propia**, línea `A5`, **sin pedir**), p7 = GND **(masa común obligatoria)**. **Sustituye al módulo SPP discreto** y trae ~~el reloj `DS3231` con pila propia~~ **el DRIVER del `DS3231`** (`ESP32_Expansion/src/reloj_ds3231.cpp`, `GPIO21`/`GPIO22`); 🛑 **el módulo NO está comprado (`A6`) y `0x68` sigue SIN VERIFICAR** — `contrato.h:185-186` lo dice en el propio fuente. **El firmware existe; la pieza no**, y sin ella la hora sale `--:--:--`, que es correcto. ⛔ **`J16` NO es `J17`: lleva 12 V.** Ver §8 |
-| **Mando de 4 Relés Anti-Colisión** | ⚠️ **SE CONSERVA, sobre 2 canales** | ~~*Cableado en paralelo con `PB9`..`PB15`*~~ → **solo `A` (`PB9`) y `B` (`PB13`)**. `C` y `D` se retiran. **Las tres secuencias siguen funcionando.** Ver §6 |
+| **Mando de 4 Relés Anti-Colisión** | 🛑 **EL HARDWARE NO EXISTE (05/09) · EL CÓDIGO SE QUEDA** | ~~*Cableado en paralelo con `PB9`..`PB15`*~~ · ~~31/08: **SE CONSERVA, solo `A` (`PB9`) y `B` (`PB13`)**~~ → **05/09, `DECISIONES.md` `D-1`: no hay emisor ni receptor. Nada se cablea a `J16` p5 ni p8.** 🛑 **Y el código NO se toca: retirarlo deja ABIERTO el veto de SFTY-21, no inerte.** Las dos mitades van juntas — ver §6 |
 
 > 📱 **El Módulo Bluetooth en el Esclavo resuelve la operación desde el suelo:** Gracias al módulo Bluetooth de diagnóstico estándar Baliza instalado en el Esclavo (`USART1` por `J17`), el operario puede consultar el estado, ver alarmas y operar el Esclavo desde el celular sin necesidad de subir al poste a 5 metros de altura.
 
@@ -69,11 +69,49 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 
 ---
 
-> # 🔧 04/09/2026 (N-118) — EL MANDO YA NO ESTÁ SORDO EN EL FIRMWARE, Y **EL GESTO PARA PROBARLO CAMBIA**
+> # ✅ 05/09/2026 — **`N-118` CERRADO**, y era DOS COSAS contadas como una
 >
-> **Si va a banco con la instrucción vieja —«tocar `J16` p5 contra masa»— no va a pasar
-> absolutamente nada, y va a diagnosticar «mando sordo» sobre un firmware sano.** Léase esto entero
-> antes de tocar `J16`.
+> **Léase entero antes de tocar `J16`, y léanse LAS DOS MITADES: con una sola, la conclusión sale al
+> revés.**
+>
+> | | qué se creía | qué es |
+> |---|---|---|
+> | **1** | *«los `0,6 V` de `MANDO_A`/`MANDO_B` son un defecto de la PLACA»* | ❌ **Falso, y el propio banco dejó el control.** Era el `INPUT_PULLUP` del **firmware viejo** peleando contra los 10 kΩ de la placa. **Corregido en `346ea5f`** |
+> | **2** | *«queda pendiente probar el mando en banco»* | ⛔ **Ya no hay qué probar: `D-1`, 05/09 — el mando de A y B se retiró del equipo.** El emisor y el receptor no existen |
+>
+> 🛑 **Y la mitad que NO se puede leer sola: el CÓDIGO del mando SE QUEDA.** Retirarlo dejaría el
+> veto de SFTY-21 **abierto**, no inerte. Está desarrollado en **§6**, y no es opcional.
+>
+> ### Cómo se cierra la mitad 1, que es una MEDIDA y no un razonamiento
+>
+> El paso 20 del banco del 03/09 midió **los cuatro** pines de `J16` con la tarjeta energizada, el
+> conector vacío y el paquete `617bd00` dentro:
+>
+> | `J16` | pin | a masa | en reposo | `pinMode` en `617bd00` |
+> |---|---|---|---|---|
+> | p5 | `PB9` (`MANDO_A`) | `9,92 kΩ` | **`0,6 V`** | `INPUT_PULLUP` |
+> | p8 | `PB13` (`MANDO_B`) | `9,92 kΩ` | **`0,6 V`** | `INPUT_PULLUP` |
+> | p10 | `PB14` (`CAM_C_PIN`) | `9,93 kΩ` | **`0 V`** | `INPUT` pelado |
+> | p12 | `PB15` (`CAM_D_PIN`) | `9,94 kΩ` | **`0 V`** | `INPUT` pelado |
+>
+> **Mismo cobre, misma resistencia, dos tensiones.** La única variable es el `pinMode`, y está
+> medida sobre el binario que estaba dentro de la tarjeta aquel día:
+>
+> ```text
+>   $ git show 617bd00:01_Firmware/Maestro/src/botones.cpp | grep -n "pinMode(BOTON\|pinMode(CAM_C"
+>   139:  pinMode(BOTON1, INPUT_PULLUP);
+>   140:  pinMode(BOTON2, INPUT_PULLUP);
+>   156:  pinMode(CAM_C_PIN, INPUT);
+> ```
+>
+> **Si los `0,6 V` los pusiera la placa, p10 y p12 marcarían lo mismo. Marcaron `0 V`.** El banco
+> corrió un control negativo sin saberlo, y por eso *«defecto de placa»* queda **refutado con
+> medida**, no con opinión.
+>
+> 🔴 **Lo que NUNCA se midió, y se dice aunque ya no importe:** nadie ha puesto un voltímetro en
+> `J16` p5 **con el binario nuevo dentro**. El paso 29 se abortó por el sobrecalentamiento y la
+> Maestro sigue con el corto de N-116. Esa confirmación queda **`SIN VERIFICAR`, y ya no se va a
+> tomar** — porque no hay mando que conectar.
 >
 > ### El defecto histórico — **EN PASADO**, porque ya está arreglado en el fuente
 >
@@ -100,18 +138,25 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 > Los **cuatro** pines de `J16` son ahora eléctricamente idénticos y se leen igual: `INPUT` pelado,
 > reposo fijado por el pull-down de 10 kΩ de la placa, **activo en ALTO**.
 >
-> ### 🔴 LA CONSECUENCIA PRÁCTICA, que es lo que se lleva uno al banco
+> ### 🔴 LA CONSECUENCIA PRÁCTICA — **05/09: NO HAY GESTO, PORQUE NO HAY MANDO**
 >
 > | | gesto | vale hoy |
 > |---|---|---|
-> | ~~Pulso `A`~~ | ~~tocar `J16` **p5** contra **masa** (p2)~~ | 🛑 **NO. Un cable a masa no produce absolutamente nada** |
+> | ~~Pulso `A`~~ | ~~tocar `J16` **p5** contra **masa** (p2)~~ | 🛑 **NO, y NUNCA se hace** — ver el aviso de abajo |
 > | ~~Pulso `B`~~ | ~~tocar `J16` **p8** contra **masa** (p2)~~ | 🛑 **NO** |
-> | **Pulso `A`** | tocar un instante **`J16` p5 contra p4** (los 3,3 V de al lado) | ✅ **Sí** |
-> | **Pulso `B`** | tocar un instante **`J16` p8 contra p7** (los 3,3 V de al lado) | ✅ **Sí** |
+> | ~~**Pulso `A`**~~ | ~~tocar un instante **`J16` p5 contra p4** (los 3,3 V de al lado)~~ | ⛔ **CADUCADO 05/09 (`D-1`): no hay mando que pulsar. `p5` queda LIBRE** |
+> | ~~**Pulso `B`**~~ | ~~tocar un instante **`J16` p8 contra p7** (los 3,3 V de al lado)~~ | ⛔ **CADUCADO 05/09. `p8` queda LIBRE** |
 >
-> **El contacto se cierra contra los 3,3 V del pin de al lado, no contra masa.** Es el mismo gesto
-> que ya usaban las cámaras `C` y `D`, y por la misma razón: sólo hay una masa en el conector, así
-> que un contacto por botón contra masa nunca pudo ser el diseño.
+> **Las dos últimas filas se conservan tachadas y no se borran** porque son el gesto correcto para
+> los pines que **sí** se cablean —`p10` contra `p9` y `p12` contra `p11`, las cámaras—: sólo hay
+> **una** masa en todo `J16` (p2), así que un contacto por señal contra masa nunca pudo ser el
+> diseño, y eso vale igual para los cuatro pines.
+>
+> 🛑 **Y lo que sigue vigente sin cambio, que es lo único de este bloque que protege a alguien: NO SE
+> PUENTEA `p5` NI `p8` CONTRA MASA.** Ni con la instrucción vieja, ni «a ver qué pasa», ni para medir
+> nada. `p4` es **adyacente** a `p5` y `p7` lo es de `p8`: **un puente corrido una sola posición pone
+> el riel de 3,3 V directamente contra masa**, y es el gesto que precedió al calentamiento del paso
+> 29 (§9). **Con `p5` y `p8` libres, ahí ya no hay nada que tocar.**
 >
 > ### 👁️ Y para saber si el equipo OYÓ el pulso no hace falta ningún instrumento
 >
@@ -144,20 +189,25 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 >
 > ### 🛑 Y lo que sigue SIN MEDIRSE, que hay que decir en voz alta
 >
-> **Nadie ha medido la tensión de `J16` p5/p8 con el puente a 3,3 V puesto y ESTE firmware cargado.**
-> El paso 29 del banco del 3–4/09 nunca llegó a tomar ese dato —se abortó por el
-> sobrecalentamiento—, y **no se puede tomar sobre la tarjeta Maestro mientras siga con el corto de
-> N-116**. Por tanto:
+> ~~**Nadie ha medido la tensión de `J16` p5/p8 con el puente a 3,3 V puesto y ESTE firmware
+> cargado.** … Las pruebas del mando siguen **sin ejecutar**: *«no hay tarjeta sana con la que
+> ejercerlo»*.~~
 >
-> - El firmware está **arreglado y razonado**, no *verificado en tarjeta*.
-> - Las pruebas del mando siguen **sin ejecutar**. Lo que cambió es **el motivo**: ya no es *«el
->   firmware no puede leer un flanco»* —eso está corregido—, sino *«no hay tarjeta sana con la que
->   ejercerlo»*.
-> - **No se vuelve a puentear `J16` p5/p8 contra masa** — ni con la instrucción vieja ni «a ver qué
->   pasa»: es el gesto que precedió al calentamiento del paso 29, y además ahora **no mide nada**.
+> 🔧 **05/09 — SE TACHA, Y EL MOTIVO CAMBIA POR TERCERA VEZ, QUE ES LO QUE HAY QUE ENTENDER:**
 >
-> **Un manual corregido no es un permiso de carga, y un firmware arreglado no es un firmware
-> probado.**
+> | | por qué no se había probado el mando |
+> |---|---|
+> | hasta el 04/09 | *«el firmware no puede leer un flanco»* — **cierto, y corregido en `346ea5f`** |
+> | el 04/09 | *«no hay tarjeta sana con la que ejercerlo»* — el corto de N-116 |
+> | **desde el 05/09** | ⛔ **«no hay mando». `D-1`: el hardware se retiró.** La prueba no se aplaza: **se cancela** |
+>
+> **Esa medida queda `SIN VERIFICAR` para siempre, y este manual lo declara en vez de dejar la
+> casilla abierta.** Una casilla pendiente invita a que alguien vuelva a intentarlo con un cable en
+> `J16`; una prueba cancelada, con su motivo escrito, no.
+>
+> 🔴 **Lo que NO cambia y no depende del mando:** el corto de `N-116` sigue ahí y **la tarjeta Maestro
+> no se energiza** (§9). **Un manual corregido no es un permiso de carga, y un firmware arreglado no
+> es un firmware probado.** En campo sigue corriendo la **V8.4**.
 
 ---
 
@@ -490,27 +540,52 @@ saberlo.
 > `CAM_D_PIN`. El cursor se puede mover con `A`/`B`; **no se puede confirmar nada**, y por tanto
 > **no se puede dejar una hora inventada dada por buena**.
 >
-> **Lo que SÍ sigue en pie, y es la razón de que la instrucción de montaje no cambie:** `PB9` y
-> `PB13` son entradas reales, y **`A·B·A·B` sigue pidiendo entrar al Modo Degradado**. Una ráfaga de
-> pulsos accidental ya no inventa una hora, pero puede pedir un cambio de modo — que el firmware
-> evaluará contra su puerta (§7 del Manual del Mando), no concederá sin más.
+> ~~**Lo que SÍ sigue en pie, y es la razón de que la instrucción de montaje no cambie:** `PB9` y
+> `PB13` son entradas reales, y **`A·B·A·B` sigue pidiendo entrar al Modo Degradado**.~~
 >
-> **Instrucción de montaje (vigente):** los dos botones se dejan cableados —los usa el mando de
-> relés—, pero **nadie los pulsa para «ver qué pasa»**. Si el gabinete queda accesible, considérese
-> poner el cartel correspondiente.
+> ### 🛑 05/09 — LA OTRA MITAD TAMBIÉN SE VA, Y LA INSTRUCCIÓN DE MONTAJE **SÍ** CAMBIA
+>
+> **`DECISIONES.md` `D-1`:** *«ya no tenemos mandos de A y B, sólo la app, los quitamos»*. **Los dos
+> pulsadores y el mando de relés se retiran del equipo.**
+>
+> **Instrucción de montaje (vigente desde el 05/09):** ~~los dos botones se dejan cableados —los usa
+> el mando de relés—, pero nadie los pulsa para «ver qué pasa»~~ → **`J16` p5 y p8 quedan LIBRES: no
+> se les cablea nada, ni pulsador ni relé.** No hace falta cartel: no hay nada que pulsar.
+>
+> 🛑 **Y lo que NO se hace, que es lo único de aquí que puede quemar una tarjeta: no se puentean p5
+> ni p8 contra masa** para «ver si el firmware responde». `p4` es adyacente a `p5` y `p7` lo es de
+> `p8`; un puente corrido una posición pone el riel de 3,3 V contra masa (§9).
+>
+> ✅ **Lo que sigue siendo cierto y por eso no se borra:** el firmware **sigue declarando esas dos
+> entradas y sigue teniendo su máquina de secuencias**, y eso es deliberado — **§6**. Sin nadie que
+> las accione, `A·B·A·B` no se compone nunca y las entradas se quedan en su reposo de `0 V`.
 
 ### Pines de `J16` — **repartidos el 31/08, polaridad corregida el 04/09 (N-118)**
 
-| `J16` | Pin del STM32 | 28/08 | Función vigente | Modo del pin — **04/09** | Se acciona |
+| `J16` | Pin del STM32 | 28/08 | Función vigente — **05/09** | Modo del pin | Se acciona |
 |---|---|---|---|---|---|
-| p5 | `PB9` | 1 — Arriba / `A` | ✅ **mando `A`** | ~~`INPUT_PULLUP`, activo en BAJO~~ → **`INPUT` pelado, activo en ALTO** | **p5 contra p4** (3,3 V) |
-| p8 | `PB13` | 2 — Abajo / `B` | ✅ **mando `B`** | ~~`INPUT_PULLUP`, activo en BAJO~~ → **`INPUT` pelado, activo en ALTO** | **p8 contra p7** (3,3 V) |
+| p5 | `PB9` | 1 — Arriba / `A` | ~~✅ mando `A`~~ → ⚪ **LIBRE.** El mando se retiró (`D-1`) | **`INPUT` pelado, activo en ALTO** | ⛔ **nada. No se cablea** |
+| p8 | `PB13` | 2 — Abajo / `B` | ~~✅ mando `B`~~ → ⚪ **LIBRE.** El mando se retiró (`D-1`) | **`INPUT` pelado, activo en ALTO** | ⛔ **nada. No se cablea** |
 | p10 | `PB14` | ~~3 — Aceptar / `C`~~ | 🛑 **`CAM_C_PIN` — cámara** | **`INPUT` pelado, activo en ALTO** | p10 contra p9 (3,3 V) |
 | p12 | `PB15` | ~~4 — Menú / `D`~~ | 🛑 **`CAM_D_PIN` — cámara** | **`INPUT` pelado, activo en ALTO** | p12 contra p11 (3,3 V) |
 
-**Ambas tarjetas usan los mismos pines** (`Maestro/include/pines.h:118-125`, idéntico en el Esclavo).
-El mando de relés se cablea **en paralelo con los dos pulsadores que quedan** — no hay entradas
-dedicadas para él (ver §6).
+**Ambas tarjetas usan los mismos pines** (`Maestro/include/pines.h`, símbolos `BOTON1`, `BOTON2`,
+`CAM_C_PIN` y `CAM_D_PIN`; idéntico en el Esclavo):
+
+```text
+  $ grep -n "define BOTON1\|define BOTON2\|define CAM_C_PIN\|define CAM_D_PIN" \
+        01_Firmware/Maestro/include/pines.h
+  146:#define BOTON1      PB9   // J16 p5  - Arriba / mando A
+  147:#define BOTON2      PB13  // J16 p8  - Abajo  / mando B
+  148:#define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco (era BOTON3, "Aceptar")
+  149:#define CAM_D_PIN   PB15  // J16 p12 - camara de contacto seco (era BOTON4, "Cancelar")
+```
+
+~~El mando de relés se cablea **en paralelo con los dos pulsadores que quedan** — no hay entradas
+dedicadas para él (ver §6).~~ 🛑 **CADUCADO EL 05/09 (`D-1`): no hay mando de relés que cablear.**
+`p5` y `p8` **quedan libres**, y el firmware las sigue declarando como entradas —eso es correcto y no
+se toca, ver §6—: **una entrada declarada que nadie acciona se queda en su reposo de `0 V`, fijado
+por los 10 kΩ de la placa.**
 
 > 🔧 **Las dos primeras filas cambiaron el 04/09 y la última columna es nueva.** Los cuatro pines de
 > `J16` son eléctricamente idénticos —10 kΩ a masa y 3,3 V en la posición de al lado— y desde N-118
@@ -779,27 +854,70 @@ Con ~1,4 µA de consumo por `VBAT`, la autonomía teórica supera los **15 años
 
 ---
 
-## 6. 🎛️ El mando de relés — **SE CONSERVA, sobre 2 canales (31/08)**
+## 6. 🎛️ El mando de relés — 🛑 **EL HARDWARE NO EXISTE · EL CÓDIGO SE QUEDA (05/09)**
 
-> ## ✅ 31/08/2026 — EL MANDO NO SE RETIRA. QUEDAN `A` Y `B`
+> # ⛔ 05/09/2026 (`DECISIONES.md` `D-1`) — **YA NO HAY MANDO**
 >
-> | Canal | Pin | `J16` | 31/08 |
-> |---|---|---|---|
-> | **`A`** | `PB9` | p5 | ✅ **se conserva** |
-> | **`B`** | `PB13` | p8 | ✅ **se conserva** |
-> | ~~`C`~~ | `PB14` | p10 | 🛑 **se retira** → cámara |
-> | ~~`D`~~ | `PB15` | p12 | 🛑 **se retira** → cámara |
+> *«Ya no tenemos mandos de A y B, sólo la app, los quitamos»* — el responsable, 05/09.
 >
-> **Las tres secuencias siguen funcionando enteras** —`A·A·A`, `B·B·B`, `A·B·A·B`— porque **ninguna
-> usaba `C` ni `D`**: `botones.cpp` nunca entregó al mando más flancos que los de los botones 1 y 2.
+> | Canal | Pin | `J16` | 31/08 | **05/09** |
+> |---|---|---|---|---|
+> | ~~**`A`**~~ | `PB9` | p5 | ~~✅ se conserva~~ | ⛔ **el hardware se retira. Pin LIBRE** |
+> | ~~**`B`**~~ | `PB13` | p8 | ~~✅ se conserva~~ | ⛔ **el hardware se retira. Pin LIBRE** |
+> | ~~`C`~~ | `PB14` | p10 | 🛑 se retira → cámara | 🛑 **cámara** |
+> | ~~`D`~~ | `PB15` | p12 | 🛑 se retira → cámara | 🛑 **cámara** |
 >
-> **Por qué se conservan los DOS canales y no uno:** `ambarLocal`, el veto de SFTY-21 en el Esclavo,
-> **solo lo arma `B·B·B`**; y `A·A·A` es la única forma de salir de ese ámbar desde el piso. Son un
-> par, no dos opciones. Desarrollo completo en `04_Manuales/MANUAL_MANDO_4_RELES.md`.
+> ## 🛑 Y AQUÍ VAN LAS DOS MITADES JUNTAS, PORQUE POR SEPARADO SE LEE LO CONTRARIO
+>
+> | | |
+> |---|---|
+> | **El HARDWARE se fue** | Emisor y receptor. No se compra ninguno *(Manual 15, línea `A9`)*, no se cablea nada a `J16` p5 ni p8, y **el paso 29 del banco no se repite** |
+> | 🛑 **El CÓDIGO se queda, y no se toca** | `mando.cpp` sigue entero en las dos puntas. **Retirarlo NO deja el veto de SFTY-21 inerte: lo deja ABIERTO** |
+>
+> ### Por qué el código se queda — **está medido, no es prudencia**
+>
+> El veto de SFTY-21 del Esclavo cuelga de la bandera `ambarLocal`, y **tiene un solo armador**:
+>
+> ```text
+>   $ grep -rn "ambarLocal = true" 01_Firmware/Esclavo/src
+>   Esclavo/src/mando.cpp:132:      ambarLocal = true;
+>
+>   $ grep -rn "mando_ambarLocal()" 01_Firmware/Esclavo/src/main.cpp \
+>                                   01_Firmware/Esclavo/src/bluetooth.cpp
+>   Esclavo/src/bluetooth.cpp:551:      if (semaforo_estado() == S_FALLO && !mando_ambarLocal()) {
+>   Esclavo/src/bluetooth.cpp:562:      if (mando_ambarLocal()) {
+>   Esclavo/src/main.cpp:453:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
+>   Esclavo/src/main.cpp:476:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
+>   Esclavo/src/main.cpp:617:    if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() &&
+> ```
+>
+> **Todos los lectores la usan para VETAR.** Si se borra la línea que la arma, esos `if` pasan a ser
+> **siempre verdaderos**, el veto **desaparece**, y **ningún test falla** — el código que abre el
+> agujero está en otro fichero. Con el mando desmontado, en cambio, **la bandera simplemente no se
+> arma nunca**, que es exactamente lo correcto: el veto sigue en pie y lo sigue armando la app por
+> `bluetooth_ambarEmergencia()`.
+>
+> 🔴 **Y hay una segunda razón, de instrumento: el banco se caería en `ABORTADO`, no en rojo.** Dos
+> `raise` disparan solos y los dos modelos leen constantes de `mando.cpp` **en el import**. Un
+> `ABORTADO` no es un `FALLA`: **no dice nada del firmware**, y mientras dura, todo lo que esos packs
+> vigilaban entra sin mirar.
+>
+> ### 📵 La consecuencia de operación, y hay que decirla entera (`D-16`)
+>
+> **Retirado el mando, la app es la ÚNICA superficie de mando del equipo.** No queda pantalla
+> —retirada el 28/08—, no quedan pulsadores —`botonAceptar()` y `botonCancelar()` devuelven `false`
+> siempre desde el 31/08— y ahora tampoco queda mando.
+>
+> 🛑 **SIN TELÉFONO NO HAY FORMA DE OPERAR EL EQUIPO: ni ámbar, ni volver a Automático, ni parar el
+> cruce.** Un móvil sin batería, un emparejamiento que falla o dos técnicos con el mismo equipo dejan
+> el poste **sin mando de ninguna clase**. No es una avería: **es una propiedad declarada del
+> sistema**, y por eso va escrita aquí y no en una nota. **El teléfono es herramienta crítica**:
+> batería, cable de carga, y **conviene un segundo terminal ya emparejado**.
 
-El operario acciona el equipo **desde el piso**, con un mando de relés (~~`A`, `B`, `C`, `D`~~ **`A` y
-`B`**) cableado **en paralelo con los pulsadores físicos** (~~`PB9`, `PB13`, `PB14`, `PB15`~~ **`PB9`
-y `PB13`**). **No hay entradas dedicadas**: para el firmware, un relé y un botón son indistinguibles.
+~~El operario acciona el equipo **desde el piso**, con un mando de relés cableado en paralelo con los
+pulsadores físicos.~~ 🛑 **Caducado el 05/09.** Lo que sigue se conserva **como histórico del
+diseño** —porque el código que lo implementa sigue dentro y alguien tendrá que entenderlo— y **no
+como instrucción de montaje**: no hay nada que montar ni que comprar.
 
 ### Características medidas en campo (01/08/2026) — condicionan el diseño
 
@@ -813,55 +931,91 @@ Si va a reemplazar o comprar mando, **verifique estas tres características ante
 diseño de las secuencias y de la pantalla `AJUSTAR HORA` (edición dígito a dígito) descansa sobre
 ellas. Un mando que se comporte distinto obliga a rehacer ambas.
 
-> ## 🪜 EL ESCLAVO NO TIENE RECEPTOR DE MANDO (pendiente N-19)
+> ## 🪜 ~~EL ESCLAVO NO TIENE RECEPTOR DE MANDO (pendiente N-19)~~ → ⛔ **CERRADO POR `D-1`, Y NO COMO SE ESPERABA**
 >
-> **Hoy solo el Maestro puede operarse desde el piso.** La tarjeta del Esclavo ya trae las entradas
-> ~~(`PB9`, `PB13`, `PB14`, `PB15`)~~ **`PB9` y `PB13`** y su firmware las atiende: **falta únicamente
-> comprar e instalar el receptor**.
+> 🛑 **05/09: esto deja de ser una compra pendiente y pasa a ser una LIMITACIÓN ACEPTADA.** No es que
+> el receptor siga faltando: es que **ya no se compra ninguno, en ninguna de las dos puntas**
+> (`Manual 15`, línea `A9`). **Ni el Maestro ni el Esclavo pueden operarse desde el piso sin
+> teléfono** — ver `D-16`, arriba.
+>
+> ~~**Hoy solo el Maestro puede operarse desde el piso.** La tarjeta del Esclavo ya trae las entradas
+> **`PB9` y `PB13`** y su firmware las atiende: **falta únicamente comprar e instalar el
+> receptor**.~~ **Lo que sigue siendo cierto de esa frase: las entradas y su firmware siguen ahí.**
+> Lo que ya no: que falte comprar algo.
 >
 > > 🔴 **31/08 — y en el Esclavo esto ha subido de categoría.** Con *Aceptar* mudo y **sin `SET_MODO`
 > > por Bluetooth en esa punta** —el Maestro es el único que arbitra el ciclo—, **el mando pasa a ser
-> > el único actuador de modo del Esclavo**: entrar al Degradado es `A·B·A·B` (`menu.cpp:227` →
-> > `mando.cpp:148`) y salir es `A·A·A` o `B·B·B` (`:121`, `:138`). Mientras el receptor no esté
-> > comprado, **esas dos acciones solo se hacen subiendo al gabinete y pulsando `A` y `B` a mano**.
+> > el único actuador de modo del Esclavo**: entrar al Degradado es `A·B·A·B` y salir es `A·A·A` o
+> > `B·B·B` *(en `Esclavo/src/mando.cpp`: `degradado_entrar()` bajo el caso `ACC_DEGRADADO`, y
+> > `degradado_salir()` en las dos ramas de salida)*. ~~Mientras
+> > el receptor no esté comprado, **esas dos acciones solo se hacen subiendo al gabinete y pulsando
+> > `A` y `B` a mano**.~~
 >
-> **No hay atajo por software.** El Maestro no puede ordenárselo por radio, porque *el radio muerto es
-> justamente la razón de entrar al Modo Degradado*.
+> ## 🔴 05/09 — Y AL RETIRAR EL MANDO ESO DEJA DE TENER SALIDA. **HAY QUE DECIRLO, NO RESOLVERLO AQUÍ**
 >
-> **Consecuencia operativa, sin adornos:** el procedimiento del Modo Degradado exige activarlo en las
-> dos puntas, y ambas pantallas están a **5 m dentro del gabinete**. Mientras el receptor no esté
-> instalado, **activar el Degradado en el Esclavo obliga a subir físicamente al gabinete**, con
-> escalera o canasta, en las condiciones que haya. **Mientras tanto el sistema funciona** — es una
-> limitación de operación, no una avería.
+> **`D-1` retira la única vía que tenía el Esclavo para entrar o salir del Modo Degradado, y no la
+> sustituye por otra.** Censadas hoy las cuatro, una por una:
+>
+> | vía | ¿existe en el Esclavo? | medido |
+> |---|---|---|
+> | **Mando de relés** (`A·B·A·B`) | ⛔ **el hardware se retiró** | `D-1`, 05/09 |
+> | **Pulsadores del gabinete** | ❌ | `botonAceptar()` / `botonCancelar()` devuelven `false` siempre desde el 31/08 |
+> | **App por Bluetooth** | ❌ **no existe el comando** | `grep -c "SET_MODO" Esclavo/src/bluetooth.cpp` → **`0`**. Lo que esa punta acepta es `AMBAR_EMERGENCIA`, `CANCELAR_AMBAR`, `SOLICITAR_PASO` y `SET_RTC` |
+> | **Orden del Maestro por radio** | ❌ **imposible por diseño** | *el radio muerto es justamente la razón de entrar al Degradado* |
+>
+> ```text
+>   $ grep -c "SET_MODO" 01_Firmware/Esclavo/src/bluetooth.cpp
+>   0
+> ```
+>
+> 🛑 **O sea que hoy el Modo Degradado NO SE PUEDE ACTIVAR EN EL ESCLAVO POR NINGUNA VÍA.** Antes del
+> 05/09 la respuesta era *«subiendo al gabinete»*; ya no lo es, porque arriba tampoco hay con qué
+> —ni pantalla ni botones que confirmen—.
+>
+> ⚠️ **Este manual NO decide qué se hace con eso, y no propone la solución obvia.** Es una decisión
+> vial y del responsable, y las opciones que se le pongan delante son un instrumento: **añadir
+> `SET_MODO` al Esclavo tiene consecuencias sobre quién arbitra el ciclo** —hoy sólo el Maestro—, y
+> eso no se decide desde una lista de compras. **Lo que este documento hace es dejar el hueco escrito
+> con su medida**, para que no se descubra la noche que se caiga la radio.
+>
+> ✅ **Lo que sí sigue siendo cierto y no cambia:** **mientras el enlace funcione, el sistema
+> funciona.** El Degradado es el procedimiento de excepción, no la operación normal.
 
-> ## ⚠️ AL COMPRAR EL RECEPTOR: EXIJA CÓDIGO INDEPENDIENTE DEL MANDO DEL MAESTRO
+> ## ⚠️ ~~AL COMPRAR EL RECEPTOR: EXIJA CÓDIGO INDEPENDIENTE DEL MANDO DEL MAESTRO~~
 >
-> Si ambos receptores responden al mismo mando —y las dos puntas suelen estar a **menos de una
-> cuadra**— una sola secuencia metería **las dos unidades en Modo Degradado a la vez**.
+> 🛑 **CADUCADO EL 05/09 (`D-1`): no se compra ningún receptor.** ~~Si ambos receptores responden al
+> mismo mando —y las dos puntas suelen estar a menos de una cuadra— una sola secuencia metería las
+> dos unidades en Modo Degradado a la vez. Pídalo con código o dirección distinta.~~
 >
-> Eso se salta la **verificación por separado de cada punta**, que es exactamente lo que justifica que
-> este modo se considere seguro. Un mando compartido convierte un procedimiento verificado en una
-> pulsación a ciegas.
+> ✅ **Se conserva tachado porque el RIESGO que describía no era del mando, sino del Degradado, y ése
+> sigue vigente:** el procedimiento del Modo Degradado **exige verificación por separado de cada
+> punta**, y cualquier vía futura que active las dos a la vez —un mando compartido entonces, un
+> comando de radio o un botón de la app mañana— **se salta lo que hace seguro ese modo**. Quien
+> diseñe esa función en la app tiene aquí el motivo escrito.
+
+### ~~Verificación del cableado del mando~~ — ⛔ **RETIRADA EL 05/09: no hay mando que cablear**
+
+🛑 **Esta lista completa se retira, no se «deja por si acaso».** Una lista de comprobación sobre
+hardware que no existe es una invitación a puentear `J16` con un cable para poder marcarla, y ése es
+justo el gesto que precedió al calentamiento del paso 29.
+
+- [ ] ~~Cada relé cierra contra **el mismo pin** que su pulsador correspondiente (`A`→`PB9`, `B`→`PB13`)~~
+- [ ] ~~Con el equipo en el menú, accionar `A` mueve el cursor **una sola posición** por pulsación~~
+- [ ] ~~Accionar `C` desde el mando **selecciona**, igual que el Botón 3~~ *(ya retirado el 31/08)*
+- [ ] ~~Accionar `A·A·A` dentro de la ventana produce **2 destellos rojos**; `B·B·B`, **3**; `A·B·A·B`, **4**~~
+- [ ] ~~Los canales `C` y `D` del mando **no producen ningún efecto**~~
+- [ ] ~~El mando **no** genera pulsos espurios al energizar el gabinete~~
+
+> ✅ **Lo único que sobrevive de esta lista, y no es una comprobación de mando sino de firmware:** los
+> **destellos rojos** siguen existiendo en el código y siguen siendo la forma en que el equipo acusa
+> desde el suelo. Hoy **no hay quién los dispare**, pero el mecanismo está y **no se retira**: es el
+> mismo `mando.cpp` cuyo veto sostiene SFTY-21. Si algún día vuelve una vía de mando local, la
+> confirmación ya está construida y medida.
 >
-> Pídalo con **código o dirección distinta**, y **compruébelo en banco** antes de instalarlo:
-> accione el mando del Maestro y confirme que el Esclavo **no** reacciona.
-
-### Verificación del cableado del mando
-
-- [ ] Cada relé cierra contra **el mismo pin** que su pulsador correspondiente (`A`→`PB9`, `B`→`PB13`)
-- [ ] Con el equipo en el menú, accionar `A` mueve el cursor **una sola posición** por pulsación
-- [ ] ~~Accionar `C` desde el mando **selecciona**, igual que el Botón 3~~ — 🛑 **31/08: este punto se
-      RETIRA.** `C` y `D` ya no llegan a ningún pulsador, y `botonAceptar()`/`botonCancelar()`
-      devuelven `false` siempre. **Si `C` seleccionara algo, el firmware cargado no es el vigente**
-- [ ] 🆕 Accionar `A·A·A` dentro de la ventana produce **2 destellos rojos**; `B·B·B`, **3**;
-      `A·B·A·B`, **4** *(la ventana es `VENTANA_TRIPLE_MS = 12000` ms para las de tres pulsos y
-      18000 ms para la de cuatro — `mando.cpp:38-39`)*
-- [ ] 🆕 Los canales `C` y `D` del mando **no producen ningún efecto** en ninguna de las dos puntas
-- [ ] El mando **no** genera pulsos espurios al energizar el gabinete
-
-> **El último punto no es paranoia.** Un pulso espurio al energizar, con el menú abierto, puede llevar
-> el cursor a una opción que nadie pidió. El firmware ya lo acota —las secuencias se ignoran con el
-> menú abierto— pero un mando que emite basura al arrancar es un mando defectuoso.
+> 🔴 **Y lo que ya no se puede escribir aquí:** *«el mando no genera pulsos espurios al energizar»*.
+> **No hay mando, así que no hay nada que lo genere** — pero `p5` y `p8` quedan como **entradas
+> desnudas al pin del micro** (N-120, §11) con su reposo fijado a `0 V` por los 10 kΩ. **Dejarlas sin
+> cablear es lo que las mantiene calladas.**
 
 ---
 
@@ -947,10 +1101,23 @@ Para detección vehicular por demanda en obra vial (analítica embebida sin comp
 >    (N-120): las entradas no tienen **nada** que limite lo que entra por ellas.
 >    🔴 **ÉSTE SIGUE EN PIE Y NO SE RELAJA: es hoy el único requisito previo a cablear `J16`.**
 >
-> 🔴 **Y lo que `M3` NO levanta, porque no era su sujeto:** `MANDO_A` (`PB9`, p5) y `MANDO_B`
-> (`PB13`, p8) **siguen sin responder — `0,6 V` en reposo (N-118)**. Eso es **cobre, no firmware**:
-> el fuente ya lee los cuatro pines igual (`INPUT` pelado, activo en ALTO). **El mando SE CONSERVA,
-> va cableado y hoy no se usa; su código no se toca.**
+> 🔴 ~~**Y lo que `M3` NO levanta, porque no era su sujeto:** `MANDO_A` (`PB9`, p5) y `MANDO_B`
+> (`PB13`, p8) **siguen sin responder — `0,6 V` en reposo (N-118)**. Eso es **cobre, no firmware**.
+> **El mando SE CONSERVA, va cableado y hoy no se usa.**~~
+>
+> 🛑 **TACHADO EL 05/09 CON SU MOTIVO, Y ES LA FRASE MÁS EQUIVOCADA QUE TENÍA ESTE DOCUMENTO: decía
+> «cobre, no firmware» EN LA MISMA FRASE en que reconocía que el fuente ya estaba corregido.** Las
+> dos mitades no podían ser ciertas a la vez, y la falsa es la primera. Se corrige por los dos lados:
+>
+> 1. **NO era cobre.** El propio paso 20 midió los cuatro pines: `9,92`–`9,94 kΩ` en los cuatro, y
+>    **`0,6 V` sólo en los dos que llevaban `INPUT_PULLUP`** (p5, p8) contra **`0 V`** en los dos que
+>    ya iban en `INPUT` pelado (p10, p12). **Mismo cobre, distinto `pinMode`, distinta tensión.** El
+>    dato estaba en la misma tabla de arriba y nadie lo cruzó. Detalle en el bloque `N-118`.
+> 2. **Y `M3` nunca podía «levantarlo», porque desde el 05/09 no hay sujeto:** `D-1` retiró el mando
+>    del equipo. **`p5` y `p8` quedan libres y sin cablear.**
+>
+> 🛑 **Lo que SÍ se conserva de esa frase, y es lo único que importaba de ella: el CÓDIGO del mando
+> no se toca.** Ver **§6**.
 >
 > ~~*(La salida de alarma de la AcuSense es configurable NO/NC, así que se elige qué estado significa
 > demanda sin tocar placa ni firmware.)*~~
@@ -1313,12 +1480,19 @@ pone el riel de 3,3 V directamente contra masa.**
 > quien repita el paso 29 lo haga sabiéndolo, y para que la hipótesis quede anotada y no se vuelva a
 > proponer dentro de un mes como si fuera nueva.
 
-> 🔧 **04/09 (N-118) — y el gesto nuevo ya no tiene ese extremo.** Con el firmware corregido el pulso
-> se da **p5 contra p4** y **p8 contra p7**: **ninguna de las dos puntas del cable va a masa**, así
-> que el escenario de arriba —un puente corrido una posición desde p2— **deja de ser posible con la
-> instrucción vigente**. No es una autorización para reintentarlo: la tarjeta Maestro sigue con el
-> corto de N-116 y **no se energiza**. Es un dato para cuando haya tarjeta sana con la que ejercerlo,
-> y la razón de que la instrucción vieja no se conserve «por si acaso».
+> 🔧 **04/09 (N-118) — y el gesto nuevo ya no tenía ese extremo.** Con el firmware corregido el pulso
+> se daba **p5 contra p4** y **p8 contra p7**: **ninguna de las dos puntas del cable iba a masa**, así
+> que el escenario de arriba —un puente corrido una posición desde p2— dejaba de ser posible con la
+> instrucción vigente.
+>
+> ⛔ **05/09 — Y AHORA NO HAY NINGÚN GESTO, QUE ES MEJOR TODAVÍA PARA ESTA HIPÓTESIS.** `D-1` retiró
+> el mando: **`J16` p5 y p8 quedan libres y nadie tiene motivo para acercarles un cable.** El paso 29
+> **no se repite**. Eso no despeja la hipótesis de este apartado —sigue siendo el candidato de por
+> qué se calentó la Maestro aquel día, y el peldaño (a) sigue siendo la forma de confirmarla o
+> descartarla sin desoldar—, pero **sí garantiza que no se vuelve a provocar**.
+>
+> 🛑 **Y no es una autorización para reenergizar nada:** la tarjeta Maestro sigue con el corto de
+> N-116 y **no se energiza**.
 
 ---
 

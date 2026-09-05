@@ -392,6 +392,17 @@ monolitos y se quedó en 4—: abortó en vez de aprobar, que es su trabajo. Hoy
 
 > **Un "no aparece" no es un hallazgo hasta haber descartado al buscador.**
 
+> ✅ **Y su cara amable, del 05/09: A VECES EL BANCO YA CORRIÓ EL CONTROL NEGATIVO SIN
+> SABERLO.** Los `0,6 V` de `MANDO_A`/`MANDO_B` se llevaban meses contando como «defecto de
+> placa». Al ir a medirlo apareció que en `617bd00` —**el binario que estaba en la tarjeta
+> durante aquel banco**— `BOTON1/2` iban en `INPUT_PULLUP` y `CAM_C/D_PIN` en `INPUT` pelado.
+> El paso 20 midió **9,92–9,94 kΩ en los cuatro pines**, y **`0,6 V` sólo en los dos con
+> pull-up y `0 V` en los dos sin él**.
+>
+> **Mismo cobre, distinto `pinMode`, distinta tensión.** El banco había medido las dos ramas
+> del experimento en la misma tabla, y nadie lo leyó así. **Antes de llamar «defecto de
+> hardware» a una medida, mírese qué firmware estaba dentro cuando se tomó.**
+
 Este proyecto la pagó dos veces: `gcc` llevaba semanas instalado y `shutil.which()` no lo veía
 (el `ABORTADO` era falso), y un recuento de anchos a mano dio por buenos dos textos que se
 salían de la pantalla. Antes de reportar que algo falta, **verifica que tu búsqueda sabía

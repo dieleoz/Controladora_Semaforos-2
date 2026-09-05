@@ -1,8 +1,11 @@
 # 🧪 COBERTURA DE PRUEBAS Y HUECOS — V9.0
 
 **Fecha:** 26 de Agosto de 2026
-**Última revisión:** 5 de septiembre de 2026 — **la primera que censa una superficie que este
-documento no sabía mirar: la de un componente comprado y no medido** (las cámaras). La revisión
+**Última revisión:** 5 de septiembre de 2026 *(2.ª del día)* — **cierra `N-118`, que estaba contado
+como un hueco abierto en cuatro sitios y en dos de ellos como «defecto de placa»**, y **abre el
+hueco `D-16`: sin teléfono no hay forma de operar el equipo — el primero de esta página que ningún
+instrumento puede cubrir**. *(1.ª rev. del día: la primera que censa una superficie que este
+documento no sabía mirar, la de un componente comprado y no medido —las cámaras—.)* La revisión
 del 4 de septiembre fue la primera con una sesión de banco detrás
 **Método:** censo automático de la superficie de entrada del firmware cruzado contra ~~los 20 packs~~
 **los packs del banco**. **No es una opinión: cada fila se levantó con una búsqueda sobre el código**,
@@ -88,8 +91,8 @@ como *BLOQUEADO*. Repartidos como el cuerpo los describe, la cuenta que cuadra a
 |---|---|
 | **N-42 — el Modo Automático no mueve las luces** | **NI confirmada NI descartada.** El equipo nunca llegó a operar en Automático: la única vía de selección de modo es la app, y la app no conectó. **Se decide repitiendo el paso 7 con enlace.** ⚠️ *Un «no se pudo probar» no es un «sigue rota» ni un «ya está»: es un `ABORTADO`, y §2 del `CLAUDE.md` dice qué vale eso* |
 | **Verde simultáneo en las dos puntas sobre HARDWARE** | **Sigue sin ejercerse.** `barrera_02_dos_puntas` y el arnés de dos puntas lo cierran en PC —y dieron el margen real de `1,44`—, pero **ninguno ha encendido una lámpara**. Lo único que lo cierra es banco |
-| **Operación por app · reloj `DS3231` (`SET_RTC`) · barrera de PIN** | **Bloqueados en cascada** (pasos 11-14 y 25-28) porque el módulo **no se anunció en el teléfono**. El hardware está descartado como causa: es un `ESP32-WROOM-32` clásico, con `BR/EDR`, que es justo el perfil que el `SPP` de la app necesita |
-| **Paso 29 — mando de relés** | **ABORTADO por seguridad** (el Maestro se sobrecalentó y quedó pendiente de inspección en frío). ~~**Pero la sordera del mando no necesita ese paso para estar diagnosticada, y lo está por el paso 20:** la red de 10 kΩ a masa que la placa trae en esos pines —las `R65`–`R68` de `CLAUDE.md §9.bis`— deja `J16` p5/p8 en **`0,6 V` permanentes**, o sea BAJO fijo. **Nunca hay flanco**, así que el mando está sordo de fábrica~~ 🔧 **CADUCADO el mismo 04/09 por `N-118`, y se tacha en vez de borrarse porque es la frase que resucita el gesto peligroso.** Ese `0,6 V` **lo ponía el firmware**, no el cobre: era el `INPUT_PULLUP` contra esos 10 kΩ. Con `BOTON1`/`BOTON2` en `INPUT` pelado y **activo en ALTO** (`346ea5f`), los 10 kΩ pasan a ser el **reposo correcto**. **El mando NO está sordo de fábrica**; lo que cambia es el gesto: **`p5` contra `p4` y `p8` contra `p7` — los 3,3 V del pin contiguo, NUNCA contra masa** (`J16` tiene una sola masa, `p2`) |
+| **Operación por app · reloj `DS3231` (`SET_RTC`) · barrera de PIN** | **Bloqueados en cascada** (pasos 11-14 y 25-28) porque el módulo **no se anunció en el teléfono**. El hardware está descartado como causa: es un `ESP32-WROOM-32` clásico, con `BR/EDR`, que es justo el perfil que el `SPP` de la app necesita. 🔴 **Y desde el 05/09 esta fila pesa el doble: con `D-1` la app es la ÚNICA vía de mando** *(ver `D-16`, abajo)*. Un enlace que no se establece ya no bloquea unos cuantos pasos de banco: **deja el equipo sin operar de ninguna forma** |
+| ~~**Paso 29 — mando de relés**~~ | 🟢 **DEJA DE SER HUECO EL 05/09, y por dos motivos que hay que leer juntos — ver la sección `N-118` de abajo.** El paso queda **ABORTADO por seguridad** y **así se queda para siempre**: no se repite, porque **ya no hay mando que probar** (`DECISIONES.md` **D-1**). ~~**Pero la sordera del mando no necesita ese paso para estar diagnosticada, y lo está por el paso 20:** la red de 10 kΩ a masa que la placa trae en esos pines —las `R65`–`R68` de `CLAUDE.md §9.bis`— deja `J16` p5/p8 en **`0,6 V` permanentes**, o sea BAJO fijo. **Nunca hay flanco**, así que el mando está sordo de fábrica~~ 🔧 **CADUCADO el 04/09 por `N-118`, y se tacha en vez de borrarse porque es la frase que resucita el gesto peligroso.** Ese `0,6 V` **lo ponía el firmware**, no el cobre |
 | **La fuente `12 V → 5 V` de la placa del módulo** | **No medida con carga real:** toda la sesión se alimentó por USB. Pendiente antes de campo |
 
 ### 🔵 LA SEGUNDA NOCHE (4–5/09) — CUATRO DEFECTOS QUE ENCONTRÓ **UNA CINTA DE TRAMAS**, NO UN PACK
@@ -127,6 +130,139 @@ como *BLOQUEADO*. Repartidos como el cuerpo los describe, la cuenta que cuadra a
 
 ---
 
+## ✅ 05/09 — `N-118` SE CIERRA, Y ERA **DOS COSAS CONTADAS COMO UNA**
+
+> **Este documento daba `N-118` por abierto en cuatro sitios, y en dos de ellos como *«defecto de
+> placa»*. Las dos mitades se cierran hoy, y por caminos distintos: una es una medida, la otra es
+> una decisión. Se escriben juntas porque leer sólo una lleva a la conclusión contraria.**
+
+### Mitad 1 — los `0,6 V` eran el FIRMWARE VIEJO, y el propio banco dejó el control
+
+El paso 20 del banco del 03/09 midió los cuatro pines de `J16` **con la tarjeta energizada y el
+conector vacío**, con el paquete `617bd00` dentro. El resultado, tal como lo devolvió el informe:
+
+| `J16` | pin | resistencia a masa | tensión en reposo | `pinMode` en `617bd00` |
+|---|---|---|---|---|
+| p5 | `PB9` (`MANDO_A`) | `9,92 kΩ` | **`0,6 V`** | `INPUT_PULLUP` |
+| p8 | `PB13` (`MANDO_B`) | `9,92 kΩ` | **`0,6 V`** | `INPUT_PULLUP` |
+| p10 | `PB14` (`CAM_C_PIN`) | `9,93 kΩ` | **`0 V`** | `INPUT` pelado |
+| p12 | `PB15` (`CAM_D_PIN`) | `9,94 kΩ` | **`0 V`** | `INPUT` pelado |
+
+**El mismo cobre, la misma resistencia, dos tensiones distintas.** La única variable entre las dos
+mitades de la tabla es el `pinMode`, y está medida sobre el binario que estaba dentro:
+
+```
+$ git show 617bd00:01_Firmware/Maestro/src/botones.cpp | grep -n "pinMode(BOTON\|pinMode(CAM_C"
+139:  pinMode(BOTON1, INPUT_PULLUP);
+140:  pinMode(BOTON2, INPUT_PULLUP);
+156:  pinMode(CAM_C_PIN, INPUT);
+```
+
+> 🔬 **El banco corrió un control negativo sin saberlo.** Si los `0,6 V` los pusiera el cobre, p10 y
+> p12 marcarían lo mismo — llevan la misma red de 10 kΩ y se midieron en la misma sesión. Marcaron
+> `0 V`. **La causa era el pull-up interno peleando contra el pull-down de la placa, y no la placa.**
+> No es un razonamiento: es la comparación de cuatro medidas tomadas el mismo día con el mismo
+> instrumento. Por eso **«defecto de placa» era falso**, y por eso ese `0,6 V` no vuelve a citarse
+> aquí como propiedad del hardware.
+
+**Y el arreglo está en el fuente de las dos puntas, verificado por lectura hoy:**
+
+```
+$ grep -n "pinMode(BOTON1, INPUT)" Maestro/src/botones.cpp Esclavo/src/botones.cpp
+Maestro/src/botones.cpp:160:  pinMode(BOTON1, INPUT);
+Esclavo/src/botones.cpp:178:  pinMode(BOTON1, INPUT);
+
+$ grep -n "lecturaCruda = " Maestro/src/botones.cpp Esclavo/src/botones.cpp
+Maestro/src/botones.cpp:40:  bool lecturaCruda = (digitalRead(b.pin) == HIGH);
+Esclavo/src/botones.cpp:54:  bool lecturaCruda = (digitalRead(b.pin) == HIGH);
+```
+
+Es el commit `346ea5f`, *«el mando A/B pasa a activo en ALTO - lo decide el cobre»*.
+
+🔴 **Lo que NUNCA se midió, y hay que decirlo aunque ya no importe: nadie ha puesto un voltímetro en
+`J16` p5 con el binario nuevo dentro.** El paso 29 se abortó por el sobrecalentamiento y la Maestro
+quedó con el corto de `N-116`. Esa confirmación queda **`SIN VERIFICAR` y ya no se va a tomar** — no
+por dejadez, sino por la mitad 2.
+
+### Mitad 2 — y ya da igual: **NO HAY MANDO QUE CONECTAR**
+
+`DECISIONES.md` **D-1**, confirmada por el responsable el 05/09: *«ya no tenemos mandos de A y B,
+sólo la app, los quitamos»*. **El hardware se fue.** Los pines `PB9` y `PB13` quedan libres y nadie
+va a cerrar un contacto contra `p4` ni contra `p7`.
+
+> 🛑 **PERO EL CÓDIGO DEL MANDO SE QUEDA, Y ESTA PÁGINA ES JUSTO DONDE ESO IMPORTA.** Retirarlo no
+> deja el veto de SFTY-21 **inerte**: lo deja **abierto**. `ambarLocal` tiene **un solo armador**, y
+> sus lectores lo usan todos para **vetar**:
+>
+> ```
+> $ grep -rn "ambarLocal = true" Esclavo/src
+> Esclavo/src/mando.cpp:132:      ambarLocal = true;
+>
+> $ grep -rn "mando_ambarLocal()" Esclavo/src/main.cpp Esclavo/src/bluetooth.cpp
+> Esclavo/src/bluetooth.cpp:551:      if (semaforo_estado() == S_FALLO && !mando_ambarLocal()) {
+> Esclavo/src/bluetooth.cpp:562:      if (mando_ambarLocal()) {
+> Esclavo/src/main.cpp:453:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
+> Esclavo/src/main.cpp:476:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
+> Esclavo/src/main.cpp:617:    if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() &&
+> ```
+>
+> **Borrar `mando.cpp:132` convierte esos cinco `if` en siempre-verdaderos y ningún test falla**, que
+> es exactamente la forma que el `CLAUDE.md` §3.ter describe. **Con el mando desmontado la bandera
+> simplemente no se arma nunca, y eso es lo correcto**: el veto sigue existiendo, y lo sigue armando
+> `bluetooth_ambarEmergencia()` desde la app. **La pieza que faltaba, no la que sobra.**
+
+**Lo que esto le hace a esta página, en una línea:** `N-118` sale de la lista de huecos, el paso 29
+sale del plan de banco, y la fila *«Mando de 2 relés»* de la superficie de entrada deja de ser una
+entrada **sin ejercer** para ser una entrada **sin sujeto**. La vigilancia que **NO** sale y sube de
+prioridad es la de la §4: **que `mando_ambarLocal()` siga teniendo armador.**
+
+---
+
+## 📵 05/09 — EL HUECO NUEVO, Y NO ES DE CÓDIGO: **`D-16` · SIN TELÉFONO NO HAY FORMA DE OPERAR EL EQUIPO**
+
+> **Es la consecuencia directa de `D-1`, y es el hueco más grande que ha tenido nunca esta página
+> porque NINGÚN INSTRUMENTO LO CUBRE NI PUEDE CUBRIRLO. Decir eso es exactamente para lo que existe
+> un mapa de huecos.**
+
+Retirado el mando de relés, **la app es la única superficie de mando del equipo**. No queda ninguna
+otra, y está medido en el propio fuente, fila por fila:
+
+| vía de mando | Maestro | Esclavo | por qué |
+|---|---|---|---|
+| **App por Bluetooth** | ✅ única | ✅ única | `SET_MODO:…` en `Maestro/src/bluetooth.cpp`; en el Esclavo, `AMBAR_EMERGENCIA` y `SOLICITAR_PASO` |
+| **Pulsadores del gabinete** | ❌ | ❌ | `botonAceptar()` y `botonCancelar()` devuelven **`false` siempre** desde el 31/08 |
+| **Mando de relés** | ❌ **el hardware ya no existe** | ❌ **ídem** | `D-1`, 05/09. El código se queda; el emisor y el receptor, no |
+| **Pantalla del gabinete** | ❌ | ❌ | la LCD se retiró el 28/08 y su conector `J17` lo ocupa el `ESP32` |
+
+**O sea que un móvil sin batería deja el poste sin mando de ninguna clase**: ni ámbar de emergencia,
+ni volver a Automático, ni parar el cruce. **Y no es teórico**: esta semana hubo que **desvincular el
+Maestro en los Ajustes de Android** para poder conectarse al Esclavo, con las dos tarjetas delante.
+
+### Por qué esto NO es una fila que se cierre escribiendo Python
+
+**Ningún pack posible lo alcanza, y conviene entender por qué antes de que alguien proponga uno.**
+Un pack mide propiedades del fuente; esto **no es una propiedad del fuente** — el firmware es
+correcto en las cuatro filas de arriba. Lo que falla es que **la unión de todas ellas deja al sistema
+con una sola vía**, y esa vía vive fuera del repositorio: en una batería, en un emparejamiento de
+Android y en el bolsillo de un técnico.
+
+| lo que habría que vigilar | qué clase de cosa es | con qué se mide |
+|---|---|---|
+| que el teléfono tenga batería al llegar al poste | **una carga**, y una costumbre | el propio técnico |
+| que el emparejamiento no haya que deshacerlo para hablar con la otra punta | **el gestor de Bluetooth de Android**, que no es nuestro | dos equipos delante, a la vez |
+| que haya un segundo terminal emparejado | **logística**, no código | inventario |
+
+> 🔴 **Es la misma forma que el `CLAUDE.md` §2.ter llama *declarar no es ejercer*, pero una capa más
+> arriba: aquí no hay nada declarado de más — hay una VÍA DE MENOS, y ninguna de las 20 filas de la
+> compuerta baja cuando desaparece.** El `x/y` no se mueve. Este documento es el único sitio del
+> repositorio donde ese hueco deja rastro.
+
+**Lo que sí se puede hacer, y no es un instrumento:** va escrito en el manual del operario —el
+teléfono es **herramienta crítica**: batería, cable, y conviene un **segundo terminal emparejado**—.
+Eso es procedimiento, y su sitio es el manual y la guía de banco, **no una fila de esta tabla**.
+
+---
+
 ## 🧪 LO QUE ESTA PÁGINA TIENE QUE APRENDER DEL BANCO
 
 ### 1. Los tres defectos que pararon la sesión pasaron la compuerta sin despeinarla
@@ -137,7 +273,7 @@ Y no por un fallo de la compuerta: **ninguno de los tres es una propiedad del c�
 |---|---|---|
 | El **sobrecalentamiento del STM32 del Maestro** al puentear `J16` p5/p8 contra masa | **corriente y temperatura** | amperímetro y un dedo — *el informe no afirma causa; pide inspección con la placa fría* |
 | El **módulo que no se anuncia** | **cuánto tarda un arranque**, y si el anuncio `SPP` llega a arrancar | un monitor serie y un cronómetro |
-| ~~Los **10 kΩ a masa** que dejan el mando sordo~~ → **la POLARIDAD con que el firmware declaraba esos dos pines** (`N-118`) | **no era una resistencia: era un `pinMode()`.** Los 10 kΩ están bien y son los mismos que en las cámaras | se mide en el fuente **y** con un voltímetro sobre el pin, **con el gesto bueno puesto** — `p5`–`p4`, `p8`–`p7` |
+| ~~Los **10 kΩ a masa** que dejan el mando sordo~~ → **la POLARIDAD con que el firmware declaraba esos dos pines** (`N-118`) | **no era una resistencia: era un `pinMode()`.** Los 10 kΩ están bien y son los mismos que en las cámaras. ✅ **CERRADO el 05/09** — y el propio paso 20 traía el control: mismo cobre, `0,6 V` donde había `INPUT_PULLUP` y `0 V` donde había `INPUT` pelado | ~~se mide con un voltímetro sobre el pin, con el gesto bueno puesto~~ → **ya no se mide: `D-1` retiró el mando y no hay qué pulsar.** La medida queda `SIN VERIFICAR` **para siempre**, y es la única de las tres que se cierra sin tomarla |
 
 > **Ninguno de los tres está en el repositorio.** No hay `grep` que los encuentre, no hay pack que
 > los pueda escribir y **no hay `x/y` que baje cuando aparecen**. Este documento se llama *«Cobertura
@@ -459,10 +595,12 @@ queda flotando y el ruido dispara demandas fantasma; de `PB14`/`PB15` **solo lo 
 > cuatro pines de `J16` son eléctricamente idénticos y ahora se leen igual —`INPUT` pelado, **activo
 > en ALTO**, `346ea5f`—, así que esos 10 kΩ **son el reposo, no el estorbo**.
 >
-> 🛑 **El gesto para pulsar el mando es `p5` contra `p4` y `p8` contra `p7`** —los 3,3 V del pin
-> contiguo—, **nunca contra masa**: en todo `J16` hay **una sola masa** (`p2`), y un cable a masa
-> con este firmware **no produce absolutamente nada**. Es además el gesto que precedió al
-> calentamiento del paso 29.
+> 🛑 ~~**El gesto para pulsar el mando es `p5` contra `p4` y `p8` contra `p7`**~~ → **CADUCADO EL
+> 05/09 POR `D-1`: no hay mando, y por tanto no hay gesto que dar.** Se tacha en vez de borrarse
+> porque lo que sigue vigente es **lo que NO se hace**: en todo `J16` hay **una sola masa** (`p2`), y
+> **no se vuelve a puentear `p5` ni `p8` contra ella** — ni con la instrucción vieja ni «a ver qué
+> pasa». Es el gesto que precedió al calentamiento del paso 29, y con `p4` adyacente a `p5` un puente
+> corrido una posición pone el riel de 3,3 V contra masa. **`p5` y `p8` quedan libres y sin cablear.**
 
 ### 📕 El hallazgo original, tal como se escribió el 26/08 — se conserva
 
@@ -499,8 +637,8 @@ Todo lo que puede meter información al sistema, y qué lo prueba:
 
 | # | Entrada | Canal | Qué acepta | Pack que lo cubre | Estado | 🔬 Banco 3–4/09 |
 |---|---|---|---|---|---|---|
-| 1 | ~~4~~ **2** botones locales | ~~`PB9` `PB13` `PB14` `PB15`~~ **`PB9` `PB13`** | secuencias A/B | `maestro_01_mando`, `esclavo_02_inhibicion_menu` | ✅ | 🔴 **ABORTADO** — paso 29, ver abajo |
-| 2 | Mando de ~~4~~ **2** relés | **los mismos 2 pines** | idem | idem | ✅ | 🔴 **SIN EJERCER.** ~~sordo en cobre: p5/p8 a `0,6 V` fijos, sin flanco posible~~ → **el cobre estaba bien; era el `pinMode()` (`N-118`, `346ea5f`)**. Gesto: **p5–p4 y p8–p7**, nunca a masa. Confirmación: **destellos rojos**, contables desde el suelo |
+| 1 | ~~4~~ ~~**2** botones locales~~ | ~~`PB9` `PB13` `PB14` `PB15`~~ ~~**`PB9` `PB13`**~~ | secuencias A/B | `maestro_01_mando`, `esclavo_02_inhibicion_menu` — **los packs se quedan: vigilan el código, que no se retira** | ✅ | ⚪ **SIN SUJETO desde el 05/09** *(era `🔴 ABORTADO`, paso 29)*. **`D-1`: el hardware se retiró.** No es un hueco por probar: es una entrada que ya no tiene nada al otro lado |
+| 2 | ~~Mando de ~~4~~ **2** relés~~ | ~~**los mismos 2 pines**~~ | idem | idem | ✅ | ⚪ **SIN SUJETO desde el 05/09.** ~~🔴 SIN EJERCER~~ · ~~sordo en cobre: p5/p8 a `0,6 V` fijos, sin flanco posible~~ → **el cobre estaba bien; era el `pinMode()` (`N-118`, `346ea5f`)**, y **el mando ya no existe (`D-1`)**. 🛑 **Lo que NO desaparece con él: el armador de `ambarLocal` — ver la §4** |
 | 3 | Cámara de demanda | `PB0` | binario con antirrebote | 🟢 **`camara_01_demanda`** | ✅ *(era ❌)* | 🟡 **media**: `J14` conmuta (pasos 17-18); la respuesta del semáforo, **pendiente** (paso 19) |
 | 4 | ~~Cámara de umbral (`PB8`)~~ | — | **no existe: `PB8` es `LED_TESTIGO`** | — | ✅ **cerrado, §1** | — |
 | 4.bis | 🆕 **Cámaras `C`/`D` en `J16`** | `PB14` `PB15` | contacto seco, **activo en ALTO** | 🟢 **`camara_02_j16`** | ✅ | 🟢 **`M3` cerrada** (`9,93`/`9,94 kΩ`) y cableada **sin falsa activación** (pasos 20-21) |
@@ -636,7 +774,7 @@ plan es **el 3** —direccionamiento de pareja— y **confirmar el 5**.
 >
 > | Qué vigilar | Por qué |
 > |---|---|
-> | **Que `mando_ambarLocal()` siga teniendo armador** | El veto de SFTY-21 no se rompe borrando un `if`: se rompe borrando **quien pone la bandera a `true`**. Los tres consumidores quedan siempre-verdaderos y **ningún test falla**. Hoy tiene dos armadores —`B·B·B` y `CMD:AMBAR_EMERGENCIA`—; el pack debe exigir que **al menos uno** exista |
+> | 🔴 **Que `mando_ambarLocal()` siga teniendo armador** — **SUBE DE PRIORIDAD EL 05/09** | El veto de SFTY-21 no se rompe borrando un `if`: se rompe borrando **quien pone la bandera a `true`**. Los consumidores quedan siempre-verdaderos y **ningún test falla**. 🛑 **Y desde `D-1` esto ya no es una hipótesis de refactor: el hardware del mando SE HA RETIRADO, así que la tentación de «limpiar el código que sobra» tiene fecha.** Medido hoy: **un solo armador**, `Esclavo/src/mando.cpp:132` — `ambarLocal = true;`. El pack debe exigir que **al menos un armador** exista, y `bluetooth_ambarEmergencia()` **no lo sustituye**: son dos banderas distintas que los `if` de `main.cpp` leen con un `&&` |
 > | **Que los pines enumerados por una regla EXISTAN** | Ver §3: `barrera_01` acepta `>= 6` sobre una lista de 8 |
 > | **Que los literales que un pack busca por texto sigan donde los busca** | Un refactor puede **apagar un instrumento sin romper un solo test**: si los `"$ACK`/`"$ERR` se mudan de fichero, `app_03` pasa a decir *«ninguna rama promete nada»* y **queda en verde midiendo nada** |
 > | **El módulo de expansión ESP32** | Compila en la compuerta, pero su superficie —el despachador, el puente y el `DS3231`— **no está en esta tabla**. Un instrumento que no está en la compuerta no mide nada, **y un hueco no deja rastro de que falta** |

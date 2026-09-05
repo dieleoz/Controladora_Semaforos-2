@@ -59,6 +59,8 @@ Si el encargo contradice una fila, eso no es una orden: **es una pregunta.**
 
 | **D-16** | 🔴 **SIN TELÉFONO NO HAY FORMA DE OPERAR EL EQUIPO. Es una propiedad DECLARADA del sistema, no una avería** | 05/09 | Consecuencia directa de **D-1**: retirado el mando, **la app es la única superficie de mando**. Ni ámbar, ni volver a automático, ni parar el cruce. Y no es teórico: esta semana hubo que **desvincular el Maestro en Ajustes de Android** para poder conectarse al Esclavo. Un móvil sin batería, un emparejamiento que falla o dos técnicos con el mismo equipo **dejan el poste sin mando de ninguna clase**. **Va escrito en el manual del operario**: el teléfono es herramienta crítica —batería, cable, y conviene un segundo terminal emparejado— | la idea de que «siempre queda el mando desde el suelo» |
 
+| **A-11** | 🔴 **EL MODO DEGRADADO DEL ESCLAVO SE QUEDÓ SIN NINGUNA VÍA DE ACTIVACIÓN** | Medido: `grep -c "SET_MODO" Esclavo/src/bluetooth.cpp` → **0**. Los pulsadores devuelven `false`, el mando **ya no existe** (`D-1`), y **la radio no vale porque su muerte es justo la razón de entrar al Degradado**. Salió al censar `D-16` y **ningún documento lo decía**. **No se propone solución aquí**: añadir `SET_MODO` al Esclavo **cambia quién arbitra el ciclo**, y eso es decisión del responsable |
+
 ## Cómo se cambia una fila
 
 1. Se escribe la nueva, con **fecha y motivo medido**. Un motivo sin números se deroga de
