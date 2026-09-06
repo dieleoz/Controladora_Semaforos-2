@@ -5,7 +5,7 @@ Este documento describe la arquitectura física de las placas impresas (PCBs), l
 **Última revisión:** 31 de agosto de 2026 — **el apartado 3 (cámaras) estaba MAL y se ha corregido.**
 Llamaba a `PB8` *«Entrada Libre»* y mandaba enchufarle una cámara: `PB8` es el **`LED_TESTIGO`**, una
 salida por `R16` 1 kΩ al LED `D5`. Y mandaba las cuatro cámaras contra `GND` cuando la entrada es
-**activa en ALTO**. Es `N-105` de [`roadmap.md`](roadmap.md). El texto viejo queda **tachado en su
+**activa en ALTO**. Es `N-105` de [`roadmap.md`](../roadmap.md). El texto viejo queda **tachado en su
 sitio con el motivo, no borrado**.
 
 ---
@@ -107,29 +107,76 @@ El firmware V7.6 en las placas STM32 es 100% agnóstico a la topología de red i
 | **`PB8`** | **`LED_TESTIGO`** — salida por `R16` 1 kΩ al LED `D5`. **No es entrada de nada** | ✅ **MEDIDO** (`pines.h:63`) |
 | **`PB9`** (`J16` p5) | **`BOTON1` = `MANDO_A`** del mando de relés. **Se conserva** (`N-104`) | ✅ **MEDIDO** (`pines.h:92`, `botones.cpp:119`) |
 | **`PB13`** (`J16` p8) | **`BOTON2` = `MANDO_B`**. **Se conserva** — es el único canal que arma `ambarLocal` | ✅ **MEDIDO** (`pines.h:93`, `botones.cpp:120`, `Esclavo/src/mando.cpp:129-132`) |
-| **`PB14`** (`J16` **p10**) | Hoy `botonAceptar()`. **Destino decidido de cámara** tras la Fase 3 | ✅ **MEDIDO** hoy (`pines.h:94`, `botones.cpp:131`) · 📖 **LEÍDO** el destino (`ESTADO.md:83`) |
-| **`PB15`** (`J16` **p12**) | Hoy `botonCancelar()`. **Destino decidido de cámara** tras la Fase 3 | ✅ **MEDIDO** hoy (`pines.h:95`, `botones.cpp:132`) · 📖 **LEÍDO** el destino (`ESTADO.md:83`) |
+| **`PB14`** (`J16` **p10**) | **`CAM_C_PIN` — LA CÁMARA, una por poste.** `INPUT` pelado, **activo en ALTO** | ✅ **MEDIDO** (`#define CAM_C_PIN`, `pinMode(CAM_C_PIN, INPUT)`) |
+| **`PB15`** (`J16` **p12**) | **`CAM_D_PIN`** — pin de cámara, hoy **vacío**. `INPUT` pelado, **activo en ALTO** | ✅ **MEDIDO** (`#define CAM_D_PIN`, `pinMode(CAM_D_PIN, INPUT)`) |
+
+> ⛔ **LO QUE ESTAS DOS FILAS DECÍAN HASTA EL 05/09, y por qué se tacha en vez de corregirse en
+> silencio:** *«~~Hoy `botonAceptar()`~~ · ~~Hoy `botonCancelar()`~~. Destino decidido de cámara tras la
+> Fase 3»*, **con un ✅ MEDIDO al lado**. Era **falso desde el 31/08**: el destino ya llegó. Una
+> afirmación falsa con la palabra *«MEDIDO»* encima es **peor que sin ella** —quien la lee deja de
+> ir a la fuente—, y por eso queda escrito que aquí hubo una.
+>
+> **El estado de hoy, con el `grep` que lo encuentra —corrido el 05/09:**
+>
+> ```
+> $ grep -n "define CAM_._PIN" 01_Firmware/Maestro/include/pines.h
+> 148:#define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco (era BOTON3, "Aceptar")
+> 149:#define CAM_D_PIN   PB15  // J16 p12 - camara de contacto seco (era BOTON4, "Cancelar")
+> $ grep -n "^bool botonAceptar\|^bool botonCancelar" 01_Firmware/Maestro/src/botones.cpp
+> 659:bool botonAceptar() { return false; }
+> 660:bool botonCancelar(){ return false; }
+> ```
+>
+> Las dos líneas son idénticas en el Esclavo. `botonAceptar()`/`botonCancelar()` **siguen declaradas
+> a propósito** —devolviendo `false` el compilador conserva cada punto de uso y `git grep` sigue
+> listando de una vez todo lo que la pantalla movía—, pero **ya no leen ningún pin**.
+>
+> 🔴 **Y EL AVISO QUE NO SE PUEDE PERDER, porque libre de cobre NO es libre de firmware:**
+> `botonArriba()` y `botonAbajo()` **SIGUEN VIVOS** —`consumir(0)` / `consumir(1)`, con llamadores en
+> `menu.cpp`, `modo_hora.cpp` (Maestro) y `menu.cpp` (Esclavo)— y leen **`BOTON1`/`BOTON2`, que son
+> los pines del mando (`PB9` / `PB13`, `J16` p5 y p8)**. El **hardware** del mando se retiró (`D-1`);
+> **su código se queda**. Lo que alguien cierre sobre `J16` p5 o p8 **SIGUE ENTRANDO al firmware**.
 
 > 🔴 **`PB9`/`PB13` no son un destino posible para una cámara, ni siquiera «provisionalmente».** Son
 > los dos canales del mando: tres pulsos dentro de la ventana de **12 s** (`mando.cpp:38`) componen
 > una secuencia —`A·A·A` = Modo Automático, `B·B·B` = Ámbar y armado de `ambarLocal`—, así que **el
 > tráfico cambiaría el modo del semáforo solo**. Detalle completo en `MANUAL_USUARIO.md` §6.
 
-### 3.3 🛑 Bloqueos vigentes antes de cablear cámara a `J16`
+### 3.3 ✅ `M3` CERRADA EL 03/09 — las cámaras de `J16` **se cablean**
 
-**No se cablea todavía.** Las cuatro condiciones están enumeradas en `MANUAL_USUARIO.md` §6.5; en
-resumen y con su medida:
+> ⛔ **ESTE APARTADO DECÍA «no se cablea todavía» Y ESO CADUCÓ.** Se tacha con su motivo, no se
+> borra. **`M3` se cerró el 03/09 con medidas en cobre** (paso 20 de la Guía de banco, multímetro y
+> conector vacío), y la fuente que manda en esto es
+> [`05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`](../05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md)
+> sección **M3**, no este manual. Los dos bloqueos de abajo ya no existen:
+>
+> 1. ~~**Falta la medida M3** — la polaridad está en contradicción entre el netlist y `botones.cpp`,
+>    que lee `== LOW` con `INPUT_PULLUP`.~~ ✅ **RESUELTA, y en los DOS lados a la vez.** En cobre:
+>    el pull-**down** de **10 kΩ** (`R65`–`R68` con su 100 nF) **es real y está en las cuatro
+>    posiciones**; `p10` y `p12` dan **0 V en reposo**, y el paso 21 cableó `p10` en normalmente
+>    abierto **sin demandas fantasma**. Y en el fuente **ya no queda ningún `INPUT_PULLUP`**: los
+>    botones pasaron a `INPUT` pelado leído **`== HIGH`**, que es lo que el cobre pedía.
+>    **Activa en ALTO, los cuatro pines y sin excepción.**
+>
+>    ```
+>    $ grep -n "INPUT_PULLUP" 01_Firmware/Maestro/src/botones.cpp
+>    26:  // Aqui ponia `== LOW` con los pines en INPUT_PULLUP, y eso llevaba mal desde el primer
+>    32:  // Con INPUT_PULLUP, el pull-up interno (30-50 kOhm) contra ese 10K deja el pin en
+>    511:  // que se leen igual. Aqui ponia INPUT_PULLUP "y ese camino no se toca": el camino sigue
+>    520:  // LAS ENTRADAS DE CAMARA: INPUT PELADO, NUNCA INPUT_PULLUP. El reposo lo fija el
+>    ```
+>
+>    — **cuatro comentarios que cuentan la historia, y ni un solo `pinMode(..., INPUT_PULLUP)` vivo.**
+>
+> 2. ~~**Orden asimétrico:** `PB14` es `botonAceptar()`, el que EJECUTA, leído activo en BAJO.~~
+>    ✅ **SIN OBJETO: `botonAceptar()` ya no lee ningún pin** —es `return false;`— y `PB14` es
+>    `CAM_C_PIN`. La regla de `CLAUDE.md` §9.bis (**firmware primero; el cableado después**) **sigue
+>    valiendo tal cual** para cualquier equipo al que aún no se le haya cargado el firmware nuevo:
+>    lo que la levanta no es el commit, es **la carga verificada en la tarjeta**.
 
-1. 🔴 **Falta la medida M3** — la polaridad de los pines de botón está en **contradicción medida**:
-   el `.kicad_pcb` traza `R65`–`R68` de 10 kΩ **a `GND`** (pull-**down**, activo en ALTO) y
-   `botones.cpp:19` lee `== LOW` con `INPUT_PULLUP`. Las dos no pueden ser ciertas.
-   `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md` §3 · `05_Funcional/17_…` sección **M3**.
-   **`PB0` tiene su resistencia a masa MEDIDA; de `PB14`/`PB15` sólo lo dice el netlist** — y con
-   `pinMode(INPUT)` pelado, un pin sin resistencia real **flota** y el ruido dispara demandas fantasma.
-2. 🔴 **Orden asimétrico** (`CLAUDE.md` §9.bis): `PB14` es **`botonAceptar()`, el que EJECUTA**, leído
-   hoy activo en BAJO. **El firmware nuevo tiene que estar CARGADO EN LA TARJETA antes de que nadie
-   enchufe nada en `J16`.** Un commit no protege de un destornillador.
-3. 🔴 **`J16` p1 lleva 12 V crudos** —sin opto, sin limitadora, sin clamp— y **se tapa físicamente
+**Lo que SÍ sigue vigente antes de cablear:**
+
+1. 🔴 **`J16` p1 lleva 12 V crudos** —sin opto, sin limitadora, sin clamp— y **se tapa físicamente
    antes de cablear**. La separación **real sobre cobre** contra la red de 12 V, **MEDIDA** en
    `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md:576-588`, no es el paso del conector:
 
@@ -141,12 +188,21 @@ resumen y con su medida:
    | `/Boton4` (**p12**) | **1,359 mm** ← el peor |
 
    👉 **Si una de las dos cámaras es más crítica, va en `p10`**, no en `p12`.
-4. 🔴 **Ningún firmware lee `PB14`/`PB15` como cámara todavía**: siguen en `pinMode(…, INPUT_PULLUP)`
-   como botones (`botones.cpp:52-53`).
+2. 🔴 **`J16` p5 y p8 —`MANDO_A`/`MANDO_B`— NO son pines libres, aunque su hardware ya no esté.**
+   El **mando de relés se retiró físicamente** (`D-1`), pero **su código se queda**: `botonArriba()`
+   y `botonAbajo()` siguen vivos y leen `BOTON1`/`BOTON2`, que **son esos dos pines**. **Libre de
+   cobre no es libre de firmware:** lo que alguien cierre en `p5` o `p8` sigue entrando. No se
+   cablea cámara ahí —ver el aviso de §3.2—.
+
+> ⛔ **Aquí había un cuarto punto que decía *«~~Ningún firmware lee `PB14`/`PB15` como cámara
+> todavía: siguen en `pinMode(..., INPUT_PULLUP)` como botones~~»*.** **Falso desde el 31/08 en las
+> dos mitades de la frase:** hay firmware que los lee como cámara, y el `pinMode` es `INPUT` pelado.
+> Se tacha con su motivo porque era el argumento en que se apoyaba el *«no se cablea todavía»* de la
+> cabecera de este mismo apartado.
 
 Detalle de parametrización de la cámara —incluidas las **dos configuraciones `NO`/`NC`** de la salida
 de relé y cuál elegir según **M3**— en
-[`05_Funcional/9_Manual_Parametrizacion_Camara_IA.md`](05_Funcional/9_Manual_Parametrizacion_Camara_IA.md).
+[`05_Funcional/9_Manual_Parametrizacion_Camara_IA.md`](../05_Funcional/9_Manual_Parametrizacion_Camara_IA.md).
 
 > **Nada de este apartado ha pasado prueba de banco y no autoriza a instalar ni a cablear nada.**
 
@@ -162,7 +218,7 @@ Para soporte técnico, caja negra de alarmas y monitoreo desde el suelo sin subi
   > un módulo mudo, que es el fallo más caro de diagnosticar desde el suelo.
 * **Desacoplo Eléctrico:** Pin `PA8` forzado en `HIGH` permanente para poner en alta impedancia ($\text{Hi-Z}$) el transceptor `MAX3485 U3`.
 * **Alimentación:** `5V` (o `3.3V`) y `GND` de la tarjeta controladora.
-* **Funcionalidad:** Envío continuo de telemetría (estado de luces, modo, cuenta regresiva `T:`, calidad de señal RF, % de paquetes y motivos de alarma con hora exacta de RTC) hacia la App en celular con comandos protegidos por PIN (`1234`). Detalle completo en [`05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md`](05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md).
+* **Funcionalidad:** Envío continuo de telemetría (estado de luces, modo, cuenta regresiva `T:`, calidad de señal RF, % de paquetes y motivos de alarma con hora exacta de RTC) hacia la App en celular con comandos protegidos por PIN (`1234`). Detalle completo en [`05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md`](../05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md).
 
 ---
 
@@ -182,7 +238,7 @@ La tarjeta principal de control que gobierna las luces del semáforo.
 
 ## 6. Placa Repetidora (ESP32 V7.6)
 
-Ubicada en la carpeta [`01_Firmware/Repetidor`](file:///d:/@Proyect/Controladora_Semaforos/01_Firmware/Repetidor).
+Ubicada en la carpeta [`01_Firmware/Repetidor`](../01_Firmware/Repetidor).
 
 ### Componentes Clave:
 - **Cerebro:** Microcontrolador **ESP32 Dev Module**.

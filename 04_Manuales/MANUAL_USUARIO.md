@@ -5,7 +5,7 @@ Todas las operaciones están alineadas al **Manual de Señalización Vial de Col
 
 **Última revisión:** 31 de agosto de 2026 — **el apartado 6 (cámaras) estaba MAL y se ha corregido.**
 Mandaba cablear las cuatro cámaras a `PB9` y `PB13`, que son **los dos canales del mando de relés**, y
-además con la polaridad invertida. Es `N-105` de [`roadmap.md`](roadmap.md). El texto viejo **no se
+además con la polaridad invertida. Es `N-105` de [`roadmap.md`](../roadmap.md). El texto viejo **no se
 borra**: queda tachado en su sitio con el motivo, porque una vía descartada que desaparece en
 silencio se vuelve a proponer. **Nada de esto ha pasado prueba de banco y este manual no autoriza a
 cablear nada** — ver el apartado 6.6.
@@ -56,8 +56,68 @@ Según el Manual de Señalización (2024), si el flujo vehicular baja al 50% o m
 
 ## 3. Comportamiento de la Interfaz y Menú (LCD ST7920)
 
-El acceso a la pantalla LCD y los botones de configuración es crítico para los operarios.
-- **Regla de Oro (Independencia de Red):** El operario DEBE poder acceder al menú de configuración (para elegir modo Manual, Automático o Inteligente, y fijar tiempos) **incluso si las radios están apagadas o no hay comunicación con el esclavo**.
+> ### ⛔ APARTADO DEROGADO EL 05/09 — LA PANTALLA Y LA BOTONERA SE RETIRAN DEL EQUIPO
+>
+> **`D-17.bis` de [`DECISIONES.md`](../DECISIONES.md), que deroga `D-6`:** *«la pantalla LCD ya no va,
+> pues los pines y el equipo lo quitamos»*. **Todo se opera por la app.**
+>
+> **Y el matiz que hay que sostener, porque decir «la pantalla no existe» sería otra frase falsa: se
+> retira del EQUIPO, no del código.** `lcd.cpp` y `menu.cpp` siguen compilando, y `Validacion_LCD`
+> sigue dando `271/271` sobre un framebuffer en el PC. Lo que muere es la **INTERFAZ**. Por eso lo de
+> abajo se **tacha y se conserva** —convención del repositorio: lo derogado no se borra— y sigue
+> describiendo con exactitud lo que el firmware hace cuando ya nadie puede verlo.
+
+~~El acceso a la pantalla LCD y los botones de configuración es crítico para los operarios.~~
+- ~~**Regla de Oro (Independencia de Red):** El operario DEBE poder acceder al menú de configuración (para elegir modo Manual, Automático o Inteligente, y fijar tiempos) **incluso si las radios están apagadas o no hay comunicación con el esclavo**.~~
+
+  ⛔ **DEROGADA el 05/09 por `D-17.bis`. Es el único requisito de nivel superior que este documento
+  deroga, y por eso lleva sustituto MEDIDO en vez de un borrado silencioso.**
+
+  ✅ **LO QUE LA SUSTITUYE, Y SÍ CUBRE EL REQUISITO.** Las tres palancas que la Regla de Oro exigía
+  —elegir Manual, Automático o Inteligente, y fijar tiempos— existen por Bluetooth contra el
+  Maestro, y **ese enlace es LOCAL**: STM32 ↔ ESP32 por **USART1 (`PB6`/`PB7`, conector `J17`)** y de
+  ahí SPP al teléfono. **No pasa por las radios E90**, que es exactamente lo que el requisito pedía.
+  El `grep` que lo encuentra, corrido el 05/09 —se cita el símbolo, no el número de línea suelto:
+
+  ```
+  $ grep -n 'strcmp(accion, "SET_MODO:\|strncmp(accion, "SET_TIEMPOS:' 01_Firmware/Maestro/src/bluetooth.cpp
+  515:  if (strcmp(accion, "SET_MODO:AUTO") == 0) {
+  520:  } else if (strcmp(accion, "SET_MODO:MANUAL") == 0) {
+  527:  } else if (strcmp(accion, "SET_MODO:AMBAR") == 0) {
+  570:  } else if (strcmp(accion, "SET_MODO:MENU") == 0) {
+  591:  } else if (strcmp(accion, "SET_MODO:ALCANCE") == 0) {
+  602:  } else if (strcmp(accion, "SET_MODO:INTELIGENTE") == 0) {
+  613:  } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
+  659:  } else if (strncmp(accion, "SET_TIEMPOS:", 12) == 0) {
+  ```
+
+  🔴 **LO QUE EL SUSTITUTO NO CUBRE. Se ESCRIBE, en vez de taparse con la derogación:**
+
+  1. **`AJUSTAR HORA` no tiene `SET_MODO` que lo sustituya: `MODO_HORA` es hoy el único modo
+     inalcanzable de los ocho.** Su **único** armador es `modoActual_set(MODO_HORA)` en `menu.cpp`,
+     detrás de un `botonAceptar()` que es `return false;`, y en la lista de arriba **no hay
+     `SET_MODO:HORA`** — el propio `bluetooth.cpp` lo dice en su comentario: *«la puerta esta tapiada
+     por DOS sitios a la vez, y por Bluetooth no existe SET_MODO:HORA»*. ✅ **MEDIDO:**
+
+     ```
+     $ grep -rn "modoActual_set(MODO_HORA)" 01_Firmware/Maestro/src/
+     01_Firmware/Maestro/src/menu.cpp:129:        case 1:  modoActual_set(MODO_HORA);      break;
+     $ grep -n "^bool botonAceptar" 01_Firmware/Maestro/src/botones.cpp
+     659:bool botonAceptar() { return false; }
+     ```
+
+     **Y no deja al técnico sin reloj, que es lo que importa:** la hora se pone con `SET_RTC:` y se
+     lee con `LEER_RTC` **contra el ESP32, que es donde el reloj está** (`D-15`). La rama `SET_RTC:`
+     del Maestro se conserva **callada a propósito** —consume la orden para que no salga un segundo
+     acuse—, y quien contesta es `ESP32_Expansion/src/despachador.cpp`, con siete finales distintos,
+     uno por motivo. Lo que se pierde con la pantalla es el **menú** `AJUSTAR HORA`, no la puesta en
+     hora.
+
+  2. **La independencia CAMBIÓ DE SITIO; no se conservó.** La Regla de Oro decía *«no depende de las
+     radios»*; el sustituto **depende del teléfono**. Eso no es una avería ni un descuido: es
+     **`D-16`** de [`DECISIONES.md`](../DECISIONES.md), ya escrito como **propiedad declarada del
+     sistema**. Se anota aquí para que nadie lea esta derogación como si no costara nada: sin
+     teléfono emparejado no hay forma de cambiar el modo en el poste.
 - **Comportamiento en Menú:** En el Menú Principal, si hay comunicación el Maestro mantiene **🔴 ROJO FIJO continuo en ambos semáforos** sin congelar la pantalla. Si no hay comunicación, indica orfandad pasando a Amarillo Intermitente.
 - **Arranque Inmediato:** Al seleccionar un modo en el menú, el sistema aplica inmediatamente el tiempo de Despeje All-Red en ambos extremos.
 
@@ -112,7 +172,7 @@ Para garantizar comunicación inquebrantable en zonas de montaña con alta inter
 > **tres pulsos dentro de la ventana de 12 s componen una secuencia del mando** (apartado 7 de este
 > mismo manual). En `PB9`, `A·A·A` mete el equipo en **Modo Automático**; en `PB13`, `B·B·B` lo manda
 > a **Ámbar** y además arma `ambarLocal`, la bandera de la que cuelgan los tres vetos del Esclavo
-> (`01_Firmware/Esclavo/src/main.cpp:406`, `:416`, `:540`), que **desobedecen las órdenes de radio**.
+> (`grep -n "mando_ambarLocal()" 01_Firmware/Esclavo/src/main.cpp` → `:453`, `:476`, `:617`, medidos el 05/09; decían `:406`, `:416`, `:540` y habían caducado), que **desobedecen las órdenes de radio**.
 >
 > ### 🔴 Dicho en una línea: **el tráfico cambiaría el modo del semáforo solo**, sin que nadie lo pida y sin que nada lo registre como orden.
 >
@@ -154,7 +214,20 @@ que es el criterio conservador: la cámara de umbral daría **eficiencia, no seg
 | | pin | bornera | estado del firmware |
 |---|---|---|---|
 | **HOY, lo único que un firmware lee** | **`PB0`** (`CAM_DEMANDA_PIN`) | **`J14`** | ✅ **MEDIDO**: se lee de verdad — `modo_inteligente.cpp:98`, `:136` (Maestro) y `main.cpp:350` (Esclavo). La placa ayuda con `R64` 10 kΩ + `C25` 100 nF = antirrebote de 1 ms (`pines.h:43-46`) |
-| **DESPUÉS de la Fase 3, decidido** | **`PB14`** (`J16` **p10**) y **`PB15`** (`J16` **p12**) | **`J16`** | 🔴 **NINGÚN firmware los lee como cámara.** Hoy siguen siendo botones: `pinMode(BOTON3, INPUT_PULLUP)` y `pinMode(BOTON4, INPUT_PULLUP)` en `botones.cpp:52-53` |
+| **TAMBIÉN HOY** | **`PB14`** = `CAM_C_PIN` (`J16` **p10**) y **`PB15`** = `CAM_D_PIN` (`J16` **p12**) | **`J16`** | ✅ **MEDIDO: ya son cámara.** `pinMode(CAM_C_PIN, INPUT)` / `pinMode(CAM_D_PIN, INPUT)` —**pelado, activo en ALTO**— en las dos puntas. **`p10` es la cámara** (una por poste, verificada en banco); **`p12` queda vacío** |
+
+> ⛔ **LA SEGUNDA FILA DECÍA «~~DESPUÉS de la Fase 3~~» Y «~~NINGÚN firmware los lee como cámara;
+> hoy siguen siendo botones~~». Falso desde el 31/08** — el *«después»* ya llegó, y el `pinMode` que
+> citaba (`INPUT_PULLUP`) **ya no existe en el fichero**. Se tacha con su motivo porque de esa frase
+> colgaba el bloqueo de §6.5. **El estado de hoy, con su `grep`, corrido el 05/09:**
+>
+> ```
+> $ grep -rn "pinMode(CAM_._PIN" 01_Firmware/Maestro/src/ 01_Firmware/Esclavo/src/
+> 01_Firmware/Maestro/src/botones.cpp:531:  pinMode(CAM_C_PIN, INPUT);
+> 01_Firmware/Maestro/src/botones.cpp:532:  pinMode(CAM_D_PIN, INPUT);
+> 01_Firmware/Esclavo/src/botones.cpp:523:  pinMode(CAM_C_PIN, INPUT);
+> 01_Firmware/Esclavo/src/botones.cpp:524:  pinMode(CAM_D_PIN, INPUT);
+> ```
 
 📖 **LEÍDO** (decisión, no medida): las cámaras se mudan a `J16` p10/p12, los pines que libera la
 retirada de los pulsadores **C** y **D** — `ESTADO.md:83`, `:105`, `:119` y `roadmap.md` `N-104`. Los
@@ -183,13 +256,19 @@ se ha hecho.**
 * El detalle de M3 —qué se mide, con qué y qué número se espera **antes** de mirar el multímetro—
   está en `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`, sección **M3**.
 
-> 🔴 **Y hay un tercer resultado posible de M3 que también bloquea: que no haya resistencia ninguna.**
-> `PB0` tiene su reposo garantizado por hardware —`R64` de 10 kΩ y `C25`, **MEDIDO** en `pines.h:43-46`—.
-> De `PB14`/`PB15` **sólo lo dice el netlist**: `R65`–`R68` de 10 kΩ a `GND`
-> (`03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`, §3), y eso es un plano, no una tarjeta. Con
-> `pinMode(INPUT)` pelado y **sin resistencia real montada**, el pin queda **flotando** y el ruido
-> dispara **demandas fantasma** en un equipo que gobierna un cruce. La medida con óhmetro entre el pin
-> y masa —**10 kΩ esperados**— es parte de M3 y no se salta.
+> ✅ **EL TERCER RESULTADO POSIBLE DE M3 — «que no haya resistencia ninguna» — SE MIDIÓ Y NO SE DIO.**
+> ~~De `PB14`/`PB15` sólo lo dice el netlist, y eso es un plano, no una tarjeta: con `pinMode(INPUT)`
+> pelado y sin resistencia real montada el pin queda flotando y el ruido dispara demandas fantasma.~~
+>
+> **Medido el 03/09** —multímetro, conector vacío, paso 20 de la Guía de banco—: el pull-**down** de
+> **10 kΩ** (`R65`–`R68`, cada una con su 100 nF) **es real y está en las cuatro posiciones**. `p10`
+> (`PB14`) y `p12` (`PB15`) dan **0 V en reposo**, y el **paso 21** cabló `p10` contra `p11` en
+> normalmente abierto **sin una sola demanda fantasma**. El pin **no flota**.
+>
+> `PB0` conserva además su propio reposo por hardware (`R64` 10 kΩ + `C25`, `pines.h`). La fuente de
+> estos números es
+> [`05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`](../05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md)
+> sección **M3**, que es la que manda en cobre medido.
 
 ### 6.4 `PB8` no es una entrada: es el LED testigo
 
@@ -203,19 +282,32 @@ Sale por `R16` de 1 kΩ al LED `D5`. **No es bornera y no es entrada optoacoplad
 deja a propósito en alta impedancia (`modo_inteligente.cpp:50`). Cuatro manuales llegaron a
 describirlo como *«umbral de tramo»* (`N-59`, `N-64`); ninguno se había cruzado contra `pines.h`.
 
-### 6.5 🛑 Lo que BLOQUEA el cableado hoy — las cuatro cosas, ninguna opcional
+### 6.5 ✅ `M3` CERRADA EL 03/09 — lo que SÍ bloquea el cableado hoy
 
-1. 🔴 **Falta la medida M3** (polaridad de `J16`). El netlist dice pull-**down**, activo en ALTO; el
-   firmware de botones dice `INPUT_PULLUP` y activo en BAJO (`botones.cpp:19`, `:52-53`). **Las dos no
-   pueden ser ciertas a la vez** y se cierra con multímetro, no leyendo más. `CLAUDE.md` §9.bis:
-   mientras esa contradicción siga abierta, **no se cablea cámara a `J16`**.
-2. 🔴 **El orden es ASIMÉTRICO, y un commit no protege de un destornillador.** `PB14` es
-   **`botonAceptar()`, el que EJECUTA** (`botones.cpp:131`). Con el firmware viejo todavía dentro, se
-   lee **activo en BAJO**: cualquier cosa que un instalador enchufe en `J16` p10 **puede pulsar
-   *Aceptar* en un equipo que está en la calle**. Por eso el firmware nuevo tiene que estar
-   **CARGADO Y VERIFICADO EN LA TARJETA antes** de que nadie enchufe nada. El sentido contrario no es
-   seguro. (`CLAUDE.md` §9.bis.)
-3. 🔴 **`J16` p1 lleva 12 V crudos**, sin opto, sin limitadora y sin clamp. **Se tapa físicamente
+> ⛔ **ESTE APARTADO SE TITULABA *«~~las cuatro cosas, ninguna opcional~~»* Y DOS DE LAS CUATRO YA NO
+> EXISTEN.** Se tachan con su motivo. **La fuente que manda aquí es
+> [`05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`](../05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md)
+> sección **M3**, no este manual** — en cobre medido gana la spec.
+>
+> 1. ~~**Falta la medida M3** (polaridad de `J16`): el netlist dice pull-**down** activo en ALTO y el
+>    firmware dice `INPUT_PULLUP` activo en BAJO; mientras la contradicción siga abierta no se cablea
+>    cámara a `J16`.~~ ✅ **CERRADA el 03/09, y las dos mitades coinciden ahora.** En cobre
+>    (multímetro, conector vacío, paso 20 de la Guía): el pull-**down** de **10 kΩ** es **real y está
+>    en las cuatro posiciones**, `p10` y `p12` dan **0 V en reposo**, y el paso 21 cabló `p10` en
+>    normalmente abierto **sin demandas fantasma**. En el fuente **ya no queda un solo
+>    `pinMode(..., INPUT_PULLUP)`**: los botones se leen `INPUT` pelado y **`== HIGH`**.
+>    **Activa en ALTO, los cuatro pines y sin excepción.**
+>
+> 2. ~~**El orden es ASIMÉTRICO:** `PB14` es `botonAceptar()`, el que EJECUTA, leído activo en BAJO,
+>    así que lo que se enchufe en `J16` p10 puede pulsar *Aceptar* en un equipo que está en la
+>    calle.~~ ✅ **SIN OBJETO: `botonAceptar()` ya no lee ningún pin** —es `return false;` en las dos
+>    puntas— y `PB14` es `CAM_C_PIN`. 🔴 **Pero la REGLA de `CLAUDE.md` §9.bis sigue viva tal cual**
+>    para cualquier equipo que aún tenga el firmware viejo dentro: **lo que levanta el bloqueo no es
+>    el commit, es la CARGA VERIFICADA en la tarjeta.** Un commit no protege de un destornillador.
+
+**Lo que SÍ bloquea, y ninguna es opcional:**
+
+1. 🔴 **`J16` p1 lleva 12 V crudos**, sin opto, sin limitadora y sin clamp. **Se tapa físicamente
    antes de cablear nada.** Y la separación real sobre cobre **no** es la distancia entre pads
    —MEDIDO en `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md:576-588`—:
 
@@ -228,8 +320,20 @@ describirlo como *«umbral de tramo»* (`N-59`, `N-64`); ninguno se había cruza
 
    👉 **Consecuencia útil: si una de las dos cámaras es más crítica, va en `p10`** (4,27 mm), **no en
    `p12`** (1,36 mm). Un error de una posición al enchufar `J16` mete **12 V en un pin de 3,3 V**.
-4. 🔴 **Ningún firmware lee `PB14`/`PB15` como cámara todavía** (MEDIDO, 6.2). Cablear antes de que
-   exista ese firmware deja dos hilos conectados a dos entradas de botón.
+2. 🔴 **`J16` p5 y p8 —`MANDO_A`/`MANDO_B`— NO son pines libres, aunque su hardware ya no esté.**
+   El **mando de relés se retiró físicamente** (`D-1`); **su código se queda**. `botonArriba()` y
+   `botonAbajo()` **siguen vivos** —`consumir(0)` / `consumir(1)`, con llamadores— y leen
+   `BOTON1`/`BOTON2`, que **son exactamente esos dos pines**. 🔴 **Libre de cobre no es libre de
+   firmware: lo que se cierre en `J16` p5 o p8 SIGUE ENTRANDO.** No se cablea cámara ahí.
+
+   ```
+   $ grep -n "^bool botonArriba\|^bool botonAbajo" 01_Firmware/Maestro/src/botones.cpp
+   617:bool botonArriba()  { return consumir(0); }
+   618:bool botonAbajo()   { return consumir(1); }
+   ```
+
+> ⛔ **Aquí había un cuarto bloqueo: *«~~Ningún firmware lee `PB14`/`PB15` como cámara todavía~~»*.**
+> **Falso desde el 31/08** — ver §6.2. Se tacha con su motivo y no se borra.
 
 ### 6.6 Seguridad vial y nivel de prueba de este apartado
 
@@ -242,10 +346,11 @@ describirlo como *«umbral de tramo»* (`N-59`, `N-64`); ninguno se había cruza
 | `PB9` = `MANDO_A`, `PB13` = `MANDO_B`, y tres pulsos en 12 s componen secuencia | ✅ **MEDIDO EN EL FUENTE** (`pines.h:92-93`, `botones.cpp:119-120`, `mando.cpp:38`, `:225-234`) |
 | La cámara es activa en ALTO y no se cablea contra `GND` | ✅ **MEDIDO EN EL FUENTE** (`modo_inteligente.cpp:25`, `:46`) |
 | `PB0`/`J14` es hoy el único camino de cámara con firmware | ✅ **MEDIDO** (`modo_inteligente.cpp:98`, `:136`; `Esclavo/src/main.cpp:350`) |
-| `PB14`/`PB15` son hoy `botonAceptar()` y `botonCancelar()` | ✅ **MEDIDO** (`botones.cpp:52-53`, `:131-132`) |
+| ~~`PB14`/`PB15` son hoy `botonAceptar()` y `botonCancelar()`~~ → **`PB14` = `CAM_C_PIN` y `PB15` = `CAM_D_PIN`; `botonAceptar()`/`botonCancelar()` son `return false;`** | ✅ **MEDIDO** (`#define CAM_C_PIN`/`CAM_D_PIN` en `pines.h`; `^bool botonAceptar` en `botones.cpp`). ⛔ **La fila anterior fue FALSA con un «MEDIDO» al lado desde el 31/08** |
+| `botonArriba()`/`botonAbajo()` **siguen vivos** y leen `BOTON1`/`BOTON2`, **los pines del mando** | ✅ **MEDIDO** (`^bool botonArriba` en `botones.cpp`, con llamadores en `menu.cpp` y `modo_hora.cpp`). 🔴 **Libre de cobre no es libre de firmware** |
 | Las distancias de cobre de `J16` contra los 12 V | ✅ **MEDIDO** sobre el `.kicad_pcb` (`MAPEO_TARJETA_KICAD.md:576-588`) |
-| Que las cámaras se muden a `J16` p10/p12 | 📖 **LEÍDO** en las decisiones (`ESTADO.md:83`, `:105`, `roadmap.md` `N-104`). **Decidido, sin construir** |
-| Que `R65`–`R68` estén realmente montadas y la polaridad sea la del netlist | 🔴 **NO VERIFICADO.** Es la medida **M3**, con multímetro, y está **pendiente** |
+| ~~Que las cámaras se muden a `J16` p10/p12~~ → **ya mudadas** | ✅ **MEDIDO** (`pinMode(CAM_C_PIN, INPUT)` en las dos puntas). Ya no es *«decidido, sin construir»* |
+| ~~Que `R65`–`R68` estén realmente montadas y la polaridad sea la del netlist~~ | ✅ **MEDIDO EN COBRE el 03/09** (**M3 CERRADA**, paso 20): 10 kΩ a masa en las cuatro posiciones, 0 V en reposo, **activa en ALTO**. Fuente: `05_Funcional/17_…` sección **M3** |
 
 > **Nada de este apartado ha pasado prueba de banco**, y **no autoriza a instalar ni a cablear nada**.
 > La única forma correcta de verificar el firmware es `01_Firmware/compuerta.py`, y un verde suyo
@@ -293,7 +398,7 @@ Para permitir la operación del semáforo a nivel del suelo sin colisionar con l
 * **El Ámbar entra sin condiciones y desde cualquier modo en marcha** (`mando.cpp:230-234`): es la
   regla que impide que nadie quede atrapado con un semáforo en estado raro a 5 m de altura. Además
   arma **`ambarLocal`**, la bandera de la que cuelgan los tres vetos del Esclavo
-  (`Esclavo/src/main.cpp:406`, `:416`, `:540`): mientras un operario dejó ámbar local puesto, **una
+  (los tres `if (!mando_ambarLocal() && ...)` de `Esclavo/src/main.cpp` — `:453`, `:476`, `:617`, medidos el 05/09): mientras un operario dejó ámbar local puesto, **una
   orden de radio no lo saca de ahí**. Es una desobediencia deliberada, no un fallo.
 * **Los destellos son SIEMPRE ROJOS** y contables desde el suelo (`mando.cpp:41-44`): el rojo nunca
   significa *«pase»*, así que si el operario cuenta mal, **el peor caso sigue siendo seguro**.

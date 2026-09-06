@@ -74,8 +74,28 @@ DESCRIPCION = "los manuales y la certificacion no publican limites ni cifras que
 # Los cuatro documentos que ningun pack parseaba. README.md y ESTADO.md NO estan
 # aqui a proposito: los cubre documentos_01, y duplicar la comprobacion duplicaria
 # tambien el sitio donde arreglarla el dia que cambie.
-DOCUMENTOS = ("MANUAL_USUARIO.md", "MANUAL_HARDWARE.md",
-              "CERTIFICACION_SW.md", "OPTIMIZACIONES.md")
+# LAS RUTAS VAN EN PARTES, NO EN UN NOMBRE SUELTO, Y ESE ES EL PUNTO (CLAUDE.md sec. 5).
+#
+# El 05/09 MANUAL_USUARIO.md y MANUAL_HARDWARE.md se mudaron de la RAIZ a 04_Manuales/.
+# Este pack los direccionaba POR NOMBRE, o sea por ruta, asi que la mudanza sola lo
+# habria hecho ABORTAR -ruta_repo() no encuentra el fichero y levanta Abortado- y con
+# el se habria ido la fila entera "banco por packs" de la compuerta: 74 packs sin medir
+# por dos ficheros movidos. Por eso el movimiento y esta tabla van en el MISMO cambio.
+#
+# Y LA GUARDA DE RUTAS DE compuerta.py NO CUBRE ESTO, que es lo que hay que saber: censa
+# tuplas ("Rol", "carpeta", "fichero") del firmware -_RE_TRIPLE y _RE_PAR-, y estos son
+# documentos de la raiz del repositorio, que no casan con ninguno de los dos patrones.
+# La guarda habria seguido diciendo "todas existen" mientras el banco entero abortaba.
+#
+# La clave del diccionario es el NOMBRE QUE SE PUBLICA en los mensajes de fallo -lo que
+# lee quien tiene que ir a arreglar el documento-; el valor son las partes de la ruta.
+# Separarlos permite mover un fichero sin cambiar una sola linea de los mensajes.
+DOCUMENTOS = {
+    "MANUAL_USUARIO.md":   ("04_Manuales", "MANUAL_USUARIO.md"),
+    "MANUAL_HARDWARE.md":  ("04_Manuales", "MANUAL_HARDWARE.md"),
+    "CERTIFICACION_SW.md": ("CERTIFICACION_SW.md",),
+    "OPTIMIZACIONES.md":   ("OPTIMIZACIONES.md",),
+}
 
 # ---- apartado 1: el rango de despeje ---------------------------------------------
 # Una linea se juzga solo si habla del despeje Y de configurarlo. Sin el segundo
@@ -227,8 +247,8 @@ def correr(b, fw):
     b.titulo("Los documentos que ningun pack parseaba, contra el C++ y contra el acta")
 
     docs = {}
-    for d in DOCUMENTOS:
-        docs[d] = _lineas_vivas(fw.texto_repo(d))   # ruta_repo() aborta si falta
+    for d, partes in DOCUMENTOS.items():
+        docs[d] = _lineas_vivas(fw.texto_repo(*partes))  # ruta_repo() aborta si falta
 
     # =================================================================================
     # 1. EL RANGO DE DESPEJE SALE DEL C++, NO DE LA PROSA
@@ -390,7 +410,8 @@ def correr(b, fw):
     # guiones bajos de Markdown y con ellos el "_compuerta.txt" del nombre del acta.
     # El pack ya se vio dar FALLA aqui sobre un documento que SI citaba bien -era el
     # buscador, no el documento (CLAUDE.md seccion 4)-.
-    citadas = sorted(set(re.findall(_RE_CITA, fw.texto_repo("CERTIFICACION_SW.md"))))
+    citadas = sorted(set(re.findall(_RE_CITA,
+                                fw.texto_repo(*DOCUMENTOS["CERTIFICACION_SW.md"]))))
     b.verificar(
         bool(citadas) and max(citadas) == ultima[:10],
         "CERTIFICACION_SW.md cita el acta mas reciente (%s)" % ultima[:10],
