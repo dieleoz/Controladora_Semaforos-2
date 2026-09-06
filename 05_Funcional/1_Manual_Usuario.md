@@ -884,7 +884,23 @@ recuadro del final de este manual.
 ---
 
 Para detección inteligente de flujo vehicular en pasos alternados de obra sin requerir computadores externos en el remolque:
-* **Conexión Hardware:** Salida de alarma de relé de la cámara (`1A`/`1B`) a la bornera **`J14`**:
+> 🔴 **DECIDIDO EL 05/09 POR EL RESPONSABLE, Y CAMBIA ESTE APARTADO ENTERO: LA CÁMARA VA A
+> `J16`, EN LOS PINES DONDE ESTABAN EL BOTÓN 3 Y EL BOTÓN 4** — `p10` (`CAM_C_PIN`) y `p12`
+> (`CAM_D_PIN`), **una cámara por poste**, cerrando contra los 3,3 V de `p9`/`p11`.
+>
+> **Y no es una preferencia de conector: es lo único que deja la cámara VIGILADA.** El vigilante
+> de `CAM_CIEGA`/`CAM_PEGADA` **mira `J16` y no mira `J14`**. Con la cámara en `J14` funcionaría
+> —pide paso— pero **nadie sabría nunca si se ha estropeado**.
+>
+> `J14`/`PB0` **se conserva y sigue vivo**: no se retira nada. Queda como candidato a **fin de
+> carrera de la barrera**, para lo que es el mejor borne del equipo — es **el único pin de
+> entrada con antirrebote por hardware** (`R64` 10 kΩ + `C25` 100 nF ≈ 1 ms), y un contacto
+> mecánico es justo lo que rebota.
+>
+> ⚠️ **Lo que sigue debajo describe el cableado a `J14` y se conserva TACHADO, no borrado**: la
+> medida en cobre que trae —que `J14` no tiene masa— sigue siendo cierta y sigue haciendo falta.
+
+* ~~**Conexión Hardware:** Salida de alarma de relé de la cámara (`1A`/`1B`) a la bornera **`J14`**~~:
   un hilo a **`p1`** (`/Puerta` → **`PB0`**) y el otro a **`p2`** (**`3,3 V`** del propio conector).
 
 > 🛑 **AQUÍ PONÍA ~~«con masa `GND`, por la bornera `J14`»~~ Y ERA FALSO EN LAS DOS MITADES — 05/09.**
@@ -940,7 +956,7 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 >
 > | borne | pin | qué trae la placa | cómo lo lee el programa | estado |
 > |---|---|---|---|---|
-> | **`J14`** | `PB0` | 🟢 **`R64` 10 kΩ + `C25` 100 nF → antirrebote por hardware de ~1 ms** | **Maestro: por NIVEL** (`modo_inteligente.cpp:86`, `:124`) · **Esclavo: por FLANCO**, y ahí sí llama a `demanda_solicitar()` (`main.cpp:352`) | ✅ **Es el borne donde va la cámara** |
+> | **`J14`** | `PB0` | 🟢 **`R64` 10 kΩ + `C25` 100 nF → antirrebote por hardware de ~1 ms**, el único del equipo | **Maestro: por NIVEL** · **Esclavo: por FLANCO**, y ahí sí llama a `demanda_solicitar()` *(símbolos: `grep -n 'CAM_DEMANDA_PIN' Maestro/src/modo_inteligente.cpp Esclavo/src/main.cpp`)* | ~~✅ **Es el borne donde va la cámara**~~ → 🔴 **NO: el 05/09 la cámara pasó a `J16`.** `J14` queda **libre y vivo**, y es el mejor candidato a **fin de carrera de barrera** por ese antirrebote |
 > | `J16` p10 | `PB14` | 🟠 `R67` 10 kΩ a masa, **SIN condensador** | **por FLANCO** → `demanda_solicitar()`, en las dos puntas | 🟠 **entrada equivalente disponible. NO se le monta cámara hoy** |
 > | `J16` p12 | `PB15` | 🟠 `R68` 10 kΩ a masa, **SIN condensador** | igual | 🟠 igual |
 >
