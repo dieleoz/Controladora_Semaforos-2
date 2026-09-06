@@ -3,14 +3,13 @@
 ## 1. Qué es esto
 
 **Firmware Y APK.** En campo corre `V8.4`, commit `e303485`, **del 31/07/2026**. Este paquete
-es **`b24af87`**.
+es **`ada9357`**.
 
-> ⚠️ **Y la APK dice `c02be59` en su nombre, que es un commit ANTERIOR. No es un descuido:**
-> se compiló sobre `c02be59` y los dos commits siguientes **sólo tocan documentos** —
-> `CLAUDE.md`, `roadmap.md` y la skill de entrega—, verificado con `git diff --name-only
-> c02be59..HEAD -- 05_Funcional/App_Semaforo/`, que sale **vacío**. **El nombre lleva el commit
-> del que salió el binario, no el de cuando se empaquetó**: al revés sería decir que se midió
-> algo que no se midió.
+> ⚠️ **La APK dice `7586c46` y el paquete `ada9357`. No es un descuido:** se compiló sobre
+> `7586c46` y los commits siguientes **sólo tocan documentos**, verificado con
+> `git diff --name-only 7586c46..HEAD -- 05_Funcional/App_Semaforo/`, que sale **vacío**. **El
+> nombre lleva el commit del que salió el binario, no el de cuando se empaquetó**: al revés
+> sería decir que se midió algo que no se midió.
 
 ## 2. ¿Ha pasado banco? **NO.**
 
@@ -68,6 +67,19 @@ y no «avería».
 
 **`BAT:--` sigue siendo correcto.** La batería no se mide: no hay divisor ni entrada analógica.
 
+## 5.bis 🔴 Un arreglo de esta última hora, y hay que saberlo
+
+**El diálogo del Modo Degradado decía *«Para salir: VOLVER AL MENÚ»*, y esa orden SÓLO LA
+ATIENDE EL POSTE 1.** La frase se escribió cuando ese modo era sólo del Maestro; al abrirlo al
+Poste 2 se quedó. **Un operario que la siguiera no podía sacar al Poste 2 del modo.**
+
+Corregido. **Las tres salidas reales del Poste 2 son:** que vuelva el enlace con el Poste 1 ·
+**ÁMBAR EMERGENCIA**, la única que el operario tiene en la mano · o que venzan las **48 h**.
+
+> **Y esto no lo encontró ningún instrumento**: lo encontró quien fue a escribir el manual, al
+> intentar explicar el botón. Ningún pack lee el texto de un diálogo contra el enrutado por
+> punta.
+
 ## 6. Qué cambió en la app, que es mucho
 
 **223 líneas.** Tarjeta nueva de **cámaras** (`OK` / `SIN COMPROBAR` / `CIEGA` / `PEGADA`),
@@ -76,7 +88,7 @@ de las dos puntas y del teléfono, y el **modo real del poste 2** en la trama, q
 texto fijo.
 
 ⚠️ **La APK anterior queda obsoleta.** La de este paquete es
-`IOT_VIAL_Semaforos_2026-09-05_c02be59_SIN_BANCO.apk`, y su contenido está verificado **entrada
+`IOT_VIAL_Semaforos_2026-09-05_7586c46_SIN_BANCO.apk`, y su contenido está verificado **entrada
 por entrada y por CRC** contra el repositorio: **0 nombres distintos, 0 CRC distintos**.
 
 ## 7. 🔴 Lo que sigue abierto
@@ -104,7 +116,7 @@ no el firmware.
 | | |
 |---|---|
 | `ACTA_verificacion.txt` | la corrida: fecha, `HEAD`, toolchain |
-| `IOT_VIAL_Semaforos_2026-09-05_c02be59_SIN_BANCO.apk` | la app, verificada por CRC contra el fuente |
+| `IOT_VIAL_Semaforos_2026-09-05_7586c46_SIN_BANCO.apk` | la app, verificada por CRC contra el fuente |
 | `01_Firmware/` | **fuente** para PlatformIO. Sin binarios: se compilan del código que se revisa |
 | `02_Manuales/` | manuales y la guía de banco, **con sus cabeceras de estado** |
 
