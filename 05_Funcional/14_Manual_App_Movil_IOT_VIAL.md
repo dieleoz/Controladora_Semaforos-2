@@ -5,9 +5,10 @@
 **Plataforma:** Android Nativo (.APK) y Web Testing PWA  
 **Protocolo:** ~~Bluetooth Serial SPP (HC-05 / JDY-31 a 9600 bps) / BLE GATT~~ → **Bluetooth Serial SPP a 9600 bps contra el módulo de expansión `ESP32-WROOM-32`**. Ver el aviso de cabecera  
 **Fecha de Actualización:** 28 de Agosto de 2026  
-**Última revisión:** 4 de septiembre de 2026 — **banco real del 3–4/09: `N-122`, la app nunca abría el socket Bluetooth**, y **`N-124`, la lista de equipos llevaba `MAC` escritas a mano**. Los dos arreglados, y **obligan a APK nueva**. Ver la cabecera y `§4.bis`  
+**Última revisión:** 5 de septiembre de 2026 — **la app cambió 223 líneas esa noche**: tarjeta de **CÁMARAS**, **Modo Degradado del Poste 2**, el **modo real del Poste 2** y la **consulta de reloj**. Ver la caja `05/09` de la cabecera, y `§1.ter`, `§5.6` y `§5.7`  
+**Revisión anterior:** 4 de septiembre de 2026 — **banco real del 3–4/09: `N-122`, la app nunca abría el socket Bluetooth**, y **`N-124`, la lista de equipos llevaba `MAC` escritas a mano**. Los dos arreglados, y **obligan a APK nueva**. Ver la cabecera y `§4.bis`  
 **Versión de Firmware Compatible:** V8.9 / V9.0 Definitiva — ⚠️ **en campo corre la V8.4**  
-**Archivo APK Compilado:** **la APK del 04/09 que acompaña a este paquete** — su nombre exacto y su `md5` estan en `LEEME_PRIMERO.md`, en la raíz del `.zip`, que es el único sitio donde no caducan  
+**Archivo APK Compilado:** **la APK del 05/09 que acompaña a este paquete** — ~~la del 04/09~~ **queda obsoleta**: no trae ninguna de las cuatro cosas de la caja `05/09` — su nombre exacto y su `md5` estan en `LEEME_PRIMERO.md`, en la raíz del `.zip`, que es el único sitio donde no caducan  
 &nbsp;&nbsp;&nbsp;&nbsp; — el nombre lo puede llevar cualquier fichero; el hash no  
 &nbsp;&nbsp;&nbsp;&nbsp;🛑 ~~`IOT_VIAL_Semaforos_2026-09-02_617bd00_SIN_BANCO.apk`~~ — **y todas las anteriores: NO CONECTAN** (`N-122`, ver cabecera). No es que les falten funciones: **no abren el socket**  
 &nbsp;&nbsp;&nbsp;&nbsp;✏️ *Corregido el 04/09: esta línea citaba `…_2026-09-02_285b18d_…`, **un hash que no existe en ninguna parte**. La APK del 02/09 que sí está en disco es la `617bd00`. Se anota en vez de sustituirse en silencio: una cifra inventada que desaparece sin dejar rastro vuelve a escribirse.*  
@@ -40,9 +41,10 @@
 > Ahora se llama a **`connect(mac)`**, y **`state.connected` sólo se pone a `true` en su callback de
 > éxito**; si la conexión falla, **se dice, y el estado se queda en falso**.
 >
-> 🛑 **HAY QUE INSTALAR LA APK NUEVA:** **la APK del 04/09 que acompaña a este paquete** — su nombre exacto y su `md5` estan en `LEEME_PRIMERO.md`, en la raíz del `.zip`, que es el único sitio donde no caducan.
-> **Es la única APK del 04/09 que existe en
-> `05_Funcional/`.** Con la APK anterior la app **NO conecta por bien que funcione el módulo** —
+> 🛑 **HAY QUE INSTALAR LA APK NUEVA:** **la APK del 05/09 que acompaña a este paquete** — su nombre exacto y su `md5` estan en `LEEME_PRIMERO.md`, en la raíz del `.zip`, que es el único sitio donde no caducan.
+> ~~*«la APK del 04/09… es la única APK del 04/09 que existe en `05_Funcional/`»*~~ → **caducado el
+> 05/09: hay una posterior, y es la que trae las cuatro funciones de la caja `05/09`.** Con
+> cualquiera de las anteriores la app **NO conecta por bien que funcione el módulo** —
 > actualizar el firmware del equipo o cambiar el `ESP32` no arregla nada, porque el defecto está en
 > el teléfono.
 >
@@ -133,9 +135,25 @@
 > forma local de confirmar nada**: entrar y salir de un modo, ajustar tiempos y poner la hora
 > **solo se hacen desde la app**.
 >
-> > ⚠️ **La excepción, y hay que decirla: el ESCLAVO no tiene `SET_MODO` por Bluetooth.** En esa punta
+> > ~~⚠️ **La excepción, y hay que decirla: el ESCLAVO no tiene `SET_MODO` por Bluetooth.** En esa punta
 > > el sustituto de los botones **no es la app, es el mando de relés** sobre `A`/`B`: `A·B·A·B` entra
-> > al Degradado, `A·A·A` y `B·B·B` salen. Ver `04_Manuales/MANUAL_MANDO_4_RELES.md §5`.
+> > al Degradado, `A·A·A` y `B·B·B` salen.~~
+> >
+> > 🔴 **CADUCADO EL 05/09, Y LAS DOS MITADES ERAN FALSAS — se tacha en vez de borrarse porque el
+> > error explica el arreglo.**
+> >
+> > 1. **El Esclavo SÍ atiende un `SET_MODO` por Bluetooth**, exactamente uno:
+> >    **`SET_MODO:DEGRADADO`**, que es el botón nuevo de **`§5.6`**.
+> > 2. **Y el sustituto que esta caja proponía NO EXISTE.** El mando de relés que abría el Degradado
+> >    con `A·B·A·B` **no se monta** —ese hardware se retiró—, así que este manual estuvo mandando al
+> >    técnico a una secuencia que ningún equipo podía oír. **Ése es el motivo entero de que el botón
+> >    se construyera: el modo estaba hecho y la llave, tirada.**
+> >
+> > ```bash
+> > grep -n 'strcmp(accion, "SET_MODO:DEGRADADO")' 01_Firmware/Esclavo/src/bluetooth.cpp
+> > ```
+> >
+> > *(Comprobado el 05/09: devuelve **una** línea.)*
 >
 > ## 3. La `§5` documentaba **5 comandos**. El Maestro despacha **17 formas**
 >
@@ -200,6 +218,40 @@
 > * 🛑 **El error `FORMATO_INVALIDO` del Courier RTC SIGUE SIN DIAGNOSTICAR.** Que la app ahora lo
 >   traduzca a lenguaje de obra **no lo explica ni lo repara**: sólo hace legible el síntoma. **No
 >   hay causa escrita en ninguna parte, y aquí no se propone ninguna.**
+
+---
+
+> # 🟢 05/09/2026 — CUATRO COSAS QUE LA APP NO PODÍA HACER AYER
+>
+> **Con la pantalla del gabinete retirada, la app es la ÚNICA superficie de mando que existe: lo que
+> no esté en este manual, no lo sabe hacer nadie.** Todo lo de esta caja está **MEDIDO en el fuente
+> de la app y del firmware**, y **nada se ha ejercido con un equipo delante**.
+>
+> | # | qué es nuevo | dónde está contado |
+> |---|---|---|
+> | **1** | 🆕 **Tarjeta de CÁMARAS** en el tablero, y **cada respuesta significa una cosa distinta** — y `SIN COMPROBAR` **nunca** se pinta como `OK` ni en verde | **§1.ter.1**, nueva |
+> | **2** | 🆕 **El Modo Degradado del POSTE 2 se pide desde la app.** Antes ese modo existía y **no había forma humana de pedirlo** | **§5.6**, nueva |
+> | **3** | 🆕 **El POSTE 2 dice su modo de verdad**: `SUBORDINADO`, `DEGRADADO` o `RENDIDO`. Antes decía `SUBORDINADO` **siempre, fuera cierto o no** | **§1.ter.5** |
+> | **4** | 🆕 **Consultar el reloj SIN cambiarlo** (`🔎 Consultar reloj`), y ver el desfase entre los dos postes | **§5.7**, nueva |
+> | **5** | 🔴 **`SET_RTC` ya no lo contesta la controladora: lo contesta el puente.** Una orden, un acuse | **§5.3**, reescrita |
+>
+> ## 🛑 Y dos frases que este manual NO PUEDE dejar entender al revés
+>
+> **1. La app NO SIMULA NADA.** Si el enlace se cae, la pantalla **se queda quieta y lo declara**: no
+> anima un ciclo inventado, no rellena huecos y no adelanta lo que el equipo *debería* estar
+> haciendo. Hubo un ciclo simulado que corría solo y un panel de demo que escribía sobre los mismos
+> semáforos que la telemetría; **los dos se retiraron**.
+>
+> > *Un tablero quieto que admite que no sabe es honesto; uno que anima un cruce que no existe le
+> > miente a quien decide sobre el tráfico mirándolo.*
+>
+> **Si algún párrafo de este manual sugiere lo contrario, manda esta caja.** Y en el poste, la
+> consecuencia es directa: **si la pantalla se mueve, es porque están llegando tramas.**
+>
+> **2. `BAT: -- V` ES CORRECTO, no una avería.** La batería **no se mide**: no hay divisor ni entrada
+> analógica detrás de ese número, y el equipo lo declara en la trama en vez de inventarse un `12.6`
+> —que es lo que hacía—. La app lo repite con esas palabras: *«El equipo declara que no la mide:
+> falta el divisor y la entrada analógica»*. **No se cambia una batería por leer eso.**
 
 ---
 
@@ -307,6 +359,161 @@ La aplicación móvil **IOT-VIAL V9.0** elimina la fricción operativa en obra s
 
 ---
 
+## 1.ter 👁 EL TABLERO DE LA PANTALLA PRINCIPAL — QUÉ SIGNIFICA CADA CASILLA
+
+**Esto se lee de pie delante de un cruce, así que aquí sólo va lo que cambia una decisión.** La regla
+que gobierna todas las casillas es una sola y va antes que ninguna:
+
+> 🛑 **NINGUNA CASILLA DE ESTA APP SE RELLENA SOLA.** Cuando el dato no está, la app **dice cuál
+> falta y por qué**, y no pone algo parecido en su sitio. Hay **cuatro maneras distintas de no
+> saber**, y están separadas a propósito porque **mandan al técnico a sitios opuestos**:
+>
+> | lo que se lee | qué significa de verdad |
+> |---|---|
+> | *«sin enlace: el dato ya no vale»* | la app **tenía** el dato y ha dejado de llegar. Lo guardado es de hace rato, y una barrera o una cámara de hace rato no son una barrera ni una cámara |
+> | *«este equipo no lo publica (firmware anterior)»* | el enlace está bien: **es el equipo el que no manda ese campo**. Firmware viejo, no avería |
+> | *«el equipo no lo sabe»* / `SIN COMPROBAR` | el enlace está bien y el campo vino: **es el propio equipo el que declara que no lo sabe**. Es un dato, y de los buenos |
+> | *«valor no reconocido»* + el texto en crudo | **llegó algo que no puede ser**: o el firmware estrenó una palabra que esta APK no conoce, o la trama llegó rota |
+
+### 1.ter.1 🆕 La tarjeta **CÁMARAS J16** — lo que puede decir, y por qué no se pueden mezclar
+
+Es la tercera casilla de la rejilla de telemetría de la pestaña `Tráfico`, debajo de `ENLACE RADIO` y
+`BATERÍA 12V`. **Va ahí y no junto a la botonera** porque encima de los mandos, en un teléfono de
+320 px, el hueco medido eran **4 px**: una fila más ahí tapa un mando, que es el defecto que destapó
+la foto de campo del 04/09.
+
+| lo que se ve | qué significa | qué hacer |
+|---|---|---|
+| **`OK`**<br>*«las dos ven y ninguna está pegada»* | la cámara ha dado señal y responde | nada |
+| **`SIN COMPROBAR`**<br>*«aún no ha pasado nada por esos pines: no consta que vean»* | 🔴 **el equipo dice que NO LO SABE.** Es lo normal desde que se enciende hasta la primera detección | **no es una avería, y NO es un aprobado.** Si acaba de instalar, **provoque una detección delante de la cámara** y compruebe que el equipo la acusa (`9_Manual_Parametrizacion_Camara_IA.md`). Hasta ese momento el vigilante **no vigila** |
+| **`CIEGA`**<br>*«lleva horas sin una sola detección: puede estar tapada o sin corriente»* | lleva **6 h de paso abierto** sin ver pasar un solo vehículo | vaya a mirarla: tapada, girada, sin corriente, o el cable de su contacto suelto |
+| **`PEGADA`**<br>*«contacto fijo: dice que hay alguien y no se suelta»* | el contacto lleva **20 min cerrado sin abrirse ni una vez** | 🛑 **el equipo NO puede distinguir un relé trabado de un vehículo parado veinte minutos debajo de la pluma.** Las dos cosas piden que alguien vaya a mirar; por eso el equipo dice *contacto fijo* y no *avería* |
+| **`--`** | **la app no tiene el dato**: o no hay enlace, o ese equipo no publica el campo. El renglón de abajo dice cuál de las dos | si dice *«sin enlace»*, es el enlace; si dice *«firmware anterior»*, el equipo es viejo y no hay nada roto |
+| **`!`** (en rojo) | **llegó algo que no puede ser.** Debajo sale el texto tal cual llegó | apúntelo y repórtelo con el Diario (`§5.4.2.bis`). O el firmware creció por delante de esta APK, o la trama llegó rota |
+
+> 🔴 **`SIN COMPROBAR` Y `--` SE MANTIENEN DISTINTOS A PROPÓSITO, Y ES LA MITAD QUE MÁS IMPORTA DE
+> ESTA TARJETA.**
+>
+> * **`SIN COMPROBAR` es EL EQUIPO diciendo que no lo sabe.** El campo llegó, y su contenido es *no
+>   consta*.
+> * **`--` es LA APP sin dato.** O no hay enlace, o el campo no vino.
+>
+> Aplastar los dos en una sola casilla escondería **un valor imposible entre los huecos normales**, y
+> pintar el primero en verde —o como `OK`— le diría al operario que **la detección está comprobada**
+> cuando lo único que consta es que **nadie la ha ejercido todavía**. Por eso `SIN COMPROBAR` va en
+> gris, con fila propia, y **nunca en verde**.
+
+> ⚠️ **La tarjeta publica UNA sola palabra, y es LA PEOR de las dos cámaras del poste** —de peor a
+> mejor: `PEGADA`, `CIEGA`, `SIN COMPROBAR`, `OK`—. **Una cámara desconocida no puede quedar tapada
+> por la otra.**
+>
+> **Con el matiz que decide si el campo sirve para algo, y va escrito porque no es evidente:** hoy hay
+> **una cámara por poste**, así que en todo equipo montado **uno de los dos pines está vacío**. Un pin
+> vacío nunca da una detección, y por eso **no se juzga su silencio** — si se juzgara, ese pin vacío
+> se anunciaría como `CIEGA` y taparía para siempre a la cámara que sí está. **Lo que sí se juzga
+> siempre es el nivel**, así que un contacto trabado en un pin que nunca dio señal **sí sale** como
+> `PEGADA`.
+>
+> 🛑 **Lo que esa elección cuesta, dicho en vez de disimulado: así NO se detecta una cámara que esté
+> muerta desde el día de la instalación** —nunca dio una detección, luego el equipo no la distingue
+> de una bornera vacía—. **Lo que lo cubre no es el firmware: es el paso de instalación**, en el que
+> el instalador provoca una detección y comprueba que el equipo la acusa.
+
+> 🛑 **Y NADA DE ESTO HA TOCADO UNA TARJETA.** Lo que un equipo publica hoy es `SIN COMPROBAR`, que es
+> su estado de arranque, y **ningún banco ha visto todavía un `CIEGA` ni un `PEGADA` de verdad.**
+
+> **MEDIDO el 05/09** — los dos plazos se leen del firmware, no de aquí, y son **iguales en las dos
+> puntas**:
+>
+> ```bash
+> grep -n "static const unsigned long CAM_PEGADA_MS" 01_Firmware/Maestro/src/botones.cpp
+> grep -n "static const unsigned long CAM_CIEGA_MS"  01_Firmware/Maestro/src/botones.cpp
+> grep -n "camara_estado()" 01_Firmware/Maestro/src/botones.cpp 01_Firmware/Esclavo/src/botones.cpp
+> grep -n "const CAM_LEYENDA" 05_Funcional/App_Semaforo/www/app.js
+> ```
+>
+> *(Comprobado el 05/09: `1200000` ms = **20 min** y `21600000` ms = **6 h**; el tercero devuelve
+> **1** línea por punta —la regla es la misma en las dos— y el cuarto, **1**.)*
+>
+> ⏱️ **Las 6 h de `CIEGA` NO son 6 h de reloj: son 6 h CON EL PASO ABIERTO.** Con el cruce parado
+> —menú, rojo total, o sin turno— nadie puede cruzar por delante de la cámara, y una cámara callada
+> está diciendo la verdad; ese tiempo no cuenta. Con el ciclo mínimo de 3 min por sentido, cada poste
+> tiene el paso abierto aproximadamente la mitad del tiempo, o sea **del orden de 12 h de reloj**:
+> **no puede saltar dentro de una sola noche sin tráfico**, que es el único silencio largo legítimo.
+
+### 1.ter.2 La fila de la **PLUMA** (talanquera) — y el caso que hoy se lee como avería
+
+Debajo de las cabezas semafóricas, una sola fila: **`POSTE 1`** o **`POSTE 2`**, y **`PLUMA
+ARRIBA`** o **`PLUMA ABAJO`**, con una frase corta al lado cuando hay algo que explicar.
+
+| lo que se lee | qué significa |
+|---|---|
+| `PLUMA ARRIBA · acompaña al verde` | lo normal con el paso abierto |
+| `PLUMA ARRIBA · sin enlace: se pasa con precaución` | el equipo está en ámbar intermitente por pérdida de enlace, y **la pluma sube a propósito** |
+| 🔴 `PLUMA ARRIBA · con la luz en ROJO · NO es avería: no baja mientras haya alguien debajo` | **es el caso que hay que conocer.** Con las cámaras habrá ratos de **luz roja con la barrera arriba**: hay algo debajo y la barrera no baja. Sin esta frase, un operario lo reporta como avería |
+| `PLUMA ABAJO · verde, pero espere a que suba` | la luz ya autoriza y la barrera todavía no. **Manda la barrera** |
+| `POSTE n · PLUMA: sin enlace, el dato ya no vale` | una barrera de hace rato no es una barrera: **quien la lee cruza por debajo** |
+| `POSTE n · PLUMA: este equipo no la publica (firmware anterior)` | el enlace está bien; el equipo es anterior |
+
+> ⚠️ **La fila NO APARECE hasta que la app sabe a qué poste está conectada**, y eso no es un fallo:
+> sin poste al que atribuirla, una barrera es un dato sin dueño. Mientras tanto la ausencia ya la
+> declara el tablero entero.
+
+### 1.ter.3 La columna del **POSTE 2** — sólo con el Poste 1 delante
+
+La pantalla principal enseña, al lado del cruce propio, **lo que el Poste 1 sabe del Poste 2**. Es una
+**ventana de diagnóstico, no una consola**: desde ahí no se manda nada al otro poste.
+
+| lo que se lee | qué significa |
+|---|---|
+| las tres lámparas del Poste 2 encendidas según su estado | el Poste 1 está recibiendo del Poste 2 **ahora** |
+| `SIN DATOS · no viaja en esta trama` | **está usted conectado al POSTE 2.** Esa punta no tiene a quién preguntarle por la otra, y no lo va a tener |
+| `SIN DATO DEL POSTE 2 · este equipo no lo publica` | el Poste 1 es de firmware anterior |
+| 🟠 `SIN DATO DEL POSTE 2 · el POSTE 1 no lo sabe` | **el Poste 1 declara que no sabe cómo está el otro.** Es un dato, y de los importantes: dice que **la radio entre postes no está entregando** |
+| `POSTE 2 NO RECONOCIDO: "…"` | llegó un valor que esta APK no sabe nombrar |
+
+> 🔴 **Una trama sin ese campo NO deja encendida la lámpara de la trama anterior.** Las tres del otro
+> poste se apagan en cada repintado y sólo vuelve a encenderse una si hay dato **de ahora**.
+
+### 1.ter.4 **BATERÍA 12V** — `-- V` es correcto, no es una avería
+
+**No hay avería que buscar.** El equipo **no mide** la tensión —no hay divisor ni entrada analógica
+detrás de ese número— y lo dice en la trama; la app lo repite: *«El equipo declara que no la mide:
+falta el divisor y la entrada analógica»*. Hasta el 31/08 el firmware **se inventaba un `12.6`
+fijo**; hoy prefiere el hueco. **Un hueco no engaña a nadie; un número inventado sí.**
+
+### 1.ter.5 🆕 El rótulo de **MODO** — y los tres que ahora puede decir el POSTE 2
+
+Hasta el 05/09 el Poste 2 publicaba **`SUBORDINADO` siempre, fuera cierto o no**: era un texto fijo
+dentro de la trama. Desde que se le puede pedir su Modo Degradado desde el teléfono (`§5.6`), **dice
+dónde está de verdad**, y son tres cosas distintas:
+
+| rótulo | qué significa | quién manda la luz |
+|---|---|---|
+| **`SUBORDINADO AL MAESTRO`** | lo normal: el Poste 2 obedece al Poste 1 | **el POSTE 1**, por radio |
+| ⚠️ **`DEGRADADO · SIN ENLACE ENTRE POSTES`** | el Poste 2 está dando paso **guiándose sólo por su reloj**, sin que nadie le confirme que el otro sentido está parado | **su propio reloj** |
+| ⏳ **`DEGRADADO VENCIDO (48 h) · ÁMBAR`** | 🔴 **el Degradado terminó SOLO** al cumplirse el límite de 48 h sin que el Poste 1 le pusiera la hora, y la luz quedó en **ámbar intermitente** | **nadie**: el cruce ya no opera |
+| **`EL EQUIPO NO SABE SU MODO`** | el equipo contesta con un valor que ni él mismo sabe nombrar | — |
+
+> 🔴 **`DEGRADADO VENCIDO` no es «un Degradado más flojo», y por eso no comparte rótulo con él.**
+> Pintarlo como `DEGRADADO` diría que el cruce sigue operando por reloj **cuando ya no opera** —y
+> mandaría al técnico a lo contrario de lo que tiene que hacer, que es **volver a sincronizar y
+> volver a entrar**—.
+
+> ⚠️ **En qué tramo del Degradado va no lo dice este rótulo: lo dice el estado de las luces**, que
+> viaja al lado. Los dos todo-rojos del modo —el de entrada y el de salida— salen como **rojo**.
+
+> **MEDIDO el 05/09:**
+>
+> ```bash
+> grep -n "obtenerNombreModo" 01_Firmware/Esclavo/src/bluetooth.cpp
+> grep -n "static const unsigned long LIMITE_SIN_SYNC_MS" 01_Firmware/Esclavo/src/modo_degradado.cpp
+> ```
+>
+> *(Comprobado el 05/09: la segunda devuelve **una** línea, y son **48 h**.)*
+
+---
+
 ## 2. 🛠️ STACK TECNOLÓGICO Y PIPELINE DE DESARROLLO
 
 ![Stack Tecnológico](./graficas/grafica_03_stack_tecnologico_compilacion.png)
@@ -379,9 +586,9 @@ Desde la carpeta raíz de la App (`05_Funcional/App_Semaforo/`):
    android\compilar_apk.bat
    ```
    *El script sincroniza los assets web con Capacitor (`npx cap sync android`) y ejecuta Gradle `assembleDebug` generando el archivo maestro en `05_Funcional/` en ~20 segundos.* **El nombre lleva fecha y hash del árbol** — el vigente es
-   **la APK del 04/09 que acompaña a este paquete** — su nombre exacto y su `md5` estan en `LEEME_PRIMERO.md`, en la raíz del `.zip`, que es el único sitio donde no caducan;
+   **la APK del 05/09 que acompaña a este paquete** — su nombre exacto y su `md5` estan en `LEEME_PRIMERO.md`, en la raíz del `.zip`, que es el único sitio donde no caducan;
    ~~`…_2026-09-02_617bd00_…`~~ y ~~`…_2026-08-28_a8e1ceb_…`~~ **no conectan** (`N-122`, ver
-   cabecera).
+   cabecera), y ~~la del 04/09~~ **conecta pero no trae nada de la caja `05/09`**.
 
 ---
 
@@ -671,6 +878,7 @@ grep -n "confirmarVia("   05_Funcional/App_Semaforo/www/app.js   # quien pregunt
 | `MANUAL:CAMBIAR_TURNO` (**DAR PASO**) · `SET_MODO:AUTO` (**AUTOMÁTICO**) | ❌ no | ✅ **sí** |
 | 🆕 `SET_MODO:AMBAR` (**ÁMBAR**) | ✅ **sí** | ✅ **SÍ — `N-148`, 05/09.** ~~❌ no~~ |
 | `FORZAR_ROJO` (**ROJO TOTAL**) · `AMBAR_EMERGENCIA` · `SET_MODO:MENU` · `SET_MODO:ALCANCE` | ❌ no *(lista `SIN_PIN`)* | ❌ no — **no hay tiempo de mirar** |
+| 🆕 `LEER_RTC` (**CONSULTAR RELOJ**) — 05/09 | ❌ no *(lista `SIN_PIN`)* | ❌ no — **no abre, no para y no cambia nada.** Ver `§5.7` |
 | `CANCELAR_AMBAR` · `SET_MODO:DEGRADADO` · `TEST_LEDS` · todos los botones de la pestaña Técnico | ✅ **sí** | ❌ no |
 
 > 🔵 **`CANCELAR_AMBAR` es el caso que parece contradictorio y no lo es — y hay que decir contra
@@ -749,7 +957,7 @@ NMEA. **La forma es `CMD:PIN:1234:<ACCION>` — con dos puntos**, que es como la
 | `CMD:PIN:1234:MANUAL:CAMBIAR_TURNO` | `$ERR,…,DESC:EN_TRANSICION_REINTENTE` si no está en reposo |
 | `CMD:PIN:1234:TEST_LEDS` | |
 | `CMD:PIN:1234:SET_TIEMPOS:v,r,d` | Un `$ERR` por motivo: `FORMATO_INVALIDO`, `EN_MARCHA_PARE_EL_MODO`, `RANGO`. **Rangos nuevos del 04/09 en §5.5** |
-| `CMD:PIN:1234:SET_RTC:YYYY-MM-DD,HH:MM:SS` | **Cinco ramas** — ver 5.3 |
+| `CMD:PIN:1234:SET_RTC:YYYY-MM-DD,HH:MM:SS` | 🔴 **05/09: LA CONTROLADORA YA NO LA CONTESTA.** La rama sigue existiendo para consumir la orden —si no, contestaría *comando desconocido*— y deja un evento, pero **el acuse lo da el puente**, que es quien tiene el reloj. Ver `§5.3` |
 | `CMD:PIN:1234:REINICIAR_RELOJ` | diagnóstico del cristal |
 | `CMD:PIN:1234:DEMANDA` | **sólo en Modo Inteligente**: fuera de él, `$ERR,…,DESC:SOLO_EN_MODO_INTELIGENTE` |
 
@@ -766,14 +974,14 @@ Cualquier otra cosa: `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO`
 la 5.1: el literal es el ancla y el número caduca solo.
 
 ```bash
-# las 10 ramas del despachador del Esclavo, en orden:
+# las 11 lineas del despachador del Esclavo -10 ramas + la guarda de PIN-, en orden:
 grep -n 'strcmp(accion\|strncmp(accion\|strcmp(cmd\|strncmp(cmd' 01_Firmware/Esclavo/src/bluetooth.cpp
 
 # una fila cualquiera, por su literal:
 grep -n '"CANCELAR_AMBAR"' 01_Firmware/Esclavo/src/bluetooth.cpp
 ```
 
-*(Comprobado el 05/09: el primer `grep` devuelve **10 líneas** — las **9 filas** de la tabla más la
+*(Re-comprobado el 05/09 por la noche: el primer `grep` devuelve **11 líneas** — las **10 filas** de la tabla más la
 guarda `strncmp(cmd, "CMD:PIN:1234:", 13) != 0`. El segundo devuelve **una**.)*
 
 | Trama | Qué hace |
@@ -783,7 +991,8 @@ guarda `strncmp(cmd, "CMD:PIN:1234:", 13) != 0`. El segundo devuelve **una**.)*
 | `CMD:PIN:1234:AMBAR_EMERGENCIA` | Lo mismo, con PIN. **El mismo bloque letra por letra** — lo vigilan `esclavo_07` y `esclavo_08` |
 | `CMD:PIN:1234:CANCELAR_AMBAR` | 🆕 **faltaba en este manual.** **Retira** el latch, **con PIN**. `RETIRADO` · `RETIRADO_QUEDA_MANDO` · `$ERR,…,DESC:NO_HAY_AMBAR_VIGENTE` |
 | `CMD:PIN:1234:SOLICITAR_PASO` | **Pide**, no ordena. `PEDIDO_AL_MAESTRO` / `$ERR,…,DESC:REPITA_EN_UNOS_SEGUNDOS`. **Y el `PEDIDO_AL_MAESTRO` se puede desmentir después — `N-130`, abajo** |
-| `CMD:PIN:1234:SET_RTC:…` | `OK` / `SIN_CRISTAL` / `FORMATO_INVALIDO` |
+| 🆕 `CMD:PIN:1234:SET_MODO:DEGRADADO` | **NUEVA EL 05/09, y es el único `SET_MODO` que atiende esta punta.** **DOS** acuses buenos —`OK` y `YA_ACTIVO`— y **SEIS** motivos de rechazo, uno por condición. Contado entero en **`§5.6`** |
+| `CMD:PIN:1234:SET_RTC:…` | 🔴 **05/09: igual que en el Maestro, esta punta YA NO LA CONTESTA.** La consume y deja un evento; **el acuse lo da el puente**. ~~`OK` / `SIN_CRISTAL` / `FORMATO_INVALIDO`~~ |
 | ~~`CMD:FORZAR_ROJO`~~ | 🛑 `$ERR,…,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` |
 | ~~`CMD:PIN:1234:FORZAR_ROJO`~~ | 🛑 mismo `$ERR`. **Las dos formas** |
 | ~~`CMD:PIN:1234:TEST_LEDS`~~ | 🛑 `$ERR,…,DESC:NO_EN_SERVICIO_USE_EL_MAESTRO` |
@@ -807,34 +1016,75 @@ Cualquier otra cosa: `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO`
 > hacer.** El firmware rechaza el nombre viejo **enseñando el bueno** precisamente porque quien lo
 > manda es una app o un manual anteriores al cambio.
 
-### 5.3 `SET_RTC` tiene cinco ramas, y la app debe distinguirlas
+### 5.3 🔴 REESCRITA EL 05/09 — `SET_RTC` YA NO LO CONTESTA LA CONTROLADORA: LO CONTESTA EL PUENTE
+
+> 🔴 **UNA ORDEN, UN ACUSE. Hasta el 05/09 el operario mandaba UNA orden de poner la hora y le
+> contestaban DOS aparatos, los dos con razón:** el puente decía *«hora puesta»* —la había puesto en
+> su reloj, que es cierto— y cuatro segundos después la controladora decía *«no quedó puesta»* —lo
+> había intentado en el suyo, que también es cierto—. **Dos respuestas contradictorias a una sola
+> pulsación, y ninguna de las dos mentía.**
+>
+> **El reloj del cruce es el del módulo de expansión —el que lleva pila propia—, así que contesta
+> quien lo tiene.** La controladora sigue aceptando la orden para no responder *comando
+> desconocido*, pero **ya no acusa**: deja un evento y calla.
+>
+> **MEDIDO el 05/09 en las dos puntas:**
+>
+> ```bash
+> grep -n "SET_RTC_LO_ACUSA_EL_PUENTE" 01_Firmware/Maestro/src/bluetooth.cpp 01_Firmware/Esclavo/src/bluetooth.cpp
+> ```
+>
+> *(Comprobado el 05/09: **una** línea por punta.)*
+>
+> ⚠️ **Consecuencia para quien está en el poste, que es lo único que hay que recordar: la respuesta
+> que vale es la que viene marcada como del PUENTE.** Si ve dos respuestas a una sola orden de hora,
+> la APK es anterior al 05/09 o el equipo lo es.
+>
+> 🔵 **Y hay un camino nuevo que evita mandarla a ciegas: `§5.7` — consultar el reloj SIN
+> cambiarlo.** Si sólo quiere saber si el cruce está en hora, **no ponga la hora: pregúntela.**
+
+#### Las OCHO respuestas de poner la hora, y la app debe distinguirlas
+
+> ✅ **CENSADAS EL 05/09, Y CON ESO SE CIERRA UNA DISCREPANCIA QUE LLEVABA ABIERTA DESDE EL 04/09.**
+> Este apartado decía *«cinco ramas»* en el título y enseñaba **cuatro** filas, y el censo que lo
+> habría resuelto **estaba sin hacer** —marcado `SIN VERIFICAR`—. Ya está hecho, **y sobre el
+> despachador correcto**: no el de la controladora, que desde hoy **ya no contesta**, sino el del
+> **puente**, que es quien tiene el reloj.
+>
+> ```bash
+> grep -oE 'CMD:SET_RTC,(RESULT|DESC):[A-Z_]+' 01_Firmware/ESP32_Expansion/src/despachador.cpp | sort -u
+> ```
+>
+> *(Comprobado el 05/09: **12** apariciones que se reducen a **8 respuestas distintas** — las de la
+> tabla. Se cuentan las distintas, no las apariciones: un mismo motivo se emite desde varios sitios.)*
+>
+> 🔴 **Y una fila de la tabla anterior ERA FALSA: `SIN_CRISTAL_VEA_CONSULTA_RELOJ` ya no la contesta
+> nadie a esta orden.** Sobrevive **sólo dentro de un comentario** del firmware. Se retira con su
+> motivo en vez de borrarse en silencio.
 
 | Respuesta | Qué mostrar al técnico |
 |---|---|
-| `$ACK,CMD:SET_RTC,RESULT:OK` | Hora puesta y propagada al Esclavo |
-| `$ACK,CMD:SET_RTC,RESULT:HORA_PUESTA_SIN_PROPAGAR` | **Puesta aquí, NO viajó al otro poste** |
-| `$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ` | 🛑 **La hora NO quedó puesta** |
-| `$ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO` | Trama ilegible o cifras fuera de rango |
+| `RESULT:OK` | ✅ **hora puesta** en el reloj de este poste, releída y comprobada |
+| `RESULT:HORA_PUESTA_SIN_PROPAGAR` | ⚠️ **la hora entró en el reloj de ESTE poste, pero la orden no llegó entera a su controladora por el cable interno.** El reloj está bien; **lo que falla es el enlace de dentro del armario** |
+| `DESC:FORMATO_INVALIDO` | trama ilegible o cifras fuera de rango |
+| `DESC:SIN_RELOJ_NO_RESPONDE` | 🔧 el módulo de reloj **no contesta en su bus**: desenchufado, mal cableado, o las dos líneas cruzadas. **No se arregla repitiendo** |
+| `DESC:ESCRITURA_FALLIDA` | el reloj contesta pero **no aceptó la escritura**: la hora **NO quedó puesta**. Repita una vez; si vuelve, el módulo falla |
+| `DESC:NO_QUEDO_PUESTA` | se escribió, el módulo dijo que sí, y **al releerla no coincidía**. Apunta a **la pila** |
+| `DESC:OSCILADOR_PARADO_CAMBIE_PILA` | 🔧 **la pila**. Se cambia **y luego** se pone la hora |
+| `DESC:MOTIVO_NO_CONTEMPLADO` | el módulo dio un motivo que **ni la app ni su propio despachador saben nombrar**. **No dé la hora por buena** |
 
-> **Tratar las cuatro como «enviado» es el defecto que este comando ya tuvo:** contestaba `RESULT:OK`
-> sin mirar ninguna de las dos llamadas, y con el cristal `Y2` muerto el técnico se iba del poste
-> creyendo que había dejado el reloj puesto. **Un `$ACK` que no depende de lo que devolvió la llamada
-> es una mentira con formato de éxito** — y una app que no lee la diferencia la reintroduce en la
-> pantalla.
+> ~~**Tratar las cuatro como «enviado»**~~ → **Tratar cualquiera de las OCHO como «enviado» es el
+> defecto que este comando ya tuvo:** contestaba `RESULT:OK` sin mirar lo que habían devuelto las
+> llamadas, y el técnico se iba del poste creyendo que había dejado el reloj puesto. **Un acuse que
+> no depende de lo que devolvió la llamada es una mentira con formato de éxito** — y una app que no
+> lee la diferencia la reintroduce en la pantalla.
 
-> ✏️ **DISCREPANCIA MEDIDA EL 04/09, y se publica en vez de taparse: el título de este apartado dice
-> CINCO ramas y la tabla enseña CUATRO** —y el párrafo de debajo dice *«las cuatro»*—. **No se
-> arregla aquí escribiendo una quinta fila a mano**: inventar la que falta es exactamente lo que este
-> repositorio castiga. **La lista buena sale de censar la rama `SET_RTC:` del despachador**
-> (`grep -n '"SET_RTC:"' 01_Firmware/Maestro/src/bluetooth.cpp`), y ese censo no se ha hecho en
-> esta pasada — **`SIN VERIFICAR`**. **Mientras tanto, la regla
-> de campo no depende de la cuenta: lea el `RESULT:` o el `DESC:` que llegue, y si no lo reconoce, la
-> app se lo enseña en crudo** marcado como *«motivo sin traducir»* (§5.4.2.ter). **Lo que no vale es
-> tratar cualquiera de ellas como «enviado».**
->
-> 🛑 **Y de las que sí están medidas, una sigue SIN DIAGNOSTICAR: `FORMATO_INVALIDO`.** Aparece en el
-> Courier RTC, la app ya lo traduce, y **nadie sabe por qué se produce**. Traducir un síntoma no es
-> repararlo, y aquí no se propone ninguna causa.
+> 🔵 **Antes de mandar la hora, mírela: `§5.7`.** La consulta de reloj no cambia nada y contesta,
+> además, **cuánto se ha desviado** — que es el dato que poner la hora destruye.
+
+> 🛑 **Y una sigue SIN DIAGNOSTICAR: `FORMATO_INVALIDO`.** Aparece en el Courier RTC, la app ya lo
+> traduce, y **nadie sabe por qué se produce**. Traducir un síntoma no es repararlo, y aquí no se
+> propone ninguna causa.
 
 ---
 
@@ -964,15 +1214,21 @@ a lenguaje de obra y **dice qué hacer**.
 | tabla | entradas | qué traduce | dónde |
 |---|---|---|---|
 | `ERR_MOTIVO` | **22** | el `DESC:` del rechazo | `const ERR_MOTIVO` |
-| `ERR_TEXTO` | **1** — el par `CANCELAR_AMBAR` + `NO_HAY_AMBAR_VIGENTE` | pares de `CMD` y `DESC` que sólo tienen sentido juntos | `const ERR_TEXTO` |
-| | **23 en total** | | resueltas por `_traducirRechazo()` |
+| `ERR_TEXTO` | ~~**1**~~ → 🆕 **9** el 05/09 — el par `CANCELAR_AMBAR` + `NO_HAY_AMBAR_VIGENTE` **más los OCHO de la consulta de reloj** (`§5.7`) | pares de orden y motivo que sólo tienen sentido juntos | `const ERR_TEXTO` |
+| | ~~**23**~~ → **31 en total** | | resueltas por `_traducirRechazo()` |
 
 ```bash
 grep -n "const ERR_MOTIVO\|const ERR_TEXTO\|function _traducirRechazo" 05_Funcional/App_Semaforo/www/app.js
 ```
 
-*(Las **22** y la **1** se cuentan sobre las claves de primer nivel de cada objeto, re-contadas el
-05/09. La cuenta se re-hace, no se copia.)*
+*(Las **22** y las **9** se cuentan sobre las claves de primer nivel de cada objeto, **re-contadas la
+noche del 05/09 después de que entrara la consulta de reloj**. La cuenta se re-hace, no se copia.)*
+
+> ✏️ **Y al re-contarlas apareció un desajuste que se publica en vez de taparse:** el comentario que
+> encabeza ese grupo dentro de la app dice **«los SIETE motivos de la consulta de reloj»** y las
+> entradas son **OCHO** — y **ocho** son también los motivos que el puente sabe dar. **La tabla está
+> bien; lo que está mal es la frase de encima.** Es un defecto de la app, no de este manual, y queda
+> anotado aquí porque una cuenta escrita al lado de una tabla **se hereda como si fuera la tabla**.
 
 > ✏️ **El «23» se desglosa a propósito, y esta nota es el motivo.** Al medirlo aparecieron **tres**
 > números distintos que se parecen: las **22** entradas de `ERR_MOTIVO`, las **23** de las dos
@@ -1152,10 +1408,20 @@ ser una limitación pendiente y pasa a ser **cómo se opera este equipo**.
 
 | desde el **MAESTRO** | desde el **ESCLAVO** |
 |---|---|
-| cambiar de modo · dar paso · ajustar tiempos · `TEST_LEDS` · rojo total | **sólo** `SOLICITAR_PASO`, `AMBAR_EMERGENCIA`, `CANCELAR_AMBAR` y `SET_RTC` |
+| cambiar de modo · dar paso · ajustar tiempos · prueba de focos · rojo total | **sólo** solicitar paso, ámbar de emergencia, retirar ámbar, poner la hora — y 🆕 **desde el 05/09, ENTRAR EN MODO DEGRADADO** (`§5.6`) |
 
-**La app ya lo enruta y no hace falta tocarla:** las dos listas `SOLO_MAESTRO` y `SOLO_ESCLAVO`, y
-`puntaCorrecta()`, que avisa a qué punta va la orden en vez de mandarla al vacío.
+> 🔴 **AL DÍA EL 05/09, y es la única grieta que se le ha abierto a esta decisión: el POSTE 2 atiende
+> UNA orden de cambio de modo.** Exactamente una —**entrar en Modo Degradado**— y no debilita la
+> decisión: **ese modo es para cuando el POSTE 1 no está**, así que operarlo desde el Poste 1 sería
+> pedírselo a quien no puede contestar. Todos los demás cambios de modo siguen siendo del Poste 1.
+>
+> ⚠️ **Y poner la hora ya no es «del Esclavo» ni «del Maestro»: es del PUENTE de cada poste.** Ver
+> `§5.3`.
+
+**La app ya lo enruta y avisa a qué punta va cada orden en vez de mandarla al vacío**, y desde el
+05/09 lo hace **orden por orden y no por familias**: las seis órdenes de cambio de modo del Poste 1
+están escritas una a una, precisamente para que la única que atiende el Poste 2 **no quedara frenada
+por error** — que habría dejado el botón nuevo inútil justo en el poste para el que se construyó.
 
 ```bash
 grep -n "const SOLO_MAESTRO\|const SOLO_ESCLAVO\|function puntaCorrecta" 05_Funcional/App_Semaforo/www/app.js
@@ -1195,6 +1461,239 @@ grep -n "DEMANDA_NO_ATENDIDA_MODO_ACTUAL"  01_Firmware/Esclavo/src/main.cpp
 > mirar `Eventos` unos segundos después. Si sale `DEMANDA_NO_ATENDIDA_MODO_ACTUAL`, **no es un fallo
 > del enlace ni del Esclavo**: es que el cruce no está en Modo Inteligente, y ese modo se pone
 > **desde el Maestro**.
+
+---
+
+## 5.6 🆕 EL MODO DEGRADADO DEL POSTE 2 SE PIDE DESDE LA APP (05/09)
+
+**Dónde está:** pestaña `Técnico` → tarjeta roja **«⚠️ Modo Degradado (sin radio)»** → botón
+**«⚠️ Entrar en Modo Degradado…»**. Pide **PIN** y, además, **marcar la casilla** del diálogo
+—*«He verificado en persona la otra unidad y el enlace está caído»*—. **No pregunta por el tramo**:
+la casilla es más exigente que la pregunta.
+
+> **Por qué es nuevo, y esto explica todo lo demás:** el modo **ya existía entero** en el Poste 2 y
+> **sus tres puertas estaban tapiadas**. Se abría con una secuencia del mando de relés —**ese
+> hardware no se monta**—, desde el menú de la pantalla del gabinete —**esa pantalla se retiró**— o
+> reanudándolo tras un corte —lo que exige **haber entrado antes**, o sea ninguna de las tres—. **El
+> modo estaba construido y la llave, tirada.** Este botón no construye el modo: le da la llave.
+
+### 5.6.1 🛑 LO PRIMERO, PORQUE ES LO QUE SE VE EN EL POSTE: con el POSTE 1 vivo, el modo dura UN LATIDO
+
+> **Si el Poste 1 está encendido y hablando por radio, la orden se ACEPTA, el equipo entra… y a los
+> tres segundos SALE SOLO.** El operario ve el equipo **obedecer y volverse atrás**, y lo primero que
+> piensa es que se ha roto algo.
+>
+> **NO es una avería, y no es un defecto: es el arbitraje del cruce funcionando.** El Poste 1 manda
+> un latido por radio cada **3 s** mientras cicla, y el Poste 2 abandona el Degradado en cuanto oye
+> una orden de gobierno del Poste 1. **Este modo es para cuando el Poste 1 NO está** —enlace caído,
+> equipo apagado, radio rota—; con el Poste 1 vivo, quien manda el cruce es él.
+>
+> ✅ **Y no es peligroso, que es la pregunta que decide si esto se podía construir.** El todo-rojo
+> obligatorio de entrada dura como mínimo **4 s**, y el latido son **3 s**: el Poste 1 saca a esta
+> punta **antes de que pueda dar su primer verde por reloj**. **Los dos números están medidos y la
+> desigualdad se recalcula del firmware en cada corrida** —no vive en un comentario—.
+>
+> **Lo que hay que hacer con esto en el poste:** si al pulsar ve entrar y salir el modo, **el enlace
+> entre postes está VIVO** — y entonces no necesita el Degradado.
+
+### 5.6.2 ⚠️ Entra en el poste al que está conectado, y SÓLO en ése
+
+**El otro poste hay que ponerlo por separado, desplazándose.** Mientras uno esté en Degradado y el
+otro no, **el cruce tiene dos autoridades distintas**: una punta rigiéndose por su reloj y la otra
+por radio. Ése es justamente el escenario peligroso de este modo.
+
+**El rótulo `POSTE 1` / `POSTE 2` de la pantalla dice a cuál está conectado.** Si no lo sabe, no
+pulse: vea `§4.bis.1`.
+
+### 5.6.3 Las DOS respuestas buenas — y *«ya estaba puesto»* NO es un error
+
+| lo que contesta | qué significa |
+|---|---|
+| **`MODO DEGRADADO ACEPTADO y arrancando`** | el equipo **NO estaba** en Degradado y entra ahora. Queda **AHORA en TODO ROJO** —es obligatorio antes del primer verde— y a partir de ahí da paso **guiándose sólo por su reloj**. 🛑 **NO SE VAYA sin comprobar el otro extremo:** es la única maniobra del equipo que enciende un verde sin que nadie diga que el otro sentido está parado |
+| ✅ **`YA ESTABA en Modo Degradado`** | **el equipo ya venía en ese modo y esta orden NO ha cambiado nada**: ni ha reiniciado el todo-rojo ni ha vuelto a arrancar el ciclo por reloj |
+
+> 🔵 **Y esa segunda respuesta es un acierto, no una pega, aunque parezca que sobra.** Sale de una
+> cinta de banco del 04/09: un operario pulsó **ÁMBAR seis veces en tres minutos**, el equipo
+> contestó lo mismo las seis y el cruce no se movió — **y no había forma de saber cuál de las seis
+> pulsaciones había hecho algo**. Aquí no puede volver a pasar: **si está esperando ver moverse la
+> luz por haber pulsado, con este mensaje ya sabe que no se va a mover.**
+
+### 5.6.4 Los SEIS motivos por los que puede negarse — y qué hacer con cada uno
+
+**El equipo no dice «no se pudo»: dice QUÉ le falta**, porque quien está subido al poste necesita
+saber si el arreglo lo lleva en el bolsillo, en la caja o en la furgoneta.
+
+**En el POSTE 2** (los seis, tal como salen):
+
+| lo que contesta | qué le falta | qué hacer en el poste |
+|---|---|---|
+| `SIN HORA VALIDA` | su controladora **no tiene una hora que valga** | ponga la hora en ese poste (`§5.7` primero: mire antes de tocar). Si insiste, el reloj de esa controladora **no está corriendo**, y eso es una reparación |
+| `FALTA CONFIG CICLO` | **nunca ha recibido del POSTE 1 los tiempos del ciclo** | conéctese al **POSTE 1**, deje los tiempos puestos y **deje que el cruce corra** para que se los transmita. Sin radio entre postes, este modo **no se puede pedir** |
+| `CICLO EN CERO` | recibió un ciclo, y viene **en cero** | lo mismo que arriba: los tiempos se ponen **en el POSTE 1** |
+| `NUNCA SINCRONIZADO` | tiene hora, pero **no consta que se la haya puesto ESTE Poste 1 en esta sesión** | 🔵 **no basta con que el reloj esté en hora**: la hora sobrevive al apagado en la pila y podría venir de otra obra. Hace falta **una sincronización recibida por radio**, así que **primero se arregla la radio** |
+| `SYNC CADUCADA >48h` | la autorización anterior **ya venció** | **no vale reentrar sin una sincronización nueva.** Es deliberado: si se pudiera, el límite duro de 48 h sería **un botón de posponer**, y la deriva entre los dos relojes seguiría creciendo sin medir |
+| `AMBAR EMERG.PUESTO` | hay un **ámbar de emergencia** puesto | 🛑 **lo puso una persona** —alguien trabajando bajo la luz, un incidente en el tramo— **y la máquina no revoca lo que puso una persona.** Si de verdad hay que quitarlo, use **RETIRAR ÁMBAR** y repita la orden |
+
+**En el POSTE 1** los motivos son **otros seis distintos**, y salen en dos trozos seguidos:
+
+| lo que contesta | qué le falta |
+|---|---|
+| `Falta: reloj sin poner en hora` | ponga la hora en el Poste 1 |
+| `Falta: nunca hubo sincronizacion RF` | el Poste 1 nunca ha llegado a sincronizar al Poste 2 por radio |
+| `Falta: la ultima sync es muy vieja` | hubo sincronización y ha caducado |
+| `Falta: el esclavo no tiene el ciclo` | el Poste 2 todavía no ha recibido los tiempos |
+| `Falta: sin medida de desfase valida` | no hay una medida válida de cuánto se separan los dos relojes |
+| `Desfase fuera de tolerancia (+-3s)` | la hay, y **los dos relojes se separan más de 3 s** |
+
+> ⚠️ **ESTOS DOCE MOTIVOS LLEGAN EN CRUDO: la app NO los traduce**, y los marca como *«motivo sin
+> traducir en esta versión de la app»*. **No es un descuido y no hay que arreglarlo aquí:** esa lista
+> vive **una sola vez** en el firmware —es la misma que enseñaba la pantalla del gabinete—, y
+> copiarla a la app sería una segunda copia que alguien tendría que mantener sincronizada. **Lo que
+> se lee en la pantalla es exactamente lo que dice el equipo.**
+
+> **MEDIDO el 05/09** — las dos tablas se leen del firmware, no de aquí:
+>
+> ```bash
+> grep -n "degradado_textoRechazo" 01_Firmware/Esclavo/src/modo_degradado.cpp
+> grep -n "modo_degradado_motivoL1" 01_Firmware/Maestro/src/modo_degradado.cpp
+> ```
+>
+> *(Comprobado el 05/09: el primero devuelve **1** línea —la definición, con los seis literales
+> dentro—; el segundo, **2** —la definición y su uso—.)*
+
+### 5.6.5 🔴 CÓMO SE SALE — y el diálogo de la app lo dice MAL
+
+> 🛑 **HALLAZGO DEL 05/09, y es un defecto de la app, no de este manual.** El diálogo de
+> confirmación del Modo Degradado dice, palabra por palabra:
+>
+> > *«Para salir: **VOLVER AL MENÚ**. El equipo hace 30 s de todo-rojo.»*
+>
+> **Y `VOLVER AL MENÚ` es una orden que SÓLO atiende el POSTE 1.** Esa frase se escribió cuando este
+> modo sólo lo aceptaba el Poste 1; desde el 05/09 el botón sale también contra el Poste 2, **donde
+> esa salida no existe**: la propia app frenaría la orden y contestaría que la atiende el otro poste.
+> **Un operario que siga esa instrucción se queda sin poder sacar al Poste 2 del modo.**
+>
+> **MEDIDO:**
+>
+> ```bash
+> grep -n "Para salir" 05_Funcional/App_Semaforo/www/index.html
+> grep -n "const SOLO_MAESTRO" 05_Funcional/App_Semaforo/www/app.js
+> ```
+>
+> *(Comprobado el 05/09: la primera devuelve **una** línea; la segunda, **una**, y `SET_MODO:MENU`
+> está dentro de la lista de órdenes que **sólo** atiende el Poste 1.)*
+
+**Las salidas que SÍ existen para el POSTE 2, medidas, y en el orden en que sirven:**
+
+| salida | qué hay que hacer | en qué queda la luz |
+|---|---|---|
+| **1. Que vuelva el POSTE 1** | nada desde el teléfono: en cuanto el Poste 1 vuelva a mandar por radio, el Poste 2 **abandona el modo solo** | vuelve a mandar el Poste 1 |
+| **2. `ÁMBAR EMERGENCIA` desde la app** | pulsar **ÁMBAR EMERGENCIA** con el Poste 2 delante. **Es la salida que tiene el operario en la mano** | el equipo **arranca la salida por todo-rojo** y queda en **ámbar intermitente**, protegido |
+| **3. Que venza el límite de 48 h** | nada: pasa solo si no se vuelve a sincronizar | **ámbar intermitente**, y el modo pasa a leerse como `DEGRADADO VENCIDO (48 h)` (`§1.ter.5`) |
+
+> ⚠️ **Y una advertencia sobre la 2, para no leerla como «se apaga y ya»:** el ámbar intermitente
+> **no para a nadie** — deja entrar al corredor por las dos puntas—. Es más seguro que un verde por
+> reloj sin confirmar, y **no es un cruce en servicio**.
+
+### 5.6.6 🛑 LO QUE ESTE APARTADO NO PUEDE PROMETER
+
+* **Nadie ha pulsado este botón con un equipo delante.** Todo lo de arriba está medido en el fuente
+  y **ejercido contra el firmware real en simulador**; **no ha tocado una tarjeta**.
+* **`SIN VERIFICAR`: cuál de los seis motivos va a salir en campo.** Dos de las seis condiciones
+  —tener hora válida y haber sido sincronizado por radio— **cuelgan del reloj de cristal de la
+  controladora**, y ese cristal está **confirmado muerto** en la tarjeta que se llevó a banco. Con
+  ese cristal parado, lo esperable es que el equipo conteste `SIN HORA VALIDA` o `NUNCA
+  SINCRONIZADO` **y el modo no entre**. *No se ha comprobado en tarjeta y no se afirma: se anota
+  para que el primer banco lo mire antes que ninguna otra cosa de este apartado.*
+
+---
+
+## 5.7 🆕 CONSULTAR EL RELOJ SIN CAMBIARLO (05/09)
+
+**Dónde está:** pestaña `Técnico` → tarjeta **«⏱️ Sincronizar reloj DS3231»** → botón
+**«🔎 Consultar reloj (no cambia nada)»**, **encima** del botón que pone la hora. **Ese orden es el
+arreglo**: no se puede decidir si se toca un reloj sin ver antes lo que tiene.
+
+> 🔴 **HASTA HOY LA ÚNICA FORMA DE LEER EL RELOJ ERA MANDARLO.** El acuse de poner la hora devuelve
+> la hora releída del chip, así que **comprobar si el cruce estaba en hora obligaba a cambiársela** —
+> y con eso **se perdía justo el dato que se buscaba: cuánto se había desviado.**
+
+**Qué hace, exactamente:** el módulo del poste conectado **relee su reloj en ese instante** y lo
+contesta. **No cambia nada** —ni el reloj, ni una luz, ni un modo—, **no pide PIN** y se puede hacer
+con el cruce en marcha. Ni siquiera llega a la controladora del semáforo.
+
+### 5.7.1 Son TRES relojes, no dos, y por eso se pueden comparar los dos postes
+
+**Hay dos relojes por cruce —uno por poste, cada uno con su pila— y NADA los sincroniza ni los
+compara.** Los dos módulos no se hablan entre sí, así que **ninguno puede leer el reloj del otro**:
+la comparación **la hace la app, visitando los dos postes**.
+
+El desfase entre los dos sale de **restar el error de cada poste contra el reloj del teléfono**, y por
+eso **la caminata entre postes se cancela**: da igual que pasen dos minutos o dos días.
+
+> ⚠️ **Y el reloj del teléfono también sale escrito, que es la tercera columna y no es adorno.** Un
+> teléfono con la hora automática apagada, o en otra zona horaria, **deja los dos postes “desviados”
+> por igual y el desfase entre ellos perfecto**. Sin esa columna, quien lea el parte mañana no puede
+> distinguir un cruce en hora de un cruce que coincide con un teléfono equivocado.
+
+### 5.7.2 El procedimiento de los DOS postes
+
+1. Conéctese al **POSTE 1** y pulse **🔎 Consultar reloj**. La app anota lo leído.
+2. Vaya al **POSTE 2**, conéctese y **pulse otra vez**.
+3. La app publica en el registro **las tres horas** y, con los dos postes vistos, **el desfase medido
+   entre los dos relojes del cruce**, con la marca de la hora a la que se tomó cada lectura.
+
+**Cuatro respuestas posibles, y ninguna se confunde con otra:**
+
+| lo que sale | qué significa |
+|---|---|
+| las tres horas **y el desfase en segundos** | listo. **Por encima de 5 s la app dice `REVÍSELO`**: son dos relojes independientes con pila propia y **nada los vuelve a juntar solo** |
+| las tres horas y **`FALTA <el otro poste>`** | sólo se ha visto un poste. **Con un solo poste NO se ha validado el cruce** |
+| **`NO CONSTA EN ESTA SESIÓN`** en la columna del otro poste | la app no vio ese poste en esta sesión — que **no es lo mismo** que decir que el poste está mal |
+| uno de los **ocho motivos** de la tabla de abajo | el reloj de ese poste **no entregó una hora fiable**, y se dice cuál es el problema |
+
+> 🛑 **ESTA LISTA VIVE EN MEMORIA Y NO SOBREVIVE A QUE ANDROID CIERRE LA APP.** Aguanta la caminata
+> entre postes, que es para lo que existe. **Si la app se cerró entre poste y poste, hay que repetir
+> los dos.**
+
+> ⚠️ **Si no llega ningún acuse**, ese poste **no tiene módulo de expansión detrás del conector** y su
+> hora **no se puede consultar desde aquí**.
+
+### 5.7.3 Los OCHO motivos por los que puede no entregar la hora — y dónde está el arreglo
+
+> 🔴 **LOS OCHO EMPIEZAN POR LO MISMO: LA HORA NO SE PINTA.** Un módulo de reloj sin pila entrega una
+> fecha **perfectamente formada y falsa**, así que la única salida honesta de todos ellos es la
+> misma —**no hay hora que enseñar**— y lo que cambia detrás es **el arreglo**. *Un cero con forma de
+> hora es peor que un hueco, porque el hueco no engaña a nadie.*
+
+| motivo | dónde está el arreglo |
+|---|---|
+| **nunca se puso la hora** | 🟢 **en el bolsillo**: no es una avería, es que nadie se la ha puesto desde que el módulo arrancó. Se arregla con el botón de sincronizar, ahí mismo |
+| **oscilador parado** | 🔧 **en la caja**: es la **pila** del módulo de reloj. Se cambia **y luego** se pone la hora — ponerla sin cambiar la pila la pierde otra vez al primer corte |
+| **el reloj no responde** | 🔧 **destornillador**: módulo desenchufado, mal cableado, o las dos líneas del bus cruzadas. **No se arregla repitiendo la orden** |
+| **escritura a medias** | 🟢 **repítalo**: una puesta en hora anterior se cortó a mitad y el módulo se quedó con parte vieja y parte nueva. **Vuelva a sincronizar y compruebe que esta vez acusa bien** |
+| **formato de 12 horas** | 🟢 **sincronice**: leída así, la hora puede ir **hasta DOCE horas equivocada con el módulo perfectamente sano**. Se corrige al sincronizar |
+| **registros incoherentes** | ⚠️ **son DOS averías y el equipo no las distingue**: una puesta en hora cortada —se arregla sincronizando— o un módulo que devuelve basura —se cambia—. **Pruebe lo primero; si vuelve a salir, es lo segundo** |
+| **el módulo se contradice** | 🛑 **NO es una avería del reloj y no se arregla en el poste**: es un defecto del firmware del módulo. **Anote la hora y el poste, repórtelo, y no toque el reloj** |
+| **motivo no contemplado** | ⚠️ el módulo dio un motivo que **ni la app ni su propio despachador saben nombrar**. Firmware más nuevo que esta APK, o un caso que nadie cableó. **No dé la hora de ese poste por buena** |
+
+### 5.7.4 🛑 Lo que esta consulta NO hace
+
+**No sincroniza nada.** Hace **visibles** los dos relojes; no los junta. **Los dos siguen corriendo
+libres** desde que un técnico le tecleó la hora a cada uno, en ese poste, en esa visita — y **nada
+del equipo los vuelve a juntar solo**.
+
+> **MEDIDO el 05/09:**
+>
+> ```bash
+> grep -n "id=\"btn-leer-rtc\"" 05_Funcional/App_Semaforo/www/index.html
+> grep -n "function textoRelojDelCruce" 05_Funcional/App_Semaforo/www/app.js
+> grep -n "CMD_LEER_RTC" 01_Firmware/ESP32_Expansion/src/despachador.cpp
+> ```
+>
+> *(Comprobado el 05/09: los dos primeros devuelven **una** línea cada uno. Y la orden **NO se
+> reenvía a la controladora del semáforo**: si se reenviara, las dos puntas contestarían una
+> acusación de clave equivocada **cada vez que alguien pregunta la hora**.)*
 
 ---
 
