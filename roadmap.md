@@ -97,6 +97,48 @@ cable, y conviene un segundo terminal emparejado.
 
 ---
 
+## 0.0.duodetricies EL PAQUETE SALIÓ — y lo que ese `.zip` NO autoriza
+
+**`Paquete_IOT_VIAL_Semaforos_2026-09-05_0ec94ef_SIN_BANCO.zip`**, 8,3 MB, 319 entradas.
+**32 commits** en la sesión. Compuerta `20 PASS · 0 FALLA · 0 ABORTADO`, árbol limpio.
+
+Comprobado **sobre el propio zip**, no sobre la intención: **cero artefactos de compilación**, el
+md5 del binario de dentro **igual** al del disco, el LEEME **cita el nombre exacto** de la APK que
+le acompaña, y **dice «¿Ha pasado banco? NO» en su segundo apartado**.
+
+> 🔴 **ES UN ENCARGO DE BANCO, NO UNA ENTREGA DE VERSIÓN.** No entrega nada: **pide** que alguien
+> ponga la tarjeta delante. En campo sigue corriendo **`e303485`, del 31 de julio**, y **nada de
+> esta sesión ha tocado una tarjeta**.
+
+### Lo que sigue sin cumplirse, y es lo único que bloquea
+
+**El manual del «doble» existe — pero la condición no la cierra un commit, la cierra la firma.**
+El hueco está en el documento con dos preguntas que se pueden contestar «No», y si sale «No», el
+apartado vuelve a redacción. Hasta entonces `TECHO_POR_SUELO` **no debería salir en un paquete**.
+
+### Dos trampas del empaquetado medidas al final, y una borra el Bluetooth
+
+1. 🔴 **`assets/public` NO es `www`:** tiene tres ficheros más que no vienen del repositorio, y uno
+   es **el plugin por el que la app abre el socket SPP**. `cp -r www/.` **añade y pisa, no borra**;
+   un `rm -rf` antes de copiar —*el reflejo natural de «dejarlo limpio»*— se lo lleva por delante y
+   **la APK compila igual y arranca sin poder conectar**. Y esta vez **ningún `<script src=>`
+   delataría la ausencia**.
+2. 🟠 **El tamaño engañó en la dirección contraria a la conocida:** **154 B** de diferencia por un
+   cambio que añade ~300 caracteres. *«Prácticamente el mismo tamaño, será la misma»* habría sido
+   la conclusión.
+
+### Y el balance de la sesión, contado como se cuenta aquí
+
+| | |
+|---|---|
+| **defectos de firmware cerrados** | el `$STATUS` que no cabía · el corte de 15 s · los tiempos que el Modo Inteligente tiraba · el pin vacío que alarmaba · la cámara que no podía sostener una fase · el Degradado sin puerta |
+| **defectos de INSTRUMENTO cerrados** | `app_11` que no juzgaba nada · `botones.cpp` que no se compilaba en ningún arnés · `TROUBLESHOOTING` y `FIRMWARE` sin vigilante |
+| **defectos que ningún instrumento podía ver** | el diálogo con una salida imposible · el formulario de firma que volvía inservible · el ejemplo de trama con el checksum bien y tres campos de menos |
+| **correcciones a MIS datos** | **siete**, y **cero cazadas por mí** |
+
+**Las siete las cazaron los agentes, y las siete por la misma frase del encargo.** Si de esta
+sesión hay que llevarse una sola cosa al método, es ésa — y no es un pack.
+
 ## 0.0.septvicies LA SEGUNDA VUELTA — documentos, y tres defectos que ningún pack podía ver
 
 Cerrado el firmware, se barrió todo lo que lo describe. **Y de los tres defectos que aparecieron,
