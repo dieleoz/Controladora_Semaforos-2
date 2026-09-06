@@ -3,11 +3,11 @@
 ## 1. Qué es esto
 
 **Firmware Y APK.** En campo corre `V8.4`, commit `e303485`, **del 31/07/2026**. Este paquete
-es **`ada9357`**.
+es **`bfc8800`**.
 
-> ⚠️ **La APK dice `7586c46` y el paquete `ada9357`. No es un descuido:** se compiló sobre
+> ⚠️ **La APK dice `7586c46` y el paquete `bfc8800`. No es un descuido:** se compiló sobre
 > `7586c46` y los commits siguientes **sólo tocan documentos**, verificado con
-> `git diff --name-only 7586c46..HEAD -- 05_Funcional/App_Semaforo/`, que sale **vacío**. **El
+> `git diff --name-only 7586c46..bfc8800 -- 05_Funcional/App_Semaforo/`, que sale **vacío** (corrido ahora). **El
 > nombre lleva el commit del que salió el binario, no el de cuando se empaquetó**: al revés
 > sería decir que se midió algo que no se midió.
 
