@@ -3,11 +3,11 @@
 ## 1. Qué es esto
 
 **Firmware Y APK.** En campo corre `V8.4`, commit `e303485`, **del 31/07/2026**. Este paquete
-es **`dda59a2`**, que es el commit del que sale **todo el contenido de este `.zip`**.
+es **`517531d`**, que es el commit del que sale **todo el contenido de este `.zip`**.
 
 > *(Nota mecánica, por si alguien la busca: la línea que acaba de leer se comiteó en el commit
 > siguiente —un fichero no puede contener el hash del commit que lo contiene—. El firmware, los
-> manuales y el acta de este paquete son los de `dda59a2` exactamente.)*
+> manuales y el acta de este paquete son los de `517531d` exactamente.)*
 
 > ⚠️ **La APK dice `7586c46` y el paquete `bfc8800`. No es un descuido:** se compiló sobre
 > `7586c46` y los commits siguientes **sólo tocan documentos**, verificado con
