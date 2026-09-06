@@ -97,6 +97,75 @@ cable, y conviene un segundo terminal emparejado.
 
 ---
 
+## 0.0.septvicies LA SEGUNDA VUELTA — documentos, y tres defectos que ningún pack podía ver
+
+Cerrado el firmware, se barrió todo lo que lo describe. **Y de los tres defectos que aparecieron,
+ninguno estaba en el código: los tres estaban en lo que la gente lee.**
+
+### 🔴 1 · El diálogo de la app daba una salida QUE NO EXISTE en el poste al que se aplica
+
+Decía *«Para salir: **VOLVER AL MENÚ**»*, y `SET_MODO:MENU` **sólo lo atiende el Poste 1** — la
+propia app la frenaría. La frase se escribió cuando el modo era sólo del Maestro; **`D-18` lo
+abrió al Esclavo esa misma noche y la frase se quedó.**
+
+> **Un operario que la siga se queda sin poder sacar al Poste 2 del modo** — subido a un poste, y
+> en **el único modo que da verde sin confirmar la otra punta**.
+
+Es §2.ter en la interfaz: una función **declarada** —*«para salir, haga esto»*— que nadie había
+**ejercido** contra la punta nueva. Y **ningún pack podía verlo**: ninguno lee el texto de un
+diálogo contra el enrutado por punta. Lo encontró **el agente que escribía el manual**, al
+intentar explicar el botón.
+
+### 🔴 2 · El formulario de firma volvía INSERVIBLE en `.docx`
+
+`convertir_a_word.py` **colapsa una tirada de líneas `>` en UN solo párrafo**: las tablas de
+dentro se vuelven una ristra de barras y los encabezados desaparecen. El bloque de firma —**la
+condición del responsable**— caía en **un párrafo**. Reescrito sin blockquote: ahora es una tabla
+de Word de 9 filas con celdas vacías, y el manual pasa de 12 a **17 tablas**.
+
+**En pantalla se veía perfecto y volvía inservible**, que es §4.quater exacta.
+
+### 🔴 3 · El empaquetador NO regenera los `.docx`: sólo comprueba que EXISTAN
+
+Un `.md` editado y un `.docx` viejo **se empaquetan juntos sin que nada avise**, y **el funcional
+firma un documento sin la sección**. Hoy se salvó porque el conversor se corrió a mano antes de
+armar el `.zip` — **eso era suerte de procedimiento, no una red**.
+
+### Lo que se corrigió de cobre, y por qué el motivo importa más que el dato
+
+El manual mandaba en dos sitios cablear la cámara a **`J14`**, y el 05/09 se decidió **`J16`**.
+Corregido — **y con el motivo que lo hace no arbitrario**:
+
+> **El vigilante mira `J16` y no mira `J14`.** Con la cámara en `J14` funcionaría —pide paso—
+> pero **nadie sabría nunca si se ha estropeado**.
+
+`J14`/`PB0` **se conserva vivo** y es el mejor candidato a fin de carrera de barrera: es **el
+único pin de entrada con antirrebote por hardware** (≈ 1 ms), y un contacto mecánico es justo lo
+que rebota.
+
+### El manual del «doble» existe, y no lo cierra un commit
+
+La frase que se lleva el operario:
+
+> **El verde no se acorta nunca. Sólo se alarga — y sólo cuando al otro lado no espera nadie.**
+
+Y el criterio para distinguirlo de una avería **sin instrumentos**, que es la parte útil:
+**póngalo en Automático y mire dos o tres ciclos**. Vale porque es **la propiedad de seguridad
+convertida en prueba de campo** — con las cámaras muertas el modo ES el Automático, así que
+ponerlo en Automático **es apagar las cámaras a mano**.
+
+🔴 **Lo cierra la firma del funcional, no el commit.** El hueco está en el documento con dos
+preguntas que se pueden contestar «No» — y si sale «No», el apartado vuelve a redacción.
+
+### Y la cuenta de las correcciones a MIS datos: SIETE, y cero cazadas por mí
+
+La séptima: dije que `protocolo_tramasDescartadas()` **no tiene un solo llamador**. Tiene **dos**,
+en el Esclavo; es huérfana **sólo en el Maestro**, y un pack lo decía con esas palabras desde
+agosto. **Escrito como yo lo dije habría sido un defecto INVENTADO.**
+
+**Las siete las cazaron los agentes.** Y las siete por la misma frase en el encargo: *«todo lo que
+te he escrito es un instrumento, no una medida — si algo es falso, dilo»*.
+
 ## 0.0.sexvicies EL CIERRE DE LA NOCHE DEL 05/09 — 18 commits, y el arquitecto dijo NO AVALO
 
 **Compuerta `20 PASS · 0 FALLA · 0 ABORTADO`, dos pasadas seguidas con el árbol quieto.** Y ese
