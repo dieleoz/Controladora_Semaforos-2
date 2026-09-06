@@ -738,6 +738,151 @@ Para garantizar comunicación inquebrantable en zonas de montaña con alta inter
 
 ## 6. Integración de Cámaras IA AcuSense para Demanda Vehicular (Modo Inteligente)
 
+### 🟢 EL VERDE DURA DISTINTO EN CADA CICLO. **ESO NO ES UNA AVERÍA.**
+
+**Léalo antes de reportar nada.** Si sólo puede leer una frase, es la del recuadro de abajo.
+
+#### ❓ La pregunta que trae aquí a casi todo el mundo: *«¿por qué este verde está durando más que el de antes?»*
+
+**Porque hay una cámara mirando ese carril, ha visto que todavía están pasando vehículos, y al otro
+lado no hay nadie esperando.** El equipo aprovecha y deja el verde puesto un rato más. En cuanto
+aparece alguien al otro lado, cambia.
+
+Es lo único que hacen las cámaras en este equipo. **Nada más.**
+
+> # 🟩 EL VERDE NO SE ACORTA NUNCA. SÓLO SE ALARGA — Y SÓLO CUANDO AL OTRO LADO NO ESPERA NADIE.
+
+Esa frase es toda la regla. Quien la repita de memoria ya sabe operar este modo.
+
+---
+
+#### 🔢 Con números, que es como se entiende de verdad
+
+**Usted configura el verde desde la app. Pongamos 4 minutos**, porque este tramo es largo.
+
+| lo que puede ver con el cronómetro | qué es |
+|---|---|
+| **4 minutos exactos** | normal: al otro lado hay alguien esperando, o en el suyo ya no queda nadie |
+| **5, 6, 7 minutos** | normal: sigue pasando gente por su carril y enfrente no espera nadie |
+| **8 minutos** | **el máximo.** Ahí corta, haya lo que haya. **Mantener no es indefinido** |
+| **menos de 4 minutos** | 🛑 **eso NO lo hace este equipo. Repórtelo** |
+| **más de 8 minutos** | 🛑 **eso tampoco. Repórtelo** |
+
+**La cuenta es siempre la misma: entre el tiempo que usted configuró y su DOBLE.** Configure 3 y
+verá entre 3 y 6. Configure 6 y verá entre 6 y 12.
+
+⚠️ **Con tiempos largos el doble no cabe, y entonces se recorta.** El equipo no admite fases de más
+de **15 minutos**, así que con **8 minutos configurados** el máximo no son 16: son **15**. Y con
+**15 configurados el modo ya no puede alargar nada** — se comporta igual que el Automático. **No
+está roto: es el tope haciendo su trabajo.**
+
+---
+
+#### ✅ LAS TRES COSAS QUE MÁS SE REPORTAN COMO AVERÍA Y NO LO SON
+
+| lo que se ve | por qué es normal |
+|---|---|
+| **El verde dura más de lo que está configurado** | es exactamente para lo que se pusieron las cámaras |
+| **El verde dura distinto en cada ciclo** | depende del tráfico que haya en ese momento. **Dos ciclos seguidos casi nunca duran lo mismo** |
+| **Un poste da verdes largos y el otro no** | cada sentido tiene **su propio tiempo configurado** y **su propia cámara**. Si en un lado hay obra y en el otro no, las duraciones no tienen por qué parecerse |
+
+**Y una cuarta, que no es de este modo pero se reporta junto con él:** las luces de peatón y el
+zumbador **no encienden nunca**. Están en la placa y el programa no los mueve. Ver §1.
+
+---
+
+#### 🔧 CÓMO SE DISTINGUE ESTO DE UNA AVERÍA DE VERDAD — sin instrumentos y en dos minutos
+
+**Póngalo en Modo Automático desde la app** (el botón `AUTOMÁTICO` de la botonera) **y mire dos o
+tres ciclos.** El Modo Automático **no mira ninguna cámara**: reparte por tiempo y siempre igual.
+
+| lo que pasa en Automático | qué significa |
+|---|---|
+| 🟢 **Los verdes salen regulares y todos iguales** | **el equipo está bien.** Lo que veía era el Modo Inteligente trabajando. Devuélvalo a Inteligente y siga |
+| 🔴 **Siguen saliendo raros, cortos o desiguales** | **es una avería, y no tiene nada que ver con las cámaras.** Repórtelo con esas palabras: *«también pasa en Automático»*. Esa frase sola ahorra medio día de búsqueda |
+
+**Por qué esta prueba vale, y no es un truco:** el modo está construido de forma que **con las
+cámaras muertas se comporta exactamente igual que el Automático**. Una cámara sólo puede añadir
+tiempo; si no dice nada, no añade nada. Poner el equipo en Automático es, en la práctica, **apagar
+las cámaras a mano** y ver qué queda debajo.
+
+##### 🛑 Y lo que se para SIEMPRE, en cualquier modo y sin pensarlo
+
+**Verde en los dos postes a la vez, aunque sea un instante: corte la alimentación y avise.** Eso no
+es un tiempo raro — es la única cosa de esta página que puede hacer daño.
+
+**También se reporta, sin esperar a nada:** el cruce **no cambia nunca** y se queda fijo en un
+color; o un poste queda **en rojo permanente** mientras el otro cicla.
+
+---
+
+#### 📷 SI UNA CÁMARA SE ESTROPEA
+
+**No pasa nada grave, y ésta es la parte tranquilizadora:** una cámara **pide** paso, **nunca lo
+autoriza**. Si se rompe, se queda sin corriente o alguien le corta el cable, deja de pedir — y el
+cruce **vuelve a repartir por tiempo, como si no hubiera cámara**. Se pierde el alargue; no se
+pierde la seguridad.
+
+**Y el equipo avisa por la app** cuando una de las dos entradas de cámara deja de comportarse:
+
+| aviso | cuándo aparece | qué hacer |
+|---|---|---|
+| **`CAM_PEGADA`** | el contacto lleva **20 minutos** cerrado sin abrirse ni una vez | ir a mirar. Puede ser el relé trabado… **o un vehículo parado ahí debajo**, que también es normal |
+| **`CAM_CIEGA`** | **6 horas de paso abierto** sin ver un solo vehículo | ir a mirar la cámara: tapada, desenfocada, sin corriente o con el cable cortado |
+
+🛑 **Ninguno de los dos para el cruce ni le cambia nada.** Son avisos de mantenimiento: **un cruce
+no se para por una cámara sucia.** El detalle completo está más abajo, en este mismo apartado.
+
+> 🟡 **HAY UN CAMBIO DECIDIDO Y TODAVÍA NO HECHO, y se escribe aquí para que nadie lo dé por puesto.** El plazo de `CAM_CIEGA` está **decidido subirlo de 6 h a 4 días de paso abierto**, y que además el Modo Inteligente **se declare averiado** y pida que revisen la cámara. El motivo es bueno: una cámara rota no se arregla rápido, y una alarma que salta un domingo sin tráfico manda a alguien a un poste sano. **Pero eso NO está en el firmware de hoy: hoy son 6 horas, y es lo que va a ver.** La decisión está anotada en `roadmap.md` y **no está implementada**; el número de este manual es el que el equipo ejecuta de verdad.
+
+---
+
+#### 🟥 PENDIENTE DE REVISIÓN POR UN FUNCIONAL — este apartado NO está aprobado todavía
+
+**El responsable autorizó que el verde pueda alargarse hasta el doble con una condición literal:**
+
+> *«el doble **si un funcional revisa el manual y este manual de uso es claro**»*
+
+**Esa firma es lo que cierra la condición; no la cierra el hecho de que este texto exista.**
+Mientras el recuadro de abajo esté vacío, **el alargue hasta el doble no está aprobado para salir a
+la calle.**
+
+| a rellenar por quien revisa | |
+|---|---|
+| **Nombre y cargo** | ____________________________________________________ |
+| **Fecha** | ________ / ________ / ____________ |
+| **¿Le resulta claro por qué el verde dura distinto en cada ciclo?** | ☐ Sí       ☐ No |
+| **¿Sabría, con esto delante, distinguirlo de una avería?** | ☐ Sí       ☐ No |
+| **¿Echa en falta algo? ¿Qué no se entiende?** | ____________________________________________________ |
+| | ____________________________________________________ |
+| | ____________________________________________________ |
+| **Firma** | ____________________________________________________ |
+
+🛑 **Si alguna casilla sale «No», el apartado vuelve a redacción y el doble sigue sin aprobar.** Una
+revisión que sólo puede decir que sí no es una revisión.
+
+---
+
+##### ✏️ De dónde sale cada número de arriba — no hace falta para operar
+
+Es para quien mantenga este documento. El suelo, el doble y la saturación a los máximos viales
+están en `Maestro/src/modo_inteligente.cpp`, en los símbolos `TECHO_POR_SUELO`, `sueloMin` y
+`topeMin`, con el rango vial en `Maestro/include/limites_ciclo.h` (`VERDE_MIN_MIN` = 3,
+`VERDE_MIN_MAX` = 15). El plazo de la cámara ciega es `CAM_CIEGA_MS`, en el `botones.cpp` de las
+**dos** puntas: `21600000UL`, que son las 6 h.
+
+**No se citan números de línea a propósito** —caducan solos y esos ficheros se están tocando hoy
+(`CLAUDE.md` §4.sexies)—. Se encuentran con
+`grep -n TECHO_POR_SUELO 01_Firmware/Maestro/src/modo_inteligente.cpp`.
+
+**Lo que ejerce todo esto sobre el C++ real** —no sobre un modelo en Python— son los **Bloques E y
+F** de `01_Firmware/Validacion_Automatico`, que releen las dos constantes del fuente en cada corrida
+y miden las fases con el `modo_inteligente.cpp` de verdad compilado, incluido el control negativo
+*«sin ninguna cámara, el verde dura el suelo»*. **Y eso sigue sin ser una prueba de banco:** ver el
+recuadro del final de este manual.
+
+---
+
 Para detección inteligente de flujo vehicular en pasos alternados de obra sin requerir computadores externos en el remolque:
 * **Conexión Hardware:** Salida de alarma de relé de la cámara (`1A`/`1B`) a la bornera **`J14`**:
   un hilo a **`p1`** (`/Puerta` → **`PB0`**) y el otro a **`p2`** (**`3,3 V`** del propio conector).
@@ -948,10 +1093,37 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 >   Externos»*.
 > - ✅ **31/08 — y sigue valiendo «0, 1 o 2» aunque ahora haya tres entradas de cámara.**
 >   **MEDIDO** en `Maestro/src/modo_inteligente.cpp:124`: ese número suma **sólo `PB0` y la demanda
->   remota**. Las cámaras `C` y `D` de `J16` **entran por otra puerta** —un flanco que llama a
+>   remota**. ~~Las cámaras `C` y `D` de `J16` **entran por otra puerta** —un flanco que llama a
 >   `demanda_solicitar()`, `botones.cpp:128-130`— y **no suben ese contador**. Es decir que
->   **«Autos: 2» sigue siendo el máximo** y una demanda por `J16` **no se ve reflejada ahí**. Se
+>   **«Autos: 2» sigue siendo el máximo** y una demanda por `J16` **no se ve reflejada ahí**.~~ Se
 >   escribe porque lo contrario es lo que un lector supondría solo.
+>
+>   > 🔴 **CADUCADO EL 05/09 — LA MITAD TACHADA YA NO ES CIERTA, Y ERA UN DEFECTO REAL MIENTRAS LO
+>   > FUE.** El techo, el suelo y **el contador de presencia** se rehicieron con `A-12`. **Medido
+>   > hoy** sobre `Maestro/src/modo_inteligente.cpp`: la lectura de la pantalla ya **no** es una
+>   > segunda llamada a `camara_leerPin(CAM_DEMANDA_PIN)`; el modo lee las tres entradas **una sola
+>   > vez por vuelta** en `demandaLocalS1`, **incluida `camara_presenciaJ16()`**, y `presenciaActual`
+>   > se calcula sobre esa misma variable. **Así que una demanda por `J16` SÍ sube el contador hoy.**
+>   >
+>   > ```
+>   > grep -n "camara_presenciaJ16\|presenciaActual" 01_Firmware/Maestro/src/modo_inteligente.cpp
+>   > 176:      //   J16 / CAM_C_PIN y CAM_D_PIN  -> POR NIVEL, con camara_presenciaJ16(), que
+>   > 206:                                   || camara_presenciaJ16()
+>   > 288:      int presenciaActual = (demandaLocalS1 ? 1 : 0) + (demandaRemotaS2 ? 1 : 0);
+>   > 290:      if (strcmp(actual, estadoAnt) != 0 || presenciaActual != presenciaAnt) {
+>   > 291:        lcd_dibujarInteligente(actual, presenciaActual, true);
+>   > 293:        presenciaAnt = presenciaActual;
+>   > ```
+>   >
+>   > **Lo que NO cambia es el «0, 1 o 2»**, que es lo que este punto vino a decir: sigue siendo una
+>   > suma de **dos** banderas —esta punta y la otra—, no una cuenta de vehículos. **Y por qué
+>   > importaba:** con la lectura vieja el operario podía ver el cruce manteniendo un verde **y un
+>   > cero al lado**, que es exactamente el síntoma que este manual existe para que nadie reporte
+>   > como avería.
+>   >
+>   > *(El `:124` de la línea de arriba **también caducó**: hoy ese fichero tiene 295 líneas. Se
+>   > conserva para que se vea de dónde venía la cifra, y no se renumera —`CLAUDE.md` §4.sexies:
+>   > renumerar a mano genera números que caducan otra vez en una semana.)*
 >
 > **Se escribe aquí porque este manual es el «Ground Truth».** Un técnico que lea *«Autos: 2»*
 > creyendo que hay dos vehículos contados está leyendo otra cosa: hay demanda en las dos puntas.
