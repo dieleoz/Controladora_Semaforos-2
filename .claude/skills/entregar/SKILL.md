@@ -73,7 +73,7 @@ entregable sin borrarlo.
 
 ```bash
 cd 05_Funcional/App_Semaforo
-cp www/app.js www/index.html www/style.css android/app/src/main/assets/public/
+cp -r www/. android/app/src/main/assets/public/   # LOS 13, no tres - ver abajo
 printf 'sdk.dir=C:/android-sdk
 ' > android/local.properties
 cd android
@@ -81,6 +81,18 @@ export JAVA_HOME="D:/@Proyect/Baliza/7 sw apk/jdk-17/jdk-17.0.12+7"
 ./gradlew clean assembleDebug --offline
 # sale en app/build/outputs/apk/debug/app-debug.apk
 ```
+
+> 🔴 **QUINTA TRAMPA, y la encontro la corrida del 05/09: LA RECETA COPIABA 3 FICHEROS DE LOS
+> 13 QUE TIENE LA APP.** `cp www/app.js www/index.html www/style.css` deja fuera
+> `manifest.json`, `sw.js`, `css/variables.css` y **los SIETE `js/*.js`** — que no son
+> opcionales: `index.html` los carga con siete `<script src="js/...">`. Y uno de ellos,
+> **`js/nmea_parser.js`, lo toco el propio commit del campo `CAM:` esa misma noche**.
+>
+> No hizo dano porque se midio la sincronia de las tres copias ANTES de compilar y ya estaba
+> puesto por otra via, **pero la receta sola no lo garantizaba**. Es §5 en version APK: el
+> instrumento direcciona por ruta y la lista se quedo corta. **Se copia el arbol entero, no una
+> lista de ficheros** — una lista envejece cada vez que la app gana un modulo, y falla en
+> silencio: la APK compila igual y arranca rota.
 
 **Las cuatro trampas, todas medidas el 27/08:**
 

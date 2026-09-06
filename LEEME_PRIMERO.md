@@ -1,94 +1,117 @@
-# LÉEME PRIMERO — paquete del 05/09/2026, madrugada
+# LÉEME PRIMERO — paquete del 05/09/2026, noche
 
 ## 1. Qué es esto
 
-**Firmware Y APK.** En campo corre `V8.4`, commit `e303485`, del 31/07/2026. Este paquete
-es `42a52cd`.
+**Firmware Y APK.** En campo corre `V8.4`, commit `e303485`, **del 31/07/2026**. Este paquete
+es **`b24af87`**.
 
-Sale de la sesión de banco de anoche, y **casi todo lo de aquí lo destapasteis vosotros**:
-tres de los cinco defectos salieron de una **cinta de tramas** y de un **diario de
-órdenes**, no de una revisión nuestra.
+> ⚠️ **Y la APK dice `c02be59` en su nombre, que es un commit ANTERIOR. No es un descuido:**
+> se compiló sobre `c02be59` y los dos commits siguientes **sólo tocan documentos** —
+> `CLAUDE.md`, `roadmap.md` y la skill de entrega—, verificado con `git diff --name-only
+> c02be59..HEAD -- 05_Funcional/App_Semaforo/`, que sale **vacío**. **El nombre lleva el commit
+> del que salió el binario, no el de cuando se empaquetó**: al revés sería decir que se midió
+> algo que no se midió.
 
 ## 2. ¿Ha pasado banco? **NO.**
 
-Con esas palabras. La compuerta sale **20 PASS · 0 FALLA · 0 ABORTADO** y el banco por
-packs **1025/1025 en 71 packs**. Eso dice que *los modelos y los arneses de PC no
-encuentran nada*. **No dice que el firmware funcione en la tarjeta.**
+Con esas palabras. La compuerta sale **20 PASS · 0 FALLA · 0 ABORTADO** y el banco por packs
+**1161/1180 en 76 packs**. Eso dice que *los modelos y los arneses de PC no encuentran nada*.
+**No dice que el firmware funcione en la tarjeta.**
 
-Y anoche hubo dos pruebas de ello: **el defecto del ámbar pasó las 20 comprobaciones sin
-despeinarlas** —lo encontró vuestra cinta— y **el del Modo Manual también**.
+> 🔴 **Y esta noche hay una prueba concreta de ello, que conviene leer entera:** durante horas la
+> compuerta estuvo en `19 PASS · 1 FALLA`, **y ese `FALLA` era el hallazgo más útil del día** — el
+> Modo Inteligente podía cortar un verde a los 15 s, por debajo del mínimo vial de 3 minutos. Se
+> ha ido porque **se arregló el firmware**, no porque nadie mire.
 
-## 3. 🎯 Qué probar con esta carga
+**Nada de este paquete ha tocado una tarjeta.** En concreto: `camara_estado()` **nunca se ha
+ejercido con cobre en `J16`**, y ningún banco ha visto una alarma `CIEGA` ni `PEGADA` de verdad.
+
+## 3. 🛑 Lo que hay que hacer ANTES de enchufar nada
+
+**El firmware nuevo tiene que estar CARGADO Y VERIFICADO en la tarjeta antes de que nadie
+conecte una cámara a `J16`.** No es «el mismo commit»: **un commit no protege de un
+destornillador**. Con el firmware viejo dentro, lo que se enchufe en `J16` p10 puede pulsar
+*Aceptar* en un equipo que está en la calle.
+
+**Y `J16` p1 lleva 12 V CRUDOS** — sin opto, sin resistencia, sin clamp, directo al micro.
+**Taparlo es obligatorio en cada equipo que se monte**, no una cautela de banco.
+
+## 4. 🎯 Qué probar con esta carga
 
 | | qué hacer | resultado bueno |
 |---|---|---|
-| **El ámbar que no entraba** | ÁMBAR → **ROJO TOTAL** → **ÁMBAR otra vez** | la segunda vez **entra**, y la app dice **«ya estaba y se ha vuelto a encender»**, no un OK igual que el primero |
-| **DAR PASO en Manual** | entrar en Manual y pulsar **enseguida**, sin esperar | **cambia a la primera**. Antes se rechazaba durante 15 s |
-| **Manual quieto** | entrar en Manual y **no tocar nada** un minuto | **no se mueve solo**. Antes cambiaba a los 15 s |
-| **El ámbar del Poste 2** | pedir ámbar desde el teléfono **junto al Esclavo** | el **Maestro se va a ámbar también**, en el acto y no a los 25 s |
-| **El Esclavo en pantalla** | conectarse al **Maestro** | se ven **los dos postes**. Si el enlace cae, dice **«SIN DATO DEL POSTE 2»** — no se inventa un color |
-| **La hora** | mirar la tarjeta de sincronizar reloj | dice lo que el equipo tiene: una hora, o **«SIN HORA PUESTA»** |
+| **La cámara mueve el cruce** | cerrar `J16` p10 contra p9 (3,3 V) con el equipo en **Modo Inteligente** | el verde de ese lado **se mantiene** mientras haya detecciones, hasta el doble del tiempo configurado |
+| **Y NO lo acorta** | configurar 3 min y pedir paso desde la cámara enseguida | **no cambia antes de los 3 min**. Antes cortaba a los **15 s** |
+| **Sin cámaras se porta como el Automático** | dejar `J16` desconectado y correr en Inteligente | ciclo normal con los tiempos configurados. **Si esto falla, para y avisa** |
+| **El pin vacío NO alarma** | con **una sola** cámara conectada, esperar | **no puede salir `CAM_CIEGA` del pin vacío**. Si sale, es un defecto |
+| **La cámara pegada sí alarma** | puentear p10 y dejarlo **20 min** | llega `$ALARM … CAM_PEGADA`. Quitar el puente → `CAM_C_RECUPERADA` |
+| **El Degradado del poste 2** | desde la app, pedir Modo Degradado **en el Esclavo** | entra, **o dice por qué no** con uno de sus seis motivos. Y **se ve en la pantalla de la app** |
+| **La hora** | consultar reloj de maestro, esclavo y celular | los tres, y el desfase entre ellos |
 
-## 4. 🛑 Dos avisos, para que nadie reporte un defecto que no existe
+**Los pasos con sus casillas están en la Guía de Cableado y Pruebas de Banco**, que se rellena y
+**se devuelve en PDF**. Ese PDF es el formulario de vuelta: lo que no salga en él, no se contesta.
 
-**LA HORA SEGUIRÁ SALIENDO `--:--:--` SI NO HAY UN DS3231 CONECTADO.** Eso es el arreglo
-**callándose bien**, no fallando. El reloj del STM32 está muerto (`Y2`, N-17), así que
-ahora la hora la pone el **DS3231 del ESP32** al pasar la trama. Pero la dirección I2C
-`0x68` está **SIN VERIFICAR sobre el módulo real** y **el DS3231 no está comprado**
-(línea A6 de la lista de compras). **Sin módulo en el bus, esta parte no se puede dar por
-probada.**
+## 5. 🛑 Avisos, para que nadie reporte un defecto que no existe
 
-**`BAT:--` en todas las tramas es correcto de momento.** La batería no se mide: no hay
-divisor ni entrada analógica que la lea. Aparece como pregunta abierta, **sin causa**,
-porque no la hemos medido.
+**`CAM: ?` («SIN COMPROBAR») es lo normal hasta la primera detección.** No es un fallo: **un pin
+que nunca ha dado una señal no se vigila**, a propósito. Por eso **el paso de instalación en que
+el instalador provoca una detección DEJA DE SER OPCIONAL** — es lo que arma el vigilante y lo que
+hace que `CAM:` pueda decir `OK`.
 
-## 5. Qué se arregló, y de dónde salió cada cosa
+**Las alarmas de cámara llevan `ACCION:NINGUNA`, y eso es un dato, no un hueco.** El cruce
+funciona **exactamente igual** con las dos alarmas puestas: son avisos de mantenimiento, no
+fallos de seguridad. **No se para un cruce por esto.**
 
-| | qué era | de dónde salió |
-|---|---|---|
-| **`N-146`** | 🔴 **el ámbar contestaba `OK` y no encendía nada.** Seis órdenes seguidas, seis OK, y el equipo en rojo durante 47 tramas. Entrar en ámbar sólo pasaba al **cambiar de modo**, y `ROJO TOTAL` cambia la luz sin cambiar el modo: después de un rojo total, **el botón de ámbar quedaba muerto para siempre** | **vuestra cinta de tramas** |
-| **`N-147`** | 🔴 **el Modo Manual hacía un ciclo que nadie pidió.** Entraba por la puerta del Automático. `DAR PASO` se rechazaba 15 s, y a los 15 s **el cruce cambiaba solo**. Los «15 segundos» que reportasteis son literales: `tiempoDespejeMs = 15000` | **vuestro reporte** |
-| **`N-147.b`** | y uno que nadie había visto: pulsar `DAR PASO` **reiniciaba** el contador de despeje. Pulsando cada 10 s **no se veía el verde nunca**, y cada pulsación contestaba OK | salió al medir |
-| **`N-142`** | 🔴 el Esclavo se ponía en ámbar y **el Maestro no se enteraba**: podía seguir dando **VERDE hasta 3 minutos** con el otro lado en ámbar | vuestro reporte |
-| **`N-149`** | el `$STATUS` del Maestro **no traía nada del Esclavo** | *«necesito que maestro me traiga los datos del esclavo»* |
-| **`N-148`** | el ámbar **no pedía confirmación de vía**. Y al medirlo: es la orden que **más** abre paso —pone intermitente en **los dos** extremos— | vuestro reporte |
-| **`N-145`** | la hora se mandaba al micro **sin reloj** | vuestra cinta |
+**`CAM_PEGADA` no sabe distinguir un relé trabado de un vehículo parado veinte minutos debajo de
+la pluma.** Las dos cosas piden que alguien vaya a mirar; por eso la causa dice `CONTACTO_FIJO`
+y no «avería».
 
-**El despeje entre verde y verde NO se ha tocado** (SFTY-4). Lo que se quitó es cobrarlo
-dos veces.
+**`BAT:--` sigue siendo correcto.** La batería no se mide: no hay divisor ni entrada analógica.
 
-## 6. 🔴 Lo que sigue abierto
+## 6. Qué cambió en la app, que es mucho
 
-**La matriculación de las dos puntas.** Hoy se hace mirando los **nombres** de los
-Bluetooth. Tiene que ser por **ID**, y sin hacerlo a mano. Está aplazado a después del
-banco, por decisión vuestra.
+**223 líneas.** Tarjeta nueva de **cámaras** (`OK` / `SIN COMPROBAR` / `CIEGA` / `PEGADA`),
+**Modo Degradado del poste 2** con su botón y sus seis motivos de rechazo, **consulta de reloj**
+de las dos puntas y del teléfono, y el **modo real del poste 2** en la trama, que antes era un
+texto fijo.
 
-**`MANDO_A` y `MANDO_B` no responden** — `0,6 V` en reposo (`N-118`), `J16` p5 y p8.
-**Van cableados**: con `MANDO_B` al aire, el ámbar local no se arma nunca y **se pierde
-el veto de SFTY-21** sin que ningún test lo diga.
+⚠️ **La APK anterior queda obsoleta.** La de este paquete es
+`IOT_VIAL_Semaforos_2026-09-05_c02be59_SIN_BANCO.apk`, y su contenido está verificado **entrada
+por entrada y por CRC** contra el repositorio: **0 nombres distintos, 0 CRC distintos**.
 
-**`J16` p1 lleva 12 V crudos.** Taparlo es **obligatorio en cada equipo que se monte**
-(`N-120`), no una cautela de banco.
+## 7. 🔴 Lo que sigue abierto
 
-**El ESP32 se reinicia por tensión** — hay `EVT:ARRANQUE,CAUSA:SUBIDA_DE_TENSION` en
-vuestras cintas. Es el `LM2596`, no el firmware.
+**El manual del «doble» NO EXISTE, y es una condición del responsable.** El Modo Inteligente
+puede alargar una fase hasta **el doble** del tiempo configurado, y eso se aprobó *«**si** un
+funcional revisa el manual y este manual de uso es claro»*. **Ese manual está sin escribir.**
+Un verde que unas veces dura 3 minutos y otras 6 **parece una avería desde la acera**.
 
-**El puente H no se cablea todavía:** faltan la corriente nominal y de arranque del
-motorreductor.
+**El `$ALARM` no cabe en su peor caso** — medido: 158 caracteres contra 143 en el Maestro, 171 en
+el Esclavo. Es **anterior** a este paquete y no se ha arreglado. Una trama truncada **no da un
+dato malo**: no casa el CRC y la app la descarta entera.
 
-## 7. Qué hay dentro
+**Tras un reinicio, la vigilancia de silencio queda desarmada** hasta la primera detección: una
+cámara que muera en el mismo corte que reinicia al equipo **no se anuncia**.
+
+**El `botones.cpp` del Esclavo no se compila en ningún arnés.** Lo que sostiene su corrección es
+que su bloque es **idéntico byte a byte** al del Maestro — y eso **no es lo mismo que ejecutarlo**.
+
+**El ESP32 se reinicia por tensión** (`EVT:ARRANQUE,CAUSA:SUBIDA_DE_TENSION`). Es el `LM2596`,
+no el firmware.
+
+## 8. Qué hay dentro
 
 | | |
 |---|---|
 | `ACTA_verificacion.txt` | la corrida: fecha, `HEAD`, toolchain |
-| `IOT_VIAL_Semaforos_2026-09-05_42a52cd_SIN_BANCO.apk` | la app, verificada entrada por entrada contra el fuente (501 entradas, 13 ficheros web, cero diferencias) |
+| `IOT_VIAL_Semaforos_2026-09-05_c02be59_SIN_BANCO.apk` | la app, verificada por CRC contra el fuente |
 | `01_Firmware/` | **fuente** para PlatformIO. Sin binarios: se compilan del código que se revisa |
-| `02_Manuales/` | manuales y la guía de banco — **la guía y las specs se están actualizando ahora mismo con lo de anoche; van en el siguiente** |
+| `02_Manuales/` | manuales y la guía de banco, **con sus cabeceras de estado** |
 
-**Firmware primero, cargado y verificado en la tarjeta; el cableado después.** Nunca al
-revés.
+**Los manuales que llevan aviso salen CON el aviso, o no salen.** Varios describen cosas que
+**no se deben hacer todavía**, y ese aviso es la parte útil del documento.
 
-## 8. Carga por SWD
+## 9. Carga por SWD
 
 `mode=UR` con `-e all`, y no se cambia. Si falla, **reintenta**: enganchar es cuestión de
 *timing*. `HOTPLUG` con un firmware que se cuelga al arrancar deja `failed to erase memory`.
