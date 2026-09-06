@@ -40,16 +40,16 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 
 | Verificación | Resultado medido | Método |
 |---|---|---|
-| Compilación Maestro (STM32F103) | **57360 B de Flash — 87.5 %** de 65536 B (quedan **8176 B**) | `pio run` |
-| Compilación Esclavo (STM32F103) | **41340 B de Flash — 63.1 %** de 65536 B | `pio run` |
+| Compilación Maestro (STM32F103) | **57416 B de Flash — 87.6 %** de 65536 B (quedan **8120 B**) | `pio run` |
+| Compilación Esclavo (STM32F103) | **41772 B de Flash — 63.7 %** de 65536 B | `pio run` |
 | Compilación Repetidor (ESP32) | **270497 B de Flash — 20,6 %** de 1310720 B | `pio run` |
-| Guarda de rutas de los instrumentos | **63 rutas** parseadas, todas existen | `compuerta.py` |
+| Guarda de rutas de los instrumentos | **64 rutas** parseadas, todas existen | `compuerta.py` |
 | Banco de simulación funcional | **9/9 PASS** | `simulador_sistema_v7_6.py` |
 | Escenarios de repetidor | **10/10 PASS** | `simulador_repetidor.py` |
-| Banco por packs | **1145/1164 comprobaciones**, **76 packs** | `banco/correr.py` |
+| Banco por packs | **1161/1180 comprobaciones**, **76 packs** | `banco/correr.py` |
 | Arnés de pantalla (compila el `lcd.cpp` real) | **271/271** (Maestro 145/145 · Esclavo 126/126) | `Validacion_LCD/compilar.ps1` |
 | Arnés del ciclo degradado | **22/22** | `Validacion_Ciclo` |
-| Arnés del Modo Automático | **86/86** | `Validacion_Automatico` |
+| Arnés del Modo Automático | **99/99** | `Validacion_Automatico` |
 | App — test funcional | **58/58** | suite funcional de la app |
 | App — test unitarios | **32/32** | suite unitaria de la app |
 | App — ejecutada en DOM | **201/201** | arnés jsdom |
@@ -63,8 +63,8 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 >
 > | publicaba | medido hoy | por qué importa |
 > |---|---|---|
-> | ~~Maestro: 42.620 B (65,0 %)~~ | **57360 B (87.5 %)** | 🔴 **El error grave.** Quien planificase con el 65 % creería tener **~23 KB libres**; quedan **8176 B**. Con esa cifra se propone estructura que **no cabe** |
-> | ~~Esclavo: 15.480 B (23,6 %)~~ | **41340 B (63.1 %)** | Casi el triple de ocupación real |
+> | ~~Maestro: 42.620 B (65,0 %)~~ | **57416 B (87.6 %)** | 🔴 **El error grave.** Quien planificase con el 65 % creería tener **~23 KB libres**; quedan **8120 B**. Con esa cifra se propone estructura que **no cabe** |
+> | ~~Esclavo: 15.480 B (23,6 %)~~ | **41772 B (63.7 %)** | Casi el triple de ocupación real |
 > | ~~Repetidor: 269.197 B (20,5 %)~~ | **270497 B (20,6 %)** | El acta mide **una** compilación de repetidor, no dos |
 > | ~~Compilación Repetidor diagnóstico: 270.257 B (20,6 %)~~ | — | ⛔ **Retirada.** La compuerta no la mide: publicar una fila sin medida detrás la hace leerse como medida |
 > | ~~Banco funcional 9/9~~ | **9/9** — las 20 de entonces incluian 11 pruebas que no median nada; se retiraron con su evidencia una a una | |

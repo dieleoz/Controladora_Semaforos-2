@@ -94,9 +94,9 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 
 | Comprobación | Estado | |
 |---|---|---|
-| guarda de rutas de los instrumentos | ✅ | 63 rutas parseadas, todas existen |
-| banco por packs *(76 packs)* | ⛔ | **1145/1164 comprobaciones en 76 packs**, y **no salen todas en verde**: `app_11_rangos_de_tiempos` acusa un límite de fase de **15 s** en `modo_inteligente.cpp:123`, por debajo del mínimo vial de **3 min** que fijó el responsable (`D-5`). **Es un hallazgo abierto, no una regresión del banco**, y el arreglo es del firmware — bajarle el listón al pack para que se ponga verde sería ajustar la medida hasta que dé el resultado que gusta. El NUMERADOR no lo vigila `documentos_01` a propósito: se estaría midiendo a sí mismo. |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **87.5 %** · 63.1 % · 20.6 % · 35.7 % — *el Maestro ocupa **57360 de 65536 B**, o sea **8.176 B libres**; el Esclavo, **41340 B*** |
+| guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
+| banco por packs *(76 packs)* | ⛔ | **1161/1180 comprobaciones en 76 packs**, y **no salen todas en verde**: `app_11_rangos_de_tiempos` acusa un límite de fase de **15 s** en `modo_inteligente.cpp:123`, por debajo del mínimo vial de **3 min** que fijó el responsable (`D-5`). **Es un hallazgo abierto, no una regresión del banco**, y el arreglo es del firmware — bajarle el listón al pack para que se ponga verde sería ajustar la medida hasta que dé el resultado que gusta. El NUMERADOR no lo vigila `documentos_01` a propósito: se estaría midiendo a sí mismo. |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **87.6 %** · 63.7 % · 20.6 % · 35.7 % — *el Maestro ocupa **57416 de 65536 B**, o sea **8.120 B libres**; el Esclavo, **41772 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.7 % — 1.122.137 de 3.145.728 B |
@@ -111,7 +111,7 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 | arnés del respaldo | ✅ | **conectado por fin** (N-43/N-29) — compila el `calcularSuma()` real; identidad de `respaldo.cpp` entre puntas + prueba de vida |
 | arnés del Degradado a dos puntas | ✅ | **18/18** — las dos puntas en Degradado **cada una con su reloj**. Entrega **el número**: el cruce aguanta **29 s** de desfase contra los **20,2 s** que el equipo puede acumular en 48 h, o sea factor **1,44** — y no el 2 que afirmaban los comentarios de las dos puntas |
 | arnés de las dos puntas | ✅ | **42/42** — el C++ **real de las DOS puntas** ejecutándose en el mismo proceso y el mismo instante: verde simultáneo en **0 de 53.236 instantes** |
-| arnés del automático | ✅ | **86/86** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` + **`modo_inteligente.cpp` y `demanda.cpp`** reales *(Bloque E, 05/09: ejerce que con las cámaras mudas el Modo Inteligente ES el Automático)* y comprueba SFTY-2 sobre las escrituras de pin |
+| arnés del automático | ✅ | **99/99** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` + **`modo_inteligente.cpp` y `demanda.cpp`** reales *(Bloque E, 05/09: ejerce que con las cámaras mudas el Modo Inteligente ES el Automático)* y comprueba SFTY-2 sobre las escrituras de pin |
 
 **20 PASS · 0 FALLA · 0 ABORTADO, de 20 comprobaciones — la compuerta sale con código `0`.**
 

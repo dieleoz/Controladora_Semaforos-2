@@ -92,7 +92,7 @@ que el tramo quedo vacio. Es configurable de 10 a 90 s y hoy esta en 15.
 ## Verificacion
 
 Compuerta **19 PASS · 1 FALLA · 0 ABORTADO**, o sea que **sale con `1`**. Banco
-**1145/1164 en 76 packs**. Maestro **87,5 %** (`57360` B), Esclavo **63,1 %** (`41340` B),
+**1161/1180 en 76 packs**. Maestro **87,6 %** (`57416` B), Esclavo **63,7 %** (`41772` B),
 app en DOM **235/235**. El único `FALLA` es `app_11`: el límite de 15 s de
 `modo_inteligente.cpp:123`, por debajo del mínimo vial de 3 min de `D-5`.
 
@@ -162,15 +162,15 @@ nombre y apellido.
 
 ## 📏 VERIFICACIÓN EN ESCRITORIO — lo que dice la última acta
 
-**Compuerta:** 🔴 **19 PASS | 1 FALLA | 0 ABORTADO**, así que **no sale con `0`: sale con `1`**. El `ABORTADO` de `simulador de app y bluetooth` —que no supo comparar el campo `ESC:` estrenado por N-149— duró unas horas el 05/09 y está cerrado: hoy da **12/12**. **El `FALLA` es `app_11_rangos_de_tiempos`, y es un HALLAZGO, no una regresión del banco:** `modo_inteligente.cpp:123` corta un verde a los **15 s**, por debajo del mínimo vial de **3 min** que fijó el responsable (`D-5`), fuera de `SET_TIEMPOS` y fuera del menú. **El arreglo es del firmware y es una decisión VIAL pendiente** — subir ese piso cambia lo que hace el Modo Inteligente. Banco **1145/1164 en 76 packs**, con las seis comprobaciones `documentos_*` dentro. Cifras **copiadas del acta
+**Compuerta:** 🔴 **19 PASS | 1 FALLA | 0 ABORTADO**, así que **no sale con `0`: sale con `1`**. El `ABORTADO` de `simulador de app y bluetooth` —que no supo comparar el campo `ESC:` estrenado por N-149— duró unas horas el 05/09 y está cerrado: hoy da **12/12**. **El `FALLA` es `app_11_rangos_de_tiempos`, y es un HALLAZGO, no una regresión del banco:** `modo_inteligente.cpp:123` corta un verde a los **15 s**, por debajo del mínimo vial de **3 min** que fijó el responsable (`D-5`), fuera de `SET_TIEMPOS` y fuera del menú. **El arreglo es del firmware y es una decisión VIAL pendiente** — subir ese piso cambia lo que hace el Modo Inteligente. Banco **1161/1180 en 76 packs**, con las seis comprobaciones `documentos_*` dentro. Cifras **copiadas del acta
 `evidencia/2026-09-05_compuerta.txt`**, no escritas a mano — lo comprueban `documentos_01` y
 `documentos_04` en cada corrida.
 
 | | |
 |---|---|
-| Flash | Maestro **87.5 %** (**57360** de 65536 B → **8.176 B libres**) · Esclavo **63.1 %** (41340 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | **1145/1164 comprobaciones** en **76 packs** — con **`app_11` en `FALLA`**: el límite de 15 s de `modo_inteligente.cpp:123` por debajo del mínimo vial de 3 min (`D-5`). Hallazgo abierto, no regresión |
-| Arneses que compilan C++ real | 271/271 pantalla · **86/86** automático · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** |
+| Flash | Maestro **87.6 %** (**57416** de 65536 B → **8.120 B libres**) · Esclavo **63.7 %** (41772 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | **1161/1180 comprobaciones** en **76 packs** — con **`app_11` en `FALLA`**: el límite de 15 s de `modo_inteligente.cpp:123` por debajo del mínimo vial de 3 min (`D-5`). Hallazgo abierto, no regresión |
+| Arneses que compilan C++ real | 271/271 pantalla · **99/99** automático · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | app: 32/32 + 55/55 unitarios + 235/235 jsdom + 58/58 funcional |
 
