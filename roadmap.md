@@ -97,6 +97,68 @@ cable, y conviene un segundo terminal emparejado.
 
 ---
 
+## 0.0.sexvicies EL CIERRE DE LA NOCHE DEL 05/09 — 18 commits, y el arquitecto dijo NO AVALO
+
+**Compuerta `20 PASS · 0 FALLA · 0 ABORTADO`, dos pasadas seguidas con el árbol quieto.** Y ese
+verde vale menos que el rojo de media tarde: el `1 FALLA` de entonces era **el hallazgo más útil
+del día**. Se fue porque **se arregló el firmware**, no porque nadie mire.
+
+### Lo que se construyó
+
+`$STATUS` acotado **por buffer** · el vigilante de cámaras · `CMD:LEER_RTC` · el campo `CAM:` en
+las dos puntas y en la app · **el Modo Inteligente usando los tiempos del operario** · la cámara
+de `J16` pudiendo **sostener** una fase · **el Degradado del poste 2 por app, y visible** · y el
+barrido de todo el legacy.
+
+### 🔴 EL ARQUITECTO (Fable) DIJO **NO AVALO** SOBRE `fb7aaca`, y hay que saber por qué
+
+**No por el ratio** —esa noche fue **1,60 : 1** contra el **2,74 : 1** acumulado, o sea mejor que
+la media—. **Por §2.ter:** el entregable nuevo de la noche estaba *«declarado en tres manuales,
+certificado por 675 líneas de pack en verde, y en la instalación decidida avisaba de una cámara
+que no existe y no podía decir `OK` nunca»*.
+
+**De sus cuatro condiciones se cumplieron TRES**, y la cuarta sigue abierta:
+
+| | |
+|---|---|
+| ✅ el pin vacío deja de alarmar, **demostrado con inyección sobre `botones.cpp` COMPILADO** | y ese fichero **no se compilaba en ningún arnés del proyecto** |
+| ✅ las decisiones están en `DECISIONES.md` | `D-17.bis` y `D-18` |
+| ✅ los documentos ya no contradicen al firmware de HEAD | nueve sitios de `M3` corregidos, entre otros |
+| 🔴 **el manual del «doble» no existe** | y era **la condición que puso el responsable**: *«el doble **si** un funcional revisa el manual y este manual de uso es claro»*. Hasta entonces `TECHO_POR_SUELO` **no debe salir en ningún paquete** |
+
+### Los seis defectos que ningún instrumento veía, y qué los destapó
+
+| defecto | lo destapó |
+|---|---|
+| el `$STATUS` no cabía: **169 B por buffer, no 162 por tipo** — y el Esclavo **cabía por un byte** | medir por **buffer** en vez de por tipo |
+| `app_11` **no juzgaba ni una línea** — y al enseñarle apareció el corte de 15 s | enseñar a juzgar al pack |
+| el Modo Inteligente **tiraba todos los tiempos del operario** | leer el fuente |
+| un pin **sin cámara** alarmaba de un aparato que no existe | el arquitecto |
+| la cámara **pedía** paso pero no podía **sostener** la fase: **362.500 ms contra 720.000** | **el arnés corriendo** — y tumbó también la primera reparación |
+| `TROUBLESHOOTING.md` y `FIRMWARE.md` publicaban **5 s, 12 s, 300 bps** | **no los vigila ningún instrumento** |
+
+### Y las tres lecciones que se llevan a `CLAUDE.md`, porque no son de este día
+
+1. **El acta puede publicar el binario ANTERIOR** — medido por dos agentes: `57.360` contra
+   `57.416`. PlatformIO sirviendo un incremental viejo. **Una cifra correcta de un binario que ya
+   no existe.**
+2. **La guarda de rutas no cubre los DOCUMENTOS.** Mover dos manuales habría abortado los 76
+   packs mientras la guarda seguía diciendo *«64 rutas, todas existen»*.
+3. **Un instrumento que mide la FORMA no puede ver un defecto del TIEMPO**, y el síntoma es el
+   tamaño: **675 líneas de Python para 240 de C++**.
+
+### 🔴 Y lo que seis correcciones en una noche dicen de mí, no del repositorio
+
+**Seis afirmaciones mías se cayeron, y cada una llegó al responsable o al repositorio con la
+palabra «medido» encima.** Tres eran el **mismo** error: `grep` que contaban **comentarios** —que
+en este repositorio **citan los nombres que explican**, por convención— o que buscaban un nombre
+que no existe (`BOTON1_PIN`). El pack `maestro_12` ya lo sabía y empieza quitando los
+comentarios *«para no acusarse a sí mismo»*.
+
+**Las seis las cazaron los agentes, ninguna yo.** Y las cazaron porque a todos se les dijo
+expresamente **que pusieran en duda los datos de quien les encarga**. Esa frase en el encargo ha
+rendido más que cualquier pack nuevo.
+
 ## 0.0.quinvicies EL REPARTO DE PINES, CERRADO (05/09) — no se vuelve a preguntar
 
 **Decidido por el responsable. Esto deja de estar abierto.**

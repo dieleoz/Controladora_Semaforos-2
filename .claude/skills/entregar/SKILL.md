@@ -152,10 +152,40 @@ no sobre la intencion:
 > cuando se escriben los documentos. Si entre la copia y el `.zip` corre otra compuerta, se
 > vuelven a copiar.
 
+> 🔴 **Y la APK se verifica que lleva DENTRO lo que dice, no que el build salio bien.** El
+> 05/09 la app cambio **dos veces en una noche** —el campo `CAM:` y el boton de Modo Degradado
+> del poste 2—. Un `assembleDebug` en verde **no demuestra** que esos dos cambios esten dentro:
+> lo demuestra abrir el `.apk` como zip y **buscar las cadenas** (`CAM`, `SET_MODO:DEGRADADO`)
+> en el `app.js`/`index.html` extraidos. Si no estan, la APK no es la de esta noche por mucho
+> que compile.
+>
+> Y antes de copiar: **comprobar que las dos copias versionadas de la app son identicas**
+> (`App_Semaforo/*` y `App_Semaforo/www/*`). Si difieren, un cambio entro en una y no en la
+> otra — se para y se investiga, no se elige una.
+
 > ⚠️ **Y cada vez que cambia un fichero web, la APK anterior queda obsoleta.** Paso tres veces en
 > una tarde: se toca `style.css`, la APK del disco ya no lleva el fuente que dice, y su nombre
 > sigue apuntando a un commit que ya no la describe. **Recompilar y renombrar es parte del cambio,
 > no un paso posterior** — y volver a verificar el contenido, porque el nombre no lo garantiza.
+
+## 2.quater La cifra de flash del acta puede ser la del binario ANTERIOR
+
+> **Medido el 05/09 por dos agentes independientes, y no falla nada: el numero tiene el formato
+> bueno y sale del sitio bueno.**
+
+La compuerta escribio **57.360 B** del Maestro mientras una compilacion a mano daba **57.416**, y
+**41.384** del Esclavo contra **41.772** reales. La causa es PlatformIO sirviendo un **incremental
+viejo** cuando se acaban de intercambiar fuentes —y eso pasa **siempre** que se restaura una
+inyeccion de 8.bis, o que dos agentes tocan el arbol a la vez—.
+
+**Un acta escrita justo despues de tocar codigo puede traer una cifra CORRECTA de un binario que
+ya no existe**, y esa cifra acaba en el LEEME y en el README con la palabra «medido» encima.
+
+**Antes de armar el paquete: la pasada de la compuerta que da las cifras se corre con el arbol
+QUIETO, sin agentes escribiendo, y se confirma con una segunda.** Si las dos no coinciden, manda
+la segunda.
+
+---
 
 ## 3. Que va dentro, y que NO## 3. Que va dentro, y que NO
 

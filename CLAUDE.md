@@ -865,6 +865,18 @@ si alguna no existe. No la desactives: es la red de la migración a `lib/Common`
 > —`36/41` contra los `37/41` de siempre—, que es la única red para esta clase de deriva. Es la
 > segunda vez que esa comparación salva la migración.
 
+> 🔴 **Y HAY UNA TERCERA COSA QUE LA GUARDA NO VE, medida el 05/09 al mover dos manuales:
+> LOS DOCUMENTOS.** `documentos_04` direccionaba `MANUAL_USUARIO.md` y `MANUAL_HARDWARE.md` **por
+> nombre suelto**. Moverlos habria hecho abortar ese pack en `ruta_repo()` y con el **la fila
+> entera `banco por packs`: 76 packs sin medir por dos ficheros mudados**.
+>
+> Y la guarda **no lo habria delatado**: censa tuplas `(Rol, carpeta, fichero)` del firmware con
+> dos patrones, y un documento de la raiz **no casa con ninguno**. Habria seguido publicando
+> *«64 rutas, todas existen»* **mientras el banco entero abortaba**. La regla del mismo commit vale
+> igual para un `.md` que para un `.cpp`, y ahi la red no esta puesta.
+
+---
+
 ## 6. Barrera de salidas
 
 **Solo `semaforo.cpp` escribe pines de luz.** Todo pasa por su `escribirPines()` estático, incluidos los
@@ -873,7 +885,7 @@ colgado al coordinador esperando un `S_VERDE` que no llegaría—.
 
 > 🔴 **Y LOS PINES MUERTOS NO SON TRES, SON SEIS — medido el 05/09.** A los tres de abajo
 > hay que sumar **`PB3` (`LCD_SCLK`), `PB4` (`LCD_CS`) y `PB5` (`LCD_SID`)**: `lcd.cpp` pasó
-> los pines de la pantalla a `U8X8_PIN_NONE` (Maestro `:76-77`, Esclavo `:92-93`) y la
+> los pines de la pantalla a `U8X8_PIN_NONE` (Maestro `:74-75`, Esclavo `:92-93` — medido el 05/09; decia `:76-77`) y la
 > librería se salta el `pinMode` y el `digitalWrite` cuando el pin es `NONE`. **Están hoy en
 > alta impedancia, con pista hasta `J17` p4, p1 y p5**: son los únicos GPIO libres del
 > proyecto **con bornera ya cableada**. Y de los tres **solo `PB3` y `PB4` son de JTAG** —`PB5`
@@ -975,6 +987,17 @@ Antes de proponer estructura:
 > El toolchain vive en `C:\.platformio` (fuera de la ruta con `ñ`, N-44):
 > `arm-none-eabi-nm --size-sort -S -td firmware.elf`.
 
+> 🔴 **Y EL ACTA PUEDE PUBLICAR EL BINARIO ANTERIOR (05/09).** Dos agentes independientes lo
+> midieron la misma noche: la compuerta escribio **57.360 B** del Maestro mientras una compilacion
+> a mano daba **57.416**, y **41.384** del Esclavo contra **41.772** reales. La causa es PlatformIO
+> sirviendo un **incremental viejo** cuando se acaban de intercambiar fuentes —y eso pasa siempre
+> que se restaura una inyeccion de §8.bis, o que dos agentes tocan el arbol a la vez—.
+>
+> **Un acta escrita justo despues de tocar codigo puede traer una cifra CORRECTA de un binario que
+> ya no existe.** No falla nada, no aborta nada: el numero tiene el formato bueno y sale del sitio
+> bueno. **La cifra de flash se copia de una pasada que se sepa que nadie corrio a la vez**, o se
+> confirma con una segunda pasada — y si no coinciden, manda la segunda.
+
 > 🔴 **Un camino muerto que no cuesta flash puede seguir costando RAM (N-86, 28/08).** `AiBus` —un
 > `HardwareSerial` declarado sobre `(PA10, PA9)` para un «puerto IA» que nunca existió— no tenía un
 > solo llamador, y `--gc-sections` **ya descartaba sus tres funciones**: retirarlas ahorró **16 B**
@@ -1070,6 +1093,41 @@ SFTY-2 sobre lo que `semaforo.cpp` **escribió en los pines**, no sobre su lógi
 > elige sentido.
 
 Nada de esto sustituye la prueba de banco.
+
+## 8.septies Un instrumento que mide la FORMA no puede ver un defecto del TIEMPO
+
+> **Y el sintoma de que se ha cruzado esa linea es el tamano: 675 lineas de Python para vigilar
+> 240 de C++ — 2,8 a 1.**
+
+El 05/09 se construyo el vigilante de camaras con `camara_03_vigilante` encima, en verde: comprueba
+que el `enum` tenga cuatro valores, que el getter este entre los argumentos del `snprintf`, que
+`CAM_CIEGA_MS > CAM_PEGADA_MS`, que un flanco reinicie los cronometros. **Su propia cabecera lo
+admitia:** *«NO EJERCE EL TIEMPO... eso solo lo demuestra una tarjeta —o un arnes que compile este
+`.cpp`—»*.
+
+**No vio ninguno de los dos defectos que tenia delante**, y los dos eran de comportamiento:
+
+| defecto | por que la forma no lo ve |
+|---|---|
+| un pin **sin camara** acababa alarmando `CIEGA` de un aparato que no existe | la forma del bucle es correcta; lo que falta es una **condicion** que solo se nota corriendo |
+| la camara podia **PEDIR** paso pero no **SOSTENER** una fase — verde de **362.500 ms** contra los 720.000 del techo | ningun literal del fuente lo dice: es la interaccion de una ventana de 3 s con un muestreo por vuelta |
+
+**Y la causa de fondo era una sola: `botones.cpp` NO SE COMPILABA EN NINGUN ARNES DEL PROYECTO.**
+`Validacion_Automatico/botones.h` lo sustituia por **once lineas de stub**. Al enlazar el `.cpp`
+real, el arnes paso de 86 a 99 comprobaciones y **tumbo tambien la primera reparacion** —leer el
+nivel del pin— porque **el rele de la camara PULSA** y el nivel se cae en los huecos.
+
+> **La regla: antes de escribir la comprobacion numero N de la forma de un fichero, mirese si ese
+> fichero se COMPILA en algun sitio.** Si no, el pack no esta midiendo poco: esta midiendo otra
+> cosa. Y el arnes que lo ejercite **no crece el recuento de la compuerta** si se extiende uno que
+> ya es una de sus filas — no hace falta fila nueva ni tocar el README.
+
+**Corolario de §2.bis, con su excepcion:** un instrumento de 675 lineas que certifica la forma
+**sustituye**; uno que compila el `.cpp` y lo ejercita **es firmware por otro nombre**. La
+diferencia no es el fichero que toca: es si **contesta una pregunta abierta** o si **certifica otra
+vez lo ya certificado**.
+
+---
 
 ## 8.bis Un arnés que no se ha visto fallar es un adorno que da verde
 
