@@ -303,6 +303,93 @@ def correr(b, fw):
         "el dueno del modo no se acusa a si mismo: su ambar es la rendicion por el "
         "limite duro, una transicion interna, no una via externa que lo ignore")
 
+    # ---- 4. A-11: EL ARBITRAJE DEL CICLO, RECALCULADO DE LAS DOS PUNTAS ---------
+    #
+    # LA PREGUNTA QUE ESTO CONTESTA: si el Esclavo puede entrar en Modo Degradado desde
+    # la app (A-11), puede quedarse en el mientras el Maestro corre un ciclo normal? Son
+    # dos autoridades decidiendo la misma luz, y el Degradado es el UNICO modo que da
+    # verde sin confirmar la otra punta: si la respuesta fuera que si, esa orden no se
+    # podria construir.
+    #
+    # LA RESPUESTA, MEDIDA EN EL C++ DE LAS DOS PUNTAS Y NO RAZONADA:
+    #
+    #   1. main.cpp del Esclavo llama a degradado_salir() al recibir CMD_PING, CMD_GO_RED
+    #      o CMD_GO_GREEN. O sea que el modo NO se sostiene con el Maestro gobernando: el
+    #      arbitraje ya estaba resuelto a favor del Maestro, y desde antes de A-11.
+    #   2. El Maestro emite un latido cada LATIDO_MS mientras cicla (coordinador.cpp).
+    #   3. El Degradado del Esclavo entra por un TODO-ROJO obligatorio de al menos
+    #      ROJO_MINIMO_MS antes de su primer verde por reloj (modo_degradado.cpp).
+    #
+    # DE AHI SALE LA DESIGUALDAD QUE LO HACE SEGURO: ROJO_MINIMO_MS > LATIDO_MS. Con ella,
+    # el latido del Maestro llega SIEMPRE durante el todo-rojo de entrada y saca a esta
+    # punta antes de que pueda encender nada. Sin ella, un Esclavo puesto en Degradado por
+    # error con el Maestro vivo daria un verde por reloj mientras el Maestro da el suyo
+    # por ciclo, y las fases no tienen ninguna relacion: los dos sentidos al tramo.
+    #
+    # POR QUE VA EN UN PACK Y NO EN UN COMENTARIO (N-71): son dos constantes de DOS
+    # FICHEROS DE DOS PUNTAS DISTINTAS que nada obliga a mirar juntas. El umbral de
+    # silencio de SFTY-6 vivio 12 s contra un ciclo de 20,5 s -los reintentos 4 y 5 no
+    # podian ejecutarse jamas- porque su relacion vivia en prosa, y los comentarios no
+    # fallan cuando alguien cambia un numero: se quedan describiendo un equipo que ya no
+    # existe, con la autoridad de una cuenta hecha.
+    #
+    # EL MARGEN SE PUBLICA, NO SOLO EL VEREDICTO: hoy es de 1 s sobre 3, y eso es fino.
+    # Un veredicto binario dejaria que alguien subiera LATIDO_MS a 3900 y siguiera en
+    # verde sin enterarse de que se comio el margen entero.
+    LATIDO_MS = fw.constante(
+        ("Maestro", "src", "coordinador.cpp"),
+        r"LATIDO_MS\s*=\s*(\d+)\s*;",
+        "el periodo del latido del Maestro (LATIDO_MS)")
+    ROJO_MINIMO_MS = fw.constante(
+        ("Esclavo", "src", "modo_degradado.cpp"),
+        r"ROJO_MINIMO_MS\s*=\s*(\d+)",
+        "el todo-rojo minimo de entrada al Degradado del Esclavo (ROJO_MINIMO_MS)")
+
+    # El primer eslabon no es un numero y por eso se mide aparte: si main.cpp dejara de
+    # salir del modo al oir al Maestro, la desigualdad de abajo seguiria cumpliendose y
+    # no protegeria de nada. Se exige que las TRES tramas de gobierno esten en la guarda.
+    principal = fw.codigo("Esclavo", "src", "main.cpp")
+    m = re.search(r"degradado_gobiernaLuz\s*\(\s*\)\s*&&([^{]*)\{\s*degradado_salir",
+                  principal)
+    gobierno = set(re.findall(r"\bCMD_(PING|GO_RED|GO_GREEN)\b", m.group(1))) if m else set()
+    b.propiedad(
+        gobierno == {"PING", "GO_RED", "GO_GREEN"},
+        "el Esclavo sale del Degradado en cuanto el Maestro vuelve a gobernar: la guarda "
+        "de main.cpp llama a degradado_salir() con CMD_PING, CMD_GO_RED y CMD_GO_GREEN",
+        "SFTY-21 ROTA: la salida por regreso del Maestro %s. Sin ella el Esclavo puede "
+        "quedarse dando verdes por reloj mientras el Maestro corre su ciclo, y las dos "
+        "fases no tienen ninguna relacion: son dos autoridades sobre la misma luz"
+        % ("no se encuentra en main.cpp" if not m
+           else "solo cubre %s y le faltan %s"
+                % (sorted(gobierno) or "nada",
+                   sorted({"PING", "GO_RED", "GO_GREEN"} - gobierno))))
+
+    b.propiedad(
+        ROJO_MINIMO_MS > LATIDO_MS,
+        "el todo-rojo de entrada al Degradado (%d ms) es MAYOR que el latido del Maestro "
+        "(%d ms): con el Maestro vivo, su latido saca a esta punta antes del primer verde "
+        "por reloj. Margen %d ms"
+        % (ROJO_MINIMO_MS, LATIDO_MS, ROJO_MINIMO_MS - LATIDO_MS),
+        "SFTY-21 ROTA: el todo-rojo de entrada son %d ms y el latido del Maestro %d ms. "
+        "Un Esclavo puesto en Degradado con el Maestro ciclando alcanza DEG_ACTIVO antes "
+        "de que llegue el latido que lo saca, y da un verde por reloj mientras el Maestro "
+        "da el suyo por ciclo. Las dos fases no tienen relacion: los dos sentidos entran "
+        "al tramo" % (ROJO_MINIMO_MS, LATIDO_MS))
+
+    b.reportar(
+        "lo que esta desigualdad NO cubre, y no se disimula",
+        ["se mide el peor caso de ROJO_MINIMO_MS; rojoObligatorioMs() devuelve el MAYOR "
+         "de ese suelo y de config_despejeSegundos()*1000, asi que el margen real solo "
+         "puede ser mayor",
+         "NO cubre la perdida de latidos: si el radio pierde mas de %d ms seguidos de "
+         "latido, esta punta puede alcanzar DEG_ACTIVO. La red que queda entonces es que "
+         "el Maestro agote reintentos y caiga a C_FALLO, donde emite CMD_GO_RED -que "
+         "tambien saca del modo-. No se ejerce aqui: esto lee texto y constantes, no "
+         "corre una maquina de estados" % ROJO_MINIMO_MS,
+         "NO cubre la orden con el Maestro vivo: el firmware la ACEPTA y el modo dura un "
+         "latido. Lo que hace que eso se vea es el campo MODO: del $STATUS, que pasa a "
+         "DEGRADADO y vuelve a SUBORDINADO en el tablero"])
+
     FALSO = '''
       if (strcmp(cmd, "CMD:AMBAR_EMERGENCIA") == 0) {
         semaforo_iniciarFallo();

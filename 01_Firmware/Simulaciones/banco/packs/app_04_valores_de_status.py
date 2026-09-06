@@ -165,14 +165,59 @@ def _literales_de_pluma(fw, punta):
 
 
 def _modo_fijo_del_esclavo(fw):
-    """El literal que el Esclavo escribe DENTRO del snprintf: MODO:SUBORDINADO.
+    """El literal que el Esclavo escribia DENTRO del snprintf: MODO:SUBORDINADO.
 
-    No sale de ningun switch -esa punta no tiene obtenerNombreModo()-, va escrito en la
-    plantilla de la trama. Es exactamente la clase de valor que un censo que solo mire
-    switches no ve, y es el que el badge de la app no conocia."""
+    A-11 (05/09): DESDE HOY DEVUELVE None LA MAYORIA DE LAS VECES, Y ESO NO ES UN FALLO.
+    Esa punta gano su propio obtenerNombreModo() al poder entrar en Modo Degradado por
+    Bluetooth, asi que su MODO: pasa de literal fijo a "%s" y sus valores ya no viven en
+    la plantilla. Quien llama distingue los dos casos: un literal fijo se censa aparte,
+    un diccionario se lee como el del Maestro.
+
+    LA FUNCION SE CONSERVA EN VEZ DE BORRARSE porque sigue midiendo algo -que si alguna
+    punta VUELVE a escribir el modo dentro de la plantilla, ese valor no se quede fuera
+    del censo-. Es la clase de valor que un censo que solo mire switches no ve, y es el
+    que el badge de la app no conocia."""
     codigo = fw.codigo("Esclavo", "src", "bluetooth.cpp")
     m = re.search(r'"\$STATUS,[^"]*?MODO:([A-Z_]+)', codigo)
     return m.group(1) if m else None
+
+
+def _modos_de_la_punta(fw, punta):
+    """Los literales de MODO: que esa punta puede emitir, del switch o de la plantilla.
+
+    Devuelve (con_nombre, comodines, fuente). Se prueban las DOS formas y manda la del
+    switch.
+
+    🔴 Y QUE UNA PUNTA NO TENGA LAS DOS A LA VEZ NO LO COMPRUEBA ESTE PACK, lo cual se
+    escribe porque la primera version de esta frase decia que si y era una afirmacion
+    sobre el codigo sin verificar. Lo mide app_02_modos_simetricos, que decide por el
+    "MODO:%s" de la PLANTILLA y falla nombrando el desajuste: "una que publica un modo
+    FIJO y mantiene un diccionario tiene una lista que nadie usa". Medido inyectando el
+    defecto: con la plantilla vuelta a MODO:SUBORDINADO y el switch puesto, app_02 cae de
+    12/12 a 7/8 y este pack se queda en 23/23 -mide el switch, que sigue estando-. Aqui
+    no se duplica esa comprobacion: se dice de quien es.
+
+    Los COMODINES -el rotulo del `default:`- van APARTE de los modos con nombre. Los dos
+    viajan en MODO: y los dos necesitan entrada en la tabla de la app, pero el comodin no
+    es un modo: es lo que la telemetria dice cuando NO sabe donde esta el equipo, asi que
+    es correcto que las dos puntas lo llamen igual y no cuenta como solape."""
+    cuerpo = _cuerpo_funcion(fw.codigo(punta, "src", "bluetooth.cpp"),
+                             "obtenerNombreModo")
+    fijo = _modo_fijo_del_esclavo(fw) if punta == "Esclavo" else None
+    if cuerpo is not None:
+        casos, pordefecto, _ = _valores_de_switch(cuerpo)
+        if not casos:
+            raise fw.Abortado(
+                "%s: obtenerNombreModo() no dio ni un `case X: return \"Y\";`: fallo "
+                "el buscador o cambio la forma del switch" % punta)
+        return set(casos), set(pordefecto), "obtenerNombreModo()"
+    if fijo is not None:
+        return {fijo}, set(), "literal fijo dentro de la plantilla del $STATUS"
+    raise fw.Abortado(
+        "%s: no se pudo leer NI un obtenerNombreModo() NI un literal fijo de MODO: en "
+        "su snprintf de $STATUS. Toda punta publica un modo de una de las dos formas; "
+        "sin ninguna, el badge de la app se compararia contra un conjunto vacio y "
+        "saldria aprobado" % punta)
 
 
 def correr(b, fw):
@@ -211,36 +256,55 @@ def correr(b, fw):
 
     emitibles_estado = sorted(set(estados["Maestro"]) | set(estados["Esclavo"]))
 
-    # ---- 2. El enum de MODO: el switch del Maestro mas el literal fijo del Esclavo ----
-    cuerpo_modo = _cuerpo_funcion(fw.codigo("Maestro", "src", "bluetooth.cpp"),
-                                  "obtenerNombreModo")
-    if cuerpo_modo is None:
-        raise fw.Abortado(
-            "no se hallo obtenerNombreModo() en Maestro/src/bluetooth.cpp: es de donde "
-            "sale todo lo que puede aparecer en MODO:, y sin ella el badge de la app "
-            "se compararia contra nada")
-    modos_case, modos_default, _ = _valores_de_switch(cuerpo_modo)
-    if not modos_case:
-        raise fw.Abortado(
-            "obtenerNombreModo() no dio ni un `case X: return \"Y\";`: fallo el "
-            "buscador o cambio la forma del switch")
+    # ---- 2. El enum de MODO: de las DOS puntas, cada una por donde lo declare ----
+    #
+    # A-11 (05/09). ANTES ESTO ERA "el switch del Maestro mas el literal fijo del
+    # Esclavo", y esa asimetria estaba escrita a mano. Al ganar el Esclavo su propio
+    # obtenerNombreModo() -entra en Degradado por Bluetooth y hay que poder verlo- la
+    # frase se quedaba vieja, asi que se PREGUNTA a cada punta por donde publica su modo
+    # en vez de darlo por sabido. Es el mismo criterio de app_02_modos_simetricos, que ya
+    # decide por el "MODO:%s" de la plantilla y no por el nombre de la punta.
+    modos = {}
+    comodines = {}
+    fuentes = {}
+    for p in PUNTAS:
+        modos[p], comodines[p], fuentes[p] = _modos_de_la_punta(fw, p)
 
-    subordinado = _modo_fijo_del_esclavo(fw)
-    if subordinado is None:
-        raise fw.Abortado(
-            "no se pudo leer el literal de MODO: que el Esclavo escribe dentro de su "
-            "snprintf de $STATUS. Esa punta no tiene obtenerNombreModo(), asi que ese "
-            "literal es su UNICO valor de modo: sin el, el censo se queda corto justo "
-            "en el valor que el badge de la app no conocia")
+    emitibles_modo = sorted(set().union(*modos.values(), *comodines.values()))
 
-    emitibles_modo = sorted(set(modos_case) | set(modos_default) | {subordinado})
+    # EL CENSO DEMUESTRA QUE HA LEIDO LAS DOS FUENTES, QUE ES LO QUE ESTA LINEA MEDIA.
+    #
+    # Aqui ponia "el literal fijo del Esclavo (SUBORDINADO) NO sale de ningun switch",
+    # y su motivo escrito era exacto: "un censo que solo mirara los `case` se lo dejaria
+    # fuera". La propiedad no era sobre el firmware, era SOBRE ESTE PACK -que sabe leer
+    # las dos fuentes-, y sigue haciendo falta ahora que las dos puntas tienen switch:
+    # si el lector del Esclavo se quedara ciego, el censo perderia SUBORDINADO y RENDIDO
+    # y aprobaria a la app por no pedirselos.
+    #
+    # SE MIDE PIDIENDO QUE CADA PUNTA APORTE ALGO QUE LA OTRA NO. Si una de las dos
+    # aportara solo literales que la otra ya trae, este pack no podria distinguir
+    # "las lei las dos" de "lei una y la otra devolvio vacio".
+    #
+    # 🔴 Y NO SE EXIGE QUE NO SE SOLAPEN, QUE FUE EL PRIMER INTENTO Y ERA FALSO. Las dos
+    # puntas emiten DEGRADADO y esta BIEN: significa lo mismo en las dos -este poste esta
+    # operando por su reloj, sin confirmacion del otro extremo-, y el badge de la app lo
+    # pinta con un solo texto con toda la razon. Un pack que lo prohibiera estaria
+    # midiendo un borde que no es el que importa; el que importa -que un literal
+    # compartido signifique lo mismo- no se puede leer del fuente y se dice aqui.
+    solo_m = sorted(modos["Maestro"] - modos["Esclavo"])
+    solo_e = sorted(modos["Esclavo"] - modos["Maestro"])
     b.verificar(
-        subordinado not in modos_case,
-        "el literal fijo del Esclavo (%s) NO sale de ningun switch y se censa aparte: "
-        "un censo que solo mirara los `case` se lo dejaria fuera" % subordinado,
-        "el literal fijo del Esclavo (%s) coincide con un `case` del Maestro. No es un "
-        "fallo del firmware: es que este censo ya no demuestra que sabe leer las dos "
-        "fuentes, y hay que revisarlo antes de fiarse de el" % subordinado)
+        bool(solo_m) and bool(solo_e),
+        "el censo leyo las DOS fuentes de MODO: y cada punta aporta literales propios "
+        "-Maestro %s (%s), Esclavo %s (%s)-; compartidos a proposito: %s; comodines: %s"
+        % (solo_m, fuentes["Maestro"], solo_e, fuentes["Esclavo"],
+           sorted(modos["Maestro"] & modos["Esclavo"]) or "ninguno",
+           sorted(set().union(*comodines.values())) or "ninguno"),
+        "el censo de MODO: no aporto literales propios de %s. O esa punta dejo de "
+        "publicar un modo suyo, o su lector se quedo ciego -y entonces este pack estaria "
+        "aprobando a la app por no pedirle valores que nunca llego a censar-"
+        % ("las dos puntas" if not solo_m and not solo_e
+           else "el Maestro" if not solo_m else "el Esclavo"))
 
     # ---- 3. La app conoce todo lo que el firmware puede decir ----
     claves_estado = _claves_de_tabla(js, TABLA_ESTADOS)
@@ -488,7 +552,7 @@ def correr(b, fw):
         ["semaforo_nombreEstado() acaba en `return \"\";` (%s) y obtenerNombreModo() "
          "en `default: return \"%s\";`."
          % (", ".join(repr(v) for v in vacios["Maestro"]) or "-",
-            ", ".join(modos_default) or "-"),
+            ", ".join(sorted(set().union(*comodines.values()))) or "-"),
          "ESTADO: vacio es un valor que puede viajar y no puede tener entrada de tabla.",
          "Lo cubre la comprobacion 5, no una fila mas aqui: pedirle a la app una entrada",
          "para la cadena vacia seria pedirle que nombre lo que el equipo declara no saber."])

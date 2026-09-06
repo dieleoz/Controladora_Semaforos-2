@@ -44,6 +44,13 @@
 //   PUERTO       imprime pines y baudios del HardwareSerial que se encontro
 //   RTC <c> <h>  fija si hay cristal y si el reloj esta en hora
 //   MDG <n>      fija el motivo que devuelve la puerta del Modo Degradado
+//   DEG          (Esclavo) imprime estado, gobiernaLuz y rendicion del Degradado REAL
+//   DEG_ENTRAR   (Esclavo) pide la puerta REAL e imprime el RechazoDegradado
+//   DEG_SALIR    (Esclavo) salida ordenada del modo
+//   DEG_TICK     (Esclavo) una vuelta de degradado_actualizar()
+//   DEG_SYNC     (Esclavo) registra una sincronizacion horaria (reinicia las 48 h)
+//   CFG_CICLO <v> <d>   (Esclavo) configuracion de ciclo que la puerta exige
+//   RESP <act> <ciclo> <horas>  (Esclavo) el respaldo en flash
 //   MODO         imprime el modo vigente
 //   QUIT
 //
@@ -76,10 +83,14 @@
 #if defined(PUNTA_ESCLAVO)
 // N-106: el bluetooth.cpp del Esclavo pasa a consultar el Modo Degradado, asi que este
 // arnes necesita el enum de estados. Es el modo_degradado.h REAL de esta punta -no hay
-// copia local, igual que con los otros diez headers-: si alguien anadiera un estado, los
-// sustitutos de mas abajo dejarian de cubrir la tabla y habria que venir aqui, que es
-// exactamente lo que se quiere que pase.
+// copia local, igual que con los otros diez headers-.
+//
+// A-11 (05/09): y desde hoy este arnes ENLAZA el modo_degradado.cpp real, asi que el
+// header ya no viene solo por el enum: viene por la puerta entera. respaldo.h entra con
+// el porque los cuatro sustitutos de respaldo_* de mas abajo necesitan su
+// RESPALDO_SYNC_CADUCADA, que es el valor con el que arranca el peor caso.
 #include "modo_degradado.h"
+#include "respaldo.h"
 #endif
 
 // --- El estado que Arduino.h declara y alguien tiene que definir ------------------
@@ -299,39 +310,54 @@ bool botonCancelar() { return false; }
 static bool mando_ambar = false;
 bool mando_ambarLocal() { return mando_ambar; }
 
-// N-106 - EL MODO DEGRADADO DEL ESCLAVO, SUSTITUIDO Y GOBERNABLE DESDE FUERA.
+// A-11 (05/09) - EL MODO DEGRADADO YA NO SE SUSTITUYE: SE ENLAZA EL modo_degradado.cpp
+// REAL DEL ESCLAVO.
 //
-// Son las mismas 400 lineas con la pantalla y el RTC dentro que ya estaban fuera de este
-// arnes. Lo que bluetooth.cpp consulta de todo eso son cuatro funciones, y las cuatro se
-// sustituyen aqui SOBRE UN SOLO ESTADO -deg_estado-, no como cuatro no-op independientes:
-// devolver constantes sueltas dejaria la tabla de S4.5.2 sin poder ejercerse y el arnes
-// aprobaria cualquier bluetooth.cpp -es la prueba muerta de N-51-.
+// AQUI VIVIA UN SUSTITUTO -deg_estado y cuatro funciones derivadas de el-, y estaba
+// justificado mientras bluetooth.cpp solo LEYERA el modo: cuatro getters sobre un estado
+// gobernable desde fuera dejan ejercer la tabla de N-106 S4.5.2 sin arrastrar 400 lineas
+// con la pantalla y el RTC dentro.
 //
-// gobiernaLuz() se DERIVA del estado con la misma regla que el fichero real
-// (modo_degradado.cpp:367): ENTRANDO || ACTIVO || SALIENDO. Copiar el criterio y no
-// derivarlo seria una segunda copia que alguien tendria que sincronizar.
+// DEJO DE ESTARLO EL DIA QUE bluetooth.cpp GANO SET_MODO:DEGRADADO. Esa rama no lee el
+// modo: LO PIDE, y lo que hay que ejercer es que el despachador mire el RechazoDegradado
+// que devuelve la puerta y componga un $ERR por cada motivo. Con un sustituto, lo que se
+// mediria son los seis motivos que HE ESCRITO YO AQUI, no los seis que el firmware
+// comprueba -es la segunda copia del firmware escrita a mano que CLAUDE.md 8 avisa que
+// no prueba el codigo-. Y un sustituto que devolviera "aceptado" seria peor que el
+// ABORTADO que esto vino a cerrar: pondria en verde una comprobacion que ya no mide.
 //
-// salir() imita la guarda real: desde ENTRANDO o ACTIVO pasa a SALIENDO; desde RENDIDO
-// baja el cartel a INACTIVO; desde INACTIVO y SALIENDO no hace nada.
+// LO QUE COSTO ENLAZAR EL REAL, MEDIDO ANTES DE DECIDIR: ocho sustitutos nuevos -los
+// cuatro config_* y los cuatro respaldo_*-. Los demas ya estaban: reloj_*,
+// protocolo_resetReplayProtection() y bluetooth_ambarEmergencia() ya se sustituian aqui,
+// semaforo_forzarRojo()/iniciarFallo()/iniciarTransicionAVerde() salen del semaforo.cpp
+// REAL que este arnes ya enlaza, y ciclo_degradado.h es cabecera pura -no hay .cpp que
+// compilar-. Ocho lineas a cambio de ejercer la puerta de verdad no es un intercambio
+// que haya que pensar.
 //
-// Se gobiernan con DEG <estado> y DEG_REND 0|1.
-static int deg_estado = (int)DEG_INACTIVO;
-static bool deg_rendicion = false;
+// LOS OCHO SE GOBIERNAN DESDE FUERA Y ARRANCAN EN EL CASO MAS RESTRICTIVO, que es ademas
+// el estado real de un equipo recien encendido: sin configuracion de ciclo y sin
+// respaldo. Asi, un arnes que no diga nada obtiene un RECHAZO -DEG_RECHAZO_SIN_HORA, que
+// es lo primero que la puerta real comprueba, porque reloj_enHora() tambien arranca en
+// falso-. Arrancar en "todo listo" habria dejado el camino de entrada abierto por
+// omision, que es justo lo que no se puede hacer con el unico modo que da verde sin
+// confirmar la otra punta.
+//
+// Se gobiernan con CFG_CICLO <verde> <despeje> y RESP <activo> <hayCiclo> <horas>.
+static uint8_t cfg_verde = 0, cfg_despeje = 0;
+static bool cfg_verde_rx = false, cfg_despeje_rx = false;
 
-EstadoDegradado degradado_estado() { return (EstadoDegradado)deg_estado; }
-bool degradado_rendicionEnCurso() { return deg_rendicion; }
+uint8_t config_verdeSegundos()   { return cfg_verde; }
+uint8_t config_despejeSegundos() { return cfg_despeje; }
+bool    config_verdeRecibido()   { return cfg_verde_rx; }
+bool    config_despejeRecibido() { return cfg_despeje_rx; }
 
-bool degradado_gobiernaLuz() {
-  return deg_estado == (int)DEG_ENTRANDO || deg_estado == (int)DEG_ACTIVO ||
-         deg_estado == (int)DEG_SALIENDO;
-}
+static bool resp_degradado = false, resp_hayCiclo = false;
+static uint32_t resp_horas = RESPALDO_SYNC_CADUCADA;
 
-void degradado_salir() {
-  if (deg_estado == (int)DEG_RENDIDO) { deg_estado = (int)DEG_INACTIVO; return; }
-  if (deg_estado != (int)DEG_ENTRANDO && deg_estado != (int)DEG_ACTIVO) return;
-  deg_estado = (int)DEG_SALIENDO;
-  deg_rendicion = false;
-}
+void respaldo_guardarDegradado(bool activo) { resp_degradado = activo; }
+bool respaldo_degradadoActivo()             { return resp_degradado; }
+bool respaldo_hayCiclo()                    { return resp_hayCiclo; }
+uint32_t respaldo_horasDesdeSync(uint32_t)  { return resp_horas; }
 
 // N-108 - LOS CONTADORES DE LINEA DE SFTY-15, que protocolo.cpp lleva y este arnes
 // sustituye. Suben con cada paquete que el arnes entrega, para que el $EVENT de enlace y
@@ -486,23 +512,91 @@ int main(void) {
       printf("OK mdg=n/a\n");
 #endif
 
-    } else if (strncmp(linea, "DEG_REND ", 9) == 0) {
+    } else if (strcmp(linea, "DEG_ENTRAR") == 0) {
 #if defined(PUNTA_ESCLAVO)
-      deg_rendicion = (atoi(linea + 9) != 0);
-      printf("OK deg_rend=%d\n", (int)deg_rendicion);
+      // A-11: SE PIDE LA PUERTA REAL Y SE IMPRIME LO QUE DEVUELVE. Ya no hay un
+      // "pon el estado que quieras": el estado lo decide modo_degradado.cpp con sus seis
+      // condiciones, y el arnes las cumple o no las cumple con RELOJ, CFG_CICLO, DEG_SYNC
+      // y el latch de ambar. Poder fijar el estado a dedo era lo que permitia ejercer la
+      // tabla de N-106 con el modo sustituido; ahora seria saltarse lo que hay que medir.
+      printf("OK deg_entrar=%d estado=%d gobierna=%d\n",
+             (int)degradado_entrar(), (int)degradado_estado(),
+             (int)degradado_gobiernaLuz());
 #else
-      printf("OK deg_rend=n/a\n");
+      printf("OK deg_entrar=n/a\n");
 #endif
 
-    } else if (strncmp(linea, "DEG ", 4) == 0) {
+    } else if (strcmp(linea, "DEG_SALIR") == 0) {
 #if defined(PUNTA_ESCLAVO)
-      // El numero es el enum de modo_degradado.h: 0 INACTIVO, 1 ENTRANDO, 2 ACTIVO,
-      // 3 SALIENDO, 4 RENDIDO. Se imprime tambien gobiernaLuz() porque es lo que decide
-      // la rama, y verlo evita depurar contra un estado que no es el que se creia.
-      deg_estado = atoi(linea + 4);
-      printf("OK deg=%d gobierna=%d\n", deg_estado, (int)degradado_gobiernaLuz());
+      degradado_salir();
+      printf("OK deg_salir estado=%d gobierna=%d\n",
+             (int)degradado_estado(), (int)degradado_gobiernaLuz());
+#else
+      printf("OK deg_salir=n/a\n");
+#endif
+
+    } else if (strcmp(linea, "DEG_TICK") == 0) {
+#if defined(PUNTA_ESCLAVO)
+      // Una vuelta del gobierno del modo. Es lo que hace avanzar ENTRANDO -> ACTIVO y
+      // SALIENDO -> INACTIVO/RENDIDO, y lo que levanta el latch de las 48 h. Sin esto el
+      // arnes solo podria ver el instante de la entrada.
+      degradado_actualizar();
+      printf("OK deg_tick estado=%d gobierna=%d rend=%d\n",
+             (int)degradado_estado(), (int)degradado_gobiernaLuz(),
+             (int)degradado_rendicionEnCurso());
+#else
+      printf("OK deg_tick=n/a\n");
+#endif
+
+    } else if (strcmp(linea, "DEG_SYNC") == 0) {
+#if defined(PUNTA_ESCLAVO)
+      // La sincronizacion que el Maestro manda con CMD_HORA_S. Es el UNICO punto que
+      // reinicia la cuenta de las 48 h, y sin el la puerta real rechaza siempre con
+      // DEG_RECHAZO_SIN_SYNC -correcto, y hay que poder ejercerlo por separado del resto-.
+      degradado_registrarSync();
+      printf("OK deg_sync vencida=%d\n", (int)degradado_syncVencida());
+#else
+      printf("OK deg_sync=n/a\n");
+#endif
+
+    } else if (strcmp(linea, "DEG") == 0) {
+#if defined(PUNTA_ESCLAVO)
+      // Consulta, no orden: el enum de modo_degradado.h -0 INACTIVO, 1 ENTRANDO,
+      // 2 ACTIVO, 3 SALIENDO, 4 RENDIDO- mas lo que decide las ramas de bluetooth.cpp.
+      printf("OK deg=%d gobierna=%d rend=%d\n",
+             (int)degradado_estado(), (int)degradado_gobiernaLuz(),
+             (int)degradado_rendicionEnCurso());
 #else
       printf("OK deg=n/a\n");
+#endif
+
+
+    } else if (strncmp(linea, "CFG_CICLO ", 10) == 0) {
+#if defined(PUNTA_ESCLAVO)
+      // A-11: la configuracion de ciclo que la puerta REAL exige. Dos numeros; con
+      // cualquiera en cero, degradado_comprobar() devuelve DEG_RECHAZO_CICLO_NULO, y sin
+      // esta orden ni siquiera se han "recibido" -DEG_RECHAZO_SIN_CONFIG-. Son dos
+      // rechazos DISTINTOS y el arnes tiene que poder pedir cada uno.
+      { int v = 0, d = 0; sscanf(linea + 10, "%d %d", &v, &d);
+        cfg_verde = (uint8_t)v; cfg_despeje = (uint8_t)d;
+        cfg_verde_rx = true; cfg_despeje_rx = true;
+        printf("OK cfg=%d/%d\n", (int)cfg_verde, (int)cfg_despeje); }
+#else
+      printf("OK cfg=n/a\n");
+#endif
+
+    } else if (strncmp(linea, "RESP ", 5) == 0) {
+#if defined(PUNTA_ESCLAVO)
+      // A-11: el respaldo en flash que la reanudacion tras corte consulta. Tres numeros:
+      // degradado activo, hay ciclo guardado, y horas desde la ultima sincronizacion
+      // -0xFFFFFFFF es CADUCADA-.
+      { int a = 0, c = 0; unsigned long h = 0;
+        sscanf(linea + 5, "%d %d %lu", &a, &c, &h);
+        resp_degradado = (a != 0); resp_hayCiclo = (c != 0); resp_horas = (uint32_t)h;
+        printf("OK resp=%d/%d/%lu\n", (int)resp_degradado, (int)resp_hayCiclo,
+               (unsigned long)resp_horas); }
+#else
+      printf("OK resp=n/a\n");
 #endif
 
     } else if (strncmp(linea, "RXCNT ", 6) == 0) {

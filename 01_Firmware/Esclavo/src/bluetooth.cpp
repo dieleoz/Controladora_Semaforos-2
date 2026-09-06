@@ -333,6 +333,49 @@ static bool salidaDegradadoIniciada() {
   return true;
 }
 
+// --- A-11: EL MODO QUE ESTA PUNTA PUBLICA, QUE HASTA HOY ERA UN LITERAL FIJO -------
+//
+// El campo MODO: del $STATUS decia SUBORDINADO SIEMPRE, escrito dentro de la plantilla
+// del snprintf. Era cierto mientras esta punta no tuviera ningun modo propio, y dejo de
+// serlo el 05/09: con SET_MODO:DEGRADADO aqui abajo, el Esclavo puede gobernar su luz
+// por reloj y la unica pantalla que lo decia -el menu del LCD- se retiro.
+//
+// UN BOTON PARA ENTRAR EN UN MODO QUE NO SE PUEDE VER ES MEDIA FUNCION. Y hay tres
+// preguntas concretas que el operario no podia contestar desde el telefono: si esta
+// punta esta en Degradado, si se rindio a ambar por el limite de 48 h, y si lo que ve
+// en el cruce lo manda el Maestro o el reloj de aqui.
+//
+// POR QUE TRES LITERALES Y NO CINCO, uno por estado del enum:
+//
+//   DEG_ENTRANDO / DEG_ACTIVO / DEG_SALIENDO -> "DEGRADADO". Son los tres en los que
+//   degradado_gobiernaLuz() es cierta, o sea en los que la luz NO la manda el Maestro,
+//   que es lo que este campo contesta. En que tramo del modo va se lee en ESTADO:, que
+//   ya viaja al lado y dice ROJO en los dos todo-rojos.
+//
+//   DEG_RENDIDO -> "RENDIDO", y va aparte porque NO es lo mismo: el modo termino solo
+//   al vencer la autorizacion de 48 h y la luz quedo en ambar intermitente. Pintarlo
+//   como DEGRADADO diria que el cruce sigue operando por reloj cuando ya no opera.
+//
+// EL COSTE EN BYTES ES CERO, Y ESTA MEDIDO POR BUFFER (CLAUDE.md 7.bis): el literal mas
+// largo que puede salir de aqui es "SUBORDINADO", 11 caracteres, que son exactamente
+// los que ocupaba dentro de la plantilla. El peor $STATUS se queda en los mismos 133
+// caracteres de antes. "DEGRADADO" son 9 y "RENDIDO" 7: los dos casos nuevos son mas
+// cortos que el que ya estaba, asi que el peor caso no lo fijan ellos.
+//
+// EL `default:` NO SE PUEDE PEDIR COMO ORDEN, y lo comprueba app_02_modos_simetricos:
+// "DESCONOCIDO" es lo que la telemetria dice cuando le llega un valor del enum que no
+// sabe nombrar, no un modo al que se pueda ir.
+static const char* obtenerNombreModo(EstadoDegradado e) {
+  switch (e) {
+    case DEG_INACTIVO: return "SUBORDINADO";
+    case DEG_ENTRANDO: return "DEGRADADO";
+    case DEG_ACTIVO:   return "DEGRADADO";
+    case DEG_SALIENDO: return "DEGRADADO";
+    case DEG_RENDIDO:  return "RENDIDO";
+    default:           return "DESCONOCIDO";
+  }
+}
+
 static void procesarComando(const char* cmd) {
   // AB-1 - LA LINEA RESERVADA DEL PUENTE, Y VA LA PRIMERA DE TODAS.
   //
@@ -629,6 +672,75 @@ static void procesarComando(const char* cmd) {
       // cayo en la ventana de silencio, volvera a pulsar creyendo que no le hacen caso.
       enviarTramaConCrc("$ERR,CMD:SOLICITAR_PASO,DESC:REPITA_EN_UNOS_SEGUNDOS");
     }
+  } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
+    // A-11 (decision del responsable, 05/09: "esto ya es por app").
+    //
+    // EL MODO ESTABA CONSTRUIDO Y LA LLAVE SE HABIA TIRADO. degradado_entrar() tenia
+    // tres llamadores y los tres estaban muertos o inalcanzables: la secuencia A.B.A.B
+    // del mando -el hardware se retiro, D-1-, el menu de la pantalla -botonAceptar() es
+    // "return false;" desde que PB14/PB15 son camaras- y la reanudacion tras corte, que
+    // exige HABER ENTRADO ANTES. Esta rama no construye la puerta: le da la llave.
+    //
+    // LA PUERTA ES LA MISMA QUE LA DEL MANDO Y LA DE LA PANTALLA. No se comprueba nada
+    // aqui: se llama a degradado_entrar(), que vuelve a evaluar TODAS las condiciones
+    // por su cuenta. Tres vias con tres criterios serian una sola puerta -la mas floja
+    // de las tres-, y esta es la unica del firmware que enciende un verde sin
+    // confirmacion del otro extremo.
+    //
+    // UN $ERR POR MOTIVO, PORQUE degradado_entrar() DEVUELVE UN RechazoDegradado Y NO UN
+    // bool. Contestar OK sin mirar lo que la llamada devolvio es una mentira con formato
+    // de exito (CLAUDE.md 6): el operario esta en lo alto de un poste y necesita saber
+    // QUE le falta -"sin hora" se arregla sincronizando, "sync caducada" obliga a
+    // arreglar el radio-, no que algo fallo.
+    //
+    // EL TEXTO SALE DE degradado_textoRechazo(), QUE ES LA TABLA QUE YA ENSENABA EL
+    // GABINETE. Una tabla propia para el celular seria una tercera que alguien tendria
+    // que sincronizar -es lo que dice la rama gemela del Maestro-, y ademas
+    // costura_07_motivos_rechazo vigila que las dos puntas tengan UNA sola tabla: una
+    // copia aqui la dejaria comparando media tabla.
+    //
+    // POR QUE p[64]: "$ERR,CMD:SET_MODO:DEGRADADO,DESC:" son 33 caracteres y el motivo
+    // mas largo de esa tabla son 18 ("AMBAR EMERG.PUESTO", acotado a proposito en
+    // modo_degradado.cpp). 33 + 18 + NUL = 52 B, y con el envoltorio "*XX\r\n" 68 B de
+    // los 160 de tramaCompleta.
+    //
+    // 🔴 Y LO QUE ESTA RAMA NO PUEDE COMPROBAR, ESCRITO PARA QUE NO SE LEA COMO QUE SI:
+    // que el Maestro haya dejado de gobernar. Medido el 05/09 en las dos puntas: el
+    // Maestro emite CMD_PING cada LATIDO_MS (3000 ms, coordinador.cpp) mientras cicla, y
+    // main.cpp de aqui llama a degradado_salir() al recibir PING, GO_RED o GO_GREEN. O
+    // sea que con el Maestro vivo este modo dura un latido y el operario ve el equipo
+    // obedecer y volverse atras solo. NO SE INVENTA AQUI UN SEGUNDO RELOJ DE SILENCIO
+    // para rechazarlo: este fichero ya tiene escrito por que no -el simulador del puente
+    // tumbo esa idea, ver bluetooth_loop()-, y el dato que haria falta -tUltimoComando-
+    // es un static local del loop() de main.cpp. Lo que SI se hace es que se VEA: el
+    // campo MODO: de arriba pasa a DEGRADADO y vuelve a SUBORDINADO, en el tablero.
+    //
+    // Y NO ES PELIGROSO, que es la pregunta que decide si esto se construye: el todo-rojo
+    // obligatorio de entrada dura ROJO_MINIMO_MS (4000 ms) como MINIMO y el latido son
+    // 3000, asi que el Maestro vivo saca a esta punta ANTES de que pueda dar su primer
+    // verde por reloj. La desigualdad la recalcula esclavo_08_ambar_en_degradado desde
+    // el C++ de las dos puntas, porque una relacion entre dos constantes que solo vive
+    // en un comentario se queda describiendo un equipo que ya no existe (N-71).
+    const EstadoDegradado antesDeg = degradado_estado();
+    const RechazoDegradado rDeg = degradado_entrar();
+    if (rDeg != DEG_ACEPTADO) {
+      char p[64];
+      snprintf(p, sizeof(p), "$ERR,CMD:SET_MODO:DEGRADADO,DESC:%s",
+               degradado_textoRechazo(rDeg));
+      enviarTramaConCrc(p);
+      bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEGRADADO_RECHAZADO");
+    } else if (antesDeg == DEG_ENTRANDO || antesDeg == DEG_ACTIVO) {
+      // degradado_entrar() devuelve DEG_ACEPTADO sin hacer nada cuando el modo YA
+      // gobierna. Contestar OK diria que esta pulsacion encendio algo, y el operario que
+      // pulso dos veces no sabria cual de las dos movio la luz -que es exactamente lo
+      // que costo la cinta del 04/09 con SET_MODO:AMBAR-. Aqui no se re-arma nada: el
+      // todo-rojo de entrada ya paso o esta pasando.
+      enviarTramaConCrc("$ACK,CMD:SET_MODO:DEGRADADO,RESULT:YA_ACTIVO");
+      bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEGRADADO_YA_ACTIVO");
+    } else {
+      enviarTramaConCrc("$ACK,CMD:SET_MODO:DEGRADADO,RESULT:OK");
+      bluetooth_reportarEvento("APP_BLUETOOTH", "SET_MODO_DEGRADADO");
+    }
   } else if (strcmp(accion, "TEST_LEDS") == 0) {
     // RECHAZADO A PROPOSITO, y no es una limitacion pendiente de quitar.
     //
@@ -843,16 +955,25 @@ void bluetooth_loop() {
     // escribir eran 15 caracteres. La cuenta buena -la que rehace esp32_07 sin creerse a
     // nadie- acota cada campo por SU BUFFER:
     //
-    //   parte fija de la plantilla  95   (los cuatro campos que esta punta no mide
+    //   parte fija de la plantilla  84   (los cuatro campos que esta punta no mide
     //                                     viajan como "--" DENTRO del literal)
     //   SERIE                        6   serieTxt[7]
+    //   MODO                        11   literal: el mas largo de obtenerNombreModo()
+    //                                    ("SUBORDINADO"; "DEGRADADO" 9 y "RENDIDO" 7)
     //   ESTADO                       9   literal "FALLO COM", el mas largo
     //   HORA                        11   horaBuf[12]
     //   PLUMA                        6   literal "ARRIBA"
     //   CAM                          6   literal "PEGADA", el mas largo de camara_estado()
     //
-    //   95 + 38 = 133 caracteres + NUL = 134 B, y con el envoltorio 138 B de los 160 de
+    //   84 + 49 = 133 caracteres + NUL = 134 B, y con el envoltorio 138 B de los 160 de
     //   tramaCompleta.
+    //
+    // A-11 (05/09): LA CUENTA NO CAMBIA AL PUBLICAR EL MODO REAL, Y NO ES SUERTE. Lo que
+    // salio de la plantilla fue el literal "SUBORDINADO" -11 caracteres- y lo que entro
+    // es un campo acotado por ESE MISMO literal, que sigue siendo el mas largo que la
+    // funcion puede devolver. 95 - 11 = 84 en la parte fija, +11 en el desglose: 133 en
+    // los dos lados. Se deja escrita la resta porque la cuenta de arriba se lee como una
+    // suma de campos y este es el unico que se movio de columna sin cambiar de tamano.
     //
     // Con horaBuf[16] la misma cuenta daba 126 caracteres y el margen era 1 B: cabia,
     // pero por los pelos y sin que nadie lo hubiera mirado. Aqui no habia trama que no
@@ -876,10 +997,18 @@ void bluetooth_loop() {
     // contenido quepa. Aqui el campo cabia subiendo a 134; se pone en el mismo sitio que
     // el Maestro para que las dos plantillas se midan contra el mismo borde y no haya
     // que recordar cual de los dos numeros era el de cada punta.
+    // A-11: se asigna a un `const char*` local en vez de llamar dentro del snprintf, y
+    // no es estilo: es lo que permite acotarlo. esp32_07_presupuesto_bytes sigue la
+    // funcion hasta sus `return "..."` cuando el argumento es una variable asignada
+    // desde una llamada; una llamada CON ARGUMENTO metida en el propio snprintf no la
+    // sabe acotar y el pack aborta antes que estimar. Es la misma forma que modoStr en
+    // el Maestro.
+    const char* modoStr = obtenerNombreModo(degradado_estado());
+
     char payload[155];
     snprintf(payload, sizeof(payload),
-             "$STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s,PLUMA:%s,CAM:%s",
-             serieTxt, estadoStr, horaBuf,
+             "$STATUS,NODE:ESCLAVO,SERIE:%s,MODO:%s,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s,PLUMA:%s,CAM:%s",
+             serieTxt, modoStr, estadoStr, horaBuf,
              semaforo_plumaArriba() ? "ARRIBA" : "ABAJO",
              camara_estado());
 

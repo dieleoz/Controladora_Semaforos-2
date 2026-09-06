@@ -1641,6 +1641,17 @@ document.addEventListener('DOMContentLoaded', () => {
     'HORA':        { texto: '🕐 AJUSTANDO HORA',            fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
     'DEGRADADO':   { texto: '⚠️ DEGRADADO · SIN ENLACE ENTRE POSTES', fondo: 'rgba(255,179,0,0.15)', borde: 'var(--amber-lamp)', color: 'var(--amber-lamp)' },
     'SUBORDINADO': { texto: '🔗 SUBORDINADO AL MAESTRO',    fondo: 'rgba(0,240,255,0.15)',   borde: 'var(--cyan-neon)',  color: 'var(--cyan-neon)' },
+    // A-11 (05/09). EL DECIMOPRIMERO, Y ES DEL ESCLAVO. Esa punta dejo de publicar
+    // MODO:SUBORDINADO fijo el dia que se pudo pedir su Modo Degradado desde aqui: ahora
+    // dice SUBORDINADO, DEGRADADO o RENDIDO segun donde este.
+    //
+    // RENDIDO NO ES UN DEGRADADO MAS FLOJO, Y POR ESO NO COMPARTE TEXTO. Es el Degradado
+    // que TERMINO SOLO al vencer el limite de 48 h sin que el Maestro sincronizara la
+    // hora, y la luz quedo en ambar intermitente. Pintarlo como DEGRADADO diria que el
+    // cruce sigue operando por reloj cuando ya no opera: el tecnico leeria un modo
+    // vigente donde hay una autorizacion caducada, que es lo contrario de lo que tiene
+    // que hacer -volver a sincronizar y volver a entrar-.
+    'RENDIDO':     { texto: '⏳ DEGRADADO VENCIDO (48 h) · ÁMBAR', fondo: 'rgba(255,179,0,0.15)', borde: 'var(--amber-lamp)', color: 'var(--amber-lamp)' },
     // Este no es "la app no lo conoce": es el equipo diciendo que no sabe en que modo
     // esta -el `default` de su propio switch-. Se distingue del de abajo a proposito.
     'DESCONOCIDO': { texto: '❔ EL EQUIPO NO SABE SU MODO',  fondo: 'rgba(148,163,184,0.15)', borde: 'var(--text-muted)', color: 'var(--text-muted)' }
@@ -2441,7 +2452,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // preguntar justo cuando la app no sabe nada del cruce.
   if (btnOpAuto) {
     btnOpAuto.addEventListener('click', () => {
-      const punta = puntaCorrecta('SET_MODO');
+      const punta = puntaCorrecta('SET_MODO:AUTO');
       if (punta) { avisarOtraPunta('SET_MODO:AUTO', punta); return; }
       if (!confirmarVia('SET_MODO:AUTO', () => btnOpAuto.click())) return;
       // Se consume el bool en vez de apoyarse en la guarda de PIN de arriba, que ya no
@@ -2464,7 +2475,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnOpAmber) {
     btnOpAmber.addEventListener('click', () => {
-      const punta = puntaCorrecta('SET_MODO');
+      const punta = puntaCorrecta('SET_MODO:AMBAR');
       if (punta) { avisarOtraPunta('SET_MODO:AMBAR', punta); return; }
       if (!state.pinVerificado) { pedirPin(() => btnOpAmber.click()); return; }
       if (!confirmarVia('SET_MODO:AMBAR', () => btnOpAmber.click())) return;
@@ -2644,10 +2655,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // SET_MODO y MANUAL:CAMBIAR_TURNO devuelve null -su guarda pregunta === 'ESCLAVO'- y
   // los cuatro salen normales, que es lo correcto: no saber no es saber que no.
   const MANDOS_DE_CICLO = [
-    [btnOpAuto, 'SET_MODO'],
+    [btnOpAuto, 'SET_MODO:AUTO'],
     [btnOpStep, 'MANUAL:CAMBIAR_TURNO'],
-    [btnOpAmber, 'SET_MODO'],
-    [btnOpMenu, 'SET_MODO'],
+    [btnOpAmber, 'SET_MODO:AMBAR'],
+    [btnOpMenu, 'SET_MODO:MENU'],
   ];
 
   function marcarDisponible(el, disponible) {
@@ -2791,7 +2802,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // equipo hizo lo dicen $ACK y $STATUS; esta app solo sabe que mando la orden.
   if (btnOpMenu) {
     btnOpMenu.addEventListener('click', () => {
-      const punta = puntaCorrecta('SET_MODO');
+      const punta = puntaCorrecta('SET_MODO:MENU');
       if (punta) { avisarOtraPunta('SET_MODO:MENU', punta); return; }
       enviarComandoFirmware('SET_MODO:MENU');
       addEvent('cyan', 'Operario: orden VOLVER AL MENU enviada al equipo.');
@@ -2801,7 +2812,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // PRUEBA DE ALCANCE: rojo fijo mientras se mide el enlace. Sin PIN, como MENU.
   if (btnModoAlcance) {
     btnModoAlcance.addEventListener('click', () => {
-      const punta = puntaCorrecta('SET_MODO');
+      const punta = puntaCorrecta('SET_MODO:ALCANCE');
       if (punta) { avisarOtraPunta('SET_MODO:ALCANCE', punta); return; }
       enviarComandoFirmware('SET_MODO:ALCANCE');
       addEvent('cyan', 'Tecnico: orden PRUEBA DE ALCANCE enviada al equipo.');
@@ -2831,7 +2842,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnModoDegradado) {
     btnModoDegradado.addEventListener('click', () => {
-      const punta = puntaCorrecta('SET_MODO');
+      const punta = puntaCorrecta('SET_MODO:DEGRADADO');
       if (punta) { avisarOtraPunta('SET_MODO:DEGRADADO', punta); return; }
       if (!state.pinVerificado) { pedirPin(() => btnModoDegradado.click()); return; }
       abrirConfirmacionDegradado();
@@ -2864,7 +2875,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // este por otro camino. Ademas es la unica forma de que un censo pueda
       // comprobarlo sin seguir una cadena de dialogos -y una propiedad que solo se
       // puede verificar leyendo es una que se rompe sin que nadie se entere-.
-      const puntaDeg = puntaCorrecta('SET_MODO');
+      const puntaDeg = puntaCorrecta('SET_MODO:DEGRADADO');
       if (puntaDeg) { avisarOtraPunta('SET_MODO:DEGRADADO', puntaDeg); return; }
       closeModal(degradadoModal);
       // ESTA PUERTA NO TIENE GUARDA DE PIN DELANTE Y SET_MODO:DEGRADADO NO ESTA EN
@@ -3220,6 +3231,32 @@ document.addEventListener('DOMContentLoaded', () => {
              'La unidad pasa por un todo-rojo y vuelve a ordenar el ambar a las dos ' +
              'puntas: espere a verlo. Si pulso varias veces, ESTA es la que movio la luz.',
       toast: 'Ya estaba en modo ambar: el ambar se ha vuelto a encender'
+    },
+    // A-11 (05/09). LAS DOS DEL DEGRADADO, Y LAS PIDE app_10 PORQUE AHORA HAY DOS SIES.
+    //
+    // Hasta hoy SET_MODO:DEGRADADO tenia un solo RESULT -el OK del Maestro- y el
+    // generico bastaba. Con la puerta del Esclavo abierta hay dos, y la diferencia entre
+    // ellos es la de siempre: si ESTA pulsacion movio algo o no.
+    'SET_MODO:DEGRADADO|OK': {
+      tono: 'red',
+      texto: 'Equipo: MODO DEGRADADO ACEPTADO y arrancando. Este poste queda AHORA en ' +
+             'TODO ROJO -es obligatorio antes del primer verde- y a partir de ahi da paso ' +
+             'guiandose SOLO POR SU RELOJ, sin confirmar nada con el otro poste. NO SE ' +
+             'VAYA sin haber comprobado el otro extremo: es la unica maniobra del equipo ' +
+             'que enciende un verde sin que nadie diga que el otro sentido esta parado.',
+      toast: 'Degradado arrancando: todo rojo primero, y compruebe el otro poste'
+    },
+    // El equipo YA estaba en Degradado -entrando o activo- y esta orden no ha arrancado
+    // nada. Contestar lo mismo que arriba diria que esta pulsacion puso el modo, y quien
+    // pulso dos veces no sabria cual de las dos movio la luz. Es la leccion de la cinta
+    // del 04/09 con SET_MODO:AMBAR, aplicada antes de que costara una sesion de banco.
+    'SET_MODO:DEGRADADO|YA_ACTIVO': {
+      tono: 'green',
+      texto: 'Equipo: YA ESTABA en Modo Degradado, asi que esta orden NO ha cambiado ' +
+             'nada -ni ha reiniciado el todo-rojo ni ha vuelto a arrancar el ciclo por ' +
+             'reloj-. Si esta esperando ver moverse la luz por haber pulsado, no se va a ' +
+             'mover por esto: el modo ya venia puesto de antes.',
+      toast: 'Ya estaba en Degradado: esta orden no ha cambiado nada'
     },
     'SET_MODO:MENU|OK': {
       tono: 'green',
@@ -4102,7 +4139,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // consultan state.node por su cuenta (ver 4.bis) porque no pueden resolver por
   // descarte con la punta sin identificar, pero el reparto se apunta aqui, que es el
   // unico sitio donde esta escrito quien atiende que.
-  const SOLO_MAESTRO = ['SET_MODO', 'MANUAL:CAMBIAR_TURNO', 'SET_TIEMPOS', 'TEST_LEDS',
+  // A-11 (05/09): 'SET_MODO' A SECAS SE ROMPE EN SUS SEIS, Y NO ES ORDEN NI ESTILO.
+  //
+  // La entrada cubria por raiz -'SET_MODO' gobierna las siete SET_MODO:X-, y eso era
+  // correcto mientras el Esclavo no atendiera ninguna. Desde hoy atiende UNA:
+  // SET_MODO:DEGRADADO, que es la puerta que A-11 abrio para poder pedir el Modo
+  // Degradado de esa punta desde el telefono. Las otras seis siguen siendo del Maestro.
+  //
+  // DEJARLA COMO ESTABA NO HABRIA SIDO "un poco estricto de mas": la app habria
+  // contestado "esa orden la atiende el MAESTRO" delante de un Esclavo que SI la
+  // atiende, o sea que el boton habria quedado inutil justo en el poste para el que se
+  // construyo. Lo caza app_08_enrutado_por_punta, que recalcula el reparto de los dos
+  // despachadores y prohibe que una lista reclame una orden que atienden las dos.
+  const SOLO_MAESTRO = ['SET_MODO:AUTO', 'SET_MODO:MANUAL', 'SET_MODO:AMBAR',
+                        'SET_MODO:MENU', 'SET_MODO:ALCANCE', 'SET_MODO:INTELIGENTE',
+                        'MANUAL:CAMBIAR_TURNO', 'SET_TIEMPOS', 'TEST_LEDS',
                         'DEMANDA', 'REINICIAR_RELOJ', 'FORZAR_ROJO'];
   // CANCELAR_AMBAR (R-3, 31/08) vive en el Esclavo por la misma razon que
   // AMBAR_EMERGENCIA: es esa punta la que tiene el latch. El Maestro no conoce el
@@ -4129,9 +4180,22 @@ document.addEventListener('DOMContentLoaded', () => {
   // SOLO_MAESTRO puede salir contra un Esclavo. El firmware la rechaza con
   // $ERR,CMD:DESCONOCIDO, asi que no mueve una luz; lo que se pierde es el aviso claro al
   // operario. Queda anotado en el roadmap y no se cierra desde aqui.
-  function puntaCorrecta(comando) {
-    if (SOLO_MAESTRO.includes(comando) && state.node === 'ESCLAVO') return 'MAESTRO';
-    if (SOLO_ESCLAVO.includes(comando) && state.node !== 'ESCLAVO') return 'ESCLAVO';
+  // A-11: SE CONSULTA CON LA ORDEN ENTERA, NO CON SU RAIZ, Y LA COINCIDENCIA ES POR
+  // PREFIJO DE SEGMENTO. Es la MISMA regla que app_08_enrutado_por_punta usa para
+  // decidir si una entrada gobierna una orden (_cubre): la entrada vale para si misma y
+  // para todo lo que cuelgue de ella con ':' -asi 'SET_TIEMPOS' sigue cubriendo
+  // 'SET_TIEMPOS:30:5:20'-. Escribir aqui una regla distinta de la que vigila el pack
+  // seria tener dos contratos de enrutado, y el pack aprobaria uno mientras la app usa
+  // el otro.
+  //
+  // POR QUE NO VALE YA CORTAR POR EL PRIMER ':' ANTES DE PREGUNTAR, que es lo que hacia
+  // el despachador de data-cmd: con las seis entradas SET_MODO:X escritas enteras, una
+  // consulta por la raiz 'SET_MODO' no casaria con ninguna y las seis dejarian de estar
+  // gobernadas -la app mandaria mandos de ciclo contra el Esclavo sin avisar-.
+  function puntaCorrecta(orden) {
+    const cubre = e => orden === e || orden.indexOf(e + ':') === 0;
+    if (SOLO_MAESTRO.some(cubre) && state.node === 'ESCLAVO') return 'MAESTRO';
+    if (SOLO_ESCLAVO.some(cubre) && state.node !== 'ESCLAVO') return 'ESCLAVO';
     return null;
   }
 
@@ -4152,7 +4216,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const comando = sep > 0 ? orden.slice(0, sep) : orden;
       const args = sep > 0 ? orden.slice(sep + 1) : '';
 
-      const punta = puntaCorrecta(comando);
+      // A-11: se pregunta con la ORDEN ENTERA, no con su raiz. Con las seis entradas
+      // SET_MODO:X escritas una a una en SOLO_MAESTRO, preguntar por 'SET_MODO' no
+      // casaria con ninguna y los mandos de ciclo saldrian al cable contra un Esclavo
+      // que no los atiende. `comando` sigue haciendo falta abajo, para el envio.
+      const punta = puntaCorrecta(orden);
       if (punta) {
         avisarOtraPunta(orden, punta);
         return;

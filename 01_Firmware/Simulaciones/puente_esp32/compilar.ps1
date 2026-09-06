@@ -67,6 +67,12 @@ Write-Host "Compilando el bluetooth.cpp REAL de las dos puntas..." -ForegroundCo
 Construir 'MAESTRO' 'Maestro' `
     @('bluetooth','semaforo','coordinador','modo_automatico','mando','modos','demanda','identidad') `
     'arnes_maestro.exe'
+# A-11 (05/09): modo_degradado.cpp ENTRA EN LA LISTA. bluetooth.cpp del Esclavo gano
+# SET_MODO:DEGRADADO, o sea que ya no solo LEE el modo: le pide la entrada y compone un
+# $ERR por cada motivo de rechazo. Sustituir esa puerta habria dejado el arnes midiendo
+# los motivos escritos a mano en arnes_puente.cpp en vez de los seis que el firmware
+# comprueba. Costo: ocho sustitutos -los config_* y los respaldo_*-, escritos alli con su
+# porque. ciclo_degradado.h es cabecera pura y no hay .cpp que anadir.
 Construir 'ESCLAVO' 'Esclavo' `
-    @('bluetooth','semaforo','demanda','identidad') `
+    @('bluetooth','semaforo','demanda','identidad','modo_degradado') `
     'arnes_esclavo.exe'

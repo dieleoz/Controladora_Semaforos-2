@@ -92,6 +92,50 @@ COMANDOS_PERMITIDOS = {
                         "Pide PIN, y el verde lo sigue decidiendo el Maestro (R-3). "
                         "N-152: ademas AVISA al Maestro por radio, que sale de su ambar "
                         "-solo si era el que pidio esta punta- al todo-rojo, no al ciclo",
+    # A-11 (05/09). LA ENTRADA MAS INCOMODA DE ESTA LISTA, Y SE ESCRIBE ENTERA.
+    #
+    # LAS OTRAS CINCO CABEN EN "no abre paso". ESTA SI ABRE PASO, y decir otra cosa seria
+    # repetir el error de N-83 -una lista blanca dando por revisado un comando cuyo motivo
+    # describe otra cosa de la que hace-. El Modo Degradado da VERDE guiandose por el
+    # reloj, y lo da SIN confirmacion del otro extremo: es el unico camino del firmware
+    # que enciende un verde sin que nadie diga que el otro sentido esta en rojo.
+    #
+    # NO ES UN AGUJERO NUEVO: el modo existe desde el 31/07 y ya tenia esa propiedad. Lo
+    # que hasta el 05/09 no existia era una PUERTA ABRIBLE -sus tres llamadores estaban
+    # muertos: el mando sin hardware (D-1), el menu sin botonAceptar() (D-2), y la
+    # reanudacion tras corte, que exige haber entrado antes-. O sea que lo que este
+    # comando cambia no es lo que el modo hace: es que se pueda pedir.
+    #
+    # POR QUE SE ACEPTA. Las cuatro razones son comprobables en el fuente, y ninguna es
+    # "porque lo decidio el responsable" -eso autoriza el cambio, no lo justifica-:
+    #
+    #   1. NO ELIGE LUZ. La rama llama a degradado_entrar() y a nada mas. La fase la
+    #      calcula ciclo_degradado_fase(), que es el MISMO fichero en las dos puntas
+    #      (costura_02_fase_ciclo), a partir de la hora del dia y de la configuracion que
+    #      el Maestro dejo verificada. Aqui no hay un verde que elegir.
+    #   2. LA PUERTA ES UNA Y NO SE COPIA. degradado_entrar() vuelve a evaluar TODAS las
+    #      condiciones -reloj en hora, ciclo conocido y no nulo, sincronizacion recibida y
+    #      no caducada, sin ambar de emergencia puesto-. La rama no comprueba nada por su
+    #      cuenta: tres vias con tres criterios serian la mas floja de las tres.
+    #   3. ENTRA POR TODO-ROJO, SIEMPRE. degradado_entrar() arranca con
+    #      semaforo_forzarRojo() y el modo no da su primer verde hasta agotar
+    #      rojoObligatorioMs(). O sea que el efecto inmediato de este comando es PARAR,
+    #      no abrir.
+    #   4. PIDE PIN, y ademas la app lo pone detras de un dialogo con casilla. Es la
+    #      misma asimetria de CANCELAR_AMBAR leida al derecho.
+    #
+    # 🔴 Y LO QUE NO PROTEGE, ESCRITO PARA QUE NO SE LEA COMO QUE SI: con el Maestro vivo
+    # este modo no se sostiene. main.cpp de esta punta llama a degradado_salir() al
+    # recibir CMD_PING, CMD_GO_RED o CMD_GO_GREEN, y el Maestro emite PING cada
+    # LATIDO_MS. Lo que impide que en ese rato salga un verde por reloj es que
+    # ROJO_MINIMO_MS sea MAYOR que LATIDO_MS, y esa desigualdad no vive aqui: la
+    # recalcula esclavo_08_ambar_en_degradado desde el C++ de las dos puntas (N-71).
+    "SET_MODO:DEGRADADO":
+                        "ABRE PASO, y por eso el motivo va entero arriba: da verde por "
+                        "reloj sin confirmar la otra punta. Se acepta porque no elige "
+                        "luz -la fase la calcula el fichero compartido-, porque entra "
+                        "por todo-rojo, porque la puerta es degradado_entrar() y no una "
+                        "copia de sus condiciones, y porque pide PIN",
     "FORZAR_ROJO":      "presente solo para RECHAZARLO ensenando el nombre nuevo",
     "SOLICITAR_PASO":   "PIDE al Maestro; no enciende nada en esta punta",
     "TEST_LEDS":        "presente solo para RECHAZARLO con un motivo legible",
@@ -143,6 +187,43 @@ def correr(b, fw):
         "un motivo en vez de un silencio",
         "TEST_LEDS desaparecio del despachador. Un comando que no se contesta se lee "
         "como equipo colgado, y el tecnico lo reintenta")
+
+    # ---- 3.bis A-11: la puerta del Degradado existe, y su respuesta se MIRA ----
+    #
+    # DOS PROPIEDADES EN UNA COMPROBACION, Y LAS DOS SE PERDIERON ANTES EN ESTE PROYECTO.
+    #
+    # La primera es que la puerta EXISTA. Hasta el 05/09 degradado_entrar() tenia tres
+    # llamadores y los tres estaban muertos o inalcanzables (A-11): el modo estaba
+    # construido, probado por un arnes en 18/18, y no habia forma de pedirlo. Un modo sin
+    # puerta no da FALLA en ningun sitio -es codigo correcto que nadie ejecuta-, asi que
+    # hace falta alguien que cuente los llamadores vivos.
+    #
+    # La segunda es que la respuesta se USE. degradado_entrar() devuelve un
+    # RechazoDegradado con SEIS motivos distintos, no un bool. Una llamada suelta
+    # -`degradado_entrar();`- compila igual, entra igual cuando puede, y deja al
+    # despachador contestando $ACK,RESULT:OK a un rechazo: la mentira con formato de
+    # exito de CLAUDE.md 6. Es exactamente lo que le pasa hoy a mando.cpp:148, que la
+    # llama suelta -alli no hay a quien contestar, no hay cable de vuelta-; en el
+    # Bluetooth SI lo hay, y por eso la exigencia es de este fichero y no del otro.
+    #
+    # SE MIDE SOBRE EL FUENTE SIN COMENTARIOS. El patron busca la llamada como SENTENCIA
+    # entera -precedida de ';', '{' o '}'-, que es la unica forma en que el valor se tira.
+    RE_ENTRAR = re.compile(r"\bdegradado_entrar\s*\(\s*\)")
+    RE_ENTRAR_SUELTA = re.compile(r"(?:^|[;{}])\s*degradado_entrar\s*\(\s*\)\s*;")
+
+    entradas = RE_ENTRAR.findall(bt)
+    sueltas = RE_ENTRAR_SUELTA.findall(bt)
+    b.verificar(
+        len(entradas) >= 1 and not sueltas,
+        "el Bluetooth del Esclavo abre la puerta del Degradado %d vez/veces y MIRA lo "
+        "que devuelve: cada motivo de rechazo puede tener su propio $ERR" % len(entradas),
+        "el Bluetooth del Esclavo %s. Sin llamador, el Modo Degradado de esta punta "
+        "vuelve a ser una funcion terminada y sin usuario posible (A-11); con la llamada "
+        "suelta, el valor de RechazoDegradado se tira y el despachador contesta que si a "
+        "un rechazo -el operario se va del poste creyendo que dejo el modo puesto-"
+        % ("no llama a degradado_entrar()" if not entradas
+           else "llama a degradado_entrar() como sentencia suelta, sin usar el "
+                "RechazoDegradado que devuelve"))
 
     # ---- 4. La demanda sale por UNA sola puerta ----
     # Dos origenes -la camara de PB0 y el boton de la app- significan lo mismo. Si cada
@@ -201,3 +282,18 @@ def correr(b, fw):
     b.control_negativo(
         bool(re.search(r"protocolo_enviarPaquete\s*\(\s*CMD_DEMANDA", mutado2)),
         "un segundo emisor de CMD_DEMANDA fuera de la puerta unica se detecta")
+
+    # A-11: los DOS lectores de 3.bis se ejercen contra texto que trae el defecto, y por
+    # separado. Un solo control que mezclara las dos formas no diria cual de los dos
+    # patrones se quedo ciego, y el que importa es el segundo: la llamada suelta es
+    # SINTACTICAMENTE VALIDA y compila, asi que ningun compilador la delata.
+    b.control_negativo(
+        not RE_ENTRAR.search("void _sinpuerta(){ enviarTramaConCrc(\"$ACK\"); }"),
+        "un bluetooth.cpp sin ningun llamador de degradado_entrar() se detecta: es el "
+        "estado en que A-11 encontro esta punta")
+    b.control_negativo(
+        bool(RE_ENTRAR_SUELTA.search(
+            "void _muda(){ degradado_entrar(); "
+            "enviarTramaConCrc(\"$ACK,CMD:SET_MODO:DEGRADADO,RESULT:OK\"); }")),
+        "una llamada SUELTA a degradado_entrar() con el $ACK detras se detecta: es el "
+        "OK mudo que contesta OK a un rechazo")

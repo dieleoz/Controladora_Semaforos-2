@@ -55,6 +55,28 @@ PUNTAS = ("Maestro", "Esclavo")
 # La regla para admitir una: el modo existe como ESTADO INTERNO pero pedirlo desde
 # el telefono no significa nada o deja al equipo en una situacion que nadie atiende.
 SIN_SET_MODO_A_PROPOSITO = {
+    # A-11 (05/09). LAS DOS DEL ESCLAVO, Y LAS DOS SON ESTADOS A LOS QUE SE LLEGA, NO
+    # SITIOS A LOS QUE SE VA. Su motivo es una AFIRMACION SOBRE EL CODIGO y se puede
+    # comprobar leyendo Esclavo/src/modo_degradado.cpp, que es la exigencia de 3.bis para
+    # cualquier excepcion: una lista de excepciones con motivos sin verificar es una
+    # lista de defectos con permiso.
+    "SUBORDINADO":
+        "es el DEG_INACTIVO del Esclavo, o sea 'aqui manda el Maestro'. No se pide: se "
+        "vuelve a el, y las dos vias que hay estan medidas y ninguna es un SET_MODO. "
+        "Desde la app: CMD:AMBAR_EMERGENCIA, cuya rama llama a degradado_salir() por "
+        "salidaDegradadoIniciada() en bluetooth.cpp. Y sin la app: main.cpp llama a "
+        "degradado_salir() al recibir CMD_PING, CMD_GO_RED o CMD_GO_GREEN, o sea en "
+        "cuanto el Maestro vuelve a gobernar. Un SET_MODO:SUBORDINADO seria una tercera "
+        "puerta al mismo sitio, con su propio criterio que alguien tendria que "
+        "sincronizar.",
+    "RENDIDO":
+        "es el DEG_RENDIDO del Esclavo: el modo TERMINO SOLO al vencer el limite duro de "
+        "48 h sin sincronizar, y la luz quedo en ambar intermitente. Pedirlo seria pedir "
+        "que se agote una autorizacion, que no significa nada; y salir de el no es un "
+        "modo sino una sincronizacion nueva -degradado_registrarSync() es lo unico que "
+        "baja el latch syncVencidaLatch-. Ademas la propia degradado_comprobar() lo "
+        "rechaza al reentrar (DEG_RECHAZO_SYNC_VENCIDA) para que el limite duro no se "
+        "convierta en un boton de posponer.",
     "HORA":
         "MODO_HORA es la pantalla AJUSTAR HORA (SFTY-18), que se edita DIGITO A "
         "DIGITO con los botones fisicos o el mando de reles y solo escribe al RTC "
@@ -124,21 +146,36 @@ def _acepta_set_modo(codigo):
 # Y SE ESCRIBE COMO TUPLA COMPLETA, NO COMO ("include", "modos.h"), QUE NO ES
 # COSMETICA. La guarda de rutas de compuerta.py exige EN LAS DOS PUNTAS cualquier
 # pareja carpeta/fichero que aparezca sin rol -asi es como vigila los ficheros de
-# costura, que si estan duplicados-. El Esclavo NO tiene ModoSistema: su $STATUS
-# publica MODO:SUBORDINADO fijo, censado 0 veces en Esclavo/src y Esclavo/include
-# contra 48 en el Maestro. Sin el rol delante, la guarda pediria un
-# Esclavo\include\modos.h que no existe ni debe existir, y abortaria.
+# costura, que si estan duplicados-. El Esclavo SIGUE sin tener ModoSistema -censado 0
+# veces en Esclavo/src y Esclavo/include contra 48 en el Maestro-, asi que sin el rol
+# delante la guarda pediria un Esclavo\include\modos.h que no existe ni debe existir, y
+# abortaria. Y lo mismo vale al reves para la ruta del Esclavo, que apunta a un
+# modo_degradado.h que el Maestro tambien tiene pero con OTRO enum dentro.
+#
+# A-11 (05/09): Y AHORA SON DOS PUNTAS, CON DOS ENUM DE NOMBRE DISTINTO. El Esclavo gano
+# un diccionario de modos -su $STATUS dejo de llevar el literal fijo MODO:SUBORDINADO-,
+# que es justo el caso que el ABORTADO de abajo anticipaba: "o esa punta gano un
+# diccionario de modos sin declarar aqui donde vive su enum".
+#
+# EL SUYO NO SE LLAMA ModoSistema Y NO SE LE PONE ESE NOMBRE PARA CONTENTAR AL PACK. El
+# Esclavo no tiene modos de sistema: tiene UN modo propio -el Degradado- y su enum es
+# EstadoDegradado, que ya existia y ya gobierna la maquina de estados. Inventar aqui un
+# ModoSistema de dos valores para que el censo lo encuentre seria escribir firmware para
+# el instrumento, que es la linea que CLAUDE.md 2.bis persigue. Lo que se declara es lo
+# que hay: la ruta Y el nombre.
 RUTA_ENUM = {
-    "Maestro": ("Maestro", "include", "modos.h"),
+    "Maestro": (("Maestro", "include", "modos.h"), "ModoSistema"),
+    "Esclavo": (("Esclavo", "include", "modo_degradado.h"), "EstadoDegradado"),
 }
 
 
 def _enum_modos(fw, punta):
-    """Los valores del enum ModoSistema de esa punta, leidos de su cabecera."""
-    ruta = RUTA_ENUM.get(punta)
-    if ruta is None:
+    """Los valores del enum de modos de esa punta, leidos de su cabecera."""
+    decl = RUTA_ENUM.get(punta)
+    if decl is None:
         return set()
-    m = re.search(r"enum\s+ModoSistema\s*\{([^}]*)\}", fw.codigo(*ruta))
+    ruta, nombre = decl
+    m = re.search(r"enum\s+%s\s*\{([^}]*)\}" % re.escape(nombre), fw.codigo(*ruta))
     if not m:
         return set()
     return set(re.findall(r"\b([A-Z][A-Z0-9_]*)\b", m.group(1)))
@@ -206,22 +243,26 @@ def correr(b, fw):
         # el rotulo comodin: el tecnico veria un equipo "DESCONOCIDO" que en realidad
         # esta en un modo perfectamente definido.
         enum = _enum_modos(fw, p)
+        # El nombre del enum se publica en los tres mensajes, y no es cosmetica: con dos
+        # puntas y dos enum distintos, un fallo que dijera "ModoSistema" mandaria a mirar
+        # la cabecera equivocada en la mitad de los casos.
+        nombreEnum = RUTA_ENUM[p][1] if p in RUTA_ENUM else "NINGUNO DECLARADO"
         if not enum:
             raise fw.Abortado(
-                "%s: no se pudo leer su enum ModoSistema (RUTA_ENUM lo situa en %s). "
+                "%s: no se pudo leer su enum %s (RUTA_ENUM lo situa en %s). "
                 "O esa punta gano un diccionario de modos sin declarar aqui donde "
                 "vive su enum, o la cabecera cambio de sitio. Sin el no hay "
                 "contra que contrastar los `case` del switch"
-                % (p, RUTA_ENUM.get(p, "NINGUNA RUTA DECLARADA")))
+                % (p, nombreEnum, RUTA_ENUM.get(p, ("NINGUNA RUTA DECLARADA",))[0]))
         sinNombrar = sorted(enum - set(casos))
         b.verificar(
             not sinNombrar,
-            "%s: obtenerNombreModo() nombra los %d valores de ModoSistema: %s"
-            % (p, len(enum), sorted(casos.values())),
-            "%s: el enum ModoSistema tiene %s y el switch no los nombra, asi que "
+            "%s: obtenerNombreModo() nombra los %d valores de %s: %s"
+            % (p, len(enum), nombreEnum, sorted(set(casos.values()))),
+            "%s: el enum %s tiene %s y el switch no los nombra, asi que "
             "caen al `default:` y salen por telemetria como '%s'. El equipo estaria "
             "en un modo definido y el tecnico leeria el comodin"
-            % (p, sinNombrar, rotuloDefecto))
+            % (p, nombreEnum, sinNombrar, rotuloDefecto))
 
         emite = set(casos.values())
         acepta = _acepta_set_modo(codigo)
