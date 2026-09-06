@@ -94,6 +94,16 @@ export JAVA_HOME="D:/@Proyect/Baliza/7 sw apk/jdk-17/jdk-17.0.12+7"
 > lista de ficheros** — una lista envejece cada vez que la app gana un modulo, y falla en
 > silencio: la APK compila igual y arranca rota.
 
+> 🔴 **SEXTA TRAMPA, medida el 05/09: `assets/public` NO ES `www`.** Tiene **tres ficheros
+> mas** que no vienen del repositorio —`cordova.js`, `cordova_plugins.js` y
+> **`bluetoothSerial.js`, el plugin por el que la app abre el socket SPP** (el de N-122)—.
+>
+> `cp -r www/.` es seguro porque **anade y pisa, pero no borra**. **Un `rm -rf assets/public`
+> antes de copiar —que es el reflejo natural de «dejarlo limpio»— se lleva ese plugin por
+> delante: LA APK COMPILA IGUAL Y ARRANCA SIN PODER CONECTAR POR BLUETOOTH.** Y esta vez el
+> fichero que falta **no lo trae ningun `<script src=>` de `index.html`** que delate la
+> ausencia. Es la misma forma que la trampa de los siete `js/*.js`, una capa mas abajo.
+
 **Las cuatro trampas, todas medidas el 27/08:**
 
 - **JDK 17, NO 21.** Con el 21 el build muere en `JdkImageTransform ... core-for-system-modules.jar`:
