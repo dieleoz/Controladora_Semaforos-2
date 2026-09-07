@@ -91,6 +91,36 @@ I²C contra dos pines que **ya tienen dueño en el firmware que corre hoy**.
 > `Y1` de 8 MHz está en la placa —el firmware arranca con el **HSI**, el RC interno— y `VBAT`
 > **midió 3 V con la tarjeta apagada** (`N-37`) en **al menos una** tarjeta; la otra sigue
 > `SIN VERIFICAR`. **Lo muerto es `Y2`**, el cristal de 32.768 kHz del RTC, y sólo ése.
+>
+> # 🔴 07/09 — `DECISIONES.md` FILA `D-22`: **ESE `Y1` DEJA DE SER UN DATO CURIOSO Y PASA A SER TRABAJO PENDIENTE**
+>
+> 🛑 **DECIDIDA Y SIN CONSTRUIR. El firmware de hoy sigue arrancando con el HSI y `Y1` sigue sin
+> usarse.** Lo de arriba describe el estado real y **no cambia**; esto le pone encima la decisión.
+>
+> **`D-22`: `Y1` (8 MHz) pasa a ser el reloj de sistema del STM32.** Ya está montado y **no cuesta
+> hardware**. El motivo es la precisión de lo que se cuenta con `millis()`: **10.000–25.000 ppm**
+> del RC interno contra **20–50 ppm** de un cristal.
+>
+> ### 🛑 POR QUÉ ESTO IMPORTA **EN ESTE MANUAL**, QUE ES EL DE CAMBIAR PIEZAS DE RELOJ
+>
+> **Este manual es el que abre alguien con un soldador en la mano.** Con `D-22` sobre la mesa hay
+> **dos cristales** en la conversación y **hacen cosas distintas**. Confundirlos es exactamente el
+> error que este proyecto ya pagó tres veces:
+>
+> | | qué es | qué decide | estado |
+> |---|---|---|---|
+> | **`Y2`** — 32.768 kHz, `PC14`/`PC15` | el del **RTC** (`LSE_CLOCK`) | la hora y la **fase del Modo Degradado** | 🛑 **muerto** (`N-17`), y **es del que trata el resto de este manual** |
+> | **`Y1`** — 8 MHz | el **reloj de sistema** (de él saldría `millis()`) | los plazos: `SFTY-6`, watchdog, cómputo de 48 h | 🟢 **montado y sano hasta donde se sabe** — pero ⚠️ **NUNCA SE HA ARRANCADO** |
+>
+> 🔴 **`D-22` NO ES «reparar el reloj». No arregla `Y2`, no pone la hora y no resucita el RTC.** Si
+> usted vino aquí porque el reloj no marca, **`D-22` no es su respuesta** — siga con `D-20` y con el
+> `DS3231` del ESP32.
+>
+> ⚠️ **Y la precondición, que es medible y no opcional: `Y1` nunca se ha seleccionado, y su gemelo
+> de la misma placa está muerto.** Que esté soldado no es una medida de que oscile. **Antes de
+> cambiar nada de reloj de sistema hay que comprobar que `Y1` arranca** —prueba nueva en
+> `2_Manual_Hardware_y_Pruebas.md` §5, con el motivo medido de por qué un fallo ahí deja la tarjeta
+> **a oscuras y sin reiniciar**—. **No se toca `Y1` ni sus condensadores en esta visita.**
 
 El diseño de la tarjeta controladora **ya incluye el cristal `Y2` de 32.768 kHz** ruteado a los pines `PC14` y `PC15` del microcontrolador STM32F103C8T6.
 
@@ -601,6 +631,54 @@ equipo va por LoRa **entre los dos STM32**, cuyos relojes están muertos (`Y2`, 
 >
 > Lo mismo con la siembra `ESP32 -> STM32`: el camino físico existe (`enlace_stm32.cpp`), **el
 > mando que la siembra no**. Los tres trabajos que faltan están listados en `roadmap.md` §3.4.bis.
+
+> # 🔴 07/09 — `DECISIONES.md` FILA `D-21`: **UNA PILA AGOTADA EN ESE `DS3231` YA NO ES SÓLO «SE PIERDE LA HORA». ES UN CRUCE QUE DEBERÍA IRSE A ÁMBAR**
+>
+> 🛑 **DECIDIDA Y SIN CONSTRUIR.** El equipo de hoy **no hace nada de esto**. Va aquí porque este es
+> el manual de **la pila de ese reloj**, y desde `D-21` esa pila tiene una consecuencia vial que
+> antes no tenía escrita en ningún sitio.
+>
+> **El escenario exacto, en palabras del responsable:** *«si la pila se apaga y queda en una hora
+> fija de una fecha pasada… debería pasar a ámbar int., ¿no? Y lo mismo el Maestro»*.
+>
+> ⚠️ **Lo que hay que entender, y es lo contrario de lo que sugiere el sentido común: un `DS3231`
+> sin pila NO se queda «sin hora». Se queda con UNA hora, perfectamente formada y falsa** — día,
+> mes, hora, minuto y segundo, todos plausibles. **Ese es el caso peligroso**, porque el caso «sin
+> hora» ya está cubierto (el Modo Degradado no entra) y éste **entra y reparte verdes**.
+>
+> **La respuesta decidida: la punta que tiene la hora mentirosa pasa a 🟡 ÁMBAR INTERMITENTE, y se
+> publica** para que la app lo enseñe. `D-21` no inventa la detección —el `DS3231` levanta su bit
+> **`OSF`** al pararse y el puente **ya lo lee y ya lo declara**, símbolo `reloj_ds3231.cpp`,
+> regla `R-2`—: **lo que falta es que esa declaración llegue hasta las luces**.
+>
+> ✅ **Y medido el 07/09, porque cambia lo que cuesta: el MAESTRO YA TIENE LA REACCIÓN ESCRITA.**
+> Dentro de su bucle de Degradado hay un `irAAmbar("Reloj no fiable", "Degradado detenido")` con su
+> porqué al lado —*«el reloj puede dejar de ser fiable en marcha (pila agotada)»*—.
+> `grep -n "irAAmbar(" 01_Firmware/Maestro/src/modo_degradado.cpp`. **El ESCLAVO no la tiene**:
+> `grep -c "irAAmbar" 01_Firmware/Esclavo/src/modo_degradado.cpp` → **0**.
+>
+> 🔴 **Lo que falta, entonces, no es «construir el ámbar»: es que el `OSF` DE ESTE MÓDULO llegue a
+> esa bandera.** Hoy `reloj_enHora()` mira el **RTC del STM32** —cristal `Y2`, muerto—, **no este
+> `DS3231`**. Son dos relojes distintos y no se hablan. **Y como esa bandera es falsa siempre, el
+> ámbar del Maestro no se ejecuta nunca.** Así que para el técnico que está en el poste **la
+> conclusión práctica no cambia: hoy el equipo no reacciona.**
+>
+> ### Lo que `D-21` cambia en el trabajo de este manual, HOY y sin firmware nuevo
+>
+> | | antes | desde `D-21` |
+> |---|---|---|
+> | la pila del `DS3231` | consumible: si se agota, se pierde la hora y se vuelve a poner | 🔴 **pieza de seguridad**: mientras esté agotada, esa punta **autoriza verdes con una hora parada** |
+> | cuándo se cambia | cuando se note que falta la hora | **en visita programada, ANTES de que se agote, en los dos postes** |
+> | qué se comprueba antes de autorizar un Degradado | nada en particular | **leer la hora de las dos puntas con `CMD:LEER_RTC` (`D-17`) y contrastarla con un reloj de fuera.** Si una devuelve una fecha que no es la de hoy, **no se entra en Degradado en ese cruce** |
+>
+> 🛑 **Y la asimetría que no se puede evitar y hay que conocer: en Modo Degradado NO HAY RADIO.**
+> Cada punta decide sola, y lo normal es que se agote **una** pila: se puede ver **un poste en
+> ámbar y el otro en verde**. Es el `Riesgo residual nº 3` de
+> `8_Procedimiento_Modo_Degradado.md` §6 — variante nueva del `Riesgo 2`, **declarado sin solución
+> técnica sin radio**.
+>
+> ⚠️ **Mientras tanto, el único detector es el técnico**, y por eso está escrito en un manual y no
+> sólo en la decisión.
 
 ### Procedimiento — HOY, hasta que `D-20` esté construida
 

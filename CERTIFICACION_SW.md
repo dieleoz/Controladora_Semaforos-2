@@ -46,7 +46,7 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 | Guarda de rutas de los instrumentos | **64 rutas** parseadas, todas existen | `compuerta.py` |
 | Banco de simulación funcional | **9/9 PASS** | `simulador_sistema_v7_6.py` |
 | Escenarios de repetidor | **10/10 PASS** | `simulador_repetidor.py` |
-| Banco por packs | **1220/1226 comprobaciones**, **77 packs** — las dos que faltan: `D-14` y `D-20`, vigentes y sin ancla en el fuente | `banco/correr.py` |
+| Banco por packs | **1222/1226 comprobaciones**, **77 packs** — las dos que faltan: `D-14` y `D-20`, vigentes y sin ancla en el fuente | `banco/correr.py` |
 | Arnés de pantalla (compila el `lcd.cpp` real) | **271/271** (Maestro 145/145 · Esclavo 126/126) | `Validacion_LCD/compilar.ps1` |
 | Arnés del ciclo degradado | **22/22** | `Validacion_Ciclo` |
 | Arnés del Modo Automático | **99/99** | `Validacion_Automatico` |
@@ -85,7 +85,7 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 > | ~~RAM: 3.576 B / 1.752 B / 21.624 B~~ | — | ⛔ **Retiradas: la compuerta NO mide RAM.** Sólo compila y lee el porcentaje de flash. La RAM se mide con `arm-none-eabi-nm` sobre el `.elf` (`CLAUDE.md` §7), y ese número no está en ningún acta |
 
 > El banco por packs y los simuladores son **modelos en Python escritos a mano**: reimplementan lo que
-> hace el C++. Un `1220/1226` acredita coherencia del modelo, **no** el comportamiento del firmware sobre
+> hace el C++. Un `1222/1226` acredita coherencia del modelo, **no** el comportamiento del firmware sobre
 > hardware. Los únicos que compilan C++ real son cuatro arneses, y cada uno tiene su punto ciego
 > declarado en `CLAUDE.md` §8.
 

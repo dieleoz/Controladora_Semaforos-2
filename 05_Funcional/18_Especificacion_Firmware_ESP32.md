@@ -1558,6 +1558,85 @@ rango.
 | **R-2** | 🔴 **Una hora con `OSF` puesto se declara NO FIABLE**, aunque los registros traigan una fecha con pinta razonable | un `DS3231` sin pila devuelve una hora perfectamente formada y completamente falsa |
 | **R-3** | El `OSF` se limpia **solo después de una escritura de hora confirmada**, nunca en el arranque «para dejarlo limpio» | limpiarlo sin poner la hora es fabricar una autorización |
 | **R-4** | Se relee **periódicamente**, no solo al arrancar | la pila se puede agotar con el equipo en marcha |
+| 🔴 **R-4.bis** ➕ **07/09** | **La declaración de «no fiable» TIENE QUE SALIR DEL PUENTE: baja al STM32 y se publica hacia la app** | `DECISIONES.md` **`D-21`**. Un `OSF` que sólo se lee dentro del ESP32 no protege a nadie: la punta sigue dando verdes por una hora parada. 🛑 **DECIDIDA Y SIN CONSTRUIR** |
+
+> **Por qué `R-4.bis` y no `R-10`:** la numeración `R-5` … `R-9` ya está tomada por las reglas de
+> escritura de `§5.6`, y **esos identificadores están citados dentro del fuente** —`grep -n "R-5"
+> 01_Firmware/ESP32_Expansion/src/reloj_ds3231.cpp`—. Renumerar rompería esas citas, que es lo que
+> `CLAUDE.md` §4.sexies prohíbe: un ancla se conserva, no se reordena.
+
+#### 🔴 `R-4.bis` — lo que falta, dicho con el nombre de cada mitad (`D-21`)
+
+> **`DECISIONES.md` fila `D-21` (07/09), palabras del responsable:** *«si la pila se apaga y queda en
+> una hora fija de una fecha pasada… debería pasar a ámbar int., ¿no? Y lo mismo el Maestro»*.
+>
+> 🛑 **NADA DE ESTO ESTÁ CONSTRUIDO.** Lo que hay hoy es **la mitad de arriba**: `R-1` a `R-4` están
+> escritas y el `OSF` se lee. **La declaración muere en el puente.**
+
+**La detección no hay que inventarla; el camino sí.** Las tres piezas que faltan, y ninguna existe:
+
+| # | pieza | cómo se comprueba que sigue faltando |
+|---|---|---|
+| **1** | el ESP32 **avisa al STM32** de que su hora no es fiable — un campo o una trama por `enlace_stm32.cpp`, no sólo una respuesta a `LEER_RTC` | `grep -rnw "OSF" 01_Firmware/Maestro/src 01_Firmware/Esclavo/src 01_Firmware/Maestro/include 01_Firmware/Esclavo/include` → hoy **cero**. ⚠️ **La `-w` NO es adorno: sin ella el mismo `grep` devuelve CUATRO líneas y ninguna es un `OSF`** — la palabra **`MOSFET`** contiene `OSF`, y esos cuatro aciertos son comentarios de la talanquera. Es `CLAUDE.md` §4 otra vez: **un cuatro se lee como «sí hay» igual de mal que un cero se lee como «no hay».** Corrido el 07/09 antes de publicarlo |
+| **2** | el STM32 **convierte esa declaración en ámbar intermitente** en su propia punta | ✅ **EN EL MAESTRO YA EXISTE — corregido el 07/09; yo había escrito aquí lo contrario.** Ver el recuadro de abajo |
+
+> # ✅ 07/09 — **MEDIA `D-21` YA ESTÁ CONSTRUIDA, Y ESO CAMBIA LO QUE CUESTA**
+>
+> 🔴 **Esta fila decía, escrita por mí unas horas antes: ~~*«el único camino a ámbar por reloj sería
+> una guarda nueva; hoy `reloj_enHora()` sólo impide entrar al Degradado, no saca de él»*~~. Es
+> FALSO.** Se conserva tachada con su motivo: salió de **suponer una ausencia en vez de medirla**,
+> que es lo que `CLAUDE.md` §4 lleva media docena de secciones intentando impedir.
+>
+> **Lo medido, corrido antes de publicarlo:**
+>
+> ```
+> $ grep -n "reloj_enHora()" 01_Firmware/Maestro/src/modo_degradado.cpp \
+>                            01_Firmware/Esclavo/src/modo_degradado.cpp
+> $ grep -n "irAAmbar(" 01_Firmware/Maestro/src/modo_degradado.cpp
+> $ grep -c "irAAmbar" 01_Firmware/Esclavo/src/modo_degradado.cpp
+> ```
+>
+> **EL MAESTRO YA REACCIONA.** Dentro del bucle del Degradado, con su porqué razonado al lado:
+>
+> > *«El reloj puede dejar de ser fiable en marcha (pila agotada). Sin hora no hay fase que
+> > calcular, y seguir dando verdes con la ultima que se recuerde seria inventar»*
+> > — y llama a `irAAmbar("Reloj no fiable", "Degradado detenido")`.
+>
+> **O sea que `D-21` no es una función nueva: es CONECTARLE LA ENTRADA a una que ya está escrita,
+> razonada y con su rojo de transición delante.** Lo que falta son exactamente **dos** piezas:
+>
+> | # | qué falta | por qué |
+> |---|---|---|
+> | **A** | 🔴 **el `OSF` del `DS3231` no llega a `reloj_enHora()`** | esa bandera es el **RTC del STM32**, sobre el cristal `Y2`. **El reloj cuya pila se agota es OTRO**: el `DS3231` colgado del ESP32. Son dos relojes distintos y **hoy no se hablan** |
+> | **B** | 🔴 **el ESCLAVO NO TIENE esa comprobación en su bucle** | `irAAmbar` **no existe** en su `modo_degradado.cpp` —cero apariciones— y su `reloj_enHora()` sólo se consulta **al entrar** y **al reanudar tras corte**. Una vez dentro, **esa punta no vuelve a mirar el reloj** |
+>
+> ⚠️ **Y el matiz que impide cantar victoria: hoy ese ámbar del Maestro NO SE EJECUTA NUNCA.**
+> `reloj_enHora()` es **falso siempre** en las dos puntas —`Y2` muerto, `N-17`—, así que el Degradado
+> **no llega a entrar** y el bucle que contiene la guarda **no corre**. Es la señal de `CLAUDE.md`
+> §2.ter: **DECLARADO y no EJERCIDO.**
+>
+> 🟢 **Y ahí está lo que abarata `D-21`: `D-20` arregla la pieza A sin proponérselo.** Cuando el
+> STM32 reciba la hora de su propio ESP32, `reloj_enHora()` pasa a ser **la bandera correcta** —la
+> que sabe si el `DS3231` es fiable— y la reacción del Maestro **se enciende sola**. **`D-21` se
+> reduce entonces a: (1) que la siembra de `D-20` propague el `OSF` en vez de callarlo, y (2) portar
+> la guarda de bucle al Esclavo.**
+>
+> 🔴 **Lo que NO tapa `D-20`, y sigue entero: la publicación.** Ver la fila 3.
+>
+> ⚠️ **Y una asimetría que la fila `D-21` no anticipa.** El responsable la dictó como *«debería pasar
+> a ámbar int., ¿no? Y lo mismo el Maestro»*, o sea dando por hecho que **al Maestro había que
+> añadírselo**. Medido: es al revés. **El que lo tiene es el Maestro; el que no, el Esclavo.**
+| **3** | la app **lo enseña**: la salud del reloj es un dato de pantalla, no de bitácora nada más | `14_Manual_App_Movil_IOT_VIAL.md` §5.7.3 lo tiene hoy como *motivo de por qué no hay hora*, no como *estado del cruce* |
+
+> ⚠️ **Y el orden importa, porque la mitad 2 sola es peligrosa.** Un ámbar que nadie puede ver desde
+> la app es un cruce que se degrada **sin que nadie sepa por qué**; el operario ve un poste en ámbar,
+> el otro en verde, y **no tiene ningún dato que se lo explique**. Las tres piezas son un solo
+> entregable.
+
+> 🛑 **Lo que este apartado NO decide, y no debe leerse como decidido: qué hace el equipo cuando la
+> hora se vuelve mentirosa MIENTRAS ya está dentro del Degradado.** `D-21` dice *«ámbar en la punta
+> que la tiene»*; **no dice si esa punta además sale del modo, ni qué hace la otra** —que no se
+> entera, porque en Degradado no hay radio—. Ver `8_Procedimiento_Modo_Degradado.md` §6, `Riesgo 3`.
 
 ### 5.4 La hora nace no fiable
 

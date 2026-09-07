@@ -135,7 +135,7 @@ lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida
 | | |
 |---|---|
 | Flash | Maestro **87.6 %** (**57416** de 65536 B → **8.120 B libres**) · Esclavo **63.7 %** (41772 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | **1220/1226 comprobaciones** en **77 packs** — las dos que faltan son `D-14` y `D-20`: decididas, vigentes y **sin construir**. `D-17` se cerro el 07/09 poniendole su comentario en `ESP32_Expansion` |
+| Banco por packs | **1222/1226 comprobaciones** en **77 packs** — las dos que faltan son `D-14` y `D-20`: decididas, vigentes y **sin construir**. `D-17` se cerro el 07/09 poniendole su comentario en `ESP32_Expansion` |
 | Arneses que compilan C++ real | 271/271 pantalla · **99/99** automático · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | **235/235** jsdom · 58/58 funcional · 32/32 unitarios · **61/61** TDD |

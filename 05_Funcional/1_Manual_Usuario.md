@@ -814,6 +814,46 @@ binario** (`modo_alcance.cpp`) y ya no tiene dónde dibujarse. De lo que mostrab
    > se veía el síntoma.
 2. **Auto-Recuperación Autónoma (Self-Healing Real):** Al restablecerse la señal de radio, el sistema **NO requiere reinicio manual**. Limpia automáticamente el registro de duplicados (`protocolo_resetReplayProtection()`), fuerza Rojo Estático (All-Red) de 15 segundos en ambos semáforos para limpiar la vía y reanuda el ciclo lumínico sin intervención técnica.
 3. **Cuelgue de Procesador (Ruido EMI):** El Watchdog interno (`IWatchdog` activo a 4.0s) reinicia el procesador ante interferencias severas.
+4. 🔴 **Reloj que MIENTE — la pila del reloj se agota y la hora queda clavada en una fecha pasada.**
+   **DECIDIDO Y NO CONSTRUIDO: `DECISIONES.md` fila `D-21` (07/09).**
+
+   > 🛑 **LÉASE ENTERO ANTES DE ESPERAR NADA DEL EQUIPO: hoy el equipo NO reacciona así.** Los tres
+   > puntos de arriba describen lo que el equipo hace; **éste describe lo que se ha decidido que
+   > haga.** Si usted está delante de un cruce ahora mismo, la reacción de abajo **no va a ocurrir**.
+   >
+   > *(Para quien vaya a construirlo, y sólo para eso: el Poste 1 ya lleva escrita media reacción —
+   > cuelga del reloj equivocado y hoy no llega a ejecutarse—, y el Poste 2 no lleva ninguna.
+   > Medido el 07/09; está en `18_Especificacion_Firmware_ESP32.md` §5.3. **Para el operario no
+   > cambia nada: hoy no pasa.**)*
+
+   **Qué se decidió:** cuando el reloj de una punta deja de ser fiable —la pila del módulo `DS3231`
+   se agota y el chip se queda parado en una fecha pasada—, **esa punta pasa a 🟡 ÁMBAR
+   INTERMITENTE**, y **lo publica** para que la app lo enseñe.
+
+   **Por qué ámbar, y no rojo ni «seguir como si nada»:**
+
+   | | qué le dice al conductor |
+   |---|---|
+   | 🟡 **ámbar intermitente** *(lo decidido)* | *«no estoy controlando esto, decida usted»* — **llega ALERTA** |
+   | 🔴 rojo fijo | para el cruce entero por un fallo de reloj, en las dos direcciones |
+   | 🟢 verde por reloj *(lo que pasaría hoy)* | *«pase tranquilo»* — **le quita la precaución**, y la hora que lo autorizó no avanza |
+
+   > ⚠️ **Una hora parada NO es «quedarse sin hora».** Un módulo de reloj sin pila devuelve una
+   > fecha **perfectamente formada** —día, mes, hora, minuto, todos plausibles—. El caso «sin hora»
+   > ya está cubierto: el Modo Degradado **no entra**. Éste es el caso contrario y más peligroso:
+   > **entra, y reparte verdes con toda confianza.**
+
+   🔴 **Lo que este manual NO puede prometerle, y por eso va aquí y no en el apartado de fallas
+   normales: las dos puntas NO se van a poner en ámbar a la vez.** En Modo Degradado **no hay
+   radio** —es la definición del modo—, así que cada poste decide solo, y lo normal es que se agote
+   **una** pila. Puede verse **un poste en ámbar y el otro dando verde**. Eso es el `Riesgo residual
+   nº 2` del `8_Procedimiento_Modo_Degradado.md` §6, y su mitigación es la misma: **mirar las dos
+   puntas con los ojos**.
+
+   **Mientras `D-21` no esté construida, lo único que hay es el procedimiento:** cambiar la pila del
+   módulo `DS3231` en visita programada, en los dos postes, y **leer la hora de las dos puntas con
+   `CMD:LEER_RTC` antes de autorizar un Degradado**. Si una devuelve una fecha que no es la de hoy,
+   **no se entra en Degradado en ese cruce**.
 
 ---
 

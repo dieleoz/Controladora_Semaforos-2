@@ -1488,6 +1488,12 @@ ve un conductor.~~
 Están escritos aquí porque **el funcional debe conocerlos antes de firmar**, no después de un
 incidente.
 
+> 🔴 **07/09 — SON TRES, Y EL TERCERO NO LO HA ACEPTADO NADIE TODAVÍA.** El título de esta sección
+> dice *«aceptados por el cliente el 01/08/2026»*, y desde hoy eso sólo es cierto para el `Riesgo 1`
+> y el `Riesgo 2`. **El `Riesgo 3` —`DECISIONES.md` fila `D-21`, la hora que miente— se añade el
+> 07/09 y llega SIN esa firma**: es una variante nueva del `Riesgo 2`, con causa propia. Se marca
+> así para que nadie lo lea como ya aceptado por venir debajo del mismo título.
+
 ### Riesgo 1 — El verde se da sin confirmación del otro extremo
 
 **Con el radio muerto es inevitable.** En operación normal, el Maestro no abre un carril hasta que el
@@ -1576,6 +1582,170 @@ arriba**.~~
 > ✅ **Por eso el aviso del principio de este documento se mantiene palabra por palabra: no cambie la
 > pila, no cambie el cristal `Y2` y no cargue nada.** Que `D-20` mude el reloj **no autoriza a
 > quitarle piezas a la tarjeta**.
+
+### Riesgo 3 — 🔴 **UNA HORA QUE MIENTE: el reloj se para en una fecha pasada y el equipo sigue dando verdes con toda confianza** ➕ **NUEVO (07/09)** — `DECISIONES.md` fila **`D-21`**
+
+> # 🛑 ESTE RIESGO ESTÁ **DECIDIDO Y NO CONSTRUIDO**. LO QUE SIGUE DESCRIBE LO QUE EL EQUIPO **DEBE** HACER, NO LO QUE HACE HOY
+>
+> **Si usted lee este apartado buscando *«qué hará el equipo»*, la respuesta de hoy es: nada.** Se
+> escribe aquí porque `D-21` abre un riesgo que esta sección no tenía en ningún renglón, y porque
+> un riesgo sin escribir no se mitiga ni con el procedimiento.
+>
+> ⚠️ **PERO NO por la razón evidente, y la diferencia decide lo que cuesta arreglarlo:** el
+> **Maestro SÍ tiene escrita** la reacción *«reloj no fiable → ámbar»* dentro de su bucle de
+> Degradado. Lo que pasa es que **cuelga del reloj equivocado** —el RTC del STM32, no el `DS3231`
+> cuya pila se agota— y que **hoy no se ejecuta nunca**, porque `reloj_enHora()` es falso siempre.
+> **El Esclavo, ése sí, no la tiene en absoluto.** Medido el 07/09; el detalle y los `grep` están
+> más abajo, en *«la detección ya existe en el chip»*.
+
+**El escenario, que es distinto de los otros dos:** la pila del módulo `DS3231` se agota y el reloj
+**queda clavado en una fecha pasada**. **Eso no es quedarse sin hora.** Un `DS3231` sin pila
+devuelve una fecha **perfectamente formada** —día, mes, hora, minuto, segundo, todos plausibles—, y
+un Degradado que cuelgue de ella **repartirá verdes con toda confianza sobre una hora que no
+avanza**.
+
+| | qué hace el equipo | qué ve el conductor |
+|---|---|---|
+| **sin hora** *(el caso que ya está cubierto)* | `reloj_enHora()` es falso, el Degradado **no entra** | nada anómalo: no se llega a entrar en el modo |
+| 🔴 **hora que miente** *(éste)* | **nada lo distingue del caso bueno hoy** | **verde**, y el verde le dice *«pase tranquilo»* |
+
+**La respuesta decidida: `ÁMBAR INTERMITENTE` en la punta que tiene la hora mentirosa, y se
+publica** para que la app lo enseñe.
+
+> **Por qué ámbar y no rojo, y es la doctrina que este mismo documento ya tiene escrita:** el ámbar
+> dice *«no estoy controlando esto, decida usted»* y el conductor **llega alerta**. Un rojo fijo en
+> las dos puntas para el cruce entero por un fallo de reloj; un verde por reloj **le quita la
+> precaución al que llega**. Entre las tres, la única que degrada hacia la atención del conductor
+> es el ámbar.
+
+#### ⚠️ La asimetría NO se puede evitar, y por eso este riesgo vive **aquí** y no en otro apartado
+
+**En Degradado NO HAY RADIO — es la definición del modo.** No hay forma de ordenar *«ámbar en las
+dos»*: **cada punta decide sola**, con su propio reloj, y que las dos coincidan **sólo pasa si las
+dos pierden la hora a la vez**. Lo normal es que se agote **una** pila.
+
+```
+   La pila del DS3231 del poste 1 se agota
+        -> su hora queda clavada en una fecha pasada
+        -> D-21: esa punta pasa a AMBAR INTERMITENTE      el conductor NEGOCIA el paso
+   El poste 2 tiene su reloj sano y sigue en fase          el conductor pasa CONFIADO
+```
+
+**Es el `Riesgo 2` otra vez, por una causa nueva.** El `Riesgo 2` fue aceptado por el cliente el
+**01/08/2026** y está declarado **sin solución técnica sin radio**; `D-21` **no lo empeora ni lo
+arregla: le añade un disparador que antes no estaba en la lista** —hasta hoy la asimetría sólo
+podía nacer de un microcorte o de un operario, y desde `D-21` puede nacer **de una pila**.
+
+> 🛑 **Y por eso la mitigación del `Riesgo 2` se aplica entera, palabra por palabra, también a
+> éste: verificación visual de LAS DOS PUNTAS.** El equipo no la va a pedir.
+
+#### 🟢 La detección YA EXISTE en el chip. Lo que falta es que llegue a las luces
+
+**No hay que inventar nada.** El `DS3231` levanta su bit **`OSF`** (*oscillator-stop flag*) en
+cuanto el oscilador se para, y el firmware del puente **ya lo lee y ya lo declara**:
+
+```
+$ grep -n "R-2" 01_Firmware/ESP32_Expansion/src/reloj_ds3231.cpp
+```
+
+> *«una hora con `OSF` puesto se declara NO FIABLE aunque los registros traigan valores
+> plausibles»* — símbolo `reloj_ds3231.cpp`, regla `R-2` de
+> `18_Especificacion_Firmware_ESP32.md` §5.3
+
+🔴 **Lo que NO existe es el camino de esa declaración hasta las luces.** Hoy el `OSF` muere en el
+puente: **el STM32 no lo recibe.**
+
+> # ✅ CORREGIDO HORAS DESPUÉS, EL MISMO 07/09 — **MEDIA `D-21` YA ESTÁ CONSTRUIDA**
+>
+> **Aquí se había escrito ~~*«no hay quien lo convierta en ámbar»*~~ y ~~*«está sin empezar»*~~. Es
+> falso, y se conserva tachado con su motivo:** salió de suponer la ausencia en vez de medirla.
+>
+> **Medido, y el `grep` corrido antes de publicarlo:**
+>
+> ```
+> $ grep -n "irAAmbar(" 01_Firmware/Maestro/src/modo_degradado.cpp
+> $ grep -c "irAAmbar"  01_Firmware/Esclavo/src/modo_degradado.cpp
+> ```
+>
+> **El MAESTRO ya lo hace.** Dentro de su bucle de Degradado, con este comentario al lado:
+>
+> > *«El reloj puede dejar de ser fiable en marcha (pila agotada). Sin hora no hay fase que
+> > calcular, y seguir dando verdes con la ultima que se recuerde seria inventar»*
+> > — y llama a `irAAmbar("Reloj no fiable", "Degradado detenido")`, **pasando por rojo antes del
+> > ámbar**, como manda `SFTY`.
+>
+> **Entonces, ¿qué falta de verdad?** Tres cosas, y las tres son más pequeñas que «construirlo»:
+>
+> | # | falta | detalle |
+> |---|---|---|
+> | **A** | 🔴 el `OSF` del `DS3231` **no llega** a `reloj_enHora()` | esa bandera es el RTC del STM32 sobre `Y2`; **el reloj cuya pila se agota es el `DS3231` del ESP32**. Son dos relojes y hoy **no se hablan** |
+> | **B** | 🔴 el **ESCLAVO no tiene** la comprobación en su bucle | `irAAmbar` **no existe** en su `modo_degradado.cpp`; sólo mira el reloj **al entrar** y **al reanudar tras corte**. Dentro del modo, esa punta **ya no vuelve a mirarlo** |
+> | **C** | 🔴 **no se publica** | ni el `$STATUS` ni la app tienen hoy dónde decir *«el reloj de este poste no es fiable»* |
+>
+> ⚠️ **Y aun así el operario NO debe esperar nada hoy, y por dos motivos distintos:** (1) el
+> Esclavo directamente no lo hace, y (2) **el ámbar del Maestro no se ejecuta nunca**, porque
+> `reloj_enHora()` es **falso siempre** —`Y2` muerto, `N-17`—, así que el Degradado **no entra** y
+> ese bucle **no corre**. Es `CLAUDE.md` §2.ter en estado puro: **DECLARADO y no EJERCIDO.**
+>
+> 🟢 **Y la consecuencia buena, que es la que hay que llevarse a la reunión: `D-20` cierra la
+> pieza A sin proponérselo.** En cuanto el STM32 reciba la hora de su propio ESP32,
+> `reloj_enHora()` pasa a ser la bandera correcta y **la reacción del Maestro se enciende sola**.
+> `D-21` se queda entonces en **propagar el `OSF`** y **portar la guarda al Esclavo**.
+>
+> ⚠️ **Y una asimetría que la propia fila `D-21` no anticipa:** se dictó como *«…y lo mismo el
+> Maestro»*, dando por hecho que al Maestro había que añadírselo. **Es al revés: el que lo tiene es
+> el Maestro, y el que no, el Esclavo.**
+
+#### Lo que hay que hacer HOY, mientras `D-21` no esté construida
+
+1. **La pila del módulo `DS3231` es consumible con fecha, no mantenimiento eventual.** Se cambia en
+   visita programada, en los dos postes, **antes** de que se agote.
+2. **Antes de autorizar un Degradado, se lee la hora de las dos puntas con `CMD:LEER_RTC`** (`D-17`)
+   y **se contrasta con un reloj de fuera**. Una fecha pasada plausible es exactamente lo que este
+   riesgo describe, y hoy **el único detector es el técnico**.
+3. **Si una punta devuelve una fecha que no es la de hoy: no se entra en Degradado en ese cruce.**
+   Se cambia la pila y se pone en hora primero.
+
+---
+
+### 🔴 `D-22` y este documento — **el cristal `Y1` NO es el que decide los 29 s, y hay que decirlo antes de que alguien lo lea al revés**
+
+> **`DECISIONES.md` fila `D-22` (07/09): `Y1` (8 MHz) pasa a ser el reloj de sistema del STM32.**
+> Hoy el firmware arranca con el **HSI**, el RC interno del chip. 🛑 **DECIDIDA Y SIN CONSTRUIR.**
+
+**Por qué se escribe aquí:** la fila `D-22` justifica el cambio comparando el error del HSI *«frente
+a un margen de cruce de 29 s»*, y **esos 29 s son los de este documento**. Quien lea las dos cosas
+seguidas concluirá que arrancar `Y1` amplía el margen del Degradado. **Medido el 07/09, y no es
+así.**
+
+| | qué oscilador lo cuenta | medido en |
+|---|---|---|
+| **La FASE del Degradado** —de quién es el verde y cuándo— | 🔴 **el RTC del STM32, sobre `LSE_CLOCK`, o sea el cristal `Y2` de 32.768 kHz** | `ciclo_degradado_fase(reloj_segundosDelDia(), …)` en el `modo_degradado.cpp` de **las dos puntas**, y `rtc.setClockSource(STM32RTC::LSE_CLOCK)` en los dos `reloj.cpp` |
+| **Los 29 s de margen** | el mismo: es la deriva **entre los dos `Y2`** | comentario de cabecera de `modo_degradado.cpp`: *«el colchon que absorbe la DERIVA entre dos cristales de 32.768 kHz»* |
+| `millis()` — temporizadores de transición, caché de fase, y **el cómputo de las 48 h del Esclavo** | 🟢 **el reloj de sistema: HOY el HSI, y con `D-22` sería `Y1`** | `tUltimaSync = millis()` en `Esclavo/src/modo_degradado.cpp` |
+
+```
+$ grep -rn "ciclo_degradado_fase(" 01_Firmware/Maestro/src 01_Firmware/Esclavo/src
+$ grep -n "setClockSource" 01_Firmware/Maestro/src/reloj.cpp 01_Firmware/Esclavo/src/reloj.cpp
+```
+
+> 🛑 **Conclusión, y es la que hay que llevarse: `D-22` no compra ni un segundo del margen de 29 s
+> mientras la fase la siga contando el `Y2`.** Lo que sí compra, y nadie lo tenía escrito:
+
+- ✅ **El límite duro de 48 h del ESCLAVO se cuenta con `millis()`**, o sea con el HSI. A
+  **10.000–25.000 ppm**, ese límite de 48 h puede caer **entre ~29 minutos y ~1,2 horas antes o
+  después** de las 48 h reales *(cuenta: `48 h × 0,010` y `48 h × 0,025`; no es una medida de
+  banco)*. Con `Y1` a 20–50 ppm el mismo error baja a **entre 3,5 y 8,6 segundos**.
+- ✅ **Todos los plazos de `millis()` heredan ese error**: el techo de silencio de `SFTY-6`
+  (25 s → ±0,25 a ±0,63 s), la ventana de reintentos de 20,5 s, y el watchdog de 4 s.
+
+> ⚠️ **Y la pregunta que esto abre y que este documento NO puede contestar** —queda en el informe
+> de la sesión, no aquí—: **`Y2` está muerto (N-17), así que hoy `reloj_segundosDelDia()` no cuenta
+> nada y el Degradado no entra en ninguna punta.** Cuando `D-20` se construya, **el STM32 tendrá que
+> contar la hora sembrada por su ESP32 con ALGO**, y si ese algo es `millis()` —la vía *«reloj de
+> software disciplinado por el ESP32»* que `11_Manual_Instalacion_RTC_DS3231_Bateria.md` §5.4 deja
+> abierta como `BLQ-2`—, **entonces `Y1` SÍ pasa a decidir los 29 s y la justificación de `D-22` es
+> exacta.** Depende de una decisión que todavía no está tomada.
 
 ---
 

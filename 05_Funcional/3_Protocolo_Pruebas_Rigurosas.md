@@ -1347,6 +1347,100 @@ Desfase calculado: ________ s
   > para «ayudar», está creando la segunda fuente. **Hoy la única barrera es el procedimiento**, y
   > por eso se escribe en el protocolo y no sólo en la decisión.
 
+**7.13 Una hora que MIENTE manda esa punta a ámbar intermitente** ➕ **NUEVA (07/09)**
+— ⏸️ **HOY NO SE PUEDE EJECUTAR: EL FIRMWARE NO LO HACE**
+
+> # 🛑 LÉASE ANTES DE EJECUTARLA, O SE FIRMARÁ AL REVÉS
+>
+> **Esta prueba NO comprueba algo que el equipo ya haga.** `DECISIONES.md` fila **`D-21`** (07/09)
+> está **DECIDIDA Y SIN CONSTRUIR**: hoy el bit `OSF` del `DS3231` se lee en el puente y **muere
+> ahí**. Si se ejecuta hoy, el equipo **seguirá dando verdes con la hora parada**, y eso **no es
+> `NO CUMPLE`** —no hay firmware al que acusar— **ni `CUMPLE`**.
+>
+> ⚠️ **Y una precisión que decide qué se anota si sale algo raro, medida el 07/09:** el **Maestro
+> SÍ lleva escrita** la reacción *«reloj no fiable → ámbar»* dentro de su bucle de Degradado
+> (`grep -n "irAAmbar(" 01_Firmware/Maestro/src/modo_degradado.cpp`), y el **Esclavo NO**
+> (`grep -c "irAAmbar" 01_Firmware/Esclavo/src/modo_degradado.cpp` → `0`). **Pero esa guarda del
+> Maestro cuelga de `reloj_enHora()`, que es el RTC del STM32 sobre `Y2` —muerto— y NO el `DS3231`
+> cuya pila usted acaba de sacar.** O sea: **sacar la pila del módulo no puede disparar ese ámbar**,
+> y si aun así el Maestro se va a ámbar durante esta prueba, **la causa es otra y hay que anotarla
+> como hallazgo**, no como que `D-21` funciona.
+>
+> **Por qué existe la prueba:** una hora que no es fiable **no es «sin hora»**. Un `DS3231` sin pila
+> devuelve una fecha **perfectamente formada y falsa**, y un Modo Degradado que cuelgue de ella
+> reparte verdes **con toda confianza sobre un reloj que no avanza**. El caso «sin hora» ya está
+> cubierto (`7.1`, `9`): el modo **no entra**. Éste es el contrario: **entra**.
+>
+> **Y por qué ÁMBAR y no rojo:** el ámbar dice *«no estoy controlando esto, decida usted»* y el
+> conductor **llega alerta**; un verde por reloj le dice *«pase tranquilo»*. Es la doctrina que ya
+> tiene escrita el `8_Procedimiento_Modo_Degradado.md`.
+
+- *Cómo se provoca, sin esperar a que se agote una pila:* con el poste **desenergizado**, **sacar
+  la pila del módulo `DS3231`** de esa punta, energizar, y **no poner la hora**. El módulo arranca
+  con el `OSF` puesto. **Se hace en UNA sola punta** — provocarlo en las dos esconde justamente lo
+  que hay que ver.
+- *Comprobación previa, que es la que da sentido al resto:* `CMD:LEER_RTC` (`D-17`) tiene que
+  devolver **una fecha con pinta razonable y equivocada**, o el motivo `oscilador parado`. **Si
+  devuelve la hora buena, la pila no se sacó o el módulo la conservó: la prueba no está montada.**
+- *Esperado (cuando `D-21` esté construida):* **esa punta pasa a 🟡 ÁMBAR INTERMITENTE**, y **la
+  app lo enseña con un rótulo que dice por qué**. La otra punta **NO tiene por qué acompañarla**:
+  en Degradado no hay radio y cada una decide sola.
+- *Lo que va a pasar HOY:* **nada**. El equipo sigue como estaba. Se marca ⏸ y se anota.
+- Hora que devolvió `LEER_RTC`: ______-______-______  ______:______:______
+- ¿Se fue esa punta a ámbar intermitente? `[ ] SÍ  [ ] NO (estado esperado hoy)`
+- ¿La app dijo POR QUÉ? `[ ] SÍ, texto: ____________________  [ ] NO`
+- ¿Qué hizo la OTRA punta? ______________________________________
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE  [ ] ⏸ NO EJECUTABLE (D-21 decidida y sin construir)` —
+  Observación: ________________________________
+- > 🛑 **AL TERMINAR: vuelva a poner la pila y ponga el reloj en hora antes de dejar el equipo.**
+  > Un poste que se queda con el `OSF` puesto es exactamente el defecto que esta prueba describe.
+- > ⚠️ **Y lo que esta prueba NO decide, y no hay que inventárselo en el acta:** qué hace el equipo
+  > si la hora se vuelve mentirosa **mientras ya está dentro del Degradado** —¿sale del modo, o se
+  > queda en ámbar dentro de él?—. `D-21` no lo dice. Si sale en la sesión, **se anota como
+  > observación, no como fallo**.
+
+**7.14 ¿ARRANCA EL CRISTAL `Y1` DE 8 MHz?** ➕ **NUEVA (07/09)** — `DECISIONES.md` **`D-22`**
+— ⏸️ **HOY NO SE PUEDE EJECUTAR: EL FIRMWARE NUNCA HA PEDIDO `Y1`**
+
+> # 🛑 ESTA ES LA PRECONDICIÓN DE `D-22`, NO UNA MEDIDA DE CURIOSIDAD
+>
+> **`D-22` (07/09): `Y1` (8 MHz) pasa a ser el reloj de sistema del STM32.** Hoy el firmware arranca
+> con el **HSI**, el RC interno, y **`Y1` nunca se ha seleccionado**. Medido el 07/09: ninguna de las
+> dos puntas redefine `SystemClock_Config`, y la del núcleo usa `RCC_OSCILLATORTYPE_HSI` con
+> `RCC_PLLSOURCE_HSI_DIV2`.
+>
+> 🔴 **Y `Y2`, el otro cristal de esa MISMA placa, está muerto (`N-17`).** Que `Y1` esté soldado y en
+> la lista de materiales **no es una medida de que oscile**. **Hasta que esta prueba se haga, `D-22`
+> no se construye.**
+>
+> ⚠️ **El motivo por el que esto no es una cautela retórica** (detalle en
+> `2_Manual_Hardware_y_Pruebas.md` §5): si el firmware pide `HSE` y el cristal no arranca, el núcleo
+> llama a `Error_Handler()`, que es un **bucle infinito** —símbolo `_Error_Handler`,
+> `stm32_def.c`—, **antes de `setup()` y antes de armar el watchdog**. La tarjeta se queda **a
+> oscuras, sin luces y sin reiniciar**.
+
+- *Acción, y sólo se puede hacer con un binario de prueba que aún no existe:* cargar un firmware que
+  **intente `HSE` y, si falla, CAIGA AL HSI Y LO DECLARE** —nunca uno que llame a `Error_Handler()`—.
+  Energizar y leer qué declara.
+- *Alternativa que SÍ se puede hacer hoy, y conviene traerla igual:* **con la tarjeta energizada y
+  el firmware actual**, medir con osciloscopio o frecuencímetro en las patas de `Y1`. **El firmware
+  de hoy no lo pide, así que lo esperado es que NO oscile** — un `Y1` quieto con este binario **no
+  es un veredicto sobre el cristal**, y anotarlo como avería sería el error que este proyecto ya
+  pagó tres veces. **Lo único que decide es la prueba con el binario que sí lo pide.**
+- *Esperado (con el binario de prueba):* el equipo **arranca en los dos casos**. O declara `Y1`
+  vivo, o declara que cayó al HSI. **Lo que no vale es que se quede oscuro y callado.**
+- ¿Arrancó el equipo? `[ ] SÍ  [ ] NO — 🛑 PARE Y NO CARGUE ESE BINARIO EN NINGUNA OTRA TARJETA`
+- ¿Qué declaró? `[ ] Y1 OK  [ ] cayó al HSI  [ ] no declaró nada`
+- Frecuencia medida en `Y1` (si hubo instrumento): ____________ MHz
+- **Hágase en las DOS tarjetas.** Maestro: ____________  Esclavo: ____________
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE  [ ] ⏸ NO EJECUTABLE (D-22 decidida y sin construir)` —
+  Observación: ________________________________
+- > 🔴 **Lo que esta prueba NO demuestra, y hay que dejarlo escrito para que nadie lo dé por
+  > medido: que `D-22` amplíe el margen de 29 s del Modo Degradado.** Medido el 07/09: la fase del
+  > Degradado sale de `ciclo_degradado_fase(reloj_segundosDelDia(), …)`, y `reloj_segundosDelDia()`
+  > cuelga del RTC sobre `LSE_CLOCK`, **o sea de `Y2`, no de `Y1`**. Lo que `Y1` mejora es todo lo
+  > que se cuenta con `millis()`. Ver `8_Procedimiento_Modo_Degradado.md` §6.
+
 ---
 
 ## 📑 SECCIÓN 8 — MANDO DE 4 RELÉS Y SECUENCIAS (SFTY-21)
@@ -3034,7 +3128,23 @@ Seccion  2 — Perdida de comunicacion y Self-Healing ...  ___ / 5
 Seccion  3 — Modo Automatico ..........................  ___ / 5
 Seccion  4 — Modo Inteligente (demanda) ...............  ___ / 2
 Seccion  5 — Modo Manual y medida de enlace ...........  ___ / 6
-Seccion  7 — Reloj y sincronizacion ...................  ___ / 7   (6 + 7.12, nueva)
+Seccion  7 — Reloj y sincronizacion ...................  ___ / 9   (6 + 7.12 + 7.13 + 7.14)
+   >>> 07/09, MAS TARDE EL MISMO DIA. Son 9 renglones, no 7. Entran 7.13 y 7.14, y
+       LAS DOS son NO EJECUTABLES: DECISIONES.md D-21 y D-22, decididas y sin
+       construir. Se cuentan aqui igual que 7.8 y 7.12 -el hueco existe y se ve-,
+       nunca como CUMPLE ni como NO CUMPLE.
+
+       - 7.13 (D-21): "una hora que MIENTE manda esa punta a ambar intermitente".
+         Se provoca sacando la pila del modulo DS3231 de UNA punta. Hoy el equipo
+         no reacciona: el bit OSF se lee en el puente y muere ahi.
+         >>> AL TERMINAR se repone la pila y se pone el reloj en hora. Un poste
+             que se queda con el OSF puesto ES el defecto que la prueba describe.
+       - 7.14 (D-22): "arranca el cristal Y1 de 8 MHz?". Es la PRECONDICION de
+         D-22, no un extra: Y1 nunca se ha seleccionado y Y2, el otro cristal de
+         la misma placa, esta muerto.
+         >>> NO SE CARGA un binario que pida HSE sin caida hacia atras al HSI: si
+             el cristal no arranca, Error_Handler() es un bucle infinito ANTES de
+             setup() y antes del watchdog -tarjeta a oscuras y sin reiniciar-.
    >>> CORREGIDO EL 07/09 (E-8, DECISIONES.md D-20). Reparto vigente:
 
        - 7.12 es NUEVA: "el poste 2 RECHAZA que le pongan la hora". Se anade porque
@@ -3141,6 +3251,34 @@ DATOS MEDIDOS  (no cuentan como CUMPLE/NO CUMPLE: son registro para el acta)
      Diferencia tras corte de energia ....... ______ s (Maestro)  ______ s (Esclavo)
      Veredicto de REINICIAR_RELOJ ........... Maestro: ______________
                                               Esclavo: ______________
+
+     >>> ANADIDO EL 07/09 (DECISIONES.md D-21 y D-22). Estos DOS renglones son
+         registro para el acta, no CUMPLE/NO CUMPLE, y las dos decisiones estan
+         DECIDIDAS Y SIN CONSTRUIR:
+
+     Hora que devolvio LEER_RTC con la pila del DS3231 fuera (7.13, D-21):
+        Poste 1: ______-______-______ ______:______:______   se fue a ambar? [ ]SI [ ]NO
+        Poste 2: ______-______-______ ______:______:______   se fue a ambar? [ ]SI [ ]NO
+        >>> lo esperado HOY es que NO se vaya a ambar. Eso no es NO CUMPLE.
+
+     Cristal Y1 de 8 MHz (7.14, D-22):     Maestro: ______ MHz   Esclavo: ______ MHz
+        >>> CON EL FIRMWARE DE HOY LO ESPERADO ES QUE NO OSCILE: el firmware nunca
+            ha pedido Y1 -arranca con el HSI-. Un Y1 quieto con este binario NO es
+            un veredicto sobre el cristal. Anotarlo como averia seria cambiar una
+            pieza sana, que es lo que este proyecto ya hizo tres veces.
+
+     >>> Y UNA CUARTA COSA QUE EL BLOQUE DE ABAJO NO DISTINGUE, medida el 07/09:
+         SON TRES OSCILADORES POR POSTE, NO DOS.
+           - el DS3231 del ESP32  -> LA HORA. Es lo que miden 7.5, 7.6 y 7.9.
+           - el cristal Y2, 32.768 kHz -> el RTC del STM32, y de el sale la FASE
+                                    del Modo Degradado y el margen de 29 s.
+                                    Muerto (N-17). Lo mide 7.7.
+           - el cristal Y1, 8 MHz -> el RELOJ DE SISTEMA, del que sale millis():
+                                    SFTY-6, el watchdog, y el computo de las 48 h
+                                    del Esclavo. HOY NO SE USA: se corre sobre el
+                                    HSI interno. Es lo que decide D-22. Lo mide 7.14.
+         >>> D-22 NO amplia el margen de 29 s: ese margen es la deriva entre los dos
+             Y2, no entre los dos Y1. Ver 8_Procedimiento_Modo_Degradado.md seccion 6.
 
      >>> 07/09 (E-8, DECISIONES.md D-20). TRES COSAS QUE ESTE BLOQUE NO DISTINGUIA Y
          SIN LAS CUALES SE FIRMA UN RELOJ POR OTRO:

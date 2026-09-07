@@ -888,6 +888,67 @@ Con ~1,4 µA de consumo por `VBAT`, la autonomía teórica supera los **15 años
 
 ### 🧪 Dos pruebas de banco que faltan — y por qué importan
 
+> 🔴 **07/09 — EL TÍTULO DICE «DOS» Y LA TABLA TIENE CUATRO FILAS.** Se conserva el título original
+> y se corrige aquí en vez de reescribirlo, porque el número es el rastro de cuándo se escribió:
+> eran **dos** el 31/08, se le sumó *«el dominio de respaldo aguanta el corte»* el 07/09 por la
+> mañana, y **la cuarta —`Y1`, `DECISIONES.md` `D-22`— se añade el 07/09 por la tarde**. **Son
+> CUATRO, y ninguna de las cuatro se ha hecho.**
+
+> # 🔴 07/09 — `D-22`: **`Y1` PASA A SER EL RELOJ DE SISTEMA. LA MEDIDA VA ANTES QUE EL CAMBIO, Y AQUÍ ESTÁ EL PORQUÉ MEDIDO**
+>
+> 🛑 **DECIDIDA Y SIN CONSTRUIR** — `DECISIONES.md` fila `D-22`. **El firmware de hoy no toca `Y1`.**
+>
+> **Lo que hay hoy, medido el 07/09 en el propio núcleo, no supuesto:** la tarjeta es
+> `genericSTM32F103C8`, y su `SystemClock_Config` —**`WEAK`, y el firmware del proyecto NO la
+> redefine**— arranca sobre el RC interno:
+>
+> ```
+> $ grep -rn "SystemClock_Config\|SystemCoreClock" 01_Firmware/Maestro/src 01_Firmware/Maestro/include \
+>                                                  01_Firmware/Esclavo/src 01_Firmware/Esclavo/include
+> (sin resultados: ninguna de las dos puntas la redefine)
+>
+> $ grep -n "RCC_OSCILLATORTYPE_HSI\|RCC_PLLSOURCE_HSI_DIV2\|RCC_PLL_MUL16" \
+>     "C:\.platformio\packages\framework-arduinoststm32\variants\STM32F1xx\F103C8T_F103CB(T-U)\generic_clock.c"
+> ```
+>
+> **`HSI` → `/2` → `PLL ×16` = 64 MHz de reloj de sistema, sin tocar ningún cristal.** Por eso el
+> equipo funciona con `Y2` muerto y por eso el defecto tardó tanto en verse.
+>
+> ### 🛑 LO QUE NADIE HABÍA ESCRITO, Y ES LO QUE HACE QUE ESTA PRUEBA SEA OBLIGATORIA
+>
+> **Si alguien cambia el reloj de sistema a `Y1` de la forma evidente —redefinir
+> `SystemClock_Config` pidiendo `HSE`— y el cristal no arranca, el HAL devuelve error y el núcleo
+> llama a `Error_Handler()`. Y `Error_Handler()` es un bucle infinito.** Medido en el fuente del
+> núcleo, símbolo `_Error_Handler` de `libraries/SrcWrapper/src/stm32/stm32_def.c`:
+> `__attribute__((noreturn))` + `while (1) { }`.
+>
+> **Consecuencia en el poste, y es la peor posible para un semáforo:**
+>
+> | | |
+> |---|---|
+> | **cuándo pasa** | **antes de `setup()`** — antes de `pinMode`, antes de las luces, **antes de armar el watchdog** |
+> | **qué se ve** | la tarjeta **no arranca, no reinicia y no dice nada**. Los pines quedan en su estado de reset, los MOSFET abiertos y **las tres luces apagadas** |
+> | **por qué no se recupera solo** | el `IWatchdog` de 4 s **todavía no se ha armado** cuando ocurre. No hay reinicio que rescate |
+>
+> 🔴 **Por eso `D-22` exige, con todas las letras, que el arranque CAIGA AL HSI Y LO DECLARE si `Y1`
+> no oscila.** Eso **no** es lo que hace el código evidente: **hay que escribirlo a mano**
+> —intentar `HSE`, y si `HAL_RCC_OscConfig` no devuelve `HAL_OK`, volver a la configuración de HSI
+> en vez de llamar a `Error_Handler()`—. **Un cambio de reloj que no traiga esa caída hacia atrás no
+> es una mejora de precisión: es un modo de fallo nuevo, silencioso y a oscuras.**
+>
+> ### Lo que `D-22` compra de verdad, y lo que NO
+>
+> | | |
+> |---|---|
+> | ✅ **compra** | el error de **todo lo que se mide con `millis()`**: el techo de silencio de `SFTY-6` (25 s), la ventana de reintentos de 20,5 s, el watchdog de 4 s, y **el cómputo de las 48 h del Modo Degradado en el Esclavo** —que hoy, a 10.000–25.000 ppm, puede desviarse **entre ~29 min y ~1,2 h** *(cuenta, no medida de banco)* |
+> | 🔴 **NO compra** | **el margen de 29 s del cruce en Modo Degradado.** Ese margen es la deriva entre los dos **`Y2`**: la fase del Degradado sale de `ciclo_degradado_fase(reloj_segundosDelDia(), …)` y `reloj_segundosDelDia()` cuelga de `STM32RTC` sobre `LSE_CLOCK`, o sea `Y2`. **Medido el 07/09.** Detalle completo en `8_Procedimiento_Modo_Degradado.md` §6 |
+>
+> ⚠️ **Y una advertencia de banco que se paga en la primera carga:** pasar de HSI a `Y1` **cambia el
+> reloj de sistema de 64 MHz a 72 MHz** (`HSE 8 MHz × PLL 9`). Eso lo absorbe el HAL solo para los
+> baudios y los temporizadores, **pero es un cambio real en todo el binario**: el `md5` cambia, los
+> tiempos cambian, y **la primera tarjeta que lo lleve es un ancla de banco, no una carga de
+> rutina** (`CLAUDE.md` §4.bis).
+
 > **Ninguna de las dos se ha hecho todavía.** Hasta que se hagan, el reloj está construido pero no
 > verificado, y todo lo que depende de él va sobre un supuesto.
 
@@ -903,6 +964,7 @@ Con ~1,4 µA de consumo por `VBAT`, la autonomía teórica supera los **15 años
 | ~~**Contraste contra hora patrón y corte de energía** (N-15)~~ → **07/09: se le hace al `DS3231` del ESP32, no al STM32** | ~~Que el RTC marca la hora correcta y **la conserva** al desconectar la alimentación~~ → **Que `CMD:LEER_RTC` sigue devolviendo la hora correcta después de quitar y devolver la alimentación, en CADA poste** | Si la pila del `DS3231` no está bien puesta, el equipo pierde la hora en cada apagón y **nadie se entera hasta que el Degradado se rechaza en obra**. 🔴 **Y con `D-20` esto se agrava en el poste 2:** allí la hora sólo se puede reponer **por radio desde el Maestro**, así que un `DS3231` sin pila en el poste 2 **queda sin hora justo en el corte, que es cuando el Degradado la necesita** |
 | 🆕 **El dominio de respaldo aguanta el corte** (`BKP->DR1..DR10`, símbolo `respaldo_setup()`) | Que tras quitar la alimentación y devolverla, `respaldo_hayCiclo()` sigue siendo cierto y los tiempos guardados siguen ahí | Es lo único que hoy justifica la `CR2032` (§5, recuadro de cabecera). **Sin esta prueba, la pila está puesta por costumbre y no por evidencia** |
 | **Arranque con el cristal `Y2` desconectado o fallido** (N-17) | Que el equipo **bootea igual** y declara la hora como no fiable | Algunos microcontroladores clonados traen mal los condensadores de carga y **el oscilador de 32.768 kHz no arranca**. La rutina de reloj ya se movió detrás del watchdog para que un bloqueo sea un reinicio visible y no un cuelgue mudo con las luces apagadas — pero eso **hay que comprobarlo con la tarjeta en la mano** |
+| 🆕 🔴 **¿ARRANCA EL CRISTAL `Y1` DE 8 MHz?** — `DECISIONES.md` **`D-22`** ➕ **07/09** | Que `Y1` **oscila**, y que si no oscila el equipo **arranca igual sobre el HSI y lo declara** | 🛑 **`Y1` NUNCA SE HA ARRANCADO: el firmware jamás lo ha seleccionado.** Y **`Y2`, el otro cristal de esta misma placa, está muerto** (`N-17`). `D-22` decide pasar el reloj de sistema del STM32 a `Y1`, y **esta prueba es su precondición, no un extra**: si `Y1` no oscila y nadie lo ha comprobado, el cambio deja la tarjeta **muerta y a oscuras** — ver el recuadro de abajo |
 
 > ⚠️ **Y no se cambia nada antes de leer `CONSULTA RELOJ` (N-37, abierto).** Existe una hipótesis
 > razonable —que los condensadores de carga de $Y_2$ estén mal calculados, y que sustituirlos por

@@ -1973,6 +1973,34 @@ Los dos datos **no viajan en ninguna trama**: no están en el `$STATUS` del Escl
   > `generic_clock.c` del `framework-arduinoststm32` (medido el 07/09). O sea que el reloj de sistema
   > **no depende de `Y1` ni de `Y2`**: el equipo funciona con el cristal del RTC muerto, y por eso
   > el defecto tardó en verse.
+  >
+  > # 🔴 07/09 — `DECISIONES.md` FILA `D-22`: **`Y1` PASA A SER EL RELOJ DE SISTEMA, Y LA SALUD DE CADA RELOJ SE PUBLICA EN ESTA APP**
+  >
+  > 🛑 **DECIDIDA Y SIN CONSTRUIR.** La tabla de arriba describe el estado de hoy —el firmware
+  > arranca con el **HSI** y no toca `Y1`— y **sigue siendo correcta**. Lo que cambia es que ese
+  > estado dejó de ser una curiosidad de diagnóstico y pasó a ser **una decisión pendiente**.
+  >
+  > **Qué se decidió:** arrancar el STM32 sobre `Y1` (8 MHz) en vez del RC interno. **No cuesta
+  > hardware** —el cristal está montado— y el error del reloj de sistema baja de **10.000–25.000 ppm**
+  > (HSI) a **20–50 ppm** (cristal): **de 200 a 1.000 veces mejor**.
+  >
+  > 🔴 **Y la mitad que le toca a ESTA APP, en palabras del responsable —*«con eso sabríamos»*—: la
+  > salud de cada reloj y de cada cristal se PUBLICA, en bitácora y en pantalla.** Hoy la app no
+  > tiene dónde enseñarlo: `Y1` y `Y2` **no aparecen en ningún campo del `$STATUS`**, y lo único que
+  > hay es el veredicto que devuelve `CMD:PIN:1234:REINICIAR_RELOJ` **cuando alguien lo pide a mano**.
+  >
+  > | qué habría que poder ver | de dónde saldría | hoy |
+  > |---|---|---|
+  > | `Y1` — ¿arrancó el cristal, o el equipo cayó al HSI? | el propio arranque del STM32 lo sabe | 🔴 **no existe: el firmware nunca ha pedido `Y1`** |
+  > | `Y2` — ¿oscila el cristal del RTC? | `REINICIAR_RELOJ` ya lo contesta | 🟡 **existe, pero sólo bajo demanda y sin rótulo en pantalla** |
+  > | `DS3231` — ¿`OSF` puesto? *(`D-21`)* | el puente ya lo lee | 🔴 **muere en el puente** — ver `§5.7.3` |
+  >
+  > ⚠️ **LA PRECONDICIÓN DE `D-22`, Y NO ES OPCIONAL: `Y1` NUNCA SE HA ARRANCADO.** El firmware
+  > jamás lo ha seleccionado, y **`Y2`, el otro cristal de esa misma placa, está muerto** (`N-17`).
+  > Que `Y1` esté soldado y en la lista de materiales **no es una medida de que oscile**. `D-22`
+  > exige que, **si no oscila, el arranque caiga al HSI y lo DECLARE**: ni se cuelga ni finge una
+  > precisión que no tiene. **Esa caída hacia atrás también hay que escribirla** — ver la nota de
+  > `2_Manual_Hardware_y_Pruebas.md` §5.
 
 * 🛑 **Y desde el 07/09 (`D-20`) hay una consecuencia que este apartado no puede callar: la
   reparación de `SIN HORA VALIDA` en el poste 2 NO es «pásele la hora desde el teléfono».** Ver la
@@ -2079,6 +2107,42 @@ eso **la caminata entre postes se cancela**: da igual que pasen dos minutos o do
 | **registros incoherentes** | ⚠️ **son DOS averías y el equipo no las distingue**: una puesta en hora cortada —se arregla sincronizando— o un módulo que devuelve basura —se cambia—. **Pruebe lo primero; si vuelve a salir, es lo segundo** |
 | **el módulo se contradice** | 🛑 **NO es una avería del reloj y no se arregla en el poste**: es un defecto del firmware del módulo. **Anote la hora y el poste, repórtelo, y no toque el reloj** |
 | **motivo no contemplado** | ⚠️ el módulo dio un motivo que **ni la app ni su propio despachador saben nombrar**. Firmware más nuevo que esta APK, o un caso que nadie cableó. **No dé la hora de ese poste por buena** |
+
+> # 🔴 07/09 — `DECISIONES.md` FILA `D-21`: **«OSCILADOR PARADO» NO ES SÓLO UN MOTIVO POR EL QUE FALTA LA HORA. ES UN CRUCE QUE DEBERÍA ESTAR EN ÁMBAR**
+>
+> 🛑 **DECIDIDA Y SIN CONSTRUIR. La app de hoy NO enseña nada de esto, y el equipo no hace nada de
+> esto.** Se escribe aquí porque esta tabla es donde el técnico se encuentra con el síntoma, y hoy
+> lo lee como *«hay que cambiar una pila»* cuando además es *«ese poste está autorizando verdes con
+> una hora parada»*.
+>
+> **Lo que la fila «oscilador parado» está diciendo de verdad:** el chip levantó su bit **`OSF`**
+> porque el oscilador se paró en algún momento. **La hora que devuelve sigue siendo una fecha
+> perfectamente formada** —día, mes, hora, minuto, todos plausibles— y **está clavada en el pasado**.
+> `D-21`: *«una hora que no es fiable no es «sin hora»: es una hora que MIENTE»*.
+>
+> | | hoy | con `D-21` construida |
+> |---|---|---|
+> | el equipo | **nada.** Sigue en el modo en que estuviera | esa punta pasa a **🟡 ÁMBAR INTERMITENTE** |
+>
+> ⚠️ **Ese «nada» es cierto en la calle, pero no porque falte el código — y la diferencia importa
+> para quien tenga que estimar el trabajo.** Medido el 07/09: el **Maestro ya lleva escrita** la
+> reacción *«reloj no fiable → ámbar»* dentro de su bucle de Degradado; el **Esclavo no**. Lo que
+> falta es que el `OSF` **de este módulo** llegue a esa bandera —hoy mira el RTC del STM32, otro
+> reloj— y que se **publique**. Detalle en `18_Especificacion_Firmware_ESP32.md` §5.3, `R-4.bis`.
+> | la app | enseña *«oscilador parado»* **sólo si alguien pulsa «Consultar reloj»** | **lo publica**: la salud del reloj es un estado del cruce, no una respuesta a una pregunta |
+>
+> 🔴 **Y lo que la app tendrá que enseñar, porque si no el ámbar no se puede explicar:** con `D-21`
+> el operario se va a encontrar **un poste en ámbar y el otro en verde** —en Modo Degradado **no hay
+> radio**, así que cada punta decide sola y lo normal es que se agote **una** pila—. **Sin un rótulo
+> que diga «poste 2: reloj no fiable», eso se lee como una avería del cruce.** Ver
+> `8_Procedimiento_Modo_Degradado.md` §6, `Riesgo 3`, y `18_Especificacion_Firmware_ESP32.md` §5.3
+> regla `R-4.bis`.
+>
+> ⚠️ **Lo que este manual NO puede prometer todavía:** **dónde** va ese rótulo en la pantalla. La
+> tarjeta de la §1.ter no tiene hoy ninguna casilla de salud de reloj, y **añadir un campo al
+> `$STATUS` no es gratis** —el presupuesto de bytes está al límite, `payload[155]` contra
+> `tramaCompleta[160]`, y lo dice esta misma sección en §5.6.7—. **Eso lo decide quien mide, no este
+> documento.**
 
 ### 5.7.4 🛑 Lo que esta consulta NO hace
 
