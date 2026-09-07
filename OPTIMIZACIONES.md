@@ -627,7 +627,7 @@ la fila.
 > **intercepta las escrituras de pines de luz** en vez de rodearlas —para no dejar colgado al
 > coordinador esperando un `S_VERDE` que no llegaría—, y esa intercepción está justo en el camino
 > por el que el ciclo avanza. **No confirmado:** pendiente de bisección con firmware real, ver
-> [`roadmap.md`](roadmap.md) §N-42 y `05_Funcional/bisect_entregable/`. Se anota aquí porque una
+> [`roadmap_hist.md`](roadmap_hist.md) §N-42 -cerrado en cobre el 04/09, mudado al historico el 07/09- y `05_Funcional/bisect_entregable/`. Se anota aquí porque una
 > regla de seguridad cuya implementación está bajo sospecha no puede figurar como
 > `IMPLEMENTADO` a secas.
 >
@@ -1250,7 +1250,7 @@ enlace correcto—. Es exactamente la distinción que costó la jornada completa
 ## 🌙 SFTY-20 — Operación intermitente nocturna (DISEÑO, **NO IMPLEMENTADO**)
 
 > **Estado:** especificado el 01/08/2026. Corresponde al pendiente **N-3** y es **para lo que se soldó
-> la pila**. Prioridad 4 en el orden de trabajo del roadmap: se construye, pero **no va a campo** hasta
+> la pila**. Prioridad 4 en el orden de trabajo del roadmap -las «olas» viven hoy en `roadmap_hist.md`-: se construye, pero **no va a campo** hasta
 > cerrar las antenas y la prueba de banco de la telemetría.
 
 Requisito de origen: `MANUAL_USUARIO.md §2`. **Disparo por horario**, decidido el 31/07 — el disparo

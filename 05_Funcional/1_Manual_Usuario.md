@@ -899,9 +899,32 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 >
 > ⚠️ **Lo que sigue debajo describe el cableado a `J14` y se conserva TACHADO, no borrado**: la
 > medida en cobre que trae —que `J14` no tiene masa— sigue siendo cierta y sigue haciendo falta.
+>
+> 🔴 **ESA PROMESA ESTUVO INCUMPLIDA DEL 05/09 AL 07/09, Y ESO ES PEOR QUE NO HABERLA HECHO.**
+> Medido el 07/09: del bloque que sigue **sólo 5 líneas de 46 llevaban `~~`**. La frase en negrita
+> que daba la orden —*«LA CÁMARA VA A `J14`»*— **no estaba tachada**, y las dos filas de `J16` decían
+> *«NO se le monta cámara hoy»*. O sea: contenido derogado leyéndose como vigente **con un aviso
+> encima que aseguraba lo contrario**. El aviso desarma al lector, así que un `~~` que falta no es
+> cosmética: convierte un archivo histórico en una instrucción. **Tachado de verdad el 07/09, cada
+> bloque con su motivo y su fila de `DECISIONES.md`.**
 
 * ~~**Conexión Hardware:** Salida de alarma de relé de la cámara (`1A`/`1B`) a la bornera **`J14`**~~:
-  un hilo a **`p1`** (`/Puerta` → **`PB0`**) y el otro a **`p2`** (**`3,3 V`** del propio conector).
+  ~~un hilo a **`p1`** (`/Puerta` → **`PB0`**) y el otro a **`p2`** (**`3,3 V`** del propio
+  conector).~~
+
+> 🔴 **TACHADO ENTERO EL 07/09, CUMPLIENDO LA PROMESA DE TRES PÁRRAFOS MÁS ARRIBA
+> (`DECISIONES.md` filas `D-2` y `D-3`).** La primera mitad de ese punto llevaba `~~` y **la segunda
+> no**, así que la instrucción de cableado —*«un hilo a `p1` y el otro a `p2`»*— seguía siendo
+> ejecutable por sí sola, debajo de un aviso que prometía lo contrario. Es la peor forma del
+> defecto: **la promesa desarma al lector**.
+>
+> ✅ **LA CONEXIÓN VIGENTE ES `J16`:** `p10` (`CAM_C_PIN`, `PB14`) y `p12` (`CAM_D_PIN`, `PB15`),
+> **una cámara por poste**, cerrando el contacto seco contra los **3,3 V de `p9`/`p11`** (activo en
+> ALTO, `INPUT` pelado con pull-down `R67`/`R68` de 10 kΩ medido en cobre — `D-3`).
+>
+> **Lo que de este bloque SÍ se conserva y no caduca:** la medida en cobre de que **`J14` no tiene
+> masa** y de que su reposo es `0 V`. Sigue siendo cierta y sigue haciendo falta el día que `J14` se
+> use para el fin de carrera de la barrera.
 
 > 🛑 **AQUÍ PONÍA ~~«con masa `GND`, por la bornera `J14`»~~ Y ERA FALSO EN LAS DOS MITADES — 05/09.**
 >
@@ -957,19 +980,33 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 > | borne | pin | qué trae la placa | cómo lo lee el programa | estado |
 > |---|---|---|---|---|
 > | **`J14`** | `PB0` | 🟢 **`R64` 10 kΩ + `C25` 100 nF → antirrebote por hardware de ~1 ms**, el único del equipo | **Maestro: por NIVEL** · **Esclavo: por FLANCO**, y ahí sí llama a `demanda_solicitar()` *(símbolos: `grep -n 'CAM_DEMANDA_PIN' Maestro/src/modo_inteligente.cpp Esclavo/src/main.cpp`)* | ~~✅ **Es el borne donde va la cámara**~~ → 🔴 **NO: el 05/09 la cámara pasó a `J16`.** `J14` queda **libre y vivo**, y es el mejor candidato a **fin de carrera de barrera** por ese antirrebote |
-> | `J16` p10 | `PB14` | 🟠 `R67` 10 kΩ a masa, **SIN condensador** | **por FLANCO** → `demanda_solicitar()`, en las dos puntas | 🟠 **entrada equivalente disponible. NO se le monta cámara hoy** |
-> | `J16` p12 | `PB15` | 🟠 `R68` 10 kΩ a masa, **SIN condensador** | igual | 🟠 igual |
+> | `J16` p10 | `PB14` | 🟠 `R67` 10 kΩ a masa, **SIN condensador** | **por FLANCO** → `demanda_solicitar()`, en las dos puntas | ~~🟠 entrada equivalente disponible. NO se le monta cámara hoy~~ → ✅ **ES LA CÁMARA DEL POSTE (`D-2`/`D-3`, 07/09)** |
+> | `J16` p12 | `PB15` | 🟠 `R68` 10 kΩ a masa, **SIN condensador** | igual | ~~🟠 igual~~ → ✅ **ES LA CÁMARA DEL OTRO POSTE** |
 >
-> **🔵 LA CÁMARA VA A `J14`, Y EL MOTIVO NO ES PREFERENCIA: es el único de los tres bornes que la
-> placa protege.** Un relé de cámara **rebota** al cerrar. En `J14` el condensador se lo come antes
-> de que el micro lo vea. En `p10`/`p12` no hay condensador y la lectura es **por flanco**: lo único
-> que hay delante es la **ventana de silencio de 3 s** de `demanda_solicitar()`
+> ~~**🔵 LA CÁMARA VA A `J14`, Y EL MOTIVO NO ES PREFERENCIA: es el único de los tres bornes que la
+> placa protege.**~~ ~~Un relé de cámara **rebota** al cerrar. En `J14` el condensador se lo come
+> antes de que el micro lo vea. En `p10`/`p12` no hay condensador y la lectura es **por flanco**: lo
+> único que hay delante es la **ventana de silencio de 3 s** de `demanda_solicitar()`
 > (`demanda.cpp:8`, `:19`), que lo tapa casi siempre. **«Casi» no es una garantía**, y esa ventana es
-> **una sola por poste**: un rebote la consume y la petición del coche que viene detrás se pierde.
+> **una sola por poste**: un rebote la consume y la petición del coche que viene detrás se pierde.~~
 >
-> **`p10` y `p12` NO se retiran de este manual y no son un error:** son entradas reales, medidas en
-> banco (`M3`, 03/09: **p10 = 9,93 kΩ**, **p12 = 9,94 kΩ** a masa), y **son el sitio previsto si
-> algún día hace falta una segunda entrada en un poste**.
+> 🔴 **TACHADO EL 07/09 — ERA LA ORDEN QUE MÁS DAÑO HACÍA DE TODO EL DOCUMENTO, y contradecía a su
+> propio párrafo de cabecera tres bloques más arriba.** Gana `DECISIONES.md` `D-2` y `D-3`:
+> **las cámaras van a `J16` p10 y p12**, `M3` cerrada en cobre el 03/09.
+>
+> **Y el motivo que este bloque daba —el antirrebote— es cierto y NO es el que decide**, porque hay
+> uno que pesa más y está medido en este mismo manual: **el vigilante de `CAM_CIEGA`/`CAM_PEGADA`
+> mira `J16` y NO mira `J14`.** Una cámara cableada a `J14` **funciona** —pide paso— y **no está
+> vigilada**: nadie sabría nunca que se estropeó. Entre *«a veces se pierde un rebote»* y *«no hay
+> nadie mirando si la cámara sigue viva»*, el segundo es el fallo que no se nota.
+>
+> ⚠️ **Lo que del bloque tachado sigue siendo verdad y hay que tener en cuenta al cablear `J16`:**
+> `p10`/`p12` **no tienen condensador**, la lectura es **por flanco**, y delante sólo está la
+> **ventana de silencio de 3 s** de `demanda_solicitar()`. Un relé que rebote mucho puede consumirla.
+> **Se anota como limitación conocida del borne vigente, no como motivo para volver a `J14`.**
+>
+> **`p10` y `p12` son entradas reales, medidas en banco** (`M3`, 03/09: **p10 = 9,93 kΩ**,
+> **p12 = 9,94 kΩ** a masa) — y desde `D-3` son **el borne de la cámara**, no una reserva.
 >
 > ✏️ **Y una precisión que el censo del 04/09 obligó a escribir, porque la frase anterior era falsa
 > en una punta:** aquí ponía *~~«las tres piden paso por la misma puerta —`demanda_solicitar()`»~~*.
@@ -1016,7 +1053,16 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 > todavía es `botonAceptar()` leído activo en BAJO, y cualquier cosa enchufada ahí **pulsa
 > «Aceptar» en un equipo que está en la calle**.
 * 🛑 **Las cámaras de umbral (2 y 4) NO se instalan en V9.0, y no hay dónde conectarlas.** Medido el 27/08 sobre el esquemático: el pin `PB8` que los manuales daban por suyo **alimenta un LED testigo (`D5` por `R16` 1 kΩ)** — no es una bornera ni una entrada. El paso alternado lo regulan las cámaras de **demanda** y el **todo-rojo temporizado** (`cfgDespejeSeg`), que es el criterio conservador. Ver Manual 9 y `roadmap.md` N-64.
-* **Procesamiento:** La cámara Hikvision AcuSense ejecuta su analítica embebida (Detección de Intrusión con filtro `☑ Solo Vehículo`) y cierra su contacto seco al detectar presencia vehicular.
+* **Procesamiento:** La cámara Hikvision AcuSense ejecuta su analítica embebida (*Intrusion
+  Detection* sobre el barrido de la pluma) y cierra su contacto seco al detectar presencia.
+  ~~con filtro `☑ Solo Vehículo`~~
+
+> 🔴 **TACHADO EL 07/09 — `DECISIONES.md` fila `D-13`: la regla va SIN FILTRO DE OBJETIVO.**
+> Aquí ponía *«filtro `☑ Solo Vehículo`»* y **es exactamente el caso que `D-13` existe para cubrir**:
+> **bajo la pluma importa también una moto o una persona.** Marcar «Solo Vehículo» los deja fuera.
+> Y hay un segundo motivo medido: `Detection Target` **no está documentado para Intrusión** en el
+> manual del fabricante. El procedimiento bueno está en `9_Manual_Parametrizacion_Camara_IA.md`,
+> Paso 3, que ya lo trata así.
 
 > ## 📜 QUÉ ES —Y QUÉ NO ES— UNA «CÁMARA IA» EN ESTE EQUIPO (D-12, 05/09/2026)
 >
@@ -1086,8 +1132,14 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 > es del orden de **12 horas de reloj**, así que **no puede saltar en una sola noche sin tráfico**.
 >
 > ⚠️ **Lo que sigue igual, y por eso la frase de arriba no se borra:** esto **no** hace que una
-> cámara abra paso, y **no** cubre la cámara de `J14` (`PB0`), que es la que hoy pide paso de verdad.
-> Lo que cubre son las **dos entradas de `J16`**.
+> cámara abra paso. Lo que cubre son las **dos entradas de `J16`** — ~~y **no** cubre la cámara de
+> `J14` (`PB0`), que es la que hoy pide paso de verdad~~.
+>
+> 🔴 **TACHADA ESA MITAD EL 07/09: caducó con `D-2`/`D-3`.** Cuando se escribió, la cámara estaba
+> mandada a `J14` y la frase avisaba de un hueco de vigilancia real. **Hoy la cámara está en `J16`
+> p10/p12, que es justo lo que este vigilante mira**, así que la cámara de campo **sí queda
+> cubierta**. `J14`/`PB0` sigue vivo en el firmware y **sin cámara**; si algún día se le cuelga algo,
+> ese borne **no está vigilado** — y eso es lo que hay que recordar de esta frase.
 >
 > 🔴 **Y lo que todavía NO está probado en una tarjeta:** que `CAM_CIEGA` salte de verdad a las 6 h.
 > **No es ejecutable en una sesión de banco** —haría falta cargar un programa con el plazo acortado,
@@ -1098,9 +1150,13 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 > 🔴 **28/08 — QUÉ MIDE DE VERDAD EL MODO INTELIGENTE, Y QUÉ NO.** Medido sobre
 > `Maestro/src/modo_inteligente.cpp` y `Esclavo/src/main.cpp`:
 >
-> - **Es UN contacto seco por poste**, leído en `CAM_DEMANDA_PIN` = `PB0`, activo en alto, por la
->   bornera `J14`, con antirrebote de placa (`R64` 10 K + `C25` 100 nF). **Presencia sí/no, no
+> - **Es UN contacto seco por poste**, leído en `CAM_DEMANDA_PIN` = `PB0`, activo en alto, ~~por la
+>   bornera `J14`~~, con antirrebote de placa (`R64` 10 K + `C25` 100 nF). **Presencia sí/no, no
 >   conteo de vehículos.**
+>   > 🔴 **07/09: `PB0`/`J14` sigue existiendo en el firmware y SIN CÁMARA ENCHUFADA.** El contacto
+>   > seco de la cámara entra hoy por `J16` p10/p12 (`D-2`/`D-3`). Lo que este punto describe —cómo
+>   > lee el Modo Inteligente el pin `PB0`— **es cierto como hecho del código** y falso como
+>   > instrucción de cableado; por eso se tacha sólo la bornera.
 > - El número que el equipo llama *«autos esperando»* es `presenciaActual`, la **suma de dos
 >   contactos** —el local y el de la otra punta por radio—, así que **vale 0, 1 o 2 y nada más**.
 >   No es una cuenta de coches.
@@ -1693,7 +1749,7 @@ teléfono desbloqueado creyendo que da igual.**
 
 | | **MAESTRO** | **ESCLAVO** |
 |---|---|---|
-| Cambiar de modo desde la app | ✅ **Sí.** `SET_MODO:AUTO` · `MANUAL` · `AMBAR` · `MENU` · `ALCANCE` · `INTELIGENTE` · `DEGRADADO` (`:444+`) | 🛑 **NO. No existe ni un solo `SET_MODO`** — `grep -n "SET_MODO" Esclavo/src/bluetooth.cpp` → **CERO coincidencias** |
+| Cambiar de modo desde la app | ✅ **Sí.** `SET_MODO:AUTO` · `MANUAL` · `AMBAR` · `MENU` · `ALCANCE` · `INTELIGENTE` · `DEGRADADO` | ✅ **SÓLO `SET_MODO:DEGRADADO`** (`D-18`, commit `15e8cf3`): `CMD:PIN:1234:SET_MODO:DEGRADADO`, con `$ACK,…OK`, `$ACK,…YA_ACTIVO` y un `$ERR` por motivo. ~~🛑 **NO. No existe ni un solo `SET_MODO`** — `grep -n "SET_MODO" Esclavo/src/bluetooth.cpp` → **CERO coincidencias**~~ 🔴 **corregido el 07/09: `grep -c` da 10.** Para VOLVER a Automático no hay orden: lo devuelve el Maestro al volver la radio |
 | Ámbar de emergencia desde la app | 🛑 **NO existe `AMBAR_EMERGENCIA` en el Maestro** — re-censado el 04/09. Lo que hay es `SET_MODO:AMBAR` (**con PIN**, y es un **modo**, no un latch) y `FORZAR_ROJO`. 🔵 **05/09 (N-146): si el equipo YA estaba en modo ámbar, esa orden RE-ARMA y contesta `RESULT:REARMADO` en vez de `OK`** | ✅ sí — `CMD:AMBAR_EMERGENCIA` (`:381` sin PIN, `:468` con PIN). Arma un **latch** que veta las órdenes de radio. 🟢 **05/09 (N-142): y AHORA AVISA AL MAESTRO por radio (`CMD_AMBAR_ESCLAVO`), que se va a modo ámbar en el acto.** Antes el Maestro podía seguir dando VERDE **hasta 3 minutos** con este lado en ámbar |
 | Retirar el ámbar de emergencia | ❌ no aplica: no hay latch que retirar | ✅ `CANCELAR_AMBAR` (`:491`, **con PIN**). Contesta `RETIRADO` o `RETIRADO_QUEDA_MANDO` |
 | Pedir paso | ✅ `DEMANDA` (`:645`, **sólo en Modo Inteligente**) | ✅ `SOLICITAR_PASO` (`:532`) *(se lo pide al Maestro)* — ver `N-130` abajo |
@@ -1763,10 +1819,31 @@ Lo que era *«falta comprar el receptor»* pasa a ser *«no va a haber receptor�
 >   corregido pero **no ejercido en tarjeta**.~~ → **Caducado: `N-118` cerrado, y no hay mando que
 >   ejercer.**
 
-🔴 **LO QUE SÍ QUEDA, Y AHORA ES DEFINITIVO: NO HAY NINGUNA FORMA DE ORDENARLE UN MODO AL ESCLAVO
+~~🔴 **LO QUE SÍ QUEDA, Y AHORA ES DEFINITIVO: NO HAY NINGUNA FORMA DE ORDENARLE UN MODO AL ESCLAVO
 ESTANDO DELANTE DE ÉL.** Ni la app —no existe ni un solo `SET_MODO` en esa punta—, ni el mando, ni
 los botones, ni la pantalla. Lo único que el Esclavo acepta de la app es lo que ya dice esta tabla
-—ámbar de emergencia, retirarlo, solicitar paso y `SET_RTC`—, que **no es cambiar de modo**.
+—ámbar de emergencia, retirarlo, solicitar paso y `SET_RTC`—, que **no es cambiar de modo**.~~
+
+> # 🔴 TACHADO EL 07/09 — ERA FALSO DESDE EL COMMIT `15e8cf3`
+>
+> **`DECISIONES.md` `D-18`: el Modo Degradado del poste 2 SE PIDE POR APP**, con
+> **`CMD:PIN:1234:SET_MODO:DEGRADADO`** — la misma orden y el mismo PIN que en el Maestro.
+>
+> ```
+> $ grep -c "SET_MODO" 01_Firmware/Esclavo/src/bluetooth.cpp
+> 10
+> ```
+>
+> **La puerta —`degradado_entrar()`— llevaba meses construida y probada; lo que se había retirado
+> era la llave, que era el mando.** `D-18` se la dio a la app.
+>
+> ⚠️ **Lo que del párrafo tachado SIGUE SIENDO CIERTO, y es la mitad que importa:** el Esclavo
+> **no tiene `SET_MODO:AUTO`**. Se le puede meter en Degradado y se le puede parar
+> (`CMD:AMBAR_EMERGENCIA`), pero **devolverlo a Automático lo hace el Maestro** cuando vuelve la
+> radio. La asimetría de **salida** se conserva; la de **entrada** ya no existe.
+>
+> 🛑 **Y `D-16` no lo toca: sin teléfono no hay forma de operar el equipo.** Lo que desapareció con
+> el mando es la vía **sin app**, no la vía local.
 
 **Lo que sí sigue funcionando es el Esclavo obedeciendo al Maestro por radio**, que es su trabajo
 normal. Lo que ha desaparecido es **la vía local**: el técnico que está junto al Poste 2 **no puede

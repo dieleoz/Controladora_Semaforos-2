@@ -71,7 +71,10 @@ margen sobrante es enorme y el cambio es seguro.
 3. Haga clic en **`Read Option`**.
 4. Configure exactamente estos valores:
    - **Baud Rate:** `9600`
-   - **Air Data Rate:** **`2.4 kbps`** ⚠️ **OBLIGATORIO — cambiar en las 4 radios.** Si alguna queda en `0.3 kbps`, no enlazará con las demás y el fallo de comunicación persistirá.
+   - **Air Data Rate:** **`2.4 kbps`** ⚠️ **OBLIGATORIO — cambiar en TODAS las radios del enlace:
+     hoy son ~~4~~ **DOS**, en enlace directo y sin repetidor** *(corregido el 07/09; lo dice la
+     cabecera de este mismo manual y `CLAUDE.md` §10)*. Si alguna queda en `0.3 kbps`, no enlazará
+     con las demás y el fallo de comunicación persistirá.
    - **Power:** `30 dBm (1W)` *(Máxima fuerza)*
    - **FEC:** `Enable` *(Corrección de errores activa)*
    - **Transmission Mode:** `Transparent` *(Desactivar Fixed-Point)*
@@ -144,7 +147,7 @@ Repita el procedimiento completo en cada radio y marque:
 - [ ] Radio **Esclavo** — Air Data Rate en `2.4 kbps`, potencia `30 dBm`, FEC `Enable`, canal `0` (directo) o `10` (repetidor)
 - [ ] Radio **Repetidor-Entrada (B1)** — Air Data Rate en `2.4 kbps`, canal `0` *(solo en modo repetidor)*
 - [ ] Radio **Repetidor-Salida (B2)** — Air Data Rate en `2.4 kbps`, canal `10` *(solo en modo repetidor)*
-- [ ] Las **cuatro** radios tienen el **mismo** Air Data Rate
+- [ ] Las radios del enlace —hoy **DOS**, ~~cuatro~~— tienen el **mismo** Air Data Rate *(corregido el 07/09; las dos filas del repetidor sólo se marcan si algún día se reinstala)*
 - [ ] Los DIP Switches `M0`/`M1` quedaron en `OFF` en todas
 
 > Si tras el cambio el enlace sigue cayendo, **no** vuelva a bajar la velocidad aérea: anótelo y

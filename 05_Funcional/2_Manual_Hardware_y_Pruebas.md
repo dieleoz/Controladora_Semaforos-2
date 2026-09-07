@@ -803,11 +803,44 @@ Con ~1,4 µA de consumo por `VBAT`, la autonomía teórica supera los **15 años
 > ✅ **Pero el diagnóstico NO se ha perdido: se mudó a un `$EVENT`.** Ver el bloque del 01/09, más
 > abajo, que es donde está el procedimiento que sí se puede ejecutar hoy.
 >
-> Lo que **sí** se puede hacer hoy desde la app: poner la hora con
+> # 🔴 07/09/2026 — TODO EL DIAGNÓSTICO DE RELOJ QUE SIGUE ESTÁ DEROGADO. NO LO EJECUTE.
+>
+> **`DECISIONES.md` `D-9` y `D-15`, y el fuente. Se conserva tachado con su motivo, no se borra —
+> pero si usted ha abierto este manual para diagnosticar un reloj, LEA ESTE RECUADRO Y NADA MÁS DE
+> ESTE APARTADO.**
+>
+> | lo que este apartado manda hacer | lo que pasa hoy en la tarjeta |
+> |---|---|
+> | mandar `CMD:PIN:1234:SET_RTC:…` **al STM32** y esperar una de cuatro respuestas | **El STM32 no contesta a `SET_RTC`.** La rama existe **para consumir la orden EN SILENCIO** y que no se caiga al `$ERR,CMD:DESCONOCIDO`. Comentario literal del fuente: *«D-15 — ESTA PUNTA YA NO PONE LA HORA, Y POR ESO NO CONTESTA A LA ORDEN»* |
+> | leer `SIN_CRISTAL_VEA_CONSULTA_RELOJ`, `HORA_PUESTA_SIN_PROPAGAR`, `RESULT:OK`, `FORMATO_INVALIDO` | **Ninguna de las cuatro la emite ya esta punta.** `SIN_CRISTAL_VEA_CONSULTA_RELOJ` sólo sobrevive **dentro de un comentario** |
+> | concluir *«cristal `Y2` muerto»* o *«el equipo no responde»* al no ver respuesta | 🛑 **ES EL ERROR QUE ESTE PROYECTO YA PAGÓ UNA VEZ: se cambia una pila y un cristal SANOS.** El silencio no es una avería — es la decisión `D-15` |
+>
+> ## ✅ EL DIAGNÓSTICO DE RELOJ VIGENTE
+>
+> **El reloj lo lleva el `DS3231` con pila del ESP32 de cada poste** (`D-9`); el STM32 **no tiene
+> reloj** (`Y2` confirmado muerto, N-17) y ya no hace falta que lo tenga.
+>
+> | qué quiere hacer | orden | quién contesta |
+> |---|---|---|
+> | **CONSULTAR la hora sin cambiarla** | **`CMD:LEER_RTC`** (`D-17`) — ⚠️ **exactamente así, SIN `CMD:PIN:1234:` delante**: el puente compara la línea entera con `strcmp` | `$ACK,NODE:PUENTE,CMD:LEER_RTC,RESULT:OK,FECHA:…,HORA:…` |
+> | **PONER la hora** | `CMD:PIN:1234:SET_RTC:YYYY-MM-DD,HH:MM:SS` | **el puente**, con `$ACK,NODE:PUENTE,CMD:SET_RTC,…` |
+>
+> **Y los `$ERR` del puente son el diagnóstico que este apartado buscaba, uno por causa** (leídos de
+> `ESP32_Expansion/src/despachador.cpp` el 07/09):
+> `NUNCA_SE_PUSO_PONGA_LA_HORA` · `OSCILADOR_PARADO_CAMBIE_PILA` · `SIN_RELOJ_NO_RESPONDE` ·
+> `ESCRITURA_A_MEDIAS_REPITA_SET_RTC` · `MODO_12H_PONGA_LA_HORA` · `REGISTROS_INCOHERENTES` ·
+> `BARRERA_INCOHERENTE`.
+>
+> 🔵 **Hay DOS relojes por cruce, uno por poste, y no se hablan entre sí** (`D-17`). Hay que
+> conectarse a **los dos postes**: ninguna orden lleva la hora de un `DS3231` al otro.
+>
+> ---
+>
+> ~~Lo que **sí** se puede hacer hoy desde la app: poner la hora con
 > `CMD:PIN:1234:SET_RTC:YYYY-MM-DD,HH:MM:SS` y leer el campo `HORA:` de `$STATUS`. **Si la hora
 > queda puesta y sigue avanzando, el cristal oscila**; si `HORA:` devuelve `--:--:--`, el reloj se
 > declara no fiable. Eso distingue *«funciona»* de *«no funciona»*, pero **NO distingue cuál de las
-> cuatro causas es** — que era exactamente el punto de aquella pantalla.
+> cuatro causas es** — que era exactamente el punto de aquella pantalla.~~
 >
 > ~~**Consecuencia honesta: mientras ese diagnóstico no esté en la app, N-37 no se puede cerrar por
 > lectura.**~~ ✅ **Ya está en la app desde el 01/09** — ver el bloque de abajo. Lo que no cambia es
@@ -820,10 +853,17 @@ Con ~1,4 µA de consumo por `VBAT`, la autonomía teórica supera los **15 años
 > >
 > > | Respuesta | Línea | Qué dice |
 > > |---|---|---|
-> > | `$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ` | `:313` | **No hay con qué contar el tiempo.** La hora NO quedó puesta |
-> > | `$ACK,CMD:SET_RTC,RESULT:HORA_PUESTA_SIN_PROPAGAR` | `:325` | Entró aquí, **no viajó al Esclavo** |
-> > | `$ACK,CMD:SET_RTC,RESULT:OK` | `:327` | Entró y va camino del Esclavo |
-> > | `$ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO` | `:308`, `:318` | La trama no se pudo leer, o cifras fuera de rango |
+> > | ~~`$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ`~~ | ~~`:313`~~ | ⛔ **YA NO SE EMITE (`D-15`).** Sólo sobrevive dentro de un comentario |
+> > | ~~`$ACK,CMD:SET_RTC,RESULT:HORA_PUESTA_SIN_PROPAGAR`~~ | ~~`:325`~~ | ⛔ **YA NO SE EMITE (`D-15`)** |
+> > | ~~`$ACK,CMD:SET_RTC,RESULT:OK`~~ | ~~`:327`~~ | ⛔ **YA NO SE EMITE (`D-15`)** |
+> > | ~~`$ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO`~~ | ~~`:308`, `:318`~~ | ⛔ **YA NO SE EMITE (`D-15`).** El `FORMATO_INVALIDO` de hoy lo da **el puente**, con `NODE:PUENTE` |
+> >
+> > 🔴 **LAS CUATRO TACHADAS EL 07/09.** El motivo por el que el STM32 se calla está escrito en su
+> > propio fuente y merece leerse, porque **no es una pérdida de función**: el operario mandaba
+> > **una** orden y le contestaban **dos** aparatos —el puente decía `RESULT:OK` (la puso en su
+> > `DS3231`) y cuatro segundos después el STM32 decía `NO_QUEDO_PUESTA` (en el suyo no entró)—.
+> > **Las dos eran verdad y juntas eran una contradicción.** `D-15`: *una orden, un acuse*, y el
+> > único que acusa es el que tiene el reloj.
 > >
 > > Y existe además `CMD:PIN:1234:REINICIAR_RELOJ` (`:330`), que contesta
 > > `CRISTAL_OK_PONGA_LA_HORA` o `SIGUE_PARADO_VEA_CONSULTA_RELOJ`.
@@ -960,9 +1000,10 @@ ellas. Un mando que se comporte distinto obliga a rehacer ambas.
 > receptor**.~~ **Lo que sigue siendo cierto de esa frase: las entradas y su firmware siguen ahí.**
 > Lo que ya no: que falte comprar algo.
 >
-> > 🔴 **31/08 — y en el Esclavo esto ha subido de categoría.** Con *Aceptar* mudo y **sin `SET_MODO`
-> > por Bluetooth en esa punta** —el Maestro es el único que arbitra el ciclo—, **el mando pasa a ser
-> > el único actuador de modo del Esclavo**: entrar al Degradado es `A·B·A·B` y salir es `A·A·A` o
+> > 🔴 **31/08 — y en el Esclavo esto ha subido de categoría.** ~~Con *Aceptar* mudo y **sin
+> > `SET_MODO` por Bluetooth en esa punta** —el Maestro es el único que arbitra el ciclo—, **el mando
+> > pasa a ser el único actuador de modo del Esclavo**~~ *(🔴 **TACHADO EL 07/09 — `D-18`: hay
+> > `SET_MODO:DEGRADADO` por app en esa punta.** Ver el recuadro de abajo)*: entrar al Degradado es `A·B·A·B` y salir es `A·A·A` o
 > > `B·B·B` *(en `Esclavo/src/mando.cpp`: `degradado_entrar()` bajo el caso `ACC_DEGRADADO`, y
 > > `degradado_salir()` en las dos ramas de salida)*. ~~Mientras
 > > el receptor no esté comprado, **esas dos acciones solo se hacen subiendo al gabinete y pulsando
@@ -977,23 +1018,37 @@ ellas. Un mando que se comporte distinto obliga a rehacer ambas.
 > |---|---|---|
 > | **Mando de relés** (`A·B·A·B`) | ⛔ **el hardware se retiró** | `D-1`, 05/09 |
 > | **Pulsadores del gabinete** | ❌ | `botonAceptar()` / `botonCancelar()` devuelven `false` siempre desde el 31/08 |
-> | **App por Bluetooth** | ❌ **no existe el comando** | `grep -c "SET_MODO" Esclavo/src/bluetooth.cpp` → **`0`**. Lo que esa punta acepta es `AMBAR_EMERGENCIA`, `CANCELAR_AMBAR`, `SOLICITAR_PASO` y `SET_RTC` |
+> | **App por Bluetooth** | ✅ **SÍ — `CMD:PIN:1234:SET_MODO:DEGRADADO`** (`D-18`) | ~~`grep -c "SET_MODO" Esclavo/src/bluetooth.cpp` → **`0`**~~ → **`10`**, medido el 07/09 |
 > | **Orden del Maestro por radio** | ❌ **imposible por diseño** | *el radio muerto es justamente la razón de entrar al Degradado* |
 >
 > ```text
 >   $ grep -c "SET_MODO" 01_Firmware/Esclavo/src/bluetooth.cpp
->   0
+>   ~~0~~   -> 10   (medido el 07/09)
 > ```
 >
-> 🛑 **O sea que hoy el Modo Degradado NO SE PUEDE ACTIVAR EN EL ESCLAVO POR NINGUNA VÍA.** Antes del
-> 05/09 la respuesta era *«subiendo al gabinete»*; ya no lo es, porque arriba tampoco hay con qué
-> —ni pantalla ni botones que confirmen—.
+> ~~🛑 **O sea que hoy el Modo Degradado NO SE PUEDE ACTIVAR EN EL ESCLAVO POR NINGUNA VÍA.**~~
 >
-> ⚠️ **Este manual NO decide qué se hace con eso, y no propone la solución obvia.** Es una decisión
-> vial y del responsable, y las opciones que se le pongan delante son un instrumento: **añadir
-> `SET_MODO` al Esclavo tiene consecuencias sobre quién arbitra el ciclo** —hoy sólo el Maestro—, y
-> eso no se decide desde una lista de compras. **Lo que este documento hace es dejar el hueco escrito
-> con su medida**, para que no se descubra la noche que se caiga la radio.
+> # 🔴 07/09 — ESE `0` ERA MI PATRÓN, NO EL EQUIPO. **`DECISIONES.md` `D-18`: SÍ SE PUEDE, POR APP**
+>
+> **Falso desde el commit `15e8cf3`**, que es la medida que lo tacha — no una fecha aproximada.
+> La orden es **`CMD:PIN:1234:SET_MODO:DEGRADADO`**, la misma que en el Maestro, con `$ACK,…OK`,
+> `$ACK,…YA_ACTIVO` y un `$ERR` **por cada motivo** de `degradado_entrar()`.
+>
+> **Y merece la pena entender por qué aquel `grep` engañó, porque es la forma de error más cara de
+> este repositorio:** el cero era **cierto el día que se midió** —`D-18` entró después— pero además
+> el patrón buscaba el **setter genérico** cuando la capacidad se llama **`degradado_entrar()`** en
+> esa punta, y esa función tenía llamadores desde antes. **La puerta llevaba meses construida; lo
+> que se había retirado era la llave.**
+>
+> 🛑 **Y la consecuencia fue peor que el dato: un «no existe» se convierte en una decisión del
+> responsable.** Aquel cero le habría hecho elegir entre *«añadir un modo»* y *«retirarlo»*, cuando
+> la opción real y barata —darle a la app la llave de una puerta ya hecha— **no estaba en la mesa
+> porque la medida estaba mal**.
+>
+> ⚠️ **Lo que del párrafo tachado sigue valiendo:** **quién arbitra el ciclo sí cambia.** El
+> Degradado es el único modo que da verde **sin confirmar la otra punta**, y por eso `D-18` no lo
+> cerró un agente por su cuenta. **Con el Maestro vivo, su `CMD_PING` cada 3 s saca al Esclavo del
+> Degradado**, así que este modo sólo se sostiene con la radio realmente muerta.
 >
 > ✅ **Lo que sí sigue siendo cierto y no cambia:** **mientras el enlace funcione, el sistema
 > funciona.** El Degradado es el procedimiento de excepción, no la operación normal.

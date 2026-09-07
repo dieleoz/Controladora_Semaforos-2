@@ -105,8 +105,34 @@ El firmware V7.6 en las placas STM32 es 100% agnóstico a la topología de red i
 |---|---|---|
 | **`PB0`** | **`CAM_DEMANDA_PIN`** — la **única** entrada de cámara con firmware que la lee hoy. Bornera **`J14`**, con `R64` 10 kΩ (*pull-**down***) + `C25` 100 nF = antirrebote por hardware de 1 ms | ✅ **MEDIDO** (`pines.h:43-46`; se lee en `modo_inteligente.cpp:98`, `:136` y `Esclavo/src/main.cpp:350`) |
 | **`PB8`** | **`LED_TESTIGO`** — salida por `R16` 1 kΩ al LED `D5`. **No es entrada de nada** | ✅ **MEDIDO** (`pines.h:63`) |
-| **`PB9`** (`J16` p5) | **`BOTON1` = `MANDO_A`** del mando de relés. **Se conserva** (`N-104`) | ✅ **MEDIDO** (`pines.h:92`, `botones.cpp:119`) |
-| **`PB13`** (`J16` p8) | **`BOTON2` = `MANDO_B`**. **Se conserva** — es el único canal que arma `ambarLocal` | ✅ **MEDIDO** (`pines.h:93`, `botones.cpp:120`, `Esclavo/src/mando.cpp:129-132`) |
+| **`PB9`** (`J16` p5) | **`BOTON1` = `MANDO_A`** del mando de relés. 🛑 **BORNE VACÍO — pero el CÓDIGO lo sigue leyendo** | ✅ **MEDIDO** (símbolos `BOTON1` en `pines.h`, `mando_registrarPulso(MANDO_A)` en `botones.cpp`) |
+| **`PB13`** (`J16` p8) | **`BOTON2` = `MANDO_B`**. 🛑 **BORNE VACÍO — y su código es el único que arma `ambarLocal`** | ✅ **MEDIDO** (símbolos `BOTON2` en `pines.h`, `mando_registrarPulso(MANDO_B)` en `botones.cpp`, `ambarLocal = true` en `Esclavo/src/mando.cpp`) |
+
+> ### 🛑 «SE CONSERVA» DECÍA DOS COSAS A LA VEZ, Y SÓLO UNA ES CIERTA (corregido el 07/09)
+>
+> **Estas dos filas ponían *«se conserva»* a secas** —redacción del 31/08, cuando la decisión era
+> conservar el mando entero—. **Se leía como que hay pulsadores montados en `J16` p5 y p8. No los
+> hay.**
+>
+> **`D-1` de [`DECISIONES.md`](../DECISIONES.md)**, confirmado por el responsable el 05/09 —*«ya no
+> tenemos mandos de A y B, sólo la app»*— dice **las dos mitades a la vez**, y hay que sostener las
+> dos:
+>
+> | | |
+> |---|---|
+> | 🛑 **El HARDWARE se fue** | Nunca se compró receptor y ya no se va a comprar. **`J16` p5 y p8 están VACÍOS**, y ningún documento manda conectar nada ahí |
+> | ✅ **El CÓDIGO se queda, y NO se toca** | `mando_ambarLocal()` tiene **cinco llamadas vivas** —tres vetos en `Esclavo/src/main.cpp` y dos decisiones de `CANCELAR_AMBAR` en `Esclavo/src/bluetooth.cpp`— y su veto es **SFTY-21**. Retirar el armador deja esos `if` **siempre verdaderos**: el veto **no queda inerte, queda ABIERTO**. Y trece packs caerían en **`ABORTADO`, no en rojo** |
+>
+> 🔴 **Consecuencia que no caduca: LIBRE DE COBRE NO ES LIBRE DE FIRMWARE.** `botones_actualizar()`
+> lee esos dos pines en cada vuelta y alimenta el reconocedor de secuencias. **Lo que alguien cierre
+> ahí compone órdenes del mando** —`A·A·A`, `B·B·B`, `A·B·A·B`— sin que nadie lo pida. Con el
+> pulsador retirado la bandera simplemente **no se arma nunca**, que es lo correcto.
+>
+> ⚠️ **Y `N-118` está REFUTADO:** los `0,6 V` que se citaron como *«defecto de placa»* en esos dos
+> pines **no lo eran**. En el binario que había en la tarjeta aquel día `BOTON1/2` iban en
+> `INPUT_PULLUP` y los pines de cámara en `INPUT` pelado: **mismo cobre, distinto `pinMode`, distinta
+> tensión** (9,92–9,94 kΩ en los cuatro). **No se cite como avería.** Hoy no queda **ningún**
+> `INPUT_PULLUP` vivo en el firmware: los 20 hits del `grep` son comentarios.
 | **`PB14`** (`J16` **p10**) | **`CAM_C_PIN` — LA CÁMARA, una por poste.** `INPUT` pelado, **activo en ALTO** | ✅ **MEDIDO** (`#define CAM_C_PIN`, `pinMode(CAM_C_PIN, INPUT)`) |
 | **`PB15`** (`J16` **p12**) | **`CAM_D_PIN`** — pin de cámara, hoy **vacío**. `INPUT` pelado, **activo en ALTO** | ✅ **MEDIDO** (`#define CAM_D_PIN`, `pinMode(CAM_D_PIN, INPUT)`) |
 
@@ -208,7 +234,60 @@ de relé y cuál elegir según **M3**— en
 
 ---
 
-## 4. Módulo Bluetooth para Telemetría y Diagnóstico Móvil
+## 3.bis 🔴 `J14` es una ENTRADA. La salida de la talanquera es `J15`. No se confundan
+
+> **Este manual no mandaba cablear nada mal aquí — el aviso va porque el error es fácil, ya se ha
+> escrito antes en este proyecto, y se ejecuta con un destornillador.**
+
+| bornera | qué es | pin | qué hay detrás |
+|---|---|---|---|
+| **`J14`** | 🔴 **ENTRADA del micro** | `PB0` (`CAM_DEMANDA_PIN`) | **`R64` 10 kΩ a masa + `C25` 100 nF. Y NADA MÁS: sin opto, sin diodo, sin limitadora.** El borne saca el pin **junto a 3,3 V** |
+| **`J15`** | ✅ **SALIDA de potencia** | `PB2` (`MOTOR_TALANQUERA`) | opto `TLP127` (`U15`) → MOSFET `IRLZ44N` (`Q10`) → bornera, con su diodo de rueda libre |
+
+🔴 **La trampa está en el esquemático: `J14` viene rotulada «Puerta».** Quien busque dónde enchufar
+la pluma y lea ese rótulo cablea un **relé de 12 V contra una entrada de 3,3 V sin protección
+ninguna**, y se lleva el micro por delante. **La pluma va a `J15`.**
+
+✅ **MEDIDO en el fuente el 07/09** — se citan los símbolos:
+
+```
+$ grep -n "MOTOR_TALANQUERA\|CAM_DEMANDA_PIN" 01_Firmware/Maestro/include/pines.h
+31:#define MOTOR_TALANQUERA   PB2  // -> opto U15 -> MOSFET Q10 -> bornera J15
+46:#define CAM_DEMANDA_PIN    PB0  // -> R64 10K + C25 100nF -> bornera J14 (antirrebote 1 ms)
+```
+
+La talanquera se mueve **sólo desde `escribirPines()` de `semaforo.cpp`** —la barrera de salidas— y
+arranca **cerrada** en `semaforo_setup()`: `LOW` = MOSFET sin conducir = pluma abajo. Es el fallo
+seguro de SFTY-28.
+
+⚠️ **Y `J15` no está a 0 V en reposo, está a ~12 V** por el pull-up de 1 kΩ del cobre — ver §5.bis
+punto 4. En banco dio *«0 V en rojo, 12 V en ámbar»*, que es exactamente eso.
+
+---
+
+## 4. Módulo de expansión (Bluetooth + reloj) para Telemetría y Diagnóstico Móvil
+
+> ## 🛑 QUÉ SE ENCHUFA HOY EN `J17`: UN **ESP32**, NO UN MÓDULO BLUETOOTH SUELTO (07/09/2026)
+>
+> **Los pines y el conector de abajo son correctos y no cambian.** Lo que cambia es **qué hay al
+> otro lado del cable**, y con ello dos cosas que se compran:
+>
+> | | |
+> |---|---|
+> | 🛑 **Ya no se compran `HC-05` ni `JDY-30`** | El módulo SPP discreto está **sustituido por un `ESP32-WROOM-32` clásico** (`BT v4.2 BR/EDR + BLE`, o sea **sí hay perfil SPP**). Su firmware existe y compila: `01_Firmware/ESP32_Expansion/` |
+> | ✅ **Y ese ESP32 trae el RELOJ del cruce** | Un **`DS3231` con pila propia** por I²C en `GPIO21` (`SDA`) / `GPIO22` (`SCL`). **`D-9`/`D-15`:** el STM32 **no tiene reloj** (`Y2` muerto, N-17) y el del ESP32 es **el único que contesta a `SET_RTC`** |
+> | ⚠️ **El ESP32 NO se alimenta del 3,3 V de `J17`** | Ese riel alimenta al STM32 que gobierna el cruce; **el accesorio no puede tumbar al que manda**. Fuente propia desde los 12 V |
+> | 🛑 **No manda sobre las luces** | Es un puente: traduce y reenvía. La barrera de salidas sigue en `semaforo.cpp` del STM32 |
+>
+> ✅ **MEDIDO el 07/09:** `DS3231_SDA 21` / `DS3231_SCL 22` en `ESP32_Expansion/include/contrato.h`,
+> con driver en `src/reloj_ds3231.cpp` (`#include <Wire.h>`). Y en el firmware del STM32 **no queda
+> ni una configuración de módulo Bluetooth clásico**: `grep -rni "HC-05\|HC05\|JDY"` sobre las dos
+> puntas da **cero**.
+>
+> ⚠️ **Ojo con el PIN, que son DOS y no el mismo:** el `0000`/`1234` del **emparejado de Android** es
+> el del módulo; el `1234` de `CMD:PIN:1234:` es el del **semáforo**. Detalle completo en
+> [`MANUAL_CONFIGURACION_BLUETOOTH.md`](MANUAL_CONFIGURACION_BLUETOOTH.md) y en
+> [`MANUAL_INSTALACION_RELOJ_DS3231.md`](MANUAL_INSTALACION_RELOJ_DS3231.md) §7.
 
 Para soporte técnico, caja negra de alarmas y monitoreo desde el suelo sin subir al poste (estándar probado en proyecto Baliza):
 * **Pines de Conexión:** Puerto **USART1 REMAPEADO** del STM32 — **`PB6` TX ➔ `RXD` BT, `PB7` RX ➔ `TXD` BT**, conector **`J17`**. ✅ **MEDIDO EN EL FUENTE:** `static HardwareSerial SerialBT(PB7, PB6);` (`01_Firmware/Maestro/src/bluetooth.cpp:28`, con el porqué del remapeo en `:16-22`).
@@ -228,11 +307,96 @@ La tarjeta principal de control que gobierna las luces del semáforo.
 
 ### Componentes Clave:
 - **Cerebro:** Microcontrolador **STM32F103C8T6** ("Blue Pill" / CKS32F103).
-- **Pantalla y UI:** LCD ST7920 (128x64 píxeles) conectada por SPI de 3 hilos. 4 botones físicos de navegación.
+- **Pantalla y UI:** ⛔ ~~LCD ST7920 (128x64 píxeles) conectada por SPI de 3 hilos. 4 botones físicos de navegación.~~
+  🛑 **NO SE MONTA NINGUNA DE LAS DOS COSAS (`D-17.bis`, 05/09).** Ver el aviso §5.bis de abajo.
 - **Salidas de Potencia:** Transistores MOSFET N-Channel (**IRLZ44N**) a 12V/24V para lámparas LED (Rojo, Amarillo, Verde).
-- **Protección Galvánica:** 9 Entradas Optoacopladas para aislamiento eléctrico de botoneras y sensores.
+- **Aislamiento:** ⛔ ~~9 Entradas Optoacopladas para aislamiento eléctrico de botoneras y sensores.~~
+  🛑 **Mal en las tres palabras: ni son 9, ni son entradas, ni «aíslan» lo que esa frase sugiere.**
+  Lo medido: los optoacopladores **`TLP127` están en las DIEZ CADENAS DE SALIDA** (`Q1`–`Q10` con
+  `U6`–`U15`), no en las entradas; las **entradas de campo son 5**. Ver §5.bis.
 - **Transceptor Integrado:** Chip MAX485 (Half-Duplex) conectado a la bornera RS485 `A` / `B`.
 - **Watchdog:** Inicialización IWDG por registros directos adaptada a CKS32F103 (refresco en `loop()`).
+
+---
+
+## 5.bis 🛑 Correcciones al apartado 5 (07/09/2026) — se tachan arriba y se explican aquí
+
+### 1. La pantalla y los cuatro pulsadores **no se montan**
+
+**`D-17.bis` de [`DECISIONES.md`](../DECISIONES.md)** (05/09, deroga `D-6`): *«LA PANTALLA LCD Y EL
+MENÚ SE RETIRAN DEL EQUIPO. Todo se opera por la app.»*
+
+**Y el matiz que hay que sostener, porque decir «no existe» sería otra frase falsa: se retira del
+EQUIPO, no del código.** `lcd.cpp` y `menu.cpp` compilan, y el arnés `Validacion_LCD` sigue dando
+`271/271` **sobre un framebuffer en el PC**. Lo que muere es la **interfaz**. Medido en el fuente el
+07/09 — el objeto entrega **los cuatro pines en `U8X8_PIN_NONE`**, así que la librería no emite ni un
+`pinMode` ni un `digitalWrite`:
+
+```
+$ grep -n "U8X8_PIN_NONE" 01_Firmware/Maestro/src/lcd.cpp
+74:static U8G2_ST7920_128X64_F_SW_SPI u8g2(U8G2_R0, U8X8_PIN_NONE, U8X8_PIN_NONE,
+75:                                        U8X8_PIN_NONE, U8X8_PIN_NONE);
+```
+
+👉 **Consecuencia de cobre que sí importa:** `PB3` (`LCD_SCLK`), `PB4` (`LCD_CS`) y `PB5` (`LCD_SID`)
+quedan **en alta impedancia, con pista hasta `J17`** p4, p1 y p5. Son los únicos GPIO libres del
+proyecto **con bornera ya cableada**.
+
+**De los cuatro pulsadores:** `BOTON3`/`BOTON4` **ya no existen** —son `CAM_C_PIN`/`CAM_D_PIN`
+(§3.2)— y `botonAceptar()`/`botonCancelar()` son `return false;` en las dos puntas. `BOTON1`/`BOTON2`
+**siguen declarados y siguen leyéndose**, pero su hardware tampoco se monta (`D-1`).
+
+### 2. Los optoacopladores están en las SALIDAS, y son DIEZ
+
+| | lo que decía §5 | lo medido |
+|---|---|---|
+| **cuántos** | 9 | **10 cadenas** — `Q1`–`Q10` con `U6`–`U15` |
+| **dónde** | «entradas … de botoneras y sensores» | **en las salidas de potencia**: `R` 220 Ω → opto `TLP127` → `R` 10 K + 220 Ω → MOSFET `IRLZ44N` → bornera, con diodo de rueda libre |
+| **las entradas** | — | son **5**, y van **del borne directo al micro** |
+
+Fuente: `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`, que manda en cobre medido.
+⚠️ **Ese documento se contradice a sí mismo en este punto** —una tabla suya sigue diciendo «Salidas
+de campo: 9» mientras su propio texto lo tacha y lo corrige a diez—; **aquí se recoge la cifra
+corregida y se deja anotada la discrepancia, sin elegir por él.**
+
+### 3. 🔴 «El opto aísla galvánicamente» es MEDIO CIERTO — y de ahí sale una conclusión falsa
+
+**Hay UNA sola red `GND` de 103 pads**, y en ella están el cátodo del LED del opto y la fuente del
+MOSFET. **El opto separa el pin del micro del nodo de puerta; NO crea una masa separada.**
+
+👉 **Cualquier cosa colgada de esas borneras COMPARTE LA MASA DEL CONTROLADOR.** Quien lea «aislado»
+y conecte un equipo con su propia tierra puede meter una diferencia de potencial en la masa del
+micro.
+
+### 4. 🔴 El borne NO está a 0 V en reposo: está a ~12 V
+
+**Nueve de los diez** drenadores llevan un **pull-up de 1 kΩ + LED al riel de 12 V** (`R23`, `R28`,
+`R33`, `R38`, `R43`, `R48`, `R53`, `R58`, `R63`, `R73`) que está **en el cobre, no en el conector**:
+**no se evita dejando un hilo sin poner.** Con el MOSFET abierto el borne sube a **~12 V**, con
+~10 mA *calculados* —la cuenta `(12 − Vf)/1 kΩ`, no una sonda—.
+
+**Encaja con lo medido en banco:** `J15` dio *«0 V en rojo, 12 V en ámbar»* — es exactamente este
+circuito con la sonda entre p1 y p2.
+
+> 🟡 **Y el décimo es la excepción, en un canal de luz vivo:** `D21`, el LED del canal `Q6` → `J8` →
+> `VERDE2`, **tiene el cátodo sin conectar** (red `unconnected-(D21-K-Pad1)`, cero pistas en el
+> `.kicad_pcb`). Ese canal **no tiene indicador luminoso** y **`J8` p2 flota en reposo** en vez de
+> subir a ~12 V. Queda **`SIN VERIFICAR`** si es defecto o decisión (`A-10`): es comprobación de
+> banco, no de firmware.
+
+### 5. 🔴 Tres canales de potencia completos SIN una línea de firmware detrás
+
+`J9` (`VERDE_PEATON`, `PA6`), `J11` (`ROJO_PEATON`, `PA7`) y `J13` (`BUZZER`, `PB1`) están
+**fabricados enteros** —opto, MOSFET, diodo, bornera— y el firmware **no los toca**: medido el
+07/09, cero `pinMode` y cero `digitalWrite` sobre los tres en las dos puntas.
+
+```
+$ grep -rn "PEATON\|BUZZER" 01_Firmware/Maestro/src 01_Firmware/Esclavo/src
+01_Firmware/Maestro/src/main.cpp:35:  // ROJO_PEATON y VERDE_PEATON, que estaban sin custodia.
+```
+
+**Un solo hit, y es un comentario.** No es una avería: es obra no hecha. Se anota para que nadie
+prometa una cabeza peatonal o un zumbador como función del equipo.
 
 ---
 

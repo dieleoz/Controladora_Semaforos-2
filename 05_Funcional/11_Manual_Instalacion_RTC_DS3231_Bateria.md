@@ -1,12 +1,13 @@
 # ⏱️ MANUAL TÉCNICO DE INSTALACIÓN — PILA DEL RELOJ RTC Y PLAN DE CONTINGENCIA DS3231 (V9.0)
 
 **Sistema:** Controladora de Semáforos Móviles de 3 Estados (Maestro y Esclavo V9.0)  
-**Hardware Principal:** RTC Interno STM32 (`PC14`/`PC15` cristal `Y2` de 32.768 kHz) + Pila CR2032 en `VBAT`  
+**Hardware Principal:** 🔴 **El reloj del cruce es el `DS3231` con pila del ESP32 de CADA poste** (`DECISIONES.md` **`D-9`**). ~~RTC Interno STM32 (`PC14`/`PC15` cristal `Y2` de 32.768 kHz) + Pila CR2032 en `VBAT`~~ — **corregido el 07/09:** el STM32 **no tiene reloj** (`Y2` confirmado muerto, N-17) y desde `D-15` **ni siquiera contesta a `SET_RTC`**. Lo que sigue describe el RTC interno, y se conserva porque el cuerpo del manual lo explica bien: **es la etiqueta de esta cabecera la que nadie había actualizado.**  
 **Plan de Contingencia:** ~~Módulo Externo DS3231 en pines libres `PB0` (SDA) y `PB8` (SCL) por I²C Software~~ ⛔ **ANULADO el 28/08 — y además era FALSO: esos dos pines NO están libres.** El `DS3231` cuelga hoy del **ESP32** (`GPIO21` SDA / `GPIO22` SCL). Ver el aviso de abajo y el apartado 5  
 **Propósito:** Sincronización horaria ininterrumpida para Modo Degradado, horario nocturno y Caja Negra  
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `MAPEO_TARJETA_KICAD.md`  
 **Fecha de Emisión:** 26 de Agosto de 2026  
-**Última revisión:** 31 de Agosto de 2026 — **el apartado 5 (Plan B DS3231) está ANULADO y no se cablea.**
+**Última revisión: 7 de septiembre de 2026** — 🔴 **§4.1 DEROGADA: no se diagnostica el reloj mandando `SET_RTC` al STM32** (`D-15`). La orden vigente es **`CMD:LEER_RTC`** (`D-17`) y la contesta el ESP32.
+*Revisión anterior, 31 de Agosto de 2026* — **el apartado 5 (Plan B DS3231) está ANULADO y no se cablea.**
 Motivo: mandaba conectar un bus I²C a `PB0` y `PB8` llamándolos *«los dos únicos pines libres de la
 placa»*, y **ninguno de los dos lo está**. Corregido también el renglón «Plan de Contingencia» de esta
 cabecera y la columna de acción del apartado 4. **Lo demás de este manual —`R5`, la pila `CR2032` en
@@ -149,8 +150,13 @@ En la PCB de fábrica, `R5` es una resistencia puente de **0 Ω** que une el pin
 > ## 🕐 Y DESDE EL 04–05/09, LA HORA QUE SE VE EN LA APP **NO SALE DE ESTE RELOJ** (`N-145`)
 >
 > **Este manual describe el RTC de la placa STM32.** Ese reloj **sigue parado** —el cristal `Y2` está
-> confirmado muerto (`N-17`)— y `SET_RTC` contra el STM32 sigue contestando
-> `$ERR,…,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ`. **Eso no ha cambiado.**
+> confirmado muerto (`N-17`)— y ~~`SET_RTC` contra el STM32 sigue contestando
+> `$ERR,…,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ`. **Eso no ha cambiado.**~~
+>
+> > 🔴 **TACHADO EL 07/09 — `D-15`: el STM32 ya NO CONTESTA NADA a `SET_RTC`.** Consume la orden en
+> > silencio para no dar un segundo acuse a una sola orden. `SIN_CRISTAL_VEA_CONSULTA_RELOJ` **sólo
+> > sobrevive en dos comentarios** (`grep` en §4.1). Lo que sí sigue sin cambiar es lo importante:
+> > **el `Y2` está muerto y este reloj no cuenta.**
 >
 > Lo que ha cambiado es **de dónde sale la hora que el operario ve**: el STM32 publica un **hueco
 > honesto** (`HORA:--:--:--`) y **el módulo `ESP32` lo rellena al pasar la trama**, con la hora de
@@ -170,25 +176,75 @@ En la PCB de fábrica, `R5` es una resistencia puente de **0 Ω** que une el pin
 > cuál de los dos relojes selló la hora.** Hoy siempre es el del módulo, porque el otro no existe,
 > pero **la trama no lo dice**.
 
-### 4.1 ✅ Cómo se leen HOY esos mismos bits: por Bluetooth
+### 4.1 ~~✅ Cómo se leen HOY esos mismos bits: por Bluetooth~~
 
-**Los mismos seis bits que pintaba la pantalla salen ahora en una trama de evento.** No hay que
+> # 🔴 07/09/2026 — ESTE PROCEDIMIENTO NO SE PUEDE EJECUTAR. **NO MANDE `SET_RTC` AL STM32 PARA DIAGNOSTICAR.**
+>
+> **`DECISIONES.md` `D-15` + medida sobre el fuente.** El paso 1 de abajo manda `SET_RTC` al STM32 y
+> espera un `$ERR` **que esa punta ya no emite**:
+>
+> ```
+> $ grep -rn "SIN_CRISTAL_VEA_CONSULTA_RELOJ" 01_Firmware/Maestro/src 01_Firmware/Maestro/include
+> Maestro/src/bluetooth.cpp:367   <- COMENTARIO
+> Maestro/include/bluetooth.h:32  <- COMENTARIO
+> ```
+>
+> **Cero emisiones.** La rama `SET_RTC` del Maestro **consume la orden en silencio** —comentario
+> literal: *«D-15 — ESTA PUNTA YA NO PONE LA HORA, Y POR ESO NO CONTESTA A LA ORDEN»*— para que no
+> caiga en `$ERR,CMD:DESCONOCIDO` y el operario reciba **dos acuses a una sola orden**.
+>
+> 🛑 **QUÉ LE PASA AL TÉCNICO QUE SIGA LOS TRES PASOS DE ABAJO: no ve el `$ERR`, no ve el `$EVENT`,
+> no ve nada** — y concluye *«el cristal `Y2` está muerto»* o *«el equipo no responde»*. **Eso es un
+> cambio de pila y de cristal SANOS.** El silencio no es una avería: es `D-15`.
+>
+> ## ✅ Lo que sí se puede hacer hoy
+>
+> | quiero… | orden | quién contesta |
+> |---|---|---|
+> | **saber la hora del cruce** | **`CMD:LEER_RTC`** (`D-17`) — ⚠️ **sin `CMD:PIN:1234:` delante**, el puente compara la línea entera con `strcmp` | el **ESP32**: `$ACK,NODE:PUENTE,CMD:LEER_RTC,RESULT:OK,FECHA:…,HORA:…` o un `$ERR` **por causa** (`OSCILADOR_PARADO_CAMBIE_PILA`, `NUNCA_SE_PUSO_PONGA_LA_HORA`, `SIN_RELOJ_NO_RESPONDE`, …) |
+> | **poner la hora** | `CMD:PIN:1234:SET_RTC:…` | el **ESP32**, con `NODE:PUENTE` en el acuse |
+>
+> 🔵 **Y la pregunta de fondo de este manual ya no la decide `Y2`:** la hora del cruce la lleva el
+> **`DS3231` con pila del ESP32 de cada poste** (`D-9`). El RTC interno del STM32 **ya no participa**,
+> así que su diagnóstico dejó de estar en el camino crítico.
+>
+> ## 🟠 LO QUE SÍ SE PERDIÓ, Y ES UNA PREGUNTA PARA EL RESPONSABLE, NO UN ARREGLO
+>
+> Los **seis bits** (`ON` / `RDY` / `BYP` / `SEL` / `EN` / `CNT`) siguen existiendo:
+> `reportarBitsDelReloj()` está vivo en `Maestro/src/bluetooth.cpp` — pero medido el 07/09 le queda
+> **UN solo llamador**, y es la rama de **`CMD:PIN:1234:REINICIAR_RELOJ`**.
+>
+> 🛑 **`REINICIAR_RELOJ` NO ES UNA CONSULTA: BORRA LA HORA Y TODO EL RESPALDO** —ciclo acordado,
+> marca de sincronización e indicador del Degradado—. **No se manda para mirar unos bits.**
+>
+> **O sea: hoy no hay forma NO destructiva de leer esos seis bits.** ¿Hace falta una, o se declara
+> que el diagnóstico del `Y2` del STM32 ya no interesa porque el reloj vive en el ESP32? **Lo decide
+> el responsable.**
+>
+> ---
+>
+> ~~**Lo que decía este apartado, conservado tachado:**~~
+
+~~**Los mismos seis bits que pintaba la pantalla salen ahora en una trama de evento.** No hay que
 pedirla con un comando nuevo: **el equipo la manda sola, justo detrás del rechazo**, que es cuando
-hay alguien mirando.
+hay alguien mirando.~~
 
-1. Conéctese al equipo con la app y **mande la hora**: `CMD:PIN:1234:SET_RTC:…`
-2. Si el equipo la rechaza, contesta **primero** el error y **detrás** los bits:
+1. ~~Conéctese al equipo con la app y **mande la hora**: `CMD:PIN:1234:SET_RTC:…`~~
+2. ~~Si el equipo la rechaza, contesta **primero** el error y **detrás** los bits:~~
 
 ```text
-   $ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ
-   $EVENT,NODE:MAESTRO,ORIGEN:RELOJ,DETALLE:ON:1 RDY:0 BYP:0 SEL:1 EN:1 CNT:0,HORA:--:--:--
+   ~~$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ~~
+   ~~$EVENT,NODE:MAESTRO,ORIGEN:RELOJ,DETALLE:ON:1 RDY:0 BYP:0 SEL:1 EN:1 CNT:0,HORA:--:--:--~~
 ```
 
-3. **Léalo en la pestaña `Eventos`** de la app. Es la pestaña 2 y la ven los dos roles.
+3. ~~**Léalo en la pestaña `Eventos`** de la app. Es la pestaña 2 y la ven los dos roles.~~
 
-*(Re-medido el 05/09: ~~`Maestro/src/bluetooth.cpp:305-333`~~ → **`Maestro/src/bluetooth.cpp:392-421`**
-compone el detalle y ~~`:542` / `:577`~~ → **`:708` / `:761`** lo emiten, detrás de
-`SIN_CRISTAL_VEA_CONSULTA_RELOJ` y de `SIGUE_PARADO_VEA_CONSULTA_RELOJ`.)*
+*(~~Re-medido el 05/09: `Maestro/src/bluetooth.cpp:392-421` compone el detalle y `:708` / `:761` lo
+emiten, detrás de `SIN_CRISTAL_VEA_CONSULTA_RELOJ` y de `SIGUE_PARADO_VEA_CONSULTA_RELOJ`.~~ 🔴
+**Re-medido el 07/09: de esos dos llamadores queda UNO, y es el de `REINICIAR_RELOJ`.** Y las citas
+por línea ya se habían renumerado a mano una vez —`:305-333` → `:392-421`— que es justo la cura que
+`CLAUDE.md` §4.sexies desaconseja: hoy `reportarBitsDelReloj()` está en la `409`. **Se cita el
+símbolo.**)*
 
 > 🛑 ~~**El mismo camino existe en el Esclavo.**~~ **NO EXISTE, Y ESTE APARTADO NO SE PUEDE
 > EJECUTAR EN EL POSTE DEL ESCLAVO. Medido el 05/09 con tres patrones, porque un «no aparece»

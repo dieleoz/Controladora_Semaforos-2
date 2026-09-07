@@ -350,13 +350,26 @@ cambia es la acción, porque **el Esclavo no tiene modos de operación propios**
 > tachado, porque su razonamiento es lo que hay que releer si alguien vuelve a proponer borrar
 > `mando.cpp`.
 >
-> **MEDIDO el 31/08 en `Esclavo/src/main.cpp`** — los tres vetos leen hoy **dos** banderas:
+> **MEDIDO en `Esclavo/src/main.cpp`** — los tres vetos leen **dos** banderas:
 >
 > ```
->   :406   if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {    // CMD_GO_RED
->   :416   if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {    // CMD_GO_GREEN  <- abre paso
->   :540   if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() && ...) // tras S_FALLO
+>   if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {    // CMD_GO_RED
+>   if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {    // CMD_GO_GREEN  <- abre paso
+>   if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() && ...) // tras S_FALLO
 > ```
+>
+> ⚠️ **Aquí había tres números de línea —`:406`, `:416`, `:540`— y los tres estaban CADUCADOS**
+> (medidos el 05/09 son `:453`, `:476`, `:617`). Se cita el símbolo y el `grep` que lo encuentra,
+> porque un número de línea caduca solo, en silencio y con la autoridad de un dato:
+>
+> ```
+> $ grep -n "mando_ambarLocal()" 01_Firmware/Esclavo/src/main.cpp
+> ```
+>
+> 🔴 **Y son CINCO llamadas vivas en total, no tres:** a esos tres vetos hay que sumar **dos
+> decisiones de `CANCELAR_AMBAR`** en `Esclavo/src/bluetooth.cpp`. `mando_ambarLocal()` **sólo existe
+> en el Esclavo** — en el Maestro el `grep` da **cero**, y no es un olvido: el Maestro no obedece a
+> nadie, así que no tiene a quién desobedecer.
 >
 > | Bandera | Quién la arma | Sigue viva |
 > |---|---|---|
@@ -842,9 +855,24 @@ es *"dejó de llover, a ver si volvió el radio"*: `A·A·A`.
 
 ---
 
-## 10. Requisitos de compra del receptor
+## 10. ~~Requisitos de compra del receptor~~ 🛑 **NO SE COMPRA. APARTADO DEROGADO (`D-1`)**
 
-| Requisito | Por qué |
+> # 🛑 ESTO ERA UNA ORDEN DE COMPRA VIVA PARA UN APARATO QUE NO SE VA A COMPRAR
+>
+> **`D-1` de [`DECISIONES.md`](../DECISIONES.md)**, confirmado por el responsable el 05/09: *«ya no
+> tenemos mandos de A y B, sólo la app»*. **El receptor nunca se compró y ya no se va a comprar.**
+> Nadie debe cotizar, pedir ni instalar nada de esta tabla.
+>
+> **Se conserva tachada, y no se borra, por dos motivos concretos:**
+>
+> 1. **El requisito del «código independiente por unidad» sigue siendo un hallazgo de seguridad
+>    válido** —y valdría el día que alguien proponga cualquier mando por radio para las dos puntas—:
+>    dos postes a menos de una cuadra con el mismo código convierten un gesto del operario en un
+>    cambio simultáneo y **no verificado** en las dos puntas.
+> 2. **Es el registro de qué se descartó.** Una vía que desaparece en silencio se vuelve a proponer
+>    al mes siguiente, y la segunda vez ya nadie recuerda que se decidió.
+
+| ~~Requisito~~ | ~~Por qué~~ |
 |---|---|
 | **4 canales de salida por relé, contacto seco** | Se cablean en paralelo con los botones. No debe inyectar tensión |
 | **Modo biestable NO** — pulso por flanco | Es lo que el firmware espera y lo que se midió en campo |
@@ -856,16 +884,16 @@ es *"dejó de llover, a ver si volvió el radio"*: `A·A·A`.
 
 | Limitación | Estado |
 |---|---|
-| **No hay receptor de relés instalado en ninguna punta** | El firmware está listo en ambas (N-19 cerrado del lado software). Falta comprar e instalar el hardware |
+| **No hay receptor de relés instalado en ninguna punta** | ⛔ ~~Falta comprar e instalar el hardware~~ → **CADUCADO EL 05/09: no falta, NO SE COMPRA** (`D-1`). El firmware está listo en ambas (N-19 cerrado del lado software) y **se queda así, sin usuario**. `J16` p5 y p8 quedan **vacíos** |
 | **Sin prueba de banco** | Nada se ha ejercitado con un mando físico conectado |
-| **El rechazo no indica el motivo desde el piso** | Aceptado. Hay que subir a leer la pantalla |
+| **El rechazo no indica el motivo desde el piso** | ⛔ ~~Aceptado. Hay que subir a leer la pantalla~~ → **CADUCADO: NO HAY PANTALLA** (`D-17.bis`, 05/09). El motivo del rechazo **no se puede leer en ninguna parte del equipo**. Hoy los motivos legibles llegan **por la app**, en los `$ERR` del Bluetooth |
 | **No hay realimentación de "pulso recibido"** | El operario no sabe si un pulso entró hasta completar la secuencia. Consecuencia directa de tener solo las luces como salida |
 | **El estado del Degradado no persiste a un corte** | Pendiente **N-20**. Un microcorte puede crear la salida asimétrica de §9 sin que nadie toque el mando |
-| ~~🛑 **El mando entero se retira (28/08/2026)**~~ | ✅ **SUPERADO el 31/08.** Se conserva en `A` (`PB9`) y `B` (`PB13`); se retiran `C` y `D`, que pasan a cámaras. **Las tres secuencias siguen funcionando.** Ver cabecera |
-| ~~🛑 **Al retirarlo, el veto de `ambarLocal` desaparece solo**~~ | ✅ **RESUELTO.** No se retira el armador (`B·B·B` sigue), y además los tres `if` —`main.cpp:406`, `:416`, `:540`— leen ahora **dos** banderas: `mando_ambarLocal()` **y** `bluetooth_ambarEmergencia()` |
+| ~~🛑 **El mando entero se retira (28/08/2026)**~~ · ~~✅ SUPERADO el 31/08: se conserva en `A` y `B`~~ | 🛑 **LAS DOS ESTÁN SUPERADAS POR `D-1` (05/09), y el resultado no es ninguna de las dos:** el **hardware** se retira entero —`A` y `B` incluidos— y el **código** se queda entero. **Las tres secuencias siguen compilando y siguen leyendo los pines; lo que no hay es con qué pulsarlas.** Ver la cabecera de estado |
+| ~~🛑 **Al retirarlo, el veto de `ambarLocal` desaparece solo**~~ | ✅ **RESUELTO, y es el motivo escrito de que el código no se toque.** No se retira el armador, y los `if` leen **dos** banderas: `mando_ambarLocal()` **y** `bluetooth_ambarEmergencia()`. ⚠️ **Los números de línea que había aquí —`main.cpp:406`, `:416`, `:540`— estaban CADUCADOS**; medidos el 05/09 son `:453`, `:476`, `:617`, y por eso ahora se cita el símbolo: `grep -n "mando_ambarLocal()" 01_Firmware/Esclavo/src/main.cpp`. **Son cinco llamadas vivas en total**, contando las dos de `CANCELAR_AMBAR` en `Esclavo/src/bluetooth.cpp` |
 | ~~🛑 **El sistema se queda sin salida de emergencia**~~ | ⚠️ **CORREGIDO — la afirmación era falsa.** `CMD:AMBAR_EMERGENCIA` (`Esclavo/src/bluetooth.cpp:130`, sin PIN) **sí** pone al Esclavo en ámbar y **sí** veta las órdenes de radio. Ver §8. **Lo que sigue faltando es el receptor y la prueba de banco**, no el sustituto |
-| 🛑 **`C` y `D` cambian de modo de pin y de polaridad** | `INPUT_PULLUP` activo en BAJO → **`INPUT` pelado activo en ALTO**. **No se cablea cámara a `J16` hasta la medida `M3`**, y el firmware nuevo va **cargado en la tarjeta** antes de que nadie enchufe nada (`CLAUDE.md §9.bis`) |
-| 🛑 **En el Esclavo el mando pasa a ser el ÚNICO actuador de modo** | Con *Aceptar* mudo y sin `SET_MODO` por Bluetooth en esa punta, entrar y salir del Degradado **solo se hace con `A·B·A·B` / `A·A·A` / `B·B·B`**. Ver §5 |
+| ✅ **`C` y `D` cambiaron de modo de pin y de polaridad** | `INPUT_PULLUP` activo en BAJO → **`INPUT` pelado activo en ALTO**, ya hecho en las dos puntas. ⛔ ~~No se cablea cámara a `J16` hasta la medida `M3`~~ → **CADUCADO: `M3` se CERRÓ el 03/09** (`D-3`), medida en cobre, y **las cámaras se cablean**. 🔴 **Lo que NO caduca:** el firmware nuevo va **cargado y verificado en la tarjeta** antes de que nadie enchufe nada (`CLAUDE.md` §9.bis) — *un commit no protege de un destornillador*— y **`J16` p1 lleva 12 V crudos: taparlo es obligatorio** (`D-4`) |
+| ~~🛑 **En el Esclavo el mando pasa a ser el ÚNICO actuador de modo**~~ | 🛑 **DOBLEMENTE CADUCADO, y la fila era peligrosa porque mandaba usar lo que ya no existe.** (1) **El mando no existe**, así que si esto fuera cierto el Esclavo se habría quedado **sin ninguna** vía de modo — ése fue el hueco `A-11`. (2) **Ya no lo es:** `SET_MODO:DEGRADADO` **existe por Bluetooth en el Esclavo** desde el 05/09 (`D-18`), y es la puerta vigente. ✅ **MEDIDO el 07/09:** `grep -n 'strcmp(accion, "SET_MODO:DEGRADADO")' 01_Firmware/Esclavo/src/bluetooth.cpp` → **`675:`**. La salida va por `AMBAR_EMERGENCIA`. Manda `D-18`, no esta fila |
 
 ---
 

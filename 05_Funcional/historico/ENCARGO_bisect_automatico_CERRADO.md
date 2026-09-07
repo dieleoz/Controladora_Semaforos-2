@@ -13,8 +13,13 @@
 > pulsos aleatorios—. **En ninguno se queda la bandera pegada.** Verificado además que el arnés
 > sabe verlo: vaciando `terminarSenal()` cae de `67/67` a `39/67`.
 >
-> ➡️ **El encargo vigente es [`ENCARGO_SESION_BANCO.md`](../ENCARGO_SESION_BANCO.md).** Allí la
+> ➡️ ~~**El encargo vigente es [`ENCARGO_SESION_BANCO.md`](../ENCARGO_SESION_BANCO.md).**~~ Allí la
 > bisección ya no es *"confirmar a `2779d9b`"* sino una bisección de verdad, sin sospechoso.
+>
+> 🔴 **07/09: ese encargo también se archivó** —está aquí al lado, como
+> [`ENCARGO_SESION_BANCO_ARCHIVADO_07-09.md`](ENCARGO_SESION_BANCO_ARCHIVADO_07-09.md)— **y el
+> protocolo vigente es la
+> [`Guia_Cableado_y_Pruebas_Banco.html`](../Guia_Cableado_y_Pruebas_Banco.html)**, de 44 pasos.
 >
 > Se conserva y no se borra porque **una causa que desaparece en silencio vuelve a proponerse**, y
 > la segunda vez ya nadie recuerda que se comprobó.

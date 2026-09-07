@@ -281,7 +281,20 @@ La App cuenta con **5 pantallas funcionales**, diseñadas con alto contraste par
 * **Test de Lámparas de 6 Segundos:** Secuencia de prueba de banco (2s Rojo ➔ 2s Amarillo ➔ 2s Verde) ejecutada a través de `semaforo_iniciarTestLeds()` bajo la barrera de seguridad de `semaforo.cpp` con semáforo fuera de servicio o Todo-Rojo controlado.
 
 ### Pantalla 5: AJUSTES & ASISTENTE COURIER RTC
-* **Sincronización Directa de Hora:** Ajuste del reloj RTC del nodo conectado con la hora del teléfono móvil.
+
+> 🛑 **CORREGIDO EL 07/09 — a QUIÉN se le pone la hora cambió el 05/09 (`D-15`).**
+> **Hay DOS relojes por cruce, uno por poste**, cada uno en su ESP32 con pila propia, y **el STM32 no
+> tiene ninguno** (`Y2` muerto, N-17). Así que *«el reloj del nodo conectado»* es **el del puente de
+> ese poste**, y el acuse llega con **`NODE:PUENTE`**. **La app valida la hora en LAS DOS puntas.**
+>
+> ✅ **Y hay una herramienta nueva que esta pantalla debe ofrecer: `CMD:LEER_RTC` (`D-17`)** — leer el
+> reloj **sin cambiarlo**, y **enseñar el desfase entre los dos postes**. Es mejor que sincronizar:
+> *hasta ahora la única forma de leer el reloj era mandarlo, y con eso se perdía justo el dato que se
+> buscaba*. **Los dos ESP32 no se hablan entre sí**, así que la comparación **sólo la puede hacer la
+> app visitando los dos postes**.
+
+* **Sincronización Directa de Hora:** Ajuste del reloj `DS3231` **del ESP32 del poste conectado** con la hora del teléfono móvil. ⛔ ~~del nodo conectado~~ — se leía como el reloj del STM32, que no existe.
+* 🟢 **Consulta de Hora (`LEER_RTC`) y desfase entre postes:** lee sin escribir, y distingue *«nunca se puso»*, *«oscilador parado, cambie pila»*, *«el bus no responde»* y *«escritura a medias»*. **Es lo que hay que usar antes de dar por muerto un módulo.**
 * **Modo Asistente Courier RTC (Sincronización Puente sin Radio):**
   1. *Paso 1:* Capturar hora y ciclo en el Poste Maestro.
   2. *Paso 2:* Viajar hasta el Poste Esclavo (la App cronometra el tiempo de viaje).
@@ -330,6 +343,39 @@ $ALARM,NODE:MAESTRO,EVENTO:FALLO_RF_12S,CAUSA:TIMEOUT_LATIDO,ACCION:CAMBIO_A_AMB
  └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+> # 🛑 EL CENSO DE ABAJO ES DEL 31/08 Y TIENE CUATRO CAMBIOS SIN RECOGER (07/09/2026)
+>
+> **Las tablas que siguen se conservan** —son correctas en casi todo y su método es bueno—, **pero el
+> reloj cambió de dueño el 05/09 y el Esclavo ganó dos comandos.** Léase esto antes que ellas.
+>
+> | | qué cambió | fuente |
+> |---|---|---|
+> | 🔴 **`SET_RTC` ya NO lo contesta el STM32** | **`D-15`** (05/09): *«el reloj lo lleva el ESP32 de cada punta, y es el ÚNICO que contesta a `SET_RTC`»*. Las ramas de las **dos** puntas del STM32 **consumen la orden en silencio** —ni `$ACK` ni `$ERR`—, a propósito, para que no salgan **dos acuses opuestos a una sola orden**, los dos ciertos. 👉 **La tabla de «cinco ramas» de abajo describe al PUENTE, no al STM32** | `D-15` · medido 07/09 |
+> | 🟢 **Existe `CMD:LEER_RTC`** | **`D-17`** (05/09): el reloj **se puede CONSULTAR sin cambiarlo**, y la app enseña **el desfase entre postes**. Lo contesta el puente con **siete finales distintos**, uno por motivo. *«No hace falta que los dos relojes se pongan de acuerdo solos: hace falta poder ver si lo están.»* | `D-17` |
+> | 🟢 **El ESCLAVO ganó `SET_MODO:DEGRADADO`** | **`D-18`** (05/09), que cierra el hueco `A-11`: esa punta se había quedado **sin ninguna puerta** al Modo Degradado al retirarse el mando. Se le dio la llave a una puerta que ya existía | `D-18` · medido 07/09 |
+> | 🟢 **Y `CANCELAR_AMBAR`**, que la tabla del Esclavo no listaba | Es la contraria de `AMBAR_EMERGENCIA`, y **lee `mando_ambarLocal()`** para decidir — dos de las cinco llamadas vivas de esa bandera | medido 07/09 |
+>
+> ✅ **MEDIDO el 07/09** — se citan los símbolos, porque **los números de línea de las tablas de
+> abajo están caducados en bloque** (el censo se hizo el 31/08 y el fichero ha crecido: p. ej.
+> `SET_MODO:AUTO` decía `:177` y hoy es `:515`; `SET_RTC` decía `:295` y hoy es `:695`):
+>
+> ```
+> $ grep -n "SET_RTC_LO_ACUSA_EL_PUENTE" 01_Firmware/Maestro/src/bluetooth.cpp 01_Firmware/Esclavo/src/bluetooth.cpp
+> 01_Firmware/Maestro/src/bluetooth.cpp:726:    bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
+> 01_Firmware/Esclavo/src/bluetooth.cpp:781:    bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
+>
+> $ grep -n 'strcmp(accion, "SET_MODO:DEGRADADO")\|strcmp(accion, "CANCELAR_AMBAR")' 01_Firmware/Esclavo/src/bluetooth.cpp
+> 575:  } else if (strcmp(accion, "CANCELAR_AMBAR") == 0) {
+> 675:  } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
+>
+> $ grep -n "CMD_LEER_RTC\[\]" 01_Firmware/ESP32_Expansion/src/despachador.cpp
+> 22:static const char CMD_LEER_RTC[] = "CMD:LEER_RTC";
+> ```
+>
+> 🔴 **Consecuencia de operación, y es la que hay que llevarse:** el `$ACK` de `SET_RTC` llega
+> **`NODE:PUENTE`**, no `NODE:MAESTRO`. Una app o un técnico que espere el acuse de la punta **creerá
+> que el comando se perdió**. *«El STM32 no contesta»* **no es un síntoma: es el diseño.**
+
 #### 📋 Censo del 31/08 — lo que el MAESTRO despacha de verdad
 
 **MEDIDO** con `grep` sobre `01_Firmware/Maestro/src/bluetooth.cpp`, rama por rama. Son **15 acciones
@@ -358,7 +404,31 @@ PIN (`:168-170`).
 
 Cualquier otra cosa cae en `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO` (`:363`).
 
-#### 🕐 `SET_RTC` tiene CINCO ramas, y ninguna miente
+#### 🕐 `SET_RTC` tiene ~~CINCO~~ **siete** ramas, y ninguna miente — **pero las contesta EL PUENTE**
+
+> 🛑 **Corregido el 07/09.** La lección de abajo —*«un `$ACK` que no depende de lo que devolvió la
+> llamada es una mentira con formato de éxito»*— **sigue siendo exactamente correcta y es lo mejor de
+> este apartado**. Lo que caducó es **quién** la aplica: desde `D-15` el reloj vive en el ESP32 y es
+> **el puente** quien contesta, con `NODE:PUENTE`. La tabla siguiente se conserva por su método;
+> **los literales vigentes son los del puente**, y son más:
+>
+> | respuesta del PUENTE | significa |
+> |---|---|
+> | `$ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK` | entró y quedó puesta |
+> | `$ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:HORA_PUESTA_SIN_PROPAGAR` | entró aquí, no viajó |
+> | `$ERR,…,DESC:FORMATO_INVALIDO` | la trama no se pudo leer, o las cifras están fuera de rango |
+> | `$ERR,…,DESC:SIN_RELOJ_NO_RESPONDE` | **el bus I²C está mudo.** No hay con qué contar el tiempo |
+> | `$ERR,…,DESC:ESCRITURA_FALLIDA` · `NO_QUEDO_PUESTA` | se intentó y no se pudo verificar |
+> | `$ERR,…,DESC:OSCILADOR_PARADO_CAMBIE_PILA` | el módulo está; la pila no |
+> | `$ERR,…,DESC:MOTIVO_NO_CONTEMPLADO` | rama de cierre: **no se inventa un OK** |
+>
+> ✅ **Y su gemelo de sólo lectura, `CMD:LEER_RTC` (`D-17`)**, contesta `RESULT:OK` o uno de **seis**
+> `$ERR` distintos: `NUNCA_SE_PUSO_PONGA_LA_HORA`, `OSCILADOR_PARADO_CAMBIE_PILA`,
+> `SIN_RELOJ_NO_RESPONDE`, `ESCRITURA_A_MEDIAS_REPITA_SET_RTC`, `MODO_12H_PONGA_LA_HORA`,
+> `REGISTROS_INCOHERENTES` / `BARRERA_INCOHERENTE`. **Es la herramienta de diagnóstico del reloj**, y
+> es la que hay que usar antes de devolver un `DS3231` por mudo.
+
+##### 📕 La tabla del 31/08, conservada por su método *(los literales son los de entonces, del STM32)*
 
 Un `$ACK` que no depende de lo que devolvió la llamada **es una mentira con formato de éxito**. Este
 comando llegó a contestar `RESULT:OK` sin mirar nada; hoy contesta lo que pasó:
@@ -383,7 +453,9 @@ comando llegó a contestar `RESULT:OK` sin mirar nada; hoy contesta lo que pasó
 | `CMD:AMBAR_EMERGENCIA` | `:130` | **Sin PIN.** Ámbar intermitente + latch. `$ACK,…,RESULT:OK` |
 | `CMD:PIN:1234:AMBAR_EMERGENCIA` | `:171` | Lo mismo, con PIN. Las dos entradas hacen lo mismo |
 | `CMD:PIN:1234:SOLICITAR_PASO` | `:184` | **Pide**, no ordena. `PEDIDO_AL_MAESTRO` o `$ERR,…,DESC:REPITA_EN_UNOS_SEGUNDOS` |
-| `CMD:PIN:1234:SET_RTC:…` | `:215` | `OK`, `$ERR,…,DESC:SIN_CRISTAL` o `$ERR,…,DESC:FORMATO_INVALIDO` |
+| ~~`CMD:PIN:1234:SET_RTC:…`~~ | ~~`:215`~~ | 🛑 **CADUCADO (`D-15`, 05/09): esta punta ya NO contesta.** Consume la orden en silencio; **acusa el puente** con `NODE:PUENTE` |
+| 🟢 **`CMD:PIN:1234:SET_MODO:DEGRADADO`** | **`:675`** | **NUEVO (`D-18`, 05/09).** Es la **única** puerta al Modo Degradado que le queda a esta punta: el menú es inalcanzable y el mando no existe. Llama a `degradado_entrar()`, **la puerta que ya estaba construida y probada** (`18/18` en el arnés de dos puntas), y **contesta el motivo concreto del rechazo**, no un no seco |
+| 🟢 **`CMD:PIN:1234:CANCELAR_AMBAR`** | **`:575`** | La contraria de `AMBAR_EMERGENCIA`. **Lee `mando_ambarLocal()` para decidir**: si un operario dejó ámbar local puesto con el mando, esta orden **no lo saca de ahí** (SFTY-21) |
 | ~~`CMD:FORZAR_ROJO`~~ | `:157` | 🛑 **RECHAZADO** — `$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` |
 | ~~`CMD:PIN:1234:FORZAR_ROJO`~~ | `:176` | 🛑 **RECHAZADO** — mismo `$ERR`. **Las dos formas.** |
 | ~~`CMD:PIN:1234:TEST_LEDS`~~ | `:202` | 🛑 **RECHAZADO** — `$ERR,…,DESC:NO_EN_SERVICIO_USE_EL_MAESTRO` |
@@ -422,8 +494,11 @@ lo mismo. El PIN sigue guardando lo que **abre** paso o mueve luces.
 | **`DEMANDA`** | ✅ con PIN | — | Equivalente al `SOLICITAR_PASO` del otro extremo, sobre el Maestro |
 | ~~`FORZAR_ROJO`~~ **en el Esclavo** | ✅ **sin PIN**, hace rojo | 🛑 **RECHAZADO** — `RENOMBRADO_USE_AMBAR_EMERGENCIA` | Prometía rojo y hacía ámbar. **Se corrigió el nombre, no el comportamiento** |
 | **`AMBAR_EMERGENCIA`** | ❌ | ✅ **sin PIN** *(y con PIN)* | **Éste es el botón de pánico del Esclavo.** Dirección segura |
-| `SET_RTC:…` | ✅ con PIN, **5 ramas** | ✅ con PIN, 3 ramas | Ajusta el reloj, no las luces |
-| `REINICIAR_RELOJ` | ✅ con PIN | ❌ | Diagnóstico del cristal, solo donde se pone la hora |
+| ~~`SET_RTC:…`~~ | 🛑 **ninguna de las dos contesta** — lo acusa el **PUENTE** (`D-15`) | 🛑 ídem | El reloj **vive en el ESP32**. Que el STM32 contestara producía **dos acuses opuestos a una sola orden**, los dos ciertos |
+| 🟢 **`LEER_RTC`** | — *(lo contesta el puente)* | — *(ídem)* | **`D-17`:** consulta el reloj **sin cambiarlo**, con 7 finales distintos. La app compara los **dos postes** y enseña el desfase |
+| 🟢 **`SET_MODO:DEGRADADO`** | ✅ con PIN | ✅ **con PIN — NUEVO (`D-18`)** | Antes sólo el Maestro. Es la única puerta que le queda al Esclavo |
+| 🟢 **`CANCELAR_AMBAR`** | ❌ | ✅ con PIN | Contraria de `AMBAR_EMERGENCIA`; **respeta el veto de `ambarLocal`** |
+| `REINICIAR_RELOJ` | ✅ con PIN | ❌ | Diagnóstico del cristal `Y2` del STM32. ⚠️ **Con `Y2` muerto (N-17) y el reloj mudado al ESP32, su utilidad hoy es de diagnóstico histórico**: para el reloj que se usa, la herramienta es `LEER_RTC` |
 | `TEST_LEDS` | ✅ con PIN | 🛑 **RECHAZADO** | Ver abajo |
 
 ### 🛑 Por qué el Esclavo rechaza `TEST_LEDS`

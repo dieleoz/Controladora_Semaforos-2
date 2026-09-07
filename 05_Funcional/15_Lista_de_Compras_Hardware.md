@@ -868,10 +868,18 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 > hasta que exista el firmware que la lea así.** La ruta está decidida y **desde el 04/09 el cobre
 > también** (`M3`); la función, no escrita.
 >
-> ⏳ **Y una precisión que no se inventa aquí:** la decisión del 28/08 dice *«las cámaras van a `J16`,
-> los pines que libera el mando»*. **La de demanda que ya funciona entra por `PB0` / bornera `J14`,
-> está medida y esta lista no la mueve.** Si la intención era **trasladar** también esa, hay que
-> decirlo por escrito — cambia el Manual 9, el Manual 13 y el pack `camara_01_demanda`.
+> ⏳ ~~**Y una precisión que no se inventa aquí:** la decisión del 28/08 dice *«las cámaras van a
+> `J16`, los pines que libera el mando»*. **La de demanda que ya funciona entra por `PB0` / bornera
+> `J14`, está medida y esta lista no la mueve.** Si la intención era **trasladar** también esa, hay
+> que decirlo por escrito — cambia el Manual 9, el Manual 13 y el pack `camara_01_demanda`.~~
+>
+> ✅ **07/09 — YA ESTÁ DICHO POR ESCRITO, que es justo lo que este párrafo pedía:**
+> `DECISIONES.md` **`D-2`** y **`D-3`**. **Las dos cámaras del cruce van a `J16` p10 y p12, una por
+> poste**, y **`J14`/`PB0` queda libre y sin cámara** —vivo en el firmware, reservado a un posible
+> fin de carrera de barrera—. Es lo mismo que ya dice la fila **`A2`** de esta lista.
+>
+> **Y el motivo que lo decide no es el conector, es la vigilancia:** `CAM_CIEGA`/`CAM_PEGADA`
+> **miran `J16` y no miran `J14`**. Una cámara en `J14` funciona y **nadie sabría que se estropeó**.
 
 > 🧩 **Sobre A8 —la placa portadora—, que hasta el 31/08 no existía como línea de compras:**
 >
@@ -1359,7 +1367,9 @@ ni para cámaras, pantalla LCD, **los CUATRO pulsadores de `J16`**, ~~ni mando d
 `D-1`: NI MANDO DE RELÉS NI SU RECEPTOR NI LOS PULSADORES. Y no es «no se pide todavía»: es que no se
 va a pedir.** Tampoco se piden **`E1`** ni **`E2`**: son de la **V2** de la placa y no están
 decididas. Las talanqueras salen por la salida **`Motor` (bornera `J15`, MOSFET `Q10`)** que **la
-tarjeta ya trae**, y las cámaras de demanda por `PB0` (bornera `J14`), que ya se lee.
+tarjeta ya trae**, y las cámaras de demanda por ~~`PB0` (bornera `J14`)~~ → 🔵 **`J16` p10 y p12**
+(`D-2`/`D-3`, corregido el 07/09; lo mismo que ya dice la fila `A2`). **`J14`/`PB0` queda libre**, y
+por eso este resumen tampoco pide conector para él.
 
 > 🛑 **Y para que esta línea no vuelva a girar por cuarta vez: lo que se retiró es el HARDWARE.** El
 > **código** del mando **se queda entero** en las dos puntas, y no es sentimentalismo: `ambarLocal`

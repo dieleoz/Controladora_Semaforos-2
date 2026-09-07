@@ -1,3 +1,40 @@
+> # 🗄️ ARCHIVADO EL 07/09/2026 — ESTE YA NO ES EL ENCARGO VIGENTE
+>
+> **Se conserva como ACTA de la primera noche de banco (3-4/09), no como guion.**
+>
+> ## ➡️ El protocolo vigente es [`Guia_Cableado_y_Pruebas_Banco.html`](../Guia_Cableado_y_Pruebas_Banco.html)
+>
+> **Por qué se cae este documento, medido y no opinado:**
+>
+> | | este ENCARGO | la Guía HTML (05/09, 19:45) |
+> |---|---|---|
+> | pasos | **29** | **44** — quince más |
+> | arreglos que conoce | los del 31/08 | **N-142, N-145, N-146, N-147, N-149**, todos posteriores |
+> | decisiones que refleja | anteriores a `D-1` | `D-1`, `D-16` y `D-17.bis` |
+> | canal de vuelta | — | **se imprime, se rellena y se devuelve en PDF** (`CLAUDE.md` §4.quater) |
+>
+> **Y la regla del repositorio es que haya UN SOLO ENCARGO VIGENTE.** Dos guiones para la misma
+> sesión es la forma 5 del defecto: quien coja el equivocado **pierde 15 pasos y cinco arreglos**,
+> y no se entera de que le faltan.
+>
+> ## 🔴 Lo que este documento dice y HOY ES FALSO — no lo ejecute desde aquí
+>
+> | dónde | qué dice | qué manda hoy |
+> |---|---|---|
+> | §5 | *«**MEDIDO**: el Esclavo no acepta ni un solo `SET_MODO:*`»* | **`DECISIONES.md` `D-18`.** `grep -c SET_MODO 01_Firmware/Esclavo/src/bluetooth.cpp` → **10**. Y aquel «MEDIDO» **no decía si era banco o lectura de fuente** |
+> | paso 29 | el ensayo del **mando de relés** | **`D-1`: el mando no existe.** El paso 29 acabó en calentamiento y por eso está abortado |
+> | enlace del informe | `evidencia/Informe_Pruebas_Banco_Semaforos_V9.0.pdf` | **estaba roto: el PDF vive hoy en `evidencia/old/`.** Corregido abajo el 07/09 |
+>
+> ✅ **Lo que SÍ sigue valiendo de este documento, y es la razón de conservarlo entero:** es la
+> **única acta escrita de la sesión del 3-4/09**, con la discrepancia de su cuenta (24/4/1 contra
+> 19/9/1) publicada en vez de resuelta a ojo. **Eso no lo sustituye la Guía.**
+>
+> 🟠 **Y una pregunta que este archivado NO cierra:** **no hay informe formal de la 2.ª sesión de
+> banco (04-05/09)** — sólo `ESTADO.md` y las cintas. ¿Existe en otro sitio, o hay que generarlo
+> antes de dar esa sesión por documentada? **Lo decide el responsable.**
+
+---
+
 # ENCARGO — Sesión de banco · Controladora de Semáforos
 
 **Redactado:** 31 de Agosto de 2026 · **Ejecutado:** 3 y 4 de Septiembre de 2026 · **Rama:** `main-nuevo`
@@ -7,7 +44,7 @@
 ## ✅ ESTE ENCARGO YA SE EJECUTÓ — 3 y 4 de septiembre de 2026
 
 **Se ejecutó sobre el paquete V9.0, commit `617bd00`.** El informe es
-[`evidencia/Informe_Pruebas_Banco_Semaforos_V9.0.pdf`](../evidencia/Informe_Pruebas_Banco_Semaforos_V9.0.pdf)
+[`evidencia/old/Informe_Pruebas_Banco_Semaforos_V9.0.pdf`](../../evidencia/old/Informe_Pruebas_Banco_Semaforos_V9.0.pdf) *(ruta corregida el 07/09: el PDF se movio a `evidencia/old/`, y este enlace llevaba roto desde entonces)*
 — preparado por Sebastián, IT Vial SAS. **Lo que sigue en este documento ya no es una tarea: es el
 guion de lo que se hizo, con lo que quedó fuera marcado.**
 
@@ -31,7 +68,7 @@ la discrepancia, no un total.**
 > repositorio. Lo que sí se deja escrito es **dónde está la diferencia** —los pasos **10 a 14**, el
 > módulo que no se anuncia y todo lo que cuelga de él—, porque **un paso que no está en ningún cajón
 > es un hueco que no deja rastro de que falta**. Mismo criterio que
-> [`12_Cobertura_de_Pruebas_y_Huecos.md`](12_Cobertura_de_Pruebas_y_Huecos.md), §«La cuenta, y por
+> [`12_Cobertura_de_Pruebas_y_Huecos.md`](../12_Cobertura_de_Pruebas_y_Huecos.md), §«La cuenta, y por
 > qué este documento no la copia».
 >
 > ⚠️ ~~**Y tres de esos 24 son PARCIALES: los pasos 7, 19 y 21 … se cuentan dentro de los 24 por su
@@ -95,7 +132,7 @@ git log -1 --format='%H  %ci  %s'
 ```
 
 y el estado verificado de la suite —cifras, flash, comprobaciones— está en el acta más reciente de
-[`evidencia/`](../evidencia/), con su fecha y su hash dentro. **Las cifras se leen del acta; no se
+[`evidencia/`](../../evidencia/), con su fecha y su hash dentro. **Las cifras se leen del acta; no se
 copian aquí.**
 
 ---
@@ -139,8 +176,8 @@ cosa**. Lo que se ejecuta está en otros dos ficheros, y hay que llevar los dos:
 
 | Documento | Qué es | Cómo se usa |
 |---|---|---|
-| [`Guia_Cableado_y_Pruebas_Banco.html`](Guia_Cableado_y_Pruebas_Banco.html) | **29 pasos** en formato `HAZ / COMPRUEBA / TIENES QUE VER / ANOTA`. Todo lo que es conectar, medir con multímetro y cargar firmware | Se abre en el navegador o se **imprime y se rellena a bolígrafo**. Guarda lo escrito en el propio navegador |
-| [`3_Protocolo_Pruebas_Rigurosas.md`](3_Protocolo_Pruebas_Rigurosas.md) | **52 pruebas ejecutables** de comportamiento, y **34 marcadas como no ejecutables hoy** con el motivo escrito. Es el acta que se firma | Se ejecuta **después** de la Guía, y sus secciones se enganchan a los tramos de la Guía según la tabla de abajo |
+| [`Guia_Cableado_y_Pruebas_Banco.html`](../Guia_Cableado_y_Pruebas_Banco.html) | **29 pasos** en formato `HAZ / COMPRUEBA / TIENES QUE VER / ANOTA`. Todo lo que es conectar, medir con multímetro y cargar firmware | Se abre en el navegador o se **imprime y se rellena a bolígrafo**. Guarda lo escrito en el propio navegador |
+| [`3_Protocolo_Pruebas_Rigurosas.md`](../3_Protocolo_Pruebas_Rigurosas.md) | **52 pruebas ejecutables** de comportamiento, y **34 marcadas como no ejecutables hoy** con el motivo escrito. Es el acta que se firma | Se ejecuta **después** de la Guía, y sus secciones se enganchan a los tramos de la Guía según la tabla de abajo |
 
 > 🔴 **Las pruebas del Protocolo que hoy no se pueden ejecutar NO tienen casilla de firma.** Es
 > deliberado: una prueba que no se puede ejecutar y sigue siendo una casilla firmable **es peor que
@@ -590,7 +627,7 @@ de la fase que *ella* calcula, y si las dos calculan mal, las dos dirán que tod
 
 ## 6 · Qué devolver
 
-> ✅ **Devuelto el 04/09:** `evidencia/Informe_Pruebas_Banco_Semaforos_V9.0.pdf`, 11 páginas, paso por
+> ✅ **Devuelto el 04/09:** `evidencia/old/Informe_Pruebas_Banco_Semaforos_V9.0.pdf` *(movido)*, 11 páginas, paso por
 > paso, con los cuatro hallazgos consolidados y **la causa del sobrecalentamiento declarada como no
 > confirmada**. Los puntos 1, 3, 4, 6 y 7 de la lista de abajo están cubiertos; **el 2 y el 5 no**:
 > el Protocolo no se llegó a ejecutar —depende del Modo Automático y de la app— y el veredicto del

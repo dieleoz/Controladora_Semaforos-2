@@ -1,9 +1,51 @@
 # 🕹️ PROCEDIMIENTO DE CAMPO — MODO DEGRADADO (SFTY-21)
 
 **Documento para el operario de campo y el Ingeniero Funcional**
-**Fecha:** 1 de Agosto de 2026 · **Aplica a:** firmware V8.7 (rama `feat/n15-reloj-pantalla-hora`)
+**Fecha:** 1 de Agosto de 2026 · **Última revisión: 7 de septiembre de 2026**
+**Aplica a:** firmware V8.7 (rama `feat/n15-reloj-pantalla-hora`)
+**Manda sobre este documento:** [`DECISIONES.md`](../DECISIONES.md) — filas **`D-1`**, **`D-16`**,
+**`D-17.bis`** y **`D-18`**. Donde este procedimiento y esa tabla no digan lo mismo, **gana la tabla**.
 
 ---
+
+> # 🔴 07/09/2026 — LEA ESTO ANTES DE EJECUTAR NADA: LA PREMISA DE ESTE DOCUMENTO CAYÓ
+>
+> **Este procedimiento se abre en la peor situación del sistema —la radio muerta— así que es el que
+> menos puede mentir.** Y hasta hoy mandaba, en cinco sitios distintos, a una vía que no existe.
+>
+> | lo que este documento repetía | lo que hay en el equipo hoy |
+> |---|---|
+> | *«El Esclavo no tiene `SET_MODO`»* | **Falso desde el commit `15e8cf3`.** `grep -c "SET_MODO" 01_Firmware/Esclavo/src/bluetooth.cpp` → **10**. La rama viva es `strcmp(accion, "SET_MODO:DEGRADADO")`, con `$ACK,…RESULT:OK`, `$ACK,…RESULT:YA_ACTIVO` y un `$ERR` **por cada motivo** de `degradado_entrar()` |
+> | *«para poner el Esclavo en Degradado hace falta el mando y su receptor RF»* | **`D-1`: el mando NO EXISTE.** No hay emisor, no hay pulsadores y el receptor RF **nunca se compró ni se va a comprar**. No es una compra pendiente |
+> | *«el cruce se opera desde el Maestro; no viene un `SET_MODO` para el Esclavo»* | **`D-18` (05/09): el Modo Degradado del poste 2 SE PIDE POR APP.** Lo que se retiró fue la llave —el mando—, no la puerta: `degradado_entrar()` ya estaba construido y probado |
+>
+> ## ✅ EL PROCEDIMIENTO VIGENTE, EN UNA LÍNEA POR PUNTA
+>
+> | punta | entrar en Degradado | salir |
+> |---|---|---|
+> | **MAESTRO** | **App:** `CMD:PIN:1234:SET_MODO:DEGRADADO` | **App:** `SET_MODO:AUTO` o `SET_MODO:AMBAR` |
+> | **ESCLAVO** | **App:** `CMD:PIN:1234:SET_MODO:DEGRADADO` — **misma orden, mismo PIN** (`D-18`) | **App:** `CMD:AMBAR_EMERGENCIA` · el retorno a Automático lo devuelve el Maestro al volver la radio |
+>
+> 🛑 **Y `D-16`, que es la consecuencia y va escrita aquí porque el operario tiene que saberla antes
+> de subir al poste: SIN TELÉFONO NO HAY FORMA DE OPERAR EL EQUIPO.** No es una avería, es una
+> propiedad declarada del sistema desde que se retiró el mando. Batería cargada, cable, y conviene un
+> segundo terminal emparejado.
+>
+> ⚠️ **Lo que NO cambia, y por eso vale la pena leer el resto del documento:** los **cinco
+> requisitos** de entrada, el todo-rojo obligatorio, el tope de 48 h, el desfase de relojes y los
+> riesgos residuales **siguen siendo exactamente los de siempre**. Lo que cambió es **por dónde se
+> pide**, no qué hace el equipo.
+>
+> 🔴 **Y lo que sigue abierto y no lo cierra nadie aquí:** `grep -c reportarEvento
+> Esclavo/src/modo_degradado.cpp` → **0**. El Esclavo entra en Degradado por app y **no publica nada
+> sobre ese estado** más allá del `$ACK` de la orden y del campo `MODO:` del `$STATUS`. Si el
+> operario necesita ver ese estado en la app de otra forma, **es una decisión del responsable**.
+>
+> ---
+>
+> **Todo lo que sigue de aquí abajo que hable del mando de relés, del receptor RF o de que el Esclavo
+> «no tiene `SET_MODO`» se conserva TACHADO con su motivo, no borrado** — y esa promesa se cumple
+> línea a línea, porque un `~~` que falta convierte un archivo histórico en una instrucción.
 
 > # 🛑 AVISO DEL 02/09/2026 — ESTE MODO SE OPERA HOY DESDE LA APP, NO DESDE LOS BOTONES
 >
@@ -21,15 +63,22 @@
 >
 > ## Cómo se entra y se sale HOY
 >
-> | Maniobra | Cómo se hace hoy | Evidencia *(re-medida el 04/09)* |
+> | Maniobra | Cómo se hace hoy | Evidencia *(re-medida el 07/09 — por símbolo, no por línea)* |
 > |---|---|---|
-> | Entrar en Degradado | **App:** `CMD:PIN:1234:SET_MODO:DEGRADADO` | `Maestro/src/bluetooth.cpp:501` |
-> | Entrar desde el piso | `A · B · A · B` en el mando de relés | canales `A` (`PB9`) y `B` (`PB13`), **se conservan** |
-> | Salir a Automático | **App:** `SET_MODO:AUTO`, o `A · A · A` en el mando | `bluetooth.cpp:444` |
-> | Salir a Ámbar | **App:** `SET_MODO:AMBAR`, o `B · B · B` en el mando | `bluetooth.cpp:454` |
-> | Volver al MENÚ | **App:** `SET_MODO:MENU` | `bluetooth.cpp:458` |
+> | Entrar en Degradado — **MAESTRO** | **App:** `CMD:PIN:1234:SET_MODO:DEGRADADO` | `grep -n 'SET_MODO:DEGRADADO' Maestro/src/bluetooth.cpp` |
+> | Entrar en Degradado — **ESCLAVO** | **App:** `CMD:PIN:1234:SET_MODO:DEGRADADO` — **`D-18`, misma orden** | `grep -n 'SET_MODO:DEGRADADO' Esclavo/src/bluetooth.cpp` → rama con `degradado_entrar()` y `$ERR` por motivo |
+> | Salir a Automático | **App:** `SET_MODO:AUTO` *(Maestro)* | `grep -n '"SET_MODO:AUTO"' Maestro/src/bluetooth.cpp` |
+> | Salir a Ámbar | **App:** `SET_MODO:AMBAR` *(Maestro)* · `CMD:AMBAR_EMERGENCIA` *(Esclavo)* | `grep -n 'AMBAR_EMERGENCIA' Esclavo/src/bluetooth.cpp` |
+> | ~~Entrar desde el piso~~ | ~~`A · B · A · B` en el mando de relés~~ ⛔ **`D-1`: el mando NO EXISTE** — ni emisor, ni pulsadores, ni receptor RF. **La secuencia sigue en el código y no hay con qué generarla** | — |
+> | ~~Salir con `A·A·A` / `B·B·B`~~ | ⛔ **mismo motivo (`D-1`)** | — |
+> | ~~Volver al MENÚ~~ | ~~**App:** `SET_MODO:MENU`~~ ⛔ **`D-17.bis`: la pantalla y el menú se retiran del equipo** | — |
 > | ~~Entrar por pantalla~~ | ⛔ **sin actuador** — necesitaba `Botón 4` y dos `Botón 3` | — |
 > | ~~Salir por pantalla~~ | ⛔ **sin actuador** — necesitaba `Botón 3` | — |
+>
+> 🔴 **Las citas `fichero:línea` que traía esta tabla —y las diez de la tabla «Evidencia (re-medida el
+> 04/09)»— estaban CADUCADAS: medidas el 07/09, las diez apuntaban a otro sitio.** Se sustituyen por
+> el `grep` del símbolo, que es lo que `CLAUDE.md` §4.sexies exige y lo único que sobrevive a que
+> alguien inserte veinte líneas encima.
 >
 > **El modo NO está inalcanzable, y esto invierte lo que decía la versión anterior de este aviso.**
 > Hasta el 28/08 no existía comando de ida ni de vuelta por Bluetooth y esa era la advertencia
@@ -42,8 +91,17 @@
 >   transición y pintaba *«Vea las dos puntas»* (`modo_degradado.cpp:448-462`). La salida por app
 >   pasa de un **verde por reloj** directamente al modo nuevo en la iteración siguiente. **Mire las
 >   dos puntas usted antes de dar la orden.**
-> - **El Esclavo no tiene `SET_MODO`.** Una salida por app **mueve solo el Maestro**, que es el
->   **Riesgo residual nº 2** de la Sección 6.
+> - ~~**El Esclavo no tiene `SET_MODO`.** Una salida por app **mueve solo el Maestro**, que es el
+>   **Riesgo residual nº 2** de la Sección 6.~~
+>
+>   > 🔴 **TACHADO EL 07/09 — `D-18` + medida: `grep -c "SET_MODO" Esclavo/src/bluetooth.cpp` → 10.**
+>   > El Esclavo **sí** atiende `CMD:PIN:1234:SET_MODO:DEGRADADO`.
+>   >
+>   > ⚠️ **Pero el Riesgo residual nº 2 NO desaparece, y por eso esta línea se tacha a medias:** lo
+>   > que el Esclavo no tiene es un `SET_MODO:AUTO`. **Una salida a Automático por app sigue moviendo
+>   > solo el Maestro.** Para parar el Esclavo la orden es `CMD:AMBAR_EMERGENCIA`, y el retorno a
+>   > Automático lo devuelve el Maestro al volver la radio. **La asimetría de salida sigue siendo el
+>   > riesgo; la de entrada ya no.**
 >
 >   > ✏️ **CORREGIDO EL 04/09 — la lista que había aquí era falsa en dos de sus cuatro entradas.**
 >   > Decía que el despachador del Esclavo *«atiende `FORZAR_ROJO`, `SOLICITAR_PASO`, `TEST_LEDS` y
@@ -56,20 +114,30 @@
 >   > | `CMD:AMBAR_EMERGENCIA` | `:381` sin PIN · `:468` con PIN | ✅ ámbar + latch que veta la radio |
 >   > | `CMD:PIN:1234:CANCELAR_AMBAR` | `:491` | ✅ **retira** el latch. **Con PIN** |
 >   > | `CMD:PIN:1234:SOLICITAR_PASO` | `:532` | ✅ pide al Maestro; no ordena |
->   > | `CMD:PIN:1234:SET_RTC:…` | `:563` | ✅ pone la hora |
+>   > | **`CMD:PIN:1234:SET_MODO:DEGRADADO`** | `grep -n 'SET_MODO:DEGRADADO' Esclavo/src/bluetooth.cpp` | ✅ **AÑADIDA EL 07/09 — `D-18`.** Faltaba en este censo, y es la orden que da nombre a este documento |
+>   > | ~~`CMD:PIN:1234:SET_RTC:…`~~ | `:563` | ~~✅ pone la hora~~ 🔴 **NO. `D-15`: esta punta CONSUME la orden EN SILENCIO** y no contesta nada. Quien pone la hora es el **DS3231 del ESP32**, y quien acusa es el puente |
 >   > | ~~`CMD:FORZAR_ROJO`~~ | `:448` · `:524` | 🛑 `$ERR,…,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` |
 >   > | ~~`CMD:PIN:1234:TEST_LEDS`~~ | `:550` | 🛑 `$ERR,…,DESC:NO_EN_SERVICIO_USE_EL_MAESTRO` |
 >   >
 >   > **Importa para este documento**: quien leyera la lista vieja y mandara `FORZAR_ROJO` al Esclavo
 >   > para pararlo **no habría parado nada**.
 >
-> - 🟢 **DECISIÓN DEL 04/09: el cruce se opera desde el MAESTRO.** Que el Esclavo no tenga `SET_MODO`
->   **deja de ser una limitación pendiente de cerrar** y pasa a ser cómo se opera este equipo. **Para
->   este procedimiento eso no lo hace más fácil: lo hace más definitivo.** La entrada al Degradado en
->   el Esclavo sigue dependiendo del `A·B·A·B` del mando —y del receptor RF que **no se ha
->   comprado**—, y esa vía ya no espera un comando Bluetooth que la sustituya. Ver la Sección 9.
-> - **El mando de relés sigue siendo la única vía que mueve las dos puntas desde el piso**, y sigue
->   necesitando el receptor RF, que **no se ha comprado**.
+> - ~~🟢 **DECISIÓN DEL 04/09: el cruce se opera desde el MAESTRO.** Que el Esclavo no tenga
+>   `SET_MODO` **deja de ser una limitación pendiente de cerrar**… La entrada al Degradado en el
+>   Esclavo sigue dependiendo del `A·B·A·B` del mando —y del receptor RF que **no se ha
+>   comprado**—, y esa vía ya no espera un comando Bluetooth que la sustituya.~~
+> - ~~**El mando de relés sigue siendo la única vía que mueve las dos puntas desde el piso**, y sigue
+>   necesitando el receptor RF, que **no se ha comprado**.~~
+>
+>   > 🔴 **LOS DOS PUNTOS DE ARRIBA ESTÁN DEROGADOS — 07/09.** La decisión del 04/09 duró **un día**:
+>   > el 05/09, `DECISIONES.md` `D-1` retiró el mando entero y **`D-18` abrió la puerta por app** en
+>   > el mismo día. Los dos hechos van juntos y por eso este bloque no se parchea, se tacha:
+>   >
+>   > - **El mando no es «una vía que espera una compra»: no existe** (`D-1`). El receptor RF nunca
+>   >   se compró y **no es una compra aplazada**.
+>   > - **La entrada del Esclavo al Degradado es `CMD:PIN:1234:SET_MODO:DEGRADADO`** (`D-18`).
+>   > - **Y ya no hay «vía desde el piso»**: `D-16` — **sin teléfono no hay forma de operar el
+>   >   equipo**. Eso es una propiedad declarada del sistema, no una avería.
 >
 > ### Qué NO se puede ejecutar de este documento
 >
@@ -77,7 +145,28 @@
 > 2. La pantalla LCD **se sigue dibujando** y sirve para *leer* estado; **no sirve para mandar**,
 >    porque no hay con qué confirmar una opción.
 > 3. El límite duro de 48 h (Sección 4) sigue vigente: el equipo se rinde solo a ámbar
->    (`modo_degradado.cpp:515`). No es un procedimiento — es un tope.
+>    (`grep -n LIMITE_DURO_MS Esclavo/src/modo_degradado.cpp`). No es un procedimiento — es un tope.
+> 4. **Todo paso que diga `A·A·A`, `B·B·B` o `A·B·A·B`.** `D-1`: **el mando no existe.** Van tachados
+>    abajo, uno por uno.
+>
+> ### 🛑 Y UNA COSA QUE NO HAY QUE HACER NUNCA, QUE VALE MÁS QUE TODO EL PROCEDIMIENTO
+>
+> **NO SE CABLEA NADA A `J16` p5 (`MANDO_A`, `PB9`) NI A `J16` p8 (`MANDO_B`, `PB13`).**
+>
+> **El código del mando sigue vivo y sigue leyendo esos dos pines.** Sus rutinas están entre las
+> llamadas a `degradado_salir()` del Esclavo — censado el 07/09 con
+> `grep -rn "degradado_salir" 01_Firmware/Esclavo/src/` —, así que **cerrar contactos ahí devuelve
+> una salida del Modo Degradado que nadie autorizó**: el equipo abandonaría el modo por su cuenta,
+> en mitad de una radio muerta, y el operario vería el cruce cambiar sin haber pedido nada.
+>
+> **Hoy no pasa porque no hay nada enchufado**, y **eso** es lo que los mantiene callados: los
+> `R65`–`R68` de 10 kΩ a masa fijan el reposo en `0 V`. **Dejarlos vacíos no es descuido: es la
+> barrera.** *(Y `J16` p1 lleva **12 V crudos** — se tapa en cada equipo que se monte, N-120.)*
+>
+> ✅ **Las salidas del Degradado que un operario PUEDE provocar son tres, y sólo tres:**
+> **(1)** vuelve el enlace y el Maestro manda `PING` / `GO_RED` / `GO_GREEN` ·
+> **(2)** `CMD:AMBAR_EMERGENCIA` desde la app ·
+> **(3)** vencen las 48 h y el equipo se rinde solo a ámbar.
 
 ---
 
@@ -289,26 +378,51 @@ Lo que desaparece es la forma de llamar a la puerta, no la puerta.
 > ⚠️ **La asimetría se conserva por app, pero no en las dos puntas (medido el 02/09).** En el
 > **Maestro** entrar exige PIN (`CMD:PIN:1234:SET_MODO:DEGRADADO`) y la puerta de los 5 requisitos
 > sigue delante. Salir por app (`SET_MODO:AUTO`, `SET_MODO:AMBAR`) **se salta el todo-rojo de
-> despedida** que hacía el `Botón 3`. En el **Esclavo** no hay `SET_MODO` de ninguna clase: entra
-> solo por `A · B · A · B`, y sale a ámbar por `CMD:AMBAR_EMERGENCIA`.
-
-**Desde el piso**, con el mando de relés: `A · B · A · B` en menos de 18 segundos.
-Confirmación: **4 destellos rojos**. Si en vez de destellos aparece un **ámbar rápido**, la secuencia
-fue **rechazada** por alguno de los 5 requisitos.
-
-> ⚠️ **La secuencia existe en el firmware** (`Maestro/src/mando.cpp:204-214`, `Esclavo/src/mando.cpp:148`)
-> **y no se puede ejercer todavía: el receptor RF nunca se compró ni se conectó.** Esta vía **nunca
-> ha llegado a existir en campo** — ver `04_Manuales/MANUAL_MANDO_4_RELES.md`.
+> despedida** que hacía el `Botón 3`. ~~En el **Esclavo** no hay `SET_MODO` de ninguna clase: entra
+> solo por `A · B · A · B`, y sale a ámbar por `CMD:AMBAR_EMERGENCIA`.~~
 >
-> **Es hoy la única forma de meter el Esclavo en Degradado**, porque su despachador de Bluetooth no
-> tiene comando de entrada. Vea el Paso 2.
+> > 🔴 **TACHADO EL 07/09 (`D-18`).** El Esclavo entra con **la misma orden y el mismo PIN que el
+> > Maestro**: `CMD:PIN:1234:SET_MODO:DEGRADADO`. La asimetría que **sí** se conserva es la de
+> > **salida**: el Esclavo no tiene `SET_MODO:AUTO`, y de él se sale a ámbar con
+> > `CMD:AMBAR_EMERGENCIA`.
+
+~~**Desde el piso**, con el mando de relés: `A · B · A · B` en menos de 18 segundos.
+Confirmación: **4 destellos rojos**. Si en vez de destellos aparece un **ámbar rápido**, la secuencia
+fue **rechazada** por alguno de los 5 requisitos.~~
+
+> 🔴 **TACHADO EL 07/09 — `D-1`: NO HAY MANDO, NO HAY PISO, NO HAY SECUENCIA QUE PULSAR.** No es que
+> falte comprar el receptor: **el mando no existe y no se va a comprar**. La secuencia `A·B·A·B`
+> sigue viva en `Esclavo/src/mando.cpp` y en `Maestro/src/mando.cpp` **a propósito** —retirar el
+> armador de `mando_ambarLocal()` dejaría el veto de SFTY-21 abierto, no inerte (`D-1`)—, pero
+> **nada puede generar esos pulsos**.
+>
+> ✅ **Lo que se hace en su lugar, y es más corto:** `CMD:PIN:1234:SET_MODO:DEGRADADO` desde la app,
+> **en cada una de las dos puntas**. Y si el equipo rechaza la entrada, **el `$ERR` dice cuál de los
+> cinco requisitos falta** — que es más de lo que daba el ámbar rápido del mando.
 
 ### Paso 2 — Activar en el **ESCLAVO**
 
-> ## 🪜 HOY HAY QUE SUBIR AL GABINETE
+> ## ✅ 07/09 — NO HAY QUE SUBIR AL GABINETE. SE HACE DESDE EL SUELO, CON EL TELÉFONO
 >
-> **El Esclavo no tiene receptor de mando de relés** (pendiente **N-19**). La tarjeta ya trae las
-> cuatro entradas (`PB9`, `PB13`, `PB14`, `PB15`); falta comprar e instalar el receptor.
+> **`CMD:PIN:1234:SET_MODO:DEGRADADO` al `📡 ESCLAVO (Poste 2)`** — `DECISIONES.md` `D-18`.
+> Es la misma orden que en el Maestro. Respuestas posibles, leídas del fuente el 07/09:
+>
+> | respuesta | qué significa |
+> |---|---|
+> | `$ACK,CMD:SET_MODO:DEGRADADO,RESULT:OK` | entró. Empieza el **todo-rojo obligatorio** de entrada |
+> | `$ACK,CMD:SET_MODO:DEGRADADO,RESULT:YA_ACTIVO` | **ya estaba dentro**: esta pulsación no encendió nada. No repita |
+> | `$ERR,CMD:SET_MODO:DEGRADADO,DESC:<motivo>` | **rechazado**, y el motivo dice **cuál de los cinco requisitos falta** (misma tabla que enseñaba el gabinete) |
+>
+> 🔴 **Y lo que esta orden NO puede comprobar, escrito para que no se lea como que sí:** que el
+> Maestro haya dejado de gobernar. Con el Maestro vivo, su `CMD_PING` cada 3 s saca al Esclavo del
+> Degradado, **y el operario ve el equipo obedecer y volverse atrás solo**. Eso no es una avería: es
+> que este modo es para cuando la radio está muerta. **Mire el campo `MODO:` del `$STATUS`**, que
+> pasa a `DEGRADADO` y vuelve a `SUBORDINADO`.
+>
+> ~~**El Esclavo no tiene receptor de mando de relés** (pendiente **N-19**). La tarjeta ya trae las
+> cuatro entradas (`PB9`, `PB13`, `PB14`, `PB15`); falta comprar e instalar el receptor.~~
+> 🔴 **TACHADO EL 07/09 — `D-1`: no falta comprar nada. El mando no existe y no se va a comprar.**
+> Y `PB14`/`PB15` **ya no son entradas de mando**: son **las dos cámaras** (`D-2`).
 >
 > **Soporte Bluetooth desde el Suelo (V9.0):** Con el módulo Bluetooth USART1 y la App Móvil
 > instalada en el celular del operario, ~~la activación y~~ sincronización del Degradado en el Esclavo
@@ -317,48 +431,78 @@ fue **rechazada** por alguno de los 5 requisitos.
 > viajar hasta el Esclavo y aplicar la sincronización compensando automáticamente el tiempo de viaje
 > con error inferior a 0.1 s.
 >
-> 🛑 **28/08/2026 — «la activación» se tacha: MEDIDO, no existe.** La **sincronización** sí (es
-> `SET_RTC:`, `Esclavo/src/bluetooth.cpp:159`). La **activación del Degradado por Bluetooth en el
-> Esclavo nunca se implementó**: ese despachador no tiene ninguna rama de Degradado. Se tacha en vez
-> de borrarse para que no se vuelva a dar por hecha dentro de un mes — es la funcionalidad que el
-> reemplazo del 28/08 tiene que **construir**, no heredar.
-
-En la App Móvil o en la pantalla del Esclavo:
-
-1. **Vía App Móvil (Desde el suelo):** Conectarse al `📡 ESCLAVO (Poste 2)`, entrar a `Ajustes / RTC` y pulsar `[ 🚀 Inyectar en Esclavo ]` ~~o activar Modo Degradado~~.
-2. ~~**Vía Pantalla LCD (Gabinete):** `Botón 4` hasta el menú ➔ `MODO DEGRADADO` ➔ `Botón 3` (`CONFIRMAR ENTRADA`).~~
-
-> 🛑 **AVISO AL DÍA (02/09/2026) — AL ESCLAVO NO SE LE PUEDE METER EN DEGRADADO DESDE LA APP.**
+> ~~🛑 **28/08/2026 — «la activación» se tacha: MEDIDO, no existe.**~~ 🟢 **REVERTIDO EL 07/09:
+> la activación por Bluetooth del Degradado en el Esclavo YA ESTÁ CONSTRUIDA** (`D-18`, 05/09). El
+> aviso del 28/08 era cierto el día que se escribió y decía bien lo que había que hacer: *«es la
+> funcionalidad que el reemplazo tiene que **construir**»*. **Se construyó.**
 >
-> Esto **no ha cambiado**, aunque el Maestro sí tenga ya su comando. Medido sobre
-> `Esclavo/src/bluetooth.cpp`, su despachador acepta exactamente estas acciones y ninguna más:
+> ⚠️ **Lo que del aviso del 28/08 sigue siendo cierto y cambió por otro motivo:** la
+> **sincronización** por `SET_RTC:` **ya no la hace esta punta** — `D-15`, ver la nota del reloj más
+> abajo.
+
+En la App Móvil:
+
+1. **Entrar en Degradado (desde el suelo):** conectarse al `📡 ESCLAVO (Poste 2)` y mandar
+   **`CMD:PIN:1234:SET_MODO:DEGRADADO`** (`D-18`).
+2. **Poner la hora:** `Ajustes / RTC` → `[ 🚀 Inyectar en Esclavo ]`. ⚠️ **Quien la recibe y la
+   acusa es el ESP32 de ese poste, no el STM32** (`D-15`); para **leerla sin cambiarla**,
+   `CMD:LEER_RTC` (`D-17`).
+3. ~~**Vía Pantalla LCD (Gabinete):** `Botón 4` hasta el menú ➔ `MODO DEGRADADO` ➔ `Botón 3`
+   (`CONFIRMAR ENTRADA`).~~ ⛔ **`D-17.bis`: la pantalla y el menú se retiran del equipo.**
+
+> ~~🛑 **AVISO AL DÍA (02/09/2026) — AL ESCLAVO NO SE LE PUEDE METER EN DEGRADADO DESDE LA APP.**~~
+>
+> 🔴 **TACHADO ENTERO EL 07/09. ERA LA FRASE MÁS PELIGROSA DE ESTE DOCUMENTO** — en mayúsculas, en
+> el procedimiento de emergencia, negando la vía que existe y mandando a una que no existe.
+> **Es falsa desde el commit `15e8cf3`** (`D-18`), no desde una fecha vaga: ese commit es la medida
+> que la tacha. Gana `D-18` y gana el `grep`:
 >
 > ```
->   CMD:AMBAR_EMERGENCIA            :315   (sin PIN)
->   CMD:FORZAR_ROJO                 :382   (sin PIN)
->   CMD:PIN:1234:AMBAR_EMERGENCIA   :402
->   CMD:PIN:1234:CANCELAR_AMBAR     :425
->   CMD:PIN:1234:FORZAR_ROJO        :458
->   CMD:PIN:1234:SOLICITAR_PASO     :466
->   CMD:PIN:1234:TEST_LEDS          :484
->   CMD:PIN:1234:SET_RTC:...        :497
+> $ grep -c "SET_MODO" 01_Firmware/Esclavo/src/bluetooth.cpp
+> 10
 > ```
 >
-> **Ninguna entra en Degradado.** Las dos únicas puertas de entrada del Esclavo son
-> `Esclavo/src/mando.cpp:148` —la secuencia `A · B · A · B` del mando de relés— y
-> `Esclavo/src/menu.cpp:227`, que necesita `botonAceptar()` y por tanto **está tapiada**.
+> ~~Medido sobre `Esclavo/src/bluetooth.cpp`, su despachador acepta exactamente estas acciones y
+> ninguna más:~~
+>
+> ```
+>   ~~CMD:AMBAR_EMERGENCIA            :315   (sin PIN)~~
+>   ~~CMD:FORZAR_ROJO                 :382   (sin PIN)~~
+>   ~~CMD:PIN:1234:AMBAR_EMERGENCIA   :402~~
+>   ~~CMD:PIN:1234:CANCELAR_AMBAR     :425~~
+>   ~~CMD:PIN:1234:FORZAR_ROJO        :458~~
+>   ~~CMD:PIN:1234:SOLICITAR_PASO     :466~~
+>   ~~CMD:PIN:1234:TEST_LEDS          :484~~
+>   ~~CMD:PIN:1234:SET_RTC:...        :497~~
+> ```
+>
+> **Ese censo tenía DOS defectos a la vez, y por eso se conserva:** le faltaba
+> `SET_MODO:DEGRADADO`, y **sus ocho números de línea están hoy caducados** — el mismo censo se
+> repitió con `:315/:382/:402…`, luego con `:381/:448/:468…`, y ninguna de las dos tandas apunta ya
+> a su sitio. **Por eso este documento pasa a citar el símbolo y el `grep`, no la línea**
+> (`CLAUDE.md` §4.sexies).
+>
+> ~~Las dos únicas puertas de entrada del Esclavo son `Esclavo/src/mando.cpp:148` —la secuencia
+> `A · B · A · B` del mando de relés— y `Esclavo/src/menu.cpp:227`, que necesita `botonAceptar()`
+> y por tanto **está tapiada**.~~
+>
+> ✅ **Las puertas de `degradado_entrar()`, censadas el 07/09 con
+> `grep -rn "degradado_entrar" 01_Firmware/Esclavo/src/`:** `bluetooth.cpp` **(la de la app, la que
+> se usa)**, `mando.cpp` (sin actuador, `D-1`) y `menu.cpp` (tapiada, `D-17.bis`). **La puerta
+> siempre estuvo construida; lo que faltaba era la llave, y `D-18` se la dio a la app.**
 >
 > ### 🔴 Lo que eso significa en obra, sin adornos
 >
-> **Para poner el Esclavo en Degradado hace falta el mando de relés, y su receptor RF nunca se
+> ~~**Para poner el Esclavo en Degradado hace falta el mando de relés, y su receptor RF nunca se
 > compró.** Mientras eso siga así, este procedimiento **no se puede completar en las dos puntas** —
-> y una sola punta en Degradado es peor que ninguna (Sección 6).
+> y una sola punta en Degradado es peor que ninguna (Sección 6).~~
 >
-> - El punto 2 (pantalla + pulsadores) sigue **sin actuador**: no hay `Botón 3` ni `Botón 4`.
-> - *"o activar Modo Degradado"* del punto 1 **sigue sin existir**. La inyección de RTC del punto 1
->   sí existe y se conserva.
-> - Lo que el Esclavo **sí** acepta ya desde la app, y antes no, es el **ámbar de emergencia** y su
->   revocación. Es el plan de aborto del Paso 3, no una vía de entrada.
+> ✅ **07/09: el procedimiento SÍ se puede completar en las dos puntas, y con la misma orden.** Lo
+> que hace falta es **el teléfono** (`D-16`), no una escalera ni una compra.
+>
+> - El punto 3 (pantalla + pulsadores) sigue **sin actuador**: no hay `Botón 3` ni `Botón 4`.
+> - Lo que el Esclavo **sí** acepta desde la app es la **entrada en Degradado** (`D-18`), el **ámbar
+>   de emergencia** y su revocación.
 
 ### Paso 3 — VERIFICACIÓN VISUAL DE AMBAS PUNTAS ← **obligatoria**
 
@@ -416,8 +560,35 @@ unidades**. Vuelva a ámbar y no insista.~~
 ## 4. El límite duro de 48 horas
 
 **Pasadas 48 h sin resincronizar, el Degradado cae SOLO a ámbar intermitente.** No es un aviso: es un
-tope. A partir de las **44 h** la pantalla muestra `AVISO: LIMITE 48h`, y a las 48 h el equipo se rinde
-por su cuenta y muestra `Limite 48h sin sync — Revise el radio`.
+tope. ~~A partir de las **44 h** la pantalla muestra `AVISO: LIMITE 48h`~~, y a las 48 h el equipo se
+rinde por su cuenta y muestra `Limite 48h sin sync — Revise el radio`.
+
+> 🔴 **CORREGIDO EL 07/09 — EL AVISO NO LLEGA A LA MISMA HORA EN LAS DOS PUNTAS, Y ESO NO ESTABA
+> ESCRITO EN NINGÚN SITIO.** Medido sobre el C++, y se cita el **símbolo** porque los números de
+> línea caducan solos:
+>
+> ```
+> grep -rn "AVISO_LIMITE_MS"   01_Firmware/Maestro/src/modo_degradado.cpp
+>   static const unsigned long AVISO_LIMITE_MS  = 158400000UL;   // 44 h
+> grep -rn "AVISO_SIN_SYNC_MS" 01_Firmware/Esclavo/src/modo_degradado.cpp
+>   static const unsigned long AVISO_SIN_SYNC_MS = 40UL * 3600UL * 1000UL;   // 40 h
+> ```
+>
+> | punta | constante | avisa a las | margen que deja hasta el tope |
+> |---|---|---|---|
+> | **MAESTRO** | `AVISO_LIMITE_MS` | **44 h** | 4 h |
+> | **ESCLAVO** | `AVISO_SIN_SYNC_MS` | **40 h** | 8 h |
+>
+> **El tope duro son 48 h en las dos.** Lo que cambia es cuándo avisa cada una, y **este documento
+> publicaba sólo el número del Maestro para las dos puntas**.
+>
+> 🛑 **Por qué importa en obra y no es un detalle:** quien espere el aviso del Esclavo a las 44 h lo
+> verá a las **40** y concluirá que el equipo va mal; y al revés, quien crea que el Maestro avisa a
+> las 40 dará por perdida una ventana que todavía tiene. **Cuente 40 h para el Esclavo y 44 para el
+> Maestro**, o más simple: **al primer aviso de cualquiera de las dos puntas, quedan al menos 4 h.**
+>
+> ⚠️ **La pantalla que mostraba `AVISO: LIMITE 48h` ya no se puede leer en el equipo** (`D-17.bis`):
+> lo que hay que mirar es el `$STATUS` en la app.
 
 ### Por qué existe
 
@@ -480,8 +651,10 @@ real usando el **contador del RTC** (N-49 T1/T2, monótono y sin saltos de fin d
 Se hace cuando se cree que el radio volvió. El escenario típico es *"dejó de llover, a ver si
 enlaza"*.
 
-- **Desde el piso:** `A · A · A` en menos de 12 s → **2 destellos rojos**. ✅ **Sigue existiendo.**
-- **Desde la app:** `CMD:PIN:1234:SET_MODO:AUTO` — **solo en el Maestro**.
+- **Desde la app:** `CMD:PIN:1234:SET_MODO:AUTO` — **solo en el Maestro**. Al Esclavo lo devuelve el
+  propio Maestro en cuanto vuelve el radio (su `CMD_PING` llama a `degradado_salir()`).
+- ~~**Desde el piso:** `A · A · A` en menos de 12 s → **2 destellos rojos**.~~ ⛔ **`D-1`: no hay
+  mando con qué darlo.** La secuencia sigue en el firmware; el emisor no existe.
 - ~~**Desde la pantalla:** en `CONFIGURACION → MODO DEGRADADO`, `Botón 3` (`3=Salir`).~~ ⛔ sin actuador.
 
 > ✅ **CORREGIDO EL 02/09 — `A · A · A` NO se retiró, y la versión anterior de este documento decía
@@ -497,8 +670,14 @@ enlaza"*.
 >   A B A B    -> Degradado   Maestro/src/mando.cpp:204-214 · Esclavo/src/mando.cpp:148
 > ```
 >
-> ⚠️ **Lo que falta no es el firmware: es el receptor RF, que nunca se compró.** ~~Sin él no hay con
-> qué generar los pulsos desde el piso. **La secuencia existe y no tiene mando.**~~
+> ⚠️ ~~**Lo que falta no es el firmware: es el receptor RF, que nunca se compró.**~~ ~~Sin él no hay
+> con qué generar los pulsos desde el piso. **La secuencia existe y no tiene mando.**~~
+>
+> > 🔴 **07/09 — `D-1`: NO «FALTA» EL RECEPTOR. EL MANDO NO EXISTE Y NO SE VA A COMPRAR.** La
+> > diferencia importa: *«falta»* pone una compra en la lista y deja al operario esperándola;
+> > `D-1` cierra la vía. **El firmware del mando SE CONSERVA a propósito** —`mando_ambarLocal()`
+> > tiene cinco llamadas vivas y su veto es SFTY-21; retirar el armador dejaría los `if` siempre
+> > verdaderos y **el veto abierto, no inerte**—. O sea: **código vivo, actuador inexistente.**
 >
 > 🔧 **Matizado el 04/09 (`N-118`): en BANCO sí hay con qué darlos, con un cable.** Un pulso `A` es
 > cerrar un instante **`J16` p5 contra p4**, y un pulso `B`, **p8 contra p7** — los **3,3 V del pin
@@ -516,14 +695,18 @@ enlaza"*.
 >
 > **La vía por app no es equivalente a `A·A·A`:** `CMD:PIN:1234:SET_MODO:AUTO`
 > (`Maestro/src/bluetooth.cpp:378`) **se salta el todo-rojo de despedida** de
-> `modo_degradado.cpp:448-462` y pasa del verde por reloj directo a `modoAutomatico_setup()`. Y **en
-> el Esclavo no hay `SET_MODO` de ninguna clase**, así que ejecutar solo el del Maestro produce el
-> **Riesgo residual nº 2** (Sección 6) — una punta fuera, la otra dentro.
+> `modo_degradado.cpp:448-462` y pasa del verde por reloj directo a `modoAutomatico_setup()`. Y ~~**en
+> el Esclavo no hay `SET_MODO` de ninguna clase**~~ **en el Esclavo no hay `SET_MODO:AUTO`**
+> *(la entrada sí existe: `SET_MODO:DEGRADADO`, `D-18` — corregido el 07/09)*, así que ejecutar solo
+> el del Maestro produce el **Riesgo residual nº 2** (Sección 6) — una punta fuera, la otra dentro.
 
-**Hágalo en las dos unidades**, y luego mire las luces:
+~~**Hágalo en las dos unidades**, y luego mire las luces:~~ 🔴 **07/09: la secuencia de abajo no se
+puede ejecutar (`D-1`).** La maniobra vigente es `CMD:PIN:1234:SET_MODO:AUTO` en el Maestro; **el
+diagrama se conserva porque los tiempos y los criterios de lectura de las luces siguen siendo los
+mismos.**
 
 ```
-   A·A·A  ->  2 destellos  ->  esperar ~15 s
+   ~~A·A·A~~ SET_MODO:AUTO  ->  esperar ~15 s
 
      luces CICLANDO  ->  el radio volvió, ya está en automático
      luces en ÁMBAR  ->  sigue muerto; puede volverse al degradado
@@ -542,10 +725,15 @@ se quería estar. **El peor caso de intentar Automático es volver al ámbar.**
 
 ### Para irse a ámbar y dejarlo así
 
-- **Desde el piso:** `B · B · B` en menos de 12 s → **3 destellos rojos**. ✅ **Sigue existiendo.**
-- `B·B·B` funciona **desde cualquier estado y sin condiciones**. Es la regla que impide que nadie
-  quede atrapado con un semáforo en un estado raro a 5 m de altura.
-- **Desde la app:** `SET_MODO:AMBAR` en el Maestro · `AMBAR_EMERGENCIA` en el Esclavo.
+- **Desde la app:** `CMD:PIN:1234:SET_MODO:AMBAR` en el Maestro · **`CMD:AMBAR_EMERGENCIA`** en el
+  Esclavo *(esta última **no pide PIN**, justamente porque es la que para el cruce)*.
+- ~~**Desde el piso:** `B · B · B` en menos de 12 s → **3 destellos rojos**.~~ ⛔ **`D-1`: no hay
+  mando.** La secuencia sigue en el firmware y nada puede generarla.
+- 🔴 **Y la consecuencia hay que leerla entera, porque es `D-16`: SIN TELÉFONO NO HAY SALIDA DE
+  EMERGENCIA.** Lo que antes prometía `B·B·B` —*«desde cualquier estado, sin condiciones, sin
+  depender de una batería de móvil»*— **hoy depende del teléfono**. No es una avería: es una
+  propiedad declarada del sistema desde que se retiró el mando. **Batería, cable, y un segundo
+  terminal emparejado.**
 
 > ✅ **CORREGIDO EL 02/09 — `B·B·B` tampoco se retiró.** El mando se conserva en `A` y `B`
 > (`Maestro/src/mando.cpp:230-234`). Sigue siendo la **salida de emergencia** del sistema, y su
@@ -568,11 +756,19 @@ se quería estar. **El peor caso de intentar Automático es volver al ámbar.**
 >
 > Se conserva tachado y no se borra: una casilla que desaparece en silencio se vuelve a proponer.
 >
-> **(1) EL MANDO DE RELÉS SE CONSERVA**, por decisión del responsable del 31/08, en los canales **A**
-> y **B** (`MANDO_A` = `PB9` = `J16` p5, `MANDO_B` = `PB13` = `J16` p8). Se retiran **solo** los
-> pulsadores 3 y 4, que son los que las cámaras necesitan. **`A·A·A`, `B·B·B` y `A·B·A·B` siguen
-> funcionando**, y con ellos `ambarLocal` y sus tres vetos. El *«sin actuador»* de arriba describía un
-> equipo que la decisión del 31/08 ya no va a construir.
+> **(1) EL CÓDIGO DEL MANDO SE CONSERVA**, por decisión del responsable del 31/08, en los canales
+> **A** y **B** (`MANDO_A` = `PB9` = `J16` p5, `MANDO_B` = `PB13` = `J16` p8). Se retiran **solo** los
+> pulsadores 3 y 4, que son los que las cámaras necesitan. ~~**`A·A·A`, `B·B·B` y `A·B·A·B` siguen
+> funcionando**~~, y con ellos `ambarLocal` y sus tres vetos. El *«sin actuador»* de arriba describía
+> un equipo que la decisión del 31/08 ya no va a construir.
+>
+> > 🔴 **MATIZADO EL 07/09 — `D-1`, y es la distinción que sostiene todo este documento: SE CONSERVA
+> > EL CÓDIGO, NO EL APARATO.** El 05/09 el responsable confirmó el hardware retirado: *«ya no
+> > tenemos mandos de A y B, sólo la app»*. Las tres secuencias **compilan y se reconocerían si
+> > alguien cerrara los contactos**, y por eso `ambarLocal` y sus vetos siguen bien construidos —
+> > **pero no hay emisor, no hay pulsadores y el receptor RF nunca se compró.** *«Siguen
+> > funcionando»* es cierto del firmware y falso del equipo, y en un procedimiento de campo lo que
+> > cuenta es el equipo.
 >
 > **(2) Y aunque no se conservara, el Esclavo SÍ tiene una segunda vía de ámbar** —la tenía ya cuando
 > se escribió aquello—: **`CMD:AMBAR_EMERGENCIA` por Bluetooth**, que entra por dos puertas, **con
@@ -615,11 +811,23 @@ se quería estar. **El peor caso de intentar Automático es volver al ámbar.**
 
 | vía | qué es | cuándo se usa |
 |---|---|---|
-| **La app** (`CMD:AMBAR_EMERGENCIA`) | **la superficie de mando** | siempre que se pueda |
-| **El mando, `B·B·B`** | **la vía de último recurso** | cuando no hay teléfono, no hay cobertura, o el ESP32 se colgó |
+| **La app** (`CMD:AMBAR_EMERGENCIA`) | **la ÚNICA superficie de mando** (`D-16`) | **siempre** |
+| ~~**El mando, `B·B·B`**~~ | ~~**la vía de último recurso**~~ | ~~cuando no hay teléfono, no hay cobertura, o el ESP32 se colgó~~ ⛔ **`D-1`: no existe** |
 
-Que sea la *segunda* no la hace opcional: **es la única que no depende de una radio corta, de una
-batería de móvil ni de un accesorio.** Por eso el mando se conserva.
+~~Que sea la *segunda* no la hace opcional: **es la única que no depende de una radio corta, de una
+batería de móvil ni de un accesorio.** Por eso el mando se conserva.~~
+
+> 🔴 **TACHADO EL 07/09, Y ES EL PÁRRAFO QUE MÁS FALTA HACE LEER DE ESTE DOCUMENTO.** El argumento
+> era bueno —una vía que no dependiera del teléfono— **y el aparato que lo cumplía se retiró**
+> (`D-1`, 05/09). Lo que queda escrito en `DECISIONES.md` `D-16` es la consecuencia, sin
+> maquillarla:
+>
+> 🛑 **SIN TELÉFONO NO HAY FORMA DE OPERAR EL EQUIPO. Ni ámbar, ni volver a automático, ni parar el
+> cruce.** No es una avería y no hay segunda vía esperando en un cajón. **Es una propiedad declarada
+> del sistema**, y por eso el teléfono es **herramienta crítica**: batería, cable, y conviene un
+> segundo terminal ya emparejado antes de salir a obra.
+>
+> *(El código del mando se conserva por SFTY-21 — ver el matiz de arriba —, no como vía de reserva.)*
 
 **Y las dos tienen que hacer LO MISMO.** El firmware lo declara por escrito
 —`Esclavo/src/bluetooth.cpp:32-39`: *«UNA EMERGENCIA PEDIDA POR BLUETOOTH VALE LO MISMO QUE UNA DEL
@@ -696,8 +904,8 @@ ve un conductor.
 
 ### Checklist de salida
 
-- [ ] Salida ejecutada en el **MAESTRO** — `SET_MODO:AUTO` o `SET_MODO:AMBAR` por app, o `A·A·A` / `B·B·B` con mando. ⚠️ **Por app no hay todo-rojo de despedida**
-- [ ] Salida ejecutada en el **ESCLAVO** — `CMD:AMBAR_EMERGENCIA` por app, o `B·B·B` con mando. ⚠️ **No hay salida a Automático en el Esclavo**: por app solo se le puede llevar a ámbar
+- [ ] Salida ejecutada en el **MAESTRO** — `SET_MODO:AUTO` o `SET_MODO:AMBAR` por app ~~, o `A·A·A` / `B·B·B` con mando~~ *(⛔ `D-1`)*. ⚠️ **Por app no hay todo-rojo de despedida**
+- [ ] Salida ejecutada en el **ESCLAVO** — `CMD:AMBAR_EMERGENCIA` por app ~~, o `B·B·B` con mando~~ *(⛔ `D-1`)*. ⚠️ **No hay salida a Automático en el Esclavo**: por app solo se le puede llevar a ámbar
 - [ ] Si salió a ámbar por app en el Esclavo: **`RESULT:OK` visto**, no solo `SALIENDO_TODO_ROJO`
 - [ ] **Verificado con los ojos** que **ambas** puntas quedaron en el mismo estado — las dos ciclando
       o las dos en ámbar *(sigue vigente: mirar no necesita actuador)*
@@ -708,7 +916,10 @@ ve un conductor.
 >
 > ⚠️ **La segunda tiene un límite que hay que conocer antes de marcarla:** por app el Esclavo solo
 > va a **ámbar**, no a Automático. Si quiere las dos puntas ciclando otra vez, el Esclavo sale del
-> Degradado **solo** por el mando (`A·A·A`) o cuando el radio vuelva.
+> Degradado ~~**solo** por el mando (`A·A·A`) o~~ **cuando el radio vuelva** — el `CMD_PING` del
+> Maestro llama a `degradado_salir()` en esta punta. 🔴 **07/09 (`D-1`): la vía del mando ya no
+> existe, así que ésa es la ÚNICA.** Y la entrada, en cambio, sí se pide desde la app en las dos
+> puntas (`D-18`).
 
 ---
 
@@ -763,18 +974,25 @@ arriba**.
 | Ciclo completo | **120 s** · espera máxima 90 s | 2 × (30 + 30) |
 | Antigüedad máxima de la sincronización para entrar | **2 h** | `SYNC_FRESCA_MS` |
 | Tolerancia de desfase para entrar | **±3 s** | `TOLERANCIA_DESFASE_S` |
-| Aviso de límite en pantalla | a partir de **44 h** | `AVISO_LIMITE_MS` |
+| Aviso de límite — **MAESTRO** | a partir de **44 h** | `AVISO_LIMITE_MS` |
+| Aviso de límite — **ESCLAVO** | a partir de **40 h** *(🔴 no es el mismo número — añadido el 07/09)* | `AVISO_SIN_SYNC_MS` |
 | **Límite duro → ámbar** | **48 h** | `LIMITE_DURO_MS` |
-| Secuencia de entrada desde el piso | `A · B · A · B` en ≤ 18 s → **4 destellos rojos** | `mando.cpp:204-214` |
-| Secuencia a Automático | `A · A · A` en ≤ 12 s → **2 destellos rojos** | `mando.cpp:225-227` |
-| Secuencia a Ámbar | `B · B · B` en ≤ 12 s → **3 destellos rojos** | `mando.cpp:230-234` |
+| **Entrada por app** *(la vigente, `D-18`)* | `CMD:PIN:1234:SET_MODO:DEGRADADO` — **en las dos puntas** | `grep -n 'SET_MODO:DEGRADADO' Maestro/src/bluetooth.cpp Esclavo/src/bluetooth.cpp` |
+| ~~Secuencia de entrada desde el piso~~ | ~~`A · B · A · B` en ≤ 18 s → **4 destellos rojos**~~ | ~~`mando.cpp:204-214`~~ |
+| ~~Secuencia a Automático~~ | ~~`A · A · A` en ≤ 12 s → **2 destellos rojos**~~ | ~~`mando.cpp:225-227`~~ |
+| ~~Secuencia a Ámbar~~ | ~~`B · B · B` en ≤ 12 s → **3 destellos rojos**~~ | ~~`mando.cpp:230-234`~~ |
 
 > ✅ **CORREGIDO EL 02/09 — las tres secuencias siguen en el firmware.** Una versión anterior de
-> este documento las daba por retiradas; el mando **se conserva** en sus canales `A` (`PB9`) y `B`
+> este documento las daba por retiradas; **el CÓDIGO se conserva** en sus canales `A` (`PB9`) y `B`
 > (`PB13`). Lo que se retiró son los pulsadores 3 y 4, que estas secuencias **no usan**.
 >
-> ⚠️ **Pero no se pueden ejercer todavía: el receptor RF nunca se compró.** Es una compra que falta,
-> no una función perdida.
+> ~~⚠️ **Pero no se pueden ejercer todavía: el receptor RF nunca se compró.** Es una compra que
+> falta, no una función perdida.~~
+>
+> 🔴 **07/09 — `D-1`: NO ES UNA COMPRA QUE FALTA. EL MANDO NO EXISTE.** Las tres filas se tachan
+> porque **ninguna de las tres se puede ejecutar en el equipo de campo**, y una tabla de referencia
+> que las lista sin tachar hace que alguien las busque en obra. **La entrada vigente es la fila de
+> arriba, por app y en las dos puntas** (`D-18`).
 >
 > Los parámetros de *arriba* —tiempos, tolerancias y el límite de 48 h— viven en el firmware y no
 > dependen de ningún botón.
@@ -795,17 +1013,20 @@ espera cinco minutos en un paso alternado sin invadir.
 
 ## 8. Qué hacer si algo va mal
 
-> ✅ **TABLA AL DÍA (02/09/2026).** La columna «Qué hacer» se rehízo: la app tiene hoy órdenes que
-> en agosto no existían, incluida la que apaga el Esclavo. **Sin receptor RF, las respuestas por
-> mando no se pueden ejercer**; las de app sí.
+> ✅ **TABLA AL DÍA (07/09/2026).** La columna «Qué hacer» se rehízo: la app tiene hoy órdenes que
+> en agosto no existían, incluida la que **entra en Degradado en el Esclavo** (`D-18`) y la que lo
+> apaga. ~~**Sin receptor RF, las respuestas por mando no se pueden ejercer**~~ → **`D-1`: no hay
+> mando. Todas las respuestas de esta tabla son por app.**
 
 | Síntoma | Causa probable | Qué hacer |
 |---|---|---|
-| La secuencia `A·B·A·B` responde con **ámbar rápido** en vez de 4 destellos | Falta alguno de los 5 requisitos | Repita la entrada **desde la app** con `CMD:PIN:1234:SET_MODO:DEGRADADO`: el `$ERR` dice **cuál** de los cinco falta. La pantalla ya no se puede navegar |
-| La secuencia **no responde nada** | Sin receptor RF no hay quien genere los pulsos | Use la app. La inhibición por menú abierto ya no ocurre: el menú no se puede abrir |
+| **El Esclavo rechaza `SET_MODO:DEGRADADO`** con un `$ERR` | Falta alguno de los 5 requisitos | **Lea el `DESC:` — dice cuál falta.** *«Sin hora»* se arregla sincronizando; *«sync caducada»* obliga a arreglar el radio |
+| **El Esclavo entra y a los pocos segundos vuelve solo a subordinado** | ✅ **No es una avería:** el Maestro sigue vivo y su `CMD_PING` cada 3 s lo saca. Este modo es para cuando la radio está **muerta** | Compruebe primero que el enlace de radio esté realmente caído |
+| ~~La secuencia `A·B·A·B` responde con **ámbar rápido** en vez de 4 destellos~~ | ~~Falta alguno de los 5 requisitos~~ | ⛔ **`D-1`: no hay mando.** Entre **desde la app** con `CMD:PIN:1234:SET_MODO:DEGRADADO` |
+| ~~La secuencia **no responde nada**~~ | ~~Sin receptor RF no hay quien genere los pulsos~~ | ⛔ **`D-1`: no hay mando.** Use la app |
 | Las dos puntas **ciclan pero desfasadas** | Relojes separados, o una unidad se reinició | **Ámbar en las dos, y no corrija a ojo.** Maestro: `CMD:PIN:1234:SET_MODO:AMBAR`. Esclavo: `CMD:AMBAR_EMERGENCIA` |
 | 🔴 **Una punta en verde y la otra en ámbar** | Riesgo residual nº 2 — salida asimétrica | **Apague la punta que da verde, ya.** Si es el **Esclavo**: `CMD:AMBAR_EMERGENCIA` (`Esclavo/src/bluetooth.cpp:381`, **no pide PIN** justamente por esto). Si es el **Maestro**: `CMD:PIN:1234:SET_MODO:AMBAR`. **`CMD:FORZAR_ROJO` NO sirve en el Esclavo** (`:448`): esa punta lo **rechaza** con `RENOMBRADO_USE_AMBAR_EMERGENCIA`, así que no para nada y el ciclo por reloj volverá a dar verde en la fase siguiente |
-| 🟡 **Puse ámbar de emergencia en el Esclavo y ya no hace falta** | — | `CMD:PIN:1234:CANCELAR_AMBAR` (`:491`). **Pide PIN al revés que el de poner**, porque quitarlo devuelve el cruce a dar verdes. Contesta `RETIRADO`, o `RETIRADO_QUEDA_MANDO` si además hay un ámbar pedido desde el mando: en ese caso **la luz sigue vetada** hasta que alguien haga `A·A·A` |
+| 🟡 **Puse ámbar de emergencia en el Esclavo y ya no hace falta** | — | `CMD:PIN:1234:CANCELAR_AMBAR`. **Pide PIN al revés que el de poner**, porque quitarlo devuelve el cruce a dar verdes. Contesta `RETIRADO`. 🔵 **`RETIRADO_QUEDA_MANDO` no se puede ver hoy** (`D-1`: no hay mando que arme `ambarLocal`); si apareciera, la luz seguiría vetada y **eso sería el hallazgo**, no la respuesta esperada |
 | ❓ **Estoy delante de un poste y no sé si es el Maestro o el Esclavo** | Módulo Bluetooth recién puesto | El módulo se auto-rotula **`SEM-<serie>-M`** o **`SEM-<serie>-E`**. **Si se anuncia `SEM-SIN-MATRICULA` todavía no lo ha aprendido, y con dos módulos nuevos LOS DOS SE LLAMAN IGUAL.** Déjelo un minuto encendido y **déle una vuelta de energía**: el nombre bueno sale en el arranque siguiente. Mientras tanto, la punta la dice el campo `NODE:` del `$STATUS` en la app, no el nombre Bluetooth |
 | Pantalla: `Limite 48h sin sync` | Se agotó el límite duro | Es correcto. Hay que **arreglar el radio**, no reactivar el modo. El tope es del firmware (`modo_degradado.cpp:515`) y no necesita actuador |
 
@@ -820,8 +1041,12 @@ espera cinco minutos en un paso alternado sin invadir.
 Escrito aquí porque una limitación documentada vale más que una promesa:
 
 - **No hay prueba de banco ni de campo todavía.** Todo lo anterior está validado en simulador.
-- **El Esclavo no tiene receptor de mando** (N-19). Todo lo que este documento dice del mando aplica
-  **solo al Maestro**.
+- ~~**El Esclavo no tiene receptor de mando** (N-19). Todo lo que este documento dice del mando
+  aplica **solo al Maestro**.~~ → 🔴 **07/09 (`D-1`): NINGUNA punta tiene mando.** No hay emisor, no
+  hay pulsadores y el receptor RF nunca se compró. **Todo lo que este documento dice del mando
+  describe código vivo sin actuador**, y por eso va tachado allí donde era una instrucción.
+- 🛑 **`D-16`: SIN TELÉFONO NO HAY FORMA DE OPERAR EL EQUIPO.** Es la limitación mayor de este
+  procedimiento y va aquí, en el apartado de lo que no se cubre, porque no la resuelve el firmware.
 - ~~**El estado no sobrevive a un corte de energía** (N-20). `respaldo.cpp` está escrito pero sin
   conectar.~~ → 🛑 **CADUCADO EL 04/09: `respaldo.cpp` SÍ está conectado.** **MEDIDO:**
   `respaldo_setup()` se llama en las dos puntas —`Maestro/src/main.cpp:77` y
@@ -851,15 +1076,29 @@ Escrito aquí porque una limitación documentada vale más que una promesa:
 - **El RTC no se ha contrastado contra hora patrón** ni se ha comprobado que conserve la hora tras
   desconectar la alimentación (N-15, N-17).
 - ⚠️ **Lo que sigue abierto en la entrada y la salida (medido el 02/09):**
-  - **El Esclavo no tiene comando Bluetooth de entrada** en Degradado. Su única puerta es la
+  - ~~**El Esclavo no tiene comando Bluetooth de entrada** en Degradado. Su única puerta es la
     secuencia `A · B · A · B` del mando, y **el receptor RF no se ha comprado**. Mientras siga así,
-    este procedimiento no se puede completar en las dos puntas.
+    este procedimiento no se puede completar en las dos puntas.~~
 
-    > 🟢 **Y al 04/09 esto CAMBIA DE NATURALEZA, no de estado.** La decisión del responsable es que
-    > **el cruce se opera desde el Maestro** y **no se hace transparente el mando desde el Esclavo**:
-    > o sea que **no viene un `SET_MODO` para el Esclavo**. Lo que era *«falta el comando»* pasa a
-    > ser *«la vía es el mando de relés, y hay que comprar su receptor»*. **El bloqueo es el mismo;
-    > lo que se sabe hoy es que no se va a resolver por software.**
+    > ~~🟢 **Y al 04/09 esto CAMBIA DE NATURALEZA, no de estado.** … **no viene un `SET_MODO` para
+    > el Esclavo**… **El bloqueo es el mismo; lo que se sabe hoy es que no se va a resolver por
+    > software.**~~
+    >
+    > 🟢 **CERRADO EL 05/09 Y TACHADO EL 07/09 — `DECISIONES.md` `D-18`: SÍ SE RESOLVIÓ POR
+    > SOFTWARE.** *«No viene un `SET_MODO` para el Esclavo»* aguantó **un día**. La orden es
+    > `CMD:PIN:1234:SET_MODO:DEGRADADO`, la misma que en el Maestro, y **este procedimiento SÍ se
+    > completa en las dos puntas**.
+    >
+    > **Lo que se conserva de este párrafo, porque es la lección y no el dato:** una ausencia
+    > publicada se convierte en una decisión del responsable. Aquí se le dijo *«no hay puerta»*
+    > cuando la puerta —`degradado_entrar()`— llevaba meses construida y probada; **lo que faltaba
+    > era la llave**. `CLAUDE.md` §4, quinta cara.
+    >
+    > 🔴 **Y lo que SÍ sigue abierto de esto, medido el 07/09:**
+    > `grep -c reportarEvento 01_Firmware/Esclavo/src/modo_degradado.cpp` → **0**. El Esclavo entra
+    > por app y **no publica nada propio sobre ese estado**: sólo el `$ACK` de la orden y el campo
+    > `MODO:` del `$STATUS`. **Si el operario necesita verlo de otra forma, lo decide el
+    > responsable.**
   - Las salidas por app del Maestro (`SET_MODO:AUTO`, `SET_MODO:AMBAR`) **se saltan el todo-rojo de
     despedida** que sí hacía el `Botón 3`.
   - El ámbar de emergencia del Esclavo **sí existe ya** por app y **sale por todo-rojo**, tardando

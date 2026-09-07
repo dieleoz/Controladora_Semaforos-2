@@ -1,6 +1,6 @@
 # 📜 Registro de Validación de Software
 
-**Fecha de esta revisión:** 5 de septiembre de 2026
+**Fecha de esta revisión:** 7 de septiembre de 2026
 **Alcance:** STM32F103 (Maestro / Esclavo) + ESP32 (Repetidor) + banco de simulación en Python
 **Naturaleza de este documento:** registro interno de validación **en escritorio**.
 
@@ -24,13 +24,13 @@
 ## 🧾 De dónde salen las cifras de este documento
 
 **Todas las cifras de la tabla siguiente están copiadas del acta
-[`evidencia/2026-09-05_compuerta.txt`](evidencia/2026-09-05_compuerta.txt), no escritas a mano.**
+[`evidencia/2026-09-07_compuerta.txt`](evidencia/2026-09-07_compuerta.txt), no escritas a mano.**
 Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 `documentos_04_cifras_sin_vigilante`, que es lo que impide que este documento envejezca en silencio.
 
 > 🔴 **Lo que ese acta dice de sí misma, y hay que leer antes de firmar nada:**
-> `HEAD 8e9e8a9`, rama `main-nuevo`, y **`Arbol: CON CAMBIOS SIN COMMITEAR`**. El acta lo avisa en su
-> última línea: *«estas cifras NO corresponden exactamente a `8e9e8a9`»*. Un registro de validación
+> `HEAD 0b06f7d`, rama `main-nuevo`, y **`Arbol: CON CAMBIOS SIN COMMITEAR`**. El acta lo avisa en su
+> última línea: *«estas cifras NO corresponden exactamente a `0b06f7d`»*. Un registro de validación
 > que se firma sobre un árbol sucio no es reproducible; para que lo sea hay que volver a correr la
 > compuerta con el árbol limpio.
 
@@ -52,7 +52,19 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 | Arnés del Modo Automático | **99/99** | `Validacion_Automatico` |
 | App — test funcional | **58/58** | suite funcional de la app |
 | App — test unitarios | **32/32** | suite unitaria de la app |
-| App — ejecutada en DOM | **201/201** | arnés jsdom |
+| App — ejecutada en DOM | **235/235** | arnés jsdom |
+| App — test unitarios TDD | **61/61** | segunda suite unitaria |
+| Compilación ESP32 de expansión | **1122973 B — 35,7 %** de 3145728 B | `pio run` |
+| Simulador del puente ESP32 | **101/101** | contrato del puente |
+| Arnés de las dos puntas | **42/42** | el C++ real de las dos puntas en el mismo proceso |
+| Arnés del Degradado a dos puntas | **18/18** | cada punta con su reloj |
+
+> ⛔ **En la fila del arnés que ejecuta la app en el navegador esta tabla publicó `201/201`
+> hasta hoy**, y el acta que ella misma citaba medía **235**. `documentos_04` **no vigila esa
+> fila** —no está en su tupla `CIFRAS_ACTA`—,
+> así que la cifra envejeció en silencio, que es exactamente lo que este documento existe para
+> impedir. Las seis filas de abajo se añadieron el 07/09 por el mismo motivo: **el acta las medía y
+> este registro no las nombraba.**
 
 > ### ⛔ Cifras que este documento publicó hasta el 31/08/2026 — ANULADAS, conservadas con su motivo
 >
@@ -73,7 +85,7 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 > | ~~RAM: 3.576 B / 1.752 B / 21.624 B~~ | — | ⛔ **Retiradas: la compuerta NO mide RAM.** Sólo compila y lee el porcentaje de flash. La RAM se mide con `arm-none-eabi-nm` sobre el `.elf` (`CLAUDE.md` §7), y ese número no está en ningún acta |
 
 > El banco por packs y los simuladores son **modelos en Python escritos a mano**: reimplementan lo que
-> hace el C++. Un `1133/1151` acredita coherencia del modelo, **no** el comportamiento del firmware sobre
+> hace el C++. Un `1180/1180` acredita coherencia del modelo, **no** el comportamiento del firmware sobre
 > hardware. Los únicos que compilan C++ real son cuatro arneses, y cada uno tiene su punto ciego
 > declarado en `CLAUDE.md` §8.
 
@@ -81,14 +93,14 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 
 | Pendiente | Motivo |
 |---|---|
-| **Pruebas de banco físico** (Fase 4 de `ORDEN_EJECUCION.md`) | **Parciales.** El banco del 3-4/09 dejó 24 de 29 pasos verificados sobre `617bd00`, y la sesión del 04/09 por la noche cerró N-42 en cobre. **Nada de lo arreglado después del 04/09 —N-142, N-146, N-147— ha tocado una tarjeta.** |
+| **Pruebas de banco físico** (Fase 4 de `ORDEN_EJECUCION.md`) | **Parciales.** El banco del 3-4/09 dejó 24 de 29 pasos verificados sobre `617bd00`; la sesión del 04/09 por la noche **cerró N-42 en cobre**; y la última cinta —05/09, 22:19, sobre `42a52cd`— confirmó N-142, N-145, N-146 y N-149. 🔴 **Nada de lo arreglado DESPUÉS de esa cinta —N-150, N-151, N-152 y los parsers de la app— ha tocado una tarjeta**, y los tres primeros tocan el camino del ámbar y del Modo Manual. |
 | **Pruebas de campo** | La última ronda se ejecutó con firmware previo y radios a 0.3 kbps. No comparable. |
 | **Modo Inteligente** | El banco de simulación no lo modela. Sin cobertura de prueba. |
 | **Telemetría de enlace** | Compilada y revisada, **sin prueba automática**: el arnés de pantalla le inyecta valores para dibujar, no ejecuta la lógica del coordinador. Requiere banco. |
 | **Contadores de línea (SFTY-15)** | El dibujado está validado; el conteo real en `protocolo.cpp` no lo ejercita ninguna suite. Requiere banco. |
 | **Repetidor ESP32** | El banco lo modela de forma aproximada; no sustituye la prueba física. |
 | **RAM de las tres puntas** | Ningún instrumento de la compuerta la mide. Ver el bloque de cifras anuladas. |
-| **Cableado de cámaras a `J16`** | 🔴 Bloqueado: falta la medida **M3** (polaridad). `MANUAL_USUARIO.md` §6.5. |
+| **Cableado de cámaras a `J16`** | 🟢 **Desbloqueado**: `M3` cerrada en cobre el 03/09. Lo que queda es la carga verificada del firmware nuevo **antes** de que nadie enchufe nada, y tapar el pin de 12 V de `J16` p1 (N-120). |
 
 ---
 
@@ -102,7 +114,8 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 [S] REG-5: Apagado de Maestro -> Esclavo a AMARILLO INTERMITENTE tras 25,0 s de silencio (SFTY-6).
 [S] REG-6: Modo Automatico -> retorno continuo sin falsos fallos en el paso de ciclo.
 [ ] REG-7: Modo Inteligente -> SIN COBERTURA en el banco de simulacion.
-[S] REG-8: Modo Manual Boton 3 -> ROJO FIJO INDEFINIDO hasta pulsar Boton 1 o 2.
+[S] REG-8: Modo Manual -> ROJO FIJO INDEFINIDO hasta que la app de paso (la
+          botonera ya no se monta; el comportamiento vial no cambia).
 [ ] REG-9: Repetidor ESP32 -> requiere verificacion fisica.
 [S] REG-10: SFTY-13 -> supresion de PING durante espera de ACK.
 
@@ -122,15 +135,15 @@ Ninguna regla esta marcada [F]: no hay pruebas de campo validas para esta versio
 
 | Ref | Defecto | Severidad |
 |---|---|---|
-| **N-106** | El ámbar de emergencia pedido por la app **no saca al Esclavo del Modo Degradado**, y aun así se contesta `$ACK`. `app_03_sin_ok_mudo` lo tiene en rojo a propósito, con el defecto delante | 🔴 Abierto |
-| **N-145** | El campo `HORA:` del `$STATUS` lo rellena el **STM32**, que es el micro **sin reloj**; el `DS3231` vive en el ESP32. En la cinta del 04/09 **todas** las tramas dicen `HORA:--:--:--` | 🔴 Abierto |
-| **N-148** | La app **no pide confirmación de vía** al dar ámbar en Manual; en `DAR PASO` sí | 🟠 Abierto |
-| **N-149** | El `$STATUS` del Maestro **no traía ningún campo del Esclavo** (verificado en la cinta del 04/09). En el árbol se está añadiendo `ESC:<ROJO\|VERDE\|AMBAR\|?>` — **sin banco** | 🟠 En curso |
+| ~~**N-106**~~ | ~~El ámbar de emergencia pedido por la app no saca al Esclavo del Modo Degradado, y aun así se contesta `$ACK`; `app_03_sin_ok_mudo` lo tiene en rojo a propósito~~ — 🟢 **CERRADO EN SOFTWARE**: `Esclavo/src/bluetooth.cpp` llama hoy a `degradado_salir()` a través de `salidaDegradadoIniciada()`, que **pregunta la misma guarda que ella tiene** y contesta distinto por rama (`SALIENDO_TODO_ROJO`, `SALIDA_YA_EN_CURSO`, `$ERR ... REPITA`) en vez del OK mudo. `app_03_sin_ok_mudo` da **18/18**. 🔴 **Sin prueba en tarjeta** | 🟢 Cerrado en software |
+| ~~**N-145**~~ | ~~El campo `HORA:` lo rellena el STM32, que es el micro sin reloj~~ — 🟢 **CERRADO y confirmado en cobre**: la cinta del 05/09 a las 22:19 trae `HORA:22:19:58`. El reloj lo lleva el `DS3231` del ESP32 de cada punta (`D-9`, `D-15`). Queda sin verificar la dirección `0x68` sobre el módulo | 🟢 Cerrado |
+| ~~**N-148**~~ | ~~La app no pide confirmación de vía al dar ámbar en Manual~~ — 🟢 **CERRADO EN SOFTWARE**: `SET_MODO:AMBAR` está en la tabla `VIA_MANIOBRA` de `app.js` y pasa por `confirmarVia()`. 🔴 **Sin prueba en tarjeta** | 🟢 Cerrado en software |
+| ~~**N-149**~~ | ~~El `$STATUS` del Maestro no traía ningún campo del Esclavo~~ — 🟢 **CERRADO y confirmado en cobre**: `ESC:AMBAR` y `ESC:ROJO` viajan en todos los `$STATUS` de la cinta del 05/09 | 🟢 Cerrado |
 | **BAT** | `BAT:--` en **todas** las tramas de la cinta del 04/09: la batería no se mide nunca. **Sin causa medida** | 🟠 Abierto |
 | **Matriculación** | Emparejar Maestro/Esclavo **por ID de Bluetooth y sin intervención manual**. Aplazado a después del banco por decisión del responsable. `RF_Packet` son **4 bytes** `{msgID, command, param, crc}` y **no tiene campo de dirección**; el CRC cubre 3 bytes | 🟠 Aplazado |
 | **N-3** | Operación intermitente por bajo flujo (`MANUAL_USUARIO.md §2`) no implementada | Requisito pendiente |
 | **N-5** | Modo Inteligente da la cámara por viva el primer minuto tras arrancar | Menor |
-| **M3** | Contradicción medida entre el netlist (pull-**down**, activo en ALTO) y `botones.cpp` (`INPUT_PULLUP`, activo en BAJO) en `J16`. **Bloquea el cableado de cámaras** | 🔴 Bloqueante para hardware |
+| ~~**M3**~~ | ~~Contradicción medida entre el netlist y `botones.cpp` en `J16`; bloquea el cableado de cámaras~~ — 🟢 **CERRADA EN COBRE el 03/09** (`D-3`): pull-down real de 10 kΩ en las cuatro posiciones, `p10`/`p12` a 0 V en reposo, entrada **activa en ALTO** — que es lo que el firmware ya hacía. El paso 21 cableó `p10` contra `p11` sin demandas fantasma | 🟢 Cerrada |
 | — | Repetidor ESP32 sin watchdog | Menor |
 | — | ~2 s con las luces apagadas al encender el Maestro | A decidir con el funcional |
 
@@ -139,7 +152,7 @@ Ninguna regla esta marcada [F]: no hay pruebas de campo validas para esta versio
 ## ✍️ Responsables
 
 ```text
-Fecha: 5 de septiembre de 2026
+Fecha: 7 de septiembre de 2026
 Lugar: Laboratorio de Control Vial y Desarrollo de Firmware
 
 ESTE REGISTRO NO ES UNA AUTORIZACION DE PUESTA EN SERVICIO.
@@ -152,8 +165,10 @@ Matricula profesional: ______________________  Firma: ___________________
 
 Estado del repositorio en el momento de emision:
   Rama local:  main-nuevo
-  HEAD:        8e9e8a9   -- con cambios SIN COMMITEAR al medir (lo dice el acta)
-  Remoto:      https://github.com/dieleoz/2semaforos_3estados.git
+  HEAD del acta: 0b06f7d -- con cambios SIN COMMITEAR al medir (lo dice el acta)
+  Remoto:      https://github.com/dieleoz/Controladora_Semaforos-2.git
+               (el renglon anterior daba 2semaforos_3estados.git, que es el
+                remoto `padre`: manda a clonar el arbol anterior)
   Sincronizado con origin:  [ ] Si   [ ] No -- commits locales sin publicar: ____
 
 Nota: la revision tecnica que origino estas correcciones fue asistida por herramientas

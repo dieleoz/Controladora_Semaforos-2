@@ -34,22 +34,31 @@ python 01_Firmware/Simulaciones/banco/correr.py --pack esclavo_03
 > No se toca el pack: esta impidiendo publicar una cifra que no salga de la ultima corrida. Se
 > corre la completa **dos veces** y se copia del acta que si las trae.
 
-## 1.bis Las cifras vigentes — acta `evidencia/2026-08-28_compuerta.txt`
+## 1.bis Contra que se compara tu corrida — y por que aqui NO hay ninguna cifra
 
-`15 PASS | 0 FALLA | 0 ABORTADO`. **Si tu corrida no da esto, la diferencia es el hallazgo.**
+**La corrida anterior es la ultima acta de `evidencia/`, ordenada por fecha. Se abre y se compara
+linea a linea. Si tu corrida no da lo mismo, LA DIFERENCIA ES EL HALLAZGO** — y da igual que sea
+mejor o peor: una comprobacion que aparece, uno que desaparece y un ABORTADO nuevo valen los tres
+lo mismo.
 
-| | |
-|---|---|
-| guarda de rutas | **43 rutas** parseadas, todas existen |
-| flash Maestro / Esclavo / Repetidor | **88,3 %** (57880 de 65536 B) · 64,4 % · 20,6 % |
-| banco por packs | **405/405** comprobaciones · **38 packs** PASS |
-| arnes de pantalla | MAESTRO 145/145 · ESCLAVO 126/126 · **TOTAL 271/271** |
-| arnes del ciclo · del automatico | **29/29** · **71/71** |
-| app: funcional · unitarios · DOM | 58/58 · 32/32 · 61/61 |
+```
+ls -t evidencia/*_compuerta.txt | head -1     # la corrida anterior
+```
 
-**El Maestro esta al 88,3 %: quedan 7.656 B y ya no hay margen comodo.** Antes de proponer
-estructura, se mide de que esta hecho ese porcentaje (`CLAUDE.md` §7) — y **la RAM no la mide la
-compuerta**: un objeto global con constructor cuesta `.bss` aunque el enlazador tire sus funciones.
+> 🔴 **Aqui hubo una tabla con las cifras copiadas, y por eso esta escrito esto.** Llevaba las del
+> acta del **28/08** —`15 PASS`, `43 rutas`, `405/405` en `38 packs`— y se leyo como vigente
+> durante nueve dias, cuando el acta del **07/09** dice `20 PASS` y `1180/1180` en **76 packs**.
+> Con la frase *«si tu corrida no da esto, la diferencia es el hallazgo»* encima: cualquiera que la
+> obedeciera habria perseguido como hallazgo **la diferencia entre dos actas**, no un defecto.
+>
+> **Una skill se carga con autoridad y nadie va a la fuente**, igual que `CLAUDE.md`. Por eso la
+> cura no es actualizar la tabla —caducaria otra vez la semana que viene—: **es no tener tabla.**
+> Un documento que apunta a la fuente no puede envejecer; uno que la copia, si.
+
+**El presupuesto de flash tampoco se copia:** sale de la fila `compila maestro` de esa misma acta.
+Antes de proponer estructura se mide de que esta hecho ese porcentaje (`CLAUDE.md` §7) — y **la RAM
+no la mide la compuerta**: un objeto global con constructor cuesta `.bss` aunque el enlazador tire
+sus funciones.
 
 ## 2. Las tres palabras, que no son dos
 
@@ -200,7 +209,8 @@ falla, se reintenta, no se cambia el modo.
 >
 > Verde **no** es entregable. Al funcional no sale nada sin banco pasado.
 
-Estado de hoy en `ESTADO.md`. Reglas permanentes en `CLAUDE.md`. Historico en `roadmap.md`.
+Estado de hoy en `ESTADO.md`. Reglas permanentes en `CLAUDE.md`. Historico en `roadmap_hist.md` -el roadmap se partio el 07/09: `roadmap.md` deja solo lo
+ABIERTO y lo POR VALIDAR, y lo cerrado vive con su evidencia en `roadmap_hist.md`-.
 
 ## Quinta trampa: el hueco que no grita (26/08/2026)
 

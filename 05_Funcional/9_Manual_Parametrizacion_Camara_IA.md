@@ -2,7 +2,7 @@
 
 **Sistema:** Controladora de Semáforos Móviles de 3 Estados (Maestro y Esclavo V9.0)  
 **Cámara Certificada:** ~~Hikvision AcuSense Varifocal Motorizada (DS-2CD3643G2-LIZSU o equivalente)~~ ⛔ **RETIRADO el 05/09: era un modelo de REFERENCIA con «o equivalente» detrás, no el comprado.** → **Hikvision `DS-2CD2683G2-IZS` (2.8 – 12 mm)**, bullet AcuSense varifocal motorizada de 8 MP. **Es la cámara que el responsable ha comprado**, y desde hoy toda cifra de óptica, alarma o consumo de este manual sale de **su** ficha oficial, con la cita al lado — ver **§1.1**.  
-**Topología del Sistema:** Analítica Deep Learning Embebida (sin PC externo) + contacto seco a la tarjeta. **Tres entradas de cámara por punta:** la bornera **`J14`** (`PB0`, con antirrebote RC de 1 ms en la placa) y **`J16` p10 / p12** (`PB14`/`PB15`, **sin antirrebote de placa**, y con la medida **`M3` YA CERRADA EN BANCO** el 04/09: **se pueden cablear**)  
+**Topología del Sistema:** Analítica Deep Learning Embebida (sin PC externo) + contacto seco a la tarjeta. 🔴 **LA CÁMARA SE CABLEA A `J16` p10 (`PB14`) y p12 (`PB15`), UNA POR POSTE** — `DECISIONES.md` filas **`D-2`** y **`D-3`**, con `M3` cerrada en cobre el 03/09. Contacto seco contra los **3,3 V contiguos** (`p9` para `p10`, `p11` para `p12`), **activo en ALTO, dos hilos, nada a masa**. El firmware lee **tres** entradas por punta —~~la bornera `J14` (`PB0`, con antirrebote RC de 1 ms) es la tercera~~— pero **`J14` NO lleva cámara**: se conserva vivo y libre como candidato a fin de carrera de barrera.  
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`  
 **Normativa Aplicable:** Manual de Señalización Vial de Colombia (Resolución 2024 - MinTransporte)  
 **Fecha de Emisión:** 26 de Agosto de 2026  
@@ -518,13 +518,17 @@ La cámara Hikvision AcuSense incorpora un procesador de inteligencia artificial
  │                                                                             │
  │   [ HIKVISION DS-2CD2683G2-IZS  -  AcuSense, analitica embebida ]           │
  │           │                       8 MP - varifocal motorizada 2,8-12 mm     │
- │           ▼ (Deteccion por Intrusion: Clasificador ☑ Solo Vehiculo)         │
- │             ^^^^ el clasificador SOBRE INTRUSION esta SIN VERIFICAR: ver 4  │
+ │           ▼ (Intrusion Detection sobre el BARRIDO DE LA PLUMA, SIN FILTRO)  │
+ │             ~~Clasificador ☑ Solo Vehiculo~~ <-- TACHADO 07/09 por D-13:    │
+ │             bajo la pluma importa TAMBIEN una moto o una persona, y el      │
+ │             Detection Target no esta documentado para Intrusion.  Ver 4.    │
  │   [ SALIDA DE ALARMA (Bornes 1A / 1B - Contacto Seco, 24 V / 1 A max) ]     │
  │             ^^^^ que sea "N/O" y CONFIGURABLE esta SIN VERIFICAR: ver 4     │
  │           │                                                                 │
  │           ▼ (2 Hilos directos por cámara)                                  │
- │   [ TARJETA CONTROLADORA STM32 - bornera J14, entrada PB0 ]                 │
+ │   [ TARJETA CONTROLADORA STM32 - bornera J16 p10 (PB14) / p12 (PB15) ]      │
+ │     ~~bornera J14, entrada PB0~~ <-- TACHADO 07/09: D-2 / D-3.             │
+ │     J14 NO lo vigila CAM_CIEGA/CAM_PEGADA.                                  │
  │           │                                                                 │
  │           ▼                                                                 │
  │   [ LÓGICA VIAL: Demanda Vehicular + Despeje Todo-Rojo cfgDespejeSeg ]      │
@@ -730,27 +734,35 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
 
 ```text
  ┌─────────────────────────────────────────────────────────────────────────────┐
- │       MAPA DE CONEXION FISICA DE CAMARAS  --  AL DIA EL 04/09 (M3 CERRADA)  │
+ │    MAPA DE CONEXION FISICA DE CAMARAS  --  AL DIA EL 07/09 (D-2 / D-3)     │
  ├─────────────────────────────────────────────────────────────────────────────┤
  │                                                                             │
  │ !!! J16 p1 LLEVA 12 V CRUDOS.  SE TAPA ANTES DE CABLEAR.  NO SE CONECTA. !!!│
  │                                                                             │
- │ • CAMARA DE DEMANDA, hoy:  Bornes 1A/1B --> J14: pin PB0 CONTRA LOS 3,3 V   │
- │   ~~PB0 y GND~~  <-- ANULADO: la entrada es ACTIVA EN ALTO, contra masa     │
- │                       no dispara nunca.  R64 10K a masa ya fija el reposo.  │
+ │ • CAMARA DE DEMANDA, HOY (D-2 / D-3):  Bornes 1A/1B --> J16 p10 (PB14) en  │
+ │   un poste y J16 p12 (PB15) en el otro.  UNA CAMARA POR POSTE.             │
+ │   Contacto seco CONTRA LOS 3,3 V del borne contiguo: p9 para p10,          │
+ │   p11 para p12.  ACTIVO EN ALTO.  DOS HILOS: nada a masa.                  │
  │   - Detecta si hay vehiculos esperando paso en el carril.                   │
  │                                                                             │
- │ • CAMARAS C y D, EL FIRMWARE YA LAS LEE:  J16 p10 (PB14) / p12 (PB15)      │
- │   - Son camaras de DEMANDA, igual que la de J14. Piden paso, no miden nada. │
- │   ~~NO SE CABLEAN todavia: falta la medida M3~~ <-- M3 CERRADA EN BANCO     │
- │     el 04/09: 9,93 y 9,94 kOhm a masa, los dos a 0 V.  YA SE CABLEAN.       │
- │   - Contacto seco CONTRA LOS 3,3 V del borne de al lado:  p9 para p10,      │
- │     p11 para p12.  ACTIVO EN ALTO.  Y SON DOS HILOS: no hay un tercero      │
- │     a masa. La corriente vuelve por R67/R68 dentro de la placa (4.bis.5).   │
+ │   ~~ANTES DECIA: Bornes 1A/1B --> J14: pin PB0 CONTRA LOS 3,3 V~~           │
+ │   <-- TACHADO EL 07/09.  J14 NO ESTA VIGILADO por CAM_CIEGA/CAM_PEGADA.    │
+ │       Una camara ahi FUNCIONA y NADIE SABE si se estropea. J14/PB0 queda   │
+ │       vivo, libre, y reservado a fin de carrera de barrera.                │
+ │                                                                             │
+ │   La corriente vuelve por R67/R68 dentro de la placa (ver 4.bis.5).        │
+ │   M3 CERRADA EN COBRE el 03-04/09: 9,93 y 9,94 kOhm a masa, los dos a 0 V. │
+ │                                                                             │
+ │ • ENTRADA J14 (PB0), HOY SIN CAMARA:  el firmware la sigue leyendo, y      │
+ │   pide paso igual.  Pero NO la vigila CAM_CIEGA/CAM_PEGADA:  si algun dia  │
+ │   se le cuelga algo, ES EL UNICO BORNE SIN AVISO DE AVERIA.                │
+ │   Reservado a fin de carrera de barrera (es el unico con antirrebote RC).  │
  │                                                                             │
  │ • CAMARA 2 / 4 (Umbral):  NO EXISTE EN V9.0 - PB8 es un LED, no una entrada │
  │                                                                             │
- │ • PB9 (J16 p5) y PB13 (J16 p8):  MANDO DE RELES, canales A y B. SE CONSERVAN│
+ │ • PB9 (J16 p5) y PB13 (J16 p8):  canales A y B del MANDO.  El mando FISICO │
+ │   NO EXISTE (D-1: se opera solo por app), pero SU CODIGO SE CONSERVA y los │
+ │   dos pines VAN CABLEADOS: con MANDO_B al aire el veto de SFTY-21 se abre. │
  │   >>> NUNCA UNA CAMARA AQUI: tres pulsos en 12 s componen una secuencia <<< │
  │   Sus 3,3 V contiguos son p4 y p7 (mismo cobre que p9/p11: 10K + 100nF).    │
  │                                                                             │
@@ -1172,8 +1184,14 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 >
 > | destino | reposo del pin lo fija | cómo se cablea el contacto | configuración |
 > |---|---|---|---|
-> | **`PB0` / `J14`** (el de hoy) | ✅ **MEDIDO**: `R64` 10 kΩ a masa + `C25` 100 nF (`pines.h:43-46`) | entre el pin y el borne de **3,3 V** de `J14` — **NO contra `GND`** | **`NO`**, pulso **1 s** |
-> | **`J16` p10 / p12** | ✅ **MEDIDO EN BANCO el 04/09** (`M3`, paso 20): **9,93 kΩ** y **9,94 kΩ** a masa, los dos a **0 V** con energía. Pull-**DOWN** real de 10 kΩ | entre el pin de señal y el borne de **3,3 V contiguo** (`p9` para `p10`, `p11` para `p12`). **Dos hilos, sin tercero a masa** — §4.bis.5 | **`NO`**, pulso **1 s** |
+> | **`J16` p10 / p12** 🔵 **EL DE HOY (`D-2`/`D-3`)** | ✅ **MEDIDO EN BANCO el 04/09** (`M3`, paso 20): **9,93 kΩ** y **9,94 kΩ** a masa, los dos a **0 V** con energía. Pull-**DOWN** real de 10 kΩ | entre el pin de señal y el borne de **3,3 V contiguo** (`p9` para `p10`, `p11` para `p12`). **Dos hilos, sin tercero a masa** — §4.bis.5 | **`NO`**, pulso **1 s** |
+> | ~~**`PB0` / `J14`** (el de hoy)~~ **`PB0` / `J14`** — 🔴 **HOY NO LLEVA CÁMARA** | ✅ **MEDIDO**: `R64` 10 kΩ a masa + `C25` 100 nF (`pines.h:43-46`) | ~~entre el pin y el borne de **3,3 V** de `J14` — **NO contra `GND`**~~ · se conserva por si el borne se usa algún día | ~~**`NO`**, pulso **1 s**~~ |
+>
+> 🔴 **CORREGIDO EL 07/09 — la etiqueta *«(el de hoy)»* estaba en la fila equivocada.** Gana
+> `DECISIONES.md` `D-2`/`D-3`: **la cámara va a `J16` p10/p12**. Y el motivo que decide no es el
+> antirrebote sino la vigilancia: **`CAM_CIEGA`/`CAM_PEGADA` miran `J16` y no miran `J14`** — una
+> cámara en `J14` funciona y **nadie sabría que se estropeó**. La fila de `J14` se conserva tachada
+> porque su medida de cobre sigue siendo cierta y el borne sigue vivo.
 >
 > ~~**Según lo que dé la medida M3**, con la tarjeta energizada y `J16` vacío:~~ ⛔ **Esta tabla de
 > tres ramas ya no se ejecuta: `M3` la resolvió en la primera.** Se conserva porque **es el
@@ -1680,9 +1698,13 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
  │             Si ni aun asi para de disparar: NO SE INSTALA. Se avisa: la     │
  │             demanda por peaton da verde a un carril sin vehiculos.          │
  │                                                                             │
- │ • ENSAYO 3: CONMUTACION EN SEMAFORO                                         │
+ │ • ENSAYO 3: CONMUTACION EN SEMAFORO  --  SOBRE J14                          │
+ │   >>> 07/09: ESTE ENSAYO YA NO ES EL DEL MONTAJE DE CAMPO. <<<              │
+ │   >>> LA CAMARA VA A J16 p10/p12 (D-2 / D-3): USE EL ENSAYO 4.  <<<         │
+ │   >>> Se conserva porque sirve para probar el borne J14 el dia que se le    │
+ │   >>> cuelgue un fin de carrera de barrera.                                 │
  │   ~~- Conectar 1A/1B al pin PB0 y GND de la tarjeta STM32.~~  <-- ANULADO   │
- │   - Conectar 1A/1B entre el pin PB0 y el borne de 3,3 V de J14.             │
+ │   ~~- Conectar 1A/1B entre el pin PB0 y el borne de 3,3 V de J14.~~         │
  │     LA ENTRADA ES ACTIVA EN ALTO: contra GND no dispara nunca, y el         │
  │     ensayo saldria "sin deteccion" sin que nada este roto.                  │
  │   - Al detectar vehiculo: El semaforo atiende la demanda y abre verde tras  │
@@ -1696,7 +1718,7 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
 
 ```text
  ┌─────────────────────────────────────────────────────────────────────────────┐
- │        ENSAYO 4: LO MISMO SOBRE J16 p10 / p12  --  YA SE PUEDE HACER        │
+ │  ENSAYO 4: J16 p10 / p12  --  ES EL ENSAYO DEL MONTAJE DE CAMPO (D-2/D-3)  │
  ├─────────────────────────────────────────────────────────────────────────────┤
  │                                                                             │
  │ 0. TAPAR EL PIN 1 DE J16 (12 V CRUDOS). Sin esto no se sigue.               │

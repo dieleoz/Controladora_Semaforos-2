@@ -1,734 +1,1226 @@
-graph TD
-%% ===========================================================================
-%% ARQUITECTURA.map - MAPA ESTRUCTURAL DEL SISTEMA SEMAFORICO
-%% Actualizado: 05/09/2026. Escrito en ASCII sin acentos, como el resto
-%% de lo que se lee en consola de Windows en este repositorio.
-%%
-%% ===========================================================================
-%% 🔴 LEE ESTO ANTES DE CABLEAR NADA DESDE AQUI - pasada del 05/09
-%%
-%% Este fichero mandaba a un instalador a cablear mal. No es una hipotesis:
-%% se midio. Lo corregido hoy, y cada cosa esta tachada donde vivia:
-%%
-%%   1. LA POLARIDAD DE J16 p5 Y p8 ESTABA AL REVES. Decia "INPUT_PULLUP,
-%%      activo en BAJO" y "pulsador contra masa" en TRES sitios -la capa C1,
-%%      dos filas del ANEXO A y su parrafo de cierre-. El fuente hace INPUT
-%%      pelado y == HIGH en las DOS puntas desde 346ea5f. Cablear contra masa
-%%      deja MANDO_B sin armar ambarLocal NUNCA y ABRE el veto de SFTY-21.
-%%      Y la frase "van contra masa" es exactamente la que CLAUDE.md 2.ter
-%%      cita como falsa: J16 tiene UNA sola masa -p2- para cuatro posiciones.
-%%   2. M3 SEGUIA DECLARADA BLOQUEANTE. Cerro el 03/09 con multimetro.
-%%   3. N-106 SE DABA POR ROTO en la capa C7 mientras la capa C10 de este
-%%      MISMO fichero lo daba por cerrado desde el 01/09. Se contradecia solo.
-%%   4. LOS DOS pines.h YA NO SON BYTE-IDENTICOS, y el md5 publicado no es el
-%%      de ninguno de los dos.
-%%
-%% LA REGLA QUE DEJA, y es la de CLAUDE.md 9.bis aplicada a este fichero:
-%% ANTES DE CABLEAR, CONECTORES O PINES, SE ABRE LA SPEC. Gana
-%% 05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md en todo lo que
-%% sea hardware medido, y gana DECISIONES.md en toda decision vigente. Este
-%% mapa las RESUME, y un resumen caduca sin avisar - hoy lo ha hecho cuatro
-%% veces a la vez.
-%% ===========================================================================
-%%
-%% ===========================================================================
-%% SEGUNDA PASADA DEL 05/09 - LO QUE CAMBIO DESPUES DE 0741628
-%%
-%% MEDIDO SOBRE c02be59. El arbol se movio DURANTE esta pasada -otro agente
-%% comiteo b24af87 y 2b31815 mientras se escribia-, asi que se comprobo que no
-%% invalidan nada en vez de suponerlo:
-%%   $ git diff --name-only c02be59..HEAD
-%% devuelve SOLO documentos: los .docx regenerados de 05_Funcional, CLAUDE.md,
-%% roadmap.md, el acta y una skill. NI UN FICHERO DE 01_Firmware NI DE
-%% App_Semaforo. Las citas de abajo se tomaron sobre el mismo codigo que hay hoy.
-%%
-%% La pasada de arriba cerro en 0741628. Los OCHO commits siguientes movieron
-%% arquitectura, no erratas, y este mapa no lo sabia. Verificado sobre el fuente
-%% de HEAD, no sobre la lista que me dieron:
-%%
-%%   1. D-17.bis DEROGA D-6: LA PANTALLA Y EL MENU SE RETIRAN DEL EQUIPO. El
-%%      nodo R_LCD decia "LA PANTALLA NO SE RETIRA - VIGENTE". Ya no. Y el
-%%      matiz que hay que sostener: se retira del EQUIPO, NO DEL CODIGO.
-%%   2. D-18: el Modo Degradado del poste 2 se pide POR APP (SET_MODO:DEGRADADO
-%%      en el Esclavo), con un $ERR por cada uno de los SEIS motivos de rechazo.
-%%   3. El campo MODO: del $STATUS del Esclavo dejo de ser un literal fijo.
-%%   4. D-13 fase 1: el campo CAM: sale en las DOS puntas y hay un VIGILANTE de
-%%      camaras detras -CAM_PEGADA y CAM_CIEGA-. El payload sube a 155.
-%%   5. La camara de J16 ya no solo PIDE paso: SOSTIENE la fase (camara_
-%%      presenciaJ16(), solo en el Maestro).
-%%   6. A-12: el Modo Inteligente dejo de fabricarse los tiempos.
-%%   7. El arnes del automatico compila ademas botones.cpp, modo_inteligente.cpp
-%%      y demanda.cpp REALES.
-%%   8. MANUAL_USUARIO.md y MANUAL_HARDWARE.md se mudaron a 04_Manuales/. Este
-%%      mapa NO los citaba, asi que no se rompio nada aqui - pero se anota,
-%%      porque la guarda de rutas TAMPOCO los habria protegido: no los censa.
-%%
-%% Y TRES COSAS DE ARQUITECTURA QUE ESTE MAPA NUNCA HABIA DICHO. Van en la capa
-%% C11, que es nueva: MODO_HORA no tiene puerta, MODO_ALCANCE no tiene salida, y
-%% botonArriba()/botonAbajo() SIGUEN VIVOS sobre los pines del mando.
-%%
-%% 🔴 Y LO QUE ESTA PASADA VUELVE A ENCONTRAR, que es lo que este fichero lleva
-%% cuatro dias demostrando: DE LAS CITAS "fichero:linea" CORREGIDAS HACE OCHO
-%% COMMITS, DIEZ YA ESTABAN CADUCADAS OTRA VEZ. Las mismas de siempre -las seis
-%% de pinMode de botones.cpp, botonAceptar en las dos puntas, dos de
-%% mando_ambarLocal-, mas las de la capa C10 y las tres de "QUIEN LO NOMBRA".
-%% Las movieron ee957ef (+148 lineas en Maestro/src/botones.cpp) y 15e8cf3 (+137
-%% en Esclavo/src/bluetooth.cpp). Ni un fichero desaparecio: las RUTAS aguantaron
-%% otra vez, porque esas tienen vigilante.
-%% DONDE SE HA PODIDO, ESTA PASADA NO RENUMERA: SUSTITUYE EL NUMERO POR EL
-%% SIMBOLO Y SU grep. Renumerar es lo que ya fallo el 31/08 y el 02/09.
-%% ===========================================================================
-%%
-%% NINGUN PACK DEL BANCO PARSEA ESTE FICHERO. RE-MEDIDO EL 02/09 por dos caminos:
-%% grep "ARQUITECTURA" sobre todos los .py del arbol da 5, y NINGUNA es una
-%% lectura de este fichero -son prosa de esp32_05, dos generadores de graficas y
-%% dos constantes de generar_entrega_v9_0.py-. El control que hacia falta y no
-%% estaba: flash_01_lastre.py SI parsea un ".map", pero es firmware.map, el del
-%% enlazador. Dos ficheros con la misma extension y ninguna relacion; buscar por
-%% extension habria dado un falso positivo.
-%%
-%% QUIEN LO NOMBRA. 🔴 RE-MEDIDO 05/09 Y LAS TRES CITAS NUMERICAS DE ESTA LISTA
-%% ESTABAN CADUCADAS - la lista que se corrigio el 02/09 aguanto tres dias. Se
-%% deja de dar el numero y se da el comando, que es lo unico que no envejece:
-%%
-%%   $ grep -rn "ARQUITECTURA.map" --include=*.md --include=*.py .
-%%
-%%   02_LCD/MANUAL_PANTALLA_LCD.md   sigue  -decia :29, hoy :88 (61a188d)-
-%%   05_Funcional/README.md          sigue  -decia :135, hoy :168-
-%%   OPTIMIZACIONES.md               sigue  -decia :427, hoy :460 (16d3781)-
-%%   INDICE_CRUZADO.md               su hermano, y ahi son diez apariciones
-%%   roadmap.md                      YA NO. El roadmap se reescribio el 31/08 y
-%%                                   perdio la referencia
-%% Se corrige y no se borra la linea vieja: una referencia que desaparece en
-%% silencio se vuelve a dar por buena la proxima vez que alguien la copie.
-%%
-%% ⚠️ Y OJO CON UNA DE ELLAS, que es la que este mapa tiene que contestar hoy:
-%% 02_LCD/MANUAL_PANTALLA_LCD.md describe la pantalla que D-17.bis acaba de
-%% retirar del equipo. 61a188d lo marco como legacy en el propio manual. Que un
-%% documento apunte aqui no lo hace vigente.
-%%
-%% Este mapa NO es un instrumento: no mide nada y nadie falla por lo que aqui
-%% ponga. Es un indice. Lo que MIDE es la compuerta.
-%%
-%% SU HERMANO ES INDICE_CRUZADO.md, y contestan preguntas distintas:
-%%   ARQUITECTURA.map   COMO esta hecho el equipo
-%%   INDICE_CRUZADO.md  DONDE vive cada hecho y QUIEN se queda colgando si se
-%%                      reescribe un fichero -mas el censo de hechos que viven
-%%                      en un solo sitio y los HUECOS ya abiertos-
-%%
-%% ---------------------------------------------------------------------------
-%% COMO SE LEE - tres niveles, y no se mezclan nunca
-%% (la misma escala de 05_Funcional/17_Arquitectura_28-08... seccion 0)
-%%
-%%   [MEDIDO]         se abrio el fichero y se leyo. Va con fichero:linea
-%%   [ESCRITO]        lo afirma un documento, un comentario o un acta
-%%   [SIN VERIFICAR]  nadie lo ha comprobado. Casi todo el cobre esta aqui
-%%
-%% NO HAY NI UNA SOLA FILA "VERIFICADO EN LA PLACA" EN TODO EL PROYECTO, y este
-%% mapa no inaugura la primera. Todo lo que aqui se llama MEDIDO se midio sobre
-%% FICHEROS -el .cpp, el .h, el .kicad_sch, el .kicad_pcb-. Un fichero dice lo
-%% que alguien dibujo o escribio; una placa dice lo que se fabrico.
-%% ---------------------------------------------------------------------------
-%%
-%% ESTADO: V9.0 implementada y compilando. NUNCA ha estado en un banco.
-%%         EN CAMPO SIGUE LA V8.4 (e303485).
-%%         La compuerta en verde dice que los modelos y arneses de PC no
-%%         encuentran nada. NO dice que el firmware funcione en la tarjeta.
-%%
-%% AQUI NO SE PUBLICA NI UNA CIFRA DEL ACTA, y es deliberado. El numero de
-%% packs, las comprobaciones y los porcentajes de flash se mueven cada hora y
-%% hay packs que los vigilan; una copia a mano en este fichero seria una segunda
-%% version que alguien tendria que sincronizar. La cifra vigente esta en
-%% evidencia/, en el acta mas reciente, y se copia de ahi o no se copia.
-%%
-%% ARQUITECTURA VIGENTE: la decidida en obra el 28/08 y ajustada el 31/08.
-%%         Fuente: 05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md
-%%         secciones 1.1 a 1.7, y ESTADO.md seccion 4.
-%%         EL STM32 SIGUE SIENDO EL CONTROLADOR. El ESP32 es un modulo de
-%%         expansion colgado de un puerto serie, y NO MANDA SOBRE LAS LUCES.
-%%
-%% ARBOL EN VUELO. Este mapa se escribio con seis agentes tocando app.js,
-%% lcd.cpp, los manuales 2/12/14, OPTIMIZACIONES.md, packs y simuladores. Las
-%% RUTAS son estables; las LINEAS citadas de esos ficheros pueden haberse
-%% movido. Donde el estado del codigo estaba a mitad se dice, en vez de darlo
-%% por hecho.
-%%
-%% Y SE MOVIERON. La pasada del 02/09 verifico UNA A UNA las 60 citas
-%% "fichero:linea" de este mapa. Las RUTAS aguantaron las 36 -ni un fichero
-%% nombrado aqui ha desaparecido-; las LINEAS no: cuatro citas de bluetooth.cpp
-%% apuntaban a un comentario que no tiene nada que ver, y las dos de
-%% compuerta.py acusaban de caducado un comentario que ya no esta ahi.
-%% Corregidas abajo, cada una con la medida al lado.
-%%
-%% LA LECCION, QUE ES DE ESTE MAPA Y NO DEL ARBOL: una cita "fichero:linea" en
-%% un documento que nadie parsea envejece SIN AVISAR -es la otra cara de que
-%% ningun pack lo lea-. Lo unico que la sostiene es que alguien vuelva a
-%% medirla. Las rutas, en cambio, SI tienen quien las vigile: la guarda de
-%% rutas de la compuerta -58 rutas censadas en el acta del 02/09-, y por eso
-%% son las que no fallaron.
-%% ===========================================================================
+# ARQUITECTURA.map - DONDE VIVE CADA COSA Y QUIEN DEPENDE DE QUIEN
 
-    subgraph C0["CAPA 0 - VERIFICACION Y COMPUERTA"]
-        GATE["compuerta.py - la unica forma correcta de verificar<br>guarda de rutas + compila los CUATRO roles<br>Maestro, Esclavo, Repetidor y ESP32_Expansion<br>cifras y veredicto: evidencia/, acta mas reciente<br>VERDE NO ES ENTREGABLE: nada sube a campo sin banco"]
-        GATE --> PACKS["Banco por packs<br>01_Firmware/Simulaciones/banco/packs/<br>un fichero corto por propiedad<br>NO quedan validadores monoliticos"]
-        GATE --> ARN_LCD["Arnes de pantalla - compila lcd.cpp y menu.cpp reales<br>Validacion_LCD"]
-        GATE --> ARN_AUTO["Arnes del automatico - Validacion_Automatico<br>ACTUALIZADO 05/09: ya no son cuatro fuentes, son SIETE.<br>compila coordinador + semaforo + modo_automatico + mando<br>y desde hoy TAMBIEN modo_inteligente.cpp (A-12, Bloque E),<br>demanda.cpp (real, no sustituto) y botones.cpp (D-13, Bloque F)<br>compilar.ps1 los lista uno a uno - grep .cpp compilar.ps1<br>ESO ES LO QUE HACE MEDIBLE el vigilante de camaras y el<br>SOSTENER de J16: antes ninguno de los dos entraba al binario<br>MIDE SFTY-2 sobre los pines escritos<br>punto ciego: solo el Maestro - YA NO ES EL UNICO, ver ARN_2P<br>y sigue sin ejercer el Degradado ni el microcorte"]
-        GATE --> ARN_2P["Arnes de las DOS PUNTAS (01/09) - Validacion_Automatico/dos_puntas/<br>compila_dos_puntas.ps1 - cada punta en su propia DLL porque<br>Maestro y Esclavo definen los MISMOS simbolos y no enlazan juntas<br>las carga las dos en un proceso con el MISMO millis():<br>'verde en las dos A LA VEZ' tiene por fin un instante donde ocurrir<br>CIERRA el punto ciego que ARN_AUTO declara<br>lo vigila el pack barrera_04_arnes_dos_puntas"]
-        GATE --> ARN_DEG2P["Arnes del Degradado a dos puntas (01/09)<br>compilar_degradado.ps1 + orquestador_degradado.cpp<br>el Degradado es el UNICO modo sin coordinador: el choque<br>no lo impide un enclavamiento sino una desigualdad numerica<br>lo vigila costura_12_margen_deriva"]
-        GATE --> ARN_CICLO["Validacion_Ciclo y Validacion_Respaldo<br>ciclo_degradado.h - Horner y calcularSuma()"]
-        GATE --> SIM["Simuladores y app<br>funcional - repetidor - app y bluetooth<br>funcional de la app - jsdom - y DOS suites unitarias:<br>test_unitarios_app.js y tests/test_unitarios.js<br>la segunda existia y NO estaba conectada (02/09)"]
-        GATE --> SIM_PUENTE["simulador_puente_esp32.py (31/08)<br>el unico que ejerce el LAZO ENTERO app - ESP32 - STM32<br>dos de sus tres puntas son codigo real<br>la unica modelada es el ESP32 - y lo sigue siendo aunque<br>su C++ ya exista: el simulador NO lo carga, lleva su modelo"]
-        NOTA0["Los simuladores y los packs son Python escrito a mano:<br>un PASS suyo prueba EL MODELO, no el firmware.<br><br>SON SEIS los arneses que compilan C++ real, no cuatro (02/09):<br>los cuatro de CLAUDE.md seccion 8 mas los dos de dos puntas.<br>El C++ del ESP32 se COMPILA en la compuerta, pero no se ejecuta."]
-        NOTA0B["ATENCION - DOS INSTRUMENTOS EXISTEN Y NO ESTAN EN LA COMPUERTA (medido 02/09):<br>App_Semaforo/tests/test_e2e_visual.js y App_Semaforo/test_e2e_puppeteer.js.<br>El segundo no lo nombra NI UN fichero del arbol.<br>NO se conectan tal cual: no afirman nada -son capturadores de<br>pantalla-, piden un servidor en localhost:3000, y el de puppeteer<br>se traga toda excepcion y sale con 0 imprimiendo 'TODOS LOS<br>CONTROLES FUERON PROBADOS CON EXITO'. Eso es N-46 otra vez.<br>Y los dos miden a 412 px, el unico ancho donde el fallo de<br>CLAUDE.md 4.ter NO aparece. Detalle en INDICE_CRUZADO.md 1.10"]
-    end
+    LEVANTADO DESDE CERO EL 07/09/2026, midiendo el arbol. No es una edicion del
+    fichero anterior: cada fila de abajo salio de un grep, un find, un wc o una
+    lectura del fuente CORRIDOS EN ESA PASADA.
 
-    subgraph C1["CAPA 1 - STM32 MAESTRO - EL CONTROLADOR"]
-        M["STM32F103C8T6 Maestro<br>Flash: ver el acta de evidencia/ - NO queda margen comodo<br>IWatchdog 4 s - grep -n IWatchdog.begin Maestro/src/main.cpp<br>-CORREGIDO 05/09: decia main.cpp:52 y es :53-<br>8 modos, y NO son 7 alcanzables mas uno: son 7 ALCANZABLES Y<br>UNO AL QUE NO SE PUEDE ENTRAR. Ver la capa C11"]
+    HEAD al levantarlo : c728361  (rama main-nuevo)
+    Arbol              : limpio salvo 5 documentos modificados por otros agentes
+                         (.claude/skills/verificar/SKILL.md, CERTIFICACION_SW.md,
+                          CLAUDE.md, ESTADO.md, README.md)
+    Acta vigente       : evidencia/2026-09-07_compuerta.txt
+                         20 PASS | 0 FALLA | 0 ABORTADO - 76 packs - 1180/1180
+    Tamano anterior    : 79.365 B / 734 lineas (05/09, formato mermaid `graph TD`)
 
-        M -- "SFTY-2 - escribirPines() semaforo.cpp:60-66 -05/09; decia :48-54-" --> OUT_M["Optos TLP127 + MOSFET IRLZ44N<br>SON DIEZ CADENAS, no nueve"]
-        OUT_M --> LUZ_M["SEIS pines de luz vivos<br>ROJO1 PA0 J3 - AMARILLO1 PA1 J4 - VERDE1 PA2 J5<br>ROJO2 PA3 J6 - AMARILLO2 PA4 J7 - VERDE2 PA5 J8"]
-        OUT_M --> BARR_M["Barrera / talanquera - PB2 - J15<br>SFTY-28: sale por la MISMA puerta que las luces<br>semaforo.cpp:120 dentro de escribirPines() -05/09; decia :93-<br>reposo = CERRAR (LOW): si el equipo muere, la pluma baja"]
+    POR QUE CAMBIA EL FORMATO. El fichero anterior era un diagrama mermaid cuyos
+    nodos llevaban parrafos de hasta 3.000 caracteres dentro de una etiqueta. Como
+    diagrama no se podia leer y como texto no se podia buscar, y las tres cosas que
+    mas se le piden a un mapa -"que ficheros abre este pack", "que mide esta fila
+    de la compuerta", "que hay en este conector"- son TABLAS. Se pasa a tablas y
+    arboles. Nada se pierde: lo unico que el formato viejo tenia y este no son las
+    justificaciones largas, y esas viven en su sitio -DECISIONES.md, roadmap.md,
+    05_Funcional/17_...-, que es donde alguien las mantiene.
 
-        M -- "USART3 - PB10 TX / PB11 RX / PB12 DE-RE - J12" --> RAD_M["Radio LoRa E90-DTU Maestro"]
+## 0. Como se lee, y que NO es este fichero
 
-        M -- "USART1 REMAPEADO - PB6 TX / PB7 RX - J17 p3/p2" --> ENL_M["Enlace serie 9600 8N1 al ESP32<br>SerialBT(PB7, PB6) - bluetooth.cpp:30 -05/09; decia :28-<br>begin(9600) con UN solo argumento: el 8N1 lo pone<br>el framework y solo esta escrito en contrato.h"]
+| etiqueta | significa |
+|---|---|
+| `[MEDIDO]` | se corrio el comando en la pasada del 07/09 y esto es lo que devolvio |
+| `[ESCRITO]` | lo afirma un documento, un comentario o un acta. No se re-comprobo |
+| `[SIN VERIFICAR]` | nadie lo ha comprobado nunca |
 
-        M -- "PB0 - J14 - antirrebote HW R64 10K + C25 100nF" --> CAM_M["Camara de demanda - INPUT pelado, activo en ALTO<br>pinMode en botones.cpp:410 -05/09; decia :155-, YA NO dentro de un modo (N-97)"]
+**ESTE MAPA NO ES UN INSTRUMENTO.** No mide nada y nada falla por lo que aqui
+ponga. `[MEDIDO]` aqui significa *se midio sobre un FICHERO*: el `.cpp`, el `.h`,
+el `.kicad_pcb`. Un fichero dice lo que alguien dibujo o escribio; una placa dice
+lo que se fabrico. Lo que MIDE es `01_Firmware/compuerta.py`.
 
-        M -- "PB14 / PB15 - J16 p10/p12" --> CAMCD_M["Camaras C y D - CAM_C_PIN / CAM_D_PIN<br>INPUT pelado, activo en ALTO<br>grep -n 'pinMode(CAM_C_PIN' Maestro/src/botones.cpp<br>-RE-MEDIDO 05/09: decia :411-412 y hoy son :531-532.<br>Es la SEGUNDA vez en un dia que esta fila caduca-<br>antirrebote por FLANCO con siembra al arrancar (N-26)"]
-        CAMCD_M --> VIG_M["EL VIGILANTE DE LAS CAMARAS - NUEVO 05/09 (D-13 fase 1)<br>botones.cpp, en las DOS puntas, con constantes propias:<br>CAM_PEGADA_MS = 1.200.000 - 20 min de contacto FIJO<br>CAM_CIEGA_MS = 21.600.000 - 6 h de paso abierto SIN un flanco<br>Sale a la app por el campo CAM: del $STATUS y por $ALARM<br><br>Y LA GUARDA QUE HAY QUE LEER, porque es una decision y no un<br>descuido: UN PIN QUE NUNCA DIO UN FLANCO NO SE VIGILA. Hay UNA<br>camara por poste, asi que uno de los dos pines esta VACIO en<br>todo equipo que se monte; con el pull-down de 10K lee bajo para<br>siempre y sin esa guarda emitia CAM_CIEGA de una camara que no<br>existe - y CIEGA pesa mas que OK, o sea que tapaba en el campo<br>CAM: el estado de la camara que si esta.<br>LO QUE CUESTA, escrito y no disimulado: una camara muerta DESDE<br>EL DIA DE LA INSTALACION no se distingue de una bornera vacia.<br>Lo compensa el instalador provocando la primera deteccion<br>-Manual 9-, no el firmware. Y tras cada reinicio la vigilancia<br>de silencio queda desarmada hasta el primer flanco<br>PEGADA no depende de eso: cuelga del NIVEL y se siembra en<br>camaras_sembrar(), asi que un contacto trabado ANTES del<br>arranque si se detecta"]
-        CAMCD_M --> SOST_M["PEDIR PASO Y SOSTENER LA FASE NO SON LO MISMO - 05/09<br>camara_presenciaJ16() - grep -n camara_presenciaJ16 Maestro/<br>SOLO EXISTE EN EL MAESTRO: el Esclavo no tiene modo_inteligente<br><br>PEDIR, por FLANCO: camaras_actualizar() -> demanda_solicitar()<br>SOSTENER, por NIVEL: este getter, tercer termino del OR de<br>modo_inteligente.cpp<br>HACIA FALTA porque la ventana de demanda_hayLocal() son 3 s y NO<br>se prolonga con cada deteccion: entre dos peticiones aceptadas<br>-hay cola- contestaba que no, y bastaba que el muestreo cayera<br>en el hueco para que la fase terminara en el suelo.<br>Medido en el Bloque F de Validacion_Automatico, no razonado"]
+**NINGUN INSTRUMENTO PARSEA ESTE FICHERO** `[MEDIDO 07/09]`:
 
-        M --> MI_M["MODO INTELIGENTE - A-12, ARREGLADO EL 05/09<br>YA NO SE FABRICA LOS TIEMPOS: LOS PREGUNTA<br>modoAutomatico_tiemposCiclo(), y se congelan al empezar la fase<br><br>Lo que habia era un tiempoActual >= 15000UL a pelo: CORTABA UN<br>VERDE A LOS 15 s por debajo de lo que el operario hubiera<br>configurado, y ninguna guarda lo tocaba. Hoy:<br>  SUELO = el tiempo configurado de la fase EN CURSO<br>  TECHO = el doble - TECHO_POR_SUELO = 2, en modo_inteligente.cpp<br>  y SATURADO al maximo vial: con 8 min el doble son 16 y el rango<br>  llega a 15, asi que se recorta. Dejarlo salir pondria al cruce<br>  en un plazo que la propia guarda de SET_TIEMPOS rechazaria<br><br>POR DEBAJO DEL SUELO NO CAMBIA NADA: una camara puede ALARGAR<br>una fase, nunca ACORTARLA<br><br>Y LA PROPIEDAD QUE HAY QUE PODER DECIR EN VOZ ALTA: CON LAS<br>CAMARAS MUDAS ESTE MODO ES EL AUTOMATICO EXACTO. Las dos<br>banderas quedan falsas, el OR vale siempre y se cambia igual.<br>En el tope del rango -15 min- techo y suelo COINCIDEN y el modo<br>deja de poder alargar: eso no es la guarda muerta de CLAUDE.md<br>3.septies, es la saturacion en un solo punto del rango, y en ese<br>punto lo correcto es comportarse como el Automatico"]
-        M -- "PB9 A / PB13 B - J16 p5/p8" --> MANDO_M["Mando de reles - EL CODIGO SE CONSERVA, EL HARDWARE SE FUE<br>DECISIONES.md D-1: el mando fisico se retiro el 05/09,<br>y el codigo NO se toca. Las dos cosas a la vez<br>A = BOTON1, B = BOTON2 - INPUT pelado, activo en ALTO<br>grep -n 'pinMode(BOTON1' Maestro/src/botones.cpp<br>-RE-MEDIDO 05/09: decia :394-395 y hoy son :514-515-<br>CORREGIDO 05/09: decia INPUT_PULLUP y activo en BAJO,<br>que era el firmware ANTERIOR a 346ea5f - ver ANEXO A<br>botones_actualizar() -> mando_registrarPulso(MANDO_A/B)<br>SIGUE LEYENDO ESOS PINES aunque no haya mando: es A-2"]
-        MANDO_M --> LIBRE_M["🔴 LIBRE DE COBRE NO ES LIBRE DE FIRMWARE - HALLAZGO 05/09<br>Estos dos pines NO solo alimentan el mando: son tambien los<br>DOS BOTONES QUE SIGUEN VIVOS.<br>grep -n 'bool boton' Maestro/src/botones.cpp<br>  :617 bool botonArriba()  return consumir(0);   -- VIVO<br>  :618 bool botonAbajo()   return consumir(1);   -- VIVO<br>  :659 bool botonAceptar() return false;<br>  :660 bool botonCancelar() return false;<br>En el Esclavo lo mismo en :603 / :604 / :645 / :646<br><br>O SEA QUE SOLO SE RETIRARON DOS DE LOS CUATRO. Cualquier cosa<br>que se cablee en J16 p5 o p8 mueve el cursor de menu.cpp -que<br>compila y corre- ademas de entrar por el reconocedor de<br>secuencias del mando. Que no se pueda SELECCIONAR -Aceptar es<br>false- no es lo mismo que que no pase nada.<br>Es exactamente el aviso de A-2, y ahora tiene dos sujetos"]
-    end
+```
+$ grep -rn "ARQUITECTURA" --include=*.py .          (sin node_modules)
+  banco/packs/esp32_05_no_origina.py:23   prosa de un comentario
+  05_Funcional/generar_graficas_arquitectura.py:41,:54   texto de una grafica
+  generar_entrega_v9_0.py:44,:262         la constante es 17_Arquitectura...md
+```
 
-    subgraph C2["CAPA 2 - STM32 ESCLAVO - OBEDECE, NO DECIDE"]
-        S["STM32F103C8T6 Esclavo<br>Flash: ver el acta de evidencia/<br>IWatchdog 4 s - main.cpp:238, IWatchdog.begin(4000000)<br>pines.h: el BLOQUE DE #define es identico al del Maestro<br>CORREGIDO 05/09: ponia -BYTE-IDENTICO-, y ya no lo es.<br>Los ficheros difieren en COMENTARIO -la cabecera de N-118-<br>y sus md5 son distintos. Los DIECINUEVE pines siguen iguales:<br>diff de los grep de #define sale vacio. Ver ANEXO A"]
+Ninguna es una lectura de este fichero. `flash_01_lastre.py` si parsea un `.map`,
+pero es `firmware.map`, el del enlazador: misma extension, ninguna relacion.
 
-        S -- "SFTY-2 - escribirPines() semaforo.cpp:60-66 -05/09; decia :48-54-" --> OUT_S["Optos TLP127 + MOSFET IRLZ44N"]
-        OUT_S --> LUZ_S["SEIS pines de luz vivos - mismos PA0..PA5"]
-        OUT_S --> BARR_S["Barrera / talanquera - PB2 - J15 - SFTY-28"]
+**QUIEN LO NOMBRA** `[MEDIDO 07/09]` - se da el comando, no el numero de linea:
 
-        S -- "USART3 - J12" --> RAD_S["Radio LoRa E90-DTU Esclavo"]
-        S -- "USART1 REMAPEADO - PB6/PB7 - J17" --> ENL_S["Enlace serie 9600 8N1 al ESP32<br>SerialBT(PB7, PB6) - bluetooth.cpp:29 en el Esclavo<br>(corregido 02/09 de :26 a :28, y OTRA VEZ el 05/09 a :29.<br>NO son la misma linea en las dos puntas: Maestro :30)"]
-        S -- "PB0 - J14" --> CAM_S["Camara de demanda - INPUT, activo en ALTO<br>pinMode en main.cpp:288, lectura en main.cpp:350<br>por NIVEL, no por flanco: es SFTY-27, no descuido"]
-        S -- "PB14 / PB15 - J16 p10/p12" --> CAMCD_S["Camaras C y D<br>grep -n 'pinMode(CAM_C_PIN' Esclavo/src/botones.cpp -> :523-524<br>-RE-MEDIDO 05/09: decia :428-429, y antes :176-177-<br>lector camara_leerPin() IDENTICO al del Maestro<br>EL VIGILANTE TAMBIEN ESTA AQUI, con las mismas dos constantes<br>PERO NO camara_presenciaJ16(): esta punta no tiene modo<br>inteligente, asi que no hay fase que sostener. Ver ANEXO B"]
-        S --> DEG_S["🟢 D-18 (05/09) - EL DEGRADADO DEL POSTE 2 SE PIDE POR APP<br>SET_MODO:DEGRADADO en Esclavo/src/bluetooth.cpp -> degradado_entrar()<br>NO se construyo una puerta nueva: se le dio la llave a la que ya<br>existia y ya estaba probada por el arnes del Degradado a dos puntas.<br>La llave que se habia retirado era el mando (D-1)<br><br>Y NO ES UN $ACK A SECAS, que es la barrera de CLAUDE.md 6:<br>degradado_entrar() devuelve un RechazoDegradado, no un bool, y<br>SON SEIS MOTIVOS con un $ERR cada uno -grep -n 'DEG_RECHAZO'<br>Esclavo/include/modo_degradado.h-:<br>  SIN_HORA - SIN_CONFIG - CICLO_NULO<br>  SIN_SYNC - SYNC_VENCIDA - AMBAR_VIGENTE<br>El texto lo pone degradado_textoRechazo(), un solo sitio<br><br>CAMBIA QUIEN ARBITRA EL CICLO, y por eso no lo cerro un agente<br>por su cuenta: el Degradado es el UNICO modo que da verde sin<br>confirmar la otra punta. Que hace el Maestro mientras tanto se<br>mide y se escribe - DECISIONES.md D-18"]
-        S --> STAT_S["EL CAMPO MODO: DEL $STATUS DEJO DE MENTIR - 05/09<br>Era un LITERAL FIJO -SUBORDINADO SIEMPRE- escrito dentro de la<br>plantilla del snprintf. Era cierto mientras esta punta no<br>tuviera modo propio; con D-18 dejo de serlo el mismo dia.<br>Hoy dice SUBORDINADO / DEGRADADO / RENDIDO de verdad,<br>y a COSTE CERO DE BYTES: son tres literales, no cinco<br>Contesta las tres preguntas que el operario no podia hacerse<br>desde el telefono: si esta punta esta en Degradado, si se<br>rindio a ambar por el limite de 48 h, y si lo que ve en el<br>cruce lo manda el Maestro o el reloj de aqui.<br>UN BOTON PARA ENTRAR EN UN MODO QUE NO SE PUEDE VER ES MEDIA<br>FUNCION - y el Esclavo no publicaba NADA de su Degradado"]
-        S -- "PB9 / PB13" --> MANDO_S["Mando de reles Esclavo - EL CODIGO SE CONSERVA (D-1)<br>SFTY-21: mando_ambarLocal() tiene CINCO llamadas vivas, no tres<br>El comando que NO caduca, y por eso va aqui y no un numero:<br>grep -rn mando_ambarLocal Esclavo/src/<br>  main.cpp x3 vetan; bluetooth.cpp x2 deciden CANCELAR_AMBAR<br>🔴 RE-MEDIDO 05/09 EN LA SEGUNDA PASADA: las dos de bluetooth.cpp<br>ya estaban caducadas otra vez -decian :577 y :588, hoy :620 y<br>:631, las movio D-18-. Las tres de main.cpp aguantaron.<br>CORREGIDO ANTES el 05/09: decia main.cpp:406, :416, :540<br>Retirar el ARMADOR no deja los if inertes: los deja<br>siempre ciertos, o sea BORRA el veto<br>SIGUE VIVO aunque el mando fisico se fuera: la bandera<br>simplemente no se arma nunca, que es lo correcto"]
-    end
+```
+$ grep -rn "ARQUITECTURA.map" --include=*.md .
+  02_LCD/MANUAL_PANTALLA_LCD.md      1 vez
+  05_Funcional/README.md             1 vez
+  OPTIMIZACIONES.md                  1 vez
+  INDICE_CRUZADO.md                  10 veces
+```
 
-    subgraph C3["CAPA 3 - ENLACE POR RADIO"]
-        RAD_M -. "RF 2.4 kbps - M0/M1 en OFF - FEC" .-> RAD_S
-        NOTA3["Configuracion vigente: DOS radios en enlace directo, SIN repetidor.<br>SFTY-6: SFTY6_SILENCIO_MS vive UNA VEZ, en */include/protocolo.h.<br>SON 25 s EN LA RAMA desde N-71, NO los 12 s que aun dicen varios<br>comentarios: el techo estaba por debajo del peor caso de reintentos<br>(~20,5 s) y los reintentos 4 y 5 no podian ejecutarse jamas.<br>La desigualdad la RECALCULA costura_09_presupuesto_radio desde el C++,<br>que es lo que sustituyo a la prosa que envejecia.<br><br>EN EL POSTE SIGUEN LOS 12 s (N-108, 31/08). El equipo de la calle es<br>la V8.4 (e303485) y los 25 s no han salido de la rama. El reporte de<br>campo -'se va a ambar a los 12 segundos, por nada'- CONFIRMA N-71 POR<br>EL OTRO LADO: el equipo se rendia antes de terminar de intentarlo.<br>Eso le cambia el sentido a la sesion de banco: no es solo validar lo<br>nuevo, es que el sintoma de hoy se arregla con lo que YA esta escrito."]
-    end
+> **AVISO PARA QUIEN MANTENGA `INDICE_CRUZADO.md`:** ese fichero cita
+> `ARQUITECTURA.map:97` y `ARQUITECTURA.map:267`. **Esta reescritura invalida las
+> dos**, y no se pueden arreglar desde aqui. Es exactamente CLAUDE.md 4.sexies
+> cobrandose una cita numerica: se citaba la linea de un fichero que se reescribio
+> entero.
 
-    subgraph C4["CAPA 4 - ESP32 DE EXPANSION - EL FIRMWARE YA EXISTE"]
-        ESP["ESP32-WROOM-32 clasico - accesorio, NO controlador<br>No manda sobre las luces: PIDE, y el STM32 acepta o rechaza<br>FUENTE PROPIA DESDE 12 V - NO cuelga del 3,3 V de J17<br>Firmware: 01_Firmware/ESP32_Expansion/ - COMPILA<br>Rol dado de alta en compuerta.py:114"]
-        ENL_M --> ESP
-        ENL_S --> ESP
-        ESP --> WDT_E["FUNCION 1 - WATCHDOG. VA PRIMERO<br>vigilante.cpp sobre esp_task_wdt<br>ESP32_WDT_MS + ESP32_ARRANQUE_MS < min(TIMEOUT_ENLACE, SFTY6)<br>ESP32_ARRANQUE_MS SIN VERIFICAR: bandera propia (AB-3)<br>packs esp32_01 y esp32_02"]
-        ESP --> RTC_E["FUNCION 2 - Reloj DS3231 ZS-042, pila propia<br>I2C: GPIO21 SDA - GPIO22 SCL - dir 0x68<br>el modulo YA TRAE sus pull-ups: no se anaden<br>bit OSF: la hora NACE NO FIABLE - pack esp32_04<br>Y EL OSF NO BASTA (01/09, pack esp32_11): OSF a cero solo<br>dice 'el oscilador no se paro', no 'este numero es la hora'.<br>Eran TRES puertas mas, y las tres acababan en una fecha<br>PERFECTAMENTE FORMADA y falsa saliendo por el puente<br>DECIDIDO, sin comprar (linea A6)"]
-        ESP --> PARTE_E["FUNCION 4 (01/09) - EL PARTE DE ARRANQUE<br>vigilante.cpp: esp_reset_reason() y sus once causas<br>un puente que revive en silencio ESCONDE el fallo que hay<br>que contar: desde la app, un ESP32 que se reinicia cada dos<br>segundos y uno sano se ven IGUAL<br>pack esp32_10 - no es redundante con esp32_01 ni esp32_02:<br>aquellos dan por bueno un modulo que se reinicia"]
-        ESP --> BT_E["FUNCION 3 - Puente Bluetooth SPP<br>BLQ-1 CERRADO 31/08: BR/EDR = Clasico = SPP<br>la app conecta sin tocar una linea<br>SUSTITUYE al modulo SPP dedicado"]
-        ESP --> FUT["Futuro: WiFi / GPS - NO decidido"]
-        NOTA4["LAS TRES BARRERAS DEL PUENTE, y las vigila un pack cada una:<br>NO ORIGINA (esp32_05) - NO PARTE NI UNE TRAMAS (esp32_06)<br>SILENCIO NO ES ORDEN (esp32_08).<br>Y NO FILTRA POR COMANDO: retransmite toda trama bien formada,<br>valida FORMATO. Un puente que conociera la lista habria que<br>recompilarlo cada vez que el protocolo crece.<br><br>AB-1 SIGUE ABIERTO, PERO YA NO ESTA A CIEGAS (01/09, d44048c).<br>SFTY-6 mira la radio, no J17, y eso NO ha cambiado: un ESP32<br>colgado sigue sin poder mover una luz ni disparar un ambar.<br>LO QUE SI HAY AHORA es un REGISTRO del silencio de J17 en las<br>dos puntas -bluetooth.cpp:197-222 M / :232-257 E-: cuenta<br>MUDO, MAX y N en segundos y los publica en un $EVENT.<br>ATENCION - Y SU LIMITE, QUE ES LA PARTE QUE HAY QUE LEER: el silencio<br>se cierra CUANDO LLEGA UNA LINEA. Un puente muerto no manda<br>ninguna, asi que el STM32 sigue SIN VER MORIR al puente en<br>vivo; lo que gana es la prueba DESPUES, cuando alguien vuelve<br>a hablar. 'Cuanto lleva mudo ahora mismo' no es observable por<br>construccion. El unico testigo en vivo sigue siendo la app.<br>Lo vigila enlace_02_silencio_j17: que CUENTE, que NO ACTUE, y<br>que no se alimente del silencio de la radio -si lo hiciera, un<br>telefono conectado SALVARIA al cruce de una caida de radio<br>real-. Dueno de la decision: el responsable."]
-    end
+**SU HERMANO ES `INDICE_CRUZADO.md`, y contestan preguntas distintas:**
 
-    subgraph C4B["CAPA 4.bis - LA PLACA PORTADORA - NO EXISTE"]
-        PLACA["PLACA PORTADORA DEL ESP32<br>NO DISENADA - NO FABRICADA - NO MEDIDA<br>ni siquiera es una linea de compras todavia<br>QUIEN LA DISENA Y QUIEN LA FABRICA: SIN DECIDIR"]
-        ESP --> PLACA
-        PLACA --> FTE["Fuente propia DC-DC 12 V -> 5 V, >= 1 A<br>linea A5 de la lista de compras - NO SE HA PEDIDO<br>el LM7805 de la tarjeta NO da los picos de ~500 mA:<br>disiparia 3,5 W y al hundirse el riel se reinicia el STM32"]
-        HUECO["HUECO ABIERTO - CINCO REQUISITOS SIN COPIA EN NINGUN FICHERO<br>Vivian solo en la guia de cableado (HTML) y se fueron al<br>reescribirla PARA EL TECNICO el 31/08 (fa66710).<br>grep sobre todo el arbol: CERO copias.<br><br>1. LO QUE ESTA PLACA NO LLEVA - barrera de arquitectura<br>2. Puntos de prueba TP1/TP2/TPG/TPV - requisito de diseno<br>3. Acceso de reflasheo sin desoldar - dos casos<br>4. La medida M6 y la regla de trazado del 12 V<br>5. Que la placa EXISTE como objeto pendiente<br><br>Recogidos en INDICE_CRUZADO.md seccion 4, H-1 a H-5.<br>Su sitio definitivo es la especificacion de la placa,<br>que el responsable encarga aparte. NO se copian a un manual."]
-        PLACA --> HUECO
-    end
+| | contesta |
+|---|---|
+| `ARQUITECTURA.map` | **COMO** esta hecho el equipo y **QUE ROMPO** si muevo un fichero |
+| `INDICE_CRUZADO.md` | **DONDE** vive cada hecho y **QUIEN SE QUEDA COLGANDO** si se reescribe un documento |
 
-    subgraph C5["CAPA 5 - CAMARAS - DOS DE DEMANDA, UNA POR POSTE"]
-        CD1["Camara de demanda sentido 1"] --> CAM_M
-        CD2["Camara de demanda sentido 2"] --> CAM_S
-        NOTA5["Cero PCs, Raspberries o Jetson externos: la analitica corre en la camara.<br>DECISIONES.md D-12: de cada camara se consume UN CONTACTO SECO.<br>No hay red, no hay imagen, no hay video en el controlador.<br>El camino con firmware probado sigue siendo PB0/J14 (camara_01_demanda).<br>Las entradas C y D de J16 estan en el firmware (deeeab4) y<br>CABLEADAS: M3 cerro el 03/09 y el paso 21 de banco movio<br>CAM_C_PIN cerrando p10 contra p11, sin demandas fantasma.<br>CORREGIDO 05/09: aqui ponia -NO SE CABLEAN antes de M3-.<br><br>AMPLIADO 05/09 (D-13 fase 1): esas entradas ya no son un pin que<br>se lee. Detras hay un VIGILANTE en las dos puntas -CAM_PEGADA a<br>los 20 min, CAM_CIEGA a las 6 h- que publica por $ALARM y en el<br>campo CAM: del $STATUS. Y en el Maestro hay un segundo camino:<br>SOSTENER la fase por nivel, no solo pedir paso por flanco.<br>UNA CAMARA POR POSTE, asi que en todo equipo montado UNO DE LOS<br>DOS PINES DE J16 ESTA VACIO - y por eso un pin que nunca dio un<br>flanco NO se vigila. Ver los nodos VIG_M y SOST_M de la capa C1."]
-    end
+**AQUI NO SE COPIA NINGUNA CIFRA DEL ACTA** salvo la cabecera de arriba, fechada.
+El recuento de packs, las comprobaciones y los porcentajes de flash se mueven cada
+hora y hay packs que los vigilan; una copia a mano seria una segunda version que
+alguien tendria que sincronizar.
 
-    subgraph C6["CAPA 6 - J16 - FIRMWARE HECHO Y CABLEADO DESBLOQUEADO"]
-        J16["J16 - conector de 16 posiciones Molex KK-254<br>p1 = 12 V CRUDOS. UNICO conector de senal de la tarjeta con 12 V<br>SE TAPA EN CADA EQUIPO QUE SE MONTE - D-4, N-120<br>p5 = PB9 mando A - p8 = PB13 mando B - el HARDWARE se retiro<br>el 05/09 (D-1), el CODIGO se queda y sigue leyendo los pines<br>p10 = PB14 = CAM_C_PIN = LA CAMARA, una por poste<br>p12 = PB15 = CAM_D_PIN = pin de camara, hoy VACIO<br>botones.cpp es el DUENO UNICO de J16, y desde 346ea5f<br>LAS CUATRO POSICIONES LLEVAN LA MISMA POLARIDAD"]
-        BLQ_M3["M3 CERRADA EL 03/09 - SE MARCA, NO SE BORRA<br>Decia BLOQUEANTE y que NADIE LO HABIA MEDIDO EN COBRE.<br>El multimetro ya paso: pasos 20 y 21 de la Guia de banco,<br>y esta en 05_Funcional/17_... seccion A - M3, que GANA<br>a este fichero en todo lo que sea hardware medido.<br><br>LO MEDIDO: R65-R68 son reales y estan en las CUATRO<br>posiciones - 9,92 a 9,94 kOhm-. p10 y p12 dan 0 V en reposo.<br>El paso 21 cableo p10 contra p11 en normalmente abierto y<br>funciono, sin demandas fantasma.<br><br>Y LA CONTRADICCION DE POLARIDAD NO ERA UNA CONTRADICCION:<br>era un defecto del fuente, y se arreglo en 346ea5f (N-118).<br>Las cuatro posiciones son INPUT pelado y activas en ALTO.<br>Se cierra contra los 3,3 V, no contra masa: J16 tiene UNA<br>sola masa en todo el conector -p2-, asi que un contacto por<br>posicion contra masa necesitaria una masa por posicion."]
-        J16 --> BLQ_M3
-        NOTA6["EL MARGEN CONTRA LOS 12 V NO ES EL QUE PARECIA, y esta medido.<br>La distancia entre PADS -10,2 / 22,9 / 27,9 mm- NO es la separacion real.<br>Lo mide sobre COBRE, respetando capas, la seccion 7.bis.2 de<br>03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md - se cita la SECCION y no<br>la linea a proposito: nueve documentos apuntaban a -:576-588- y una<br>sola insercion arriba los caduca a los nueve de golpe (CLAUDE.md 4.sexies):<br>/Boton1 1,405 mm - /Boton2 1,408 mm - /Boton3 4,269 mm - /Boton4 1,359 mm.<br>EL ORDEN SE INVIERTE: p12 es el PEOR, no el mas seguro.<br>1,36 mm es cobre de diseno, sin tolerancia de fabrica ni suciedad de armario.<br>p1 se tapa fisicamente antes de cablear nada: el destornillador no lee.<br><br>Y EL ORDEN SIGUE SIENDO ASIMETRICO (CLAUDE.md 9.bis) aunque M3 ya cerro:<br>el firmware nuevo tiene que ESTAR CARGADO EN LA TARJETA antes de que<br>nadie enchufe nada en J16. Con un binario anterior a deeeab4 dentro,<br>PB14 vuelve a ser botonAceptar() -el que EJECUTA- y cualquier cosa<br>enchufada en p10 puede pulsar Aceptar en un equipo que esta en la calle.<br>Se exige la carga VERIFICADA, no el merge: un commit no protege de un<br>destornillador."]
-    end
+---
 
-    subgraph C7["RETIRADO O REPLANTEADO - SE MARCA, NO SE BORRA"]
-        R_LCD["🔴 LA PANTALLA Y EL MENU SE RETIRAN DEL EQUIPO - D-17.bis, 05/09<br><br>~~LA PANTALLA NO SE RETIRA - VIGENTE, y hoy la decision es D-6~~<br>~~DECISIONES.md D-6, 04/09: -La pantalla LCD NO se retira-,~~<br>~~porque 271 comprobaciones cuelgan de ella.~~<br>DEROGADO EL 05/09 POR EL RESPONSABLE: -la pantalla LCD ya no va,<br>pues los pines y el equipo lo quitamos-. Es D-17.bis, y deroga D-6.<br>Se TACHA y no se borra: una decision que desaparece en silencio<br>se vuelve a proponer, y la segunda vez nadie recuerda por que cayo.<br><br>Y EL MOTIVO DE D-6 ERA FALSO COMO ARGUMENTO, que es la parte que<br>hay que aprender: las 271 comprobaciones NO cuelgan de la pantalla,<br>cuelgan del ARNES, y el arnes mide un framebuffer en el PC. No se<br>cae al no montar la ST7920. Era una excepcion escrita y nunca<br>comprobada -CLAUDE.md 2.ter-, sosteniendo una decision.<br><br>⚠️ EL MATIZ QUE HAY QUE SOSTENER, porque decir -la pantalla no<br>existe- seria la siguiente frase falsa: SE RETIRA DEL EQUIPO,<br>NO DEL CODIGO. lcd.cpp compila, menu.cpp compila, y Validacion_LCD<br>SIGUE SIENDO UNA FILA DE LA COMPUERTA, en verde -cifra en el acta-.<br>Lo que muere es LA INTERFAZ - y con ella dos modos: ver C11.<br><br>ACTUALIZADO 05/09: aqui ponia -DECISION DEL 31/08-, que ya no es<br>la fila vigente. La tabla de DECISIONES.md gana a este fichero.<br>Lo que se hace en el firmware es DEJAR DE CONDUCIR PB3/PB4/PB5.<br>EL PORQUE, medido en el cobre: J17 reparte UN SOLO conector<br>entre la LCD (p4/p1/p5) y el ESP32 (p3/p2) -seccion 6.bis y 7<br>de MAPEO_TARJETA_KICAD.md-, y PB3 es el RELOJ del SPI de<br>software: CONMUTA EN CADA BIT, pegado al RX/TX del ESP32<br>dentro del mismo mazo. Es la corrupcion intermitente que no se<br>diagnostica nunca, porque aparece segun lo que se este dibujando.<br><br>SE CONSERVAN el API lcd_* entero, menu.cpp entero y el arnes<br>Validacion_LCD. Con menu.cpp se conserva una de las vias que<br>sacan al Esclavo del Degradado.<br>CORREGIDO 05/09: aqui ponia -y la de la app esta rota (N-106)-.<br>N-106 SE CERRO EL 01/09 y este mismo mapa lo dice en la capa C10:<br>el fichero se contradecia a si mismo. Medido hoy por simbolo:<br>grep -rn salidaDegradadoIniciada Esclavo/src -> bluetooth.cpp:329<br>la define, y DOS la llaman -RE-MEDIDO 05/09: decia :425 y :520,<br>hoy :468 y :563; las movio D-18-. La via de la app FUNCIONA.<br>O sea que el argumento -no quitar el menu porque la otra via<br>esta rota- YA NO SOSTIENE NADA.<br>🔴 Y DESDE D-17.bis TAMPOCO SOSTIENE D-6, que era lo otro que<br>quedaba: D-6 esta derogada y su motivo era falso. Lo unico que<br>sostiene a menu.cpp HOY es que retirarlo es un trabajo aparte<br>con su propia medida -Validacion_LCD lo compila de verdad-,<br>no que haga falta para operar nada. Ver C11.<br>Y con D-18 la via de la app al Degradado ya no es solo de<br>SALIDA: tambien es de ENTRADA, en el Esclavo.<br><br>COMO, y ya COMMITEADO (88b0142): el constructor SW SPI se<br>conserva y recibe los CUATRO pines en U8X8_PIN_NONE, asi que no<br>queda ni un pinMode ni un digitalWrite y PB3/PB4/PB5 quedan en<br>alta impedancia. MEDIDO 05/09 por simbolo, y NO es la misma<br>linea en las dos puntas: grep -n U8X8_PIN_NONE da<br>Maestro/src/lcd.cpp:74-75 y Esclavo/src/lcd.cpp:92-93.<br>Se eligio esa forma y no procedimientos de bus nulos -que ahorraban<br>524 B mas- porque DOS PACKS leen ese constructor POR TEXTO<br>(flash_01_lastre y enlace_01_transporte): cambiar la FORMA los<br>dejaba en ABORTADO. Es N-89. Lo vigila costura_11_lcd_sin_bus."]
-        R_BOT["Pulsadores 3 y 4 - RETIRADOS, y sus pines son ya las camaras<br>DECISIONES.md D-2 (28/08): PB14 p10 y PB15 p12 son LAS DOS CAMARAS.<br>botonAceptar() y botonCancelar() quedan SIN SUJETO y devuelven<br>false fijo. El comando, que es lo que no caduca:<br>grep -n 'bool boton' Maestro/src/botones.cpp<br>🔴 RE-MEDIDO 05/09 EN LA SEGUNDA PASADA Y VOLVIA A ESTAR MAL:<br>decia Maestro :539 y Esclavo :550, y hoy son :659 y :645.<br>Antes decia :280-281. Tres numeros distintos para la misma<br>funcion en cuatro dias, y las tres veces publicados como medida.<br>NO se borraron a proposito: un grep sigue listando EN UNA SOLA<br>LISTA todo lo que la retirada se llevo por delante.<br><br>🔴 Y SON DOS DE CUATRO, NO CUATRO: botonArriba() y botonAbajo()<br>SIGUEN VIVOS y leen BOTON1/BOTON2, o sea J16 p5/p8. Ver el nodo<br>LIBRE_M y la capa C11.<br><br>La salida de los modos la da hoy SET_MODO:MENU por Bluetooth<br>(N-100), que por eso fue la Fase 1. Su rama vive en<br>Maestro/src/bluetooth.cpp:570 -medido 05/09; decia :191-.<br><br>Y LO QUE ESTO CUESTA, que hay que leer junto a D-16: retirados<br>los pulsadores Y el mando fisico (D-1), SIN TELEFONO NO HAY<br>FORMA DE OPERAR EL EQUIPO. Es una propiedad DECLARADA del<br>sistema, no una averia."]
-        R_SPP["Modulo Bluetooth SPP dedicado (HC-05 / JDY-30)<br>lo sustituye el ESP32 - BLQ-1 cerrado, ya no es condicional"]
-        R_RTC["RTC interno del STM32 con cristal Y2 + CR2032<br>Y2 CONFIRMADO MUERTO EN BANCO el 01/08 (N-17, N-37)<br>el reloj se va al DS3231 del ESP32<br>ABIERTO: reparar el cristal o reloj de software (AB-4 / BLQ-2)<br>y falta diagnosticar el Y2 de la SEGUNDA tarjeta"]
-        R_I2C["PIN-0: bus I2C con PCF8574 sobre PB0/PB8 - ANULADA el 28/08<br>el I2C ya no vive en el STM32: el DS3231 cuelga del ESP32"]
-        R_CAM4["Las 4 camaras AcuSense con camara de UMBRAL en PB8 - RETIRADO<br>PB8 no es una bornera: es R16 1K + LED D5, un testigo en la placa<br>cuatro manuales lo describieron como umbral durante meses (N-59)"]
-        R_REP["Repetidor ESP32 - el firmware existe y compila<br>pero la configuracion vigente NO lo usa: dos radios en directo.<br>NO CONFUNDIR con ESP32_Expansion: son dos proyectos y dos roles"]
-    end
+## 1. EL ARBOL REAL
 
-    subgraph C8["DECLARADO Y MUERTO EN LAS DOS PUNTAS - censo por grep, no lectura"]
-        D_PEA["ROJO_PEATON PA6 J11 y VERDE_PEATON PA7 J9<br>MUERTOS: sin pinMode, sin digitalWrite, sin digitalRead<br>escribirPines() mueve SEIS pines de luz, no ocho<br>La unica aparicion fuera de pines.h es un comentario, main.cpp:35<br>MATIZ: el pack barrera_01 SI los cubre - la regla es que ningun pin<br>cuyo nombre empiece por ROJO/AMARILLO/VERDE se escriba fuera de<br>semaforo.cpp, y estos dos la cumplen porque no se escriben en ningun sitio.<br>Estar bajo custodia no es estar vivo (N-96)"]
-        D_BUZ["BUZZER PB1 J13<br>MUERTO: cero apariciones fuera de pines.h<br>tiene cadena de potencia propia en la placa (opto U13, MOSFET Q8)"]
-        D_LED["LED_TESTIGO PB8 - pinMode(INPUT) y NUNCA se lee<br>ES DELIBERADO Y ESTA DOCUMENTADO - pines.h:48-63<br>alta impedancia a proposito: un pin flotante no enciende el LED<br>con INPUT_PULLUP quedaria un testigo a medias que nadie sabria explicar<br>NO ES UN DEFECTO. Lo vigila el pack camara_01_demanda con cable trampa"]
-        D_RS485["RS485_IN_TX PA9 y RS485_IN_RX PA10 - NO SE USAN<br>cero pinMode, cero digitalWrite, cero digitalRead<br>solo aparecen en un comentario de protocolo.cpp:20<br>El USART1 real es SerialBT(PB7, PB6), no PA9/PA10<br>y con el, U2 y la bornera J10 quedan libres"]
-        D_NOM["Los nombres LCD_PSB y LCD_RST de pines.h:88-89 apuntan a PB6/PB7,<br>QUE HOY SON DEL BLUETOOTH. El nombre engana, el pin no.<br>Y el nombre de PB6 sigue en disputa: la red del esquematico es RS(A0)<br>-pines.h:78-. Es AB-6. Se cierra siguiendo el hilo hasta la pata<br>rotulada, no leyendo mas codigo"]
-    end
+### 1.1 Primer nivel `[MEDIDO 07/09 - ls -la de la raiz]`
 
-    subgraph C9["VIVO PERO CON EL COMENTARIO CADUCADO"]
-        V_PA8["RS485_IN_DE_RE PA8 - VIVO<br>~~bluetooth.cpp:68-69 (Maestro), :76-77 (Esclavo)~~<br>🔴 ESE PAR DE CITAS LLEVABA TRES DIAS CONTRADICIENDO AL ANEXO A<br>DE ESTE MISMO FICHERO, que las corrigio el 02/09 y este nodo no.<br>Se dan por comando, no por numero:<br>grep -n RS485_IN_DE_RE Maestro/src/bluetooth.cpp -> :135-136<br>grep -n RS485_IN_DE_RE Esclavo/src/bluetooth.cpp -> :163-164<br>-RE-MEDIDO 05/09, y siguen ahi: los ocho commits no las movieron-<br>pinMode(OUTPUT) + digitalWrite(HIGH)<br>Apaga el receptor de U2. Pero su comentario justificativo<br>-liberar PA10 para el modulo Bluetooth- ES FALSO DESDE N-76:<br>el Bluetooth se mudo a PB6/PB7 y PA10 ya no lo usa nadie"]
-        V_GATE["compuerta.py - CORREGIDO EL 02/09, y la correccion es la leccion.<br>Este mapa acusaba a compuerta.py:671-676 y :802-806 de decir que<br>el C++ del ESP32 'todavia no existe'. MEDIDO hoy, esas lineas son<br>otra cosa: :671-676 es la guarda de gcc del arnes del respaldo y<br>:802-806 el ABORTADO del arnes del Degradado a dos puntas.<br>La acusacion se habia quedado apuntando a lineas que se movieron.<br><br>~~LO QUE SI QUEDA: UNA sola aparicion, compuerta.py:950, dentro~~<br>~~del bloque del simulador del puente - 'el ESP32, cuyo C++~~<br>~~todavia no existe'. No se toca aqui.~~<br>🟢 CERRADO, Y ESTE NODO NO SE HABIA ENTERADO. RE-MEDIDO 05/09:<br>  grep -n 'todavia no existe' 01_Firmware/compuerta.py -> :951<br>y lo que hay ahi ES LA CORRECCION, no el defecto: -AQUI DECIA...<br>Caducado el 02/09-. La frase que este mapa acusaba ya no la<br>afirma nadie. El rol sigue de alta -grep -n _ROLES compuerta.py-<br>y la compuerta compila los cuatro.<br>O SEA QUE ESTE NODO SE QUEDO ACUSANDO A UN FICHERO YA ARREGLADO,<br>que es la misma enfermedad que el propio nodo denuncia una capa<br>arriba: lo que nadie relee envejece, incluidas las denuncias.<br><br>LA REGLA: un defecto se persigue por su TEXTO, no por su linea.<br>Una cita numerica de un fichero en vuelo caduca sola, y encima<br>caduca acusando a un inocente"]
-    end
+```
+Controladora_Semaforos 2/
+|
++-- 01_Firmware/            firmware de los 4 roles + TODOS los instrumentos
++-- 02_LCD/                 2 ficheros. Manual de la pantalla -LEGACY, ver D-17.bis-
++-- 03_Hardware_Tarjeta/    MAPEO_TARJETA_KICAD.md + indice_netlist.py
++-- 04_Manuales/            manuales de terceros (camara, radios) y los 2 propios
+|                           MANUAL_USUARIO.md / MANUAL_HARDWARE.md - mudados aqui el 05/09
++-- 05_Funcional/           los 19 documentos numerados (.md + .docx) y App_Semaforo/
++-- 05_Imagenes/            3 .jpg de la app
++-- 99_Legacy/              zips de entregas viejas y firmware retirado. NO se toca
++-- evidencia/              actas de la compuerta + fotos de banco (WhatsApp *.jpeg)
++-- scratch/                6 .py sueltos de exploracion. EN .gitignore
+|
++-- ARQUITECTURA.map        este fichero
++-- CLAUDE.md               reglas permanentes del repositorio
++-- DECISIONES.md           tabla D-x / A-x. GANA en toda decision vigente
++-- ESTADO.md               donde esta parado el trabajo HOY
++-- roadmap.md              el porque, con los N-x debajo
++-- README.md               portada. Sus cifras se copian del acta
++-- CERTIFICACION_SW.md     lo que se puede afirmar del software
++-- OPTIMIZACIONES.md       reglas SFTY-x y trazabilidad regla -> codigo -> prueba
++-- INDICE_CRUZADO.md       donde vive cada hecho; huecos abiertos
++-- LEEME_PRIMERO.md        portada del paquete que se entrega
++-- ORDEN_EJECUCION.md      2 KB, del 28/07. Sin tocar desde entonces
++-- generar_entrega_v9_0.py el empaquetador del .zip
++-- *.apk (3) y *.zip (1)   artefactos de entrega. EN .gitignore
++-- v8_definitiva_changes.patch   480 KB del 31/07. EN .gitignore
+```
 
-    subgraph C10["N-106 - CERRADO EL 01/09. SE MARCA, NO SE BORRA"]
-        N106["N-106 - EL AMBAR DE LA APP YA SACA AL ESCLAVO DEL DEGRADADO<br><br>LO QUE ERA: mando B.B.B llamaba a degradado_salir() y SI salia;<br>App CMD:AMBAR_EMERGENCIA no mencionaba el Degradado, NO salia,<br>y ya habia mandado un $ACK RESULT:OK. Era la barrera de CLAUDE.md 6:<br>un $ACK que no depende de lo que la llamada devolvio.<br><br>COMO SE CERRO, sobre Esclavo/src/bluetooth.cpp: las dos puertas<br>del ambar por Bluetooth -con PIN y sin PIN- consultan<br>degradado_gobiernaLuz() DENTRO de su bloque, tienen rama propia<br>para degradado_rendicionEnCurso(), y hay un envoltorio<br>-salidaDegradadoIniciada()- que devuelve lo que degradado_salir(),<br>que es void y abandona en silencio, no sabia decir. Es el molde de<br>SET_TIEMPOS aplicado aqui.<br>🔴 LOS CINCO NUMEROS QUE HABIA AQUI ESTAN CADUCADOS - se dan por<br>simbolo y con su comando, que es lo unico que sobrevive a D-18:<br>grep -n degradado_gobiernaLuz Esclavo/src/bluetooth.cpp<br>grep -n degradado_rendicionEnCurso Esclavo/src/bluetooth.cpp<br>  decia gobiernaLuz :316 y :403     -> hoy :451 y :538<br>  decia rendicionEnCurso :340, :417 -> hoy :475 y :567<br>  decia el envoltorio :260-273      -> hoy cuelga de :319<br>Esta capa se escribio para documentar un cierre y llevaba cinco<br>citas apuntando a codigo que se habia movido: la capa dedicada a<br>-se marca, no se borra- necesitaba que alguien la releyera.<br><br>SU PACK esclavo_08_ambar_en_degradado ESTA HOY EN VERDE: 8/8.<br>NACIO EN ROJO A PROPOSITO (829c457) y por eso vale su verde de hoy:<br>es lo unico que demuestra que sabe fallar. Cuatro de sus ocho<br>comprobaciones son controles negativos, y uno de ellos existe justo<br>para que el arreglo no entre por UNA sola de las dos puertas.<br><br>QUE DEBE HACER el ambar de la app en Degradado SIGUE SIENDO DEL<br>RESPONSABLE: es lo que ve un conductor. Lo cerrado es la<br>incoherencia entre las dos vias, no la decision vial."]
-    end
+### 1.2 Ruido: existe y se ignora - NO se inventaria
 
-    subgraph C11["CAPA 11 - LO QUE LA RETIRADA DE LA PANTALLA DEJA SIN PUERTA O SIN SALIDA - 05/09"]
-        C11_NOTA["ESTA CAPA ES NUEVA Y NO SON ERRATAS: SON TRES PROPIEDADES DE<br>ARQUITECTURA que ningun documento decia. Salen de cruzar D-17.bis<br>-el menu deja de ser interfaz- con lo que el menu era el unico en<br>hacer. Medidas por grep sobre HEAD c02be59, no razonadas.<br><br>Y NINGUNA DE LAS TRES ES UN FALLO DE HOY: el equipo no se porta<br>mal por ellas. Son puertas tapiadas y salidas al vacio, que es<br>justo lo que no se ve desde un instrumento en verde"]
+`[MEDIDO 07/09 - .gitignore + test -e]`
 
-        C11_HORA["🔴 1. MODO_HORA ES EL UNICO DE LOS OCHO MODOS AL QUE NO SE PUEDE ENTRAR<br><br>UN SOLO ARMADOR EN TODO EL FIRMWARE:<br>  grep -rn MODO_HORA Maestro/src<br>  menu.cpp:129  case 1: modoActual_set(MODO_HORA);<br>y esa linea vive detras de un if (botonAceptar()), que devuelve<br>false fijo desde el 31/08. La puerta esta tapiada por DENTRO.<br><br>Y NO HAY SEGUNDA PUERTA: NO EXISTE SET_MODO:HORA. Los siete<br>SET_MODO que si existen -AUTO, MANUAL, AMBAR, MENU, ALCANCE,<br>INTELIGENTE, DEGRADADO- estan en Maestro/src/bluetooth.cpp y se<br>cuentan con: grep -n 'SET_MODO:' Maestro/src/bluetooth.cpp<br><br>ESTO NO ES UN HUECO QUE HAYA QUE TAPAR, y por eso va aqui y no en<br>roadmap: EL RELOJ YA NO VIVE EN EL STM32. Se pone y se lee por<br>SET_RTC / LEER_RTC contra el DS3231 del ESP32 (D-17), que es donde<br>esta. MODO_HORA era la pantalla de ajustar un cristal Y2 que esta<br>CONFIRMADO MUERTO (N-17). O sea que lo correcto es que no se entre.<br>LO QUE HAY QUE DECIDIR ES SI SE RETIRA, no si se le pone puerta.<br>main.cpp sigue teniendo sus dos case -setup y loop- y modo_hora.cpp<br>sigue compilando y ocupando flash en un binario sin margen comodo<br>-el porcentaje vive en el acta de evidencia/, no aqui-"]
+| ruta | estado |
+|---|---|
+| `scratch/` | EXISTE, ignorado |
+| `05_Funcional/App_Semaforo/node_modules/` | EXISTE, ignorado |
+| `01_Firmware/Maestro/.pio/`, `Esclavo/.pio/` | EXISTEN, ignorados |
+| `05_Funcional/App_Semaforo/android/app/build/` | EXISTE, ignorado |
+| `__pycache__/` (varios) | ignorado. **El de la raiz DESAPARECIO durante esta pasada** |
+| `01_Firmware/Validacion_*/build/`, `Simulaciones/puente_esp32/build/` | ignorados |
+| `*.zip *.rar *.7z *.apk *.patch` | ignorados |
 
-        C11_ALC["🔴 2. MODO_ALCANCE SE PIDE DESDE EL TELEFONO Y CONTESTA A LA PANTALLA<br><br>Este si tiene puerta: SET_MODO:ALCANCE existe en bluetooth.cpp.<br>Lo que no tiene es SALIDA. Su unico consumidor:<br>  grep -n lcd_dibujarAlcance Maestro/src<br>  modo_alcance.cpp:35  lcd_dibujarAlcance(calidad, rtt, fallos, ...)<br><br>O SEA QUE EL OPERARIO LO PIDE DESDE EL TELEFONO, PARA EL CRUCE, Y<br>NO RECIBE NADA. Y no es un modo inocuo: pone el cruce en ROJO FIJO.<br>Con la pantalla retirada, pedirlo es parar el cruce a ciegas.<br>Es la barrera de CLAUDE.md 6 en su forma menos evidente: el $ACK<br>no miente -el modo SI entra-, pero lo que el modo produce se<br>escribe en un dispositivo que ya no se monta.<br><br>Y EL DATO QUE FALTA PARA QUE SIRVA POR RADIO YA ESTA ESCRITO Y<br>MEDIO MUERTO: protocolo_tramasDescartadas() -el contador que<br>separa 'no llega nada' de 'llega basura'-.<br>  grep -rn protocolo_tramasDescartadas 01_Firmware<br>⚠️ Y AQUI HAY QUE SER PRECISO, porque la frase corta es falsa:<br>NO es huerfana en las dos puntas. EN EL ESCLAVO TIENE DOS<br>LLAMADORES -bluetooth.cpp la publica en el $ALARM de la caida y<br>en el $EVENT de la vuelta-. Es huerfana SOLO EN EL MAESTRO, y<br>costura_10_funciones_muertas lo dice con esas palabras desde<br>N-108. Que la punta sin llamador sea justo la del MODO_ALCANCE<br>es la coincidencia que hace util este hallazgo: el modo de medir<br>el enlace vive donde el contador del enlace no sale por ningun sitio"]
+> **EL ARBOL ESTA EN VUELO.** Al abrir esta sesion la raiz tenia `__pycache__/`;
+> al cerrarla ya no existe. Otro agente lo borro mientras se medía. Nada de lo de
+> aqui depende de el, pero **una medida de un arbol compartido caduca en minutos**:
+> lo que se publica es el COMANDO, no el resultado.
 
-        C11_BOT["🔴 3. LIBRE DE COBRE NO ES LIBRE DE FIRMWARE<br><br>botonArriba() y botonAbajo() SIGUEN VIVOS en las DOS puntas y<br>leen BOTON1/BOTON2, que son J16 p5 y p8 - LOS PINES DEL MANDO.<br>Solo botonAceptar() y botonCancelar() son return false;<br>  grep -n 'bool boton' Maestro/src/botones.cpp -> :617 :618 :659 :660<br>  grep -n 'bool boton' Esclavo/src/botones.cpp -> :603 :604 :645 :646<br><br>D-1 retiro el mando FISICO y D-17.bis retira la PANTALLA, pero<br>ninguna de las dos toca este camino: lo que entre por p5 o p8<br>sigue moviendo el cursor de un menu que corre sin que nadie lo<br>vea, ademas de alimentar el reconocedor de secuencias del mando.<br>Que no se pueda SELECCIONAR no es lo mismo que que no pase nada.<br><br>ES A-2 CON UN SUJETO MAS, y por eso importa antes de cablear:<br>quien decida que se pone en p5/p8 -un fin de carrera, otra<br>camara- hereda DOS consumidores, no uno. Y CLAUDE.md 3.ter avisa<br>en la otra direccion: retirarlos tampoco es neutro, hay que censar<br>quien lee la bandera antes de borrar el armador"]
-    end
+### 1.3 `01_Firmware/` - segundo nivel `[MEDIDO 07/09]`
 
-    style GATE fill:#d4edda,stroke:#28a745,stroke-width:2px
-    style C11_NOTA fill:#e2e3e5,stroke:#383d41,stroke-width:2px
-    style C11_HORA fill:#f8d7da,stroke:#721c24,stroke-width:3px
-    style C11_ALC fill:#f8d7da,stroke:#721c24,stroke-width:3px
-    style C11_BOT fill:#f8d7da,stroke:#721c24,stroke-width:3px
-    style VIG_M fill:#cce5ff,stroke:#004085,stroke-width:2px
-    style SOST_M fill:#cce5ff,stroke:#004085,stroke-width:2px
-    style LIBRE_M fill:#f8d7da,stroke:#721c24,stroke-width:3px
-    style DEG_S fill:#d4edda,stroke:#28a745,stroke-width:2px
-    style STAT_S fill:#d4edda,stroke:#28a745,stroke-width:2px
-    style M fill:#d4edda,stroke:#28a745,stroke-width:2px
-    style S fill:#d4edda,stroke:#28a745,stroke-width:2px
-    style ESP fill:#d4edda,stroke:#28a745,stroke-width:2px
-    style WDT_E fill:#cce5ff,stroke:#004085,stroke-width:2px
-    style RTC_E fill:#cce5ff,stroke:#004085,stroke-width:2px
-    style BT_E fill:#cce5ff,stroke:#004085,stroke-width:2px
-    style FUT fill:#e2e3e5,stroke:#383d41,stroke-width:1px
-    style PLACA fill:#f8d7da,stroke:#721c24,stroke-width:3px
-    style HUECO fill:#f8d7da,stroke:#721c24,stroke-width:3px
-    style FTE fill:#fff3cd,stroke:#856404,stroke-width:2px
-    style BLQ_M3 fill:#f8d7da,stroke:#721c24,stroke-width:3px
-    style J16 fill:#fff3cd,stroke:#856404,stroke-width:2px
-    style NOTA6 fill:#f8d7da,stroke:#721c24,stroke-width:2px
-    style NOTA4 fill:#fff3cd,stroke:#856404,stroke-width:2px
-    style N106 fill:#d4edda,stroke:#28a745,stroke-width:2px
-    style ARN_2P fill:#d4edda,stroke:#28a745,stroke-width:2px
-    style ARN_DEG2P fill:#d4edda,stroke:#28a745,stroke-width:2px
-    style PARTE_E fill:#cce5ff,stroke:#004085,stroke-width:2px
-    style NOTA0B fill:#f8d7da,stroke:#721c24,stroke-width:3px
-    style D_PEA fill:#e2e3e5,stroke:#383d41,stroke-width:2px
-    style D_BUZ fill:#e2e3e5,stroke:#383d41,stroke-width:2px
-    style D_RS485 fill:#e2e3e5,stroke:#383d41,stroke-width:2px
-    style D_NOM fill:#e2e3e5,stroke:#383d41,stroke-width:2px
-    style D_LED fill:#fff3cd,stroke:#856404,stroke-width:2px
-    style V_PA8 fill:#fff3cd,stroke:#856404,stroke-width:2px
-    style V_GATE fill:#fff3cd,stroke:#856404,stroke-width:2px
-    style R_LCD fill:#fff3cd,stroke:#856404,stroke-width:2px
-    style R_BOT fill:#e2e3e5,stroke:#383d41,stroke-width:2px
-    style R_SPP fill:#e2e3e5,stroke:#383d41,stroke-width:2px
-    style R_RTC fill:#fff3cd,stroke:#856404,stroke-width:2px
-    style R_I2C fill:#e2e3e5,stroke:#383d41,stroke-width:2px
-    style R_CAM4 fill:#e2e3e5,stroke:#383d41,stroke-width:2px
-    style R_REP fill:#e2e3e5,stroke:#383d41,stroke-width:2px
-    style MANDO_M fill:#d1ecf1,stroke:#0c5460,stroke-width:2px
-    style MANDO_S fill:#d1ecf1,stroke:#0c5460,stroke-width:2px
-    style CAMCD_M fill:#d1ecf1,stroke:#0c5460,stroke-width:2px
-    style CAMCD_S fill:#d1ecf1,stroke:#0c5460,stroke-width:2px
-    style SIM_PUENTE fill:#cce5ff,stroke:#004085,stroke-width:2px
-    style MI_M fill:#d4edda,stroke:#28a745,stroke-width:2px
+```
+01_Firmware/
++-- compuerta.py              994 lineas. LA UNICA FORMA CORRECTA DE VERIFICAR
++-- Maestro/                  firmware STM32F103C8T6 - controlador
++-- Esclavo/                  firmware STM32F103C8T6 - obedece
++-- Repetidor/                firmware ESP32, 3 ficheros. FUERA de la config vigente
++-- ESP32_Expansion/          firmware ESP32 - puente BT + reloj DS3231
++-- Simulaciones/             banco/ (76 packs) + 4 simuladores + puente_esp32/
++-- Validacion_LCD/           arnes que compila lcd.cpp/menu.cpp/modos.cpp reales
++-- Validacion_Ciclo/         arnes de ciclo_degradado.h
++-- Validacion_Respaldo/      arnes de respaldo.cpp
++-- Validacion_Automatico/    3 arneses: automatico, dos_puntas, degradado
++-- Controladora_Semaforos/   >>> OJO: DIRECTORIO ANIDADO DOS VECES <<<
+|     +-- Controladora_Semaforos/  los .kicad_pcb / .kicad_sch / .kicad_pro
+|     +-- Gerber_Semaforos/        los .gbr y el .drl
++-- Semaforos/                proyecto PlatformIO viejo (compile_commands, lib, test)
++-- Diagnostico_LCD/          proyecto PlatformIO de diagnostico de pantalla
++-- Camara/                   Python de vision (ConteoPersonas.py, deep_sort, RS.py)
+|                             NO forma parte del producto: D-12 dice que del sistema
+|                             solo se consume UN CONTACTO SECO
++-- FIRMWARE.md, TROUBLESHOOTING.md
+```
 
-%% ===========================================================================
-%% ANEXO A - CENSO DE PINES. RE-MEDIDO SOBRE EL FUENTE EL 05/09/2026
-%%
-%% 🔴 LOS DOS pines.h YA NO SON BYTE-IDENTICOS, y la frase de abajo llevaba
-%%    dias siendo falsa. Aqui ponia:
-%%      "son BYTE-IDENTICOS: md5 = d5d0be19911e0ec9b19ed6e55f799d08"
-%%    MEDIDO HOY, y ninguno de los dos es ya ese md5:
-%%      32b6e2b6029102d6e95bee135097b9e3   Maestro/include/pines.h   167 lineas
-%%      fc6a477eb556af48754bba56baf43cb4   Esclavo/include/pines.h   166 lineas
-%%
-%%    LO QUE DIFIERE ES SOLO COMENTARIO, y hay que decirlo con precision
-%%    porque la conclusion util cambia segun cual sea: el BLOQUE DE #define
-%%    -los diecinueve pines- SIGUE SIENDO IDENTICO. Lo que diverge es la
-%%    cabecera de N-118: el arreglo de 273b315 corrigio la frase falsa
-%%    "INPUT_PULLUP, activo en BAJO" en el Maestro y NO TOCO EL ESCLAVO, asi
-%%    que durante unas horas el Poste 2 -el que esta a 1000 m- llevo la
-%%    cabecera equivocada. Hoy las dos estan bien y cuentan la historia
-%%    distinto, por eso el md5 no vuelve a casar.
-%%
-%%    LA REGLA QUE DEJA: un md5 en un documento es un HASH DE TODO, comentarios
-%%    incluidos, asi que caduca cada vez que alguien toca una coma y deja de
-%%    decir lo que se queria decir. Si lo que importa es que los PINES sean los
-%%    mismos, se compara el bloque de #define, no el fichero:
-%%      diff <(grep '^#define' Maestro/include/pines.h) \
-%%           <(grep '^#define' Esclavo/include/pines.h)   -> vacio [MEDIDO 05/09]
-%%
-%% El censo es grep de pinMode / digitalRead / digitalWrite sobre src/, no
-%% lectura -CLAUDE.md seccion 3.ter-.
-%%
-%% pin   nombre            bornera  estado                          evidencia
-%% ----  ----------------  -------  ------------------------------  --------------------------
-%% [RE-MEDIDO 05/09: las seis lineas de escritura se movieron de :49-:54 a
-%%  :61-:66. Se dan por su SIMBOLO, que es lo que no caduca: las seis viven
-%%  dentro de escribirPines(), grep -n "static void escribirPines" -> :60]
-%% PA0   ROJO1             J3       VIVO   OUTPUT                   semaforo.cpp:61 en escribirPines()
-%% PA1   AMARILLO1         J4       VIVO   OUTPUT                   semaforo.cpp:63 en escribirPines()
-%% PA2   VERDE1            J5       VIVO   OUTPUT                   semaforo.cpp:65 en escribirPines()
-%% PA3   ROJO2             J6       VIVO   OUTPUT                   semaforo.cpp:62 en escribirPines()
-%% PA4   AMARILLO2         J7       VIVO   OUTPUT                   semaforo.cpp:64 en escribirPines()
-%% PA5   VERDE2            J8       VIVO   OUTPUT                   semaforo.cpp:66 en escribirPines()
-%%                                            [Y OJO CON ESTE, que no es firmware:
-%%                                             el LED D21 del canal VERDE2 -Q6 -> J8- tiene
-%%                                             el CATODO SIN CONECTAR, red unconnected-
-%%                                             (D21-K-Pad1), cero pistas y cero hilos. Es el
-%%                                             UNICO de los diez sin indicador, y J8 p2 FLOTA
-%%                                             en reposo en vez de subir a ~12 V como los otros
-%%                                             nueve. SIN VERIFICAR si es defecto o decision:
-%%                                             es A-10 de DECISIONES.md, y es de BANCO]
-%% PA6   ROJO_PEATON       J11      MUERTO declarado, sin uso       pines.h + coment. M:main.cpp:35
-%% PA7   VERDE_PEATON      J9       MUERTO declarado, sin uso       pines.h + coment. M:main.cpp:35
-%%                                            [PRECISADO 02/09: el comentario esta SOLO en el
-%%                                             Maestro. En el Esclavo estos dos nombres no
-%%                                             aparecen fuera de pines.h ni una vez]
-%% PA8   RS485_IN_DE_RE    U2       VIVO   OUTPUT HIGH              M: bluetooth.cpp:135-136
-%%                                                                  E: bluetooth.cpp:163-164
-%%                                            [CORREGIDO 02/09: decia :68-69 / :76-77, que hoy
-%%                                             son un comentario del registro de J17. No es que
-%%                                             el pin cambiara: se movio el codigo]
-%%                                            [RE-MEDIDO 05/09: se habian movido OTRA VEZ, una
-%%                                             linea y dos. Van por simbolo:
-%%                                             grep -n RS485_IN_DE_RE Maestro/src/bluetooth.cpp
-%%                                             Es la tercera vez que esta fila caduca en cuatro
-%%                                             dias, y es el argumento entero de CLAUDE.md
-%%                                             4.sexies: se cita el simbolo, no la linea]
-%% PA9   RS485_IN_TX       J10      MUERTO declarado, sin uso       solo pines.h
-%% PA10  RS485_IN_RX       J10      MUERTO declarado, sin uso       solo pines.h
-%% PB0   CAM_DEMANDA_PIN   J14      VIVO   INPUT, activo en ALTO    M: botones.cpp:530 -decia :410-
-%%                                                                  E: main.cpp:288 / :350
-%% PB1   BUZZER            J13      MUERTO declarado, sin uso       solo pines.h
-%% PB2   MOTOR_TALANQUERA  J15      VIVO   OUTPUT, reposo CERRAR    semaforo.cpp:120, :231 -decia :93, :203-204-
-%% PB3   LCD_SCLK          J17 p4   DECLARADO, YA NO SE CONDUCE     lcd.cpp: U8X8_PIN_NONE
-%% PB4   LCD_CS            J17 p1   DECLARADO, YA NO SE CONDUCE     lcd.cpp: U8X8_PIN_NONE
-%% PB5   LCD_SID           J17 p5   DECLARADO, YA NO SE CONDUCE     lcd.cpp: U8X8_PIN_NONE
-%% PB6   "LCD_PSB" -> TX   J17 p3   VIVO   USART1 remapeado, TX BT  bluetooth.cpp:30 M / :29 E -NO es la misma-
-%% PB7   "LCD_RST" -> RX   J17 p2   VIVO   USART1 remapeado, RX BT  bluetooth.cpp:30 M / :29 E -decia ":28 en LAS DOS"-
-%%                                            [CORREGIDO 02/09: decia ":28 / :26". La declaracion
-%%                                             del Esclavo esta hoy tambien en :28 y es BYTE-
-%%                                             IDENTICA a la del Maestro. Dos puntas que en esto
-%%                                             SI son simetricas, al contrario que PA8]
-%% PB8   LED_TESTIGO       -        pinMode(INPUT) SIN LECTURA      DELIBERADO, pines.h:48-63
-%% PB9   BOTON1 / mando A  J16 p5   VIVO   INPUT pelado, act. ALTO  pines.h:146, botones.cpp:514 -decia :394-
-%% PB10  RS485_OUT_TX      J12      VIVO   USART3 - radio LoRa      pines.h
-%% PB11  RS485_OUT_RX      J12      VIVO   USART3 - radio LoRa      pines.h
-%% PB12  LORA_DE_RE        J12      VIVO   OUTPUT                   pines.h
-%% PB13  BOTON2 / mando B  J16 p8   VIVO   INPUT pelado, act. ALTO  pines.h:147, botones.cpp:515 -decia :395-
-%% PB14  CAM_C_PIN         J16 p10  VIVO   INPUT pelado, act. ALTO  pines.h:148, botones.cpp:531 -decia :411-
-%% PB15  CAM_D_PIN         J16 p12  VIVO   INPUT pelado, act. ALTO  pines.h:149, botones.cpp:532 -decia :412-
-%%
-%% 🔴 LAS DOS FILAS DE PB9 Y PB13 DECIAN "INPUT_PULLUP, act. BAJO" Y ERA FALSO.
-%%    Corregido el 05/09. Describian el firmware ANTERIOR a 346ea5f -"fix(N-118):
-%%    el mando A/B pasa a activo en ALTO - lo decide el cobre"-. Medido hoy, y el
-%%    grep se publica porque un grep sin correr es la misma cita rota una capa
-%%    arriba:
-%%
-%%      $ grep -n "pinMode(BOTON1\|lecturaCruda" Maestro/src/botones.cpp
-%%      42:  bool lecturaCruda = (digitalRead(b.pin) == HIGH);
-%%      514:  pinMode(BOTON1, INPUT);
-%%
-%%    En el Esclavo lo mismo en :507 y :56.  LAS CUATRO POSICIONES DE J16 LLEVAN
-%%    HOY LA MISMA POLARIDAD, sin excepcion.
-%%
-%%    🔴 RE-MEDIDO 05/09, SEGUNDA PASADA: LAS SEIS FILAS DE pinMode DE ARRIBA
-%%    ESTABAN CADUCADAS OTRA VEZ, y se habian corregido HACE OCHO COMMITS. Las
-%%    movio ee957ef, que metio 148 lineas de vigilante de camaras en
-%%    Maestro/src/botones.cpp por encima de camaras_setup(). La cita del Esclavo
-%%    decia :412 y hoy es :507 -y :412 hoy es OTRA COSA, que es lo peligroso: una
-%%    cita caducada no apunta al vacio, apunta a un inocente-.
-%%
-%%    ASI QUE ESTA TABLA SE LEE ASI, Y VA ESCRITO PARA QUIEN LA HEREDE: el pin,
-%%    la bornera y el ESTADO son estables y se pueden creer. LA COLUMNA DE
-%%    EVIDENCIA ES LA QUE CADUCA, y su valor no es el numero sino DECIR QUE
-%%    FICHERO ABRIR. Antes de citarla en otro documento, se vuelve a correr el
-%%    grep - CLAUDE.md 4.sexies.
-%%
-%%    POR QUE IMPORTA Y NO ES UNA ERRATA: quien cablee leyendo la fila vieja
-%%    cierra el pulsador CONTRA MASA. Con INPUT pelado y pull-down, un contacto
-%%    contra masa NO ARMA NUNCA la senal -queda 0 V pulsado y 0 V en reposo-, asi
-%%    que MANDO_B no arma jamas ambarLocal y EL VETO DE SFTY-21 QUEDA ABIERTO:
-%%    una orden de radio sacaria del ambar a una punta cuyo operario lo pidio, y
-%%    ningun test lo diria.
-%%
-%%    Y ADEMAS EL GESTO ES IMPOSIBLE EN ESTE CONECTOR: J16 tiene UNA SOLA MASA en
-%%    todo el conector -p2-, y un pin de 3,3 V pegado a cada posicion de senal
-%%    -p4/p5, p7/p8, p9/p10, p11/p12-. Un contacto por posicion contra masa
-%%    necesitaria una masa por posicion. La frase "van contra masa" es la que
-%%    CLAUDE.md 2.ter cita como ejemplo de excepcion escrita y nunca comprobada.
-%%
-%% Sin cablear en la tarjeta: PA11, PA12, PA15, PC13.  [ESCRITO en pines.h:60-61]
-%% -no comprobado contra el netlist en esta pasada-.
-%%
-%% 🔴 ESTE PARRAFO DECIA QUE J16 TENIA DOS POLARIDADES. ES FALSO Y SE TACHA.
-%%    Ponia: "LAS DOS POLARIDADES DE J16 CONVIVEN A PROPOSITO... INPUT_PULLUP +
-%%    activo en BAJO para los botones A y B (pulsador contra masa), INPUT pelado
-%%    + activo en ALTO para las tres camaras". No se borra porque una correccion
-%%    que desaparece en silencio se vuelve a proponer.
-%%
-%% LO QUE HAY DE VERDAD, y botones.cpp sigue siendo el dueno unico de J16:
-%% UNA SOLA POLARIDAD PARA LAS CUATRO POSICIONES - INPUT pelado + activo en ALTO,
-%% contacto seco que CIERRA CONTRA LOS 3,3 V, con R65-R68 de 10K a masa fijando
-%% el reposo. Es lo que pide el cobre y es lo que hace el fuente desde 346ea5f.
-%%
-%% Y ESTA MEDIDO CON PUNTAS, no deducido - paso 20 de la Guia de banco, 03/09,
-%% con 617bd00 dentro de la tarjeta, que llevaba PULL-UP en A/B y pelado en C/D:
-%%     R a masa   9,92 - 9,94 kOhm   en los CUATRO pines
-%%     reposo     0,6 V en MANDO_A y MANDO_B  (los dos con INPUT_PULLUP)
-%%                0 V   en CAM_C y CAM_D      (los dos con INPUT pelado)
-%% Mismo cobre, distinto pinMode, distinta tension: el banco corrio las dos ramas
-%% del experimento en la misma tabla sin que nadie lo leyera asi. Los 0,6 V que se
-%% llevaban meses contando como "defecto de placa" son exactamente el divisor del
-%% pull-up interno contra los 10K, o sea la prueba de que R65-R68 estan montadas.
-%%
-%% (La cuenta original de N-67 no era mala: era correcta PARA EL FIRMWARE DE
-%%  ENTONCES. Lo que caduco no es la aritmetica, es el sujeto.)
-%%
-%% ===========================================================================
-%% ANEXO B - LAS DOS PUNTAS NO SON SIMETRICAS, Y ESTA MEDIDO
-%%
-%% 1. N-97 CERRADO (deeeab4): la camara de demanda YA NO vive dentro de un modo.
-%%    Antes el Maestro hacia el pinMode DENTRO de modoInteligente_setup(), asi
-%%    que fuera de ese modo el pin NO EXISTIA. Hoy las dos puntas declaran sus
-%%    entradas en el arranque y sin condicion, y el lector es codigo identico:
-%%    camara_leerPin().
-%%
-%%    LO QUE SIGUE SIENDO ASIMETRICO, y hay que saberlo porque los instrumentos
-%%    leen POR RUTA (CLAUDE.md seccion 5):
-%%      - CAM_DEMANDA_PIN se declara en Maestro/src/botones.cpp:410 pero en
-%%        Esclavo/src/main.cpp:288. Un pack que censara solo botones.cpp veria
-%%        tres entradas en una punta y dos en la otra sin que haya defecto.
-%%      - PB0 se lee por NIVEL en el Maestro y por FLANCO en el Esclavo. Esta
-%%        razonado y va como reportar(), no como fallo: es SFTY-27 -"cede si el
-%%        otro pide Y NO hay cola local", y "hay cola ahora" es un nivel, no un
-%%        suceso-.
-%%
-%% 2. mando_ambarLocal() SOLO EXISTE COMO VETO EN EL ESCLAVO, y son CINCO
-%%    llamadas vivas, no tres. RE-MEDIDO 05/09, grep publicado:
-%%
-%%      $ grep -rn "mando_ambarLocal" 01_Firmware/Esclavo/src/   [RE-CORRIDO 05/09]
-%%      bluetooth.cpp:620:      if (semaforo_estado() == S_FALLO && !mando_ambarLocal()) {
-%%      bluetooth.cpp:631:      if (mando_ambarLocal()) {
-%%      main.cpp:453:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
-%%      main.cpp:476:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
-%%      main.cpp:617:    if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() &&
-%%      mando.cpp:103:bool mando_ambarLocal() { return ambarLocal; }
-%%
-%%    [SEGUNDA CORRECCION DEL 05/09: las dos de bluetooth.cpp decian :577 y :588
-%%     esta misma noche. Las movio D-18 -137 lineas nuevas en ese fichero-. Las
-%%     TRES de main.cpp y la definicion de mando.cpp aguantaron: en un mismo
-%%     censo unas citas caducan y otras no, segun donde escriba el commit, y por
-%%     eso "lo verifique hace un rato" no es una respuesta. El grep se re-corre.]
-%%
-%%    [CORREGIDO 05/09: decia "tres consumidores en main.cpp:406, :416 y :540".
-%%     Las tres lineas se movieron Y ademas faltaban las dos de bluetooth.cpp,
-%%     que deciden CANCELAR_AMBAR. Contar de menos en un censo de veto es peor
-%%     que no censar: da una cifra con aspecto de completa]
-%%
-%%    Mientras un operario pidio ambar local, una orden de radio NO saca a esa
-%%    punta del ambar. Es SFTY-21, y DECISIONES.md D-8 lo ratifico el 04/09:
-%%    el ambar de emergencia CONSERVA SUS DOS VETOS -mando y app-, porque el
-%%    banco tumbo DOS VECES la version sin cerrojo y al medirlo el veto NO era
-%%    la causa del bloqueo.
-%%
-%%    🔴 Y EL MATIZ QUE CAMBIO EL 05/09: el mando FISICO se retiro (D-1), pero
-%%    EL CODIGO NO SE TOCA. Retirar el armador de esa bandera no deja cinco if
-%%    inertes: los deja SIEMPRE CIERTOS, o sea BORRA EL VETO. Con el mando
-%%    desmontado la bandera simplemente no se arma nunca, que es lo correcto.
-%%    Ademas el banco se caeria en ABORTADO y no en rojo: son TRECE packs, y
-%%    los dos modelos leen constantes de mando.cpp EN EL IMPORT.
-%%
-%% 2.bis. LA CAMARA DE J16 SOSTIENE FASE SOLO EN EL MAESTRO. ANOTADO 05/09.
-%%
-%%    camara_presenciaJ16() existe en Maestro/include/botones.h y NO existe en
-%%    Esclavo/include/botones.h. Medido con el mismo grep sobre las dos puntas:
-%%
-%%      $ grep -n "camara_presenciaJ16" 01_Firmware/Maestro/include/botones.h
-%%      83:bool camara_presenciaJ16();
-%%      $ grep -n "camara_presenciaJ16" 01_Firmware/Esclavo/include/botones.h
-%%      (sin salida)
-%%
-%%    Y NO ES UN OLVIDO NI UNA ASIMETRIA A CORREGIR: el getter existe para
-%%    alargar una fase del Modo Inteligente, y no hay Esclavo/src/modo_
-%%    inteligente.cpp - el Esclavo no elige tiempos, los recibe por radio. Lo
-%%    que SI es simetrico es todo lo demas del camino de camara: camara_leerPin(),
-%%    camara_estado() y las dos alarmas del vigilante estan en las dos puntas con
-%%    las MISMAS constantes -CAM_PEGADA_MS y CAM_CIEGA_MS-.
-%%    O sea: el Esclavo VIGILA su camara y la PUBLICA en su $STATUS; lo que no
-%%    hace es dejar que sostenga nada, porque aqui no hay nada que sostener.
-%%
-%% 2.ter. protocolo_tramasDescartadas() ES HUERFANA SOLO EN EL MAESTRO.
-%%
-%%    Va aqui y no en la capa C8 porque es EXACTAMENTE la clase de hecho que se
-%%    cuenta mal al resumirlo: dicho corto -"no tiene un solo llamador"- es
-%%    FALSO. En el Esclavo tiene dos, y los publica en el $ALARM de la caida y
-%%    en el $EVENT de la vuelta; en el Maestro no la llama nadie.
-%%
-%%      $ grep -rn "protocolo_tramasDescartadas" 01_Firmware/Esclavo/src
-%%      bluetooth.cpp:226 / bluetooth.cpp:1045 / protocolo.cpp:162 (definicion)
-%%      $ grep -rn "protocolo_tramasDescartadas" 01_Firmware/Maestro/src
-%%      protocolo.cpp:162 (definicion, y nada mas)
-%%
-%%    LO DICE UN PACK Y NO UNA LECTURA: costura_10_funciones_muertas la tiene en
-%%    CONOCIDAS["Maestro"] y la SACO de CONOCIDAS["Esclavo"] en N-108, con el
-%%    motivo escrito. Es la lista de excepciones de CLAUDE.md 3.bis funcionando
-%%    como debe: una huerfana que gana llamador SALE de la lista.
-%%    Y lo que lo hace interesante para leer con la capa C11: la punta donde
-%%    nadie publica ese contador es la misma donde vive MODO_ALCANCE.
-%%
-%% 3. semaforo_iniciarFallo() esta en :272 en el Maestro y en :292 en el
-%%    Esclavo [RE-MEDIDO 05/09: decia :242 y :256; grep -n "void
-%%    semaforo_iniciarFallo" sobre las dos puntas]. Mismo codigo, distinto
-%%    sitio: las rutas y las lineas que citan los instrumentos NO son
-%%    intercambiables entre puntas. Y la propia fila lo demuestra dos veces:
-%%    ha caducado en las dos puntas a la vez, conservando la diferencia.
-%%
-%% ===========================================================================
-%% ANEXO C - LO QUE ESTE MAPA NO MIDE Y NADIE DEBE DAR POR MEDIDO
-%%
-%% - EL COBRE, PERO YA NO TODO. 🔴 CORREGIDO EL 05/09: aqui ponia "ni una fila
-%%   VERIFICADO EN LA PLACA existe en el proyecto", y desde el 03/09 es FALSO.
-%%   M3 puso las puntas sobre J16 -pasos 20 y 21 de la Guia de banco- y J15
-%%   movio la talanquera en banco el 04/09. Las medidas viven en la seccion A de
-%%   05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md, que es EL
-%%   UNICO SITIO CON EL PROCEDIMIENTO -ver INDICE_CRUZADO.md P-4- y que GANA a
-%%   este fichero en todo lo que sea hardware medido.
-%%   ~~M3 es la que desbloquea el cableado de las camaras.~~ -> M3 CERRO el
-%%   03/09 y el cableado esta desbloqueado: DECISIONES.md D-3.
-%%   LO QUE SIGUE SIN UNA SOLA PUNTA ENCIMA: J17, J2, J10/J12, las diez cadenas
-%%   de potencia y el nudo de 3,3 V.
-%% - LA PLACA PORTADORA. No existe, y cinco de sus requisitos se perdieron el
-%%   31/08. Ver capa C4.bis y INDICE_CRUZADO.md seccion 4.
-%% - EL BANCO. V9.0 no ha estado nunca en una tarjeta. Ni la compuerta en verde
-%%   ni los SEIS arneses que compilan C++ real lo sustituyen. [CORREGIDO 05/09:
-%%   ponia "los cuatro", contradiciendo a NOTA0 de la capa C0 de este mismo
-%%   fichero, que dice seis desde el 02/09. Un documento que se contradice a si
-%%   mismo no obliga al lector a elegir: le deja creer al parrafo que leyo antes]
-%% - EL SEGUNDO CRISTAL Y2. N-37 midio uno; el del otro equipo sigue sin medir.
-%%   Es BLQ-2, y con el cuelga AB-4: reparar el cristal o reloj de software.
-%% - EL ARRANQUE DEL ESP32. ESP32_ARRANQUE_MS = 1500 esta SIN VERIFICAR y lleva
-%%   su propia bandera para que no se lea como medida (AB-3). Se mide con el
-%%   modulo en la mano, no se estima.
-%% - LA TELEMETRIA. BAT:12.6 es un literal en las dos puntas y no hay un solo
-%%   analogRead en src/. RF:98% y RTT:85ms son literales en el Esclavo, y el
-%%   campo T: no es tiempo de fase. Sin pantalla conducida, $STATUS es el UNICO
-%%   tablero que existe: un campo que no se mide se retira o se marca. Fase 4.
-%%   🟢 Y CON D-17.bis ESA FRASE SUBE DE CATEGORIA: ya no es "sin pantalla
-%%   conducida", es SIN PANTALLA. El $STATUS deja de ser el tablero principal
-%%   para ser EL UNICO QUE HAY, y cada literal que lleva dentro es un dato que
-%%   nadie va a poder contrastar mirando el equipo.
-%%   ⚠️ DOS CAMPOS NUEVOS EL 05/09, Y NO SON LITERALES - se anotan aqui para que
-%%   la fase 4 no los cuente entre los sospechosos:
-%%     ESC:  en el $STATUS del Maestro
-%%     CAM:  en el de LAS DOS puntas, y viene de camara_estado(), o sea del
-%%           vigilante de la capa C1 - es dato medido, no adorno
-%%   Y EL BUFFER PASO A payload[155]. NO es un "por si acaso": es el TECHO que
-%%   admite tramaCompleta[160] con el cierre *XX CR LF, y esp32_07_presupuesto_
-%%   bytes exige bufTrama >= bufStatus + 5, que con 155 queda 160 >= 160, SIN
-%%   HOLGURA QUE GASTAR. El peor caso medido son 151 y quedan 3 B.
-%%   O sea que el siguiente campo del $STATUS YA NO CABE por ampliar el buffer:
-%%   la unica carta que queda es acotar HORA -3 B, medidos y no gastados hoy-.
-%%   Lo que cuesta, dicho: el peor segundo de J17 sube del 48,1% al 52,3% de
-%%   los 960 B/s, porque se calcula sobre la CAPACIDAD y no sobre el contenido.
-%%   MATIZ DEL 02/09, y no cierra la fase: la app gano una pestana admin-only
-%%   -tab-depuracion, index.html:510 y :579- con js/depuracion.js detras: la
-%%   CINTA de tramas en crudo, en memoria y sin interpretar. No persiste, y la
-%%   pantalla lo dice. No es telemetria honesta -sigue publicando los mismos
-%%   literales-: es poder VER la trama que no cuadro, que antes se tiraba diez
-%%   milisegundos despues de llegar. Su gemela persistida es
-%%   js/registro_enlace.js, la LINEA DE TIEMPO, y son dos cosas distintas a
-%%   proposito: la cinta entera persistida llenaria el telefono en una hora y se
-%%   llevaria por delante la linea de tiempo, que es la que hace falta al dia
-%%   siguiente. Lo vigila app_09_registro_de_enlace.
-%%   Y LA APP YA ENSENA ESE CAMPO: index.html tiene su bloque de las camaras de
-%%   J16 -grep -n "LAS CAMARAS DE J16" index.html-, en las DOS copias del arbol
-%%   (App_Semaforo/ y App_Semaforo/www/, que siguen siendo dos copias).
-%% - LA APP ENTERA, COMO ESTRUCTURA. Este mapa dibuja el equipo, no la app, y
-%%   eso hoy es un hueco declarado: App_Semaforo/js/ son SIETE modulos
-%%   -bluetooth_driver, config, courier_rtc, depuracion, nmea_parser,
-%%   registro_enlace, site_manager- y este fichero no nombra ninguno. Dos de
-%%   ellos estan HUERFANOS y lo dice un pack, no una lectura: BluetoothDriver e
-%%   IOT_CONFIG, en HUERFANOS_CONOCIDOS de app_07_generadores_de_trama.py:94-101.
-%%   IOT_CONFIG duplica PIN, baudio, limites de tiempo y UUIDs que app.js lleva
-%%   por su cuenta: es N75-2 otra vez, en otro fichero. Ver INDICE_CRUZADO 1.7.
-%% - EL COSTE EN FLASH DE LO QUE FALTA. La cifra vigente esta en el acta de
-%%   evidencia/, no aqui. A este nivel una funcion nueva no entra sin medir
-%%   antes -CLAUDE.md 7-.
-%% - QUIEN DISENA Y QUIEN FABRICA LA PLACA PORTADORA. Sin decidir.
-%%
-%% ===========================================================================
-%% ANEXO D - ORDEN DE EJECUCION VIGENTE (ESTADO.md, seis fases)
-%%
-%%   Fase 1  Comandos que faltaban en el Maestro          HECHO (d34cfe2, N-78:
-%%           SET_MODO:MENU/ALCANCE/INTELIGENTE/DEGRADADO, REINICIAR_RELOJ,
-%%           DEMANDA - la rama de SET_MODO:MENU esta hoy en
-%%           Maestro/src/bluetooth.cpp:392 [CORREGIDO 02/09: decia :191-360,
-%%           que hoy es un buffer de payload]. SET_RTC ya contesta
-%%           SIN_CRISTAL_VEA_CONSULTA_RELOJ en vez de un OK mentiroso, y desde
-%%           el 02/09 ese aviso YA TIENE REFERENTE: reloj_diagnostico() tenia
-%%           tres consumidores donde antes no tenia ninguno -bluetooth.cpp:307,
-%%           modo_hora.cpp:170 y :244-, con el pack reloj_01_consulta_por_
-%%           bluetooth vigilando que los bits salgan enteros por la trama.
-%%           Era un N-73 en marcha: mandar al tecnico a un instrumento tapiado).
-%%           Iba primero porque sin ella, al quitar botonCancelar(), no habria
-%%           salida de los modos: hoy la salida por app EXISTE.
-%%           🔴 CORREGIDO 05/09, SEGUNDA PASADA: la rama de SET_MODO:MENU no
-%%           esta en bluetooth.cpp:392 -eso se corrigio el 02/09 y ya habia
-%%           vuelto a caducar-. Hoy esta en :570, que es lo que el nodo R_BOT
-%%           de la capa C7 decia desde hace horas: ESTE FICHERO SE CONTRADECIA
-%%           A SI MISMO, con dos numeros distintos para la misma rama en dos
-%%           sitios. Se da el comando y se acaba la discusion:
-%%           grep -n '"SET_MODO:MENU"' Maestro/src/bluetooth.cpp
-%%   Fase 2  Ignorar los pulsadores 3 y 4                 HECHO en firmware
-%%           (deeeab4): PB14/PB15 son CAM_C_PIN/CAM_D_PIN, botonAceptar() y
-%%           botonCancelar() devuelven false. El mando A/B se queda
-%%   Fase 3  Camaras a J16 y dejar de conducir la LCD     HECHA EN FIRMWARE
-%%           (deeeab4 las camaras, 88b0142 la LCD) Y EL CABLEADO YA NO ESTA
-%%           BLOQUEADO [CORREGIDO 05/09: decia "EL CABLEADO SIGUE BLOQUEADO POR
-%%           M3"]. M3 cerro el 03/09 -DECISIONES.md D-3- y el paso 21 de banco
-%%           movio CAM_C_PIN cerrando p10 contra p11, sin demandas fantasma.
-%%           ~~OJO CON LA MITAD DE LA LCD: la pantalla NO se retira -D-6, 04/09,
-%%           271 comprobaciones cuelgan de ella-.~~
-%%           🔴 DEROGADO EL 05/09 POR D-17.bis: LA PANTALLA SI SE RETIRA, del
-%%           EQUIPO. Del codigo no. Lo que se hizo en firmware sigue siendo
-%%           dejar de CONDUCIR PB3/PB4/PB5, que no es lo mismo que borrarla:
-%%           lcd.cpp y menu.cpp compilan y Validacion_LCD sigue en la compuerta.
-%%           Ver la capa C7 -nodo R_LCD- y la C11, que es lo que esto arrastra.
-%%   Fase 4  Telemetria honesta                           ABIERTO. Y con dato
-%%           nuevo (N-108): el Maestro SI mide el enlace -ventana de 10 latidos,
-%%           RTT medio, latidos sin respuesta- y el Esclavo INVENTA RF:98% y
-%%           RTT:85ms. De las dos puntas solo una tiene dato, y la que se queda
-%%           sin radio a 5 m es justo la otra. Y nadie lo guarda.
-%%           Decision del 31/08: no se mide potencia; latidos e indicacion visual
-%%   Fase 5  ESP32: watchdog PRIMERO, luego DS3231 y BT   EL FIRMWARE EXISTE Y
-%%           COMPILA, con el watchdog escrito primero. Falta el hardware: la
-%%           placa portadora, su fuente (A5) y el DS3231 (A6), ninguno pedido
-%%   Fase 6  BANCO                                        BLOQUEANTE. Nada
-%%           sube a campo sin pasar banco.
-%%
-%%   Fase 7  LO QUE ABRE D-17.bis                         NUEVO 05/09, y no es
-%%           una fase de construir sino de DECIDIR: retirada la pantalla, hay
-%%           codigo que ya no puede alcanzarse desde ningun sitio -MODO_HORA- y
-%%           codigo que produce para un destino que no existe -MODO_ALCANCE-.
-%%           No se toca por iniciativa propia: ocupa flash en un binario sin
-%%           margen comodo, pero retirarlo mueve packs y arneses. Capa C11.
-%%
-%% Y fuera de las fases, ABIERTO: N-106 (capa C10) y las ocho decisiones
-%% AB-1..AB-8 de 05_Funcional/18_Especificacion_Firmware_ESP32.md seccion 9,
-%% que hoy NO estan anotadas en ESTADO.md -lo dice el propio documento-.
-%% ===========================================================================
+> 🔴 **`Controladora_Semaforos/Controladora_Semaforos/` - la trampa que costo un
+> comando en esta misma pasada.** `ls 01_Firmware/Controladora_Semaforos` devuelve
+> un directorio del MISMO nombre, no los ficheros de KiCad. Un `find` a `-maxdepth
+> 2` desde `01_Firmware` NO encuentra el `.kicad_pcb`. Ruta buena, entera:
+> `01_Firmware/Controladora_Semaforos/Controladora_Semaforos/Controladora_Semaforos.kicad_pcb`
+
+---
+
+## 2. EL FIRMWARE
+
+### 2.1 Los cuatro roles `[MEDIDO 07/09 - find + grep -c '' por fichero]`
+
+| rol | ficheros `.cpp` | lineas `.cpp`+`.h` | flash (acta 07/09) |
+|---|---|---|---|
+| `Maestro` | 21 | 9.395 | **87,6 %** - 57.416 de 65.536 B |
+| `Esclavo` | 14 | 6.604 | **63,7 %** - 41.772 de 65.536 B |
+| `Repetidor` | 1 (`main.cpp`, 200 lineas) | 214 | 20,6 % - 270.497 de 1.310.720 B |
+| `ESP32_Expansion` | 8 | 2.588 | 35,7 % - 1.122.973 de 3.145.728 B |
+| **total firmware** | 44 | **18.801 lineas** | |
+
+> **El presupuesto de flash del Maestro es el numero que decide.** 8.120 B libres.
+> A este nivel una funcion nueva de tamano medio no entra sin haber medido antes de
+> que esta hecho el porcentaje (CLAUDE.md 7).
+
+> ⚠️ **El acta puede publicar el binario ANTERIOR** si se escribe justo despues de
+> tocar codigo (PlatformIO sirve un incremental viejo). La cifra de flash se
+> confirma con una segunda pasada.
+
+### 2.2 Maestro - un `.cpp` por concepto `[MEDIDO 07/09]`
+
+| fichero | lineas | para que sirve |
+|---|---|---|
+| `main.cpp` | 315 | `setup()`/`loop()`, watchdog, despacho por modo |
+| `semaforo.cpp` | 380 | **LA BARRERA DE SALIDAS.** Unico que escribe pines de luz |
+| `coordinador.cpp` | 1.161 | protocolo de cambio de fase con la otra punta, por radio |
+| `bluetooth.cpp` | 1.116 | despachador de la app + emision de `$STATUS`/`$ALARM`/`$EVENT` |
+| `botones.cpp` | 660 | J16 entero: mando A/B, camaras C/D, **el vigilante de camaras** |
+| `modo_automatico.cpp` | 320 | ciclo por tiempos configurados |
+| `modo_inteligente.cpp` | 296 | automatico + camaras: PIDE y SOSTIENE fase |
+| `modo_degradado.cpp` | 615 | ciclo por reloj, sin radio. UNICO modo sin coordinador |
+| `modo_manual.cpp` | 119 | `DAR PASO` disparado por orden |
+| `modo_ambar.cpp` | 89 | ambar intermitente pedido a proposito |
+| `modo_alcance.cpp` | 64 | prueba de alcance de radio |
+| `modo_hora.cpp` | 274 | ajuste del reloj desde el menu |
+| `modos.cpp` | 13 | `modoActual_get/set`. El estado del sistema, fuera de la pantalla |
+| `menu.cpp` | 157 | navegacion de la LCD |
+| `lcd.cpp` | 599 | dibujo. **Los 4 pines en `U8X8_PIN_NONE`** |
+| `mando.cpp` | 251 | reconocedor de secuencias A/B del mando de reles |
+| `demanda.cpp` | 39 | cola de peticion de paso |
+| `reloj.cpp` | 374 | hora, franjas |
+| `respaldo.cpp` | 316 | persistencia en flash. **Byte-identico al del Esclavo** |
+| `protocolo.cpp` | 169 | CRC y trama de radio. **Byte-identico al del Esclavo** |
+| `identidad.cpp` | 84 | numero de serie desde el UID. **Byte-identico al del Esclavo** |
+
+**Ficheros byte-identicos entre puntas** `[MEDIDO 07/09 - md5sum]`:
+
+```
+93a7a362...  src/respaldo.cpp        dc076b92...  include/respaldo.h
+482f75f5...  src/protocolo.cpp       cebf3d87...  include/protocolo.h
+f42207a7...  src/identidad.cpp       0e391aef...  include/ciclo_degradado.h
+```
+
+`pines.h` **NO** es byte-identico -`32b6e2b6` vs `fc6a477e`-, pero **el bloque de
+`#define` SI**: `diff <(grep '^#define' M/pines.h) <(grep '^#define' E/pines.h)`
+sale **vacio** `[MEDIDO 07/09]`. Lo que diverge es comentario.
+
+### 2.3 Esclavo - lo que NO tiene
+
+`[MEDIDO 07/09 - ls de Esclavo/src frente a Maestro/src]`
+
+**No existen en el Esclavo:** `modo_automatico.cpp`, `modo_inteligente.cpp`,
+`modo_manual.cpp`, `modo_ambar.cpp`, `modo_alcance.cpp`, `modo_hora.cpp`,
+`modos.cpp`, `coordinador.cpp`.
+
+**Solo existen en el Esclavo:** `config_ciclo.cpp` (160 lineas) - el par de tiempos
+que llega por radio.
+
+El Esclavo **no tiene `enum ModoSistema`**: su unico modo propio es el Degradado, y
+se entra por `degradado_entrar()`, no por `modoActual_set()`.
+
+> 🔴 **UN CONCEPTO SE LLAMA DISTINTO EN CADA PUNTA, y ese es el error que este
+> repositorio ya publico con la palabra "medido" encima.**
+> `grep -c 'modoActual_set(MODO_DEGRADADO)' Esclavo/src/*.cpp` da **0** y es
+> cierto; y el Esclavo entra al Degradado igual. Se busca por los DOS nombres.
+
+### 2.4 La barrera de salidas - SFTY-2 y SFTY-28
+
+`[MEDIDO 07/09 - grep de digitalWrite sobre nombres de luz en Maestro/src y Esclavo/src]`
+
+```
+$ grep -rn 'digitalWrite' Maestro/src Esclavo/src | grep -E 'ROJO|AMARILLO|VERDE|MOTOR_TALANQUERA'
+  Maestro/src/semaforo.cpp  6 escrituras de luz + 2 de talanquera
+  Esclavo/src/semaforo.cpp  6 escrituras de luz + 2 de talanquera
+  Maestro/src/main.cpp:30   UN COMENTARIO, no codigo
+```
+
+**Cero escrituras fuera de `semaforo.cpp` en las dos puntas.** Las seis viven dentro
+de `escribirPines(bool rojo, bool amarillo, bool verde)`, que es `static`.
+
+```
+                       modo_automatico / modo_manual / modo_degradado
+                       modo_ambar / modo_inteligente / coordinador
+                                        |
+                                        v
+                              semaforo_actualizar()
+                                        |
+                       +----------------+----------------+
+                       |                                 |
+                 escribirPines()                  destellos del mando
+                 (unico, static)          <---- INTERCEPTAN, no rodean
+                       |
+        +--------+-----+-----+--------+          + MOTOR_TALANQUERA (PB2)
+        v        v           v        v            dentro de escribirPines()
+      ROJO1  AMARILLO1    VERDE1   ROJO2 ...        reposo = CERRAR (LOW)
+```
+
+> ⚠️ **La regla enumera OCHO pines y el firmware mueve SEIS.** `ROJO_PEATON` (PA6),
+> `VERDE_PEATON` (PA7) y `BUZZER` (PB1) estan declarados en `pines.h` y **muertos en
+> las dos puntas**: sin `pinMode`, sin `digitalRead`, sin `digitalWrite`. La regla es
+> **vacuamente cierta** para tres de sus ocho sujetos (N-96).
+
+### 2.5 Los ocho modos del Maestro y quien abre cada puerta
+
+`[MEDIDO 07/09 - grep -rn 'modoActual_set(' Maestro/src]`
+
+| modo | quien lo ARMA | ¿alcanzable hoy? |
+|---|---|---|
+| `MENU` | `bluetooth.cpp` (`SET_MODO:MENU`), `main.cpp`, y la salida de los 7 modos | SI, por app |
+| `MODO_MANUAL` | `bluetooth.cpp`, `main.cpp`, `menu.cpp` | SI, por app |
+| `MODO_AUTOMATICO` | `bluetooth.cpp`, `mando.cpp`, `menu.cpp` | SI, por app |
+| `MODO_INTELIGENTE` | `bluetooth.cpp`, `menu.cpp` | SI, por app |
+| `MODO_ALCANCE` | `bluetooth.cpp`, `menu.cpp` | SI por app; **sin salida visible: su unica salida era `lcd_dibujarAlcance()`** |
+| `MODO_HORA` | **SOLO `menu.cpp`** | 🔴 **NO.** Ver abajo |
+| `MODO_DEGRADADO` | `bluetooth.cpp`, `main.cpp`, `mando.cpp`, `menu.cpp` | SI, por app |
+| `MODO_AMBAR` | `bluetooth.cpp`, `main.cpp`, `mando.cpp` | SI, por app |
+
+> 🔴 **`MODO_HORA` NO TIENE PUERTA PRACTICABLE, y el motivo es de dos saltos.**
+> Su unico armador es `menu.cpp` `case 1: modoActual_set(MODO_HORA)`, y para llegar
+> ahi hacen falta **dos `botonAceptar()`** -uno para bajar a `NIVEL_CONFIG` y otro
+> para entrar-. Medido `[07/09]`:
+> ```
+> $ grep -n '^bool boton' Maestro/src/botones.cpp
+> 617:bool botonArriba()  { return consumir(0); }     <- VIVO
+> 618:bool botonAbajo()   { return consumir(1); }     <- VIVO
+> 659:bool botonAceptar() { return false; }           <- CONSTANTE
+> 660:bool botonCancelar(){ return false; }           <- CONSTANTE
+> ```
+> En el Esclavo lo mismo (`:603 :604 :645 :646`). **Se retiraron DOS de los CUATRO
+> botones, no los cuatro**: `botonArriba()`/`botonAbajo()` siguen leyendo `BOTON1`/
+> `BOTON2`, que son **los pines del mando, J16 p5 y p8**. Cualquier cosa que se
+> cablee ahi mueve el cursor del menu ademas de entrar por el reconocedor de
+> secuencias. Que no se pueda SELECCIONAR no es que no pase nada (A-2).
+
+### 2.6 El vigilante de camaras - J16, en las DOS puntas
+
+`[MEDIDO 07/09 - grep de simbolos sobre botones.cpp de las dos puntas]`
+
+| simbolo | Maestro | Esclavo | que hace |
+|---|---|---|---|
+| `camara_leerPin()` | SI | SI | lector, codigo identico |
+| `CAM_PEGADA_MS` | `1200000UL` | `1200000UL` | 20 min de contacto fijo -> `CAM_PEGADA` |
+| `CAM_CIEGA_MS` | `21600000UL` | `21600000UL` | 6 h de paso abierto sin un flanco -> `CAM_CIEGA` |
+| `camaras_sembrar()` | SI | SI | N-26: un contacto ya cerrado al arrancar es estado, no deteccion |
+| `camaras_actualizar()` | SI | SI | una lectura por vuelta; no relee |
+| `camara_estado()` | SI | SI | el PEOR de las dos camaras -> campo `CAM:` del `$STATUS` |
+| `camara_vetosPluma()` | SI | SI | **contador**, no actuador. Ver abajo |
+| `camara_presenciaJ16()` | **SI** | **NO** | SOSTENER la fase por NIVEL |
+
+**PEDIR y SOSTENER no son lo mismo:**
+
+```
+  flanco en CAM_C/CAM_D --> camaras_actualizar() --> demanda_solicitar()   [PEDIR]
+                                                     ventana de 3 s, no se prolonga
+
+  nivel de CAM_C/CAM_D  --> camara_presenciaJ16() --> tercer termino del OR de
+                                                     modo_inteligente.cpp     [SOSTENER]
+```
+
+`camara_presenciaJ16()` **solo existe en el Maestro** y no es una asimetria a
+corregir: el Esclavo no tiene `modo_inteligente.cpp`, no elige tiempos, los recibe
+por radio. No hay fase que sostener.
+
+> 🟢 **EL VETO DE PLUMA NO ESTA CONSTRUIDO: SOLO SE CUENTA.** `camara_vetosPluma()`
+> se incrementa cuando la pluma ACABA de bajar habiendo presencia, y emite
+> `$EVENT CAMARA_PLUMA / VETO_HABRIA_ACTUADO_N:<n>`. **No veta, no baja la pluma, no
+> toca una luz.** El comentario del propio fuente lo dice: vetar exigiria entrar en
+> `escribirPines()`, y eso es SFTY-28 y necesita derogacion escrita (A-1.bis). El
+> campo `ACCION:NINGUNA` del `$ALARM` no es relleno: es no mentir en el acuse.
+
+> ⚠️ **UN PIN QUE NUNCA DIO UN FLANCO NO SE VIGILA.** Hay **una camara por poste**,
+> asi que uno de los dos pines de J16 esta VACIO en todo equipo montado. Sin esa
+> guarda, a las 6 h emitia `CAM_CIEGA` de una camara que no existe -y `CIEGA` pesa
+> mas que `OK`, o sea que tapaba en el campo `CAM:` a la camara que si esta.
+> **Lo que cuesta:** una camara muerta DESDE EL DIA DE LA INSTALACION no se distingue
+> de una bornera vacia. Lo compensa el instalador provocando la primera deteccion
+> (Manual 9), no el firmware.
+
+### 2.7 El despachador de Bluetooth - HAY TRES, no dos
+
+`[MEDIDO 07/09 - grep de strcmp(accion,...) / strncmp(accion,...:) / strcmp(cmd,"CMD:...")]`
+
+| aparato | comandos con PIN | prefijos | sin PIN |
+|---|---|---|---|
+| **Maestro** `bluetooth.cpp` | `DEMANDA` `FORZAR_ROJO` `MANUAL:CAMBIAR_TURNO` `REINICIAR_RELOJ` `TEST_LEDS` `SET_MODO:{ALCANCE,AMBAR,AUTO,DEGRADADO,INTELIGENTE,MANUAL,MENU}` | `SET_RTC:` `SET_TIEMPOS:` | `CMD:FORZAR_ROJO` |
+| **Esclavo** `bluetooth.cpp` | `AMBAR_EMERGENCIA` `CANCELAR_AMBAR` `FORZAR_ROJO` `SOLICITAR_PASO` `TEST_LEDS` `SET_MODO:DEGRADADO` | `SET_RTC:` | `CMD:AMBAR_EMERGENCIA` `CMD:FORZAR_ROJO` |
+| **ESP32** `despachador.cpp` | `CMD:LEER_RTC` | `SET_RTC:` | - |
+
+> 🔴 **EL TERCER DESPACHADOR ES FACIL DE OLVIDAR.** `app_01_comandos` lo lee desde
+> el 05/09 (A-9). Antes, que `SET_RTC` saliera en verde era **casualidad**: el
+> Maestro conservaba una rama muda que el censo encontraba. `LEER_RTC` ya no tiene
+> casualidad: **solo el puente lo puede contestar** -las dos puntas devuelven
+> `$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO`-.
+
+**La trama `$STATUS`, medida sobre el `snprintf` de cada punta** `[MEDIDO 07/09]`:
+
+```
+Maestro  char payload[155];
+  $STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,
+          HORA:%s,ESC:%s,PLUMA:%s,CAM:%s
+
+Esclavo  char payload[155];
+  $STATUS,NODE:ESCLAVO,SERIE:%s,MODO:%s,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,
+          HORA:%s,PLUMA:%s,CAM:%s
+```
+
+`ESC:` solo lo emite el Maestro: el Esclavo no tiene a quien preguntar por el otro
+poste. `155` **es el techo, no holgura**: `tramaCompleta[160]` admite payload + `*XX`
++ CR + LF, y `esp32_07_presupuesto_bytes` exige `bufTrama >= bufStatus + 5`, que con
+155 queda en `160 >= 160`, **sin holgura que gastar**.
+
+### 2.8 El Degradado del Esclavo - la puerta y sus seis rechazos
+
+`[MEDIDO 07/09 - grep -rn degradado_entrar Esclavo/]`
+
+```
+  Esclavo/src/modo_degradado.cpp:244   RechazoDegradado degradado_entrar()   <- definicion
+  Esclavo/src/bluetooth.cpp:725        SET_MODO:DEGRADADO                    <- D-18, por APP
+  Esclavo/src/mando.cpp:148            secuencia A.B.A.B del mando           <- llave retirada (D-1)
+  Esclavo/src/menu.cpp:227             desde el menu                         <- botonAceptar()=false
+```
+
+Devuelve un `RechazoDegradado`, **no un bool**, y son SEIS motivos con un `$ERR`
+cada uno: `SIN_HORA` `SIN_CONFIG` `CICLO_NULO` `SIN_SYNC` `SYNC_VENCIDA`
+`AMBAR_VIGENTE`. El texto lo pone `degradado_textoRechazo()`, un solo sitio.
+
+> **El Degradado es el UNICO modo que da verde sin confirmar la otra punta.** El
+> choque no lo impide un enclavamiento: lo impide una **desigualdad numerica**, y el
+> margen medido es **1,44** -aguanta 29 s de desfase; el equipo acumula 20,2 s en
+> 48 h-, no el **2** que dos comentarios afirmaban.
+
+### 2.9 SFTY-21 - el veto que se borra si se borra su armador
+
+`[MEDIDO 07/09 - grep -rn mando_ambarLocal Esclavo/]`
+
+```
+  Esclavo/src/mando.cpp:103        bool mando_ambarLocal() { return ambarLocal; }   <- ARMADOR
+  Esclavo/src/main.cpp:453,:476,:617   if (!mando_ambarLocal() && !bluetooth_ambarEmergencia())
+  Esclavo/src/bluetooth.cpp:620,:631   deciden CANCELAR_AMBAR
+```
+
+**CINCO llamadas vivas, no tres.** Retirar el armador **no deja los `if` inertes: los
+deja siempre ciertos, o sea BORRA el veto.** Con el mando desmontado (D-1) la bandera
+simplemente no se arma nunca, que es lo correcto. Ademas el banco se caeria en
+**ABORTADO y no en rojo**: son 13 packs, y los dos modelos leen constantes de
+`mando.cpp` **en el import**.
+
+### 2.10 El ESP32 de expansion - accesorio, NO controlador
+
+`[MEDIDO 07/09 - ls ESP32_Expansion/src + cabeceras de cada fichero]`
+
+| fichero | lineas | funcion |
+|---|---|---|
+| `main.cpp` | 202 | arranque; el orden es la especificacion |
+| `vigilante.cpp` | 245 | **FUNCION 1 - watchdog.** `esp_task_wdt` + parte de arranque (`esp_reset_reason`, 11 causas) |
+| `reloj_ds3231.cpp` | 336 | **FUNCION 2 - reloj** DS3231 por I2C (GPIO21/22, 0x68). Bit OSF |
+| `puente.cpp` | 387 | **FUNCION 3 - puente SPP.** No origina, no parte ni une tramas |
+| `enlace_stm32.cpp` | 92 | **UNICO fichero del proyecto que nombra `Serial2`** |
+| `despachador.cpp` | 273 | el TERCER despachador: `SET_RTC:` y `CMD:LEER_RTC` |
+| `transporte_app.cpp` | 119 | transporte hacia el telefono |
+| `trama.cpp` | 70 | formato y CRC |
+
+**Las tres barreras del puente, con un pack cada una:** NO ORIGINA (`esp32_05`) ·
+NO PARTE NI UNE TRAMAS (`esp32_06`) · SILENCIO NO ES ORDEN (`esp32_08`). **Y NO
+FILTRA POR COMANDO**: retransmite toda trama bien formada; valida FORMATO.
+
+**El STM32 sigue siendo el controlador.** El ESP32 PIDE; el STM32 acepta o rechaza.
+SFTY-6 mira la radio, no J17: un ESP32 colgado no puede mover una luz ni disparar un
+ambar.
+
+### 2.11 El enlace por radio
+
+`[MEDIDO 07/09 - grep SFTY6_SILENCIO_MS en los dos protocolo.h]`
+
+```
+  Maestro/include/protocolo.h:149   #define SFTY6_SILENCIO_MS   25000UL
+  Esclavo/include/protocolo.h:149   #define SFTY6_SILENCIO_MS   25000UL   (ficheros byte-identicos)
+```
+
+**En la rama son 25 s desde N-71.** En el poste siguen los 12 s: el equipo de calle
+es la V8.4 (`e303485`) y esto no ha salido de la rama. El reporte de campo -"se va a
+ambar a los 12 segundos, por nada"- **confirma N-71 por el otro lado**: el equipo se
+rendia antes de terminar de intentarlo. La desigualdad la **recalcula**
+`costura_09_presupuesto_radio` desde el C++.
+
+Configuracion vigente: **2 radios en enlace directo, sin repetidor**, `2.4 kbps`,
+`M0`/`M1` ambos en OFF.
+
+---
+
+## 3. LOS INSTRUMENTOS Y SUS RUTAS
+
+**EL TAMANO DEL APARATO DE MEDIR.** `[MEDIDO 07/09]` Contando banco, simuladores,
+los cuatro Validacion_* y compuerta.py, frente a los .cpp/.h de los cuatro roles:
+
+```
+  firmware      18.801 lineas
+  instrumento   42.738 lineas          ratio  2,27 : 1
+```
+
+El 02/09 era 2,31 : 1. **Ninguna de esas 42.738 lineas ha tocado una tarjeta desde
+el 31/07.** Antes de escribir un pack nuevo la pregunta no es *"¿esta bien hecho?"*
+sino *"¿esto acerca una tarjeta cargada, o la sustituye?"*.
+
+> **ESTA ES LA SECCION MAS UTIL DE ESTE FICHERO.** Los validadores **no incluyen el
+> firmware: lo PARSEAN**, y direccionan cada archivo por tuplas
+> `("Maestro","src","mando.cpp")`. **Mover o renombrar un fichero rompe un
+> instrumento**, y el movimiento y la actualizacion de rutas van en el MISMO commit.
+
+### 3.1 Como direccionan - `banco/fuente.py` es la unica puerta
+
+`[MEDIDO 07/09 - lectura de Simulaciones/banco/fuente.py]`
+
+| funcion | que hace | si falta el fichero |
+|---|---|---|
+| `ruta(*partes)` | resuelve dentro de `01_Firmware` | **`Abortado`** |
+| `texto()` / `codigo()` | el fuente; `codigo()` quita comentarios | **`Abortado`** |
+| `constante(partes, patron, ...)` | lee un numero del C++ | **`Abortado`. Sin valor por defecto, nunca** |
+| `comando(partes, nombre)` | codigo de comando en hex | **`Abortado`** |
+| `huella()` | SHA-256 del fichero **completo** | **`Abortado`** |
+| `fuentes_de(punta, carpeta, ext)` | censa el DIRECTORIO, no una lista a mano | `Abortado` si falta el dir |
+| `existe()` | pregunta sin morir (para la migracion a `lib/Common`) | devuelve `False` |
+| `ruta_repo()` / `texto_repo()` | **desde la RAIZ del repositorio** - documentos y app | **`Abortado`** |
+| `actas()` / `acta()` | las actas de `evidencia/`, ordenadas **por su NOMBRE** | `Abortado` si no hay |
+
+### 3.2 La guarda de rutas - que cubre y que NO
+
+`[MEDIDO 07/09 - reimplementando los regex de compuerta.py sobre el arbol]`
+
+```
+RUTAS CENSADAS: 64      inexistentes: 0      (identico a lo que dice el acta del 07/09)
+```
+
+Censa dos formas, y **solo bajo cuatro roles**:
+
+```
+_RE_TRIPLE   ("Maestro"|"Esclavo"|"Repetidor"|"ESP32_Expansion", "src"|"include", "*.h|cpp|ini")
+_RE_PAR      ("src"|"include", "*.h|cpp|ini")   -> se exige en Maestro Y Esclavo
+```
+
+| la guarda ... | |
+|---|---|
+| SI vigila | ficheros del firmware **que desaparecen**, bajo los 4 roles |
+| **NO** vigila | **contenido que se muda de fichero** (`main.cpp` sigue existiendo) |
+| **NO** vigila | **los DOCUMENTOS** que los packs abren con `ruta_repo()` |
+| **NO** vigila | **los ficheros de la APP** (`05_Funcional/App_Semaforo/...`) |
+| **NO** vigila | **los ARNESES** que los packs abren con `fw.texto("Validacion_LCD", ...)` |
+| **NO** vigila | un quinto rol: un `.cpp` bajo un directorio nuevo **no lo puede nombrar ningun pack** |
+
+> 🔴 **HALLAZGO NUEVO `[MEDIDO 07/09]` - EL `PASS` DE LA GUARDA DEPENDE DEL ORDEN
+> ALFABETICO DE LOS PACKS.** El censo acumula en un set GLOBAL y solo expande un
+> par `("src","vigilante.cpp")` a las dos puntas **si el triple no esta ya dentro**.
+> Corriendo el mismo censo con los ficheros en orden inverso:
+> ```
+> orden real (sorted)  -> 64 rutas, 0 inexistentes
+> orden INVERSO        -> 69 rutas, 4 inexistentes:
+>                         Esclavo/src/trama.cpp   Esclavo/src/vigilante.cpp
+>                         Maestro/src/trama.cpp   Maestro/src/vigilante.cpp
+> ```
+> Hoy funciona porque `esp32_02` y `esp32_09` -que traen los triples de
+> `ESP32_Expansion/src/vigilante.cpp` y `trama.cpp`- ordenan **antes** que
+> `esp32_10`, que trae los pares. **Renombrar `esp32_02` o `esp32_09` a algo que
+> ordene despues de `esp32_10` pone la guarda en ABORTADO** y con ella el sentido de
+> las otras 19 filas. No es un defecto de hoy; es una dependencia sin escribir.
+
+### 3.3 Que ficheros direcciona cada pack
+
+`[MEDIDO 07/09 - censo automatico sobre banco/packs/*.py con los regex de la guarda]`
+
+Clave: `M:` = Maestro · `E:` = Esclavo · `X:` = ESP32_Expansion · `M+E:` = tupla de
+dos, se exige en las dos puntas · `via modelos` = no direcciona por su cuenta, las
+rutas las pone `banco/modelos/`.
+
+| pack | ficheros del firmware que direcciona | documentos / app | via |
+|---|---|---|---|
+| `app_01_comandos` | `X:despachador.cpp`, `M+E:bluetooth.cpp` | `app.js`, `index.html` | propia |
+| `app_02_modos_simetricos` | `E:modo_degradado.h`, `M:modos.h`, `M+E:menu.h`, `M+E:bluetooth.cpp` | - | propia |
+| `app_03_sin_ok_mudo` | `M+E:bluetooth.cpp` | - | propia |
+| `app_04_valores_de_status` | `E:bluetooth.cpp`, `M+E:botones.cpp`, `M+E:semaforo.cpp` | `app.js` | propia |
+| `app_05_sin_exito_mudo` | - | `app.js` | propia |
+| `app_06_formato_de_hora` | `X:despachador.cpp`, `M+E:bluetooth.cpp` | `app.js`, `js/courier_rtc.js` | propia |
+| `app_07_generadores_de_trama` | `E:bluetooth.cpp`, `M:bluetooth.cpp` | `index.html` + **censo de `App_Semaforo/`** | propia |
+| `app_08_enrutado_por_punta` | `E:bluetooth.cpp`, `M:bluetooth.cpp` | `app.js` | propia |
+| `app_09_registro_de_enlace` | - | `app.js`, `index.html`, `js/registro_enlace.js`, `style.css` | propia |
+| `app_10_ack_con_varios_sies` | `X:despachador.cpp`, `E:bluetooth.cpp`, `M:bluetooth.cpp` | `app.js` | propia |
+| `app_11_rangos_de_tiempos` | `M:coordinador.h`, `M:limites_ciclo.h`, `M:modo_automatico.cpp` | `app.js`, `js/config.js`, `index.html` | propia |
+| `app_12_un_solo_parser` | `M+E:bluetooth.cpp` | `app.js`, `js/nmea_parser.js`, `tests/test_unitarios.js`, `test_unitarios_app.js` | propia |
+| `barrera_01_pines_de_luz` | `M:main.cpp`, `M+E:pines.h` | - | propia |
+| `barrera_02_dos_puntas` | `M+E:semaforo.cpp` | - | propia |
+| `barrera_03_talanquera` | `M+E:pines.h`, `M+E:semaforo.cpp` | - | propia |
+| `barrera_04_arnes_dos_puntas` | `M:protocolo.h`, `M:coordinador.cpp`, `M:identidad.cpp` | 🔴 **`Validacion_Automatico/dos_puntas` y `compilar_dos_puntas.ps1`** | propia |
+| `camara_01_demanda` | `E:demanda.cpp`, `E:main.cpp`, `M+E:pines.h` | - | propia |
+| `camara_02_j16` | `E:mando.cpp`, `M:bluetooth.cpp`, `M+E:botones.h`, `M+E:pines.h`, `M+E:botones.cpp`, `M+E:demanda.cpp`, `M+E:main.cpp` | - | propia |
+| `camara_03_vigilante` | `M:limites_ciclo.h`, `M:modo_inteligente.cpp`, `M+E:botones.h`, `M+E:bluetooth.cpp`, `M+E:botones.cpp`, `M+E:demanda.cpp` | - | propia |
+| `costura_01_contratos` | `M:ciclo_degradado.h`, `M+E:identidad.h`, `M+E:protocolo.h`, `M+E:respaldo.h`, `M+E:identidad.cpp`, `M+E:protocolo.cpp`, `M+E:respaldo.cpp` | - | propia |
+| `costura_02_fase_ciclo` | (via modelos) | - | **modelos** |
+| `costura_03_comandos` | `M:coordinador.cpp` | - | **modelos** |
+| `costura_04_config` | (via modelos) | - | **modelos** |
+| `costura_05_limite_48h` | (via modelos) | - | **modelos** |
+| `costura_06_reanudacion` | (via modelos) | - | **modelos** |
+| `costura_07_motivos_rechazo` | (via modelos) | - | **modelos** |
+| `costura_08_silencio` | `M+E:protocolo.h` | - | propia |
+| `costura_09_presupuesto_radio` | `M:protocolo.h`, `M:coordinador.cpp` | - | propia |
+| `costura_10_funciones_muertas` | **censa `src/` e `include/` enteros** (`fuentes_de`) | - | propia |
+| `costura_11_lcd_sin_bus` | `E:pines.h`, `E:lcd.cpp`, `M:pines.h`, `M:lcd.cpp` | - | propia |
+| `costura_12_acuse_de_demanda` | `E:main.cpp`, `M:coordinador.cpp`, `M+E:protocolo.h` | - | propia |
+| `costura_12_margen_deriva` | (via modelos) | 🔴 **`Validacion_Automatico/compilar_degradado.ps1` y `dos_puntas`** | **modelos** |
+| `costura_13_ambar_ordenado` | `E:main.cpp` | - | propia |
+| `costura_14_cancela_ambar` | `E:bluetooth.cpp`, `E:main.cpp`, `M:coordinador.cpp`, `M:main.cpp`, `M:modo_ambar.cpp` | - | propia |
+| `documentos_01_cifras_del_acta` | - | `README.md`, `ESTADO.md`, **el acta ANTERIOR de `evidencia/`** | propia |
+| `documentos_02_trazabilidad_sfty` | - | `OPTIMIZACIONES.md` | propia |
+| `documentos_03_trama_status` | `M+E:bluetooth.cpp` | `05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md`, `app.js`, `index.html` + **las 3 copias de la app** | propia |
+| `documentos_04_cifras_sin_vigilante` | `M:limites_ciclo.h`, `M:mando.cpp`, `M+E:protocolo.h` | 🔴 **`04_Manuales/MANUAL_USUARIO.md`, `04_Manuales/MANUAL_HARDWARE.md`**, `CERTIFICACION_SW.md`, `OPTIMIZACIONES.md` | propia |
+| `documentos_05_copias_coherentes` | - | `README.md`, `ESTADO.md`, `CERTIFICACION_SW.md` (`A.md`/`B.md` son el `control_negativo`, no rutas) | propia |
+| `enlace_01_transporte` | `E:bluetooth.h`, `E:pines.h`, `E:bluetooth.cpp`, `E:lcd.cpp`, `M:bluetooth.h`, `M:pines.h`, `M:bluetooth.cpp`, `M:lcd.cpp`, `M:main.cpp` | - | propia |
+| `enlace_02_silencio_j17` | `M+E:bluetooth.cpp` | - | propia |
+| `esclavo_01_latch_ambar` | (via modelos) | - | **modelos** |
+| `esclavo_02_inhibicion_menu` | (via modelos) | - | **modelos** |
+| `esclavo_03_par_config` | (via modelos) | - | **modelos** |
+| `esclavo_04_desfase` | (via modelos) | - | **modelos** |
+| `esclavo_05_hora_atomica` | (via modelos) | - | **modelos** |
+| `esclavo_06_no_abre_paso` | `E:bluetooth.cpp`, `E:demanda.cpp`, `E:protocolo.cpp` | - | propia |
+| `esclavo_07_ambar_emergencia` | `E:bluetooth.h`, `E:protocolo.h`, `E:bluetooth.cpp`, `E:main.cpp`, `M:bluetooth.cpp` | - | propia |
+| `esclavo_08_ambar_en_degradado` | `E:bluetooth.cpp`, `E:main.cpp`, `E:mando.cpp`, `E:modo_degradado.cpp`, `M:coordinador.cpp` | - | propia |
+| `esp32_01_watchdog_desigualdad` | `X:contrato.h`, `E:main.cpp`, `M:coordinador.cpp`, `M+E:protocolo.h` | `app.js` | propia |
+| `esp32_02_watchdog_alimentado` | `X:contrato.h`, `X:main.cpp`, `X:puente.cpp`, `X:vigilante.cpp` | - | propia |
+| `esp32_03_ack_que_mira` | `X:reloj_ds3231.h`, `X:despachador.cpp` | - | propia |
+| `esp32_04_osf` | `X:contrato.h`, `X:main.cpp`, `X:reloj_ds3231.cpp` | - | propia |
+| `esp32_05_no_origina` | `X:puente.cpp` | - | propia |
+| `esp32_06_no_parte_tramas` | `X:puente.h`, `X:enlace_stm32.cpp`, `X:puente.cpp` | - | propia |
+| `esp32_07_presupuesto_bytes` | `X:contrato.h`, `M:coordinador.h`, `M:limites_ciclo.h`, `M:protocolo.h`, `M:bluetooth.cpp`, `M:coordinador.cpp` | - | propia |
+| `esp32_08_silencio_no_es_orden` | `X:enlace_stm32.cpp`, `X:main.cpp`, `X:puente.cpp` | - | propia |
+| `esp32_09_contrato_de_bytes` | `X:contrato.h`, `X:enlace_stm32.cpp`, `X:trama.cpp`, `M+E:bluetooth.cpp` | - | propia |
+| `esp32_10_parte_de_arranque` | `X:contrato.h`, `X:vigilante.h`, y **pares** `src/main.cpp`, `src/trama.cpp`, `src/vigilante.cpp` ⚠️ ver 3.2 | - | propia |
+| `esp32_11_bien_formada_no_es_cierta` | `X:contrato.h`, `X:reloj_ds3231.h`, `X:reloj_ds3231.cpp` | - | propia |
+| `esp32_12_consulta_de_reloj` | `X:despachador.h`, `X:reloj_ds3231.h`, `X:despachador.cpp`, `X:puente.cpp`, `M+E:bluetooth.cpp` | - | propia |
+| `flash_01_lastre` | **parsea `firmware.map`** del enlazador, no un fuente | - | propia |
+| `identidad_01_serie` | `M:identidad.cpp` | - | propia |
+| `maestro_01_mando` | `M:main.cpp`, `M:modo_automatico.cpp` | - | **modelos** |
+| `maestro_02_respaldo` | `M:respaldo.cpp`, `M+E:respaldo.h` | - | **modelos** |
+| `maestro_03_puerta_degradado` | `E:lcd.cpp`, `E:modo_degradado.cpp`, `M:coordinador.cpp`, `M:lcd.cpp`, `M:modo_degradado.cpp` | - | **modelos** |
+| `maestro_04_sync_horaria` | (via modelos) | - | **modelos** |
+| `maestro_05_ciclo_sin_radio` | `M:modo_degradado.cpp` | - | **modelos** |
+| `maestro_06_fuentes_pantalla` | `M:lcd.cpp` | 🔴 **`Validacion_LCD/arnes_lcd.cpp`** | propia |
+| `maestro_07_menu_opciones` | `M:menu.cpp` | 🔴 **`Validacion_LCD/arnes_lcd.cpp`** | propia |
+| `maestro_08_set_tiempos` | `M:limites_ciclo.h`, `M:bluetooth.cpp`, `M:modo_automatico.cpp` | - | propia |
+| `maestro_09_test_leds` | `M:semaforo.cpp` | - | propia |
+| `maestro_10_coordinador_alcanzable` | `M:coordinador.h`, `M:protocolo.h`, `M:main.cpp` | - | propia |
+| `maestro_11_manual_no_cicla` | `M:coordinador.cpp`, `M:modo_automatico.cpp`, `M:modo_manual.cpp` | - | propia |
+| `maestro_12_dar_paso_sin_coordinador` | `M:bluetooth.cpp`, `M:main.cpp` | - | propia |
+| `reloj_01_consulta_por_bluetooth` | `E:reloj.h`, `E:bluetooth.cpp`, `M:reloj.h`, `M:bluetooth.cpp` | - | propia |
+
+### 3.4 Los tres MODELOS - 17 packs no direccionan nada por su cuenta
+
+`[MEDIDO 07/09 - grep -l 'from banco.modelos' packs/*.py -> 17 ficheros]`
+
+| modelo | ficheros que abre |
+|---|---|
+| `banco/modelos/costura.py` | `M+E`: `ciclo_degradado.h`, `modo_degradado.h`, `protocolo.h`, `respaldo.h`, `config_ciclo.cpp`, `coordinador.cpp`, `main.cpp`, `modo_degradado.cpp`, `protocolo.cpp`, `reloj.cpp`, `respaldo.cpp`, `semaforo.cpp` |
+| `banco/modelos/esclavo.py` | `M+E`: `ciclo_degradado.h`, `protocolo.h`, `config_ciclo.cpp`, `coordinador.cpp`, `main.cpp`, `mando.cpp`, `menu.cpp`, `modo_degradado.cpp`, `semaforo.cpp` |
+| `banco/modelos/maestro.py` | `M+E`: `ciclo_degradado.h`, `protocolo.h`, `respaldo.h`, `botones.cpp`, `coordinador.cpp`, `main.cpp`, `mando.cpp`, `modo_degradado.cpp`, `respaldo.cpp`, `semaforo.cpp` |
+
+Los 17 que dependen de ellos: `costura_02` `costura_03` `costura_04` `costura_05`
+`costura_06` `costura_07` `costura_12_margen_deriva` `esclavo_01` `esclavo_02`
+`esclavo_03` `esclavo_04` `esclavo_05` `maestro_01` `maestro_02` `maestro_03`
+`maestro_04` `maestro_05`.
+
+> **Tocar un modelo mueve 17 packs a la vez.** Y los modelos leen constantes **en el
+> import**: un fichero que falta no da FALLA, da **ABORTADO en cascada**.
+
+### 3.5 Los ficheros mas leidos - donde duele mas mover algo
+
+`[MEDIDO 07/09 - cuenta de instrumentos que direccionan cada fichero]`
+
+| fichero | instrumentos que lo abren |
+|---|---|
+| `Maestro/src/bluetooth.cpp` | **23** |
+| `Esclavo/src/bluetooth.cpp` | **21** |
+| `Maestro/src/coordinador.cpp` | 14 |
+| `Maestro/include/protocolo.h` | 14 |
+| `Esclavo/src/main.cpp` | 12 |
+| `Maestro/src/main.cpp` | 10 |
+| `Esclavo/include/protocolo.h` | 8 |
+| `ESP32_Expansion/include/contrato.h` | 8 |
+| `Maestro/src/semaforo.cpp` | 7 |
+| `Maestro/include/pines.h` | 6 |
+
+### 3.6 Las rutas que NADIE vigila - el hueco abierto
+
+`[MEDIDO 07/09]`
+
+Estos ficheros los ABREN instrumentos con `ruta_repo()`/`texto()` **-que ABORTA si
+faltan-** y **la guarda de rutas no los censa**. Moverlos deja packs en ABORTADO sin
+que ninguna fila avise:
+
+| ruta | quien la abre | efecto de moverla |
+|---|---|---|
+| `README.md` | `documentos_01`, `documentos_05` | 2 packs ABORTADO |
+| `ESTADO.md` | `documentos_01`, `documentos_05` | 2 packs ABORTADO |
+| `CERTIFICACION_SW.md` | `documentos_04`, `documentos_05` | 2 packs ABORTADO |
+| `OPTIMIZACIONES.md` | `documentos_02`, `documentos_04` | 2 packs ABORTADO |
+| `04_Manuales/MANUAL_USUARIO.md` | `documentos_04` | 1 pack ABORTADO |
+| `04_Manuales/MANUAL_HARDWARE.md` | `documentos_04` | 1 pack ABORTADO |
+| `05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md` | `documentos_03` | 1 pack ABORTADO |
+| `05_Funcional/App_Semaforo/{app.js, index.html, style.css}` | 11 packs `app_*` + 2 simuladores | media docena de packs ABORTADO |
+| `05_Funcional/App_Semaforo/js/{config,courier_rtc,nmea_parser,registro_enlace}.js` | `app_06`, `app_09`, `app_11`, `app_12` | 4 packs ABORTADO |
+| `05_Funcional/App_Semaforo/tests/test_unitarios.js` | `app_12` | 1 pack ABORTADO |
+| `Validacion_LCD/arnes_lcd.cpp` | `maestro_06`, `maestro_07` | 2 packs ABORTADO |
+| `Validacion_Automatico/compilar_dos_puntas.ps1` y `dos_puntas/` | `barrera_04` | 1 pack ABORTADO |
+| `Validacion_Automatico/compilar_degradado.ps1` | `costura_12_margen_deriva` | 1 pack ABORTADO |
+| `evidencia/*_compuerta.txt` | `fuente.actas()`, `documentos_01`, `documentos_04` | 2 packs ABORTADO |
+
+> **Y un pack en ABORTADO tumba la fila entera `banco por packs`**: 76 packs sin
+> medir por un fichero mudado. La guarda seguiria publicando *"64 rutas, todas
+> existen"*.
+
+---
+
+## 4. LOS ARNESES QUE COMPILAN C++ REAL - Y SU PUNTO CIEGO
+
+`[MEDIDO 07/09 - grep de las rutas .cpp en cada compilar*.ps1]`
+
+**SON SEIS, no cuatro.** Y hay un septimo que compila C++ real sin ser una fila
+propia de la compuerta.
+
+| arnes | guion | `.cpp` REALES que enlaza | PUNTO CIEGO - lo que su PASS **no** demuestra |
+|---|---|---|---|
+| **`Validacion_LCD`** | `compilar.ps1` | **M:** `lcd.cpp` `menu.cpp` `modos.cpp` · **E:** `lcd.cpp` `menu.cpp` `modo_degradado.cpp` | framebuffer en el PC, **no la ST7920**. Y la pantalla esta retirada del EQUIPO (D-17.bis) |
+| **`Validacion_Ciclo`** | `compilar.ps1` | solo `arnes_ciclo.cpp`, que `#include "ciclo_degradado.h"` | funcion **pura**: no hay maquina de estados, no hay tiempo |
+| **`Validacion_Respaldo`** | `compilar.ps1` | `arnes_respaldo.cpp` **`#include "respaldo.cpp"`** | **no ejerce el arranque**. Comprueba ademas que `respaldo.cpp/.h` son identicos entre puntas |
+| **`Validacion_Automatico`** | `compilar.ps1` | **M:** `coordinador.cpp` `botones.cpp` `semaforo.cpp` `modo_automatico.cpp` `modo_inteligente.cpp` `demanda.cpp` `mando.cpp` | **solo el Maestro**. No ejerce el Degradado ni el microcorte |
+| **`.../dos_puntas`** | `compilar_dos_puntas.ps1` | **M(4):** `coordinador` `semaforo` `modo_automatico` `mando` · **E(7):** `semaforo` `main` `modo_degradado` `config_ciclo` `mando` `demanda` `respaldo` | el microcorte y el **Degradado del Maestro** no entran; `protocolo.cpp` tampoco |
+| **`.../dos_puntas` Degradado** | `compilar_degradado.ps1` | **M(6):** `coordinador` `semaforo` `modo_degradado` `modo_ambar` `modos` `respaldo` · **E:** el mismo `adaptador_esclavo.cpp` | **no ejerce el microcorte** |
+| `Simulaciones/puente_esp32` | `compilar.ps1` | **M(8):** `bluetooth` `semaforo` `coordinador` `modo_automatico` `mando` `modos` `demanda` `identidad` · **E(5):** `bluetooth` `semaforo` `demanda` `identidad` `modo_degradado` | **el ESP32 es modelo en Python**: el simulador NO carga su binario aunque su C++ exista |
+
+**Por que `dos_puntas` necesita DOS DLL:** Maestro y Esclavo definen **los mismos
+simbolos** y no enlazan juntos. Una DLL por punta en el mismo proceso, un tick pone
+el mismo `millis()` en las dos, las llama, y **solo entonces** lee los doce pines.
+Ese instante comun es lo que dos ejecutables separados no pueden tener - y es lo que
+permite medir *"verde en las dos A LA VEZ"* sobre las puntas reales.
+
+> ✅ **`Validacion_Automatico/botones.h` YA NO ES UN STUB** `[MEDIDO 07/09]`. Tiene
+> 19 lineas y **reenvia al header real**: `#include "../Maestro/include/botones.h"`.
+> Hasta el 05/09 declaraba las firmas a mano y **`botones.cpp` no se compilaba en
+> ningun sitio del proyecto**: el vigilante de camaras entero estaba medido solo por
+> packs que leen texto. **CLAUDE.md 8.septies sigue describiendo el mundo anterior.**
+
+**Los sustitutos que quedan** (`-I` del directorio del arnes va PRIMERO):
+`Arduino.h`, `pines.h`, `lcd.h`, `menu.h`, `bluetooth.h` en `Validacion_Automatico`;
+`Arduino.h`, `pines.h` en `Validacion_LCD`; `Arduino.h` + `stm32f1xx_hal.h` en
+`Validacion_Respaldo`; `Arduino.h` `pines.h` `botones.h` `lcd.h` `menu.h`
+`uid_arnes.h` en `puente_esp32`. **Todo lo demas son los `.h` reales, a proposito.**
+
+> **Un arnes que no se ha visto fallar es un adorno que da verde.** Antes de
+> conectar uno se inyecta un defecto **en el `.cpp` real**, se corre, y se exige que
+> **baje la cuenta y cambie el codigo de salida**. Y se restaura **desde una copia
+> hecha antes de inyectar**, verificando por hash: con trabajo sin comitear,
+> `git checkout --` no deshace la inyeccion, **vuelve a HEAD**.
+
+---
+
+## 5. LAS VEINTE FILAS DE LA COMPUERTA
+
+> 🔴 **`correr.py` NO ES `compuerta.py`. El banco por packs es UNA fila de veinte.**
+> Confundirlos ya costo un commit: se corrio `banco/correr.py`, dio `1015/1018` con
+> todo lo propio en verde, y **la compuerta completa salia con codigo `2`** porque
+> `simulador_app_bluetooth.py` -otra fila- estaba en ABORTADO.
+> **`correr.py` es para iterar. `compuerta.py` es para autorizar.**
+
+`[MEDIDO 07/09 - main() de compuerta.py + acta 2026-09-07]`
+
+| # | fila | que mide | cifra 07/09 |
+|---|---|---|---|
+| | **-- Instrumentos --** | | |
+| 1 | `guarda de rutas` | que cada fuente que los instrumentos dicen abrir **existe**. Suelo: `RUTAS_MINIMAS_ESPERADAS = 45` | 64 rutas |
+| | **-- Compilacion --** (se salta con `--rapido`) | | |
+| 2 | `compila maestro` | PlatformIO sobre `Maestro/` | 87,6 % |
+| 3 | `compila esclavo` | PlatformIO sobre `Esclavo/` | 63,7 % |
+| 4 | `compila repetidor` | PlatformIO sobre `Repetidor/` | 20,6 % |
+| 5 | `compila esp32` | PlatformIO sobre `ESP32_Expansion/` | 35,7 % |
+| | **-- Modelos de comportamiento --** (Python escrito a mano: prueban EL MODELO) | | |
+| 6 | `simulador funcional` | `simulador_sistema_v7_6.py` | 9/9 |
+| 7 | `simulador de repetidor` | `simulador_repetidor.py` | 10/10 |
+| 8 | `simulador de app y bluetooth` | `simulador_app_bluetooth.py` - app vs firmware BT | 12/12 |
+| 9 | `test funcional de la app` | `05_Funcional/App_Semaforo/test_funcional_app.py` | 58/58 |
+| 10 | `test unitarios de la app` | `App_Semaforo/test_unitarios_app.js` (node) | 32/32 |
+| 11 | `test unitarios TDD de la app` | `App_Semaforo/tests/test_unitarios.js` (node) | 61/61 |
+| 12 | `app ejecutada en DOM` | `App_Semaforo/test_dom_execution.js` sobre jsdom | 235/235 |
+| | **-- Validadores de firmware --** | | |
+| 13 | `banco por packs` | `Simulaciones/banco/correr.py` - **76 packs** | **1180/1180** |
+| | **-- Firmware compilado y ejecutado en el PC --** (lo unico cuyo PASS habla del codigo) | | |
+| 14 | `arnes de pantalla` | `Validacion_LCD` | M 145 + E 126 = 271/271 |
+| 15 | `arnes del ciclo` | `Validacion_Ciclo` | 22/22 |
+| 16 | `arnes del respaldo` | `Validacion_Respaldo` | identicos entre puntas + PING/PONG |
+| 17 | `arnes del automatico` | `Validacion_Automatico` | 99/99 |
+| 18 | `arnes de las dos puntas` | `Validacion_Automatico/dos_puntas` | 42/42 |
+| 19 | `arnes del Degradado a dos puntas` | `compilar_degradado.ps1` | 18/18 |
+| 20 | `simulador del puente ESP32` | `simulador_puente_esp32.py` - **lazo entero app-ESP32-STM32** | 101/101 |
+
+**Codigos de salida:** `0` PASS · `1` FALLA · `2` ABORTADO. Escribe el acta en
+`evidencia/` con fecha y hash de HEAD.
+
+> ⚠️ **NO ES IDEMPOTENTE DESPUES DE UN `--rapido`: hacen falta DOS pasadas
+> completas.** `documentos_01_cifras_del_acta` lee el acta **ANTERIOR**, y `--rapido`
+> deja un acta **sin las tres filas de `compila`**. La cura no es tocar el pack: es
+> correr la completa dos veces.
+
+> 🔴 **UN `20/20` DICE "los modelos y arneses de PC no encuentran nada". NO DICE QUE
+> EL FIRMWARE FUNCIONE EN LA TARJETA.** El 04/09 los tres defectos que pararon el
+> banco pasaron esas 20 comprobaciones sin despeinarlas. **Verde no es entregable.**
+
+> 🔴 **N-44 SIGUE VIVO.** Los siete arneses que compilan C++ real caen a la vez si
+> `ld` no abre la ruta con `ñ` de `Diego.Zuñiga`. La cura -copiar el toolchain a
+> `D:\toolchain\mingw64`- **no esta en el repositorio: es una dependencia de la
+> maquina**. Si desaparece, la proxima sesion mide siete comprobaciones menos y el
+> acta lo dice en una linea que nadie lee.
+
+### 5.1 Instrumentos que EXISTEN y NO estan en la compuerta
+
+`[MEDIDO 07/09 - grep -rl del nombre de cada fichero sobre .py/.js/.ps1]`
+
+| fichero | lo nombra | por que no esta |
+|---|---|---|
+| `App_Semaforo/test_e2e_puppeteer.js` | **0 ficheros** | no afirma nada -captura pantallas-, pide `localhost:3000`, y **se traga toda excepcion saliendo con `0`** imprimiendo *"TODOS LOS CONTROLES FUERON PROBADOS CON EXITO"*. Eso es N-46 |
+| `App_Semaforo/tests/test_e2e_visual.js` | (solo su directorio) | igual: capturador, no afirmador |
+| `App_Semaforo/herramientas_medir_pulsables.js` | **0 ficheros** | herramienta de medida manual, no arnes |
+| `App_Semaforo/herramientas_medir_consola.js` | 1 | idem |
+| `App_Semaforo/herramientas_medir_desborde.js` | 3 | idem |
+
+> **Un instrumento que no esta en la compuerta no mide nada - y no deja rastro de
+> que falta.** Un ABORTADO al menos grita; un hueco no.
+
+---
+
+## 6. LOS DEPOSITOS DE DOCUMENTOS - QUIEN GANA A QUIEN
+
+```
+                         EL FUENTE
+                (lo que el firmware HACE de verdad)
+                            |  gana a todo lo de abajo
+                            v
+   05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md   248 KB
+                (HARDWARE MEDIDO: cobre, conectores, pines, compras)
+                            |
+                            v
+                      DECISIONES.md                               43 KB
+                (toda DECISION vigente: la tabla D-x y las abiertas A-x)
+                            |
+                            v
+                      ESTADO.md   62 KB      <- el HOY: que esta abierto y bloqueado
+                      roadmap.md 346 KB      <- el PORQUE, con los N-x debajo
+                            |
+                            v
+        OPTIMIZACIONES.md 144 KB   reglas SFTY-x, trazabilidad regla->codigo->prueba
+        INDICE_CRUZADO.md  70 KB   donde vive cada hecho; huecos
+        README.md          58 KB   portada. SUS CIFRAS SE COPIAN DEL ACTA
+        CERTIFICACION_SW.md 11 KB
+        ARQUITECTURA.map  este fichero: un INDICE, no una fuente
+```
+
+| pregunta | quien manda |
+|---|---|
+| "¿que hace el firmware?" | **el fuente**. Todo lo demas es un resumen |
+| "¿que hay en este pin / este conector / este componente?" | **`05_Funcional/17_...`**. Gana a `CLAUDE.md` y a este fichero |
+| "¿esto esta decidido?" | **`DECISIONES.md`**. Una frase de viva voz no deroga una decision escrita |
+| "¿donde esta parado el trabajo?" | **`ESTADO.md`** |
+| "¿por que se hizo asi?" | **`roadmap.md`** (no hace falta leerlo entero) |
+| "¿que regla SFTY cubre esto?" | **`OPTIMIZACIONES.md`** |
+| "¿cuanto mide / cuantos packs hay?" | **el acta mas reciente de `evidencia/`**, nunca una copia a mano |
+
+> 🔴 **`CLAUDE.md` TAMBIEN CADUCA, Y ES EL PEOR SITIO DONDE PUEDE PASAR.** Se carga
+> en cada sesion, asi que una regla caducada ahi **se recita con autoridad y sin que
+> nadie vaya a la fuente**. Ya paso tres veces en una noche -M3, la polaridad de
+> `BOTON1/2`, y el NO/NC de la camara-, y las tres veces la fuente buena estaba en
+> `05_Funcional/`. **Antes de contestar sobre cobre, conectores, pines o compras se
+> abre la spec**, aunque `CLAUDE.md` parezca contestar.
+
+**Documentos que un pack VIGILA** (y que por tanto no se pueden mover sin avisar):
+`README.md`, `ESTADO.md`, `CERTIFICACION_SW.md`, `OPTIMIZACIONES.md`,
+`04_Manuales/MANUAL_USUARIO.md`, `04_Manuales/MANUAL_HARDWARE.md`,
+`05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md`. Ver 3.6.
+
+**`05_Funcional/` son 19 documentos numerados, cada uno con su `.md` y su `.docx`**
+`[MEDIDO 07/09]`. El `.docx` **no se regenera solo**: el empaquetador solo mira que
+exista.
+
+---
+
+## 7. EL HARDWARE
+
+> **Todo lo de esta seccion se midio sobre el `.kicad_pcb`, que dice lo que se
+> DIBUJO. Lo que dice lo que se FABRICO son las medidas con puntas de
+> `05_Funcional/17_...` seccion A, que GANAN a este fichero.**
+
+### 7.1 El fichero de KiCad NO esta vacio - medido por dos caminos
+
+`[MEDIDO 07/09]`
+
+```
+$ wc -c Controladora_Semaforos.kicad_pcb            ->  2.158.421 B
+$ grep -c '(segment '  ...kicad_pcb                 ->          0   <-- FALSO
+$ grep -oE '\(segment\b' ...kicad_pcb | grep -c ''  ->      1.447   <-- REAL
+  footprints 185 · vias 89 · pads 485 · redes declaradas 587
+  esquematico: 649.224 B
+```
+
+KiCad separa los tokens con **tabulador y salto de linea**: buscar la pista con un
+espacio detras da cero, y **un cero se lee como "no hay"**.
+
+### 7.2 Las DIEZ cadenas de potencia
+
+`[MEDIDO 07/09 - parseo de footprints y redes del .kicad_pcb]`
+
+Molde de cada cadena, **trazado entero en el netlist, de la pata del micro a la
+bornera** `[MEDIDO 07/09]`:
+
+```
+  U1 pad --> R (220) --> LED del opto TLP127 --> [aislamiento] --> pin 4 del opto
+                                                      |  (pin 6 del opto al riel /5V,
+                                                      |   NO al de 12 V)
+                                     R (220) al gate <+  +  R (10K) del gate a GND
+                                          |
+                                       IRLZ44N (drain) --> bornera p2
+                                          |                    ^
+                                          |     1N4148 al /12V-+  (rueda libre)
+                                          |     LED + R 1K al /12V (testigo Y PULL-UP)
+                                       GND (source)
+```
+
+| # | U1 pad | pin | red del sch | opto | R gate | MOSFET | bornera | senal |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 10 | PA0 | `/S1` | `U6` | `R21` | `Q1` | `J3` | `ROJO1` |
+| 2 | 11 | PA1 | `/S2` | `U7` | `R27` | `Q2` | `J4` | `AMARILLO1` |
+| 3 | 12 | PA2 | `/S3` | `U8` | `R32` | `Q3` | `J5` | `VERDE1` |
+| 4 | 13 | PA3 | `/S4` | `U9` | `R37` | `Q4` | `J6` | `ROJO2` |
+| 5 | 14 | PA4 | `/S5` | `U10` | `R42` | `Q5` | `J7` | `AMARILLO2` |
+| 6 | 15 | PA5 | `/S6` | `U11` | `R47` | `Q6` | `J8` | `VERDE2` |
+| 7 | 17 | PA7 | **`/S8`** | `U12` | `R52` | `Q7` | `J9` | `VERDE_PEATON` |
+| 8 | 19 | PB1 | `/Buzzer` | `U13` | `R57` | `Q8` | `J13` | `BUZZER` |
+| 9 | 16 | PA6 | **`/S7`** | `U14` | `R62` | `Q9` | `J11` | `ROJO_PEATON` |
+| 10 | 20 | PB2 | `/Motor` | `U15` | `R72` | `Q10` | `J15` | `MOTOR_TALANQUERA` |
+
+| # | LED testigo | rueda libre | pull-up 1K al 12 V |
+|---|---|---|---|
+| 1 | `D12` | `D11` | `R23` |
+| 2 | `D13` | `D14` | `R28` |
+| 3 | `D15` | `D16` | `R33` |
+| 4 | `D17` | `D18` | `R38` |
+| 5 | `D19` | `D20` | `R43` |
+| 6 | 🔴 **`D21` CON EL CATODO AL AIRE** | `D22` | `R48` |
+| 7 | `D23` | `D24` | `R53` |
+| 8 | `D25` | `D26` | `R58` |
+| 9 | `D27` | `D28` | `R63` |
+| 10 | `D29` | `D30` | `R73` |
+
+*(Son **DIEZ**, no nueve: dos documentos decian nueve y se tacharon el 05/09.)*
+
+> ⚠️ **`/S7` y `/S8` ESTAN CRUZADAS RESPECTO AL ORDEN QUE SUGIERE EL NOMBRE**
+> `[MEDIDO 07/09]`: `/S7` es **PA6 -> J11 -> ROJO_PEATON** y `/S8` es
+> **PA7 -> J9 -> VERDE_PEATON**. Quien cablee guiandose por el numero de la
+> etiqueta y no por la bornera invierte las dos cabezas peatonales. Hoy no importa
+> -los dos canales estan muertos en firmware-; el dia que se gasten, si.
+
+> 🔴 **EL BORNE NO ESTA A 0 V EN REPOSO, ESTA A ~12 V.** `[MEDIDO 07/09 sobre el
+> netlist]` **Nueve** de los diez drenadores llevan `R 1 kohm + LED` al riel de 12 V,
+> y eso esta **en el cobre, no en el conector**: no se evita dejando un hilo sin
+> poner. Con el MOSFET abierto el borne sube a ~12 V con ~10 mA **calculados**
+> -`(12 - Vf)/1 kohm`, no una sonda-.
+
+> 🔴 **EL DECIMO ES LA EXCEPCION, Y ESTA EN UN CANAL DE LUZ VIVO.** `D21`, el LED del
+> canal `Q6 -> J8 -> VERDE2`, tiene el catodo **sin conectar**: red
+> `unconnected-(D21-K-Pad1)`, cero pistas. Su gemelo `D23` lo tiene en los dos
+> extremos. Ese canal **no tiene indicador luminoso** y **`J8` p2 FLOTA en reposo**
+> en vez de subir a ~12 V como los otros nueve. **`[SIN VERIFICAR]` si es defecto o
+> decision** - es `A-10` de `DECISIONES.md`, y es de BANCO.
+
+> ⚠️ **"EL OPTO AISLA GALVANICAMENTE" ES MEDIO CIERTO.** Hay **UNA sola red `GND`**,
+> que incluye el catodo del LED del opto y la fuente del MOSFET. El opto separa el
+> **pin del micro** del nodo de puerta; **no crea una masa separada**. Cualquier cosa
+> colgada de esos bornes **comparte la masa del controlador**.
+
+### 7.3 Los conectores, pad a pad
+
+`[MEDIDO 07/09 - redes de cada pad en el .kicad_pcb]`
+
+| conector | pads | contenido |
+|---|---|---|
+| `J1` | 2 | p1 `GND` · p2 `Net-(D6-A)` - entrada de alimentacion |
+| `J2` | 4 | p1 `GND` · p2/p3 senal · p4 `3.3V` - programacion |
+| `J3`..`J8` | 2 c/u | p1 **`12V`** · p2 drenador - **las seis luces** |
+| `J9` | 2 | p1 `12V` · p2 `Net-(D23-K)` - **`VERDE_PEATON`. Canal fabricado, SIN firmware** |
+| `J10` | 2 | `RS485_IN_TX`/`RX` (PA9/PA10) - **muertos, solo `pines.h`** |
+| `J11` | 2 | p1 `12V` · p2 `Net-(D27-K)` - **`ROJO_PEATON`. Canal fabricado, SIN firmware** |
+| `J12` | 2 | radio LoRa E90-DTU - USART3, PB10 TX / PB11 RX / PB12 DE-RE |
+| `J13` | 2 | p1 `12V` · p2 `Net-(D25-K)` - **`BUZZER`. Canal fabricado, SIN firmware** |
+| `J14` | 2 | p1 **`/Puerta`** (PB0) · p2 **`3.3V`** - 🔴 **ES UNA ENTRADA: la camara de demanda** |
+| `J15` | 2 | p1 `12V` · p2 `Net-(D29-K)` - 🔴 **LA SALIDA DE TALANQUERA** (PB2) |
+| `J16` | **12** | ver abajo |
+| `J17` | **13** | ver abajo |
+
+> 🔴 **`J14` ES ENTRADA. LA SALIDA DE TALANQUERA ES `J15`.** No se confunden: `J14`
+> lleva `3.3 V` en p2 y `J15` lleva `12 V` en p1. Enchufar el motor en `J14` es meter
+> la etapa de potencia en un pin de entrada del micro.
+
+**`J16` - conector de senal. `[MEDIDO 07/09: TIENE 12 PADS]`**
+
+```
+  p1  = 12 V CRUDOS   <<< SE TAPA EN CADA EQUIPO QUE SE MONTE (D-4, N-120)
+  p2  = GND           <<< LA UNICA MASA DE TODO EL CONECTOR
+  p3  = sin conectar          p4  = 3.3 V
+  p5  = /Boton1 = PB9  = MANDO_A     p6  = sin conectar
+  p7  = 3.3 V                 p8  = /Boton2 = PB13 = MANDO_B
+  p9  = 3.3 V                 p10 = /Boton3 = PB14 = CAM_C_PIN  <-- LA CAMARA
+  p11 = 3.3 V                 p12 = /Boton4 = PB15 = CAM_D_PIN  <-- hoy VACIO
+```
+
+> 🔴 **EL MAPA ANTERIOR DECIA "conector de 16 posiciones". SON 12.** `[MEDIDO 07/09]`
+
+**Pull-downs `[MEDIDO 07/09]`:** `R64` `R65` `R66` `R67` `R68`, todas **10K a GND**,
+sobre `/Puerta`, `/Boton1`, `/Boton2`, `/Boton3`, `/Boton4` respectivamente.
+
+**Polaridad: UNA SOLA para las cuatro posiciones** - `INPUT` pelado + **activo en
+ALTO**, contacto seco que **CIERRA CONTRA LOS 3,3 V** `[MEDIDO 07/09 sobre el
+fuente]`:
+
+```
+$ grep -n 'pinMode(BOTON1\|pinMode(CAM_C_PIN\|lecturaCruda' Maestro/src/botones.cpp
+   42:  bool lecturaCruda = (digitalRead(b.pin) == HIGH);
+  514:  pinMode(BOTON1, INPUT);
+  515:  pinMode(BOTON2, INPUT);
+  530:  pinMode(CAM_DEMANDA_PIN, INPUT);
+  531:  pinMode(CAM_C_PIN, INPUT);
+  532:  pinMode(CAM_D_PIN, INPUT);
+      (Esclavo: :507 :508 :523 :524 en botones.cpp; CAM_DEMANDA_PIN en main.cpp:288)
+```
+
+**Y el gesto contrario es imposible en este conector:** hay **una sola masa (p2)** y
+un pin de 3,3 V pegado a cada posicion de senal. Un contacto por posicion contra
+masa **necesitaria una masa por posicion**. Cablear contra masa deja `MANDO_B` sin
+armar `ambarLocal` NUNCA y **abre el veto de SFTY-21** sin que ningun test lo diga.
+
+**`J17` - el enlace serie al ESP32 + los restos de la LCD `[MEDIDO 07/09]`:**
+
+```
+  p1 = /CS     = PB4  (LCD_CS)      <-- en alta impedancia
+  p2 = /RST    = PB7  RX Bluetooth  <-- VIVO, USART1 remapeado
+  p3 = /RS(A0) = PB6  TX Bluetooth  <-- VIVO, USART1 remapeado
+  p4 = /SCL    = PB3  (LCD_SCLK)    <-- en alta impedancia
+  p5 = /SI     = PB5  (LCD_SID)     <-- en alta impedancia
+  p6 = 3.3V    p7 = GND    p8 = 3.3V    p9 = GND
+  p10..p13 = sin conectar
+```
+
+```
+$ grep -n 'HardwareSerial SerialBT' Maestro/src/bluetooth.cpp Esclavo/src/bluetooth.cpp
+  Maestro:30  static HardwareSerial SerialBT(PB7, PB6);   // USART1 remapeado
+  Esclavo:29  static HardwareSerial SerialBT(PB7, PB6);   // NO es la misma linea
+$ grep -n 'U8X8_PIN_NONE' Maestro/src/lcd.cpp Esclavo/src/lcd.cpp
+  Maestro:74-75   Esclavo:92-93   (los 4 pines del constructor SW SPI)
+```
+
+> **PB3 ES EL RELOJ DEL SPI DE SOFTWARE Y CONMUTA EN CADA BIT, pegado al RX/TX del
+> ESP32 dentro del mismo mazo.** Esa es la corrupcion intermitente que no se
+> diagnostica nunca. Por eso los pines pasaron a `U8X8_PIN_NONE`: la libreria se
+> salta el `pinMode` y el `digitalWrite` cuando el pin es `NONE`.
+> **Se eligio esa forma y no procedimientos de bus nulos -que ahorraban 524 B mas-
+> porque DOS PACKS leen ese constructor POR TEXTO** (`flash_01_lastre` y
+> `enlace_01_transporte`): cambiar la FORMA los dejaba en ABORTADO (N-89).
+
+### 7.4 Censo de pines - la columna que NO caduca
+
+`[MEDIDO 07/09]` Se da el pin, la bornera y el ESTADO -que son estables- y **el
+comando** para reencontrar la evidencia, no el numero de linea.
+
+| pin | nombre | bornera | estado | como se reencuentra |
+|---|---|---|---|---|
+| PA0..PA5 | `ROJO1` `AMARILLO1` `VERDE1` `ROJO2` `AMARILLO2` `VERDE2` | J3..J8 | VIVOS, `OUTPUT` | `grep -n "static void escribirPines" */src/semaforo.cpp` |
+| PA6 | `ROJO_PEATON` | J11 | **MUERTO** declarado | solo `pines.h` (+1 comentario en `Maestro/src/main.cpp`) |
+| PA7 | `VERDE_PEATON` | J9 | **MUERTO** declarado | idem |
+| PA8 | `RS485_IN_DE_RE` | U2 | VIVO `OUTPUT HIGH` | `grep -n RS485_IN_DE_RE */src/bluetooth.cpp` |
+| PA9 / PA10 | `RS485_IN_TX/RX` | J10 | **MUERTOS** | solo `pines.h` |
+| PA11 PA12 PA15 PC13 | - | - | **SIN CABLEAR** ✅ ahora `[MEDIDO]`, ya no `[ESCRITO]` | redes `unconnected-(U1-PA11-Pad32)`, `-PA12-Pad33`, `-PA15-Pad38`, `-PC13-Pad2` en el `.kicad_pcb` |
+| PB0 | `CAM_DEMANDA_PIN` | J14 | VIVO `INPUT`, activo ALTO | `grep -n "pinMode(CAM_DEMANDA_PIN"` -> **M: `botones.cpp` · E: `main.cpp`** |
+| PB1 | `BUZZER` | J13 | **MUERTO** declarado | solo `pines.h` |
+| PB2 | `MOTOR_TALANQUERA` | J15 | VIVO `OUTPUT`, reposo **CERRAR** | `grep -n MOTOR_TALANQUERA */src/semaforo.cpp` |
+| PB3 PB4 PB5 | `LCD_SCLK` `LCD_CS` `LCD_SID` | J17 p4/p1/p5 | **EN ALTA IMPEDANCIA** con pista hasta la bornera | `grep -n U8X8_PIN_NONE */src/lcd.cpp` |
+| PB6 / PB7 | TX / RX Bluetooth | J17 p3/p2 | VIVOS, USART1 remapeado | `grep -n "HardwareSerial SerialBT"` |
+| PB8 | `LED_TESTIGO` | - | `pinMode(INPUT)` **sin lectura**, deliberado | `pines.h`. **No es una bornera: es `R16` 1K + LED `D5`** |
+| PB9 | `BOTON1` / `MANDO_A` | J16 p5 | VIVO `INPUT` pelado, activo ALTO | `grep -n "pinMode(BOTON1" */src/botones.cpp` |
+| PB10 PB11 PB12 | `RS485_OUT_TX/RX`, `LORA_DE_RE` | J12 | VIVOS, USART3 | `pines.h` |
+| PB13 | `BOTON2` / `MANDO_B` | J16 p8 | VIVO `INPUT` pelado, activo ALTO | idem |
+| PB14 | `CAM_C_PIN` | J16 p10 | VIVO `INPUT` pelado, activo ALTO | `grep -n "pinMode(CAM_C_PIN" */src/botones.cpp` |
+| PB15 | `CAM_D_PIN` | J16 p12 | VIVO `INPUT` pelado, activo ALTO. **Hoy VACIO en todo equipo montado** | idem |
+
+**Asimetria que hay que saber porque los instrumentos leen POR RUTA:**
+`CAM_DEMANDA_PIN` se declara en **`Maestro/src/botones.cpp`** pero en
+**`Esclavo/src/main.cpp`**. Un pack que censara solo `botones.cpp` veria tres
+entradas en una punta y dos en la otra **sin que haya defecto**.
+
+### 7.5 Pines libres de cobre - y lo que cuesta gastarlos
+
+`[MEDIDO 07/09]`
+
+**`PB3`, `PB4` y `PB5`** son los unicos GPIO del proyecto **libres y con bornera ya
+cableada** (`J17` p4, p1, p5). De los tres, **solo `PB3` y `PB4` son de JTAG**; `PB5`
+no lo es, y decir "los tres" era falso. En los que si lo son no cuesta nada:
+`pin_DisconnectDebug()` hace `__HAL_AFIO_REMAP_SWJ_NOJTAG()` - **suelta JTAG y
+conserva SWD**.
+
+**Tres canales de potencia completos, fabricados y sin una linea de firmware
+detras:** `J9` (`VERDE_PEATON`, PA7), `J11` (`ROJO_PEATON`, PA6) y `J13` (`BUZZER`,
+PB1). El molde es el mismo de la talanquera (`J15`), que **si funciono en banco el
+04/09**. Gastar uno cuesta **16 B de flash, medidos por desensamblado** - pero cierra
+la puerta a una cabeza peatonal o a un zumbador (A-3.10).
+
+### 7.6 Lo que sigue ABIERTO en el hardware
+
+| | estado |
+|---|---|
+| **La placa portadora del ESP32** | NO disenada, NO fabricada, NO medida. Ni siquiera es una linea de compras. **Quien la disena y quien la fabrica: sin decidir.** Su fuente propia DC-DC 12->5 V >= 1 A (linea A5) **no se ha pedido**: el LM7805 de la tarjeta no da los picos de ~500 mA |
+| **El cristal `Y2`** | **CONFIRMADO MUERTO EN BANCO** el 01/08 (N-17, N-37). El reloj se fue al DS3231 del ESP32 (D-9, D-15). Falta diagnosticar el `Y2` de la SEGUNDA tarjeta |
+| **`D21` con el catodo al aire** | `[SIN VERIFICAR]` si es defecto o decision. A-10, y es de banco |
+| **La salida de alarma de la camara** | 🔴 `[SIN VERIFICAR]` que la ANALITICA pueda accionar el rele. El manual dice de `Trigger Alarm Output` que *"only supported by certain models"*, y la fila *Linkage Method* de la ficha **no la menciona**. Si no se puede enlazar, el camino de `J16` no sirve: es OTRO diseno. D-14 propone ir por la ENTRADA de alarma, que no lleva esa nota |
+| **N-120** | la tarjeta protege todo lo que SALE y **no protege nada de lo que ENTRA**. Decidir si V2 se lo pone |
+
+### 7.7 Los avisos que no se pueden perder
+
+1. **`J16` p1 lleva 12 V CRUDOS** a un conector de senal directa al micro. **SE TAPA
+   FISICAMENTE ANTES DE CABLEAR NADA, en cada equipo que se monte.** No es una
+   cautela de banco: es D-4 / N-120. El destornillador no lee.
+2. **`J14` es ENTRADA. La salida de talanquera es `J15`.**
+3. **El margen contra los 12 V no es el que parece.** La distancia entre PADS
+   -10,2 / 22,9 / 27,9 mm- **no es la separacion real**. Sobre cobre, respetando
+   capas (`03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md` seccion 7.bis.2):
+   `/Boton1` 1,405 mm · `/Boton2` 1,408 mm · `/Boton3` 4,269 mm · `/Boton4`
+   **1,359 mm**. **EL ORDEN SE INVIERTE: p12 es el PEOR, no el mas seguro.** Y es
+   cobre de diseno, sin tolerancia de fabrica ni suciedad de armario.
+4. **EL ORDEN ES ASIMETRICO: FIRMWARE PRIMERO, COBRE DESPUES.** Con un binario
+   anterior a `deeeab4` dentro, `PB14` vuelve a ser `botonAceptar()` -el que
+   EJECUTA- y cualquier cosa enchufada en `J16` p10 puede pulsar *Aceptar* en un
+   equipo que esta en la calle. **Se exige la carga VERIFICADA, no el merge: un
+   commit no protege de un destornillador.**
+5. **Los bornes de potencia estan a ~12 V en reposo**, no a 0 V, y el pull-up esta
+   en el cobre. Ver 7.2.
+6. **El opto NO crea una masa separada.** Ver 7.2.
+
+---
+
+## 8. LA CADENA DE LA APP
+
+### 8.1 El arbol `[MEDIDO 07/09]`
+
+```
+05_Funcional/App_Semaforo/
++-- index.html  app.js  style.css  sw.js  manifest.json   <-- LO QUE SE EDITA
++-- css/  js/
+|     +-- js/bluetooth_driver.js  config.js  courier_rtc.js  depuracion.js
+|            nmea_parser.js  registro_enlace.js  site_manager.js
++-- www/                                    <-- COPIA 2: de aqui construye Capacitor
+|     +-- app.js index.html style.css sw.js manifest.json css/ js/
++-- android/app/src/main/assets/public/     <-- COPIA 3: lo que va en la APK
++-- android/app/build/...                   <-- ruido, ignorado
++-- capacitor.config.json                   webDir = "www"
++-- test_dom_execution.js        fila 12 de la compuerta (jsdom)
++-- test_unitarios_app.js        fila 10
++-- tests/test_unitarios.js      fila 11 (la "TDD")
++-- test_funcional_app.py        fila 9
++-- test_e2e_puppeteer.js, tests/test_e2e_visual.js   NO conectados - ver 5.1
++-- herramientas_medir_{consola,desborde,pulsables}.js   medida manual
++-- servidor_puente_simulador.py
++-- node_modules/  package.json  package-lock.json   ruido, ignorado
+```
+
+### 8.2 Las TRES copias tienen que ser la misma
+
+`[MEDIDO 07/09 - md5sum de raiz vs www vs android/.../public]`
+
+```
+app.js             b09dcc85  =  b09dcc85  =  b09dcc85
+index.html         27f59a1a  =  27f59a1a  =  27f59a1a
+style.css          ab208d35  =  ab208d35  =  ab208d35
+sw.js              194be8ee  =  194be8ee  =  194be8ee
+js/config.js       c88cab1c  =  c88cab1c  =  c88cab1c
+js/nmea_parser.js  aded879f  =  aded879f  =  aded879f
+```
+
+**Las tres coinciden hoy.** Lo vigila `documentos_03_trama_status`, y **el fichero
+concreto ya NO se escribe a mano: se CENSA el directorio** -una lista escrita a mano
+solo vigila lo que alguien se acordo de anadir, y el fichero nuevo es justo el que
+nadie recuerda-.
+
+> **Por que existe esa comprobacion:** el 27/08 `app.js` y `www/app.js` ya no eran el
+> mismo fichero -mismo numero de lineas, contenido distinto-, asi que **lo que se
+> probaba en el navegador y lo que se instalaba en el telefono del tecnico eran dos
+> programas**. Un pack no puede compilar la APK; si puede exigir que haya UNA sola
+> copia.
+
+### 8.3 Como se compila la APK
+
+```
+  se edita  App_Semaforo/{index.html, app.js, js/*, style.css, sw.js}
+     |
+     |  npx cap copy / sync   (webDir = "www" en capacitor.config.json)
+     v
+  www/  ---->  android/app/src/main/assets/public/
+     |
+     |  Gradle (appId com.iotvial.semaforos, appName "IOT-VIAL Semaforos")
+     v
+  IOT_VIAL_Semaforos_<fecha>_<hash>_SIN_BANCO.apk   (en la raiz; ignorado por git)
+```
+
+**El sufijo `_SIN_BANCO` no es decorativo:** ningun artefacto de este repositorio ha
+pasado una prueba de banco completa. En la raiz hay 3 APK y 1 `.zip` con ese sufijo.
+
+### 8.4 Los tres paneles de honestidad que la app NO tiene
+
+**No hay panel de demo ni `runLocalTicker()`.** Un tablero que anima un cruce que no
+existe le miente a quien decide sobre el trafico mirandolo. **Sin enlace la pantalla
+se congela y lo declara.** Y donde un valor se sale de su cota se publica `!`, no el
+numero ni `--`: `--` ya significa *"todavia no lo se"*.
+
+---
+
+## 9. LO QUE ESTA PASADA NO MIDIO - y nadie debe dar por medido
+
+| | |
+|---|---|
+| **El cobre real** | Todo lo de la seccion 7 sale del `.kicad_pcb`, que dice lo que se DIBUJO. Las unicas medidas con puntas del proyecto viven en `05_Funcional/17_...` seccion A (pasos 20 y 21 de la Guia, 03/09) y en la sesion de banco del 04/09. **Ganan a este fichero** |
+| **El comportamiento en la tarjeta** | El firmware de esta rama **NUNCA ha estado en un banco completo**. En campo corre la **V8.4, `e303485`** (31/07) |
+| **La asignacion opto `U6`..`U15`** | `[ESCRITO]`. Se midieron `Q1..Q10`, `D11..D30`, `R23..R73` y las borneras, no la correspondencia de cada opto |
+| **Si el `ABORTADO` en cascada del orden alfabetico ocurre de verdad** | Se simulo el censo con el orden invertido y da 4 rutas inexistentes `[MEDIDO]`. **No se corrio `compuerta.py` con los packs renombrados** |
+| **Las cifras de flash** | Copiadas del acta del 07/09. No se recompilo en esta pasada |
+| **Que `Semaforos/`, `Diagnostico_LCD/` y `Camara/` sigan siendo utiles** | Se listaron; **nadie ha comprobado si algo los usa** |
+| **Los `.docx` de `05_Funcional`** | Se listaron los 19 pares. **No se comprobo que cada `.docx` corresponda a su `.md`** |
+
+---
+
+## 10. RESUMEN OPERATIVO - "¿donde toco esto y que rompo?"
+
+| voy a tocar... | mira antes |
+|---|---|
+| **un `.cpp` o `.h` del firmware** | seccion 3.3: que packs lo direccionan. Si lo MUEVES, el commit lleva tambien las rutas |
+| **`Maestro/src/bluetooth.cpp`** | 23 instrumentos lo abren. Es el fichero mas caro del arbol |
+| **`banco/modelos/*.py`** | mueves **17 packs a la vez**, y el fallo es ABORTADO en el import, no FALLA |
+| **un documento de la raiz o de `04_Manuales`** | seccion 3.6: **la guarda de rutas NO te cubre** |
+| **`05_Funcional/App_Semaforo/*`** | 11 packs `app_*` + 2 simuladores + 4 filas de la compuerta. Y **sincroniza las tres copias** |
+| **la FORMA de un bloque que un pack lee por texto** | comprueba que el pack **sigue sabiendo fallar** (N-89) |
+| **una constante** | ¿se relaciona con otra por una desigualdad? Esa desigualdad va en un pack que la **recalcula desde el C++**, no en un comentario |
+| **retirar codigo** | ¿que bandera deja de armarse? ¿que guarda deja de poder ser falsa? (3.ter y 3.septies) |
+| **algo del cobre, un conector o una compra** | **abre `05_Funcional/17_...` ANTES.** Gana a `CLAUDE.md` y a este fichero |
+| **cualquier cosa, antes de comitear** | `python 01_Firmware/compuerta.py` **completo**. `correr.py` es para iterar, no para autorizar |

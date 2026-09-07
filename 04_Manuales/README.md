@@ -15,6 +15,20 @@ ejecutables de configuración para PC.
 > | 🛑 **§6 del manual de radios queda DEROGADA** | Mandaba diagnosticar el enlace leyendo `PRUEBA ALCANCE` en la pantalla del Maestro. Además de que no hay pantalla, **ese modo para el cruce en rojo fijo** y **en el Maestro el dato no sale por ningún sitio** — sí sale del Esclavo. Queda escrito como **pendiente de firmware** |
 > | ⛔ **`J16` p1 lleva 12 V crudos** | **Taparlo es obligatorio en cada equipo que se monte** (`D-4`, N-120) |
 >
+> ## 🆕 REVISIÓN DEL 07/09/2026 — se cotejaron los ocho manuales contra `DECISIONES.md`, `05_Funcional/` y el fuente
+>
+> | | |
+> |---|---|
+> | 🔴 **`MANUAL_INSTALACION_RELOJ_DS3231.md` decía que NO hay quien lea el reloj. SÍ lo hay** | Su §8 enseñaba que *«un `DS3231` mudo es lo ESPERADO, no una avería»*. **Hoy sí es una avería:** el driver existe (`01_Firmware/ESP32_Expansion/src/reloj_ds3231.cpp`, `GPIO21`/`GPIO22`) y ese reloj es **el único del cruce** (`D-15`). Se diagnostica con **`CMD:LEER_RTC`** (`D-17`), que dice el motivo |
+> | ✅ **`M3` está CERRADA desde el 03/09 — y dos manuales seguían bloqueando por ella** | `MANUAL_CONFIGURACION_CAMARAS_IA.md` y `MANUAL_USUARIO.md` §6.3 mandaban *«no cablear hasta `M3`»*. **`D-3`:** medida en cobre, pull-down de 10 kΩ real en las cuatro posiciones, `p10`/`p12` a 0 V. **Las cámaras se cablean** |
+> | 🛑 **La cámara comprada NO es la que el manual nombraba** | Decía `DS-2CD3643G2-LIZSU`; la comprada es **`DS-2CD2683G2-IZS`** (`D-10`), y su ficha está en esta carpeta |
+> | 🛑 **El «pulso de 1 s» del relé de la cámara es INVENCIÓN NUESTRA** | `A-7`: Hikvision **no publica ni un valor de `Delay` en 110 páginas**. Se pone al mínimo y **se anota el valor real**. Y el `NO`/`NC` de la **salida** está **`SIN VERIFICAR`** (`D-14`): sólo está documentado para la **entrada** |
+> | 🛑 **`MANUAL_USUARIO.md` contradecía al manual de radios de esta misma carpeta** | Publicaba **1 copia** de ráfaga donde el de radios publica **3** desde el 01/08. Medido: `RF_BURST_COPIES 3` en las dos puntas. *Un manual que se contradice con su vecino es peor que uno equivocado de forma consistente* |
+> | 🟢 **El Esclavo YA tiene puerta al Modo Degradado** | `SET_MODO:DEGRADADO` por Bluetooth (`D-18`, `Esclavo/src/bluetooth.cpp:675`). Varias tablas decían que *«el mando es el ÚNICO actuador de modo»* en esa punta — con el mando retirado, eso la dejaba **sin ninguna** |
+> | 🔴 **`J14` es ENTRADA; la talanquera va a `J15`** | Ningún manual mandaba cablear mal, **pero el esquemático rotula `J14` como «Puerta»**, que es justo la trampa. Queda escrito en `MANUAL_HARDWARE.md` §3.bis |
+> | 🛑 **«9 entradas optoacopladas» estaba mal en las tres palabras** | Son **10 cadenas de SALIDA** (`Q1`–`Q10`, `U6`–`U15`); las entradas de campo son **5** y van **del borne directo al micro**. Y *«el opto aísla»* es medio cierto: **hay una sola masa** |
+> | ⚠️ **Los números de línea citados caducan en bloque** | Se encontraron citas caducadas en cuatro manuales (`pines.h:92-93`, `botones.cpp:280-281`, `main.cpp:406/416/540`…). **Se cita el símbolo y se publica el `grep`**, no el número |
+>
 > **Manda `DECISIONES.md` (raíz)**, y en todo lo que sea **hardware medido** manda
 > `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`. Ningún manual de esta carpeta
 > gana a esos dos.

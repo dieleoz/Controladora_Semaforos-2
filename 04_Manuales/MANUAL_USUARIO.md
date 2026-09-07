@@ -121,9 +121,39 @@ Según el Manual de Señalización (2024), si el flujo vehicular baja al 50% o m
 - **Comportamiento en Menú:** En el Menú Principal, si hay comunicación el Maestro mantiene **🔴 ROJO FIJO continuo en ambos semáforos** sin congelar la pantalla. Si no hay comunicación, indica orfandad pasando a Amarillo Intermitente.
 - **Arranque Inmediato:** Al seleccionar un modo en el menú, el sistema aplica inmediatamente el tiempo de Despeje All-Red en ambos extremos.
 
-### Prueba de Alcance
-Cuarta opción del Menú Principal. Muestra **calidad de enlace en %**, barra gráfica, **tiempo de respuesta** en ms y fallos consecutivos, actualizándose cada 3 segundos. Permite determinar la cobertura real de radio desplazando el equipo, en lugar de estimarla.
-Mientras está activa, ambos semáforos permanecen en **🔴 Rojo Fijo** (o Amarillo Intermitente sin enlace), igual que en el Menú. **No arranca ciclos.** Se sale con el Botón 4.
+### ~~Prueba de Alcance~~ 🛑 **NO LA USE: PARA EL CRUCE Y NO ENSEÑA NADA (derogada el 05/09)**
+
+> **Este bloque se quedó FUERA de la derogación de arriba por descuido, y es el más caro de los que
+> quedaban**: manda subir al poste a leer una pantalla que no existe, y el gesto **detiene el
+> tráfico**.
+>
+> | | |
+> |---|---|
+> | 🛑 **No hay dónde leerla** | Su único consumidor es `lcd_dibujarAlcance()`, que pinta sobre un framebuffer **invisible**: los cuatro pines del display están en `U8X8_PIN_NONE` (`D-17.bis`) |
+> | 🛑 **Y no es gratis: PARA EL CRUCE** | `modoAlcance_setup()` llama a `coordinador_forzarMenu()` → **rojo fijo en las dos puntas** con enlace, ámbar intermitente sin él. **El operario para el cruce y no recibe nada** |
+> | 🛑 **Tampoco se sale con el «Botón 4»** | `botonCancelar()` es `return false;`. Hoy se sale con `CMD:PIN:1234:SET_MODO:MENU` desde la app |
+>
+> ✅ **LO QUE SE USA EN SU LUGAR para medir alcance caminando:** los campos **`RF:`** (calidad de
+> enlace en %) y **`RTT:`** (tiempo de respuesta) del `$STATUS` periódico, **desde la app**, sin
+> parar el cruce.
+>
+> 🔴 **Y dos límites que hay que saber, o la medida engaña:**
+>
+> 1. **`RF:` NO es potencia de señal.** La E90-DTU **no entrega RSSI en modo transparente**; ese
+>    porcentaje sale de **contar latidos contestados**. Es la mejor medida que hay y sigue sin ser un
+>    RSSI.
+> 2. **En el ESCLAVO, `RF:` y `RTT:` son LITERALES, no medidas** —`RF:98%%,RTT:85ms` está escrito a
+>    mano en su `bluetooth.cpp`—, y **`BAT:12.6` es literal en las dos puntas**. El `RF:98%` del
+>    Esclavo sale igual **con la antena desconectada**. **No se apuntan en un acta como si fueran
+>    medidas.**
+>
+> 📌 **Y lo que queda como PENDIENTE DE FIRMWARE, escrito como tal:** los contadores `RX:`/`OK:`/`RUIDO:`
+> —los que separan *«no llega nada»* de *«llega basura»*, que es la distinción que valía el viaje—
+> **salen del Esclavo por Bluetooth y NO salen del Maestro**. Detalle medido en
+> [`MANUAL_EXACTO_RADIOS_E90_DTU.md`](MANUAL_EXACTO_RADIOS_E90_DTU.md) §6.
+
+~~Cuarta opción del Menú Principal. Muestra **calidad de enlace en %**, barra gráfica, **tiempo de respuesta** en ms y fallos consecutivos, actualizándose cada 3 segundos. Permite determinar la cobertura real de radio desplazando el equipo, en lugar de estimarla.~~
+~~Mientras está activa, ambos semáforos permanecen en **🔴 Rojo Fijo** (o Amarillo Intermitente sin enlace), igual que en el Menú. **No arranca ciclos.** Se sale con el Botón 4.~~
 
 ---
 
@@ -142,7 +172,24 @@ Mientras está activa, ambos semáforos permanecen en **🔴 Rojo Fijo** (o Amar
 ## 5. Resiliencia RF: Ráfaga configurable y Ventana Deslizante (SFTY-11)
 
 Para garantizar comunicación inquebrantable en zonas de montaña con alta interferencia:
-- **Ráfaga (Burst):** 1 copia de 4 bytes con FEC activo en radios E90-DTU.
+- **Ráfaga (Burst):** ⛔ ~~1 copia~~ → **3 copias** de 4 bytes con FEC activo en radios E90-DTU.
+  > 🛑 **Corregido el 07/09. Y lo grave no es la cifra: es que este manual contradecía a otro de la
+  > MISMA carpeta.** `MANUAL_EXACTO_RADIOS_E90_DTU.md` publica **3 copias** desde el 01/08, con su
+  > porqué —*«a 2,4 kbps cuestan ~0,13 s de aire, despreciable; los equipos son móviles y la
+  > redundancia es la palanca que paga»*—, y aquí seguía escrito **1**. **Un manual que se
+  > contradice con su vecino es peor que uno equivocado de forma consistente: el técnico elige el
+  > que lee primero.** ✅ **MEDIDO EN EL FUENTE el 07/09**, y el valor vive **una vez por punta**:
+  >
+  > ```
+  > $ grep -rn "RF_BURST_COPIES" 01_Firmware/Maestro/include/protocolo.h 01_Firmware/Esclavo/include/protocolo.h
+  > 01_Firmware/Maestro/include/protocolo.h:278:#define RF_BURST_COPIES 3
+  > 01_Firmware/Esclavo/include/protocolo.h:278:#define RF_BURST_COPIES 3
+  > ```
+  >
+  > ⚠️ **Y el aviso que acompaña al número: `RF_BURST_COPIES` DEBE ser idéntico en las dos puntas**,
+  > y están en dos ficheros distintos que hay que mantener a mano en sincronía. *(De dónde venía el
+  > `1`: fue real durante V8.0, junto con `TIMEOUT_ACK_MS = 8000`; **ambos se revirtieron en V8.1**
+  > tras la validación de campo, y este manual se quedó describiendo el estado intermedio.)*
 - **Ventana Deslizante (Sliding Window):** Procesamiento asíncrono con CRC-8 Maxim (`0x31`).
 - **Protección Antirepetida (Replay Protection):** Descarte de duplicados mediante `msgID`.
 
@@ -237,12 +284,36 @@ canales **A** (`PB9`, p5) y **B** (`PB13`, p8) **se conservan para el mando** y 
 > *«dos cámaras de demanda, una por poste»*, y el reparto de pines libera **dos** entradas en cada
 > nodo. **Lo decide el responsable**; aquí sólo queda escrito que los pines disponibles son p10 y p12.
 
-### 6.3 🔴 La salida de la cámara es configurable (NO / NC) y hay que elegir DESPUÉS de la medida M3
+### 6.3 ~~🔴 La salida de la cámara es configurable (NO / NC) y hay que elegir DESPUÉS de la medida M3~~ ✅ **M3 CERRADA — y el «NO/NC configurable» está SIN VERIFICAR**
 
-La salida de alarma de la AcuSense se parametriza como **`NO` (Normalmente Abierto)** o **`NC`
-(Normalmente Cerrado)** (`05_Funcional/9_Manual_Parametrizacion_Camara_IA.md`, Paso 4). **Las dos
-configuraciones están escritas aquí porque cuál es la correcta depende de una medida que todavía no
-se ha hecho.**
+> ## 🛑 DOS CORRECCIONES A ESTE APARTADO (07/09), y ninguna es de redacción
+>
+> **1. `M3` YA ESTÁ CERRADA — desde el 03/09.** Este apartado hacía depender el cableado de una
+> medida que **ya se hizo**. **`D-3`** de [`DECISIONES.md`](../DECISIONES.md): con multímetro y
+> conector vacío (paso 20 de la guía de banco), el pull-**down** de **10 kΩ es real y está en las
+> cuatro posiciones**, `p10` y `p12` dan **0 V en reposo**, y el paso 21 cableó `p10` **sin demandas
+> fantasma**. 👉 **Se aplica la PRIMERA fila de la tabla de abajo, y sólo ésa. Las otras dos ya no
+> son escenarios abiertos.**
+>
+> **2. Que la SALIDA se pueda elegir `NO`/`NC` es una afirmación NUESTRA, y está `SIN VERIFICAR`.**
+> **`D-14`**, verificado sobre el manual de usuario del fabricante `UD28967B-C` v5.7.20: el
+> desplegable `Alarm Type` (`NO`/`NC`) está documentado **sólo para la ENTRADA** de alarma (p. 44);
+> la **salida** expone únicamente `No.`, `Name` y `Delay` (p. 68), y *Normally Open / Normally
+> Closed* **no aparece ni una vez en las 110 páginas**. Se descartó al buscador: la misma búsqueda
+> restringida a `hikvision.com` **sí** devuelve `NO`/`NC` en fichas de otros productos, o sea que el
+> término se usa cuando existe.
+>
+> 👉 **Qué hacer con eso, que es lo útil:** si la salida es `NO` de fábrica —lo probable—, **encaja
+> con el firmware tal cual** y no hay nada que elegir. **Si resultara `NC` y no se pudiera cambiar,
+> NO SE CABLEA:** se anota el hallazgo y se para. Ver el aviso del Paso 3 en
+> [`MANUAL_CONFIGURACION_CAMARAS_IA.md`](MANUAL_CONFIGURACION_CAMARAS_IA.md).
+>
+> ⚠️ **Y el «pulso de 1 s» de la tabla de abajo también es invención nuestra** (`A-7`): Hikvision
+> **no publica ni un valor de `Delay`** en 110 páginas. Se pone **el mínimo que admita** y **se anota
+> el valor real**.
+
+~~Las dos configuraciones están escritas aquí porque cuál es la correcta depende de una medida que
+todavía no se ha hecho.~~ **La medida se hizo: es la primera fila.**
 
 | si la medida **M3** dice… | cómo se cablea el contacto seco | configuración de la cámara | encaja con el firmware de hoy |
 |---|---|---|---|
@@ -366,15 +437,40 @@ Para permitir la operación del semáforo a nivel del suelo sin colisionar con l
 > 🛑 **ESTA TABLA ESTABA MAL EN CUATRO DE SUS CINCO FILAS, y se corrige el 31/08.** No es un detalle
 > de redacción: es el vocabulario que decide **qué pulsos componen una orden**, y es justo lo que hace
 > peligroso el defecto del apartado 6. Lo de abajo está **MEDIDO** sobre
-> `01_Firmware/Maestro/src/mando.cpp` (el Esclavo es idéntico).
+> `01_Firmware/Maestro/src/mando.cpp` ~~(el Esclavo es idéntico)~~.
+>
+> ⛔ **«EL ESCLAVO ES IDÉNTICO» ERA FALSO, y se corrige el 07/09.** Las **teclas**, las **ventanas**
+> y los **destellos** sí son idénticos; **la ACCIÓN de `A·A·A` no**. Lo dice el propio fuente del
+> Esclavo, y está en la tabla de abajo. Una frase de conveniencia dentro de un aviso de seguridad
+> **hereda la autoridad del aviso**.
+
+> ## 🛑 Y ANTES DE LEER EL VOCABULARIO: **ESTE MANDO NO EXISTE** (`D-1`, 05/09)
+>
+> **No hay receptor de relés en ninguna punta, nunca se compró, y ya no se va a comprar.** `J16` p5 y
+> p8 están **vacíos**. Este apartado se conserva entero porque **el código sigue vivo y sigue leyendo
+> esos dos pines** —o sea que lo que alguien cierre ahí **compone estas mismas secuencias**—, y
+> porque documenta el veto de SFTY-21, que es el motivo escrito de que ese código no se borre. **Léase
+> como registro de diseño y como aviso de cableado; nunca como instrucción de operación.**
+>
+> 👉 **Lo que lo sustituye está en el apartado 8: la app.** Ver también el aviso `D-16` de §7.5.
 
 ### 7.1 ✅ El vocabulario REAL, medido en el fuente
 
-| Secuencia | Ventana | Modo Activado | Confirmación Lumínica | dónde está medido |
+| Secuencia | Ventana | Acción en el **MAESTRO** | Acción en el **ESCLAVO** | Confirmación Lumínica |
 |---|---|---|---|---|
-| **`A · A · A`** | ≤ **12 s** | 🟢 **Modo Automático** | **2** destellos rojos | `mando.cpp:225-227`, `:45` |
-| **`B · B · B`** | ≤ **12 s** | 🟡 **Modo Ámbar (Seguro)** | **3** destellos rojos | `mando.cpp:230-234`, `:46` |
-| **`A · B · A · B`** | ≤ **18 s** | 🕒 **Modo Degradado (Reloj)** | **4** destellos rojos | `mando.cpp:204-214`, `:47` |
+| **`A · A · A`** | ≤ **12 s** | 🟢 **Modo Automático** (`ACC_AUTOMATICO`) | 🔴 **NO es lo mismo: «vuelve a OBEDECER al Maestro»** (`ACC_OBEDECER`) — apaga `ambarLocal` y sale del Degradado si estaba | **2** destellos rojos |
+| **`B · B · B`** | ≤ **12 s** | 🟡 **Modo Ámbar (Seguro)** | 🟡 **Ámbar LOCAL**, y arma `ambarLocal`: desobedece las órdenes de radio (§7.3) | **3** destellos rojos |
+| **`A · B · A · B`** | ≤ **18 s** | 🕒 **Modo Degradado (Reloj)** | 🕒 **Modo Degradado** | **4** destellos rojos |
+
+> ✅ **MEDIDO el 07/09**, y se cita el símbolo: en `Maestro/src/mando.cpp` la rama de `A·A·A` llama a
+> `confirmarYActuar(ACC_AUTOMATICO, 2)`; en `Esclavo/src/mando.cpp`, a
+> `confirmarYActuar(ACC_OBEDECER, 2)`. **Hay otra asimetría medida y no es menor:** el todo-rojo
+> previo es `coordinador_forzarRojoTotal()` en el Maestro —las **dos** puntas— y
+> `semaforo_forzarRojo()` en el Esclavo — **sólo la suya**.
+>
+> **Por qué importa que los DESTELLOS sí sean iguales:** el procedimiento del Degradado obliga a
+> activar cada unidad por separado y lo hace el mismo operario. Dos vocabularios de destellos
+> distintos serían una invitación a equivocarse en la segunda punta.
 
 **Y no hay más.** El repertorio completo son **tres acciones**, no cinco:
 `enum AccionMando { ACC_NINGUNA, ACC_AUTOMATICO, ACC_AMBAR, ACC_DEGRADADO };` (`mando.cpp:53`).
@@ -409,11 +505,32 @@ Para permitir la operación del semáforo a nivel del suelo sin colisionar con l
 * **Sólo los botones 1 y 2 alimentan el mando.** El 3 **ejecuta** y el 4 sale: si formaran parte de
   alguna secuencia, repetirlos a ciegas podría arrancar un modo que nadie pidió (`botones.cpp:115-120`).
 
-### 7.4 🟢 El mando SE CONSERVA — y por eso el apartado 6 importa
+### 7.4 ~~🟢 El mando SE CONSERVA~~ 🛑 **EL CÓDIGO SE CONSERVA; EL APARATO NO** — y por eso el apartado 6 importa
 
-**DECIDIDO el 31/08** (`roadmap.md` `N-104`): se conservan los canales **`A`** (`PB9`, `J16` p5) y
-**`B`** (`PB13`, `J16` p8); se retiran **`C`** (`PB14`, p10) y **`D`** (`PB15`, p12), **y esos dos
-pines pasan a las cámaras**.
+> ## 🛑 CORREGIDO EL 07/09 — «se conserva» decía dos cosas y sólo una es cierta
+>
+> **`D-1` de [`DECISIONES.md`](../DECISIONES.md)**, confirmado por el responsable el 05/09: *«ya no
+> tenemos mandos de A y B, sólo la app»*. La decisión tiene **dos mitades y hay que sostener las
+> dos**:
+>
+> | | |
+> |---|---|
+> | 🛑 **El HARDWARE se fue, `A` y `B` incluidos** | El receptor **nunca se compró** y ya no se va a comprar. **`J16` p5 y p8 están VACÍOS.** Ningún documento manda conectar nada ahí |
+> | ✅ **El CÓDIGO se queda, y NO se toca** | Y el motivo está **medido**, no razonado: `mando_ambarLocal()` tiene **cinco llamadas vivas** —tres vetos en `Esclavo/src/main.cpp`, dos decisiones de `CANCELAR_AMBAR` en `Esclavo/src/bluetooth.cpp`—. Retirar su armador deja esos `if` **siempre verdaderos**: el veto de SFTY-21 **no queda inerte, queda ABIERTO**. Y **trece packs** caerían en **`ABORTADO`, no en rojo** |
+>
+> 🔴 **Con el mando desmontado la bandera simplemente NO SE ARMA NUNCA, que es lo correcto.** Lo que
+> **no** cambia es que esos dos pines **se siguen leyendo**: *libre de cobre no es libre de
+> firmware*.
+>
+> ⛔ **Y `N-118` está REFUTADO:** los `0,6 V` de `MANDO_A`/`MANDO_B` que se citaron como *«defecto de
+> placa»* **no lo eran**. En el binario que había en la tarjeta aquel día esos pines iban en
+> `INPUT_PULLUP` y los de cámara en `INPUT` pelado — **mismo cobre, distinto `pinMode`, distinta
+> tensión** (9,92–9,94 kΩ en los cuatro). **No se cite como avería.**
+
+~~**DECIDIDO el 31/08** (`roadmap.md` `N-104`)~~ *(superado por `D-1`)*: se conservaban los canales
+**`A`** (`PB9`, `J16` p5) y **`B`** (`PB13`, `J16` p8); se retiran **`C`** (`PB14`, p10) y **`D`**
+(`PB15`, p12), **y esos dos pines pasan a las cámaras** — esto último **sigue vigente y ya está
+hecho**.
 
 * **Por qué los dos canales y no sólo `A`:** `B·B·B` es **el único sitio donde se arma `ambarLocal`**
   (`Esclavo/src/mando.cpp:129-132`, **MEDIDO**). Sin el canal `B` esa bandera no se armaría jamás, los
@@ -427,6 +544,42 @@ pines pasan a las cámaras**.
   La redacción anterior del **28/08**, que retiraba los cuatro pulsadores y el mando entero, queda
   **tachada allí con su motivo**. Si alguien encuentra todavía la versión vieja en otro documento, la
   vigente es ésta: `roadmap.md` `N-104`.
+
+---
+
+### 7.5 🛑 SIN TELÉFONO NO HAY FORMA DE OPERAR EL EQUIPO — y no es una avería
+
+> # 🔴 EL TELÉFONO ES HERRAMIENTA CRÍTICA. VA EN LA LISTA DE LA CUADRILLA, NO EN EL BOLSILLO DE QUIEN SE ACUERDE
+>
+> **`D-16` de [`DECISIONES.md`](../DECISIONES.md)** (05/09): *«sin teléfono no hay forma de operar el
+> equipo. Es una **propiedad DECLARADA** del sistema, no una avería.»*
+
+**Es la consecuencia directa y aritmética de todo lo anterior**, y por eso va en el manual del
+operario y no escondida en una nota técnica:
+
+| la vía que existía | qué pasó |
+|---|---|
+| **La pantalla y el menú** | 🛑 **No se montan** (`D-17.bis`, 05/09) |
+| **Los pulsadores** *Aceptar* / *Cancelar* | 🛑 `botonAceptar()` y `botonCancelar()` son `return false;` en las dos puntas |
+| **El mando de relés desde el suelo** | 🛑 **No existe** (`D-1`). Nunca se compró |
+| **La app por Bluetooth** | ✅ **La única que queda** |
+
+🔴 **Lo que eso significa de pie junto al poste: sin un teléfono emparejado no se puede poner el
+cruce en ámbar, ni devolverlo a automático, ni pararlo.** Ninguna de las tres.
+
+**Lo que hay que llevar a obra, y es una consecuencia operativa, no una recomendación:**
+
+* **El teléfono, con batería** — y un cable o una batería externa. Un móvil descargado deja el cruce
+  sin superficie de mando.
+* **Un segundo terminal emparejado**, en otra persona. No es lujo: es el único repuesto que tiene
+  esta función.
+* **El emparejado hecho ANTES de subir**, en *Ajustes de Android* (PIN del módulo `0000` o `1234` —
+  **no** es el PIN del semáforo). La app **no empareja**: sólo lista lo que ya está emparejado.
+
+> ⚠️ **Y un tropiezo real, no teórico:** esta semana hubo que **desvincular el Maestro en Ajustes de
+> Android** para poder conectarse al Esclavo. **La conexión es UNA a la vez y explícita**, y eso es
+> una propiedad de seguridad —evita que el teléfono se reenganche solo a un poste que está a 12 km y
+> enseñe su estado como si fuera el de delante—, pero **hay que saberlo antes de estar subido**.
 
 ---
 

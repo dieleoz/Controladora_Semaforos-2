@@ -2,13 +2,34 @@
 
 Esta carpeta centraliza los manuales de operación, guía de cableado, protocolo de pruebas y configuraciones de radio para el personal funcional y técnicos en terreno.
 
+**Última revisión de este índice: 7 de septiembre de 2026.**
+🔴 **Y la regla que hay que leer antes que ningún manual: manda [`DECISIONES.md`](../DECISIONES.md).**
+Los documentos de esta carpeta congelan la foto del día en que se escribieron; esa tabla es la que se
+mantiene. **Donde un manual y `DECISIONES.md` no digan lo mismo, gana `DECISIONES.md`** — y si la
+contradicción es sobre **cobre, conectores o pines**, gana además
+[`17_Arquitectura_28-08_y_Decisiones_Abiertas.md`](17_Arquitectura_28-08_y_Decisiones_Abiertas.md),
+que es donde se anotan las medidas.
+
 ---
 
 > ## 🚨 EMPIECE POR AQUÍ
 >
-> **1.** Reconfigure las **4 radios** a `2.4 kbps` de Air Data Rate → **[`4_Manual_Configuracion_Radios.md`](4_Manual_Configuracion_Radios.md)**
+> **0.** **Antes que nada, abra [`DECISIONES.md`](../DECISIONES.md).** Es la tabla que manda sobre
+> todos los documentos de esta carpeta: donde un manual y esa tabla no digan lo mismo, **gana la
+> tabla**.
+> **1.** Reconfigure las **2 radios** —enlace directo, **sin repetidor**— a `2.4 kbps` de Air Data
+> Rate → **[`4_Manual_Configuracion_Radios.md`](4_Manual_Configuracion_Radios.md)**
+> *(~~«las 4 radios»~~ — **corregido el 07/09**: la configuración vigente son **2 radios en enlace
+> directo**, como dice la cabecera de ese mismo manual y `CLAUDE.md` §10. El repetidor está fuera de
+> la configuración vigente. ⚠️ **El CUERPO de `4_Manual` todavía dice «cambiar en las 4 radios» en
+> dos sitios: haga caso a su cabecera.**)*
 > **2.** Cargue el firmware **en las dos tarjetas, la MISMA versión** → [`2_Manual_Hardware_y_Pruebas.md`](2_Manual_Hardware_y_Pruebas.md) §4
 > **3.** Ejecute el checklist y firme el acta → **[`3_Protocolo_Pruebas_Rigurosas.md`](3_Protocolo_Pruebas_Rigurosas.md)**
+> **4.** 🔧 **Si va a una SESIÓN DE BANCO, el protocolo vigente y ÚNICO es la
+> [`Guia_Cableado_y_Pruebas_Banco.html`](Guia_Cableado_y_Pruebas_Banco.html)** — 44 pasos, se abre en
+> el navegador, **se rellena y se devuelve en PDF**. *(El `ENCARGO_SESION_BANCO.md` de 29 pasos se
+> archivó el 07/09 en [`historico/`](historico/ENCARGO_SESION_BANCO_ARCHIVADO_07-09.md): se conserva
+> como **acta** de la 1.ª noche, no como guion. **Un solo encargo vigente.**)*
 >
 > El paso 1 **no es opcional**: es la corrección de la causa raíz del fallo de comunicación que aparecía
 > al paso de cada ciclo, en los tres modos, y del repetidor que no enlazaba. Sin él, el firmware nuevo
@@ -26,7 +47,7 @@ Esta carpeta centraliza los manuales de operación, guía de cableado, protocolo
 > | **Menú en dos niveles** (`CONFIGURACION` como cuarta opción) | `1_Manual_Usuario.md §3` |
 > | Pantalla **AJUSTAR HORA** y **sincronización horaria por radio** | `1_Manual_Usuario.md §4` |
 > | **MODO DEGRADADO** — operación por reloj sin radio | **`8_Procedimiento_Modo_Degradado.md`** |
-> | **Mando de 2 canales (`A`/`B`)** y sus secuencias desde el piso ~~4 relés~~ *(el receptor tenía 4; `C` y `D` se retiraron el 31/08 al pasar `PB14`/`PB15` a cámaras — ninguna secuencia los usaba)* | `1_Manual_Usuario.md §6` · `2_Manual_Hardware_y_Pruebas.md §6` |
+> | ~~**Mando de 2 canales (`A`/`B`)** y sus secuencias desde el piso~~ ⛔ **`D-1` (05/09): EL MANDO NO EXISTE.** *Su código se conserva a propósito —`mando_ambarLocal()` sostiene el veto de SFTY-21— pero no hay emisor, ni pulsadores, ni receptor RF.* **El equipo se opera SÓLO POR APP** (`D-16`) | `1_Manual_Usuario.md §6` · `2_Manual_Hardware_y_Pruebas.md §6` |
 > | El **Esclavo ahora tiene pantalla y menú propios** | `1_Manual_Usuario.md §7` |
 > | **Pila `CR2032`** del reloj en ambas tarjetas | `2_Manual_Hardware_y_Pruebas.md §5` |
 >
@@ -42,7 +63,12 @@ Esta carpeta centraliza los manuales de operación, guía de cableado, protocolo
 > saber de entrada:
 >
 > - Se activa **en las dos puntas** y **exige verificación visual de ambas**, al entrar **y al salir**.
-> - **Hoy el Esclavo no tiene receptor de mando:** activarlo en esa punta **obliga a subir al gabinete**.
+> - **Se pide POR APP en las dos puntas, con la misma orden:** `CMD:PIN:1234:SET_MODO:DEGRADADO`
+>   (`DECISIONES.md` `D-18`). ~~Hoy el Esclavo no tiene receptor de mando: activarlo en esa punta
+>   **obliga a subir al gabinete**.~~ 🔴 **Corregido el 07/09: no hay que subir a ningún gabinete, y
+>   el mando no existe (`D-1`).**
+> - 🛑 **`D-16`: sin teléfono no hay forma de operar el equipo.** No es una avería; es una propiedad
+>   declarada del sistema desde que se retiró el mando.
 > - **Límite duro de 48 h:** pasado ese tiempo sin resincronizar, el modo **cae solo a ámbar**.
 
 ---
@@ -60,9 +86,9 @@ Esta carpeta centraliza los manuales de operación, guía de cableado, protocolo
 >
 > | entrada | pin | bornera | antirrebote de placa | estado |
 > |---|---|---|---|---|
-> | `CAM_DEMANDA_PIN` | `PB0` | `J14` | ✅ `R64` 10 kΩ + `C25` 100 nF | ✅ **cableable hoy** |
-> | `CAM_C_PIN` | `PB14` | `J16` p10 | ❌ ninguno *(pull-down `R67` 10 kΩ ✅)* | ~~🟠 **NO cablear hasta `M3`**~~ → ✅ **`M3` CERRADA el 03/09 — CABLEABLE** |
-> | `CAM_D_PIN` | `PB15` | `J16` p12 | ❌ ninguno *(pull-down `R68` 10 kΩ ✅)* | ~~🟠 **NO cablear hasta `M3`**~~ → ✅ **`M3` cerrada — CABLEABLE** |
+> | `CAM_C_PIN` | `PB14` | `J16` p10 | ❌ ninguno *(pull-down `R67` 10 kΩ ✅)* | 🔵 **AQUÍ VA LA CÁMARA DEL POSTE 1** (`D-2`/`D-3`). ~~NO cablear hasta `M3`~~ — `M3` cerrada el 03/09 |
+> | `CAM_D_PIN` | `PB15` | `J16` p12 | ❌ ninguno *(pull-down `R68` 10 kΩ ✅)* | 🔵 **AQUÍ VA LA CÁMARA DEL POSTE 2** (`D-2`/`D-3`) |
+> | `CAM_DEMANDA_PIN` | `PB0` | `J14` | ✅ `R64` 10 kΩ + `C25` 100 nF | ~~✅ **cableable hoy**~~ → 🟠 **VIVO Y SIN CÁMARA.** El firmware lo sigue leyendo, pero **`CAM_CIEGA`/`CAM_PEGADA` NO lo vigilan**: es el único borne sin aviso de avería. Reservado a fin de carrera de barrera |
 >
 > 🛑 **Las dos filas de arriba bloqueaban trabajo YA AUTORIZADO, y se tachan con su motivo — 05/09.**
 > `M3` se cerró el **03/09 con multímetro** (paso 20 del banco): pull-down real de **10 kΩ** en las
@@ -99,9 +125,22 @@ Esta carpeta centraliza los manuales de operación, guía de cableado, protocolo
 > la sesión de banco es su primera comprobación física.
 >
 > Referencia de campo vigente: **[`9_Manual_Parametrizacion_Camara_IA.md`](9_Manual_Parametrizacion_Camara_IA.md)**
-> y **[`15_Lista_de_Compras_Hardware.md`](15_Lista_de_Compras_Hardware.md)**. **2 cámaras es el
-> montaje mínimo y el único cableable hoy** —una por poste, en `J14`—; las dos entradas de `J16` de
-> cada punta están en el firmware y **esperan la medida `M3`**.
+> y **[`15_Lista_de_Compras_Hardware.md`](15_Lista_de_Compras_Hardware.md)**. **Son 2 cámaras, una
+> por poste** (`DECISIONES.md` `D-2` / `D-13`), y **van a `J16`: `p10` en un poste y `p12` en el
+> otro** (`D-3`).
+>
+> ~~**2 cámaras es el montaje mínimo y el único cableable hoy** —una por poste, en `J14`—; las dos
+> entradas de `J16` de cada punta están en el firmware y **esperan la medida `M3`**.~~
+>
+> 🔴 **TACHADO EL 07/09 — DOS ERRORES EN UNA FRASE, Y EN EL DOCUMENTO QUE DICE «EMPIECE POR AQUÍ».**
+> Mandaba la cámara a `J14` y **resucitaba `M3`**, que este mismo README declara cerrada tres
+> párrafos más arriba. Es exactamente lo que él mismo advierte: *«su copia caducada pesa más que las
+> otras»*.
+>
+> **Y el motivo por el que `J16` no es una preferencia de conector:** el vigilante de
+> `CAM_CIEGA`/`CAM_PEGADA` **mira `J16` y no mira `J14`**. Una cámara cableada a `J14` **funciona y
+> no está vigilada** — nadie se enteraría de que se estropeó. `J14`/`PB0` queda **libre y vivo**,
+> reservado a un posible fin de carrera de barrera.
 
 ---
 
@@ -109,16 +148,21 @@ Esta carpeta centraliza los manuales de operación, guía de cableado, protocolo
 
 1. 📘 **[1_Manual_Usuario.md](1_Manual_Usuario.md)** / **`1_Manual_Usuario.docx`**  
    Manual de operación y secuencia de luces seguras bajo la **Resolución 2024 de MinTransporte Colombia**.
-   Incluye el **menú de dos niveles**, **AJUSTAR HORA**, el **mando de 4 relés** y el **menú propio del Esclavo**.
+   Incluye el ~~**menú de dos niveles**, **AJUSTAR HORA**~~ *(⛔ `D-17.bis`: la pantalla y el menú se retiran del equipo)*, ~~el **mando de 4 relés**~~ *(⛔ `D-1`: **el mando no existe**; su código se conserva por SFTY-21)* y el **menú propio del Esclavo**. **Lo vigente de este manual es la operación por app** y el apartado de cámaras (§6, corregido el 07/09).
 2. 📘 **[2_Manual_Hardware_y_Pruebas.md](2_Manual_Hardware_y_Pruebas.md)** / **`2_Manual_Hardware_y_Pruebas.docx`**  
    Guía de ensamblaje, cableado de borneras RS485 `485_A` / `485_B` (A a A, B a B) y flasheo en PlatformIO.
-   Incluye la **pila `CR2032` del reloj** (§5) y el **mando de relés**, con la advertencia de que **el Esclavo no tiene receptor** (§6).
+   Incluye la **pila `CR2032` del reloj** (§5) y el **mando de relés** (§6). 🔴 **07/09:** ~~con la advertencia de que **el Esclavo no tiene receptor**~~ → **`D-1`: NO HAY MANDO en ninguna punta.** Y **§5 está derogada en su parte de diagnóstico**: `D-15` — el STM32 ya no contesta a `SET_RTC`; se consulta con **`CMD:LEER_RTC`** (`D-17`).
 3. 📘 **[3_Protocolo_Pruebas_Rigurosas.md](3_Protocolo_Pruebas_Rigurosas.md)** / **`3_Protocolo_Pruebas_Rigurosas.docx`**  
    Checklist obligatorio de pruebas de laboratorio y campo para certificar el equipo antes de puesta en marcha.
    ~~**68 pruebas**, con las Secciones **7 (reloj y sincronización)**, **8 (mando)**, **9 (Modo Degradado)** y **10 (interfaz del Esclavo)** nuevas.~~
    🔴 **AQUÍ NO VA UN TOTAL, y no es un descuido: es lo que el propio documento exige — 05/09.**
-   La cifra «68» **no aparece en el Protocolo**: `grep -c "68" 3_Protocolo_Pruebas_Rigurosas.md` da
-   **0**, con y sin frontera de palabra. Lo que ese documento publica es el reparto de los **82**
+   ~~La cifra «68» **no aparece en el Protocolo**: `grep -c "68" 3_Protocolo_Pruebas_Rigurosas.md` da
+   **0**, con y sin frontera de palabra.~~
+   🔴 **ESA EVIDENCIA CADUCÓ EN 48 h — re-corrida el 07/09: `9` sin `-w` y `3` con `-w`.** Los
+   nuevos aciertos son referencias de página del manual de la cámara, no un total de pruebas. **La
+   conclusión sigue en pie —aquí no va un total—; lo que murió es el `grep` que la sostenía**, y por
+   eso se tacha en vez de renumerarse (`CLAUDE.md` §4.sexies: *todo `grep` que se publique se corre
+   antes*). Lo que ese documento publica es el reparto de los **82**
    identificadores de la revisión anterior (49 reescritas · 12 aplazadas · 21 retiradas · 4 nuevas),
    y **se niega expresamente a publicar un total nuevo** porque el denominador lo recorta quien
    ejecute la sesión. **Este README publicaba justo la cifra que el documento se niega a inventar.**
