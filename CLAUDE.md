@@ -1,1387 +1,311 @@
 # CLAUDE.md — reglas permanentes del repositorio
 
-Este archivo se carga solo en cada sesión. Contiene lo que **no cambia entre sesiones**.
-El estado de hoy —qué está abierto, qué está bloqueado, cuál es el siguiente paso— vive en
-[`ESTADO.md`](ESTADO.md), y se lee después de este. El histórico completo está en
-[`roadmap.md`](roadmap.md), que **no hace falta leer entero** para trabajar.
+Esto es **metodo**. La prueba que decide si un parrafo vive aqui: **¿sigue siendo cierto si el firmware
+cambia entero?** Una **medida** de cobre va a `05_Funcional/17_...`; una **fecha** o una decision, a
+`DECISIONES.md`; **como se descubrio algo**, a `roadmap.md` bajo su `N-x`; una **cifra** de la
+compuerta, al acta de `evidencia/`. Aqui queda el puntero, nunca el valor.
 
----
+> 🔴 **Objetivo: 150 lineas — y HOY NO SE CUMPLE.** Se dice aqui para que nadie lo lea como cumplido:
+> `wc -l CLAUDE.md` da la cuenta de verdad, y lo que sobra son **las MECANICAS** —el «como» de cada
+> regla—, conservadas a proposito porque un aforismo sin mecanica no protege a nadie. **Lo que no puede
+> volver a entrar es cronica.** Del 28/08 al 05/09 esto paso de 518 a 1.387 lineas con **869 anadidas
+> contra 36 borradas**, ningun commit retiro nunca un apartado, y la numeracion `bis/ter/quater/...`
+> era el acuse de recibo. **Una regla nueva entra ABRIENDO un apartado de abajo, o no entra**: si no
+> encuentra donde vivir no es metodo — es una entrada de `roadmap.md`.
 
-## 1. Qué corre en la calle
+## 0. Lo que no se negocia
 
-**Campo = V8.4, commit `e303485`.** Todo lo de V8.5 a V8.7 —reloj, sincronización horaria,
-Modo Degradado, mando de relés, interfaz del Esclavo— está en `feat/n15-reloj-pantalla-hora`,
-validado en simulador y **sin prueba de banco completa**.
+1. **Un semaforo que falla mal mata a alguien.** Es lo unico que explica todo lo demas.
+2. **Nada sube a campo sin pasar banco.** En campo corre **V8.4, `e303485` (31/07)** y **nada ha tocado
+   una tarjeta desde entonces**: lo posterior esta validado en simulador, no en cobre.
+3. **Un verde de la compuerta NO es un entregable.** Dice que los modelos y arneses de PC no encuentran
+   nada; **no dice que el firmware funcione en la tarjeta**. Hubo un `20/20` con una regresion viva en
+   banco, y los cinco defectos que pararon el banco del 3-4/09 lo pasaron sin despeinarlo.
+4. **`ABORTADO` no es `PASS`** (§1) · **solo `semaforo.cpp` escribe pines de luz** (§2) · **el firmware
+   nuevo esta CARGADO en la tarjeta antes de que nadie enchufe nada** (§3).
 
-> **Nada sube a campo sin pasar banco.** No es una preferencia de proceso: un semáforo que
-> falla mal mata a alguien.
-
-## 2. ABORTADO no es PASS
-
-Los tres estados de una comprobación son distintos y no se mezclan nunca:
+## 1. ABORTADO no es PASS
 
 | | significa |
 |---|---|
-| `PASS` | corrió y el firmware cumple |
-| `FALLA` | corrió y el firmware **no** cumple — hay que arreglarlo |
+| `PASS` | corrio y el firmware cumple |
+| `FALLA` | corrio y el firmware **no** cumple — hay que arreglarlo |
 | `ABORTADO` | **no pudo correr** — no dice *nada* del firmware |
 
-Tratar un `ABORTADO` como aprobado es como el Maestro estuvo días sin cobertura de validación
-sin que nadie se enterara. `01_Firmware/compuerta.py` existe para que eso no vuelva a pasar.
+**Un `ABORTADO` no es una casilla pendiente: es una PUERTA ABIERTA** — mientras un instrumento esta
+abortado, todo lo que vigilaba entra sin mirar, y asi entraron cuatro defectos detras del rewrite de la
+app (`N-75`). **Se arregla antes de mirar nada mas.** Sus tres hermanos, que se cuentan igual de mal:
+un `FALLA` que sale con codigo `0` (`N-46`); un `FALLA` **permanente** que ningun firmware posible
+puede apagar —eso no es comprobacion, es nota, y va en `reportar()`—; y un instrumento que publica
+`x/y` con `x != y`, **lo escriba como lo escriba y salga como salga**.
 
-## 2.bis Medir no es entregar, y el instrumento no es el producto
+## 2. Barrera de salidas
 
-> **Antes de escribir un instrumento, la pregunta no es «¿está bien hecho?» sino «¿esto acerca una
-> tarjeta cargada, o la sustituye?»**
+**Solo `semaforo.cpp` escribe pines de luz.** Todo pasa por su `escribirPines()` estatico —donde vive el
+enclavamiento SFTY-2—, incluidos los destellos del mando, que **interceptan** las escrituras en vez de
+rodearlas para no dejar colgado al coordinador. Una orden invalida **se rechaza y se reporta**, y el
+ambar automatico queda reservado a los caminos que ya lo tienen (SFTY-6, watchdog): **la maquina no
+decide sola** operar de un modo que nadie pidio. Lo vigila `barrera_01_pines_de_luz`.
 
-Dos auditorías externas independientes llegaron a la misma frase, y la segunda la dijo de la
-respuesta a la primera:
+> 🔴 **La barrera llega hasta lo que el equipo CONTESTA: un `$ACK` que no depende de lo que la llamada
+> devolvio es una mentira con formato de exito.** Es el patron que mas defectos ha dado aqui (`SET_RTC`,
+> `MANUAL:CAMBIAR_TURNO`, `SET_TIEMPOS`, `N-151`): la funcion tiene su `if (...) return;` bien razonado
+> y **el que contesta no lo mira**, asi que el tecnico se va del poste creyendo que dejo el reloj
+> puesto. **El molde de como se hace bien es `SET_TIEMPOS`: pregunta DENTRO del `if` y tiene un `$ERR`
+> por cada motivo de rechazo.** Un despachador se escribe copiandolo.
 
-> *«El proyecto respondió a la auditoría arreglando todo lo que ella midió y nada de lo que ella
-> dijo.»*
+⚠️ **Una regla de seguridad que ENUMERA sujetos tiene que comprobar que cada sujeto existe**, no solo
+que nadie la rodea: nombraba ocho pines donde el firmware mueve seis, y el pack no lo veia porque solo
+media fugas hacia fuera (`N-96`). Que pin esta vivo, muerto o libre: `ARQUITECTURA.map` y la spec.
 
-**La medida, para que no se discuta:**
+## 3. Cobre, conectores y carga
 
-| | firmware | instrumento | ratio |
-|---|---|---|---|
-| 28/08 | 8.895 | 8.898 | 1,0 : 1 |
-| 31/08 | 14.188 | 27.705 | 1,95 : 1 |
-| 02/09 | **14.976** | **34.532** | **2,31 : 1** |
+> **Antes de contestar sobre cobre, conectores, pines o compras se abre la spec, aunque este fichero
+> parezca contestar.** `DECISIONES.md` y `05_Funcional/17_...` **ganan a `CLAUDE.md`** en lo decidido y
+> en lo medido: aqui se recitaron tres medidas derogadas en una sola noche, y las tres tenian la fuente
+> buena alli.
 
-Y en la sesión del 01–02/09, contada por commits: **27 commits — 19 tocan documentos, 10 tocan
-instrumentos, 8 tocan firmware. 675 líneas de firmware contra 7.039 de instrumento: 10,4 a 1.**
+**Firmware primero; el cableado despues — y el orden es ASIMETRICO.** Retirado el armador de un pin, la
+placa lo deja fijado por su pull-down y **un pin en 0 V no ejecuta nada**. Al reves no: con el firmware
+viejo dentro ese pin sigue siendo el boton que EJECUTA, y lo que un instalador enchufe puede pulsarlo en
+un equipo que esta en la calle. **No basta con «van en el mismo commit»: un commit no protege de un
+destornillador.** Se exige la **carga verificada**, no el merge.
 
-**En campo sigue corriendo `e303485` (31/07), y el arreglo de un defecto real de calle —el equipo
-se va a ámbar por nada— lleva escrito desde el 27/08 sin subir.**
+**Tres hechos de cobre fabricado se repiten aqui porque su ausencia hiere a una persona:** **`J16` p1
+lleva 12 V crudos a un conector de senal directa al micro y se TAPA en cada equipo que se monte**
+(`D-4`, `N-120`) · **`J14` es una ENTRADA del micro** (3,3 V, sin opto ni diodo) y **la salida de
+talanquera es `J15`**: un rele cableado a `J14` **se desconecta antes de energizar** · **`J16` p5 y p8
+estan VACIOS y el codigo del mando SIGUE leyendo sus flancos** (`A-2`, `D-1`), asi que lo que se cablee
+ahi compone secuencias sin que nadie lo pida.
 
-### Las tres señales de que se ha cruzado la línea
+**Carga por SWD: `mode=UR` con `-e all`, y no se cambia.** `HOTPLUG` se engancha al micro en marcha, y
+con un firmware que se cuelga al arrancar el watchdog reinicia cada 4 s en mitad del borrado
+(`failed to erase memory`); el delator es `NVM size: 128 KBytes (default)` en un chip de 64 KB. **Si
+`UR` falla se reintenta — no se cambia el modo:** enganchar es cuestion de *timing*, y `Unable to get
+core ID` no es falta de cableado. **Radios: `2.4 kbps` de Air Data Rate, `M0`/`M1` en OFF.**
 
-1. **Un pack nuevo que nadie pidió**, escrito la misma noche en que se acaba de comitear un
-   documento que dice *«lo que NO entra: más packs»*.
-2. **Un arreglo del aparato de medir que necesita más de dos capas.** N-112 costó **tres commits**, y
-   **los dos primeros afirmaron el cierre en su propio título** antes de que el tercero demostrara
-   que no. Si el vigilante necesita tres vueltas, la pregunta ya no es cómo arreglarlo: es **por qué
-   existe** —y en aquel caso la respuesta estaba escrita y sin plantear al responsable: los
-   documentos **copian** cifras que el acta ya publica, y por eso hacen falta 1.120 líneas de Python
-   vigilando copias.
-3. **Entregar documentos cuando lo pedido era un entregable.** Se pidió el `.zip` y se contestó con
-   99 líneas de autocrítica. Un parte de trabajo con cifras verdes puede ser **cierto en cada línea y
-   falso en conjunto**: el dato que lo habría dicho en diez segundos es el que no estaba.
-
-### Y el corolario que más duele, porque es el mismo error una capa arriba
-
-**Un `20/20` sobre 34.532 líneas de instrumento que nunca han tocado una tarjeta no es un
-entregable: es una coartada.** El apartado 3 ya avisa de que *verde no es entregable*; esto es su
-segunda mitad — **cuando el verde cuesta más que lo que certifica, el verde ES el problema.**
-
-> **Lo que sí es una excepción legítima, para no leer esto como «nunca instrumentes»:** un
-> instrumento que **desbloquea** algo que estaba parado, o que mide una **propiedad de vida** que
-> nadie ejercía —el verde simultáneo sobre las dos puntas reales, que dio el factor **1,44** en vez
-> del **2** declarado— es firmware por otro nombre. La diferencia no es el fichero que toca: es si
-> **contesta una pregunta abierta** o si **certifica otra vez lo ya certificado**.
-
----
-
-## 2.quater LAS OPCIONES QUE LE PONES DELANTE AL RESPONSABLE SON UN INSTRUMENTO
-
-> **Una pregunta bien hecha sobre un diagnostico sin medir le hace decidir algo que no
-> existe — y encima le deja la culpa del resultado.**
-
-Paso el 04/09 y costo dos vueltas de banco. Se le planteo al responsable una eleccion
-limpia sobre el cerrojo del ambar de emergencia del Esclavo, con sus dos opciones y sus
-consecuencias, y contesto: *«b, sin cerrojo cuando viene de la app»*. Contesto bien **a
-una pregunta que no habia que hacerle**.
-
-**La pregunta se sostenia sobre una causa que nadie habia medido:** que el cerrojo era
-lo que trababa el cruce. Al implementar la (b), el pack `esclavo_07` la paro con un
-mensaje que era mejor que el razonamiento que la habia propuesto:
-
-> *«el ambar de la app dura hasta el siguiente latido del Maestro -unos 3 s- y el
-> operario ve el equipo obedecer y volverse atras solo»*
-
-Se probo una segunda version —dejar el veto solo en lo que ABRE paso y abrirlo en lo que
-PARA— y tambien se cayo. **Y solo entonces se midio la cadena entera**: la causa del
-bloqueo no era el cerrojo, era que esa punta **no ACUSA**. El Maestro agotaba reintentos
-a ciegas, caia a `C_FALLO` y desde ahi rechazaba todo. Con el aviso por radio (N-142) el
-Maestro deja de adivinar, deja de preguntar, y el bloqueo desaparece **sin tocar el
-cerrojo** — que es justo lo que protege a quien esta en la calzada.
-
-**O sea que la respuesta correcta a aquella pregunta era: la pregunta no va.**
-
-### Las tres cosas que hay que hacer distinto
-
-1. **Antes de ofrecer una eleccion, mide la causa.** Un menu de opciones tiene la misma
-   autoridad que un dato —mas, porque parece que ya se ha investigado— y quien lo recibe
-   asume que las dos opciones son las que hay.
-2. **Si hay que preguntar sin haber medido, se dice en la pregunta.** *«Esto es lo que
-   creo que pasa y NO lo he medido»* cambia la respuesta que da el responsable, y esa es
-   toda la diferencia entre consultarle y delegarle una apuesta.
-3. **Cuando el banco tumba una decision suya, se le devuelve con la medida, no se
-   ejecuta igual.** Ese dia el instrumento tenia razon **dos veces seguidas** contra el
-   razonamiento que habia redactado las opciones.
-
-> 🔴 **Y el corolario que mas incomoda: «el responsable lo decidio» NO es cobertura.** El
-> apartado 4 dice que un informe no es una medida; esto es su hermana en la otra
-> direccion — **una decision tomada sobre un informe malo hereda el error, y ademas lo
-> blinda**, porque a partir de ahi ya nadie vuelve a mirar la causa: esta decidido.
-
----
-
-## 2.quinquies UNA FRASE NUEVA NO DEROGA UNA DECISION ESCRITA — se comprueba antes de ejecutarla
-
-> **Lo dicho de viva voz en mitad de un turno describe una intencion. Lo escrito en la spec
-> describe una decision tomada, con su motivo. Cuando chocan, se PREGUNTA — no se ejecuta.**
-
-Paso **dos veces la misma noche**, el 05/09, y la segunda con un agente ya lanzado:
-
-| | la frase | lo que la spec decia |
-|---|---|---|
-| **M3** | se contesto *«las camaras de `J16` estan bloqueadas por M3»* citando `CLAUDE.md` §9.bis | **M3 cerrada el 03/09**, con medidas en cobre, en `05_Funcional/17_...` |
-| **el mando** | *«quitamos los comandos de rele A, B, C, D y E»* -> se lanzo un agente a **retirar el mando entero de las dos puntas** | *«el mando **SE CONSERVA** en los canales A y B… **el veto de §2.4 se queda donde esta**»*, decidido el 31/08 |
-
-La segunda la paro el responsable: *«ayer definimos no quitar los botones de A y B por los
-danos al software, y seguir sin usarlos y sin tocar el codigo»*. El agente estaba midiendo
-y no alcanzo a editar. **Y el motivo que el dio es el que este fichero ya tenia escrito**
-—§3.ter, sobre ese mismo getter—: `mando_ambarLocal()` tiene cinco llamadas vivas y retirar su
-armador deja el veto de SFTY-21 **abierto**, no inerte.
-
-### Las dos cosas que hay que hacer distinto
-
-1. **Antes de ejecutar un cambio de alcance, abrir la spec y buscar si ya estaba decidido.**
-   Cuesta un `grep`. Si lo estaba y la frase nueva lo contradice, **eso es la pregunta**:
-   *«la spec dice X desde el 31/08 y por este motivo — ¿lo derogamos?»*. Casi siempre la
-   frase nueva es un resumen impreciso de algo mas pequeno; en este caso «quitar el mando»
-   significaba «los pines C y D ya son camaras».
-2. **Y con mas razon si el cambio RETIRA una barrera.** Un alcance que crece se corrige
-   despues; una proteccion amputada por un malentendido no se nota hasta que alguien esta
-   en la calzada. La direccion segura es no tocar y preguntar.
-
-> **Corolario, y es la razon de que esto sea una seccion y no una nota:** delegar amplifica
-> el error. Una frase mal entendida se convierte en un encargo de mil lineas para un agente
-> que la ejecuta bien y a fondo. **El encargo es un instrumento** (§2.quater): antes de
-> lanzarlo, se comprueba que lo que le pides no lo desdice un documento del repositorio.
-
----
-
-## 2.ter DECLARAR NO ES EJERCER — por qué el banco pasó con cinco defectos dentro
-
-> **La pregunta del 04/09, y hay que contestarla bien porque es la que más vale: si el banco corrió
-> el 3-4/09 y paró por cinco defectos, ¿cómo estaba la compuerta en `20/20` y `963/963`?**
-
-No fue suerte, ni un hueco casual. **Los cinco vivían en el mismo sitio: la distancia entre algo
-DECLARADO y ese algo EJERCIDO.** Y en cada caso había un instrumento verde mirando la declaración.
-
-| | lo declarado | lo que nadie ejercía |
-|---|---|---|
-| **N-125** | los permisos de Bluetooth, en `AndroidManifest.xml` | que alguien los **pidiera en runtime**. En Android 12+ un permiso peligroso no concedido se comporta **igual que uno que no existe** |
-| **N-122** | `conectarNativoSPP()` escrita entera, con su `connect()` dentro | que **alguien la llamara**. Cero llamadores |
-| **N-124** | dos `data-mac` en el HTML | que ese MAC **fuera el de un equipo real**. Era el de un `HC-05` retirado el 28/08 |
-| **N-118** | `BOTON1`/`BOTON2` con su `pinMode` y su lectura | que la **polaridad casara con el cobre**. La placa pide ALTO; el fuente leía BAJO |
-| **N-117** | `ESP32_ARRANQUE_MS` y la desigualdad del watchdog | que alguien **cronometrara el arranque**. `ESP32_ARRANQUE_MEDIDO = 0`, y lo dice el propio fichero |
-
-**Es la misma forma que este repositorio ya conocía en pequeño** —`CAM_UMBRAL_PIN` con `pinMode()` y
-sin `digitalRead()`, la Caja Negra de N-73 documentada en cuatro manuales y sin un llamador— pero
-aquí aparece **cinco veces en un día y en cinco lenguajes distintos**: XML, JavaScript, HTML, C++ y
-una constante. No es un descuido de alguien: es un **hueco de método**.
-
-### Y la segunda mitad, que es peor: el instrumento verde tenía una FRASE debajo
-
-En tres de los cinco, el pack **no fallaba porque una frase escrita al lado lo justificaba** — y esa
-frase era falsa o media verdad. Nadie la comprobó nunca, porque las frases no se compilan.
-
-| | la frase que sostenía el verde | qué pasaba de verdad |
-|---|---|---|
-| **N-118** | *«A y B van contra masa; invertirlos deja el mando pulsado en permanencia»* | **al revés.** Hay **una sola masa** en todo `J16` (p2); un contacto por botón contra masa necesitaría una masa por botón |
-| **N-122** | `BluetoothDriver` en `HUERFANOS_CONOCIDOS`: *«app.js habla por `window.bluetoothSerial`»* | **medio cierto.** Usa `write`, `subscribe` y `list`… y **no `connect`**, que es la que hace funcionar a las otras tres |
-| **N-118** | *«hay evidencia de banco de que el menú se navega»* | **no existe.** Lo que se citaba como tal es un **protocolo** —un plan de pruebas—, no un resultado |
-
-> 🔴 **La regla, y vale más que cualquier pack nuevo: cuando un instrumento está verde porque una
-> EXCEPCIÓN lo justifica, el instrumento de verdad es la frase de esa excepción — y no la comprueba
-> nadie.** Una lista de excepciones con motivos sin verificar es **una lista de defectos con
-> permiso**, y envejece peor que el código, porque el código al menos se recompila.
-
-### Qué hacer con esto, que no es escribir más packs
-
-**No.** El 2,31 : 1 sigue ahí, y cuatro de los cinco defectos **no se pueden ver desde el PC** —una
-corriente, un permiso del sistema operativo, un MAC de un módulo, un tiempo de arranque—. Un pack
-más habría dado verde igual.
-
-1. **Al escribir una excepción, su motivo se mide, no se redacta.** Es una afirmación sobre el
-   código: o se comprueba, o no se escribe.
-2. **Al heredar una excepción, se vuelve a medir su motivo.** Las tres de arriba llevaban meses.
-3. **Un `20/20` responde «los modelos y arneses de PC no encuentran nada».** El 04/09 dio el
-   contraejemplo que faltaba: **los tres defectos que pararon el banco pasaron esas 20
-   comprobaciones sin despeinarlas**, porque ninguno es una propiedad del fuente. *Verde no es
-   entregable* dejó de ser una advertencia y pasó a ser un hecho con fecha.
-4. **Lo que cierra esta clase de hueco es la tarjeta**, no el instrumento. El banco encontró en dos
-   días lo que 34.532 líneas no vieron en cinco semanas.
-
----
-
-## 3. La compuerta, antes y después
+## 4. La compuerta y el banco
 
 ```
-python 01_Firmware/compuerta.py            # completo (compila)
+python 01_Firmware/compuerta.py            # completo (compila) — 0 PASS · 1 FALLA · 2 ABORTADO
 python 01_Firmware/compuerta.py --rapido   # sin compilar
+python 01_Firmware/Simulaciones/banco/correr.py --pack <nombre>
 ```
 
-Un solo código de salida: `0` PASS · `1` FALLA · `2` ABORTADO. Escribe un acta con fecha y
-hash de HEAD en `evidencia/`. **Las cifras del README se copian del acta, nunca se escriben a
-mano.**
-
-> ⚠️ **La compuerta NO es idempotente después de un `--rapido`: hacen falta DOS pasadas completas.**
-> `documentos_01_cifras_del_acta` lee el acta **ANTERIOR** —la nueva se escribe al final, en
-> `escribir_acta()`, después de que el banco ya corrió—, y `--rapido` deja un acta **sin las tres
-> filas `compila maestro / esclavo / repetidor`**. La siguiente corrida, aunque sea completa,
-> compara la tabla del README contra esa acta mutilada, ve tres filas que el acta no mide y
-> protesta **con razón**.
->
-> No es un defecto del pack: es el pack impidiendo publicar una cifra que no salga de la última
-> corrida. La cura no es tocarlo — es correr la completa **dos veces**, y copiar del acta que sí
-> las trae.
-
-> 🟢 **Desde el 05/08 la compuerta sale con `0` — y eso la vuelve más peligrosa, no menos.**
-> Mientras salía con `1`, nadie la confundía con un permiso. Un `0` sí se confunde. Lo que ese
-> `0` dice es exactamente esto: *los modelos y los arneses de PC no encuentran nada*. **No dice
-> que el firmware funcione en la tarjeta**, y hoy mismo la prueba está delante: con la compuerta
-> en verde hay una regresión abierta en banco donde el Modo Automático no mueve las luces.
-> **Verde no es entregable.**
-
-> ✅ **N-46 cerrado el 05/08 — y la lección se queda escrita.** Durante meses
-> `validador_maestro.py` imprimió `FALLA` y salió con `0`, así que la suite se pintaba `[OK]`.
-> Era *"ABORTADO no es PASS"* invertido —**`FALLA` contado como `PASS`**— y uno de aquellos
-> fallos era vial. Se cerró **retirando los tres monolitos**: los packs sí los cuentan.
->
-> 🔴 **Y hay una tercera cara del mismo error, que costó ver hasta el final: un `FALLA`
-> PERMANENTE tampoco es un aviso.** El alias de ±60 s de `CMD_DELTA` se dejaba fallando *a
-> propósito* para que el límite no se olvidara. Pero ese fallo no lo puede apagar ningún
-> firmware —un byte de segundos no distingue 0 de 60—, así que la compuerta **nunca podía salir
-> en verde**, y un código de salida que jamás cambia enseña a ignorarlo.
->
-> **La regla que queda: si una comprobación no la puede aprobar ningún firmware posible, no es
-> una comprobación — es una nota, y va en `reportar()`.** El alias se invirtió: ya no exige lo
-> imposible, exige que el agujero sea **exactamente** el que el protocolo obliga y ni un caso
-> más, con su `control_negativo` demostrando que sabe distinguirlo.
-
-> 🔴 **Y una CUARTA cara, del 27/08, que estuvo abierta desde siempre: el detector de N-46 solo
-> sabía leer un marcador.** Busca la marca literal `[FALLA]`, que es la que imprimen los packs...
-> y **ninguno de los dos simuladores más viejos**. Aquellos escriben `✘ FAIL` y cierran con
-> `VEREDICTO FINAL: 17/20 PASS — HAY FALLOS PENDIENTES`, saliendo con código `0`. El simulador
-> funcional podía caer de `20/20` a `17/20` y el acta seguía diciendo `[OK]`, con la cuenta mala
-> al lado —que nadie lee cuando el semáforo de la izquierda está verde—.
->
-> **La regla que queda no depende del marcador, que es justo lo que fallaba: si un instrumento
-> publica una cuenta `x/y`, se exige `x == y`.** Un instrumento que anuncia 17 de 20 está diciendo
-> que tres comprobaciones no cumplen, lo escriba como lo escriba y salga con el código que salga.
-
-> **Un instrumento que no está en la compuerta no mide nada — y no deja rastro de que falta.**
-> `Validacion_Respaldo` compila el `calcularSuma()` real, lleva días roto, y el acta no lo echa de
-> menos: son 12 suites y ninguna es esa (N-43). Un `ABORTADO` al menos grita; **un hueco no**.
-> Al escribir un arnés, conectarlo a `compuerta.py` es parte del trabajo, no un paso posterior.
-
-## 3.bis El banco por packs
-
-```
-python 01_Firmware/Simulaciones/banco/correr.py --listar
-python 01_Firmware/Simulaciones/banco/correr.py --pack esclavo_03
-```
-
-**La migración terminó el 05/08: no quedan validadores monolíticos.** El banco son **74 packs**
-—`1053` comprobaciones en el acta del 05/09—, un fichero corto por propiedad, que se corre solo
-en un segundo.
-
-> ⚠️ **Y ese crecimiento no es una medalla, es un aviso.** El 28/08 eran 38 packs y `405/405`. Hoy
-> hay **34.532 líneas de instrumento contra 14.976 de firmware —2,31 a 1—** y **ninguna ha tocado
-> una tarjeta desde el 31/07**. Dos auditorías externas lo llamaron *«industria de sustitución»*.
-> **Antes de escribir un pack nuevo, la pregunta no es «¿está bien hecho?» sino «¿esto acerca una
-> tarjeta cargada, o la sustituye?»** El porqué estaba medido:
-**8.898 líneas de instrumento para 8.895 de firmware**, y los instrumentos no son pruebas — son
-una *segunda copia del firmware escrita a mano* que alguien sincroniza. Eso falló tres veces
-(N-36, N-39, y la propia compuerta).
-
-**Cómo se retiró cada monolito, que es la parte reutilizable:** los packs tienen que sumar
-**exactamente** sus comprobaciones, y hay que comparar el **texto literal** de cada una, no solo
-el recuento. Costura `41 = 41`, Maestro `64/67 = 64/67`, Esclavo `31 = 31`, cero huérfanas en
-ninguna dirección. Y al retirarlos **cayó la guarda de rutas** —censaba las tuplas de los
-monolitos y se quedó en 4—: abortó en vez de aprobar, que es su trabajo. Hoy censa
-`banco/packs` y `banco/modelos`.
-
-**Reglas al escribir un pack:**
-
-- **Trae el bloque literal.** Reescribir lógica ya probada para renombrar llamadas es como se
-  cuelan los errores en un cambio que no debe cambiar comportamiento.
-- Las constantes se releen del C++ en cada corrida. **Sin valor por defecto, nunca**: un
-  banco que no puede fallar no demuestra nada.
-
-> ⚠️ **Y "sin valor por defecto" incluye los restos del algoritmo anterior (N-51).** `PESOS_SUMA`
-> se quedó fijado a `1` para todos los registros cuando `calcularSuma()` pasó a un hash de
-> Horner, con el comentario *"compatibilidad"*. La resta de pesos daba siempre 0, así que la
-> prueba 2.7 marcaba los **C(5,2)=10** pares posibles **sin llamar nunca al checksum real** — y
-> encima el mensaje decía *"con los pesos leídos del C++"*. Medidos de verdad eran 8.
->
-> 🔴 **Y su hermana era peor, porque salía en VERDE.** La prueba 2.8 hacía `break` sobre esa
-> misma condición siempre cierta y **no evaluaba ni un solo candidato**: meses de `PASS` sin
-> medir nada. Al arreglarla apareció un camino **explotable**: permutar `FLAGS` y `SYNC_BAJA`
-> deja la suma intacta y produce `FLAGS` con `CICLO+SYNC+DEGRADADO` encendidos, que un arranque
-> tras corte leería como autorización vigente para reanudar el Degradado.
->
-> **Dos señales de esta clase de prueba muerta:** un número que coincide exactamente con *"todas
-> las combinaciones posibles"*, y un `PASS` de algo que nadie ha visto fallar nunca.
-
-> 🔴 **Una constante puede no ser un número suelto, sino el TECHO de otras (N-71).** El umbral de
-> silencio de SFTY-6 estaba en 12 s mientras el ciclo necesita hasta **20,5 s** para agotar sus
-> cinco reintentos: **los reintentos 4 y 5 no podían ejecutarse jamás**, y nada lo delataba porque
-> el equipo hacía algo razonable —irse a ámbar—. La relación entre los tres números vivía **solo
-> en prosa, dentro de un comentario**, y los comentarios no fallan cuando alguien cambia un
-> número: se quedan describiendo un equipo que ya no existe, **con la autoridad de una cuenta
-> hecha**. Si dos constantes se relacionan por una desigualdad, esa desigualdad va en un pack que
-> la recalcula desde el C++, no en una nota.
-
-> 🔴 **Una función que nadie llama es la versión silenciosa de la prueba muerta (N-73).** La
-> *«Caja Negra de Alarmas»* que **cuatro manuales** describían estaba declarada, definida y
-> documentada con ejemplo en las dos puntas —y **sin un solo llamador**—. Es `CAM_UMBRAL_PIN` otra
-> vez: un `pinMode()` sin `digitalRead()`, pero con documentación encima. Se pagó cuando un fallo
-> de campo no se pudo diagnosticar porque no había registro que mirar.
->
-> **El censo es `grep` de la declaración contra las llamadas, no lectura.** Y la propiedad que se
-> vigila es un **trinquete, no un absoluto**: exigir «cero huérfanas» sería falso —hay obra a
-> medias declarada honestamente como *«sin construir»*, y hay barreras cuya ausencia de llamador
-> *es* la barrera—. Lo que falla es una **nueva**, una que **gana** llamador y sigue en la lista, y
-> sobre todo **una que los documentos anuncien como función existente**.
->
-> 🔴 **Y la mitad que faltaba, que costó el banco entero del 3-4/09 (N-122): el trinquete se apoya en
-> una LISTA DE EXCEPCIONES, y cada excepción lleva un MOTIVO escrito que nadie comprueba.**
-> `BluetoothDriver` llevaba meses en `HUERFANOS_CONOCIDOS` con este motivo: *«app.js habla por
-> `window.bluetoothSerial`, sin pasar por aquí»*. Es **medio cierto** —`app.js` usa `write`,
-> `subscribe` y `list`… y **no usa `connect`**, que es justo la que hace funcionar a las otras
-> tres—. El pack estaba bien, el trinquete estaba bien, y **la app nunca abrió un socket**: se
-> pintaba «Enlazado» por haber pulsado una fila.
->
-> **La regla: un huérfano se acepta por una razón, y una razón es una AFIRMACIÓN SOBRE EL CÓDIGO —
-> o sea, algo que se comprueba, no que se escribe.** Una lista de excepciones con motivos sin
-> verificar es **una lista de defectos con permiso**, y envejece peor que el código porque nadie
-> vuelve a mirarla. Al añadir una entrada se mide la frase entera; al heredarla, también.
-
-> 🔴 **Refactorizar puede APAGAR un instrumento sin romper un solo test (N-89, 28/08).** Al escribir
-> los seis comandos nuevos se probó un compositor —`responderAck(cmd, resultado)` /
-> `responderErr(cmd, motivo)`— que armaba la trama en un buffer y ahorraba **636 B**. Se retiró, y
-> el porqué es la regla.
->
-> `app_03_sin_ok_mudo` busca los literales `"$ACK` / `"$ERR` **dentro del bloque de cada rama**. Con
-> el compositor, esos literales se mudan a otro fichero y **ninguna rama los tiene ya**: todas
-> pasaban por *"no promete nada"* —incluida la de calibración, y **los dos controles negativos**,
-> que usan bloques sintéticos propios—. El pack habría seguido en **verde midiendo nada**: es la
-> prueba muerta de N-51, esta vez introducida por un cambio que ningún test delata, porque el
-> firmware seguía siendo correcto.
->
-> **La regla: al tocar la FORMA de un bloque que un pack lee por texto, hay que comprobar que el
-> pack sigue sabiendo fallar** —§8.bis, aplicado al refactor y no solo al arnés nuevo—. Y 636 B
-> contra un instrumento que deja de medir no es un intercambio: se rechaza midiendo las dos cosas,
-> no dudándolo.
-
-**Las cuatro primitivas del contador, que no significan lo mismo:**
-
-| | cuenta | cuándo |
-|---|---|---|
-| `verificar` | sí | comprobación normal |
-| `propiedad` | sí, marca `ROTA` | propiedad de seguridad que el banco **logró romper** — es fallo del firmware, no del banco |
-| `control_negativo` | sí | exige que la prueba **sepa fallar** |
-| `reportar` | **no** | hallazgo que acompaña a una comprobación que ya cuenta — **y el sitio donde va un residual que ningún firmware puede aprobar**, como el alias de `CMD_DELTA` |
-
-## 4. La regla del instrumento
-
-> **Un "no aparece" no es un hallazgo hasta haber descartado al buscador.**
-
-> ✅ **Y su cara amable, del 05/09: A VECES EL BANCO YA CORRIÓ EL CONTROL NEGATIVO SIN
-> SABERLO.** Los `0,6 V` de `MANDO_A`/`MANDO_B` se llevaban meses contando como «defecto de
-> placa». Al ir a medirlo apareció que en `617bd00` —**el binario que estaba en la tarjeta
-> durante aquel banco**— `BOTON1/2` iban en `INPUT_PULLUP` y `CAM_C/D_PIN` en `INPUT` pelado.
-> El paso 20 midió **9,92–9,94 kΩ en los cuatro pines**, y **`0,6 V` sólo en los dos con
-> pull-up y `0 V` en los dos sin él**.
->
-> **Mismo cobre, distinto `pinMode`, distinta tensión.** El banco había medido las dos ramas
-> del experimento en la misma tabla, y nadie lo leyó así. **Antes de llamar «defecto de
-> hardware» a una medida, mírese qué firmware estaba dentro cuando se tomó.**
-
-Este proyecto la pagó dos veces: `gcc` llevaba semanas instalado y `shutil.which()` no lo veía
-(el `ABORTADO` era falso), y un recuento de anchos a mano dio por buenos dos textos que se
-salían de la pantalla. Antes de reportar que algo falta, **verifica que tu búsqueda sabía
-encontrarlo**.
-
-Su corolario: cuando el instrumento y el razonamiento no coinciden, **manda la medida**.
-
-> 🔴 **Y el buscador puede estar ciego por el FORMATO del fichero, no por faltar la herramienta
-> (28/08).** `MAPEO_TARJETA_KICAD.md` afirmaba que el `.kicad_pcb` estaba **VACÍO**, y sobre esa
-> frase se sostenía todo el *"solo hay medida en el esquemático, no en el cobre"*. Era falsa: el
-> fichero pesa **2.158.421 B** y trae **185 huellas, 1.447 pistas, 89 vías, 485 pads y 117 redes**.
->
-> ```
-> grep -c '(segment ' Controladora_Semaforos.kicad_pcb        ->    0     <-- FALSO
-> grep -oE '\(segment\b' Controladora_Semaforos.kicad_pcb | wc -l -> 1447 <-- REAL
-> ```
->
-> KiCad separa los tokens con **tabulador y salto de línea**, así que buscar la pista con un espacio
-> detrás da cero — y **un cero se lee como «no hay»**. Es §4 aplicada a un formato, no a una
-> herramienta que falta: `grep` estaba, respondía, y aun así no sabía encontrar. Antes de publicar
-> un «está vacío», mide el fichero por otro camino (`wc -c`, un segundo patrón) y compara.
-
-> **Y su segunda cara, que costó un commit el 03/08: lo que TÚ reportas también es un
-> instrumento.** Se escribió en el roadmap que el arnés de respaldo fallaba por *"el canal de
-> piping de PowerShell 5.1"*, dado por *"reproducido dos veces"*. Al ir a arreglarlo: PS 5.1 manda
-> `PING\r\n` sin BOM, `strncmp` casa, y el binario responde `PONG`. **La causa era plausible y
-> falsa**, y llegó al repositorio con la palabra *"medido"* encima.
->
-> Un informe —propio o de un agente delegado— **no es una medida**. Antes de escribir una causa en
-> `roadmap.md` o en `ESTADO.md`, se reproduce el fallo y se pega la salida. Y una causa que se cae
-> **se marca refutada, no se borra**: la que desaparece en silencio vuelve a proponerse, y la
-> segunda vez ya nadie recuerda que se comprobó.
->
-> **Y su tercera cara, del 04/08: una REFUTACIÓN también es un instrumento.** La nota que tumbó la
-> causa del arnés de respaldo decía *"medido byte a byte: PS 5.1 manda `PING\r\n` sin BOM"*. Es
-> falso —`od` sobre la tubería real da `ef bb bf 50 49 4e 47 0d 0a`— y la causa original era buena.
-> Tachar algo exige el mismo rigor que afirmarlo; si no, la corrección se convierte en el error
-> siguiente y encima llega blindada con la palabra *"medido"*.
->
-> **Corolario práctico: descartar por eliminación solo vale si las opciones son exhaustivas.** El
-> árbol de N-43 tenía tres ramas, dos tachadas, y se anunció la tercera como *"lo que queda"* —un
-> hallazgo grave de firmware—. Al correr el comando disparó **una cuarta que nadie había listado**,
-> y no había ningún defecto de firmware. Eliminar entre opciones incompletas es adivinar con tabla.
-
-> 🔴 **Y su CUARTA cara, del 05/09, que no cuesta un commit sino la sesion entera: razonar
-> donde bastaba LEER.** Con el banco reportando *«DAR PASO deja el Maestro en rojo y a los
-> 15 s el Esclavo se va a ambar»* se encadenaron cinco hipotesis sin abrir un fichero —que
-> si la escritura en flash del respaldo bloqueaba el bus, que si el PING estaba suprimido
-> durante la espera de ACK, que si el Maestro se quedaba mudo en algun modo—. **Todas
-> plausibles, todas falsas.** La respuesta estaba en una linea:
->
-> ```
-> static unsigned long tiempoDespejeMs = 15000;
-> ```
->
-> Los «15 segundos» del reporte eran esa constante, literal. Y el Modo Manual entraba por
-> la puerta del Automatico, que programa un verde para dentro de ese plazo.
->
-> **La regla: cuando el sintoma trae un NUMERO, ese numero se busca en el fuente ANTES de
-> construir la primera hipotesis.** Un `grep` de una cifra cuesta diez segundos; una cadena
-> de deducciones cuesta media sesion y ademas se defiende sola, porque cada eslabon es
-> razonable. **La medida barata va primero, no cuando se acaban las ideas.**
-
-> 🔴 **Y una QUINTA cara, del 05/09, que llego al responsable con la palabra «medido» encima: UN
-> CERO DE `grep` NO ES «NO HAY», ES «MI PATRON NO ENCONTRO».** Se le dijo que **el Esclavo no
-> tiene ningun camino para entrar en Modo Degradado**, apoyado en esto:
->
-> ```
-> grep -c 'modoActual_set(MODO_DEGRADADO)' Esclavo/src/*.cpp   ->  0
-> ```
->
-> El cero es cierto. **Y el Esclavo entra por `degradado_entrar()`, que es otro simbolo y tiene
-> DOS llamadores** —`mando.cpp:148` por la secuencia `A.B.A.B`, y `menu.cpp:227`, muerto—. La
-> puerta esta construida; lo que se retiro es el hardware que la abre.
->
-> **La forma del error es la de KiCad y la de `shutil.which()`, pero el sujeto es peor: no era una
-> herramienta que faltara ni un formato raro, era que UN CONCEPTO SE LLAMA DISTINTO EN CADA PUNTA.**
-> Antes de publicar un «no existe» sobre una capacidad, se busca **la capacidad por sus dos
-> nombres posibles** —el setter generico y la funcion propia— o se busca al reves: **quien la
-> APAGA**, que casi siempre esta al lado de quien la enciende.
->
-> Y el agravante que lo hace regla: **una ausencia se convierte en una decision del responsable**.
-> Aquel cero le habria hecho elegir entre «anadir un modo» y «retirarlo», cuando la opcion real y
-> barata —darle a la app la llave de una puerta ya hecha— **no estaba en la mesa porque yo habia
-> medido mal**. Es §2.quater: las opciones son un instrumento.
-
-> **Un instrumento que existe no es un instrumento que mide (N-44).** `gcc` estaba instalado,
-> respondía `--version` y compilaba a `.o`; su `ld` no enlazaba nada porque el toolchain vivía bajo
-> una ruta con `ñ`. Los dos arneses que compilan C++ real cayeron a `ABORTADO` de un día para otro
-> **con el mismo compilador registrado en el acta**. Por eso `compuerta.py` no pregunta *"¿hay
-> gcc?"*: le **exige enlazar** un `main()` vacío antes de fiarse. Es `PASS` contra `ABORTADO`
-> aplicado al propio compilador — y vale para cualquier herramienta que el banco dé por sentada.
->
-> 🔴 **Y N-44 SIGUE VIVO: el 05/09 la compuerta cayo a `13 PASS · 7 ABORTADO` y nadie se
-> entero.** Los siete arneses que compilan C++ real se fueron a la vez porque `ld` no abre
-> la ruta con `ñ` de `Diego.Zuñiga` —reproducido, no supuesto: `crt2.o` existe y mide
-> 9.870 B—. Volvio a `20/20` copiando el toolchain a **`D:	oolchain\mingw64`**, que es un
-> candidato que `compuerta.py` ya prueba.
->
-> **ESA COPIA NO ESTA EN EL REPOSITORIO: es una dependencia de la maquina.** Si desaparece,
-> la proxima sesion mide **siete comprobaciones menos** y el acta lo dice en una linea que
-> nadie lee cuando el resumen de arriba parece normal. **Es la razon de que un ABORTADO
-> tenga que leerse SIEMPRE**, y de que el numero de PASS sin el total al lado no signifique
-> nada.
-
-> Su otra mitad: **un instrumento no puede depender del entorno de quien lo llama.** `compilar.ps1`
-> moría en `Get-FileHash` porque el `PSModulePath` que hereda la sesión mezcla los módulos de
-> PowerShell 7 con los de la extensión del IDE y el autocargado de PS 5.1 se queda sin encontrar
-> `Microsoft.PowerShell.Utility`. Desde fuera parecía el arnés roto. Si una comprobación puede
-> escribirse sin depender de módulos, se escribe así.
-
-## 3.ter Un pack nuevo no es un parche: es la pasada que faltaba
-
-> **Si los defectos aparecen porque alguien pregunta, no hay metodo — hay suerte.**
-
-El 26/08 se cerraron ocho defectos de V9.0 y **los ocho salieron de que el responsable preguntara**:
-camaras en pines de botones, PIN sin validar, radio sin direccionar, el Esclavo moviendo luces, la app
-incapaz de hablar SPP... Ninguno de una revision sistematica. Su critica fue exacta: *"planteo uno de
-los problemas, no todos, y no haces mas que dar un fix puntual a cada caso"*.
-
-La pasada sistematica —censar **toda** la superficie de entrada del firmware y cruzarla con los packs
-y con todos los documentos— encontro sola, en una tarde, dos defectos que nadie habia preguntado:
-
-- **`CAM_UMBRAL_PIN` (`PB8`) tenia `pinMode()` y ni un `digitalRead()`** mientras cuatro documentos
-  describian su funcion. Un `pinMode()` sin lectura es la version silenciosa de la prueba muerta.
-- **El enclavamiento SFTY-2 no era el mismo en las dos puntas.** El Esclavo llevaba un
-  `amarillo = false` de mas, con deliberacion de un modelo en ingles debajo razonando sobre un estado
-  (`S_ROJO_AMARILLO`) **que no existe**. No cambiaba el comportamiento de hoy: era codigo muerto
-  dentro de una regla de seguridad, esperando a que alguien anadiera una transicion rojo+ambar.
-
-**La herramienta es el censo, no la lectura.** `grep` de `digitalRead`, de `pinMode`, de las llamadas
-de cada despachador, y `diff` entre las dos puntas. Y su producto no es un arreglo: es un pack que
-impide que vuelva.
-
-> **Corolario sobre lo que se escribe en el fuente:** si un comentario delibera —*"Wait, in
-> S_ROJO_AMARILLO state..."*, *"let's just force rojo LOW"*— es que quien lo escribio no lo tenia
-> claro **y lo dejo asi**. En una regla de seguridad eso no es una nota: es una alarma. Los
-> comentarios de este repositorio explican **por que**, en espanol y en ASCII; una duda sin resolver
-> se resuelve o se anota en `roadmap.md`, no se deja flotando dentro de `aplicarSalidas()`.
-
-> 🔴 **Y el censo tiene una segunda dirección: retirar código NO es neutro cuando otros dependen de
-> que una bandera pueda ser CIERTA.** `mando_ambarLocal()` —`Esclavo/src/mando.cpp:103`, un getter
-> de una línea— tiene **tres consumidores** en `Esclavo/src/main.cpp` (`:453`, `:476`, `:617` — medidos el 05/09; decian `:406`, `:416`, `:540`), y
-> los tres la usan para **vetar**: `if (!mando_ambarLocal() && !bluetooth_ambarEmergencia())`. Es
-> la desobediencia deliberada que documenta `mando.h`: mientras un operario pidió ámbar local, una
-> orden de radio **no** saca a esa punta del ámbar.
->
-> Al retirar el mando, esa bandera **no se arma nunca**, los tres `if` se vuelven siempre
-> verdaderos y **el veto desaparece**. No queda inerte: queda abierto, y el código que lo abre es
-> el que se borró en otro fichero. Antes de borrar el **armador** de una bandera, se censa quién la
-> lee y **qué pasa si nunca vale `true`** — que casi nunca es «nada».
-
----
-
-## 3.septies Al retirar casos de una maquina de estados, comprueba que sus GUARDAS sigan pudiendo ser falsas
-
-> **Un `enum` de un solo valor no es un estado: es una constante disfrazada, y el
-> compilador lo demuestra.**
-
-Pasó el 04/09, **horas después** de arreglar N-42 y por culpa de ese mismo arreglo. Al
-retirar las tres fases del asistente del Modo Automático quedó esto, con un comentario
-al lado que decía que el `enum` sobrevivía porque *«se lee mejor preguntando por la fase
-que por una bandera suelta»*:
-
-```cpp
-enum FaseAuto { CORRIENDO };
-static FaseAuto fase;
-bool modoAutomatico_enMarcha() { return fase == CORRIENDO; }
-```
-
-Se leía mejor y **ya no preguntaba nada**. Medido con el compilador del proyecto, no
-razonado:
-
-```
-arm-none-eabi-g++ -Os -S -mcpu=cortex-m3 -mthumb
-enMarcha:  movs r0, #1
-           bx   lr
-```
-
-La variable ni se reserva. Con un solo enumerador la comparación es cierta **siempre, y
-desde antes de que corra el `setup()`, en todos los modos**.
-
-**Lo que costó, y es la forma que hay que reconocer:** de `enMarcha()` cuelgan las dos
-guardas de `SET_TIEMPOS`, así que el equipo contestaba
-`$ERR,CMD:SET_TIEMPOS,DESC:EN_MARCHA_PARE_EL_MODO` **a todo y para siempre**. Y como
-`modoAutomatico_fijarTiempos()` es el **único** llamador de
-`respaldo_guardarTiemposCiclo()`, el arreglo de N-133 se quedó con **camino de lectura y
-sin camino de escritura**: los tiempos no se podían guardar nunca.
-
-> 🔴 **Un arreglo cerró la puerta del otro el mismo día, y ningún instrumento lo vio.**
-> Lo encontró un agente que fue a comprobar si el paso de banco era ejecutable, y lo
-> encontró **compilando**, no leyendo. La compuerta estaba en verde.
-
-**Es la hermana de §3.ter.** Allí, retirar código dejó una bandera que nunca vale `true`;
-aquí, retirar casos dejó una comparación que nunca vale `false`. **La misma pregunta en
-las dos direcciones: ¿esta guarda puede dar las dos respuestas?**
-
-**Y el censo que lo caza no es el mismo que ya existía.** `maestro_10` censaba funciones
-que devuelven un **literal** —`return false;`, el caso de `botonAceptar()`—; ésta devolvía
-una *comparación*. La forma era distinta y la consecuencia idéntica. Se le añadió la
-hermana: **un `enum` de un solo valor que además se COMPARA**. Es un trinquete, no un
-absoluto — un `enum` de un valor que nadie compara puede ser legítimo.
-
-**Corolario sobre el comentario:** la frase que sostenía el verde la escribió quien hizo
-el cambio, en el mismo commit, y era una **afirmación sobre el código sin comprobar** —
-justo lo que §3.bis prohíbe para las excepciones de huérfanos. Un comentario que explica
-por qué algo sobrevive a una limpieza es exactamente donde hay que dudar.
-
----
-
-## 3.octies `correr.py` NO es `compuerta.py`: el banco es UNA fila de veinte
-
-> **Un `70 PASS, 0 FALLA` del banco por packs no dice nada de las otras diecinueve
-> filas — y una de ellas puede estar en ABORTADO por el mismo cambio que acabas de
-> comitear.**
-
-Paso el 05/09. Se anadio el campo `ESC:` al `$STATUS` del Maestro, se corrio
-`banco/correr.py` —que es rapido y da la cifra bonita—, salio `1015/1018` con todo lo
-propio en verde, y se comiteo. **La compuerta completa salia con codigo `2`**: el
-`simulador_app_bluetooth.py`, que es OTRA de las veinte filas y no un pack, estaba en
-
-> `[ABORTADO] el firmware emite el campo 'ESC' en $STATUS y este instrumento no sabe con
-> que compararlo`
-
-Lo encontro un agente que corrio la compuerta de verdad, no el que hizo el cambio.
-
-**La confusion es facil y por eso va escrita: `correr.py` mide los packs; `compuerta.py`
-mide los packs Y los cuatro arnes que compilan C++ real Y los dos simuladores Y los
-tests de la app.** Son cosas distintas, dan cifras distintas y salen por codigos
-distintos. Una cifra del banco no autoriza un commit.
-
-> ✅ **Y el ABORTADO estaba BIEN hecho, que es la mitad util de la historia.** Aquel
-> instrumento aborta ante un campo que no conoce en vez de saltarselo. La alternativa
-> —ignorar lo desconocido— habria dado **verde midiendo un campo menos**, en silencio y
-> para siempre. Al escribir un lector de contratos, la rama del campo desconocido se
-> escribe abortando: *preferimos no medir a medir de menos sin decirlo.*
-
-**La regla, en una linea: antes de comitear se corre `compuerta.py`, completo. El
-`correr.py` es para iterar, no para autorizar.**
-
----
-
-## 3.quater Un ABORTADO es una puerta abierta, no una casilla pendiente
-
-> **Mientras un instrumento esta abortado, todo lo que vigilaba entra sin mirar.**
-
-`ABORTADO no es PASS` ya estaba escrito, pero se leia como *"esa comprobacion no cuenta"*. La otra
-mitad la cobro N-75: el rewrite de la app entro con **dos** instrumentos en `ABORTADO` —el banco
-entero, porque un pack buscaba la rama de `$STATUS` en `app.js` y el parser se habia mudado a
-`js/`; y el arnes de DOM, que reventaba con un `TypeError` sobre una pestana que ya no existia—.
-Eran justo **los dos unicos que ejercen la app**. Detras entraron cuatro defectos: una app que
-dejo de oir al equipo y pintaba un estado inventado, una barrera de PIN que la propia app abria,
-un parser de un protocolo que ninguna punta habla, y comandos del firmware sin interfaz.
-
-**Un `ABORTADO` no se apunta para luego: se arregla antes de mirar nada mas.** Y su corolario para
-los informes: un parte de trabajo con seis artefactos que existen y 29 tests que pasan puede ser
-**cierto en cada linea y falso en conjunto**. El dato que lo habria dicho en diez segundos era el
-que no estaba: la salida de `compuerta.py`.
-
----
-
-## 3.quinquies La interfaz tambien tiene pruebas muertas, y ademas mienten a alguien de pie
-
-> **Un panel de demo que escribe en los MISMOS widgets que el dato real es la version de interfaz
-> de la prueba que no mide nada.**
-
-La app de campo traia un *"SIMULADOR DE PRUEBAS - DEMO EN VIVO"* en la pantalla principal: ocho
-botones que pintaban fases, bateria baja y radio caida sobre los mismos semaforos y el mismo
-contador que la telemetria, avisando con un *toast* que se va solo. Y traia su gemelo, peor:
-`runLocalTicker()` animaba un ciclo completo **sin que nadie lo pulsara**, en cuanto no habia
-equipo conectado.
-
-**Lo que sustituye a un dato que no se tiene no es una simulacion: es decirlo.** Sin enlace la
-pantalla se congela y lo declara. Un tablero quieto que admite que no sabe es honesto; uno que
-anima un cruce que no existe le miente a quien decide sobre el trafico mirandolo.
-
----
-
-## 4.quater Lo que no se imprime no se contesta
-
-> **Cuando un documento es el CANAL DE VUELTA, su hoja de impresión es parte del instrumento — y
-> puede estar apagada sin que nada falle.**
-
-La guía de banco se abre en el navegador, se rellena y **se devuelve en PDF**: así llegó el informe
-del 3-4/09. O sea que el PDF no es una copia bonita del documento — **es el formulario de vuelta**,
-y lo que no salga en él no se contesta nunca.
-
-Llevaba una línea en `@media print`:
-
-```css
-.barra, .noimprimir, .detalle-cab, details { display: none !important; }
-```
-
-Medido: **12.600 caracteres que no salían**, repartidos en ocho bloques plegados. Entre ellos,
-*«qué va en cada bornera»* —las conexiones—, *«la placa del módulo»* —la arquitectura— y *«lo que
-esta visita NO decide»* —las preguntas abiertas—. Es decir, **exactamente lo que hay que poner
-delante de quien tiene que contestarlo**. Nadie lo notó porque en pantalla estaba todo: se veía
-bien y volvía incompleto, y el que rellena no puede echar de menos lo que no sabe que existe.
-
-**Las dos partes mecánicas que hay que saber, porque la primera sola no basta:**
-
-- **Un `<details>` cerrado NO se abre desde CSS.** El navegador oculta sus hijos por el mecanismo
-  del propio elemento, no con un `display` que se pueda pisar. Hay que poner el atributo `open`.
-- **Y eso va en `beforeprint`, no dentro del botón de imprimir.** El PDF sale de las dos maneras
-  —el botón y `Ctrl+P`—, así que un arreglo que viva solo en el botón deja `Ctrl+P` perdiendo lo
-  mismo, en silencio y para siempre. Se restaura en `afterprint`: quien leía plegado lo tenía así
-  por algo.
-
-**Corolario que vale para cualquier documento con campos:** si se pide una respuesta, se comprueba
-que **la pregunta y su hueco llegan al medio en que se responde** —papel, PDF, pantalla—, no solo
-que existen en el fuente. Y una pregunta sin hueco para contestar no es una pregunta: es una nota.
-La sección *«lo que esta visita NO decide»* llevaba meses listando lo abierto **sin un solo campo
-donde escribir la decisión**.
-
-## 4.ter Una captura a un solo ancho no es una prueba de interfaz
-
-> **El sintoma y la causa no viven en el mismo sitio. Se mide; no se mira donde duele.**
-
-Reportado desde el telefono: *"no veo el boton de la derecha, y DAR PASO y ROJO TOTAL salen a la
-mitad"*. Medido con el navegador a cuatro anchos:
-
-| 412 px | 390 px | 360 px | 320 px |
-|---|---|---|---|
-| **0 px** | 11 px | **41 px** | **81 px** |
-
-Las capturas del `evidencia/` estaban limpias porque se hicieron a **412 px, el unico de los cuatro
-donde el fallo no aparece**. Un `.png` de una interfaz demuestra que a ESE ancho se veia bien, y
-nada mas.
-
-Y la causa estaba tres bloques mas arriba que el sintoma: **un hijo flex no baja de su ancho de
-contenido salvo que se le diga** (`min-width: auto` por defecto), asi que el boton *"Dispositivo"*
-de la cabecera ensanchaba el documento entero y cortaba todo lo que quedaba a su derecha. Quien
-mira donde duele arregla la botonera y no cambia nada.
-
-**Corolario de paleta, del mismo dia:** *"el tema oscuro contrasta bien"* es una opinion; el
-contraste WCAG sale del propio CSS y es una cuenta. Al hacerla apareció que el **rojo** —el color
-que dice *ESPERA*— estaba en 4,9:1 y el texto atenuado en 4,0:1, por debajo de AA. Se corrigen
-midiendo, no eligiendo, y con un arnes que recalcula los ratios del CSS en cada corrida. **Lo que
-esa cuenta NO cubre y va escrito al lado: a pleno sol el reflejo sube el nivel de negro y comprime
-los ratios, y a un tema oscuro le comprime mas que a uno claro.** Contra el sol la intervencion
-demostrada es un modo dia, no un color mas brillante.
-
----
-
-## 4.quinquies Un instrumento mide contra un borde, y el borde puede no ser el que importa
-
-> **Una captura de campo puede REFUTAR a un instrumento. §4.ter dice que una captura a un
-> solo ancho no prueba una interfaz; esta es su otra mitad.**
-
-El 04/09 llegó una foto del banco con un botón de la botonera **asomando por encima y por
-debajo de la barra de pestañas**: el operario no podía verlo ni pulsarlo. Y
-`herramientas_medir_consola.js` —escrito ese mismo día justo para eso— daba **«sin
-hallazgos»** sobre esa pantalla, a los cuatro anchos.
-
-No estaba roto. Medía **contra `window.innerHeight`**, y `.bottom-nav` es
-`position: fixed`:
-
-> **Un botón puede estar dentro del viewport Y ESTAR CUBIERTO.** «Cabe» y «se ve» no son
-> lo mismo, y el instrumento sólo sabía comprobar lo primero.
-
-Al enseñarle a buscar el **techo útil** —el borde superior de lo que flota encima— la misma
-pantalla dio: **131 px tapados a 320 px, 87 a 360, 46 a 390**. La foto tenía razón y las
-cuatro medidas estaban mal.
-
-**Es la TERCERA vez en un día que un instrumento propio mira menos de lo que dice:**
-
-| | decía | miraba de verdad |
-|---|---|---|
-| el censo de mandos | «todo cabe» | ignoraba lo que flota encima |
-| el censo de palabras partidas | «ninguna» | sólo los `<strong>` de cuatro ids |
-| el censo de enums de un valor | «ninguno» | sólo `== VALOR`, no `case VALOR:` |
-
-**La regla: cuando un instrumento compara contra un borde, un umbral o una lista, escribe
-al lado CUÁL es ese borde y por qué es el correcto.** Los tres fallaron en la misma
-frontera —lo que el instrumento decidió no mirar— y ninguno lo llevaba escrito.
-
-**Y el corolario que más vale, porque contradice el instinto:** cuando la foto de campo y
-el instrumento no coinciden, **§4 dice que manda la medida — pero la foto TAMBIÉN es una
-medida**, y es la única tomada sobre el aparato real. El instrumento es el sospechoso
-hasta que se demuestre que sabía mirar.
-
----
-
-## 4.bis Un sospechoso se elige por ficheros, no por el mensaje del commit
-
-> **Antes de nombrar un culpable, cruza el commit contra los ficheros que toca.**
-
-El triage de la regresión del Modo Automático nombró *"sospechoso principal"* a `N-23`
-—*"cambió quién y cuándo mueve el coordinador"*— leyendo su **mensaje**. Por ficheros, `N-23`
-toca `lcd.h`, `lcd.cpp` y `modo_hora.cpp`: cambió quién mueve el coordinador **desde la pantalla
-AJUSTAR HORA**, no desde el ciclo. Ninguno de los 8 candidatos tocaba `coordinador.cpp`,
-`modo_automatico.cpp`, `semaforo.cpp` ni `mando.cpp`. Es la regla del instrumento aplicada al
-triage: **el buscador era el resumen del commit**, y los resúmenes describen la intención, no el
-alcance.
-
-```
-git log --oneline <bueno>..HEAD -- <los ficheros del camino que falla>
-```
-
-**Una bisección necesita un extremo bueno VERIFICADO.** Aquella ventana empezaba hora y media
-después del último firmware sano: los 8 candidatos eran posteriores al fallo, así que los 8
-habrían fallado. Una bisección cuyo extremo *"bueno"* no es bueno **no acota nada — solo consume
-cargas**, y cada carga es un SWD en `mode=UR` con sus reintentos. La primera carga de banco
-siempre es el ancla, y su trabajo es **funcionar**; si falla, se para y se replantea la ventana
-antes de gastar la sesión.
-
-**Y compara hashes, no tamaños.** Dos binarios del mismo tamaño pueden ser el mismo fichero
-—`2779d9b` y `831c4f0` lo son: el módulo que añade el segundo no se conecta hasta más tarde y el
-enlazador lo descarta— o no serlo —`8a45ae7` y `f37581f` pesan igual y difieren—. **El tamaño no
-decide en ninguna de las dos direcciones.** Un `md5sum` antes de mandar a alguien al banco ahorra
-cargas enteras.
-
-## 4.sexies Se cita el SIMBOLO, no el numero de linea
-
-> **Un numero de linea caduca solo, en silencio, y con la autoridad de un dato. Un simbolo
-> sobrevive a que alguien inserte veinte lineas encima.**
-
-Medido el 05/09 con un censo propio, con borde declarado y control negativo, sobre los tres
-documentos de arquitectura: **178 de 240 citas juzgables no señalaban al sitio — el 74 %.**
-
-**Y este repositorio ya intento la cura equivocada.** El 31/08 se renumeraron a mano tres
-citas de `17_...md` «para dejarlas al dia»: **las seis estan caducadas hoy**. Renumerar
-genera numeros nuevos que caducan en una semana, y el trabajo se repite entero.
-
-> **La regla: se cita el simbolo y se publica el `grep` que lo encuentra.** Un numero de
-> linea solo vale (a) **fechado a un commit concreto** —`git show <hash>:fichero` lo
-> verifica para siempre—, o (b) **pegado como salida literal de un `grep`** en un bloque de
-> codigo. Y **todo `grep` que se publique se corre antes**: un `grep` que no encuentra es la
-> misma cita rota una capa arriba.
-
-**La demostracion salio sola, y es la mejor parte:** el agente que hizo el trabajo verifico
-a mano que el `<script src="js/config.js">` estaba en `index.html:937` y lo escribio.
-**Antes de cerrar su propia sesion ya era la 949** en una de las dos copias de la app.
-
-**Y el ancla barata ya existia:** el firmware lleva las marcas `N-xxx` del roadmap en sus
-comentarios. `grep -rn "N-133" Maestro` da las cuatro puntas de un cambio de una vez;
-`N-142` vive en 10 ficheros. No habia que inventar nada.
-
----
-
-## 5. Los instrumentos leen el fuente por ruta
-
-Los validadores no incluyen el firmware: lo **parsean**, y direccionan cada archivo por tuplas
-—`("Maestro", "src", "mando.cpp")`—. Consecuencia dura:
-
-> **Mover o renombrar un `.cpp` rompe un instrumento.** El movimiento y la actualización de
-> rutas van en el **mismo commit**, con la compuerta verde antes y después.
-
-`compuerta.py` lleva una *guarda de rutas* que censa las que los validadores declaran y aborta
-si alguna no existe. No la desactives: es la red de la migración a `lib/Common`.
-
-> ⚠️ **Pero la guarda de rutas NO lo cubre todo, y saber dónde acaba importa.**
->
-> Vigila **ficheros que desaparecen**. **No** vigila **contenido que se muda de fichero.** Si
-> sacas una función de `main.cpp` a un módulo nuevo, `main.cpp` sigue existiendo: la guarda no ve
-> nada, y el validador que buscaba ese patrón **deja de encontrarlo y reporta `FALLA`, acusando
-> al firmware de un defecto que no tiene**.
->
-> Pasó en la Fase 2, con `cfgVerdeSeg = pkt.param;`. Lo cazó la **comparación de totales**
-> —`36/41` contra los `37/41` de siempre—, que es la única red para esta clase de deriva. Es la
-> segunda vez que esa comparación salva la migración.
-
-> 🔴 **Y HAY UNA TERCERA COSA QUE LA GUARDA NO VE, medida el 05/09 al mover dos manuales:
-> LOS DOCUMENTOS.** `documentos_04` direccionaba `MANUAL_USUARIO.md` y `MANUAL_HARDWARE.md` **por
-> nombre suelto**. Moverlos habria hecho abortar ese pack en `ruta_repo()` y con el **la fila
-> entera `banco por packs`: 76 packs sin medir por dos ficheros mudados**.
->
-> Y la guarda **no lo habria delatado**: censa tuplas `(Rol, carpeta, fichero)` del firmware con
-> dos patrones, y un documento de la raiz **no casa con ninguno**. Habria seguido publicando
-> *«64 rutas, todas existen»* **mientras el banco entero abortaba**. La regla del mismo commit vale
-> igual para un `.md` que para un `.cpp`, y ahi la red no esta puesta.
-
----
-
-## 6. Barrera de salidas
-
-**Solo `semaforo.cpp` escribe pines de luz.** Todo pasa por su `escribirPines()` estático, incluidos los
-destellos del mando —que *interceptan* las escrituras en vez de rodearlas, para no dejar
-colgado al coordinador esperando un `S_VERDE` que no llegaría—.
-
-> 🔴 **Y LOS PINES MUERTOS NO SON TRES, SON SEIS — medido el 05/09.** A los tres de abajo
-> hay que sumar **`PB3` (`LCD_SCLK`), `PB4` (`LCD_CS`) y `PB5` (`LCD_SID`)**: `lcd.cpp` pasó
-> los pines de la pantalla a `U8X8_PIN_NONE` (Maestro `:74-75`, Esclavo `:92-93` — medido el 05/09; decia `:76-77`) y la
-> librería se salta el `pinMode` y el `digitalWrite` cuando el pin es `NONE`. **Están hoy en
-> alta impedancia, con pista hasta `J17` p4, p1 y p5**: son los únicos GPIO libres del
-> proyecto **con bornera ya cableada**. Y de los tres **solo `PB3` y `PB4` son de JTAG** —`PB5`
-> no lo es, y decir «los tres» era falso—; en los que si lo son **no cuesta nada**:
-> `pinmap.c:281` llama a `pin_DisconnectDebug()` dentro de `pin_function()`, que hace
-> `__HAL_AFIO_REMAP_SWJ_NOJTAG()` — suelta JTAG y **conserva SWD**.
->
-> 🔴 **Y hay TRES CANALES DE POTENCIA COMPLETOS, fabricados y sin una línea de firmware
-> detrás:** `J9` (`VERDE_PEATON`, `PA7`), `J11` (`ROJO_PEATON`, `PA6`) y `J13` (`BUZZER`,
-> `PB1`). Cada uno es `R` 220 Ω → opto `TLP127` → `R` 10 K + 220 Ω → MOSFET `IRLZ44N` →
-> bornera, con su diodo de rueda libre. El molde es el mismo de la talanquera (`J15`), que
-> **sí funcionó en banco el 04/09**. Gastar uno cuesta **16 B de flash, medidos por
-> desensamblado** — pero cierra la puerta a una cabeza peatonal o a un zumbador.
->
-> 🔴 **Y LO QUE NINGÚN DOCUMENTO DECÍA, y decide si esos bornes se pueden enchufar a algo:
-> EL BORNE NO ESTÁ A 0 V EN REPOSO, ESTÁ A ~12 V.** **NUEVE de los diez** drenadores llevan un
-> **pull-up de 1 kΩ + LED al riel de 12 V** (`R23`, `R28`, `R33`, `R38`, `R43`, `R48`, `R53`,
-> `R58`, `R63`, `R73`) que está **en el cobre, no en el conector**: no se evita dejando un
-> hilo sin poner. Con el MOSFET abierto el borne sube a ~12 V con ~10 mA **calculados** —la corriente
-> es la cuenta `(12 - Vf)/1 kΩ`, no una sonda—.
->
-> 🔴 **Y EL DECIMO ES LA EXCEPCION, EN UN CANAL DE LUZ VIVO: `D21`, el LED del canal
-> `Q6` → `J8` → `VERDE2`, TIENE EL CATODO SIN CONECTAR.** Red `unconnected-(D21-K-Pad1)`,
-> **cero pistas en el `.kicad_pcb` y cero hilos en el `.kicad_sch`** —su gemelo `D23` los
-> tiene en los dos extremos—. Ese canal **no tiene indicador luminoso**, y **`J8` p2 FLOTA
-> en reposo** en vez de subir a ~12 V como los otros nueve. **Nadie lo habia anotado
-> nunca**, y queda `SIN VERIFICAR` si es defecto o decision.
->
-> *(Y son **DIEZ** cadenas de potencia —`Q1`–`Q10`, `U6`–`U15`—, no nueve: dos documentos
-> decian nueve y se tacharon con su motivo el 05/09.)* *(Y
-> encaja con lo medido en banco: `J15` daba «0 V en rojo, 12 V en ámbar» — es exactamente
-> este circuito con la sonda entre p1 y p2.)*
->
-> ⚠️ **Y «el opto aísla galvánicamente» es MEDIO CIERTO.** `2_Manual…:1322` lo usa para
-> concluir que la etapa de potencia no puede inyectar corriente al micro. Medido: **hay UNA
-> sola red `GND` de 103 pads**, que incluye el cátodo del LED del opto y la fuente del
-> MOSFET. El opto separa el **pin del micro** del nodo de puerta; **no crea una masa
-> separada**. Cualquier cosa colgada de esos bornes **comparte la masa del controlador**.
-
-> ⚠️ **Y la regla dice OCHO pines donde el firmware mueve SEIS (N-96, 31/08).** `escribirPines()`
-> escribe `ROJO1/2`, `AMARILLO1/2` y `VERDE1/2` — seis—. **`ROJO_PEATON` (`PA6`), `VERDE_PEATON`
-> (`PA7`) y el `BUZZER` (`PB1`) están declarados en `pines.h` y MUERTOS en las dos puntas**: sin
-> `pinMode`, sin `digitalRead`, sin `digitalWrite`. La regla era **vacuamente cierta** para dos de
-> sus ocho sujetos, y la palabra *«custodia»* sugería lo contrario de lo que pasa.
->
-> Lo peor no es el hardware muerto —`OPTIMIZACIONES.md:1427` ya lo decía bien—: es que
-> **`barrera_01_pines_de_luz` no podía detectarlo**. Solo mide *fugas hacia fuera*, acepta
-> `len(luces) >= 6` sobre una lista que devuelve 8, y su `control_negativo` nunca ejerció un pin
-> peatonal. **Una regla de seguridad que enumera sujetos tiene que comprobar que cada sujeto
-> existe**, no solo que nadie la rodea.
-
-Una orden inválida **se rechaza y se reporta**. El ámbar automático queda reservado a los
-caminos que ya lo tienen (SFTY-6, watchdog): **la máquina no decide sola** operar de un modo
-que nadie pidió.
-
-> 🔴 **Y la barrera se extiende a lo que el equipo CONTESTA: un `$ACK` que no depende de lo que la
-> llamada devolvió es una mentira con formato de éxito (28/08).** La rama `SET_RTC` del despachador
-> de Bluetooth llamaba a `reloj_ajustar()` y a `coordinador_sincronizarHora()` y mandaba
-> `"$ACK,CMD:SET_RTC,RESULT:OK"` **sin mirar ninguna de las dos**. Las dos negativas son correctas
-> y están razonadas donde deben —`if (!rtcOperativo) return;`, `if (!reloj_enHora()) return false;`—;
-> lo que estaba mal era el que contestaba. Con `Y2` **confirmado muerto en hardware** (N-17), en la
-> tarjeta real ese comando decía que sí y no ponía la hora, y el técnico se iba del poste creyendo
-> que dejó el reloj puesto.
->
-> **Eran tres ramas, no una** —no hay con qué contar el tiempo · la hora no entró · la hora entró y
-> va camino del Esclavo—, y **las dos de más las encontró un pack** (`app_03_sin_ok_mudo`), no una
-> revisión humana: el mismo defecto estaba en el `SET_RTC` del Esclavo y en
-> `MANUAL:CAMBIAR_TURNO`, que llama a `coordinador_pedirCambio()` con su `if (estadoC != C_IDLE)
-> return;` delante.
->
-> **El molde de cómo se hace bien vive en el mismo fichero: `SET_TIEMPOS`** — pregunta dentro del
-> `if` y tiene un `$ERR` por cada motivo de rechazo. Un despachador se escribe copiándolo, y un
-> pack que sabe acusar tiene que saber también reconocerlo, o sus acusaciones no valen nada.
-
-## 7. Presupuesto de flash
-
-64 KB por micro; el Maestro va por el **86,3 %** —`56568` de `65536` B, o sea **8.968 B libres**—
-y el Esclavo por el **66,1 %** (`43336` B; acta del 05/09). **Ya no queda margen cómodo**: a este nivel una
-función nueva de tamaño medio no entra sin haber medido antes de qué está hecho el porcentaje.
-Antes de proponer estructura:
-
-> **Y antes de sacrificar una función porque «no cabe», MIDE DE QUÉ ESTÁ HECHO ese porcentaje.**
-> Durante meses la conversación fue *«qué quitamos para que quepa lo siguiente»* sin que nadie
-> hubiera mirado nunca. Al medirlo (N-70): **el firmware propio era el 30 % del binario**, y había
-> **5.160 B de I2C enlazados en un equipo sin un solo bus I2C** —`U8x8lib.cpp` referencia
-> `TwoWire::setClock()` y el enlazador arrastra `Wire` entero—. Dos banderas de compilación,
-> cero cambios de código, y los bytes libres pasaron de 4.292 a 9.452.
->
-> **Cómo se mide, que es la parte reutilizable:**
-> - **Por FICHERO OBJETO, leyendo `firmware.map`. NO por nombre de símbolo.** Los símbolos de C++
->   de cualquier librería también empiezan por `_Z` —`TwoWire::setClock` es `_ZN7TwoWire8setClockEm`—,
->   así que clasificar por el nombre mete librería ajena dentro de *«lo nuestro»*. El primer censo
->   de N-70 se equivocó exactamente así.
-> - **La causa no se deduce: `firmware.map` tiene una sección que dice quién arrastra a quién.**
-> - **Un delta exige medir los DOS extremos.** El primer número publicado de N-70 —*«−5.492 B»*—
->   salió de restar contra un `.elf` viejo que había en disco. Era la cifra correcta de ninguna
->   pareja de binarios.
->
-> El toolchain vive en `C:\.platformio` (fuera de la ruta con `ñ`, N-44):
-> `arm-none-eabi-nm --size-sort -S -td firmware.elf`.
-
-> 🔴 **Y EL ACTA PUEDE PUBLICAR EL BINARIO ANTERIOR (05/09).** Dos agentes independientes lo
-> midieron la misma noche: la compuerta escribio **57.360 B** del Maestro mientras una compilacion
-> a mano daba **57.416**, y **41.384** del Esclavo contra **41.772** reales. La causa es PlatformIO
-> sirviendo un **incremental viejo** cuando se acaban de intercambiar fuentes —y eso pasa siempre
-> que se restaura una inyeccion de §8.bis, o que dos agentes tocan el arbol a la vez—.
->
-> **Un acta escrita justo despues de tocar codigo puede traer una cifra CORRECTA de un binario que
-> ya no existe.** No falla nada, no aborta nada: el numero tiene el formato bueno y sale del sitio
-> bueno. **La cifra de flash se copia de una pasada que se sepa que nadie corrio a la vez**, o se
-> confirma con una segunda pasada — y si no coinciden, manda la segunda.
-
-> 🔴 **Un camino muerto que no cuesta flash puede seguir costando RAM (N-86, 28/08).** `AiBus` —un
-> `HardwareSerial` declarado sobre `(PA10, PA9)` para un «puerto IA» que nunca existió— no tenía un
-> solo llamador, y `--gc-sections` **ya descartaba sus tres funciones**: retirarlas ahorró **16 B**
-> de flash. Un censo que mirara solo el mapa habría dicho *«esto no vale la pena»* y lo habría
-> dejado.
->
-> Pero **el objeto no se podía descartar**: tiene constructor, y su llamada vive en `.init_array`,
-> así que corre en cada arranque y su `.bss` es permanente. Eran **280 B de RAM por punta**, el
-> **5,2 %** de la RAM viva del equipo — por un puerto que no se abre.
->
-> **La flash se mide con la compuerta; la RAM, con `nm` sobre el `.elf`.** Un censo de código muerto
-> que solo mire flash **no ve los objetos globales**, que son justo los que el enlazador no puede
-> tocar. Se retira el objeto entero, no solo su apertura.
->
-> *(De paso, el dato duro que salió de ahí: `SerialBT` vive hoy en **`PB6`/`PB7`, USART1 remapeado,
-> conector `J17`** —N-76—, no en `PA9`/`PA10`. Dos objetos sobre el mismo periférico a velocidades
-> distintas no dan error: dan el último que arrancó.)*
-
-
-- **Nada de clases con métodos virtuales.** Las vtables cuestan flash que no hay.
-- La separación se hace con lo que ya se usa: un `.cpp` por concepto, `static` para lo privado,
-  header corto.
-- Cada cambio estructural anota la cifra de flash antes y después. Si sube más de ~2 %, se
-  revisa antes de seguir.
-
-## 7.bis La cota de un buffer es el BUFFER de cada campo, no su tipo ni su rango
-
-> **Es lo unico que `snprintf` garantiza sin fiarse de otro fichero.**
-
-El 05/09 el peor caso del `$STATUS` del Maestro estaba apuntado en **162 B por tipo**. Medido por
-**buffer** eran **169** contra un techo de 155: **25 de mas, no 7**. Y el Esclavo **cabia por un
-byte** sin que nadie lo hubiera mirado nunca.
-
-**Una trama truncada no da un dato malo, y por eso no se encuentra:** sale bien formada hasta la
-mitad, no casa el CRC, y la app la descarta entera. El sintoma es *«el equipo se callo»*, que
-manda a mirar el cable.
-
-**Se acota donde se produce; no se agrandan buffers.** Y el cambio de fondo no es el tamano:
-
-> **Antes el buffer se fiaba de una invariante de OTRO fichero. Despues, de una guarda que corre
-> en la misma funcion y en cada emision.**
-
-**Las cotas se DERIVAN, no se escriben.** `CUENTA_ATRAS_MAX_SEG` sale de `limites_ciclo.h` —un
-`900` a mano habria sido la quinta copia de N-137— y el tope del `RTT` es el propio umbral de
-orfandad de SFTY-6: **por encima del techo de silencio no hay enlace que medir**. Un `9999`
-inventado es `A-7` otra vez.
-
-**Y cuando un valor se sale se publica `!`, ni el numero ni `--`.** El `--` ya significa *«todavia
-no lo se»* —sin muestras, sin hora, sin cuenta atras— y aplastar ahi un valor imposible **lo
-esconderia entre los huecos normales**. `!` dice *«llego algo que no puede ser»*, que es un
-hallazgo.
-
-**El pack que lo vigila tiene que medir las DOS mitades**, y `esp32_07` solo tenia una: comparaba
-`tramaCompleta >= payload + 5`, que es una cota entre dos buffers. Falta la otra —**que el peor
-caso REAL quepa**—, resolviendo cada `%s` siguiendo el fuente y **ABORTANDO si no sabe acotar un
-argumento**. Y su hermana, que es el fallo contrario: **que cada buffer aguante el valor mas largo
-que su propia cota permite**.
-
----
-
-## 8. Los simuladores validan el modelo, no el código
-
-`simulador_sistema_v7_6.py` y los packs del banco son **Python escrito a mano** que reimplementa
-lo que hace el C++. Un `PASS` suyo no prueba el firmware; prueba el modelo.
-
-**Los que sí compilan el C++ real son cuatro, y conviene saber qué cubre cada uno:**
-
-| arnés | compila de verdad | punto ciego |
-|---|---|---|
-| `Validacion_LCD` | `lcd.cpp`, `menu.cpp`, `modo_degradado.cpp` | framebuffer en el PC, **no** la ST7920 |
-| `Validacion_Ciclo` | `ciclo_degradado.h` | función pura: no hay maquina de estados |
-| `Validacion_Respaldo` | `calcularSuma()`, Horner, `respaldo_horasDesdeSync()` | no ejerce el arranque |
-| `Validacion_Automatico` | `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` | **solo el Maestro** |
-| `Validacion_Automatico/dos_puntas` | **las DOS puntas a la vez** — 4 ficheros del Maestro y **7 del Esclavo, `src/main.cpp` incluido** | el microcorte y el Degradado del Maestro **no** entran; `protocolo.cpp` tampoco |
-| `…/dos_puntas` **en Degradado** | el `modo_degradado.cpp` **real de las dos**, cada una con **su propio reloj** | no ejerce el microcorte |
-
-`Validacion_Automatico` existe por una razón concreta: la regresión del Modo Automático pasó con
-la compuerta en verde y el arnés de pantalla en `241/241`, porque **nadie ejercía el ciclo**. Mide
-SFTY-2 sobre lo que `semaforo.cpp` **escribió en los pines**, no sobre su lógica.
-
-> ✅ **Desde el 02/09 el verde simultáneo SÍ se ejerce sobre las dos puntas reales.** Hasta entonces
-> lo único que cerraba ese lazo era una copia del firmware escrita a mano en Python — justo lo que
-> este apartado avisa que no prueba el código. El choque de símbolos —las dos puntas definen los
-> mismos nombres— se resolvió con **una DLL por punta en el mismo proceso**: un tick pone el mismo
-> `millis()` en las dos, las llama, y **sólo entonces** lee los doce pines. Ese instante común es lo
-> que dos ejecutables separados no pueden tener.
->
-> 🔴 **Y el número que salió de ejercerlo en Degradado: el margen es 1,44, no 2.** El cruce aguanta
-> **29 s** de desfase entre relojes y el equipo puede acumular **20,2 s** en 48 h. Los comentarios de
-> **las dos puntas** afirmaban *«factor de seguridad de 2»* — una cuenta hecha dentro de un
-> comentario, con la autoridad de un dato, y falsa. Y el pack que la vigilaba **barría un solo
-> sentido** y publicaba el favorable (35 s) como *«el margen real»*: la deriva de dos cristales no
-> elige sentido.
-
-Nada de esto sustituye la prueba de banco.
-
-## 8.septies Un instrumento que mide la FORMA no puede ver un defecto del TIEMPO
-
-> **Y el sintoma de que se ha cruzado esa linea es el tamano: 675 lineas de Python para vigilar
-> 240 de C++ — 2,8 a 1.**
-
-El 05/09 se construyo el vigilante de camaras con `camara_03_vigilante` encima, en verde: comprueba
-que el `enum` tenga cuatro valores, que el getter este entre los argumentos del `snprintf`, que
-`CAM_CIEGA_MS > CAM_PEGADA_MS`, que un flanco reinicie los cronometros. **Su propia cabecera lo
-admitia:** *«NO EJERCE EL TIEMPO... eso solo lo demuestra una tarjeta —o un arnes que compile este
-`.cpp`—»*.
-
-**No vio ninguno de los dos defectos que tenia delante**, y los dos eran de comportamiento:
-
-| defecto | por que la forma no lo ve |
-|---|---|
-| un pin **sin camara** acababa alarmando `CIEGA` de un aparato que no existe | la forma del bucle es correcta; lo que falta es una **condicion** que solo se nota corriendo |
-| la camara podia **PEDIR** paso pero no **SOSTENER** una fase — verde de **362.500 ms** contra los 720.000 del techo | ningun literal del fuente lo dice: es la interaccion de una ventana de 3 s con un muestreo por vuelta |
-
-**Y la causa de fondo era una sola: `botones.cpp` NO SE COMPILABA EN NINGUN ARNES DEL PROYECTO.**
-`Validacion_Automatico/botones.h` lo sustituia por **once lineas de stub**. Al enlazar el `.cpp`
-real, el arnes paso de 86 a 99 comprobaciones y **tumbo tambien la primera reparacion** —leer el
-nivel del pin— porque **el rele de la camara PULSA** y el nivel se cae en los huecos.
-
-> **La regla: antes de escribir la comprobacion numero N de la forma de un fichero, mirese si ese
-> fichero se COMPILA en algun sitio.** Si no, el pack no esta midiendo poco: esta midiendo otra
-> cosa. Y el arnes que lo ejercite **no crece el recuento de la compuerta** si se extiende uno que
-> ya es una de sus filas — no hace falta fila nueva ni tocar el README.
-
-**Corolario de §2.bis, con su excepcion:** un instrumento de 675 lineas que certifica la forma
-**sustituye**; uno que compila el `.cpp` y lo ejercita **es firmware por otro nombre**. La
-diferencia no es el fichero que toca: es si **contesta una pregunta abierta** o si **certifica otra
-vez lo ya certificado**.
-
----
-
-## 8.bis Un arnés que no se ha visto fallar es un adorno que da verde
-
-> **Antes de conectar un arnés a la compuerta, rómpele el firmware a propósito y compruébalo.**
-
-No basta con que tenga controles negativos escritos dentro: eso es una etiqueta. Se inyecta un
-defecto **en el `.cpp` real**, se corre, y se exige que **baje la cuenta y cambie el código de
-salida**. `Validacion_Automatico` se conectó tras verlo caer a `25/26` con `VERDE1` forzado a HIGH
-por debajo del enclavamiento de `aplicarSalidas()`. El firmware se restaura acto seguido y se
-verifica con `git diff HEAD` **vacío** — no con la impresión de haberlo restaurado.
-
-> 🔴 **Y CUIDADO CON COMO SE RESTAURA, que costo un cambio entero el 05/09.** Un agente
-> deshizo su inyeccion con `git checkout -- <fichero>` y **se llevo por delante todo su
-> trabajo en ese fichero**, no solo el defecto. Lo cazo por `git status` y lo rehizo.
->
-> **Con trabajo SIN COMITEAR, `git checkout` no es «deshacer la inyeccion»: es «volver a
-> HEAD».** Se restaura desde una copia hecha ANTES de inyectar —`cp` al scratchpad— y se
-> verifica por **hash**, no por `git diff HEAD` vacio, que con cambios propios en vuelo
-> **nunca lo estara**.
-
-## 8.quater Al arreglar un defecto, busca las pruebas que lo celebraban
-
-> **Un banco maduro contiene pruebas que EXIGEN el comportamiento defectuoso.** No por descuido:
-> se escribieron cuando el defecto se creía inevitable, y documentan su coste con honestidad.
-
-Pasó en N-49. La prueba 2.3 de `maestro_02_respaldo` afirmaba que una sincronización de hace **dos
-horas** debía declararse `CADUCADA` al cruzar de mes, y lo llamaba *"el coste operativo del criterio
-conservador… es la dirección segura"*. Era cierto **mientras el dato guardado no permitiera fechar**.
-Arreglado el fechado, el firmware devuelve `2` —lo correcto— y esa prueba **falla**.
-
-Cuando eso ocurra, la tentación es reescribirlas en bloque hasta que pasen. Eso es **ajustar el
-instrumento hasta que dé verde**, y es lo que este repositorio castiga. Van una por una, y cada una
-acaba en uno de tres sitios, anotado:
+Escribe un acta con fecha y hash de HEAD en `evidencia/`. **Las cifras de los documentos se copian del
+acta, nunca se escriben a mano.**
+
+> ⚠️ **NO es idempotente despues de un `--rapido`: hacen falta DOS pasadas completas.** La comprobacion
+> de cifras lee el acta **ANTERIOR** —la nueva se escribe al final— y `--rapido` deja un acta sin las
+> filas de compilacion, asi que la corrida siguiente compara contra un acta mutilada y protesta con
+> razon. La cura no es tocar el pack: correr la completa **dos veces**.
+
+> 🔴 **`correr.py` NO es `compuerta.py`: el banco es UNA fila de veinte.** `correr.py` mide los packs; la
+> compuerta mide los packs **Y** los arneses que compilan C++ real **Y** los simuladores **Y** los tests
+> de la app: cifras y codigos distintos. **Una cifra del banco no autoriza un commit — antes de comitear
+> se corre `compuerta.py`, completo.**
+
+**Al escribir un pack:** trae el **bloque literal** de la logica ya probada en vez de reescribirla; relee
+las constantes del C++ en cada corrida y **sin valor por defecto, nunca**; y **si dos constantes se
+relacionan por una desigualdad, esa desigualdad se recalcula desde el C++**, no se explica en un
+comentario (`N-71`). Las cuatro primitivas: `verificar` cuenta · `propiedad` cuenta y marca `ROTA`
+cuando el banco **logro romper** una regla de seguridad · `control_negativo` exige que la prueba sepa
+fallar · `reportar` **no cuenta**, y es donde va el residual que ningun firmware puede aprobar. **Un
+instrumento que no esta en la compuerta no mide nada y no deja rastro de que falta**: un `ABORTADO`
+grita, un hueco no (`N-43`).
+
+## 5. Los instrumentos leen el fuente por RUTA
+
+Los validadores no incluyen el firmware: lo **parsean**, direccionando cada fichero por tuplas
+—`("Maestro", "src", "mando.cpp")`—. **Mover o renombrar un fichero rompe un instrumento**, y el
+movimiento y la actualizacion de rutas van en el **mismo commit**, con la compuerta verde antes y
+despues. Vale igual para un `.md` que para un `.cpp`.
+
+⚠️ **La guarda de rutas vigila ficheros que DESAPARECEN; no vigila contenido que se MUDA de fichero.**
+Si sacas una funcion de `main.cpp` a un modulo nuevo, `main.cpp` sigue existiendo: la guarda no ve nada
+y el validador que buscaba ese patron reporta `FALLA` **acusando al firmware de un defecto que no
+tiene**. La unica red para esa deriva es **comparar el total de comprobaciones contra el de siempre**. Y
+no censa documentos de la raiz: mover dos `.md` puede abortar el banco entero en silencio.
+
+## 6. Declarar no es EJERCER
+
+> **Un instrumento verde dice que la DECLARACION esta bien escrita. No dice que nadie la ejerza.**
+
+Es la forma de defecto mas cara del proyecto y sale en cualquier lenguaje: los cinco que pararon el banco
+del 3-4/09 vivian los cinco ahi (`N-117`, `N-118`, `N-122`, `N-124`, `N-125`). **Las tres preguntas que
+lo cazan se hacen con `grep` y con el compilador, no leyendo:**
+
+1. **¿Quien LLAMA a esto?** `grep` de la declaracion contra las llamadas. **Trinquete, no absoluto**
+   —hay barreras cuya falta de llamador *es* la barrera—: falla una huerfana **nueva**, una que **gana**
+   llamador y sigue en la lista, y **una que los documentos anuncien como existente** (`N-73`).
+2. **¿Esta guarda puede dar las DOS respuestas?** Un `enum` de un solo valor que se compara compila a
+   `movs r0,#1`, medido con `arm-none-eabi-g++ -Os -S`. **Y su simetrica:** antes de borrar el
+   **armador** de una bandera se censa quien la LEE y **que pasa si nunca vale `true`** — si de ella
+   cuelgan vetos, borrarlo no los deja inertes: **los deja ABIERTOS** (`D-1`).
+3. **¿Este fichero se COMPILA en algun sitio?** Antes de escribir la comprobacion numero N sobre la
+   FORMA de un `.cpp`, mirese si algun arnes lo enlaza: si no, el pack no mide poco — **mide otra cosa**,
+   porque un pack de texto no ve un defecto del TIEMPO. Que arnes compila que y con que punto ciego:
+   **`ARQUITECTURA.map`**, que se levanta midiendo (una cuenta a mano aqui caduca en dias).
+
+> 🔴 **LA EXCEPCION ES EL INSTRUMENTO DE VERDAD.** Cuando un pack esta verde porque una excepcion lo
+> justifica, lo que vigila el firmware es **esa frase, y no la comprueba nadie**. Una razon es una
+> AFIRMACION SOBRE EL CODIGO: **se mide al escribirla y se vuelve a medir al heredarla** (`N-122`).
+> **Una lista de excepciones con motivos sin verificar es una lista de defectos con permiso.**
+
+> 🔴 **Un arnes que no se ha visto fallar es un adorno que da verde.** Antes de conectarlo se **inyecta
+> un defecto en el `.cpp` real**, se corre, y se exige que **baje la cuenta y cambie el codigo de
+> salida**; igual tras un refactor que mueva la FORMA de un bloque que un pack lee por texto (`N-89`).
+> **La restauracion se hace desde una copia tomada ANTES de inyectar (`cp` al scratchpad) y se verifica
+> por HASH:** con trabajo sin comitear, `git checkout -- <fichero>` **no deshace la inyeccion — vuelve a
+> HEAD y se lleva tu trabajo por delante**, y `git diff HEAD` vacio no lo detecta: nunca lo estara.
+
+## 7. La regla del instrumento
+
+> **Un "no aparece" no es un hallazgo hasta haber descartado al buscador. Cuando el instrumento y el
+> razonamiento no coinciden, manda la medida.**
+
+El buscador ciego nunca fue el mismo: un `gcc` que `shutil.which()` no veia, y ese mismo `gcc`
+compilando sin que su `ld` enlazara por una ruta con `n` con tilde (`N-44`); un `grep` de KiCad que dio
+cero sobre 1.447 pistas porque el formato separa con tabulador; el mensaje de un commit, que describe la
+INTENCION y no el alcance; una captura al unico ancho donde el fallo no salia.
+
+1. **Un cero de `grep` no es «no hay»: es «mi patron no encontro».** Antes de publicar un «no existe»
+   sobre una capacidad se busca por **sus dos nombres posibles** —el setter generico y la funcion
+   propia— o al reves, **por quien la APAGA**. Y **el patron cuenta comentarios**: aqui los comentarios
+   citan lo que explican, asi que un recuento de llamadas sale inflado si no se filtran.
+2. **Cuando el sintoma trae un NUMERO, ese numero se busca en el fuente ANTES de la primera hipotesis.**
+   Los «15 segundos» de un reporte eran `tiempoDespejeMs = 15000`, literal: cinco hipotesis plausibles y
+   falsas costaron media sesion y el `grep` costaba diez segundos.
+3. **Se cita el SIMBOLO, no el numero de linea** —un numero caduca solo, en silencio y con autoridad de
+   dato, y renumerar a mano es la cura equivocada—. Solo vale **fechado a un commit**
+   (`git show <hash>:fichero`) o **pegado como salida literal de un `grep` corrido antes de publicarlo**.
+   El ancla barata ya existe: el firmware lleva las marcas `N-xxx` en sus comentarios, y
+   `grep -rn "N-133" 01_Firmware` da las cuatro puntas de un cambio de una vez.
+4. **Un informe —propio, de un agente, o una REFUTACION— no es una medida.** Se reproduce y se pega la
+   salida; tachar exige el mismo rigor que afirmar. Una causa que se cae **se marca refutada, no se
+   borra**: la que desaparece en silencio vuelve a proponerse, y la segunda vez nadie recuerda que se
+   comprobo.
+5. **Descartar por eliminacion solo vale si las opciones son exhaustivas**, y una biseccion necesita un
+   extremo bueno **VERIFICADO**. El sospechoso se elige por **ficheros** —`git log --oneline
+   <bueno>..HEAD -- <los del camino que falla>`— y se comparan **hashes, no tamanos**: dos binarios del
+   mismo peso pueden ser el mismo fichero o no serlo.
+
+> 🔴 **La FOTO DE CAMPO TAMBIEN ES UNA MEDIDA, y es la unica tomada sobre el aparato real: cuando chocan,
+> el instrumento es el sospechoso.** Y cuando un instrumento compara contra un borde, un umbral o una
+> lista, **se escribe al lado CUAL es ese borde y por que es el correcto**: los censos que fallaron lo
+> hicieron todos en la misma frontera —lo que decidieron no mirar— y ninguno lo llevaba escrito. ✅ **A
+> veces el banco ya corrio el control negativo sin saberlo: antes de llamar «defecto de hardware» a una
+> medida, mirese que firmware estaba dentro cuando se tomo.**
+
+## 8. Lo que YO produzco es un instrumento
+
+> **Antes de escribir un pack, un informe, un menu de opciones o un encargo a un agente, la pregunta no
+> es «¿esta bien hecho?» sino «¿esto acerca una tarjeta cargada, o la sustituye?»**
+
+Dos auditorias externas lo llamaron *industria de sustitucion*, y la segunda lo dijo de la respuesta a la
+primera: *«se arreglo todo lo que la auditoria midio y nada de lo que dijo»*. **La medida se recalcula,
+no se recita:** lineas de `{Maestro,Esclavo,Repetidor}/{src,include}` frente a `Simulaciones +
+Validacion_* + compuerta.py`.
+
+1. **Un pack que certifica otra vez lo ya certificado sustituye.** La excepcion legitima es el que
+   **desbloquea** algo parado o mide una **propiedad de vida que nadie ejercia**: eso es firmware por
+   otro nombre. No lo decide el fichero que toca, sino si **contesta una pregunta abierta**.
+2. **Un menu de opciones sobre una causa sin medir tiene mas autoridad que un dato**, porque parece que
+   ya se investigo. **Si hay que preguntar sin haber medido, se dice en la pregunta**, y cuando el banco
+   tumba una decision del responsable se le devuelve **con la medida**, no se ejecuta igual (`N-142`).
+   **«El responsable lo decidio» NO es cobertura:** una decision tomada sobre un informe malo hereda el
+   error **y ademas lo blinda**, porque desde ahi ya nadie mira la causa.
+3. **Un encargo que ejecuta una frase en vez de la spec.** Lo dicho de viva voz describe una INTENCION;
+   lo escrito describe una DECISION TOMADA, con su motivo: **cuando chocan se PREGUNTA** —cuesta un
+   `grep` a `DECISIONES.md`—, y con mas razon si el cambio **RETIRA una barrera**: un alcance que crece
+   se corrige despues; una proteccion amputada no se nota hasta que alguien esta en la calzada.
+
+> 🔴 **Delegar amplifica el error, y por eso el trabajo delegado se revisa por el DIFF, no por su
+> informe.** Si un cambio toca **el firmware y su modelo a la vez**, mirese si el modelo *replica* el
+> arreglo o si *relaja* la comprobacion: solo lo primero vale, y una cifra verde despues de tocar las dos
+> puntas no demuestra nada por si sola. **Una variable que contesta a dos preguntas distintas no puede
+> contestar bien a ninguna: son dos banderas.** Y el sintoma de que se cruzo la linea es **entregar
+> documentos cuando lo pedido era un entregable**: un parte con cifras verdes puede ser cierto en cada
+> linea y falso en conjunto.
+
+## 9. Al arreglar un defecto, busca las pruebas que lo CELEBRABAN
+
+**Un banco maduro contiene pruebas que EXIGEN el comportamiento defectuoso** (`N-49`): se escribieron
+cuando el defecto se creia inevitable. Reescribirlas en bloque hasta que pasen es **ajustar el
+instrumento hasta que de verde**. Van una por una, y **primero se cuenta cuantas propiedades afirma cada
+una**, porque casi ninguna afirma solo una (`N-83`). Cuatro destinos: **se REPARTE** —el habitual: la
+mitad del defecto se invierte donde estaba y la que sigue valiendo **se MUDA con su bloque literal** al
+escenario donde si se cumple— · **se INVIERTE** para exigir lo nuevo · **se CONSERVA** si media otra
+cosa · **se BORRA** si solo documentaba el defecto.
+
+**El escenario nuevo no es relleno: es el control que le falta a toda inversion** —una guarda que no
+dejara pasar **nada** haria pasar las lineas invertidas igual de bien que la correcta—. Y 🔴 **una
+inversion que solo mira el RESULTADO aprueba un firmware con las barreras en el ORDEN equivocado**:
+medido inyectando el defecto, la linea «no sale ninguna trama» **no cayo** porque otra barrera mas abajo
+frenaba el envio, y lo unico que cazo la regresion fueron las lineas que miran el orden. **El mejor
+termometro del arreglo son los fallos que desaparecen solos**; y una linea nueva que no puede fallar sin
+que falle la de arriba no es una comprobacion: es adorno.
+
+## 10. Flash, RAM y cotas de buffer
+
+64 KB por micro, y **el Maestro esta por encima del 85 %: ya no queda margen comodo.** La cifra exacta
+sale de la ultima acta (`ls -t evidencia/*_compuerta.txt | head -1`) y **no se copia aqui**: un umbral no
+caduca, una cifra si — y la que habia invitaba a meter algo que ya no entraba.
+
+- **Antes de sacrificar una funcion porque «no cabe», MIDE DE QUE ESTA HECHO ese porcentaje** (`N-70`):
+  **por FICHERO OBJETO leyendo `firmware.map`, NO por nombre de simbolo** —los simbolos de cualquier
+  libreria C++ tambien empiezan por `_Z`—; el `.map` trae la seccion que dice **quien arrastra a quien**;
+  y **un delta exige medir los DOS extremos**.
+- **Un camino muerto que no cuesta flash puede seguir costando RAM** (`N-86`): el enlazador descarta
+  funciones, pero **no un objeto global** —su constructor vive en `.init_array` y su `.bss` es
+  permanente—. **La flash se mide con la compuerta; la RAM, con `nm` sobre el `.elf`.**
+- ⚠️ **El acta puede publicar el binario ANTERIOR** cuando PlatformIO sirve un incremental viejo, y eso
+  pasa siempre que se intercambian fuentes o dos agentes tocan el arbol a la vez. **La cifra de flash se
+  confirma con una segunda pasada; si no coinciden, manda la segunda.**
+- **La cota de un buffer es el BUFFER de cada campo, no su tipo ni su rango** (`N-154`): es lo unico que
+  `snprintf` garantiza sin fiarse de otro fichero. **Se acota donde se produce; no se agrandan
+  buffers**, y **las cotas se DERIVAN de la constante que manda**. Un valor fuera de cota se publica como
+  `!` —nunca `--`, que ya significa *«todavia no lo se»*—. Una trama truncada sale bien formada hasta la
+  mitad, no casa el CRC, y el sintoma es «el equipo se callo», que manda a mirar el cable.
+- **Nada de clases con metodos virtuales:** las vtables cuestan flash que no hay. Se separa con un `.cpp`
+  por concepto, `static` para lo privado y header corto.
+
+## 11. Trabajo en paralelo, y el INDICE antes del commit
+
+**Un `git add -A` barre lo que otro agente tiene en vuelo, y la historia queda mintiendo:** el contenido
+puede quedar correcto y la compuerta verde, pero un `revert` de ese commit no deshace nada.
+
+- **Con dos agentes a la vez: o cada uno en su `git worktree`, o `git add` de rutas explicitas. Nunca
+  `-A`.** El arbol compartido no avisa: mezcla.
+- 🔴 **Segunda via al mismo dano con un solo agente: `git add <valido> <ignorado>` devuelve codigo
+  distinto de cero PERO DEJA LOS VALIDOS YA PREPARADOS.** Con `git add ... && git commit` el `&&` corta,
+  el commit bueno no corre, y **se los lleva el commit SIGUIENTE**. **La regla: se comprueba el INDICE
+  antes de comitear —`git diff --cached --name-only`—, no el codigo de salida del `add`.**
+- **No se reescribe la historia publicada para arreglarlo:** con la rama en dos remotos y otro agente
+  encima, un `push --force` dana mas de lo que repara. Se anota donde vive el cambio y se sigue.
+
+## 12. Donde esta cada cosa
 
 | | |
 |---|---|
-| **se borra** | solo existía para documentar el defecto |
-| **se invierte** | pasa a exigir el comportamiento nuevo |
-| **se conserva** | medía otra cosa y sigue valiendo |
+| `DECISIONES.md` | 🔴 **lo decidido: `D-x` vigentes y `A-x` abiertos. GANA a este fichero, y se lee ANTES de lanzar un agente o de ejecutar un cambio de alcance** |
+| `05_Funcional/17_Arquitectura...md` | 🔴 **las medidas de cobre, con fecha, instrumento y firmware que habia dentro. GANA a este fichero en todo lo que sea hardware medido** |
+| `ARQUITECTURA.map` | que ficheros abre cada instrumento, que mide cada fila de la compuerta, que hay en cada conector |
+| `roadmap.md` · `roadmap_hist.md` | el **porque**: cada `N-x` con su cronica. Se busca **por `N-x`**, no por fichero: el corte entre los dos se mueve |
+| `ESTADO.md` | donde esta parado el trabajo **hoy** · `evidencia/`, las actas con fecha y hash: **la fuente de toda cifra** |
+| `OPTIMIZACIONES.md` | las reglas `SFTY-x` y la trazabilidad regla -> codigo -> prueba |
+| `01_Firmware/compuerta.py` | **la unica forma correcta de verificar** · `Simulaciones/banco/`, packs y modelos · `Validacion_*/`, los arneses que compilan C++ real |
+| `04_Manuales/`, `05_Funcional/` | manuales y protocolos para el tecnico y el auditor |
 
-> ⚠️ **Y hay un cuarto destino, que es el habitual: SE REPARTE.** Una prueba vieja casi nunca
-> afirma una sola cosa. Ver **§8.sexies**.
+## 13. Convenciones
 
-**Y el mejor termómetro del arreglo son los fallos que desaparecen solos.** Si arreglas la causa
-raíz de cuatro `FALLA` y tras actualizar el instrumento siguen ahí, el arreglo no está completo.
-
-## 8.sexies Una prueba que celebraba el defecto casi nunca medía UNA sola cosa
-
-> **Antes de invertir una prueba vieja, cuenta cuántas propiedades afirma. La que sigue valiendo no
-> se borra con ella: se MUDA, literal, al sitio donde sí se cumple.**
-
-Las seis pruebas que exigían el enrutado roto de la app (N-83, 31/08) decían **dos cosas a la vez**:
-*«sin PIN no sale nada»* y *«esta orden es de esta punta»*. Arreglado el enrutado, las seis fallan —
-y las tres salidas de §8.quater no bastan, porque **ninguna de las tres es correcta para el conjunto**:
-borrarlas se lleva por delante el flujo del PIN, que nadie más medía; invertirlas todas convierte
-cuatro comprobaciones en repeticiones del mismo hecho. Lo que funciona es **repartir**: la mitad del
-enrutado se invierte donde estaba, y la del PIN se muda **con su bloque literal** a un escenario nuevo
-donde esas órdenes sí salen.
-
-**Y ese escenario nuevo no es relleno: es el control que le falta a toda inversión.** Una guarda que
-no dejara pasar **nada** haría pasar las seis líneas invertidas igual de bien que la guarda correcta.
-Sin el caso que exige que sí pase lo que debe pasar, no se está midiendo enrutado — se está midiendo
-una tapia.
-
-> 🔴 **Y el dato que decide cómo se escribe la inversión, que salió de inyectar el defecto (§8.bis):
-> al retirar la guarda, la línea que comprueba el RESULTADO —«no sale ninguna trama»— NO CAE.** Otra
-> barrera más abajo seguía frenando el envío. Lo único que cazó la regresión fueron las líneas que
-> miran **el orden**: que no se le pidiera el PIN al operario para una orden que no se iba a mandar.
->
-> **Una inversión que solo mira el resultado final aprueba un firmware con las barreras en el orden
-> equivocado.** Y el orden es lo que se siente en la calle: cuatro dígitos tecleados delante de un
-> cruce parado para que luego le digan que la orden no era para esa punta.
-
-**Corolario, de la misma inyección:** una línea nueva que **no puede fallar sin que falle la de
-arriba** no es una comprobación, es un adorno — la segunda cara de la prueba muerta de §3.bis.
-
-## 8.ter El trabajo delegado se revisa por el diff, no por su informe
-
-Es la regla del instrumento aplicada a los agentes, y costó una regresión el 04/08. Un agente
-entregó *"31/31 verificado"* sobre el `30/31` del Esclavo: había cambiado a la vez el firmware **y
-las dos copias del modelo que debían vigilarlo**. Las tres copias decían lo mismo, así que el banco
-no podía verlo, y el arreglo introducía un defecto nuevo —apagaba la bandera de la que cuelgan los
-cuatro getters públicos—.
-
-- Si un cambio toca **el firmware y su modelo a la vez**, mira si el modelo *replica* el arreglo o
-  si *relaja* la comprobación. Solo lo primero es válido.
-- Una cifra en verde después de tocar las dos puntas **no demuestra nada por sí sola**.
-- Y su corolario: **una variable que contesta a dos preguntas distintas no puede contestar bien a
-  ninguna.** `cfgVerdeRecibido` significaba *"la radio entregó el par"* y *"hay un VERDE sin
-  emparejar"*; arreglar una rompía la otra. Eran dos banderas.
-
-## 8.quinquies Dos agentes sobre el mismo árbol se pisan sin avisar
-
-> **Un `git add -A` barre lo que el otro tiene en vuelo, y la historia queda mintiendo.**
-
-Pasó el 27/08. El commit `ff6bd19 fix(N-71): el techo de silencio...` contiene **un solo fichero:
-el acta**. Todo el firmware de N-71 —un umbral de seguridad, dos packs, cuatro instrumentos—
-acabó dentro de `1bf9251`, cuyo mensaje habla de *«insercion, borrado de 17 y re-agregado de 4
-cruces»*.
-
-El contenido era correcto y la compuerta verde; **lo roto es la historia**, y eso se cobra tarde:
-*«un commit = un cambio con sentido propio = un `git revert` limpio»*. Un `revert` de `ff6bd19`
-no deshace nada.
-
-- **Con dos agentes a la vez: o cada uno en su `git worktree`, o `git add` de rutas explícitas.
-  Nunca `-A`.** El árbol compartido no avisa: simplemente mezcla.
-- **Y no se reescribe la historia publicada para arreglarlo.** Si la rama está en dos remotos y
-  el otro agente sigue encima, un `push --force` causa más daño del que repara: se anota dónde
-  vive de verdad el cambio y se sigue.
-
-> 🔴 **Y hay una SEGUNDA vía al mismo daño que no necesita dos agentes — pasó el 04/09, con un solo
-> agente y rutas explícitas.** `git add <fichero_válido> <fichero_en_gitignore>` **devuelve código
-> distinto de cero PERO DEJA LOS VÁLIDOS YA PREPARADOS**. Con el patrón de siempre —`git add ... &&
-> git commit -F -`— el `&&` corta, el commit bueno **no llega a correr**, y los ficheros se quedan
-> en el índice esperando: **se los lleva el commit SIGUIENTE**. Aquel día fue el del acta, y
-> `d766f3a "chore: acta del 04/09"` acabó conteniendo el arreglo entero de N-122 más 107 líneas de
-> roadmap. Un `git revert` de ese commit, creyendo deshacer un acta, se llevaría por delante la
-> única línea que permite a la app abrir un socket.
->
-> **La regla que lo cubre, y que `-A` no agotaba: se comprueba el ÍNDICE antes de comitear, no el
-> código de salida del `add`.** Un `git diff --cached --name-only` delante del commit cuesta una
-> línea y es lo único que ve esta clase de fallo.
-
-## 9. Carga por SWD
-
-**`mode=UR` con `-e all`, y no se cambia.** `HOTPLUG` se engancha al micro en marcha: con un
-firmware que se cuelga al arrancar, el watchdog reinicia cada 4 s en mitad del borrado
-(`failed to erase memory`). El delator es `NVM size: 128 KBytes (default)` en un chip de 64 KB.
-
-> Si `UR` falla, **reintenta — no cambies el modo.** Enganchar es cuestión de *timing* y puede
-> fallar varias veces con `Unable to get core ID`. Eso no es falta de cableado.
-
-## 9.bis Firmware primero; el cableado después. Un commit no protege de un destornillador
-
-> **Cuando un cambio reparte un conector entre firmware y cobre, el orden no es «el mismo commit»:
-> es ASIMÉTRICO, y solo uno de los dos sentidos es seguro.**
-
-`J16` es el conector de los cuatro botones, y ahí es donde van a ir las cámaras. Los dos pines que
-importan están medidos: `BOTON3 = PB14` es **`botonAceptar()`, el que EJECUTA**, y `BOTON4 = PB15`
-es `botonCancelar()` (`Maestro/include/pines.h:94-95`, `Maestro/src/botones.cpp:131-132`).
-
-- **Firmware primero es seguro.** Retirado `botones_setup()`, los pines dejan de estar en
-  `INPUT_PULLUP` y quedan fijados a **0 V** por los `R65`–`R68` de **10 kΩ a masa** que la placa ya
-  trae. Un pin en 0 V no ejecuta nada.
-- **Cableado primero NO lo es.** Con el firmware viejo todavía dentro, `PB14` sigue siendo
-  `botonAceptar()` leído **activo en BAJO**: cualquier cosa que un instalador enchufe en `J16` p10
-  puede pulsar *Aceptar* en un equipo que está en la calle.
-
-**Por eso la regla no es «van en el mismo commit» —un commit no protege de un destornillador—: es
-que el firmware nuevo tiene que ESTAR CARGADO EN LA TARJETA antes de que nadie enchufe nada.** Se
-exige la carga verificada, no el merge.
-
-> ✅ **`M3` ESTÁ CERRADA DESDE EL 03/09 Y LAS CÁMARAS SE CABLEAN. Lo que sigue debajo describía el
-> mundo anterior y se conserva tachado, no borrado.** ~~mientras la polaridad de esos cuatro pines
-> siga en contradicción entre el netlist y el fuente, **no se cablea cámara a `J16`**~~
->
-> **Medido en cobre** —multímetro, conector vacío, paso 20 de la Guía, 03/09/2026—: el pull-down de
-> **10 kOhm** que declaraba el netlist **es real y está en las cuatro posiciones** (`R65`–`R68` con
-> su 100 nF). `p10` (`PB14`) y `p12` (`PB15`) dan **0 V en reposo**; con 3,3 V en la posición de al
-> lado, el gesto que pide el conector es cerrar contra los 3,3 V: **activa en ALTO, los cuatro pines
-> y sin excepción** — que es justo lo que el firmware ya hacía. El **paso 21** cableó `p10` contra
-> `p11` en normalmente abierto y funcionó, **sin demandas fantasma**.
->
-> **`p10` = Cámara 2 (verificada en banco) · `p12` = Cámara 1.** Y `BOTON3`/`BOTON4` ya no existen:
-> `botonAceptar()` y `botonCancelar()` son `return false;` (`botones.cpp:305-306`).
->
-> 🔴 **Lo que SÍ sigue abierto de ese conector, y no es la cámara:** `MANDO_A` (`PB9`, p5) y
-> `MANDO_B` (`PB13`, p8) **no responden — 0,6 V en reposo, N-118**. El mando **SE CONSERVA** en esos
-> dos canales y **van cableados**: una versión anterior de la spec mandaba dejarlos vacíos «de
-> colchón», y con `MANDO_B` al aire `ambarLocal` no se arma nunca y **se pierde el veto de SFTY-21
-> sin que ningún test lo diga**. Y `J16` p1 lleva **12 V crudos**: taparlo es **obligatorio en cada
-> equipo que se monte** (N-120), no una cautela de banco.
-
-> 🔴 **Y LA LECCIÓN QUE VALE MÁS QUE EL DATO, del 05/09: ESTE FICHERO TAMBIÉN CADUCA, Y ES EL PEOR
-> SITIO DONDE PUEDE PASAR.** La medida `M3` se cerró el **03/09** en
-> `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`, y este apartado siguió **dos días**
-> diciendo que estaba abierta. El 05/09 se le contestó al responsable *«las cámaras de `J16` están
-> bloqueadas por M3»* **citando este párrafo**, y se le mandó a un agente que estaba escribiendo la
-> guía de banco. Lo corrigió él: *«revisa, ya lo habíamos discutido, en las spec»*.
->
-> **CLAUDE.md se carga en cada sesión, así que una regla caducada aquí no envejece como un
-> documento: se recita con autoridad y sin que nadie vaya a la fuente.** Es §2.ter —una frase que
-> sostiene una decisión y que nadie comprueba— aplicada al fichero de reglas.
->
-> **Las dos cosas que hay que hacer distinto:**
-> 1. **Una regla de este fichero que dependa de una MEDIDA lleva la medida y su fecha al lado**, y
->    dice dónde vive la fuente. Sin eso no hay forma de saber si sigue viva.
-> 2. **Antes de contestar sobre cobre, conectores, pines o compras se abre la spec**, aunque este
->    fichero parezca contestar. `05_Funcional/17_...` gana a `CLAUDE.md` en todo lo que sea
->    hardware medido: es donde se anotan las medidas, y este fichero sólo las resume.
-
-> ✅ **Matiz del 31/08, y baja el coste de M3.** La contradicción es entre el netlist y
-> **`botones.cpp`** (`INPUT_PULLUP` + `== LOW`). El camino de **cámara** ya lee al revés
-> —`pinMode(INPUT)` pelado y **activo en ALTO**, `modo_inteligente.cpp:46` y `:25`, desde N-67—, así
-> que **en cuanto `PB14`/`PB15` se lean como cámara el firmware ya coincide con el netlist**. Y la
-> salida de la AcuSense es configurable (NO/NC), así que se elige qué estado significa demanda sin
-> tocar placa ni firmware.
->
-> 🔴 **ESA ÚLTIMA FRASE ES `SIN VERIFICAR`, Y LA ESCRIBÍ AQUÍ YO EL 05/09 SIN COMPROBARLA.**
-> Al ir a redactar el manual de la cámara con la ficha real delante: el desplegable
-> `Alarm Type` (NO/NC) está documentado **sólo para la ENTRADA** de alarma (manual de
-> usuario `UD28967B-C` v5.7.20, pág. 44); la **salida** sólo expone `No.`, `Name` y
-> `Delay` (pág. 68), y *Normally Open / Normally Closed* **no aparece ni una vez en 110
-> páginas**. Se descartó al buscador (§4): la misma búsqueda restringida a hikvision.com
-> sí devuelve NO/NC en fichas de radares y centrales, o sea que el término se usa cuando
-> existe.
->
-> **Es la tercera vez en una noche que este fichero recita algo sin medir** —M3, la
-> polaridad de `BOTON1`/`BOTON2`, y esto—, y las tres veces la fuente buena estaba en
-> `05_Funcional/`. Lo cierra un ensayo de diez minutos con la cámara delante, escrito en
-> `9_Manual_Parametrizacion_Camara_IA.md`.
->
-> 🔴 **Y el que de verdad decide sigue abierto: que la ANALÍTICA pueda accionar el relé.**
-> Tener la salida no basta. El manual de usuario dice de `Trigger Alarm Output` que *«only
-> supported by certain models»*, y la fila *Linkage Method* de la ficha **no la menciona**.
-> Las dos fuentes son oficiales y se contradicen. Si no se puede enlazar, el camino de
-> `J16` no sirve y hay que ir por relé de NVR o por evento de red — **otro diseño**.
->
-> **Lo que M3 sigue decidiendo, y es su tercer resultado posible:** con `INPUT` pelado el pin
-> necesita **resistencia real a masa en la placa** o queda flotando y el ruido dispara demandas
-> fantasma. `PB0` la tiene declarada (`pines.h:43-46`, `R64` 10K + `C25` 100nF); de `PB14`/`PB15`
-> **sólo lo dice el netlist y nadie lo ha medido en cobre**. M3 pasa de bloqueante a
-> **confirmación que parametriza la cámara** — pero se hace **antes** de cablear, no después.
-
-## 10. Radios
-
-**`2.4 kbps` de Air Data Rate, `M0`/`M1` ambos en OFF** durante la operación. Configuración
-vigente: 2 radios en enlace directo, **sin repetidor**.
-
----
-
-## Dónde está cada cosa
-
-| | |
-|---|---|
-| `01_Firmware/Maestro`, `Esclavo`, `Repetidor` | firmware |
-| `01_Firmware/compuerta.py` | **la única forma correcta de verificar** |
-| `01_Firmware/Simulaciones/` | simuladores, y `banco/` con los **76 packs** |
-| `01_Firmware/Validacion_LCD/` | arnés de pantalla (compila el `lcd.cpp` real) |
-| `01_Firmware/Validacion_Ciclo/` · `_Respaldo/` · `_Automatico/` | los otros tres que compilan C++ real — ver §8 |
-| `OPTIMIZACIONES.md` | las reglas `SFTY-x` y la **trazabilidad regla → código → prueba** |
-| `05_Funcional/` | manuales y protocolo de pruebas para el auditor |
-| `evidencia/` | actas de la compuerta, con fecha y hash |
-| `ESTADO.md` | dónde está parado el trabajo **hoy** |
-| `roadmap.md` | **estado del proyecto** desde el 31/08: qué hay, qué está decidido, qué está abierto y **el orden de arranque** — con los `N-x` debajo como el *porqué*. Ya no es una bitácora; lo anterior a esa fecha vive en el `git log` y en el remoto `padre` |
-
-## Convenciones
-
-- **Comentarios y mensajes de commit en español, en ASCII sin acentos** (la consola de Windows
-  viene en cp1252 y los validadores parsean el fuente).
-- Los comentarios explican **por qué**, no qué. El código ya dice qué hace.
-- Un commit = un cambio con sentido propio = un `git revert` limpio.
-- Cada `N-x` del roadmap se cierra con la evidencia que lo demuestra, no con una afirmación.
-- Si un pack ejerce una regla `SFTY-x`, se marca con `# EJERCE SFTY-x: <qué>` en su cabecera. La
-  tabla de trazabilidad de `OPTIMIZACIONES.md` se levanta **buscando** esa etiqueta. **Solo se
-  etiqueta lo que el pack comprueba de verdad**: una regla que aparece cubierta por una prueba que
-  no la ejerce es peor que una fila vacía, porque la vacía no miente.
+- **Comentarios y mensajes de commit en espanol, en ASCII sin acentos** (la consola de Windows viene en
+  cp1252 y los validadores parsean el fuente).
+- Los comentarios explican **por que**, no que. **Y si un comentario delibera** —*«Wait, in this
+  state...»*, *«let's just force...»*— quien lo escribio no lo tenia claro y lo dejo asi: dentro de una
+  regla de seguridad eso no es una nota, es una alarma. La duda se resuelve o se anota en `roadmap.md`.
+- **Un commit = un cambio con sentido propio = un `git revert` limpio**, y cada `N-x` se cierra con la
+  evidencia que lo demuestra, no con una afirmacion.
+- Si un pack ejerce una regla `SFTY-x` se marca `# EJERCE SFTY-x: <que>` en su cabecera, y la tabla de
+  trazabilidad se levanta buscando esa etiqueta. **Solo se etiqueta lo que el pack comprueba de verdad:**
+  una regla cubierta por una prueba que no la ejerce es peor que una fila vacia — la vacia no miente.
