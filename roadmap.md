@@ -328,12 +328,19 @@ peligroso»* en *«aguanto dias»*. **No cuesta hardware: el cristal ya esta sol
 con su porque, sus numeros y sus precondiciones. Este es el orden, y **no es cronologico: es por
 cuanto se acerca cada paso a las luces.**
 
+> 🔴 **ORDEN CORREGIDO el 07/09 por el responsable, y mi orden anterior no se sostenia.** Yo puse
+> `Y1` primero **porque crei que tocaba el margen del cruce. No lo toca.** El reloj del cruce es el
+> **`DS3231` TCXO con pila de cada ESP32** (`D-9`), y del STM32 **lo muerto es `Y2`, y solo ese**.
+> **`Y1` no es un reloj: es el LATIDO del micro** — no lleva la hora, solo marca a que ritmo ejecuta
+> y, de rebote, la precision de `millis()`. Con `D-20` construida el `DS3231` siembra **cada 2 s**,
+> y entre siembra y siembra **el error del oscilador interno es despreciable**.
+
 | | que | toca el ciclo | por que va aqui |
 |---|---|---|---|
-| **1** | **`D-22` · `Y1` como reloj de sistema.** Empieza **midiendo si oscila**, y la caida al HSI **hay que ESCRIBIRLA A MANO**: el `_Error_Handler` del nucleo es `noreturn` + `while(1)`, asi que un `SystemClock_Config` que pida `HSE` y falle **cuelga la tarjeta A OSCURAS, antes de `setup()`, sin luces y sin reiniciar**. Y el reloj de sistema pasa de **64 a 72 MHz**: todo lo temporizado se recalibra | **NO** el ciclo, **SI** todos los plazos | es lo mas autocontenido **y precondicion de que `D-20` sea seguro**. ⚠️ **Sobre el firmware de HOY no compra ni un segundo del margen de 29 s** —ese sale de `Y2`—: compra los plazos de `millis()`, incluidas **las 48 h del Esclavo, que hoy pueden desviarse entre ~29 min y ~1,2 h**. **Sobre el firmware que `D-20` construye SI decide los 29 s**, porque con `Y2` muerto el STM32 solo puede extrapolar con `millis()` |
-| **2** | **`D-20` · la siembra y la propagacion.** Extrapolador cada 2 s; **el Maestro empuja y el Esclavo SOBRESCRIBE** | 🔴 **SI** | de aqui cuelga que el Degradado del poste 2 pueda siquiera entrar |
-| **3** | **`D-21` · que la hora que MIENTE llegue a las luces**, mas su publicacion en la app | 🔴 **SI** | la deteccion ya existe (`OSF`); lo que falta es el camino hasta el ambar |
-| **4** | **`D-14` · el contacto que hace grabar a la camara.** Antes, **medir con multimetro** si su entrada admite los ~12 V con masa compartida | **NO** | independiente de todo lo anterior; la via esta confirmada en el manual de la camara |
+| **1** | **`D-20` · la siembra y la propagacion.** Extrapolador cada 2 s; **el Maestro empuja y el Esclavo SOBRESCRIBE** | 🔴 **SI** | **es lo que DESBLOQUEA el Degradado del poste 2**, que hoy esta muerto: su guarda abre con `!reloj_enHora()` y esa bandera es falsa siempre |
+| **2** | **`D-21` · que la hora que MIENTE llegue a las luces**, mas su publicacion en la app | 🔴 **SI** | **media ya esta construida** —el Maestro tiene `irAAmbar("Reloj no fiable")` en su bucle—; faltan el camino del `OSF` **(que `D-20` cierra de paso)** y la guarda equivalente en el Esclavo |
+| **3** | **`D-14` · el contacto que hace grabar a la camara.** Antes, **medir con multimetro** si su entrada admite los ~12 V con masa compartida | **NO** | independiente de todo lo anterior; la via esta confirmada en el manual de la camara, con pagina |
+| **4** | 🟡 **`D-22` · `Y1` como latido del micro — OPCIONAL, y va el ULTIMO** | **NO** el ciclo, **SI** todos los plazos | **la siembra de 2 s ya cubre lo que `Y1` mejoraria**, asi que **no compensa correr su riesgo antes**: si `Y1` no oscila, el `_Error_Handler` del nucleo es `noreturn` + `while(1)` y la tarjeta queda **A OSCURAS, sin luces y sin reiniciarse**. Lo que si arregla de verdad son los plazos largos de `millis()` — el watchdog, el techo de silencio y **las 48 h del Esclavo, que hoy pueden desviarse entre ~29 min y ~1,2 h** |
 
 > ✅ **`D-22` VA SOLO Y VA PRIMERO — decidido el 07/09, y el motivo es su MODO DE FALLO, no su
 > beneficio.** Se planteo si convenia construirlo dentro de `D-20` —una sola carga, un solo banco—.
