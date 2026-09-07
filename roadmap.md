@@ -215,10 +215,22 @@ siembra + `0–1 s` truncado en la radio + `0,5 s` de aire + **`1,2 s` de deriva
 48 h** (7 ppm relativos) **≈ 2,8 s contra los 29 s que aguanta el cruce: factor ≈10**, frente al
 **1,44** de hoy. `TOLERANCIA_DESFASE_S = 3` **ya es la cifra correcta**.
 
-> 🔴 **Y la condicion que lo sostiene, sin la cual el desfase inicial SIGUE sin cota: un `SET_RTC`
-> de la app NO es una sincronizacion.** Mientras el puente del Esclavo siga atendiendo `SET_RTC`
-> directamente, la app puede poner los dos `DS3231` a horas distintas visitandolos por separado — y
-> **eso choca con `D-15`**. Va a «Filas que chocan» de `DECISIONES.md`.
+> ✅ **Y la condicion que lo sostiene YA ESTA DECIDIDA (07/09): EL MAESTRO MANDA LA HORA Y EL ESCLAVO
+> HACE CASO SIEMPRE.** El arquitecto pedia una regla —*«un `SET_RTC` de la app no es una
+> sincronizacion»*— porque mientras la app pueda visitar los dos postes por separado, el desfase
+> inicial **no tiene cota**. El responsable lo cerro por **autoridad** en vez de por aritmetica:
+> **una sola fuente, luego no hay desfase inicial que acotar.**
+>
+> **Lo que eso obliga en el codigo: la app NO pone la hora en el poste 2, nunca.** El puente del
+> Esclavo tiene que **rechazar** un `SET_RTC` dirigido a el —hoy lo atiende— porque no es una
+> sincronizacion: **es una segunda fuente**. Cierra de paso el **rejuvenecimiento** de las 48 h, que
+> se hacia poniendo ese `DS3231` hacia atras.
+>
+> ⚠️ **Y la consecuencia que hay que saber, porque parece un problema y no lo es:** si el unico
+> camino hacia el reloj del Esclavo pasa por el Maestro, **con la radio muerta no se le puede poner
+> en hora** — y eso es justo cuando se necesita el Degradado. **No importa: su `DS3231` tiene pila y
+> conserva la hora que ya tenia.** Perder la radio no es perder la hora. Lo que si obliga es a que
+> **el poste 2 se ponga en hora ANTES**, en la puesta en marcha, no durante la averia.
 
 > 🔴 **Dos cosas mas que NO estaban en el plan y sin las cuales rompe:**
 >
