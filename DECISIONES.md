@@ -30,7 +30,7 @@ bloquea y lo que cuesta.*
 | **A-0** | **Cómo se configura la grabación de las microSD** (comprarlas ya está decidido) | baja — no toca firmware | parametrizar la cámara (paso 1 de D-13) |
 | **A-7** | **Medir el `Delay` real del relé de la cámara** — el «~1 s» nos lo inventamos y luego nos citamos | baja, pero **hay dos packs en verde contra ese número** | derivar `SILENCIO_MS` de un dato de verdad |
 | **A-8** | **Los dos `Arming Schedule` en serie**, sobre un reloj de cámara que no se puede sincronizar | baja | parametrizar la cámara |
-| **A-2** | **Qué se pone en `J16` p5 y p8** — 🔴 **y ahora choca con A-11**, ver abajo | media (se ha vuelto una decisión de seguridad) | nada hoy; **pero cualquier cosa que se cablee ahí entra por el reconocedor de secuencias del mando** |
+| ~~**A-2**~~ | ✅ **CERRADA por el responsable el 05/09: `J16` p5/p8 se quedan como el mando —con su código intacto (`D-1`)— y EL FIN DE CARRERA VA A `J14`/`PB0`.** ~~y ahora choca con A-11~~ — ese choque **ya no existe**: `A-11` se resolvió por app en `D-18` | ~~media~~ | nada. ⚠️ **Y lo que decide es que NO SE CABLEA NADA en p5/p8**: el código del mando sigue leyendo sus flancos, y en el Maestro la secuencia `A.A.A` entra al Modo Automático **sin guarda** —arranca el ciclo, o sea **abre paso**— (medido el 07/09, `roadmap.md` §3.5) |
 | **A-4** | **Qué pasa con `MENU`** si se replantea la interfaz | baja | nada hoy |
 | **A-10** | **El LED `D21` de `VERDE2`** — comprobación de banco, ya no es decisión de firmware | banco | nada |
 

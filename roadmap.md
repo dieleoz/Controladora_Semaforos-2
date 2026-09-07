@@ -165,6 +165,47 @@ antes de publicar un «no hay»:
 > QUIETO.** El acta del 07/09 avisa ella misma: *«el arbol tenia cambios sin commitear al medir»*.
 > `CLAUDE.md` §7: **una cifra correcta de un binario que quiza ya no existe.**
 
+### 3.5 · 🔴 Lo que salio de ANCLAR las decisiones en el codigo (07/09) — `N-158`
+
+El 07/09 se anclaron las `D-x` vigentes en el fuente: **de 5 marcas a 16**. El motivo lo dijo el
+responsable —*«el codigo arrastra cosas de una spec y de otra, y cada agente desarrolla con una
+version o con otra»*— y estaba medido: **61 marcas `N-x`** *(como se descubrio un fallo)* contra
+**5 `D-x`** *(que decision obedece este codigo)*. **Lo que no se pudo anclar es el hallazgo.**
+
+| | que | medida |
+|---|---|---|
+| **1** | 🔴 **`D-14` NO ESTA IMPLEMENTADA. Cero anclas en las DOS puntas**, medido por separado por dos agentes. *«El controlador cierra un contacto y la camara graba»* no existe: fuera de `semaforo.cpp` la unica salida que el Maestro mueve es la direccion del RS485, y `ROJO_PEATON`, `VERDE_PEATON` y `BUZZER` estan **declarados y muertos**. **Era el argumento de una compra que YA SE EJECUTO** | `grep digitalWrite` fuera de `semaforo.cpp` → 2 hits, los dos del RS485 |
+| **2** | 🔴 **La camara sigue llamando a `demanda_solicitar()`, y `D-13` dice lo contrario.** Esa fila cierra con *«el ciclo del semaforo no se toca: las camaras no dan ni quitan verde»*, y `demanda_solicitar()` **pide cambio de turno**. El comentario que lo sostiene es **anterior a `D-13`** —*«entran por `demanda_solicitar()`, que es la unica puerta que ya existe»*—: es codigo de la spec vieja vivo bajo una decision que lo prohibe. **Es el arrastre que describio el responsable, con nombre** | `botones.cpp`, `camaras_actualizar()` |
+| **3** | 🔴 **`D-18` no tiene canal de vuelta.** El Esclavo entra en Degradado por app, pero **no existe ningun comando de radio por el que lo anuncie**, y el getter de estado del Maestro solo sabe devolver color: **el poste 1 no puede enterarse.** La fila pedia *«medir que hace el Maestro mientras el Esclavo esta dentro»*; no esta sin escribir por descuido, **esta sin canal** | censo entero de `protocolo.h`: 21 comandos, ninguno lo cubre |
+| **4** | 🟠 **La antiguedad de la ultima sincronizacion no viaja** en la trama de estado del Esclavo. Al retirarse el menu, el tecnico que sube al poste 2 se queda sin ese dato **y sin sustituto por app** | plantilla del `$STATUS` del Esclavo: serie, modo, estado, hora, pluma, camara |
+| **5** | 🟠 **No hay forma NO DESTRUCTIVA de leer los bits del reloj del STM32.** `reportarBitsDelReloj()` sigue vivo y su **unico llamador borra la hora y todo el respaldo** | |
+| **6** | 🟠 **`A.A.A` entra al Modo Automatico SIN GUARDA en el Maestro** —arranca el ciclo, o sea **abre paso**—. Las otras dos secuencias del mando si estan frenadas. Con `A-2` cerrada *(el fin de carrera va a `J14`/`PB0`, no aqui)* **nadie deberia cablear `J16` p5/p8** — pero la asimetria estaba medida solo sobre el Esclavo y conviene que conste | `botones_actualizar()` + `mando.cpp` del Maestro |
+
+**Cuatro cabeceras del Esclavo contaban una spec derogada** y se marcaron sin tocar codigo:
+`botones.cpp` decia que el sustituto de la app *«es EL MANDO DE RELES, que sigue entero sobre A y
+B»* —falso por `D-1` y por `D-18`—; `mando.h` razonaba **como comprar un receptor que no se va a
+comprar** y llamaba *«boton ACEPTAR»* a lo que hoy es una camara; `reloj.h` daba el cristal `Y2`
+por fuente de hora estando **confirmado muerto**; `menu.h` describia un menu que no se navega.
+
+### 3.6 · 🟠 Dos defectos de los propios INSTRUMENTOS, medidos al levantar el mapa (07/09)
+
+| | que | por que importa |
+|---|---|---|
+| **1** | 🔴 **El `PASS` de la guarda de rutas depende del ORDEN ALFABETICO de los packs.** Con los ficheros invertidos da **`69 rutas, 4 inexistentes`**. Hoy sale bien porque `esp32_02` y `esp32_09` ordenan antes que `esp32_10` | **renombrar un pack pone la guarda en ABORTADO** sin que nadie toque el firmware |
+| **2** | 🔴 **Catorce rutas que los instrumentos abren y la guarda NO censa** — los documentos de la raiz, dos de `04_Manuales`, el Manual 10, la app entera, `Validacion_LCD/arnes_lcd.cpp` y los dos `compilar_*.ps1`. Todas con `ruta_repo()`, que **aborta** | mover una tumba **la fila `banco por packs` entera** mientras la guarda publica *«64 rutas, todas existen»* |
+
+### 3.7 · 🔴 Las etiquetas de las dos cabezas PEATONALES van al reves que los conectores
+
+Trazado de la pata del micro a la bornera sobre el `.kicad_pcb`: **`/S7` es `PA6` → `J11`
+(rojo peaton)** y **`/S8` es `PA7` → `J9` (verde peaton)**. Verificado ademas por pads de `U1`:
+pad 16 = `/S7`, pad 17 = `/S8`.
+
+> **Quien cablee guiandose por el numero de la senal invierte rojo y verde de peatones.**
+
+Hoy no explota —esos dos canales **no tienen una linea de firmware detras**, ver `D-d`—, pero es
+la trampa que espera al primero que enchufe una cabeza peatonal. **Los documentos lo tienen bien:
+es la placa la que engana.**
+
 ---
 
 ## 4. Lo que necesita una COMPRA o un SOLDADOR
