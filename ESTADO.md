@@ -75,8 +75,10 @@ se acumula un `20/20` que no acerca una tarjeta (`CLAUDE.md` §2.bis).
 6. **`FW-N53`** — la inhibición de secuencias ya está en las dos puntas; falta decidir si se
    redefinen los gestos (hoy Auto es `A·A·A` y Ámbar `B·B·B`). Es **decisión de spec**: cambia el
    Manual 1, el Manual 3 y el adiestramiento del operario.
-7. **`APP-APK`** — recompilar la APK. La del disco es de `a8e1ceb` (28/08) y el árbol le pasó
-   por encima después.
+
+> ~~**`APP-APK` — recompilar la APK**~~ — **CERRADO el 07/09**: APK recompilada con éxito
+> mediante Capacitor 6 y Gradle (`assembleDebug`), generando la copia maestra en
+> `05_Funcional/IOT_VIAL_Semaforos_v9.0.apk`.
 
 > ~~**`validateTiempos()` de los unitarios de la app sigue en 1..15 min**~~ — **CERRADO el 07/09**:
 > sincronizado a 3..15 min (`VERDE_MIN_MIN = 3`, `limites_ciclo.h`) con comprobaciones en los bordes
