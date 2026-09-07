@@ -1,7 +1,24 @@
 # 19 — Especificación de la PLACA PORTADORA del ESP32
 
 **Para quien la dibuja y quien la fabrica.**
-**Fecha:** 31 de agosto de 2026.
+**Fecha:** 31 de agosto de 2026 · **Última revisión: 7 de septiembre de 2026**
+**Manda sobre este documento:** [`DECISIONES.md`](../DECISIONES.md) — filas **`D-9`**, **`D-15`**,
+**`D-17`** y **`A-5`**. Donde esta especificación y esa tabla no digan lo mismo, **gana la tabla**.
+
+> # 🔴 07/09/2026 — REVISIÓN CONTRA `DECISIONES.md`, QUE ESTE DOCUMENTO NO CITABA NI UNA VEZ
+>
+> **La pasada del 07/09 sobre los 22 documentos de `05_Funcional` midió que 14 de ellos no citaban
+> `DECISIONES.md`, y que eran exactamente los que traían lo caducado. Éste era uno, y no se corrigió
+> en aquella pasada.** Lo que cambia aquí:
+>
+> | apartado | qué decía | qué manda hoy |
+> |---|---|---|
+> | **6**, aviso final | *«un reloj montado hoy se queda mudo, y eso es lo esperado»* | 🔴 **FALSO Y PELIGROSO. `D-9`/`D-15`: ese `DS3231` es el ÚNICO reloj del cruce.** Mudo = avería. Ver el recuadro de §6 |
+> | **13**, última fila | *«No hay driver de `DS3231` funcionando en ninguna punta»* | 🔴 **El driver EXISTE** — `ESP32_Expansion/src/reloj_ds3231.cpp`, con llamadores. Lo que falta es **ejercerlo sobre un módulo** |
+> | **12**, `A6` y `PP-D5` | *«cuántos relojes: 1 o 2»*, cantidad **1** | ✅ **DECIDIDO: DOS, uno por poste** (`D-9`, `D-15`, `D-17`, `A-5`). Es una compra, y estaba pedida de menos |
+> | **7**, `NO-1` | *«ni hacia `J14` (la cámara)»* | ⚠️ **`J14` no es «la cámara».** Es `CAM_DEMANDA_PIN` (`PB0`). **Las cámaras van a `J16`** (`D-2`/`D-3`/`D-13`). La prohibición no cambia; el rótulo sí |
+>
+> **Lo que NO cambia, y sigue siendo lo primero que hay que leer: esta placa no existe.**
 
 Esta placa **no existe**. No está diseñada, no está fabricada y no está medida. Lo que sigue es la
 especificación contra la que se dibuja: **requisitos, cotas y el motivo de cada uno**.
@@ -292,8 +309,19 @@ GND                     ---  J17 p7  o  p9
 9600 8N1
 ```
 
-**MEDIDO** en el firmware de las dos puntas (`Maestro/src/bluetooth.cpp:28`,
-`Esclavo/src/bluetooth.cpp:26`, `SerialBT.begin(9600)` en `:70` y `:78`).
+**MEDIDO** en el firmware de las dos puntas, y **re-medido el 07/09 por símbolo** — ~~las cuatro
+citas por línea que había aquí (`:28`, `:26`, `:70`, `:78`) están caducadas~~:
+
+```
+$ grep -n "SerialBT" 01_Firmware/Maestro/src/bluetooth.cpp 01_Firmware/Esclavo/src/bluetooth.cpp | grep -i "HardwareSerial\|begin(9600)"
+01_Firmware/Maestro/src/bluetooth.cpp:30:static HardwareSerial SerialBT(PB7, PB6); // USART1 remapeado: PB7 RX, PB6 TX
+01_Firmware/Maestro/src/bluetooth.cpp:137:  SerialBT.begin(9600);
+01_Firmware/Esclavo/src/bluetooth.cpp:29:static HardwareSerial SerialBT(PB7, PB6); // USART1 remapeado: PB7 RX, PB6 TX
+01_Firmware/Esclavo/src/bluetooth.cpp:165:  SerialBT.begin(9600);
+```
+
+**Búsquelo por el símbolo `SerialBT`, no por el número:** un número de línea caduca solo, en
+silencio y con autoridad de dato.
 
 > ⚠️ **El cruce TX/RX no da error: da silencio.** El micro **recibe** por `PB7` y **transmite** por
 > `PB6`. Un mazo cruzado se comporta exactamente igual que un módulo muerto.
@@ -363,9 +391,63 @@ GND                     ---  J17 p7  o  p9
 
 **El consumo del reloj es de microamperios: no entra en el dimensionado de la fuente** (`ALI-4`).
 
-> ⚠️ **Lo que no cambia por tener sitio en la placa:** un reloj montado hoy **se queda mudo**, y eso
+> ~~⚠️ **Lo que no cambia por tener sitio en la placa:** un reloj montado hoy **se queda mudo**, y eso
 > es lo esperado, no una avería. **No se reporta como fallo, no se devuelve al mostrador y no se
-> busca el defecto en la soldadura.**
+> busca el defecto en la soldadura.**~~
+
+> # 🔴 TACHADO EL 07/09 — **ERA UNA INSTRUCCIÓN DE NO MIRAR UNA AVERÍA, Y HOY ES AL REVÉS**
+>
+> **La frase fue cierta el 31/08** —cuando este documento se escribió, nadie había medido si había
+> software al otro lado—. **Hoy es falsa por los dos extremos, y es exactamente el defecto que la
+> pasada del 07/09 corrigió en `11_Manual_Instalacion_RTC_DS3231_Bateria.md` y que aquí quedó vivo.**
+>
+> **1. El driver EXISTE, con llamadores.** Medido el 07/09:
+>
+> ```
+> $ ls 01_Firmware/ESP32_Expansion/src/
+> despachador.cpp  enlace_stm32.cpp  main.cpp  puente.cpp  reloj_ds3231.cpp  trama.cpp  transporte_app.cpp  vigilante.cpp
+>
+> $ grep -rn "reloj_ds3231.h" 01_Firmware/ESP32_Expansion/src
+> 01_Firmware/ESP32_Expansion/src/despachador.cpp:4:#include "reloj_ds3231.h"
+> 01_Firmware/ESP32_Expansion/src/main.cpp:107:#include "reloj_ds3231.h"
+> 01_Firmware/ESP32_Expansion/src/puente.cpp:9:#include "reloj_ds3231.h"
+> 01_Firmware/ESP32_Expansion/src/reloj_ds3231.cpp:3:#include "reloj_ds3231.h"
+>
+> $ grep -n "DS3231_DIR\|DS3231_SDA\|DS3231_SCL" 01_Firmware/ESP32_Expansion/include/contrato.h
+> 188:#define DS3231_DIR            0x68
+> 189:#define DS3231_SDA            21
+> 190:#define DS3231_SCL            22
+> ```
+>
+> *(Y de paso eso **confirma `RTC-1` contra el fuente**: `GPIO21` = SDA, `GPIO22` = SCL, dirección
+> `0x68`. Antes era una decisión de esta especificación; ahora es lo que el firmware compila.)*
+>
+> **2. Y con `D-15`, ese reloj es el ÚNICO del poste.** El STM32 ya no pone ni acusa la hora
+> —`SET_RTC` lo atiende el puente—, y su `Y2` está confirmado muerto (`N-17`). O sea:
+>
+> 🛑 **UN `DS3231` MUDO NO ES «LO ESPERADO»: ES QUE ESE POSTE NO TIENE HORA.** Y sin hora se caen la
+> sincronización, la medida de desfase y la autorización del Modo Degradado.
+>
+> ## Qué hacer si el reloj no contesta — **el diagnóstico existe y está en la app**
+>
+> El firmware **no devuelve un `bool`**: devuelve el motivo, y cada uno manda a un sitio distinto.
+> `$ERR` del puente, leidos el 07/09 de `ESP32_Expansion/src/despachador.cpp` *(salen sobre
+> `CMD:LEER_RTC`, con `NODE:PUENTE` — `grep -n "DESC:" 01_Firmware/ESP32_Expansion/src/despachador.cpp`)*:
+>
+> | `$ERR,…,DESC:` | qué mirar |
+> |---|---|
+> | `NUNCA_SE_PUSO_PONGA_LA_HORA` | nada roto: mande `CMD:PIN:1234:SET_RTC:…` |
+> | `OSCILADOR_PARADO_CAMBIE_PILA` | **la pila** — bit `OSF` puesto |
+> | `SIN_RELOJ_NO_RESPONDE` | **el bus I²C**: módulo ausente, `SDA`/`SCL` cruzados o sin soldar |
+> | `ESCRITURA_A_MEDIAS_REPITA_SET_RTC` | repita la orden |
+> | `MODO_12H_PONGA_LA_HORA` · `REGISTROS_INCOHERENTES` · `BARRERA_INCOHERENTE` | el registro está en un estado que no compone fecha: reponerla |
+>
+> ⚠️ **Y el borde que la propia cabecera del driver escribe, para que no se lea de más:** *«que el
+> ESP32 lleve reloj NO arregla el `Y2` de los STM32. Son dos relojes distintos.»* Poner en hora este
+> `DS3231` **no** pone en hora al controlador del semáforo. Esa vía es `AB-4` y está abierta.
+>
+> ✅ **Lo único de la frase tachada que sobrevive: no se busca el defecto en la soldadura antes de
+> leer el `$ERR`.** Primero la lectura, después la pieza.
 
 ---
 
@@ -376,9 +458,12 @@ GND                     ---  J17 p7  o  p9
 > por el que un semáforo sigue siendo seguro con ella enchufada.
 
 > **`NO-1` · REQUISITO — nada que escriba sobre las luces.** Ni relés de lámpara, ni salidas de
-> potencia, ni un conductor hacia `J3`–`J9` o `J11`, ni hacia **`J15`** (la barrera), ni hacia
-> **`J14`** (la cámara), ni hacia **`J13`** (el buzzer). **Ni un conductor a `J16`** —ni para señal
-> ni para tomar de ahí los 12 V—.
+> potencia, ni un conductor hacia `J3`–`J9` o `J11`, ni hacia **`J15`** (la talanquera), ni hacia
+> ~~**`J14`** (la cámara)~~ **`J14`** *(🔴 **07/09: `J14` NO es «la cámara».** Es
+> `CAM_DEMANDA_PIN` = `PB0`, la entrada de demanda del Modo Inteligente. **Las cámaras compradas van
+> a `J16` p10/p12** — `D-2`, `D-3`, `D-13`. **La prohibición no cambia y ahora cubre las dos:** ni a
+> `J14` ni a `J16`)*, ni hacia **`J13`** (el buzzer). **Ni un conductor a `J16`** —ni para señal ni
+> para tomar de ahí los 12 V—.
 
 **El porqué, que no cambia porque haya una placa nueva:** **solo `semaforo.cpp` escribe pines de
 luz**, y todo pasa por su `escribirPines()`. Ésa es la barrera de salidas del firmware, y **una placa
@@ -511,7 +596,7 @@ existe.**
 | # | qué | cant. | estado |
 |---|---|---|---|
 | **`A5`** | **Fuente DC-DC conmutada 12 V → 5 V, ≥ 1 A**, con sus borneras y su cable | **2** (1 por placa) | 🛒 **NO PEDIDA.** Requisitos en el apartado 3. 🔴 **La referencia NO está elegida** |
-| **`A6`** | **Módulo RTC `DS3231` `ZS-042`** con su pila | **1** *(ver 12.2)* | 🛒 **NO COMPRADO** |
+| **`A6`** | **Módulo RTC `DS3231` `ZS-042`** con su pila | ~~**1** *(ver 12.2)*~~ → 🔴 **2** *(uno por poste)* | 🛒 **07/09: la CANTIDAD estaba pedida de menos.** `D-9`/`D-15`/`D-17`: **hay dos relojes por cruce y no se hablan entre sí**. ⚠️ `A-5` (05/09) dice que **al menos uno ya estaba en el banco y dio hora real**; la línea `A6` de la lista de compras manda sobre esta celda |
 | — | **La placa portadora en sí**: circuito impreso o placa de prototipo, hembrillas, conectores, fusible o polyfuse, protección de polaridad, condensadores de reserva y cableado | **2** | 🛒 **No es todavía una línea de compras.** No hay presupuesto ni proveedor |
 
 > 🔴 **Ninguna referencia concreta de este documento es una elección.** Los `LM2596` y `MP1584` que
@@ -527,8 +612,30 @@ existe.**
 | **`PP-D2`** | **Referencia concreta de la fuente** — corriente, si aislada o no, cómo se fija en la caja | quien compra | El pedido de `A5` y la huella mecánica de la fuente en la placa |
 | **`PP-D3`** | **Valor del condensador de reserva** (`ALI-7`) | quien diseña | Nada más; se cierra al dibujar |
 | **`PP-D4`** | **Qué mecanismo de doble alimentación** se adopta: corte de la entrada de 12 V o jumper de aislamiento (`ALI-8`) | quien diseña | El cobre **y** el texto de la serigrafía |
-| **`PP-D5`** | **Cuántos relojes**: 1 o 2. Hoy solo el Maestro necesita reloj propio —el Esclavo toma la hora del Maestro por radio—, pero eso depende de en qué tarjeta está muerto el cristal `Y2`, **que sigue sin diagnosticarse** | el responsable, con el resultado del banco | La **compra** de `A6`, **no** el dibujo: la huella se dibuja en las dos placas de todos modos (`RTC-3`) |
+| ~~**`PP-D5`**~~ | ~~**Cuántos relojes**: 1 o 2. Hoy solo el Maestro necesita reloj propio —el Esclavo toma la hora del Maestro por radio—, pero eso depende de en qué tarjeta está muerto el cristal `Y2`, **que sigue sin diagnosticarse**~~ | ✅ **CERRADA EL 07/09 — YA ESTABA DECIDIDA Y ESTE DOCUMENTO NO SE ENTERÓ** | **DOS: uno por poste** |
 | **`PP-D6`** | **Quién diseña la placa y quién la fabrica** | el responsable | Todo lo demás |
+
+> # ✅ 07/09 — `PP-D5` NO ERA UNA PREGUNTA ABIERTA: LLEVABA DECIDIDA DESDE EL 05/09
+>
+> **`DECISIONES.md` `D-9`, `D-15` y `D-17`, las tres del 05/09:** *«el reloj lo lleva el ESP32 de
+> cada punta»*, *«hay **dos relojes por cruce** —un `DS3231` con pila por ESP32— y el STM32 no tiene
+> ninguno»*, y *«los dos ESP32 **no se hablan**, así que la comparación sólo la puede hacer la app
+> visitando los dos postes»*.
+>
+> **Y la premisa sobre la que `PP-D5` se sostenía cayó por los dos lados:**
+>
+> - *«el Esclavo toma la hora del Maestro por radio»* → **`D-15` retiró ese camino.** El STM32 ya no
+>   pone ni acusa la hora en ninguna punta; el `SET_RTC` lo atiende **el puente de cada poste**.
+> - *«depende de en qué tarjeta está muerto el cristal `Y2`»* → **ya no depende de eso.** `N-17` da
+>   `Y2` por muerto y `D-9` dice que **el STM32 no necesita reloj**. Con un reloj solo, **el poste
+>   sin él se queda sin hora y sin forma de recibirla.**
+>
+> 🔴 **Consecuencia de compra, y es dinero: `A6` = 2 unidades, no 1.** Un solo módulo deja al poste 2
+> sin hora, y con ella se caen `LEER_RTC` en esa punta y la comparación de desfase entre postes que
+> `D-17` existe para dar.
+>
+> ⚠️ **Lo que NO cambia:** `RTC-3` ya mandaba dibujar la huella y sus cuatro conexiones **en las dos
+> placas**. **El dibujo estaba bien; lo que estaba mal era la cantidad del pedido.**
 
 ---
 
@@ -545,7 +652,8 @@ existe.**
 | **Que el enlace por `J17` funcione** | **SIN VERIFICAR.** Nunca se ha conectado un ESP32 a `J17` en ninguna tarjeta |
 | **El cobre de la tarjeta del semáforo** | Todo lo que se sabe de ella sale del esquemático y del `.kicad_pcb`. **Ni una fila «VERIFICADO EN LA PLACA»** — un fichero dice lo que alguien dibujó; una placa dice lo que se fabricó |
 | **Los 30 o 38 pines del módulo** | **SIN VERIFICAR.** Nadie los ha contado (`PP-D1`) |
-| **El firmware del ESP32 sobre hardware** | Compila, y no ha corrido nunca sobre un módulo. **No hay driver de `DS3231` funcionando en ninguna punta** |
+| **El firmware del ESP32 sobre hardware** | Compila, y **no ha corrido nunca sobre un módulo**. ~~**No hay driver de `DS3231` funcionando en ninguna punta**~~ → 🔴 **07/09: la frase tachada es falsa y sostenía el aviso peligroso de §6.** El driver **existe, tiene tres llamadores y compila como una fila de la compuerta** (`reloj_ds3231.cpp`). Lo que sigue `SIN VERIFICAR` es **que haya hablado con un `DS3231` real** — eso es *no ejercido*, que no es lo mismo que *no existe* |
+| **La hora del STM32** | 🔴 **NO la arregla esta placa.** `D-15`: el reloj del puente es el suyo; el del controlador sigue sin camino de escritura (vía `AB-4`, abierta) |
 
 ---
 

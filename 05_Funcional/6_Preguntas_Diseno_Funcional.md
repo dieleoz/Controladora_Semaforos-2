@@ -22,7 +22,7 @@ Este documento recopila los puntos clave de diseño funcional y operativo acorda
 
    | entrada | pin | bornera | estado |
    |---|---|---|---|
-   | `CAM_DEMANDA_PIN` | `PB0` | `J14` — con `R64` 10 kΩ + `C25` 100 nF | ✅ **cableable hoy** |
+   | `CAM_DEMANDA_PIN` | `PB0` | `J14` — con `R64` 10 kΩ + `C25` 100 nF | ~~✅ **cableable hoy**~~ → 🟠 **07/09: VIVO Y SIN CÁMARA.** `D-2`/`D-3`: **las dos cámaras del cruce van a `J16` p10 y p12, una por poste**, y **`J14`/`PB0` queda libre**. El motivo no es el conector: **`CAM_CIEGA`/`CAM_PEGADA` miran `J16` y no miran `J14`** — una cámara aquí funciona y **nadie sabría que se estropeó**. Reservado a un posible fin de carrera de barrera |
    | `CAM_C_PIN` | `PB14` | `J16` **p10** — sin antirrebote de placa | ~~🟠 **NO cablear hasta `M3`**~~ → ✅ **M3 CERRADA el 03/09 y verificada en banco (paso 21):** `0 V` en reposo y **sin demandas fantasma**, con el cable puesto y sin él |
    | `CAM_D_PIN` | `PB15` | `J16` **p12** — sin antirrebote de placa | ~~🟠 **NO cablear hasta `M3`**~~ → ✅ **M3 cerrada**, `0 V` en reposo (paso 20). ⚠️ **Pero `p12` es el punto del conector MÁS cercano a la red de 12 V —`1,359 mm` de cobre— y `J16` p1 reparte 12 V crudos** |
 
@@ -47,11 +47,28 @@ Este documento recopila los puntos clave de diseño funcional y operativo acorda
    **`DESPEJE_SEG_MIN = 10`**. ~~`modo_inteligente.cpp:42` (`segEstatico = 15`)~~ — esa línea es hoy
    un comentario sobre polaridad, y el `15` se escribió antes de que N-137 (04/09) centralizara las
    seis constantes en `limites_ciclo.h`.
-   **Lo que SÍ son 15 s** es el **verde mínimo** antes de permitir alternancia —
-   `modo_inteligente.cpp:100-101`, `if (tiempoActual >= 15000UL)`, ~~`:90`~~— y el **despeje por
-   defecto del Modo Manual**, `tiempoDespejeMs = 15000` (`modo_manual.cpp:70`), que es el número que
-   se sintió en banco. ⚠️ **Son del Modo Inteligente y están fijados en el código**; no se confundan
-   con el despeje configurable del Modo Automático, que va de 10 a 90 s (§2.1).
+   ~~**Lo que SÍ son 15 s** es el **verde mínimo** antes de permitir alternancia —
+   `modo_inteligente.cpp:100-101`, `if (tiempoActual >= 15000UL)`, `:90`—~~
+   🔴 **TACHADO EL 07/09: ESE VERDE MÍNIMO DE 15 s YA NO EXISTE.** Lo retiró `D-19` (05/09), que
+   resuelve `A-12`. **Re-corrido hoy el mismo `grep` que sostenía la frase:**
+
+   ```
+   $ grep -rn "15000UL" --include=*.cpp 01_Firmware/Maestro
+   Maestro/src/modo_inteligente.cpp:62:// Y encima la Regla 1 cortaba el verde a los 15 SEGUNDOS -`tiempoActual >= 15000UL`-,
+   Maestro/src/modo_inteligente.cpp:260:        // toda la diferencia con el `tiempoActual >= 15000UL` que habia aqui.
+   ```
+
+   **Las dos coincidencias que quedan son COMENTARIOS que cuentan que estuvo ahí.** Hoy el suelo
+   del Modo Inteligente lo pone el operario —`modoAutomatico_tiemposCiclo()`— y el techo es
+   `sueloMin * TECHO_POR_SUELO` (`D-19`).
+   ⚠️ **Y `D-19` está APROBADA CON CONDICIÓN, y la condición NO está cumplida:** *«el doble **si** un
+   funcional revisa el manual y este manual de uso es claro»*. **Hasta esa firma, `TECHO_POR_SUELO`
+   viaja como POR VALIDAR** — y ésa es una pregunta de este documento, no de firmware.
+
+   **Lo que sí sigue siendo 15 s** es el **despeje por defecto del Modo Manual**,
+   `tiempoDespejeMs = 15000` (`Maestro/src/modo_manual.cpp`, símbolo `tiempoDespejeMs`), que es el
+   número que se sintió en banco. ⚠️ **No se confunda con el despeje configurable del Modo
+   Automático, que va de 10 a 90 s (§2.1).**
 
    > 🔴 **AMPLIADO EL 04/09 — N-130, y limita este apartado: la demanda SÓLO se atiende en Modo
    > Inteligente.** Censo de llamadores de la bandera `demandaRemotaPendiente`, hecho con `grep` y no
@@ -88,12 +105,22 @@ Este documento recopila los puntos clave de diseño funcional y operativo acorda
    > **El despeje va de 10 a 90 segundos.** El piso real es **10 s**, no 5 —era la mitad—; el techo
    > **90 s**, no 999 —era once veces—, y **999 no cabe en el `uint8_t` que transporta el valor**, así
    > que no fue representable en ninguna versión. `modoAutomatico_fijarTiempos()` hace `return false`
-   > fuera de rango **venga del menú o de Bluetooth** (`:57-60`), y la orden se rechaza con
-   > `$ERR,CMD:SET_TIEMPOS,DESC:RANGO` (`Maestro/src/bluetooth.cpp:573`).
+   > fuera de rango **venga del menú o de Bluetooth**, y la orden se rechaza con
+   > `$ERR,CMD:SET_TIEMPOS,DESC:RANGO` (`Maestro/src/bluetooth.cpp`, símbolo `SET_TIEMPOS`).
    >
-   > *(Los **15 s** sí existen, pero son otra cosa: son el todo-rojo y el verde mínimo del **Modo
-   > Inteligente** —`modo_inteligente.cpp:42` y `:90`—, no un piso de la auto-recuperación ni del
-   > despeje configurable.)*
+   > 🔧 **CORREGIDO EL 07/09 — LA CITA DE ESTA MEDIDA CADUCÓ, aunque la cifra sea buena.** `N-137`
+   > (04/09) **centralizó las seis constantes** y hoy no viven en `modo_automatico.cpp`:
+   >
+   > ```
+   > $ grep -rn "DESPEJE_SEG_MIN =\|VERDE_MIN_MIN =" --include=*.h 01_Firmware/Maestro
+   > Maestro/include/limites_ciclo.h:58:static const uint8_t VERDE_MIN_MIN = 3,  VERDE_MIN_MAX = 15;
+   > Maestro/include/limites_ciclo.h:60:static const uint8_t DESPEJE_SEG_MIN = 10, DESPEJE_SEG_MAX = 90;
+   > ```
+   >
+   > *(~~Los **15 s** sí existen, pero son otra cosa: son el todo-rojo y el verde mínimo del **Modo
+   > Inteligente** —`modo_inteligente.cpp:42` y `:90`—~~ 🔴 **TACHADO EL 07/09: el todo-rojo del Modo
+   > Inteligente son 10 s** —`DESPEJE_SEG_MIN`, ver §1.3— **y el verde mínimo de 15 s YA NO EXISTE**:
+   > lo retiró `D-19`, y el `15000UL` sólo sobrevive en dos comentarios. El `grep` está en §1.3.)*
    >
    > ⚠️ **El mismo error estuvo publicado en `MANUAL_USUARIO.md` y en `OPTIMIZACIONES.md`, y allí se
    > corrigió el 31/08. Aquí sobrevivió cinco días más.** Es lo que `roadmap.md` `A4` llama *cifras sin
@@ -110,6 +137,31 @@ Este documento recopila los puntos clave de diseño funcional y operativo acorda
    ⚠️ **La *«Caja Negra de caídas de radio»* estaba declarada y documentada, y NO tenía un solo
    llamador.** No la ofrezca como función existente sin comprobar el fuente.
 3. **Mando a Distancia Anti-Colisión (CERRADO - Resolución N-53):** ~~Secuencias con alternancia (`A·B·A` Auto, `B·A·B` Ámbar, `B·A·B·A` Manual, `A·B·A·B` Degradado).~~
+
+   > # ⛔ 07/09/2026 — TODO ESTE PUNTO 3 ES HISTÓRICO. **EL MANDO NO EXISTE, Y AQUÍ ABAJO HABÍA UN GESTO DE BANCO QUE NO SE HACE**
+   >
+   > **`DECISIONES.md` `D-1` (05/09), confirmada por el responsable:** *«ya no tenemos mandos de A y
+   > B, sólo la app, los quitamos»*. **No hay emisor, no hay receptor RF, no hay pulsadores y `J16`
+   > p5 y p8 quedan LIBRES Y SIN CABLEAR** (`15_Lista_de_Compras_Hardware.md`, `A9` con **cero
+   > unidades**). Lo que **sí** se conserva es el **CÓDIGO** —`mando_ambarLocal()` sostiene el veto
+   > de SFTY-21, y borrar su armador lo deja **abierto**, no inerte—.
+   >
+   > 🛑 **Y LO QUE HAY QUE LEER ANTES DE BAJAR AL BANCO, porque este apartado lo mandaba hacer:**
+   > el gesto *«`J16` p5 contra p4 y p8 contra p7»* que se describe más abajo **QUEDA ANULADO**.
+   > No se le acerca un cable a `p5` ni a `p8` — ni «a ver qué pasa»: **`p4` es adyacente a `p5`**,
+   > y un puente corrido una posición pone el riel de 3,3 V contra masa. **Es el candidato del
+   > sobrecalentamiento que abortó el paso 29** del banco del 3–4/09 y dejó una tarjeta Maestro con
+   > un corto (`N-116`). Está escrito igual en `12_Cobertura_de_Pruebas_y_Huecos.md` §1 y en
+   > `15_Lista_de_Compras_Hardware.md` (bloque `A9`).
+   >
+   > 🔴 **Y el código del mando SIGUE LEYENDO ESOS DOS PINES** —`botones_actualizar()` llama a
+   > `mando_registrarPulso(MANDO_A/B)` en cada flanco—, así que **cualquier cosa que se cablee ahí
+   > compone secuencias sin que nadie lo pida** (`DECISIONES.md` `A-2`). **Nada se cablea en `J16`
+   > p5 ni p8.**
+   >
+   > **Lo que sigue debajo se conserva porque describe el vocabulario real del código que se queda,
+   > y porque el razonamiento del *activo en ALTO* gobierna hoy el cableado de las CÁMARAS.**
+
    🔴 **LAS SECUENCIAS DE ESTA LÍNEA NO SON LAS DEL FIRMWARE.** Un operario que las ejecute no
    consigue nada. **MEDIDO** en `Maestro/src/mando.cpp`:
 
@@ -119,16 +171,26 @@ Este documento recopila los puntos clave de diseño funcional y operativo acorda
    | `B · B · B` | ≤ 12 s | **Ámbar** — 3 destellos rojos | `:230-234` |
    | `A · B · A · B` | ≤ 18 s | **Degradado** — 4 destellos rojos | `:204-214` |
 
-   **No existe secuencia para Modo Manual.** El mando **se conserva** sobre los canales `A` (`PB9`)
-   y `B` (`PB13`); `C` y `D` se retiraron porque sus pines pasaron a cámaras, y **ninguna secuencia
-   los usaba**. ⚠️ **El receptor RF no se ha comprado en ninguna punta**, así que ~~hoy no hay con qué
-   generar los pulsos~~ **hoy no hay con qué generarlos POR RADIO desde el piso** — en banco se
-   generan con un cable, y el gesto está medido (`N-118`, `346ea5f`):
+   **No existe secuencia para Modo Manual.** ~~El mando **se conserva** sobre los canales `A` (`PB9`)
+   y `B` (`PB13`)~~ ⛔ **CADUCADO EL 05/09 POR `D-1`: se conserva el CÓDIGO, no el mando.** `C` y `D`
+   se retiraron porque sus pines pasaron a cámaras, y **ninguna secuencia los usaba**.
+   ⚠️ ~~**El receptor RF no se ha comprado en ninguna punta**, así que hoy no hay con qué generarlos
+   POR RADIO desde el piso — en banco se generan con un cable, y el gesto está medido (`N-118`,
+   `346ea5f`):~~
+   ⛔ **TACHADO EL 07/09 — `D-1`: no se va a comprar ningún receptor** (`15_…`, `A9`, cero unidades),
+   **y el gesto de banco tampoco se hace.**
 
-   🛑 **`J16` p5 contra p4** (canal `A`) y **`J16` p8 contra p7** (canal `B`) — los **3,3 V del pin
-   contiguo—, NUNCA contra masa.** Estas entradas se leen en `INPUT` pelado y **activas en ALTO**,
-   igual que las cámaras de la tabla de arriba; `J16` tiene **una sola masa en todo el conector**
-   (`p2`) y un cable a ella **no produce absolutamente nada**.
+   🛑 ~~**`J16` p5 contra p4** (canal `A`) y **`J16` p8 contra p7** (canal `B`) — los **3,3 V del pin
+   contiguo—, NUNCA contra masa.**~~ 🔴 **ANULADO EL 07/09. NO SE PUENTEA `p5` NI `p8` CONTRA NADA:**
+   `p4` es adyacente a `p5`, un puente corrido una posición pone 3,3 V contra masa, y ése es el
+   candidato del sobrecalentamiento del paso 29 (`N-116`). **Esos dos pines quedan libres y sin
+   cablear.**
+
+   ✅ **Lo que del razonamiento SÍ sigue vigente, y por eso no se borra: las entradas de `J16` se
+   leen en `INPUT` pelado y son ACTIVAS EN ALTO** —`J16` tiene **una sola masa en todo el conector**
+   (`p2`) y 3,3 V en cada posición contigua, así que un cable a masa **no produce absolutamente
+   nada**—. **Eso es lo que gobierna hoy el cableado de las CÁMARAS** en `p10` y `p12` (`D-2`,
+   `D-3`, y `15_…` línea `A7`).
 
    👁️ **La confirmación no necesita app ni terminal: la dan las propias luces**
    (`Maestro/src/mando.cpp:45-47`) — los destellos rojos de la tabla, y un **ámbar rápido de 2 s**
@@ -140,8 +202,13 @@ Este documento recopila los puntos clave de diseño funcional y operativo acorda
 
 4. 🆕 **Mínimo de verde y de rojo: 3 minutos — DECIDIDO EL 04/09/2026.** Sube de 1 a 3 min (los
    techos siguen en 15 min). Motivo del responsable, literal: **«tres minutos es la mínima distancia
-   de seguridad»**. **MEDIDO** en `Maestro/src/modo_automatico.cpp:51-52`
-   (`VERDE_MIN_MIN = 3`, `ROJO_MIN_MIN = 3`).
+   de seguridad»**. **MEDIDO, y la cita re-corrida el 07/09** —~~`Maestro/src/modo_automatico.cpp:51-52`~~,
+   que ya no es donde viven: `N-137` las centralizó—:
+
+   ```
+   $ grep -rn "VERDE_MIN_MIN =" --include=*.h 01_Firmware/Maestro
+   Maestro/include/limites_ciclo.h:58:static const uint8_t VERDE_MIN_MIN = 3,  VERDE_MIN_MAX = 15;
+   ```
 
    **El razonamiento, en una línea:** en un paso alternado de un solo carril un camión pesado tarda
    entre 5 y 8 s **sólo en reaccionar y arrancar**; con un verde de 60 s lo que se produce no es una
@@ -181,8 +248,12 @@ Este documento recopila los puntos clave de diseño funcional y operativo acorda
    emparejados **antes de conectar**. **Y ese rótulo tiene una pregunta abierta: §5.1.**
 
    ⚠️ **Lo que se acepta al decidirlo, y va escrito para que conste:** con el Maestro caído o
-   inaccesible, la única superficie que queda en el Esclavo son sus cinco comandos. **No hay forma de
-   cambiar el modo del cruce desde el Esclavo**, ni por Bluetooth ni por radio. Ver §5.3.
+   inaccesible, la única superficie que queda en el Esclavo son sus comandos propios —~~cinco~~
+   **SIETE, re-medidos el 07/09**, ver el `grep` de §5.3—. ~~**No hay forma de cambiar el modo del
+   cruce desde el Esclavo**, ni por Bluetooth ni por radio.~~ 🔵 **MATIZADO EL 07/09 por `D-18`: sí
+   hay UNA, y es la que importa en ese escenario — `SET_MODO:DEGRADADO`.** No cambia el modo *del
+   cruce*: pone **esa punta** en Degradado, que es el modo diseñado para cuando la otra no contesta.
+   Ver §5.3.
 
 ---
 
@@ -219,10 +290,23 @@ corrija **antes** de la primera puesta en campo.
    - **Salida asimétrica**: una punta en ámbar contra una punta en verde. Sin solución técnica sin
      radio; la mitigación es **procedimental** (verificación visual de ambas puntas, también al
      salir).
-6. **Códigos del mando de relés.** Al comprar el receptor del Esclavo hay que **exigir código
+6. ~~**Códigos del mando de relés.** Al comprar el receptor del Esclavo hay que **exigir código
    independiente del mando del Maestro**. Con ambos a menos de una cuadra y el mismo código, una sola
    secuencia metería las dos unidades en Degradado a la vez, **saltándose la verificación por separado
-   que justifica todo el diseño**. ¿Está esto en la especificación de compra?
+   que justifica todo el diseño**. ¿Está esto en la especificación de compra?~~
+
+   ⛔ **PREGUNTA SIN OBJETO DESDE EL 05/09 (`D-1`): NO SE COMPRA NINGÚN RECEPTOR** —`15_…`, línea
+   `A9`, **cero unidades**—. Se tacha en vez de borrarse porque **la propiedad que protegía sigue
+   siendo la que justifica el diseño**: entrar en Degradado exige **verificación visual de las dos
+   puntas por separado**, y hoy quien la sostiene es el procedimiento, no un código de radio.
+
+   🔵 **Y la pregunta que SUSTITUYE a ésta, porque el camino cambió: `D-18` (05/09) — el Modo
+   Degradado del poste 2 se pide POR APP**, con `CMD:PIN:1234:SET_MODO:DEGRADADO`. **Construido y
+   medido el 07/09** en `Esclavo/src/bluetooth.cpp` (símbolo `SET_MODO:DEGRADADO`).
+   ⚠️ **Con una sola app y un solo teléfono, nada impide que el operario mande las dos puntas sin
+   moverse del sitio** — que es exactamente el riesgo que el código independiente evitaba, una capa
+   más arriba. **¿Se exige por procedimiento la verificación visual en cada poste antes de mandar la
+   orden a la otra punta? Dueño: el responsable.**
 
 ---
 
@@ -345,8 +429,33 @@ Las tres salen de los cambios de esa fecha —el mínimo de 3 minutos (§2.4), o
 
 3. 🟡 **Sin Maestro no hay cambio de modo.** Consecuencia directa de §2.5, y va aquí para que se
    firme y no se descubra en obra: con el Maestro caído, inaccesible o fuera de servicio —hoy hay una
-   tarjeta Maestro así, N-116—, la única superficie que queda en el Esclavo son sus cinco comandos:
-   **ámbar de emergencia, cancelarlo y pedir paso**. Y el mando de relés, la otra vía de último
-   recurso, **también vive sólo en el Maestro**: el receptor del Esclavo no se ha comprado (N-19).
-   **¿Se acepta, o hace falta un procedimiento de contingencia escrito para ese caso?**
-   **Dueño: el responsable.**
+   tarjeta Maestro así, N-116—, la única superficie que queda en el Esclavo son sus comandos propios.
+
+   🔧 **RE-MEDIDO EL 07/09, Y LA CUENTA HA CAMBIADO DOS VECES: SON SIETE, NO CINCO NI SEIS.** Este
+   punto decía «cinco» mientras §2.5 de este mismo documento ya había corregido a «seis» — una
+   contradicción dentro del propio fichero. Y desde entonces `D-18` añadió el séptimo:
+
+   ```
+   $ grep -nE 'strcmp\(accion|strncmp\(accion' 01_Firmware/Esclavo/src/bluetooth.cpp
+   547:  if (strcmp(accion, "AMBAR_EMERGENCIA") == 0) {
+   585:  } else if (strcmp(accion, "CANCELAR_AMBAR") == 0) {
+   668:  } else if (strcmp(accion, "FORZAR_ROJO") == 0) {
+   676:  } else if (strcmp(accion, "SOLICITAR_PASO") == 0) {
+   694:  } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
+   771:  } else if (strcmp(accion, "TEST_LEDS") == 0) {
+   784:  } else if (strncmp(accion, "SET_RTC:", 8) == 0) {
+   ```
+
+   🔵 **Y el séptimo cambia la respuesta de esta pregunta: `SET_MODO:DEGRADADO` (`D-18`, 05/09).**
+   Con el Maestro caído, el Esclavo **ya no se queda sin ninguna vía de cambio de modo**: se le puede
+   pedir el Degradado por app, que es justamente el modo para cuando la otra punta no contesta.
+
+   ~~Y el mando de relés, la otra vía de último recurso, **también vive sólo en el Maestro**: el
+   receptor del Esclavo no se ha comprado (N-19).~~ ⛔ **CADUCADO EL 05/09 (`D-1`): no hay mando en
+   ninguna de las dos puntas, y no se va a comprar.**
+
+   🛑 **Lo que la pregunta pasa a ser, y sigue siendo del responsable: `D-16` — SIN TELÉFONO NO HAY
+   FORMA DE OPERAR EL EQUIPO.** No es una avería: es una propiedad declarada del sistema desde que se
+   retiró el mando. **¿Se acepta, y qué procedimiento de contingencia se escribe** —segundo terminal
+   emparejado, cable de carga, quién lo lleva— **para el día que el móvil llegue descargado a un
+   poste?** **Dueño: el responsable.**

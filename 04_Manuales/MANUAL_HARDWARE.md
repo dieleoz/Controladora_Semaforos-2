@@ -2,7 +2,19 @@
 
 Este documento describe la arquitectura física de las placas impresas (PCBs), los componentes electrónicos, y la topología de red utilizada en el ecosistema de semáforos móviles.
 
-**Última revisión:** 31 de agosto de 2026 — **el apartado 3 (cámaras) estaba MAL y se ha corregido.**
+> ## 🔴 REVISIÓN DEL 7 DE SEPTIEMBRE DE 2026 — léase antes que el cuerpo
+>
+> | | |
+> |---|---|
+> | 🔴 **`D-14` está DECIDIDA y NO TIENE CAMINO** | *«el controlador cierra un contacto y la cámara graba»*: **el firmware no mueve ninguna salida libre**. `J9`, `J11` y `J13` están fabricadas enteras y **declaradas y muertas** — cero `pinMode`, cero `digitalWrite`. §5.bis punto 5 |
+> | 🔴 **`A·A·A` en `J16` p5 arranca el ciclo sin guarda** | Es la única de las tres secuencias del mando que **abre paso**, y la única sin validación. §3.2 |
+> | ⛔ **6 de las 9 citas `fichero:linea` estaban caducadas**, y en los bloques de `grep` publicados fallaron **6 de 14 lineas** | Y una señalaba al **fichero equivocado**: la lectura de cámara se mudó a `camara_leerPin()` en `botones.cpp`. Se sustituyen por símbolos |
+> | ⛔ **Un `grep` publicado como cero daba hits al re-correrlo** | El de `HC-05`/`JDY` iba **sin acotar** y muerde los binarios de `U8g2` en `.pio/`. **Un cero de `grep` sólo vale si se dice sobre qué se corrió.** §4 |
+>
+> **Manda [`DECISIONES.md`](../DECISIONES.md)**, y en cobre medido
+> `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`. **Este manual nunca gana.**
+
+**Revisión anterior:** 31 de agosto de 2026 — **el apartado 3 (cámaras) estaba MAL y se ha corregido.**
 Llamaba a `PB8` *«Entrada Libre»* y mandaba enchufarle una cámara: `PB8` es el **`LED_TESTIGO`**, una
 salida por `R16` 1 kΩ al LED `D5`. Y mandaba las cuatro cámaras contra `GND` cuando la entrada es
 **activa en ALTO**. Es `N-105` de [`roadmap.md`](../roadmap.md). El texto viejo queda **tachado en su
@@ -74,14 +86,31 @@ El firmware V7.6 en las placas STM32 es 100% agnóstico a la topología de red i
 > ```
 >
 > `PB8` sale por **`R16` de 1 kΩ al LED `D5`**. No es bornera, no es entrada optoacoplada y no hay
-> dónde enchufar un contacto seco. El firmware lo deja **en alta impedancia a propósito**
-> (`01_Firmware/Maestro/src/modo_inteligente.cpp:50`): con `INPUT_PULLUP` se le colarían ~40 µA y
-> quedaría un testigo encendido a medias que nadie sabría explicar.
+> dónde enchufar un contacto seco. El firmware lo deja **en alta impedancia a propósito** —símbolo
+> `pinMode(LED_TESTIGO, INPUT)` en `Maestro/src/modo_inteligente.cpp`; ⛔ *(la cita `:50` estaba
+> caducada; hoy `:137`)*—: con `INPUT_PULLUP` se le colarían ~40 µA y quedaría un testigo encendido
+> a medias que nadie sabría explicar.
 >
-> **Y el `GND` de las cuatro líneas también estaba mal.** La entrada de cámara es
-> **activa en ALTO** (`modo_inteligente.cpp:25`, `:46`) y la bornera saca el pin **junto a 3,3 V**:
-> cableada contra masa, **la cámara no dispara nunca**. Es `N-105`; ver el detalle y las dos
-> configuraciones de la salida de la cámara en [`MANUAL_USUARIO.md`](MANUAL_USUARIO.md) §6.3.
+> **Y el `GND` de las cuatro líneas también estaba mal.** La entrada de cámara es **activa en
+> ALTO** y la bornera saca el pin **junto a 3,3 V**: cableada contra masa, **la cámara no dispara
+> nunca**. Es `N-105`; ver el detalle y las dos configuraciones de la salida de la cámara en
+> [`MANUAL_USUARIO.md`](MANUAL_USUARIO.md) §6.3.
+>
+> ⛔ **Y la cita de esa afirmación —~~`modo_inteligente.cpp:25`, `:46`~~— no sólo estaba caducada:
+> SEÑALABA AL FICHERO EQUIVOCADO (corregido el 07/09).** La lectura de toda cámara se centralizó en
+> **`camara_leerPin()`, en `botones.cpp` de las dos puntas**, y el `pinMode` se fue con ella. Es la
+> deriva que un número de línea no puede delatar —el fichero viejo **sigue existiendo**, así que la
+> guarda de rutas no ve nada—:
+>
+> ```
+> $ grep -rn "^bool camara_leerPin" 01_Firmware/Maestro/src/botones.cpp 01_Firmware/Esclavo/src/botones.cpp
+> 01_Firmware/Maestro/src/botones.cpp:114:bool camara_leerPin(uint8_t pin) {
+> 01_Firmware/Esclavo/src/botones.cpp:127:bool camara_leerPin(uint8_t pin) {
+> ```
+>
+> Cuerpo: `if (digitalRead(pin) == HIGH) { delay(5); return (digitalRead(pin) == HIGH); }` —
+> **activo en ALTO, con doble lectura antirrebote.** La conclusión no cambia; el sitio donde
+> comprobarla, sí.
 >
 > Es la **tercera** vez que este proyecto publica un pin como libre sin cruzarlo contra `pines.h`
 > (`N-59`, `N-67`, y ésta). **«Pin libre» no es una observación: es una medida contra `pines.h`.**
@@ -101,10 +130,15 @@ El firmware V7.6 en las placas STM32 es 100% agnóstico a la topología de red i
 
 ### 3.2 ✅ El reparto real de estos pines
 
+> ⛔ **BARRIDO DE CITAS DEL 07/09: de las **9** citas `fichero:linea` de este manual, **6** estaban caducadas; y en los bloques de `grep` publicados, **6 de 14 lineas**.**
+> Las movió `4b2841b`, que insertó las marcas `D-x` en los comentarios del firmware. **Se
+> sustituyen por símbolos** — un símbolo sobrevive a que alguien inserte veinte líneas encima; un
+> número de línea caduca solo, en silencio y con la autoridad de un dato.
+
 | pin | qué es de verdad | nivel |
 |---|---|---|
-| **`PB0`** | **`CAM_DEMANDA_PIN`** — la **única** entrada de cámara con firmware que la lee hoy. Bornera **`J14`**, con `R64` 10 kΩ (*pull-**down***) + `C25` 100 nF = antirrebote por hardware de 1 ms | ✅ **MEDIDO** (`pines.h:43-46`; se lee en `modo_inteligente.cpp:98`, `:136` y `Esclavo/src/main.cpp:350`) |
-| **`PB8`** | **`LED_TESTIGO`** — salida por `R16` 1 kΩ al LED `D5`. **No es entrada de nada** | ✅ **MEDIDO** (`pines.h:63`) |
+| **`PB0`** | **`CAM_DEMANDA_PIN`** — ~~la **única** entrada de cámara con firmware~~ 🛑 **es UNA de TRES**: también `PB14` y `PB15` se leen como cámara. Bornera **`J14`**, con `R64` 10 kΩ (*pull-**down***) + `C25` 100 nF = antirrebote por hardware de 1 ms | ✅ **MEDIDO 07/09** (símbolo `CAM_DEMANDA_PIN` en `pines.h`; se lee vía `camara_leerPin(CAM_DEMANDA_PIN)` en `modo_inteligente.cpp` y `digitalRead(CAM_DEMANDA_PIN)` en `Esclavo/src/main.cpp`). ⛔ *(de las tres citas anteriores sólo `main.cpp:350` seguía valiendo)* |
+| **`PB8`** | **`LED_TESTIGO`** — salida por `R16` 1 kΩ al LED `D5`. **No es entrada de nada** | ✅ **MEDIDO 07/09** (`pines.h:63` — **re-corrida y correcta**) |
 | **`PB9`** (`J16` p5) | **`BOTON1` = `MANDO_A`** del mando de relés. 🛑 **BORNE VACÍO — pero el CÓDIGO lo sigue leyendo** | ✅ **MEDIDO** (símbolos `BOTON1` en `pines.h`, `mando_registrarPulso(MANDO_A)` en `botones.cpp`) |
 | **`PB13`** (`J16` p8) | **`BOTON2` = `MANDO_B`**. 🛑 **BORNE VACÍO — y su código es el único que arma `ambarLocal`** | ✅ **MEDIDO** (símbolos `BOTON2` en `pines.h`, `mando_registrarPulso(MANDO_B)` en `botones.cpp`, `ambarLocal = true` en `Esclavo/src/mando.cpp`) |
 
@@ -132,7 +166,11 @@ El firmware V7.6 en las placas STM32 es 100% agnóstico a la topología de red i
 > pines **no lo eran**. En el binario que había en la tarjeta aquel día `BOTON1/2` iban en
 > `INPUT_PULLUP` y los pines de cámara en `INPUT` pelado: **mismo cobre, distinto `pinMode`, distinta
 > tensión** (9,92–9,94 kΩ en los cuatro). **No se cite como avería.** Hoy no queda **ningún**
-> `INPUT_PULLUP` vivo en el firmware: los 20 hits del `grep` son comentarios.
+> `INPUT_PULLUP` vivo en el firmware: **re-medido el 07/09, los `20` hits del `grep` sobre `src/` e
+> `include/` de las dos puntas son comentarios, y `grep -rn "pinMode(.*INPUT_PULLUP"` da `0`.**
+> *(La distinción importa: contar `INPUT_PULLUP` cuenta comentarios —en este repositorio los
+> comentarios citan lo que explican—, así que el cero hay que medirlo con el patrón del `pinMode`,
+> no con el del nombre.)*
 | **`PB14`** (`J16` **p10**) | **`CAM_C_PIN` — LA CÁMARA, una por poste.** `INPUT` pelado, **activo en ALTO** | ✅ **MEDIDO** (`#define CAM_C_PIN`, `pinMode(CAM_C_PIN, INPUT)`) |
 | **`PB15`** (`J16` **p12**) | **`CAM_D_PIN`** — pin de cámara, hoy **vacío**. `INPUT` pelado, **activo en ALTO** | ✅ **MEDIDO** (`#define CAM_D_PIN`, `pinMode(CAM_D_PIN, INPUT)`) |
 
@@ -142,16 +180,20 @@ El firmware V7.6 en las placas STM32 es 100% agnóstico a la topología de red i
 > afirmación falsa con la palabra *«MEDIDO»* encima es **peor que sin ella** —quien la lee deja de
 > ir a la fuente—, y por eso queda escrito que aquí hubo una.
 >
-> **El estado de hoy, con el `grep` que lo encuentra —corrido el 05/09:**
+> **El estado de hoy, con el `grep` que lo encuentra —re-corrido el 07/09:**
 >
 > ```
 > $ grep -n "define CAM_._PIN" 01_Firmware/Maestro/include/pines.h
-> 148:#define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco (era BOTON3, "Aceptar")
-> 149:#define CAM_D_PIN   PB15  // J16 p12 - camara de contacto seco (era BOTON4, "Cancelar")
+> 165:#define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco (era BOTON3, "Aceptar")
+> 166:#define CAM_D_PIN   PB15  // J16 p12 - camara de contacto seco (era BOTON4, "Cancelar")
 > $ grep -n "^bool botonAceptar\|^bool botonCancelar" 01_Firmware/Maestro/src/botones.cpp
-> 659:bool botonAceptar() { return false; }
-> 660:bool botonCancelar(){ return false; }
+> 672:bool botonAceptar() { return false; }
+> 673:bool botonCancelar(){ return false; }
 > ```
+>
+> ⛔ **Re-corrido el 07/09: los CUATRO números se habían movido** (`148`/`149`→`165`/`166`,
+> `659`/`660`→`672`/`673`). **La salida del `grep` es idéntica palabra por palabra; sólo cambió su
+> posición** — que es exactamente por qué la posición no es la cita.
 >
 > Las dos líneas son idénticas en el Esclavo. `botonAceptar()`/`botonCancelar()` **siguen declaradas
 > a propósito** —devolviendo `false` el compilador conserva cada punto de uso y `git grep` sigue
@@ -164,9 +206,17 @@ El firmware V7.6 en las placas STM32 es 100% agnóstico a la topología de red i
 > **su código se queda**. Lo que alguien cierre sobre `J16` p5 o p8 **SIGUE ENTRANDO al firmware**.
 
 > 🔴 **`PB9`/`PB13` no son un destino posible para una cámara, ni siquiera «provisionalmente».** Son
-> los dos canales del mando: tres pulsos dentro de la ventana de **12 s** (`mando.cpp:38`) componen
-> una secuencia —`A·A·A` = Modo Automático, `B·B·B` = Ámbar y armado de `ambarLocal`—, así que **el
-> tráfico cambiaría el modo del semáforo solo**. Detalle completo en `MANUAL_USUARIO.md` §6.
+> los dos canales del mando: tres pulsos dentro de la ventana de **12 s** (símbolo
+> `VENTANA_TRIPLE_MS` en `mando.cpp`; ⛔ *cita `:38` caducada*) componen una secuencia —`A·A·A` =
+> Modo Automático, `B·B·B` = Ámbar y armado de `ambarLocal`—, así que **el tráfico cambiaría el modo
+> del semáforo solo**. Detalle completo en `MANUAL_USUARIO.md` §6.
+>
+> 🔴 **Y lo que se midió el 07/09 y agrava esto: de las tres secuencias, `A·A·A` es la ÚNICA que
+> ABRE PASO y la ÚNICA SIN GUARDA.** `case ACC_AUTOMATICO:` llama a
+> `modoAutomatico_pedirArranqueDirecto()` y arranca el ciclo **sin comprobar nada**; `A·B·A·B` sí
+> tiene su `if (modo_degradado_evaluarEntrada() == MDG_OK)` delante, y `B·B·B` va a un estado
+> seguro. **Un hilo suelto en `J16` p5 no molesta: programa un verde.** Desarrollo en
+> [`MANUAL_MANDO_4_RELES.md`](MANUAL_MANDO_4_RELES.md) §8.
 
 ### 3.3 ✅ `M3` CERRADA EL 03/09 — las cámaras de `J16` **se cablean**
 
@@ -188,11 +238,15 @@ El firmware V7.6 en las placas STM32 es 100% agnóstico a la topología de red i
 >    $ grep -n "INPUT_PULLUP" 01_Firmware/Maestro/src/botones.cpp
 >    26:  // Aqui ponia `== LOW` con los pines en INPUT_PULLUP, y eso llevaba mal desde el primer
 >    32:  // Con INPUT_PULLUP, el pull-up interno (30-50 kOhm) contra ese 10K deja el pin en
->    511:  // que se leen igual. Aqui ponia INPUT_PULLUP "y ese camino no se toca": el camino sigue
->    520:  // LAS ENTRADAS DE CAMARA: INPUT PELADO, NUNCA INPUT_PULLUP. El reposo lo fija el
+>    518:  // que se leen igual. Aqui ponia INPUT_PULLUP "y ese camino no se toca": el camino sigue
+>    527:  // LAS ENTRADAS DE CAMARA: INPUT PELADO, NUNCA INPUT_PULLUP. El reposo lo fija el
 >    ```
 >
 >    — **cuatro comentarios que cuentan la historia, y ni un solo `pinMode(..., INPUT_PULLUP)` vivo.**
+>    ⚠️ **Y esa última frase no se deduce de este `grep`, que cuenta comentarios: se mide aparte, y
+>    se re-midió el 07/09** —
+>    `grep -rn "pinMode(.*INPUT_PULLUP" Maestro/src Maestro/include Esclavo/src Esclavo/include | wc -l`
+>    → **`0`**. *(Y ⛔ dos de las cuatro líneas de arriba se habían movido: `511`→`518`, `520`→`527`.)*
 >
 > 2. ~~**Orden asimétrico:** `PB14` es `botonAceptar()`, el que EJECUTA, leído activo en BAJO.~~
 >    ✅ **SIN OBJETO: `botonAceptar()` ya no lee ningún pin** —es `return false;`— y `PB14` es
@@ -203,8 +257,10 @@ El firmware V7.6 en las placas STM32 es 100% agnóstico a la topología de red i
 **Lo que SÍ sigue vigente antes de cablear:**
 
 1. 🔴 **`J16` p1 lleva 12 V crudos** —sin opto, sin limitadora, sin clamp— y **se tapa físicamente
-   antes de cablear**. La separación **real sobre cobre** contra la red de 12 V, **MEDIDA** en
-   `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md:576-588`, no es el paso del conector:
+   antes de cablear**. La separación **real sobre cobre** contra la red de 12 V, **MEDIDA** sobre el
+   `.kicad_pcb` y publicada en `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md` —tabla *«separacion
+   minima real»*, que se encuentra con `grep -n "separacion minima real"`—, no es el paso del
+   conector:
 
    | red de 12 V contra | separación mínima real |
    |---|---|
@@ -281,8 +337,18 @@ punto 4. En banco dio *«0 V en rojo, 12 V en ámbar»*, que es exactamente eso.
 >
 > ✅ **MEDIDO el 07/09:** `DS3231_SDA 21` / `DS3231_SCL 22` en `ESP32_Expansion/include/contrato.h`,
 > con driver en `src/reloj_ds3231.cpp` (`#include <Wire.h>`). Y en el firmware del STM32 **no queda
-> ni una configuración de módulo Bluetooth clásico**: `grep -rni "HC-05\|HC05\|JDY"` sobre las dos
-> puntas da **cero**.
+> ni una configuración de módulo Bluetooth clásico**:
+>
+> ```
+> $ grep -rni "HC-05\|HC05\|JDY" 01_Firmware/Maestro/src 01_Firmware/Maestro/include \
+>                                01_Firmware/Esclavo/src 01_Firmware/Esclavo/include | wc -l
+> 0
+> ```
+>
+> ⚠️ **El `grep` va ACOTADO a `src/` e `include/` a propósito, y eso es parte de la medida.** Sin
+> acotar —como estaba publicado— **da hits**: los directorios `.pio/` traen la librería `U8g2`, y
+> la cadena `JDY` aparece dentro de sus **datos binarios de fuentes**. Un cero de `grep` sólo vale
+> si se dice sobre qué se corrió.
 >
 > ⚠️ **Ojo con el PIN, que son DOS y no el mismo:** el `0000`/`1234` del **emparejado de Android** es
 > el del módulo; el `1234` de `CMD:PIN:1234:` es el del **semáforo**. Detalle completo en
@@ -290,7 +356,7 @@ punto 4. En banco dio *«0 V en rojo, 12 V en ámbar»*, que es exactamente eso.
 > [`MANUAL_INSTALACION_RELOJ_DS3231.md`](MANUAL_INSTALACION_RELOJ_DS3231.md) §7.
 
 Para soporte técnico, caja negra de alarmas y monitoreo desde el suelo sin subir al poste (estándar probado en proyecto Baliza):
-* **Pines de Conexión:** Puerto **USART1 REMAPEADO** del STM32 — **`PB6` TX ➔ `RXD` BT, `PB7` RX ➔ `TXD` BT**, conector **`J17`**. ✅ **MEDIDO EN EL FUENTE:** `static HardwareSerial SerialBT(PB7, PB6);` (`01_Firmware/Maestro/src/bluetooth.cpp:28`, con el porqué del remapeo en `:16-22`).
+* **Pines de Conexión:** Puerto **USART1 REMAPEADO** del STM32 — **`PB6` TX ➔ `RXD` BT, `PB7` RX ➔ `TXD` BT**, conector **`J17`**. ✅ **MEDIDO EN EL FUENTE el 07/09:** `grep -n "HardwareSerial SerialBT" 01_Firmware/Maestro/src/bluetooth.cpp` → **`30:static HardwareSerial SerialBT(PB7, PB6);`** (Esclavo, `29:`); el porqué del remapeo está en el comentario que empieza *«USART1 REMAPEADO a PB7 (RX) / PB6 (TX)»*, justo encima. ⛔ *(las citas `:28` y `:16-22` estaban caducadas.)*
   > ⛔ Este apartado publicó ~~«`PA9` TX ➔ `RXD` BT, `PA10` RX ➔ `TXD` BT»~~ hasta el 31/08/2026. Ese
   > era el sitio del puerto **antes de `N-76`**, y no es un detalle de redacción: manda soldar el módulo
   > Bluetooth a dos pines por los que hoy **no sale ni un byte**. El técnico no vería un error — vería
@@ -395,8 +461,38 @@ $ grep -rn "PEATON\|BUZZER" 01_Firmware/Maestro/src 01_Firmware/Esclavo/src
 01_Firmware/Maestro/src/main.cpp:35:  // ROJO_PEATON y VERDE_PEATON, que estaban sin custodia.
 ```
 
-**Un solo hit, y es un comentario.** No es una avería: es obra no hecha. Se anota para que nadie
-prometa una cabeza peatonal o un zumbador como función del equipo.
+**Un solo hit, y es un comentario.** *(Re-corrido el 07/09: sigue dando exactamente esta línea —
+una de las pocas citas de este manual que no caducó.)* No es una avería: es obra no hecha. Se anota
+para que nadie prometa una cabeza peatonal o un zumbador como función del equipo.
+
+> ## 🔴 Y DE AQUÍ CUELGA UNA DECISIÓN YA TOMADA QUE **NO TIENE CAMINO**: `D-14` (07/09)
+>
+> **`D-14` de [`DECISIONES.md`](../DECISIONES.md)** decide que la vía buena para grabar las
+> incidencias es **la ENTRADA de alarma de la cámara**: *«el controlador cierra un contacto en ROJO
+> → la cámara graba»*, verificado en el manual del fabricante y **sin la coletilla de modelos** que
+> bloquea la otra vía. Es la única vía documentada de punta a punta.
+>
+> 🔴 **Lo que NO estaba escrito en ninguna parte, y es de esta página: ESE CONTACTO NO EXISTE EN EL
+> FIRMWARE.** No es que falte configurar la cámara — **es que el controlador no tiene hoy ninguna
+> salida con la que cerrarlo**:
+>
+> | salida | estado |
+> |---|---|
+> | Las **seis** de luz (`ROJO1/2`, `AMARILLO1/2`, `VERDE1/2`) | ✅ vivas, pero **son la luz**: no se pueden reutilizar |
+> | `J15` (`MOTOR_TALANQUERA`, `PB2`) | ✅ viva, y **es la pluma** |
+> | **`J9`** (`VERDE_PEATON`), **`J11`** (`ROJO_PEATON`), **`J13`** (`BUZZER`) | 🛑 **fabricadas enteras y DECLARADAS Y MUERTAS** — el `grep` de arriba: cero `pinMode`, cero `digitalWrite` |
+>
+> 👉 **O sea que `D-14` necesita gastar uno de esos tres canales muertos, y eso es firmware que hoy
+> no está escrito.** El molde existe y está probado —es el mismo de `J15`, que **funcionó en banco
+> el 04/09**— y el coste está medido en **16 B de flash por desensamblado**, pero **el trabajo no
+> se ha hecho y nadie debe darlo por hecho al parametrizar la cámara.**
+>
+> ⚠️ **Y el aviso eléctrico que va pegado, porque quien cablee ahí se lo encuentra:** esos bornes
+> **no están a 0 V en reposo, están a ~12 V** (punto 4 de este mismo apartado), y **comparten la
+> masa del controlador** (punto 3). La entrada de alarma de la cámara espera un **contacto seco**;
+> lo que estos bornes entregan es un **drenador con pull-up a 12 V**. **No se conectan directamente
+> sin resolver eso**, y cómo resolverlo **no está decidido**: va como pregunta, no como
+> instrucción.
 
 ---
 

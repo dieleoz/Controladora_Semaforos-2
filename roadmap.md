@@ -54,9 +54,16 @@ la cinta del 05/09 a las 22:19.
 5. 🟡 **La firma del funcional sobre el manual del «doble» no existe** — y `TECHO_POR_SUELO = 2`
    **ya salio en el paquete del 05/09**.
 
+> 🔴 **Y desde el 07/09 hay una SEXTA, que puede ser la mas cara de todas y se contesta en diez
+> minutos sin tarjeta ni cable: `N-159` — la analitica de las camaras COMPRADAS probablemente NO
+> puede accionar el rele.** Ver §3.8. Si no puede, **el camino de `J16` no sirve** y la demanda
+> entra por otro diseno.
+
 > **Por donde se empieza manana:** por el **peldano gratis** de N-116 —desenchufar `J14`, `J15`,
 > `J16`, `J17` y `J2` y remedir el riel de 3,3 V—. Cuesta cinco minutos y **decide si hay que
 > fabricar placa**. Esta desarrollado en §6.1.
+>
+> **Y en paralelo, porque no compite por las manos:** el `ENSAYO 0` de §3.8 es **solo pantalla**.
 
 ---
 
@@ -205,6 +212,49 @@ pad 16 = `/S7`, pad 17 = `/S8`.
 Hoy no explota —esos dos canales **no tienen una linea de firmware detras**, ver `D-d`—, pero es
 la trampa que espera al primero que enchufe una cabeza peatonal. **Los documentos lo tienen bien:
 es la placa la que engana.**
+
+### 3.8 · 🔴 `N-159` — la analitica de las camaras COMPRADAS probablemente no acciona el rele
+
+**Las camaras ya se compraron** (`D-10`, `DS-2CD2683G2-IZS`), y de un solo bit suyo cuelga todo el
+camino de `J16`. Con la ficha del modelo delante, el papel **no lo cierra en positivo y por
+primera vez apunta a que NO**:
+
+| fuente | que dice |
+|---|---|
+| ficha del modelo, pag. 4, fila `Linkage Method` | enumera **cinco** metodos —FTP/SD/NAS, centro de vigilancia, **grabacion**, **captura**, email— y **`trigger alarm output` NO esta** |
+| manual `UD28967B-C`, impresa 67 | *«Trigger Alarm Output … only supported by certain models»* |
+
+**Y el argumento con el que lo dabamos por probable se retira.** Se decia *«la ficha pone
+`Alarm: 1 in, 1 out`, luego se puede»*: **el borne queda enteramente explicado sin la analitica**,
+porque el manual documenta **dos formas de cerrarlo sin ella** —un boton del navegador y un cierre
+**por horario**, impresa 68—.
+
+> 🔴 **Tambien se cae la prueba que sosteniamos sobre la polaridad.** Se publico que
+> `Alarm Type` NO/NC estaba documentado para la ENTRADA en la pag. 44. **Esa pagina no documenta
+> ni un valor**: dice *«Select **Alarm Input NO.** and Alarm Type»*, y **`NO.` con punto es
+> *Number***, no *Normally Open*. `NO` aparece **una sola vez** en las 110 paginas —impresa 87,
+> *Road Traffic*, de la entrada y donde **no se elige**— y `NC` **cero**. La conclusion no cambia;
+> la prueba que la sostenia era falsa.
+
+**`ENSAYO 0` — diez minutos, SOLO PANTALLA, sin tarjeta y sin cable:**
+`Configuration -> Event -> Smart Event -> Intrusion Detection` *(si no aparece, habilitarla antes
+en `VCA -> VCA Resource`)* -> `Enable` -> bajar a `Linkage Method` -> **mirar si esta la casilla**,
+y anotar **la lista completa** de metodos que ofrezca la pantalla, que es lo que contrasta la ficha
+contra el equipo real.
+
+| resultado | consecuencia |
+|---|---|
+| **la casilla esta** | el camino de `J16` sirve. Se sigue con `A-7` y el resto de la parametrizacion |
+| **no esta** | 🔴 **el camino de `J16` NO sirve.** Hay que ir por rele de NVR o por evento de red — **otro diseno**, y con red donde `D-12` declara que no la hay |
+
+**Y si no esta, la camara no se pierde:** `Trigger Recording` **si** figura en la ficha y el
+`Record Schedule` admite tipo `Event`. **Muere el bit al controlador, no la grabacion.**
+
+### 3.9 · 🟠 `ESP32_Expansion` no esta en el censo de funciones huerfanas
+
+`costura_10` censa **Maestro y Esclavo**. El modulo de expansion **no lo mira nadie**, y censado a
+mano salen **siete huerfanas**. Es `N-73` —la Caja Negra documentada en cuatro manuales y sin un
+solo llamador— repitiendose en el modulo nuevo, **y esta vez sin instrumento que lo vea**.
 
 ---
 

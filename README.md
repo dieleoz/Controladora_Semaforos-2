@@ -88,7 +88,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
-| banco por packs *(76 packs)* | ✅ | **1180/1180 comprobaciones en 76 packs**. El NUMERADOR no lo vigila `documentos_01` a propósito —se estaría midiendo a sí mismo—; de eso se encarga `documentos_05` comparando las copias entre sí |
+| banco por packs *(77 packs)* | ❌ | **1200/1201 comprobaciones en 77 packs** — la que falta es el hallazgo de `decisiones_01_anclas`: `D-14` y `D-17` están **VIGENTES** en `DECISIONES.md` y **no tienen una sola ancla** en el firmware. El NUMERADOR no lo vigila `documentos_01` a propósito —se estaría midiendo a sí mismo—; de eso se encarga `documentos_05` comparando las copias entre sí |
 | compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **87.6 %** · 63.7 % · 20.6 % · 35.7 % — *el Maestro ocupa **57416 de 65536 B**, o sea **8.120 B libres**; el Esclavo, **41772 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
@@ -106,10 +106,17 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | arnés de las dos puntas | ✅ | **42/42** — el C++ **real de las DOS puntas** ejecutándose en el mismo proceso y el mismo instante: verde simultáneo en **0 de 53.236 instantes** |
 | arnés del automático | ✅ | **99/99** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` + `modo_inteligente.cpp`, `demanda.cpp` y el `botones.cpp` real, y comprueba SFTY-2 sobre las escrituras de pin |
 
-**20 PASS · 0 FALLA · 0 ABORTADO, de 20 comprobaciones — la compuerta sale con código `0`.**
+**19 PASS · 1 FALLA · 0 ABORTADO, de 20 comprobaciones — la compuerta sale con código `1`.**
 
-> 🟢 **Y ese verde es más peligroso que el rojo, no menos.** Mientras la compuerta salía con `1`
-> nadie la confundía con un permiso; un `0` sí se confunde. Lo que dice es exactamente esto:
+> 🔴 **El `1` es el hallazgo, no una regresión.** Lo acusa `decisiones_01_anclas`: `D-14` —*el
+> controlador cierra un contacto y la cámara graba*, que fue **el argumento de una compra**— y
+> `D-17` —`CMD:LEER_RTC`, **construida** en `ESP32_Expansion/src/despachador.cpp` y **sin marcar**—
+> están vigentes en `DECISIONES.md` sin correspondencia en el fuente. La primera se apaga
+> **implementándola**; la segunda, **anclando** el código que ya existe.
+
+> 🟢 **Y cuando vuelva a `0`, ese verde será más peligroso que el rojo, no menos.** Mientras la
+> compuerta sale con `1` nadie la confunde con un permiso; un `0` sí se confunde. Lo que dice es
+> exactamente esto:
 > *los modelos y los arneses de PC no encuentran nada*. **No dice que el firmware funcione en la
 > tarjeta.** El contraejemplo está fechado: los tres defectos que pararon el banco del 3-4/09
 > pasaron estas 20 comprobaciones sin despeinarlas. **Verde no es entregable.**
@@ -130,7 +137,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 > algo que el auditor re-corre sobre ese mismo commit. Estado de hoy en
 > [`ESTADO.md`](ESTADO.md); reglas permanentes en [`CLAUDE.md`](CLAUDE.md).
 
-### 📦 El banco son 76 packs — y eso NO es una medalla
+### 📦 El banco son 77 packs — y eso NO es una medalla
 
 ```
 python 01_Firmware/Simulaciones/banco/correr.py --listar
@@ -142,7 +149,7 @@ uno**. Y los simuladores no ejecutan el C++, lo *reimplementan a mano*: son una 
 alguien sincroniza, y eso falló cuatro veces en una semana.
 
 ⚠️ **Pero `correr.py` NO es `compuerta.py`.** El banco es **una fila de veinte**: un
-`1180/1180` no dice nada de las otras diecinueve, y una de ellas puede estar en `ABORTADO` por
+`1200/1201` no dice nada de las otras diecinueve, y una de ellas puede estar en `ABORTADO` por
 el mismo cambio que acabas de comitear. **Antes de comitear se corre `compuerta.py`, completo.**
 
 ### 📦 Qué se le manda al funcional, y por qué son dos paquetes
@@ -465,7 +472,7 @@ ficheros es `ls 05_Funcional/[0-9]*.md`; que nadie lo haga es lo que hace falta 
   `_Automatico/`: los arneses que compilan C++ real. Cada uno tiene su punto ciego declarado en
   `CLAUDE.md` §8.
 - [`01_Firmware/compuerta.py`](01_Firmware/compuerta.py): **la única forma correcta de
-  verificar** — `20 PASS · 0 FALLA · 0 ABORTADO`, exit code 0. Las cifras están en la tabla de
+  verificar** — `19 PASS · 1 FALLA · 0 ABORTADO`, exit code 1. Las cifras están en la tabla de
   arriba, que se copia del acta; ésta es sólo la puerta.
 
 > 🛑 **Y para cerrar donde se abrió: nada de este README es un permiso.** En campo corre la

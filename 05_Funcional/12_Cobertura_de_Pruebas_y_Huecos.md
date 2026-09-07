@@ -108,7 +108,7 @@ como *BLOQUEADO*. Repartidos como el cuerpo los describe, la cuenta que cuadra a
 | **N-146** | `SET_MODO:AMBAR` contestaba `OK` **seis veces seguidas** y no encendía nada | 🎞️ **la cinta**: 6 órdenes, 6 `OK`, y `MODO:AMBAR,ESTADO:ROJO` durante **47 tramas** | ✅ escrito (`REARMADO`) · 🔴 **SIN EJERCER** |
 | **N-147** | En Manual el cruce **cambiaba solo a los 15 s** y DAR PASO se rechazaba. **Y un tercer defecto que nadie reportó**: pulsar DAR PASO **reiniciaba el plazo**, así que pulsando rápido no se veía el verde nunca | reportado + **medido en el `.cpp`** | ✅ escrito · 🔴 **SIN EJERCER** |
 | **N-149** | Desde el Maestro **no se veía el estado del Esclavo** | pedido en banco | ✅ campo `ESC:` · 🔴 **SIN EJERCER** |
-| **N-145** | La hora salía **en blanco en TODAS las tramas** | 🎞️ **la cinta** | ✅ el puente sella el hueco · 🛑 **NO SE PUEDE PROBAR: no hay `DS3231` comprado (`A6`)** |
+| **N-145** | La hora salía **en blanco en TODAS las tramas** | 🎞️ **la cinta** | ✅ el puente sella el hueco · ~~🛑 NO SE PUEDE PROBAR: no hay `DS3231` comprado (`A6`)~~ 🟢 **CADUCADO EL 07/09 — `DECISIONES.md` `A-5`, resuelta el 05/09 a las 14:12 (`08c9d36`): CADA `ESP32` LLEVA SU RELOJ CON PILA PROPIA, y están puestos.** Por tanto **el `HORA:22:19:58` de la cinta ES REAL y `N-145` queda CONFIRMADA EN COBRE**. 🔴 Sigue `SIN VERIFICAR` la dirección `0x68` sobre el módulo. ⚠️ **Esta fila sobrevivió a su propia respuesta durante dos días, con `A6` citada como fuente: la fila `A6` de la lista de compras se corrigió el 05/09 y ésta no** |
 | — | **`BAT:--` en todas las tramas** | 🎞️ **la cinta** | 🔴 **NO ES UN DEFECTO A ARREGLAR:** el equipo **no tiene divisor ni entrada analógica**. El `--` es el marcado correcto (`N-108`). **Aquí no se escribe causa de por qué no se montó la medida: no se ha medido** |
 
 > 🔴 **LO QUE ESTA TABLA DICE DE LA COBERTURA, Y ES LO INCÓMODO: los cinco pasaron la compuerta en
@@ -168,14 +168,19 @@ $ git show 617bd00:01_Firmware/Maestro/src/botones.cpp | grep -n "pinMode(BOTON\
 **Y el arreglo está en el fuente de las dos puntas, verificado por lectura hoy:**
 
 ```
-$ grep -n "pinMode(BOTON1, INPUT)" Maestro/src/botones.cpp Esclavo/src/botones.cpp
-Maestro/src/botones.cpp:160:  pinMode(BOTON1, INPUT);
-Esclavo/src/botones.cpp:178:  pinMode(BOTON1, INPUT);
+$ grep -n "pinMode(BOTON1, INPUT)" Maestro/src/botones.cpp Esclavo/src/botones.cpp   <- RE-CORRIDO 07/09
+Maestro/src/botones.cpp:521:  pinMode(BOTON1, INPUT);          (decia :160)
+Esclavo/src/botones.cpp:507:  pinMode(BOTON1, INPUT);          (decia :178)
 
-$ grep -n "lecturaCruda = " Maestro/src/botones.cpp Esclavo/src/botones.cpp
-Maestro/src/botones.cpp:40:  bool lecturaCruda = (digitalRead(b.pin) == HIGH);
-Esclavo/src/botones.cpp:54:  bool lecturaCruda = (digitalRead(b.pin) == HIGH);
+$ grep -n "lecturaCruda = " Maestro/src/botones.cpp Esclavo/src/botones.cpp          <- RE-CORRIDO 07/09
+Maestro/src/botones.cpp:42:  bool lecturaCruda = (digitalRead(b.pin) == HIGH);      (decia :40)
+Esclavo/src/botones.cpp:56:  bool lecturaCruda = (digitalRead(b.pin) == HIGH);      (decia :54)
 ```
+
+*(Los cuatro renglones se movieron en dos días y **el hallazgo no cambió ni un ápice**. Es la razón
+de que lo que se cite sea el símbolo y de que el `grep` se vuelva a correr antes de publicarlo: el
+patrón sigue encontrando, el número ya no. La misma cita, con los renglones viejos, sigue publicada
+en `15_Lista_de_Compras_Hardware.md`.)*
 
 Es el commit `346ea5f`, *«el mando A/B pasa a activo en ALTO - lo decide el cobre»*.
 
@@ -194,19 +199,26 @@ va a cerrar un contacto contra `p4` ni contra `p7`.
 > deja el veto de SFTY-21 **inerte**: lo deja **abierto**. `ambarLocal` tiene **un solo armador**, y
 > sus lectores lo usan todos para **vetar**:
 >
-> ```
-> $ grep -rn "ambarLocal = true" Esclavo/src
-> Esclavo/src/mando.cpp:132:      ambarLocal = true;
+> **RE-CORRIDO EL 07/09** *(los renglones de la corrida del 05/09 —`mando.cpp:132`, `bluetooth.cpp:551`
+> y `:562`, `main.cpp:453`, `:476`, `:617`— **están todos caducados; el hallazgo no**)*:
 >
-> $ grep -rn "mando_ambarLocal()" Esclavo/src/main.cpp Esclavo/src/bluetooth.cpp
-> Esclavo/src/bluetooth.cpp:551:      if (semaforo_estado() == S_FALLO && !mando_ambarLocal()) {
-> Esclavo/src/bluetooth.cpp:562:      if (mando_ambarLocal()) {
-> Esclavo/src/main.cpp:453:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
-> Esclavo/src/main.cpp:476:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
-> Esclavo/src/main.cpp:617:    if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() &&
+> ```
+> $ grep -rn "ambarLocal = true" 01_Firmware/Esclavo/src
+> Esclavo/src/mando.cpp:140:      ambarLocal = true;
+>
+> $ grep -rn "mando_ambarLocal()" 01_Firmware/Esclavo/src/main.cpp 01_Firmware/Esclavo/src/bluetooth.cpp
+> Esclavo/src/main.cpp:464:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
+> Esclavo/src/main.cpp:487:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
+> Esclavo/src/main.cpp:628:    if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() &&
+> Esclavo/src/bluetooth.cpp:630:      if (semaforo_estado() == S_FALLO && !mando_ambarLocal()) {
+> Esclavo/src/bluetooth.cpp:650:      if (mando_ambarLocal()) {
 > ```
 >
-> **Borrar `mando.cpp:132` convierte esos cinco `if` en siempre-verdaderos y ningún test falla**, que
+> **Sigue habiendo UN solo armador y CINCO lectores, y los cinco vetan.** *(Y ésa es la razón de que
+> la vigilancia se exprese como propiedad —«al menos un armador»— y no como un número de línea: en
+> dos días se movieron los seis.)*
+>
+> **Borrar ese único armador convierte los cinco `if` en siempre-verdaderos y ningún test falla**, que
 > es exactamente la forma que el `CLAUDE.md` §3.ter describe. **Con el mando desmontado la bandera
 > simplemente no se arma nunca, y eso es lo correcto**: el veto sigue existiendo, y lo sigue armando
 > `bluetooth_ambarEmergencia()` desde la app. **La pieza que faltaba, no la que sobra.**
@@ -339,15 +351,37 @@ eléctrico existe**. Lo que no dicen —y no pueden decir— es qué manda por �
 Es `CLAUDE.md` §2.ter en su forma más completa que se ha visto en este repositorio: **hay firmware
 escrito, hay documentación que lo describe, y no hay ni un instrumento ni una tarjeta debajo.**
 
-```
+~~```
 01_Firmware$ grep -rl modo_inteligente Validacion_* compuerta.py
 (sin salida - ningun arnes que compile C++ real lo toca)
-```
+```~~
 
-- **Ningún arnés lo compila.** Los cuatro que compilan C++ de verdad —`Validacion_LCD`, `_Ciclo`,
-  `_Respaldo`, `_Automatico`— no incluyen `modo_inteligente.cpp`. Lo leen **tres packs, por texto**.
-  Es el punto ciego del `CLAUDE.md` §8 en su forma pura: *un `PASS` del modelo no prueba el código*,
-  y aquí **ni siquiera hay modelo**: hay lectura de cadenas.
+> 🟢 **07/09 — ESTE `grep` TAMBIÉN CADUCÓ, Y EN LA DIRECCIÓN BUENA. Re-corrido hoy:**
+>
+> ```
+> $ grep -rl modo_inteligente 01_Firmware/Validacion_* 01_Firmware/compuerta.py
+> Validacion_Automatico/arnes_automatico.cpp
+> Validacion_Automatico/build/modo_inteligente.o        <- SE COMPILA
+> Validacion_Automatico/compilar.ps1
+> ```
+>
+> **`Validacion_Automatico` enlaza HOY el `modo_inteligente.cpp` real** —y también `demanda.cpp` y
+> `botones.cpp`—, con su motivo escrito en el propio `compilar.ps1`: *«A-12 (05/09): SE SUMAN
+> `modo_inteligente.cpp` Y `demanda.cpp` REALES»* y *«D-13 (05/09): SE SUMA `botones.cpp` REAL»*.
+> El arnés pasó de 86 a **`99/99`** en el acta.
+>
+> 🔴 **Y lo que esto le enseña a esta página, que es lo que no caduca:** el hueco no se cerró
+> escribiendo el pack número N sobre la **forma** del fichero — se cerró **compilándolo**. Un pack de
+> texto no puede ver un defecto del **tiempo**, y de hecho **el `botones.cpp` real tumbó la primera
+> reparación** que se había escrito leyendo, porque el relé de la cámara **pulsa** y el nivel se cae
+> en los huecos. **Antes de escribir la comprobación N sobre la forma de un `.cpp`, mírese si ese
+> `.cpp` se compila en algún sitio.**
+
+- ~~**Ningún arnés lo compila.** Los cuatro que compilan C++ de verdad —`Validacion_LCD`, `_Ciclo`,
+  `_Respaldo`, `_Automatico`— no incluyen `modo_inteligente.cpp`. Lo leen **tres packs, por texto**.~~
+  ⛔ **CADUCADO EL 05/09 y re-medido el 07/09 — ver el recuadro de arriba.** ✅ **Lo que sigue siendo
+  la lección: un `PASS` del modelo no prueba el código**, y un pack que sólo lee cadenas **ni
+  siquiera es un modelo**.
 - **Ninguna tarjeta lo ha corrido.** El informe del banco del 3–4/09 lo dice con estas palabras:
   *«nunca apareció la luz verde en ningún poste»* y *«sin cámara de demanda real»*.
 - **Y sólo se entra por la app**, que es justo lo que no conectó en esa sesión: la vía del menú está
@@ -358,15 +392,45 @@ escrito, hay documentación que lo describe, y no hay ni un instrumento ni una t
 > modelo, ni un pin.** Y no aparece como hueco en ningún recuento, porque **los packs que lo leen por
 > texto cuentan como cobertura suya**. Es el `x/y` que no baja: el hueco no deja rastro de que falta.
 
-### 2. Y ese mismo modo VIOLA el mínimo vial, en el fuente, desde antes de comprar la cámara
+### 2. ~~Y ese mismo modo VIOLA el mínimo vial, en el fuente, desde antes de comprar la cámara~~ → ✅ **CERRADO EL 05/09 POR `D-19`, RE-MEDIDO EL 07/09**
 
-```
+> 🟢 **07/09 — EL `grep` QUE SOSTENÍA TODO ESTE APARTADO YA NO DA ESO. Se vuelve a correr, que es
+> la regla, y se publica la salida de hoy:**
+>
+> ```
+> $ grep -rn "15000UL" --include=*.cpp 01_Firmware/Maestro
+> Maestro/src/modo_inteligente.cpp:62:// Y encima la Regla 1 cortaba el verde a los 15 SEGUNDOS -`tiempoActual >= 15000UL`-,
+> Maestro/src/modo_inteligente.cpp:260:        // toda la diferencia con el `tiempoActual >= 15000UL` que habia aqui.
+> ```
+>
+> **Las dos coincidencias que quedan son COMENTARIOS que cuentan que el corte estuvo ahí.** La
+> guarda se retiró con `D-19` (05/09), que resuelve `A-12`: **el suelo lo pone el operario**
+> —`modoAutomatico_tiemposCiclo()`— **y el techo es `sueloMin * TECHO_POR_SUELO`**.
+>
+> ⚠️ **Lo que NO se cierra con eso, y esta página es donde tiene que dejar rastro:** `D-19` está
+> **APROBADA CON CONDICIÓN** —*«el doble **si** un funcional revisa el manual y este manual de uso es
+> claro»*— **y la condición no está cumplida: el manual existe, la firma del funcional no.** Hasta
+> esa firma, `TECHO_POR_SUELO` **viaja como POR VALIDAR**, y ya salió en el paquete del 05/09.
+>
+> 🔴 **Y el hueco de método que este apartado destapó SIGUE ABIERTO, que es lo que no caduca:** la
+> guarda vivía en un **literal escrito a mano fuera de `limites_ciclo.h`**, y `app_11_rangos_de_tiempos`
+> **no la veía** porque censa **cuatro nombres de variable** y aquello era `if (tiempoActual >= 15000UL)`.
+> **El fichero estaba dentro del alcance y la línea no.** Que el defecto se haya arreglado no arregla
+> el censo: **la quinta copia entraría igual.**
+>
+> **Lo que decía este apartado, conservado tachado:**
+
+~~```
 01_Firmware$ grep -rn "15000UL" --include=*.cpp Maestro
 Maestro/src/modo_inteligente.cpp:123:        if (tiempoActual >= 15000UL) {
+```~~
 
-01_Firmware$ grep -rn "VERDE_MIN_MIN =" --include=*.h Maestro
-Maestro/include/limites_ciclo.h:54:static const uint8_t VERDE_MIN_MIN = 3,  VERDE_MIN_MAX = 15;
 ```
+$ grep -rn "VERDE_MIN_MIN =" --include=*.h 01_Firmware/Maestro     <- re-corrido el 07/09
+Maestro/include/limites_ciclo.h:58:static const uint8_t VERDE_MIN_MIN = 3,  VERDE_MIN_MAX = 15;
+```
+*(La cifra no cambió; el número de línea sí —era `:54`—, que es por qué se publica el `grep` y no el
+renglón.)*
 
 **`modo_inteligente.cpp` permite cortar el verde a los 15 segundos** —constante escrita a mano, que
 no pasa por `limites_ciclo.h`— mientras **`VERDE_MIN_MIN = 3` MINUTOS**, decidido por el responsable
@@ -476,11 +540,15 @@ Simulaciones/banco/packs/camara_02_j16.py:89:# El rele de la camara AcuSense cie
 Simulaciones/banco/packs/camara_02_j16.py:92:PULSO_RELE_MS = 1000
 ```
 
-`DECISIONES.md` **A-7** ya lo tenía escrito citando un sitio. **Son nueve, y la segunda mitad es
-peor que la primera:** dos packs del banco comprueban `SILENCIO_MS > PULSO_RELE_MS` y **salen en
-verde midiendo contra un `1000` que nadie ha medido nunca**, atribuido en el propio comentario a
-*«Manual 9, paso 3 de la parametrización»* — **que es un manual NUESTRO, no de Hikvision**. El
-manual del fabricante define el parámetro `Delay` y **no publica ni un valor en 110 páginas**.
+`DECISIONES.md` **A-7** ya lo tenía escrito citando un sitio. ~~**Son nueve**~~ 🔴 **RE-CORRIDO EL
+07/09 con el MISMO patrón: hoy son DOCE, no nueve** —cuatro comentarios en el Maestro, cuatro en el
+Esclavo y los cuatro renglones de los dos packs—. **La copia no se ha contenido: ha crecido en dos
+días.** Y **la segunda mitad sigue siendo peor que la primera:** dos packs del banco comprueban
+`SILENCIO_MS > PULSO_RELE_MS` y **salen en verde midiendo contra un `1000` que nadie ha medido
+nunca** —`camara_01_demanda.py` y `camara_02_j16.py`, los dos con `PULSO_RELE_MS = 1000`—, atribuido
+en el propio comentario a *«Manual 9, paso 3 de la parametrización»* — **que es un manual NUESTRO,
+no de Hikvision**. El manual del fabricante define el parámetro `Delay` y **no publica ni un valor
+en 110 páginas**.
 
 > 🔴 **Es la forma exacta que este documento ya conoce: una comprobación verde porque una frase
 > escrita al lado la justifica, y la frase no la comprueba nadie** (`CLAUDE.md` §2.ter y §3.bis). La
@@ -671,7 +739,7 @@ Todo lo que puede meter información al sistema, y qué lo prueba:
 | 8 | Respaldo en pila | BKP RAM | firma + checksum | `maestro_02_respaldo` | ✅ | ⬜ no ejercido |
 | 9 | Reloj / pila | RTC | hora, validez | `maestro_04_sync_horaria`, `esclavo_05_hora_atomica` | ✅ | ⬜ no ejercido |
 | 10 | Corte de energía | — | reanudación | `costura_06_reanudacion` | ✅ | ⬜ no ejercido |
-| 11 | 🆕 **Reloj `DS3231` del ESP32** | I²C `GPIO21`/`GPIO22` | hora, bit `OSF` | ⚠️ **por censar** — el firmware existe (`ESP32_Expansion/src/reloj_ds3231.cpp`) y **la compuerta lo compila** | ⚠️ | 🔴 **BLOQUEADO** (paso 27): **la única vía de leer o poner esa hora es `SET_RTC` desde la app**, y la app no conectó |
+| 11 | 🆕 **Reloj `DS3231` del ESP32** | I²C `GPIO21`/`GPIO22` | hora, bit `OSF` | ⚠️ **por censar** — el firmware existe (`ESP32_Expansion/src/reloj_ds3231.cpp`) y **la compuerta lo compila** | ⚠️ | 🔴 **BLOQUEADO** (paso 27) porque la app no conectó. ~~**la única vía de leer o poner esa hora es `SET_RTC`**~~ 🔧 **CADUCADO EL 07/09 por `D-17` (05/09, `5846cee`): hay una vía de LECTURA que no escribe — `CMD:LEER_RTC`**, medida hoy en `ESP32_Expansion/src/despachador.cpp` (símbolo `CMD_LEER_RTC`), **sin PIN** y con `$ERR ... DESC:` **por causa**. Sigue haciendo falta el enlace Bluetooth, pero **ya no hay que CAMBIAR la hora para poder verla**, que era el defecto de método |
 
 > 🔴 **Léase la columna nueva entera antes de sacar conclusiones, porque dice algo incómodo:** en
 > toda la superficie de entrada hay **dos filas con banco en verde** —las cámaras de `J16` y el
@@ -889,8 +957,12 @@ plan es **el 3** —direccionamiento de pareja— y **confirmar el 5**.
 >   `12 V → 5 V`, `DS3231` por I²C en `GPIO21`/`GPIO22` y salida a `J17`—, con la masa común medida
 >   a `0 V` contra la STM32 (paso 23). **Lo que falta son dos medidas, y las dos son de banco:** la
 >   fuente **nunca se midió con carga real de 12 V** (todo se alimentó por USB), y **la hora del
->   `DS3231` sólo se puede leer o poner con `SET_RTC` desde la app** — o sea que mientras el enlace
->   no exista, ese reloj **no es verificable desde fuera por ninguna vía**.
+>   `DS3231` sólo se puede leer desde la app** — o sea que mientras el enlace no exista, ese reloj
+>   **no es verificable desde fuera por ninguna vía**.
+>   🔧 **CORREGIDO EL 07/09:** ~~«sólo se puede leer **o poner** con `SET_RTC`»~~ — desde `D-17`
+>   (`5846cee`) la lectura tiene su propia orden, **`CMD:LEER_RTC`**, que **no escribe nada**. La
+>   dependencia del enlace no cambia; **lo que cambia es que ya no hay que MANDAR la hora para poder
+>   verla**, que era justo perder el dato que se buscaba.
 > - **Sin reloj no hay Modo Degradado**, y SFTY-18 lo prohíbe con razón.
 > - **La lección de método, que es lo que no caduca:** un documento fechado **antes** de una medida
 >   de banco no contradice esa medida — **está sin actualizar**, y hay que corregirlo antes de que

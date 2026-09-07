@@ -51,11 +51,36 @@ CÓDIGO se queda. Las dos cosas a la vez: ver la cabecera de estado.**
 > superficie de mando: ni ámbar, ni volver a automático, ni parar el cruce. **Es una propiedad
 > declarada del sistema, no una avería.**
 >
-> En el **Esclavo** eso llegó a ser peor —esa punta se quedó sin ninguna vía de modo—, y es el
-> hueco `A-11`. **Se está cerrando por Bluetooth el 05/09**: ya tiene `SET_MODO:DEGRADADO` como
+> En el **Esclavo** eso llegó a ser peor —esa punta se quedó sin ninguna vía de modo—, y era el
+> hueco `A-11`. **Cerrado por Bluetooth el 05/09 (`D-18`)**: ya tiene `SET_MODO:DEGRADADO` como
 > entrada, y la salida va por `AMBAR_EMERGENCIA` / `FORZAR_ROJO`. **La entrada tiene comando
 > propio y la salida no** — el censo medido y el porqué de que eso importe están en el aviso de
-> §9. **Manda `A-11` en `DECISIONES.md`, no este manual.**
+> §9. **Manda `D-18` en `DECISIONES.md`, no este manual.**
+
+---
+
+> # 🔴 POR QUÉ ESTE MANUAL NO SE ARCHIVA, aunque su título describa un aparato que no existe (07/09)
+>
+> **La pregunta se hizo en serio, y la respuesta no es «por si acaso».** Un manual de un
+> actuador que no se compró y no se va a comprar es candidato natural a `99_Legacy`. **No se
+> archiva, y los tres motivos son medidos, no de criterio:**
+>
+> | | por qué pesa |
+> |---|---|
+> | 1️⃣ **Es un aviso de CABLEADO vivo, no un registro histórico** | `J16` p5 y p8 están **vacíos en el cobre y SE SIGUEN LEYENDO en el firmware**, y §8 —corregida hoy— mide que `A·A·A` **arranca el ciclo sin ninguna guarda**. Ese aviso tiene que llegar a quien lleva el destornillador, y **un documento en `99_Legacy` no se abre antes de cablear** |
+> | 2️⃣ **Es el motivo ESCRITO de que `mando.cpp` no se borre** | `D-1` conserva el código apoyándose en el hallazgo de la §3 de este manual: retirar el armador de `ambarLocal` deja los `if` **siempre verdaderos** —el veto de SFTY-21 **abierto**, no inerte— y tumbaría **trece packs** en `ABORTADO`. Archivarlo aleja el argumento de quien el mes que viene proponga *«limpiar `mando.cpp`»* |
+> | 3️⃣ **`A-11` salida (b) sigue ABIERTA en `DECISIONES.md`** y propone **volver a poner dos pulsadores en `J16` p5/p8**. Mientras esa opción esté en la mesa, este documento es la especificación de lo que volvería — y el aviso de §6 dice lo que **NO** volvería con ella: **el mando se repone, su inhibición no** |
+>
+> ⚠️ **Lo que NO es un argumento, y se dice para no inflar la lista:** *«moverlo abortaría el
+> banco»*. **Es falso para este fichero, medido el 07/09.** `documentos_04_cifras_sin_vigilante`
+> direcciona por ruta `MANUAL_USUARIO.md` y `MANUAL_HARDWARE.md` —esos dos sí—; **este manual no
+> lo direcciona ningún pack**. Se comprueba con
+> `grep -rn "MANUAL_MANDO_4_RELES" 01_Firmware/`, que da **cero**.
+>
+> 👉 **Lo que sí hay que corregir es el TÍTULO, y eso no lo decide este documento:** se llama
+> *«Manual Técnico del Mando de 4 Relés»* y no es un manual de operación de nada — es **el aviso
+> de cableado de `J16` p5/p8 más el expediente de por qué su código sigue vivo**. Va como pregunta
+> al responsable, no como cambio hecho.
 
 ---
 
@@ -70,10 +95,14 @@ CÓDIGO se queda. Las dos cosas a la vez: ver la cabecera de estado.**
 > **Este manual sale de la lista de documentos falsos.** Lo que sigue vigente se marca; lo superado
 > se tacha con su motivo.
 >
-> | Canal | Pin | Conector | 31/08 |
-> |---|---|---|---|
-> | **`A`** | `PB9` | `J16` p5 | ✅ **SE CONSERVA** — Arriba / mando A |
-> | **`B`** | `PB13` | `J16` p8 | ✅ **SE CONSERVA** — Abajo / mando B |
+> ⛔ **SEGUNDA PROMESA DE TACHADO INCUMPLIDA, corregida el 07/09:** el título de este bloque está
+> tachado y su tabla no lo estaba, así que las filas `A` y `B` seguían leyéndose **«✅ SE
+> CONSERVA»** — que es justo lo que `D-1` derogó cinco días después. **Se tachan con su motivo.**
+>
+> | Canal | Pin | Conector | 31/08 | hoy (`D-1`, 05/09) |
+> |---|---|---|---|---|
+> | **`A`** | `PB9` | `J16` p5 | ~~✅ **SE CONSERVA** — Arriba / mando A~~ | 🛑 **el HARDWARE se retiró; el borne está VACÍO. El código lo sigue leyendo** |
+> | **`B`** | `PB13` | `J16` p8 | ~~✅ **SE CONSERVA** — Abajo / mando B~~ | 🛑 **ídem** — y su `B·B·B` es el único armador de `ambarLocal`, que es por lo que el CÓDIGO no se toca |
 > | ~~`C`~~ | `PB14` | `J16` p10 | 🛑 **SE RETIRA** → `CAM_C_PIN`, entrada de cámara |
 > | ~~`D`~~ | `PB15` | `J16` p12 | 🛑 **SE RETIRA** → `CAM_D_PIN`, entrada de cámara |
 >
@@ -267,7 +296,16 @@ idéntico en las dos puntas.
 
 > ### 🛑 31/08 — `C` y `D` YA NO SON PULSADORES, Y EL MODO DEL PIN CAMBIA
 >
-> No es un cambio de nombre. **MEDIDO** en `pines.h:100-101` y `botones.cpp` de ambas puntas:
+> No es un cambio de nombre. ✅ **MEDIDO el 07/09** — ⛔ aquí ponía ~~`pines.h:100-101`~~, caducado;
+> se cita el símbolo y se publica el `grep`:
+>
+> ```
+> $ grep -n "define CAM_C_PIN\|define CAM_D_PIN" 01_Firmware/Maestro/include/pines.h 01_Firmware/Esclavo/include/pines.h
+> 01_Firmware/Maestro/include/pines.h:165:#define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco (era BOTON3, "Aceptar")
+> 01_Firmware/Maestro/include/pines.h:166:#define CAM_D_PIN   PB15  // J16 p12 - camara de contacto seco (era BOTON4, "Cancelar")
+> 01_Firmware/Esclavo/include/pines.h:165:#define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco (era BOTON3, "Aceptar")
+> 01_Firmware/Esclavo/include/pines.h:166:#define CAM_D_PIN   PB15  // J16 p12 - camara de contacto seco (era BOTON4, "Cancelar")
+> ```
 >
 > | | antes (`BOTON3`/`BOTON4`) | ahora (`CAM_C_PIN`/`CAM_D_PIN`) |
 > |---|---|---|
@@ -282,10 +320,18 @@ idéntico en las dos puntas.
 > deja el pin en 3,3 × 10/50 = **0,66 V**, que el micro lee `LOW`: **demanda permanente sin cámara
 > conectada, e invertida al cerrarla.**
 >
-> ⚠️ **NO SE CABLEA CÁMARA A `J16` hasta que se haga la medida `M3`** de
-> `05_Funcional/17_Arquitectura...` §2.2 — y el orden es **firmware primero, cableado después**
-> (`CLAUDE.md §9.bis`): un pin en `INPUT` no ejecuta nada, mientras que con el firmware viejo dentro
-> `PB14` sigue siendo *Aceptar* activo en BAJO y **cualquier hilo enchufado en p10 lo pulsa**.
+> ⛔ **Aquí ponía *«~~NO SE CABLEA CÁMARA A `J16` hasta que se haga la medida `M3`~~»* y estaba
+> CADUCADO — corregido el 07/09.** `M3` **se cerró el 03/09** con medidas en cobre (`D-3` de
+> [`DECISIONES.md`](../DECISIONES.md); la fuente que manda es `05_Funcional/17_...` sección **M3**):
+> pull-**down** de 10 kΩ real en las cuatro posiciones, `p10`/`p12` a **0 V** en reposo, y el paso 21
+> cableó `p10` sin demandas fantasma. 👉 **Las cámaras se cablean a `J16`.** Un documento que sigue
+> bloqueando por una medida ya hecha para el trabajo que autoriza.
+>
+> 🔴 **Lo que NO caduca de ese párrafo, y es lo que se ejecuta con un destornillador:** el orden es
+> **firmware primero, cableado después** (`CLAUDE.md` §3) — un pin en `INPUT` no ejecuta nada,
+> mientras que **con el firmware viejo todavía dentro `PB14` sigue siendo *Aceptar* activo en BAJO y
+> cualquier hilo enchufado en p10 lo pulsa**. **Lo que levanta el bloqueo no es el commit ni el
+> merge: es la CARGA VERIFICADA en esa tarjeta.** Un commit no protege de un destornillador.
 >
 > ⚠️ **Y `J16` p1 lleva 12 V CRUDOS** —sin opto, sin serie, sin clamp— a nueve posiciones de p10 y
 > once de p12. **Se tapa físicamente antes de enchufar nada.**
@@ -358,13 +404,27 @@ cambia es la acción, porque **el Esclavo no tiene modos de operación propios**
 >   if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() && ...) // tras S_FALLO
 > ```
 >
-> ⚠️ **Aquí había tres números de línea —`:406`, `:416`, `:540`— y los tres estaban CADUCADOS**
-> (medidos el 05/09 son `:453`, `:476`, `:617`). Se cita el símbolo y el `grep` que lo encuentra,
-> porque un número de línea caduca solo, en silencio y con la autoridad de un dato:
+> ⛔ **Aquí ya se corrigió una caducación una vez, Y LA CORRECCIÓN VOLVIÓ A CADUCAR EN DOS DÍAS.**
+> Es el dato que hace que la regla no sea una manía de estilo:
+>
+> | publicado | fecha | hoy 07/09 |
+> |---|---|---|
+> | `:406`, `:416`, `:540` | 28/08 | ❌ |
+> | `:453`, `:476`, `:617` — *«medidos el 05/09»*, y lo estaban | 05/09 | ❌ **`:464`, `:487`, `:628`** |
+>
+> **Renumerar es la cura equivocada: genera números nuevos que caducan otra vez.** Lo que las movió
+> esta vez ni siquiera fue firmware — fue `4b2841b`, que insertó las marcas `D-x` en los
+> comentarios. **Se cita el símbolo y el `grep` que lo encuentra, y se corre antes de publicarlo:**
 >
 > ```
 > $ grep -n "mando_ambarLocal()" 01_Firmware/Esclavo/src/main.cpp
+> 464:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
+> 487:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
+> 628:    if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() &&
 > ```
+>
+> 👉 **El ancla que NO caduca ya existe en el fuente: `grep -rn "D-1" 01_Firmware/` da las diez
+> puntas de esta decisión de una vez**, y sobrevive a que alguien inserte veinte líneas encima.
 >
 > 🔴 **Y son CINCO llamadas vivas en total, no tres:** a esos tres vetos hay que sumar **dos
 > decisiones de `CANCELAR_AMBAR`** en `Esclavo/src/bluetooth.cpp`. `mando_ambarLocal()` **sólo existe
@@ -373,8 +433,8 @@ cambia es la acción, porque **el Esclavo no tiene modos de operación propios**
 >
 > | Bandera | Quién la arma | Sigue viva |
 > |---|---|---|
-> | `mando_ambarLocal()` | `Esclavo/src/mando.cpp:132`, dentro de `ejecutar(ACC_AMBAR)` = **`B·B·B`** | ✅ `B` es `PB13`, se conserva |
-> | `bluetooth_ambarEmergencia()` | `Esclavo/src/bluetooth.cpp:130` y `:171` = **`CMD:AMBAR_EMERGENCIA`** | ✅ **nuevo camino, sin PIN** |
+> | `mando_ambarLocal()` | `ambarLocal = true;` dentro de `case ACC_AMBAR:` de `ejecutar()`, en `Esclavo/src/mando.cpp` = **`B·B·B`**. **Armador único**: `grep -n "ambarLocal = true" Esclavo/src/mando.cpp` da **una** línea | ✅ `B` es `PB13`, el código se conserva |
+> | `bluetooth_ambarEmergencia()` | `ambarEmergencia = true;` en las ramas `CMD:AMBAR_EMERGENCIA` (sin PIN) y `AMBAR_EMERGENCIA` (con PIN) de `Esclavo/src/bluetooth.cpp` | ✅ **camino por app, sin PIN** |
 >
 > **Que sean dos no es redundancia decorativa:** el mando funciona sin radio ni teléfono, y la app
 > funciona sin receptor de relés. Hoy **el receptor no está comprado**, así que en la práctica el
@@ -407,9 +467,26 @@ no serviría de nada**: el operario estaría trabajando bajo una luz que vuelve 
 > verde confiado contra otra en ámbar es **exactamente la asimetría peligrosa** que todo
 > SFTY-21 existe para evitar.
 >
-> Callando, el Maestro agota sus reintentos, cae a `C_FALLO` en ~12,5 s y **se va también a
-> ámbar**. Es el único final correcto: el operario pidió ámbar en una punta y **el cruce
-> entero termina en ámbar**.
+> Callando, el Maestro agota sus reintentos, cae a `C_FALLO` y **se va también a ámbar**. Es el
+> único final correcto: el operario pidió ámbar en una punta y **el cruce entero termina en
+> ámbar**.
+>
+> ⛔ **Aquí ponía ~~«en ~12,5 s»~~ y era una cifra MUERTA — corregido el 07/09.** No es que
+> envejeciera: **el propio firmware la nombra y dice de dónde venía**. Los 12,5 s salían de un
+> `TIMEOUT_ACK_MS = 2500 ms` **que dejó de existir el 31/07**. Con los valores de hoy la cuenta
+> es otra, y está hecha en el fuente, no aquí:
+>
+> ```
+> $ grep -n "TIMEOUT_ACK_MS = 3500\|20,8 s\|(12.5s)" 01_Firmware/Maestro/include/protocolo.h
+> 125://   coordinador.cpp reintenta 5 veces con TIMEOUT_ACK_MS = 3500 ms. Contando que
+> 132://   (12.5s)"- venia de un TIMEOUT_ACK_MS de 2500 ms que dejo de existir el 31/07.
+> ```
+>
+> **Peor caso de reintentos: 3 + 5 × 3,56 = 20,8 s**, y el techo de silencio de SFTY-6 son
+> **25 s** (`SFTY6_SILENCIO_MS`), elegido **por encima** de esos 20,8 s justo para que los
+> reintentos 4 y 5 puedan ejecutarse. 🔴 **La cifra de este párrafo no se vuelve a copiar a mano:
+> es una cuenta entre tres constantes y vive en `Maestro/include/protocolo.h`, con su `N-71`
+> encima.**
 
 ### Memotecnia
 
@@ -506,11 +583,16 @@ nunca llegan a `mando_registrarPulso()`.
 **Este apartado razonaba que `C` y `D` no debían usarse *a ciegas*. El 31/08 dejaron de existir como
 pulsadores**, así que la regla ya no cuelga de una decisión de diseño: **no hay pin detrás**.
 
-**MEDIDO** en `Maestro/src/botones.cpp:280-281` y su equivalente del Esclavo:
+✅ **MEDIDO el 07/09** — ⛔ aquí ponía ~~`Maestro/src/botones.cpp:280-281`~~ y estaba **caducado en
+más de trescientas líneas**. Se cita el símbolo y se publica el `grep`, corrido antes de escribirlo:
 
 ```
-  bool botonAceptar() { return false; }
-  bool botonCancelar(){ return false; }
+$ grep -n "^bool botonAceptar\|^bool botonCancelar" 01_Firmware/Maestro/src/botones.cpp
+672:bool botonAceptar() { return false; }
+673:bool botonCancelar(){ return false; }
+$ grep -n "^bool botonAceptar\|^bool botonCancelar" 01_Firmware/Esclavo/src/botones.cpp
+668:bool botonAceptar() { return false; }
+669:bool botonCancelar(){ return false; }
 ```
 
 **No se borraron, y la razón está escrita en el fuente:** tienen veintitantos llamadores en nueve
@@ -568,12 +650,15 @@ listando **en una sola lista** todo lo que la retirada de `C` y `D` se llevó po
 > **MAESTRO — la guarda vive a medias:**
 >
 > ```
-> $ grep -n "static bool secuenciasInhibidas" -A 4 Maestro/src/mando.cpp
-> 89:static bool secuenciasInhibidas() {
-> 90-  ModoSistema m = modoActual_get();
-> 91-  return (m == MENU || m == MODO_HORA);
-> 92-}
+> $ grep -n "static bool secuenciasInhibidas" -A 3 01_Firmware/Maestro/src/mando.cpp
+> 95:static bool secuenciasInhibidas() {
+> 96-  ModoSistema m = modoActual_get();
+> 97-  return (m == MENU || m == MODO_HORA);
+> 98-}
 > ```
+>
+> *(⛔ aquí ponía `89:`; re-corrido el 07/09 son `95:`–`98:`. **El cuerpo no cambió**, sólo su
+> posición — que es exactamente por qué la posición no es la cita.)*
 >
 > * `m == MENU` ✅ **sigue pudiendo ser cierta**: se entra por `SET_MODO:MENU` desde la app.
 > * `m == MODO_HORA` 🛑 **no puede ser cierta nunca.** `AJUSTAR HORA` es un modo **al que no se
@@ -585,11 +670,14 @@ listando **en una sola lista** todo lo que la retirada de `C` y `D` se llevó po
 > **ESCLAVO — la guarda NO puede ser cierta jamás:**
 >
 > ```
-> $ grep -n "bool menu_estaAbierto" -A 2 Esclavo/src/menu.cpp
+> $ grep -n "bool menu_estaAbierto" -A 2 01_Firmware/Esclavo/src/menu.cpp
 > 161:bool menu_estaAbierto() {
-> 162:  return pantalla != P_MENU;
-> 163:}
+> 162-  return pantalla != P_MENU;
+> 163-}
 > ```
+>
+> *(re-corrido el 07/09: **coincide**. Es una de las **DOS** citas `fichero:linea` de este manual
+> —de **15**— que sobrevivieron al barrido, y sobrevivieron por casualidad, no por método.)*
 >
 > `pantalla` arranca en `P_MENU`, y **la única salida de `P_MENU` es `if (aceptar)`** —
 > `botonAceptar()`, que devuelve `false` siempre—. `secuenciasInhibidas()` del Esclavo **es
@@ -724,15 +812,57 @@ motivos distintos sin arriesgar que se cuenten mal.
 
 ## 8. Asimetría deliberada: lo seguro fácil, lo peligroso difícil
 
+> # 🔴 CORREGIDO EL 07/09 — `A·A·A` ES LA ÚNICA DE LAS TRES QUE **ABRE PASO**, Y ES LA ÚNICA SIN GUARDA
+>
+> **La tabla de abajo decía de `A·A·A`: *«Seguro · Ninguna [protección], y no hace falta»*. Esa
+> frase se escribió cuando había un pulsador detrás del pin y un operario delante de él. Hoy
+> `J16` p5 está **vacío** y el código **sigue leyendo el pin** (cabecera de estado), o sea que el
+> sujeto de la frase ya no es un operario: es cualquier cosa que alguien cierre ahí.**
+>
+> ✅ **MEDIDO EN EL FUENTE el 07/09** — se cita el símbolo, no el número de línea. En
+> `Maestro/src/mando.cpp`, dentro de `ejecutar()`:
+>
+> | rama | qué hace | guarda |
+> |---|---|---|
+> | `case ACC_AUTOMATICO:` (`A·A·A`) | `modoAutomatico_pedirArranqueDirecto()` + `modoActual_set(MODO_AUTOMATICO)` — **arranca el ciclo, o sea PROGRAMA UN VERDE** | 🔴 **ninguna** |
+> | `case ACC_AMBAR:` (`B·B·B`) | lleva el equipo a **ámbar**: estado seguro, no abre paso | no la necesita: el destino ya es el mínimo seguro |
+> | `case ACC_DEGRADADO:` (`A·B·A·B`) | entra al Degradado | ✅ **`if (modo_degradado_evaluarEntrada() == MDG_OK)`** delante, en `mando_actualizar()` |
+>
+> ```
+> $ grep -n "modo_degradado_evaluarEntrada\|modoAutomatico_pedirArranqueDirecto" 01_Firmware/Maestro/src/mando.cpp
+> 117:      modoAutomatico_pedirArranqueDirecto();
+> 219:      if (modo_degradado_evaluarEntrada() == MDG_OK) {
+> ```
+>
+> 🔴 **Las otras dos secuencias están frenadas o van a seguro; la que abre paso, no.** El
+> `coordinador_forzarRojoTotal()` de `confirmarYActuar()` **no es una guarda**: pone todo en rojo
+> **antes** de arrancar, y después el ciclo da verde igual.
+>
+> 👉 **Consecuencia de cableado, y es la única de este manual que se ejecuta con un
+> destornillador: NADA se cablea en `J16` p5 ni p8.** No es una cautela heredada del mando: es
+> que tres cierres de p5 dentro de 12 s arrancan el ciclo de un cruce.
+>
+> ⛔ **Y el «12 s» de la fila también estaba CADUCADO.** El umbral de orfandad de SFTY-6 son
+> **25 s** desde `N-71`, no 12 — y el propio firmware explica que el 12 dejaba los reintentos 4 y
+> 5 **sin poder ejecutarse nunca**. Se cita el símbolo:
+>
+> ```
+> $ grep -n "SFTY6_SILENCIO_MS" 01_Firmware/Maestro/include/protocolo.h
+> 149:#define SFTY6_SILENCIO_MS   25000UL
+> ```
+
 | Si se dispara por accidente | Consecuencia | Protección |
 |---|---|---|
-| `A·A·A` → Automático | Sin radio cae a ámbar solo en 12 s (SFTY-6). **Seguro** | Ninguna, y no hace falta |
+| `A·A·A` → Automático | 🔴 **ARRANCA EL CICLO: programa un verde.** ~~Sin radio cae a ámbar solo en 12 s (SFTY-6). **Seguro**~~ → **sólo si la radio está muerta** cae a ámbar, y a los **25 s**, no a los 12 | 🔴 **Ninguna** — ~~y no hace falta~~. **Sí hace falta: es la única que abre paso** |
 | `B·B·B` → Ámbar | El equipo va a seguro. Molesto, no peligroso | Secuencia corta, **sin condiciones** |
-| `A·B·A·B` → Degradado | **Verde sin confirmar el otro lado** | Secuencia larga alternada **+ validación en firmware** |
+| `A·B·A·B` → Degradado | **Verde sin confirmar el otro lado** | Secuencia larga alternada **+ validación en firmware** (`modo_degradado_evaluarEntrada()`) |
 
-**`A·A·A` no necesita protección porque el sistema se corrige solo.** El peor caso de
-intentar Automático es **volver al ámbar, que es justo donde se estaba**. Y arranca
-**directo, sin el asistente de configuración**: desde el suelo no hay pantalla que rellenar.
+~~**`A·A·A` no necesita protección porque el sistema se corrige solo.**~~ ⛔ **Se corrige solo
+SÓLO en el escenario para el que se escribió: radio muerta.** Con la radio viva, `A·A·A` deja el
+cruce ciclando —dando verde— y **nada lo devuelve**. El peor caso de intentar Automático es
+*«volver al ámbar»* únicamente cuando ya se venía del ámbar por falta de enlace, que es el caso
+de uso que este manual describe; **no es una propiedad de la secuencia**. Y arranca **directo,
+sin el asistente de configuración**: desde el suelo no hay pantalla que rellenar.
 
 **Y el resultado se ve desde el piso, sin pantalla:**
 
@@ -763,22 +893,25 @@ salida de emergencia con requisitos no es una salida de emergencia.**
 > **Es falso en las dos mitades, y se refuta con la medida — no se borra** (`CLAUDE.md §4`: una
 > refutación también es un instrumento, y tachar exige el mismo rigor que afirmar).
 >
-> **MEDIDO el 31/08 sobre `01_Firmware/Esclavo/src/bluetooth.cpp`:**
+> **RE-MEDIDO el 07/09 sobre `01_Firmware/Esclavo/src/bluetooth.cpp`.** ⛔ Los números que había
+> aquí —`:130`, `:131`, `:132`, `:133`, `:171`, `:268`— **eran del 31/08 y están caducados en más
+> de cuatrocientas líneas**; se sustituyen por los símbolos, que es lo que no caduca:
 >
 > ```
->   :130   if (strcmp(cmd, "CMD:AMBAR_EMERGENCIA") == 0) {      <- SIN PIN
->   :131     semaforo_iniciarFallo();
->   :132     ambarEmergencia = true;                            <- el latch
->   :133     enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
->   :171   } else if (strcmp(accion, "AMBAR_EMERGENCIA") == 0)  <- la forma CON PIN
->   :268   bool bluetooth_ambarEmergencia() { ... }             <- lo leen los tres vetos
+> $ grep -n 'AMBAR_EMERGENCIA\|^bool bluetooth_ambarEmergencia' 01_Firmware/Esclavo/src/bluetooth.cpp
+> 460:  if (strcmp(cmd, "CMD:AMBAR_EMERGENCIA") == 0) {         <- SIN PIN
+> 547:  if (strcmp(accion, "AMBAR_EMERGENCIA") == 0) {          <- la forma CON PIN
+> 818:bool bluetooth_ambarEmergencia() {                        <- lo leen los tres vetos
 > ```
+>
+> El latch es `ambarEmergencia = true;` dentro de esas dos ramas, y la luz la enciende
+> `semaforo_iniciarFallo()`.
 >
 > | Lo que decía | Lo que mide el fuente |
 > |---|---|
 > | *«ninguno pone al Esclavo en ámbar»* | **`CMD:AMBAR_EMERGENCIA` sí lo pone**, y se acepta **sin PIN** |
-> | *«`FORZAR_ROJO` es rojo, no ámbar»* | **`FORZAR_ROJO` ya no es nada en el Esclavo**: contesta `$ERR,…,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` por las dos formas (`:157`, `:176`). Era el **nombre** lo que estaba mal: aquella rama ya hacía ámbar |
-> | *«no revoca nada»* | **Sí revoca:** `bluetooth_ambarEmergencia()` entra en los tres vetos de `main.cpp:406`, `:416`, `:540`, junto a `mando_ambarLocal()` |
+> | *«`FORZAR_ROJO` es rojo, no ámbar»* | **`FORZAR_ROJO` ya no es nada en el Esclavo**: contesta `$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` por las dos formas —`grep -n "RENOMBRADO_USE_AMBAR_EMERGENCIA"` da **dos** líneas, `528` y `674`, medidas el 07/09—. Era el **nombre** lo que estaba mal: aquella rama ya hacía ámbar |
+> | *«no revoca nada»* | **Sí revoca:** `bluetooth_ambarEmergencia()` entra en los tres vetos de `Esclavo/src/main.cpp`, junto a `mando_ambarLocal()` — el `grep` del símbolo está en §3.1 |
 >
 > ## Estado real de la salida de emergencia del Esclavo, hoy
 >
@@ -803,18 +936,23 @@ salida de emergencia con requisitos no es una salida de emergencia.**
 > no se monta—, así que **las dos vías físicas que esta sección da por supuestas se fueron a la
 > vez**. Es el hueco `A-11` de `DECISIONES.md`.
 >
-> ✅ **Se está cerrando por Bluetooth. Censo del despachador del Esclavo a fecha de esta revisión
-> (05/09):**
+> ✅ **CERRADO por Bluetooth (`D-18`). Censo del despachador del Esclavo, `grep` corrido el 07/09
+> antes de publicarlo:**
 >
 > ```
-> $ grep -n 'strcmp(accion, "' Esclavo/src/bluetooth.cpp
-> 537:  if (strcmp(accion, "AMBAR_EMERGENCIA") == 0) {
-> 575:  } else if (strcmp(accion, "CANCELAR_AMBAR") == 0) {
-> 649:  } else if (strcmp(accion, "FORZAR_ROJO") == 0) {
-> 657:  } else if (strcmp(accion, "SOLICITAR_PASO") == 0) {
-> 675:  } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
-> 744:  } else if (strcmp(accion, "TEST_LEDS") == 0) {
+> $ grep -n 'strcmp(accion, "' 01_Firmware/Esclavo/src/bluetooth.cpp
+> 547:  if (strcmp(accion, "AMBAR_EMERGENCIA") == 0) {
+> 585:  } else if (strcmp(accion, "CANCELAR_AMBAR") == 0) {
+> 668:  } else if (strcmp(accion, "FORZAR_ROJO") == 0) {
+> 676:  } else if (strcmp(accion, "SOLICITAR_PASO") == 0) {
+> 694:  } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
+> 771:  } else if (strcmp(accion, "TEST_LEDS") == 0) {
 > ```
+>
+> ⛔ **Este mismo censo se publicó el 05/09 con `537 · 575 · 649 · 657 · 675 · 744`, y las SEIS
+> líneas están caducadas hoy.** El aviso de abajo —*«vuelva a correr ese grep antes de fiarse»*—
+> estaba bien escrito y **hacía falta a los dos días**. Lo que no caduca es el símbolo:
+> `strcmp(accion, "SET_MODO:DEGRADADO")`.
 >
 > **`SET_MODO:DEGRADADO` es la ENTRADA**, y es de hoy. **La SALIDA no tiene comando propio**:
 > sale por `AMBAR_EMERGENCIA` y por `FORZAR_ROJO`, que pasan por el envoltorio
@@ -872,11 +1010,23 @@ es *"dejó de llover, a ver si volvió el radio"*: `A·A·A`.
 > 2. **Es el registro de qué se descartó.** Una vía que desaparece en silencio se vuelve a proponer
 >    al mes siguiente, y la segunda vez ya nadie recuerda que se decidió.
 
+> ## 🔴 PROMESA DE TACHADO INCUMPLIDA — corregido el 07/09
+>
+> **El aviso de arriba decía *«se conserva TACHADA»* y la tabla NO estaba tachada:** sólo lo
+> estaban los **encabezados** (`~~Requisito~~`, `~~Por qué~~`), y las tres filas —el contenido que
+> un comprador ejecutaría— iban **en negrita y sin tachar**. Un `~~` en la cabecera no tacha las
+> filas de una tabla de Markdown.
+>
+> 🔴 **Resultado: bajo un cartel que decía «no se compra», seguía habiendo una especificación de
+> compra legible y en negrita.** Quien entrara por el índice a *«requisitos de compra del
+> receptor»* leía tres requisitos afirmativos. **Se tacha fila por fila**, que es lo que la promesa
+> decía.
+
 | ~~Requisito~~ | ~~Por qué~~ |
 |---|---|
-| **4 canales de salida por relé, contacto seco** | Se cablean en paralelo con los botones. No debe inyectar tensión |
-| **Modo biestable NO** — pulso por flanco | Es lo que el firmware espera y lo que se midió en campo |
-| ⚠️ **Código independiente por unidad** | **Crítico.** Si el receptor del Esclavo responde al mismo mando que el del Maestro —y las dos puntas suelen estar a menos de una cuadra—, **una sola secuencia actuaría sobre ambas**. Eso convierte cualquier gesto del operario en un cambio simultáneo no verificado en las dos puntas, que es justo lo contrario de la verificación independiente que el procedimiento exige |
+| ~~**4 canales de salida por relé, contacto seco**~~ | ~~Se cablean en paralelo con los botones. No debe inyectar tensión~~ |
+| ~~**Modo biestable NO** — pulso por flanco~~ | ~~Es lo que el firmware espera y lo que se midió en campo~~ |
+| ~~⚠️ **Código independiente por unidad**~~ 🔑 **la única que se conserva VIVA, y no como requisito de compra sino como HALLAZGO** | **Crítico, y vale para cualquier mando por radio que alguien proponga en el futuro para las dos puntas:** si el receptor del Esclavo responde al mismo mando que el del Maestro —y las dos puntas suelen estar a menos de una cuadra—, **una sola secuencia actuaría sobre ambas**. Eso convierte cualquier gesto del operario en un cambio simultáneo **no verificado** en las dos puntas, que es justo lo contrario de la verificación independiente que el procedimiento exige. 🛑 **No es una orden de compra: nadie cotice nada de esta tabla** |
 
 ---
 
@@ -893,7 +1043,7 @@ es *"dejó de llover, a ver si volvió el radio"*: `A·A·A`.
 | ~~🛑 **Al retirarlo, el veto de `ambarLocal` desaparece solo**~~ | ✅ **RESUELTO, y es el motivo escrito de que el código no se toque.** No se retira el armador, y los `if` leen **dos** banderas: `mando_ambarLocal()` **y** `bluetooth_ambarEmergencia()`. ⚠️ **Los números de línea que había aquí —`main.cpp:406`, `:416`, `:540`— estaban CADUCADOS**; medidos el 05/09 son `:453`, `:476`, `:617`, y por eso ahora se cita el símbolo: `grep -n "mando_ambarLocal()" 01_Firmware/Esclavo/src/main.cpp`. **Son cinco llamadas vivas en total**, contando las dos de `CANCELAR_AMBAR` en `Esclavo/src/bluetooth.cpp` |
 | ~~🛑 **El sistema se queda sin salida de emergencia**~~ | ⚠️ **CORREGIDO — la afirmación era falsa.** `CMD:AMBAR_EMERGENCIA` (`Esclavo/src/bluetooth.cpp:130`, sin PIN) **sí** pone al Esclavo en ámbar y **sí** veta las órdenes de radio. Ver §8. **Lo que sigue faltando es el receptor y la prueba de banco**, no el sustituto |
 | ✅ **`C` y `D` cambiaron de modo de pin y de polaridad** | `INPUT_PULLUP` activo en BAJO → **`INPUT` pelado activo en ALTO**, ya hecho en las dos puntas. ⛔ ~~No se cablea cámara a `J16` hasta la medida `M3`~~ → **CADUCADO: `M3` se CERRÓ el 03/09** (`D-3`), medida en cobre, y **las cámaras se cablean**. 🔴 **Lo que NO caduca:** el firmware nuevo va **cargado y verificado en la tarjeta** antes de que nadie enchufe nada (`CLAUDE.md` §9.bis) — *un commit no protege de un destornillador*— y **`J16` p1 lleva 12 V crudos: taparlo es obligatorio** (`D-4`) |
-| ~~🛑 **En el Esclavo el mando pasa a ser el ÚNICO actuador de modo**~~ | 🛑 **DOBLEMENTE CADUCADO, y la fila era peligrosa porque mandaba usar lo que ya no existe.** (1) **El mando no existe**, así que si esto fuera cierto el Esclavo se habría quedado **sin ninguna** vía de modo — ése fue el hueco `A-11`. (2) **Ya no lo es:** `SET_MODO:DEGRADADO` **existe por Bluetooth en el Esclavo** desde el 05/09 (`D-18`), y es la puerta vigente. ✅ **MEDIDO el 07/09:** `grep -n 'strcmp(accion, "SET_MODO:DEGRADADO")' 01_Firmware/Esclavo/src/bluetooth.cpp` → **`675:`**. La salida va por `AMBAR_EMERGENCIA`. Manda `D-18`, no esta fila |
+| ~~🛑 **En el Esclavo el mando pasa a ser el ÚNICO actuador de modo**~~ | 🛑 **DOBLEMENTE CADUCADO, y la fila era peligrosa porque mandaba usar lo que ya no existe.** (1) **El mando no existe**, así que si esto fuera cierto el Esclavo se habría quedado **sin ninguna** vía de modo — ése fue el hueco `A-11`. (2) **Ya no lo es:** `SET_MODO:DEGRADADO` **existe por Bluetooth en el Esclavo** desde el 05/09 (`D-18`), y es la puerta vigente. ✅ **MEDIDO el 07/09:** `grep -n 'strcmp(accion, "SET_MODO:DEGRADADO")' 01_Firmware/Esclavo/src/bluetooth.cpp` → **`694:`**. ⛔ **Aquí ponía `675:`, escrito ESTA MISMA MAÑANA y ya caducado por la tarde** (`4b2841b` insertó las marcas `D-x`): ni un `MEDIDO` del día vale sin volver a correr el `grep`. La salida va por `AMBAR_EMERGENCIA`. Manda `D-18`, no esta fila |
 
 ---
 

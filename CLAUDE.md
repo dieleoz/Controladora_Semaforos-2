@@ -281,6 +281,16 @@ puede quedar correcto y la compuerta verde, pero un `revert` de ese commit no de
   distinto de cero PERO DEJA LOS VALIDOS YA PREPARADOS.** Con `git add ... && git commit` el `&&` corta,
   el commit bueno no corre, y **se los lleva el commit SIGUIENTE**. **La regla: se comprueba el INDICE
   antes de comitear —`git diff --cached --name-only`—, no el codigo de salida del `add`.**
+- 🔴 **Y una TERCERA, que es la contraria y por eso engana: `git add <valido> <ruta_que_NO_EXISTE>`
+  no prepara NADA** —ni las rutas validas de esa misma orden—. Paso el 07/09 con un fichero que se
+  acababa de mover: el commit salio con **un mensaje que describia cambios que no llevaba dentro**.
+  **Imprimir el indice no basta: hay que LEERLO.** Cuenta las lineas que esperas.
+- 🔴 **Al editar un fichero con un script, `open(ruta, "w")` TRUNCA ANTES de escribir.** Si el
+  `.write()` falla despues —un `UnicodeEncodeError` por un emoji, por ejemplo— **el fichero queda
+  vacio y el error parece de lectura**. Paso el 07/09 con `DECISIONES.md`, la tabla vinculante; se
+  recupero **porque estaba comiteada**. Se escribe a un temporal y se renombra, o se usa la
+  herramienta de edicion, que no tiene esta forma de fallo. **Comitear antes de un script masivo no
+  es orden: es la red.**
 - **No se reescribe la historia publicada para arreglarlo:** con la rama en dos remotos y otro agente
   encima, un `push --force` dana mas de lo que repara. Se anota donde vive el cambio y se sigue.
 

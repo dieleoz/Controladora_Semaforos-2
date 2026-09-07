@@ -6,7 +6,9 @@
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`  
 **Normativa Aplicable:** Manual de Señalización Vial de Colombia (Resolución 2024 - MinTransporte)  
 **Fecha de Emisión:** 26 de Agosto de 2026  
-**Última revisión:** 5 de septiembre de 2026 (3.ª del día) — 🔧 **YA HAY PASO A PASO DE CÓMO SE CABLEA A LA PLACA Y DÓNDE: el nuevo §4.bis.** Es lo que faltaba: el manual sabía entrar en la cámara y configurar la analítica, pero **no decía con qué hilos se une a la tarjeta**. Trae alimentación (PoE `802.3at` Clase 4 o `12 V` directos a batería, con los `26 Ah/día` que eso cuesta), los **dos** hilos del contacto seco a `J16`, por qué la entrada `IN1`/`GND1` **hoy no se cablea**, la comprobación con multímetro y una **ficha que se rellena y se devuelve**. 🔴 **Y cierra una lectura que podía cablearse mal: `1A` y `1B` son UNA PAREJA —los dos bornes de UN contacto—, no dos salidas**, leído del diagrama de la Guía rápida que llegó hoy a `04_Manuales/`.
+**Última revisión:** 7 de septiembre de 2026 — 🔴 **Se volvió a abrir la ficha del modelo comprado y la respuesta a la pregunta del relé CAMBIÓ DE SIGNO**: la fila *Linkage Method* (ficha pág. 4) **enumera** cinco vinculaciones y `trigger alarm output` **no está**, y el argumento con que este manual lo daba por probable —*«tiene `1 output`»*— **se retira**, porque `Manual Alarm` y `Automatic Alarm` cierran esa salida sin analítica ninguna (PDF 80 · impresa 68). Ver el bloque 🔴 de aquí abajo y el `Paso 0`. Además: **se corrige una lectura equivocada de la fuente** —`Alarm Input **NO.**` de la pág. 44 es *Number*, no *Normally Open*—, se localiza **la única aparición real de `NO` como valor** en las 110 páginas (PDF 99 · impresa 87), se deja escrito que **el lado del controlador de `D-14` NO está construido** (medido), se pone delante el **conflicto vivo `D-13` contra el firmware** sobre qué zona se dibuja, y se sustituyen **las citas por número de línea que estaban caducadas** por el símbolo y su `grep`.
+
+*Revisión anterior:* 5 de septiembre de 2026 (3.ª del día) — 🔧 **YA HAY PASO A PASO DE CÓMO SE CABLEA A LA PLACA Y DÓNDE: el nuevo §4.bis.** Es lo que faltaba: el manual sabía entrar en la cámara y configurar la analítica, pero **no decía con qué hilos se une a la tarjeta**. Trae alimentación (PoE `802.3at` Clase 4 o `12 V` directos a batería, con los `26 Ah/día` que eso cuesta), los **dos** hilos del contacto seco a `J16`, por qué la entrada `IN1`/`GND1` **hoy no se cablea**, la comprobación con multímetro y una **ficha que se rellena y se devuelve**. 🔴 **Y cierra una lectura que podía cablearse mal: `1A` y `1B` son UNA PAREJA —los dos bornes de UN contacto—, no dos salidas**, leído del diagrama de la Guía rápida que llegó hoy a `04_Manuales/`.
 
 *Revisión anterior (05/09/2026, 2.ª del día): 🔑 **AHORA EMPIEZA POR ENTRAR EN LA CÁMARA, Y ESE ES EL CAMBIO IMPORTANTE.***
 Con la cámara delante, el reporte del funcional fue **«no encuentro ni la IP»**: un manual de
@@ -90,6 +92,34 @@ nunca. Nada se borra: el texto viejo queda tachado en su sitio con el motivo.*
 > sobretensión que entre por el hilo de campo. La protección de verdad —**2K2 en serie en las cinco
 > entradas**— es una modificación de la **revisión V2 de la placa**, y está anotada como línea de
 > compra en `15_Lista_de_Compras_Hardware.md` (bloque **E**). **Hoy no existe en el cobre.**
+
+> # 🔴 07/09 — LA RESPUESTA A LA PREGUNTA MÁS CARA DEL PROYECTO, Y ES PEOR DE LO QUE ESTE MANUAL DECÍA
+>
+> **La pregunta:** *¿puede la **analítica** de esta cámara accionar su relé de salida?* De ella
+> depende que el camino de `J16` —dos hilos, un contacto seco, el único que el firmware sabe leer—
+> exista o no. Con las cámaras **ya compradas**, es la pregunta que puede tirar el diseño entero.
+>
+> **La respuesta del papel, con la ficha del modelo comprado delante:**
+>
+> | | |
+> |---|---|
+> | **Ninguna fuente oficial dice que sí** | — |
+> | **La ficha del modelo lo OMITE de una lista que ENUMERA** | `DS-2CD2683G2-IZS_Datasheet_V5.5.113_20230303.pdf`, **pág. 4**, fila *Linkage Method*: *«Upload to FTP/memory card/NAS, notify surveillance center, trigger recording, trigger capture, send email»*. **Cinco enlaces, y `trigger alarm output` no está entre ellos** |
+> | **El manual de usuario pone la condición de modelo** | *«Trigger Alarm Output … **This function is only supported by certain models**»* — **PDF pág. 79 · impresa 67** |
+>
+> 🛑 **Este manual venía diciendo que el hardware `1 output` lo hacía *«probable»*. Eso se retira
+> hoy:** el mismo manual documenta **`Manual Alarm`** (un botón en el navegador) y **`Automatic
+> Alarm`** (cierre **por horario**, no por detección) — **PDF pág. 80 · impresa 68** —, que cierran
+> esa salida **sin analítica ninguna**. **El borne existe y eso no dice nada sobre el enlace.**
+>
+> ✅ **Sigue siendo 🔴 `SIN VERIFICAR` —el papel no lo cierra en positivo— pero el peso de la prueba
+> está del otro lado: lo esperable es que la casilla NO esté.** Lo cierra **el `Paso 0` del §4, diez
+> minutos con la cámara delante**, y ese paso ya no es un trámite: es lo primero que se hace.
+>
+> 🔻 **Y si no está, lea el bloque 🔻 del `Paso 0` antes de dar nada por perdido:** la grabación por
+> analítica en la microSD **sobrevive** (`Trigger Recording` **sí** está en la lista de la ficha), y
+> lo que muere es el bit al controlador. **La vía de `D-14` NO es el relevo**: su lado del
+> controlador **no está construido** — medido el 07/09, ver §4.bis.6.
 
 ### 🔧 ¿VIENE USTED A CABLEAR? VAYA DIRECTO AL **§4.bis**
 
@@ -250,7 +280,7 @@ cada equipo. **Un commit no protege de un destornillador.**
 > > `WiFi`, `HTTPClient`, `WebServer`, `AsyncWebServer`, `WiFiClient`, `ONVIF`, `RTSP`, `esp_camera`,
 > > `MQTT` y `Ethernet`. Sus únicos `#include` de sistema son `Arduino.h`, `BluetoothSerial.h`,
 > > `Wire.h`, `Preferences.h`, `esp_task_wdt.h` y `esp_system.h`. Y en el STM32, las tres entradas de
-> > cámara se leen con `digitalRead()` y nada más — `camara_leerPin()`, `botones.cpp:105-111`.
+> > cámara se leen con `digitalRead()` y nada más — símbolo `camara_leerPin()` de `botones.cpp`.
 > >
 > > ⚠️ **El matiz honesto, porque el dato bruto dice otra cosa y alguien lo va a mirar:** en el
 > > `firmware.map` del ESP32 **sí** aparecen enlazadas `libesp_wifi.a`, `liblwip.a` y
@@ -689,7 +719,7 @@ La cámara Hikvision AcuSense incorpora un procesador de inteligencia artificial
 **Ésta es la pregunta que decide si el semáforo le da verde a un carril vacío**, y se contesta con
 las definiciones literales del manual oficial, no con criterio propio. **Lo que este equipo necesita
 saber es que hay un vehículo DETENIDO esperando paso** — porque las tres entradas de cámara acaban
-en `demanda_solicitar()` (✅ **MEDIDO** en el fuente, `botones.cpp:148`): *piden paso*.
+en `demanda_solicitar()` (✅ **MEDIDO** en el fuente: `camaras_actualizar()` de `botones.cpp` la llama en cada flanco): *piden paso*.
 
 | analítica | qué dice el manual oficial que detecta | ¿es «esperando»? |
 |---|---|---|
@@ -773,12 +803,12 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
 
 | pin | qué es | ¿cámara? | nivel |
 |---|---|---|---|
-| **`PB0`** (`J14`) | `CAM_DEMANDA_PIN`, con `R64` 10 kΩ + `C25` 100 nF (antirrebote 1 ms) | ✅ **Sí** | ✅ **MEDIDO** (`pines.h:43-46`; declarada en `botones.cpp:176`; leída en `modo_inteligente.cpp:97`, `:135` y `Esclavo/src/main.cpp:350`) |
-| **`PB8`** | `LED_TESTIGO` → `R16` 1 kΩ → LED `D5` | ❌ **No es entrada de nada** | ✅ **MEDIDO** (`pines.h:63`; `modo_inteligente.cpp:47` lo deja en alta impedancia) |
-| **`PB9`** (`J16` p5) | `BOTON1` = **`MANDO_A`** del mando de relés | 🛑 **NUNCA.** `A·A·A` en 12 s = Modo Automático | ✅ **MEDIDO** (`pines.h:134`, `botones.cpp:163`, `mando.cpp:225-226`) |
-| **`PB13`** (`J16` p8) | `BOTON2` = **`MANDO_B`** | 🛑 **NUNCA.** `B·B·B` = Ámbar **y arma `ambarLocal`**, que veta las órdenes de radio | ✅ **MEDIDO** (`pines.h:135`, `botones.cpp:164`, `mando.cpp:230-231`, `Esclavo/src/mando.cpp:132`) |
-| **`PB14`** (`J16` **p10**) | **`CAM_C_PIN` — entrada de cámara de DEMANDA**, con **`R67` 10 kΩ a masa CONFIRMADA en cobre: 9,93 kΩ** | ✅ **Sí — firmware Y cobre** | ✅ **MEDIDO EN EL FUENTE** (`pines.h:136`; `pinMode(INPUT)` en `botones.cpp:177`; leída por flanco en `botones.cpp:144-152`) **y MEDIDO EN BANCO el 04/09** (`M3`, paso 20: 9,93 kΩ a masa, 0 V con energía) |
-| **`PB15`** (`J16` **p12**) | **`CAM_D_PIN` — entrada de cámara de DEMANDA**, con **`R68` 10 kΩ a masa CONFIRMADA en cobre: 9,94 kΩ** | ✅ **Sí — firmware Y cobre** | ✅ **MEDIDO EN EL FUENTE** (`pines.h:137`; `pinMode(INPUT)` en `botones.cpp:178`) **y MEDIDO EN BANCO el 04/09** (`M3`, paso 20: 9,94 kΩ a masa, 0 V con energía) |
+| **`PB0`** (`J14`) | `CAM_DEMANDA_PIN`, con `R64` 10 kΩ + `C25` 100 nF (antirrebote 1 ms) | ✅ **Sí** | ✅ **MEDIDO** (`pines.h:43-46`, cita fechada y vigente; su `pinMode(CAM_DEMANDA_PIN, INPUT)` en `botones_setup()`; leída en `modo_inteligente.cpp` y en `Esclavo/src/main.cpp:350`) |
+| **`PB8`** | `LED_TESTIGO` → `R16` 1 kΩ → LED `D5` | ❌ **No es entrada de nada** | ✅ **MEDIDO** (símbolo `LED_TESTIGO`, `pines.h:63` — cita vigente; `modo_inteligente.cpp` lo deja en alta impedancia) |
+| **`PB9`** (`J16` p5) | `BOTON1` = **`MANDO_A`** del mando de relés | 🛑 **NUNCA.** `A·A·A` en 12 s = Modo Automático | ✅ **MEDIDO** (símbolos `BOTON1`, `MANDO_A`, y `mando_registrarPulso(MANDO_A)` en `botones_actualizar()`) |
+| **`PB13`** (`J16` p8) | `BOTON2` = **`MANDO_B`** | 🛑 **NUNCA.** `B·B·B` = Ámbar **y arma `ambarLocal`**, que veta las órdenes de radio | ✅ **MEDIDO** (símbolos `BOTON2`, `MANDO_B`, `mando_registrarPulso(MANDO_B)` y `mando_ambarLocal()`) |
+| **`PB14`** (`J16` **p10**) | **`CAM_C_PIN` — entrada de cámara de DEMANDA**, con **`R67` 10 kΩ a masa CONFIRMADA en cobre: 9,93 kΩ** | ✅ **Sí — firmware Y cobre** | ✅ **MEDIDO EN EL FUENTE** (símbolos `CAM_C_PIN`, su `pinMode(CAM_C_PIN, INPUT)` y `camaras_actualizar()`) **y MEDIDO EN BANCO el 04/09** (`M3`, paso 20: 9,93 kΩ a masa, 0 V con energía) |
+| **`PB15`** (`J16` **p12**) | **`CAM_D_PIN` — entrada de cámara de DEMANDA**, con **`R68` 10 kΩ a masa CONFIRMADA en cobre: 9,94 kΩ** | ✅ **Sí — firmware Y cobre** | ✅ **MEDIDO EN EL FUENTE** (símbolos `CAM_D_PIN` y su `pinMode(CAM_D_PIN, INPUT)`) **y MEDIDO EN BANCO el 04/09** (`M3`, paso 20: 9,94 kΩ a masa, 0 V con energía) |
 
 > ### ✅ QUÉ CAMBIÓ EL 31/08 EN ESTAS DOS FILAS — Y QUÉ NO
 >
@@ -789,9 +819,9 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
 > ```
 >   Maestro/src/botones.cpp:305-306   bool botonAceptar()  { return false; }
 >                                     bool botonCancelar(){ return false; }
->   Maestro/src/botones.cpp:177-178   pinMode(CAM_C_PIN, INPUT);
+>   Maestro/src/botones.cpp  botones_setup(): pinMode(CAM_C_PIN, INPUT);
 >                                     pinMode(CAM_D_PIN, INPUT);
->   Maestro/src/botones.cpp:144-152   flanco de subida -> demanda_solicitar()
+>   Maestro/src/botones.cpp  camaras_actualizar(): flanco de subida -> demanda_solicitar()
 >   Esclavo/src/botones.cpp:316-317, :194-195, :164-172   identico
 > ```
 >
@@ -806,7 +836,7 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
 > ```
 >    J16 p10 (PB14) --+
 >                     +--> camaras_actualizar()  --FLANCO DE SUBIDA-->  demanda_solicitar()
->    J16 p12 (PB15) --+     botones.cpp:144-152                          demanda.cpp:13
+>    J16 p12 (PB15) --+     camaras_actualizar()                     demanda_solicitar()
 >                                                                              |
 >                                                                     demanda_hayLocal()
 >                                                                              |
@@ -819,9 +849,9 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
 > | propiedad | valor | dónde |
 > |---|---|---|
 > | **Ventana de silencio entre demandas** | **3 000 ms**, y es **la misma** para la cámara y para el botón de la app | `SILENCIO_MS`, `demanda.cpp:8` |
-> | **Las de `J16` se toman POR FLANCO**, no por nivel | el relé cierra ~1 s; leer el nivel repetiría la petición cada vuelta del `loop` | `botones.cpp:144-152` |
-> | **La de `J14` se lee POR NIVEL** | tiene el antirrebote `RC` de la placa | `modo_inteligente.cpp:97` |
-> | **Un contacto YA CERRADO al encender NO es una detección** | se siembra el nivel real en el arranque: no vuelve a pedir hasta que se **ABRA** y se cierre otra vez | `camaras_sembrar()`, `botones.cpp:129-135` |
+> | **Las de `J16` se toman POR FLANCO**, no por nivel | el relé cierra ~1 s; leer el nivel repetiría la petición cada vuelta del `loop` | símbolo `camaras_actualizar()` |
+> | **La de `J14` se lee POR NIVEL** | tiene el antirrebote `RC` de la placa | símbolo `camara_leerPin(CAM_DEMANDA_PIN)` en `modo_inteligente.cpp` |
+> | **Un contacto YA CERRADO al encender NO es una detección** | se siembra el nivel real en el arranque: no vuelve a pedir hasta que se **ABRA** y se cierre otra vez | símbolo `camaras_sembrar()` de `botones.cpp` |
 >
 > ⚠️ **Consecuencia de parametrización, y es la que decide NO/NC:** con la salida en **NC** el
 > contacto está cerrado en reposo, así que **el pin nace ALTO**, la siembra lo marca como «ya
@@ -829,7 +859,7 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
 > **NO** el reposo es abierto y cada detección da su flanco. **La configuración prevista es NO**, y
 > el criterio negativo del ensayo —*en reposo no debe pedir paso*— es lo que lo comprueba.
 >
-> 🔵 **Y un sitio donde las tres NO convergen, que NO es un defecto:** `modo_inteligente.cpp:135`
+> 🔵 **Y un sitio donde las tres NO convergen, que NO es un defecto:** el bloque del LED testigo de `modo_inteligente.cpp`
 > calcula el contador de presencia mirando **sólo** `PB0` y la demanda remota. **Medido: ese número
 > sólo alimenta `lcd_dibujarInteligente()` (`:138`) — es el contador de la PANTALLA, y la pantalla se
 > retira.** No decide ninguna luz. Se escribe con la medida al lado para que nadie vaya a
@@ -927,6 +957,64 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 4. **MIRAR SI EXISTE LA CASILLA `Trigger Alarm Output`** *(Disparar Salida de Alarma)*.
    * **Si está** → el diseño vale entero. Seguir con el Paso 1.
    * **Si NO está** → 🛑 **PARAR Y AVISAR.** No se cablea la cámara a `J16`: no serviría.
+     **Lo que hay que hacer en ese caso está escrito abajo, en el bloque 🔻** — no se improvisa
+     delante del poste, y **la cámara no se queda inservible**.
+
+> ## 🔻 07/09 — LO QUE EL PAPEL SÍ CIERRA, Y NO ES LO QUE ESTE MANUAL VENÍA DICIENDO
+>
+> **Se volvió a abrir la ficha del modelo comprado, y hay una fila que este documento citaba de
+> pasada y que es la respuesta específica a la pregunta del Paso 0.** La nota del manual de usuario
+> —*«only supported by certain models»*— es una condición **sobre el modelo**; **la ficha ES el
+> documento del modelo**, y contesta enumerando:
+>
+> ```text
+>   DS-2CD2683G2-IZS_Datasheet_V5.5.113_20230303.pdf, pag. 4, seccion "General":
+>
+>     Linkage Method
+>       Upload to FTP/memory card/NAS, notify surveillance center,
+>       trigger recording, trigger capture, send email
+> ```
+>
+> **Son cinco, es una lista cerrada, y `trigger alarm output` NO está en ella** — mientras que
+> `trigger recording` y `trigger capture`, que en el manual genérico son enlaces como cualquier
+> otro, **sí están**. O sea que la ficha **no calla** sobre los métodos de vinculación de este
+> modelo: los enumera, y deja fuera justo el que necesitamos.
+>
+> ### ⛔ Y SE CAE EL ARGUMENTO CON EL QUE ESTE MANUAL LO DABA POR PROBABLE
+>
+> Aquí decía: ~~*«Que el hardware traiga `1 output` hace probable que sí»*~~. 🔴 **Esa inferencia no
+> se sostiene, y el propio manual de usuario la desmonta dos páginas después de la nota:**
+>
+> | quién puede cerrar esa salida **sin analítica ninguna** | dónde |
+> |---|---|
+> | **`Manual Alarm`** — *«You can trigger an alarm output manually… Click **Manual Alarm** to enable manual alarm output»*: un botón en el navegador | **PDF pág. 80 · impresa 68** |
+> | **`Automatic Alarm`** — *«the device triggers an alarm output automatically **in the set arming schedule**»*: cierra por HORARIO, no por detección | **PDF pág. 80 · impresa 68** |
+>
+> **Tener `1 output` queda enteramente explicado por esas dos.** Que el borne exista **no dice nada**
+> sobre si la regla de intrusión puede llegar hasta él, que es lo único que este diseño necesita.
+>
+> ### 📌 El estado real, en una línea
+>
+> **Ninguna fuente oficial dice que la `DS-2CD2683G2-IZS` pueda enlazar analítica → salida de alarma.
+> Dos fuentes oficiales apuntan a que NO** (la ficha, omitiéndolo de una lista que enumera; el
+> manual, con la nota de modelos). **Sigue siendo 🔴 `SIN VERIFICAR` —el papel no lo cierra en
+> positivo— pero ya no es «probablemente sí»: es «probablemente no».** Y el Paso 0 pasa de trámite a
+> **la comprobación más cara del proyecto**: con las cámaras ya compradas, decide si el camino de
+> `J16` existe.
+>
+> ### 🔻 SI LA CASILLA NO ESTÁ — lo que sobrevive y lo que no
+>
+> **No se tira la cámara, y esto hay que decirlo para que nadie lo lea como «las cámaras no valen».**
+>
+> | | estado si `Trigger Alarm Output` no existe |
+> |---|---|
+> | **El bit al controlador por `J16`** | 🛑 **MUERE.** Es el único camino que el firmware sabe leer hoy |
+> | **La grabación por analítica en la microSD** | ✅ **VIVE, y no depende de la casilla.** `Trigger Recording` **sí está** en la lista de la ficha, y el `Record Schedule` admite el tipo **`Event`**: *«The video is recorded when configured event is detected»* (**PDF pág. 48 · impresa 36**). La cámara sigue dando prueba de lo que pasó |
+> | **La vía de `D-14`** *(el controlador cierra un contacto y la cámara graba)* | 🔴 **NO ES UN RELEVO DISPONIBLE HOY.** Ver §4.bis.6: **el lado del controlador no está construido**, medido el 07/09 |
+>
+> 🛑 **Y lo que este manual NO decide: por dónde entraría entonces la demanda.** Relé de NVR, evento
+> de red, u otro modelo de cámara son **otro diseño**, con red donde `D-12` dice que no hay red. **Se
+> para, se anota el hallazgo con la pantalla delante, y se le lleva al responsable.**
 
 > ⚠️ **Y una condición previa que el manual avisa y es fácil de pasar por alto:** *«For certain device
 > models, you need to **enable the smart event function on VCA Resource page** first»* (**pág. 48**).
@@ -946,17 +1034,26 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 >
 > **O sea: `Detección de Intrusión` → `Linkage Method` → `Trigger Alarm Output` es un camino que el
 > fabricante documenta**, y el hardware existe en este modelo *(ficha pág. 3: `1 input, 1 output`)*.
-> Eso es **bastante más de lo que había el 04/09**, cuando lo único citable era la fila *Linkage
-> Method* de la ficha, que no lo menciona.
+> ~~Eso es **bastante más de lo que había el 04/09**, cuando lo único citable era la fila *Linkage
+> Method* de la ficha, que no lo menciona.~~
+>
+> ⛔ **CORREGIDO EL 07/09, y la corrección invierte el tono de este bloque.** Lo de arriba es cierto
+> **y es del manual GENÉRICO de la familia** — describe lo que una cámara Hikvision puede hacer, no
+> lo que hace ésta. **La fila de la ficha que aquí se despachaba como *«lo único citable»* es
+> precisamente la fuente específica del modelo comprado, y enumera cinco enlaces sin incluir la
+> salida de alarma.** Ver el bloque 🔻 de arriba: **el peso de la prueba estaba puesto del revés.**
 >
 > > 🔴 **Y AUN ASÍ NO SE MARCA VERIFICADO, porque la frase que sobra sigue ahí.** Debajo de
 > > `Trigger Alarm Output` el manual escribe: **«*This function is only supported by certain
 > > models*»** (misma página). **Es una condición sobre el modelo, y no la resuelve ningún documento
 > > que tengamos**: ni la ficha ni el manual dicen si la `DS-2CD2683G2-IZS` es uno de esos modelos.
 > >
-> > Que el hardware traiga `1 output` **hace probable** que sí, pero *«probable»* no es una de las
-> > tres respuestas que este proyecto acepta. **Lo cierra mirar la pantalla**, que es lo que este
-> > Paso 0 manda hacer, y cuesta diez minutos con la cámara delante.
+> > ~~Que el hardware traiga `1 output` **hace probable** que sí~~ ⛔ **RETIRADO EL 07/09: la
+> > inferencia es falsa** — el mismo manual documenta `Manual Alarm` y `Automatic Alarm`
+> > (**PDF pág. 80 · impresa 68**), que cierran esa salida **sin analítica ninguna**, así que el
+> > borne se explica entero sin ella. Ver el bloque 🔻. **Lo que queda en pie es lo que sigue:**
+> > *«probable»* no es una de las tres respuestas que este proyecto acepta. **Lo cierra mirar la
+> > pantalla**, que es lo que este Paso 0 manda hacer, y cuesta diez minutos con la cámara delante.
 
 > ### 🔴 Y SIGUE `SIN VERIFICAR` EL CLASIFICADOR SOBRE ESTA ANALÍTICA — medido en el manual el 05/09
 >
@@ -1072,6 +1169,45 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 
 ### Paso 3: Configuración de la Analítica Inteligente
 
+> # 🛑 07/09 — ANTES DE DIBUJAR LA ZONA: **PREGUNTE QUÉ TIENE QUE MIRAR ESTA CÁMARA**
+>
+> **Una cámara sólo puede llevar UNA regla, y hay dos respuestas vivas a la vez sobre dónde
+> apuntarla. Las dos están medidas, ninguna está derogada, y este manual NO elige.**
+>
+> | | qué dice | dónde vive |
+> |---|---|---|
+> | **(A) — lo que el FIRMWARE ejerce hoy** | la cámara mira **la vía de aproximación** y **PIDE PASO**: el pin entra por `demanda_solicitar()` | ✅ **MEDIDO el 07/09** en el fuente, las dos puntas — ver el `grep` de abajo |
+> | **(B) — lo que `D-13` DECIDIÓ el 05/09** | las dos cámaras iguales, *Intrusion Detection* **sobre el BARRIDO DE LA PLUMA —no la zona de espera—**, y *«las cámaras no dan ni quitan verde»* | `DECISIONES.md`, fila `D-13` |
+>
+> ```text
+>   $ grep -rn "demanda_solicitar()" 01_Firmware/Maestro/src/botones.cpp
+>     507:      demanda_solicitar();          <-- aqui entra el pin de camara
+>
+>   $ grep -rn "camara_vetosPluma" 01_Firmware/Maestro/src 01_Firmware/Esclavo/src
+>     Maestro/src/botones.cpp:254:  uint16_t camara_vetosPluma() {
+>     Maestro/src/botones.cpp:434:    ... "VETO_HABRIA_ACTUADO_N:%u", camara_vetosPluma()
+>     (idem Esclavo, :267 y :447)
+> ```
+>
+> 🔴 **`camara_vetosPluma()` existe en las dos puntas y SÓLO CUENTA:** publica un contador por
+> `$EVENT` y **no toca una luz**. Es la fase 1 de `D-13`, deliberadamente sin efecto vial. **O sea
+> que el camino de la pluma está OBSERVADO pero no ACTUADO, mientras el de la demanda sí actúa.**
+>
+> ### 🔻 Qué hace usted con esto, de pie delante de la cámara
+>
+> **PREGUNTE ANTES DE DIBUJAR.** Es una decisión vial del responsable, no un ajuste de taller, y el
+> encuadre físico de la cámara depende de ella: **la vía de aproximación y el barrido de la pluma no
+> se ven desde el mismo sitio.**
+>
+> | si le dicen… | configure |
+> |---|---|
+> | **«demanda»** *(el comportamiento que el equipo tiene hoy)* | el bloque de abajo **tal cual**: zona sobre la **zona de parada del carril de aproximación** |
+> | **«pluma»** *(`D-13`)* | el **mismo** bloque de abajo — misma analítica, mismos parámetros — pero con la **zona dibujada sobre el barrido de la pluma**, y sabiendo que hoy ese bit **entra igual por `demanda_solicitar()` y pedirá paso**, porque el firmware no distingue de dónde viene |
+>
+> 🛑 **Y ésa es la frase que hay que llevarse:** hoy **el equipo hace lo mismo con las dos zonas**.
+> Lo que cambia es **qué significa** el bit, y el significado no está en la cámara: **está en el
+> firmware que todavía no lo separa.** Se anota qué zona se dibujó en la ficha de instalación.
+
 > 🔴 **TODAS LAS CÁMARAS DE ESTE EQUIPO SON DE DEMANDA. Configúrelas todas igual, con el bloque de
 > abajo.** Las tres entradas que el firmware lee —`PB0` en `J14`, y `PB14`/`PB15` en `J16`— acaban
 > en la misma llamada, `demanda_solicitar()`: **piden paso**. Ninguna mide el despeje del tramo.
@@ -1141,7 +1277,7 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 > entrada física para ella y no hay comando de radio que lleve la cuenta del tramo al Maestro—.
 > Configurar una cámara así y llevarla a `J16` p10 o p12 haría que **cada vehículo que SALE del
 > tramo pidiera paso**, que es lo contrario de lo que se busca: esos dos pines llaman a
-> `demanda_solicitar()` (`Maestro/src/botones.cpp:126-133`).
+> `demanda_solicitar()` (símbolo `demanda_solicitar()`).
 >
 > Se conserva tachado porque describe lo que costaría construirla, si algún día se quiere.
 
@@ -1162,9 +1298,46 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 > | fuente oficial de la `DS-2CD2683G2-IZS` | qué dice sobre `NO`/`NC` de la SALIDA |
 > |---|---|
 > | Ficha, pág. 3, fila *Alarm* | `1 input, 1 output (max. 24VDC/24 VAC, 1 A)` — **y nada más** |
-> | Manual, *Set Alarm Input*, pág. 44 | el desplegable **`Alarm Type`** existe… **para la ENTRADA**: *«Select Alarm Input NO. and **Alarm Type** from the dropdown list»* |
+> | Manual, *Set Alarm Input*, pág. 44 *(PDF 57)* | el desplegable **`Alarm Type`** existe… **para la ENTRADA**: *«Select Alarm Input NO. and **Alarm Type** from the dropdown list»*. 🔴 **Y OJO CON ESE `NO.` — ver el bloque de abajo** |
 > | Manual, *Automatic Alarm*, pág. 68 | los únicos parámetros de la **SALIDA** son **`Alarm Output No.`**, **`Alarm Name`** y **`Delay`** |
 > | Las 110 páginas del manual | **`Normally Open` / `Normally Closed` no aparecen ni una sola vez** |
+
+> ### 🔴 07/09 — UNA TRAMPA DE LECTURA EN LA FUENTE DE ARRIBA, Y HAY QUE DESACTIVARLA
+>
+> **`Alarm Input NO.` de la pág. 44 NO es «entrada de alarma normalmente abierta». `NO.` con punto
+> es la abreviatura de *Number*: «el NÚMERO de entrada de alarma».** Se demuestra sin salir del
+> mismo documento: la pantalla de la **salida** usa el mismo campo escrito `Alarm Output **No.**`
+> —*«Select the alarm output No. according to the alarm interface connected»*, **PDF pág. 80 ·
+> impresa 68**—, y ahí nadie leería «salida normalmente abierta».
+>
+> **Consecuencia: la pág. 44 documenta el desplegable `Alarm Type` y NO documenta ni uno solo de sus
+> valores.** Quien cite esa página como prueba de que la entrada admite `NO`/`NC` está citando el
+> nombre del campo, no su contenido.
+>
+> 🟢 **Y hay UNA aparición real de `NO` como valor en las 110 páginas, en un sitio donde nadie había
+> mirado** — se encontró al buscar la cadena `alarm type` insensible a mayúsculas en todo el
+> documento, no sólo el rótulo con mayúsculas:
+>
+> ```text
+>   Manual de usuario, "Set Vehicle Detection" (Road Traffic), PDF pag. 99 / impresa 87:
+>
+>     "When Alarm Input is selected, the alarm input A<-1 will automatically be
+>      assigned to trigger vehicle detection and its alarm type is always NO."
+> ```
+>
+> **Lo que eso prueba y lo que no:**
+>
+> | | |
+> |---|---|
+> | ✅ **`NO` SÍ existe como valor de `Alarm Type`** en el vocabulario de esta cámara | es de la **ENTRADA**, y en un modo —*Road Traffic*— que este proyecto **no usa** y que el propio manual marca *«only supported by certain device models»* |
+> | ✅ Dice **`always NO`** | o sea que en ese modo **NO se elige**: se impone. No demuestra que el desplegable ofrezca alternativa |
+> | 🔴 **`NC` sigue en CERO apariciones** en las 110 páginas, igual que `Normally Open` y `Normally Closed` | — |
+> | 🔴 **De la SALIDA sigue sin haber ni una palabra sobre polaridad** | — |
+>
+> **La conclusión de este apartado NO cambia: la polaridad de la SALIDA es 🔴 `SIN VERIFICAR` y la
+> cierra el `ENSAYO 1` con un óhmetro.** Lo que cambia es la evidencia con que se sostenía, y eso se
+> corrige igual — una excepción que se apoya en una frase mal leída es un defecto con permiso
+> (`CLAUDE.md` §2.ter).
 >
 > 🔎 **Y el buscador está descartado (`CLAUDE.md` §4):** `Alarm Type` **sí** se encuentra en el PDF, y
 > una búsqueda de `"NO/NC"` limitada a `hikvision.com` devuelve fichas donde el fabricante lo escribe
@@ -1210,7 +1383,7 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 > cámara admita `NC` no lo convierte en una opción: la admite, y aquí se pide `NO`.**
 >
 > ✅ **El tercer resultado que `M3` podía dar —que no hubiera resistencia ninguna— queda descartado
-> por medida.** El firmware pone el pin en `pinMode(INPUT)` **pelado** (`Maestro/src/botones.cpp:155-157`),
+> por medida.** El firmware pone el pin en `pinMode(INPUT)` **pelado** (símbolo `botones_setup()`: `pinMode(CAM_C_PIN, INPUT)`),
 > sin pull-up ni pull-down internos, así que **el reposo lo tenía que fijar cobre real**: lo fija,
 > son 9,93 y 9,94 kΩ. **Y el paso 21 lo confirmó por el otro lado:** en reposo, con y sin el cable
 > puesto, **el equipo no pide paso por sí solo** — cero demandas fantasma.
@@ -1249,7 +1422,7 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 > ## ⏱️ CUÁNTO TARDA Y CUÁNTO DURA EL CONTACTO — y por qué esto le importa al firmware
 >
 > **El firmware detecta el FLANCO DE SUBIDA, no el nivel** (✅ **MEDIDO**: `camaras_actualizar()`,
-> `Maestro/src/botones.cpp:144-152`). **Un contacto que se queda pegado NO vuelve a pedir paso hasta
+> símbolo `camaras_actualizar()` de `Maestro/src/botones.cpp`). **Un contacto que se queda pegado NO vuelve a pedir paso hasta
 > que se suelte y cierre otra vez.** De ahí que la retención del relé no sea un detalle.
 >
 > ### Lo que tarda en cerrar
@@ -1278,7 +1451,7 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 >
 > 🔴 **Y un hallazgo que sale de cruzar esto con el firmware, y que hay que dejar por escrito:** el
 > comentario que justifica los `3 000 ms` de `SILENCIO_MS` dice *«el rele de la camara AcuSense cierra
-> ~1 s por deteccion»* (`Maestro/src/demanda.cpp:4-7`). **Ese «~1 s» es exactamente el dato que acaba
+> ~1 s por deteccion»* (cabecera de `Maestro/src/demanda.cpp`, encima de `SILENCIO_MS`). **Ese «~1 s» es exactamente el dato que acaba
 > de quedar `SIN VERIFICAR`**: una constante del firmware apoyada en un comportamiento de la cámara
 > que nadie ha medido nunca. **No se toca el firmware por esto** —los tres casos de la tabla lo
 > aguantan— pero **el `ENSAYO 1` tiene que anotar el número real**, y si no sale `~1 s`, ese
@@ -1530,7 +1703,43 @@ lista para cablearse**, y le faltan **dos cosas distintas**:
 | lo que falta | estado |
 |---|---|
 | **Qué espera eléctricamente esa entrada** | 🔴 **`SIN VERIFICAR`** — ver la medida de abajo |
-| **Qué canal de la placa se le asigna** | 🟡 **SIN DECIDIR.** El `p12`/`p11` de `J16` queda libre, pero **no está asignado**, y el firmware no tiene hoy ninguna salida hacia la cámara |
+| **Qué canal de la placa se le asigna** | 🟡 **SIN DECIDIR.** El `p12`/`p11` de `J16` queda libre, pero **no está asignado** |
+| **El lado del CONTROLADOR** | 🔴 **NO ESTÁ CONSTRUIDO — medido el 07/09, ver abajo.** No es «falta ajustar»: no existe |
+
+> ## 🛑 07/09 — `D-14` NO ESTÁ CONSTRUIDO EN EL CONTROLADOR, Y ESTE MANUAL NO PUEDE DESCRIBIRLO COMO SI FUNCIONARA
+>
+> **`D-14` es una decisión de diseño con su lectura del manual del fabricante detrás, y es buena.
+> Lo que no tiene es firmware.** Medido sobre el fuente el 07/09, en las **dos** puntas, censando
+> **todas** las escrituras a pines:
+>
+> ```text
+>   $ grep -rn "digitalWrite" 01_Firmware/Maestro/src 01_Firmware/Esclavo/src \
+>       | grep -v "semaforo.cpp" | grep -v "^.*//"
+>
+>     Maestro/src/bluetooth.cpp   digitalWrite(RS485_IN_DE_RE, HIGH)
+>     Maestro/src/protocolo.cpp   digitalWrite(LORA_DE_RE, LOW / HIGH / LOW)
+>     Esclavo/src/bluetooth.cpp   digitalWrite(RS485_IN_DE_RE, HIGH)
+>     Esclavo/src/protocolo.cpp   digitalWrite(LORA_DE_RE, LOW / HIGH / LOW)
+> ```
+>
+> **Fuera de `semaforo.cpp` —que gobierna las luces y nada más (`CLAUDE.md` §6)— lo único que el
+> firmware escribe es la DIRECCIÓN del bus RS485 y de la radio.** No hay ninguna salida de propósito
+> general, ni una función que la encienda, ni un comando que la pida.
+>
+> **Y los tres canales de potencia que podrían serlo están declarados y muertos**, también medido
+> hoy: `ROJO_PEATON` (`PA6`→`J11`), `VERDE_PEATON` (`PA7`→`J9`) y `BUZZER` (`PB1`→`J13`) aparecen
+> **sólo en `pines.h`** de las dos puntas — sin `pinMode`, sin `digitalWrite`, sin llamador.
+>
+> 🔴 **Por qué esto va escrito aquí y no se calla:** un manual que describe una función inexistente
+> es el defecto que este proyecto ya pagó con la **«Caja Negra de Alarmas»** —descrita en cuatro
+> manuales, sin un solo llamador, y se cobró el día que un fallo de campo no se pudo diagnosticar
+> porque no había registro que mirar—. **`D-14` es hoy un DISEÑO APROBADO, no una capacidad del
+> equipo**, y cablear `IN1`/`GND1` no la haría aparecer.
+>
+> ✅ **Lo que sí funciona hoy sin firmware ninguno, y conviene saberlo antes de pedir el desarrollo:**
+> la cámara **graba sola por su analítica** —`Trigger Recording` + `Record Schedule` tipo `Event`
+> (**PDF pág. 48 · impresa 36**)—. **La `AND` con el estado del semáforo es lo que exige `D-14`; la
+> grabación del evento, no.**
 
 🔴 **Lo eléctrico no es un descuido de este manual: NO LO PUBLICA EL FABRICANTE.** El manual de
 usuario **delega el cableado en la guía rápida**, y la guía rápida **no lo trae**:
@@ -1556,6 +1765,13 @@ búsqueda **insensible a mayúsculas**, sobre los 160.348 caracteres que el extr
 | `Normally Open` y `Normally Closed` | **0** |
 | `mA` | **0** |
 | `Alarm Type` *(el desplegable — y es de la ENTRADA, no de la salida)* | **1** — PDF pág. 57, impresa 45 |
+
+> 🔴 **CORREGIDO EL 07/09: esa última fila decía `1` y son `2`.** La búsqueda se hizo con el rótulo
+> tal cual, `Alarm Type` con mayúsculas; **insensible a mayúsculas aparece también en PDF pág. 99 ·
+> impresa 87** *(«…its **alarm type** is always NO»)*. Es §4 de `CLAUDE.md` en pequeño: **el
+> buscador no estaba ciego por falta de herramienta, sino por el patrón.** La conclusión eléctrica
+> de este apartado no cambia —**esa página no publica ni tensión ni corriente**—, pero un recuento
+> publicado que está mal es un recuento que hay que corregir. El desarrollo, en §4 Paso 4.
 
 **El extractor no está ciego:** sobre ese mismo texto, `Alarm Input` sí aparece —en tres páginas— y
 `Quick Start Guide` también —en cuatro—. **Lo que no está es el dato eléctrico.**
@@ -1671,6 +1887,34 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
  │                         BANCO DE PRUEBAS EN TALLER                          │
  ├─────────────────────────────────────────────────────────────────────────────┤
  │                                                                             │
+ │ • ENSAYO 0: LA CASILLA QUE DECIDE EL DISENO   (07/09 -- VA EL PRIMERO)      │
+ │   Diez minutos, con la camara encendida y el navegador abierto.             │
+ │   NO HACE FALTA NI TARJETA NI CABLE: es todo pantalla.                      │
+ │                                                                             │
+ │   1. Configuration -> Event -> Smart Event -> Intrusion Detection           │
+ │      (si no aparece: VCA -> Smart Event -> Intrusion Detection, y si sigue  │
+ │       sin aparecer, habilitarla antes en VCA -> VCA Resource)               │
+ │   2. Marcar Enable y bajar hasta "Linkage Method".                          │
+ │   3. MIRAR SI ESTA LA CASILLA "Trigger Alarm Output".                       │
+ │                                                                             │
+ │   [ 0 ] LA CASILLA "Trigger Alarm Output" EN LA REGLA DE INTRUSION:         │
+ │             [ ] SI ESTA  -> marcarla. El diseno de J16 vale entero.         │
+ │             [ ] NO ESTA  -> PARAR. No se cablea nada a J16: el contacto     │
+ │                             no se podria accionar desde la analitica.       │
+ │                             La camara NO queda inservible: sigue grabando   │
+ │                             en su microSD (Trigger Recording + Record       │
+ │                             Schedule tipo "Event"). Lo que muere es el bit  │
+ │                             al controlador, y por donde entra entonces la   │
+ │                             demanda LO DECIDE EL RESPONSABLE.               │
+ │                                                                             │
+ │   >>> LO QUE EL PAPEL YA DICE, PARA QUE NADIE SE SORPRENDA: la ficha del    │
+ │   >>> modelo comprado ENUMERA cinco metodos de vinculacion (pag. 4) y       │
+ │   >>> "trigger alarm output" NO esta entre ellos. Vaya esperando que NO.    │
+ │                                                                             │
+ │   [ 0.bis ] ANOTAR TAMBIEN, aunque la casilla este: la lista COMPLETA de    │
+ │             metodos que ofrezca la pantalla: ___________________________    │
+ │             Es el dato que contrasta la ficha contra el equipo real.        │
+ │                                                                             │
  │ • ENSAYO 1: CONTINUIDAD DEL RELE                                            │
  │   - Conectar multimetro en modo continuidad en los bornes 1A y 1B.          │
  │   - Reposo: Circuito abierto (sin pito).                                    │
@@ -1681,7 +1925,7 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
  │   [ 1 ] EN REPOSO EL CONTACTO ESTA:   [ ] ABIERTO -> es NO, correcto        │
  │                                       [ ] CERRADO -> PARAR Y AVISAR (ver 4) │
  │   [ 2 ] EL PULSO DURA:  ______ segundos   (medidos, no supuestos)           │
- │         Si no son ~1 s, hay que corregir el comentario de demanda.cpp:4-7   │
+ │         Si no son ~1 s, hay que corregir el comentario de SILENCIO_MS   │
  │   [ 3 ] VALORES QUE OFRECE EL DESPLEGABLE "Delay": ____________________     │
  │         Si la lista incluye "Manual", NO SE ELIGE NUNCA (ver 4).            │
  │                                                                             │
@@ -1762,13 +2006,41 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
 
 ## 7. 🛑 Nivel de prueba de este manual — no es un permiso para instalar
 
+> 🔴 **07/09 — LAS CITAS DE ESTA TABLA IBAN POR NÚMERO DE LÍNEA Y **SEIS DE OCHO ESTABAN
+> CADUCADAS.** Se sustituyen por el **símbolo** y por el `grep` que lo encuentra, corrido hoy. Es
+> `CLAUDE.md` §4.sexies, y su aviso vale aquí literalmente: **renumerar a mano no es la cura** —
+> genera números nuevos que caducan en una semana—. *(Las que sí seguían buenas: `pines.h:63`,
+> `pines.h:43-46`, `Esclavo/src/main.cpp:350` y `demanda.cpp:8`.)*
+>
+> ```text
+>   $ grep -n "define CAM_._PIN\|define BOTON[12]\|define LED_TESTIGO" \
+>         01_Firmware/Maestro/include/pines.h
+>     63:#define LED_TESTIGO        PB8   // -> R16 1K -> LED D5. NO es entrada de camara
+>    163:#define BOTON1      PB9   // J16 p5  - Arriba / mando A
+>    164:#define BOTON2      PB13  // J16 p8  - Abajo  / mando B
+>    165:#define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco
+>    166:#define CAM_D_PIN   PB15  // J16 p12 - camara de contacto seco
+>
+>   $ grep -n "pinMode(CAM" 01_Firmware/Maestro/src/botones.cpp
+>    537:  pinMode(CAM_DEMANDA_PIN, INPUT);
+>    538:  pinMode(CAM_C_PIN, INPUT);
+>    539:  pinMode(CAM_D_PIN, INPUT);
+>
+>   $ grep -n "^bool botonAceptar\|^bool botonCancelar" \
+>         01_Firmware/Maestro/src/botones.cpp 01_Firmware/Esclavo/src/botones.cpp
+>     Maestro/src/botones.cpp:672:bool botonAceptar() { return false; }
+>     Maestro/src/botones.cpp:673:bool botonCancelar(){ return false; }
+>     Esclavo/src/botones.cpp:668:bool botonAceptar() { return false; }
+>     Esclavo/src/botones.cpp:669:bool botonCancelar(){ return false; }
+> ```
+
 | lo que este manual afirma | nivel |
 |---|---|
-| La entrada de cámara es **activa en ALTO** y no se cablea contra `GND` | ✅ **MEDIDO EN EL FUENTE** (`Maestro/src/botones.cpp:105-112`, y su razonamiento en `pines.h:103-110`) |
-| `PB0`/`J14` con `R64` 10 kΩ + `C25` 100 nF es una entrada de cámara con firmware | ✅ **MEDIDO** (`pines.h:43-46`; `botones.cpp:176`; `modo_inteligente.cpp:97`, `:135`; `Esclavo/src/main.cpp:350`) |
-| `PB8` es el `LED_TESTIGO`, no una entrada | ✅ **MEDIDO** (`pines.h:63`) |
-| `PB9`/`PB13` son los canales `A` y `B` del mando y **no admiten cámara** | ✅ **MEDIDO** (`pines.h:134-135`, `botones.cpp:163-164`, `mando.cpp:225-231`) |
-| **`PB14`/`PB15` son `CAM_C_PIN`/`CAM_D_PIN`, entradas de cámara de DEMANDA** | ✅ **MEDIDO el 02/09** (`pines.h:136-137`, `botones.cpp:177-178`, `:144-152`). **`botonAceptar()`/`botonCancelar()` devuelven `false` siempre** (`botones.cpp:280-281`) |
+| La entrada de cámara es **activa en ALTO** y no se cablea contra `GND` | ✅ **MEDIDO EN EL FUENTE** — símbolo `camara_leerPin()` en `Maestro/src/botones.cpp`, que compara `digitalRead(pin) == HIGH`, y `pinMode(..., INPUT)` **pelado** en `botones_setup()` |
+| `PB0`/`J14` con `R64` 10 kΩ + `C25` 100 nF es una entrada de cámara con firmware | ✅ **MEDIDO** — símbolo `CAM_DEMANDA_PIN` (`pines.h:43-46`, cita **fechada y vigente**), leído en `modo_inteligente.cpp` y en `Esclavo/src/main.cpp:350` |
+| `PB8` es el `LED_TESTIGO`, no una entrada | ✅ **MEDIDO** — símbolo `LED_TESTIGO` (`pines.h:63`, vigente) |
+| `PB9`/`PB13` son los canales `A` y `B` del mando y **no admiten cámara** | ✅ **MEDIDO** — símbolos `BOTON1`/`BOTON2` en `pines.h` y `MANDO_A`/`MANDO_B` en `mando.cpp`; el enlace lo hace `mando_registrarPulso()` desde `botones_actualizar()` |
+| **`PB14`/`PB15` son `CAM_C_PIN`/`CAM_D_PIN`, entradas de cámara de DEMANDA** | ✅ **MEDIDO el 02/09, re-medido el 07/09** — símbolos `CAM_C_PIN`/`CAM_D_PIN`, con su `pinMode(..., INPUT)`. **`botonAceptar()`/`botonCancelar()` devuelven `false` siempre** en las dos puntas |
 | Las separaciones de cobre de `J16` contra los 12 V | ✅ **MEDIDO** sobre el `.kicad_pcb` (`MAPEO_TARJETA_KICAD.md:576-588`) |
 | Que el **firmware** de `J16` p10/p12 esté escrito | ✅ **HECHO Y MEDIDO** |
 | ~~Que `R65`–`R68` estén montadas y la polaridad de `J16` sea la del netlist~~ | 🟢 **MEDIDO EN BANCO el 04/09 — `M3` CERRADA** (paso 20): `p10` **9,93 kΩ**, `p12` **9,94 kΩ** a masa, los dos a **0 V** con energía. Pull-**DOWN** real ⇒ **activo en ALTO**. ~~🔴 NO VERIFICADO, pendiente~~ |
@@ -1788,7 +2060,10 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
 > | Los bornes son **`1A`+`1B`** (salida) e **`IN1`+`GND1`** (entrada), **y cada uno de esos dos es UNA PAREJA: los dos extremos de un contacto, no dos señales** | 📖 **ESCRITO** — Guía rápida `UD40284B`, **PDF pág. 9 de 40, impresa 8**. 🟢 **El 05/09 dejó de ser deducción y pasó a ser lectura**: la guía llegó a `04_Manuales/` y, por ser un **PDF de imagen** (40 páginas, **cero** caracteres de texto — medido), la página se **renderizó y se miró** |
 > | **Régimen del contacto: `24 V DC` / `24 V AC`, `1 A` máx.** — sobra frente a los `3,3 V` / `330 µA` que le pide el equipo | 📖 **ESCRITO** — ficha, pág. 3 · la comparación es una **cuenta**, con sus dos entradas a la vista en §1.1.1 |
 > | **Corriente MÍNIMA de conmutación y material del contacto** — importa porque `330 µA` es régimen de *carga seca* | 🔴 **SIN VERIFICAR.** La ficha no lo publica. **No bloquea** (el paso 21 funcionó), pero es pregunta para quien firme la V2 |
-> | **Que la regla de intrusión pueda ENLAZARSE a la salida de alarma** | 🔴 **SIN VERIFICAR, y es el eslabón que decide el diseño.** El manual documenta `Trigger Alarm Output` (pág. 67) con la nota *«only supported by certain models»*, y **la fila *Linkage Method* de la ficha (pág. 4) no lo menciona**. Lo cierra el **Paso 0** en diez minutos |
+> | **Que la regla de intrusión pueda ENLAZARSE a la salida de alarma** | 🔴 **SIN VERIFICAR, y es el eslabón que decide el diseño — con las dos fuentes apuntando a que NO** (07/09). La ficha del modelo **enumera cinco** métodos de vinculación y **`trigger alarm output` no está** (pág. 4); el manual pone *«only supported by certain models»* (PDF 79 · impresa 67). ⛔ **Retirado el argumento *«`1 output` lo hace probable»***: `Manual Alarm` y `Automatic Alarm` cierran esa salida sin analítica (PDF 80 · impresa 68). Lo cierra el **Paso 0** en diez minutos |
+> | **Que la salida se pueda accionar de ALGUNA forma** *(no por analítica)* | 📖 **ESCRITO, y no sirve para este diseño**: `Manual Alarm` es un botón del navegador y `Automatic Alarm` cierra **por horario**. Ninguna de las dos sabe que pasó un vehículo — **PDF pág. 80 · impresa 68** |
+> | **Que la cámara grabe el evento SIN la casilla bloqueada** | 📖 **ESCRITO** — `Trigger Recording` **sí** está en la lista de la ficha (pág. 4) y el `Record Schedule` admite el tipo **`Event`** (PDF 48 · impresa 36). **Es lo que sobrevive si el Paso 0 sale mal** |
+> | **`D-14`: que el CONTROLADOR pueda cerrar un contacto hacia la cámara** | 🔴 **NO EXISTE — MEDIDO el 07/09**, no *«sin verificar»*. Fuera de `semaforo.cpp` el firmware sólo escribe `RS485_IN_DE_RE` y `LORA_DE_RE`; `ROJO_PEATON`, `VERDE_PEATON` y `BUZZER` están **declarados y muertos** en las dos puntas. Ver §4.bis.6 |
 > | **Que la salida sea `NO`/`NC` configurable** | 🔴 **SIN VERIFICAR.** `Alarm Type` sólo está documentado para la **entrada** (pág. 44); la salida sólo tiene `No.`, `Name` y `Delay` (pág. 68). **`Normally Open`/`Closed` no aparecen en las 110 páginas.** Lo cierra el **`ENSAYO 1`** |
 > | **Que el pulso pueda fijarse en `1 s`** | 🔴 **SIN VERIFICAR.** El parámetro `Delay` existe y está definido (pág. 68); **sus valores seleccionables no se publican**. Lo cierra el **`ENSAYO 1`** |
 > | **Retardo entre detección y cierre del contacto** | 🔴 **SIN VERIFICAR.** Lo único acotado: **no es menor que el `Threshold`** configurado, por definición del propio parámetro (pág. 49) |
@@ -1837,7 +2112,8 @@ Cada una cierra un `SIN VERIFICAR` de la tabla del §7, y **las cuatro juntas no
 
 | # | qué se comprueba | dónde | si sale mal |
 |---|---|---|---|
-| **1** | **¿Existe la casilla `Trigger Alarm Output` en la regla de intrusión?** | **§4 Paso 0** | 🛑 **PARAR.** El contacto seco no se puede accionar desde la analítica → el camino de `J16` no sirve y hay que replantear por dónde entra la demanda. **No lo decide este manual** |
+| **1** | **¿Existe la casilla `Trigger Alarm Output` en la regla de intrusión?** 🔴 **Vaya esperando que NO: la ficha del modelo la omite de su lista de vinculaciones (pág. 4)** | **§4 Paso 0** | 🛑 **PARAR.** El contacto seco no se puede accionar desde la analítica → el camino de `J16` no sirve y hay que replantear por dónde entra la demanda. **No lo decide este manual.** ✅ Lo que **sí** sigue vivo: la grabación por analítica en la microSD. ❌ Lo que **no** es relevo: `D-14`, sin construir |
+| **1.bis** | **¿Qué zona hay que dibujar: la vía de aproximación o el barrido de la pluma?** | **§4 Paso 3**, bloque 🛑 | 🛑 **PREGÚNTELO ANTES DE ENCUADRAR.** `D-13` dice pluma, el firmware ejerce demanda, y **una cámara sólo lleva una regla**. Las dos cosas están vivas y **no lo decide el técnico** |
 | **2** | **¿Está la salida ABIERTA en reposo?** *(o sea, ¿es `NO`?)* | **`ENSAYO 1`**, §6 | 🛑 **PARAR.** Con el contacto cerrado en reposo el pin nace ALTO y **no habrá flanco** hasta que el relé abra y cierre. Ver §4 Paso 4 |
 | **3** | **¿Cuánto dura el pulso, y qué valores de `Delay` ofrece?** | **`ENSAYO 1`**, §6 | ⚠️ Si sólo hay valores largos, **funciona con menos finura**: se anota y se sigue. **`Manual` no se elige jamás** |
 | **4** | **¿Existe `Detection Target`, y aguanta el `ENSAYO 2` de peatones?** | **`ENSAYO 2`**, §6 | ⚠️ Sin clasificador se sube el mínimo del **`Size Filter`**. Si aun así un peatón pide paso, **se avisa**: sería dar verde a un carril sin vehículos |

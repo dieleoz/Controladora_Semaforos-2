@@ -9,7 +9,7 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 | **Pila `CR2032` en `VBAT`** | ✅ **Instalada en AMBAS tarjetas** (Maestro y Esclavo) | Alimentación directa RTC (R5 retirado). Ver §5 |
 | **Pantalla LCD ST7920** | 🛑 **SE RETIRA (28/08/2026)** | No se lee desde el suelo. Sus pines `PB6`/`PB7` (conector `J17`) pasan al módulo Bluetooth. Ver §3 y §8 |
 | **Botonera de `J16`** | 🛑 **SE RETIRA ENTERA (05/09/2026)** | ~~*Se queda en AMBOS, botones 1 a 4*~~ · ~~31/08: **quedan 2 pulsadores** (`PB9` p5 y `PB13` p8, mando `A`/`B`)~~ → **05/09 (`D-1`): tampoco quedan esos dos. `PB9` p5 y `PB13` p8 quedan LIBRES y sin cablear**; **`PB14` p10 y `PB15` p12 pasan a CÁMARAS**. **El código del mando NO se retira** — ver §6. Ver §3 y §6 |
-| **Cámaras IA de demanda (1 y 3)** | ✅ **1 en Maestro + 1 en Esclavo** | Contacto seco `1A`/`1B` en `PB0`. Operativas. Ver §7 |
+| ~~**Cámaras IA de demanda (1 y 3)**~~ | 🔴 **07/09 — NO ES AHÍ DONDE VAN LAS CÁMARAS COMPRADAS** | ~~Contacto seco `1A`/`1B` en `PB0`. Operativas~~ → **`PB0` (bornera `J14`) es `CAM_DEMANDA_PIN`, y sólo lo lee el MODO INTELIGENTE.** `DECISIONES.md` `D-2`/`D-3`/`D-13`: **las dos cámaras compradas van a `J16` p10 y p12**. Ver el recuadro de §7 |
 | **Cámaras IA en `J16` (`C` y `D`)** | 🟢 **YA ESTÁN EN EL FIRMWARE (31/08)** | `CAM_C_PIN` = `PB14`, `CAM_D_PIN` = `PB15`. **`INPUT` pelado, activo en ALTO.** ~~⚠️ **No se cablean hasta la medida `M3`**~~ *(`M3` **CERRADA** en el paso 20 del banco del 03/09: el pull-down de 10 kΩ es real, `9,93`/`9,94 kΩ` y `0 V` en reposo)* ni antes de **tapar `J16` p1 (12 V crudos)** — obligatorio desde N-120. Ver §7 |
 | **Talanquera de barrera (`J15`)** | ✅ **PROBADA EN COBRE (04/09)** y **bien diseñada** | `PB2` → `R70` 220 Ω → `U15` (`TLP127`, **separa el pin del micro, NO la masa** — §11) → `R72` 220 Ω → puerta de `Q10` (`IRLZ44N`) → `J15`. 🔴 **`J15` p2 está a ~12 V en reposo** (`R73` 1 kΩ + `D29` al riel de 12 V), no a 0 V — §11. ⚠️ El diodo de rueda libre `D30` es un `1N4148` y **queda corto para un motor real** — va a la V2. Ver §10 |
 | ~~**Cámaras IA de umbral (2 y 4)**~~ | 🛑 **NO SE INSTALAN EN `PB8`** | **`PB8` NO es entrada de cámara:** alimenta el LED testigo `D5` por `R16` de 1 kΩ. Se renombró a `LED_TESTIGO` (`pines.h:63`) y **`CAM_UMBRAL_PIN` ya no existe en el fuente** — N-64. Ver §7 |
@@ -62,8 +62,11 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 >
 > Lo que sí es dato, porque se vio funcionar sobre la tarjeta real: la **carga por SWD al primer
 > intento y sin `BOOT0`**, la **radio** —caída a ámbar en ~20 s y vuelta en ~3 s—, la **talanquera de
-> `J15`**, la **cámara de `J14`**, la **masa común a 0 V**, y quedó **resuelta la identidad de `J17`**
-> (es el UART del módulo ESP32, **no** la pantalla que dice el netlist — ver §8).
+> `J15`**, la **entrada de `J14`** *(🔴 **07/09: aquí ponía «la cámara de `J14`» y eso induce a
+> cablear ahí la cámara comprada.** Lo que se ejerció fue **`CAM_DEMANDA_PIN` = `PB0`**, la entrada
+> de demanda del Modo Inteligente. **Las cámaras de `D-2`/`D-13` van a `J16` p10/p12** — ver §7)*, la
+> **masa común a 0 V**, y quedó **resuelta la identidad de `J17`** (es el UART del módulo ESP32,
+> **no** la pantalla que dice el netlist — ver §8).
 >
 > **Lo que esto NO es:** un permiso de carga a campo. En campo sigue corriendo la V8.4.
 
@@ -160,7 +163,7 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 >
 > ### 👁️ Y para saber si el equipo OYÓ el pulso no hace falta ningún instrumento
 >
-> **MEDIDO en `01_Firmware/Maestro/src/mando.cpp:45-47`** (`DESTELLOS_AUTOMATICO = 2`,
+> **MEDIDO en `01_Firmware/Maestro/src/mando.cpp`, simbolos `DESTELLOS_*`** *(se cita el simbolo: los `:45-47` que habia aqui apuntan hoy a otro sitio — `grep -n "DESTELLOS_" 01_Firmware/Maestro/src/mando.cpp`)* (`DESTELLOS_AUTOMATICO = 2`,
 > `DESTELLOS_AMBAR = 3`, `DESTELLOS_DEGRADADO = 4`):
 >
 > ```text
@@ -314,7 +317,7 @@ Este documento contiene las instrucciones paso a paso para el personal funcional
 >
 > > ## ✅ 31/08 — EL RIESGO DE «CONFIRMAR UNA HORA A CIEGAS» SE HA CERRADO POR CONSTRUCCIÓN
 > >
-> > **MEDIDO** en `Maestro/src/botones.cpp:305-306` y su equivalente del Esclavo:
+> > **MEDIDO** en `botones.cpp` de las dos puntas *(por simbolo — los `:305-306` que se citaban aqui estan caducados; `grep -n "bool botonAceptar" 01_Firmware/Maestro/src/botones.cpp 01_Firmware/Esclavo/src/botones.cpp`)*:
 > >
 > > ```
 > >   bool botonAceptar() { return false; }
@@ -552,7 +555,7 @@ saberlo.
 >
 > ### ✅ 31/08 — SUPERADO EN SU MITAD PELIGROSA. QUEDAN DOS PULSADORES, NINGUNO CONFIRMA
 >
-> **MEDIDO** (`botones.cpp:305-306` (Maestro) / `:316-317` (Esclavo) en ambas puntas): `botonAceptar()` y `botonCancelar()` devuelven
+> **MEDIDO** (`grep -n "bool botonAceptar\|bool botonCancelar" 01_Firmware/Maestro/src/botones.cpp 01_Firmware/Esclavo/src/botones.cpp` — **por simbolo: los numeros de linea que se citaban aqui estan caducados**): `botonAceptar()` y `botonCancelar()` devuelven
 > **`false` siempre**, porque `PB14` y `PB15` **ya no son pulsadores**, son `CAM_C_PIN` y
 > `CAM_D_PIN`. El cursor se puede mover con `A`/`B`; **no se puede confirmar nada**, y por tanto
 > **no se puede dejar una hora inventada dada por buena**.
@@ -592,11 +595,16 @@ saberlo.
 ```text
   $ grep -n "define BOTON1\|define BOTON2\|define CAM_C_PIN\|define CAM_D_PIN" \
         01_Firmware/Maestro/include/pines.h
-  146:#define BOTON1      PB9   // J16 p5  - Arriba / mando A
-  147:#define BOTON2      PB13  // J16 p8  - Abajo  / mando B
-  148:#define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco (era BOTON3, "Aceptar")
-  149:#define CAM_D_PIN   PB15  // J16 p12 - camara de contacto seco (era BOTON4, "Cancelar")
+  163:#define BOTON1      PB9   // J16 p5  - Arriba / mando A
+  164:#define BOTON2      PB13  // J16 p8  - Abajo  / mando B
+  165:#define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco (era BOTON3, "Aceptar")
+  166:#define CAM_D_PIN   PB15  // J16 p12 - camara de contacto seco (era BOTON4, "Cancelar")
 ```
+
+> 🔴 **07/09 — aquí ponía `146`–`149` y hoy son `163`–`166`.** No se renumera «para dejarlo al día»:
+> **eso ya se probó en este repositorio y las citas renumeradas caducaron en una semana.** Lo que
+> vale es **el comando de arriba**, que se ha vuelto a correr antes de pegar su salida. **Corra el
+> `grep`; no se fíe del número.**
 
 ~~El mando de relés se cablea **en paralelo con los dos pulsadores que quedan** — no hay entradas
 dedicadas para él (ver §6).~~ 🛑 **CADUCADO EL 05/09 (`D-1`): no hay mando de relés que cablear.**
@@ -798,7 +806,7 @@ Con ~1,4 µA de consumo por `VBAT`, la autonomía teórica supera los **15 años
 > 🛑 **`CONSULTA RELOJ` YA NO SE PUEDE ABRIR (medido el 02/09).** La pantalla se sigue dibujando,
 > pero está dentro de `CONFIGURACION` y llegar ahí necesita **dos pulsaciones de *Aceptar***
 > (`menu.cpp:111`, `:129`); `botonAceptar()` devuelve `false` siempre desde que `PB14`/`PB15` son
-> cámaras (`botones.cpp:305-306` (Maestro) / `:316-317` (Esclavo)). **Sus cuatro líneas de diagnóstico tampoco viajan en `$STATUS`.**
+> cámaras (`grep -n "bool botonAceptar" 01_Firmware/Maestro/src/botones.cpp 01_Firmware/Esclavo/src/botones.cpp` — **por simbolo, no por linea**). **Sus cuatro líneas de diagnóstico tampoco viajan en `$STATUS`.**
 >
 > ✅ **Pero el diagnóstico NO se ha perdido: se mudó a un `$EVENT`.** Ver el bloque del 01/09, más
 > abajo, que es donde está el procedimiento que sí se puede ejecutar hoy.
@@ -937,16 +945,24 @@ Con ~1,4 µA de consumo por `VBAT`, la autonomía teórica supera los **15 años
 >
 > ```text
 >   $ grep -rn "ambarLocal = true" 01_Firmware/Esclavo/src
->   Esclavo/src/mando.cpp:132:      ambarLocal = true;
+>   01_Firmware/Esclavo/src/mando.cpp:140:      ambarLocal = true;
 >
 >   $ grep -rn "mando_ambarLocal()" 01_Firmware/Esclavo/src/main.cpp \
 >                                   01_Firmware/Esclavo/src/bluetooth.cpp
->   Esclavo/src/bluetooth.cpp:551:      if (semaforo_estado() == S_FALLO && !mando_ambarLocal()) {
->   Esclavo/src/bluetooth.cpp:562:      if (mando_ambarLocal()) {
->   Esclavo/src/main.cpp:453:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
->   Esclavo/src/main.cpp:476:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
->   Esclavo/src/main.cpp:617:    if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() &&
+>   01_Firmware/Esclavo/src/main.cpp:464:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
+>   01_Firmware/Esclavo/src/main.cpp:487:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
+>   01_Firmware/Esclavo/src/main.cpp:628:    if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() &&
+>   01_Firmware/Esclavo/src/bluetooth.cpp:10:#include "mando.h"           // R-3: mando_ambarLocal(), ...
+>   01_Firmware/Esclavo/src/bluetooth.cpp:98:// mando_ambarLocal(). Sin este latch el ambar pedido desde la app ...
+>   01_Firmware/Esclavo/src/bluetooth.cpp:630:      if (semaforo_estado() == S_FALLO && !mando_ambarLocal()) {
+>   01_Firmware/Esclavo/src/bluetooth.cpp:650:      if (mando_ambarLocal()) {
+>   01_Firmware/Esclavo/src/bluetooth.cpp:652:        // main.cpp son "!mando_ambarLocal() && ...", asi que con
 > ```
+>
+> 🔧 **Los dos `grep` de arriba se volvieron a correr el 07/09 y su salida se pegó literal.** La
+> anterior citaba `mando.cpp:132` y `main.cpp:453/476/617`: **las cinco estaban caducadas.** ⚠️ Y
+> **tres de las ocho filas son comentarios** —los comentarios de este repositorio citan lo que
+> explican—: **lectores de verdad hay CINCO**, los que llevan un `if`.
 >
 > **Todos los lectores la usan para VETAR.** Si se borra la línea que la arma, esos `if` pasan a ser
 > **siempre verdaderos**, el veto **desaparece**, y **ningún test falla** — el código que abre el
@@ -1131,26 +1147,91 @@ justo el gesto que precedió al calentamiento del paso 29.
 > en reposo, y el reposo se lee como «no hay nadie»**. El pin **no distingue silencio de vía libre**.
 > Por eso una cámara sólo **pide** paso, nunca **autoriza** — y por eso el todo-rojo de despeje es
 > **temporizado** y no espera a que ninguna cámara diga que el tramo está vacío.
+>
+> ### 🔴 07/09 — LA `ENTRADA` DE ALARMA DE LA CÁMARA (`D-14`) **NO TIENE FIRMWARE DETRÁS. NO SE CABLEA**
+>
+> `DECISIONES.md` `D-14` describe la vía contraria —*«el controlador cierra un contacto y la cámara
+> graba»*— y es una decisión **documental sobre el manual de Hikvision**, no una función construida.
+> **Medido el 07/09 en las dos puntas:**
+>
+> ```
+> $ grep -rn "ROJO_PEATON\|VERDE_PEATON\|BUZZER" 01_Firmware/Maestro/src/*.cpp 01_Firmware/Esclavo/src/*.cpp
+> 01_Firmware/Maestro/src/main.cpp:35://   ROJO_PEATON y VERDE_PEATON, que estaban sin custodia.
+> ```
+>
+> **Una sola línea, y es un COMENTARIO.** Fuera de `semaforo.cpp` —las seis luces y la talanquera—
+> **la única salida que el Maestro mueve es la dirección del RS485**. No hay ninguna salida
+> disponible hoy que le diga nada a la cámara.
+>
+> 🛑 **Consecuencia de montaje: los terminales `ALARM IN` / `G` de la cámara SE DEJAN SIN CABLEAR.**
+> Cablearlos no rompe nada, pero **no va a grabar por evento del controlador** y quien lo monte se
+> irá creyendo que sí. *(Y `D-14` deja `ALARM IN`, `G`, `1A` y `1B` como `SIN VERIFICAR`: no hay
+> diagrama de cable ni régimen eléctrico en ninguna fuente del fabricante.)*
 
 Para detección vehicular por demanda en obra vial (analítica embebida sin computadores externos):
+
+> # 🛑 07/09/2026 — ANTES DE ACERCAR UN CABLE: **LA CÁMARA COMPRADA VA A `J16`, NO A `J14`**
+>
+> **`DECISIONES.md` `D-2`, `D-3` y `D-13`, que mandan sobre este manual.** Hay **UNA cámara por
+> poste** —dos en el cruce, `D-10`— y su contacto seco va a **`J16` p10 (`PB14`)** o **`J16` p12
+> (`PB15`)**, cerrando contra los **3,3 V del pin contiguo** (p9 y p11). *(`M3` cerrada en cobre el
+> 03/09; el paso 21 cableó p10 contra p11 sin demandas fantasma.)*
+>
+> ## 🔴 Por qué cablearla a `J14` es el fallo que NO SE NOTA
+>
+> `J14` es **`CAM_DEMANDA_PIN` = `PB0`**, y es una entrada real que el firmware sí lee — por eso el
+> error no se delata solo. **Lo que cambia es quién la lee y quién la vigila.** Medido el 07/09:
+>
+> ```
+> $ grep -rn "CAM_DEMANDA_PIN" 01_Firmware/Maestro/src 01_Firmware/Esclavo/src
+> 01_Firmware/Maestro/src/botones.cpp:537:  pinMode(CAM_DEMANDA_PIN, INPUT);
+> 01_Firmware/Maestro/src/modo_inteligente.cpp:126:  // pinMode(CAM_DEMANDA_PIN, INPUT) vivia en esta funcion, o sea que el pin de la camara
+> 01_Firmware/Maestro/src/modo_inteligente.cpp:183:      //   J14 / CAM_DEMANDA_PIN (PB0)  -> se lee AQUI, POR NIVEL. Es la entrada que el
+> 01_Firmware/Maestro/src/modo_inteligente.cpp:215:      const bool demandaLocalS1  = camara_leerPin(CAM_DEMANDA_PIN)
+> 01_Firmware/Maestro/src/modo_inteligente.cpp:294:      // vez a camara_leerPin(CAM_DEMANDA_PIN), o sea que la pantalla contaba SOLO la
+> 01_Firmware/Esclavo/src/main.cpp:288:  pinMode(CAM_DEMANDA_PIN, INPUT);
+> 01_Firmware/Esclavo/src/main.cpp:350:  bool demandaCamaraActual = (digitalRead(CAM_DEMANDA_PIN) == HIGH);
+> ```
+>
+> | | `J16` p10 / p12 (`PB14`/`PB15`) | `J14` (`PB0`) |
+> |---|---|---|
+> | qué modos la leen | los que usan cámara según `D-13` | **en el Maestro, SÓLO el Modo Inteligente** |
+> | **la vigila el vigilante de cámara** *(`CAM_CIEGA`, `CAM_PEGADA`, campo `CAM:` del `$STATUS`)* | ✅ **sí** | 🔴 **NO** |
+> | qué pasa si se desconecta o se avería | sale `$ALARM` y `CAM:` lo dice | **silencio absoluto** |
+>
+> **Y el firmware lo dice de sí mismo**, en `Maestro/include/botones.h` y en su gemelo del Esclavo:
+> *«NO vigila `CAM_DEMANDA_PIN` (`PB0`): no es una de las dos camaras de `D-13`»*.
+>
+> 🛑 **O sea: cableada a `J14`, la cámara FUNCIONA —en un modo— Y NO ESTÁ VIGILADA.** Es el fallo
+> que no se nota: nadie ve que se cayó. Por eso la corrección va **delante** del diagrama y no en una
+> nota al pie.
 
 ```text
        CAMARAS HIKVISION ACUSENSE                     TARJETA CONTROLADORA STM32
   ┌─────────────────────────────────┐              ┌───────────────────────────────┐
-  │ CAMARA 1 (Demanda Sentido 1)    ┼─ Hilos 1A/1B ┼──► Bornera PB0 (Entrada Libre)│
-  │ CAMARA C  (31/08)               ┼─ contacto ───┼──► J16 p10 = PB14  CAM_C_PIN  │ (En Maestro)
-  │ CAMARA D  (31/08)               ┼─ contacto ───┼──► J16 p12 = PB15  CAM_D_PIN  │
+  │ CAMARA del poste 1  (D-2/D-13)  ┼─ contacto ───┼──► J16 p10 = PB14  CAM_C_PIN  │ (En Maestro)
+  │                                 │  contra p9   │    ...o p12 = PB15 CAM_D_PIN  │
   ├─────────────────────────────────┤              ├───────────────────────────────┤
-  │ CAMARA 3 (Demanda Sentido 2)    ┼─ Hilos 1A/1B ┼──► Bornera PB0 (Entrada Libre)│
-  │ CAMARA C / D  (31/08)           ┼─ contacto ───┼──► J16 p10/p12 = PB14/PB15    │ (En Esclavo)
+  │ CAMARA del poste 2  (D-2/D-13)  ┼─ contacto ───┼──► J16 p10 = PB14  CAM_C_PIN  │ (En Esclavo)
+  │                                 │  contra p9   │    ...o p12 = PB15 CAM_D_PIN  │
   └─────────────────────────────────┘              └───────────────────────────────┘
+
+       J14 / PB0 = CAM_DEMANDA_PIN.  ENTRADA REAL, pero SIN VIGILANTE y solo
+                                     leida por el Modo Inteligente. NO se le
+                                     cablea la camara comprada (D-2/D-3/D-13).
 
        PB8  ->  R16 1K  ->  LED testigo D5.   NO ES ENTRADA DE CAMARA.
 ```
 
+> ~~Diagrama anterior, con «CAMARA 1 / CAMARA 3» a `PB0` y «CAMARA C / CAMARA D» a `J16`, o sea
+> **tres entradas de cámara por punta**.~~ 🔴 **TACHADO EL 07/09:** contaba *bornes* como si fueran
+> cámaras. **Compradas hay DOS en todo el cruce** (`D-10`), **una por poste**, y `D-13` les da a las
+> dos **la misma configuración**. Un manual de montaje que dibuja tres hace pedir el triple de
+> soportes, de cable y de alimentación — `26 W` por cruce, no `78 W`.
+
 > ## 🟢 31/08 — LAS CÁMARAS `C` Y `D` YA ESTÁN EN EL FIRMWARE
 >
-> **MEDIDO:** `CAM_C_PIN` = `PB14` y `CAM_D_PIN` = `PB15` (`pines.h:124-125`, idéntico en las dos
+> **MEDIDO:** `CAM_C_PIN` = `PB14` y `CAM_D_PIN` = `PB15` (`grep -n "define CAM_C_PIN" 01_Firmware/Maestro/include/pines.h` — **por simbolo; los `:124-125` que habia aqui apuntan hoy a otro sitio**, idéntico en las dos
 > puntas), declarados en `botones.cpp` con **`pinMode(..., INPUT)` pelado** y leídos **activos en
 > ALTO**.
 >
@@ -1441,8 +1522,25 @@ Trazado red por red sobre el esquemático (`Controladora_Semaforos.kicad_sch`):
 
 ### Telemetría, caja negra y seguridad
 
-* **Telemetría:** emisión ~~cada 1 s~~ **cada 2 s** de *(cadencia bajada a **2000 ms** el 04/09, decision del responsable, en las DOS puntas — MEDIDO: `Maestro/src/bluetooth.cpp:851`, `Esclavo/src/bluetooth.cpp:768`. Un tecnico que cronometre con «1 segundo» declara caido un enlace sano.)* 
-  `$STATUS,NODE:...,SERIE:...,MODO:...,ESTADO:...,T:...,RF:...%,RTT:...ms,BAT:...,HORA:...*XX\r\n`.
+* **Telemetría:** emisión ~~cada 1 s~~ **cada 2 s** de *(cadencia bajada a **2000 ms** el 04/09, decision del responsable, en las DOS puntas — se cita el símbolo porque los números de línea caducan solos: `grep -n "tUltimaTelemetria >= 2000" 01_Firmware/Maestro/src/bluetooth.cpp 01_Firmware/Esclavo/src/bluetooth.cpp`. Un tecnico que cronometre con «1 segundo» declara caido un enlace sano.)*
+
+  > 🔴 **07/09 — LA PLANTILLA QUE HABÍA AQUÍ LE FALTABAN TRES CAMPOS, Y LOS TRES SON DE LOS QUE UN
+  > TÉCNICO MIRA.** ~~`$STATUS,NODE:...,SERIE:...,MODO:...,ESTADO:...,T:...,RF:...%,RTT:...ms,BAT:...,HORA:...*XX`~~
+  > Faltaban **`ESC:`**, **`PLUMA:`** y **`CAM:`**. Plantillas reales, leídas del `snprintf` de cada
+  > punta el 07/09 — **y no son la misma en las dos**:
+  >
+  > ```text
+  > Maestro: $STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s,PLUMA:%s,CAM:%s
+  > Esclavo: $STATUS,NODE:ESCLAVO,SERIE:%s,MODO:%s,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s,PLUMA:%s,CAM:%s
+  > ```
+  >
+  > ⚠️ **En el Esclavo, `T:`, `RF:` y `RTT:` son el literal `--`, no un número** — ver el aviso de
+  > los campos que no son medidas, más abajo. **Y no hay campo de antigüedad de sincronización en
+  > ninguna de las dos**, que es lo que echa en falta el procedimiento del Modo Degradado.
+  >
+  > 🛑 **Un lector de este contrato que se encuentre un campo que no conoce debe ABORTAR, no
+  > saltárselo.** Ignorar lo desconocido da verde midiendo un campo menos, en silencio y para
+  > siempre.
 * **Caja Negra:** registro instantáneo de caídas de radio con hora del RTC
   (`$ALARM,NODE:...,EVENTO:FALLO_RF,CAUSA:SILENCIO_25000ms,ACCION:CAMBIO_A_AMBAR,HORA:...*XX\r\n`).
   **Censado el 28/08: tiene llamadores reales** — `coordinador.cpp` líneas 683 y 775 en el Maestro,
@@ -1468,20 +1566,47 @@ Trazado red por red sobre el esquemático (`Controladora_Semaforos.kicad_sch`):
   > llamarlas igual era el defecto. Tabla completa de comandos en
   > `04_Manuales/MANUAL_CONFIGURACION_BLUETOOTH.md §4.4` — **17 formas en el Maestro**, no 5 ni 9.
 
-> 🔴 **AVISO SOBRE TRES CAMPOS DE `$STATUS` QUE NO SON MEDIDAS.** Medido sobre `bluetooth.cpp` el
-> 28/08:
+> ~~🔴 **AVISO SOBRE TRES CAMPOS DE `$STATUS` QUE NO SON MEDIDAS.** Medido sobre `bluetooth.cpp` el
+> 28/08:~~
 >
-> | campo | Maestro | Esclavo |
+> | campo | ~~Maestro (28/08)~~ | ~~Esclavo (28/08)~~ |
 > |---|---|---|
-> | `RF:` | ✅ real (SFTY-14) | 🔴 **literal `98%`** en el `snprintf` (línea 215) |
-> | `RTT:` | ✅ real | 🔴 **literal `85ms`** |
-> | `BAT:` | 🔴 **literal `12.6`** | 🔴 **literal `12.6`** |
-> | `T:` | ⚠️ `(millis()/1000) % 60` — contador libre 0–59, **no** la cuenta regresiva de la fase | ⚠️ igual |
+> | ~~`RF:`~~ | ~~✅ real (SFTY-14)~~ | ~~🔴 **literal `98%`** en el `snprintf` (línea 215)~~ |
+> | ~~`RTT:`~~ | ~~✅ real~~ | ~~🔴 **literal `85ms`**~~ |
+> | ~~`BAT:`~~ | ~~🔴 **literal `12.6`**~~ | ~~🔴 **literal `12.6`**~~ |
 >
-> **Un tablero que rellena con constantes el dato que no tiene miente a quien decide mirándolo.**
-> El `RF:98%` del Esclavo se emite igual con la antena desconectada. **No use esos campos para
-> juzgar el enlace del Esclavo ni la batería de ninguna de las dos puntas**, y no los apunte en un
-> acta como si fueran medidas.
+> > ## ✅ 07/09 — **`N-108` CERRADO: LOS TRES LITERALES YA NO EXISTEN.** La tabla se actualiza, no se borra
+> >
+> > Ningún `98%`, ningún `85ms`, ningún `12.6` sale hoy del equipo. Sobreviven **sólo dentro de
+> > comentarios** que cuentan que estuvieron ahí:
+> >
+> > ```
+> > $ grep -rn '98%\|"12.6"\|85ms' 01_Firmware/Maestro/src/bluetooth.cpp 01_Firmware/Esclavo/src/bluetooth.cpp
+> > 01_Firmware/Maestro/src/bluetooth.cpp:61:// el RF:98% otra vez: un numero con forma de medida. El dia que el ESP32 emita un latido
+> > 01_Firmware/Esclavo/src/bluetooth.cpp:60:// el RF:98% otra vez: un numero con forma de medida. El dia que el ESP32 emita un latido
+> > 01_Firmware/Esclavo/src/bluetooth.cpp:196:  // mensajes. Un porcentaje sobre eso seria el RF:98% de antes con otra forma: peor, de
+> > 01_Firmware/Esclavo/src/bluetooth.cpp:920:    // N-108 - RF, RTT Y BAT DEJAN DE INVENTARSE. Los tres eran LITERALES: "RF:98%",
+> > 01_Firmware/Esclavo/src/bluetooth.cpp:921:    // "RTT:85ms" y "BAT:12.6" salian iguales del equipo estuviera como estuviera, asi que
+> > ```
+> >
+> > **Lo que sale HOY, leído del `snprintf` de cada punta:**
+> >
+> > | campo | Maestro | Esclavo |
+> > |---|---|---|
+> > | `RF:` | ✅ **real** (SFTY-14) | **`--`** literal en la plantilla — *«todavía no lo sé»*, no un número inventado |
+> > | `RTT:` | ✅ **real** | **`--`** |
+> > | `T:` | ✅ real | **`--`** |
+> > | `BAT:` | **`--`** literal | **`--`** literal — **no hay medida de batería en ninguna punta** |
+> >
+> > 🔵 **El cambio de fondo, y es el que hay que entender: `--` no es un valor peor que `98%` — es lo
+> > contrario de `98%`.** Un `--` dice *«este equipo no tiene ese dato»*; un `98%` decía lo mismo
+> > **con forma de medida**, y se emitía igual con la antena desconectada. **Un valor imposible se
+> > publica como `!`, y `--` queda reservado para «no lo sé».**
+> >
+> > ⚠️ **Lo que SÍ sigue vigente de la advertencia vieja:** **`BAT:` no es una medida en ninguna de
+> > las dos puntas**, y el enlace del Esclavo **no se juzga desde su propio `$STATUS`** — se juzga
+> > desde el `RF:`/`RTT:` del **Maestro**, que sí los mide. **No apunte un `--` en un acta como si
+> > fuera un cero.**
 
 ---
 
@@ -1796,10 +1921,20 @@ $ arm-none-eabi-objdump -d Maestro/.pio/build/maestro/firmware.elf
 O sea **16 B** por canal encendido. ⚠️ **Ese 16 es un SUELO, no el coste de la función.** Es lo que
 cuestan las **dos llamadas**; no incluye ni un byte de lo que **decide** el valor —una fase peatonal,
 un temporizador, un patrón de zumbido—. **Publicar el 16 sin esta frase sería vender barato algo que
-todavía no se ha diseñado.** Y el margen de flash es el que es: el acta de `compuerta.py` del
-05/09 deja al Maestro en **86,5 %** (`56656` de `65536` B). **Ese número se lee del acta de
-`evidencia/`, no de aquí**: cambia con cada corrida, y una cifra copiada a mano en un manual caduca
-sola.
+todavía no se ha diseñado.** Y el margen de flash es el que es: ~~el acta de `compuerta.py` del
+05/09 deja al Maestro en **86,5 %** (`56656` de `65536` B)~~ 🔴 **07/09: esa cifra se retira en vez
+de renumerarse, que es la parte reutilizable de este párrafo.** El propio texto ya decía *«ese
+número se lee del acta, no de aquí»* **y a renglón seguido lo copiaba**, así que caducó en dos días
+—el acta del 07/09 da otro número—. **Se lee así, y no se copia aquí:**
+
+```
+ls -t evidencia/*_compuerta.txt | head -1
+grep "compila maestro" <ese fichero>
+```
+
+**Lo que no caduca y es lo que hay que retener: el Maestro está por encima del 85 % y ya no queda
+margen cómodo.** Una función nueva de tamaño medio no entra sin medir antes de qué está hecho ese
+porcentaje.
 
 > 🟡 **`SIN VERIFICAR`: que `J9`, `J11` y `J13` estén REALMENTE SOLDADOS en la tarjeta física.**
 > El esquemático los marca `in_bom=yes`, `dnp=no`, `on_board=yes` —o sea que el diseño dice que van—,

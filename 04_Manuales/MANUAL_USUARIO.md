@@ -3,7 +3,24 @@
 Este manual define el **"Ground Truth"** (la verdad absoluta) de cómo DEBE comportarse el sistema, sirviendo como base para validar que las simulaciones y el código cumplan con la especificación.
 Todas las operaciones están alineadas al **Manual de Señalización Vial de Colombia (Resolución 2024 - MinTransporte)**.
 
-**Última revisión:** 31 de agosto de 2026 — **el apartado 6 (cámaras) estaba MAL y se ha corregido.**
+> ## 🔴 REVISIÓN DEL 7 DE SEPTIEMBRE DE 2026 — léase antes que el cuerpo
+>
+> **Las cámaras ya están compradas: este documento dejó de ser diseño y pasó a ser lo que alguien
+> ejecuta con un destornillador.** Lo que esta pasada encontró y corrigió:
+>
+> | | |
+> |---|---|
+> | 🔴 **§2 describía un modo que NO EXISTE** | La operación intermitente nocturna: **`reloj_esHorarioNocturno()` tiene CERO llamadores** y el firmware la da por *«aplazada»* (`N-3`). Estaba escrita en presente, dentro del *«Ground Truth»* |
+> | 🔴 **§7 daba por inofensiva la única secuencia que ABRE PASO** | En el **Maestro**, `A·A·A` arranca el ciclo **sin ninguna guarda**, mientras `A·B·A·B` sí está validada. 👉 **Nada se cablea en `J16` p5/p8** |
+> | 🔴 **§6.3 publicaba `~0,66 V` donde la medida de `M3` dio `0 V`** | Y era **la fila que ese apartado manda aplicar**: quien fuera con el multímetro pararía por la medida que autoriza |
+> | ⚠️ **El pin de cámara sobrante de `J16` no está inerte** | El firmware lee **los dos** y un flanco en cualquiera **PIDE PASO** — no ordena: su único consumidor es el Modo Inteligente. Escrito en §6.2 |
+> | ⛔ **26 de las 32 citas por línea de este manual estaban caducadas —el 81 %** | Dos ya se habían renumerado el 05/09 y **volvieron a caducar en dos días**. Se sustituyen por **símbolos** |
+> | 🛑 **Varias frases seguían diciendo *«el mando se conserva»* y *«el menú permite configurar»*** | Derogadas por `D-1` y `D-17.bis` |
+>
+> **Manda [`DECISIONES.md`](../DECISIONES.md)**, y en hardware medido
+> `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`. **Este manual nunca gana.**
+
+**Revisión anterior:** 31 de agosto de 2026 — **el apartado 6 (cámaras) estaba MAL y se ha corregido.**
 Mandaba cablear las cuatro cámaras a `PB9` y `PB13`, que son **los dos canales del mando de relés**, y
 además con la polaridad invertida. Es `N-105` de [`roadmap.md`](../roadmap.md). El texto viejo **no se
 borra**: queda tachado en su sitio con el motivo, porque una vía descartada que desaparece en
@@ -25,7 +42,26 @@ Para evitar arranques prematuros y dar tiempo de frenado, la secuencia lumínica
 Cuando se solicita el cambio de vía, el sistema debe entrar en un estado de **ROJO ABSOLUTO**.
 - Durante *N* segundos, **ambos semáforos estarán en ROJO**.
 - **Variabilidad de Terreno:** Como la obra puede abarcar de 20m a 500m (con radios que alcanzan hasta 6km en línea vista), el tiempo de despeje no puede estar limitado a un valor bajo.
-- **Configuración:** La interfaz del menú LCD permite configurar tiempos de despeje de **10 a 90 segundos**, con **piso mínimo de 10 s** por seguridad vial. Lo impone el firmware, no la pantalla: `DESPEJE_SEG_MIN = 10, DESPEJE_SEG_MAX = 90` en `01_Firmware/Maestro/src/modo_automatico.cpp:34`, y `modoAutomatico_fijarTiempos()` **rechaza** (`return false`) cualquier valor fuera del rango, venga del menú o de un comando por Bluetooth. ✅ **MEDIDO EN EL FUENTE.**
+- **Configuración:** ~~La interfaz del menú LCD permite~~ — 🛑 **el menú no se monta (`D-17.bis`):
+  hoy se configura POR LA APP**, con `SET_TIEMPOS:`. Se pueden fijar tiempos de despeje de **10 a 90
+  segundos**, con **piso mínimo de 10 s** por seguridad vial. Lo impone el firmware, no la interfaz:
+  `modoAutomatico_fijarTiempos()` **rechaza** (`return false`) cualquier valor fuera del rango,
+  venga de donde venga. ✅ **MEDIDO EN EL FUENTE el 07/09** — y ⛔ **la cita que había aquí,
+  ~~`modo_automatico.cpp:34`~~, no estaba sólo caducada: LAS CONSTANTES YA NO VIVEN EN ESE
+  FICHERO.** Se mudaron a `limites_ciclo.h`, que es justo la deriva que un número de línea no puede
+  delatar —`modo_automatico.cpp` sigue existiendo, así que la guarda de rutas no ve nada—:
+
+  ```
+  $ grep -n "DESPEJE_SEG_MIN = " 01_Firmware/Maestro/include/limites_ciclo.h
+  60:static const uint8_t DESPEJE_SEG_MIN = 10, DESPEJE_SEG_MAX = 90;
+  $ grep -n "DESPEJE_SEG_MIN\|DESPEJE_SEG_MAX" 01_Firmware/Maestro/src/modo_automatico.cpp
+  56:           segEstatico = DESPEJE_SEG_MIN;
+  146:  if (d < DESPEJE_SEG_MIN || d > DESPEJE_SEG_MAX) return;
+  190:  if (despejeSeg < DESPEJE_SEG_MIN || despejeSeg > DESPEJE_SEG_MAX) return false;
+  ```
+
+  👉 **Los valores no se copian a mano a este manual: se leen de `limites_ciclo.h`**, que es donde
+  el firmware los define una sola vez.
 
 > ### ⛔ Este apartado publicó ~~«de 5 a 999 segundos, piso mínimo de 5 s, hasta 16.6 minutos»~~ hasta el 31/08/2026. Era falso por partida triple.
 >
@@ -36,12 +72,16 @@ Cuando se solicita el cambio de vía, el sistema debe entrar en un estado de **R
 >    creyendo que el manual manda, se encontraría con que el equipo **rechaza el valor** y se queda con
 >    el anterior. El despeje es *«el tiempo que garantiza que el tramo quedó vacío antes de dar verde al
 >    otro lado»*: **los 10 s no son un número redondo, son el tramo más corto que esta casa ha montado**
->    (comentario de `modo_automatico.cpp:29-31`). Publicar 5 s invita a pedir un despeje que **no da
->    margen**, y esto está en la matriz de seguridad como **SFTY-4**.
+>    —el comentario vive hoy en **`limites_ciclo.h`**, junto a la constante, con una copia en
+>    `modo_automatico.cpp`; se encuentra con `grep -rn "tramo mas corto" 01_Firmware/Maestro/`—.
+>    ⛔ *(aquí ponía `modo_automatico.cpp:29-31`, caducado.)* Publicar 5 s invita a pedir un despeje
+>    que **no da margen**, y esto está en la matriz de seguridad como **SFTY-4**.
 > 2. 🔴 **El techo publicado era 11 veces el real.** El máximo es **90 s**, no 999. Quien planifique un
 >    túnel de 500 m contando con *«hasta 16.6 minutos»* está planificando sobre un equipo que no existe.
-> 3. 🔴 **Y 999 no fue nunca representable.** `despejeSeg` es un **`uint8_t`** (`modo_automatico.cpp:34`,
->    `:37`): el valor más grande que cabe en ese tipo es **255**. La cifra publicada no era una
+> 3. 🔴 **Y 999 no fue nunca representable.** `despejeSeg` es un **`uint8_t`** —
+>    `bool modoAutomatico_fijarTiempos(uint8_t verdeMin, uint8_t rojoMin, uint8_t despejeSeg)`,
+>    símbolo verificado el 07/09; ⛔ las citas ~~`:34`, `:37`~~ estaban caducadas—: el valor más
+>    grande que cabe en ese tipo es **255**. La cifra publicada no era una
 >    configuración desafortunada — era un número que **ningún firmware podría haber aceptado jamás**, y
 >    llevaba meses escrito como si fuera una capacidad del equipo.
 
@@ -49,8 +89,52 @@ Cuando se solicita el cambio de vía, el sistema debe entrar en un estado de **R
 
 ## 2. Comportamiento en Destello / Intermitente (Bajo Flujo)
 
-Según el Manual de Señalización (2024), si el flujo vehicular baja al 50% o menos durante 4 horas o más (usualmente operación nocturna), el sistema debe pasar a operación intermitente.
-- **Funcionamiento:** Un semáforo parpadea en 🟡 **Ámbar** (Precaución - vía principal) y el otro en 🔴 **Rojo** (Pare - vía secundaria), o ambos en Rojo Intermitente para pasos de igual jerarquía.
+> ## 🔴 ESTE APARTADO DESCRIBE UNA CAPACIDAD QUE EL EQUIPO **NO TIENE** — corregido el 07/09
+>
+> **Estaba escrito en presente y en la voz del resto del manual**, o sea como *«así se comporta el
+> sistema»*, dentro de un documento que se presenta a sí mismo como el **«Ground Truth»**. **No hay
+> una sola línea de firmware detrás.** Es la forma de defecto que este repositorio ya pagó con la
+> *Caja Negra de Alarmas* de `N-73`: una función documentada en cuatro manuales y **sin un solo
+> llamador**.
+>
+> ✅ **MEDIDO EL 07/09 — el censo de llamadores, que es un `grep`, no una lectura:**
+>
+> ```
+> $ grep -rn "reloj_esHorarioNocturno" 01_Firmware/Maestro 01_Firmware/Esclavo --include=*.cpp --include=*.h
+> 01_Firmware/Maestro/include/reloj.h:210:bool reloj_esHorarioNocturno();
+> 01_Firmware/Maestro/src/reloj.cpp:360:bool reloj_esHorarioNocturno() {
+> 01_Firmware/Esclavo/include/reloj.h:41://     reloj_inicioNoche, reloj_finNoche, reloj_esHorarioNocturno).
+> ```
+>
+> **Una declaración, una definición, y una mención dentro de un comentario. CERO llamadores.** Y el
+> propio firmware lo dice sin que haya que deducirlo:
+>
+> * `Maestro/src/reloj.cpp`, sobre la franja nocturna: *«Todavia NO se usa para nada»*.
+> * `Maestro/include/reloj.h`: *«Esta funcion existe para la operacion intermitente NOCTURNA
+>   (N-3), **aplazada**»*.
+>
+> ⚠️ **Y hay una segunda mitad, porque lo de abajo tampoco describe lo que el equipo haría si se
+> construyera:** *«uno en ámbar (vía principal) y el otro en rojo (vía secundaria)»* supone una
+> **jerarquía entre las dos vías**, y en un paso alternado de obra **no la hay** — es el mismo
+> tramo, en dos sentidos. Lo único intermitente que este equipo produce hoy es el **ámbar de
+> `S_FALLO`**, **en las dos puntas a la vez** y por pérdida de enlace, no por horario.
+>
+> 👉 **Cómo hay que leer lo de abajo: es un REQUISITO NORMATIVO pendiente (`N-3`), no una
+> descripción del equipo.** Se conserva —no se borra— porque el requisito sigue siendo válido y su
+> pieza está a medio construir; lo que se retira es la voz de presente. **Nadie prometa operación
+> nocturna intermitente como función de este sistema.**
+
+~~Según el Manual de Señalización (2024), si el flujo vehicular baja al 50% o menos durante 4 horas o más (usualmente operación nocturna), el sistema debe pasar a operación intermitente.~~
+- ~~**Funcionamiento:** Un semáforo parpadea en 🟡 **Ámbar** (Precaución - vía principal) y el otro en 🔴 **Rojo** (Pare - vía secundaria), o ambos en Rojo Intermitente para pasos de igual jerarquía.~~
+
+**Lo que hay hoy, y su estado:**
+
+| pieza | estado | medida |
+|---|---|---|
+| `reloj_esHorarioNocturno()` | 🛑 **declarada, definida y HUÉRFANA** | el `grep` de arriba |
+| `reloj_ajustarFranjaNocturna()` | 🛑 franja configurable, **sin consumidor de la decisión** | mismo censo |
+| La lógica que decidiría el modo | ❌ **no existe** | `N-3`, aplazada |
+| Lo intermitente que el equipo SÍ hace | ✅ ámbar de `S_FALLO` por **pérdida de enlace**, en las dos puntas | el umbral y su porqué, en `Maestro/include/protocolo.h` |
 
 ---
 
@@ -77,7 +161,7 @@ Según el Manual de Señalización (2024), si el flujo vehicular baja al 50% o m
   —elegir Manual, Automático o Inteligente, y fijar tiempos— existen por Bluetooth contra el
   Maestro, y **ese enlace es LOCAL**: STM32 ↔ ESP32 por **USART1 (`PB6`/`PB7`, conector `J17`)** y de
   ahí SPP al teléfono. **No pasa por las radios E90**, que es exactamente lo que el requisito pedía.
-  El `grep` que lo encuentra, corrido el 05/09 —se cita el símbolo, no el número de línea suelto:
+  El `grep` que lo encuentra, **re-corrido el 07/09 y coincidente linea por linea** —de las 32 citas de este manual, es una de las **seis** que no caducaron—:
 
   ```
   $ grep -n 'strcmp(accion, "SET_MODO:\|strncmp(accion, "SET_TIEMPOS:' 01_Firmware/Maestro/src/bluetooth.cpp
@@ -101,10 +185,14 @@ Según el Manual de Señalización (2024), si el flujo vehicular baja al 50% o m
 
      ```
      $ grep -rn "modoActual_set(MODO_HORA)" 01_Firmware/Maestro/src/
-     01_Firmware/Maestro/src/menu.cpp:129:        case 1:  modoActual_set(MODO_HORA);      break;
+     01_Firmware/Maestro/src/menu.cpp:135:        case 1:  modoActual_set(MODO_HORA);      break;
      $ grep -n "^bool botonAceptar" 01_Firmware/Maestro/src/botones.cpp
-     659:bool botonAceptar() { return false; }
+     672:bool botonAceptar() { return false; }
      ```
+
+     ⛔ **Re-corrido el 07/09: las dos líneas se habían movido** (`:129`→`:135`, `:659`→`:672`) por
+     `4b2841b`, que insertó las marcas `D-x` en los comentarios. **El hallazgo no cambia; los
+     números sí, y por eso lo que vale es el símbolo.**
 
      **Y no deja al técnico sin reloj, que es lo que importa:** la hora se pone con `SET_RTC:` y se
      lee con `LEER_RTC` **contra el ESP32, que es donde el reloj está** (`D-15`). La rama `SET_RTC:`
@@ -202,24 +290,57 @@ Para garantizar comunicación inquebrantable en zonas de montaña con alta inter
 > ### ⛔ NO SE CABLEA CÁMARA A `PB9` NI A `PB13`. **SON LOS DOS CANALES DEL MANDO DE RELÉS.**
 >
 > Hasta el 31/08 este apartado mandaba las cuatro cámaras a `PB9` y `PB13`. **`PB9` es `MANDO_A` y
-> `PB13` es `MANDO_B`**, y el mando **se conserva** (decisión del 31/08, `N-104`).
+> `PB13` es `MANDO_B`.**
 >
-> **MEDIDO EN EL FUENTE:**
+> ⛔ **Aquí ponía *«y el mando ~~se conserva~~ (decisión del 31/08, `N-104`)»* y está CADUCADO —
+> corregido el 07/09.** Manda **`D-1`** de [`DECISIONES.md`](../DECISIONES.md) (31/08, hardware
+> confirmado retirado el 05/09): **el mando NO EXISTE como hardware —el equipo se opera SÓLO POR
+> APP— y su CÓDIGO no se toca.** Las dos cosas a la vez. 🔴 **Y eso NO debilita el aviso de este
+> recuadro: lo endurece.** Antes había un pulsador delante del pin y un operario que lo pulsaba;
+> hoy `J16` p5 y p8 están **vacíos** y **el código sigue leyendo sus flancos**, así que el sujeto
+> de la secuencia ya no es un operario — **es lo que alguien cierre ahí.**
+>
+> ✅ **MEDIDO EN EL FUENTE el 07/09.** ⛔ **Las seis citas por línea que había aquí estaban las seis
+> caducadas** (`botones.cpp:119`, `:120`, `pines.h:92-93`, `mando.cpp:38`, `:225-234`,
+> `Esclavo/src/mando.cpp:129-132`). Se citan los símbolos y se publican los `grep`, corridos antes
+> de escribir esto:
 >
 > ```
-> 01_Firmware/Maestro/src/botones.cpp:119   if (flanco[0]) mando_registrarPulso(MANDO_A);  // BOTON1 = PB9  = J16 p5
-> 01_Firmware/Maestro/src/botones.cpp:120   if (flanco[1]) mando_registrarPulso(MANDO_B);  // BOTON2 = PB13 = J16 p8
-> 01_Firmware/Maestro/include/pines.h:92-93 #define BOTON1 PB9   ·   #define BOTON2 PB13
-> 01_Firmware/Maestro/src/mando.cpp:38      VENTANA_TRIPLE_MS = 12000     (12 s)
-> 01_Firmware/Maestro/src/mando.cpp:225-234 A·A·A -> ACC_AUTOMATICO   ·   B·B·B -> ACC_AMBAR
-> 01_Firmware/Esclavo/src/mando.cpp:129-132 case ACC_AMBAR: ambarLocal = true;
+> $ grep -n "mando_registrarPulso" 01_Firmware/Maestro/src/botones.cpp
+> 607:  if (flanco[0]) mando_registrarPulso(MANDO_A);
+> 608:  if (flanco[1]) mando_registrarPulso(MANDO_B);
+> $ grep -n "define BOTON1\|define BOTON2" 01_Firmware/Maestro/include/pines.h
+> 163:#define BOTON1      PB9   // J16 p5  - Arriba / mando A
+> 164:#define BOTON2      PB13  // J16 p8  - Abajo  / mando B
+> $ grep -n "VENTANA_TRIPLE_MS =\|confirmarYActuar(ACC_" 01_Firmware/Maestro/src/mando.cpp
+> 44:static const unsigned long VENTANA_TRIPLE_MS = 12000;
+> 220:        confirmarYActuar(ACC_DEGRADADO, DESTELLOS_DEGRADADO);
+> 233:        confirmarYActuar(ACC_AUTOMATICO, DESTELLOS_AUTOMATICO);
+> 240:        confirmarYActuar(ACC_AMBAR, DESTELLOS_AMBAR);
+> $ grep -n "ambarLocal = true" 01_Firmware/Esclavo/src/mando.cpp
+> 140:      ambarLocal = true;
 > ```
+>
+> 👉 **El ancla que no caduca ya existe: `grep -rn "D-1" 01_Firmware/` da las diez puntas de esta
+> decisión de una vez**, y sobrevive a que alguien inserte veinte líneas encima.
 >
 > **Lo que pasa si alguien sigue el texto viejo:** una cámara enchufada ahí **entrega pulsos**, y
 > **tres pulsos dentro de la ventana de 12 s componen una secuencia del mando** (apartado 7 de este
 > mismo manual). En `PB9`, `A·A·A` mete el equipo en **Modo Automático**; en `PB13`, `B·B·B` lo manda
-> a **Ámbar** y además arma `ambarLocal`, la bandera de la que cuelgan los tres vetos del Esclavo
-> (`grep -n "mando_ambarLocal()" 01_Firmware/Esclavo/src/main.cpp` → `:453`, `:476`, `:617`, medidos el 05/09; decían `:406`, `:416`, `:540` y habían caducado), que **desobedecen las órdenes de radio**.
+> a **Ámbar** y además arma `ambarLocal`, la bandera de la que cuelgan los tres vetos del Esclavo,
+> que **desobedecen las órdenes de radio**.
+>
+> ⛔ **Y esta cita ya se corrigió una vez y VOLVIÓ A CADUCAR en dos días** — es el mejor argumento
+> escrito de por qué se cita el símbolo y no el número:
+>
+> | publicado | fecha | hoy |
+> |---|---|---|
+> | `:406`, `:416`, `:540` | 28/08 | ❌ |
+> | `:453`, `:476`, `:617` — *«medidos el 05/09»*, y lo estaban | 05/09 | ❌ |
+> | `grep -n "mando_ambarLocal()" 01_Firmware/Esclavo/src/main.cpp` → **`:464`, `:487`, `:628`** | **07/09** | ✅ hoy |
+>
+> **Renumerar es la cura equivocada: genera números nuevos que caducan otra vez.** Lo que las movió
+> esta vez ni siquiera fue firmware — fue `4b2841b`, que insertó marcas `D-x` en los comentarios.
 >
 > ### 🔴 Dicho en una línea: **el tráfico cambiaría el modo del semáforo solo**, sin que nadie lo pida y sin que nada lo registre como orden.
 >
@@ -245,9 +366,26 @@ Para garantizar comunicación inquebrantable en zonas de montaña con alta inter
 
 | pin | lo que decía este manual | lo que hay de verdad | nivel |
 |---|---|---|---|
-| `PB9` | «Cámara 1 / 3, demanda de verde» | **`BOTON1` = `MANDO_A`** (`J16` p5). Tres pulsos en 12 s = **Modo Automático** | ✅ **MEDIDO** (`pines.h:92`, `botones.cpp:119`, `mando.cpp:225-227`) |
-| `PB13` | «Cámara 2 / 4, monitoreo de obra» | **`BOTON2` = `MANDO_B`** (`J16` p8). Tres pulsos en 12 s = **Ámbar + `ambarLocal`** | ✅ **MEDIDO** (`pines.h:93`, `botones.cpp:120`, `mando.cpp:230-234`) |
-| el `GND` de las cuatro líneas | «contacto seco contra masa» | El pin es **activo en ALTO** y la bornera lo saca junto a **3,3 V**: contra masa **no dispara jamás** | ✅ **MEDIDO** (`modo_inteligente.cpp:25`, `:46`) |
+| `PB9` | «Cámara 1 / 3, demanda de verde» | **`BOTON1` = `MANDO_A`** (`J16` p5). Tres pulsos en 12 s = **Modo Automático** — 🔴 **la única de las tres secuencias que ARRANCA EL CICLO, y la única SIN GUARDA**: ver `MANUAL_MANDO_4_RELES.md` §8 | ✅ **MEDIDO 07/09** (símbolos `BOTON1`, `mando_registrarPulso(MANDO_A)`, `confirmarYActuar(ACC_AUTOMATICO, …)`) |
+| `PB13` | «Cámara 2 / 4, monitoreo de obra» | **`BOTON2` = `MANDO_B`** (`J16` p8). Tres pulsos en 12 s = **Ámbar + `ambarLocal`** | ✅ **MEDIDO 07/09** (símbolos `BOTON2`, `mando_registrarPulso(MANDO_B)`, `ambarLocal = true`) |
+| el `GND` de las cuatro líneas | «contacto seco contra masa» | El pin es **activo en ALTO** y la bornera lo saca junto a **3,3 V**: contra masa **no dispara jamás** | ✅ **MEDIDO 07/09** — ⛔ y **la cita anterior señalaba al FICHERO equivocado**: ver el recuadro |
+
+> ⛔ **LAS CITAS DE ESTA TABLA ERAN POR LÍNEA, ESTABAN CADUCADAS, Y LA TERCERA ADEMÁS SEÑALABA AL
+> FICHERO EQUIVOCADO (07/09).** El *«activo en ALTO»* ya no se decide en `modo_inteligente.cpp`:
+> **la lectura de toda cámara se centralizó en `camara_leerPin()`, en `botones.cpp` de las dos
+> puntas**, y el `pinMode` se fue con ella. Es la deriva que un número de línea no puede delatar
+> —`modo_inteligente.cpp` **sigue existiendo**, así que nada se pone rojo—. **El propio fuente lo
+> dejó escrito donde estuvo:** *«`pinMode(CAM_DEMANDA_PIN, INPUT)` vivia en esta funcion»*.
+>
+> ```
+> $ grep -rn "^bool camara_leerPin" 01_Firmware/Maestro/src/botones.cpp 01_Firmware/Esclavo/src/botones.cpp
+> 01_Firmware/Maestro/src/botones.cpp:114:bool camara_leerPin(uint8_t pin) {
+> 01_Firmware/Esclavo/src/botones.cpp:127:bool camara_leerPin(uint8_t pin) {
+> ```
+>
+> Su cuerpo es `if (digitalRead(pin) == HIGH) { delay(5); return (digitalRead(pin) == HIGH); }` —
+> **activo en ALTO, con doble lectura antirrebote**. La conclusión de la tabla **no cambia**; lo
+> que cambia es dónde hay que ir a comprobarla.
 
 **Además ya no son cuatro cámaras.** Desde el 28/08 **no existen las cámaras 2 y 4**: `PB8` nunca fue
 una entrada —es el `LED_TESTIGO`, ver el apartado 6.4— y el conteo de umbral necesitaría un comando de
@@ -260,29 +398,70 @@ que es el criterio conservador: la cámara de umbral daría **eficiencia, no seg
 
 | | pin | bornera | estado del firmware |
 |---|---|---|---|
-| **HOY, lo único que un firmware lee** | **`PB0`** (`CAM_DEMANDA_PIN`) | **`J14`** | ✅ **MEDIDO**: se lee de verdad — `modo_inteligente.cpp:98`, `:136` (Maestro) y `main.cpp:350` (Esclavo). La placa ayuda con `R64` 10 kΩ + `C25` 100 nF = antirrebote de 1 ms (`pines.h:43-46`) |
-| **TAMBIÉN HOY** | **`PB14`** = `CAM_C_PIN` (`J16` **p10**) y **`PB15`** = `CAM_D_PIN` (`J16` **p12**) | **`J16`** | ✅ **MEDIDO: ya son cámara.** `pinMode(CAM_C_PIN, INPUT)` / `pinMode(CAM_D_PIN, INPUT)` —**pelado, activo en ALTO**— en las dos puntas. **`p10` es la cámara** (una por poste, verificada en banco); **`p12` queda vacío** |
+| **La entrada de cámara más antigua** ~~lo único que un firmware lee~~ | **`PB0`** (`CAM_DEMANDA_PIN`) | **`J14`** | ✅ **MEDIDO 07/09**: se lee de verdad — `camara_leerPin(CAM_DEMANDA_PIN)` en `Maestro/src/modo_inteligente.cpp` y `digitalRead(CAM_DEMANDA_PIN) == HIGH` en `Esclavo/src/main.cpp`. La placa ayuda con `R64` 10 kΩ + `C25` 100 nF = antirrebote de 1 ms (símbolo `CAM_DEMANDA_PIN` en `pines.h`). ⛔ *(de las tres citas que había —`modo_inteligente.cpp:98`, `:136`, `pines.h:43-46`— **ninguna sobrevivió**; sólo `main.cpp:350` del Esclavo seguía siendo correcta)* |
+| **LAS DE `J16`** | **`PB14`** = `CAM_C_PIN` (`J16` **p10**) y **`PB15`** = `CAM_D_PIN` (`J16` **p12**) | **`J16`** | ✅ **MEDIDO: ya son cámara.** `pinMode(CAM_C_PIN, INPUT)` / `pinMode(CAM_D_PIN, INPUT)` —**pelado, activo en ALTO**— en las dos puntas. **`p10` es la cámara** (**una por poste**, `D-13`; verificada en banco el 03/09); **`p12` queda vacío** |
+
+> ## 🔴 EL PIN DE CÁMARA QUE QUEDA VACÍO **NO ESTÁ INERTE** — medido el 07/09, y no estaba escrito
+>
+> **`J16` p5 y p8 llevan tres avisos en este manual; el pin de cámara sobrante, ninguno.** Y el
+> firmware lee **los dos** pines de `J16` en cada vuelta, no sólo el que tiene cámara:
+>
+> ```
+> $ grep -n "CAM_J16\[2\]" 01_Firmware/Maestro/src/botones.cpp
+> 458:static const uint8_t CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN};
+> ```
+>
+> En `camaras_actualizar()` el bucle recorre los **dos** y, ante un flanco de cualquiera de ellos,
+> llama a **`demanda_solicitar()`**. 👉 **Lo que se cierre sobre `p12` PIDE PASO.**
+>
+> ✅ **Y ahora la mitad que evita el susto, porque medir de más también engaña:** eso **no ordena
+> nada**. `demanda_hayLocal()` —la salida de esa petición— tiene **un solo consumidor en todo el
+> firmware**, `Maestro/src/modo_inteligente.cpp`; en Automático, Manual, Ámbar y Degradado **no hay
+> quien la lea**. El propio fuente lo dice: *«Una camara PIDE; no ordena»*. **La diferencia con
+> `J16` p5/p8 es exactamente ésa: allí se compone una ORDEN de cambio de modo; aquí se emite una
+> PETICIÓN que sólo un modo escucha.**
+>
+> ✅ **Y la alarma de cámara ciega SÍ está resuelta para el pin vacío, con su coste escrito:** el
+> vigilante no vigila un pin que **nunca dio un flanco**, precisamente porque *«hay una cámara por
+> poste, así que en todos los equipos que se monten UNO DE ESTOS DOS PINES ESTA VACIO»*. Lo que
+> eso cuesta —**no se detecta una cámara muerta desde el día de la instalación**— lo cubre el paso
+> de instalación de [`MANUAL_CONFIGURACION_CAMARAS_IA.md`](MANUAL_CONFIGURACION_CAMARAS_IA.md), que
+> obliga a **provocar una detección delante de la cámara** y comprobar que el equipo la acusa: ése
+> es el primer flanco, y hasta él el vigilante no vigila.
 
 > ⛔ **LA SEGUNDA FILA DECÍA «~~DESPUÉS de la Fase 3~~» Y «~~NINGÚN firmware los lee como cámara;
 > hoy siguen siendo botones~~». Falso desde el 31/08** — el *«después»* ya llegó, y el `pinMode` que
 > citaba (`INPUT_PULLUP`) **ya no existe en el fichero**. Se tacha con su motivo porque de esa frase
-> colgaba el bloqueo de §6.5. **El estado de hoy, con su `grep`, corrido el 05/09:**
+> colgaba el bloqueo de §6.5. **El estado de hoy, con su `grep`, re-corrido el 07/09:**
 >
 > ```
 > $ grep -rn "pinMode(CAM_._PIN" 01_Firmware/Maestro/src/ 01_Firmware/Esclavo/src/
-> 01_Firmware/Maestro/src/botones.cpp:531:  pinMode(CAM_C_PIN, INPUT);
-> 01_Firmware/Maestro/src/botones.cpp:532:  pinMode(CAM_D_PIN, INPUT);
+> 01_Firmware/Maestro/src/botones.cpp:538:  pinMode(CAM_C_PIN, INPUT);
+> 01_Firmware/Maestro/src/botones.cpp:539:  pinMode(CAM_D_PIN, INPUT);
 > 01_Firmware/Esclavo/src/botones.cpp:523:  pinMode(CAM_C_PIN, INPUT);
 > 01_Firmware/Esclavo/src/botones.cpp:524:  pinMode(CAM_D_PIN, INPUT);
 > ```
+>
+> *(re-corrido el 07/09: las dos del Maestro se habían movido de `:531`/`:532` a `:538`/`:539`; las
+> del Esclavo coincidían. **2 de 4** — y las que coincidieron lo hicieron por casualidad.)*
 
-📖 **LEÍDO** (decisión, no medida): las cámaras se mudan a `J16` p10/p12, los pines que libera la
-retirada de los pulsadores **C** y **D** — `ESTADO.md:83`, `:105`, `:119` y `roadmap.md` `N-104`. Los
-canales **A** (`PB9`, p5) y **B** (`PB13`, p8) **se conservan para el mando** y **no quedan libres**.
+📖 **DECIDIDO — y ya no es «leído», es una fila vinculante:** las cámaras van a `J16` **p10/p12**,
+los pines que libera la retirada de los pulsadores **C** y **D**. Manda **`D-2`** de
+[`DECISIONES.md`](../DECISIONES.md) (28/08), y **`D-3`** (03/09) cierra `M3` con medida en cobre.
+⛔ *(aquí se citaba `ESTADO.md:83`, `:105`, `:119`; **las tres líneas dicen hoy otra cosa** —
+`ESTADO.md` es el estado de HOY y se reescribe entero: **no es una fuente citable por línea**. La
+fuente vinculante es `DECISIONES.md`.)*
 
-> 🟡 **ABIERTO, y no lo cierra este manual:** cuántas cámaras van por poste. `ESTADO.md:50` dice
-> *«dos cámaras de demanda, una por poste»*, y el reparto de pines libera **dos** entradas en cada
-> nodo. **Lo decide el responsable**; aquí sólo queda escrito que los pines disponibles son p10 y p12.
+🔴 **Y la segunda mitad de ese párrafo estaba CADUCADA:** los canales **A** (`PB9`, p5) y **B**
+(`PB13`, p8) **ya no «se conservan para el mando»** — `D-1` retiró el **hardware**. Lo que sigue
+siendo verdad, y es lo único que importa para el destornillador, es que **tampoco quedan libres**:
+el código los sigue leyendo. **Libre de cobre no es libre de firmware.**
+
+> ✅ **CERRADO, y ya no lo decide este manual:** cuántas cámaras van por poste. **`D-13`: UNA
+> cámara por poste**, dos unidades para dos postes, las dos con la misma configuración. El firmware
+> lo da por hecho —*«en todos los equipos que se monten UNO DE ESTOS DOS PINES ESTA VACIO»*—.
+> ⛔ *(aquí ponía «ABIERTO … lo decide el responsable», apoyado en `ESTADO.md:50`; **ya lo decidió**,
+> el 05/09.)*
 
 ### 6.3 ~~🔴 La salida de la cámara es configurable (NO / NC) y hay que elegir DESPUÉS de la medida M3~~ ✅ **M3 CERRADA — y el «NO/NC configurable» está SIN VERIFICAR**
 
@@ -317,9 +496,24 @@ todavía no se ha hecho.~~ **La medida se hizo: es la primera fila.**
 
 | si la medida **M3** dice… | cómo se cablea el contacto seco | configuración de la cámara | encaja con el firmware de hoy |
 |---|---|---|---|
-| **~0,66 V** en reposo → la placa tiene el *pull-**DOWN*** de 10 kΩ del netlist (`R65`–`R68` a `GND`) | entre el pin de señal y el pin de **3,3 V** contiguo (`J16` p9 para p10, p11 para p12) — **NO contra `GND`** | **`NO`**, pulso de **1 s** | ✅ Sí: `pinMode(INPUT)` + `digitalRead(...) == HIGH` (`modo_inteligente.cpp:25`, `:46`) |
-| **~3,3 V** en reposo → *pull-**UP*** y el netlist no describe esta placa | entre el pin de señal y **`GND`** (`J16` p2) | **`NO`**, pulso de **1 s** | ❌ No: habría que **invertir la lectura de la cámara** en las dos puntas antes de cablear |
+| ✅ **LA QUE SALIÓ: `0 V` en reposo** → la placa tiene el *pull-**DOWN*** de 10 kΩ del netlist (`R65`–`R68` a `GND`) | entre el pin de señal y el pin de **3,3 V** contiguo (`J16` p9 para p10, p11 para p12) — **NO contra `GND`** | **`NO`**, `Delay` **al mínimo que admita** | ✅ Sí: `pinMode(INPUT)` + `camara_leerPin()`, que compara `== HIGH` |
+| **~3,3 V** en reposo → *pull-**UP*** y el netlist no describe esta placa | entre el pin de señal y **`GND`** (`J16` p2) | **`NO`** | ❌ No: habría que **invertir la lectura de la cámara** en las dos puntas antes de cablear |
 | **otra cosa** | **no se cablea** | — | se anota el número y **se para** |
+
+> ⛔ **DOS ERRATAS DE ESTA TABLA, corregidas el 07/09, y la primera podía parar el trabajo en obra:**
+>
+> 1. **La primera fila decía ~~«~0,66 V en reposo»~~ y la medida dio `0 V`.** No es un redondeo: los
+>    **0,66 V** eran el valor **predicho para `INPUT_PULLUP`** —el pull-up interno de ~40 kΩ contra
+>    los 10 kΩ a masa—, y ese `pinMode` **ya no existe en el firmware**. Con `INPUT` pelado el
+>    pull-down manda solo y el pin está a **0 V**, que es lo que midió el paso 20 el 03/09 (`D-3`).
+>    🔴 **La fila que este apartado manda aplicar publicaba una tensión que contradice la medida que
+>    la cierra:** quien fuera al poste con el multímetro buscando 0,66 V leería 0 V, no encontraría
+>    su fila y anotaría *«otra cosa → se para»* — parando por la medida que autoriza.
+> 2. **El «pulso de 1 s» era invención nuestra** (`A-7`): Hikvision **no publica ni un valor de
+>    `Delay` en 110 páginas**. Se pone al **mínimo que admita** y **se anota el valor real**.
+>
+> *(Y las citas `modo_inteligente.cpp:25`, `:46` estaban caducadas **y en el fichero equivocado**:
+> la lectura vive hoy en `camara_leerPin()`, en `botones.cpp`. Ver §6.1.)*
 
 * **`NC` no se usa en ninguno de los dos casos.** Con `NC` el contacto está cerrado en reposo y se
   abre al detectar: el firmware vería **demanda permanente** mientras no pasa nada y **ausencia de
@@ -350,8 +544,10 @@ todavía no se ha hecho.~~ **La medida se hizo: es la primera fila.**
 ```
 
 Sale por `R16` de 1 kΩ al LED `D5`. **No es bornera y no es entrada optoacoplada.** El firmware lo
-deja a propósito en alta impedancia (`modo_inteligente.cpp:50`). Cuatro manuales llegaron a
-describirlo como *«umbral de tramo»* (`N-59`, `N-64`); ninguno se había cruzado contra `pines.h`.
+deja a propósito en alta impedancia — símbolo `pinMode(LED_TESTIGO, INPUT)` en
+`Maestro/src/modo_inteligente.cpp`; ⛔ *(la cita `:50` estaba caducada; hoy `:137`)*. Cuatro manuales
+llegaron a describirlo como *«umbral de tramo»* (`N-59`, `N-64`); ninguno se había cruzado contra
+`pines.h`.
 
 ### 6.5 ✅ `M3` CERRADA EL 03/09 — lo que SÍ bloquea el cableado hoy
 
@@ -380,7 +576,9 @@ describirlo como *«umbral de tramo»* (`N-59`, `N-64`); ninguno se había cruza
 
 1. 🔴 **`J16` p1 lleva 12 V crudos**, sin opto, sin limitadora y sin clamp. **Se tapa físicamente
    antes de cablear nada.** Y la separación real sobre cobre **no** es la distancia entre pads
-   —MEDIDO en `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md:576-588`—:
+   —MEDIDO sobre el `.kicad_pcb` y publicado en `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`, tabla
+   *«separacion minima real»*; se encuentra con `grep -n "separacion minima real"`, no por número de
+   línea (verificado el 07/09)—:
 
    | red de 12 V contra | separación mínima real |
    |---|---|
@@ -399,9 +597,12 @@ describirlo como *«umbral de tramo»* (`N-59`, `N-64`); ninguno se había cruza
 
    ```
    $ grep -n "^bool botonArriba\|^bool botonAbajo" 01_Firmware/Maestro/src/botones.cpp
-   617:bool botonArriba()  { return consumir(0); }
-   618:bool botonAbajo()   { return consumir(1); }
+   624:bool botonArriba()  { return consumir(0); }
+   625:bool botonAbajo()   { return consumir(1); }
    ```
+
+   *(re-corrido el 07/09; ⛔ ponía `617`/`618`. **El hallazgo no cambia: siguen vivos y siguen
+   leyendo `BOTON1`/`BOTON2`.**)*
 
 > ⛔ **Aquí había un cuarto bloqueo: *«~~Ningún firmware lee `PB14`/`PB15` como cámara todavía~~»*.**
 > **Falso desde el 31/08** — ver §6.2. Se tacha con su motivo y no se borra.
@@ -412,14 +613,20 @@ describirlo como *«umbral de tramo»* (`N-59`, `N-64`); ninguno se había cruza
   el **Despeje Todo-Rojo** completo antes de habilitar el verde opuesto, y el **amarillo normativo de
   4,0 s**. Bajo ninguna circunstancia se omite ninguno de los dos.
 
+> ⛔ **BARRIDO DE CITAS DEL 07/09: de las **32** citas `fichero:linea` que este manual publicaba, **26 estaban
+> caducadas —el 81 %**.** No por descuido: `4b2841b` insertó las marcas `D-x` en los comentarios del firmware
+> y desplazó medio fichero. **Las de esta tabla se sustituyen por símbolos**, que es lo único que
+> sobrevive a que alguien inserte veinte líneas encima.
+
 | lo que este apartado afirma | nivel |
 |---|---|
-| `PB9` = `MANDO_A`, `PB13` = `MANDO_B`, y tres pulsos en 12 s componen secuencia | ✅ **MEDIDO EN EL FUENTE** (`pines.h:92-93`, `botones.cpp:119-120`, `mando.cpp:38`, `:225-234`) |
-| La cámara es activa en ALTO y no se cablea contra `GND` | ✅ **MEDIDO EN EL FUENTE** (`modo_inteligente.cpp:25`, `:46`) |
-| `PB0`/`J14` es hoy el único camino de cámara con firmware | ✅ **MEDIDO** (`modo_inteligente.cpp:98`, `:136`; `Esclavo/src/main.cpp:350`) |
+| `PB9` = `MANDO_A`, `PB13` = `MANDO_B`, y tres pulsos en 12 s componen secuencia | ✅ **MEDIDO EN EL FUENTE el 07/09** (símbolos `BOTON1`/`BOTON2` en `pines.h`, `mando_registrarPulso` en `botones.cpp`, `VENTANA_TRIPLE_MS` y `confirmarYActuar(ACC_…)` en `mando.cpp`) |
+| 🔴 **`A·A·A` en el MAESTRO arranca el ciclo —abre paso— y NO tiene ninguna guarda**; las otras dos van a un estado seguro o están validadas | ✅ **MEDIDO EN EL FUENTE el 07/09** (ramas de `ejecutar()` en `Maestro/src/mando.cpp`; detalle en `MANUAL_MANDO_4_RELES.md` §8) |
+| La cámara es activa en ALTO y no se cablea contra `GND` | ✅ **MEDIDO EN EL FUENTE el 07/09** (`camara_leerPin()` en `botones.cpp` de las dos puntas). ⛔ **la cita anterior señalaba al FICHERO equivocado** |
+| ~~`PB0`/`J14` es hoy el **único** camino de cámara con firmware~~ → **es UNO de tres**: `PB0` (`J14`), `PB14` y `PB15` (`J16` p10/p12) | ✅ **MEDIDO 07/09** (`camara_leerPin(CAM_DEMANDA_PIN)`, `digitalRead(CAM_DEMANDA_PIN)` en el Esclavo, y `CAM_J16[2]` en `botones.cpp`). ⛔ **la palabra *«único»* caducó el 31/08 y seguía aquí con un MEDIDO encima** |
 | ~~`PB14`/`PB15` son hoy `botonAceptar()` y `botonCancelar()`~~ → **`PB14` = `CAM_C_PIN` y `PB15` = `CAM_D_PIN`; `botonAceptar()`/`botonCancelar()` son `return false;`** | ✅ **MEDIDO** (`#define CAM_C_PIN`/`CAM_D_PIN` en `pines.h`; `^bool botonAceptar` en `botones.cpp`). ⛔ **La fila anterior fue FALSA con un «MEDIDO» al lado desde el 31/08** |
 | `botonArriba()`/`botonAbajo()` **siguen vivos** y leen `BOTON1`/`BOTON2`, **los pines del mando** | ✅ **MEDIDO** (`^bool botonArriba` en `botones.cpp`, con llamadores en `menu.cpp` y `modo_hora.cpp`). 🔴 **Libre de cobre no es libre de firmware** |
-| Las distancias de cobre de `J16` contra los 12 V | ✅ **MEDIDO** sobre el `.kicad_pcb` (`MAPEO_TARJETA_KICAD.md:576-588`) |
+| Las distancias de cobre de `J16` contra los 12 V | ✅ **MEDIDO** sobre el `.kicad_pcb` (`MAPEO_TARJETA_KICAD.md`, tabla *«separacion minima real»*) |
 | ~~Que las cámaras se muden a `J16` p10/p12~~ → **ya mudadas** | ✅ **MEDIDO** (`pinMode(CAM_C_PIN, INPUT)` en las dos puntas). Ya no es *«decidido, sin construir»* |
 | ~~Que `R65`–`R68` estén realmente montadas y la polaridad sea la del netlist~~ | ✅ **MEDIDO EN COBRE el 03/09** (**M3 CERRADA**, paso 20): 10 kΩ a masa en las cuatro posiciones, 0 V en reposo, **activa en ALTO**. Fuente: `05_Funcional/17_…` sección **M3** |
 
@@ -473,7 +680,11 @@ Para permitir la operación del semáforo a nivel del suelo sin colisionar con l
 > distintos serían una invitación a equivocarse en la segunda punta.
 
 **Y no hay más.** El repertorio completo son **tres acciones**, no cinco:
-`enum AccionMando { ACC_NINGUNA, ACC_AUTOMATICO, ACC_AMBAR, ACC_DEGRADADO };` (`mando.cpp:53`).
+`enum AccionMando { ACC_NINGUNA, ACC_AUTOMATICO, ACC_AMBAR, ACC_DEGRADADO };` — símbolo
+`enum AccionMando` en `Maestro/src/mando.cpp`; ⛔ *(la cita `:53` estaba caducada; hoy `:59`)*.
+⚠️ **Y en el ESCLAVO el `enum` NO es el mismo:** `{ ACC_NINGUNA, ACC_OBEDECER, ACC_AMBAR,
+ACC_DEGRADADO }`. Es la asimetría de `A·A·A` que la tabla de §7.1 ya recoge, y aquí quedaba
+implícita.
 
 ### 7.2 ~~La tabla anterior~~ — ⛔ ANULADA, conservada con el motivo de cada fila
 
@@ -489,21 +700,37 @@ Para permitir la operación del semáforo a nivel del suelo sin colisionar con l
 
 * **La red de seguridad real del Degradado no es la secuencia, es la validación.** Aunque alguien
   acierte `A·B·A·B` por casualidad, el firmware **no entra** si la hora no está validada:
-  `modo_degradado_evaluarEntrada() == MDG_OK` (`mando.cpp:213`). El mando permite reactivar en campo
-  sin grúas, **pero no saltarse la puesta a punto**.
-* **El Ámbar entra sin condiciones y desde cualquier modo en marcha** (`mando.cpp:230-234`): es la
+  `modo_degradado_evaluarEntrada() == MDG_OK` — símbolo verificado el 07/09; ⛔ *(cita `:213`
+  caducada; hoy `:219`)*. El mando permite reactivar en campo sin grúas, **pero no saltarse la
+  puesta a punto**.
+  > 🔴 **Y el contraste que hay que leer con esto delante: `A·A·A` NO tiene ninguna guarda
+  > equivalente, y es la única de las tres que ARRANCA EL CICLO** (medido el 07/09; desarrollo en
+  > `MANUAL_MANDO_4_RELES.md` §8). *«El mando comprueba además de la secuencia»* es cierto para una
+  > de las tres, no para las tres.
+* **El Ámbar entra sin condiciones y desde cualquier modo en marcha** —rama
+  `confirmarYActuar(ACC_AMBAR, DESTELLOS_AMBAR)`; ⛔ *(cita `:230-234` caducada)*—: es la
   regla que impide que nadie quede atrapado con un semáforo en estado raro a 5 m de altura. Además
-  arma **`ambarLocal`**, la bandera de la que cuelgan los tres vetos del Esclavo
-  (los tres `if (!mando_ambarLocal() && ...)` de `Esclavo/src/main.cpp` — `:453`, `:476`, `:617`, medidos el 05/09): mientras un operario dejó ámbar local puesto, **una
-  orden de radio no lo saca de ahí**. Es una desobediencia deliberada, no un fallo.
-* **Los destellos son SIEMPRE ROJOS** y contables desde el suelo (`mando.cpp:41-44`): el rojo nunca
-  significa *«pase»*, así que si el operario cuenta mal, **el peor caso sigue siendo seguro**.
+  arma **`ambarLocal`**, la bandera de la que cuelgan los tres vetos del Esclavo —los tres
+  `if (!mando_ambarLocal() && …)` de `Esclavo/src/main.cpp`, **hoy `:464`, `:487`, `:628`**; el
+  `grep` del símbolo está en §6 y es lo que hay que correr—: mientras un operario dejó ámbar local
+  puesto, **una orden de radio no lo saca de ahí**. Es una desobediencia deliberada, no un fallo.
+* **Los destellos son SIEMPRE ROJOS** y contables desde el suelo (símbolos `DESTELLOS_AUTOMATICO` /
+  `DESTELLOS_AMBAR` / `DESTELLOS_DEGRADADO` en `mando.cpp`; ⛔ *cita `:41-44` caducada*): el rojo
+  nunca significa *«pase»*, así que si el operario cuenta mal, **el peor caso sigue siendo seguro**.
 * **Inhibición de UI (N-53):** mientras el operador esté en pantallas de configuración
-  (`AJUSTAR HORA`, `CONFIG_TIEMPOS`), el receptor del mando **se inhibe al 100%**
-  (`mando.cpp:89`, `:180`), permitiendo ajustar números con el codillo sin disparar cambios de modo
-  involuntarios.
-* **Sólo los botones 1 y 2 alimentan el mando.** El 3 **ejecuta** y el 4 sale: si formaran parte de
-  alguna secuencia, repetirlos a ciegas podría arrancar un modo que nadie pidió (`botones.cpp:115-120`).
+  (`AJUSTAR HORA`, `CONFIG_TIEMPOS`), el receptor del mando **se inhibe al 100%** —símbolo
+  `secuenciasInhibidas()`; ⛔ *citas `:89`, `:180` caducadas; hoy `:95` y `:186`*—, permitiendo
+  ajustar números con el codillo sin disparar cambios de modo involuntarios.
+  > 🔴 **ESA PROTECCIÓN SE QUEDÓ SIN SUJETO (07/09).** `MODO_HORA` es hoy **inalcanzable** —no hay
+  > `SET_MODO:HORA` y `botonAceptar()` es `return false;`—, y en el **Esclavo** la guarda
+  > `menu_estaAbierto()` **no puede ser cierta jamás**. La barrera **no queda inerte: queda
+  > abierta**. Medido y desarrollado en `MANUAL_MANDO_4_RELES.md` §6.
+* **Sólo los botones 1 y 2 alimentan el mando.** El 3 **ejecutaba** y el 4 salía: si formaran parte
+  de alguna secuencia, repetirlos a ciegas podría arrancar un modo que nadie pidió —símbolo
+  `mando_registrarPulso` en `botones.cpp`: **sólo dos llamadas, `MANDO_A` y `MANDO_B`**; ⛔ *cita
+  `:115-120` caducada; hoy `:607`-`:608`*—. ⚠️ **Y hoy los botones 3 y 4 ya no existen: `PB14` y
+  `PB15` son las entradas de cámara** (`D-2`), así que la frase describe por qué se eligió `A`/`B`,
+  no un reparto vigente de pulsadores.
 
 ### 7.4 ~~🟢 El mando SE CONSERVA~~ 🛑 **EL CÓDIGO SE CONSERVA; EL APARATO NO** — y por eso el apartado 6 importa
 
@@ -586,14 +813,20 @@ cruce en ámbar, ni devolverlo a automático, ni pararlo.** Ninguna de las tres.
 ## 8. Módulo Bluetooth para Telemetría y Diagnóstico Móvil (Estándar Baliza)
 
 Para soporte técnico en campo sin escaleras:
-* **Conexión Hardware:** Puerto **USART1 REMAPEADO a `PB6` (TX) / `PB7` (RX)**, conector **`J17`**, alimentado con 5V/3.3V de la PCB. ✅ **MEDIDO:** `static HardwareSerial SerialBT(PB7, PB6);` en `01_Firmware/Maestro/src/bluetooth.cpp:28`.
+* **Conexión Hardware:** Puerto **USART1 REMAPEADO a `PB6` (TX) / `PB7` (RX)**, conector **`J17`**, alimentado con 5V/3.3V de la PCB. ✅ **MEDIDO el 07/09:** `grep -n "HardwareSerial SerialBT" 01_Firmware/Maestro/src/bluetooth.cpp` → **`30:static HardwareSerial SerialBT(PB7, PB6);`** (en el Esclavo, `29:`). ⛔ *(la cita `:28` estaba caducada.)*
+  > ⚠️ **Y lo que se enchufa en `J17` hoy NO es un módulo Bluetooth suelto: es un `ESP32-WROOM-32`**,
+  > que además lleva el **`DS3231` con pila** que es el único reloj del cruce (`D-9`/`D-15`). Los
+  > pines y el conector no cambian; lo que cambia es qué hay al otro lado del cable, y eso decide
+  > qué se compra. Detalle en [`MANUAL_HARDWARE.md`](MANUAL_HARDWARE.md) §4.
   > ⛔ Este manual publicó ~~«USART1 (`PA9` TX, `PA10` RX)»~~ hasta el 31/08/2026. Es el sitio donde
   > estuvo **antes** de `N-76`, y dejarlo escrito manda al técnico a soldar el módulo Bluetooth al
   > conector equivocado.
 * **Telemetría en Vivo:** Emisión periódica de `$STATUS,...` cada 1 segundo con modo, fase de luces, cuenta regresiva, % de señal RF y hora exacta del RTC.
 * **Caja Negra de Alarmas:** Registro inmediato de eventos con timestamp (`$ALARM,NODE:MAESTRO,EVENTO:FALLO_RF,CAUSA:SILENCIO_25000ms,ACCION:CAMBIO_A_AMBAR,HORA:...`) para diagnosticar la causa exacta de cualquier caída de radio en obra.
   > ⛔ El ejemplo decía ~~`$ALARM,EVENTO:FALLO_RF_12S...`~~ hasta el 31/08/2026. El propio firmware ya
-  > había retirado ese literal con su motivo escrito al lado —`Esclavo/src/main.cpp:573` y
-  > `*/include/bluetooth.h:18-19`: *«el numero quedo mintiendo al subir el umbral a 25 s»*—, pero el
+  > había retirado ese literal con su motivo escrito al lado —`*/include/bluetooth.h`, en el bloque
+  > de `bluetooth_alarma()`: *«el numero quedo mintiendo al subir el umbral a 25 s»*; ⛔ *las citas
+  > `Esclavo/src/main.cpp:573` y `bluetooth.h:18-19` estaban caducadas, y la primera señala hoy a
+  > una línea que no tiene nada que ver*—, pero el
   > manual se quedó con la versión vieja. La causa **no lleva el número pegado al nombre del evento**:
   > se compone en tiempo de ejecución desde `SFTY6_SILENCIO_MS`, y por eso no puede envejecer.

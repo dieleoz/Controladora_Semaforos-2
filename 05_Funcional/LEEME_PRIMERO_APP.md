@@ -2,8 +2,16 @@
 
 > ## ⚠️ ESTE LÉEME DESCRIBE EL PAQUETE DEL 28/08. HAY DOS POSTERIORES
 >
-> 🔴 **La APK que hay que instalar hoy es la del 04/09:**
-> **la APK del 04/09 que acompaña a este paquete** — su nombre exacto y su `md5` estan en `LEEME_PRIMERO.md`, en la raíz del `.zip`, que es el único sitio donde no caducan.
+> 🔴 ~~**La APK que hay que instalar hoy es la del 04/09**~~ — **CADUCADO EL 07/09: HAY UNA
+> POSTERIOR.** En `05_Funcional/` hay hoy una del **05/09**
+> (`IOT_VIAL_Semaforos_2026-09-05_7586c46_SIN_BANCO.apk`) además de la del 04/09.
+>
+> 🛑 **Y por eso esta línea no vuelve a nombrar una fecha: se instala la APK QUE ACOMPAÑA AL `.zip`
+> que usted recibió, cuyo nombre exacto y `md5` están en `LEEME_PRIMERO.md`, en la raíz del `.zip`
+> — que es el único sitio donde no caducan.** Este fichero describe el paquete del **28/08**; un
+> puntero a «la última» escrito aquí envejece cada vez que se compila una APK, y ya lo ha hecho dos
+> veces. *(Regla del repositorio: un documento que apunta a la fuente no envejece; uno que la copia,
+> sí.)*
 > Las anteriores **no pueden abrir el enlace Bluetooth**: `app.js` marcaba «Enlazado» y se
 > suscribía sin haber llamado nunca a `connect()`, y además marcaba dos MAC escritos a mano que no
 > son los del ESP32 (N-122 y N-124). Con cualquier APK anterior la app no conecta **por bien que
@@ -34,7 +42,31 @@
 **En campo está la V8.4 del firmware** (commit `e303485`, 31/07/2026), validada por el funcional.
 La app de este paquete habla con firmware **V8.5 a V9.0**, que **no está en campo**.
 
-Esta app no reemplaza al panel del gabinete. Es una consola de diagnóstico y mando por Bluetooth.
+~~Esta app no reemplaza al panel del gabinete. Es una consola de diagnóstico y mando por Bluetooth.~~
+
+> # 🛑 07/09 — ESA FRASE ESTÁ INVERTIDA HOY, Y ES LA CORRECCIÓN MÁS IMPORTANTE DE ESTE LÉEME
+>
+> **`DECISIONES.md` `D-16`: SIN TELÉFONO NO HAY FORMA DE OPERAR EL EQUIPO.** No es una avería: es
+> una **propiedad declarada del sistema**, y sale de dos decisiones del 05/09:
+>
+> | vía de mando | estado | por qué |
+> |---|---|---|
+> | **App por Bluetooth** | ✅ **la única** | — |
+> | **Mando de relés** | ⛔ **el hardware ya no existe** | `D-1`: *«ya no tenemos mandos de A y B, sólo la app, los quitamos»* |
+> | **Pulsadores del gabinete** | ⛔ | `botonAceptar()` y `botonCancelar()` devuelven `false` siempre |
+> | **Pantalla y menú del gabinete** | ⛔ | `D-17.bis`: se retiran del equipo |
+>
+> **O sea: no hay «panel del gabinete» que esta app no reemplace — el panel es esta app.** Un móvil
+> sin batería deja el poste sin ámbar de emergencia, sin volver a Automático y sin parar el cruce.
+>
+> **Lo que eso exige de quien va a campo, y va escrito porque no es electrónica sino logística:**
+> teléfono **cargado**, **cable de carga**, y **un SEGUNDO TERMINAL ya emparejado** antes de que un
+> equipo salga a la calle. *(No es teórico: hubo que **desvincular el Maestro en los Ajustes de
+> Android** para poder conectarse al Esclavo, con las dos tarjetas delante.)*
+>
+> ✅ **Lo que de la frase vieja sigue siendo cierto:** esta app **no manda las luces por su cuenta**.
+> Pide, y el firmware decide y rechaza — la barrera de PIN y las guardas de rango viven en el
+> equipo, no aquí.
 
 ---
 
@@ -44,9 +76,15 @@ Con esas palabras, y por eso el nombre del fichero lo lleva dentro:
 `IOT_VIAL_Semaforos_2026-08-28_a8e1ceb_SIN_BANCO.apk`
 
 Lo que sí tiene es la compuerta en verde: **15 PASS · 0 FALLA · 0 ABORTADO**, en
-`ACTA_verificacion.txt`. **Eso no es un permiso.** Significa exactamente esto: los modelos y los
-arneses que corren en un PC no encuentran nada. **No significa que la app funcione contra una
-tarjeta**, porque ninguna de esas comprobaciones ha visto un STM32 ni un módulo HC-05.
+`ACTA_verificacion.txt`. ⚠️ **Esa cifra es la del acta de ESTE paquete (28/08) y no se actualiza
+aquí: la vigente se lee del acta más reciente de `evidencia/`**, que hoy trae más filas. **Eso no es
+un permiso.** Significa exactamente esto: los modelos y los arneses que corren en un PC no
+encuentran nada. **No significa que la app funcione contra una tarjeta**, porque ninguna de esas
+comprobaciones ha visto un STM32 ni un módulo Bluetooth.
+
+> 🔴 **Y desde el 3–4/09 esto ya no hay que creerlo: está medido.** El paquete `617bd00` fue al banco
+> con la compuerta entera en verde y **la sesión se paró tres veces**, por tres cosas que ningún
+> instrumento de PC podía ver. **Verde no es entregable.**
 
 Este proyecto ya pagó esa confusión: el 05/08 la compuerta salió en verde mientras había una
 regresión abierta en la que el Modo Automático no encendía las luces en la tarjeta. Las dos cosas

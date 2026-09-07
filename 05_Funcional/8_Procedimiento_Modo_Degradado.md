@@ -8,6 +8,74 @@
 
 ---
 
+> # 🛑 07/09/2026 · LO PRIMERO DE TODO — **HOY EL MODO DEGRADADO NO ENTRA EN NINGUNA DE LAS DOS PUNTAS, Y NO ES UNA AVERÍA**
+>
+> **Va delante de la orden porque quien la mande va a recibir un `$ERR` y va a concluir que el equipo
+> está roto.** No lo está: falta el **requisito 1**, y **hoy no hay camino para cumplirlo**.
+>
+> **Lo dice el propio firmware, en `Maestro/include/reloj.h`, bajo la marca `D-15`** *(se cita el
+> símbolo, no la línea — `grep -n "D-15" 01_Firmware/Maestro/include/reloj.h`)*:
+>
+> ```text
+> CONSECUENCIA MEDIDA, NO DEDUCIDA: reloj_enHora() de esta punta es hoy FALSO SIEMPRE,
+> y de esa bandera cuelga la autorizacion del Modo Degradado
+> (modo_degradado.cpp: "if (!reloj_enHora()) return MDG_FALTA_HORA;"), la
+> sincronizacion horaria por radio (coordinador_sincronizarHora) y la medida de desfase
+> (coordinador_medirDesfase). Los tres estan bloqueados
+> ```
+>
+> **La cadena, censada el 07/09. Salida literal, corrida antes de publicarla.** ⚠️ *Tres de las cinco filas son
+> COMENTARIOS —los comentarios de este repositorio citan lo que explican, así que el recuento sale
+> inflado si no se filtran—; llamada de verdad hay **una**, y la última es la definición:*
+>
+> ```
+> $ grep -rn "reloj_ajustar(" 01_Firmware/Maestro/src/*.cpp
+> 01_Firmware/Maestro/src/coordinador.cpp:363:// AJUSTAR HORA solo llama a reloj_ajustar(), y el reloj no avisa a nadie de que le
+> 01_Firmware/Maestro/src/modo_hora.cpp:216:      reloj_ajustar(horaActual(), minutoActual(), 0);
+> 01_Firmware/Maestro/src/modo_hora.cpp:227:      // N-30: si el ajuste NO prendio -reloj_ajustar() se niega cuando el RTC no
+> 01_Firmware/Maestro/src/reloj.cpp:32:// buena, y al apagar y encender volvia a ceros. El motivo es que reloj_ajustar()
+> 01_Firmware/Maestro/src/reloj.cpp:280:void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo, uint8_t dia) {
+>
+> $ grep -rn "modoActual_set(MODO_HORA)" 01_Firmware/Maestro/src
+> 01_Firmware/Maestro/src/menu.cpp:135:        case 1:  modoActual_set(MODO_HORA);      break;
+> ```
+>
+> 1. El **único** llamador vivo de `reloj_ajustar()` en el Maestro es la pantalla `AJUSTAR HORA`
+>    (`modo_hora.cpp`). La rama `SET_RTC` del Bluetooth **se retiró** (`D-15`).
+> 2. `MODO_HORA` se arma **sólo** en `menu.cpp`, y el menú se navega con `botonAceptar()`, que es
+>    `return false;` desde que `PB14`/`PB15` son cámaras (`D-2`). **Tapiado** (`D-17.bis`).
+> 3. Sin hora en el Maestro **no hay sincronización por radio**, así que el Esclavo tampoco la
+>    recibe: su `reloj_ajustar()` sólo lo llama el manejador de `CMD_HORA` en `Esclavo/src/main.cpp`.
+>
+> | punta | lo que va a contestar | motivo del enum |
+> |---|---|---|
+> | **MAESTRO** | `$ERR,CMD:SET_MODO:DEGRADADO,DESC:Falta: reloj sin poner en hora` | `MDG_FALTA_HORA` |
+> | **ESCLAVO** | `$ERR,CMD:SET_MODO:DEGRADADO,DESC:SIN HORA VALIDA` | `DEG_RECHAZO_SIN_HORA` |
+>
+> ## 🔴 Y LA TRAMPA QUE HACE QUE ESTO PAREZCA OTRA COSA: **LA APP LE VA A ENSEÑAR UNA HORA BUENA**
+>
+> El campo `HORA:` del `$STATUS` **no lo pone el STM32**. El STM32 emite el hueco `HORA:--:--:--` y
+> **el puente ESP32 lo rellena con su propio `DS3231` y recalcula el CRC** (`D-9`, `N-145` —
+> `grep -n "HUECO_HORA" 01_Firmware/ESP32_Expansion/src/puente.cpp`). O sea:
+>
+> 🛑 **Ver `HORA:14:32:10` en la app NO significa que el controlador esté en hora.** Significa que el
+> reloj del **accesorio** lo está. El que autoriza el Degradado es el otro, y ése sigue en `false`.
+> **No cambie la pila, no cambie el cristal `Y2` y no cargue nada:** este proyecto ya pagó una vez por
+> sustituir componentes sanos detrás de un síntoma de reloj.
+>
+> ## Qué SÍ se puede hacer hoy, y qué NO
+>
+> | | |
+> |---|---|
+> | ✅ **Se puede** | parar el cruce: `CMD:PIN:1234:SET_MODO:AMBAR` (Maestro) · `CMD:AMBAR_EMERGENCIA` (Esclavo). **El ámbar por pérdida de radio sigue siendo automático y no depende de nada de esto** |
+> | ⛔ **No se puede** | entrar en Degradado, en ninguna punta. **La app no tiene botón que lo arregle** |
+> | 🟡 **Quién lo desbloquea** | **el responsable, no este documento.** Es la vía `AB-4` — colgar la hora del STM32 del `DS3231` del puente— y está abierta. Ver `DECISIONES.md` |
+>
+> ⚠️ **Todo lo que sigue de aquí abajo describe el modo CORRECTAMENTE y sigue siendo la referencia
+> para el día que la puerta se abra.** Lo que no se puede hacer hoy es **ejecutarlo**.
+
+---
+
 > # 🔴 07/09/2026 — LEA ESTO ANTES DE EJECUTAR NADA: LA PREMISA DE ESTE DOCUMENTO CAYÓ
 >
 > **Este procedimiento se abre en la peor situación del sistema —la radio muerta— así que es el que
@@ -20,6 +88,10 @@
 > | *«el cruce se opera desde el Maestro; no viene un `SET_MODO` para el Esclavo»* | **`D-18` (05/09): el Modo Degradado del poste 2 SE PIDE POR APP.** Lo que se retiró fue la llave —el mando—, no la puerta: `degradado_entrar()` ya estaba construido y probado |
 >
 > ## ✅ EL PROCEDIMIENTO VIGENTE, EN UNA LÍNEA POR PUNTA
+>
+> 🛑 **Esto es POR DÓNDE se pide, no que hoy entre.** El requisito 1 —reloj del STM32 en hora— **no
+> se puede cumplir hoy** y las dos puntas van a rechazar la orden: **lea el recuadro que va antes de
+> éste.** Lo de abajo es la referencia para cuando esa puerta se abra.
 >
 > | punta | entrar en Degradado | salir |
 > |---|---|---|
@@ -37,9 +109,35 @@
 > pide**, no qué hace el equipo.
 >
 > 🔴 **Y lo que sigue abierto y no lo cierra nadie aquí:** `grep -c reportarEvento
-> Esclavo/src/modo_degradado.cpp` → **0**. El Esclavo entra en Degradado por app y **no publica nada
-> sobre ese estado** más allá del `$ACK` de la orden y del campo `MODO:` del `$STATUS`. Si el
-> operario necesita ver ese estado en la app de otra forma, **es una decisión del responsable**.
+> Esclavo/src/modo_degradado.cpp` → **0** *(re-corrido el 07/09)*. El Esclavo entra en Degradado por
+> app y **no publica nada sobre ese estado** más allá del `$ACK` de la orden y del campo `MODO:` de
+> **su propio** `$STATUS`.
+>
+> > ## 🛑 07/09 — Y LA MITAD QUE FALTABA, MEDIDA HOY: **`D-18` NO TIENE CANAL DE VUELTA**
+> >
+> > **El poste 1 no puede enterarse de que el poste 2 está en Degradado.** Dos medidas:
+> >
+> > 1. **No hay comando de radio con el que el Esclavo lo anuncie.** El Degradado se pide por
+> >    Bluetooth, y el Bluetooth de cada punta es local: **no cruza al otro poste**.
+> > 2. **El campo `ESC:` del `$STATUS` del Maestro sólo devuelve COLOR.** Leído hoy de
+> >    `coordinador_estadoEsclavo()` (`grep -n "coordinador_estadoEsclavo" 01_Firmware/Maestro/src/coordinador.cpp`):
+> >
+> >    ```cpp
+> >    if (modoActual_get() == MODO_AMBAR) return "AMBAR";
+> >    if (estadoC == C_FALLO)             return "?";
+> >    return (quienVerde == QV_ESCLAVO) ? "VERDE" : "ROJO";
+> >    ```
+> >
+> >    **Cuatro valores, y ninguno dice `DEGRADADO`.** Además los tres primeros describen lo que el
+> >    **Maestro** cree, no lo que el Esclavo hace.
+> >
+> > **Lo que eso significa en obra, y es lo que hay que llevarse:** para saber en qué modo está cada
+> > punta **hay que conectarse a las dos con el teléfono, una por una**. **Ningún tablero del poste 1
+> > lo va a decir.** Y por eso la verificación visual de la Sección 3 paso 3 **no es un trámite**: es
+> > el único instrumento que ve las dos puntas a la vez.
+> >
+> > 🟡 **Si el operario necesita ver ese estado de otra forma, es una decisión del responsable** —
+> > cuesta un comando de radio nuevo y bytes en una trama que ya está apretada.
 >
 > ---
 >
@@ -144,8 +242,17 @@
 > 1. **Todo paso que mencione `Botón 3` o `Botón 4`.** Están tachados abajo y siguen tachados.
 > 2. La pantalla LCD **se sigue dibujando** y sirve para *leer* estado; **no sirve para mandar**,
 >    porque no hay con qué confirmar una opción.
-> 3. El límite duro de 48 h (Sección 4) sigue vigente: el equipo se rinde solo a ámbar
->    (`grep -n LIMITE_DURO_MS Esclavo/src/modo_degradado.cpp`). No es un procedimiento — es un tope.
+> 3. El límite duro de 48 h (Sección 4) sigue vigente: el equipo se rinde solo a ámbar. No es un
+>    procedimiento — es un tope. 🔴 **07/09: el `grep` que aquí se publicaba —`LIMITE_DURO_MS` sobre
+>    `Esclavo/src/modo_degradado.cpp`— DA CERO, y un cero se lee como «no hay».** El símbolo del
+>    Maestro es `LIMITE_DURO_MS`; **el del Esclavo se llama `LIMITE_SIN_SYNC_MS`**, y vale lo mismo:
+>    ```
+>    $ grep -n "LIMITE_DURO_MS"     01_Firmware/Maestro/src/modo_degradado.cpp | head -1
+>    120:static const unsigned long LIMITE_DURO_MS = 172800000UL;  // 48 h
+>    $ grep -n "LIMITE_SIN_SYNC_MS" 01_Firmware/Esclavo/src/modo_degradado.cpp | head -1
+>    42:static const unsigned long LIMITE_SIN_SYNC_MS = 48UL * 3600UL * 1000UL;
+>    ```
+>    **Un concepto con dos nombres, uno por punta.** Búsquelo por los dos.
 > 4. **Todo paso que diga `A·A·A`, `B·B·B` o `A·B·A·B`.** `D-1`: **el mando no existe.** Van tachados
 >    abajo, uno por uno.
 >
@@ -177,18 +284,29 @@
 > `3_Protocolo_Pruebas_Rigurosas.md` esté firmada, este procedimiento **no autoriza operación en vía
 > abierta al tráfico**.
 >
-> **Las cifras, COPIADAS del acta más reciente `evidencia/2026-09-05_compuerta.txt`, no escritas a
-> mano:**
+> # 🔴 07/09 — LA TABLA DE CIFRAS QUE HABÍA AQUÍ SE RETIRA, Y POR TERCERA VEZ POR EL MISMO MOTIVO
 >
-> | instrumento | acta del 05/09 (HEAD `aeb6ce7`) |
-> |---|---|
-> | simulador funcional | `9/9 PASS` |
-> | simulador de repetidor | `10/10 PASS` |
-> | arnés de pantalla | `271/271` *(Maestro 145 + Esclavo 126)* |
-> | arnés del Degradado a dos puntas | `18/18` |
-> | banco por packs | `1053/1053` · **74 packs PASS, 0 FALLA, 0 ABORTADO** |
-> | simulador del puente ESP32 | `93/93` |
-> | **resumen de la compuerta** | **20 PASS · 0 FALLA · 0 ABORTADO** |
+> **Aquí se copiaban siete cifras del acta del 05/09** —`20 PASS · 0 FALLA`, banco `1053/1053` sobre
+> 74 packs, puente `93/93`—. **Ninguna de las siete es la de hoy**, y el propio documento ya se había
+> advertido a sí mismo dos veces en este mismo párrafo. **La cura no es volver a copiarlas: es dejar
+> de copiarlas.**
+>
+> **La cifra sale del acta y sólo del acta**, y el acta se lee así:
+>
+> ```
+> ls -t evidencia/*_compuerta.txt | head -1        # la más reciente
+> ```
+>
+> ⚠️ **Y el nombre del acta es la FECHA, no la corrida: identifica un DÍA.** Comprobado en vivo el
+> 07/09 — el mismo fichero se releyó con **dos HEAD distintos** con minutos de diferencia, porque
+> había otra corrida en marcha. **Compare el `HEAD:` de la primera línea del acta contra
+> `git log --oneline -1` antes de fiarse de una cifra.**
+>
+> 🛑 **Lo que sí se deja escrito, porque es lo que cambia la lectura de este documento y no es una
+> cifra que caduque en el sentido cómodo: EN LA CORRIDA DEL 07/09 LA COMPUERTA NO ESTABA EN VERDE.**
+> El acta de ese día cierra en `19 PASS · 1 FALLA · 0 ABORTADO`, con la fila *banco por packs* en
+> `FALLA`. **Si el acta que usted lea sigue con una `FALLA`, este documento no puede afirmar que
+> esté verificado ni el modelo** — no ya la tarjeta.
 >
 > 🛑 **LAS TRES FILAS ROJAS DE LA REVISIÓN ANTERIOR ERAN FALSAS, Y SE TACHAN CON SU MOTIVO — 05/09.**
 > Aquí ponía ~~`981/998` · 67 packs PASS, 2 FALLA~~, ~~`ABORTADO` del simulador del puente~~ y
@@ -259,13 +377,57 @@ le quita al conductor la precaución que el ámbar le provoca. Por eso el verde 
 El Degradado **no entra** si falta cualquiera de estas condiciones. No es un aviso en pantalla que se
 pueda saltar: es una puerta en firmware.
 
-| # | Condición | Cómo se cumple | Qué muestra la pantalla si falta |
+> 🔴 **CORREGIDO EL 07/09, Y SON DOS CORRECCIONES.** (1) **La columna decía «Qué muestra la pantalla»
+> y la pantalla se retiró del equipo** (`D-17.bis`): hoy ese texto sale en el `DESC:` del `$ERR`, que
+> es lo que el operario lee en el teléfono. (2) **En el MAESTRO son SEIS, no cinco.** Faltaba
+> `MDG_SIN_CONFIG`, y no es un detalle de redacción: es la condición que impide que una punta acepte
+> lo que la otra rechaza. Medido sobre `modo_degradado_evaluarEntrada()` y sobre
+> `modo_degradado_motivoL1()`/`motivoL2()`, que es de donde el despachador compone el `DESC:`
+> (`grep -n "modo_degradado_motivoL1" 01_Firmware/Maestro/src/bluetooth.cpp`).
+
+### 2.1 · En el **MAESTRO** — seis condiciones
+
+| # | Condición | Cómo se cumple | `DESC:` del `$ERR` si falta |
 |---|---|---|---|
-| 1 | El Maestro tiene el reloj **puesto en hora** | `CONFIGURACION → AJUSTAR HORA` en el **Maestro** | `Falta: reloj sin poner en hora` |
+| 1 | El Maestro tiene el reloj **puesto en hora** | 🛑 **HOY NO HAY CÓMO** — ver el recuadro del principio (`D-15`) | `Falta: reloj sin poner en hora` |
 | 2 | Hubo **al menos una sincronización** por radio con el Esclavo | Ocurre sola al confirmar la hora, y cada hora mientras haya enlace | `Falta: nunca hubo sincronizacion RF` |
-| 3 | Esa sincronización es **reciente** — menos de **2 h** | Basta con que el radio haya estado vivo hace poco | `Falta: la ultima sync es muy vieja` |
-| 4 | Hay una **medida de desfase** contra el Esclavo | La toma el Maestro por radio (`CMD_DELTA`) | `Falta: sin medida de desfase valida` |
-| 5 | Ese desfase está **dentro de ±3 s** | — | `Desfase fuera de tolerancia (+-3s)` |
+| 3 | Esa sincronización es **reciente** — menos de **2 h** (`SYNC_FRESCA_MS`) | Basta con que el radio haya estado vivo hace poco | `Falta: la ultima sync es muy vieja` |
+| 4 | 🆕 **El Esclavo TIENE el ciclo, y lo acusó** (`coordinador_configConfirmada()`) | El Maestro se lo publica al arrancar, con reintentos | `Falta: el esclavo no tiene el ciclo` |
+| 5 | Hay una **medida de desfase** contra el Esclavo | La toma el Maestro por radio (`CMD_DELTA`) | `Falta: sin medida de desfase valida` |
+| 6 | Ese desfase está **dentro de ±3 s** (`TOLERANCIA_DESFASE_S`) | — | `Desfase fuera de tolerancia (+-3s)` |
+
+> **Por qué la 4 no se puede quitar de la lista**, y el fuente lo razona donde vive: sin ella *«el
+> Maestro aceptaba y daba VERDE por reloj, mientras el Esclavo rechazaba, se quedaba en modo normal y
+> caía a ÁMBAR por orfandad»*. **Verde contra ámbar es exactamente lo que este modo existe para
+> evitar.**
+
+### 2.2 · En el **ESCLAVO** — 🔴 **NO son las mismas, y este documento decía que sí**
+
+**Medido el 07/09 sobre `degradado_entrar()` y `degradado_textoRechazo()`**
+(`grep -n "DEG_RECHAZO" 01_Firmware/Esclavo/include/modo_degradado.h`). Son **seis**, y **tres no
+existen en el Maestro**:
+
+| # | Condición | `DESC:` del `$ERR` si falta | ¿la tiene el Maestro? |
+|---|---|---|---|
+| 1 | reloj propio **en hora** | `SIN HORA VALIDA` | sí |
+| 2 | el Maestro le mandó la **duración del ciclo** | `FALTA CONFIG CICLO` | equivalente (la nº 4) |
+| 3 | ese ciclo **no es cero** | `CICLO EN CERO` | ❌ **no** |
+| 4 | hubo **alguna sincronización** en esta sesión | `NUNCA SINCRONIZADO` | sí |
+| 5 | esa sincronización **no ha vencido las 48 h** | `SYNC CADUCADA >48h` | ❌ **no** — el Maestro exige **2 h**, no 48 |
+| 6 | 🔴 **NO hay un ámbar de emergencia puesto por una persona** | `AMBAR EMERG.PUESTO` | ❌ **no** |
+
+> 🛑 **La nº 6 es la que muerde en obra, y no estaba escrita en ninguna parte de este documento.**
+> Es la regla `R-4`, **construida** en el firmware: `if (bluetooth_ambarEmergencia()) return
+> DEG_RECHAZO_AMBAR_VIGENTE;`.
+>
+> **El bucle en el que se cae si no se sabe:** el plan de aborto de este mismo documento manda
+> `CMD:AMBAR_EMERGENCIA` al Esclavo. **Ese ámbar queda enclavado**, y a partir de ahí el Esclavo
+> **rechaza volver a entrar en Degradado** hasta que alguien mande
+> `CMD:PIN:1234:CANCELAR_AMBAR`. No es una avería: la máquina **no revoca sola** lo que puso una
+> persona, porque debajo de esa luz puede haber alguien trabajando.
+>
+> ⚠️ **Y el Maestro no comparte esa guarda, a propósito** — su rama del mando ya resolvía lo mismo de
+> otra forma—. **Las dos puntas contestan cosas distintas a la misma orden, y hay que leer cada una.**
 
 > ## 🛑 04/09 — LA PRIMERA VUELTA DE ENERGÍA CON ESTE FIRMWARE BORRA EL RELOJ, ASÍ QUE **NINGUNA** DE LAS CINCO SE CUMPLE
 >
@@ -289,14 +451,55 @@ pueda saltar: es una puerta en firmware.
 > concreto, `Maestro/src/bluetooth.cpp:501`—, y **quien no sepa esto va a leerlo como una avería del
 > equipo o de la radio.**
 >
-> ✅ **Qué hacer:** poner la hora (`SET_RTC` desde la app en el **Maestro**), **esperar a que haya
+> ~~✅ **Qué hacer:** poner la hora (`SET_RTC` desde la app en el **Maestro**), **esperar a que haya
 > sincronizado con el Esclavo por radio**, y volver a pedir el modo. **Pasa una sola vez**, en el
-> primer arranque tras la carga.
+> primer arranque tras la carga.~~
 >
-> ⚠️ **Y lo que sigue sin sobrevivir a un corte, aunque el respaldo esté conectado: la pertenencia
+> > 🔴 **TACHADO EL 07/09 — `D-15`: ESA ORDEN YA NO LA ATIENDE EL STM32, ASÍ QUE ESE «QUÉ HACER» NO
+> > ARREGLA NADA.** `SET_RTC` lo consume y lo acusa el **puente ESP32** (`NODE:PUENTE`), que pone la
+> > hora en **su** `DS3231`; el reloj del STM32 —el que autoriza este modo— **se queda igual**. Ver
+> > el recuadro del principio del documento. **Lo que aquí decía «pasa una sola vez» hoy es
+> > permanente, y no lo cierra ningún procedimiento de campo.**
+>
+> ~~⚠️ **Y lo que sigue sin sobrevivir a un corte, aunque el respaldo esté conectado: la pertenencia
 > al Modo Degradado.** No hay registro de *«esta punta estaba en Degradado»*, así que un corte de
 > energía **no lo reanuda** — el equipo vuelve a la espera de selección de modo. Es la dirección
-> segura, pero **hay que rehacer la entrada en las dos puntas, con su verificación visual**.
+> segura, pero **hay que rehacer la entrada en las dos puntas, con su verificación visual**.~~
+>
+> > 🔴 **TACHADO EL 07/09 — ERA FALSO, Y EN EL SENTIDO PELIGROSO: EL EQUIPO SÍ REANUDA SOLO.**
+> > Medido en las dos puntas, `N-20`:
+> >
+> > **Salida literal del 07/09** *(cuatro de las ocho filas son comentarios; las llamadas vivas son
+> > las de `main.cpp` de cada punta)*:
+> >
+> > ```
+> > $ grep -rn "reanudarTrasCorte" 01_Firmware/Maestro/src 01_Firmware/Esclavo/src
+> > 01_Firmware/Maestro/src/main.cpp:95:  const bool reanudarDegradado = modo_degradado_reanudarTrasCorte();
+> > 01_Firmware/Maestro/src/modo_degradado.cpp:153:// N-20: lo pone modo_degradado_reanudarTrasCorte() y lo consume el PRIMER
+> > 01_Firmware/Maestro/src/modo_degradado.cpp:326:bool modo_degradado_reanudarTrasCorte() {
+> > 01_Firmware/Maestro/src/modo_degradado.cpp:409:  // mismo limite de 48 h, en modo_degradado_reanudarTrasCorte().
+> > 01_Firmware/Esclavo/src/main.cpp:309:  // degradado_reanudarTrasCorte(); aqui no se decide nada. Si devuelve false, el
+> > 01_Firmware/Esclavo/src/main.cpp:311:  degradado_reanudarTrasCorte();
+> > 01_Firmware/Esclavo/src/modo_degradado.cpp:87:// (degradado_reanudarTrasCorte()). El Maestro, en cambio, contrasta las dos fuentes
+> > 01_Firmware/Esclavo/src/modo_degradado.cpp:301:bool degradado_reanudarTrasCorte() {
+> > ```
+> >
+> > **`respaldo_degradadoActivo()` guarda que esta punta estaba dentro**, y si al arrancar siguen
+> > vigentes las tres condiciones —reloj en hora, ciclo acordado en la pila, y sincronización fechable
+> > por debajo de las 48 h— **el equipo vuelve al Modo Degradado por su cuenta, sin que nadie lo
+> > pida**. Arranca en todo-rojo, igual que en la entrada normal; **no salta a verde**.
+> >
+> > 🛑 **Lo que eso cambia en obra, y por qué se corrige delante de la acción:** este documento le
+> > decía al operario que tras un corte tendría que **rehacer la entrada con su verificación visual**.
+> > **No se la van a pedir.** Si una punta se reinició y la otra no, el cruce puede volver a dar
+> > verdes por reloj **sin que nadie haya mirado las dos puntas** — que es justo lo que la Sección 3
+> > paso 3 existe para impedir. **Tras cualquier corte de energía en Degradado, verifique las dos
+> > puntas con los ojos aunque no se lo pidan.**
+> >
+> > ⚠️ **Y lo que de la frase tachada SÍ era cierto:** si alguna de las tres condiciones no se
+> > cumple, el firmware **borra el indicador** y arranca normal — de modo que un corte largo, o un
+> > reloj perdido, sí devuelven el equipo a la espera. **Las dos cosas pasan, y no se puede saber cuál
+> > desde el suelo sin mirar `MODO:` en el `$STATUS`.**
 
 ### Por qué la condición 3 existe y no es burocracia
 
@@ -411,7 +614,7 @@ fue **rechazada** por alguno de los 5 requisitos.~~
 > |---|---|
 > | `$ACK,CMD:SET_MODO:DEGRADADO,RESULT:OK` | entró. Empieza el **todo-rojo obligatorio** de entrada |
 > | `$ACK,CMD:SET_MODO:DEGRADADO,RESULT:YA_ACTIVO` | **ya estaba dentro**: esta pulsación no encendió nada. No repita |
-> | `$ERR,CMD:SET_MODO:DEGRADADO,DESC:<motivo>` | **rechazado**, y el motivo dice **cuál de los cinco requisitos falta** (misma tabla que enseñaba el gabinete) |
+> | `$ERR,CMD:SET_MODO:DEGRADADO,DESC:<motivo>` | **rechazado**, y el motivo dice cuál falta. 🔴 **07/09: NO es «la misma tabla que enseñaba el gabinete» del Maestro — el Esclavo tiene la SUYA, con seis motivos distintos. Ver §2.2**, y en particular `AMBAR EMERG.PUESTO`, que ninguna versión anterior de este documento mencionaba |
 >
 > 🔴 **Y lo que esta orden NO puede comprobar, escrito para que no se lea como que sí:** que el
 > Maestro haya dejado de gobernar. Con el Maestro vivo, su `CMD_PING` cada 3 s saca al Esclavo del
@@ -429,7 +632,36 @@ fue **rechazada** por alguno de los 5 requisitos.~~
 > **se realiza directamente desde el suelo**, sin necesidad de subir al gabinete con escalera.
 > Además, la App incluye el **Modo Courier RTC**, que permite capturar la hora y ciclo en el Maestro,
 > viajar hasta el Esclavo y aplicar la sincronización compensando automáticamente el tiempo de viaje
-> con error inferior a 0.1 s.
+> ~~con error inferior a 0.1 s~~ **con resolución de 1 s, que es la del dato de entrada. El error no
+> está medido.**
+>
+> > 🔴 **TACHADO EL 07/09 — «ERROR INFERIOR A 0,1 s» ERA UNA CIFRA HUÉRFANA, Y ADEMÁS IMPOSIBLE.**
+> > Es `A-7` otra vez —el «~1 s» del relé que nos inventamos y luego nos citamos—, esta vez en el
+> > documento con el que un técnico decide si la hora quedó puesta.
+> >
+> > **(1) No existe en ningún otro sitio del repositorio.** Re-corrido antes de publicarlo:
+> >
+> > ```
+> > $ grep -rn "0,1 s\|0\.1 s" --include=*.md 05_Funcional 04_Manuales
+> > 05_Funcional/8_Procedimiento_Modo_Degradado.md:635:> con error inferior a 0.1 s.
+> > ```
+> >
+> > **Una sola línea, y era ésta.** Cero en el firmware, cero en la app: **nadie la midió — se
+> > escribió.**
+> >
+> > **(2) Y no se puede sostener, no sólo está indocumentada.** El Courier trabaja con la hora del
+> > campo `HORA:` del `$STATUS`, cuya **resolución es el segundo entero** (`18:25:00`), y
+> > `App_Semaforo/js/courier_rtc.js` la parte con `/^(\d{1,2}):(\d{2}):(\d{2})$/` y la aplica con
+> > `dateObj.setHours(hh, mm, ss, 0)` — **los milisegundos se fuerzan a 0**. **Un error «inferior a
+> > 0,1 s» no se puede medir con un reloj que sólo publica segundos.**
+> >
+> > ✅ **Lo que sí se puede afirmar, y es lo que queda escrito:** el Courier **compensa el tiempo de
+> > traslado**, y su resolución es la del campo `HORA:` — **1 s**. **Cuánto error deja de verdad
+> > sigue `SIN MEDIR`**, y no se sustituye un número inventado por otro.
+> >
+> > ⚠️ **Y hoy esto es teórico por otro motivo:** con `D-15`, quien recibe y acusa la hora es el
+> > **`DS3231` del ESP32** de cada poste — **no el STM32**, que es el que autoriza este modo. Ver el
+> > recuadro del principio del documento.
 >
 > ~~🛑 **28/08/2026 — «la activación» se tacha: MEDIDO, no existe.**~~ 🟢 **REVERTIDO EL 07/09:
 > la activación por Bluetooth del Degradado en el Esclavo YA ESTÁ CONSTRUIDA** (`D-18`, 05/09). El
@@ -483,7 +715,7 @@ En la App Móvil:
 > (`CLAUDE.md` §4.sexies).
 >
 > ~~Las dos únicas puertas de entrada del Esclavo son `Esclavo/src/mando.cpp:148` —la secuencia
-> `A · B · A · B` del mando de relés— y `Esclavo/src/menu.cpp:227`, que necesita `botonAceptar()`
+> `A · B · A · B` del mando de relés— y `Esclavo/src/menu.cpp` *(`grep -n "degradado_entrar" 01_Firmware/Esclavo/src/menu.cpp`)*, que necesita `botonAceptar()`
 > y por tanto **está tapiada**.~~
 >
 > ✅ **Las puertas de `degradado_entrar()`, censadas el 07/09 con
@@ -497,8 +729,13 @@ En la App Móvil:
 > compró.** Mientras eso siga así, este procedimiento **no se puede completar en las dos puntas** —
 > y una sola punta en Degradado es peor que ninguna (Sección 6).~~
 >
-> ✅ **07/09: el procedimiento SÍ se puede completar en las dos puntas, y con la misma orden.** Lo
-> que hace falta es **el teléfono** (`D-16`), no una escalera ni una compra.
+> ✅ **07/09: el procedimiento SÍ tiene VÍA en las dos puntas, y con la misma orden.** Lo que hace
+> falta para pedirlo es **el teléfono** (`D-16`), no una escalera ni una compra.
+>
+> 🛑 **Pero «tiene vía» no es «entra», y la diferencia se paga en el poste.** Hoy las dos puntas
+> **rechazan** la orden por el requisito 1 —reloj del STM32 sin poner en hora, sin camino para
+> ponerlo (`D-15`)—. **Ver el recuadro del principio del documento.** La llave está puesta; la
+> cerradura sigue trabada por el otro lado.
 >
 > - El punto 3 (pantalla + pulsadores) sigue **sin actuador**: no hay `Botón 3` ni `Botón 4`.
 > - Lo que el Esclavo **sí** acepta desde la app es la **entrada en Degradado** (`D-18`), el **ámbar
@@ -587,8 +824,55 @@ rinde por su cuenta y muestra `Limite 48h sin sync — Revise el radio`.
 > las 40 dará por perdida una ventana que todavía tiene. **Cuente 40 h para el Esclavo y 44 para el
 > Maestro**, o más simple: **al primer aviso de cualquiera de las dos puntas, quedan al menos 4 h.**
 >
-> ⚠️ **La pantalla que mostraba `AVISO: LIMITE 48h` ya no se puede leer en el equipo** (`D-17.bis`):
-> lo que hay que mirar es el `$STATUS` en la app.
+> ~~⚠️ **La pantalla que mostraba `AVISO: LIMITE 48h` ya no se puede leer en el equipo**
+> (`D-17.bis`): lo que hay que mirar es el `$STATUS` en la app.~~
+>
+> > # 🔴 TACHADO EL 07/09 — **EL AVISO NO ESTÁ EN EL `$STATUS`. HOY NO HAY NINGUNA FORMA DE VERLO**
+> >
+> > La primera mitad era cierta; **la segunda mandaba a mirar donde no está**, que es peor que no
+> > decir nada. Medido el 07/09, por los dos lados:
+> >
+> > **1. Los getters del aviso tienen UN SOLO llamador, y es la pantalla retirada:**
+> >
+> > ```
+> > $ grep -rn "degradado_syncVencida\|degradado_avisoLimite" 01_Firmware/Esclavo/src 01_Firmware/Esclavo/include
+> > 01_Firmware/Esclavo/src/menu.cpp:86:                    degradado_syncVencida(),
+> > 01_Firmware/Esclavo/src/menu.cpp:117:                       degradado_syncVencida(), degradado_avisoLimite(),
+> > 01_Firmware/Esclavo/src/menu.cpp:129:                       degradado_syncVencida(), degradado_avisoLimite(),
+> > 01_Firmware/Esclavo/src/modo_degradado.cpp:186:bool degradado_syncVencida() { return syncVencidaLatch; }
+> > 01_Firmware/Esclavo/src/modo_degradado.cpp:188:bool degradado_avisoLimite() {
+> > 01_Firmware/Esclavo/include/modo_degradado.h:65:bool degradado_syncVencida();
+> > 01_Firmware/Esclavo/include/modo_degradado.h:70:bool degradado_avisoLimite();
+> > ```
+> >
+> > **`menu.cpp` y nada más.** Y `menu.cpp` es la interfaz que `D-17.bis` retira del equipo.
+> >
+> > **2. El `$STATUS` no lleva ningún campo de antigüedad de sincronización.** Plantillas reales,
+> > leídas del `snprintf` de cada punta el 07/09:
+> >
+> > ```
+> > Maestro: $STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s,PLUMA:%s,CAM:%s
+> > Esclavo: $STATUS,NODE:ESCLAVO,SERIE:%s,MODO:%s,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s,PLUMA:%s,CAM:%s
+> > ```
+> >
+> > **Ni «horas desde la última sync», ni «quedan N horas», ni el aviso.** El campo `T:` es un
+> > contador libre 0–59, no una cuenta atrás del límite.
+> >
+> > ## 🛑 Lo único que el operario SÍ puede ver, y llega TARDE
+> >
+> > | qué | dónde | cuándo |
+> > |---|---|---|
+> > | que el Esclavo **ya se rindió** | `MODO:RENDIDO` en su `$STATUS` | **a las 48 h, cuando ya ocurrió** |
+> > | que el Esclavo está dentro del modo | `MODO:DEGRADADO` | mientras dura |
+> > | 🔴 **el aviso de las 40 h / 44 h** | **EN NINGÚN SITIO** | — |
+> >
+> > **En obra esto significa: el técnico que sube al poste 2 no tiene el dato ni sustituto por app.**
+> > La única forma de saber cuánto queda es **contar las horas desde que se entró en el modo**, a
+> > mano y por fuera del equipo. **Anótelo en el parte al entrar.**
+> >
+> > 🟡 **Que esto se arregle —publicar la antigüedad en el `$STATUS`— es una decisión del
+> > responsable, no de este documento:** cuesta bytes de trama, y la cota del `$STATUS` del Maestro
+> > ya está apretada.
 
 ### Por qué existe
 
@@ -657,7 +941,9 @@ enlaza"*.
   mando con qué darlo.** La secuencia sigue en el firmware; el emisor no existe.
 - ~~**Desde la pantalla:** en `CONFIGURACION → MODO DEGRADADO`, `Botón 3` (`3=Salir`).~~ ⛔ sin actuador.
 
-> ✅ **CORREGIDO EL 02/09 — `A · A · A` NO se retiró, y la versión anterior de este documento decía
+> 📕 **HISTÓRICO DEL 02/09 — se conserva por el CÓDIGO, no como instrucción** *(🔴 07/09: el ✅ que
+> encabezaba este bloque se retira — leía como un permiso, y `D-1` retiró el aparato: ver el tachado
+> que sigue al bloque)*. **`A · A · A` NO se retiró del firmware, y la versión anterior de este documento decía
 > que sí.**
 >
 > El mando de relés **se conserva en sus canales `A` y `B`** (`MANDO_A` = `PB9` = `J16` p5,
@@ -679,19 +965,48 @@ enlaza"*.
 > > tiene cinco llamadas vivas y su veto es SFTY-21; retirar el armador dejaría los `if` siempre
 > > verdaderos y **el veto abierto, no inerte**—. O sea: **código vivo, actuador inexistente.**
 >
-> 🔧 **Matizado el 04/09 (`N-118`): en BANCO sí hay con qué darlos, con un cable.** Un pulso `A` es
+> ~~🔧 **Matizado el 04/09 (`N-118`): en BANCO sí hay con qué darlos, con un cable.** Un pulso `A` es
 > cerrar un instante **`J16` p5 contra p4**, y un pulso `B`, **p8 contra p7** — los **3,3 V del pin
-> contiguo**. 🛑 **NUNCA contra masa:** `J16` tiene **una sola masa en todo el conector** (`p2`), el
-> firmware lee estas entradas en `INPUT` pelado y **activo en ALTO** (`346ea5f`), y un cable a masa
-> **no produce absolutamente nada** — es además el gesto que precedió al calentamiento del paso 29.
-> Lo que sigue faltando es **el receptor**, para darlos por radio desde el piso, y **una tarjeta
-> sana** (N-116).
+> contiguo**. … Lo que sigue faltando es **el receptor**, para darlos por radio desde el piso, y
+> **una tarjeta sana** (N-116).~~
 >
-> 👁️ **Y no hace falta app ni terminal para saber si el equipo oyó: lo confirma con sus luces**
-> (`Maestro/src/mando.cpp:45-47`) — **`A·A·A` → 2 destellos rojos · `B·B·B` → 3 · `A·B·A·B` → 4 ·
-> rechazado → ámbar rápido de 2 s**. Se cuentan desde el suelo. ⚠️ **Pruebe DESDE OTRO MODO:** si el
-> equipo ya está en el modo que pide la secuencia, `MODO:` no cambia y no se distingue nada; los
-> destellos, en cambio, se ven siempre.
+> > # 🛑 TACHADO ENTERO EL 07/09 — **ESTE PÁRRAFO MANDABA HACER LO QUE LA CABECERA DE ESTE MISMO DOCUMENTO PROHÍBE**
+> >
+> > Arriba, en el aviso *«UNA COSA QUE NO HAY QUE HACER NUNCA»*, este documento dice:
+> > **«NO SE CABLEA NADA A `J16` p5 NI A `J16` p8»**. Y aquí abajo daba **la instrucción exacta para
+> > cerrar contactos en esos dos pines**, a 500 líneas de distancia. **Un procedimiento que se
+> > desmiente a sí mismo manda al técnico a hacer lo que lea primero.** Manda la cabecera y manda
+> > `DECISIONES.md` `D-1`.
+> >
+> > 🔴 **Y lo que hace que esto no sea una contradicción de redacción sino un riesgo vial — medido el
+> > 07/09 en `Maestro/src/mando.cpp`, en el `case ACC_AUTOMATICO` de `ejecutar()`:**
+> >
+> > ```
+> > $ grep -n "pedirArranqueDirecto\|modoActual_set(MODO_AUTOMATICO)" 01_Firmware/Maestro/src/mando.cpp
+> > 118:      modoAutomatico_pedirArranqueDirecto();
+> > 122:        modoActual_set(MODO_AUTOMATICO);
+> > ```
+> >
+> > **`A·A·A` entra al Modo Automático SIN GUARDA NINGUNA: arranca el ciclo, o sea ABRE PASO.** El
+> > asistente de configuración que antes se interponía **ya no existe** —`N-42`;
+> > `modoAutomatico_pedirArranqueDirecto()` es hoy un cuerpo vacío—, así que tres contactos en `p5`
+> > dentro de la ventana de 12 s **dan verde en un cruce**. Eso se salta la confirmación de vía que
+> > `DECISIONES.md` `D-11` exige a la app *(«al aplicar tiempos, la app AVISA y da el botón: NO
+> > arranca el ciclo sola»)*.
+> >
+> > **Y `A·B·A·B` no es más inocente: pide entrar en el modo que da verde sin confirmar la otra
+> > punta.**
+> >
+> > ⚠️ **Lo que del párrafo tachado sigue siendo cierto y por eso no se borra:** si algún día alguien
+> > tiene que tocar esos pines, el contacto va **contra los 3,3 V del pin contiguo (p4 / p7), NUNCA
+> > contra masa** — `J16` tiene **una sola masa en todo el conector** (`p2`), y `p4` es **adyacente**
+> > a `p5`: **un puente corrido una posición pone el riel de 3,3 V contra masa**, que es el gesto que
+> > precedió al calentamiento del paso 29. **Pero hoy la instrucción es que no se toca.**
+>
+> 👁️ **Cómo confirma el equipo que oyó un pulso — se conserva porque el mecanismo sigue en el
+> firmware, NO como instrucción de prueba.** `grep -n "DESTELLOS_" 01_Firmware/Maestro/src/mando.cpp`
+> → **`A·A·A` → 2 destellos rojos · `B·B·B` → 3 · `A·B·A·B` → 4 · rechazado → ámbar rápido de 2 s**.
+> 🛑 **Hoy no hay quién dispare esas secuencias y nadie debe fabricarlas con un cable** (`D-1`).
 >
 > **La vía por app no es equivalente a `A·A·A`:** `CMD:PIN:1234:SET_MODO:AUTO`
 > (`Maestro/src/bluetooth.cpp:378`) **se salta el todo-rojo de despedida** de
@@ -748,7 +1063,8 @@ se quería estar. **El peor caso de intentar Automático es volver al ámbar.**
 > quita. Se revoca con `CMD:PIN:1234:CANCELAR_AMBAR` (`:425`), que **sí pide PIN** porque devuelve
 > el cruce a dar verdes.
 >
-> `ambarLocal` —el veto del mando, `Esclavo/src/mando.cpp:132`— sigue armándose solo desde `B·B·B`.
+> `ambarLocal` —el veto del mando; `grep -n "ambarLocal = true" 01_Firmware/Esclavo/src/mando.cpp`,
+> **por símbolo: el `:132` que se citaba aquí está caducado**— sigue armándose solo desde `B·B·B`.
 > Son **dos enclavamientos distintos**: el del mando lo pone quien está subido al poste; el de la
 > app, quien tiene el teléfono. Ver el manual del mando, §3.1.
 
@@ -835,7 +1151,7 @@ MANDO»*— y **hoy no es cierto en Modo Degradado**:
 
 | vía | qué hace hoy en Degradado | ¿sale por el todo-rojo? |
 |---|---|---|
-| Mando, `B·B·B` | `Esclavo/src/mando.cpp:129-141`: si el Degradado gobierna la luz, `degradado_salir()` | **sí** |
+| Mando, `B·B·B` | `grep -n "degradado_salir" 01_Firmware/Esclavo/src/mando.cpp` — si el Degradado gobierna la luz, `degradado_salir()`. *(Por símbolo: el `:129-141` que se citaba aquí está caducado)* ⛔ **`D-1`: sin actuador** | **sí** |
 | App, `AMBAR_EMERGENCIA` | ~~`bluetooth.cpp:130-136` y `:171-176`: `semaforo_iniciarFallo()` a secas~~ → ✅ **04/09:** `bluetooth.cpp:402` y `:481` preguntan `salidaDegradadoIniciada()` | ✅ **sí** |
 
 **Decisión del responsable, 31/08:** la vía de la app **sale del Degradado de forma ordenada, igual
@@ -882,25 +1198,55 @@ sabe distinguir hoy— vive en un solo sitio:**
 sincronizar a mano, y el día que difieran el técnico de arriba y el de abajo leerían contratos
 distintos del mismo comando.
 
-#### 🔴 Riesgo residual nuevo (31/08): entrar en Degradado con el ámbar de la app puesto
+#### ~~🔴 Riesgo residual nuevo (31/08): entrar en Degradado con el ámbar de la app puesto~~ → ✅ **CERRADO Y CONSTRUIDO**
 
-**MEDIDO POR LECTURA, y RAZONADO —no ejercido—.** `degradado_entrar()`
+> # ✅ 07/09 — `R-4` ESTÁ RESUELTA EN EL FIRMWARE. **ESTE APARTADO DESCRIBÍA UN RIESGO ABIERTO QUE YA NO LO ESTÁ**
+>
+> Se conserva tachado y no se borra —quien lo leyera y lo diera por vigente estaría desconfiando del
+> botón equivocado—, pero **la salida elegida fue «rechazar la entrada, con motivo», y está en el
+> `.cpp`.** Medido el 07/09 dentro de `degradado_entrar()`:
+>
+> ```
+> $ grep -n "DEG_RECHAZO_AMBAR_VIGENTE" 01_Firmware/Esclavo/src/modo_degradado.cpp 01_Firmware/Esclavo/include/modo_degradado.h
+> 01_Firmware/Esclavo/src/modo_degradado.cpp:239:  if (bluetooth_ambarEmergencia()) return DEG_RECHAZO_AMBAR_VIGENTE;
+> 01_Firmware/Esclavo/src/modo_degradado.cpp:458:    case DEG_RECHAZO_AMBAR_VIGENTE: return "AMBAR EMERG.PUESTO";
+> 01_Firmware/Esclavo/include/modo_degradado.h:50:  DEG_RECHAZO_AMBAR_VIGENTE   // R-4: hay un ambar de emergencia puesto por una persona
+> ```
+>
+> **Con un ámbar de emergencia puesto, el Degradado NO entra y lo dice:**
+> `$ERR,CMD:SET_MODO:DEGRADADO,DESC:AMBAR EMERG.PUESTO`. **La máquina no revoca lo que puso una
+> persona** —puede haber alguien trabajando bajo esa luz—; quitarlo es un acto deliberado y se hace
+> desde el suelo con `CMD:PIN:1234:CANCELAR_AMBAR`.
+>
+> ⚠️ **Y la guarda mira SÓLO el latch de Bluetooth, no `mando_ambarLocal()`, a propósito:** la rama
+> del mando ya resolvía lo mismo de otra forma —`ejecutar(ACC_DEGRADADO)` pone `ambarLocal = false`
+> **antes** de llamar—, y añadirla aquí habría rechazado el `A·B·A·B` antes de que llegara a
+> ejecutarse.
+>
+> 🔴 **Lo que NO se puede leer de este cierre: que esté ejercido.** Es **MEDIDO sobre fichero**;
+> nadie lo ha ejercido en tarjeta. **Y el Maestro no tiene esta guarda** — ver §2.2.
+
+~~**MEDIDO POR LECTURA, y RAZONADO —no ejercido—.** `degradado_entrar()`
 (`Esclavo/src/modo_degradado.cpp:212-243`) fuerza todo-rojo en `:224` **sin preguntar por
 `bluetooth_ambarEmergencia()`**, y el sostenedor del modo escribe luz por otra puerta —`aplicarLuz()`
-desde `degradado_actualizar()`, `main.cpp:363`— **que tampoco lo consulta**.
+desde `degradado_actualizar()`, `main.cpp:363`— **que tampoco lo consulta**.~~
 
-Consecuencia: si alguien entra en Degradado desde el gabinete mientras hay un ámbar pedido por
+~~Consecuencia: si alguien entra en Degradado desde el gabinete mientras hay un ámbar pedido por
 teléfono, **la luz sale de ámbar en ese mismo instante**, el latch se revoca solo en la vuelta
 siguiente (`bluetooth.cpp:292`), y en la siguiente frontera de fase el cruce puede dar **verde por
-reloj** donde alguien había pedido precaución. **El `$ACK` ya se envió, y nada se lo dice a nadie.**
+reloj** donde alguien había pedido precaución. **El `$ACK` ya se envió, y nada se lo dice a nadie.**~~
 
-**Esto no lo arregla la decisión del 31/08 por sí sola.** Las tres opciones —rechazar la entrada,
+~~**Esto no lo arregla la decisión del 31/08 por sí sola.** Las tres opciones —rechazar la entrada,
 revocar el latch explícitamente, o que el latch vete la luz del Degradado— están escritas con su
 consecuencia en el Manual 10 **§4.5.7 (`R-4`)**, y **las decide el responsable**: lo que se elija lo
-ve un conductor.
+ve un conductor.~~
 
-> **Mientras tanto, la regla de campo es la de siempre y sirve exactamente para esto:** *verificar
-> con los ojos las dos puntas*, al entrar y al salir. Ver Sección 6, Riesgo 2.
+> **La regla de campo no cambia y sirve exactamente para esto:** *verificar con los ojos las dos
+> puntas*, al entrar y al salir. Ver Sección 6, Riesgo 2.
+>
+> 🛑 **Y el bucle de obra que este cierre introduce, escrito aquí porque nadie lo espera:** si usted
+> aborta con `CMD:AMBAR_EMERGENCIA` en el Esclavo y luego quiere volver a entrar en Degradado, **la
+> orden le va a ser rechazada** hasta que mande `CMD:PIN:1234:CANCELAR_AMBAR`. **No es una avería.**
 
 ### Checklist de salida
 
@@ -949,6 +1295,29 @@ especial y no el comportamiento por defecto.
    La otra sigue dando verde por reloj    el conductor pasa CONFIADO
 ```
 
+> 🔴 **CORREGIDO EL 07/09 — EL DIAGRAMA DESCRIBE **UNA** DE LAS DOS RAMAS DEL ARRANQUE, Y ADEMÁS
+> NOMBRA UNA PANTALLA QUE YA NO EXISTE.** Medido sobre `Maestro/src/main.cpp`, alrededor de
+> `modo_degradado_reanudarTrasCorte()`:
+>
+> | rama | cuándo | qué hace la unidad reiniciada |
+> |---|---|---|
+> | `if (reanudarDegradado)` | el respaldo dice que estaba en Degradado **y** siguen vigentes las tres condiciones | `modoActual_set(MODO_DEGRADADO)` + `modo_degradado_setup()` — **vuelve al modo, en todo-rojo** |
+> | `else` | cualquier otro caso | `modoActual_set(MENU)` — es el diagrama de arriba |
+>
+> **Los dos escenarios son peligrosos y por motivos opuestos, y hay que conocer los dos:**
+>
+> - **Rama `else` (la del diagrama):** una punta en ámbar contra otra en verde. Es el riesgo clásico.
+> - 🔴 **Rama de reanudación:** la unidad **vuelve a dar verdes por reloj sin que nadie haya
+>   verificado las dos puntas**. Si la otra unidad NO se reinició y sigue en fase, no pasa nada; si
+>   se reinició y cayó por la rama `else`, se produce **exactamente el mismo cruce ámbar-contra-verde**
+>   — sólo que ahora **puede ser la reanudada la que dé el verde**.
+>
+> ⚠️ **Y `MENU` ya no es una pantalla que alguien vea** (`D-17.bis`): es el estado interno de reposo
+> que fuerza rojo. **El equipo no muestra nada; hay que leer `MODO:` en el `$STATUS`.**
+>
+> 🛑 **La mitigación no cambia y ahora tiene una razón más: verificar las dos puntas con los ojos,
+> también DESPUÉS DE CUALQUIER CORTE DE ENERGÍA.** El equipo no va a pedirlo.
+
 Un lado en ámbar contra un lado en verde es **exactamente lo que este modo quiere evitar**: el
 conductor del lado en verde entra confiado a un tramo que el otro lado está negociando. Ocurre igual
 —sin microcorte de por medio— **si un operario saca del Degradado una sola unidad**.
@@ -974,9 +1343,10 @@ arriba**.
 | Ciclo completo | **120 s** · espera máxima 90 s | 2 × (30 + 30) |
 | Antigüedad máxima de la sincronización para entrar | **2 h** | `SYNC_FRESCA_MS` |
 | Tolerancia de desfase para entrar | **±3 s** | `TOLERANCIA_DESFASE_S` |
-| Aviso de límite — **MAESTRO** | a partir de **44 h** | `AVISO_LIMITE_MS` |
-| Aviso de límite — **ESCLAVO** | a partir de **40 h** *(🔴 no es el mismo número — añadido el 07/09)* | `AVISO_SIN_SYNC_MS` |
-| **Límite duro → ámbar** | **48 h** | `LIMITE_DURO_MS` |
+| Aviso de límite — **MAESTRO** | a partir de **44 h** — 🔴 **HOY NO HAY DÓNDE LEERLO** *(§4)* | `AVISO_LIMITE_MS` |
+| Aviso de límite — **ESCLAVO** | a partir de **40 h** *(🔴 no es el mismo número — añadido el 07/09)* — 🔴 **tampoco hay dónde leerlo** | `AVISO_SIN_SYNC_MS` |
+| **Límite duro → ámbar** | **48 h** *(se ve DESPUÉS, como `MODO:RENDIDO`)* | `LIMITE_DURO_MS` **(Maestro)** · `LIMITE_SIN_SYNC_MS` **(Esclavo)** — 🔴 **dos nombres, un concepto** |
+| 🔴 **Requisito 1 · reloj en hora** | **HOY NO SE PUEDE CUMPLIR** — ver el recuadro del principio | `reloj_enHora()` |
 | **Entrada por app** *(la vigente, `D-18`)* | `CMD:PIN:1234:SET_MODO:DEGRADADO` — **en las dos puntas** | `grep -n 'SET_MODO:DEGRADADO' Maestro/src/bluetooth.cpp Esclavo/src/bluetooth.cpp` |
 | ~~Secuencia de entrada desde el piso~~ | ~~`A · B · A · B` en ≤ 18 s → **4 destellos rojos**~~ | ~~`mando.cpp:204-214`~~ |
 | ~~Secuencia a Automático~~ | ~~`A · A · A` en ≤ 12 s → **2 destellos rojos**~~ | ~~`mando.cpp:225-227`~~ |
@@ -1028,7 +1398,7 @@ espera cinco minutos en un paso alternado sin invadir.
 | 🔴 **Una punta en verde y la otra en ámbar** | Riesgo residual nº 2 — salida asimétrica | **Apague la punta que da verde, ya.** Si es el **Esclavo**: `CMD:AMBAR_EMERGENCIA` (`Esclavo/src/bluetooth.cpp:381`, **no pide PIN** justamente por esto). Si es el **Maestro**: `CMD:PIN:1234:SET_MODO:AMBAR`. **`CMD:FORZAR_ROJO` NO sirve en el Esclavo** (`:448`): esa punta lo **rechaza** con `RENOMBRADO_USE_AMBAR_EMERGENCIA`, así que no para nada y el ciclo por reloj volverá a dar verde en la fase siguiente |
 | 🟡 **Puse ámbar de emergencia en el Esclavo y ya no hace falta** | — | `CMD:PIN:1234:CANCELAR_AMBAR`. **Pide PIN al revés que el de poner**, porque quitarlo devuelve el cruce a dar verdes. Contesta `RETIRADO`. 🔵 **`RETIRADO_QUEDA_MANDO` no se puede ver hoy** (`D-1`: no hay mando que arme `ambarLocal`); si apareciera, la luz seguiría vetada y **eso sería el hallazgo**, no la respuesta esperada |
 | ❓ **Estoy delante de un poste y no sé si es el Maestro o el Esclavo** | Módulo Bluetooth recién puesto | El módulo se auto-rotula **`SEM-<serie>-M`** o **`SEM-<serie>-E`**. **Si se anuncia `SEM-SIN-MATRICULA` todavía no lo ha aprendido, y con dos módulos nuevos LOS DOS SE LLAMAN IGUAL.** Déjelo un minuto encendido y **déle una vuelta de energía**: el nombre bueno sale en el arranque siguiente. Mientras tanto, la punta la dice el campo `NODE:` del `$STATUS` en la app, no el nombre Bluetooth |
-| Pantalla: `Limite 48h sin sync` | Se agotó el límite duro | Es correcto. Hay que **arreglar el radio**, no reactivar el modo. El tope es del firmware (`modo_degradado.cpp:515`) y no necesita actuador |
+| ~~Pantalla: `Limite 48h sin sync`~~ → **`MODO:RENDIDO` en el `$STATUS` del Esclavo** | Se agotó el límite duro de 48 h y la punta se rindió sola a ámbar | Es correcto. Hay que **arreglar el radio**, no reactivar el modo — y el firmware **no deja reentrar**: contesta `$ERR,…,DESC:SYNC CADUCADA >48h`. 🔴 **07/09: la «pantalla» de esta fila ya no existe** (`D-17.bis`); lo que sí se ve es el literal **`RENDIDO`** del campo `MODO:`, que el firmware separa de `DEGRADADO` a propósito *(«pintarlo como DEGRADADO diría que el cruce sigue operando por reloj cuando ya no opera»)*. El tope no necesita actuador |
 
 > ⏱️ **En la fila roja, cuente con que el ámbar del Esclavo puede tardar de 10 a 90 s**: sale por
 > todo-rojo a propósito. `RESULT:SALIENDO_TODO_ROJO` significa *va en camino*, no *ya está*. **No se
@@ -1064,11 +1434,23 @@ Escrito aquí porque una limitación documentada vale más que una promesa:
   > verde van en **minutos**. Confundirlas al leer un valor guardado da un ciclo 60 veces más largo
   > o más corto del que alguien configuró.
   >
-  > 🔴 **Y lo que sigue SIN sobrevivir, que es lo que este procedimiento necesitaba:** no hay
+  > ~~🔴 **Y lo que sigue SIN sobrevivir, que es lo que este procedimiento necesitaba:** no hay
   > registro de *«esta punta estaba en Degradado»*. Un corte de energía en Degradado **no lo
   > reanuda**: el equipo vuelve a la espera de selección de modo. Eso es correcto y es la dirección
   > segura —reanudar solo un verde por reloj sin que nadie mire las dos puntas es exactamente lo que
-  > este modo existe para evitar—, pero **hay que saberlo antes de irse del cruce**.
+  > este modo existe para evitar—, pero **hay que saberlo antes de irse del cruce**.~~
+  >
+  > 🔴 **TACHADO EL 07/09 — ES FALSO, Y ERA LA SEGUNDA COPIA DE LA MISMA FRASE FALSA** (la otra
+  > estaba en la Sección 2, donde va la corrección larga y su `grep`). **`respaldo_degradadoActivo()`
+  > SÍ registra que esta punta estaba dentro**, y `modo_degradado_reanudarTrasCorte()` /
+  > `degradado_reanudarTrasCorte()` **tienen llamador vivo en el `main.cpp` de las dos puntas**:
+  > el equipo **reanuda el Modo Degradado solo**, arrancando en todo-rojo, si al volver la energía
+  > siguen vigentes reloj en hora + ciclo en la pila + sincronización fechable por debajo de 48 h.
+  >
+  > 🛑 **Y el registro que falta es OTRO, más pequeño y menos grave:** falta la fila que dijera
+  > *«esta punta reanudó sola»*. **Nadie avisa al operario de que la reanudación ocurrió**, así que
+  > la única forma de saberlo es mirar `MODO:` en el `$STATUS`. **La verificación visual de las dos
+  > puntas tras un corte no la pide el equipo: la tiene que recordar la persona.**
 - **La configuración del ciclo se sincroniza pero todavía no se consume** en el cálculo del ciclo
   (N-18): hoy ambas puntas usan los 30/30 fijos compilados. Mientras los dos firmwares sean de la
   misma versión, coinciden — **pero flashear versiones distintas en cada punta rompería la fase sin

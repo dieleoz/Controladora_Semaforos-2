@@ -11,6 +11,37 @@
 
 ---
 
+# 🛑 FE DE ERRATAS DEL 07/09 — SE LEE ANTES DE PLANIFICAR LA SESIÓN, Y ANTES DE TOCAR NADA
+
+> **Este documento no pasó la revisión cruzada del 07/09 que sí pasaron los demás manuales** (commit
+> `1185441`, que tocó 22 documentos y **no éste**). Lo que sigue son las siete cosas que quedaron
+> caducadas y que **cambian lo que el auditor hace con las manos o firma con la pluma**. Cada una se
+> corrige además en su sitio; aquí van juntas porque **quien planifica la sesión no lee el documento
+> entero antes de repartir la jornada**.
+>
+> **Manda `DECISIONES.md`.** Si una frase de este protocolo choca con una fila de allí, la fila gana
+> y el párrafo está caducado — incluidos los párrafos que lleven `MEDIDO` encima: *una fecha no
+> valida un contenido, sólo dice cuándo se miró.*
+
+| # | dónde | qué decía este documento | qué es verdad hoy (07/09) |
+|---|---|---|---|
+| 🔴 **E-1** | **§0.3 · §8 entera · §9.5, 9.6, 9.9, 9.10, 9.11, 9.16** | *«el gesto vigente es cerrar `J16` p5 contra p4»*, como procedimiento normal de la sesión | **`J16` p5 y p8 están VACÍOS y el código del mando SIGUE leyendo sus flancos** (`DECISIONES.md` `D-1`, `A-2`). Y **medido el 07/09 en `Maestro/src/mando.cpp`: la secuencia `A·A·A` entra en Modo Automático SIN NINGUNA GUARDA — arranca el ciclo, o sea ABRE PASO.** Lea el recuadro rojo de §0.3 **antes** de tocar `J16` |
+| 🔴 **E-2** | **§0.2 · §9 (preámbulo) · §9.15 · §10** | *«el Esclavo NO tiene ni un solo `SET_MODO`»*, y una prueba nueva (**9.15**) escrita para **firmar esa ausencia en el acta** | **FALSO desde `15e8cf3`** (`D-18`): el Esclavo acepta **`CMD:PIN:1234:SET_MODO:DEGRADADO`**. `grep -c "SET_MODO" 01_Firmware/Esclavo/src/bluetooth.cpp` → **10**. Tal como estaba escrita, **9.15 marcaba `NO CUMPLE` a un firmware correcto** |
+| 🔴 **E-3** | **§7.1 · §7.11 · §12.7** | mandar `CMD:PIN:1234:SET_RTC:` **al STM32** y esperar una de cuatro respuestas | **El STM32 YA NO CONTESTA A `SET_RTC`** (`D-15`): consume la orden en silencio y sólo emite un `$EVENT` con `SET_RTC_LO_ACUSA_EL_PUENTE`. **Quien espere `$ACK`/`$ERR` en el terminal verá silencio y declarará averiado un equipo sano** — este proyecto ya cambió pila y cristal buenos por eso |
+| 🔴 **E-4** | **§11 (preámbulo) · §11.1 · §11.2 · §4.2** | *«la única entrada de cámara que el firmware lee hoy es `PB0`, por la bornera `J14`»* y *«provoque la detección en `J14`»* | **Las cámaras van a `J16` p10 (`CAM_C_PIN`, `PB14`) y p12 (`CAM_D_PIN`, `PB15`)** (`D-2`, `D-3`, `M3` cerrada en cobre el 03/09). `J14`/`PB0` sigue vivo en el firmware **y sin cámara**. 🛑 **Y el motivo por el que esto no es cosmético: el vigilante de `CAM_CIEGA`/`CAM_PEGADA` mira `J16` y NO mira `J14`** — una cámara en `J14` funciona **y no está vigilada** |
+| ⚠️ **E-5** | **§0.2 (las dos tramas)** | plantillas de `$STATUS` sin `PLUMA:` ni `CAM:` | Las dos puntas publican hoy **`PLUMA:`** (N-153) y **`CAM:`** (`A-13`, cerrada el 07/09). Plantillas reales abajo, leídas del `snprintf` |
+| ⚠️ **E-6** | **todo el documento** | citas por **número de línea** con `MEDIDO` al lado | **Seis de ellas ya no señalan donde dicen** — re-medidas el 07/09 y corregidas por símbolo. `CLAUDE.md` §7.3: se cita el símbolo, no la línea |
+| 🟢 **E-7** | **§0.2 · tabla de comportamientos esperados · §9.7 · §10** | *«`MODO:SUBORDINADO` en el Esclavo es un literal fijo»*, y de ahí un **hueco declarado** para el dictamen: *«no hay forma de saber desde fuera si el Esclavo está en Degradado»* | **El hueco ESTÁ CERRADO y el documento no se enteró.** El `MODO:` del Esclavo sale hoy de `obtenerNombreModo(degradado_estado())` y publica **`SUBORDINADO` · `DEGRADADO` · `RENDIDO`**. *(Un hallazgo caducado en un protocolo es peor que uno que falta: **acaba en el dictamen de un auditor** como limitación del equipo.)* |
+
+> ⚠️ **Lo que esta fe de erratas NO hace, y se dice para que nadie lo lea como un permiso:** no retira
+> la §8 ni la parte de la §9 que ejerce el mando. **`D-1` conserva el CÓDIGO del mando a propósito**
+> —de `mando_ambarLocal()` cuelga el veto de SFTY-21— así que sigue siendo firmware verificable. **Lo
+> que cambia es que ejercerlo dejó de ser un paso de rutina y pasó a ser una maniobra con una
+> advertencia delante**, y que el equipo de calle **no** lo va a usar nunca. Si el funcional decide
+> que no merece la sesión, esa es una decisión suya y del responsable: **este documento no la toma.**
+
+---
+
 ## 🛑 04/09 — LO PRIMERO DE TODO: EL BANCO YA CORRIÓ, Y HAY UNA TARJETA EN ALERTA
 
 **El 3 y el 4 de septiembre se ejecutó por primera vez la `Guia_Cableado_y_Pruebas_Banco.html`
@@ -42,8 +73,8 @@ Tres cosas cambiaron en el equipo y las tres invalidan procedimiento escrito:
 |---|---|---|
 | **`botonAceptar()` y `botonCancelar()` devuelven `false` siempre.** Los pulsadores 3 y 4 dejaron de ser pulsadores: sus pines (`PB14`, `PB15` = `J16` p10/p12) pasan a ser **entradas de cámara** | ~~`Maestro/src/botones.cpp:305-306` · `Esclavo/src/botones.cpp:316-317`~~ → **se cita el símbolo, §4.sexies:** `grep -n "bool botonAceptar\|bool botonCancelar" Maestro/src/botones.cpp Esclavo/src/botones.cpp` — **RE-MEDIDO el 05/09** *(los números viejos ya no señalaban ahí)* | **No se puede aceptar ni cancelar nada.** Todo paso que diga *«pulse Botón 3»*, *«confirme»*, *«entre en CONFIGURACION»* o *«recorra el menú»* **no se puede ejecutar** |
 | 🔴 **PERO `botonArriba()` y `botonAbajo()` NO están muertos — y esta fila faltaba.** Devuelven `consumir(0)`/`consumir(1)`, alimentados por `digitalRead(b.pin) == HIGH` sobre `BOTON1`=`PB9` (`J16` p5) y `BOTON2`=`PB13` (`J16` p8) | `grep -rn "botonArriba\|botonAbajo" Maestro/src Esclavo/src` — **MEDIDO el 05/09**: tienen llamadores vivos en `menu.cpp` y `modo_hora.cpp` de las dos puntas | **«Los cuatro botones están fuera» es MEDIA VERDAD y no se puede escribir así en un protocolo.** Fuera está el **pulsador** (`D-1`: no se monta) y fuera están **Aceptar/Cancelar** (el código). **Arriba y Abajo siguen leyendo cobre**, así que **lo que se cierre en `p5`/`p8` contra los 3,3 V entra al firmware** — y por eso esos pines quedan **sin cablear**, no «disponibles» |
-| **La pantalla no se retira, pero deja de conducir sus pines.** `PB3`/`PB4`/`PB5` quedan en alta impedancia porque comparten el conector `J17` con el ESP32 | `Maestro/src/lcd.cpp:74-75` · `Esclavo/src/lcd.cpp:92-93` (los cuatro pines a `U8X8_PIN_NONE`); el porqué, en el comentario de `lcd.cpp:18-73` — **MEDIDO** | **No hay imagen.** El framebuffer se sigue componiendo y no se vuelca al cable. Todo paso que diga *«la pantalla muestra»* o *«anote lo que muestra»* **no se puede ejecutar** |
-| **El mando de relés SE CONSERVA**, en los canales `A` (`PB9` = `J16` p5) y `B` (`PB13` = `J16` p8). Las tres secuencias siguen en el firmware | `Maestro/src/mando.cpp:202-235` · `Esclavo/src/mando.cpp:218-250` — **MEDIDO**. Ventanas: `VENTANA_TRIPLE_MS = 12000` (`mando.cpp:38` Maestro, `:42` Esclavo) y `VENTANA_CUADRUPLE_MS = 18000` (`:39` / `:43`) | ~~Las secuencias se pueden **ejercer**~~ ~~**— corregido el 04/09: NO se pueden.** Siguen en el firmware, pero los dos pines miden `0,6 V` en reposo, así que **no hay flanco que darles**: ni con el puente a mano ni con el receptor, que además **nunca se compró**.~~ 🔧 **Corregido otra vez el 04/09, después de N-118, y esta vez con el fuente delante:** el `0,6 V` era obra del `INPUT_PULLUP` que el firmware ponía, y **ese firmware ya no existe** — `botones.cpp` lee `BOTON1`/`BOTON2` en `INPUT` pelado y **activo en ALTO** en las dos puntas. **El flanco sí se puede dar; lo que cambia es cómo: p5 contra p4, p8 contra p7 (3,3 V del pin de al lado), NUNCA contra masa.** Lo que sigue faltando es **una tarjeta con la que ejercerlo** —la Maestro está fuera de servicio por N-116— y el **receptor, que nunca se compró**. Ver §0.3 |
+| ~~**La pantalla no se retira**~~ → 🔴 **LA PANTALLA Y EL MENÚ SE RETIRAN DEL EQUIPO (`D-17.bis`, 05/09).** Se retira **del equipo, no del código**: `lcd.cpp` y `menu.cpp` siguen compilando y `Validacion_LCD` sigue dando `271/271` sobre un framebuffer en el PC. Y desde antes ya no conducía sus pines: `PB3`/`PB4`/`PB5` en alta impedancia por compartir `J17` con el ESP32 | `Maestro/src/lcd.cpp:74-75` · ~~`Esclavo/src/lcd.cpp:92-93`~~ → **`:103-104`, re-medido el 07/09 (E-6)**. El ancla que no caduca: `grep -n "U8X8_PIN_NONE" Maestro/src/lcd.cpp Esclavo/src/lcd.cpp` | **No hay imagen.** El framebuffer se sigue componiendo y no se vuelca al cable. Todo paso que diga *«la pantalla muestra»* o *«anote lo que muestra»* **no se puede ejecutar** |
+| **El CÓDIGO del mando SE CONSERVA**, en los canales `A` (`PB9` = `J16` p5) y `B` (`PB13` = `J16` p8). Las tres secuencias siguen en el firmware — 🔴 **pero el HARDWARE se retiró del equipo (`D-1`) y esos dos pines están VACÍOS (`A-2`). Ver el recuadro rojo de §0.3: `A·A·A` ABRE PASO sin guarda** | ~~`Maestro/src/mando.cpp:202-235` · `Esclavo/src/mando.cpp:218-250`~~ · ~~`mando.cpp:38`/`:39` Maestro~~ → 🔴 **citas caducadas, re-medidas el 07/09 y sustituidas por el símbolo (E-6):** `grep -n "VENTANA_TRIPLE_MS\|VENTANA_CUADRUPLE_MS\|MANDO_A && " Maestro/src/mando.cpp Esclavo/src/mando.cpp`. Los valores **no** cambiaron: `VENTANA_TRIPLE_MS = 12000` y `VENTANA_CUADRUPLE_MS = 18000` en las dos puntas | ~~Las secuencias se pueden **ejercer**~~ ~~**— corregido el 04/09: NO se pueden.** Siguen en el firmware, pero los dos pines miden `0,6 V` en reposo, así que **no hay flanco que darles**: ni con el puente a mano ni con el receptor, que además **nunca se compró**.~~ 🔧 **Corregido otra vez el 04/09, después de N-118, y esta vez con el fuente delante:** el `0,6 V` era obra del `INPUT_PULLUP` que el firmware ponía, y **ese firmware ya no existe** — `botones.cpp` lee `BOTON1`/`BOTON2` en `INPUT` pelado y **activo en ALTO** en las dos puntas. **El flanco sí se puede dar; lo que cambia es cómo: p5 contra p4, p8 contra p7 (3,3 V del pin de al lado), NUNCA contra masa.** Lo que sigue faltando es **una tarjeta con la que ejercerlo** —la Maestro está fuera de servicio por N-116— y el **receptor, que nunca se compró**. Ver §0.3 |
 
 > ⚠️ **Y una consecuencia que no es evidente y hay que decir en voz alta.** Con `botonAceptar()`
 > siempre `false`, `menu_estaAbierto()` no puede ser cierto nunca, así que **el mando del Esclavo ya
@@ -254,22 +285,56 @@ SET_RTC:AAAA-MM-DD,HH:MM:SS
 ```
 
 **ESCLAVO — sin PIN:** `CMD:AMBAR_EMERGENCIA` · `CMD:FORZAR_ROJO` *(se rechaza a propósito)*
-**ESCLAVO — con PIN:** `AMBAR_EMERGENCIA` · `FORZAR_ROJO` · `SOLICITAR_PASO` · `TEST_LEDS`
-*(se rechaza a propósito)* · `SET_RTC:AAAA-MM-DD,HH:MM:SS`
+**ESCLAVO — con PIN:** `AMBAR_EMERGENCIA` · **`CANCELAR_AMBAR`** · `FORZAR_ROJO` · `SOLICITAR_PASO`
+· `TEST_LEDS` *(se rechaza a propósito)* · **`SET_MODO:DEGRADADO`** · `SET_RTC:AAAA-MM-DD,HH:MM:SS`
+*(esta última **ya no contesta** — ver E-3 y §7.1)*
 
-> 🔴 **El Esclavo NO tiene ni un solo `SET_MODO:*`.** No hay comando que lo meta en un modo ni que
-> lo saque. Es un hecho medido y tiene consecuencias en toda la Sección 9. Ver la prueba **9.15**.
+> 🔴 ~~**El Esclavo NO tiene ni un solo `SET_MODO:*`.** No hay comando que lo meta en un modo ni que
+> lo saque. Es un hecho medido y tiene consecuencias en toda la Sección 9. Ver la prueba **9.15**.~~
+>
+> 🔴 **TACHADO EL 07/09 — ERA FALSO DESDE EL COMMIT `15e8cf3`, y de esa frase colgaba una prueba
+> entera** (`DECISIONES.md` fila **`D-18`**: *el Modo Degradado del poste 2 se pide POR APP*).
+>
+> ```
+> $ grep -c "SET_MODO" 01_Firmware/Esclavo/src/bluetooth.cpp
+> 10
+> ```
+>
+> **El Esclavo acepta `CMD:PIN:1234:SET_MODO:DEGRADADO`**, con `$ACK,…,RESULT:OK`,
+> `$ACK,…,RESULT:YA_ACTIVO` y un `$ERR,CMD:SET_MODO:DEGRADADO,DESC:<motivo>` por cada motivo de
+> rechazo. La puerta —`degradado_entrar()`— llevaba meses construida; lo que se había retirado era la
+> llave, que era el mando, y `D-18` se la dio a la app.
+>
+> ⚠️ **Lo que de esa frase SÍ sigue siendo cierto, y es la mitad que importa para la §9:** el Esclavo
+> **no tiene `SET_MODO:AUTO`**. Se le puede meter en Degradado y se le puede parar
+> (`CMD:AMBAR_EMERGENCIA`), pero **devolverlo a Automático lo hace el Maestro** cuando vuelve la
+> radio. **La asimetría de SALIDA se conserva; la de ENTRADA ya no existe.**
 
 **Lo que el equipo emite sin que nadie se lo pida** (los dos, ~~cada 1000 ms~~ **cada 2000 ms** el
 `$STATUS` — **bajado el 04/09 por decisión del responsable, en las dos puntas**; si cronometra la
 cadencia, el valor que tiene que dar es **2 s, no 1 s**):
 
 ```text
-$STATUS,NODE:MAESTRO,SERIE:..,MODO:..,ESTADO:..,T:..,RF:..,RTT:..,BAT:--,HORA:HH:MM:SS,ESC:..*CRC
-$STATUS,NODE:ESCLAVO,SERIE:..,MODO:SUBORDINADO,ESTADO:..,T:--,RF:--,RTT:--,BAT:--,HORA:..*CRC
+$STATUS,NODE:MAESTRO,SERIE:..,MODO:..,ESTADO:..,T:..,RF:..,RTT:..,BAT:--,HORA:HH:MM:SS,ESC:..,PLUMA:..,CAM:..*CRC
+$STATUS,NODE:ESCLAVO,SERIE:..,MODO:SUBORDINADO,ESTADO:..,T:--,RF:--,RTT:--,BAT:--,HORA:..,PLUMA:..,CAM:..*CRC
 $ALARM,NODE:..,EVENTO:..,CAUSA:..,ACCION:..,HORA:..*CRC
 $EVENT,NODE:..,ORIGEN:..,DETALLE:..,HORA:..*CRC
 ```
+
+> 🆕 **07/09 — A LAS DOS PLANTILLAS LES FALTABAN LOS DOS CAMPOS NUEVOS, Y SE HAN AÑADIDO ARRIBA
+> (E-5).** Leídas del `snprintf` de cada punta —se cita el **símbolo**, no la línea:
+> `grep -n 'STATUS,NODE' 01_Firmware/Maestro/src/bluetooth.cpp 01_Firmware/Esclavo/src/bluetooth.cpp`.
+>
+> - **`PLUMA:`** — `ARRIBA` · `ABAJO`. Va en **las dos** puntas (N-153). Con `D-13` habrá ratos de
+>   **luz roja y pluma arriba**: **eso no es una avería**, y conviene saberlo antes de anotarlo como tal.
+> - **`CAM:`** — `OK` · `CIEGA` · `PEGADA` · `?`. Va en **las dos** puntas (`A-13`, cerrada el 07/09), y
+>   publica **la PEOR de las dos cámaras de esa punta**, no una por cada una.
+>
+> ⚠️ **Y un campo que este documento sigue sin poder ofrecerle al auditor, porque no existe: la
+> ANTIGÜEDAD DE LA ÚLTIMA SINCRONIZACIÓN.** Ninguna de las dos plantillas la lleva, y su único lector
+> era el menú de la pantalla —que `D-17.bis` retira del equipo—. **Hoy no hay forma de verla, ni por
+> trama ni por app**, y de ella cuelgan **7.10**, **9.4**, **9.12** y **9.13**. Va escrito aquí y no
+> sólo en esas pruebas: quien planifique la sesión tiene que saber que ese dato **no se puede traer**.
 
 > 🛑 **LAS DOS TRAMAS DE ARRIBA ESTABAN MAL EN CINCO CAMPOS — corregidas el 05/09 contra el
 > `snprintf` real** (`Maestro/src/bluetooth.cpp:970`, `Esclavo/src/bluetooth.cpp:832`). El aviso que
@@ -289,12 +354,55 @@ $EVENT,NODE:..,ORIGEN:..,DETALLE:..,HORA:..*CRC
 >   `--` siempre**: esa punta es subordinada y no conoce el plazo.
 > - 🆕 **`ESC:` va SÓLO en la trama del Maestro y es el ÚLTIMO campo** (N-149), con valores
 >   `ROJO`/`VERDE`/`AMBAR`/`?`. **Que falte en el `$STATUS` del Esclavo no es un fallo.**
-> - **`MODO:SUBORDINADO` en el Esclavo es fijo**, así que **desde el `$STATUS` del Esclavo no se
->   puede ver si está en Modo Degradado.** Sólo lo insinúa `ESTADO:`. *(Esto no ha cambiado.)*
+> - ~~**`MODO:SUBORDINADO` en el Esclavo es fijo**, así que **desde el `$STATUS` del Esclavo no se
+>   puede ver si está en Modo Degradado.** Sólo lo insinúa `ESTADO:`. *(Esto no ha cambiado.)*~~
+>   > 🟢 **TACHADO EL 07/09 — SÍ HABÍA CAMBIADO, Y ES UN HUECO DECLARADO QUE SE CERRÓ SIN QUE ESTE
+>   > DOCUMENTO SE ENTERARA (E-7).** El campo `MODO:` del Esclavo **ya no es un literal**: sale de
+>   > `obtenerNombreModo(degradado_estado())`. El comentario del propio fuente lo dice en pasado —
+>   > `grep -n "decia SUBORDINADO SIEMPRE" 01_Firmware/Esclavo/src/bluetooth.cpp`.
+>   >
+>   > | `MODO:` del Esclavo | qué significa |
+>   > |---|---|
+>   > | `SUBORDINADO` | la luz la manda el Maestro. Es el caso normal |
+>   > | `DEGRADADO` | **la luz la gobierna el reloj de esta punta** — los tres tramos del modo (`ENTRANDO`, `ACTIVO`, `SALIENDO`) se publican igual, porque lo que este campo contesta es *quién manda la luz*. En qué tramo va se lee en `ESTADO:` |
+>   > | `RENDIDO` | 🔴 **el modo terminó SOLO al vencer la autorización de 48 h y la luz quedó en ámbar intermitente.** Va aparte a propósito: pintarlo como `DEGRADADO` diría que el cruce sigue operando por reloj cuando ya no opera |
+>   >
+>   > **Consecuencia para la sesión: desde el teléfono SÍ se puede ver si el poste 2 está en
+>   > Degradado**, y ése era uno de los dos huecos declarados de la §10.
 >
 > `HORA:` cae a `--:--:--` cuando el reloj no está en hora. **Eso es un dato, no un fallo.**
 
 ### 0.3 · Cómo se ejercen las secuencias del mando SIN el receptor
+
+> # 🔴 07/09 — LÉASE ENTERO ANTES DE ACERCAR UN CABLE A `J16`. ESTE RECUADRO VA DELANTE DE LA INSTRUCCIÓN, NO DETRÁS
+>
+> **1. `A·A·A` NO ES UNA PRUEBA INOCUA: ABRE PASO.** Medido el 07/09 sobre
+> `01_Firmware/Maestro/src/mando.cpp` —se cita el símbolo: `grep -n "ACC_AUTOMATICO" mando.cpp`—, la
+> rama de `A·A·A` llama a `confirmarYActuar(ACC_AUTOMATICO, DESTELLOS_AUTOMATICO)` **sin ninguna
+> comprobación previa**. La comparación es directa: `A·B·A·B` **sí** tiene guarda
+> —`if (modo_degradado_evaluarEntrada() == MDG_OK)`, y el propio fuente la llama *«LA RED DE SEGURIDAD
+> REAL»*— y `A·A·A` **no tiene ninguna**. Entrar en Modo Automático **arranca el ciclo**, o sea
+> **da verde a un sentido**.
+>
+> 🛑 **Consecuencia práctica, y no es teórica: tres toques de cable en `J16` p5 dentro de 12 s
+> abren un carril.** Estas pruebas se hacen **con el tramo cerrado al tráfico y con las dos puntas a
+> la vista**, igual que la §9 — y este documento no lo decía en ninguna parte.
+>
+> **2. NADA SE CABLEA A `J16` p5 NI p8.** `DECISIONES.md` `D-1` retiró el mando **del equipo** y `A-2`
+> deja esos dos pines **vacíos y sin decidir**, con el aviso escrito: *cualquier cosa que se cablee
+> ahí —un fin de carrera, un pulsador— compone secuencias del mando sin que nadie lo pida*. Una pluma
+> que sube y baja tres veces seguidas dentro de la ventana es `B·B·B`. **El puente de este apartado es
+> un CABLE EN LA MANO durante un ensayo, con alguien mirando, y se retira al acabar. No es cableado.**
+>
+> **3. Y por eso este apartado ya no describe un paso de rutina.** El equipo de calle **no** va a usar
+> el mando nunca: `D-1` lo retiró y `D-16` declara que **sin teléfono no hay forma de operar el
+> equipo**. Lo que la §8 certifica es **firmware que sigue vivo** —de `mando_ambarLocal()` cuelga el
+> veto de SFTY-21—, no una superficie de operación. **Si el funcional decide que eso no merece la
+> sesión, la decisión es suya y del responsable.**
+>
+> **4. Sigue en pie el paso 4 de la Guía: `J16` p1 lleva 12 V CRUDOS a un conector de señal directa al
+> micro y se TAPA antes de tocar nada** (`D-4`, N-120). En el cobre esos 12 V corren a **1,36 mm** del
+> más cercano de estos pines.
 
 El receptor de radio del mando **nunca se compró** (Guía, paso 29). Pero los dos canales que quedan
 son pines de entrada de la propia tarjeta, y ~~el firmware los lee en `INPUT_PULLUP` **activo en
@@ -324,7 +432,17 @@ pulsador.
 
 > ## 👁️ CÓMO SE SABE QUE EL EQUIPO OYÓ EL PULSO: LO CONFIRMA CON SUS PROPIAS LUCES
 >
-> **No hace falta ningún instrumento extra.** **MEDIDO en `01_Firmware/Maestro/src/mando.cpp:45-47`**
+> **No hace falta ningún instrumento extra.** ~~MEDIDO en `01_Firmware/Maestro/src/mando.cpp:45-47`~~
+> 🔴 **RE-MEDIDO EL 07/09 Y CITADO POR SÍMBOLO (E-6): esa línea ya no señala ahí — hoy son
+> `:51-53`, y mañana otras.** El ancla que no caduca es el `grep`, corrido antes de publicarlo:
+>
+> ```
+> $ grep -n "DESTELLOS_" 01_Firmware/Maestro/src/mando.cpp
+> 51:static const uint8_t DESTELLOS_AUTOMATICO = 2;
+> 52:static const uint8_t DESTELLOS_AMBAR = 3;
+> 53:static const uint8_t DESTELLOS_DEGRADADO = 4;
+> ```
+>
 > (`DESTELLOS_AUTOMATICO = 2`, `DESTELLOS_AMBAR = 3`, `DESTELLOS_DEGRADADO = 4`):
 >
 > ```text
@@ -440,7 +558,7 @@ pulsador.
 | ~~**El reloj `DS3231`** — va sobre esa placa, que no existe~~ · 🆕 **montado y cableado** | La §12.6 (Courier RTC) **sigue aplazada**, y ahora se sabe por qué exactamente: **la única vía para leer o poner esa hora es `SET_RTC` desde la app**. Sin enlace, ese reloj no es verificable desde fuera por ninguna vía (paso 27) |
 | **El receptor de radio del mando** — nunca se compró | Ver §0.3. ~~⚠️ **Y hoy es peor que una compra pendiente:** los pines del mando miden `0,6 V` en reposo, así que **el receptor tampoco funcionaría** si llegara mañana~~ 🔧 **Caducado el 04/09 (N-118): ese `0,6 V` lo ponía el `INPUT_PULLUP` del firmware, y ya no está.** Con `INPUT` pelado y activo en ALTO, un receptor de contacto seco **sí produciría flanco** cerrando contra los 3,3 V del pin vecino. Vuelve a ser lo que era: **una compra pendiente**, con su decisión de polaridad de salida (NO/NC) y la de N-19 —mismo código o códigos distintos— **antes** de pedirlo |
 | **El repetidor y sus dos radios adicionales** | La §6 entera queda aplazada. Además, **la topología vigente es de enlace directo, 2 radios, sin repetidor** |
-| **Las dos cámaras de demanda** — pendientes de confirmar si hay una en almacén | La §11.3 queda aplazada |
+| ~~**Las dos cámaras de demanda** — pendientes de confirmar si hay una en almacén~~ → 🟢 **COMPRADAS: dos Hikvision `DS-2CD2683G2-IZS`** (`DECISIONES.md` `D-10`, 05/09) | ~~La §11.3 queda aplazada~~ → **la §11.3 se mudó a `C-7` de la §14**, y con ella las otras siete medidas de cámara. **Esta fila ya no bloquea nada** |
 
 ### 0.5 · Comprobaciones que sí se hacen antes de empezar
 
@@ -531,7 +649,7 @@ porque se mueven cada hora: viven en las actas de `evidencia/`, con su fecha y e
 | 🆕 **La talanquera de `J15` SUBE en ámbar intermitente y baja al volver a rojo** | Medido en banco: `J15` es una **salida directa de motor** (`MOT+`/`MOT−`), no una entrada de disparo. En rojo `0 V` y abajo; en ámbar `12 V` y sube. **No es una avería: es lo que hace el equipo cuando pierde el enlace** |
 | 🆕 **El zumbador de `J13` no suena** | Medido en el paso 6. Esperado |
 | Las secuencias del mando siguen aceptándose dentro de **12 s** (`A·A·A`, `B·B·B`) y **18 s** (`A·B·A·B`) | `VENTANA_TRIPLE_MS = 12000` y `VENTANA_CUADRUPLE_MS = 18000`. **⚠️ Estos 12 s NO son los 25 s de arriba: son cosas distintas y no se confunden** |
-| El `$STATUS` del Esclavo dice siempre `MODO:SUBORDINADO` | Literal fijo. **MEDIDO** |
+| ~~El `$STATUS` del Esclavo dice siempre `MODO:SUBORDINADO`~~ → 🔴 **YA NO (07/09, E-7)** | ~~Literal fijo. **MEDIDO**~~ → **`SUBORDINADO` · `DEGRADADO` · `RENDIDO`**, según `degradado_estado()`. El `MEDIDO` era cierto y su contenido caducó: `grep -n "case DEG_" 01_Firmware/Esclavo/src/bluetooth.cpp`. **Ver §0.2** |
 | `HORA:` en `--:--:--` | El reloj no está en hora. Es un dato |
 | Varios comentarios del fuente siguen diciendo *«12 s de silencio»* | **Están caducados** (`Esclavo/src/mando.cpp:113`, `Esclavo/src/main.cpp:396`). El umbral real es 25 s. Anotado, no es fallo de comportamiento |
 
@@ -701,7 +819,9 @@ porque se mueven cada hora: viven en las actas de `evidencia/`, con su fecha y e
 **4.2 Cede de paso por demanda** — ♻️ **SE REESCRIBE** *(antes: «inyectar la trama `AI_CARS:X`»)*
 - *Acción:* con `CMD:PIN:1234:SET_MODO:INTELIGENTE` puesto, provocar una demanda por **una** de estas
   dos vías, y anotar cuál:
-  - cerrando el contacto seco en `J14` (cámara real, o un pulsador suelto — **Guía, pasos 18 y 19**);
+  - cerrando el contacto seco en ~~`J14`~~ **`J16` p10 contra p11** (cámara real, o un pulsador
+    suelto — **Guía, pasos 18, 19 y 21**). 🔴 **Corregido el 07/09 (E-4): la cámara va a `J16`
+    p10/p12 (`D-2`/`D-3`), y es el único borne que el vigilante de `CAM_CIEGA`/`CAM_PEGADA` mira**;
   - mandando `CMD:PIN:1234:DEMANDA` al Maestro.
 - *Esperado:* `$ACK,CMD:DEMANDA,RESULT:REGISTRADA`, y el cruce **respeta el todo-rojo de despeje**
   antes de conceder el verde a ese sentido. Cronometrar desde el cierre del contacto hasta el verde.
@@ -715,10 +835,14 @@ porque se mueven cada hora: viven en las actas de `evidencia/`, con su fecha y e
 - *Por qué:* medía qué pasaba al dejar de llegar datos por un bus de IA que ya no existe (N-86), y
   lo comprobaba en un rótulo de pantalla que ya no se dibuja. **No queda ni la entrada ni la salida.**
 - **No se firma.**
-- > *Hueco declarado:* lo que **sí** convendría poder comprobar —qué hace el Modo Inteligente cuando
-  > la cámara de `J14` se queda muda o se queda pegada— **no tiene hoy prueba en este documento**.
-  > Escribirla exige antes decidir qué debe hacer el equipo en ese caso, y eso es decisión del
-  > responsable, no del auditor.
+- > ~~*Hueco declarado:* lo que **sí** convendría poder comprobar —qué hace el Modo Inteligente cuando
+  > la cámara de `J14` se queda muda o se queda pegada— **no tiene hoy prueba en este documento**.~~
+  > 🟢 **07/09 — ESE HUECO SE CERRÓ EN EL FIRMWARE Y HAY QUE DECIRLO:** el vigilante de cámaras
+  > está construido (fase 1 de `D-13`, `4b90f98`) y publica **`CAM_CIEGA`** y **`CAM_PEGADA`** por
+  > `$ALARM`, más el campo **`CAM:`** del `$STATUS` (`A-13`, cerrada el 07/09). 🔴 **Vigila `J16`
+  > p10/p12; NO vigila `J14`** (E-4). Lo que **sigue sin probarse** es su TIEMPO: `CAM_PEGADA` son
+  > **20 min** y `CAM_CIEGA` **6 h de paso abierto**, y **6 h no son ejecutables en una sesión de
+  > banco** — se anota así, no se sustituye por una espera corta que no mide lo mismo.
 
 **4.4 Ciclo completo sin caída** — ♻️ **SE REESCRIBE**
 - *Acción:* dejar correr un ciclo completo en Modo Inteligente, observando el paso del Esclavo a Verde.
@@ -880,24 +1004,61 @@ Enlace DIRECTO (2 radios):   RF ______ %     RTT ______ ms
 > **un solo comando**, `CMD:PIN:1234:SET_RTC:AAAA-MM-DD,HH:MM:SS`, y **el equipo contesta con tres
 > respuestas distintas que no significan lo mismo**. Ésa es la propiedad central de la sección.
 
-**7.1 El reloj arranca declarándose NO fiable, y `SET_RTC` no miente** — ♻️ **SE REESCRIBE**
-- *Acción:* con una tarjeta **nunca puesta en hora** (o con la pila retirada), encender y leer
-  `HORA:` en su `$STATUS`. Después mandar `CMD:PIN:1234:SET_RTC:2026-08-31,10:00:00`.
-- *Esperado:* `HORA:` en `--:--:--` — **no una hora cualquiera como si fuera buena**. Y la orden
-  contesta **una** de estas tres, que hay que copiar literal:
+**7.1** ~~**El reloj arranca declarándose NO fiable, y `SET_RTC` no miente** — ♻️ **SE REESCRIBE**~~
+— 🔴 **REESCRITA ENTERA EL 07/09: EL STM32 YA NO CONTESTA A `SET_RTC` (E-3)**
 
-| respuesta | qué significa |
-|---|---|
-| `$ACK,CMD:SET_RTC,RESULT:OK` | la hora entró **y** va camino del Esclavo |
-| `$ACK,CMD:SET_RTC,RESULT:HORA_PUESTA_SIN_PROPAGAR` | la hora entró en esta punta, **pero no se propagó** |
-| `$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ` | **no hay con qué contar el tiempo.** La hora **no** quedó puesta |
-| `$ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO` | la orden no se entendió. El reloj **no se tocó** |
+> # 🛑 TACHADO EL 07/09 — `DECISIONES.md` FILA `D-15`
+>
+> ~~*Acción:* … mandar `CMD:PIN:1234:SET_RTC:2026-08-31,10:00:00` … **la orden contesta una de estas
+> tres**…~~
+>
+> | ~~respuesta~~ | ~~qué significa~~ |
+> |---|---|
+> | ~~`$ACK,CMD:SET_RTC,RESULT:OK`~~ | ~~la hora entró **y** va camino del Esclavo~~ |
+> | ~~`$ACK,CMD:SET_RTC,RESULT:HORA_PUESTA_SIN_PROPAGAR`~~ | ~~la hora entró en esta punta, pero no se propagó~~ |
+> | ~~`$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ`~~ | ~~no hay con qué contar el tiempo~~ |
+> | ~~`$ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO`~~ | ~~la orden no se entendió~~ |
+>
+> **`D-15` (05/09): la hora la lleva el DS3231 del ESP32 de cada punta, y ese módulo es el ÚNICO que
+> contesta a `SET_RTC`.** El STM32 **consume la orden en silencio a propósito**: el comentario del
+> propio fuente lo dice —*«POR QUÉ LA CURA ES CALLARSE Y NO CONTESTAR MEJOR»*— porque antes **dos
+> aparatos contestaban a una sola orden**, los dos con verdad, y juntos eran una contradicción.
+>
+> ```
+> $ grep -n "D-15" 01_Firmware/Maestro/src/bluetooth.cpp
+> 696:    // D-15 - ESTA PUNTA YA NO PONE LA HORA, Y POR ESO NO CONTESTA A LA ORDEN.
+> ```
+>
+> 🔴 **POR QUÉ ESTO NO ES UN AJUSTE DE REDACCIÓN, Y ES EL HALLAZGO MÁS CARO DE ESTE REPASO:** quien
+> ejecute la prueba vieja mandará el comando por el USB-TTL de `J17`, **no verá nada en el terminal**,
+> y con la casilla `CUMPLE`/`NO CUMPLE` delante escribirá `NO CUMPLE` sobre un firmware correcto — o
+> peor, se irá a mirar la pila y el cristal. **Este proyecto ya cambió pila, resistencia y cristal
+> SANOS tres veces** por no tener el dato bueno delante; los otros dos manuales que pedían esto se
+> corrigieron el 07/09 (`1185441`) y **éste se quedó sin corregir**.
 
-- Respuesta literal: ______________________________________
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > 🔴 **Un `$ACK` aquí sobre una tarjeta que luego pierde la hora es un hallazgo importante**, no
-  > una molestia: es el equipo diciendo que sí y no haciéndolo, y el técnico se va del poste creyendo
-  > que dejó el reloj puesto. **Se anota literalmente lo que contestó.** *(Guía, paso 27.)*
+**7.1 (vigente, 07/09) — Poner la hora se le pide AL MÓDULO, y el STM32 se calla a propósito**
+— ♻️ **SE REESCRIBE**
+- 🛑 **Requisito previo, y si no se cumple la prueba NO se ejecuta: hace falta el ENLACE BLUETOOTH
+  con el módulo ESP32.** Por el USB-TTL de `J17` se le habla al **STM32**, y el STM32 ya no pone la
+  hora ni la acusa. Mientras el módulo no se anuncie en el teléfono (§12.1, causa abierta), **esta
+  prueba se marca ⏸ no ejecutable con ese motivo — nunca `NO CUMPLE`**.
+- *Acción:* con la app enlazada al módulo, leer `HORA:` en el `$STATUS` y después mandar
+  `CMD:PIN:1234:SET_RTC:2026-09-07,10:00:00`.
+- *Esperado:* **contesta el PUENTE, no el equipo**, y la respuesta lleva `NODE:PUENTE` dentro. `HORA:`
+  del `$STATUS` pasa de `--:--:--` a la hora puesta.
+- *Y lo que hay que comprobar que el STM32 NO hace, que es la mitad nueva de la prueba:* **no
+  contesta una segunda vez.** Si aparece un segundo `$ACK` o un `$ERR` de `CMD:SET_RTC` **sin**
+  `NODE:PUENTE`, eso es el defecto de los dos acuses volviendo, y **es un hallazgo**.
+- Respuesta literal (y **de quién**): ______________________________________
+- ¿Hubo una **segunda** respuesta a la misma orden? `[ ] NO  [ ] SÍ → copiarla:` ______________
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE  [ ] NO EJECUTABLE (sin enlace Bluetooth)` — Observación: ______
+- > ⚠️ **`HORA:` en `--:--:--` NO es una avería y no se apunta como tal.** Es el equipo **negándose a
+  > inventar** una hora que no tiene. Sin módulo DS3231 en el bus saldrá así siempre, y **quien vea el
+  > hueco sin DS3231 delante no puede concluir nada** (§12.6).
+- > 🔴 **Y el `$EVENT` que SÍ emite el STM32 al recibir la orden, para que no se lea como silencio
+  > averiado:** `$EVENT,NODE:…,ORIGEN:APP_BLUETOOTH,DETALLE:SET_RTC_LO_ACUSA_EL_PUENTE`. **Si ese
+  > evento aparece, el STM32 oyó la orden y se calló por diseño.** Es el dato que distingue *«se
+  > calló porque así está construido»* de *«no llegó nada»*, y son dos diagnósticos opuestos.
 
 **7.2 Edición dígito a dígito** — 🚫 **SE RETIRA**
 - *Por qué:* medía el subrayado del dígito activo y el recorrido con Botones 1/2/3 en una pantalla
@@ -1003,21 +1164,59 @@ Desfase calculado: ________ s
 **7.11 El Esclavo NO ofrece ajuste de hora** — 🚫 **SE RETIRA**
 - *Por qué, y no es sólo la pantalla:* la prueba recorría el menú del Esclavo para confirmar que no
   existía `AJUSTAR HORA`, apoyada en la regla *«la hora se cuadra una sola vez en el Maestro y viaja
-  por radio»*. **El firmware de hoy ya no cumple esa regla:** el Esclavo **acepta**
-  `CMD:PIN:1234:SET_RTC:` y contesta `$ACK,CMD:SET_RTC,RESULT:OK` (**MEDIDO**, `Esclavo/src/bluetooth.cpp`).
-- **No se firma como estaba.** Lo que hoy hay que comprobar del `SET_RTC` del Esclavo —que rechace
+  por radio»*.
+- ~~**El firmware de hoy ya no cumple esa regla:** el Esclavo **acepta** `CMD:PIN:1234:SET_RTC:` y
+  contesta `$ACK,CMD:SET_RTC,RESULT:OK` (**MEDIDO**, `Esclavo/src/bluetooth.cpp`).~~
+  > 🔴 **TACHADO EL 07/09 — `MEDIDO` CON PROCEDENCIA BUENA Y CONTENIDO CADUCADO (E-3).** La
+  > medida fue cierta cuando se tomó; **hoy el Esclavo NO contesta a `SET_RTC`**, igual que el
+  > Maestro (`DECISIONES.md` `D-15`, construido en `5e4076d`):
+  >
+  > ```
+  > $ grep -n "D-15" 01_Firmware/Esclavo/src/bluetooth.cpp
+  > 785:    // D-15 - ESTA PUNTA YA NO PONE LA HORA, Y POR ESO NO CONTESTA A LA ORDEN.
+  > ```
+  >
+  > **La regla vieja —*«la hora se cuadra en el Maestro y viaja por radio»*— tampoco ha vuelto:** hoy
+  > hay **dos relojes por cruce**, uno por ESP32, y **la app valida la hora en las DOS puntas**
+  > visitando los dos postes. Los dos relojes **no se hablan entre sí**, y `D-17` decidió que lo que
+  > hace falta no es sincronizarlos solos, sino **poder ver si lo están** (`CMD:LEER_RTC`).
+- **No se firma como estaba**, y ~~lo que hoy hay que comprobar del `SET_RTC` del Esclavo —que rechace
   con `SIN_CRISTAL` cuando no hay reloj y con `FORMATO_INVALIDO` cuando la orden está mal— se hace
-  en **7.6** y **12.7**.
-- > 🔴 **Esto es una decisión pendiente, no un simple ajuste de documento.** Poner la hora del
-  > Esclavo a mano **reintroduce exactamente el desfase que la sincronización por radio elimina**, y
-  > el Modo Degradado descansa en que las dos puntas cuenten igual. Que el Esclavo acepte `SET_RTC`
-  > es lo que hace posible el *Courier RTC* (12.6) cuando no hay radio — **es una capacidad
-  > deliberada, no un descuido** —, pero la regla escrita en los manuales dice lo contrario. **Hay
-  > que decidir cuál de las dos manda, y es decisión del responsable.**
+  en **7.6** y **12.7**~~ → 🔴 **eso también caducó el 07/09: esos dos rechazos ya no los emite esta
+  punta.** Lo que queda que comprobar del reloj del Esclavo se hace **por app contra su módulo**
+  (§7.1 vigente) y comparando su `HORA:` con la del Maestro (§7.9).
+- > 🟢 ~~**Esto es una decisión pendiente, no un simple ajuste de documento.**~~ **DECIDIDA el
+  > 05/09 y ya no está pendiente:** `D-15` —el reloj lo lleva el ESP32 de cada punta y es el único que
+  > contesta a `SET_RTC`— y `D-17` —`CMD:LEER_RTC`, y la app enseña el **desfase entre postes**—.
+  > **La preocupación de fondo sigue viva y por eso no se borra el párrafo:** el Modo Degradado
+  > descansa en que las dos puntas cuenten igual, y con dos relojes independientes eso hay que
+  > **mirarlo**, no suponerlo. Es exactamente lo que mide **7.9**.
 
 ---
 
 ## 📑 SECCIÓN 8 — MANDO DE 4 RELÉS Y SECUENCIAS (SFTY-21)
+
+> # 🔴 07/09 — QUÉ CERTIFICA HOY ESTA SECCIÓN, Y QUÉ NO. SE LEE ANTES DE REPARTIR LA JORNADA
+>
+> **El mando de relés NO EXISTE en el equipo.** `DECISIONES.md` **`D-1`** (31/08, hardware confirmado
+> retirado el 05/09): *el equipo se opera SÓLO POR APP, y su CÓDIGO no se toca* — las dos cosas a la
+> vez. **`J16` p5 y p8 están vacíos** y su destino sigue abierto en **`A-2`**.
+>
+> **Entonces, ¿por qué no se retira la sección?** Porque **`D-1` conserva el código a propósito y con
+> su motivo medido**: de `mando_ambarLocal()` cuelgan **cinco llamadas vivas** —tres vetos en
+> `Esclavo/src/main.cpp` y dos decisiones de `CANCELAR_AMBAR` en `Esclavo/src/bluetooth.cpp`— y su
+> veto es **SFTY-21**. Es firmware vivo y verificable. **Lo que ha cambiado es su naturaleza: esto ya
+> no certifica una superficie de operación, certifica código que sigue dentro.**
+>
+> 🛑 **Y lo que hay que tener delante antes del primer pulso, porque este documento no lo decía:
+> `A·A·A` ABRE PASO.** No tiene guarda ninguna —a diferencia de `A·B·A·B`, que sí la tiene— y arranca
+> el ciclo. **Con el tramo cerrado al tráfico y observadores en las dos puntas. Ver el recuadro rojo
+> de §0.3, que es donde está la medida.**
+>
+> ⚠️ **Consecuencia para quien planifica:** si el funcional decide que ejercer un mando que ningún
+> operario va a usar **no vale la jornada**, esa decisión es suya y del responsable — no de este
+> documento, que se limita a decir qué mide y qué cuesta. Y la alternativa **no** es dejarlo sin
+> comprobar y firmar: es marcarlo **fuera de alcance con su motivo**, que es distinto.
 
 > ## ⛔ 04/09 — ESTA SECCIÓN SIGUE SIN EJECUTARSE, PERO **EL MOTIVO HA CAMBIADO EL MISMO DÍA**
 >
@@ -1109,8 +1308,10 @@ Desfase calculado: ________ s
 
 **8.6 Con el menú abierto, las secuencias se ignoran** — 🚫 **SE RETIRA**
 - *Por qué:* **la condición no se puede provocar.** `menu_estaAbierto()` no puede ser cierto, porque
-  se abre con `botonAceptar()` y ése devuelve `false` siempre (`Esclavo/src/botones.cpp:316-317`,
-  **MEDIDO**). La función `secuenciasInhibidas()` sigue en el fuente de las dos puntas y **se ha
+  se abre con `botonAceptar()` y ése devuelve `false` siempre — ~~`Esclavo/src/botones.cpp:316-317`~~
+  🔴 **cita caducada, re-medida el 07/09 (E-6): hoy son `:668-669` en el Esclavo y `:672-673` en
+  el Maestro.** El ancla: `grep -n "bool botonAceptar\|bool botonCancelar" Maestro/src/botones.cpp
+  Esclavo/src/botones.cpp`. La función `secuenciasInhibidas()` sigue en el fuente de las dos puntas y **se ha
   quedado sin sujeto**.
 - **No se firma.**
 - > 🔴 **Se retira la prueba, no la preocupación.** El riesgo que cubría —una ráfaga accidental de
@@ -1175,9 +1376,33 @@ Desfase calculado: ________ s
 >
 > **3. La Sección 7 debe estar CUMPLE** — sin reloj en hora y sincronizado, el modo no entra.
 >
-> **4. La entrada en el ESCLAVO sólo es posible por el puente de `J16` (§0.3).** No hay comando, no
+> ~~**4. La entrada en el ESCLAVO sólo es posible por el puente de `J16` (§0.3).** No hay comando, no
 > hay pantalla y no hay receptor. Si el paso 20 de la Guía desaconseja el puente, **de 9.6 en
-> adelante no se ejecuta nada** y se anota el motivo.
+> adelante no se ejecuta nada** y se anota el motivo.~~
+>
+> > 🔴 **TACHADO EL 07/09 — Y ES LO QUE MÁS CAMBIA DE ESTA SECCIÓN (E-2).** `DECISIONES.md`
+> > **`D-18`**: *el Modo Degradado del poste 2 se pide POR APP.*
+> >
+> > ```
+> > $ grep -c "SET_MODO" 01_Firmware/Esclavo/src/bluetooth.cpp
+> > 10
+> > ```
+> >
+> > **4. (vigente) La entrada en el ESCLAVO se hace con `CMD:PIN:1234:SET_MODO:DEGRADADO`**, la misma
+> > orden y el mismo PIN que en el Maestro, por su enlace Bluetooth. **Ya no hace falta el puente de
+> > `J16` para meter al Esclavo en Degradado**, y con eso **`9.7` —la verificación visual de dos
+> > ciclos completos, la comprobación por la que existe esta sección— vuelve a ser montable**, igual
+> > que `9.8` y `9.16`.
+> >
+> > ⚠️ **Lo que sigue haciendo falta, y sin ello esta sección no se ejecuta igual: el ENLACE
+> > BLUETOOTH.** Es la misma condición que paró el banco del 3–4/09 (§12.1, causa abierta). Por el
+> > USB-TTL de `J17` no se llega al módulo: ahí responde el STM32 directamente. **Se comprueba antes
+> > de repartir la jornada.**
+> >
+> > 🛑 **Y la asimetría que NO desapareció, porque decide cómo se sale:** el Esclavo **no tiene
+> > `SET_MODO:AUTO`**. Para devolverlo a Automático **hay que esperar a que vuelva la radio** o darle
+> > `A·A·A` por el puente —con toda la advertencia de §0.3 delante—. **Planifique la salida antes de
+> > planificar la entrada.**
 >
 > > ⛔ **04/09 — ~~el paso 20 ya se midió y lo desaconseja: `0,6 V` en reposo, `9,92 kΩ` a masa.~~**
 > > 🔧 **Motivo corregido el mismo día por N-118:** ese `0,6 V` lo ponía el `INPUT_PULLUP` del
@@ -1248,18 +1473,33 @@ contra p4, p8 contra p7, nunca contra masa. Ver §0.3 y el bloque de marcas**
   > confirmarse con el mismo lenguaje que un éxito, o el operario se va creyendo que quedó activo.
 
 **9.6 Entrada correcta en las DOS puntas** 👁️ — ♻️ **SE REESCRIBE**
-— ⛔ **PARCIAL (04/09): la rama del MAESTRO por comando sigue viva; la del ESCLAVO no, porque su
-única vía es el puente de `J16`** ~~y está medido a `0,6 V`~~ **y no hay tarjeta sana con la que
-darlo (N-116) — el puente en sí funciona desde N-118**
+— ~~⛔ **PARCIAL (04/09): la rama del MAESTRO por comando sigue viva; la del ESCLAVO no, porque su
+única vía es el puente de `J16`** y no hay tarjeta sana con la que darlo (N-116)~~
+
+> 🟢 **07/09 — ESE ⛔ ESTÁ CADUCADO (E-2): el Esclavo entra en Degradado POR APP** con
+> `CMD:PIN:1234:SET_MODO:DEGRADADO` (`DECISIONES.md` `D-18`, commit `15e8cf3`). **Esta prueba se
+> puede montar hoy**, con una única condición previa: **que el enlace Bluetooth del Esclavo se
+> establezca** (§12.1, causa abierta desde el banco del 3–4/09). Si no se establece, se marca
+> **no ejecutable por FALTA DE ENLACE** — no por falta de puente, que es otro motivo y manda a
+> otro sitio.
+> **Y por eso la acción de abajo cambia:** la línea del **ESCLAVO** ya no dice *«sólo `A·B·A·B` por
+> el puente»*. Hoy se entra **por app**, y el puente queda como el camino de reserva del que hay que
+> leer antes el recuadro rojo de §0.3.
 - *Acción:* cumplidos los requisitos y cortado el radio, entrar al Degradado en cada punta:
   - **MAESTRO:** `CMD:PIN:1234:SET_MODO:DEGRADADO` → `$ACK,...,RESULT:OK`, **o** `A·B·A·B` por puente.
-  - **ESCLAVO:** **sólo `A·B·A·B` por el puente de `J16` p5/p8** — ~~contra masa~~ **cerrando p5
-    contra p4 y p8 contra p7 (los 3,3 V del pin de al lado), N-118**. No hay otra vía.
+  - **ESCLAVO:** ~~**sólo `A·B·A·B` por el puente de `J16` p5/p8** — cerrando p5 contra p4 y p8
+    contra p7 (los 3,3 V del pin de al lado), N-118. **No hay otra vía.**~~
+    → 🟢 **CORREGIDO EL 07/09 (E-2, `D-18`): `CMD:PIN:1234:SET_MODO:DEGRADADO` por app**, con
+    `$ACK,…,RESULT:OK`. **Sí hay otra vía, y es la que va a usar el operario de campo.** El
+    `A·B·A·B` por puente queda como camino de reserva — y **antes de darlo se lee el recuadro rojo
+    de §0.3**.
 - *Esperado:* las dos puntas entran, y la del mando confirma con **4 destellos ROJOS**.
 
 ```text
 MAESTRO: [ ] por comando   [ ] con A.B.A.B por puente  -> destellos contados: ____
-ESCLAVO: [ ] con A.B.A.B por puente   [ ] NO se pudo entrar, motivo: ______________
+ESCLAVO: [ ] por comando (SET_MODO:DEGRADADO, por app)   <- via vigente, D-18
+         [ ] con A.B.A.B por puente                      <- reserva, leer 0.3 antes
+         [ ] NO se pudo entrar, motivo: ______________
 ```
 
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
@@ -1271,9 +1511,18 @@ ESCLAVO: [ ] con A.B.A.B por puente   [ ] NO se pudo entrar, motivo: ___________
   > lo decide el responsable. Anótelo si le parece relevante para su dictamen.
 
 **9.7 VERIFICACIÓN VISUAL DEL CICLO — al menos 2 ciclos completos** 👁️👁️ — ♻️ **SE REESCRIBE**
-— ⛔ **NO EJECUTABLE (04/09): exige las DOS puntas en Degradado, y al Esclavo no hay cómo meterlo.
-Es la comprobación por la que existe esta sección, y hoy no se puede montar — se deja escrito así,
-no se sustituye por nada**
+— ~~⛔ **NO EJECUTABLE (04/09): exige las DOS puntas en Degradado, y al Esclavo no hay cómo meterlo.
+Es la comprobación por la que existe esta sección, y hoy no se puede montar**~~
+
+> 🟢 **07/09 — ESE ⛔ ESTÁ CADUCADO (E-2): el Esclavo entra en Degradado POR APP** con
+> `CMD:PIN:1234:SET_MODO:DEGRADADO` (`DECISIONES.md` `D-18`, commit `15e8cf3`). **Esta prueba se
+> puede montar hoy**, con una única condición previa: **que el enlace Bluetooth del Esclavo se
+> establezca** (§12.1, causa abierta desde el banco del 3–4/09). Si no se establece, se marca
+> **no ejecutable por FALTA DE ENLACE** — no por falta de puente, que es otro motivo y manda a
+> otro sitio.
+> 🟢 **Y ésta es la que más se gana con `D-18`: es la comprobación por la que existe la sección
+> —que en ningún momento haya verde en las dos puntas a la vez— y llevaba desde el 04/09 sin poder
+> montarse. ⚠️ Se sigue haciendo con el tramo CERRADO al tráfico.**
 - *Acción:* con las dos puntas en Degradado, **observar dos ciclos completos (4 minutos)** con un
   observador en cada punta.
 - *Marcar cada punto con lo observado en las LUCES:*
@@ -1290,16 +1539,27 @@ no se sustituye por nada**
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 - > **Por qué las luces y no la telemetría.** Cada unidad informa de la fase que *ella* calcula. Si
   > las dos calculan mal —relojes desfasados, versiones distintas, una unidad reiniciada— **las dos
-  > dirán que todo va bien** mientras las luces cuentan otra historia. Y ahora hay una razón más
+  > dirán que todo va bien** mientras las luces cuentan otra historia. ~~Y ahora hay una razón más
   > dura todavía: **el `$STATUS` del Esclavo dice `MODO:SUBORDINADO` pase lo que pase** (§0.2), así
-  > que desde el teléfono **no se puede ni saber que está en Degradado**. **Las luces son la
-  > evidencia.**
+  > que desde el teléfono **no se puede ni saber que está en Degradado**.~~ 🟢 **Esa segunda razón
+  > caducó el 07/09 (E-7): el `MODO:` del Esclavo ya publica `DEGRADADO` y `RENDIDO`.** 🔴 **Y la
+  > PRIMERA sigue en pie entera, que es la que sostiene esta prueba: la telemetría dice lo que cada
+  > unidad CREE, y el verde simultáneo es justo el caso en que las dos creen bien y una de las dos
+  > se equivoca. Las luces son la evidencia.**
 - > **Verde simultáneo en las dos puntas es la única forma en que este equipo puede matar a alguien.**
   > Si lo observa, saque las dos puntas con `B·B·B` de inmediato y **RECHACE**.
 
 **9.8 Corte de energía en UNA punta — riesgo residual nº 2** ⚠️ — ♻️ **SE REESCRIBE**
-— ⛔ **NO EJECUTABLE (04/09): parte de *«con las dos puntas en Degradado»*, y al Esclavo no hay cómo
-meterlo. El riesgo residual sigue documentado y sigue **sin reproducirse en hardware**
+— ~~⛔ **NO EJECUTABLE (04/09): parte de *«con las dos puntas en Degradado»*, y al Esclavo no hay cómo
+meterlo**~~ — **el riesgo residual sigue documentado y sigue sin reproducirse en hardware**
+
+> 🟢 **07/09 — ESE ⛔ ESTÁ CADUCADO (E-2): el Esclavo entra en Degradado POR APP** con
+> `CMD:PIN:1234:SET_MODO:DEGRADADO` (`DECISIONES.md` `D-18`, commit `15e8cf3`). **Esta prueba se
+> puede montar hoy**, con una única condición previa: **que el enlace Bluetooth del Esclavo se
+> establezca** (§12.1, causa abierta desde el banco del 3–4/09). Si no se establece, se marca
+> **no ejecutable por FALTA DE ENLACE** — no por falta de puente, que es otro motivo y manda a
+> otro sitio.
+
 - *Acción:* con las dos puntas en Degradado, **cortar y restituir la alimentación de una sola unidad**.
 - *Esperado hoy:* la unidad reiniciada **arranca en reposo, sin enlace, y cae a ÁMBAR**, mientras
   **la otra sigue dando verde por reloj**.
@@ -1328,7 +1588,8 @@ meterlo. El riesgo residual sigue documentado y sigue **sin reproducirse en hard
 - *Esperado:* 2 destellos rojos y, a los ~15 s, **las luces vuelven a ciclar**.
 - > *Ojo a la asimetría, que es de diseño y no un fallo:* en el **Maestro**, `A·A·A` significa
   > *«ponte en Automático»*; en el **Esclavo** significa *«vuelve a obedecer al Maestro»*
-  > (`Esclavo/src/mando.cpp:109-127`, **MEDIDO**). No son la misma orden, y por eso hay que darla en
+  > (~~`Esclavo/src/mando.cpp:109-127`~~ → 🔴 **cita caducada, E-6; el ancla es
+  > `grep -n "ACC_OBEDECER" Esclavo/src/mando.cpp`**). No son la misma orden, y por eso hay que darla en
   > las dos.
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
@@ -1374,30 +1635,79 @@ meterlo. El riesgo residual sigue documentado y sigue **sin reproducirse en hard
   > salta**. Las dos unidades saltan igual y a la vez, así que no se desincronizan; el problema es
   > otro y es peor: **ese salto podría caer en mitad de un verde y saltarse el despeje**.
 
-**9.15 El Esclavo no acepta ninguna orden de modo** ➕ **NUEVA** — ♻️ *(ejecutable hoy)*
-- *Por qué existe:* documenta con una medida lo que hoy es el hueco más grande del sistema. **Se
-  ejecuta y se firma**, porque el resultado tiene que quedar en el acta.
-- *Acción:* mandar al **Esclavo** `CMD:PIN:1234:SET_MODO:DEGRADADO` y después
-  `CMD:PIN:1234:SET_MODO:AUTO`.
-- *Esperado:* las dos contestan `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO`.
-- Respuestas literales: ______________________________________
-- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > 🔴 **Lo que este `$ERR` significa, dicho entero.** El Esclavo **no tiene ni un solo `SET_MODO:*`**
-  > (**MEDIDO**, `Esclavo/src/bluetooth.cpp`). Sumado a que no hay pantalla y a que
-  > `botonAceptar()` es `false`, hoy **las únicas vías que entran o sacan al Esclavo del Modo
-  > Degradado son el mando —sin receptor comprado— y la vuelta automática de la radio.** La vía de
-  > la pantalla (`Esclavo/src/menu.cpp:215`) **existe en el código y está muerta**, porque el
-  > `aceptar` que la dispara no puede ser cierto nunca.
+**9.15** ~~**El Esclavo no acepta ninguna orden de modo** ➕ **NUEVA** — ♻️ *(ejecutable hoy)*~~
+— 🔴 **INVERTIDA EL 07/09: ESTA PRUEBA EXIGÍA EL DEFECTO Y SUSPENDÍA UN FIRMWARE CORRECTO (E-2)**
+
+> # 🛑 TACHADA ENTERA Y REESCRITA — `DECISIONES.md` FILA `D-18`
+>
+> ~~*Esperado:* las dos contestan `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO`.~~
+> ~~*Por qué existe:* documenta con una medida lo que hoy es el hueco más grande del sistema.~~
+> ~~**El Esclavo no tiene ni un solo `SET_MODO:*`** (**MEDIDO**, `Esclavo/src/bluetooth.cpp`).~~
+>
+> **Era cierto cuando se escribió (31/08) y dejó de serlo en `15e8cf3`.** `grep -c "SET_MODO"
+> 01_Firmware/Esclavo/src/bluetooth.cpp` → **10**.
+>
+> 🔴 **Y por qué esto es peor que una frase caducada: la prueba llevaba CASILLA DE FIRMA.** Tal
+> como estaba, un auditor que mandara `SET_MODO:DEGRADADO` al Esclavo recibiría
+> `$ACK,…,RESULT:OK` —que es **lo correcto**— y marcaría **`NO CUMPLE`**, acusando de un defecto a
+> un firmware que hace justo lo que `D-18` decidió. **Es `CLAUDE.md` §9 en estado puro: una prueba
+> escrita cuando el defecto se creía inevitable, que ahora exige el defecto.** No se borra: se
+> **reparte** — la mitad del `SET_MODO:DEGRADADO` se **invierte** aquí, y la mitad que sigue
+> valiendo, **que el Esclavo NO tiene `SET_MODO:AUTO`**, se conserva literal debajo.
+
+**9.15 (vigente, 07/09) El Esclavo acepta UNA orden de modo y sólo una** ➕ — ♻️ *(ejecutable con
+enlace Bluetooth)*
+- *Por qué existe:* `D-18` le devolvió al poste 2 la puerta del Degradado, y **es la primera vez que
+  se ejerce en tarjeta**. Además deja en el acta, con una medida, **qué se le puede pedir al Esclavo
+  y qué no** — que es lo que un operario necesita saber antes de subir al poste.
+- *Acción:* conectado por app **al Esclavo**, mandar en este orden:
+  1. `CMD:PIN:1234:SET_MODO:DEGRADADO` — con los requisitos de reloj **sin** cumplir.
+  2. `CMD:PIN:1234:SET_MODO:DEGRADADO` — con los requisitos cumplidos (§7 en `CUMPLE`).
+  3. `CMD:PIN:1234:SET_MODO:DEGRADADO` — **otra vez**, ya estando dentro.
+  4. `CMD:PIN:1234:SET_MODO:AUTO`.
+- *Esperado, y las cuatro respuestas son distintas a propósito:*
+
+| # | respuesta esperada | qué demuestra |
+|---|---|---|
+| 1 | `$ERR,CMD:SET_MODO:DEGRADADO,DESC:<motivo>` — **y el motivo es el dato**, se copia literal | que **cada motivo de rechazo tiene su propio `$ERR`**. Un `$ACK` aquí sería la mentira con formato de éxito |
+| 2 | `$ACK,CMD:SET_MODO:DEGRADADO,RESULT:OK` **y la luz del Esclavo empieza a ciclar por reloj** | que la puerta de `D-18` funciona en cobre |
+| 3 | `$ACK,CMD:SET_MODO:DEGRADADO,RESULT:YA_ACTIVO` — **`YA_ACTIVO`, no `OK`** | que no re-arma nada. Las dos son éxito y se dicen distinto |
+| 4 | 🛑 **`$ERR`** — el Esclavo **no tiene `SET_MODO:AUTO`** | la asimetría que se conserva |
+
+- Respuestas literales, las cuatro: ______________________________________________________
+- ¿La luz del Esclavo cicló por reloj tras la #2? `[ ] SÍ  [ ] NO`
+- Resultado: `[ ] CUMPLE  [ ] NO CUMPLE  [ ] NO EJECUTABLE (sin enlace Bluetooth)` — Observación: ____
+- > 🔴 **Lo que sigue siendo cierto de la prueba vieja y por eso se conserva literal:** *el Esclavo
+  > no tiene `SET_MODO:AUTO`*. Sumado a que no hay pantalla y a que `botonAceptar()` es `false`,
+  > **la única forma de SACAR al Esclavo del Degradado sin app es que vuelva la radio.** La vía de la
+  > pantalla —`Esclavo/src/menu.cpp`, `grep -n "degradado_entrar" menu.cpp`— **existe en el código y
+  > está muerta**, porque el `aceptar` que la dispara no puede ser cierto nunca.
   >
-  > **En claro: si el Esclavo entra en Degradado y no hay puente ni receptor, la única forma de
-  > sacarlo es que vuelva la radio.** Es un dato para el dictamen, no una opinión.
+  > **En claro, y es el dato para el dictamen: al poste 2 se le puede ENTRAR por app y no se le puede
+  > SACAR por app.** Se sale con `CMD:AMBAR_EMERGENCIA` —que lo para, no lo devuelve a Automático— o
+  > esperando la radio. Es una asimetría **conocida**, no un hallazgo de esta sesión.
+  >
+  > ⚠️ **Y una consecuencia de `D-16` que hay que tener delante al planificar:** sin teléfono no hay
+  > forma de operar el equipo. Si el enlace del Esclavo no se establece, **esta prueba y toda la §9
+  > que depende de meterlo en Degradado quedan `NO EJECUTABLE`** — nunca `NO CUMPLE`.
 
 **9.16 El ámbar de emergencia de la app en un Esclavo en Degradado (N-106)** ➕ **NUEVA** — ~~♻️ *(ejecutable hoy, por puente)*~~
-— ⛔ **NO EJECUTABLE (04/09).** Su paso 1 es *«poner el Esclavo en Degradado con `A·B·A·B` por
-puente»*, ~~y el puente está medido a `0,6 V`~~ **y no hay tarjeta sana con la que darlo (N-116);
-el puente en sí funciona desde N-118, cerrando contra los 3,3 V del pin de al lado**. **El defecto
-sigue abierto y sigue sin ejercerse nunca** — ni en banco ni en arnés. *La prueba se conserva entera: es correcta, y el día que haya
-vía para meter al Esclavo en Degradado se ejecuta tal cual está escrita.*
+— ~~⛔ **NO EJECUTABLE (04/09).** Su paso 1 es *«poner el Esclavo en Degradado con `A·B·A·B` por
+puente»*, y no hay tarjeta sana con la que darlo (N-116)~~
+
+> 🟢 **07/09 — ESE ⛔ ESTÁ CADUCADO (E-2): el Esclavo entra en Degradado POR APP** con
+> `CMD:PIN:1234:SET_MODO:DEGRADADO` (`DECISIONES.md` `D-18`, commit `15e8cf3`). **Esta prueba se
+> puede montar hoy**, con una única condición previa: **que el enlace Bluetooth del Esclavo se
+> establezca** (§12.1, causa abierta desde el banco del 3–4/09). Si no se establece, se marca
+> **no ejecutable por FALTA DE ENLACE** — no por falta de puente, que es otro motivo y manda a
+> otro sitio.
+> 🔴 **Y aquí el cambio no es sólo de motivo: el paso 1 se REESCRIBE.** Ya no es
+> *«`A·B·A·B` por puente»* sino **`CMD:PIN:1234:SET_MODO:DEGRADADO` por app**. El resto de la
+> prueba —los tres minutos mirando las luces— **se ejecuta tal cual está escrita**.
+>
+> ⚠️ **El defecto que mide sigue abierto y sigue sin ejercerse nunca**, ni en banco ni en arnés.
+> **Con `D-18` deja de ser un defecto teórico y pasa a ser alcanzable por un operario con el
+> teléfono en la mano**, que es exactamente la situación de campo — y por eso sube de prioridad.
 - *Por qué existe:* es un **defecto abierto y conocido**, y esta sesión tiene que **ejercerlo**, no
   ignorarlo. Está razonado por lectura del fuente y **nadie lo ha ejecutado nunca** — ni en banco ni
   en arnés. Esta prueba es la primera vez que se mide.
@@ -1448,12 +1758,20 @@ Y a los 3 minutos, seguia en AMBAR?       [ ] SI   [ ] NO, volvio a: ___________
 >
 > 🔴 **Dos huecos declarados que salen de aquí y no se cierran retirando la sección:**
 >
-> 1. **Ya no hay forma de saber, desde fuera, si el Esclavo está en Modo Degradado.** El aviso del
->    pie del menú lo decía sin entrar a ninguna pantalla, y era el dato que **cambia el significado
->    de todo lo demás**: un técnico que revise sin saber que el cruce va por reloj **puede creer que
->    el radio funciona** y dar por buena una avería que sigue ahí. El `$STATUS` del Esclavo no lo
->    sustituye: `MODO:SUBORDINADO` es un literal fijo (§0.2). **Exponer el modo real del Esclavo en
->    su `$STATUS` es trabajo de firmware, y hoy falta.**
+> 1. ~~**Ya no hay forma de saber, desde fuera, si el Esclavo está en Modo Degradado.**~~ → 🟢
+>    **HUECO CERRADO. Se tacha el 07/09 (E-7), y hay que decirlo aquí porque este documento lo
+>    listaba como hallazgo para el dictamen.** El párrafo decía: *el aviso del pie del menú lo decía
+>    sin entrar a ninguna pantalla, y era el dato que cambia el significado de todo lo demás — un
+>    técnico que revise sin saber que el cruce va por reloj puede creer que el radio funciona y dar
+>    por buena una avería que sigue ahí*. **Ese razonamiento sigue siendo bueno; lo que ya no es
+>    cierto es la conclusión**: ~~`MODO:SUBORDINADO` es un literal fijo~~ → **el `MODO:` del Esclavo
+>    publica hoy `SUBORDINADO` / `DEGRADADO` / `RENDIDO`** (§0.2). ~~Exponer el modo real del Esclavo
+>    en su `$STATUS` es trabajo de firmware, y hoy falta.~~ **Ese trabajo está hecho.**
+>
+>    ⚠️ **Y lo que SÍ sigue faltando, para no cambiar un hueco por un aplauso:** el `RENDIDO` avisa
+>    *después* de que el modo termine, y **la ANTIGÜEDAD de la última sincronización —el dato que
+>    diría cuánto le queda— no viaja en ninguna trama y perdió su único lector** al retirarse el
+>    menú (`D-17.bis`). Es el hueco de **7.10**, **9.12** y **9.13**, y sigue abierto.
 > 2. **La entrada al Degradado del Esclavo perdió su doble confirmación** al perder la pantalla. Ver
 >    la nota de 9.6.
 
@@ -1462,8 +1780,44 @@ Y a los 3 minutos, seguia en AMBAR?       [ ] SI   [ ] NO, volvio a: ___________
 ## 📑 SECCIÓN 11 — CÁMARAS DE DEMANDA
 
 > **Qué cambió:** no son cuatro cámaras ni hay pin de umbral. Son **dos cámaras de demanda, una por
-> poste**. La única entrada de cámara que el firmware del Maestro lee hoy es `CAM_DEMANDA_PIN = PB0`,
-> que sale por la bornera **`J14`** (`Maestro/include/pines.h:46`, **MEDIDO**).
+> poste**. ~~La única entrada de cámara que el firmware del Maestro lee hoy es `CAM_DEMANDA_PIN = PB0`,
+> que sale por la bornera **`J14`** (`Maestro/include/pines.h:46`, **MEDIDO**).~~
+>
+> > # 🔴 TACHADO EL 07/09 — `MEDIDO` CON CITA BUENA Y AFIRMACIÓN FALSA (E-4)
+> >
+> > La línea que cita **existe y dice lo que dice** —`pines.h:46` sigue definiendo `CAM_DEMANDA_PIN
+> > PB0` con su `J14` al lado—. **Lo falso es la palabra «única»**, y ahí la cita no ayuda: se
+> > comprobó el pin que se buscaba y **no se buscó el otro**.
+> >
+> > ```
+> > $ grep -n "define CAM_" 01_Firmware/Maestro/include/pines.h
+> > 46:#define CAM_DEMANDA_PIN    PB0  // -> R64 10K + C25 100nF -> bornera J14 (antirrebote 1 ms)
+> > 165:#define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco (era BOTON3, "Aceptar")
+> > 166:#define CAM_D_PIN   PB15  // J16 p12 - camara de contacto seco (era BOTON4, "Cancelar")
+> > ```
+> >
+> > **Son TRES entradas de cámara, no una**, y las tres las lee el Modo Inteligente —
+> > `grep -n "CAM_C_PIN\|CAM_D_PIN\|CAM_DEMANDA_PIN" 01_Firmware/Maestro/src/modo_inteligente.cpp`
+> > y `botones.cpp`.
+> >
+> > ✅ **LA CONEXIÓN VIGENTE ES `J16`:** `p10` (`CAM_C_PIN`, `PB14`) y `p12` (`CAM_D_PIN`, `PB15`),
+> > **una cámara por poste**, cerrando el contacto seco contra los **3,3 V de `p9`/`p11`** —activo en
+> > ALTO, `INPUT` pelado con pull-down `R67`/`R68` de 10 kΩ **medido en cobre**—.
+> > `DECISIONES.md` **`D-2`** y **`D-3`** (`M3` cerrada el 03/09).
+> >
+> > 🛑 **Y el motivo que decide, porque no es el conector: EL VIGILANTE MIRA `J16` Y NO MIRA
+> > `J14`.** Una cámara cableada a `J14` **funciona** —pide paso— **y no está vigilada**: sus
+> > alarmas `CAM_CIEGA` y `CAM_PEGADA` no existirían y nadie sabría nunca que se estropeó. Entre
+> > *«a veces se pierde un rebote»* y *«no hay nadie mirando si la cámara sigue viva»*, el segundo
+> > es el fallo que no se nota.
+> >
+> > ⚠️ **Lo que de `J14` sigue siendo verdad y no caduca:** es el único borne con **antirrebote por
+> > hardware** (`R64` 10 kΩ + `C25` 100 nF, ~1 ms), sigue **vivo en el firmware** y **sin cámara**,
+> > y es el mejor candidato a **fin de carrera de barrera** el día que se decida `A-2`.
+> > 🔴 **Y la limitación conocida del borne vigente, que hay que anotar al cablear:** `p10`/`p12`
+> > **no llevan condensador**, la lectura es **por flanco**, y delante sólo está la ventana de
+> > silencio de 3 s de `demanda_solicitar()`. Un relé que rebote mucho puede consumirla. **Es una
+> > limitación del borne, no un motivo para volver a `J14`.**
 >
 > 🔴 **`PB8` NO es una entrada de cámara** y no lo ha sido nunca en el firmware. Alimenta un LED
 > testigo de la placa. Hay documentación antigua que dice lo contrario (Guía, al final: el
@@ -1486,25 +1840,43 @@ Y a los 3 minutos, seguia en AMBAR?       [ ] SI   [ ] NO, volvio a: ___________
 > El banco no llegó —hace falta el Modo Automático, y eso hace falta la app—. **Cableado sin falsa
 > activación no es lo mismo que cámara que funciona.**
 
-**11.1 Demanda en el Maestro (`J14`)** — ♻️ **SE REESCRIBE**
-- *Acción:* provocar una detección con la cámara —o con un pulsador suelto entre los dos bornes de
-  `J14`, que hace exactamente el mismo papel— estando ese sentido en Rojo.
+**11.1** ~~**Demanda en el Maestro (`J14`)**~~ → 🔴 **DEMANDA EN EL MAESTRO POR `J16` p10 — corregido
+el 07/09 (E-4, `D-2`/`D-3`)** — ♻️ **SE REESCRIBE**
+- 🛑 **ANTES DE NADA: `J16` p1 lleva 12 V CRUDOS. Se tapa** (paso 4 de la Guía, `D-4`, N-120).
+  **Y no se toca `J16` p5 ni p8** — ver el recuadro rojo de §0.3: tres toques en p5 abren un carril.
+- *Acción:* provocar una detección con la cámara —o con un pulsador suelto **entre `J16` p10 y
+  `J16` p11 (los 3,3 V del pin de al lado)**, que hace exactamente el mismo papel— estando ese
+  sentido en Rojo. *(Es el montaje que ya se hizo y funcionó en el paso 21 de la Guía, sin demandas
+  fantasma.)*
+- ~~*Acción (caducada):* … un pulsador suelto entre los dos bornes de `J14`…~~ 🔴 **`J14` no lleva
+  cámara desde `D-3`, y además no está vigilado.** Si alguien monta el ensayo ahí, la demanda
+  entrará —el pin sigue vivo— **y estará midiendo un camino que en campo no existe.**
 - *Esperado:* el Maestro registra la demanda, **aplica el todo-rojo de despeje** y conmuta a
   🟢 Verde Maestro. **En reposo no pide paso solo.**
 - *El montaje y la comprobación de que el contacto conmuta de verdad están en los **pasos 17, 18 y 19
   de la Guía**. No se repiten aquí: traiga de allí los números.*
-- > 🔬 **Y de la sesión del 3–4/09 ya vienen dos de esos números, así que la mitad de esta prueba
-  > está hecha:** el borne «3,3 V» de `J14` mide `3,3 V` y el borne «Puerta» `0 V`; **al puentearlos
-  > el borne sube y al soltar vuelve** (pasos 17 y 18). **La conmutación está verificada.**
-  > **Lo que quedó pendiente es justo lo que esta prueba mide de más: la reacción del semáforo**
-  > (paso 19), porque el equipo nunca salió del estado de espera de selección de modo. **Se repite
-  > entera cuando haya enlace.**
+- > ~~🔬 **Y de la sesión del 3–4/09 ya vienen dos de esos números, así que la mitad de esta prueba
+  > está hecha:** el borne «3,3 V» de `J14` mide `3,3 V` y el borne «Puerta» `0 V`; al puentearlos
+  > el borne sube y al soltar vuelve (pasos 17 y 18).~~
+  > 🔴 **07/09 — ESOS DOS NÚMEROS SON DE `J14`, Y ESTA PRUEBA YA NO SE HACE EN `J14` (E-4). NO
+  > CUBREN LA MITAD DE NADA:** una continuidad medida en un borne **no dice nada del de al lado**.
+  >
+  > ✅ **Lo que SÍ viene medido para el borne vigente, y hay que traerlo:** el **paso 21** de la Guía
+  > cableó `J16` **p10 contra p11** en normalmente-abierto y **en reposo el equipo no pidió paso
+  > solo**, ni con el cable puesto ni sin él. Más el **paso 20**, que dio `9,93 kΩ` en p10 y
+  > `9,94 kΩ` en p12 contra masa, con `0 V` en reposo — **la resistencia real existe en el cobre**
+  > (`M3` cerrada, `D-3`).
+  >
+  > ⚠️ **Y lo que sigue sin verificarse, que es justo lo que esta prueba añade: que una demanda por
+  > `J16` CONCEDA EL PASO.** El banco no llegó —hace falta el Modo Automático, y para eso la app—.
+  > **Cableado sin falsa activación no es lo mismo que cámara que funciona.** Se repite entera
+  > cuando haya enlace.
 - Segundos hasta el verde: ________  En reposo, ¿pidió paso solo? ____________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 
 **11.2 Demanda en el Esclavo, y el Maestro decide** — ♻️ **SE REESCRIBE**
-- *Acción:* provocar la detección en el `J14` del **Esclavo**. Alternativa sin cámara: mandarle
-  `CMD:PIN:1234:SOLICITAR_PASO`.
+- *Acción:* provocar la detección en el ~~`J14`~~ **`J16` p10 (contra p11)** del **Esclavo**
+  *(corregido el 07/09, E-4)*. Alternativa sin cámara: mandarle `CMD:PIN:1234:SOLICITAR_PASO`.
 - *Esperado:* `$ACK,CMD:SOLICITAR_PASO,RESULT:PEDIDO_AL_MAESTRO`. El Esclavo **transmite la petición
   al Maestro y no enciende nada por su cuenta**; el Maestro aplica el todo-rojo y concede el verde.
 - Vía usada: ____________  Segundos hasta el verde: ________
@@ -1560,7 +1932,9 @@ Y a los 3 minutos, seguia en AMBAR?       [ ] SI   [ ] NO, volvio a: ___________
 - ~~**Falta: la placa del ESP32** (no diseñada, no fabricada, no medida), **su fuente** (DC-DC 12 V→5 V
   ≥1 A, sin pedir) y **el firmware del módulo**, que se entrega aparte.~~
 - 🔴 **Lo que falta hoy es otra cosa, y es peor porque no se compra: el módulo NO SE ANUNCIA.** La
-  placa existe y está armada, la fuente está montada, el firmware `ESP32_Expansion` **compiló y se
+  placa existe y está armada, la fuente está montada, el firmware `ESP32_Expansion` **existe desde el
+  31/08 en el repositorio** —`01_Firmware/ESP32_Expansion/`, con su rótulo Bluetooth (`ROTULO_PREFIJO
+  "SEM-"` en `contrato.h`) y su watchdog (`esp_task_wdt.h` en `vigilante.cpp`)— y **compiló y se
   cargó sin errores**, y el chip está descartado como causa —es un `ESP32-WROOM-32` clásico, con el
   `BR/EDR` que el `SPP` de la app necesita; un `S3`/`C3`/`S2` **jamás conectaría**—. Aun así, **el
   dispositivo no apareció de forma fiable en el teléfono** en toda la sesión (Guía, pasos 10 y 25).
@@ -1579,7 +1953,9 @@ Y a los 3 minutos, seguia en AMBAR?       [ ] SI   [ ] NO, volvio a: ___________
 - *Acción:* con el terminal a 9600 en cada punta, observar el flujo un minuto.
 - *Esperado:* ~~**una trama por segundo**~~ **una trama cada 2 s** en cada punta, con su checksum, en
   el formato de §0.2 *(cadencia bajada a 2000 ms el 04/09, decisión del responsable — medido en
-  `Maestro/src/bluetooth.cpp:851` y `Esclavo/src/bluetooth.cpp:768`)*.
+  ~~`Maestro/src/bluetooth.cpp:851` y `Esclavo/src/bluetooth.cpp:768`~~ → 🔴 **citas caducadas,
+  re-medidas el 07/09 (E-6): hoy `:814` y `:877`. El ancla es
+  `grep -n "telemetria cada 2000 ms" Maestro/src/bluetooth.cpp Esclavo/src/bluetooth.cpp`)*.
   Comprobar que aparece `MODO:` y que **cambia** al mandar un `SET_MODO`.
 - *Y lo que hay que confirmar que el equipo NO INVENTA* —copie los valores:
 
@@ -1596,7 +1972,8 @@ Campo ESC: del Maestro: ______                            (ROJO / VERDE / AMBAR 
 > retiró el 04/09 por inventarse una medida**. Tal como estaba escrita, **un firmware arreglado
 > salía `NO CUMPLE`**.
 >
-> **MEDIDO** —`Maestro/src/bluetooth.cpp:970` y `Esclavo/src/bluetooth.cpp:832`—: el `snprintf` de
+> **MEDIDO** —~~`Maestro/src/bluetooth.cpp:970` y `Esclavo/src/bluetooth.cpp:832`~~ → 🔴 **hoy
+> `:1089` y `:1037`; el ancla es `grep -n 'STATUS,NODE' bluetooth.cpp` (E-6)**—: el `snprintf` de
 > las dos puntas lleva **`BAT:--`** literal, y el del Esclavo además **`T:--,RF:--,RTT:--`**. La
 > causa está medida y no es un hueco: **`grep -rn analogRead` sobre `Maestro/{src,include}` y
 > `Esclavo/{src,include}` devuelve DOS coincidencias y las dos son COMENTARIOS** —cero llamadas—.
@@ -1730,7 +2107,12 @@ En el MAESTRO:
    CMD:PIN:1234:SET_MODO:ALCANCE     -> con un modo en marcha, EN_MARCHA_PARE_EL_MODO
    CMD:PIN:1234:SET_TIEMPOS:1,1,15   -> con el ciclo corriendo, EN_MARCHA_PARE_EL_MODO
    CMD:PIN:1234:SET_TIEMPOS:9,9,9    -> fuera de rango, RANGO
-   CMD:PIN:1234:SET_RTC:31-08-2026   -> formato al reves, FORMATO_INVALIDO
+   ~~CMD:PIN:1234:SET_RTC:31-08-2026   -> formato al reves, FORMATO_INVALIDO~~
+      ^-- TACHADA EL 07/09 (D-15, E-3): el STM32 ya no contesta a SET_RTC, ni con
+          $ACK ni con $ERR. Esta linea esperaba un $ERR que no llega, y con el
+          criterio de abajo -"las nueve contestan $ERR"- el silencio se leeria
+          como el fallo entero. SON OCHO, no nueve. El formato de la hora lo
+          valida hoy el PUENTE, y se prueba por app en la 7.1 vigente.
    CMD:PIN:1234:DEMANDA              -> fuera del modo inteligente, SOLO_EN_MODO_INTELIGENTE
    CMD:PIN:1234:ESTO_NO_EXISTE       -> COMANDO_NO_SOPORTADO
 
@@ -1739,12 +2121,13 @@ En el ESCLAVO:
    CMD:FORZAR_ROJO                   -> RENOMBRADO_USE_AMBAR_EMERGENCIA
 ```
 
-- *Esperado:* **las nueve contestan `$ERR` con su motivo. Ninguna contesta `$ACK`.** Con el PIN mal,
+- *Esperado:* **las ~~nueve~~ OCHO contestan `$ERR` con su motivo. Ninguna contesta `$ACK`.** *(Ocho
+  desde el 07/09: la de `SET_RTC` se retiró arriba por `D-15`.)* Con el PIN mal,
   además, **el modo no cambia**: compruébelo **mirando las luces**, no sólo la respuesta.
 - Con el PIN mal, ¿cambió el modo? ____________
 - ¿Alguna contestó `$ACK`? ¿cuál? ______________________________________
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
-- > 🔴 **Un `$ACK` en cualquiera de las nueve es el fallo entero, aunque el equipo se comporte bien
+- > 🔴 **Un `$ACK` en cualquiera de las ~~nueve~~ ocho es el fallo entero, aunque el equipo se comporte bien
   > después.** Y hay una que hay que mirar **con los ojos**, no en el terminal: con
   > `CMD:PIN:1234:TEST_LEDS` en el Maestro las lámparas se encienden pero **la talanquera NO se puede
   > mover**. Si la pluma sube durante esa prueba, anótelo — es importante *(Guía, paso 28)*.
@@ -1766,7 +2149,8 @@ En el ESCLAVO:
 - *Por qué, y esto es un error de la revisión anterior, no un cambio de arquitectura:* pedía probar
   `A·B·A` (Auto), `B·A·B` (Ámbar) y `B·A·B·A` (Manual). **Esas secuencias nunca se implementaron.**
   Las reales son, y siguen siendo, `A·A·A` (Automático), `B·B·B` (Ámbar) y `A·B·A·B` (Degradado)
-  — `Maestro/src/mando.cpp:202-235`, **MEDIDO**.
+  — ~~`Maestro/src/mando.cpp:202-235`~~ → 🔴 **cita caducada, E-6; el ancla es
+  `grep -n "confirmarYActuar(ACC_" Maestro/src/mando.cpp`**.
 - **No se firma.** Las tres secuencias que sí existen se certifican en la **Sección 8**.
 - > 🔴 **La redefinición de secuencias sigue siendo una decisión de especificación abierta**, no
   > código pendiente: cambiarla toca el Manual de Usuario, este protocolo y el adiestramiento del
@@ -1900,9 +2284,17 @@ inventamos nosotros.** Es `DECISIONES.md` **A-7**, y está medido en el reposito
 ```text
 01_Firmware$ grep -rn "cerrado ~1 s\|cierra ~1 s\|PULSO_RELE_MS = " \
              --include=*.cpp --include=*.py Maestro Esclavo Simulaciones/banco/packs
-Maestro/src/botones.cpp:135:// El rele de la camara mantiene el contacto cerrado ~1 s por deteccion: leer el nivel
+
+  --- RE-CORRIDO EL 07/09. La salida de abajo NO es la que este documento publicaba:
+      son OCHO comentarios, no cinco, y tres de las lineas viejas ya no senalaban ahi.
+      Todo grep publicado se vuelve a correr antes de publicarlo (CLAUDE.md 7.3).
+
+Maestro/src/botones.cpp:333://   el flanco todavia vigente - EL PULSO. El rele de la camara cierra ~1 s por deteccion
+Maestro/src/botones.cpp:471:// pulsando como pulsa el rele de la AcuSense -cerrado ~1 s por coche y abierto entre
+Maestro/src/botones.cpp:490:// El rele de la camara mantiene el contacto cerrado ~1 s por deteccion: leer el nivel
 Maestro/src/demanda.cpp:5:// de la camara AcuSense cierra ~1 s por deteccion, y un coche detras de otro dispara
-Esclavo/src/botones.cpp:155:// El rele de la camara mantiene el contacto cerrado ~1 s por deteccion: leer el nivel
+Esclavo/src/botones.cpp:346://   el flanco todavia vigente - EL PULSO. El rele de la camara cierra ~1 s por deteccion
+Esclavo/src/botones.cpp:478:// El rele de la camara mantiene el contacto cerrado ~1 s por deteccion: leer el nivel
 Esclavo/src/demanda.cpp:6:// de la camara AcuSense cierra ~1 s por deteccion, y un coche detras de otro dispara
 Esclavo/src/main.cpp:342:  // El rele de la camara mantiene el contacto cerrado ~1 s por deteccion; leer el nivel
 Simulaciones/banco/packs/camara_01_demanda.py:39:# El rele de la camara AcuSense cierra ~1 s por deteccion (Manual 9, paso 3 de la
@@ -1911,7 +2303,9 @@ Simulaciones/banco/packs/camara_02_j16.py:89:# El rele de la camara AcuSense cie
 Simulaciones/banco/packs/camara_02_j16.py:92:PULSO_RELE_MS = 1000
 ```
 
-**Cinco comentarios del firmware y DOS packs del banco descansan sobre ese `~1 s`, y su fuente
+~~**Cinco comentarios del firmware**~~ → 🔴 **OCHO comentarios del firmware, re-contados el
+07/09** — el número **creció** mientras el dato seguía sin medirse, que es justo lo que hace `A-7`
+más cara cada semana — **y DOS packs del banco descansan sobre ese `~1 s`, y su fuente
 citada es un manual NUESTRO — no Hikvision.** Los dos packs comparan `SILENCIO_MS` contra ese
 `PULSO_RELE_MS = 1000` y salen en **verde midiendo contra un número que nadie ha medido nunca.** El manual del fabricante define el parámetro `Delay`
 —*«the time duration that the alarm output remains after an alarm occurs»*, **PDF pág. 80 / impresa
@@ -2373,9 +2767,24 @@ Seccion  8 — Mando de reles (por puente en J16) .......  --- / 5   <- NO EJECU
                                                                      (el motivo viejo "p5/p8 =
                                                                       0,6 V" esta CADUCADO)
 Seccion  9 — Modo Degradado ...........................  ___ / 14   (12 + 9.15 + 9.16)
-   de las 14, NO son ejecutables sin el puente de J16:  9.5 . 9.6(punta Esclavo) . 9.9 .
+   ~~de las 14, NO son ejecutables sin el puente de J16:  9.5 . 9.6(punta Esclavo) . 9.9 .
    9.10 . 9.11 . 9.16   -- y 9.7 y 9.8 no se pueden montar sin meter al Esclavo en
-   Degradado (9.7 es la verificacion visual de dos ciclos, la clave de la seccion).
+   Degradado (9.7 es la verificacion visual de dos ciclos, la clave de la seccion).~~
+
+   >>> CORREGIDO EL 07/09 (E-2, DECISIONES.md D-18). El Esclavo entra en Degradado
+       POR APP: CMD:PIN:1234:SET_MODO:DEGRADADO. Reparto vigente:
+
+       - CON ENLACE BLUETOOTH se pueden montar:  9.6(las dos puntas) . 9.7 . 9.8 . 9.16
+         9.7 -la verificacion visual de dos ciclos, la clave de la seccion- VUELVE.
+       - SIGUEN necesitando el puente de J16, porque no hay orden que las sustituya:
+         9.5 (rechazo desde el piso) . 9.9 y 9.10 y 9.11 (salida con A.A.A)
+         >>> Y ANTES DE DAR UN SOLO PULSO SE LEE EL RECUADRO ROJO DE 0.3:
+             A.A.A NO TIENE GUARDA Y ARRANCA EL CICLO, o sea ABRE PASO.
+       - SIN ENLACE BLUETOOTH no se ejecuta nada que necesite meter al Esclavo en
+         Degradado. Se marca "no ejecutable" con ESE motivo -no con el del puente-.
+       - 9.15 esta INVERTIDA: hoy se firma que el Esclavo SI acepta SET_MODO:DEGRADADO
+         y que NO acepta SET_MODO:AUTO. La version vieja suspendia a un firmware sano.
+
    Se marcan "no ejecutable" con su motivo, NUNCA "NO CUMPLE" ni "CUMPLE".
 Seccion 11 — Camaras de demanda .......................  ___ / 2
 Seccion 14 — Las 8 medidas de la camara Hikvision ....  NO PUNTUA

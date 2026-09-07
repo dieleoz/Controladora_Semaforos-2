@@ -87,17 +87,38 @@
 > y el propio grep del manual, tal cual, YA NO DA CERO: Maestro/src/bluetooth.cpp:717
 > ```
 >
-> 🔴 **LO QUE SÍ SIGUE SIENDO CIERTO, y es lo que el comprador necesita: NO HAY `DS3231` COMPRADO**
-> (línea `A6`), y la dirección `0x68` sigue **SIN VERIFICAR sobre un módulo real**. **N-145 no se
-> puede dar por probada.** Sin la pieza, el hueco de hora sale como **`--:--:--`** — y eso **no es
-> una avería: es el firmware callándose bien**, que es justo lo que este recuadro quería proteger y
-> decía por el motivo equivocado. **Enchufado al STM32 sigue sin pasar nada**: ahí nunca hubo driver
-> y no lo va a haber.
+> 🔴 ~~**LO QUE SÍ SIGUE SIENDO CIERTO, y es lo que el comprador necesita: NO HAY `DS3231` COMPRADO**
+> (línea `A6`) … **N-145 no se puede dar por probada.**~~
+>
+> # 🛑 07/09 — ESO CADUCÓ EN UNA HORA, Y ES EL EJEMPLO EXACTO DE POR QUÉ UNA FECHA NO VALIDA NADA
+>
+> **El párrafo de arriba se escribió el 05/09 a las 13:11** (`eaf6760`). **A las 14:12 del mismo
+> día** el responsable resolvió `A-5` y la fila `A6` de la lista de compras se corrigió (`08c9d36`):
+>
+> > *«cada `ESP32` tiene un reloj y pila, ya te lo indiqué»* — **son DOS `DS3231`, uno por poste, y
+> > están PUESTOS.** Estaba escrito desde el 28/08 en la propia lista de compras.
+>
+> **Consecuencias, y las tres invierten lo que decía el párrafo tachado:**
+>
+> | decía | hoy (`DECISIONES.md` `A-5`, `D-9`, `D-15`) |
+> |---|---|
+> | *«no hay `DS3231` comprado»* | ✅ **hay dos, uno por `ESP32`, con pila propia. `A6` sale de la lista de pedido** |
+> | *«`N-145` no se puede dar por probada»* | 🟢 **`N-145` queda CONFIRMADA EN COBRE:** el `HORA:22:19:58` de la cinta del banco **es real** |
+> | *«enchufado al STM32 sigue sin pasar nada»* | ✅ **sigue cierto, y es lo correcto: el reloj NO va al STM32** (`D-9`) |
+>
+> 🔴 **Lo único que de verdad sigue abierto: la dirección I²C `0x68` está `SIN VERIFICAR` sobre el
+> módulo real** —es la del datasheet, y lo declara el propio fuente en
+> `ESP32_Expansion/include/contrato.h`—.
 >
 > * Este documento es una **guía de taller para compras, preparación de hardware y modificaciones en
->   la PCB** para cuando se desarrolle la versión V9.0 (`roadmap.md` N-54 / N-55).
-> * **No prometa hora al cliente por haber comprado el reloj.** El `DS3231` es una compra de
->   *preparación de hardware*; la funcionalidad llega con el firmware V9.0, no con el módulo.
+>   la PCB**, y **su bus I²C sobre el STM32 NO SE MONTA** (ver el recuadro de arriba).
+> * ~~**No prometa hora al cliente por haber comprado el reloj.** El `DS3231` es una compra de
+>   *preparación de hardware*; la funcionalidad llega con el firmware V9.0, no con el módulo.~~
+>   ⛔ **CADUCADO EL 07/09: el firmware existe y está llamado** —`ESP32_Expansion/src/reloj_ds3231.cpp`,
+>   con `reloj_setup()`, `reloj_revisar()`, `reloj_leer()` y `reloj_ajustar()` **todos con
+>   llamador**—, y la hora **ya salió en una cinta de banco**. **Lo que sí hay que decirle al cliente
+>   es lo contrario de lo que decía esta línea: la hora del cruce la lleva el `DS3231` del `ESP32`, y
+>   el STM32 no tiene ninguno.**
 
 ---
 
@@ -131,7 +152,7 @@
 > | | |
 > |:---|:---|
 > | ✅ **MEDIDO SOBRE EL ESQUEMÁTICO Y EL TRAZADO** (28/08/2026) | Las redes de §4.1 y §4.2, salidas de recorrer `Controladora_Semaforos.kicad_sch` y `.kicad_pcb` red por red y pad por pad, no de leer la leyenda del plano. |
-> | ✅ **MEDIDO SOBRE EL FIRMWARE** (28/08/2026) | Que `PB6`/`PB7` están **tomados por el Bluetooth** (`SerialBT(PB7, PB6)` en los dos `bluetooth.cpp`), que `PB0`→`J14` es entrada y `PB2`→`J15` es salida (`pines.h`), y que **no hay driver de `DS3231`** (§0). Son medidas sobre el código, no sobre el cobre. |
+> | ✅ **MEDIDO SOBRE EL FIRMWARE** (28/08/2026) | Que `PB6`/`PB7` están **tomados por el Bluetooth** (`SerialBT(PB7, PB6)` en los dos `bluetooth.cpp`), y que `PB0`→`J14` es entrada y `PB2`→`J15` es salida (`pines.h`). Son medidas sobre el código, no sobre el cobre. ~~y que **no hay driver de `DS3231`** (§0)~~ 🔴 **TACHADO EL 07/09: ESO ES FALSO, Y LO DICE EL PROPIO §0 DE ESTE MANUAL DESDE EL 05/09.** El driver existe —`ESP32_Expansion/src/reloj_ds3231.cpp`— y tiene llamadores. **La medida del 28/08 era cierta el 28/08 y miraba sólo dos de las tres carpetas de firmware**; esta fila la heredó sin volver a correrla, que es exactamente lo que §0 explica que no se debe hacer. |
 > | ⛔ **NO VERIFICADO EN LA PLACA** | **Nada de este manual se ha comprobado con multímetro sobre el cobre.** Un esquemático dice lo que se dibujó; una placa dice lo que se fabricó y lo que alguien reparó después. Antes de soldar, la §7 manda comprobar con el pito lo que aquí sale como «medido». **Tampoco está verificado en banco el enlace Bluetooth sobre `J17` p2/p3**: la compuerta pasó, y la compuerta no toca la tarjeta. |
 > | ❓ **ABIERTO — pero ya no bloquea la elección de ruta** | El **papel real de `PB6`**. El firmware lo llama `LCD_PSB`; la etiqueta de red del esquemático lo llama `RS(A0)`. **Los dos nombres no pueden ser ciertos a la vez.** Antes esto decidía si existía la ruta C; **hoy la ruta C está muerta por otro motivo (§4.2)**, así que la pregunta ya no gobierna el bus — pero **ha cambiado de dueño**: ahora `PB6` lleva el `TX` del Bluetooth, y si resultara ser de verdad el `RS/A0` del display, es la **pantalla** la que queda en riesgo. Se resuelve igual: siguiendo el hilo hasta la pata rotulada del módulo, y encendiendo el equipo a ver si dibuja. |
 
@@ -199,9 +220,18 @@ función alternativa de I²C:
 
 ### 2.1 Presupuesto de Flash — la cifra de este manual estaba vencida
 
-| | dice el manual del 27/08 | dijo la 1.ª revisión del 28/08 | **manda el acta** `evidencia/2026-08-28_compuerta.txt` |
+| | dice el manual del 27/08 | dijo la 1.ª revisión del 28/08 | ~~**manda el acta** `evidencia/2026-08-28_compuerta.txt`~~ |
 |:---|:---:|:---:|:---:|
-| Flash libre en el Maestro | ~4.728 B | 9.452 B (85,6 %) | **9.276 B libres** — `85.8% (used 56260 bytes from 65536 bytes)` |
+| Flash libre en el Maestro | ~4.728 B | 9.452 B (85,6 %) | ~~**9.276 B libres** — `85.8% (used 56260 bytes from 65536 bytes)`~~ |
+
+> 🔴 **07/09 — ESA CIFRA CADUCÓ, Y AQUÍ NO SE ESCRIBE OTRA.** El acta del 28/08 sigue existiendo y
+> su número era correcto **para aquel binario**; el Maestro ha crecido desde entonces. **La cifra
+> vigente se lee del acta más reciente de `evidencia/`** —`ls -t evidencia/*_compuerta.txt | head -1`—,
+> que la escribe `compuerta.py` con su fecha y el hash de `HEAD` encima. ⚠️ **Y se confirma con una
+> segunda pasada:** el acta puede publicar el binario **anterior** cuando PlatformIO sirve un
+> incremental viejo, y eso pasa siempre que dos agentes tocan el árbol a la vez (`CLAUDE.md` §10).
+> **Lo único que este apartado necesita saber sigue siendo cierto: el bit-bang cabe** —presupuesto
+> < 800 B de código propio— **y el bus no se monta**, así que no se va a gastar.
 
 **Las cifras se copian del acta, nunca se escriben a mano.** Los 9.452 B eran una cifra correcta de
 un binario anterior; el Maestro ha crecido desde entonces (entre otras cosas, con el Bluetooth de
@@ -219,7 +249,9 @@ enlazador arrastraba `Wire` entero. Se resolvió declarando `U8X8_NO_HW_I2C` en 
 > ya no tiene objeto: la ruta C está muerta y no queda ninguna ruta por hardware** (§2, §4.2).
 >
 > * **Lo único que se va a gastar es el bit-bang:** presupuesto < 800 B de código propio, cero
->   librería nueva. Con **9.276 B libres** cabe con holgura.
+>   librería nueva. ~~Con **9.276 B libres** cabe con holgura.~~ **Los bytes libres se leen del acta
+>   más reciente de `evidencia/`, no de aquí** (07/09) — y **hoy no se gasta nada: el bus no se
+>   monta.**
 > * **Y hay un aviso que sigue vivo:** si algún día se vuelve a `Wire`, se re-enlaza justo lo que
 >   `N-70` quitó. La bandera `U8X8_NO_HW_I2C` de `platformio.ini` **no se retira sin volver a medir**.
 
@@ -417,16 +449,20 @@ componentes, ni buscar pads sueltos: se conecta la placa hija al propio conector
   diagnóstico local. Quien vaya a la calle solo tendrá el Bluetooth y los LED.
 
 > [!IMPORTANT]
-> ### 🎯 CUÁL MANDA
-> **Manda la ruta B (`PA11`/`PA12`).** En el equipo de hoy —que lleva pantalla en las dos puntas—
-> es la única que no sacrifica ninguna función existente, y su coste es dos hilos a dos pads que el
-> trazado deja sin una sola pista. Que exija soldar dos puntos no la desempata a la baja: **A y D
-> también «cuestan poco taller», pero además cuestan hardware que ya funciona.**
+> ### 🎯 CUÁL MANDA — ⚠️ **y hoy la pregunta ya no se hace: el bus NO SE MONTA** (recuadro del principio)
+> **Manda la ruta B (`PA11`/`PA12`).** ~~En el equipo de hoy —que lleva pantalla en las dos puntas—~~
+> 🔴 **CADUCADO EL 07/09 (`D-17.bis`, 05/09): LA PANTALLA Y EL MENÚ SE RETIRAN DEL EQUIPO.** *(Del
+> equipo, no del código: `lcd.cpp` compila y `Validacion_LCD` sigue dando `271/271` sobre un
+> framebuffer en el PC.)* **Esa decisión, que este apartado dejaba abierta al «responsable de obra»,
+> YA ESTÁ TOMADA** — así que, si el bus llegara a montarse, **la condición de la ruta D se cumple**.
+> Se deja escrito y no se reordena la tabla porque **la elección de ruta no se ejecuta**: el bus I²C
+> sobre el STM32 está retirado desde el 31/08.
 >
-> **La ruta D manda —y con ventaja— solo si el montaje se decide explícitamente SIN LCD.** Entonces
+> ~~**La ruta D manda —y con ventaja— solo si el montaje se decide explícitamente SIN LCD.** Entonces
 > es cero soldadura, cero pads que buscar y cero componentes que retirar. **Esa decisión es del
 > responsable de obra y se escribe antes de comprar**, no se descubre en el poste: no se desmonta
-> una pantalla que ya está puesta para ahorrarse dos hilos.
+> una pantalla que ya está puesta para ahorrarse dos hilos.~~ → **la decisión está escrita:
+> `DECISIONES.md` `D-17.bis`.**
 >
 > **La ruta A no se ejecuta.** **La ruta C no se puede ejecutar.**
 
@@ -510,21 +546,33 @@ Todos estos componentes se consiguen en cualquier mostrador de electrónica loca
 >   > Ver la fe de erratas de la cabecera y el cuadro comparativo de §3. La misma errata estaba en
 >   > la fila **A4** de `15_Lista_de_Compras_Hardware.md`, y se ha corregido allí con su nota.
 > * **Las cámaras tampoco.** `PB0` ya se lee con antirrebote por hardware, por `J14`.
-> * **El único que necesita bus es el reloj**, y solo si el cristal muerto es el del **Maestro**: si
->   es el del Esclavo, ese ya toma la hora por radio (SFTY-23) y no hay nada que comprar.
+> * ~~**El único que necesita bus es el reloj**, y solo si el cristal muerto es el del **Maestro**: si
+>   es el del Esclavo, ese ya toma la hora por radio (SFTY-23) y no hay nada que comprar.~~
 >
-> O sea: lo que se compra de verdad para este manual es **el `DS3231` y sus dos resistencias de
-> pull-up** —y **solo si el cristal muerto es el del Maestro**—. El resto es opcional y va marcado
-> como tal.
+> 🛑 **07/09 — ESTA LÍNEA Y LA DE ABAJO ESTÁN DEROGADAS POR `D-9` y `D-15`, Y ERAN LAS QUE HACÍAN
+> CREER QUE FALTABA COMPRAR UN RELOJ Y QUE BASTABA UNO:**
 >
-> ⚠️ **Y el `DS3231` que se compre no dará la hora al enchufarlo: no hay driver** (§0). Se compra
-> para tenerlo cuando llegue el firmware V9.0, no para arreglar el reloj esta semana.
+> * **El STM32 no tiene reloj en ninguna de las dos puntas** (`Y2` muerto, `N-17`) y **desde `D-15`
+>   ni siquiera contesta a `SET_RTC`**. El camino que sincronizaba el reloj **del STM32** por radio
+>   —el `SFTY-23` que citaba la línea tachada— **está derogado**: esa punta **no tiene de dónde tomar
+>   la hora si no es de su propio `DS3231`**.
+> * **Por tanto son DOS, uno por poste**, no uno; **`Y2` no decide cuántos**; y **ya están puestos**
+>   (`A-5`, 05/09). **No hay reloj que comprar para este manual.**
+> * **Y el bus tampoco se monta aquí:** el `DS3231` cuelga del `ESP32` (`GPIO21`/`GPIO22`), no del
+>   STM32. Ver el recuadro del principio.
+>
+> ⚠️ ~~**Y el `DS3231` que se compre no dará la hora al enchufarlo: no hay driver** (§0). Se compra
+> para tenerlo cuando llegue el firmware V9.0, no para arreglar el reloj esta semana.~~
+> ⛔ **CADUCADO EL 07/09: el driver existe y está llamado.** Lo que sí puede pasar al enchufarlo, y
+> es otra cosa, es que el módulo **no entregue hora válida** —pila equivocada, oscilador parado
+> (`OSF`), modo 12 h—; en ese caso el firmware publica el hueco `--:--:--` **a propósito**, y el
+> motivo se lee con **`CMD:LEER_RTC`** (`D-17`), que contesta `$ERR ... DESC:` por causa.
 
 | Cant. | Componente | Encapsulado | ¿Obligatorio? | Función Técnica |
 |:---:|---|---|:---:|---|
-| **1** | **Módulo RTC DS3231 `ZS-042`** | **Módulo** de 4 pines rotulados `VCC GND SDA SCL`, con portapilas de moneda | ✅ **Sí** (solo si el cristal muerto es el del **Maestro**) | Reloj de $\pm2\text{ ppm}$ para Modo Degradado. 🔴 **SIN DRIVER: no dará la hora al enchufarlo — ver §0** |
-| **1** | **Pila de Botón `LIR2032`** *(o `CR2032`, ver aviso)* | Litio | ✅ Sí *(con el anterior)* | Respaldo horario del `ZS-042` |
-| **2** | **Resistencias de 4.7 kΩ** | 1/4 W | ✅ Sí *(con el anterior)* | Pull-ups del Bus I²C (`SDA` y `SCL`). Hacen falta en **todas** las rutas de §4.2 |
+| ~~**1**~~ → **0** | **Módulo RTC DS3231 `ZS-042`** | **Módulo** de 4 pines rotulados `VCC GND SDA SCL`, con portapilas de moneda | ⛔ **NO SE COMPRA AQUÍ — 07/09.** ~~✅ Sí (solo si el cristal muerto es el del **Maestro**)~~ | Reloj de $\pm2\text{ ppm}$ para Modo Degradado. 🛑 **Son DOS, uno por `ESP32`, y YA ESTÁN PUESTOS** (`A-5` / `D-9` / `D-15`; línea `A6` de `15_Lista_de_Compras_Hardware.md`). ~~🔴 SIN DRIVER: no dará la hora al enchufarlo~~ ⛔ **falso desde el 05/09: el driver existe y está llamado (§0)** |
+| ~~**1**~~ → **0** | **Pila de Botón `LIR2032`** *(o `CR2032`, ver aviso)* | Litio | ⛔ **con el anterior: no se compra aquí.** El aviso de recepción sigue valiendo y vive en `A6` de la lista 15 | Respaldo horario del `ZS-042` |
+| ~~**2**~~ → **0** | **Resistencias de 4.7 kΩ** | 1/4 W | ⛔ **con el anterior.** El `ZS-042` trae sus propios pull-ups y **este bus no se monta** | ~~Pull-ups del Bus I²C (`SDA` y `SCL`). Hacen falta en **todas** las rutas de §4.2~~ |
 | **1** | **Integrado `PCF8574P`** (o `PCF8574`) | **Circuito integrado DIP-16** *(no es un módulo)* | ⬜ Solo si además se quiere expandir E/S | Expansor I²C (8 E/S) - Dirección `0x20` |
 | **1** | **Base / Zócalo DIP-16** | 16 pines | ⬜ Con el anterior | Protección térmica del chip al soldar |
 | **2** | **Optoacopladores PC817** (o EL817) | DIP-4 | ⬜ Solo si se añaden entradas nuevas | Aislamiento galvánico para entradas de contacto seco |
@@ -661,9 +709,16 @@ Todos estos componentes se consiguen en cualquier mostrador de electrónica loca
 * [ ] **El enlace Bluetooth responde.** Emparejar desde el celular y comprobar que llega telemetría.
       **No verificado en banco todavía**: el módulo se cableó a `J17` p2/p3 el 28/08 y la compuerta
       pasó, pero la compuerta no toca la tarjeta.
-* [ ] **El reloj NO va a dar la hora, y eso no es un fallo del montaje.** Si se montó el `DS3231`,
-      no se busque avería cuando la hora no aparezca: **no hay driver** (§0). Lo que se comprueba
-      aquí es eléctrico —3,3 V en `VCC`, niveles del bus—, no funcional.
+* [ ] 🔴 ~~**El reloj NO va a dar la hora, y eso no es un fallo del montaje.** Si se montó el
+      `DS3231`, no se busque avería cuando la hora no aparezca: **no hay driver** (§0).~~
+      🛑 **ANULADO EL 07/09 — ESTA CASILLA ENSEÑABA A NO MIRAR UNA AVERÍA.** El driver **existe y
+      está llamado** desde el 31/08 (§0), y desde `D-9`/`D-15` **ese `DS3231` es el ÚNICO reloj del
+      cruce**. Si la hora no aparece, **eso SÍ es un hallazgo y se diagnostica**:
+      manda **`CMD:PIN:1234:` no — `CMD:LEER_RTC` va SIN PIN** (`D-17`), y el puente contesta
+      `$ACK,NODE:PUENTE,...,FECHA:,HORA:` o un `$ERR ... DESC:` **por causa**
+      (`OSCILADOR_PARADO_CAMBIE_PILA`, `NUNCA_SE_PUSO_PONGA_LA_HORA`, `SIN_RELOJ_NO_RESPONDE`, …).
+      *(Este manual ya no compra ese reloj —ver §5—; la casilla se conserva corregida porque quien
+      tenga una copia impresa anterior tiene que enterarse de que decía lo contrario.)*
 
 ---
 
@@ -681,7 +736,17 @@ Todos estos componentes se consiguen en cualquier mostrador de electrónica loca
 *Revisado el 28/08/2026 (1.ª revisión): corregida la fila de `PB8` de §4 (errata del 27/08), añadido
 el censo de pines libres y las rutas del bus.*
 
-> **SIGUE SIENDO PRE-IMPLEMENTACIÓN.** Ni el `PCF8574` ni el `DS3231` tienen driver en el firmware.
+> **SIGUE SIENDO PRE-IMPLEMENTACIÓN.** ~~Ni el `PCF8574` ni el `DS3231` tienen driver en el
+> firmware.~~ 🔧 **CORREGIDO EL 07/09: el `PCF8574` no tiene driver Y NO SE COMPRA** (propuesta
+> retirada, ver el recuadro del principio); **el `DS3231` SÍ lo tiene** —`ESP32_Expansion/src/reloj_ds3231.cpp`,
+> con llamadores— **y ya está montado, uno por poste** (`A-5`, `D-9`, `D-15`). **De este manual no se
+> compra ninguno de los dos.**
 > Lo del 28/08 está **MEDIDO SOBRE EL FUENTE Y SOBRE LOS FICHEROS DE DISEÑO**; **nada de este manual
 > está VERIFICADO SOBRE LA PLACA con multímetro.** Las dos cosas no son la misma, y la §7 existe
 > para convertir la primera en la segunda.
+>
+> 🔴 **Y la lección que este manual se ha cobrado dos veces, escrita para que no haya una tercera:**
+> el recuadro §0 corrigió el 05/09 lo de *«el `DS3231` no tiene driver»*… **y la frase siguió viva en
+> otros CUATRO sitios de este mismo fichero** —la tabla «qué está medido», la §5, la fila de compra y
+> la casilla de §7.1— hasta el 07/09. **Una corrección que no se propaga a las copias del propio
+> documento no es una corrección: es una nota que la copia caducada tapa.**

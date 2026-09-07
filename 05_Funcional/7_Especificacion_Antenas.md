@@ -168,10 +168,45 @@ por 4 aunque se compren 2, por si hay diferencia por volumen.
 | 4 | Longitud y peso | Dentro de lo especificado |
 | 5 | Abrazadera | Compatible con el diámetro del mástil |
 
-Tras la instalación, repetir la **prueba de alcance en campo** con la pantalla `PRUEBA ALCANCE` del
-Maestro —ahora en **`Menú Principal → CONFIGURACION → PRUEBA ALCANCE`**, ya no cuelga del menú
-principal— y **anotar el resultado** para compararlo contra la medición del 31/07 (1 cuadra, esquina y
-2 cuadras). Ver `2_Manual_Hardware_y_Pruebas.md §2.1`.
+Tras la instalación, repetir la **prueba de alcance en campo** y **anotar el resultado** para
+compararlo contra la medición del 31/07 (1 cuadra, esquina y 2 cuadras).
+
+> # 🔴 07/09 — CÓMO SE MIDE EL ALCANCE HOY, PORQUE LA PANTALLA QUE MANDABA ESTE PÁRRAFO YA NO ESTÁ
+>
+> ~~con la pantalla `PRUEBA ALCANCE` del Maestro —ahora en **`Menú Principal → CONFIGURACION →
+> PRUEBA ALCANCE`**—. Ver `2_Manual_Hardware_y_Pruebas.md §2.1`.~~
+>
+> **Ese camino está tapiado por los dos lados, y las dos mitades están medidas:**
+>
+> 1. **El menú no se puede navegar.** `botonAceptar()` y `botonCancelar()` son `return false;` en las
+>    dos puntas desde que `BOTON3`/`BOTON4` pasaron a ser cámaras (`D-2`).
+> 2. **La pantalla se retira del EQUIPO** (`DECISIONES.md` `D-17.bis`, 05/09). *(Del equipo, no del
+>    código: `lcd.cpp` sigue compilando.)*
+>
+> 🛑 **Y hay un tercer detalle que decide si merece la pena entrar en ese modo: el Modo Alcance
+> publica su telemetría por UN SOLO camino, y es la pantalla.** Medido el 07/09:
+> `Maestro/src/modo_alcance.cpp` tiene **una sola salida**, `lcd_dibujarAlcance()`. **Entrar ahí con
+> `SET_MODO:ALCANCE` desde la app deja el cruce parado en su estado seguro (rojo fijo) y no enseña
+> nada a nadie** — el propio fuente lo dice en su cabecera.
+>
+> ## ✅ Lo que SÍ se hace hoy: se lee del `$STATUS`, con la app y sin cambiar de modo
+>
+> Los dos números que pintaba aquella pantalla **viajan en cada `$STATUS`**, en los dos modos de
+> operación y sin parar el cruce (`Maestro/src/bluetooth.cpp`, plantilla del `$STATUS`):
+>
+> | campo | qué es | qué anotar |
+> |---|---|---|
+> | **`RF:`** | calidad del enlace en **%** *(acotada por `CALIDAD_ENLACE_MAX`)* | el valor en cada punto de la ruta |
+> | **`RTT:`** | tiempo de ida y vuelta de un latido, en ms | sube cerca del límite de cobertura |
+>
+> **Se anotan los dos, con la distancia y con la hora**, y se comparan contra el 31/07. ⚠️ **Una
+> lectura de `RF:` con la antena vieja y otra con la nueva, en el MISMO punto**, es la única
+> comparación que dice si la antena sirvió: la prueba de alcance sin punto fijo no compara nada.
+>
+> 🟠 **Y lo que se perdió y no tiene sustituto por app, escrito para que conste:** aquella pantalla
+> también daba **latidos perdidos, bytes recibidos y tramas válidas acumulados desde que se entraba
+> al modo** (`protocolo_reiniciarContadores()`). **Eso no sale en el `$STATUS`.** Si la sesión de
+> antenas los necesita, **es una pregunta para el responsable**, no un arreglo de este documento.
 
 > 📡 **Una razón más para no aplazar las antenas.** El Modo Degradado exige una sincronización horaria
 > de **menos de 2 horas** de antigüedad para poder activarse, y esa sincronización viaja **por el
@@ -179,3 +214,24 @@ principal— y **anotar el resultado** para compararlo contra la medición del 3
 > debería y **la ventana para activar el Degradado se cierra sin que nadie lo note**. Las antenas
 > correctas no solo alargan el alcance: mantienen viva la condición que hace utilizable el modo de
 > respaldo. Ver `8_Procedimiento_Modo_Degradado.md §2`.
+>
+> 🔴 **Y hoy pesa más que cuando se escribió, por dos hechos del 05/09:** *(1)* **`D-18`** — el Modo
+> Degradado del poste 2 **se pide por app**, así que hay que llegar a él con el teléfono, y *(2)*
+> **`D-16`: sin teléfono no hay forma de operar el equipo.** Retirado el mando (`D-1`), **la app es
+> la única superficie de mando**: un enlace de radio caído ya no deja al operario «el mando desde el
+> suelo» como último recurso, porque ese mando no existe.
+
+---
+
+## 9. ⚠️ Lo que este documento NO decide, y hay que tener delante al pedir
+
+- **La cantidad la fija la topología vigente: 2 radios en enlace directo, SIN repetidor**
+  (`CLAUDE.md` §3). Las «4 antenas» de §6.3 son **el escenario del repetidor reinstalado**, que hoy
+  **no está montado**. Pedir cotización por 4 y comprar 2 es lo que dice §6.3, y sigue valiendo.
+- 🔴 **`SIN VERIFICAR` desde el 01/08 y no lo cierra este documento: el modelo real de las radios.**
+  §2 especifica **171 MHz** sobre el supuesto de que operan en 170/172 MHz, y §3 del
+  `4_Manual_Configuracion_Radios.md` avisa de que **los datasheets que hay en `04_Manuales/` son de
+  modelos de 230 MHz y 433 MHz — ninguno de 170**. **Una antena sintonizada a la banda equivocada es
+  exactamente la avería que este documento existe para no repetir.** *(Ver §1: fuera de banda la
+  antena devuelve la potencia al amplificador.)* **Se confirma leyendo la caja metálica ANTES de
+  emitir el pedido** — cuesta treinta segundos y decide una compra entera.

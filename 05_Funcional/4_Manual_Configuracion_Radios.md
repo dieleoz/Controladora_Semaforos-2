@@ -12,8 +12,15 @@ Este documento indica los pasos exactos para configurar los parámetros de las r
 > manual dice de *«las cuatro radios»*, de `B1`/`B2` y del canal `10` describe el **Modo Repetidor,
 > que HOY NO ESTÁ MONTADO** — se conserva porque es reinstalable (§3), no porque esté en uso.
 > **Este aviso faltaba, y era el único de los cuatro documentos de radio que no lo llevaba:**
-> `7_Especificacion_Antenas.md:138-140` sí lo declara bien (*«Dos antenas cubren el montaje vigente
-> —Maestro y Esclavo en enlace directo—»*). Añadido el 05/09.
+> `7_Especificacion_Antenas.md` §6.3 sí lo declara bien (*«Dos antenas cubren el montaje vigente
+> —Maestro y Esclavo en enlace directo—»*). Añadido el 05/09. *(Corregido el 07/09: la cita iba por
+> número de línea, `:138-140`; se cita el apartado, que no se renumera solo.)*
+>
+> ✅ **07/09 — y el CUERPO de este manual ya no lo contradice.** El `README.md` de esta carpeta
+> avisaba de que *«el cuerpo todavía dice cambiar en las 4 radios en dos sitios: haga caso a su
+> cabecera»*. **Corregidos los dos** —el paso 4 de §2 y el aviso del paso 3—; lo que queda con la
+> palabra «cuatro» describe **el Modo Repetidor** (§3), que **no está montado**, o es histórico de la
+> corrección del 31/07.
 >
 > **La velocidad aérea (Air Data Rate) debe cambiarse de `0.3 kbps` a `2.4 kbps` en TODAS LAS RADIOS
 > DEL ENLACE** ~~en LAS CUATRO RADIOS~~ — **hoy son DOS**; cuatro sólo si se reinstala el repetidor.
@@ -87,9 +94,10 @@ margen sobrante es enorme y el cambio es seguro.
 1. Desconecte la corriente de la radio.
 2. Mueva los **DIP Switches `M0` y `M1` a la posición `OFF` (M0=0, M1=0)**.
 
-> ⚠️ **Este es el único modo válido en operación.** Compruébelo en las **cuatro** radios antes de
-> cerrar los gabinetes. Si una radio oye pero no contesta, lo primero que se revisa son estos dos
-> switches.
+> ⚠️ **Este es el único modo válido en operación.** Compruébelo en **TODAS las radios del enlace
+> —hoy DOS**, ~~cuatro~~— **antes de cerrar los gabinetes** *(corregido el 07/09; cuatro sólo si se
+> reinstala el repetidor, ver §3)*. Si una radio oye pero no contesta, lo primero que se revisa son
+> estos dos switches.
 3. Conecte la bornera `485_A` y `485_B` a la bornera `A` y `B` del semáforo.
 
 ---
@@ -162,11 +170,33 @@ mismo enlace —comandos `0x07`–`0x0F` **y `0x10`** ~~(comandos `0x07`–`0x0F
 y luego **una vez por hora** mientras haya enlace.
 
 > ⚠️ **`CMD_HORA_D` —el DÍA DEL MES— vale `0x10`, FUERA del bloque de los demás, y el rango que este
-> apartado publicaba lo dejaba fuera.** Medido: `Maestro/include/protocolo.h:54`
-> (`#define CMD_HORA_D 0x10`), enviado en `coordinador.cpp:328` y atendido en
-> `Esclavo/src/main.cpp:488`. Un filtro de `0x07` a `0x0F` en un analizador de tramas **no vería la
-> fecha** — y es justo la trama que impide que las dos puntas lleven **calendarios desacoplados**,
-> que es lo que `protocolo.h:41` describe: *«va PRIMERO en la secuencia»*.
+> apartado publicaba lo dejaba fuera.** **RE-MEDIDO EL 07/09** *(se cita el símbolo; el renglón del
+> Esclavo ya había caducado —decía `:488`—)*:
+>
+> ```
+> $ grep -n "CMD_HORA_D" Maestro/include/protocolo.h Maestro/src/coordinador.cpp Esclavo/src/main.cpp
+> Maestro/include/protocolo.h:54:#define CMD_HORA_D     0x10
+> Maestro/src/coordinador.cpp:328:  protocolo_enviarPaquete(CMD_HORA_D, d);
+> Esclavo/src/main.cpp:499:    } else if (pkt.command == CMD_HORA_D) {
+> ```
+>
+> Un filtro de `0x07` a `0x0F` en un analizador de tramas **no vería la fecha** — y es justo la trama
+> que impide que las dos puntas lleven **calendarios desacoplados**.
+
+> 🔴 **07/09 — Y HAY QUE LEER ESTE APARTADO SABIENDO QUÉ RELOJ SINCRONIZA, PORQUE NO ES EL DEL
+> CRUCE.** Estas tramas ponen en hora **el RTC interno del STM32**, y ese reloj **no existe**: el
+> cristal `Y2` está confirmado muerto (`N-17`) y desde **`DECISIONES.md` `D-15`** el STM32 **ni
+> siquiera contesta a `SET_RTC`**.
+>
+> **La hora que ve el operario la lleva el `DS3231` con pila del `ESP32` de CADA poste** (`D-9`),
+> **hay dos por cruce, y NADA los sincroniza entre sí**: los dos `ESP32` no se hablan. **Poner en
+> hora un poste NO pone en hora el cruce** — hay que visitar los dos con la app, y `CMD:LEER_RTC`
+> (`D-17`) permite **consultarlos sin cambiarlos** y ver el desfase. Detalle en
+> `11_Manual_Instalacion_RTC_DS3231_Bateria.md`.
+>
+> ✅ **Lo que de este apartado sigue siendo cierto, y es lo único que decide sobre las radios: no hay
+> nada que reconfigurar en la radio por la sincronización horaria.** La tabla de abajo se conserva
+> entera por eso.
 
 **No hay nada que reconfigurar en la radio por esto:**
 

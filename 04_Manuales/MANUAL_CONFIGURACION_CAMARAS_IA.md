@@ -11,6 +11,25 @@
 > | 🛑 **«NO CABLEAR hasta `M3`»** *(§0.ter, §2, §3)* | *«`R67`/`R68` sólo están en el netlist y nadie las ha medido»* | ✅ **`M3` CERRADA EL 03/09** — **`D-3`**: medido en cobre con multímetro y conector vacío (paso 20 de la guía de banco), el pull-**down** de 10 kΩ **es real y está en las cuatro posiciones**; `p10` y `p12` dan **0 V en reposo**, y el paso 21 cableó `p10` **sin demandas fantasma**. Fuente que manda: `05_Funcional/17_…` sección **M3** |
 > | 🛑 **El PROPÓSITO de las cámaras** | «demanda vehicular»: la cámara **pide verde** | **`D-13`** (05/09) decidió otra cosa, y **no es un matiz**: *«una sola regla, `Intrusion Detection` sobre el BARRIDO DE LA PLUMA —no la zona de espera—»*, y en su apartado *«lo que NO se hace»*: **«el ciclo del semáforo no se toca. Las cámaras no dan ni quitan verde.»** ⚠️ **Ver el aviso de conflicto abierto de abajo: esto NO lo cierra este manual** |
 >
+> ## 🔴 07/09 — LA PREGUNTA QUE DECIDE SI ESTE CABLEADO SIRVE, Y AHORA APUNTA A QUE **NO**
+>
+> **Todo este manual describe cómo llevar un contacto seco de la cámara a la tarjeta. Eso sólo vale
+> si la ANALÍTICA de la cámara puede cerrar ese contacto** — y el papel del modelo comprado apunta a
+> que no:
+>
+> | fuente oficial | qué dice |
+> |---|---|
+> | **Ficha `DS-2CD2683G2-IZS`, pág. 4, fila *Linkage Method*** | *«Upload to FTP/memory card/NAS, notify surveillance center, trigger recording, trigger capture, send email»* — **cinco, enumerados, y `trigger alarm output` NO está** |
+> | **Manual `UD28967B-C`, PDF pág. 79 · impresa 67** | *«Trigger Alarm Output … **This function is only supported by certain models**»* |
+>
+> ⛔ **Y no vale *«pero la ficha dice `1 output`»***: `Manual Alarm` (un botón del navegador) y
+> `Automatic Alarm` (cierre **por horario**) accionan esa salida **sin analítica ninguna** —
+> **PDF pág. 80 · impresa 68**—. El borne se explica entero sin el enlace.
+>
+> 🛑 **Sigue 🔴 `SIN VERIFICAR`, y lo cierra mirar la pantalla en diez minutos** (`Paso 0` de
+> `05_Funcional/9_…`, paso 39 de la guía de banco). **Si la casilla no está, este cableado no sirve y
+> hay que ir por otro diseño** — decisión del responsable, no de un manual.
+
 > ## 🔴 CONFLICTO ABIERTO, y se anota en vez de resolverse aquí
 >
 > **`D-13` dice que las cámaras no dan ni quitan verde. El firmware que corre las lleva a
@@ -19,13 +38,28 @@
 >
 > ```
 > $ grep -n "CAM_J16" 01_Firmware/Maestro/src/botones.cpp
-> 118:static const uint8_t CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN};
+> 125:static const uint8_t CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN};
 > ```
+>
+> *(La línea decía `118` y la salida real de hoy es `125`: mismo símbolo, mismo contenido, número
+> caducado por el commit `4b2841b`. Ver el bloque 🔴 del §0.ter.)*
 >
 > Un manual **no decide** cuál gana. Lo que este documento hace es **dejarlo escrito y no fingir que
 > ya está resuelto**: mientras siga abierto, **el capítulo de parametrización de abajo describe la
 > configuración de DEMANDA, que es la que el firmware ejerce, y NO la de `D-13`.** Quien vaya a
 > parametrizar una cámara en campo tiene que preguntar cuál de las dos se monta.
+>
+> 🟢 **Y una cosa que este manual todavía no decía y ya está construida (07/09): el equipo PUBLICA
+> el estado de la cámara.** `camara_estado()` tiene llamador en las dos puntas, dentro del
+> `snprintf` del `$STATUS` de `bluetooth.cpp`, y la trama sale con un campo **`CAM:`** con cuatro
+> valores: **`OK` · `CIEGA` · `PEGADA` · `?`**. Publica **la peor de las dos cámaras**, no una por
+> cada una.
+>
+> 🛑 **`CAM: ?` (SIN COMPROBAR) es lo NORMAL hasta la primera detección, y es a propósito:** un pin
+> que nunca ha dado señal no se vigila —si no, un borne vacío alarmaría—. **Por eso el paso en que
+> el instalador provoca una detección de verdad NO es opcional: es lo que ARMA el vigilante.** Una
+> instalación que se firma sin ese gesto deja el equipo sin vigilancia de cámara y con aspecto de
+> estar bien.
 >
 > ## ⚠️ Y una fuente que gana a ésta
 >
@@ -41,7 +75,7 @@ esta carpeta). Lente varifocal motorizado; **`1 alarm in, 1 alarm out`**
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `MAPEO_TARJETA_KICAD.md`
 **Normativa Aplicable:** Manual de Señalización Vial de Colombia (Resolución 2024 - MinTransporte)
 **Fecha de Emisión:** 26 de Agosto de 2026
-**Fecha de Corrección:** 2 de Septiembre de 2026 *(ver §0 y §0.ter)*
+**Fecha de Corrección:** **7 de septiembre de 2026** *(ver la cabecera de estado, §0, §0.ter y §2)* · anterior: 2 de septiembre de 2026
 
 ---
 
@@ -64,19 +98,41 @@ Medido el 02/09 sobre el fuente, idéntico en las dos puntas:
 
 ```
 $ grep -n "define CAM_._PIN" 01_Firmware/Maestro/include/pines.h
-148:#define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco (era BOTON3, "Aceptar")
-149:#define CAM_D_PIN   PB15  // J16 p12 - camara de contacto seco (era BOTON4, "Cancelar")
+165:#define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco (era BOTON3, "Aceptar")
+166:#define CAM_D_PIN   PB15  // J16 p12 - camara de contacto seco (era BOTON4, "Cancelar")
 
 $ grep -n "pinMode(CAM_._PIN" 01_Firmware/Maestro/src/botones.cpp
-531:  pinMode(CAM_C_PIN, INPUT);
-532:  pinMode(CAM_D_PIN, INPUT);
+538:  pinMode(CAM_C_PIN, INPUT);
+539:  pinMode(CAM_D_PIN, INPUT);
 
-$ grep -n "^bool botonAceptar\|^bool botonCancelar" 01_Firmware/Maestro/src/botones.cpp
-659:bool botonAceptar() { return false; }
-660:bool botonCancelar(){ return false; }
+$ grep -n "^bool botonAceptar\|^bool botonCancelar" \
+      01_Firmware/Maestro/src/botones.cpp 01_Firmware/Esclavo/src/botones.cpp
+Maestro/src/botones.cpp:672:bool botonAceptar() { return false; }
+Maestro/src/botones.cpp:673:bool botonCancelar(){ return false; }
+Esclavo/src/botones.cpp:668:bool botonAceptar() { return false; }
+Esclavo/src/botones.cpp:669:bool botonCancelar(){ return false; }
 ```
 
-*(En el Esclavo los mismos símbolos están en `botones.cpp:523-524` y `:645-646`.)*
+*(En el Esclavo el `pinMode` de las dos cámaras está en `botones.cpp:523-524` — esa sí seguía
+buena.)*
+
+> ## 🔴 07/09, MÁS TARDE — **ESTE MISMO BLOQUE `grep` YA ESTABA CADUCADO, Y SE PUBLICÓ HOY**
+>
+> **Es la demostración de §4.sexies de `CLAUDE.md` ocurriendo dentro del propio párrafo que la
+> cita.** Lo que había escrito aquí arriba, presentado como *«corrido el 07/09»*, decía
+> `pines.h:148-149`, `botones.cpp:531-532` y `:659-660`. **Al volver a correrlo con el árbol de
+> firmware LIMPIO** *(`git status` sin una sola modificación en `01_Firmware/`)* **salen `165-166`,
+> `538-539` y `672-673`.**
+>
+> **La causa está en el `git log` y no es un misterio:** el commit `4b2841b` *«anclar las decisiones
+> vigentes en el codigo — de 5 marcas `D-x` a 16»* insertó comentarios **por encima** de esos
+> símbolos, en el mismo día. **Las citas se verificaron por la mañana y caducaron por la tarde, sin
+> que nadie tocara la línea citada.**
+>
+> 🛑 **Por eso la regla no es «renumerar bien»: es CITAR EL SÍMBOLO.** El número de línea sólo vale
+> **fechado a un commit** —`git show <hash>:fichero`— o **pegado como salida literal de un `grep`
+> que alguien vuelva a correr**. Los símbolos de este bloque —`CAM_C_PIN`, `CAM_D_PIN`,
+> `botonAceptar()`, `botonCancelar()`— **no han cambiado y son lo que hay que buscar.**
 
 **Las tres son cámaras de DEMANDA:** las tres acaban en `demanda_solicitar()`. Ninguna mide el
 despeje del tramo, que sigue siendo por tiempo (`cfgDespejeSeg`).
@@ -125,8 +181,8 @@ contra el firmware que corre. Se corrigen aquí, y queda el registro de qué se 
 | Lo que decía el manual del 26/08 | Lo MEDIDO sobre el fuente (28/08) |
 |---|---|
 | **4 cámaras** (2 por poste): demanda + umbral | El firmware leía **1 cámara por poste**. La de umbral no tiene dónde entrar. *(Al 02/09 son **3 entradas de demanda** por punta — ver §0.ter. La de umbral **sigue sin existir**)* |
-| Cámara 1 y 3 (demanda) → pin **`PB9`** | **`PB9` es `BOTON1`** (`pines.h:92`, las dos puntas). La demanda entra por **`PB0`** = `CAM_DEMANDA_PIN` (`pines.h:46`) |
-| Cámara 2 y 4 (umbral) → pin **`PB13`** | **`PB13` es `BOTON2`** (`pines.h:93`). No existe `CAM_UMBRAL_PIN` en el firmware Maestro/Esclavo |
+| Cámara 1 y 3 (demanda) → pin **`PB9`** | **`PB9` es `BOTON1`** (símbolo `BOTON1` en `pines.h`, las dos puntas). La demanda entra por **`PB0`** = `CAM_DEMANDA_PIN` (`pines.h:46`) |
+| Cámara 2 y 4 (umbral) → pin **`PB13`** | **`PB13` es `BOTON2`** (símbolo `BOTON2` en `pines.h`). No existe `CAM_UMBRAL_PIN` en el firmware Maestro/Esclavo |
 | «Optoacoplador `TLP127` con pull-up en `PB9`/`PB13`» | La línea de cámara real (`PB0`) lleva **`R64` 10 kΩ (pull-DOWN) + `C25` 100 nF**, antirrebote ~1 ms, bornera **`J14`**, y es **activa en ALTO** |
 
 **De dónde salió el error:** el manual del 26/08 se escribió contra el firmware de nodo único
@@ -154,7 +210,7 @@ no una bornera (`roadmap.md` N-64, y `pines.h:63` lo deja escrito como `LED_TEST
 
 Medido el 02/09 con `grep AiBus` sobre `01_Firmware/Maestro` y `01_Firmware/Esclavo`: **no queda ni
 una declaración, ni una definición, ni una llamada.** Lo único que aparece son dos comentarios que
-cuentan la historia (`Maestro/src/protocolo.cpp:19`, `Esclavo/src/protocolo.cpp:19`).
+cuentan la historia (el bloque `AiBus` de `protocolo.cpp`, las dos puntas).
 
 Lo que hubo, y por qué se fue:
 
@@ -168,8 +224,8 @@ Lo que hubo, y por qué se fue:
   punta** —el 5,2 % de la RAM viva del equipo— por un puerto que no se abre.
 
 **Y un dato de cableado que sale de aquí:** `SerialBT` **ya no vive en `PA9`/`PA10`**. Vive en
-**`PB6`/`PB7`, USART1 remapeado, conector `J17`** (`Maestro/src/bluetooth.cpp:28`, idéntico en el
-Esclavo). Ver la tabla de §2.
+**`PB6`/`PB7`, USART1 remapeado, conector `J17`** (símbolo `SerialBT` en `Maestro/src/bluetooth.cpp`, idéntico en el
+Esclavo — ⛔ la cita `:28` estaba caducada). Ver la tabla de §2.
 
 **Nació vivo y murió en la partición del firmware.** En `01_Firmware/Semaforos/` (nodo único)
 `modo_inteligente.cpp:65,81-82` sí llamaba a las tres. Al separar en Maestro/Esclavo la llamada
@@ -209,7 +265,8 @@ entradas más** en `J16`, pendientes de `M3` (§0.ter):
             (CAMARA 1)                                                    (CAMARA 2)
             [ 👁️ ◄── ]                                                    [ ──► 👁️ ]
         Mira la via de aproximacion                            Mira la via de aproximacion
-        Contacto seco -> PB0 (J14)                             Contacto seco -> PB0 (J14)
+        Contacto seco -> PB14 (J16 p10)                        Contacto seco -> PB14 (J16 p10)
+        (D-2/D-3, corregido 07/09.  J14/PB0 queda vivo y SIN camara)
                   │                                                             │
                   ▼                                                             ▼
         SENTIDO 1 (Llegada)                                          SENTIDO 2 (Llegada)
@@ -225,8 +282,29 @@ entradas más** en `J16`, pendientes de `M3` (§0.ter):
 
 | Cámara | Ubicación Física | Sentido de Visión | Función en el Sistema Vial | Pin en Tarjeta STM32 |
 |---|---|---|---|---|
-| **CÁMARA 1** | **Poste Maestro (Extremo 1)** | **SENTIDO 1 (Aproximación):** vehículos que llegan por la vía hacia el Maestro | **Demanda Vehicular Sentido 1:** al detectar vehículo, solicita apertura de **🟢 Verde en Semáforo Maestro** | Pin **`PB0`** — bornera **`J14`**, `R64` 10 kΩ + `C25` 100 nF, **activa en ALTO** |
-| **CÁMARA 2** | **Poste Esclavo (Extremo 2)** | **SENTIDO 2 (Aproximación):** vehículos que llegan por la vía hacia el Esclavo | **Demanda Vehicular Sentido 2:** el Esclavo transmite la demanda al Maestro por `RS485_OUT`/radio | Pin **`PB0`** — bornera **`J14`**, idéntico al Maestro |
+| **CÁMARA 1** | **Poste Maestro (Extremo 1)** | **SENTIDO 1 (Aproximación):** vehículos que llegan por la vía hacia el Maestro | **Demanda Vehicular Sentido 1:** al detectar vehículo, solicita apertura de **🟢 Verde en Semáforo Maestro** | 🔴 **`PB14` — `J16` p10** *(corregido 07/09)*. ~~Pin `PB0` — bornera `J14`~~ |
+| **CÁMARA 2** | **Poste Esclavo (Extremo 2)** | **SENTIDO 2 (Aproximación):** vehículos que llegan por la vía hacia el Esclavo | **Demanda Vehicular Sentido 2:** el Esclavo transmite la demanda al Maestro por `RS485_OUT`/radio | 🔴 **`PB14` — `J16` p10**, idéntico al Maestro *(corregido 07/09)*. ~~Pin `PB0` — bornera `J14`~~ |
+
+> ## 🔴 CORREGIDO EL 07/09 — TODO EL CUERPO DE ESTE MANUAL MANDABA LA CÁMARA A `J14`, Y VA A `J16`
+>
+> **La cabecera y el §0.ter ya lo decían bien; los apartados 2, 3, 5 y 6 seguían con el destino
+> viejo.** Un instalador que abriera este documento por el §3 —el diagrama de cableado— llevaría el
+> hilo a `J14`, y **el equipo funcionaría**, que es lo que lo hace peligroso.
+>
+> | | |
+> |---|---|
+> | **manda** | **`J16` p10 (`PB14`)** — `DECISIONES.md` **`D-2`** y **`D-3`**, `M3` cerrada en cobre el 03/09 |
+> | **`J14` (`PB0`)** | **sigue vivo en el firmware y NO lleva cámara.** Se conserva libre como candidato a fin de carrera de barrera |
+>
+> 🔴 **Y el motivo que decide no es el antirrebote —que `J14` sí tiene y `J16` no—: es la
+> VIGILANCIA.** Las alarmas `CAM_CIEGA` y `CAM_PEGADA` del firmware miran **`J16`** y **no miran
+> `J14`**. Una cámara cableada a `J14` funciona… **y el día que se estropee nadie se entera.** Ésa
+> es exactamente la avería silenciosa que el vigilante existe para impedir.
+>
+> **Todo lo que este manual dice de la polaridad sigue valiendo igual** —contacto seco entre el pin
+> de señal y el borne de **3,3 V contiguo** (`p9` para `p10`), **dos hilos, nada a masa**, activo en
+> ALTO contra el pull-down de 10 kΩ—. **Lo único que cambia es la bornera.** El paso a paso con el
+> destornillador delante está en **`05_Funcional/9_…` §4.bis**, que es el manual de campo vigente.
 | **CÁMARA `C`** | cualquiera de los dos postes | 🔴 **ES LA POSICIÓN DE LA CÁMARA REAL** (`D-2`, `D-3`) | **Demanda Vehicular**, igual que la de `J14`: pide paso | Pin **`PB14`** — **`J16` p10**. ✅ **CABLEABLE** *(~~NO CABLEAR hasta `M3`~~: `M3` cerrada el 03/09)*. Separación al riel de 12 V: **4,27 mm** |
 | **CÁMARA `D`** *(opcional)* | cualquiera de los dos postes | libre — sería una demanda más de esa punta | **Demanda Vehicular**, igual | Pin **`PB15`** — **`J16` p12**. ✅ cableable, pero **hoy VACÍO**. ⚠️ Separación al riel de 12 V: **1,36 mm — la peor de las cuatro** |
 
@@ -260,9 +338,9 @@ entradas más** en `J16`, pendientes de `M3` (§0.ter):
 |---|---|---|
 | **`PB9`** (`J16` p5) | **`BOTON1` = `MANDO_A`**, canal `A` del mando de relés | símbolos `BOTON1` en `pines.h`, `MANDO_A` en `mando.cpp` |
 | **`PB13`** (`J16` p8) | **`BOTON2` = `MANDO_B`**, canal `B` del mando de relés | símbolos `BOTON2` en `pines.h`, `MANDO_B` en `mando.cpp` |
-| **`PB8`** | **`LED_TESTIGO`** — `R16` 1 kΩ → LED `D5`. **Salida, no bornera** | `pines.h:63` |
-| `PA9` / `PA10` | `RS485_IN` — el MAX3485 `U2` y la bornera `J10`. **NO es el Bluetooth** | `pines.h:127-139` |
-| `PB6` / `PB7` (`J17`) | **USART1 remapeado — aquí sí está el Bluetooth / ESP32** | `bluetooth.cpp:28` |
+| **`PB8`** | **`LED_TESTIGO`** — `R16` 1 kΩ → LED `D5`. **Salida, no bornera** | símbolo `LED_TESTIGO` (`pines.h:63`, cita verificada el 07/09) |
+| `PA9` / `PA10` | `RS485_IN` — el MAX3485 `U2` y la bornera `J10`. **NO es el Bluetooth** | símbolos `RS485_IN_RX`/`RS485_IN_TX` en `pines.h` |
+| `PB6` / `PB7` (`J17`) | **USART1 remapeado — aquí sí está el Bluetooth / ESP32** | símbolo `SerialBT` en `bluetooth.cpp` (⛔ la cita `:28` estaba caducada: esa línea es hoy un comentario del `lcd.cpp`) |
 
 > ### ⚠️ 05/09: EL MANDO SE RETIRÓ COMO HARDWARE, Y ESO **NO** HACE SEGUROS ESTOS DOS PINES
 >
@@ -311,7 +389,7 @@ conservador: la cámara de umbral daría **eficiencia**, no seguridad. El equipo
 ## 3. Diagrama Eléctrico de Cableado (VIGENTE)
 
 Cada cámara conecta su salida de contacto seco de relé (**Bornera `ALARM`: pines `1A` y `1B`**)
-a la bornera **`J14`** de la tarjeta STM32 de su propio poste. La comunicación entre postes viaja
+a la bornera ~~**`J14`**~~ 🔴 **`J16` p10** *(corregido 07/09 — `D-2`/`D-3`; ver el bloque 🔴 del §2)* de la tarjeta STM32 de su propio poste. La comunicación entre postes viaja
 por **`RS485_OUT`**:
 
 ```text
@@ -320,8 +398,10 @@ por **`RS485_OUT`**:
  ├──────────────────────────────────────────────┤      ├──────────────────────────────────────────────┤
  │                                              │      │                                              │
  │  CAMARA 1 (Demanda Sentido 1)                │      │  CAMARA 2 (Demanda Sentido 2)                │
- │    Rele [ 1A ] ───► J14 / PB0  (activa ALTO) │      │    Rele [ 1A ] ───► J14 / PB0  (activa ALTO) │
- │    Rele [ 1B ] ───► 3.3V del propio J14      │      │    Rele [ 1B ] ───► 3.3V del propio J14      │
+ │    Rele [ 1A ] ───► J16 p10 / PB14 (act.ALTO)│      │    Rele [ 1A ] ───► J16 p10 / PB14 (act.ALTO)│
+ │    Rele [ 1B ] ───► J16 p9  (3,3 V contiguo)  │      │    Rele [ 1B ] ───► J16 p9  (3,3 V contiguo)  │
+ │      (R67 10K a GND = pull-DOWN, medido 9,93K)│      │      (R67 10K a GND = pull-DOWN, medido 9,94K)│
+ │      CORREGIDO 07/09: NO va a J14. Ver §2.    │      │      CORREGIDO 07/09: NO va a J14. Ver §2.    │
  │      (R64 10K a GND = pull-DOWN + C25 100nF) │      │      (R64 10K a GND = pull-DOWN + C25 100nF) │
  │                                              │      │                                              │
  │  NO CABLEAR: PB9 = MANDO A · PB13 = MANDO B  │      │  NO CABLEAR: PB9 = MANDO A · PB13 = MANDO B  │
@@ -346,8 +426,9 @@ por **`RS485_OUT`**:
 ### Reglas Eléctricas:
 
 1. **Contacto seco, pero la POLARIDAD DE LA SEÑAL SÍ IMPORTA.** Los bornes `1A`/`1B` del relé son
-   libres de tensión y entre ellos no hay polaridad; **pero la entrada `PB0` es ACTIVA EN ALTO**
-   contra el pull-down de 10 kΩ de la placa. El contacto debe **cerrar `PB0` a 3,3 V**. Cablearlo
+   libres de tensión y entre ellos no hay polaridad; **pero la entrada `PB14` es ACTIVA EN ALTO**
+   contra el pull-down de 10 kΩ de la placa (`R67`, medido **9,93 kΩ** en banco). El contacto debe
+   **cerrar `PB14` (`J16` p10) contra los 3,3 V de `J16` p9**. Cablearlo
    a GND deja la entrada leyendo demanda continua sin que pase ningún vehículo (`N-67`).
 2. **Antirrebote:** la placa filtra ~1 ms con `R64`/`C25`, y el firmware añade **5 ms** por
    software. No hace falta condensador externo.
@@ -375,7 +456,13 @@ Sin Internet, sin routers y sin software de monitoreo. Se hace **una vez en tall
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Paso 1: Encuadre Óptico Motorizado (Lente 2.7–13.5 mm)
+### Paso 1: Encuadre Óptico Motorizado (Lente ~~2.7–13.5 mm~~ **2,8 – 12 mm**)
+
+> ⛔ **CORREGIDO EL 07/09: `2.7–13.5 mm` NO ES ESTA CÁMARA.** Es la óptica del modelo de referencia
+> que este manual traía antes de la compra. La `DS-2CD2683G2-IZS` lleva **`2,8` a `12 mm`**, `F1.6`,
+> iris fijo, con **FOV horizontal de `108°` a `30°`** — ficha `DS-2CD2683G2-IZS_Datasheet_V5.5.113`,
+> **pág. 2**, filas *Lens Type* y *Focal Length & FOV*. No cambia el gesto; cambia el número que
+> alguien podría usar para calcular un encuadre.
 
 1. Conectar la laptop al puerto Ethernet de la cámara e ingresar a `http://192.168.1.64`
    (Usuario: `admin`).
@@ -386,14 +473,51 @@ Sin Internet, sin routers y sin software de monitoreo. Se hace **una vez en tall
 
 ### Paso 2: Dibujar la Detección (Máscara de Demanda)
 
-1. Ir a **Configuración > Eventos > Evento Inteligente > Detección de Cruce de Línea**
-   (*Line Crossing Detection*) — o **Detección de Intrusión** con región amplia, si prefiere que
-   el equipo se pueda trasladar de obra sin reencuadrar.
+> ## 🛑 CORREGIDO EL 07/09 — ESTE PASO MANDABA LA ANALÍTICA EQUIVOCADA
+>
+> **Decía *Detección de Cruce de Línea* «o Intrusión, si prefiere». No es una preferencia: es la
+> diferencia entre detectar al que ESPERA y al que YA SE FUE.** La elección está razonada sobre las
+> definiciones literales del fabricante en
+> **`05_Funcional/9_Manual_Parametrizacion_Camara_IA.md` §1.1.4**, que es el manual de campo
+> vigente (`D-12`) y **gana a éste en todo lo que sea la pantalla de la cámara**:
+>
+> | | qué dice el manual oficial que detecta | ¿sirve? |
+> |---|---|---|
+> | **Detección de Intrusión** | *«objects entering and **loitering** in a predefined virtual region»*, y su `Threshold` es *«the time of the object **loitering** in the region»* | ✅ **SÍ. Es la única que mide PERMANENCIA** |
+> | *Cruce de Línea* | *«objects **crossing** a predefined virtual line»* | 🛑 **NO.** Dispara con el vehículo **que ya pasó** |
+>
+> **PDF `UD28967B-C` págs. 60-62 · impresas 48-50.**
+>
+> 🔴 **Y el clasificador NO está donde este paso lo ponía.** `Detection Target` (☑ Vehículo /
+> ☐ Humano) **está documentado en *Line Crossing* y NO en `Set Intrusion Detection`**, cuyas reglas
+> publicadas son sólo `Sensitivity`, `Threshold` y el filtro de tamaño (PDF 60-61 · impresas 48-49).
+> La ficha del modelo **sí** dice que la Perimeter Protection *«supports human and vehicle targets
+> classification»* (pág. 4). **Las dos fuentes oficiales no dicen lo mismo: se mira en pantalla.**
+
+1. Ir a **`Configuration → Event → Smart Event → Intrusion Detection`**
+   *(Configuración → Evento → Evento Inteligente → **Detección de Intrusión**)* — **PDF pág. 60 ·
+   impresa 48**. En algunos modelos la ruta es **`VCA → Smart Event → Intrusion Detection`**: **el
+   manual oficial da las dos**, así que si una no existe se prueba la otra.
+   > ⚠️ **Y una condición previa fácil de pasar por alto:** *«For certain device models, you need to
+   > enable the smart event function on **VCA Resource** page first»* (misma página). Si la opción
+   > no aparece o sale en gris, habilitarla ahí primero.
 2. Marcar ☑ **Habilitar** (*Enable*).
-3. Trazar la línea atravesando el carril (o dibujar la región sobre la zona de parada).
-4. En **Clasificación de Objetivo** (*Detection Target*):
+3. **Dibujar la región** sobre la zona donde el vehículo **se detiene a esperar** *(`Draw Area`:
+   clic en la vista en vivo para los vértices, clic derecho para cerrar — PDF pág. 67 · impresa 55)*.
+   🔴 **Antes de dibujar, pregunte qué tiene que mirar esta cámara**: `D-13` decide *barrido de la
+   pluma* y el firmware ejerce *demanda de aproximación*. **Las dos están vivas y una cámara sólo
+   lleva una regla.** Ver §4 Paso 3 del manual de campo.
+4. **`Size Filter`:** se dibujan con el ratón un tamaño **mínimo** y uno **máximo** de objetivo
+   *(PDF pág. 68 · impresa 56)* — no son campos numéricos.
+5. En **Clasificación de Objetivo** (*Detection Target*), **si la casilla existe**:
    * ☑ **Vehículo** (*Vehicle*)
    * ☐ **Humano** (*Human*) — *desmarcado: inmunidad a peatones, ramas y sombras.*
+   * 🔴 **Si NO existe** —que es lo que el papel deja esperar en Intrusión— **se anota y se avisa**:
+     sin filtro, una persona parada levanta el bit. **Se compensa subiendo el mínimo del
+     `Size Filter`, y la decisión de fondo NO la toma el técnico.**
+6. **`Arming Schedule`: 24 × 7.** Fuera de la programación horaria **la cámara no dispara** — un
+   cruce que deja de aceptar demanda de madrugada es un fallo que ningún ensayo de taller de día
+   encuentra.
 
 ### Paso 3: Configurar la Salida de Relé (N/O ~~a 1 Segundo~~ **al mínimo que admita**)
 
@@ -410,11 +534,32 @@ Sin Internet, sin routers y sin software de monitoreo. Se hace **una vez en tall
 > `SILENCIO_MS > Delay + rearme`, en vez de citarnos. Hay hueco para esa medida en la guía de banco
 > (pasos 39–40).
 >
-> **2. El desplegable `NO`/`NC` está documentado para la ENTRADA de alarma, NO para la salida.**
-> **`D-14`**, verificado sobre el manual de usuario `UD28967B-C` v5.7.20: la **salida** sólo expone
-> `No.`, `Name` y `Delay` (p. 68); *Normally Open / Normally Closed* **no aparece ni una vez en las
-> 110 páginas**, y de la **entrada** el manual documenta el valor `NO` y **`NC` no aparece nunca**.
-> Así que *«se configura como `NO`»* queda **`SIN VERIFICAR`**: puede que no haya nada que elegir.
+> **2. El desplegable `Alarm Type` está documentado para la ENTRADA de alarma, NO para la salida.**
+> Verificado sobre el manual de usuario `UD28967B-C` v5.7.20: la **salida** sólo expone
+> `No.`, `Name` y `Delay` (impresa 68 · PDF 80); *Normally Open / Normally Closed* **no aparece ni
+> una vez en las 110 páginas**. Así que *«se configura como `NO`»* queda **`SIN VERIFICAR`**: puede
+> que no haya nada que elegir.
+>
+> > ### 🔴 CORREGIDO EL 07/09 — AQUÍ HABÍA UNA LECTURA MAL HECHA DE LA FUENTE
+> >
+> > Decía: ~~*«de la entrada el manual documenta el valor `NO`»*~~, citando la pág. impresa 44
+> > (PDF 57): *«Select **Alarm Input NO.** and Alarm Type from the dropdown list»*.
+> >
+> > **`NO.` con punto es *Number*, no *Normally Open*.** Lo demuestra el mismo documento: la
+> > pantalla de la **salida** usa el mismo campo escrito `Alarm Output **No.**` — *«Select the alarm
+> > output No. according to the alarm interface connected»* (**PDF 80 · impresa 68**), donde nadie
+> > leería «salida normalmente abierta». **Esa página documenta el NOMBRE del desplegable y ningún
+> > valor suyo.**
+> >
+> > 🟢 **Y hay UNA aparición real de `NO` como valor en las 110 páginas, en un sitio donde nadie
+> > había mirado** — sale al buscar `alarm type` **insensible a mayúsculas**, no sólo el rótulo:
+> > *«the alarm input `A<-1` … its **alarm type is always NO**»*, **PDF pág. 99 · impresa 87**, en
+> > *Road Traffic → Set Vehicle Detection*. Es de la **ENTRADA**, en un modo que este proyecto **no
+> > usa**, y dice *always* — o sea que ahí **no se elige**. **`NC` sigue en CERO apariciones.**
+> >
+> > **La conclusión no cambia y por eso se corrige igual:** la polaridad de la **salida** sigue
+> > `SIN VERIFICAR` y la cierra el óhmetro. Lo que se arregla es la **prueba**, que era falsa —
+> > una excepción sostenida por una frase mal leída es un defecto con permiso (`CLAUDE.md` §2.ter).
 >
 > 👉 **Consecuencia práctica, y es buena:** si la salida es `NO` de fábrica, es la que el firmware
 > necesita —entrada activa en ALTO contra el pull-down de 10 kΩ— y no hay que tocar nada. **Si
@@ -424,10 +569,41 @@ Sin Internet, sin routers y sin software de monitoreo. Se hace **una vez en tall
 >
 > 🔴 **Y la casilla que decide si este paso sirve para algo sigue abierta:** que la **analítica**
 > pueda accionar el relé. El manual dice de `Trigger Alarm Output` que *«only supported by certain
-> models»*. **Se mira con la cámara delante antes que nada** (paso 39 de la guía de banco). Si no se
-> puede enlazar, el camino de `J16` no sirve y hay que ir por otro diseño — y existe una vía que
-> **no** depende de esa casilla: la **entrada** de alarma de la cámara (`D-14`), que es el camino
-> contrario, *el controlador le dice a la cámara que grabe*.
+> models»*. **Se mira con la cámara delante antes que nada** (paso 39 de la guía de banco).
+>
+> ### 🔴 07/09 — Y AHORA HAY UN DATO DEL MODELO COMPRADO QUE APUNTA A QUE **NO**
+>
+> La nota *«only supported by certain models»* es una condición **sobre el modelo**, y **la ficha ES
+> el documento del modelo**. Contesta enumerando:
+>
+> ```text
+>   DS-2CD2683G2-IZS_Datasheet_V5.5.113_20230303.pdf, pag. 4, seccion "General":
+>     Linkage Method
+>       Upload to FTP/memory card/NAS, notify surveillance center,
+>       trigger recording, trigger capture, send email
+> ```
+>
+> **Cinco enlaces, lista cerrada, y `trigger alarm output` NO está** — mientras `trigger recording`
+> y `trigger capture` sí. ⛔ **Y no vale el consuelo de *«pero tiene `1 output`»***: el propio manual
+> documenta `Manual Alarm` (un botón del navegador) y `Automatic Alarm` (cierre **por horario**),
+> **PDF pág. 80 · impresa 68**, que accionan esa salida **sin analítica ninguna**. El borne se
+> explica entero sin el enlace.
+>
+> 🛑 **Sigue `SIN VERIFICAR` —el papel no lo cierra en positivo— pero lo esperable es que la casilla
+> no esté.** Si no se puede enlazar, **el camino de `J16` no sirve y hay que ir por otro diseño**
+> (relé de NVR, evento de red), que es una decisión del responsable.
+>
+> 🔻 **Lo que NO muere con ella:** la cámara **sigue grabando el evento en su microSD** —
+> `Trigger Recording` **sí** está en la lista de la ficha, y el `Record Schedule` admite el tipo
+> `Event` (PDF pág. 48 · impresa 36)—.
+>
+> ⛔ **Y lo que este manual decía como relevo y NO lo es:** ~~*«existe una vía que no depende de esa
+> casilla: la entrada de alarma de la cámara (`D-14`)»*~~. `D-14` es una **decisión de diseño sin
+> firmware**: medido el 07/09, **fuera de `semaforo.cpp` el controlador sólo escribe la dirección
+> del RS485 y de la radio**, y los tres canales de potencia libres —`ROJO_PEATON`, `VERDE_PEATON`,
+> `BUZZER`— están **declarados y muertos en las dos puntas**. **El controlador no tiene hoy con qué
+> cerrar un contacto hacia la cámara.** Describirlo como disponible sería la «Caja Negra de
+> Alarmas» otra vez: cuatro manuales y ni un llamador.
 
 1. Ir a **Configuración > Eventos > Salida de Alarma** (*Alarm Output*):
    * **Estado por Defecto:** **`NO`** (*Normally Open*) — 🟡 **`SIN VERIFICAR` que sea elegible**, ver arriba.
@@ -448,11 +624,11 @@ Sin Internet, sin routers y sin software de monitoreo. Se hace **una vez en tall
 ## 5. Dinámica de Control y Seguridad Vial (Resolución 2024)
 
 1. **Llegada de Vehículo al Sentido 1 (lado Maestro):**
-   * **Cámara 1** detecta el vehículo ➔ cierra su relé ➔ **`PB0` del Maestro pasa a ALTO**.
+   * **Cámara 1** detecta el vehículo ➔ cierra su relé ➔ **`PB14` (`J16` p10) del Maestro pasa a ALTO**.
    * El Maestro cierra el Semáforo Esclavo a Rojo, ejecuta el **Todo-Rojo de despeje**
      (`cfgDespejeSeg`) para vaciar la vía, y abre **🟢 Verde en el Semáforo Maestro**.
 2. **Llegada de Vehículo al Sentido 2 (lado Esclavo):**
-   * **Cámara 2** detecta el vehículo ➔ **`PB0` del Esclavo pasa a ALTO**.
+   * **Cámara 2** detecta el vehículo ➔ **`PB14` (`J16` p10) del Esclavo pasa a ALTO**.
    * El Esclavo emite `CMD_DEMANDA` al Maestro por radio/`RS485_OUT` (con su ventana de 3 s).
    * El Maestro cierra el Semáforo 1 a Rojo, aplica el Todo-Rojo, y otorga **🟢 Verde al
      Semáforo Esclavo**.
@@ -489,7 +665,7 @@ Antes de abrir el paso vehicular en el tramo de obra:
 ### 🧪 Ensayo 2: Demanda y Conmutación Sentido 1 (Maestro)
 
 * Acercar un vehículo frente a la **Cámara 1**.
-* **Criterio de Aceptación:** el Maestro recibe el pulso en **`PB0`** y ejecuta la secuencia de
+* **Criterio de Aceptación:** el Maestro recibe el pulso en **`PB14`** y ejecuta la secuencia de
   transición legal hasta **🟢 Verde Maestro**, manteniendo el Esclavo en Rojo.
 * **Criterio negativo, obligatorio:** **con el contacto de la cámara ABIERTO y nadie delante del
   lente, el equipo NO debe registrar demanda.** Si la registra, el pin está flotando o la polaridad
@@ -518,7 +694,7 @@ Antes de abrir el paso vehicular en el tramo de obra:
 ### 🧪 Ensayo 3: Demanda y Conmutación Sentido 2 (Esclavo)
 
 * Acercar un vehículo frente a la **Cámara 2** (la del Esclavo).
-* **Criterio de Aceptación:** el Esclavo recibe el pulso en **`PB0`**, lo transmite, el Maestro
+* **Criterio de Aceptación:** el Esclavo recibe el pulso en **`PB14`**, lo transmite, el Maestro
   aplica el Todo-Rojo y otorga **🟢 Verde Esclavo**, pasando él a Rojo.
 * **Segundo vehículo dentro de 3 s:** puede no generar trama nueva. Es la ventana de silencio,
   **no un fallo**.
@@ -529,7 +705,8 @@ Antes de abrir el paso vehicular en el tramo de obra:
 
 | Documento | Qué aporta |
 |---|---|
-| `05_Funcional/9_Manual_Parametrizacion_Camara_IA.md` | **Manual de campo vigente** de la cámara. Ya trae `PB0`/`J14` correctos y el aviso de las cámaras 2 y 4 |
+| `05_Funcional/9_Manual_Parametrizacion_Camara_IA.md` | 🔴 **MANDA SOBRE ÉSTE en todo lo que sea la cámara** (`D-12`). Trae el destino correcto (`J16` p10), el paso a paso del cableado con el destornillador delante (§4.bis) y la tabla de qué está `MEDIDO` y qué `SIN VERIFICAR` (§7) |
+| `DECISIONES.md` | La tabla de decisiones vigentes. **Si una fila de allí y un párrafo de aquí no coinciden, gana la fila** |
 | `05_Funcional/15_Lista_de_Compras_Hardware.md` | Cantidades reales: **2 cámaras**, «son las dos que el firmware lee hoy» |
 | `05_Funcional/6_Preguntas_Diseno_Funcional.md` | Decisión **CERRADA** de «Cero Computadores Edge Externos» |
 | `roadmap.md` N-59, N-64, N-67 | Origen de la cámara de umbral, del hallazgo de `PB8` y de la polaridad activa en alto |

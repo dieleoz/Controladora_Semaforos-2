@@ -128,14 +128,14 @@ se acumula un `20/20` que no acerca una tarjeta (`CLAUDE.md` §2.bis).
 
 ## 📏 VERIFICACIÓN EN ESCRITORIO — lo que dice la última acta
 
-**Compuerta: 20 PASS · 0 FALLA · 0 ABORTADO**, o sea que sale con `0`. Cifras **copiadas del acta
+**Compuerta: 19 PASS · 1 FALLA · 0 ABORTADO**, o sea que sale con `1` — y ese `1` es el hallazgo de `decisiones_01_anclas`, no una regresión: `D-14` y `D-17` están vigentes en `DECISIONES.md` y no tienen ancla en el firmware. Cifras **copiadas del acta
 [`evidencia/2026-09-07_compuerta.txt`](evidencia/2026-09-07_compuerta.txt)**, no escritas a mano —
 lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida.
 
 | | |
 |---|---|
 | Flash | Maestro **87.6 %** (**57416** de 65536 B → **8.120 B libres**) · Esclavo **63.7 %** (41772 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | **1180/1180 comprobaciones** en **76 packs** |
+| Banco por packs | **1200/1201 comprobaciones** en **77 packs** — la que falta es `D-14`, vigente y sin una sola ancla en el firmware. `D-17` se cerro el 07/09 poniendole su comentario en `ESP32_Expansion` |
 | Arneses que compilan C++ real | 271/271 pantalla · **99/99** automático · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | **235/235** jsdom · 58/58 funcional · 32/32 unitarios · **61/61** TDD |

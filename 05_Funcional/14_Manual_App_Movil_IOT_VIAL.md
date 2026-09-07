@@ -1,11 +1,12 @@
 # 📱 MANUAL DE USUARIO Y ARQUITECTURA DE LA APP MÓVIL IOT-VIAL (V9.0)
 
 **Sistema:** Centro de Control, Operación y Diagnóstico Semafórico a Nivel de Suelo  
-**Rama Git:** `feat/n69-ajustes-tiempos`  
+**Rama Git:** ~~`feat/n69-ajustes-tiempos`~~ → **`main-nuevo`** *(07/09: la rama vieja sigue existiendo y **no** es donde vive el trabajo. `git branch -a` lo dice; este renglón llevaba días apuntando a un sitio parado)*  
 **Plataforma:** Android Nativo (.APK) y Web Testing PWA  
 **Protocolo:** ~~Bluetooth Serial SPP (HC-05 / JDY-31 a 9600 bps) / BLE GATT~~ → **Bluetooth Serial SPP a 9600 bps contra el módulo de expansión `ESP32-WROOM-32`**. Ver el aviso de cabecera  
 **Fecha de Actualización:** 28 de Agosto de 2026  
-**Última revisión:** 5 de septiembre de 2026 — **la app cambió 223 líneas esa noche**: tarjeta de **CÁMARAS**, **Modo Degradado del Poste 2**, el **modo real del Poste 2** y la **consulta de reloj**. Ver la caja `05/09` de la cabecera, y `§1.ter`, `§5.6` y `§5.7`  
+**Última revisión:** 7 de septiembre de 2026 — **repaso contra `DECISIONES.md` y contra el fuente de hoy. NO cambió la app: cambió lo que este manual no decía.** Cuatro cosas nuevas: el aviso **`D-16`** de cabecera *(sin teléfono no hay forma de operar el equipo)*, **`D-11`** en `§5.5.1` *(aplicar tiempos NO arranca el ciclo)*, lo que la columna del Poste 2 **no puede decir nunca** (`§1.ter.3`) y el plazo de 48 h **que se quedó sin lector** (`§5.6.7`). 🟢 **Los `grep` que apuntan al FIRMWARE se re-corrieron todos el 07/09 y todos siguen dando lo que dice el texto** —el firmware se movió estos dos días (último commit sobre `bluetooth.cpp`: `4b2841b`, 07/09)—. 🟡 **Los que apuntan a la APP no se re-corrieron uno a uno, y se dice**: `app.js` e `index.html` no se tocan desde el **05/09** (`15e8cf3` y `7586c46`), y las tres copias siguen midiendo **317.993 B** idénticos. *Que el fichero no haya cambiado es un argumento, no una comprobación de cada cita: quien necesite una concreta, la corre*  
+**Revisión previa:** 5 de septiembre de 2026 — **la app cambió 223 líneas esa noche**: tarjeta de **CÁMARAS**, **Modo Degradado del Poste 2**, el **modo real del Poste 2** y la **consulta de reloj**. Ver la caja `05/09` de la cabecera, y `§1.ter`, `§5.6` y `§5.7`  
 **Revisión anterior:** 4 de septiembre de 2026 — **banco real del 3–4/09: `N-122`, la app nunca abría el socket Bluetooth**, y **`N-124`, la lista de equipos llevaba `MAC` escritas a mano**. Los dos arreglados, y **obligan a APK nueva**. Ver la cabecera y `§4.bis`  
 **Versión de Firmware Compatible:** V8.9 / V9.0 Definitiva — ⚠️ **en campo corre la V8.4**  
 **Archivo APK Compilado:** **la APK del 05/09 que acompaña a este paquete** — ~~la del 04/09~~ **queda obsoleta**: no trae ninguna de las cuatro cosas de la caja `05/09` — su nombre exacto y su `md5` estan en `LEEME_PRIMERO.md`, en la raíz del `.zip`, que es el único sitio donde no caducan  
@@ -13,6 +14,47 @@
 &nbsp;&nbsp;&nbsp;&nbsp;🛑 ~~`IOT_VIAL_Semaforos_2026-09-02_617bd00_SIN_BANCO.apk`~~ — **y todas las anteriores: NO CONECTAN** (`N-122`, ver cabecera). No es que les falten funciones: **no abren el socket**  
 &nbsp;&nbsp;&nbsp;&nbsp;✏️ *Corregido el 04/09: esta línea citaba `…_2026-09-02_285b18d_…`, **un hash que no existe en ninguna parte**. La APK del 02/09 que sí está en disco es la `617bd00`. Se anota en vez de sustituirse en silencio: una cifra inventada que desaparece sin dejar rastro vuelve a escribirse.*  
 **Pestañas:** **2 visibles al operario** (`Tráfico`, `Eventos`) y **5 en modo técnico** — se añaden `Tiempos`, `Técnico` y `Tramas`  
+
+---
+
+> # 🔴 `D-16` — SIN TELÉFONO NO HAY FORMA DE OPERAR EL EQUIPO
+>
+> **Va en la primera pantalla de este manual porque es lo primero que cambia el trabajo de quien lo
+> lee, y porque un manual de app que no lo diga está describiendo otro sistema.**
+>
+> **No es una avería, no es una limitación temporal y no es «lo cómodo»: es una PROPIEDAD DECLARADA
+> del sistema** — fila **`D-16`** de `DECISIONES.md`, 05/09.
+>
+> | lo que había antes | lo que hay hoy |
+> |---|---|
+> | mando de 4 relés desde el suelo | 🛑 **retirado** — `D-1`: *«el mando de relés NO EXISTE: el equipo se opera SÓLO POR APP»* |
+> | pantalla LCD y su menú en el gabinete | 🛑 **retirados del equipo** — `D-17.bis` |
+> | los pulsadores `Aceptar` / `Cancelar` | 🛑 **mudos**: `botonAceptar()` y `botonCancelar()` son `return false;` desde que `PB14`/`PB15` pasaron a ser cámaras (`D-2`) |
+> | **la app** | 📱 **la ÚNICA superficie de mando que queda** |
+>
+> ## 🛑 Lo que eso significa de pie delante de un cruce
+>
+> **Sin un teléfono emparejado y con batería NO se puede:** poner ámbar · quitarlo · dar paso ·
+> volver a automático · **parar el cruce** · cambiar los tiempos · poner la hora. **Ninguna de esas
+> cosas tiene hoy una segunda vía.**
+>
+> ## 📱 El teléfono es HERRAMIENTA CRÍTICA, y se trata como tal
+>
+> 1. **Batería.** Un teléfono descargado delante del poste es un cruce sin mando.
+> 2. **Cable de carga en la furgoneta**, no en la oficina.
+> 3. 🔵 **Conviene un SEGUNDO terminal ya emparejado** con los dos postes. No es lujo: es el
+>    repuesto de la única herramienta de mando que existe.
+>
+> ## ⚠️ Y un caso REAL que costó tiempo en el poste esta misma semana
+>
+> **Hubo que DESVINCULAR el Maestro en Ajustes de Android para poder conectarse al Esclavo.** Si la
+> app no encuentra el segundo poste, o se queda enganchada al primero, **el paso no es cambiar el
+> módulo ni reinstalar la APK**: es ir a *Ajustes de Android → Bluetooth* y **desvincular el poste
+> que no toca**. Ver `§4.bis.1`, que explica además por qué los dos pueden llamarse igual.
+>
+> > 🔴 **Corolario que este manual no puede dejar entender al revés:** todo lo que sigue —cada
+> > botón, cada pantalla y cada rechazo traducido— **es la interfaz completa del equipo, no un
+> > accesorio de ella.** Un defecto de esta app no degrada la operación: **la suspende.**
 
 ---
 
@@ -474,6 +516,49 @@ La pantalla principal enseña, al lado del cruce propio, **lo que el Poste 1 sab
 
 > 🔴 **Una trama sin ese campo NO deja encendida la lámpara de la trama anterior.** Las tres del otro
 > poste se apagan en cada repintado y sólo vuelve a encenderse una si hay dato **de ahora**.
+
+> # 🔴 LO QUE ESTA COLUMNA NO PUEDE DECIRLE NUNCA: EN QUÉ MODO ESTÁ EL POSTE 2
+>
+> **MEDIDO el 07/09, y hay que leerlo entero antes de usar esta columna para decidir algo.**
+>
+> El campo `ESC:` del Poste 1 **sólo transporta COLOR**. Su fuente es una función de cuatro líneas:
+>
+> ```bash
+> grep -n "coordinador_estadoEsclavo" 01_Firmware/Maestro/src/coordinador.cpp
+> ```
+>
+> ```c
+> const char* coordinador_estadoEsclavo() {
+>   if (modoActual_get() == MODO_AMBAR) return "AMBAR";
+>   if (estadoC == C_FALLO)             return "?";
+>   return (quienVerde == QV_ESCLAVO) ? "VERDE" : "ROJO";
+> }
+> ```
+>
+> **Cuatro valores: `VERDE`, `ROJO`, `AMBAR` y `?`. Ninguno es un modo.**
+>
+> ## 🛑 La consecuencia, y es de las que se notan en la calzada
+>
+> **Si el POSTE 2 está en Modo Degradado —dando paso por su propio reloj—, el POSTE 1 NO SE ENTERA,
+> y esta columna tampoco.** No hay ningún comando de radio por el que el Poste 2 anuncie que ha
+> entrado en ese modo: el Poste 1 seguirá pintando `VERDE` o `ROJO` como si el otro extremo
+> siguiera obedeciéndole.
+>
+> | lo que ve el operario en el POSTE 1 | lo que puede estar pasando de verdad |
+> |---|---|
+> | `POSTE 2 · ROJO` | el Poste 2 obedece **o** el Poste 2 está en Degradado y le toca rojo por su reloj |
+> | `POSTE 2 · VERDE` | ídem, con verde |
+>
+> **La única forma de saber en qué modo está el Poste 2 es CONECTARSE AL POSTE 2** y leer su propio
+> rótulo de `MODO` (`§1.ter.5`). **No hay atajo desde el teléfono, y no lo va a haber sin firmware
+> nuevo.**
+>
+> > ⚠️ **Por qué esto no es un defecto de la app y aquí no se propone arreglarlo:** el dato **no
+> > viaja por la radio**, así que ninguna APK puede pintarlo. Añadir ese aviso por radio es firmware
+> > de las dos puntas y **cambia quién arbitra el ciclo**, que es exactamente lo que `D-18` deja
+> > anotado como pendiente de medir: *«se mide y se escribe qué hace el Maestro mientras el Esclavo
+> > está dentro»*. **Se anota como lo que es —un hueco medido—, no como una casilla que alguien
+> > pueda cerrar desde la interfaz.**
 
 ### 1.ter.4 **BATERÍA 12V** — `-- V` es correcto, no es una avería
 
@@ -1369,6 +1454,34 @@ lo que sale de ahí no es una cola: es un conductor convencido de que el semáfo
 >
 > ⚠️ **Sigue siendo MEDIDO sobre fichero. Nadie lo ha cargado en una tarjeta.**
 
+#### 🔴 `D-11` — AL APLICAR TIEMPOS, LA APP AVISA Y DA EL BOTÓN: **NO ARRANCA EL CICLO SOLA**
+
+> **Es una decisión vial escrita, no un detalle de interfaz** — fila **`D-11`** de `DECISIONES.md`,
+> 05/09: *«al aplicar tiempos, la app AVISA y da el botón: NO arranca el ciclo sola»*.
+
+**El motivo, en una línea: arrancar el ciclo ABRE PASO**, y hacerlo automáticamente detrás de un
+formulario de tiempos **se salta la confirmación de vía** — la pregunta de `§4.bis.4` que es lo
+único que garantiza que alguien miró el tramo.
+
+**Lo que el técnico ve, y hay que saberlo para no leerlo como que la orden no entró:**
+
+1. Se pulsa **APLICAR**. El equipo contesta y **los tiempos quedan guardados**.
+2. 🛑 **El cruce SIGUE EN ROJO.** La app lo dice con estas palabras: *«Tiempos guardados — el cruce
+   sigue en ROJO hasta que arranque el ciclo»*.
+3. **El mando para arrancar se abre AHÍ, y hay que pulsarlo.** Es un segundo gesto, deliberado.
+
+```bash
+grep -n "sigue en ROJO hasta que arranque el ciclo" 05_Funcional/App_Semaforo/www/app.js
+grep -n "EL MANDO PARA VOLVER A ARRANCAR SE ABRE AQUI" 05_Funcional/App_Semaforo/www/app.js
+```
+
+*(Comprobado el 07/09: el segundo `grep` aterriza en el comentario de `N-150`, que lo dice literal —
+**«se abre aquí y no al pulsar APLICAR»**.)*
+
+> ⚠️ **Lo que NO hay que hacer: repetir APLICAR porque «no pasó nada».** No pasó nada **a
+> propósito**. Repetirlo vuelve a guardar los mismos tiempos y el cruce sigue igual — que es la
+> misma trampa de las seis pulsaciones de ÁMBAR del banco del 04/09 (`§5.6.3`).
+
 #### 🛑 Y una consecuencia operativa NUEVA que el técnico va a encontrarse: en Automático NO se pueden cambiar los tiempos
 
 **Hay que salir del modo, poner los tiempos, y volver a entrar.** El equipo contesta
@@ -1595,6 +1708,51 @@ saber si el arreglo lo lleva en el bolsillo, en la caja o en la furgoneta.
 > **no para a nadie** — deja entrar al corredor por las dos puntas—. Es más seguro que un verde por
 > reloj sin confirmar, y **no es un cruce en servicio**.
 
+### 5.6.7 🔴 EL DATO QUE FALTA Y NADIE PUEDE ENSEÑARLE: CUÁNTO LE QUEDA A LAS 48 h
+
+> **Este modo tiene un plazo duro de 48 h, y hoy NO HAY FORMA de saber por dónde va.** No es una
+> pega de redacción: es una medida, y sale de que la pantalla que lo enseñaba se retiró.
+
+**MEDIDO el 07/09.** El firmware del Poste 2 **sí sabe** las dos cosas —si la autorización venció y
+si está en las últimas horas— y las expone en dos getters:
+
+```bash
+grep -rn "degradado_syncVencida\|degradado_avisoLimite" 01_Firmware/Esclavo/
+```
+
+```
+Esclavo/include/modo_degradado.h:65:  bool degradado_syncVencida();
+Esclavo/include/modo_degradado.h:70:  bool degradado_avisoLimite();
+Esclavo/src/modo_degradado.cpp:186:  bool degradado_syncVencida() { return syncVencidaLatch; }
+Esclavo/src/modo_degradado.cpp:188:  bool degradado_avisoLimite() {
+Esclavo/src/menu.cpp:86 · :117 · :129                       <-- EL UNICO LLAMADOR
+```
+
+🔴 **Su único llamador es `menu.cpp` — la pantalla del gabinete que `D-17.bis` retira del equipo.**
+Los dos datos **no viajan en ninguna trama**: no están en el `$STATUS` del Esclavo, no están en el
+`ESC:` del Maestro y **no hay comando para pedirlos**.
+
+| quién sabe cuánto queda | quién puede verlo hoy |
+|---|---|
+| el firmware del Poste 2 | 🛑 **nadie** |
+
+## Lo que eso obliga a hacer en el poste, y va escrito porque es lo único que hay
+
+* **El técnico que sube al Poste 2 NO tiene ese dato ni sustituto por app.** Lo único que verá es el
+  **resultado** del plazo cuando ya se haya cumplido: el rótulo pasa a `DEGRADADO VENCIDO (48 h)` y
+  la luz queda en ámbar (`§1.ter.5`).
+* **Así que el plazo se lleva a mano.** Al dejar un poste en Degradado se **anota la hora**, y se
+  vuelve **antes** de las 48 h a re-sincronizar. Un Degradado no se deja «puesto y ya».
+* **Y no se puede reentrar para posponerlo:** vencido el plazo, el equipo contesta
+  `SYNC CADUCADA >48h` y **exige una sincronización nueva** (`§5.6.4`). Es deliberado — si se
+  pudiera reentrar, el límite duro sería un botón de posponer.
+
+> ⚠️ **`SIN VERIFICAR`, y se dice en vez de proponerse:** este manual **no propone** publicar la
+> antigüedad de la sincronización. Sacarla a la app es un campo más en una trama cuyo presupuesto
+> de bytes ya está **al límite** —`payload[155]` contra `tramaCompleta[160]`, sin un byte de
+> sobra—, y **eso lo decide quien mide, no este documento.** Lo que aquí se hace es dejar escrito
+> que **el dato existe, se perdió con la pantalla, y hoy lo suple el reloj del técnico.**
+
 ### 5.6.6 🛑 LO QUE ESTE APARTADO NO PUEDE PROMETER
 
 * **Nadie ha pulsado este botón con un equipo delante.** Todo lo de arriba está medido en el fuente
@@ -1709,13 +1867,25 @@ del equipo los vuelve a juntar solo**.
 > ninguna imagen — sólo el nivel de un pin: `§1.bis` y `D-12`.** La galería no las mezcla y no debe
 > mezclarlas nunca.
 
+> 🔴 **07/09: LAS CINCO RUTAS DE ESTA TABLA ESTABAN ROTAS, y se corrigen midiendo.** Los ficheros
+> **se movieron a `evidencia/old/`** y ninguna de las cinco `evidencia/0N_….png` existe ya:
+>
+> ```bash
+> ls evidencia/0*.png            # -> No such file or directory
+> ls evidencia/old/0*.png        # -> ahi estan las cinco
+> ```
+>
+> **La carpeta `old/` es el sitio correcto y la tabla lo dice ahora**: son capturas de agosto de una
+> botonera que ya no es ésa. Un enlace roto y una captura caducada **no son el mismo problema**, y
+> el roto escondía al caducado.
+
 | Vista | Captura (de PANTALLA) | Descripción |
 |---|---|---|
-| **Modo Operario** | `evidencia/01_modo_operario_principal.png` | Botonera táctil y réplica 3D de semáforos. ~~*«réplica del mando de relés»*~~ → **31/08: es la superficie de mando principal**, no una réplica de nada. ⚠️ **04/09: la captura enseña ~~4~~ botones y la botonera de hoy tiene SIETE rótulos, tres de ellos condicionados a la punta (§1). La captura está caducada, no la botonera** |
-| **Selector de Cruces** | `evidencia/02_modal_cruces_abierto.png` | Catálogo de frentes de obra y selección inmediata |
-| **Modo Técnico** | `evidencia/06_modo_tecnico_activo.png` | Desbloqueo por PIN y pestañas de configuración |
-| **Ajustes de Tiempos** | `evidencia/07_tiempos_guardados_exito.png` | Programación de tiempos de verde, rojo y despeje |
-| **Courier RTC** | `evidencia/08_courier_rtc_inyectado.png` | Inyección de hora compensada en el nodo Esclavo |
+| **Modo Operario** | ~~`evidencia/01_…`~~ → `evidencia/old/01_modo_operario_principal.png` | Botonera táctil y réplica 3D de semáforos. ~~*«réplica del mando de relés»*~~ → **31/08: es la superficie de mando principal**, no una réplica de nada. ⚠️ **04/09: la captura enseña ~~4~~ botones y la botonera de hoy tiene SIETE rótulos, tres de ellos condicionados a la punta (§1). La captura está caducada, no la botonera** |
+| **Selector de Cruces** | ~~`evidencia/02_…`~~ → `evidencia/old/02_modal_cruces_abierto.png` | Catálogo de frentes de obra y selección inmediata |
+| **Modo Técnico** | ~~`evidencia/06_…`~~ → `evidencia/old/06_modo_tecnico_activo.png` | Desbloqueo por PIN y pestañas de configuración |
+| **Ajustes de Tiempos** | ~~`evidencia/07_…`~~ → `evidencia/old/07_tiempos_guardados_exito.png` | Programación de tiempos de verde, rojo y despeje. ⚠️ **07/09: no enseña el segundo gesto de `D-11`** —el mando de arrancar el ciclo—, que es lo que hoy hay que pulsar después |
+| **Courier RTC** | ~~`evidencia/08_…`~~ → `evidencia/old/08_courier_rtc_inyectado.png` | Inyección de hora compensada en el nodo Esclavo |
 
 ---
 **Desarrollado y Validado para el Proyecto Controladora_Semaforos V9.0**

@@ -615,6 +615,22 @@ la fila.
 > `feat/n15-reloj-pantalla-hora`. Sustituye y cierra el diseño anterior de **SFTY-19**, que planteaba
 > entrada *automática*.
 >
+> 🔴 **07/09 — EL HARDWARE DEL MANDO YA NO SE MONTA (`D-1`) Y EL CODIGO SIGUE LEYENDO SUS PINES.**
+> Eso es lo decidido y es correcto —`mando_ambarLocal()` tiene **cinco llamadas vivas** y su veto
+> es esta regla; borrar su armador dejaria los `if` siempre verdaderos, o sea **el veto abierto, no
+> inerte**—. **Lo que hay que saber antes de tocar `J16` p5/p8:**
+>
+> | secuencia | en el Maestro, medido el 07/09 |
+> |---|---|
+> | `A.B.A.B` -> Degradado | **bloqueada**: la entrada exige reloj en hora y en esa punta nunca lo esta |
+> | `B.B.B` -> ambar local | direccion segura |
+> | **`A.A.A` -> Modo Automatico** | 🔴 **SIN GUARDA — arranca el ciclo, o sea ABRE PASO** |
+>
+> `A-2` esta cerrada: **p5/p8 se quedan vacios y el fin de carrera va a `J14`/`PB0`**. La
+> consecuencia operativa es dura y va aqui porque es de seguridad: **no se cablea NADA en p5/p8**,
+> porque cualquier contacto —un final de carrera, un rebote— compone secuencias que nadie pidio.
+> La asimetria estaba medida solo sobre el Esclavo hasta hoy.
+>
 > **Validación:** los tres firmwares compilan sin warnings propios · simulador funcional **20/20** ·
 > simulador de repetidor **10/10** · validación de pantalla **83/83**. Maestro 80,2 % de flash,
 > Esclavo 59,7 %.
@@ -1855,6 +1871,21 @@ parejas encendidas a la vez**, demostrando que una orden dirigida a la pareja A 
 > **Estado:** especificado el 27/08/2026. Sustituye a la idea de *"contar vehiculos"* que arrastraban
 > los manuales bajo el nombre de *"camara de umbral"* (N-59), y que se retiro de V9.0 por cara y
 > fragil. **Esto es otra cosa, y es mejor.**
+>
+> 🔴 **07/09 — TODA ESTA REGLA CUELGA DE UN BIT QUE PUEDE NO EXISTIR (`N-159`).** Con la ficha del
+> modelo **ya comprado** (`D-10`) delante, la fila `Linkage Method` enumera **cinco** metodos y
+> **`trigger alarm output` NO esta**; el manual generico lo da *«only supported by certain models»*.
+> El argumento con el que se daba por probable —*«la ficha pone `1 output`»*— **se retira**: ese
+> borne se cierra tambien **a mano desde el navegador y por horario**, sin analitica ninguna.
+> **`SIN VERIFICAR`, con el peso de la prueba del lado negativo.** Lo cierra el `ENSAYO 0`
+> —diez minutos, solo pantalla— de `roadmap.md` §3.8. **Si la casilla no esta, esta regla no se
+> puede implementar por `J16` y hace falta otro diseno.**
+>
+> 🔴 **Y su fase de grabacion (`D-14`) NO EXISTE EN EL FIRMWARE.** *«El controlador cierra un
+> contacto y la camara graba»*: **cero anclas en las dos puntas**, medido por separado por dos
+> agentes el 07/09. Fuera de `semaforo.cpp` los unicos `digitalWrite` reales del Maestro son la
+> direccion del RS485 y la del LoRa: **no hay contacto que cerrar.** Lo vigila desde hoy
+> `decisiones_01_anclas`, **y el banco esta en rojo por ello a proposito**.
 
 ### La distincion que lo cambia todo
 

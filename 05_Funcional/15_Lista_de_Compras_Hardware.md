@@ -109,13 +109,15 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 > por lectura el 05/09 sobre los símbolos, no sobre números de línea:
 >
 > ```text
+>   RE-CORRIDO EL 07/09 -- los cuatro renglones se movieron; el hallazgo, no
+>
 >   $ grep -n "pinMode(BOTON1, INPUT)" Maestro/src/botones.cpp Esclavo/src/botones.cpp
->   Maestro/src/botones.cpp:160:  pinMode(BOTON1, INPUT);
->   Esclavo/src/botones.cpp:178:  pinMode(BOTON1, INPUT);
+>   Maestro/src/botones.cpp:521:  pinMode(BOTON1, INPUT);        (decia :160)
+>   Esclavo/src/botones.cpp:507:  pinMode(BOTON1, INPUT);        (decia :178)
 >
 >   $ grep -n "lecturaCruda = " Maestro/src/botones.cpp Esclavo/src/botones.cpp
->   Maestro/src/botones.cpp:40:  bool lecturaCruda = (digitalRead(b.pin) == HIGH);
->   Esclavo/src/botones.cpp:54:  bool lecturaCruda = (digitalRead(b.pin) == HIGH);
+>   Maestro/src/botones.cpp:42:  bool lecturaCruda = (digitalRead(b.pin) == HIGH);   (decia :40)
+>   Esclavo/src/botones.cpp:56:  bool lecturaCruda = (digitalRead(b.pin) == HIGH);   (decia :54)
 > ```
 >
 > Exactamente como la cámara en N-67. 🔴 **Y nadie lo volvió a medir con el binario nuevo dentro:**
@@ -503,7 +505,44 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 | **A7** | **Juego de conexión de las cámaras a `J16`**: conector hembra del footprint de `J16` con sus terminales de crimpar, y cable de 2 hilos apantallado por cámara. 🟢 **04/09: `M3` CERRADA — ya se puede CONECTAR, no sólo comprar.** ⚠️ **Y el juego incluye con qué TAPAR el p1 de 12 V** *(tapón, funda termorretráctil o el conector sin terminal en esa posición)*: no es opcional | **2 juegos** | Llevar el contacto seco de la cámara a los pines que **liberan los pulsadores 3 y 4** ~~el mando~~ (`PB14`/`PB15`), **contra los 3,3 V del borne contiguo** (`p9` para `p10`, `p11` para `p12`). **No hace falta `PCF8574` ni ninguna placa hija** | **Manual 13** §3 *(borneras)* · `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md` §7 *(el mapa pin a pin de `J16`)* · **Manual 9** *(polaridad, `M3` y el `ENSAYO 4`)* |
 | **A8** | 🔴 **PLACA PORTADORA DEL `ESP32`** — **línea nueva del 31/08; hasta hoy esto NO ERA UNA LÍNEA DE COMPRAS y hacía falta igual.** Lleva, como mínimo: **PCB**, **hembrillas** para el módulo (que es de formato protoboard y va enchufado, no soldado), **conectores** de entrada de 12 V y de salida a `J17`, **fusible**, **protección de inversión de polaridad** y **condensadores** de desacoplo y de reserva | **2** *(1 por poste)* — 🛑 **NO SE FABRICA todavía** | Que el `ESP32` y su `A5` y su `A6` sean **un conjunto montable y reemplazable**, en vez de tres módulos sueltos con cables volantes dentro de un armario que vibra en un remolque | 🔴 **`05_Funcional/19_Especificacion_Placa_Portadora_ESP32.md`** *(otro agente la está escribiendo en este mismo árbol — **aquí NO se duplica**: si al leer esto ese fichero no existe todavía, es que ese trabajo no ha entrado, y **se espera a que entre en vez de inventar la especificación aquí**)* |
 | ~~**A9**~~ | ⛔ **RECEPTOR RF DEL MANDO DE RELÉS — NO SE PIDE. ANULADA EL 05/09 (`D-1`).** ~~🟢 SE PIDE, contacto seco MOMENTÁNEO, canales A y B, 12 V, salida `NO`~~ · ~~🛑 04/09: falta DECIDIR si `NO` o `NC`~~. **El responsable retiró el mando del equipo: *«ya no tenemos mandos de A y B, sólo la app, los quitamos»*.** **NO es una pieza pendiente ni una compra aplazada: es una decisión.** El razonamiento de `NO`/`NC` se conserva en el bloque de abajo porque **sigue gobernando el cableado de las CÁMARAS** | ~~2~~ → **0** | ⛔ **Nada.** ~~era la única vía de mando del Esclavo~~ → 📵 **eso no se resuelve comprando: pasa a ser `D-16`** — la app es la única superficie de mando, y **el Modo Degradado del Esclavo se queda sin vía de activación** *(Manual 2 §6, con el censo de las cuatro)* | 🛑 **Nada que especificar.** 🔴 **Y lo que NO se toca: el CÓDIGO del mando se queda** — retirarlo abre el veto de SFTY-21. Manual 2 §6 |
-| 🆕 **A10** | **Tarjeta microSD para cada cámara** — **`high endurance` / de vigilancia**, no la de un teléfono: se escribe en bucle las 24 h y una tarjeta de consumo se agota. Formato admitido por la cámara: **microSD / SDHC / SDXC** | **2** *(1 por cámara)* | **Que exista soporte de accidentes y auditoría.** El controlador **no ve imagen** (`D-12`) y no la va a ver: las imágenes viven **en la cámara**. Sin tarjeta no hay ninguna, y **no se toca una línea de firmware** | ⚠️ **Capacidad, retención y modo de grabación NO están decididos** (`A-0`). 🔴 **Y la capacidad máxima tiene DOS fuentes que no coinciden:** ver el aviso de abajo |
+| 🆕 **A10** | **Tarjeta microSD para cada cámara** — **`high endurance` / de vigilancia**, no la de un teléfono: se escribe en bucle las 24 h y una tarjeta de consumo se agota. Formato admitido por la cámara: **microSD / SDHC / SDXC** | **2** *(1 por cámara)* | **Que exista soporte de accidentes y auditoría.** El controlador **no ve imagen** (`D-12`) y no la va a ver: las imágenes viven **en la cámara**. Sin tarjeta no hay ninguna, y **no se toca una línea de firmware** | ⚠️ **Capacidad, retención y modo de grabación NO están decididos** (`A-0`). 🔴 **Y la capacidad máxima tiene DOS fuentes que no coinciden:** ver el aviso de abajo. 🛑 **07/09 — Y LA CUENTA DE RETENCIÓN SE APOYA EN `D-14`, QUE NO ESTÁ IMPLEMENTADA:** ver el recuadro justo debajo |
+
+> # 🔴 07/09 — AVISO SOBRE `A10`: **LA CUENTA QUE DIMENSIONA ESTA COMPRA SE APOYA EN `D-14`, Y `D-14` NO ESTÁ EN EL FIRMWARE**
+>
+> **La compra no se discute** —está decidida por el responsable el 05/09—, **pero el número de días
+> que aguanta la tarjeta, sí.** La estimación que acompañó a la decisión dice: *«con `Motion & Alarm`
+> —movimiento **Y** carril en rojo— son **minutos al día**, no horas, así que una tarjeta modesta
+> aguanta meses»*.
+>
+> 🛑 **El `& Alarm` de esa cuenta es `D-14`: el controlador cierra un contacto en ROJO y la cámara lo
+> ve por su entrada de alarma. MEDIDO EL 07/09: eso no existe en el firmware.**
+>
+> ```
+> $ grep -rn "ROJO_PEATON\|VERDE_PEATON\|BUZZER" 01_Firmware/*/src/*.cpp     <- corrido el 07/09
+> 01_Firmware/Maestro/src/main.cpp:35://   ROJO_PEATON y VERDE_PEATON, que estaban sin custodia.
+> ```
+>
+> **Una sola línea en las dos puntas, y es un COMENTARIO.** Cero `pinMode`, cero `digitalWrite`.
+>
+> **Las tres cadenas de potencia fabricadas y libres —`J9` (`VERDE_PEATON`, `PA7`), `J11`
+> (`ROJO_PEATON`, `PA6`) y `J13` (`BUZZER`, `PB1`)— no tienen una línea de firmware detrás**, y son
+> justo por donde saldría ese contacto hacia `IN1`/`GND1` de la cámara.
+>
+> **Consecuencia para quien compra, en una línea: sin `D-14` construida, la grabación no puede
+> filtrarse por «rojo», así que o va por MOVIMIENTO SOLO o va CONTINUA — y las dos llenan la tarjeta
+> mucho más deprisa que «minutos al día».**
+>
+> | | |
+> |---|---|
+> | **Qué NO cambia** | **se compran 2 tarjetas igual.** La cámara graba por movimiento sin necesitar nada nuestro |
+> | **Qué SÍ cambia** | **la capacidad que hay que pedir.** Ante la duda, **la más grande que admitan las dos fuentes** *(ver el aviso de los 256/512 GB)*, no la más modesta |
+> | **Y lo que hay que decidir antes de configurar** | `A-0`: retención y **continua o por evento** — con el añadido de que **el evento «rojo» hoy no llega a la cámara** |
+>
+> 🔴 **Y falta cablear y falta firmware, y ninguno de los dos está pedido:** `D-14` necesita **un
+> canal de salida del controlador hacia la entrada de alarma de la cámara**, y de esa conexión **no
+> hay diagrama de cable en ninguna fuente de Hikvision** (`ALARM IN`, `G` quedan **`SIN VERIFICAR`**,
+> `DECISIONES.md` `D-14`). **No se abre una línea de compra para algo sin diagrama: se anota el
+> hueco.**
 
 > ## 📷 05/09 — `A2` YA NO ES GENÉRICA: LA CÁMARA COMPRADA ES UNA `DS-2CD2683G2-IZS`
 >
@@ -655,9 +694,29 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 > anunciarse con su matrícula ANTES de subir al poste** (`SEM-<SERIE>-M` y `SEM-<SERIE>-E`), o el
 > técnico verá dos dispositivos idénticos en la lista de Android y no sabrá a qué poste se conecta.
 > **Lo que cambia es cómo se hace:** en un `HC-05` era un `AT+NAME` a 38400 bps (Manual 10 §1); en un
-> `ESP32` **el nombre lo fija su propio firmware**, y ese firmware **todavía no está escrito**.
-> ⚠️ **Se anota como hueco, no se da por resuelto:** nadie lo ha hecho, y es lo que separa dos
-> equipos distinguibles de dos filas iguales en la pantalla del celular.
+> `ESP32` **el nombre lo fija su propio firmware**. ~~y ese firmware **todavía no está escrito**~~
+>
+> 🟢 **CADUCADO EL 07/09: ESE FIRMWARE ESTÁ ESCRITO.** El módulo `01_Firmware/ESP32_Expansion/` entró
+> el 31/08 (`d2427c2`), y el rótulo está medido hoy en su contrato:
+>
+> ```
+> $ grep -n "ROTULO_PREFIJO\|ROTULO_PROVISIONAL" 01_Firmware/ESP32_Expansion/include/contrato.h
+> 258:#define ROTULO_PREFIJO        "SEM-"
+> 259:#define ROTULO_PROVISIONAL    "SEM-SIN-MATRICULA"
+> ```
+>
+> **No es una opción de compilación —el mismo binario sirve a las dos puntas—: el módulo aprende la
+> serie del campo `NODE:` del `$STATUS` que retransmite** (`ESP32_Expansion/src/transporte_app.cpp`).
+> **No hay ningún `AT+NAME` que teclear y nada que comprar por esto.**
+>
+> ⚠️ **Y el hueco que SÍ queda, que es otro y más pequeño: el rótulo se guarda para la SIGUIENTE
+> arrancada**, a propósito —renombrar el perfil SPP en caliente tira la sesión del operario que puede
+> estar dando una orden al cruce—. **Consecuencia: dos módulos vírgenes se anuncian LOS DOS como
+> `SEM-SIN-MATRICULA` hasta que a cada uno se le da una vuelta de energía.** Se cubre por
+> **procedimiento de puesta en marcha**, no comprando nada — está abierto en
+> `6_Preguntas_Diseno_Funcional.md` §5.1, con dueño: el responsable.
+> 🔴 **`SIN VERIFICAR`: nadie ha visto ese rótulo en un teléfono.** El Bluetooth no subió en el banco
+> del 3–4/09.
 
 > 🔌 **Sobre A5 —la fuente propia—, lo que hay y lo que falta, separado a propósito:**
 >
@@ -938,24 +997,52 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 > | punta | ¿mando por app? | ¿mando por pulsadores? | ~~¿mando por relés?~~ **05/09** |
 > |---|---|---|---|
 > | **Maestro** | ✅ **sí** — `SET_MODO:AUTO/MANUAL/AMBAR/MENU/ALCANCE/INTELIGENTE/DEGRADADO`, símbolo `SET_MODO` en `Maestro/src/bluetooth.cpp` | ❌ no — `botonAceptar()`/`botonCancelar()` devuelven **`false` siempre** | ⛔ **el hardware ya no existe** |
-> | **Esclavo** | 🔴 **NO. No existe ni un solo `SET_MODO`** — `grep -c "SET_MODO" Esclavo/src/bluetooth.cpp` → **`0`** (**MEDIDO** el 31/08, **vuelto a medir el 05/09: sigue en `0`**). Lo que hay es `AMBAR_EMERGENCIA`, `CANCELAR_AMBAR`, `SOLICITAR_PASO` y `SET_RTC` | ❌ no — mismos dos `false`, y sus pines 3 y 4 **son cámaras** desde N-97 | ⛔ **ídem.** ~~🔴 ES LA ÚNICA~~ |
+> | **Esclavo** | ~~🔴 **NO. No existe ni un solo `SET_MODO`** — `grep -c "SET_MODO" Esclavo/src/bluetooth.cpp` → **`0`** (**MEDIDO** el 31/08, **vuelto a medir el 05/09: sigue en `0`**)~~ → 🟢 **07/09: EL `grep` YA NO DA CERO.** Ver el recuadro de abajo | ❌ no — mismos dos `false`, y sus pines 3 y 4 **son cámaras** desde N-97 | ⛔ **ídem.** ~~🔴 ES LA ÚNICA~~ |
 >
-> 🔴 **Y así leída, la tabla dice hoy algo que el 31/08 no decía: en el Esclavo las TRES columnas
-> están en rojo o en ⛔.** Esa punta **no tiene ninguna vía para entrar o salir del Modo Degradado**,
-> y la cuarta —que el Maestro se lo ordene por radio— es imposible por diseño, porque *el radio
-> muerto es justamente la razón de entrar al Degradado*. **No se resuelve comprando nada**: está
-> escrito, con el censo completo, en el **Manual 2 §6**, y **es una decisión del responsable**, no de
-> una lista de compras.
->
-> > 🛑 **La consecuencia operativa, dicha entera: sin receptor RF en el Esclavo, entrar o salir del
-> > Modo Degradado en esa punta obliga a SUBIR AL GABINETE.** Y ni así, porque lo que había allí
-> > arriba era el menú de la pantalla, que hoy **no puede confirmar nada** (`botonAceptar()` es
-> > `false`) y **no tiene display** (el `ESP32` ocupa `J17`). El censo llamador a llamador está
-> > escrito en el propio firmware, en `Esclavo/src/botones.cpp`, y dice literalmente que en esa
-> > punta *«el sustituto no es la app sino EL MANDO DE RELÉS»*.
+> > # 🟢 07/09 — ESE `grep` ESTÁ MUERTO, Y CON ÉL LA CONCLUSIÓN QUE COLGABA DE ÉL
 > >
-> > **Eso es exactamente lo que N-19 prometía evitar** —*«el técnico ya no tiene que subir con
-> > escalera a 5 metros en el Esclavo»*—. Sin `A9`, esa promesa se cae para el Degradado.
+> > **Re-corrido hoy, el mismo comando sobre el mismo fichero:**
+> >
+> > ```
+> > $ grep -c "SET_MODO" 01_Firmware/Esclavo/src/bluetooth.cpp
+> > 10
+> >
+> > $ grep -nE 'strcmp\(accion|strncmp\(accion' 01_Firmware/Esclavo/src/bluetooth.cpp
+> > 547:  if (strcmp(accion, "AMBAR_EMERGENCIA") == 0) {
+> > 585:  } else if (strcmp(accion, "CANCELAR_AMBAR") == 0) {
+> > 668:  } else if (strcmp(accion, "FORZAR_ROJO") == 0) {
+> > 676:  } else if (strcmp(accion, "SOLICITAR_PASO") == 0) {
+> > 694:  } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {     <-- LA VIA QUE FALTABA
+> > 771:  } else if (strcmp(accion, "TEST_LEDS") == 0) {
+> > 784:  } else if (strncmp(accion, "SET_RTC:", 8) == 0) {
+> > ```
+> >
+> > **Lo construyó `D-18` (05/09): el Modo Degradado del poste 2 SE PIDE POR APP** —
+> > `CMD:PIN:1234:SET_MODO:DEGRADADO`—, dándole la llave a `degradado_entrar()`, que era una puerta
+> > **ya construida y probada** (`18/18` en el arnés de dos puntas). *(Y contesta un `$ERR` por cada
+> > motivo de rechazo, no un `$ACK` que miente.)*
+>
+> 🔴 ~~**Y así leída, la tabla dice hoy algo que el 31/08 no decía: en el Esclavo las TRES columnas
+> están en rojo o en ⛔.** Esa punta **no tiene ninguna vía para entrar o salir del Modo Degradado**~~
+> ⛔ **TACHADO EL 07/09: SÍ LA TIENE, Y ES POR APP.** Lo que sigue siendo cierto es que **la cuarta
+> vía —que el Maestro se lo ordene por radio— es imposible por diseño**, porque *el radio muerto es
+> justamente la razón de entrar al Degradado*. **Y sigue siendo cierto que no se resuelve comprando
+> nada**: se resolvió **decidiendo** (`D-18`), que es lo que decía esta línea.
+>
+> > 🛑 ~~**La consecuencia operativa, dicha entera: sin receptor RF en el Esclavo, entrar o salir del
+> > Modo Degradado en esa punta obliga a SUBIR AL GABINETE.**~~ ⛔ **CADUCADO EL 07/09 POR `D-18`:
+> > NO HAY QUE SUBIR A NINGÚN GABINETE — se pide por app, con la misma orden en las dos puntas.**
+> > *(Lo que sigue valiendo del párrafo viejo: allí arriba no habría nada que hacer igualmente, porque
+> > el menú **no puede confirmar nada** —`botonAceptar()` es `false`— y la pantalla **se retira del
+> > equipo**, `D-17.bis`.)*
+> >
+> > 🔴 **Y el comentario del firmware que decía que en esa punta *«el sustituto no es la app sino EL
+> > MANDO DE RELÉS»* describe el mundo anterior a `D-1` y a `D-18`.** Hoy el sustituto **es** la app,
+> > y no hay mando.
+> >
+> > 📵 **Lo que N-19 prometía —*«el técnico ya no tiene que subir con escalera a 5 metros en el
+> > Esclavo»*— se cumple, pero AHORA DEPENDE ENTERO DEL TELÉFONO** (`D-16`). Esa es la compra que
+> > esta lista sí puede empujar: **un segundo terminal emparejado, con su cable.**
 >
 > ### 🔬 04/09 — LO QUE EL BANCO MIDIÓ, Y QUE CIERRA ESTA LÍNEA
 >
@@ -1099,9 +1186,13 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 **La pregunta:** *¿en qué tarjeta está muerto el cristal `Y2` de 32.768 kHz?* Se responde en la sesión
 de banco (tarea `B5`), y hasta entonces **no se pide nada de este bloque**:
 
+> 🛑 **07/09 — LA TABLA DE ABAJO ESTÁ DEROGADA EN SU PRIMERA FILA, Y ES LA MISMA FRASE QUE `A6` YA
+> TACHÓ EL 05/09 LLAMÁNDOLA *«la fila que más engañaba»*.** Se corrige aquí también porque este
+> bloque se lee solo y **una copia caducada tapa la corrección**.
+
 | si el cristal muerto está en… | qué hace falta |
 |---|---|
-| el **Esclavo** | **NADA.** Ya toma la hora del Maestro por radio (`CMD_HORA_*`, SFTY-23). Cero pesos |
+| el **Esclavo** | ~~**NADA.** Ya toma la hora del Maestro por radio (`CMD_HORA_*`, SFTY-23). Cero pesos~~ ⛔ **CADUCADO POR `D-15` y `D-9`.** El camino que sincronizaba **el reloj del STM32** está derogado, y **ese reloj no existe** (`Y2` muerto). **Esa punta no tiene de dónde tomar la hora si no es de SU PROPIO `DS3231`** — y lo lleva: son **dos, uno por `ESP32`, ya puestos** (`A-5`) |
 | ~~el **Maestro**~~ | ~~ahí sí: es quien fija la hora, y necesita fuente propia → todo el bloque de abajo~~ ⛔ **Esta rama ya no manda en la compra del reloj:** el `DS3231` va colgado del `ESP32` con su pila (**A6**) y **no** en la tarjeta. Lo que el cristal decida sigue importando para el firmware del Maestro, no para pedir el módulo |
 
 | # | Qué | Cant. | Especificación en |
@@ -1128,15 +1219,31 @@ de banco (tarea `B5`), y hasta entonces **no se pide nada de este bloque**:
 > — se comprobó buscándolo. La única descripción que existe es el tercer aviso de aquí abajo. Se
 > apunta para que alguien la lleve al Manual 13, no para taparlo con una referencia falsa.
 
-> 🔴 **PRIMERO, LO QUE NO ES UNA AVERÍA — y sigue valiendo con el reloj mudado a A6:** el **`DS3231`
-> no tiene driver en ninguna punta**. Medido el 28/08: `grep -rniE "DS3231|Wire\.|0x68"` sobre
-> `01_Firmware/Maestro/{src,include}` y `01_Firmware/Esclavo/{src,include}` da **cero coincidencias
-> de código**. **Al enchufarlo no dará la hora: no hay código que le hable. Eso no es una avería, ni
-> del módulo ni del montaje** — no se devuelve al mostrador ni se busca el fallo en la soldadura.
+> 🔴 ~~**PRIMERO, LO QUE NO ES UNA AVERÍA — y sigue valiendo con el reloj mudado a A6:** el `DS3231`
+> **no tiene driver en ninguna punta** … **Al enchufarlo no dará la hora: no hay código que le
+> hable.**~~
 >
-> ⚠️ **Y colgarlo del `ESP32` no lo arregla, lo mueve:** ahora el código que falta es **el del
+> ⚠️ ~~**Y colgarlo del `ESP32` no lo arregla, lo mueve:** ahora el código que falta es **el del
 > `ESP32`, que tampoco existe todavía**. Se compra para tenerlo cuando llegue ese firmware
-> (`roadmap.md` N-54 / N-55). **Lo mismo vale para el `PCF8574` de B3.**
+> (`roadmap.md` N-54 / N-55).~~
+>
+> # 🛑 07/09 — LOS DOS PÁRRAFOS DE ARRIBA ESTÁN CADUCADOS, Y ESTE MISMO DOCUMENTO YA LO DECÍA EN `A6`
+>
+> **Es la copia que sobrevivió a su propia corrección.** La línea `A6` de esta lista tacha desde el
+> 05/09 exactamente esta frase; el bloque `B` la seguía repitiendo dos veces. **Lo medido:**
+>
+> | decía | hoy |
+> |---|---|
+> | *«el código del `ESP32` tampoco existe todavía»* | 🟢 **existe y está llamado:** `ESP32_Expansion/src/reloj_ds3231.cpp` — `reloj_setup()`, `reloj_revisar()`, `reloj_leer()` y `reloj_ajustar()`, **todos con llamador** |
+> | *«se compra para tenerlo cuando llegue ese firmware»* | ⛔ **no hay nada que comprar: son DOS, ya puestos** (`A-5`, 05/09) |
+> | *«al enchufarlo no dará la hora»* | 🟢 **la dio: el `HORA:22:19:58` de la cinta del banco es real** (`N-145` confirmada en cobre) |
+>
+> ✅ **Lo que del aviso viejo SÍ se conserva, porque es cierto y protege al que monta:** *(1)* **no
+> hay driver de `DS3231` en ninguna punta del STM32, y es lo correcto** —el reloj no va ahí (`D-9`)—;
+> *(2)* **un `ZS-042` puede seguir sin dar hora** por la pila, el oscilador parado (`OSF`) o el modo
+> 12 h, y entonces el firmware publica `--:--:--` **a propósito** — el motivo se lee con
+> **`CMD:LEER_RTC`** (`D-17`), que contesta `$ERR ... DESC:` por causa; y *(3)* **el `PCF8574` de
+> `B3` sigue sin driver — y sin comprar, porque su propuesta está retirada.**
 
 > 🔴 **Tres avisos que cambian lo que se compra, no solo cómo se monta:**
 >
@@ -1324,7 +1431,7 @@ firme la revisión V2 de la placa, no compras autorizadas.**
 |:---:|---|---|
 | **A5** | **Fuente DC-DC CONMUTADA 12 V → 5 V, ≥ 1 A** ×2 | 🛑 **EL MONTAJE.** Sin ella el `ESP32` cuelga del `LM7805` y **reinicia el STM32 que gobierna el semáforo**. **Conmutada, no lineal**: un lineal disipa **4,35 W** y en un armario al sol **no falla limpio, falla caliente** |
 | **A8** | **Placa portadora del `ESP32`** ×2 | 🛑 **EL MONTAJE**, y además **NO TIENE DUEÑO**: no está decidido quién la diseña ni quién la fabrica. **Decisión del responsable** |
-| ~~**A9**~~ | ⛔ **NO SE PIDE (`D-1`, 05/09)** | ~~🛑 LA OPERACIÓN DEL ESCLAVO~~ → 📵 **ya no es una compra que falte: es `D-16`.** Esa punta **no tiene `SET_MODO` por Bluetooth** —`grep -c "SET_MODO" Esclavo/src/bluetooth.cpp` → **`0`**, remedido el 05/09— y sus cuatro pulsadores se han ido. **El Modo Degradado del Esclavo se queda sin vía de activación, y eso no se compra: se decide** *(Manual 2 §6)* |
+| ~~**A9**~~ | ⛔ **NO SE PIDE (`D-1`, 05/09)** | ~~🛑 LA OPERACIÓN DEL ESCLAVO~~ → 📵 **ya no es una compra que falte: es `D-16`.** ~~Esa punta **no tiene `SET_MODO` por Bluetooth** —`grep -c "SET_MODO" Esclavo/src/bluetooth.cpp` → **`0`**, remedido el 05/09— … **El Modo Degradado del Esclavo se queda sin vía de activación**~~ 🟢 **CADUCADO EL 07/09: el mismo `grep` da hoy `10`.** `D-18` (05/09) le dio a esa punta `SET_MODO:DEGRADADO` por app — **se decidió, que es lo que esta fila decía que hacía falta**. Lo que queda de la fila es `D-16`: **la app es la única vía, y depende de un teléfono** |
 | ~~**A6**~~ | ✅ **`DS3231` ×2 — YA PUESTOS**, uno por `ESP32`, con pila propia | ~~Se pide ya; **cuántos** lo decide el diagnóstico del `Y2`~~ ⛔ **CADUCADO: `Y2` no decide nada** (`D-9`, `D-15`). 🔴 **Lo que sigue abierto no es la compra sino la prueba:** `0x68` **`SIN VERIFICAR`** sobre el módulo real, y `N-145` sin ejercer |
 | 🆕 **A10** | **microSD `high endurance` ×2**, una por cámara | 🟢 **Nada para comprarlas** *(decidido el 05/09)*. Lo que bloquean es **la configuración**: sin decidir retención y continua-o-por-evento no se puede parametrizar la grabación (`A-0`) |
 | **A7** | Conector y cable para `J16` ×2 | 🟢 **Nada, ni para comprar ni para conectar: `M3` se cerró en banco el 04/09** —pull-down real de 10 kΩ—. ~~**Conectarlo** espera a la medida **`M3`**~~. **Lo único obligatorio es tapar el p1 de 12 V antes de enchufar** |

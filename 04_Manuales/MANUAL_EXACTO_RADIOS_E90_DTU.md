@@ -4,9 +4,23 @@
 **Referencia exacta de hardware:** EBYTE serie **E90-DTU (RS485/232 $\leftrightarrow$ RF)**
 **Herramienta de configuración:** `04_Manuales/RF_Setting4.6.exe`
 **Revisado:** 1 de agosto de 2026
-**Última revisión:** **5 de septiembre de 2026** — 🛑 **la §6 («Diagnóstico desde la pantalla»)
+~~**Última revisión:** **5 de septiembre de 2026** — 🛑 **la §6 («Diagnóstico desde la pantalla»)
 queda DEROGADA: no hay pantalla, y en el Maestro el dato tampoco sale por Bluetooth.** El resto
-del documento —configuración, DIP `M0`/`M1`, topología, bandas— **sigue vigente sin cambios**.
+del documento —configuración, DIP `M0`/`M1`, topología, bandas— **sigue vigente sin cambios**.~~
+
+**Última revisión:** **7 de septiembre de 2026.** La §6 sigue derogada. Lo nuevo son **cuatro
+correcciones contra el fuente**, y ninguna toca la configuración de las radios:
+
+| dónde | qué estaba mal |
+|---|---|
+| **constantes de firmware** | 🔴 la *«ventana de seguridad de 12 s»* que justifica `TIMEOUT_ACK_MS` **es el defecto `N-71`, arreglado el 27/08**. Hoy son **25 s** y **5 reintentos**, no 4 |
+| **§6** | `SINRESP:` **no sale en el `$STATUS`**, sólo en el `$ALARM` — y el `$STATUS` va a **2 s**, no a 1 |
+| **§4 y §5** | *«el puente ESP32»* significa **otra cosa** desde que existe `ESP32_Expansion`: aquí se habla del **`Repetidor`**, que es el que **sigue sin watchdog** (re-medido) |
+| **§7** | el inventario listaba **8 de 21 ficheros**: faltaban cinco manuales y toda la documentación de la cámara |
+
+✅ **Lo que se re-midió y NO cambia:** `2.4 kbps`, canal `0`, `M0`/`M1` en `OFF`, **2 radios en
+enlace directo sin repetidor**, `RF_BURST_COPIES = 3` idéntico en las dos puntas, y
+`protocolo_tramasDescartadas()` **sin un solo llamador en el Maestro**.
 
 ---
 
@@ -14,7 +28,7 @@ del documento —configuración, DIP `M0`/`M1`, topología, bandas— **sigue vi
 >
 > | | |
 > |---|---|
-> | ✅ **§1 a §5, §7: VIGENTES** | La configuración de las radios no la toca esta revisión. `2.4 kbps`, canal `0`, `M0`/`M1` en `OFF`, 2 radios en enlace directo |
+> | ✅ **§1 a §5, §7: VIGENTES** | La configuración de las radios no la toca esta revisión. `2.4 kbps`, canal `0`, `M0`/`M1` en `OFF`, 2 radios en enlace directo. ⚠️ **Matizado el 07/09:** «vigentes» valía para la CONFIGURACIÓN, y en §4, §5 y §7 había tres cosas que no eran configuración y sí estaban caducadas — ver la cabecera del 07/09 |
 > | 🛑 **§6: DEROGADA** | Mandaba diagnosticar leyendo `PRUEBA ALCANCE` en la pantalla del Maestro. **La pantalla no se monta** (28/08, confirmado el 05/09), y ese modo **para el cruce en rojo fijo** a cambio de nada |
 > | 📌 **Y deja un pendiente de FIRMWARE, no de documento** | Los contadores `RX:`/`OK:`/`RUIDO:` **sí salen del Esclavo** por Bluetooth y **no salen del Maestro**. Ver el desarrollo medido en §6 |
 
@@ -71,10 +85,54 @@ del documento —configuración, DIP `M0`/`M1`, topología, bandas— **sigue vi
 | Constante | Valor en firmware hoy | Dónde | Por qué ese valor |
 |---|---|---|---|
 | `RF_BURST_COPIES` | **3 copias** | `protocolo.h` (Maestro **y** Esclavo) | A 2,4 kbps cuestan ~0,13 s de aire, despreciable. Los equipos son **móviles** y la distancia de despliegue es desconocida: a mayor distancia sube la pérdida de tramas, y la redundancia es la palanca que paga |
-| `TIMEOUT_ACK_MS` | **3.500 ms** | `coordinador.cpp` | Con 3,5 s caben **4 intentos** dentro de la ventana de seguridad de 12 s; con 8 s solo caben 2 |
+| `TIMEOUT_ACK_MS` | **3.500 ms** | `coordinador.cpp` | ⛔ ~~Con 3,5 s caben **4 intentos** dentro de la ventana de seguridad de **12 s**; con 8 s solo caben 2~~ 🔴 **LOS DOS NÚMEROS ESTÁN CADUCADOS — ver abajo.** ✅ **Hoy: caben los CINCO reintentos que el coordinador hace, dentro de una ventana de 25 s** |
+
+> # 🔴 CORREGIDO EL 07/09 — LA «VENTANA DE SEGURIDAD DE 12 s» NO EXISTE DESDE EL 27/08
+>
+> **El valor `3.500 ms` es correcto. Lo que estaba caducado era su JUSTIFICACIÓN**, y eso importa
+> porque es lo que alguien lee antes de decidir si puede tocarlo.
+>
+> **Esos 12 s eran el defecto `N-71`, no la especificación.** El techo de silencio de SFTY-6 estaba
+> por DEBAJO del presupuesto de reintentos del ciclo, así que **los reintentos 4 y 5 no podían
+> ejecutarse jamás**: el ámbar por orfandad saltaba antes. Se subió a **25 s**, y la cuenta va
+> escrita en el propio fuente, no en un comentario suelto.
+>
+> **MEDIDO el 07/09, salida literal:**
+>
+> ```
+> $ grep -h "define SFTY6_SILENCIO_MS" 01_Firmware/Maestro/include/protocolo.h
+> #define SFTY6_SILENCIO_MS   25000UL
+>
+> $ grep -h "TIMEOUT_ACK_MS = " 01_Firmware/Maestro/src/coordinador.cpp
+> const unsigned long TIMEOUT_ACK_MS = 3500;
+>             // N-71: 5 x TIMEOUT_ACK_MS = 17,5 s. Con el techo de orfandad en 12 s este
+> ```
+>
+> ⚠️ **La segunda línea de esa salida es un COMENTARIO, no una constante** — y se deja pegada a
+> propósito, porque es donde el propio firmware cuenta la historia: **es el comentario de `N-71`
+> explicando que los 12 s eran el defecto.** Un `grep` de este repositorio cuenta comentarios; quien
+> lo corra tiene que poder ver cuáles lo son.
+>
+> | | lo que decía esta tabla | lo que hay hoy |
+> |---|---|---|
+> | ventana de seguridad | **12 s** | **25 s** (`SFTY6_SILENCIO_MS`) |
+> | reintentos que caben | **4** | **5** — los cinco que `coordinador.cpp` hace de verdad |
+> | peor caso del intercambio | no lo decía | **3 + 5 × 3,56 = 20,8 s**, con 4,2 s de margen |
+>
+> ⚠️ **Consecuencia de campo que este manual no llevaba, y es lo que el técnico nota:** cuando cae el
+> enlace, **el cruce puede quedarse hasta 25 s en la fase que tuviera**, no 12. **Es una espera, no
+> un riesgo**: ninguna punta enciende verde sin el `ACK` de la otra. Se subió justo para matar el
+> ámbar espurio que el reporte de campo del 27/08 describía como *«cada nada cuando llueve»*.
+>
+> 🛑 **Y por eso `TIMEOUT_ACK_MS` no se sube «un poco» sin mirar:** la desigualdad
+> `arranque + 5 × TIMEOUT_ACK_MS < SFTY6_SILENCIO_MS` **la recalcula desde el C++ el pack
+> `costura_09_presupuesto_radio`**, y falla si alguien mueve un reintento o un timeout sin mirar el
+> techo. **Ese pack es la fuente, no esta tabla.**
 
 > ⚠️ **`RF_BURST_COPIES` DEBE ser idéntico en Maestro y Esclavo.** Están definidos en dos
-> archivos distintos que hay que mantener a mano en sincronía.
+> archivos distintos que hay que mantener a mano en sincronía. *(Re-medido el 07/09: `#define
+> RF_BURST_COPIES 3` en los dos `protocolo.h`, **y en la misma línea 278 de los dos ficheros** —
+> siguen en sincronía.)*
 >
 > A `0.3 kbps` esas mismas 3 copias costaban ~2,2 s y saturaban el canal half-duplex. **El
 > problema nunca fue la redundancia en sí, sino su coste a una tasa aérea absurdamente
@@ -201,8 +259,25 @@ rango de comandos libre a partir de `0x07`:
 | `0x0B`–`0x0C` | Medición de desfase entre relojes y su respuesta |
 | `0x0D`–`0x0F` | Configuración del ciclo degradado (verde, despeje) y su confirmación |
 
-> ### ✅ Verificado: el puente ESP32 valida **formato y CRC, no comandos**
+> ### ✅ Verificado: el **REPETIDOR** ESP32 valida **formato y CRC, no comandos**
 >
+> > 🛑 **AVISO DE NOMBRES, añadido el 07/09 — «el puente ESP32» significa OTRA COSA desde el 31/08.**
+> > Este apartado decía *«el puente ESP32»* y hablaba de `01_Firmware/Repetidor/src/main.cpp`. Desde
+> > que existe `01_Firmware/ESP32_Expansion/`, **«el puente» es ese otro**: el módulo Bluetooth del
+> > `J17`, el que lleva el `DS3231` y el que contesta `NODE:PUENTE` a `SET_RTC` y `LEER_RTC`
+> > (`D-15`, `D-17`). **Son dos programas de ESP32 distintos y no se parecen en nada:**
+> >
+> > | | `Repetidor/` | `ESP32_Expansion/` |
+> > |---|---|---|
+> > | qué hace | **retransmite la radio** entre 4 radios | **Bluetooth + reloj** hacia el teléfono |
+> > | en uso hoy | 🛑 **NO** (2 radios, enlace directo) | ✅ **sí**, es la única vía de operación (`D-16`) |
+> > | watchdog | 🔴 **NO tiene** — `grep -rniE "watchdog\|esp_task_wdt\|wdt" 01_Firmware/Repetidor` → **cero** (re-medido 07/09) | ✅ **sí**, `esp_task_wdt` en `vigilante.cpp` |
+> >
+> > **Todo lo que este apartado afirma es del `Repetidor`, y sigue siendo cierto para él.** Se
+> > renombra aquí porque leer *«el puente valida sólo CRC»* pensando en el módulo Bluetooth sería
+> > falso: ése **sí mira el contenido** —reconoce `CMD:SET_RTC` y `CMD:LEER_RTC` y los responde él—.
+>
+
 > Es la pregunta que motivó esta revisión, porque un puente que filtrara por comando habría
 > **bloqueado en silencio** todas las tramas nuevas de SFTY-23, y el síntoma habría sido
 > "el reloj no sincroniza" sin ninguna pista de por qué.
@@ -270,6 +345,12 @@ en otra. Si las cuatro radios estuvieran en el mismo canal, el repetidor se oir�
 >
 > `SFTY-17` es inofensivo en enlace directo: el Maestro espera hasta 3.500 ms.
 > El **Repetidor ESP32 sigue sin watchdog**, a diferencia de las dos STM32.
+>
+> ✅ **RE-MEDIDO EL 07/09 y CONFIRMADO — se re-mide porque es de las frases que envejecen mal:**
+> `grep -rniE "watchdog|esp_task_wdt|wdt" 01_Firmware/Repetidor` → **cero líneas**. **El
+> `ESP32_Expansion` sí lo tiene** (`esp_task_wdt` en `vigilante.cpp`), y esa asimetría es
+> exactamente lo que hace que un lector distraído dé el Repetidor por cubierto. **No lo está.**
+> Al reintroducir el repetidor, esto entra en la lista de lo que hay que resolver antes, no después.
 
 ---
 
@@ -282,8 +363,14 @@ en otra. Si las cuatro radios estuvieran en el mismo canal, el repetidor se oir�
 >
 > El módulo ST7920 **no se monta en ninguna punta** (decidido el 28/08, confirmado el 05/09), y
 > el objeto U8g2 tiene **los cuatro pines en `U8X8_PIN_NONE`**: no queda ni una escritura de
-> pin. El código sigue compilando —`D-6`, 271 comprobaciones— pero **no hay cristal donde
-> mirar**.
+> pin. El código sigue compilando —~~`D-6`~~ **`D-17.bis`** (`Validacion_LCD`, 271 comprobaciones
+> sobre un framebuffer en el PC)— pero **no hay cristal donde mirar**.
+>
+> > 🛑 **Puntero corregido el 07/09: `D-6` está DEROGADA.** Decía *«la pantalla NO se retira»* y el
+> > responsable la derogó el 05/09 con `D-17.bis`, que dice lo contrario: **la pantalla y el menú se
+> > retiran del EQUIPO**. Citar `D-6` como si sostuviera esto era apoyarse en la fila que dice lo
+> > opuesto. *(Y el matiz que hay que sostener: **se retira del equipo, no del código.** `lcd.cpp`
+> > compila y su arnés sigue siendo una de las 20 filas de la compuerta.)*
 >
 > ## 🔴 Y en el MAESTRO no es sólo que no se vea: es que el dato NO SALE POR NINGÚN SITIO
 >
@@ -298,10 +385,16 @@ en otra. Si las cuatro radios estuvieran en el mismo canal, el repetidor se oir�
 > 3. **El contador que esta tabla usa para el diagnóstico —el de basura— no lo lee NADIE en el
 >    Maestro.** Es el que separa *«no llega nada»* de *«llega basura»*, o sea justo lo que
 >    *«vale un viaje»*:
+>    ✅ **RE-CORRIDO EL 07/09 — sigue igual, y ahora con las DOS puntas al lado, que es lo que lo
+>    convierte en prueba y no en una observación suelta:**
+>
 >    ```
->    $ grep -rn "protocolo_tramasDescartadas" Maestro/src/
->    Maestro/src/protocolo.cpp:162:unsigned long protocolo_tramasDescartadas() { return cntDescartadas; }
+>    $ grep -rc "protocolo_tramasDescartadas" 01_Firmware/Maestro/src/protocolo.cpp 01_Firmware/Maestro/src/bluetooth.cpp 01_Firmware/Esclavo/src/bluetooth.cpp
+>    01_Firmware/Maestro/src/protocolo.cpp:1      <- solo la definicion
+>    01_Firmware/Maestro/src/bluetooth.cpp:0      <- NADIE lo publica
+>    01_Firmware/Esclavo/src/bluetooth.cpp:2      <- el Esclavo SI, dos veces
 >    ```
+>
 >    **Una sola línea: la definición. Cero llamadores.** Se incrementa en cada trama descartada
 >    y nadie lo lee jamás. El banco ya lo tiene anotado como huérfana **del Maestro**, con su
 >    motivo escrito: *«sigue huérfana en el MAESTRO, donde nadie los publica todavía»*
@@ -328,9 +421,30 @@ en otra. Si las cuatro radios estuvieran en el mismo canal, el repetidor se oir�
 > el Esclavo**, desde la app. No hay forma de hacerlo sobre el Maestro, con pantalla o sin ella.
 >
 > ✅ **Lo que SÍ se puede leer hoy del Maestro, desde la app**, y no es lo mismo: `RF:` (calidad
-> de enlace en %), `RTT:` (tiempo de respuesta) y `SINRESP:` (latidos sin respuesta), en el
-> `$STATUS` periódico y en el `$ALARM`. **Sirven para medir alcance caminando; NO separan
-> *«nada llega»* de *«llega basura»***, que es la distinción que valía el viaje.
+> de enlace en %), `RTT:` (tiempo de respuesta) y `SINRESP:` (latidos sin respuesta). **Sirven para
+> medir alcance caminando; NO separan *«nada llega»* de *«llega basura»***, que es la distinción que
+> valía el viaje.
+>
+> > 🛑 **CORREGIDO EL 07/09 — `SINRESP:` NO VA EN EL `$STATUS`.** Decía *«en el `$STATUS` periódico y
+> > en el `$ALARM`»*, y **sólo sale en el `$ALARM`**. Quien camine mirando el `$STATUS` esperando ver
+> > los latidos perdidos **no los va a encontrar**, y el `$ALARM` sólo llega cuando ya hay incidente
+> > — o sea, justo cuando el paseo ha terminado. **MEDIDO, salida literal:**
+> >
+> > ```
+> > $ grep -h "SINRESP" 01_Firmware/Maestro/src/bluetooth.cpp | grep snprintf
+> >   snprintf(tramo, sizeof(tramo), "RF:%s,RTT:%s,SINRESP:%s", rfTxt, rttTxt, srTxt);
+> >
+> > $ grep -h '"\$STATUS,NODE:MAESTRO' 01_Firmware/Maestro/src/bluetooth.cpp
+> >   "$STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s,PLUMA:%s,CAM:%s"
+> > ```
+> >
+> > **En el `$STATUS` están `RF:` y `RTT:`, y ésos son los dos que sirven para caminar.** ⏱️ Ojo a la
+> > cadencia: **el `$STATUS` sale cada 2 s**, no cada segundo, así que una medida de alcance a paso
+> > vivo tiene **un punto cada dos segundos**.
+> >
+> > 🔴 **Y una trampa del propio formato:** un campo puede salir como **`--`** (*«todavía no lo sé»*)
+> > o como **`!`** (*«llegó un valor imposible»*). **Ninguno de los dos es un cero.** Un `RF:--`
+> > caminando **no significa cobertura cero**: significa que aún no hay muestras.
 >
 > ⚠️ **Y una advertencia de método, que este manual ya se aplicó a sí mismo en §7:** *«la
 > E90-DTU no entrega RSSI en modo transparente»*. Un porcentaje de calidad **no es potencia de
@@ -367,15 +481,32 @@ app. Ver `02_LCD/MANUAL_PANTALLA_LCD.md` §5.6, que lleva la medida completa.
 
 ## 📁 7. Inventario de archivos en `04_Manuales/`
 
+> 🛑 **ESTE INVENTARIO ESTABA INCOMPLETO — corregido el 07/09 con `ls` delante.** Listaba **8
+> entradas de 21**: faltaban **cinco manuales enteros** y toda la documentación de la cámara. Un
+> inventario incompleto no es una molestia de índice: **es lo que hace que alguien escriba un manual
+> nuevo porque «no había ninguno»**, que es como este proyecto acabó con dos copias del mismo
+> documento de RTC divergiendo (aviso de seguridad del `MANUAL_INSTALACION_RELOJ_DS3231.md`).
+
 | Archivo | Qué es |
 |---|---|
 | `MANUAL_EXACTO_RADIOS_E90_DTU.md` | Este documento |
+| 🆕 **`MANUAL_CONFIGURACION_BLUETOOTH.md`** | **La app y el protocolo `$STATUS`/`$ACK`/`$ERR`.** Es la única superficie de mando del equipo (`D-16`) |
+| 🆕 **`MANUAL_INSTALACION_RELOJ_DS3231.md`** | El reloj, que **cuelga del ESP32, no del STM32**. ⚠️ Lea su cabecera: manda **no cablear** a `PB0`/`PB8` |
+| 🆕 **`MANUAL_CONFIGURACION_CAMARAS_IA.md`** | Las cámaras, ya compradas (`D-10`) y cableadas a **`J16` p10/p12** (`D-2`, `D-3`) |
+| 🆕 **`MANUAL_HARDWARE.md`** | Conectores, borneras y etapas de potencia |
+| 🆕 **`MANUAL_USUARIO.md`** | Operación de calle |
+| 🆕 **`README.md`** | Índice de esta carpeta |
 | **`MANUAL_MANDO_4_RELES.md`** | ~~**Mando de 4 relés** — la interfaz que se opera desde el suelo sin ver la pantalla~~ 🛑 **el mando NO SE MONTA (`D-1`, 05/09): el equipo se opera SÓLO POR APP.** El **código** sigue vivo y sigue leyendo `PB9`/`PB13`; el receptor nunca se compró. Lea su cabecera de estado antes que el cuerpo |
 | `RF_Setting4.6.exe` | Software oficial de configuración para PC |
 | `XCOM V2.6.exe` | Terminal serie/RS485 para monitorear tramas binarias desde un PC |
 | `E90-DTU(230SL37)_UserManual_EN_V1.5_fr.pdf` | Datasheet de la variante **230 MHz, 37 dBm** |
 | `E90-DTU(433C17)_UserManual_EN_v1.4.pdf` | Datasheet de la variante **433 MHz, 17 dBm** |
 | `Manual_de_Senalizacion_Vial.pdf` | Manual oficial del Ministerio de Transporte de Colombia (2024) |
+| 🆕 `DS-2CD2683G2-IZS_Datasheet_V5.5.113_20230303.pdf` | **Ficha oficial de la cámara comprada** (`D-10`). Es la que dice `1 in, 1 out` y `512 GB` de microSD |
+| 🆕 `UD28967B-C_Network-Camera_User-Manual_5.7.20_20240131.PDF` | Manual de usuario de la cámara, 110 páginas |
+| 🆕 `assets.hikvision.com_…UD40284B…Quick_Start_Guide_20241115.pdf` | Guía rápida. ⚠️ **Sin capa de texto: cualquier búsqueda da CERO por el formato, no por el contenido.** Hay que renderizarla como imagen |
+| 🆕 `DS-2CD2683G2-IZS_Ficha_Tecnica_y_Configuracion.docx` | ⚠️ **Recopilación que NO es del fabricante y contradice a la ficha oficial** (dice 256 GB donde la ficha dice 512). No se cita como fuente |
+| 🆕 `SADP＿EN` · `SADP＿EN.zip` | Utilidad de Hikvision para descubrir la cámara en la red |
 | `校验文件(Hash).exe` · `CRC32 804438E0.txt` | Utilidad de hash del fabricante y su suma. **De procedencia del proveedor, no auditada.** No se necesita para configurar las radios |
 
 > ### ⚠️ Ninguno de los dos datasheets corresponde exactamente a la banda declarada

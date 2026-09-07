@@ -6,6 +6,14 @@
 #include <stdio.h>
 #include <string.h>
 
+// D-17: el reloj se puede CONSULTAR sin cambiarlo, y contesta quien lo tiene.
+//
+// Es consecuencia directa de D-15 -el STM32 no tiene reloj-, y es mejor que sincronizar:
+// hasta esta decision la unica forma de leer la hora era mandarla, y con eso se perdia
+// justo el dato que se buscaba. No hace falta que los dos relojes se pongan de acuerdo
+// solos: hace falta poder ver si lo estan, y esa comparacion solo la puede hacer la app
+// visitando los dos postes, porque los dos modulos de expansion no se hablan entre si.
+//
 // EL COMANDO DE CONSULTA, EN UNA SOLA COPIA.
 //
 // Lo leen DOS funciones de este fichero -el predicado que veta el reenvio y la rama que

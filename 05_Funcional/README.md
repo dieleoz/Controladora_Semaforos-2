@@ -20,9 +20,10 @@ que es donde se anotan las medidas.
 > **1.** Reconfigure las **2 radios** —enlace directo, **sin repetidor**— a `2.4 kbps` de Air Data
 > Rate → **[`4_Manual_Configuracion_Radios.md`](4_Manual_Configuracion_Radios.md)**
 > *(~~«las 4 radios»~~ — **corregido el 07/09**: la configuración vigente son **2 radios en enlace
-> directo**, como dice la cabecera de ese mismo manual y `CLAUDE.md` §10. El repetidor está fuera de
-> la configuración vigente. ⚠️ **El CUERPO de `4_Manual` todavía dice «cambiar en las 4 radios» en
-> dos sitios: haga caso a su cabecera.**)*
+> directo**, como dice la cabecera de ese mismo manual y `CLAUDE.md` §3. El repetidor está fuera de
+> la configuración vigente. ~~⚠️ El CUERPO de `4_Manual` todavía dice «cambiar en las 4 radios» en
+> dos sitios: haga caso a su cabecera.~~ ✅ **Los dos sitios se corrigieron en el propio manual el
+> 07/09** — ya no hay que hacerle caso a la cabecera contra su cuerpo.)*
 > **2.** Cargue el firmware **en las dos tarjetas, la MISMA versión** → [`2_Manual_Hardware_y_Pruebas.md`](2_Manual_Hardware_y_Pruebas.md) §4
 > **3.** Ejecute el checklist y firme el acta → **[`3_Protocolo_Pruebas_Rigurosas.md`](3_Protocolo_Pruebas_Rigurosas.md)**
 > **4.** 🔧 **Si va a una SESIÓN DE BANCO, el protocolo vigente y ÚNICO es la
@@ -44,12 +45,35 @@ que es donde se anotan las medidas.
 >
 > | Novedad | Dónde está documentada |
 > |---|---|
-> | **Menú en dos niveles** (`CONFIGURACION` como cuarta opción) | `1_Manual_Usuario.md §3` |
-> | Pantalla **AJUSTAR HORA** y **sincronización horaria por radio** | `1_Manual_Usuario.md §4` |
+> | ~~**Menú en dos niveles** (`CONFIGURACION` como cuarta opción)~~ ⛔ **`D-17.bis` (05/09): LA PANTALLA Y EL MENÚ SE RETIRAN DEL EQUIPO.** *(Del equipo, no del código: `lcd.cpp` compila y `Validacion_LCD` sigue en `271/271` sobre un framebuffer del PC.)* **Y ya no se podía navegar igualmente:** `botonAceptar()`/`botonCancelar()` son `return false;` | `1_Manual_Usuario.md §3` |
+> | ~~Pantalla **AJUSTAR HORA** y **sincronización horaria por radio**~~ ⛔ **DOS COSAS CAÍDAS:** la pantalla, por `D-17.bis` *(`MODO_HORA` tenía su único armador en el menú)*; y el reloj, por **`D-9`/`D-15`** — **la hora la lleva el `DS3231` del `ESP32` de cada poste**, el STM32 no tiene ninguno y **ya no contesta a `SET_RTC`**. Se consulta con **`CMD:LEER_RTC`** (`D-17`) | `11_Manual_Instalacion_RTC_DS3231_Bateria.md` §4.1 |
 > | **MODO DEGRADADO** — operación por reloj sin radio | **`8_Procedimiento_Modo_Degradado.md`** |
 > | ~~**Mando de 2 canales (`A`/`B`)** y sus secuencias desde el piso~~ ⛔ **`D-1` (05/09): EL MANDO NO EXISTE.** *Su código se conserva a propósito —`mando_ambarLocal()` sostiene el veto de SFTY-21— pero no hay emisor, ni pulsadores, ni receptor RF.* **El equipo se opera SÓLO POR APP** (`D-16`) | `1_Manual_Usuario.md §6` · `2_Manual_Hardware_y_Pruebas.md §6` |
-> | El **Esclavo ahora tiene pantalla y menú propios** | `1_Manual_Usuario.md §7` |
-> | **Pila `CR2032`** del reloj en ambas tarjetas | `2_Manual_Hardware_y_Pruebas.md §5` |
+> | ~~El **Esclavo ahora tiene pantalla y menú propios**~~ ⛔ **`D-17.bis`: se retiran del equipo, en las dos puntas.** Lo que el Esclavo tiene hoy son **siete comandos por app**, uno de ellos `SET_MODO:DEGRADADO` (`D-18`) | `1_Manual_Usuario.md §7` |
+> | **Pila `CR2032`** del reloj en ambas tarjetas — ⚠️ **es la del `VBAT` del STM32, cuyo cristal `Y2` está MUERTO.** No confundir con la pila del `DS3231` del `ESP32`, que es **otra pila en otro equipo** y puede tener que ser `LIR2032` recargable | `2_Manual_Hardware_y_Pruebas.md §5` · `11_…` §5.2 |
+
+> ## 🛑 LOS TRES AVISOS DE COBRE QUE NO PUEDEN FALTAR EN NINGÚN DOCUMENTO DE ESTA CARPETA
+>
+> *(Añadidos aquí el 07/09 porque este README es el que dice «EMPIECE POR AQUÍ», y los tres hieren a
+> una persona o destruyen una tarjeta. La fuente es `DECISIONES.md` y `17_Arquitectura…md`.)*
+>
+> 1. 🔴 **`J16` p1 lleva 12 V CRUDOS** a un conector de señal **directa** al micro —sin opto, sin
+>    serie, sin clamp—. **Taparlo es OBLIGATORIO en cada equipo que se monte** (`D-4`, `N-120`), **no
+>    una cautela de banco**. Un contacto de `p1` a `p10` o `p12` mete 12 V en una pata de 3,3 V.
+> 2. 🔴 **`J14` es una ENTRADA del micro** (`PB0`, con `R64` + `C25`). **La salida de talanquera es
+>    `J15`** (`PB2` → opto `U15` → MOSFET `Q10`). **Un relé de 12 V cableado a `J14` destruye el
+>    STM32 que gobierna el semáforo — y además la pluma no se movería.** ⚠️ **Y `J16` y `J17`
+>    comparten footprint y son idénticos a la vista:** antes de enchufar nada, **multímetro en la
+>    posición 1 contra masa — si da ≈12 V es `J16`.**
+> 3. 🔴 **`J16` p5 y p8 están VACÍOS y el código del mando SIGUE leyendo sus flancos** (`D-1`,
+>    `A-2`). **Nada se cablea ahí, ni para probar:** cualquier cosa compone secuencias del mando sin
+>    que nadie lo pida —`B·B·B` es ámbar local, `A·B·A·B` es entrar en Degradado—, y **`p4` es
+>    adyacente a `p5`**, así que un puente corrido una posición pone 3,3 V contra masa: es el
+>    candidato del sobrecalentamiento que abortó el paso 29 del banco.
+>
+> 🛑 **Y la regla de orden, que no es «van en el mismo commit» porque un commit no protege de un
+> destornillador: el firmware nuevo tiene que estar CARGADO Y VERIFICADO EN LA TARJETA antes de que
+> nadie enchufe nada en `J16`.** Se exige la carga verificada, no el merge.
 >
 > **La versión que corre en campo hoy es la V8.4**, que **no** incluye nada de lo anterior. Todo lo
 > nuevo está construido y validado en simulador, pero **sin prueba de banco ni de campo**. Las
@@ -186,6 +210,38 @@ que es donde se anotan las medidas.
    ambas puntas— y los **riesgos residuales aceptados por el cliente**. **Obligatorio leerlo antes de
    operar ese modo.**
 
+> # 🔴 07/09 — ESTE ÍNDICE LLEGABA HASTA EL 8, Y EN LA CARPETA HAY **19** DOCUMENTOS NUMERADOS
+>
+> **Medido:** `ls -1 05_Funcional/[0-9]*.md | wc -l` → **19**. Los once que faltaban aquí incluyen
+> **los tres que hoy más mandan**, y uno de ellos gana a este README en cobre:
+
+9. 📷 **[9_Manual_Parametrizacion_Camara_IA.md](9_Manual_Parametrizacion_Camara_IA.md)** —
+   **entregable principal desde `D-12`**: sin red y sin analítica en el controlador, **toda la
+   inteligencia vive en la CONFIGURACIÓN de la cámara.** Es lo que se lleva delante de la cámara.
+10. 📱 **[10_Manual_Modulo_Bluetooth_Telemetria.md](10_Manual_Modulo_Bluetooth_Telemetria.md)** —
+    el transporte SPP y la alimentación del módulo. **§1 congela el transporte: SPP, no BLE.**
+11. ⏱️ **[11_Manual_Instalacion_RTC_DS3231_Bateria.md](11_Manual_Instalacion_RTC_DS3231_Bateria.md)** —
+    pila del RTC y el `DS3231`. ⚠️ **§4.1 derogada por `D-15`: no se diagnostica el reloj mandando
+    `SET_RTC` al STM32.** La orden vigente es **`CMD:LEER_RTC`** (`D-17`).
+12. 🧪 **[12_Cobertura_de_Pruebas_y_Huecos.md](12_Cobertura_de_Pruebas_y_Huecos.md)** — qué está
+    cubierto y qué no. **No publica cifras: remite al acta de `evidencia/`.**
+13. 🔌 **[13_Manual_Modulo_Expansion_I2C_y_Compras.md](13_Manual_Modulo_Expansion_I2C_y_Compras.md)** —
+    🛑 **PRE-IMPLEMENTACIÓN. El bus I²C sobre el STM32 NO SE MONTA.** Lo vigente de él es **§3 y la
+    fe de erratas `J14`/`J15`** —riesgo eléctrico real— y **§4.1**, el censo de pines.
+14. 📱 **[14_Manual_App_Movil_IOT_VIAL.md](14_Manual_App_Movil_IOT_VIAL.md)** — la app. **Y desde
+    `D-16`, la única superficie de mando del equipo.**
+15. 🛒 **[15_Lista_de_Compras_Hardware.md](15_Lista_de_Compras_Hardware.md)** — 💰 **el que se
+    ejecuta con DINERO: cada fila es una compra.**
+16. 📋 **[16_Documento_Auditoria_Arquitectura_y_Usabilidad_App_IOT_VIAL.md](16_Documento_Auditoria_Arquitectura_y_Usabilidad_App_IOT_VIAL.md)**
+17. 🏗️ **[17_Arquitectura_28-08_y_Decisiones_Abiertas.md](17_Arquitectura_28-08_y_Decisiones_Abiertas.md)** —
+    🔴 **GANA A TODO LO DEMÁS DE ESTA CARPETA EN HARDWARE MEDIDO.** Es donde se anotan las medidas de
+    cobre, con su fecha, su instrumento y el firmware que había dentro.
+18. 🧩 **[18_Especificacion_Firmware_ESP32.md](18_Especificacion_Firmware_ESP32.md)** — el ESP32 de
+    **EXPANSIÓN** *(no el del repetidor del doc 5)*. 🟢 **Su firmware existe:**
+    `01_Firmware/ESP32_Expansion/`, con rótulo Bluetooth y watchdog.
+19. 🔧 **[19_Especificacion_Placa_Portadora_ESP32.md](19_Especificacion_Placa_Portadora_ESP32.md)** —
+    la portadora de la línea `A8`.
+
 ---
 
 ## 🔄 Regeneración de los entregables Word
@@ -193,12 +249,14 @@ que es donde se anotan las medidas.
 Los `.docx` **se generan desde los `.md`**, que son la única fuente de verdad:
 
 ```bash
-python 05_Funcional/convertir_a_word.py        # regenera los 8
+python 05_Funcional/convertir_a_word.py        # regenera TODOS los .md numerados de la carpeta
 python 05_Funcional/convertir_a_word.py 3 8    # solo los numerados 3 y 8
 ```
 
-> El script descubre solo los `.md` numerados de la carpeta, así que el documento **8** se genera sin
-> tocar nada del script.
+> ~~regenera los 8~~ 🔧 **CORREGIDO EL 07/09: son 19.** El script **descubre solos los `.md`
+> numerados** (`sorted(os.listdir(DIR))`), así que **no hay que tocarlo al añadir uno** — lo que
+> caducaba era el número escrito aquí a mano. **Y por eso este README no vuelve a publicar la
+> cuenta**: se mide con `ls -1 05_Funcional/[0-9]*.md | wc -l`.
 
 > **No edite los `.docx` a mano:** cualquier cambio se pierde al regenerarlos. Edite el `.md`
 > correspondiente y vuelva a ejecutar el script.

@@ -28,6 +28,137 @@
 > 🔴 **Lo que SÍ sigue bloqueando el montaje, y no es el chip: la línea `A5`, la fuente propia
 > DC-DC 12 V→5 V del ESP32, que NO SE HA PEDIDO.** Sin ella el módulo cuelga del `LM7805` que
 > alimenta al STM32 que gobierna el cruce (§2.3.bis). **`J17` p6 no se conecta.**
+
+---
+
+> # 🔴 FE DE ERRATAS DEL 07/09/2026 — LÉASE ANTES QUE NADA
+>
+> **Este manual publica cinco afirmaciones que fueron ciertas cuando se midieron y son falsas hoy.**
+> Ninguna se borra: se tacha donde vive, con su motivo. Se listan aquí porque **la que más pesa
+> aparece en el apartado 1, y quien lea sólo el principio se la lleva entera.**
+>
+> ### 1. 🔴 «El firmware del puente SPP del ESP32 NO EXISTE» — FALSO desde el 31/08, y la fecha del `MEDIDO` es CORRECTA
+>
+> Este manual lo afirma en **tres sitios** —la nota de «lo que no se ha tocado», el bloque del
+> `AT+NAME` y la tabla de cableado del ESP32— y uno de ellos lleva **la palabra `MEDIDO` y la fecha
+> `31/08`** encima. **La medida fue cierta el día que se tomó. El módulo entró ESE MISMO DÍA**, en
+> `d2427c2`:
+>
+> ```
+> $ git log -1 --format="%h %ad %s" --date=short d2427c2
+> d2427c2 2026-08-31 feat: el firmware del ESP32 de expansion, con sus nueve packs
+>
+> $ ls 01_Firmware/ESP32_Expansion/src/
+> despachador.cpp  enlace_stm32.cpp  main.cpp  puente.cpp
+> reloj_ds3231.cpp  trama.cpp  transporte_app.cpp  vigilante.cpp
+> ```
+>
+> **2.588 líneas en 16 ficheros**, y trae exactamente las dos cosas que este manual daba por
+> pendientes:
+>
+> | lo que el manual da por inexistente | lo que hay hoy, medido por símbolo |
+> |---|---|
+> | *«el nombre lo fija su propio firmware… hay un firmware que escribir y grabar»* | **la matrícula está construida**: `ROTULO_PREFIJO "SEM-"` y `ROTULO_PROVISIONAL "SEM-SIN-MATRICULA"` en `ESP32_Expansion/include/contrato.h`, aplicados en `transporte_app.cpp` sobre `spp.begin(rotulo)`, y **el rótulo se guarda en NVS** para que un módulo sin aprender no salga con un nombre inventado |
+> | *«va detrás del watchdog del ESP32 —hoy no tiene ninguno—»* | **el watchdog está construido**: `#include <esp_task_wdt.h>` en `ESP32_Expansion/src/vigilante.cpp`, con `ESP32_WDT_MS` y su pack |
+>
+> 🔴 **Y la consecuencia operativa, que es lo que le importa a quien monta:** este manual usaba esa
+> ausencia para decir *«no hay nada que rotular y no hay módulo que instalar»*. **Ese motivo
+> desapareció.** Lo que sigue bloqueando el montaje es **otra cosa y sólo una**: la línea `A5`, la
+> fuente propia DC-DC, que **sigue sin pedirse** (verificado hoy en
+> `05_Funcional/15_Lista_de_Compras_Hardware.md`, fila `A5`: *«NO se ha pedido, y es LO QUE BLOQUEA
+> EL MONTAJE»*).
+>
+> ### 2. 🔴 Este documento CIERRA `BLQ-1` arriba y lo declara VIVO dos veces más abajo
+>
+> El recuadro de cabecera dice *«`BLQ-1` ESTÁ CERRADO DESDE EL 31/08. ESTE MANUAL YA NO BLOQUEA EL
+> MONTAJE»*. Y a continuación, en el mismo documento, sobreviven **dos frases que lo reabren**: la
+> nota de *«dos bloqueos vivos delante del montaje: `BLQ-1` —la serigrafía del ESP32, sin leer—»* y
+> un *«⏳ PENDIENTE — la referencia exacta está sin confirmar»*. **Las dos están tachadas hoy donde
+> viven.** `BLQ-1` está cerrado en `ESTADO.md`, en `roadmap.md` (N-107), en la lista de compras y en
+> otros dos manuales; **si algún párrafo de aquí lo da por abierto, ese párrafo es el caducado.**
+>
+> ### 3. 🔴 EL 95 % DE LAS CITAS POR NÚMERO DE LÍNEA DE ESTE MANUAL NO SEÑALA AL SITIO — medido hoy
+>
+> No es una sospecha ni una regla general aplicada a ojo: se corrió sobre este fichero.
+> **El criterio, declarado para que se pueda discutir:** de cada cita `fichero.cpp:N` se toman los
+> símbolos que el manual nombra entre acentos graves **en esa misma línea**, y se comprueba si
+> alguno aparece en el fuente **en un margen de ±3 líneas** alrededor de la citada. Es un borde
+> generoso a propósito: cuenta como acierto un desplazamiento pequeño.
+>
+> ```
+> citas de firmware juzgables: 20 | el simbolo SI esta cerca: 1 | NO esta: 19
+> ```
+>
+> **19 de 20.** Y el que más duele porque enseña el mecanismo: este manual cita
+> `Esclavo/src/bluetooth.cpp:768` como *«la cadencia de 2000 ms del `$STATUS`»*, y esa línea dice
+> hoy:
+>
+> ```
+> $ sed -n '768p' 01_Firmware/Esclavo/src/bluetooth.cpp
+>       enviarTramaConCrc("$ACK,CMD:SET_MODO:DEGRADADO,RESULT:OK");
+> ```
+>
+> — que es el acuse de `D-18`, escrito seis días después de la cita. **Una cita que ha caducado no
+> falla: apunta a otra cosa y se lee como si fuera la buena.**
+>
+> 🔴 **Dónde muerde esto:** el apartado del **Modo Degradado** de este manual —la tabla de motivos
+> de rechazo, los estados `DEG_*` y el trazado de `degradado_salir()`— está sostenido **entero** por
+> ese bloque de citas. **Ninguna de sus 19 direcciones apunta hoy a lo que anuncia.**
+>
+> **No se renumeran.** Ya se probó en este repositorio: las seis citas que se renumeraron a mano el
+> 31/08 están caducadas hoy. **Lo que se lee es el símbolo, con `grep`:**
+> `grep -rn "degradado_salir" 01_Firmware/Esclavo/` cuesta lo mismo y no caduca. Las citas de este
+> manual quedan como **orientativas y sin autoridad**: si una y el `grep` no coinciden, **manda el
+> `grep`**.
+>
+> ### 4. 🔴 `D-18` NO TIENE CANAL DE VUELTA: el Maestro no puede enterarse de que el Esclavo está en Degradado
+>
+> El Esclavo **sí** entra en Degradado por app —`SET_MODO:DEGRADADO` existe en su `bluetooth.cpp`,
+> es la fila `D-18` de `DECISIONES.md`—. Lo que **no existe** es ningún comando de radio por el que
+> lo anuncie, y el getter de estado del Maestro **sólo sabe devolver color**. **Si algún párrafo de
+> este manual describe al Maestro reaccionando a que el Esclavo entró en Degradado, o a la app
+> enseñándolo desde el Maestro, es falso hoy.**
+>
+> ⚠️ **Y el matiz que hay que dar para no cambiar una frase falsa por otra: el dato SÍ es visible,
+> pero sólo desde el otro poste.** El `$STATUS` **del propio Esclavo** lo publica —
+> `obtenerNombreModo()` en `Esclavo/src/bluetooth.cpp` devuelve `SUBORDINADO` · **`DEGRADADO`** ·
+> `RENDIDO`—, así que una app conectada al **poste 2** lo ve. Lo que no hay es **vista de cruce**:
+> hay que conectarse a las dos puntas una por una, **y el Maestro no puede reaccionar** — que es lo
+> que decide, porque el Degradado es el único modo que da verde sin confirmar la otra punta.
+>
+> ### 5. 🔴 LA ANTIGÜEDAD DE LA ÚLTIMA SINCRONIZACIÓN NO VIAJA EN NINGUNA TRAMA — y se quedó sin lector
+>
+> Las dos plantillas reales del `$STATUS`, leídas hoy del `snprintf` de cada punta:
+>
+> ```
+> $STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s,PLUMA:%s,CAM:%s
+> $STATUS,NODE:ESCLAVO,SERIE:%s,MODO:%s,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s,PLUMA:%s,CAM:%s
+> ```
+>
+> **No hay campo de antigüedad de sincronización en ninguna de las dos.** Y los dos getters que la
+> publicaban —`degradado_syncVencida()` y `degradado_avisoLimite()`, declarados en
+> `Esclavo/include/modo_degradado.h`— **tienen un solo llamador, `Esclavo/src/menu.cpp`**: la
+> pantalla que `D-17.bis` retira del equipo.
+>
+> ```
+> $ grep -rn "degradado_syncVencida\|degradado_avisoLimite" 01_Firmware/Esclavo --include=*.cpp
+> src/menu.cpp:86  · src/menu.cpp:117 · src/menu.cpp:129 · src/modo_degradado.cpp:186 (la definicion)
+> ```
+>
+> **Consecuencia para el técnico que sube al poste 2: sin menú y sin campo en la trama, no tiene
+> forma de ver cuánto hace que ese equipo se sincronizó, ni sustituto por app.** No es un descuido
+> de redacción de este manual: es un dato que existe dentro del micro y **hoy no sale**.
+>
+> ### 6. Y el marco que cambió debajo de todo esto: `D-16`
+>
+> **Sin teléfono no hay forma de operar el equipo.** Retirado el mando de relés (`D-1`), **la app es
+> la única superficie de mando**: ni ámbar, ni volver a automático, ni parar el cruce. Este manual
+> describe la app como *«consola de servicio»* y *«accesorio de diagnóstico»* — **hoy es la única
+> vía de operación, y el teléfono es herramienta crítica** (batería, cable, y conviene un segundo
+> terminal emparejado).
+
+---
+
 **Software Móvil:** App Android (.apk) con Frontend Reactivo Dark-Theme (Estándar IOT-VIAL)  
 **Propósito:** Telemetría en tiempo real, caja negra de alarmas, test de banco, sincronización Courier RTC y control desde el suelo con PIN  
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `MAPEO_TARJETA_KICAD.md`  
@@ -65,11 +196,18 @@ de compra del módulo (ESP32 sí/no), consumo y puesta a punto con `AT+NAME`.
 cuadro de arquitectura, las tres razones y la tabla de prohibiciones), el pinout de `J17`, §2.2
 (`J16` vs `J17`), **§2.5 (`PA8`/`J10`, residuo pendiente)**, y los apartados 3, 4 y 5.
 
-> 🛑 **NADA DE ESTO HA PASADO PRUEBA DE BANCO, y este manual no es un permiso para instalar.** Hay
-> **dos bloqueos vivos delante del montaje**: `BLQ-1` —la serigrafía del ESP32, sin leer— y la línea
-> `A5` —la fuente propia, sin pedir—. Y **el firmware del puente SPP del ESP32 no existe todavía**
-> (MEDIDO el 31/08). El cableado de §2.3 describe **a dónde irán los hilos**, no una instalación
-> autorizada.
+> 🛑 **NADA DE ESTO HA PASADO PRUEBA DE BANCO, y este manual no es un permiso para instalar.**
+> ~~Hay **dos bloqueos vivos delante del montaje**: `BLQ-1` —la serigrafía del ESP32, sin leer— y la
+> línea `A5` —la fuente propia, sin pedir—. Y **el firmware del puente SPP del ESP32 no existe
+> todavía** (MEDIDO el 31/08).~~
+>
+> 🔴 **TACHADO el 07/09, y las DOS mitades eran falsas — ver la fe de erratas de la cabecera.**
+> **Queda UN bloqueo, no dos:** `BLQ-1` está cerrado desde el 31/08 (fila de `ESTADO.md`, N-107 en
+> `roadmap.md`, y el propio recuadro de arriba de este manual). **Y el firmware del puente SÍ
+> existe** desde ese mismo 31/08: `01_Firmware/ESP32_Expansion/`, 16 ficheros, 2.588 líneas
+> (`d2427c2`). **El único bloqueo vivo es la línea `A5`, la fuente propia DC-DC, que sigue sin
+> pedirse.** El cableado de §2.3 describe **a dónde van los hilos**, y hoy ya hay firmware que los
+> ejerce; lo que falta para instalar es la fuente, no el código.
 
 > 🔒 **EL APARTADO 1 NO SE HA DEROGADO, Y ESTA REVISIÓN NO LO DEROGA.** Sigue congelado: **Bluetooth
 > Clásico SPP, no BLE, no Web Bluetooth**. Un ESP32 **clásico** haciendo de puente SPP **cabe dentro
@@ -173,12 +311,22 @@ filas de la tabla, y dos de las tres no conectan.
    que descargar nada. Responde con la familia detectada —`Chip is ESP32-D0WD-V3`, `Chip is
    ESP32-S3`, …— y esa línea es la que decide.
 
-> ⏳ **PENDIENTE — no se da por sabido.** De los módulos que llegaron a obra **la referencia exacta
+> ~~⏳ **PENDIENTE — no se da por sabido.** De los módulos que llegaron a obra **la referencia exacta
 > está sin confirmar**. Hasta que alguien lea el blindaje o corra el `chip_id` de arriba y lo anote,
-> **no se sabe si sirven**. No es un trámite: si son `S3` o `C3`, la app no conectará jamás y el
-> síntoma será indistinguible del fallo que congeló este apartado —*«no abre el Bluetooth, no se
-> conecta a ningún dispositivo»*—, con el tiempo de diagnóstico gastado otra vez en el sitio
-> equivocado.
+> **no se sabe si sirven**.~~
+>
+> 🔴 **TACHADO el 07/09: esto es `BLQ-1`, y `BLQ-1` está CERRADO desde el 31/08.** Este documento lo
+> declara cerrado en su recuadro de cabecera y lo reabría aquí, veinte líneas después. La referencia
+> **está confirmada por la ficha del artículo comprado**: `ESP32-WROOM-32` clásico, `BR/EDR`, hay
+> SPP (`grep -n "BLQ-1" ESTADO.md` · `grep -n "N-107" roadmap.md`). **No hace falta leer ningún
+> blindaje para instalar.**
+>
+> ✅ **Lo que del párrafo anterior SÍ sigue valiendo, y por eso el `chip_id` de arriba se conserva:**
+> si algún día llega un módulo distinto, un `S3` o un `C3` **no habla SPP**, la app no conectará
+> jamás, y el síntoma será indistinguible del fallo que congeló este apartado —*«no abre el
+> Bluetooth, no se conecta a ningún dispositivo»*—. **El comando es la forma barata de descartar esa
+> causa ante un módulo de procedencia desconocida**; deja de ser un requisito previo al montaje y
+> pasa a ser una herramienta de diagnóstico.
 
 ### ⚡ Si se va con un ESP32, el consumo no es un detalle de montaje
 
@@ -305,15 +453,35 @@ cada equipo antes de conectar**. El técnico lee; no adivina.
 > el API clásico de Arduino-ESP32). No hay terminal a 38400 bps que abrir: **hay un firmware que
 > escribir y grabar**.
 >
-> 🔴 **Y ese firmware NO EXISTE. MEDIDO el 31/08:** el único fuente de ESP32 del repositorio es
+> ~~🔴 **Y ese firmware NO EXISTE. MEDIDO el 31/08:** el único fuente de ESP32 del repositorio es
 > `01_Firmware/Repetidor/src/main.cpp` (un solo fichero, 8.348 B), **que es el del repetidor de radio,
 > no un puente Bluetooth**. Mientras no exista, **no hay nada que rotular y no hay módulo que
-> instalar**: no es un paso que se salta, es un paso que todavía no tiene con qué hacerse.
+> instalar**: no es un paso que se salta, es un paso que todavía no tiene con qué hacerse.~~
 >
-> 🟡 **PENDIENTE, con dueño: escribir el firmware del puente SPP del ESP32, y en él la matrícula.**
+> ~~🟡 **PENDIENTE, con dueño: escribir el firmware del puente SPP del ESP32, y en él la matrícula.**
 > Va **detrás del watchdog** del ESP32 —hoy no tiene ninguno, y hay precedente escrito de uno clavado
 > tumbando el enlace el 31/07— según el orden de fases de `ESTADO.md:107`. **Lo decide y lo ordena el
-> responsable**, no este manual.
+> responsable**, no este manual.~~
+>
+> # 🔴 TACHADO EL 07/09 — ESTE ES EL `MEDIDO` CADUCADO DE ESTE MANUAL, Y LA FECHA ERA CORRECTA
+>
+> **La medida del 31/08 fue cierta el día que se tomó, y el módulo entró ESE MISMO DÍA**
+> (`d2427c2`, `2026-08-31`). Una fecha correcta no valida el contenido: **`01_Firmware/ESP32_Expansion/`
+> son 16 ficheros y 2.588 líneas**, y trae las dos cosas que este bloque daba por pendientes:
+>
+> | lo que este bloque daba por inexistente | lo medido hoy, por símbolo |
+> |---|---|
+> | la **matrícula** | `ROTULO_PREFIJO "SEM-"` y `ROTULO_PROVISIONAL "SEM-SIN-MATRICULA"` en `ESP32_Expansion/include/contrato.h`; se aplica en `transporte_app.cpp` sobre `spp.begin(rotulo)` y **se guarda en NVS**, así que sobrevive al corte |
+> | el **watchdog**, que era el requisito previo | `#include <esp_task_wdt.h>` en `ESP32_Expansion/src/vigilante.cpp`, con `ESP32_WDT_MS` y su pack |
+>
+> 🔴 **Lo que esto cambia para quien monta: ya no falta «un firmware que escribir». Falta la línea
+> `A5`, la fuente propia DC-DC 12 V→5 V, que sigue sin pedirse** — y ésa sí bloquea (§2.3.bis).
+>
+> ⚠️ **Y una diferencia de método que hay que saber antes de rotular:** el rótulo **no se teclea**
+> como un `AT+NAME`. Se aprende y se guarda solo; un módulo que aún no ha aprendido su serie sale
+> como `SEM-SIN-MATRICULA`, que es **un nombre que admite que no sabe** en vez de uno inventado. Si
+> en la lista de Android aparece esa cadena, el módulo está sano y **todavía no ha visto a su
+> equipo**: no es una avería del Bluetooth.
 >
 > **Lo que sigue se conserva íntegro** porque describe el `HC-05` que puede haber montado ya en algún
 > equipo, y porque **el `9600 8N1` del modo datos lo impone el firmware del STM32 y vale para los dos
@@ -510,12 +678,26 @@ el `VCC` si alguien cuenta desde el borde equivocado.
 **`9600 8N1`.** Es la del `USART1` del firmware y la de todas las tramas del apartado 4: **no se
 elige, la impone el firmware.**
 
-📖 **Nivel de prueba de la columna del ESP32:** **LEÍDO** en
-`05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md` §1.4 y `ESTADO.md:80` — es la asignación
-decidida, **sin firmware que la ejerza todavía** y sin nadie que la haya cableado. `GPIO16`/`GPIO17`
-son la `UART2` por defecto del ESP32 clásico; **si el firmware del puente acaba usando otros pines, lo
-que manda es el firmware y esta tabla se corrige entonces.** La columna del STM32 sí está **MEDIDA EN
-EL FUENTE** (§2.1).
+✅ **Nivel de prueba de la columna del ESP32 — SUBE de `LEÍDO` a `MEDIDO EN EL FUENTE` el 07/09.**
+~~**LEÍDO** en `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md` §1.4 y `ESTADO.md:80` —
+es la asignación decidida, **sin firmware que la ejerza todavía** y sin nadie que la haya cableado.~~
+
+**Este manual dejó escrita la condición de su propia corrección —*«si el firmware del puente acaba
+usando otros pines, lo que manda es el firmware y esta tabla se corrige entonces»*— y hoy hay
+firmware. Se ha ido a mirar, y la tabla ACIERTA:**
+
+```
+$ grep -n "ENLACE_PIN_TX\|ENLACE_PIN_RX" 01_Firmware/ESP32_Expansion/include/contrato.h
+44:#define ENLACE_PIN_TX         17   // GPIO17 -> J17 p2 -> PB7, que es el RX del micro
+45:#define ENLACE_PIN_RX         16   // GPIO16 <- J17 p3 <- PB6, que es el TX del micro
+```
+
+Y se abren **ahí y en un solo sitio** —`haciaSTM32.begin(ENLACE_BAUDIO, ENLACE_FORMATO,
+ENLACE_PIN_RX, ENLACE_PIN_TX)` en `ESP32_Expansion/src/enlace_stm32.cpp`, que es **el único fichero
+del proyecto que nombra `Serial2`**, con un pack que lo vigila—. **`GPIO16`/`GPIO17` son la `UART2`
+por defecto del ESP32 clásico y el firmware las usa tal cual.** La columna del STM32 ya estaba
+**MEDIDA EN EL FUENTE** (§2.1): **las dos columnas de esta tabla están hoy medidas en código, y lo
+que sigue sin medirse es el cobre — nadie la ha cableado todavía.**
 
 > ⚠️ **Duda abierta que este manual NO cierra y que no es de aquí:** la etiqueta de red del **pin 3**
 > de `J17` está en disputa —el esquemático la llama `RS(A0)` y el firmware `LCD_PSB`—, y los dos
@@ -820,13 +1002,60 @@ El checksum se calcula aplicando la operación **XOR bit a bit** de todos los by
 > postes se cancela**. Con un solo poste no publica desfase: **dice cuál falta**. La lista
 > vive en memoria y **no sobrevive a que Android cierre la app**.
 
-### 4.2 Telemetría Periódica ($STATUS) — Emitida cada 2 segundos *(cadencia bajada a **2000 ms** el 04/09, decision del responsable, en las DOS puntas — MEDIDO: `Maestro/src/bluetooth.cpp:851`, `Esclavo/src/bluetooth.cpp:768`. Un tecnico que cronometre con «1 segundo» declara caido un enlace sano.)*
+### 4.2 Telemetría Periódica ($STATUS) — Emitida cada 2 segundos *(cadencia bajada a **2000 ms** el 04/09, decision del responsable, en las DOS puntas. Un tecnico que cronometre con «1 segundo» declara caido un enlace sano.)*
+
+> ✅ **MEDIDO el 07/09, y se cita el SÍMBOLO porque las dos citas por línea que había aquí ya no
+> señalaban al sitio.** Decían `Maestro/src/bluetooth.cpp:851` y `Esclavo/src/bluetooth.cpp:768`; la
+> segunda apunta hoy a `enviarTramaConCrc("$ACK,CMD:SET_MODO:DEGRADADO,RESULT:OK")`, que es el acuse
+> de `D-18` y no tiene nada que ver con la cadencia. **La cadencia se encuentra así, y no caduca:**
+>
+> ```
+> grep -n "STATUS_PERIODO_MS\|2000" 01_Firmware/Maestro/src/bluetooth.cpp
+> ```
+>
+> **Y la plantilla literal, que es lo que un parser tiene que casar, sale del `snprintf` de cada
+> punta** — `grep -n '"\$STATUS' 01_Firmware/*/src/bluetooth.cpp`:
+>
+> ```
+> $STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s,PLUMA:%s,CAM:%s
+> $STATUS,NODE:ESCLAVO,SERIE:%s,MODO:%s,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s,PLUMA:%s,CAM:%s
+> ```
+>
+> 🔴 **En el ESCLAVO, `T:`, `RF:` y `RTT:` son `--` LITERALES dentro de la plantilla** —no son
+> huecos que a veces se rellenen—, y **no hay ningún campo de antigüedad de sincronización en
+> ninguna de las dos**. Ver el punto 5 de la fe de erratas de la cabecera: ese dato existe dentro
+> del micro y hoy no sale por ningún sitio.
 $$\text{Formato: }\$STATUS,NODE:\langle N\rangle,SERIE:\langle S\rangle,MODO:\langle M\rangle,ESTADO:\langle E\rangle,T:\langle S\rangle,RF:\langle R\rangle\%,RTT:\langle T\rangle ms,BAT:\langle V\rangle,HORA:\langle H\rangle,ESC:\langle C\rangle,PLUMA:\langle P\rangle,CAM:\langle K\rangle*\langle CRC\rangle\backslash r\backslash n$$
 
 **Ejemplo Maestro en Modo Automático:**
 ```text
-$STATUS,NODE:MAESTRO,SERIE:A3F19C,MODO:AUTO,ESTADO:V1_R2,T:24,RF:98%,RTT:82ms,BAT:12.6,HORA:18:25:00,ESC:ROJO,PLUMA:ARRIBA,CAM:OK*1C\r\n
+$STATUS,NODE:MAESTRO,SERIE:A3F19C,MODO:AUTO,ESTADO:V1_R2,T:24,RF:98%,RTT:82ms,BAT:--,HORA:18:25:00,ESC:ROJO,PLUMA:ARRIBA,CAM:OK*07\r\n
 ```
+
+> 🔴 **CORREGIDO el 07/09: este ejemplo publicaba `BAT:12.6`, y esa trama NO PUEDE EXISTIR.**
+> `BAT:--` está **fijo dentro del `snprintf`** de las dos puntas: no es un valor que a veces falte,
+> es texto de la plantilla. **No hay un solo `analogRead()` en `Maestro/` ni en `Esclavo/`**, así que
+> mientras no haya divisor de tensión y firmware que lo lea, ese campo no puede traer una cifra.
+>
+> **Y la ironía, que es la razón de corregirlo y no dejarlo pasar:** cuatro párrafos más abajo este
+> mismo apartado usa *«el `BAT:12.6` literal (N-108)»* como **el ejemplo canónico del error de
+> publicar un dato inventado** — y lo llevaba en su propio ejemplo. Un técnico que compare la trama
+> real contra este renglón habría visto un campo distinto y habría ido a buscar una avería de
+> parser.
+>
+> ✅ **Y el checksum se recalculó, no se copió: `*1C` → `*07`.** Lo acusó el pack
+> `documentos_03_trama_status`, que recalcula el `*XX` de cada ejemplo publicado — **cambiar el
+> cuerpo de una trama y dejar el checksum viejo produce un ejemplo que ninguna app aceptaría**. Se
+> comprobó por separado antes de escribir el número, con el mismo XOR que hace `calcularChecksum()`
+> en el firmware: sobre el cuerpo **anterior** da `1C` (o sea que el ejemplo viejo estaba bien
+> calculado) y sobre el nuevo da `07`. **El pack tenía razón y el manual estaba mal**, no al revés.
+>
+> 🔴 **Y un dato que este apartado no dice y cambia cómo se lee todo lo demás: EL CHECKSUM SÓLO
+> PROTEGE LA BAJADA.** `calcularChecksum()` es `static` en cada punta y su único llamador es el
+> emisor de tramas; **el despachador NO lee el `*XX` de lo que le llega**. O sea: el `*XX` de las
+> tramas del equipo hacia la app es real y se comprueba, pero **una orden de la app hacia el equipo
+> con un bit cambiado se obedece igual**. Quien escriba un parser no debe leer esta sección como si
+> el `*XX` fuera una barrera en las dos direcciones: **en la subida no hay ninguna.**
 
 > 🔵 **`CAM` (D-13 fase 1) — el estado de las cámaras de `J16`, y lo emiten LAS DOS puntas.**
 > Cuatro valores, y **es el PEOR de las dos cámaras de esa punta**, no una por campo:
@@ -1095,6 +1324,31 @@ operario no lo sabe, vuelve a pulsar creyendo que no le hacen caso.
 
 ### 4.5 🟠 `AMBAR_EMERGENCIA` en el Esclavo — la tabla de respuestas
 
+> # 🔴 07/09 — LEA ESTO ANTES DE USAR NINGUNA CITA DE ESTA SECCIÓN
+>
+> **Las direcciones `fichero.cpp:N` de este apartado ya no señalan al sitio.** Medido hoy sobre este
+> fichero: de **20 citas de firmware juzgables, 19 no encuentran el símbolo que anuncian** ni con un
+> margen de ±3 líneas, y la mayoría son de aquí. **Ninguna de ellas es una prueba de nada.** Lo que
+> se lee es el símbolo:
+>
+> ```
+> grep -rn "degradado_salir\|degradado_entrar\|DEG_RENDIDO\|DEG_SALIENDO" 01_Firmware/Esclavo/
+> ```
+>
+> **Si una cita de aquí y ese `grep` no coinciden, manda el `grep`.**
+>
+> ### 🔴 Y el cambio de fondo que esta sección todavía no recoge: `D-18`
+>
+> El Esclavo **sí** entra hoy en Modo Degradado por app —`SET_MODO:DEGRADADO` existe en su
+> `bluetooth.cpp`, fila `D-18` de `DECISIONES.md`, y por ahí desapareció el hueco de `A-11`—.
+> **Lo que NO existe es el camino de vuelta:** no hay ningún comando de radio por el que el Esclavo
+> anuncie que entró, y el getter de estado del Maestro **sólo sabe devolver color**.
+>
+> **Consecuencia operativa, y es la que hay que tener delante al leer la tabla de abajo: el poste 1
+> no puede enterarse de que el poste 2 está en Degradado.** Cualquier frase de esta sección —o del
+> Manual 8, o del 18— que describa al Maestro **reaccionando** a ese estado, o a la app
+> **enseñándolo desde el Maestro**, describe algo que no tiene canal por el que ocurrir.
+>
 > 🛑 **ESTO ES ESPECIFICACIÓN, NO ES LO QUE EL FIRMWARE HACE HOY.** Escrito el **31/08/2026**.
 > Ninguna línea de esta sección ha pasado banco, y el firmware de hoy contesta
 > `RESULT:OK` **en los cinco casos**. Mientras esta tabla no esté implementada y vista fallar, el
@@ -1145,7 +1399,14 @@ son y cómo se llaman es especificación.
 | Duración del todo-rojo de despedida | `Esclavo/src/modo_degradado.cpp:108-111` y `:49` | `max(cfgDespeje × 1000 ms, ROJO_MINIMO_MS = 4000 ms)` |
 | Rango legal del despeje | `Maestro/src/modo_automatico.cpp:34` (`DESPEJE_SEG_MIN = 10`, `MAX = 90`), llega al Esclavo por radio (`config_ciclo.cpp:158`) | **el todo-rojo de despedida dura entre 10 y 90 segundos** |
 | `semaforo_iniciarFallo()` | `Esclavo/src/semaforo.cpp:256-260` | **no tiene guarda y no puede fallar**: pone `S_FALLO` siempre |
-| El Esclavo **no tiene** comando de Bluetooth para ENTRAR en Degradado | `grep -in "degradado" Esclavo/src/bluetooth.cpp` → **CERO** | la entrada siempre la pide alguien delante del poste (mando `A·B·A·B`, o `menu.cpp:211`) o el arranque tras corte |
+| ~~El Esclavo **no tiene** comando de Bluetooth para ENTRAR en Degradado~~ 🔴 **FILA FALSA — corregida el 07/09** | ~~`grep -in "degradado" Esclavo/src/bluetooth.cpp` → **CERO**~~ → **hoy 58 (26 fuera de comentario)**, y `grep -n 'strcmp(accion, "SET_MODO:DEGRADADO")' Esclavo/src/bluetooth.cpp` → **`694:`** | 🟢 **`SET_MODO:DEGRADADO` existe desde `D-18` (05/09, `15e8cf3`) y hoy es LA vía principal**: la del mando no se monta (`D-1`) y la del menú es inalcanzable (`botonAceptar()` es `return false;`, `D-17.bis`). **Lo que sigue sin existir es el camino de VUELTA: ningún comando de radio anuncia que entró, así que el Maestro no puede enterarse** |
+
+> ⚠️ **07/09 — sobre esta tabla entera: sus citas por número de línea ya no señalan al sitio.**
+> Medido sobre este fichero: de **20 citas de firmware juzgables, 19 no encuentran** el símbolo que
+> anuncian ni con un margen de ±3 líneas, y la mayoría son de aquí. Los símbolos de la columna
+> central **sí** son buenos y no caducan: se localizan con
+> `grep -rn "degradado_salir\|degradado_gobiernaLuz\|semaforo_iniciarFallo" 01_Firmware/Esclavo/`.
+> **Ninguna de las direcciones de esta tabla es una prueba; los símbolos sí.**
 
 #### 4.5.2 🔴 La tabla — qué contesta en cada estado
 
@@ -1274,12 +1535,48 @@ ni por `mando_ambarLocal()`. Y el sostenedor del Degradado escribe luz por otra 
   `aplicarLuz()` puede dar **verde por reloj** donde se había pedido ámbar de precaución.
 - El `$ACK` ya se envió hace rato. **Nada se lo dice a nadie.**
 
-**Quién puede entrar en Degradado, y por qué importa aquí:** el Esclavo **no tiene comando de
+~~**Quién puede entrar en Degradado, y por qué importa aquí:** el Esclavo **no tiene comando de
 Bluetooth** para entrar (MEDIDO: cero coincidencias de `degradado` en su `bluetooth.cpp`). Las vías
 son el mando `A·B·A·B` (`mando.cpp`, `ACC_DEGRADADO`), la pantalla (`menu.cpp:211` y `P_CONFIRMAR`) y
-`degradado_reanudarTrasCorte()` al arrancar. **La reanudación tras corte no está afectada**: el latch
-vive en RAM y arranca en `false`. Es decir que el caso real es siempre **alguien delante del poste
-entrando en Degradado mientras un ámbar pedido por teléfono sigue vigente**.
+`degradado_reanudarTrasCorte()` al arrancar.~~ **La reanudación tras corte no está afectada**: el
+latch vive en RAM y arranca en `false`. ~~Es decir que el caso real es siempre **alguien delante del
+poste entrando en Degradado mientras un ámbar pedido por teléfono sigue vigente**.~~
+
+> # 🔴 07/09 — ESE «CERO» ES FALSO HOY, Y AL CAER SE LLEVA LA CONCLUSIÓN DE TODA ESTA SUBSECCIÓN
+>
+> **El `grep` publicado se volvió a correr y no da cero:**
+>
+> ```
+> $ grep -ci "degradado" 01_Firmware/Esclavo/src/bluetooth.cpp                                 -> 58
+> $ grep -in "degradado" 01_Firmware/Esclavo/src/bluetooth.cpp | grep -v ":[[:space:]]*//"    -> 26
+> $ grep -n 'strcmp(accion, "SET_MODO:DEGRADADO")' 01_Firmware/Esclavo/src/bluetooth.cpp
+> 694:  } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
+> ```
+>
+> **El Esclavo SÍ tiene comando de Bluetooth para entrar en Degradado** desde `D-18` (05/09,
+> `15e8cf3`). Y las tres vías que este párrafo daba por vigentes **se dieron la vuelta a la vez**:
+>
+> | vía que decía este párrafo | hoy |
+> |---|---|
+> | el mando `A·B·A·B` | 🛑 **el hardware no se monta** (`D-1`). El código vive, pero `J16` p5/p8 están vacíos |
+> | la pantalla (`menu.cpp` / `P_CONFIRMAR`) | 🛑 **inalcanzable**: `botonAceptar()` y `botonCancelar()` son `return false;`, y `D-17.bis` retira la pantalla del equipo |
+> | `degradado_reanudarTrasCorte()` al arrancar | ✅ sigue |
+> | ~~ninguna por Bluetooth~~ | 🟢 **`SET_MODO:DEGRADADO`, y hoy es LA VÍA PRINCIPAL** |
+>
+> 🔴 **Por qué esto no es un matiz: el agujero que analiza esta subsección NO desapareció, se
+> AGRANDÓ, y el análisis apuntaba al escenario equivocado.** El párrafo concluía que *«el caso real
+> es siempre alguien delante del poste»* — o sea, dos personas, o una que sube. **Hoy las dos
+> órdenes salen del MISMO teléfono y del mismo dedo**: el ámbar de emergencia por app y la entrada
+> en Degradado por app. **El caso que este apartado consideraba raro es ahora el normal**, y quien
+> lo provoca no tiene forma de ver que se ha revocado su propio ámbar.
+>
+> ⚠️ **Y no hay canal de vuelta que lo cuente:** `D-18` **no tiene ningún comando de radio por el que
+> el Esclavo anuncie que entró en Degradado**, y el getter de estado del Maestro sólo devuelve
+> color. **El poste 1 no se entera**, y el Degradado es el único modo que da verde sin confirmar la
+> otra punta.
+>
+> **Esto se marca, no se arregla aquí:** cambiar el orden de esos vetos es firmware y es vial. Lo
+> que este manual puede hacer —y hace— es dejar de decir que la puerta no existe.
 
 > **La comparación que lo deja claro: el mando ya resolvió esto, y lo resolvió EXPLÍCITAMENTE.**
 > `ejecutar(ACC_DEGRADADO)` pone `ambarLocal = false` antes de llamar a `degradado_entrar()` (`mando.cpp:144-148`). O sea

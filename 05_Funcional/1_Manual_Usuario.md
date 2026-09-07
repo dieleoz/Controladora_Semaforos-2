@@ -5,6 +5,23 @@ Todas las operaciones están alineadas al **Manual de Señalización Vial de Col
 
 ---
 
+> ### 🆕 07/09 — CUATRO CORRECCIONES DE ESTA FECHA, POR SI ALGUIEN LLEGA CON UNA COPIA IMPRESA
+>
+> Todas van tachadas en su sitio con su motivo y su fila de `DECISIONES.md`. Se listan aquí porque
+> **las cuatro cambian lo que el operario hace o concluye delante del equipo**:
+>
+> | | qué decía | qué es verdad hoy |
+> |---|---|---|
+> | 🔴 **1** | la tabla de telemetría *«Medido el 28/08»*: `RF:98%`, `RTT:85ms`, `BAT:12.6` y `T:` como contador libre | **`N-108` (04/09) los arregló los cuatro.** Hoy salen `--` cuando no hay medida, y el `T:` del Maestro **sí** son los segundos que le quedan a la fase. *(Y este manual **se contradecía a sí mismo**: su 10.6 ya decía que `BAT` sale `--`.)* |
+> | 🔴 **2** | mandar `SET_RTC` al equipo y esperar `$ACK`/`$ERR` | **`D-15`: el STM32 ya no contesta a `SET_RTC`.** Contesta el **puente**. El silencio **no** significa cristal muerto — y este proyecto ya cambió pila y cristal SANOS tres veces por concluirlo |
+> | 🔴 **3** | *«no hay ninguna forma de ordenarle un modo al Esclavo estando delante de él»* | **`D-18`: `CMD:PIN:1234:SET_MODO:DEGRADADO`.** Se le puede ENTRAR por app; lo que sigue sin poderse es SACARLO |
+> | ⚠️ **4** | *«la microSD no viene puesta ni está comprada»* | **La compra está decidida** (`A-0`, 05/09): dos `high endurance`, línea `A10`. Lo abierto es la **configuración** |
+>
+> 🛑 **Y un aviso que no existía y ahora encabeza §7: `A·A·A` ABRE PASO** — es la única de las tres
+> secuencias del mando **sin guarda ninguna**. **Nada se cablea a `J16` p5 ni p8.**
+
+---
+
 ## 🔴 05/09/2026 — EL EQUIPO SE OPERA **SÓLO POR APP**. SIN TELÉFONO NO HAY MANDO DE NINGUNA CLASE
 
 **Esto va lo primero porque cambia lo que hay que llevar en el bolsillo antes de salir al poste**, y
@@ -31,6 +48,31 @@ Palabras del responsable: *«ya no tenemos mandos de A y B, sólo la app, los qu
 3,3 V del pin contiguo compone una secuencia de mando.** Si en algún gabinete quedara un pulsador
 cableado ahí, ese pulsador **sí cambia el modo del semáforo** — y **`SIN VERIFICAR`** si queda
 alguno montado en algún equipo.
+
+> 🔴 **07/09 — Y AHORA ESE AVISO LLEVA SU MEDIDA, QUE ES LO QUE LE FALTABA: `A·A·A` ABRE PASO.**
+>
+> Medido en `01_Firmware/Maestro/src/mando.cpp` — ancla: `grep -n "confirmarYActuar(ACC_" mando.cpp`:
+>
+> | secuencia | ¿tiene guarda? | qué hace |
+> |---|---|---|
+> | `A·B·A·B` → Degradado | ✅ **sí** — `if (modo_degradado_evaluarEntrada() == MDG_OK)`, y el fuente la llama *«LA RED DE SEGURIDAD REAL»* | sólo entra si la hora está validada |
+> | `B·B·B` → Ámbar | sin condiciones **a propósito** | va a ámbar. Es la salida de emergencia |
+> | 🔴 `A·A·A` → Automático | 🛑 **NINGUNA** | **arranca el ciclo, o sea DA VERDE a un sentido** |
+>
+> **Tres pulsos en p5 dentro de 12 s abren un carril.** Con el mando montado ese gesto lo daba un
+> operario mirando el cruce desde el suelo, y por eso el diseño lo acepta. **Sin mando, quien
+> compone esa secuencia es cualquier cosa que alguien cablee ahí**: un fin de carrera de talanquera
+> que suba y baje tres veces seguidas es `B·B·B`; un contacto que rebote puede ser `A·A·A`.
+>
+> ✅ **La regla: NADA se cablea a `J16` p5 ni p8** (`DECISIONES.md` `A-2`, que sigue **abierta** y es
+> ya una decisión de seguridad). Y si en un gabinete aparece algo cableado ahí, **se desconecta antes
+> de energizar** — el firmware no sabe distinguir un operario de un rebote.
+>
+> 🛑 **Y en el mismo conector, lo que hiere si se olvida: `J16` p1 lleva 12 V CRUDOS a un conector
+> de señal directa al micro. SE TAPA EN CADA EQUIPO QUE SE MONTE** (`D-4`, N-120) — no es una
+> cautela de banco. En el cobre esos 12 V corren a **1,36 mm** del pin de señal más cercano.
+> **Y `J14` es una ENTRADA del micro** (3,3 V, sin opto ni diodo): la salida de talanquera es
+> **`J15`**. **Un relé cableado a `J14` se desconecta antes de energizar.**
 
 ### 2. 🔴 SIN TELÉFONO NO HAY FORMA DE OPERAR EL EQUIPO — `D-16`
 
@@ -649,12 +691,27 @@ binario** (`modo_alcance.cpp`) y ya no tiene dónde dibujarse. De lo que mostrab
 > distinción hay que hacerla con instrumentos en el poste. **Se anota como hueco abierto en lugar de
 > darlo por trasladado.**
 
-> 🔴 **Y un aviso sobre el `RF:` del ESCLAVO, medido el 28/08 en
+> ~~🔴 **Y un aviso sobre el `RF:` del ESCLAVO, medido el 28/08 en
 > `Esclavo/src/bluetooth.cpp` línea 215:** la trama del Esclavo emite **`RF:98%` y `RTT:85ms` como
 > texto literal**, no como medida. Son constantes escritas dentro del `snprintf`. **El Esclavo no
 > está midiendo su enlace: está afirmando un 98 % pase lo que pase**, incluso con la radio
-> desconectada. **No use ese número para decidir nada.** El `RF:` del **Maestro** sí sale de la
-> telemetría real del latido de 3 s (SFTY-14).
+> desconectada. **No use ese número para decidir nada.**~~
+>
+> > 🟢 **TACHADO EL 07/09 — EL DEFECTO SE ARREGLÓ EN `N-108` (04/09) Y ESTE AVISO SE QUEDÓ.** La
+> > medida del 28/08 era cierta; su contenido caducó. **Hoy el Esclavo publica `RF:--` y `RTT:--`**,
+> > que es el equipo negándose a inventar. El comentario del propio fuente lo cuenta en pasado —
+> > `grep -n "N-108" 01_Firmware/Esclavo/src/bluetooth.cpp`:
+> > *«RF, RTT Y BAT DEJAN DE INVENTARSE. Los tres eran LITERALES…»*.
+> >
+> > 🔴 **Por qué se tacha y no se borra:** un aviso caducado que dice *«no use ese número»*
+> > **enseña a desconfiar de un dato que ya es honesto**, y eso cuesta lo mismo que fiarse de uno
+> > falso. *(Y la cita `línea 215` tampoco señalaba ya donde decía: ahí hay hoy un comentario sobre
+> > cotas de buffer.)*
+>
+> ✅ **Lo que SÍ sigue vigente de ese aviso, y por eso el párrafo no desaparece:** el `RF:` y el
+> `RTT:` **del MAESTRO** salen de la telemetría real del latido de 3 s (SFTY-14), y **son los únicos
+> dos números de enlace que este sistema mide**. Si necesita saber cómo está la radio, **se lee en
+> el Maestro**.
 
 ---
 
@@ -1085,7 +1142,11 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 > pero conviene saber cómo funciona de verdad, para no contar con lo que no hay:
 >
 > * Las imágenes se quedan **dentro de la cámara**. El semáforo no las ve.
-> * **La tarjeta no viene puesta ni está comprada.**
+> * ~~**La tarjeta no viene puesta ni está comprada.**~~ → 🟢 **07/09: LA COMPRA ESTÁ DECIDIDA** —
+>   **dos microSD `high endurance`**, decididas por el responsable el 05/09 (*«cada cámara tiene una
+>   micro, la metemos»*) y anotadas como línea `A10` de la lista de compras (`DECISIONES.md` `A-0`).
+>   **Lo que sigue sin decidir es la CONFIGURACIÓN** —capacidad, días de retención, y si la grabación
+>   va continua o por evento—, y eso **no toca una línea de firmware**.
 > * Sin red en el poste, para verlas hay que **subir al equipo y retirar la tarjeta**.
 > * **Nadie ha decidido todavía** cuántos días se guardan ni quién las revisa.
 >
@@ -1179,12 +1240,20 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 >   >
 >   > ```
 >   > grep -n "camara_presenciaJ16\|presenciaActual" 01_Firmware/Maestro/src/modo_inteligente.cpp
->   > 176:      //   J16 / CAM_C_PIN y CAM_D_PIN  -> POR NIVEL, con camara_presenciaJ16(), que
->   > 206:                                   || camara_presenciaJ16()
->   > 288:      int presenciaActual = (demandaLocalS1 ? 1 : 0) + (demandaRemotaS2 ? 1 : 0);
->   > 290:      if (strcmp(actual, estadoAnt) != 0 || presenciaActual != presenciaAnt) {
->   > 291:        lcd_dibujarInteligente(actual, presenciaActual, true);
->   > 293:        presenciaAnt = presenciaActual;
+>   >
+>   >   --- RE-CORRIDO EL 07/09. El CONTENIDO es identico al del 05/09; los NUMEROS no:
+>   >       las seis lineas se han corrido DIEZ posiciones en dos dias. Se publica la
+>   >       salida de hoy, y se deja escrito el desplazamiento porque es la demostracion
+>   >       de por que se cita el simbolo y no la linea.
+>   >
+>   > 186:      //   J16 / CAM_C_PIN y CAM_D_PIN  -> POR NIVEL, con camara_presenciaJ16(), que
+>   > 216:                                   || camara_presenciaJ16()
+>   > 298:      int presenciaActual = (demandaLocalS1 ? 1 : 0) + (demandaRemotaS2 ? 1 : 0);
+>   > 300:      if (strcmp(actual, estadoAnt) != 0 || presenciaActual != presenciaAnt) {
+>   > 301:        lcd_dibujarInteligente(actual, presenciaActual, true);
+>   > 303:        presenciaAnt = presenciaActual;
+>   >
+>   >   (el 05/09 daban 176 . 206 . 288 . 290 . 291 . 293)
 >   > ```
 >   >
 >   > **Lo que NO cambia es el «0, 1 o 2»**, que es lo que este punto vino a decir: sigue siendo una
@@ -1265,8 +1334,22 @@ Para permitir la operación del semáforo a nivel del suelo sin colisionar con l
 >
 > **MEDIDO en el fuente:** los dos pines pasan a **`pinMode(BOTON1/BOTON2, INPUT)` pelado** y la
 > lectura a **`digitalRead(...) == HIGH`**, o sea **ACTIVO EN ALTO**, exactamente como ya se leen
-> las cámaras. `Maestro/src/botones.cpp:160-161` y `:223`; `Esclavo/src/botones.cpp:178-179` y
-> `:232`. **Las `R65`/`R66` dejan de ser el problema y pasan a ser el reposo**: fijan el pin a 0 V
+> las cámaras. ~~`Maestro/src/botones.cpp:160-161` y `:223`; `Esclavo/src/botones.cpp:178-179` y
+> `:232`.~~ 🔴 **Citas caducadas, re-medidas el 07/09; el ancla que no caduca es el `grep`,
+> corrido antes de publicarlo:**
+>
+> ```
+> $ grep -n "pinMode(BOTON1\|pinMode(BOTON2" 01_Firmware/Maestro/src/botones.cpp 01_Firmware/Esclavo/src/botones.cpp
+> 01_Firmware/Maestro/src/botones.cpp:521:  pinMode(BOTON1, INPUT);
+> 01_Firmware/Maestro/src/botones.cpp:522:  pinMode(BOTON2, INPUT);
+> 01_Firmware/Esclavo/src/botones.cpp:507:  pinMode(BOTON1, INPUT);
+> 01_Firmware/Esclavo/src/botones.cpp:508:  pinMode(BOTON2, INPUT);
+>
+> $ grep -n "digitalRead(b.pin) == HIGH" 01_Firmware/Maestro/src/botones.cpp 01_Firmware/Esclavo/src/botones.cpp
+> 01_Firmware/Maestro/src/botones.cpp:42:  bool lecturaCruda = (digitalRead(b.pin) == HIGH);
+> 01_Firmware/Esclavo/src/botones.cpp:56:  bool lecturaCruda = (digitalRead(b.pin) == HIGH);
+> ```
+> **Las `R65`/`R66` dejan de ser el problema y pasan a ser el reposo**: fijan el pin a 0 V
 > cuando nadie acciona, que es justo lo que quiere una entrada activa en alto.
 >
 > 🔵 ~~**Y CAMBIA EL GESTO CON EL QUE SE PRUEBA. Esto es lo que hay que llevar al poste:**~~
@@ -1293,11 +1376,40 @@ Para permitir la operación del semáforo a nivel del suelo sin colisionar con l
 > 🔴 **Lo que NO desaparece con él, y es lo que hay que leer aquí:**
 >
 > * **La app por Bluetooth es la única vía de mando, en las dos puntas** (`D-16`).
-> * **En el ESCLAVO eso cierra el círculo del todo, no a medias** (§9): allí la app no cambia de
+> * ~~**En el ESCLAVO eso cierra el círculo del todo, no a medias** (§9): allí la app no cambia de
 >   modo, y **ya no hay mando que lo supla**. Hoy **no hay ninguna forma de ordenarle un modo al
->   Esclavo estando delante de él** — se opera desde el Maestro.
+>   Esclavo estando delante de él** — se opera desde el Maestro.~~
+>   > 🟢 **TACHADO EL 07/09 — caducó con `DECISIONES.md` `D-18`** (commit `15e8cf3`), y **la
+>   > tabla de la §9 de este mismo manual ya se había corregido: este bullet se quedó atrás.** Al
+>   > Esclavo **sí** se le puede ordenar un modo estando delante de él:
+>   > **`CMD:PIN:1234:SET_MODO:DEGRADADO`**, con `$ACK,…,RESULT:OK`.
+>   >
+>   > ⚠️ **Lo que de este bullet sigue siendo verdad, y es la mitad que el operario tiene que
+>   > llevarse: al Esclavo se le puede ENTRAR por app y NO se le puede SACAR por app.** No hay
+>   > `SET_MODO:AUTO` en esa punta — **lo devuelve el Maestro cuando vuelve la radio**. Para
+>   > **parar** el cruce desde ahí está `CMD:AMBAR_EMERGENCIA`, que no es lo mismo que devolverlo a
+>   > Automático.
 
-### ✅ EL VOCABULARIO REAL — MEDIDO en `Maestro/src/mando.cpp:201-238` y `Esclavo/src/mando.cpp` (31/08)
+### ✅ EL VOCABULARIO REAL — ~~MEDIDO en `Maestro/src/mando.cpp:201-238`~~ → re-medido el 07/09; el ancla es `grep -n "confirmarYActuar(ACC_" Maestro/src/mando.cpp Esclavo/src/mando.cpp`
+
+> 🔴 **07/09 — LO PRIMERO DE ESTA TABLA, Y NO ESTABA ESCRITO EN NINGUNA PARTE: `A·A·A` ABRE PASO.**
+>
+> Medido en `Maestro/src/mando.cpp`: la rama de `A·A·A` llama a
+> `confirmarYActuar(ACC_AUTOMATICO, …)` **sin ninguna comprobación previa**. La comparación con su
+> vecina es directa —y el propio fuente la escribe:
+>
+> - `A·B·A·B` (Degradado) **sí** tiene guarda: `if (modo_degradado_evaluarEntrada() == MDG_OK)`, con
+>   el comentario *«LA RED DE SEGURIDAD REAL NO ES LA SECUENCIA, ES ESTA COMPROBACIÓN»* encima.
+> - `A·A·A` (Automático) **no tiene ninguna**, y entrar en Automático **arranca el ciclo**.
+>
+> 🛑 **Consecuencia: tres pulsos `A` dentro de 12 s dan verde a un sentido.** Con el mando montado
+> ese gesto lo daba un operario que estaba mirando el cruce desde el suelo, y por eso el diseño lo
+> acepta. **Hoy no hay mando** (`D-1`) **y `J16` p5 y p8 están vacíos** (`A-2`) — así que quien
+> compone esa secuencia hoy es **cualquier cosa que alguien cablee ahí**: un fin de carrera de
+> talanquera que suba y baje tres veces es `B·B·B`, y un contacto que rebote puede ser `A·A·A`.
+>
+> ✅ **La regla, y es corta: NADA se cablea a `J16` p5 ni p8.** No es una preferencia de montaje: el
+> firmware sigue leyendo esos flancos y **no sabe distinguir un operario de un rebote.**
 
 **Son TRES secuencias, y no hay más.** *(Escritas en el firmware, y ahí siguen. ~~En el banco del
 3–4/09 ninguna se pudo accionar; el firmware de hoy ya lee los pines activo en ALTO y falta
@@ -1368,7 +1480,7 @@ saber, porque el gesto es idéntico y el resultado no:
 |---|---|---|
 | **`A · A · A`** | 🟢 **Arranca el Modo Automático** — el Maestro decide el ciclo | 🔵 **`OBEDECER`: devuelve el mando al Maestro.** No arranca ningún ciclo propio. Si estaba en Degradado sale ordenado por el todo-rojo; si no, **se queda en ROJO** esperando la primera orden por radio |
 | **`B · B · B`** | 🟡 Ámbar de seguridad | 🟡 Ámbar de seguridad — **igual**, y además **marca el ámbar como LOCAL** *(ver el aviso de abajo)* |
-| **`A · B · A · B`** | 🕒 Entra en Degradado *(si la hora está validada)* | 🕒 Entra en Degradado *(si además hay configuración de ciclo y sincronización vigente — `degradado_comprobar()`, `mando.cpp:229`)* |
+| **`A · B · A · B`** | 🕒 Entra en Degradado *(si la hora está validada)* | 🕒 Entra en Degradado *(si además hay configuración de ciclo y sincronización vigente — ~~`mando.cpp:229`~~ → `degradado_comprobar()`, hoy en `Esclavo/src/mando.cpp:243`; el ancla es `grep -n "degradado_comprobar" Esclavo/src/mando.cpp`, re-corrido el 07/09)* |
 
 > 🛑 **El `B·B·B` del Esclavo hace algo más de lo que se ve, y es una protección deliberada.**
 > Marca ese ámbar como **puesto por un operario en el sitio** (`ambarLocal`, `Esclavo/src/mando.cpp:132`),
@@ -1643,24 +1755,48 @@ teléfono desbloqueado creyendo que da igual.**
 
 ### Telemetría en vivo — y qué campos NO son medidas
 
-* **Emisión periódica de `$STATUS,...` ~~cada 1 segundo~~ cada 2 segundos.** *(cadencia bajada a **2000 ms** el 04/09, decision del responsable, en las DOS puntas — MEDIDO: `Maestro/src/bluetooth.cpp:851`, `Esclavo/src/bluetooth.cpp:768`. Un tecnico que cronometre con «1 segundo» declara caido un enlace sano.)* Formato real, leído del firmware:
-  `$STATUS,NODE:...,SERIE:...,MODO:...,ESTADO:...,T:...,RF:...%,RTT:...ms,BAT:...,HORA:...*XX`
+* **Emisión periódica de `$STATUS,...` ~~cada 1 segundo~~ cada 2 segundos.** *(cadencia bajada a **2000 ms** el 04/09, decision del responsable, en las DOS puntas — MEDIDO: ~~`Maestro/src/bluetooth.cpp:851`, `Esclavo/src/bluetooth.cpp:768`~~ → 🔴 **citas caducadas, re-medidas el 07/09: hoy `:814` y `:877`. El ancla que no caduca es `grep -n "telemetria cada 2000 ms" Maestro/src/bluetooth.cpp Esclavo/src/bluetooth.cpp`.** Un tecnico que cronometre con «1 segundo» declara caido un enlace sano.)*
+  ~~Formato real, leído del firmware:~~
+  ~~`$STATUS,NODE:...,SERIE:...,MODO:...,ESTADO:...,T:...,RF:...%,RTT:...ms,BAT:...,HORA:...*XX`~~
 
-> 🔴 **Tres campos de esa trama NO son medidas, y hay que saberlo antes de decidir con ellos.**
-> Medido el 28/08 sobre `bluetooth.cpp` en las dos puntas:
+> # 🔴 07/09 — ESA PLANTILLA Y LA TABLA DE ABAJO ESTABAN CADUCADAS, Y ESTE MANUAL SE CONTRADECÍA A SÍ MISMO
 >
-> | campo | Maestro | Esclavo |
+> **Su propio apartado 10.6 ya decía lo contrario** —*«En todas las tramas de la cinta del 04/09 el
+> campo de batería sale `--`»*— mientras éste seguía publicando un `BAT:12.6`. **Dos párrafos del
+> mismo documento, uno cierto y otro no, y el falso llevaba la palabra `Medido` encima.**
+>
+> **PLANTILLAS REALES, leídas hoy del `snprintf` de cada punta** — el ancla es
+> `grep -n 'STATUS,NODE' 01_Firmware/Maestro/src/bluetooth.cpp 01_Firmware/Esclavo/src/bluetooth.cpp`:
+>
+> ```text
+> $STATUS,NODE:MAESTRO,SERIE:..,MODO:..,ESTADO:..,T:..,RF:..,RTT:..,BAT:--,HORA:..,ESC:..,PLUMA:..,CAM:..*CRC
+> $STATUS,NODE:ESCLAVO,SERIE:..,MODO:..,ESTADO:..,T:--,RF:--,RTT:--,BAT:--,HORA:..,PLUMA:..,CAM:..*CRC
+> ```
+>
+> **Qué decía la tabla vieja y qué pasa hoy — los cuatro campos cambiaron con `N-108` el 04/09:**
+>
+> | campo | ~~lo que este manual decía (28/08)~~ | 🟢 lo que hace hoy |
 > |---|---|---|
-> | `RF:` | ✅ **real** — telemetría del latido de 3 s (SFTY-14) | 🔴 **literal `98%`** escrito en el `snprintf` |
-> | `RTT:` | ✅ **real** | 🔴 **literal `85ms`** |
-> | `BAT:` | 🔴 **literal `12.6`** | 🔴 **literal `12.6`** |
-> | `T:` | ⚠️ **no es la cuenta regresiva**: es `(millis()/1000) % 60`, un contador libre de 0 a 59 | ⚠️ igual |
+> | `RF:` | ~~Esclavo: literal `98%`~~ | **`RF:--` literal en el Esclavo.** En el Maestro es **real**, y publica `--` mientras no haya muestras |
+> | `RTT:` | ~~Esclavo: literal `85ms`~~ | **`RTT:--` literal en el Esclavo.** Real en el Maestro |
+> | `BAT:` | ~~literal `12.6` en las dos~~ | **`BAT:--` literal en las dos.** No hay **ni un solo** `analogRead()` en las cuatro carpetas de firmware: sin divisor ni entrada analógica no hay batería que leer *(ver 10.6)* |
+> | `T:` | ~~`(millis()/1000) % 60`, un contador libre~~ | 🔴 **AL REVÉS: en el MAESTRO `T:` SÍ son los segundos que le quedan a la fase**, y `--` cuando ese plazo no existe. **En el ESCLAVO es `--` siempre**: esa punta es subordinada y no conoce el plazo |
 >
-> **Este manual prometía antes «cuenta regresiva» y «% de señal RF».** La cuenta regresiva **no
-> existe en la trama**, y el `RF:` del Esclavo **afirma un 98 % aunque la radio esté desconectada**.
-> Un tablero que inventa el dato que no tiene es peor que uno que se calla: quien decide sobre el
-> tráfico mirándolo cree estar viendo el enlace. **Se deja escrito en vez de corregirse en silencio,
-> porque el arreglo es de firmware y no de manual.**
+> 🆕 **Y tres campos que la plantilla vieja no tenía:**
+>
+> - **`ESC:`** — sólo en el Maestro y **va el último antes de `PLUMA:`**; dice de qué color está el
+>   Esclavo (`ROJO`/`VERDE`/`AMBAR`) y **`?` cuando el enlace está caído**. El `?` **no** es un hueco:
+>   es *«el enlace se cortó y esta punta no sabe de qué color está la otra»*. **Que falte en el
+>   Esclavo no es un fallo:** no tiene de dónde sacarlo.
+> - **`PLUMA:`** — `ARRIBA` · `ABAJO`, en las **dos** puntas.
+> - **`CAM:`** — `OK` · `CIEGA` · `PEGADA` · `?`, en las **dos** puntas, y publica **la peor de las dos
+>   cámaras** de esa punta.
+>
+> ⚠️ **LO QUE NO CAMBIA, Y ES LA MITAD BUENA DE LA TABLA VIEJA — se conserva literal porque sigue
+> siendo la regla:** *un tablero que inventa el dato que no tiene es peor que uno que se calla; quien
+> decide sobre el tráfico mirándolo cree estar viendo el enlace.* **Eso es exactamente lo que los
+> `--` corrigen. Un `--` NO es una avería y no se reporta como tal: es el equipo diciendo
+> «todavía no lo sé».** *(Y un `!` sí es un hallazgo: significa que llegó un valor imposible.)*
 * **Caja Negra de Alarmas:** Registro inmediato de eventos con timestamp (`$ALARM,EVENTO:FALLO_RF,CAUSA:SILENCIO_25000ms...` —**el nombre del evento ya no lleva el número dentro**: el umbral va en la causa, para que no quede mintiendo el día que se ajuste) para diagnosticar la causa exacta de cualquier caída de radio en obra.
 * **Operación Multicruce (Un solo celular para la vía):** La App permite gestionar toda la carretera con un selector de cruces viales (Km 12, Km 24, etc.) y detecta automáticamente si está conectada a `👑 MAESTRO (Poste 1)` o `📡 ESCLAVO (Poste 2)`.
 * **Modo Asistente Courier RTC (Sincronización Puente sin Radio):** Si no hay enlace de radio entre postes, el técnico captura hora y ciclo en el Maestro, viaja en vehículo al Esclavo, y la App inyecta la sincronización compensando automáticamente el tiempo de viaje con su reloj interno de alta precisión ($\Delta t < 0.1\text{ s}$).
@@ -1673,14 +1809,51 @@ teléfono desbloqueado creyendo que da igual.**
   > haga avanzar los segundos, así que **el equipo se niega a aceptar la hora en vez de guardar una
   > que nadie va a mover**.
   >
-  > **Las tres respuestas posibles de `CMD:PIN:…:SET_RTC:…`, MEDIDAS en el fuente, y qué hacer con
-  > cada una:**
+  > ~~**Las tres respuestas posibles de `CMD:PIN:…:SET_RTC:…`, MEDIDAS en el fuente, y qué hacer con
+  > cada una:**~~
   >
-  > | respuesta | qué pasó | qué hace el técnico |
+  > | ~~respuesta~~ | ~~qué pasó~~ | ~~qué hace el técnico~~ |
   > |---|---|---|
-  > | `$ACK,CMD:SET_RTC,RESULT:OK` | La hora **entró** | Listo. Puede bajarse del poste |
-  > | `$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ` *(Maestro)* · `DESC:SIN_CRISTAL` *(Esclavo)* | 🛑 **No hay con qué contar el tiempo. La hora NO entró** | **El viaje no sirvió.** Es avería de hardware. **Antes de bajarse, mande el mismo comando una segunda vez** y apunte lo que dice la trama de abajo — es el dato que decide qué pieza se toca |
-  > | `$ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO` | La app mandó algo que no se entiende | Reintentar |
+  > | ~~`$ACK,CMD:SET_RTC,RESULT:OK`~~ | ~~La hora **entró**~~ | ~~Listo. Puede bajarse del poste~~ |
+  > | ~~`$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ` *(Maestro)* · `DESC:SIN_CRISTAL` *(Esclavo)*~~ | ~~No hay con qué contar el tiempo. La hora NO entró~~ | ~~**Mande el mismo comando una segunda vez** y apunte lo que dice la trama de abajo~~ |
+  > | ~~`$ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO`~~ | ~~La app mandó algo que no se entiende~~ | ~~Reintentar~~ |
+  >
+  > > # 🛑 TACHADA ENTERA EL 07/09 — EL STM32 YA NO CONTESTA A `SET_RTC` (`DECISIONES.md` `D-15`)
+  > >
+  > > **`MEDIDAS en el fuente` era cierto cuando se escribió, y su contenido caducó el 05/09.** Las
+  > > dos puntas **consumen la orden en silencio a propósito**:
+  > >
+  > > ```
+  > > $ grep -n "D-15" 01_Firmware/Maestro/src/bluetooth.cpp 01_Firmware/Esclavo/src/bluetooth.cpp
+  > > 01_Firmware/Maestro/src/bluetooth.cpp:696:    // D-15 - ESTA PUNTA YA NO PONE LA HORA, Y POR ESO NO CONTESTA A LA ORDEN.
+  > > 01_Firmware/Esclavo/src/bluetooth.cpp:785:    // D-15 - ESTA PUNTA YA NO PONE LA HORA, Y POR ESO NO CONTESTA A LA ORDEN.
+  > > ```
+  > >
+  > > **El motivo, y es bueno:** antes **dos aparatos contestaban a una sola orden** — el puente decía
+  > > `$ACK,NODE:PUENTE,…,RESULT:OK` *(la puso en SU DS3231, cierto)* y cuatro segundos después el
+  > > STM32 decía que no *(en el suyo no entró, también cierto)*. **Las dos verdades juntas eran una
+  > > contradicción delante del técnico.** `D-15`: una orden, un acuse, y el acuse lo da **quien
+  > > tiene el reloj**.
+  > >
+  > > ✅ **LO QUE HAY QUE HACER HOY, que es lo que sustituye a la tabla:**
+  > >
+  > > | qué ve el técnico | qué significa |
+  > > |---|---|
+  > > | **`$ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK`** | La hora entró **en el DS3231 del módulo**, que es el reloj del cruce. Listo |
+  > > | Un `$ERR,NODE:PUENTE,…` | El puente lo rechaza y **dice por qué**. Se copia literal |
+  > > | 🔴 **Nada, ningún acuse** | **No llegó al puente.** Es enlace, no reloj — y **no se toca ni la pila ni el cristal** |
+  > > | Un `$EVENT,…,DETALLE:SET_RTC_LO_ACUSA_EL_PUENTE` | El STM32 **oyó la orden y se calló por diseño**. Es la señal de que la cadena funciona |
+  > >
+  > > 🔴 **Y la consecuencia que cuesta dinero si no se lee: el `$ERR` con `SIN_CRISTAL` YA NO
+  > > LLEGA, así que el silencio NO significa «cristal muerto».** Con la tabla vieja delante, un
+  > > técnico que no vea respuesta concluye avería de hardware y **cambia pila y cristal SANOS** —
+  > > **este proyecto ya lo hizo tres veces.** El reloj del cruce **no es el `Y2` del STM32**: es el
+  > > DS3231 del módulo (`D-9`, `D-15`).
+  > >
+  > > 🔵 **Y para VER la hora sin cambiarla existe ahora `CMD:LEER_RTC`** (`D-17`, construido en
+  > > `5846cee`, lo atiende el puente): la app la consulta en los dos postes y enseña el **desfase
+  > > entre ellos**. **Los dos relojes no se hablan entre sí; lo que hacía falta no era
+  > > sincronizarlos solos, sino poder ver si lo están.**
   >
   > > ### 🛑 `CONSULTA RELOJ` NO SE PUEDE ABRIR — el mensaje nombra una pantalla tapiada
   > >
@@ -1705,8 +1878,25 @@ teléfono desbloqueado creyendo que da igual.**
   > > *«el reloj no va»*, y este proyecto ya mandó cambiar pila, resistencia y cristal **tres veces
   > > con el hardware sano** por no tener este dato.
   > >
-  > > 💡 **Mande el comando dos veces con unos segundos de diferencia y compare el `CNT`:** si cambia,
-  > > el reloj cuenta. No cuesta nada — en este caso el comando se rechaza **antes** de escribir.
+  > > ~~💡 **Mande el comando dos veces con unos segundos de diferencia y compare el `CNT`:** si cambia,
+  > > el reloj cuenta. No cuesta nada — en este caso el comando se rechaza **antes** de escribir.~~
+  > >
+  > > > 🔴 **TACHADO EL 07/09: «el comando» era `SET_RTC`, y `SET_RTC` YA NO DISPARA ESTOS BITS.**
+  > > > Medido: la función que los emite —`reportarBitsDelReloj()` en
+  > > > `Maestro/src/bluetooth.cpp`— **tiene hoy UN SOLO llamador**, y es la rama de fallo de
+  > > > `REINICIAR_RELOJ`. El comentario del propio fuente todavía habla de *«las DOS puertas que
+  > > > llaman aquí»*: **la segunda se fue con `D-15` y el comentario se quedó.**
+  > > >
+  > > > ✅ **EL GESTO VIGENTE, que es el que trae los seis números:** mande
+  > > > **`CMD:PIN:1234:REINICIAR_RELOJ`**. Si contesta
+  > > > `$ERR,CMD:REINICIAR_RELOJ,DESC:SIGUE_PARADO_VEA_CONSULTA_RELOJ`, **justo detrás sale el
+  > > > `$EVENT` con `ON:`/`RDY:`/`BYP:`/`SEL:`/`EN:`/`CNT:`**. Si contesta
+  > > > `$ACK,…,RESULT:CRISTAL_OK_PONGA_LA_HORA`, **el oscilador arranca y no hay pieza que tocar**.
+  > > >
+  > > > 🛑 **Y `REINICIAR_RELOJ` BORRA LA HORA Y TODO EL RESPALDO** —ciclo acordado, marca de
+  > > > sincronización e indicador del Degradado—, por eso pide PIN. **No es un comando de consulta:
+  > > > no se manda «por mirar» en un equipo que está operando.** Para mirar la hora sin tocarla está
+  > > > `CMD:LEER_RTC` (`D-17`).
   >
   > > ⚠️ **Y por qué esto se escribe con tanto detalle: hasta hace poco ese comando contestaba
   > > `RESULT:OK` sin haber puesto nada.** Con el `Y2` muerto ése era el caso **normal**, no el

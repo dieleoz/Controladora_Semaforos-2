@@ -169,8 +169,14 @@ En la PCB de fábrica, `R5` es una resistencia puente de **0 Ω** que une el pin
 > | **Nunca inventa** | bus mudo, oscilador parado (`OSF`), modo 12 h o registros incoherentes → **el hueco sale como está** |
 > | 🛑 **Y por eso, SIN `DS3231` conectado la hora sigue saliendo en blanco** | **eso NO es una avería del apaño: es el apaño negándose a mentir.** Un `DS3231` sin pila entrega una fecha **perfectamente formada y falsa**, que es lo que costó `N-144` |
 >
-> 🔴 **Nada de esto se ha probado sobre un `DS3231` real: el módulo NO ESTÁ COMPRADO (`A6`) y su
-> dirección I²C `0x68` está SIN VERIFICAR sobre el módulo.** **`N-145` no se puede dar por probada.**
+> 🔴 ~~**Nada de esto se ha probado sobre un `DS3231` real: el módulo NO ESTÁ COMPRADO (`A6`)** …
+> **`N-145` no se puede dar por probada.**~~
+>
+> 🛑 **TACHADO EL 07/09 — `DECISIONES.md` `A-5`, resuelta el 05/09 a las 14:12 (`08c9d36`):**
+> *«cada `ESP32` tiene un reloj y pila, ya te lo indiqué»*. **Hay DOS `DS3231`, uno por poste, y
+> están puestos**; estaba escrito desde el 28/08 en la propia lista de compras. **Consecuencia
+> directa: el `HORA:22:19:58` de la cinta del banco ES REAL y `N-145` queda CONFIRMADA EN COBRE.**
+> 🔴 **Lo único que sigue `SIN VERIFICAR` es la dirección I²C `0x68` sobre el módulo real.**
 >
 > ⚠️ **Y el residual, escrito en vez de disimulado: desde la telemetría sola, la app NO PUEDE SABER
 > cuál de los dos relojes selló la hora.** Hoy siempre es el del módulo, porque el otro no existe,
@@ -288,9 +294,13 @@ símbolo.**)*
 > y vale cero*. Un cero en lugar de los guiones haría indistinguibles dos averías que mandan a
 > sitios opuestos.
 >
-> 💡 **Para saber si el contador AVANZA hacen falta dos lecturas.** Repita el mismo `SET_RTC` al cabo
-> de unos segundos y compare el `CNT`: si cambia, el RTC cuenta. No cuesta nada — en esta rama el
-> comando se rechaza **antes** de escribir.
+> 💡 ~~**Para saber si el contador AVANZA hacen falta dos lecturas.** Repita el mismo `SET_RTC` al
+> cabo de unos segundos y compare el `CNT`: si cambia, el RTC cuenta.~~
+> 🛑 **ANULADO EL 07/09 — ESTE CONSEJO NO SE PUEDE EJECUTAR, Y ES EL MISMO CAMINO QUE §4.1 ACABA DE
+> DEROGAR:** el STM32 **ya no contesta a `SET_RTC`** (`D-15`), así que ni sale el `$ERR` ni sale el
+> `$EVENT` con los bits detrás. **Repetirlo no da dos lecturas: no da ninguna.** La idea sigue siendo
+> buena —dos lecturas separadas para ver si el contador avanza— **pero hoy la orden que sirve es
+> `CMD:LEER_RTC`, y lee el `DS3231` del `ESP32`, no el `Y2` del STM32.**
 
 ### 4.2 ~~Verificación con la pantalla LCD~~ ⛔ NO EJECUTABLE
 
@@ -382,7 +392,7 @@ con la autoridad de una cuenta hecha**. El choque quedó anotado como `N-57` (`r
 | El `DS3231` cuelga del **ESP32** por I²C: **`GPIO21` = SDA, `GPIO22` = SCL**, con **pila propia**. El módulo `ZS-042` trae sus *pull-ups* | `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md` §1.3 (línea 89) |
 | «El ESP32 es un módulo de expansión colgado de un puerto serie, y **no manda sobre las luces**» | `ESTADO.md:80` |
 | La fila `PIN-0` —*«`PB0`/`PB8` van a bus I²C»*— está **⛔ ANULADA**: *«el I²C ya no vive en el STM32 […] `PB0` se queda como cámara de demanda»* | `ESTADO.md:124` |
-| El módulo es la línea de compra **`A6`**, y **NO se compró** todavía | `05_Funcional/15_Lista_de_Compras_Hardware.md:91` |
+| ~~El módulo es la línea de compra **`A6`**, y **NO se compró** todavía~~ ⛔ **CADUCADO EL 07/09: `A6` está CUBIERTA — SON DOS Y ESTÁN PUESTOS**, uno por `ESP32` (`A-5`, 05/09) | `05_Funcional/15_Lista_de_Compras_Hardware.md`, línea `A6` *(se cita la línea de la tabla, no el número de renglón: éste ya caducó una vez)* |
 
 ```text
  ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -468,14 +478,18 @@ apartado:** ~~si alguien conecta un `DS3231` —donde sea— **hoy no pasa nada*
 lea. **El síntoma esperado es el silencio**~~. Hoy **sí hay software que lo lee**, y está en el ESP32.
 Lo que no hay es **la pieza**:
 
-> 🔴 **`A6` — el módulo `DS3231` NO ESTÁ COMPRADO, y la dirección `0x68` sigue SIN VERIFICAR sobre
-> un módulo real (N-145, parcial).** Sin la pieza, el hueco de hora sale en las tramas como
-> **`--:--:--`** — y eso **no es una avería: es el firmware callándose bien**, que es exactamente
-> lo que este apartado quería proteger y decía al revés.
+> 🔴 ~~**`A6` — el módulo `DS3231` NO ESTÁ COMPRADO** … **la pieza no**.~~
 >
-> **Lo que NO se puede concluir todavía, y por eso N-145 no se da por probada:** que el driver
-> lea de verdad un `DS3231` físico. Eso son 336 líneas que **nunca han visto el chip**. Es
-> `CLAUDE.md` §2.ter otra vez: el código está, el llamador está, y **la pieza no**.
+> 🛑 **TACHADO EL 07/09, Y ES LA TERCERA COPIA DE LA MISMA FRASE EN ESTE FICHERO — `A-5` (05/09):
+> LOS DOS MÓDULOS ESTÁN PUESTOS**, uno por `ESP32`, con pila propia. **La pieza SÍ está**, el driver
+> también, y **`N-145` está confirmada en cobre**: el `HORA:22:19:58` de la cinta del banco es real.
+>
+> 🔴 **Lo que SÍ sigue abierto, y no es lo mismo:** la dirección `0x68` está **`SIN VERIFICAR` sobre
+> el módulo real** —es la del datasheet, y lo declara el propio fuente en
+> `ESP32_Expansion/include/contrato.h`—, y **el camino completo no se ha ejercido en una sesión de
+> banco con el enlace Bluetooth arriba**. *(Y sigue valiendo el reverso: si el módulo no entrega hora
+> válida —pila, `OSF`, modo 12 h— el firmware publica `--:--:--` **a propósito**. Eso no es avería
+> del apaño; el motivo se lee con `CMD:LEER_RTC`.)*
 
 ~~`05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md` §1.3 lo clasifica con las dos palabras
 exactas: **«decidido, sin construir»**.~~ → 🔧 **Esa clasificación también caducó para el software.**
@@ -490,8 +504,8 @@ sobre chip real, SIN VERIFICAR.**
 |---|---|---|
 | **`BLQ-2` — el cristal `Y2` de la SEGUNDA tarjeta** | `N-17`/`N-37` midieron **una** tarjeta el 01/08 y el cristal **no oscila** (`roadmap.md:4559`, `4569`). **El otro sigue sin diagnosticar.** Ya **no decide la compra** —el `DS3231` va al ESP32 pase lo que pase—, pero **sí decide el firmware**: reparar el `Y2` (`C1`/`C2` a 6–10 pF C0G/NP0) o reloj de software disciplinado por el ESP32 | **Responsable** — `ESTADO.md:24`, `:261` (prueba de banco `B5`) |
 | **Reloj de software colgado del accesorio** | Es la vía alternativa si el cristal no se repara, y **tiene un coste anotado**: cuelga el reloj del semáforo de un módulo accesorio, *«que es justo lo que la arquitectura del 28/08 separa»*, y **si el ESP32 no está, el reloj se va yendo sin que nadie lo vea** | **Responsable** — doc 17 §3.2 (líneas 516-525) |
-| **Compra `A6` (`DS3231`) y `A5` (fuente propia del ESP32)** | `A6` **no se ha comprado**; **`A5` no se ha pedido y hace falta** — sin ella el ESP32 reinicia el STM32 que gobierna el semáforo | **Responsable** — `15_Lista_de_Compras_Hardware.md:90-91` |
-| **Firmware del `DS3231` en el ESP32** | No existe. Y va **detrás del watchdog**: el ESP32 de este proyecto no tiene ninguno, con precedente escrito de uno clavado tumbando el enlace el 31/07 | **Responsable** — `ESTADO.md:107` (fase 5) |
+| ~~**Compra `A6` (`DS3231`)~~ y `A5` (fuente propia del ESP32)** | ~~`A6` **no se ha comprado**~~ ⛔ **CADUCADO EL 07/09: `A6` está CUBIERTA — son DOS, uno por `ESP32`, con pila propia, confirmado por el responsable el 05/09** (`DECISIONES.md` `A-5`). Lo que sigue abierto es **`A5`: no se ha pedido y hace falta** — sin ella el ESP32 reinicia el STM32 que gobierna el semáforo | **Responsable** — `15_Lista_de_Compras_Hardware.md`, líneas `A5` y `A6` |
+| ~~**Firmware del `DS3231` en el ESP32**~~ | 🔴 ~~No existe. Y va **detrás del watchdog**: el ESP32 de este proyecto no tiene ninguno, con precedente escrito de uno clavado tumbando el enlace el 31/07~~ **⛔ LAS DOS MITADES SON FALSAS, Y LA §5.3 DE ESTE MISMO MANUAL YA LO MEDÍA DESDE EL 05/09.** *(1)* **El firmware existe**: `ESP32_Expansion/src/reloj_ds3231.cpp`, con `reloj_setup()`, `reloj_revisar()`, `reloj_leer()` y `reloj_ajustar()` **todos con llamador** — censo en §5.3. *(2)* **El ESP32 de expansión SÍ lleva watchdog**, medido el 07/09: `ESP32_Expansion/src/vigilante.cpp` incluye `<esp_task_wdt.h>` y llama a `esp_task_wdt_init()`, `esp_task_wdt_add()` y `esp_task_wdt_reset()`. **El que no lo lleva es el ESP32 del REPETIDOR**, que es otro módulo y otro firmware —`grep -riE "wdt\|watchdog" Repetidor/src Repetidor/include` → **cero**, re-corrido el 07/09—. **Confundirlos manda a buscar la causa al poste equivocado** | ✅ **cerrado** — lo que sigue abierto es ejercerlo sobre un módulo real (`0x68` `SIN VERIFICAR`) |
 
 ---
 
@@ -499,12 +513,12 @@ sobre chip real, SIN VERIFICAR.**
 
 | lo que este manual afirma | nivel |
 |---|---|
-| `PB0` = cámara de demanda · `PB8` = `LED_TESTIGO` | ✅ **MEDIDO EN EL FUENTE** (`pines.h:46`, `:63`, las dos puntas) |
-| No hay driver de `DS3231` ni I²C en ninguna punta, ni en el ESP32 | ✅ **MEDIDO** (`grep`, 31/08) |
-| La LCD y `CONSULTA RELOJ` siguen **dibujándose** en el firmware de hoy | ✅ **MEDIDO EN EL FUENTE** (`main.cpp:46`, `lcd.cpp:483`) |
-| …pero **`CONSULTA RELOJ` ya no es alcanzable**: necesita dos `botonAceptar()`, que devuelve `false` | ✅ **MEDIDO el 02/09** (`menu.cpp:111`, `:129`; `botones.cpp:305-306` (Maestro) / `:316-317` (Esclavo)) |
-| Los seis bits salen hoy por `$EVENT,ORIGEN:RELOJ`, detrás de los dos `$ERR` que nombran esa pantalla | ✅ **MEDIDO el 02/09** (`Maestro/src/bluetooth.cpp:305-333`, emitido en `:542` y `:577`) |
-| El `DS3231` va al ESP32 por `GPIO21`/`GPIO22` | 📖 **LEÍDO** en los documentos de decisión (doc 17 §1.3, `ESTADO.md:80`, `:124`). **Sin construir y sin hardware que medir** |
+| `PB0` = cámara de demanda · `PB8` = `LED_TESTIGO` | ✅ **MEDIDO EN EL FUENTE** — símbolos `CAM_DEMANDA_PIN` y `LED_TESTIGO` de `pines.h`, las dos puntas |
+| ~~No hay driver de `DS3231` ni I²C en ninguna punta, **ni en el ESP32**~~ | 🔴 **FILA RETIRADA EL 07/09 — ERA EL EJEMPLO DE LIBRO DE «`MEDIDO` CON FECHA CORRECTA Y CONTENIDO CADUCADO».** El `grep` del 31/08 era cierto **ese día y sobre las carpetas que miró**; el módulo `ESP32_Expansion` **entró el 31/08** (`d2427c2`), y la §5.3 de este mismo manual re-midió el 05/09: **57 coincidencias de `ds3231`, 336 líneas de driver y cuatro llamadores.** **La fecha no validaba nada: la frase lleva días siendo falsa con su `MEDIDO` delante.** ✅ **Lo que de la fila SIGUE siendo cierto: no hay driver de `DS3231` ni `Wire` en ninguna punta del STM32** — y es lo correcto (`D-9`) |
+| La LCD y `CONSULTA RELOJ` siguen **dibujándose** en el firmware de hoy | ✅ **MEDIDO EN EL FUENTE** — símbolos `lcd_setup()` y `lcd_dibujarConsultaReloj()`. ⚠️ **07/09: `D-17.bis` retira la pantalla del EQUIPO** (no del código), así que dibujarse ya no significa que alguien pueda verlo |
+| …pero **`CONSULTA RELOJ` ya no es alcanzable**: necesita dos `botonAceptar()`, que devuelve `false` | ✅ **RE-MEDIDO el 07/09** — símbolos `botonAceptar()` / `botonCancelar()` en `Maestro/src/botones.cpp` y `Esclavo/src/botones.cpp`, los dos `return false;`. *(Las citas por línea de esta fila —`:305-306` / `:316-317`— **están caducadas**: hoy son `:672-673` y `:668-669`, y por eso se cita el símbolo.)* |
+| ~~Los seis bits salen hoy por `$EVENT,ORIGEN:RELOJ`, detrás de los dos `$ERR` que nombran esa pantalla~~ | 🔴 **CADUCADO, Y LA §4.1 DE ESTE MANUAL YA LO DECÍA DESDE EL 07/09: los dos `$ERR` YA NO SE EMITEN** (`D-15`). A `reportarBitsDelReloj()` le queda **UN** llamador, y es `REINICIAR_RELOJ` — **que BORRA la hora y todo el respaldo**. **Hoy no hay forma NO destructiva de leer esos seis bits.** Ver §4.1 |
+| El `DS3231` va al ESP32 por `GPIO21`/`GPIO22` | ~~📖 **LEÍDO** … **Sin construir y sin hardware que medir**~~ → 🟢 **07/09: CONSTRUIDO Y MONTADO.** Símbolos `DS3231_SDA` / `DS3231_SCL` en `ESP32_Expansion/include/contrato.h`, y **son dos módulos, uno por poste, con pila propia** (`A-5`, 05/09). 🔴 **La dirección `0x68` sigue `SIN VERIFICAR` sobre el módulo real** |
 | Que retirar `R5` y montar la `CR2032` funcione en la tarjeta que usted tiene delante | 🔴 **NO VERIFICADO en esa tarjeta.** El procedimiento de los apartados 2-4 es el mismo desde el 26/08 y **la única medida de banco que existe es la del 01/08 sobre UNA tarjeta** |
 
 > **Nada de esto ha pasado prueba de banco completa**, y este documento **no autoriza a instalar

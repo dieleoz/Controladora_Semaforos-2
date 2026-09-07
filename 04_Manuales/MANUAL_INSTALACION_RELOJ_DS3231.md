@@ -15,6 +15,22 @@ existe firmware que lea el `DS3231`, y existe.** Ver la cabecera de estado de ab
 borra:** lo caducado queda tachado en su sitio con el motivo, porque una vía descartada que
 desaparece en silencio se vuelve a proponer.
 
+> 🔴 **SEGUNDA PASADA DEL 07/09 (tarde) — la primera dejó vivas TRES copias de la frase que derogó.**
+> Al derogar el apartado 8 —*«no hay driver»*— quedaron sin tocar el recuadro de cabecera del
+> **apartado 5**, el sub-punto de su **paso 2**, y la última fila de la tabla del **apartado 6**, las
+> tres repitiendo *«no hay software que lo lea»* / *«no es diagnosticable»*. **La fila del apartado 6
+> era la peor: le decía al técnico que un reloj congelado no se puede diagnosticar, cuando el
+> firmware contesta `OSCILADOR_PARADO_CAMBIE_PILA` con nombre y apellidos.**
+>
+> **La lección, que vale para cualquier documento largo: derogar un apartado no deroga a quien lo
+> CITA.** Al tachar algo hay que buscar quién lo referencia —aquí, `grep -n "apartado 8"`— o la
+> frase falsa sobrevive en los punteros, y con una fecha fresca encima.
+>
+> **Además, en esta pasada:** el recuento de `LEER_RTC` pasa de **siete a NUEVE** (recontado en el
+> fuente, y la app coincide), se añade la respuesta **`MOTIVO_NO_CONTEMPLADO`** que faltaba, se
+> escribe en grande que **el `$ACK` llega con `NODE:PUENTE` y no de la punta**, y se reparan **dos
+> citas rotas a `ESTADO.md`** —una por número caducado y otra a una fila que ya no existe—.
+
 ---
 
 > # 🛑 CABECERA DE ESTADO (07/09/2026) — EL RELOJ YA SE LEE. ESTE MANUAL DECÍA QUE NO
@@ -43,7 +59,7 @@ desaparece en silencio se vuelve a proponer.
 > |---|---|
 > | ✅ **El driver EXISTE** | `01_Firmware/ESP32_Expansion/src/reloj_ds3231.cpp`, sobre `Wire`, en `GPIO21`/`GPIO22` — exactamente los pines que el apartado 7 daba como *«decidido, sin construir»* |
 > | ✅ **Y el reloj de ese módulo es HOY EL ÚNICO del cruce** | **`D-15` de [`DECISIONES.md`](../DECISIONES.md)** (05/09): *«el reloj lo lleva el ESP32 de cada punta, y es el ÚNICO que contesta a `SET_RTC`»*. El STM32 **no tiene reloj** (`Y2` muerto, N-17) y su rama de `SET_RTC` se consume **callada a propósito**, para que no salgan dos acuses a una sola orden |
-> | ✅ **Y se puede CONSULTAR sin cambiarlo** | **`D-17`**: `CMD:LEER_RTC`, con siete finales distintos, uno por motivo (`ESP32_Expansion/src/despachador.cpp`) |
+> | ✅ **Y se puede CONSULTAR sin cambiarlo** | **`D-17`**: `CMD:LEER_RTC`, con ~~siete~~ **NUEVE** finales distintos, uno por motivo — *recontado el 07/09 en `ESP32_Expansion/src/despachador.cpp`; los documentos venían copiándose «siete» unos a otros* |
 > | ✅ **Y hubo módulo en el banco** | **`A-5` cerrada el 05/09**: cada ESP32 lleva su reloj con pila propia y `HORA:22:19:58` es real. ⚠️ Sigue **`SIN VERIFICAR`** la dirección `0x68` sobre el módulo |
 >
 > ## 🔴 POR QUÉ ESTO ERA PELIGROSO Y NO SÓLO VIEJO
@@ -236,9 +252,24 @@ Existen dos tipos de pilas de botón y no deben confundirse:
 
 ## 5. ⛔ ANULADO — ~~Protocolo de Validación en Banco de Pruebas (3 Minutos)~~
 
-> 🛑 **Este protocolo NO SE PUEDE APROBAR HOY, y no porque el módulo esté mal: porque no hay software
+> ~~🛑 **Este protocolo NO SE PUEDE APROBAR HOY, y no porque el módulo esté mal: porque no hay software
 > que lo lea.** Ver el apartado 8. Un técnico que lo ejecutara concluiría que el módulo está
-> defectuoso, devolvería una unidad buena y gastaría la sesión buscando una avería que no existe.
+> defectuoso, devolvería una unidad buena y gastaría la sesión buscando una avería que no existe.~~
+>
+> # 🛑 SEGUNDA CORRECCIÓN DEL 07/09 — ESTE RECUADRO SE QUEDÓ DICIENDO LO QUE SE ACABABA DE DEROGAR
+>
+> **La pasada de la mañana del 07/09 derogó el apartado 8 —*«sí hay driver»*— y este recuadro, que
+> **apunta al apartado 8**, siguió diciendo *«no hay software que lo lea»*. Es la misma frase falsa,
+> dos pantallas más arriba, y con la palabra «HOY» encima para que pareciera fresca.**
+>
+> **Lo que sigue siendo cierto y por qué el protocolo SIGUE ANULADO — pero por OTRO motivo:** el
+> cableado que este protocolo valida es el de `PB0`/`PB8`, y **ése no se hace**. El módulo cuelga del
+> **ESP32** (apartado 7). Un técnico que ejecute los pasos 1 a 3 tal como están **mide un montaje que
+> nadie va a construir**.
+>
+> ✅ **Lo que se hace en su lugar, y sí es ejecutable hoy:** conectarse por Bluetooth y mandar
+> **`CMD:LEER_RTC`**. Contesta el **puente**, con **nueve** finales distintos y una acción por cada
+> uno — tabla completa en el **apartado 8**. Eso es la validación de banco del reloj.
 
 ~~Una vez cableado el módulo DS3231 en la placa:~~
 
@@ -247,24 +278,53 @@ Existen dos tipos de pilas de botón y no deben confundirse:
 2. ~~**Puesta en Hora:** Desde la pantalla LCD, ingresar a `CONFIGURACION > AJUSTAR HORA`…~~
    ⛔ **Doblemente anulado, y el segundo motivo es nuevo:**
    - **`AJUSTAR HORA` pone en hora el RTC INTERNO del STM32** (cristal `Y2`, `PC14`/`PC15`), **no el
-     `DS3231`**. No hay driver que escriba en el módulo — apartado 8.
+     `DS3231`**. ~~No hay driver que escriba en el módulo — apartado 8.~~ ⛔ **CADUCADO EL 07/09 (era
+     el mismo error dos veces): SÍ hay driver — `reloj_ajustar()` en
+     `ESP32_Expansion/src/reloj_ds3231.cpp`, llamado desde `despachador.cpp`.** Lo que sigue siendo
+     cierto es que **`AJUSTAR HORA` no lo toca**: escribe en el `Y2` del STM32, que es otro reloj y
+     está muerto (N-17).
    - 🛑 **Y desde el 31/08 esa pantalla NO SE PUEDE ABRIR.** Está dentro de `CONFIGURACION` y llegar
      ahí necesita **dos pulsaciones de *Aceptar***; `botonAceptar()` devuelve `false` siempre desde
      que `J16` p10 y p12 son entradas de cámara. **Lo mismo vale para `CONSULTA RELOJ`.** ✅ **Se cita
-     el símbolo, no el número de línea, que ya había caducado una vez** *(decía `botones.cpp:280-281`;
-     medido el 07/09 es `:659-660` en el Maestro y `:645-646` en el Esclavo — por eso se cita así)*:
+     el símbolo, no el número de línea** — *y la prueba de por qué está aquí mismo: decía
+     `botones.cpp:280-281`, la pasada de la MAÑANA del 07/09 lo «arregló» a `:659-660`, y **esa tarde
+     ya era `:672`** porque un commit intermedio (`4b2841b`) insertó comentarios encima. **Renumerar
+     es la cura equivocada; se publica el `grep` SIN `-n`**:*
 
      ```
-     $ grep -n "^bool botonAceptar" 01_Firmware/Maestro/src/botones.cpp
-     659:bool botonAceptar() { return false; }
+     $ grep -h "^bool botonAceptar" 01_Firmware/Maestro/src/botones.cpp 01_Firmware/Esclavo/src/botones.cpp
+     bool botonAceptar() { return false; }
+     bool botonAceptar() { return false; }
      ```
 
      🛑 **Y desde el 05/09 hay un motivo más, que ya no es de botones: la pantalla NO SE MONTA**
      (`D-17.bis`). No es que el menú sea inalcanzable — es que no hay cristal donde mirarlo.
 
    **La hora se pone hoy desde la app:** `CMD:PIN:1234:SET_RTC:YYYY-MM-DD,HH:MM:SS`, y **hay que leer
-   la respuesta** — tiene cinco ramas y sólo una significa *puesta y propagada*. Ver
-   `05_Funcional/11_Manual_Instalacion_RTC_DS3231_Bateria.md` §4.
+   la respuesta**. ⛔ ~~tiene cinco ramas~~ **CORREGIDO EL 07/09: son OCHO, y las contesta el PUENTE
+   con `NODE:PUENTE`, no el STM32** (`D-15`).
+
+   > 🔴 **Y ESTO ES LO QUE MÁS DAÑO HACE SI SE LEE MAL, así que va aquí y no en una nota:**
+   > **el `$ACK` NO llega con `NODE:MAESTRO` ni `NODE:ESCLAVO`. Llega con `NODE:PUENTE`.** Las ramas
+   > de `SET_RTC` de las dos puntas del STM32 **consumen la orden en silencio, a propósito**, para
+   > que no salgan dos acuses opuestos a una sola orden.
+   >
+   > **Un técnico que espere el acuse de la punta creerá que el comando se perdió, repetirá el
+   > `SET_RTC` tres veces, y acabará cambiando la pila y el módulo — que están sanos.** *«El STM32 no
+   > contesta»* **no es un síntoma: es el diseño.** Este proyecto ya pagó una vez el error contrario
+   > —un `$ACK` que decía que sí y no ponía la hora—; éste es su reverso.
+   >
+   > | dos respuestas de éxito, y **no significan lo mismo** | |
+   > |---|---|
+   > | `$ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK` | entró **y va camino de la otra punta** |
+   > | `$ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:HORA_PUESTA_SIN_PROPAGAR` | **entró aquí y NO viajó.** El otro poste sigue con su hora vieja: hay que ir a ponérsela |
+   >
+   > **Las seis negativas y qué hacer con cada una: apartado 8 de este manual.**
+
+   ⚠️ ~~Ver `05_Funcional/11_Manual_Instalacion_RTC_DS3231_Bateria.md` §4.~~ **Ese puntero manda a la
+   tabla del STM32, que es la que acaba de caducar.** El censo vigente de las respuestas del puente
+   está en **`04_Manuales/MANUAL_CONFIGURACION_BLUETOOTH.md` §4.4** y, en versión de diagnóstico, en
+   el **apartado 8** de este manual.
 3. ~~**Prueba de Corte de Energía:** … la hora debe marcar exactamente `18:02:00`.~~
    ⛔ Esa prueba mide la **pila `CR2032` del `VBAT` del STM32**, que es **otra pila y otro reloj**. El
    procedimiento correcto para ésa está en
@@ -280,7 +340,36 @@ Existen dos tipos de pilas de botón y no deben confundirse:
 | ~~**La pantalla muestra `CONSULTA RELOJ: I2C No Responde`**~~ | ~~Cables SDA o SCL invertidos o sueltos.~~ | ⛔ **FILA ANULADA.** ~~Verificar que `SDA` esté en `PB0` y `SCL` esté en `PB8`.~~ **No se verifica nada en `PB0`/`PB8`: no va nada ahí.** `CONSULTA RELOJ` informa del **RTC interno del STM32** (cristal `Y2`), que **no tiene ninguna relación con el `DS3231`** |
 | **El módulo `DS3231` no responde / parece muerto** | ⛔ ~~Es lo esperado hoy: no hay driver~~ → **CADUCADO EL 07/09: SÍ hay driver** (`ESP32_Expansion/src/reloj_ds3231.cpp`), así que **es una avería de verdad** | **Pregúntele al puente, no al LED:** `CMD:LEER_RTC` contesta el motivo concreto —bus mudo, pila, hora nunca puesta, escritura a medias—. Tabla completa en el apartado 8 |
 | **El reloj pierde la hora cada vez que se apaga el semáforo** | Pila agotada o mal colocada en el módulo. | Medir la pila con multímetro (>3.0V) y verificar que el polo positivo (+) quede hacia arriba. ✅ **sigue válido** |
-| **La hora no avanza (se queda congelada)** | Módulo DS3231 dañado o sin cristal activo. | ⚠️ **Sólo aplica cuando exista firmware que lo lea.** Hoy la hora del módulo no se lee desde ningún sitio, así que este síntoma **no es diagnosticable** |
+| **La hora no avanza (se queda congelada)** | ⛔ ~~Módulo DS3231 dañado o sin cristal activo~~ → **el oscilador está parado, y casi siempre es la PILA** | ⛔ ~~**Sólo aplica cuando exista firmware que lo lea.** Hoy la hora del módulo no se lee desde ningún sitio, así que este síntoma **no es diagnosticable**~~ 🔴 **CADUCADO EL 07/09 — ver abajo.** ✅ **Hoy SÍ es diagnosticable y el equipo lo dice con nombre propio:** `CMD:LEER_RTC` → `$ERR,…,DESC:OSCILADOR_PARADO_CAMBIE_PILA`. **Primero la lectura, después la pieza** |
+| **La app enseña un desfase grande entre los dos postes** | Son **dos relojes independientes** —uno por ESP32— y **nadie los sincroniza solo** (`D-17`) | `CMD:LEER_RTC` en los dos postes; si uno se ha ido, `SET_RTC` **en ése**. ⚠️ **Un desfase no es una avería del módulo**: es lo que `D-17` existe para poder ver |
+| **El puente contesta `MOTIVO_NO_CONTEMPLADO`** | Es la **rama de cierre** del firmware: un estado que no estaba previsto | 🛑 **NO se cambia la pila ni el módulo.** Se anota la trama literal y se reporta: es firmware, no cobre |
+
+> # 🛑 ANTES DE TOCAR NADA DE ESTA TABLA: A QUIÉN SE LE PREGUNTA POR EL RELOJ (`D-15`)
+>
+> **Se le pregunta al PUENTE, por Bluetooth, con `CMD:LEER_RTC`. No al STM32.**
+>
+> El Maestro y el Esclavo **no tienen reloj** —el cristal `Y2` está muerto (N-17)— y sus ramas de
+> `SET_RTC` **están calladas a propósito** para que no salgan dos acuses opuestos a una sola orden.
+> **Que el STM32 no conteste no es un síntoma: es el diseño.**
+>
+> 🔴 **Este es el error que este manual existe para impedir, y este proyecto ya lo pagó:** el técnico
+> manda `SET_RTC`, no ve respuesta de la punta, concluye *«el reloj está muerto»* y **cambia pila y
+> cristal que están sanos**. La respuesta estaba llegando todo el rato, con `NODE:PUENTE` delante.
+>
+> ✅ **Y la herramienta buena es `LEER_RTC`, no `SET_RTC`** (`D-17`): **lee sin cambiar**. Hasta que
+> existió, la única forma de mirar el reloj era mandarlo — y con eso se perdía justo el dato que se
+> buscaba. **Primero la lectura, después la pieza.**
+>
+> ⚠️ **Y hay DOS relojes por cruce, uno por poste.** Un poste en hora no dice nada del otro: la app
+> compara los dos y enseña el desfase, porque **los dos ESP32 no se hablan entre sí**.
+
+> 🔴 **Por qué la fila *«la hora no avanza»* estaba caducada, y va escrito para que no vuelva.** La
+> pasada de la mañana del 07/09 derogó el apartado 8 —*«no hay driver»*— **y esta fila, que decía lo
+> mismo con otras palabras, sobrevivió dos filas más abajo de la que sí se corrigió.** Decía que un
+> reloj congelado *«no es diagnosticable»*, cuando el firmware contesta
+> `OSCILADOR_PARADO_CAMBIE_PILA` con nombre y apellidos. **Enseñaba a no mirar una avería que el
+> equipo ya sabe nombrar** — el mismo defecto que la cabecera de este manual denuncia, en la página
+> de al lado.
 
 ---
 
@@ -299,8 +388,9 @@ Existen dos tipos de pilas de botón y no deben confundirse:
 | dato | fuente |
 |---|---|
 | El `DS3231` cuelga del **ESP32** por I²C: **`GPIO21` = SDA, `GPIO22` = SCL**, con **pila propia**. El módulo `ZS-042` trae sus *pull-ups* | ✅ **MEDIDO EN EL FUENTE (07/09):** `DS3231_SDA`/`DS3231_SCL` en `ESP32_Expansion/include/contrato.h`. *(Decidido en `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md` §1.3)* |
-| «El ESP32 es un módulo de expansión colgado de un puerto serie, y **no manda sobre las luces**» | `ESTADO.md:80` |
-| La fila `PIN-0` —*«`PB0`/`PB8` van a bus I²C»*— está **⛔ ANULADA**: *«el I²C ya no vive en el STM32 […] `PB0` se queda como cámara de demanda»* | `ESTADO.md:124` |
+| «El ESP32 es un módulo de expansión y **no manda sobre las luces**» | ⛔ ~~`ESTADO.md:80`~~ **el número caducó (07/09): `ESTADO.md` se reescribió entero y hoy son 303 líneas.** Se cita por la frase: `grep -n "no manda sobre las luces" ESTADO.md` |
+| ~~La fila `PIN-0` —*«`PB0`/`PB8` van a bus I²C»*— está **⛔ ANULADA**~~ | 🔴 **PUNTERO ROTO, corregido el 07/09: esa fila YA NO EXISTE en `ESTADO.md`** —`grep -n "PIN-0" ESTADO.md` → **cero líneas**—, así que la cita apuntaba a un sitio y al vacío a la vez. **La fuente vigente de que el I²C no vive en el STM32 es `D-15` de [`DECISIONES.md`](../DECISIONES.md)**, que gana a cualquier documento en lo decidido, y el aviso `PB0`/`PB8` de la cabecera de este manual, que está medido contra `pines.h` |
+| **Los módulos ESTÁN COMPRADOS: son DOS, uno por poste, y con pila propia** | **`A6` de `05_Funcional/15_Lista_de_Compras_Hardware.md`** (cubierta el 05/09) y **`A-5` de `DECISIONES.md`** (cerrada). ⚠️ Lo que sigue **`SIN VERIFICAR`** es la dirección `0x68` sobre el módulo real |
 
 ```text
  ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -373,6 +463,15 @@ no se diagnostique por el LED del módulo, que sólo indica que hay tensión.
 | `$ERR,…,DESC:NUNCA_SE_PUSO_PONGA_LA_HORA` | módulo sano, nadie le puso la hora | `CMD:PIN:1234:SET_RTC:…` |
 | `$ERR,…,DESC:ESCRITURA_A_MEDIAS_REPITA_SET_RTC` | una puesta en hora se cortó | repetir `SET_RTC` |
 | `$ERR,…,DESC:MODO_12H_PONGA_LA_HORA` · `REGISTROS_INCOHERENTES` · `BARRERA_INCOHERENTE` | registros del módulo en un estado que el puente no acepta | volver a poner la hora |
+| 🆕 `$ERR,…,DESC:MOTIVO_NO_CONTEMPLADO` | **rama de cierre: el puente prefiere admitir que no sabe antes que inventarse un `OK`** | 🛑 **NO cambie pila ni módulo.** Anote la trama literal y repórtela: es firmware, no cobre |
+
+> 🛑 **Añadida el 07/09, y no es una fila de relleno.** Faltaba **la única respuesta que un técnico
+> no puede interpretar solo**, y su ausencia empuja justo al gesto que este manual existe para
+> impedir: cambiar componentes sanos ante una respuesta que no se entiende. **Son NUEVE finales**
+> —un `$ACK,RESULT:OK` y ocho `$ERR`—, contados en `ESP32_Expansion/src/despachador.cpp` el 07/09.
+> Los documentos venían diciendo *«siete»*; **el firmware y la app coinciden en nueve** (la app
+> traduce las nueve, `MOTIVO_NO_CONTEMPLADO` incluida), **así que el número equivocado era el del
+> papel.**
 
 > ⚠️ **Y el contrario, que también hay que saber:** *«el `DS3231` no se lee»* **no se diagnostica
 > desde el STM32**. El Maestro y el Esclavo **no tienen reloj** y su rama de `SET_RTC` está

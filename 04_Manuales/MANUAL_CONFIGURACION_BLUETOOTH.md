@@ -6,7 +6,13 @@
 **Propósito:** Telemetría en tiempo real, caja negra de alarmas, test de banco, sincronización Courier RTC y control desde el suelo con PIN  
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `MAPEO_TARJETA_KICAD.md`  
 **Fecha de Emisión:** 26 de Agosto de 2026  
-**Última revisión:** 31 de agosto de 2026 — ver el aviso de cabecera
+~~**Última revisión:** 31 de agosto de 2026 — ver el aviso de cabecera~~  
+**Última revisión:** **7 de septiembre de 2026** — se corrigen contra el fuente **cinco cosas que
+describían otro aparato**: el rótulo por `AT+NAME` (es un ESP32, no un `HC-05`), la plantilla del
+`$STATUS` (le faltaban cuatro campos y sobraba un `BAT:` inventado), su cadencia (2 s, no 1), el
+recuento de finales de `LEER_RTC`, y el diagrama de `PA9`/`PA10`, que ahora **se ve anulado desde
+dentro del bloque**. Se añade el dato de campo de `D-16` —desvincular en Android para saltar de
+poste—. **Nada se borra: lo superado queda tachado con su motivo y su fecha.**
 
 ---
 
@@ -120,8 +126,9 @@ la app conecta **sin tocar una línea**: el puente nativo de Baliza vale tal cua
 | | |
 |---|---|
 | **Qué es** | **Módulo de expansión, no un segundo controlador.** El STM32 sigue siendo el controlador del cruce |
-| **Qué aporta** | El **Bluetooth** (sustituye al módulo SPP discreto) y un **reloj `DS3231`** con pila propia, en `GPIO21` (`SDA`) / `GPIO22` (`SCL`) — `ESP32_Expansion/include/contrato.h:142-143` |
+| **Qué aporta** | El **Bluetooth** (sustituye al módulo SPP discreto) y un **reloj `DS3231`** con pila propia, en `GPIO21` (`SDA`) / `GPIO22` (`SCL`) — símbolos **`DS3231_SDA` / `DS3231_SCL`** de `ESP32_Expansion/include/contrato.h`. ⛔ ~~`contrato.h:142-143`~~ **el número estaba mal y por eso se cita el símbolo (07/09)**: hoy son las líneas 189-190, y mañana serán otras |
 | **Qué NO hace** | 🛑 **No manda sobre las luces.** Es un puente: traduce y reenvía. La barrera de salidas sigue viviendo en `semaforo.cpp` del STM32 |
+| **Se vigila a sí mismo** | ✅ **Tiene watchdog** — `esp_task_wdt` en `ESP32_Expansion/src/vigilante.cpp`, armado en `main.cpp` y alimentado en cuatro puntos del bucle. **Si el puente se cuelga, se reinicia solo y el enlace SPP se cae y vuelve.** Un técnico que vea desaparecer y reaparecer el equipo en la lista **no está viendo una avería de Bluetooth**. ⚠️ **No confundirlo con el `Repetidor`, que es OTRO programa de ESP32 y ése SIGUE SIN WATCHDOG** (medido 07/09: `grep -rniE "watchdog|esp_task_wdt|wdt" 01_Firmware/Repetidor` → **cero**) |
 | **Por dónde entra** | `J17`, sobre el `USART1` **remapeado** a `PB6`/`PB7` — ver `§2` |
 
 > ⚠️ **Que el ESP32 traiga también BLE no reabre nada.** La decisión congelada es *usar SPP*, y este
@@ -141,8 +148,55 @@ la app conecta **sin tocar una línea**: el puente nativo de Baliza vale tal cua
   3. Tocar uno > socket RFCOMM sobre SPP > leer/escribir lineas
 ```
 
-El nombre visible del módulo lo fija el firmware con `AT+NAME`, así que **la lista de Android ya dice
-quién es cada equipo antes de conectar**. El técnico lee; no adivina.
+~~El nombre visible del módulo lo fija el firmware con `AT+NAME`, así que **la lista de Android ya dice
+quién es cada equipo antes de conectar**. El técnico lee; no adivina.~~
+
+> # 🛑 CORREGIDO EL 07/09 — `AT+NAME` ES DE UN `HC-05`, Y AQUÍ NO HAY NINGUNO
+>
+> **Esa frase describía otro aparato.** El módulo del `J17` es un **ESP32** y el rótulo lo pone su
+> propio firmware al abrir el perfil SPP, sin comandos `AT` y sin terminal:
+>
+> ```
+> $ grep -n "ROTULO_PREFIJO\|ROTULO_PROVISIONAL" 01_Firmware/ESP32_Expansion/include/contrato.h
+> 258:#define ROTULO_PREFIJO        "SEM-"
+> 259:#define ROTULO_PROVISIONAL    "SEM-SIN-MATRICULA"
+>
+> $ grep -n "spp.begin" 01_Firmware/ESP32_Expansion/src/transporte_app.cpp
+> 38:  abierto = spp.begin(rotulo);
+> ```
+>
+> ## 🔴 Y LO QUE HAY QUE SABER ANTES DE SUBIR AL POSTE: **EL RÓTULO BUENO NO APARECE EN EL PRIMER ARRANQUE**
+>
+> El nombre lleva la **serie del STM32**, y esa serie sale del **silicio del micro** — el ESP32 **no
+> la puede saber al encender**. Así que el puente la **aprende** del primer `$STATUS` que retransmite
+> (`transporte_aprenderRotulo()`, llamado desde `puente.cpp`), la guarda en su memoria no volátil, y
+> **la usa en la arrancada SIGUIENTE**. No se re-rotula en caliente, a propósito: cambiar el nombre
+> SPP obliga a cerrar el perfil y tiraría la sesión del operario que puede estar dando una orden.
+>
+> | lo que el técnico ve en la lista de Android | qué significa | qué hace |
+> |---|---|---|
+> | **`SEM-SIN-MATRICULA`** | módulo **virgen**, o que **nunca ha oído hablar al STM32** | **no es una avería.** Conecte igual: la telemetría funciona. Deje el equipo encendido un minuto y **apague y encienda el ESP32**: en el siguiente arranque ya sale con su nombre |
+> | **`SEM-<serie>-M`** / **`SEM-<serie>-E`** | rótulo aprendido: `M` = Maestro, `E` = Esclavo | leer, no adivinar |
+> | **dos equipos con el mismo `SEM-SIN-MATRICULA`** | los dos módulos están vírgenes | **no se distinguen por el nombre.** Emparéjelos y arránquelos **de uno en uno** hasta que cada uno tenga el suyo |
+>
+> ⚠️ **El binario es EL MISMO en las dos puntas** —la letra final la decide el `NODE:` de la trama, no
+> una opción de compilación—, así que no existe «el firmware del Maestro» del ESP32. Si alguna vez se
+> compilan dos, el día que se crucen los postes **los dos se llamarían igual**.
+
+> ### 🔴 DATO DE CAMPO DE ESTA SEMANA, y no está en ningún otro manual (`D-16`)
+>
+> **Hubo que DESVINCULAR el Maestro en Ajustes de Android para poder conectarse al Esclavo.** Android
+> mantiene el enlace SPP con el primer emparejado y el segundo socket no abre. Con `D-1` retirado el
+> mando, **el teléfono es la única superficie de mando del equipo** (`D-16`), así que esto no es una
+> molestia de interfaz: es **quedarse sin poder operar el otro poste**.
+>
+> **Lo que se hace:** *Ajustes de Android > Bluetooth > el equipo que ya no se usa > Desvincular*, y
+> luego conectar al otro. **La app no puede arreglarlo**: la decisión congelada de arriba dice
+> *«una conexión a la vez, explícita»* y el emparejado **lo hace Android, no la app**.
+>
+> 🟡 **SIN VERIFICAR: si basta con desconectar en vez de desvincular.** Lo observado es que
+> desvincular funcionó; nadie probó lo más barato. Se comprueba en banco antes de escribirlo como
+> procedimiento.
 
 ### Lo que la app NO puede hacer, aunque el operario lo pida
 
@@ -201,20 +255,39 @@ demanda: `Maestro/include/demanda.h` y `Esclavo/include/demanda.h`.
 ~~En la tarjeta controladora del semáforo, el módulo Bluetooth se conecta al puerto **`USART1` (`PA9` TX y `PA10` RX)**:~~
 
 ```text
+ ##########  DIAGRAMA ANULADO -- NO EJECUTAR ESTE CABLEADO (07/09/2026)  ##########
+ #  Ni el modulo ni los pines son los vigentes:                                  #
+ #    - HC-05 / JDY-30: NUNCA LLEGARON Y YA NO SE PIDEN (linea A1 de la lista    #
+ #      de compras, ANULADA el 28/08). Lo que hay es un ESP32-WROOM-32.          #
+ #    - PA9 / PA10: NO SALEN A NINGUNA BORNERA. Habria que soldar en las patas   #
+ #      del micro o del MAX3485 U2.                                              #
+ #  EL MONTAJE VIGENTE ES J17 / PB6-PB7, en la tabla de arriba.                  #
+ ##################################################################################
  ┌─────────────────────────────────────────────────────────────────────────────┐
- │               CONEXIÓN DE TELEMETRÍA BLUETOOTH EN TARJETA MADRE             │
+ │       (SUPERADO) CONEXIÓN DE TELEMETRÍA BLUETOOTH EN TARJETA MADRE          │
  ├─────────────────────────────────────────────────────────────────────────────┤
  │                                                                             │
  │   MÓDULO BLUETOOTH (HC-05 / JDY-30)           TARJETA CONTROLADORA STM32    │
  │   ┌─────────────────────────────┐          ┌────────────────────────────┐   │
- │   │  [ VCC ] (3.6V - 6.0V)      ├──────────┤► Pin 5V (o 3.3V)           │   │
- │   │  [ GND ] (Tierra)           ├──────────┤► Pin GND (Tierra común)    │   │
- │   │  [ TXD ] (Transmisión)      ├──────────┤► Pin PA10 (USART1 RX)      │   │
- │   │  [ RXD ] (Recepción)        ├──────────┤► Pin PA9  (USART1 TX)      │   │
+ │   │  [ VCC ] (3.6V - 6.0V)      ├────X─────┤► Pin 5V (o 3.3V)           │   │
+ │   │  [ GND ] (Tierra)           ├────X─────┤► Pin GND (Tierra común)    │   │
+ │   │  [ TXD ] (Transmisión)      ├────X─────┤► Pin PA10 (USART1 RX)      │   │
+ │   │  [ RXD ] (Recepción)        ├────X─────┤► Pin PA9  (USART1 TX)      │   │
  │   └─────────────────────────────┘          └────────────────────────────┘   │
  │                                                                             │
+ │   ANULADO: se conserva para reconocer una tarjeta ya cableada asi.          │
  └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+> 🛑 **Marcado dentro del bloque el 07/09.** El aviso de cabecera de esta `§2` ya decía que el
+> apartado está superado, pero **el dibujo no lo llevaba encima**: un diagrama de cableado se lee
+> solo, sin el párrafo de arriba, y éste es de los que se ejecutan con un destornillador. La promesa
+> de *«lo que sigue no se borra»* se cumple —sigue entero—; lo que faltaba era que **se viera anulado
+> desde dentro**.
+>
+> ⚠️ **Y hay un riesgo de 12 V que no es de este apartado pero se cruza con él:** `J16` p1 lleva
+> **12 V crudos** y **se TAPA en cada equipo que se monte** (`D-4`, N-120). El ESP32 es de 3,3 V.
+> Confundir `J16` con `J17` lo quema sin aviso previo.
 
 ### ⚙️ Desacoplo Eléctrico del Transceptor MAX3485 (~~U3~~ **`U2`**) en Hardware:
 
@@ -253,12 +326,34 @@ La App cuenta con **5 pantallas funcionales**, diseñadas con alto contraste par
 ### Pantalla 1: ESTADO (Monitoreo en Tiempo Real)
 * **Semáforos Duales con Glow Dinámico:** Representación gráfica en vivo de Maestro (Sentido 1) y Esclavo (Sentido 2).
 * **Anillo de Cuenta Regresiva SVG:** Círculo animado en tiempo real con indicador gigante en monospace del tiempo restante de verde/rojo (`T:<segundos>`).
-* **Métricas Clave:** Calidad de enlace de radio inter-semáforo (%), tiempo de respuesta RTT (ms) y nivel de batería (V).
+* **Métricas Clave:** Calidad de enlace de radio inter-semáforo (%), tiempo de respuesta RTT (ms) y ~~nivel de batería (V)~~ **⛔ la batería NO se mide — ver abajo**.
 
-  > 🔴 **AVISO — tres de esos campos NO son medidas.** `RF:` y `RTT:` son **literales** en el Esclavo
+  > ~~🔴 **AVISO — tres de esos campos NO son medidas.** `RF:` y `RTT:` son **literales** en el Esclavo
   > (`Esclavo/src/bluetooth.cpp:328`: `RF:98%%,RTT:85ms`) y `BAT:12.6` es literal en **las dos
   > puntas**. El `RF:98%` del Esclavo se emite igual **con la antena desconectada**. No se usan para
-  > juzgar el enlace ni la batería, y **no se apuntan en un acta como si fueran medidas**. Detalle en
+  > juzgar el enlace ni la batería, y **no se apuntan en un acta como si fueran medidas**.~~
+  >
+  > # 🛑 ESE AVISO ERA CORRECTO Y HOY ESTÁ CADUCADO (07/09) — EL FIRMWARE YA NO INVENTA CIFRAS
+  >
+  > **Lo que decía era verdad cuando se midió, y describe un defecto que YA SE ARREGLÓ.** Dejarlo
+  > escrito así hace lo contrario de lo que pretendía: manda a desconfiar de un `RF:` del Maestro que
+  > hoy **sí se cuenta**, y a fiarse de un `--` leyéndolo como cero.
+  >
+  > **MEDIDO el 07/09 sobre las plantillas reales, que son la fuente y no un recuerdo:**
+  >
+  > | campo | Maestro | Esclavo | qué es hoy |
+  > |---|---|---|---|
+  > | `RF:` | **cifra real** | **`--` fijo** | en el Maestro sale de contar latidos contestados. **Sigue sin ser un RSSI** |
+  > | `RTT:` | **cifra real** | **`--` fijo** | ídem |
+  > | `T:` | cifra real | **`--` fijo** | cuenta atrás; sólo la lleva quien arbitra el ciclo |
+  > | **`BAT:`** | **`--` fijo** | **`--` fijo** | 🔴 **NO HAY MEDIDA DE BATERÍA EN NINGUNA PUNTA.** No existe un solo `analogRead()` en el firmware de las dos |
+  >
+  > 🟢 **Y el cambio de fondo, que es la lección: `--` significa *«todavía no lo sé»*, y `!` significa
+  > *«llegó algo que no puede ser»*.** Ni uno ni otro es un cero. Un tablero que se queda quieto y lo
+  > admite es honesto; el `BAT:12.6` de antes **le mentía a alguien de pie delante de un cruce**.
+  >
+  > ⚠️ **Consecuencia para quien redacta un acta: la batería del gabinete NO se puede apuntar desde la
+  > app. Se mide con multímetro o no se apunta.** Detalle en
   > `05_Funcional/2_Manual_Hardware_y_Pruebas.md §8`.
 
 * **Botón de Pánico:** ~~Forzado inmediato de All-Red ante emergencias viales.~~
@@ -287,7 +382,11 @@ La App cuenta con **5 pantallas funcionales**, diseñadas con alto contraste par
 > tiene ninguno** (`Y2` muerto, N-17). Así que *«el reloj del nodo conectado»* es **el del puente de
 > ese poste**, y el acuse llega con **`NODE:PUENTE`**. **La app valida la hora en LAS DOS puntas.**
 >
-> ✅ **Y hay una herramienta nueva que esta pantalla debe ofrecer: `CMD:LEER_RTC` (`D-17`)** — leer el
+> ✅ **Y hay una herramienta nueva que esta pantalla ~~debe ofrecer~~ YA OFRECE: `CMD:LEER_RTC`
+> (`D-17`)** *(comprobado el 07/09: la app tiene las **nueve** respuestas del puente en su tabla de
+> traducción, `MOTIVO_NO_CONTEMPLADO` incluida, y calcula el desfase con el teléfono de referencia
+> común — `desfaseSeg()`. **Los manuales decían siete; el firmware y la app coinciden en nueve, así
+> que el número equivocado era el del papel**)* — leer el
 > reloj **sin cambiarlo**, y **enseñar el desfase entre los dos postes**. Es mejor que sincronizar:
 > *hasta ahora la única forma de leer el reloj era mandarlo, y con eso se perdía justo el dato que se
 > buscaba*. **Los dos ESP32 no se hablan entre sí**, así que la comparación **sólo la puede hacer la
@@ -309,11 +408,44 @@ Todas las tramas viajan a **9600 baudios (8N1)** y finalizan en `\r\n`.
 ### 4.1 Cálculo del Checksum NMEA (*XX)
 El checksum se calcula aplicando la operación **XOR bit a bit** de todos los bytes contenidos entre el carácter `$` inicial y el asterisco `*` (ambos excluidos), formateado como dos caracteres hexadecimales en mayúsculas (`00` a `FF`).
 
-### 4.2 Telemetría Periódica ($STATUS) — Emitida cada 1 segundo
-$$\text{Formato: }\$STATUS,NODE:\langle N\rangle,MODO:\langle M\rangle,ESTADO:\langle E\rangle,T:\langle S\rangle,RF:\langle R\rangle\%,RTT:\langle T\rangle ms,BAT:\langle V\rangle,HORA:\langle H\rangle*\langle CRC\rangle\backslash r\backslash n$$
+### 4.2 Telemetría Periódica ($STATUS) — ~~Emitida cada 1 segundo~~ **cada 2 segundos**
 
-**Ejemplo Maestro en Modo Automático:**
+> # 🛑 CORREGIDO EL 07/09 — LA PLANTILLA DE ABAJO LE FALTAN CUATRO CAMPOS, Y LA CADENCIA ES OTRA
+>
+> **Se conserva tachada porque una app o un parser escritos contra ella siguen por ahí**, y hay que
+> poder reconocer de dónde salieron. Lo vigente son **las dos plantillas literales del fuente**, que
+> no son iguales entre puntas y **por eso se publican las dos**:
+>
+> ```
+> $ grep -n '"\$STATUS,NODE' 01_Firmware/Maestro/src/bluetooth.cpp 01_Firmware/Esclavo/src/bluetooth.cpp
+> 01_Firmware/Maestro/src/bluetooth.cpp:1089:  "$STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s,PLUMA:%s,CAM:%s"
+> 01_Firmware/Esclavo/src/bluetooth.cpp:1037:  "$STATUS,NODE:ESCLAVO,SERIE:%s,MODO:%s,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s,PLUMA:%s,CAM:%s"
+> ```
+>
+> | campo | qué es | dónde sale |
+> |---|---|---|
+> | **`SERIE:`** | matrícula del equipo, leída del **silicio del STM32**. Es de donde el puente saca su rótulo SPP | las dos |
+> | **`ESC:`** | **qué ve el Maestro del Esclavo.** Asimetría deliberada (N-149): la punta subordinada no publica un juicio sobre quien la manda | **sólo Maestro** |
+> | **`PLUMA:`** | `ARRIBA` · `ABAJO` (N-153) | las dos |
+> | **`CAM:`** | `OK` · `CIEGA` · `PEGADA` · `?` — **la PEOR de las dos cámaras**, no una por cada una (`A-13`, cerrada el 07/09) | las dos |
+>
+> 🔴 **Un parser que exija los campos en el orden viejo, o que dé por sentado que las dos puntas
+> mandan lo mismo, se rompe con el Esclavo.** No es un campo de más: son **cuatro**, y en el Esclavo
+> hay **tres huecos fijos** (`T:` `RF:` `RTT:`) que no existían.
+>
+> ⏱️ **Y la cadencia son 2000 ms, no 1000** — decisión del responsable del 04/09, con su cuenta al
+> lado en el fuente: el único consumidor es `vigilarEnlace()` de la app y su cota son 5000 ms; a
+> 1000 ms el peor segundo eran **528 B de los 960 B/s** que caben a 9600 8N1. **Una app que declare
+> «equipo caído» a los 3 s ahora se equivoca.**
+>
+> ⚠️ **`BAT:` está fijado a `--` en el literal**, o sea que ni siquiera es un argumento: **no hay
+> nada que medir**. Ver el aviso de la Pantalla 1.
+
+~~$$\text{Formato: }\$STATUS,NODE:\langle N\rangle,MODO:\langle M\rangle,ESTADO:\langle E\rangle,T:\langle S\rangle,RF:\langle R\rangle\%,RTT:\langle T\rangle ms,BAT:\langle V\rangle,HORA:\langle H\rangle*\langle CRC\rangle\backslash r\backslash n$$~~
+
+**Ejemplo Maestro en Modo Automático — ⛔ SUPERADO, ver la plantilla literal de arriba:**
 ```text
+(SUPERADO 07/09 - le faltan SERIE, ESC, PLUMA y CAM, y el BAT es inventado)
 $STATUS,NODE:MAESTRO,MODO:AUTO,ESTADO:V1_R2,T:24,RF:98%,RTT:82ms,BAT:12.6,HORA:18:25:00*4F\r\n
 ```
 
@@ -351,25 +483,38 @@ $ALARM,NODE:MAESTRO,EVENTO:FALLO_RF_12S,CAUSA:TIMEOUT_LATIDO,ACCION:CAMBIO_A_AMB
 > | | qué cambió | fuente |
 > |---|---|---|
 > | 🔴 **`SET_RTC` ya NO lo contesta el STM32** | **`D-15`** (05/09): *«el reloj lo lleva el ESP32 de cada punta, y es el ÚNICO que contesta a `SET_RTC`»*. Las ramas de las **dos** puntas del STM32 **consumen la orden en silencio** —ni `$ACK` ni `$ERR`—, a propósito, para que no salgan **dos acuses opuestos a una sola orden**, los dos ciertos. 👉 **La tabla de «cinco ramas» de abajo describe al PUENTE, no al STM32** | `D-15` · medido 07/09 |
-> | 🟢 **Existe `CMD:LEER_RTC`** | **`D-17`** (05/09): el reloj **se puede CONSULTAR sin cambiarlo**, y la app enseña **el desfase entre postes**. Lo contesta el puente con **siete finales distintos**, uno por motivo. *«No hace falta que los dos relojes se pongan de acuerdo solos: hace falta poder ver si lo están.»* | `D-17` |
+> | 🟢 **Existe `CMD:LEER_RTC`** | **`D-17`** (05/09): el reloj **se puede CONSULTAR sin cambiarlo**, y la app enseña **el desfase entre postes**. Lo contesta el puente con ~~siete~~ **NUEVE** finales distintos, uno por motivo *(contados el 07/09 en `despachador.cpp`: un `$ACK,RESULT:OK` y **ocho** `$ERR`)*. *«No hace falta que los dos relojes se pongan de acuerdo solos: hace falta poder ver si lo están.»* | `D-17` · recuento corregido 07/09 |
 > | 🟢 **El ESCLAVO ganó `SET_MODO:DEGRADADO`** | **`D-18`** (05/09), que cierra el hueco `A-11`: esa punta se había quedado **sin ninguna puerta** al Modo Degradado al retirarse el mando. Se le dio la llave a una puerta que ya existía | `D-18` · medido 07/09 |
 > | 🟢 **Y `CANCELAR_AMBAR`**, que la tabla del Esclavo no listaba | Es la contraria de `AMBAR_EMERGENCIA`, y **lee `mando_ambarLocal()`** para decidir — dos de las cinco llamadas vivas de esa bandera | medido 07/09 |
 >
 > ✅ **MEDIDO el 07/09** — se citan los símbolos, porque **los números de línea de las tablas de
-> abajo están caducados en bloque** (el censo se hizo el 31/08 y el fichero ha crecido: p. ej.
-> `SET_MODO:AUTO` decía `:177` y hoy es `:515`; `SET_RTC` decía `:295` y hoy es `:695`):
+> abajo están caducados en bloque** (el censo se hizo el 31/08 y el fichero ha crecido).
+>
+> 🔴 **Y NO SE RENUMERAN, porque esa cura ya falló aquí: los números que esta misma cabecera publicó
+> la MAÑANA del 07/09 estaban caducados ANTES DE ACABAR EL DÍA.** Un commit de la tarde
+> —`4b2841b`, que ancla las decisiones `D-x` en comentarios del fuente— los movió a todos:
+>
+> | símbolo | número publicado esta mañana | dónde está esta tarde |
+> |---|---|---|
+> | `SET_RTC_LO_ACUSA_EL_PUENTE` (Maestro) | `:726` | `:728` |
+> | `SET_RTC_LO_ACUSA_EL_PUENTE` (Esclavo) | `:781` | `:808` |
+> | `CANCELAR_AMBAR` | `:575` | `:585` |
+> | `SET_MODO:DEGRADADO` | `:675` | `:694` |
+>
+> **Por eso los `grep` de abajo se publican SIN `-n`: lo que hay que poder repetir es la búsqueda, no
+> el número.** Corridos el 07/09 por la tarde, salida literal:
 >
 > ```
-> $ grep -n "SET_RTC_LO_ACUSA_EL_PUENTE" 01_Firmware/Maestro/src/bluetooth.cpp 01_Firmware/Esclavo/src/bluetooth.cpp
-> 01_Firmware/Maestro/src/bluetooth.cpp:726:    bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
-> 01_Firmware/Esclavo/src/bluetooth.cpp:781:    bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
+> $ grep -h "SET_RTC_LO_ACUSA_EL_PUENTE" 01_Firmware/Maestro/src/bluetooth.cpp 01_Firmware/Esclavo/src/bluetooth.cpp
+>     bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
+>     bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
 >
-> $ grep -n 'strcmp(accion, "SET_MODO:DEGRADADO")\|strcmp(accion, "CANCELAR_AMBAR")' 01_Firmware/Esclavo/src/bluetooth.cpp
-> 575:  } else if (strcmp(accion, "CANCELAR_AMBAR") == 0) {
-> 675:  } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
+> $ grep -h 'strcmp(accion, "SET_MODO:DEGRADADO")\|strcmp(accion, "CANCELAR_AMBAR")' 01_Firmware/Esclavo/src/bluetooth.cpp
+>   } else if (strcmp(accion, "CANCELAR_AMBAR") == 0) {
+>   } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
 >
-> $ grep -n "CMD_LEER_RTC\[\]" 01_Firmware/ESP32_Expansion/src/despachador.cpp
-> 22:static const char CMD_LEER_RTC[] = "CMD:LEER_RTC";
+> $ grep -h "CMD_LEER_RTC\[\]" 01_Firmware/ESP32_Expansion/src/despachador.cpp
+> static const char CMD_LEER_RTC[] = "CMD:LEER_RTC";
 > ```
 >
 > 🔴 **Consecuencia de operación, y es la que hay que llevarse:** el `$ACK` de `SET_RTC` llega
@@ -422,11 +567,20 @@ Cualquier otra cosa cae en `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO` (`:3
 > | `$ERR,…,DESC:OSCILADOR_PARADO_CAMBIE_PILA` | el módulo está; la pila no |
 > | `$ERR,…,DESC:MOTIVO_NO_CONTEMPLADO` | rama de cierre: **no se inventa un OK** |
 >
-> ✅ **Y su gemelo de sólo lectura, `CMD:LEER_RTC` (`D-17`)**, contesta `RESULT:OK` o uno de **seis**
-> `$ERR` distintos: `NUNCA_SE_PUSO_PONGA_LA_HORA`, `OSCILADOR_PARADO_CAMBIE_PILA`,
+> ✅ **Y su gemelo de sólo lectura, `CMD:LEER_RTC` (`D-17`)**, contesta `RESULT:OK` o uno de ~~seis~~
+> **OCHO** `$ERR` distintos: `NUNCA_SE_PUSO_PONGA_LA_HORA`, `OSCILADOR_PARADO_CAMBIE_PILA`,
 > `SIN_RELOJ_NO_RESPONDE`, `ESCRITURA_A_MEDIAS_REPITA_SET_RTC`, `MODO_12H_PONGA_LA_HORA`,
-> `REGISTROS_INCOHERENTES` / `BARRERA_INCOHERENTE`. **Es la herramienta de diagnóstico del reloj**, y
-> es la que hay que usar antes de devolver un `DS3231` por mudo.
+> `REGISTROS_INCOHERENTES`, `BARRERA_INCOHERENTE` y **`MOTIVO_NO_CONTEMPLADO`**. **Es la herramienta
+> de diagnóstico del reloj**, y es la que hay que usar antes de devolver un `DS3231` por mudo.
+>
+> 🔴 **Corregido el 07/09, y el que faltaba es justo el que más importa.** El recuento *«seis»* salió
+> de contar las filas de una tabla, no de contar las ramas del fuente:
+> `REGISTROS_INCOHERENTES` y `BARRERA_INCOHERENTE` **son dos**, no una con barra en medio, y
+> **`MOTIVO_NO_CONTEMPLADO` no estaba listado en ninguna parte**. Ése es **la rama de cierre**: la que
+> impide que un caso que nadie previó salga disfrazado de `OK`. Un manual que no la lista deja al
+> técnico sin saber qué hacer **cuando la lea en el teléfono**, que es exactamente el momento en que
+> algo raro está pasando. *(Qué hacer: no es del reloj — es del firmware. Se anota la trama literal y
+> se reporta; **no se cambia la pila ni el módulo por esta respuesta**.)*
 
 ##### 📕 La tabla del 31/08, conservada por su método *(los literales son los de entonces, del STM32)*
 

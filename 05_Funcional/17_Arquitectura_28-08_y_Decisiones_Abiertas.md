@@ -53,6 +53,108 @@ consola de Windows en este repositorio.
 
 ---
 
+## 🔴 REVISION DEL 07/09/2026 — EL MODO DEGRADADO NO PUEDE ENTRAR EN NINGUNA DE LAS DOS PUNTAS
+
+**Va la primera porque es la unica de este documento que invalida una decision tomada ANTEAYER.**
+`D-18` —*«el Modo Degradado del poste 2 se pide POR APP»*— se decidio el 05/09 sobre una puerta que
+esta construida, probada en arnes (`18/18`)… **y que hoy rechaza a todo el mundo en su primera
+linea.**
+
+### La cadena, medida eslabon a eslabon — y el propio firmware ya la declara
+
+El bloqueo lo dice el fuente de si mismo, en `Maestro/include/reloj.h`, bajo la marca `D-15` que se
+anclo esta manana:
+
+> *«CONSECUENCIA MEDIDA, NO DEDUCIDA: `reloj_enHora()` de esta punta es hoy FALSO SIEMPRE, y de esa
+> bandera cuelga la autorizacion del Modo Degradado, la sincronizacion horaria por radio y la medida
+> de desfase. Los tres estan bloqueados»*
+
+**Re-medido hoy por separado, sin fiarme de esa frase** (`CLAUDE.md` §4: un informe no es una
+medida, y un comentario del fuente es un informe):
+
+| eslabon | medida |
+|---|---|
+| **1** | `reloj_enHora()` devuelve `horaValida` — `grep -n "^bool reloj_enHora" Maestro/src/reloj.cpp` |
+| **2** | `horaValida` se enciende en **dos** sitios: `reloj_ajustar()`, y `reloj_setup()`/`reloj_actualizar()` con `rtc.isConfigured() && rtc.getYear() >= ANIO_MARCA` |
+| **3** | la via del **dominio de respaldo** no arranca: **`Y2` esta muerto** (N-17, medida de banco del 01/08) |
+| **4** | la via de `reloj_ajustar()` tiene **UN** llamador vivo en el Maestro: `modo_hora.cpp` — `grep -rn "reloj_ajustar" Maestro/src` |
+| **5** | y `MODO_HORA` **solo se arma en `menu.cpp`** — `grep -rn "MODO_HORA" Maestro/src/*.cpp` da `main.cpp` (despacho), `bluetooth.cpp` (el nombre para la trama), `mando.cpp` (una guarda) y **`menu.cpp` como unico `modoActual_set(MODO_HORA)`** |
+| **6** | y el menu **esta tapiado**: `botonAceptar()` es `return false;` desde que `BOTON3`/`BOTON4` pasaron a ser camaras (`D-2`), y `D-17.bis` retira la pantalla del equipo |
+
+**Conclusion: el STM32 del Maestro no tiene HOY ningun camino de escritura de hora.**
+
+### Y el Esclavo no se salva por su cuenta: depende del mismo cero
+
+El Esclavo **si** tiene un llamador vivo distinto de `reloj_ajustar()` —`Esclavo/src/main.cpp`, en
+el manejador del paquete de hora **por radio**—, o sea que su reloj **si** se puede poner… pero solo
+si el Maestro se lo manda, y eso lo decide:
+
+```
+$ grep -n -A6 "bool coordinador_sincronizarHora" 01_Firmware/Maestro/src/coordinador.cpp
+1123:bool coordinador_sincronizarHora() {
+        if (!reloj_enHora()) return false;     <-- falso siempre (eslabones 1-6)
+```
+
+**Sin hora en el Maestro no hay sincronizacion por radio, asi que el Esclavo tampoco entra en hora
+nunca.** Y la primera guarda de su puerta es:
+
+```
+$ grep -n "reloj_enHora" 01_Firmware/Esclavo/src/modo_degradado.cpp
+197:  if (!reloj_enHora()) return DEG_RECHAZO_SIN_HORA;
+```
+
+🔴 **O sea que `SET_MODO:DEGRADADO` —la llave que `D-18` acaba de darle a la app— contesta hoy
+`DEG_RECHAZO_SIN_HORA`, siempre y en las dos puntas.** El Maestro rechaza igual, con
+`MDG_FALTA_HORA` (`Maestro/src/modo_degradado.cpp`).
+
+### 🔴 LA TRAMPA, Y ES LA PARTE QUE MANDA A UN TECNICO A CAMBIAR PIEZAS SANAS
+
+**La app le va a ensenar al operario una hora correcta mientras el controlador no la tiene.** El
+puente ESP32 **rellena el hueco al pasar la trama**, con su propio `DS3231`:
+
+```
+$ grep -n "HUECO_HORA\|sellarHoraSiFaltaba" 01_Firmware/ESP32_Expansion/src/puente.cpp
+221:#define HUECO_HORA "HORA:--:--:--"
+223:static bool sellarHoraSiFaltaba(char* linea) {
+```
+
+Es correcto y es deliberado —`D-15`: el reloj del cruce es el `DS3231`, no el STM32—, pero produce
+un cuadro que **no se puede diagnosticar mirando la pantalla**: `HORA:` sale bien, `LEER_RTC`
+contesta bien, y el equipo **rechaza el Degradado por falta de hora**. Quien no sepa esto va a
+buscar la averia en el reloj que si funciona.
+
+> **La regla que este documento ya tenia escrita y que aqui se cumple sola:** `reloj_enHora()` no
+> pregunta *«¿hay una hora en la trama?»* sino *«¿la tiene ESTA punta?»*. **Son dos preguntas
+> distintas desde `D-15`, y solo una de las dos autoriza el Degradado.**
+
+### Lo que esto NO es
+
+- **No es una regresion de `D-15`.** El propio fuente lo dice: *«lo estaban ya antes de `D-15` por
+  el cristal; `D-15` no los rompe, los deja bloqueados POR CONSTRUCCION del fuente en vez de por una
+  averia de hardware»*. Lo nuevo no es el bloqueo: es que **ya no hay una averia que reparar para
+  levantarlo** — hay una decision que tomar.
+- **No es un defecto que se arregle en un manual**, y por eso aqui solo se mide y se escribe.
+
+### 🟡 LO QUE HAY QUE DECIDIR, Y ES DEL RESPONSABLE
+
+> **¿Se abre `AB-4` —que el puente ESP32 ponga en hora al STM32— o el Modo Degradado queda
+> declarado como funcion SUSPENDIDA hasta nueva orden?**
+
+**Las dos salidas cuestan y ninguna es gratis:**
+
+| salida | que cuesta | que cambia |
+|---|---|---|
+| **(a)** el puente escribe la hora en el STM32 (`AB-4`) | firmware en las dos puntas + el camino de vuelta de `SET_RTC` hacia abajo. **No medido en bytes** | 🔴 **vuelve N-144 con el**: un ajuste que NO queda dejaria `horaValida` en `true` con el contador parado, y el equipo publicaria `HORA:00:00:00` declarandose valido. `reloj.h` avisa de esto por escrito a quien escriba ese camino |
+| **(b)** declarar el Degradado SUSPENDIDO | cero firmware | **el procedimiento del Manual 8 no se puede ejecutar**, y con el se cae el unico plan para un corte de radio largo. `D-18` queda como decision tomada y no aplicable |
+| **(c)** cablear un `DS3231` tambien al STM32 | compra + taller | resucita la via del cristal por otro camino; choca con `D-9` (*«el STM32 no necesita reloj»*) |
+
+**Lo que NO vale es dejarlo como esta**, porque hoy hay **un procedimiento escrito, un comando
+construido y una decision tomada** apuntando a una puerta que contesta que no. Es la forma exacta
+de `DECLARAR NO ES EJERCER` (`CLAUDE.md` §2.ter): todo declarado, nada ejercido, y tres
+instrumentos en verde mirando la declaracion.
+
+---
+
 ## 🔴 REVISION DEL 05/09/2026 — `D-1` COMPLETA Y `D-16`: LA APP ES LA UNICA SUPERFICIE DE MANDO
 
 **Va DELANTE de la revision del banco, y no por ser la mas nueva: es que la deroga en dos filas.**
@@ -1076,8 +1178,36 @@ falla—, y **la cura de verdad es que el STM32 deje de publicar un campo de un 
 campo sale `--` porque **el literal esta escrito asi en el `snprintf` de las dos puntas**
 (`Maestro/src/bluetooth.cpp:929`, `Esclavo/src/bluetooth.cpp:791`), y eso fue **deliberado**: N-108
 lo cambio de `12.6` a `--` porque **no hay un solo `analogRead()`** en `src/` ni en `include/` de
-ninguna de las dos puntas —MEDIDO: `grep -rn analogRead` sobre las cuatro carpetas da **cero**; las
-unicas coincidencias del arbol estan dentro de `.pio/` y del framework de Arduino—.
+ninguna de las dos puntas —~~MEDIDO: `grep -rn analogRead` sobre las cuatro carpetas da **cero**; las
+unicas coincidencias del arbol estan dentro de `.pio/` y del framework de Arduino~~—.
+
+> # 🔴 07/09 — LA CONCLUSION SIGUE SIENDO CIERTA; EL `grep` PUBLICADO YA NO
+>
+> **Se volvio a correr, que es lo que hay que hacer con todo `grep` publicado, y hoy NO da cero:**
+>
+> ```
+> $ grep -rn "analogRead" Maestro/src Maestro/include Esclavo/src Esclavo/include
+> Maestro/src/bluetooth.cpp:981:    // analogRead() en Maestro/src, Maestro/include, Esclavo/src ni Esclavo/include
+> Esclavo/src/bluetooth.cpp:938:    //   BAT   no hay un solo analogRead() en Esclavo/src ni en Esclavo/include -ni en las
+> ```
+>
+> **Da DOS — y las dos son COMENTARIOS que citan la palabra para explicar que no existe.** Los
+> escribio la propia correccion de N-108. El buscador cuenta el comentario que dice lo contrario:
+> es el mismo mecanismo que hoy mismo obligo a corregir una cifra de la tabla vinculante de
+> `DECISIONES.md` (`6f624f2`, *"el grep conto un comentario que decia lo contrario"*), y aqui estaba
+> en el otro sentido — **un CERO publicado que hoy es un DOS**.
+>
+> **El `grep` que sabe medir es el que quita los comentarios antes de contar**, igual que hace
+> `maestro_12` *"para no acusarse a si mismo"*:
+>
+> ```
+> $ grep -rn "analogRead" Maestro/src Maestro/include Esclavo/src Esclavo/include | grep -v ":[[:space:]]*//" | wc -l
+> 0
+> ```
+>
+> ✅ **La conclusion no cambia: no hay lectura de bateria, y `BAT:--` es correcto.** Lo que cambia
+> es que quien re-corriera el `grep` de arriba veria `2` y **no sabria si el documento miente o si
+> el firmware cambio**.
 
 > 🛑 **AQUI NO SE ESCRIBE POR QUE NO SE HA MONTADO LA MEDIDA DE BATERIA, PORQUE NO SE HA MEDIDO**
 > (`CLAUDE.md` §4). Lo que hay es: **el campo esta marcado como "sin dato" a proposito, y el equipo
@@ -1377,6 +1507,30 @@ puede tumbar al que manda.
 > lo unico que aquel censo tenia que demostrar: **el mando no los tocaba entonces y no los toca
 > ahora.**
 
+> # 🔴 07/09 — LA FRASE DE ABAJO ES CIERTA Y SE LEE AL REVES DE LO QUE HOY SIGNIFICA
+>
+> *"`A.A.A`, `B.B.B` y `A.B.A.B` siguen funcionando"* se escribio el 31/08 como **tranquilizador**:
+> las camaras entran sin romper el mando. Con `D-1` cumplida —**el hardware del mando se fue**— esa
+> misma frase dice otra cosa: **hay tres ordenes vivas colgando de dos bornes VACIOS y expuestos**,
+> `J16` p5 (`PB9`) y p8 (`PB13`).
+>
+> 🔴 **Y la que mas pesa esta MEDIDA HOY EN EL MAESTRO, y no estaba escrita en ninguna parte: la
+> secuencia `A.A.A` entra al Modo Automatico SIN NINGUNA GUARDA.**
+>
+> ```
+> $ grep -n -A3 "confirmarYActuar(ACC_AUTOMATICO" 01_Firmware/Maestro/src/mando.cpp
+> ```
+>
+> La rama llama a `modoAutomatico_pedirArranqueDirecto()` y a `modoActual_set(MODO_AUTOMATICO)` —
+> **arranca el ciclo, o sea ABRE PASO**—, y el comentario del propio fuente dice que *"no necesita
+> proteccion porque el sistema se corrige solo"*. **Ese razonamiento se escribio para un pulsador
+> que solo alcanzaba un tecnico subido a la escalera.** Las otras dos secuencias si estan frenadas.
+>
+> **Consecuencia operativa, y es una regla de montaje, no una cautela: NADA se cablea en `J16` p5 ni
+> p8.** Un fin de carrera de talanquera que suba y baje tres veces dentro de la ventana **es una
+> secuencia del mando**. Eso es lo que `A-2` de `DECISIONES.md` esta decidiendo, y por eso alli
+> figura como decision **de seguridad** y no de reparto de pines.
+
 El mando vive **entero** en `A` y `B`. Los pines que las camaras necesitan —`PB14`, `PB15`— son los
 dos que el mando **no toca**: el propio `botones.cpp` lo deja escrito encima de los dos
 `mando_registrarPulso()` (*"Solo hay A (Boton 1) y B (Boton 2), que son justo los dos que el mando
@@ -1409,7 +1563,7 @@ Los pines que libera la retirada de los pulsadores 3 y 4:
 | p5 | `/Boton1` | `PB9` | ~~**vacio a proposito** (colchon)~~ → ~~🟢 **`MANDO_A`. VA CABLEADO** (31/08)~~ → 🔧 **CADUCADO EL 05/09 (`D-1`): el mando NO se monta, asi que `p5` queda LIBRE Y SIN CABLEAR.** ⚠️ **Pero el firmware SIGUE LEYENDO este pin** —`BOTON1` alimenta `botonArriba()`, con llamadores vivos— o sea que **lo que se cierre aqui contra `p4` mueve cosas dentro**. ~~`0,6 V` en reposo, N-118~~ → **refutado el 05/09: eran del firmware viejo con `INPUT_PULLUP`** |
 | p8 | `/Boton2` | `PB13` | ~~**vacio a proposito** (colchon)~~ → ~~🟢 **`MANDO_B`. VA CABLEADO** (31/08)~~ → 🔧 **CADUCADO EL 05/09 (`D-1`): idem `p5` — LIBRE Y SIN CABLEAR, y el firmware sigue leyendolo** (`BOTON2` → `botonAbajo()`) |
 | p10 | `/Boton3` | `PB14` | 🎯 **`CAM_C_PIN` — ENTRADA DE CAMARA de DEMANDA.** ~~«Boton 3 / Aceptar»~~ ✅ **cableada y verificada en banco el 03/09** (paso 21). Y desde `4b90f98` ademas **se vigila sola** (§1.7.bis) |
-| p12 | `/Boton4` | `PB15` | 🎯 **`CAM_D_PIN` — ENTRADA DE CAMARA de DEMANDA.** ~~«Boton 4 / Cancelar-Menu»~~ `0 V` en reposo, MEDIDO (paso 20). Idem vigilancia |
+| p12 | `/Boton4` | `PB15` | 🎯 **`CAM_D_PIN` — entrada de camara, y HOY SE DEJA VACIO.** ~~«Boton 4 / Cancelar-Menu»~~ `0 V` en reposo, MEDIDO (paso 20). 🔵 **07/09: `D-13` es UNA CAMARA POR POSTE, asi que en cada equipo montado UNO de estos dos pines esta vacio — y el firmware DEPENDE de ello** (la exencion del vigilante, `botones.cpp`: sin esa linea alarmaria `CAM_CIEGA` de una camara que no existe). **El que se cablea es `p10`**, que es el ejercido en banco; **este se queda libre** |
 
 > 🔴 **`p5`/`p8`: POR QUE NO BASTA CON «el mando se retiro» — MEDIDO EL 05/09, y es la mitad que un
 > resumen se come.** De los cuatro getters de boton, **dos estan muertos y dos NO**:
@@ -1449,6 +1603,38 @@ Los pines que libera la retirada de los pulsadores 3 y 4:
 >   -> UNA sola linea:  Esclavo/src/main.cpp:340  "// Camara 3 (PB0): el FLANCO es lo que pide paso"
 > control negativo -- que el buscador SI encuentra:  grep -rn "CAM_C_PIN|CAM_D_PIN"  -> multiples
 > ```
+>
+> # 🔴 07/09 — LOS DOS COMANDOS DE ARRIBA ESTAN MAL ESCRITOS, Y EL QUE FALLA ES EL CONTROL NEGATIVO
+>
+> **Se volvieron a correr, literalmente como estan publicados.** A los dos les falta `-E`: sin ella
+> `grep` usa expresiones basicas y **el `|` es un caracter literal**, asi que buscan la cadena
+> `camara 1|camara 2|camara 3` entera, que no existe en ningun sitio.
+>
+> ```
+> $ grep -rni "camara 1|camara 2|camara 3" Maestro/src Maestro/include Esclavo/src Esclavo/include
+> (nada, codigo de salida 1)
+> $ grep -rn  "CAM_C_PIN|CAM_D_PIN"  Maestro/src Esclavo/src        ->  0    <-- EL CONTROL NEGATIVO
+> ```
+>
+> ```
+> $ grep -rniE "camara 1|camara 2|camara 3" Maestro/src Maestro/include Esclavo/src Esclavo/include
+> Esclavo/src/main.cpp:340:  // Camara 3 (PB0): el FLANCO es lo que pide paso, no el nivel.
+> $ grep -rnE "CAM_C_PIN|CAM_D_PIN" Maestro/src Esclavo/src         ->  7
+> ```
+>
+> ✅ **La conclusion no cambia: con `-E` sale exactamente lo que este parrafo afirma** —una sola
+> linea, la de «Camara 3»— **y los `CAM_*_PIN` aparecen siete veces.** El razonamiento era bueno.
+>
+> 🔴 **Lo que estaba roto es el instrumento, y precisamente el que existia para impedir esto.** El
+> parrafo se publico diciendo *"con el control negativo al lado porque §4 obliga a descartar al
+> buscador antes de creerse un cero"* — **y el control negativo daba CERO.** Su unico trabajo era
+> gritar en ese caso; dio el mismo silencio que la medida que tenia que respaldar, y se anoto como
+> *«multiples»* sin haberlo corrido. Es §8.bis en un documento: **un control que no se ha visto
+> fallar es un adorno que da verde.**
+>
+> **Regla que queda, y vale para todo `grep` que se publique aqui: se pega la SALIDA LITERAL, no el
+> resultado recordado — y si el comando lleva alternancia, se escribe `-E` o se parte en dos
+> comandos.**
 >
 > **O sea que el comentario «Camara 1» del Maestro ya no existe en el fuente**, pero **«Camara 3» si**
 > —y ademas los numeros **siguen vivos en `9_Manual_Parametrizacion_Camara_IA.md`**, donde *«Camara 1»*
@@ -2089,8 +2275,34 @@ pedido desde el piso con `B·B·B`, el Esclavo **no obedece ni acusa recibo**, p
 > porque el analisis es correcto y es el que motivo el arreglo — y porque una causa que desaparece en
 > silencio se vuelve a proponer (`CLAUDE.md` §4).
 >
-> **MEDIDO el 31/08, y revalidado el 05/09 con `grep -c "CMD:SET_RTC," Maestro/src/bluetooth.cpp` → **5**: hoy `SET_RTC` tiene CINCO
-> ramas y ninguna contesta sin mirar.**
+> # 🔴 07/09 — ESTE `MEDIDO` TIENE LA FECHA BIEN Y EL CONTENIDO CADUCADO. LA MEDIDA MURIO EL MISMO DIA EN QUE SE TOMO
+>
+> **La revalidacion es del 05/09 y `D-15` se decidio el 05/09.** Hoy el `grep` que este apartado
+> publica **no da cinco**:
+>
+> ```
+> $ grep -c "CMD:SET_RTC," 01_Firmware/Maestro/src/bluetooth.cpp
+> 2
+> ```
+>
+> **Porque el reparto cambio: `D-15` dice que el reloj lo lleva el `DS3231` del ESP32 de cada punta,
+> y que ese ESP32 es el UNICO que contesta a `SET_RTC`.** El STM32 no tiene reloj (`Y2` muerto,
+> N-17), y que siguiera contestando producia **dos acuses opuestos a una sola orden, los dos
+> ciertos**. Lo que queda hoy en esta punta es un `bluetooth_reportarEvento("APP_BLUETOOTH",
+> "SET_RTC_LO_ACUSA_EL_PUENTE")`.
+>
+> 🔴 **Consecuencia para quien diagnostica, que es lo que hace esto peligroso y no cosmetico: las
+> cinco respuestas de la tabla de abajo YA NO LLEGAN DEL STM32.** Un tecnico que ponga la hora y
+> espere `$ERR,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ` **no va a ver nada**, y este proyecto ya pago ese
+> error exacto: dos manuales mandaban diagnosticar el reloj contra el STM32 y el tecnico acababa
+> **cambiando pila y cristal SANOS**. **El acuse que hay que mirar es el del PUENTE** —`NODE:PUENTE`—,
+> y la herramienta de diagnostico buena es `CMD:LEER_RTC` (`D-17`), que **consulta sin cambiar** y
+> deja ver el desfase entre los dos postes.
+>
+> ~~**MEDIDO el 31/08, y revalidado el 05/09 con `grep -c "CMD:SET_RTC," Maestro/src/bluetooth.cpp` → **5**: hoy `SET_RTC` tiene CINCO
+> ramas y ninguna contesta sin mirar.**~~ *(Cierto hasta `D-15`; conservado porque el analisis de por
+> que un `$ACK` no puede ir por delante de lo que la llamada devolvio sigue siendo el bueno — y
+> porque es el ejemplo de que una fecha correcta no valida un contenido.)*
 >
 > ```
 >    :306   sscanf(...) != 6                  -> $ERR,CMD:SET_RTC,DESC:FORMATO_INVALIDO
@@ -2186,12 +2398,42 @@ a la tabla.** No se borra porque es lo que este apartado consiguio que se arregl
 >      $STATUS,NODE:ESCLAVO,SERIE:%s,MODO:SUBORDINADO,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s
 > ```
 >
+> # 🔴 07/09 — «LOS `snprintf` DE HOY» YA NO SON LOS DE HOY. ESTE RECUADRO ES DEL 05/09 Y CADUCO EN DOS DIAS
+>
+> **Se releyeron otra vez, con `grep -n '"\$STATUS' 01_Firmware/*/src/bluetooth.cpp`:**
+>
+> ```
+> $STATUS,NODE:MAESTRO,SERIE:%s,MODO:%s,ESTADO:%s,T:%s,RF:%s,RTT:%s,BAT:--,HORA:%s,ESC:%s,PLUMA:%s,CAM:%s
+> $STATUS,NODE:ESCLAVO,SERIE:%s,MODO:%s,ESTADO:%s,T:--,RF:--,RTT:--,BAT:--,HORA:%s,PLUMA:%s,CAM:%s
+> ```
+>
+> **Dos diferencias, y la segunda es una VICTORIA de este mismo apartado que el apartado no se ha
+> apuntado:**
+>
+> 1. **Faltan `PLUMA:` y `CAM:`** en las dos puntas (N-153 y `D-13` fase 1). Un parser escrito contra
+>    el recuadro de arriba se queda corto por dos campos.
+> 2. 🟢 **El `MODO:` del Esclavo YA NO ES EL LITERAL `SUBORDINADO`: es `%s`.** La tabla de este
+>    apartado lo listaba en rojo como *"literal `SUBORDINADO`"* y **ya esta arreglado** —el propio
+>    fuente lo cuenta: *"El campo MODO: del $STATUS decia SUBORDINADO SIEMPRE, escrito dentro de la
+>    plantilla"*—. **Es exactamente lo que este apartado pedia, cumplido, y seguia publicandose como
+>    defecto pendiente.**
+>
+> 🔴 **La leccion, que es la razon de no reescribir el recuadro sino de fecharlo: un bloque que se
+> titula «hoy» miente solo.** Este decia *«los `snprintf` de HOY»* y su «hoy» era el 05/09. **Los
+> bloques de estado llevan fecha en el titulo, no la palabra «hoy»**, y lo que no caduca es el
+> `grep` que los saca. *(Y las dos citas por linea de aqui —`:929` y `:791`— tampoco senalan ya: se
+> conservan como estaban, sin renumerar.)*
+>
 > | campo | Maestro, hoy | Esclavo, hoy |
 > |---|---|---|
 > | `T` | 🟢 **dato**: `coordinador_segundosRestantesFase()` y, si no hay, `modoAutomatico_segundosRestantesFase()`; **`--` cuando no hay cuenta atras que dar** (N-139/N-143) | 🟢 **`--` fijo, y es lo correcto**: el Esclavo es SUBORDINADO y sus ordenes **no llevan duracion**. Inventar la cuenta seria adivinar cuando el Maestro mandara la siguiente |
 > | `RF` / `RTT` | dato | 🟢 **`--`** — ~~literales `98%` y `85ms`~~ |
 > | `BAT` | 🟢 **`--`** — ~~literal `12.6`~~ | 🟢 **`--`** — ~~idem~~ |
 > | `ESC` | 🆕 **dato** (N-149): lo que el Esclavo **confirmo por acuse**, o `?` con el enlace caido | **no lo emite, a proposito** — no tiene de donde sacarlo |
+> | `MODO` | dato | 🟢 **07/09: YA ES DATO.** ~~literal `SUBORDINADO`~~ — arreglado en el firmware; esta tabla lo seguia acusando |
+> | `PLUMA` | 🆕 **dato** (N-153): `ARRIBA` / `ABAJO`, lo que se escribio en el pin | 🆕 **dato** — lo emiten las dos, las dos placas llevan el motor |
+> | `CAM` | 🆕 **dato** (`D-13` fase 1): la PEOR de las dos camaras — `OK` · `CIEGA` · `PEGADA` · `?` | 🆕 **dato**, igual |
+> | **antiguedad de la ultima SYNC** | 🔴 **no existe campo** | 🔴 **no existe campo, y ademas se quedo SIN LECTOR**: `degradado_syncVencida()` y `degradado_avisoLimite()` solo los llama `Esclavo/src/menu.cpp`, la pantalla que `D-17.bis` retira. **El tecnico que sube al poste 2 no puede ver ese dato ni por trama ni por app** |
 >
 > **Lo que este apartado pedia —*«un campo que no se mide se retira o se marca; no se deja con
 > aspecto de medida»*— ESTA HECHO en las dos puntas.** Lo que **no** esta hecho es medir la bateria:
@@ -2204,12 +2446,20 @@ a la tabla.** No se borra porque es lo que este apartado consiguio que se arregl
 > operario con un numero en un poste y `--` en el otro **para el mismo ciclo**. Cuando el Maestro
 > exponga el suyo, las dos se encienden **en el mismo commit**.
 
-**`BAT:12.6` es literal en las dos puntas, y no hay ningun `analogRead` en el firmware.**
-Comprobado con el buscador descartado antes de reportar (`CLAUDE.md` §4): `grep -rn analogRead`
-sobre `01_Firmware/Maestro` y `01_Firmware/Esclavo` solo da coincidencias dentro de
-`.pio/build/*/firmware.map` y de los objetos del framework de Arduino — **ni una en `src/` ni en
-`include/`**. No hay divisor de tension, no hay canal ADC, no hay medida de bateria. El `12.6` es
-una constante escrita a mano.
+~~**`BAT:12.6` es literal en las dos puntas**~~ → **hoy el literal es `BAT:--`**, cambiado por N-108
+en las dos puntas, **y no hay ningun `analogRead` ejecutable en el firmware.** No hay divisor de
+tension, no hay canal ADC, no hay medida de bateria.
+
+> ⚠️ **07/09 — DOS correcciones a este parrafo, y la primera es de las que enganan:**
+>
+> 1. **El literal ya no es `12.6`, es `--`.** Este parrafo describe el firmware ANTERIOR a N-108, y
+>    lo hacia en presente. Quien lo lea hoy y compare con una trama real vera un campo distinto.
+> 2. ~~*"`grep -rn analogRead` solo da coincidencias dentro de `.pio/`"*~~ **es falso hoy: da DOS en
+>    `src/`, y las dos son comentarios** que la propia correccion de N-108 escribio para explicar
+>    que no existe. **Y este parrafo llevaba encima la frase *"comprobado con el buscador descartado
+>    antes de reportar (`CLAUDE.md` §4)"***, que es exactamente lo que lo hace peor: el sello de
+>    rigor sobrevivio a la medida. El `grep` que sabe medir quita los comentarios antes de contar
+>    —ver el recuadro del hallazgo de cinta, mas arriba— y entonces si da **cero**.
 
 Y el campo `T:` **no es el tiempo de fase**. Es un contador libre que da la vuelta cada minuto,
 independiente de en que fase este el cruce. El comentario de al lado dice *"Cuenta de segundos
@@ -2332,15 +2582,63 @@ Las tres columnas con `*` **no sobreviven tal como estan escritas**:
 
 ## 3. Decisiones ABIERTAS, con dueno
 
-Ninguna de estas ~~cinco~~ ~~seis~~ **nueve** la puede tomar quien escribe firmware. Van con quien
-las tiene que firmar. *(La sexta —§3.6, N-120— la trajo el banco del 03-04/09 y no existia el 28/08.
-La §3.7 y la §3.8 salieron de la revision del 04/09 por la tarde; la **§3.9**, de la de la noche.)*
+Ninguna de estas ~~cinco~~ ~~seis~~ ~~nueve~~ **diez** la puede tomar quien escribe firmware. Van con
+quien las tiene que firmar. *(La sexta —§3.6, N-120— la trajo el banco del 03-04/09 y no existia el
+28/08. La §3.7 y la §3.8 salieron de la revision del 04/09 por la tarde; la **§3.9**, de la de la
+noche; la **§3.10**, del 05/09.)*
 
-> ✏️ **Tres de las nueve ya estan DECIDIDAS —§3.3, §3.4 y §3.7— y se quedan en esta lista a
-> proposito:** una decision entre alternativas solo se puede revisar si las alternativas siguen
-> escritas.
+> 🔴 **CORREGIDO el 07/09: esta frase contaba NUEVE y debajo hay DIEZ apartados (§3.1 a §3.10).**
+> La §3.10 se añadio el 05/09 y **el encabezado no se actualizo**. Es una cifra que solo existia
+> aqui y que no cuadraba con su propio documento: se recuenta, no se estima.
 
-### 3.1 🔴 Que chip es el ESP32 — **bloquea la compra y bloquea la app**
+> ✏️ **~~Tres~~ CUATRO de las diez ya estan DECIDIDAS —§3.1, §3.3, §3.4 y §3.7— y se quedan en esta
+> lista a proposito:** una decision entre alternativas solo se puede revisar si las alternativas
+> siguen escritas. *(La §3.1 se cerro el 31/08 con `BLQ-1`/N-107 y este documento tardo siete dias
+> en enterarse — ver el recuadro de ahi mismo.)*
+>
+> ✅ **Y una que se creia abierta y estaba CERRADA: la §3.5.** La linea `A2` de la lista de compras
+> la cerro el 05/09 —las camaras van a `J16`, `PB0`/`J14` queda libre— y este documento no se habia
+> enterado. **Se marco alli, y de paso se retiro una pregunta al responsable que yo mismo habia
+> escrito sobre una premisa sin medir** (§2.quater). Lo que sigue vivo de §3.5 es su aviso
+> electrico, que no caduca.
+
+### 3.1 ~~🔴 Que chip es el ESP32 — **bloquea la compra y bloquea la app**~~ → 🟢 **CERRADA EL 31/08 (`BLQ-1` / N-107). NO BLOQUEA NADA**
+
+> # 🔴 CORREGIDO EL 07/09 — ESTE APARTADO LLEVABA SIETE DIAS DECLARANDO ABIERTO LO QUE TODO EL RESTO DEL REPOSITORIO DA POR CERRADO
+>
+> **Y no es un descuido cualquiera: es en el documento que GANA en hardware medido.** Lo que aqui
+> se declare abierto lo recita despues cualquiera sin ir a la fuente — es la leccion que
+> `CLAUDE.md` §9.bis ya tiene escrita de si mismo.
+>
+> **`BLQ-1` esta CERRADO desde el 31/08**, y no en un sitio: en `ESTADO.md` (fila `BLQ-1`), en
+> `roadmap.md` (**N-107**), en `15_Lista_de_Compras_Hardware.md` (linea `A1'`, **DESBLOQUEADA**), en
+> `10_Manual_Modulo_Bluetooth_Telemetria.md`, en `14_Manual_App_Movil_IOT_VIAL.md` y en
+> `18_Especificacion_Firmware_ESP32.md` §6.1. **El modulo que llego es un `ESP32-WROOM-32` clasico,
+> con `BR/EDR` y por tanto SPP.** Se reproduce con:
+>
+> ```
+> grep -n "BLQ-1" ESTADO.md
+> grep -n "N-107" roadmap.md
+> ```
+>
+> ✅ **Y hay medida de campo encima de la documental: el banco del 3-4/09 enlazo el telefono por
+> Bluetooth con la tarjeta.** Un modulo que solo hablara BLE no habria abierto ese socket.
+>
+> 🔴 **El matiz que NO se aplasta, porque es la mitad util del apartado:** la frase *"nadie ha leido
+> la serigrafia"* **sigue siendo cierta**. Lo que esta mal es la conclusion. `BLQ-1` **no lo cerro
+> el banco leyendo el blindaje: lo cerro la ficha tecnica del articulo comprado**, que ya lo
+> declaraba (N-107). *Antes de declarar algo bloqueado por una medida fisica, se censa que fuentes
+> escritas pueden responderlo ya: un bloqueo que se levanta leyendo no es un bloqueo.* La tabla de
+> familias de abajo **se conserva integra** porque es la que hay que mirar el dia que llegue un
+> modulo de otra procedencia.
+>
+> ⚠️ **Y las seis citas por numero de linea de este apartado ya no senalan al sitio** —verificado
+> hoy: `15_Lista...:69` apunta a la decision de las microSD, `10_Manual...:26` y `:91` a otra cosa—.
+> Se dejan sin renumerar a proposito: **renumerar a mano ya se probo aqui y las seis citas
+> renumeradas el 31/08 estan caducadas hoy.** Lo que se lee es el simbolo, con el `grep` de arriba.
+>
+> 🔴 **Lo que SI sigue bloqueando el montaje del ESP32, y conviene no confundirlo con esto: la
+> linea `A5`** —la fuente propia DC-DC 12 V a 5 V—, **que sigue sin pedirse**. Ver §1.5.
 
 **Dueno: el responsable.** No es una decision tecnica: es que **la app depende de la respuesta**.
 
@@ -2362,10 +2660,18 @@ existe para ese perfil— y eso ya costo una version entera de la app.
 > blindaje metalico** del modulo. `ESP32-WROOM-32E` es una respuesta; `ESP32-S3-WROOM-1` es otra.
 > **El rotulo del vendedor no distingue.**
 >
-> **SIN VERIFICAR:** nadie ha leido todavia la serigrafia de los modulos que llegaron a obra el
+> ~~**SIN VERIFICAR:** nadie ha leido todavia la serigrafia de los modulos que llegaron a obra el
 > 28/08. La lista de compras los registra como *"referencia sin confirmar"*
 > (`15_Lista...:69`). **Es una comprobacion de treinta segundos con el modulo en la mano y decide
-> si hay que rehacer el transporte de la app entero.**
+> si hay que rehacer el transporte de la app entero.**~~
+>
+> ✅ **TACHADO el 07/09: la pregunta ESTA CONTESTADA, aunque no por la via que este parrafo
+> exigia.** La referencia esta **CONFIRMADA POR FICHA** desde el 31/08 (`BLQ-1` / N-107) y la lista
+> de compras ya no dice *"sin confirmar"*: dice **DESBLOQUEADA**. **No hay que rehacer el transporte
+> de la app**, y el banco del 3-4/09 lo confirmo abriendo el socket SPP contra la tarjeta.
+>
+> ⚠️ **Lo unico que sigue sin anotarse de esos modulos es la CANTIDAD recibida y el formato de
+> pines (30 o 38)** — no bloquea el firmware ni la app; bloquea fabricar la placa portadora `A8`.
 
 ### 3.2 🟠 El cristal `Y2`: se repara, o el STM32 lleva reloj de software
 
@@ -2477,10 +2783,56 @@ sin ninguna via construida; la via elegida es la unica que ya estaba construida.
    01_Firmware/Repetidor/src/            grep -rn "watchdog|esp_task_wdt|WDT"  ->  CERO coincidencias
 ```
 
-**El ESP32 de este proyecto no tiene watchdog.** ~~Lo dice tambien `roadmap.md:2706`, en la casilla
-de H-3: *"(El Repetidor ESP32 sigue sin watchdog.)"*~~ → 🔴 **AFIRMACION FALSA desde el 05/09:
-esa frase ya no esta en el `roadmap.md`** —`grep -c "sigue sin watchdog" roadmap.md` da **0**, y el
-control es que `N-17` en ese mismo fichero da **5**—. La entrada se fue al historico con
+> ⚠️ **07/09 — ese tercer comando esta MAL ESCRITO y su cero es cierto POR CASUALIDAD.** Le falta
+> `-E`: sin ella el `|` es literal y busca la cadena `watchdog|esp_task_wdt|WDT` entera, que no
+> existe en ningun fichero del proyecto. **Habria dado cero tuviera o no watchdog el Repetidor.**
+> Con `grep -rn "watchdog\|esp_task_wdt\|WDT" 01_Firmware/Repetidor/src` el cero sigue siendo
+> cero — o sea que **la conclusion sobre el Repetidor aguanta**, pero el comando publicado no
+> demuestra nada y **es el mismo defecto que el control negativo de §1.7**. Las dos primeras lineas
+> del bloque (`IWatchdog.begin`) si se verificaron hoy: siguen ahi, en `Maestro/src/main.cpp` y
+> `Esclavo/src/main.cpp`. *(La cita del Maestro decia `:52` y hoy es `:53` — se localiza con
+> `grep -n "IWatchdog.begin" 01_Firmware/*/src/main.cpp`, que no caduca.)*
+
+~~**El ESP32 de este proyecto no tiene watchdog.**~~
+
+> # 🔴 07/09 — «EL ESP32 DE ESTE PROYECTO» YA NO ES UNO SOLO, Y LA FRASE ES FALSA PARA EL QUE IMPORTA
+>
+> **Hoy hay DOS firmwares de ESP32 en el arbol, y la medida de arriba solo mira uno:**
+>
+> ```
+> $ grep -rn "watchdog\|esp_task_wdt\|WDT" 01_Firmware/Repetidor/src        -> 0    <-- lo que mide el bloque de arriba
+> $ grep -rn "esp_task_wdt" 01_Firmware/ESP32_Expansion/src                 -> 5    <-- el que lleva el puente
+> ```
+>
+> **El ESP32 del PUENTE —`01_Firmware/ESP32_Expansion/`, entrado el 31/08 en `d2427c2`— SI tiene
+> watchdog**, con su `ESP32_WDT_MS` y su pack. El que sigue sin tenerlo es el **Repetidor**, que
+> ademas **no esta en la configuracion vigente**: hoy son **2 radios en enlace directo, sin
+> repetidor**.
+>
+> **Es la quinta cara de la regla del instrumento (`CLAUDE.md` §4): no fallo la herramienta ni el
+> formato — fallo que el mismo nombre designa dos cosas.** Antes de publicar un *"no existe"* sobre
+> una capacidad, se busca la capacidad **en las dos puntas que pueden tenerla**.
+>
+> ⚠️ **Esto NO reabre la decision de §3.3**, que se tomo por otro motivo y sigue en pie; lo que
+> cambia es que la **opcion 1 (watchdog en el ESP32) ya no esta «sin construir»: esta construida en
+> el puente.** Quien la evalue tiene que mirar `ESP32_Expansion/src/vigilante.cpp`, no el Repetidor.
+>
+> ~~Lo dice tambien `roadmap.md:2706`, en la casilla
+> de H-3: *"(El Repetidor ESP32 sigue sin watchdog.)"*~~ → 🔴 **AFIRMACION FALSA desde el 05/09:
+> esa frase ya no esta en el `roadmap.md`** —`grep -c "sigue sin watchdog" roadmap.md` da **0**.
+>
+> 🔴 **Y su CONTROL NEGATIVO se ha caido, que es lo que hace que ese cero ya no demuestre nada.**
+> El documento declaraba *"el control es que `N-17` en ese mismo fichero da **5**"*. Hoy:
+>
+> ```
+> $ grep -c "N-17" roadmap.md          -> 0     <-- el control negativo NO encuentra
+> $ grep -c "N-17" roadmap_hist.md     -> 5     <-- se mudo aqui
+> ```
+>
+> El `roadmap.md` se partio en vivas + historico (`0f4662b`), y **con el control caido no se puede
+> distinguir *"la frase no esta"* de *"este ya no es el fichero donde estaba"*.** El control que
+> sirve hoy sobre `roadmap.md` es `grep -c "N-107" roadmap.md` → **1**. *(La conclusion no cambia:
+> la frase se fue al historico con `b327550`.)* La entrada se fue al historico con
 `b327550`. Lo que **si** sigue en pie, y es lo que sostiene el parrafo, es la medida sobre el
 propio fuente del repetidor. Y `MAPEO_TARJETA_KICAD.md` §5 lo lista como
 ventaja de portar el repetidor al STM32.
@@ -2579,6 +2931,64 @@ el C++"*.~~ → **la decision se tomo, y su sitio era exactamente ese.**
 > **resto** de `IOT_CONFIG`, que tampoco tiene consumidores. Anexo, punto 6.
 
 ### 3.5 🟡 La Camara 1: se queda en `PB0`/`J14`, o se muda a `J16`
+
+> # 🔴 07/09 — ESTA SECCION CHOCA CON `D-2`, Y LAS CAMARAS YA ESTAN COMPRADAS
+>
+> **No lo resuelvo yo: lo apunto, porque es de calle y decide donde enchufa un instalador.**
+>
+> | | dice |
+> |---|---|
+> | **`DECISIONES.md`, fila `D-2` (28/08)** | *"`BOTON3` (`PB14`, p10) y `BOTON4` (`PB15`, p12) son las DOS CAMARAS"* — o sea **las dos a `J16`**, y `p12` es la Camara 1 |
+> | **esta seccion** | *"el sesgo sigue siendo quedarse en `PB0`/`J14`"* |
+>
+> **Las dos estan razonadas y las dos siguen vivas.** `D-2` gana en decisiones —es la tabla
+> vinculante— pero **su motivo escrito es de reparto de pines, no de riesgo de montaje**, y el
+> riesgo que esta seccion mide es real y esta en cobre: `p12` es el punto del conector **mas cercano
+> a la red de 12 V** (`1,359 mm`), `J16` p1 reparte **12 V crudos**, y **ninguna entrada de campo
+> lleva proteccion en serie** (§3.6, N-120). `J14` no reparte 12 V y ademas trae antirrebote por
+> hardware.
+>
+> 🔴 **Lo que hace esto urgente y no academico: las camaras ya estan compradas.** Mientras las dos
+> filas no coincidan, **dos personas que lean documentos distintos cablean la misma camara en
+> borneras distintas**, y una de las dos lecturas deja un cable de campo a 1,359 mm de los 12 V.
+>
+> ⚠️ **Y hay un dato asimetrico que hay que tener delante al decidirlo, medido en banco el 03/09:
+> `p10` se cablo y funciono, sin demandas fantasma. `p12` NO se ha cableado nunca.** O sea que
+> *"las dos a `J16`"* no esta ejercido: lo ejercido es **una**.
+>
+> # 🔴 RECTIFICACION DEL 07/09, UNAS HORAS DESPUES — LA PREGUNTA DE ARRIBA ESTABA MAL HECHA, Y LA HABIA ESCRITO YO
+>
+> **Aqui se pregunto al responsable *«la SEGUNDA camara, ¿va a `J16` p12 o a `J14`?»*. Esa pregunta
+> se apoya en una premisa que no medi: que hubiera DOS camaras por placa. NO LAS HAY.**
+>
+> ```
+> $ grep -n "ESTA VACIO" 01_Firmware/Maestro/src/botones.cpp
+> 370:  // que en todos los equipos que se monten UNO DE ESTOS DOS PINES ESTA VACIO. Con el
+> ```
+>
+> **`D-13` es UNA CAMARA POR POSTE, y las dos unidades compradas son una para cada poste** — lo dice
+> la linea `A2` de la lista de compras (*«2 unidades … una por poste»*) y **el firmware DEPENDE de
+> ello por escrito**: la exencion del vigilante —no acumular silencio en un pin que nunca dio un
+> flanco— existe justamente porque **el otro pin esta vacio a proposito**. Sin esa exencion el equipo
+> emitiria `$ALARM CAM_CIEGA` de una camara que no existe, y ese `CIEGA` **taparia** en el campo
+> `CAM:` el estado de la camara que si esta.
+>
+> **Lo que de verdad esta decidido, y esta seccion no se habia enterado:** la linea `A2` del 05/09
+> manda las camaras a **`J16`**, *«en los pines donde estaban el Boton 3 y el Boton 4»*, y deja
+> `PB0`/`J14` **libre para un posible fin de carrera de barrera**. O sea que §3.5 —*«la Camara 1 se
+> queda en `PB0`/`J14` o se muda a `J16`»*— **no es una decision abierta: esta cerrada desde el
+> 05/09 a favor de `J16`**, y lo que sigue vivo de este apartado es solo su AVISO ELECTRICO, que no
+> caduca: `p12` es el punto del conector mas cercano a los 12 V (`1,359 mm`) y ninguna entrada de
+> campo lleva proteccion en serie (§3.6).
+>
+> ✅ **Por eso el pin que se cablea es `p10`** —el unico ejercido en banco, paso 21, sin demandas
+> fantasma— **y `p12` se deja vacio**, que es lo que el vigilante da por supuesto.
+>
+> 🔴 **La leccion, y va escrita porque el error es mio y de los caros:** `CLAUDE.md` §2.quater —*una
+> pregunta bien hecha sobre un diagnostico sin medir le hace decidir algo que no existe, y encima le
+> deja la culpa del resultado*—. Lo cazo un agente que fue a medir la exencion del vigilante, no yo.
+> **Antes de ofrecer una eleccion, se mide la causa; y cuando la medida tumba la pregunta, la
+> respuesta correcta es «la pregunta no va».**
 
 **Dueno: quien monte**, con el visto bueno tecnico.
 
@@ -2896,6 +3306,39 @@ libres de esta placa**. El que se gaste **ya no esta** para lo que llevaba escri
 | `J13` — el zumbador | **el aviso acustico**, que es la unica salida no visual del equipo |
 | nada (se dejan como estan) | cero coste, y **tres canales fabricados sin usar** en una placa que ya no tiene mas moldes libres |
 
+> # 🔴 AÑADIDO EL 07/09 — ESTA DECISION YA TIENE UN CUARTO PRETENDIENTE, Y ES `D-14`
+>
+> **`D-14` es una fila VIGENTE de `DECISIONES.md`** —*"la ENTRADA de alarma de la camara (grabar
+> cuando el controlador cierra un contacto) es la via que NO depende de la casilla bloqueada"*—, y
+> **para cerrar ese contacto hace falta una salida.** Las unicas libres de esta placa son
+> **exactamente estas tres**. O sea que `D-14` no es un tema aparte: **es un cuarto candidato a
+> gastar uno de los tres canales**, y nadie lo habia escrito en esta tabla.
+>
+> 🔴 **Y lo primero que hay que saber, medido hoy por separado: `D-14` NO ESTA IMPLEMENTADA. Cero
+> lineas, en las dos puntas.**
+>
+> ```
+> $ grep -rn "ROJO_PEATON\|VERDE_PEATON\|BUZZER" 01_Firmware/Maestro/src/*.cpp 01_Firmware/Esclavo/src/*.cpp
+> 01_Firmware/Maestro/src/main.cpp:35://   ROJO_PEATON y VERDE_PEATON, que estaban sin custodia.
+> ```
+>
+> **Una sola coincidencia en las dos puntas, y es un COMENTARIO.** Sin `pinMode`, sin
+> `digitalWrite`, sin un llamador. Fuera de `semaforo.cpp`, la unica salida que el Maestro mueve es
+> la direccion del RS485. **La decision esta tomada, el cobre fabricado, y no hay una linea que
+> cierre ese contacto** — y era el argumento de una compra.
+>
+> ⚠️ **Y antes de que nadie tire un cable de ahi a la entrada de alarma de la camara, hay dos cosas
+> `SIN VERIFICAR` a los dos lados y ninguna es menor:**
+>
+> | lado | lo que no se sabe |
+> |---|---|
+> | **nuestro borne** | esta a **~12 V en reposo**, no a 0 V (pull-up de 1 kOhm + LED al riel de 12 V, en el cobre), y **el opto NO crea masa separada**: hay **una sola red `GND`**, asi que lo que se cuelgue comparte la masa del controlador |
+> | **la camara** | que espera electricamente su `ALARM IN` — **sin tension, sin corriente**, y las palabras *"dry contact"* y *"relay"* **no aparecen en las 110 paginas** del manual del fabricante (`D-14`, apartado de `SIN VERIFICAR`) |
+>
+> **Conectar una salida que en reposo esta a 12 V, con masa comun, a una entrada cuyo regimen no
+> conocemos, no es un cableado: es un ensayo.** Va con la camara delante y con el multimetro, y
+> **antes** de escribir la linea de firmware — no despues.
+
 > **Este documento NO elige, y no por prudencia: porque no hay ninguna decision escrita que renuncie
 > a ellos.** `DECISIONES.md` no tiene ni una fila sobre los peatonales ni sobre el zumbador. Lo que
 > se ha escrito hasta hoy —en este mismo documento y en el Manual 2— es que **estan MUERTOS en el
@@ -3119,9 +3562,59 @@ driver hay que escribirlo en el ESP32.
 
 > 🔴 **05/09 — VUELVE A SUBIR, Y CASI ENTERO: `D-1` retira el mando como HARDWARE, asi que las tres
 > vias de secuencia dejan de ser ejecutables otra vez.** De las cinco que este apartado llego a
-> contar **queda UNA**: `SET_MODO:DEGRADADO` por Bluetooth… **y solo en el MAESTRO**, porque en el
+> contar **queda UNA**: `SET_MODO:DEGRADADO` por Bluetooth… ~~**y solo en el MAESTRO**, porque en el
 > Esclavo no existe ni un `SET_MODO`. **Consecuencia dura, y hay que escribirla en esa ficha: en el
-> ESCLAVO no hay hoy NINGUNA via de entrar ni de salir del Modo Degradado.**
+> ESCLAVO no hay hoy NINGUNA via de entrar ni de salir del Modo Degradado.**~~
+>
+> # 🔴 07/09 — ESA CONSECUENCIA «DURA» ES FALSA DESDE `D-18`, Y HABIA UN SEGUNDO AGUJERO DEBAJO
+>
+> **`SET_MODO:DEGRADADO` existe HOY en las DOS puntas.** Medido, y se cita el simbolo:
+>
+> ```
+> $ grep -n 'strcmp(accion, "SET_MODO:DEGRADADO")' 01_Firmware/Maestro/src/bluetooth.cpp 01_Firmware/Esclavo/src/bluetooth.cpp
+> Maestro/src/bluetooth.cpp:613:  } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
+> Esclavo/src/bluetooth.cpp:694:  } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
+>
+> $ grep -c "SET_MODO" 01_Firmware/Esclavo/src/bluetooth.cpp
+> 10
+> ```
+>
+> Entro con `D-18` (`15e8cf3`): la puerta —`degradado_entrar()`— ya estaba construida y probada; lo
+> que se le devolvio fue **la llave**, que era el mando. **`DECISIONES.md` ya corrigio esta misma
+> cifra hoy** en la fila `A-11` —donde ademas se descubrio que el numero del Maestro eran SIETE
+> `SET_MODO` y no ocho, porque el `grep` **contaba un comentario que decia que ese comando no
+> existe**—.
+>
+> 🔴 **Y LO QUE SIGUE ABIERTO, QUE ES LO QUE HAY QUE ESCRIBIR EN LA FICHA DEL MANUAL 8: `D-18` NO
+> TIENE CANAL DE VUELTA.** El Esclavo entra en Degradado por app, pero **no existe ningun comando de
+> radio por el que lo anuncie**, y el getter de estado del Maestro **solo sabe devolver color**:
+> **el poste 1 no puede enterarse de que el poste 2 esta en Degradado.**
+>
+> **Por que importa y no es un detalle de telemetria:** el Degradado es **el unico modo que da verde
+> sin confirmar la otra punta**. La propia fila `D-18` de `DECISIONES.md` pedia *«se mide y se
+> escribe que hace el Maestro mientras el Esclavo esta dentro»* — **no esta sin escribir por
+> descuido: esta sin canal.** Cualquier procedimiento que mande al operario mirar el estado del
+> Esclavo **desde el Maestro** describe algo que no puede ocurrir.
+>
+> ⚠️ **MATIZ MEDIDO, y hay que darlo porque «no se puede saber» a secas seria otra frase falsa:
+> el propio ESCLAVO SI lo publica en SU `$STATUS`.** `obtenerNombreModo()` de
+> `Esclavo/src/bluetooth.cpp` devuelve `SUBORDINADO` · **`DEGRADADO`** · `RENDIDO`, asi que **una app
+> conectada AL POSTE 2 lo ve.**
+>
+> **Las dos cosas son ciertas y la distincion es operativa:**
+>
+> | pregunta | respuesta |
+> |---|---|
+> | ¿puede el **Maestro** enterarse? | 🔴 **no.** Ningun comando de radio lo anuncia, y `coordinador_estadoEsclavo()` solo devuelve color (`ROJO`/`VERDE`/`AMBAR`/`?`), nunca modo |
+> | ¿puede el **operario** enterarse? | 🟡 **si, pero yendo al poste 2 con el telefono.** No hay vista de cruce: hay que conectarse a las dos puntas una por una |
+> | ¿puede el Maestro **reaccionar**? | 🔴 **no**, y es lo que decide: el arbitraje del ciclo se queda ciego mientras la otra punta da verde por reloj |
+>
+> ⚠️ **Y la tercera pata, que golpea al tecnico que sube al poste 2: la antiguedad de la ultima
+> sincronizacion NO VIAJA en la trama del Esclavo, y sus dos getters se quedaron sin lector.**
+> `degradado_syncVencida()` y `degradado_avisoLimite()` tienen **como unico llamador
+> `Esclavo/src/menu.cpp`**, la pantalla que `D-17.bis` retira del equipo. Sin menu y sin campo en el
+> `$STATUS`, **ese dato existe dentro del micro y no sale por ningun sitio, ni hay sustituto por
+> app.**
 >
 > 🟢 ~~**REBAJADO EL 31/08.** Este apartado daba las cuatro vias por muertas. Con el mando conservado
 > en `A` y `B` (§1.6), **solo cae la cuarta** —la entrada por pantalla—. `A·B·A·B`, `A·A·A` y `B·B·B`

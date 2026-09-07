@@ -14,7 +14,7 @@
 > | **Cuántas radios toca** | **ninguna** | **cuatro** en total en el sistema |
 > | **Firmware** | 🟢 `01_Firmware/ESP32_Expansion/` | 🟠 `01_Firmware/Repetidor/` |
 > | **Cómo se llama en Bluetooth** | 🔵 **se auto-rotula `SEM-<serie>-M` o `SEM-<serie>-E`** *(y `SEM-SIN-MATRICULA` mientras no lo ha aprendido)* | **no ofrece Bluetooth SPP.** Si busca un `SEM-…` y no sale, puede que tenga delante el otro |
-> | **Estado hoy** | firmware escrito y compilando; **sin pasar banco** | **NO DESPLEGADO.** Fuera de la configuración vigente |
+> | **Estado hoy** | 🟢 **firmware ESCRITO y compilando** —`01_Firmware/ESP32_Expansion/`, entró el 31/08 en `d2427c2`, con rótulo Bluetooth (`ROTULO_PREFIJO "SEM-"`, `contrato.h`) y **watchdog** (`esp_task_wdt.h` en `vigilante.cpp`)—. 🔴 **Sin pasar banco: el Bluetooth NO subió en la sesión del 3–4/09** | **NO DESPLEGADO.** Fuera de la configuración vigente *(2 radios en enlace directo)* |
 > | **Documento** | `05_Funcional/18_Especificacion_Firmware_ESP32.md` | **éste** |
 >
 > ### 🔵 05/09 (`N-145`) — EL DE EXPANSIÓN DEJÓ DE SER ESTRICTAMENTE «VERBATIM», Y SE DICE CUÁNTO
@@ -31,8 +31,13 @@
 >
 > 🔴 **Esto NO afecta al ESP32 del REPETIDOR, que es el de este manual: el repetidor sigue validando
 > FORMATO y no tocando NADA.** El sello vive en `ESP32_Expansion/src/puente.cpp`, en el otro
-> firmware. 🛑 **Y sin un `DS3231` conectado —no está comprado, línea `A6`— la hora seguirá saliendo
-> en blanco: eso es el arreglo callándose bien, no fallando.**
+> firmware. 🛑 ~~**Y sin un `DS3231` conectado —no está comprado, línea `A6`—**~~ 🔧 **CORREGIDO EL
+> 07/09: los `DS3231` ESTÁN COMPRADOS Y PUESTOS — son DOS, uno por `ESP32`, con pila propia**
+> (`DECISIONES.md` `A-5`, 05/09), y por eso **`N-145` queda confirmada en cobre**: el
+> `HORA:22:19:58` de la cinta del banco es real. ✅ **Lo que del aviso sigue valiendo: si el módulo
+> no entrega hora válida** —bus mudo, oscilador parado (`OSF`), modo 12 h o registros incoherentes—
+> **la hora sale en blanco, y eso es el arreglo callándose bien, no fallando.** El motivo se lee con
+> **`CMD:LEER_RTC`** (`D-17`), que contesta `$ERR ... DESC:` por causa.
 
 > ### 🔵 04/09 — LA FORMA MÁS BARATA DE SABER QUÉ PLACA TIENE DELANTE, ANTES DE CARGAR NADA
 >
