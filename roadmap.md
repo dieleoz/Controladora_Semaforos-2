@@ -335,6 +335,18 @@ cuanto se acerca cada paso a las luces.**
 | **3** | **`D-21` · que la hora que MIENTE llegue a las luces**, mas su publicacion en la app | 🔴 **SI** | la deteccion ya existe (`OSF`); lo que falta es el camino hasta el ambar |
 | **4** | **`D-14` · el contacto que hace grabar a la camara.** Antes, **medir con multimetro** si su entrada admite los ~12 V con masa compartida | **NO** | independiente de todo lo anterior; la via esta confirmada en el manual de la camara |
 
+> ✅ **`D-22` VA SOLO Y VA PRIMERO — decidido el 07/09, y el motivo es su MODO DE FALLO, no su
+> beneficio.** Se planteo si convenia construirlo dentro de `D-20` —una sola carga, un solo banco—.
+> **No.** El riesgo de `D-22` es *«la tarjeta no enciende»*: si `Y1` no oscila, el nucleo se cuelga
+> antes de `setup()` y el equipo queda **a oscuras y sin reiniciarse**. **Ese fallo hay que verlo
+> AISLADO y en cinco minutos**, no enredado con una reescritura del reloj, donde no se sabria si la
+> culpa fue del cristal o del codigo nuevo.
+>
+> **Y esa misma carga ES el ensayo que pidio el responsable** —*«si oscila, que se vea en los logs o
+> en una pantalla de la app; con eso sabriamos»*—: enciende, **declara con que reloj arranco**, y
+> con eso queda medido si `Y1` sirve. **Una carga que solo cambia el cristal contesta una pregunta
+> abierta; metida dentro de `D-20` no contesta ninguna.**
+
 > 🔴 **El 1 y el 4 no tocan el ciclo. El 2 y el 3 SI**, y esos van con la compuerta delante y
 > sabiendo que **no hay banco desde el 31 de julio**. `CLAUDE.md`: *nada sube a campo sin pasar
 > banco*, y construir no es subir — pero un cambio en el unico modo que da verde sin confirmar la
