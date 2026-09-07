@@ -172,6 +172,41 @@ antes de publicar un «no hay»:
 > QUIETO.** El acta del 07/09 avisa ella misma: *«el arbol tenia cambios sin commitear al medir»*.
 > `CLAUDE.md` §7: **una cifra correcta de un binario que quiza ya no existe.**
 
+### 3.4.bis · 🔴 `D-20` — el reloj se muda del STM32 al ESP32. DECIDIDO el 07/09, sin construir
+
+> **La autoridad de la hora es el ESP32, siempre y para todo. Al STM32 no se le pregunta nunca.**
+> La app se la da al **ESP32 Maestro**, ese al **ESP32 Esclavo**, y el STM32 de cada punta la recibe
+> **de su propio ESP32**. Si las dos puntas se desincronizan, **manda la del ESP32 Maestro**.
+
+**El motivo es de hardware.** `reloj.cpp` de las dos puntas es `STM32RTC` sobre `LSE_CLOCK`, o sea
+**el cristal `Y2`, confirmado muerto (N-17)**; el STM32 no tiene ni pila ni cristal. Cada ESP32 ya
+lleva su `DS3231` con pila y **funcionando**. El propio fuente ya avisaba de lo que pasa si se
+finge lo contrario: *«escribir la hora sobre un contador parado la deja visible pero sin avanzar, y
+`horaValida` en `true` seria una mentira sobre la que el Modo Degradado se autorizaria»*.
+
+**Lo que hay que construir, medido el 07/09:**
+
+| | que | nota |
+|---|---|---|
+| **1** | `reloj.cpp` de las dos puntas deja de ser el RTC por hardware y pasa a **reloj de software sembrado por su ESP32** y refrescado. `reloj_enHora()` cambia de significado: de *«mi cristal cuenta»* a *«mi ESP32 me dio la hora hace poco»* | toca **SFTY-18 y SFTY-23** |
+| **2** | Un mando nuevo **ESP32 -> STM32** que siembre la hora. **El camino fisico ya existe**: `enlace_stm32.cpp` escribe hacia el STM32 | no hace falta hardware |
+| **3** | Las **48 h** de rendicion salen hoy del **contador crudo del RTC**, monotono y superviviente al apagado. Tiene que pasar a venir del ESP32 **o se pierde en el primer corte** | es la mitad que se olvida |
+
+**Topologia, y conviene decirla en voz alta: los dos ESP32 NO SE HABLAN.** El unico enlace entre
+postes es la radio **entre los STM32**, asi que la hora viaja
+`ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`. **Los STM32 quedan de carteros de la hora, no
+de duenos** — que es justo lo decidido.
+
+**Lo que se gana y lo que se pierde, sin adornos:** un reloj de software **no sobrevive a un corte
+de luz**, pero el `DS3231` si y vuelve a sembrar a los segundos de arrancar. **Hoy el STM32 no
+tiene la hora NUNCA**, asi que es estrictamente mejor.
+
+> 🔴 **Y esto es lo que no puede faltar al planificar la sesion de banco: MIENTRAS `D-20` no este
+> construida, el Modo Degradado del poste 2 NO SE PUEDE PROBAR.** Su guarda de entrada abre con
+> `if (!reloj_enHora()) return DEG_RECHAZO_SIN_HORA;`, y en esa punta esa bandera es **falsa
+> siempre**. O sea: `D-18` esta construida —el comando existe y llega— **y el equipo va a contestar
+> que no, correctamente, todas las veces**. Quien lo pruebe sin saber esto lo anotara como defecto.
+
 ### 3.5 · 🔴 Lo que salio de ANCLAR las decisiones en el codigo (07/09) — `N-158`
 
 El 07/09 se anclaron las `D-x` vigentes en el fuente: **de 5 marcas a 16**. El motivo lo dijo el
@@ -292,6 +327,18 @@ solo llamador— repitiendose en el modulo nuevo, **y esta vez sin instrumento q
 | **N-152** | `d6ce67e` | **el Esclavo avisa de que RETIRA su ambar — y en `MODO_AMBAR` el Maestro ESTABA SORDO**. **Se ejerce cancelando el ambar desde el Poste 2** |
 | **N-153** | `79ef5a6` | **la talanquera se publica y se dibuja**: la app no la ensenaba. **Se ejerce mirando la pantalla con la pluma arriba y abajo** |
 | **N-157** | `4b90f98` + `ee957ef` | **la camara se vigila a si misma** (fase 1 de `D-13`). 🔴 **Su propio texto lo dice: `CAM_CIEGA` a su valor de produccion NO ES EJECUTABLE en una sesion de banco. El camino esta comprobado en su FORMA, no en su TIEMPO** — y esa es justo la clase de defecto que un pack de forma no puede ver |
+
+> 🔴 **LO QUE ESTA SESION DE BANCO NO VA A PODER PROBAR, y hay que saberlo ANTES de subir al poste
+> —no descubrirlo alli—:**
+>
+> | | por que |
+> |---|---|
+> | **El Modo Degradado del poste 2** (`D-18`) | su guarda abre con `if (!reloj_enHora())` y en esa punta esa bandera es **falsa siempre**: el cristal `Y2` esta muerto. El comando existe y llega; **el equipo contestara que no, correctamente, todas las veces**. Lo destraba `D-20` (§3.4.bis), decidida y **sin construir**. Quien lo pruebe sin saber esto lo anotara como defecto |
+> | **`CAM_CIEGA` en su tiempo real** | son 6 h de paso abierto. **No es ejecutable en una sesion.** Solo se puede ejercer con una compilacion de umbral reducido, **y esa compilacion no es la que va a campo** |
+> | **`D-14`, que la camara grabe al cerrar el contacto** | **no existe en el firmware**: cero anclas en las dos puntas (§3.5). La via esta confirmada en el manual de la camara; lo que falta es nuestro lado |
+>
+> **Los tres se anotan como NO PROBADO, no como fallo.** Es la distincion que el banco del 3-4/09
+> ya obligo a escribir: un *«no se pudo probar»* no es un *«sigue roto»* ni un *«ya esta»*.
 
 **Y los que no son de esos siete:**
 
