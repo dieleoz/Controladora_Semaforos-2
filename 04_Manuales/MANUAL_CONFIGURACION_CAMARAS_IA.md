@@ -30,11 +30,32 @@
 > `05_Funcional/9_…`, paso 39 de la guía de banco). **Si la casilla no está, este cableado no sirve y
 > hay que ir por otro diseño** — decisión del responsable, no de un manual.
 
-> ## 🔴 CONFLICTO ABIERTO, y se anota en vez de resolverse aquí
+> ## 🟢 ~~CONFLICTO ABIERTO~~ — RESUELTO, y la respuesta ya estaba escrita desde el 05/09
 >
-> **`D-13` dice que las cámaras no dan ni quitan verde. El firmware que corre las lleva a
-> `demanda_solicitar()`, que es exactamente pedir paso.** Las dos cosas están medidas y las dos son
-> ciertas hoy:
+> ~~**`D-13` dice que las cámaras no dan ni quitan verde. El firmware las lleva a
+> `demanda_solicitar()`, que es exactamente pedir paso.**~~ **No hay tal conflicto**, y lo decide
+> quién LEE esa demanda, no quién la escribe. Medido el 07/09:
+>
+> ```
+> $ grep -rn "demanda_hayLocal" Maestro/src Maestro/include   (lectores reales)
+>     modo_inteligente.cpp:217        <-- el UNICO
+>     modo_automatico.cpp   -> cero
+>     coordinador.cpp       -> cero
+> ```
+>
+> **En Automático y en Manual las cámaras NO tocan el ciclo** —que es literalmente lo que dice
+> `D-13`—. La demanda vive **sólo dentro del Modo Inteligente**, donde `D-19` la acota: **suelo = el
+> tiempo que configura el operario, techo = el doble**. Ahí la cámara **sólo SOSTIENE un verde:
+> nunca lo adelanta ni lo acorta**, y con la cámara muerta el ciclo vuelve a los tiempos
+> configurados — **la ausencia no autoriza nada**, que es la primera de las tres cosas que `D-13`
+> declara no negociables.
+>
+> 🔴 **La lección no es del firmware, es de quien escribió esto:** se publicó como conflicto y se le
+> llevó al responsable como decisión abierta **sin buscar antes si ya estaba contestada**. Lo
+> estaba, en `roadmap_hist`: *«las cámaras no hacen nada en Auto ni en Manual»*.
+>
+> Lo que sigue debajo se conserva porque **la medida del fuente es correcta** y explica por dónde
+> entra el pin:
 >
 > ```
 > $ grep -n "CAM_J16" 01_Firmware/Maestro/src/botones.cpp

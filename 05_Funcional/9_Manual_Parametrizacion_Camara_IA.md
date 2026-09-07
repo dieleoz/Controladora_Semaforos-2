@@ -1169,10 +1169,27 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 
 ### Paso 3: Configuración de la Analítica Inteligente
 
-> # 🛑 07/09 — ANTES DE DIBUJAR LA ZONA: **PREGUNTE QUÉ TIENE QUE MIRAR ESTA CÁMARA**
+> # 🟢 07/09 — RESUELTO: **LA ZONA ES EL BARRIDO DE LA PLUMA** (`D-13`)
 >
-> **Una cámara sólo puede llevar UNA regla, y hay dos respuestas vivas a la vez sobre dónde
-> apuntarla. Las dos están medidas, ninguna está derogada, y este manual NO elige.**
+> ~~ANTES DE DIBUJAR LA ZONA: pregunte qué tiene que mirar esta cámara. Hay dos respuestas vivas a
+> la vez y este manual NO elige.~~ — **La pregunta no iba: `D-13` ya la había cerrado el 05/09, y
+> las dos «respuestas vivas» no competían.** Medido el 07/09:
+>
+> ```
+> $ grep -rn "demanda_hayLocal" Maestro/src Maestro/include   (lectores reales)
+>     modo_inteligente.cpp:217        <-- el UNICO
+>     modo_automatico.cpp   -> cero
+>     coordinador.cpp       -> cero
+> ```
+>
+> **En Automático y en Manual las cámaras no tocan el ciclo**, que es lo que dice `D-13`. La demanda
+> vive **sólo dentro del Modo Inteligente**, y ahí `D-19` la acota: la cámara **SOSTIENE** un verde
+> —hasta el doble del tiempo configurado, saturado al máximo vial— y **nunca lo adelanta ni lo
+> acorta**. Con la cámara muerta, el ciclo vuelve a los tiempos configurados.
+>
+> **Así que se dibuja la zona de `D-13`: el BARRIDO DE LA PLUMA.** Las dos cámaras igual.
+>
+> Lo que sigue se conserva porque la medida del fuente es correcta y explica el camino del pin:
 >
 > | | qué dice | dónde vive |
 > |---|---|---|
