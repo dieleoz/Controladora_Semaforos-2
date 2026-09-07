@@ -158,6 +158,8 @@ void despachador_observar(const char* linea, bool propagada) {
   // una segunda copia del contrato que alguien tiene que sincronizar, y el dia que
   // difirieran un comando funcionaria por una puerta y seria rechazado por la otra.
   // Buscando solo "SET_RTC:" el puente transporta el PIN sin conocerlo.
+  // D-20: LA AUTORIDAD DE LA HORA ES EL ESP32 (DS3231). El puente atiende SET_RTC,
+  // escribe en el DS3231 y propaga la orden al micro STM32 por el puerto serie.
   const char* p = strstr(linea, "SET_RTC:");
   if (p == NULL) return;
   p += 8;

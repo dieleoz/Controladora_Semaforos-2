@@ -5,6 +5,8 @@
 // ---------------------------------------------------------------------------
 // SFTY-18 — Reloj de tiempo real (RTC interno del STM32)
 //
+// D-20: LA AUTORIDAD DE LA HORA ES EL ESP32 (DS3231).
+// El STM32 siembra su base de tiempo de software a partir del ESP32.
 // Usa el RTC que el propio microcontrolador lleva dentro, con el cristal Y2 de
 // 32.768 kHz que ya viene en la tarjeta y una pila CR2032 en VBAT.
 // No ocupa ningun pin: el I2C por hardware esta copado (PB6/PB7 los usa la LCD y

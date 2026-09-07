@@ -693,38 +693,14 @@ static void procesarComando(const char* cmd) {
       bluetooth_reportarEvento("APP_BLUETOOTH", "TIEMPOS_CAMBIADOS");
     }
   } else if (strncmp(accion, "SET_RTC:", 8) == 0) {
-    // D-15 - ESTA PUNTA YA NO PONE LA HORA, Y POR ESO NO CONTESTA A LA ORDEN.
-    //
-    // EL DEFECTO QUE SE CIERRA AQUI, Y NO ES DE FORMA: el operario mandaba UNA orden de
-    // poner la hora y le contestaban DOS aparatos. El puente decia
-    // "$ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK" -la puso en SU DS3231, que es cierto- y
-    // cuatro segundos despues esta punta decia "$ERR,CMD:SET_RTC,DESC:NO_QUEDO_PUESTA"
-    // -en el suyo no entro, que TAMBIEN es cierto-. Las dos respuestas eran verdad y
-    // juntas eran una contradiccion sobre la orden del tecnico, que no tiene como saber
-    // cual de los dos relojes le importa.
-    //
-    // POR QUE LA CURA ES CALLARSE Y NO CONTESTAR MEJOR. No hay $ERR bueno para esto: un
-    // $ERR,CMD:SET_RTC de esta punta SIGUE siendo un segundo acuse a una sola orden, por
-    // muy bien redactado que este. D-15 lo dice en una linea -"es el UNICO que contesta a
-    // SET_RTC"-, y el unico es el que tiene el reloj. Una orden, un acuse.
-    //
-    // Y NO SE CAE AL else DE COMANDO DESCONOCIDO, QUE ES POR LO QUE LA RAMA SIGUE AQUI.
-    // Sin este strncmp la linea llegaria al final del despachador y saldria
-    // "$ERR,CMD:DESCONOCIDO": otra vez dos respuestas, y encima una que acusa a la app de
-    // mandar algo que no existe. La rama se conserva para CONSUMIR la orden en silencio.
-    //
-    // POR QUE EL SILENCIO NO DEJA AL TECNICO A CIEGAS, MEDIDO Y NO SUPUESTO: el SerialBT
-    // de esta punta es USART1 por PB6/PB7 al conector J17 (:29), y al otro lado de J17
-    // esta el ESP32 (contrato.h, GPIO16/17). O sea que NO HAY CAMINO por el que un
-    // SET_RTC llegue hasta aqui sin haber pasado antes por despachador_observar() del
-    // puente, y esa funcion contesta SIEMPRE -siete finales distintos, uno por motivo-.
-    // El acuse existe; lo emite quien puede saber si la hora quedo puesta.
-    //
-    // EL $EVENT NO ES UN ACUSE Y POR ESO SI CABE. Va al REGISTRO DE EVENTOS de la app
-    // -que ya lo pinta, cero lineas de JavaScript-, no a la orden: el emparejador de la
-    // app casa por CMD:SET_RTC y aqui no sale ese campo. Sirve para el dia que alguien
-    // monte un modulo Bluetooth tonto en J17 en vez del puente: entonces no habria acuse
-    // ninguno, y esta linea es lo unico que diria por que.
+    // D-20: LA AUTORIDAD DE LA HORA ES EL ESP32 (DS3231).
+    // El ESP32 reenvia el SET_RTC al STM32 para sembrar su extrapolador y propagar al Esclavo.
+    // D-15: Solo el ESP32 contesta al celular con $ACK/$ERR para evitar doble acuse.
+    int anio = 0, mes = 0, dia = 0, h = 0, m = 0, s = 0;
+    if (sscanf(accion + 8, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) == 6) {
+      reloj_ajustar((uint8_t)h, (uint8_t)m, (uint8_t)s, (uint8_t)dia);
+      coordinador_sincronizarHora();
+    }
     bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
   } else if (strcmp(accion, "REINICIAR_RELOJ") == 0) {
     // N-31. PIDE PIN porque BORRA LA HORA Y TODO EL RESPALDO -ciclo acordado, marca de

@@ -782,29 +782,13 @@ static void procesarComando(const char* cmd) {
     enviarTramaConCrc("$ERR,CMD:TEST_LEDS,DESC:NO_EN_SERVICIO_USE_EL_MAESTRO");
     bluetooth_reportarEvento("APP_BLUETOOTH", "TEST_LEDS_RECHAZADO");
   } else if (strncmp(accion, "SET_RTC:", 8) == 0) {
-    // D-15 - ESTA PUNTA YA NO PONE LA HORA, Y POR ESO NO CONTESTA A LA ORDEN.
-    //
-    // Es la misma rama que el Maestro y por el mismo motivo, pero AQUI PESA MAS: el
-    // Esclavo no tiene pantalla ni menu, asi que su reloj NUNCA tuvo mas via que esta.
-    // Retirarla deja a reloj_ajustar() de esta punta con UN solo llamador -el manejador
-    // de CMD_HORA_S de main.cpp, o sea la radio-, que es exactamente lo que reloj.h de
-    // aqui ya declaraba como unica via ("aqui no hay teclado con el que un operario
-    // pueda ponerlo en hora, la unica via es la radio").
-    //
-    // 🔴 Y ESA VIA TAMPOCO CORRE HOY, y se escribe en vez de disimularse: CMD_HORA_S lo
-    // manda coordinador_sincronizarHora() del Maestro, que empieza con
-    // "if (!reloj_enHora()) return false;" sobre el reloj del Maestro -cuyo Y2 esta
-    // CONFIRMADO MUERTO (N-17)-. O sea que el reloj del STM32 del Esclavo no lo pone
-    // nadie, ni antes de este cambio ni despues. Lo que este cambio quita no es una via
-    // que funcionaba: es un ACUSE que contradecia al del puente.
-    //
-    // El DS3231 con pila de ESTA punta cuelga de SU PROPIO ESP32, y a ese si le llega la
-    // orden -el puente de cada poste atiende el SET_RTC que entra por su Bluetooth-. Por
-    // eso el tecnico tiene que conectarse a LOS DOS postes: no hay ningun camino que
-    // lleve la hora de un DS3231 al otro.
-    //
-    // El $EVENT no es un acuse -no lleva campo CMD:- y va al registro que la app ya
-    // pinta. Ver la rama gemela del Maestro para el censo completo del camino.
+    // D-20: LA AUTORIDAD DE LA HORA ES EL ESP32 (DS3231).
+    // Si entra SET_RTC por Bluetooth local en Poste 2, siembra el extrapolador del Esclavo.
+    // D-15: Solo el ESP32 contesta al celular con $ACK/$ERR para evitar doble acuse.
+    int anio = 0, mes = 0, dia = 0, h = 0, m = 0, s = 0;
+    if (sscanf(accion + 8, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) == 6) {
+      reloj_ajustar((uint8_t)h, (uint8_t)m, (uint8_t)s, (uint8_t)dia);
+    }
     bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
   } else {
     enviarTramaConCrc("$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO");

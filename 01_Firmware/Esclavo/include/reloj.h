@@ -3,6 +3,8 @@
 #include <Arduino.h>
 
 // ---------------------------------------------------------------------------
+// D-20: LA AUTORIDAD DE LA HORA ES EL ESP32 (DS3231).
+// El STM32 siembra su base de tiempo de software a partir del ESP32 / radio.
 // D-9: LA HORA DEL POSTE NO LA PONE ESTE MODULO. La lleva el reloj con pila del modulo de
 // expansion, y este micro no tiene ninguno que sirva: su cristal esta CONFIRMADO MUERTO
 // en banco (N-17). Lo de abajo describe el diseno con el que se escribio el fichero y se
