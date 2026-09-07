@@ -39,6 +39,17 @@ un `FALLA` que sale con codigo `0` (`N-46`); un `FALLA` **permanente** que ningu
 puede apagar —eso no es comprobacion, es nota, y va en `reportar()`—; y un instrumento que publica
 `x/y` con `x != y`, **lo escriba como lo escriba y salga como salga**.
 
+> 🔴 **Y el cuarto, que es el que tienta cuando el rojo lleva dias: UN ROJO NO SE APAGA
+> ESCRIBIENDO LO QUE EL INSTRUMENTO QUIERE LEER.** `decisiones_01_anclas` acusa a una decision
+> vigente que no tiene ancla en el fuente; poner el ancla **sin construirla** dice que esta
+> implementada, y es exactamente el defecto que ese pack vino a cazar, cometido por el pack. Igual
+> con una cita metida en un manual solo para que deje de contarla como ausente.
+>
+> **La regla: si un rojo se apaga CONSTRUYENDO, se construye o se deja rojo. Nunca se decora.** Y
+> lo que hay que vigilar entonces no es el rojo, **es su CUENTA**: unas cuantas decisiones vigentes
+> sin construir a la vez no dicen que el banco se degrade — dicen que **se esta decidiendo mas
+> rapido de lo que se construye**, y eso se arregla con teclado, no con el instrumento.
+
 ## 2. Barrera de salidas
 
 **Solo `semaforo.cpp` escribe pines de luz.** Todo pasa por su `escribirPines()` estatico —donde vive el

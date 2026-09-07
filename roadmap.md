@@ -322,6 +322,24 @@ peligroso»* en *«aguanto dias»*. **No cuesta hardware: el cristal ya esta sol
 > la cifra que hay que vigilar**, y si sigue subiendo el problema ya no es el instrumento: es que se
 > esta decidiendo mas rapido de lo que se construye.
 
+### 3.4.quater · 🎯 EL ORDEN DE CONSTRUCCION, del mas aislado al que toca la calzada
+
+**Lo que queda de `D-20`/`D-21`/`D-22` ya no es pregunta: es teclado.** Las tres estan decididas,
+con su porque, sus numeros y sus precondiciones. Este es el orden, y **no es cronologico: es por
+cuanto se acerca cada paso a las luces.**
+
+| | que | toca el ciclo | por que va aqui |
+|---|---|---|---|
+| **1** | **`D-22` · `Y1` como reloj de sistema.** Empieza **midiendo si oscila**, con caida al HSI **declarada** | **NO** | es lo mas autocontenido **y es precondicion de que `D-20` sea seguro**: sin el, perder la siembra una hora son 36 s de error contra un margen de 29 |
+| **2** | **`D-20` · la siembra y la propagacion.** Extrapolador cada 2 s; **el Maestro empuja y el Esclavo SOBRESCRIBE** | 🔴 **SI** | de aqui cuelga que el Degradado del poste 2 pueda siquiera entrar |
+| **3** | **`D-21` · que la hora que MIENTE llegue a las luces**, mas su publicacion en la app | 🔴 **SI** | la deteccion ya existe (`OSF`); lo que falta es el camino hasta el ambar |
+| **4** | **`D-14` · el contacto que hace grabar a la camara.** Antes, **medir con multimetro** si su entrada admite los ~12 V con masa compartida | **NO** | independiente de todo lo anterior; la via esta confirmada en el manual de la camara |
+
+> 🔴 **El 1 y el 4 no tocan el ciclo. El 2 y el 3 SI**, y esos van con la compuerta delante y
+> sabiendo que **no hay banco desde el 31 de julio**. `CLAUDE.md`: *nada sube a campo sin pasar
+> banco*, y construir no es subir — pero un cambio en el unico modo que da verde sin confirmar la
+> otra punta **se escribe como si fuera a la calle manana**.
+
 ### 3.5 · 🔴 Lo que salio de ANCLAR las decisiones en el codigo (07/09) — `N-158`
 
 El 07/09 se anclaron las `D-x` vigentes en el fuente: **de 5 marcas a 16**. El motivo lo dijo el
