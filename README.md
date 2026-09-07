@@ -95,7 +95,7 @@ rutas y 92,8 %. Las cifras eran del 05/08 y llevaban la palabra *«copiadas»* e
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
-| banco por packs *(76 packs)* | ⛔ | **1161/1180 comprobaciones en 76 packs**, y **no salen todas en verde**: `app_11_rangos_de_tiempos` acusa un límite de fase de **15 s** en `modo_inteligente.cpp:123`, por debajo del mínimo vial de **3 min** que fijó el responsable (`D-5`). **Es un hallazgo abierto, no una regresión del banco**, y el arreglo es del firmware — bajarle el listón al pack para que se ponga verde sería ajustar la medida hasta que dé el resultado que gusta. El NUMERADOR no lo vigila `documentos_01` a propósito: se estaría midiendo a sí mismo. |
+| banco por packs *(76 packs)* | ✅ | **1180/1180 comprobaciones en 76 packs**. ⚠️ **Y este verde vale MENOS que el rojo que hubo durante horas el 05/09:** aquel `1 FALLA` era `app_11_rangos_de_tiempos` acusando que el Modo Inteligente podía cortar un verde a los **15 s**, por debajo del mínimo vial de **3 min** (`D-5`). **Se fue porque se ARREGLÓ EL FIRMWARE** —el pack no se tocó—, no porque nadie mire. El NUMERADOR no lo vigila `documentos_01` a propósito: se estaría midiendo a sí mismo, y de eso se encarga `documentos_05` comparando las copias entre sí. |
 | compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **87.6 %** · 63.7 % · 20.6 % · 35.7 % — *el Maestro ocupa **57416 de 65536 B**, o sea **8.120 B libres**; el Esclavo, **41772 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
