@@ -17,6 +17,27 @@
 
 ---
 
+> # 🔴 `D-20` (07/09) — LA APP NO PONE LA HORA EN EL POSTE 2. NUNCA
+>
+> **Va en cabecera porque INVIERTE lo que este manual venía diciendo en seis apartados, y porque lo
+> que deroga —el Asistente Courier RTC— era una de las prestaciones que anunciaba.**
+>
+> **LA AUTORIDAD DE LA HORA ES EL ESP32, SIEMPRE Y PARA TODO.** La app se la da al **ESP32 Maestro**;
+> ése al **ESP32 Esclavo**; y el STM32 de cada punta la recibe **de su propio ESP32**. **Hay UNA
+> sola fuente**, así que no hay desfase inicial que acotar. Un `SET_RTC` dirigido al Esclavo **se
+> rechaza**: no es una sincronización, **es una segunda fuente**. Fila **`D-20`** de `DECISIONES.md`.
+>
+> ```
+> ESP32-M  ->  STM32-M  ->  radio  ->  STM32-E  ->  ESP32-E      (los STM32 son CARTEROS)
+> ```
+>
+> 🛑 **Y ESTÁ DECIDIDA Y SIN CONSTRUIR: hoy no corre en ninguna tarjeta**, así que **al poste 2 se le
+> sigue poniendo la hora visitándolo. Eso es un ESTADO DECLARADO, no la arquitectura**, y muere el
+> día que `D-20` se construya. **La medida, la cadena y lo que `D-20` NO deroga están en `§4`**, que
+> es el apartado del Courier — conservado tachado, no borrado.
+
+---
+
 > # 🔴 `D-16` — SIN TELÉFONO NO HAY FORMA DE OPERAR EL EQUIPO
 >
 > **Va en la primera pantalla de este manual porque es lo primero que cambia el trabajo de quien lo
@@ -330,7 +351,8 @@ La aplicación móvil **IOT-VIAL V9.0** elimina la fricción operativa en obra s
 │ 🛡️ MODO TÉCNICO / ADMINISTRADOR (PIN '1234'):                           │
 │   • Tiempos de ciclo: Verde 3-15m, Rojo 3-15m, Despeje 10-90s            │
 │     (04/09: el minimo sube de 1 a 3 min. DECISION VIAL, ver 5.5)         │
-│   • Asistente Courier RTC con compensación automática de viaje.          │
+│   • ~~Asistente Courier RTC~~ DEROGADO (D-20, 07/09): la app NO pone     │
+│     la hora en el poste 2. Ver el apartado 4.                            │
 │   • Test secuencial de potencia de MOSFETs y focos (6 segundos).         │
 │   • Gestor CRUD de frentes de obra y cruces viales en LocalStorage.      │
 └──────────────────────────────────────────────────────────────────────────┘
@@ -677,17 +699,114 @@ Desde la carpeta raíz de la App (`05_Funcional/App_Semaforo/`):
 
 ---
 
-## 4. 🔄 ASISTENTE COURIER RTC (SINCRONIZACIÓN SIN RADIO)
+## 4. 🛑 ~~ASISTENTE COURIER RTC (SINCRONIZACIÓN SIN RADIO)~~ — **DEROGADO POR `D-20` (07/09)**
 
-Para tramos donde la geografía bloquea el enlace de radio LoRa/RS-485, el **Asistente Courier RTC** permite sincronizar ambos postes utilizando el celular como puente de tiempo:
+> # 🔴 `D-20` — EL COURIER NO ERA UNA SINCRONIZACIÓN: ERA UNA SEGUNDA FUENTE DE HORA
+>
+> **LA AUTORIDAD DE LA HORA ES EL ESP32, SIEMPRE Y PARA TODO. Al STM32 no se le pregunta nunca.**
+> La app le da la hora al **ESP32 Maestro**; ése al **ESP32 Esclavo**; y el STM32 de cada punta la
+> recibe **de su propio ESP32**. **EL MAESTRO MANDA LA HORA Y EL ESCLAVO HACE CASO SIEMPRE: hay UNA
+> sola fuente**, así que **no hay desfase inicial que acotar** — que es exactamente lo que este
+> asistente existía para compensar.
+>
+> **Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.** Un `SET_RTC` dirigido al
+> Esclavo **se rechaza**. Fila **`D-20`** de `DECISIONES.md`, 07/09, decidida por el responsable.
+>
+> 🔴 **Y este mismo apartado ya lo certificaba por escrito, unas líneas más abajo:** *«durante todo
+> el procedimiento **al Maestro no se le manda nada**… **si el teléfono va desfasado, el Esclavo
+> queda desfasado igual**»*. Eso no es copiar el reloj del Poste 1: **es sembrar el poste 2 desde el
+> teléfono**, que es la segunda fuente que `D-20` prohíbe. El defecto no era la compensación del
+> viaje —esa parte funciona—: era **de quién salía la hora**.
+>
+> **La cadena vigente. Los STM32 son CARTEROS de la hora, no dueños:**
+>
+> ```
+> ESP32-M  ->  STM32-M  ->  radio  ->  STM32-E  ->  ESP32-E
+> ```
+>
+> Los dos ESP32 **NO se hablan entre sí**: el único enlace entre postes es la radio entre los STM32.
+>
+> ## 🛑 Y ESA CADENA ESTÁ DECIDIDA Y **SIN CONSTRUIR** — hoy no corre en ninguna tarjeta
+>
+> **MEDIDO el 07/09, y corrido otra vez antes de publicarlo aquí:**
+>
+> ```bash
+> $ grep -c "ESCLAVO\|Esclavo\|esclavo" 01_Firmware/ESP32_Expansion/src/despachador.cpp
+> 0
+> ```
+>
+> El puente es **el mismo firmware en los dos postes**, y el fichero que decide qué hacer con un
+> `SET_RTC` **no nombra al Esclavo ni una vez**: hoy lo atiende venga por donde venga. *(El puente sí
+> aprende quién es —`transporte_aprenderRotulo()`—, pero **para rotular el Bluetooth en la lista de
+> Android**; ese dato no llega al despachador.)* **Falta también el mando ESP32 → STM32 que siembre
+> la hora en la controladora: el camino físico existe (`enlace_stm32.cpp`), el mando no.**
+>
+> ## ⚠️ POR ESO, HOY, AL POSTE 2 SE LE SIGUE PONIENDO LA HORA VISITÁNDOLO
+>
+> **Mientras `D-20` no esté construida NO HAY NINGUNA OTRA VÍA de poner en hora el poste 2.** El
+> técnico sigue conectándose a los dos postes y pulsando **«Sincronizar reloj»** en cada uno
+> (`§5.3`), después de mirarlo con **`§5.7`**.
+>
+> 🔵 **Eso es un ESTADO DECLARADO, no la arquitectura.** Ese paso **muere** el día que `D-20` se
+> construya, así que no se apoya nada nuevo encima ni se escribe en ningún procedimiento como si
+> fuera definitivo.
+>
+> **Lo que SÍ deja de tener sentido hoy mismo:** el viaje cronometrado, la compensación del
+> $\Delta t$ y llamar *sincronización* al botón **`[ 🚀 Inyectar en Esclavo ]`**. Lo que ese botón
+> hace es poner **la hora del teléfono** en el poste 2 — ni más exacta ni distinta de pulsar
+> «Sincronizar reloj» estando allí, y con el rótulo cambiado a algo que promete lo que no da.
+>
+> 🔴 **EL BOTÓN SIGUE EN LA APK que acompaña a este paquete: `D-20` decide la AUTORIDAD, no ha
+> retirado código.** Medido el 07/09:
+>
+> ```bash
+> $ grep -n "btn-courier-capture\|btn-courier-inject" 05_Funcional/App_Semaforo/www/index.html
+> 587:            <button class="btn-courier-step step-capture" id="btn-courier-capture">
+> 595:            <button class="btn-courier-step step-inject" id="btn-courier-inject" disabled>
+> ```
+>
+> **No se use.** Retirarlo de la app es trabajo pendiente, no algo que este manual pueda dar por
+> hecho.
+>
+> ## 🔵 LA REGLA NUEVA DEL POSTE 2
+>
+> > **EL POSTE 2 SE PONE EN HORA EN LA PUESTA EN MARCHA — NO DURANTE LA AVERÍA.**
+>
+> Con `D-20` dentro, el único camino al reloj del poste 2 pasa por el Maestro y por **la radio**, y
+> la radio se cae justo cuando hace falta el Modo Degradado — que es el modo que **exige hora**.
+>
+> ✅ **Y eso NO es un problema: el `DS3231` del poste 2 tiene pila y conserva la hora que ya tenía.
+> Perder la radio no es perder la hora.** Lo que obliga es a ponerla **antes**: en la puesta en
+> marcha, al cambiar la pila de ese módulo, y tras cualquier `OSCILADOR_PARADO_CAMBIE_PILA` leído en
+> ese poste.
+>
+> ## ✅ LO QUE `D-20` **NO** DEROGA — para que nadie lo borre de paso
+>
+> * **`CMD:LEER_RTC` se sigue mandando A LOS DOS POSTES** (`D-17`, `§5.7`). `D-20` prohíbe
+>   **ESCRIBIR** la hora en el poste 2; **leerla no escribe nada**. Con `D-20` construida vale más
+>   que hoy: es la única forma de comprobar que la siembra del Maestro llegó de verdad al reloj del
+>   poste 2.
+> * **El `DS3231` del ESP32 Esclavo sigue haciendo falta** (son dos, uno por poste): es el que
+>   conserva la hora con pila cuando se cae la radio.
+> * **La `CR2032` del STM32 sigue siendo OBLIGATORIA**, y con `D-20` ya no es por la hora: alimenta
+>   el dominio de respaldo (`BKP->DR1..DR10`), donde viven la marca de sincronización y el indicador
+>   del Degradado — el cómputo de las 48 h. Símbolo `respaldo.h`: *«alimentados por LA MISMA pila
+>   `CR2032` que ya mantiene el RTC»*, *«Sin pila… `respaldo_setup()` encuentra el contenido inválido
+>   y borra»*.
+
+~~Para tramos donde la geografía bloquea el enlace de radio LoRa/RS-485, el **Asistente Courier RTC** permite sincronizar ambos postes utilizando el celular como puente de tiempo:~~
 
 ![Flujo Courier RTC](./graficas/grafica_02_courier_rtc_flujo.png)
 
-### Procedimiento en Campo:
-1. Conectar al **Poste 1 (Maestro)** y presionar **`📸 Capturar Maestro`**. La app ~~memoriza la hora RTC exacta~~ **anota la hora DEL TELÉFONO** y la fase activa, e inicia el contador de viaje. **No captura ninguna imagen — ver el aviso de debajo.**
-2. Trasladarse físicamente al **Poste 2 (Esclavo)** (a pie o en vehículo).
-3. Conectar al **Poste 2** y presionar **`🚀 Inyectar en Esclavo`**.
-4. La App suma automáticamente los segundos de traslado transcurridos ($\Delta t$) y programa el reloj del Esclavo con la hora compensada, logrando sincronismo total sin radio.
+> 🛑 **La gráfica de arriba dibuja el procedimiento DEROGADO.** Se conserva porque el `.zip` de
+> agosto la lleva y borrarla dejaría un hueco sin explicación; **no describe cómo se pone la hora
+> hoy, ni cómo se pondrá cuando `D-20` esté construida.**
+
+### ~~Procedimiento en Campo~~ — **DEROGADO EL 07/09 (`D-20`)**, se conserva tachado para que no se vuelva a proponer:
+1. ~~Conectar al **Poste 1 (Maestro)** y presionar **`📸 Capturar Maestro`**. La app~~ ~~memoriza la hora RTC exacta~~ ~~**anota la hora DEL TELÉFONO** y la fase activa, e inicia el contador de viaje.~~ **No captura ninguna imagen — ver el aviso de debajo, que sigue valiendo.**
+2. ~~Trasladarse físicamente al **Poste 2 (Esclavo)** (a pie o en vehículo).~~
+3. ~~Conectar al **Poste 2** y presionar **`🚀 Inyectar en Esclavo`**.~~
+4. ~~La App suma automáticamente los segundos de traslado transcurridos ($\Delta t$) y programa el reloj del Esclavo con la hora compensada, logrando sincronismo total sin radio.~~
 
 > 🛑 **EL EMOJI 📸 NO CAPTURA NINGUNA IMAGEN, Y VA ESCRITO AQUÍ PARA QUE NADIE LO HEREDE AL
 > REVÉS.** «Capturar» aquí es *apuntar una hora en la libreta*, no *hacer una foto*. La app no ve
@@ -721,15 +840,42 @@ Para tramos donde la geografía bloquea el enlace de radio LoRa/RS-485, el **Asi
 > lo pinta desde `N-150`, pero el Courier **no lo lee**. `SIN VERIFICAR` si eso es deliberado: no hay
 > comentario en el fuente que lo razone.)*
 
-> ⚠️ **31/08 — dos precisiones que este apartado daba por sentadas:**
+> ⚠️ ~~**31/08 — dos precisiones que este apartado daba por sentadas:**~~ 🛑 **LAS DOS ESTÁN
+> CADUCADAS. Se tachan con su motivo y su fecha en vez de borrarse.**
 >
-> 1. ~~*«el reloj `DS3231` del Esclavo»*~~ → el `SET_RTC` del Esclavo escribe **el RTC del STM32**
->    (rama `SET_RTC:` de su despachador — `grep -n '"SET_RTC:"' 01_Firmware/Esclavo/src/bluetooth.cpp`).
->    El `DS3231` con pila propia vive **en el módulo de expansión
->    ESP32 del `J17`**, no colgado del STM32: son dos relojes distintos y no se piden igual.
-> 2. **El paso 3 puede fallar y hay que mirarlo.** Si el Esclavo contesta
->    `$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL`, **la hora NO quedó inyectada** y el viaje no ha servido de
->    nada. Ver `§5.3`. **No se da el Courier por hecho sin leer la respuesta.**
+> 1. ~~el `SET_RTC` del Esclavo escribe **el RTC del STM32** (rama `SET_RTC:` de su despachador)~~
+>    🛑 **CADUCADA POR `D-15` (05/09):** esa rama **ya no escribe nada y no contesta** — consume la
+>    orden y deja un `$EVENT` con `SET_RTC_LO_ACUSA_EL_PUENTE`. Lo que sigue siendo cierto de esta
+>    línea, y por eso no se borra entera: **el `DS3231` con pila propia vive en el módulo de
+>    expansión ESP32 del `J17`, no colgado del STM32.** Son dos relojes distintos y no se piden
+>    igual.
+> 2. ~~Si el Esclavo contesta `$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL`, la hora NO quedó inyectada~~
+>    🛑 **CADUCADA EL 05/09: `SIN_CRISTAL` YA NO EXISTE EN EL ESCLAVO. Medido el 07/09, corrido
+>    antes de publicarlo:**
+>
+>    ```bash
+>    $ grep -rl "SIN_CRISTAL" 01_Firmware/Esclavo/
+>    (ninguna coincidencia)
+>    ```
+>
+>    ✅ **Y era CIERTA cuando se escribió — se comprueba en vez de acusarla de haber nacido mal:**
+>    ese literal entró en el Esclavo con `d34cfe2` (`N-78`) y salió con `5e4076d`, el commit de
+>    `D-15`. Hoy sólo vive en el **Maestro**, y allí **sólo dentro de un comentario**
+>    (`SIN_CRISTAL_VEA_CONSULTA_RELOJ`, `Maestro/src/bluetooth.cpp`).
+>
+>    ```bash
+>    $ git log --oneline --all -S "SIN_CRISTAL" -- 01_Firmware/Esclavo/
+>    5e4076d feat(D-15): una orden, un acuse - y aparece que HAY DOS RELOJES Y NADA LOS SINCRONIZA
+>    d34cfe2 feat(N-78): los seis comandos que faltaban, con sus packs y su interfaz
+>    ```
+>
+>    La `§5.3` de este mismo manual ya lo había visto por su lado (*«una fila de la tabla anterior
+>    ERA FALSA»*): eran **dos apartados del mismo fichero contradiciéndose**, y ésta es la mitad
+>    que no se actualizó.
+>
+> 🔴 **Y la tercera, que es la que decide: con `D-20` (07/09) el paso 3 no se arregla leyendo mejor
+> la respuesta — NO SE HACE.** La app no pone la hora en el poste 2; ver la caja del principio de
+> este apartado.
 
 ---
 
@@ -1077,7 +1223,7 @@ guarda `strncmp(cmd, "CMD:PIN:1234:", 13) != 0`. El segundo devuelve **una**.)*
 | `CMD:PIN:1234:CANCELAR_AMBAR` | 🆕 **faltaba en este manual.** **Retira** el latch, **con PIN**. `RETIRADO` · `RETIRADO_QUEDA_MANDO` · `$ERR,…,DESC:NO_HAY_AMBAR_VIGENTE` |
 | `CMD:PIN:1234:SOLICITAR_PASO` | **Pide**, no ordena. `PEDIDO_AL_MAESTRO` / `$ERR,…,DESC:REPITA_EN_UNOS_SEGUNDOS`. **Y el `PEDIDO_AL_MAESTRO` se puede desmentir después — `N-130`, abajo** |
 | 🆕 `CMD:PIN:1234:SET_MODO:DEGRADADO` | **NUEVA EL 05/09, y es el único `SET_MODO` que atiende esta punta.** **DOS** acuses buenos —`OK` y `YA_ACTIVO`— y **SEIS** motivos de rechazo, uno por condición. Contado entero en **`§5.6`** |
-| `CMD:PIN:1234:SET_RTC:…` | 🔴 **05/09: igual que en el Maestro, esta punta YA NO LA CONTESTA.** La consume y deja un evento; **el acuse lo da el puente**. ~~`OK` / `SIN_CRISTAL` / `FORMATO_INVALIDO`~~ |
+| ~~`CMD:PIN:1234:SET_RTC:…`~~ | 🛑 **07/09 (`D-20`): ESTA ORDEN NO SE MANDA AL POSTE 2.** ~~05/09: igual que en el Maestro, esta punta YA NO LA CONTESTA. La consume y deja un evento; **el acuse lo da el puente**~~ — el STM32 sigue consumiéndola en silencio (`D-15`), pero **eso ya no basta: `D-20` exige que el PUENTE del poste 2 la RECHACE con motivo**, no que se consuma callado. Un `SET_RTC` dirigido al Esclavo no es una sincronización, **es una segunda fuente de hora**. 🔴 **SIN CONSTRUIR: hoy el puente la atiende venga por donde venga** — ver `§4` |
 | ~~`CMD:FORZAR_ROJO`~~ | 🛑 `$ERR,…,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` |
 | ~~`CMD:PIN:1234:FORZAR_ROJO`~~ | 🛑 mismo `$ERR`. **Las dos formas** |
 | ~~`CMD:PIN:1234:TEST_LEDS`~~ | 🛑 `$ERR,…,DESC:NO_EN_SERVICIO_USE_EL_MAESTRO` |
@@ -1154,9 +1300,29 @@ Cualquier otra cosa: `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO`
 | `DESC:FORMATO_INVALIDO` | trama ilegible o cifras fuera de rango |
 | `DESC:SIN_RELOJ_NO_RESPONDE` | 🔧 el módulo de reloj **no contesta en su bus**: desenchufado, mal cableado, o las dos líneas cruzadas. **No se arregla repitiendo** |
 | `DESC:ESCRITURA_FALLIDA` | el reloj contesta pero **no aceptó la escritura**: la hora **NO quedó puesta**. Repita una vez; si vuelve, el módulo falla |
-| `DESC:NO_QUEDO_PUESTA` | se escribió, el módulo dijo que sí, y **al releerla no coincidía**. Apunta a **la pila** |
-| `DESC:OSCILADOR_PARADO_CAMBIE_PILA` | 🔧 **la pila**. Se cambia **y luego** se pone la hora |
+| `DESC:NO_QUEDO_PUESTA` | se escribió, el módulo dijo que sí, y **al releerla no coincidía**. Apunta a **la pila del módulo `DS3231`** (ver el aviso de debajo: **no** la `CR2032` de la controladora) |
+| `DESC:OSCILADOR_PARADO_CAMBIE_PILA` | 🔧 **la pila del módulo `DS3231`**. Se cambia **y luego** se pone la hora |
 | `DESC:MOTIVO_NO_CONTEMPLADO` | el módulo dio un motivo que **ni la app ni su propio despachador saben nombrar**. **No dé la hora por buena** |
+
+> 🔧 **QUÉ PILA, PORQUE HAY DOS Y NO SE CAMBIAN IGUAL.** Las dos filas de arriba que dicen *«la
+> pila»* hablan de **la pila del módulo `DS3231`, el que cuelga del ESP32 de expansión en el
+> `J17`** — es la que mantiene ese reloj. **NO es la `CR2032` de la controladora STM32.** Un técnico
+> con este manual abierto se va derecho a la `CR2032` y cambia una pila sana dejando la averiada
+> dentro.
+>
+> ⚠️ **Y la `CR2032` del STM32 no sobra: sigue siendo OBLIGATORIA.** Con `D-20` ya no es por la
+> hora — alimenta el dominio de respaldo (`BKP->DR1..DR10`), donde viven la marca de sincronización
+> y el indicador del Degradado, o sea **el cómputo de las 48 h**. Símbolo `respaldo.h`. Sin ella,
+> `respaldo_setup()` encuentra el contenido inválido y **borra**.
+
+> 🛑 **07/09 (`D-20`) — ESTAS OCHO RESPUESTAS SON LAS DEL POSTE QUE SE PONE EN HORA, Y ESE ES EL
+> POSTE 1.** `D-20` decide que **la app no pone la hora en el poste 2, nunca**: un `SET_RTC`
+> dirigido al Esclavo **se rechaza**, porque no es una sincronización sino una segunda fuente. La
+> tabla **no cambia** —son las respuestas del puente al poner la hora—; lo que cambia es **a quién
+> se le manda la orden**. Ver `§4`.
+>
+> ⚠️ **`D-20` está SIN CONSTRUIR, así que HOY el poste 2 se sigue poniendo en hora visitándolo, y
+> estas ocho respuestas siguen saliendo allí.** Es un estado declarado, no la arquitectura.
 
 > ~~**Tratar las cuatro como «enviado»**~~ → **Tratar cualquiera de las OCHO como «enviado» es el
 > defecto que este comando ya tuvo:** contestaba `RESULT:OK` sin mirar lo que habían devuelto las
@@ -1521,15 +1687,26 @@ ser una limitación pendiente y pasa a ser **cómo se opera este equipo**.
 
 | desde el **MAESTRO** | desde el **ESCLAVO** |
 |---|---|
-| cambiar de modo · dar paso · ajustar tiempos · prueba de focos · rojo total | **sólo** solicitar paso, ámbar de emergencia, retirar ámbar, poner la hora — y 🆕 **desde el 05/09, ENTRAR EN MODO DEGRADADO** (`§5.6`) |
+| cambiar de modo · dar paso · ajustar tiempos · prueba de focos · rojo total · **poner la hora** | **sólo** solicitar paso, ámbar de emergencia, retirar ámbar, ~~poner la hora~~ 🛑 **NO (`D-20`, 07/09)** — y 🆕 **desde el 05/09, ENTRAR EN MODO DEGRADADO** (`§5.6`) |
 
 > 🔴 **AL DÍA EL 05/09, y es la única grieta que se le ha abierto a esta decisión: el POSTE 2 atiende
 > UNA orden de cambio de modo.** Exactamente una —**entrar en Modo Degradado**— y no debilita la
 > decisión: **ese modo es para cuando el POSTE 1 no está**, así que operarlo desde el Poste 1 sería
 > pedírselo a quien no puede contestar. Todos los demás cambios de modo siguen siendo del Poste 1.
 >
-> ⚠️ **Y poner la hora ya no es «del Esclavo» ni «del Maestro»: es del PUENTE de cada poste.** Ver
-> `§5.3`.
+> ⚠️ ~~**Y poner la hora ya no es «del Esclavo» ni «del Maestro»: es del PUENTE de cada poste.**~~
+>
+> 🛑 **CORREGIDO EL 07/09 POR `D-20`, y es una inversión, no un matiz.** Aquella frase describía
+> **dos fuentes de hora**, una por poste, cada una sembrada por el teléfono en su visita — que es
+> exactamente lo que `D-20` prohíbe. Lo vigente:
+>
+> **PONER LA HORA ES DEL POSTE 1, Y SÓLO DEL POSTE 1.** La app se la da al **ESP32 Maestro**; ése al
+> **ESP32 Esclavo**; y el STM32 de cada punta la recibe **de su propio ESP32**. **Hay UNA sola
+> fuente.** La mitad que sí se conserva de la frase vieja: **el dueño del reloj dentro de cada poste
+> es su PUENTE**, no su STM32 — los STM32 son **carteros** de la hora.
+>
+> 🔴 **SIN CONSTRUIR**, y mientras tanto al poste 2 se le sigue poniendo la hora visitándolo. Todo
+> el detalle, la cadena y la medida están en **`§4`**.
 
 **La app ya lo enruta y avisa a qué punta va cada orden en vez de mandarla al vacío**, y desde el
 05/09 lo hace **orden por orden y no por familias**: las seis órdenes de cambio de modo del Poste 1
@@ -1640,12 +1817,28 @@ saber si el arreglo lo lleva en el bolsillo, en la caja o en la furgoneta.
 
 | lo que contesta | qué le falta | qué hacer en el poste |
 |---|---|---|
-| `SIN HORA VALIDA` | su controladora **no tiene una hora que valga** | ponga la hora en ese poste (`§5.7` primero: mire antes de tocar). Si insiste, el reloj de esa controladora **no está corriendo**, y eso es una reparación |
+| `SIN HORA VALIDA` | su controladora **no tiene una hora que valga** | 🛑 **07/09 (`D-20`): NO se arregla poniéndole la hora al poste 2 desde el teléfono** — eso es una segunda fuente, y es lo que `D-20` prohíbe. Con `D-20` construida, **la hora del poste 2 la siembra el Poste 1 por radio**, así que este motivo se resuelve **en la puesta en marcha, no aquí**. ⚠️ **`D-20` está SIN CONSTRUIR**: hoy, y sólo hoy, se pone visitando ese poste (`§5.7` primero: mire antes de tocar). Si insiste, el reloj de esa controladora **no está corriendo**, y eso es una reparación |
 | `FALTA CONFIG CICLO` | **nunca ha recibido del POSTE 1 los tiempos del ciclo** | conéctese al **POSTE 1**, deje los tiempos puestos y **deje que el cruce corra** para que se los transmita. Sin radio entre postes, este modo **no se puede pedir** |
 | `CICLO EN CERO` | recibió un ciclo, y viene **en cero** | lo mismo que arriba: los tiempos se ponen **en el POSTE 1** |
 | `NUNCA SINCRONIZADO` | tiene hora, pero **no consta que se la haya puesto ESTE Poste 1 en esta sesión** | 🔵 **no basta con que el reloj esté en hora**: la hora sobrevive al apagado en la pila y podría venir de otra obra. Hace falta **una sincronización recibida por radio**, así que **primero se arregla la radio** |
 | `SYNC CADUCADA >48h` | la autorización anterior **ya venció** | **no vale reentrar sin una sincronización nueva.** Es deliberado: si se pudiera, el límite duro de 48 h sería **un botón de posponer**, y la deriva entre los dos relojes seguiría creciendo sin medir |
 | `AMBAR EMERG.PUESTO` | hay un **ámbar de emergencia** puesto | 🛑 **lo puso una persona** —alguien trabajando bajo la luz, un incidente en el tramo— **y la máquina no revoca lo que puso una persona.** Si de verdad hay que quitarlo, use **RETIRAR ÁMBAR** y repita la orden |
+
+> # 🔵 07/09 (`D-20`) — EL POSTE 2 SE PONE EN HORA EN LA PUESTA EN MARCHA, NO DURANTE LA AVERÍA
+>
+> **Dos de los seis motivos de arriba son de reloj, y este apartado es justo donde se cobra.** Con
+> `D-20`, el único camino al reloj del poste 2 pasa por el Maestro y por **la radio** — y la radio
+> se cae justo cuando hace falta el Modo Degradado, que es **el modo que exige hora**. Llegar al
+> poste 2 con la radio caída y el reloj sin sembrar es llegar tarde.
+>
+> ✅ **Y eso NO es un callejón sin salida: el `DS3231` de ese poste tiene pila y conserva la hora
+> que ya tenía. Perder la radio no es perder la hora.** Lo que obliga es a **ponerla antes**: en la
+> puesta en marcha, al cambiar la pila de ese módulo, y tras cualquier `OSCILADOR_PARADO_CAMBIE_PILA`
+> leído allí (`§5.7`).
+>
+> ⚠️ **`D-20` está DECIDIDA Y SIN CONSTRUIR** — hoy el poste 2 se sigue poniendo en hora
+> visitándolo. **Eso es un estado declarado, no la arquitectura**, y muere el día que se construya.
+> La medida y la cadena, en `§4`.
 
 **En el POSTE 1** los motivos son **otros seis distintos**, y salen en dos trozos seguidos:
 
@@ -1758,11 +1951,32 @@ Los dos datos **no viajan en ninguna trama**: no están en el `$STATUS` del Escl
 * **Nadie ha pulsado este botón con un equipo delante.** Todo lo de arriba está medido en el fuente
   y **ejercido contra el firmware real en simulador**; **no ha tocado una tarjeta**.
 * **`SIN VERIFICAR`: cuál de los seis motivos va a salir en campo.** Dos de las seis condiciones
-  —tener hora válida y haber sido sincronizado por radio— **cuelgan del reloj de cristal de la
-  controladora**, y ese cristal está **confirmado muerto** en la tarjeta que se llevó a banco. Con
-  ese cristal parado, lo esperable es que el equipo conteste `SIN HORA VALIDA` o `NUNCA
-  SINCRONIZADO` **y el modo no entre**. *No se ha comprobado en tarjeta y no se afirma: se anota
-  para que el primer banco lo mire antes que ninguna otra cosa de este apartado.*
+  —tener hora válida y haber sido sincronizado por radio— **cuelgan del RTC de la controladora**, y
+  ese RTC va sobre **`Y2`, el cristal de 32.768 kHz, confirmado muerto** en la tarjeta que se llevó
+  a banco (`N-17`). Con ese cristal parado, lo esperable es que el equipo conteste `SIN HORA VALIDA`
+  o `NUNCA SINCRONIZADO` **y el modo no entre**. *No se ha comprobado en tarjeta y no se afirma: se
+  anota para que el primer banco lo mire antes que ninguna otra cosa de este apartado.*
+
+  > 🔴 **PRECISADO EL 07/09, porque en singular esta línea decía otra cosa.** Antes ponía
+  > ~~*«el reloj de cristal de la controladora, y ese cristal está confirmado muerto»*~~ **sin
+  > nombrarlo**, y de ahí se lee *«la controladora no tiene cristal»*, que **es falso y ya costó
+  > cambiar piezas sanas**. **Lo muerto es `Y2`, y sólo `Y2`.**
+  >
+  > | | qué es | cómo está |
+  > |---|---|---|
+  > | **`Y2`** | 32.768 kHz — el del **RTC** (`LSE_CLOCK`, del que cuelga `reloj_enHora()`) | 🛑 **confirmado muerto, `N-17`** |
+  > | **`Y1`** | 8 MHz — el cristal principal | 🟢 **está montado en la placa** *(esquemático: `Value "8MHz"`, `in_bom yes`, `dnp no`)*, y **nadie lo ha declarado averiado** |
+  >
+  > ⚠️ **Y un dato que hay que decir entero para que nadie deduzca de más: el firmware NO usa `Y1`.**
+  > La tarjeta es `genericSTM32F103C8`, cuyo `SystemClock_Config` del núcleo arranca con el **HSI**,
+  > el RC interno — `RCC_OSCILLATORTYPE_HSI` / `RCC_PLLSOURCE_HSI_DIV2`, en
+  > `generic_clock.c` del `framework-arduinoststm32` (medido el 07/09). O sea que el reloj de sistema
+  > **no depende de `Y1` ni de `Y2`**: el equipo funciona con el cristal del RTC muerto, y por eso
+  > el defecto tardó en verse.
+
+* 🛑 **Y desde el 07/09 (`D-20`) hay una consecuencia que este apartado no puede callar: la
+  reparación de `SIN HORA VALIDA` en el poste 2 NO es «pásele la hora desde el teléfono».** Ver la
+  caja de `§5.6.4` y el apartado `§4`.
 
 ---
 
@@ -1786,6 +2000,13 @@ con el cruce en marcha. Ni siquiera llega a la controladora del semáforo.
 compara.** Los dos módulos no se hablan entre sí, así que **ninguno puede leer el reloj del otro**:
 la comparación **la hace la app, visitando los dos postes**.
 
+> ⚠️ **07/09 — la primera mitad se conserva; la segunda cambia con `D-20`.** *«Los dos módulos no se
+> hablan entre sí»* **es cierto y sigue siéndolo**: los dos ESP32 no tienen enlace, y por eso la
+> comparación la tiene que hacer la app. Lo que deja de ser cierto es *«nada los sincroniza»*: con
+> `D-20`, **el Poste 1 siembra el reloj del poste 2 a través de la radio entre los STM32**
+> (`ESP32-M → STM32-M → radio → STM32-E → ESP32-E`). 🔴 **SIN CONSTRUIR** — hoy la frase es exacta.
+> Ver `§4`.
+
 El desfase entre los dos sale de **restar el error de cada poste contra el reloj del teléfono**, y por
 eso **la caminata entre postes se cancela**: da igual que pasen dos minutos o dos días.
 
@@ -1795,6 +2016,14 @@ eso **la caminata entre postes se cancela**: da igual que pasen dos minutos o do
 > distinguir un cruce en hora de un cruce que coincide con un teléfono equivocado.
 
 ### 5.7.2 El procedimiento de los DOS postes
+
+> ✅ **07/09 — ESTE PROCEDIMIENTO SE CONSERVA ENTERO, Y SE DICE AQUÍ PARA QUE NADIE LO BORRE DE PASO
+> AL DEROGAR EL COURIER.** `D-20` prohíbe **ESCRIBIR** la hora en el poste 2; **leerla no escribe
+> nada**, y `CMD:LEER_RTC` (`D-17`) **se sigue mandando A LOS DOS POSTES**.
+>
+> 🔵 **Con `D-20` construida valdrá MÁS que hoy, no menos:** será **la única forma de comprobar que
+> la siembra del Poste 1 llegó de verdad al reloj del poste 2.** Hoy mide dos relojes que corren
+> libres; mañana medirá si la cadena funcionó.
 
 1. Conéctese al **POSTE 1** y pulse **🔎 Consultar reloj**. La app anota lo leído.
 2. Vaya al **POSTE 2**, conéctese y **pulse otra vez**.
@@ -1824,9 +2053,25 @@ eso **la caminata entre postes se cancela**: da igual que pasen dos minutos o do
 > misma —**no hay hora que enseñar**— y lo que cambia detrás es **el arreglo**. *Un cero con forma de
 > hora es peor que un hueco, porque el hueco no engaña a nadie.*
 
+> 🛑 **07/09 (`D-20`) — «SINCRONICE AHÍ MISMO» NO VALE IGUAL EN LOS DOS POSTES, Y ESTA TABLA NO LO
+> DISTINGUÍA.** Cuatro de los ocho arreglos de abajo terminan en *«sincronizar»*, y eso significa
+> **escribir la hora**:
+>
+> * **En el POSTE 1 (Maestro): se sincroniza ahí mismo.** Es la fuente, y es lo correcto.
+> * **En el POSTE 2 (Esclavo): NO.** `D-20` decide que **la app no pone la hora en el poste 2,
+>   nunca** — sería una segunda fuente. Con `D-20` construida, esos cuatro motivos se resuelven
+>   **poniendo en hora el Poste 1 y dejando que la siembre por radio**, y esta consulta sirve para
+>   **comprobar** que llegó.
+> * ⚠️ **`D-20` está SIN CONSTRUIR** (`§4`), así que **hoy** el poste 2 se sigue sincronizando
+>   visitándolo, incluidos estos cuatro motivos. **Es un estado declarado, no la arquitectura.**
+>
+> 🔧 **Lo que NO cambia en ninguno de los dos postes: la pila.** *«Oscilador parado»* es siempre la
+> **pila del módulo `DS3231`** de ese poste —**no** la `CR2032` de la controladora—, se cambia en el
+> poste donde salga, y **no hay camino por radio que arregle una pila**.
+
 | motivo | dónde está el arreglo |
 |---|---|
-| **nunca se puso la hora** | 🟢 **en el bolsillo**: no es una avería, es que nadie se la ha puesto desde que el módulo arrancó. Se arregla con el botón de sincronizar, ahí mismo |
+| **nunca se puso la hora** | 🟢 **en el bolsillo**: no es una avería, es que nadie se la ha puesto desde que el módulo arrancó. Se arregla con el botón de sincronizar, ahí mismo — **en el POSTE 1. En el POSTE 2, ver la caja de arriba** |
 | **oscilador parado** | 🔧 **en la caja**: es la **pila** del módulo de reloj. Se cambia **y luego** se pone la hora — ponerla sin cambiar la pila la pierde otra vez al primer corte |
 | **el reloj no responde** | 🔧 **destornillador**: módulo desenchufado, mal cableado, o las dos líneas del bus cruzadas. **No se arregla repitiendo la orden** |
 | **escritura a medias** | 🟢 **repítalo**: una puesta en hora anterior se cortó a mitad y el módulo se quedó con parte vieja y parte nueva. **Vuelva a sincronizar y compruebe que esta vez acusa bien** |
@@ -1838,8 +2083,19 @@ eso **la caminata entre postes se cancela**: da igual que pasen dos minutos o do
 ### 5.7.4 🛑 Lo que esta consulta NO hace
 
 **No sincroniza nada.** Hace **visibles** los dos relojes; no los junta. **Los dos siguen corriendo
-libres** desde que un técnico le tecleó la hora a cada uno, en ese poste, en esa visita — y **nada
-del equipo los vuelve a juntar solo**.
+libres** ~~desde que un técnico le tecleó la hora a cada uno, en ese poste, en esa visita~~ — y
+**nada del equipo los vuelve a juntar solo**.
+
+> 🛑 **07/09 (`D-20`) — LA FRASE TACHADA DESCRIBÍA EL MODO NORMAL DE OPERAR, Y ESE MODO ES EL
+> DEFECTO.** *«Un técnico le tecleó la hora a cada uno, en ese poste, en esa visita»* son **dos
+> fuentes de hora**, una por poste, cada una salida del teléfono. `D-20` decide lo contrario: **la
+> app le da la hora al Poste 1 y sólo al Poste 1**; el poste 2 la recibe **por radio**, y **hay una
+> sola fuente**. Ver `§4`.
+>
+> ⚠️ **Lo que sí sigue siendo verdad HOY, palabra por palabra, porque `D-20` está SIN CONSTRUIR:**
+> los dos relojes se teclean uno a uno en cada visita y nada los vuelve a juntar solo. **Se conserva
+> tachado, no borrado**, precisamente para que se note cuál de las dos cosas es el estado y cuál es
+> la arquitectura.
 
 > **MEDIDO el 05/09:**
 >
@@ -1885,7 +2141,7 @@ del equipo los vuelve a juntar solo**.
 | **Selector de Cruces** | ~~`evidencia/02_…`~~ → `evidencia/old/02_modal_cruces_abierto.png` | Catálogo de frentes de obra y selección inmediata |
 | **Modo Técnico** | ~~`evidencia/06_…`~~ → `evidencia/old/06_modo_tecnico_activo.png` | Desbloqueo por PIN y pestañas de configuración |
 | **Ajustes de Tiempos** | ~~`evidencia/07_…`~~ → `evidencia/old/07_tiempos_guardados_exito.png` | Programación de tiempos de verde, rojo y despeje. ⚠️ **07/09: no enseña el segundo gesto de `D-11`** —el mando de arrancar el ciclo—, que es lo que hoy hay que pulsar después |
-| **Courier RTC** | ~~`evidencia/08_…`~~ → `evidencia/old/08_courier_rtc_inyectado.png` | Inyección de hora compensada en el nodo Esclavo |
+| ~~**Courier RTC**~~ | ~~`evidencia/08_…`~~ → `evidencia/old/08_courier_rtc_inyectado.png` | ~~Inyección de hora compensada en el nodo Esclavo~~ 🛑 **07/09: EL PROCEDIMIENTO QUE ENSEÑA ESTA CAPTURA ESTÁ DEROGADO (`D-20`)** — la app **no pone la hora en el poste 2**. La captura se conserva porque documenta lo que la APK de agosto hacía, **no lo que hay que hacer**. Ver `§4` |
 
 ---
 **Desarrollado y Validado para el Proyecto Controladora_Semaforos V9.0**

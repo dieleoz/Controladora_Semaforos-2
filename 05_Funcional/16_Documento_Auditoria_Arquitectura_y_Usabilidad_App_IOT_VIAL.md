@@ -83,14 +83,60 @@ En esta iteración se logró:
 ![Arquitectura de 2 Roles](./graficas/grafica_01_arquitectura_roles.png)
 
 * **Operario de Campo:** No requiere ingresar a menús ni memorizar PINs. Puede reanudar el ciclo autónomo, alternar el sentido de paso respetando el despeje todo-rojo de seguridad, activar ámbar destellante o detener el tráfico en emergencia total.
-* **Técnico / Administrador:** Protegido por PIN `1234`. Permite parametrizar tiempos nominales (~~1-15m Verde/Rojo~~ → 🔴 **3-15 min Verde/Rojo desde el 04/09**, `D-5`: *«por debajo, el conductor se convence de que el semáforo está averiado y adelanta en rojo»*. La guarda de verdad **está en el firmware** —`VERDE_MIN_MIN = 3` en `Maestro/include/limites_ciclo.h`— y rechaza con `$ERR,CMD:SET_TIEMPOS,DESC:RANGO`; 10-90s Despeje), realizar pruebas de potencia en MOSFETs y sincronizar relojes RTC DS3231.
+* **Técnico / Administrador:** Protegido por PIN `1234`. Permite parametrizar tiempos nominales (~~1-15m Verde/Rojo~~ → 🔴 **3-15 min Verde/Rojo desde el 04/09**, `D-5`: *«por debajo, el conductor se convence de que el semáforo está averiado y adelanta en rojo»*. La guarda de verdad **está en el firmware** —`VERDE_MIN_MIN = 3` en `Maestro/include/limites_ciclo.h`— y rechaza con `$ERR,CMD:SET_TIEMPOS,DESC:RANGO`; 10-90s Despeje), realizar pruebas de potencia en MOSFETs y ~~sincronizar relojes RTC DS3231~~ **poner en hora el `DS3231` DEL POSTE 1, y sólo el del poste 1** (🔴 `D-20`, 07/09: **la app NO pone la hora en el poste 2, nunca** — un `SET_RTC` dirigido al Esclavo **se rechaza**, porque no es una sincronización sino una **segunda fuente**. El poste 2 recibe la hora del Maestro por la cadena `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`. ⚠️ **SIN CONSTRUIR** — ver §2.2. **Consultar** los dos relojes con `CMD:LEER_RTC` sí sigue siendo tarea del técnico: leer no escribe).
 
 ### 2.2 Flujo del Asistente Courier RTC
 ![Flujo Courier RTC](./graficas/grafica_02_courier_rtc_flujo.png)
 
 Para obras viales donde la topografía bloquea la señal de radio entre Maestro y Esclavo:
-$$\text{Hora Inyectada en Esclavo} = \text{Hora Capturada en Maestro} + \Delta t_{\text{traslado}}$$
+~~$$\text{Hora Inyectada en Esclavo} = \text{Hora Capturada en Maestro} + \Delta t_{\text{traslado}}$$~~
 ~~El cronómetro en la App contabiliza los segundos de viaje y programa el reloj DS3231 del Esclavo con la hora exacta compensada.~~
+
+> # 🔴 07/09 — LA FÓRMULA DE ARRIBA QUEDA TACHADA ENTERA POR `D-20`, NO SÓLO SU PRIMER TÉRMINO
+>
+> **Antes se corrigió el término `Hora Capturada en Maestro` (ver abajo). `D-20` va más lejos: quita
+> el procedimiento completo.**
+>
+> > **LA AUTORIDAD DE LA HORA ES EL ESP32, SIEMPRE Y PARA TODO.** La app se la da al **ESP32
+> > Maestro**; ése al **ESP32 Esclavo**; y el STM32 de cada punta la recibe **de su propio ESP32**.
+> > **Hay UNA sola fuente**, así que **no hay desfase inicial que acotar** — que era la única
+> > objeción del arquitecto. 🔴 **Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.**
+> > Un `SET_RTC` dirigido al Esclavo **se rechaza**: no es una sincronización, **es una segunda
+> > fuente**.
+>
+> **El Courier RTC es, por definición, una segunda fuente**: lleva la hora del teléfono hasta el
+> poste 2 y la inyecta allí. Con `D-20`, **ese gesto está prohibido**, y con él se va el $\Delta
+> t_{\text{traslado}}$: **no hay traslado que compensar porque no hay nada que trasladar a mano.**
+>
+> **La topología, que es lo que sustituye a la fórmula:** los dos ESP32 **no se hablan**. El único
+> enlace entre postes es la **radio entre los STM32**, así que la hora viaja
+>
+> ```
+> ESP32-M  ->  STM32-M  ->  radio  ->  STM32-E  ->  ESP32-E
+> ```
+>
+> **Los STM32 son CARTEROS de la hora, no dueños.**
+>
+> 🖼️ **Y por tanto `graficas/grafica_02_courier_rtc_flujo.png` PUBLICA UN FLUJO DESMENTIDO.** La
+> imagen sigue en el documento y **no se ha regenerado**: dibuja el Courier —teléfono → poste 2—,
+> que es justo lo que `D-20` prohíbe. **Léase la imagen como histórico, no como procedimiento.**
+> *(Se deja escrito en vez de corregido a propósito: regenerar gráficas no es trabajo de esta
+> revisión, y una imagen borrada en silencio no deja rastro de que estuvo mal.)*
+>
+> ⚠️ **`D-20` ESTÁ DECIDIDA Y SIN CONSTRUIR.** Falta el mando ESP32 → STM32 que siembre la hora —el
+> camino físico existe (`ESP32_Expansion/src/enlace_stm32.cpp`), **el mando no**: ese fichero no
+> menciona `RTC` ni `hora` ni una vez— y falta el rechazo del `SET_RTC` en el poste 2 — el puente es
+> **el mismo firmware en los dos postes** y su despachador **no sabe en cuál está**:
+> `grep -c "ESCLAVO\|Esclavo\|esclavo" 01_Firmware/ESP32_Expansion/src/despachador.cpp` → `0`
+> (corrido el 07/09). **Hasta que se construya, la barrera es el procedimiento: no se manda `SET_RTC`
+> al poste 2.**
+>
+> ✅ **Lo que `D-20` NO deroga, para que nadie lo retire de paso:**
+> **`CMD:LEER_RTC` (`D-17`) se sigue mandando A LOS DOS POSTES.** `D-20` prohíbe **ESCRIBIR** la hora
+> en el poste 2; **leerla no escribe nada**. Con `D-20` construida vale **más** que hoy: es la única
+> forma de comprobar que la siembra del Maestro llegó de verdad al reloj del poste 2.
+> **Y siguen haciendo falta DOS `DS3231`, uno por poste (`A-5`)**: el del Esclavo es el que conserva
+> la hora con su pila cuando se cae la radio. **`D-20` no reduce la compra a uno.**
 
 > 🔴 **07/09: LA FÓRMULA DE ARRIBA TIENE MAL EL PRIMER TÉRMINO, y el Manual 14 §4 lo dejó medido el
 > 05/09.** *«Hora Capturada en Maestro»* **no es la hora del Maestro: es la hora DEL TELÉFONO**
@@ -101,8 +147,16 @@ $$\text{Hora Inyectada en Esclavo} = \text{Hora Capturada en Maestro} + \Delta t
 > 🔴 **Y hay dos cosas más que este apartado ya no puede afirmar:**
 >
 > 1. **`D-15` (05/09): el reloj lo lleva el `DS3231` del ESP32 de cada punta, y es el ÚNICO que
->    contesta a `SET_RTC`.** La controladora consume la orden y **ya no acusa**. Hay **dos relojes
->    por cruce**, no uno que se inyecta desde el otro.
+>    contesta a `SET_RTC`.** La controladora consume la orden y **ya no acusa**. ~~Hay **dos relojes
+>    por cruce**, no uno que se inyecta desde el otro.~~
+>    > 🔴 **07/09 — ESA ÚLTIMA FRASE LA ESCRIBÍ HOY MISMO Y `D-20` LA DEROGA EL MISMO DÍA. Se tacha,
+>    > no se borra.** Siguen siendo **dos `DS3231`, uno por poste** (`A-5`, y **la compra no cambia**),
+>    > pero **la FUENTE de la hora es UNA SOLA: el ESP32 Maestro.** El del poste 2 **no es una segunda
+>    > fuente: es la MEMORIA de la única fuente**, la que conserva la hora con su pila cuando se cae
+>    > la radio. Y sí, **es exactamente «uno que se inyecta desde el otro»** — sólo que no a mano con
+>    > un teléfono, sino por la cadena
+>    > `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`, con los STM32 de **carteros**.
+>    > ⚠️ **SIN CONSTRUIR** — ver el recuadro grande de §2.2.
 > 2. **`D-17` (05/09): hay una vía mejor que el Courier para lo que casi siempre se quiere —
 >    `CMD:LEER_RTC`, consultar el reloj SIN cambiarlo**, y ver el desfase entre postes. *«No hace
 >    falta que los dos relojes se pongan de acuerdo solos: hace falta poder ver si lo están.»* Ver

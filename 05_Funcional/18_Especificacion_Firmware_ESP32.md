@@ -41,9 +41,35 @@ un encargo pendiente.
 >
 > **Este fichero se escribió el 31/08 como la especificación de un firmware que NO EXISTÍA. Ese
 > firmware existe desde ese mismo día, se cargó en una tarjeta el 05/09 y su reloj está cerrado en
-> cobre.** Todo lo que aquí siga en **futuro** —*«el ESP32 tiene que…»*, *«hay que…»*— describe algo
+> cobre.** ~~Todo lo que aquí siga en **futuro** —*«el ESP32 tiene que…»*, *«hay que…»*— describe algo
 > que **ya está construido**, y leerlo como una lista de tareas es mandar a alguien a reimplementar
-> lo hecho.
+> lo hecho.~~
+>
+> > 🔴 **ACOTADA EL 07/09, MÁS TARDE EL MISMO DÍA — ERA UNA CLÁUSULA EN BLOQUE, Y UNA CLÁUSULA EN
+> > BLOQUE DA POR CONSTRUIDO LO QUE NADIE HA ESCRITO.** La frase se conserva tachada porque su
+> > intención sigue siendo buena —casi todo este documento describe algo hecho—, pero **cubría
+> > también lo que NO lo está**, y eso es la Caja Negra de Alarmas otra vez (`CLAUDE.md`, «DECLARAR NO ES EJERCER»:
+> > cuatro manuales describiendo una función sin un solo llamador).
+> >
+> > **La regla, ya acotada:** lo escrito en futuro describe algo construido **salvo donde este
+> > documento diga expresamente `SIN CONSTRUIR`**. Y hoy hay una excepción con nombre:
+> >
+> > | qué | dónde | estado |
+> > |---|---|---|
+> > | **La siembra de la hora `ESP32 → STM32`** —y con ella el `RESULT:HORA_PUESTA_SIN_PROPAGAR`, motivo **7** de la tabla de §5.5— | §5.5, §5.2, §1.2 | 🔴 **DECIDIDA (`D-20`, 07/09) y SIN CONSTRUIR.** El camino físico existe (`ESP32_Expansion/src/enlace_stm32.cpp`); **el mando que siembra la hora, no** |
+> >
+> > **Y no es una sospecha: el fichero que decide qué hacer con un `SET_RTC` no nombra al Esclavo
+> > ni una vez**, así que hoy lo atiende venga por donde venga. Corrido el 07/09:
+> >
+> > ```
+> > $ cd 01_Firmware/ESP32_Expansion
+> > $ grep -c "ESCLAVO\|Esclavo\|esclavo" src/despachador.cpp
+> > 0
+> > ```
+> >
+> > *(El puente **sí** aprende de qué poste cuelga —`transporte_aprenderRotulo()`, un solo
+> > llamador—, pero **para rotular el Bluetooth en la lista de Android**; ese dato no llega al
+> > despachador. `grep -rn 'transporte_aprenderRotulo' 01_Firmware/ESP32_Expansion/src`.)*
 >
 > **La fuente que manda sobre lo que el módulo HACE es `01_Firmware/ESP32_Expansion/`** (8 `.h` +
 > 8 `.cpp`), y sobre lo DECIDIDO, `DECISIONES.md`. **Este documento nunca gana.**
@@ -205,8 +231,91 @@ Las dos mitades importan por separado:
 
 De ahí sale la regla de rechazo de este documento: **cualquier propuesta que haga que el semáforo
 dependa del ESP32 para seguir siendo seguro se rechaza**, por cómoda que sea. Eso incluye —y se
-nombra porque ya está propuesta en el Manual 17 §3.2 vía B— el reloj de software en el STM32
-disciplinado por el ESP32.
+nombra porque ya está propuesta en el Manual 17 §3.2 vía B— ~~el reloj de software en el STM32
+disciplinado por el ESP32~~.
+
+> # 🔴 07/09 — `D-20` DEROGA ESA ÚLTIMA FRASE, Y **SÓLO** ESA. EL RESTO DE §1.2 SIGUE ENTERO
+>
+> **`DECISIONES.md` `D-20`, 07/09, decidida por el responsable:** *«LA AUTORIDAD DE LA HORA ES EL
+> ESP32, SIEMPRE Y PARA TODO. Al STM32 no se le pregunta nunca»* — la app se la da al **ESP32
+> Maestro**, ése al **ESP32 Esclavo**, y el STM32 de cada punta la recibe **de su propio ESP32**.
+> Los dos ESP32 no se hablan: el único enlace entre postes es la radio **entre los STM32**, así que
+> la hora viaja `ESP32-M → STM32-M → radio → STM32-E → ESP32-E`. **Los STM32 son CARTEROS de la
+> hora, no dueños.**
+>
+> **`DECISIONES.md` gana a este documento** (lo dice su propia cabecera), así que la regla de arriba
+> **se acota; no se borra**, porque su argumento es de seguridad y sigue siendo verdad. Lo que
+> queda:
+>
+> | mitad de §1.2 | con `D-20` |
+> |---|---|
+> | *«el ESP32 **no manda sobre las luces**»* — el ciclo, SFTY-2, el todo-rojo y la caída a ámbar de SFTY-6 viven enteros en el STM32 | 🟢 **INTACTA.** `D-20` reparte la HORA, no la luz. `CLAUDE.md` §6 no se toca: sólo `semaforo.cpp` escribe pines |
+> | *«nada que haga que el semáforo dependa del ESP32 para seguir siendo SEGURO»* | 🟢 **INTACTA**, y ver abajo por qué `D-20` no la cruza |
+> | *«eso incluye el reloj de software en el STM32 disciplinado por el ESP32»* | 🔴 **DEROGADA por `D-20` (07/09), y sólo en lo que toca a la HORA.** Es exactamente la propuesta que esta frase rechazaba, y la decisión del responsable la adopta |
+>
+> ## 🛑 QUÉ PROPIEDAD QUEDA EXPUESTA, dicho sin adornos
+>
+> **Con `D-20` dentro, la AUTORIZACIÓN del Modo Degradado pasa a depender de un módulo accesorio.**
+> Si el ESP32 no está, no arranca, o su `DS3231` pierde el oscilador, esa punta se queda sin hora —
+> y sin hora el Degradado no se autoriza. Eso hay que escribirlo, no dejarlo implícito.
+>
+> ### ¿Es la dirección segura? **Sí, y está MEDIDO en el fuente, no razonado — los tres casos**
+>
+> ```
+> $ grep -rn "reloj_enHora" 01_Firmware/Maestro/src/modo_degradado.cpp \
+>                           01_Firmware/Esclavo/src/modo_degradado.cpp
+> ```
+>
+> | caso | qué hace el firmware **de hoy** | símbolo |
+> |---|---|---|
+> | **No hay hora al pedir el modo** | **no entra**, y dice por qué | `modo_degradado_evaluarEntrada()` → `MDG_FALTA_HORA` (Maestro) · `degradado_entrar()` → `DEG_RECHAZO_SIN_HORA` (Esclavo) |
+> | **La hora se cae con el modo YA en marcha — Maestro** | **sale a ámbar intermitente** con motivo: `irAAmbar("Reloj no fiable", "Degradado detenido")` | `modo_degradado.cpp` del Maestro, dentro del tramo `DEG_ENTRADA_ROJO`/`DEG_ACTIVO` |
+> | **La hora se cae con el modo YA en marcha — Esclavo** | 🟠 **no hay guarda explícita**, y aun así **no da verde**: `reloj_segundosDelDia()` devuelve `0` sin hora, y `ciclo_degradado_fase(0, …)` cae en la guarda de medianoche `if (segDia < despejeSeg) return FD_DESPEJE_B` — que **nunca** es `FD_VERDE_ESCLAVO`, así que `aplicarLuz(false)` fuerza rojo | `Esclavo/src/reloj.cpp` `reloj_segundosDelDia` · `Esclavo/include/ciclo_degradado.h` `ciclo_degradado_fase` |
+>
+> **En los tres, el equipo se queda del lado que no da paso.** `D-20` no puede hacer que un ESP32
+> ausente regale un verde: lo que un ESP32 ausente cuesta es **la operación**, no la seguridad — y
+> eso ya estaba declarado en `D-16` (*«sin teléfono no hay forma de operar el equipo»*).
+>
+> ### 🔵 Y el dato que le da la vuelta al miedo: `D-20` no ABRE ese agujero, es lo único que puede CERRARLO
+>
+> **Hoy, sin `D-20`, esa autorización ya está caída — y por dos motivos a la vez.** No es una
+> hipótesis: lo escribe el propio fuente, y se lee con
+> `grep -n "CONSECUENCIA MEDIDA" 01_Firmware/Maestro/include/reloj.h`:
+>
+> > *«reloj_enHora() de esta punta es hoy FALSO SIEMPRE, y de esa bandera cuelga la autorizacion del
+> > Modo Degradado […], la sincronizacion horaria por radio y la medida de desfase. Los tres estan
+> > bloqueados»*
+>
+> El `Y2` está muerto (`N-17`) **y** `D-15` retiró el camino de escritura del RTC del Maestro. O sea
+> que **el Modo Degradado lleva bloqueado desde antes de que `D-20` existiera**, y `D-20` es la
+> primera propuesta que podría desbloquearlo. La frase de §1.2 protege de *«colgar la seguridad de
+> un accesorio»*; aquí lo que se cuelga del accesorio es **la capacidad de OPERAR** un modo que hoy
+> no se puede operar en absoluto.
+>
+> ### 🛑 Lo que esto NO cierra, y va como pregunta, no como reparación
+>
+> 1. **La regla nueva de campo que `D-20` obliga a escribir: EL POSTE 2 SE PONE EN HORA EN LA PUESTA
+>    EN MARCHA, NO DURANTE LA AVERÍA.** El único camino al reloj del poste 2 pasa por el Maestro y
+>    por **la radio**, y la radio se cae justo cuando hace falta el Degradado — que es el modo que
+>    exige hora. ✅ **Y eso no es un defecto: el `DS3231` del `ESP32-E` tiene pila y conserva la hora
+>    que ya tenía.** *Perder la radio no es perder la hora.* Lo que obliga es a ponerla **antes**: en
+>    la puesta en marcha, al cambiar la `CR2032` y tras cualquier `OSCILADOR_PARADO_CAMBIE_PILA` en
+>    ese poste.
+> 2. 🔴 **La asimetría del tercer caso de la tabla queda `SIN VERIFICAR` como decisión.** El Maestro
+>    sale a **ámbar intermitente y lo dice**; el Esclavo se congela en **rojo fijo, sin avisar y por
+>    efecto lateral de la guarda de medianoche**, no por una guarda escrita para eso. Las dos son
+>    seguras; **no son la misma cosa para quien está en la calzada**, y ninguna de las dos está
+>    decidida como tal. **No se decide aquí.**
+> 3. 🔴 **`CMD_HORA_D/H/M/S` por radio sigue existiendo y hoy escribe en el RTC del STM32 Esclavo**
+>    —`grep -n 'CMD_HORA_D' 01_Firmware/Esclavo/src/main.cpp`, que aplica con `reloj_ajustar()`—.
+>    El día que `reloj_enHora()` del Maestro vuelva a ser cierto, `coordinador_sincronizarHora()`
+>    deja de estar bloqueado y ese camino **se enciende solo**. Con `D-20` la hora tiene que acabar
+>    en el `ESP32-E`, no en el RTC del STM32-E: **qué se hace con ese último salto es del
+>    responsable**, y `CLAUDE.md` avisa, en «DECLARAR NO ES EJERCER», de que retirar un armador no deja una bandera
+>    inerte, la deja abierta.
+>
+> **Nada de esto corre hoy en ninguna tarjeta.** Ver la excepción nombrada en la cabecera: `D-20`
+> está **DECIDIDA y SIN CONSTRUIR**.
 
 ### 1.3 🔴 Lo que este módulo NO hace, y por qué no es una omisión
 
@@ -816,26 +925,26 @@ El puente tiene que dejarlos pasar **íntegros**. Se listan para que nadie los d
 
 #### Maestro — `01_Firmware/Maestro/src/bluetooth.cpp`
 
-| comando (tal como llega) | PIN |
-|---|---|
-| `CMD:FORZAR_ROJO` | **no** |
-| prefijo `CMD:PIN:1234:` → el resto es la *acción* | — |
-| `CMD:SET_MODO:MENU` · `CMD:SET_MODO:ALCANCE` (sin prefijo de PIN) | **no** |
-| `SET_MODO:AUTO` | sí |
-| `SET_MODO:MANUAL` | sí |
-| `SET_MODO:AMBAR` | sí |
-| `SET_MODO:MENU` | sí (o sin PIN) |
-| `SET_MODO:ALCANCE` | sí (o sin PIN) |
-| `SET_MODO:INTELIGENTE` | sí |
-| `SET_MODO:DEGRADADO` | sí |
-| `FORZAR_ROJO` | sí |
-| `MANUAL:CAMBIAR_TURNO` | sí |
-| `TEST_LEDS` | sí |
-| `SET_TIEMPOS:<v>,<r>,<d>` | sí |
-| `SET_RTC:YYYY-MM-DD,HH:MM:SS` | sí |
-| `REINICIAR_RELOJ` | sí |
-| `DEMANDA` | sí |
-| *(cualquier otra)* → `$ERR,CMD:DESCONOCIDO` | — |
+| comando (tal como llega) | PIN | nota |
+|---|---|---|
+| `CMD:FORZAR_ROJO` | **no** | |
+| prefijo `CMD:PIN:1234:` → el resto es la *acción* | — | |
+| `CMD:SET_MODO:MENU` · `CMD:SET_MODO:ALCANCE` (sin prefijo de PIN) | **no** | |
+| `SET_MODO:AUTO` | sí | |
+| `SET_MODO:MANUAL` | sí | |
+| `SET_MODO:AMBAR` | sí | |
+| `SET_MODO:MENU` | sí (o sin PIN) | |
+| `SET_MODO:ALCANCE` | sí (o sin PIN) | |
+| `SET_MODO:INTELIGENTE` | sí | |
+| `SET_MODO:DEGRADADO` | sí | |
+| `FORZAR_ROJO` | sí | |
+| `MANUAL:CAMBIAR_TURNO` | sí | |
+| `TEST_LEDS` | sí | |
+| `SET_TIEMPOS:<v>,<r>,<d>` | sí | |
+| `SET_RTC:YYYY-MM-DD,HH:MM:SS` | sí | 🔵 **07/09: esta fila también arrastra `D-15` y a esta punta le FALTABA la nota que sí lleva la del Esclavo.** El STM32 del Maestro **ya no tiene camino de escritura al RTC**: `grep -n "D-15" 01_Firmware/Maestro/include/reloj.h` — *«hoy NADIE puede poner en hora este RTC»*. **Quien contesta es el puente**, con `NODE:PUENTE`. Y con `D-20` (07/09) esa punta es además **la ÚNICA que acepta poner la hora en el cruce** |
+| `REINICIAR_RELOJ` | sí | |
+| `DEMANDA` | sí | |
+| *(cualquier otra)* → `$ERR,CMD:DESCONOCIDO` | — | |
 
 #### Esclavo — `01_Firmware/Esclavo/src/bluetooth.cpp`
 
@@ -850,7 +959,7 @@ El puente tiene que dejarlos pasar **íntegros**. Se listan para que nadie los d
 | `SOLICITAR_PASO` | sí | el Esclavo **pide**, no ordena (SFTY-27) |
 | 🆕 `SET_MODO:DEGRADADO` | sí | 🔴 **FALTABA EN ESTE CENSO — añadido el 07/09.** Es el **único** `SET_MODO` que atiende esta punta (`D-18`, 05/09). Contesta **DOS** acuses buenos (`OK`, `YA_ACTIVO`) y **SEIS** motivos de rechazo, uno por condición: `degradado_entrar()` devuelve un `RechazoDegradado`, no un `bool` |
 | `TEST_LEDS` | sí | 🔴 **rechazado a propósito**: encendería un verde en esta punta |
-| `SET_RTC:...` | sí | 🔵 **05/09 (`D-15`): esta punta ya NO la ACUSA.** La consume para no contestar *comando desconocido* y deja un evento; **el acuse lo da el puente** |
+| `SET_RTC:...` | sí | 🔵 **05/09 (`D-15`): esta punta ya NO la ACUSA.** La consume para no contestar *comando desconocido* y deja un evento; ~~**el acuse lo da el puente**~~ → 🔴 **07/09 (`D-20`): EL PUENTE DE ESTE POSTE TIENE QUE **RECHAZARLA**, NO ACUSARLA.** *«La app NO pone la hora en el poste 2. Nunca. Un `SET_RTC` dirigido al Esclavo se rechaza: no es una sincronización, es una segunda fuente»* (`DECISIONES.md` `D-20`). 🛑 **SIN CONSTRUIR: hoy el puente la atiende venga por donde venga** — `cd 01_Firmware/ESP32_Expansion && grep -c "ESCLAVO\|Esclavo\|esclavo" src/despachador.cpp` → **0**, corrido el 07/09 |
 | *(cualquier otra)* → `$ERR,CMD:DESCONOCIDO,...EN_ESCLAVO` | — | |
 
 > 🔴 **EL MISMO HUECO, EN LA MISMA TABLA, UNA SEMANA DESPUÉS — y esta vez la cura estaba escrita
@@ -1156,8 +1265,8 @@ A **9600 8N1 = 960 B/s**. La cuenta, con los tamaños medidos de §3.3:
 >
 > **MEDIDO el 02/09**, en `01_Firmware/ESP32_Expansion/` (proyecto PlatformIO real, `esp32dev`):
 >
-> | | |
-> |---|---|
+> | | | dónde se mide, por símbolo |
+> |---|---|---|
 > | qué watchdog | **Task Watchdog Timer del IDF**, con *panic* — **reinicia**, no sólo avisa | `grep -n 'esp_task_wdt_init' src/vigilante.cpp` · ~~`:24`~~ |
 > | periodo | **2 s** — `ESP32_WDT_MS 2000UL` | `grep -n 'ESP32_WDT_MS' include/contrato.h` — `:102`, **re-verificado el 05/09** |
 > | dónde se arma | `setup()`, **antes** del SPP y del I²C — requisito `W-5` | `grep -n 'vigilante_armar' src/main.cpp` · ~~`src/main.cpp:58`~~ |
@@ -1400,7 +1509,34 @@ de `MOSFET`. Ver §0.bis: el buscador respondía y no sabía encontrar.)*
 | Módulo | **`ZS-042`** — **ya trae sus pull-ups: NO se añaden** |
 | Alimentación | **pila propia** en el módulo |
 | Dirección | `0x68` (estándar del `DS3231`) — 🟠 **sigue `SIN VERIFICAR` sobre el módulo real, y es lo ÚNICO que queda abierto de `A-5`** |
-| **Cuántos** | 🟢 **DOS, uno por poste, COMPRADOS Y PUESTOS** (`A-5` cerrada el 05/09 · línea `A6` de `15_Lista_de_Compras_Hardware.md`: *«nada que pedir»*). **Son dos porque el STM32 NO tiene reloj** (`Y2` muerto, `D-9`) **y ya no atiende `SET_RTC`** (`D-15`) |
+| **Cuántos** | 🟢 **DOS, uno por poste, COMPRADOS Y PUESTOS** (`A-5` cerrada el 05/09 · línea `A6` de `15_Lista_de_Compras_Hardware.md`: *«nada que pedir»*). ~~**Son dos porque el STM32 NO tiene reloj** (`Y2` muerto, `D-9`) **y ya no atiende `SET_RTC`** (`D-15`)~~ → **ver la corrección de abajo: siguen siendo dos, y con `D-20` el motivo cambia** |
+
+> 🔴 **07/09 — DOS CORRECCIONES A LA CELDA «CUÁNTOS», Y LA PRIMERA ES UN DATO DE HARDWARE QUE ESTE
+> PROYECTO YA ESCRIBIÓ MAL HOY.**
+>
+> **1. NO se escriba *«el STM32 no tiene reloj»* a secas.** El STM32 **tiene** cristal y **tiene**
+> pila, y no usa ninguno de los dos para la hora:
+>
+> | pieza | qué pasa de verdad |
+> |---|---|
+> | **`Y1`, 8 MHz** | **está en la placa.** ⚠️ Que el reloj de sistema salga del **HSI** (RC interno) y no de `Y1` es **ESCRITO, no MEDIDO aquí**: lo decide el core de Arduino, **no el firmware de este proyecto**. Medido el 07/09 — `SystemClock_Config` **no está en ningún fuente propio**, sólo en artefactos de compilación y en el variant del framework: <br>`grep -rln "SystemClock_Config" 01_Firmware/*/src 01_Firmware/*/include` → **cero ficheros** · `grep -rl "SystemClock_Config" 01_Firmware/Esclavo/.pio/build/esclavo` → **cuatro artefactos**, y el que lo define es `FrameworkArduinoVariant/generic_clock.c.o`. 🔴 **Ojo con el buscador aquí:** el mismo patrón sobre `01_Firmware/` a secas devuelve 25 líneas de `.pio/build` y de `firmware.map`, y leerlas como *«el proyecto lo configura»* sería falso. Lo que **sí** está medido es que `Y1` no es el cristal del RTC |
+> | **`Y2`, el de 32.768 Hz** | 🔴 **es el muerto, y SÓLO él** (`N-17`). `reloj.cpp` de las dos puntas es `STM32RTC` sobre `LSE_CLOCK`, o sea sobre `Y2`, y por eso `reloj_enHora()` es falso |
+> | **`VBAT`** | **midió 3 V con la tarjeta apagada** (`N-37`) en **al menos una** tarjeta; la otra sigue `SIN VERIFICAR` |
+>
+> **Lo muerto es `Y2`.** La frase corta —*«ni pila ni cristal»*— es falsa y no se propaga.
+>
+> **2. Con `D-20` (07/09) siguen siendo DOS, pero YA NO por el motivo de esta celda.** `D-20` pone
+> **una sola fuente de hora en el cruce** —el `ESP32-M`—, así que el segundo `DS3231` no está para
+> ser una segunda autoridad: está para **conservar la hora con pila cuando se cae la radio**, que es
+> el único camino del poste 2 al reloj. Es lo que hace que *perder la radio no sea perder la hora*.
+>
+> 🔴 **Y la `CR2032` del STM32 SIGUE SIENDO OBLIGATORIA con `D-20` — y ya no es por la hora.**
+> Alimenta el dominio de respaldo (`BKP->DR1..DR10`), donde viven la marca de sincronización y el
+> indicador del Degradado: **el cómputo de las 48 h**. Se lee en
+> `grep -n "CR2032" 01_Firmware/Maestro/include/respaldo.h` — *«alimentados por LA MISMA pila
+> `CR2032` que ya mantiene el RTC»*, y *«Sin pila… `respaldo_setup()` encuentra el contenido
+> invalido y borra»*. **Quitarla porque «la hora ya la lleva el ESP32» borra la reanudación tras un
+> corte.**
 
 ### 5.3 🔴 El bit `OSF` — el chip lo regala, y hay que cogerlo
 
@@ -1470,6 +1606,57 @@ despachador se escribe copiándolo.
 | 5 | **La relectura no coincide con lo escrito** | `DESC:NO_QUEDO_PUESTA` | §5.6, relectura |
 | 6 | El `OSF` **sigue puesto** tras la escritura | `DESC:OSCILADOR_PARADO_CAMBIE_PILA` | relectura del `0x0F` |
 | 7 | La hora entró pero **no se pudo propagar** al STM32 | `$ACK,...,RESULT:HORA_PUESTA_SIN_PROPAGAR` | el `$ACK` del STM32 no llegó |
+
+> # 🛑 `D-20` (07/09) — ESTA TABLA VALE **SÓLO EN EL POSTE MAESTRO**, Y EL MOTIVO 7 ESTÁ **SIN CONSTRUIR**
+>
+> **Lo que esta tabla describe se escribió el 31/08 «para el ESP32», sin distinguir punta.** `D-20`
+> le pone dos límites, y ninguno es cosmético:
+>
+> **1. La tabla es del `SET_RTC` que se ATIENDE, y con `D-20` sólo se atiende en el MAESTRO.**
+> *«La app NO pone la hora en el poste 2. Nunca. Un `SET_RTC` dirigido al Esclavo se rechaza: no es
+> una sincronización, es una segunda fuente»* (`DECISIONES.md` `D-20`). En el poste 2 la respuesta
+> correcta no es ninguno de los siete motivos de arriba: es **un rechazo por DESTINO**, antes de
+> mirar el formato, el bus o el `OSF`. **Ese motivo octavo no existe todavía y hay que escribirlo.**
+>
+> ⚠️ **Y el orden importa, o se deja un poste sin hora ninguna: el rechazo NO se escribe antes que
+> la siembra.** Mientras `D-20` esté sin construir, **la única forma de poner en hora el poste 2 es
+> visitarlo con el teléfono** — la vía que la sustituye no existe. Construir primero el `$ERR` de
+> rechazo dejaría al Esclavo **sin la única puerta que tiene hoy**, y sin hora no se autoriza el
+> Modo Degradado. **Primero el camino nuevo, después la barrera**; hasta entonces, visitar el poste
+> 2 es **un estado temporal declarado, no la arquitectura**.
+>
+> **2. El motivo 7 da por hecha una siembra `ESP32 → STM32` que NO ESTÁ CONSTRUIDA.** El camino
+> físico existe —`01_Firmware/ESP32_Expansion/src/enlace_stm32.cpp`—; **el mando que lleva la hora
+> por él, no.** Un `RESULT:HORA_PUESTA_SIN_PROPAGAR` documentado en un manual y sin un solo emisor
+> es la Caja Negra de Alarmas de `N-73` otra vez, y por eso la cabecera de este documento lleva
+> desde hoy su excepción nombrada.
+>
+> ## Y lo que `D-20` añade y esta tabla no contempla: **de dónde sale la hora del poste 2**
+>
+> Los dos ESP32 **no se hablan**. El único enlace entre postes es la radio **entre los STM32**, así
+> que con `D-20` la cadena entera es:
+>
+> ```
+>    app  ->  ESP32-M  ->  STM32-M  ->  radio  ->  STM32-E  ->  ESP32-E
+>             (DS3231)     (cartero)              (cartero)     (DS3231)
+> ```
+>
+> **Los STM32 son CARTEROS de la hora, no dueños.** Hay **UNA sola fuente** —el `DS3231` del
+> `ESP32-M`—, así que **no hay desfase inicial que acotar**: el Maestro manda la hora y el Esclavo
+> hace caso siempre.
+>
+> 🛑 **REGLA DE CAMPO QUE SALE DE AHÍ: EL POSTE 2 SE PONE EN HORA EN LA PUESTA EN MARCHA, NO DURANTE
+> LA AVERÍA.** El único camino a su reloj pasa por la radio, y la radio se cae justo cuando hace
+> falta el Modo Degradado — que es el modo que exige hora. ✅ **Y eso NO es un problema: su `DS3231`
+> tiene pila y conserva la hora que ya tenía.** *Perder la radio no es perder la hora.* Lo que
+> obliga es a ponerla **antes**: en la puesta en marcha, al cambiar la `CR2032`, y tras cualquier
+> `OSCILADOR_PARADO_CAMBIE_PILA` en ese poste.
+>
+> ✅ **Lo que `D-20` NO deroga, para que nadie lo borre de paso:** `CMD:LEER_RTC` (`D-17`) **se sigue
+> mandando A LOS DOS POSTES.** `D-20` prohíbe **ESCRIBIR** la hora en el poste 2; **leerla no
+> escribe nada** — y con `D-20` construida vale más que hoy, porque es la única forma de comprobar
+> que la siembra del Maestro llegó de verdad al reloj del poste 2. Su pack es
+> `esp32_12_consulta_de_reloj`.
 
 > ⚠️ **El motivo 7 es un `$ACK`, no un `$ERR`, y la distinción es la que el Maestro ya hace** —
 > `grep -n 'Los tres finales son distintos' 01_Firmware/Maestro/src/bluetooth.cpp` · ~~`:325`~~.** *«Los tres finales son distintos y el operario necesita los tres distintos: no hay con
@@ -1942,10 +2129,20 @@ Es la sección C del Manual 17, aplicada aquí.
 
 > 🔴 **Y el borde que más fácil se cruza al leer esto:** que el ESP32 lleve reloj **no arregla** el
 > `Y2` de los STM32. Son dos relojes distintos. Mientras `reloj_enHora()` del STM32 devuelva `false`,
-> el Modo Degradado y todo lo que cuelga de SFTY-20/21 siguen igual de bloqueados que hoy. La
+> el Modo Degradado y todo lo que cuelga de SFTY-20/21 siguen igual de bloqueados que hoy. ~~La
 > propuesta de puentearlo —Manual 17 §3.2 vía B, reloj de software disciplinado por el ESP32—
 > **cuelga el reloj del semáforo del módulo accesorio**, que es justo lo que §1.2 separa. Está
-> abierta y tiene dueño (§9 `AB-4`).
+> abierta y tiene dueño (§9 `AB-4`).~~
+>
+> > 🔵 **07/09 — LA ÚLTIMA FRASE YA NO ESTÁ ABIERTA: la decidió el responsable.** `DECISIONES.md`
+> > `D-20` adopta esa vía —*«la autoridad de la hora es el ESP32, siempre y para todo»*—, y §1.2 de
+> > este documento queda **acotada, no derogada**: el ESP32 sigue sin mandar sobre las luces.
+> >
+> > **Lo que NO cambia y es la mitad que importa:** el párrafo de arriba sigue describiendo bien el
+> > equipo de **hoy**. `D-20` está **DECIDIDA y SIN CONSTRUIR** —falta el extrapolador sembrado en
+> > `reloj.cpp` de las dos puntas, el mando `ESP32 → STM32` que siembre, y que las 48 h de rendición
+> > dejen de salir del contador crudo del RTC del STM32—, así que **el Degradado sigue bloqueado
+> > mientras eso no exista**. La propiedad de seguridad que esto expone está medida en §1.2.
 
 ---
 
@@ -1961,7 +2158,7 @@ deja abierto: no se inventa una decisión para que el documento parezca cerrado.
 | ~~**`AB-2`**~~ | ✅ **DECIDIDA el 31/08 y la mitad que faltaba el 04/09.** ~~*Cómo se opera el equipo si el ESP32 se cuelga, sin pantalla, sin pulsadores y sin mando*~~ → el mando **se queda** en los canales `A` y `B` (Manual 17 §3.3, opción 3), y el cruce **se opera desde el Maestro** (§3.7). 🔴 **Lo que sigue abierto no es la decisión, es su demostración:** el mando **no se pudo pulsar en banco** (N-118), el fuente se corrigió el 04/09 y **no se ha cargado en ninguna tarjeta**. El watchdog sigue cubriendo el colgado y **no** el muerto ni el desenchufado | ~~el responsable~~ **decidida; falta la carga verificada** | ya no bloquea el alcance de §6; **sí** bloquea que se pueda vender como salida de emergencia |
 | **`AB-9`** | 🔴 **NUEVA (04/09): dos módulos vírgenes se anuncian con el MISMO nombre.** El rótulo bueno se aprende del `$STATUS` y entra **en la siguiente arrancada** (§6.5); hasta entonces las dos puntas dicen `SEM-SIN-MATRICULA`. Y `AB-2` acaba de convertir ese rótulo en **lo que le dice al operario a qué poste caminar** (§17 3.7). ¿Se cubre por procedimiento —una vuelta de energía a cada módulo antes de irse, firmada en el acta— o el firmware da un provisional distinto por módulo? Las cuatro opciones, en el Manual 17 §3.8 | **el responsable** | si hay que tocar el firmware del puente antes de la primera puesta en marcha |
 | **`AB-3`** | 🟠 **`ESP32_ARRANQUE_MS` y el tiempo de reemparejar SPP: SIN VERIFICAR.** Son el hueco de la desigualdad de §4.2, y **se miden con el módulo en la mano**, no se estiman | **quien monte**, con visto bueno técnico | el número concreto del watchdog, y qué tiene que decirle la app al operario tras un reinicio |
-| **`AB-4`** | 🟠 **El `Y2`: se repara, o el STM32 lleva reloj de software disciplinado por el ESP32.** La vía B **cuelga el reloj del semáforo del accesorio** — contra §1.2. Antes hay una medida pendiente que puede ahorrar la compra entera (`ESTADO.md` `B5`). 🔵 **05/09 (N-145): sigue abierta, y ahora hay una TERCERA vía en marcha que no es ninguna de las dos** — el STM32 publica un hueco honesto y **el puente lo sella al pasar** (`B-5.bis`). Eso **tapa el síntoma en la app y NO da reloj al semáforo**: el Modo Degradado sigue colgando del reloj del STM32. ~~🛑 **Y no está probado: sin `DS3231` comprado (`A6`) ni dirección `0x68` verificada, esta vía SIGUE SIN EJERCER**~~ → 🟢 **07/09: SÍ SE EJERCIÓ.** `N-145` cerrada **en cobre** el 05/09 (`HORA:22:19:58`) y `A6` comprada y puesta. 🛑 **Lo que NO cambia, y es lo que mantiene `AB-4` abierta: el sello tapa el hueco en la APP y sigue sin dar reloj al SEMÁFORO.** El Modo Degradado y todo lo que cuelga de SFTY-20/21 **siguen colgando del `Y2` del STM32**, y siguen igual de bloqueados que el 31/08. 🟠 Sólo queda `SIN VERIFICAR` el `0x68` | **el responsable** | si el `DS3231` del ESP32 basta o hay que tocar el STM32 |
+| ~~**`AB-4`**~~ | ✅ **DECIDIDA EL 07/09 POR EL RESPONSABLE — `DECISIONES.md` `D-20`: gana la vía B.** *«La autoridad de la hora es el ESP32, siempre y para todo. Al STM32 no se le pregunta nunca»*, y el `Y2` **no se repara: se deja de usar**. §1.2 de este documento queda **acotada a la hora** y el resto sigue en pie (ver el recuadro de §1.2, con la propiedad de seguridad medida). 🔴 **Lo que queda abierto ya no es la decisión, es su CONSTRUCCIÓN**, y no lo cierra este documento: (1) `reloj.cpp` de las dos puntas pasa a **extrapolador sembrado cada `LATIDO_MS`** con un `EPOCH` del `DS3231` —**no** «un reloj de software refrescado cada tanto»: con el HSI a 10.000-25.000 ppm, sembrar una vez por hora se va **36 s en esa hora**, más que el margen entero de **29 s** del cruce—; (2) el mando `ESP32 → STM32` que siembre, que **no existe** (el camino físico sí: `enlace_stm32.cpp`); (3) las **48 h** de rendición, que hoy salen del contador crudo del RTC del STM32 y se pierden en el primer corte. Tabla de tres filas en `roadmap.md` §3.4.bis. 🟠 Y sigue `SIN VERIFICAR` el `0x68`. **El texto anterior de esta celda se conserva a continuación, SIN tachar, porque describe el equipo de HOY — mientras `D-20` no se construya, todo esto sigue siendo cierto:** 🟠 **El `Y2`: se repara, o el STM32 lleva reloj de software disciplinado por el ESP32.** La vía B **cuelga el reloj del semáforo del accesorio** — contra §1.2. Antes hay una medida pendiente que puede ahorrar la compra entera (`ESTADO.md` `B5`). 🔵 **05/09 (N-145): sigue abierta, y ahora hay una TERCERA vía en marcha que no es ninguna de las dos** — el STM32 publica un hueco honesto y **el puente lo sella al pasar** (`B-5.bis`). Eso **tapa el síntoma en la app y NO da reloj al semáforo**: el Modo Degradado sigue colgando del reloj del STM32. ~~🛑 **Y no está probado: sin `DS3231` comprado (`A6`) ni dirección `0x68` verificada, esta vía SIGUE SIN EJERCER**~~ → 🟢 **07/09: SÍ SE EJERCIÓ.** `N-145` cerrada **en cobre** el 05/09 (`HORA:22:19:58`) y `A6` comprada y puesta. 🛑 **Lo que NO cambia, y es lo que mantiene `AB-4` abierta: el sello tapa el hueco en la APP y sigue sin dar reloj al SEMÁFORO.** El Modo Degradado y todo lo que cuelga de SFTY-20/21 **siguen colgando del `Y2` del STM32**, y siguen igual de bloqueados que el 31/08. 🟠 Sólo queda `SIN VERIFICAR` el `0x68` | ~~**el responsable**~~ **decidida (`D-20`); falta CONSTRUIRLA** | ~~si el `DS3231` del ESP32 basta o hay que tocar el STM32~~ → **ya está contestado: hay que tocar el STM32.** Lo que desbloquea ahora es el Modo Degradado, que lleva bloqueado desde el 31/07 |
 | ~~**`AB-5`**~~ | 🟢 **RESUELTA A MEDIAS EL 05/09 (N-149), y se dice qué mitad.** ~~*`$STATUS` tiene 8 B de margen y nada lo vigila*~~ → **el buffer del Maestro subió a `payload[144]`, el peor caso está MEDIDO en `126 B` (18 B de holgura) y lo vigila `esp32_07_presupuesto_bytes`**, que además tumbó la primera versión del cambio. 🟠 **Sigue abierta para el ESCLAVO**, que se quedó en `payload[128]` y **cuyo margen no está medido: SIN VERIFICAR** | técnico | evita una trama cortada a mitad de campo el día que crezca un literal — **hoy sólo en la punta del Maestro** |
 | **`AB-6`** | 🟡 **El nombre real del pin 3 de `J17`**: `RS(A0)` en el esquemático contra `LCD_PSB` en el firmware. Se cierra **siguiendo el hilo**, no leyendo más código | **quien monte** | el cableado del ESP32 |
 | **`AB-7`** | 🟡 **El PIN `1234` en claro en el fuente y en el aire** (§3.5). Es una limitación conocida. Cambiar el esquema toca las dos puntas y la app, y **no cabe en la especificación de un puente** | **el responsable** | nada de este documento; se anota para que no se dé por resuelto |

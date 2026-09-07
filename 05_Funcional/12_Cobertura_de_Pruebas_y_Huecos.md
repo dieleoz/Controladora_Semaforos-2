@@ -94,6 +94,7 @@ como *BLOQUEADO*. Repartidos como el cuerpo los describe, la cuenta que cuadra a
 | **Operación por app · reloj `DS3231` (`SET_RTC`) · barrera de PIN** | **Bloqueados en cascada** (pasos 11-14 y 25-28) porque el módulo **no se anunció en el teléfono**. El hardware está descartado como causa: es un `ESP32-WROOM-32` clásico, con `BR/EDR`, que es justo el perfil que el `SPP` de la app necesita. 🔴 **Y desde el 05/09 esta fila pesa el doble: con `D-1` la app es la ÚNICA vía de mando** *(ver `D-16`, abajo)*. Un enlace que no se establece ya no bloquea unos cuantos pasos de banco: **deja el equipo sin operar de ninguna forma** |
 | ~~**Paso 29 — mando de relés**~~ | 🟢 **DEJA DE SER HUECO EL 05/09, y por dos motivos que hay que leer juntos — ver la sección `N-118` de abajo.** El paso queda **ABORTADO por seguridad** y **así se queda para siempre**: no se repite, porque **ya no hay mando que probar** (`DECISIONES.md` **D-1**). ~~**Pero la sordera del mando no necesita ese paso para estar diagnosticada, y lo está por el paso 20:** la red de 10 kΩ a masa que la placa trae en esos pines —las `R65`–`R68` de `CLAUDE.md §9.bis`— deja `J16` p5/p8 en **`0,6 V` permanentes**, o sea BAJO fijo. **Nunca hay flanco**, así que el mando está sordo de fábrica~~ 🔧 **CADUCADO el 04/09 por `N-118`, y se tacha en vez de borrarse porque es la frase que resucita el gesto peligroso.** Ese `0,6 V` **lo ponía el firmware**, no el cobre |
 | **La fuente `12 V → 5 V` de la placa del módulo** | **No medida con carga real:** toda la sesión se alimentó por USB. Pendiente antes de campo |
+| 🆕 **`SET_RTC` no distingue el poste al que llega** (`D-20`, 07/09) | 🔴 **Hueco NUEVO, y no lo abrió el banco: lo abrió la decisión.** `D-20` dice que **la app NO pone la hora en el poste 2, nunca** —un `SET_RTC` dirigido al Esclavo **se rechaza**, porque no es una sincronización sino una **segunda fuente**—. **Ese rechazo no existe.** El puente es **el mismo firmware en los dos postes** y su despachador **no sabe en cuál está**: `grep -ci esclavo 01_Firmware/ESP32_Expansion/src/despachador.cpp` → `0` (corrido el 07/09). *(El puente sí aprende quién es —símbolo `transporte_aprenderRotulo()`, `puente.cpp`— pero **para rotular el Bluetooth en Android**; ese dato **no llega al despachador**.)* **Mientras no se construya, la única barrera es el procedimiento**, y un procedimiento no es una barrera |
 
 ### 🔵 LA SEGUNDA NOCHE (4–5/09) — CUATRO DEFECTOS QUE ENCONTRÓ **UNA CINTA DE TRAMAS**, NO UN PACK
 
@@ -737,9 +738,55 @@ Todo lo que puede meter información al sistema, y qué lo prueba:
 | 6 | Bluetooth Maestro | `USART1` **por `J17`** (`PB6`/`PB7`) | **17 formas** | 🟢 **`app_01_comandos`, `app_02_modos_simetricos`, `app_03_sin_ok_mudo`, `app_04_valores_de_status`, `app_06_formato_de_hora`** | ✅ *(era ❌)* | 🔴 **el enlace NUNCA se estableció**. `J17` sí quedó confirmado como el UART del ESP32 (pasos 3 y 5) |
 | 7 | Bluetooth Esclavo | `USART1` **por `J17`** | 4 aceptados + 3 rechazados | 🟢 **`esclavo_06_no_abre_paso`** + los `app_0x` | ✅ *(era ❌)* | 🔴 ídem |
 | 8 | Respaldo en pila | BKP RAM | firma + checksum | `maestro_02_respaldo` | ✅ | ⬜ no ejercido |
-| 9 | Reloj / pila | RTC | hora, validez | `maestro_04_sync_horaria`, `esclavo_05_hora_atomica` | ✅ | ⬜ no ejercido |
+| 9 | Reloj / pila | RTC | hora, validez | `maestro_04_sync_horaria`, `esclavo_05_hora_atomica` | ~~✅~~ 🔴 **VERDE SOBRE UN CAMINO QUE HOY NO CORRE — leer la nota de abajo antes de contar esta fila como cubierta** | ⬜ no ejercido |
 | 10 | Corte de energía | — | reanudación | `costura_06_reanudacion` | ✅ | ⬜ no ejercido |
 | 11 | 🆕 **Reloj `DS3231` del ESP32** | I²C `GPIO21`/`GPIO22` | hora, bit `OSF` | ⚠️ **por censar** — el firmware existe (`ESP32_Expansion/src/reloj_ds3231.cpp`) y **la compuerta lo compila** | ⚠️ | 🔴 **BLOQUEADO** (paso 27) porque la app no conectó. ~~**la única vía de leer o poner esa hora es `SET_RTC`**~~ 🔧 **CADUCADO EL 07/09 por `D-17` (05/09, `5846cee`): hay una vía de LECTURA que no escribe — `CMD:LEER_RTC`**, medida hoy en `ESP32_Expansion/src/despachador.cpp` (símbolo `CMD_LEER_RTC`), **sin PIN** y con `$ERR ... DESC:` **por causa**. Sigue haciendo falta el enlace Bluetooth, pero **ya no hay que CAMBIAR la hora para poder verla**, que era el defecto de método |
+
+> # 🔴 07/09 — LA FILA 9 ES EL EJEMPLO DE LIBRO DE «DECLARAR NO ES EJERCER». MEDIDO HOY, PACK A PACK.
+>
+> **Fui a leer los dos packs enteros antes de escribir esto, y lo que miden no es lo que la fila dice.**
+>
+> | | `maestro_04_sync_horaria` | `esclavo_05_hora_atomica` |
+> |---|---|---|
+> | **qué es** | **modelo en Python escrito a mano** de `enviarTrioHora()`: reimplementa la lectura H/M/S y la guarda de `s == 0` | **modelo en Python escrito a mano** del nodo Esclavo (`banco.modelos.esclavo`), alimentado con tramas `CMD_HORA_H/M/S` sintéticas |
+> | **qué compila del C++** | **nada.** Sólo **relee constantes** del fuente (`TIMEOUT_ACK_MS`, `SYNC_MAX_INTENTOS`, `INTERVALO_SYNC_MS`, `VIGENCIA_DESFASE_MS`, `SYNC_FRESCA_MS`, `VIGILANCIA_RELOJ_MS`, `SEGUNDOS_DEL_DIA`) | **nada.** Igual: constantes releídas, lógica reescrita |
+> | **qué mide de verdad, y está BIEN medido** | el cruce de minuto y de hora en las **86.400** fronteras del día × 2 huecos × 3 retardos, con su **control negativo** (el mutante sin la guarda falla con errores de hasta 3.600 s); el relectura del reloj en cada reintento; y el **presupuesto de canal** contra el techo de orfandad de SFTY-6 | que la terna **entra entera o no entra** (las 8 combinaciones H/M/S), la caducidad de la foto, el rechazo del reenvío de segundos, los **768 valores imposibles** de las tres cifras, y que **sólo la terna aplicada rearma la cuenta de las 48 h** |
+> | **su punto ciego** | **no toca `reloj.cpp` ni `reloj_enHora()` ni una vez** | **idem** |
+>
+> ## Y la consecuencia, que es la que obliga a tachar el ✅
+>
+> **Los dos ejercen el tramo `STM32-M → radio → STM32-E`, y ese tramo HOY NO SE RECORRE NUNCA.** Medido
+> en el fuente, por símbolo:
+>
+> - `coordinador_sincronizarHora()` y `coordinador_medirDesfase()` abren con `if (!reloj_enHora()) return false;`
+> - y `reloj_enHora()` **es falso siempre** en esa punta. Lo dice el propio fuente como *«CONSECUENCIA
+>   MEDIDA, NO DEDUCIDA»* (cabecera `reloj.h`, bloque `D-15`): los dos `reloj.cpp` piden
+>   `STM32RTC::LSE_CLOCK`, o sea el cristal **`Y2`, confirmado muerto** (N-17), y **ya no queda ningún
+>   llamador de `reloj_ajustar()`** que pueda encender la bandera.
+>
+> **O sea que `CMD_HORA_D/H/M/S` y `CMD_ACK_HORA` son eslabones MUERTOS hoy, y estos dos packs están en
+> verde midiendo un modelo de Python de un camino que ninguna tarjeta recorre.** No es que los packs
+> estén mal —están mejor escritos que la media, con control negativo y barridos completos—: es que
+> **certifican la forma de un mecanismo apagado**.
+>
+> ## Qué hace `D-20` con ellos — y esto es lo que NO supe decidir solo
+>
+> `D-20` (`DECISIONES.md`, 07/09) pone la autoridad de la hora en el ESP32 y deja a los STM32 de
+> **carteros**: `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`. **El salto por radio SIGUE
+> EXISTIENDO en esa cadena**, así que la lógica que estos dos packs miden —terna atómica, guarda del
+> cruce de minuto, presupuesto de canal— **es exactamente la que haría falta**. Lo que cambia es de
+> dónde sale la hora que entra en `enviarTrioHora()` y a dónde va la que sale del ACK.
+>
+> 🔴 **Pero `D-20` está DECIDIDA Y SIN CONSTRUIR**, y hay una pregunta abierta que este documento no
+> puede contestar: **¿el tramo por radio reutiliza `CMD_HORA_*` tal cual, o se sustituye?** Hasta que
+> eso se decida, **la clasificación honesta de esta fila no es ✅ ni ❌, sino ésta**:
+>
+> | | |
+> |---|---|
+> | modelo de PC | 🟢 **verde y bien medido** |
+> | camino real hoy | 🛑 **muerto** (`reloj_enHora()` falso siempre) |
+> | camino de `D-20` | ⚪ **sin construir** — falta el mando ESP32 → STM32 que siembre la hora (`enlace_stm32.cpp` **no menciona `RTC` ni `hora`**, comprobado el 07/09) |
+> | banco | ⬜ **no ejercido, y no puede ejercerse** mientras el enlace Bluetooth no exista (fila 6) |
 
 > 🔴 **Léase la columna nueva entera antes de sacar conclusiones, porque dice algo incómodo:** en
 > toda la superficie de entrada hay **dos filas con banco en verde** —las cámaras de `J16` y el
@@ -785,6 +832,33 @@ CMD_CANCELA_AMBAR_ESCLAVO (0x15)       <- N-152, cubierto por costura_14_cancela
 > ⚠️ **Y `CMD_ACK_DEMANDA` ya no está «sin cubrir»**: lo mide `costura_12_acuse_de_demanda`. La
 > etiqueta *«los dos nuevos, sin cubrir»* se heredó de la edición en que lo estaban.
 
+> # 🔴 07/09 — CINCO DE ESOS 21 ESTÁN EN LA LISTA SIN NINGUNA NOTA DE ESTADO, Y ESTÁN MUERTOS
+>
+> **`CMD_HORA_D` · `CMD_HORA_H` · `CMD_HORA_M` · `CMD_HORA_S` · `CMD_ACK_HORA`.**
+>
+> La lista de arriba los enumera como a los demás, y **no lo son**: hoy **no se emite ninguno**.
+> Medido en el fuente por símbolo, el 07/09:
+>
+> - `coordinador_sincronizarHora()` es el único que los encola, y abre con
+>   `if (!reloj_enHora()) return false;`
+> - `reloj_enHora()` **devuelve falso siempre** en las dos puntas: los dos `reloj.cpp` piden
+>   `STM32RTC::LSE_CLOCK`, que es el cristal **`Y2`, confirmado muerto (N-17)**, y desde `D-15` **ya
+>   no queda ningún llamador de `reloj_ajustar()`** que pueda encender la bandera. El propio
+>   `reloj.h` lo escribe como *«CONSECUENCIA MEDIDA, NO DEDUCIDA»*.
+>
+> **Es la forma exacta que `CLAUDE.md` llama «DECLARAR NO ES EJERCER»:** cinco comandos
+> declarados en `protocolo.h`, contados en el censo, medidos por dos packs en verde
+> (`maestro_04_sync_horaria`, `esclavo_05_hora_atomica`) — **y sin un solo emisor vivo**.
+>
+> 🔵 **Y con `D-20` (07/09) dejan de ser un resto: pasan al camino crítico.** La cadena que `D-20`
+> ordena es `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`, y **el salto por radio es
+> justamente el que estos cinco comandos hacen**. O sea que **no se retiran**: hay que resucitarlos
+> alimentándolos desde el ESP32 en vez de desde el RTC muerto del STM32.
+>
+> ⚠️ **SIN CONSTRUIR, y con una pregunta abierta que este documento no puede cerrar: ¿el tramo por
+> radio reutiliza `CMD_HORA_*` tal cual, o `D-20` lo sustituye por un formato nuevo?** Mientras eso
+> no se decida, estos cinco quedan marcados **🛑 declarados, no ejercidos**, y no como cubiertos.
+
 ---
 
 ## 3. Invariantes de seguridad, y quién intenta romperlos
@@ -798,7 +872,7 @@ Un invariante sin una prueba que **intente violarlo** es una intención, no una 
 | ~~**Nunca verde simultáneo en las DOS puntas** — 🔴 nadie~~ | 🟢 **`barrera_02_dos_puntas`** *(era el hueco más caro del documento)* |
 | El despeje nunca baja del configurado | ⚠️ indirecto en `costura_02` |
 | No se reanuda el Degradado sin autorización válida | `costura_06`, `maestro_03_puerta_degradado` ✅ |
-| Un equipo sin hora no autoriza el Degradado | `maestro_04`, `esclavo_05` ✅ |
+| Un equipo sin hora no autoriza el Degradado | ~~`maestro_04`, `esclavo_05` ✅~~ → 🔴 **07/09: el invariante se cumple, pero VACUAMENTE.** `reloj_enHora()` es **falso siempre** en las dos puntas —`Y2` muerto (N-17), y con él `rtcOperativo` en falso, así que `reloj_ajustar()` **se niega** aunque alguien lo llame—, y de esa bandera cuelga `if (!reloj_enHora()) return MDG_FALTA_HORA;` (símbolo `modo_degradado.cpp`). **Hoy NINGÚN equipo autoriza el Degradado, tenga hora o no.** Los dos packs miden **modelos en Python** de un camino apagado — ver la nota de la fila 9 de la §2. **Una regla que se cumple porque su sujeto no existe no está probada: está SIN SUJETO** |
 | ~~**Un comando de Bluetooth no abre paso sin PIN** — 🔴 nadie~~ | 🟢 **`app_01_comandos`, `app_02_modos_simetricos`, `app_03_sin_ok_mudo`** y **`esclavo_06_no_abre_paso`** |
 | 🆕 **Un `$ACK` no promete lo que la llamada no devolvió** | 🟢 **`app_03_sin_ok_mudo`** — encontró **dos ramas** que ninguna revisión humana vio |
 | 🆕 **La talanquera** | 🟢 `barrera_03_talanquera` |
@@ -925,6 +999,26 @@ plan es **el 3** —direccionamiento de pareja— y **confirmar el 5**.
 ---
 
 ## 6. ✅ CERRADO (31/08) — ~~`PB0`/`PB8` están asignados dos veces~~ · **el reloj se fue del STM32**
+
+> # 🔵 07/09 (`D-20`) — «EL RELOJ SE FUE DEL STM32» SIGUE SIENDO CIERTO, PERO YA NO ES EL FINAL DE LA FRASE
+>
+> **Lo que se fue del STM32 es la FUENTE de la hora, no su papel en el camino.** `DECISIONES.md`
+> `D-20` (07/09) pone la autoridad en el ESP32 —*«la app se la da al ESP32 Maestro; ése al ESP32
+> Esclavo; y el STM32 de cada punta la recibe de SU PROPIO ESP32»*— y, como **los dos ESP32 no se
+> hablan entre sí**, el único enlace entre postes sigue siendo **la radio entre los STM32**:
+>
+> ```
+> ESP32-M  ->  STM32-M  ->  radio  ->  STM32-E  ->  ESP32-E
+> ```
+>
+> **Los STM32 son CARTEROS de la hora, no dueños.** Así que este documento **no puede seguir contando
+> el reloj como un asunto cerrado y ajeno al STM32**: el tramo del medio es suyo, y hoy está muerto
+> (ver la nota de la fila 9 en la §2).
+>
+> ⚠️ **SIN CONSTRUIR.** Falta el mando ESP32 → STM32 que siembre la hora: el camino físico existe
+> (`ESP32_Expansion/src/enlace_stm32.cpp`), **el mando no** — ese fichero **no menciona `RTC` ni
+> `hora` ni una vez** (comprobado el 07/09). **Es hueco de cobertura nuevo, y nace de una decisión,
+> no de un banco.**
 
 > # 🟢 LA DISPUTA POR LOS PINES YA NO EXISTE, Y NO SE RESOLVIÓ CON UN EXPANSOR
 >

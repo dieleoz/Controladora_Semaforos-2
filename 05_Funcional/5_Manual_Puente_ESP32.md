@@ -178,8 +178,58 @@ El ESP32 enlaza **dos radios back-to-back** (B1 y B2) dentro de una topología t
 
 ### 📡 El puente valida FORMATO, no comandos — y por eso no hay que tocarlo
 
-Desde la V8.7 el protocolo lleva comandos nuevos (`0x07`–`0x0F`) para la **sincronización horaria** y
+Desde la V8.7 el protocolo lleva comandos nuevos (~~`0x07`–`0x0F`~~) para la **sincronización horaria** y
 la **configuración del ciclo**. **El repetidor no necesita ningún cambio para dejarlos pasar.**
+
+> ⚠️ **07/09 — EL RANGO PUBLICADO CADUCÓ, Y ES SU PROPIO EJEMPLO.** El protocolo ya no acaba en
+> `0x0F`: llega a **`0x15`**, y **`CMD_HORA_D` —el DÍA del cuarteto de la hora, sin el cual la
+> sincronización queda a medias— vale `0x10`, o sea FUERA del rango que esta línea publica.**
+> Medido el 07/09:
+>
+> ```
+> $ grep -n "^#define CMD_" 01_Firmware/Maestro/include/protocolo.h   # 21 lineas; extracto:
+> 54:#define CMD_HORA_D     0x10      <-- fuera de 0x07-0x0F
+> 151:#define CMD_DEMANDA        0x11
+> 174:#define CMD_GO_AMBAR       0x13
+> 209:#define CMD_AMBAR_ESCLAVO  0x14
+> 248:#define CMD_CANCELA_AMBAR_ESCLAVO  0x15
+> ```
+>
+> 🟢 **Y esto NO es un fallo del repetidor: es la DEMOSTRACIÓN de por qué está escrito así.** El
+> puente valida forma y no contenido, así que **el protocolo creció de `0x0F` a `0x15` y por aquí no
+> hubo que tocar nada ni enterarse**. Lo que caducó es la **frase**, no el firmware. **Se cita el
+> símbolo, no el rango:** los comandos son los `#define CMD_` de `protocolo.h`, y el `grep` de
+> arriba es la lista.
+
+> ### 🟢 07/09 — **ESTE APARTADO DESCRIBE LA CADENA DE `D-20` CASI ENTERA, Y ES BUENA NOTICIA**
+>
+> *«La sincronización horaria»* que este apartado deja pasar **es la hora viajando del Maestro al
+> Esclavo por radio**, y ése es exactamente el tramo central de la cadena que `DECISIONES.md`
+> `D-20` (07/09) acaba de convertir en **el único camino al reloj del poste 2**:
+>
+> ```
+>    app  ->  ESP32-M  ->  STM32-M  ->  RADIO  ->  STM32-E  ->  ESP32-E
+>                                      ^^^^^
+>                          este tramo, y es el que atraviesa el repetidor
+> ```
+>
+> **Y no es una promesa: ese tramo está CONSTRUIDO y se puede señalar con el dedo.** Medido el
+> 07/09, por símbolo y no por número de línea:
+>
+> | qué | dónde se ve |
+> |---|---|
+> | los cuatro comandos del cuarteto | `grep -n "^#define CMD_HORA_" 01_Firmware/Maestro/include/protocolo.h` — cuatro líneas *(sin el `^#define` el mismo patrón devuelve también los comentarios que los explican: `CLAUDE.md` §4)* |
+> | quién los **emite** | `grep -n "protocolo_enviarPaquete(CMD_HORA" 01_Firmware/Maestro/src/coordinador.cpp` — las cuatro seguidas y sin espera entre ellas |
+> | quién los **recibe** | `grep -n "CMD_HORA_" 01_Firmware/Esclavo/src/main.cpp` |
+>
+> 🔴 **Dónde `D-20` se aparta de lo construido: SÓLO en el último salto.** Hoy esa cadena termina
+> aplicando la hora **al RTC del propio STM32 Esclavo** (`reloj_ajustar()`); con `D-20` tiene que
+> terminar **en el `ESP32-E` y su `DS3231`**, porque el STM32 es un cartero, no el dueño. **Ese
+> último salto NO existe** — `D-20` está DECIDIDA y SIN CONSTRUIR.
+>
+> ✅ **Para el repetidor no cambia nada, y es la tercera vez que este apartado se gana el sueldo:**
+> valida forma, no contenido, así que el día que ese último salto se escriba **este firmware no se
+> entera**.
 
 La razón está en cómo valida: comprueba que la trama tenga **4 bytes y CRC-8 Maxim correcto**, y
 **no mira qué comando lleva dentro**. Un puente que conociera la lista de comandos habría que
@@ -195,11 +245,37 @@ difícil de diagnosticar.
 
 Conviene decirlo para que nadie lo busque como causa: en **Modo Degradado no hay radio en absoluto**
 —ése es justamente el motivo de entrar al modo— así que **el puente no interviene**. Cada unidad
-calcula su fase por su cuenta a partir de la hora.
+calcula su fase por su cuenta a partir de la hora **de su propio STM32**.
 
 Un repetidor colgado, sin alimentar o mal configurado **no afecta al Modo Degradado**, ni para bien ni
 para mal. Lo que sí afecta es la **sincronización previa**: si el enlace nunca funcionó a través del
 puente, nunca hubo sincronización, y **el Degradado se rechaza**.
+
+> 🔵 **07/09 (`DECISIONES.md` `D-20`) — *«la hora»* DE QUIÉN, PORQUE ACABA DE CAMBIAR DE DUEÑO**
+>
+> **Lo de arriba sigue siendo exacto para el repetidor y no hay nada que tachar.** Lo que cambia es
+> de dónde le llega esa hora al STM32 que calcula la fase:
+>
+> > **LA AUTORIDAD DE LA HORA ES EL ESP32, SIEMPRE Y PARA TODO.** La app se la da al **ESP32
+> > Maestro**, ése al **ESP32 Esclavo**, y el STM32 de cada punta la recibe **de su propio ESP32**.
+>
+> Y como **los dos ESP32 no se hablan** —el único enlace entre postes es la radio, la de los
+> STM32—, la cadena entera es `ESP32-M → STM32-M → radio → STM32-E → ESP32-E`. **Los STM32 son
+> CARTEROS de la hora, no dueños.**
+>
+> 🛑 **Por qué esto le importa a ESTE manual, que es de la otra placa:** el salto por radio de esa
+> cadena es **el mismo tramo que atraviesa el repetidor** en la topología de 4 radios. **No hay que
+> tocar nada** —el puente valida forma, no comandos, y ése es justo el apartado de arriba—, pero
+> **si el repetidor está mal, la hora del poste 2 no llega**, y con ella se cae la autorización del
+> Modo Degradado en esa punta. Es la misma frase de siempre —*«lo que sí afecta es la
+> sincronización previa»*— con un sujeto más.
+>
+> 🛑 **Y la regla de campo que sale de ahí: EL POSTE 2 SE PONE EN HORA EN LA PUESTA EN MARCHA, NO
+> DURANTE LA AVERÍA.** ✅ Su `DS3231` tiene pila y conserva la hora que ya tenía: *perder la radio no
+> es perder la hora.*
+>
+> 🔴 **SIN CONSTRUIR.** `D-20` se decidió el 07/09 y **no corre en ninguna tarjeta**: falta el mando
+> `ESP32 → STM32` que siembre la hora. **Hoy la hora del STM32 no viene de ningún ESP32.**
 
 ---
 
@@ -427,10 +503,22 @@ USB cuántos bytes llegan de cada lado, cada 2 segundos:
 > aparece el encabezado del repetidor. **Parece que funciona.**
 >
 > **Cómo se distingue en treinta segundos, sin abrir un fichero:** un ESP32 **de expansión** tiene
-> un cable de datos hacia el **conector `J17` de la tarjeta del semáforo** y, si el reloj está
-> montado, un módulo `DS3231` (`ZS-042`) colgado de `GPIO21`/`GPIO22`. Un ESP32 **del repetidor**
+> un cable de datos hacia el **conector `J17` de la tarjeta del semáforo** y ~~, si el reloj está
+> montado,~~ un módulo `DS3231` (`ZS-042`) colgado de `GPIO21`/`GPIO22`. Un ESP32 **del repetidor**
 > tiene **dos radios** y sus transceptores MAX3485, y **ningún** cable hacia una tarjeta de
 > semáforo.
+>
+> > 🔵 **07/09 — EL CONDICIONAL CADUCÓ, Y QUITARLO MEJORA LA SEÑA.** *«Si el reloj está montado»*
+> > describía el mundo anterior a `A-5` (05/09): hoy **son DOS `DS3231`, uno por poste, comprados y
+> > puestos**, con pila propia (`DECISIONES.md` `A-5` · línea `A6` de
+> > `15_Lista_de_Compras_Hardware.md`: *«nada que pedir»*), y **uno de ellos dio hora real en
+> > banco** (`HORA:22:19:58`, cinta del 05/09, `N-145`).
+> >
+> > **Por qué esto vale más que una corrección de fecha: un condicional convierte una seña
+> > INEQUÍVOCA en una que puede fallar.** Con `D-20` (07/09) el `DS3231` es además **el único reloj
+> > del cruce**, así que una placa de expansión **siempre** lo lleva. Un módulo con reloj es de
+> > expansión, sin excepción — y con el condicional dentro, quien no viera reloj podía concluir que
+> > tenía delante un repetidor y cargarle el firmware equivocado.
 >
 > **Firmware de expansión** — otro directorio, otro entorno, y **no es intercambiable**:
 > ```bash

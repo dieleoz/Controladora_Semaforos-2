@@ -104,7 +104,20 @@
 > |---|---|
 > | *«no hay `DS3231` comprado»* | ✅ **hay dos, uno por `ESP32`, con pila propia. `A6` sale de la lista de pedido** |
 > | *«`N-145` no se puede dar por probada»* | 🟢 **`N-145` queda CONFIRMADA EN COBRE:** el `HORA:22:19:58` de la cinta del banco **es real** |
-> | *«enchufado al STM32 sigue sin pasar nada»* | ✅ **sigue cierto, y es lo correcto: el reloj NO va al STM32** (`D-9`) |
+> | *«enchufado al STM32 sigue sin pasar nada»* | ✅ **sigue cierto: no hay driver de `DS3231` en el STM32.** ⚠️ **Pero «el reloj NO va al STM32» hay que leerlo con `D-20` (07/09) delante — ver la nota** |
+
+> 🔵 **07/09 (`D-20`) — MATIZ QUE CAMBIA EL SENTIDO DE LA ÚLTIMA FILA.** *«El reloj no va al STM32»*
+> se escribió para decir dos cosas a la vez, y sólo una sigue siendo cierta:
+>
+> | | |
+> |---|---|
+> | *«el `DS3231` no se cuelga de pines del STM32»* | ✅ **cierto, y no cambia.** No hay driver en esa punta, y este manual no monta ese bus |
+> | ~~*«el STM32 no lleva hora, nunca»*~~ | 🔴 **derogado por `D-20`:** el STM32 **recibe la hora de SU PROPIO ESP32 y la retransmite por radio a la otra punta**. Es el **cartero** de la cadena `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`, porque **los dos ESP32 no se hablan entre sí** |
+>
+> ⚠️ **SIN CONSTRUIR.** Lo que `D-20` decide es la **autoridad** de la hora, no la implementación:
+> falta el mando ESP32 → STM32 que la siembre (`enlace_stm32.cpp` **no menciona `RTC` ni `hora`**,
+> comprobado el 07/09). **Para las compras de este manual no cambia nada: siguen siendo DOS
+> `DS3231`, uno por poste (`A-5`), y ninguno cuelga del STM32.**
 >
 > 🔴 **Lo único que de verdad sigue abierto: la dirección I²C `0x68` está `SIN VERIFICAR` sobre el
 > módulo real** —es la del datasheet, y lo declara el propio fuente en
@@ -554,8 +567,33 @@ Todos estos componentes se consiguen en cualquier mostrador de electrónica loca
 >
 > * **El STM32 no tiene reloj en ninguna de las dos puntas** (`Y2` muerto, `N-17`) y **desde `D-15`
 >   ni siquiera contesta a `SET_RTC`**. El camino que sincronizaba el reloj **del STM32** por radio
->   —el `SFTY-23` que citaba la línea tachada— **está derogado**: esa punta **no tiene de dónde tomar
->   la hora si no es de su propio `DS3231`**.
+>   —el `SFTY-23` que citaba la línea tachada— **está derogado**: ~~esa punta **no tiene de dónde tomar
+>   la hora si no es de su propio `DS3231`**~~.
+>   > # 🔴 07/09 (`D-20`) — ESA ÚLTIMA FRASE ES FALSA DESDE HOY, Y ERA LA MÁS PELIGROSA DEL MANUAL
+>   >
+>   > **Declaraba IMPOSIBLE la propagación de la hora entre postes**, y sobre esa imposibilidad se
+>   > sostenía todo el *«hay dos relojes por cruce y no se hablan»* que este documento repite.
+>   > `DECISIONES.md` `D-20` **construye justo ese camino**:
+>   >
+>   > ```
+>   > ESP32-M  ->  STM32-M  ->  radio  ->  STM32-E  ->  ESP32-E
+>   > ```
+>   >
+>   > **La autoridad de la hora es el ESP32 Maestro, y sólo él. El Esclavo hace caso siempre.** Los
+>   > STM32 son **carteros**: reciben la hora de su propio ESP32 y la pasan. **Sí hay de dónde tomar
+>   > la hora sin tocar el `DS3231` local: del Maestro, por radio.**
+>   >
+>   > ⚠️ **PERO SIN CONSTRUIR** (`D-20` decide la autoridad, no la implementación): falta el mando
+>   > ESP32 → STM32 que siembre la hora. El camino físico existe
+>   > (`ESP32_Expansion/src/enlace_stm32.cpp`), **el mando no** — ese fichero no menciona `RTC` ni
+>   > `hora` ni una vez (comprobado el 07/09).
+>   >
+>   > 🔴 **Y ESTO NO CAMBIA LA COMPRA: SIGUEN HACIENDO FALTA DOS `DS3231`, UNO POR POSTE (`A-5`).**
+>   > El del Esclavo es el que **conserva la hora con su pila cuando se cae la radio** — que es
+>   > exactamente por lo que perder la radio no es perder la hora. **`D-20` NO reduce la compra a
+>   > uno.** Lo que obliga es a poner en hora el poste 2 **en la puesta en marcha, no durante la
+>   > avería**: la radio se cae justo cuando hace falta el Modo Degradado, que es el modo que exige
+>   > hora.
 > * **Por tanto son DOS, uno por poste**, no uno; **`Y2` no decide cuántos**; y **ya están puestos**
 >   (`A-5`, 05/09). **No hay reloj que comprar para este manual.**
 > * **Y el bus tampoco se monta aquí:** el `DS3231` cuelga del `ESP32` (`GPIO21`/`GPIO22`), no del

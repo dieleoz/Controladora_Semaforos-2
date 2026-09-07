@@ -667,6 +667,37 @@ por los 10 kΩ de la placa.**
 > las dos puntas a mano deja hasta 59 s de desfase que dos pantallas no pueden detectar; y ofrecer los
 > modos en el Esclavo invita a dejar las dos unidades peleando por el ciclo.
 
+> # 🟢 07/09/2026 — ESTE PÁRRAFO NO ES HISTORIA: ES LA REGLA VIGENTE, Y AHORA SE LLAMA `D-20`
+>
+> **Lo de arriba está archivado dentro de una tabla titulada *«Esta tabla describe el equipo CON
+> pantalla»*, y por eso llevaba días leyéndose como obsoleto. No lo es.** Cambió el aparato —ya no
+> hay pantalla, y el reloj se fue al `DS3231` del ESP32—; **el razonamiento no cambió ni una coma**:
+>
+> > *poner la hora a mano en las DOS puntas no es sincronizar: es crear una SEGUNDA FUENTE, y dos
+> > fuentes no se pueden detectar la una a la otra.*
+>
+> `DECISIONES.md` `D-20` (07/09, decidida por el responsable) lo eleva a decisión y le pone la
+> topología de hoy:
+>
+> > **LA AUTORIDAD DE LA HORA ES EL ESP32, SIEMPRE Y PARA TODO. La app se la da al ESP32 MAESTRO; ése
+> > al ESP32 ESCLAVO; y el STM32 de cada punta la recibe de SU PROPIO ESP32.**
+> > **El Maestro manda la hora y el Esclavo hace caso siempre. Hay UNA sola fuente**, así que no hay
+> > desfase inicial que acotar — que era la única objeción del arquitecto.
+> > 🔴 **Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.** Un `SET_RTC` dirigido al
+> > Esclavo **se rechaza**: no es una sincronización, **es una segunda fuente**.
+>
+> **Los dos ESP32 NO se hablan.** El único enlace entre postes es la radio **entre los STM32**, así
+> que la hora viaja `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`. **Los STM32 son CARTEROS de
+> la hora, no dueños de ella.**
+>
+> 🔴 **Y `D-20` ESTÁ DECIDIDA Y SIN CONSTRUIR. Nada de esa cadena corre hoy en ninguna tarjeta.**
+> Medido el 07/09 y reproducible: el puente ESP32 es **el mismo firmware en los dos postes**, y el
+> fichero que decide qué hacer con un `SET_RTC` **no nombra al Esclavo ni una vez** —
+> `cd 01_Firmware/ESP32_Expansion && grep -c "ESCLAVO\|Esclavo\|esclavo" src/despachador.cpp` → `0`.
+> Hoy lo atiende **venga por donde venga**. Y el mando ESP32 → STM32 que sembraría la hora **no
+> existe**: `src/enlace_stm32.cpp` no menciona `RTC` ni `hora` ni una vez. **Lo que `D-20` decide es
+> la AUTORIDAD, no la implementación.**
+
 ### Verificación del Modo Legal (Norma Colombia Res. 2024 - V8.0)
 1. Ingrese a **Modo Manual**, **Automático** o **Inteligente**.
 2. Al ordenar el paso a Verde:
@@ -710,11 +741,75 @@ Siga estos pasos al pie de la letra para compilar y flashear el firmware en las 
 
 ---
 
-## 5. 🔋 La pila del RTC (`CR2032` en `VBAT`)
+## 5. 🔋 La pila del dominio de respaldo (`CR2032` en `VBAT`)
 
-Desde el 01/08/2026 **ambas tarjetas llevan pila**. Es lo que hace que la hora sobreviva a un corte de
-energía; sin ella habría que reponerla a mano tras cada apagón, y el Modo Degradado quedaría
-inutilizable en la práctica.
+> # 🔴 07/09/2026 — LEA ESTO ANTES DE TODO EL APARTADO: LA PILA SIGUE SIENDO OBLIGATORIA, Y YA NO ES POR LA HORA
+>
+> **Este apartado se escribió cuando el reloj del equipo era el RTC interno del STM32. Ya no lo es**
+> (`D-9`, `D-15`, y ahora `D-20`): la hora la lleva el `DS3231` del ESP32. **De ahí es facilísimo
+> concluir que la `CR2032` sobra. ES FALSO Y ES LA CONCLUSIÓN MÁS CARA DE ESTA PÁGINA.**
+>
+> | | |
+> |---|---|
+> | ~~por qué había pila~~ | ~~para que la hora sobreviva al apagón~~ |
+> | **por qué SIGUE habiendo pila** | **porque alimenta el DOMINIO DE RESPALDO del STM32 (`BKP->DR1..DR10`)**, donde viven **la marca de sincronización y el indicador del Modo Degradado** — o sea **el cómputo de las 48 h** |
+>
+> El propio fuente lo dice (símbolo `respaldo.h`): los registros de respaldo están *«alimentados por
+> LA MISMA pila `CR2032` que ya mantiene el RTC»*, y *«sin pila… `respaldo_setup()` encuentra el
+> contenido inválido y borra»*. **Sin `CR2032`, el equipo pierde en cada apagón la prueba de que
+> alguna vez estuvo sincronizado, y el límite duro de 48 h se recuenta desde cero.**
+>
+> ⚠️ **Y lo que la pila NO arregla, para no dejarlo dicho a medias:** la marca que se guarda ahí es
+> **el contador crudo del RTC del STM32** (símbolo `reloj_contadorSegundos()`, N-49), y ese contador
+> **devuelve `0` mientras `Y2` no oscile** — literal del fuente: `if (!rtcOperativo) return 0;`. O
+> sea que **hoy el cómputo de las 48 h no se sostiene sobre la pila, sino sobre un contador parado**.
+> `D-20` lo deja abierto: la referencia de tiempo de esas 48 h **tiene que pasar a venir del ESP32**,
+> y está en `roadmap.md` §3.4.bis como trabajo **SIN CONSTRUIR**. **No es algo que este manual pueda
+> dar por hecho, ni motivo para no poner la pila** — la pila es lo que mantiene los `BKP` vivos el
+> día que esa referencia exista.
+>
+> 🔴 **Y NO SE ESCRIBA «el STM32 no tiene ni pila ni cristal»: es falso.** `VBAT` midió **3 V con la
+> tarjeta apagada** (N-37) **en al menos una** tarjeta — la otra sigue `SIN VERIFICAR`—, o sea que
+> **pila hay**. Y `Y1` de 8 MHz **está en la placa**. **Lo muerto es `Y2`, y sólo `Y2`** (N-17): el
+> cristal de 32.768 kHz del RTC.
+>
+> ~~⚠️ **Lo que NO he podido verificar…** que el firmware arranque con el **HSI** … y ahí no lo he
+> mirado. **`SIN VERIFICAR`.**~~
+>
+> ✅ **VERIFICADO EL 07/09, y el `SIN VERIFICAR` se tacha en vez de borrarse porque la cautela era
+> correcta: el buscador estaba mirando donde no era.** Cierto que `grep` sobre `Maestro/src`,
+> `Maestro/include` y `platformio.ini` **no devuelve nada** — el reloj de sistema **no lo configura
+> este proyecto**, lo configura el *variant* del core STM32duino. Al mirar ahí sí aparece, y en
+> **las dos ramas** de la función:
+>
+> ```
+> $ grep -n "RCC_PLLSOURCE_HSI_DIV2\|OSCILLATORTYPE_HSI" \
+>     "C:/.platformio/packages/framework-arduinoststm32/variants/STM32F1xx/F103C8T_F103CB(T-U)/generic_clock.c"
+> 32:  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+> 36:  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
+> 67:  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+> 71:  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
+> ```
+>
+> 🔴 **Y la consecuencia, que es la que importa para `D-20` y no es de trivia: `Y1` ESTÁ MONTADO Y EL
+> FIRMWARE NO LO USA.** O sea que **`millis()` va a la deriva del RC interno —10.000 a 25.000 ppm—,
+> no a la de un cristal.** Por eso `D-20` NO se puede construir como *«un reloj de software refrescado
+> cada tanto»*: a esa deriva, **sembrarlo una vez por hora se va 36 s en esa hora**, más que el margen
+> entero de 29 s del cruce. Tiene que ser un **extrapolador sembrado cada `LATIDO_MS` (2 s)**.
+>
+> ⚠️ **Y el corolario de diagnóstico, que es donde este dato salva una pieza: si alguien lee «el
+> equipo depende de `Y1`», es falso — cambiar `Y1` no arregla ningún problema de hora.** El único
+> cristal que interviene en la hora es `Y2`, y está muerto.
+>
+> ⚠️ **Y lo que se dice abajo de la `CR2032` — que NO es recargable, que hay que retirar `R5` antes,
+> y que la `LIR2032` es de los módulos `DS3231` y no de aquí — SIGUE VIGENTE ENTERO.** Cambia el
+> motivo de la pila, no el procedimiento de montarla.
+
+Desde el 01/08/2026 **ambas tarjetas llevan pila**. ~~Es lo que hace que la hora sobreviva a un corte
+de energía; sin ella habría que reponerla a mano tras cada apagón, y el Modo Degradado quedaría
+inutilizable en la práctica.~~ → **07/09: lo que sostiene es el dominio de respaldo del Modo
+Degradado, no la hora** (recuadro de arriba). La conclusión operativa no cambia: **sin pila, el Modo
+Degradado queda inutilizable en la práctica.**
 
 ### Qué se hizo en la tarjeta
 
@@ -748,10 +843,21 @@ alternativa por módulo `DS3231` si el cristal no arranca— está en
 de un procedimiento de soldadura acaban divergiendo.
 
 > 🛑 **NO CUELGUE UN `DS3231` DE LOS PINES DEL STM32 CREYENDO QUE FUNCIONARÁ.** Medido el 28/08 y
-> **revalidado el 31/08**: **no hay driver de `DS3231` en ninguna de las dos puntas STM32.** El reloj
-> que usa el STM32 es su **RTC interno** con el cristal `Y2` y la pila en `VBAT` (SFTY-18). Un módulo
+> **revalidado el 31/08**: **no hay driver de `DS3231` en ninguna de las dos puntas STM32.** ~~El reloj
+> que usa el STM32 es su **RTC interno** con el cristal `Y2` y la pila en `VBAT` (SFTY-18).~~ Un módulo
 > `DS3231` soldado hoy al STM32 sería **una pieza de hardware sin una sola línea de software que la
 > lea**.
+>
+> > 🔴 **07/09 (`D-20`) — LA FRASE TACHADA ERA LA DESCRIPCIÓN DEL EQUIPO, Y YA NO LO ES.** El RTC
+> > interno del STM32 sobre `Y2` **es el reloj que el fuente todavía compila, y está parado**: los dos
+> > `reloj.cpp` piden `STM32RTC::LSE_CLOCK` —o sea `Y2`, confirmado muerto (N-17)—, y de ahí sale que
+> > **`reloj_enHora()` de esa punta sea FALSO SIEMPRE**. Está escrito en el propio fuente como
+> > *«CONSECUENCIA MEDIDA, NO DEDUCIDA»* (símbolo `reloj_enHora`, cabecera `reloj.h`).
+> >
+> > **Con `D-20` el STM32 dejará de sacar la hora de ahí y la recibirá de su propio ESP32** — y ese
+> > mando **no está construido**: `01_Firmware/ESP32_Expansion/src/enlace_stm32.cpp` no menciona
+> > `RTC` ni `hora` ni una vez (comprobado el 07/09). **Lo que NO cambia es esta advertencia: el
+> > `DS3231` sigue sin poder colgarse del STM32, porque el driver sigue sin existir en esa punta.**
 >
 > La detección automática de `DS3231` **por parte del STM32** está **diseñada y no construida** —
 > `OPTIMIZACIONES.md`, **SFTY-26**, marcada `DISEÑO, NO IMPLEMENTADO`. **Esa alternativa es un plan,
@@ -785,9 +891,17 @@ Con ~1,4 µA de consumo por `VBAT`, la autonomía teórica supera los **15 años
 > **Ninguna de las dos se ha hecho todavía.** Hasta que se hagan, el reloj está construido pero no
 > verificado, y todo lo que depende de él va sobre un supuesto.
 
+> 🔴 **07/09 — LAS DOS SE ESCRIBIERON CONTRA EL RTC DEL STM32 Y HAY QUE REDIRIGIRLAS.** Con `D-9`,
+> `D-15` y `D-20`, **la prueba de «marca la hora y la conserva» ya no se le hace a ese RTC: se le
+> hace al `DS3231` del ESP32 de cada poste, con `CMD:LEER_RTC`.** Lo que sí sigue teniendo que
+> probarse en el STM32 —y **nadie lo ha probado todavía**— es que **el dominio de respaldo
+> (`BKP->DR1..DR10`) sobrevive al corte con la `CR2032` puesta**, porque de eso cuelga el cómputo de
+> las 48 h. **No es la misma prueba y no la sustituye la otra.**
+
 | Prueba | Qué se comprueba | Por qué importa |
 |---|---|---|
-| **Contraste contra hora patrón y corte de energía** (N-15) | Que el RTC marca la hora correcta y **la conserva** al desconectar la alimentación | Si la pila no está bien soldada, el equipo pierde la hora en cada apagón y **nadie se entera hasta que el Degradado se rechaza en obra** |
+| ~~**Contraste contra hora patrón y corte de energía** (N-15)~~ → **07/09: se le hace al `DS3231` del ESP32, no al STM32** | ~~Que el RTC marca la hora correcta y **la conserva** al desconectar la alimentación~~ → **Que `CMD:LEER_RTC` sigue devolviendo la hora correcta después de quitar y devolver la alimentación, en CADA poste** | Si la pila del `DS3231` no está bien puesta, el equipo pierde la hora en cada apagón y **nadie se entera hasta que el Degradado se rechaza en obra**. 🔴 **Y con `D-20` esto se agrava en el poste 2:** allí la hora sólo se puede reponer **por radio desde el Maestro**, así que un `DS3231` sin pila en el poste 2 **queda sin hora justo en el corte, que es cuando el Degradado la necesita** |
+| 🆕 **El dominio de respaldo aguanta el corte** (`BKP->DR1..DR10`, símbolo `respaldo_setup()`) | Que tras quitar la alimentación y devolverla, `respaldo_hayCiclo()` sigue siendo cierto y los tiempos guardados siguen ahí | Es lo único que hoy justifica la `CR2032` (§5, recuadro de cabecera). **Sin esta prueba, la pila está puesta por costumbre y no por evidencia** |
 | **Arranque con el cristal `Y2` desconectado o fallido** (N-17) | Que el equipo **bootea igual** y declara la hora como no fiable | Algunos microcontroladores clonados traen mal los condensadores de carga y **el oscilador de 32.768 kHz no arranca**. La rutina de reloj ya se movió detrás del watchdog para que un bloqueo sea un reinicio visible y no un cuelgue mudo con las luces apagadas — pero eso **hay que comprobarlo con la tarjeta en la mano** |
 
 > ⚠️ **Y no se cambia nada antes de leer `CONSULTA RELOJ` (N-37, abierto).** Existe una hipótesis
@@ -826,12 +940,28 @@ Con ~1,4 µA de consumo por `VBAT`, la autonomía teórica supera los **15 años
 > ## ✅ EL DIAGNÓSTICO DE RELOJ VIGENTE
 >
 > **El reloj lo lleva el `DS3231` con pila del ESP32 de cada poste** (`D-9`); el STM32 **no tiene
-> reloj** (`Y2` confirmado muerto, N-17) y ya no hace falta que lo tenga.
+> reloj propio** (`Y2` confirmado muerto, N-17) ~~y ya no hace falta que lo tenga~~.
+>
+> > 🔴 **07/09 — LA MITAD TACHADA DE ARRIBA LA DEROGA `D-20`.** *«Ya no hace falta que lo tenga»* era
+> > cierto mientras el STM32 no pintara nada en la hora. **Con `D-20`, el STM32 SÍ tiene que llevar la
+> > hora: la recibe de SU PROPIO ESP32 y la retransmite por radio a la otra punta** — es el **cartero**
+> > de la cadena `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`. Lo que sigue muerto es `Y2`, y
+> > **sólo `Y2`**: la fuente de la hora deja de ser su RTC, no su papel en el camino.
+> > ⚠️ **SIN CONSTRUIR** — ver el recuadro de `D-20` en §3.
 >
 > | qué quiere hacer | orden | quién contesta |
 > |---|---|---|
 > | **CONSULTAR la hora sin cambiarla** | **`CMD:LEER_RTC`** (`D-17`) — ⚠️ **exactamente así, SIN `CMD:PIN:1234:` delante**: el puente compara la línea entera con `strcmp` | `$ACK,NODE:PUENTE,CMD:LEER_RTC,RESULT:OK,FECHA:…,HORA:…` |
-> | **PONER la hora** | `CMD:PIN:1234:SET_RTC:YYYY-MM-DD,HH:MM:SS` | **el puente**, con `$ACK,NODE:PUENTE,CMD:SET_RTC,…` |
+> | **PONER la hora — 🔴 SÓLO EN EL POSTE 1 (MAESTRO)** | `CMD:PIN:1234:SET_RTC:YYYY-MM-DD,HH:MM:SS` | **el puente del Maestro**, con `$ACK,NODE:PUENTE,CMD:SET_RTC,…` |
+> | ~~**PONER la hora en el poste 2 (Esclavo)**~~ | 🛑 **NO SE HACE. NUNCA** (`D-20`, 07/09) | **debe rechazarse**: no es una sincronización, **es una segunda fuente** ⚠️ **el rechazo está SIN CONSTRUIR — hoy el puente del Esclavo la acepta** |
+>
+> > 🔴 **07/09 — LA FILA DE ARRIBA ES LA QUE MÁS FÁCIL SE INCUMPLE, Y HOY NADA LA IMPIDE.** El puente
+> > es **el mismo firmware en los dos postes** y su despachador **no sabe en cuál está**:
+> > `grep -c "ESCLAVO\|Esclavo\|esclavo" 01_Firmware/ESP32_Expansion/src/despachador.cpp` → `0`
+> > (corrido el 07/09). *(El puente sí aprende quién es —símbolo `transporte_aprenderRotulo()`,
+> > `puente.cpp`— pero **para rotular el Bluetooth en la lista de Android**; ese dato no llega al
+> > despachador.)* **Mientras eso no se construya, la barrera es el procedimiento: no se manda
+> > `SET_RTC` al poste 2.**
 >
 > **Y los `$ERR` del puente son el diagnóstico que este apartado buscaba, uno por causa** (leídos de
 > `ESP32_Expansion/src/despachador.cpp` el 07/09):
@@ -839,8 +969,43 @@ Con ~1,4 µA de consumo por `VBAT`, la autonomía teórica supera los **15 años
 > `ESCRITURA_A_MEDIAS_REPITA_SET_RTC` · `MODO_12H_PONGA_LA_HORA` · `REGISTROS_INCOHERENTES` ·
 > `BARRERA_INCOHERENTE`.
 >
-> 🔵 **Hay DOS relojes por cruce, uno por poste, y no se hablan entre sí** (`D-17`). Hay que
-> conectarse a **los dos postes**: ninguna orden lleva la hora de un `DS3231` al otro.
+> 🔵 **Hay DOS `DS3231` por cruce, uno por poste** (`D-17`) — y **siguen haciendo falta los dos**
+> (`A-5`): el del Esclavo es el que **conserva la hora con su pila cuando se cae la radio**.
+> ~~y no se hablan entre sí. Hay que conectarse a **los dos postes**: ninguna orden lleva la hora de un
+> `DS3231` al otro.~~
+>
+> > 🔴 **07/09 — LA MITAD TACHADA LA DEROGA `D-20`, Y ES EL CAMBIO QUE MÁS AFECTA AL PROCEDIMIENTO
+> > DE CAMPO.** Que los dos `DS3231` no se hablen **directamente** sigue siendo verdad —los dos ESP32
+> > no tienen enlace entre sí—, pero de ahí **no** se sigue *«hay que ir a poner la hora en los dos
+> > postes»*. `D-20` construye el camino que faltaba: **la hora sale del ESP32 Maestro y llega al del
+> > Esclavo pasando por los dos STM32 y la radio.** Los STM32 son **carteros**.
+> >
+> > | | ~~antes (`D-17` solo)~~ | **vigente (`D-20`, 07/09)** |
+> > |---|---|---|
+> > | dónde se pone la hora | ~~en los dos postes, uno por uno~~ | **sólo en el poste 1 (Maestro)** |
+> > | `SET_RTC` al poste 2 | ~~es como se ponía la hora allí~~ | 🛑 **se rechaza: es una SEGUNDA FUENTE** |
+> > | `CMD:LEER_RTC` | a los dos postes | **a los dos postes, igual que antes** — `D-20` prohíbe **ESCRIBIR** en el poste 2; **leer no escribe nada**, y con `D-20` construida vale más que hoy: es la única forma de comprobar que la siembra del Maestro llegó de verdad al reloj del poste 2 |
+> >
+> > ⚠️ **SIN CONSTRUIR. Hoy la cadena no existe** (ver el recuadro de `D-20` en §3), así que **hoy**
+> > la hora del poste 2 sigue poniéndose a mano en su puente. **Esto describe a qué se cambia, no lo
+> > que ya está hecho.**
+>
+> > # 🔴 LA REGLA DE CAMPO QUE `D-20` OBLIGA A ESCRIBIR AQUÍ
+> >
+> > ## EL POSTE 2 SE PONE EN HORA EN LA PUESTA EN MARCHA — NO DURANTE LA AVERÍA.
+> >
+> > Con `D-20` dentro, el único camino al reloj del poste 2 pasa por el Maestro y **por la radio**; y
+> > **la radio se cae justo cuando hace falta el Modo Degradado** — que es el modo que **exige hora**.
+> >
+> > ✅ **Y eso NO es un problema: el `DS3231` del poste 2 tiene pila y conserva la hora que ya tenía.**
+> > **Perder la radio no es perder la hora.** Lo que obliga es a ponerla **antes**:
+> >
+> > 1. en la **puesta en marcha** del cruce,
+> > 2. al **cambiar la pila** de ese `DS3231`,
+> > 3. y tras cualquier `OSCILADOR_PARADO_CAMBIE_PILA` leído en ese poste.
+> >
+> > **Es la razón de que sigan comprándose DOS `DS3231` (`A-5`) y de que `D-20` no reduzca la compra
+> > a uno.**
 >
 > ---
 >

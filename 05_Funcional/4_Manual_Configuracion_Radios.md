@@ -189,10 +189,48 @@ y luego **una vez por hora** mientras haya enlace.
 > siquiera contesta a `SET_RTC`**.
 >
 > **La hora que ve el operario la lleva el `DS3231` con pila del `ESP32` de CADA poste** (`D-9`),
-> **hay dos por cruce, y NADA los sincroniza entre sí**: los dos `ESP32` no se hablan. **Poner en
-> hora un poste NO pone en hora el cruce** — hay que visitar los dos con la app, y `CMD:LEER_RTC`
-> (`D-17`) permite **consultarlos sin cambiarlos** y ver el desfase. Detalle en
-> `11_Manual_Instalacion_RTC_DS3231_Bateria.md`.
+> **hay dos por cruce**, y `CMD:LEER_RTC` (`D-17`) permite **consultarlos sin cambiarlos** y ver el
+> desfase. Detalle en `11_Manual_Instalacion_RTC_DS3231_Bateria.md`.
+>
+> ~~**y NADA los sincroniza entre sí**: los dos `ESP32` no se hablan. **Poner en hora un poste NO
+> pone en hora el cruce** — hay que visitar los dos con la app.~~
+
+> # 🔴 07/09 · `D-20` — Y ESTO CAMBIA LO QUE ESTE APARTADO SIGNIFICA PARA LAS RADIOS
+>
+> **Lo tachado de arriba lleva fecha del 07/09 por la mañana, y `D-20` lo deroga esa misma tarde.**
+> Se deja a la vista a propósito: **una frase puede caducar el mismo día en que se escribe**, y la
+> que desaparece en silencio se vuelve a proponer. Fila **`D-20`** de
+> [`DECISIONES.md`](../DECISIONES.md):
+>
+> > **La autoridad de la hora es el ESP32, siempre y para todo.** La app se la da al **ESP32
+> > Maestro**; ése al **ESP32 Esclavo**; y el STM32 de cada punta la recibe **de su propio ESP32**.
+> > **El Maestro manda la hora y el Esclavo hace caso siempre: hay UNA sola fuente.**
+> > **Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.**
+>
+> ✅ **Sigue siendo cierto que los dos `ESP32` no se hablan** — y eso es precisamente lo que pone a
+> las radios en el centro. **El único enlace entre postes es la radio, entre los STM32**, así que la
+> hora viaja:
+>
+> ```text
+>   ESP32-M  ->  STM32-M  ->  R A D I O  ->  STM32-E  ->  ESP32-E
+>   (DS3231)     cartero                     cartero      (DS3231)
+> ```
+>
+> 🔴 **Y aquí está lo que este manual tiene que decir y no decía: con `D-20`, el enlace de radio deja
+> de ser sólo el que coordina las luces y pasa a ser TAMBIÉN el único camino de la hora al poste 2.**
+> El apartado se titula *«la sincronización horaria NO exige tocar las radios»* — **y eso sigue
+> siendo verdad: no hay nada que reconfigurar** (la tabla de abajo se conserva entera). Lo que cambia
+> es el **peso** del enlace: un enlace flojo ya no degrada sólo la coordinación.
+>
+> ✅ **Pero no es un punto único de fallo del reloj, y conviene decirlo para no sobredimensionar la
+> antena por el motivo equivocado: el `DS3231` del poste 2 tiene pila y conserva la hora que ya
+> tenía.** *Perder la radio no es perder la hora.* Lo que obliga es a **poner en hora el poste 2 en
+> la PUESTA EN MARCHA, no durante la avería.**
+>
+> ⚠️ **`D-20` está DECIDIDA Y SIN CONSTRUIR (07/09).** Las tramas `0x07`–`0x0F` y `0x10` que este
+> apartado describe **existen y hoy no transportan nada útil**: siembran el RTC del STM32, que no
+> cuenta. Con `D-20` construida **volverán a ser el camino bueno**, pero alimentando al `ESP32` del
+> Esclavo en vez de a un contador parado. **No es una trama nueva: es la misma con otro destinatario.**
 >
 > ✅ **Lo que de este apartado sigue siendo cierto, y es lo único que decide sobre las radios: no hay
 > nada que reconfigurar en la radio por la sincronización horaria.** La tabla de abajo se conserva

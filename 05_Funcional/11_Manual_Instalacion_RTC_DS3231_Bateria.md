@@ -6,7 +6,8 @@
 **Propósito:** Sincronización horaria ininterrumpida para Modo Degradado, horario nocturno y Caja Negra  
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `MAPEO_TARJETA_KICAD.md`  
 **Fecha de Emisión:** 26 de Agosto de 2026  
-**Última revisión: 7 de septiembre de 2026** — 🔴 **§4.1 DEROGADA: no se diagnostica el reloj mandando `SET_RTC` al STM32** (`D-15`). La orden vigente es **`CMD:LEER_RTC`** (`D-17`) y la contesta el ESP32.
+**Última revisión: 7 de septiembre de 2026 (tarde)** — 🔴 **`D-20`: LA AUTORIDAD DE LA HORA ES EL ESP32, Y ES UNA SOLA. La app NO pone la hora en el poste 2, nunca.** Ver el apartado final, **«Hay dos relojes por cruce»**, que es donde vive el procedimiento y el aviso de que `D-20` está **decidida y SIN CONSTRUIR**.
+*7 de septiembre de 2026 (mañana)* — 🔴 **§4.1 DEROGADA: no se diagnostica el reloj mandando `SET_RTC` al STM32** (`D-15`). La orden vigente es **`CMD:LEER_RTC`** (`D-17`) y la contesta el ESP32.
 *Revisión anterior, 31 de Agosto de 2026* — **el apartado 5 (Plan B DS3231) está ANULADO y no se cablea.**
 Motivo: mandaba conectar un bus I²C a `PB0` y `PB8` llamándolos *«los dos únicos pines libres de la
 placa»*, y **ninguno de los dos lo está**. Corregido también el renglón «Plan de Contingencia» de esta
@@ -64,6 +65,32 @@ I²C contra dos pines que **ya tienen dueño en el firmware que corre hoy**.
 ---
 
 ## 1. Arquitectura del Reloj en la Tarjeta Madre STM32
+
+> # 🔴 LA `CR2032` DE ESTA TARJETA SIGUE SIENDO OBLIGATORIA CON `D-20` — Y YA NO ES POR LA HORA
+>
+> **Esto se escribe el 07/09 porque `D-20` invita al error contrario**, y el error se comete una
+> vez y se paga en el primer corte de luz: *«si la hora se mudó al `DS3231` del ESP32, la pila del
+> STM32 ya no hace falta»*. **Es falso.**
+>
+> Esa misma pila alimenta el **dominio de respaldo** del STM32 (`BKP->DR1..DR10`), y ahí es donde
+> viven **la marca de sincronización y el indicador del Modo Degradado** — el cómputo de las 48 h.
+> Lo dice el propio fuente, símbolo `respaldo.h`:
+>
+> > *«Usa los registros de respaldo del STM32 (`BKP->DR1..DR10`), alimentados por LA MISMA pila
+> > `CR2032` que ya mantiene el RTC»* · *«Sobreviven al corte porque los `BKP` viven en el dominio
+> > de `VBAT`. Sin pila, o con la pila agotada, `respaldo_setup()` encuentra el contenido inválido
+> > y borra»*
+>
+> **Con `D-20` la pila cambia de trabajo, no de necesidad:** deja de mantener una hora que nunca
+> avanzó (`Y2` muerto, N-17) y pasa a mantener **la única cosa que dice si el Degradado sigue
+> autorizado**. `roadmap.md` §3.4.bis lo pone como precondición con todas las letras: **`CR2032` en
+> LAS DOS tarjetas.**
+>
+> ⚠️ **Y una precisión que ya se escribió mal una vez, el 07/09, y llegó a `DECISIONES.md`: NO se
+> diga «el STM32 no tiene ni pila ni cristal».** Tiene las dos y no usa ninguna para la hora:
+> `Y1` de 8 MHz está en la placa —el firmware arranca con el **HSI**, el RC interno— y `VBAT`
+> **midió 3 V con la tarjeta apagada** (`N-37`) en **al menos una** tarjeta; la otra sigue
+> `SIN VERIFICAR`. **Lo muerto es `Y2`**, el cristal de 32.768 kHz del RTC, y sólo ése.
 
 El diseño de la tarjeta controladora **ya incluye el cristal `Y2` de 32.768 kHz** ruteado a los pines `PC14` y `PC15` del microcontrolador STM32F103C8T6.
 
@@ -531,28 +558,88 @@ sobre chip real, SIN VERIFICAR.**
 
 ---
 
-## 🔴 HAY DOS RELOJES POR CRUCE, Y NADA LOS SINCRONIZA
+## 🔴 HAY DOS RELOJES POR CRUCE — y quién manda ya está decidido (`D-20`), pero NO construido
 
-Cada ESP32 lleva **su** DS3231 con **su** pila. **No existe ningún camino que los ponga de
+Cada ESP32 lleva **su** DS3231 con **su** pila. **Hoy no existe ningún camino que los ponga de
 acuerdo:** los dos ESP32 no se hablan —sin WiFi, sin ESP-NOW, sin radio: sus únicos objetos
 de entrada/salida son su propio STM32 y el teléfono—, y la única sincronización horaria del
 equipo va por LoRa **entre los dos STM32**, cuyos relojes están muertos (`Y2`, N-17).
 
-> **Consecuencia operativa: poner la hora en un poste NO pone en hora el cruce.**
-> Hay que conectarse a **los dos**, uno detrás de otro, **con el mismo teléfono y en la
-> misma sesión de la app**.
+> # 🔴 `D-20` (07/09) — LA AUTORIDAD DE LA HORA ES EL ESP32, Y ES UNA SOLA
+>
+> Fila **`D-20`** de [`DECISIONES.md`](../DECISIONES.md), decidida por el responsable el 07/09.
+> Dice tres cosas, y la tercera es la que cambia este apartado:
+>
+> 1. **La autoridad de la hora es el ESP32, siempre y para todo. Al STM32 no se le pregunta
+>    nunca.** La app se la da al **ESP32 Maestro**; ése al **ESP32 Esclavo**; y el STM32 de cada
+>    punta la recibe **de su propio ESP32**.
+> 2. **El Maestro manda la hora y el Esclavo hace caso siempre.** Hay **una sola fuente**, así
+>    que no hay desfase inicial que acotar.
+> 3. 🔴 **La app NO pone la hora en el poste 2. Nunca.** Un `SET_RTC` dirigido al Esclavo
+>    **se rechaza**: no es una sincronización, **es una segunda fuente**.
+>
+> **La topología, porque explica el resto:** los dos ESP32 **no se hablan**, así que la hora
+> viaja `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`. **Los STM32 quedan de CARTEROS de
+> la hora, no de dueños.**
+>
+> ⚠️ **Y AQUÍ ESTÁ LO QUE NO SE PUEDE LEER COMO HECHO: `D-20` está DECIDIDA Y SIN CONSTRUIR.**
+> Medido en el fuente el 07/09, y se puede reproducir:
+>
+> ```
+> $ cd 01_Firmware/ESP32_Expansion
+> $ grep -c "ESCLAVO\|Esclavo\|esclavo" src/despachador.cpp
+> 0
+> ```
+>
+> **El puente es el MISMO firmware en los dos postes, y el fichero que decide qué hacer con un
+> `SET_RTC` no nombra al Esclavo ni una vez**: hoy lo atiende venga por donde venga.
+>
+> *(Y no vale decir «pero el puente sí sabe quién es»: lo aprende —`transporte_aprenderRotulo()`,
+> con **un solo llamador**, `puente.cpp`— **para rotular el Bluetooth en la lista de Android**, y
+> ese dato **no llega al despachador**. Saber el rol para rechazar la orden es trabajo pendiente,
+> no una propiedad del equipo que usted tiene delante.)*
+>
+> Lo mismo con la siembra `ESP32 -> STM32`: el camino físico existe (`enlace_stm32.cpp`), **el
+> mando que la siembra no**. Los tres trabajos que faltan están listados en `roadmap.md` §3.4.bis.
 
-### Procedimiento — los dos postes, o no cuenta
+### Procedimiento — HOY, hasta que `D-20` esté construida
 
-1. Conéctese al **poste 1**. Espere a que el tablero identifique el equipo (`MAESTRO` o
-   `ESCLAVO`): hasta entonces la app no sabe a cuál atribuir la lectura y **se niega a
-   anotar**.
+> 🛑 **Léase esto antes que los pasos.** `D-20` prohíbe poner la hora en el poste 2, **y la vía
+> que la sustituye todavía no existe**. Si hoy se aplicara la prohibición al pie de la letra,
+> **el poste 2 se quedaría sin hora ninguna** — y su Modo Degradado la exige. Así que el
+> procedimiento de hoy sigue visitando los dos postes, **y eso es un estado temporal declarado,
+> no la arquitectura**. Cuando `D-20` esté construida, el paso 4 desaparece.
+
+1. Conéctese al **poste 1** —**el Maestro, y es el que manda la hora** (`D-20`)—. Espere a que
+   el tablero identifique el equipo (`MAESTRO` o `ESCLAVO`): hasta entonces la app no sabe a
+   cuál atribuir la lectura y **se niega a anotar**.
 2. Mande la hora. El puente contesta con la hora **releída del chip**, no con la que usted
    mandó.
 3. La app anota el poste y **avisa de cuál falta**.
-4. Vaya al **poste 2** y repita **sin cerrar la app**.
+4. ⚠️ **PASO TEMPORAL, y muere con `D-20`.** Vaya al **poste 2** y repita **sin cerrar la app**.
+   *(Cuando el Maestro siembre la hora por radio, este paso no sólo sobra: el equipo lo
+   rechazará, porque una segunda fuente es exactamente lo que `D-20` prohíbe.)*
 5. Con los dos vistos, la app publica el **desfase medido entre los dos relojes**. Es el
    único sitio donde ese número existe.
+
+> # 🔴 EL POSTE 2 SE PONE EN HORA EN LA PUESTA EN MARCHA — NO DURANTE LA AVERÍA
+>
+> **Esto vale hoy y valdrá más todavía cuando `D-20` esté construida**, y es lo que nadie había
+> escrito en ningún manual hasta el 07/09.
+>
+> Con `D-20` dentro, **el único camino hacia el reloj del poste 2 pasa por el Maestro y por la
+> radio**. Y la radio se cae justo cuando hace falta el Modo Degradado — que es el modo que
+> **exige hora**. O sea: **con la radio muerta no se le puede poner en hora.**
+>
+> ✅ **Y eso NO es un problema, por un motivo medido: su `DS3231` tiene pila y conserva la hora
+> que ya tenía.** *Perder la radio no es perder la hora.* Lo que obliga es a **ponerla antes**:
+>
+> - **En la puesta en marcha del cruce**, con los dos postes sanos y la radio viva.
+> - **Después de cambiar la `CR2032`** de cualquiera de los dos módulos.
+> - **Después de cualquier `$ERR ... DESC:OSCILADOR_PARADO_CAMBIE_PILA`** en el poste 2.
+>
+> 🛑 **Lo que NO se hace es subir al poste 2 con la avería encima a poner la hora.** Si se llega
+> ahí, el fallo ya ocurrió antes: en la puesta en marcha.
 
 ⚠️ **`RESULT:HORA_PUESTA_SIN_PROPAGAR` no habla del otro poste.** Significa que la hora entró
 en el DS3231 y la orden **no llegó a la controladora de ese mismo armario** por el cable
@@ -578,3 +665,10 @@ dos. La app lo dirá —*«no consta en esta sesión»*— en vez de dar por bue
    relojes** — restando el error de cada uno contra el celular, de modo que el tiempo de la
    caminata no cuenta. **Ése es el único número que dice si el cruce está en hora, y hasta hoy
    no lo calculaba nadie.**
+
+> ✅ **`D-20` NO deroga este apartado, y conviene decirlo para que nadie lo borre de paso.**
+> `D-20` prohíbe **ESCRIBIR** la hora en el poste 2 —eso sería una segunda fuente—; **leerla no
+> escribe nada**. `CMD:LEER_RTC` (`D-17`) se sigue mandando **a los dos postes**, y con `D-20`
+> construida vale **más** que hoy, no menos: es la única forma de comprobar que la siembra del
+> Maestro llegó de verdad al reloj del poste 2. **Una sola fuente no quita la necesidad de
+> mirar; la vuelve la única comprobación que queda.**

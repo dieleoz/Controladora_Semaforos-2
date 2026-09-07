@@ -802,6 +802,32 @@ cruce en ámbar, ni devolverlo a automático, ni pararlo.** Ninguna de las tres.
   esta función.
 * **El emparejado hecho ANTES de subir**, en *Ajustes de Android* (PIN del módulo `0000` o `1234` —
   **no** es el PIN del semáforo). La app **no empareja**: sólo lista lo que ya está emparejado.
+* 🔴 **La hora del POSTE 2 puesta ANTES, en la puesta en marcha** — no cuando ya haya avería. Ver el
+  recuadro de `D-20` justo debajo.
+
+> # 🔴 `D-20` (07/09) — LA HORA SE PONE EN EL POSTE 1, Y EL POSTE 2 SE PONE EN HORA ANTES DE SUBIR
+>
+> Fila **`D-20`** de [`DECISIONES.md`](../DECISIONES.md), decidida por el responsable.
+>
+> **La autoridad de la hora es el ESP32, siempre y para todo, y es UNA SOLA.** La app se la da al
+> **ESP32 del poste 1 (Maestro)**; ése al **ESP32 del poste 2 (Esclavo)**; y el STM32 de cada punta
+> la recibe **de su propio ESP32** — los STM32 quedan de **carteros de la hora, no de dueños**.
+> **El Maestro manda la hora y el Esclavo hace caso siempre.**
+>
+> 🔴 **Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.** Un `SET_RTC` dirigido al
+> Esclavo **se rechaza**: no es una sincronización, **es una segunda fuente**.
+>
+> **Y por eso esto va en la lista de «antes de subir»:** el único camino al reloj del poste 2 pasa
+> por el Maestro y **por la radio**, y la radio se cae justo cuando hace falta el Modo Degradado,
+> que es **el modo que exige hora**. ✅ **No es un problema —el `DS3231` del poste 2 tiene pila y
+> conserva la hora que ya tenía**; *perder la radio no es perder la hora*—. Lo que obliga es a
+> ponerla **antes**: en la puesta en marcha, al cambiar la pila, y tras cualquier
+> `OSCILADOR_PARADO_CAMBIE_PILA` en ese poste.
+>
+> ⚠️ **`D-20` está DECIDIDA Y SIN CONSTRUIR (07/09):** el puente es el mismo firmware en los dos
+> postes y todavía no sabe cuál es, así que hoy sigue aceptando la hora venga por donde venga.
+> **Mientras siga así, el poste 2 se pone en hora visitándolo, porque no hay otra vía** — estado
+> temporal declarado, no la arquitectura.
 
 > ⚠️ **Y un tropiezo real, no teórico:** esta semana hubo que **desvincular el Maestro en Ajustes de
 > Android** para poder conectarse al Esclavo. **La conexión es UNA a la vez y explícita**, y eso es
@@ -821,7 +847,7 @@ Para soporte técnico en campo sin escaleras:
   > ⛔ Este manual publicó ~~«USART1 (`PA9` TX, `PA10` RX)»~~ hasta el 31/08/2026. Es el sitio donde
   > estuvo **antes** de `N-76`, y dejarlo escrito manda al técnico a soldar el módulo Bluetooth al
   > conector equivocado.
-* **Telemetría en Vivo:** Emisión periódica de `$STATUS,...` cada 1 segundo con modo, fase de luces, cuenta regresiva, % de señal RF y hora exacta del RTC.
+* **Telemetría en Vivo:** Emisión periódica de `$STATUS,...` cada 1 segundo con modo, fase de luces, cuenta regresiva, % de señal RF y hora. ⚠️ ~~«hora exacta del RTC»~~ — **corregido el 07/09: esa hora NO sale del RTC del STM32.** El STM32 emite el hueco `HORA:--:--:--` y **es el ESP32 el que lo rellena al pasar la trama**, con su `DS3231`, recalculando el CRC (`D-9`). Con `D-20` eso no cambia: **la hora es del ESP32, siempre y para todo.**
 * **Caja Negra de Alarmas:** Registro inmediato de eventos con timestamp (`$ALARM,NODE:MAESTRO,EVENTO:FALLO_RF,CAUSA:SILENCIO_25000ms,ACCION:CAMBIO_A_AMBAR,HORA:...`) para diagnosticar la causa exacta de cualquier caída de radio en obra.
   > ⛔ El ejemplo decía ~~`$ALARM,EVENTO:FALLO_RF_12S...`~~ hasta el 31/08/2026. El propio firmware ya
   > había retirado ese literal con su motivo escrito al lado —`*/include/bluetooth.h`, en el bloque

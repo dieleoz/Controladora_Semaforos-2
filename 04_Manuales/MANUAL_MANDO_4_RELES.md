@@ -122,17 +122,44 @@ CÓDIGO se queda. Las dos cosas a la vez: ver la cabecera de estado.**
 > `ambarLocal`, y `B` sin `A` deja al operario dentro del ámbar **sin forma de salir desde el piso**
 > (`A·A·A` es la salida). Los dos canales son un par, no dos opciones.
 >
-> ## ✅ 31/08 — y ahora `ambarLocal` tiene además un SEGUNDO armador
+> ## ✅ 31/08 — y ahora `ambarLocal` tiene además un SEGUNDO armador · 🔴 **decidido como `D-8` el 04/09**
 >
-> **MEDIDO** en `Esclavo/src/main.cpp:406`, `:416` y `:540`: los tres vetos ya no leen una sola
-> bandera, sino dos —
-> `if (!mando_ambarLocal() && !bluetooth_ambarEmergencia())`.
+> ~~**MEDIDO** en `Esclavo/src/main.cpp:406`, `:416` y `:540`~~ ⛔ **ESAS TRES CITAS ESTÁN CADUCADAS
+> —re-medidas el 07/09— y por eso se cita el patrón, no la línea.** La medida de hoy, corrida antes
+> de publicarla:
 >
-> El segundo es el latch de `CMD:AMBAR_EMERGENCIA` (`Esclavo/src/bluetooth.cpp:130`, `:171`, getter en
-> `:268`). O sea: **el ámbar local del Esclavo se puede pedir hoy por dos caminos independientes** —el
-> mando por `B·B·B` y la app por Bluetooth—, y **cualquiera de los dos veta las órdenes de radio**.
-> El riesgo del punto 3 de la versión anterior de este aviso **está resuelto por construcción**, no
-> por promesa.
+> ```
+> $ grep -n "!mando_ambarLocal() && !bluetooth_ambarEmergencia()" 01_Firmware/Esclavo/src/main.cpp
+> 464:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
+> 487:      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
+> 628:    if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() &&
+> ```
+>
+> Los tres vetos ya no leen una sola bandera, sino dos. El segundo es el latch de
+> `CMD:AMBAR_EMERGENCIA` (`Esclavo/src/bluetooth.cpp`, getter `bluetooth_ambarEmergencia()`). O sea:
+> **el ámbar local del Esclavo se puede pedir por dos caminos independientes** —el mando por `B·B·B`
+> y la app por Bluetooth—, y **cualquiera de los dos veta las órdenes de radio**. El riesgo del punto
+> 3 de la versión anterior de este aviso **está resuelto por construcción**, no por promesa.
+>
+> > # 🔴 ESTO YA NO ES UN HALLAZGO DE ESTE MANUAL: ES LA DECISIÓN `D-8`
+> >
+> > Fila **`D-8`** de [`DECISIONES.md`](../DECISIONES.md), 04/09: **«el ámbar de emergencia conserva
+> > SUS DOS VETOS (mando y app)»**, y los dos son **independientes** — *quitar el de la app no quita
+> > el del gabinete*.
+> >
+> > **El motivo no es de diseño, es de banco: se intentó quitar el cerrojo DOS veces y el banco lo
+> > tumbó las dos.** Y al medir la cadena entera resultó que **el cerrojo no era la causa del bloqueo
+> > que se le atribuía** —lo era que esa punta **no acusaba**, y eso se arregló por otro sitio
+> > (`N-142`)—. **Quitarlo no habría arreglado nada y descubre a quien esté en la calzada.**
+> > *«Quitemos el cerrojo» es una pregunta ya contestada, y la respuesta fue que no.*
+> >
+> > ⚠️ **Y con el mando desmontado (`D-1`), esa bandera simplemente NO SE ARMA NUNCA — que es lo
+> > correcto.** No se lea como que el operario dispone de un mando en el gabinete: **no existe.** Lo
+> > que sigue vivo es el **código** del veto, y el motivo es el de la §3 de este manual: borrar el
+> > armador **no deja el veto inerte, lo deja ABIERTO**.
+> >
+> > *(Anclado en el fuente: comentarios `D-8` en `Esclavo/src/main.cpp`, `Esclavo/src/bluetooth.cpp`
+> > y `Maestro/src/main.cpp`.)*
 >
 > ## 🛑 Lo que NO cambia
 >

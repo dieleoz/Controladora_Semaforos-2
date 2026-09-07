@@ -786,8 +786,26 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 >
 >   🔧 **05/09 — ESTA TABLA ESTÁ CADUCADA EN SUS TRES FILAS, Y SE TACHA CON SU MOTIVO PORQUE ES LA
 >   QUE HIZO CREER QUE FALTABA COMPRAR UN RELOJ.** Lo que la deroga son `D-9` y `D-15`: **el STM32 no
->   tiene reloj y ya no atiende `SET_RTC`** — hay **dos relojes por cruce, uno por `ESP32`**, y **ya
->   están puestos** (`A-5`, resuelta el 05/09). **`Y2` no decide nada de esta línea.**
+>   tiene reloj propio y ya no atiende `SET_RTC`** — hay **dos `DS3231` por cruce, uno por `ESP32`**,
+>   y **ya están puestos** (`A-5`, resuelta el 05/09). **`Y2` no decide nada de esta línea.**
+>
+>   > 🔵 **07/09 (`D-20`) — MATIZ, PORQUE «DOS RELOJES POR CRUCE» SE ESTÁ LEYENDO COMO «DOS FUENTES
+>   > DE HORA», Y ESO YA NO ES CIERTO.** Siguen siendo **dos `DS3231`** (y **la compra no cambia**:
+>   > `A-5`), pero **la FUENTE es UNA SOLA: el ESP32 Maestro.** La hora viaja
+>   > `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`, con los STM32 haciendo de **carteros**,
+>   > porque **los dos ESP32 no se hablan entre sí**. **La app NO pone la hora en el poste 2: nunca.**
+>   > Un `SET_RTC` dirigido al Esclavo **se rechaza** — no es una sincronización, **es una segunda
+>   > fuente**.
+>   >
+>   > **El `DS3231` del poste 2 no es una segunda fuente: es la MEMORIA de la única fuente**, la que
+>   > conserva la hora con su pila cuando se cae la radio. Por eso son dos y por eso `D-20` no reduce
+>   > la compra a uno.
+>   >
+>   > ⚠️ **SIN CONSTRUIR** — falta el mando ESP32 → STM32 que siembre la hora, y el rechazo del
+>   > `SET_RTC` en el poste 2 tampoco existe: el puente es **el mismo firmware en los dos postes** y
+>   > su despachador **no sabe en cuál está**
+>   > (`grep -c "ESCLAVO\|Esclavo\|esclavo" 01_Firmware/ESP32_Expansion/src/despachador.cpp` → `0`,
+>   > corrido el 07/09).
 >
 >   | | ~~¿lo decide `Y2`?~~ → **05/09** |
 >   |---|---|
@@ -826,7 +844,8 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 >   > | | dónde | estado |
 >   > |---|---|---|
 >   > | **Leer y poner en hora el `DS3231`** | `ESP32_Expansion/src/reloj_ds3231.cpp` — completo, con barrera `OSF`, bit 12/24 h y validación por barrido | ✅ **escrito** |
->   > | **Atender `SET_RTC` contra SU reloj**, con las siete ramas colgando de lo que devolvió `reloj_ajustar()` | mismo módulo | ✅ **escrito** |
+>   > | **Atender `SET_RTC` contra SU reloj**, con las siete ramas colgando de lo que devolvió `reloj_ajustar()` | mismo módulo | ✅ **escrito** — 🔴 **07/09: y lo atiende EN LOS DOS POSTES, que es lo que `D-20` prohíbe.** La app **no** debe poner la hora en el poste 2; ese `SET_RTC` **tiene que rechazarse**, y hoy **no se rechaza**: el puente es el mismo firmware en las dos puntas y su despachador **no sabe en cuál está** (`grep -ci esclavo 01_Firmware/ESP32_Expansion/src/despachador.cpp` → `0`, corrido el 07/09). **⚪ el rechazo está SIN CONSTRUIR** |
+>   > | 🆕 **Recibir la hora del ESP32 Maestro y sembrarla en el STM32** (`D-20`, 07/09) | `ESP32_Expansion/src/enlace_stm32.cpp` — **el camino físico existe; el mando NO**: ese fichero no menciona `RTC` ni `hora` ni una vez (comprobado el 07/09) | ⚪ **SIN CONSTRUIR** |
 >   > | 🆕 **Publicar la hora hacia la app** (`N-145`, 05/09): el puente **sella el hueco `HORA:--:--:--`** que el STM32 declara y **recalcula el checksum** | `src/puente.cpp:198-245` | ✅ **escrito** |
 >   >
 >   > 🛑 **Y por eso `A6` deja de ser «una pieza pendiente» y pasa a ser LA ÚNICA COSA QUE FALTA PARA
@@ -851,6 +870,19 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 >   un camino que **`D-15` derogó** —la sincronización que ponía en hora el reloj **del STM32**—, y en
 >   un reloj **que no existe**: `Y2` está muerto y el STM32 **no tiene ninguno** (`D-9`). **Cada punta
 >   necesita el suyo, cada `ESP32` lo lleva, y los dos están montados.**
+>   > 🔵 **07/09 (`D-20`) — LA CONCLUSIÓN «SON DOS» NO SE TOCA. EL MOTIVO SÍ HAY QUE MATIZARLO.**
+>   > `D-20` sí construye un camino por radio para la hora —`ESP32-M -> STM32-M -> radio -> STM32-E
+>   > -> ESP32-E`, con los STM32 de **carteros**—, así que *«el Esclavo toma la hora del Maestro por
+>   > radio»* **vuelve a ser el diseño**. Lo que **no** vuelve es la consecuencia de compra:
+>   >
+>   > 🔴 **SIGUEN HACIENDO FALTA LOS DOS `DS3231` (`A-5`), y ahora con un motivo MÁS fuerte que
+>   > antes:** el del Esclavo es lo que **conserva la hora con su pila cuando se cae la radio** — y
+>   > la radio se cae justo cuando hace falta el Modo Degradado, que es el modo que **exige hora**.
+>   > **Sin ese segundo `DS3231`, `D-20` deja el poste 2 sin hora en el único momento en que la
+>   > necesita.** *Perder la radio no es perder la hora — pero sólo si hay pila donde guardarla.*
+>   >
+>   > ⚠️ **SIN CONSTRUIR:** falta el mando ESP32 → STM32 que siembre la hora
+>   > (`ESP32_Expansion/src/enlace_stm32.cpp` **no menciona `RTC` ni `hora`**, comprobado el 07/09).
 > * ~~🔴 **Sigue sin haber driver, y eso no es una avería.** Ver el aviso del bloque B, que se
 >   mantiene entero: **al enchufarlo no dará la hora, porque no hay código que le hable** — ahora en
 >   el `ESP32`, cuyo firmware tampoco está escrito.~~
@@ -1192,8 +1224,32 @@ de banco (tarea `B5`), y hasta entonces **no se pide nada de este bloque**:
 
 | si el cristal muerto está en… | qué hace falta |
 |---|---|
-| el **Esclavo** | ~~**NADA.** Ya toma la hora del Maestro por radio (`CMD_HORA_*`, SFTY-23). Cero pesos~~ ⛔ **CADUCADO POR `D-15` y `D-9`.** El camino que sincronizaba **el reloj del STM32** está derogado, y **ese reloj no existe** (`Y2` muerto). **Esa punta no tiene de dónde tomar la hora si no es de SU PROPIO `DS3231`** — y lo lleva: son **dos, uno por `ESP32`, ya puestos** (`A-5`) |
+| el **Esclavo** | ~~**NADA.** Ya toma la hora del Maestro por radio (`CMD_HORA_*`, SFTY-23). Cero pesos~~ ⛔ **CADUCADO POR `D-15` y `D-9`.** El camino que sincronizaba **el reloj del STM32** está derogado, y **ese reloj no existe** (`Y2` muerto). ~~**Esa punta no tiene de dónde tomar la hora si no es de SU PROPIO `DS3231`**~~ 🔴 **07/09: esta última frase la deroga `D-20` — ver la nota de abajo.** Lo que **NO cambia** es la compra: son **DOS, uno por `ESP32`, ya puestos** (`A-5`) |
 | ~~el **Maestro**~~ | ~~ahí sí: es quien fija la hora, y necesita fuente propia → todo el bloque de abajo~~ ⛔ **Esta rama ya no manda en la compra del reloj:** el `DS3231` va colgado del `ESP32` con su pila (**A6**) y **no** en la tarjeta. Lo que el cristal decida sigue importando para el firmware del Maestro, no para pedir el módulo |
+
+> # 🔵 07/09 (`D-20`) — LA TACHADURA DE LA PRIMERA FILA ESTÁ MAL HECHA, Y ES UN AVISO DE MÉTODO
+>
+> **Lo tachado ahí** —*«ya toma la hora del Maestro por radio (`CMD_HORA_*`, SFTY-23)»*— **es
+> exactamente lo que `D-20` restaura** en cuanto a **de dónde sale la hora del poste 2. No se
+> destacha** (era falso el 05/09 y sigue siéndolo hoy, porque el camino **no está construido**),
+> pero hay que decir por qué vuelve:
+>
+> | | |
+> |---|---|
+> | por qué se tachó (05/09) | el camino sincronizaba **el reloj del STM32**, y ese reloj **no existe** (`Y2` muerto, N-17) |
+> | qué cambia con `D-20` (07/09) | la hora ya **no nace** del RTC del STM32: nace del **`DS3231` del ESP32 Maestro** y viaja `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`. **Los STM32 son carteros, no dueños** |
+> | qué NO cambia | 🔴 **la compra sigue siendo DOS `DS3231`, uno por poste** (`A-5`). El del Esclavo es el que **conserva la hora con su pila cuando se cae la radio**. **`D-20` NO reduce la compra a uno** |
+>
+> ⚠️ **Y sigue SIN CONSTRUIR**: falta el mando ESP32 → STM32 que siembre la hora. El camino físico
+> existe (`ESP32_Expansion/src/enlace_stm32.cpp`), **el mando no** — ese fichero **no menciona `RTC`
+> ni `hora` ni una vez** (comprobado el 07/09). O sea que **hoy** la hora del poste 2 sigue
+> poniéndose a mano en su propio puente. **Esto describe adónde va, no lo que ya está hecho.**
+>
+> 🔴 **La regla de campo que sale de aquí, y que afecta a quien monta:** el poste 2 **se pone en hora
+> en la puesta en marcha, no durante la avería** — la radio se cae justo cuando hace falta el Modo
+> Degradado, que es el modo que exige hora. **No es un problema, porque su `DS3231` tiene pila y
+> conserva la hora**: perder la radio **no** es perder la hora. Lo que obliga es a ponerla **antes**,
+> y a repetirla al cambiar esa pila o tras un `OSCILADOR_PARADO_CAMBIE_PILA` en ese poste.
 
 | # | Qué | Cant. | Especificación en |
 |:---:|---|:---:|---|

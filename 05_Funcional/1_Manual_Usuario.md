@@ -633,7 +633,7 @@ encuentra la firma vieja, no la reconoce y BORRA el respaldo entero.**
 | | |
 |---|---|
 | los tiempos del ciclo | vuelven a los **mínimos: 3 min de verde, 3 min de rojo, 10 s de despeje** |
-| la hora y la autorización de sincronización | se pierden — **hay que volver a poner el reloj** |
+| la hora y la autorización de sincronización | se pierden — **hay que volver a poner el reloj**. ⚠️ **Y son DOS equipos: el poste 1 y el poste 2 la pierden cada uno en su primera arrancada.** Ver el recuadro de `D-20` de abajo, que dice **en qué orden** se ponen |
 | el ciclo guardado del Modo Degradado | se pierde |
 
 **Es CORRECTO y es la dirección segura.** El propio fuente lo razona (`respaldo.cpp:71-81`): dar por
@@ -643,13 +643,51 @@ arranque tras cargar; a partir de ahí los tiempos sobreviven a los cortes.
 
 > ✅ **Lo que hay que hacer en la puesta en marcha, en este orden:**
 >
-> 1. Cargar el firmware y **darle la primera vuelta de energía**.
+> 1. Cargar el firmware y **darle la primera vuelta de energía**. **En los dos postes.**
 > 2. **Poner la hora** (`SET_RTC` desde la app) — se perdió, y sin ella no se puede entrar en
->    Degradado.
+>    Degradado. 🔴 **Y aquí importa a QUÉ POSTE: ver el recuadro de `D-20` justo debajo.**
 > 3. **Poner los tiempos del ciclo** (`SET_TIEMPOS`) **con el Modo Automático PARADO** — ver el
 >    aviso de §1: en marcha el equipo los rechaza.
 > 4. 🔴 **LEER LO QUE QUEDÓ, no darlo por hecho.** Entre en Automático y compruebe en la app que los
->    tiempos son los que puso.
+>    tiempos son los que puso. **Y compruebe también la hora del poste 2** con
+>    **🔎 Consultar reloj** (`CMD:LEER_RTC`, `D-17`) **antes de bajarse** — leer no cambia nada, y es
+>    lo único que dice si ese poste quedó en hora.
+
+> # 🔴 LA HORA DEL POSTE 2 SE PONE EN LA PUESTA EN MARCHA, NO DURANTE LA AVERÍA (`D-20`, 07/09)
+>
+> **Esto es nuevo del 07/09 y no estaba escrito en ningún manual.** Sale de la fila **`D-20`** de
+> [`DECISIONES.md`](../DECISIONES.md), decidida por el responsable:
+>
+> > **La autoridad de la hora es el ESP32, siempre y para todo. Al STM32 no se le pregunta nunca.**
+> > La app se la da al **ESP32 del poste 1 (Maestro)**; ése al **ESP32 del poste 2 (Esclavo)**; y el
+> > STM32 de cada punta la recibe **de su propio ESP32**. **El Maestro manda la hora y el Esclavo
+> > hace caso siempre: hay UNA sola fuente.**
+> >
+> > 🔴 **Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.** Un `SET_RTC` dirigido al
+> > Esclavo **se rechaza** — no es una sincronización, **es una segunda fuente**.
+>
+> **Y el motivo por el que hay que ponerla ANTES, que es lo que aquí hay que llevarse:** con `D-20`
+> dentro, el único camino hacia el reloj del poste 2 pasa por el Maestro y **por la radio**. La
+> radio se cae justo cuando hace falta el Modo Degradado — que es **el modo que exige hora**.
+>
+> ✅ **Y eso NO es un problema, por un motivo medido: el `DS3231` del poste 2 tiene pila propia y
+> conserva la hora que ya tenía.** *Perder la radio no es perder la hora.* Lo que obliga es a
+> ponerla **antes**:
+>
+> - **en la puesta en marcha del cruce**, con los dos postes sanos y la radio viva;
+> - **al cambiar la pila** de cualquiera de los dos módulos de reloj;
+> - **tras cualquier `OSCILADOR_PARADO_CAMBIE_PILA`** en el poste 2.
+>
+> 🛑 **Lo que NO se hace es subir al poste 2 con la avería encima a poner la hora.** Si se llega
+> ahí, el fallo ya ocurrió antes: en la puesta en marcha.
+>
+> ⚠️ **PERO `D-20` ESTÁ DECIDIDA Y SIN CONSTRUIR (07/09), y eso cambia lo que usted hace HOY.**
+> El firmware que siembra la hora del Maestro hacia el poste 2 **no existe todavía**: el puente es
+> el mismo programa en los dos postes y **no distingue cuál es** —`grep -c "ESCLAVO\|Esclavo\|esclavo"`
+> sobre `ESP32_Expansion/src/despachador.cpp` da **`0`**—, así que hoy sigue aceptando la hora venga
+> por donde venga. **Mientras siga así, el poste 2 se pone en hora visitándolo, porque no hay otra
+> vía** — y eso es un **estado temporal declarado, no la arquitectura**. El día que `D-20` esté
+> construida, esa visita sobra y el equipo la rechaza.
 
 > 🔴 **Y el porqué del paso 4, que es un HALLAZGO de esta revisión y no una precaución genérica.**
 > `respaldo_borrar()` (`respaldo.cpp:193-201`) pone a cero cinco registros —`DR2` a `DR6`— **y NO
@@ -1799,7 +1837,25 @@ teléfono desbloqueado creyendo que da igual.**
 > «todavía no lo sé».** *(Y un `!` sí es un hallazgo: significa que llegó un valor imposible.)*
 * **Caja Negra de Alarmas:** Registro inmediato de eventos con timestamp (`$ALARM,EVENTO:FALLO_RF,CAUSA:SILENCIO_25000ms...` —**el nombre del evento ya no lleva el número dentro**: el umbral va en la causa, para que no quede mintiendo el día que se ajuste) para diagnosticar la causa exacta de cualquier caída de radio en obra.
 * **Operación Multicruce (Un solo celular para la vía):** La App permite gestionar toda la carretera con un selector de cruces viales (Km 12, Km 24, etc.) y detecta automáticamente si está conectada a `👑 MAESTRO (Poste 1)` o `📡 ESCLAVO (Poste 2)`.
-* **Modo Asistente Courier RTC (Sincronización Puente sin Radio):** Si no hay enlace de radio entre postes, el técnico captura hora y ciclo en el Maestro, viaja en vehículo al Esclavo, y la App inyecta la sincronización compensando automáticamente el tiempo de viaje con su reloj interno de alta precisión ($\Delta t < 0.1\text{ s}$).
+* ~~**Modo Asistente Courier RTC (Sincronización Puente sin Radio):** Si no hay enlace de radio entre postes, el técnico captura hora y ciclo en el Maestro, viaja en vehículo al Esclavo, y la App inyecta la sincronización compensando automáticamente el tiempo de viaje con su reloj interno de alta precisión ($\Delta t < 0.1\text{ s}$).~~
+
+  > ⛔ **DEROGADO EL 07/09 POR `D-20`** ([`DECISIONES.md`](../DECISIONES.md)). **No se borra: se tacha
+  > con su motivo, porque una vía descartada que desaparece en silencio se vuelve a proponer.**
+  >
+  > **El motivo, y no es de forma:** el Courier **no sincroniza — crea una segunda fuente de hora**.
+  > Lo dice por escrito el propio manual de la app: durante todo el procedimiento *«al Maestro no se
+  > le manda nada»*, así que **la hora del poste 2 acaba siendo la del teléfono**. `D-20` decide lo
+  > contrario: **hay UNA sola fuente —el ESP32 del poste 1— y el Esclavo hace caso siempre.** La hora
+  > viaja `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`, con los STM32 de **carteros**.
+  >
+  > **Y lo que sustituye al Courier para el caso que lo justificaba —*«no hay enlace de radio»*— no
+  > es otro procedimiento: es una regla.** Sin radio **no hay camino al reloj del poste 2**, y no
+  > hace falta: **su `DS3231` tiene pila y conserva la hora que ya tenía.** *Perder la radio no es
+  > perder la hora.* Por eso **el poste 2 se pone en hora en la PUESTA EN MARCHA, no durante la
+  > avería** — ver el recuadro de `D-20` en §3.
+  >
+  > ⚠️ **`D-20` está DECIDIDA Y SIN CONSTRUIR (07/09)**, así que hoy la app todavía deja pulsar ese
+  > botón y el poste 2 todavía lo acepta. **Que se pueda no quiere decir que se haga.**
 
   > 🔴 **31/08 — LEA ESTO ANTES DE HACER UN VIAJE DE COURIER: HOY PUEDE VOLVER SIN HABER PUESTO LA
   > HORA, Y AHORA EL EQUIPO SÍ LO DICE.**
@@ -1852,8 +1908,23 @@ teléfono desbloqueado creyendo que da igual.**
   > >
   > > 🔵 **Y para VER la hora sin cambiarla existe ahora `CMD:LEER_RTC`** (`D-17`, construido en
   > > `5846cee`, lo atiende el puente): la app la consulta en los dos postes y enseña el **desfase
-  > > entre ellos**. **Los dos relojes no se hablan entre sí; lo que hacía falta no era
-  > > sincronizarlos solos, sino poder ver si lo están.**
+  > > entre ellos**. ~~**Los dos relojes no se hablan entre sí; lo que hacía falta no era
+  > > sincronizarlos solos, sino poder ver si lo están.**~~
+  > >
+  > > ⛔ **ESA ÚLTIMA FRASE ESTÁ DEROGADA DESDE EL 07/09 POR `D-20`, y la de arriba NO.** Se separan
+  > > porque son dos cosas distintas y sólo una cayó:
+  > >
+  > > - ✅ **Lo que SIGUE valiendo: `LEER_RTC` en los dos postes.** `D-20` prohíbe **escribir** la
+  > >   hora en el poste 2; **leerla no escribe nada**. Con `D-20` construida vale **más** que hoy:
+  > >   es la única forma de comprobar que la siembra del Maestro llegó de verdad al poste 2.
+  > > - ⛔ **Lo que cayó: *«no hacía falta sincronizarlos solos»*.** `D-20` decide justo eso — **el
+  > >   Maestro manda la hora y el Esclavo hace caso siempre, una sola fuente**—, y con ella **el
+  > >   desfase entre postes deja de ser un dato de operación** y pasa a ser una comprobación de que
+  > >   la cadena funcionó. *(Cierto que los dos **ESP32** no se hablan entre sí: por eso la hora va
+  > >   por la radio de los STM32, que quedan de carteros.)*
+  > >
+  > > ⚠️ **`D-20` está DECIDIDA Y SIN CONSTRUIR:** hoy nadie los sincroniza solos todavía, así que
+  > > el desfase sigue siendo un dato que hay que mirar.
   >
   > > ### 🛑 `CONSULTA RELOJ` NO SE PUEDE ABRIR — el mensaje nombra una pantalla tapiada
   > >
@@ -1941,13 +2012,46 @@ teléfono desbloqueado creyendo que da igual.**
 |---|---|---|
 | Cambiar de modo desde la app | ✅ **Sí.** `SET_MODO:AUTO` · `MANUAL` · `AMBAR` · `MENU` · `ALCANCE` · `INTELIGENTE` · `DEGRADADO` | ✅ **SÓLO `SET_MODO:DEGRADADO`** (`D-18`, commit `15e8cf3`): `CMD:PIN:1234:SET_MODO:DEGRADADO`, con `$ACK,…OK`, `$ACK,…YA_ACTIVO` y un `$ERR` por motivo. ~~🛑 **NO. No existe ni un solo `SET_MODO`** — `grep -n "SET_MODO" Esclavo/src/bluetooth.cpp` → **CERO coincidencias**~~ 🔴 **corregido el 07/09: `grep -c` da 10.** Para VOLVER a Automático no hay orden: lo devuelve el Maestro al volver la radio |
 | Ámbar de emergencia desde la app | 🛑 **NO existe `AMBAR_EMERGENCIA` en el Maestro** — re-censado el 04/09. Lo que hay es `SET_MODO:AMBAR` (**con PIN**, y es un **modo**, no un latch) y `FORZAR_ROJO`. 🔵 **05/09 (N-146): si el equipo YA estaba en modo ámbar, esa orden RE-ARMA y contesta `RESULT:REARMADO` en vez de `OK`** | ✅ sí — `CMD:AMBAR_EMERGENCIA` (`:381` sin PIN, `:468` con PIN). Arma un **latch** que veta las órdenes de radio. 🟢 **05/09 (N-142): y AHORA AVISA AL MAESTRO por radio (`CMD_AMBAR_ESCLAVO`), que se va a modo ámbar en el acto.** Antes el Maestro podía seguir dando VERDE **hasta 3 minutos** con este lado en ámbar |
-| Retirar el ámbar de emergencia | ❌ no aplica: no hay latch que retirar | ✅ `CANCELAR_AMBAR` (`:491`, **con PIN**). Contesta `RETIRADO` o `RETIRADO_QUEDA_MANDO` |
+| Retirar el ámbar de emergencia | ❌ no aplica: no hay latch que retirar | ✅ `CANCELAR_AMBAR` (**con PIN**). Contesta `RETIRADO`, `RETIRADO_QUEDA_MANDO` o `$ERR,…,DESC:NO_HAY_AMBAR_VIGENTE`. 🔴 **Y contesta lo que hizo, no lo que usted quería: ver `D-8` abajo** |
 | Pedir paso | ✅ `DEMANDA` (`:645`, **sólo en Modo Inteligente**) | ✅ `SOLICITAR_PASO` (`:532`) *(se lo pide al Maestro)* — ver `N-130` abajo |
 | Poner los tiempos | ✅ `SET_TIEMPOS` (`:542`) | ❌ no — los tiempos los lleva el Maestro |
 | `FORZAR_ROJO` | ✅ **sí, y para de verdad** (`:412` sin PIN, `:520` con PIN) | 🛑 **NO.** Contesta `$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA` (`:448`, `:524`) y **no para nada** |
 | `TEST_LEDS` | ✅ sí (`:538`) | 🛑 **rechazado a propósito** (`:550`): `NO_EN_SERVICIO_USE_EL_MAESTRO` |
 | Menú local / botones | ❌ sin sujeto | ❌ sin sujeto |
 | **Mando de relés (A y B)** | ⛔ **NO EXISTE (`D-1`, 05/09).** ~~No se pudo accionar en banco (`N-118`); firmware corregido, sin ejercer en tarjeta~~ | ⛔ **NO EXISTE — y aquí es lo grave: era la única vía de mando de esta punta** |
+
+> # 🔴 `D-8` — EL ÁMBAR DE EMERGENCIA CONSERVA SUS DOS VETOS, Y NO SON REDUNDANCIA
+>
+> **Se escribe aquí el 07/09 porque `D-8` llevaba desde el 04/09 decidida y no estaba en ningún
+> manual.** Fila **`D-8`** de [`DECISIONES.md`](../DECISIONES.md).
+>
+> El ámbar de emergencia del poste 2 tiene **dos cerrojos independientes**: uno se arma **desde el
+> gabinete**, en el sitio, y el otro **desde la app**. **Ninguno de los dos puede quitar el del
+> otro.**
+>
+> **Por qué, y es lo único que hay que entender:** quien puso el ámbar desde el gabinete puede estar
+> **de pie en esa calzada**. Una orden que llega por radio —o desde un teléfono a mil metros— **no
+> retira un ámbar que pidió alguien a quien no ha visto.** Es desobediencia a propósito.
+>
+> **Lo que usted ve, y por eso el equipo dice tres cosas distintas y no `OK` a todo:**
+>
+> | respuesta a `CANCELAR_AMBAR` | qué pasó de verdad |
+> |---|---|
+> | `RESULT:RETIRADO` | el ámbar se fue, y el Maestro ya está avisado |
+> | `RESULT:RETIRADO_QUEDA_MANDO` | **quité el mío, y el otro sigue puesto: la luz NO va a cambiar** |
+> | `$ERR,…,DESC:NO_HAY_AMBAR_VIGENTE` | no había nada que quitar — **no se finge una revocación que no ocurrió** |
+>
+> ⚠️ **Y lo que hoy pasa de verdad en la calle, para que nadie salga a buscar un mando: EL MANDO NO
+> EXISTE** (`D-1`). Retirado el hardware, **esa bandera no se arma nunca** —que es lo correcto—, así
+> que **`RETIRADO_QUEDA_MANDO` no se puede llegar a ver hoy**. El código del veto **se queda igual**
+> y no es inercia: borrar el armador no dejaría el veto inerte, **lo dejaría abierto**.
+>
+> 🔴 **Y por qué esto es una decisión y no una descripción: se intentó quitar ese cerrojo DOS veces
+> y el banco lo tumbó las dos.** Al medir la cadena entera apareció que **el cerrojo no era la causa
+> del bloqueo que se le atribuía** —lo era que esa punta no acusaba, y eso se arregló por otro
+> sitio—. Quitarlo no habría arreglado nada **y descubre a una persona.** *«Quitemos el cerrojo» es
+> una pregunta ya contestada, y la respuesta fue que no.* *(Anclado en el fuente: comentarios `D-8`
+> en `Esclavo/src/main.cpp`, `Esclavo/src/bluetooth.cpp` y `Maestro/src/main.cpp`.)*
 
 > ✏️ **CORRECCIÓN DEL 04/09 — la fila del ámbar de emergencia decía «✅ sí» en las DOS puntas y era
 > falsa en la del Maestro.** `grep -n "AMBAR_EMERGENCIA" Maestro/src/bluetooth.cpp` → **cero
@@ -2169,6 +2273,34 @@ inmediato»* — decisión del responsable.
 > pasando por **su rojo y su despeje completos** (`SFTY-4`). Lo único que se dejó de cobrar es un
 > despeje **ya pagado**: en Manual el cruce lleva minutos en rojo mientras el operario mira, y
 > hacerle esperar 15 s más no vacía nada que no estuviera vacío.
+
+> # 🟢 QUÉ HACE `DAR PASO` EXACTAMENTE, Y POR QUÉ NO TERMINA EN ÁMBAR (`D-7`)
+>
+> **Se escribe aquí el 07/09 porque `D-7` llevaba desde el 04/09 decidida y no estaba en ningún
+> manual:** quien leyera esto sabía que el cruce ya no cambia solo, y **no sabía qué hace el botón
+> cuando lo pulsa.** Fila **`D-7`** de [`DECISIONES.md`](../DECISIONES.md).
+>
+> **`DAR PASO` alterna rojo y verde exactamente igual que el Modo Automático — sólo que lo dispara
+> usted, no un temporizador.** El Modo Manual **no lleva un ciclo propio**: entra por la misma
+> función del coordinador que el Automático, con su todo-rojo de despeje intacto.
+>
+> | usted pulsa `DAR PASO` y el cruce está… | lo que hace |
+> |---|---|
+> | **en todo-rojo** (nadie en verde) | espera lo que **falte** del despeje —no lo reinicia— y da verde al poste 1 |
+> | **con el poste 1 en verde** | lo manda a rojo |
+> | **con el poste 2 en verde** | pide rojo al poste 2 y espera su acuse |
+>
+> 🔴 **Y la parte que decide lo que ve un conductor: el par termina en ROJO + VERDE, no en rojo +
+> ámbar.** El ámbar queda reservado **al paso de rojo a verde**, que es donde significa *«va a
+> abrir»*. Un cruce parado en rojo contra ámbar le dice a los dos sentidos cosas distintas de lo
+> que pasa.
+>
+> **Y el motivo de que Manual no tenga máquina propia, que es lo que `D-7` descartó explícitamente:
+> dos formas de dar paso son dos criterios de despeje** que alguien tendría que mantener iguales —y
+> el día que se separen, el que falla es el que nadie miró. *(Anclado en el fuente: comentario
+> `D-7` sobre `coordinador_pedirCambio()`, `Maestro/src/coordinador.cpp`.)*
+>
+> **El todo-rojo de despeje se queda**, es configurable entre **10 y 90 s** y hoy está en **15**.
 
 ### 10.4 🟢 Desde el Maestro se ve el semáforo del Esclavo (`N-149`)
 

@@ -202,7 +202,7 @@ mentira sobre la que el Modo Degradado se autorizaria»*.
 |---|---|---|
 | **1** | `reloj.cpp` de las dos puntas pasa a **EXTRAPOLADOR sembrado cada `LATIDO_MS` (2 s)** con un `EPOCH` del `DS3231` — **no un reloj de software refrescado «cada tanto»**: con el HSI a 10.000–25.000 ppm, la frescura de la siembra ES el presupuesto de error. `reloj_enHora()` pasa a significar **«mi siembra es fresca»**. Se retiran `STM32RTC`, N-25, N-31, `reloj_ajustar()` y el truco de «enero» | toca **SFTY-18 y SFTY-23**. La desigualdad `SIEMBRA_CADUCA_MS x HSI_PPM + cadena + deriva48h < despeje - ambar` **va en un pack**, no en un comentario (N-71) |
 | **2** | Un mando nuevo **ESP32 -> STM32** que siembre la hora. **El camino fisico ya existe**: `enlace_stm32.cpp` escribe hacia el STM32 | no hace falta hardware |
-| **3** | Las **48 h** de rendicion salen hoy del **contador crudo del RTC**, monotono y superviviente al apagado. Tiene que pasar a venir del ESP32 **o se pierde en el primer corte** | es la mitad que se olvida |
+| **3** | Las **48 h** de rendicion. ~~Salen del contador crudo del RTC, monotono y superviviente al apagado, y se perderian en el primer corte~~ — 🔴 **CORREGIDO el 07/09: YA ESTAN MUERTAS.** `reloj_contadorSegundos()` abre con `if (!rtcOperativo) return 0;`, asi que la pila mantiene los `BKP` **pero lo que guardan es un contador PARADO**. No es un riesgo futuro: es un limite que **hoy no cuenta** | **Los registros `BKP` NO se mueven** y `respaldo.cpp` **no se toca** —la resta de epochs con guarda de retroceso ya esta escrita—. Lo que hay que darle es un contador que avance |
 
 **Topologia, y conviene decirla en voz alta: los dos ESP32 NO SE HABLAN.** El unico enlace entre
 postes es la radio **entre los STM32**, asi que la hora viaja
@@ -231,6 +231,18 @@ siembra + `0–1 s` truncado en la radio + `0,5 s` de aire + **`1,2 s` de deriva
 > en hora** — y eso es justo cuando se necesita el Degradado. **No importa: su `DS3231` tiene pila y
 > conserva la hora que ya tenia.** Perder la radio no es perder la hora. Lo que si obliga es a que
 > **el poste 2 se ponga en hora ANTES**, en la puesta en marcha, no durante la averia.
+
+> 🔴 **Y DOS PREGUNTAS DE IMPLEMENTACION QUE SIGUEN ABIERTAS Y SON DEL RESPONSABLE:**
+>
+> 1. **¿El orden? Primero el CAMINO o primero la BARRERA.** Hoy visitar el poste 2 es la **unica**
+>    puerta a su reloj. **Construir el rechazo del `SET_RTC` ANTES que la siembra deja al Esclavo sin
+>    hora ninguna** — y sin hora, sin Degradado. Lo sensato es *primero el camino, despues la
+>    barrera*, pero eso se decide, no se supone.
+> 2. **¿Que hace el STM32 del Esclavo con la trama de hora que llega por radio: SEMBRAR SU PROPIO
+>    RELOJ, o solo REENVIARLA a su ESP32?** `DECISIONES.md` dice que el STM32 recibe la hora de su
+>    ESP32 *«no de la radio ni de su RTC»*; la cadena de aqui pasa por la radio. **Y hoy el Esclavo
+>    hace lo que la letra prohibe**: llama a `reloj_ajustar()` desde el manejador del ultimo comando
+>    de hora. **Son dos implementaciones distintas** y hay que elegir una.
 
 > 🔴 **Dos cosas mas que NO estaban en el plan y sin las cuales rompe:**
 >

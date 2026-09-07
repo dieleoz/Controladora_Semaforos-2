@@ -96,7 +96,19 @@ $ grep -n -A6 "bool coordinador_sincronizarHora" 01_Firmware/Maestro/src/coordin
 ```
 
 **Sin hora en el Maestro no hay sincronizacion por radio, asi que el Esclavo tampoco entra en hora
-nunca.** Y la primera guarda de su puerta es:
+nunca.**
+
+> ⚠️ **ESO ES CIERTO HOY, Y NO ES UNA PROPIEDAD PERMANENTE DEL EQUIPO: es el bloqueo que `D-20`
+> (07/09) manda levantar** — ver el recuadro de mas abajo. **Escrito sin esta nota se lee como
+> arquitectura**, y es justo lo contrario: es el defecto que hay que quitar. Mientras `D-20` no este
+> construida, la cadena sigue rota exactamente aqui.
+>
+> 🔴 **Y la consecuencia que hay que llevar a la sesion de banco: mientras `D-20` no este
+> construida, el Modo Degradado del poste 2 NO SE PUEDE PROBAR.** `D-18` esta construida —el comando
+> existe y llega— **y el equipo va a contestar que no, correctamente, todas las veces**. Quien lo
+> pruebe sin saber esto lo anotara como defecto.
+
+Y la primera guarda de su puerta es:
 
 ```
 $ grep -n "reloj_enHora" 01_Firmware/Esclavo/src/modo_degradado.cpp
@@ -135,10 +147,50 @@ buscar la averia en el reloj que si funciona.
   levantarlo** — hay una decision que tomar.
 - **No es un defecto que se arregle en un manual**, y por eso aqui solo se mide y se escribe.
 
-### 🟡 LO QUE HAY QUE DECIDIR, Y ES DEL RESPONSABLE
+### ✅ ~~🟡 LO QUE HAY QUE DECIDIR, Y ES DEL RESPONSABLE~~ — **DECIDIDO EL 07/09: ES LA SALIDA (a). Ver `D-20`**
 
-> **¿Se abre `AB-4` —que el puente ESP32 ponga en hora al STM32— o el Modo Degradado queda
-> declarado como funcion SUSPENDIDA hasta nueva orden?**
+> # ✅ RESUELTA EL 07/09 POR EL RESPONSABLE — fila **`D-20`** de [`DECISIONES.md`](../DECISIONES.md)
+>
+> **La pregunta de abajo ya tiene respuesta, y es la salida (a) ampliada.** Se conserva entera y sin
+> borrar —con las tres salidas y sus costes— porque **el coste que la (a) tenia anotado sigue siendo
+> el riesgo real de construirla**, y quien escriba ese firmware tiene que leerlo.
+>
+> **Lo decidido:**
+>
+> > **LA AUTORIDAD DE LA HORA ES EL ESP32, SIEMPRE Y PARA TODO. Al STM32 no se le pregunta nunca.**
+> > La app se la da al **ESP32 Maestro**; ese al **ESP32 Esclavo**; y el STM32 de cada punta la
+> > recibe **de su propio ESP32**. **El Maestro manda la hora y el Esclavo hace caso siempre: hay
+> > UNA sola fuente**, asi que **no hay desfase inicial que acotar** —que era la unica objecion del
+> > arquitecto—. **Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.** Un `SET_RTC`
+> > dirigido al Esclavo **se rechaza**: no es una sincronizacion, **es una segunda fuente**.
+>
+> **Topologia, y explica el resto: los dos ESP32 NO se hablan.** El unico enlace entre postes es la
+> radio **entre los STM32**, asi que la hora viaja `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`.
+> **Los STM32 quedan de CARTEROS de la hora, no de duenos.**
+>
+> 🔴 **Y `D-20` esta DECIDIDA Y SIN CONSTRUIR.** Lo que falta esta en `roadmap.md` §3.4.bis, y **el
+> riesgo N-144 que la salida (a) traia consigo NO desaparece: cambia de forma.** La cura decidida no
+> es *«un reloj de software refrescado cada tanto»* —eso es **peor** que el cristal muerto, porque
+> el STM32 arranca con el **HSI** (10.000-25.000 ppm) y un reloj sembrado una vez por hora **se iria
+> 36 s en esa hora, mas que el margen entero de 29 s del cruce**— sino un **extrapolador sembrado
+> cada `LATIDO_MS` (2 s)** con un `EPOCH` del `DS3231`, donde `reloj_enHora()` pasa a significar
+> **«mi siembra es fresca»**.
+>
+> ⚠️ **Y la salida (c) queda descartada por lo mismo que ya decia su fila**: no hace falta cablear
+> un `DS3231` al STM32 si su propio ESP32 se lo siembra por un cable que ya existe
+> (`enlace_stm32.cpp`).
+>
+> 🔴 **CORRECCION DE UN DATO QUE SE ESCRIBIO MAL HOY, y esta manual gana en lo medido: NO se diga
+> «el STM32 no tiene ni pila ni cristal».** Tiene las dos y no usa ninguna para la hora — `Y1` de
+> 8 MHz esta en la placa y el firmware arranca con el HSI; `VBAT` midio **3 V con la tarjeta
+> apagada** (`N-37`) en **al menos una** tarjeta, la otra `SIN VERIFICAR`. **Lo muerto es `Y2`, el
+> cristal de 32.768 kHz del RTC, y solo ese.** *(La frase falsa esta hoy dentro de la columna de
+> motivo de la propia fila `D-20`; no se propaga desde aqui.)*
+
+**La pregunta original, conservada porque su tabla de costes sigue valiendo:**
+
+> ~~**¿Se abre `AB-4` —que el puente ESP32 ponga en hora al STM32— o el Modo Degradado queda
+> declarado como funcion SUSPENDIDA hasta nueva orden?**~~
 
 **Las dos salidas cuestan y ninguna es gratis:**
 
@@ -150,8 +202,15 @@ buscar la averia en el reloj que si funciona.
 
 **Lo que NO vale es dejarlo como esta**, porque hoy hay **un procedimiento escrito, un comando
 construido y una decision tomada** apuntando a una puerta que contesta que no. Es la forma exacta
-de `DECLARAR NO ES EJERCER` (`CLAUDE.md` §2.ter): todo declarado, nada ejercido, y tres
+de `DECLARAR NO ES EJERCER` (`CLAUDE.md` §6): todo declarado, nada ejercido, y tres
 instrumentos en verde mirando la declaracion.
+
+> 🔴 **Y el 07/09 esa frase se cobro a si misma, que es lo que hay que leer aqui: la decision YA
+> ESTA TOMADA (`D-20`) y sigue sin construirse.** O sea que el parrafo de arriba **no queda cerrado
+> por haberse decidido**: ahora hay **un procedimiento escrito, un comando construido, DOS
+> decisiones tomadas** (`D-18` y `D-20`) y la misma puerta contestando que no. **Decidir no es
+> construir**, igual que declarar no es ejercer. Lo unico que cambio de sitio es de quien es el
+> trabajo: era del responsable, y ahora es de quien escriba el firmware.
 
 ---
 
