@@ -12,8 +12,6 @@
 #define VERDE2      PA5   // S6 -> J8
 
 // --- Semáforo peatonal ---
-// D-14: La entrada de alarma de la camara (grabar en rojo) queda bloqueada hasta medir con
-// multimetro el regimen electrico de la entrada. Salidas de potencia reservadas J9/J11/J13.
 #define ROJO_PEATON   PA6 // S7 -> J11
 #define VERDE_PEATON  PA7 // S8 -> J9
 
