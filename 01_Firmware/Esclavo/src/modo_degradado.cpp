@@ -357,6 +357,13 @@ void degradado_actualizar() {
     syncVencidaLatch = true;
   }
 
+  // D-21: Si la hora deja de ser fiable en marcha (pila agotada o reloj invalido),
+  // se responde con ambar intermitente (rendicion) en vez de seguir dando verdes con hora falsa.
+  if (!reloj_enHora() && (estado == DEG_ENTRANDO || estado == DEG_ACTIVO)) {
+    iniciarSalida(true);
+    return;
+  }
+
   if (syncVencidaLatch && (estado == DEG_ENTRANDO || estado == DEG_ACTIVO)) {
     iniciarSalida(true);
     return;

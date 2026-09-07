@@ -528,8 +528,9 @@ void modo_degradado_loop() {
 
   // --- A partir de aqui, DEG_ENTRADA_ROJO o DEG_ACTIVO ---------------------
 
-  // El reloj puede dejar de ser fiable en marcha (pila agotada). Sin hora no hay fase
+  // D-21: El reloj puede dejar de ser fiable en marcha (pila agotada). Sin hora no hay fase
   // que calcular, y seguir dando verdes con la ultima que se recuerde seria inventar.
+  // Pasa a ambar intermitente en la punta que pierde la fiabilidad.
   if (!reloj_enHora()) {
     irAAmbar("Reloj no fiable", "Degradado detenido");
     return;
