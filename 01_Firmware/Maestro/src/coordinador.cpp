@@ -628,6 +628,13 @@ void coordinador_iniciarModo() {
   estadoC = C_INICIAL_ESPERA_ESTATICO;
 }
 
+// D-7: EN MANUAL, DAR PASO ALTERNA IGUAL QUE EL AUTOMATICO Y LO DISPARA EL OPERARIO.
+// Por eso ese modo NO trae ciclo propio: entra por esta misma funcion, con su todo-rojo
+// de despeje intacto -lo unico que garantiza que el tramo quedo vacio- y con el ambar
+// reservado al paso de rojo a verde, de modo que el par termina en rojo contra verde y
+// no en rojo contra ambar. La decision descarto explicitamente que Manual llevara su
+// propia maquina: dos formas de dar paso son dos criterios de despeje que alguien
+// tendria que mantener iguales.
 void coordinador_pedirCambio() {
   if (estadoC != C_IDLE) return;
 

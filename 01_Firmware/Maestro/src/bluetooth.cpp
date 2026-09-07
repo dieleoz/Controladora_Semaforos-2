@@ -900,6 +900,12 @@ void bluetooth_loop() {
     // presupuesto acota cada campo por SU BUFFER -que es lo unico que snprintf garantiza
     // sin modelar tipos-, asi que un buffer holgado no es prudencia: es margen que se
     // resta del payload y que la cuenta tiene que dar por gastado.
+    // D-9: LA HORA NO ES DE ESTA PUNTA, Y POR ESO ESTE CAMPO SALE VACIO CASI SIEMPRE.
+    // El micro no tiene reloj con pila -su cristal de respaldo esta muerto en cobre-, de
+    // modo que lo unico honesto aqui es publicar el hueco y dejar que lo rellene, al
+    // pasar la trama, el aparato que si lleva el reloj. Inventar un numero en este campo
+    // seria peor que dejarlo vacio: el operario no tendria como saber que lo que lee no
+    // lo cuenta nadie.
     char horaBuf[12];
     if (reloj_enHora()) {
       snprintf(horaBuf, sizeof(horaBuf), "%02u:%02u:%02u", reloj_hora(), reloj_minuto(), reloj_segundo());

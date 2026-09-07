@@ -104,6 +104,13 @@ static bool flanco[2] = {false, false};
 // se mantienen, y en J16 pesan mas que en J14: PB0 lleva el RC de R64+C25 que filtra 1 ms
 // por hardware, y PB14/PB15 no llevan mas que el 10K de R67/R68. Aqui el unico antirrebote
 // es este.
+//
+// D-12: DE CADA CAMARA ESTE CONTROLADOR CONSUME UN CONTACTO SECO, Y NADA MAS. Toda la
+// camara entra al firmware por esta funcion: no hay red, ni imagen, ni video, ni
+// analitica de este lado. La consecuencia que hay que tener delante al leer cualquier
+// cosa que cuelgue de este bit es que TODA la inteligencia vive en la configuracion del
+// aparato de fuera, y este micro no puede comprobarla, ni corregirla, ni enterarse de
+// que cambio.
 bool camara_leerPin(uint8_t pin) {
   if (digitalRead(pin) == HIGH) {
     delay(5);
@@ -656,5 +663,11 @@ bool botonAbajo()   { return consumir(1); }
 // EFECTO LATERAL QUE VA EN LA DIRECCION BUENA: con ACEPTAR mudo, la pantalla del Esclavo
 // no puede bajar del listado, asi que menu_estaAbierto() es siempre falso y el mando deja
 // de poder quedarse inhibido por una pantalla que alguien olvido abierta (SFTY-21).
+//
+// D-16: Y LA COLUMNA DERECHA DE ESE CENSO ES UNA PROPIEDAD DECLARADA DEL SISTEMA, NO
+// UNA AVERIA: SIN TELEFONO NO HAY FORMA DE OPERAR EL EQUIPO. Todos los sustitutos que
+// se listan arriba son la app, asi que el celular deja de ser una comodidad y pasa a
+// ser herramienta critica -bateria, cable, y conviene un segundo terminal ya
+// emparejado-. Va escrito asi en el manual del operario porque no se arregla con codigo.
 bool botonAceptar() { return false; }
 bool botonCancelar(){ return false; }

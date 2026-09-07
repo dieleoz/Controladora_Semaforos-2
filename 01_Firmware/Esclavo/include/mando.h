@@ -9,6 +9,17 @@
 // tiempo y la realimentacion por destellos son LAS MISMAS; lo que cambia son las
 // acciones, porque el Esclavo no tiene modos de operacion propios (ver menu.h).
 //
+// D-1: EL MANDO NO EXISTE COMO HARDWARE Y ESTE CODIGO SE QUEDA. El equipo se opera solo
+// por app. Lo de abajo describe el mundo anterior y se conserva TACHADO, no borrado,
+// porque explica por que este modulo sigue compilando: de el cuelga el veto de SFTY-21
+// que otros ficheros leen, y retirarlo lo abriria en vez de apagarlo.
+//
+// OJO: LO QUE SIGUE ESTA CADUCADO Y SE MARCA EN VEZ DE REESCRIBIRSE. Los dos parrafos que
+// hablan de "cuando se instale el receptor" y de "al comprar el receptor" daban por hecho
+// una compra que ya no se va a hacer; leerlos como vigentes es como el codigo acaba
+// arrastrando dos versiones de la especificacion a la vez. La fila que manda esta en
+// DECISIONES.md, no aqui.
+//
 // POR QUE ENTRA HOY, CON EL RECEPTOR SIN COMPRAR
 // ----------------------------------------------
 // El rele va EN PARALELO con los botones fisicos (PB9, PB13, PB14, PB15; no hay

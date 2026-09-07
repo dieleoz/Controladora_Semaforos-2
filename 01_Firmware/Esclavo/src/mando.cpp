@@ -100,6 +100,14 @@ void mando_setup() {
   ambarLocal = false;
 }
 
+// D-1: el hardware del mando se retiro del equipo y su CODIGO se queda. Las dos cosas a
+// la vez, y esta linea es el motivo escrito de la segunda.
+//
+// De este getter cuelgan los vetos que main.cpp y el despachador de Bluetooth consultan
+// EN NEGATIVO para no obedecer una orden de luz. Sin pulsadores la bandera no se arma
+// nunca, que es exactamente lo correcto: el veto queda en reposo. Borrar el armador NO lo
+// dejaria inerte -dejaria esas guardas siempre ciertas y el veto ABIERTO-, y por eso una
+// frase que diga "quitemos el mando" no autoriza a tocar este fichero: hay que preguntar.
 bool mando_ambarLocal() { return ambarLocal; }
 
 // Ejecuta la accion ya confirmada. Se llama DESPUES de los destellos, nunca antes:
@@ -142,6 +150,12 @@ static void ejecutar(AccionMando a) {
       break;
 
     case ACC_DEGRADADO:
+      // D-18: esta ya no es la via por la que se pide el Modo Degradado de este poste; se
+      // pide por app. Se conserva porque la PUERTA es una sola y la comparten las dos: lo
+      // que se retiro fue la llave, no la cerradura. Con los pulsadores desmontados (D-1)
+      // este caso no lo alcanza nadie, y no se borra por lo que dice el getter del ambar
+      // local unas lineas mas arriba.
+      //
       // El todo-rojo de entrada y la revalidacion de condiciones los hace
       // degradado_entrar(): una sola puerta, un solo criterio.
       ambarLocal = false;

@@ -3,6 +3,22 @@
 #include <Arduino.h>
 
 // ---------------------------------------------------------------------------
+// D-9: LA HORA DEL POSTE NO LA PONE ESTE MODULO. La lleva el reloj con pila del modulo de
+// expansion, y este micro no tiene ninguno que sirva: su cristal esta CONFIRMADO MUERTO
+// en banco (N-17). Lo de abajo describe el diseno con el que se escribio el fichero y se
+// deja como esta -tachado, no borrado- porque el codigo sigue compilando y el contador
+// crudo se sigue usando para fechar; lo que ya no es cierto es la premisa de que este sea
+// el reloj del equipo.
+//
+// D-15: y por eso esta punta tampoco ACUSA la orden de poner la hora. El unico que
+// contesta es quien tiene el reloj, y no es este. Cuando contestaban los dos, una sola
+// orden producia dos acuses opuestos y los dos eran ciertos.
+//
+// OJO AL LEER LO DE ABAJO: dice que el cristal "ya viene en la tarjeta" y que la via para
+// poner la hora es la radio. Lo primero es cierto en el cobre y falso como capacidad; lo
+// segundo describe un camino que hoy no corre, y el porque medido esta escrito en la rama
+// del despachador de Bluetooth que atiende esa orden.
+//
 // SFTY-18 / SFTY-23 — Reloj de tiempo real (RTC interno del STM32)
 //
 // Portado del Maestro. Usa el RTC que el propio microcontrolador lleva dentro,

@@ -10,6 +10,12 @@
 
 static int cursorMenu = 0;
 
+// D-17.bis: LA PANTALLA Y ESTE MENU SE RETIRAN DEL EQUIPO -no del codigo, y el matiz
+// ES la decision-. El fichero sigue compilando y su arnes sigue midiendo un framebuffer
+// en el PC, que no necesita la pantalla fisica; lo que muere es la INTERFAZ. O sea que
+// todo lo que se lee debajo describe una navegacion que ya no puede recorrer nadie: se
+// conserva porque de esta lista cuelga el unico armador de algun modo, y retirarla los
+// dejaria sin puerta sin que ningun instrumento lo dijera.
 // ---------------------------------------------------------------------------
 // V8.7 (SFTY-21): el menu se parte en DOS NIVELES.
 //

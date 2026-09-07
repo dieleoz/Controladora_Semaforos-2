@@ -90,6 +90,11 @@
 
 // --- J16: mitad botonera, mitad camaras (decision del 31/08/2026) ---
 //
+// D-2: LAS DOS POSICIONES DE ABAJO SON LAS CAMARAS, Y ESA ES LA DECISION QUE GOBIERNA
+// TODO LO QUE SIGUE. Se eligieron esas dos y no otras por descarte: son las unicas del
+// conector que el reconocedor de secuencias del mando no necesita, asi que darselas a
+// la camara no le quita su puerta a nadie.
+//
 // J16 llevaba los CUATRO pulsadores. Desde el 31/08 se queda con dos -A y B, que son
 // los que alimentan las secuencias del mando de reles (SFTY-21)- y sus otras dos
 // posiciones pasan a ser entradas de camara. No es un cambio de nombre: cambia el modo
@@ -137,12 +142,24 @@
 // asi que A y B se leen como C y D: INPUT pelado y activo en ALTO (N-118). Ya se puede
 // cablear camara a J16.
 //
+// D-3: Y ES ESA MEDIDA LA QUE CIERRA LA DECISION, no un razonamiento. Lo que estuvo
+// bloqueado no era el firmware -que ya leia como el cobre pide- sino ENCHUFAR: la duda
+// era si el reposo lo fijaba de verdad la placa, y eso solo lo contesta el conector
+// vacio con un instrumento delante. Mientras estuvo abierta, lo prohibido era el
+// destornillador.
+//
 // El firmware sigue yendo primero (CLAUDE.md 9.bis): un pin en INPUT no ejecuta nada,
 // mientras que con el firmware viejo dentro PB14 seguia siendo botonAceptar() activo en
 // BAJO y cualquier hilo enchufado en p10 lo pulsaba.
 //
 // Y p1 de J16 lleva 12 V CRUDOS -sin opto, sin serie, sin clamp- a nueve posiciones de
 // p10 y once de p12. Se tapa fisicamente antes de enchufar nada (17_...:2.1).
+//
+// D-4: TAPARLO ES OBLIGATORIO EN CADA EQUIPO QUE SE MONTE, no una cautela de banco. Y
+// va escrito en este fichero porque es el sitio donde alguien mira antes de cablear: el
+// firmware NO PUEDE protegerse de esto -esa posicion no llega a ningun pin del micro,
+// asi que ninguna linea de codigo se entera de que la puentearon contra una de senal-.
+// La barrera es fisica o no hay barrera.
 #define BOTON1      PB9   // J16 p5  - Arriba / mando A
 #define BOTON2      PB13  // J16 p8  - Abajo  / mando B
 #define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco (era BOTON3, "Aceptar")

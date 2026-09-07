@@ -263,6 +263,12 @@ void loop() {
   // Se lee modoActual_get() y no la copia 'modo' de arriba: entre las dos hay un
   // modoActual_set(), y una guarda que mirase el valor viejo se estaria preguntando por
   // un modo que ya cambio.
+  // D-8: EL AMBAR DE EMERGENCIA CONSERVA SU CERROJO, Y EN ESTA PUNTA ES LA TERCERA
+  // CONDICION DE ESTE if. Un ambar que pidio alguien que puede estar de pie en esta
+  // calzada no lo retira el otro poste por radio. La version sin cerrojo se probo y el
+  // banco la tumbo DOS veces; al medir la cadena entera, la causa del bloqueo que se le
+  // atribuia no era el cerrojo sino que una punta no acusaba. Quitarlo no habria
+  // arreglado nada y descubre a una persona.
   if (coordinador_hayCancelaAmbarDelEsclavo()
       && modoActual_get() == MODO_AMBAR
       && modo_ambar_origenEsclavo()) {

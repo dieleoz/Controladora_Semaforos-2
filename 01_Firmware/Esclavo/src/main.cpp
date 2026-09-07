@@ -450,6 +450,17 @@ void loop() {
       // ambar de la app: llega un CMD_GO_RED -o sea, cada pocos segundos- y este
       // semaforo_forzarRojo() saca la luz de S_FALLO. Sin ella, las otras dos no
       // pintan nada, porque el nodo ya no estaria en ambar cuando se evaluan.
+      //
+      // D-8: EL AMBAR DE EMERGENCIA CONSERVA SUS DOS VETOS -el del gabinete y el de la
+      // app-, y esta pareja de guardas es donde viven en esta punta. Se escribe aqui
+      // porque ya se intento quitar el de la app dos veces y el banco lo tumbo las dos:
+      // al medir la cadena entera, lo que trababa el cruce no era el cerrojo sino que
+      // esta punta no acusaba, y eso se arreglo por otro sitio. O sea que "quitemos el
+      // cerrojo" es una pregunta ya contestada, y la respuesta fue que no.
+      //
+      // D-1: el primero de los dos sigue leyendose aunque el mando ya no tenga
+      // pulsadores. Sin hardware esa bandera no se arma nunca y la guarda deja pasar; con
+      // el armador borrado la guarda pasaria a ser SIEMPRE cierta, que no es lo mismo.
       if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
         semaforo_forzarRojo(); // Directo a rojo
         ackRojoEnviado = true;

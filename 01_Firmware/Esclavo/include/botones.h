@@ -56,6 +56,19 @@ bool botonAceptar();
 bool botonCancelar();
 
 // ---------------------------------------------------------------------------
+// D-12: DE CADA CAMARA ESTE SISTEMA CONSUME UN CONTACTO SECO, Y NADA MAS. No hay red
+// hacia la camara, no hay imagen, no hay video y no hay analitica dentro del controlador:
+// lo unico que cruza la frontera es un bit. Esta escrito aqui, en la declaracion de la
+// lectura, porque es la frontera misma y porque de aqui salen dos consecuencias que se
+// olvidan al reves de como se decidieron.
+//
+// LA PRIMERA: toda la inteligencia vive en la CONFIGURACION de la camara, no en este
+// firmware. Cambiar lo que significa ese bit no es un cambio de codigo; es un cambio de
+// parametros en el aparato, y el manual que los fija deja de ser apoyo y pasa a ser el
+// entregable. La SEGUNDA, que es la que duele: el controlador NO VE IMAGEN, asi que
+// ninguna decision de aqui puede apoyarse en "mirar" nada. Lo que se grabe se graba en la
+// propia camara, en su tarjeta, y este firmware no lo sabe ni lo puede pedir.
+//
 // LAS CAMARAS DE J16 - N-97, 31/08/2026. ESTE BLOQUE ES IDENTICO EN LAS DOS PUNTAS.
 //
 // J16 p10 (PB14) y p12 (PB15) ya no son botones: son entradas de camara de contacto seco,

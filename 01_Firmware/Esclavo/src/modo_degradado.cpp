@@ -241,6 +241,16 @@ RechazoDegradado degradado_comprobar() {
   return DEG_ACEPTADO;
 }
 
+// D-18: ESTA ES LA PUERTA UNICA DEL MODO DEGRADADO DE ESTE POSTE, y desde el 05/09 la
+// llave la tiene la app. Se escribe aqui y no solo en el despachador porque el valor de
+// la decision esta justamente en que NO se construyo una puerta nueva: quien llame desde
+// donde llame vuelve a pasar por estas mismas condiciones. Tres vias con tres criterios
+// serian una sola puerta, la mas floja de las tres, y este es el unico modo del firmware
+// que enciende un verde sin confirmacion del otro extremo.
+//
+// Y POR ESO ESTA FUNCION DEVUELVE UN MOTIVO Y NO UN "SI O NO": quien la llame tiene que
+// poder decirle al operario que le falta. Un acuse que no mire lo que esto devolvio seria
+// una mentira con formato de exito.
 RechazoDegradado degradado_entrar() {
   if (estado == DEG_ENTRANDO || estado == DEG_ACTIVO) return DEG_ACEPTADO;
 

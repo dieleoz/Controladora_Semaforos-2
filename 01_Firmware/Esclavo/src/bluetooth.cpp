@@ -376,6 +376,16 @@ static const char* obtenerNombreModo(EstadoDegradado e) {
   }
 }
 
+// D-16: SIN TELEFONO NO HAY FORMA DE OPERAR ESTE POSTE, y este despachador es la razon:
+// es la UNICA superficie de mando que le queda. Es una propiedad declarada del sistema,
+// no una averia, y aqui pesa mas que en el otro extremo -alli al menos queda la pantalla
+// del gabinete-. Consecuencia directa de D-1 (el mando se fue) y de D-17.bis (la pantalla
+// y su menu se retiran del equipo): ni ambar, ni volver a obedecer, ni parar el cruce sin
+// un telefono emparejado.
+//
+// LO QUE ESO OBLIGA, Y NO ES UNA NOTA DE ESTILO: cada rama de aqui abajo tiene que
+// contestar lo que de verdad paso. Cuando esta era una via mas entre varias, un acuse
+// optimista lo corregia el operario mirando la pantalla; hoy no hay pantalla que mirar.
 static void procesarComando(const char* cmd) {
   // AB-1 - LA LINEA RESERVADA DEL PUENTE, Y VA LA PRIMERA DE TODAS.
   //
@@ -628,6 +638,15 @@ static void procesarComando(const char* cmd) {
       }
     } else {
       ambarEmergencia = false;
+      // D-8: los dos vetos del ambar de emergencia son INDEPENDIENTES, y aqui se ve por
+      // que eso no es redundancia. Quitar el de la app no quita el del gabinete: quien lo
+      // puso fue otra persona, por otra via, y una orden no puede revocar la de alguien a
+      // quien no ha visto. Por eso este comando dice lo que hizo en vez de prometer que
+      // el ambar se fue.
+      //
+      // D-1: la rama sigue viva con el mando desmontado. Sin pulsadores nunca se toma, lo
+      // cual es correcto; lo que no seria correcto es borrarla, porque entonces el acuse
+      // pasaria a afirmar siempre que el ambar se retiro del todo.
       if (mando_ambarLocal()) {
         // El otro latch, el del mando, NO lo puede quitar este comando: los tres vetos de
         // main.cpp son "!mando_ambarLocal() && !bluetooth_ambarEmergencia()", asi que con
@@ -673,7 +692,15 @@ static void procesarComando(const char* cmd) {
       enviarTramaConCrc("$ERR,CMD:SOLICITAR_PASO,DESC:REPITA_EN_UNOS_SEGUNDOS");
     }
   } else if (strcmp(accion, "SET_MODO:DEGRADADO") == 0) {
-    // A-11 (decision del responsable, 05/09: "esto ya es por app").
+    // D-18: EL MODO DEGRADADO DE ESTE POSTE SE PIDE POR APP, Y ESTA RAMA ES LA LLAVE.
+    // Resuelve A-11 (decision del responsable, 05/09: "esto ya es por app"). La salida
+    // descartada era volver a poner pulsadores en el conector de la botonera: contradecia
+    // D-1 y competia por esos mismos dos pines con lo que aun esta por decidir para ellos.
+    //
+    // Y ES LA UNICA PUERTA DE ESTA PUNTA A UN MODO QUE DA VERDE SIN CONFIRMAR AL OTRO
+    // EXTREMO, que es por lo que no la cierra nadie por su cuenta: cambia quien arbitra el
+    // ciclo. Lo que el Maestro hace mientras esta punta esta dentro se mide y se escribe,
+    // no se supone.
     //
     // EL MODO ESTABA CONSTRUIDO Y LA LLAVE SE HABIA TIRADO. degradado_entrar() tenia
     // tres llamadores y los tres estaban muertos o inalcanzables: la secuencia A.B.A.B

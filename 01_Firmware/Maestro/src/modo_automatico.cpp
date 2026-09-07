@@ -178,6 +178,12 @@ void modoAutomatico_tiemposCiclo(uint8_t* verdeMin, uint8_t* rojoMin,
   *despejeSeg = (uint8_t)segEstatico;
 }
 
+// D-11: FIJAR LOS TIEMPOS NO ARRANCA EL CICLO, Y ESO ES LA DECISION, NO UN OLVIDO.
+// Esta funcion valida, guarda y contesta; no entra en el modo y no programa ningun
+// verde. Arrancar solo abriria paso sin que nadie haya confirmado que la via esta
+// despejada, asi que el aviso y el boton de arrancar se quedan del lado de quien esta
+// mirando el cruce. Del lado del firmware la propiedad es esta: de aqui no sale nadie
+// ciclando.
 bool modoAutomatico_fijarTiempos(uint8_t verdeMin, uint8_t rojoMin, uint8_t despejeSeg) {
   if (verdeMin  < VERDE_MIN_MIN   || verdeMin  > VERDE_MIN_MAX)   return false;
   if (rojoMin   < ROJO_MIN_MIN    || rojoMin   > ROJO_MIN_MAX)    return false;

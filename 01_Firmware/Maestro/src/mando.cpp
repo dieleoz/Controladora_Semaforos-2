@@ -35,6 +35,12 @@
 // ocurrido es que el cursor se movio.
 // ---------------------------------------------------------------------------
 
+// D-1: EL MANDO YA NO EXISTE COMO HARDWARE, Y ESTE CODIGO SE QUEDA ENTERO. Son las dos
+// mitades de una sola decision, y la segunda no es comodidad: de la bandera que arman
+// estas secuencias cuelgan vetos de seguridad en la otra punta, y borrar al que la arma
+// no los deja inertes -los deja ABIERTOS-. Sin pulsadores en el conector la secuencia
+// simplemente no se compone nunca, que es el comportamiento correcto y no cuesta nada.
+
 static const unsigned long VENTANA_TRIPLE_MS = 12000;
 static const unsigned long VENTANA_CUADRUPLE_MS = 18000;
 

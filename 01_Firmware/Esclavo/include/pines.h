@@ -119,7 +119,14 @@
 // pull-up interno (~40 kOhm) contra ese 10K deja el pin en 3,3 x 10/50 = 0,66 V, que el
 // micro lee LOW: demanda permanente sin camara conectada, e invertida al cerrarla.
 //
-// 🟢 M3 CERRADA EN BANCO EL 03/09, Y AQUI HABIA UNA FRASE FALSA QUE SE TACHA EN VEZ DE
+// D-3: LA MEDIDA M3 ESTA CERRADA Y LAS CAMARAS SE CABLEAN A ESTE CONECTOR. Lo que la
+// cerro fue el multimetro, no un razonamiento: el pull-down que el netlist declaraba
+// existe y esta en las cuatro posiciones, las de camara dan cero en reposo, y el paso de
+// banco que cerro un contacto contra la posicion de al lado no produjo ni una demanda
+// fantasma. Mientras eso no estuvo medido, la regla era no cablear camara aqui; desde que
+// lo esta, la que queda viva es la de parametrizar la camara antes de tocar cobre.
+//
+// M3 CERRADA EN BANCO EL 03/09, Y AQUI HABIA UNA FRASE FALSA QUE SE TACHA EN VEZ DE
 // BORRARSE. Ponia: "si la placa soldada fuera la del netlist, PB9 y PB13 en INPUT_PULLUP
 // estarian en LOW permanente y el menu no se podria navegar -Y HAY EVIDENCIA DE BANCO DE
 // QUE SE NAVEGA-". Sobre esa ultima frase se sostenia que A y B eran un caso distinto de
@@ -140,10 +147,21 @@
 // mientras que con el firmware viejo dentro PB14 seguia siendo botonAceptar() activo en
 // BAJO y cualquier hilo enchufado en p10 lo pulsaba.
 //
+// D-4: LA PRIMERA POSICION DE ESTE CONECTOR SE TAPA EN CADA EQUIPO QUE SE MONTE. No es
+// una cautela de banco ni una recomendacion de montaje: es el riel de potencia sin opto,
+// sin serie y sin recorte, a unas pocas posiciones de dos entradas que van directas al
+// micro. El firmware no puede protegerse de esto, asi que la barrera es fisica y va en el
+// manual de montaje, no en el codigo.
+//
 // Y p1 de J16 lleva 12 V CRUDOS -sin opto, sin serie, sin clamp- a nueve posiciones de
 // p10 y once de p12. Se tapa fisicamente antes de enchufar nada (17_...:2.1).
 #define BOTON1      PB9   // J16 p5  - Arriba / mando A
 #define BOTON2      PB13  // J16 p8  - Abajo  / mando B
+// D-2: estas dos posiciones son LAS DOS CAMARAS, y no por preferencia: son los pines que
+// la camara necesita y los unicos que el mando no usaba. Los pulsadores que habia aqui no
+// se han mudado a otro sitio - dejaron de existir, y lo que colgaba de ellos se sustituye
+// por la app (D-16). El nombre viejo se conserva en el comentario para que quien busque
+// por el llegue hasta aqui y no crea que el boton sigue en alguna parte.
 #define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco (era BOTON3, "Aceptar")
 #define CAM_D_PIN   PB15  // J16 p12 - camara de contacto seco (era BOTON4, "Cancelar")
 

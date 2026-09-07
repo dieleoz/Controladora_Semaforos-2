@@ -51,6 +51,10 @@
 
 #include <stdint.h>
 
+// D-5: EL MINIMO POR SENTIDO LO FIJA EL RESPONSABLE, y es el suelo que estas tres
+// lineas publican al resto del firmware. El porque vial esta entero en la cabecera; lo
+// que la decision anade es que ese suelo NO se negocia por comodidad de mesa de pruebas,
+// que es exactamente de donde venia el valor anterior.
 static const uint8_t VERDE_MIN_MIN = 3,  VERDE_MIN_MAX = 15;
 static const uint8_t ROJO_MIN_MIN  = 3,  ROJO_MIN_MAX  = 15;
 static const uint8_t DESPEJE_SEG_MIN = 10, DESPEJE_SEG_MAX = 90;

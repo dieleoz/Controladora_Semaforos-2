@@ -1,4 +1,11 @@
 // ===== src/modo_alcance.cpp =====
+//
+// D-17.bis: ESTE MODO DIBUJA EN LA PANTALLA QUE SE RETIRA DEL EQUIPO. La decision
+// retira la INTERFAZ y conserva el codigo a proposito, asi que el fichero se queda
+// donde esta; lo que hay que saber al leerlo es que su unica salida visible era el
+// gabinete, de modo que hoy entrar aqui deja el cruce parado en su estado seguro y no
+// ensena nada a nadie. Quien replantee la interfaz decide si esta telemetria se publica
+// por el aire o si la orden que trae hasta aqui se retira; no se decide desde el fuente.
 #include "modo_alcance.h"
 #include "botones.h"
 #include "coordinador.h"

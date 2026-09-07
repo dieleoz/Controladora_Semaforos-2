@@ -85,6 +85,16 @@
 // puesto SUELO = TECHO, la comparacion del techo no habria podido dar dos respuestas
 // nunca -§3.septies- y las camaras habrian quedado INERTES justo en el unico modo que
 // las usa. El suelo sale de la configuracion; el techo se DERIVA de el.
+// D-19: EL SUELO ES EL TIEMPO QUE CONFIGURA EL OPERARIO Y EL TECHO SE DERIVA DE EL.
+// El modelo esta razonado justo aqui arriba; lo que la decision anade es de donde salen
+// esos minutos -de la distancia de cada cruce, que la sabe quien lo instala y no este
+// fichero- y que el modo no decide solo.
+//
+// APROBADA CON UNA CONDICION QUE HOY NO ESTA CUMPLIDA, y por eso va escrita en el
+// fuente: el techo vale SI un funcional revisa el manual de uso y lo da por claro. Un
+// verde que unas veces dura lo configurado y otras el doble parece una averia desde la
+// acera, asi que lo que valida esto no es un pack -es que alguien de calle diga que se
+// entiende-. Hasta esa firma, TECHO_POR_SUELO viaja como POR VALIDAR, no como cerrado.
 static const uint8_t TECHO_POR_SUELO = 2;
 
 // EL TECHO NO SE ESCRIBE COMO CONSTANTE PROPIA. Un "el techo son 6 minutos" al lado

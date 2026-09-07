@@ -5,6 +5,17 @@
 #include <stdio.h>
 
 // ---------------------------------------------------------------------------
+// D-17.bis: LA PANTALLA SE RETIRA DEL EQUIPO Y ESTE FICHERO SE QUEDA. No es una
+// contradiccion ni obra a medias: lo que se retira es el CRISTAL y la interfaz que colgaba
+// de el; el dibujo se sigue compilando y su arnes lo sigue midiendo sobre un framebuffer
+// en el PC, que no necesita que haya panel montado. Por eso retirar la pantalla no baja
+// ninguna cifra de la compuerta, y quien vea esa cifra intacta no debe leerla como que la
+// pantalla sigue ahi.
+//
+// EL MOTIVO POR EL QUE NO SE BORRA es el mismo que en las funciones de boton sin sujeto:
+// borrarlo convertiria una decision de montaje en una reescritura del control de flujo, y
+// ahi es donde se cuelan los errores en un cambio que no deberia cambiar comportamiento.
+//
 // N-16 — Portado de src/lcd.cpp del Maestro y RECORTADO a lo que el Esclavo
 // necesita. No se copian sus pantallas de modo de operacion: el Esclavo no
 // decide el ciclo, y una pantalla que ofrece decidirlo acaba con las dos puntas

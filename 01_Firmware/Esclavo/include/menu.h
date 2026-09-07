@@ -3,6 +3,16 @@
 #include <Arduino.h>
 
 // ---------------------------------------------------------------------------
+// D-17.bis: LA PANTALLA Y ESTE MENU SE RETIRAN DEL EQUIPO. Todo se opera por la app. Se
+// retiran del EQUIPO, no del codigo: este fichero sigue compilando y el arnes de pantalla
+// sigue midiendo un framebuffer en el PC, que no necesita que haya cristal montado.
+//
+// OJO AL LEER LO DE ABAJO: describe un menu que se navega, y hoy NO se navega en ninguna
+// de las dos puntas -las funciones de aceptar y cancelar de botones.cpp devuelven falso
+// desde que sus pines son camaras (D-2)-. O sea que la segunda entrada de ese listado, la
+// que entraba al Modo Degradado, esta escrita y es inalcanzable; lo que la sustituye es la
+// orden por app de D-18, y esa si tiene llave.
+//
 // N-16 — Menu del Esclavo.
 //
 // Esta cabecera era una copia huerfana del Maestro: declaraba MODO_MANUAL,

@@ -603,6 +603,17 @@ static bool consumir(int idx) {
 bool botonArriba()  { return consumir(0); }
 bool botonAbajo()   { return consumir(1); }
 
+// D-17.bis: LA PANTALLA Y SU MENU SE RETIRAN DEL EQUIPO, NO DEL CODIGO, y estas dos
+// funciones son el sitio donde esa distincion se vuelve mecanica. Devolviendo falso, todo
+// lo que se navegaba con ellas queda inalcanzable sin borrar una sola rama, asi que la
+// interfaz muere y el control de flujo de cada modo se queda intacto. Es la direccion
+// segura: retirar la interfaz no puede convertirse en una reescritura de la salida del
+// Degradado.
+//
+// D-16: y lo que sustituye a estos dos botones no es otro boton, es el telefono. Por eso
+// el censo de abajo no es documentacion de cortesia: es la lista de lo que deja de poder
+// hacerse sin app, y cada linea suya tiene que tener sustituto o esto no se podia hacer.
+//
 // SIN SUJETO: YA NO HAY PIN QUE PUEDA LEVANTAR ESTOS DOS FLANCOS (31/08/2026).
 //
 // J16 p10 y p12 son camaras, asi que ACEPTAR y CANCELAR no tienen ya pulsador ni rele
@@ -631,6 +642,18 @@ bool botonAbajo()   { return consumir(1); }
 //     dar paso en Manual                modo_manual.cpp:49  MANUAL:CAMBIAR_TURNO (:257)
 //     confirmar la hora                 modo_hora.cpp:208   SET_RTC (:295) y
 //                                                           REINICIAR_RELOJ (:330)
+//
+//   OJO: LAS DOS LINEAS DE ABAJO ESTAN CADUCADAS DESDE EL 05/09 Y SE MARCAN EN VEZ DE
+//   REESCRIBIRSE, porque son el ejemplo exacto de una version de la especificacion que el
+//   codigo sigue contando. Dicen que el sustituto de esta punta es el mando de reles; hoy
+//   no lo es por dos motivos a la vez: D-1 se llevo los pulsadores -asi que ese sustituto
+//   no existe en el cobre- y D-18 le dio a esta punta la orden por app para entrar al
+//   Degradado -asi que el sustituto que falta ya esta construido, en el despachador de
+//   Bluetooth-. Censado rama por rama el 07/09, las tres secuencias del mando tienen hoy
+//   sustituto en ese despachador: entrar al Degradado, pedir el ambar de emergencia -que
+//   es OTRO latch, no este, y ademas arranca la salida del Degradado- y revocarlo. Lo que
+//   no tiene sustituto es armar ESTE latch, el del gabinete, y eso es correcto: sin
+//   pulsadores no hay quien lo arme, y solo el gesto que lo armo podia revocarlo.
 //
 //   ESCLAVO  -- esta punta NO tiene SET_MODO por Bluetooth, asi que el sustituto no es la
 //   app sino EL MANDO DE RELES, que sigue entero sobre A y B (PB9/PB13):
