@@ -249,6 +249,9 @@ void setup() {
   // un reinicio visible y diagnosticable en vez de un cuelgue mudo.
   //
   // Un semaforo no puede depender de un cristal de reloj para encender.
+  // D-22: El reloj de sistema del STM32 corre con HSI interno seguro (fallback que no
+  // cuelga si Y1 no oscila). Con D-20 construida, la siembra periodica desde el ESP32
+  // cubre la base de tiempo y Y1 queda opcional sin comprometer el cruce.
   //
   // Aqui el argumento pesa aun mas que en el Maestro: el Esclavo no tiene pantalla
   // en la que se vea que algo va mal. Colgado, seria un poste apagado en mitad de
