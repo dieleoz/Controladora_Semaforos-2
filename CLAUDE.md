@@ -294,6 +294,24 @@ puede quedar correcto y la compuerta verde, pero un `revert` de ese commit no de
 - **No se reescribe la historia publicada para arreglarlo:** con la rama en dos remotos y otro agente
   encima, un `push --force` dana mas de lo que repara. Se anota donde vive el cambio y se sigue.
 
+**EL ORDEN DE LANZAMIENTO, que es lo que impide el bucle de hacer / deshacer / rehacer:**
+
+1. **Antes de lanzar se abre `DECISIONES.md`.** Si el encargo contradice una fila, **eso no es una
+   orden: es una pregunta**. Casi siempre la frase nueva es un resumen impreciso de algo mas pequeno.
+2. **Los que MIDEN van antes que los que ESCRIBEN.** Auditoria de solo lectura -> veredicto en el
+   scratchpad -> ejecucion **con ese veredicto delante**. Un veredicto malo ejecutado a fondo es peor
+   que uno discutido: delegar **amplifica** el error.
+3. **Un agente = un conjunto de ficheros DISJUNTO, nombrado explicitamente**, prohibidos incluidos. El
+   limite del paralelo es el fichero, no la capacidad.
+4. **El encargo dice contra que `D-x` trabaja**, y lleva esta instruccion: **si el codigo y su `D-x` no
+   coinciden, para y reporta — NO elijas.** Ahi es donde nace el bucle: uno lo arregla en un sentido y
+   el siguiente en el contrario.
+5. **Ningun agente comitea.** Comitea el orquestador, con rutas explicitas y **leyendo** el indice.
+6. **A cada agente se le pide que DUDE del encargo.** Es la frase que mas rinde: en una sola sesion los
+   agentes refutaron siete datos que iban dentro de sus propios briefs.
+7. **La compuerta la corre el orquestador con el arbol QUIETO.** Una cifra medida mientras otros
+   escriben no vale, aunque el numero salga bien formado.
+
 ## 12. Donde esta cada cosa
 
 | | |

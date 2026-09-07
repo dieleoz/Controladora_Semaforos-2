@@ -179,16 +179,28 @@ antes de publicar un «no hay»:
 > **de su propio ESP32**. Si las dos puntas se desincronizan, **manda la del ESP32 Maestro**.
 
 **El motivo es de hardware.** `reloj.cpp` de las dos puntas es `STM32RTC` sobre `LSE_CLOCK`, o sea
-**el cristal `Y2`, confirmado muerto (N-17)**; el STM32 no tiene ni pila ni cristal. Cada ESP32 ya
-lleva su `DS3231` con pila y **funcionando**. El propio fuente ya avisaba de lo que pasa si se
-finge lo contrario: *«escribir la hora sobre un contador parado la deja visible pero sin avanzar, y
-`horaValida` en `true` seria una mentira sobre la que el Modo Degradado se autorizaria»*.
+**el cristal `Y2`, confirmado muerto (N-17)**. Cada ESP32 ya lleva su `DS3231` con pila y
+**funcionando**. El propio fuente ya avisaba de lo que pasa si se finge lo contrario: *«escribir la
+hora sobre un contador parado la deja visible pero sin avanzar, y `horaValida` en `true` seria una
+mentira sobre la que el Modo Degradado se autorizaria»*.
+
+> 🔴 **AQUI DECIA «el STM32 no tiene ni pila ni cristal». ES FALSO: TIENE LAS DOS Y NO USA NINGUNA.**
+> Corregido el 07/09 por el arquitecto, midiendo el variant: `Y1` de 8 MHz esta en la placa y el
+> firmware arranca con el **HSI**, el RC interno (`generic_clock.c`, `RCC_PLLSOURCE_HSI_DIV2`, sin
+> `HSE` en ningun `.ini` ni `.cpp`). Y `VBAT` midio **3 V con la tarjeta apagada** (N-37): al menos
+> una tarjeta lleva su `CR2032` puesta —la otra sigue `SIN VERIFICAR`—.
+>
+> **Y eso cambia el diseno, no solo el dato:** el HSI es **±1 % a 25 °C y ~±2,5 % con temperatura**,
+> o sea **`millis()` va a 10.000–25.000 ppm**. Un reloj sembrado **una vez por hora se iria 36 s en
+> esa hora — mas que el margen ENTERO de 29 s del cruce.** La version que estaba escrita aqui
+> —*«reloj de software sembrado y refrescado cada tanto»*— **era peor que el cristal muerto**, y el
+> cristal muerto al menos se declara.
 
 **Lo que hay que construir, medido el 07/09:**
 
 | | que | nota |
 |---|---|---|
-| **1** | `reloj.cpp` de las dos puntas deja de ser el RTC por hardware y pasa a **reloj de software sembrado por su ESP32** y refrescado. `reloj_enHora()` cambia de significado: de *«mi cristal cuenta»* a *«mi ESP32 me dio la hora hace poco»* | toca **SFTY-18 y SFTY-23** |
+| **1** | `reloj.cpp` de las dos puntas pasa a **EXTRAPOLADOR sembrado cada `LATIDO_MS` (2 s)** con un `EPOCH` del `DS3231` — **no un reloj de software refrescado «cada tanto»**: con el HSI a 10.000–25.000 ppm, la frescura de la siembra ES el presupuesto de error. `reloj_enHora()` pasa a significar **«mi siembra es fresca»**. Se retiran `STM32RTC`, N-25, N-31, `reloj_ajustar()` y el truco de «enero» | toca **SFTY-18 y SFTY-23**. La desigualdad `SIEMBRA_CADUCA_MS x HSI_PPM + cadena + deriva48h < despeje - ambar` **va en un pack**, no en un comentario (N-71) |
 | **2** | Un mando nuevo **ESP32 -> STM32** que siembre la hora. **El camino fisico ya existe**: `enlace_stm32.cpp` escribe hacia el STM32 | no hace falta hardware |
 | **3** | Las **48 h** de rendicion salen hoy del **contador crudo del RTC**, monotono y superviviente al apagado. Tiene que pasar a venir del ESP32 **o se pierde en el primer corte** | es la mitad que se olvida |
 
@@ -197,9 +209,27 @@ postes es la radio **entre los STM32**, asi que la hora viaja
 `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`. **Los STM32 quedan de carteros de la hora, no
 de duenos** — que es justo lo decidido.
 
-**Lo que se gana y lo que se pierde, sin adornos:** un reloj de software **no sobrevive a un corte
-de luz**, pero el `DS3231` si y vuelve a sembrar a los segundos de arrancar. **Hoy el STM32 no
-tiene la hora NUNCA**, asi que es estrictamente mejor.
+**El presupuesto de desfase, derivado del fuente por el arquitecto** —y es lo que decide si esto es
+seguro—: con **la radio como UNICA via** de sincronizacion entre postes, `0–1 s` truncado en la
+siembra + `0–1 s` truncado en la radio + `0,5 s` de aire + **`1,2 s` de deriva `DS3231`-`DS3231` en
+48 h** (7 ppm relativos) **≈ 2,8 s contra los 29 s que aguanta el cruce: factor ≈10**, frente al
+**1,44** de hoy. `TOLERANCIA_DESFASE_S = 3` **ya es la cifra correcta**.
+
+> 🔴 **Y la condicion que lo sostiene, sin la cual el desfase inicial SIGUE sin cota: un `SET_RTC`
+> de la app NO es una sincronizacion.** Mientras el puente del Esclavo siga atendiendo `SET_RTC`
+> directamente, la app puede poner los dos `DS3231` a horas distintas visitandolos por separado — y
+> **eso choca con `D-15`**. Va a «Filas que chocan» de `DECISIONES.md`.
+
+> 🔴 **Dos cosas mas que NO estaban en el plan y sin las cuales rompe:**
+>
+> 1. **`reanudarTrasCorte()` se llama UNA vez en `setup()` y BORRA el indicador si no hay hora.** Con
+>    siembra externa, en `setup()` **nunca la hay** (el arranque del ESP32 esta declarado en 1500 ms
+>    y **sin medir**), asi que **N-20 moriria en silencio**. Hay que diferir la reanudacion a la
+>    primera siembra, con espera acotada.
+> 2. **Las 48 h NO se mueven:** se quedan en `BKP->DR5/DR6` con `respaldo.cpp` **sin tocar** —la
+>    resta de epochs con guarda de retroceso ya esta escrita—. Lo que hay que cerrar es el
+>    **rejuvenecimiento**: hoy se puede poner el `DS3231` hacia atras justo despues de la marca, y
+>    lo cierra **la misma regla del `SET_RTC`**. Precondicion: `CR2032` en **las dos** tarjetas.
 
 > 🔴 **Y esto es lo que no puede faltar al planificar la sesion de banco: MIENTRAS `D-20` no este
 > construida, el Modo Degradado del poste 2 NO SE PUEDE PROBAR.** Su guarda de entrada abre con
