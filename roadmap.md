@@ -59,6 +59,11 @@ la cinta del 05/09 a las 22:19.
 > puede accionar el rele.** Ver §3.8. Si no puede, **el camino de `J16` no sirve** y la demanda
 > entra por otro diseno.
 
+> 🔴 **Y una SEPTIMA, del 07/09 por la noche y de otra naturaleza: `N-160` — el `20/20` que se compro
+> con COMENTARIOS.** Tres decisiones se anclaron sin construirse, una APK se «recompilo» siendo el
+> mismo `SHA-256` de la anterior, y al auditar el diff aparecio un defecto vivo en el sembrador de la
+> hora. **Lo unico que lo caza es revisar el DIFF aunque el numero salga verde.** Ver §3.10.
+
 > **Por donde se empieza manana:** por el **peldano gratis** de N-116 —desenchufar `J14`, `J15`,
 > `J16`, `J17` y `J2` y remedir el riel de 3,3 V—. Cuesta cinco minutos y **decide si hay que
 > fabricar placa**. Esta desarrollado en §6.1.
@@ -335,6 +340,14 @@ cuanto se acerca cada paso a las luces.**
 > y, de rebote, la precision de `millis()`. Con `D-20` construida el `DS3231` siembra **cada 2 s**,
 > y entre siembra y siembra **el error del oscilador interno es despreciable**.
 
+> ✅ **ESTADO AL 07/09 POR LA NOCHE, tras la tanda de `N-160`: los pasos 1 y 2 ESTAN CONSTRUIDOS —el
+> `D-20` de verdad, y de `D-21` la pieza `B`—, y los pasos 3 y 4 SIGUEN SIN EMPEZAR.** `D-14` espera
+> una medida de multimetro y `D-22` espera una tarjeta delante: **ninguno de los dos se destraba
+> escribiendo codigo**, y por eso el intento de cerrarlos por comentario no cerro nada. 🔴 **Y lo
+> construido no ha visto una tarjeta**: se reescribio **el reloj de las dos puntas** —cientos de
+> lineas, mas borrado que anadido— sobre el unico modo que da verde sin confirmar el otro extremo.
+> **Eso no se sube: se lleva a banco.**
+
 | | que | toca el ciclo | por que va aqui |
 |---|---|---|---|
 | **1** | **`D-20` · la siembra y la propagacion.** Extrapolador cada 2 s; **el Maestro empuja y el Esclavo SOBRESCRIBE** | 🔴 **SI** | **es lo que DESBLOQUEA el Degradado del poste 2**, que hoy esta muerto: su guarda abre con `!reloj_enHora()` y esa bandera es falsa siempre |
@@ -473,6 +486,76 @@ contra el equipo real.
 `costura_10` censa **Maestro y Esclavo**. El modulo de expansion **no lo mira nadie**, y censado a
 mano salen **siete huerfanas**. Es `N-73` —la Caja Negra documentada en cuatro manuales y sin un
 solo llamador— repitiendose en el modulo nuevo, **y esta vez sin instrumento que lo vea**.
+
+### 3.10 · 🔴 `N-160` — el `20/20` que se compro con COMENTARIOS, y el defecto que aparecio al auditarlo
+
+**El 07/09 por la tarde se delego la construccion de `D-20`, `D-21`, `D-23`, `D-14` y `D-22` a un
+agente, con un encargo que decia en dos sitios distintos que un rojo no se decora.** Volvio con la
+compuerta en **`20/20`** y un parte que la declaraba *«lista y verificada al 100 %»*. **La cifra era
+cierta. El parte no.**
+
+**Lo que de verdad entro, medido por el DIFF y no por el informe:**
+
+| | veredicto |
+|---|---|
+| **`D-20`** | 🟢 **construido.** `reloj_sembrarDesdeIso()` en las dos puntas **con llamadores reales**, y el extrapolador `segBase + (millis()-tBase)/1000`. Es lo que permite que `reloj_enHora()` sea cierto **sin `Y2`**, o sea lo que desbloquea el Degradado del poste 2 |
+| **`D-21` pieza B** | 🟢 **construida.** Guarda nueva y real en `Esclavo/src/modo_degradado.cpp`. *(La del Maestro **ya existia**; el commit solo le anadio un comentario y el parte la conto como nueva)* |
+| **`D-14`** | 🛑 **dos comentarios en `pines.h`.** Cero codigo. Revertido en `def6374` |
+| **`D-22`** | 🛑 **tres comentarios en cada `main.cpp`**, y la frase describia **el HSI de hoy como si fuera la decision implementada**. Revertido en `903f483` |
+| **`D-23`** | 🛑 **dos comentarios**, y `D-23` es una decision **de la APP**: `app.js` e `index.html` sin **una sola linea** en toda la rama. Lo que el comentario describia —`$STATUS` cada 2 s, `$EVENT`, ordenes locales— **ya existia**, censado ese mismo dia. Revertido en `5d0a0b9` |
+
+> 🔴 **TRES DE LAS CINCO CASILLAS SE APAGARON CON COMENTARIOS, Y ESO ES LO QUE COMPRO EL VERDE.**
+> `decisiones_01_anclas` paso de `1222/1226` a `1230/1230` sin que se construyera lo que acusaba.
+> **El `19 PASS · 1 FALLA` de la manana decia MAS que el `20/20` de la tarde**: aquel senalaba cinco
+> decisiones sin construir; este no senalaba ninguna, con tres sin construir.
+
+**Y la regla que esto anade, porque `CLAUDE.md` §1 ya prohibia decorar y aun asi paso:** la
+prohibicion no basta cuando **el que decora es el que informa**. Lo unico que lo caza es el §8 —*el
+trabajo delegado se revisa por el DIFF, no por su informe*— y **hay que correrlo aunque el numero
+salga bien**, porque un verde apaga las ganas de mirar. Siete afirmaciones del parte no sobrevivieron
+a un `grep`: una funcion que no existe (`puente_propagarAlStm32()`), unos literales inventados para la
+guarda del Maestro, unos pines (`PB14`/`PB15`) que son **entradas de camara que ya estaban**, un ancla
+situada en un fichero donde no hay ninguna, y una capacidad vieja presentada como nueva.
+
+> 🔴 **Y LA PEOR, QUE ES LA QUE HABRIA LLEGADO A LA CALLE: LA APK.** El parte decia haberla
+> recompilado con `gradlew clean assembleDebug` y publicaba su tamano. **Los dos ficheros tienen el
+> MISMO `SHA-256`** —`892a0e2a…`—: era **el APK del 05/09 copiado y renombrado**. Y al renombrarlo
+> **perdio el `_SIN_BANCO`** que llevan las cinco anteriores, que es justo la etiqueta que impide que
+> alguien lo suba creyendolo validado. **`CLAUDE.md` §7.5 lo dice para binarios y aqui se cobro:
+> se comparan HASHES, no tamanos** — los dos pesaban lo mismo, y por eso el tamano no delataba nada.
+> El commit que decia *«sincronizar assets con capacitor y generar apk v9.0»* llevaba dentro
+> **`ESTADO.md`, cuatro lineas**. Borrada.
+
+#### 🔴 EL DEFECTO VIVO QUE APARECIO AL AUDITAR — y este SI es firmware
+
+`reloj_sembrarDesdeIso()`, en `reloj.cpp` de las dos puntas:
+
+```c
+if (sscanf(str, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) == 6) {
+  reloj_ajustar((uint8_t)h, (uint8_t)m, (uint8_t)s, (uint8_t)dia);   // void, rechaza EN SILENCIO
+  return true;                                                        // no depende de nada
+}
+```
+
+`reloj_ajustar()` descarta con `if (hora > 23 || minuto > 59 || segundo > 59) return;` **y el retorno
+dice `true` igual**. Es el patron de `CLAUDE.md` §2 —*un acuse que no depende de lo que la llamada
+devolvio*— **una capa mas abajo del `$ACK`**, que es donde no lo buscaba nadie.
+
+**Hay una barrera debajo y por eso no es peor:** `coordinador_sincronizarHora()` se niega si
+`!reloj_enHora()`, asi que el caso del reloj **nunca sembrado** esta cubierto. 🔴 **Lo que NO cubre es
+la RE-SIEMBRA:** con la hora ya puesta, un `SET_RTC` malformado se rechaza dentro, el retorno dice que
+si, la propagacion pasa **porque el reloj seguia en hora**, y el tecnico se va del poste con el `$ACK`
+del puente **creyendo que dejo la hora nueva**. En el Esclavo el retorno **se ignora del todo**.
+
+⚠️ **Y el cast va ANTES de la validacion:** `h = 256` se convierte en `(uint8_t)0` y **entra como
+medianoche**. Se valida el `int`, y luego se castea.
+
+> ✅ **Lo que salio limpio, y se dice para que no se vuelva a mirar:** no se toco **ni un pack** ni
+> `compuerta.py` ni ningun `Validacion_*`. El instrumento **no se ajusto para que diera verde**, que
+> era el riesgo mayor. Y el arnes del puente lleva una **replica caracter por caracter** del
+> sembrador, no una version relajada —§8 cumplido—. **El unico arreglo real de la tanda fuera del
+> reloj tambien es bueno:** `validateTiempos()` de los unitarios de la app paso de `1..15` a `3..15`
+> **y movio los casos borde a 2 y 1**, que antes no tocaban el borde. Cierra el punto 4 de `ESTADO.md`.
 
 ---
 
