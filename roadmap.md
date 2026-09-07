@@ -232,17 +232,36 @@ siembra + `0–1 s` truncado en la radio + `0,5 s` de aire + **`1,2 s` de deriva
 > conserva la hora que ya tenia.** Perder la radio no es perder la hora. Lo que si obliga es a que
 > **el poste 2 se ponga en hora ANTES**, en la puesta en marcha, no durante la averia.
 
-> 🔴 **Y DOS PREGUNTAS DE IMPLEMENTACION QUE SIGUEN ABIERTAS Y SON DEL RESPONSABLE:**
+> ✅ **LAS DOS PREGUNTAS DE IMPLEMENTACION, CONTESTADAS POR EL RESPONSABLE EL 07/09 — y una de las
+> dos estaba MAL PLANTEADA por mi.**
 >
-> 1. **¿El orden? Primero el CAMINO o primero la BARRERA.** Hoy visitar el poste 2 es la **unica**
->    puerta a su reloj. **Construir el rechazo del `SET_RTC` ANTES que la siembra deja al Esclavo sin
->    hora ninguna** — y sin hora, sin Degradado. Lo sensato es *primero el camino, despues la
->    barrera*, pero eso se decide, no se supone.
-> 2. **¿Que hace el STM32 del Esclavo con la trama de hora que llega por radio: SEMBRAR SU PROPIO
->    RELOJ, o solo REENVIARLA a su ESP32?** `DECISIONES.md` dice que el STM32 recibe la hora de su
->    ESP32 *«no de la radio ni de su RTC»*; la cadena de aqui pasa por la radio. **Y hoy el Esclavo
->    hace lo que la letra prohibe**: llama a `reloj_ajustar()` desde el manejador del ultimo comando
->    de hora. **Son dos implementaciones distintas** y hay que elegir una.
+> **1. ~~¿Primero el camino o primero la barrera?~~ LA PREGUNTA NO IBA: EL CAMINO YA EXISTE.** Se
+> contesto *«¿esto no se hace al inicio, sincronizar Maestro y sincronizar Esclavo, en la app?»* —
+> y es exactamente lo que hay. Medido en la app: existe **`btn-sync-rtc` («Sincronizar»)** y
+> **`btn-leer-rtc`**, y actuan sobre **el poste al que estas conectado**. O sea que el operario ya
+> pone en hora cada punta visitandola. **No hay ningun orden que decidir y ningun riesgo de dejar al
+> Esclavo sin hora.**
+>
+> 🔴 **Lo que falta no es el camino: ES LA PROPAGACION, y el propio equipo lo dice en su acuse.**
+> Medido en `ESP32_Expansion/src/despachador.cpp`: la respuesta a poner la hora es
+> **`HORA_PUESTA_SIN_PROPAGAR`** — *«entro en el `DS3231` de ESTE poste»* y **no llega al otro**.
+> Ese es el segundo origen que preocupaba al arquitecto, y esta escrito en el `$ACK` desde antes.
+>
+> **2. ¿Siembra el STM32-E su reloj con la trama, o solo la reenvia?** El responsable no eligio
+> implementacion, puso el **requisito**, y es mas fuerte que cualquiera de las dos:
+>
+> > **«deben estar con la misma hora para poder trabajar; no pueden estar desincronizados»**
+>
+> **Y ese requisito disuelve el problema del desfase inicial sin necesidad de prohibir nada.** El
+> temor era que el operario pusiera el Maestro a las 10:00:00 y el Esclavo a las 10:02:30 —**150 s
+> contra un margen de 29 s**—. La cura no es quitarle el boton: es que **el Maestro EMPUJE la hora
+> al Esclavo y el Esclavo la acepte SOBRESCRIBIENDO** lo que tuviera. Entonces **da igual lo que
+> hiciera el operario y en que orden**: el desfase deja de depender de su reloj de muneca y pasa a
+> depender de la cadena, que esta acotada en **~2,8 s contra 29**.
+>
+> **Consecuencia practica, y es lo que hay que construir:** sincronizar el Esclavo desde la app deja
+> de ser peligroso —queda **inutil**, porque el Maestro lo sobrescribe—. **No hace falta barrera: la
+> barrera es la sobreescritura.**
 
 > 🔴 **Dos cosas mas que NO estaban en el plan y sin las cuales rompe:**
 >
