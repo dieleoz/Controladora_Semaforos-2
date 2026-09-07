@@ -145,7 +145,7 @@ propio arnés (`arnes del Degradado a dos puntas`, 18/18) — y **nadie puede pe
 
 | puerta | estado hoy | la medida |
 |---|---|---|
-| **Bluetooth `SET_MODO`** | **NO EXISTE en el Esclavo** | `grep -c "SET_MODO" 01_Firmware/Esclavo/src/bluetooth.cpp` → **0**. En el Maestro hay **8** (`ALCANCE`, `AMBAR`, `AUTO`, `DEGRADADO`, `HORA`, `INTELIGENTE`, `MANUAL`, `MENU`) |
+| **Bluetooth `SET_MODO`** | ~~**NO EXISTE en el Esclavo**~~ — 🔴 **las DOS cifras de esta fila estaban mal** | ~~`grep -c` → **0**~~: hoy el Esclavo tiene **10** (`15e8cf3`, `D-18`). Y en el Maestro hay **SIETE**, no ocho: `ALCANCE`, `AMBAR`, `AUTO`, `DEGRADADO`, `INTELIGENTE`, `MANUAL`, `MENU`. **~~`HORA`~~ sólo aparece DENTRO DE UN COMENTARIO que dice que ese comando NO existe — y el `grep` lo contó.** Medido el 07/09 quitando comentarios antes de contar, que es justo lo que hace `maestro_12` *«para no acusarse a sí mismo»*. La conclusión de `A-11` no cambiaba; el número publicado sí |
 | **el menú de la pantalla** | **INALCANZABLE en las dos puntas** | `menu.cpp` sí llama a `degradado_entrar()`, pero se navega con `botonAceptar()`/`botonCancelar()`, y los dos son `return false;` (`Esclavo/src/botones.cpp:550-551`, `Maestro/src/botones.cpp:539-540`) desde que `BOTON3`/`BOTON4` pasaron a ser cámaras (`D-2`) |
 | **el mando, secuencia `A.B.A.B`** | 🔴 **el CÓDIGO SIGUE VIVO Y SIGUE LEYENDO LOS PINES; lo que falta es el hardware** | `botones_actualizar()` llama a `mando_registrarPulso(MANDO_A/B)` en cada flanco de `BOTON1`(`PB9`, `J16` p5) y `BOTON2`(`PB13`, p8), y `mando.cpp` reconoce `A.B.A.B` → `confirmarYActuar(ACC_DEGRADADO)`. **Los pulsadores se retiraron (`D-1`)** |
 | **la radio** | **no vale por definición** | su muerte es justo la razón de entrar al Degradado |
