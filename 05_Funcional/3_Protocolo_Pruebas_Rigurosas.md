@@ -2094,6 +2094,22 @@ Y a los 3 minutos, seguia en AMBAR?       [ ] SI   [ ] NO, volvio a: ___________
 >    *después* de que el modo termine, y **la ANTIGÜEDAD de la última sincronización —el dato que
 >    diría cuánto le queda— no viaja en ninguna trama y perdió su único lector** al retirarse el
 >    menú (`D-17.bis`). Es el hueco de **7.10**, **9.12** y **9.13**, y sigue abierto.
+>
+>    🆕 **07/09 — ESE HUECO YA TIENE DUEÑO: `DECISIONES.md` fila `D-23`.** *«La app necesita una
+>    pantalla propia del poste 2, distinta de la que tiene hoy»* —el diagnóstico de esa punta
+>    **cuando el teléfono se conecta por Bluetooth directamente a ella**, no leyendo lo que reporta
+>    por radio a través del Poste 1—.
+>
+>    🛑 **DECIDIDA Y SIN CONSTRUIR: no entra en esta ronda y NO se le abre casilla.** No hay nada
+>    que certificar, y una casilla para algo que no existe se firma en verde por costumbre —que es
+>    justo lo que esta sección acaba de retirar cinco veces.
+>
+>    ✅ **Lo que SÍ es ejecutable hoy en el Poste 2, y ya tiene sus pruebas en otras secciones:**
+>    leer su `$STATUS` por Bluetooth (`MODO:` · `ESTADO:` · `HORA:` · `PLUMA:` · `CAM:`), sus `$EVENT`
+>    y `$ALARM`, y la consulta `CMD:LEER_RTC` contra su puente. **Lo que NO es ejecutable, y por eso
+>    no se firma:** preguntarle **cuánto le queda a las 48 h** —el dato lo calcula el firmware y su
+>    único llamador era el menú retirado—. Censo completo en
+>    `05_Funcional/14_Manual_App_Movil_IOT_VIAL.md` §5.8.
 > 2. **La entrada al Degradado del Esclavo perdió su doble confirmación** al perder la pantalla. Ver
 >    la nota de 9.6.
 

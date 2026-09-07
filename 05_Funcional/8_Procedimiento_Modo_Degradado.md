@@ -996,6 +996,19 @@ rinde por su cuenta y muestra `Limite 48h sin sync — Revise el radio`.
 > **El tope duro son 48 h en las dos.** Lo que cambia es cuándo avisa cada una, y **este documento
 > publicaba sólo el número del Maestro para las dos puntas**.
 >
+> 🔴 **Y LO QUE NINGUNA DE LAS DOS CONSTANTES ARREGLA, medido el 07/09: EL PLAZO NO SE PUEDE
+> CONSULTAR. En el POSTE 2, ni el aviso ni la cuenta salen del equipo.** El firmware del Esclavo
+> **sí sabe** cuánto hace de la última sincronización y si el plazo venció —`degradado_msDesdeSync()`,
+> `degradado_syncVencida()`, `degradado_avisoLimite()`—, y **el único llamador de los tres es
+> `Esclavo/src/menu.cpp`**, la pantalla del gabinete que `D-17.bis` retira del equipo. **No viajan en
+> ninguna trama y no hay comando para pedirlos.**
+>
+> **Así que el plazo se lleva a mano:** al dejar un poste en Degradado **se anota la hora** y se
+> vuelve **antes** de las 48 h. Lo único que el técnico verá por sí solo es el **resultado** cuando ya
+> se cumplió: `MODO:RENDIDO` y la luz en ámbar. 🆕 **Es el hueco que `DECISIONES.md` `D-23` viene a
+> cerrar — decidida el 07/09 y SIN CONSTRUIR**; el censo de lo que haría falta está en
+> `14_Manual_App_Movil_IOT_VIAL.md` §5.8.
+
 > 🛑 **Por qué importa en obra y no es un detalle:** quien espere el aviso del Esclavo a las 44 h lo
 > verá a las **40** y concluirá que el equipo va mal; y al revés, quien crea que el Maestro avisa a
 > las 40 dará por perdida una ventana que todavía tiene. **Cuente 40 h para el Esclavo y 44 para el
@@ -1682,6 +1695,21 @@ puente: **el STM32 no lo recibe.**
 > | **B** | 🔴 el **ESCLAVO no tiene** la comprobación en su bucle | `irAAmbar` **no existe** en su `modo_degradado.cpp`; sólo mira el reloj **al entrar** y **al reanudar tras corte**. Dentro del modo, esa punta **ya no vuelve a mirarlo** |
 > | **C** | 🔴 **no se publica** | ni el `$STATUS` ni la app tienen hoy dónde decir *«el reloj de este poste no es fiable»* |
 >
+> 🆕 **07/09 — LA PIEZA `C` YA TIENE DUEÑO, Y NO ES FIRMWARE: `DECISIONES.md` fila `D-23`.**
+> *«La app necesita una pantalla propia del poste 2»* —el diagnóstico de esa punta **cuando el
+> teléfono se conecta por Bluetooth directamente a ella**, no a través del Poste 1—. Y con eso la
+> propia fila `D-21` cierra la duda de si además hay que **salir** del modo: **no hace falta que el
+> equipo lo decida solo, porque el Maestro reenvía la hora periódicamente y para que esa hora se
+> vuelva mentirosa tendrían que pasar MESES. Lo que hace falta es poder DIAGNOSTICARLO cuando
+> alguien vaya.**
+>
+> 🛑 **`D-23` está DECIDIDA Y SIN CONSTRUIR — ni una línea, ni en la app ni en el firmware.** Lo
+> que SÍ está medido —qué publica y qué acepta hoy esa punta por Bluetooth, y qué datos ya calcula
+> sin que nadie pueda leerlos— está en `05_Funcional/14_Manual_App_Movil_IOT_VIAL.md` **§5.8**.
+>
+> ⚠️ **Y no releva de nada de lo de abajo:** `D-23` hace **visible** el fallo; **las piezas `A` y
+> `B` siguen siendo las que hacen que el equipo REACCIONE.** Una pantalla no pone un ámbar.
+
 > ⚠️ **Y aun así el operario NO debe esperar nada hoy, y por dos motivos distintos:** (1) el
 > Esclavo directamente no lo hace, y (2) **el ámbar del Maestro no se ejecuta nunca**, porque
 > `reloj_enHora()` es **falso siempre** —`Y2` muerto, `N-17`—, así que el Degradado **no entra** y
@@ -1834,6 +1862,13 @@ Escrito aquí porque una limitación documentada vale más que una promesa:
   describe código vivo sin actuador**, y por eso va tachado allí donde era una instrucción.
 - 🛑 **`D-16`: SIN TELÉFONO NO HAY FORMA DE OPERAR EL EQUIPO.** Es la limitación mayor de este
   procedimiento y va aquí, en el apartado de lo que no se cubre, porque no la resuelve el firmware.
+- 🛑 **`D-23` (07/09): EL DIAGNÓSTICO DEL POSTE 2 POR SÍ MISMO NO EXISTE TODAVÍA.** Está decidido
+  —*«la app, cuando se conecta a ese lado del Esclavo vía Bluetooth, podrá diagnosticarlo»*— y **no
+  hay ni una línea escrita**. Mientras tanto, quien suba al Poste 2 tiene **exactamente** esto: el
+  `$STATUS` cada 2 s (`MODO` · `ESTADO` · `HORA` · `PLUMA` · `CAM`, con `T`/`RF`/`RTT`/`BAT` en `--`
+  porque esa punta **no puede** medirlos), los `$EVENT` y `$ALARM` que el equipo emite por su cuenta,
+  y **una sola consulta**: `CMD:LEER_RTC`. **No hay forma de preguntarle cuánto le queda a las 48 h.**
+  Censo completo en `14_Manual_App_Movil_IOT_VIAL.md` §5.8.
 - ~~**El estado no sobrevive a un corte de energía** (N-20). `respaldo.cpp` está escrito pero sin
   conectar.~~ → 🛑 **CADUCADO EL 04/09: `respaldo.cpp` SÍ está conectado.** **MEDIDO:**
   `respaldo_setup()` se llama en las dos puntas —`Maestro/src/main.cpp:77` y

@@ -6,6 +6,7 @@
 **Protocolo:** ~~Bluetooth Serial SPP (HC-05 / JDY-31 a 9600 bps) / BLE GATT~~ → **Bluetooth Serial SPP a 9600 bps contra el módulo de expansión `ESP32-WROOM-32`**. Ver el aviso de cabecera  
 **Fecha de Actualización:** 28 de Agosto de 2026  
 **Última revisión:** 7 de septiembre de 2026 — **repaso contra `DECISIONES.md` y contra el fuente de hoy. NO cambió la app: cambió lo que este manual no decía.** Cuatro cosas nuevas: el aviso **`D-16`** de cabecera *(sin teléfono no hay forma de operar el equipo)*, **`D-11`** en `§5.5.1` *(aplicar tiempos NO arranca el ciclo)*, lo que la columna del Poste 2 **no puede decir nunca** (`§1.ter.3`) y el plazo de 48 h **que se quedó sin lector** (`§5.6.7`). 🟢 **Los `grep` que apuntan al FIRMWARE se re-corrieron todos el 07/09 y todos siguen dando lo que dice el texto** —el firmware se movió estos dos días (último commit sobre `bluetooth.cpp`: `4b2841b`, 07/09)—. 🟡 **Los que apuntan a la APP no se re-corrieron uno a uno, y se dice**: `app.js` e `index.html` no se tocan desde el **05/09** (`15e8cf3` y `7586c46`), y las tres copias siguen midiendo **317.993 B** idénticos. *Que el fichero no haya cambiado es un argumento, no una comprobación de cada cita: quien necesite una concreta, la corre*  
+**Añadido el 7 de septiembre de 2026 (tarde):** **`D-23` — la PANTALLA PROPIA DEL POSTE 2**, en **`§5.8`**. 🛑 **Decidida y SIN CONSTRUIR: no existe ni una línea, ni en la app ni en el firmware.** Lo que sí trae ese apartado es **el censo medido de lo que el Poste 2 publica y acepta hoy por Bluetooth**, lo que ya calcula y **nadie puede leer** —siete getters cuyo único llamador es el menú retirado por `D-17.bis`— y **lo que cuesta un campo nuevo, medido por buffer**. Se añadieron además tres remisiones a él: `§1.ter.3`, `§5.2` y `§5.6.7`  
 **Revisión previa:** 5 de septiembre de 2026 — **la app cambió 223 líneas esa noche**: tarjeta de **CÁMARAS**, **Modo Degradado del Poste 2**, el **modo real del Poste 2** y la **consulta de reloj**. Ver la caja `05/09` de la cabecera, y `§1.ter`, `§5.6` y `§5.7`  
 **Revisión anterior:** 4 de septiembre de 2026 — **banco real del 3–4/09: `N-122`, la app nunca abría el socket Bluetooth**, y **`N-124`, la lista de equipos llevaba `MAC` escritas a mano**. Los dos arreglados, y **obligan a APK nueva**. Ver la cabecera y `§4.bis`  
 **Versión de Firmware Compatible:** V8.9 / V9.0 Definitiva — ⚠️ **en campo corre la V8.4**  
@@ -581,6 +582,11 @@ La pantalla principal enseña, al lado del cruce propio, **lo que el Poste 1 sab
 > > anotado como pendiente de medir: *«se mide y se escribe qué hace el Maestro mientras el Esclavo
 > > está dentro»*. **Se anota como lo que es —un hueco medido—, no como una casilla que alguien
 > > pueda cerrar desde la interfaz.**
+
+> 🆕 **07/09 — Y ESTO YA TIENE DUEÑO: `DECISIONES.md` fila `D-23`.** *«El poste 2 no puede ser
+> sólo un renglón dentro de la pantalla del poste 1»*. Lo que esta columna no puede decir se contesta
+> **conectándose al Poste 2**, y lo que esa conexión da hoy —y lo que no— está censado en **`§5.8`**.
+> 🛑 **Decidida y SIN CONSTRUIR: no busque esa pantalla en la APK.**
 
 ### 1.ter.4 **BATERÍA 12V** — `-- V` es correcto, no es una avería
 
@@ -1200,6 +1206,11 @@ Cualquier otra cosa: `$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO`
 > *Aceptar* está mudo.
 
 ### 5.2 🛑 Lo que despacha el **ESCLAVO** — y NO es lo mismo
+
+> ℹ️ **Esta tabla dice lo que el Poste 2 ACEPTA.** Lo que PUBLICA —su `$STATUS` campo por campo, sus
+> `$EVENT` por origen, sus `$ALARM` y lo que emite además su propio puente ESP32— está censado en
+> **`§5.8.2`**, y es lo que hace falta para `D-23`. De las **once** entradas de esta tabla,
+> **exactamente una pregunta algo sin cambiar nada**: `CMD:LEER_RTC`, y la contesta el puente.
 
 **Censado el 31/08, re-medido el 04/09, y desde el 05/09 SIN COLUMNA DE LÍNEAS** — por lo mismo que
 la 5.1: el literal es el ancla y el número caduca solo.
@@ -1946,6 +1957,12 @@ Los dos datos **no viajan en ninguna trama**: no están en el `$STATUS` del Escl
 > sobra—, y **eso lo decide quien mide, no este documento.** Lo que aquí se hace es dejar escrito
 > que **el dato existe, se perdió con la pantalla, y hoy lo suple el reloj del técnico.**
 
+> 🆕 **07/09 — ESTE HUECO YA TIENE DUEÑO, Y SIGUE ABIERTO: `DECISIONES.md` fila `D-23`.** La
+> línea de arriba decía que publicar la antigüedad de la sincronización *«lo decide quien mide»*.
+> **Ya está medido** —el coste por buffer de las tres vías posibles, y la regla que ata las dos
+> puntas, en **`§5.8.6`**— y **el dato es exactamente lo que `D-23` viene a poder enseñar**. 🛑 **Lo
+> que NO ha cambiado: sigue sin construirse, y hasta que se construya el plazo se lleva a mano.**
+
 ### 5.6.6 🛑 LO QUE ESTE APARTADO NO PUEDE PROMETER
 
 * **Nadie ha pulsado este botón con un equipo delante.** Todo lo de arriba está medido en el fuente
@@ -2172,6 +2189,273 @@ libres** ~~desde que un técnico le tecleó la hora a cada uno, en ese poste, en
 > *(Comprobado el 05/09: los dos primeros devuelven **una** línea cada uno. Y la orden **NO se
 > reenvía a la controladora del semáforo**: si se reenviara, las dos puntas contestarían una
 > acusación de clave equivocada **cada vez que alguien pregunta la hora**.)*
+
+---
+
+## 5.8 🆕 `D-23` — LA **PANTALLA PROPIA DEL POSTE 2** · DECIDIDA EL 07/09 y 🛑 **SIN CONSTRUIR**
+
+> # 🛑 NO EXISTE. NI UNA LÍNEA, NI EN LA APP NI EN EL FIRMWARE
+>
+> **Este apartado NO describe una pantalla que usted vaya a encontrar en la APK.** Describe una
+> decisión —fila **`D-23`** de `DECISIONES.md`, 07/09— y, debajo, **el inventario medido de con qué
+> se podría construir**.
+>
+> Va escrito aquí porque el sitio donde se lee una decisión es el manual de quien la ejecuta, y
+> porque este repositorio **ya pagó lo contrario**: la *«Caja Negra de Alarmas»* estaba descrita en
+> **cuatro manuales**, declarada, definida y **sin un solo llamador** (`N-73`). Se cobró el día que
+> un fallo de campo no se pudo diagnosticar porque no había registro que mirar.
+>
+> ⚠️ **Y ninguna de las tablas de abajo es una maqueta.** Dicen **qué información hace falta y de
+> dónde sale**; el dibujo lo hace quien la construya. Una maqueta inventada dentro de un manual se
+> convierte en requisito sin que nadie lo haya decidido — y en este proyecto **hay tres imágenes
+> archivadas por eso**, una de ellas con una batería que el equipo no puede medir (`§1.ter.4`).
+
+### 5.8.1 Qué es, y en qué se distingue de lo que la app ya hace hoy
+
+La app de hoy enseña el cruce **leyendo lo que el Poste 2 reporta POR RADIO** — o sea, lo ve **a
+través del Poste 1** (`§1.ter.3`). `D-23` es lo otro: **lo que se ve cuando el teléfono se conecta
+por Bluetooth DIRECTAMENTE al Poste 2. El diagnóstico de esa punta por sí misma.**
+
+En palabras del responsable, fila `D-23`:
+
+> *«la app, cuando se conecta a ese lado del Esclavo vía Bluetooth, podrá diagnosticarlo; y ojo,
+> casi que esto es una pantalla para Esclavo, diferente de lo que hoy hace la app, que muestra el
+> estado del semáforo y demás leyendo las tramas que le reporta por radio el Esclavo»*
+
+| | de dónde sale el dato | hasta dónde llega |
+|---|---|---|
+| **lo que hay hoy** — la columna `POSTE 2` de la pantalla principal | el campo `ESC:` del `$STATUS` **del Poste 1** | **sólo COLOR**: `VERDE` · `ROJO` · `AMBAR` · `?`. **Ningún modo, ningún reloj, ninguna cámara, ningún plazo** — está medido y razonado en `§1.ter.3` |
+| 🆕 **lo que `D-23` pide** | el `$STATUS`, los `$EVENT`, los `$ALARM` y los `$ACK` **que emite el propio Poste 2** por su Bluetooth | el diagnóstico de esa punta, sin intermediario |
+
+**Por qué existe, y son dos motivos escritos, no uno:**
+
+- 🟢 **Resuelve `D-21` sin tocar el firmware.** La duda de `D-21` era qué hace una punta si su hora
+  se vuelve mentirosa **estando ya dentro** del Degradado. La respuesta de la fila: **el Maestro
+  reenvía la hora periódicamente, así que para que eso ocurra tendrían que pasar MESES.** No hace
+  falta que el equipo lo decida solo — **hace falta poder DIAGNOSTICARLO cuando alguien vaya.**
+- 🛑 **Es consecuencia directa de `D-16`** —*sin teléfono no hay forma de operar el equipo*, caja de
+  cabecera—. Si la app es **la única superficie de mando**, entonces **el Poste 2 no puede ser sólo
+  un renglón dentro de la pantalla del Poste 1.**
+
+---
+
+### 5.8.2 CENSO — lo que el Poste 2 **PUBLICA** hoy por Bluetooth
+
+**Medido el 07/09 sobre el fuente, en modo lectura.** Todo lo que sigue se puede pintar **sin tocar
+una línea de firmware**.
+
+> 🔴 **Lo primero, porque cambia cómo se lee todo lo demás: en el Poste 2 hay DOS emisores, no uno.**
+> El teléfono se conecta al **ESP32 de expansión** (`J17`), y por ese mismo puerto salen **las tramas
+> del STM32 marcadas `NODE:ESCLAVO`** y **las del propio puente marcadas `NODE:PUENTE`**. La marca
+> no es adorno: *«un `$EVENT` del accesorio que pareciera del STM32 mandaría a diagnosticar el poste
+> equivocado»* (comentario de `vigilante_declarar()`, `ESP32_Expansion/src/vigilante.cpp`).
+
+#### A · Lo que emite el **STM32** del Poste 2 — `NODE:ESCLAVO`
+
+| trama | cuándo sale | qué trae |
+|---|---|---|
+| **`$STATUS`** | **cada 2 s** (periódico) | `SERIE` · `MODO` · `ESTADO` · `T` · `RF` · `RTT` · `BAT` · `HORA` · `PLUMA` · `CAM` |
+| **`$ALARM`** | al declarar la caída de RF (`SFTY-6`) | `EVENTO` · `CAUSA` · **`RX:` / `OK:` / `RUIDO:`** (los tres contadores de línea, en crudo) · `ACCION` · `HORA` |
+| **`$EVENT`** | por suceso | `ORIGEN` · `DETALLE` · `HORA` |
+| **`$ACK` / `$ERR`** | como respuesta a una orden | `CMD` + `RESULT` o `DESC` |
+
+**El `$STATUS`, campo por campo y con lo que cada uno puede valer** — leído del `snprintf` y de las
+funciones que lo alimentan:
+
+| campo | valores posibles | de dónde sale |
+|---|---|---|
+| `SERIE` | 6 caracteres | `identidad_texto()` |
+| `MODO` | `SUBORDINADO` · `DEGRADADO` · `RENDIDO` · `DESCONOCIDO` | `obtenerNombreModo(degradado_estado())` — traducción en `§1.ter.5` |
+| `ESTADO` | `ROJO` · `VERDE` · `AMARILLO` · `FALLO COM` | `semaforo_nombreEstado()` |
+| `HORA` | `HH:MM:SS` o **`--:--:--`** | `reloj_enHora()` decide cuál de los dos |
+| `PLUMA` | `ARRIBA` · `ABAJO` | `semaforo_plumaArriba()` — lo escribe `semaforo.cpp`, único dueño (`SFTY-28`) |
+| `CAM` | `OK` · `?` · `CIEGA` · `PEGADA` | `camara_estado()`, **la PEOR de las dos cámaras de ese poste** |
+| `T` · `RF` · `RTT` · `BAT` | 🛑 **`--` FIJO, dentro del literal de la plantilla** | **esta punta no puede medir ninguno de los cuatro**, y el firmware lo dice en vez de inventarlo |
+
+> 🟢 **Los cuatro `--` NO son un defecto de la app ni un hueco que `D-23` deba rellenar, y el motivo
+> está medido en el propio fuente** —bloque `N-108` de `Esclavo/src/bluetooth.cpp`—:
+>
+> | | por qué esta punta no lo mide |
+> |---|---|
+> | `RTT` | **el Esclavo nunca ORIGINA una petición**: recibe `CMD_PING` y contesta `CMD_PONG`. No hay ida y vuelta que cronometrar |
+> | `RF` | no hay ventana de latidos aquí — los latidos los manda el Maestro. Lo que sí hay son **los contadores en crudo dentro del `$ALARM`** |
+> | `BAT` | **no hay un solo `analogRead()`** en `Esclavo/src` ni en `Esclavo/include`. Sin divisor y sin entrada analógica no hay batería que leer |
+> | `T` | el Esclavo es **subordinado**: su luz la decide el Maestro con `CMD_GO_GREEN`/`CMD_GO_RED`, y esas tramas **dicen QUÉ hacer, no HASTA CUÁNDO** |
+>
+> **Hasta el 31/08 esos cuatro salían con un número inventado fijo** —`RF:98%`, `RTT:85ms`,
+> `BAT:12.6`—. **Un hueco hace preguntar; un número bueno hace descartar la causa sin mirarla.**
+> `D-23` **hereda esa regla**: lo que el Poste 2 no sabe, la pantalla lo dice — no lo pinta.
+
+**Los `ORIGEN:` que puede traer un `$EVENT` de esta punta**, censados uno a uno:
+
+| `ORIGEN` | qué anuncia | dónde se arma |
+|---|---|---|
+| `APP_BLUETOOTH` | el resultado de cada orden que llega por el teléfono | `Esclavo/src/bluetooth.cpp` |
+| `ENLACE_RF` | 🟢 **la VUELTA del enlace**, con `RECUPERADO_OK:` y `RUIDO:` — la caída ya la anuncia el `$ALARM` | `Esclavo/src/bluetooth.cpp` |
+| `J17` | el silencio del cable con su propio ESP32: `MUDO:` · `MAX:` · `N:` | `Esclavo/src/bluetooth.cpp` |
+| `CAMARA` · `CAMARA_PLUMA` | el vigilante de cámaras y el contador del veto (`D-13` fase 1) | `Esclavo/src/botones.cpp` |
+| `MAESTRO` | `DEMANDA_NO_ATENDIDA_MODO_ACTUAL` | `Esclavo/src/main.cpp` |
+
+#### B · Lo que emite el **ESP32 puente** del Poste 2 — `NODE:PUENTE`
+
+| trama | cuándo sale | qué trae |
+|---|---|---|
+| **`$EVENT,EVT:ARRANQUE`** | 🟢 **al conectarse el teléfono**, una vez por conexión | `CAUSA:` (la causa de reinicio **del chip**: `SUBIDA_DE_TENSION`, `TENSION_BAJA`, `PERRO_DE_TAREAS`, `EXCEPCION_O_PANICO`…) · `ARRANQUES:` · `PERRO:ARMADO\|SIN_ARMAR` · `WDT_MS:` |
+| **`$ACK,CMD:LEER_RTC`** | a petición (`D-17`) | `FECHA:` y `HORA:` **releídas del `DS3231` en ese instante**, no de una copia en RAM |
+| **8 `$ERR,CMD:LEER_RTC`** | a petición, cuando no puede entregarla | uno por motivo: `NUNCA_SE_PUSO_PONGA_LA_HORA` · `OSCILADOR_PARADO_CAMBIE_PILA` · `SIN_RELOJ_NO_RESPONDE` · `ESCRITURA_A_MEDIAS_REPITA_SET_RTC` · `MODO_12H_PONGA_LA_HORA` · `REGISTROS_INCOHERENTES` · `BARRERA_INCOHERENTE` · `MOTIVO_NO_CONTEMPLADO` — desglosados en `§5.7.3` |
+| **`$ACK` / `$ERR` de `SET_RTC`** | a petición | incluido `RESULT:HORA_PUESTA_SIN_PROPAGAR` — ⚠️ ver `D-20` y `§4`: **al Poste 2 no se le pone la hora** |
+| **`$ERR,CMD:DESCONOCIDO,DESC:LINEA_DEMASIADO_LARGA`** | ante una línea que no cabe | — |
+
+> 🟢 **El `OSCILADOR_PARADO_CAMBIE_PILA` es exactamente el `OSF` del `DS3231` que `D-21` necesita**,
+> y **ya llega al teléfono hoy** — pero **sólo si alguien pregunta**, y **sólo por `CMD:LEER_RTC`**.
+> No hay nada periódico que lo anuncie. Ver `5.8.5`.
+
+> **Los `grep` de este censo, corridos el 07/09 antes de publicarlos:**
+>
+> ```bash
+> grep -n 'snprintf' 01_Firmware/Esclavo/src/bluetooth.cpp
+> grep -c 'bluetooth_reportarEvento(' 01_Firmware/Esclavo/src/bluetooth.cpp   # 21 (una es la definicion)
+> grep -c 'bluetooth_reportarEvento(' 01_Firmware/Esclavo/src/botones.cpp     # 2
+> grep -c 'bluetooth_reportarEvento(' 01_Firmware/Esclavo/src/main.cpp        # 1
+> grep -n 'puente_emitirPropio' 01_Firmware/ESP32_Expansion/src/despachador.cpp
+> grep -n 'FORMATO_PARTE' 01_Firmware/ESP32_Expansion/src/vigilante.cpp
+> ```
+>
+> *(Se citan por **símbolo y por fichero**, no por número de línea: el 07/09 un manual publicó un
+> `grep` fechado cuyas líneas dejaron de reproducir el mismo día porque un commit insertó
+> comentarios encima. `CLAUDE.md` §4.sexies.)*
+
+---
+
+### 5.8.3 CENSO — lo que el Poste 2 **ACEPTA** hoy por Bluetooth
+
+**Son 10 ramas más la guarda del PIN**, y la tabla entera con sus acuses vive en **`§5.2`** — no se
+copia aquí para no tener dos versiones de lo mismo. Lo que hace falta saber para `D-23`:
+
+| lo que el Poste 2 acepta | ¿sirve para DIAGNOSTICAR? |
+|---|---|
+| `CMD:AMBAR_EMERGENCIA` *(con y sin PIN)* · `CMD:PIN:1234:CANCELAR_AMBAR` · `CMD:PIN:1234:SOLICITAR_PASO` · `CMD:PIN:1234:SET_MODO:DEGRADADO` | **no: son órdenes.** Operan, no informan |
+| `$LATIDO` | no se contesta; sólo cierra un silencio |
+| `CMD:FORZAR_ROJO` *(y su forma con PIN)* · `CMD:PIN:1234:TEST_LEDS` | rechazadas con `$ERR` y su motivo |
+| `CMD:PIN:1234:SET_RTC:…` | consumida en silencio por el STM32 (`D-15`); **el acuse lo da el puente**. Y `D-20` dice que **esta orden no se manda al Poste 2** |
+| **`CMD:LEER_RTC`** | 🟢 **SÍ, y es el único.** Lo atiende **el puente**, no la controladora (`§5.7`) |
+
+> 🔴 **Ése es el hallazgo del censo, y es de los que deciden el diseño: de las once entradas que
+> tiene el Poste 2, EXACTAMENTE UNA pregunta algo sin cambiar nada.** Todo lo demás que la pantalla
+> pueda enseñar tiene que salir de lo que el equipo emite **por su cuenta**, o de un comando nuevo.
+
+---
+
+### 5.8.4 🔴 EL PRODUCTO DE ESTE CENSO: **el dato existe, el firmware lo calcula, y hoy no puede leerlo nadie**
+
+**Ésta es la parte que `D-23` viene a arreglar, y no hace falta inventar la medida: hace falta darle
+salida.** El firmware del Poste 2 **ya calcula** siete cosas sobre su propio Modo Degradado. **El
+único llamador de todas ellas es `menu.cpp`** — la pantalla del gabinete que **`D-17.bis` retira del
+equipo**.
+
+| lo que el Poste 2 ya sabe de sí mismo | símbolo | único llamador hoy |
+|---|---|---|
+| si alguna vez lo sincronizaron | `degradado_huboSync()` | `Esclavo/src/menu.cpp` |
+| **cuánto hace de la última sincronización** | `degradado_msDesdeSync()` | `Esclavo/src/menu.cpp` |
+| si esa autorización **venció** (el límite duro de 48 h) | `degradado_syncVencida()` | `Esclavo/src/menu.cpp` |
+| si está **en las últimas horas** del plazo | `degradado_avisoLimite()` | `Esclavo/src/menu.cpp` |
+| **cuántos segundos le quedan al tramo actual** del ciclo | `degradado_segundosParaCambio()` | `Esclavo/src/menu.cpp` |
+| en qué **fase** del ciclo va, en texto | `degradado_textoFase()` | `Esclavo/src/menu.cpp` |
+| **cuántas horas hace de la sincronización**, ya en horas | `respaldo_horasDesdeSync()` | 🛑 **ninguno fuera de `modo_degradado.cpp`**: es interno |
+
+```bash
+grep -rn 'degradado_huboSync\|degradado_msDesdeSync\|degradado_syncVencida\|degradado_avisoLimite\|degradado_segundosParaCambio\|degradado_textoFase' 01_Firmware/Esclavo/src/
+```
+
+*(Corrido el 07/09: **8 apariciones en `menu.cpp`** y **1 en `bluetooth.cpp`** — y esa una **está
+dentro de un comentario**, el que explica por qué el número no se publica. Se dice porque
+`CLAUDE.md` §4 ya cobró tres veces el mismo error en una noche: **los `grep` de este repositorio
+cuentan comentarios**, y los comentarios de aquí citan justo lo que explican.)*
+
+> 🛑 **Consecuencia, y es la frase que hay que llevarse: la ANTIGÜEDAD DE LA ÚLTIMA SINCRONIZACIÓN
+> NO VIAJA EN NINGUNA TRAMA DEL POSTE 2.** No está en su `$STATUS`, no está en el `ESC:` del Poste 1
+> y **no hay comando para pedirla**. Al retirarse el menú, **el técnico que sube al Poste 2 se quedó
+> sin ese dato y sin sustituto**, y lo único que verá es el **resultado** del plazo cuando ya se
+> haya cumplido: el rótulo pasa a `DEGRADADO VENCIDO (48 h)` y la luz queda en ámbar. **Es el hueco
+> de `§5.6.7`, y `D-23` es su dueño.**
+
+---
+
+### 5.8.5 Lo que **NO existe** en el Poste 2 y habría que construir
+
+**Separado del apartado anterior a propósito.** Arriba está lo que **existe y no tiene salida** —lo
+barato—; aquí lo que **no existe**, que es firmware nuevo.
+
+| lo que la pantalla querría decir | estado hoy, medido | qué haría falta |
+|---|---|---|
+| *«este poste entró / salió del Degradado»* | 🛑 **el Esclavo no publica NADA propio sobre ese estado**: `grep -c 'bluetooth_reportar' 01_Firmware/Esclavo/src/modo_degradado.cpp` → **0**. Sólo hay el `$ACK` de la orden y el campo `MODO:` | un `$EVENT` desde `modo_degradado.cpp` |
+| *«el reloj de ESTE poste está sano»* | 🛑 **asimétrico y nadie lo había anotado: el Maestro declara `reloj_diagnostico()` y lo publica en un `$EVENT ORIGEN:RELOJ`; el `reloj.h` del Esclavo NO LO DECLARA.** `grep -c 'reloj_diagnostico' 01_Firmware/Esclavo/include/reloj.h` → **0** | portar el getter y su emisor a esta punta — es la pieza **C** de `D-21` |
+| *«el `DS3231` de este poste tiene el `OSF` puesto»* | 🟡 **existe pero sólo bajo demanda**: llega como `$ERR,CMD:LEER_RTC,DESC:OSCILADOR_PARADO_CAMBIE_PILA`, y **sólo si alguien pregunta** | que el puente lo anuncie sin que se lo pidan, o que la pantalla pregunte al abrirse |
+| *«cuánto le queda a las 48 h»* | 🔴 el dato **existe** (`5.8.4`) y **no tiene salida** | una salida — ver `5.8.6`, que es donde está el coste |
+| *«qué está haciendo el otro poste»* | 🛑 **imposible desde aquí, y no es un defecto:** el Esclavo **no tiene a quién preguntarle** por el Poste 1. Por eso `ESC:` lo emite sólo el Maestro | nada: **la pantalla lo declara y no lo finge** |
+
+> 🟢 **Y una que ya está resuelta, para que nadie la vuelva a abrir:** *«¿en qué modo está el Poste
+> 2?»* **se contesta hoy**, conectándose a él y leyendo su `MODO:` (`§1.ter.5`). Lo que **no** se
+> puede es verlo desde el Poste 1 — eso es `§1.ter.3`, y ahí está medido por qué.
+
+---
+
+### 5.8.6 🔴 Lo que cuesta un campo nuevo — **medido por BUFFER, no supuesto**
+
+**Antes de que nadie proponga *«pues que lo mande en el `$STATUS`»*: no es gratis, y el número no
+es el que parece.**
+
+| punta | peor caso del `$STATUS` **por buffer** | techo | libre |
+|---|---|---|---|
+| **Maestro** | **151** caracteres | `payload[155]`, impuesto por `tramaCompleta[160]` | 🔴 **3** |
+| **Esclavo** | **133** caracteres *(84 de plantilla + 49 de campos)* | el mismo `payload[155]` | 🟡 **22** |
+
+*(Recalculado el 07/09 acotando **cada campo por SU BUFFER** —lo único que `snprintf` garantiza sin
+modelar tipos, `CLAUDE.md` §7.bis—, y coincide con la cuenta que el propio fuente deja escrita en
+las dos puntas. `155` no es holgura elegida: es el máximo que `tramaCompleta[160]` admite una vez
+descontado el cierre `*XX` con su `CR` y su `LF`.)*
+
+> 🔴 **Y los 22 del Esclavo NO son 22 de margen utilizable, porque hay una regla que ata las dos
+> puntas — y es la parte que hay que leer antes de diseñar nada.**
+>
+> El pack `documentos_03_trama_status` exige que **el Esclavo no emita ningún campo que el Maestro
+> no emita**. No es simetría de oficio: *«un campo de más en el Maestro es información que el otro
+> poste no tiene, y la app lo puede ocultar; un campo de más en el ESCLAVO es un contrato que sólo
+> existe en un poste, que es el caso que nadie recordaría mantener»*.
+>
+> **Consecuencia: un campo nuevo en el `$STATUS` del Poste 2 obliga a ponerlo también en el del
+> Poste 1 — y allí quedan 3 caracteres.** El presupuesto que decide **no es el del Esclavo: es el
+> del Maestro.** Y arrastra además el **Manual 10** y el **parser de `app.js`**, que el mismo pack
+> obliga a mantener idénticos.
+
+**Las tres vías, con lo que cuesta cada una. No se elige aquí:**
+
+| vía | qué cuesta | qué se gana |
+|---|---|---|
+| **campo nuevo en el `$STATUS`** | 🔴 las **dos** puntas + Manual 10 + parser. **Tope: 3 caracteres en el Maestro** | el dato **periódico**, sin pedirlo |
+| **un `$EVENT` nuevo** | una punta. `payload[112]` con una plantilla fija de 42 caracteres: **cabe con holgura** | el dato **cuando cambia**, y queda en el Diario de Órdenes (`§5.4.2.bis`) |
+| **un comando nuevo con su `$ACK`** — el molde es `CMD:LEER_RTC` (`D-17`) | una punta, y **no gasta ni un byte del segundo periódico** | el dato **cuando el técnico lo pide**, que es exactamente el caso de uso de `D-23`: alguien **está** delante del poste |
+
+> ⚠️ **`SIN VERIFICAR`, y se dice en vez de decidirse: cuál de las tres vías se usa NO lo decide este
+> manual.** Las tres están medidas; elegir es una decisión del responsable, y **una decisión tomada
+> sobre un informe incompleto hereda el error y además lo blinda** (`CLAUDE.md` §2.quater). Lo que
+> aquí queda escrito es el coste de cada una, que es lo que faltaba para poder decidirla.
+
+---
+
+### 5.8.7 🛑 Lo que este apartado NO promete
+
+* **No hay pantalla.** Ni maqueta, ni disposición, ni nombres de botones. **`D-23` está decidida y
+  no construida**, y la fila lo dice así.
+* **No hay APK que lo traiga.** Ninguna de las de `05_Funcional/` tiene nada de esto.
+* **No se ha tocado el firmware para escribir esto**: todo el censo es lectura.
+* **No resuelve `D-21` por sí solo.** `D-21` sigue teniendo sus piezas **A** y **B** —el `OSF` que
+  no llega a `reloj_enHora()`, y la guarda que el Esclavo no tiene dentro de su bucle—. Lo que
+  `D-23` resuelve es **la tercera, la `C`: que se pueda VER**. Ver `8_Procedimiento_Modo_Degradado.md`,
+  Riesgo 3.
+* **Y no cierra el `20/20` de nada.** Mientras `D-23` no tenga una línea de código, el pack
+  `decisiones_01_anclas` seguirá acusando —con razón— que **`D-23` no tiene ancla en el firmware**.
+  Ese rojo es correcto: **es una decisión sin construir, y el instrumento lo dice.**
 
 ---
 
