@@ -6,8 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-// D-17 / D-23: el reloj se puede CONSULTAR sin cambiarlo, y contesta quien lo tiene.
-// D-23: Diagnostico del Poste 2 desde la app cuando se conecta directamente a el.
+// D-17: el reloj se puede CONSULTAR sin cambiarlo, y contesta quien lo tiene.
 //
 // Es consecuencia directa de D-15 -el STM32 no tiene reloj-, y es mejor que sincronizar:
 // hasta esta decision la unica forma de leer la hora era mandarla, y con eso se perdia

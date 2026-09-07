@@ -376,8 +376,6 @@ static const char* obtenerNombreModo(EstadoDegradado e) {
   }
 }
 
-// D-23: LA APP NECESITA UNA PANTALLA PROPIA DEL POSTE 2.
-// Diagnostico directo del Esclavo por Bluetooth: telemetria ($STATUS), bitacora ($EVENT), y ordenes locales (AMBAR, DEGRADADO, SET_RTC, etc.).
 // D-16: SIN TELEFONO NO HAY FORMA DE OPERAR ESTE POSTE, y este despachador es la razon:
 // es la UNICA superficie de mando que le queda. Es una propiedad declarada del sistema,
 // no una averia, y aqui pesa mas que en el otro extremo -alli al menos queda la pantalla
