@@ -272,6 +272,36 @@ B»* —falso por `D-1` y por `D-18`—; `mando.h` razonaba **como comprar un re
 comprar** y llamaba *«boton ACEPTAR»* a lo que hoy es una camara; `reloj.h` daba el cristal `Y2`
 por fuente de hora estando **confirmado muerto**; `menu.h` describia un menu que no se navega.
 
+### 3.5.bis · 🟢 `decisiones_01_anclas` — el instrumento que corta el bucle, y sus dos mitades
+
+**El bucle, dicho por el responsable el 07/09:** *«cambiamos varias veces las spec y el codigo
+arrastra cosas de una spec y de otra; lanzas subagentes y todos desarrollan con una version o con
+otra, y vamos y volvemos»*. Y su segunda mitad, unas horas despues: *«cada que preguntas algo lo
+olvidas y luego desarrollas spec old»*.
+
+**El pack comprueba CORRESPONDENCIA, nunca verdad**, y son dos mitades:
+
+| mitad | que exige | por que |
+|---|---|---|
+| **1 · al CODIGO** | todo `D-x` **vigente** tiene ancla en el fuente; todo **derogado**, cero | si el codigo no dice a que decision obedece, **el siguiente agente la implementa otra vez o la deshace** |
+| **2 · al DOCUMENTO** | todo `D-x` vigente **se nombra** en algun `.md` de `05_Funcional` o `04_Manuales` | si la decision no llega a quien la ejecuta con las manos, **el manual sigue contando la version anterior** |
+
+**Nace calibrado, y eso se midio antes de escribirlo:** de **20 vigentes, 17 ya estaban citadas en
+algun documento y 3 no**. Un check que hubiera dado 15 rojos habria ahogado la senal.
+
+**Lo que NO mide, y va escrito dentro del pack para que nadie lo lea de mas:** comprueba que el
+documento **NOMBRA** la decision, **no que la cuente bien**. Un manual puede citar `D-x` y
+describirlo al reves. Eso no lo ve un pack sin juzgar prosa, y **juzgar prosa es la industria de
+sustitucion**: esa mitad solo la cierra alguien leyendo.
+
+**Se le vio fallar en las dos direcciones**, con parche en memoria y el fuente intacto —hash de
+`mando.cpp` identico antes y despues—: quitar toda ancla a un vigente lo tumba, anadir un ancla a un
+derogado tambien.
+
+**Los tres huecos que encontro el primer dia:** `D-7` —en Manual, `DAR PASO` **alterna** y termina en
+rojo+verde: puro procedimiento de operario y **en ningun manual**—, `D-8` —el ambar conserva sus dos
+vetos, y el banco tumbo **dos veces** la version sin cerrojo— y `D-20`.
+
 ### 3.6 · 🟠 Dos defectos de los propios INSTRUMENTOS, medidos al levantar el mapa (07/09)
 
 | | que | por que importa |

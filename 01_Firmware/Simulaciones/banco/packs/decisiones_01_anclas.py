@@ -134,7 +134,54 @@ def correr(b, fw):
                 "se retira y esa decision pasa a exigir ancla como las demas"
                 % (tocan or "ya tiene ancla en %s" % sorted(censo.get("D-10", ()))))
 
-    # ---- 4. CONTROLES NEGATIVOS: las dos direcciones, con parche EN MEMORIA ----
+    # ---- 4. LA OTRA MITAD: la decision tiene que LLEGAR A LOS DOCUMENTOS ----
+    #
+    # POR QUE EXISTE, y lo dijo el responsable con estas palabras el 07/09:
+    #
+    #   "y ojo, si esto lo tomas asi, actualizas manuales, spec, etc. Cada que preguntas
+    #    algo lo olvidas y luego desarrollas spec old"
+    #
+    # Tiene razon y es el defecto central del proyecto. Se decide, se escribe la fila, y
+    # el manual sigue contando la version anterior; despues alguien desarrolla contra el
+    # manual y DESHACE lo decidido. El apartado 1 vigila que la decision llegue al CODIGO;
+    # este vigila que llegue a QUIEN LA EJECUTA CON LAS MANOS, que es la otra mitad y la
+    # que se olvida — de las 20 vigentes, al escribir esto habia 17 citadas y 3 no.
+    #
+    # QUE NO MIDE, y va escrito para que nadie lo lea de mas: comprueba que el documento
+    # NOMBRA la decision, no que la cuente bien. Un manual puede citar D-x y describirlo
+    # al reves. Eso no lo puede ver un pack sin juzgar prosa, y juzgar prosa es la
+    # industria de sustitucion. Lo unico que cierra esa mitad es que alguien lo lea.
+    # El directorio se CENSA, no se lista a mano: una lista escrita aqui se queda corta
+    # el dia que alguien anade un manual, y entonces esta comprobacion aprueba sin haber
+    # mirado donde hacia falta.
+    import os
+    raiz = os.path.dirname(fw.ruta_repo("DECISIONES.md"))
+    docs = ""
+    for carpeta in ("05_Funcional", "04_Manuales"):
+        d = os.path.join(raiz, carpeta)
+        if not os.path.isdir(d):
+            raise fw.Abortado(
+                "no existe la carpeta %s. Es donde viven los documentos que ejecutan las "
+                "decisiones: sin ella este apartado no mide nada" % carpeta)
+        for n in sorted(x for x in os.listdir(d) if x.endswith(".md")):
+            docs += fw.texto_repo(carpeta, n)
+    if len(docs) < 50000:
+        raise fw.Abortado(
+            "el censo de documentos devolvio %d caracteres: no puede ser todo 05_Funcional "
+            "y 04_Manuales juntos. Sin leerlos, este apartado aprobaria por vacio -que es "
+            "justo lo que vino a impedir-" % len(docs))
+
+    b.titulo("cada decision VIGENTE llega al documento que la ejecuta")
+    for d in vigentes:
+        citada = re.search(r"(?<![\w-])%s(?![\w-])" % re.escape(d), docs) is not None
+        b.verificar(citada,
+                    "%s se nombra en algun manual o spec" % d,
+                    "%s esta VIGENTE y NO se nombra en ningun .md de 05_Funcional ni de "
+                    "04_Manuales. La decision existe en la tabla y NO ha llegado a quien la "
+                    "ejecuta con las manos: el manual sigue contando la version anterior, y "
+                    "el siguiente que lo lea desarrollara contra la spec vieja" % d)
+
+    # ---- 5. CONTROLES NEGATIVOS: las dos direcciones, con parche EN MEMORIA ----
     b.titulo("controles negativos")
     victima = next((d for d in vigentes if d not in EXCEPCIONES and censo.get(d)), None)
     if victima is None:
