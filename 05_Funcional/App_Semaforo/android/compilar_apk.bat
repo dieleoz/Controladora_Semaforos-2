@@ -43,9 +43,9 @@ if %ERRORLEVEL% neq 0 (
 
 :: 4. Compilar con Gradle
 echo.
-echo [2/3] Compilando APK con Gradle assembleDebug...
+echo [2/3] Compilando APK con Gradle clean assembleDebug...
 cd /d "%~dp0"
-call gradlew.bat assembleDebug
+call gradlew.bat clean assembleDebug
 
 if %ERRORLEVEL% equ 0 (
     echo.
