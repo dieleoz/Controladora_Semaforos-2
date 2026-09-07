@@ -66,21 +66,21 @@ se acumula un `20/20` que no acerca una tarjeta (`CLAUDE.md` §2.bis).
    `{msgID, command, param, crc}` y **no tiene campo de dirección**; el CRC cubre 3. Meter
    direccionamiento cambia el contrato de la radio en las dos puntas. **Aplazado a después del
    banco por decisión del responsable.**
-4. **`validateTiempos()` de los unitarios de la app sigue en 1..15 min** cuando el C++ está en
-   **3..15** (`VERDE_MIN_MIN = 3`, `limites_ciclo.h`). **No falla porque ninguno de sus siete
-   casos toca el borde**: no prueba ni 1 ni 2. Es una copia vieja **que no puede fallar**, y
-   lleva la palabra «probado» encima. Invertirla es un §8.quater aparte.
-5. **`buildCommand()`** de esa misma suite sigue siendo copia a mano de `generarComando()`, que
+4. **`buildCommand()`** de esa misma suite sigue siendo copia a mano de `generarComando()`, que
    tiene cero llamadores **a propósito**. Unificarlo mueve la pregunta abierta del `*XX` que
    vigila `simulador_puente_esp32.py`.
-6. **Retirar `parseStatus()` de verdad** exige tocar `simulador_app_bluetooth.py` y
+5. **Retirar `parseStatus()` de verdad** exige tocar `simulador_app_bluetooth.py` y
    `documentos_03`. Hoy queda como **vista tipada** encima del único partidor, no como un segundo
    parseo — que era el defecto.
-7. **`FW-N53`** — la inhibición de secuencias ya está en las dos puntas; falta decidir si se
+6. **`FW-N53`** — la inhibición de secuencias ya está en las dos puntas; falta decidir si se
    redefinen los gestos (hoy Auto es `A·A·A` y Ámbar `B·B·B`). Es **decisión de spec**: cambia el
    Manual 1, el Manual 3 y el adiestramiento del operario.
-8. **`APP-APK`** — recompilar la APK. La del disco es de `a8e1ceb` (28/08) y el árbol le pasó
+7. **`APP-APK`** — recompilar la APK. La del disco es de `a8e1ceb` (28/08) y el árbol le pasó
    por encima después.
+
+> ~~**`validateTiempos()` de los unitarios de la app sigue en 1..15 min**~~ — **CERRADO el 07/09**:
+> sincronizado a 3..15 min (`VERDE_MIN_MIN = 3`, `limites_ciclo.h`) con comprobaciones en los bordes
+> (1 y 2 min rechazados). Suite en 32/32 PASS.
 
 > ~~**`MANDO_A`/`MANDO_B` no responden — `0,6 V` en reposo (N-118), y van cableados**~~ —
 > **REFUTADO el 05/09** (`d020f3c`), con la medida del propio banco: en `617bd00` —el binario que

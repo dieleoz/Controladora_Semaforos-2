@@ -105,11 +105,11 @@ function validateTiempos(verdeMin, rojoMin, despejeSeg) {
   const r = parseInt(rojoMin, 10);
   const d = parseInt(despejeSeg, 10);
 
-  if (isNaN(v) || v < 1 || v > 15) {
-    return { valid: false, error: 'VERDE_OUT_OF_RANGE', msg: 'Verde debe estar entre 1 y 15 min.' };
+  if (isNaN(v) || v < 3 || v > 15) {
+    return { valid: false, error: 'VERDE_OUT_OF_RANGE', msg: 'Verde debe estar entre 3 y 15 min.' };
   }
-  if (isNaN(r) || r < 1 || r > 15) {
-    return { valid: false, error: 'ROJO_OUT_OF_RANGE', msg: 'Rojo debe estar entre 1 y 15 min.' };
+  if (isNaN(r) || r < 3 || r > 15) {
+    return { valid: false, error: 'ROJO_OUT_OF_RANGE', msg: 'Rojo debe estar entre 3 y 15 min.' };
   }
   if (isNaN(d) || d < 10 || d > 90) {
     return { valid: false, error: 'DESPEJE_OUT_OF_RANGE', msg: 'Despeje todo-rojo debe estar entre 10 y 90 seg.' };
@@ -316,8 +316,8 @@ runTest('Tiempos', 'Parámetros válidos en rango estándar (Verde=3m, Rojo=4m, 
   assert.strictEqual(res.despeje, 25);
 });
 
-runTest('Tiempos', 'Rechazo de tiempo Verde menor a 1 minuto (0 min)', () => {
-  const res = validateTiempos(0, 4, 25);
+runTest('Tiempos', 'Rechazo de tiempo Verde menor a 3 minutos (2 min)', () => {
+  const res = validateTiempos(2, 4, 25);
   assert.strictEqual(res.valid, false);
   assert.strictEqual(res.error, 'VERDE_OUT_OF_RANGE');
 });
@@ -328,8 +328,8 @@ runTest('Tiempos', 'Rechazo de tiempo Verde mayor a 15 minutos (20 min)', () => 
   assert.strictEqual(res.error, 'VERDE_OUT_OF_RANGE');
 });
 
-runTest('Tiempos', 'Rechazo de tiempo Rojo menor a 1 minuto', () => {
-  const res = validateTiempos(3, 0, 25);
+runTest('Tiempos', 'Rechazo de tiempo Rojo menor a 3 minutos (1 min)', () => {
+  const res = validateTiempos(3, 1, 25);
   assert.strictEqual(res.valid, false);
   assert.strictEqual(res.error, 'ROJO_OUT_OF_RANGE');
 });
