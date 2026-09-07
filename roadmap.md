@@ -280,6 +280,48 @@ siembra + `0–1 s` truncado en la radio + `0,5 s` de aire + **`1,2 s` de deriva
 > siempre**. O sea: `D-18` esta construida —el comando existe y llega— **y el equipo va a contestar
 > que no, correctamente, todas las veces**. Quien lo pruebe sin saber esto lo anotara como defecto.
 
+### 3.4.ter · 🔴 `D-21` y `D-22` — las dos que salieron de preguntar «¿y como lo SABE el Esclavo?»
+
+**`D-21` · Una hora que no es fiable NO es «sin hora»: es una hora que MIENTE, y se responde con
+AMBAR INTERMITENTE en la punta que la tiene** — y se publica, para que la app lo ensene.
+
+El escenario lo puso el responsable: **la pila se agota y el reloj queda clavado en una fecha
+pasada**. Eso no es quedarse sin hora: es tener una que **daria verdes con toda confianza**. Encaja
+con la doctrina del manual —ambar = *«no estoy controlando, decide tu»*, el conductor llega
+**alerta**—, y por eso la respuesta es ambar y no rojo.
+
+> 🟢 **La deteccion YA EXISTE y no hay que inventarla:** el `DS3231` levanta su bit **`OSF`** al
+> pararse, y `reloj_ds3231.cpp` ya declara *«una hora con `OSF` puesto es NO FIABLE aunque los
+> registros traigan valores plausibles»*. **Lo que falta es que esa declaracion llegue a las luces.**
+
+⚠️ **Y no se puede ordenar «ambar en las DOS»: en Degradado no hay radio.** Cada punta decide por su
+cuenta. La asimetria que queda es el `Riesgo 2` del manual, **aceptado el 01/08 y sin solucion
+tecnica sin radio**.
+
+**`D-22` · `Y1` (8 MHz) pasa a ser el reloj de sistema del STM32.** Esta **montado y hoy no lo usa
+nadie**: el firmware arranca con el HSI.
+
+| corriendo libre, sin siembra | error tras 1 hora | tras 48 h |
+|---|---|---|
+| **HSI** (hoy), 10.000–25.000 ppm | **~36 s** | inservible |
+| **`Y1`** como HSE, 20–50 ppm | **~0,1 s** | **~5 s** |
+
+Contra un margen de cruce de **29 s**, convierte *«pierdo la siembra y a los minutos soy
+peligroso»* en *«aguanto dias»*. **No cuesta hardware: el cristal ya esta soldado.**
+
+> ⚠️ **PRECONDICION MEDIBLE: `Y1` NUNCA SE HA ARRANCADO** —el firmware jamas lo ha seleccionado— y
+> **`Y2`, el otro cristal de esa misma placa, esta muerto**. Si `Y1` no oscila, el arranque **cae al
+> HSI y lo DECLARA**: ni se cuelga ni finge precision que no tiene. Y **la salud de cada reloj y
+> cada cristal se publica** en bitacora y en la app.
+
+> 🔴 **Y UN AVISO SOBRE EL PROPIO INSTRUMENTO, que hay que mirar antes de que sea tarde:** con
+> `D-14`, `D-20`, `D-21` y `D-22`, el banco lleva ya **cuatro decisiones VIGENTES SIN CONSTRUIR** y
+> dos sin llegar al manual. Cada rojo es legitimo —**todos se apagan construyendolos**, ninguno es
+> de los que ningun firmware puede cerrar—, pero `CLAUDE.md` §1 avisa de lo otro: **un codigo de
+> salida que no cambia nunca ensena a ignorarlo**. **La cuenta de «decidido y sin construir» es hoy
+> la cifra que hay que vigilar**, y si sigue subiendo el problema ya no es el instrumento: es que se
+> esta decidiendo mas rapido de lo que se construye.
+
 ### 3.5 · 🔴 Lo que salio de ANCLAR las decisiones en el codigo (07/09) — `N-158`
 
 El 07/09 se anclaron las `D-x` vigentes en el fuente: **de 5 marcas a 16**. El motivo lo dijo el
