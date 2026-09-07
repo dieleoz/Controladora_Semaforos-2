@@ -88,8 +88,8 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
-| banco por packs *(77 packs)* | ❌ | **1222/1226 comprobaciones en 77 packs** — las dos que faltan son el hallazgo de `decisiones_01_anclas`: `D-14` y `D-17` están **VIGENTES** en `DECISIONES.md` y **no tienen una sola ancla** en el firmware. El NUMERADOR no lo vigila `documentos_01` a propósito —se estaría midiendo a sí mismo—; de eso se encarga `documentos_05` comparando las copias entre sí |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **87.6 %** · 63.7 % · 20.6 % · 35.7 % — *el Maestro ocupa **57416 de 65536 B**, o sea **8.120 B libres**; el Esclavo, **41772 B*** |
+| banco por packs *(77 packs)* | ✅ | **1230/1230 comprobaciones en 77 packs** — D-14, D-20, D-21, D-22 y D-23 integradas y ancladas |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **88.4 %** · 68.5 % · 20.6 % · 35.7 % — *el Maestro ocupa **57956 de 65536 B**, o sea **7.580 B libres**; el Esclavo, **44912 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.7 % — 1122973 de 3.145.728 B |

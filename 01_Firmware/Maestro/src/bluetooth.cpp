@@ -696,9 +696,7 @@ static void procesarComando(const char* cmd) {
     // D-20: LA AUTORIDAD DE LA HORA ES EL ESP32 (DS3231).
     // El ESP32 reenvia el SET_RTC al STM32 para sembrar su extrapolador y propagar al Esclavo.
     // D-15: Solo el ESP32 contesta al celular con $ACK/$ERR para evitar doble acuse.
-    int anio = 0, mes = 0, dia = 0, h = 0, m = 0, s = 0;
-    if (sscanf(accion + 8, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) == 6) {
-      reloj_ajustar((uint8_t)h, (uint8_t)m, (uint8_t)s, (uint8_t)dia);
+    if (reloj_sembrarDesdeIso(accion + 8)) {
       coordinador_sincronizarHora();
     }
     bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");

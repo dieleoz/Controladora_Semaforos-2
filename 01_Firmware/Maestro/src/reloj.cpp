@@ -244,6 +244,16 @@ void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo, uint8_t dia) {
   }
 }
 
+bool reloj_sembrarDesdeIso(const char* str) {
+  if (str == nullptr) return false;
+  int anio = 0, mes = 0, dia = 0, h = 0, m = 0, s = 0;
+  if (sscanf(str, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) == 6) {
+    reloj_ajustar((uint8_t)h, (uint8_t)m, (uint8_t)s, (uint8_t)dia);
+    return true;
+  }
+  return false;
+}
+
 void reloj_ajustarFranjaNocturna(uint8_t horaInicio, uint8_t horaFin) {
   if (horaInicio > 23 || horaFin > 23) return;
   nocheInicio = horaInicio;

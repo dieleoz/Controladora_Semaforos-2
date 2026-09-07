@@ -124,3 +124,4 @@ uint32_t reloj_segundosDelDia();
 // resultado posible. Con los calendarios acoplados las dos fallan a la vez:
 // simetrico y seguro.
 void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo = 0, uint8_t dia = 0);
+bool reloj_sembrarDesdeIso(const char* str);

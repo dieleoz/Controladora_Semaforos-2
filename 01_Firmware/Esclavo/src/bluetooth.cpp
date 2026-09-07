@@ -787,10 +787,7 @@ static void procesarComando(const char* cmd) {
     // D-20: LA AUTORIDAD DE LA HORA ES EL ESP32 (DS3231).
     // Si entra SET_RTC por Bluetooth local en Poste 2, siembra el extrapolador del Esclavo.
     // D-15: Solo el ESP32 contesta al celular con $ACK/$ERR para evitar doble acuse.
-    int anio = 0, mes = 0, dia = 0, h = 0, m = 0, s = 0;
-    if (sscanf(accion + 8, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) == 6) {
-      reloj_ajustar((uint8_t)h, (uint8_t)m, (uint8_t)s, (uint8_t)dia);
-    }
+    reloj_sembrarDesdeIso(accion + 8);
     bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
   } else {
     enviarTramaConCrc("$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO");

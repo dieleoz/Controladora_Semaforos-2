@@ -148,6 +148,15 @@ void reloj_ajustar(uint8_t h, uint8_t m, uint8_t s, uint8_t d) {
   if (d) rlj_dia = d;
   rlj_enHora = true;
 }
+bool reloj_sembrarDesdeIso(const char* str) {
+  if (str == nullptr) return false;
+  int anio = 0, mes = 0, dia = 0, h = 0, m = 0, s = 0;
+  if (sscanf(str, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) == 6) {
+    reloj_ajustar((uint8_t)h, (uint8_t)m, (uint8_t)s, (uint8_t)dia);
+    return true;
+  }
+  return false;
+}
 bool reloj_reiniciarDominioRespaldo() { return rlj_cristal; }
 void reloj_ajustarFranjaNocturna(uint8_t, uint8_t) {}
 uint8_t reloj_inicioNoche() { return 22; }

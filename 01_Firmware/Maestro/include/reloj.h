@@ -155,6 +155,7 @@ uint32_t reloj_segundosDelDia();
 // calendarios independientes, un corte el dia del cambio de mes deja a UNA punta
 // sin reanudar -en ambar- mientras la otra reanuda y da verde.
 void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo = 0, uint8_t dia = 0);
+bool reloj_sembrarDesdeIso(const char* str);
 
 // 🔴 D-15 (05/09) - ESTA PUNTA YA NO TIENE CAMINO DE ESCRITURA, Y LO QUE ESO COSTO
 // SE DEJA ESCRITO AQUI PORQUE ES DONDE HARA FALTA.
