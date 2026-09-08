@@ -465,7 +465,7 @@ derogado tambien.
 rojo+verde: puro procedimiento de operario y **en ningun manual**—, `D-8` —el ambar conserva sus dos
 vetos, y el banco tumbo **dos veces** la version sin cerrojo— y `D-20`.
 
-### 3.6 · 🟠 TRES defectos de los propios INSTRUMENTOS — dos del 07/09 y uno del 08/09
+### 3.6 · 🟠 Defectos de los propios INSTRUMENTOS — dos del 07/09, uno del 08/09, y una mecanica
 
 | | que | por que importa |
 |---|---|---|
@@ -490,6 +490,21 @@ vetos, y el banco tumbo **dos veces** la version sin cerrojo— y `D-20`.
 > el siguiente intermitente vuelve a no dejar nada que mirar. Sospechosos por forma, sin medir
 > ninguno: la compilacion de los arneses del STM32 y el arranque de `node`, que son las dos partes
 > con estado fuera del proceso.
+
+> ⚠️ **CUARTO, y no es un defecto sino una MECANICA que cuesta tiempo y no estaba escrita: cuando un
+> commit toca CODIGO y las CIFRAS de los documentos a la vez, la compuerta NO converge en dos
+> pasadas.** `CLAUDE.md` §4 dice «dos» y lo dice **solo para el caso del `--rapido`**.
+>
+> El motivo es mecanico: `documentos_01` y `documentos_04` comparan los documentos contra el **acta
+> ANTERIOR**, y la nueva se escribe al final. Cada pasada arregla un lado y desfasa el otro — se mide
+> el codigo nuevo, se copian sus cifras a los documentos, y **el total del banco vuelve a moverse**
+> porque esos packs generan mas comprobaciones al pasar. El 08/09 hicieron falta **cuatro** por
+> `N-154` y **dos mas** por `D-24`, y cada una compila cuatro targets.
+>
+> **Lo que hay que saber para no confundirlo con una regresion: un rojo de `documentos_0x` justo
+> despues de tocar codigo NO es una regresion, es el ciclo.** Y si el `.zip` tiene que llevar dentro
+> un acta que diga *«Arbol: LIMPIO»* sobre el commit bueno, hace falta **una pasada mas DESPUES de
+> comitear**, con su commit de acta detras.
 
 ### 3.7 · 🔴 Las etiquetas de las dos cabezas PEATONALES van al reves que los conectores
 
@@ -979,6 +994,11 @@ su lugar habria medido de menos, que es lo que trunco el `$ALARM` de `N-108`.
 
 **Esta tabla NO duplica nada: apunta.** El porque de cada linea vive en su apartado, y aqui solo esta
 el ORDEN y lo que lo justifica. Se reescribe entera cuando cambie; no se le anaden filas al final.
+
+> ✅ **AL CERRAR EL 08/09: el paso 1 esta HECHO ENTERO** —`D-24`, las dos mitades— **y el paso 2
+> (`D-23`) esta DESBLOQUEADO y sin empezar.** Lo demas de la tabla sigue igual. Y el paso 0 —la
+> medida del riel de 3,3 V, que es gratis— **sigue sin constar recorrido**, que es lo unico que de
+> verdad frena todo lo demas.
 
 > 🔴 **EL PASO 0 NO ES DESARROLLO, Y VA DELANTE DE TODO: medir el consumo del riel de 3,3 V del
 > Maestro averiado, en frio y con fuente limitada en corriente** (`BLQ-3`, `N-116`). Es **gratis**, no
