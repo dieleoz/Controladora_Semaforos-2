@@ -203,10 +203,38 @@ dice expresamente que elegir NO lo decide el manual.** La cuenta no se copia aqu
 está escrita la última y no por casualidad—. **Pero no se decide por descarte** (cabecera de este
 apartado): lo que aquí queda es el coste de cada una.
 
-**Qué está bloqueado mientras tanto:** `D-23` **entera**. Hoy no tiene ni una línea de app, y
-`decisiones_01_anclas` la acusa **con razón** de no tener ancla en el firmware. **Ese rojo es
-correcto y se deja rojo** — apagarlo con un comentario ya se intentó el 07/09 y se revirtió
-(`5d0a0b9`).
+~~**Qué está bloqueado mientras tanto:** `D-23` **entera**.~~ 🟢 **RESUELTA — y este cuerpo llevaba
+desde el 07/09 contradiciendo a su propio índice**, que ya la daba por cerrada. Se corrige aquí y
+no se borra: **un cuerpo abierto bajo un índice tachado hace que un agente que lea el cuerpo NO
+construya lo que ya está decidido**, y es la segunda vez que pasa en este fichero (`A-11`).
+
+**LA DECISIÓN, del 07/09 por la noche: `$EVENT` NUEVO.** El criterio lo puso el responsable —*«lo
+que menos consumo de radio genere, pues puede ir y volver, etc y mareas»*—, y **confirmada el 08/09
+al pedir el responsable *«¿qué es mejor?»*. Se vuelve a medir en vez de recitarla, y lo medido
+tumba las otras dos por motivos que no estaban escritos:**
+
+| vía | lo que la MEDIDA del 08/09 dice |
+|---|---|
+| campo nuevo en el `$STATUS` | 🛑 **NO ENTRA, por 3 bytes.** El peor `$STATUS` del Maestro son **151 caracteres y `payload[155]` guarda 154**; el del Esclavo, 133. Y `documentos_03` obliga a que el campo esté en las **dos** puntas, así que manda el margen del Maestro. Un `,RFE:100%` son 9 caracteres. Ese es además el buffer que ya truncó una vez (`N-108`) |
+| comando nuevo con `$ACK` | 🛑 **No sirve para el caso de uso**, que es *«se va a degradado cada nada cuando llueve»*: **el técnico llega DESPUÉS**. Un comando da el valor **cuando se pide**, y si dejó de llover contesta que todo va bien |
+| **`$EVENT` nuevo** | 🟢 Sale **cuando cambia** y **queda en el Diario de Órdenes**, así que sobrevive al viaje. Cabe con holgura y **no gasta periódico** — el caudal va hoy al **51,8 %** (497 B de 960 B/s) |
+
+🔴 **Y LA MEDIDA AÑADE UNA CONDICIÓN QUE NO ESTABA EN LA DECISIÓN, y sin ella se entrega rota: el
+`$EVENT` tiene que emitirse TAMBIÉN AL CONECTARSE por Bluetooth.** Un evento que sale *sólo cuando
+cambia* deja la pantalla **en blanco en un poste sano**, y el técnico no puede distinguir *«va
+bien»* de *«no llegó el dato»* — que es el defecto que el marcador `--` existe para evitar. La
+conexión es un cambio de estado como cualquier otro. Va **en el mismo commit**.
+
+**Qué queda, entonces:** construir `D-23`. `decisiones_01_anclas` la seguirá acusando **con razón**
+hasta que exista el código — **ese rojo se apaga CONSTRUYENDO, nunca con un comentario**: ya se
+intentó el 07/09 y se revirtió (`5d0a0b9`).
+
+> 📐 **El dato que `D-23` tiene que sacar, medido el 08/09 y por eso está aquí:** el `$STATUS` del
+> Esclavo publica **`T:--,RF:--,RTT:--` como LITERALES** en su `snprintf`, mientras el del Maestro
+> publica `T:%s,RF:%s,RTT:%s` con valores. O sea: **el poste 2 nunca dice cómo ve ÉL el enlace.** Y
+> sí lo sabe — tiene `protocolo_bytesRecibidos()`, `protocolo_tramasValidas()` y
+> `protocolo_tramasDescartadas()`, que hoy **sólo salen dentro del `$ALARM`, o sea cuando el enlace
+> ya se cayó**. Ése es el hueco exacto que `D-23` viene a tapar.
 
 ---
 
@@ -263,11 +291,22 @@ salida medida que llega es **subir `payload` hacia los 155 B** que impone de tec
 del veto NO están bloqueados**: salen ya por `$EVENT`/`$ALARM` —`camara_alarmar()` y
 `VETO_HABRIA_ACTUADO_N:`— y la app los registra (lee `$STATUS`, `$ALARM`, `$ACK`, `$EVENT`, `$ERR`).
 
-⚠️ **Consecuencia hoy: `camara_estado()` está declarada y SIN NINGÚN LLAMADOR** en las dos puntas.
+⚠️ ~~**Consecuencia hoy: `camara_estado()` está declarada y SIN NINGÚN LLAMADOR** en las dos puntas.
 Es un huérfano **deliberado y con su motivo medido**, anotado en `costura_10_funciones_muertas` y
 **re-medido en cada corrida** por `camara_03_vigilante` —que exige que deje de ser excepción en
 cuanto el `$STATUS` publique `CAM:`—. Es la forma correcta de dejar obra a medias (§3.bis), pero
-**es obra a medias**.
+**es obra a medias**.~~
+
+🟢 **CADUCADA, medido el 08/09: `camara_estado()` YA TIENE LLAMADOR en las dos puntas** —
+`Maestro/src/bluetooth.cpp:1101` y `Esclavo/src/bluetooth.cpp:1060`, dentro del `snprintf` del
+`$STATUS`—. **La condición que esta misma nota nombraba se cumplió** (`e3a21ec`: el `$STATUS`
+publica `CAM:`), así que el huérfano dejó de serlo y la obra dejó de estar a medias. El trinquete
+de `camara_03_vigilante` hizo exactamente lo que prometía.
+
+> ⚠️ **Y cómo se midió, porque el primer intento salió mal y es el error de siempre aquí:** un
+> `grep` de `camara_estado()` sobre los dos `bluetooth.cpp` da **7**, y **cinco son comentarios y
+> `#include`**. Llamadas de verdad hay **dos, una por punta**. *«Un cero de `grep` no es no hay»*
+> vale igual del otro lado: **un siete de `grep` no es siete** (`CLAUDE.md` §7.1).
 
 ---
 

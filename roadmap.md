@@ -150,7 +150,7 @@ resolver.
 | **6** | 🟠 **`state.correctPin = '1234'` en claro** en `app.js`. La caducidad **si** se construyo | V2 · `B3` |
 | **7** | 🔴 **El Diario de Ordenes del MAESTRO no distingue si la hora entro.** `Maestro/src/bluetooth.cpp`, rama `SET_RTC:`: `bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE")` esta **FUERA** del `if (reloj_sembrarDesdeIso(...))`. Es el residual de `N-160` una capa arriba — ver §3.10.ter | **El Esclavo YA lo arreglo** y su propio comentario describe el defecto que el Maestro conserva. Arreglar una punta y no la otra es lo que `CLAUDE.md` §6.1 manda mirar, y aqui paso en el sentido contrario al esperado |
 
-### 3.2 · 🟠 `DECISIONES.md` tiene cinco filas caducadas — y es el fichero VINCULANTE
+### 3.2 · 🟢 `DECISIONES.md` — REVALIDADO ENTERO EL 08/09, y ya no queda ninguna fila caducada
 
 **Un encargo lanzado leyendo esa tabla arranca sobre un hecho falso**, que es justo lo que aquel
 fichero existe para impedir. Medido el 07/09:
@@ -163,18 +163,28 @@ fichero existe para impedir. Medido el 07/09:
 | **A-11**, cuerpo | *«`grep -c "SET_MODO" Esclavo/src/bluetooth.cpp` -> 0»* | hoy da **10** (`15e8cf3`). **El indice ya la tacha y el cuerpo abierto contradice al indice** |
 | **A-2** | abierta, urgencia media | **cerrada por el responsable el 05/09** |
 | **«Filas que chocan» 1, 2 y 3** | las tres | caducadas por `62d731e`, `15e8cf3` y `e3a21ec` |
-| 🔴 **`A-14`, cuerpo** *(medido el 08/09)* | *«Que esta bloqueado mientras tanto: **`D-23` entera**»* | **El indice la tacha y la da por RESUELTA el 07/09 por la noche**, con la via elegida —**`$EVENT` nuevo**— y el criterio del responsable escrito al lado: *«lo que menos consumo de radio genere»*. **Es `A-11` otra vez, letra por letra: el indice tacha y el cuerpo sigue abierto**, y quien lea el cuerpo dara `D-23` por bloqueada cuando ya no lo esta |
+| ~~**`A-14`, cuerpo**~~ | ~~*«Que esta bloqueado mientras tanto: **`D-23` entera**»* bajo un indice que ya la tachaba~~ | 🟢 **CORREGIDA el 08/09.** Era `A-11` letra por letra. El cuerpo lleva ahora la decision —**`$EVENT` nuevo**—, la medida que tumba las otras dos vias, y **la condicion nueva que la medida anadio** |
 
-> 🔴 **Y la consecuencia de esa fila NO es documental, es de planificacion: `D-23` YA NO ESTA
-> BLOQUEADA.** `ESTADO.md` sigue diciendo *«antes de construirla hay que ELEGIR LA VIA, que no esta
-> elegida: `A-14`»*, y esa frase caduco el 07/09 por la noche. **La via esta elegida.** Lo que falta
-> es construirla: un `$EVENT` nuevo en el Esclavo y su pantalla en la app —o sea **recompilar la
-> APK**, con todo lo que eso arrastra (skill `entregar` §2.bis)—.
+> 🔴 **REVALIDADA ENTERA EL 08/09, Y LA PROPIA LISTA ESTABA CADUCADA: de las cinco filas de arriba,
+> TRES YA SE HABIAN CORREGIDO** —`A-12` ya no cita cifra de compuerta, `A-13` ya no dice que los 11
+> caracteres no caben, y el cuerpo de `A-11` ya no publica el `grep` que daba cero—. **Una lista de
+> defectos documentales envejece igual que los defectos que denuncia**, y esta llevaba un dia
+> acusando trabajo ya hecho. Medido con `grep` contra el fuente, no releyendo.
 >
-> ⚠️ **No se ejecuta sobre esta lectura sin confirmarla.** El indice y el cuerpo del fichero
-> **vinculante** dicen cosas distintas sobre lo mismo, y `CLAUDE.md` §11.1 es explicito: *eso no es
-> una orden, es una pregunta*. Se pregunta y se anota la respuesta AQUI, que es donde el siguiente
-> la va a buscar.
+> Lo que quedaba vivo eran **dos**, y las dos se cierran el 08/09: la coletilla de `A-13`
+> —*«`camara_estado()` esta declarada y SIN NINGUN LLAMADOR»*, cuando tiene **una llamada real por
+> punta** dentro del `snprintf` del `$STATUS`— y el cuerpo de `A-14`.
+>
+> ⚠️ **Y la coletilla de `A-13` casi se corrige con un dato malo:** el `grep` de `camara_estado()`
+> sobre los dos `bluetooth.cpp` da **7**, y **cinco son comentarios y `#include`**. *«Un cero de
+> `grep` no es no hay»* vale igual del otro lado: **un siete de `grep` no es siete** (`CLAUDE.md`
+> §7.1). Se cuenta excluyendo comentarios o no se cuenta.
+
+> 🎯 **CONSECUENCIA DE PLANIFICACION, y es la que importa: `D-23` YA NO ESTA BLOQUEADA.**
+> `ESTADO.md` sigue diciendo *«antes de construirla hay que ELEGIR LA VIA, que no esta elegida:
+> `A-14`»* — **esa frase caduco el 07/09**. Lo que falta es construirla: un `$EVENT` nuevo en el
+> Esclavo, **emitido tambien AL CONECTAR**, y su pantalla en la app — o sea **recompilar la APK**,
+> con todo lo que eso arrastra (skill `entregar` §2.bis).
 
 ### 3.3 · 🔴 La evidencia del banco NO esta donde 8 documentos dicen
 
@@ -455,12 +465,31 @@ derogado tambien.
 rojo+verde: puro procedimiento de operario y **en ningun manual**—, `D-8` —el ambar conserva sus dos
 vetos, y el banco tumbo **dos veces** la version sin cerrojo— y `D-20`.
 
-### 3.6 · 🟠 Dos defectos de los propios INSTRUMENTOS, medidos al levantar el mapa (07/09)
+### 3.6 · 🟠 TRES defectos de los propios INSTRUMENTOS — dos del 07/09 y uno del 08/09
 
 | | que | por que importa |
 |---|---|---|
 | **1** | 🔴 **El `PASS` de la guarda de rutas depende del ORDEN ALFABETICO de los packs.** Con los ficheros invertidos da **`69 rutas, 4 inexistentes`**. Hoy sale bien porque `esp32_02` y `esp32_09` ordenan antes que `esp32_10` | **renombrar un pack pone la guarda en ABORTADO** sin que nadie toque el firmware |
 | **2** | 🔴 **Catorce rutas que los instrumentos abren y la guarda NO censa** — los documentos de la raiz, dos de `04_Manuales`, el Manual 10, la app entera, `Validacion_LCD/arnes_lcd.cpp` y los dos `compilar_*.ps1`. Todas con `ruta_repo()`, que **aborta** | mover una tumba **la fila `banco por packs` entera** mientras la guarda publica *«64 rutas, todas existen»* |
+
+> 🔴 **TERCERO, VISTO EL 08/09 Y ES EL PEOR DE LOS TRES PORQUE ES INTERMITENTE: el simulador del
+> puente ESP32 dio `100/101` en una corrida y `101/101` en la siguiente, CON EL MISMO ARBOL.**
+>
+> Medido: entre las dos corridas **no se toco ni una linea de firmware** —lo unico editado entre
+> medias fueron `DECISIONES.md` y `roadmap.md`, que ese arnes no lee—, y corrido **a mano y aparte**
+> volvio a dar `101/101`. O sea que la comprobacion que cayo **no cayo por el firmware**.
+>
+> **Por que esto es peor que un rojo fijo:** un rojo fijo se investiga; **un intermitente ensena a
+> volver a correr**, y a partir de ahi nadie mira. Es la forma de matar un instrumento sin tocarlo,
+> y este arnes es de los caros —compila C++ real de las dos puntas y ejerce la punta de app con
+> `node`—, o sea justo de los que no conviene que nadie aprenda a ignorar.
+>
+> ⚠️ **Lo que NO se sabe todavia, y se dice en vez de suponerlo: cual de las 101 cayo.** La compuerta
+> publica el resumen del arnes, no sus lineas, asi que el detalle se perdio con la corrida. **Lo
+> primero es que el arnes deje rastro de la que falla** —a un fichero, no a la pantalla—; sin eso,
+> el siguiente intermitente vuelve a no dejar nada que mirar. Sospechosos por forma, sin medir
+> ninguno: la compilacion de los arneses del STM32 y el arranque de `node`, que son las dos partes
+> con estado fuera del proceso.
 
 ### 3.7 · 🔴 Las etiquetas de las dos cabezas PEATONALES van al reves que los conectores
 
