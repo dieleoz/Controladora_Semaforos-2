@@ -612,6 +612,40 @@ CERRADA a un verde mal fechado**, y la consecuencia —sin reanudacion tras cort
 comentario en vez de descubrirse en campo. Es `CLAUDE.md` §6.2 literal: **borrar el armador no dejo
 los vetos inertes, los dejo ABIERTOS.**
 
+**Y EL TERCERO, que es el que menos se veia y salio de la misma auditoria: SI `Y2` ARRANCA TARDE, LA
+HORA SALTA EN SILENCIO.** El camino lo hace normal `D-20`: se arranca sin cristal —`reloj_setup()`
+sale por `if (!arrancarCristal()) return;`—, llega la siembra y **se queda solo en software** porque
+el bloque `if (rtcOperativo)` de `reloj_ajustar()` no corre, y **treinta segundos despues**
+`reloj_actualizar()` ve el `LSERDY` y adopta el cristal. **A partir de esa linea los getters cambian
+de fuente al RTC hardware, QUE NUNCA SE SEMBRO**, y `horaValida` sigue en `true` porque nada la baja.
+
+> Es **`N-24` del reves**: no *«hora escrita sobre un contador parado»*, sino *«contador arrancado
+> bajo una hora que nunca se le escribio»*. Y no se queda en la pantalla: en el **Maestro**
+> `enviarHoraCompleta()` **lo empuja al Esclavo por radio**, y de `reloj_segundosDelDia()` sale la
+> **fase** del Degradado. **No es hipotetico:** `N-25` existe porque un cristal marginal o frio **si**
+> despierta tarde, y `D-20` deja escrito que **`N-17` se midio EN UNA TARJETA, no en las dos**.
+
+**El arreglo es el unico que conserva la invariante:** al adoptar el cristal, si ya habia base
+sembrada **se le pasa al RTC** en vez de saltar a lo que traiga —y se lee **antes** de mover
+`rtcOperativo`, porque los getters eligen fuente con esa bandera—. Sin base previa se conserva lo de
+antes, que es el arranque en caliente legitimo. **Identico en las dos puntas**, que es la unica forma
+de que las dos cuenten igual (`N-49`): dos puntas con la hora saltando por separado **es el
+ambar-contra-verde que `CMD_HORA_D` vino a cerrar**.
+
+> ✅ **Y el banco obligo a mantenerse solo, que es la senal de que sirve.** `reloj_dia` del Esclavo
+> **gano llamador** con este arreglo y seguia en la lista de huerfanas conocidas de
+> `costura_10_funciones_muertas`: el pack fallo pidiendo que se retirara. Es el **trinquete de
+> `CLAUDE.md` §6.1** haciendo su trabajo —*una lista que acumula nombres obsoletos deja de poder
+> fallar*—, y no hubo que decidir nada: el instrumento dijo que le tocaba.
+
+**Coste medido, con segunda pasada:** Maestro **88,4 → 88,6 %** (+140 B, quedan **7.488 B**),
+Esclavo **68,5 → 68,9 %**.
+
+> ⚠️ **Y de paso se marco CADUCADO —tachado, no borrado— el bloque de `D-15` de
+> `Maestro/include/reloj.h`**, que seguia afirmando *«hoy NADIE puede poner en hora este RTC»* y
+> *«`reloj_enHora()` es hoy FALSO SIEMPRE»*. **Las dos son falsas desde `D-20`**, y ese `.h` es lo que
+> lee el siguiente antes de tocar el Degradado: le diria que un modo que ya arranca sigue muerto.
+
 > 🔴 **PREGUNTA 1 PARA EL RESPONSABLE — `D-22` y `D-21` se decidieron sobre una premisa que el codigo
 > no tiene.** `D-22` esta degradada a *«opcional y la ultima de la cola»* porque *«con `D-20`
 > construida el `DS3231` siembra cada 2 s»*. **Esa siembra NO EXISTE.** Medido: el ESP32 **reenvia
