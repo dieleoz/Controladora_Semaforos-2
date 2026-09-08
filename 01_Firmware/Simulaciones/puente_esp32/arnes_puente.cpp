@@ -120,14 +120,18 @@ static uint32_t rlj_cnt = 1000;
 
 bool reloj_enHora() { return rlj_enHora; }
 
-// N-144: la contrapartida de reloj_ajustar(). Este arnes compila el bluetooth.cpp REAL de
-// las dos puntas, y ese fichero la llama cuando el ajuste NO quedo puesto.
+// N-144 / N-160: EL DOBLE SE QUEDA, PERO SU COMENTARIO DECIA UNA COSA QUE YA NO ES
+// CIERTA Y SE CORRIGE AQUI. Afirmaba que "el bluetooth.cpp REAL de las dos puntas la
+// llama cuando el ajuste NO quedo puesto"; medido el 07/09, NO LA LLAMA NADIE:
+// `grep -rn "reloj_invalidarHora" 01_Firmware` da dos hits y ninguno es una llamada -esta
+// definicion, y una nota en Maestro/include/reloj.h que dice que el camino SE RETIRO-.
 //
-// EL DOBLE NO ES VACIO: apaga la bandera de verdad, sobre el mismo rlj_enHora que dobla
-// reloj_enHora() aqui arriba. Un stub que no hiciera nada dejaria sin ejercer justo el
-// camino que N-144 arreglo -el equipo declarandose EN HORA con el reloj parado en ceros,
-// que es de donde cuelga la autorizacion del Modo Degradado-, y este arnes existe para
-// EJECUTAR ese fichero, no para enlazarlo.
+// No se borra, y el motivo es la simetrica de CLAUDE.md 6.2: rlj_enHora lo LEE
+// reloj_enHora(), que el bluetooth.cpp real si llama, y este es uno de los dos unicos
+// sitios que pueden ponerlo en false -el otro es el comando "RTC" del arnes-. Quitarlo
+// dejaria al arnes sin poder modelar "no estoy en hora", que es el camino que N-144
+// arreglo: el equipo declarandose EN HORA con el reloj parado en ceros, de donde cuelga
+// la autorizacion del Modo Degradado.
 void reloj_invalidarHora() { rlj_enHora = false; }
 bool reloj_hayCristal() { return rlj_cristal; }
 uint8_t reloj_hora() { return rlj_h; }
@@ -139,23 +143,53 @@ uint32_t reloj_segundosDelDia() { return rlj_h * 3600UL + rlj_m * 60UL + rlj_s; 
 void reloj_setup() {}
 void reloj_actualizar() {}
 void reloj_fijarEnero() {}
-void reloj_ajustar(uint8_t h, uint8_t m, uint8_t s, uint8_t d) {
-  // Se replica la unica negativa que el despachador puede observar: si no hay
-  // cristal, reloj_ajustar() abandona en silencio -"if (!rtcOperativo) return;"-.
-  // Sin esta rama, el $ACK que mira lo que devolvio la llamada no se podria ejercer.
-  if (!rlj_cristal) return;
-  rlj_h = h; rlj_m = m; rlj_s = s;
-  if (d) rlj_dia = d;
+// D-20 / N-160 - REPLICA DE LA REGLA DE RANGO DEL FIRMWARE, NO UNA VERSION FLOJA.
+//
+// El firmware movio la guarda de reloj_ajustar() a reloj_ajustarConAcuse(), que es la
+// que devuelve bool, y valida los int ANTES de castear a uint8_t. Este arnes compila el
+// bluetooth.cpp REAL de las dos puntas, o sea que aqui se copia la MISMA guarda con los
+// MISMOS limites: si este doble aceptara lo que el firmware rechaza, el arnes daria
+// verde justo sobre el caso que N-160 vino a cazar.
+//
+// SE RETIRO LA RAMA DEL CRISTAL -"if (!rlj_cristal) return;"- Y ESTE ES EL MOTIVO, con
+// las tres medidas que lo sostienen, porque era una EXCEPCION CON RAZON ESCRITA y la
+// razon habia caducado (CLAUDE.md 6: una razon es una afirmacion sobre el codigo, y se
+// vuelve a medir al heredarla):
+//
+//   1. Decia replicar un "if (!rtcOperativo) return;" de reloj_ajustar(). ESE if NO
+//      EXISTE: `grep -n "!rtcOperativo" Maestro/src/reloj.cpp Esclavo/src/reloj.cpp` da
+//      cero. D-20 hizo que la siembra de la base de software ocurra SIN cristal -es su
+//      objetivo entero-, asi que el firmware ACEPTA justo lo que esta rama rechazaba.
+//   2. Decia que sin ella "el $ACK que mira lo que devolvio la llamada no se podria
+//      ejercer". Ya no es cierto: la guarda de rango de arriba es la negativa REAL del
+//      firmware y se ejerce con un ISO malformado, sin tocar el cristal.
+//   3. Y no la ejercia nadie: el simulador del puente no manda un solo "SET_RTC:" -su
+//      unico "RTC 0 0" es para dejar reloj_enHora() en false y medir el hueco del
+//      $STATUS en el escenario N145-, asi que la rama nunca se recorria.
+//
+// Un doble que RECHAZA lo que el firmware ACEPTA no es un arnes estricto: es un arnes
+// que mide otra cosa. Lo que queda aqui es la guarda de rango del firmware, copiada con
+// los mismos limites y validando el int antes de castear, igual que reloj.cpp.
+bool reloj_ajustarConAcuse(int hora, int minuto, int segundo, int dia) {
+  if (hora < 0 || hora > 23) return false;
+  if (minuto < 0 || minuto > 59) return false;
+  if (segundo < 0 || segundo > 59) return false;
+  if (dia < 0 || dia > 31) return false;
+
+  rlj_h = (uint8_t)hora; rlj_m = (uint8_t)minuto; rlj_s = (uint8_t)segundo;
+  if (dia) rlj_dia = (uint8_t)dia;
   rlj_enHora = true;
+  return true;
+}
+void reloj_ajustar(uint8_t h, uint8_t m, uint8_t s, uint8_t d) {
+  (void)reloj_ajustarConAcuse((int)h, (int)m, (int)s, (int)d);
 }
 bool reloj_sembrarDesdeIso(const char* str) {
   if (str == nullptr) return false;
   int anio = 0, mes = 0, dia = 0, h = 0, m = 0, s = 0;
-  if (sscanf(str, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) == 6) {
-    reloj_ajustar((uint8_t)h, (uint8_t)m, (uint8_t)s, (uint8_t)dia);
-    return true;
-  }
-  return false;
+  if (sscanf(str, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) != 6) return false;
+  // N-160: replica exacta del firmware. Sin cast y devolviendo lo que la llamada hizo.
+  return reloj_ajustarConAcuse(h, m, s, dia);
 }
 bool reloj_reiniciarDominioRespaldo() { return rlj_cristal; }
 void reloj_ajustarFranjaNocturna(uint8_t, uint8_t) {}

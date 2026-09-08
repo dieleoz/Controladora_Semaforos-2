@@ -785,8 +785,17 @@ static void procesarComando(const char* cmd) {
     // D-20: LA AUTORIDAD DE LA HORA ES EL ESP32 (DS3231).
     // Si entra SET_RTC por Bluetooth local en Poste 2, siembra el extrapolador del Esclavo.
     // D-15: Solo el ESP32 contesta al celular con $ACK/$ERR para evitar doble acuse.
-    reloj_sembrarDesdeIso(accion + 8);
-    bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
+    //
+    // N-160: EL RETORNO SE MIRA. No cambia quien contesta -sigue siendo el puente, por
+    // D-15- pero SI lo que queda escrito en el Diario de Ordenes. Antes se anotaba
+    // "lo acusa el puente" pasara lo que pasara, asi que una siembra RECHAZADA por
+    // rango dejaba en el diario la misma linea que una aceptada: el unico registro que
+    // le queda al tecnico decia que la hora entro cuando no habia entrado.
+    if (reloj_sembrarDesdeIso(accion + 8)) {
+      bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
+    } else {
+      bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_RECHAZADO_POR_RANGO");
+    }
   } else {
     enviarTramaConCrc("$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO");
   }

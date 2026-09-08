@@ -175,10 +175,34 @@ uint32_t reloj_contadorSegundos() {
     const uint32_t v = ((uint32_t)alta << 16) | baja;
     return v == 0 ? 1UL : v;
   }
-  // D-20: extrapolacion para contador continuo de segundos cuando rtcOperativo es false
-  if (!horaValida) return 0;
-  const uint32_t v = (uint32_t)((millis() - tBaseMillis) / 1000UL) + 1UL;
-  return v == 0 ? 1UL : v;
+
+  // N-160 - SIN CRISTAL SE DEVUELVE 0, Y ESO ES A PROPOSITO. NO SE EXTRAPOLA AQUI.
+  //
+  // Este cero es el "no hay reloj" del que cuelgan los DOS centinelas de respaldo.cpp:
+  //   respaldo_marcarSync():      "if (segundosRtc == 0) return;"
+  //   respaldo_horasDesdeSync():  "if (segundosRtcAhora == 0) return RESPALDO_SYNC_CADUCADA;"
+  //
+  // D-20 le habia puesto aqui una extrapolacion con millis(), y eso APAGABA a los dos:
+  // con horaValida en true y sin cristal -que es el caso NORMAL que D-20 crea- el cero
+  // no salia nunca. Y el valor no sirve como contador monotono por dos motivos
+  // independientes: millis() vuelve a cero tras un corte de energia, y tBaseMillis se
+  // reasigna en CADA siembra, o sea que el contador BAJA cada vez que llega la hora.
+  // respaldo_horasDesdeSync() esta escrita sobre la premisa contraria -"una resta de dos
+  // contadores monotonos... el contador no vuelve"-, asi que la resta pasaba a mentir:
+  // marca guardada en 31, seis meses de corte, arranque nuevo, siembra a los 40 s de
+  // uptime -> contador 41 -> (41-31)/3600 = 0 horas, o sea "sincronizado hace un rato"
+  // sobre un acuerdo de hace medio ano. De esa cuenta cuelga el limite duro de 48 h del
+  // Modo Degradado, que es el modo que da VERDES sin confirmar la otra punta.
+  //
+  // CONSECUENCIA QUE SE ASUME, escrita para que nadie la descubra por sorpresa: sin
+  // cristal el Degradado NO SE REANUDA tras un corte, porque la marca sale CADUCADA.
+  // Ya estaba asi con Y2 muerto; lo que esto impide es que se autorice sobre una marca
+  // que no significa nada. Se prefiere la puerta CERRADA a un verde mal fechado.
+  //
+  // LO QUE SI SIGUE EXTRAPOLANDO CON millis() ES D-20 Y SE QUEDA COMO ESTA:
+  // reloj_segundosDelDia() y reloj_hora()/minuto()/segundo()/dia() tienen su propia
+  // cuenta y NO pasan por aqui. Este contador es solo el que fecha el respaldo.
+  return 0;
 }
 
 // N-45 — la consulta. Solo lee; no configura, no arranca y no borra nada.
@@ -210,15 +234,21 @@ void reloj_diagnostico(RelojDiag* d) {
   d->anio = rtcOperativo ? (uint16_t)rtc.getYear() : 0;
 }
 
-void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo, uint8_t dia) {
-  if (hora > 23 || minuto > 59 || segundo > 59) return;  // no aceptamos basura
-  if (dia > 31) return;
+// D-20 / N-160: aqui vive la regla de rango, y en ningun otro sitio. Ver reloj.h.
+bool reloj_ajustarConAcuse(int hora, int minuto, int segundo, int dia) {
+  // Los limites se miran sobre el int, ANTES de castear: un 256 casteado a uint8_t
+  // entra como 0 y pasaria por medianoche. Y el negativo hay que mirarlo porque
+  // sscanf("%d") acepta "-5" sin protestar.
+  if (hora < 0 || hora > 23) return false;      // no aceptamos basura
+  if (minuto < 0 || minuto > 59) return false;
+  if (segundo < 0 || segundo > 59) return false;
+  if (dia < 0 || dia > 31) return false;
 
   // D-20: Siembra de la base de software (independiente de si Y2 oscila)
   segBaseDelDia = (uint32_t)hora * 3600UL + (uint32_t)minuto * 60UL + (uint32_t)segundo;
   tBaseMillis = millis();
   if (dia >= 1) {
-    diaBase = dia;
+    diaBase = (uint8_t)dia;
   } else if (diaBase < 1 || diaBase > 31) {
     diaBase = 1;
   }
@@ -226,9 +256,9 @@ void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo, uint8_t dia) {
 
   // Si el oscilador hardware esta operativo, tambien mantenemos sincronizado el RTC
   if (rtcOperativo) {
-    rtc.setHours(hora);
-    rtc.setMinutes(minuto);
-    rtc.setSeconds(segundo);
+    rtc.setHours((uint8_t)hora);
+    rtc.setMinutes((uint8_t)minuto);
+    rtc.setSeconds((uint8_t)segundo);
 
     if (rtc.getYear() < ANIO_MARCA) rtc.setYear(ANIO_MARCA);
 
@@ -238,20 +268,42 @@ void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo, uint8_t dia) {
     }
 
     if (dia >= 1) {
-      rtc.setDay(dia);
+      rtc.setDay((uint8_t)dia);
       rtc.setMonth(1);
     }
   }
+
+  // N-160: se llego al final, o sea que la hora quedo puesta de verdad. Este true es
+  // lo unico que autoriza a contestar $ACK; cualquier salida de arriba dice false.
+  return true;
+}
+
+// N-160: envoltorio. Existe para NO cambiar la firma que doblan los arneses (ver
+// reloj.h) y para que los llamadores que no miran el retorno -la pantalla AJUSTAR HORA
+// y la rama CMD_HORA_S del Esclavo- sigan compilando sin tocarlos. No repite la guarda:
+// la unica copia de la regla de rango esta en reloj_ajustarConAcuse().
+void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo, uint8_t dia) {
+  (void)reloj_ajustarConAcuse((int)hora, (int)minuto, (int)segundo, (int)dia);
 }
 
 bool reloj_sembrarDesdeIso(const char* str) {
   if (str == nullptr) return false;
   int anio = 0, mes = 0, dia = 0, h = 0, m = 0, s = 0;
-  if (sscanf(str, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) == 6) {
-    reloj_ajustar((uint8_t)h, (uint8_t)m, (uint8_t)s, (uint8_t)dia);
-    return true;
-  }
-  return false;
+  if (sscanf(str, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) != 6) return false;
+
+  // D-20 / N-160: el retorno es EL DE LA LLAMADA, no un true fijo. Antes se devolvia
+  // true siempre y reloj_ajustar() rechazaba en silencio, asi que un SET_RTC malformado
+  // sobre un equipo QUE YA ESTABA EN HORA se acusaba como puesto: la barrera de abajo
+  // -coordinador_sincronizarHora() se niega si !reloj_enHora()- no lo veia, porque el
+  // reloj seguia en hora con la hora VIEJA. El tecnico se iba del poste con el $ACK.
+  //
+  // Y SE PASAN LOS int SIN CASTEAR, tambien a proposito: el cast a uint8_t iba ANTES de
+  // la validacion y convertia un h=256 en un 0 que la guarda aceptaba como medianoche.
+  //
+  // anio y mes se parsean para consumir el formato ISO y se DESCARTAN aqui: por radio
+  // solo viaja el dia del mes (CMD_HORA_D) y reloj_ajustar() no tiene donde ponerlos
+  // -el calendario del STM32 es enero fijo por construccion, ver reloj_fijarEnero()-.
+  return reloj_ajustarConAcuse(h, m, s, dia);
 }
 
 void reloj_ajustarFranjaNocturna(uint8_t horaInicio, uint8_t horaFin) {

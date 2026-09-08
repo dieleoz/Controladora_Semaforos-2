@@ -155,6 +155,29 @@ uint32_t reloj_segundosDelDia();
 // calendarios independientes, un corte el dia del cambio de mes deja a UNA punta
 // sin reanudar -en ambar- mientras la otra reanuda y da verde.
 void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo = 0, uint8_t dia = 0);
+
+// D-20 / N-160 - LA FUNCION QUE SI PUEDE CONTESTAR, Y POR QUE HUBO QUE ANADIRLA.
+//
+// reloj_ajustar() rechaza en silencio -"if (hora > 23 ...) return;"- y es void, asi que
+// quien la llama no puede saber si la hora entro. Sobre eso se construyo un $ACK que no
+// dependia de lo que la llamada hizo, que es el patron que mas defectos ha dado aqui.
+//
+// LA FIRMA DE reloj_ajustar() NO SE PUDO CAMBIAR A bool, y esto es una MEDIDA, no una
+// opinion: tres arneses la DOBLAN con la firma void y compilan contra este mismo
+// header -Validacion_Automatico/dos_puntas/adaptador_esclavo.cpp y
+// adaptador_maestro_deg.cpp con las cuatro cifras, Validacion_LCD/arnes_esclavo.cpp con
+// tres-. Cambiar el retorno aqui los rompe con "ambiguating new declaration", medido
+// con g++. Por eso la regla de rango se MUDA a esta funcion y reloj_ajustar() pasa a ser
+// su envoltorio: la regla sigue viviendo en UN SOLO SITIO -no hay copia que se pueda
+// desincronizar- y el que contesta ya tiene a quien preguntar.
+//
+// TOMA int Y NO uint8_t A PROPOSITO. El unico llamador que necesita el acuse parsea con
+// sscanf("%d"), y castear a uint8_t ANTES de validar convierte un h=256 en 0 -o sea en
+// medianoche-, que pasa la guarda sin que nadie note nada. Validando el int se ve el
+// valor que de verdad llego. dia = 0 sigue significando "no toques la fecha", asi que es
+// valido y devuelve true.
+bool reloj_ajustarConAcuse(int hora, int minuto, int segundo, int dia);
+
 bool reloj_sembrarDesdeIso(const char* str);
 
 // 🔴 D-15 (05/09) - ESTA PUNTA YA NO TIENE CAMINO DE ESCRITURA, Y LO QUE ESO COSTO
