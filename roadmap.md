@@ -50,8 +50,8 @@ la cinta del 05/09 a las 22:19.
 2. 🔴 **Las entradas de campo van desnudas al die** y `J16` p1 lleva 12 V crudos.
 3. ~~🔴 **El `$ALARM` no cabe en su buffer**~~ — 🟢 **CERRADO el 08/09** (§3.13). Y de paso quedo
    medido que **el sintoma publicado era falso**: el CRC casaba, y lo que se perdia era la HORA.
-4. 🔴 **`CAM_CIEGA` sigue en 6 h.** Se decidieron **4 dias** el 05/09 y no se ha implementado.
-   **Es el paso 1 del orden de desarrollo: §3.14.**
+4. ~~🔴 **`CAM_CIEGA` sigue en 6 h.**~~ — 🟢 **CONSTRUIDO el 08/09: 24 h de paso abierto** (`D-24`,
+   §3.15). 🔴 **Queda su segunda mitad: declarar AVERIADO el Modo Inteligente**, que es spec.
 5. 🟡 **La firma del funcional sobre el manual del «doble» no existe** — y `TECHO_POR_SUELO = 2`
    **ya salio en el paquete del 05/09**.
 
@@ -143,7 +143,7 @@ resolver.
 | | que | medida |
 |---|---|---|
 | ~~**1**~~ | ~~🔴 **El `$ALARM` no cabe en su buffer.**~~ — 🟢 **CERRADO el 08/09. Ver §3.13.** El peor caso por buffer era **158 B en el Maestro y 171 en el Esclavo** contra los 143 que guardaba `payload[144]` | ⚠️ **Y la descripcion que habia aqui del sintoma era FALSA en su mitad mas importante**, medida al arreglarlo: *«no casa el CRC y la app la tira entera»*. El CRC se calcula **sobre lo que quedo**, asi que **casa**. Lo que llega es una alarma con aspecto de intacta **sin el valor de HORA**, que es peor: una que la app tira se nota; esta no |
-| **2** | 🔴 **`CAM_CIEGA` de 6 h a 4 dias.** `CAM_CIEGA_MS = 21600000UL` en `botones.cpp` de **las dos puntas**; lo decidido el 05/09 son `345600000UL` | **toca las dos puntas + `camara_03` + 5 documentos + 🔴 LA APP, que esta lista NO nombraba** (medido el 08/09: `app.js` dice **dos veces** *«lleva HORAS sin una sola deteccion»* —el diccionario de estados de camara y el comentario que lo explica—, y con 4 dias las dos quedan mintiendo al tecnico que mira la pantalla). **Va TODO EN EL MISMO COMMIT**, y ahora el commit incluye recompilar la APK. Y con el numero va su segunda mitad, que vale mas: **el Modo Inteligente se declara AVERIADO y pide revision** |
+| ~~**2**~~ | 🟢 **`CAM_CIEGA` CONSTRUIDO el 08/09 en `9550c57` — `86400000UL`, 24 h de paso abierto**, en las dos puntas. `D-24` en `DECISIONES.md` lleva la cuenta entera | 🔴 **QUEDA SU SEGUNDA MITAD, que vale mas que el numero: el Modo Inteligente se declara AVERIADO y pide revision.** Eso es **spec** y es del responsable. Y **la lista de alcance que habia aqui se quedaba corta en TRES sitios** — ver §3.15 |
 | **3** | 🔴 **En la SUBIDA no hay checksum.** `calcularChecksum()` es `static` y **su unico llamador en cada punta es `enviarTramaConCrc()`**; `procesarComando()` no lee el `*XX`. Un bit cambiado dentro de `SET_TIEMPOS` o `SET_RTC` **se obedece** | |
 | ~~**4**~~ | ~~🟠 **`validateTiempos()` de los unitarios de la app sigue en 1..15 min**~~ — **CADUCADA, medida el 08/09**: `test_unitarios_app.js` esta en `v < 3` / `r < 3`, y el caso de verde es `validateTiempos(2, ...)`, que **si** toca el borde. Se corrigio en `31170e8` (07/09) y esta fila se quedo describiendo el estado anterior | 🟠 **Queda un residual, y es la misma forma en pequeno:** el caso de rojo es `validateTiempos(3, 1, 25)`, o sea **uno por debajo del borde**. Si alguien afloja `r < 3` a `r < 2`, el caso de verde cae y **el de rojo sigue pasando**: mide el rechazo, no el limite. El borde de rojo es `2` |
 | **5** | 🟠 **El Esclavo no tiene `reloj_diagnostico()`.** Porte **mecanico** desde el Maestro; ya tiene los ingredientes. Sin el, el tecnico que sube 5 m al poste del Esclavo **no puede distinguir `lseOn=0` de `lseRdy=0`** | |
@@ -988,7 +988,7 @@ el ORDEN y lo que lo justifica. Se reescribe entera cuando cambie; no se le anad
 
 | # | que | por que va aqui | que arrastra |
 |---|---|---|---|
-| **1** | 🔴 **`CAM_CIEGA` de 6 h a 4 dias** (§3.1 fila 2) | **Decidido el 05/09 y sin construir.** Es la mas barata de las decididas y hoy el equipo alarma por una camara sana cada 6 h | las **dos puntas** + `camara_03` + **5 documentos** + **`app.js`** + **recompilar la APK**. Y su segunda mitad, que vale mas que el numero: **declarar AVERIADO el Modo Inteligente** — eso es spec, no teclado |
+| ~~**1**~~ | 🟢 **`CAM_CIEGA` — HECHO el 08/09** (`9550c57`, `D-24`, §3.15) | 24 h de paso abierto en las dos puntas, la app, 7 documentos y la APK recompilada | 🔴 **Queda su segunda mitad: declarar AVERIADO el Modo Inteligente.** Es spec, no teclado |
 | **2** | 🔴 **`D-23` · la pantalla propia del poste 2**, por la via `$EVENT` | **Decidida el 07/09 y con la via YA elegida** (`A-14`). Es una de las tres que mantienen en rojo `decisiones_01_anclas`, y **la unica de las tres que se destraba con teclado** | `$EVENT` nuevo en el **Esclavo** + pantalla en **app.js** + **recompilar la APK**. ⚠️ **Antes: confirmar que el indice de `A-14` manda sobre su cuerpo** (§3.2) |
 | **3** | 🟠 **El checksum de la SUBIDA** (§3.1 fila 3) | `procesarComando()` **no lee el `*XX`**: un bit cambiado dentro de `SET_TIEMPOS` o `SET_RTC` **se obedece**. Va detras de 1 y 2 porque **no esta decidido** y porque SPP ya lleva su propio control de errores por debajo — pero es lo unico de esta lista que puede mover una luz por un bit | las dos puntas + el pack que lo mida. **Y su control negativo tiene que ser una trama con el CRC malo que HOY se obedece** |
 | **4** | 🟠 **`reloj_diagnostico()` en el Esclavo** (§3.1 fila 5) | Porte **mecanico** desde el Maestro; ya tiene los ingredientes. Sin el, quien sube 5 m al poste del Esclavo **no puede distinguir `lseOn=0` de `lseRdy=0`** y baja sin saber que pieza mirar | una punta. Es la mas aislada de la lista |
@@ -1007,6 +1007,33 @@ el ORDEN y lo que lo justifica. Se reescribe entera cuando cambie; no se le anad
 > que cambia el Manual 1, el Manual 3 y el adiestramiento · y la **matriculacion por ID de
 > Bluetooth**, aplazada por ti a despues del banco porque cambia el contrato de la radio en las dos
 > puntas.
+
+### 3.15 · 🟢 `D-24` — `CAM_CIEGA` a 24 h, y las TRES formas en que una lista de alcance se queda corta
+
+**Construido el 08/09 en `9550c57`.** La decision, su cuenta y su mitad pendiente viven en `D-24` de
+[`DECISIONES.md`](DECISIONES.md) y **no se copian aqui**. Lo que si vive aqui es **como se descubrio
+que el alcance escrito era falso**, porque esa forma se repite.
+
+**La fila decia: *«toca las dos puntas + `camara_03` + 5 documentos»*. Medido al ejecutarla:**
+
+| | lo que faltaba | por que no se veia |
+|---|---|---|
+| **1** | **Son SIETE documentos, no cinco**, con **18 lineas** que llevan la cifra | nadie la habia contado: el numero *«5»* venia de recordar, no de un `grep` |
+| **2** | **Otras OCHO lineas la llevaban DERIVADA** —*«del orden de 12 h de reloj»*— **en lineas que no nombran `CAM_CIEGA`** | un patron que busca el nombre de la constante **no ve su consecuencia**. Es `CLAUDE.md` §7.1 en su forma cara: el patron no encontro, y eso no es que no haya |
+| **3** | **Tres lineas mas dicen `CIEGA` sin decir `CAM_CIEGA`** | hicieron falta **TRES barridas** y cada una encontro lo que la anterior no podia ver |
+| **4** | 🔴 **La APP no estaba en la lista**, y decia **dos veces** *«lleva HORAS sin una sola deteccion»* | la lista se escribio pensando en firmware y documentos |
+| **5** | 🔴 **HAY CUATRO COPIAS DE `app.js` y se edito una** | `www/`, `App_Semaforo/`, `android/assets/public/` y la de `build/`. Las tres primeras tienen que quedar **identicas por md5**, y esa es la invariante que la skill `entregar` manda comprobar **ANTES** de compilar |
+
+> 🎯 **LA DECISION DE DISENO QUE SALIO DE AHI, y vale mas que el numero: en la app NO SE
+> SINCRONIZA LA CIFRA, SE QUITA.** `app.js` no puede derivar de `CAM_CIEGA_MS` —vive en otro
+> lenguaje y en otro binario—, asi que **cualquier cifra copiada a ese lado nace caducada**. Ahora
+> dice *«demasiado tiempo de paso abierto»* y **no envejece**. Un numero que un instrumento no puede
+> recalcular no se copia: se retira.
+
+> ⚠️ **Y lo que esto deja escrito para la proxima: una lista de alcance es una AFIRMACION SOBRE EL
+> ARBOL, y envejece igual que cualquier otra.** Se recuenta con `grep` antes de ejecutarla —por el
+> nombre **y por su consecuencia**—, no se lee. Aqui la diferencia entre lo escrito y lo medido fue
+> de **5 documentos contra 7, y de 18 lineas contra 29**.
 
 ---
 
