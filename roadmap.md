@@ -732,6 +732,43 @@ falta medir» sin descartar que ya estuviera medido.**
 > se abre `05_Funcional/17_Arquitectura…` y `ARQUITECTURA.map`, que **ganan a este fichero** en todo
 > lo que sea cobre.
 
+#### 3.11.ter · Lo que dijo la spec al abrirla — y la decision que devuelve
+
+**Se abrio `05_Funcional/17_…` como manda §3, y contesta entero.** El hardware de `D-14` **existe y
+esta probado**: `J9`, `J11` y `J13` son **el mismo molde exacto que `J15`**, la talanquera **que
+funciono en banco el 04/09** —opto `TLP127` → `IRLZ44N` → bornera, con diodo de rueda libre—.
+**Encender uno cuesta 16 B de flash**, medidos desensamblando el `.elf`.
+
+🔴 **Y trae un dato que ningun documento decia y que decide como se cablea: EL BORNE NO ESTA A 0 V EN
+REPOSO, ESTA A ~12 V.** Pull-up de 1 kΩ mas LED al riel de 12 V, **en el cobre y no en el conector**:
+no se evita dejando un hilo sin poner. Con el MOSFET abierto sube a ~12 V con ~10 mA. **Consecuencia
+de vocabulario que la spec deja escrita: un MOSFET a masa NO es un contacto seco** —este proyecto usa
+ese termino con razon para las **entradas** de camara; **las salidas no lo son**—. O sea que nuestra
+salida **avisa tirando a 0 V**, no aplicando 12 V.
+
+> ✅ **Y eso NO es un bloqueo, lo cerro el responsable el 08/09: la polaridad es de SOFTWARE y esta
+> documentada.** El desplegable **`Alarm Type` existe para la ENTRADA** de la camara —*Set Alarm
+> Input*, pag. 44 paso 3 del manual de usuario oficial—, que es exactamente lo que `D-14` usa. **Se
+> configura y ya.** ⚠️ **Ojo con heredar esto al otro lado:** el `9_Manual_Parametrizacion_Camara_IA`
+> tiene la configurabilidad `NO`/`NC` de la **SALIDA** marcada 🔴 **`SIN VERIFICAR`** —*«las palabras
+> `Normally Open` / `Normally Closed` no aparecen ni una vez en las 110 paginas»*—. **Son dos
+> preguntas distintas y solo una esta contestada.**
+
+> ⚠️ **Y una distincion que se repite y conviene fijar, porque `D-13` y `D-14` son caminos OPUESTOS
+> por la misma pared:** los **botones 3 y 4 son las camaras** —`CAM_C_PIN` = `PB14` = `J16` p10 y
+> `CAM_D_PIN` = `PB15` = `J16` p12, *«era BOTON3/BOTON4»* en el propio `pines.h`— pero son
+> **ENTRADAS**: la camara avisando de un coche, que es `D-13`. **`D-14` va al reves** —nosotros
+> cerrando un contacto para que la camara grabe— **y por eso necesita una SALIDA**, que solo la hay
+> con molde en `J9`/`J11`/`J13`.
+
+> 🔴 **LA DECISION QUE LA SPEC DEVUELVE, y dice expresamente que no se toma alli:** *«Gastar uno de
+> los tres canales de `J9`/`J11`/`J13` **cierra la puerta a una cabeza peatonal o a un zumbador en
+> esta placa**: no hay mas molde libre. **No existe ninguna decision escrita que renuncie a ellos.»*
+>
+> **Asi que `D-14` no cuesta firmware —son 16 B y el molde esta probado en cobre—: cuesta uno de los
+> tres ultimos canales de potencia de la placa, para siempre.** Esa es la pregunta que llevaba debajo
+> del multimetro falso que yo le habia puesto encima, y **sigue abierta**.
+
 ---
 
 ## 4. Lo que necesita una COMPRA o un SOLDADOR

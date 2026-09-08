@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-09-08
-HEAD         : d7f249a   rama: feat/d20-d23-construccion
+HEAD         : efa9d2e   rama: feat/d20-d23-construccion
 Arbol        : CON CAMBIOS SIN COMMITEAR
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -33,8 +33,8 @@ RESULTADOS
   RESUMEN: 19 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a d7f249a y re-corriendo
+firmware. Esta acta se verifica volviendo a efa9d2e y re-corriendo
 python 01_Firmware/compuerta.py.
 
 AVISO: el arbol tenia cambios sin commitear al medir. Estas
-cifras NO corresponden exactamente a d7f249a.
+cifras NO corresponden exactamente a efa9d2e.
