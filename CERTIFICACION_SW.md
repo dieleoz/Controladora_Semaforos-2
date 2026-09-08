@@ -40,13 +40,13 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 
 | Verificación | Resultado medido | Método |
 |---|---|---|
-| Compilación Maestro (STM32F103) | **57956 B de Flash — 88.4 %** de 65536 B (quedan **7580 B**) | `pio run` |
-| Compilación Esclavo (STM32F103) | **44912 B de Flash — 68.5 %** de 65536 B | `pio run` |
+| Compilación Maestro (STM32F103) | **57908 B de Flash — 88.4 %** de 65536 B (quedan **7628 B**) | `pio run` |
+| Compilación Esclavo (STM32F103) | **44904 B de Flash — 68.5 %** de 65536 B | `pio run` |
 | Compilación Repetidor (ESP32) | **270497 B de Flash — 20,6 %** de 1310720 B | `pio run` |
 | Guarda de rutas de los instrumentos | **64 rutas** parseadas, todas existen | `compuerta.py` |
 | Banco de simulación funcional | **9/9 PASS** | `simulador_sistema_v7_6.py` |
 | Escenarios de repetidor | **10/10 PASS** | `simulador_repetidor.py` |
-| Banco por packs | **1230/1230 comprobaciones**, **77 packs** — D-14, D-20, D-21, D-22 y D-23 integradas y ancladas | `banco/correr.py` |
+| Banco por packs | 🔴 **1243/1246 comprobaciones**, **78 packs** — 77 PASS, **1 FALLA**. **Este documento se FIRMA, así que la frase que había aquí —*«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*— se retira por FALSA:** sólo `D-20` y la pieza **B** de `D-21` están construidas. `D-14`, `D-22` y `D-23` son decisiones **vigentes sin construir**, y el rojo las está contando bien | `banco/correr.py` |
 | Arnés de pantalla (compila el `lcd.cpp` real) | **271/271** (Maestro 145/145 · Esclavo 126/126) | `Validacion_LCD/compilar.ps1` |
 | Arnés del ciclo degradado | **22/22** | `Validacion_Ciclo` |
 | Arnés del Modo Automático | **99/99** | `Validacion_Automatico` |
@@ -75,8 +75,8 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 >
 > | publicaba | medido hoy | por qué importa |
 > |---|---|---|
-> | ~~Maestro: 42.620 B (65,0 %)~~ | **57956 B (88.4 %)** | 🔴 **El error grave.** Quien planificase con el 65 % creería tener **~23 KB libres**; quedan **7580 B**. Con esa cifra se propone estructura que **no cabe** |
-> | ~~Esclavo: 15.480 B (23,6 %)~~ | **44912 B (68.5 %)** | Casi el triple de ocupación real |
+> | ~~Maestro: 42.620 B (65,0 %)~~ | **57908 B (88.4 %)** | 🔴 **El error grave.** Quien planificase con el 65 % creería tener **~23 KB libres**; quedan **7628 B**. Con esa cifra se propone estructura que **no cabe** |
+> | ~~Esclavo: 15.480 B (23,6 %)~~ | **44904 B (68.5 %)** | Casi el triple de ocupación real |
 > | ~~Repetidor: 269.197 B (20,5 %)~~ | **270497 B (20,6 %)** | El acta mide **una** compilación de repetidor, no dos |
 > | ~~Compilación Repetidor diagnóstico: 270.257 B (20,6 %)~~ | — | ⛔ **Retirada.** La compuerta no la mide: publicar una fila sin medida detrás la hace leerse como medida |
 > | ~~Banco funcional 9/9~~ | **9/9** — las 20 de entonces incluian 11 pruebas que no median nada; se retiraron con su evidencia una a una | |

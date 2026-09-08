@@ -5,11 +5,21 @@
 > en [`DECISIONES.md`](DECISIONES.md) — **si un párrafo de aquí contradice una fila de allí, gana
 > la fila**. Lo de debajo del separador es histórico y se conserva tachado, no borrado.
 
-**Rama `main-nuevo` · HEAD `c728361`** *(medido con `git rev-parse --short HEAD`. **Un hash
-escrito a mano envejece en horas**: antes de fiarse de éste, se vuelve a medir.)*
+**Rama de trabajo del 07/09: `feat/d20-d23-construccion`** *(contiene `main-nuevo` entera; `git log
+--oneline HEAD..main-nuevo` sale vacío).* 🔴 **Aquí había un hash de HEAD escrito a mano y estaba
+caducado: se ha retirado en vez de sustituirse por otro que caducaría igual.** El HEAD vigente se
+mide, no se lee: `git rev-parse --short HEAD`.
 
-**En campo sigue la V8.4 (`e303485`, 31/07).** La compuerta en verde dice que los modelos y los
-arneses de PC no encuentran nada; **no dice que el firmware funcione sobre la tarjeta**.
+**En campo sigue la V8.4 (`e303485`, 31/07), y NADA DE ESTA RAMA HA VISTO UNA TARJETA.** La
+compuerta en verde dice que los modelos y los arneses de PC no encuentran nada; **no dice que el
+firmware funcione sobre la tarjeta**.
+
+> 🔴 **Y esta rama no es un retoque: TODO EL RELOJ DE LAS DOS PUNTAS SE REESCRIBIÓ.** El diff contra
+> el arranque de la rama son **cientos de líneas** en `Maestro/src/reloj.cpp` y
+> `Esclavo/src/reloj.cpp` —los dos ficheros más movidos de la tanda—, y de ahí cuelga
+> `reloj_enHora()`, que es **la autorización del Modo Degradado: el único modo que da verde SIN
+> confirmar la otra punta.** Antes valía por el RTC sobre `Y2`; ahora vale por una base de software
+> sembrada desde fuera. **Es exactamente la clase de cambio que no se juzga en el PC.**
 
 > 🔴 **DEPENDENCIA DE ESTA MÁQUINA QUE NO ESTÁ EN EL REPOSITORIO: `D:\toolchain\mingw64`.**
 > Es la copia del `gcc` de host **fuera de la ruta con `ñ`** de `Diego.Zuñiga`, cuyo `ld` no abre
@@ -51,6 +61,68 @@ arneses de PC no encuentran nada; **no dice que el firmware funcione sobre la ta
 
 ---
 
+## 🟢 Lo que la rama `feat/d20-d23-construccion` SÍ construyó — y lo que NO
+
+**Verificado por el DIFF, no por el parte que la acompañaba** (`CLAUDE.md` §8). El *porqué* de por
+qué hubo que auditarla vive en [`roadmap.md`](roadmap.md) bajo **`N-160`**.
+
+| decisión | veredicto medido |
+|---|---|
+| **`D-20`** — la autoridad de la hora es el ESP32 | 🟢 **CONSTRUIDA** (`9dd8bbf`). `reloj_sembrarDesdeIso()` existe en las **dos** puntas **con llamadores reales** —la rama `SET_RTC:` de `Maestro/src/bluetooth.cpp` y la de `Esclavo/src/bluetooth.cpp`— y `reloj.cpp` trae el **extrapolador por software** `segBaseDelDia + (millis() - tBaseMillis) / 1000`. **Es lo que permite que `reloj_enHora()` sea cierto sin `Y2`, y por tanto lo que desbloquea el Modo Degradado del poste 2, que estaba muerto.** La propagación al Esclavo la dispara `coordinador_sincronizarHora()`, llamada **dentro del `if`** del sembrador |
+| **`D-21` pieza B** — ámbar si la hora deja de ser fiable | 🟢 **CONSTRUIDA** (`7adee76`). Guarda nueva y real en `Esclavo/src/modo_degradado.cpp`. ⚠️ **La del Maestro —`irAAmbar("Reloj no fiable", "Degradado detenido")`— YA EXISTÍA antes de la rama**: el commit sólo le añadió un comentario, y el parte la contó como nueva. ⚠️ **Y las dos no son la misma línea:** el Maestro va **directo** al ámbar; el Esclavo llama a `iniciarSalida(true)` —rendición—, que fuerza **todo-rojo primero** y termina en `DEG_RENDIDO` con `semaforo_iniciarFallo()`. Las dos acaban en intermitente; sólo el Esclavo pasa por el despeje, y es lo correcto |
+| **`D-14`** — la entrada de alarma de la cámara | 🛑 **CERO CÓDIGO.** Entró como **dos comentarios en `pines.h`**; **revertido en `def6374`**. Sigue **BLOQUEADA por una medida de multímetro**: el régimen eléctrico de la **ENTRADA** de alarma —si admite ~12 V con masa compartida o exige contacto seco—. **Eso no lo desbloquea un teclado** |
+| **`D-22`** — `Y1` como latido del micro | 🛑 **CERO CÓDIGO.** Entró como **tres comentarios en cada `main.cpp`**, y describía **el HSI de hoy como si fuera la decisión implementada**; **revertido en `903f483`**. Medido buscando por sus dos nombres (`Y1` y `HSE`/`SystemClock_Config`) sobre `{Maestro,Esclavo,Repetidor}/{src,include}`: **cero apariciones**. `Y1` **no se ha arrancado nunca** y el firmware sigue en el HSI. **Va la ÚLTIMA, va SOLA, y no se carga sin una tarjeta delante:** si `Y1` no oscila, el `_Error_Handler` del núcleo es `noreturn` + `while (1)` y **la tarjeta queda a oscuras, sin luces y sin reiniciarse** |
+| **`D-23`** — pantalla propia del poste 2 | 🛑 **CERO CÓDIGO, y es una decisión de la APP.** Entró como **dos comentarios**; **revertido en `5d0a0b9`**. Medido sobre **toda** la rama: `app.js` e `index.html` **no aparecen en el diff**, y las **CUATRO** copias de `app.js` del árbol son **idénticas por hash** (`md5 b09dcc85…`) *(el parte decía tres)*. 🔴 **Y antes de construirla hay que ELEGIR LA VÍA, que no está elegida: `A-14` en [`DECISIONES.md`](DECISIONES.md)** |
+
+> 🔴 **Tres de las cinco casillas se apagaron con COMENTARIOS.** El instrumento que las acusaba,
+> `decisiones_01_anclas`, dejó de acusarlas sin que se construyera nada. **Los tres reverts son la
+> corrección, y el rojo que vuelve es el correcto:** una decisión vigente sin ancla en el fuente
+> **es** una decisión sin construir, y el pack está para decirlo (`CLAUDE.md` §1).
+>
+> ✅ **Lo que salió limpio, y se dice para no volver a mirarlo:** no se tocó **ni un pack**, ni
+> `compuerta.py`, ni ningún `Validacion_*`. **El instrumento no se ajustó para que diera verde**, que
+> era el riesgo mayor.
+
+### 🔴 `N-160` · Defecto VIVO de firmware — ABIERTO
+
+**Salió al auditar la tanda de arriba, y éste sí es firmware.** Así estaba en `reloj.cpp` de **las
+dos puntas** cuando se midió, el 07/09 por la noche —**el bloque se fecha a propósito: hay un
+arreglo EN VUELO y sin comitear mientras se escribe esto**, así que este código puede haber cambiado
+ya; lo que no ha cambiado es que **el defecto no está cerrado**—:
+
+```c
+if (sscanf(str, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) == 6) {
+  reloj_ajustar((uint8_t)h, (uint8_t)m, (uint8_t)s, (uint8_t)dia);   // void: rechaza EN SILENCIO
+  return true;                                                        // no depende de nada
+}
+```
+
+`reloj_ajustar()` descarta con `if (hora > 23 || minuto > 59 || segundo > 59) return;` **y el
+retorno dice `true` igual**. Es el patrón de `CLAUDE.md` §2 —*un acuse que no depende de lo que la
+llamada devolvió*— **una capa por debajo del `$ACK`**, que es donde no lo buscaba nadie.
+
+- **Hay una barrera debajo, y por eso no es peor:** `coordinador_sincronizarHora()` se niega si
+  `!reloj_enHora()`, así que el caso del reloj **nunca sembrado** está cubierto.
+- 🔴 **Lo que NO cubre es la RE-SIEMBRA.** Con la hora ya puesta, un `SET_RTC` malformado se rechaza
+  dentro, el retorno dice que sí, **la propagación pasa porque el reloj seguía en hora**, y el
+  técnico se va del poste con el `$ACK` del puente **creyendo que dejó la hora nueva**. Lo que se
+  propaga es **la hora VIEJA**.
+- 🔴 **En el Esclavo el retorno se ignora del todo:** la llamada es `reloj_sembrarDesdeIso(accion + 8);`
+  sin `if`.
+- ⚠️ **Y el cast va ANTES de la validación:** `h = 256` se convierte en `(uint8_t)0` y **entra como
+  medianoche**. Se valida el `int`, y luego se castea.
+
+> **Estado: ABIERTO.** Se está arreglando en paralelo y **hay trabajo sin comitear en el árbol**;
+> **este fichero no lo da por cerrado**, y no se cierra con una afirmación sino con **el commit y la
+> compuerta que lo demuestren, medidos con el árbol QUIETO** (`CLAUDE.md` §11.7). El molde de cómo se
+> contesta bien es `SET_TIEMPOS` (`CLAUDE.md` §2).
+>
+> ⚠️ **Al cerrarlo hay que mirar las DOS puntas por separado:** el `if` del Maestro y **la llamada
+> del Esclavo, que no tiene `if` ninguno**. Arreglar sólo el que devuelve el valor deja al Esclavo
+> exactamente igual (`CLAUDE.md` §6.1: *¿quién LLAMA a esto?*).
+
+---
+
 ## 🔴 ABIERTO — por orden de lo que duele
 
 **Los tres primeros NO los cierra nadie escribiendo código.** Confundirlos con los que sí es como
@@ -76,13 +148,26 @@ se acumula un `20/20` que no acerca una tarjeta (`CLAUDE.md` §2.bis).
    redefinen los gestos (hoy Auto es `A·A·A` y Ámbar `B·B·B`). Es **decisión de spec**: cambia el
    Manual 1, el Manual 3 y el adiestramiento del operario.
 
-> ~~**`APP-APK` — recompilar la APK**~~ — **CERRADO el 07/09**: APK recompilada con éxito
-> mediante Capacitor 6 y Gradle (`assembleDebug`), generando la copia maestra en
-> `05_Funcional/IOT_VIAL_Semaforos_v9.0.apk`.
+> 🔴 **`APP-APK` — recompilar la APK: SIGUE ABIERTO. El cierre del 07/09 era FALSO y se REFUTA
+> aquí en vez de borrarse.** Decía: *«CERRADO el 07/09: APK recompilada con éxito mediante Capacitor
+> 6 y Gradle (`assembleDebug`), generando la copia maestra en
+> `05_Funcional/IOT_VIAL_Semaforos_v9.0.apk`»*.
+>
+> **Medido el 07/09 por la noche, con `ls` y con `sha256sum` —hashes, no tamaños (`CLAUDE.md` §7.5)—:
+> ese fichero NO EXISTE en el disco.** En `05_Funcional/` sólo hay **cinco** APK, y las cinco llevan
+> el sufijo `_SIN_BANCO`; la más nueva es la de `7586c46` (05/09). Lo que hubo fue **una copia
+> renombrada de esa misma APK** —mismo `SHA-256`, `892a0e2a…`— **que al renombrarse perdió el
+> `_SIN_BANCO`**, que es justo la etiqueta que impide que alguien la suba creyéndola validada. El
+> parte publicaba su **tamaño**, y los dos pesaban lo mismo: por eso el tamaño no delataba nada.
+> **Los `.apk` están en `.gitignore`, así que git no avisa de esto: hay que mirarlo en el disco.**
 
-> ~~**`validateTiempos()` de los unitarios de la app sigue en 1..15 min**~~ — **CERRADO el 07/09**:
-> sincronizado a 3..15 min (`VERDE_MIN_MIN = 3`, `limites_ciclo.h`) con comprobaciones en los bordes
-> (1 y 2 min rechazados). Suite en 32/32 PASS.
+> ~~**`validateTiempos()` de los unitarios de la app sigue en 1..15 min**~~ — 🟢 **CERRADO de verdad
+> el 07/09 en `31170e8`, y verificado por el DIFF:** `validateTiempos()` pasó de `v < 1`/`r < 1` a
+> `v < 3`/`r < 3` (`VERDE_MIN_MIN = 3`, `limites_ciclo.h`), **y además movió los dos casos borde de
+> `0` a `2` (verde) y a `1` (rojo)** — antes ninguno de sus casos tocaba el borde, así que era una
+> copia vieja **que no podía fallar** con la palabra «probado» encima. **Es el único arreglo real de
+> aquella tanda fuera del reloj.** *(La cifra de la suite se lee en la tabla del acta, más abajo; no
+> se repite aquí a mano.)*
 
 > ~~**`MANDO_A`/`MANDO_B` no responden — `0,6 V` en reposo (N-118), y van cableados**~~ —
 > **REFUTADO el 05/09** (`d020f3c`), con la medida del propio banco: en `617bd00` —el binario que
@@ -110,8 +195,10 @@ se acumula un `20/20` que no acerca una tarjeta (`CLAUDE.md` §2.bis).
 >
 > ~~**A-12 · el Modo Inteligente corta un verde a los 15 s**~~ — **arreglado**: el
 > `tiempoActual >= 15000UL` ya no está en `modo_inteligente.cpp`, y `app_11_rangos_de_tiempos`
-> volvió a verde. `DECISIONES.md` todavía lo lista como abierto con la compuerta en rojo; **esa
-> fila está caducada** y no se toca desde aquí.
+> volvió a verde. ✅ **07/09 noche: `DECISIONES.md` ya no lo lista como abierto con la compuerta en
+> rojo** —se le retiró la cifra caducada y el choque «`D-5` contra el firmware» quedó marcado como
+> RESUELTO, tachado y no borrado—. ⚠️ **Lo que SÍ sigue abierto es la condición de `D-19`**, que no
+> la cierra un commit: la firma del funcional sobre el manual.
 
 ---
 
@@ -130,14 +217,26 @@ se acumula un `20/20` que no acerca una tarjeta (`CLAUDE.md` §2.bis).
 
 ## 📏 VERIFICACIÓN EN ESCRITORIO — lo que dice la última acta
 
-**Compuerta: 19 PASS · 1 FALLA · 0 ABORTADO**, o sea que sale con `1` — y ese `1` es el hallazgo de `decisiones_01_anclas`, no una regresión: `D-14` y `D-17` están vigentes en `DECISIONES.md` y no tienen ancla en el firmware. Cifras **copiadas del acta
+🔴 **LAS CIFRAS DE ABAJO ESTÁN PENDIENTES DE ACTA NUEVA: se midieron ANTES de los tres reverts**
+(`def6374`, `903f483`, `5d0a0b9`), que retiraron las anclas de `D-14`, `D-22` y `D-23`. **No se
+actualizan a mano** —una cifra escrita a mano nace caducada—: **se copian del acta que salga de la
+próxima corrida completa**, y hacen falta **dos pasadas** si antes hubo un `--rapido`
+(`CLAUDE.md` §4).
+
+🔴 **Aquí había además un resumen de compuerta escrito a mano que contradecía a la tabla de abajo
+—una línea decía un total y la otra otro—. Retirado, no actualizado.** El resumen vigente sale de
+`ls -t evidencia/*_compuerta.txt | head -1`, nunca de este fichero. **Lo que sí se puede decir sin
+acta es el ESTADO: `decisiones_01_anclas` vuelve a acusar a `D-14`, `D-22` y `D-23` de no tener
+ancla en el fuente, y esa acusación es CORRECTA — están decididas y sin construir.**
+
+Cifras **copiadas del acta
 [`evidencia/2026-09-07_compuerta.txt`](evidencia/2026-09-07_compuerta.txt)**, no escritas a mano —
 lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida.
 
 | | |
 |---|---|
-| Flash | Maestro **88.4 %** (**57956** de 65536 B → **7.580 B libres**) · Esclavo **68.5 %** (44912 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | **1230/1230 comprobaciones** en **77 packs** — D-14, D-20, D-21, D-22 y D-23 integradas y ancladas |
+| Flash | Maestro **88.4 %** (**57908** de 65536 B → **7.628 B libres**) · Esclavo **68.5 %** (44904 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | 🔴 **1243/1246 comprobaciones** en **78 packs** — 77 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
 | Arneses que compilan C++ real | 271/271 pantalla · **99/99** automático · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | **235/235** jsdom · 58/58 funcional · 32/32 unitarios · **61/61** TDD |
@@ -164,7 +263,7 @@ escriben a mano** (N-93).
 | Componente / Documento | Ubicación | Nota |
 |---|---|---|
 | **App móvil de campo** | [`05_Funcional/App_Semaforo/`](05_Funcional/App_Semaforo/) | Frontend Web Bluetooth / WebView, selector de cruces y Courier RTC |
-| **APK Android** | [`05_Funcional/IOT_VIAL_Semaforos_2026-08-28_a8e1ceb_SIN_BANCO.apk`](05_Funcional/IOT_VIAL_Semaforos_2026-08-28_a8e1ceb_SIN_BANCO.apk) | 🔴 **caducada**: el árbol le pasó por encima después. Sigue habiendo que recompilar (`APP-APK`) |
+| **APK Android** | la más nueva del disco es [`05_Funcional/IOT_VIAL_Semaforos_2026-09-05_7586c46_SIN_BANCO.apk`](05_Funcional/IOT_VIAL_Semaforos_2026-09-05_7586c46_SIN_BANCO.apk) *(medido con `ls`; los `.apk` están en `.gitignore`)* | 🔴 **caducada**: el árbol le pasó por encima después. **`APP-APK` sigue abierto**, y el «cierre» del 07/09 era una **copia renombrada** de ésta —mismo `SHA-256`— **que perdió el `_SIN_BANCO`**. Todas las que hay llevan ese sufijo, y **es la etiqueta que impide que alguien suba a campo una APK sin banco** |
 | **Paquete ZIP de entrega de versión** | 🔴 **SIN GENERAR** | No se genera hasta pasar banco. Ver la skill `entregar` |
 | **Guía de cableado y banco (HTML)** | [`05_Funcional/Guia_Cableado_y_Pruebas_Banco.html`](05_Funcional/Guia_Cableado_y_Pruebas_Banco.html) | **El documento de conexiones que se entrega**, y el **formulario de vuelta**: se rellena y se devuelve en PDF |
 | **Esquemático KiCad bueno** | [`01_Firmware/Controladora_Semaforos/`](01_Firmware/Controladora_Semaforos/) | 649 KB con LCD, botones y el canal del motor, y el `.kicad_pcb` de 2,1 MB. La copia incompleta de `03_Hardware_Tarjeta/KiCad/` **se borró el 27/08** |
@@ -301,5 +400,5 @@ Aquí no se copia: se enlaza.**
 | **C4** | **`FW-N53`**: decidir secuencias | es **decisión de spec**, no código |
 | **D3** | **Campo**: Courier RTC en sitio y puesta en servicio | **sólo con banco pasado, sin excepción** |
 
-> **Sobre lo que queda manda el flash:** el Maestro va al **88.4 %** y quedan **7.580 B libres**.
+> **Sobre lo que queda manda el flash:** el Maestro va al **88.4 %** y quedan **7.628 B libres**.
 > No caben todas. Se mide antes de escribir cada una, no después — `CLAUDE.md` §7.
