@@ -963,12 +963,28 @@ pierde la seguridad.
 | aviso | cuándo aparece | qué hacer |
 |---|---|---|
 | **`CAM_PEGADA`** | el contacto lleva **20 minutos** cerrado sin abrirse ni una vez | ir a mirar. Puede ser el relé trabado… **o un vehículo parado ahí debajo**, que también es normal |
-| **`CAM_CIEGA`** | **6 horas de paso abierto** sin ver un solo vehículo | ir a mirar la cámara: tapada, desenfocada, sin corriente o con el cable cortado |
+| **`CAM_CIEGA`** | **24 horas de paso abierto** sin ver un solo vehículo | ir a mirar la cámara: tapada, desenfocada, sin corriente o con el cable cortado |
 
 🛑 **Ninguno de los dos para el cruce ni le cambia nada.** Son avisos de mantenimiento: **un cruce
 no se para por una cámara sucia.** El detalle completo está más abajo, en este mismo apartado.
 
-> 🟡 **HAY UN CAMBIO DECIDIDO Y TODAVÍA NO HECHO, y se escribe aquí para que nadie lo dé por puesto.** El plazo de `CAM_CIEGA` está **decidido subirlo de 6 h a 4 días de paso abierto**, y que además el Modo Inteligente **se declare averiado** y pida que revisen la cámara. El motivo es bueno: una cámara rota no se arregla rápido, y una alarma que salta un domingo sin tráfico manda a alguien a un poste sano. **Pero eso NO está en el firmware de hoy: hoy son 6 horas, y es lo que va a ver.** La decisión está anotada en `roadmap.md` y **no está implementada**; el número de este manual es el que el equipo ejecuta de verdad.
+> 🟢 **HECHO EL 08/09: el plazo de `CAM_CIEGA` sube de 6 h a 24 h de paso abierto.** El motivo es el
+> que estaba escrito aquí y sigue siendo bueno: **una alarma que salta un domingo sin tráfico manda a
+> alguien a un poste sano**, y una alarma que suena sola enseña a ignorarla. Con 6 h de paso abierto
+> —del orden de **2 dias de reloj**, porque el cronómetro sólo corre con la pluma arriba— un fin de
+> semana con la obra activa y la carretera vacía la disparaba. Con **24 h de paso abierto, del orden
+> de 2 días de reloj**, ese fin de semana ya no la dispara.
+>
+> ⚠️ **Y por qué 24 h y no los 4 días que se habían anotado**, que es la otra mitad: la única
+> referencia real que existe de una cámara ciega es *«lleva 8 días con presencia»*, que es como se
+> descubrió **a ojo**. Cuatro días de paso abierto son del orden de **8 días de reloj**, o sea que la
+> alarma llegaría **justo cuando ya se habría visto sin ella**. Con 24 h llega unas **cuatro veces
+> antes que el ojo**, que es lo que la hace servir para algo. El número se baja cuando haya datos, y
+> los datos los dan los eventos de esta misma fase.
+>
+> 🔴 **LO QUE SIGUE SIN HACER, y no se da por puesto:** que además el Modo Inteligente **se declare
+> averiado** y pida que revisen la cámara. **Eso NO está en el firmware de hoy.** El plazo sí; el
+> aviso, no.
 
 ---
 
@@ -1004,7 +1020,7 @@ Es para quien mantenga este documento. El suelo, el doble y la saturación a los
 están en `Maestro/src/modo_inteligente.cpp`, en los símbolos `TECHO_POR_SUELO`, `sueloMin` y
 `topeMin`, con el rango vial en `Maestro/include/limites_ciclo.h` (`VERDE_MIN_MIN` = 3,
 `VERDE_MIN_MAX` = 15). El plazo de la cámara ciega es `CAM_CIEGA_MS`, en el `botones.cpp` de las
-**dos** puntas: `21600000UL`, que son las 6 h.
+**dos** puntas: `86400000UL`, que son las 24 h.
 
 **No se citan números de línea a propósito** —caducan solos y esos ficheros se están tocando hoy
 (`CLAUDE.md` §4.sexies)—. Se encuentran con
@@ -1252,7 +1268,7 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 > | Aviso | Cuándo aparece | Qué hay que hacer |
 > |---|---|---|
 > | **`CAM_PEGADA`** | el contacto lleva **20 minutos** cerrado **sin abrirse ni una vez** | ir a mirar. Puede ser el relé de la cámara trabado… **o un vehículo parado ahí debajo** |
-> | **`CAM_CIEGA`** | **6 horas de paso abierto** sin ver un solo vehículo | ir a mirar la cámara: **tapada, desenfocada, sin corriente o con el cable cortado** |
+> | **`CAM_CIEGA`** | **24 horas de paso abierto** sin ver un solo vehículo | ir a mirar la cámara: **tapada, desenfocada, sin corriente o con el cable cortado** |
 > | **`RECUPERADA`** | la entrada vuelve a comportarse | **nada**: el aviso se cierra solo |
 >
 > 🛑 **ESTO NO PARA NI TOCA EL CRUCE, Y ES LO PRIMERO QUE HAY QUE SABER.** Los dos avisos llevan
@@ -1265,10 +1281,10 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 > pluma: dan la misma señal.** Por eso el aviso dice `CONTACTO_FIJO` y **no «avería»**. Las dos cosas
 > piden que alguien vaya a mirar; si al llegar hay un vehículo parado, **la cámara está bien**.
 >
-> ⏱️ **`CAM_CIEGA` cuenta 6 horas DE PASO ABIERTO, no 6 horas de reloj.** El contador sólo corre
+> ⏱️ **`CAM_CIEGA` cuenta 24 horas DE PASO ABIERTO, no 24 horas de reloj.** El contador sólo corre
 > mientras la pluma está arriba —con el cruce en menú, en rojo total o con el turno en el otro
 > poste nadie puede cruzar, y una cámara callada está diciendo la verdad—. Con el ciclo mínimo eso
-> es del orden de **12 horas de reloj**, así que **no puede saltar en una sola noche sin tráfico**.
+> es del orden de **2 dias de reloj**, así que **no puede saltar en una sola noche sin tráfico**.
 >
 > ⚠️ **Lo que sigue igual, y por eso la frase de arriba no se borra:** esto **no** hace que una
 > cámara abra paso. Lo que cubre son las **dos entradas de `J16`** — ~~y **no** cubre la cámara de
@@ -1280,7 +1296,7 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 > cubierta**. `J14`/`PB0` sigue vivo en el firmware y **sin cámara**; si algún día se le cuelga algo,
 > ese borne **no está vigilado** — y eso es lo que hay que recordar de esta frase.
 >
-> 🔴 **Y lo que todavía NO está probado en una tarjeta:** que `CAM_CIEGA` salte de verdad a las 6 h.
+> 🔴 **Y lo que todavía NO está probado en una tarjeta:** que `CAM_CIEGA` salte de verdad a las 24 h.
 > **No es ejecutable en una sesión de banco** —haría falta cargar un programa con el plazo acortado,
 > y ése no es el que va a campo—, así que está comprobado en su **forma** y no en su **tiempo**. Se
 > escribe aquí en vez de dejarlo pasar por bueno.

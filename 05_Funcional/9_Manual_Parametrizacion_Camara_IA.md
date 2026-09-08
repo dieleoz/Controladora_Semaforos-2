@@ -1850,7 +1850,7 @@ sin él, **cero falsas activaciones**. Aun así **se repite en cada instalación
 | Lo que sale por Bluetooth | Cuándo | Qué mirar en la CÁMARA |
 |---|---|---|
 | `$ALARM …EVENTO:CAM_PEGADA,CAUSA:CAM_C_CONTACTO_FIJO,…,ACCION:NINGUNA` | el contacto lleva **20 min** cerrado **sin abrirse ni una vez** | el `Delay` de la salida (§4 Paso 4), un relé trabado… **o un vehículo parado ahí debajo** |
-| `$ALARM …EVENTO:CAM_CIEGA,CAUSA:CAM_C_SIN_FLANCO,…,ACCION:NINGUNA` | **6 h de PASO ABIERTO** sin un solo cierre | óptica **tapada o desenfocada**, cámara **sin alimentación**, **cable cortado**, o la regla de intrusión desactivada |
+| `$ALARM …EVENTO:CAM_CIEGA,CAUSA:CAM_C_SIN_FLANCO,…,ACCION:NINGUNA` | **24 h de PASO ABIERTO** sin un solo cierre | óptica **tapada o desenfocada**, cámara **sin alimentación**, **cable cortado**, o la regla de intrusión desactivada |
 | `$EVENT,…,ORIGEN:CAMARA,DETALLE:CAM_C_RECUPERADA` | vuelve a comportarse | la alarma **se cierra sola**: no hay que rearmar nada |
 
 🛑 **`ACCION:NINGUNA` es el dato, no un hueco.** Esta versión **no ejecuta ninguna medida vial**: no
@@ -1861,15 +1861,15 @@ puestas.** Son **avisos de mantenimiento** — 🔴 **un cruce NO se para por un
 de la pluma: dan el mismo nivel.** Por eso la causa dice `CONTACTO_FIJO` y **no «avería»**. Si va a
 mirar y hay un camión parado, **la cámara está bien**; anótelo tal cual.
 
-⏱️ **`CAM_CIEGA` cuenta 6 h de PASO ABIERTO, no 6 h de reloj**, así que **no puede saltar en una
+⏱️ **`CAM_CIEGA` cuenta 24 h de PASO ABIERTO, no 24 h de reloj**, así que **no puede saltar en una
 noche tranquila**: el cronómetro sólo corre con la pluma arriba. Con el ciclo mínimo eso es del
-orden de **12 h de reloj**.
+orden de **2 dias de reloj**.
 
 ⚠️ **Lo que esto SÍ cambia en el trabajo de instalación:** al terminar de cablear, **no deje el
 contacto puenteado ni la cámara mirando a una pared**. Si lo hace y se va, a los 20 min el equipo
 empieza a mandar alarmas que nadie pidió, y quien las reciba **saldrá a un poste que está bien**.
 
-🔴 **Y lo que este manual NO puede prometer todavía:** que `CAM_CIEGA` salte de verdad a las 6 h
+🔴 **Y lo que este manual NO puede prometer todavía:** que `CAM_CIEGA` salte de verdad a las 24 h
 **no está ejercido** — no es ejecutable en una sesión de banco, y hacerlo exigiría cargar una
 compilación con el umbral reducido, **que no es la que va a campo**. Está comprobado en su
 **forma**, no en su **tiempo**.

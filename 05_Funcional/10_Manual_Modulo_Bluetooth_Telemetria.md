@@ -1156,7 +1156,7 @@ $STATUS,NODE:MAESTRO,SERIE:A3F19C,MODO:AUTO,ESTADO:V1_R2,T:24,RF:98%,RTT:82ms,BA
 > |---|---|
 > | `OK` | las dos han dado flancos y ninguna está pegada |
 > | `?` | **todavía no se sabe** — al encender, hasta que una dé su primer flanco |
-> | `CIEGA` | una lleva **6 h de paso abierto** sin ver un vehículo |
+> | `CIEGA` | una lleva **24 h de paso abierto** sin ver un vehículo |
 > | `PEGADA` | una lleva **20 min** con el contacto cerrado sin abrirse |
 >
 > **`?` pesa más que `OK` a propósito**, y ése es todo el diseño del campo: si una cámara se sabe
@@ -1262,7 +1262,7 @@ $EVENT,NODE:MAESTRO,ORIGEN:CAMARA_PLUMA,DETALLE:VETO_HABRIA_ACTUADO_N:3,HORA:18:
 | campo | valores | qué significa |
 |---|---|---|
 | `EVENTO` | `CAM_PEGADA` | el contacto lleva **20 min** cerrado **sin abrirse ni una vez** |
-| `EVENTO` | `CAM_CIEGA` | **6 h de PASO ABIERTO** sin un solo flanco |
+| `EVENTO` | `CAM_CIEGA` | **24 h de PASO ABIERTO** sin un solo flanco |
 | `CAUSA` | `CAM_C_CONTACTO_FIJO` · `CAM_D_CONTACTO_FIJO` | qué entrada, y qué se observó |
 | `CAUSA` | `CAM_C_SIN_FLANCO` · `CAM_D_SIN_FLANCO` | idem |
 | `ACCION` | **`NINGUNA`, siempre** | ver abajo — **no es un hueco** |
@@ -1285,10 +1285,10 @@ $EVENT,NODE:MAESTRO,ORIGEN:CAMARA_PLUMA,DETALLE:VETO_HABRIA_ACTUADO_N:3,HORA:18:
 > **el mismo nivel**, y este firmware no tiene con qué separarlos. Las dos cosas piden que alguien
 > vaya a mirar, así que avisar es correcto en los dos casos; **llamarlo avería no lo sería**.
 
-> ⏱️ **`CAM_CIEGA` cuenta 6 h de PASO ABIERTO, no 6 h de reloj.** El cronómetro sólo corre con la
+> ⏱️ **`CAM_CIEGA` cuenta 24 h de PASO ABIERTO, no 24 h de reloj.** El cronómetro sólo corre con la
 > **pluma arriba**: con el cruce en menú, en rojo total o con el turno en la otra punta nadie puede
 > cruzar el barrido, y una cámara callada está diciendo la verdad. Con el ciclo mínimo cada poste
-> tiene el paso abierto **~la mitad del tiempo** —del orden de **12 h de reloj**—, así que **no
+> tiene el paso abierto **~la mitad del tiempo** —del orden de **2 dias de reloj**—, así que **no
 > puede dispararse dentro de una sola noche sin tráfico**, que es el único silencio largo legítimo.
 
 > 🔴 **RESIDUAL, Y NO SE LEE COMO APROBADO: `CAM_CIEGA` a su valor de producción NO es ejecutable

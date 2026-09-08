@@ -451,7 +451,7 @@ la foto de campo del 04/09.
 |---|---|---|
 | **`OK`**<br>*«las dos ven y ninguna está pegada»* | la cámara ha dado señal y responde | nada |
 | **`SIN COMPROBAR`**<br>*«aún no ha pasado nada por esos pines: no consta que vean»* | 🔴 **el equipo dice que NO LO SABE.** Es lo normal desde que se enciende hasta la primera detección | **no es una avería, y NO es un aprobado.** Si acaba de instalar, **provoque una detección delante de la cámara** y compruebe que el equipo la acusa (`9_Manual_Parametrizacion_Camara_IA.md`). Hasta ese momento el vigilante **no vigila** |
-| **`CIEGA`**<br>*«lleva horas sin una sola detección: puede estar tapada o sin corriente»* | lleva **6 h de paso abierto** sin ver pasar un solo vehículo | vaya a mirarla: tapada, girada, sin corriente, o el cable de su contacto suelto |
+| **`CIEGA`**<br>*«lleva demasiado tiempo de paso abierto sin una sola detección: puede estar tapada o sin corriente»* | lleva **6 h de paso abierto** sin ver pasar un solo vehículo | vaya a mirarla: tapada, girada, sin corriente, o el cable de su contacto suelto |
 | **`PEGADA`**<br>*«contacto fijo: dice que hay alguien y no se suelta»* | el contacto lleva **20 min cerrado sin abrirse ni una vez** | 🛑 **el equipo NO puede distinguir un relé trabado de un vehículo parado veinte minutos debajo de la pluma.** Las dos cosas piden que alguien vaya a mirar; por eso el equipo dice *contacto fijo* y no *avería* |
 | **`--`** | **la app no tiene el dato**: o no hay enlace, o ese equipo no publica el campo. El renglón de abajo dice cuál de las dos | si dice *«sin enlace»*, es el enlace; si dice *«firmware anterior»*, el equipo es viejo y no hay nada roto |
 | **`!`** (en rojo) | **llegó algo que no puede ser.** Debajo sale el texto tal cual llegó | apúntelo y repórtelo con el Diario (`§5.4.2.bis`). O el firmware creció por delante de esta APK, o la trama llegó rota |
@@ -497,13 +497,13 @@ la foto de campo del 04/09.
 > grep -n "const CAM_LEYENDA" 05_Funcional/App_Semaforo/www/app.js
 > ```
 >
-> *(Comprobado el 05/09: `1200000` ms = **20 min** y `21600000` ms = **6 h**; el tercero devuelve
+> *(Comprobado el 05/09: `1200000` ms = **20 min** y `86400000` ms = **24 h**; el tercero devuelve
 > **1** línea por punta —la regla es la misma en las dos— y el cuarto, **1**.)*
 >
 > ⏱️ **Las 6 h de `CIEGA` NO son 6 h de reloj: son 6 h CON EL PASO ABIERTO.** Con el cruce parado
 > —menú, rojo total, o sin turno— nadie puede cruzar por delante de la cámara, y una cámara callada
 > está diciendo la verdad; ese tiempo no cuenta. Con el ciclo mínimo de 3 min por sentido, cada poste
-> tiene el paso abierto aproximadamente la mitad del tiempo, o sea **del orden de 12 h de reloj**:
+> tiene el paso abierto aproximadamente la mitad del tiempo, o sea **del orden de 2 dias de reloj**:
 > **no puede saltar dentro de una sola noche sin tráfico**, que es el único silencio largo legítimo.
 
 ### 1.ter.2 La fila de la **PLUMA** (talanquera) — y el caso que hoy se lee como avería

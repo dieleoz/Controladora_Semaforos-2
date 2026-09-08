@@ -873,7 +873,7 @@ porque se mueven cada hora: viven en las actas de `evidencia/`, con su fecha y e
   > está construido (fase 1 de `D-13`, `4b90f98`) y publica **`CAM_CIEGA`** y **`CAM_PEGADA`** por
   > `$ALARM`, más el campo **`CAM:`** del `$STATUS` (`A-13`, cerrada el 07/09). 🔴 **Vigila `J16`
   > p10/p12; NO vigila `J14`** (E-4). Lo que **sigue sin probarse** es su TIEMPO: `CAM_PEGADA` son
-  > **20 min** y `CAM_CIEGA` **6 h de paso abierto**, y **6 h no son ejecutables en una sesión de
+  > **20 min** y `CAM_CIEGA` **24 h de paso abierto**, y **24 h no son ejecutables en una sesión de
   > banco** — se anota así, no se sustituye por una espera corta que no mide lo mismo.
 
 **4.4 Ciclo completo sin caída** — ♻️ **SE REESCRIBE**

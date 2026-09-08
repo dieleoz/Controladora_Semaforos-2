@@ -180,16 +180,30 @@ static const unsigned long CAM_PEGADA_MS = 1200000UL;
 //      contacto trabado se anunciaria como CIEGA -el diagnostico CONTRARIO- y el
 //      tecnico saldria a buscar un cable cortado teniendo un rele cerrado.
 //
-// Se toman 6 h de paso abierto. Con el ciclo minimo de D-5 -3 min por sentido- cada
-// poste tiene el paso abierto aproximadamente la mitad del tiempo, asi que son del
-// orden de 12 h de reloj: NO PUEDE dispararse dentro de una sola noche sin trafico, que
-// es el unico silencio largo que es legitimo. Y llega mas de diez veces antes que la
-// unica referencia que habia -"lleva 8 dias con presencia", que es como el responsable
-// lo descubrio a ojo-.
+// SE TOMAN 24 h DE PASO ABIERTO (08/09). Antes eran 6 h, y la razon del cambio es un
+// FALSO POSITIVO, no una holgura: con el ciclo minimo de D-5 -3 min por sentido- cada
+// poste tiene el paso abierto aproximadamente la mitad del tiempo, asi que 6 h de paso
+// abierto son del orden de 12 h de RELOJ. Eso aguanta una noche sin trafico -el unico
+// silencio largo que es legitimo- pero NO aguanta un fin de semana con la obra activa y
+// la carretera vacia, que en una via secundaria es un sabado normal. Una alarma que
+// suena sola ensena a ignorarla, y entonces no protege de nada.
+//
+// 24 h de paso abierto son del orden de 2 DIAS de reloj: sobreviven ese fin de semana.
+//
+// POR QUE NO MAS, que es la mitad que decide: la unica referencia real que existe es
+// "lleva 8 dias con presencia", que es como el responsable lo descubrio A OJO. Con 4
+// dias de paso abierto -unos 8 dias de reloj- la alarma llegaria EXACTAMENTE cuando ya
+// se habia visto sin ella, o sea que dejaria de servir. Con 24 h llega unas cuatro
+// veces antes que el ojo, que es lo que la hace util.
+//
+// LO QUE ESTE NUMERO NO ES: no es el plazo de la desincronizacion del reloj, que se
+// mide en MESES (D-21). Son dos cosas distintas y se anota aqui porque se confundieron
+// al decidirlo: cuanto tarda en pasar un vehiculo es propiedad de la carretera; cuanto
+// tarda una hora en volverse mentirosa es propiedad del oscilador.
 //
 // SE PODRA BAJAR CUANDO HAYA DATOS, y los datos los da esta misma fase 1: sus eventos
 // son los que diran cuanto silencio hay de verdad en este cruce. Hoy no hay ninguno.
-static const unsigned long CAM_CIEGA_MS = 21600000UL;
+static const unsigned long CAM_CIEGA_MS = 86400000UL;
 
 // EL ORDEN DE LOS VALORES ES LA GRAVEDAD, y por eso el campo CAM: se resuelve con un
 // simple mayor-que en vez de con una cadena de ifs que alguien tendria que mantener

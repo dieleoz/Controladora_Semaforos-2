@@ -1936,7 +1936,7 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
               <td>🟢 <b>Es lo que tiene que salir DESPUÉS del paso 21</b></td></tr>
             <tr><td><code>CAM:PEGADA</code></td><td>20 min cerrado sin abrirse</td>
               <td>paso 21.bis</td></tr>
-            <tr><td><code>CAM:CIEGA</code></td><td>6 h de paso abierto sin un flanco</td>
+            <tr><td><code>CAM:CIEGA</code></td><td>24 h de paso abierto sin un flanco</td>
               <td>paso 21.ter</td></tr>
           </tbody>
         </table>
@@ -1962,16 +1962,16 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
       vaya a mirar, así que avisar es correcto en los dos casos — por eso la causa dice
       <code>CONTACTO_FIJO</code> y <b>no «avería»</b>. Si vas a mirar y hay un camión parado, <b>no
       es un defecto del equipo</b>: anótalo tal cual.</p>
-    <p>⏱️ <b><code>CAM_CIEGA</code> cuenta 6 h de PASO ABIERTO, no 6 h de reloj.</b> El cronómetro
+    <p>⏱️ <b><code>CAM_CIEGA</code> cuenta 24 h de PASO ABIERTO, no 24 h de reloj.</b> El cronómetro
       sólo corre con la <b>pluma arriba</b>: con el cruce en menú, en rojo total o con el turno en la
       otra punta, nadie puede cruzar y una cámara callada está diciendo la verdad. Con el ciclo
       mínimo cada poste tiene el paso abierto <b>~la mitad del tiempo</b>, o sea del orden de
-      <b>12 h de reloj</b>: <b>no puede dispararse dentro de una sola noche sin tráfico.</b></p>
+      <b>2 dias de reloj</b>: <b>no puede dispararse dentro de una sola noche sin tráfico.</b></p>
   </div>
 
   <div class="parar">
     <b>🔴 Lo que este banco NO puede probar de esto, y no se disimula</b>
-    <p><b><code>CAM_CIEGA</code> a su valor de producción son 6 h de paso abierto: NO es ejecutable
+    <p><b><code>CAM_CIEGA</code> a su valor de producción son 24 h de paso abierto: NO es ejecutable
       en una sesión de banco.</b> Está comprobado en su <b>forma</b> —que la trama se compone y sale
       bien— <b>pero no en su tiempo</b>. Ejercerlo de verdad exigiría cargar una compilación con el
       umbral reducido, <b>y esa compilación no es la que va a campo</b>: probaría un programa
@@ -4436,9 +4436,9 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
               <td>🟠 <b>Fuera de esta visita.</b> La cámara graba en su propia tarjeta, y eso
                 <b>no toca una línea de nuestro programa</b>. Falta comprarlas y decidir retención:
                 es una decisión, no una medida</td></tr>
-            <tr><td>🆕 <b>Que <code>CAM_CIEGA</code> salte de verdad a las 6 h</b></td>
+            <tr><td>🆕 <b>Que <code>CAM_CIEGA</code> salte de verdad a las 24 h</b></td>
               <td>🔴 <b>NO es ejecutable en esta sesión, y no se disimula como aprobado.</b> Son
-                <b>6 h de PASO ABIERTO</b> —del orden de 12 h de reloj—; ejercerlo exigiría cargar
+                <b>24 h de PASO ABIERTO</b> —del orden de 2 días de reloj—; ejercerlo exigiría cargar
                 una compilación con el umbral reducido, <b>y esa compilación no es la que va a
                 campo</b>. Está comprobado en su <b>forma</b>, no en su <b>tiempo</b>. Lo que sí se
                 prueba es <b>la puerta que impide que salte sola</b>: el <b>paso 21.ter</b></td></tr>
@@ -4448,7 +4448,7 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
                 <code>VETO_HABRIA_ACTUADO_N</code> del <b>paso 21.quater</b>, y después el mismo
                 contador en el poste—. <b>Ofrecer hoy la elección sería pedir una decisión sobre una
                 causa sin medir</b>; lo que esta visita hace es traer el número</td></tr>
-            <tr><td>🆕 <b>Bajar el umbral de <code>CAM_CIEGA</code> por debajo de las 6 h</b></td>
+            <tr><td>🆕 <b>Bajar el umbral de <code>CAM_CIEGA</code> por debajo de las 24 h</b></td>
               <td>🟠 <b>Fuera de esta visita.</b> Cuánto silencio es normal en este cruce es una
                 propiedad <b>de la carretera</b>, no del equipo, y hoy <b>no hay ni un dato</b>. Los
                 eventos de la fase 1 son los que lo dirán. <b>El firmware no se toca en banco</b></td></tr>

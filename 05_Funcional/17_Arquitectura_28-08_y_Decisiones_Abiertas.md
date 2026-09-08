@@ -1852,7 +1852,7 @@ encender no es una deteccion, es un estado**. Es N-26 aplicado a la camara.
 > | | umbral | de donde sale |
 > |---|---|---|
 > | `CAM_PEGADA` (`CONTACTO_FIJO`) | **20 min** de contacto cerrado sin abrirse | **DERIVADO** del techo del ciclo — `VERDE_MIN_MAX + DESPEJE_SEG_MAX = 16,5 min`, y 20 es el primer redondo por encima. **La desigualdad la recalcula `camara_03_vigilante` del C++ en cada corrida** (N-71): no vive en un comentario |
-> | `CAM_CIEGA` (`SIN_FLANCO`) | **6 h de PASO ABIERTO** | 🟠 **NO sale de ninguna constante del firmware, y asi esta escrito.** Cuanto tarda el siguiente vehiculo es propiedad **de la carretera**; fabricarle una derivacion seria `A-7` otra vez. Lo que si es del equipo, y el pack lo comprueba: **cuenta con la pluma arriba, no reloj**, y **tiene que ser mayor que `CAM_PEGADA_MS`** —una camara pegada tampoco da flancos, y con el orden invertido un rele trabado se anunciaria `CIEGA`, el diagnostico CONTRARIO— |
+> | `CAM_CIEGA` (`SIN_FLANCO`) | **24 h de PASO ABIERTO** | 🟠 **NO sale de ninguna constante del firmware, y asi esta escrito.** Cuanto tarda el siguiente vehiculo es propiedad **de la carretera**; fabricarle una derivacion seria `A-7` otra vez. Lo que si es del equipo, y el pack lo comprueba: **cuenta con la pluma arriba, no reloj**, y **tiene que ser mayor que `CAM_PEGADA_MS`** —una camara pegada tampoco da flancos, y con el orden invertido un rele trabado se anunciaria `CIEGA`, el diagnostico CONTRARIO— |
 >
 > **El contador `camVetos` OBSERVA la bajada de pluma con presencia debajo; no la veta.** Vetarla
 > exigiria entrar en `escribirPines()`, que es **SFTY-28** y necesita la derogacion escrita de
@@ -1860,7 +1860,7 @@ encender no es una deteccion, es un estado**. Es N-26 aplicado a la camara.
 > existe: por eso se construyo antes el contador que el veto.
 >
 > 🔴 **LO QUE NO DEBE LEERSE COMO APROBADO:** `CAM_CIEGA` a su valor de produccion **no es ejecutable
-> en una sesion de banco** —son 6 h de paso abierto, del orden de 12 h de reloj—. Esta comprobado en
+> en una sesion de banco** —son 24 h de paso abierto, del orden de 2 dias de reloj—. Esta comprobado en
 > su **FORMA**, no en su **TIEMPO**; ejercerlo exigiria una compilacion con el umbral reducido, **y
 > esa no es la que va a campo**. Lo que si se ejerce en banco es la **puerta**: que el cronometro
 > **no corre con el paso cerrado** — paso **21.ter** de `Guia_Cableado_y_Pruebas_Banco.html`.

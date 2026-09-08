@@ -417,7 +417,7 @@ enciende con `VERDE2` activo. **Si no enciende, es cobre y hay que saberlo antes
 | ~~**A-1**~~ | ~~¿Qué significa cada uno de los dos bits?~~ | **CERRADA por `D-13`** (`108d882`): las dos cámaras llevan la misma configuración y el significado lo pone el estado del semáforo. Un bit, cinco lecturas |
 | ~~**A-3**~~ | ~~¿A quién le habla el operario con el reloj?~~ | **DECIDIDO 05/09, delegado por el responsable: contesta QUIEN TIENE EL RELOJ.** Ver `D-15`, construido en `5e4076d`. Una orden, un acuse; y la app valida la hora en **las dos** puntas |
 | ~~**A-5**~~ | ~~¿Había un DS3231 en el banco?~~ | **RESUELTA 05/09** (`08c9d36`): sí — cada ESP32 lleva su reloj con pila propia, y así estaba escrito desde el 28/08 en la lista de compras. `HORA:22:19:58` es real y **N-145 queda confirmada en cobre**. ⚠️ Sigue **sin verificar** `0x68` sobre el módulo |
-| ~~**A-6**~~ | ~~La vigilancia de la propia cámara — «la enunció el responsable y NO EXISTE»~~ | 🟢 **CONSTRUIDA el 05/09 en `4b90f98`** (fase 1 de `D-13`, N-157), en **las dos puntas y con cero efecto vial**: la única función vial en las 238 líneas nuevas es `semaforo_plumaArriba()`, **y se lee**. `CAM_PEGADA_MS = 20 min` **derivado** del techo del ciclo y recalculado del C++ por su pack (N-71); `CAM_CIEGA_MS = 6 h **de paso abierto**`, que **no sale de ninguna constante del firmware y así está escrito** —cuánto tarda el siguiente vehículo es propiedad de la carretera, y fabricarle una derivación sería `A-7` otra vez—. Y el contador `camVetos` **observa** la transición en vez de vetarla. 🔴 **Lo que NO debe leerse como aprobado: `CAM_CIEGA` a su valor de producción son 6 h, no ejecutables en una sesión de banco.** El camino está comprobado en su **forma**, no en su **tiempo**. Y su lectura en pantalla depende de `A-13` |
+| ~~**A-6**~~ | ~~La vigilancia de la propia cámara — «la enunció el responsable y NO EXISTE»~~ | 🟢 **CONSTRUIDA el 05/09 en `4b90f98`** (fase 1 de `D-13`, N-157), en **las dos puntas y con cero efecto vial**: la única función vial en las 238 líneas nuevas es `semaforo_plumaArriba()`, **y se lee**. `CAM_PEGADA_MS = 20 min` **derivado** del techo del ciclo y recalculado del C++ por su pack (N-71); `CAM_CIEGA_MS = 24 h **de paso abierto**`, que **no sale de ninguna constante del firmware y así está escrito** —cuánto tarda el siguiente vehículo es propiedad de la carretera, y fabricarle una derivación sería `A-7` otra vez—. Y el contador `camVetos` **observa** la transición en vez de vetarla. 🔴 **Lo que NO debe leerse como aprobado: `CAM_CIEGA` a su valor de producción son 24 h, no ejecutables en una sesión de banco.** El camino está comprobado en su **forma**, no en su **tiempo**. Y su lectura en pantalla depende de `A-13` |
 | ~~**A-9**~~ | ~~Dos relojes por cruce y nada los sincroniza~~ | **RESUELTA 05/09 por el responsable y CONSTRUIDA en `5846cee`** (ver `D-17`). Sigue en pie el aviso para `AB-4`: el día que el Degradado cuelgue del DS3231, **el desfase inicial no tiene cota** — pero ahora al menos **se mide** |
 | ~~**N-118**~~ | ~~`MANDO_A`/`MANDO_B` no responden: 0,6 V en reposo, «defecto de placa»~~ | 🟢 **REFUTADO el 05/09 en `d020f3c`, con la medida del propio banco.** En `617bd00` —**el binario que estaba en la tarjeta durante aquel banco**— `BOTON1/2` iban en `INPUT_PULLUP` y `CAM_C/D_PIN` en `INPUT` pelado. El paso 20 midió **9,92–9,94 kΩ en los cuatro pines**, y **0,6 V sólo en los dos con pull-up y 0 V en los dos sin él**: mismo cobre, distinto `pinMode`, distinta tensión. **El banco había corrido las dos ramas del experimento en la misma tabla y nadie lo leyó así.** Y además es moot: **ya no hay mando** (`D-1`). ⚠️ La tensión de `J16` p5/p8 con el binario nuevo queda escrita como **prueba CANCELADA**, no como casilla pendiente: una casilla abierta invita a puentear `J16`, que es el gesto que precedió al calentamiento del paso 29 |
 
@@ -498,8 +498,39 @@ las armadas: si Motion o Tampering también lo marcan, el bit deja de significar
 | va a **bajar la pluma** | presencia debajo | **fase 2:** no baja, `$EVENT`, reintenta. **Fase 1 (hoy):** la transición se **observa**, `camVetos++` y `$EVENT` | 🟢 observado (`4b90f98`) · el veto espera a `A-1.bis` |
 | **rojo** con la pluma abajo | **invasión** | `$EVENT` con hora | 🟢 |
 | **verde** | paso normal | cuenta silenciosa: alimenta el vigilante | 🟢 |
-| **N horas sin flanco** con el paso abierto | cámara ciega o tapada | `$ALARM` `CAM_CIEGA` a las **6 h de pluma arriba** | 🟢 construido · **no ejercido en su tiempo real** |
+| **N horas sin flanco** con el paso abierto | cámara ciega o tapada | `$ALARM` `CAM_CIEGA` a las **24 h de pluma arriba** | 🟢 construido · **no ejercido en su tiempo real** |
 | **nivel alto sostenido > T** | cámara pegada | `$ALARM` `CAM_PEGADA` a los **20 min** | 🟢 |
+
+> 🎯 **`D-24` · EL PLAZO DE `CAM_CIEGA` SUBE A 24 h DE PASO ABIERTO — decidido el 05/09, ajustado y
+> CONSTRUIDO el 08/09.** Esta fila **no existía en este fichero** y la decisión vivía sólo en
+> `roadmap.md` y en un manual; se escribe aquí porque **una decisión que no está en la tabla
+> vinculante no la puede ejecutar nadie**: quien abra este fichero antes de trabajar —que es lo que
+> manda— se para con razón.
+>
+> **Lo decidido el 05/09 fueron 4 días.** El responsable delegó el número el 08/09 —*«los días que
+> estimes»*— sobre la premisa de que *«la desincronización es de meses»*. ⚠️ **Esa premisa es de otro
+> sitio y se corrige aquí en vez de heredarla:** los meses son el plazo del RELOJ (`D-21`, el
+> extrapolador); `CAM_CIEGA` no cuenta reloj. **Son dos propiedades distintas —una es del oscilador,
+> la otra es de la carretera— y se confundieron al decidir.**
+>
+> **El número que se construye son 24 h, y las dos mitades de la cuenta:**
+>
+> | | |
+> |---|---|
+> | **por qué no menos** | El cronómetro sólo corre **con la pluma arriba**, y con el ciclo mínimo de `D-5` cada poste tiene el paso abierto ~la mitad del tiempo. Las **6 h** de antes eran del orden de **12 h de reloj**: aguantaban una noche sin tráfico pero **no un fin de semana con la obra activa y la vía vacía**. Ése es el falso positivo que el responsable quería quitar —*«una alarma que salta un domingo sin tráfico manda a alguien a un poste sano»*—, y una alarma que suena sola enseña a ignorarla. **24 h de paso abierto ≈ 2 días de reloj**: ese fin de semana ya no la dispara |
+> | **por qué no más** | La única referencia real de una cámara ciega es *«lleva 8 días con presencia»*, que es como se descubrió **a ojo**. **4 días de paso abierto ≈ 8 días de reloj**, o sea que la alarma llegaría **justo cuando ya se habría visto sin ella**. Con 24 h llega unas **cuatro veces antes que el ojo**, que es lo que la hace servir |
+>
+> **Sigue por encima de `CAM_PEGADA_MS` (20 min)**, que es la desigualdad que impide que un contacto
+> trabado se anuncie como `CIEGA` —el diagnóstico contrario—, y su pack la recalcula del C++ en cada
+> corrida. **Se bajará cuando haya datos**, y los datos los dan los eventos de esta misma fase 1.
+>
+> 🔴 **LO QUE SIGUE SIN CONSTRUIR, y va con esta decisión: que el Modo Inteligente se declare
+> AVERIADO y pida revisión de la cámara.** El plazo está; el aviso, no. **Eso es spec y es del
+> responsable.**
+>
+> ⚠️ **Si el responsable prefiere los 4 días, es UNA constante** —`CAM_CIEGA_MS` en los dos
+> `botones.cpp`— más esta fila y los siete documentos. El número está delegado, la cuenta está
+> escrita, y la elección sigue siendo suya.
 
 ### Orden de ejecución — y las dos primeras fases NO tocan el ciclo
 

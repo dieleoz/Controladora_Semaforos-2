@@ -60,7 +60,9 @@ document.addEventListener('DOMContentLoaded', () => {
     //   'OK'       las dos ven y ninguna esta pegada.
     //   '?'        el EQUIPO dice que todavia no consta que vean. NO es 'OK' y
     //              tampoco es null: null es que la app no tiene dato.
-    //   'CIEGA'    lleva horas sin una sola deteccion.
+    //   'CIEGA'    lleva demasiado paso abierto sin una sola deteccion. El umbral NO
+    //              se nombra aqui: vive en CAM_CIEGA_MS del C++ y ya cambio una vez
+    //              -6 h -> 24 h el 08/09-. Una cifra copiada a este lado no se entera.
     //   'PEGADA'   contacto fijo: afirma presencia y no se suelta.
     //
     // POR QUE IMPORTA QUE SE VEA: en fase 1 el vigilante no toca el ciclo, solo
@@ -1806,7 +1808,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 color: 'var(--green-lamp)' },
     '?':      { texto: 'SIN COMPROBAR', frase: 'aun no ha pasado nada por esos pines: no consta que vean',
                 color: 'var(--text-muted)' },
-    'CIEGA':  { texto: 'CIEGA',        frase: 'lleva horas sin una sola deteccion: puede estar tapada o sin corriente',
+    'CIEGA':  { texto: 'CIEGA',        frase: 'lleva demasiado tiempo de paso abierto sin una sola deteccion: puede estar tapada o sin corriente',
                 color: 'var(--amber-lamp)' },
     'PEGADA': { texto: 'PEGADA',       frase: 'contacto fijo: dice que hay alguien y no se suelta',
                 color: 'var(--red-lamp)' }
