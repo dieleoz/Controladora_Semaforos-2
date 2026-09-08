@@ -79,9 +79,39 @@ void reloj_actualizar() {
 
   if (__HAL_RCC_GET_FLAG(RCC_FLAG_LSERDY) == RESET) return;
 
+  // N-160 - SI YA HABIA HORA SEMBRADA, SE LA PASAMOS AL CRISTAL QUE ACABA DE ARRANCAR.
+  //
+  // Identico a la otra punta y por el mismo motivo, que es la unica forma de que las
+  // dos cuenten igual (N-49). Sin esto la hora SALTA en silencio: se arranca sin
+  // cristal, llega la siembra y se queda SOLO en software, y treinta segundos despues
+  // este reintento adopta el LSE; a partir de ahi los getters leen de un RTC QUE NUNCA
+  // SE SEMBRO con horaValida todavia en true.
+  //
+  // Aqui no hay radio que empujar -esta punta no origina-, pero de reloj_segundosDelDia()
+  // sale la FASE del Degradado, que es el modo que da verde sin el otro extremo: dos
+  // puntas con la hora saltando por separado es el ambar-contra-verde que CMD_HORA_D
+  // vino a cerrar.
+  //
+  // SE LEE ANTES DE MOVER LA BANDERA: los getters eligen fuente con rtcOperativo.
+  const bool teniaBase = horaValida;
+  const uint32_t segBase = teniaBase ? reloj_segundosDelDia() : 0;
+  const uint8_t diaAhora = teniaBase ? reloj_dia() : 0;
+
   rtc.setClockSource(STM32RTC::LSE_CLOCK);
   rtc.begin(false, STM32RTC::HOUR_24);
   rtcOperativo = true;
+
+  if (teniaBase) {
+    rtc.setHours((uint8_t)(segBase / 3600UL));
+    rtc.setMinutes((uint8_t)((segBase % 3600UL) / 60UL));
+    rtc.setSeconds((uint8_t)(segBase % 60UL));
+    if (rtc.getYear() < ANIO_MARCA) rtc.setYear(ANIO_MARCA);
+    if (diaAhora >= 1) {
+      rtc.setDay(diaAhora);
+      rtc.setMonth(1);  // enero fijo, igual que el Maestro
+    }
+    return;  // la hora es la MISMA de antes: no salta
+  }
 
   if (rtc.isConfigured() && (rtc.getYear() >= ANIO_MARCA)) {
     horaValida = true;

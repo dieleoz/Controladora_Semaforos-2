@@ -198,6 +198,23 @@ bool reloj_sembrarDesdeIso(const char* str);
 // por el cristal: D-15 no los rompe, los deja bloqueados POR CONSTRUCCION del fuente en
 // vez de por una averia de hardware.
 //
+// 🔴 CADUCADO EL 07/09 POR D-20, Y SE TACHA EN VEZ DE BORRARSE PORQUE EXPLICA DE DONDE
+// VIENE LO DE ABAJO. Los dos parrafos anteriores YA NO SON CIERTOS:
+//
+//   - "hoy NADIE puede poner en hora este RTC" -> SI se puede. D-20 abrio un camino
+//     nuevo, reloj_sembrarDesdeIso(), con llamador real en la rama SET_RTC de
+//     bluetooth.cpp. No escribe el RTC: siembra una base de software que se extrapola
+//     con millis(), que es justo el punto de D-20 -el cristal Y2 no hace falta-.
+//   - "reloj_enHora() es hoy FALSO SIEMPRE" -> es TRUE en cuanto alguien manda SET_RTC.
+//     Y con ella se desbloquean los tres de la lista, empezando por el Modo Degradado.
+//
+// UN .h QUE MIENTE SOBRE ESTA BANDERA ES CARO: es lo que lee el siguiente antes de
+// tocar el Degradado, y le diria que un modo que ya arranca sigue muerto.
+//
+// LO QUE SIGUE SIENDO CIERTO, y por eso el bloque se queda: la pantalla AJUSTAR HORA
+// sigue colgando de botonAceptar(), que es "return false" desde D-2, asi que por AHI
+// no entra nada. Lo que cambio es que hay OTRA puerta, no que se arreglara aquella.
+//
 // LO QUE SE RETIRO CON EL CAMINO, Y POR QUE NO SE GUARDO DE ADORNO: reloj_invalidarHora()
 // existia para N-144 -un ajuste que NO quedaba dejaba horaValida en true, el equipo
 // publicaba HORA:00:00:00 y eso no es medianoche, es un contador parado declarandose
@@ -209,6 +226,20 @@ bool reloj_sembrarDesdeIso(const char* str);
 // AB-4), N-144 VUELVE CON EL: quien escriba ese camino tiene que releer lo que escribio
 // y RETIRAR la bandera si no cuadra, no solo avisar. Es la mitad que costo la cinta de
 // campo del 04/09.
+//
+// 🔴 ESE DIA LLEGO EL 07/09 CON D-20, Y LA PRECONDICION DE ARRIBA NO SE CUMPLIO. El
+// camino esta escrito -reloj_sembrarDesdeIso() con llamador real- y reloj_invalidarHora()
+// NO se restauro. Medido al auditar (N-160): los unicos "horaValida = false" viven dentro
+// de reloj_setup(); despues solo hay "= true". En el Esclavo eso deja la bandera en
+// TRINQUETE de una sola direccion -alli ni siquiera existe reloj_reiniciarDominioRespaldo(),
+// que es lo unico que la baja en esta punta-, y por eso la guarda de D-21 que el Esclavo
+// estreno en su bucle de Degradado ES INALCANZABLE POR CONSTRUCCION.
+//
+// NO SE ARREGLA AQUI Y A PROPOSITO: cerrarlo bien es la pieza (A) de D-21 -que el OSF del
+// DS3231 llegue a reloj_enHora()-, y hoy no hay ni una aparicion de OSF fuera de
+// ESP32_Expansion/. Poner un invalidador sin esa fuente seria inventarse el criterio de
+// cuando la hora deja de valer. Queda como decision abierta del responsable, con la medida
+// delante, en roadmap.md 3.10.bis.
 
 // --- Franja nocturna configurable -----------------------------------------
 //

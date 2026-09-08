@@ -88,10 +88,44 @@ void reloj_actualizar() {
 
   if (__HAL_RCC_GET_FLAG(RCC_FLAG_LSERDY) == RESET) return;  // sigue sin arrancar
 
+  // N-160 - SI YA HABIA HORA SEMBRADA, SE LA PASAMOS AL CRISTAL QUE ACABA DE ARRANCAR.
+  //
+  // Sin esto la hora SALTA en silencio y nadie se entera. El caso es real y lo abre
+  // D-20: arranca sin cristal -rtcOperativo false-, alguien siembra por SET_RTC y la
+  // base se queda SOLO en software -el bloque "if (rtcOperativo)" de reloj_ajustar no
+  // corre-, y treinta segundos despues este reintento adopta el LSE. A partir de esa
+  // linea reloj_hora/minuto/segundo/dia() y reloj_segundosDelDia() cambian de fuente
+  // al RTC hardware, QUE NUNCA SE SEMBRO, mientras horaValida sigue en true.
+  //
+  // En esta punta eso no se queda en la pantalla: enviarHoraCompleta() empuja esa hora
+  // al Esclavo por radio, y la fase del Degradado sale de reloj_segundosDelDia(). Es
+  // N-24 del reves: no "hora escrita sobre un contador parado", sino "contador
+  // arrancado bajo una hora que nunca se le escribio".
+  //
+  // SE LEE ANTES DE MOVER LA BANDERA: los getters eligen fuente con rtcOperativo, asi
+  // que despues de ponerla ya estarian leyendo del RTC vacio.
+  const bool teniaBase = horaValida;
+  const uint32_t segBase = teniaBase ? reloj_segundosDelDia() : 0;
+  const uint8_t diaAhora = teniaBase ? reloj_dia() : 0;
+
   rtc.setClockSource(STM32RTC::LSE_CLOCK);
   rtc.begin(false, STM32RTC::HOUR_24);
   rtcOperativo = true;
 
+  if (teniaBase) {
+    rtc.setHours((uint8_t)(segBase / 3600UL));
+    rtc.setMinutes((uint8_t)((segBase % 3600UL) / 60UL));
+    rtc.setSeconds((uint8_t)(segBase % 60UL));
+    if (rtc.getYear() < ANIO_MARCA) rtc.setYear(ANIO_MARCA);
+    if (diaAhora >= 1) {
+      rtc.setDay(diaAhora);
+      rtc.setMonth(1);  // el calendario de esta punta es enero fijo. Ver reloj_fijarEnero()
+    }
+    return;  // horaValida ya estaba en true y la hora es la MISMA de antes: no salta
+  }
+
+  // Sin base previa si vale adoptar lo que el RTC traiga: es un arranque en caliente
+  // con la hora que sobrevivio en el dominio de respaldo.
   if (rtc.isConfigured() && (rtc.getYear() >= ANIO_MARCA)) {
     horaValida = true;
   }

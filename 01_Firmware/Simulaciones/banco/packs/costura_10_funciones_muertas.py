@@ -104,7 +104,12 @@ CONOCIDAS = {
         "bluetooth_testLedsActivo",
         # N-86: mismas tres del puerto de camara IA, retiradas tambien en esta punta.
         "protocolo_reiniciarContadores",
-        "respaldo_valido", "reloj_dia", "semaforo_toggle",
+        # N-160: reloj_dia SALE de esta lista. Gano llamador de verdad -reloj_actualizar()
+        # la lee para pasarle la fecha al cristal que arranca tarde, en vez de dejar que
+        # los getters salten a un RTC sin sembrar-. Se retira porque el pack lo exigio al
+        # ganar llamador, que es el trinquete de CLAUDE.md 6.1 haciendo su trabajo: una
+        # lista que acumula nombres obsoletos deja de poder fallar.
+        "respaldo_valido", "semaforo_toggle",
         # El Esclavo NO enciende luces por su cuenta: rechaza TEST_LEDS y no fuerza
         # verde. Que estas dos no tengan llamador es la barrera funcionando.
         "semaforo_iniciarTestLeds", "semaforo_forzarVerde",
