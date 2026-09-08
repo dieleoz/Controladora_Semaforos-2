@@ -1,6 +1,6 @@
 # 📜 Registro de Validación de Software
 
-**Fecha de esta revisión:** 7 de septiembre de 2026
+**Fecha de esta revisión:** 8 de septiembre de 2026
 **Alcance:** STM32F103 (Maestro / Esclavo) + ESP32 (Repetidor) + banco de simulación en Python
 **Naturaleza de este documento:** registro interno de validación **en escritorio**.
 
@@ -24,15 +24,20 @@
 ## 🧾 De dónde salen las cifras de este documento
 
 **Todas las cifras de la tabla siguiente están copiadas del acta
-[`evidencia/2026-09-07_compuerta.txt`](evidencia/2026-09-07_compuerta.txt), no escritas a mano.**
+[`evidencia/2026-09-08_compuerta.txt`](evidencia/2026-09-08_compuerta.txt), no escritas a mano.**
 Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 `documentos_04_cifras_sin_vigilante`, que es lo que impide que este documento envejezca en silencio.
 
 > 🔴 **Lo que ese acta dice de sí misma, y hay que leer antes de firmar nada:**
-> `HEAD 0b06f7d`, rama `main-nuevo`, y **`Arbol: CON CAMBIOS SIN COMMITEAR`**. El acta lo avisa en su
-> última línea: *«estas cifras NO corresponden exactamente a `0b06f7d`»*. Un registro de validación
-> que se firma sobre un árbol sucio no es reproducible; para que lo sea hay que volver a correr la
-> compuerta con el árbol limpio.
+> `HEAD db13df4`, rama **`feat/d20-d23-construccion`**, y **`Arbol: CON CAMBIOS SIN COMMITEAR`** — el
+> acta se escribe **antes** del commit que la publica, así que ese aviso sale siempre. Un registro de
+> validación que se firma sobre un árbol sucio no es reproducible; para que lo sea hay que volver a
+> correr la compuerta con el árbol limpio.
+>
+> ⚠️ **Y este bloque ya envejeció una vez en silencio: citaba `HEAD 0b06f7d` de `main-nuevo` cuando el
+> acta llevaba días midiendo otra cosa.** Ningún pack vigila estas tres líneas —`documentos_04` mira
+> las **cifras**, no la cabecera—, así que **se comprueban a mano al firmar**. Es el mismo defecto que
+> el nombre del fichero de arriba, que sí tiene vigilante y por eso se corrigió solo el 08/09.
 
 ---
 

@@ -676,7 +676,7 @@ porque una decision sin su medida al lado se hereda sin poder revisarse.
 | | lo decidido |
 |---|---|
 | **La siembra periodica** | ✅ **SE CONSTRUYE.** Hoy **no existe** —el ESP32 reenvia verbatim y nadie lee el `DS3231` para sembrar al STM32—, asi que **la unica siembra es una persona tecleando `SET_RTC` en el poste** |
-| **La cadencia** | 🔴 **«en horas, dias o meses, NO cada ms».** Y tenia razon: **el «cada 2 s» que estaba escrito lo puse yo y no se sostiene** —sembrar por un cable cada dos segundos para corregir una deriva que se mide en minutos es atosigar el enlace sin motivo—. **Falta el numero: `A-15`** |
+| **La cadencia** | ✅ **UNA HORA** *(cerrado el 08/09, `A-15`)*, **reusando `INTERVALO_SYNC_MS`** para que haya **un solo numero en el sistema**. Nace de *«no cada ms, algo con sentido en horas, dias o meses»*, y tenia razon: **el «cada 2 s» que estaba escrito lo puse yo y no se sostiene** —sembrar por un cable cada dos segundos para corregir una deriva que se mide en minutos es atosigar el enlace sin motivo— |
 | **`D-21`, la forma** | ✅ **Tres piezas encadenadas:** ambar en la punta que pierde la hora · **alarma en la app al conectarse por Bluetooth A ESE NODO** · y la alarma **se quita poniendole la hora al Esclavo desde el telefono** |
 | **`A-14`, la via de `D-23`** | ✅ **`$EVENT` nuevo**, por su criterio: *«lo que menos consumo de radio genere, pues puede ir y volver, etc y mareas»*. Es la unica **sin ida y vuelta y sin periodico**, y **deja rastro en el Diario de Ordenes** |
 | **`FW-N53`** | 🟡 **al roadmap como pendiente.** No bloquea nada, y `J16` p5/p8 siguen VACIOS con el mando leyendo sus flancos (`A-2`, `D-1`): **antes de redefinir gestos hay que cerrar eso** |

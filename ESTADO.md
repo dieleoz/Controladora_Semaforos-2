@@ -1,4 +1,4 @@
-# ESTADO — dónde está parado el trabajo HOY (07/09/2026)
+# ESTADO — dónde está parado el trabajo HOY (08/09/2026)
 
 > **Este fichero es el estado VIVO.** Lo que está abierto, lo que bloquea y lo que falta medir.
 > El *porqué* completo de cada `N-x` vive en [`roadmap.md`](roadmap.md); las decisiones vigentes,
@@ -263,7 +263,7 @@ acta es el ESTADO: `decisiones_01_anclas` vuelve a acusar a `D-14`, `D-22` y `D-
 ancla en el fuente, y esa acusación es CORRECTA — están decididas y sin construir.**
 
 Cifras **copiadas del acta
-[`evidencia/2026-09-07_compuerta.txt`](evidencia/2026-09-07_compuerta.txt)**, no escritas a mano —
+[`evidencia/2026-09-08_compuerta.txt`](evidencia/2026-09-08_compuerta.txt)**, no escritas a mano —
 lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida.
 
 | | |
