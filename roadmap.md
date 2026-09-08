@@ -75,6 +75,10 @@ la cinta del 05/09 a las 22:19.
 > (2) **la guarda `D-21` del Esclavo esta construida y no puede dispararse**, porque nada devuelve
 > `horaValida` a `false`. **Hasta contestarlas, el paso 4 del orden de construccion no se puede
 > ordenar honestamente.** §3.10.bis.
+>
+> ✅ **CONTESTADAS EN PARTE esa misma noche (§3.11): la siembra periodica SE CONSTRUYE y `D-21` tiene
+> su forma cerrada.** Lo que quedo abierto son **`A-15`** —el numero de la cadencia— y sobre todo
+> **`A-16`**: `D-22` se contradice a si misma, y de eso depende que el Degradado sea seguro.
 
 > **Por donde se empieza manana:** por el **peldano gratis** de N-116 —desenchufar `J14`, `J15`,
 > `J16`, `J17` y `J2` y remedir el riel de 3,3 V—. Cuesta cinco minutos y **decide si hay que
@@ -663,6 +667,40 @@ Esclavo **68,5 → 68,9 %**.
 > entrada, asi que la bandera **ya no puede volver a false**. Es la pieza **A** de `D-21` —el `OSF`
 > que no llega a `reloj_enHora()`, **cero apariciones de `OSF` fuera de `ESP32_Expansion/`**— y sigue
 > sin construir. **`D-20` no la creo, pero la empeoro:** antes la bandera al menos podia bajar.
+
+### 3.11 · 🎯 Lo que el responsable DECIDIO la noche del 07/09, y las DOS que quedaron abiertas
+
+**Cuatro respuestas, y una de ellas corrigio una cifra mia.** Van aqui con la medida que las acompano,
+porque una decision sin su medida al lado se hereda sin poder revisarse.
+
+| | lo decidido |
+|---|---|
+| **La siembra periodica** | ✅ **SE CONSTRUYE.** Hoy **no existe** —el ESP32 reenvia verbatim y nadie lee el `DS3231` para sembrar al STM32—, asi que **la unica siembra es una persona tecleando `SET_RTC` en el poste** |
+| **La cadencia** | 🔴 **«en horas, dias o meses, NO cada ms».** Y tenia razon: **el «cada 2 s» que estaba escrito lo puse yo y no se sostiene** —sembrar por un cable cada dos segundos para corregir una deriva que se mide en minutos es atosigar el enlace sin motivo—. **Falta el numero: `A-15`** |
+| **`D-21`, la forma** | ✅ **Tres piezas encadenadas:** ambar en la punta que pierde la hora · **alarma en la app al conectarse por Bluetooth A ESE NODO** · y la alarma **se quita poniendole la hora al Esclavo desde el telefono** |
+| **`A-14`, la via de `D-23`** | ✅ **`$EVENT` nuevo**, por su criterio: *«lo que menos consumo de radio genere, pues puede ir y volver, etc y mareas»*. Es la unica **sin ida y vuelta y sin periodico**, y **deja rastro en el Diario de Ordenes** |
+| **`FW-N53`** | 🟡 **al roadmap como pendiente.** No bloquea nada, y `J16` p5/p8 siguen VACIOS con el mando leyendo sus flancos (`A-2`, `D-1`): **antes de redefinir gestos hay que cerrar eso** |
+
+> ⚠️ **LA CORRECCION QUE HUBO QUE HACERLE AL CRITERIO, y se deja escrita porque el criterio era bueno
+> y la premisa no: NINGUNA de las tres vias de `A-14` tocaba la radio.** `RF_Packet` son **4 bytes**
+> `{msgID, command, param, crc}`; el `$STATUS` del Esclavo sale por `SerialBT` (PB7/PB6) → **`J17`** →
+> su propio ESP32 → Bluetooth al telefono. **El diagnostico del poste 2 viaja por cable y Bluetooth,
+> nunca por el aire entre postes** — y lo mismo la siembra, que es `ESP32 → STM32` por `J17`. Lo que
+> si discriminaba era el trafico del enlace al telefono, y ahi el `$EVENT` gana igual. **Se contesto
+> la pregunta que se hizo, no la que parecia** (`CLAUDE.md` §8.2).
+
+> 🔴 **Y LA QUE SE FUE ABIERTA ES LA QUE MAS PESA — `A-16`: `D-22` SE CONTRADICE A SI MISMA.** Su fila
+> dice **«opcional y la ultima de la cola»** y dice, tres lineas mas abajo, que **«`Y1` pasa a decidir
+> los 29 s»**. Con `Y2` muerto **no pueden ser las dos**, y los numeros son suyos: el HSI corriendo
+> libre **una hora son 36 s** en el extremo bueno y **90 s** en el malo, contra los **29 s** que
+> aguanta el cruce; con `Y1`, **0,1 s**.
+>
+> 🔴 **Y el golpe no es la cadencia, que es lo que se estaba discutiendo: EN DEGRADADO NO SE SIEMBRA
+> NADA.** No hay radio —por eso se entro— ni telefono, asi que las dos puntas **corren libres hasta
+> 48 h** sobre el HSI, y ahi la deriva va de **~29 min a ~1,2 h**. **Se siembre cada hora o cada mes,
+> eso no cambia.** O sea que con `Y2` muerto **`Y1` no es una mejora: es lo unico que hace que el
+> Degradado sea seguro** — y su riesgo sigue siendo el peor del proyecto, asi que lo que se pide **no
+> es construirlo ya, es su ORDEN**.
 
 ---
 
