@@ -702,6 +702,36 @@ porque una decision sin su medida al lado se hereda sin poder revisarse.
 > Degradado sea seguro** — y su riesgo sigue siendo el peor del proyecto, asi que lo que se pide **no
 > es construirlo ya, es su ORDEN**.
 
+#### 3.11.bis · 🔴 Las DOS medidas que le pedi al responsable y que NO HACIAN FALTA
+
+**Al cerrar la tanda le deje pedidas dos medidas de su mano. Las dos eran barreras MIAS y las dos
+eran falsas**, y las tumbo el en una linea. Va aqui porque el patron es el mismo las dos veces y es
+`CLAUDE.md` §7 al reves: **no publique un «no existe» sin descartar al buscador — publique un «hace
+falta medir» sin descartar que ya estuviera medido.**
+
+| | lo que yo pedia | lo que salio al comprobarlo |
+|---|---|---|
+| **`D-14`** | *«falta una medida de multimetro: el regimen electrico de la ENTRADA de alarma no lo publica nadie»* | 🛑 **Lo publica, y NUESTRO PROPIO MANUAL YA LO TENIA LEIDO Y ESCRITO.** `9_Manual_Parametrizacion_Camara_IA.md`: *«la pregunta “¿…contacto seco?” **esta contestada, y la respuesta es SI**: `1 input, 1 output (max. 24VDC/24 VAC, 1 A)`»*. Los **~12 V** de `J9`/`J11`/`J13` estan **por debajo de esos 24 V**: ni rele intermedio ni multimetro |
+| **`A-7`** | *«medir el `Delay` real del rele de la camara»* | 🛑 **No hace falta, y el responsable dio el motivo exacto: el numero no gobierna nada.** `botones.cpp` lee el **FLANCO**, no el nivel, asi que **lo que aguante el rele cerrado no interviene** |
+
+> 🔴 **Y `A-7` tapaba algo PEOR que la medida que reclamaba.** `demanda.cpp` decia:
+> *«La ventana de silencio… **Sale de la medida** del contacto seco: el rele de la camara AcuSense
+> cierra ~1 s por deteccion»*. **Esa medida nunca se tomo.** El `~1 s` se supuso, **se escribio como
+> si estuviera medido**, y despues dos packs se citaron a el.
+>
+> **El numero estaba BIEN y su procedencia era FALSA**, que es la combinacion que no salta nunca:
+> los `SILENCIO_MS = 3000` son una **decision de trafico** —que una cola de coches no se vuelva una
+> rafaga de tramas identicas sobre un canal de 2.4 kbps— y como decision es correcta. Lo que habia
+> que arreglar **no era ir a medir un rele: era el comentario.** Un comentario que se inventa de
+> donde sale **es peor que uno que calla**, porque el siguiente lo lee como dato y ya no vuelve a
+> preguntar — y de ahi nacio una fila de `DECISIONES.md` pidiendo una medida que nadie necesitaba.
+
+> ⚠️ **Lo que esto cambia de `D-14`, y no es menor: DEJA DE ESPERAR UNA MANO Y PASA A ESPERAR
+> TECLADO.** Ya no hay medida pendiente; lo que falta es **nuestro lado, que sigue en cero codigo**:
+> que salida cierra el contacto y quien la mueve. **Y el pin no se elige de memoria** —§3 y `N-96`—:
+> se abre `05_Funcional/17_Arquitectura…` y `ARQUITECTURA.map`, que **ganan a este fichero** en todo
+> lo que sea cobre.
+
 ---
 
 ## 4. Lo que necesita una COMPRA o un SOLDADOR
