@@ -50,8 +50,8 @@ la cinta del 05/09 a las 22:19.
 2. 🔴 **Las entradas de campo van desnudas al die** y `J16` p1 lleva 12 V crudos.
 3. ~~🔴 **El `$ALARM` no cabe en su buffer**~~ — 🟢 **CERRADO el 08/09** (§3.13). Y de paso quedo
    medido que **el sintoma publicado era falso**: el CRC casaba, y lo que se perdia era la HORA.
-4. ~~🔴 **`CAM_CIEGA` sigue en 6 h.**~~ — 🟢 **CONSTRUIDO el 08/09: 24 h de paso abierto** (`D-24`,
-   §3.15). 🔴 **Queda su segunda mitad: declarar AVERIADO el Modo Inteligente**, que es spec.
+4. ~~🔴 **`CAM_CIEGA` sigue en 6 h.**~~ — 🟢 **CERRADO ENTERO el 08/09** (`D-24`, §3.15): 24 h de
+   paso abierto **y** el aviso del Modo Inteligente. **Ya no queda nada de esta.**
 5. 🟡 **La firma del funcional sobre el manual del «doble» no existe** — y `TECHO_POR_SUELO = 2`
    **ya salio en el paquete del 05/09**.
 
@@ -143,7 +143,7 @@ resolver.
 | | que | medida |
 |---|---|---|
 | ~~**1**~~ | ~~🔴 **El `$ALARM` no cabe en su buffer.**~~ — 🟢 **CERRADO el 08/09. Ver §3.13.** El peor caso por buffer era **158 B en el Maestro y 171 en el Esclavo** contra los 143 que guardaba `payload[144]` | ⚠️ **Y la descripcion que habia aqui del sintoma era FALSA en su mitad mas importante**, medida al arreglarlo: *«no casa el CRC y la app la tira entera»*. El CRC se calcula **sobre lo que quedo**, asi que **casa**. Lo que llega es una alarma con aspecto de intacta **sin el valor de HORA**, que es peor: una que la app tira se nota; esta no |
-| ~~**2**~~ | 🟢 **`CAM_CIEGA` CONSTRUIDO el 08/09 en `9550c57` — `86400000UL`, 24 h de paso abierto**, en las dos puntas. `D-24` en `DECISIONES.md` lleva la cuenta entera | 🔴 **QUEDA SU SEGUNDA MITAD, que vale mas que el numero: el Modo Inteligente se declara AVERIADO y pide revision.** Eso es **spec** y es del responsable. Y **la lista de alcance que habia aqui se quedaba corta en TRES sitios** — ver §3.15 |
+| ~~**2**~~ | 🟢 **`CAM_CIEGA` CERRADO ENTERO el 08/09 — las DOS mitades.** El plazo (`86400000UL`, 24 h de paso abierto, `9550c57`) **y el aviso** del Modo Inteligente operando con camara averiada. `D-24` en `DECISIONES.md` lleva las dos cuentas | ✅ **El aviso salio CERO FIRMWARE**: la parte vial ya estaba construida —el modo degrada solo al Automatico, escrito en `modo_inteligente.cpp`— y el dato ya viajaba en `CAM:`. Faltaba **cruzarlos**, y eso vive en la app. **La lista de alcance que habia aqui se quedaba corta en TRES sitios** — §3.15 |
 | **3** | 🔴 **En la SUBIDA no hay checksum.** `calcularChecksum()` es `static` y **su unico llamador en cada punta es `enviarTramaConCrc()`**; `procesarComando()` no lee el `*XX`. Un bit cambiado dentro de `SET_TIEMPOS` o `SET_RTC` **se obedece** | |
 | ~~**4**~~ | ~~🟠 **`validateTiempos()` de los unitarios de la app sigue en 1..15 min**~~ — **CADUCADA, medida el 08/09**: `test_unitarios_app.js` esta en `v < 3` / `r < 3`, y el caso de verde es `validateTiempos(2, ...)`, que **si** toca el borde. Se corrigio en `31170e8` (07/09) y esta fila se quedo describiendo el estado anterior | 🟠 **Queda un residual, y es la misma forma en pequeno:** el caso de rojo es `validateTiempos(3, 1, 25)`, o sea **uno por debajo del borde**. Si alguien afloja `r < 3` a `r < 2`, el caso de verde cae y **el de rojo sigue pasando**: mide el rechazo, no el limite. El borde de rojo es `2` |
 | **5** | 🟠 **El Esclavo no tiene `reloj_diagnostico()`.** Porte **mecanico** desde el Maestro; ya tiene los ingredientes. Sin el, el tecnico que sube 5 m al poste del Esclavo **no puede distinguir `lseOn=0` de `lseRdy=0`** | |
@@ -988,7 +988,7 @@ el ORDEN y lo que lo justifica. Se reescribe entera cuando cambie; no se le anad
 
 | # | que | por que va aqui | que arrastra |
 |---|---|---|---|
-| ~~**1**~~ | 🟢 **`CAM_CIEGA` — HECHO el 08/09** (`9550c57`, `D-24`, §3.15) | 24 h de paso abierto en las dos puntas, la app, 7 documentos y la APK recompilada | 🔴 **Queda su segunda mitad: declarar AVERIADO el Modo Inteligente.** Es spec, no teclado |
+| ~~**1**~~ | 🟢 **`CAM_CIEGA` — HECHO ENTERO el 08/09**, las dos mitades (`D-24`, §3.15) | 24 h de paso abierto en las dos puntas, la app, 7 documentos y la APK recompilada · **y el aviso del Modo Inteligente, que salio CERO FIRMWARE** | — |
 | **2** | 🔴 **`D-23` · la pantalla propia del poste 2**, por la via `$EVENT` | **Decidida el 07/09 y con la via YA elegida** (`A-14`). Es una de las tres que mantienen en rojo `decisiones_01_anclas`, y **la unica de las tres que se destraba con teclado** | `$EVENT` nuevo en el **Esclavo** + pantalla en **app.js** + **recompilar la APK**. ⚠️ **Antes: confirmar que el indice de `A-14` manda sobre su cuerpo** (§3.2) |
 | **3** | 🟠 **El checksum de la SUBIDA** (§3.1 fila 3) | `procesarComando()` **no lee el `*XX`**: un bit cambiado dentro de `SET_TIEMPOS` o `SET_RTC` **se obedece**. Va detras de 1 y 2 porque **no esta decidido** y porque SPP ya lleva su propio control de errores por debajo — pero es lo unico de esta lista que puede mover una luz por un bit | las dos puntas + el pack que lo mida. **Y su control negativo tiene que ser una trama con el CRC malo que HOY se obedece** |
 | **4** | 🟠 **`reloj_diagnostico()` en el Esclavo** (§3.1 fila 5) | Porte **mecanico** desde el Maestro; ya tiene los ingredientes. Sin el, quien sube 5 m al poste del Esclavo **no puede distinguir `lseOn=0` de `lseRdy=0`** y baja sin saber que pieza mirar | una punta. Es la mas aislada de la lista |
@@ -1033,7 +1033,38 @@ que el alcance escrito era falso**, porque esa forma se repite.
 > ⚠️ **Y lo que esto deja escrito para la proxima: una lista de alcance es una AFIRMACION SOBRE EL
 > ARBOL, y envejece igual que cualquier otra.** Se recuenta con `grep` antes de ejecutarla —por el
 > nombre **y por su consecuencia**—, no se lee. Aqui la diferencia entre lo escrito y lo medido fue
-> de **5 documentos contra 7, y de 18 lineas contra 29**.
+> de **5 documentos contra 7, y de 18 lineas contra 29**. **Subido a `CLAUDE.md` §14**, porque sigue
+> siendo cierto si el firmware cambia entero.
+
+#### 3.15.bis · 🟢 La SEGUNDA mitad de `D-24` — y por que salio CERO FIRMWARE
+
+**El responsable eligio la via A —solo el aviso— el 08/09, y la medida que la decidio vale mas que
+el aviso**, porque redujo la tarea a una fraccion de lo que parecia:
+
+| lo que parecia | lo que estaba medido |
+|---|---|
+| *«el Modo Inteligente se declara AVERIADO»* suena a cambio de comportamiento | 🟢 **La parte vial YA estaba construida**, y `modo_inteligente.cpp` lo lleva escrito y razonado: *«CON LAS CAMARAS MUERTAS ESTE MODO SE COMPORTA EXACTAMENTE COMO EL AUTOMATICO … degrada al comportamiento conocido, no a uno raro»*. **Una camara ciega no cambia ni una luz** |
+| habria que publicar el dato | 🟢 **Ya viajaba**: `CAM:` va en el `$STATUS` de las dos puntas desde `e3a21ec` |
+| lo que faltaba de verdad | 🔴 **Que alguien CRUZARA las dos cosas.** La app tenia `state.modo` y el estado de camara **en dos sitios sin cruzarse nunca**, y `camara_estado()` tiene **un unico llamador en todo el firmware**: el `$STATUS` |
+
+> 🔴 **POR QUE SE DESCARTO LA VIA B —que el equipo se pasara solo a `AUTOMATICO`—, y no fue por
+> coste: la maquina decidiria operar en un modo que NADIE PIDIO**, que es exactamente lo que prohibe
+> la barrera de salidas (`CLAUDE.md` §2). **Y ademas no compraria nada**, porque el comportamiento ya
+> es el del Automatico. Una barrera que no cambia nada y rompe una regla no es una barrera: es ruido
+> con permiso.
+
+**SON DOS AVISOS Y NO UNO, y esa es la parte que no estaba en la decision.** `D-24` hablaba solo de
+`CAM_CIEGA`, pero **las dos averias fallan en direcciones opuestas**: la ciega **quita la demanda**
+—el modo acaba en el SUELO, o sea Automatico— y la pegada **la afirma siempre** —MANTIENE hasta el
+TECHO, el doble del configurado, aunque no pase nadie—. **Meterlas en una frase mandaria al tecnico
+a buscar el sintoma contrario al que tiene.**
+
+> ✅ **Cuatro comprobaciones nuevas en el arnes de DOM —235 -> 239— y DOS de ellas son controles que
+> exigen que el aviso NO salga**: en `AUTOMATICO` con la camara rota, y en `INTELIGENTE` con la
+> camara sana. Sin esas dos, **un aviso pegado siempre pasaria las otras dos igual de bien**.
+> Acreditado inyectando el defecto en el `app.js` real: quitando el aviso, la suite cae a
+> **237 | 2 FALLAS** —caen las dos positivas y **los dos controles siguen verdes, que es lo
+> correcto**—. Restaurado por `sha256` (`b826d568…`).
 
 ---
 

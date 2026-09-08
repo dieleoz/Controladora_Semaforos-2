@@ -361,3 +361,31 @@ puede quedar correcto y la compuerta verde, pero un `revert` de ese commit no de
   PEGADA al fichero —los `.apk` estan en `.gitignore`, asi que git no vigila esto y hay que mirarlo en
   el disco—, y **su ausencia se lee como permiso**. Un binario nuevo se acredita con su `sha256sum`
   contra el anterior, **nunca con su tamano**: dos compilaciones de la misma app pesan igual.
+
+## 14. Lo que nadie recalcula, envejece — y eso incluye las LISTAS
+
+> **Una LISTA DE ALCANCE es una afirmacion sobre el arbol, y caduca igual que una cifra. Se
+> RECUENTA con `grep` antes de ejecutarla; leerla es creersela.**
+
+`roadmap.md` decia *«toca las dos puntas + `camara_03` + 5 documentos»*. Medido al ejecutarlo: **7
+documentos y 18 lineas**, mas **8 lineas que llevaban la cifra DERIVADA** —*«del orden de 12 h de
+reloj»*— **en lineas que no nombran la constante**, mas **3 que dicen `CIEGA` sin decir
+`CAM_CIEGA`**. Hicieron falta **tres barridas** y cada una vio lo que la anterior no podia. **Se
+busca por el NOMBRE Y POR SU CONSECUENCIA**: un patron que persigue la constante no ve lo que se
+dedujo de ella, y eso es §7.1 en el sitio donde mas cuesta —el alcance de un cambio ya aprobado—.
+
+⚠️ **Y la lista se queda corta SIEMPRE por el mismo sitio: lo que no es firmware ni documento.**
+Aquella no nombraba **la app**, que decia dos veces la cifra vieja. Antes de dar por cerrado un
+cambio de constante: **¿quien mas la RECITA?** — la app, un `.html`, un manual, el LEEME de un `.zip`.
+
+> 🔴 **UN NUMERO EN UN SITIO QUE NO PUEDE RECALCULARLO NO SE SINCRONIZA: SE RETIRA.**
+
+`app.js` no puede derivar de `CAM_CIEGA_MS` —otro lenguaje, otro binario, ningun instrumento cruza
+los dos—, asi que **cualquier cifra copiada ahi nace caducada** y la proxima vez volvera a quedarse
+vieja. No se actualizo: se cambio por *«demasiado tiempo de paso abierto»*, que **no envejece**.
+Sincronizar a mano es firmar que alguien se acordara la proxima vez, y **nadie se acuerda**.
+
+⚠️ **Corolario que ya costo una vez: el fichero que editas puede tener COPIAS.** `app.js` vive
+**cuatro veces** en el arbol —`www/`, la raiz de la app, `android/assets/public/` y la de `build/`—
+y editar una deja tres mintiendo. **Antes de compilar, `md5sum` de las tres primeras: identicas o no
+se compila.**

@@ -1840,6 +1840,34 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // D-24, segunda mitad (08/09): EL MODO INTELIGENTE OPERANDO CON UNA CAMARA AVERIADA
+    // SE DICE. Hasta hoy no se decia, y no por falta de dato: el equipo publica CAM:
+    // desde e3a21ec y esta app tenia el MODO y el ESTADO DE CAMARA en dos sitios SIN
+    // CRUZARSE NUNCA. Faltaba la frase, no la telemetria.
+    //
+    // ESTO NO ES UNA BARRERA Y NO SE DISFRAZA DE UNA: no cambia ni una luz. El firmware
+    // ya degrada solo y bien -modo_inteligente.cpp lo lleva escrito y razonado: "CON LAS
+    // CAMARAS MUERTAS ESTE MODO SE COMPORTA EXACTAMENTE COMO EL AUTOMATICO ... degrada al
+    // comportamiento conocido, no a uno raro"-. Lo que faltaba era que alguien se
+    // enterase, que es otra cosa.
+    //
+    // Y SE DEJA EN LA APP A PROPOSITO, en vez de que el equipo se cambie solo de modo:
+    // que la maquina decida operar en un modo que nadie pidio es justo lo que la barrera
+    // de salidas prohibe, y ademas no compraria nada -el comportamiento ya es ese-.
+    //
+    // SON DOS FRASES Y NO UNA PORQUE LAS DOS AVERIAS FALLAN EN DIRECCIONES OPUESTAS:
+    //   CIEGA  nunca dice "hay coches" -> la condicion de mantener no se cumple jamas y
+    //          la fase acaba en el SUELO. El operario cree tener demanda y tiene un ciclo
+    //          fijo: pierde la funcion por la que eligio este modo, sin sintoma.
+    //   PEGADA dice "hay alguien" siempre -> MANTIENE mientras el otro lado no pida, hasta
+    //          el TECHO (el doble del tiempo configurado). No es peligroso -nadie espera
+    //          enfrente- pero el verde se alarga y nadie sabe por que.
+    // Meterlas en una sola frase mandaria al tecnico a buscar el sintoma contrario.
+    const CAM_EN_INTELIGENTE = {
+      'CIEGA':  ' | MODO INTELIGENTE SIN DEMANDA: esta funcionando como el Automatico. Revise esa camara.',
+      'PEGADA': ' | MODO INTELIGENTE ALARGANDO VERDES: mantiene hasta el techo aunque no pase nadie. Revise esa camara.'
+    };
+
     const info = CAM_LEYENDA[state.cam];
     if (!info) {
       // LLEGO ALGO QUE NO PUEDE SER, y eso NO es '--'. '--' significa "todavia no lo
@@ -1849,7 +1877,11 @@ document.addEventListener('DOMContentLoaded', () => {
       decir('!', 'Valor no reconocido: "' + state.cam + '"', 'var(--red-lamp)');
       return;
     }
-    decir(info.texto, info.frase, info.color);
+    // El aviso solo se anade cuando SE SABE el estado de la camara: si el valor no se
+    // reconoce, o no vino, o el enlace esta caido, ya se salio por arriba. Afirmar ahi
+    // que el modo esta degradado seria decidir sobre un dato que no se tiene.
+    const aviso = (state.modo === 'INTELIGENTE' && CAM_EN_INTELIGENTE[state.cam]) || '';
+    decir(info.texto, info.frase + aviso, info.color);
   }
 
   function renderLights() {

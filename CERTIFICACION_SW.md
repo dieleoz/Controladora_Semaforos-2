@@ -57,7 +57,7 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 | Arnés del Modo Automático | **99/99** | `Validacion_Automatico` |
 | App — test funcional | **58/58** | suite funcional de la app |
 | App — test unitarios | **32/32** | suite unitaria de la app |
-| App — ejecutada en DOM | **235/235** | arnés jsdom |
+| App — ejecutada en DOM | **239/239** | arnés jsdom |
 | App — test unitarios TDD | **61/61** | segunda suite unitaria |
 | Compilación ESP32 de expansión | **1122973 B — 35,7 %** de 3145728 B | `pio run` |
 | Simulador del puente ESP32 | **101/101** | contrato del puente |

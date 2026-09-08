@@ -524,9 +524,31 @@ las armadas: si Motion o Tampering también lo marcan, el bit deja de significar
 > trabado se anuncie como `CIEGA` —el diagnóstico contrario—, y su pack la recalcula del C++ en cada
 > corrida. **Se bajará cuando haya datos**, y los datos los dan los eventos de esta misma fase 1.
 >
-> 🔴 **LO QUE SIGUE SIN CONSTRUIR, y va con esta decisión: que el Modo Inteligente se declare
-> AVERIADO y pida revisión de la cámara.** El plazo está; el aviso, no. **Eso es spec y es del
-> responsable.**
+> 🟢 **SEGUNDA MITAD CONSTRUIDA EL 08/09: el Modo Inteligente operando con una cámara averiada SE
+> DICE.** El responsable eligió la **vía A — sólo el aviso**, y la medida que la decidió está aquí
+> porque **reduce la decisión a mucho menos de lo que parecía**:
+>
+> 🎯 **LA PARTE VIAL YA ESTABA CONSTRUIDA, y lo lleva escrito el propio `modo_inteligente.cpp`:**
+> *«CON LAS CÁMARAS MUERTAS ESTE MODO SE COMPORTA EXACTAMENTE COMO EL AUTOMÁTICO … degrada al
+> comportamiento conocido, no a uno raro»*. **Una cámara ciega no cambia ni una luz**, y el dato ya
+> viajaba —`CAM:` en el `$STATUS` desde `e3a21ec`—. Lo que faltaba **no era telemetría ni barrera:
+> era que alguien cruzara las dos cosas**, y la app tenía el modo y el estado de cámara **en dos
+> sitios sin cruzarse nunca**. Por eso salió **cero firmware**.
+>
+> ⚠️ **Y por eso se descartó la vía B —que el equipo se pasara solo a `AUTOMÁTICO`—: la máquina
+> decidiría operar en un modo que nadie pidió**, que es lo que la barrera de salidas prohíbe, **y no
+> compraría nada**, porque el comportamiento ya es ése.
+>
+> **SON DOS AVISOS Y NO UNO, porque las dos averías fallan en direcciones opuestas** y meterlas en
+> una frase mandaría al técnico a buscar el síntoma contrario:
+>
+> | | qué le hace al modo | lo que dice la app |
+> |---|---|---|
+> | **`CIEGA`** | nunca dice *«hay coches»*, la condición de mantener no se cumple jamás y la fase acaba en el **SUELO** | *«MODO INTELIGENTE SIN DEMANDA: está funcionando como el Automático. Revise esa cámara.»* |
+> | **`PEGADA`** | dice *«hay alguien»* siempre → **MANTIENE** mientras el otro lado no pida, hasta el **TECHO** (el doble del configurado) | *«MODO INTELIGENTE ALARGANDO VERDES: mantiene hasta el techo aunque no pase nadie. Revise esa cámara.»* |
+>
+> 🔴 **Las palabras son del responsable, no mías: si estas dos frases no son las que quiere que lea
+> el operario, se cambian y no hay que tocar nada más.**
 >
 > ⚠️ **Si el responsable prefiere los 4 días, es UNA constante** —`CAM_CIEGA_MS` en los dos
 > `botones.cpp`— más esta fila y los siete documentos. El número está delegado, la cuenta está

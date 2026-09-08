@@ -1724,6 +1724,37 @@ conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,
 assert(/CIEGA/.test(camDom.textContent) && !/PEGADA/.test(camDom.textContent),
   `Con CAM:CIEGA la reja lo dice y no dice la contraria: "${camDom.textContent}"`);
 
+// 14.5.bis D-24 SEGUNDA MITAD: EL MODO INTELIGENTE OPERANDO CON UNA CAMARA AVERIADA SE
+// DICE. Es lo unico que faltaba de esa decision -el firmware ya degrada solo y bien-, y
+// hasta el 08/09 la app tenia el MODO y el ESTADO DE CAMARA sin cruzarse nunca.
+//
+// Las cuatro lineas de abajo miden las cuatro esquinas, y las cuatro hacen falta: dos
+// que EXIGEN el aviso y dos que exigen que NO salga. Sin las dos ultimas, un aviso
+// pegado siempre pasaria estas pruebas igual de bien que el correcto.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:INTELIGENTE,ESTADO:VERDE,T:20,RF:97,RTT:70,BAT:12.9,HORA:18:00:05,ESC:ROJO,PLUMA:ABAJO,CAM:CIEGA');
+assert(/SIN DEMANDA/i.test(camDetDom.textContent) && /Automatico/i.test(camDetDom.textContent),
+  `INTELIGENTE + CAM:CIEGA avisa de que el modo esta operando sin demanda: "${camDetDom.textContent}"`);
+
+// La contraria, y NO es la misma frase: una camara pegada alarga verdes hasta el techo
+// en vez de quitar la demanda. Si las dos dijeran lo mismo, el tecnico saldria a buscar
+// el sintoma contrario al que tiene.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:INTELIGENTE,ESTADO:VERDE,T:20,RF:97,RTT:70,BAT:12.9,HORA:18:00:07,ESC:ROJO,PLUMA:ABAJO,CAM:PEGADA');
+assert(/ALARGANDO VERDES/i.test(camDetDom.textContent) && !/SIN DEMANDA/i.test(camDetDom.textContent),
+  `INTELIGENTE + CAM:PEGADA avisa de lo CONTRARIO, no de lo mismo: "${camDetDom.textContent}"`);
+
+// CONTROL: en AUTOMATICO la misma camara rota NO lleva el aviso. El modo Automatico no
+// usa las camaras, asi que decirle al operario que su modo esta degradado seria falso y
+// le mandaria a un poste por nada.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:ROJO,T:20,RF:97,RTT:70,BAT:12.9,HORA:18:00:09,ESC:VERDE,PLUMA:ABAJO,CAM:CIEGA');
+assert(/CIEGA/.test(camDom.textContent) && !/MODO INTELIGENTE/i.test(camDetDom.textContent),
+  `En AUTOMATICO la camara rota se dice, pero SIN acusar al Modo Inteligente: "${camDetDom.textContent}"`);
+
+// CONTROL: en INTELIGENTE con la camara SANA tampoco sale el aviso. Sin esta, un aviso
+// que saliera siempre pasaria las dos primeras y nadie se enteraria.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:INTELIGENTE,ESTADO:VERDE,T:20,RF:97,RTT:70,BAT:12.9,HORA:18:00:11,ESC:ROJO,PLUMA:ABAJO,CAM:OK');
+assert(!/MODO INTELIGENTE/i.test(camDetDom.textContent),
+  `INTELIGENTE con la camara sana NO lleva aviso: "${camDetDom.textContent}"`);
+
 // 14.6 EL CAMPO DEJA DE VENIR -firmware anterior a D-13-. No se puede quedar el CIEGA
 // de arriba pintado como si fuera de ahora, y la carencia se dice CUAL es: un equipo
 // viejo y una radio caida mandan al tecnico a sitios opuestos.
