@@ -48,8 +48,8 @@ la cinta del 05/09 a las 22:19.
 1. 🛑 **La tarjeta Maestro sigue muerta** y la escalera de diagnostico —cuyo primer peldano es
    **gratis**— no consta recorrida. **De esto cuelga todo lo demas.**
 2. 🔴 **Las entradas de campo van desnudas al die** y `J16` p1 lleva 12 V crudos.
-3. 🔴 **El `$ALARM` no cabe en su buffer** —158 B en el Maestro y 171 en el Esclavo contra 143— y
-   **trunca sin decirlo**.
+3. ~~🔴 **El `$ALARM` no cabe en su buffer**~~ — 🟢 **CERRADO el 08/09** (§3.13). Y de paso quedo
+   medido que **el sintoma publicado era falso**: el CRC casaba, y lo que se perdia era la HORA.
 4. 🔴 **`CAM_CIEGA` sigue en 6 h.** Se decidieron **4 dias** el 05/09 y no se ha implementado.
 5. 🟡 **La firma del funcional sobre el manual del «doble» no existe** — y `TECHO_POR_SUELO = 2`
    **ya salio en el paquete del 05/09**.
@@ -141,12 +141,13 @@ resolver.
 
 | | que | medida |
 |---|---|---|
-| **1** | 🔴 **El `$ALARM` no cabe en su buffer.** `bluetooth_reportarAlarma()`, `payload[144]` (guarda 143). Peor caso **por buffer**: **Maestro 158 B, Esclavo 171 B**. Sin guarda, **trunca en silencio** — y una trama truncada sale bien formada hasta la mitad, no casa el CRC, y la app la tira entera: el sintoma es *«el equipo se callo»*, que manda a mirar el cable | 🔴 **`esp32_07_presupuesto_bytes.py` LO DICE EN SU PROPIO COMENTARIO y lo deja fuera de su alcance.** El banco esta verde sabiendolo. Es `N-154` sin terminar |
+| ~~**1**~~ | ~~🔴 **El `$ALARM` no cabe en su buffer.**~~ — 🟢 **CERRADO el 08/09. Ver §3.13.** El peor caso por buffer era **158 B en el Maestro y 171 en el Esclavo** contra los 143 que guardaba `payload[144]` | ⚠️ **Y la descripcion que habia aqui del sintoma era FALSA en su mitad mas importante**, medida al arreglarlo: *«no casa el CRC y la app la tira entera»*. El CRC se calcula **sobre lo que quedo**, asi que **casa**. Lo que llega es una alarma con aspecto de intacta **sin el valor de HORA**, que es peor: una que la app tira se nota; esta no |
 | **2** | 🔴 **`CAM_CIEGA` de 6 h a 4 dias.** `CAM_CIEGA_MS = 21600000UL` en `botones.cpp` de **las dos puntas**; lo decidido el 05/09 son `345600000UL` | **toca las dos puntas + `camara_03` + 5 documentos, y va TODO EN EL MISMO COMMIT.** Y con el numero va su segunda mitad, que vale mas: **el Modo Inteligente se declara AVERIADO y pide revision** |
 | **3** | 🔴 **En la SUBIDA no hay checksum.** `calcularChecksum()` es `static` y **su unico llamador en cada punta es `enviarTramaConCrc()`**; `procesarComando()` no lee el `*XX`. Un bit cambiado dentro de `SET_TIEMPOS` o `SET_RTC` **se obedece** | |
-| **4** | 🟠 **`validateTiempos()` de los unitarios de la app sigue en 1..15 min** contra 3..15 del C++ y de `app.js`. **No falla porque ninguno de sus siete casos toca el borde** — que es la prueba muerta de `CLAUDE.md` §3.bis | |
+| ~~**4**~~ | ~~🟠 **`validateTiempos()` de los unitarios de la app sigue en 1..15 min**~~ — **CADUCADA, medida el 08/09**: `test_unitarios_app.js` esta en `v < 3` / `r < 3`, y el caso de verde es `validateTiempos(2, ...)`, que **si** toca el borde. Se corrigio en `31170e8` (07/09) y esta fila se quedo describiendo el estado anterior | 🟠 **Queda un residual, y es la misma forma en pequeno:** el caso de rojo es `validateTiempos(3, 1, 25)`, o sea **uno por debajo del borde**. Si alguien afloja `r < 3` a `r < 2`, el caso de verde cae y **el de rojo sigue pasando**: mide el rechazo, no el limite. El borde de rojo es `2` |
 | **5** | 🟠 **El Esclavo no tiene `reloj_diagnostico()`.** Porte **mecanico** desde el Maestro; ya tiene los ingredientes. Sin el, el tecnico que sube 5 m al poste del Esclavo **no puede distinguir `lseOn=0` de `lseRdy=0`** | |
 | **6** | 🟠 **`state.correctPin = '1234'` en claro** en `app.js`. La caducidad **si** se construyo | V2 · `B3` |
+| **7** | 🔴 **El Diario de Ordenes del MAESTRO no distingue si la hora entro.** `Maestro/src/bluetooth.cpp`, rama `SET_RTC:`: `bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE")` esta **FUERA** del `if (reloj_sembrarDesdeIso(...))`. Es el residual de `N-160` una capa arriba — ver §3.10.ter | **El Esclavo YA lo arreglo** y su propio comentario describe el defecto que el Maestro conserva. Arreglar una punta y no la otra es lo que `CLAUDE.md` §6.1 manda mirar, y aqui paso en el sentido contrario al esperado |
 
 ### 3.2 · 🟠 `DECISIONES.md` tiene cinco filas caducadas — y es el fichero VINCULANTE
 
@@ -668,6 +669,53 @@ Esclavo **68,5 → 68,9 %**.
 > que no llega a `reloj_enHora()`, **cero apariciones de `OSF` fuera de `ESP32_Expansion/`**— y sigue
 > sin construir. **`D-20` no la creo, pero la empeoro:** antes la bandera al menos podia bajar.
 
+#### 3.10.ter · 🟢 `N-160` CERRADO en las dos puntas — y el residual que dejo, que es el mismo defecto una capa arriba
+
+**Medido el 08/09 sobre el fuente, no leido de un parte** (`CLAUDE.md` §7.4). El sembrador ya no
+miente en ninguna de las dos puntas:
+
+```c
+// Maestro/src/reloj.cpp y Esclavo/src/reloj.cpp, identicos
+if (sscanf(str, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) != 6) return false;
+return reloj_ajustarConAcuse(h, m, s, dia);   // el retorno ES el de la llamada
+```
+
+Y **los `int` llegan sin castear**, que era la mitad silenciosa del defecto: `h = 256` ya no entra
+como medianoche. Lo vigila `reloj_02_siembra_que_miente`, que en la corrida del 08/09 da **2.401
+casos de borde barridos por punta** —`hora`, `minuto`, `segundo` y `dia` en `[-1, 0, 1, ..., 256]`—
+sin un solo caso en que el validador descarte y el sembrador diga que si, **mas cinco controles
+negativos** que incluyen el defecto real de antes de `N-160` y una guarda con el limite copiado mal
+(`h > 24` contra `hora > 23`), que cae **exactamente en `h = 24`**. La prueba sabe fallar.
+
+> 🔴 **PERO EL ARREGLO SE QUEDO A UNA PUNTA DE DISTANCIA, Y LA QUE FALTA ES LA DEL MAESTRO.** El
+> Esclavo no solo devuelve el veredicto: **lo escribe en el diario**, con dos ramas y un comentario
+> que dice por que —*«una siembra RECHAZADA por rango dejaba en el diario la misma linea que una
+> aceptada: el unico registro que le queda al tecnico decia que la hora entro cuando no habia
+> entrado»*—. **El Maestro conserva ese defecto exacto:** su `bluetooth_reportarEvento(...,
+> "SET_RTC_LO_ACUSA_EL_PUENTE")` esta fuera del `if`, y `SET_RTC_RECHAZADO_POR_RANGO` **no aparece en
+> el Maestro ni en ningun pack** (`grep`, 08/09: una sola aparicion en todo `01_Firmware/`).
+>
+> Y no es simetrico en el dano: **es el Maestro el que propaga la hora al Esclavo**
+> (`coordinador_sincronizarHora()`), asi que es su diario el que se consulta cuando las dos puntas
+> discrepan.
+
+> 🔴 **Y ESTO REFUTA A MEDIAS LA EXCEPCION ESCRITA DEL PACK, que es el instrumento de verdad**
+> (`CLAUDE.md` §6): `reloj_02_siembra_que_miente` deja `SET_RTC_LO_ACUSA_EL_PUENTE` fuera de
+> `PALABRAS_DE_EXITO` con este motivo escrito al lado — *«el literal que **las dos puntas** emiten hoy
+> dice QUIEN contesta, no que haya salido bien … cobrarle una guarda empujaria a quitarlo o a
+> inventarse un rechazo»*.
+>
+> **Las dos mitades de esa frase estan medidas hoy, y las dos fallan:** (1) las dos puntas ya **no**
+> emiten lo mismo —el Esclavo emite dos literales—, asi que la premisa del borde caduco el mismo dia
+> en que se escribio; y (2) **cobrarle la guarda no empujo a inventarse un rechazo**: el Esclavo
+> escribio uno **cierto**, derivado del retorno. La razon se midio al escribirla y hay que volver a
+> medirla al heredarla: **una lista de excepciones con motivos sin verificar es una lista de defectos
+> con permiso.**
+>
+> **Lo que le falta al pack no es mover el borde, es una comprobacion que hoy no tiene: que las dos
+> puntas sean SIMETRICAS en si el diario depende del retorno.** Hoy la 4 pasa en las dos por el mismo
+> motivo por el que no ve nada.
+
 ### 3.11 · 🎯 Lo que el responsable DECIDIO la noche del 07/09, y las DOS que quedaron abiertas
 
 **Cuatro respuestas, y una de ellas corrigio una cifra mia.** Van aqui con la medida que las acompano,
@@ -768,6 +816,122 @@ salida **avisa tirando a 0 V**, no aplicando 12 V.
 > **Asi que `D-14` no cuesta firmware —son 16 B y el molde esta probado en cobre—: cuesta uno de los
 > tres ultimos canales de potencia de la placa, para siempre.** Esa es la pregunta que llevaba debajo
 > del multimetro falso que yo le habia puesto encima, y **sigue abierta**.
+
+### 3.12 · 🟢 `N-161` — el paquete de entrega salia del DISCO con el nombre de un commit, y su LEEME bloqueaba lo ya desbloqueado
+
+**Cerrado el 08/09 en `640263d`. Va aqui y no en el historico porque los tres defectos son formas que
+se repiten, y el tercero sigue vivo en la receta de la skill.**
+
+El generador —`generar_entrega_v9_0.py`— es el fichero que se reescribio entero el 31/08 **por meter
+un paquete con aspecto de completo**, y su propia cabecera lo cuenta. Tres defectos medidos el 08/09,
+y el segundo lo cometia en el mismo parrafo en que denunciaba al anterior:
+
+| | lo que hacia | por que importa |
+|---|---|---|
+| **1** | `z.write(ruta)` leia el **arbol de trabajo** mientras el nombre del `.zip` prometia `HEAD` | Es el defecto del 05/09 —19 documentos a medias bajo un hash que no los contenia— **sin arreglar en el unico sitio que lo automatiza**. Con dos sesiones en el mismo arbol, la diferencia es el paquete entero. Ahora todo lo versionado sale de `git show HEAD:<ruta>` y se comprueba **md5 entrada por entrada sobre el zip ya escrito**: 312 entradas, 0 difieren |
+| **2** | La seccion 3 del LEEME —*«que sigue abierto»*— estaba **escrita a mano**, y sus cinco filas estaban caducadas | 🔴 **Bloqueaba el cableado de camara a `J16`** por una polaridad *«en contradiccion»* que `M3` cerro el **03/09**; daba por abierta la **regresion del Modo Automatico**, cerrada en cobre el 04/09 con el responsable delante; y dudaba de si el ESP32 tiene Bluetooth Clasico (`BLQ-1`, cerrado el 31/08). **Y no nombraba la tarjeta Maestro muerta.** El unico documento que se lee ANTES de tocar un equipo bloqueaba trabajo libre y callaba el bloqueo real. Ahora la tabla se **extrae** de `BLOQUEANTES` de `ESTADO.md` en HEAD, y si no se puede leer el paquete no sale |
+| **3** | La APK se verificaba contra **3 ficheros de los 13** de la app | Es la **quinta trampa de la skill `entregar`** —la receta que copia 3 de 13 y deja fuera los siete `js/*.js`— **cometida por el verificador escrito al lado para cazarla**. Ahora se comparan los 13 por CRC y se exige que esten los tres extras de Cordova, `bluetoothSerial.js` incluido: sin el la APK **compila, arranca y no conecta con nada**, y ningun `<script src=>` delata la ausencia |
+
+**Lo que se anadio, y es lo que pidio el funcional:** el LEEME sale tambien en **`.htm`**. Un `.md` no
+se abre con doble clic en el equipo de quien lo recibe —se abre en el Bloc de notas con las tablas
+rotas— y **el LEEME es la unica pieza que garantiza que se lea la mitad de arriba**. Los dos salen de
+la **misma cadena en la misma corrida**, asi que no pueden divergir, y antes de cerrar el `.zip` se
+cuentan las filas de tabla del uno contra el otro.
+
+> ✅ **El renderizador NO hereda los dos defectos medidos del conversor a Word** (skill `entregar` §2):
+> respeta `\|` dentro de una celda —la fila de `ESC:<ROJO\|VERDE\|AMBAR\|?>` se perdia entera— y **no
+> aplasta un bloque `>` en un parrafo**, que es lo que machaca los huecos de respuesta y los pasos
+> numerados. Se dice aqui porque el conversor a Word **sigue teniendo los dos**.
+
+> ✅ **Control negativo corrido antes de conectarlo** (`CLAUDE.md` §6.bis): robandole **una** fila de
+> tabla al `.htm`, el generador **ABORTA**, y por la comprobacion de filas —no por otra—. Verde sin
+> defecto, rojo con defecto. Y la auditoria del `.zip` se corrio **con un script que no importa el
+> generador**: un arnes no se verifica a si mismo.
+
+> ⚠️ **Lo que este `N-x` NO es: un entregable.** Es la herramienta que PIDE una tarjeta cargada, no
+> una que la acerque (`CLAUDE.md` §8). El paquete que sale sigue llevando `_SIN_BANCO` en el nombre y
+> `🛑 NO` en su seccion 2, y lo seguira llevando hasta que alguien lo cargue en un equipo.
+
+### 3.13 · 🟢 `N-154` CERRADO — el `$ALARM` cabia por VALOR y no por BUFFER, y lo que se perdia era la HORA
+
+**Cerrado el 08/09. Y lo que mas vale de aqui no es el arreglo: es que el sintoma escrito
+durante un mes era falso en su mitad util.**
+
+Lo publicado era *«trunca en silencio, no casa el CRC, y la app la tira entera: el sintoma
+es el equipo se callo, que manda a mirar el cable»*. **Medido al arreglarlo: el CRC SI
+casa.** `enviarTramaConCrc()` calcula el checksum **sobre el payload ya truncado**, asi que
+la trama sale bien formada, la app la valida y la acepta. **Lo que falta es el final, que es
+el valor de `HORA:`** —y en el Esclavo ademas parte de `ACCION:`—. Una alarma que la app
+tira se nota; **una alarma sin hora se archiva y nadie la mira**, que es exactamente lo
+contrario de para lo que existe una Caja Negra.
+
+**El peor caso, POR BUFFER —lo unico que `snprintf` garantiza— y compuesto de verdad:**
+
+| | Maestro | Esclavo |
+|---|---|---|
+| parte fija del formato | 49 | 49 |
+| `EVENTO` (el literal mas largo, `CAM_PEGADA`) | 10 | 10 |
+| `CAUSA` ← **el defecto** | **39** | **39** |
+| el tramo del enlace | 31 (`tramo[32]`) | **44** (`tramo[45]`) |
+| `ACCION` (`CAMBIO_A_AMBAR`) | 14 | 14 |
+| `HORA` (`horaBuf[16]`) | 15 | 15 |
+| **total** | **158** | **171** |
+| lo que guardaba `payload[144]` | 143 | 143 |
+
+**El arreglo NO fue agrandar el payload, que es lo que la regla prohibe: fue ACOTAR DONDE
+SE PRODUCE.** Los dos `causa[]` aportaban 39 caracteres por un numero redondo —`char[40]` y
+`char[28]` escritos a ojo— y bajan a **19**:
+
+- `causa[sizeof("SILENCIO_99999ms")]` en `Maestro/src/coordinador.cpp` y en
+  `Esclavo/src/main.cpp`, **con un `static_assert(SFTY6_SILENCIO_MS <= 99999UL)` al lado**:
+  la desigualdad se **recalcula desde el C++** en vez de explicarse en un comentario, asi
+  que el dia que el umbral pase de cinco cifras **esto no compila**, que es lo que tiene
+  que pasar (`CLAUDE.md` §4).
+- `causa[sizeof("CAM_C_CONTACTO_FIJO")]` en los `botones.cpp` de las dos puntas.
+
+Con eso el Maestro baja a **138 y cabe en `payload[139]`**. 🔴 **El Esclavo NO, y el motivo
+es real y no se puede apretar:** su tramo son 44 caracteres contra 31, porque lleva **tres
+contadores de protocolo con `%lu`** —numeros libres, sin rango que prometer, acotados a su
+tope de TIPO—. Se queda en **151**, y ahi si se dimensiona el buffer **a la cota derivada**:
+`payload[152]`. **8 B de PILA, no de flash.** Coste total medido con dos pasadas completas:
+Maestro **58.048 → 58.088 B** (+40 B, 88,6 %); Esclavo **sin cambio** (45.152 B).
+
+> 🔴 **Y AL MEDIRLO APARECIO LA SEGUNDA MITAD, QUE NADIE HABIA CONTADO: CON EL DEFECTO
+> DENTRO, EL PEOR `$ALARM` TAMPOCO CABIA EN `tramaCompleta[160]`.** 158 + `*XX\r\n` = 163
+> contra 159. Ahi truncar **si** parte el cierre del checksum, el otro extremo descarta la
+> trama y **la alarma desaparece entera**. O sea que los dos sintomas —el de la hora perdida
+> y el del silencio— **estaban vivos a la vez**, cada uno en un buffer distinto, y el
+> publicado mezclaba los dos en uno solo que no era ninguno.
+
+#### La parte que vale para el siguiente: se retiro una EXENCION midiendo, no borrandola
+
+`esp32_07_presupuesto_bytes` llevaba escrito, al lado de la cuenta del tramo, **por que no
+media el `$ALARM` entero**: *«el arreglo esta en ficheros que este cambio no toca, y un
+instrumento que falla por algo que nadie puede arreglar desde aqui es un `FALLA` permanente,
+que es lo que `CLAUDE.md` §3 prohibe»*. **Esa exencion era CORRECTA cuando se escribio** —y
+por eso el pack estuvo verde un mes sabiendolo—. **Deja de serlo el dia que los `causa[]` se
+acotan:** desde ahi el rojo ya se puede apagar construyendo, y un hueco que nadie mide deja
+de ser prudencia para ser **un defecto con permiso**.
+
+**Lo que hubo que construir para retirarla, y es lo que faltaba:** tres de los cinco campos
+—`EVENTO`, `CAUSA` y `ACCION`— son **parametros `const char*`**, asi que su ancho **no esta
+en `bluetooth.cpp`: esta en quien llama**. El pack ahora **censa el directorio `src/`** —no
+una lista escrita a mano, que se queda corta el dia que alguien anade un `.cpp` con una
+alarma nueva (`CLAUDE.md` §5)— y **sigue los saltos**: la alarma de camara no se emite donde
+estan sus literales, sino que pasa por `camara_alarmar()`, donde `evento` **ya es un
+parametro**. Sin ese salto el pack **ABORTABA**, que es lo correcto; con una estimacion en
+su lugar habria medido de menos, que es lo que trunco el `$ALARM` de `N-108`.
+
+> ✅ **Acreditado inyectando el defecto REAL en el `.cpp` real**, no solo con cadenas
+> sinteticas: devolviendo `causa[40]` a `coordinador.cpp`, el pack cae de **37/37 a 35/37**
+> y publica **158**, que es la cifra historica clavada. Restaurado desde copia tomada ANTES
+> y verificado por `sha256` (`CLAUDE.md` §6.bis).
+
+> ⚠️ **Lo que este cierre NO toca, dicho para que no pase por cobertura:** el margen de los
+> dos payload es **CERO a proposito**, y esta escrito al lado de cada declaracion. No es
+> holgura olvidada: es la cuenta cuadrada, y quien la rehace en cada corrida es el pack. El
+> dia que alguien alargue un literal de `EVENTO` o anada un campo, **falla ahi antes de
+> truncar en la calle** — que es justo lo que no ocurrio durante el mes anterior.
 
 ---
 
