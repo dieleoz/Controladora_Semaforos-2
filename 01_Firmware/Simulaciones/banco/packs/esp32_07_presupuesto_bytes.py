@@ -220,6 +220,254 @@ def _ancho_arg(fw, punta, arg, bloque):
                  "aqui es lo que trunco el $ALARM de N-108" % (arg, punta))
 
 
+# --- El $ALARM ENTERO, que hasta el 08/09 no medía nadie -------------------------
+#
+# La cuenta del tramo (2.quater) se escribio con esta exencion al lado, y se cita entera
+# porque es la que este bloque viene a retirar:
+#
+#   "LO QUE ESTA CUENTA NO CUBRE, ESCRITO PARA QUE NO PASE POR COBERTURA: mide el TRAMO,
+#    no el $ALARM entero. El payload del $ALARM se compone ademas con literales y con
+#    buffers `causa[...]` que viven en coordinador.cpp y en main.cpp, y por buffer NO cabe
+#    hoy en payload[144]. No se mete aqui porque el arreglo esta en ficheros que este
+#    cambio no toca, y un instrumento que falla por algo que nadie puede arreglar desde
+#    aqui es un FALLA permanente, que es lo que CLAUDE.md 3 prohibe."
+#
+# La exencion era CORRECTA cuando se escribio y deja de serlo el dia que los causa[] se
+# acotan: entonces el rojo YA se puede apagar construyendo, y un hueco que nadie mide deja
+# de ser prudencia para ser un defecto con permiso. Se retira midiendo, no borrandola.
+#
+# EL DEFECTO QUE ESTO CAZA, MEDIDO ANTES DE ARREGLARLO: por buffer el peor $ALARM eran 158
+# caracteres en el Maestro y 171 en el Esclavo, contra los 143 que guarda un payload[144].
+# Lo que se perdia era el FINAL, o sea el valor de HORA -y en el Esclavo parte de ACCION-.
+# Y con el checksum BUENO, porque se calcula sobre lo que quedo: la alarma llega con
+# aspecto de intacta y sin el unico dato por el que existe una Caja Negra. El sintoma no
+# es "el equipo se callo": es una alarma sin hora, que es peor porque no se investiga.
+#
+# POR QUE HAY QUE IR A LOS LLAMADORES Y NO BASTA CON MIRAR LA FUNCION: tres de los cinco
+# campos -EVENTO, CAUSA y ACCION- son PARAMETROS `const char*`. Su ancho no esta en
+# bluetooth.cpp: esta en quien llama. Y los llamadores se censan por DIRECTORIO, no con
+# una lista escrita aqui: una lista se queda corta el dia que alguien anade un .cpp con
+# una alarma nueva, y la cuenta aprobaria un buffer que ya no basta (CLAUDE.md 5).
+
+ALARMA = "bluetooth_reportarAlarma"
+
+
+def _partir_args(cola):
+    """Parte una lista de argumentos por las comas de PROFUNDIDAD CERO."""
+    args, prof, act = [], 0, ""
+    for c in cola:
+        if c in "([":
+            prof += 1
+        elif c in ")]":
+            prof -= 1
+        if c == "," and prof == 0:
+            args.append(act.strip())
+            act = ""
+            continue
+        act += c
+    if act.strip():
+        args.append(act.strip())
+    return args
+
+
+def _ancho_decl(bloque, nombre):
+    """N-1 de `char nombre[...]`, admitiendo `sizeof("literal")` ademas de un entero.
+
+    Los causa[] se dimensionan desde el 08/09 con el sizeof de su peor literal -es lo que
+    ata la cota a lo que de verdad se escribe en vez de a un numero redondo-, y una cuenta
+    que solo supiera leer digitos daria por NO ACOTADO justo el buffer que se acaba de
+    acotar. Devuelve None si no sabe: quien llama ABORTA, que es lo correcto -una
+    estimacion aqui es lo que trunco el $ALARM de N-108-."""
+    m = re.search(r"char\s+%s\s*\[\s*([^\]]+)\]" % re.escape(nombre), bloque)
+    if m is None:
+        return None
+    expr = m.group(1).strip()
+    total = 0
+    for trozo in expr.split("+"):
+        trozo = trozo.strip()
+        if re.fullmatch(r"\d+", trozo):
+            total += int(trozo)
+            continue
+        ms = re.fullmatch(r'sizeof\(\s*"((?:[^"\\]|\\.)*)"\s*\)', trozo)
+        if ms:
+            total += len(ms.group(1)) + 1   # sizeof de un literal incluye el NUL
+            continue
+        return None
+    return total - 1
+
+
+def _llamadas_a(codigo, nombre):
+    """Los argumentos de cada LLAMADA a `nombre`, saltandose definiciones y prototipos.
+
+    Se distingue por lo que hay DESPUES del parentesis que cierra: `{` es una definicion
+    y `;` precedido de un tipo es un prototipo. Mirar solo el nombre haria pasar la propia
+    definicion por llamador y sus parametros por argumentos."""
+    fuera = []
+    for m in re.finditer(r"\b%s\s*\(" % re.escape(nombre), codigo):
+        if re.search(r"\b(void|bool|int|static)\s*$", codigo[:m.start()]):
+            continue                      # definicion o prototipo, no llamada
+        prof, j = 0, m.end() - 1
+        while j < len(codigo):
+            if codigo[j] == "(":
+                prof += 1
+            elif codigo[j] == ")":
+                prof -= 1
+                if prof == 0:
+                    break
+            j += 1
+        else:
+            continue
+        if not re.match(r"\s*;", codigo[j + 1:]):
+            continue
+        fuera.append((m.start(), _partir_args(codigo[m.end():j])))
+    return fuera
+
+
+def _funcion_que_contiene(codigo, pos):
+    """(nombre, [parametros]) de la funcion en cuyo cuerpo cae `pos`. (None, []) si no hay.
+
+    Se busca hacia atras la ultima cabecera `tipo nombre(args) {` que abra un bloque que
+    todavia no se haya cerrado por delante de `pos`."""
+    mejor = (None, [])
+    for m in re.finditer(r"(?:^|\n)\s*(?:static\s+)?[A-Za-z_][\w:*&\s]*?"
+                         r"\b([A-Za-z_]\w*)\s*\(([^;{)]*)\)\s*\{", codigo):
+        if m.end() > pos:
+            break
+        # Que el bloque siga abierto en pos: se cuentan llaves desde la cabecera.
+        prof = 0
+        for c in codigo[m.end() - 1:pos]:
+            if c == "{":
+                prof += 1
+            elif c == "}":
+                prof -= 1
+        if prof > 0:
+            params = [p.strip().split()[-1].lstrip("*")
+                      for p in m.group(2).split(",") if p.strip()]
+            mejor = (m.group(1), params)
+    return mejor
+
+
+def _ancho_de_expresion(fw, punta, fichero, codigo, pos, arg, prof=0):
+    """El ancho de `arg` en la llamada que esta en `pos`, siguiendo los saltos que haga falta.
+
+    POR QUE HACE FALTA RECURSION Y NO BASTA CON _ancho_arg: la alarma de camara no se emite
+    en el mismo sitio donde estan sus literales. `camara_alarmar(i, "CAM_PEGADA", ...)` los
+    pone, y la llamada a bluetooth_reportarAlarma() de dentro pasa `evento`, que ahi ya es
+    un PARAMETRO. Sin este salto la cuenta ABORTA -que es lo correcto, y es lo que hizo la
+    primera version de esta comprobacion- pero no mide; con una estimacion en su lugar
+    mediria de menos, que es lo que trunco el $ALARM de N-108.
+
+    La profundidad se limita: una recursion sin fondo se cuelga en una llamada mutua y un
+    pack colgado es un ABORTADO que nadie diagnostica."""
+    if prof > 4:
+        raise _Falta("la resolucion de %r en %s/%s pasa de cuatro saltos: o hay una "
+                     "llamada mutua o esta cuenta se perdio" % (arg, punta, fichero))
+    bloque = _bloque_que_contiene(codigo, pos)
+    # Antes que nada, la declaracion del buffer POR SU EXPRESION: _ancho_arg solo sabe
+    # leer `char x[12]` y desde el 08/09 los causa[] se dimensionan con `sizeof("...")`,
+    # que es lo que ata la cota a lo que de verdad se escribe. Sin esto, el pack daria
+    # por no acotable justo el buffer que se acaba de acotar.
+    if re.match(r"^\w+$", arg):
+        w = _ancho_decl(bloque, arg)
+        if w is not None:
+            return w
+    try:
+        return _ancho_arg(fw, punta, arg, bloque)
+    except _Falta:
+        pass
+    fn, params = _funcion_que_contiene(codigo, pos)
+    if fn is None or arg not in params:
+        raise _Falta(
+            "no se supo acotar %r en la llamada de %s/%s: no es literal, ni buffer del "
+            "bloque, ni parametro de %s()" % (arg, punta, fichero, fn or "?"))
+    i = params.index(arg)
+    peor, n = -1, 0
+    for f2 in fw.fuentes_de(punta, "src"):
+        c2 = fw.codigo(punta, "src", f2)
+        for pos2, args2 in _llamadas_a(c2, fn):
+            if len(args2) <= i:
+                raise _Falta("una llamada a %s() en %s/%s lleva %d argumentos y se pedia "
+                             "el %d" % (fn, punta, f2, len(args2), i + 1))
+            n += 1
+            w = _ancho_de_expresion(fw, punta, f2, c2, pos2, args2[i], prof + 1)
+            peor = max(peor, w)
+    if n == 0:
+        raise _Falta("%s() no tiene llamadores en %s/src y su parametro %r no se puede "
+                     "acotar por otro sitio" % (fn, punta, arg))
+    return peor
+
+
+def _ancho_por_llamadores(fw, punta, indice, nombre_param):
+    """El peor ancho del argumento `indice` de reportarAlarma(), sobre TODOS sus llamadores."""
+    peor, n, quien = -1, 0, ""
+    for fichero in fw.fuentes_de(punta, "src"):
+        codigo = fw.codigo(punta, "src", fichero)
+        for pos, args in _llamadas_a(codigo, ALARMA):
+            if len(args) <= indice:
+                raise _Falta(
+                    "una llamada a %s() en %s/%s lleva %d argumentos y se pedia el %d: "
+                    "la firma y los llamadores no cuadran, y esta cuenta no adivina"
+                    % (ALARMA, punta, fichero, len(args), indice + 1))
+            n += 1
+            w = _ancho_de_expresion(fw, punta, fichero, codigo, pos, args[indice])
+            if w > peor:
+                peor, quien = w, "%s (%r)" % (fichero, args[indice])
+    if n == 0:
+        raise _Falta(
+            "%s() no tiene ni un llamador en %s/src. O la alarma esta muerta -y entonces "
+            "la Caja Negra no registra nada- o este censo dejo de encontrarlos: en los dos "
+            "casos esta cuenta no mide lo que dice" % (ALARMA, punta))
+    return peor, n, quien
+
+
+def _peor_alarma(fw, punta):
+    """(peor caso, capacidad del payload, nº de llamadores, desglose) del $ALARM entero."""
+    codigo = fw.codigo(punta, "src", "bluetooth.cpp")
+    cuerpo = _cuerpo_funcion(codigo, ALARMA)
+    if cuerpo is None:
+        raise _abortar("la definicion de %s()" % ALARMA, "bluetooth.cpp del %s" % punta)
+    m = re.search(r'snprintf\(\s*payload\s*,[^,]+,\s*"(\$ALARM(?:[^"\\]|\\.)*)"\s*(.*?)\);',
+                  cuerpo, re.S)
+    if not m:
+        raise _abortar("el snprintf del $ALARM", "bluetooth.cpp del %s" % punta)
+    fmt = m.group(1)
+    args = _partir_args(m.group(2).strip().lstrip(","))
+
+    cap = _ancho_decl(cuerpo, "payload")
+    if cap is None:
+        raise _abortar("la declaracion del payload del $ALARM", "bluetooth.cpp del %s" % punta)
+
+    firma = re.search(r"\b%s\s*\(([^)]*)\)\s*\{" % re.escape(ALARMA), codigo)
+    if not firma:
+        raise _abortar("la firma de %s()" % ALARMA, "bluetooth.cpp del %s" % punta)
+    params = [p.strip().split()[-1].lstrip("*") for p in firma.group(1).split(",")]
+
+    anchos, desglose, llamadores = [], [], 0
+    for a in args:
+        w = _ancho_decl(cuerpo, a)
+        if w is not None:
+            anchos.append(w)
+            desglose.append("%s=%d (buffer local)" % (a, w))
+            continue
+        if a in params:
+            w, n, quien = _ancho_por_llamadores(fw, punta, params.index(a), a)
+            llamadores = max(llamadores, n)
+            anchos.append(w)
+            desglose.append("%s=%d (el peor de %d llamadas: %s)" % (a, w, n, quien))
+            continue
+        raise _Falta(
+            "no se supo acotar %r del $ALARM del %s. No es un buffer del cuerpo ni un "
+            "parametro de la firma, asi que su ancho no sale de ningun sitio medible"
+            % (a, punta))
+
+    peor = _peor(fmt, anchos)
+    if peor is None:
+        raise _Falta("el $ALARM del %s tiene %d conversiones y %d argumentos. Con esa "
+                     "discrepancia no hay cuenta que hacer"
+                     % (punta, len(re.findall(r"%[0-9]*l?[usd]", fmt)), len(args)))
+    return peor, cap, llamadores, " · ".join(desglose)
+
+
 def _peor_status(fw, punta):
     """(peor caso en caracteres, payload, tramaCompleta, desglose) del $STATUS."""
     codigo = fw.codigo(punta, "src", "bluetooth.cpp")
@@ -527,6 +775,45 @@ def correr(b, fw):
         "PERFECTAMENTE VALIDO se truncaria, y la guarda no lo veria pasar porque no "
         "esta fuera de rango"
         % (m_sr.group(1), int(m_sr.group(1)) - 1, "%d" % tope_sr))
+
+    # ---- 2.quinquies N-154: EL $ALARM ENTERO CABE EN SU PAYLOAD --------------
+    #
+    # La cuenta y el porque estan arriba, junto a _peor_alarma(). Aqui solo se cobra, y se
+    # cobra en las DOS puntas por separado porque su peor caso NO es el mismo: el tramo del
+    # Esclavo son 13 caracteres mas que el del Maestro.
+    for punta in ("Maestro", "Esclavo"):
+        peorA, capA, nll, desglose = _peor_alarma(fw, punta)
+        b.verificar(
+            peorA <= capA,
+            "el peor $ALARM del %s son %d caracteres y su payload guarda %d (%d llamadas "
+            "censadas en src/) | %s" % (punta.upper(), peorA, capA, nll, desglose),
+            "EL $ALARM DEL %s NO CABE: %d caracteres por BUFFER en un payload que guarda "
+            "%d. Se pierden los %d ultimos, que es el final de la trama: el valor de HORA. "
+            "Y el checksum sale BUENO porque se calcula sobre lo que quedo, asi que la "
+            "alarma llega con aspecto de intacta y sin el unico dato por el que existe la "
+            "Caja Negra. Se acota donde se PRODUCE -los causa[] de los llamadores-, no "
+            "agrandando esto. Desglose: %s"
+            % (punta.upper(), peorA, capA, peorA - capA, desglose))
+
+    # Y que la trama con su envoltorio tambien cabe: el $ALARM mas largo mas "*XX\r\n".
+    # Truncar AQUI es distinto y peor -se corta el cierre del checksum, el otro extremo la
+    # descarta y la alarma desaparece del todo-, asi que se mide aparte y se dice por que.
+    for punta in ("Maestro", "Esclavo"):
+        peorA, _, _, _ = _peor_alarma(fw, punta)
+        capT = _ancho_decl(fw.codigo(punta, "src", "bluetooth.cpp"), "tramaCompleta")
+        if capT is None:
+            raise fw.Abortado(
+                "no se hallo tramaCompleta[] en bluetooth.cpp del %s: es el envoltorio "
+                "que lleva el checksum, y sin su cota no se puede decir que la alarma "
+                "salga entera del equipo" % punta)
+        b.verificar(
+            peorA + len("*XX\r\n") <= capT,
+            "el peor $ALARM del %s sale entero con su checksum: %d + 5 caracteres en un "
+            "tramaCompleta que guarda %d" % (punta.upper(), peorA, capT),
+            "el peor $ALARM del %s son %d caracteres y con su *XX\\r\\n no cabe en un "
+            "tramaCompleta que guarda %d. Aqui truncar es PEOR que en el payload: se "
+            "corta el cierre del checksum, el otro extremo descarta la trama y la alarma "
+            "desaparece entera justo cuando hace falta" % (punta.upper(), peorA, capT))
 
     # ---- 3. La cadencia, leida del C++ ---------------------------------------
     cadencias = {}

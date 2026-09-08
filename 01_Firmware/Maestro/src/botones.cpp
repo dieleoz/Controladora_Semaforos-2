@@ -265,7 +265,14 @@ uint16_t camara_vetosPluma() {
 // luz. Escribir ahi cualquier otra cosa seria el $ACK que no mira lo que devolvio la
 // llamada (CLAUDE.md 6), trasladado a la caja negra.
 static void camara_alarmar(int i, const char* evento, const char* motivo) {
-  char causa[28];
+  // N-154: la cota sale de los literales que de verdad entran, no de un numero redondo.
+  // Este buffer va ENTERO dentro del payload del $ALARM, y con char[28] aportaba 27 al
+  // peor caso -por buffer, que es lo unico que snprintf garantiza-. El peor real es
+  // CAM_NOMBRE[i] + '_' + el motivo mas largo: "CAM_C" + "_" + "CONTACTO_FIJO" = 19.
+  // No se deriva con un sizeof compuesto porque el motivo llega por parametro: quien
+  // rehace la cuenta en cada corrida leyendo estos literales es el pack del presupuesto
+  // de bytes, y si alguien anade un motivo mas largo, falla ahi.
+  char causa[sizeof("CAM_C_CONTACTO_FIJO")];
   snprintf(causa, sizeof(causa), "%s_%s", CAM_NOMBRE[i], motivo);
   bluetooth_reportarAlarma(evento, causa, "NINGUNA");
 }

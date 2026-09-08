@@ -229,7 +229,37 @@ void bluetooth_reportarAlarma(const char* evento, const char* causa, const char*
   // No decide nada: la decision es de SFTY-6, en main.cpp; aqui solo se toma nota.
   enlaceCaidoAnunciado = true;
 
-  char payload[144];
+  // N-154 CERRADO AQUI (08/09). 152 Y NO 144, Y ES LA UNICA PUNTA DONDE EL BUFFER CRECE.
+  //
+  // Por buffer -lo unico que snprintf garantiza- el peor caso eran 171 caracteres contra
+  // los 143 que un char[144] guarda: se perdian los veintiocho ultimos, o sea el VALOR de
+  // la HORA y parte de ACCION, y con el checksum bueno porque se calcula sobre lo que
+  // quedo. La alarma llegaba con aspecto de intacta y sin el dato por el que existe una
+  // Caja Negra.
+  //
+  // Primero se acoto donde se PRODUCE, que es lo que manda: los dos causa[] de main.cpp y
+  // botones.cpp aportaban 39 caracteres por un numero redondo y bajan a 19. Eso deja el
+  // peor caso en 151, y al Maestro le basto para caber en 139. AQUI NO, y el motivo es
+  // real y no se puede apretar: el tramo de ESTA punta son 44 caracteres contra los 31
+  // del Maestro, porque lleva TRES contadores de protocolo con %lu -numeros libres, sin
+  // rango que prometer, acotados a su tope de TIPO, ver la nota de tramo[45] arriba-.
+  //
+  //   fijo                          49   "$ALARM,NODE:ESCLAVO,EVENTO:" + ",CAUSA:" +
+  //                                      "," + ",ACCION:" + ",HORA:"
+  //   EVENTO                        10   "CAM_PEGADA"
+  //   CAUSA                         19   causa[sizeof("CAM_C_CONTACTO_FIJO")] y el
+  //                                      literal "REINTENTOS_AGOTADOS", empatados
+  //   tramo                         44   tramo[45]
+  //   ACCION                        14   "CAMBIO_A_AMBAR"
+  //   HORA                          15   horaBuf[16]
+  //
+  //   49 + 102 = 151 caracteres + NUL = 152 B. MARGEN CERO y escrito. Los 8 B son de
+  //   PILA, no de flash. Y cabe aguas abajo: tramaCompleta[160] guarda 159 y la trama
+  //   entera son 151 + "*XX\r\n" = 156.
+  //
+  // Agrandar un buffer NO es la cura de N-154 y aqui no lo es tampoco: la cura fue acotar
+  // los causa[]. Esto es dimensionar a la cota DERIVADA lo que ya no se puede reducir.
+  char payload[152];
   snprintf(payload, sizeof(payload), "$ALARM,NODE:ESCLAVO,EVENTO:%s,CAUSA:%s,%s,ACCION:%s,HORA:%s",
            evento, causa, tramo, accion, horaBuf);
   enviarTramaConCrc(payload);

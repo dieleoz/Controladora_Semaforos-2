@@ -827,7 +827,22 @@ void coordinador_actualizar() {
           // por las que el Maestro cae a ambar, y se distinguen en la causa: por aqui
           // se entra por silencio, y por la de abajo por reintentos agotados. Saber
           // cual de las dos fue es justo lo que el reporte de lluvia necesitaba.
-          char causa[40];
+          // N-154: LA COTA SE DERIVA DE LA CONSTANTE QUE MANDA, Y AQUI ERA 40 A OJO.
+          //
+          // Este buffer entra ENTERO en el payload del $ALARM, y el peor caso se cuenta
+          // POR BUFFER -es lo unico que snprintf garantiza-, no por el valor de hoy. Con
+          // char[40] esta causa aportaba 39 caracteres a una trama que solo tiene 143, y
+          // el $ALARM del peor caso se iba a 158: se perdia el final, que es la HORA. Con
+          // el checksum BUENO, ademas, porque se calcula sobre lo que quedo: la alarma
+          // llega con aspecto de intacta y sin el unico dato por el que existe la Caja
+          // Negra. El sintoma no es "el equipo se callo", es peor.
+          //
+          // La desigualdad se RECALCULA desde el C++ en vez de explicarse aqui: el dia
+          // que SFTY6_SILENCIO_MS pase de cinco cifras, esto NO COMPILA. Un comentario
+          // que dijera "caben 5 cifras" se quedaria describiendo otro firmware.
+          static_assert(SFTY6_SILENCIO_MS <= 99999UL,
+                        "SFTY6_SILENCIO_MS ya no cabe en causa[]: agranda el literal de sizeof");
+          char causa[sizeof("SILENCIO_99999ms")];
           snprintf(causa, sizeof(causa), "SILENCIO_%lums", SFTY6_SILENCIO_MS);
           bluetooth_reportarAlarma("FALLO_RF", causa, "CAMBIO_A_AMBAR");
           estadoC = C_FALLO; // TEST 3: Esclavo apagado / sin comunicación -> Maestro a AMARILLO PARPADEO

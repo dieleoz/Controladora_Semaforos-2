@@ -660,7 +660,14 @@ void loop() {
       // El nombre del evento NO lleva el numero dentro. El ejemplo del header decia
       // "FALLO_RF_12S", y ese literal habria quedado mintiendo el dia que el umbral
       // paso a 25 s (N-71). El umbral va en la causa, no en el nombre.
-      char causa[40];
+      // N-154: LA COTA SE DERIVA DE LA CONSTANTE QUE MANDA, Y AQUI ERA 40 A OJO. La nota
+      // larga esta en Maestro/src/coordinador.cpp, en la puerta gemela. En ESTA punta
+      // apretaba mas: el tramo del $ALARM del Esclavo son 44 caracteres contra los 31 del
+      // Maestro -lleva tres contadores de protocolo con %lu, que son numeros libres-, asi
+      // que su peor caso se iba a 171 contra los 143 que cabian.
+      static_assert(SFTY6_SILENCIO_MS <= 99999UL,
+                    "SFTY6_SILENCIO_MS ya no cabe en causa[]: agranda el literal de sizeof");
+      char causa[sizeof("SILENCIO_99999ms")];
       snprintf(causa, sizeof(causa), "SILENCIO_%lums", SFTY6_SILENCIO_MS);
       bluetooth_reportarAlarma("FALLO_RF", causa, "CAMBIO_A_AMBAR");
     }
