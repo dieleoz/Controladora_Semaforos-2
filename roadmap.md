@@ -51,6 +51,7 @@ la cinta del 05/09 a las 22:19.
 3. ~~🔴 **El `$ALARM` no cabe en su buffer**~~ — 🟢 **CERRADO el 08/09** (§3.13). Y de paso quedo
    medido que **el sintoma publicado era falso**: el CRC casaba, y lo que se perdia era la HORA.
 4. 🔴 **`CAM_CIEGA` sigue en 6 h.** Se decidieron **4 dias** el 05/09 y no se ha implementado.
+   **Es el paso 1 del orden de desarrollo: §3.14.**
 5. 🟡 **La firma del funcional sobre el manual del «doble» no existe** — y `TECHO_POR_SUELO = 2`
    **ya salio en el paquete del 05/09**.
 
@@ -162,6 +163,18 @@ fichero existe para impedir. Medido el 07/09:
 | **A-11**, cuerpo | *«`grep -c "SET_MODO" Esclavo/src/bluetooth.cpp` -> 0»* | hoy da **10** (`15e8cf3`). **El indice ya la tacha y el cuerpo abierto contradice al indice** |
 | **A-2** | abierta, urgencia media | **cerrada por el responsable el 05/09** |
 | **«Filas que chocan» 1, 2 y 3** | las tres | caducadas por `62d731e`, `15e8cf3` y `e3a21ec` |
+| 🔴 **`A-14`, cuerpo** *(medido el 08/09)* | *«Que esta bloqueado mientras tanto: **`D-23` entera**»* | **El indice la tacha y la da por RESUELTA el 07/09 por la noche**, con la via elegida —**`$EVENT` nuevo**— y el criterio del responsable escrito al lado: *«lo que menos consumo de radio genere»*. **Es `A-11` otra vez, letra por letra: el indice tacha y el cuerpo sigue abierto**, y quien lea el cuerpo dara `D-23` por bloqueada cuando ya no lo esta |
+
+> 🔴 **Y la consecuencia de esa fila NO es documental, es de planificacion: `D-23` YA NO ESTA
+> BLOQUEADA.** `ESTADO.md` sigue diciendo *«antes de construirla hay que ELEGIR LA VIA, que no esta
+> elegida: `A-14`»*, y esa frase caduco el 07/09 por la noche. **La via esta elegida.** Lo que falta
+> es construirla: un `$EVENT` nuevo en el Esclavo y su pantalla en la app —o sea **recompilar la
+> APK**, con todo lo que eso arrastra (skill `entregar` §2.bis)—.
+>
+> ⚠️ **No se ejecuta sobre esta lectura sin confirmarla.** El indice y el cuerpo del fichero
+> **vinculante** dicen cosas distintas sobre lo mismo, y `CLAUDE.md` §11.1 es explicito: *eso no es
+> una orden, es una pregunta*. Se pregunta y se anota la respuesta AQUI, que es donde el siguiente
+> la va a buscar.
 
 ### 3.3 · 🔴 La evidencia del banco NO esta donde 8 documentos dicen
 
@@ -932,6 +945,39 @@ su lugar habria medido de menos, que es lo que trunco el `$ALARM` de `N-108`.
 > holgura olvidada: es la cuenta cuadrada, y quien la rehace en cada corrida es el pack. El
 > dia que alguien alargue un literal de `EVENTO` o anada un campo, **falla ahi antes de
 > truncar en la calle** — que es justo lo que no ocurrio durante el mes anterior.
+
+### 3.14 · 🎯 EL ORDEN DE DESARROLLO AL 08/09 — lo que queda, y por que en este orden
+
+**Esta tabla NO duplica nada: apunta.** El porque de cada linea vive en su apartado, y aqui solo esta
+el ORDEN y lo que lo justifica. Se reescribe entera cuando cambie; no se le anaden filas al final.
+
+> 🔴 **EL PASO 0 NO ES DESARROLLO, Y VA DELANTE DE TODO: medir el consumo del riel de 3,3 V del
+> Maestro averiado, en frio y con fuente limitada en corriente** (`BLQ-3`, `N-116`). Es **gratis**, no
+> consta recorrido, y **de el cuelga todo lo demas**: con la tarjeta muerta, nada de lo que sigue se
+> puede ejercer en cobre — y **lo que no se ejerce en cobre no esta terminado**, por muy verde que
+> este la compuerta. **Escribir mas codigo mientras esto no se mide es acumular deuda sin banco.**
+
+| # | que | por que va aqui | que arrastra |
+|---|---|---|---|
+| **1** | 🔴 **`CAM_CIEGA` de 6 h a 4 dias** (§3.1 fila 2) | **Decidido el 05/09 y sin construir.** Es la mas barata de las decididas y hoy el equipo alarma por una camara sana cada 6 h | las **dos puntas** + `camara_03` + **5 documentos** + **`app.js`** + **recompilar la APK**. Y su segunda mitad, que vale mas que el numero: **declarar AVERIADO el Modo Inteligente** — eso es spec, no teclado |
+| **2** | 🔴 **`D-23` · la pantalla propia del poste 2**, por la via `$EVENT` | **Decidida el 07/09 y con la via YA elegida** (`A-14`). Es una de las tres que mantienen en rojo `decisiones_01_anclas`, y **la unica de las tres que se destraba con teclado** | `$EVENT` nuevo en el **Esclavo** + pantalla en **app.js** + **recompilar la APK**. ⚠️ **Antes: confirmar que el indice de `A-14` manda sobre su cuerpo** (§3.2) |
+| **3** | 🟠 **El checksum de la SUBIDA** (§3.1 fila 3) | `procesarComando()` **no lee el `*XX`**: un bit cambiado dentro de `SET_TIEMPOS` o `SET_RTC` **se obedece**. Va detras de 1 y 2 porque **no esta decidido** y porque SPP ya lleva su propio control de errores por debajo — pero es lo unico de esta lista que puede mover una luz por un bit | las dos puntas + el pack que lo mida. **Y su control negativo tiene que ser una trama con el CRC malo que HOY se obedece** |
+| **4** | 🟠 **`reloj_diagnostico()` en el Esclavo** (§3.1 fila 5) | Porte **mecanico** desde el Maestro; ya tiene los ingredientes. Sin el, quien sube 5 m al poste del Esclavo **no puede distinguir `lseOn=0` de `lseRdy=0`** y baja sin saber que pieza mirar | una punta. Es la mas aislada de la lista |
+| **5** | 🟠 **El caso borde de rojo de `validateTiempos()`** (§3.1 fila 4) | Una linea. El caso de verde mide el limite y **el de rojo no**: `validateTiempos(3, 1, 25)` esta uno POR DEBAJO del borde, asi que si alguien afloja `r < 3` a `r < 2`, ese sigue pasando | `test_unitarios_app.js`. **No** obliga a recompilar la APK: es prueba, no `www/` |
+| **6** | 🟡 **`D-22` · `Y1` como latido del micro** | **VA EL ULTIMO Y VA SOLO**, y no por su beneficio sino por su MODO DE FALLO: si `Y1` no oscila, el `_Error_Handler` del nucleo es `noreturn` + `while (1)` y **la tarjeta queda a oscuras, sin luces y sin reiniciarse**. §3.4.quater | **no se carga sin una tarjeta delante.** No es teclado: es una sesion de banco |
+
+> 🛑 **LO QUE NO ESTA EN ESTA TABLA A PROPOSITO, porque no lo cierra nadie escribiendo:** `BLQ-3`
+> (tarjeta muerta), `BLQ-6` (**nada de lo arreglado tras la cinta del 05/09 ha pasado por una
+> tarjeta** — y ahi entran `N-150`, `N-151`, `N-152`, `N-154` y `N-160`), `BLQ-5` (entradas desnudas
+> y los 12 V de `J16` p1), `BLQ-4` (el anuncio Bluetooth del ESP32) y `BLQ-2` (`Y2`). **Confundirlos
+> con los de arriba es como se acumula un `20/20` que no acerca una tarjeta.**
+
+> 🟡 **Y las que esperan una DECISION tuya, no codigo:** la lectura de `A-14` (§3.2, barata y
+> desbloquea el paso 2) · el regimen electrico de la entrada de alarma de `D-14`, que es **un
+> multimetro** · `FW-N53`, si se redefinen los gestos del mando —hoy Auto es `A·A·A` y Ambar `B·B·B`—,
+> que cambia el Manual 1, el Manual 3 y el adiestramiento · y la **matriculacion por ID de
+> Bluetooth**, aplazada por ti a despues del banco porque cambia el contrato de la radio en las dos
+> puntas.
 
 ---
 
