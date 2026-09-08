@@ -98,7 +98,7 @@ qué hubo que auditarla vive en [`roadmap.md`](roadmap.md) bajo **`N-160`**.
 > `compuerta.py`, ni ningún `Validacion_*`. **El instrumento no se ajustó para que diera verde**, que
 > era el riesgo mayor.
 
-### 🔴 `N-160` · Defecto VIVO de firmware — ABIERTO
+### 🟢 `N-160` · CERRADO el 08/09 en las DOS puntas — y su residual, también
 
 **Salió al auditar la tanda de arriba, y éste sí es firmware.** Así estaba en `reloj.cpp` de **las
 dos puntas** cuando se midió, el 07/09 por la noche —**el bloque se fecha a propósito: hay un
@@ -127,14 +127,19 @@ llamada devolvió*— **una capa por debajo del `$ACK`**, que es donde no lo bus
 - ⚠️ **Y el cast va ANTES de la validación:** `h = 256` se convierte en `(uint8_t)0` y **entra como
   medianoche**. Se valida el `int`, y luego se castea.
 
-> **Estado: ABIERTO.** Se está arreglando en paralelo y **hay trabajo sin comitear en el árbol**;
-> **este fichero no lo da por cerrado**, y no se cierra con una afirmación sino con **el commit y la
-> compuerta que lo demuestren, medidos con el árbol QUIETO** (`CLAUDE.md` §11.7). El molde de cómo se
-> contesta bien es `SET_TIEMPOS` (`CLAUDE.md` §2).
+> 🟢 **Estado: CERRADO, y no con una afirmación.** `reloj_sembrarDesdeIso()` devuelve hoy
+> `reloj_ajustarConAcuse(h, m, s, dia)` en **las dos puntas**, y los `int` llegan **sin castear**, que
+> era la mitad silenciosa —`h = 256` ya no entra como medianoche—. Lo vigila
+> `reloj_02_siembra_que_miente` con **2.401 casos de borde por punta** y **siete controles
+> negativos**.
 >
-> ⚠️ **Al cerrarlo hay que mirar las DOS puntas por separado:** el `if` del Maestro y **la llamada
-> del Esclavo, que no tiene `if` ninguno**. Arreglar sólo el que devuelve el valor deja al Esclavo
-> exactamente igual (`CLAUDE.md` §6.1: *¿quién LLAMA a esto?*).
+> 🟢 **Y el residual que dejó, cerrado el 08/09 en `6c90ff0`:** el Esclavo escribía en el Diario si
+> la hora había entrado y **el Maestro no** —su `bluetooth_reportarEvento()` salía FUERA del `if`—.
+> Era el mismo defecto una capa arriba, y en la punta que **propaga la hora**, o sea la que se
+> consulta cuando las dos discrepan. Lo mide una comprobación nueva del pack, acreditada inyectando
+> el defecto en el `.cpp` real (20/20 → 19/20, acusando sólo a la punta que lo tenía).
+>
+> 🔴 **Sin prueba en tarjeta**, como todo lo de esta rama.
 
 ---
 
@@ -296,8 +301,8 @@ escriben a mano** (N-93).
 | Componente / Documento | Ubicación | Nota |
 |---|---|---|
 | **App móvil de campo** | [`05_Funcional/App_Semaforo/`](05_Funcional/App_Semaforo/) | Frontend Web Bluetooth / WebView, selector de cruces y Courier RTC |
-| **APK Android** | la más nueva del disco es [`05_Funcional/IOT_VIAL_Semaforos_2026-09-05_7586c46_SIN_BANCO.apk`](05_Funcional/IOT_VIAL_Semaforos_2026-09-05_7586c46_SIN_BANCO.apk) *(medido con `ls`; los `.apk` están en `.gitignore`)* | 🔴 **caducada**: el árbol le pasó por encima después. **`APP-APK` sigue abierto**, y el «cierre» del 07/09 era una **copia renombrada** de ésta —mismo `SHA-256`— **que perdió el `_SIN_BANCO`**. Todas las que hay llevan ese sufijo, y **es la etiqueta que impide que alguien suba a campo una APK sin banco** |
-| **Paquete ZIP de entrega de versión** | 🔴 **SIN GENERAR** | No se genera hasta pasar banco. Ver la skill `entregar` |
+| **APK Android** | la más nueva del disco es `05_Funcional/IOT_VIAL_Semaforos_2026-09-08_ded4416_SIN_BANCO.apk` *(medido con `ls`; los `.apk` están en `.gitignore`, así que git no vigila esto)* | 🟢 **al día**: lleva el aviso del Modo Inteligente a ciegas (`D-24`) y su contenido se verificó **entrada por entrada y por CRC** contra los 13 ficheros de `www/`, no por que el build saliera bien. ⚠️ **Las anteriores NO se borran pero están caducadas.** Y el sufijo `_SIN_BANCO` se queda hasta que alguien la instale con un equipo delante |
+| **Paquete de REVISIÓN** *(no es entrega de versión)* | `Paquete_Revision_V9.0_2026-09-08_<hash>_SIN_BANCO.zip`, generado por `generar_entrega_v9_0.py` | 🟢 Se regenera de un commit concreto y **no se versiona**. Lleva fuente para PlatformIO, manuales, la guía de cableado, la APK, el acta y el **`LEEME_PRIMERO.htm`** (se abre con doble clic). 🛑 **NO es una entrega de versión: eso exige banco pasado.** Ver la skill `entregar` §1 |
 | **Guía de cableado y banco (HTML)** | [`05_Funcional/Guia_Cableado_y_Pruebas_Banco.html`](05_Funcional/Guia_Cableado_y_Pruebas_Banco.html) | **El documento de conexiones que se entrega**, y el **formulario de vuelta**: se rellena y se devuelve en PDF |
 | **Esquemático KiCad bueno** | [`01_Firmware/Controladora_Semaforos/`](01_Firmware/Controladora_Semaforos/) | 649 KB con LCD, botones y el canal del motor, y el `.kicad_pcb` de 2,1 MB. La copia incompleta de `03_Hardware_Tarjeta/KiCad/` **se borró el 27/08** |
 | **Informe de banco 3-4/09** | `evidencia/Informe_Pruebas_Banco_Semaforos_V9.0.pdf` | 24 de 29 pasos, sobre `617bd00` |
