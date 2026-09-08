@@ -61,8 +61,17 @@ la cinta del 05/09 a las 22:19.
 
 > 🔴 **Y una SEPTIMA, del 07/09 por la noche y de otra naturaleza: `N-160` — el `20/20` que se compro
 > con COMENTARIOS.** Tres decisiones se anclaron sin construirse, una APK se «recompilo» siendo el
-> mismo `SHA-256` de la anterior, y al auditar el diff aparecio un defecto vivo en el sembrador de la
-> hora. **Lo unico que lo caza es revisar el DIFF aunque el numero salga verde.** Ver §3.10.
+> mismo `SHA-256` de la anterior, y al auditar el diff aparecieron **dos** defectos vivos en el reloj,
+> los dos arreglados. **Lo unico que lo caza es revisar el DIFF aunque el numero salga verde.**
+> Ver §3.10 y §3.10.bis.
+>
+> 🔴 **Y de ahi salieron DOS PREGUNTAS QUE MANDAN SOBRE EL ORDEN DE CONSTRUCCION, y las dos son del
+> responsable:** (1) **la siembra periodica del `DS3231` al STM32 NO EXISTE** —el ESP32 reenvia
+> verbatim, no siembra—, y sobre esa premisa se degrado `D-22` a opcional y se cerro `D-21`; sin ella
+> el Maestro corre con `millis()` desde la ultima visita humana y **da la vuelta a los 49,7 dias**.
+> (2) **la guarda `D-21` del Esclavo esta construida y no puede dispararse**, porque nada devuelve
+> `horaValida` a `false`. **Hasta contestarlas, el paso 4 del orden de construccion no se puede
+> ordenar honestamente.** §3.10.bis.
 
 > **Por donde se empieza manana:** por el **peldano gratis** de N-116 —desenchufar `J14`, `J15`,
 > `J16`, `J17` y `J2` y remedir el riel de 3,3 V—. Cuesta cinco minutos y **decide si hay que
@@ -556,6 +565,67 @@ medianoche**. Se valida el `int`, y luego se castea.
 > sembrador, no una version relajada —§8 cumplido—. **El unico arreglo real de la tanda fuera del
 > reloj tambien es bueno:** `validateTiempos()` de los unitarios de la app paso de `1..15` a `3..15`
 > **y movio los casos borde a 2 y 1**, que antes no tocaban el borde. Cierra el punto 4 de `ESTADO.md`.
+>
+> ⚠️ **REFUTADO EN PARTE unas horas despues, y se deja escrito en vez de borrarlo:** lo de la
+> «replica caracter por caracter» valia para `reloj_sembrarDesdeIso()`, **no para todo el arnes**. Su
+> `reloj_ajustar()` era un doble con una guarda **que el firmware NO tiene** —`if (!rtcOperativo)
+> return;`, cero apariciones en los dos `reloj.cpp`— y su comentario **afirmaba estar replicandola**.
+> No es aflojar, es lo contrario: **un doble que rechaza lo que el firmware acepta no es estricto,
+> mide otra cosa**, y el banco estaba ejerciendo un firmware mas seguro que el que se embarca. Y su
+> coartada era falsa por un segundo sitio: decia ser el unico modo de ejercer ese camino, y **el
+> simulador del puente no manda ni un `SET_RTC:`**, asi que no se recorria nunca.
+
+#### 3.10.bis · Lo que se ARREGLO, y las DOS preguntas que quedaron para el responsable
+
+**El arreglo de `N-160` no se pudo hacer por donde parecia**, y el motivo se midio con `g++` en vez
+de razonarlo: **tres arneses DEFINEN `reloj_ajustar()` con firma `void`** contra el mismo `reloj.h`
+—`adaptador_esclavo.cpp`, `adaptador_maestro_deg.cpp` y `Validacion_LCD/arnes_esclavo.cpp`—, **y dos
+estan en la compuerta**. Cambiarle la firma la rompia desde ficheros que el que arreglaba tenia
+prohibido tocar (`error: ambiguating new declaration`). Asi que **la regla de rango SE MUDO** a
+`reloj_ajustarConAcuse(int,int,int,int)`, que devuelve `bool`, y `reloj_ajustar()` quedo de
+envoltorio: **una sola copia de la regla**, la firma que doblan los arneses intacta, y los `int`
+llegan **sin castear** para que la validacion vea el `256` antes de que se convierta en `0`.
+
+> 🔴 **Y ESA MUDANZA SE LLEVO POR DELANTE UN INSTRUMENTO, que es la leccion de §5 en su forma
+> dificil.** `app_03_sin_ok_mudo` censa las `void` que rechazan en silencio buscando un `return;`
+> temprano; el envoltorio nuevo no tiene ninguno, **asi que salio del censo y el pack se quedo sin
+> diente**. No lo dijo un humano: **lo dijo su propio CONTROL NEGATIVO**, que es exactamente para lo
+> que esta. Un pack sin control negativo se habria quedado en verde mintiendo.
+>
+> ⚠️ **Y la primera reparacion fue PEOR que el defecto:** la version ancha —«toda `void` que llame a
+> una validadora»— barria `bluetooth_reportarEvento()`, que es un **registrador y no un veredicto**,
+> y dejaba **doce ramas correctas acusadas de OK mudo**. Se acoto a **el delegador puro** (cuerpo de
+> una sola sentencia) y el borde quedo escrito al lado con ese motivo. **Un instrumento que acusa al
+> firmware de un defecto que no tiene se desactiva solo**, porque el siguiente aprende a ignorarlo.
+
+**El segundo defecto lo encontro la auditoria de solo lectura, y es el que podia dar dos verdes
+desfasados en una calle:** `reloj_contadorSegundos()` extrapolaba con `millis()` sin cristal, y eso
+**apagaba los dos centinelas de `respaldo.cpp`** —`marcarSync()` y `horasDesdeSync()`— que esperan un
+`0` cuando no hay reloj. El valor no sirve de contador monotono por **dos** motivos independientes:
+`millis()` vuelve a cero tras un corte, y `tBaseMillis` se reasigna **en cada siembra**. Marca en 31,
+seis meses de corte, siembra a los 40 s de arranque, y la cuenta daba *«sincronizado hace 0 horas»*.
+De ahi cuelga el limite duro de 48 h del Degradado. **Vuelve a devolver `0`: se prefiere la puerta
+CERRADA a un verde mal fechado**, y la consecuencia —sin reanudacion tras corte— esta escrita en el
+comentario en vez de descubrirse en campo. Es `CLAUDE.md` §6.2 literal: **borrar el armador no dejo
+los vetos inertes, los dejo ABIERTOS.**
+
+> 🔴 **PREGUNTA 1 PARA EL RESPONSABLE — `D-22` y `D-21` se decidieron sobre una premisa que el codigo
+> no tiene.** `D-22` esta degradada a *«opcional y la ultima de la cola»* porque *«con `D-20`
+> construida el `DS3231` siembra cada 2 s»*. **Esa siembra NO EXISTE.** Medido: el ESP32 **reenvia
+> verbatim** los bytes del telefono —*«SET_RTC incluido, se atiende aqui Y sigue viaje»*,
+> `puente.cpp`— y escribe su `DS3231` en paralelo; **no lee su `DS3231` para sembrar al STM32**, y no
+> hay nada periodico. **La unica siembra del Maestro es una persona tecleando `SET_RTC` en el poste.**
+> Desde ahi extrapola con `millis()`, que **da la vuelta a los 49,7 dias ≈ 1,6 meses** — dentro de los
+> «MESES» con los que se cerro `D-21`. El reenvio **Maestro→Esclavo** si existe (`INTERVALO_SYNC_MS`,
+> una hora); **al Maestro no lo resiembra nadie.** `CLAUDE.md` §8.2: se devuelve **con la medida**.
+>
+> 🔴 **PREGUNTA 2 — la guarda `D-21` del Esclavo esta construida y es INALCANZABLE.** Censado: los
+> unicos `horaValida = false` viven **dentro de `reloj_setup()`**; despues solo hay `= true`, y el
+> Esclavo **no tiene `reloj_reiniciarDominioRespaldo()`**, que es lo unico que puede bajarla en el
+> Maestro. Para estar en `DEG_ENTRANDO/DEG_ACTIVO` hubo que pasar el `if (!reloj_enHora())` de la
+> entrada, asi que la bandera **ya no puede volver a false**. Es la pieza **A** de `D-21` —el `OSF`
+> que no llega a `reloj_enHora()`, **cero apariciones de `OSF` fuera de `ESP32_Expansion/`**— y sigue
+> sin construir. **`D-20` no la creo, pero la empeoro:** antes la bandera al menos podia bajar.
 
 ---
 
