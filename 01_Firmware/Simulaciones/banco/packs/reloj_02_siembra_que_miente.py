@@ -300,6 +300,45 @@ def _gobernantes(texto, pos):
         i = a
 
 
+def _bajo_decision(texto, pos, funcion):
+    """True si pos esta dentro de un `if`/`else` cuya CONDICION llama a `funcion`.
+
+    ES OTRA PREGUNTA QUE LA DE `_gobernantes`, Y HACEN FALTA LAS DOS.
+
+    Alli el `else` NO cuenta, y es correcto: propagar la hora en el `else` de
+    `if (sembrar())` seria empujar al otro poste una hora que esta punta descarto. Aqui
+    el `else` SI cuenta, y tambien es correcto: lo que se mide no es que la linea corra
+    solo en exito, sino que DEPENDA del veredicto -y una linea de diario en el `else` es
+    exactamente la que dice "se rechazo"-. Usar `_gobernantes` para esto acusaria al
+    arreglo bueno, que es como se desactiva un instrumento (N-160, 08/09: el primer
+    intento de esta comprobacion hizo eso y lo dijo su control negativo)."""
+    i = pos
+    while True:
+        a = _abre_del_bloque(texto, i)
+        if a < 0:
+            return False
+        antes = texto[:a].rstrip()
+        if antes.endswith(")"):
+            ap = _abre_paren(antes, len(antes) - 1)
+            if ap >= 0 and re.search(r"\b(if|while|for)\s*$", antes[:ap]) \
+                    and _llama_a(antes[ap + 1:len(antes) - 1], funcion):
+                return True
+        elif re.search(r"\belse\s*$", antes):
+            # Un `else` no lleva condicion propia: la suya es la del `if` que lo precede,
+            # y para leerla hay que saltar hacia atras el bloque entero de ese `if`.
+            cuerpo = antes[:antes.rfind("else")].rstrip()
+            if cuerpo.endswith("}"):
+                ai = _abre_del_bloque(cuerpo, len(cuerpo) - 1)
+                if ai >= 0:
+                    cab = cuerpo[:ai].rstrip()
+                    if cab.endswith(")"):
+                        ap = _abre_paren(cab, len(cab) - 1)
+                        if ap >= 0 and re.search(r"\bif\s*$", cab[:ap]) \
+                                and _llama_a(cab[ap + 1:len(cab) - 1], funcion):
+                            return True
+        i = a
+
+
 def _consumido(bloque, pos):
     """True si el resultado de la llamada que empieza en `pos` va a alguna parte.
 
@@ -907,6 +946,49 @@ def correr(b, fw):
             "se va del poste con una confirmacion de algo que puede no haber ocurrido"
             % (p, RAMA_BT, " · ".join(repr(x) for x in mentirosos)))
 
+    # ---- 5. EL DIARIO DE ORDENES DEPENDE DEL RETORNO, EN LAS DOS PUNTAS -------
+    #
+    # POR QUE ESTA COMPROBACION EXISTE, Y POR QUE NO LA CUBRE LA 4 [08/09].
+    #
+    # La 4 mira LITERALES de exito y deja fuera SET_RTC_LO_ACUSA_EL_PUENTE con un motivo
+    # escrito arriba: "el literal que LAS DOS PUNTAS emiten hoy dice QUIEN contesta, no que
+    # haya salido bien … cobrarle una guarda empujaria a quitarlo o a inventarse un
+    # rechazo". Esa razon es una AFIRMACION SOBRE EL CODIGO, y al volver a medirla el 08/09
+    # sus dos mitades fallan:
+    #
+    #   1. las dos puntas ya NO emiten lo mismo. El Esclavo emite DOS literales, y su
+    #      propio comentario dice por que: "una siembra RECHAZADA por rango dejaba en el
+    #      diario la misma linea que una aceptada: el unico registro que le queda al
+    #      tecnico decia que la hora entro cuando no habia entrado";
+    #   2. cobrarle la guarda NO empujo a inventarse un rechazo: el Esclavo escribio uno
+    #      CIERTO, derivado del retorno.
+    #
+    # Asi que la excepcion de la 4 se conserva -su borde sigue siendo el bueno para
+    # LITERALES- y lo que faltaba se mide aqui, que es otra propiedad: no QUE dice la linea,
+    # sino SI DEPENDE del retorno. El diario es el unico registro que le queda al tecnico
+    # cuando se baja del poste, y en el Maestro ademas es el que se consulta cuando las dos
+    # puntas discrepan, porque es el que propaga.
+    #
+    # EL BORDE DE ESTA: se exige de TODA llamada al reportador dentro de la rama. Si manana
+    # la rama gana una linea de diario que deba salir pase lo que pase -un "SET_RTC
+    # RECIBIDO" de traza, por ejemplo-, esta comprobacion la cobra y hay que escribir aqui
+    # por que se excluye. Es lo correcto: una excepcion nueva se mide al escribirla.
+    for p in PUNTAS:
+        rama = ramas[p]
+        sueltas = []
+        for m in re.finditer(r"\b%s\s*\(" % re.escape(REPORTADOR), rama):
+            if not _bajo_decision(rama, m.start(), SEMBRADOR):
+                sueltas.append(rama[m.start():m.start() + 90].split("\n")[0])
+        b.verificar(
+            not sueltas,
+            "%s / %s: toda linea del Diario de Ordenes depende del retorno de %s(): el "
+            "registro dice si la hora entro" % (p, RAMA_BT, SEMBRADOR),
+            "%s / %s: %d llamada(s) a %s() salen FUERA del bloque que gobierna la siembra, "
+            "empezando por `%s`. El diario deja la misma linea para una hora aceptada que "
+            "para una rechazada, y es el unico registro que le queda al tecnico"
+            % (p, RAMA_BT, len(sueltas), REPORTADOR,
+               sueltas[0].strip() if sueltas else ""))
+
     # ---- QUIEN TIRA EL RETORNO, MEDIDO Y NO CONTADO --------------------------
     #
     # Se mide en vez de afirmarse -una frase dentro de un reportar() envejece igual que
@@ -1013,3 +1095,35 @@ bool reloj_sembrarDesdeIso(const char* str) {
         not any(_llama_a(c, SEMBRADOR) for c in _gobernantes(falso_bloque, pos)),
         "una propagacion escrita JUSTO DEBAJO del `if` pero fuera de sus llaves se lee "
         "como NO gobernada: se mide el bloque, no la proximidad de lineas (N-89)")
+
+    # La 5 tiene que distinguir el defecto REAL que el Maestro tuvo hasta el 08/09 -diario
+    # fuera del `if`- del arreglo -diario en las dos ramas-. Se ejerce en los dos sentidos:
+    # una comprobacion que no dejara pasar NADA aprobaria el caso malo igual de bien.
+    diario_fuera = ('{ if (reloj_sembrarDesdeIso(x)) { coordinador_sincronizarHora(); } '
+                    'bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE"); }')
+    diario_dentro = ('{ if (reloj_sembrarDesdeIso(x)) { coordinador_sincronizarHora(); '
+                     'bluetooth_reportarEvento("APP_BLUETOOTH", "OK"); } '
+                     'else { bluetooth_reportarEvento("APP_BLUETOOTH", "RECHAZADO"); } }')
+
+    def _diario_suelto(txt):
+        return [m.start() for m in re.finditer(r"\b%s\s*\(" % re.escape(REPORTADOR), txt)
+                if not _bajo_decision(txt, m.start(), SEMBRADOR)]
+
+    b.control_negativo(
+        len(_diario_suelto(diario_fuera)) == 1 and not _diario_suelto(diario_dentro),
+        "el diario FUERA del `if` se acusa y el diario en las DOS ramas pasa: la 5 "
+        "distingue el defecto que el Maestro tuvo del arreglo, no acusa a todo el que "
+        "escribe en el diario")
+
+    # Y la simetrica, que es la que impide reutilizar el helper equivocado: `_gobernantes`
+    # -el de las comprobaciones 3 y 4- da NO GOBERNADA la linea del `else`, y con el la 5
+    # acusaria al arreglo bueno de las dos puntas. Se ejerce para que quede medido que las
+    # dos preguntas son distintas, y no confiado a que alguien lea el docstring.
+    pos_else = diario_dentro.find('bluetooth_reportarEvento("APP_BLUETOOTH", "RECHAZADO")')
+    b.control_negativo(
+        _bajo_decision(diario_dentro, pos_else, SEMBRADOR)
+        and not any(_llama_a(c, SEMBRADOR)
+                    for c in _gobernantes(diario_dentro, pos_else)),
+        "la linea del `else` DEPENDE del veredicto (la 5 la acepta) y NO esta gobernada "
+        "por el exito (la 3 la rechazaria): son dos preguntas distintas y se miden con "
+        "helpers distintos")

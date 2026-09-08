@@ -224,10 +224,34 @@ void bluetooth_reportarAlarma(const char* evento, const char* causa, const char*
   char tramo[32];
   snprintf(tramo, sizeof(tramo), "RF:%s,RTT:%s,SINRESP:%s", rfTxt, rttTxt, srTxt);
 
-  // 144 y no 100. El peor caso MEDIDO sumando los literales que de verdad se pasan
-  // -CAUSA:REINTENTOS_AGOTADOS con RF:100%, RTT de 4 cifras y SINRESP:999- son 128 B, y
-  // con 100 la trama se cortaba por la HORA sin que nada lo dijera.
-  char payload[144];
+  // N-154 CERRADO AQUI (08/09). 139 Y NO 144, Y LA CUENTA VA ESCRITA PORQUE EL MARGEN
+  // ES CERO A PROPOSITO.
+  //
+  // Lo que habia era 144 con una cuenta hecha sobre los VALORES que se pasan hoy -"son
+  // 128 B"-, no sobre los BUFFERS. Por buffer, que es lo unico que snprintf garantiza,
+  // el peor caso eran 158 caracteres contra los 143 que un char[144] guarda: se perdian
+  // los quince ultimos, o sea EL VALOR DE LA HORA. Y con el checksum bueno, porque se
+  // calcula sobre lo que quedo: la alarma llegaba entera de aspecto y sin el unico dato
+  // por el que existe una Caja Negra.
+  //
+  // El arreglo NO fue agrandar esto: fue acotar los dos causa[] donde SE PRODUCEN
+  // -coordinador.cpp y botones.cpp-, que aportaban 39 caracteres por un numero redondo.
+  // Con eso el peor caso baja a 138, y este buffer se dimensiona a esa cuenta:
+  //
+  //   fijo                          49   "$ALARM,NODE:MAESTRO,EVENTO:" + ",CAUSA:" +
+  //                                      "," + ",ACCION:" + ",HORA:"
+  //   EVENTO                        10   "CAM_PEGADA", el mas largo de los tres literales
+  //   CAUSA                         19   causa[sizeof("CAM_C_CONTACTO_FIJO")] y el
+  //                                      literal "REINTENTOS_AGOTADOS" empatan en 19
+  //   tramo                         31   tramo[32]
+  //   ACCION                        14   "CAMBIO_A_AMBAR"
+  //   HORA                          15   horaBuf[16]
+  //
+  //   49 + 89 = 138 caracteres + NUL = 139 B. MARGEN CERO, y esta escrito: no es holgura
+  //   olvidada, es la cuenta cuadrada. Quien rehace esta suma en cada corrida leyendo
+  //   los literales de los llamadores es esp32_07_presupuesto_bytes; si alguien anade un
+  //   campo o alarga un literal, falla ahi antes de truncar en la calle.
+  char payload[139];
   snprintf(payload, sizeof(payload), "$ALARM,NODE:MAESTRO,EVENTO:%s,CAUSA:%s,%s,ACCION:%s,HORA:%s",
            evento, causa, tramo, accion, horaBuf);
   enviarTramaConCrc(payload);
@@ -696,10 +720,20 @@ static void procesarComando(const char* cmd) {
     // D-20: LA AUTORIDAD DE LA HORA ES EL ESP32 (DS3231).
     // El ESP32 reenvia el SET_RTC al STM32 para sembrar su extrapolador y propagar al Esclavo.
     // D-15: Solo el ESP32 contesta al celular con $ACK/$ERR para evitar doble acuse.
+    //
+    // N-160: EL RETORNO SE MIRA TAMBIEN AQUI. El Esclavo ya lo hacia y esta punta no, que
+    // es la mitad que se quedo sin arreglar: la linea del diario salia FUERA del if y decia
+    // lo mismo se aceptara o se rechazara la siembra. Y no es simetrico en el dano -es el
+    // MAESTRO el que propaga la hora al Esclavo-, asi que es este diario el que se consulta
+    // cuando las dos puntas discrepan. Quien contesta al celular no cambia: sigue siendo el
+    // puente por D-15; lo que cambia es que el registro que le queda al tecnico dice si la
+    // hora entro.
     if (reloj_sembrarDesdeIso(accion + 8)) {
       coordinador_sincronizarHora();
+      bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
+    } else {
+      bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_RECHAZADO_POR_RANGO");
     }
-    bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
   } else if (strcmp(accion, "REINICIAR_RELOJ") == 0) {
     // N-31. PIDE PIN porque BORRA LA HORA Y TODO EL RESPALDO -ciclo acordado, marca de
     // sincronizacion e indicador del Degradado-, o sea la autorizacion de la que cuelga
