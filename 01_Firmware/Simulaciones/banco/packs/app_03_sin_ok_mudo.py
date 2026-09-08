@@ -116,12 +116,22 @@ def _es_void(tipo):
     return tipo.replace("inline", "").replace(" ", "") == "void"
 
 
-def _con_guarda(fw, punta, candidatas):
+def _con_guarda(fw, punta, candidatas, validadoras):
     """Las `void` que abandonan a mitad: un `return;` con codigo detras.
 
     Es la segunda mitad del censo y la menos evidente. reloj_ajustar() no devuelve
     nada, asi que "mirar el resultado" no es posible: el llamador tiene que preguntar
-    la precondicion por su cuenta -reloj_hayCristal()- o dejar de prometer OK."""
+    la precondicion por su cuenta -reloj_hayCristal()- o dejar de prometer OK.
+
+    N-160 - Y HAY UNA SEGUNDA FORMA DE RECHAZAR EN SILENCIO, QUE ES LA QUE SE COLO:
+    una `void` que DELEGA en una validadora y TIRA su veredicto. No tiene ningun
+    `return;` temprano -su cuerpo es una linea- asi que la primera mitad no la ve, y
+    sin embargo puede descartar la orden exactamente igual. Paso al mudarse la regla
+    de rango de reloj_ajustar() a reloj_ajustarConAcuse(): el envoltorio se quedo sin
+    guardas visibles y salio del censo, y con el se fue el diente de este pack.
+
+    Es CLAUDE.md 5 en su forma dificil: la guarda de rutas vigila ficheros que
+    DESAPARECEN, no reglas que se MUDAN de funcion. Aqui se sigue a la regla."""
     conGuarda = set()
     for c in fw.fuentes_de(punta, "src"):
         codigo = fw.codigo(punta, "src", c)
@@ -136,6 +146,24 @@ def _con_guarda(fw, punta, candidatas):
                     if re.search(r"[^\s};]", cuerpo[r.end():]):
                         conGuarda.add(n)
                         break
+                # La delegacion, Y SOLO EL DELEGADOR PURO: el cuerpo entero es UNA
+                # sentencia y esa sentencia es la llamada a la validadora. El borde es
+                # ese -una sola `;`- y esta escrito aqui porque la version ancha de esta
+                # misma comprobacion ya se probo y era PEOR que no tenerla: barria
+                # bluetooth_reportarEvento(), que es un REGISTRADOR y no un veredicto
+                # sobre la orden, y dejaba doce ramas correctas acusadas de OK mudo.
+                # Un instrumento que acusa al firmware de un defecto que no tiene se
+                # desactiva solo, porque el siguiente aprende a ignorarlo.
+                #
+                # El limite de palabra por delante y el `\s*\(` por detras tambien son a
+                # proposito: sin ellos "reloj_ajustar" casaria dentro de
+                # "reloj_ajustarConAcuse" -es su prefijo- y el envoltorio se declararia
+                # validador a si mismo.
+                if cuerpo.count(";") == 1:
+                    for v in validadoras:
+                        if re.search(r"(?<![A-Za-z0-9_])%s\s*\(" % re.escape(v), cuerpo):
+                            conGuarda.add(n)
+                            break
     return conGuarda
 
 
@@ -282,7 +310,8 @@ def correr(b, fw):
                 "vacia este pack aprobaria cualquier despachador sin haber mirado una "
                 "sola llamada" % p)
         devuelven = {n for n, t in decl.items() if not _es_void(t)}
-        conGuarda = _con_guarda(fw, p, {n for n, t in decl.items() if _es_void(t)})
+        conGuarda = _con_guarda(fw, p, {n for n, t in decl.items() if _es_void(t)},
+                                devuelven)
         vigiladas[p] = devuelven | conGuarda
 
         cuerpo = _despachador(fw, p)
@@ -346,15 +375,29 @@ def correr(b, fw):
     # reales, uno con el defecto y otro sin el. Si el detector aprobara el primero,
     # todos los OK de arriba serian decoracion.
     vig = vigiladas["Maestro"] | vigiladas["Esclavo"]
-    malo = ('{ reloj_ajustar(1, 2, 3, 4); '
-            'enviarTramaConCrc("$ACK,CMD:SET_RTC,RESULT:OK"); }')
+
+    # N-160: el nombre del cebo se DERIVA del censo, no se escribe a mano. La version
+    # anterior traia "reloj_ajustar" literal, y el dia que la regla de rango se mudo a
+    # reloj_ajustarConAcuse() el envoltorio salio del censo: el cebo dejo de ser cebo
+    # -llamaba a una funcion que este pack ya no vigilaba- y el control negativo grito,
+    # que es justo para lo que esta. Con el nombre derivado, un renombrado o una mudanza
+    # futura mueve el cebo sola. Se elige el menor por orden para que la corrida sea
+    # reproducible y el mensaje no baile entre ejecuciones.
+    if not vig:
+        raise fw.Abortado(
+            "el censo de funciones vigiladas quedo VACIO: sin el, el control negativo "
+            "no tiene con que construir el cebo y todos los OK de arriba serian "
+            "decoracion")
+    cebo = sorted(vig)[0]
+    malo = ('{ %s(1, 2, 3, 4); '
+            'enviarTramaConCrc("$ACK,CMD:SET_RTC,RESULT:OK"); }' % cebo)
     bueno = ('{ if (demanda_solicitar()) { '
              'enviarTramaConCrc("$ACK,CMD:X,RESULT:OK"); } else { '
              'enviarTramaConCrc("$ERR,CMD:X,DESC:NO_PUDO"); } }')
     b.control_negativo(
         _veredicto(malo, vig)[1] is not None,
-        "una rama que llama a reloj_ajustar() y contesta $ACK sin mirar nada se "
-        "detecta como OK mudo")
+        "una rama que llama a %s() y contesta $ACK sin mirar nada se "
+        "detecta como OK mudo" % cebo)
     b.control_negativo(
         _veredicto(bueno, vig) == (True, None),
         "una rama que pregunta `if (demanda_solicitar())` y tiene su $ERR en el else "
