@@ -235,7 +235,7 @@ lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida
 
 | | |
 |---|---|
-| Flash | Maestro **88.4 %** (**57908** de 65536 B → **7.628 B libres**) · Esclavo **68.5 %** (44904 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Flash | Maestro **88.6 %** (**58048** de 65536 B → **7.488 B libres**) · Esclavo **68.9 %** (45152 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
 | Banco por packs | 🔴 **1243/1246 comprobaciones** en **78 packs** — 77 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
 | Arneses que compilan C++ real | 271/271 pantalla · **99/99** automático · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
@@ -400,5 +400,5 @@ Aquí no se copia: se enlaza.**
 | **C4** | **`FW-N53`**: decidir secuencias | es **decisión de spec**, no código |
 | **D3** | **Campo**: Courier RTC en sitio y puesta en servicio | **sólo con banco pasado, sin excepción** |
 
-> **Sobre lo que queda manda el flash:** el Maestro va al **88.4 %** y quedan **7.628 B libres**.
+> **Sobre lo que queda manda el flash:** el Maestro va al **88.6 %** y quedan **7.488 B libres**.
 > No caben todas. Se mide antes de escribir cada una, no después — `CLAUDE.md` §7.

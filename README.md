@@ -89,7 +89,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
 | banco por packs *(78 packs)* | 🔴 **FALLA** | **1243/1246 comprobaciones en 78 packs** — 77 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22` y `D-23` son decisiones VIGENTES sin construir**. **Sólo `D-20` y la pieza B de `D-21` lo están.** Ninguna de las tres se destraba con teclado: una espera un multímetro, otra una tarjeta delante y la tercera que se elija la vía |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **88.4 %** · 68.5 % · 20.6 % · 35.7 % — *el Maestro ocupa **57908 de 65536 B**, o sea **7.628 B libres**; el Esclavo, **44904 B*** |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **88.6 %** · 68.9 % · 20.6 % · 35.7 % — *el Maestro ocupa **58048 de 65536 B**, o sea **7.488 B libres**; el Esclavo, **45152 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.7 % — 1122973 de 3.145.728 B |
