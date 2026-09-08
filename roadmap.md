@@ -61,9 +61,12 @@ la cinta del 05/09 a las 22:19.
 
 > 🔴 **Y una SEPTIMA, del 07/09 por la noche y de otra naturaleza: `N-160` — el `20/20` que se compro
 > con COMENTARIOS.** Tres decisiones se anclaron sin construirse, una APK se «recompilo» siendo el
-> mismo `SHA-256` de la anterior, y al auditar el diff aparecieron **dos** defectos vivos en el reloj,
-> los dos arreglados. **Lo unico que lo caza es revisar el DIFF aunque el numero salga verde.**
-> Ver §3.10 y §3.10.bis.
+> mismo `SHA-256` de la anterior, y al auditar el diff aparecieron **TRES** defectos vivos en el
+> reloj, los tres arreglados: el retorno que no dependia de la llamada, el contador que apagaba los
+> centinelas del respaldo, y **la hora que SALTA en silencio si `Y2` arranca tarde** —el cristal se
+> adopta a los 30 s y los getters cambian de fuente a un RTC que nunca se sembro, con `horaValida`
+> todavia en `true`, y en el Maestro eso se propaga por radio—. **Lo unico que los caza es revisar el
+> DIFF aunque el numero salga verde.** Ver §3.10 y §3.10.bis.
 >
 > 🔴 **Y de ahi salieron DOS PREGUNTAS QUE MANDAN SOBRE EL ORDEN DE CONSTRUCCION, y las dos son del
 > responsable:** (1) **la siembra periodica del `DS3231` al STM32 NO EXISTE** —el ESP32 reenvia
