@@ -239,6 +239,14 @@ Validacion_* + compuerta.py`.
 > documentos cuando lo pedido era un entregable**: un parte con cifras verdes puede ser cierto en cada
 > linea y falso en conjunto.
 
+> 🔴 **Y EL DIFF SE MIRA SOBRE TODO CUANDO EL NUMERO SALE VERDE, que es cuando no apetece.** §1 ya
+> prohibe decorar un rojo y aun asi paso, porque **el que decora es el que informa**: quien apago la
+> casilla escribe luego el parte que dice que la construyo, y nadie audita un `20/20`. **El verde no
+> es el permiso para no mirar: es la senal de que toca mirar.** Lo que cazo la ultima tanda fue un
+> `grep` por afirmacion —siete no sobrevivieron: una funcion que no existia, unos literales
+> inventados, unos pines que eran otra cosa— y **un `sha256sum` a un binario que se declaraba
+> recompilado y era el anterior renombrado**. Ninguna de las dos cosas la ve la compuerta.
+
 ## 9. Al arreglar un defecto, busca las pruebas que lo CELEBRABAN
 
 **Un banco maduro contiene pruebas que EXIGEN el comportamiento defectuoso** (`N-49`): se escribieron
@@ -348,3 +356,8 @@ puede quedar correcto y la compuerta verde, pero un `revert` de ese commit no de
 - Si un pack ejerce una regla `SFTY-x` se marca `# EJERCE SFTY-x: <que>` en su cabecera, y la tabla de
   trazabilidad se levanta buscando esa etiqueta. **Solo se etiqueta lo que el pack comprueba de verdad:**
   una regla cubierta por una prueba que no la ejerce es peor que una fila vacia — la vacia no miente.
+- 🔴 **Un binario que sale de aqui se nombra `<producto>_<fecha>_<hash>_SIN_BANCO`, y el sufijo NO se
+  quita al renombrar: lo quita quien lo haya probado en un equipo.** Es la unica marca que viaja
+  PEGADA al fichero —los `.apk` estan en `.gitignore`, asi que git no vigila esto y hay que mirarlo en
+  el disco—, y **su ausencia se lee como permiso**. Un binario nuevo se acredita con su `sha256sum`
+  contra el anterior, **nunca con su tamano**: dos compilaciones de la misma app pesan igual.

@@ -32,6 +32,21 @@ firmware funcione sobre la tarjeta**.
 > nada.** Esto vive aquí y no en `CLAUDE.md` porque **es estado de una máquina, no una regla**:
 > quien clone el repositorio en otro equipo no tiene este problema, tiene el suyo.
 
+> 🔴 **SEGUNDA DEPENDENCIA DE ESTA MÁQUINA, anotada el 07/09 porque compilar la APK obligó a
+> encontrarla y no estaba escrita en ningún sitio: NO HAY `java` EN EL `PATH`.** `gradlew` no
+> arranca sin un JDK, y el que hay vive **fuera del proyecto y con un nombre que nadie adivina**:
+>
+> ```
+> JAVA_HOME = D:\@Proyect\Baliza\7 sw apk\java-21-openjdk-21.0.4.0.7-1.win.jdk.x86_64
+> sdk.dir   = C:/android-sdk        (lo dice android/local.properties, y existe)
+> ```
+>
+> **Es el mismo modo de fallo que `N-44` una capa arriba:** la herramienta existe, no está donde se
+> la busca, y `command not found` se lee como *«no se puede compilar»* cuando lo que falta es la
+> ruta. **Un `--version` que no responde no prueba que la herramienta no esté** (`CLAUDE.md` §7):
+> aquí hicieron falta dos búsquedas en disco para dar con ella. Si `compilar_apk.bat` falla en otra
+> máquina, esto es lo primero que hay que mirar.
+
 ---
 
 ## ✅ Lo que está CONFIRMADO EN COBRE
@@ -160,6 +175,24 @@ se acumula un `20/20` que no acerca una tarjeta (`CLAUDE.md` §2.bis).
 > `_SIN_BANCO`**, que es justo la etiqueta que impide que alguien la suba creyéndola validada. El
 > parte publicaba su **tamaño**, y los dos pesaban lo mismo: por eso el tamaño no delataba nada.
 > **Los `.apk` están en `.gitignore`, así que git no avisa de esto: hay que mirarlo en el disco.**
+>
+> 🟢 **CERRADO DE VERDAD el 07/09 a las 20:22, y la prueba es el HASH, no el parte.** Se corrió
+> `npx cap sync android` y `gradlew clean assembleDebug` —`BUILD SUCCESSFUL in 42s`— y salió
+> **`05_Funcional/IOT_VIAL_Semaforos_2026-09-07_ca86869_SIN_BANCO.apk`**, 3.988.161 B:
+>
+> | | `SHA-256` |
+> |---|---|
+> | **la nueva** (`ca86869`, 07/09) | `82f558884aeb2ae597acc918fb24ead5b3373e34748b10f998b5c0b264be2294` |
+> | la del 05/09 (`7586c46`) | `892a0e2a37048a8f10ada77572b6c75305f9f3d3197e685429d81e2158527fa9` |
+>
+> **Distintos: es una compilación, no una copia.** Y lleva su `_SIN_BANCO`, que se queda hasta que
+> alguien la instale en un teléfono con un equipo delante.
+>
+> ⚠️ **PERO ES LA MISMA APP, y se dice para que nadie lea el hash nuevo como funcionalidad nueva:**
+> `git diff 7586c46..HEAD` sobre `www/`, `app.js`, `index.html`, `js/` y `style.css` sale **vacío**.
+> Esta rama no tocó una línea de la app —`D-23` sigue sin construir—, así que lo único que cambia
+> respecto a la del 05/09 son las marcas de tiempo del `.apk`. **Lo que se cierra es el proceso, no
+> el producto.**
 
 > ~~**`validateTiempos()` de los unitarios de la app sigue en 1..15 min**~~ — 🟢 **CERRADO de verdad
 > el 07/09 en `31170e8`, y verificado por el DIFF:** `validateTiempos()` pasó de `v < 1`/`r < 1` a

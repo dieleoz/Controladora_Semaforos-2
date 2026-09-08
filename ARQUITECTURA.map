@@ -12,6 +12,23 @@
                          20 PASS | 0 FALLA | 0 ABORTADO - 76 packs - 1180/1180
     Tamano anterior    : 79.365 B / 734 lineas (05/09, formato mermaid `graph TD`)
 
+    ---- REMEDIDO EL 07/09 POR LA NOCHE, rama feat/d20-d23-construccion ----------
+
+    HEAD               : ca86869
+    Acta vigente       : evidencia/2026-09-07_compuerta.txt
+                         19 PASS | 1 FALLA | 0 ABORTADO - 78 packs - 1243/1246
+                         Dos pasadas completas seguidas dando lo mismo.
+
+    EL ROJO ES CORRECTO Y NO ES UNA REGRESION: es decisiones_01_anclas contando
+    que D-14, D-22 y D-23 son decisiones VIGENTES SIN CONSTRUIR. Ninguna se apaga
+    escribiendo codigo -multimetro, tarjeta delante, y elegir la via-, asi que el
+    rojo se queda hasta que se construyan. Ver roadmap.md 3.10 y 3.10.bis.
+
+    QUE CAMBIO EN ESTE FICHERO desde la pasada de la manana: entra la fila del
+    pack reloj_02_siembra_que_miente (3.3) y se corrigen las cuentas de packs, que
+    estaban en 76. Lo demas no se toco: no se remidio el arbol entero, y por eso
+    las cifras de arriba conviven en vez de sustituirse.
+
     POR QUE CAMBIA EL FORMATO. El fichero anterior era un diagrama mermaid cuyos
     nodos llevaban parrafos de hasta 3.000 caracteres dentro de una etiqueta. Como
     diagrama no se podia leer y como texto no se podia buscar, y las tres cosas que
@@ -138,7 +155,7 @@ Controladora_Semaforos 2/
 +-- Esclavo/                  firmware STM32F103C8T6 - obedece
 +-- Repetidor/                firmware ESP32, 3 ficheros. FUERA de la config vigente
 +-- ESP32_Expansion/          firmware ESP32 - puente BT + reloj DS3231
-+-- Simulaciones/             banco/ (76 packs) + 4 simuladores + puente_esp32/
++-- Simulaciones/             banco/ (78 packs) + 4 simuladores + puente_esp32/
 +-- Validacion_LCD/           arnes que compila lcd.cpp/menu.cpp/modos.cpp reales
 +-- Validacion_Ciclo/         arnes de ciclo_degradado.h
 +-- Validacion_Respaldo/      arnes de respaldo.cpp
@@ -624,6 +641,7 @@ rutas las pone `banco/modelos/`.
 | `maestro_11_manual_no_cicla` | `M:coordinador.cpp`, `M:modo_automatico.cpp`, `M:modo_manual.cpp` | - | propia |
 | `maestro_12_dar_paso_sin_coordinador` | `M:bluetooth.cpp`, `M:main.cpp` | - | propia |
 | `reloj_01_consulta_por_bluetooth` | `E:reloj.h`, `E:bluetooth.cpp`, `M:reloj.h`, `M:bluetooth.cpp` | - | propia |
+| `reloj_02_siembra_que_miente` | `E:reloj.cpp`, `E:reloj.h`, `E:bluetooth.cpp`, `M:reloj.cpp`, `M:reloj.h`, `M:bluetooth.cpp` | - | propia |
 
 ### 3.4 Los tres MODELOS - 17 packs no direccionan nada por su cuenta
 
@@ -685,7 +703,7 @@ que ninguna fila avise:
 | `Validacion_Automatico/compilar_degradado.ps1` | `costura_12_margen_deriva` | 1 pack ABORTADO |
 | `evidencia/*_compuerta.txt` | `fuente.actas()`, `documentos_01`, `documentos_04` | 2 packs ABORTADO |
 
-> **Y un pack en ABORTADO tumba la fila entera `banco por packs`**: 76 packs sin
+> **Y un pack en ABORTADO tumba la fila entera `banco por packs`**: 78 packs sin
 > medir por un fichero mudado. La guarda seguiria publicando *"64 rutas, todas
 > existen"*.
 
@@ -762,7 +780,7 @@ permite medir *"verde en las dos A LA VEZ"* sobre las puntas reales.
 | 11 | `test unitarios TDD de la app` | `App_Semaforo/tests/test_unitarios.js` (node) | 61/61 |
 | 12 | `app ejecutada en DOM` | `App_Semaforo/test_dom_execution.js` sobre jsdom | 235/235 |
 | | **-- Validadores de firmware --** | | |
-| 13 | `banco por packs` | `Simulaciones/banco/correr.py` - **76 packs** | **1180/1180** |
+| 13 | `banco por packs` | `Simulaciones/banco/correr.py` - **78 packs** | **1243/1246** |
 | | **-- Firmware compilado y ejecutado en el PC --** (lo unico cuyo PASS habla del codigo) | | |
 | 14 | `arnes de pantalla` | `Validacion_LCD` | M 145 + E 126 = 271/271 |
 | 15 | `arnes del ciclo` | `Validacion_Ciclo` | 22/22 |

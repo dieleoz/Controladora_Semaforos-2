@@ -108,11 +108,17 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 
 **19 PASS · 1 FALLA · 0 ABORTADO, de 20 comprobaciones — la compuerta sale con código `1`.**
 
-> 🔴 **El `1` es el hallazgo, no una regresión.** Lo acusa `decisiones_01_anclas`: `D-14` —*el
-> controlador cierra un contacto y la cámara graba*, que fue **el argumento de una compra**— y
-> `D-17` —`CMD:LEER_RTC`, **construida** en `ESP32_Expansion/src/despachador.cpp` y **sin marcar**—
-> están vigentes en `DECISIONES.md` sin correspondencia en el fuente. La primera se apaga
-> **implementándola**; la segunda, **anclando** el código que ya existe.
+> 🔴 **El `1` es el hallazgo, no una regresión.** Lo acusa `decisiones_01_anclas`: **`D-14`, `D-22` y
+> `D-23` están vigentes en `DECISIONES.md` sin una línea que las construya.** `D-14` —*el controlador
+> cierra un contacto y la cámara graba*— fue **el argumento de una compra**; `D-22` es poner `Y1`, y
+> `D-23` es la pantalla propia del poste 2, **que es de la app y la app no se ha tocado**.
+>
+> 🛑 **Y ninguna de las tres se apaga escribiendo código:** una espera **una medida de multímetro**,
+> otra **una tarjeta delante** —si `Y1` no oscila el `_Error_Handler` es `noreturn` y la tarjeta queda
+> a oscuras— y la tercera **que se elija la vía** entre las tres que `§5.8.6` del Manual 14 ya tiene
+> medidas. **El 07/09 se intentó cerrarlas poniéndoles el ancla en un comentario y la compuerta se
+> puso en `20/20` sin que se construyera nada** *(`roadmap.md` §3.10)*. Las tres anclas están
+> revertidas y el rojo volvió, que es donde tiene que estar.
 
 > 🟢 **Y cuando vuelva a `0`, ese verde será más peligroso que el rojo, no menos.** Mientras la
 > compuerta sale con `1` nadie la confunde con un permiso; un `0` sí se confunde. Lo que dice es
