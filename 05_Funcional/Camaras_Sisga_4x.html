@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cámaras Sisga — 4 Cámaras (Maestro y Esclavo)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+    :root{
+      --bg:#f6f5f1;
+      --surface:#ffffff;
+      --surface-2:#efeee8;
+      --ink:#1c222b;
+      --ink-muted:#5c6572;
+      --ink-faint:#8b93a0;
+      --accent:#2b5fa8;
+      --accent-ink:#1c3d6e;
+      --accent-soft:#e7eef7;
+      --danger:#b3261e;
+      --danger-soft:#fbe9e7;
+      --warning:#a2650a;
+      --warning-soft:#faf0dd;
+      --success:#1e7a4c;
+      --success-soft:#e6f3ec;
+      --line:#dedcd3;
+      --line-strong:#c7c4b7;
+      --shadow: 0 1px 2px rgba(28,34,43,.06), 0 8px 24px -12px rgba(28,34,43,.18);
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark){
+      :root:not([data-theme="light"]){
+        --bg:#14181f;
+        --surface:#1b212b;
+        --surface-2:#212834;
+        --ink:#e7e9ed;
+        --ink-muted:#9aa3b1;
+        --ink-faint:#6d7583;
+        --accent:#71a3df;
+        --accent-ink:#bcd6f3;
+        --accent-soft:#20324a;
+        --danger:#e58a83;
+        --danger-soft:#3a2224;
+        --warning:#e3b158;
+        --warning-soft:#392c17;
+        --success:#7ecda3;
+        --success-soft:#173327;
+        --line:#2b323e;
+        --line-strong:#3a4250;
+        --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+        color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"]{
+      --bg:#14181f;
+      --surface:#1b212b;
+      --surface-2:#212834;
+      --ink:#e7e9ed;
+      --ink-muted:#9aa3b1;
+      --ink-faint:#6d7583;
+      --accent:#71a3df;
+      --accent-ink:#bcd6f3;
+      --accent-soft:#20324a;
+      --danger:#e58a83;
+      --danger-soft:#3a2224;
+      --warning:#e3b158;
+      --warning-soft:#392c17;
+      --success:#7ecda3;
+      --success-soft:#173327;
+      --line:#2b323e;
+      --line-strong:#3a4250;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+      color-scheme: dark;
+    }
+
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font-family:'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      padding-inline:20px;
+      padding-block:32px 64px;
+    }
+    .mono{ font-family:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .wrap{
+      max-width:1180px;
+      margin-inline:auto;
+    }
+
+    header.page{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-bottom:28px;
+    }
+    .eyebrow{
+      font-family:'IBM Plex Mono', monospace;
+      font-size:.72rem;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:var(--accent-ink);
+      font-weight:600;
+    }
+    h1{
+      font-size:clamp(1.6rem, 1.1rem + 2vw, 2.35rem);
+      line-height:1.12;
+      margin:0;
+      font-weight:700;
+      letter-spacing:-.01em;
+      text-wrap:balance;
+    }
+    .subtitle{
+      color:var(--ink-muted);
+      font-size:1rem;
+      max-width:72ch;
+      line-height:1.5;
+    }
+
+    /* Toggles */
+    .toggle-row{
+      position:sticky;
+      top:12px;
+      z-index:10;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px 14px;
+      box-shadow:var(--shadow);
+      margin-bottom:24px;
+    }
+    .toggle-group{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .toggle-label{
+      font-size:.78rem;
+      font-weight:600;
+      color:var(--ink-muted);
+      min-width:75px;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+    }
+    .toggle{
+      display:flex;
+      gap:4px;
+      background:var(--surface-2);
+      border-radius:10px;
+      padding:4px;
+      flex:1;
+      min-width:260px;
+    }
+    .toggle button{
+      flex:1;
+      border:none;
+      background:transparent;
+      color:var(--ink-muted);
+      font-family:inherit;
+      font-size:.88rem;
+      font-weight:600;
+      padding:8px 12px;
+      border-radius:8px;
+      cursor:pointer;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:2px;
+      transition:background .15s ease, color .15s ease;
+    }
+    .toggle button .sub-btn{
+      font-family:'IBM Plex Mono', monospace;
+      font-weight:500;
+      font-size:.74rem;
+      opacity:.85;
+    }
+    .toggle button[aria-pressed="true"]{
+      background:var(--accent);
+      color:#fff;
+    }
+    .toggle button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+    .progress-bar-wrap{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding-top:6px;
+      border-top:1px solid var(--line);
+      font-size:.78rem;
+      color:var(--ink-muted);
+    }
+    .progress-pill b{ color:var(--ink); font-size:.85rem; }
+
+    /* Info & Warning Boxes */
+    .critical{
+      background:var(--danger-soft);
+      border:1px solid color-mix(in srgb, var(--danger) 35%, var(--line));
+      border-radius:14px;
+      padding:18px 20px;
+      margin-bottom:20px;
+      display:flex;
+      gap:14px;
+    }
+    .critical .mark{
+      font-family:'IBM Plex Mono', monospace;
+      font-weight:700;
+      color:var(--danger);
+      font-size:.8rem;
+      letter-spacing:.06em;
+      flex-shrink:0;
+      padding-top:2px;
+    }
+    .critical ul{
+      margin:0;
+      padding-left:18px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      font-size:.92rem;
+      line-height:1.5;
+    }
+    .critical li::marker{ color:var(--danger); }
+    .critical b{ color:var(--ink); }
+
+    .callout-info{
+      background:var(--accent-soft);
+      border:1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+      border-left:5px solid var(--accent);
+      border-radius:12px;
+      padding:16px 18px;
+      margin-bottom:24px;
+      font-size:.92rem;
+      line-height:1.6;
+    }
+    .callout-info h4{
+      margin:0 0 6px;
+      color:var(--accent-ink);
+      font-size:1rem;
+      font-weight:700;
+    }
+
+    /* Illustration Container */
+    .illu-card{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:18px 20px;
+      box-shadow:var(--shadow);
+      margin-bottom:28px;
+    }
+    .illu-card h3{
+      margin:0 0 4px;
+      font-size:1.1rem;
+      font-weight:700;
+    }
+    .illu-card p{
+      margin:0 0 14px;
+      color:var(--ink-muted);
+      font-size:.9rem;
+    }
+    .svg-wrap{
+      width:100%;
+      background:var(--surface-2);
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:12px;
+      overflow-x:auto;
+    }
+    .svg-wrap svg{
+      width:100%;
+      min-width:650px;
+      height:auto;
+      display:block;
+    }
+
+    /* Layout */
+    .layout{
+      display:grid;
+      grid-template-columns: minmax(0,1fr) 320px;
+      gap:28px;
+      align-items:start;
+    }
+    @media (max-width:890px){
+      .layout{ grid-template-columns:1fr; }
+    }
+
+    /* Steps */
+    .steps{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      list-style:none;
+      padding:0;
+      margin:0;
+    }
+    .step{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:18px 20px 20px;
+      box-shadow:var(--shadow);
+      display:flex;
+      gap:16px;
+      transition:opacity .15s ease;
+    }
+    .step.done{ opacity:.55; }
+    .step .check{
+      flex-shrink:0;
+      width:26px;
+      height:26px;
+      border-radius:8px;
+      border:1.5px solid var(--line-strong);
+      background:var(--surface);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:transparent;
+      margin-top:2px;
+      transition:background .15s ease, border-color .15s ease, color .15s ease;
+    }
+    .step .check:hover{ border-color:var(--accent); }
+    .step.done .check{
+      background:var(--success);
+      border-color:var(--success);
+      color:#fff;
+    }
+    .step .check svg{ width:15px; height:15px; }
+
+    .step-body{ flex:1; min-width:0; }
+    .step-head{
+      display:flex;
+      align-items:baseline;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:6px;
+    }
+    .step-num{
+      font-family:'IBM Plex Mono', monospace;
+      font-weight:600;
+      color:var(--accent-ink);
+      font-size:.82rem;
+    }
+    .step-title{
+      font-size:1.05rem;
+      font-weight:600;
+      margin:0;
+    }
+    .step-tag{
+      font-family:'IBM Plex Mono', monospace;
+      font-size:.68rem;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      background:var(--accent-soft);
+      color:var(--accent-ink);
+      padding:2px 8px;
+      border-radius:999px;
+      font-weight:600;
+    }
+    .step p{
+      margin:0 0 10px;
+      color:var(--ink-muted);
+      font-size:.93rem;
+      line-height:1.6;
+      max-width:64ch;
+    }
+    .step p:last-child{ margin-bottom:0; }
+    .step .field{
+      display:inline-flex;
+      align-items:baseline;
+      gap:6px;
+      background:var(--surface-2);
+      border:1px solid var(--line);
+      border-radius:7px;
+      padding:1px 8px;
+      font-family:'IBM Plex Mono', monospace;
+      font-size:.85rem;
+      color:var(--ink);
+      margin:2px 2px 2px 0;
+    }
+    .step .field b{ color:var(--accent-ink); font-weight:600; }
+
+    .substeps{
+      list-style:none;
+      margin:10px 0 0;
+      padding:0;
+      display:flex;
+      flex-direction:column;
+      gap:7px;
+    }
+    .substeps li{
+      font-size:.88rem;
+      color:var(--ink);
+      line-height:1.5;
+      padding-left:16px;
+      position:relative;
+    }
+    .substeps li::before{
+      content:"";
+      position:absolute;
+      left:0;
+      top:.62em;
+      width:5px;
+      height:5px;
+      border-radius:50%;
+      background:var(--ink-faint);
+    }
+    .substeps b{ font-weight:600; }
+
+    .warn-inline{
+      display:flex;
+      gap:8px;
+      align-items:flex-start;
+      background:var(--warning-soft);
+      border:1px solid color-mix(in srgb, var(--warning) 30%, var(--line));
+      border-radius:9px;
+      padding:9px 11px;
+      font-size:.85rem;
+      line-height:1.5;
+      margin-top:10px;
+      color:var(--ink);
+    }
+    .warn-inline .ico{ color:var(--warning); font-weight:700; flex-shrink:0; }
+
+    /* Sidebar */
+    .sidebar{
+      position:sticky;
+      top:170px;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+    @media (max-width:890px){
+      .sidebar{ position:static; }
+    }
+    .ref-card{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:16px 18px;
+      box-shadow:var(--shadow);
+    }
+    .ref-card h2{
+      font-size:.72rem;
+      text-transform:uppercase;
+      letter-spacing:.1em;
+      color:var(--ink-muted);
+      margin:0 0 12px;
+      font-weight:600;
+    }
+    .ref-row{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding-block:7px;
+      border-top:1px solid var(--line);
+      font-size:.85rem;
+    }
+    .ref-row:first-of-type{ border-top:none; padding-top:0; }
+    .ref-row dt{ color:var(--ink-muted); }
+    .ref-row dd{ margin:0; font-family:'IBM Plex Mono', monospace; font-weight:500; text-align:right; }
+    
+    .ref-card.highlight{ border-left:4px solid var(--accent); }
+    .ref-card.danger{ border-color:color-mix(in srgb, var(--danger) 30%, var(--line)); background:var(--danger-soft); }
+    .ref-card.danger h2{ color:var(--danger); }
+    .ref-card.danger p{ font-size:.85rem; line-height:1.55; margin:0 0 8px; color:var(--ink); }
+    .ref-card.danger p:last-child{ margin-bottom:0; }
+
+    footer.page{
+      margin-top:40px;
+      padding-top:18px;
+      border-top:1px solid var(--line);
+      color:var(--ink-faint);
+      font-size:.78rem;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    @media print{
+      body{ background:#fff; color:#000; padding:0; }
+      .toggle-row, .btn-print{ display:none; }
+      .step, .illu-card, .ref-card{ box-shadow:none; border-color:#ccc; break-inside:avoid; }
+      .step.done{ opacity:1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="page">
+    <div class="eyebrow">Proyecto Semáforos Sisga · IT Vial SAS</div>
+    <h1>Instalación y Configuración de 4 Cámaras</h1>
+    <p class="subtitle">Guía visual de orientación del lente, inclinación, conexionado a bornera J16 y parametrización web Hikvision para las <b>4 cámaras</b> del cruce: <b>2 en Poste Maestro y 2 en Poste Esclavo</b>.</p>
+  </header>
+
+  <!-- REGLA DE ORO / ORIENTACIÓN -->
+  <div class="callout-info">
+    <h4>🧭 ¿Hacia dónde mira el lente? ¿Ingresan o salen?</h4>
+    <p><b>Respuesta directa: LAS CÁMARAS MIRAN DE FRENTE A LOS QUE LLEGAN (INGRESAN AL SEMÁFORO).</b><br>
+    🚫 <b>Jamás apunte ninguna cámara hacia los autos que salen del tramo</b>: si se enfoca hacia los que se van, cada auto que sale cerrará el contacto y pedirá verde de nuevo para su propio sentido, bloqueando el turno del semáforo contrario para siempre.</p>
+  </div>
+
+  <!-- SELECTOR INTERACTIVO DE CÁMARA (4 CÁMARAS) -->
+  <div class="toggle-row">
+    <div class="toggle-group">
+      <span class="toggle-label">1. POSTE:</span>
+      <div class="toggle" role="tablist" aria-label="Seleccionar poste">
+        <button type="button" id="btn-poste-maestro" role="tab" aria-pressed="true">
+          Poste 1: MAESTRO
+          <span class="sub-btn">Gabinete Principal</span>
+        </button>
+        <button type="button" id="btn-poste-esclavo" role="tab" aria-pressed="false">
+          Poste 2: ESCLAVO
+          <span class="sub-btn">Gabinete Secundario</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="toggle-group">
+      <span class="toggle-label">2. CÁMARA:</span>
+      <div class="toggle" role="tablist" aria-label="Seleccionar cámara de este poste">
+        <button type="button" id="btn-cam-1" role="tab" aria-pressed="true">
+          CÁMARA 1: Demanda Lejana
+          <span class="sub-btn mono" id="txt-sub-cam1">J16 Pin 10 · 15 a 30m</span>
+        </button>
+        <button type="button" id="btn-cam-2" role="tab" aria-pressed="false">
+          CÁMARA 2: Presencia Pluma
+          <span class="sub-btn mono" id="txt-sub-cam2">J16 Pin 12 · 0 a 8m</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <span>Cámara actual seleccionada: <b id="lbl-active-camera" style="color:var(--accent-ink)">Maestro · Cámara 1</b></span>
+      <span class="progress-pill">Progreso en esta cámara: <b id="progress-count">0</b>/10 pasos listos</span>
+    </div>
+  </div>
+
+  <!-- ADVERTENCIAS NO NEGOCIABLES -->
+  <div class="critical">
+    <span class="mark">NO NEGOCIABLE</span>
+    <ul>
+      <li><b>J16 Pin 1 lleva 12V crudos directos de batería:</b> Debe estar <b>TAPADO / AISLADO</b> con silicona o cinta antes de meter la mano. Tocarlo con los pines 10 o 12 quemaría el microcontrolador.</li>
+      <li><b>J16 p5 y p8 (antiguo mando) no se tocan nunca:</b> no hay nada que cablear ahí; puentearlos compone secuencias de mando en un equipo vivo.</li>
+      <li><b>Ambas cámaras conmutan hacia +3.3V (p9 o p11), NUNCA contra GND (Masa):</b> Los pines 10 y 12 llevan pull-down físico de 10 kΩ a masa en la placa; el relé de la cámara debe inyectar 3.3V para activar el pin en ALTO.</li>
+      <li>En el <span class="mono">Retardo (Delay)</span> de la salida de alarma Hikvision, <b>jamás elegir "Manual"</b> — fijar siempre en <b>5 segundos</b>.</li>
+    </ul>
+  </div>
+
+  <!-- DIAGRAMA VISUAL DE ÁNGULOS Y ENFOQUE -->
+  <div class="illu-card">
+    <h3>📐 Esquema Físico: Inclinación del Lente y Cobertura (Ambos Postes)</h3>
+    <p>Las 2 cámaras se montan en el mismo mástil a 4 metros de altura, apuntando de frente a los vehículos que se acercan al semáforo:</p>
+    
+    <div class="svg-wrap">
+      <svg viewBox="0 0 920 300" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="gradCam1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2b5fa8" stop-opacity="0.45"/>
+            <stop offset="100%" stop-color="#2b5fa8" stop-opacity="0.06"/>
+          </linearGradient>
+          <linearGradient id="gradCam2" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1e7a4c" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="#1e7a4c" stop-opacity="0.08"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Asfalto -->
+        <rect x="0" y="240" width="920" height="60" fill="#2b323e"/>
+        <line x1="0" y1="240" x2="920" y2="240" stroke="#475569" stroke-width="3"/>
+        <line x1="200" y1="238" x2="200" y2="244" stroke="#ffffff" stroke-width="6"/>
+        <text x="180" y="225" fill="#f8fafc" font-size="11" font-weight="bold" font-family="'IBM Plex Mono'">LÍNEA DE DETENCIÓN</text>
+
+        <!-- Poste del Semáforo -->
+        <rect x="80" y="50" width="16" height="190" fill="#64748b"/>
+        <!-- Semáforo -->
+        <rect x="96" y="70" width="26" height="50" rx="4" fill="#1b212b" stroke="#334155" stroke-width="1.5"/>
+        <circle cx="109" cy="80" r="5" fill="#e58a83"/>
+        <circle cx="109" cy="95" r="5" fill="#e3b158"/>
+        <circle cx="109" cy="110" r="5" fill="#7ecda3"/>
+        <!-- Talanquera -->
+        <rect x="68" y="195" width="22" height="45" fill="#cbd5e1"/>
+        <line x1="90" y1="208" x2="200" y2="208" stroke="#b3261e" stroke-width="4" stroke-dasharray="10,8"/>
+
+        <!-- CÁMARA 1 (Arriba, ángulo suave 15°-20°, mira lejos) -->
+        <rect x="70" y="38" width="28" height="13" rx="2" fill="#2b5fa8"/>
+        <polygon points="98,44 890,240 480,240" fill="url(#gradCam1)"/>
+        <line x1="98" y1="44" x2="890" y2="240" stroke="#2b5fa8" stroke-width="1.5" stroke-dasharray="4,4"/>
+        <line x1="98" y1="44" x2="480" y2="240" stroke="#2b5fa8" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+        <!-- CÁMARA 2 (Más abajo, ángulo picado 35°-45°, mira suelo) -->
+        <rect x="70" y="120" width="28" height="13" rx="2" fill="#1e7a4c"/>
+        <polygon points="98,126 360,240 120,240" fill="url(#gradCam2)"/>
+        <line x1="98" y1="126" x2="360" y2="240" stroke="#1e7a4c" stroke-width="1.5" stroke-dasharray="4,4"/>
+        <line x1="98" y1="126" x2="120" y2="240" stroke="#1e7a4c" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+        <!-- Autos -->
+        <!-- Auto en parada -->
+        <rect x="140" y="212" width="75" height="28" rx="5" fill="#3b82f6"/>
+        <circle cx="155" cy="240" r="5" fill="#000"/>
+        <circle cx="200" cy="240" r="5" fill="#000"/>
+        <text x="148" y="228" fill="#fff" font-size="9" font-weight="bold" font-family="'IBM Plex Sans'">EN BARRERA</text>
+
+        <!-- Auto aproximándose a 25m -->
+        <rect x="620" y="212" width="80" height="28" rx="5" fill="#7c3aed"/>
+        <circle cx="635" cy="240" r="5" fill="#000"/>
+        <circle cx="685" cy="240" r="5" fill="#000"/>
+        <text x="628" y="228" fill="#fff" font-size="9" font-weight="bold" font-family="'IBM Plex Sans'">LLEGANDO</text>
+
+        <!-- Flecha de Tráfico -->
+        <line x1="840" y1="265" x2="720" y2="265" stroke="#e3b158" stroke-width="3"/>
+        <polygon points="720,265 732,260 732,270" fill="#e3b158"/>
+        <text x="560" y="278" fill="#e3b158" font-size="12" font-weight="bold" font-family="'IBM Plex Mono'">◄── TRÁFICO QUE SE ACERCA AL SEMÁFORO (ENTRANDO AL CRUCE)</text>
+
+        <!-- Rótulos -->
+        <text x="130" y="18" fill="#1e7a4c" font-size="12" font-weight="bold" font-family="'IBM Plex Mono'">CÁMARA 2 (CAM_D / p12): Inclinada 35°-45°</text>
+        <text x="130" y="32" fill="#5c6572" font-size="11">Cubre de 0 a 8m: Sostiene verde y protege pluma</text>
+
+        <text x="480" y="18" fill="#2b5fa8" font-size="12" font-weight="bold" font-family="'IBM Plex Mono'">CÁMARA 1 (CAM_C / p10): Inclinada 15°-20°</text>
+        <text x="480" y="32" fill="#5c6572" font-size="11">Cubre de 15 a 30m: Solicita verde con anticipación</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <!-- 10 PASOS INTERACTIVOS (SE ADAPTAN SEGÚN CÁMARA SELECCIONADA) -->
+    <ol class="steps" id="step-list">
+
+      <li class="step" data-step="0">
+        <button class="check" aria-label="Marcar paso 1 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">01</span>
+            <h3 class="step-title">Conexión física y encendido</h3>
+          </div>
+          <p>Alimenta la <b id="stp-txt-cam-name">Cámara 1 del Maestro</b> mediante PoE <span class="field">802.3at</span> (Clase 4) o cable de <span class="field">12V DC</span> independiente en el gabinete. Conéctala por Ethernet al segmento de red de tu portátil.</p>
+        </div>
+      </li>
+
+      <li class="step" data-step="1">
+        <button class="check" aria-label="Marcar paso 2 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">02</span>
+            <h3 class="step-title">Descubrimiento y activación</h3>
+            <span class="step-tag">HiTools Delivery</span>
+          </div>
+          <p>Abre SADP o HiTools Delivery. Escanea la red hasta ver <span class="field">DS-2CD2683G2-IZS</span> en estado <span class="field">Inactivo / No activado</span>. Actívala fijando la contraseña de proyecto:</p>
+          <ul class="substeps">
+            <li>Contraseña oficial de campo: <span class="field mono">ITVial2026</span></li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="step" data-step="2">
+        <button class="check" aria-label="Marcar paso 3 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">03</span>
+            <h3 class="step-title">Asignar IP fija de esta cámara</h3>
+          </div>
+          <p>En "Edit Network Parameters", asigna la IP correspondiente a esta unidad:</p>
+          <ul class="substeps">
+            <li>Dirección IPv4: <span class="field mono" id="stp-txt-ip"><b>192.168.1.61</b></span></li>
+            <li>Máscara: <span class="field mono">255.255.255.0</span> · Puerta de enlace: <span class="field mono">192.168.1.1</span></li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="step" data-step="3">
+        <button class="check" aria-label="Marcar paso 4 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">04</span>
+            <h3 class="step-title">Entrar por navegador web</h3>
+          </div>
+          <p>En Chrome/Edge, abre: <span class="field mono" id="stp-txt-url">http://192.168.1.61</span>.<br>Usuario: <span class="field">admin</span> · Clave: <span class="field mono">ITVial2026</span>.</p>
+        </div>
+      </li>
+
+      <li class="step" data-step="4">
+        <button class="check" aria-label="Marcar paso 5 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">05</span>
+            <h3 class="step-title">Verificar capacidad de salida de relé</h3>
+          </div>
+          <p>Menú lateral → <span class="field">Evento Smart</span> → pestaña <span class="field">Detección de intrusión</span>. Verifica que en <span class="field">Método de vinculación</span> exista la opción <span class="field mono">Salida de alarma A→1</span>.</p>
+        </div>
+      </li>
+
+      <li class="step" data-step="5">
+        <button class="check" aria-label="Marcar paso 6 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">06</span>
+            <h3 class="step-title">Orientación e Inclinación del Lente</h3>
+          </div>
+          <p id="stp-txt-orientacion">
+            <b>Para Cámara 1 (Aproximación):</b> Afloja el soporte del mástil. Apunta hacia la calzada de aproximación a <b>15 - 30 metros</b> de distancia. Inclina el lente suavemente hacia abajo (<b>15° a 20°</b> respecto a la horizontal). Ajusta el zoom en 2.8mm (108°).
+          </p>
+          <div class="warn-inline"><span class="ico">🧭</span> <b>Confirmación:</b> El vehículo debe aparecer viniendo de frente hacia la pantalla cuando se acerca al semáforo.</div>
+        </div>
+      </li>
+
+      <li class="step" data-step="6">
+        <button class="check" aria-label="Marcar paso 7 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">07</span>
+            <h3 class="step-title">Detección de Intrusión (Dibujar Región)</h3>
+          </div>
+          <p><span class="field">Evento Smart</span> → <span class="field">Detección de intrusión</span> → <span class="field">Ajustes de reglas</span>:</p>
+          <ul class="substeps">
+            <li><b>Habilitar:</b> Marcar ☑ <b>Enable</b></li>
+            <li><b>Dibujar área (Draw Area):</b> <span id="stp-txt-area">Dibuja el polígono sobre el carril de llegada entre los 15 y 30 metros antes de la línea blanca</span>.</li>
+            <li><b>Objetivo:</b> Marcar ☑ <b>Vehículo</b> · Desmarcar ☐ Persona</li>
+            <li><b>Umbral (Threshold):</b> <span class="field mono">1 seg</span></li>
+            <li><b>Sensibilidad:</b> <span class="field mono">50</span></li>
+            <li><b>Vinculación (Linkage):</b> Marcar ☑ <span class="field mono">Salida de alarma A→1</span></li>
+            <li>Guardar cambios.</li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="step" data-step="7">
+        <button class="check" aria-label="Marcar paso 8 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">08</span>
+            <h3 class="step-title">Configurar Salida de Alarma (5 segundos)</h3>
+          </div>
+          <p>Configuración ⚙ → <span class="field">Evento</span> → <span class="field">Salida de alarma</span> → editar fila <span class="field mono">A→1</span>:</p>
+          <ul class="substeps">
+            <li><b>Retardo (Delay):</b> Seleccionar <span class="field mono">5 seg</span> (¡Nunca Manual!).</li>
+            <li><b>Estado de reposo:</b> Normalmente Abierto (NO).</li>
+            <li>En otras reglas (Movimiento, Bloqueo, Excepción de red): asegurarse de que <span class="field mono">A→1</span> esté <b>DESMARCADO</b> para evitar falsas demandas.</li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="step" data-step="8">
+        <button class="check" aria-label="Marcar paso 9 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">09</span>
+            <h3 class="step-title">Verificación con Multímetro en el Relé</h3>
+          </div>
+          <p>Multímetro en continuidad (modo pito) sobre los bornes <span class="field mono">1A</span> y <span class="field mono">1B</span> de la cámara (sin conectar a la tarjeta aún):</p>
+          <ul class="substeps">
+            <li><b>En reposo (sin vehículos):</b> Circuito abierto (sin pito).</li>
+            <li><b>Al cruzar un vehículo por la zona:</b> El multímetro pita durante exactamente <b>5 segundos</b> y vuelve a abrirse solo.</li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="step" data-step="9">
+        <button class="check" aria-label="Marcar paso 10 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">10</span>
+            <h3 class="step-title">Cableado a la Bornera J16</h3>
+          </div>
+          <p id="stp-txt-cableado">
+            Lleva los dos hilos del relé (<span class="field mono">1A</span> / <span class="field mono">1B</span>) sin polaridad a la bornera <b>J16 de la tarjeta</b>:<br>
+            • Un hilo a <span class="field mono"><b>J16 Pin 9 (+3.3V)</b></span><br>
+            • El otro hilo a <span class="field mono"><b>J16 Pin 10 (CAM_C_PIN / PB14)</b></span>
+          </p>
+          <div class="warn-inline"><span class="ico">📱</span> <b>Comprobación final en la App:</b> Abre la app. Al detectar el primer carro en esta cámara, el rótulo pasará de <span class="mono">CAM: ?</span> a <span class="mono">CAM: OK</span>.</div>
+        </div>
+      </li>
+
+    </ol>
+
+    <!-- SIDEBAR DINÁMICA -->
+    <aside class="sidebar">
+      <div class="ref-card highlight">
+        <h2>Datos de la cámara activa</h2>
+        <dl>
+          <div class="ref-row"><dt>Cámara</dt><dd id="sb-cam-name">Maestro · Cam 1</dd></div>
+          <div class="ref-row"><dt>Función</dt><dd id="sb-cam-rol">Demanda (15-30m)</dd></div>
+          <div class="ref-row"><dt>IP Asignada</dt><dd id="sb-cam-ip">192.168.1.61</dd></div>
+          <div class="ref-row"><dt>Contraseña</dt><dd>ITVial2026</dd></div>
+          <div class="ref-row"><dt>Pin Señal</dt><dd id="sb-cam-pin">J16 Pin 10 (PB14)</dd></div>
+          <div class="ref-row"><dt>Pin 3.3V</dt><dd id="sb-cam-3v3">J16 Pin 9</dd></div>
+          <div class="ref-row"><dt>Inclinación</dt><dd id="sb-cam-tilt">15° a 20° (Suave)</dd></div>
+          <div class="ref-row"><dt>Salida Relé</dt><dd>ALARM OUT 1A/1B</dd></div>
+          <div class="ref-row"><dt>Retardo</dt><dd>5 segundos</dd></div>
+        </dl>
+      </div>
+
+      <div class="ref-card">
+        <h2>Resumen de las 4 IPs</h2>
+        <dl>
+          <div class="ref-row"><dt>M · Cam 1 (p10)</dt><dd>192.168.1.61</dd></div>
+          <div class="ref-row"><dt>M · Cam 2 (p12)</dt><dd>192.168.1.63</dd></div>
+          <div class="ref-row"><dt>E · Cam 1 (p10)</dt><dd>192.168.1.62</dd></div>
+          <div class="ref-row"><dt>E · Cam 2 (p12)</dt><dd>192.168.1.64</dd></div>
+        </dl>
+      </div>
+
+      <div class="ref-card danger">
+        <h2>Peligros en Bornera J16</h2>
+        <p><b>J16 Pin 1</b> — Lleva 12V crudos. Debe estar tapado con silicona o cinta antes de cablear.</p>
+        <p><b>J16 Pin 5 y 8</b> — Mando retirado. Jamás conectar nada ahí.</p>
+        <p><b>Nunca a GND</b> — Conectar los hilos a masa anula la entrada. Se conecta a +3.3V.</p>
+      </div>
+    </aside>
+
+  </div>
+
+  <footer class="page">
+    <span>Proyecto Semáforos Sisga — Controladora V9.0</span>
+    <span>IT Vial SAS · Paquete_Revision_V9.0_2026-09-10</span>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var STEP_COUNT = 10;
+  var STORAGE_KEY = 'sisga-4cam-progress-v2';
+
+  // Configuración de las 4 cámaras
+  var CAMERAS = {
+    'm1': {
+      poste: 'Maestro', num: '1', nombre: 'Maestro · Cámara 1 (Demanda Lejana)',
+      ip: '192.168.1.61', pin: 'J16 Pin 10 (CAM_C / PB14)', p3v3: 'J16 Pin 9 (+3.3V)',
+      rol: 'Demanda (15-30m)', tilt: '15° a 20° (Suave)',
+      orientacion: 'Apunta a lo lejos por el carril hacia los autos que vienen llegando a 15-30m del semáforo. Inclinación suave de 15° a 20° hacia abajo.',
+      area: 'Dibuja el polígono sobre el carril de llegada entre 15 y 30 metros antes de la línea blanca de detención.',
+      cableado: 'Lleva los dos hilos del relé (1A / 1B) de la cámara:<br>• Un hilo a <b>J16 Pin 9 (+3.3V)</b><br>• El otro hilo a <b>J16 Pin 10 (CAM_C / PB14)</b>'
+    },
+    'm2': {
+      poste: 'Maestro', num: '2', nombre: 'Maestro · Cámara 2 (Presencia Pluma)',
+      ip: '192.168.1.63', pin: 'J16 Pin 12 (CAM_D / PB15)', p3v3: 'J16 Pin 11 (+3.3V)',
+      rol: 'Presencia (0-8m)', tilt: '35° a 45° (Picado)',
+      orientacion: 'Apunta hacia abajo directamente sobre la línea blanca de detención y el área de barrido de la talanquera (0 a 8 metros). Inclinación de 35° a 45°.',
+      area: 'Dibuja el polígono cubriendo la línea de detención blanca y la zona por donde sube y baja el brazo de la talanquera.',
+      cableado: 'Lleva los dos hilos del relé (1A / 1B) de la cámara:<br>• Un hilo a <b>J16 Pin 11 (+3.3V)</b><br>• El otro hilo a <b>J16 Pin 12 (CAM_D / PB15)</b>'
+    },
+    'e1': {
+      poste: 'Esclavo', num: '1', nombre: 'Esclavo · Cámara 1 (Demanda Lejana)',
+      ip: '192.168.1.62', pin: 'J16 Pin 10 (CAM_C / PB14)', p3v3: 'J16 Pin 9 (+3.3V)',
+      rol: 'Demanda (15-30m)', tilt: '15° a 20° (Suave)',
+      orientacion: 'Apunta a lo lejos por el carril hacia los autos que vienen llegando a 15-30m del semáforo Esclavo. Inclinación suave de 15° a 20°.',
+      area: 'Dibuja el polígono sobre el carril de llegada entre 15 y 30 metros antes de la línea blanca de detención.',
+      cableado: 'Lleva los dos hilos del relé (1A / 1B) de la cámara:<br>• Un hilo a <b>J16 Pin 9 (+3.3V)</b><br>• El otro hilo a <b>J16 Pin 10 (CAM_C / PB14)</b> de la tarjeta Esclavo'
+    },
+    'e2': {
+      poste: 'Esclavo', num: '2', nombre: 'Esclavo · Cámara 2 (Presencia Pluma)',
+      ip: '192.168.1.64', pin: 'J16 Pin 12 (CAM_D / PB15)', p3v3: 'J16 Pin 11 (+3.3V)',
+      rol: 'Presencia (0-8m)', tilt: '35° a 45° (Picado)',
+      orientacion: 'Apunta hacia abajo directamente sobre la línea blanca de detención y el área de barrido de la talanquera del Esclavo (0 a 8 metros). Inclinación de 35° a 45°.',
+      area: 'Dibuja el polígono cubriendo la línea de detención blanca y la zona por donde sube y baja el brazo de la talanquera.',
+      cableado: 'Lleva los dos hilos del relé (1A / 1B) de la cámara:<br>• Un hilo a <b>J16 Pin 11 (+3.3V)</b><br>• El otro hilo a <b>J16 Pin 12 (CAM_D / PB15)</b> de la tarjeta Esclavo'
+    }
+  };
+
+  var state;
+  try{
+    state = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+  }catch(e){ state = null; }
+
+  if(!state || !state.poste || !state.cam){
+    state = {
+      poste: 'm', // 'm' o 'e'
+      cam: '1',   // '1' o '2'
+      progress: {
+        'm1': new Array(STEP_COUNT).fill(false),
+        'm2': new Array(STEP_COUNT).fill(false),
+        'e1': new Array(STEP_COUNT).fill(false),
+        'e2': new Array(STEP_COUNT).fill(false)
+      }
+    };
+  }
+
+  function save(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+  }
+
+  var btnPosteMaestro = document.getElementById('btn-poste-maestro');
+  var btnPosteEsclavo = document.getElementById('btn-poste-esclavo');
+  var btnCam1 = document.getElementById('btn-cam-1');
+  var btnCam2 = document.getElementById('btn-cam-2');
+  var lblActiveCamera = document.getElementById('lbl-active-camera');
+  var progressCount = document.getElementById('progress-count');
+  var stepEls = Array.prototype.slice.call(document.querySelectorAll('.step'));
+
+  function render(){
+    var key = state.poste + state.cam;
+    var info = CAMERAS[key];
+
+    // Botones de Poste
+    btnPosteMaestro.setAttribute('aria-pressed', state.poste === 'm');
+    btnPosteEsclavo.setAttribute('aria-pressed', state.poste === 'e');
+
+    // Botones de Cámara
+    btnCam1.setAttribute('aria-pressed', state.cam === '1');
+    btnCam2.setAttribute('aria-pressed', state.cam === '2');
+
+    // Textos dinámicos en los pasos
+    document.getElementById('stp-txt-cam-name').textContent = info.nombre;
+    document.getElementById('stp-txt-ip').textContent = info.ip;
+    document.getElementById('stp-txt-url').textContent = 'http://' + info.ip;
+    document.getElementById('stp-txt-orientacion').innerHTML = info.orientacion;
+    document.getElementById('stp-txt-area').textContent = info.area;
+    document.getElementById('stp-txt-cableado').innerHTML = info.cableado;
+
+    // Sidebar dinámica
+    document.getElementById('sb-cam-name').textContent = (state.poste === 'm' ? 'Maestro' : 'Esclavo') + ' · Cam ' + state.cam;
+    document.getElementById('sb-cam-rol').textContent = info.rol;
+    document.getElementById('sb-cam-ip').textContent = info.ip;
+    document.getElementById('sb-cam-pin').textContent = info.pin;
+    document.getElementById('sb-cam-3v3').textContent = info.p3v3;
+    document.getElementById('sb-cam-tilt').textContent = info.tilt;
+
+    lblActiveCamera.textContent = info.nombre;
+
+    // Progreso
+    var arr = state.progress[key] || [];
+    var done = 0;
+    stepEls.forEach(function(el){
+      var idx = parseInt(el.getAttribute('data-step'), 10);
+      var isDone = !!arr[idx];
+      if(isDone) done++;
+      el.classList.toggle('done', isDone);
+    });
+    progressCount.textContent = done;
+  }
+
+  btnPosteMaestro.addEventListener('click', function(){
+    state.poste = 'm'; save(); render();
+  });
+  btnPosteEsclavo.addEventListener('click', function(){
+    state.poste = 'e'; save(); render();
+  });
+  btnCam1.addEventListener('click', function(){
+    state.cam = '1'; save(); render();
+  });
+  btnCam2.addEventListener('click', function(){
+    state.cam = '2'; save(); render();
+  });
+
+  stepEls.forEach(function(el){
+    var idx = parseInt(el.getAttribute('data-step'), 10);
+    var check = el.querySelector('.check');
+    check.addEventListener('click', function(){
+      var key = state.poste + state.cam;
+      state.progress[key][idx] = !state.progress[key][idx];
+      save();
+      render();
+    });
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>
