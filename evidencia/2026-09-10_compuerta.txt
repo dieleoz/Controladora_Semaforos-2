@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-09-10
-HEAD         : c51cc85   rama: fix/campo-sisga-rtc-darpaso
+HEAD         : cc68976   rama: fix/campo-sisga-rtc-darpaso
 Arbol        : LIMPIO
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -33,5 +33,5 @@ RESULTADOS
   RESUMEN: 19 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a c51cc85 y re-corriendo
+firmware. Esta acta se verifica volviendo a cc68976 y re-corriendo
 python 01_Firmware/compuerta.py.
