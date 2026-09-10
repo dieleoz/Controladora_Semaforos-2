@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guía Visual: Instalación, Enfoque y Conexión de 4 Cámaras (Maestro y Esclavo)</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --surface: #131b2e;
+      --surface-2: #1a253c;
+      --surface-3: #22304e;
+      --border: #283755;
+      --text: #f0f4fc;
+      --text-muted: #94a3b8;
+      --cyan: #00e5ff;
+      --cyan-glow: rgba(0, 229, 255, 0.2);
+      --green: #10b981;
+      --green-glow: rgba(16, 185, 129, 0.2);
+      --amber: #f59e0b;
+      --amber-glow: rgba(245, 158, 11, 0.2);
+      --red: #ef4444;
+      --red-glow: rgba(239, 68, 68, 0.2);
+      --blue: #3b82f6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      padding: 1.5rem;
+    }
+
+    .container {
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .badge-sistema {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: var(--cyan-glow);
+      color: var(--cyan);
+      border: 1px solid var(--cyan);
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-top: 0.25rem;
+    }
+
+    .btn-print {
+      background: var(--cyan);
+      color: #0b0f19;
+      border: none;
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+    .btn-print:hover {
+      background: #80f2ff;
+      transform: translateY(-1px);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .alert-danger {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid var(--red);
+      border-left: 5px solid var(--red);
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+    }
+
+    .alert-danger h4 {
+      color: #fca5a5;
+      font-size: 1rem;
+      margin-bottom: 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .alert-info {
+      background: rgba(0, 229, 255, 0.08);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      border-left: 5px solid var(--cyan);
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .subcard {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+
+    .subcard.cam1 {
+      border-top: 4px solid var(--cyan);
+    }
+
+    .subcard.cam2 {
+      border-top: 4px solid var(--green);
+    }
+
+    .tag-cam {
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      display: inline-block;
+      margin-bottom: 0.5rem;
+    }
+    .tag-cam1 { background: var(--cyan); color: #000; }
+    .tag-cam2 { background: var(--green); color: #000; }
+
+    /* SVGs */
+    .svg-container {
+      width: 100%;
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1.25rem 0;
+      overflow-x: auto;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      min-width: 600px;
+      display: block;
+    }
+
+    /* Tabla de Conexiones */
+    .tabla-con {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.92rem;
+    }
+
+    .tabla-con th, .tabla-con td {
+      border: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      text-align: left;
+    }
+
+    .tabla-con th {
+      background: var(--surface-3);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .tabla-con tr:nth-child(even) {
+      background: rgba(255,255,255,0.02);
+    }
+
+    .pin-pill {
+      font-family: monospace;
+      font-weight: bold;
+      background: #000;
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .pin-pill-grn {
+      font-family: monospace;
+      font-weight: bold;
+      background: #000;
+      border: 1px solid var(--green);
+      color: var(--green);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .pin-danger {
+      font-family: monospace;
+      font-weight: bold;
+      background: var(--red);
+      color: #fff;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    /* Checklist interactivo */
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .checklist-item:last-child {
+      border-bottom: none;
+    }
+
+    .checklist-item input[type="checkbox"] {
+      width: 1.25rem;
+      height: 1.25rem;
+      accent-color: var(--cyan);
+      margin-top: 0.2rem;
+      cursor: pointer;
+    }
+
+    .checklist-item label {
+      cursor: pointer;
+      font-size: 0.92rem;
+    }
+
+    @media print {
+      body { background: #ffffff; color: #000000; padding: 0.5cm; }
+      .card, .subcard { background: #ffffff; border: 1px solid #ccc; color: #000; box-shadow: none; }
+      .btn-print { display: none; }
+      .pin-pill, .pin-pill-grn { background: #eee; color: #000; border-color: #999; }
+      .alert-danger { background: #fee2e2; border-color: #ef4444; color: #000; }
+      .alert-info { background: #e0f2fe; border-color: #0284c7; color: #000; }
+      .svg-container { background: #fafafa; border: 1px solid #ccc; }
+      h1, h2, h3, h4, .card-title { color: #000 !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div>
+      <span class="badge-sistema">IOT-VIAL · Controladora de Semáforos V9.0</span>
+      <h1>Guía de Instalación y Orientación de las 4 Cámaras</h1>
+      <p class="subtitle">Sentido 1 (Maestro) y Sentido 2 (Esclavo) · Inclinación de Lentes y Bornera J16</p>
+    </div>
+    <button class="btn-print" onclick="window.print()">
+      🖨️ Imprimir / Guardar en PDF
+    </button>
+  </header>
+
+  <!-- REGLA DE ORO -->
+  <div class="alert-info">
+    <h3 style="color:var(--cyan); margin-bottom: 0.35rem;">🎯 REGLA DE ORO DE INSTALACIÓN VIAL</h3>
+    <p><b>¿Entran o salen?</b> Las cámaras detectan <b>ÚNICAMENTE VEHÍCULOS QUE LLEGAN (ENTRAN) AL SEMÁFORO</b>.<br>
+    <b>🚫 NUNCA apunte ninguna cámara hacia los vehículos que salen del tramo</b>: si se enfoca hacia los que se van, cada auto que sale cerrará el contacto y pedirá verde de nuevo para su propio sentido, bloqueando al semáforo opuesto para siempre.</p>
+  </div>
+
+  <!-- ADVERTENCIA ELÉCTRICA PIN 1 -->
+  <div class="alert-danger">
+    <h4>🛑 PRECAUCIÓN ELÉCTRICA CRÍTICA EN AMBAS TARJETAS</h4>
+    <p><b>El Pin 1 de la bornera J16 lleva +12 V directos de la batería</b>. Si por error se toca el Pin 1 con los hilos de señal (Pin 10 o Pin 12), se destruirá inmediatamente el microcontrolador STM32. <b>Aislar o tapar con silicona el Pin 1 de J16 en Maestro y Esclavo</b>.</p>
+  </div>
+
+  <!-- DIAGRAMA 1: CORTE DE PERFIL (INCLINACIÓN DE LENTES) -->
+  <div class="card">
+    <div class="card-title">
+      <span>1. Inclinación y Alcance de los Lentes (Corte Lateral de Vía)</span>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem;">
+      Las 2 cámaras se montan en el mismo poste (a 3.5m – 5m de altura) pero con <b>ángulos y propósitos distintos</b>:
+    </p>
+
+    <div class="svg-container">
+      <svg viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="beamCam1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.45"/>
+            <stop offset="100%" stop-color="#00e5ff" stop-opacity="0.05"/>
+          </linearGradient>
+          <linearGradient id="beamCam2" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#10b981" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="#10b981" stop-opacity="0.08"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Suelo / Calzada -->
+        <rect x="0" y="270" width="900" height="50" fill="#1e293b"/>
+        <line x1="0" y1="270" x2="900" y2="270" stroke="#64748b" stroke-width="3"/>
+        <line x1="30" y1="270" x2="90" y2="270" stroke="#f1f5f9" stroke-width="5" stroke-dasharray="10,10"/>
+        <text x="210" y="260" fill="#f8fafc" font-size="12" font-weight="bold">LÍNEA DE PARADA BLANCA</text>
+        <line x1="200" y1="268" x2="200" y2="274" stroke="#ffffff" stroke-width="6"/>
+
+        <!-- Poste del Semáforo -->
+        <rect x="80" y="70" width="16" height="200" fill="#475569"/>
+        <!-- Brazo y Semáforo -->
+        <rect x="96" y="90" width="30" height="8" fill="#475569"/>
+        <rect x="126" y="75" width="22" height="50" rx="4" fill="#0f172a" stroke="#334155" stroke-width="2"/>
+        <circle cx="137" cy="85" r="5" fill="#ef4444"/>
+        <circle cx="137" cy="100" r="5" fill="#f59e0b"/>
+        <circle cx="137" cy="115" r="5" fill="#10b981"/>
+        <!-- Talanquera (Brazo levantado / bajado) -->
+        <rect x="70" y="220" width="24" height="50" fill="#e2e8f0"/>
+        <line x1="90" y1="235" x2="210" y2="235" stroke="#ef4444" stroke-width="5" stroke-dasharray="15,10"/>
+        <text x="100" y="225" fill="#ef4444" font-size="10" font-weight="bold">TALANQUERA</text>
+
+        <!-- CÁMARA 1 (Montada arriba, ángulo suave 15°-20°) -->
+        <rect x="70" y="55" width="28" height="14" rx="3" fill="#00e5ff"/>
+        <!-- Haz de visión Cámara 1 -->
+        <polygon points="98,62 880,270 480,270" fill="url(#beamCam1)"/>
+        <line x1="98" y1="62" x2="880" y2="270" stroke="#00e5ff" stroke-width="1.5" stroke-dasharray="4,4"/>
+        <line x1="98" y1="62" x2="480" y2="270" stroke="#00e5ff" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+        <!-- CÁMARA 2 (Montada más abajo, ángulo picado 35°-45°) -->
+        <rect x="70" y="140" width="28" height="14" rx="3" fill="#10b981"/>
+        <!-- Haz de visión Cámara 2 -->
+        <polygon points="98,147 380,270 120,270" fill="url(#beamCam2)"/>
+        <line x1="98" y1="147" x2="380" y2="270" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,4"/>
+        <line x1="98" y1="147" x2="120" y2="270" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+        <!-- Carro en Zona 2 (Presencia) -->
+        <rect x="150" y="238" width="80" height="32" rx="6" fill="#3b82f6"/>
+        <circle cx="165" cy="270" r="7" fill="#000"/>
+        <circle cx="215" cy="270" r="7" fill="#000"/>
+        <text x="160" y="255" fill="#fff" font-size="10" font-weight="bold">AUTO EN COLA</text>
+
+        <!-- Carro en Zona 1 (Llegando a 25m) -->
+        <rect x="620" y="238" width="85" height="32" rx="6" fill="#8b5cf6"/>
+        <circle cx="635" cy="270" r="7" fill="#000"/>
+        <circle cx="685" cy="270" r="7" fill="#000"/>
+        <text x="630" y="255" fill="#fff" font-size="10" font-weight="bold">AUTO LLEGANDO</text>
+
+        <!-- Flecha de Tráfico -->
+        <path d="M840,290 L760,290" stroke="#f59e0b" stroke-width="4" marker-end="url(#arrow)"/>
+        <text x="610" y="305" fill="#f59e0b" font-size="12" font-weight="bold">◄── DIRECCIÓN DEL TRÁFICO (ACERCÁNDOSE AL CRUCE)</text>
+
+        <!-- Etiquetas de Cotas -->
+        <text x="140" y="20" fill="#10b981" font-size="12" font-weight="bold">CÁMARA 2 (CAM_D / p12): Inclinación 35°-45°</text>
+        <text x="140" y="36" fill="#94a3b8" font-size="11">Zona de 0 a 8m: Cuida la pluma y mantiene el verde</text>
+
+        <text x="500" y="20" fill="#00e5ff" font-size="12" font-weight="bold">CÁMARA 1 (CAM_C / p10): Inclinación 15°-20°</text>
+        <text x="500" y="36" fill="#94a3b8" font-size="11">Zona de 15 a 30m: Pide turno verde anticipado</text>
+      </svg>
+    </div>
+
+    <!-- Comparativa de ambas cámaras -->
+    <div class="grid-2">
+      <div class="subcard cam1">
+        <span class="tag-cam tag-cam1">Cámara 1 · Borna J16 Pin 10</span>
+        <h3 style="color:#ffffff; margin-bottom: 0.5rem;">Cámara de Demanda / Aproximación</h3>
+        <ul style="padding-left: 1.2rem; font-size: 0.9rem; color: var(--text-muted);">
+          <li><b>Hacia dónde mira:</b> A lo lejos por el carril (a <b>15 - 30 metros</b> del poste).</li>
+          <li><b>Ángulo del lente:</b> Inclinación suave (<b>15° a 20°</b> hacia abajo).</li>
+          <li><b>Objetivo:</b> Ver cuando un auto viene llegando en rojo y pedirle turno al sistema con anticipación para que no frene innecesariamente.</li>
+          <li><b>Pines en placa:</b> Conectar a <span class="pin-pill">J16 Pin 9 (+3.3V)</span> y <span class="pin-pill">J16 Pin 10 (CAM_C)</span>.</li>
+        </ul>
+      </div>
+
+      <div class="subcard cam2">
+        <span class="tag-cam tag-cam2">Cámara 2 · Borna J16 Pin 12</span>
+        <h3 style="color:#ffffff; margin-bottom: 0.5rem;">Cámara de Presencia / Pluma</h3>
+        <ul style="padding-left: 1.2rem; font-size: 0.9rem; color: var(--text-muted);">
+          <li><b>Hacia dónde mira:</b> Al suelo frente al poste (los primeros <b>0 a 8 metros</b>).</li>
+          <li><b>Ángulo del lente:</b> Inclinación picada hacia abajo (<b>35° a 45°</b>).</li>
+          <li><b>Objetivo:</b> Mantener el verde extendido mientras cruza la fila de autos y verificar que no haya vehículos debajo de la talanquera.</li>
+          <li><b>Pines en placa:</b> Conectar a <span class="pin-pill-grn">J16 Pin 11 (+3.3V)</span> y <span class="pin-pill-grn">J16 Pin 12 (CAM_D)</span>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIAGRAMA 2: VISTA AÉREA (DÓNDE DIBUJAR EL POLÍGONO EN LA CÁMARA HIKVISION) -->
+  <div class="card">
+    <div class="card-title">
+      <span>2. Vista Aérea: Encuadre y Zona de Detección en Pantalla</span>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem;">
+      Cuando el técnico entra a la interfaz web de Hikvision (<i>Intrusion Detection</i>), así debe dibujar la región:
+    </p>
+
+    <div class="svg-container">
+      <svg viewBox="0 0 900 240" xmlns="http://www.w3.org/2000/svg">
+        <!-- Carretera -->
+        <rect x="0" y="40" width="900" height="160" fill="#1e293b"/>
+        <!-- Carril de llegada (superior) -->
+        <line x1="0" y1="120" x2="900" y2="120" stroke="#f1f5f9" stroke-width="2" stroke-dasharray="12,12"/>
+        <line x1="0" y1="40" x2="900" y2="40" stroke="#64748b" stroke-width="4"/>
+        <line x1="0" y1="200" x2="900" y2="200" stroke="#64748b" stroke-width="4"/>
+
+        <!-- Línea de Parada -->
+        <rect x="180" y="42" width="10" height="76" fill="#ffffff"/>
+        <text x="130" y="30" fill="#f8fafc" font-size="11" font-weight="bold">LÍNEA DE DETENCIÓN</text>
+
+        <!-- Semáforo y Poste en la berma -->
+        <circle cx="185" cy="22" r="10" fill="#475569"/>
+        <rect x="180" y="12" width="10" height="20" fill="#0f172a"/>
+
+        <!-- Región Cámara 2 (Verde): 0 a 8m -->
+        <rect x="195" y="48" width="140" height="64" fill="rgba(16, 185, 129, 0.25)" stroke="#10b981" stroke-width="2" stroke-dasharray="4,4"/>
+        <text x="205" y="85" fill="#10b981" font-size="12" font-weight="bold">ZONA CÁMARA 2 (PLUMA)</text>
+        <text x="205" y="100" fill="#94a3b8" font-size="10">Cubrir parada y barrido talanquera</text>
+
+        <!-- Región Cámara 1 (Cian): 15 a 30m -->
+        <rect x="420" y="48" width="280" height="64" fill="rgba(0, 229, 255, 0.2)" stroke="#00e5ff" stroke-width="2" stroke-dasharray="4,4"/>
+        <text x="440" y="85" fill="#00e5ff" font-size="12" font-weight="bold">ZONA CÁMARA 1 (APROXIMACIÓN / COLA)</text>
+        <text x="440" y="100" fill="#94a3b8" font-size="10">Cubrir carril de llegada a distancia</text>
+
+        <!-- Flechas de Tráfico -->
+        <text x="760" y="90" fill="#f59e0b" font-size="13" font-weight="bold">◄── TRÁFICO LLEGA</text>
+        <text x="350" y="170" fill="#64748b" font-size="12">──► CARRIL DE SALIDA (NO DIBUJAR NINGUNA ZONA AQUÍ) ──►</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- DIAGRAMA 3: BORNERA J16 Y CONEXIONES ELÉCTRICAS -->
+  <div class="card">
+    <div class="card-title">
+      <span>3. Conexión Eléctrica en la Bornera J16 (Idéntica en Maestro y Esclavo)</span>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">
+      Las 4 cámaras se cablean exactamente igual: 2 en la bornera J16 de la tarjeta Maestro y 2 en la bornera J16 de la tarjeta Esclavo.
+    </p>
+
+    <table class="tabla-con">
+      <thead>
+        <tr>
+          <th>Punta</th>
+          <th>Cámara</th>
+          <th>Función y Zona</th>
+          <th>Borne en Cámara (Hikvision)</th>
+          <th>Pines en Bornera J16 de la Tarjeta</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td rowspan="2" style="font-weight: bold; color: var(--cyan);">POSTE 1<br>(MAESTRO)</td>
+          <td><b>Cámara 1</b></td>
+          <td>Aproximación lejana (15-30m)</td>
+          <td>Salida Relé <b>1A</b> y <b>1B</b> (Sin polaridad)</td>
+          <td>
+            <span class="pin-pill">Pin 9</span> (+3.3V) &nbsp;y&nbsp;
+            <span class="pin-pill">Pin 10</span> (CAM_C / PB14)
+          </td>
+        </tr>
+        <tr>
+          <td><b>Cámara 2</b></td>
+          <td>Presencia en pluma (0-8m)</td>
+          <td>Salida Relé <b>1A</b> y <b>1B</b> (Sin polaridad)</td>
+          <td>
+            <span class="pin-pill-grn">Pin 11</span> (+3.3V) &nbsp;y&nbsp;
+            <span class="pin-pill-grn">Pin 12</span> (CAM_D / PB15)
+          </td>
+        </tr>
+        <tr>
+          <td rowspan="2" style="font-weight: bold; color: var(--green);">POSTE 2<br>(ESCLAVO)</td>
+          <td><b>Cámara 1</b></td>
+          <td>Aproximación lejana (15-30m)</td>
+          <td>Salida Relé <b>1A</b> y <b>1B</b> (Sin polaridad)</td>
+          <td>
+            <span class="pin-pill">Pin 9</span> (+3.3V) &nbsp;y&nbsp;
+            <span class="pin-pill">Pin 10</span> (CAM_C / PB14)
+          </td>
+        </tr>
+        <tr>
+          <td><b>Cámara 2</b></td>
+          <td>Presencia en pluma (0-8m)</td>
+          <td>Salida Relé <b>1A</b> y <b>1B</b> (Sin polaridad)</td>
+          <td>
+            <span class="pin-pill-grn">Pin 11</span> (+3.3V) &nbsp;y&nbsp;
+            <span class="pin-pill-grn">Pin 12</span> (CAM_D / PB15)
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top: 1.25rem; padding: 0.85rem; background: rgba(0,0,0,0.3); border-radius: 6px; font-size: 0.88rem;">
+      📌 <b>¿Por qué a los pines impares (Pin 9 y 11)?</b> Porque esos pines proveen los <b>+3.3 V</b> de referencia. La tarjeta tiene resistencias pull-down de 10 kΩ a masa en los pines 10 y 12. Al cerrar el relé de la cámara, inyecta 3.3V y el micro lee <code>HIGH</code>. <b>Nunca conectar la cámara a GND.</b>
+    </div>
+  </div>
+
+  <!-- CHECKLIST DE CAMPO -->
+  <div class="card">
+    <div class="card-title">
+      <span>4. Lista de Verificación en Terreno para el Funcional</span>
+    </div>
+    
+    <div class="checklist-item">
+      <input type="checkbox" id="chk1">
+      <label for="chk1"><b>Pin 1 de J16 tapado:</b> Se verificó que el Pin 1 (+12V) esté aislado en ambas tarjetas para evitar cortos.</label>
+    </div>
+    <div class="checklist-item">
+      <input type="checkbox" id="chk2">
+      <label for="chk2"><b>Orientación hacia los que entran:</b> Ambas cámaras miran de frente al tráfico que LLEGA. Ninguna cámara enfoca a los autos que se van.</label>
+    </div>
+    <div class="checklist-item">
+      <input type="checkbox" id="chk3">
+      <label for="chk3"><b>Inclinación de lentes:</b> Cámara 1 está orientada a lo lejos (~15°-20°) y Cámara 2 apunta hacia la línea de parada y talanquera (~35°-45°).</label>
+    </div>
+    <div class="checklist-item">
+      <input type="checkbox" id="chk4">
+      <label for="chk4"><b>Configuración Hikvision:</b> En <i>Intrusion Detection</i> se activó <i>Trigger Alarm Output</i>, y en <i>Alarm Output</i> se fijó retardo en 5 segundos y contacto Normalmente Abierto (NO).</label>
+    </div>
+    <div class="checklist-item">
+      <input type="checkbox" id="chk5">
+      <label for="chk5"><b>Respuesta en la App:</b> Al arrancar se ve <code>CAM: ?</code>. Al pasar el primer vehículo bajo cada cámara, la app pasa a <code>CAM: OK</code>.</label>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
