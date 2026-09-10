@@ -1195,6 +1195,237 @@
 
   </div>
 
+  <!-- GUÍA VISUAL COMPLETA: CONEXIONADO DE TALANQUERA EN LA PCB (BORNERA J15) -->
+  <div class="illu-card" id="seccion-talanquera" style="margin-top: 28px; border-left: 5px solid var(--amber);">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
+      <div>
+        <span class="eyebrow" style="color:var(--warning);">ACTUADOR VIAL DE POTENCIA · REGLA SFTY-28</span>
+        <h3 style="font-size:1.35rem; margin-top:4px;">🚧 Conexión Física de la Talanquera en la Tarjeta Controladora (Bornera J15)</h3>
+        <p style="margin:0; font-size:.92rem; color:var(--ink-muted); max-width:80ch;">
+          Guía paso a paso para cablear la barrera vehicular en la tarjeta (idéntica en Maestro y Esclavo). Incluye esquema de la PCB, asignación de tornillos en <b>J15</b>, interfaz con relé de maniobra y verificación con multímetro.
+        </p>
+      </div>
+      <div style="background:var(--warning-soft); border:1px solid var(--warning); padding:6px 12px; border-radius:8px; font-size:.82rem; font-weight:700; color:var(--warning);">
+        Salida: J15 (PB2 / Q10)
+      </div>
+    </div>
+
+    <!-- ALERTA CRÍTICA: J14 VS J15 -->
+    <div class="critical" style="margin-bottom:20px;">
+      <span class="mark">PELIGRO CRÍTICO</span>
+      <div>
+        <p style="margin:0 0 6px; font-weight:700; color:var(--danger); font-size:.94rem;">
+          ⚠️ NO CONFUNDIR J14 CON J15 — LA TRAMPA DEL RÓTULO «PUERTA»:
+        </p>
+        <ul style="margin:0; padding-left:18px; font-size:.88rem; line-height:1.5;">
+          <li><b>J14 es una ENTRADA de 3.3V (PB0 / Demanda):</b> En el esquemático de KiCad viene rotulada erróneamente como «Puerta». <b>NO tiene optoacoplador ni etapa de potencia</b>; va directa al microcontrolador. Enchufar un relé o motor de 12V en J14 <b>destruye instantáneamente el micro STM32</b>.</li>
+          <li><b>J15 es la SALIDA DE POTENCIA DE LA TALANQUERA:</b> Lleva el optoacoplador <span class="mono">TLP127 (U15)</span>, el MOSFET <span class="mono">IRLZ44N (Q10)</span>, el diodo de rueda libre <span class="mono">D30</span> y el LED testigo <span class="mono">D29</span>. <b>La talanquera va SIEMPRE en J15.</b></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- DIAGRAMA SVG DEL CONEXIONADO ELÉCTRICO EN LA PCB -->
+    <div class="svg-wrap" style="background:#0c111a; border-radius:12px; padding:18px; margin-bottom:20px;">
+      <svg viewBox="0 0 920 380" xmlns="http://www.w3.org/2000/svg" style="width:100%; min-width:700px; height:auto; display:block;">
+        <defs>
+          <linearGradient id="gradPcb" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#182234"/>
+            <stop offset="100%" stop-color="#0f1624"/>
+          </linearGradient>
+          <filter id="glowGreen" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+        </defs>
+
+        <!-- 1. PLACA CONTROLADORA (BORDE DERECHO) -->
+        <rect x="20" y="20" width="310" height="340" rx="10" fill="url(#gradPcb)" stroke="#2b3a55" stroke-width="2"/>
+        <text x="35" y="45" fill="#94a3b8" font-size="11" font-weight="bold" font-family="'IBM Plex Mono'">TARJETA CONTROLADORA (MAESTRO / ESCLAVO)</text>
+
+        <!-- Microcontrolador U1 -->
+        <rect x="40" y="70" width="80" height="70" rx="4" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+        <text x="52" y="102" fill="#38bdf8" font-size="11" font-weight="bold" font-family="'IBM Plex Mono'">STM32</text>
+        <text x="48" y="118" fill="#94a3b8" font-size="9" font-family="'IBM Plex Mono'">Pin 20: PB2</text>
+
+        <!-- Opto U15 -->
+        <rect x="150" y="85" width="45" height="40" rx="3" fill="#0f172a" stroke="#64748b" stroke-width="1.2"/>
+        <text x="155" y="108" fill="#e2e8f0" font-size="9" font-family="'IBM Plex Mono'">TLP127</text>
+        <text x="157" y="119" fill="#64748b" font-size="8">Opto U15</text>
+
+        <!-- Pistas internas -->
+        <path d="M120 105 L150 105" stroke="#38bdf8" stroke-width="2" fill="none"/>
+        <path d="M195 105 L230 105" stroke="#a855f7" stroke-width="2" fill="none"/>
+
+        <!-- MOSFET Q10 -->
+        <rect x="230" y="75" width="55" height="60" rx="4" fill="#1e293b" stroke="#a855f7" stroke-width="1.5"/>
+        <text x="235" y="98" fill="#c084fc" font-size="10" font-weight="bold" font-family="'IBM Plex Mono'">IRLZ44N</text>
+        <text x="238" y="112" fill="#94a3b8" font-size="8" font-family="'IBM Plex Mono'">MOSFET Q10</text>
+        <text x="235" y="125" fill="#64748b" font-size="8">Conmuta Masa</text>
+
+        <!-- LED Testigo D29 -->
+        <circle cx="205" cy="165" r="8" fill="#10b981" filter="url(#glowGreen)"/>
+        <text x="175" y="190" fill="#34d399" font-size="9" font-weight="bold" font-family="'IBM Plex Mono'">LED D29</text>
+        <text x="150" y="202" fill="#94a3b8" font-size="8">Enciende en VERDE (Pluma UP)</text>
+
+        <!-- Bornera J14 Advertencia -->
+        <rect x="40" y="235" width="85" height="45" rx="4" fill="#450a0a" stroke="#ef4444" stroke-width="1.5"/>
+        <text x="50" y="255" fill="#fca5a5" font-size="10" font-weight="bold" font-family="'IBM Plex Mono'">BORNERA J14</text>
+        <text x="48" y="270" fill="#f87171" font-size="8">⛔ Entrada 3.3V</text>
+        <text x="135" y="260" fill="#ef4444" font-size="9">← ¡NO CABLEAR AQUÍ LA TALANQUERA!</text>
+
+        <!-- Bornera J15 (POTENCIA) -->
+        <rect x="210" y="230" width="105" height="95" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="2"/>
+        <text x="225" y="252" fill="#34d399" font-size="12" font-weight="bold" font-family="'IBM Plex Mono'">BORNERA J15</text>
+        <text x="222" y="266" fill="#94a3b8" font-size="9">Salida Talanquera (Motor)</text>
+
+        <!-- Tornillo Pin 1 (12V) -->
+        <circle cx="235" cy="295" r="10" fill="#334155" stroke="#f59e0b" stroke-width="2"/>
+        <circle cx="235" cy="295" r="4" fill="#f59e0b"/>
+        <text x="223" y="322" fill="#f59e0b" font-size="10" font-weight="bold" font-family="'IBM Plex Mono'">Pin 1</text>
+        <text x="216" y="334" fill="#fbbf24" font-size="9">+12V</text>
+
+        <!-- Tornillo Pin 2 (Drenador Q10) -->
+        <circle cx="285" cy="295" r="10" fill="#334155" stroke="#38bdf8" stroke-width="2"/>
+        <circle cx="285" cy="295" r="4" fill="#38bdf8"/>
+        <text x="273" y="322" fill="#38bdf8" font-size="10" font-weight="bold" font-family="'IBM Plex Mono'">Pin 2</text>
+        <text x="260" y="334" fill="#38bdf8" font-size="9">GND (Q10)</text>
+
+        <!-- Conexión interna Q10 a J15 Pin 2 -->
+        <path d="M255 135 L255 210 L285 210 L285 285" stroke="#38bdf8" stroke-width="2" stroke-dasharray="3,3" fill="none"/>
+
+
+        <!-- 2. MINI-RELÉ INTERMEDIO 12V (INTERFAZ RECOMENDADA EN OBRA) -->
+        <rect x="420" y="110" width="160" height="190" rx="8" fill="#1e293b" stroke="#64748b" stroke-width="1.8"/>
+        <text x="435" y="135" fill="#f8fafc" font-size="12" font-weight="bold">MINI-RELÉ 12V DC</text>
+        <text x="435" y="150" fill="#94a3b8" font-size="9">Interfaz a Centralita Barrera</text>
+
+        <!-- Bornes Bobina Relé (A1 / A2) -->
+        <rect x="435" y="170" width="45" height="32" rx="3" fill="#0f172a" stroke="#f59e0b" stroke-width="1.2"/>
+        <text x="445" y="190" fill="#fbbf24" font-size="10" font-weight="bold" font-family="'IBM Plex Mono'">A1 (+)</text>
+
+        <rect x="435" y="215" width="45" height="32" rx="3" fill="#0f172a" stroke="#38bdf8" stroke-width="1.2"/>
+        <text x="445" y="235" fill="#38bdf8" font-size="10" font-weight="bold" font-family="'IBM Plex Mono'">A2 (-)</text>
+
+        <!-- Bornes Contacto Seco (COM / NO) -->
+        <rect x="520" y="170" width="45" height="32" rx="3" fill="#0f172a" stroke="#10b981" stroke-width="1.2"/>
+        <text x="532" y="190" fill="#34d399" font-size="10" font-weight="bold" font-family="'IBM Plex Mono'">NO</text>
+
+        <rect x="520" y="215" width="45" height="32" rx="3" fill="#0f172a" stroke="#10b981" stroke-width="1.2"/>
+        <text x="527" y="235" fill="#34d399" font-size="10" font-weight="bold" font-family="'IBM Plex Mono'">COM</text>
+
+        <text x="435" y="280" fill="#94a3b8" font-size="9">Bobina: 12V DC</text>
+        <text x="435" y="292" fill="#94a3b8" font-size="9">Contactos: Secos NA</text>
+
+        <!-- Cable Rojo: J15 Pin 1 -> Relé A1 (+) -->
+        <path d="M235 305 L235 355 L400 355 L400 185 L435 185" stroke="#ef4444" stroke-width="3" fill="none"/>
+        <text x="320" y="348" fill="#ef4444" font-size="10" font-weight="bold">Cable Rojo: +12V DC</text>
+
+        <!-- Cable Azul: J15 Pin 2 -> Relé A2 (-) -->
+        <path d="M285 305 L285 340 L380 340 L380 230 L435 230" stroke="#0284c7" stroke-width="3" fill="none"/>
+        <text x="305" y="328" fill="#38bdf8" font-size="10" font-weight="bold">Cable Azul: GND Conmutado (Q10)</text>
+
+
+        <!-- 3. CENTRALITA BARRERA COMERCIAL (CAME / BFT / BENINCA) -->
+        <rect x="670" y="90" width="225" height="230" rx="10" fill="#131d2e" stroke="#3b82f6" stroke-width="2"/>
+        <text x="685" y="118" fill="#60a5fa" font-size="12" font-weight="bold">BARRERA VEHICULAR</text>
+        <text x="685" y="133" fill="#94a3b8" font-size="9">Centralita Comercial (Came / BFT / Beninca)</text>
+
+        <!-- Bornes de entrada de maniobra en la barrera -->
+        <rect x="685" y="160" width="70" height="38" rx="4" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
+        <text x="695" y="184" fill="#34d399" font-size="11" font-weight="bold" font-family="'IBM Plex Mono'">OPEN</text>
+
+        <rect x="685" y="215" width="70" height="38" rx="4" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
+        <text x="695" y="239" fill="#34d399" font-size="11" font-weight="bold" font-family="'IBM Plex Mono'">COM</text>
+
+        <!-- Cables de Contacto Seco (Verde y Amarillo) -->
+        <path d="M565 185 L685 185" stroke="#10b981" stroke-width="2.5" fill="none"/>
+        <text x="580" y="178" fill="#10b981" font-size="9" font-weight="bold">Contacto NA (Apertura)</text>
+
+        <path d="M565 230 L685 230" stroke="#f59e0b" stroke-width="2.5" fill="none"/>
+        <text x="590" y="245" fill="#fbbf24" font-size="9" font-weight="bold">Común (GND Señal)</text>
+
+        <!-- Gráfico de la pluma -->
+        <rect x="830" y="160" width="12" height="130" fill="#64748b"/>
+        <line x1="836" y1="170" x2="790" y2="70" stroke="#ef4444" stroke-width="8" stroke-linecap="round"/>
+        <line x1="836" y1="170" x2="790" y2="70" stroke="#ffffff" stroke-width="4" stroke-dasharray="8,8" stroke-linecap="round"/>
+        <text x="770" y="60" fill="#10b981" font-size="11" font-weight="bold">¡PLUMA ARRIBA!</text>
+        <text x="775" y="75" fill="#94a3b8" font-size="8">(Exclusivo en VERDE)</text>
+      </svg>
+    </div>
+
+    <!-- EXPLICACIÓN TÉCNICA DETALLADA: CÓMO FUNCIONA Y CÓMO CABLEAR -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px; margin-bottom:18px;">
+      
+      <!-- Bloque 1: Pinout y Naturaleza de J15 -->
+      <div style="background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:16px 18px;">
+        <h4 style="margin:0 0 8px; font-size:1rem; color:var(--ink); display:flex; align-items:center; gap:8px;">
+          <span>📌</span> <b>Asignación de Pines en Bornera J15</b>
+        </h4>
+        <table style="width:100%; border-collapse:collapse; font-size:.88rem; margin-top:8px;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--line); text-align:left;">
+              <th style="padding:6px;">Tornillo</th>
+              <th style="padding:6px;">Señal</th>
+              <th style="padding:6px;">Función / Destino</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--line);">
+              <td style="padding:6px;"><span class="mono" style="font-weight:700; color:var(--warning);">Pin 1</span></td>
+              <td style="padding:6px;"><b style="color:var(--danger);">+12V DC</b></td>
+              <td style="padding:6px;">Alimentación positiva permanente (del riel de 12V de la placa). Conectar al <b>borne A1 (+) de la bobina del relé</b>.</td>
+            </tr>
+            <tr>
+              <td style="padding:6px;"><span class="mono" style="font-weight:700; color:var(--accent);">Pin 2</span></td>
+              <td style="padding:6px;"><b style="color:var(--accent);">Drenador Q10</b></td>
+              <td style="padding:6px;"><b>Masa conmutada:</b> El MOSFET IRLZ44N (Q10) conecta este pin a GND cuando el semáforo está en <b>VERDE</b>. Conectar al <b>borne A2 (-) de la bobina del relé</b>.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:.82rem; color:var(--ink-muted); margin:10px 0 0; line-height:1.45;">
+          💡 <b>Diodo de protección integrado:</b> La tarjeta ya cuenta con el diodo de rueda libre <span class="mono">D30</span> soldado en paralelo con J15 para neutralizar los picos de voltaje inducidos por la bobina del relé.
+        </p>
+      </div>
+
+      <!-- Bloque 2: Comportamiento y Medición -->
+      <div style="background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:16px 18px;">
+        <h4 style="margin:0 0 8px; font-size:1rem; color:var(--ink); display:flex; align-items:center; gap:8px;">
+          <span>⚡</span> <b>Comprobación con Multímetro (Voltaje DC)</b>
+        </h4>
+        <p style="font-size:.86rem; color:var(--ink-muted); margin:0 0 10px; line-height:1.45;">
+          Coloque las puntas del multímetro directamente entre el <b>Pin 1 (+)</b> y el <b>Pin 2 (-)</b> de la bornera J15 en la tarjeta:
+        </p>
+        <ul style="margin:0; padding-left:18px; font-size:.86rem; line-height:1.55;">
+          <li><b>En Semáforo en ROJO:</b> Mide <b>0 V</b> efectivos entre bornes. El LED <span class="mono">D29</span> está apagado. El relé está en reposo $\rightarrow$ <b>Pluma ABAJO</b>.</li>
+          <li><b>En Semáforo en VERDE:</b> Mide <b>~12 V DC</b> entre bornes. El LED <span class="mono">D29</span> enciende brillante. El relé se energiza $\rightarrow$ <b>Pluma ARRIBA</b>.</li>
+          <li><b>En AMARILLO y TODO-ROJO (15s):</b> Cae inmediatamente a <b>0 V</b>. El relé se apaga $\rightarrow$ <b>Pluma baja y se queda ABAJO</b> durante todo el tiempo de despeje vehicular.</li>
+          <li><b>En FALLO COMUNICACIÓN (Ámbar Intermitente S_FALLO):</b> La pluma sube a <b>12 V</b> para no encerrar vehículos en la obra.</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- PASO A PASO PARA LA INSTALACIÓN FÍSICA -->
+    <div style="background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px 18px;">
+      <h4 style="margin:0 0 10px; font-size:.98rem; color:var(--ink);">
+        🛠️ Procedimiento de Conexión en Terreno (Maestro y Esclavo)
+      </h4>
+      <ol style="margin:0; padding-left:20px; font-size:.88rem; line-height:1.6;">
+        <li><b>Asegurar que la tarjeta esté sin energía</b> antes de manipular cables de potencia o destornilladores.</li>
+        <li><b>Comprobar visualmente que el conector J14 esté libre</b> (o con el cable de 2 hilos de cámara de demanda). <b>Nunca conectar la talanquera en J14.</b></li>
+        <li><b>Instalar un mini-relé de 12V DC en el gabinete</b> (ej. relé tipo automotriz 12V 40A o relé finder/omron de riel DIN con bobina 12V DC).</li>
+        <li><b>Cablear la bobina del relé a J15:</b>
+          <br>• Terminal positivo de bobina (<span class="mono">A1</span> / Pin 85) $\rightarrow$ <b>J15 Pin 1 (+12V)</b>.
+          <br>• Terminal negativo de bobina (<span class="mono">A2</span> / Pin 86) $\rightarrow$ <b>J15 Pin 2 (Drenador Q10)</b>.
+        </li>
+        <li><b>Cablear los contactos secos a la centralita de la talanquera:</b>
+          <br>• Llevar un par de hilos desde los bornes <span class="mono">COM</span> y <span class="mono">NO</span> del relé hasta los bornes de apertura de la barrera vehicular (<span class="mono">OPEN</span> y <span class="mono">GND/COM</span>).
+        </li>
+        <li><b>Energizar la controladora y verificar:</b> Al arrancar, el semáforo entra en secuencia inicial y la pluma debe permanecer <b>ABAJO</b>. Sólo cuando el semáforo otorgue la luz <b>VERDE</b>, el LED D29 encenderá y la pluma se levantará con suavidad.</li>
+      </ol>
+    </div>
+  </div>
+
   <!-- PROTOCOLO Y ACTA TÉCNICA DE CAMPO CON CAPTURA DE RESPUESTAS -->
   <section class="protocolo-card" id="acta-inspeccion">
     <div class="protocolo-head">
