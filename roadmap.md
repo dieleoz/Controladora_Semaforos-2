@@ -1103,14 +1103,28 @@ a buscar el sintoma contrario al que tiene.**
   - `puente.cpp` en ESP32 sella tanto `HORA:--:--:--` como `HORA:00:00:00` con la hora válida del RTC DS3231.
   - La app móvil (`app.js`) actualiza `state.hora` y refresca la UI inmediatamente al recibir `$ACK,NODE:PUENTE,CMD:SET_RTC` o `CMD:LEER_RTC`. Si llega `00:00:00`, `pintarHoraEquipo()` lo pinta en ámbar de advertencia (`00:00:00 · NO SINCRONIZADO`).
 
-#### 2. Operación de DAR PASO en vía reversible
-- **Síntoma**: *«El modo DAR PASO, después de 15segundos esclavo pasa a ámbar intermitente y maestro queda en rojo... cada vez que se haga el cambio uno debe de estar en rojo el otro en verde y ir variado de acuerdo a cómo se solicite»*.
-- **Aclaración técnica y causa**:
-  - En un paso alternado de carril único (vía reversible), la seguridad vial exige evacuar todo vehículo en el tramo antes de dar paso al sentido contrario. Esto lo realiza el intervalo de despeje todo-rojo obligatorio (`tiempoDespejeMs = 15000UL`, 15 segundos), seguido de 4 segundos de amarillo de transición (`TIEMPO_AMARILLO_MS = 4000UL`) en el semáforo que recibe el verde.
-  - El operario interpretaba los 15 s de todo-rojo y la transición ámbar como un bloqueo o fallo a ámbar intermitente, y además ejecutaba `DAR PASO` mientras el cruce estaba en `AUTOMÁTICO` autónomo en lugar de pasar a `MANUAL`.
-- **Mejoras en la App**:
-  - Se añadió `CAMBIAR_TURNO|OK` a `ACK_TEXTO` explicando la secuencia de seguridad.
-  - Al pulsar `btnOpStep` ("DAR PASO") se muestra una notificación toast explícita: *«Cambio de turno solicitado. Iniciando despeje todo-rojo (15s) antes del verde opuesto.»*
+#### 2. Operación de DAR PASO en vía reversible (Alternancia Rojo/Verde y Despeje)
+- **Síntoma**: *«El modo DAR PASO, después de 15segundos esclavo pasa a ámbar intermitente y maestro queda en rojo, no funciona como debería, recordemos, cada vez que se haga el cambio uno debe de estar en rojo el otro en verde y ir variado de acuerdo a cómo se solicite»*.
+- **Diagnóstico técnico y comprobación en telemetría**:
+  1. **Despeje todo-rojo obligatorio (`SFTY-4`)**: En una calzada de carril único reversible, la seguridad vial exige evacuar todo vehículo en tránsito antes de habilitar el flujo opuesto. Toda inversión de sentido inicia con un intervalo de **todo-rojo de 15 segundos** (`tiempoDespejeMs = 15000UL`), donde **ambos semáforos se encuentran estrictamente en ROJO**.
+  2. **Transición a Verde vs Ámbar Intermitente**: Al terminar los 15 s de despeje, el semáforo receptor del verde ejecuta la transición reglamentaria (`semaforo_iniciarTransicionAVerde()`): enciende **AMARILLO FIJO durante 4 segundos** (`TIEMPO_AMARILLO_MS = 4000UL`) de advertencia previa y acto seguido pasa a **VERDE FIJO**. El operario en calzada vio esos 4 s de amarillo en el Esclavo (mientras Maestro continuaba en rojo) e interpretó que había entrado en falla a ámbar intermitente.
+  3. **Comprobación en la trama de campo enviada por Marco (`12:26:08`)**:
+     `$STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:141,RF:90%,RTT:196ms,BAT:--,HORA:00:00:00,ESC:VERDE,PLUMA:ABAJO,CAM:?*1E`
+     - `ESTADO:ROJO` (Maestro en Rojo).
+     - `ESC:VERDE` (**¡Esclavo en Verde!**).
+     - Se comprueba que el Esclavo **sí abrió a verde** y el cruce quedó en rojo contra verde como corresponde.
+  4. **Garantía de Alternancia (`coordinador_pedirCambio()`)**:
+     - Con Maestro en Verde (`QV_MASTER`): `DAR PASO` pasa Maestro a Rojo $\rightarrow$ 15s todo-rojo $\rightarrow$ Verde a Esclavo (`QV_ESCLAVO`).
+     - Con Esclavo en Verde (`QV_ESCLAVO`): `DAR PASO` pasa Esclavo a Rojo $\rightarrow$ 15s todo-rojo $\rightarrow$ Verde a Maestro (`QV_MASTER`).
+     - Cada solicitud invierte estrictamente el sentido, manteniendo un sentido en rojo y el opuesto en verde.
+  5. **Diferencia Operativa (AUTOMÁTICO vs MANUAL)**:
+     - En las tramas de Marco, el equipo operaba en `MODO:AUTO`. Al pulsar `DAR PASO` en Automático, se fuerza el cambio inmediato pero el temporizador de fondo continúa corriendo (`T:141`), volviendo a ciclar solo al vencer el tiempo.
+     - Para control manual a demanda pura («ir variando según se solicite»), el operario debe colocar el cruce en `MODO:MANUAL`, donde no corre ningún reloj automático y el verde permanece fijo hasta la siguiente pulsación de `DAR PASO`.
+- **Mejoras implementadas en la App móvil (ya compiladas en APK)**:
+  - Se configuró la notificación flotante (toast) inmediata en `btnOpStep` ("DAR PASO"): `✋ DAR PASO: despejando vía (15s todo-rojo)...`.
+  - Se agregó a `ACK_TEXTO` la traducción de `$ACK,CMD:CAMBIAR_TURNO,RESULT:OK` como: `Cambio de turno aceptado: despejando vía (15s)`.
+  - Se documentó el evento en la bitácora operativa de la aplicación.
+  - La APK `IOT_VIAL_Semaforos_2026-09-10_c51cc85_SIN_BANCO.apk` contiene los 13/13 recursos web sincronizados byte a byte y verificados por MD5.
 
 #### 3. Cámaras por poste (J16 p10 y p12)
 - **Pregunta**: *«Solo me envías una cámara por poste... no le da la conexión de la otra cámara»*.
