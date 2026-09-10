@@ -1126,12 +1126,55 @@ a buscar el sintoma contrario al que tiene.**
   - Se documentó el evento en la bitácora operativa de la aplicación.
   - La APK `IOT_VIAL_Semaforos_2026-09-10_c51cc85_SIN_BANCO.apk` contiene los 13/13 recursos web sincronizados byte a byte y verificados por MD5.
 
-#### 3. Cámaras por poste (J16 p10 y p12)
-- **Pregunta**: *«Solo me envías una cámara por poste... no le da la conexión de la otra cámara»*.
-- **Aclaración técnica**:
-  - Cada controladora dispone físicamente en la bornera `J16` de dos entradas optoacopladas de cámara: `CAM_C_PIN` (`PB14`, p10, cámara principal de Demanda) y `CAM_D_PIN` (`PB15`, p12, cámara secundaria de Umbral/Respaldo).
-  - En el protocolo de telemetría NMEA, por la restricción de 155 bytes de payload máximo (`N-154`), viaja un solo campo consolidado `CAM:<ESTADO>` generado por `camara_estado()`, que reporta el peor estado entre las dos entradas.
-  - Ambas entradas de cámara están cableadas, activas y leídas por la lógica de control.
+#### 3. Topología de 4 Cámaras en Sisga (2 en Maestro, 2 en Esclavo) y Guía Interactiva
+- **Duda de campo**: *«Solo me envías una cámara por poste... no le da la conexión de la otra cámara»*.
+- **Aclaración y Topología Completa de 4 Cámaras**:
+  - Cada controladora dispone físicamente en la bornera `J16` de dos entradas optoacopladas para cámaras:
+    - **Cámara 1 (Aproximación / Demanda)**: Bornera `J16` bornes 9 y 10 (`CAM_C_PIN` / `PB14`). Orientada a 5 m de altura con ángulo rasante de **15° a 20°** hacia los vehículos que se acercan al cruce (sentido exclusivo de aproximación al semáforo).
+    - **Cámara 2 (Pluma / Umbral de paso)**: Bornera `J16` bornes 11 y 12 (`CAM_D_PIN` / `PB15`). Orientada a 5 m de altura con ángulo picado de **35° a 45°** vigilando la zona bajo la pluma / línea de pare.
+  - **Aislamiento galvánico y seguridad**: Ambas cámaras usan contacto seco libre de potencial (`COM` y `NO` de la cámara Hikvision AcuSense). No se conecta masa del chasis ni alimentación a los bornes 9 a 12.
+  - 🔴 **Peligro mortal Pin 1 de J16**: `J16` pin 1 lleva +12V sin protección. Debe permanecer sellado y tapado con cinta o tapón retráctil para evitar contacto accidental con los pines de entrada directa al micro.
+  - **Telemetría consolidada**: En NMEA (`$STATUS`), por restricción de buffer de 155 B (`N-154`), viaja el campo consolidado `CAM:<ESTADO>` (`OK`, `?`, `CIEGA`, `PEGADA`) calculado por `camara_estado()`, que reporta la condición más crítica entre las dos entradas.
+
+#### 4. Conexión de Talanquera en la PCB (Bornera J15 vs Peligro J14)
+- **Canal de potencia de la Talanquera**:
+  - Salida física en bornera **`J15`** (red `Motor`, dos bornes con tornillo):
+    - Pin 1: `+12V DC` (alimentación de bobina).
+    - Pin 2: Drenador conmutado a masa (`GND`) por MOSFET `IRLZ44N` (`Q10`), comandado por el optoacoplador `TLP127` (`U15`) desde el pin **`PB2`** del STM32 (`MOTOR_TALANQUERA`). Incluye diodo de rueda libre `D30` y LED testigo `D29`.
+  - 🔴 **Peligro de confusión `J14` vs `J15`**: En esquemáticos antiguos `J14` aparece rotulada como "Puerta", pero en la PCB real `J14` es una **entrada digital directa de 3.3V al STM32** (`PB0` / `CAM_DEMANDA_PIN`). Conectar un relé de 12V en `J14` inyecta 12V directos al micro y destruye la tarjeta. La talanquera va **estrictamente en `J15`**.
+  - **Esquema de interfaz con barreras comerciales (Came, BFT, Beninca, etc.)**:
+    - `J15` Pin 1 $\rightarrow$ Borne A1 (+) de la bobina de un mini-relé 12V DC.
+    - `J15` Pin 2 $\rightarrow$ Borne A2 (-) de la bobina del mini-relé.
+    - Contactos secos `COM` y `NO` del mini-relé $\rightarrow$ Bornes `OPEN` / `START` y `COM` de la centralita de la talanquera.
+
+#### 5. Aclaración Normativa y Vial: Pluma en Corte de Energía (SFTY-28) vs Pluma en Emergencia LoRa (SFTY-6)
+- **La aparente contradicción resuelta**:
+  - **Corte total de energía / Apagón pasivo (Fail-Safe pasivo - SFTY-28)**:
+    - Estado de controladora: **APAGADA**, microcontrolador sin energía.
+    - Semáforos: **Apagados** (sin luz ni regulación).
+    - Pin `PB2`: Cae por hardware a **0V (`LOW`)**, MOSFET `Q10` deja de conducir, bornera `J15` a 0V.
+    - Posición de la pluma: **ABAJO / CERRADA** (por gravedad o muelle de retorno mecánico).
+    - *Razón de tránsito*: En un corredor bidireccional estrecho de obra de 1 solo carril, si se va la energía eléctrica por completo y ambas barreras subieran, los conductores de ambos extremos avanzarían a ciegas sin semáforos, provocando un choque frontal o un bloqueo irreversible. El estado pasivo seguro es **cerrar la vía**. Si se requiere evacuación manual de emergencia, el personal de obra utiliza la llave mecánica de destrabe que equipa toda barrera comercial.
+  - **Fallo de comunicación LoRa / Emergencia táctica (`S_FALLO` - SFTY-6)**:
+    - Estado de controladora: **VIVA / ENCENDIDA**, microcontrolador ejecutando firmware.
+    - Semáforos: **Ámbar intermitente** (destellos a 500 ms en ambas puntas).
+    - Pin `PB2`: El firmware comanda `TALANQUERA_ABRIR` (**`HIGH`**), `J15` entrega **12V**.
+    - Posición de la pluma: **ARRIBA / ABIERTA**.
+    - *Razón de tránsito*: Acuerdo formal de PMT y cliente (27/08/2026). Los semáforos alertan precaución vial activa. Si la pluma bajara automáticamente, los vehículos que ya ingresaron a la calzada quedarían atrapados y encerrados dentro del corredor de obra.
+  - **Comportamiento en la App Móvil**:
+    - Botones de emergencia: Indican expresamente *"Pone ÁMBAR INTERMITENTE y ABRE la talanquera: los dos sentidos pasan con precaución"*.
+    - Telemetría en vivo: Si el firmware reporta `PLUMA:ARRIBA` con estado `FALLO COM`, la app muestra el badge en ámbar: `▲ PLUMA ARRIBA · sin enlace: se pasa con precaución`. Con verde muestra `▲ PLUMA ARRIBA · acompaña al verde`. En reposo muestra `▼ PLUMA ABAJO`.
+  - **Estado del Veto de la Pluma por Cámara (D-13)**:
+    - *Fase 1 (Vigilante pasivo - implementada en firmware y app)*: Lee eventos en `PB14`/`PB15`, reporta `$ALARM,CAM_PEGADA` o `CAM_CIEGA` y contabiliza cuántas veces un vehículo pisó el umbral (`VETO_HABRIA_ACTUADO_N`).
+    - *Fase 2 (Veto activo para retener pluma arriba en rojo si hay vehículo debajo)*: Retenida y bloqueada por la decisión `A-1.bis` en `DECISIONES.md`, ya que violaría la regla fundacional de seguridad vial *«la talanquera sigue a la luz verde, nunca al revés»* y crearía la condición anómala *Luz ROJA + Pluma ARRIBA*.
+
+#### 6. Entregables Documentales y de Software (N-162)
+- **Guía Técnica Interactiva `05_Funcional/Camaras_Sisga_4x.html`**:
+  - Documento autocontenido con esquema SVG de conexión en `J15` y `J16`, tablas de angulación, alturas y sentidos vehiculares.
+  - Cuestionario de validación técnica de 11 preguntas interactivas para el instalador y el funcional, con persistencia en `localStorage`, cálculo de dictamen en tiempo real y función de exportación a PDF formal con recuadros de firma técnica.
+- **Trazabilidad y Empaquetado**:
+  - Mapeado en [`ARQUITECTURA.map`](ARQUITECTURA.map) (§1.1, §2.6, §6, §7.3).
+  - Incluido en el script empaquetador [`generar_entrega_v9_0.py`](generar_entrega_v9_0.py) bajo `03_Cableado/Camaras_Sisga_4x.html` y referenciado en `LEEME_PRIMERO.md` y `.htm`.
 
 ---
 
