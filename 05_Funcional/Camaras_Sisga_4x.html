@@ -1405,6 +1405,24 @@
 
     </div>
 
+    <!-- ACLARACIÓN VITAL: ¿BARRERA ARRIBA O ABAJO EN FALLO? -->
+    <div style="margin-bottom:18px; border-left:4px solid var(--accent); background:var(--surface-2); padding:14px 18px; border-radius:8px;">
+      <h4 style="margin:0 0 6px; font-size:.96rem; color:var(--accent-ink);">
+        🤔 ¿Por qué en Fallo de Radio sube (ARRIBA) pero sin energía cae (ABAJO)?
+      </h4>
+      <p style="margin:0 0 8px; font-size:.86rem; line-height:1.5; color:var(--ink);">
+        Son <b>dos situaciones completamente distintas</b> que suelen confundirse en terreno:
+      </p>
+      <ul style="margin:0; padding-left:18px; font-size:.85rem; line-height:1.55; color:var(--ink);">
+        <li><b>1. Fallo de Comunicación LoRa (Equipo VIVO con energía · Modo S_FALLO):</b>
+          El procesador está encendido, detecta que se perdió el radio y entra en destellos ámbar de advertencia. Como el equipo sigue con energía, <b>el PMT y la interventoría ordenaron que la pluma SUBA (12V activos en J15)</b> para permitir el paso alterno con precaución y evitar que los vehículos queden atrapados dentro de un corredor de obra angosto sin retorno.
+        </li>
+        <li><b>2. Corte Total de Energía (Equipo APAGADO / Sin luz en el sector):</b>
+          La placa está muerta, no hay semáforos encendidos ni rojo ni verde. El pin PB2 cae a 0V y el MOSFET se abre (0V en J15). Por seguridad pasiva, la electrónica no puede enviar energía inexistente. Si en la obra se requiere dar paso libre durante un corte prolongado de luz, el personal vial utiliza la <b>palanca mecánica de destrabe manual</b> que traen todas las barreras comerciales.
+        </li>
+      </ul>
+    </div>
+
     <!-- PASO A PASO PARA LA INSTALACIÓN FÍSICA -->
     <div style="background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px 18px;">
       <h4 style="margin:0 0 10px; font-size:.98rem; color:var(--ink);">
