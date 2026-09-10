@@ -483,11 +483,375 @@
       flex-wrap:wrap;
     }
 
+    /* Botones de acción y cabecera */
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      font-family: inherit;
+      font-size: .88rem;
+      font-weight: 600;
+      padding: 9px 16px;
+      border-radius: 9px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,.15);
+      transition: all .15s ease;
+    }
+    .btn-action:hover {
+      background: var(--accent-ink);
+      transform: translateY(-1px);
+    }
+    .btn-action.sec {
+      background: var(--surface);
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .btn-action.sec:hover {
+      background: var(--surface-2);
+    }
+    .btn-action.danger-link {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid transparent;
+      padding: 8px 12px;
+      font-size: .82rem;
+    }
+    .btn-action.danger-link:hover {
+      background: var(--danger-soft);
+      border-color: var(--line);
+    }
+
+    /* Protocolo / Cuestionario de Campo */
+    .protocolo-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 24px 26px;
+      box-shadow: var(--shadow);
+      margin-top: 36px;
+      margin-bottom: 32px;
+    }
+    .protocolo-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--line);
+      margin-bottom: 20px;
+    }
+    .protocolo-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin: 0 0 6px;
+      color: var(--ink);
+    }
+    .protocolo-desc {
+      color: var(--ink-muted);
+      font-size: .92rem;
+      margin: 0;
+      max-width: 78ch;
+      line-height: 1.45;
+    }
+
+    /* Identificación Grid */
+    .ident-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px 18px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 24px;
+    }
+    .campo {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .campo label {
+      font-size: .76rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--ink-muted);
+    }
+    .campo input, .campo textarea {
+      font-family: inherit;
+      font-size: .9rem;
+      color: var(--ink);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 10px;
+      transition: border-color .15s ease;
+    }
+    .campo input:focus, .campo textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* Lista de Preguntas */
+    .cuestionario-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .pregunta-item {
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color .15s ease;
+    }
+    .pregunta-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .pregunta-num-tit {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      flex: 1;
+      min-width: 280px;
+    }
+    .num-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 700;
+      font-size: .8rem;
+      background: var(--accent-soft);
+      color: var(--accent-ink);
+      padding: 3px 8px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .pregunta-tit {
+      font-size: .96rem;
+      font-weight: 600;
+      margin: 0;
+      color: var(--ink);
+      line-height: 1.35;
+    }
+    .pregunta-detalle {
+      font-size: .86rem;
+      color: var(--ink-muted);
+      margin: 4px 0 0;
+      line-height: 1.45;
+    }
+    .opciones-group {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn-opt {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink-muted);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all .15s ease;
+    }
+    .btn-opt:hover {
+      background: var(--surface-2);
+      color: var(--ink);
+    }
+    .btn-opt[data-val="cumple"].active {
+      background: var(--success);
+      color: #fff;
+      border-color: var(--success);
+    }
+    .btn-opt[data-val="nocumple"].active {
+      background: var(--danger);
+      color: #fff;
+      border-color: var(--danger);
+    }
+    .btn-opt[data-val="pendiente"].active {
+      background: var(--warning);
+      color: #fff;
+      border-color: var(--warning);
+    }
+    .obs-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding-top: 6px;
+      border-top: 1px dashed var(--line);
+    }
+    .obs-row label {
+      font-size: .78rem;
+      color: var(--ink-muted);
+      font-weight: 600;
+      min-width: 95px;
+    }
+    .obs-row input {
+      flex: 1;
+      font-family: inherit;
+      font-size: .85rem;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--ink);
+    }
+
+    /* Dictamen / Resumen */
+    .dictamen-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+    }
+    .tally-stats {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      font-size: .88rem;
+    }
+    .tally-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+    .tally-pill .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .tally-pill.cumple .dot { background: var(--success); }
+    .tally-pill.nocumple .dot { background: var(--danger); }
+    .tally-pill.pendiente .dot { background: var(--warning); }
+
+    .dictamen-veredicto {
+      font-weight: 700;
+      font-size: .92rem;
+      padding: 5px 12px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .dictamen-veredicto.apto {
+      background: var(--success-soft);
+      color: var(--success);
+      border: 1px solid var(--success);
+    }
+    .dictamen-veredicto.no-apto {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border: 1px solid var(--danger);
+    }
+    .dictamen-veredicto.evaluando {
+      background: var(--warning-soft);
+      color: var(--warning);
+      border: 1px solid var(--warning);
+    }
+
+    /* Firmas */
+    .firmas-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+    }
+    .firma-box {
+      border: 1px dashed var(--line-strong);
+      border-radius: 8px;
+      padding: 16px;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 130px;
+    }
+    .firma-tit {
+      font-size: .82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--ink-muted);
+    }
+    .firma-linea {
+      border-top: 1px solid var(--ink);
+      margin-top: 60px;
+      padding-top: 6px;
+      font-size: .84rem;
+      font-weight: 600;
+      text-align: center;
+    }
+    .firma-sub {
+      font-size: .74rem;
+      color: var(--ink-muted);
+      text-align: center;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1c222b;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: .88rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,.35);
+      z-index: 1000;
+      display: none;
+      opacity: 0;
+      transition: opacity .2s ease;
+    }
+    .toast.show { display: block; opacity: 1; }
+
     @media print{
-      body{ background:#fff; color:#000; padding:0; }
-      .toggle-row, .btn-print{ display:none; }
-      .step, .illu-card, .ref-card{ box-shadow:none; border-color:#ccc; break-inside:avoid; }
-      .step.done{ opacity:1; }
+      body{ background:#fff !important; color:#000 !important; padding:0 !important; font-size:11pt; }
+      .wrap{ max-width:100% !important; margin:0 !important; }
+      .toggle-row, .header-actions, .toast, .btn-action, .btn-opt, .btn-save, .btn-reset, .btn-action.danger-link{ display:none !important; }
+      .step, .illu-card, .ref-card, .protocolo-card{ box-shadow:none !important; border:1px solid #777 !important; break-inside:avoid; background:#fff !important; color:#000 !important; margin-bottom:16px !important; }
+      .step.done{ opacity:1 !important; }
+      .protocolo-card{ page-break-before:always; break-before:page; }
+      .ident-grid{ background:#f7f7f7 !important; border:1px solid #ccc !important; }
+      .campo input, .campo textarea{ border:1px solid #bbb !important; background:#fff !important; color:#000 !important; }
+      .pregunta-item{ background:#fff !important; border:1px solid #ddd !important; break-inside:avoid; }
+      .btn-opt{ display:none !important; }
+      .print-tag-opt{ display:inline-block !important; font-weight:bold; font-size:9pt; padding:2px 8px; border:1px solid #000; border-radius:4px; }
+      .firmas-grid{ break-inside:avoid; page-break-inside:avoid; }
+      .firma-box{ border:1px solid #555 !important; min-height:100px; background:#fff !important; }
+      h1, h2, h3, h4{ color:#000 !important; }
+      .eyebrow{ color:#333 !important; }
     }
   </style>
 </head>
@@ -498,7 +862,20 @@
   <header class="page">
     <div class="eyebrow">Proyecto Semáforos Sisga · IT Vial SAS</div>
     <h1>Instalación y Configuración de 4 Cámaras</h1>
-    <p class="subtitle">Guía visual de orientación del lente, inclinación, conexionado a bornera J16 y parametrización web Hikvision para las <b>4 cámaras</b> del cruce: <b>2 en Poste Maestro y 2 en Poste Esclavo</b>.</p>
+    <p class="subtitle">Guía técnica y protocolo de campo: orientación, ángulos, bornera J16, talanquera J15 y parametrización web Hikvision para las <b>4 cámaras</b> (2 en Maestro y 2 en Esclavo).</p>
+    
+    <div class="header-actions">
+      <button type="button" class="btn-action" onclick="window.guardarParte()">
+        <span>📄 Guardar / Descargar Parte en PDF</span>
+      </button>
+      <button type="button" class="btn-action sec" onclick="window.guardarRespuestas()">
+        <span>💾 Guardar Respuestas</span>
+      </button>
+      <button type="button" class="btn-action danger-link" onclick="window.reiniciarFormulario()">
+        <span>🔄 Limpiar Acta</span>
+      </button>
+      <span id="save-status-badge" style="font-size: .8rem; color: var(--ink-faint); margin-left: 8px;">Respuestas guardadas automáticamente</span>
+    </div>
   </header>
 
   <!-- REGLA DE ORO / ORIENTACIÓN -->
@@ -818,6 +1195,348 @@
 
   </div>
 
+  <!-- PROTOCOLO Y ACTA TÉCNICA DE CAMPO CON CAPTURA DE RESPUESTAS -->
+  <section class="protocolo-card" id="acta-inspeccion">
+    <div class="protocolo-head">
+      <div>
+        <h2 class="protocolo-title">📋 Protocolo de Validación en Terreno y Acta de Pruebas</h2>
+        <p class="protocolo-desc">
+          Formulario interactivo para registrar las respuestas del ingeniero funcional en campo.
+          Al completar los datos e inspeccionar los 11 puntos clave, pulse <b>"Guardar / Descargar Parte en PDF"</b> para generar el acta formal firmada de recepción técnica.
+        </p>
+      </div>
+      <div>
+        <button type="button" class="btn-action" onclick="window.guardarParte()">
+          <span>📄 Descargar en PDF</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Metadatos de la Inspección -->
+    <div class="ident-grid">
+      <div class="campo">
+        <label for="f-inspector">Técnico / Funcional Inspector</label>
+        <input type="text" id="f-inspector" placeholder="Nombre completo">
+      </div>
+      <div class="campo">
+        <label for="f-cedula">Cédula / Documento</label>
+        <input type="text" id="f-cedula" placeholder="N° de identificación">
+      </div>
+      <div class="campo">
+        <label for="f-fecha">Fecha y Hora de Prueba</label>
+        <input type="text" id="f-fecha" placeholder="AAAA-MM-DD HH:MM">
+      </div>
+      <div class="campo">
+        <label for="f-lugar">Frente / Ubicación en Vía</label>
+        <input type="text" id="f-lugar" placeholder="Sisga - Tramo / Kilómetro">
+      </div>
+      <div class="campo">
+        <label for="f-serie-m">Nº Serie Tarjeta Maestro</label>
+        <input type="text" id="f-serie-m" placeholder="ej. MAESTRO-2026-001">
+      </div>
+      <div class="campo">
+        <label for="f-serie-e">Nº Serie Tarjeta Esclavo</label>
+        <input type="text" id="f-serie-e" placeholder="ej. ESCLAVO-2026-001">
+      </div>
+      <div class="campo">
+        <label for="f-talanquera">Marca / Modelo Talanquera</label>
+        <input type="text" id="f-talanquera" placeholder="ej. Came / BFT / Barrera 12V">
+      </div>
+    </div>
+
+    <!-- Cuestionario de 11 Preguntas Técnicas -->
+    <div class="cuestionario-list" id="preguntas-container">
+
+      <!-- Item 1 -->
+      <div class="pregunta-item" data-qid="q1">
+        <div class="pregunta-header">
+          <div class="pregunta-num-tit">
+            <span class="num-badge">01</span>
+            <div>
+              <p class="pregunta-tit">Fijación estructural y altura en poste (5 metros)</p>
+              <p class="pregunta-detalle">¿Las cámaras están montadas a ~5 metros de altura en poste rígido con brazo antivibración tanto en Maestro como en Esclavo, garantizando que el paso de camiones o ráfagas de viento no causen falsas detecciones?</p>
+            </div>
+          </div>
+          <div class="opciones-group" data-qid="q1">
+            <button type="button" class="btn-opt" data-val="cumple">✔ Cumple</button>
+            <button type="button" class="btn-opt" data-val="nocumple">✖ No cumple</button>
+            <button type="button" class="btn-opt" data-val="pendiente">⏳ Pendiente</button>
+            <span class="print-tag-opt" style="display:none;"></span>
+          </div>
+        </div>
+        <div class="obs-row">
+          <label for="obs-q1">Observaciones:</label>
+          <input type="text" id="obs-q1" placeholder="Detalle de altura, anclaje o soporte rígido">
+        </div>
+      </div>
+
+      <!-- Item 2 -->
+      <div class="pregunta-item" data-qid="q2">
+        <div class="pregunta-header">
+          <div class="pregunta-num-tit">
+            <span class="num-badge">02</span>
+            <div>
+              <p class="pregunta-tit">Inclinación Cámara 1 — Aproximación Lejana (15° a 20°)</p>
+              <p class="pregunta-detalle">¿El lente de la Cámara 1 tiene una inclinación suave (15° a 20° respecto al horizonte) enfocando la aproximación de vehículos entre 15 y 30 metros de distancia antes de la línea blanca de detención?</p>
+            </div>
+          </div>
+          <div class="opciones-group" data-qid="q2">
+            <button type="button" class="btn-opt" data-val="cumple">✔ Cumple</button>
+            <button type="button" class="btn-opt" data-val="nocumple">✖ No cumple</button>
+            <button type="button" class="btn-opt" data-val="pendiente">⏳ Pendiente</button>
+            <span class="print-tag-opt" style="display:none;"></span>
+          </div>
+        </div>
+        <div class="obs-row">
+          <label for="obs-q2">Observaciones:</label>
+          <input type="text" id="obs-q2" placeholder="Ángulo medido o visibilidad lejana comprobada">
+        </div>
+      </div>
+
+      <!-- Item 3 -->
+      <div class="pregunta-item" data-qid="q3">
+        <div class="pregunta-header">
+          <div class="pregunta-num-tit">
+            <span class="num-badge">03</span>
+            <div>
+              <p class="pregunta-tit">Inclinación Cámara 2 — Presencia y Barrido de Pluma (35° a 45°)</p>
+              <p class="pregunta-detalle">¿El lente de la Cámara 2 tiene una inclinación picada (35° a 45° hacia abajo) apuntando directamente a la línea blanca de detención y al área de barrido donde opera la talanquera (0 a 8 metros)?</p>
+            </div>
+          </div>
+          <div class="opciones-group" data-qid="q3">
+            <button type="button" class="btn-opt" data-val="cumple">✔ Cumple</button>
+            <button type="button" class="btn-opt" data-val="nocumple">✖ No cumple</button>
+            <button type="button" class="btn-opt" data-val="pendiente">⏳ Pendiente</button>
+            <span class="print-tag-opt" style="display:none;"></span>
+          </div>
+        </div>
+        <div class="obs-row">
+          <label for="obs-q3">Observaciones:</label>
+          <input type="text" id="obs-q3" placeholder="Zona de parada y paso de talanquera enfocada">
+        </div>
+      </div>
+
+      <!-- Item 4 -->
+      <div class="pregunta-item" data-qid="q4">
+        <div class="pregunta-header">
+          <div class="pregunta-num-tit">
+            <span class="num-badge">04</span>
+            <div>
+              <p class="pregunta-tit">Sentido vial de aproximación (de frente a los que llegan)</p>
+              <p class="pregunta-detalle">¿Ambas cámaras están orientadas de frente a los vehículos que INGRESAN al semáforo? (Se verificó rigurosamente que NINGUNA cámara mire hacia los vehículos que van saliendo del tramo regulado para evitar bucles de demanda permanente).</p>
+            </div>
+          </div>
+          <div class="opciones-group" data-qid="q4">
+            <button type="button" class="btn-opt" data-val="cumple">✔ Cumple</button>
+            <button type="button" class="btn-opt" data-val="nocumple">✖ No cumple</button>
+            <button type="button" class="btn-opt" data-val="pendiente">⏳ Pendiente</button>
+            <span class="print-tag-opt" style="display:none;"></span>
+          </div>
+        </div>
+        <div class="obs-row">
+          <label for="obs-q4">Observaciones:</label>
+          <input type="text" id="obs-q4" placeholder="Comprobación de flujo y dirección vehicular">
+        </div>
+      </div>
+
+      <!-- Item 5 -->
+      <div class="pregunta-item" data-qid="q5">
+        <div class="pregunta-header">
+          <div class="pregunta-num-tit">
+            <span class="num-badge">05</span>
+            <div>
+              <p class="pregunta-tit">Cableado Cámara 1 en Bornera J16 (Pines 9 y 10 / CAM_C - PB14)</p>
+              <p class="pregunta-detalle">¿El relé 1A/1B de la Cámara 1 está cableado a J16 Pin 9 (+3.3V) y Pin 10 (CAM_C / PB14)? (Verificado que no esté conectado a masa/GND, respetando la resistencia pull-down interna de 10 kΩ).</p>
+            </div>
+          </div>
+          <div class="opciones-group" data-qid="q5">
+            <button type="button" class="btn-opt" data-val="cumple">✔ Cumple</button>
+            <button type="button" class="btn-opt" data-val="nocumple">✖ No cumple</button>
+            <button type="button" class="btn-opt" data-val="pendiente">⏳ Pendiente</button>
+            <span class="print-tag-opt" style="display:none;"></span>
+          </div>
+        </div>
+        <div class="obs-row">
+          <label for="obs-q5">Observaciones:</label>
+          <input type="text" id="obs-q5" placeholder="Continuidad comprobada con multímetro">
+        </div>
+      </div>
+
+      <!-- Item 6 -->
+      <div class="pregunta-item" data-qid="q6">
+        <div class="pregunta-header">
+          <div class="pregunta-num-tit">
+            <span class="num-badge">06</span>
+            <div>
+              <p class="pregunta-tit">Cableado Cámara 2 en Bornera J16 (Pines 11 y 12 / CAM_D - PB15)</p>
+              <p class="pregunta-detalle">¿El relé 1A/1B de la Cámara 2 está cableado a J16 Pin 11 (+3.3V) y Pin 12 (CAM_D / PB15)? (Verificado que no esté conectado a masa/GND en Maestro y Esclavo).</p>
+            </div>
+          </div>
+          <div class="opciones-group" data-qid="q6">
+            <button type="button" class="btn-opt" data-val="cumple">✔ Cumple</button>
+            <button type="button" class="btn-opt" data-val="nocumple">✖ No cumple</button>
+            <button type="button" class="btn-opt" data-val="pendiente">⏳ Pendiente</button>
+            <span class="print-tag-opt" style="display:none;"></span>
+          </div>
+        </div>
+        <div class="obs-row">
+          <label for="obs-q6">Observaciones:</label>
+          <input type="text" id="obs-q6" placeholder="Pines 11 y 12 en tarjeta verificados">
+        </div>
+      </div>
+
+      <!-- Item 7 -->
+      <div class="pregunta-item" data-qid="q7">
+        <div class="pregunta-header">
+          <div class="pregunta-num-tit">
+            <span class="num-badge">07</span>
+            <div>
+              <p class="pregunta-tit">Aislamiento y protección del Pin 1 de J16 (+12V crudos)</p>
+              <p class="pregunta-detalle">¿El Pin 1 (+12V crudos) del conector J16 se encuentra tapado, encintado o sellado sin ningún cable conectado, previniendo cortocircuitos accidentales hacia las entradas del micro?</p>
+            </div>
+          </div>
+          <div class="opciones-group" data-qid="q7">
+            <button type="button" class="btn-opt" data-val="cumple">✔ Cumple</button>
+            <button type="button" class="btn-opt" data-val="nocumple">✖ No cumple</button>
+            <button type="button" class="btn-opt" data-val="pendiente">⏳ Pendiente</button>
+            <span class="print-tag-opt" style="display:none;"></span>
+          </div>
+        </div>
+        <div class="obs-row">
+          <label for="obs-q7">Observaciones:</label>
+          <input type="text" id="obs-q7" placeholder="Aislamiento físico en Maestro y Esclavo">
+        </div>
+      </div>
+
+      <!-- Item 8 -->
+      <div class="pregunta-item" data-qid="q8">
+        <div class="pregunta-header">
+          <div class="pregunta-num-tit">
+            <span class="num-badge">08</span>
+            <div>
+              <p class="pregunta-tit">Conexión de la Talanquera en Bornera J15 (PB2 / MOSFET Q10)</p>
+              <p class="pregunta-detalle">¿La señal de maniobra de la talanquera (relé/bobina de apertura) está conectada a la bornera J15 (Pin 1: +12V común, Pin 2: drenador del MOSFET IRLZ44N Q10 conmutado a masa por PB2)?</p>
+            </div>
+          </div>
+          <div class="opciones-group" data-qid="q8">
+            <button type="button" class="btn-opt" data-val="cumple">✔ Cumple</button>
+            <button type="button" class="btn-opt" data-val="nocumple">✖ No cumple</button>
+            <button type="button" class="btn-opt" data-val="pendiente">⏳ Pendiente</button>
+            <span class="print-tag-opt" style="display:none;"></span>
+          </div>
+        </div>
+        <div class="obs-row">
+          <label for="obs-q8">Observaciones:</label>
+          <input type="text" id="obs-q8" placeholder="Tipo de interfaz: relé de pulso / contacto seco">
+        </div>
+      </div>
+
+      <!-- Item 9 -->
+      <div class="pregunta-item" data-qid="q9">
+        <div class="pregunta-header">
+          <div class="pregunta-num-tit">
+            <span class="num-badge">09</span>
+            <div>
+              <p class="pregunta-tit">Comportamiento vial de la Pluma (Regla SFTY-28)</p>
+              <p class="pregunta-detalle">¿Se comprobó que: a) al encender la controladora la pluma arranca y queda ABAJO; b) sube ÚNICAMENTE con luz VERDE (y en modo degradado S_FALLO); c) durante la luz AMARILLA y el tiempo de despeje TODO-ROJO (15s) permanece completamente ABAJO?</p>
+            </div>
+          </div>
+          <div class="opciones-group" data-qid="q9">
+            <button type="button" class="btn-opt" data-val="cumple">✔ Cumple</button>
+            <button type="button" class="btn-opt" data-val="nocumple">✖ No cumple</button>
+            <button type="button" class="btn-opt" data-val="pendiente">⏳ Pendiente</button>
+            <span class="print-tag-opt" style="display:none;"></span>
+          </div>
+        </div>
+        <div class="obs-row">
+          <label for="obs-q9">Observaciones:</label>
+          <input type="text" id="obs-q9" placeholder="Comportamiento en verde, amarillo y todo-rojo">
+        </div>
+      </div>
+
+      <!-- Item 10 -->
+      <div class="pregunta-item" data-qid="q10">
+        <div class="pregunta-header">
+          <div class="pregunta-num-tit">
+            <span class="num-badge">10</span>
+            <div>
+              <p class="pregunta-tit">Prueba de Detección, Flanco y Telemetría en la App IOT VIAL</p>
+              <p class="pregunta-detalle">¿Al simular el paso vehicular, la App móvil IOT VIAL / telemetría NMEA responde acusando el flanco: el campo `CAM:` pasa de `?` a `OK`, y el campo `PLUMA:` reporta `ARRIBA` en verde y `ABAJO` en rojo?</p>
+            </div>
+          </div>
+          <div class="opciones-group" data-qid="q10">
+            <button type="button" class="btn-opt" data-val="cumple">✔ Cumple</button>
+            <button type="button" class="btn-opt" data-val="nocumple">✖ No cumple</button>
+            <button type="button" class="btn-opt" data-val="pendiente">⏳ Pendiente</button>
+            <span class="print-tag-opt" style="display:none;"></span>
+          </div>
+        </div>
+        <div class="obs-row">
+          <label for="obs-q10">Observaciones:</label>
+          <input type="text" id="obs-q10" placeholder="Lectura en app: CAM: OK, PLUMA: ARRIBA / ABAJO">
+        </div>
+      </div>
+
+      <!-- Item 11 -->
+      <div class="pregunta-item" data-qid="q11">
+        <div class="pregunta-header">
+          <div class="pregunta-num-tit">
+            <span class="num-badge">11</span>
+            <div>
+              <p class="pregunta-tit">Parametrización web Hikvision (Intrusion Detection y Relé NO)</p>
+              <p class="pregunta-detalle">¿En la interfaz web de cada una de las 4 cámaras se configuró: Intrusion Detection activo en carril de entrada, Trigger Alarm Output activo, salida en Normalmente Abierto (NO) y retardo de alarma de 5 segundos?</p>
+            </div>
+          </div>
+          <div class="opciones-group" data-qid="q11">
+            <button type="button" class="btn-opt" data-val="cumple">✔ Cumple</button>
+            <button type="button" class="btn-opt" data-val="nocumple">✖ No cumple</button>
+            <button type="button" class="btn-opt" data-val="pendiente">⏳ Pendiente</button>
+            <span class="print-tag-opt" style="display:none;"></span>
+          </div>
+        </div>
+        <div class="obs-row">
+          <label for="obs-q11">Observaciones:</label>
+          <input type="text" id="obs-q11" placeholder="Sensibilidad y tiempo de pulso de relé (5s)">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Dictamen y Estadísticas -->
+    <div class="dictamen-box">
+      <div class="tally-stats">
+        <div class="tally-pill cumple"><span class="dot"></span> Cumple: <span id="stat-cumple">0</span> / 11</div>
+        <div class="tally-pill nocumple"><span class="dot"></span> No cumple: <span id="stat-nocumple">0</span> / 11</div>
+        <div class="tally-pill pendiente"><span class="dot"></span> Pendiente: <span id="stat-pendiente">11</span> / 11</div>
+      </div>
+      <div id="dictamen-badge" class="dictamen-veredicto evaluando">Evaluación en Curso</div>
+    </div>
+
+    <!-- Observaciones Generales -->
+    <div class="campo" style="margin-bottom: 24px;">
+      <label for="f-observaciones-generales">Observaciones Generales, Novedades y Pendientes de Obra</label>
+      <textarea id="f-observaciones-generales" rows="4" placeholder="Describa cualquier particularidad encontrada en campo: condiciones climáticas, estado del cableado, contingencias o configuraciones especiales..."></textarea>
+    </div>
+
+    <!-- Cuadro de Firmas -->
+    <div class="firmas-grid">
+      <div class="firma-box">
+        <span class="firma-tit">Técnico / Instalador Responsable</span>
+        <div class="firma-linea">
+          <span id="txt-firma-inspector">Firma del Técnico en Campo</span>
+        </div>
+        <span class="firma-sub">C.C. <span id="txt-firma-cedula">____________________</span></span>
+      </div>
+      <div class="firma-box">
+        <span class="firma-tit">Ingeniero Funcional / Interventoría</span>
+        <div class="firma-linea">
+          <span>Aprobación y Visto Bueno</span>
+        </div>
+        <span class="firma-sub">Supervisión Técnica IT Vial SAS</span>
+      </div>
+    </div>
+  </section>
+
   <footer class="page">
     <span>Proyecto Semáforos Sisga — Controladora V9.0</span>
     <span>IT Vial SAS · Paquete_Revision_V9.0_2026-09-10</span>
@@ -962,6 +1681,241 @@
     });
   });
 
+  // ---- GESTIÓN DEL PROTOCOLO DE INSPECCIÓN Y CAPTURA DE RESPUESTAS ----
+  var PROTOCOLO_KEY = 'sisga_camaras_feedback_v1';
+  var Q_COUNT = 11;
+
+  var protoState = {
+    meta: {
+      inspector: '',
+      cedula: '',
+      fecha: '',
+      lugar: 'Sisga - Frente Obra',
+      serieM: '',
+      serieE: '',
+      talanquera: '',
+      observaciones: ''
+    },
+    answers: {},
+    notes: {}
+  };
+
+  try {
+    var rawProto = localStorage.getItem(PROTOCOLO_KEY);
+    if (rawProto) {
+      var parsed = JSON.parse(rawProto);
+      if (parsed && parsed.meta) protoState = parsed;
+    }
+  } catch(e){}
+
+  // Si no hay fecha, sembrar fecha actual
+  if (!protoState.meta.fecha) {
+    var d = new Date();
+    var pad = function(n){ return n < 10 ? '0'+n : n; };
+    protoState.meta.fecha = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  // Elementos de entrada de metadatos
+  var elInspector = document.getElementById('f-inspector');
+  var elCedula = document.getElementById('f-cedula');
+  var elFecha = document.getElementById('f-fecha');
+  var elLugar = document.getElementById('f-lugar');
+  var elSerieM = document.getElementById('f-serie-m');
+  var elSerieE = document.getElementById('f-serie-e');
+  var elTalanquera = document.getElementById('f-talanquera');
+  var elObsGen = document.getElementById('f-observaciones-generales');
+
+  var txtFirmaInspector = document.getElementById('txt-firma-inspector');
+  var txtFirmaCedula = document.getElementById('txt-firma-cedula');
+
+  var statCumple = document.getElementById('stat-cumple');
+  var statNoCumple = document.getElementById('stat-nocumple');
+  var statPendiente = document.getElementById('stat-pendiente');
+  var dictamenBadge = document.getElementById('dictamen-badge');
+  var saveStatusBadge = document.getElementById('save-status-badge');
+
+  function cargarValoresMetadatos() {
+    elInspector.value = protoState.meta.inspector || '';
+    elCedula.value = protoState.meta.cedula || '';
+    elFecha.value = protoState.meta.fecha || '';
+    elLugar.value = protoState.meta.lugar || '';
+    elSerieM.value = protoState.meta.serieM || '';
+    elSerieE.value = protoState.meta.serieE || '';
+    elTalanquera.value = protoState.meta.talanquera || '';
+    elObsGen.value = protoState.meta.observaciones || '';
+
+    actualizarFirmas();
+  }
+
+  function actualizarFirmas() {
+    txtFirmaInspector.textContent = elInspector.value.trim() || 'Firma del Técnico en Campo';
+    txtFirmaCedula.textContent = elCedula.value.trim() || '____________________';
+  }
+
+  function guardarProtocoloLocal() {
+    protoState.meta.inspector = elInspector.value;
+    protoState.meta.cedula = elCedula.value;
+    protoState.meta.fecha = elFecha.value;
+    protoState.meta.lugar = elLugar.value;
+    protoState.meta.serieM = elSerieM.value;
+    protoState.meta.serieE = elSerieE.value;
+    protoState.meta.talanquera = elTalanquera.value;
+    protoState.meta.observaciones = elObsGen.value;
+
+    actualizarFirmas();
+
+    try {
+      localStorage.setItem(PROTOCOLO_KEY, JSON.stringify(protoState));
+      if (saveStatusBadge) {
+        saveStatusBadge.textContent = 'Respuestas guardadas (' + new Date().toLocaleTimeString() + ')';
+      }
+    } catch(e){}
+  }
+
+  // Vincular eventos de metadatos
+  [elInspector, elCedula, elFecha, elLugar, elSerieM, elSerieE, elTalanquera, elObsGen].forEach(function(el){
+    if (el) {
+      el.addEventListener('input', guardarProtocoloLocal);
+    }
+  });
+
+  // Vincular botones de opciones de cada pregunta
+  var qItems = document.querySelectorAll('.pregunta-item');
+  qItems.forEach(function(item){
+    var qid = item.getAttribute('data-qid');
+    var btns = item.querySelectorAll('.btn-opt');
+    var obsInput = item.querySelector('#obs-' + qid);
+    var printTag = item.querySelector('.print-tag-opt');
+
+    // Cargar nota existente
+    if (obsInput && protoState.notes[qid]) {
+      obsInput.value = protoState.notes[qid];
+    }
+
+    if (obsInput) {
+      obsInput.addEventListener('input', function(){
+        protoState.notes[qid] = obsInput.value;
+        guardarProtocoloLocal();
+      });
+    }
+
+    // Cargar respuesta existente
+    var currentVal = protoState.answers[qid];
+    btns.forEach(function(btn){
+      var val = btn.getAttribute('data-val');
+      if (currentVal === val) {
+        btn.classList.add('active');
+        if (printTag) {
+          printTag.textContent = val.toUpperCase();
+          printTag.className = 'print-tag-opt ' + val;
+        }
+      }
+
+      btn.addEventListener('click', function(){
+        btns.forEach(function(b){ b.classList.remove('active'); });
+        if (protoState.answers[qid] === val) {
+          // Desmarcar
+          delete protoState.answers[qid];
+          if (printTag) printTag.textContent = '';
+        } else {
+          btn.classList.add('active');
+          protoState.answers[qid] = val;
+          if (printTag) {
+            printTag.textContent = val.toUpperCase();
+            printTag.className = 'print-tag-opt ' + val;
+          }
+        }
+        guardarProtocoloLocal();
+        actualizarTally();
+      });
+    });
+  });
+
+  function actualizarTally() {
+    var c = 0, nc = 0, p = 0;
+    for (var i = 1; i <= Q_COUNT; i++) {
+      var val = protoState.answers['q' + i];
+      if (val === 'cumple') c++;
+      else if (val === 'nocumple') nc++;
+      else p++;
+    }
+
+    statCumple.textContent = c;
+    statNoCumple.textContent = nc;
+    statPendiente.textContent = p;
+
+    dictamenBadge.className = 'dictamen-veredicto';
+    if (nc > 0) {
+      dictamenBadge.classList.add('no-apto');
+      dictamenBadge.textContent = 'NO APTO — CORREGIR ' + nc + ' REQUISITO(S)';
+    } else if (c === Q_COUNT) {
+      dictamenBadge.classList.add('apto');
+      dictamenBadge.textContent = 'APTO PARA SERVICIO VIAL (100% CUMPLE)';
+    } else {
+      dictamenBadge.classList.add('evaluando');
+      dictamenBadge.textContent = 'EVALUACIÓN EN CURSO (' + p + ' PENDIENTES)';
+    }
+  }
+
+  function mostrarToast(msg) {
+    var t = document.getElementById('app-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'app-toast';
+      t.className = 'toast';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 3000);
+  }
+
+  window.guardarRespuestas = function() {
+    guardarProtocoloLocal();
+    mostrarToast('✔ Respuestas y notas guardadas correctamente en este dispositivo.');
+  };
+
+  window.reiniciarFormulario = function() {
+    if (confirm('¿Desea reiniciar todas las respuestas y notas del formulario?')) {
+      protoState.answers = {};
+      protoState.notes = {};
+      qItems.forEach(function(item){
+        item.querySelectorAll('.btn-opt').forEach(function(b){ b.classList.remove('active'); });
+        var inp = item.querySelector('input');
+        if (inp) inp.value = '';
+        var pt = item.querySelector('.print-tag-opt');
+        if (pt) pt.textContent = '';
+      });
+      guardarProtocoloLocal();
+      actualizarTally();
+      mostrarToast('Formulario restablecido.');
+    }
+  };
+
+  // Manejo de impresión y descarga PDF
+  window.guardarParte = function() {
+    guardarProtocoloLocal();
+    actualizarTally();
+    window.print();
+  };
+
+  window.addEventListener('beforeprint', function(){
+    guardarProtocoloLocal();
+    actualizarTally();
+    // Actualizar tags de texto para impresión
+    qItems.forEach(function(item){
+      var qid = item.getAttribute('data-qid');
+      var val = protoState.answers[qid] || 'PENDIENTE';
+      var tag = item.querySelector('.print-tag-opt');
+      if (tag) {
+        tag.textContent = '[' + val.toUpperCase() + ']';
+        tag.style.display = 'inline-block';
+      }
+    });
+  });
+
+  cargarValoresMetadatos();
+  actualizarTally();
   render();
 })();
 </script>
