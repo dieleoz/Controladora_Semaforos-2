@@ -24,12 +24,12 @@
 ## 🧾 De dónde salen las cifras de este documento
 
 **Todas las cifras de la tabla siguiente están copiadas del acta
-[`evidencia/2026-09-08_compuerta.txt`](evidencia/2026-09-08_compuerta.txt), no escritas a mano.**
+[`evidencia/2026-09-10_compuerta.txt`](evidencia/2026-09-10_compuerta.txt), no escritas a mano.**
 Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 `documentos_04_cifras_sin_vigilante`, que es lo que impide que este documento envejezca en silencio.
 
 > 🔴 **Lo que ese acta dice de sí misma, y hay que leer antes de firmar nada:**
-> `HEAD db13df4`, rama **`feat/d20-d23-construccion`**, y **`Arbol: CON CAMBIOS SIN COMMITEAR`** — el
+> `HEAD f27f1a0`, rama **`fix/campo-sisga-rtc-darpaso`**, y **`Arbol: CON CAMBIOS SIN COMMITEAR`** — el
 > acta se escribe **antes** del commit que la publica, así que ese aviso sale siempre. Un registro de
 > validación que se firma sobre un árbol sucio no es reproducible; para que lo sea hay que volver a
 > correr la compuerta con el árbol limpio.
@@ -45,8 +45,8 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 
 | Verificación | Resultado medido | Método |
 |---|---|---|
-| Compilación Maestro (STM32F103) | **58088 B de Flash — 88.6 %** de 65536 B (quedan **7448 B**) | `pio run` |
-| Compilación Esclavo (STM32F103) | **45152 B de Flash — 68.9 %** de 65536 B | `pio run` |
+| Compilación Maestro (STM32F103) | **58208 B de Flash — 88.8 %** de 65536 B (quedan **7328 B**) | `pio run` |
+| Compilación Esclavo (STM32F103) | **45268 B de Flash — 69.1 %** de 65536 B | `pio run` |
 | Compilación Repetidor (ESP32) | **270497 B de Flash — 20,6 %** de 1310720 B | `pio run` |
 | Guarda de rutas de los instrumentos | **64 rutas** parseadas, todas existen | `compuerta.py` |
 | Banco de simulación funcional | **9/9 PASS** | `simulador_sistema_v7_6.py` |
@@ -80,8 +80,8 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 >
 > | publicaba | medido hoy | por qué importa |
 > |---|---|---|
-> | ~~Maestro: 42.620 B (65,0 %)~~ | **58088 B (88.6 %)** | 🔴 **El error grave.** Quien planificase con el 65 % creería tener **~23 KB libres**; quedan **7448 B**. Con esa cifra se propone estructura que **no cabe** |
-> | ~~Esclavo: 15.480 B (23,6 %)~~ | **45152 B (68.9 %)** | Casi el triple de ocupación real |
+> | ~~Maestro: 42.620 B (65,0 %)~~ | **58208 B (88.8 %)** | 🔴 **El error grave.** Quien planificase con el 65 % creería tener **~23 KB libres**; quedan **7328 B**. Con esa cifra se propone estructura que **no cabe** |
+> | ~~Esclavo: 15.480 B (23,6 %)~~ | **45268 B (69.1 %)** | Casi el triple de ocupación real |
 > | ~~Repetidor: 269.197 B (20,5 %)~~ | **270497 B (20,6 %)** | El acta mide **una** compilación de repetidor, no dos |
 > | ~~Compilación Repetidor diagnóstico: 270.257 B (20,6 %)~~ | — | ⛔ **Retirada.** La compuerta no la mide: publicar una fila sin medida detrás la hace leerse como medida |
 > | ~~Banco funcional 9/9~~ | **9/9** — las 20 de entonces incluian 11 pruebas que no median nada; se retiraron con su evidencia una a una | |

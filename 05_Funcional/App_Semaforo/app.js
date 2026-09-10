@@ -2115,6 +2115,10 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     const crudo = String(state.hora).trim();
+    if (crudo === '00:00:00') {
+      decir('00:00:00 · NO SINCRONIZADO', 'var(--amber-lamp)');
+      return;
+    }
     if (/^\d{2}:\d{2}:\d{2}$/.test(crudo)) {
       decir(crudo, 'var(--green-lamp)');
       return;
@@ -2503,7 +2507,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (punta) { avisarOtraPunta('MANUAL:CAMBIAR_TURNO', punta); return; }
       if (!confirmarVia('MANUAL:CAMBIAR_TURNO', () => btnOpStep.click())) return;
       if (!enviarComandoFirmware('MANUAL:CAMBIAR_TURNO')) return;
-      addEvent('cyan', 'Operario: orden CAMBIAR TURNO enviada al equipo.');
+      showToast('✋ DAR PASO: despejando vía (15s todo-rojo)...');
+      addEvent('cyan', 'Operario: orden CAMBIAR TURNO enviada. Se aplicará despeje todo-rojo (15s) antes de habilitar el verde opuesto.');
     });
   }
 
@@ -3160,6 +3165,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const ACK_TEXTO = {
+    'CAMBIAR_TURNO|OK': {
+      tono: 'green',
+      texto: 'Equipo: CAMBIO DE TURNO ACEPTADO. Despejando calzada única: ambos sentidos en ' +
+             'TODO-ROJO durante 15 s. Luego el sentido opuesto pasará por ámbar de transición (4 s) y abrirá en VERDE.',
+      toast: 'Cambio de turno aceptado: despejando vía (15 s todo-rojo)...'
+    },
     'CANCELAR_AMBAR|RETIRADO': {
       tono: 'green',
       texto: 'Equipo: ambar de emergencia RETIRADO. No queda ningun ambar puesto en ' +
@@ -4029,6 +4040,10 @@ document.addEventListener('DOMContentLoaded', () => {
           ? anotarLecturaDeReloj(
               data, cual === 'LEER_RTC' ? 'CONSULTA DE RELOJ' : 'Hora puesta')
           : null;
+      if ((cual === 'SET_RTC' || cual === 'LEER_RTC') && data.HORA) {
+        state.hora = data.HORA;
+        pintarHoraEquipo();
+      }
       const dicho = ACK_TEXTO[clave];
       if (dicho) {
         addEvent(dicho.tono, dicho.texto);

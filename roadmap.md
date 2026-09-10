@@ -1086,6 +1086,39 @@ a buscar el sintoma contrario al que tiene.**
 > **237 | 2 FALLAS** —caen las dos positivas y **los dos controles siguen verdes, que es lo
 > correcto**—. Restaurado por `sha256` (`b826d568…`).
 
+### 3.16 · 🟢 Incidentes de Campo en El Sisga (10/09/2026) — RTC DS3231, DAR PASO y Cámaras J16
+
+**Durante las pruebas en campo en El Sisga (Maestro serial 179DB0), Marco Pérez Ramírez (ITvial) reportó tres incidencias operativas.** Las tres se analizaron contra el firmware y la app, y se resolvieron en la rama `fix/campo-sisga-rtc-darpaso`.
+
+#### 1. Sincronización Courier RTC / DS3231 (`HORA:00:00:00`)
+- **Síntoma**: *«Sigue sin funcionar el tema de la configuración de Courier RTC y Sincronizar reloj DS3231»*. El equipo emitía `$STATUS,...,HORA:00:00:00,...` y la app mostraba la hora clavada en ceros.
+- **Causa raíz identificada**:
+  1. **En STM32 (`reloj.cpp`)**: Al arrancar con dominio de respaldo activo y cristal Y2 inoperativo (`N-17`), el año en el RTC del micro cumplía `rtc.getYear() >= ANIO_MARCA` de ejecuciones previas, marcando `horaValida = true` aunque los contadores estuvieran en `00:00:00`.
+  2. **Prioridad invertida en `reloj_segundosDelDia()`**: Evaluaba `if (rtcOperativo)` antes que la extrapolación por software con `millis()` (`D-20`). Si el hardware RTC decía estar operativo pero el contador estaba quieto o en ceros, ignoraba la hora sembrada por software.
+  3. **Hueco en `sellarHoraSiFaltaba()` (`puente.cpp` en ESP32)**: Solo buscaba `HUECO_HORA` (`"HORA:--:--:--"`) para inyectar la lectura del DS3231. Al recibir `"HORA:00:00:00"`, la dejaba pasar intacta sin sellarla.
+  4. **En la App móvil**: Tras enviar `SET_RTC` o `LEER_RTC`, la app no actualizaba inmediatamente la variable visual `state.hora`, esperando al siguiente frame `$STATUS`. Además, si recibía `00:00:00`, la mostraba en verde engañoso como si estuviera sincronizado.
+- **Solución implementada**:
+  - `reloj_setup()` y `reloj_actualizar()` exigen contadores distintos de cero (`h!=0 || m!=0 || s!=0`) para declarar `horaValida = true`. El STM32 emite `HORA:--:--:--` hasta ser sincronizado.
+  - `reloj_segundosDelDia()` prioriza la extrapolación de software `(segBaseDelDia + deltaS) % 86400UL` siempre que `tBaseMillis > 0` (`D-20`), asegurando avance monotónico aunque Y2 esté muerto.
+  - `puente.cpp` en ESP32 sella tanto `HORA:--:--:--` como `HORA:00:00:00` con la hora válida del RTC DS3231.
+  - La app móvil (`app.js`) actualiza `state.hora` y refresca la UI inmediatamente al recibir `$ACK,NODE:PUENTE,CMD:SET_RTC` o `CMD:LEER_RTC`. Si llega `00:00:00`, `pintarHoraEquipo()` lo pinta en ámbar de advertencia (`00:00:00 · NO SINCRONIZADO`).
+
+#### 2. Operación de DAR PASO en vía reversible
+- **Síntoma**: *«El modo DAR PASO, después de 15segundos esclavo pasa a ámbar intermitente y maestro queda en rojo... cada vez que se haga el cambio uno debe de estar en rojo el otro en verde y ir variado de acuerdo a cómo se solicite»*.
+- **Aclaración técnica y causa**:
+  - En un paso alternado de carril único (vía reversible), la seguridad vial exige evacuar todo vehículo en el tramo antes de dar paso al sentido contrario. Esto lo realiza el intervalo de despeje todo-rojo obligatorio (`tiempoDespejeMs = 15000UL`, 15 segundos), seguido de 4 segundos de amarillo de transición (`TIEMPO_AMARILLO_MS = 4000UL`) en el semáforo que recibe el verde.
+  - El operario interpretaba los 15 s de todo-rojo y la transición ámbar como un bloqueo o fallo a ámbar intermitente, y además ejecutaba `DAR PASO` mientras el cruce estaba en `AUTOMÁTICO` autónomo en lugar de pasar a `MANUAL`.
+- **Mejoras en la App**:
+  - Se añadió `CAMBIAR_TURNO|OK` a `ACK_TEXTO` explicando la secuencia de seguridad.
+  - Al pulsar `btnOpStep` ("DAR PASO") se muestra una notificación toast explícita: *«Cambio de turno solicitado. Iniciando despeje todo-rojo (15s) antes del verde opuesto.»*
+
+#### 3. Cámaras por poste (J16 p10 y p12)
+- **Pregunta**: *«Solo me envías una cámara por poste... no le da la conexión de la otra cámara»*.
+- **Aclaración técnica**:
+  - Cada controladora dispone físicamente en la bornera `J16` de dos entradas optoacopladas de cámara: `CAM_C_PIN` (`PB14`, p10, cámara principal de Demanda) y `CAM_D_PIN` (`PB15`, p12, cámara secundaria de Umbral/Respaldo).
+  - En el protocolo de telemetría NMEA, por la restricción de 155 bytes de payload máximo (`N-154`), viaja un solo campo consolidado `CAM:<ESTADO>` generado por `camara_estado()`, que reporta el peor estado entre las dos entradas.
+  - Ambas entradas de cámara están cableadas, activas y leídas por la lógica de control.
+
 ---
 
 ## 4. Lo que necesita una COMPRA o un SOLDADOR

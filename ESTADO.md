@@ -268,18 +268,18 @@ acta es el ESTADO: `decisiones_01_anclas` vuelve a acusar a `D-14`, `D-22` y `D-
 ancla en el fuente, y esa acusación es CORRECTA — están decididas y sin construir.**
 
 Cifras **copiadas del acta
-[`evidencia/2026-09-08_compuerta.txt`](evidencia/2026-09-08_compuerta.txt)**, no escritas a mano —
+[`evidencia/2026-09-10_compuerta.txt`](evidencia/2026-09-10_compuerta.txt)**, no escritas a mano —
 lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida.
 
 | | |
 |---|---|
-| Flash | Maestro **88.6 %** (**58088** de 65536 B → **7.448 B libres**) · Esclavo **68.9 %** (45152 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Flash | Maestro **88.8 %** (**58208** de 65536 B → **7.328 B libres**) · Esclavo **69.1 %** (45268 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
 | Banco por packs | 🔴 **1249/1252 comprobaciones** en **78 packs** — 77 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
 | Arneses que compilan C++ real | 271/271 pantalla · **99/99** automático · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | **239/239** jsdom · 58/58 funcional · 32/32 unitarios · **61/61** TDD |
 
-> 🔴 **El acta se midió sobre HEAD `0b06f7d` y con el árbol CON CAMBIOS SIN COMMITEAR** —lo dice
+> 🔴 **El acta se midió sobre HEAD `f27f1a0` y con el árbol CON CAMBIOS SIN COMMITEAR** —lo dice
 > su última línea—, así que estas cifras **no corresponden exactamente** a ningún commit. Para que
 > sean reproducibles hay que volver a correr la compuerta con el árbol limpio.
 

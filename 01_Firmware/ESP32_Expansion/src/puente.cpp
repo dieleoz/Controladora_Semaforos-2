@@ -228,6 +228,11 @@ static bool sellarHoraSiFaltaba(char* linea) {
   // viejo -bien formada, con el sello puesto, y descartada por la app sin que nada lo
   // dijera-. Es la escritura a medias de R-5 aplicada a una trama en vez de a un bus.
   char* hueco = strstr(linea, HUECO_HORA);
+  if (hueco == NULL) {
+    // Si el STM32 arranco con el contador en ceros y sin cristal Y2 (N-144),
+    // tambien se sella con la hora valida del DS3231 del puente.
+    hueco = strstr(linea, "HORA:00:00:00");
+  }
   if (hueco == NULL) return false;
 
   // trama_valida() ya exigio que exista, y aun asi se comprueba: esta funcion MUTA la

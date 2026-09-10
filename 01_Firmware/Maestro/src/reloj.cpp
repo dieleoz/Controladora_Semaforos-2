@@ -73,7 +73,8 @@ void reloj_setup() {
   rtc.begin(false, STM32RTC::HOUR_24);      // false = NO borrar la hora guardada
   rtcOperativo = true;                      // N-24: a partir de aqui el RTC cuenta
 
-  horaValida = rtc.isConfigured() && (rtc.getYear() >= ANIO_MARCA);
+  horaValida = rtc.isConfigured() && (rtc.getYear() >= ANIO_MARCA) &&
+               (rtc.getHours() != 0 || rtc.getMinutes() != 0 || rtc.getSeconds() != 0);
 }
 
 static const unsigned long REINTENTO_LSE_MS = 30000;
@@ -126,7 +127,8 @@ void reloj_actualizar() {
 
   // Sin base previa si vale adoptar lo que el RTC traiga: es un arranque en caliente
   // con la hora que sobrevivio en el dominio de respaldo.
-  if (rtc.isConfigured() && (rtc.getYear() >= ANIO_MARCA)) {
+  if (rtc.isConfigured() && (rtc.getYear() >= ANIO_MARCA) &&
+      (rtc.getHours() != 0 || rtc.getMinutes() != 0 || rtc.getSeconds() != 0)) {
     horaValida = true;
   }
 }
@@ -157,40 +159,50 @@ bool reloj_enHora() { return horaValida; }
 
 uint32_t reloj_segundosDelDia() {
   if (!horaValida) return 0;
+  // D-20: si hay base de software sembrada (tBaseMillis > 0), manda la extrapolacion
+  // por millis() pues el cristal Y2 de 32 kHz no esta garantizado (N-17) y puede no oscilar.
+  if (tBaseMillis > 0) {
+    const uint32_t deltaS = (millis() - tBaseMillis) / 1000UL;
+    return (segBaseDelDia + deltaS) % 86400UL;
+  }
   if (rtcOperativo) {
     return (uint32_t)rtc.getHours() * 3600UL + (uint32_t)rtc.getMinutes() * 60UL +
            (uint32_t)rtc.getSeconds();
   }
-  // D-20: extrapolacion por software usando millis()
-  const uint32_t deltaS = (millis() - tBaseMillis) / 1000UL;
-  return (segBaseDelDia + deltaS) % 86400UL;
+  return 0;
 }
 
 uint8_t reloj_hora() {
   if (!horaValida) return 0;
+  if (tBaseMillis > 0) return (uint8_t)(reloj_segundosDelDia() / 3600UL);
   if (rtcOperativo) return rtc.getHours();
-  return (uint8_t)(reloj_segundosDelDia() / 3600UL);
+  return 0;
 }
 
 uint8_t reloj_minuto() {
   if (!horaValida) return 0;
+  if (tBaseMillis > 0) return (uint8_t)((reloj_segundosDelDia() % 3600UL) / 60UL);
   if (rtcOperativo) return rtc.getMinutes();
-  return (uint8_t)((reloj_segundosDelDia() % 3600UL) / 60UL);
+  return 0;
 }
 
 uint8_t reloj_segundo() {
   if (!horaValida) return 0;
+  if (tBaseMillis > 0) return (uint8_t)(reloj_segundosDelDia() % 60UL);
   if (rtcOperativo) return rtc.getSeconds();
-  return (uint8_t)(reloj_segundosDelDia() % 60UL);
+  return 0;
 }
 
 uint8_t reloj_dia() {
   if (!horaValida) return 0;
+  if (tBaseMillis > 0) {
+    const uint32_t deltaDias = (segBaseDelDia + ((millis() - tBaseMillis) / 1000UL)) / 86400UL;
+    uint32_t d = (uint32_t)diaBase + deltaDias;
+    while (d > 31) d -= 31;
+    return (uint8_t)(d == 0 ? 1 : d);
+  }
   if (rtcOperativo) return rtc.getDay();
-  const uint32_t deltaDias = (segBaseDelDia + ((millis() - tBaseMillis) / 1000UL)) / 86400UL;
-  uint32_t d = (uint32_t)diaBase + deltaDias;
-  while (d > 31) d -= 31;
-  return (uint8_t)(d == 0 ? 1 : d);
+  return 1;
 }
 
 void reloj_fijarEnero() {

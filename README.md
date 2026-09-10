@@ -78,7 +78,7 @@ La tabla de abajo es verdad. **Lee lo que mide antes de lo que puntúa.**
 > tabla. Mismo cobre, distinto `pinMode`, distinta tensión. Ver `DECISIONES.md`, cerradas.)*
 
 **Verificación actual** — cifras **copiadas del acta**
-[`evidencia/2026-09-08_compuerta.txt`](evidencia/2026-09-08_compuerta.txt), que genera
+[`evidencia/2026-09-10_compuerta.txt`](evidencia/2026-09-10_compuerta.txt), que genera
 `python 01_Firmware/compuerta.py` en una sola corrida. No se escriben a mano — y desde **N-62**
 eso ya no es una promesa: el pack `documentos_01_cifras_del_acta` compara esta tabla contra la
 última acta en cada corrida del banco. Cuando se escribió por primera vez, **falló**: esta tabla
@@ -89,10 +89,10 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
 | banco por packs *(78 packs)* | 🔴 **FALLA** | **1249/1252 comprobaciones en 78 packs** — 77 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22` y `D-23` son decisiones VIGENTES sin construir**. **Sólo `D-20` y la pieza B de `D-21` lo están.** Ninguna de las tres se destraba con teclado: una espera un multímetro, otra una tarjeta delante y la tercera que se elija la vía |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **88.6 %** · 68.9 % · 20.6 % · 35.7 % — *el Maestro ocupa **58088 de 65536 B**, o sea **7.448 B libres**; el Esclavo, **45152 B*** |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **88.8 %** · 69.1 % · 20.6 % · 35.7 % — *el Maestro ocupa **58208 de 65536 B**, o sea **7.328 B libres**; el Esclavo, **45268 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
-| compila ESP32 | ✅ | 35.7 % — 1122973 de 3.145.728 B |
+| compila ESP32 | ✅ | 35.7 % — 1123005 de 3.145.728 B |
 | simulador del puente ESP32 | ✅ | **101/101** — las tres puntas: `bluetooth.cpp` compilado, la app en jsdom, y solo el ESP32 modelado |
 | simulador de app y bluetooth | ✅ | **12/12** — estuvo en `ABORTADO` unas horas el 05/09: **N-149** le añadió el campo `ESC` al `$STATUS` y el instrumento no supo con qué compararlo. Se enseñó a leerlo el mismo día. Queda escrito porque **mientras duró, todo lo que vigilaba entró sin mirar** (`CLAUDE.md` §3.quater) |
 | **app ejecutada en DOM** | ✅ | **239/239** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden**, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
