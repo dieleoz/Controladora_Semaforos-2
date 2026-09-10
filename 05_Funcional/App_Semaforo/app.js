@@ -1231,9 +1231,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // texto entero a la vista, seleccionado, para pegarlo donde sea.
   function textoDepuracion() {
     return RegistroCrudo.aTexto(Date.now(), {
+      App: 'IOT-VIAL V9.0 (Controladora Semaforos)',
       Cruce: state.site,
       Equipo: state.node === null ? 'sin identificar (ningun $STATUS con NODE)' : state.node,
       Serie: state.serie === null ? 'sin identificar' : state.serie,
+      Modo: state.modo === null ? 'sin telemetria' : state.modo,
+      Estado: state.estadoLuces === null ? 'sin telemetria' : state.estadoLuces,
+      Hora_RTC: state.hora === null ? 'sin telemetria' : state.hora,
+      Pluma: state.pluma === null ? 'sin telemetria' : state.pluma,
+      Camaras: state.cam === null ? 'sin telemetria' : state.cam,
       Enlace: state.rfQuality === null
         ? 'no medido en esta sesion'
         : state.rfQuality + '% a las ' + _horaDe(state.rfMedidaMs)
@@ -1282,6 +1288,9 @@ document.addEventListener('DOMContentLoaded', () => {
         );
       } else {
         showToast('El texto esta abajo, seleccionado: peguelo donde quiera');
+      }
+      if (navigator.share && typeof navigator.share === 'function') {
+        navigator.share({ title: 'Tramas IOT-VIAL', text: texto }).catch(() => {});
       }
     });
   }
@@ -1462,9 +1471,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // ninguna parte sin que la pagina se entere.
   function textoDiario() {
     return DiarioOrdenes.aTexto(Date.now(), {
+      App: 'IOT-VIAL V9.0 (Controladora Semaforos)',
       Cruce: state.site,
       Equipo: state.node === null ? 'sin identificar (ningun $STATUS con NODE)' : state.node,
-      Serie: state.serie === null ? 'sin identificar' : state.serie
+      Serie: state.serie === null ? 'sin identificar' : state.serie,
+      Modo: state.modo === null ? 'sin telemetria' : state.modo,
+      Estado: state.estadoLuces === null ? 'sin telemetria' : state.estadoLuces,
+      Hora_RTC: state.hora === null ? 'sin telemetria' : state.hora
     });
   }
 
@@ -1507,6 +1520,9 @@ document.addEventListener('DOMContentLoaded', () => {
         );
       } else {
         showToast('El texto esta abajo, seleccionado: peguelo donde quiera');
+      }
+      if (navigator.share && typeof navigator.share === 'function') {
+        navigator.share({ title: 'Diario de Órdenes IOT-VIAL', text: texto }).catch(() => {});
       }
     });
   }
@@ -5576,6 +5592,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const bateriaTexto = state.battery === null
         ? 'no medida por el equipo' : `${state.battery.toFixed(1)} V`;
       r += `🔋 *Batería:* ${bateriaTexto} | *Enlace:* ${enlaceTexto}\n`;
+      r += `⏱️ *Hora RTC:* ${state.hora || 'sin datos'} | *Pluma:* ${state.pluma || 'sin datos'} | *Cámaras:* ${state.cam || 'sin datos'}\n`;
       r += `_El enlace es el % de latidos que contestaron, no potencia de señal._\n\n`;
       r += `*Últimos Eventos:*\n`;
       state.events.slice(0, 5).forEach(ev => {
