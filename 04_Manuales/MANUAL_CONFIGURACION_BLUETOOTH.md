@@ -522,7 +522,7 @@ El checksum se calcula aplicando la operación **XOR bit a bit** de todos los by
 > | **`SERIE:`** | matrícula del equipo, leída del **silicio del STM32**. Es de donde el puente saca su rótulo SPP | las dos |
 > | **`ESC:`** | **qué ve el Maestro del Esclavo.** Asimetría deliberada (N-149): la punta subordinada no publica un juicio sobre quien la manda | **sólo Maestro** |
 > | **`PLUMA:`** | `ARRIBA` · `ABAJO` (N-153) | las dos |
-> | **`CAM:`** | `OK` · `CIEGA` · `PEGADA` · `?` — **la PEOR de las dos cámaras**, no una por cada una (`A-13`, cerrada el 07/09) | las dos |
+> | **`CAM:`** | `OK` · `CIEGA` · `PEGADA` · `?` — **la PEOR de las dos cámaras**, no una por cada una (`A-13`, cerrada el 07/09). ⚠️ **11/09, `D-25` (dos cámaras por poste): la peor sólo entre las que ya dieron un flanco** — `camara_estado()` salta la que nunca detectó, así que **`OK` sale con que detecte UNA** aunque la otra esté muerta desde la instalación. No sirve para aceptar una cámara: eso se hace con el multímetro en su borne | las dos |
 >
 > 🔴 **Un parser que exija los campos en el orden viejo, o que dé por sentado que las dos puntas
 > mandan lo mismo, se rompe con el Esclavo.** No es un campo de más: son **cuatro**, y en el Esclavo

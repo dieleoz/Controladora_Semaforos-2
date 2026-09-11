@@ -33,8 +33,20 @@ que es donde se anotan las medidas.
 > como **acta** de la 1.ª noche, no como guion. **Un solo encargo vigente.**)*
 > ⛔ *(Las dos guías «de 4 cámaras del Sisga» del 10/09 se **RETIRARON el 11/09** a
 > [`historico/`](historico/): afirmaban que una cámara protege la pluma y que la pluma solo sube con
-> verde, y las dos cosas son falsas en el firmware. La cámara se cablea por el **Manual 9** y la
-> decisión vigente `D-13`: **una por poste**. Veredicto completo en `roadmap.md` §3.16.)*
+> verde, y las dos cosas son falsas en el firmware. ~~La cámara se cablea por el **Manual 9** y la
+> decisión vigente `D-13`: **una por poste**.~~ Veredicto completo en `roadmap.md` §3.16.)*
+>
+> **5.** 📷 **Si va a montar las CÁMARAS o la TALANQUERA del Sisga, la guía de campo es la
+> [`Camaras_Sisga_4x.html`](Camaras_Sisga_4x.html) — versión corregida del 11/09**, que sustituye a
+> la del 10/09 y empieza por su **fe de erratas**. ✏️ **11/09, `D-25`:** las conexiones de aquella
+> guía quedan **definitivas**: **cuatro cámaras, DOS POR POSTE** —cámara 1 entre `J16` p9 (3,3 V) y
+> **p10** (`CAM_C_PIN`), cámara 2 entre `J16` p11 (3,3 V) y **p12** (`CAM_D_PIN`)— y la
+> **talanquera en `J15`** por relé a la entrada `OPEN` de la centralita. La configuración de cada
+> cámara, por el **Manual 9** y `D-13` (que sigue vigente en todo lo demás). Lo que el que cablea
+> tiene que saber, medido en el firmware: **las dos cámaras de un poste hacen LO MISMO**, **ninguna
+> frena la pluma** (baja con un coche debajo) y **la app dice `OK — las dos ven` en cuanto detecta
+> CUALQUIERA de las dos**, aunque la otra no haya detectado nunca: **cada cámara se comprueba con
+> el multímetro en su borne** (paso 11 de la guía).
 >
 > El paso 1 **no es opcional**: es la corrección de la causa raíz del fallo de comunicación que aparecía
 > al paso de cada ciclo, en los tres modos, y del repetidor que no enlazaba. Sin él, el firmware nuevo
@@ -115,9 +127,9 @@ que es donde se anotan las medidas.
 >
 > | entrada | pin | bornera | antirrebote de placa | estado |
 > |---|---|---|---|---|
-> | `CAM_C_PIN` | `PB14` | `J16` p10 | ❌ ninguno *(pull-down `R67` 10 kΩ ✅)* | 🔵 **AQUÍ VA LA CÁMARA DEL POSTE 1** (`D-2`/`D-3`). ~~NO cablear hasta `M3`~~ — `M3` cerrada el 03/09 |
-> | `CAM_D_PIN` | `PB15` | `J16` p12 | ❌ ninguno *(pull-down `R68` 10 kΩ ✅)* | 🔵 **AQUÍ VA LA CÁMARA DEL POSTE 2** (`D-2`/`D-3`) |
-> | `CAM_DEMANDA_PIN` | `PB0` | `J14` | ✅ `R64` 10 kΩ + `C25` 100 nF | ~~✅ **cableable hoy**~~ → 🟠 **VIVO Y SIN CÁMARA.** El firmware lo sigue leyendo, pero **`CAM_CIEGA`/`CAM_PEGADA` NO lo vigilan**: es el único borne sin aviso de avería. Reservado a fin de carrera de barrera |
+> | `CAM_C_PIN` | `PB14` | `J16` p10 | ~~❌ ninguno~~ *(pull-down `R67` 10 kΩ ✅; 11/09: el netlist trae además `C28` 100 nF, sin medir en cobre)* | ~~🔵 **AQUÍ VA LA CÁMARA DEL POSTE 1** (`D-2`/`D-3`)~~ → ✏️ **11/09, `D-25`: la CÁMARA 1 DE CADA POSTE**, contra `p9`. ~~NO cablear hasta `M3`~~ — `M3` cerrada el 03/09 |
+> | `CAM_D_PIN` | `PB15` | `J16` p12 | ~~❌ ninguno~~ *(pull-down `R68` 10 kΩ ✅; 11/09: el netlist trae además `C29` 100 nF, sin medir en cobre)* | ~~🔵 **AQUÍ VA LA CÁMARA DEL POSTE 2** (`D-2`/`D-3`)~~ → ✏️ **11/09, `D-25`: la CÁMARA 2 DE CADA POSTE**, contra `p11`. **Hace lo mismo que la de `p10`** (`CAM_J16[2]`, un solo bucle en `camaras_actualizar()`). ⚠️ `p12` es el borne con **menos separación a la red de 12 V** (`1,359 mm`, `17_` §1.7): `p1` tapado, trabajo limpio |
+> | `CAM_DEMANDA_PIN` | `PB0` | `J14` | ✅ `R64` 10 kΩ + `C25` 100 nF | ~~✅ **cableable hoy**~~ → 🟠 **VIVO Y SIN CÁMARA.** El firmware lo sigue leyendo, pero **`CAM_CIEGA`/`CAM_PEGADA` NO lo vigilan**: es el único borne sin aviso de avería. Reservado a fin de carrera de barrera (`A-2`). 🔴 **CONFLICTO ABIERTO (11/09), del responsable:** `A-2` manda aquí el fin de carrera, pero el firmware **lee `PB0` como cámara de demanda** —el Maestro por nivel en el Modo Inteligente, el Esclavo por flanco y lo manda por radio—, así que un fin de carrera en `J14` **pediría paso cada vez que se mueve la pluma**. Antes de cablear nada aquí, pregunte al responsable |
 >
 > 🛑 **Las dos filas de arriba bloqueaban trabajo YA AUTORIZADO, y se tachan con su motivo — 05/09.**
 > `M3` se cerró el **03/09 con multímetro** (paso 20 del banco): pull-down real de **10 kΩ** en las
@@ -154,9 +166,11 @@ que es donde se anotan las medidas.
 > la sesión de banco es su primera comprobación física.
 >
 > Referencia de campo vigente: **[`9_Manual_Parametrizacion_Camara_IA.md`](9_Manual_Parametrizacion_Camara_IA.md)**
-> y **[`15_Lista_de_Compras_Hardware.md`](15_Lista_de_Compras_Hardware.md)**. **Son 2 cámaras, una
+> y **[`15_Lista_de_Compras_Hardware.md`](15_Lista_de_Compras_Hardware.md)**. ~~**Son 2 cámaras, una
 > por poste** (`DECISIONES.md` `D-2` / `D-13`), y **van a `J16`: `p10` en un poste y `p12` en el
-> otro** (`D-3`).
+> otro** (`D-3`).~~ → ✏️ **11/09, `D-25`: son 4 cámaras, DOS POR POSTE, y van a `J16` —`p10`
+> (contra `p9`) y `p12` (contra `p11`) en CADA poste—.** Guía de campo:
+> [`Camaras_Sisga_4x.html`](Camaras_Sisga_4x.html).
 >
 > ~~**2 cámaras es el montaje mínimo y el único cableable hoy** —una por poste, en `J14`—; las dos
 > entradas de `J16` de cada punta están en el firmware y **esperan la medida `M3`**.~~
@@ -169,7 +183,14 @@ que es donde se anotan las medidas.
 > **Y el motivo por el que `J16` no es una preferencia de conector:** el vigilante de
 > `CAM_CIEGA`/`CAM_PEGADA` **mira `J16` y no mira `J14`**. Una cámara cableada a `J14` **funciona y
 > no está vigilada** — nadie se enteraría de que se estropeó. `J14`/`PB0` queda **libre y vivo**,
-> reservado a un posible fin de carrera de barrera.
+> reservado a un posible fin de carrera de barrera — 🔴 **con el conflicto abierto de la tabla de
+> arriba (11/09): el firmware lo sigue leyendo como cámara.**
+>
+> ⚠️ **Y el vigilante tampoco ve a una cámara que NUNCA haya detectado** (11/09, medido):
+> `vigilante_tick()` no acumula silencio en un pin sin flanco y `camara_estado()` lo salta al
+> publicar `CAM:`. Esa exención se escribió cuando `p12` iba vacío a propósito; con `D-25` pierde
+> su motivo y **queda pendiente en firmware**. Hasta entonces, **una segunda cámara muerta desde el
+> día que se monta no la avisa nadie**, y por eso cada cámara se comprueba con el multímetro.
 
 ---
 

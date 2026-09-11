@@ -208,7 +208,7 @@ un puerto serie: aporta reloj y Bluetooth, y NO manda sobre las luces.**
    |                    |     |                          |
    |  luces    J3-J8    |     |  DS3231  GPIO21 SDA      |
    |  barrera  J15      |     |          GPIO22 SCL      |
-   |  camaras  J14, J16 |     |          (pila propia)   |
+   |  camaras  J16 (*)  |     |          (pila propia)   |
    |  LoRa     J12      |     |                          |
    |           USART3   |     |  Bluetooth (sustituye    |
    |                    |     |   al modulo SPP)         |
@@ -220,6 +220,11 @@ un puerto serie: aporta reloj y Bluetooth, y NO manda sobre las luces.**
              +-------- masa comun --------+
                        9600 8N1
 ```
+
+*(\*) Aquí ponía ~~`camaras J14, J16`~~. ✏️ **11/09:** las cámaras van a `J16` —dos por poste, p10 y
+p12 (`D-25`)—. `J14` no lleva cámara: `A-2` lo reserva al fin de carrera, **pero el firmware lo sigue
+leyendo como cámara de demanda (`CAM_DEMANDA_PIN` = `PB0`)** — conflicto abierto, del responsable
+(`ARQUITECTURA.map` §7.3).*
 
 ### El enlace, pin a pin — y la fuente
 
@@ -274,7 +279,12 @@ del netlist, **no el papel del pin**.)*
 > LO MISMO** (piden paso; `botones.cpp`, `CAM_J16[2]`), **ninguna protege la pluma** (el veto es
 > `A-1.bis`, sin construir), y **una segunda cámara muerta desde la instalación no la detecta nadie**
 > (el vigilante salta el pin que nunca dio un flanco): se comprueba cada cámara por separado al
-> instalar. Las frases falsas de la guía del 10/09 se corrigen en su versión nueva (`roadmap.md` §3.16).
+> instalar. Las frases falsas de la guía del 10/09 se corrigen en su versión nueva (`roadmap.md` §3.16)
+> → ✏️ **11/09: es [`05_Funcional/Camaras_Sisga_4x.html`](05_Funcional/Camaras_Sisga_4x.html)**, con
+> la fe de erratas delante y la talanquera en `J15` al final. ⚠️ **La app** (también la APK del 10/09)
+> **pone `CAM: OK — las dos ven` en cuanto detecta CUALQUIERA de las dos cámaras del poste**, aunque la
+> otra no haya detectado nunca: por eso **cada cámara se comprueba con el multímetro en su borne**
+> (0 V en reposo, 3,3 V con algo en la zona), y no con la app.
 
 > ✅ **La medida `M3` está CERRADA desde el 03/09 y las cámaras se cablean** (`D-3`). Medido en
 > cobre —multímetro, conector vacío, paso 20 de la Guía—: el pull-down de **10 kΩ** que declaraba
@@ -289,7 +299,9 @@ del netlist, **no el papel del pin**.)*
 
 > ⚠️ **El orden sigue siendo asimétrico: primero el firmware cargado, después el destornillador.**
 > Un commit no protege de un destornillador — se exige la **carga verificada en la tarjeta**, no el
-> merge.
+> merge. ✏️ **11/09, con `D-25` vale para los DOS pines:** con un binario anterior a `deeeab4` (la
+> V8.4 incluida) `PB14` es `botonAceptar()` y **`PB15` es `botonCancelar()`**, así que lo que se
+> cablee en `p10` **o en `p12`** puede actuar como un botón en un equipo que está en la calle.
 
 ### Seis luces gobernadas, no ocho
 
@@ -459,7 +471,7 @@ fallar varias veces con `Unable to get core ID`. Eso **no** es falta de cableado
 | 6 | [`6_Preguntas_Diseno_Funcional`](05_Funcional/6_Preguntas_Diseno_Funcional.md) | Decisiones de diseño cerradas |
 | 7 | [`7_Especificacion_Antenas`](05_Funcional/7_Especificacion_Antenas.md) | Antenas y línea de vista |
 | 8 | [`8_Procedimiento_Modo_Degradado`](05_Funcional/8_Procedimiento_Modo_Degradado.md) | Operación de emergencia por reloj sin radio |
-| 9 | [`9_Manual_Parametrizacion_Camara_IA`](05_Funcional/9_Manual_Parametrizacion_Camara_IA.md) | **4 cámaras, dos por poste** en `J16` p10/p12 (`D-25`, 11/09) — ⚠️ **el manual todavía dice una por poste: pendiente de alinear**. **Es el entregable principal del diseño de cámaras** (`D-12`): toda la inteligencia vive en la configuración de la cámara |
+| 9 | [`9_Manual_Parametrizacion_Camara_IA`](05_Funcional/9_Manual_Parametrizacion_Camara_IA.md) | **4 cámaras, dos por poste** en `J16` p10/p12 (`D-25`, 11/09) — ~~⚠️ **el manual todavía dice una por poste: pendiente de alinear**~~ ✏️ **alineado el 11/09** (el `.docx` no: se regenera aparte). **Es el entregable principal del diseño de cámaras** (`D-12`): toda la inteligencia vive en la configuración de la cámara |
 | 10 | [`10_Manual_Modulo_Bluetooth_Telemetria`](05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md) | ⚠️ **manda enchufar un `HC-05` en `J17`, que es donde va el ESP32** |
 | 11 | [`11_Manual_Instalacion_RTC_DS3231_Bateria`](05_Funcional/11_Manual_Instalacion_RTC_DS3231_Bateria.md) | ~~`DS3231` en `PB0`/`PB8`~~ → **se muda al ESP32**. ⚠️ **manual sin corregir** |
 | 12 | [`12_Cobertura_de_Pruebas_y_Huecos`](05_Funcional/12_Cobertura_de_Pruebas_y_Huecos.md) | Qué mide cada instrumento y **qué queda sin medir** |

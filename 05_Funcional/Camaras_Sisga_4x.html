@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cámaras Sisga — Guía corregida 11/09</title>
+  <style>
+    /* Sin @import de fuentes externas a proposito: en el poste puede no haber datos, y un
+       @import que no carga retrasa la pagina. Si IBM Plex esta instalada se usa; si no, la
+       del sistema. */
+
+    :root{
+      --bg:#f6f5f1;
+      --surface:#ffffff;
+      --surface-2:#efeee8;
+      --ink:#1c222b;
+      --ink-muted:#5c6572;
+      --ink-faint:#8b93a0;
+      --accent:#2b5fa8;
+      --accent-ink:#1c3d6e;
+      --accent-soft:#e7eef7;
+      --danger:#b3261e;
+      --danger-soft:#fbe9e7;
+      --warning:#a2650a;
+      --warning-soft:#faf0dd;
+      --success:#1e7a4c;
+      --success-soft:#e6f3ec;
+      --line:#dedcd3;
+      --line-strong:#c7c4b7;
+      --shadow: 0 1px 2px rgba(28,34,43,.06), 0 8px 24px -12px rgba(28,34,43,.18);
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark){
+      :root:not([data-theme="light"]){
+        --bg:#14181f;
+        --surface:#1b212b;
+        --surface-2:#212834;
+        --ink:#e7e9ed;
+        --ink-muted:#9aa3b1;
+        --ink-faint:#6d7583;
+        --accent:#71a3df;
+        --accent-ink:#bcd6f3;
+        --accent-soft:#20324a;
+        --danger:#e58a83;
+        --danger-soft:#3a2224;
+        --warning:#e3b158;
+        --warning-soft:#392c17;
+        --success:#7ecda3;
+        --success-soft:#173327;
+        --line:#2b323e;
+        --line-strong:#3a4250;
+        --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+        color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"]{
+      --bg:#14181f;
+      --surface:#1b212b;
+      --surface-2:#212834;
+      --ink:#e7e9ed;
+      --ink-muted:#9aa3b1;
+      --ink-faint:#6d7583;
+      --accent:#71a3df;
+      --accent-ink:#bcd6f3;
+      --accent-soft:#20324a;
+      --danger:#e58a83;
+      --danger-soft:#3a2224;
+      --warning:#e3b158;
+      --warning-soft:#392c17;
+      --success:#7ecda3;
+      --success-soft:#173327;
+      --line:#2b323e;
+      --line-strong:#3a4250;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+      color-scheme: dark;
+    }
+
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font-family:'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding-inline:16px;
+      padding-block:24px 64px;
+    }
+    .mono{ font-family:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    .wrap{
+      max-width:1180px;
+      margin-inline:auto;
+    }
+
+    /* FE DE ERRATAS (11/09) */
+    .errata{
+      background:var(--danger-soft);
+      border:2px solid var(--danger);
+      border-radius:14px;
+      padding:18px 20px 20px;
+      margin-bottom:28px;
+      box-shadow:var(--shadow);
+    }
+    .errata .tag{
+      display:inline-block;
+      font-family:'IBM Plex Mono', ui-monospace, monospace;
+      font-weight:700;
+      font-size:.78rem;
+      letter-spacing:.08em;
+      color:#fff;
+      background:var(--danger);
+      padding:3px 10px;
+      border-radius:999px;
+      margin-bottom:10px;
+    }
+    .errata h2{
+      margin:0 0 6px;
+      font-size:clamp(1.15rem, 1rem + 1vw, 1.45rem);
+      line-height:1.25;
+    }
+    .errata .lead{
+      margin:0 0 14px;
+      font-size:.95rem;
+      line-height:1.5;
+    }
+    .errata ol{
+      margin:0 0 16px;
+      padding-left:22px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .errata li{
+      font-size:.93rem;
+      line-height:1.5;
+    }
+    .errata li::marker{ color:var(--danger); font-weight:700; }
+    .errata .decia{
+      display:block;
+      color:var(--ink-muted);
+      font-style:italic;
+    }
+    .errata .decia b{ font-style:normal; color:var(--danger); letter-spacing:.03em; }
+    .errata .cierto{ display:block; margin-top:2px; }
+    .errata .cierto b.lbl{ color:var(--success); letter-spacing:.03em; }
+    .errata h3{
+      margin:4px 0 8px;
+      font-size:1rem;
+    }
+    .errata ul{
+      margin:0 0 12px;
+      padding-left:20px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      font-size:.92rem;
+      line-height:1.5;
+    }
+    .errata .ya{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:10px 12px;
+      font-size:.9rem;
+      line-height:1.5;
+    }
+
+    header.page{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-bottom:22px;
+    }
+    .eyebrow{
+      font-family:'IBM Plex Mono', ui-monospace, monospace;
+      font-size:.72rem;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:var(--accent-ink);
+      font-weight:600;
+    }
+    h1{
+      font-size:clamp(1.5rem, 1.1rem + 2vw, 2.35rem);
+      line-height:1.12;
+      margin:0;
+      font-weight:700;
+      letter-spacing:-.01em;
+      text-wrap:balance;
+    }
+    .subtitle{
+      color:var(--ink-muted);
+      font-size:1rem;
+      max-width:72ch;
+      line-height:1.5;
+      margin:0;
+    }
+
+    /* Topologia: 4 camaras */
+    .topo{
+      background:var(--warning-soft);
+      border:2px solid var(--warning);
+      border-radius:14px;
+      padding:14px 18px;
+      margin-bottom:22px;
+      font-size:.92rem;
+      line-height:1.55;
+    }
+    .topo h3{ margin:0 0 6px; font-size:1.02rem; }
+    .topo ul{ margin:6px 0 0; padding-left:20px; display:flex; flex-direction:column; gap:4px; }
+
+    /* Toggles */
+    .toggle-row{
+      position:sticky;
+      top:12px;
+      z-index:10;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px 14px;
+      box-shadow:var(--shadow);
+      margin-bottom:24px;
+    }
+    @media (max-width:640px){
+      .toggle-row{ position:static; }
+    }
+    .toggle-group{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .toggle-label{
+      font-size:.78rem;
+      font-weight:600;
+      color:var(--ink-muted);
+      min-width:75px;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+    }
+    .toggle{
+      display:flex;
+      gap:4px;
+      background:var(--surface-2);
+      border-radius:10px;
+      padding:4px;
+      flex:1;
+      min-width:240px;
+    }
+    .toggle button{
+      flex:1;
+      border:none;
+      background:transparent;
+      color:var(--ink-muted);
+      font-family:inherit;
+      font-size:.88rem;
+      font-weight:600;
+      padding:8px 10px;
+      border-radius:8px;
+      cursor:pointer;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:2px;
+      transition:background .15s ease, color .15s ease;
+    }
+    .toggle button .sub-btn{
+      font-family:'IBM Plex Mono', ui-monospace, monospace;
+      font-weight:500;
+      font-size:.74rem;
+      opacity:.85;
+    }
+    .toggle button[aria-pressed="true"]{
+      background:var(--accent);
+      color:#fff;
+    }
+    .toggle button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+    .progress-bar-wrap{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      padding-top:6px;
+      border-top:1px solid var(--line);
+      font-size:.78rem;
+      color:var(--ink-muted);
+    }
+    .progress-pill b{ color:var(--ink); font-size:.85rem; }
+
+    /* Info & Warning Boxes */
+    .critical{
+      background:var(--danger-soft);
+      border:1px solid var(--line);
+      border:1px solid color-mix(in srgb, var(--danger) 35%, var(--line));
+      border-radius:14px;
+      padding:18px 20px;
+      margin-bottom:20px;
+      display:flex;
+      gap:14px;
+    }
+    @media (max-width:560px){
+      .critical{ flex-direction:column; gap:8px; }
+    }
+    .critical .mark{
+      font-family:'IBM Plex Mono', ui-monospace, monospace;
+      font-weight:700;
+      color:var(--danger);
+      font-size:.8rem;
+      letter-spacing:.06em;
+      flex-shrink:0;
+      padding-top:2px;
+    }
+    .critical ul{
+      margin:0;
+      padding-left:18px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      font-size:.92rem;
+      line-height:1.5;
+    }
+    .critical li::marker{ color:var(--danger); }
+    .critical b{ color:var(--ink); }
+
+    .callout-info{
+      background:var(--accent-soft);
+      border:1px solid var(--line);
+      border:1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+      border-left:5px solid var(--accent);
+      border-radius:12px;
+      padding:16px 18px;
+      margin-bottom:24px;
+      font-size:.92rem;
+      line-height:1.6;
+    }
+    .callout-info h4{
+      margin:0 0 6px;
+      color:var(--accent-ink);
+      font-size:1rem;
+      font-weight:700;
+    }
+    .callout-info p{ margin:0 0 10px; }
+    .sino{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+      gap:12px;
+      margin-top:6px;
+    }
+    .sino > div{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:10px 12px;
+    }
+    .sino h5{ margin:0 0 6px; font-size:.85rem; letter-spacing:.04em; text-transform:uppercase; }
+    .sino .si h5{ color:var(--success); }
+    .sino .no h5{ color:var(--danger); }
+    .sino ul{ margin:0; padding-left:18px; display:flex; flex-direction:column; gap:5px; font-size:.88rem; line-height:1.45; }
+
+    /* Illustration Container */
+    .illu-card{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:18px 20px;
+      box-shadow:var(--shadow);
+      margin-bottom:28px;
+    }
+    .illu-card h3{
+      margin:0 0 4px;
+      font-size:1.1rem;
+      font-weight:700;
+    }
+    .illu-card p{
+      margin:0 0 14px;
+      color:var(--ink-muted);
+      font-size:.9rem;
+    }
+    .svg-wrap{
+      width:100%;
+      background:var(--surface-2);
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:12px;
+      overflow-x:auto;
+    }
+    .svg-wrap svg{
+      width:100%;
+      min-width:600px;
+      height:auto;
+      display:block;
+    }
+    .svg-wrap .t-ink{ fill:var(--ink); }
+    .svg-wrap .t-muted{ fill:var(--ink-muted); }
+    .svg-wrap .t-accent{ fill:var(--accent); }
+    .svg-wrap .t-danger{ fill:var(--danger); }
+
+    /* Layout */
+    .layout{
+      display:grid;
+      grid-template-columns: minmax(0,1fr) 320px;
+      gap:28px;
+      align-items:start;
+    }
+    @media (max-width:890px){
+      .layout{ grid-template-columns:1fr; }
+    }
+
+    /* Steps */
+    .steps{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      list-style:none;
+      padding:0;
+      margin:0;
+    }
+    .step{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:18px 18px 20px;
+      box-shadow:var(--shadow);
+      display:flex;
+      gap:14px;
+      transition:opacity .15s ease;
+    }
+    .step.done{ opacity:.55; }
+    .step.nuevo{ border-left:4px solid var(--warning); }
+    .step .check{
+      flex-shrink:0;
+      width:26px;
+      height:26px;
+      border-radius:8px;
+      border:1.5px solid var(--line-strong);
+      background:var(--surface);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:transparent;
+      margin-top:2px;
+      transition:background .15s ease, border-color .15s ease, color .15s ease;
+    }
+    .step .check:hover{ border-color:var(--accent); }
+    .step.done .check{
+      background:var(--success);
+      border-color:var(--success);
+      color:#fff;
+    }
+    .step .check svg{ width:15px; height:15px; }
+
+    .step-body{ flex:1; min-width:0; }
+    .step-head{
+      display:flex;
+      align-items:baseline;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:6px;
+    }
+    .step-num{
+      font-family:'IBM Plex Mono', ui-monospace, monospace;
+      font-weight:600;
+      color:var(--accent-ink);
+      font-size:.82rem;
+    }
+    .step-title{
+      font-size:1.05rem;
+      font-weight:600;
+      margin:0;
+    }
+    .step-tag{
+      font-family:'IBM Plex Mono', ui-monospace, monospace;
+      font-size:.68rem;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      background:var(--accent-soft);
+      color:var(--accent-ink);
+      padding:2px 8px;
+      border-radius:999px;
+      font-weight:600;
+    }
+    .step-tag.cambia{ background:var(--warning-soft); color:var(--warning); }
+    .step p{
+      margin:0 0 10px;
+      color:var(--ink-muted);
+      font-size:.93rem;
+      line-height:1.6;
+      max-width:64ch;
+    }
+    .step p:last-child{ margin-bottom:0; }
+    .step .field{
+      display:inline-flex;
+      align-items:baseline;
+      gap:6px;
+      background:var(--surface-2);
+      border:1px solid var(--line);
+      border-radius:7px;
+      padding:1px 8px;
+      font-family:'IBM Plex Mono', ui-monospace, monospace;
+      font-size:.85rem;
+      color:var(--ink);
+      margin:2px 2px 2px 0;
+    }
+    .step .field b{ color:var(--accent-ink); font-weight:600; }
+
+    .substeps{
+      list-style:none;
+      margin:10px 0 0;
+      padding:0;
+      display:flex;
+      flex-direction:column;
+      gap:7px;
+    }
+    .substeps li{
+      font-size:.88rem;
+      color:var(--ink);
+      line-height:1.5;
+      padding-left:16px;
+      position:relative;
+    }
+    .substeps li::before{
+      content:"";
+      position:absolute;
+      left:0;
+      top:.62em;
+      width:5px;
+      height:5px;
+      border-radius:50%;
+      background:var(--ink-faint);
+    }
+    .substeps b{ font-weight:600; }
+
+    .warn-inline{
+      display:flex;
+      gap:8px;
+      align-items:flex-start;
+      background:var(--warning-soft);
+      border:1px solid var(--line);
+      border:1px solid color-mix(in srgb, var(--warning) 30%, var(--line));
+      border-radius:9px;
+      padding:9px 11px;
+      font-size:.85rem;
+      line-height:1.5;
+      margin-top:10px;
+      color:var(--ink);
+    }
+    .warn-inline .ico{ color:var(--warning); font-weight:700; flex-shrink:0; }
+    .warn-inline.stop{
+      background:var(--danger-soft);
+      border:1px solid color-mix(in srgb, var(--danger) 35%, var(--line));
+    }
+    .warn-inline.stop .ico{ color:var(--danger); }
+
+    /* Sidebar */
+    .sidebar{
+      position:sticky;
+      top:170px;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+    @media (max-width:890px){
+      .sidebar{ position:static; }
+    }
+    .ref-card{
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:16px 18px;
+      box-shadow:var(--shadow);
+    }
+    .ref-card h2{
+      font-size:.72rem;
+      text-transform:uppercase;
+      letter-spacing:.1em;
+      color:var(--ink-muted);
+      margin:0 0 12px;
+      font-weight:600;
+    }
+    .ref-card dl{ margin:0; }
+    .ref-row{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding-block:7px;
+      border-top:1px solid var(--line);
+      font-size:.85rem;
+    }
+    .ref-row:first-of-type{ border-top:none; padding-top:0; }
+    .ref-row dt{ color:var(--ink-muted); }
+    .ref-row dd{ margin:0; font-family:'IBM Plex Mono', ui-monospace, monospace; font-weight:500; text-align:right; }
+
+    .ref-card.highlight{ border-left:4px solid var(--accent); }
+    .ref-card.danger{ border-color:var(--danger); background:var(--danger-soft); }
+    .ref-card.danger h2{ color:var(--danger); }
+    .ref-card.danger p{ font-size:.85rem; line-height:1.55; margin:0 0 8px; color:var(--ink); }
+    .ref-card.danger p:last-child{ margin-bottom:0; }
+
+    details.fuentes{
+      margin-top:28px;
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:12px 16px;
+      font-size:.82rem;
+      line-height:1.55;
+      color:var(--ink-muted);
+    }
+    details.fuentes summary{ cursor:pointer; font-weight:600; color:var(--ink); }
+    details.fuentes ul{ padding-left:18px; margin:10px 0 0; display:flex; flex-direction:column; gap:5px; }
+    details.fuentes code{ font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:.8rem; }
+
+    footer.page{
+      margin-top:28px;
+      padding-top:18px;
+      border-top:1px solid var(--line);
+      color:var(--ink-faint);
+      font-size:.78rem;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    @media print{
+      body{ background:#fff; color:#000; padding:0; }
+      .toggle-row, .btn-print{ display:none; }
+      .step, .illu-card, .ref-card, .errata{ box-shadow:none; border-color:#ccc; break-inside:avoid; }
+      .step.done{ opacity:1; }
+      details.fuentes{ display:block; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- ================================================================== -->
+  <!-- FE DE ERRATAS - 11/09/2026                                          -->
+  <!-- ================================================================== -->
+  <section class="errata" aria-labelledby="errata-titulo">
+    <span class="tag">FE DE ERRATAS · 11/09/2026</span>
+    <h2 id="errata-titulo">Si tienes la versión que te llegó por WhatsApp el 10/09, estas frases eran FALSAS</h2>
+    <p class="lead">El <b>cableado</b> de aquella guía está bien y no cambia. Lo que estaba mal es lo que decía que <b>hacen</b> las cámaras y la pluma. Léelo antes de montar las demás cámaras.</p>
+
+    <ol>
+      <li>
+        <span class="decia"><b>DECÍA:</b> «La cámara 2 protege la pluma / cuida la pluma / verifica que no haya vehículos debajo».</span>
+        <span class="cierto"><b class="lbl">LO CIERTO:</b> <b>Ninguna cámara frena la pluma.</b> Cuando se acaba el verde, el equipo manda bajar la pluma <b>aunque la cámara esté viendo un coche debajo</b>.</span>
+      </li>
+      <li>
+        <span class="decia"><b>DECÍA:</b> «La pluma sube solo con verde».</span>
+        <span class="cierto"><b class="lbl">LO CIERTO:</b> También sube <b>cada vez que el semáforo está en ámbar intermitente</b>: al encender un poste que todavía no se comunica con el otro, si se pierde la radio, o si alguien pone ámbar desde la app.</span>
+      </li>
+      <li>
+        <span class="decia"><b>DECÍA:</b> «Cámara 1 = demanda lejana (15 a 30 m). Cámara 2 = presencia en la pluma (0 a 8 m)».</span>
+        <span class="cierto"><b class="lbl">LO CIERTO:</b> <b>El equipo trata las dos cámaras exactamente igual.</b> No hay una «de demanda» y otra «de pluma»: las dos se configuran igual y hacen lo mismo.</span>
+      </li>
+      <li>
+        <span class="decia"><b>DECÍA:</b> «La cámara solicita el verde con anticipación / sostiene el verde».</span>
+        <span class="cierto"><b class="lbl">LO CIERTO:</b> En modo <b>Automático</b> y en <b>Manual</b> las cámaras <b>no cambian ninguna luz</b>. Solo en modo <b>Inteligente</b> pueden hacer que un verde dure más (con un tope). <b>Nunca acortan un verde ni lo adelantan.</b></span>
+      </li>
+      <li>
+        <span class="decia"><b>DECÍA:</b> «Si la cámara mira a los autos que salen, bloquea el turno del semáforo contrario para siempre».</span>
+        <span class="cierto"><b class="lbl">LO CIERTO:</b> <b>No bloquea nada.</b> Lo más que puede hacer, y solo en modo Inteligente, es alargar un verde hasta el tope. Lo que pasa es que la cámara contaría coches que no son de su lado y no serviría para lo que se instala.</span>
+      </li>
+      <li>
+        <span class="decia"><b>DECÍA:</b> «En la app, al primer carro el rótulo pasa de CAM: ? a CAM: OK» (y con eso la cámara quedaba comprobada).</span>
+        <span class="cierto"><b class="lbl">LO CIERTO:</b> La app pone <b>OK</b> en cuanto <b>cualquier</b> cámara de ese poste detecta algo, y <b>sigue en OK aunque la otra no haya detectado nunca nada</b> (por ejemplo, muerta desde que se montó). No te dice cuál. Cada cámara se comprueba <b>con el multímetro en su borne</b> (paso 11, nuevo).</span>
+      </li>
+      <li>
+        <span class="decia"><b>DECÍA:</b> «El multímetro pita durante exactamente 5 segundos».</span>
+        <span class="cierto"><b class="lbl">LO CIERTO:</b> Nadie lo ha medido. Pita mientras hay algo en la zona y un rato más; <b>apunta cuánto</b>.</span>
+      </li>
+      <li>
+        <span class="decia"><b>SI TU COPIA TRAÍA EL APARTADO DE LA TALANQUERA (J15), DECÍA:</b> «J15 pin 2 = GND» · «al arrancar, la pluma permanece ABAJO hasta el primer verde» · «en ámbar y todo-rojo (15 s) baja» · «J14 libre o con el cable de la cámara de demanda».</span>
+        <span class="cierto"><b class="lbl">LO CIERTO:</b> El pin 2 de J15 <b>no es masa</b>: con la pluma abajo está a unos 12 V. <b>Al encender</b> un poste que todavía no se comunica con el otro, el equipo se pone en ámbar intermitente y <b>la pluma SUBE</b>. El todo-rojo <b>no dura 15 s fijos</b>: dura lo que esté configurado. Y en J14 <b>no se conecta ninguna cámara</b>. La conexión de la talanquera, corregida, está más abajo (apartado <b>Talanquera en J15</b>).</span>
+      </li>
+    </ol>
+
+    <h3>Y estos pasos cambian</h3>
+    <ul>
+      <li><b>Faltaba:</b> antes de meter un hilo en J16, la tarjeta tiene que tener <b>el programa nuevo cargado</b>, y eso lo confirma el responsable (recuadro <b>NO NEGOCIABLE</b>).</li>
+      <li><b>La zona</b> se dibuja sobre <b>la franja por donde baja el brazo de la pluma</b>, igual en las dos cámaras. Ya no «entre 15 y 30 m».</li>
+      <li><b>Objetivo:</b> no filtrar (vehículo <i>y</i> persona). <b>Umbral:</b> el más bajo. <b>Sensibilidad:</b> alta.</li>
+      <li><b>Retardo de la salida:</b> el más corto que ofrezca la lista (nunca «Manual»). <b>Horario:</b> 24 horas los 7 días, en la regla y en la salida (faltaba).</li>
+      <li>El campo «Estado de reposo NO» puede no existir en la pantalla: el reposo se comprueba <b>con el multímetro</b>.</li>
+      <li><b>Alturas, ángulos y distancias</b> (4 m, 15–20°, 35–45°, 0–8 m, 15–30 m): no tienen fuente. Son <b>orientativos</b>.</li>
+    </ul>
+    <div class="ya"><b>¿Ya configuraste una cámara el 10/09 con la guía vieja?</b> Entra en ella y revisa: la <b>zona</b> (que cubra el barrido de la pluma), el <b>objetivo</b> (sin filtrar) y el <b>horario</b> (24 h × 7 días) de la regla y de la salida. El cableado que hiciste no cambia.</div>
+  </section>
+
+  <header class="page">
+    <div class="eyebrow">Proyecto Semáforos Sisga · IT Vial SAS</div>
+    <h1>Instalación y Configuración de 4 Cámaras — versión corregida</h1>
+    <p class="subtitle">Guía visual de orientación del lente, conexionado a bornera J16 y parametrización web Hikvision para las <b>4 cámaras</b> del cruce: <b>2 en Poste Maestro y 2 en Poste Esclavo</b>. Al final, la <b>talanquera en J15</b> (una por poste). Sustituye a la versión del 10/09.</p>
+  </header>
+
+  <!-- TOPOLOGIA: 4 CAMARAS -->
+  <div class="topo" role="note">
+    <h3>4 cámaras, 2 por poste: CONFIRMADO por el responsable el 11/09 (decisión D-25)</h3>
+    Las conexiones de esta guía quedan como definitivas: en cada poste, cámara 1 a <span class="mono">J16 p9/p10</span> y cámara 2 a <span class="mono">J16 p11/p12</span>. Lo que tienes que saber de la segunda cámara:
+    <ul>
+      <li><b>Hace exactamente lo mismo que la primera.</b> No añade ninguna función: es una segunda mirada sobre la misma zona.</li>
+      <li><b>La app no te dirá si funciona.</b> Y hoy el equipo <b>no avisa de una cámara que nunca ha detectado nada</b>: si queda muerta desde el día que la montas, nadie se entera. Por eso cada una se comprueba con el multímetro (paso 11).</li>
+      <li><span class="mono">J16 p12</span> es, en la placa, el borne con <b>menos separación a los 12 V</b>. Con el pin 1 tapado, trabajo limpio: sin restos de cobre, sin humedad.</li>
+    </ul>
+  </div>
+
+  <!-- QUE MIRA LA CAMARA / QUE HACE -->
+  <div class="callout-info">
+    <h4>🧭 ¿Qué mira la cámara? La franja por donde baja la pluma — las dos cámaras igual</h4>
+    <p>La zona que se dibuja es el <b>barrido del brazo de la pluma</b>: la franja de calzada que el brazo cruza al bajar. <b>No</b> la zona donde esperan los coches, ni el carril de los que salen. Si la imagen incluye el carril de los que salen, ajusta la zona para que lo deje fuera: <b>no bloquearía el semáforo</b>, pero la cámara contaría coches que no son de este lado.</p>
+    <div class="sino">
+      <div class="si">
+        <h5>Lo que las cámaras SÍ hacen hoy</h5>
+        <ul>
+          <li>Avisan en la app si una cámara se queda <b>pegada</b> (contacto cerrado mucho rato) o si una que ya detectaba pasa <b>mucho tiempo sin detectar</b> con el paso abierto.</li>
+          <li>Llevan la <b>cuenta</b> de cuántas veces bajó la pluma mientras veían algo. <b>Solo cuentan</b>: no frenan nada.</li>
+          <li>En modo <b>Inteligente</b>, pueden hacer que un verde dure más de lo configurado, con un tope.</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h5>Lo que NO hacen</h5>
+        <ul>
+          <li><b>No frenan ni suben la pluma.</b> La pluma baja aunque haya un coche debajo.</li>
+          <li>No cambian ninguna luz en modo <b>Automático</b> ni en <b>Manual</b>.</li>
+          <li>No acortan ni adelantan un verde, y no bloquean el otro lado.</li>
+          <li>La cámara 1 y la 2 <b>no tienen funciones distintas</b>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SELECTOR INTERACTIVO DE CAMARA (4 CAMARAS) -->
+  <div class="toggle-row">
+    <div class="toggle-group">
+      <span class="toggle-label">1. POSTE:</span>
+      <div class="toggle" role="tablist" aria-label="Seleccionar poste">
+        <button type="button" id="btn-poste-maestro" role="tab" aria-pressed="true">
+          Poste 1: MAESTRO
+          <span class="sub-btn">Gabinete Principal</span>
+        </button>
+        <button type="button" id="btn-poste-esclavo" role="tab" aria-pressed="false">
+          Poste 2: ESCLAVO
+          <span class="sub-btn">Gabinete Secundario</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="toggle-group">
+      <span class="toggle-label">2. CÁMARA:</span>
+      <div class="toggle" role="tablist" aria-label="Seleccionar cámara de este poste">
+        <button type="button" id="btn-cam-1" role="tab" aria-pressed="true">
+          CÁMARA 1
+          <span class="sub-btn mono" id="txt-sub-cam1">J16 Pin 10 · Pin 9 (+3.3V)</span>
+        </button>
+        <button type="button" id="btn-cam-2" role="tab" aria-pressed="false">
+          CÁMARA 2
+          <span class="sub-btn mono" id="txt-sub-cam2">J16 Pin 12 · Pin 11 (+3.3V)</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <span>Cámara actual seleccionada: <b id="lbl-active-camera" style="color:var(--accent-ink)">Maestro · Cámara 1</b></span>
+      <span class="progress-pill">Progreso en esta cámara: <b id="progress-count">0</b>/11 pasos listos</span>
+    </div>
+  </div>
+
+  <!-- ADVERTENCIAS NO NEGOCIABLES -->
+  <div class="critical">
+    <span class="mark">NO NEGOCIABLE</span>
+    <ul>
+      <li><b>Programa nuevo en la tarjeta ANTES de tocar J16.</b> No conectes nada a J16 hasta que el responsable te confirme que <b>esa</b> tarjeta tiene cargado el programa nuevo. Con el programa viejo, lo que conectes en el pin 10 <b>o en el pin 12</b> puede actuar como un botón del equipo (en ese programa eran «Aceptar» y «Cancelar») en un semáforo que está funcionando. <b>Comprobación rápida en la app</b> (conectado por Bluetooth a ese poste): si la casilla <span class="mono">CÁMARAS J16</span> dice <i>«Este equipo no las publica (firmware anterior)»</i>, <b>no se cablea</b> y se avisa.</li>
+      <li><b>J16 Pin 1 lleva 12V crudos directos de batería:</b> Debe estar <b>TAPADO / AISLADO</b> con silicona o cinta antes de meter la mano. Tocarlo con los pines 10 o 12 quemaría el microcontrolador.</li>
+      <li><b>J16 p5 y p8 (antiguo mando) no se tocan nunca:</b> no hay nada que cablear ahí; puentearlos compone secuencias de mando en un equipo vivo.</li>
+      <li><b>Ambas cámaras conmutan hacia +3.3V (p9 o p11), NUNCA contra GND (Masa):</b> Los pines 10 y 12 llevan pull-down físico de 10 kΩ a masa en la placa; el relé de la cámara debe inyectar 3.3V para activar el pin en ALTO.</li>
+      <li>En el <span class="mono">Retardo (Delay)</span> de la salida de alarma Hikvision, <b>jamás elegir "Manual"</b> — fijar el <b>valor más corto</b> que ofrezca la lista.</li>
+      <li><b>No te pongas debajo del brazo de la pluma mientras trabajas:</b> puede subir o bajar sin que nadie toque nada (por ejemplo, al encender el poste o si se pierde la radio), y <b>ninguna cámara lo frena</b>.</li>
+    </ul>
+  </div>
+
+  <!-- DIAGRAMA: ZONA DE DETECCION -->
+  <div class="illu-card">
+    <h3>📐 Esquema: qué zona vigila la cámara (ambos postes, las dos cámaras igual)</h3>
+    <p>Las cámaras se montan en el mástil apuntando a la franja por donde baja el brazo de la pluma. <b>Altura, inclinación y distancias del dibujo son orientativas</b>: no hay especificación medida.</p>
+
+    <div class="svg-wrap">
+      <svg viewBox="0 0 920 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Poste con semáforo, talanquera y dos cámaras apuntando a la franja donde baja el brazo de la pluma">
+        <defs>
+          <linearGradient id="gradCam" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2b5fa8" stop-opacity="0.40"/>
+            <stop offset="100%" stop-color="#2b5fa8" stop-opacity="0.06"/>
+          </linearGradient>
+          <pattern id="rayado" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="10" height="10" fill="#e3b158" fill-opacity="0.18"/>
+            <line x1="0" y1="0" x2="0" y2="10" stroke="#e3b158" stroke-width="4" stroke-opacity="0.55"/>
+          </pattern>
+        </defs>
+
+        <!-- Rotulos superiores -->
+        <text x="130" y="20" class="t-accent" font-size="13" font-weight="bold" font-family="ui-monospace, monospace">LAS DOS CÁMARAS: MISMA ZONA = la franja por donde baja el brazo</text>
+        <text x="130" y="38" class="t-danger" font-size="12" font-weight="bold" font-family="ui-monospace, monospace">LA CÁMARA NO FRENA LA PLUMA: el equipo la baja aunque haya un coche debajo</text>
+
+        <!-- Asfalto -->
+        <rect x="0" y="262" width="920" height="58" fill="#2b323e"/>
+        <line x1="0" y1="262" x2="920" y2="262" stroke="#475569" stroke-width="3"/>
+
+        <!-- Zona de deteccion: barrido de la pluma -->
+        <rect x="96" y="218" width="244" height="44" fill="url(#rayado)"/>
+        <rect x="96" y="262" width="244" height="12" fill="#e3b158" fill-opacity="0.55"/>
+        <text x="130" y="290" fill="#f8fafc" font-size="11" font-weight="bold" font-family="ui-monospace, monospace">ZONA A DIBUJAR: barrido del brazo</text>
+
+        <!-- Linea de detencion -->
+        <line x1="352" y1="260" x2="352" y2="266" stroke="#ffffff" stroke-width="6"/>
+        <text x="360" y="290" fill="#f8fafc" font-size="10" font-family="ui-monospace, monospace">LÍNEA DE DETENCIÓN</text>
+
+        <!-- Poste -->
+        <rect x="80" y="54" width="16" height="208" fill="#64748b"/>
+        <!-- Semaforo -->
+        <rect x="96" y="84" width="26" height="50" rx="4" fill="#1b212b" stroke="#334155" stroke-width="1.5"/>
+        <circle cx="109" cy="94" r="5" fill="#e58a83"/>
+        <circle cx="109" cy="109" r="5" fill="#e3b158"/>
+        <circle cx="109" cy="124" r="5" fill="#7ecda3"/>
+        <!-- Talanquera -->
+        <rect x="68" y="214" width="22" height="48" fill="#cbd5e1"/>
+        <line x1="90" y1="222" x2="340" y2="222" stroke="#b3261e" stroke-width="5" stroke-dasharray="12,8"/>
+        <text x="200" y="212" class="t-ink" font-size="11" font-weight="bold" font-family="ui-monospace, monospace">BRAZO DE LA PLUMA</text>
+
+        <!-- Camara 1 -->
+        <rect x="70" y="44" width="28" height="13" rx="2" fill="#2b5fa8"/>
+        <text x="4" y="55" class="t-accent" font-size="10" font-weight="bold" font-family="ui-monospace, monospace">CAM 1</text>
+        <!-- Camara 2 -->
+        <rect x="70" y="150" width="28" height="13" rx="2" fill="#2b5fa8"/>
+        <text x="4" y="161" class="t-accent" font-size="10" font-weight="bold" font-family="ui-monospace, monospace">CAM 2</text>
+
+        <!-- Conos: los dos a la misma zona -->
+        <polygon points="98,50 340,262 100,262" fill="url(#gradCam)"/>
+        <line x1="98" y1="50" x2="340" y2="262" stroke="#2b5fa8" stroke-width="1.5" stroke-dasharray="4,4"/>
+        <polygon points="98,157 340,262 100,262" fill="url(#gradCam)"/>
+        <line x1="98" y1="157" x2="340" y2="262" stroke="#2b5fa8" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+        <!-- Auto esperando, FUERA de la zona -->
+        <rect x="380" y="234" width="80" height="28" rx="5" fill="#3b82f6"/>
+        <circle cx="395" cy="262" r="5" fill="#000"/>
+        <circle cx="445" cy="262" r="5" fill="#000"/>
+        <text x="388" y="251" fill="#fff" font-size="9" font-weight="bold">ESPERANDO</text>
+        <text x="370" y="226" class="t-muted" font-size="10" font-family="ui-monospace, monospace">fuera de la zona</text>
+
+        <!-- Auto llegando -->
+        <rect x="640" y="234" width="80" height="28" rx="5" fill="#7c3aed"/>
+        <circle cx="655" cy="262" r="5" fill="#000"/>
+        <circle cx="705" cy="262" r="5" fill="#000"/>
+        <text x="650" y="251" fill="#fff" font-size="9" font-weight="bold">LLEGANDO</text>
+
+        <!-- Flecha de trafico -->
+        <line x1="880" y1="306" x2="760" y2="306" stroke="#e3b158" stroke-width="3"/>
+        <polygon points="760,306 772,301 772,311" fill="#e3b158"/>
+        <text x="520" y="310" fill="#e3b158" font-size="11" font-weight="bold" font-family="ui-monospace, monospace">TRÁFICO QUE LLEGA AL SEMÁFORO</text>
+
+        <!-- Nota orientativo -->
+        <text x="480" y="74" class="t-muted" font-size="11" font-family="ui-monospace, monospace">Altura, ángulo y distancias: ORIENTATIVOS</text>
+        <text x="480" y="90" class="t-muted" font-size="11" font-family="ui-monospace, monospace">(no hay especificación medida)</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <!-- 11 PASOS INTERACTIVOS (SE ADAPTAN SEGUN CAMARA SELECCIONADA) -->
+    <ol class="steps" id="step-list">
+
+      <li class="step" data-step="0">
+        <button class="check" aria-label="Marcar paso 1 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">01</span>
+            <h3 class="step-title">Conexión física y encendido</h3>
+          </div>
+          <p>Alimenta la <b id="stp-txt-cam-name">Cámara 1 del Maestro</b> mediante PoE <span class="field">802.3at</span> (Clase 4) o cable de <span class="field">12V DC</span> independiente en el gabinete. Conéctala por Ethernet al segmento de red de tu portátil.</p>
+          <div class="warn-inline"><span class="ico">⚡</span> <span>Los 12 V de la cámara van <b>directos de la batería</b>, nunca sacados de la tarjeta del semáforo: la cámara calentaría el regulador que alimenta al micro.</span></div>
+        </div>
+      </li>
+
+      <li class="step" data-step="1">
+        <button class="check" aria-label="Marcar paso 2 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">02</span>
+            <h3 class="step-title">Descubrimiento y activación</h3>
+            <span class="step-tag">HiTools Delivery</span>
+          </div>
+          <p>Abre SADP o HiTools Delivery. Escanea la red hasta ver <span class="field">DS-2CD2683G2-IZS</span> en estado <span class="field">Inactivo / No activado</span>. Actívala fijando la contraseña de proyecto:</p>
+          <ul class="substeps">
+            <li>Contraseña oficial de campo: <span class="field mono">ITVial2026</span></li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="step" data-step="2">
+        <button class="check" aria-label="Marcar paso 3 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">03</span>
+            <h3 class="step-title">Asignar IP fija de esta cámara</h3>
+          </div>
+          <p>En "Edit Network Parameters", asigna la IP correspondiente a esta unidad:</p>
+          <ul class="substeps">
+            <li>Dirección IPv4: <span class="field mono" id="stp-txt-ip"><b>192.168.1.61</b></span></li>
+            <li>Máscara: <span class="field mono">255.255.255.0</span> · Puerta de enlace: <span class="field mono">192.168.1.1</span></li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="step" data-step="3">
+        <button class="check" aria-label="Marcar paso 4 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">04</span>
+            <h3 class="step-title">Entrar por navegador web</h3>
+          </div>
+          <p>En Chrome/Edge, abre: <span class="field mono" id="stp-txt-url">http://192.168.1.61</span>.<br>Usuario: <span class="field">admin</span> · Clave: <span class="field mono">ITVial2026</span>.</p>
+        </div>
+      </li>
+
+      <li class="step" data-step="4">
+        <button class="check" aria-label="Marcar paso 5 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">05</span>
+            <h3 class="step-title">Verificar capacidad de salida de relé</h3>
+          </div>
+          <p>Menú lateral → <span class="field">Evento Smart</span> → pestaña <span class="field">Detección de intrusión</span>. Verifica que en <span class="field">Método de vinculación</span> exista la opción <span class="field mono">Salida de alarma A→1</span>.</p>
+          <ul class="substeps">
+            <li>Si no aparece <b>Detección de intrusión</b>: habilítala antes en <span class="field">VCA → VCA Resource</span>.</li>
+          </ul>
+          <div class="warn-inline stop"><span class="ico">🛑</span> <span>Si la opción <b>Salida de alarma A→1</b> no está: <b>para aquí y avisa al responsable</b>. Sin ella la cámara no puede avisar a la tarjeta y el resto no sirve.</span></div>
+        </div>
+      </li>
+
+      <li class="step" data-step="5">
+        <button class="check" aria-label="Marcar paso 6 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">06</span>
+            <h3 class="step-title">Orientación del lente</h3>
+            <span class="step-tag cambia">Cambia · igual en las dos</span>
+          </div>
+          <p>Afloja el soporte del mástil y apunta la cámara a la <b>franja de calzada por donde baja el brazo de la pluma</b>, de modo que se vea entera, de un extremo del brazo al otro. Lleva el zoom al gran angular máximo (<b>2,8 mm</b>, 108° horizontal) y enfoca esa franja.</p>
+          <div class="warn-inline"><span class="ico">📐</span> <span><b>Altura y ángulo de inclinación no tienen especificación.</b> Los de la versión del 10/09 (4 m, 15°–20°, 35°–45°) eran orientativos. Lo que vale es que el recorrido del brazo se vea entero y nítido.</span></div>
+          <div class="warn-inline"><span class="ico">🧭</span> <span><b>Confirmación:</b> en la imagen se ve todo el recorrido del brazo y la calzada que hay debajo.</span></div>
+        </div>
+      </li>
+
+      <li class="step" data-step="6">
+        <button class="check" aria-label="Marcar paso 7 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">07</span>
+            <h3 class="step-title">Detección de Intrusión (Dibujar Región)</h3>
+            <span class="step-tag cambia">Cambia · igual en las dos</span>
+          </div>
+          <p><span class="field">Evento Smart</span> → <span class="field">Detección de intrusión</span> → <span class="field">Ajustes de reglas</span>:</p>
+          <ul class="substeps">
+            <li><b>Habilitar:</b> Marcar ☑ <b>Enable</b></li>
+            <li><b>Dibujar área (Draw Area):</b> el polígono sobre <b>la franja por donde baja el brazo de la pluma</b>. No la zona donde esperan los coches, ni el carril de los que salen.</li>
+            <li><b>Objetivo:</b> <b>no filtrar</b>. Si la pantalla ofrece la casilla, deja marcados ☑ Vehículo <b>y</b> ☑ Persona: debajo del brazo también importa una moto o una persona. Si no ofrece la casilla, no pasa nada.</li>
+            <li><b>Filtro de tamaño (Size Filter):</b> que no dispare con perros ni hojas.</li>
+            <li><b>Umbral (Threshold):</b> el valor <b>más bajo</b> que deje poner.</li>
+            <li><b>Sensibilidad:</b> <b>alta</b>.</li>
+            <li><b>Programación (Arming Schedule):</b> <b>24 horas los 7 días</b>. Si no, de noche o en fin de semana la cámara no dispara y nadie se entera.</li>
+            <li><b>Vinculación (Linkage):</b> Marcar ☑ <span class="field mono">Salida de alarma A→1</span> — <b>solo en esta regla</b>.</li>
+            <li>Guardar cambios.</li>
+          </ul>
+          <div class="warn-inline"><span class="ico">✍</span> <span>Ninguno de estos valores está medido todavía con la cámara real. <b>Anota los que pongas.</b> Si el responsable te pide otros, pon los suyos.</span></div>
+        </div>
+      </li>
+
+      <li class="step" data-step="7">
+        <button class="check" aria-label="Marcar paso 8 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">08</span>
+            <h3 class="step-title">Configurar Salida de Alarma</h3>
+            <span class="step-tag cambia">Cambia</span>
+          </div>
+          <p>Configuración ⚙ → <span class="field">Evento</span> → <span class="field">Evento básico</span> → <span class="field">Salida de alarma</span> → editar fila <span class="field mono">A→1</span>:</p>
+          <ul class="substeps">
+            <li><b>Retardo (Delay):</b> el valor <b>más corto</b> que ofrezca la lista. <b>¡Nunca «Manual»!</b> Con «Manual» el contacto se queda cerrado y la cámara ya no da detecciones nuevas. El equipo acaba avisando «cámara pegada», pero solo pasado mucho rato: hasta entonces nadie se entera.</li>
+            <li><b>Programación (Arming Schedule):</b> <b>24 horas los 7 días</b>, igual que la regla.</li>
+            <li><b>Estado de reposo:</b> si la pantalla lo ofrece, Normalmente Abierto (NO). Si ese campo no aparece, no lo busques más: el reposo se comprueba con el multímetro en el paso 09.</li>
+            <li>En otras reglas (Movimiento, Bloqueo, Excepción de red): asegurarse de que <span class="field mono">A→1</span> esté <b>DESMARCADO</b>. Una sombra o una avería de la cámara no pueden cerrar el contacto.</li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="step" data-step="8">
+        <button class="check" aria-label="Marcar paso 9 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">09</span>
+            <h3 class="step-title">Verificación con Multímetro en el Relé</h3>
+          </div>
+          <p>Multímetro en continuidad (modo pito) sobre los bornes <span class="field mono">1A</span> y <span class="field mono">1B</span> de la cámara (sin conectar a la tarjeta aún):</p>
+          <ul class="substeps">
+            <li><b>En reposo (nada en la zona):</b> Circuito abierto (sin pito).</li>
+            <li><b>Al cruzar un vehículo o una persona por la zona:</b> el multímetro pita mientras está dentro y un rato más (el retardo), y vuelve a abrirse solo. <b>Apunta cuántos segundos</b>: nadie lo ha medido todavía.</li>
+          </ul>
+          <div class="warn-inline stop"><span class="ico">🛑</span> <span>Si <b>pita en reposo</b>, el contacto está al revés y así no sirve: <b>para y avisa</b> antes de cablear.</span></div>
+        </div>
+      </li>
+
+      <li class="step" data-step="9">
+        <button class="check" aria-label="Marcar paso 10 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">10</span>
+            <h3 class="step-title">Cableado a la Bornera J16</h3>
+          </div>
+          <div class="warn-inline stop"><span class="ico">🛑</span> <span>Antes del primer hilo: <b>J16 Pin 1 tapado</b> y <b>programa nuevo confirmado</b> en esta tarjeta (recuadro NO NEGOCIABLE).</span></div>
+          <p id="stp-txt-cableado" style="margin-top:10px">
+            Lleva los dos hilos del relé (<span class="field mono">1A</span> / <span class="field mono">1B</span>) sin polaridad a la bornera <b>J16 de la tarjeta</b>:<br>
+            • Un hilo a <span class="field mono"><b>J16 Pin 9 (+3.3V)</b></span><br>
+            • El otro hilo a <span class="field mono"><b>J16 Pin 10 (CAM_C_PIN / PB14)</b></span>
+          </p>
+          <div class="warn-inline"><span class="ico">📱</span> <span><b>Lo que la app te dice, y lo que no</b> (teléfono conectado por Bluetooth a <b>este</b> poste): la casilla <span class="mono">CÁMARAS J16</span> pasa de <span class="mono">SIN COMPROBAR</span> a <span class="mono">OK</span> con la primera detección de <b>cualquier</b> cámara de este poste. <b>No dice cuál</b>, y aunque ponga «las dos ven», con una cámara muerta también sale OK. Después de un corte o reinicio vuelve a SIN COMPROBAR hasta la primera detección: es normal. Si dice <i>«Este equipo no las publica (firmware anterior)»</i>: <b>desconecta y avisa</b>.</span></div>
+        </div>
+      </li>
+
+      <li class="step nuevo" data-step="10">
+        <button class="check" aria-label="Marcar paso 11 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">11</span>
+            <h3 class="step-title">Comprobar ESTA cámara en su borne</h3>
+            <span class="step-tag cambia">Nuevo</span>
+          </div>
+          <p>La app no distingue una cámara de otra, así que cada una se comprueba aquí. Multímetro en <b>tensión continua</b>, punta negra a masa de la tarjeta (la misma que usaste para reconocer J16), punta roja en <span class="field mono" id="stp-txt-medir"><b>J16 Pin 10</b></span>:</p>
+          <ul class="substeps">
+            <li><b>En reposo, nada en la zona:</b> tiene que dar <span class="field mono">0 V</span>. Si da 3,3 V, el contacto está cerrado: <b>para</b>.</li>
+            <li><b>Con alguien o algo dentro de la zona:</b> tiene que dar <span class="field mono">3,3 V</span> y volver a 0 V solo. Si sigue en 0 V, el contacto no cierra o los hilos están en otros pines.</li>
+            <li><b>Apunta las dos lecturas</b> de esta cámara.</li>
+          </ul>
+          <div class="warn-inline"><span class="ico">⚠</span> <span>Al irte, <b>no dejes el contacto puenteado</b>: si se queda cerrado mucho rato, el equipo manda una alarma de «cámara pegada» y alguien saldrá a revisar un poste que está bien. <b>Ni la dejes tapada o mirando a una pared</b>: deja de detectar, y el equipo solo lo avisa («cámara ciega», pasado mucho tiempo con el paso abierto) si esa cámara había detectado algo antes; si no, no avisa nadie.</span></div>
+        </div>
+      </li>
+
+    </ol>
+
+    <!-- SIDEBAR DINAMICA -->
+    <aside class="sidebar">
+      <div class="ref-card highlight">
+        <h2>Datos de la cámara activa</h2>
+        <dl>
+          <div class="ref-row"><dt>Cámara</dt><dd id="sb-cam-name">Maestro · Cam 1</dd></div>
+          <div class="ref-row"><dt>Función</dt><dd id="sb-cam-rol">La misma que la otra</dd></div>
+          <div class="ref-row"><dt>Zona</dt><dd>Barrido de la pluma</dd></div>
+          <div class="ref-row"><dt>IP Asignada</dt><dd id="sb-cam-ip">192.168.1.61</dd></div>
+          <div class="ref-row"><dt>Contraseña</dt><dd>ITVial2026</dd></div>
+          <div class="ref-row"><dt>Pin Señal</dt><dd id="sb-cam-pin">J16 Pin 10 (PB14)</dd></div>
+          <div class="ref-row"><dt>Pin 3.3V</dt><dd id="sb-cam-3v3">J16 Pin 9</dd></div>
+          <div class="ref-row"><dt>Inclinación</dt><dd id="sb-cam-tilt">Orientativa</dd></div>
+          <div class="ref-row"><dt>Salida Relé</dt><dd>ALARM OUT 1A/1B</dd></div>
+          <div class="ref-row"><dt>Retardo</dt><dd>El más corto · nunca Manual</dd></div>
+          <div class="ref-row"><dt>Horario</dt><dd>24 h × 7 días</dd></div>
+        </dl>
+      </div>
+
+      <div class="ref-card">
+        <h2>Resumen de las 4 IPs</h2>
+        <dl>
+          <div class="ref-row"><dt>M · Cam 1 (p10)</dt><dd>192.168.1.61</dd></div>
+          <div class="ref-row"><dt>M · Cam 2 (p12)</dt><dd>192.168.1.63</dd></div>
+          <div class="ref-row"><dt>E · Cam 1 (p10)</dt><dd>192.168.1.62</dd></div>
+          <div class="ref-row"><dt>E · Cam 2 (p12)</dt><dd>192.168.1.64</dd></div>
+        </dl>
+      </div>
+
+      <div class="ref-card danger">
+        <h2>La pluma: lo que tienes que saber</h2>
+        <p><b>Baja aunque haya un coche debajo.</b> Ninguna cámara la frena.</p>
+        <p><b>Sube con verde y con cualquier ámbar intermitente</b> (poste recién encendido, radio perdida, ámbar puesto desde la app).</p>
+        <p><b>No te pongas debajo del brazo</b> mientras trabajas.</p>
+      </div>
+
+      <div class="ref-card danger">
+        <h2>Peligros en Bornera J16</h2>
+        <p><b>Antes de nada</b> — Programa nuevo confirmado en esta tarjeta.</p>
+        <p><b>J16 Pin 1</b> — Lleva 12V crudos. Debe estar tapado con silicona o cinta antes de cablear.</p>
+        <p><b>J16 Pin 5 y 8</b> — Mando retirado. Jamás conectar nada ahí.</p>
+        <p><b>Nunca a GND</b> — Conectar los hilos a masa anula la entrada. Se conecta a +3.3V.</p>
+        <p><b>J16 Pin 12</b> — El borne con menos separación a los 12 V de la placa: trabajo limpio.</p>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- TALANQUERA EN J15 - D-25 (11/09). Una por poste, igual en los dos.  -->
+  <!-- Solo lo medido en netlist y firmware; lo de la centralita, SIN      -->
+  <!-- VERIFICAR y dicho asi.                                              -->
+  <!-- ================================================================== -->
+  <section class="illu-card" aria-labelledby="j15-titulo" style="margin-top:28px">
+    <h3 id="j15-titulo">🚧 Talanquera en J15 — una por poste, igual en Maestro y Esclavo</h3>
+    <p>Conexión confirmada por el responsable el 11/09 (decisión D-25). La tarjeta enciende un relé; el contacto de ese relé le da la orden de abrir a la centralita de la barrera.</p>
+
+    <ul class="substeps">
+      <li><b>J15 Pin 1</b> = <span class="field mono">+12 V</span> → a un borne de la <b>bobina</b> de un relé de <b>12 V</b>.</li>
+      <li><b>J15 Pin 2</b> = salida de la tarjeta (el transistor <span class="mono">Q10</span>) → al otro borne de la <b>bobina</b>. <b>No es masa:</b> con la pluma abajo está a unos 12 V. No lo uses como GND para nada.</li>
+      <li><b>Contacto del relé</b> (normalmente abierto) → a la entrada <span class="field mono">OPEN</span> de la centralita de la barrera y a su común, como diga el manual de esa centralita.</li>
+      <li>El diodo de protección de la bobina ya está en la tarjeta (<span class="mono">D30</span>): no hace falta poner otro.</li>
+    </ul>
+
+    <div class="warn-inline stop"><span class="ico">🛑</span> <span><b>J14 no es la talanquera.</b> J14 es una <b>entrada</b> del micro (3,3 V): la talanquera va <b>siempre en J15</b>. Y <b>en J14 no conectes nada</b> sin preguntar: está reservado a un fin de carrera, pero el programa de hoy lo lee como una cámara, así que lo que pongas ahí pediría paso solo.</span></div>
+
+    <p style="margin-top:14px"><b>Cuándo manda subir la pluma el equipo</b> (lo que verás en J15):</p>
+    <ul class="substeps">
+      <li><b>Sube</b> con <b>verde</b> y con <b>ámbar intermitente</b> (poste recién encendido que aún no se comunica con el otro, radio perdida, ámbar puesto desde la app).</li>
+      <li><b>Baja</b> con rojo, con el ámbar fijo de cambio, durante todo el todo-rojo de despeje, y durante la prueba de lámparas (el verde de esa prueba <b>no</b> sube la pluma).</li>
+      <li><b>Ninguna cámara la frena</b>: baja aunque haya un coche debajo.</li>
+    </ul>
+
+    <p style="margin-top:14px"><b>Comprobación con multímetro</b> (tensión continua, entre <span class="mono">J15 Pin 1</span> y <span class="mono">J15 Pin 2</span>, con el relé ya conectado):</p>
+    <ul class="substeps">
+      <li>Semáforo de ese poste en <b>rojo</b>: unos <span class="field mono">0 V</span> → relé suelto → la pluma tiene que quedar <b>abajo</b>.</li>
+      <li>Semáforo de ese poste en <b>verde</b> o en <b>ámbar intermitente</b>: unos <span class="field mono">12 V</span> → relé cerrado → la pluma tiene que <b>subir</b>.</li>
+      <li><b>Apunta</b> las dos lecturas y lo que hizo la pluma.</li>
+    </ul>
+
+    <div class="warn-inline stop"><span class="ico">🛑</span> <span><b>Sin comprobar todavía: cómo responde la centralita.</b> Nadie ha probado con esta barrera qué hace cuando el contacto de <span class="mono">OPEN</span> se queda cerrado y cuando se suelta. Compruébalo con la pluma real: con el relé cerrado <b>tiene que subir y quedarse arriba</b>, y al soltarse el relé <b>tiene que bajar sola</b>. <b>Si al soltarse el relé la pluma no baja</b> (o baja sola con el relé todavía cerrado), <b>para y avisa al responsable</b>: en ese caso el semáforo no gobierna la barrera.</span></div>
+    <div class="warn-inline"><span class="ico">⚡</span> <span><b>Sin corriente en la tarjeta</b> el relé se suelta. Lo que haga entonces la pluma lo decide la centralita, que tiene su propia alimentación: <b>sin comprobar</b>. No des por hecho que baja «por gravedad o muelle».</span></div>
+  </section>
+
+  <details class="fuentes">
+    <summary>Para el responsable: de dónde sale cada corrección (11/09)</summary>
+    <ul>
+      <li><b>Pluma:</b> <code>semaforo.cpp</code>, <code>escribirPines()</code> de las dos puntas — la pluma sube con <code>(verde &amp;&amp; !testLedsActivo) || estado == S_FALLO</code>; ninguna cámara entra. El veto es <code>A-1.bis</code>, sin construir; lo que existe es un contador (<code>vigilante_tick()</code>, <code>$EVENT CAMARA_PLUMA VETO_HABRIA_ACTUADO_N</code>) que observa la bajada ya hecha.</li>
+      <li><b>Ámbar intermitente sin enlace:</b> Maestro <code>coordinador.cpp</code> (<code>C_MENU_IDLE</code> sin comunicación y <code>C_FALLO</code> → <code>semaforo_iniciarFallo()</code>); Esclavo <code>main.cpp</code> (silencio <code>SFTY6_SILENCIO_MS</code> → <code>semaforo_iniciarFallo()</code>); Modo Ámbar <code>modo_ambar.cpp</code>.</li>
+      <li><b>Las dos cámaras igual:</b> <code>botones.cpp</code>, <code>CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN}</code> recorrido por el mismo bucle en <code>camaras_actualizar()</code> (<code>demanda_solicitar()</code> + vigilante), idéntico en las dos puntas.</li>
+      <li><b>La demanda solo actúa en Inteligente, y solo alarga:</b> <code>demanda_hayLocal()</code> y <code>camara_presenciaJ16()</code> solo tienen lector en <code>modo_inteligente.cpp</code>; <code>CMD_DEMANDA</code> del Esclavo solo se atiende en <code>MODO_INTELIGENTE</code> (<code>coordinador.cpp</code>); por debajo de <code>sueloMs</code> no cambia nada y el techo es <code>sueloMin * TECHO_POR_SUELO</code>.</li>
+      <li><b>App y segunda cámara:</b> <code>camara_estado()</code> salta el pin sin flanco (<code>camHuboFlanco</code>); <code>vigilante_tick()</code> tampoco lo vigila. La app pinta <code>CAM:</code> del poste conectado (<code>pintarCamaras()</code>, textos «SIN COMPROBAR» / «OK — las dos ven…»).</li>
+      <li><b>Configuración de la cámara:</b> <code>DECISIONES.md</code> <code>D-13</code> (zona = barrido de la pluma, sin filtro de objetivo, umbral mínimo, sensibilidad alta, <code>Delay</code> mínimo, los dos <code>Arming Schedule</code> 24×7, salida solo en esta regla) y <code>D-25</code> (4 cámaras, conexiones definitivas). Manual 9 §4 Paso 0, Paso 4 y §4.bis.2 / §4.bis.7. ⚠️ <b>Conflicto abierto, sin resolver aquí:</b> el Manual 9 §4 Paso 3 dice «Vehículo, Humano no, 1 s, 50», y <code>D-13</code> dice sin filtro de objetivo, umbral mínimo y sensibilidad alta; esta guía sigue <code>D-13</code>, que es la tabla vinculante, y el instalador pone lo que le diga el responsable (paso 07).</li>
+      <li><b>Programa antes que hilo:</b> <code>CLAUDE.md</code> §3; <code>ARQUITECTURA.map</code> §7.7 (con un binario anterior a <code>deeeab4</code>, <code>PB14</code> es <code>botonAceptar()</code> y <code>PB15</code> es <code>botonCancelar()</code>: <code>git show e303485:01_Firmware/Maestro/src/botones.cpp</code>, V8.4). La casilla de la app solo existe desde <code>e3a21ec</code>, que desciende de <code>deeeab4</code> (<code>git merge-base --is-ancestor deeeab4 e3a21ec</code>): sirve para PARAR, no como permiso.</li>
+      <li><b>Talanquera en J15</b> (añadido el 11/09 por <code>D-25</code>): netlist del <code>.kicad_pcb</code> — <code>J15</code> p1 <code>/12V</code>, p2 <code>Net-(D29-K)</code> = drenador de <code>Q10</code> IRLZ44N (fuente a <code>GND</code>), <code>D30</code> 1N4148 entre <code>/12V</code> y p2; <code>PB2</code> → <code>U15</code> TLP127 → <code>Q10</code>. Cuándo sube: la misma fórmula de <code>escribirPines()</code> de arriba; el test de lámparas no la sube (<code>!testLedsActivo</code>). La respuesta de la centralita a <code>OPEN</code> y el corte de energía: <b>sin fuente</b> (<code>roadmap.md</code> §3.16, «por gravedad o muelle» ⚪ SIN FUENTE). Se retiran del apartado del 10/09 (<code>fae4b3e</code>): «p2 = GND», «al arrancar queda abajo hasta el primer verde» (falso: <code>C_MENU_IDLE</code> sin comunicación → <code>S_FALLO</code>) y «todo-rojo 15 s» (el despeje sale de la configuración).</li>
+      <li><b>J14:</b> <code>A-2</code> lo reserva al fin de carrera; el firmware lee <code>PB0</code> como <code>CAM_DEMANDA_PIN</code> (Maestro por nivel en <code>modoInteligente_loop()</code>; Esclavo por flanco en <code>main.cpp</code> → <code>demanda_solicitar()</code>). <b>Conflicto abierto</b>, del responsable; esta guía no lo resuelve: solo dice que no se conecte nada ahí sin preguntar.</li>
+      <li><b>Pendiente de firmware, no de esta guía:</b> la exención del vigilante para una cámara sin flanco se escribió porque <code>p12</code> iba vacío (<code>D-13</code>, derogado en eso por <code>D-25</code>); hasta que se rehaga, la segunda cámara muerta desde la instalación no la detecta el equipo, y por eso existe el paso 11.</li>
+    </ul>
+  </details>
+
+  <footer class="page">
+    <span>Proyecto Semáforos Sisga — Controladora V9.0</span>
+    <span>IT Vial SAS · Versión corregida 11/09/2026 · sustituye a la del 10/09</span>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var STEP_COUNT = 11;
+  // Clave nueva a proposito: el progreso marcado con la guia del 10/09 no vale para esta.
+  var STORAGE_KEY = 'sisga-4cam-progress-corregida-11-09';
+
+  // Configuracion de las 4 camaras. El cableado es LITERAL de la version del 10/09
+  // (86683e8), revisado con el responsable; no se toca.
+  var CAMERAS = {
+    'm1': {
+      poste: 'Maestro', num: '1', nombre: 'Maestro · Cámara 1',
+      ip: '192.168.1.61', pin: 'J16 Pin 10 (CAM_C / PB14)', p3v3: 'J16 Pin 9 (+3.3V)',
+      medir: 'J16 Pin 10',
+      cableado: 'Lleva los dos hilos del relé (1A / 1B) de la cámara:<br>• Un hilo a <b>J16 Pin 9 (+3.3V)</b><br>• El otro hilo a <b>J16 Pin 10 (CAM_C / PB14)</b>'
+    },
+    'm2': {
+      poste: 'Maestro', num: '2', nombre: 'Maestro · Cámara 2',
+      ip: '192.168.1.63', pin: 'J16 Pin 12 (CAM_D / PB15)', p3v3: 'J16 Pin 11 (+3.3V)',
+      medir: 'J16 Pin 12',
+      cableado: 'Lleva los dos hilos del relé (1A / 1B) de la cámara:<br>• Un hilo a <b>J16 Pin 11 (+3.3V)</b><br>• El otro hilo a <b>J16 Pin 12 (CAM_D / PB15)</b>'
+    },
+    'e1': {
+      poste: 'Esclavo', num: '1', nombre: 'Esclavo · Cámara 1',
+      ip: '192.168.1.62', pin: 'J16 Pin 10 (CAM_C / PB14)', p3v3: 'J16 Pin 9 (+3.3V)',
+      medir: 'J16 Pin 10',
+      cableado: 'Lleva los dos hilos del relé (1A / 1B) de la cámara:<br>• Un hilo a <b>J16 Pin 9 (+3.3V)</b><br>• El otro hilo a <b>J16 Pin 10 (CAM_C / PB14)</b> de la tarjeta Esclavo'
+    },
+    'e2': {
+      poste: 'Esclavo', num: '2', nombre: 'Esclavo · Cámara 2',
+      ip: '192.168.1.64', pin: 'J16 Pin 12 (CAM_D / PB15)', p3v3: 'J16 Pin 11 (+3.3V)',
+      medir: 'J16 Pin 12',
+      cableado: 'Lleva los dos hilos del relé (1A / 1B) de la cámara:<br>• Un hilo a <b>J16 Pin 11 (+3.3V)</b><br>• El otro hilo a <b>J16 Pin 12 (CAM_D / PB15)</b> de la tarjeta Esclavo'
+    }
+  };
+
+  function nuevoProgreso(){
+    var p = {};
+    ['m1','m2','e1','e2'].forEach(function(k){
+      var a = [];
+      for (var i = 0; i < STEP_COUNT; i++) a.push(false);
+      p[k] = a;
+    });
+    return p;
+  }
+
+  var state = null;
+  try{
+    state = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+  }catch(e){ state = null; }
+
+  if(!state || !state.poste || !state.cam || !state.progress){
+    state = { poste: 'm', cam: '1', progress: nuevoProgreso() };
+  }
+
+  function save(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+  }
+
+  var btnPosteMaestro = document.getElementById('btn-poste-maestro');
+  var btnPosteEsclavo = document.getElementById('btn-poste-esclavo');
+  var btnCam1 = document.getElementById('btn-cam-1');
+  var btnCam2 = document.getElementById('btn-cam-2');
+  var lblActiveCamera = document.getElementById('lbl-active-camera');
+  var progressCount = document.getElementById('progress-count');
+  var stepEls = Array.prototype.slice.call(document.querySelectorAll('.step'));
+
+  function render(){
+    var key = state.poste + state.cam;
+    var info = CAMERAS[key];
+    if(!info){ state.poste = 'm'; state.cam = '1'; key = 'm1'; info = CAMERAS[key]; }
+    if(!state.progress[key]){ state.progress[key] = nuevoProgreso()[key]; }
+
+    btnPosteMaestro.setAttribute('aria-pressed', state.poste === 'm');
+    btnPosteEsclavo.setAttribute('aria-pressed', state.poste === 'e');
+    btnCam1.setAttribute('aria-pressed', state.cam === '1');
+    btnCam2.setAttribute('aria-pressed', state.cam === '2');
+
+    document.getElementById('stp-txt-cam-name').textContent = info.nombre;
+    document.getElementById('stp-txt-ip').textContent = info.ip;
+    document.getElementById('stp-txt-url').textContent = 'http://' + info.ip;
+    document.getElementById('stp-txt-cableado').innerHTML = info.cableado;
+    document.getElementById('stp-txt-medir').textContent = info.medir;
+
+    document.getElementById('sb-cam-name').textContent = info.poste + ' · Cam ' + info.num;
+    document.getElementById('sb-cam-ip').textContent = info.ip;
+    document.getElementById('sb-cam-pin').textContent = info.pin;
+    document.getElementById('sb-cam-3v3').textContent = info.p3v3;
+
+    lblActiveCamera.textContent = info.nombre;
+
+    var arr = state.progress[key] || [];
+    var done = 0;
+    stepEls.forEach(function(el){
+      var idx = parseInt(el.getAttribute('data-step'), 10);
+      var isDone = !!arr[idx];
+      if(isDone) done++;
+      el.classList.toggle('done', isDone);
+    });
+    progressCount.textContent = done;
+  }
+
+  btnPosteMaestro.addEventListener('click', function(){ state.poste = 'm'; save(); render(); });
+  btnPosteEsclavo.addEventListener('click', function(){ state.poste = 'e'; save(); render(); });
+  btnCam1.addEventListener('click', function(){ state.cam = '1'; save(); render(); });
+  btnCam2.addEventListener('click', function(){ state.cam = '2'; save(); render(); });
+
+  stepEls.forEach(function(el){
+    var idx = parseInt(el.getAttribute('data-step'), 10);
+    var check = el.querySelector('.check');
+    check.addEventListener('click', function(){
+      var key = state.poste + state.cam;
+      state.progress[key][idx] = !state.progress[key][idx];
+      save();
+      render();
+    });
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>

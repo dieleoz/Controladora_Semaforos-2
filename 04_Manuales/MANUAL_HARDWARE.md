@@ -10,6 +10,7 @@ Este documento describe la arquitectura física de las placas impresas (PCBs), l
 > | 🔴 **`A·A·A` en `J16` p5 arranca el ciclo sin guarda** | Es la única de las tres secuencias del mando que **abre paso**, y la única sin validación. §3.2 |
 > | ⛔ **6 de las 9 citas `fichero:linea` estaban caducadas**, y en los bloques de `grep` publicados fallaron **6 de 14 lineas** | Y una señalaba al **fichero equivocado**: la lectura de cámara se mudó a `camara_leerPin()` en `botones.cpp`. Se sustituyen por símbolos |
 > | ⛔ **Un `grep` publicado como cero daba hits al re-correrlo** | El de `HC-05`/`JDY` iba **sin acotar** y muerde los binarios de `U8g2` en `.pio/`. **Un cero de `grep` sólo vale si se dice sobre qué se corrió.** §4 |
+> | 🔴 **11/09 — `D-25`: CUATRO CÁMARAS, DOS POR POSTE** | Cámara 1 en `J16` p9/p10 (`CAM_C_PIN`), cámara 2 en `J16` p11/p12 (`CAM_D_PIN`); talanquera en `J15` (p1 12 V, p2 drenador de `Q10`, **no masa**) por relé a `OPEN` de la centralita. Deroga *«una por poste / p12 vacío»*. **Las dos cámaras hacen lo mismo, ninguna frena la pluma y la app no las distingue.** §3.2, §3.3, §3.bis |
 >
 > **Manda [`DECISIONES.md`](../DECISIONES.md)**, y en cobre medido
 > `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`. **Este manual nunca gana.**
@@ -171,8 +172,8 @@ El firmware V7.6 en las placas STM32 es 100% agnóstico a la topología de red i
 > *(La distinción importa: contar `INPUT_PULLUP` cuenta comentarios —en este repositorio los
 > comentarios citan lo que explican—, así que el cero hay que medirlo con el patrón del `pinMode`,
 > no con el del nombre.)*
-| **`PB14`** (`J16` **p10**) | **`CAM_C_PIN` — LA CÁMARA, una por poste.** `INPUT` pelado, **activo en ALTO** | ✅ **MEDIDO** (`#define CAM_C_PIN`, `pinMode(CAM_C_PIN, INPUT)`) |
-| **`PB15`** (`J16` **p12**) | **`CAM_D_PIN`** — pin de cámara, hoy **vacío**. `INPUT` pelado, **activo en ALTO** | ✅ **MEDIDO** (`#define CAM_D_PIN`, `pinMode(CAM_D_PIN, INPUT)`) |
+| **`PB14`** (`J16` **p10**) | **`CAM_C_PIN` — LA CÁMARA, ~~una por poste~~** → **11/09, `D-25`: la CÁMARA 1 de cada poste**, contra los 3,3 V de p9. `INPUT` pelado, **activo en ALTO** | ✅ **MEDIDO** (`#define CAM_C_PIN`, `pinMode(CAM_C_PIN, INPUT)`) |
+| **`PB15`** (`J16` **p12**) | **`CAM_D_PIN`** — pin de cámara, ~~hoy **vacío**~~ → **11/09, `D-25`: la CÁMARA 2 de cada poste**, contra los 3,3 V de p11. `INPUT` pelado, **activo en ALTO**. **Hace LO MISMO que `CAM_C_PIN`**: `botones.cpp` recorre `CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN}` en el mismo bucle | ✅ **MEDIDO** (`#define CAM_D_PIN`, `pinMode(CAM_D_PIN, INPUT)`, `CAM_J16`) |
 
 > ⛔ **LO QUE ESTAS DOS FILAS DECÍAN HASTA EL 05/09, y por qué se tacha en vez de corregirse en
 > silencio:** *«~~Hoy `botonAceptar()`~~ · ~~Hoy `botonCancelar()`~~. Destino decidido de cámara tras la
@@ -253,6 +254,10 @@ El firmware V7.6 en las placas STM32 es 100% agnóstico a la topología de red i
 >    `CAM_C_PIN`. La regla de `CLAUDE.md` §9.bis (**firmware primero; el cableado después**) **sigue
 >    valiendo tal cual** para cualquier equipo al que aún no se le haya cargado el firmware nuevo:
 >    lo que la levanta no es el commit, es **la carga verificada en la tarjeta**.
+>    🔴 **11/09, `D-25`: y con la cámara 2 en `p12` vale igual para `PB15`** — en un binario
+>    anterior a `deeeab4` (el V8.4 `e303485` de campo incluido) `PB14`/`PB15` son
+>    `botonAceptar()`/`botonCancelar()` (`git show e303485:01_Firmware/Maestro/src/botones.cpp`):
+>    lo que se cablee en `p10` **o** en `p12` puede actuar como un botón.
 
 **Lo que SÍ sigue vigente antes de cablear:**
 
@@ -269,7 +274,14 @@ El firmware V7.6 en las placas STM32 es 100% agnóstico a la topología de red i
    | `/Boton3` (**p10**) | **4,269 mm** |
    | `/Boton4` (**p12**) | **1,359 mm** ← el peor |
 
-   👉 **Si una de las dos cámaras es más crítica, va en `p10`**, no en `p12`.
+   👉 ~~**Si una de las dos cámaras es más crítica, va en `p10`**, no en `p12`.~~ → 🔴 **11/09,
+   `D-25`: van las DOS, cámara 1 en `p10` y cámara 2 en `p12`, y son iguales —ninguna es «más
+   crítica»—. O sea que `p12`, el peor borne del conector, SIEMPRE lleva cable: `p1` tapado antes
+   del primer hilo (`D-4`) y trabajo limpio en `p12`.**
+   👉 **Y la app no las distingue:** pinta `CAM: OK` —*«las dos ven y ninguna está pegada»*— con la
+   primera detección de **cualquiera** (`camara_estado()` salta la que nunca dio flanco), así que
+   **cada cámara se comprueba en su borne con el multímetro**: 0 V en reposo, 3,3 V con algo en la
+   zona. Una cámara 2 muerta desde la instalación **no la anuncia el equipo**.
 2. 🔴 **`J16` p5 y p8 —`MANDO_A`/`MANDO_B`— NO son pines libres, aunque su hardware ya no esté.**
    El **mando de relés se retiró físicamente** (`D-1`), pero **su código se queda**: `botonArriba()`
    y `botonAbajo()` siguen vivos y leen `BOTON1`/`BOTON2`, que **son esos dos pines**. **Libre de
@@ -315,6 +327,24 @@ $ grep -n "MOTOR_TALANQUERA\|CAM_DEMANDA_PIN" 01_Firmware/Maestro/include/pines.
 La talanquera se mueve **sólo desde `escribirPines()` de `semaforo.cpp`** —la barrera de salidas— y
 arranca **cerrada** en `semaforo_setup()`: `LOW` = MOSFET sin conducir = pluma abajo. Es el fallo
 seguro de SFTY-28.
+
+🔴 **11/09 — CÓMO SE CABLEA Y CUÁNDO SUBE, que es lo que el instalador tiene que llevarse (`D-25`):**
+
+- **Cableado decidido:** `J15` **p1 = 12 V**, **p2 = drenador de `Q10`** → a la **bobina de un relé**;
+  el contacto del relé va a la entrada **`OPEN`** de la centralita de la barrera. ⚠️ **p2 NO es
+  masa**: con `Q10` abierto está a ~12 V.
+- **Cuándo sube, medido en `escribirPines()`:** `(verde && !testLedsActivo) || estado == S_FALLO`.
+  **Con verde, y TAMBIÉN con el ámbar intermitente** (`S_FALLO`): Modo Ámbar, radio perdida y **un
+  poste recién encendido que aún no enlaza con el otro**. No sólo con verde.
+- **Ninguna cámara la frena.** `escribirPines()` no lee ninguna cámara: **la pluma baja al acabar el
+  verde aunque haya un coche debajo**. El veto es `A-1.bis`, **sin construir**.
+- Qué hace la centralita cuando el relé suelta `OPEN` (si baja sola, con qué retardo) **no lo
+  controla este equipo y no está medido**: se comprueba con la barrera real delante.
+
+🔴 **Y `J14` (`PB0`): `A-2` (05/09) lo reserva al fin de carrera de la pluma, pero el firmware lo
+sigue leyendo como `CAM_DEMANDA_PIN`** —el Maestro por nivel en Inteligente, el Esclavo por flanco,
+mandando `CMD_DEMANDA`—: un fin de carrera ahí daría **demandas falsas**. **CONFLICTO ABIERTO**; no
+lo resuelve este manual, y hasta que se resuelva no se cablea nada en `J14` sin preguntarlo.
 
 ⚠️ **Y `J15` no está a 0 V en reposo, está a ~12 V** por el pull-up de 1 kΩ del cobre — ver §5.bis
 punto 4. En banco dio *«0 V en rojo, 12 V en ámbar»*, que es exactamente eso.

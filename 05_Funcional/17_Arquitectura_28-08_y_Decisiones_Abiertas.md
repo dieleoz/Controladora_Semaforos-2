@@ -53,6 +53,32 @@ consola de Windows en este repositorio.
 
 ---
 
+## ✏️ REVISION DEL 11/09/2026 — `D-25`: CUATRO CAMARAS, DOS POR POSTE (solo §1.7, §1.7.bis y §3.5)
+
+**El responsable, 11/09:** *«mantener estas conexiones como definitivas»* —las de la guia del Sisga
+revisada con el el 10/09—. **En cada poste: camara 1 entre `J16` p9 (3,3 V) y p10 (`CAM_C_PIN`),
+camara 2 entre `J16` p11 (3,3 V) y p12 (`CAM_D_PIN`); talanquera en `J15` (p1 12 V, p2 drenador
+de `Q10`) por rele a la entrada `OPEN` de la centralita.** Deroga de `D-13` **solo** *«una camara
+por poste / `p12` vacio»*. Guia de campo: `05_Funcional/Camaras_Sisga_4x.html` (version del 11/09).
+
+**Lo que el que cablea tiene que saber, MEDIDO en el firmware de `a6980e4`** (el mismo que `b79d904`):
+
+| | medida | simbolo |
+|---|---|---|
+| las dos camaras de un poste hacen **LO MISMO** | un solo bucle: flanco -> `demanda_solicitar()` + vigilante | `CAM_J16[2]`, `camaras_actualizar()` |
+| **ninguna frena la pluma** — baja con un coche debajo | la pluma sube con `(verde && !testLedsActivo) \|\| estado == S_FALLO`; ninguna camara entra. El veto es `A-1.bis`, **sin construir** | `escribirPines()` |
+| la pluma **sube tambien con el ambar intermitente**, incluido un poste recien encendido que aun no enlaza | `S_FALLO` desde `C_MENU_IDLE` sin comunicacion, orfandad SFTY-6, Modo Ambar, `AMBAR_EMERGENCIA`, Degradado en ambar | `semaforo_iniciarFallo()` |
+| en Automatico/Manual **no cambian ninguna luz**; en Inteligente **solo alargan**, con techo | la demanda solo la leen `modo_inteligente.cpp` y la rama `CMD_DEMANDA`, atendible solo en `MODO_INTELIGENTE` | `demanda_hayLocal()`, `camara_presenciaJ16()`, `TECHO_POR_SUELO` |
+| **una camara que nunca dio flanco no la vigila nadie** y la app pinta `CAM: OK — las dos ven` con la primera deteccion de CUALQUIERA (tambien la APK del 10/09) | la exencion se escribio para el `p12` vacio y **no ha cambiado**: pendiente EN FIRMWARE | `vigilante_tick()`, `camara_estado()`, `camHuboFlanco` |
+
+🔴 **Y DOS CONFLICTOS QUE ESTE DOCUMENTO NO RESUELVE, del responsable:** (1) **`J14`**: `A-2` manda
+ahi el fin de carrera y el firmware lo lee como camara de demanda (§1.7.bis, fila `CAM_DEMANDA_PIN`);
+(2) `D-25` dice *«las camaras no tocan el ciclo»* y en el Modo Inteligente **si lo alargan**
+(`TECHO_POR_SUELO`). Y una correccion de paso que no es de `D-25`: `p10` y `p12` **si llevan
+condensador en el netlist** (`C28`, `C29`), al contrario de lo que decia §1.7.bis.
+
+---
+
 ## 🔴 REVISION DEL 07/09/2026 — EL MODO DEGRADADO NO PUEDE ENTRAR EN NINGUNA DE LAS DOS PUNTAS
 
 **Va la primera porque es la unica de este documento que invalida una decision tomada ANTEAYER.**
@@ -521,9 +547,12 @@ grep -rowE "\bBluetoothSerial\b|\bSerial2\b|\bWire\b" src include platformio.ini
 > que no sea el contacto. Si algun dia se quiere imagen, es un equipo nuevo en el armario, no una
 > version del firmware.
 >
-> **Y la consecuencia que decide `A-1`:** con dos camaras y un bit cada una, **el cruce entero
+> ~~**Y la consecuencia que decide `A-1`:** con dos camaras y un bit cada una, **el cruce entero
 > tiene DOS significados**, no dos canales de informacion. Uno esta tomado —presencia antes de
-> bajar la pluma—; el otro es la pregunta abierta.
+> bajar la pluma—; el otro es la pregunta abierta.~~ ✏️ **11/09 — caducado dos veces:** `A-1` la
+> **cerro `D-13`** el 05/09 (todas las camaras con la misma configuracion; el significado lo pone el
+> estado del semaforo), y `D-25` (11/09) pone **cuatro** camaras, dos por poste, **todas iguales**.
+> Y ninguna protege la pluma: el veto es `A-1.bis`, sin construir.
 
 > 🛑 **Lo que eso le hace a §3.3, y hay que leerlo entero.** La decision del 31/08 —*"se conserva el
 > mando en `A` y `B`"*— se eligio porque era la unica salida fisica de ultimo recurso que **ya estaba
@@ -1621,8 +1650,8 @@ Los pines que libera la retirada de los pulsadores 3 y 4:
 | p2 | `GND` | — | masa |
 | p5 | `/Boton1` | `PB9` | ~~**vacio a proposito** (colchon)~~ → ~~🟢 **`MANDO_A`. VA CABLEADO** (31/08)~~ → 🔧 **CADUCADO EL 05/09 (`D-1`): el mando NO se monta, asi que `p5` queda LIBRE Y SIN CABLEAR.** ⚠️ **Pero el firmware SIGUE LEYENDO este pin** —`BOTON1` alimenta `botonArriba()`, con llamadores vivos— o sea que **lo que se cierre aqui contra `p4` mueve cosas dentro**. ~~`0,6 V` en reposo, N-118~~ → **refutado el 05/09: eran del firmware viejo con `INPUT_PULLUP`** |
 | p8 | `/Boton2` | `PB13` | ~~**vacio a proposito** (colchon)~~ → ~~🟢 **`MANDO_B`. VA CABLEADO** (31/08)~~ → 🔧 **CADUCADO EL 05/09 (`D-1`): idem `p5` — LIBRE Y SIN CABLEAR, y el firmware sigue leyendolo** (`BOTON2` → `botonAbajo()`) |
-| p10 | `/Boton3` | `PB14` | 🎯 **`CAM_C_PIN` — ENTRADA DE CAMARA de DEMANDA.** ~~«Boton 3 / Aceptar»~~ ✅ **cableada y verificada en banco el 03/09** (paso 21). Y desde `4b90f98` ademas **se vigila sola** (§1.7.bis) |
-| p12 | `/Boton4` | `PB15` | 🎯 **`CAM_D_PIN` — entrada de camara, y HOY SE DEJA VACIO.** ~~«Boton 4 / Cancelar-Menu»~~ `0 V` en reposo, MEDIDO (paso 20). 🔵 **07/09: `D-13` es UNA CAMARA POR POSTE, asi que en cada equipo montado UNO de estos dos pines esta vacio — y el firmware DEPENDE de ello** (la exencion del vigilante, `botones.cpp`: sin esa linea alarmaria `CAM_CIEGA` de una camara que no existe). **El que se cablea es `p10`**, que es el ejercido en banco; **este se queda libre** |
+| p10 | `/Boton3` | `PB14` | 🎯 **`CAM_C_PIN` — ENTRADA DE CAMARA de DEMANDA.** ~~«Boton 3 / Aceptar»~~ ✅ **cableada y verificada en banco el 03/09** (paso 21). Y desde `4b90f98` ademas **se vigila sola** (§1.7.bis). ✏️ **11/09, `D-25`: la CAMARA 1 de CADA poste**, contacto de alarma entre `p9` (3,3 V) y `p10` |
+| p12 | `/Boton4` | `PB15` | 🎯 **`CAM_D_PIN` — entrada de camara**~~, y HOY SE DEJA VACIO.~~ ~~«Boton 4 / Cancelar-Menu»~~ `0 V` en reposo, MEDIDO (paso 20). ~~🔵 **07/09: `D-13` es UNA CAMARA POR POSTE, asi que en cada equipo montado UNO de estos dos pines esta vacio — y el firmware DEPENDE de ello** (la exencion del vigilante, `botones.cpp`: sin esa linea alarmaria `CAM_CIEGA` de una camara que no existe). **El que se cablea es `p10`**, que es el ejercido en banco; **este se queda libre**~~ → ✏️ **11/09, `D-25` (el responsable: *«mantener estas conexiones como definitivas»*): la CAMARA 2 de CADA poste**, contacto de alarma entre `p11` (3,3 V) y `p12`. **Hace LO MISMO que la de `p10`** (`CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN}`, un solo bucle en `camaras_actualizar()`). 🔴 **Lo que el firmware sigue creyendo:** la exencion del vigilante se escribio para un `p12` vacio y **no ha cambiado** (`vigilante_tick()` salta el pin con `!camHuboFlanco[i]`; `camara_estado()` lo salta al publicar `CAM:`): **una camara de `p12` muerta desde la instalacion no la avisa nadie**, y la app pinta `CAM: OK` con la primera deteccion de la de `p10`. Pendiente de rehacer EN FIRMWARE. ⚠️ **`p12` NO se ha cableado nunca en banco** (§3.5) y es el borne **mas cercano a la red de 12 V** (`1,359 mm`, abajo): `p1` tapado (`D-4`) antes de nada |
 
 > 🔴 **`p5`/`p8`: POR QUE NO BASTA CON «el mando se retiro» — MEDIDO EL 05/09, y es la mitad que un
 > resumen se come.** De los cuatro getters de boton, **dos estan muertos y dos NO**:
@@ -1705,6 +1734,15 @@ Los pines que libera la retirada de los pulsadores 3 y 4:
 > `C`/`D` desde el 31/08 y por este motivo — ¿lo derogamos, y que pasa con la Camara 3?»*, y se
 > cambia **a la vez** aqui, en el Manual 9, en la guia de banco y en las tramas `CAM_C_*`/`CAM_D_*`
 > que el firmware ya emite. **A medias es peor que como esta.**
+>
+> ⚠️ **11/09 — `D-25` LAS NUMERA, Y ESTE PARRAFO NO LO DEROGA NI LO ELIGE: SE ANOTA.** La fila
+> `D-25` llama **«camara 1»** a la de `p10` (`CAM_C_PIN`) y **«camara 2»** a la de `p12`
+> (`CAM_D_PIN`) **de cada poste**, y asi las rotula la guia de campo (`Camaras_Sisga_4x.html`). No
+> choca con las tramas —siguen siendo `CAM_C_*`/`CAM_D_*`, que es lo que el tecnico lee en la app—
+> pero **si con la numeracion vieja del Manual 9**, donde *«Camara 1»* y *«Camara 3»* eran las de
+> `PB0`. **`D-25` gana a este documento** (`DECISIONES.md` es la tabla vinculante); lo que queda
+> para el responsable es si esa numeracion vieja del Manual 9 se tacha o se conserva. Aqui se
+> escribe siempre **«camara 1 (`p10`, `CAM_C`)» / «camara 2 (`p12`, `CAM_D`)»**, las dos cosas juntas.
 
 > 🔴 **Las dos filas tachadas eran las lineas mas daninas de este documento: mandaban dejar sin
 > cablear justo el mando que la decision del 31/08 conserva.** Un `J16` montado segun la tabla
@@ -1780,9 +1818,16 @@ footprint (`Molex_KK-254_AE-6410-16A_1x16_P2.54mm_Vertical`, 16 pads, tanto en `
 
 | entrada | pin | conector | ayuda de la placa | quien la declara | quien la lee |
 |---|---|---|---|---|---|
-| **`CAM_DEMANDA_PIN`** | `PB0` | **`J14`** | 🟢 **`R64` 10 kOhm + `C25` 100 nF — antirrebote RC de 1 ms EN LA PLACA**, escrito encima del `#define` | Maestro: `pinMode(CAM_DEMANDA_PIN, INPUT)` en `botones_setup()` · Esclavo: el mismo `pinMode` en `setup()` de `main.cpp` | Maestro: `camara_leerPin(CAM_DEMANDA_PIN)` en `modoInteligente_loop()` · Esclavo: `digitalRead(CAM_DEMANDA_PIN) == HIGH` en `main.cpp` |
-| **`CAM_C_PIN`** | `PB14` | **`J16` p10** | 🟠 **`R67` 10 kOhm a masa, MEDIDA en cobre: `9,93 kOhm`. SIN condensador** | `pinMode(CAM_C_PIN, INPUT)` en `botones_setup()`, **las dos puntas** | `camaras_actualizar()` — su siembra `camaras_sembrar()` — y 🆕 **el vigilante de `D-13` fase 1** (`vigilante_flanco()`, `vigilante_nivel()`, `vigilante_tick()`), **las dos puntas** |
-| **`CAM_D_PIN`** | `PB15` | **`J16` p12** | 🟠 **`R68` 10 kOhm a masa, MEDIDA: `9,94 kOhm`. SIN condensador** | `pinMode(CAM_D_PIN, INPUT)` en `botones_setup()` | idem |
+| **`CAM_DEMANDA_PIN`** | `PB0` | **`J14`** | 🟢 **`R64` 10 kOhm + `C25` 100 nF — antirrebote RC de 1 ms EN LA PLACA**, escrito encima del `#define` | Maestro: `pinMode(CAM_DEMANDA_PIN, INPUT)` en `botones_setup()` · Esclavo: el mismo `pinMode` en `setup()` de `main.cpp` | Maestro: `camara_leerPin(CAM_DEMANDA_PIN)` en `modoInteligente_loop()` · Esclavo: `digitalRead(CAM_DEMANDA_PIN) == HIGH` en `main.cpp`. 🔴 **CONFLICTO ABIERTO (11/09), del responsable — NO se resuelve aqui:** `A-2` (cerrada el 05/09) manda a `J14` el **fin de carrera** de la pluma, y **no lleva camara** (Manual 9); pero el firmware **lo sigue leyendo como camara de demanda** en las dos puntas —Maestro por NIVEL (pide y SOSTIENE fase en Inteligente), Esclavo por FLANCO -> `demanda_solicitar()` -> `CMD_DEMANDA`—. **Un fin de carrera cableado ahi daria demandas falsas cada vez que se mueve la pluma** |
+| **`CAM_C_PIN`** | `PB14` | **`J16` p10** | 🟠 **`R67` 10 kOhm a masa, MEDIDA en cobre: `9,93 kOhm`.** ~~**SIN condensador**~~ ✏️ **11/09: FALSO en el netlist** — `C28` 100 nF entre `/Boton3` y `GND` (`.kicad_pcb`, y `MAPEO_TARJETA_KICAD.md`, fila p10). **El condensador no se ha medido en cobre** | `pinMode(CAM_C_PIN, INPUT)` en `botones_setup()`, **las dos puntas** | `camaras_actualizar()` — su siembra `camaras_sembrar()` — y 🆕 **el vigilante de `D-13` fase 1** (`vigilante_flanco()`, `vigilante_nivel()`, `vigilante_tick()`), **las dos puntas** |
+| **`CAM_D_PIN`** | `PB15` | **`J16` p12** | 🟠 **`R68` 10 kOhm a masa, MEDIDA: `9,94 kOhm`.** ~~**SIN condensador**~~ ✏️ **11/09: FALSO en el netlist** — `C29` 100 nF entre `/Boton4` y `GND`; sin medir en cobre. ✏️ **Y desde `D-25` lleva la CAMARA 2 de cada poste** | `pinMode(CAM_D_PIN, INPUT)` en `botones_setup()` | idem |
+
+> ✏️ **11/09 — LA ASIMETRIA DE ANTIRREBOTE QUE ESTA TABLA DABA POR MEDIDA NO ESTA EN EL NETLIST.**
+> `R67`+`C28` y `R68`+`C29` son el mismo `10 kOhm` + `100 nF` que `R64`+`C25` en `PB0`: sobre el
+> papel, **las tres entradas llevan el mismo RC**. La frase «sin condensador» se repite en el
+> comentario de `camara_leerPin()` de `botones.cpp` (*«PB14/PB15 no llevan mas que el 10K de
+> R67/R68»*) — **comentario de firmware, no se toca desde aqui**: queda anotado para quien lo
+> tenga. Lo que si esta medido en cobre son las resistencias (paso 20); **los condensadores, no**.
 
 **Las seis casillas de las dos ultimas columnas salen de tres `grep`, y ninguno lleva numero:**
 
@@ -1810,6 +1855,14 @@ PREFERENCIA"* — `grep -n "POR QUE ACTIVO EN ALTO" Maestro/include/pines.h`.
                                                                              |
                                              camara_leerPin(CAM_DEMANDA_PIN) || demanda_hayLocal()
 ```
+
+> ✏️ **11/09 — EL `OR` DE ABAJO YA TIENE TRES TERMINOS, NO DOS.** Re-medido sobre `a6980e4`: en
+> `modoInteligente_loop()`, `demandaLocalS1 = camara_leerPin(CAM_DEMANDA_PIN) || camara_presenciaJ16()
+> || demanda_hayLocal()`. El termino del medio es el NIVEL de `p10`/`p12` (con el flanco todavia
+> vigente), y es lo que deja al Modo Inteligente **sostener** una fase mientras la camara ve cola
+> — `grep -n "camara_presenciaJ16" Maestro/src/modo_inteligente.cpp Maestro/src/botones.cpp`. Y el
+> dibujo de arriba **no** lleva el vigilante como consumidor de `demanda_solicitar()`: es al reves,
+> las dos cosas cuelgan del mismo flanco, dentro del mismo bucle de `camaras_actualizar()`.
 
 > 🔴 **AQUI HABIA TRES CITAS POR NUMERO DE LINEA Y LAS TRES ESTABAN O SE QUEDARON CADUCAS — se
 > sustituyen por simbolo, que es §4.sexies.** ~~`botones.cpp:144-152`~~ y ~~`botones.cpp:129-135`~~
@@ -1869,20 +1922,31 @@ encender no es una deteccion, es un estado**. Es N-26 aplicado a la camara.
 > N-120— **antes** de enchufar nada, y **cargar el firmware nuevo ANTES de que nadie toque `J16`**
 > (`CLAUDE.md` §9.bis: un commit no protege de un destornillador).
 
-> ⚠️ **UN SOLO SITIO DONDE LAS TRES NO CONVERGEN, Y NO ES UN DEFECTO — SE ESCRIBE CON LA MEDIDA AL
+> ~~⚠️ **UN SOLO SITIO DONDE LAS TRES NO CONVERGEN, Y NO ES UN DEFECTO — SE ESCRIBE CON LA MEDIDA AL
 > LADO PARA QUE NADIE VAYA A «ARREGLARLO»:** `modo_inteligente.cpp` calcula `presenciaActual`
 > —`grep -n "presenciaActual" Maestro/src/modo_inteligente.cpp`— mirando **solo**
 > `CAM_DEMANDA_PIN` y la demanda remota, **sin** `demanda_hayLocal()`. O sea que las dos de `J16`
-> **no cuentan ahi**. **Medido: ese numero solo alimenta `lcd_dibujarInteligente()` — es el
+> **no cuentan ahi**.~~ **Medido: ese numero solo alimenta `lcd_dibujarInteligente()` — es el
 > contador de presencia de la PANTALLA, y la pantalla se retira** (§1.6). No decide
-> ninguna luz ni ninguna orden. **Si algun dia ese contador se publica en la telemetria, entonces si
-> hay que meter `demanda_hayLocal()` — y no antes.**
+> ninguna luz ni ninguna orden. ~~**Si algun dia ese contador se publica en la telemetria, entonces si
+> hay que meter `demanda_hayLocal()` — y no antes.**~~
+>
+> ✏️ **11/09 — CADUCADO: YA CONVERGEN.** Re-medido sobre `a6980e4`: `presenciaActual` se calcula
+> ahora con `demandaLocalS1` —el mismo `OR` de tres terminos que decide, `J16` incluida— y la
+> demanda remota. El propio fuente lo dice encima: *«LO QUE SE DIBUJA ES LO QUE DECIDE, y no una
+> segunda lectura»*. `grep -n "presenciaActual\|demandaLocalS1" Maestro/src/modo_inteligente.cpp`.
 
 > 🔴 **Lo que este censo NO dice, y no se da por dicho:** **ninguna camara AcuSense se ha conectado
 > nunca a este equipo.** Lo que se cablo en el paso 21 fue **un puente de `p10` a `p11`**, no una
 > camara. La salida de la AcuSense es configurable (NO/NC) y **cual de los dos estados significa
 > demanda es una decision de parametrizacion que sigue SIN TOMAR** — `9_Manual_Parametrizacion_
 > Camara_IA.md`. **SIN VERIFICAR con una camara real en las tres entradas.**
+>
+> ✏️ **11/09 — y la unica medida de campo que hay tampoco lo cambia:** la cinta del Maestro del
+> Sisga (10/09, `evidencia/2026-09-10_Sisga_179DB0_cinta_tramas.txt`) trae **253 tramas con `CAM:`
+> y las 253 dicen `CAM:?`** —`grep -o "CAM:[A-Z?]*" … | sort | uniq -c`—: en esos veinte minutos
+> **ninguna camara le dio un flanco al equipo**. Con `D-25` son **cuatro** camaras las que faltan
+> por ver en cobre, y `p12` —la camara 2 de cada poste— **no se ha cableado nunca**, ni en banco.
 
 ---
 
@@ -3025,10 +3089,14 @@ el C++"*.~~ → **la decision se tomo, y su sitio era exactamente ese.**
 > 370:  // que en todos los equipos que se monten UNO DE ESTOS DOS PINES ESTA VACIO. Con el
 > ```
 >
-> **`D-13` es UNA CAMARA POR POSTE, y las dos unidades compradas son una para cada poste** — lo dice
-> la linea `A2` de la lista de compras (*«2 unidades … una por poste»*) y **el firmware DEPENDE de
+> ~~**`D-13` es UNA CAMARA POR POSTE, y las dos unidades compradas son una para cada poste** — lo dice
+> la linea `A2` de la lista de compras (*«2 unidades … una por poste»*)~~ *(✏️ **11/09: derogado por
+> `D-25`** — dos por poste, cuatro en el cruce; la linea `A2` de `15_` pasa a 4, con 2 compradas y
+> 2 SIN VERIFICAR)* y **el firmware DEPENDE de
 > ello por escrito**: la exencion del vigilante —no acumular silencio en un pin que nunca dio un
-> flanco— existe justamente porque **el otro pin esta vacio a proposito**. Sin esa exencion el equipo
+> flanco— existe justamente porque **el otro pin esta vacio a proposito** *(✏️ **11/09: y sigue
+> dependiendo** — el codigo no ha cambiado; con `D-25` esa dependencia es un hueco: una segunda
+> camara muerta desde la instalacion no se avisa)*. Sin esa exencion el equipo
 > emitiria `$ALARM CAM_CIEGA` de una camara que no existe, y ese `CIEGA` **taparia** en el campo
 > `CAM:` el estado de la camara que si esta.
 >
@@ -3040,8 +3108,25 @@ el C++"*.~~ → **la decision se tomo, y su sitio era exactamente ese.**
 > caduca: `p12` es el punto del conector mas cercano a los 12 V (`1,359 mm`) y ninguna entrada de
 > campo lleva proteccion en serie (§3.6).
 >
-> ✅ **Por eso el pin que se cablea es `p10`** —el unico ejercido en banco, paso 21, sin demandas
-> fantasma— **y `p12` se deja vacio**, que es lo que el vigilante da por supuesto.
+> ~~✅ **Por eso el pin que se cablea es `p10`** —el unico ejercido en banco, paso 21, sin demandas
+> fantasma— **y `p12` se deja vacio**, que es lo que el vigilante da por supuesto.~~
+>
+> # ✏️ 11/09 — `D-25`: SE CABLEAN LOS DOS, Y ESTA SECCION QUEDA CERRADA DEL TODO
+>
+> **El responsable, 11/09: *«mantener estas conexiones como definitivas»*** —las de la guia del
+> Sisga revisada con el el 10/09—: **cuatro camaras, DOS POR POSTE**, camara 1 entre `J16` p9 y
+> **p10**, camara 2 entre `J16` p11 y **p12**. Deroga de `D-13` **solo** *«una camara por poste /
+> `p12` vacio»*; el resto de `D-13` sigue vigente. **`J14` no lleva camara** — y queda con el
+> **conflicto abierto** de §1.7.bis (`A-2` lo quiere para el fin de carrera; el firmware lo lee
+> como camara).
+>
+> **Lo que NO cambia de este apartado, y ahora pesa mas:** su **aviso electrico**. `p12` es el
+> punto del conector **mas cercano a la red de 12 V** (`1,359 mm`), y desde hoy **lleva cable de
+> campo**; `p1` tapado es obligatorio (`D-4`) y ninguna entrada lleva proteccion en serie (§3.6).
+> Y **`p12` no se ha cableado nunca**, ni en banco: lo ejercido sigue siendo **una** entrada
+> (`p10`, paso 21). **Y lo que el vigilante «daba por supuesto» —el `p12` vacio— ya no es cierto
+> y el firmware no ha cambiado:** una camara de `p12` muerta desde la instalacion no la avisa nadie
+> (§1.7, fila `p12`).
 >
 > 🔴 **La leccion, y va escrita porque el error es mio y de los caros:** `CLAUDE.md` §2.quater —*una
 > pregunta bien hecha sobre un diagnostico sin medir le hace decidir algo que no existe, y encima le

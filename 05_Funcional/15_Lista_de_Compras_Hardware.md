@@ -2,7 +2,11 @@
 
 **Sistema:** Controladora de Semáforos Móviles de 3 Estados (V9.0)
 **Fecha:** 27 de Agosto de 2026
-**Última revisión:** **5 de Septiembre de 2026** — ⛔ **`A9` SALE DE LA LISTA: el mando de relés y
+**Última revisión:** **11 de Septiembre de 2026** — 📷 **`D-25`: SON CUATRO CÁMARAS, DOS POR POSTE.**
+Cambia la **cantidad** de `A2`, `A7` (cable) y `A10` (microSD), y **constan compradas sólo 2**.
+Detalle en el bloque de abajo, que va primero.
+
+**Revisión anterior:** **5 de Septiembre de 2026** — ⛔ **`A9` SALE DE LA LISTA: el mando de relés y
 sus pulsadores NO SE COMPRAN**, y **entra `A10`: las microSD de las cámaras**. Detalle en el bloque
 rojo de abajo.
 
@@ -42,6 +46,50 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 ---
 
 > [!IMPORTANT]
+> # 📷 11/09/2026 — `D-25`: CUATRO CÁMARAS, DOS POR POSTE. LA CANTIDAD CAMBIA Y NO ESTÁ CUBIERTA
+>
+> **Decisión del responsable, 11/09 (`DECISIONES.md` `D-25`):** *«mantener estas conexiones como
+> definitivas»*. En **cada** poste:
+>
+> | | señal | 3,3 V | pin del micro |
+> |---|---|---|---|
+> | **cámara 1** | `J16` **p10** | `J16` **p9** | `PB14` · `CAM_C_PIN` |
+> | **cámara 2** | `J16` **p12** | `J16` **p11** | `PB15` · `CAM_D_PIN` |
+> | **talanquera** | `J15` **p1** = 12 V · **p2** = drenador de `Q10` (**NO es masa**: con `Q10` abierto está a ~12 V) | — | `PB2` · `MOTOR_TALANQUERA` |
+>
+> La talanquera va a la **bobina de un relé** entre `J15` p1 y p2, y el **contacto** de ese relé a la
+> entrada **`OPEN`** de la centralita de la barrera. **Deroga de `D-13` SÓLO «una cámara por poste» y
+> el `p12` vacío**; el resto de `D-13` sigue: las cuatro con la misma configuración.
+>
+> **Lo que cambia en esta lista, línea a línea:**
+>
+> | línea | antes | con `D-25` | qué consta |
+> |---|---|---|---|
+> | **`A2`** cámaras | 2 | **4** | 🔴 **compradas constan 2** (fila `A2`, 05/09). **Las otras 2: `SIN VERIFICAR` con compras.** Y el modelo está marcado **`Discontinued`** en la web del fabricante (05/09): **esas 2 son las que ese aviso afecta** |
+> | **`A7`** conexión a `J16` | 2 juegos | **2 conectores** *(uno por tarjeta)* **+ cable de 2 hilos para 4 cámaras** | sin pedir |
+> | **`A10`** microSD | 2 | **4** *(una por cámara)* | sin comprar |
+> | **`A4`** relé de talanquera | 2 | **2** *(uno por poste, no cambia)* | ⚠️ ver la nota de la fila `A4`: el tipo de relé pedido **no casa** con dos hilos en `J15` |
+> | energía de cámara por poste | 13 W | **2 × 13 W = 26 W** *(máximo de ficha)* | es un número para quien dimensiona batería y panel — ver el bloque 📷 de `A2` |
+>
+> 🛑 **LO QUE LA SEGUNDA CÁMARA NO ES, y quien firma la compra tiene que saberlo** (medido el 11/09
+> en el firmware, `botones.cpp` y `semaforo.cpp` de las dos puntas):
+>
+> 1. **Hace LO MISMO que la primera.** Las dos entradas se recorren en el mismo bucle
+>    (`CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN}`): piden paso y las vigila el mismo vigilante. No hay una
+>    «de demanda» y otra «de presencia».
+> 2. **NO protege la pluma.** `escribirPines()` sube la pluma con `(verde && !testLedsActivo) ||
+>    estado == S_FALLO` y **no lee ninguna cámara**: la pluma baja aunque haya un coche debajo, y sube
+>    también con el ámbar intermitente. El veto es `A-1.bis`, **sin construir**. **No es la «segunda
+>    cámara por poste de SFTY-29»** que esta lista citaba: SFTY-29 sigue siendo **sólo diseño**.
+> 3. **Una cámara que no ha detectado nunca nada no la vigila nadie.** El vigilante y el campo `CAM:`
+>    se saltan el pin que nunca dio un flanco —exención escrita cuando `p12` iba vacío a propósito—, y
+>    la app pinta *«OK — las dos ven»* con la primera detección de **cualquiera** de las dos. **Cada
+>    cámara se comprueba con el multímetro en su borne** al montarla.
+>
+> ⚠️ **Y `p12` es el borne de `J16` más cercano a la red de 12 V** (`1,359 mm` de cobre, `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md` §7.bis). Con
+> `D-25` ahí va una cámara: **el p1 de `J16` se tapa en cada equipo** (`D-4`), y el tapón va en `A7`.
+
+> [!IMPORTANT]
 > # ⛔ 05/09/2026 — DOS CAMBIOS QUE SE EJECUTAN CON DINERO. LÉASE ANTES DE EMITIR NINGUNA ORDEN
 >
 > ## 1. 🛑 `A9` SALE: **EL MANDO DE 4 RELÉS Y LOS PULSADORES NO SE COMPRAN — Y NO ES UNA PIEZA PENDIENTE**
@@ -78,7 +126,8 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 > ## 2. 🆕 `A10` ENTRA: **LAS microSD DE LAS CÁMARAS SE COMPRAN**
 >
 > **Decisión del responsable, 05/09:** *«cada cámara tiene una micro, la metemos»*. Deja de ser la
-> pregunta `A-0` en su primera mitad: **se compran, una por cámara — 2 unidades.** Ver la línea
+> pregunta `A-0` en su primera mitad: **se compran, una por cámara — ~~2 unidades~~ → 4 unidades
+> (11/09, `D-25`: cuatro cámaras).** Ver la línea
 > **`A10`** en el bloque **A**.
 >
 > ⚠️ **Lo que la decisión NO cierra, y sigue en `A-0` de `DECISIONES.md`:** **capacidad**, **días de
@@ -273,10 +322,16 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 > | Red | `Puerta` ❌ | `Motor` ✅ |
 > | Pin | — | `PB2` (`MOTOR_TALANQUERA`) |
 >
-> * **`J14` es la ENTRADA de la cámara de demanda** (`PB0`, `CAM_DEMANDA_PIN`), con `R64` 10 kΩ y
+> * **`J14` es ~~la ENTRADA de la cámara de demanda~~ una ENTRADA del micro** (`PB0`, `CAM_DEMANDA_PIN`), con `R64` 10 kΩ y
 >   `C25` 100 nF de antirrebote. **Meterle los 12 V de un relé destruye el STM32**, que es el micro
 >   que gobierna el semáforo — y además la pluma no se movería, porque `J14` no tiene etapa de
 >   salida.
+>   ✏️ **11/09 — «de la cámara» ya no vale:** las cámaras van a `J16` (`D-2`/`D-3`; con `D-25`, dos
+>   por poste en p10 y p12) y **`A-2` reservó `J14` al fin de carrera de la pluma**. 🔴 **CONFLICTO
+>   ABIERTO, no se resuelve aquí:** el firmware **sigue leyendo `PB0` como `CAM_DEMANDA_PIN`** —el
+>   Maestro por nivel en el Modo Inteligente, el Esclavo por flanco y lo manda como demanda por
+>   radio—, así que un fin de carrera en `J14` **se leería como coches pidiendo paso**. Es del
+>   responsable.
 > * **La talanquera SALE por `J15`:** `PB2` → opto `U15` → MOSFET `Q10` → `J15`. Es un canal de
 >   potencia propio, ya montado en la placa.
 > * **Medido** el 28/08 en `01_Firmware/Maestro/include/pines.h` (líneas 31 y 46). El **Manual 13
@@ -286,7 +341,9 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 >   versión vieja tiene que poder enterarse.
 >
 > **De dónde salió el error, para no repetirlo:** la red de `J14` se llama **`Puerta`** en el
-> esquemático, y «puerta» suena a talanquera. **No lo es: es por donde la cámara pide paso.**
+> esquemático, y «puerta» suena a talanquera. **No lo es: es ~~por donde la cámara pide paso~~ una
+> entrada** *(11/09: reservada al fin de carrera por `A-2`, y leída por el firmware como cámara —
+> conflicto abierto, ver arriba)*.
 
 > ### Por qué existe este documento, y qué NO es
 >
@@ -320,7 +377,7 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 |---|---|---|---|
 | ~~**A1**~~ Módulo Bluetooth SPP | ~~2 × `HC-05` / `JDY-30`~~ | **nunca llegaron, y ya no se piden** | ⛔ **ANULADA el 28/08.** El `ESP32` los sustituye |
 | **A1′** `ESP32` como módulo SPP | — *(línea nueva del 28/08)* | **Llegaron módulos `ESP32-WROOM-32` clásicos** —referencia **CONFIRMADA por ficha** el 31/08—, **cantidad todavía sin anotar** | 🟢 **DESBLOQUEADA el 31/08 (`BLQ-1` cerrado).** ~~🛑 BLOQUEADA hasta leer qué referencia llegó~~ — **el motivo desapareció: hay SPP.** Lo que queda antes de comprar **más** es contar pines (30/38), y eso bloquea la portadora `A8`, no el firmware |
-| **A2** Cámaras de demanda | 2 × AcuSense | 🟢 **05/09: COMPRADAS, y el modelo ya es un dato: `DS-2CD2683G2-IZS`.** Ficha oficial verificada — **tiene salida de alarma por contacto seco** *(`1 output`, `24 V`/`1 A`)*, así que el cableado a `J16` sigue en pie | 🟢 **CUBIERTA en la compra.** ~~pendiente *(confirmar si ya hay una en almacén)*~~ · 🔴 **Pero NO puesta en marcha:** quedan 3 comprobaciones antes de instalar —enlace analítica→relé, `NO`/`NC` y clasificador—, ver el bloque 📷 y **Manual 9 §8**. ⚠️ **Y arrastra `13 W` por poste y un SOPORTE que nadie ha especificado** |
+| **A2** Cámaras de demanda | ~~2 × AcuSense~~ → **4 × AcuSense** *(11/09, `D-25`: dos por poste)* | 🔴 **11/09: `D-25` pide 4; compradas constan 2** (esta fila, 05/09). **Las otras 2: `SIN VERIFICAR` con compras** — y el modelo figura `Discontinued`. 🟢 **05/09: COMPRADAS, y el modelo ya es un dato: `DS-2CD2683G2-IZS`.** Ficha oficial verificada — **tiene salida de alarma por contacto seco** *(`1 output`, `24 V`/`1 A`)*, así que el cableado a `J16` sigue en pie | ~~🟢 **CUBIERTA en la compra.**~~ → 🔴 **11/09: CUBIERTA A MEDIAS — 2 de 4.** ~~pendiente *(confirmar si ya hay una en almacén)*~~ · 🔴 **Pero NO puesta en marcha:** quedan 3 comprobaciones antes de instalar —enlace analítica→relé, `NO`/`NC` y clasificador—, ver el bloque 📷 y **Manual 9 §8**. ⚠️ **Y arrastra ~~`13 W` por poste~~ `13 W` por cámara —`26 W` por poste con dos (`D-25`)— y un SOPORTE que nadie ha especificado** |
 | **A3** Antenas + coaxiales | 2 + 2 | sin novedad | pendiente |
 | **A4** Módulos de 1 relé | 2 | sin novedad | pendiente |
 | **A5** Fuente propia del `ESP32` | — *(línea nueva del 28/08)* | **NO se ha pedido, y es LO QUE BLOQUEA EL MONTAJE** | 🔴 **NO cubierta.** Sin ella el `ESP32` reinicia el STM32 del semáforo. **31/08: pasa a exigir DC-DC CONMUTADO, no lineal** — ver `A5`. ⏸️ **04/09: SIN MOVIMIENTO en cuatro días, y ninguna referencia elegida** |
@@ -328,7 +385,7 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 | **A7** Conexión de cámaras a `J16` | — *(línea nueva del 28/08)* | **NO se ha pedido** | pendiente *(es cable y conector, no electrónica)*. 🟢 **04/09: `M3` CERRADA en banco — ya no sólo se compra, YA SE PUEDE CONECTAR**, con el p1 de `J16` tapado. Ver `A7` |
 | **A8** **Placa portadora del `ESP32`** | — *(línea nueva del **31/08**)* | **NO se ha pedido, NO está diseñada, y NO está decidido quién la diseña ni quién la fabrica** | 🔴 **NO cubierta.** ⏸️ **04/09: SIN MOVIMIENTO — sigue sin dueño.** Ver `A8` |
 | ~~**A9**~~ **Receptor RF del mando de relés** | ~~nunca se pidió: el mando iba a retirarse~~ · ~~31/08: SUBE DE PRIORIDAD~~ · ~~04/09: SE COMPRA con salida `NO`~~ | **NUNCA se compró, y ya NO se compra** | ⛔ **ANULADA EL 05/09 (`D-1`).** *«Ya no tenemos mandos de A y B, sólo la app, los quitamos»*. **NO es una pieza pendiente: es una decisión.** Cero unidades. 🛑 **El CÓDIGO del mando NO se retira** — Manual 2 §6. 📵 Consecuencia: **la app es la única vía de mando** (`D-16`) |
-| 🆕 **A10** **microSD de las cámaras** | — *(línea nueva del **05/09**)* | **NO se han comprado** | 🟢 **DECIDIDA la compra el 05/09 por el responsable:** *«cada cámara tiene una micro, la metemos»*. **2 unidades, una por cámara.** ⚠️ **Capacidad, retención y continua-o-por-evento siguen abiertas** (`A-0` de `DECISIONES.md`): no bloquean comprar, **sí bloquean configurar**. Ver `A10` |
+| 🆕 **A10** **microSD de las cámaras** | — *(línea nueva del **05/09**)* | **NO se han comprado** | 🟢 **DECIDIDA la compra el 05/09 por el responsable:** *«cada cámara tiene una micro, la metemos»*. ~~**2 unidades, una por cámara.**~~ → **4 unidades, una por cámara** *(11/09, `D-25`)*. ⚠️ **Capacidad, retención y continua-o-por-evento siguen abiertas** (`A-0` de `DECISIONES.md`): no bloquean comprar, **sí bloquean configurar**. Ver `A10` |
 | ~~**B1–B2**~~ RTC en la placa STM32 | — | **NO se compraron** | ⛔ **ANULADAS.** El RTC se mudó a **A6**, colgado del `ESP32` |
 | **B3–B4** Expansor y accesorios | — | **NO se compraron** | correcto: siguen **esperando al banco**, no se piden todavía |
 | **E1** Resistencias **2K2** para las 5 entradas de campo | — *(línea nueva del **04/09**)* | **NO se ha pedido: es de la revisión V2 de la placa** | 🆕 **NO es una decisión tomada.** Es una **cuenta** para quien firme la V2. Ver bloque **E** |
@@ -497,15 +554,15 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 |:---:|---|:---:|---|---|
 | ~~A1~~ | ~~**Módulo Bluetooth SPP** `HC-05` / `JDY-30`~~ ⛔ **NO SE COMPRA.** El `ESP32` lo sustituye (decisión de obra del 28/08). *La fila no se borra: un hueco se vuelve a proponer, una fila tachada con su motivo no* | ~~2~~ → **0** | — | **Manual 10** §1 *(sigue mandando en el transporte: SPP, no BLE)* |
 | **A1′** | **`ESP32` clásico** `WROOM-32` / `-32D` / `-32E` / `-32U` sobre placa **DevKitC / NodeMCU**. Hace de módulo SPP **y** sostiene el `DS3231` de A6. ⛔ **Ni «el más grande» ni «el más nuevo»: eso es un `S3` y no habla SPP — ver el aviso del bloque 0.** ⚠️ **El formato de pines (30 o 38) se CUENTA antes de pedir más y antes de fabricar `A8`** | **2** *(1 por poste)* — 🟢 **DESBLOQUEADA 31/08**, ~~🛑 BLOQUEADA~~. **Descontar lo que haya en almacén: la cantidad recibida sigue sin anotarse** | Consola de servicio por celular en cada poste (evita subir con escalera al Esclavo) **+ el bus I²C del reloj** | **Manual 10** §1 y §2 · `roadmap.md` **N-107** *(la ficha que cierra `BLQ-1`)* |
-| A2 | **Cámara IA** Hikvision AcuSense varifocal motorizada. ~~`DS-2CD3643G2-LIZSU` **o equivalente**~~ ⛔ **era un modelo de REFERENCIA** → 🟢 **COMPRADA: `DS-2CD2683G2-IZS` (2,8–12 mm)**, 8 MP bullet AcuSense. **Ficha verificada el 05/09** | **2** *(ver nota)* | Demanda vehicular: una por poste, contacto seco a ~~`PB0`~~ → 🟢 **`J16`, en los pines donde estaban el Botón 3 y el Botón 4** — decidido por el responsable el 05/09, y **corrige lo que esta línea decía**: `PB0` es la bornera `J14`, que queda libre para un posible fin de carrera de barrera. ~~«Son las dos que el firmware lee hoy»~~ — **falso**: hasta el 05/09 el Modo Inteligente leía `PB0` y el vigilante miraba `J16`, o sea que **una mitad estaba ciega con cualquiera de las dos borneras**. ✅ **Tiene salida de alarma: `1 output`, `24 V`/`1 A` máx** — el cableado planeado sigue en pie | **Manual 9** §1.1 |
+| A2 | **Cámara IA** Hikvision AcuSense varifocal motorizada. ~~`DS-2CD3643G2-LIZSU` **o equivalente**~~ ⛔ **era un modelo de REFERENCIA** → 🟢 **COMPRADA: `DS-2CD2683G2-IZS` (2,8–12 mm)**, 8 MP bullet AcuSense. **Ficha verificada el 05/09** | ~~**2** *(ver nota)*~~ → **4** *(dos por poste, `D-25`, 11/09)* — 🔴 **compradas constan 2; las otras 2 `SIN VERIFICAR` con compras** | Demanda vehicular: ~~una por poste~~ → **dos por poste (11/09, `D-25`): cámara 1 a `J16` p10 contra p9, cámara 2 a `J16` p12 contra p11 — las dos hacen lo mismo y ninguna protege la pluma** (bloque del 11/09, arriba), contacto seco a ~~`PB0`~~ → 🟢 **`J16`, en los pines donde estaban el Botón 3 y el Botón 4** — decidido por el responsable el 05/09, y **corrige lo que esta línea decía**: `PB0` es la bornera `J14`, que queda libre para un posible fin de carrera de barrera *(11/09: 🔴 **conflicto abierto** — el firmware sigue leyendo `PB0` como cámara; ver la fe de erratas de `J14`)*. ~~«Son las dos que el firmware lee hoy»~~ — **falso**: hasta el 05/09 el Modo Inteligente leía `PB0` y el vigilante miraba `J16`, o sea que **una mitad estaba ciega con cualquiera de las dos borneras**. ✅ **Tiene salida de alarma: `1 output`, `24 V`/`1 A` máx** — el cableado planeado sigue en pie | **Manual 9** §1.1 |
 | A3 | **Antenas VHF y coaxiales** | **2 + 2** | Recuperar alcance: las genéricas de «LoRa» costaban 15–20 dB y dejaban la cobertura en 3 cuadras | **Manual 7** §BOM *(lleva modelo, conectores y adaptadores)* |
-| A4 | **Módulo de 1 relé optoacoplado, con jumper `JD-VCC`** | **2** *(1 por poste)* | **La talanquera.** El firmware ya la manda (SFTY-28, 27/08) y la tarjeta ya expone la señal: se conecta a la bornera **`J15`** (red `Motor`, `PB2` → opto `U15` → MOSFET `Q10`). 🔴 **NO a `J14`, que es la ENTRADA de la cámara — ver la fe de erratas de la cabecera.** **No hace falta `PCF8574` ni MOSFET nuevo** | **Manual 13** §3 *(la etapa de potencia y el cuadro `J14`/`J15`)*; el jumper `JD-VCC` y su porqué, en el aviso del bloque **B** de esta misma lista |
+| A4 | **Módulo de 1 relé optoacoplado, con jumper `JD-VCC`** | **2** *(1 por poste)* | **La talanquera.** El firmware ya la manda (SFTY-28, 27/08) y la tarjeta ya expone la señal: se conecta a la bornera **`J15`** (red `Motor`, `PB2` → opto `U15` → MOSFET `Q10`). 🔴 **NO a `J14`, que es ~~la ENTRADA de la cámara~~ una ENTRADA del micro — ver la fe de erratas de la cabecera.** **No hace falta `PCF8574` ni MOSFET nuevo**. ⚠️ **11/09 — `D-25` fija CÓMO: la BOBINA del relé entre `J15` p1 (12 V) y p2 (drenador de `Q10`, que NO es masa), y el CONTACTO del relé a la entrada `OPEN` de la centralita.** `J15` sólo da esos dos hilos: **no hay masa ni 3,3 V en esa bornera.** Un módulo con entrada optoacoplada y jumper `JD-VCC` necesita alimentación de lógica y masa propias, y **el porqué del `JD-VCC` que cita esta fila es el del expansor `PCF8574`** (bloque **B**), que está retirado. 🔴 **Que el módulo pedido pueda cablearse con dos hilos en `J15`: `SIN VERIFICAR`. Lo que casa con `D-25` tal como está escrita es un relé con bobina de 12 V DC** —la placa ya trae `D30` de rueda libre: un `1N4148` que `E2` da por corto **para un motor**; con `D-25` la carga de `J15` es **la bobina de un relé**, y si basta depende de la bobina que se elija (`SIN VERIFICAR`)—. **La referencia la decide el responsable antes de pedir** | **Manual 13** §3 *(la etapa de potencia y el cuadro `J14`/`J15`)*; el jumper `JD-VCC` y su porqué, en el aviso del bloque **B** de esta misma lista |
 | **A5** | 🔴 **Fuente propia para cada `ESP32`: convertidor DC-DC CONMUTADO (*switching*) reductor, `12 V → 5 V`, ≥ 1 A**, con sus borneras y su cable. **CONMUTADO, NO LINEAL — y no es una preferencia: ver la cuenta de abajo.** ~~(un módulo `LM2596` o `MP1584` sirve)~~ ⛔ **retirado el 31/08: ninguna referencia concreta está elegida** | **2** *(1 por `ESP32`)* | **Que el `ESP32` no cuelgue del `LM7805` de la tarjeta.** A 500 mA de pico el `7805` disipa 3,5 W sin disipador, y al hundirse el riel de 3,3 V **se reinicia el STM32 que gobierna el semáforo** | **Manual 10** §1 *(la regla)* — ⚠️ **la pieza sigue sin especificarse en ningún manual: ver el aviso de abajo** |
 | **A6** | **Módulo RTC `DS3231` `ZS-042`** con **su propia pila**, colgado del `ESP32` por I²C (`GPIO21` SDA · `GPIO22` SCL) | ~~**1** *(el del Maestro)*~~ → **2** *(1 por poste)* — ✅ **05/09: YA ESTÁN PUESTOS, cada `ESP32` lleva el suyo.** Confirmado por el responsable. **Nada que pedir** | El reloj del equipo, **fuera de la placa STM32**: no hay que modificar la tarjeta ni sacar hilos de `PB0`/`PB8`. 🛑 **Y son DOS porque el STM32 NO tiene reloj** (`Y2` muerto, `D-9`) **y ya no atiende `SET_RTC`** (`D-15`): cada punta mantiene su hora | **Manual 11** *(la pieza)* · ⚠️ **el montaje sobre `ESP32` no está en ningún manual: ver el aviso de abajo** |
-| **A7** | **Juego de conexión de las cámaras a `J16`**: conector hembra del footprint de `J16` con sus terminales de crimpar, y cable de 2 hilos apantallado por cámara. 🟢 **04/09: `M3` CERRADA — ya se puede CONECTAR, no sólo comprar.** ⚠️ **Y el juego incluye con qué TAPAR el p1 de 12 V** *(tapón, funda termorretráctil o el conector sin terminal en esa posición)*: no es opcional | **2 juegos** | Llevar el contacto seco de la cámara a los pines que **liberan los pulsadores 3 y 4** ~~el mando~~ (`PB14`/`PB15`), **contra los 3,3 V del borne contiguo** (`p9` para `p10`, `p11` para `p12`). **No hace falta `PCF8574` ni ninguna placa hija** | **Manual 13** §3 *(borneras)* · `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md` §7 *(el mapa pin a pin de `J16`)* · **Manual 9** *(polaridad, `M3` y el `ENSAYO 4`)* |
+| **A7** | **Juego de conexión de las cámaras a `J16`**: conector hembra del footprint de `J16` con sus terminales de crimpar, y cable de 2 hilos apantallado por cámara. 🟢 **04/09: `M3` CERRADA — ya se puede CONECTAR, no sólo comprar.** ⚠️ **Y el juego incluye con qué TAPAR el p1 de 12 V** *(tapón, funda termorretráctil o el conector sin terminal en esa posición)*: no es opcional | ~~**2 juegos**~~ → **2 conectores** *(uno por tarjeta)* **+ cable de 2 hilos para 4 cámaras** *(11/09, `D-25`: dos cámaras por conector)* | Llevar el contacto seco de ~~la cámara~~ **cada cámara** a los pines que **liberan los pulsadores 3 y 4** ~~el mando~~ (`PB14`/`PB15`), **contra los 3,3 V del borne contiguo** (`p9` para `p10`, `p11` para `p12`) — **con `D-25` se usan LOS DOS en cada poste**. **No hace falta `PCF8574` ni ninguna placa hija** | **Manual 13** §3 *(borneras)* · `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md` §7 *(el mapa pin a pin de `J16`)* · **Manual 9** *(polaridad, `M3` y el `ENSAYO 4`)* |
 | **A8** | 🔴 **PLACA PORTADORA DEL `ESP32`** — **línea nueva del 31/08; hasta hoy esto NO ERA UNA LÍNEA DE COMPRAS y hacía falta igual.** Lleva, como mínimo: **PCB**, **hembrillas** para el módulo (que es de formato protoboard y va enchufado, no soldado), **conectores** de entrada de 12 V y de salida a `J17`, **fusible**, **protección de inversión de polaridad** y **condensadores** de desacoplo y de reserva | **2** *(1 por poste)* — 🛑 **NO SE FABRICA todavía** | Que el `ESP32` y su `A5` y su `A6` sean **un conjunto montable y reemplazable**, en vez de tres módulos sueltos con cables volantes dentro de un armario que vibra en un remolque | 🔴 **`05_Funcional/19_Especificacion_Placa_Portadora_ESP32.md`** *(otro agente la está escribiendo en este mismo árbol — **aquí NO se duplica**: si al leer esto ese fichero no existe todavía, es que ese trabajo no ha entrado, y **se espera a que entre en vez de inventar la especificación aquí**)* |
 | ~~**A9**~~ | ⛔ **RECEPTOR RF DEL MANDO DE RELÉS — NO SE PIDE. ANULADA EL 05/09 (`D-1`).** ~~🟢 SE PIDE, contacto seco MOMENTÁNEO, canales A y B, 12 V, salida `NO`~~ · ~~🛑 04/09: falta DECIDIR si `NO` o `NC`~~. **El responsable retiró el mando del equipo: *«ya no tenemos mandos de A y B, sólo la app, los quitamos»*.** **NO es una pieza pendiente ni una compra aplazada: es una decisión.** El razonamiento de `NO`/`NC` se conserva en el bloque de abajo porque **sigue gobernando el cableado de las CÁMARAS** | ~~2~~ → **0** | ⛔ **Nada.** ~~era la única vía de mando del Esclavo~~ → 📵 **eso no se resuelve comprando: pasa a ser `D-16`** — la app es la única superficie de mando, y **el Modo Degradado del Esclavo se queda sin vía de activación** *(Manual 2 §6, con el censo de las cuatro)* | 🛑 **Nada que especificar.** 🔴 **Y lo que NO se toca: el CÓDIGO del mando se queda** — retirarlo abre el veto de SFTY-21. Manual 2 §6 |
-| 🆕 **A10** | **Tarjeta microSD para cada cámara** — **`high endurance` / de vigilancia**, no la de un teléfono: se escribe en bucle las 24 h y una tarjeta de consumo se agota. Formato admitido por la cámara: **microSD / SDHC / SDXC** | **2** *(1 por cámara)* | **Que exista soporte de accidentes y auditoría.** El controlador **no ve imagen** (`D-12`) y no la va a ver: las imágenes viven **en la cámara**. Sin tarjeta no hay ninguna, y **no se toca una línea de firmware** | ⚠️ **Capacidad, retención y modo de grabación NO están decididos** (`A-0`). 🔴 **Y la capacidad máxima tiene DOS fuentes que no coinciden:** ver el aviso de abajo. 🛑 **07/09 — Y LA CUENTA DE RETENCIÓN SE APOYA EN `D-14`, QUE NO ESTÁ IMPLEMENTADA:** ver el recuadro justo debajo |
+| 🆕 **A10** | **Tarjeta microSD para cada cámara** — **`high endurance` / de vigilancia**, no la de un teléfono: se escribe en bucle las 24 h y una tarjeta de consumo se agota. Formato admitido por la cámara: **microSD / SDHC / SDXC** | ~~**2**~~ → **4** *(11/09, `D-25`)* *(1 por cámara)* | **Que exista soporte de accidentes y auditoría.** El controlador **no ve imagen** (`D-12`) y no la va a ver: las imágenes viven **en la cámara**. Sin tarjeta no hay ninguna, y **no se toca una línea de firmware** | ⚠️ **Capacidad, retención y modo de grabación NO están decididos** (`A-0`). 🔴 **Y la capacidad máxima tiene DOS fuentes que no coinciden:** ver el aviso de abajo. 🛑 **07/09 — Y LA CUENTA DE RETENCIÓN SE APOYA EN `D-14`, QUE NO ESTÁ IMPLEMENTADA:** ver el recuadro justo debajo |
 
 > # 🔴 07/09 — AVISO SOBRE `A10`: **LA CUENTA QUE DIMENSIONA ESTA COMPRA SE APOYA EN `D-14`, Y `D-14` NO ESTÁ EN EL FIRMWARE**
 >
@@ -534,7 +591,7 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 >
 > | | |
 > |---|---|
-> | **Qué NO cambia** | **se compran 2 tarjetas igual.** La cámara graba por movimiento sin necesitar nada nuestro |
+> | **Qué NO cambia** | **se compran ~~2~~ tarjetas igual** *(11/09: **4**, una por cámara — `D-25`)*. La cámara graba por movimiento sin necesitar nada nuestro |
 > | **Qué SÍ cambia** | **la capacidad que hay que pedir.** Ante la duda, **la más grande que admitan las dos fuentes** *(ver el aviso de los 256/512 GB)*, no la más modesta |
 > | **Y lo que hay que decidir antes de configurar** | `A-0`: retención y **continua o por evento** — con el añadido de que **el evento «rojo» hoy no llega a la cámara** |
 >
@@ -560,9 +617,13 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 >
 > 🛑 **Y las TRES cosas nuevas que esta línea de compra arrastra, y que antes no estaban:**
 >
-> 1. **`13 W` POR CÁMARA, CONTINUOS** *(`12 V`, `1,08 A`; ficha pág. 4)*. Son **`26 Ah/día` por
->    poste** sólo de cámara — **una cifra que dimensiona batería y panel**, del mismo orden que todo
->    lo demás del equipo junto. **No es una decisión de esta lista: es un número para quien firme la
+> 1. **`13 W` POR CÁMARA, CONTINUOS** *(`12 V`, `1,08 A`; ficha pág. 4)*. Son ~~**`26 Ah/día` por
+>    poste**~~ sólo de cámara — **una cifra que dimensiona batería y panel**, del mismo orden que todo
+>    lo demás del equipo junto.
+>    ✏️ **11/09 — con `D-25` son DOS cámaras por poste, y la cuenta se rehace a la vista:**
+>    `2 × 13 W = 26 W` · `26 W × 24 h = 624 Wh` · `624 Wh / 12 V = 52 Ah/día` **por poste, sólo de
+>    cámara**. Los `26 Ah/día` tachados eran de **una** cámara. `13 W` es el **máximo** de ficha
+>    (con IR); el consumo medio sigue `SIN VERIFICAR` (Manual 9 §1.1.2). **No es una decisión de esta lista: es un número para quien firme la
 >    energía**, y hasta hoy no estaba escrito en ninguna parte.
 >    ⚠️ **La cámara va DIRECTA A BATERÍA, no al `LM7805` de la tarjeta** — es la misma regla de `A5`.
 > 2. **🆕 Falta una línea de compra: EL SOPORTE.** `1.385 g` y `30,8 cm` en lo alto de un poste
@@ -572,8 +633,14 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 >    aquí.**
 > 3. ⚠️ **La página oficial del modelo lo marca como `Discontinued`** *(consultada el 05/09)*. **No
 >    afecta a las dos unidades ya compradas**, pero **sí a repuestos y a una tercera cámara**: si el
->    diseño va a necesitar más *(la segunda por poste de SFTY-29 sigue sin pedirse)*, **conviene
+>    diseño va a necesitar más ~~*(la segunda por poste de SFTY-29 sigue sin pedirse)*~~, **conviene
 >    decidirlo antes de que desaparezca del canal**.
+>    🔴 **11/09 — YA ESTÁ DECIDIDO QUE HACEN FALTA MÁS: `D-25` pide CUATRO.** Las **2 que faltan**
+>    sobre las 2 compradas son justo las que este aviso afecta: **con el modelo `Discontinued`, que
+>    se consigan otras 2 `DS-2CD2683G2-IZS` es `SIN VERIFICAR`**, y si llega otro modelo, **toda la
+>    parametrización del Manual 9 y su ficha se vuelven a comprobar para él**. Y la segunda cámara de
+>    `D-25` **no es la «segunda por poste de SFTY-29»** que se tachó aquí: hace lo mismo que la
+>    primera y no veta la pluma (bloque del 11/09, arriba).
 >
 > 🔴 **Y lo que NO se puede dar por bueno todavía, porque ninguna fuente oficial lo dice** *(detalle y
 > cómo se cierra cada uno, en el Manual 9 §7 y §8)*:
@@ -587,9 +654,11 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 > 🟢 **Ninguna de las tres bloquea la compra —ya está hecha— ni el cableado que `M3` desbloqueó.**
 > Bloquean **dar por cerrada la puesta en marcha**, que es distinto.
 >
-> ### 📜 QUÉ SE ESTÁ COMPRANDO DE VERDAD CON ESTAS DOS CÁMARAS (D-12, 05/09)
+> ### 📜 QUÉ SE ESTÁ COMPRANDO DE VERDAD CON ESTAS ~~DOS~~ CÁMARAS (D-12, 05/09) *(11/09: CUATRO, `D-25`)*
 >
-> **Se compran dos cámaras de 8 MP para que el semáforo reciba de cada una UN BIT.** Dicho así suena
+> **Se compran ~~dos~~ cámaras de 8 MP para que el semáforo reciba de cada una UN BIT** *(11/09:
+> **cuatro**, dos por poste — y los dos bits de un mismo poste entran por el mismo bucle y significan
+> lo mismo)*. Dicho así suena
 > pobre, y por eso va escrito: es lo que hay, y quien firma la compra tiene que saberlo.
 >
 > | lo que el sistema **SÍ** obtiene | lo que **NO** obtiene, aunque la cámara lo tenga |
@@ -607,7 +676,8 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 > 🆕 **Y eso abrió DOS líneas, de las cuales UNA YA ESTÁ DECIDIDA:**
 >
 > 1. ~~**La tarjeta microSD** — 🔴 **NO comprada, no presupuestada.**~~ 🟢 **DECIDIDA EL 05/09 POR EL
->    RESPONSABLE: *«cada cámara tiene una micro, la metemos»*. SE COMPRAN, 2 unidades — es la línea
+>    RESPONSABLE: *«cada cámara tiene una micro, la metemos»*. SE COMPRAN, ~~2 unidades~~ **4 unidades
+>    (11/09, `D-25`)** — es la línea
 >    `A10` del bloque `A`.** Sigue siendo cierto lo que decía la frase vieja sobre **qué** tarjeta:
 >    una de resistencia industrial (`high endurance`, pensada para grabación continua) **no es la de
 >    un teléfono**.
@@ -634,13 +704,19 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 >
 > 🔧 **CADUCADO EL 05/09: `A-1` está CERRADA por `D-13`, y la respuesta invierte el planteamiento.**
 > **Las dos cámaras llevan la MISMA configuración** —*Intrusion Detection* sobre el barrido de la
-> pluma— y **el significado lo pone el estado del semáforo, no la cámara**. Con una cámara por poste,
-> «un significado por cámara» no era repartir: era **proteger un poste y el otro no**. **Un bit da
-> cinco lecturas** sin gastar significados.
+> pluma— y **el significado lo pone el estado del semáforo, no la cámara**. ~~Con una cámara por poste,
+> «un significado por cámara» no era repartir: era **proteger un poste y el otro no**.~~ *(11/09:
+> **derogado sólo «una cámara por poste» por `D-25`** — ahora son dos por poste; el resto sigue: las
+> cuatro con la misma configuración.)* **Un bit da cinco lecturas** sin gastar significados.
 >
-> **Lo que de esta nota sigue vigente, y por eso no se borra:** **comprar una tercera cámara no es la
-> respuesta** — y menos con el modelo marcado `Discontinued`. Lo que hoy falta no es un significado
-> más: es **la segunda cámara por poste de SFTY-29**, que sigue sin pedirse y sin firmware que la lea.
+> **Lo que de esta nota sigue vigente, y por eso no se borra:** ~~**comprar una tercera cámara no es la
+> respuesta** — y menos con el modelo marcado `Discontinued`.~~ *(11/09: `D-25` decidió **cuatro**; el
+> aviso de `Discontinued` pasa a afectar a las 2 que faltan — ver el punto 3 de arriba.)* Lo que hoy
+> falta no es un significado más: es **la segunda cámara por poste de SFTY-29**, que sigue sin pedirse
+> y sin firmware que la lea. ✏️ **11/09 — y que no se confunda con la de `D-25`:** la segunda cámara
+> que `D-25` pone en cada poste **hace lo mismo que la primera** (pide paso por el mismo bucle) y **no
+> veta nada**; la de SFTY-29 sería un **veto** de la pluma y del todo-rojo, y **sigue siendo sólo
+> diseño** (`OPTIMIZACIONES.md`), con su veto en `A-1.bis` **sin construir**.
 
 > 🔌 **Cómo queda montado lo que se pide en A1′, A5 y A6 — para que las tres líneas se lean juntas:**
 >
@@ -958,6 +1034,11 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 > como presencia. **La segunda cámara por poste (SFTY-29, presencia como veto) sigue sin pedirse
 > hasta que exista el firmware que la lea así.** La ruta está decidida y **desde el 04/09 el cobre
 > también** (`M3`); la función, no escrita.
+> ✏️ **11/09 — `D-25` SÍ pone una segunda cámara en cada poste, pero NO es ésta.** Va a `p12` y el
+> firmware la trata **exactamente igual que la de `p10`** —`CAM_J16[2]`, mismo bucle: pide paso y la
+> vigila el mismo vigilante—. **No es presencia ni veto**: el veto de la pluma es `A-1.bis`, sin
+> construir, y SFTY-29 sigue siendo sólo diseño. **Lo que sí se compra con `D-25` es la cámara; la
+> función de SFTY-29 sigue sin escribir.**
 >
 > ⏳ ~~**Y una precisión que no se inventa aquí:** la decisión del 28/08 dice *«las cámaras van a
 > `J16`, los pines que libera el mando»*. **La de demanda que ya funciona entra por `PB0` / bornera
@@ -965,9 +1046,14 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 > que decirlo por escrito — cambia el Manual 9, el Manual 13 y el pack `camara_01_demanda`.~~
 >
 > ✅ **07/09 — YA ESTÁ DICHO POR ESCRITO, que es justo lo que este párrafo pedía:**
-> `DECISIONES.md` **`D-2`** y **`D-3`**. **Las dos cámaras del cruce van a `J16` p10 y p12, una por
-> poste**, y **`J14`/`PB0` queda libre y sin cámara** —vivo en el firmware, reservado a un posible
+> `DECISIONES.md` **`D-2`** y **`D-3`**. **Las ~~dos~~ cámaras del cruce van a `J16` p10 y p12, ~~una por
+> poste~~** *(11/09, `D-25`: **cuatro, dos por poste** — p10 contra p9 y p12 contra p11 en cada
+> tarjeta)*, y **`J14`/`PB0` queda libre y sin cámara** —vivo en el firmware, reservado a un posible
 > fin de carrera de barrera—. Es lo mismo que ya dice la fila **`A2`** de esta lista.
+> 🔴 **11/09 — «vivo en el firmware» y «reservado al fin de carrera» (`A-2`) CHOCAN, y es un
+> CONFLICTO ABIERTO que no se resuelve aquí:** el firmware lee `PB0` como `CAM_DEMANDA_PIN` —el
+> Maestro por nivel en el Modo Inteligente, el Esclavo por flanco y lo manda como demanda por
+> radio—, así que un fin de carrera en `J14` **pediría paso como si fuera un coche**.
 >
 > **Y el motivo que lo decide no es el conector, es la vigilancia:** `CAM_CIEGA`/`CAM_PEGADA`
 > **miran `J16` y no miran `J14`**. Una cámara en `J14` funciona y **nadie sabría que se estropeó**.
@@ -1197,8 +1283,10 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 > 1 o 2; si no hay ninguna, son 2.~~
 >
 > 🔧 **CADUCADO EL 05/09, y es otra fila que sobrevivió a su propia respuesta: SON DOS Y YA ESTÁN
-> COMPRADAS** — `DS-2CD2683G2-IZS`, `DECISIONES.md` `D-10`. **No hay nada que confirmar antes de
-> pedir, porque no hay nada que pedir.** Lo que sí falta de `A2` es todo lo que viene **después** de
+> COMPRADAS** — `DS-2CD2683G2-IZS`, `DECISIONES.md` `D-10`. ~~**No hay nada que confirmar antes de
+> pedir, porque no hay nada que pedir.**~~ *(11/09: **caducado por `D-25`** — son CUATRO; constan 2
+> compradas, y **antes de pedir las otras 2 hay que confirmar con compras** cuántas hay de verdad y
+> si el modelo `Discontinued` todavía se consigue.)* Lo que sí falta de `A2` es todo lo que viene **después** de
 > la compra: el **soporte de fijación**, las **microSD** (`A10`) y las comprobaciones del **Manual 9
 > §8**.
 >
@@ -1206,7 +1294,14 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 > cámara por poste, **una ya está** —**por dónde entra**: `J16`, con los pines que libera el mando,
 > línea **A7**— y **la otra sigue faltando**: el firmware que lea ese pin. Con SFTY-29 el dato ya ni
 > siquiera necesita comando nuevo *(viaja gratis en el `param` de `CMD_ACK_RED`)*, pero **nadie lo ha
-> escrito**. **La cantidad de A2 no sube hasta que exista ese código.**
+> escrito**. ~~**La cantidad de A2 no sube hasta que exista ese código.**~~
+>
+> 📷 **11/09 — LA CANTIDAD DE `A2` SUBE A CUATRO, Y NO POR LO QUE ESTA NOTA ESPERABA.** El
+> responsable decidió `D-25`: **dos cámaras por poste**, en `J16` p10 y p12. **No sube porque exista
+> el código de presencia de SFTY-29 —ese sigue sin escribirse—**: sube porque la segunda cámara entra
+> por el mismo camino que la primera, que ya está construido. Las dos hacen lo mismo (piden paso),
+> **ninguna protege la pluma**, y la segunda **no la vigila nadie hasta que detecte por primera vez**
+> (bloque del 11/09, arriba). **Compradas constan 2; las otras 2 `SIN VERIFICAR` con compras.**
 
 ---
 
@@ -1362,7 +1457,10 @@ de banco (tarea `B5`), y hasta entonces **no se pide nada de este bloque**:
 >
 > **Y eso cierra el aviso que había aquí en la buena dirección:** ya **no** es cierto que un contacto
 > seco de cámara en `PB14` entre como pulsación, porque ese pin ya no es un botón y `botonAceptar()`
-> no puede ejecutar nada. ✅ **`A7` deja de estar condicionada al firmware** — ~~lo que sigue delante
+> no puede ejecutar nada. ⚠️ **11/09 — eso es con el firmware NUEVO dentro.** Con un binario anterior
+> a `deeeab4` —el `V8.4` de campo, `e303485`, lo es— `PB14` es `botonAceptar()` **y `PB15` es
+> `botonCancelar()`**, y con `D-25` **los dos pines llevan cámara**: lo que se cablee en p10 **o en
+> p12** puede actuar como un botón en un equipo en la calle. De ahí la regla de orden de abajo. ✅ **`A7` deja de estar condicionada al firmware** — ~~lo que sigue delante
 > es **la medida `M3`**: de `PB14`/`PB15` **sólo lo dice el netlist y nadie lo ha medido**. **El cable
 > se compra hoy; conectarlo espera a `M3`, no al firmware.**~~
 >
@@ -1452,16 +1550,21 @@ de banco (tarea `B5`), y hasta entonces **no se pide nada de este bloque**:
 ## Resumen para autorizar — al **05/09/2026**
 
 **Se pide hoy:** 2 antenas VHF con sus 2 coaxiales *(A3)* · 2 módulos de 1 relé con jumper `JD-VCC`
-*(A4)* · 🔴 **2 fuentes DC-DC CONMUTADAS 12 V → 5 V ≥ 1 A** *(A5)* · **2 juegos de conector y cable
-para `J16`, con qué tapar el p1 de 12 V incluido** *(A7)* · **2 placas portadoras del `ESP32`**
-*(A8, y antes hay que decidir quién la diseña)* · 🆕 **2 tarjetas microSD `high endurance`, una por
-cámara** *(A10)*.
+*(A4)* · 🔴 **2 fuentes DC-DC CONMUTADAS 12 V → 5 V ≥ 1 A** *(A5)* · ~~**2 juegos de conector y cable
+para `J16`**~~ → **2 conectores para `J16` + cable de 2 hilos para 4 cámaras** *(11/09, `D-25`)*,
+**con qué tapar el p1 de 12 V incluido** *(A7)* · **2 placas portadoras del `ESP32`**
+*(A8, y antes hay que decidir quién la diseña)* · 🆕 ~~**2 tarjetas microSD**~~ → **4 tarjetas microSD
+`high endurance`, una por cámara** *(A10; 11/09, `D-25`)*.
+
+📷 **11/09 — Y ENTRA UNA QUE NO ESTABA: las 2 cámaras que faltan para llegar a las 4 de `D-25`**
+*(A2)*. **Constan compradas 2; cuántas hay de verdad y si el modelo `Discontinued` se consigue:
+`SIN VERIFICAR` — lo confirma compras antes de pedir.**
 
 **Lo que YA NO se pide, y cada uno por un motivo distinto:**
 
 | | por qué sale |
 |---|---|
-| ~~2 cámaras AcuSense~~ *(A2)* | ✅ **ya compradas** — `DS-2CD2683G2-IZS` (`D-10`). Deja detrás una línea **sin pedir**: el **SOPORTE de fijación** |
+| ~~2 cámaras AcuSense~~ *(A2)* | ✅ **ya compradas** — `DS-2CD2683G2-IZS` (`D-10`). Deja detrás una línea **sin pedir**: el **SOPORTE de fijación** *(11/09: **sólo salen de la lista esas 2** — `D-25` pide 4, y las otras 2 vuelven al «se pide», arriba)* |
 | ~~1 módulo `DS3231`~~ *(A6)* | ✅ **ya están, y son DOS** — uno por `ESP32`, con pila propia, confirmado el 05/09 |
 | ~~2 receptores RF de mando~~ *(A9)* | ⛔ **DECISIÓN, no aplazamiento: `D-1` retiró el mando del equipo.** Cero unidades |
 
@@ -1489,8 +1592,8 @@ firme la revisión V2 de la placa, no compras autorizadas.**
 | **A8** | **Placa portadora del `ESP32`** ×2 | 🛑 **EL MONTAJE**, y además **NO TIENE DUEÑO**: no está decidido quién la diseña ni quién la fabrica. **Decisión del responsable** |
 | ~~**A9**~~ | ⛔ **NO SE PIDE (`D-1`, 05/09)** | ~~🛑 LA OPERACIÓN DEL ESCLAVO~~ → 📵 **ya no es una compra que falte: es `D-16`.** ~~Esa punta **no tiene `SET_MODO` por Bluetooth** —`grep -c "SET_MODO" Esclavo/src/bluetooth.cpp` → **`0`**, remedido el 05/09— … **El Modo Degradado del Esclavo se queda sin vía de activación**~~ 🟢 **CADUCADO EL 07/09: el mismo `grep` da hoy `10`.** `D-18` (05/09) le dio a esa punta `SET_MODO:DEGRADADO` por app — **se decidió, que es lo que esta fila decía que hacía falta**. Lo que queda de la fila es `D-16`: **la app es la única vía, y depende de un teléfono** |
 | ~~**A6**~~ | ✅ **`DS3231` ×2 — YA PUESTOS**, uno por `ESP32`, con pila propia | ~~Se pide ya; **cuántos** lo decide el diagnóstico del `Y2`~~ ⛔ **CADUCADO: `Y2` no decide nada** (`D-9`, `D-15`). 🔴 **Lo que sigue abierto no es la compra sino la prueba:** `0x68` **`SIN VERIFICAR`** sobre el módulo real, y `N-145` sin ejercer |
-| 🆕 **A10** | **microSD `high endurance` ×2**, una por cámara | 🟢 **Nada para comprarlas** *(decidido el 05/09)*. Lo que bloquean es **la configuración**: sin decidir retención y continua-o-por-evento no se puede parametrizar la grabación (`A-0`) |
-| **A7** | Conector y cable para `J16` ×2 | 🟢 **Nada, ni para comprar ni para conectar: `M3` se cerró en banco el 04/09** —pull-down real de 10 kΩ—. ~~**Conectarlo** espera a la medida **`M3`**~~. **Lo único obligatorio es tapar el p1 de 12 V antes de enchufar** |
+| 🆕 **A10** | **microSD `high endurance` ~~×2~~ ×4** *(11/09, `D-25`)*, una por cámara | 🟢 **Nada para comprarlas** *(decidido el 05/09)*. Lo que bloquean es **la configuración**: sin decidir retención y continua-o-por-evento no se puede parametrizar la grabación (`A-0`) |
+| **A7** | Conector ~~y cable~~ para `J16` ×2 **+ cable para 4 cámaras** *(11/09, `D-25`)* | 🟢 **Nada, ni para comprar ni para conectar: `M3` se cerró en banco el 04/09** —pull-down real de 10 kΩ—. ~~**Conectarlo** espera a la medida **`M3`**~~. **Lo único obligatorio es tapar el p1 de 12 V antes de enchufar** |
 | **A2** · **A3** · **A4** | Cámaras, antenas, relés de talanquera | Nada. Siguen pendientes desde el 27/08 |
 | **E1** · **E2** | 2K2 en las entradas de campo · diodo de potencia por el `D30` | 🆕 **No bloquean nada hoy porque no se piden: son de la V2 de la placa, y NADIE la ha firmado.** Lo que bloquean es que las 5 entradas siguen **desnudas** — se opera tapando el p1 |
 
@@ -1523,7 +1626,9 @@ placa de expansión (B3, B4). ⚠️ **Sigue sin driver: se compra preparado, no
 **no hay ninguna función pendiente que lo pida**.
 
 **No se pide:** cámaras de umbral ni la segunda cámara por poste *(la ruta ya está —`J16`—, **y desde
-el 04/09 el cobre también**; el firmware que las lea como presencia, no)*, `PCF8574` para talanqueras
+el 04/09 el cobre también**; el firmware que las lea como presencia, no)* *(11/09: ⛔ **la segunda
+cámara por poste SÍ se pide — `D-25`** — pero **como demanda, igual que la primera**, no como la
+presencia/veto de SFTY-29, que sigue sin firmware)*, `PCF8574` para talanqueras
 ni para cámaras, pantalla LCD, **los CUATRO pulsadores de `J16`**, ~~ni mando de relés o su receptor
 *(que nunca se compró)*~~ ~~🟢 corregido el 31/08: el receptor del mando SÍ hace falta — es la línea
 `A9`~~ ~~🛑 y matizado el 04/09: hace falta, pero NO se pide hasta decidir `NO`/`NC`~~ → ⛔ **05/09,
@@ -1531,8 +1636,10 @@ ni para cámaras, pantalla LCD, **los CUATRO pulsadores de `J16`**, ~~ni mando d
 va a pedir.** Tampoco se piden **`E1`** ni **`E2`**: son de la **V2** de la placa y no están
 decididas. Las talanqueras salen por la salida **`Motor` (bornera `J15`, MOSFET `Q10`)** que **la
 tarjeta ya trae**, y las cámaras de demanda por ~~`PB0` (bornera `J14`)~~ → 🔵 **`J16` p10 y p12**
-(`D-2`/`D-3`, corregido el 07/09; lo mismo que ya dice la fila `A2`). **`J14`/`PB0` queda libre**, y
-por eso este resumen tampoco pide conector para él.
+(`D-2`/`D-3`, corregido el 07/09; lo mismo que ya dice la fila `A2`) *(11/09, `D-25`: **dos por
+poste, p10 y p12 los dos**)*. **`J14`/`PB0` queda libre**, y
+por eso este resumen tampoco pide conector para él. 🔴 *(11/09: `A-2` lo reserva al fin de carrera y
+el firmware lo sigue leyendo como cámara — **conflicto abierto**, ver la fe de erratas de `J14`.)*
 
 > 🛑 **Y para que esta línea no vuelva a girar por cuarta vez: lo que se retiró es el HARDWARE.** El
 > **código** del mando **se queda entero** en las dos puntas, y no es sentimentalismo: `ambarLocal`
@@ -1541,7 +1648,8 @@ por eso este resumen tampoco pide conector para él.
 > falla.** Desarrollo en el **Manual 2 §6**.
 
 > ✏️ **Corregido el 28/08 (2.ª rev.):** este párrafo decía *«las talanqueras salen por la salida
-> `Puerta`»*. **`Puerta` es la red de ENTRADA de la cámara** (`J14`), no la de la pluma. La salida de
+> `Puerta`»*. **`Puerta` es la red de ENTRADA ~~de la cámara~~** (`J14`) *(11/09: reservada al fin de
+> carrera por `A-2`; conflicto abierto con el firmware, que la lee como cámara)*, no la de la pluma. La salida de
 > la talanquera es la red **`Motor`** (`J15`). Es la misma errata de la fila A4, y aquí estaba
 > repetida con el nombre de la red en vez del de la bornera — que es justo como una corrección se
 > deja a medias. Ver la fe de erratas de la cabecera.

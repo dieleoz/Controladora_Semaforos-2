@@ -13,7 +13,8 @@ Todas las operaciones están alineadas al **Manual de Señalización Vial de Col
 > | 🔴 **§2 describía un modo que NO EXISTE** | La operación intermitente nocturna: **`reloj_esHorarioNocturno()` tiene CERO llamadores** y el firmware la da por *«aplazada»* (`N-3`). Estaba escrita en presente, dentro del *«Ground Truth»* |
 > | 🔴 **§7 daba por inofensiva la única secuencia que ABRE PASO** | En el **Maestro**, `A·A·A` arranca el ciclo **sin ninguna guarda**, mientras `A·B·A·B` sí está validada. 👉 **Nada se cablea en `J16` p5/p8** |
 > | 🔴 **§6.3 publicaba `~0,66 V` donde la medida de `M3` dio `0 V`** | Y era **la fila que ese apartado manda aplicar**: quien fuera con el multímetro pararía por la medida que autoriza |
-> | ⚠️ **El pin de cámara sobrante de `J16` no está inerte** | El firmware lee **los dos** y un flanco en cualquiera **PIDE PASO** — no ordena: su único consumidor es el Modo Inteligente. Escrito en §6.2 |
+> | ⚠️ **El pin de cámara sobrante de `J16` no está inerte** | El firmware lee **los dos** y un flanco en cualquiera **PIDE PASO** — no ordena: su único consumidor es el Modo Inteligente. Escrito en §6.2 · 🔴 **11/09: ya no hay pin «sobrante» — `D-25` cablea los dos** (fila de abajo) |
+> | 🔴 **11/09 — `D-25`: CUATRO CÁMARAS, DOS POR POSTE** | Cámara 1 entre `J16` p9 y p10 (`CAM_C_PIN`), cámara 2 entre `J16` p11 y p12 (`CAM_D_PIN`), las dos iguales; talanquera en `J15` (p1 12 V, p2 drenador de `Q10`, **no masa**) por relé a `OPEN`. Deroga de `D-13` sólo *«una por poste / p12 vacío»*. **Las dos hacen lo mismo, ninguna frena la pluma, y la app pone `OK` con que detecte UNA.** §6.2 |
 > | ⛔ **26 de las 32 citas por línea de este manual estaban caducadas —el 81 %** | Dos ya se habían renumerado el 05/09 y **volvieron a caducar en dos días**. Se sustituyen por **símbolos** |
 > | 🛑 **Varias frases seguían diciendo *«el mando se conserva»* y *«el menú permite configurar»*** | Derogadas por `D-1` y `D-17.bis` |
 >
@@ -399,9 +400,13 @@ que es el criterio conservador: la cámara de umbral daría **eficiencia, no seg
 | | pin | bornera | estado del firmware |
 |---|---|---|---|
 | **La entrada de cámara más antigua** ~~lo único que un firmware lee~~ | **`PB0`** (`CAM_DEMANDA_PIN`) | **`J14`** | ✅ **MEDIDO 07/09**: se lee de verdad — `camara_leerPin(CAM_DEMANDA_PIN)` en `Maestro/src/modo_inteligente.cpp` y `digitalRead(CAM_DEMANDA_PIN) == HIGH` en `Esclavo/src/main.cpp`. La placa ayuda con `R64` 10 kΩ + `C25` 100 nF = antirrebote de 1 ms (símbolo `CAM_DEMANDA_PIN` en `pines.h`). ⛔ *(de las tres citas que había —`modo_inteligente.cpp:98`, `:136`, `pines.h:43-46`— **ninguna sobrevivió**; sólo `main.cpp:350` del Esclavo seguía siendo correcta)* |
-| **LAS DE `J16`** | **`PB14`** = `CAM_C_PIN` (`J16` **p10**) y **`PB15`** = `CAM_D_PIN` (`J16` **p12**) | **`J16`** | ✅ **MEDIDO: ya son cámara.** `pinMode(CAM_C_PIN, INPUT)` / `pinMode(CAM_D_PIN, INPUT)` —**pelado, activo en ALTO**— en las dos puntas. **`p10` es la cámara** (**una por poste**, `D-13`; verificada en banco el 03/09); **`p12` queda vacío** |
+| **LAS DE `J16`** | **`PB14`** = `CAM_C_PIN` (`J16` **p10**) y **`PB15`** = `CAM_D_PIN` (`J16` **p12**) | **`J16`** | ✅ **MEDIDO: ya son cámara.** `pinMode(CAM_C_PIN, INPUT)` / `pinMode(CAM_D_PIN, INPUT)` —**pelado, activo en ALTO**— en las dos puntas. **`p10` es la cámara** (~~**una por poste**, `D-13`~~; verificada en banco el 03/09); ~~**`p12` queda vacío**~~ → 🔴 **11/09, `D-25`: `p10` lleva la cámara 1 y `p12` la cámara 2 de cada poste** (contra los 3,3 V de p9 y p11). `p12` **nunca se ha cableado en banco** |
 
 > ## 🔴 EL PIN DE CÁMARA QUE QUEDA VACÍO **NO ESTÁ INERTE** — medido el 07/09, y no estaba escrito
+>
+> 🔴 **11/09 — CON `D-25` NO QUEDA NINGUNO VACÍO: `p12` lleva la cámara 2.** Lo de abajo sigue
+> valiendo como medida de lo que hace ese pin —**las dos entradas hacen exactamente LO MISMO**, un
+> flanco en cualquiera pide paso— y ahora describe a la segunda cámara, no a un borne sobrante.
 >
 > **`J16` p5 y p8 llevan tres avisos en este manual; el pin de cámara sobrante, ninguno.** Y el
 > firmware lee **los dos** pines de `J16` en cada vuelta, no sólo el que tiene cámara:
@@ -428,6 +433,16 @@ que es el criterio conservador: la cámara de umbral daría **eficiencia, no seg
 > de instalación de [`MANUAL_CONFIGURACION_CAMARAS_IA.md`](MANUAL_CONFIGURACION_CAMARAS_IA.md), que
 > obliga a **provocar una detección delante de la cámara** y comprobar que el equipo la acusa: ése
 > es el primer flanco, y hasta él el vigilante no vigila.
+>
+> 🔴 **11/09 — ESA EXENCIÓN SE ESCRIBIÓ PARA UN `p12` VACÍO, Y CON `D-25` PIERDE SU MOTIVO.** Con
+> dos cámaras por poste, `vigilante_tick()` y `camara_estado()` siguen saltando la que nunca dio un
+> flanco: **una cámara 2 muerta desde el día de la instalación no se detecta sola**, y tras cada
+> reinicio la vigilancia de silencio queda desarmada hasta la primera detección. **Y la app no ayuda
+> a comprobarlo:** pinta `CAM: OK` —*«las dos ven y ninguna está pegada»* (APK del 10/09 `b354fe9`
+> y la de hoy)— con la primera detección de **cualquiera** de las dos. **«El equipo la acusa» ya no
+> basta: cada cámara se comprueba en su borne con el multímetro** (punta negra a `J16` p2, roja a
+> p10 o p12: 0 V en reposo, 3,3 V con algo en la zona). Rehacer la exención queda pendiente **en el
+> firmware**, no aquí.
 
 > ⛔ **LA SEGUNDA FILA DECÍA «~~DESPUÉS de la Fase 3~~» Y «~~NINGÚN firmware los lee como cámara;
 > hoy siguen siendo botones~~». Falso desde el 31/08** — el *«después»* ya llegó, y el `pinMode` que
@@ -457,9 +472,13 @@ fuente vinculante es `DECISIONES.md`.)*
 siendo verdad, y es lo único que importa para el destornillador, es que **tampoco quedan libres**:
 el código los sigue leyendo. **Libre de cobre no es libre de firmware.**
 
-> ✅ **CERRADO, y ya no lo decide este manual:** cuántas cámaras van por poste. **`D-13`: UNA
+> ✅ **CERRADO, y ya no lo decide este manual:** cuántas cámaras van por poste. ~~**`D-13`: UNA
 > cámara por poste**, dos unidades para dos postes, las dos con la misma configuración. El firmware
-> lo da por hecho —*«en todos los equipos que se monten UNO DE ESTOS DOS PINES ESTA VACIO»*—.
+> lo da por hecho —*«en todos los equipos que se monten UNO DE ESTOS DOS PINES ESTA VACIO»*—.~~
+> 🔴 **11/09 — DEROGADO POR `D-25` (el responsable: *«mantener estas conexiones como
+> definitivas»*): DOS CÁMARAS POR POSTE, CUATRO EN EL CRUCE, todas con la misma configuración**
+> (eso de `D-13` sigue vigente). El comentario del firmware que citaba esta línea sigue en
+> `botones.cpp` y **ya no describe el montaje** (ver el recuadro de arriba).
 > ⛔ *(aquí ponía «ABIERTO … lo decide el responsable», apoyado en `ESTADO.md:50`; **ya lo decidió**,
 > el 05/09.)*
 
@@ -587,8 +606,10 @@ llegaron a describirlo como *«umbral de tramo»* (`N-59`, `N-64`); ninguno se h
    | `/Boton3` (**p10**) | **4,269 mm** |
    | `/Boton4` (**p12**) | **1,359 mm** ← el peor de los cuatro |
 
-   👉 **Consecuencia útil: si una de las dos cámaras es más crítica, va en `p10`** (4,27 mm), **no en
-   `p12`** (1,36 mm). Un error de una posición al enchufar `J16` mete **12 V en un pin de 3,3 V**.
+   👉 ~~**Consecuencia útil: si una de las dos cámaras es más crítica, va en `p10`** (4,27 mm), **no en
+   `p12`** (1,36 mm).~~ → 🔴 **11/09, `D-25`: van las dos —cámara 1 en `p10`, cámara 2 en `p12`— y
+   son iguales, así que el peor borne (1,36 mm) siempre lleva cable.** Un error de una posición al
+   enchufar `J16` mete **12 V en un pin de 3,3 V**: `p1` tapado antes del primer hilo (`D-4`).
 2. 🔴 **`J16` p5 y p8 —`MANDO_A`/`MANDO_B`— NO son pines libres, aunque su hardware ya no esté.**
    El **mando de relés se retiró físicamente** (`D-1`); **su código se queda**. `botonArriba()` y
    `botonAbajo()` **siguen vivos** —`consumir(0)` / `consumir(1)`, con llamadores— y leen

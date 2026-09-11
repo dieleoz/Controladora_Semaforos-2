@@ -474,8 +474,20 @@
       <code>J16</code> p5/p8 <b>mueve el cruce</b>); y <b>la cámara ya NO va a <code>J14</code>: va
       a <code>J16</code> p10</b>, que es el único borne donde el programa la vigila. <b>Si traes la
       hoja del 04/09 en la cabeza, estas dos te harán trabajar al revés.</b></p>
+    <p class="sub">🎯 <b>11/09 · DECISIÓN DEL RESPONSABLE (<code>D-25</code>): CUATRO CÁMARAS, DOS
+      POR POSTE.</b> En cada tarjeta: <b>cámara 1</b> entre <code>J16</code> <b>p9</b> (3,3 V) y
+      <b>p10</b> (<code>PB14</code>, <code>CAM_C_PIN</code>); <b>cámara 2</b> entre <b>p11</b> (3,3 V)
+      y <b>p12</b> (<code>PB15</code>, <code>CAM_D_PIN</code>). <b>Talanquera en <code>J15</code></b>
+      —p1 = 12 V, p2 = drenador de <code>Q10</code>, <b>que NO es masa</b>— a la bobina de <b>un
+      relé</b> cuyo contacto va a la entrada <code>OPEN</code> de la centralita. Deroga sólo
+      <s>«una cámara por poste / p12 vacío»</s>; lo tachado en esta hoja lleva la marca
+      <b>«11/09, D-25»</b>. <b>Lo que tienes que saber al cablear, medido en el programa:</b> las
+      dos entradas <b>hacen lo mismo</b>; <b>ninguna frena la pluma</b> (baja con un coche debajo);
+      la pluma sube con verde <b>y con el ámbar intermitente</b>; y <b>una cámara que no ha
+      detectado nunca no la vigila nadie</b> — la trama <code>CAM:</code> dice <code>OK</code> en
+      cuanto <b>una</b> de las dos detecta.</p>
     <div class="meta">
-      <span>revisión del <b>07 · 09 · 2026</b> · sobre la del 04/09 noche y las cámaras del 05/09</span><span>48 pasos</span><span>firmware con N-42, N-133, N-134, N-142, N-145, N-146, N-147, N-149 · y del 05/09: <b>A-12</b> (suelo y techo del Inteligente), <b>D-13 fase 1</b> (vigilante de cámaras) y <b>D-18</b> (Degradado del Poste 2 por app)</span>
+      <span>revisión del <b>07 · 09 · 2026</b> · sobre la del 04/09 noche y las cámaras del 05/09 · <b>11/09: texto alineado con <code>D-25</code></b> (cámaras y <code>J15</code>; los pasos no cambian de número)</span><span>48 pasos</span><span>firmware con N-42, N-133, N-134, N-142, N-145, N-146, N-147, N-149 · y del 05/09: <b>A-12</b> (suelo y techo del Inteligente), <b>D-13 fase 1</b> (vigilante de cámaras) y <b>D-18</b> (Degradado del Poste 2 por app)</span>
     </div>
   </header>
 
@@ -525,7 +537,9 @@
         quema en el acto, y esos 12 V corren a un milímetro de las señales: <b>el pin 1 se tapa</b>.</li>
       <li><b>El programa nuevo se carga ANTES de tocar <code>J16</code></b> (paso 2). Con el viejo
         dentro, <b><code>J16</code> p10 sigue siendo el botón de Aceptar</b>: cualquier hilo que entre
-        ahí ejecuta en un equipo que está en la calle.</li>
+        ahí ejecuta en un equipo que está en la calle. <b>11/09, D-25: y <code>p12</code> el de
+        Cancelar</b> —en el binario de campo (<code>e303485</code>) <code>BOTON4</code> es
+        <code>PB15</code>—, y ahora también lleva cámara.</li>
       <li><b>No se cablea cámara a <code>J16</code> hasta la medida del paso 20.</b> Sin resistencia a
         masa el cable flota y el cruce recibe <b>peticiones de paso que nadie ha hecho</b>.</li>
       <li><b>El enlace con el teléfono es de MESA</b> (pasos 9 a 14): se prueba y <b>se desmonta</b>.
@@ -825,12 +839,13 @@
       <table>
         <thead><tr><th>Entrada</th><th>Se simula así</th><th>Paso</th></tr></thead>
         <tbody>
-          <tr><td><b>LA</b> cámara del poste · <code>J16</code> <b>p10</b></td>
-            <td><b>Es la que se cablea.</b> Un cable de <b>p10 a p9 u p11 (3,3 V)</b> — <b>nunca a
+          <tr><td><s><b>LA</b> cámara del poste</s> <b>Cámara 1</b> (11/09, D-25) · <code>J16</code> <b>p10</b></td>
+            <td><b>Se cablea.</b> Un cable de <b>p10 a p9 u p11 (3,3 V)</b> — <b>nunca a
               masa</b> · sólo tras el paso 20</td><td>21</td></tr>
-          <tr><td>Entrada equivalente · <code>J16</code> <b>p12</b></td>
-            <td>El <b>segundo</b> borne de cámara de la misma tarjeta. Hoy <b>queda libre</b>: se
-              ejerce igual, con un cable a 3,3 V, para dejarlo medido</td><td>21</td></tr>
+          <tr><td><s>Entrada equivalente</s> <b>Cámara 2</b> (11/09, D-25) · <code>J16</code> <b>p12</b></td>
+            <td>El <b>segundo</b> borne de cámara de la misma tarjeta. <s>Hoy <b>queda libre</b>: se
+              ejerce igual, con un cable a 3,3 V, para dejarlo medido</s> → <b>11/09, D-25: también
+              se cablea</b> (contra <b>p11</b>). Se ejerce igual, con un cable a 3,3 V</td><td>21</td></tr>
           <tr><td>Petición de paso por <code>J14</code> (<code>PB0</code>)</td>
             <td><b>Ya NO es donde va la cámara</b> (ver el aviso de debajo). Sigue viva como entrada
               y se ejerce con un cable <b>entre sus dos bornes</b></td><td>19</td></tr>
@@ -845,11 +860,16 @@
     </div>
 
     <div class="parar">
-      <b>🛑 SON <u>DOS</u> CÁMARAS EN EL CRUCE, UNA POR POSTE — NO TRES POR TARJETA</b>
+      <b>🛑 SON <s><u>DOS</u> CÁMARAS EN EL CRUCE, UNA POR POSTE</s> <u>CUATRO</u>, DOS POR POSTE
+        (11/09, D-25) — NO TRES POR TARJETA</b>
       <p>Esta tabla listaba <s>«Cámara de demanda · J14»</s> y <s>«Cámaras nuevas · J16 p10 y p12»</s>
         como si fueran entradas distintas que hay que cablear. <b>No lo son.</b> Los tres bornes de una
         tarjeta <b>piden lo mismo: paso para ese poste</b>. Y como el cruce tiene <b>dos sentidos, un
-        poste por sentido</b>, <b>las cámaras del cruce son DOS: una por poste.</b></p>
+        poste por sentido</b>, <s><b>las cámaras del cruce son DOS: una por poste.</b></s>
+        → <b>11/09, D-25: las cámaras del cruce son CUATRO, dos por poste</b> —<code>p10</code> y
+        <code>p12</code> de cada tarjeta—, <b>con la misma configuración y haciendo lo mismo</b>
+        (<code>botones.cpp</code> recorre <code>CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN}</code> en un solo
+        bucle). <code>J14</code> sigue sin cámara.</p>
       <div class="parar" style="margin:.3rem 0 .5rem">
         <b>✏️ CAMBIADO EL 05/09 POR EL RESPONSABLE, Y ES LO CONTRARIO DE LO QUE DECÍA ESTA HOJA:
           LA CÁMARA VA A <code>J16</code>, NO A <code>J14</code></b>
@@ -863,15 +883,30 @@
           trama—. <b><code>J14</code> no lo vigila nadie.</b> Con la cámara en <code>J14</code>
           funcionaría —pide paso— pero <b>nadie sabría nunca si se ha estropeado</b>: una cámara
           tapada, sin luz o con el cable cortado se lee exactamente igual que «no hay nadie».</p>
-        <p><b>Se cablea a <code>p10</code></b>, que es el que se ejerció en banco el 03/09 sin
+        <p><s><b>Se cablea a <code>p10</code></b>, que es el que se ejerció en banco el 03/09 sin
           demandas fantasma. <code>p12</code> queda <b>libre</b> como segunda entrada; el programa
           <b>no lo juzga mientras esté vacío</b>, y por eso un pin sin nada no ensucia el
           <code>CAM:</code>. <b>Si prefieres <code>p12</code>, dilo en el parte</b>: para el firmware
           los dos son idénticos, pero <code>p12</code> es el punto del conector <b>más cercano al
-          cobre de 12 V</b> (1,359 mm), así que <code>p10</code> es la elección conservadora.</p>
+          cobre de 12 V</b> (1,359 mm), así que <code>p10</code> es la elección conservadora.</s></p>
+        <p>→ <b>11/09, D-25: se cablean los DOS</b>, <code>p10</code> (cámara 1, contra p9) y
+          <code>p12</code> (cámara 2, contra p11). Lo que sigue en pie de lo tachado: para el
+          firmware <b>los dos son idénticos</b>; <code>p10</code> es el único ejercido en banco (03/09)
+          y <b><code>p12</code> no consta cableado nunca en banco</b>; y <code>p12</code> es el punto
+          del conector <b>más cercano al cobre de 12 V</b> (1,359 mm), así que <b><code>J16</code> p1
+          tapado antes de meter la mano</b> (<code>D-4</code>). 🔴 <b>Y lo que deja de ser cierto:</b>
+          el programa <b>no juzga el silencio de un pin que nunca ha dado señal</b> —se escribió así
+          porque <code>p12</code> iba vacío—, de modo que <b>una segunda cámara muerta desde el día
+          que se monta no la detecta nadie</b>. Cada cámara se comprueba <b>en su borne</b> (paso 21).</p>
         <p>🟢 <b><code>J14</code> NO se retira y sigue vivo</b> —se ejerce en el paso 19—. Queda como
           el mejor candidato a <b>final de carrera de la barrera</b>, porque es <b>el único pin de
-          entrada con antirrebote por hardware</b> y un contacto mecánico es justo lo que rebota.</p>
+          entrada con antirrebote por hardware</b> y un contacto mecánico es justo lo que rebota.
+          🔴 <b>11/09 · CONFLICTO ABIERTO, no se resuelve en esta hoja:</b> <code>A-2</code> (05/09)
+          manda el final de carrera a <code>J14</code>/<code>PB0</code>, pero el programa lee
+          <code>PB0</code> como <code>CAM_DEMANDA_PIN</code> —el Maestro por nivel en Modo
+          Inteligente, el Esclavo por flanco en cualquier modo (manda <code>CMD_DEMANDA</code>)—. Un
+          final de carrera ahí <b>pediría paso cada vez que la pluma se mueve</b>. <b>No cablees nada
+          en <code>J14</code> sin que el responsable lo diga.</b></p>
       </div>
       <p><b>Lo que trae cada borne, medido en el fuente y en el cobre:</b></p>
       <div class="tabla-envoltorio">
@@ -883,10 +918,10 @@
                 ~1 ms</b></td>
               <td>Maestro: <b>por NIVEL</b> · Esclavo: por flanco</td></tr>
             <tr><td><code>J16</code> p10</td><td><code>PB14</code></td>
-              <td>🟠 <code>R67</code> 10K a masa, <b>SIN condensador</b></td>
+              <td>🟠 <code>R67</code> 10K a masa, <s><b>SIN condensador</b></s> <i>(11/09: el netlist trae <code>C28</code> 100nF a masa; sin medir en cobre)</i></td>
               <td><b>por FLANCO</b>, en las dos puntas</td></tr>
             <tr><td><code>J16</code> p12</td><td><code>PB15</code></td>
-              <td>🟠 <code>R68</code> 10K a masa, <b>SIN condensador</b></td>
+              <td>🟠 <code>R68</code> 10K a masa, <s><b>SIN condensador</b></s> <i>(11/09: el netlist trae <code>C29</code> 100nF a masa; sin medir en cobre)</i></td>
               <td><b>por FLANCO</b>, en las dos puntas</td></tr>
           </tbody>
         </table>
@@ -894,9 +929,11 @@
       <p>🛑 <b>Y LO QUE ESE CAMBIO CUESTA, ESCRITO EN VEZ DE DISIMULADO — porque es lo que hay que
         mirar en banco:</b> un relé de cámara <b>rebota</b> al cerrar. En <code>J14</code> el
         condensador se lo comía antes de que el micro lo viera. En <code>p10</code> y
-        <code>p12</code> <b>no hay condensador</b> y la lectura es <b>por flanco</b>: lo único que
+        <code>p12</code> <s><b>no hay condensador</b></s> <i>(11/09: el netlist trae <code>C28</code>/<code>C29</code>, 100nF a masa, el mismo RC que <code>J14</code>; sin medir en cobre — por eso el paso se sigue haciendo igual)</i> y la lectura es <b>por flanco</b>: lo único que
         hay delante es una <b>ventana de silencio de 3 s por programa</b>, que lo tapa casi siempre.
-        <b>«Casi» no es una garantía</b>, y esa ventana es <b>una sola por poste</b>: un rebote la
+        <b>«Casi» no es una garantía</b>, y esa ventana es <b>una sola por poste</b> —desde el 11/09
+        (D-25) <b>la comparten las DOS cámaras del poste</b>: es un único <code>tUltima</code> en
+        <code>demanda.cpp</code>—: un rebote la
         consume y la petición del coche que viene detrás se pierde. <b>Por eso el paso 21 pregunta
         expresamente si al cerrar UNA vez el cruce contó DOS peticiones</b> — ese dato es el que
         dice si hace falta antirrebote en el cable.</p>
@@ -930,10 +967,19 @@
           <tbody>
             <tr><td><b>Reposo / arranque</b></td><td>🔽 <b>ABAJO</b></td>
               <td><b>SFTY-28.</b> En <code>LOW</code> el MOSFET no conduce, el motor queda sin energía
-                y la pluma cierra. <b>Es el fallo seguro</b></td></tr>
-            <tr><td><b>Sin corriente</b></td><td>🔽 <b>ABAJO</b></td>
-              <td>Lo mismo por otra vía: sin energía no hay quien la suba. La compra pide además
-                <b>retorno por muelle o gravedad</b>, porque eso el software no lo garantiza</td></tr>
+                y la pluma cierra. <b>Es el fallo seguro</b>. ⚠️ <b>11/09, medido: «arranque» sólo
+                vale el primer instante.</b> <code>semaforo_setup()</code> la cierra, pero un poste
+                que <b>todavía no ha enlazado</b> con el otro entra en ámbar intermitente
+                (<code>S_FALLO</code>: Maestro en menú sin comunicación, Esclavo por silencio de
+                radio) <b>y la pluma SUBE</b> — fila de abajo</td></tr>
+            <tr><td><b>Sin corriente</b></td><td>🔽 <s><b>ABAJO</b></s> <b>el relé suelta</b></td>
+              <td>Lo mismo por otra vía: sin energía no hay quien la suba. <s>La compra pide además
+                <b>retorno por muelle o gravedad</b>, porque eso el software no lo garantiza</s>
+                → <b>11/09: SIN FUENTE.</b> <code>15_Lista_de_Compras</code> no dice «muelle» ni
+                «gravedad». Con <code>J15</code> por relé a <code>OPEN</code> (<code>D-25</code>),
+                sin corriente <b>el relé suelta la entrada <code>OPEN</code></b>; lo que haga
+                entonces la barrera <b>lo decide su centralita</b>, que tiene alimentación propia —
+                <b><code>SIN VERIFICAR</code></b>, y es lo que pregunta el <code>a0tc</code></td></tr>
             <tr><td><b>Verde</b></td><td>🔼 arriba</td><td>Da paso</td></tr>
             <tr><td><b>En FALLO (ámbar intermitente)</b></td><td>🔼 <b>ARRIBA — y es QUERIDO</b></td>
               <td>🟢 <b>Confirmado por el responsable el 04/09.</b> Es para <b>no dejar coches
@@ -946,10 +992,20 @@
         intermitente, el micro sigue vivo) <b>sube</b> la pluma; <b>corte de corriente</b> la
         <b>baja</b>. Son dos cosas distintas y las dos son deliberadas.</p>
       <p><b>Verde con la pluma abajo está admitido</b> —la barrera puede ser más restrictiva que la
-        lámpara—; <b>pluma arriba sin verde, no</b>: eso sería una invitación a entrar que nadie
-        autorizó. <b>Y sólo <code>semaforo.cpp</code> la mueve</b>, dentro de
+        lámpara—; <s><b>pluma arriba sin verde, no</b>: eso sería una invitación a entrar que nadie
+        autorizó</s> → <b>11/09, medido: salvo en ámbar intermitente</b>, donde sube sin verde a
+        propósito (la fila «En FALLO» de arriba). La condición entera es
+        <code>(verde &amp;&amp; !testLedsActivo) || estado == S_FALLO</code>. <b>Y sólo <code>semaforo.cpp</code> la mueve</b>, dentro de
         <code>escribirPines()</code>: no hay un segundo <code>digitalWrite</code> en ninguna parte.
-        <b>Una barrera con dos puertas no es una barrera.</b></p>
+        <b>Una barrera con dos puertas no es una barrera.</b> 🔴 <b>Ninguna cámara entra en esa
+        condición</b>: la pluma <b>baja aunque haya un coche debajo</b>. El veto es
+        <code>A-1.bis</code> y <b>no está construido</b> (11/09, D-25: tampoco con dos cámaras por
+        poste).</p>
+      <p>🎯 <b>11/09 · CÓMO SE CABLEA (<code>D-25</code>):</b> <code>J15</code> <b>p1</b> = 12 V ·
+        <b>p2</b> = drenador de <code>Q10</code>, <b>que NO es masa</b>: con <code>Q10</code> abierto
+        está a ~12 V. Entre p1 y p2 va <b>la bobina de un relé</b>; el <b>contacto</b> de ese relé va a
+        la entrada <code>OPEN</code> de la centralita. <code>D30</code> es la rueda libre en la placa.
+        <b>Nunca</b> los dos bornes de <code>J15</code> directos a la centralita.</p>
       <div class="anota">
         <p class="porque">Al energizar sin programa en marcha, ¿la pluma quedó abajo? <input type="text" id="a0ta" class="en-linea"></p>
         <p class="porque">En ámbar intermitente, ¿subió? <input type="text" id="a0tb" class="en-linea">
@@ -1643,10 +1699,13 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
     <div class="fn">15</div>
     <div class="fc">
       <p class="ft">Conecta la talanquera y mira <b>con qué luz SUBE</b></p>
-      <p><b class="et">Haz</b> Apagado: un borne a <b>+12 V</b> y el otro a la <b>entrada de apertura</b>
-        de la centralita. <b>Sin pluma montada</b>, multímetro entre bornes o un LED con resistencia.
+      <p><b class="et">Haz</b> Apagado: <s>un borne a <b>+12 V</b> y el otro a la <b>entrada de apertura</b>
+        de la centralita</s> → <b>11/09, D-25: <code>J15</code> p1 (12 V) y p2 (drenador de
+        <code>Q10</code>, no masa) a la BOBINA de un relé, y el contacto del relé a
+        <code>OPEN</code> de la centralita</b>. <b>Sin pluma montada</b>, multímetro entre bornes o un LED con resistencia.
         Enciende y apunta <b>de qué color está la luz cuando empieza a subir</b>.</p>
-      <p class="ver"><b class="et">Ver</b> Sube <b>en VERDE</b>, y también en <b>ámbar intermitente</b>.
+      <p class="ver"><b class="et">Ver</b> Sube <b>en VERDE</b>, y también en <b>ámbar intermitente</b>
+        —incluido nada más encender, mientras el poste no ha enlazado con el otro—.
         <b>Si sube en ROJO, anótalo tal cual —no lo interpretes— y avisa</b> antes de dejar el
         equipo funcionando.</p>
       <div class="anota">
@@ -1687,12 +1746,14 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
   </div>
 
   <h2><span class="n">06</span> La cámara que pide paso</h2>
-  <p class="sub" style="margin-top:.4rem"><b>Es UNA cámara por poste, o sea DOS en el cruce.</b> Los
+  <p class="sub" style="margin-top:.4rem"><s><b>Es UNA cámara por poste, o sea DOS en el cruce.</b></s>
+    <b>11/09, D-25: son DOS por poste, o sea CUATRO en el cruce.</b> Los
     tres bornes de una tarjeta —<code>J14</code>, <code>J16</code> p10 y <code>J16</code> p12— piden
     <b>lo mismo</b>: paso para ese poste. ✏️ <b>La que se cablea va a <code>J16</code> p10</b>
     —<s>a <code>J14</code></s>, cambiado el 05/09— <b>porque es el único borne donde el programa la
-    VIGILA</b>. <code>p12</code> queda libre como segunda entrada y <code>J14</code> sigue vivo. Ver
-    el aviso del apartado 00.</p>
+    VIGILA</b>. <s><code>p12</code> queda libre como segunda entrada</s> → <b>11/09, D-25: la segunda
+    va a <code>p12</code></b>, y <code>J14</code> sigue vivo (con el conflicto de <code>A-2</code>
+    del apartado 00). Ver el aviso del apartado 00.</p>
   <p class="sub"><b>Las entradas se simulan con un cable, pero no con el mismo gesto:</b> en
     <code>J14</code> el cable va <b>entre sus dos bornes</b>; en <code>J16</code> va del pin
     <b>a los 3,3 V</b> (p9 u p11), <b>nunca a masa</b>. Y <code>J16</code> <b>no se cablea hasta el
@@ -1739,7 +1800,7 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
     <div class="fc">
       <p class="ft">La cámara <b>CONMUTA</b> · sobre la mesa, sin tocar la tarjeta <a href="#d31">detalle</a></p>
       <p><b class="et">Haz</b> ✏️ <b>Este paso ya NO se hace en <code>J14</code></b>: la cámara va a
-        <code>J16</code> p10 (paso 21) y aquí sólo se comprueba <b>la cámara</b>. <b>Multímetro en
+        <code>J16</code> p10 <b>—y la segunda a p12, 11/09, D-25—</b> (paso 21) y aquí sólo se comprueba <b>la cámara</b>, <b>cada una por separado</b>. <b>Multímetro en
         continuidad sobre los dos hilos de su salida de alarma</b>, sin conectarla a nada. Pasa por
         delante tres o cuatro veces. <b>Sin cámara, marca «No se pudo» y sigue por el 19</b>, que no
         la necesita.</p>
@@ -1766,7 +1827,11 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
       <p><b class="et">Haz</b> ✏️ <b>Con un cable o un pulsador entre los dos bornes de
         <code>J14</code></b>. <b>Aquí ya no va la cámara</b>, pero <code>J14</code> <b>sigue vivo</b>
         y esta es la única vez que se ejerce, así que no se salta: es el borne candidato al final de
-        carrera de la barrera. Primero <b>un ciclo entero sin tocar nada</b>. Después cierra el
+        carrera de la barrera. 🔴 <b>11/09 · CONFLICTO ABIERTO:</b> <code>A-2</code> ya lo reservó al
+        final de carrera, y lo que este paso ejerce —<b>que <code>J14</code> pide paso</b>— es justo lo
+        que haría un final de carrera cada vez que la pluma se mueve, porque el programa lee
+        <code>PB0</code> como <code>CAM_DEMANDA_PIN</code>. Se mide y se anota; no se decide aquí.
+        Primero <b>un ciclo entero sin tocar nada</b>. Después cierra el
         contacto con ese sentido en rojo y <b>cronometra</b>.</p>
       <p class="ver"><b class="et">Ver</b> <b>En reposo, ninguna petición.</b> Al cerrar, ese poste
         pide paso, el cruce hace su todo-rojo y <b>le concede el verde</b>. <b>Si pide paso sin que
@@ -1834,8 +1899,11 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
       <p><b class="et">Haz</b> Apagado. <b>La salida de alarma de la cámara —o, si no la tienes, un
         cable o un pulsador— entre el <b>pin 10</b> y los <b>3,3 V del pin 9 u 11</b></b> —<b>contra
         3,3 V, nunca contra masa</b>—, en normalmente abierto. Comprueba que el <b>pin 1 sigue
-        tapado</b>. Después repite el gesto en el <b>pin 12</b>, aunque ahí no vaya cámara: se ejerce
-        para dejarlo medido.</p>
+        tapado</b>. Después repite el gesto en el <b>pin 12</b><s>, aunque ahí no vaya cámara: se ejerce
+        para dejarlo medido</s> → <b>11/09, D-25: en <code>p12</code> va la cámara 2</b>, contra
+        los 3,3 V de <b>p11</b>. ⚠️ <b>El banco del 03/09 sólo cableó <code>p10</code>: que
+        <code>p12</code> responda NO consta medido</b>, así que lo que anotes aquí es la primera
+        medida.</p>
       <div class="parar">
         <b>🛑 ESTE PASO NO ES OPCIONAL, Y EL MOTIVO NO ES EL CABLE: <u>ES LO QUE ARMA EL
           VIGILANTE</u></b>
@@ -1852,6 +1920,13 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
         <p><b>O sea: el gesto de cerrar el contacto es la prueba, no el trámite.</b> Si se marca «No
           se cableó», el <code>CAM:</code> se queda en <code>?</code> para siempre y no se sabe si el
           vigilante funciona.</p>
+        <p>🔴 <b>11/09, D-25 — con DOS cámaras por poste esto se queda corto, y hay que saberlo:</b>
+          <code>CAM:</code> pasa a <code>OK</code> con la primera detección de <b>cualquiera</b> de las
+          dos (<code>camara_estado()</code> salta la entrada que nunca dio flanco), y la app lo pinta
+          como <b>«OK — las dos ven y ninguna está pegada»</b> aunque la otra no haya detectado nunca
+          (APK del 10/09 y la de hoy). <b>Un <code>OK</code> no dice que las dos vean.</b> La
+          «entrada vacía» por la que se escribió esa exención ya no existe: <b>pendiente en el
+          firmware, no se arregla en banco</b>.</p>
       </div>
       <p class="ver"><b class="et">Ver</b> En reposo, <b>ninguna petición</b>; al cerrar, el cruce le
         da paso en pocos segundos <b>(sólo en Modo Inteligente — ver el aviso de arriba)</b>.
@@ -1859,7 +1934,13 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
         cuanto esa entrada da su primer flanco. 🔴 <b>Si el paso 20 no salió bien, este paso NO se
         hace</b>: marca «No se cableó» con el motivo. <b>Si pide paso solo, quita el cable y
         anótalo.</b> ⚠️ <b>Y si al cerrar una vez el cruce cuenta DOS peticiones, anótalo tal
-        cual</b>: estos dos pines no llevan condensador y se leen por flanco.</p>
+        cual</b>: estos dos pines <s>no llevan condensador y</s> se leen por flanco <i>(11/09: el netlist sí les pone <code>C28</code>/<code>C29</code>; sin medir en cobre)</i>.
+        🆕 <b>11/09, D-25 — para saber que CADA una responde por sí sola:</b> el <code>CAM:</code>
+        vuelve a <code>?</code> tras cada reinicio (las marcas de «ya dio flanco» arrancan en falso),
+        así que <b>reinicia, cierra SÓLO <code>p12</code> y mira que pase de <code>?</code> a
+        <code>OK</code></b>; luego <b>reinicia y lo mismo SÓLO con <code>p10</code></b>. O,
+        sin reiniciar, <b>multímetro en el propio pin</b> contra masa (p2): 0 V en reposo, 3,3 V con
+        el contacto cerrado.</p>
       <div class="anota">
         <p class="porque">¿En qué pin? <input type="text" id="a21a" class="en-linea">
           &nbsp; ¿Cómo quedó? <input type="text" id="a21b" placeholder="normalmente abierto / cerrado / cable de prueba"></p>
@@ -1904,7 +1985,9 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
               <td>el contacto lleva <b>20 min</b> cerrado <b>sin abrirse ni una vez</b></td>
               <td>algo mantiene cerrada esa entrada</td></tr>
           <tr><td><code>$ALARM …EVENTO:CAM_CIEGA,CAUSA:CAM_C_SIN_FLANCO</code></td>
-              <td><b>6 h de PASO ABIERTO</b> sin ver un solo vehículo</td>
+              <td><s><b>6 h de PASO ABIERTO</b></s> <b>24 h de PASO ABIERTO</b> sin ver un solo vehículo
+                <small>(11/09: el 6 era el valor anterior; hoy <code>CAM_CIEGA_MS = 86400000UL</code> en
+                las dos puntas, como ya dicen las otras dos filas de esta hoja)</small></td>
               <td>la cámara puede estar <b>tapada, desenfocada, sin alimentación o con el cable
                 cortado</b></td></tr>
           <tr><td><code>$EVENT,ORIGEN:CAMARA,DETALLE:CAM_C_RECUPERADA</code></td>
@@ -1918,7 +2001,11 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
     </div>
     <p><code>CAM_C</code> es <code>J16</code> <b>p10</b> y <code>CAM_D</code> es <code>J16</code>
       <b>p12</b>. <b>No son «la cámara 1 y la 2»</b>: esos números son de otras dos entradas
-      (<code>PB0</code>), y confundirlos manda a alguien a revisar el borne equivocado.</p>
+      (<code>PB0</code>), y confundirlos manda a alguien a revisar el borne equivocado.
+      ⚠️ <b>11/09: pero <code>D-25</code> y la guía del Sisga llaman «cámara 1» a la de
+      <code>p10</code> y «cámara 2» a la de <code>p12</code>.</b> En la trama siguen siendo
+      <code>CAM_C</code> y <code>CAM_D</code>. Los dos nombres chocan y <b>esta hoja no elige</b>:
+      apunta siempre <b>el pin</b>, que no se confunde.</p>
     <div class="parar" style="margin:.4rem 0">
       <b>🛑 <code>CAM: ?</code> ES LO NORMAL HASTA LA PRIMERA DETECCIÓN. NO ES UNA AVERÍA Y NO SE
         REPORTA COMO TAL</b>
@@ -1932,8 +2019,11 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
               dado todavía una señal, así que <b>el equipo no tiene nada que juzgar y lo dice</b></td>
               <td>🟢 <b>Es lo normal desde que arranca hasta el paso 21.</b> Se anota, no se
                 reporta</td></tr>
-            <tr><td><code>CAM:OK</code></td><td>al menos una entrada ha dado señal y se comporta</td>
-              <td>🟢 <b>Es lo que tiene que salir DESPUÉS del paso 21</b></td></tr>
+            <tr><td><code>CAM:OK</code></td><td>al menos una entrada ha dado señal y se comporta.
+              ⚠️ <b>11/09: no dice que la otra vea</b> —la que nunca dio señal no cuenta—, aunque la
+              app lo rotule «las dos ven»</td>
+              <td>🟢 <b>Es lo que tiene que salir DESPUÉS del paso 21</b> — y cada cámara se
+                comprueba aparte (paso 21, D-25)</td></tr>
             <tr><td><code>CAM:PEGADA</code></td><td>20 min cerrado sin abrirse</td>
               <td>paso 21.bis</td></tr>
             <tr><td><code>CAM:CIEGA</code></td><td>24 h de paso abierto sin un flanco</td>
@@ -1941,12 +2031,17 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
           </tbody>
         </table>
       </div>
-      <p>🔴 <b>Por qué un pin vacío no da alarma, y es deliberado:</b> con <b>una cámara por
-        poste</b> el otro pin de <code>J16</code> está al aire. Si el vigilante lo juzgara, avisaría
+      <p>🔴 <b>Por qué un pin vacío no da alarma, y es deliberado:</b> <s>con <b>una cámara por
+        poste</b> el otro pin de <code>J16</code> está al aire</s>. Si el vigilante lo juzgara, avisaría
         <code>CIEGA</code> <b>de un aparato que no existe</b> — y el técnico saldría a revisar un
         cable que nadie puso. Por eso <b>sólo se juzga el silencio de un pin que ya dio una señal
         alguna vez</b>. <b>El nivel sí se juzga siempre</b>: un contacto trabado sale al aire aunque
         nunca haya dado un flanco.</p>
+      <p>→ <b>11/09, D-25: el pin ya no está al aire —lleva la cámara 2—, y la exención PIERDE SU
+        MOTIVO.</b> Sigue en el programa (<code>vigilante_tick()</code> y <code>camara_estado()</code>
+        saltan el pin sin flanco), así que <b>una cámara muerta desde el día que se monta, o desde el
+        último reinicio, no la anuncia nadie</b>. Pendiente de rehacer en el firmware; en banco, cada
+        cámara se prueba en su pin (paso 21).</p>
       <p>🛑 <b>Y la consecuencia que hace obligatorio el paso 21:</b> <b>un <code>?</code> eterno no
         dice que la cámara esté bien — dice que nadie la ha probado.</b> «No llega bit» y «no hay
         nadie» se leen igual mientras nadie provoque una detección.</p>
@@ -1979,7 +2074,8 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
     <p><b>Así que este residual vuelve en el parte como residual, no como casilla verde.</b> El paso
       <b>21.ter</b> sí prueba la mitad que sí es ejecutable —<b>que el cronómetro NO corre con el
       paso cerrado</b>—, y esa es la puerta que impide que la alarma salte sola. Lo que queda sin
-      ejercer es el <b>número</b>.</p>
+      ejercer es el <b>número</b>. ⚠️ <b>11/09: esa frase no se sostiene</b> — ver la nota del
+      propio paso 21.ter: en 30 min no puede salir <code>CAM_CIEGA</code> ni contando reloj.</p>
   </div>
 
   <div class="fila" id="f21b">
@@ -2044,6 +2140,14 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
         tres que puede acusar al firmware</b>. Los otros dos comprueban que el vigilante
         <b>habla</b>; éste comprueba que <b>se calla cuando debe</b>. Un vigilante que alarmara
         siempre pasaría los otros dos igual de bien.</p>
+      <p class="porque">⚠️ <b>11/09, medido en el fuente: tal como está escrito, este paso NO PUEDE
+        FALLAR, así que no acusa a nada.</b> <code>CAM_CIEGA</code> exige
+        <code>CAM_CIEGA_MS = 86400000UL</code> (24 h) de silencio acumulado —30 min no llegan ni
+        contando tiempo de reloj— y además sólo corre en un pin que ya dio flanco; y
+        <code>CAM_PEGADA</code> exige el contacto <b>cerrado</b>, imposible con <code>J16</code>
+        desconectado. <b>Hazlo igual y anótalo</b>, pero su verde no demuestra que el cronómetro se
+        pare con el paso cerrado: eso sólo lo mediría una compilación con el umbral reducido, que no
+        es la de campo.</p>
       <div class="anota">
         <p class="porque">Empezó a las <input type="text" id="a21k" class="en-linea">
           &nbsp; terminó a las <input type="text" id="a21l" class="en-linea">
@@ -3244,8 +3348,9 @@ CON modulo de reloj conectado:
   </div>
 
   <h2><span class="n">08.quater</span> Las dos cámaras Hikvision · las dos medidas que desbloquean el diseño</h2>
-  <p class="sub" style="margin-top:.4rem">Han llegado <b>dos <code>DS-2CD2683G2-IZS</code></b>, una
-    por poste. <b>Estos dos pasos no tocan la tarjeta ni la necesitan</b>: se hacen con la cámara,
+  <p class="sub" style="margin-top:.4rem">Han llegado <b>dos <code>DS-2CD2683G2-IZS</code></b>, <s>una
+    por poste</s> <b>(11/09, D-25: el cruce lleva CUATRO, dos por poste; cuántas hay compradas lo
+    dice la lista de compras, no esta hoja)</b>. <b>Estos dos pasos no tocan la tarjeta ni la necesitan</b>: se hacen con la cámara,
     su fuente y un portátil, <b>sobre la mesa</b>, y se pueden hacer aunque el Maestro siga con el
     corto. <b>Son las dos únicas medidas de toda la visita que no se pueden sacar de ningún
     documento</b> &mdash;lo hemos intentado: están <b>leídas las 110 páginas del manual y las 40 de
@@ -3273,8 +3378,9 @@ CON modulo de reloj conectado:
   </div>
 
   <p class="sub">♻️ <b>Lo de la tarjeta ya está en esta hoja y no se repite aquí</b>: la medida que
-    autoriza a cablear <code>J16</code> es el <b>paso 20</b>, ejercer p10 y p12 el <b>21</b>, la
-    la cámara (<code>J16</code> p10) el <b>21</b> y la entrada de <code>J14</code> los <b>17 y 19</b>,
+    autoriza a cablear <code>J16</code> es el <b>paso 20</b>, ejercer p10 y p12 el <b>21</b>, <s>la
+    la cámara (<code>J16</code> p10) el <b>21</b></s> <small>(11/09, D-25: duplicado; las dos cámaras
+    van a p10 y p12)</small> y la entrada de <code>J14</code> los <b>17 y 19</b>,
     los <b>0 V</b> de p5/p8
     &mdash;que con el programa viejo daban <b>0,6 V</b>&mdash; el <b>2.bis</b>, y <b>tapar
     <code>J16</code> p1</b> el punto 5 del recuadro de arriba y la tabla de borneras del detalle.
@@ -3336,7 +3442,7 @@ CON modulo de reloj conectado:
           Tampering también cierran ese relé, el controlador no puede saber qué le están contando.
           <b>Por eso se desmarcan todas menos Intrusión</b>, y por eso se anota cuáles estaban.</p>
         <div class="tres">
-          <label class="si"><input type="radio" name="p39" value="si"> ESTÁ · el diseño de un contacto por poste sigue en pie</label>
+          <label class="si"><input type="radio" name="p39" value="si"> ESTÁ · el diseño de un contacto seco por cámara sigue en pie</label>
           <label class="no"><input type="radio" name="p39" value="no"> NO ESTÁ · hay que parar y avisar</label>
           <label class="np"><input type="radio" name="p39" value="np"> No se pudo mirar</label>
         </div>
@@ -3617,7 +3723,11 @@ CON modulo de reloj conectado:
     <p>⚠️ <b>Y hay un borne mejor para el final de carrera, y conviene decirlo antes de que alguien
       elija por descarte:</b> <code>J14</code> quedó libre al mudar la cámara a <code>J16</code>, y
       es <b>el único pin de entrada del equipo con antirrebote por hardware</b> —justo lo que un
-      contacto mecánico necesita—. <b>No entra en ningún reconocedor de secuencias.</b></p>
+      contacto mecánico necesita—. <b>No entra en ningún reconocedor de secuencias.</b>
+      🔴 <b>11/09 · pero no está libre de lectura:</b> <code>A-2</code> lo reservó al final de
+      carrera y el programa lee <code>PB0</code> como <code>CAM_DEMANDA_PIN</code>, así que un
+      final de carrera ahí <b>pediría paso</b> cada vez que se mueve la pluma. <b>Conflicto abierto
+      entre la decisión y el firmware</b>: se anota, no se decide en banco.</p>
     <textarea id="pa3" style="min-height:3rem" placeholder="¿se dejan vacios p5 y p8? · si va un final de carrera: ¿a J14 (con antirrebote y sin reconocedor) o a J16 p5/p8? · si va a p5/p8, ¿se autoriza desarmar el reconocedor de secuencias del mando? · ¿quien firma ese cambio?"></textarea>
   </div>
 
@@ -3905,7 +4015,8 @@ CON modulo de reloj conectado:
       <p>El programa nuevo es el que convierte los pines 10 y 12 de <code>J16</code> en <b>entradas de
         cámara</b>. Con el viejo dentro, <b>el pin 10 sigue siendo el botón de Aceptar, leído activo
         en bajo</b>: cualquier hilo que entre ahí <b>pulsa Aceptar en un equipo que está en la
-        calle</b>.</p>
+        calle</b>. <b>11/09, D-25: y el pin 12 es Cancelar</b> (<code>BOTON4</code> =
+        <code>PB15</code> en <code>e303485</code>, el de campo) —y desde hoy también lleva cámara—.</p>
       <p>Al revés sí es seguro: cargado el programa nuevo, esos pines quedan como entrada pelada y
         <b>un pin en reposo no ejecuta nada</b>. Por eso lo que se exige es la <b>carga hecha</b>, no
         el orden en un papel.</p>
@@ -4175,8 +4286,11 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
       <p><b>Las dos cámaras llevan la MISMA configuración</b> &mdash;una regla de <i>Intrusion
         Detection</i> sobre el barrido de la pluma&mdash;, y <b>el significado lo pone el estado del
         semáforo, no la cámara</b>: el mismo bit dice cosas distintas según la luz que haya en ese
-        momento. Con una cámara por poste, dar «un significado a cada una» no sería repartir: sería
-        <b>proteger un poste y el otro no</b>.</p>
+        momento. <s>Con una cámara por poste, dar «un significado a cada una» no sería repartir: sería
+        <b>proteger un poste y el otro no</b>.</s> → <b>11/09, D-25: son cuatro, dos por poste, y la
+        misma configuración sigue valiendo para las cuatro</b> (lo único que deroga <code>D-25</code>
+        de <code>D-13</code> es «una por poste»). La segunda cámara del poste <b>no añade función</b>:
+        el programa trata <code>p10</code> y <code>p12</code> igual.</p>
       <h4>La contradicción documental que sólo se puede desempatar con la cámara delante</h4>
       <div class="tabla-envoltorio">
         <table>
@@ -4246,7 +4360,11 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
           Una cámara desconectada lee «no hay nadie».</li>
         <li><b>Ningún tope que fuerce la bajada de la pluma.</b> Un tope que baja igual devuelve el
           peligro que se quería evitar: <b>tope &rarr; alarma, nunca acción.</b></li>
-        <li><b>El ciclo del semáforo no se toca.</b> Las cámaras no dan ni quitan verde.</li>
+        <li><b>El ciclo del semáforo no se toca.</b> Las cámaras no dan ni quitan verde.
+          ⚠️ <b>11/09, medido — y choca con esta frase:</b> en <b>Modo Inteligente</b> sí
+          <b>alargan</b> un verde, hasta el techo (<code>sueloMin * TECHO_POR_SUELO</code>, paso
+          21.quin); en Automático y Manual no cambian ninguna luz. <code>D-13</code>/<code>D-25</code>
+          dicen «no tocan el ciclo»: <b>choque pendiente del responsable</b>, no se decide aquí.</li>
       </ul>
     </div></details>
 
@@ -4264,10 +4382,18 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
                 <b>Este pin NO se retira y sigue vivo</b>: <b>es la única entrada con antirrebote en
                 el cobre</b> —su propia resistencia y su condensador, 1 ms—, o sea <b>el mejor
                 borne del equipo para un contacto mecánico</b>, como un final de carrera de la
-                barrera. Y <b>no entra en ningún reconocedor de secuencias</b></td></tr>
+                barrera. Y <b>no entra en ningún reconocedor de secuencias</b>.
+                🔴 <b>11/09 · CONFLICTO ABIERTO:</b> <code>A-2</code> lo reserva al final de carrera
+                y el programa lo lee como cámara (<code>CAM_DEMANDA_PIN</code>): pediría paso. No se
+                resuelve aquí</td></tr>
             <tr><td><code>J15</code></td><td><b>Talanquera</b></td>
-              <td>Un borne a <b>+12 V de batería</b>, el otro a la <b>entrada de apertura</b> de la
-                centralita. Transistor de potencia hasta 10 A: <b>no hace falta relé externo</b></td></tr>
+              <td><s>Un borne a <b>+12 V de batería</b>, el otro a la <b>entrada de apertura</b> de la
+                centralita. Transistor de potencia hasta 10 A: <b>no hace falta relé externo</b></s>
+                → <b>11/09, D-25:</b> <b>p1 = 12 V</b> y <b>p2 = drenador de <code>Q10</code></b>
+                (<b>no es masa</b>: con <code>Q10</code> abierto está a ~12 V) <b>a la bobina de un
+                relé</b>; el <b>contacto</b> del relé va a la entrada <code>OPEN</code> de la
+                centralita. Sube con verde <b>y con el ámbar intermitente</b>; <b>ninguna cámara la
+                frena</b></td></tr>
             <tr><td><code>J12</code></td><td><b>Radio</b> entre postes</td>
               <td><b>En servicio: no se toca.</b> Sin ella los dos postes no se coordinan</td></tr>
             <tr><td><code>J16</code> <b>p1</b></td><td>🔴 <b>12 V crudos</b></td>
@@ -4291,23 +4417,31 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
                 vacío</b> (pasos 2.bis y 20): tienen que dar <b>0 V</b>. Qué se pone en el futuro es
                 la <b>pregunta 3</b>.</p></td></tr>
             <tr><td><code>J16</code> <b>p10</b><br><code>PB14</code></td>
-              <td>🎯 <b>LA CÁMARA DE ESTE POSTE</b> — <code>CAM_C_PIN</code></td>
+              <td>🎯 <s><b>LA CÁMARA DE ESTE POSTE</b></s> <b>CÁMARA 1 del poste</b> (11/09, D-25) — <code>CAM_C_PIN</code></td>
               <td>✅ <b>Cableada y verificada en banco el 03/09</b>, sin demandas fantasma (paso 21).
                 <b>Activa en ALTO</b>: contacto normalmente abierto a los <b>3,3 V de p9</b>.
                 <b>Es la posición más LEJOS de los 12 V de p1</b>, y por eso es la elegida.
                 <b>Aquí es donde el vigilante mira</b> —<code>CAM_PEGADA</code>,
-                <code>CAM_CIEGA</code> y el campo <code>CAM:</code> de la trama—</td></tr>
+                <code>CAM_CIEGA</code> y el campo <code>CAM:</code> de la trama—, <b>igual que en
+                p12</b></td></tr>
             <tr><td><code>J16</code> <b>p12</b><br><code>PB15</code></td>
-              <td><b>Segunda entrada de cámara</b> — <code>CAM_D_PIN</code>. <b>Hoy libre</b></td>
+              <td><b>Segunda entrada de cámara</b> — <code>CAM_D_PIN</code>. <s><b>Hoy libre</b></s>
+                <b>CÁMARA 2 del poste</b> (11/09, D-25)</td>
               <td><b>Medido el 03/09:</b> ~10 kΩ a masa y <b>0 V en reposo</b> (paso 20). Se ejerce
-                en el paso 21 para dejarlo medido. <b>Activa en ALTO</b>: cable a los <b>3,3 V de
+                en el paso 21 <s>para dejarlo medido</s> <b>—nunca se ha cableado en banco—</b>. <b>Activa en ALTO</b>: cable a los <b>3,3 V de
                 p11</b>. ⚠️ En cobre es el punto <b>más CERCANO</b> a los 12 V de p1 —1,359 mm de
-                cobre a cobre—: si se cablea, con p1 ya tapado.
+                cobre a cobre—: <s>si se cablea,</s> <b>se cablea (D-25)</b> con p1 ya tapado.
                 <p style="margin:.35rem 0 0">🛑 <b>NO son «la cámara 1 y la cámara 2»</b>, y así se
-                rotularon una vez por error. <b>Es UNA cámara por poste</b>: en cada tarjeta se usa
+                rotularon una vez por error. <s><b>Es UNA cámara por poste</b>: en cada tarjeta se usa
                 <b>p10</b> y <b>p12 queda al aire</b>. Un pin al aire <b>no ensucia el
                 <code>CAM:</code></b>: el programa no juzga el silencio de una entrada que nunca ha
-                dado señal, justo para no alarmar de un aparato que no existe.</p></td></tr>
+                dado señal, justo para no alarmar de un aparato que no existe.</s></p>
+                <p style="margin:.35rem 0 0">→ <b>11/09, D-25: dos cámaras por poste, p10 y p12</b>,
+                y <code>D-25</code> las llama «cámara 1» y «cámara 2» — choca con la frase de arriba;
+                en la trama son <code>CAM_C</code>/<code>CAM_D</code>; <b>apunta el pin</b>. El
+                programa <b>sigue sin juzgar</b> el silencio de una entrada que nunca dio señal: con
+                las dos cableadas eso significa que <b>una cámara 2 muerta desde el montaje no la
+                anuncia nadie</b>, y el <code>CAM:OK</code> no la delata.</p></td></tr>
             <tr><td><code>J17</code></td><td><b>Módulo Bluetooth</b></td>
               <td>Pos. <b>2</b> = entrada del micro · <b>3</b> = salida · <b>7 o 9</b> = masa ·
                 <b>6 NO se conecta</b>. Los datos van cruzados</td></tr>
@@ -4329,8 +4463,11 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
 <pre>   SENTIDO 1                    TRAMO DE UN CARRIL                    SENTIDO 2
    |  POSTE 1 MAESTRO  | ===== obra . un solo carril ===== |  POSTE 2 ESCLAVO  |
 
-   Camara -> J16 p10   Talanquera -> J15   Radio -> J12   Modulo BT -> J17
+   <s>Camara -> J16 p10</s>   Talanquera -> J15   Radio -> J12   Modulo BT -> J17
+   11/09, D-25:  Camara 1 -> J16 p10 (+p9)   Camara 2 -> J16 p12 (+p11)
+                 Talanquera: J15 p1/p2 -> bobina de rele -> contacto a OPEN
    J14 (PB0) queda LIBRE: sigue vivo y es el unico con antirrebote
+   (A-2: reservado al fin de carrera; el firmware lo lee como camara -> CONFLICTO ABIERTO)
    J16 -> 12 V en la posicion 1 . CUIDADO . igual en las dos puntas</pre>
       </div>
       <h4>Las TRES entradas, que no son una</h4>
@@ -4373,10 +4510,12 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
             <tr><td><b>Las entradas de <code>J16</code> p10 y p12</b></td>
               <td>✏️ <b>CAMBIÓ EL 05/09: la cámara del poste va a <code>J16</code> p10</b>
                 (<s>a <code>J14</code></s>), porque <b>es el único borne que el programa VIGILA</b>.
-                Se cablea y se ejerce en el paso 21, y sólo si el 20 sale bien. <b>p12 queda libre
-                como segunda entrada</b>, y se ejerce igual para dejarlo medido</td></tr>
+                Se cablea y se ejerce en el paso 21, y sólo si el 20 sale bien. <s><b>p12 queda libre
+                como segunda entrada</b>, y se ejerce igual para dejarlo medido</s> → <b>11/09, D-25:
+                en p12 va la cámara 2</b>, y se ejerce igual</td></tr>
             <tr><td><b>Cuántas cámaras lleva el cruce</b></td>
-              <td>🟢 <b>Ya está: DOS, una por poste.</b> Los tres bornes de una tarjeta piden lo
+              <td>🟢 <b>Ya está:</b> <s><b>DOS, una por poste.</b></s> <b>CUATRO, dos por poste
+                (decidido por el responsable el 11/09, <code>D-25</code>).</b> Los tres bornes de una tarjeta piden lo
                 mismo. Lo que esta visita comprueba es que responden, no cuántas hay que comprar</td></tr>
             <tr><td><b>El mando por radio</b></td>
               <td>🟢 <b>Ya no es un hueco: DEJÓ DE EXISTIR.</b> El hardware se retiró el 05/09 y el
@@ -4415,13 +4554,15 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
                 <code>1A</code>+<code>1B</code> sean un único contacto es <b>deducción</b> de la
                 ficha, no lectura de un plano, y de <code>G</code> no se sabe si es común de entrada,
                 de salida o de las dos. <b>Los pasos 39 y 40 se hacen con la cámara sola, sobre la
-                mesa</b></td></tr>
+                mesa</b>. <b>11/09:</b> fuera de esta visita, <code>D-25</code> ya fija el cableado de
+                campo —<code>1A</code>/<code>1B</code> de cada cámara a <code>J16</code> p9/p10 y
+                p11/p12—; que la analítica pueda cerrar ese relé <b>sigue siendo el paso 39</b></td></tr>
             <tr><td><b>Si la cámara puede darle un bit al controlador</b></td>
               <td>🔴 <b>Es la pregunta abierta más cara del proyecto, y la contesta el paso 39</b> en
                 diez minutos. Hoy hay <b>dos documentos oficiales que no coinciden</b>: el manual
                 documenta <code>Trigger Alarm Output</code> con la nota <i>«only supported by certain
                 models»</i> y la ficha de este modelo no la menciona. <b>Si no está, se cae el diseño
-                de un contacto por poste</b> y hay que decidir fuera del banco</td></tr>
+                de un contacto <s>por poste</s> por cámara (11/09, D-25)</b> y hay que decidir fuera del banco</td></tr>
             <tr><td><b>La ventana de silencio del firmware (los 3 s)</b></td>
               <td>🟠 <b>El paso 40 trae el número que hoy falta</b> &mdash;el <code>Delay</code> real
                 del relé&mdash;, pero <b>el firmware no se toca en banco</b>. La constante se deriva
@@ -4441,7 +4582,9 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
                 <b>24 h de PASO ABIERTO</b> —del orden de 2 días de reloj—; ejercerlo exigiría cargar
                 una compilación con el umbral reducido, <b>y esa compilación no es la que va a
                 campo</b>. Está comprobado en su <b>forma</b>, no en su <b>tiempo</b>. Lo que sí se
-                prueba es <b>la puerta que impide que salte sola</b>: el <b>paso 21.ter</b></td></tr>
+                prueba es <b>la puerta que impide que salte sola</b>: el <b>paso 21.ter</b>.
+                ⚠️ <b>11/09: no la prueba</b> — en 30 min no puede salir <code>CAM_CIEGA</code> ni
+                contando reloj; ver la nota del 21.ter</td></tr>
             <tr><td>🆕 <b>Si se construye la fase 2 del veto de pluma</b></td>
               <td>🟠 <b>No se pregunta aquí, y es deliberado: el dato con el que se decide todavía
                 no existe.</b> Lo produce esta misma fase 1 —el contador

@@ -105,7 +105,8 @@ Controladora_Semaforos 2/
 +-- 03_Hardware_Tarjeta/    MAPEO_TARJETA_KICAD.md + indice_netlist.py
 +-- 04_Manuales/            manuales de terceros (camara, radios) y los 2 propios
 |                           MANUAL_USUARIO.md / MANUAL_HARDWARE.md - mudados aqui el 05/09
-+-- 05_Funcional/           los 19 documentos numerados (.md + .docx) y App_Semaforo/
++-- 05_Funcional/           los 19 documentos numerados (.md + .docx), App_Semaforo/ y dos guias
+|                           HTML: Guia_Cableado_y_Pruebas_Banco.html y Camaras_Sisga_4x.html
 +-- 05_Imagenes/            3 .jpg de la app
 +-- 99_Legacy/              zips de entregas viejas y firmware retirado. NO se toca
 +-- evidencia/              actas de la compuerta + fotos de banco (WhatsApp *.jpeg)
@@ -332,7 +333,7 @@ de `escribirPines(bool rojo, bool amarillo, bool verde)`, que es `static`.
 |---|---|---|---|
 | `camara_leerPin()` | SI | SI | lector, codigo identico |
 | `CAM_PEGADA_MS` | `1200000UL` | `1200000UL` | 20 min de contacto fijo -> `CAM_PEGADA` |
-| `CAM_CIEGA_MS` | `21600000UL` | `21600000UL` | 6 h de paso abierto sin un flanco -> `CAM_CIEGA` |
+| `CAM_CIEGA_MS` | ~~`21600000UL`~~ **`86400000UL`** | ~~`21600000UL`~~ **`86400000UL`** | ~~6 h~~ **24 h** de paso abierto sin un flanco -> `CAM_CIEGA` `[RE-MEDIDO 11/09: grep -n "CAM_CIEGA_MS =" */src/botones.cpp; subio el 08/09, D-24]` |
 | `camaras_sembrar()` | SI | SI | N-26: un contacto ya cerrado al arrancar es estado, no deteccion |
 | `camaras_actualizar()` | SI | SI | una lectura por vuelta; no relee |
 | `camara_estado()` | SI | SI | el PEOR de las dos camaras -> campo `CAM:` del `$STATUS` |
@@ -360,13 +361,24 @@ por radio. No hay fase que sostener.
 > `escribirPines()`, y eso es SFTY-28 y necesita derogacion escrita (A-1.bis). El
 > campo `ACCION:NINGUNA` del `$ALARM` no es relleno: es no mentir en el acuse.
 
-> ⚠️ **UN PIN QUE NUNCA DIO UN FLANCO NO SE VIGILA.** Hay **una camara por poste**,
-> asi que uno de los dos pines de J16 esta VACIO en todo equipo montado. Sin esa
-> guarda, a las 6 h emitia `CAM_CIEGA` de una camara que no existe -y `CIEGA` pesa
+> ⚠️ **UN PIN QUE NUNCA DIO UN FLANCO NO SE VIGILA.** ~~Hay **una camara por poste**,
+> asi que uno de los dos pines de J16 esta VACIO en todo equipo montado.~~ Sin esa
+> guarda, ~~a las 6 h~~ cumplido `CAM_CIEGA_MS` emitia `CAM_CIEGA` de una camara que no existe -y `CIEGA` pesa
 > mas que `OK`, o sea que tapaba en el campo `CAM:` a la camara que si esta.
 > **Lo que cuesta:** una camara muerta DESDE EL DIA DE LA INSTALACION no se distingue
 > de una bornera vacia. Lo compensa el instalador provocando la primera deteccion
 > (Manual 9), no el firmware.
+>
+> 🔴 **11/09, `D-25`: LA EXCEPCION PIERDE SU MOTIVO.** Ya no hay pin vacio: son **dos
+> camaras por poste**, `p10` y `p12` en las dos tarjetas. El codigo no ha cambiado
+> (`vigilante_tick()` salta el pin con `!camHuboFlanco[i]` y `camara_estado()` lo salta
+> al publicar `CAM:`, medido en `b79d904` = `a6980e4`), asi que **una segunda camara
+> muerta desde la instalacion NO la avisa nadie** y **la app pinta `CAM: OK — las dos
+> ven` con la primera deteccion de CUALQUIERA**. Pendiente de rehacer EN FIRMWARE
+> (`CLAUDE.md` §6: una excepcion es una afirmacion sobre el codigo); hasta entonces lo
+> compensa el multimetro en el borne de cada camara (paso 11 de
+> `05_Funcional/Camaras_Sisga_4x.html`). Y tras cada reinicio la vigilancia de silencio
+> queda desarmada hasta la primera deteccion, como dice su propio comentario.
 
 ### 2.7 El despachador de Bluetooth - HAY TRES, no dos
 
@@ -877,6 +889,21 @@ permite medir *"verde en las dos A LA VEZ"* sobre las puntas reales.
 `[MEDIDO 07/09]`. El `.docx` **no se regenera solo**: el empaquetador solo mira que
 exista.
 
+**Y dos guias HTML de campo, que NO tienen `.docx`** `[11/09]`:
+
+| guia | que es | estado |
+|---|---|---|
+| `05_Funcional/Guia_Cableado_y_Pruebas_Banco.html` | protocolo de la sesion de banco, se rellena y se devuelve en PDF | vigente |
+| `05_Funcional/Camaras_Sisga_4x.html` | instalacion de las **4 camaras del Sisga (dos por poste, `D-25`)** y de la **talanquera en `J15`**; empieza por la fe de erratas de la version del 10/09 | ✏️ **version corregida del 11/09**. La del 10/09 sigue RETIRADA en `05_Funcional/historico/` (afirmaba que una camara protege la pluma y que la pluma solo sube con verde). ⚠️ **No esta en el empaquetador** (`generar_entrega_v9_0.py` la saco el 11/09 en `86b1b3e`): si tiene que viajar en el `.zip`, hay que volver a meterla alli |
+
+> **Lo que la guia del Sisga le dice al instalador y que NO sale de ella, sino del
+> firmware** `[MEDIDO 11/09 en b79d904; firmware identico en a6980e4]`: las dos camaras
+> de un poste hacen LO MISMO (`CAM_J16[2]`, un solo bucle en `camaras_actualizar()`);
+> ninguna frena la pluma (`escribirPines()`); la pluma sube tambien con el ambar
+> intermitente (`S_FALLO`), incluido un poste recien encendido sin enlace; y la app pinta
+> `CAM: OK — las dos ven` con la primera deteccion de CUALQUIERA (`camara_estado()` salta
+> el pin sin flanco), por eso cada camara se comprueba con multimetro en su borne.
+
 ---
 
 ## 7. EL HARDWARE
@@ -986,8 +1013,8 @@ bornera** `[MEDIDO 07/09]`:
 | `J11` | 2 | p1 `12V` · p2 `Net-(D27-K)` - **`ROJO_PEATON`. Canal fabricado, SIN firmware** |
 | `J12` | 2 | radio LoRa E90-DTU - USART3, PB10 TX / PB11 RX / PB12 DE-RE |
 | `J13` | 2 | p1 `12V` · p2 `Net-(D25-K)` - **`BUZZER`. Canal fabricado, SIN firmware** |
-| `J14` | 2 | p1 **`/Puerta`** (PB0) · p2 **`3.3V`** - 🔴 **ES UNA ENTRADA, directa al micro.** Reservada al **fin de carrera** de la pluma (`A-2`, 05/09); **no lleva camara** (Manual 9) |
-| `J15` | 2 | p1 `12V` · p2 `Net-(D29-K)` - 🔴 **LA SALIDA DE TALANQUERA** (PB2 -> `U15` TLP127 -> `Q10` IRLZ44N a masa; `D30` rueda libre, `D29` testigo) `[MEDIDO 11/09 en netlist]`. **p2 NO es masa**: con `Q10` abierto sube a ~12 V. **Sube la pluma con VERDE y tambien con CUALQUIER ambar intermitente (`S_FALLO`)** — `escribirPines()`: `(verde && !testLedsActivo) \|\| estado == S_FALLO`. **Ninguna camara interviene** (el veto es `A-1.bis`, sin construir) |
+| `J14` | 2 | p1 **`/Puerta`** (PB0) · p2 **`3.3V`** - 🔴 **ES UNA ENTRADA, directa al micro.** Reservada al **fin de carrera** de la pluma (`A-2`, 05/09); **no lleva camara** (Manual 9). 🔴 **CONFLICTO ABIERTO `[MEDIDO 11/09]`, del responsable, NO se resuelve aqui:** el firmware lee `PB0` como **`CAM_DEMANDA_PIN`** en las dos puntas —Maestro por NIVEL en `modoInteligente_loop()` (`demandaLocalS1`: pide y SOSTIENE fase), Esclavo por FLANCO en `main.cpp` -> `demanda_solicitar()` -> `CMD_DEMANDA` por radio—, asi que un fin de carrera aqui **da demandas falsas** cada vez que se mueve la pluma. `grep -rn "CAM_DEMANDA_PIN" Maestro/src Esclavo/src` |
+| `J15` | 2 | p1 `12V` · p2 `Net-(D29-K)` - 🔴 **LA SALIDA DE TALANQUERA** (PB2 -> `U15` TLP127 -> `Q10` IRLZ44N a masa; `D30` rueda libre, `D29` testigo) `[MEDIDO 11/09 en netlist]`. **p2 NO es masa**: con `Q10` abierto sube a ~12 V. **Sube la pluma con VERDE y tambien con CUALQUIER ambar intermitente (`S_FALLO`)** — `escribirPines()`: `(verde && !testLedsActivo) \|\| estado == S_FALLO`. **Ninguna camara interviene** (el veto es `A-1.bis`, sin construir). ✏️ **11/09, `D-25` (conexion DEFINITIVA):** p1 y p2 a la **bobina de un rele de 12 V**; el contacto del rele a la entrada **`OPEN`** de la centralita de la barrera. `D30` (1N4148, entre `/12V` y p2) ya es la rueda libre de esa bobina. ⚠️ **`[SIN VERIFICAR]`** como responde la centralita a `OPEN` sostenido y soltado, y que hace la barrera sin energia en la tarjeta: lo decide la centralita, no este cobre |
 | `J16` | **12** | ver abajo |
 | `J17` | **13** | ver abajo |
 
@@ -1003,9 +1030,16 @@ bornera** `[MEDIDO 07/09]`:
   p3  = sin conectar          p4  = 3.3 V
   p5  = /Boton1 = PB9  = MANDO_A     p6  = sin conectar
   p7  = 3.3 V                 p8  = /Boton2 = PB13 = MANDO_B
-  p9  = 3.3 V                 p10 = /Boton3 = PB14 = CAM_C_PIN  <-- LA CAMARA
-  p11 = 3.3 V                 p12 = /Boton4 = PB15 = CAM_D_PIN  <-- hoy VACIO
+  p9  = 3.3 V                 p10 = /Boton3 = PB14 = CAM_C_PIN  <-- CAMARA 1 (contra p9)
+  p11 = 3.3 V                 p12 = /Boton4 = PB15 = CAM_D_PIN  <-- CAMARA 2 (contra p11)
 ```
+
+> ✏️ **11/09, `D-25`:** aqui ponia ~~`p10 <-- LA CAMARA`~~ y ~~`p12 <-- hoy VACIO`~~. Son
+> **cuatro camaras, DOS POR POSTE**, las dos cableadas en cada tarjeta. **Hacen LO MISMO**
+> (`CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN}`, un solo bucle en `camaras_actualizar()`:
+> `demanda_solicitar()` + vigilante; identico en las dos puntas). **`p12` es el borne
+> con menos separacion a la red de 12 V** (`/Boton4`, `1,359 mm`, 7.7 punto 3): con camara
+> en el, `p1` tapado (`D-4`) deja de ser teoria.
 
 > 🔴 **EL MAPA ANTERIOR DECIA "conector de 16 posiciones". SON 12.** `[MEDIDO 07/09]`
 
@@ -1073,7 +1107,7 @@ comando** para reencontrar la evidencia, no el numero de linea.
 | PA8 | `RS485_IN_DE_RE` | U2 | VIVO `OUTPUT HIGH` | `grep -n RS485_IN_DE_RE */src/bluetooth.cpp` |
 | PA9 / PA10 | `RS485_IN_TX/RX` | J10 | **MUERTOS** | solo `pines.h` |
 | PA11 PA12 PA15 PC13 | - | - | **SIN CABLEAR** ✅ ahora `[MEDIDO]`, ya no `[ESCRITO]` | redes `unconnected-(U1-PA11-Pad32)`, `-PA12-Pad33`, `-PA15-Pad38`, `-PC13-Pad2` en el `.kicad_pcb` |
-| PB0 | `CAM_DEMANDA_PIN` | J14 | VIVO `INPUT`, activo ALTO | `grep -n "pinMode(CAM_DEMANDA_PIN"` -> **M: `botones.cpp` · E: `main.cpp`** |
+| PB0 | `CAM_DEMANDA_PIN` | J14 | VIVO `INPUT`, activo ALTO. 🔴 **CONFLICTO ABIERTO (11/09):** `A-2` reserva `J14` al fin de carrera y el firmware lo lee como camara de demanda — ver 7.3 | `grep -n "pinMode(CAM_DEMANDA_PIN"` -> **M: `botones.cpp` · E: `main.cpp`** |
 | PB1 | `BUZZER` | J13 | **MUERTO** declarado | solo `pines.h` |
 | PB2 | `MOTOR_TALANQUERA` | J15 | VIVO `OUTPUT`, reposo **CERRAR** | `grep -n MOTOR_TALANQUERA */src/semaforo.cpp` |
 | PB3 PB4 PB5 | `LCD_SCLK` `LCD_CS` `LCD_SID` | J17 p4/p1/p5 | **EN ALTA IMPEDANCIA** con pista hasta la bornera | `grep -n U8X8_PIN_NONE */src/lcd.cpp` |
@@ -1082,8 +1116,8 @@ comando** para reencontrar la evidencia, no el numero de linea.
 | PB9 | `BOTON1` / `MANDO_A` | J16 p5 | VIVO `INPUT` pelado, activo ALTO | `grep -n "pinMode(BOTON1" */src/botones.cpp` |
 | PB10 PB11 PB12 | `RS485_OUT_TX/RX`, `LORA_DE_RE` | J12 | VIVOS, USART3 | `pines.h` |
 | PB13 | `BOTON2` / `MANDO_B` | J16 p8 | VIVO `INPUT` pelado, activo ALTO | idem |
-| PB14 | `CAM_C_PIN` | J16 p10 | VIVO `INPUT` pelado, activo ALTO | `grep -n "pinMode(CAM_C_PIN" */src/botones.cpp` |
-| PB15 | `CAM_D_PIN` | J16 p12 | VIVO `INPUT` pelado, activo ALTO. **Hoy VACIO en todo equipo montado** | idem |
+| PB14 | `CAM_C_PIN` | J16 p10 | VIVO `INPUT` pelado, activo ALTO. **CAMARA 1 de cada poste** (contra p9, `D-25`) | `grep -n "pinMode(CAM_C_PIN" */src/botones.cpp` |
+| PB15 | `CAM_D_PIN` | J16 p12 | VIVO `INPUT` pelado, activo ALTO. ~~**Hoy VACIO en todo equipo montado**~~ → ✏️ **11/09, `D-25`: CAMARA 2 de cada poste** (contra p11); hace lo mismo que `PB14` | idem |
 
 **Asimetria que hay que saber porque los instrumentos leen POR RUTA:**
 `CAM_DEMANDA_PIN` se declara en **`Maestro/src/botones.cpp`** pero en
@@ -1131,7 +1165,9 @@ la puerta a una cabeza peatonal o a un zumbador (A-3.10).
 4. **EL ORDEN ES ASIMETRICO: FIRMWARE PRIMERO, COBRE DESPUES.** Con un binario
    anterior a `deeeab4` dentro, `PB14` vuelve a ser `botonAceptar()` -el que
    EJECUTA- y cualquier cosa enchufada en `J16` p10 puede pulsar *Aceptar* en un
-   equipo que esta en la calle. **Se exige la carga VERIFICADA, no el merge: un
+   equipo que esta en la calle. ✏️ **11/09, con `D-25` la camara 2 va a `p12`, y
+   `PB15` es `botonCancelar()` en ese mismo binario** (`git show e303485:01_Firmware/
+   Maestro/src/botones.cpp`, V8.4): lo enchufado en `p12` puede pulsar *Cancelar*. **Se exige la carga VERIFICADA, no el merge: un
    commit no protege de un destornillador.**
 5. **Los bornes de potencia estan a ~12 V en reposo**, no a 0 V, y el pull-up esta
    en el cobre. Ver 7.2.

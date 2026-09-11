@@ -2,13 +2,15 @@
 
 **Sistema:** Controladora de Semáforos Móviles de 3 Estados (Maestro y Esclavo V9.0)  
 **Cámara Certificada:** ~~Hikvision AcuSense Varifocal Motorizada (DS-2CD3643G2-LIZSU o equivalente)~~ ⛔ **RETIRADO el 05/09: era un modelo de REFERENCIA con «o equivalente» detrás, no el comprado.** → **Hikvision `DS-2CD2683G2-IZS` (2.8 – 12 mm)**, bullet AcuSense varifocal motorizada de 8 MP. **Es la cámara que el responsable ha comprado**, y desde hoy toda cifra de óptica, alarma o consumo de este manual sale de **su** ficha oficial, con la cita al lado — ver **§1.1**.  
-**Topología del Sistema:** Analítica Deep Learning Embebida (sin PC externo) + contacto seco a la tarjeta. 🔴 **LA CÁMARA SE CABLEA A `J16` p10 (`PB14`) y p12 (`PB15`), UNA POR POSTE** — `DECISIONES.md` filas **`D-2`** y **`D-3`**, con `M3` cerrada en cobre el 03/09. Contacto seco contra los **3,3 V contiguos** (`p9` para `p10`, `p11` para `p12`), **activo en ALTO, dos hilos, nada a masa**. El firmware lee **tres** entradas por punta —~~la bornera `J14` (`PB0`, con antirrebote RC de 1 ms) es la tercera~~— pero **`J14` NO lleva cámara**: se conserva vivo y libre como candidato a fin de carrera de barrera.  
+**Topología del Sistema:** Analítica Deep Learning Embebida (sin PC externo) + contacto seco a la tarjeta. 🔴 **LAS CÁMARAS SE CABLEAN A `J16` p10 (`PB14`) y p12 (`PB15`)**, ~~**UNA POR POSTE**~~ → 🎯 **11/09, `D-25`: CUATRO CÁMARAS, DOS POR POSTE** — en cada poste, **cámara 1** entre `p9` (3,3 V) y `p10` (`CAM_C_PIN`) y **cámara 2** entre `p11` (3,3 V) y `p12` (`CAM_D_PIN`) — `DECISIONES.md` filas **`D-2`**, **`D-3`** y **`D-25`**, con `M3` cerrada en cobre el 03/09. Contacto seco contra los **3,3 V contiguos** (`p9` para `p10`, `p11` para `p12`), **activo en ALTO, dos hilos, nada a masa**. **Las dos entradas hacen exactamente lo mismo** (ver la revisión del 11/09 aquí abajo). El firmware lee **tres** entradas por punta —~~la bornera `J14` (`PB0`, con antirrebote RC de 1 ms) es la tercera~~— pero **`J14` NO lleva cámara**: se conserva vivo como candidato a fin de carrera de barrera. 🔴 **CONFLICTO ABIERTO (11/09), no resuelto aquí:** `A-2` manda el fin de carrera a `J14`/`PB0`, y el firmware **sigue leyendo `PB0` como cámara** (`CAM_DEMANDA_PIN`) — un fin de carrera ahí se leería como demandas de paso. Lo decide el responsable. La **talanquera** va en **`J15`** (`D-25`), no en `J14` ni en `J16`.  
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`  
 **Normativa Aplicable:** Manual de Señalización Vial de Colombia (Resolución 2024 - MinTransporte)  
 **Fecha de Emisión:** 26 de Agosto de 2026  
-**Última revisión:** 7 de septiembre de 2026 — 🔴 **Se volvió a abrir la ficha del modelo comprado y la respuesta a la pregunta del relé CAMBIÓ DE SIGNO**: la fila *Linkage Method* (ficha pág. 4) **enumera** cinco vinculaciones y `trigger alarm output` **no está**, y el argumento con que este manual lo daba por probable —*«tiene `1 output`»*— **se retira**, porque `Manual Alarm` y `Automatic Alarm` cierran esa salida sin analítica ninguna (PDF 80 · impresa 68). Ver el bloque 🔴 de aquí abajo y el `Paso 0`. Además: **se corrige una lectura equivocada de la fuente** —`Alarm Input **NO.**` de la pág. 44 es *Number*, no *Normally Open*—, se localiza **la única aparición real de `NO` como valor** en las 110 páginas (PDF 99 · impresa 87), se deja escrito que **el lado del controlador de `D-14` NO está construido** (medido), se pone delante el **conflicto vivo `D-13` contra el firmware** sobre qué zona se dibuja, y se sustituyen **las citas por número de línea que estaban caducadas** por el símbolo y su `grep`.
+**Última revisión:** 11 de septiembre de 2026 — 🎯 **`D-25`: CUATRO CÁMARAS, DOS POR POSTE, Y LAS CONEXIONES SON DEFINITIVAS.** El responsable, 11/09: *«mantener estas conexiones como definitivas»*. En cada poste, **cámara 1** entre `J16` p9 (3,3 V) y **p10** (`PB14`, `CAM_C_PIN`) y **cámara 2** entre `J16` p11 (3,3 V) y **p12** (`PB15`, `CAM_D_PIN`), cada una por el contacto seco de su salida de alarma (`1A`/`1B`). La **talanquera** va en **`J15`** (p1 = 12 V, p2 = drenador de `Q10`, que **no es masa**) a la bobina de un relé cuyo contacto va a la entrada `OPEN` de la centralita de la barrera. **Deroga de `D-13` SÓLO «una cámara por poste» y «`p12` vacío a propósito»**: el resto de `D-13` sigue — **las cuatro llevan la misma configuración** (§4). Lo que tachan estas líneas donde este manual decía «una por poste» está fechado *11/09, D-25*. **Lo que el que cablea TIENE que saber, medido el 11/09 en el firmware de las dos puntas:** (1) **las dos cámaras de un poste hacen LO MISMO** — `botones.cpp` recorre `CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN}` en el mismo bucle de `camaras_actualizar()`: pedir paso (`demanda_solicitar()`) y vigilante. **No hay una «de demanda» y otra «de pluma»**; (2) 🔴 **NINGUNA CÁMARA PROTEGE LA PLUMA** — `escribirPines()` de `semaforo.cpp` la sube con `(verde && !testLedsActivo) || estado == S_FALLO` y **no lee ninguna cámara**: **la pluma baja aunque haya un coche debajo**. El veto es `A-1.bis` y **no está construido**; lo que existe es un **contador** que observa la bajada ya hecha; (3) 🔴 **la pluma SUBE con verde y también con el ámbar intermitente** (`S_FALLO`): Modo Ámbar, ámbar de emergencia, Degradado en ámbar y **falta de enlace — incluido un poste recién encendido que aún no habla con el otro**. **No se ponga debajo del brazo mientras trabaja**; (4) **en Automático y en Manual las cámaras no cambian ninguna luz**; sólo en **Inteligente**, cumplido el tiempo configurado, **pueden alargar** una fase con un tope — **nunca la acortan**; (5) 🔴 **la app pinta `CAM: OK` —*«las dos ven y ninguna está pegada»*— en cuanto CUALQUIERA de las dos detecta algo, y SIGUE EN OK AUNQUE LA OTRA NO HAYA DETECTADO NUNCA** (`camara_estado()` salta el pin que nunca dio un flanco, y `vigilante_tick()` no lo vigila): **una segunda cámara muerta desde el día de la instalación no la detecta nadie**. Por eso **cada cámara se comprueba con el multímetro en su propio borne** (§4.bis.7). Esa exención del firmware se escribió porque `p12` iba vacío; con `D-25` pierde su motivo y **queda pendiente de rehacer en el firmware** (no se toca desde este manual); (6) **con un firmware anterior a `deeeab4`** —incluida la V8.4 que está en campo— **`PB14` es *Aceptar* y `PB15` es *Cancelar***: lo que se enchufe en `p10` **o en `p12`** puede pulsar un botón en un equipo en la calle. **Carga verificada antes del primer hilo**; (7) **`p12` es el borne de `J16` más cercano a la red de 12 V** (`1,359 mm` de cobre): con `p1` tapado (`D-4`) y trabajo limpio. **Y un conflicto que NO se resuelve aquí:** `A-2` manda el fin de carrera a `J14`, y el firmware lee `PB0` como cámara.
 
-*Revisión anterior:* 5 de septiembre de 2026 (3.ª del día) — 🔧 **YA HAY PASO A PASO DE CÓMO SE CABLEA A LA PLACA Y DÓNDE: el nuevo §4.bis.** Es lo que faltaba: el manual sabía entrar en la cámara y configurar la analítica, pero **no decía con qué hilos se une a la tarjeta**. Trae alimentación (PoE `802.3at` Clase 4 o `12 V` directos a batería, con los `26 Ah/día` que eso cuesta), los **dos** hilos del contacto seco a `J16`, por qué la entrada `IN1`/`GND1` **hoy no se cablea**, la comprobación con multímetro y una **ficha que se rellena y se devuelve**. 🔴 **Y cierra una lectura que podía cablearse mal: `1A` y `1B` son UNA PAREJA —los dos bornes de UN contacto—, no dos salidas**, leído del diagrama de la Guía rápida que llegó hoy a `04_Manuales/`.
+*Revisión anterior:* 7 de septiembre de 2026 — 🔴 **Se volvió a abrir la ficha del modelo comprado y la respuesta a la pregunta del relé CAMBIÓ DE SIGNO**: la fila *Linkage Method* (ficha pág. 4) **enumera** cinco vinculaciones y `trigger alarm output` **no está**, y el argumento con que este manual lo daba por probable —*«tiene `1 output`»*— **se retira**, porque `Manual Alarm` y `Automatic Alarm` cierran esa salida sin analítica ninguna (PDF 80 · impresa 68). Ver el bloque 🔴 de aquí abajo y el `Paso 0`. Además: **se corrige una lectura equivocada de la fuente** —`Alarm Input **NO.**` de la pág. 44 es *Number*, no *Normally Open*—, se localiza **la única aparición real de `NO` como valor** en las 110 páginas (PDF 99 · impresa 87), se deja escrito que **el lado del controlador de `D-14` NO está construido** (medido), se pone delante el **conflicto vivo `D-13` contra el firmware** sobre qué zona se dibuja, y se sustituyen **las citas por número de línea que estaban caducadas** por el símbolo y su `grep`.
+
+*Revisión anterior:* 5 de septiembre de 2026 (3.ª del día) — 🔧 **YA HAY PASO A PASO DE CÓMO SE CABLEA A LA PLACA Y DÓNDE: el nuevo §4.bis.** Es lo que faltaba: el manual sabía entrar en la cámara y configurar la analítica, pero **no decía con qué hilos se une a la tarjeta**. Trae alimentación (PoE `802.3at` Clase 4 o `12 V` directos a batería, con los ~~`26 Ah/día`~~ *(11/09, `D-25`: `52 Ah/día` por poste, dos cámaras)* que eso cuesta), los **dos** hilos del contacto seco a `J16`, por qué la entrada `IN1`/`GND1` **hoy no se cablea**, la comprobación con multímetro y una **ficha que se rellena y se devuelve**. 🔴 **Y cierra una lectura que podía cablearse mal: `1A` y `1B` son UNA PAREJA —los dos bornes de UN contacto—, no dos salidas**, leído del diagrama de la Guía rápida que llegó hoy a `04_Manuales/`.
 
 *Revisión anterior (05/09/2026, 2.ª del día): 🔑 **AHORA EMPIEZA POR ENTRAR EN LA CÁMARA, Y ESE ES EL CAMBIO IMPORTANTE.***
 Con la cámara delante, el reporte del funcional fue **«no encuentro ni la IP»**: un manual de
@@ -349,13 +351,17 @@ cada equipo. **Un commit no protege de un destornillador.**
 > tres.**
 >
 > Así que una cámara **no puede decir dos cosas distintas**: su relé está cerrado o abierto, y ese
-> estado significa **una** cosa que se decide al configurarla. Con **dos cámaras por cruce** hay
-> exactamente **DOS significados para todo el cruce**, y son un recurso escaso que se reparte una vez.
+> estado significa **una** cosa que se decide al configurarla. ~~Con **dos cámaras por cruce** hay
+> exactamente **DOS significados para todo el cruce**, y son un recurso escaso que se reparte una vez.~~
+> → ✏️ **11/09 — caducado dos veces:** hoy son **cuatro cámaras, dos por poste** (`D-25`), y **no se
+> reparten significados**: `D-13` (05/09) les da **a todas la misma configuración** y **el
+> significado lo pone el estado del semáforo**, no la cámara. El firmware lo confirma: las dos
+> entradas de `J16` se leen en el mismo bucle (`CAM_J16[2]`, `camaras_actualizar()`) y hacen lo mismo.
 >
 > | | |
 > |---|---|
 > | Significado **1** | 🟢 **TOMADO:** presencia de vehículo (demanda de paso) |
-> | Significado **2** | 🟡 **SIN DECIDIR** — es la pregunta **A-1** de `DECISIONES.md`, y **no se decide en este manual** |
+> | Significado **2** | ~~🟡 **SIN DECIDIR** — es la pregunta **A-1** de `DECISIONES.md`, y **no se decide en este manual**~~ → ✅ **`A-1` CERRADA por `D-13`**: no hay segundo significado; todas las cámaras llevan la misma regla |
 >
 > **Antes de dibujar una zona hay que saber qué significa esa cámara**, porque la zona, la analítica
 > y el umbral se eligen **en función del significado** — no al revés. Un bit configurado para
@@ -639,12 +645,18 @@ La cámara Hikvision AcuSense incorpora un procesador de inteligencia artificial
 > manual: `13 W` POR CÁMARA, DE FORMA CONTINUA, EN UN EQUIPO QUE VA A BATERÍA.**
 >
 > ```text
->   Por poste, una camara:      13 W
->   En 24 h:                    13 W x 24 h  =  312 Wh
->   A 12 V, eso es:             312 / 12     =   26 Ah/dia   SOLO LA CAMARA
+>   ~~Por poste, una camara:      13 W~~                  <-- CADUCADO 11/09 (D-25)
+>   ~~En 24 h:                    13 W x 24 h  =  312 Wh~~
+>   ~~A 12 V, eso es:             312 / 12     =   26 Ah/dia   SOLO LA CAMARA~~
+>
+>   11/09, D-25 -- DOS camaras por poste:
+>   Por poste, dos camaras:     2 x 13 W     =   26 W
+>   En 24 h:                    26 W x 24 h  =  624 Wh
+>   A 12 V, eso es:             624 / 12     =   52 Ah/dia   SOLO LAS CAMARAS
 > ```
 >
-> **26 Ah al día por poste es una cifra que decide el tamaño de la batería y del panel**, y es del
+> ~~**26 Ah al día por poste**~~ → **11/09 (`D-25`): 52 Ah al día por poste, el doble, porque son dos
+> cámaras** — **es una cifra que decide el tamaño de la batería y del panel**, y es del
 > mismo orden o mayor que todo lo demás del equipo junto. **No es un problema de este manual y no se
 > resuelve aquí**: se pone el número delante de quien dimensiona la energía, que es lo que §2.quater
 > de `CLAUDE.md` pide —**medir la causa antes de ofrecer opciones**—.
@@ -769,11 +781,17 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
  │                                                                             │
  │ !!! J16 p1 LLEVA 12 V CRUDOS.  SE TAPA ANTES DE CABLEAR.  NO SE CONECTA. !!!│
  │                                                                             │
- │ • CAMARA DE DEMANDA, HOY (D-2 / D-3):  Bornes 1A/1B --> J16 p10 (PB14) en  │
- │   un poste y J16 p12 (PB15) en el otro.  UNA CAMARA POR POSTE.             │
+ │ • ~~CAMARA DE DEMANDA, HOY (D-2 / D-3): Bornes 1A/1B --> J16 p10 (PB14)~~  │
+ │   ~~en un poste y J16 p12 (PB15) en el otro. UNA CAMARA POR POSTE.~~       │
+ │   <-- DEROGADO 11/09 por D-25.  AHORA, EN CADA POSTE, DOS CAMARAS:          │
+ │     CAMARA 1:  Bornes 1A/1B --> J16 p10 (PB14, CAM_C) y J16 p9  (3,3 V)    │
+ │     CAMARA 2:  Bornes 1A/1B --> J16 p12 (PB15, CAM_D) y J16 p11 (3,3 V)    │
  │   Contacto seco CONTRA LOS 3,3 V del borne contiguo: p9 para p10,          │
- │   p11 para p12.  ACTIVO EN ALTO.  DOS HILOS: nada a masa.                  │
+ │   p11 para p12.  ACTIVO EN ALTO.  DOS HILOS POR CAMARA: nada a masa.       │
  │   - Detecta si hay vehiculos esperando paso en el carril.                   │
+ │   - LAS DOS HACEN LO MISMO (CAM_J16[2], un solo bucle): piden paso.        │
+ │   - NINGUNA PROTEGE LA PLUMA: escribirPines() no lee camaras (A-1.bis).    │
+ │   - p12 es el borne mas cercano a los 12 V: p1 TAPADO y trabajo limpio.    │
  │                                                                             │
  │   ~~ANTES DECIA: Bornes 1A/1B --> J14: pin PB0 CONTRA LOS 3,3 V~~           │
  │   <-- TACHADO EL 07/09.  J14 NO ESTA VIGILADO por CAM_CIEGA/CAM_PEGADA.    │
@@ -787,8 +805,15 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
  │   pide paso igual.  Pero NO la vigila CAM_CIEGA/CAM_PEGADA:  si algun dia  │
  │   se le cuelga algo, ES EL UNICO BORNE SIN AVISO DE AVERIA.                │
  │   Reservado a fin de carrera de barrera (es el unico con antirrebote RC).  │
+ │   !!! 11/09 CONFLICTO ABIERTO: A-2 manda ahi el fin de carrera, y el      │
+ │   !!! firmware lee PB0 como CAMARA (CAM_DEMANDA_PIN): un fin de carrera   │
+ │   !!! se leeria como demandas de paso.  NO SE CABLEA sin el responsable.  │
+ │                                                                             │
+ │ • TALANQUERA:  J15 (p1 = 12 V, p2 = drenador de Q10 -- p2 NO ES MASA),     │
+ │   a la bobina de un rele; su contacto va a OPEN de la centralita (D-25).  │
  │                                                                             │
  │ • CAMARA 2 / 4 (Umbral):  NO EXISTE EN V9.0 - PB8 es un LED, no una entrada │
+ │   (OJO: la "camara 2" de D-25 es OTRA COSA: la segunda de demanda, en p12) │
  │                                                                             │
  │ • PB9 (J16 p5) y PB13 (J16 p8):  canales A y B del MANDO.  El mando FISICO │
  │   NO EXISTE (D-1: se opera solo por app), pero SU CODIGO SE CONSERVA y los │
@@ -803,12 +828,12 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
 
 | pin | qué es | ¿cámara? | nivel |
 |---|---|---|---|
-| **`PB0`** (`J14`) | `CAM_DEMANDA_PIN`, con `R64` 10 kΩ + `C25` 100 nF (antirrebote 1 ms) | ✅ **Sí** | ✅ **MEDIDO** (`pines.h:43-46`, cita fechada y vigente; su `pinMode(CAM_DEMANDA_PIN, INPUT)` en `botones_setup()`; leída en `modo_inteligente.cpp` y en `Esclavo/src/main.cpp:350`) |
+| **`PB0`** (`J14`) | `CAM_DEMANDA_PIN`, con `R64` 10 kΩ + `C25` 100 nF (antirrebote 1 ms) | ✅ **Sí** *(para el firmware)* — pero **hoy no lleva cámara**, y 🔴 **11/09: CONFLICTO ABIERTO** con `A-2`, que manda aquí el fin de carrera: el firmware lo leería como demanda | ✅ **MEDIDO** (`pines.h:43-46`, cita fechada y vigente; su `pinMode(CAM_DEMANDA_PIN, INPUT)` en `botones_setup()`; leída en `modo_inteligente.cpp` y en `Esclavo/src/main.cpp:350`) |
 | **`PB8`** | `LED_TESTIGO` → `R16` 1 kΩ → LED `D5` | ❌ **No es entrada de nada** | ✅ **MEDIDO** (símbolo `LED_TESTIGO`, `pines.h:63` — cita vigente; `modo_inteligente.cpp` lo deja en alta impedancia) |
 | **`PB9`** (`J16` p5) | `BOTON1` = **`MANDO_A`** del mando de relés | 🛑 **NUNCA.** `A·A·A` en 12 s = Modo Automático | ✅ **MEDIDO** (símbolos `BOTON1`, `MANDO_A`, y `mando_registrarPulso(MANDO_A)` en `botones_actualizar()`) |
 | **`PB13`** (`J16` p8) | `BOTON2` = **`MANDO_B`** | 🛑 **NUNCA.** `B·B·B` = Ámbar **y arma `ambarLocal`**, que veta las órdenes de radio | ✅ **MEDIDO** (símbolos `BOTON2`, `MANDO_B`, `mando_registrarPulso(MANDO_B)` y `mando_ambarLocal()`) |
-| **`PB14`** (`J16` **p10**) | **`CAM_C_PIN` — entrada de cámara de DEMANDA**, con **`R67` 10 kΩ a masa CONFIRMADA en cobre: 9,93 kΩ** | ✅ **Sí — firmware Y cobre** | ✅ **MEDIDO EN EL FUENTE** (símbolos `CAM_C_PIN`, su `pinMode(CAM_C_PIN, INPUT)` y `camaras_actualizar()`) **y MEDIDO EN BANCO el 04/09** (`M3`, paso 20: 9,93 kΩ a masa, 0 V con energía) |
-| **`PB15`** (`J16` **p12**) | **`CAM_D_PIN` — entrada de cámara de DEMANDA**, con **`R68` 10 kΩ a masa CONFIRMADA en cobre: 9,94 kΩ** | ✅ **Sí — firmware Y cobre** | ✅ **MEDIDO EN EL FUENTE** (símbolos `CAM_D_PIN` y su `pinMode(CAM_D_PIN, INPUT)`) **y MEDIDO EN BANCO el 04/09** (`M3`, paso 20: 9,94 kΩ a masa, 0 V con energía) |
+| **`PB14`** (`J16` **p10**) | **`CAM_C_PIN` — entrada de cámara de DEMANDA**, con **`R67` 10 kΩ a masa CONFIRMADA en cobre: 9,93 kΩ**. 🎯 **11/09 (`D-25`): lleva la CÁMARA 1 de cada poste** | ✅ **Sí — firmware Y cobre** | ✅ **MEDIDO EN EL FUENTE** (símbolos `CAM_C_PIN`, su `pinMode(CAM_C_PIN, INPUT)` y `camaras_actualizar()`) **y MEDIDO EN BANCO el 04/09** (`M3`, paso 20: 9,93 kΩ a masa, 0 V con energía) |
+| **`PB15`** (`J16` **p12**) | **`CAM_D_PIN` — entrada de cámara de DEMANDA**, con **`R68` 10 kΩ a masa CONFIRMADA en cobre: 9,94 kΩ**. 🎯 **11/09 (`D-25`): lleva la CÁMARA 2 de cada poste** —hace exactamente lo mismo que `p10`, mismo bucle `CAM_J16[2]`— | ✅ **Sí — firmware Y cobre** | ✅ **MEDIDO EN EL FUENTE** (símbolos `CAM_D_PIN` y su `pinMode(CAM_D_PIN, INPUT)`) **y MEDIDO EN BANCO el 04/09** (`M3`, paso 20: 9,94 kΩ a masa, 0 V con energía) |
 
 > ### ✅ QUÉ CAMBIÓ EL 31/08 EN ESTAS DOS FILAS — Y QUÉ NO
 >
@@ -846,6 +871,14 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
 >                                              camara_leerPin(CAM_DEMANDA_PIN) || demanda_hayLocal()
 > ```
 >
+> ✏️ **11/09 — el `OR` de abajo del dibujo ya no tiene dos términos, tiene TRES, y la cita `:97` está
+> caducada.** Medido por símbolo: `demandaLocalS1 = camara_leerPin(CAM_DEMANDA_PIN) ||
+> camara_presenciaJ16() || demanda_hayLocal()` en `modoInteligente_loop()`
+> (`grep -n "camara_presenciaJ16()" 01_Firmware/Maestro/src/modo_inteligente.cpp`). El término nuevo,
+> `camara_presenciaJ16()`, **sólo existe en el Maestro** y es el que deja al Modo Inteligente
+> **sostener** una fase mientras las cámaras de `J16` siguen viendo algo. **Nada de esto actúa fuera
+> del Modo Inteligente**: en Automático y en Manual las cámaras no cambian ninguna luz.
+>
 > | propiedad | valor | dónde |
 > |---|---|---|
 > | **Ventana de silencio entre demandas** | **3 000 ms**, y es **la misma** para la cámara y para el botón de la app | `SILENCIO_MS`, `demanda.cpp:8` |
@@ -859,11 +892,14 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
 > **NO** el reposo es abierto y cada detección da su flanco. **La configuración prevista es NO**, y
 > el criterio negativo del ensayo —*en reposo no debe pedir paso*— es lo que lo comprueba.
 >
-> 🔵 **Y un sitio donde las tres NO convergen, que NO es un defecto:** el bloque del LED testigo de `modo_inteligente.cpp`
+> ~~🔵 **Y un sitio donde las tres NO convergen, que NO es un defecto:** el bloque del LED testigo de `modo_inteligente.cpp`
 > calcula el contador de presencia mirando **sólo** `PB0` y la demanda remota. **Medido: ese número
 > sólo alimenta `lcd_dibujarInteligente()` (`:138`) — es el contador de la PANTALLA, y la pantalla se
 > retira.** No decide ninguna luz. Se escribe con la medida al lado para que nadie vaya a
-> «arreglarlo».
+> «arreglarlo».~~ → ✏️ **11/09 — CADUCADO: ya convergen.** Hoy `presenciaActual` se calcula con
+> `demandaLocalS1` —el mismo `OR` de tres términos que decide la fase, `J16` incluida— y la demanda
+> remota: `grep -n "int presenciaActual" 01_Firmware/Maestro/src/modo_inteligente.cpp`. Lo que se
+> dibuja es lo que decide. Sigue siendo sólo el contador de la pantalla.
 
 > ## 🟢 04/09 — `M3` CERRADA EN BANCO: **`PB14`/`PB15` YA SE CABLEAN**
 >
@@ -893,16 +929,22 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
 > 🛑 **Lo que NO se ha levantado con `M3`: `J16` p1 sigue llevando 12 V crudos, y taparlo sigue
 > siendo obligatorio en cada equipo antes de cablear.** Ver el bloque de la cabecera. La separación
 > real sobre cobre contra la red de 12 V es de **4,269 mm** en `p10` y de sólo **1,359 mm** en `p12`
-> (**MEDIDO**, `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md:576-588`): **si una de las dos cámaras es
-> más crítica, va en `p10`.**
+> (**MEDIDO**, `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md:576-588`): ~~**si una de las dos cámaras es
+> más crítica, va en `p10`.**~~ → ✏️ **11/09 (`D-25`): van las DOS, una en `p10` y otra en `p12`, y
+> ninguna es «más crítica»: hacen lo mismo.** Lo que queda de la medida es un aviso de montaje: **`p12`
+> es el borne con menos margen a los 12 V**, así que se cablea con `p1` ya tapado y sin restos de
+> cobre ni humedad en el conector.
 >
 > ### 🪜 Y el orden sigue siendo ASIMÉTRICO — cargar firmware ANTES de tocar un hilo
 >
 > **Con el firmware nuevo dentro es seguro**: un pin en `INPUT` pelado no ejecuta nada.
 > **Con el firmware viejo dentro NO lo es**: `PB14` sigue siendo `botonAceptar()` leído activo en
 > BAJO, y cualquier hilo enchufado en `J16` p10 **pulsa *Aceptar* en un equipo que está en la
-> calle**. **Exija la carga verificada en la tarjeta antes de que nadie enchufe nada** — un commit
-> no protege de un destornillador.
+> calle**. 🔴 **11/09 (`D-25`): y ahora también `p12` lleva cámara — con el firmware viejo `PB15`
+> es `botonCancelar()`**, así que lo enchufado en `p12` puede pulsar *Cancelar* (medido en la V8.4
+> de campo: `git show e303485:01_Firmware/Maestro/src/botones.cpp`, `botonAceptar()` y
+> `botonCancelar()` leen `BOTON3`/`BOTON4`). **Exija la carga verificada en la tarjeta antes de que
+> nadie enchufe nada** — un commit no protege de un destornillador.
 
 ---
 
@@ -1097,7 +1139,12 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 5. **Fijar la IP de taller:** seleccionar el equipo, cambiar la IP a la subred del portátil *(o marcar
    `Enable DHCP`)*, escribir la contraseña de administrador y pulsar **`Modify`**.
    * Sugerencia de reparto, **que es una convención de este proyecto y no del fabricante**:
-     `192.168.1.61` la cámara del Maestro, `192.168.1.62` la del Esclavo.
+     ~~`192.168.1.61` la cámara del Maestro, `192.168.1.62` la del Esclavo.~~ → **11/09 (`D-25`),
+     cuatro cámaras:** `192.168.1.61` Maestro·cámara 1 (`p10`) · `192.168.1.63` Maestro·cámara 2
+     (`p12`) · `192.168.1.62` Esclavo·cámara 1 (`p10`) · `192.168.1.64` Esclavo·cámara 2 (`p12`).
+     ⚠️ **`192.168.1.64` es también la IP de FÁBRICA** (bloque 🔑 de la cabecera): una cámara sin
+     configurar contesta en esa misma dirección, así que **se configuran de una en una** y se anota
+     en la ficha qué IP quedó en cada una.
 
 > 🔵 **Alternativas documentadas, por si no hay SADP a mano:** activación **por navegador web**
 > (pág. 3) o con **iVMS-4200** (pág. 2). Las tres valen y están en el mismo capítulo.
@@ -1187,7 +1234,10 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 > —hasta el doble del tiempo configurado, saturado al máximo vial— y **nunca lo adelanta ni lo
 > acorta**. Con la cámara muerta, el ciclo vuelve a los tiempos configurados.
 >
-> **Así que se dibuja la zona de `D-13`: el BARRIDO DE LA PLUMA.** Las dos cámaras igual.
+> **Así que se dibuja la zona de `D-13`: el BARRIDO DE LA PLUMA.** Las dos cámaras igual — ✏️ **11/09
+> (`D-25`): las CUATRO igual, las dos de cada poste con la misma zona y la misma regla.** Y que la zona
+> sea el barrido de la pluma **no hace que la cámara la proteja**: `escribirPines()` no lee ninguna
+> cámara, y la pluma baja aunque haya un coche debajo (el veto es `A-1.bis`, sin construir).
 >
 > Lo que sigue se conserva porque la medida del fuente es correcta y explica el camino del pin:
 >
@@ -1381,7 +1431,9 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 > `DECISIONES.md` `D-2`/`D-3`: **la cámara va a `J16` p10/p12**. Y el motivo que decide no es el
 > antirrebote sino la vigilancia: **`CAM_CIEGA`/`CAM_PEGADA` miran `J16` y no miran `J14`** — una
 > cámara en `J14` funciona y **nadie sabría que se estropeó**. La fila de `J14` se conserva tachada
-> porque su medida de cobre sigue siendo cierta y el borne sigue vivo.
+> porque su medida de cobre sigue siendo cierta y el borne sigue vivo. 🔴 **11/09 — CONFLICTO
+> ABIERTO, no resuelto aquí:** `A-2` reserva `J14` para el fin de carrera de la pluma, y el firmware
+> sigue leyendo `PB0` como cámara (`CAM_DEMANDA_PIN`): lo que se cablee ahí entra como demanda.
 >
 > ~~**Según lo que dé la medida M3**, con la tarjeta energizada y `J16` vacío:~~ ⛔ **Esta tabla de
 > tres ramas ya no se ejecuta: `M3` la resolvió en la primera.** Se conserva porque **es el
@@ -1450,9 +1502,13 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 > | La analítica dispara → **el contacto cierra** | 🔴 **SIN VERIFICAR.** El manual **no publica** el retardo interno de la salida de alarma | 🔴 |
 > | **Total detección → contacto cerrado** | 🔴 **SIN VERIFICAR**, pero **no menor que el `Threshold`** | — |
 >
-> 🟢 **No es crítico, y conviene decirlo para que nadie lo persiga:** el equipo responde a una demanda
-> con un ciclo de **amarillo `4 s` + despeje todo-rojo** por delante. **Un retardo de uno o dos
-> segundos en el contacto se pierde dentro de eso.** Lo que sí importa es que el contacto **suelte**.
+> 🟢 **No es crítico, y conviene decirlo para que nadie lo persiga:** ~~el equipo responde a una demanda
+> con un ciclo de **amarillo `4 s` + despeje todo-rojo** por delante.~~ ✏️ **11/09 — corregido: la
+> demanda de una cámara sólo la atiende el Modo Inteligente** (en Automático y en Manual no cambia
+> ninguna luz), y **ni ahí adelanta un cambio**: por debajo del tiempo configurado de la fase no pasa
+> nada, y cumplido, sólo decide si la fase se mantiene (con un tope) o cambia como en Automático —
+> símbolos `sueloMs`/`techoMs` de `modo_inteligente.cpp`. **Un retardo de uno o dos segundos en el
+> contacto se pierde dentro de eso.** Lo que sí importa es que el contacto **suelte**.
 >
 > ### Lo que dura cerrado — el `Delay`, y sus tres casos
 >
@@ -1464,7 +1520,7 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 > |---|---|
 > | **`1 s` – `3 s`** | ✅ **Ideal.** Cada vehículo que espera da su flanco. El firmware ya ignora repeticiones dentro de **`3 000 ms`** (`SILENCIO_MS`, `demanda.cpp:8` — ✅ **MEDIDO**), así que **por debajo de 3 s el valor exacto da igual** |
 > | **`5 s` – `30 s`** | ⚠️ **Funciona, con menos finura.** El contacto tarda en soltarse, así que **una cola de vehículos produce UNA demanda por cada `Delay`** en vez de una por vehículo. **No es peligroso** —el ciclo ya tiene sus mínimos— pero **el carril tarda más en volver a pedir paso**. Se anota el valor real en la ficha de ensayo |
-> | **`Manual`** *(el manual lo lista como opción, pág. 68)* | 🛑 **NO SE USA JAMÁS.** El relé **se queda cerrado hasta que alguien lo borre a mano** desde el navegador. El pin quedaría ALTO para siempre, **no habría un solo flanco más**, y el equipo **dejaría de recibir demanda de ese carril sin dar ningún síntoma** |
+> | **`Manual`** *(el manual lo lista como opción, pág. 68)* | 🛑 **NO SE USA JAMÁS.** El relé **se queda cerrado hasta que alguien lo borre a mano** desde el navegador. El pin quedaría ALTO para siempre, **no habría un solo flanco más**, y el equipo **dejaría de recibir demanda de ese carril** ~~**sin dar ningún síntoma**~~ ✏️ *11/09 — corregido: el vigilante SÍ lo acusa, pero tarde: con el contacto cerrado sin abrirse el equipo acaba publicando `CAM_PEGADA` (`vigilante_nivel()`); hasta entonces nadie se entera, y en Modo Inteligente puede alargar verdes hasta su tope aunque no pase nadie* |
 >
 > 🔴 **Y un hallazgo que sale de cruzar esto con el firmware, y que hay que dejar por escrito:** el
 > comentario que justifica los `3 000 ms` de `SILENCIO_MS` dice *«el rele de la camara AcuSense cierra
@@ -1483,7 +1539,10 @@ contexto de este proyecto.** Todo lo que hace falta para ejecutarlo está aquí:
 apartados anteriores para cablear, aunque sí para entender por qué.
 
 **Lo que se cablea hoy son DOS hilos por cámara.** Nada más. Ni red, ni vídeo, ni datos: el sistema
-consume **un contacto seco** de cada cámara *(`D-12` de `DECISIONES.md`)*.
+consume **un contacto seco** de cada cámara *(`D-12` de `DECISIONES.md`)*. 🎯 **11/09 (`D-25`): son
+DOS cámaras por poste**, así que en cada tarjeta se cablean **cuatro hilos**: cámara 1 a `p9`/`p10` y
+cámara 2 a `p11`/`p12`. Y **cada cámara se comprueba por separado en su borne** (§4.bis.7): la app no
+distingue una de otra.
 
 ### 4.bis.0 🛑 EL ORDEN, Y NO ES UNA PREFERENCIA: FIRMWARE PRIMERO, HILO DESPUÉS
 
@@ -1500,6 +1559,8 @@ protege de un destornillador.**
     PB14 sigue siendo botonAceptar(), leido ACTIVO EN BAJO.  Cualquier cosa
     que un instalador enchufe en J16 p10 puede pulsar "Aceptar" en un equipo
     QUE ESTA EN LA CALLE gobernando un cruce.
+    11/09 (D-25): Y PB15 sigue siendo botonCancelar(): la camara 2 en J16 p12
+    puede pulsar "Cancelar".  Vale para la V8.4 que esta en campo (e303485).
 ```
 
 **La asimetría es el punto:** cargar el firmware primero **no puede hacer daño** —un pin en `INPUT`
@@ -1558,9 +1619,14 @@ Supply)*. Ese rango cubre entero el vaivén de una batería de plomo de 12 V —
 manual:**
 
 ```text
-  Por poste, una camara:      13 W               (maximo de ficha)
-  En 24 h:                    13 W x 24 h  =  312 Wh
-  A 12 V, eso es:             312 / 12     =   26 Ah/dia   SOLO LA CAMARA
+  ~~Por poste, una camara:      13 W               (maximo de ficha)~~   <-- CADUCADO 11/09 (D-25)
+  ~~En 24 h:                    13 W x 24 h  =  312 Wh~~
+  ~~A 12 V, eso es:             312 / 12     =   26 Ah/dia   SOLO LA CAMARA~~
+
+  11/09, D-25 -- DOS camaras por poste:
+  Por poste, dos camaras:     2 x 13 W     =   26 W   (maximo de ficha)
+  En 24 h:                    26 W x 24 h  =  624 Wh
+  A 12 V, eso es:             624 / 12     =   52 Ah/dia   SOLO LAS CAMARAS
 ```
 
 🔵 **`13 W` es el MÁXIMO de la ficha, no el consumo medio**: incluye los IR a plena potencia de
@@ -1637,20 +1703,37 @@ los llevan; **el nuestro trae uno**.
 
 #### Qué cámara va a qué poste, y a qué pines
 
-**Hay UNA cámara por poste** *(`D-13` de `DECISIONES.md`)*, y **cada una se cablea a la tarjeta de SU
-PROPIO poste**. No se llevan las dos a la misma placa: el Esclavo transmite su demanda al Maestro por
-radio, no por cobre.
+~~**Hay UNA cámara por poste** *(`D-13` de `DECISIONES.md`)*~~ → 🎯 **11/09, `D-25`: hay DOS cámaras
+por poste, cuatro en el cruce**, y **cada una se cablea a la tarjeta de SU PROPIO poste**. No se llevan
+las de un poste a la placa del otro: el Esclavo transmite su demanda al Maestro por radio, no por
+cobre.
 
-| poste | tarjeta | bornera y pines | queda libre |
+| poste | tarjeta | ~~bornera y pines~~ | ~~queda libre~~ |
 |---|---|---|---|
-| **Poste del Maestro** | la del Maestro | **`J16` p10** *(señal)* y **`J16` p9** *(3,3 V)* | `p12` y `p11` |
-| **Poste del Esclavo** | la del Esclavo | **`J16` p10** *(señal)* y **`J16` p9** *(3,3 V)* | `p12` y `p11` |
+| ~~**Poste del Maestro**~~ | ~~la del Maestro~~ | ~~**`J16` p10** *(señal)* y **`J16` p9** *(3,3 V)*~~ | ~~`p12` y `p11`~~ |
+| ~~**Poste del Esclavo**~~ | ~~la del Esclavo~~ | ~~**`J16` p10** *(señal)* y **`J16` p9** *(3,3 V)*~~ | ~~`p12` y `p11`~~ |
 
-**Por qué `p10` y no `p12`, y es una medida, no un gusto:** sobre el cobre, la separación real hasta
+**La tabla que vale desde el 11/09 (`D-25`)** — igual en las dos tarjetas:
+
+| poste | tarjeta | cámara 1 | cámara 2 | queda libre en `J16` |
+|---|---|---|---|---|
+| **Poste del Maestro** | la del Maestro | **`J16` p10** *(señal, `CAM_C_PIN`)* y **`p9`** *(3,3 V)* | **`J16` p12** *(señal, `CAM_D_PIN`)* y **`p11`** *(3,3 V)* | **nada de cámara.** `p5`/`p8` NO se tocan (mando retirado, el firmware los sigue leyendo); `p1` **tapado** |
+| **Poste del Esclavo** | la del Esclavo | **`J16` p10** y **`p9`** | **`J16` p12** y **`p11`** | ídem |
+
+**Las dos cámaras de un poste hacen exactamente lo mismo** —`botones.cpp` las recorre en un solo
+bucle, `CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN}`— **y llevan la misma configuración** (`D-13`). Da igual
+cuál se monte arriba o abajo del mástil: lo que no da igual es que **cada una quede comprobada en su
+propio borne** (§4.bis.7) y **anotada en la ficha** —las alarmas del equipo nombran el pin, `CAM_C`
+(= `p10`) o `CAM_D` (= `p12`), no la cámara—.
+
+~~**Por qué `p10` y no `p12`, y es una medida, no un gusto:**~~ **La medida que sigue en pie, y ahora
+es un aviso de montaje y no una elección:** sobre el cobre, la separación real hasta
 la red de 12 V es de **4,269 mm en `p10`** *(red `/Boton3`)* y de sólo **1,359 mm en `p12`** *(red
 `/Boton4`, el peor de toda la placa)*. ✅ **MEDIDO** sobre el `.kicad_pcb`
 *(`03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`, apartado «La distancia real entre los 12 V y las
-señales»)*. **Con una sola cámara por tarjeta, va en el pin con más margen.**
+señales»)*. ~~**Con una sola cámara por tarjeta, va en el pin con más margen.**~~ → **11/09 (`D-25`):
+`p12` lleva la cámara 2, así que se cablea con `p1` YA tapado (`D-4`), con el terminal bien crimpado y
+sin restos de cobre ni humedad en el conector.**
 
 > ⚠️ **`/Boton3` y `/Boton4` son NOMBRES DE RED DEL NETLIST, no el papel del pin — y aquí es donde
 > más se malinterpretan, porque van al lado de una medida de cobre.** Las pistas se bautizaron así
@@ -1668,6 +1751,11 @@ señales»)*. **Con una sola cámara por tarjeta, va en el pin con más margen.*
 4. **No importa cuál va a cuál: es un contacto y NO TIENE POLARIDAD.** `1A` a `p9` y `1B` a `p10`
    funciona exactamente igual.
 5. **Y son DOS hilos, sólo dos. No se lleva un tercero a masa.**
+6. 🎯 **11/09 (`D-25`) — LA CÁMARA 2, igual pero dos posiciones más allá:** un hilo de su `1A` a
+   **`J16` p12** —`PB15` / `CAM_D_PIN`— y el otro de su `1B` a **`J16` p11** —sus 3,3 V—. Sin
+   polaridad, dos hilos, nada a masa. **`p12` es el borne con menos margen a los 12 V**: `p1` tiene
+   que estar tapado ANTES de este paso. El dibujo de abajo vale igual cambiando `p9`→`p11`,
+   `p10`→`p12` y `R67`→`R68`.
 
 ```text
         CAMARA                                TARJETA (J16)
@@ -1720,7 +1808,7 @@ lista para cablearse**, y le faltan **dos cosas distintas**:
 | lo que falta | estado |
 |---|---|
 | **Qué espera eléctricamente esa entrada** | 🔴 **`SIN VERIFICAR`** — ver la medida de abajo |
-| **Qué canal de la placa se le asigna** | 🟡 **SIN DECIDIR.** El `p12`/`p11` de `J16` queda libre, pero **no está asignado** |
+| **Qué canal de la placa se le asigna** | 🟡 **SIN DECIDIR.** ~~El `p12`/`p11` de `J16` queda libre, pero **no está asignado**~~ → **11/09 (`D-25`): `p11`/`p12` ya NO quedan libres — llevan la cámara 2.** En `J16` no queda ninguna posición de señal libre para esto (`p5`/`p8` son del mando retirado y el firmware los sigue leyendo) |
 | **El lado del CONTROLADOR** | 🔴 **NO ESTÁ CONSTRUIDO — medido el 07/09, ver abajo.** No es «falta ajustar»: no existe |
 
 > ## 🛑 07/09 — `D-14` NO ESTÁ CONSTRUIDO EN EL CONTROLADOR, Y ESTE MANUAL NO PUEDE DESCRIBIRLO COMO SI FUNCIONARA
@@ -1814,8 +1902,27 @@ comportamiento.
 4. **Criterio negativo, SIN EL CABLE:** se desconecta el cable de `J16` y se repite. **Tampoco debe
    pedir paso solo.**
 
-**Por qué las dos últimas y no una sola:** el cable de campo es una antena, y `p10`/`p12` **no llevan
-antirrebote de placa** —su único filtro son los 5 ms por software de `camara_leerPin()`—. La falsa
+> 🔴 **11/09 (`D-25`) — CON DOS CÁMARAS POR POSTE, LAS COMPROBACIONES 1 Y 2 SE HACEN DOS VECES: una
+> en `p10` (cámara 1) y otra en `p12` (cámara 2), cada una provocando la detección delante de SU
+> cámara.** Y **NO se sustituyen por la app**, por esto, medido en el firmware y en la app del 10/09:
+>
+> * la casilla **`CÁMARAS J16`** de la app pasa de **`SIN COMPROBAR`** a **`OK`** —con la frase
+>   *«las dos ven y ninguna está pegada»*— **en cuanto CUALQUIERA de las dos da una detección**, y
+>   **sigue en `OK` aunque la otra no haya detectado nunca**: `camara_estado()` salta el pin que
+>   nunca dio un flanco. **No dice cuál, y con una muerta también sale `OK`;**
+> * y el vigilante tampoco la cazará después: `vigilante_tick()` **no vigila el silencio de una
+>   cámara que nunca dio un flanco**, así que **una cámara muerta desde el día de la instalación no
+>   la detecta nadie**. Tras cada corte o reinicio vuelve a `SIN COMPROBAR` hasta la primera
+>   detección, y es normal.
+>
+> **El multímetro en cada borne es la única prueba de que CADA cámara ve.** Se anotan las dos
+> lecturas de cada pin en la ficha.
+
+**Por qué las dos últimas y no una sola:** el cable de campo es una antena, y ~~`p10`/`p12` **no llevan
+antirrebote de placa** —su único filtro son los 5 ms por software de `camara_leerPin()`—~~ *(✏️ 11/09:
+el netlist dice lo contrario — `C28` y `C29`, 100 nF a masa en `/Boton3` y `/Boton4`, el mismo RC que
+`J14`; los condensadores **no se han medido en cobre**, así que la prueba con el cable puesto sigue
+siendo la que manda)*. La falsa
 activación aparece **con el cable puesto**, que es justo el caso que una prueba de mesa se salta.
 
 ✅ **Este par ya se ejerció en banco el 04/09** *(paso 21 de la sesión)*: en reposo, con el cable y
@@ -1832,20 +1939,32 @@ sin él, **cero falsas activaciones**. Aun así **se repite en cada instalación
 | **2** | ¿`J16` p1 **tapado**? *(sí / no)* | ______________________ |
 | **3** | ¿Firmware nuevo **cargado y verificado** ANTES de cablear? *(sí / no)*, y su hash | ______________________ |
 | **4** | Alimentación usada *(PoE 802.3at o 12 V a batería)* | ______________________ |
-| **5** | Pines usados *(p10 con p9, u otros — y por qué)* | ______________________ |
-| **6** | Tensión en `p10` **en reposo** *(se espera 0 V)* | ____________ V |
-| **7** | Tensión en `p10` **con el contacto cerrado** *(se espera 3,3 V)* | ____________ V |
+| **5** | Pines usados ~~*(p10 con p9, u otros — y por qué)*~~ → *11/09, `D-25`: cámara 1 en p10 con p9, cámara 2 en p12 con p11 — u otros, y por qué* · y **qué cámara (IP / posición en el mástil) quedó en cada pin** | ______________________ |
+| **6** | Tensión en `p10` **en reposo** *(cámara 1, se espera 0 V)* | ____________ V |
+| **7** | Tensión en `p10` **con el contacto cerrado** *(cámara 1, se espera 3,3 V)* | ____________ V |
+| **6.bis** | 🆕 *11/09, `D-25`* — Tensión en `p12` **en reposo** *(cámara 2, se espera 0 V)* | ____________ V |
+| **7.bis** | 🆕 *11/09, `D-25`* — Tensión en `p12` **con algo delante de la cámara 2** *(se espera 3,3 V)* | ____________ V |
 | **8** | Falsas demandas **con el cable puesto**, un ciclo entero *(nº)* | ____________ |
 | **9** | Falsas demandas **sin el cable**, un ciclo entero *(nº)* | ____________ |
 | **10** | ¿`IN1` y `GND1` han quedado **sin conectar y aislados**? *(sí / no)* | ______________________ |
 | **11** | Fecha, hora y quién lo hizo | ______________________ |
 | **12** | 🆕 ¿Salió algún `$ALARM …CAM_PEGADA` **al terminar de cablear**? *(sí / no; si sí, a qué hora)* | ______________________ |
-| **13** | 🆕 Estado que publica el equipo en el campo `CAM:` al acabar *(`OK` · `?` · `CIEGA` · `PEGADA`)* | ______________________ |
+| **13** | 🆕 Estado que publica el equipo en el campo `CAM:` al acabar *(`OK` · `?` · `CIEGA` · `PEGADA`)* — ⚠️ *11/09: un `OK` NO prueba que vean las dos; lo prueban las filas 6/7 y 6.bis/7.bis* | ______________________ |
 
 ### 🆕 4.bis.7.bis EL EQUIPO VIGILA ESTA CÁMARA SOLO — qué le va a decir, y qué NO significa
 
 > **Desde `4b90f98` (D-13 fase 1) el controlador observa las dos entradas de `J16` y avisa cuando
 > una deja de comportarse como una cámara. `CAM_C` = `J16` p10 · `CAM_D` = `J16` p12.**
+>
+> 🔴 **11/09 (`D-25`) — LO QUE ESTE VIGILANTE NO VE, Y CON DOS CÁMARAS POR POSTE IMPORTA:** **una
+> cámara que no ha dado NUNCA una detección no se vigila** —`vigilante_tick()` salta el silencio
+> mientras `camHuboFlanco` es falso, y `camara_estado()` la salta al publicar `CAM:`—. Se escribió
+> así **porque `p12` iba vacío a propósito** y un pin vacío no debía alarmar; **con `D-25` esa
+> exención pierde su motivo y queda pendiente de rehacer en el firmware**. Hasta entonces: **una
+> segunda cámara muerta desde el día que se monta NO sale en ninguna alarma, y la app sigue en
+> `OK`** si la otra detecta. Y **tras cada corte o reinicio** la vigilancia de silencio de las dos
+> queda desarmada hasta su primera detección. La alarma de contacto **pegado** sí funciona siempre
+> (cuelga del nivel, `vigilante_nivel()`). **Por eso §4.bis.7 manda medir cada borne.**
 
 | Lo que sale por Bluetooth | Cuándo | Qué mirar en la CÁMARA |
 |---|---|---|
@@ -1857,6 +1976,15 @@ sin él, **cero falsas activaciones**. Aun así **se repite en cada instalación
 veta, no baja la pluma, no toca una luz. **El cruce funciona exactamente igual con las dos alarmas
 puestas.** Son **avisos de mantenimiento** — 🔴 **un cruce NO se para por una cámara sucia.**
 
+🔴 **Y NINGUNA CÁMARA PROTEGE LA PLUMA (medido el 11/09 en las dos puntas).** La pluma sale de
+`escribirPines()` de `semaforo.cpp` con `(verde && !testLedsActivo) || estado == S_FALLO`, y **esa
+condición no lee ninguna cámara**: **baja al acabar el verde aunque la cámara esté viendo un coche
+debajo**, y **sube también con el ámbar intermitente** (Modo Ámbar, ámbar de emergencia, Degradado
+en ámbar, o falta de enlace — también en un poste recién encendido que aún no habla con el otro). Lo
+único que hay es el contador `$EVENT CAMARA_PLUMA VETO_HABRIA_ACTUADO_N`, que **cuenta** las bajadas
+con algo debajo **después** de que ocurran. El veto es `A-1.bis` y **no está construido**. **Quien
+trabaja en el poste no se pone debajo del brazo.**
+
 🛑 **Y `CAM_PEGADA` no sabe distinguir un relé trabado de un vehículo parado veinte minutos debajo
 de la pluma: dan el mismo nivel.** Por eso la causa dice `CONTACTO_FIJO` y **no «avería»**. Si va a
 mirar y hay un camión parado, **la cámara está bien**; anótelo tal cual.
@@ -1866,8 +1994,13 @@ noche tranquila**: el cronómetro sólo corre con la pluma arriba. Con el ciclo 
 orden de **2 dias de reloj**.
 
 ⚠️ **Lo que esto SÍ cambia en el trabajo de instalación:** al terminar de cablear, **no deje el
-contacto puenteado ni la cámara mirando a una pared**. Si lo hace y se va, a los 20 min el equipo
-empieza a mandar alarmas que nadie pidió, y quien las reciba **saldrá a un poste que está bien**.
+contacto puenteado ni la cámara mirando a una pared**. ~~Si lo hace y se va, a los 20 min el equipo
+empieza a mandar alarmas que nadie pidió, y quien las reciba **saldrá a un poste que está bien**.~~
+✏️ **11/09 — corregido, porque son dos casos distintos:** con el contacto **puenteado**, a los 20 min
+el equipo empieza a mandar `CAM_PEGADA` que nadie pidió, y quien las reciba **saldrá a un poste que
+está bien**. Con la cámara **tapada o mirando a una pared** no da detecciones: si ya había dado
+alguna, acabará saliendo `CAM_CIEGA`; **si no había dado ninguna, no sale nada** —ver el recuadro de
+arriba— y la cámara se queda muerta sin aviso.
 
 🔴 **Y lo que este manual NO puede prometer todavía:** que `CAM_CIEGA` salte de verdad a las 24 h
 **no está ejercido** — no es ejecutable en una sesión de banco, y hacerlo exigiría cargar una
@@ -1886,14 +2019,32 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
 
 ## 5. Dinámica de Control y Seguridad Vial
 
-1. **Llegada de Vehículo al Sentido 1:**
-   * La **Cámara 1** detecta el vehículo por intrusión ➔ Cierra el relé `1A`/`1B` en `PB0` del Maestro.
-   * El Semáforo Maestro registra la demanda vehicular. Si el sentido opuesto estaba en verde, inicia su cierre: **Verde ➔ Amarillo (4.0s) ➔ Despeje Todo-Rojo (`cfgDespejeSeg`) ➔ Verde Sentido 1**.
-2. **Llegada de Vehículo al Sentido 2:**
-   * La **Cámara 3** detecta el vehículo por intrusión ➔ Cierra el relé `1A`/`1B` en `PB0` del Esclavo.
-   * El Esclavo transmite la demanda al Maestro vía radio LoRa (`RS485_OUT`).
-   * El Maestro aplica la transición segura respetando siempre el **Despeje Todo-Rojo** antes de otorgar el verde al Esclavo.
+> ⛔ **11/09 — LOS PUNTOS 1 Y 2 DE ABAJO QUEDAN TACHADOS: describían otro equipo.** Las cámaras ya no
+> van a `PB0` (van a `J16` p10/p12, dos por poste, `D-25`), y **una detección NO inicia el cierre del
+> otro sentido**: en Automático y en Manual las cámaras **no cambian ninguna luz**, y en Inteligente
+> **ni adelantan ni acortan** una fase. Lo que sí pasa, medido en el fuente, va debajo.
+
+1. ~~**Llegada de Vehículo al Sentido 1:**~~
+   * ~~La **Cámara 1** detecta el vehículo por intrusión ➔ Cierra el relé `1A`/`1B` en `PB0` del Maestro.~~
+   * ~~El Semáforo Maestro registra la demanda vehicular. Si el sentido opuesto estaba en verde, inicia su cierre: **Verde ➔ Amarillo (4.0s) ➔ Despeje Todo-Rojo (`cfgDespejeSeg`) ➔ Verde Sentido 1**.~~
+2. ~~**Llegada de Vehículo al Sentido 2:**~~
+   * ~~La **Cámara 3** detecta el vehículo por intrusión ➔ Cierra el relé `1A`/`1B` en `PB0` del Esclavo.~~
+   * ~~El Esclavo transmite la demanda al Maestro vía radio LoRa (`RS485_OUT`).~~
+   * ~~El Maestro aplica la transición segura respetando siempre el **Despeje Todo-Rojo** antes de otorgar el verde al Esclavo.~~
 3. **Invariable Vial:** Bajo ninguna circunstancia se omite el tiempo de Todo-Rojo de despeje ni el amarillo normativo de 4.0 segundos.
+
+**Lo que hace de verdad una detección, 11/09 (firmware de las dos puntas):**
+
+| | qué pasa | dónde se mide |
+|---|---|---|
+| **Cualquiera de las dos cámaras de un poste cierra su contacto** | el flanco entra por `demanda_solicitar()` y alimenta el vigilante — **las dos igual** | `camaras_actualizar()` recorre `CAM_J16[2]` en `botones.cpp`, idéntico en Maestro y Esclavo |
+| **En el Esclavo** | esa petición viaja por radio al Maestro (`CMD_DEMANDA`) | `demanda_solicitar()` de `Esclavo/src/demanda.cpp` |
+| **En Automático, Manual y cualquier modo que no sea Inteligente** | 🟢 **ninguna luz cambia.** El Maestro contesta que no la atiende | la rama `CMD_DEMANDA` de `coordinador.cpp` sólo la arma en `MODO_INTELIGENTE`; `demanda_hayLocal()` y `camara_presenciaJ16()` sólo tienen lector en `modo_inteligente.cpp` |
+| **En Inteligente** | por debajo del tiempo configurado de la fase **no cambia nada**; cumplido, si en ese lado hay tráfico y enfrente nadie pide, **la fase se mantiene, con un tope**; si no, cambia como en Automático. **Nunca acorta** | `sueloMs`, `techoMs` y `TECHO_POR_SUELO` en `modo_inteligente.cpp` |
+| **La pluma** | **no la toca ninguna cámara**: sube con verde y con el ámbar intermitente, baja con todo lo demás, **haya o no un coche debajo** | `escribirPines()` de `semaforo.cpp` |
+
+> ⚠️ **Choque que NO se resuelve aquí:** `D-25` dice que las cámaras *«no tocan el ciclo»* y en
+> Inteligente sí lo alargan (`D-19`). Lo aclara el responsable.
 
 ---
 
@@ -1923,6 +2074,7 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
  │                             Schedule tipo "Event"). Lo que muere es el bit  │
  │                             al controlador, y por donde entra entonces la   │
  │                             demanda LO DECIDE EL RESPONSABLE.               │
+ │             (11/09, D-25: se mira en CADA UNA de las cuatro camaras.)       │
  │                                                                             │
  │   >>> LO QUE EL PAPEL YA DICE, PARA QUE NADIE SE SORPRENDA: la ficha del    │
  │   >>> modelo comprado ENUMERA cinco metodos de vinculacion (pag. 4) y       │
@@ -1964,12 +2116,16 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
  │   >>> LA CAMARA VA A J16 p10/p12 (D-2 / D-3): USE EL ENSAYO 4.  <<<         │
  │   >>> Se conserva porque sirve para probar el borne J14 el dia que se le    │
  │   >>> cuelgue un fin de carrera de barrera.                                 │
+ │   !!! 11/09 CONFLICTO ABIERTO: el firmware lee PB0 como CAMARA; un fin de  │
+ │   !!! carrera ahi entraria como demanda.  A-2 contra firmware: decide el   │
+ │   !!! responsable.  Este ensayo NO sirve para "aprobar" un fin de carrera.  │
  │   ~~- Conectar 1A/1B al pin PB0 y GND de la tarjeta STM32.~~  <-- ANULADO   │
  │   ~~- Conectar 1A/1B entre el pin PB0 y el borne de 3,3 V de J14.~~         │
  │     LA ENTRADA ES ACTIVA EN ALTO: contra GND no dispara nunca, y el         │
  │     ensayo saldria "sin deteccion" sin que nada este roto.                  │
- │   - Al detectar vehiculo: El semaforo atiende la demanda y abre verde tras  │
- │     el despeje de seguridad.                                                │
+ │   - ~~Al detectar vehiculo: El semaforo atiende la demanda y abre verde~~   │
+ │     ~~tras el despeje de seguridad.~~  <-- FALSO, corregido 11/09: solo el  │
+ │     Modo Inteligente mira la demanda, y ni ahi adelanta un verde.           │
  │   - CRITERIO NEGATIVO, obligatorio: con el contacto ABIERTO y nadie delante │
  │     de la camara, el equipo NO debe registrar demanda. Si la registra, el   │
  │     pin esta flotando o la polaridad no es la que se cree: se para.         │
@@ -1991,11 +2147,19 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
  │    MEDIDO 04/09: los dos a 0 V.                                             │
  │ 4. Contacto seco 1A/1B entre el pin de senal y el borne de 3,3 V contiguo   │
  │    (p9 para p10, p11 para p12). SON DOS HILOS: nada a p2. Ver 4.bis.5.                     │
- │ 5. Al detectar vehiculo: el equipo registra demanda y abre verde tras el    │
- │    despeje de seguridad.                                                    │
+ │    11/09 (D-25): DOS CAMARAS POR POSTE -- camara 1 en p10/p9, camara 2 en   │
+ │    p12/p11.  TODO ESTE ENSAYO SE HACE UNA VEZ POR CADA CAMARA.              │
+ │ 5. ~~Al detectar vehiculo: el equipo registra demanda y abre verde tras~~   │
+ │    ~~el despeje de seguridad.~~  <-- FALSO, corregido 11/09: en Auto y en   │
+ │    Manual la camara no cambia ninguna luz; en Inteligente solo puede        │
+ │    alargar una fase ya cumplida, con un tope.  Lo que se comprueba es el    │
+ │    PIN: multimetro en p10 (y luego en p12) -> 0 V en reposo, 3,3 V con      │
+ │    algo delante de ESA camara.  La app NO sirve: pone "OK" con cualquiera   │
+ │    de las dos y sigue en OK aunque la otra no haya detectado nunca.         │
  │ 6. CRITERIO NEGATIVO, obligatorio y con MAS peso que en J14: en reposo,     │
  │    CON el cable puesto y SIN el, el equipo NO debe pedir paso solo.         │
  │    VERIFICADO EN BANCO el 04/09 (paso 21): no hay falsa activacion.         │
+ │    (11/09: el banco del 04/09 solo ejercio p10; p12 con cable, no consta.)  │
  │                                                                             │
  └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -2010,8 +2174,9 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
 > revés: **ya se puede ejecutar, luego ya se puede cablear.**
 >
 > ⚠️ **Y el `ENSAYO 4` NO es igual que el `ENSAYO 3`, aunque se parezcan:** `PB0` lleva un antirrebote
-> RC en la placa (`R64` + `C25`, ~1 ms) y **`PB14`/`PB15` no llevan ninguno** — su único filtro son
-> los 5 ms por software de `botones.cpp:87-93`. Por eso el criterio negativo pesa **más** ahí, y por
+> RC en la placa (`R64` + `C25`, ~1 ms) y ~~**`PB14`/`PB15` no llevan ninguno** — su único filtro son
+> los 5 ms por software de `botones.cpp:87-93`~~ *(✏️ 11/09: falso en el netlist — `R67`+`C28` y
+> `R68`+`C29` son el mismo 10 kΩ + 100 nF; sin medir en cobre)*. Por eso el criterio negativo pesa **más** ahí, y por
 > eso se ejerce **con el cable puesto**, que es cuando entra el ruido: un cable de campo es una
 > antena. **El paso 21 lo ejerció así y no hubo falsa activación.**
 >
@@ -2054,7 +2219,12 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
 | lo que este manual afirma | nivel |
 |---|---|
 | La entrada de cámara es **activa en ALTO** y no se cablea contra `GND` | ✅ **MEDIDO EN EL FUENTE** — símbolo `camara_leerPin()` en `Maestro/src/botones.cpp`, que compara `digitalRead(pin) == HIGH`, y `pinMode(..., INPUT)` **pelado** en `botones_setup()` |
-| `PB0`/`J14` con `R64` 10 kΩ + `C25` 100 nF es una entrada de cámara con firmware | ✅ **MEDIDO** — símbolo `CAM_DEMANDA_PIN` (`pines.h:43-46`, cita **fechada y vigente**), leído en `modo_inteligente.cpp` y en `Esclavo/src/main.cpp:350` |
+| `PB0`/`J14` con `R64` 10 kΩ + `C25` 100 nF es una entrada de cámara con firmware | ✅ **MEDIDO** — símbolo `CAM_DEMANDA_PIN` (`pines.h:43-46`, cita **fechada y vigente**), leído en `modo_inteligente.cpp` y en `Esclavo/src/main.cpp:350`. 🔴 **11/09: CONFLICTO ABIERTO con `A-2`**, que reserva `J14` para el fin de carrera — no se resuelve en este manual |
+| 🆕 **11/09 (`D-25`) — las dos entradas de `J16` (`p10`, `p12`) hacen LO MISMO** | ✅ **MEDIDO en las dos puntas** — `CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN}` recorrido por el mismo bucle de `camaras_actualizar()`: `demanda_solicitar()` + vigilante |
+| 🆕 **11/09 — ninguna cámara protege la pluma; la pluma sube con verde y con `S_FALLO`** | ✅ **MEDIDO en las dos puntas** — `escribirPines()`: `(verde && !testLedsActivo) \|\| estado == S_FALLO`, sin ninguna lectura de cámara. El veto (`A-1.bis`) **no está construido** |
+| 🆕 **11/09 — una cámara que nunca dio un flanco no se vigila, y `CAM:` sale `OK` sin ella** | ✅ **MEDIDO en las dos puntas** — la bandera `camHuboFlanco` salta ese pin en `vigilante_tick()` (silencio) y en `camara_estado()` (salvo que esté `PEGADA`). **La exención se escribió para un `p12` vacío; con `D-25` queda pendiente de rehacer en el firmware** |
+| 🆕 **11/09 — las cámaras sólo actúan en Modo Inteligente, y sólo alargan** | ✅ **MEDIDO** — `demanda_hayLocal()` y `camara_presenciaJ16()` sólo tienen lector en `modo_inteligente.cpp`; `CMD_DEMANDA` sólo se arma en `MODO_INTELIGENTE` (`coordinador.cpp`) |
+| 🆕 **11/09 — con firmware anterior a `deeeab4`, `p10` es *Aceptar* y `p12` es *Cancelar*** | ✅ **MEDIDO** — `git show e303485:01_Firmware/Maestro/src/botones.cpp` (V8.4, la de campo) |
 | `PB8` es el `LED_TESTIGO`, no una entrada | ✅ **MEDIDO** — símbolo `LED_TESTIGO` (`pines.h:63`, vigente) |
 | `PB9`/`PB13` son los canales `A` y `B` del mando y **no admiten cámara** | ✅ **MEDIDO** — símbolos `BOTON1`/`BOTON2` en `pines.h` y `MANDO_A`/`MANDO_B` en `mando.cpp`; el enlace lo hace `mando_registrarPulso()` desde `botones_actualizar()` |
 | **`PB14`/`PB15` son `CAM_C_PIN`/`CAM_D_PIN`, entradas de cámara de DEMANDA** | ✅ **MEDIDO el 02/09, re-medido el 07/09** — símbolos `CAM_C_PIN`/`CAM_D_PIN`, con su `pinMode(..., INPUT)`. **`botonAceptar()`/`botonCancelar()` devuelven `false` siempre** en las dos puntas |
@@ -2088,7 +2258,7 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
 > | **El clasificador `☑ Vehículo` sobre la Detección de Intrusión** | 🔴 **SIN VERIFICAR, y las dos fuentes oficiales discrepan.** El manual lista `Detection Target` en *Line Crossing*, *Region Entrance* y *Region Exiting* **y no en `Set Intrusion Detection`**; la ficha (pág. 4) dice que la Perimeter Protection *«supports human and vehicle targets classification»*. Lo cierra el **`ENSAYO 2`** |
 > | Umbral **`1 s`** y sensibilidad **`50`** | 🔴 **SIN VERIFICAR.** Son los valores de partida **de este proyecto**, no una recomendación del fabricante. Se afinan con los ensayos |
 > | **Alimentación: `12 V DC ± 25 %` (`9`–`15 V`), `1,08 A`, máx. `13 W`** · PoE `802.3at` **Clase 4**, máx. `15 W` | 📖 **ESCRITO** — ficha, pág. 4. **El rango cubre entero el vaivén de una batería de plomo de 12 V** |
-> | **`26 Ah/día` por poste sólo de cámara** | 🧮 **CUENTA**, con sus entradas escritas al lado (§1.1.2). **Es un dato para quien dimensione la energía, no una decisión de este manual** |
+> | ~~**`26 Ah/día` por poste sólo de cámara**~~ → **11/09 (`D-25`): `52 Ah/día` por poste, las DOS cámaras** | 🧮 **CUENTA**, con sus entradas escritas al lado (§1.1.2: `2 × 13 W × 24 h / 12 V`). **Es un dato para quien dimensione la energía, no una decisión de este manual** |
 > | Óptica **`2,8`–`12 mm`**, FOV horizontal **`108°`–`30°`**, DORI Detectar **`97`–`290 m`**, 8 MP | 📖 **ESCRITO** — ficha, pág. 2 |
 > | **No hay luz blanca que desactivar: la luz de apoyo es IR `850 nm` y sólo IR** | 📖 **ESCRITO** — ficha, pág. 2. **Retira un paso del §4 y elimina el riesgo de deslumbrar a un conductor** |
 > | **Rutas de menú del §4** *(SADP, `Lens Parameters Adjustment`, `External Device`, `Smart Event → Intrusion Detection`, `Basic Event → Alarm Output`, `VCA Resource`)* | 📖 **ESCRITO** — manual `UD28967B-C` v5.7.20, con la página al lado de cada paso. **Ninguna se ha ejecutado contra una cámara** |
@@ -2126,6 +2296,8 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
 
 **Cuatro comprobaciones, en este orden, antes de dibujar una sola zona o cablear un solo hilo.**
 Cada una cierra un `SIN VERIFICAR` de la tabla del §7, y **las cuatro juntas no llevan media hora**.
+🎯 **11/09 (`D-25`): son cuatro cámaras, y las cuatro comprobaciones se hacen y se anotan EN CADA
+UNA** — cada unidad trae su propia configuración y su propio relé.
 
 | # | qué se comprueba | dónde | si sale mal |
 |---|---|---|---|
@@ -2141,4 +2313,4 @@ Cada una cierra un `SIN VERIFICAR` de la tabla del §7, y **las cuatro juntas no
 > destornillador.**
 
 ---
-*Manual técnico oficial de integración y configuración de Cámaras IA para Semáforos Móviles V9.0. Polaridad corregida el 31/08 (`N-105`): el contacto seco cierra contra 3,3 V, no contra `GND`. **Confirmada en cobre el 04/09 con el cierre de `M3`**, que además levanta el bloqueo para cablear `J16` p10/p12 — con el pin 1 de esa misma bornera **tapado**. **Cámara real incorporada el 05/09: `DS-2CD2683G2-IZS`, con su ficha, su manual de usuario y su guía rápida citados página a página — y con lo que esas tres fuentes NO dicen marcado `SIN VERIFICAR`, no rellenado.***
+*Manual técnico oficial de integración y configuración de Cámaras IA para Semáforos Móviles V9.0. Polaridad corregida el 31/08 (`N-105`): el contacto seco cierra contra 3,3 V, no contra `GND`. **Confirmada en cobre el 04/09 con el cierre de `M3`**, que además levanta el bloqueo para cablear `J16` p10/p12 — con el pin 1 de esa misma bornera **tapado**. **Cámara real incorporada el 05/09: `DS-2CD2683G2-IZS`, con su ficha, su manual de usuario y su guía rápida citados página a página — y con lo que esas tres fuentes NO dicen marcado `SIN VERIFICAR`, no rellenado.** **11/09: `D-25`, cuatro cámaras, dos por poste en `J16` p10/p12, las dos iguales; ninguna protege la pluma.***
