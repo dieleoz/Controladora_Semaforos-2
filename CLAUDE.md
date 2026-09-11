@@ -319,6 +319,10 @@ puede quedar correcto y la compuerta verde, pero un `revert` de ese commit no de
 
 1. **Antes de lanzar se abre `DECISIONES.md`.** Si el encargo contradice una fila, **eso no es una
    orden: es una pregunta**. Casi siempre la frase nueva es un resumen impreciso de algo mas pequeno.
+   🔴 **Y al revés, que es el bucle: un manual o una guía que contradice una fila NO la reabre.** El
+   documento está caducado y se corrige HACIA la decisión; cambiar una decisión cerrada exige una fila
+   nueva del responsable. Los documentos congelan el día en que se escribieron, y un agente los lee con
+   la misma autoridad que la tabla: sin esta regla, la última decisión pierde contra el documento más viejo.
 2. **Los que MIDEN van antes que los que ESCRIBEN.** Auditoria de solo lectura -> veredicto en el
    scratchpad -> ejecucion **con ese veredicto delante**. Un veredicto malo ejecutado a fondo es peor
    que uno discutido: delegar **amplifica** el error.

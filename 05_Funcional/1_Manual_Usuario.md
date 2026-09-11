@@ -5,6 +5,14 @@ Todas las operaciones están alineadas al **Manual de Señalización Vial de Col
 
 ---
 
+> ### 🆕 11/09 (tarde) — `D-27`: `J14` LIBRE, LAS CUATRO CÁMARAS COMPRADAS, Y LA CÁMARA SE CONFIGURA POR EL MANUAL DEL MODELO
+>
+> (1) **Las cuatro cámaras están compradas** (`DS-2CD2683G2-IZS`, `D-10`). (2) **`J14` queda LIBRE,
+> sin cablear: el fin de carrera NO se instala en este despliegue** — cierra el conflicto de `A-2`
+> que este manual dejaba abierto (punto 8 de abajo y §6, tachados con esta fecha). (3) **Filtro de
+> objetivo ☑ Vehículo** si la casilla existe (§6, «Procesamiento»). Nada de esto cambia una luz ni
+> la pluma.
+
 > ### 🆕 11/09 — `D-25`: CUATRO CÁMARAS, DOS POR POSTE. Y LO QUE ESO **NO** CAMBIA DE LA PLUMA
 >
 > **Decidido por el responsable el 11/09** (`DECISIONES.md` `D-25`, *«mantener estas conexiones como
@@ -44,10 +52,12 @@ Todas las operaciones están alineadas al **Manual de Señalización Vial de Col
 >    enchufe en `p10` **o en `p12`** puede actuar como un botón en un equipo que está en la calle.
 > 7. **`p12` es el borne de `J16` más cercano a los 12 V de `p1`** (`1,359 mm` de cobre) y ahora lleva
 >    cámara: **`p1` se tapa en cada equipo** (`D-4`) y el trabajo en ese conector se hace limpio.
-> 8. 🟠 **`J14` — CONFLICTO ABIERTO, no lo resuelve este manual:** `A-2` reserva `J14` para el **fin de
->    carrera** de la pluma, pero el firmware sigue leyendo `PB0` como **`CAM_DEMANDA_PIN`** (Maestro,
->    por nivel en Inteligente; Esclavo, por flanco → `CMD_DEMANDA`). **Lo que se cablee en `J14`
->    pide paso como una cámara más.** Antes de conectar ahí nada, se pregunta al responsable.
+> 8. ~~🟠 **`J14` — CONFLICTO ABIERTO, no lo resuelve este manual:** `A-2` reserva `J14` para el **fin de
+>    carrera** de la pluma~~ → 🟢 **`J14` LIBRE, sin cablear (`D-27`, 11/09): el fin de carrera NO se
+>    instala en este despliegue.** El firmware sigue leyendo `PB0` como **`CAM_DEMANDA_PIN`** (Maestro,
+>    por nivel en Inteligente; Esclavo, por flanco → `CMD_DEMANDA`), así que **lo que se cablee en
+>    `J14` pide paso como una cámara más: en `J14` no se conecta nada.** Vacío, `R64` lo deja en 0 V y
+>    no pide nada (`J14` medido en banco el 03-04/09, pasos 17-18).
 
 > ### 🆕 07/09 — CUATRO CORRECCIONES DE ESTA FECHA, POR SI ALGUIEN LLEGA CON UNA COPIA IMPRESA
 >
@@ -108,8 +118,9 @@ alguno montado en algún equipo.
 > compone esa secuencia es cualquier cosa que alguien cablee ahí**: un fin de carrera de talanquera
 > que suba y baje tres veces seguidas es `B·B·B`; un contacto que rebote puede ser `A·A·A`.
 >
-> ✅ **La regla: NADA se cablea a `J16` p5 ni p8** (`DECISIONES.md` `A-2`, que sigue **abierta** y es
-> ya una decisión de seguridad). Y si en un gabinete aparece algo cableado ahí, **se desconecta antes
+> ✅ **La regla: NADA se cablea a `J16` p5 ni p8** (`DECISIONES.md` `A-2`, ~~que sigue **abierta** y es
+> ya una decisión de seguridad~~ *(11/09: `A-2` se cerró el 05/09 dejando p5/p8 vacíos; y con `D-27`
+> el fin de carrera tampoco va a `J14`: **no se instala en este despliegue**)*). Y si en un gabinete aparece algo cableado ahí, **se desconecta antes
 > de energizar** — el firmware no sabe distinguir un operario de un rebote.
 >
 > 🛑 **Y en el mismo conector, lo que hiere si se olvida: `J16` p1 lleva 12 V CRUDOS a un conector
@@ -1111,18 +1122,22 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 > de `CAM_CIEGA`/`CAM_PEGADA` **mira `J16` y no mira `J14`**. Con la cámara en `J14` funcionaría
 > —pide paso— pero **nadie sabría nunca si se ha estropeado**.
 >
-> `J14`/`PB0` **se conserva y sigue vivo**: no se retira nada. Queda como candidato a **fin de
+> `J14`/`PB0` **se conserva y sigue vivo**: no se retira nada. ~~Queda como candidato a **fin de
 > carrera de la barrera**, para lo que es el mejor borne del equipo — es **el único pin de
 > entrada con antirrebote por hardware** (`R64` 10 kΩ + `C25` 100 nF ≈ 1 ms), y un contacto
-> mecánico es justo lo que rebota.
+> mecánico es justo lo que rebota.~~ → 🟢 **11/09, `D-27`: `J14` queda LIBRE, sin cablear. El fin de
+> carrera NO se instala en este despliegue.** *(Que sea el único borne con antirrebote por hardware
+> —`R64` 10 kΩ + `C25` 100 nF ≈ 1 ms— sigue siendo cierto; lo que se retira es su uso.)*
 >
-> 🟠 **11/09 — CONFLICTO ABIERTO, y no lo resuelve este manual.** `A-2` (05/09) manda el fin de
-> carrera a `J14`, pero **el firmware de hoy sigue leyendo `PB0` como cámara**: es
+> ~~🟠 **11/09 — CONFLICTO ABIERTO, y no lo resuelve este manual.** `A-2` (05/09) manda el fin de
+> carrera a `J14`~~ → 🟢 **CERRADO por `D-27` (11/09), sin tocar el firmware:** **el firmware de hoy
+> sigue leyendo `PB0` como cámara**: es
 > `CAM_DEMANDA_PIN`, que el Maestro lee **por nivel** en el Modo Inteligente
 > (`camara_leerPin(CAM_DEMANDA_PIN)` en `modo_inteligente.cpp`) y el Esclavo **por flanco**, mandando
-> `CMD_DEMANDA` por radio (`Esclavo/src/main.cpp`). Un fin de carrera ahí **pediría paso o sostendría
-> la fase cada vez que la pluma se mueve**. **Antes de cablear nada en `J14`, se pregunta al
-> responsable.**
+> `CMD_DEMANDA` por radio (`Esclavo/src/main.cpp`). Cualquier cosa cableada ahí **pediría paso o
+> sostendría la fase** —un fin de carrera, cada vez que la pluma se mueve—. **Por eso en `J14` no se
+> conecta nada**; vacío, `R64` lo deja en 0 V y no pide nada (`J14` medido en banco el 03-04/09,
+> pasos 17-18).
 >
 > ⚠️ **Lo que sigue debajo describe el cableado a `J14` y se conserva TACHADO, no borrado**: la
 > medida en cobre que trae —que `J14` no tiene masa— sigue siendo cierta y sigue haciendo falta.
@@ -1151,8 +1166,9 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 > ALTO, `INPUT` pelado con pull-down `R67`/`R68` de 10 kΩ medido en cobre — `D-3`).
 >
 > **Lo que de este bloque SÍ se conserva y no caduca:** la medida en cobre de que **`J14` no tiene
-> masa** y de que su reposo es `0 V`. Sigue siendo cierta y sigue haciendo falta el día que `J14` se
-> use para el fin de carrera de la barrera.
+> masa** y de que su reposo es `0 V`. Sigue siendo cierta ~~y sigue haciendo falta el día que `J14` se
+> use para el fin de carrera de la barrera~~ *(11/09, `D-27`: el fin de carrera no se instala en este
+> despliegue; `J14` queda libre y ese reposo a `0 V` es lo que lo deja inerte)*.
 
 > 🛑 **AQUÍ PONÍA ~~«con masa `GND`, por la bornera `J14`»~~ Y ERA FALSO EN LAS DOS MITADES — 05/09.**
 >
@@ -1203,7 +1219,8 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 >
 > ✏️ **11/09 — `D-25`: SON CUATRO CÁMARAS EN EL CRUCE, DOS POR POSTE**, en los dos bornes de `J16`
 > (`p10` y `p12`) de cada tarjeta. Sigue siendo cierto que **no son tres por tarjeta**: `J14` no lleva
-> cámara (y su uso está en conflicto abierto, ver arriba). Las dos de un poste **piden lo mismo** —paso
+> cámara ~~(y su uso está en conflicto abierto, ver arriba)~~ *(11/09, `D-27`: y queda **libre, sin
+> cablear**: el fin de carrera no se instala en este despliegue)*. Las dos de un poste **piden lo mismo** —paso
 > para ese poste— por la misma puerta.
 >
 > **MEDIDO el 04/09** en `Maestro/include/pines.h:43-46` y `:136-137`,
@@ -1212,7 +1229,7 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 >
 > | borne | pin | qué trae la placa | cómo lo lee el programa | estado |
 > |---|---|---|---|---|
-> | **`J14`** | `PB0` | 🟢 **`R64` 10 kΩ + `C25` 100 nF → antirrebote por hardware de ~1 ms**, el único del equipo | **Maestro: por NIVEL** · **Esclavo: por FLANCO**, y ahí sí llama a `demanda_solicitar()` *(símbolos: `grep -n 'CAM_DEMANDA_PIN' Maestro/src/modo_inteligente.cpp Esclavo/src/main.cpp`)* | ~~✅ **Es el borne donde va la cámara**~~ → 🔴 **NO: el 05/09 la cámara pasó a `J16`.** `J14` queda **libre y vivo**, y es el mejor candidato a **fin de carrera de barrera** por ese antirrebote. 🟠 **11/09: CONFLICTO ABIERTO** — `A-2` le manda el fin de carrera y el firmware lo sigue leyendo como `CAM_DEMANDA_PIN` |
+> | **`J14`** | `PB0` | 🟢 **`R64` 10 kΩ + `C25` 100 nF → antirrebote por hardware de ~1 ms**, el único del equipo | **Maestro: por NIVEL** · **Esclavo: por FLANCO**, y ahí sí llama a `demanda_solicitar()` *(símbolos: `grep -n 'CAM_DEMANDA_PIN' Maestro/src/modo_inteligente.cpp Esclavo/src/main.cpp`)* | ~~✅ **Es el borne donde va la cámara**~~ → 🔴 **NO: el 05/09 la cámara pasó a `J16`.** `J14` queda **libre y vivo**, ~~y es el mejor candidato a **fin de carrera de barrera** por ese antirrebote. 🟠 **11/09: CONFLICTO ABIERTO** — `A-2` le manda el fin de carrera y el firmware lo sigue leyendo como `CAM_DEMANDA_PIN`~~ → 🟢 **11/09, `D-27`: LIBRE, sin cablear — el fin de carrera NO se instala en este despliegue.** El firmware lo sigue leyendo como `CAM_DEMANDA_PIN`, así que **en `J14` no se conecta nada** |
 > | `J16` p10 | `PB14` | 🟠 `R67` 10 kΩ a masa, ~~**SIN condensador**~~ *(11/09: el netlist trae `C28` 100 nF a masa; sin medir en cobre)* | **por FLANCO** → `demanda_solicitar()`, en las dos puntas | ~~🟠 entrada equivalente disponible. NO se le monta cámara hoy~~ → ✅ **ES LA CÁMARA DEL POSTE (`D-2`/`D-3`, 07/09)** → ✏️ **11/09, `D-25`: es la CÁMARA 1 de este poste** |
 > | `J16` p12 | `PB15` | 🟠 `R68` 10 kΩ a masa, ~~**SIN condensador**~~ *(11/09: el netlist trae `C29` 100 nF a masa; sin medir en cobre)* | igual | ~~🟠 igual~~ → ~~✅ **ES LA CÁMARA DEL OTRO POSTE**~~ → ✏️ **11/09, `D-25`: es la CÁMARA 2 de ESTE MISMO poste** — cada tarjeta tiene su `p10` y su `p12`; *«del otro poste»* venía de la lectura *«`p10` en un poste y `p12` en el otro»*, que con `D-25` ya no vale |
 >
@@ -1301,6 +1318,16 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 > Y hay un segundo motivo medido: `Detection Target` **no está documentado para Intrusión** en el
 > manual del fabricante. El procedimiento bueno está en `9_Manual_Parametrizacion_Camara_IA.md`,
 > Paso 3, que ya lo trata así.
+>
+> 🔄 **11/09 — `D-27` VUELVE A PONER EL FILTRO, y lo tachado de arriba deja de mandar en eso.** El
+> responsable decidió que **la configuración de cada cámara es la del manual del modelo comprado**
+> (`04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md`, §4 Paso 2 punto 5), y `D-27` deroga el «sin
+> filtro» de `D-13`: **☑ Vehículo · ☐ Humano, si la casilla existe en *Intrusion Detection***; si no
+> existe, se anota y se sube el mínimo del `Size Filter`. **La zona sigue siendo el barrido de la
+> pluma** (`D-13`, que `D-27` no deroga). ⚠️ **Lo que el operario tiene que saber de esto:** con el
+> filtro puesto, **una persona debajo del brazo no levanta el contacto**. No cambia ninguna luz —la
+> pluma **no la frena ninguna cámara** (cabecera del 11/09)—, pero **tampoco entra en el contador**
+> de bajadas con presencia. Si una moto cuenta como «vehículo» para la cámara: `SIN VERIFICAR`.
 
 > ## 📜 QUÉ ES —Y QUÉ NO ES— UNA «CÁMARA IA» EN ESTE EQUIPO (D-12, 05/09/2026)
 >
@@ -1392,8 +1419,9 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 > p10/p12, que es justo lo que este vigilante mira**, así que la cámara de campo ~~**sí queda
 > cubierta**~~ **queda cubierta desde su primera detección** *(11/09: una que no ha detectado nunca, no;
 > ver el recuadro de arriba)*. `J14`/`PB0` sigue vivo en el firmware y **sin cámara**; si algún día se le cuelga algo,
-> ese borne **no está vigilado** — y eso es lo que hay que recordar de esta frase. *(11/09: y su uso
-> para el fin de carrera de `A-2` choca con que el firmware lo lee como cámara — conflicto abierto.)*
+> ese borne **no está vigilado** — y eso es lo que hay que recordar de esta frase. *(11/09: ~~y su uso
+> para el fin de carrera de `A-2` choca con que el firmware lo lee como cámara — conflicto abierto.~~
+> → `D-27`: **`J14` queda LIBRE, sin cablear**; el fin de carrera no se instala en este despliegue.)*
 >
 > 🔴 **Y lo que todavía NO está probado en una tarjeta:** que `CAM_CIEGA` salte de verdad a las 24 h.
 > **No es ejecutable en una sesión de banco** —haría falta cargar un programa con el plazo acortado,

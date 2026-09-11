@@ -22,7 +22,14 @@ falsas)*; **medir la alimentación del ESP32** (~~se reinició 5 veces en 97 s~~
 reinicios** en 12:18–12:19: la cinta trae 5 partes `EVT:ARRANQUE`, pero el parte se emite una vez
 por CONEXIÓN Bluetooth, así que un arranque puede anunciarse dos veces; 2 de los 5 son
 `SUBIDA_DE_TENSION`, `roadmap.md` §3.16); y **traer la cinta del Esclavo**. Lo que hay
-que construir es que **el ESP32 mande la hora** (`D-20`/`A-15`). Todo en `roadmap.md` §3.16 (`N-162`). La compuerta en
+que construir es que **el ESP32 mande la hora** (`D-20`/`A-15`, con las reglas de **`D-26`**: siembra **cada ~5 min**, no cada hora). Todo en `roadmap.md` §3.16 (`N-162`).
+🎯 **11/09, `D-27` — CERRADO por el responsable y alineado en los documentos (sin los `.docx`):**
+**las cuatro cámaras están compradas**; **`J14` queda libre y sin cablear** (el fin de carrera no se
+instala — se cierra el conflicto con `A-2`); **la configuración de cada cámara es la del manual del
+modelo** (`04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md` §4; tabla valor a valor en el Manual 9
+§4 Paso 3). Lo que dejó a la vista —la zona, el filtro y el contador de la fase 1, y **la guía del
+Sisga, que en su paso 07 sigue diciendo «no filtrar»**— está en `roadmap.md` §0, filas 2.1.bis y
+2.1.ter. **`D-25`, `D-26` y `D-27` no se reabren desde un documento** (recuadro 🔒 de `roadmap.md` §0). La compuerta en
 verde dice que los modelos y los arneses de PC no encuentran nada; **no dice que el firmware funcione
 sobre la tarjeta**.
 
@@ -295,9 +302,9 @@ lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida
 
 | | |
 |---|---|
-| Flash | Maestro **88.8 %** (**58216** de 65536 B → **7.320 B libres**) · Esclavo **69.1 %** (45280 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | 🔴 **1249/1252 comprobaciones** en **78 packs** — 77 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
-| Arneses que compilan C++ real | 271/271 pantalla · **99/99** automático · 22/22 ciclo · **51/51 dos puntas** · **18/18 Degradado a dos puntas** |
+| Flash | Maestro **89.1 %** (**58400** de 65536 B → **7.136 B libres**) · Esclavo **69.1 %** (45280 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | 🔴 **1251/1258 comprobaciones** en **78 packs** — 77 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
+| Arneses que compilan C++ real | 271/271 pantalla · **99/99** automático · 22/22 ciclo · **76/77 dos puntas (G3 en FALLA)** · **18/18 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | **239/239** jsdom · 58/58 funcional · 32/32 unitarios · **61/61** TDD |
 
@@ -334,9 +341,9 @@ escriben a mano** (N-93).
 
 | Manual | Qué dice de más | Qué es cierto hoy |
 |---|---|---|
-| **1 · Usuario** | cámaras en `PB0`/`PB8`, mando y pulsadores | **2 cámaras en `J16` p10/p12**; el mando **no se monta** (`D-1`) y la operación es por app (`D-16`) |
+| **1 · Usuario** | cámaras en `PB0`/`PB8`, mando y pulsadores | ~~**2 cámaras en `J16` p10/p12**~~ **4 cámaras, dos por poste, en `J16` p10/p12** (`D-25`; las cuatro compradas, `D-27`); el mando **no se monta** (`D-1`) y la operación es por app (`D-16`) |
 | **3 · Protocolo de pruebas** | ⚠️ la cuenta de «80 pruebas» es la del protocolo **anterior** a la reescritura | **MEDIDO el 01/09**: 75 identificadores únicos, 47 casillas `CUMPLE` y 22 «No se firma» — **47 + 22 = 69, no 75**. 🔴 **No se publica un recuento nuevo porque no sale limpio**: seis pruebas no caen en ningún grupo, y hasta saber por qué cualquier cifra sería inventada |
-| **9 · Cámara IA** | contactos en `PB0` (Demanda) y `PB8` (Umbral) | **`PB8` ya no es destino de cámara**; el pinout se muda a `J16` p10/p12 |
+| **9 · Cámara IA** | contactos en `PB0` (Demanda) y `PB8` (Umbral) | **`PB8` ya no es destino de cámara**; el pinout se muda a `J16` p10/p12 · *11/09: alineado con `D-25` y `D-27` —cuatro cámaras, `J14` libre, valores del manual del modelo—; el `.docx` no* |
 | **10 · Bluetooth** | puerto `USART1` en `PA9`/`PA10`, y un módulo SPP dedicado | **`USART1` remapeado a `PB6`/`PB7`, salida por `J17`** (N-76), y **lo sustituye el ESP32** |
 | **11 · RTC** | `DS3231` en `PB0`/`PB8` del STM32 | **el `DS3231` vive en el ESP32** (`GPIO21`/`GPIO22`, pila propia) |
 | **13 · Expansión I²C** | sacar bus de `PB0`/`PB8` | **su §4 queda sin sujeto**: el I²C ya no vive en el STM32 |
@@ -353,7 +360,7 @@ escriben a mano** (N-93).
 
 ## 📌 Las cuatro decisiones que reconfiguraron la V9.0
 
-### 1. ~~Sistema de 4 cámaras IA AcuSense~~ → **2 cámaras de demanda**
+### 1. ~~Sistema de 4 cámaras IA AcuSense~~ → ~~**2 cámaras de demanda**~~ → **4 cámaras, dos por poste** *(11/09: `D-25`; las cuatro compradas, `D-27`)*
 
 * **Lo que sigue en pie:** descartar ordenadores externos. La analítica corre dentro del
   procesador AcuSense de las cámaras Hikvision, y el controlador consume **un contacto seco** por
@@ -362,7 +369,8 @@ escriben a mano** (N-93).
 * ⚠️ ~~Maestro: Cámara 1 (`PB0`) + Cámara 2 (Umbral, `PB8`); Esclavo: Cámaras 3 y 4~~ — **falso
   desde el 28/08**: son **dos cámaras de demanda, una por poste**, en **`J16` p10 (`PB14`) y p12
   (`PB15`)**. ⚠️ **11/09: `D-25` lo cambia otra vez — CUATRO cámaras, DOS POR POSTE, p10 y p12 en
-  cada uno** (ver `DECISIONES.md`).
+  cada uno** (ver `DECISIONES.md`). **`D-27` (11/09): las cuatro están compradas, y `J14` queda
+  libre y sin cablear.**
 * ✅ **La medida `M3` está cerrada desde el 03/09 y las cámaras se cablean** (`D-3`): pull-down
   real de 10 kΩ en las cuatro posiciones, `p10` y `p12` a **0 V** en reposo, entrada **activa en
   ALTO** — que es lo que el firmware ya hacía. ~~🔴 No se cablea todavía: polaridad en
@@ -456,7 +464,7 @@ Aquí no se copia: se enlaza.**
 
 | # | Qué | Depende de |
 |---|---|---|
-| **C1** | **SFTY-29: presencia como veto** | ~~decidido el 27/08: van las 4 cámaras~~ ⛔ **REVOCADO el 28/08: van DOS**, y con ello desaparece el sujeto de SFTY-29 · ⚠️ **11/09: `D-25` vuelve a CUATRO, dos por poste (`J16` p10 y p12)** — misma configuración para todas (`D-13`) y **ninguna veta nada**: el veto de la pluma sigue siendo `A-1.bis`, sin construir |
+| **C1** | **SFTY-29: presencia como veto** | ~~decidido el 27/08: van las 4 cámaras~~ ⛔ **REVOCADO el 28/08: van DOS**, y con ello desaparece el sujeto de SFTY-29 · ⚠️ **11/09: `D-25` vuelve a CUATRO, dos por poste (`J16` p10 y p12)** — misma configuración para todas (`D-13`; los valores, del manual del modelo por `D-27`) y **ninguna veta nada**: el veto de la pluma sigue siendo `A-1.bis`, sin construir |
 | **C2** | Reloj `DS3231` por I²C en el STM32 | ⛔ **anulado**: el reloj vive en el ESP32 (`D-9`) |
 | **C3** | **`FW-PAIR`** (byte `PAIR`, `SET_PAIR`, descarte de lo ajeno) | el más caro: toca el respaldo `DR9`, la `FIRMA` y `maestro_02_respaldo` |
 | **C4** | **`FW-N53`**: decidir secuencias | es **decisión de spec**, no código |

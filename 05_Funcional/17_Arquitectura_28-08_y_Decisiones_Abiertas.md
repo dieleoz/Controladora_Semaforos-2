@@ -53,6 +53,24 @@ consola de Windows en este repositorio.
 
 ---
 
+## ✏️ REVISION DEL 11/09/2026 (2.a) — `D-27`: `J14` LIBRE, CUATRO CAMARAS COMPRADAS (solo §1.7.bis y §3.5)
+
+**El responsable, 11/09 (`DECISIONES.md` `D-27`), sobre `D-25`:** (1) **las CUATRO camaras estan
+compradas** y el modelo es el de `D-10` (`DS-2CD2683G2-IZS`); (2) **`J14` queda LIBRE, sin
+cablear: el fin de carrera NO se instala en este despliegue.** Eso **cierra el conflicto (1) de la
+revision de abajo** sin tocar el firmware: el firmware sigue leyendo `PB0` como `CAM_DEMANDA_PIN`,
+y con `J14` vacio `R64` (10 kOhm a masa) deja el pin en 0 V —`J14` medido en cobre en los pasos
+17-18 del banco del 03-04/09—, asi que no pide nada. **Mientras el firmware lea `PB0` como
+demanda, en `J14` no se conecta nada.** (3) La configuracion de cada camara es la del manual del
+modelo (`04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md`); este documento no recita valores de
+configuracion, asi que no cambia nada aqui por ello. (4) Talanquera por rele a `OPEN` de la
+centralita, como en la guia del Sisga — igual que ya decia la revision de abajo.
+
+**Lo que NO cierra `D-27`:** el conflicto (2) de abajo —`D-25` *«las camaras no tocan el ciclo»*
+contra el Modo Inteligente, que **si** alarga una fase hasta `TECHO_POR_SUELO`— sigue abierto.
+
+---
+
 ## ✏️ REVISION DEL 11/09/2026 — `D-25`: CUATRO CAMARAS, DOS POR POSTE (solo §1.7, §1.7.bis y §3.5)
 
 **El responsable, 11/09:** *«mantener estas conexiones como definitivas»* —las de la guia del Sisga
@@ -71,8 +89,9 @@ por poste / `p12` vacio»*. Guia de campo: `05_Funcional/Camaras_Sisga_4x.html` 
 | en Automatico/Manual **no cambian ninguna luz**; en Inteligente **solo alargan**, con techo | la demanda solo la leen `modo_inteligente.cpp` y la rama `CMD_DEMANDA`, atendible solo en `MODO_INTELIGENTE` | `demanda_hayLocal()`, `camara_presenciaJ16()`, `TECHO_POR_SUELO` |
 | **una camara que nunca dio flanco no la vigila nadie** y la app pinta `CAM: OK — las dos ven` con la primera deteccion de CUALQUIERA (tambien la APK del 10/09) | la exencion se escribio para el `p12` vacio y **no ha cambiado**: pendiente EN FIRMWARE | `vigilante_tick()`, `camara_estado()`, `camHuboFlanco` |
 
-🔴 **Y DOS CONFLICTOS QUE ESTE DOCUMENTO NO RESUELVE, del responsable:** (1) **`J14`**: `A-2` manda
-ahi el fin de carrera y el firmware lo lee como camara de demanda (§1.7.bis, fila `CAM_DEMANDA_PIN`);
+🔴 **Y DOS CONFLICTOS QUE ESTE DOCUMENTO NO RESUELVE, del responsable:** (1) ~~**`J14`**: `A-2` manda
+ahi el fin de carrera y el firmware lo lee como camara de demanda (§1.7.bis, fila `CAM_DEMANDA_PIN`)~~
+-> 🟢 **CERRADO por `D-27` (11/09): `J14` libre y sin cablear, el fin de carrera no se instala**;
 (2) `D-25` dice *«las camaras no tocan el ciclo»* y en el Modo Inteligente **si lo alargan**
 (`TECHO_POR_SUELO`). Y una correccion de paso que no es de `D-25`: `p10` y `p12` **si llevan
 condensador en el netlist** (`C28`, `C29`), al contrario de lo que decia §1.7.bis.
@@ -1818,7 +1837,7 @@ footprint (`Molex_KK-254_AE-6410-16A_1x16_P2.54mm_Vertical`, 16 pads, tanto en `
 
 | entrada | pin | conector | ayuda de la placa | quien la declara | quien la lee |
 |---|---|---|---|---|---|
-| **`CAM_DEMANDA_PIN`** | `PB0` | **`J14`** | 🟢 **`R64` 10 kOhm + `C25` 100 nF — antirrebote RC de 1 ms EN LA PLACA**, escrito encima del `#define` | Maestro: `pinMode(CAM_DEMANDA_PIN, INPUT)` en `botones_setup()` · Esclavo: el mismo `pinMode` en `setup()` de `main.cpp` | Maestro: `camara_leerPin(CAM_DEMANDA_PIN)` en `modoInteligente_loop()` · Esclavo: `digitalRead(CAM_DEMANDA_PIN) == HIGH` en `main.cpp`. 🔴 **CONFLICTO ABIERTO (11/09), del responsable — NO se resuelve aqui:** `A-2` (cerrada el 05/09) manda a `J14` el **fin de carrera** de la pluma, y **no lleva camara** (Manual 9); pero el firmware **lo sigue leyendo como camara de demanda** en las dos puntas —Maestro por NIVEL (pide y SOSTIENE fase en Inteligente), Esclavo por FLANCO -> `demanda_solicitar()` -> `CMD_DEMANDA`—. **Un fin de carrera cableado ahi daria demandas falsas cada vez que se mueve la pluma** |
+| **`CAM_DEMANDA_PIN`** | `PB0` | **`J14`** | 🟢 **`R64` 10 kOhm + `C25` 100 nF — antirrebote RC de 1 ms EN LA PLACA**, escrito encima del `#define` | Maestro: `pinMode(CAM_DEMANDA_PIN, INPUT)` en `botones_setup()` · Esclavo: el mismo `pinMode` en `setup()` de `main.cpp` | Maestro: `camara_leerPin(CAM_DEMANDA_PIN)` en `modoInteligente_loop()` · Esclavo: `digitalRead(CAM_DEMANDA_PIN) == HIGH` en `main.cpp`. ~~🔴 **CONFLICTO ABIERTO (11/09), del responsable — NO se resuelve aqui:** `A-2` (cerrada el 05/09) manda a `J14` el **fin de carrera** de la pluma, y **no lleva camara** (Manual 9);~~ pero el firmware **lo sigue leyendo como camara de demanda** en las dos puntas —Maestro por NIVEL (pide y SOSTIENE fase en Inteligente), Esclavo por FLANCO -> `demanda_solicitar()` -> `CMD_DEMANDA`—. **Un fin de carrera cableado ahi daria demandas falsas cada vez que se mueve la pluma.** 🟢 **`D-27` (11/09): `J14` LIBRE, sin cablear — el fin de carrera NO se instala en este despliegue, y con eso el conflicto se cierra sin tocar el firmware.** Vacio, `R64` lo deja en 0 V (`J14` MEDIDO EN COBRE, pasos 17-18). **Mientras el firmware lea `PB0` como demanda, en `J14` no se conecta nada** |
 | **`CAM_C_PIN`** | `PB14` | **`J16` p10** | 🟠 **`R67` 10 kOhm a masa, MEDIDA en cobre: `9,93 kOhm`.** ~~**SIN condensador**~~ ✏️ **11/09: FALSO en el netlist** — `C28` 100 nF entre `/Boton3` y `GND` (`.kicad_pcb`, y `MAPEO_TARJETA_KICAD.md`, fila p10). **El condensador no se ha medido en cobre** | `pinMode(CAM_C_PIN, INPUT)` en `botones_setup()`, **las dos puntas** | `camaras_actualizar()` — su siembra `camaras_sembrar()` — y 🆕 **el vigilante de `D-13` fase 1** (`vigilante_flanco()`, `vigilante_nivel()`, `vigilante_tick()`), **las dos puntas** |
 | **`CAM_D_PIN`** | `PB15` | **`J16` p12** | 🟠 **`R68` 10 kOhm a masa, MEDIDA: `9,94 kOhm`.** ~~**SIN condensador**~~ ✏️ **11/09: FALSO en el netlist** — `C29` 100 nF entre `/Boton4` y `GND`; sin medir en cobre. ✏️ **Y desde `D-25` lleva la CAMARA 2 de cada poste** | `pinMode(CAM_D_PIN, INPUT)` en `botones_setup()` | idem |
 
@@ -3091,8 +3110,8 @@ el C++"*.~~ → **la decision se tomo, y su sitio era exactamente ese.**
 >
 > ~~**`D-13` es UNA CAMARA POR POSTE, y las dos unidades compradas son una para cada poste** — lo dice
 > la linea `A2` de la lista de compras (*«2 unidades … una por poste»*)~~ *(✏️ **11/09: derogado por
-> `D-25`** — dos por poste, cuatro en el cruce; la linea `A2` de `15_` pasa a 4, con 2 compradas y
-> 2 SIN VERIFICAR)* y **el firmware DEPENDE de
+> `D-25`** — dos por poste, cuatro en el cruce; la linea `A2` de `15_` pasa a 4, ~~con 2 compradas y
+> 2 SIN VERIFICAR~~ **las cuatro compradas, `D-27`)* y **el firmware DEPENDE de
 > ello por escrito**: la exencion del vigilante —no acumular silencio en un pin que nunca dio un
 > flanco— existe justamente porque **el otro pin esta vacio a proposito** *(✏️ **11/09: y sigue
 > dependiendo** — el codigo no ha cambiado; con `D-25` esa dependencia es un hueco: una segunda
@@ -3104,7 +3123,8 @@ el C++"*.~~ → **la decision se tomo, y su sitio era exactamente ese.**
 > manda las camaras a **`J16`**, *«en los pines donde estaban el Boton 3 y el Boton 4»*, y deja
 > `PB0`/`J14` **libre para un posible fin de carrera de barrera**. O sea que §3.5 —*«la Camara 1 se
 > queda en `PB0`/`J14` o se muda a `J16`»*— **no es una decision abierta: esta cerrada desde el
-> 05/09 a favor de `J16`**, y lo que sigue vivo de este apartado es solo su AVISO ELECTRICO, que no
+> 05/09 a favor de `J16`** *(y `J14`, por `D-27` el 11/09, **libre y sin cablear**: el fin de
+> carrera no se instala)*, y lo que sigue vivo de este apartado es solo su AVISO ELECTRICO, que no
 > caduca: `p12` es el punto del conector mas cercano a los 12 V (`1,359 mm`) y ninguna entrada de
 > campo lleva proteccion en serie (§3.6).
 >
@@ -3116,9 +3136,10 @@ el C++"*.~~ → **la decision se tomo, y su sitio era exactamente ese.**
 > **El responsable, 11/09: *«mantener estas conexiones como definitivas»*** —las de la guia del
 > Sisga revisada con el el 10/09—: **cuatro camaras, DOS POR POSTE**, camara 1 entre `J16` p9 y
 > **p10**, camara 2 entre `J16` p11 y **p12**. Deroga de `D-13` **solo** *«una camara por poste /
-> `p12` vacio»*; el resto de `D-13` sigue vigente. **`J14` no lleva camara** — y queda con el
+> `p12` vacio»*; el resto de `D-13` sigue vigente. **`J14` no lleva camara** — ~~y queda con el
 > **conflicto abierto** de §1.7.bis (`A-2` lo quiere para el fin de carrera; el firmware lo lee
-> como camara).
+> como camara)~~ -> **y por `D-27` (11/09) queda LIBRE, sin cablear: el fin de carrera no se
+> instala** (§1.7.bis, fila `CAM_DEMANDA_PIN`).
 >
 > **Lo que NO cambia de este apartado, y ahora pesa mas:** su **aviso electrico**. `p12` es el
 > punto del conector **mas cercano a la red de 12 V** (`1,359 mm`), y desde hoy **lleva cable de

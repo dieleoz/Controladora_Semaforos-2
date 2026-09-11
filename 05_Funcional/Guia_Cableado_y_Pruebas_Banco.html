@@ -459,7 +459,8 @@
       de resultado esperado por su culpa</b>, y están marcados con ✏️. <b>Si mides con la hoja de la
       tarde en la cabeza, vas a apuntar al revés.</b></p>
     <p class="sub">🆕 <b>Y esta revisión trae pasos nuevos que no estaban el 04/09.</b> Han llegado
-      las <b>dos cámaras Hikvision <code>DS-2CD2683G2-IZS</code></b>, y las dos medidas que
+      las <b>dos cámaras Hikvision <code>DS-2CD2683G2-IZS</code></b> <i>(11/09, D-27: el cruce lleva
+      cuatro y <b>las cuatro están compradas</b>)</i>, y las dos medidas que
       desbloquean todo el diseño de cámaras —<b>pasos 39 y 40</b>, apartado <b>08.quater</b>— sólo
       vivían en el documento del auditor. <b>No tocan la tarjeta</b>: se hacen con la cámara y un PC
       sobre la mesa. Está también el <b>paso 7.bis</b>, el LED indicador de <code>VERDE2</code>, que
@@ -486,8 +487,17 @@
       la pluma sube con verde <b>y con el ámbar intermitente</b>; y <b>una cámara que no ha
       detectado nunca no la vigila nadie</b> — la trama <code>CAM:</code> dice <code>OK</code> en
       cuanto <b>una</b> de las dos detecta.</p>
+    <p class="sub">🎯 <b>11/09 · Y LO QUE CERRÓ EL RESPONSABLE ESE MISMO DÍA (<code>D-27</code>):</b>
+      <b>las CUATRO cámaras están compradas</b> (modelo <code>DS-2CD2683G2-IZS</code> confirmado);
+      <b><code>J14</code> queda LIBRE, sin cablear</b> —el fin de carrera <b>no se instala en este
+      despliegue</b>, y como el programa sigue leyendo <code>PB0</code> como petición de paso, <b>en
+      <code>J14</code> no se conecta nada en campo</b>; los pasos 17 y 19 lo siguen ejerciendo
+      <b>en banco</b> con un cable que se retira al terminar—; y <b>la configuración de cada cámara
+      es la del manual del modelo comprado</b> (<code>04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md</code>
+      §4 y la ficha del modelo; esta hoja no configura: sólo mide, en los pasos 39 y 40). Lo tachado por esto lleva la marca
+      <b>«11/09, D-27»</b>.</p>
     <div class="meta">
-      <span>revisión del <b>07 · 09 · 2026</b> · sobre la del 04/09 noche y las cámaras del 05/09 · <b>11/09: texto alineado con <code>D-25</code></b> (cámaras y <code>J15</code>; los pasos no cambian de número)</span><span>48 pasos</span><span>firmware con N-42, N-133, N-134, N-142, N-145, N-146, N-147, N-149 · y del 05/09: <b>A-12</b> (suelo y techo del Inteligente), <b>D-13 fase 1</b> (vigilante de cámaras) y <b>D-18</b> (Degradado del Poste 2 por app)</span>
+      <span>revisión del <b>07 · 09 · 2026</b> · sobre la del 04/09 noche y las cámaras del 05/09 · <b>11/09: texto alineado con <code>D-25</code></b> (cámaras y <code>J15</code>; los pasos no cambian de número) · <b>11/09: y con <code>D-27</code></b> (<code>J14</code> libre en campo, cuatro cámaras compradas, configuración por el manual del modelo, relé de <code>J15</code>)</span><span>48 pasos</span><span>firmware con N-42, N-133, N-134, N-142, N-145, N-146, N-147, N-149 · y del 05/09: <b>A-12</b> (suelo y techo del Inteligente), <b>D-13 fase 1</b> (vigilante de cámaras) y <b>D-18</b> (Degradado del Poste 2 por app)</span>
     </div>
   </header>
 
@@ -611,7 +621,9 @@
       esta hoja te manda tocarlos</b> —el que lo hacía, el 29, se ha retirado—. <b>Si algún día se
       pone algo ahí</b> —un final de carrera de la barrera, que es la idea anotada— <b>hay que
       desarmar antes ese reconocedor</b>: una pluma que sube y baja tres veces seguidas <b>es</b>
-      <code>B·B·B</code>. <b>Eso está sin decidir y va en la pregunta 3.</b></p>
+      <code>B·B·B</code>. <s><b>Eso está sin decidir y va en la pregunta 3.</b></s> → <b>11/09,
+      D-27: decidido.</b> <code>A-2</code> (05/09) dejó p5/p8 vacíos, y <code>D-27</code> dice que
+      <b>el fin de carrera no se instala en este despliegue</b>: ni aquí ni en <code>J14</code>.</p>
     <p class="porque">Medido el 05/09 sobre el fuente de las dos puntas, y así se localiza:
       <code>grep -n "bool botonAceptar\|bool botonCancelar\|bool botonArriba\|bool botonAbajo" Maestro/src/botones.cpp Esclavo/src/botones.cpp</code>
       · <code>grep -rn "botonArriba\|botonAbajo" Maestro/src Esclavo/src</code>. <b>Se cita el
@@ -848,7 +860,9 @@
               se cablea</b> (contra <b>p11</b>). Se ejerce igual, con un cable a 3,3 V</td><td>21</td></tr>
           <tr><td>Petición de paso por <code>J14</code> (<code>PB0</code>)</td>
             <td><b>Ya NO es donde va la cámara</b> (ver el aviso de debajo). Sigue viva como entrada
-              y se ejerce con un cable <b>entre sus dos bornes</b></td><td>19</td></tr>
+              y se ejerce con un cable <b>entre sus dos bornes</b> — <b>sólo en banco</b>: 11/09,
+              <code>D-27</code>, <b>en campo <code>J14</code> queda vacío</b>, y el cable se retira al
+              terminar el paso 19</td><td>19</td></tr>
           <tr><td><code>J16</code> p5 y p8</td>
             <td>🛑 <b>NO SE TOCAN. El mando de relés no existe: no hay nada que cablear ahí</b>, y un
               puente «para probar» compone secuencias de mando en un equipo vivo. Ver el aviso rojo
@@ -898,15 +912,21 @@
           el programa <b>no juzga el silencio de un pin que nunca ha dado señal</b> —se escribió así
           porque <code>p12</code> iba vacío—, de modo que <b>una segunda cámara muerta desde el día
           que se monta no la detecta nadie</b>. Cada cámara se comprueba <b>en su borne</b> (paso 21).</p>
-        <p>🟢 <b><code>J14</code> NO se retira y sigue vivo</b> —se ejerce en el paso 19—. Queda como
+        <p>🟢 <b><code>J14</code> NO se retira y sigue vivo</b> —se ejerce en el paso 19—. <s>Queda como
           el mejor candidato a <b>final de carrera de la barrera</b>, porque es <b>el único pin de
           entrada con antirrebote por hardware</b> y un contacto mecánico es justo lo que rebota.
           🔴 <b>11/09 · CONFLICTO ABIERTO, no se resuelve en esta hoja:</b> <code>A-2</code> (05/09)
-          manda el final de carrera a <code>J14</code>/<code>PB0</code>, pero el programa lee
+          manda el final de carrera a <code>J14</code>/<code>PB0</code>, pero</s> <i>(tachado 11/09,
+          D-27)</i> El programa lee
           <code>PB0</code> como <code>CAM_DEMANDA_PIN</code> —el Maestro por nivel en Modo
           Inteligente, el Esclavo por flanco en cualquier modo (manda <code>CMD_DEMANDA</code>)—. Un
-          final de carrera ahí <b>pediría paso cada vez que la pluma se mueve</b>. <b>No cablees nada
-          en <code>J14</code> sin que el responsable lo diga.</b></p>
+          final de carrera ahí <b>pediría paso cada vez que la pluma se mueve</b>. <s><b>No cablees nada
+          en <code>J14</code> sin que el responsable lo diga.</b></s>
+          → 🎯 <b>11/09, <code>D-27</code>: <code>J14</code> LIBRE, sin cablear.</b> El fin de carrera
+          <b>no se instala en este despliegue</b>, así que <b>en campo, en <code>J14</code> no se conecta
+          nada</b>. Vacío, <code>R64</code> lo deja en 0 V y no pide nada (medido en banco el
+          03-04/09, pasos 17-18). En banco se sigue ejerciendo con un cable (pasos 17 y 19), que
+          <b>se retira al terminar</b>.</p>
       </div>
       <p><b>Lo que trae cada borne, medido en el fuente y en el cobre:</b></p>
       <div class="tabla-envoltorio">
@@ -1005,7 +1025,11 @@
         <b>p2</b> = drenador de <code>Q10</code>, <b>que NO es masa</b>: con <code>Q10</code> abierto
         está a ~12 V. Entre p1 y p2 va <b>la bobina de un relé</b>; el <b>contacto</b> de ese relé va a
         la entrada <code>OPEN</code> de la centralita. <code>D30</code> es la rueda libre en la placa.
-        <b>Nunca</b> los dos bornes de <code>J15</code> directos a la centralita.</p>
+        <b>Nunca</b> los dos bornes de <code>J15</code> directos a la centralita.
+        <i>(11/09, <code>D-27</code>: como en <code>Camaras_Sisga_4x.html</code> — relé con
+        <b>bobina de 12 V DC</b> entre p1 y p2, su contacto <b>normalmente abierto</b> a
+        <code>OPEN</code> y al común de la centralita; <b>sin módulo optoacoplado</b>, que en
+        <code>J15</code> no tendría masa ni 3,3 V de donde alimentarse.)</i></p>
       <div class="anota">
         <p class="porque">Al energizar sin programa en marcha, ¿la pluma quedó abajo? <input type="text" id="a0ta" class="en-linea"></p>
         <p class="porque">En ámbar intermitente, ¿subió? <input type="text" id="a0tb" class="en-linea">
@@ -1752,8 +1776,9 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
     <b>lo mismo</b>: paso para ese poste. ✏️ <b>La que se cablea va a <code>J16</code> p10</b>
     —<s>a <code>J14</code></s>, cambiado el 05/09— <b>porque es el único borne donde el programa la
     VIGILA</b>. <s><code>p12</code> queda libre como segunda entrada</s> → <b>11/09, D-25: la segunda
-    va a <code>p12</code></b>, y <code>J14</code> sigue vivo (con el conflicto de <code>A-2</code>
-    del apartado 00). Ver el aviso del apartado 00.</p>
+    va a <code>p12</code></b>, y <code>J14</code> sigue vivo <s>(con el conflicto de <code>A-2</code>
+    del apartado 00)</s> → <b>11/09, D-27: LIBRE y sin cablear en campo</b> (en banco se ejerce
+    con un cable en los pasos 17 y 19, que se retira). Ver el aviso del apartado 00.</p>
   <p class="sub"><b>Las entradas se simulan con un cable, pero no con el mismo gesto:</b> en
     <code>J14</code> el cable va <b>entre sus dos bornes</b>; en <code>J16</code> va del pin
     <b>a los 3,3 V</b> (p9 u p11), <b>nunca a masa</b>. Y <code>J16</code> <b>no se cablea hasta el
@@ -1782,6 +1807,10 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
         de frente.</p>
       <p class="ver"><b class="et">Ver</b> <b>Uno a 3,3 V y el otro cerca de 0 V</b>, estables.
         <b>Si los dos dan 0 V, para y avisa</b>: la entrada estaría al revés.</p>
+      <p class="porque">🎯 <b>11/09, <code>D-27</code>:</b> ese 0 V en reposo es justo lo que deja
+        <code>J14</code> <b>LIBRE en campo</b>: el fin de carrera no se instala en este despliegue y
+        allí no se conecta nada; vacío, <code>R64</code> lo tiene en 0 V y el programa no ve ninguna
+        petición.</p>
       <div class="anota">
         <p class="porque">Borne 1: <input type="text" id="a17a" class="en-linea"> V
           &nbsp; Borne 2: <input type="text" id="a17b" class="en-linea"> V</p>
@@ -1826,11 +1855,15 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
       <p class="ft">Que el semáforo <b>responda</b> a la petición de <code>J14</code> <a href="#d31">detalle</a></p>
       <p><b class="et">Haz</b> ✏️ <b>Con un cable o un pulsador entre los dos bornes de
         <code>J14</code></b>. <b>Aquí ya no va la cámara</b>, pero <code>J14</code> <b>sigue vivo</b>
-        y esta es la única vez que se ejerce, así que no se salta: es el borne candidato al final de
+        y esta es la única vez que se ejerce, así que no se salta<s>: es el borne candidato al final de
         carrera de la barrera. 🔴 <b>11/09 · CONFLICTO ABIERTO:</b> <code>A-2</code> ya lo reservó al
         final de carrera, y lo que este paso ejerce —<b>que <code>J14</code> pide paso</b>— es justo lo
         que haría un final de carrera cada vez que la pluma se mueve, porque el programa lee
-        <code>PB0</code> como <code>CAM_DEMANDA_PIN</code>. Se mide y se anota; no se decide aquí.
+        <code>PB0</code> como <code>CAM_DEMANDA_PIN</code>. Se mide y se anota; no se decide aquí.</s>.
+        → 🎯 <b>11/09, <code>D-27</code>: <code>J14</code> queda LIBRE, sin cablear, en campo</b> —el
+        fin de carrera no se instala en este despliegue—. El programa sigue leyendo <code>PB0</code>
+        como <code>CAM_DEMANDA_PIN</code>, y por eso <b>este cable es sólo de banco: se retira al
+        terminar el paso</b> y en el poste <b>no se deja nada conectado a <code>J14</code></b>.
         Primero <b>un ciclo entero sin tocar nada</b>. Después cierra el
         contacto con ese sentido en rojo y <b>cronometra</b>.</p>
       <p class="ver"><b class="et">Ver</b> <b>En reposo, ninguna petición.</b> Al cerrar, ese poste
@@ -3349,8 +3382,9 @@ CON modulo de reloj conectado:
 
   <h2><span class="n">08.quater</span> Las dos cámaras Hikvision · las dos medidas que desbloquean el diseño</h2>
   <p class="sub" style="margin-top:.4rem">Han llegado <b>dos <code>DS-2CD2683G2-IZS</code></b>, <s>una
-    por poste</s> <b>(11/09, D-25: el cruce lleva CUATRO, dos por poste; cuántas hay compradas lo
-    dice la lista de compras, no esta hoja)</b>. <b>Estos dos pasos no tocan la tarjeta ni la necesitan</b>: se hacen con la cámara,
+    por poste</s> <b>(11/09, D-25: el cruce lleva CUATRO, dos por poste; <s>cuántas hay compradas lo
+    dice la lista de compras, no esta hoja</s> → 11/09, D-27: las CUATRO están compradas, modelo
+    <code>DS-2CD2683G2-IZS</code> confirmado)</b>. <b>Estos dos pasos no tocan la tarjeta ni la necesitan</b>: se hacen con la cámara,
     su fuente y un portátil, <b>sobre la mesa</b>, y se pueden hacer aunque el Maestro siga con el
     corto. <b>Son las dos únicas medidas de toda la visita que no se pueden sacar de ningún
     documento</b> &mdash;lo hemos intentado: están <b>leídas las 110 páginas del manual y las 40 de
@@ -3724,10 +3758,15 @@ CON modulo de reloj conectado:
       elija por descarte:</b> <code>J14</code> quedó libre al mudar la cámara a <code>J16</code>, y
       es <b>el único pin de entrada del equipo con antirrebote por hardware</b> —justo lo que un
       contacto mecánico necesita—. <b>No entra en ningún reconocedor de secuencias.</b>
-      🔴 <b>11/09 · pero no está libre de lectura:</b> <code>A-2</code> lo reservó al final de
-      carrera y el programa lee <code>PB0</code> como <code>CAM_DEMANDA_PIN</code>, así que un
-      final de carrera ahí <b>pediría paso</b> cada vez que se mueve la pluma. <b>Conflicto abierto
-      entre la decisión y el firmware</b>: se anota, no se decide en banco.</p>
+      🔴 <b>11/09 · pero no está libre de lectura:</b> <s><code>A-2</code> lo reservó al final de
+      carrera y</s> el programa lee <code>PB0</code> como <code>CAM_DEMANDA_PIN</code>, así que un
+      final de carrera ahí <b>pediría paso</b> cada vez que se mueve la pluma. <s><b>Conflicto abierto
+      entre la decisión y el firmware</b>: se anota, no se decide en banco.</s></p>
+    <p>🎯 <b>11/09 · CERRADO POR EL RESPONSABLE (<code>D-27</code>): el fin de carrera NO se instala
+      en este despliegue.</b> <b><code>J14</code> queda LIBRE y sin cablear</b> —en campo no se
+      conecta nada ahí; vacío, <code>R64</code> lo deja en 0 V y no pide nada (pasos 17-18)— y
+      <b>p5/p8 siguen vacíos</b> (<code>A-2</code>, 05/09). <b>La parte de <code>J14</code> de esta
+      pregunta ya está contestada</b>; lo que quede de p5/p8, si algo, se escribe abajo.</p>
     <textarea id="pa3" style="min-height:3rem" placeholder="¿se dejan vacios p5 y p8? · si va un final de carrera: ¿a J14 (con antirrebote y sin reconocedor) o a J16 p5/p8? · si va a p5/p8, ¿se autoriza desarmar el reconocedor de secuencias del mando? · ¿quien firma ese cambio?"></textarea>
   </div>
 
@@ -3830,8 +3869,16 @@ CON modulo de reloj conectado:
       <code>BTS7x</code>, <code>TB6612</code>, <code>IBT</code> y <code>BTN8x</code>.</p>
     <p><b>Y hay una alternativa que hace lo mismo con las mismas dos entradas:</b> el
       <code>BTS7960</code> / módulo <code>IBT-2</code>. MOSFET, <b>43&nbsp;A</b>, caída de
-      milivoltios, sin disipador. La fila <b>A4</b> de la lista de compras hay que tocarla igual
-      &mdash;hoy pide un módulo de relé&mdash;, así que si se toca, conviene decidir cuál.</p>
+      milivoltios, sin disipador. <s>La fila <b>A4</b> de la lista de compras hay que tocarla igual
+      &mdash;hoy pide un módulo de relé&mdash;, así que si se toca, conviene decidir cuál.</s></p>
+    <p>⚠️ <b>11/09 · <code>D-25</code> y <code>D-27</code> fijan otra conexión, y esta pregunta no la
+      cierra esta hoja:</b> <code>J15</code> p1/p2 a la <b>bobina de un relé de 12 V</b>, y su
+      contacto <b>normalmente abierto</b> a <code>OPEN</code> y al común de la <b>centralita</b> de la
+      barrera, que mueve su propio motor (como en <code>Camaras_Sisga_4x.html</code>). <b>La fila
+      <code>A4</code> de la lista de compras es ese relé.</b> Si con eso el <code>L298N</code> o el
+      <code>BTS7960</code> siguen haciendo falta es <code>D-g</code> (<code>N-132</code>) del
+      <code>roadmap.md</code>, <b>abierta</b>: los dos números de abajo sólo deciden algo si la
+      tarjeta tuviera que mover el motor directamente. Anótalos igual si los tienes.</p>
     <p><b>Lo que necesitamos de ti son dos números de la placa del motorreductor</b>, y con ellos
       se cierra: si el <code>L298N</code> vale o hay que ir al <code>BTS7960</code>.</p>
     <div class="campo"><label for="pa11a">Corriente NOMINAL del motorreductor (A, de su placa)</label><input type="text" id="pa11a" placeholder="p. ej. 1,8 A"></div>
@@ -4380,12 +4427,17 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
                 ✏️ <b>05/09: la CÁMARA ya no va aquí</b> (<s>era la que se cablea</s>) —va a
                 <code>J16</code> p10, que es el único borne donde el programa la <b>vigila</b>—.
                 <b>Este pin NO se retira y sigue vivo</b>: <b>es la única entrada con antirrebote en
-                el cobre</b> —su propia resistencia y su condensador, 1 ms—, o sea <b>el mejor
+                el cobre</b> —su propia resistencia y su condensador, 1 ms—<s>, o sea <b>el mejor
                 borne del equipo para un contacto mecánico</b>, como un final de carrera de la
-                barrera. Y <b>no entra en ningún reconocedor de secuencias</b>.
-                🔴 <b>11/09 · CONFLICTO ABIERTO:</b> <code>A-2</code> lo reserva al final de carrera
+                barrera</s>. Y <b>no entra en ningún reconocedor de secuencias</b>.
+                <s>🔴 <b>11/09 · CONFLICTO ABIERTO:</b> <code>A-2</code> lo reserva al final de carrera
                 y el programa lo lee como cámara (<code>CAM_DEMANDA_PIN</code>): pediría paso. No se
-                resuelve aquí</td></tr>
+                resuelve aquí</s>
+                → 🎯 <b>11/09, <code>D-27</code>: LIBRE, sin cablear, en campo.</b> El fin de carrera
+                no se instala en este despliegue y el programa lo lee como cámara
+                (<code>CAM_DEMANDA_PIN</code>): <b>en el poste no se conecta nada aquí</b>. Vacío,
+                <code>R64</code> lo deja en 0 V y no pide nada (pasos 17-18). El cable del paso 19 es
+                de banco y se retira</td></tr>
             <tr><td><code>J15</code></td><td><b>Talanquera</b></td>
               <td><s>Un borne a <b>+12 V de batería</b>, el otro a la <b>entrada de apertura</b> de la
                 centralita. Transistor de potencia hasta 10 A: <b>no hace falta relé externo</b></s>
@@ -4393,7 +4445,9 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
                 (<b>no es masa</b>: con <code>Q10</code> abierto está a ~12 V) <b>a la bobina de un
                 relé</b>; el <b>contacto</b> del relé va a la entrada <code>OPEN</code> de la
                 centralita. Sube con verde <b>y con el ámbar intermitente</b>; <b>ninguna cámara la
-                frena</b></td></tr>
+                frena</b>. <i>(11/09, <code>D-27</code>: relé de <b>bobina 12 V DC</b>, contacto
+                <b>normalmente abierto</b> a <code>OPEN</code> y al común; sin módulo optoacoplado;
+                la rueda libre ya está en la placa, <code>D30</code>.)</i></td></tr>
             <tr><td><code>J12</code></td><td><b>Radio</b> entre postes</td>
               <td><b>En servicio: no se toca.</b> Sin ella los dos postes no se coordinan</td></tr>
             <tr><td><code>J16</code> <b>p1</b></td><td>🔴 <b>12 V crudos</b></td>
@@ -4467,7 +4521,9 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
    11/09, D-25:  Camara 1 -> J16 p10 (+p9)   Camara 2 -> J16 p12 (+p11)
                  Talanquera: J15 p1/p2 -> bobina de rele -> contacto a OPEN
    J14 (PB0) queda LIBRE: sigue vivo y es el unico con antirrebote
-   (A-2: reservado al fin de carrera; el firmware lo lee como camara -> CONFLICTO ABIERTO)
+   <s>(A-2: reservado al fin de carrera; el firmware lo lee como camara -> CONFLICTO ABIERTO)</s>
+   11/09, D-27: LIBRE y SIN CABLEAR en campo (no hay fin de carrera en este despliegue;
+                el firmware lo lee como camara -> no se conecta NADA)
    J16 -> 12 V en la posicion 1 . CUIDADO . igual en las dos puntas</pre>
       </div>
       <h4>Las TRES entradas, que no son una</h4>

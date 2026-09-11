@@ -27,7 +27,7 @@ ejecutables de configuración para PC.
 > | 2️⃣ **`J16` p1 lleva 12 V CRUDOS** a un conector de señal directa al micro | Sin opto, sin limitadora, sin clamp. **Taparlo es obligatorio en cada equipo que se monte** (`D-4`). Y el margen real de cobre contra esa red es de **1,36 mm** en `p12`, no los 10 mm del conector: ~~**si una cámara es más crítica, va en `p10`** (4,27 mm)~~ → 🔴 **11/09, `D-25`: `p12` lleva la cámara 2 de cada poste, o sea que el peor borne SIEMPRE lleva cable** |
 > | 3️⃣ **`J14` es una ENTRADA del micro; la salida de la talanquera es `J15`** | `J14` es `PB0` a 3,3 V **sin opto, sin diodo, sin limitadora** — y **el esquemático la rotula «Puerta»**, que es la trampa. 🔴 **Un relé cableado a `J14` se DESCONECTA antes de energizar.** La pluma va a `J15` |
 > | 4️⃣ **El borne NO está a 0 V en reposo: está a ~12 V** | Nueve de las diez cadenas llevan **pull-up de 1 kΩ + LED al riel de 12 V en el COBRE** — no se evita dejando un hilo sin poner. Y *«el opto aísla galvánicamente»* es **medio cierto**: hay **UNA sola red `GND` de 103 pads**, así que **lo que se cuelgue de esos bornes comparte la masa del controlador** |
-> | 5️⃣ **`J16` p5 y p8 están VACÍOS y el código SIGUE leyendo sus flancos** | **Nada se cablea ahí** (~~`A-2` sin decidir~~ → `A-2` **cerrada el 05/09**: p5/p8 se quedan como el mando, sin cablear, y el fin de carrera va a `J14` — 🔴 *11/09: y el firmware lee `J14` como cámara, **conflicto abierto**, ver abajo*). Lo que se cierre compone secuencias del mando, y 🔴 **`A·A·A` —la única sin guarda— ARRANCA EL CICLO, o sea abre paso** (medido el 07/09, `MANUAL_MANDO_4_RELES.md` §8) |
+> | 5️⃣ **`J16` p5 y p8 están VACÍOS y el código SIGUE leyendo sus flancos** | **Nada se cablea ahí** (~~`A-2` sin decidir~~ → `A-2` **cerrada el 05/09**: p5/p8 se quedan como el mando, sin cablear, ~~y el fin de carrera va a `J14` — 🔴 *11/09: y el firmware lee `J14` como cámara, **conflicto abierto**, ver abajo*~~ → 🟢 *11/09, `D-27`: y **`J14` también queda LIBRE, sin cablear** — el fin de carrera no se instala en este despliegue*). Lo que se cierre compone secuencias del mando, y 🔴 **`A·A·A` —la única sin guarda— ARRANCA EL CICLO, o sea abre paso** (medido el 07/09, `MANUAL_MANDO_4_RELES.md` §8) |
 >
 > 🔴 **11/09 — `D-25`: CUATRO CÁMARAS, DOS POR POSTE, y las conexiones son DEFINITIVAS** (el
 > responsable: *«mantener estas conexiones como definitivas»*). En cada poste: **cámara 1** entre
@@ -44,8 +44,17 @@ ejecutables de configuración para PC.
 >   verde (poste recién encendido sin enlace, radio perdida, Modo Ámbar).
 > - **La app pone `CAM: OK` —*«las dos ven…»*— con que detecte UNA**, y una cámara que nunca detectó
 >   no la anuncia el equipo. **Cada cámara se comprueba con el multímetro en su borne.**
-> - **`J14`: `A-2` lo reserva al fin de carrera, pero el firmware lo lee como `CAM_DEMANDA_PIN`** —
->   un fin de carrera ahí daría demandas falsas—. **CONFLICTO ABIERTO, del responsable.**
+> - ~~**`J14`: `A-2` lo reserva al fin de carrera, pero el firmware lo lee como `CAM_DEMANDA_PIN`** —
+>   un fin de carrera ahí daría demandas falsas—. **CONFLICTO ABIERTO, del responsable.**~~ →
+>   🟢 **11/09, `D-27`: `J14` queda LIBRE, sin cablear — el fin de carrera NO se instala en este
+>   despliegue.** El firmware lo sigue leyendo como `CAM_DEMANDA_PIN`, así que **en `J14` no se
+>   conecta nada**; vacío, `R64` lo deja en 0 V y no pide nada (`J14` medido en banco el 03-04/09,
+>   pasos 17-18).
+>
+> 🟢 **11/09 (tarde) — `D-27`: las CUATRO cámaras están compradas** (`DS-2CD2683G2-IZS`, `D-10`), y
+> **la configuración de cada cámara es la de `MANUAL_CONFIGURACION_CAMARAS_IA.md`** (el manual del
+> modelo comprado, con su ficha); el Manual 9 de `05_Funcional/` se alinea con él. La talanquera va
+> por un **relé de bobina de 12 V DC con contacto NA** (`MANUAL_HARDWARE.md` §3.bis).
 >
 > La guía de campo de estas cuatro cámaras es `05_Funcional/Camaras_Sisga_4x.html` (corregida el
 > 11/09); el detalle, en `MANUAL_CONFIGURACION_CAMARAS_IA.md` y `MANUAL_HARDWARE.md` §3.bis.
@@ -96,7 +105,7 @@ ejecutables de configuración para PC.
 | 👉 **[`MANUAL_USUARIO.md`](MANUAL_USUARIO.md)** | El comportamiento del sistema —luces, despeje, fallas, cámaras, mando— y el manual **del operario** | ⚠️ **§2 describe un modo que NO EXISTE** (ver arriba) · el resto, al día contra `DECISIONES.md` |
 | 👉 **[`MANUAL_HARDWARE.md`](MANUAL_HARDWARE.md)** | Topología, cableado RS485, pines, borneras y placa base | ✅ al día · 🔴 lleva los avisos de `J14`/`J15`, de los ~12 V en reposo y del hueco de `D-14` |
 | 👉 **[`MANUAL_CONFIGURACION_BLUETOOTH.md`](MANUAL_CONFIGURACION_BLUETOOTH.md)** | 🔴 **el manual de la ÚNICA superficie de mando del equipo.** Consecuencia directa de `D-1`, escrita como **`D-16`**: *sin teléfono no hay forma de operar el equipo*. No es una avería: es una propiedad declarada del sistema | ✅ |
-| 👉 **[`MANUAL_CONFIGURACION_CAMARAS_IA.md`](MANUAL_CONFIGURACION_CAMARAS_IA.md)** | Parametrización de la cámara comprada (`DS-2CD2683G2-IZS`, `D-10`) e instalación | ~~✅ **es hoy el entregable principal**~~ ⚠️ **11/09: el entregable principal es `05_Funcional/9_Manual_Parametrizacion_Camara_IA.md`** (`D-12`; este mismo manual lo dice en su cabecera: *«una fuente que gana a ésta»*) y la guía de campo es `05_Funcional/Camaras_Sisga_4x.html`. Toda la inteligencia vive en la configuración de la cámara (`D-12`). Corregido el 11/09 a `D-25` (cuatro cámaras, dos por poste) |
+| 👉 **[`MANUAL_CONFIGURACION_CAMARAS_IA.md`](MANUAL_CONFIGURACION_CAMARAS_IA.md)** | Parametrización de la cámara comprada (`DS-2CD2683G2-IZS`, `D-10`) e instalación | ~~✅ **es hoy el entregable principal**~~ ⚠️ **11/09: el entregable principal es `05_Funcional/9_Manual_Parametrizacion_Camara_IA.md`** (`D-12`; ~~este mismo manual lo dice en su cabecera: *«una fuente que gana a ésta»*~~) y la guía de campo es `05_Funcional/Camaras_Sisga_4x.html`. 🟢 **11/09 (tarde), `D-27`: en la CONFIGURACIÓN de cada cámara manda ESTE manual** —el del modelo comprado, con su ficha— **y el Manual 9 se alinea con él**; lo que su cabecera decía de *«una fuente que gana a ésta»* deja de valer para los valores de configuración. Toda la inteligencia vive en la configuración de la cámara (`D-12`). Corregido el 11/09 a `D-25` (cuatro cámaras, dos por poste) |
 | 👉 **[`MANUAL_INSTALACION_RELOJ_DS3231.md`](MANUAL_INSTALACION_RELOJ_DS3231.md)** | El `DS3231` del ESP32 — **el único reloj del cruce** (`D-9`/`D-15`) | ✅ corregido el 07/09: un `DS3231` mudo **sí es una avería** |
 | 👉 **[`MANUAL_EXACTO_RADIOS_E90_DTU.md`](MANUAL_EXACTO_RADIOS_E90_DTU.md)** | Radios E90-DTU: DIP `M0`/`M1`, `RF_Setting4.6.exe`, topologías de canal | ✅ vigente · ~~y diagnóstico desde la pantalla del equipo~~ 🛑 **§6 DEROGADA** |
 | 👉 **[`MANUAL_MANDO_4_RELES.md`](MANUAL_MANDO_4_RELES.md)** | ~~El mando de 4 relés operado desde el suelo: secuencias, destellos, rechazos y requisitos de compra~~ | 🛑 **NO ES UN MANUAL DE OPERACIÓN.** El mando no se monta (`D-1`). **Se conserva en esta carpeta —no se archiva— por tres motivos medidos:** es un **aviso de cableado vivo** de `J16` p5/p8; es el **motivo escrito** de que `mando.cpp` no se borre (retirar el armador deja el veto de SFTY-21 **abierto**, y trece packs en `ABORTADO`); y **`A-11` salida (b) sigue abierta** proponiendo reponer pulsadores en esos mismos pines. **Su título no describe lo que hace y eso está pendiente de decidir** |
@@ -114,7 +123,10 @@ ejecutables de configuración para PC.
 5. `Manual_de_Senalizacion_Vial.pdf` — estándar del Ministerio de Transporte de Colombia (2024).
 6. ⚠️ `DS-2CD2683G2-IZS_Ficha_Tecnica_y_Configuracion.docx` — **NO es del fabricante** y
    **contradice a la ficha oficial** (dice 256 GB de microSD donde la ficha dice 512). No se cita
-   como fuente.
+   como fuente. ⚠️ *11/09: `D-27` remite a «la ficha del `DS-2CD2683G2-IZS`» para configurar la
+   cámara. Este `.docx` **no fija ningún valor** de umbral, sensibilidad ni filtro (su §2.4 sólo
+   enumera analíticas y acciones de enlace, y entre éstas tampoco está la salida de alarma), así
+   que leerlo como esa ficha no cambia ningún valor de configuración.*
 
 ## 🛠️ Herramientas ejecutables para PC (Windows)
 

@@ -4,7 +4,8 @@
 **Propósito:** Guía de taller para modificación de placa madre KiCad, ensamble del bus I²C, compras locales y etapa de potencia  
 **Estado:** 🛑 **DISEÑO DE HARDWARE / PRE-IMPLEMENTACIÓN (V9.0). NO ESTÁ EN EL FIRMWARE V8.9.**  
 **Fecha de Emisión:** 27 de Agosto de 2026  
-**Última Revisión:** 11 de Septiembre de 2026 — 📷 **`D-25`: la talanquera va a `J15` por la BOBINA de un relé (p1 12 V, p2 drenador de `Q10`, que NO es masa) y su contacto a la entrada `OPEN` de la centralita**; se tacha la conexión directa del drenador a `OPEN` de §3, se corrige lo que §3 decía de «la pluma se queda abajo», y `J14` deja de llamarse «la entrada de la cámara»: **`A-2` la reservó al fin de carrera y el firmware la sigue leyendo como cámara — CONFLICTO ABIERTO**. Las cámaras son **cuatro, dos por poste, en `J16` p10 y p12**.  
+**Última Revisión:** 11 de Septiembre de 2026 (tarde) — 🟢 **`D-27`: `J14` queda LIBRE, sin cablear —el fin de carrera NO se instala en este despliegue—, lo que cierra el conflicto de `A-2` que la revisión de abajo dejaba abierto** (fe de erratas, §3, §4.1, §5 y §6, tachado con esta fecha); y **la pieza de la talanquera es un relé con bobina de 12 V DC y contacto NA**, no un módulo optoacoplado con `JD-VCC` (§3, línea `A4` del Manual 15).  
+**Revisión anterior:** 11 de Septiembre de 2026 — 📷 **`D-25`: la talanquera va a `J15` por la BOBINA de un relé (p1 12 V, p2 drenador de `Q10`, que NO es masa) y su contacto a la entrada `OPEN` de la centralita**; se tacha la conexión directa del drenador a `OPEN` de §3, se corrige lo que §3 decía de «la pluma se queda abajo», y `J14` deja de llamarse «la entrada de la cámara»: **`A-2` la reservó al fin de carrera y el firmware la sigue leyendo como cámara — CONFLICTO ABIERTO**. Las cámaras son **cuatro, dos por poste, en `J16` p10 y p12**.  
 **Revisión anterior:** 28 de Agosto de 2026 (segunda revisión del día) — 🔴 **corrige un error de cableado que puede DESTRUIR EL MICROCONTROLADOR** (`J14`/`J15`, §3 y §5), da por **muerta la ruta C** del bus (el Bluetooth ocupó `PB6`/`PB7` hoy mismo), añade la **ruta D**, avisa de que el `DS3231` **no tiene driver** y actualiza la cifra de flash. Ver las fes de erratas antes de usar cualquier copia impresa anterior.  
 
 ---
@@ -27,12 +28,15 @@
 > ```
 >
 > ✏️ **11/09 — «Contacto seco de la cámara» en `J14` ya no vale.** Las cámaras van a `J16` (`D-2`,
-> `D-3`; con `D-25`, **dos por poste, p10 y p12**) y **`A-2` reservó `J14` al fin de carrera de la
-> pluma**. 🔴 **CONFLICTO ABIERTO, que este manual no resuelve:** el firmware **sigue leyendo `PB0`
-> como `CAM_DEMANDA_PIN`** (`pinMode(CAM_DEMANDA_PIN, INPUT)` en las dos puntas; el Maestro lo lee
-> por nivel en el Modo Inteligente y el Esclavo por flanco, y lo manda por radio como demanda), así
-> que lo que se cierre en `J14` **se lee como un coche pidiendo paso**. Lo decide el responsable. **Lo
-> que NO cambia de esta fe de erratas: `J14` es ENTRADA y la talanquera va en `J15`.**
+> `D-3`; con `D-25`, **dos por poste, p10 y p12**) ~~y **`A-2` reservó `J14` al fin de carrera de la
+> pluma**. 🔴 **CONFLICTO ABIERTO, que este manual no resuelve:**~~ → 🟢 **11/09, `D-27`: `J14` queda
+> LIBRE, sin cablear — el fin de carrera NO se instala en este despliegue.** El firmware **sigue
+> leyendo `PB0` como `CAM_DEMANDA_PIN`** (`pinMode(CAM_DEMANDA_PIN, INPUT)` en las dos puntas; el
+> Maestro lo lee por nivel en el Modo Inteligente y el Esclavo por flanco, y lo manda por radio como
+> demanda), así que lo que se cierre en `J14` **se lee como un coche pidiendo paso: en `J14` no se
+> conecta nada.** Vacío, `R64` lo deja en 0 V y no pide nada (`J14` medido en banco el 03-04/09,
+> pasos 17-18). **Lo que NO cambia de esta fe de erratas: `J14` es ENTRADA y la talanquera va en
+> `J15`.**
 >
 > * **Lo que rompe:** un relé alimentado a 12 V cableado a `J14` **mete 12 V directamente en una
 >   entrada del STM32** que solo tiene un RC de 1 ms (`R64` + `C25`) delante. `PB0` es un pin de
@@ -190,6 +194,8 @@
 >
 > Y hay un motivo más, que no es de I²C y pesa más: **`C25` es el antirrebote de la entrada de la
 > cámara de demanda** (`J14`). Desoldarlo no solo «libera un pin»: deja la entrada sin filtro.
+> *(11/09: en `J14` ya no va cámara —`J16`, `D-25`— y con `D-27` queda **libre, sin cablear**; el
+> filtro sigue siendo el de esa entrada, que el firmware sigue leyendo.)*
 
 En el diseño original de KiCad, el pin `PB0` (Pin 18 de `U1`) fue previsto como entrada analógica/optoacoplada, por lo que incluye un **condensador de filtro `C25` (100 nF) conectado a masa**.
 
@@ -221,7 +227,7 @@ una propiedad del proyecto, sino porque **el único par de pines con I²C por ha
 se lo llevó el Bluetooth hoy mismo** (§4.2). Todas las rutas que quedan vivas —B y D— son pines sin
 función alternativa de I²C:
 
-* **`PB0` (Pin 18):** No posee función alternativa de I²C por hardware (es `ADC12_IN8` / `TIM3_CH3`). ~~En V8.0–V8.9 está asignado a `CAM_DEMANDA_PIN`~~ *(11/09, medido: en el `V8.4` de campo, `e303485`, **`PB0` no tiene uso** —`git grep CAM_DEMANDA_PIN e303485 -- 01_Firmware/Maestro 01_Firmware/Esclavo` → 0—; es `CAM_DEMANDA_PIN` en el V9 de hoy, y `A-2` lo reservó al fin de carrera: **conflicto abierto**, ver la fe de erratas)*, y **su bornera `J14` es una ENTRADA** (ver la fe de erratas de la cabecera).
+* **`PB0` (Pin 18):** No posee función alternativa de I²C por hardware (es `ADC12_IN8` / `TIM3_CH3`). ~~En V8.0–V8.9 está asignado a `CAM_DEMANDA_PIN`~~ *(11/09, medido: en el `V8.4` de campo, `e303485`, **`PB0` no tiene uso** —`git grep CAM_DEMANDA_PIN e303485 -- 01_Firmware/Maestro 01_Firmware/Esclavo` → 0—; es `CAM_DEMANDA_PIN` en el V9 de hoy, ~~y `A-2` lo reservó al fin de carrera: **conflicto abierto**, ver la fe de erratas~~ → **y con `D-27` (11/09) `J14` queda LIBRE, sin cablear: el fin de carrera no se instala en este despliegue**, ver la fe de erratas)*, y **su bornera `J14` es una ENTRADA** (ver la fe de erratas de la cabecera).
 * **`PB8` (Pin 45):** Para ser `I2C1_SCL` requeriría un remapeo completo que movería `SDA` a `PB9`, pero `PB9` está físicamente ocupado por `BOTON1` en la placa. Además es el LED testigo (§4.1).
 * **`PA11`/`PA12`, `PB3`/`PB4`:** GPIO corrientes. Bit-bang.
 
@@ -323,9 +329,23 @@ No es necesario fabricar un circuito de potencia externo con relés para la tala
 > ⚠️ **Qué hace la centralita cuando el relé suelta `OPEN` —si la pluma baja sola, con qué retardo,
 > y qué hace sin energía— lo decide LA CENTRALITA, no esta tarjeta: `SIN VERIFICAR`.** Se comprueba
 > con la barrera real al montar.
+>
+> 🛒 **11/09, `D-27` punto 4 — QUÉ RELÉ, porque la lista de compras se ajusta a este cableado** (el de
+> la guía del Sisga, `05_Funcional/Camaras_Sisga_4x.html`, apartado *«Talanquera en J15»*):
+>
+> | | |
+> |---|---|
+> | **Pieza** | **un relé con BOBINA de 12 V DC**, uno por poste, con **un contacto normalmente abierto** (NA + común) |
+> | **Bobina** | entre `J15` **p1** (12 V) y **p2** (drenador de `Q10`) — dos hilos, sin masa ni 3,3 V: `J15` no los tiene |
+> | **Contacto** | NA → entrada **`OPEN`** de la centralita; común → **su común**, como diga el manual de esa centralita |
+> | **Rueda libre** | **ya está en la placa**: `D30`, un `1N4148` de 200 mA entre `/12V` y p2. No se pone otro diodo. ⚠️ **La corriente de la bobina tiene que quedar por debajo de esos 200 mA**; qué bobina se elige y cuánto consume: `SIN VERIFICAR` — **la referencia la decide el responsable** |
+> | **Lo que NO se compra** | ~~un **módulo de 1 relé optoacoplado con jumper `JD-VCC`**~~ — pide alimentación de lógica y masa propias, que `J15` no da; y el porqué del `JD-VCC` era el del expansor `PCF8574`, retirado |
+>
+> **El régimen del contacto frente a la entrada `OPEN`** depende de la centralita, que no está
+> especificada en ningún documento de este proyecto: `SIN VERIFICAR`.
 
 * **Ventaja:** ~~Cero componentes extra.~~ *(11/09: con `D-25` hace falta **un relé por poste** —
-  línea `A4` del Manual 15—.)* La salida de potencia para la talanquera ~~o electroimán de retención~~ se toma directamente de la bornera **`J15`** de la placa madre.
+  línea `A4` del Manual 15—; `D-27`: **de bobina de 12 V DC, contacto NA**, tabla de arriba.)* La salida de potencia para la talanquera ~~o electroimán de retención~~ se toma directamente de la bornera **`J15`** de la placa madre.
 
 > [!CAUTION]
 > ### 🔴 `J15` SÍ — `J14` NO. NO SON INTERCAMBIABLES NI POR ERROR
@@ -335,14 +355,16 @@ No es necesario fabricar un circuito de potencia externo con relés para la tala
 > | Red del esquemático | `Puerta` | `Motor` |
 > | Pin del STM32 | `PB0` (`CAM_DEMANDA_PIN`) | `PB2` (`MOTOR_TALANQUERA`) |
 > | Qué hay en medio | `R64` 10 kΩ + `C25` 100 nF (antirrebote de 1 ms) | opto `U15` (TLP127) + MOSFET `Q10` (`IRLZ44N`) |
-> | Qué se le conecta | ~~El **contacto seco de la cámara** de demanda, a 3,3 V~~ → *(11/09)* **reservada al fin de carrera** (`A-2`); 🔴 **conflicto abierto**: el firmware la lee como cámara (`CAM_DEMANDA_PIN`). Las cámaras van a `J16` p10/p12 (`D-25`) | ~~La **centralita de la talanquera** o~~ la **bobina del relé**, a 12 V — *(11/09, `D-25`: bobina entre p1 y p2; el contacto del relé a `OPEN` de la centralita)* |
+> | Qué se le conecta | ~~El **contacto seco de la cámara** de demanda, a 3,3 V~~ → *(11/09)* ~~**reservada al fin de carrera** (`A-2`); 🔴 **conflicto abierto**~~ → 🟢 **NADA: LIBRE, sin cablear (`D-27`, 11/09)** — el fin de carrera no se instala en este despliegue, y el firmware la lee como cámara (`CAM_DEMANDA_PIN`), así que lo que se cierre ahí pide paso. Las cámaras van a `J16` p10/p12 (`D-25`) | ~~La **centralita de la talanquera** o~~ la **bobina del relé**, a 12 V — *(11/09, `D-25`: bobina entre p1 y p2; el contacto del relé a `OPEN` de la centralita)* |
 > | Si se equivoca | 🔴 **12 V en un pin de 3,3 V del micro. Se destruye el STM32** | La cámara no se lee |
 >
 > **Este manual y el `15_Lista_de_Compras_Hardware.md` decían `J14` en la §5 y en la fila A4.
 > Corregido el 28/08 (2.ª revisión).** La confusión tiene una raíz que conviene conocer para no
 > repetirla: la red de `J14` se llama **`Puerta`** en el esquemático, y «puerta» suena a talanquera.
-> **No lo es: es ~~la entrada por donde la cámara pide paso~~ una entrada** *(11/09: reservada al fin
-> de carrera por `A-2`, y leída por el firmware como cámara — conflicto abierto)*. El canal de la pluma se llama `Motor`.
+> **No lo es: es ~~la entrada por donde la cámara pide paso~~ una entrada** *(11/09: ~~reservada al fin
+> de carrera por `A-2`, y leída por el firmware como cámara — conflicto abierto~~ → leída por el
+> firmware como cámara, y **libre, sin cablear** por `D-27`: el fin de carrera no se instala en este
+> despliegue)*. El canal de la pluma se llama `Motor`.
 >
 > El nivel de reposo de `PB2` es `LOW` (`TALANQUERA_CERRAR`, SFTY-28): con el MOSFET sin conducir,
 > ~~el motor queda sin energía y **la pluma se queda abajo**. Ese es el fallo seguro, y por eso la
@@ -599,16 +621,19 @@ Todos estos componentes se consiguen en cualquier mostrador de electrónica loca
 > * **Las talanqueras no lo necesitan.** Es una por poste, y la salida ya existe en la placa madre:
 >   red **`Motor`** -> **`PB2`** -> opto `U15` -> MOSFET `Q10` -> bornera **`J15`** (§3 y `N-64`).
 >   ~~Lo que falta es firmware, no un chip.~~ *(11/09: el firmware **ya la manda** —`escribirPines()`,
->   SFTY-28—; lo que falta es **el relé** de `D-25` entre `J15` p1 y p2, línea `A4` del Manual 15.)*
+>   SFTY-28—; lo que falta es **el relé** de `D-25` entre `J15` p1 y p2, línea `A4` del Manual 15 — `D-27`:
+>   **bobina de 12 V DC, contacto NA**, sin módulo optoacoplado ni `JD-VCC`; ver la tabla 🛒 de §3.)*
 >   > 🔴 **ERRATA CORREGIDA EL 28/08 (2.ª rev.):** esta línea decía *«red `Puerta` -> bornera
 >   > `J14`»*. **Las dos cosas eran falsas y peligrosas.** `Puerta`/`J14` es ~~la **ENTRADA** de la
->   > cámara de demanda~~ una **ENTRADA** (`PB0`) *(11/09: reservada al fin de carrera por `A-2`;
->   > conflicto abierto con el firmware, que la lee como cámara)*; cablear ahí un relé de 12 V destruye el micro y no mueve la pluma.
+>   > cámara de demanda~~ una **ENTRADA** (`PB0`) *(11/09: ~~reservada al fin de carrera por `A-2`;
+>   > conflicto abierto con el firmware, que la lee como cámara~~ → **libre, sin cablear** por `D-27`:
+>   > el fin de carrera no se instala en este despliegue, y el firmware la lee como cámara)*; cablear ahí un relé de 12 V destruye el micro y no mueve la pluma.
 >   > Ver la fe de erratas de la cabecera y el cuadro comparativo de §3. La misma errata estaba en
 >   > la fila **A4** de `15_Lista_de_Compras_Hardware.md`, y se ha corregido allí con su nota.
 > * **Las cámaras tampoco.** ~~`PB0` ya se lee con antirrebote por hardware, por `J14`.~~ *(11/09:
 >   las cámaras van a **`J16` p10 y p12, dos por poste** —`D-2`/`D-3`/`D-25`—, con el pull-down de
->   10 kΩ de la placa; `J14` está reservada al fin de carrera por `A-2`.)*
+>   10 kΩ de la placa; ~~`J14` está reservada al fin de carrera por `A-2`~~ → `J14` queda **libre, sin
+>   cablear** (`D-27`, 11/09).)*
 > * ~~**El único que necesita bus es el reloj**, y solo si el cristal muerto es el del **Maestro**: si
 >   es el del Esclavo, ese ya toma la hora por radio (SFTY-23) y no hay nada que comprar.~~
 >
@@ -722,8 +747,9 @@ Todos estos componentes se consiguen en cualquier mostrador de electrónica loca
 >    caducada**.
 > 2. **Las borneras de cámara NO se llaman `J1` y `J2`.** En la tarjeta real la entrada de cámara es
 >    ~~**`J14`** (`PB0`) y, desde el 31/08,~~ **`J16` p10 y p12** (`PB14`/`PB15`) *(11/09, `D-25`:
->    **las dos en cada poste**, p10 contra p9 y p12 contra p11; `J14` quedó reservada al fin de
->    carrera por `A-2`, aunque el firmware la sigue leyendo como cámara — conflicto abierto)*. `J1`/`J2` son
+>    **las dos en cada poste**, p10 contra p9 y p12 contra p11; ~~`J14` quedó reservada al fin de
+>    carrera por `A-2`, aunque el firmware la sigue leyendo como cámara — conflicto abierto~~ →
+>    `J14` queda **libre, sin cablear** por `D-27` (11/09), y el firmware la sigue leyendo como cámara)*. `J1`/`J2` son
 >    rótulos de este esquema hipotético y **no corresponden a nada en el cobre** — cablear guiándose
 >    por ellos es el mismo error que mandó la talanquera a `J14`.
 >
@@ -772,7 +798,8 @@ Todos estos componentes se consiguen en cualquier mostrador de electrónica loca
 * [ ] 🔴 **`J14` NO lleva la talanquera — antes de energizar nada.** Si hay un módulo de relé
       cableado a `J14`, **retirarlo**. La pluma va en `J15`. Comprobar con el pito: de `J15` debe
       haber camino al drenador de `Q10`; de `J14` lo hay a `R64`/`C25` y al pin 18 de `U1`. **Es la
-      única comprobación de esta lista que puede salvar el microcontrolador.**
+      única comprobación de esta lista que puede salvar el microcontrolador.** *(11/09, `D-27`: y
+      **en `J14` no va nada** —ni relé ni fin de carrera—: queda libre, sin cablear.)*
 * [ ] **El papel de `PB6` — ahora es una comprobación del BLUETOOTH, no del bus.** Continuidad desde
       `J17` vía 3 hasta la pata **rotulada** del display, y leer qué dice esa rotulación: `PSB` o
       `RS`/`A0`. **Si dice `RS` o `A0`, quien está en riesgo es la pantalla**, porque esa vía lleva

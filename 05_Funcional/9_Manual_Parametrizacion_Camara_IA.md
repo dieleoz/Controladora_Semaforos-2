@@ -2,11 +2,13 @@
 
 **Sistema:** Controladora de Semáforos Móviles de 3 Estados (Maestro y Esclavo V9.0)  
 **Cámara Certificada:** ~~Hikvision AcuSense Varifocal Motorizada (DS-2CD3643G2-LIZSU o equivalente)~~ ⛔ **RETIRADO el 05/09: era un modelo de REFERENCIA con «o equivalente» detrás, no el comprado.** → **Hikvision `DS-2CD2683G2-IZS` (2.8 – 12 mm)**, bullet AcuSense varifocal motorizada de 8 MP. **Es la cámara que el responsable ha comprado**, y desde hoy toda cifra de óptica, alarma o consumo de este manual sale de **su** ficha oficial, con la cita al lado — ver **§1.1**.  
-**Topología del Sistema:** Analítica Deep Learning Embebida (sin PC externo) + contacto seco a la tarjeta. 🔴 **LAS CÁMARAS SE CABLEAN A `J16` p10 (`PB14`) y p12 (`PB15`)**, ~~**UNA POR POSTE**~~ → 🎯 **11/09, `D-25`: CUATRO CÁMARAS, DOS POR POSTE** — en cada poste, **cámara 1** entre `p9` (3,3 V) y `p10` (`CAM_C_PIN`) y **cámara 2** entre `p11` (3,3 V) y `p12` (`CAM_D_PIN`) — `DECISIONES.md` filas **`D-2`**, **`D-3`** y **`D-25`**, con `M3` cerrada en cobre el 03/09. Contacto seco contra los **3,3 V contiguos** (`p9` para `p10`, `p11` para `p12`), **activo en ALTO, dos hilos, nada a masa**. **Las dos entradas hacen exactamente lo mismo** (ver la revisión del 11/09 aquí abajo). El firmware lee **tres** entradas por punta —~~la bornera `J14` (`PB0`, con antirrebote RC de 1 ms) es la tercera~~— pero **`J14` NO lleva cámara**: se conserva vivo como candidato a fin de carrera de barrera. 🔴 **CONFLICTO ABIERTO (11/09), no resuelto aquí:** `A-2` manda el fin de carrera a `J14`/`PB0`, y el firmware **sigue leyendo `PB0` como cámara** (`CAM_DEMANDA_PIN`) — un fin de carrera ahí se leería como demandas de paso. Lo decide el responsable. La **talanquera** va en **`J15`** (`D-25`), no en `J14` ni en `J16`.  
+**Topología del Sistema:** Analítica Deep Learning Embebida (sin PC externo) + contacto seco a la tarjeta. 🔴 **LAS CÁMARAS SE CABLEAN A `J16` p10 (`PB14`) y p12 (`PB15`)**, ~~**UNA POR POSTE**~~ → 🎯 **11/09, `D-25`: CUATRO CÁMARAS, DOS POR POSTE** — en cada poste, **cámara 1** entre `p9` (3,3 V) y `p10` (`CAM_C_PIN`) y **cámara 2** entre `p11` (3,3 V) y `p12` (`CAM_D_PIN`) — `DECISIONES.md` filas **`D-2`**, **`D-3`** y **`D-25`**, con `M3` cerrada en cobre el 03/09. Contacto seco contra los **3,3 V contiguos** (`p9` para `p10`, `p11` para `p12`), **activo en ALTO, dos hilos, nada a masa**. **Las dos entradas hacen exactamente lo mismo** (ver la revisión del 11/09 aquí abajo). El firmware lee **tres** entradas por punta —~~la bornera `J14` (`PB0`, con antirrebote RC de 1 ms) es la tercera~~— pero **`J14` NO lleva cámara**: ~~se conserva vivo como candidato a fin de carrera de barrera. 🔴 **CONFLICTO ABIERTO (11/09), no resuelto aquí:** `A-2` manda el fin de carrera a `J14`/`PB0`, y el firmware **sigue leyendo `PB0` como cámara** (`CAM_DEMANDA_PIN`) — un fin de carrera ahí se leería como demandas de paso. Lo decide el responsable.~~ → 🟢 **`D-27` (11/09): `J14` queda LIBRE, sin cablear — el fin de carrera NO se instala en este despliegue.** El firmware sigue leyendo `PB0` como demanda (`CAM_DEMANDA_PIN`), así que **en `J14` no se conecta nada**; vacío, `R64` lo deja en 0 V y no pide nada (medido en banco el 03-04/09, pasos 17-18). La **talanquera** va en **`J15`** (`D-25`), no en `J14` ni en `J16`.  
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`  
 **Normativa Aplicable:** Manual de Señalización Vial de Colombia (Resolución 2024 - MinTransporte)  
 **Fecha de Emisión:** 26 de Agosto de 2026  
-**Última revisión:** 11 de septiembre de 2026 — 🎯 **`D-25`: CUATRO CÁMARAS, DOS POR POSTE, Y LAS CONEXIONES SON DEFINITIVAS.** El responsable, 11/09: *«mantener estas conexiones como definitivas»*. En cada poste, **cámara 1** entre `J16` p9 (3,3 V) y **p10** (`PB14`, `CAM_C_PIN`) y **cámara 2** entre `J16` p11 (3,3 V) y **p12** (`PB15`, `CAM_D_PIN`), cada una por el contacto seco de su salida de alarma (`1A`/`1B`). La **talanquera** va en **`J15`** (p1 = 12 V, p2 = drenador de `Q10`, que **no es masa**) a la bobina de un relé cuyo contacto va a la entrada `OPEN` de la centralita de la barrera. **Deroga de `D-13` SÓLO «una cámara por poste» y «`p12` vacío a propósito»**: el resto de `D-13` sigue — **las cuatro llevan la misma configuración** (§4). Lo que tachan estas líneas donde este manual decía «una por poste» está fechado *11/09, D-25*. **Lo que el que cablea TIENE que saber, medido el 11/09 en el firmware de las dos puntas:** (1) **las dos cámaras de un poste hacen LO MISMO** — `botones.cpp` recorre `CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN}` en el mismo bucle de `camaras_actualizar()`: pedir paso (`demanda_solicitar()`) y vigilante. **No hay una «de demanda» y otra «de pluma»**; (2) 🔴 **NINGUNA CÁMARA PROTEGE LA PLUMA** — `escribirPines()` de `semaforo.cpp` la sube con `(verde && !testLedsActivo) || estado == S_FALLO` y **no lee ninguna cámara**: **la pluma baja aunque haya un coche debajo**. El veto es `A-1.bis` y **no está construido**; lo que existe es un **contador** que observa la bajada ya hecha; (3) 🔴 **la pluma SUBE con verde y también con el ámbar intermitente** (`S_FALLO`): Modo Ámbar, ámbar de emergencia, Degradado en ámbar y **falta de enlace — incluido un poste recién encendido que aún no habla con el otro**. **No se ponga debajo del brazo mientras trabaja**; (4) **en Automático y en Manual las cámaras no cambian ninguna luz**; sólo en **Inteligente**, cumplido el tiempo configurado, **pueden alargar** una fase con un tope — **nunca la acortan**; (5) 🔴 **la app pinta `CAM: OK` —*«las dos ven y ninguna está pegada»*— en cuanto CUALQUIERA de las dos detecta algo, y SIGUE EN OK AUNQUE LA OTRA NO HAYA DETECTADO NUNCA** (`camara_estado()` salta el pin que nunca dio un flanco, y `vigilante_tick()` no lo vigila): **una segunda cámara muerta desde el día de la instalación no la detecta nadie**. Por eso **cada cámara se comprueba con el multímetro en su propio borne** (§4.bis.7). Esa exención del firmware se escribió porque `p12` iba vacío; con `D-25` pierde su motivo y **queda pendiente de rehacer en el firmware** (no se toca desde este manual); (6) **con un firmware anterior a `deeeab4`** —incluida la V8.4 que está en campo— **`PB14` es *Aceptar* y `PB15` es *Cancelar***: lo que se enchufe en `p10` **o en `p12`** puede pulsar un botón en un equipo en la calle. **Carga verificada antes del primer hilo**; (7) **`p12` es el borne de `J16` más cercano a la red de 12 V** (`1,359 mm` de cobre): con `p1` tapado (`D-4`) y trabajo limpio. **Y un conflicto que NO se resuelve aquí:** `A-2` manda el fin de carrera a `J14`, y el firmware lee `PB0` como cámara.
+**Última revisión:** 11 de septiembre de 2026 (2.ª) — 🎯 **`D-27`: LO QUE FIJA LA GUÍA DEL SISGA, cerrado por el responsable.** (1) **Las CUATRO cámaras están compradas** y el modelo es el de `D-10`, `DS-2CD2683G2-IZS`. (2) **`J14` queda LIBRE, sin cablear**: el fin de carrera no se instala en este despliegue — **se cierra el conflicto con `A-2`** que este manual llevaba abierto. (3) 🔴 **La configuración de cada cámara es la del manual del modelo comprado** —`04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md` §4 y la ficha `DS-2CD2683G2-IZS_Ficha_Tecnica_y_Configuracion.docx`—, **y este manual se alinea con él**: la tabla nueva al principio del **§4 Paso 3** dice, valor por valor, qué sale de ese manual (con su sección) y qué **no fija** y se queda como lo dejó `D-13`. En resumen: **cambia el objetivo** —☑ Vehículo · ☐ Humano, si la casilla existe; `D-27` deroga el «sin filtro» de `D-13`—; **`Threshold` y `Sensitivity` no los fija el manual del modelo**, y se quedan en los de `D-13` —el mínimo y alta— **en lugar de los `1 s` y `50` que este manual ponía**; la **zona sigue siendo el barrido de la pluma** (`D-13`; `D-27` no la deroga). (4) Talanquera por relé a la centralita, como en la guía del Sisga. **Nada de esto hace que una cámara proteja la pluma**: `escribirPines()` no lee ninguna.
+
+*Revisión anterior:* 11 de septiembre de 2026 — 🎯 **`D-25`: CUATRO CÁMARAS, DOS POR POSTE, Y LAS CONEXIONES SON DEFINITIVAS.** El responsable, 11/09: *«mantener estas conexiones como definitivas»*. En cada poste, **cámara 1** entre `J16` p9 (3,3 V) y **p10** (`PB14`, `CAM_C_PIN`) y **cámara 2** entre `J16` p11 (3,3 V) y **p12** (`PB15`, `CAM_D_PIN`), cada una por el contacto seco de su salida de alarma (`1A`/`1B`). La **talanquera** va en **`J15`** (p1 = 12 V, p2 = drenador de `Q10`, que **no es masa**) a la bobina de un relé cuyo contacto va a la entrada `OPEN` de la centralita de la barrera. **Deroga de `D-13` SÓLO «una cámara por poste» y «`p12` vacío a propósito»**: el resto de `D-13` sigue — **las cuatro llevan la misma configuración** (§4). Lo que tachan estas líneas donde este manual decía «una por poste» está fechado *11/09, D-25*. **Lo que el que cablea TIENE que saber, medido el 11/09 en el firmware de las dos puntas:** (1) **las dos cámaras de un poste hacen LO MISMO** — `botones.cpp` recorre `CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN}` en el mismo bucle de `camaras_actualizar()`: pedir paso (`demanda_solicitar()`) y vigilante. **No hay una «de demanda» y otra «de pluma»**; (2) 🔴 **NINGUNA CÁMARA PROTEGE LA PLUMA** — `escribirPines()` de `semaforo.cpp` la sube con `(verde && !testLedsActivo) || estado == S_FALLO` y **no lee ninguna cámara**: **la pluma baja aunque haya un coche debajo**. El veto es `A-1.bis` y **no está construido**; lo que existe es un **contador** que observa la bajada ya hecha; (3) 🔴 **la pluma SUBE con verde y también con el ámbar intermitente** (`S_FALLO`): Modo Ámbar, ámbar de emergencia, Degradado en ámbar y **falta de enlace — incluido un poste recién encendido que aún no habla con el otro**. **No se ponga debajo del brazo mientras trabaja**; (4) **en Automático y en Manual las cámaras no cambian ninguna luz**; sólo en **Inteligente**, cumplido el tiempo configurado, **pueden alargar** una fase con un tope — **nunca la acortan**; (5) 🔴 **la app pinta `CAM: OK` —*«las dos ven y ninguna está pegada»*— en cuanto CUALQUIERA de las dos detecta algo, y SIGUE EN OK AUNQUE LA OTRA NO HAYA DETECTADO NUNCA** (`camara_estado()` salta el pin que nunca dio un flanco, y `vigilante_tick()` no lo vigila): **una segunda cámara muerta desde el día de la instalación no la detecta nadie**. Por eso **cada cámara se comprueba con el multímetro en su propio borne** (§4.bis.7). Esa exención del firmware se escribió porque `p12` iba vacío; con `D-25` pierde su motivo y **queda pendiente de rehacer en el firmware** (no se toca desde este manual); (6) **con un firmware anterior a `deeeab4`** —incluida la V8.4 que está en campo— **`PB14` es *Aceptar* y `PB15` es *Cancelar***: lo que se enchufe en `p10` **o en `p12`** puede pulsar un botón en un equipo en la calle. **Carga verificada antes del primer hilo**; (7) **`p12` es el borne de `J16` más cercano a la red de 12 V** (`1,359 mm` de cobre): con `p1` tapado (`D-4`) y trabajo limpio. ~~**Y un conflicto que NO se resuelve aquí:** `A-2` manda el fin de carrera a `J14`, y el firmware lee `PB0` como cámara.~~ → *(`D-27`, 11/09: cerrado — `J14` libre y sin cablear; el fin de carrera no se instala.)*
 
 *Revisión anterior:* 7 de septiembre de 2026 — 🔴 **Se volvió a abrir la ficha del modelo comprado y la respuesta a la pregunta del relé CAMBIÓ DE SIGNO**: la fila *Linkage Method* (ficha pág. 4) **enumera** cinco vinculaciones y `trigger alarm output` **no está**, y el argumento con que este manual lo daba por probable —*«tiene `1 output`»*— **se retira**, porque `Manual Alarm` y `Automatic Alarm` cierran esa salida sin analítica ninguna (PDF 80 · impresa 68). Ver el bloque 🔴 de aquí abajo y el `Paso 0`. Además: **se corrige una lectura equivocada de la fuente** —`Alarm Input **NO.**` de la pág. 44 es *Number*, no *Normally Open*—, se localiza **la única aparición real de `NO` como valor** en las 110 páginas (PDF 99 · impresa 87), se deja escrito que **el lado del controlador de `D-14` NO está construido** (medido), se pone delante el **conflicto vivo `D-13` contra el firmware** sobre qué zona se dibuja, y se sustituyen **las citas por número de línea que estaban caducadas** por el símbolo y su `grep`.
 
@@ -96,6 +98,12 @@ nunca. Nada se borra: el texto viejo queda tachado en su sitio con el motivo.*
 > compra en `15_Lista_de_Compras_Hardware.md` (bloque **E**). **Hoy no existe en el cobre.**
 
 > # 🔴 07/09 — LA RESPUESTA A LA PREGUNTA MÁS CARA DEL PROYECTO, Y ES PEOR DE LO QUE ESTE MANUAL DECÍA
+>
+> 🟢 **11/09 — LA CONTESTÓ EL CAMPO EL 10/09, Y EN POSITIVO:** el instalador configuró una cámara del
+> Maestro con `Intrusion Detection` + `Trigger Alarm Output` y midió *«0 V cuando no hay detecciones,
+> 3,3 V cuando realiza una detección»* en el borne (`roadmap.md` §3.8). **La casilla existe en este
+> modelo y el contacto conmuta con la analítica.** Es **una** cámara: el `Paso 0` se sigue haciendo en
+> cada una. Lo de abajo se conserva como el razonamiento de antes de medir.
 >
 > **La pregunta:** *¿puede la **analítica** de esta cámara accionar su relé de salida?* De ella
 > depende que el camino de `J16` —dos hilos, un contacto seco, el único que el firmware sabe leer—
@@ -554,10 +562,13 @@ La cámara Hikvision AcuSense incorpora un procesador de inteligencia artificial
  │                                                                             │
  │   [ HIKVISION DS-2CD2683G2-IZS  -  AcuSense, analitica embebida ]           │
  │           │                       8 MP - varifocal motorizada 2,8-12 mm     │
- │           ▼ (Intrusion Detection sobre el BARRIDO DE LA PLUMA, SIN FILTRO)  │
+ │           ▼ (Intrusion Detection sobre el BARRIDO DE LA PLUMA)              │
  │             ~~Clasificador ☑ Solo Vehiculo~~ <-- TACHADO 07/09 por D-13:    │
  │             bajo la pluma importa TAMBIEN una moto o una persona, y el      │
  │             Detection Target no esta documentado para Intrusion.  Ver 4.    │
+ │             11/09, D-27: VUELVE ☑ Vehiculo · ☐ Humano, SI LA CASILLA        │
+ │             EXISTE (manual del modelo, 04_Manuales/..._CAMARAS_IA §4 P.2).  │
+ │             Ninguna camara protege la pluma: el filtro no cambia eso.      │
  │   [ SALIDA DE ALARMA (Bornes 1A / 1B - Contacto Seco, 24 V / 1 A max) ]     │
  │             ^^^^ que sea "N/O" y CONFIGURABLE esta SIN VERIFICAR: ver 4     │
  │           │                                                                 │
@@ -796,7 +807,8 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
  │   ~~ANTES DECIA: Bornes 1A/1B --> J14: pin PB0 CONTRA LOS 3,3 V~~           │
  │   <-- TACHADO EL 07/09.  J14 NO ESTA VIGILADO por CAM_CIEGA/CAM_PEGADA.    │
  │       Una camara ahi FUNCIONA y NADIE SABE si se estropea. J14/PB0 queda   │
- │       vivo, libre, y reservado a fin de carrera de barrera.                │
+ │       vivo, libre, ~~y reservado a fin de carrera de barrera~~.            │
+ │       11/09 D-27: LIBRE Y SIN CABLEAR. El fin de carrera NO se instala.   │
  │                                                                             │
  │   La corriente vuelve por R67/R68 dentro de la placa (ver 4.bis.5).        │
  │   M3 CERRADA EN COBRE el 03-04/09: 9,93 y 9,94 kOhm a masa, los dos a 0 V. │
@@ -804,10 +816,11 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
  │ • ENTRADA J14 (PB0), HOY SIN CAMARA:  el firmware la sigue leyendo, y      │
  │   pide paso igual.  Pero NO la vigila CAM_CIEGA/CAM_PEGADA:  si algun dia  │
  │   se le cuelga algo, ES EL UNICO BORNE SIN AVISO DE AVERIA.                │
- │   Reservado a fin de carrera de barrera (es el unico con antirrebote RC).  │
- │   !!! 11/09 CONFLICTO ABIERTO: A-2 manda ahi el fin de carrera, y el      │
- │   !!! firmware lee PB0 como CAMARA (CAM_DEMANDA_PIN): un fin de carrera   │
- │   !!! se leeria como demandas de paso.  NO SE CABLEA sin el responsable.  │
+ │   ~~Reservado a fin de carrera de barrera (unico con antirrebote RC).~~   │
+ │   ~~11/09 CONFLICTO ABIERTO: A-2 manda ahi el fin de carrera...~~         │
+ │   >>> 11/09, D-27: J14 LIBRE. NO SE CONECTA NADA. El fin de carrera no  │
+ │   >>> se instala en este despliegue. El firmware lee PB0 como demanda:  │
+ │   >>> cualquier contacto ahi pediria paso. Vacio (R64 a masa) = 0 V.    │
  │                                                                             │
  │ • TALANQUERA:  J15 (p1 = 12 V, p2 = drenador de Q10 -- p2 NO ES MASA),     │
  │   a la bobina de un rele; su contacto va a OPEN de la centralita (D-25).  │
@@ -828,7 +841,7 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
 
 | pin | qué es | ¿cámara? | nivel |
 |---|---|---|---|
-| **`PB0`** (`J14`) | `CAM_DEMANDA_PIN`, con `R64` 10 kΩ + `C25` 100 nF (antirrebote 1 ms) | ✅ **Sí** *(para el firmware)* — pero **hoy no lleva cámara**, y 🔴 **11/09: CONFLICTO ABIERTO** con `A-2`, que manda aquí el fin de carrera: el firmware lo leería como demanda | ✅ **MEDIDO** (`pines.h:43-46`, cita fechada y vigente; su `pinMode(CAM_DEMANDA_PIN, INPUT)` en `botones_setup()`; leída en `modo_inteligente.cpp` y en `Esclavo/src/main.cpp:350`) |
+| **`PB0`** (`J14`) | `CAM_DEMANDA_PIN`, con `R64` 10 kΩ + `C25` 100 nF (antirrebote 1 ms) | ✅ **Sí** *(para el firmware)* — pero **hoy no lleva cámara**, y ~~🔴 **11/09: CONFLICTO ABIERTO** con `A-2`, que manda aquí el fin de carrera: el firmware lo leería como demanda~~ → 🟢 **`D-27` (11/09): LIBRE, sin cablear** — el fin de carrera no se instala; como el firmware lo lee como demanda, **no se conecta nada** | ✅ **MEDIDO** (`pines.h:43-46`, cita fechada y vigente; su `pinMode(CAM_DEMANDA_PIN, INPUT)` en `botones_setup()`; leída en `modo_inteligente.cpp` y en `Esclavo/src/main.cpp:350`) |
 | **`PB8`** | `LED_TESTIGO` → `R16` 1 kΩ → LED `D5` | ❌ **No es entrada de nada** | ✅ **MEDIDO** (símbolo `LED_TESTIGO`, `pines.h:63` — cita vigente; `modo_inteligente.cpp` lo deja en alta impedancia) |
 | **`PB9`** (`J16` p5) | `BOTON1` = **`MANDO_A`** del mando de relés | 🛑 **NUNCA.** `A·A·A` en 12 s = Modo Automático | ✅ **MEDIDO** (símbolos `BOTON1`, `MANDO_A`, y `mando_registrarPulso(MANDO_A)` en `botones_actualizar()`) |
 | **`PB13`** (`J16` p8) | `BOTON2` = **`MANDO_B`** | 🛑 **NUNCA.** `B·B·B` = Ámbar **y arma `ambarLocal`**, que veta las órdenes de radio | ✅ **MEDIDO** (símbolos `BOTON2`, `MANDO_B`, `mando_registrarPulso(MANDO_B)` y `mando_ambarLocal()`) |
@@ -952,7 +965,14 @@ medida contra `pines.h`.** El reparto real es el de la tabla de abajo.
 
 > ### 🛑 REGLA DE ORO PARA EQUIPOS MÓVILES:
 > **La geometría no discrimina; discrimina el clasificador AcuSense.**  
-> Al configurar una **zona de intrusión amplia (~90% de la pantalla)** con el filtro `☑ Vehículo`, el semáforo puede trasladarse de kilómetro en la vía **sin necesidad de conectar una laptop, ni reencuadrar el zoom, ni redibujar máscaras de píxeles**.
+> Al configurar una ~~**zona de intrusión amplia (~90% de la pantalla)**~~ con el filtro `☑ Vehículo`, el semáforo puede trasladarse de kilómetro en la vía **sin necesidad de conectar una laptop, ni reencuadrar el zoom, ni redibujar máscaras de píxeles**.
+>
+> ✏️ **11/09, `D-27`:** el filtro `☑ Vehículo` **vuelve** —es el del manual del modelo,
+> `04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md` §4 Paso 2 punto 5, si la casilla existe—. **La
+> «zona amplia del ~90 %» NO**: no la fija ese manual, y `D-13` —que `D-27` no deroga en esto— dice
+> que la zona es **el barrido de la pluma**, una franja y no la pantalla entera. Que esa franja se
+> pueda dibujar una vez en taller y valga en cada traslado **no está comprobado**: depende de cómo
+> quede montada la cámara respecto a la pluma en cada sitio.
 
 ---
 
@@ -1216,6 +1236,38 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 
 ### Paso 3: Configuración de la Analítica Inteligente
 
+> # 🎯 11/09 — `D-27`: **LOS VALORES DE ESTA PANTALLA SON LOS DEL MANUAL DEL MODELO COMPRADO**
+>
+> **Decidido por el responsable el 11/09** (`DECISIONES.md` `D-27`, punto 3): la configuración de
+> cada cámara —las cuatro, iguales— es la de `04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md` y la
+> ficha del `DS-2CD2683G2-IZS`, y **este manual se alinea con ellos**. Se ha medido valor por valor
+> contra ese manual; **donde no fija un valor, se dice, y se queda el de `D-13` marcado como tal** —
+> no se rellena con lo que parece razonable.
+>
+> | parámetro | **valor que se pone** | de dónde sale | lo que este manual decía |
+> |---|---|---|---|
+> | Analítica | **`Intrusion Detection`** | manual del modelo §4 Paso 2, punto 1 · igual en `D-13` | lo mismo |
+> | Zona (`Draw Area`) | **el barrido de la pluma**: la franja que cruza el brazo al bajar, entera | 🔴 **`D-13`**, que `D-27` **no deroga** en esto. ⚠️ **El manual del modelo dice otra cosa** (§4 Paso 1: *«encuadrar el carril de parada»*; Paso 2 punto 3: *«la zona donde el vehículo se detiene a esperar»*, con un aviso de preguntar) — **escrito antes de `D-13` y para la demanda**. Se deja para el responsable (ver el informe de `D-27` en `roadmap.md` §0) | ~~«encuadre inferior y central, donde se detienen los vehículos»~~ (punto 3 de abajo) |
+> | Objetivo (`Detection Target`) | **☑ Vehículo · ☐ Humano, si la casilla existe.** Si no existe: se anota, se avisa y se sube el mínimo del `Size Filter` | manual del modelo §4 Paso 2, punto 5. **`D-27` deroga el «sin filtro de objetivo» de `D-13`** | lo mismo (punto 5 de abajo); la cabecera de §1 decía «sin filtro» por `D-13` |
+> | `Size Filter` | mínimo y máximo **dibujados** —no son campos numéricos—; que no dispare con perros ni hojas | manual del modelo §4 Paso 2, punto 4 (sin cifra) · el criterio, `D-13` | lo mismo |
+> | `Threshold` | **el MÍNIMO que deje poner** | 🔴 **el manual del modelo NO lo fija** (su §4 Paso 2 no lo nombra; el de Hikvision `UD28967B-C` sólo lo define, PDF 61 · impresa 49) → **se queda el de `D-13`** | ~~`1 s`~~ — valor de partida de este proyecto, sin fuente |
+> | `Sensitivity` | **ALTA** | 🔴 **el manual del modelo NO lo fija** (misma sección; Hikvision sólo dice *«the higher … the more easily the alarm can be triggered»*) → **se queda el de `D-13`** | ~~`50`~~ — valor de partida de este proyecto, sin fuente |
+> | `Arming Schedule` de la regla | **24 × 7** | manual del modelo §4 Paso 2, punto 6 · igual en `D-13` | lo mismo |
+> | `Linkage Method` | ☑ **`Trigger Alarm Output`** —salida `A->1`— **sólo en esta regla** | manual del modelo §4 Paso 3, puntos 2 y 3 · igual en `D-13` | lo mismo (Paso 4) |
+> | `Delay` de la salida | **el MÁS CORTO que ofrezca la lista** | manual del modelo §4 Paso 3 (título y punto 1) · igual en `D-13`. *«Nunca `Manual`»* no lo dice ese manual: lo dice el Paso 4 de éste, porque con `Manual` el relé se queda cerrado hasta borrarlo a mano (Hikvision `UD28967B-C`, PDF 80 · impresa 68) | ~~«idealmente `1 s`»~~ (Paso 4) |
+> | `Arming Schedule` de la salida | **24 × 7** | 🔴 **el manual del modelo NO lo fija** → `D-13` / `A-8` | lo mismo (Paso 4) |
+> | Reposo de la salida | **`NO`** si la pantalla lo ofrece; si no, se mide (`ENSAYO 1`) | manual del modelo §4 Paso 3, punto 1 — él mismo lo marca `SIN VERIFICAR` | lo mismo |
+> | Óptica | `2,8 – 12 mm`, gran angular máximo | ficha del modelo §2.1 (*Tipo de lente*) · manual del modelo §4 Paso 1 | lo mismo |
+>
+> 🛑 **Lo que esta tabla NO cambia, y es seguridad medida en el firmware, no configuración:**
+> **ninguna cámara protege la pluma** —`escribirPines()` de `semaforo.cpp` la sube con
+> `(verde && !testLedsActivo) || estado == S_FALLO` y no lee ninguna cámara—. Filtrar personas **no
+> quita ninguna protección, porque no hay ninguna**; lo que sí cambia es lo que **cuenta** la fase 1
+> de `D-13` (`camara_vetosPluma()`, `$EVENT` `VETO_HABRIA_ACTUADO_N`): **una persona bajo la pluma ya
+> no se cuenta**, y ese contador es el dato con el que se decidiría `A-1.bis`. Si el veto se
+> construye algún día, el filtro deja de ser configuración y pasa a ser seguridad. **Que una moto
+> entre en «Vehículo» es `SIN VERIFICAR`**: ninguna fuente del fabricante lo dice.
+
 > # 🟢 07/09 — RESUELTO: **LA ZONA ES EL BARRIDO DE LA PLUMA** (`D-13`)
 >
 > ~~ANTES DE DIBUJAR LA ZONA: pregunte qué tiene que mirar esta cámara. Hay dos respuestas vivas a
@@ -1262,7 +1314,11 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 >
 > ### 🔻 Qué hace usted con esto, de pie delante de la cámara
 >
-> **PREGUNTE ANTES DE DIBUJAR.** Es una decisión vial del responsable, no un ajuste de taller, y el
+> ✏️ **11/09 — YA NO SE PREGUNTA: la zona es el barrido de la pluma, en las cuatro** (`D-13`; `D-25`
+> *«misma configuración para todas»*; `D-27` no la cambia). El bloque de abajo se conserva tachado
+> porque explica por qué el equipo hace lo mismo con cualquier zona.
+>
+> ~~**PREGUNTE ANTES DE DIBUJAR.**~~ Es una decisión vial del responsable, no un ajuste de taller, y el
 > encuadre físico de la cámara depende de ella: **la vía de aproximación y el barrido de la pluma no
 > se ven desde el mismo sitio.**
 >
@@ -1287,7 +1343,7 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 > es lo que distingue *«hay uno esperando»* de *«pasó uno»*. **La comparación de las cinco analíticas
 > está en §1.1.4** y conviene leerla antes de cambiar nada aquí.
 
-#### Para TODAS las cámaras (Demanda de Cola - Aproximación):
+#### Para TODAS las cámaras (~~Demanda de Cola - Aproximación~~ *11/09: las cuatro, la misma regla — zona y valores de la tabla `D-27` de arriba*):
 
 **Manual, *Set Intrusion Detection*, págs. 48-49.** Los pasos van en el orden del manual.
 
@@ -1297,9 +1353,12 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
    dos** y no dice cuál corresponde a ésta — se prueba la primera y si no está, la segunda.
    > ⚠️ Si la opción no aparece, **habilitarla antes en `VCA Resource`** — ver el Paso 0.
 2. Marcar ☑ **`Enable`** *(Habilitar)*.
-3. **Seleccionar la región** y dibujarla con **`Draw Area`**: un polígono amplio que cubra el
+3. **Seleccionar la región** y dibujarla con **`Draw Area`**: ~~un polígono amplio que cubra el
    **encuadre inferior y central**, donde se detienen los vehículos. *(El «90 %» es un criterio de
-   este proyecto —ver §3, la regla de oro de movilidad—, no una cifra del fabricante.)*
+   este proyecto —ver §3, la regla de oro de movilidad—, no una cifra del fabricante.)*~~ →
+   ✏️ **11/09:** el polígono sobre **el barrido de la pluma** —la franja que cruza el brazo al bajar,
+   entera—, igual en las cuatro (`D-13`; `D-27` no lo cambia). No la zona de espera ni el carril de
+   los que salen.
 4. **`Size Filter`** *(filtro de tamaño)* — **paso 4 del manual, y este manual no lo tenía**:
    fijar **tamaño mínimo y máximo** del objetivo. El manual: *«Only targets whose size are between
    the maximum size and the minimum size trigger the detection»*.
@@ -1307,16 +1366,24 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
    > una persona **descarta peatones por TAMAÑO**, sin depender del clasificador —que es justo lo que
    > está `SIN VERIFICAR` para esta analítica—. **Se ajusta con el `ENSAYO 2` delante.**
 5. **Reglas** *(paso 5 del manual)*:
-   * **`Threshold`** *(Tiempo de Permanencia)*: **`1 s`**. Definición literal: *«the threshold for the
+   * **`Threshold`** *(Tiempo de Permanencia)*: ~~**`1 s`**~~ → ✏️ **11/09: el MÍNIMO que deje poner**
+     (`D-13`; **el manual del modelo no lo fija** — tabla `D-27` de arriba). Definición literal: *«the threshold for the
      time of the object **loitering** in the region. If the time that one object **stays** exceeds the
      threshold, the alarm is triggered»*. **Es el parámetro que convierte «pasó» en «está
      esperando»**, y **suma al retardo total** — ver el Paso 4.
-   * **`Sensitivity`** *(Sensibilidad)*: **`50`**. Definición literal: *«Sensitivity = 100 − S1/ST ×
-     100»*, donde `S1` es la parte del objetivo que entra en la región y `ST` el objetivo completo.
-     **A `50`, medio vehículo dentro de la zona ya dispara.**
-     > 🔵 **`1 s` y `50` son los valores de partida de ESTE proyecto**, no una recomendación del
-     > fabricante: 🔴 **`SIN VERIFICAR` contra una cámara real.** Se afinan con los ensayos del §6.
-   * **`Detection Target`** *(Clasificación de Objetivo)*: **☑ Vehículo · ☐ Humano**.
+   * **`Sensitivity`** *(Sensibilidad)*: ~~**`50`**~~ → ✏️ **11/09: ALTA** (`D-13`; **el manual del
+     modelo no lo fija**). Definición literal: *«Sensitivity = 100 − S1/ST ×
+     100»*, donde `S1` es la parte del objetivo que entra en la región y `ST` el objetivo completo,
+     y *«the higher the value of sensitivity is, the more easily the alarm can be triggered»*.
+     ~~**A `50`, medio vehículo dentro de la zona ya dispara.**~~
+     > 🔵 ~~**`1 s` y `50` son los valores de partida de ESTE proyecto**, no una recomendación del
+     > fabricante~~ → *11/09: `1 s` y `50` se retiran —no los fijaba nadie más que este manual—; «el
+     > mínimo» y «alta» son de `D-13`, y tampoco son una recomendación del fabricante*: 🔴 **`SIN
+     > VERIFICAR` contra una cámara real.** **Anote el número que quede puesto** en la ficha de
+     > instalación; se afina con los ensayos del §6.
+   * **`Detection Target`** *(Clasificación de Objetivo)*: **☑ Vehículo · ☐ Humano** — ✏️ **11/09:
+     es el valor del manual del modelo** (§4 Paso 2, punto 5) y `D-27` deroga con él el «sin filtro»
+     de `D-13`.
      > 🔴 **`SIN VERIFICAR` QUE ESTA CASILLA EXISTA EN ESTA ANALÍTICA.** El manual la documenta en
      > *Line Crossing*, *Region Entrance* y *Region Exiting*, **y no la lista en `Set Intrusion
      > Detection`** — mientras la ficha afirma que la Perimeter Protection *«supports human and
@@ -1424,16 +1491,18 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 >
 > | destino | reposo del pin lo fija | cómo se cablea el contacto | configuración |
 > |---|---|---|---|
-> | **`J16` p10 / p12** 🔵 **EL DE HOY (`D-2`/`D-3`)** | ✅ **MEDIDO EN BANCO el 04/09** (`M3`, paso 20): **9,93 kΩ** y **9,94 kΩ** a masa, los dos a **0 V** con energía. Pull-**DOWN** real de 10 kΩ | entre el pin de señal y el borne de **3,3 V contiguo** (`p9` para `p10`, `p11` para `p12`). **Dos hilos, sin tercero a masa** — §4.bis.5 | **`NO`**, pulso **1 s** |
+> | **`J16` p10 / p12** 🔵 **EL DE HOY (`D-2`/`D-3`)** | ✅ **MEDIDO EN BANCO el 04/09** (`M3`, paso 20): **9,93 kΩ** y **9,94 kΩ** a masa, los dos a **0 V** con energía. Pull-**DOWN** real de 10 kΩ | entre el pin de señal y el borne de **3,3 V contiguo** (`p9` para `p10`, `p11` para `p12`). **Dos hilos, sin tercero a masa** — §4.bis.5 | **`NO`**, pulso ~~**1 s**~~ **el más corto de la lista** *(11/09, `D-27`: manual del modelo §4 Paso 3)* |
 > | ~~**`PB0` / `J14`** (el de hoy)~~ **`PB0` / `J14`** — 🔴 **HOY NO LLEVA CÁMARA** | ✅ **MEDIDO**: `R64` 10 kΩ a masa + `C25` 100 nF (`pines.h:43-46`) | ~~entre el pin y el borne de **3,3 V** de `J14` — **NO contra `GND`**~~ · se conserva por si el borne se usa algún día | ~~**`NO`**, pulso **1 s**~~ |
 >
 > 🔴 **CORREGIDO EL 07/09 — la etiqueta *«(el de hoy)»* estaba en la fila equivocada.** Gana
 > `DECISIONES.md` `D-2`/`D-3`: **la cámara va a `J16` p10/p12**. Y el motivo que decide no es el
 > antirrebote sino la vigilancia: **`CAM_CIEGA`/`CAM_PEGADA` miran `J16` y no miran `J14`** — una
 > cámara en `J14` funciona y **nadie sabría que se estropeó**. La fila de `J14` se conserva tachada
-> porque su medida de cobre sigue siendo cierta y el borne sigue vivo. 🔴 **11/09 — CONFLICTO
+> porque su medida de cobre sigue siendo cierta y el borne sigue vivo. ~~🔴 **11/09 — CONFLICTO
 > ABIERTO, no resuelto aquí:** `A-2` reserva `J14` para el fin de carrera de la pluma, y el firmware
-> sigue leyendo `PB0` como cámara (`CAM_DEMANDA_PIN`): lo que se cablee ahí entra como demanda.
+> sigue leyendo `PB0` como cámara (`CAM_DEMANDA_PIN`): lo que se cablee ahí entra como demanda.~~ →
+> 🟢 **`D-27` (11/09): `J14` LIBRE, sin cablear — el fin de carrera no se instala.** El firmware sigue
+> leyendo `PB0` como demanda, así que **no se conecta nada**.
 >
 > ~~**Según lo que dé la medida M3**, con la tarjeta energizada y `J16` vacío:~~ ⛔ **Esta tabla de
 > tres ramas ya no se ejecuta: `M3` la resolvió en la primera.** Se conserva porque **es el
@@ -1465,9 +1534,11 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
    * **`Alarm Output No.`** *(N.º de Salida)*: **`A->1`**, la única que tiene esta cámara
      *(ficha: `1 output`)*. Son los bornes físicos **`1A`** y **`1B`** *(Guía rápida, pág. 8)*.
    * **`Alarm Name`** *(Nombre)*: libre. Sugerencia: `DEMANDA`.
-   * **`Delay`** *(Retención del relé)*: **el valor MÁS CORTO que ofrezca el desplegable**, idealmente
-     **`1 s`**. Ver el bloque ⏱️ de abajo — **es el parámetro delicado de toda esta pantalla**.
-   * **`Arming Schedule`**: **24 × 7**, igual que en el Paso 3 y por el mismo motivo.
+   * **`Delay`** *(Retención del relé)*: **el valor MÁS CORTO que ofrezca el desplegable**, ~~idealmente
+     **`1 s`**~~ *(11/09, `D-27`: es lo que dice el manual del modelo, §4 Paso 3; el «1 s» no tenía
+     fuente — `A-7`)*. Ver el bloque ⏱️ de abajo — **es el parámetro delicado de toda esta pantalla**.
+   * **`Arming Schedule`**: **24 × 7**, igual que en el Paso 3 y por el mismo motivo. *(11/09: el
+     manual del modelo no fija el horario de la SALIDA; el 24 × 7 es de `D-13` / `A-8`.)*
    * ~~**Estado por Defecto:** **`NO` (Normally Open / Normalmente Abierto)**~~
      ⛔ **RETIRADO: ese campo NO está documentado para la salida.** Ver el bloque ⛔ de arriba. **Lo
      que hay que hacer en su lugar es MEDIR el reposo con el `ENSAYO 1`.**
@@ -1498,7 +1569,7 @@ Se realiza **una sola vez en taller** antes de enviar las cámaras a campo:
 >
 > | tramo | valor | nivel |
 > |---|---|---|
-> | Vehículo entra en la zona → **la analítica lo da por válido** | **≥ el `Threshold` configurado** — con `1 s`, **un segundo como mínimo**. Es su definición literal: la alarma salta cuando *«the time that one object stays exceeds the threshold»* | 📖 **ESCRITO** — manual, pág. 49 |
+> | Vehículo entra en la zona → **la analítica lo da por válido** | **≥ el `Threshold` configurado** — ~~con `1 s`, **un segundo como mínimo**~~ *(11/09: el `Threshold` va al mínimo que deje poner, `D-13`/`D-27`; cuánto es ese mínimo, `SIN VERIFICAR` — se anota)*. Es su definición literal: la alarma salta cuando *«the time that one object stays exceeds the threshold»* | 📖 **ESCRITO** — manual, pág. 49 |
 > | La analítica dispara → **el contacto cierra** | 🔴 **SIN VERIFICAR.** El manual **no publica** el retardo interno de la salida de alarma | 🔴 |
 > | **Total detección → contacto cerrado** | 🔴 **SIN VERIFICAR**, pero **no menor que el `Threshold`** | — |
 >
@@ -2114,11 +2185,12 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
  │ • ENSAYO 3: CONMUTACION EN SEMAFORO  --  SOBRE J14                          │
  │   >>> 07/09: ESTE ENSAYO YA NO ES EL DEL MONTAJE DE CAMPO. <<<              │
  │   >>> LA CAMARA VA A J16 p10/p12 (D-2 / D-3): USE EL ENSAYO 4.  <<<         │
- │   >>> Se conserva porque sirve para probar el borne J14 el dia que se le    │
- │   >>> cuelgue un fin de carrera de barrera.                                 │
- │   !!! 11/09 CONFLICTO ABIERTO: el firmware lee PB0 como CAMARA; un fin de  │
- │   !!! carrera ahi entraria como demanda.  A-2 contra firmware: decide el   │
- │   !!! responsable.  Este ensayo NO sirve para "aprobar" un fin de carrera.  │
+ │   >>> Se conserva porque sirve para probar el borne J14 EN BANCO.          │
+ │   ~~>>> ...el dia que se le cuelgue un fin de carrera de barrera.~~        │
+ │   ~~!!! 11/09 CONFLICTO ABIERTO: A-2 contra firmware...~~                  │
+ │   >>> 11/09, D-27: EN CAMPO J14 QUEDA LIBRE. El fin de carrera no se     │
+ │   >>> instala. Si se hace este ensayo en banco, el cable se RETIRA al    │
+ │   >>> acabar: el firmware lee PB0 como demanda.                          │
  │   ~~- Conectar 1A/1B al pin PB0 y GND de la tarjeta STM32.~~  <-- ANULADO   │
  │   ~~- Conectar 1A/1B entre el pin PB0 y el borne de 3,3 V de J14.~~         │
  │     LA ENTRADA ES ACTIVA EN ALTO: contra GND no dispara nunca, y el         │
@@ -2219,7 +2291,7 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
 | lo que este manual afirma | nivel |
 |---|---|
 | La entrada de cámara es **activa en ALTO** y no se cablea contra `GND` | ✅ **MEDIDO EN EL FUENTE** — símbolo `camara_leerPin()` en `Maestro/src/botones.cpp`, que compara `digitalRead(pin) == HIGH`, y `pinMode(..., INPUT)` **pelado** en `botones_setup()` |
-| `PB0`/`J14` con `R64` 10 kΩ + `C25` 100 nF es una entrada de cámara con firmware | ✅ **MEDIDO** — símbolo `CAM_DEMANDA_PIN` (`pines.h:43-46`, cita **fechada y vigente**), leído en `modo_inteligente.cpp` y en `Esclavo/src/main.cpp:350`. 🔴 **11/09: CONFLICTO ABIERTO con `A-2`**, que reserva `J14` para el fin de carrera — no se resuelve en este manual |
+| `PB0`/`J14` con `R64` 10 kΩ + `C25` 100 nF es una entrada de cámara con firmware | ✅ **MEDIDO** — símbolo `CAM_DEMANDA_PIN` (`pines.h:43-46`, cita **fechada y vigente**), leído en `modo_inteligente.cpp` y en `Esclavo/src/main.cpp:350`. ~~🔴 **11/09: CONFLICTO ABIERTO con `A-2`**, que reserva `J14` para el fin de carrera — no se resuelve en este manual~~ → 🟢 **`D-27` (11/09): `J14` libre y sin cablear; el fin de carrera no se instala** |
 | 🆕 **11/09 (`D-25`) — las dos entradas de `J16` (`p10`, `p12`) hacen LO MISMO** | ✅ **MEDIDO en las dos puntas** — `CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN}` recorrido por el mismo bucle de `camaras_actualizar()`: `demanda_solicitar()` + vigilante |
 | 🆕 **11/09 — ninguna cámara protege la pluma; la pluma sube con verde y con `S_FALLO`** | ✅ **MEDIDO en las dos puntas** — `escribirPines()`: `(verde && !testLedsActivo) \|\| estado == S_FALLO`, sin ninguna lectura de cámara. El veto (`A-1.bis`) **no está construido** |
 | 🆕 **11/09 — una cámara que nunca dio un flanco no se vigila, y `CAM:` sale `OK` sin ella** | ✅ **MEDIDO en las dos puntas** — la bandera `camHuboFlanco` salta ese pin en `vigilante_tick()` (silencio) y en `camara_estado()` (salvo que esté `PEGADA`). **La exención se escribió para un `p12` vacío; con `D-25` queda pendiente de rehacer en el firmware** |
@@ -2256,7 +2328,8 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
 > | **Retardo entre detección y cierre del contacto** | 🔴 **SIN VERIFICAR.** Lo único acotado: **no es menor que el `Threshold`** configurado, por definición del propio parámetro (pág. 49) |
 > | **`Detección de Intrusión` es la analítica correcta** — es la única cuya regla mide *permanencia* (`Threshold` = *«time of the object loitering»*) | 📖 **ESCRITO** — manual, págs. 48-49. **El razonamiento completo, con las cinco analíticas comparadas, en §1.1.4** |
 > | **El clasificador `☑ Vehículo` sobre la Detección de Intrusión** | 🔴 **SIN VERIFICAR, y las dos fuentes oficiales discrepan.** El manual lista `Detection Target` en *Line Crossing*, *Region Entrance* y *Region Exiting* **y no en `Set Intrusion Detection`**; la ficha (pág. 4) dice que la Perimeter Protection *«supports human and vehicle targets classification»*. Lo cierra el **`ENSAYO 2`** |
-> | Umbral **`1 s`** y sensibilidad **`50`** | 🔴 **SIN VERIFICAR.** Son los valores de partida **de este proyecto**, no una recomendación del fabricante. Se afinan con los ensayos |
+> | ~~Umbral **`1 s`** y sensibilidad **`50`**~~ → **11/09 (`D-27`): `Threshold` al mínimo y `Sensitivity` alta**, los de `D-13` — **el manual del modelo no fija ninguno de los dos** (tabla de §4 Paso 3) | 🔴 **SIN VERIFICAR.** ~~Son los valores de partida **de este proyecto**~~ Son de `D-13`, no una recomendación del fabricante. Se afinan con los ensayos y **se anota el número que quede** |
+> | 🆕 **11/09 (`D-27`) — el objetivo: ☑ Vehículo · ☐ Humano** | 📖 **ESCRITO** en el manual del modelo (`04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md` §4 Paso 2, punto 5). **Que la casilla exista en Intrusión sigue `SIN VERIFICAR`** (fila de arriba), y **que una moto cuente como «vehículo» no lo dice ninguna fuente** |
 > | **Alimentación: `12 V DC ± 25 %` (`9`–`15 V`), `1,08 A`, máx. `13 W`** · PoE `802.3at` **Clase 4**, máx. `15 W` | 📖 **ESCRITO** — ficha, pág. 4. **El rango cubre entero el vaivén de una batería de plomo de 12 V** |
 > | ~~**`26 Ah/día` por poste sólo de cámara**~~ → **11/09 (`D-25`): `52 Ah/día` por poste, las DOS cámaras** | 🧮 **CUENTA**, con sus entradas escritas al lado (§1.1.2: `2 × 13 W × 24 h / 12 V`). **Es un dato para quien dimensione la energía, no una decisión de este manual** |
 > | Óptica **`2,8`–`12 mm`**, FOV horizontal **`108°`–`30°`**, DORI Detectar **`97`–`290 m`**, 8 MP | 📖 **ESCRITO** — ficha, pág. 2 |
@@ -2273,7 +2346,7 @@ compilación con el umbral reducido, **que no es la que va a campo**. Está comp
 > de falsa activación (paso 21). **Con eso, cablear cámara a `J16` deja de estar bloqueado.**
 >
 > 🛑 **Lo que sigue SIN pasar banco:** la cámara AcuSense **real** contra este equipo —zona, umbral,
-> clasificador, pulso de 1 s—, y el ciclo completo con demanda por `J16`. **Este manual no autoriza a
+> clasificador, pulso ~~de 1 s~~ *(11/09: el más corto de la lista)*—, y el ciclo completo con demanda por `J16`. **Este manual no autoriza a
 > instalar**: autoriza a **cablear** lo que `M3` desbloqueó, con el pin de 12 V tapado y con el
 > firmware nuevo ya cargado en la tarjeta.
 >
@@ -2301,8 +2374,8 @@ UNA** — cada unidad trae su propia configuración y su propio relé.
 
 | # | qué se comprueba | dónde | si sale mal |
 |---|---|---|---|
-| **1** | **¿Existe la casilla `Trigger Alarm Output` en la regla de intrusión?** 🔴 **Vaya esperando que NO: la ficha del modelo la omite de su lista de vinculaciones (pág. 4)** | **§4 Paso 0** | 🛑 **PARAR.** El contacto seco no se puede accionar desde la analítica → el camino de `J16` no sirve y hay que replantear por dónde entra la demanda. **No lo decide este manual.** ✅ Lo que **sí** sigue vivo: la grabación por analítica en la microSD. ❌ Lo que **no** es relevo: `D-14`, sin construir |
-| **1.bis** | **¿Qué zona hay que dibujar: la vía de aproximación o el barrido de la pluma?** | **§4 Paso 3**, bloque 🛑 | 🛑 **PREGÚNTELO ANTES DE ENCUADRAR.** `D-13` dice pluma, el firmware ejerce demanda, y **una cámara sólo lleva una regla**. Las dos cosas están vivas y **no lo decide el técnico** |
+| **1** | **¿Existe la casilla `Trigger Alarm Output` en la regla de intrusión?** ~~🔴 **Vaya esperando que NO: la ficha del modelo la omite de su lista de vinculaciones (pág. 4)**~~ → 🟢 **10/09, en campo: SÍ, en una cámara del Maestro** —`Intrusion Detection` con `Trigger Alarm Output` dio *«0 V sin detección, 3,3 V con detección»* en el borne (`roadmap.md` §3.8)—. **Es una cámara: se mira igual en cada una** | **§4 Paso 0** | 🛑 **PARAR.** El contacto seco no se puede accionar desde la analítica → el camino de `J16` no sirve y hay que replantear por dónde entra la demanda. **No lo decide este manual.** ✅ Lo que **sí** sigue vivo: la grabación por analítica en la microSD. ❌ Lo que **no** es relevo: `D-14`, sin construir |
+| ~~**1.bis**~~ | ~~**¿Qué zona hay que dibujar: la vía de aproximación o el barrido de la pluma?**~~ | **§4 Paso 3** | ~~🛑 **PREGÚNTELO ANTES DE ENCUADRAR.** `D-13` dice pluma, el firmware ejerce demanda…~~ → ✏️ **11/09: ya no se pregunta — el barrido de la pluma, en las cuatro** (`D-13`, `D-25`; `D-27` no lo cambia). Los demás valores, en la tabla `D-27` del §4 Paso 3 |
 | **2** | **¿Está la salida ABIERTA en reposo?** *(o sea, ¿es `NO`?)* | **`ENSAYO 1`**, §6 | 🛑 **PARAR.** Con el contacto cerrado en reposo el pin nace ALTO y **no habrá flanco** hasta que el relé abra y cierre. Ver §4 Paso 4 |
 | **3** | **¿Cuánto dura el pulso, y qué valores de `Delay` ofrece?** | **`ENSAYO 1`**, §6 | ⚠️ Si sólo hay valores largos, **funciona con menos finura**: se anota y se sigue. **`Manual` no se elige jamás** |
 | **4** | **¿Existe `Detection Target`, y aguanta el `ENSAYO 2` de peatones?** | **`ENSAYO 2`**, §6 | ⚠️ Sin clasificador se sube el mínimo del **`Size Filter`**. Si aun así un peatón pide paso, **se avisa**: sería dar verde a un carril sin vehículos |
@@ -2313,4 +2386,4 @@ UNA** — cada unidad trae su propia configuración y su propio relé.
 > destornillador.**
 
 ---
-*Manual técnico oficial de integración y configuración de Cámaras IA para Semáforos Móviles V9.0. Polaridad corregida el 31/08 (`N-105`): el contacto seco cierra contra 3,3 V, no contra `GND`. **Confirmada en cobre el 04/09 con el cierre de `M3`**, que además levanta el bloqueo para cablear `J16` p10/p12 — con el pin 1 de esa misma bornera **tapado**. **Cámara real incorporada el 05/09: `DS-2CD2683G2-IZS`, con su ficha, su manual de usuario y su guía rápida citados página a página — y con lo que esas tres fuentes NO dicen marcado `SIN VERIFICAR`, no rellenado.** **11/09: `D-25`, cuatro cámaras, dos por poste en `J16` p10/p12, las dos iguales; ninguna protege la pluma.***
+*Manual técnico oficial de integración y configuración de Cámaras IA para Semáforos Móviles V9.0. Polaridad corregida el 31/08 (`N-105`): el contacto seco cierra contra 3,3 V, no contra `GND`. **Confirmada en cobre el 04/09 con el cierre de `M3`**, que además levanta el bloqueo para cablear `J16` p10/p12 — con el pin 1 de esa misma bornera **tapado**. **Cámara real incorporada el 05/09: `DS-2CD2683G2-IZS`, con su ficha, su manual de usuario y su guía rápida citados página a página — y con lo que esas tres fuentes NO dicen marcado `SIN VERIFICAR`, no rellenado.** **11/09: `D-25`, cuatro cámaras, dos por poste en `J16` p10/p12, las dos iguales; ninguna protege la pluma.** **11/09 (2.ª): `D-27`, las cuatro compradas; `J14` libre y sin cablear; los valores de configuración, los del manual del modelo (`04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md`) — tabla del §4 Paso 3.***

@@ -11,6 +11,7 @@ Este documento describe la arquitectura física de las placas impresas (PCBs), l
 > | ⛔ **6 de las 9 citas `fichero:linea` estaban caducadas**, y en los bloques de `grep` publicados fallaron **6 de 14 lineas** | Y una señalaba al **fichero equivocado**: la lectura de cámara se mudó a `camara_leerPin()` en `botones.cpp`. Se sustituyen por símbolos |
 > | ⛔ **Un `grep` publicado como cero daba hits al re-correrlo** | El de `HC-05`/`JDY` iba **sin acotar** y muerde los binarios de `U8g2` en `.pio/`. **Un cero de `grep` sólo vale si se dice sobre qué se corrió.** §4 |
 > | 🔴 **11/09 — `D-25`: CUATRO CÁMARAS, DOS POR POSTE** | Cámara 1 en `J16` p9/p10 (`CAM_C_PIN`), cámara 2 en `J16` p11/p12 (`CAM_D_PIN`); talanquera en `J15` (p1 12 V, p2 drenador de `Q10`, **no masa**) por relé a `OPEN` de la centralita. Deroga *«una por poste / p12 vacío»*. **Las dos cámaras hacen lo mismo, ninguna frena la pluma y la app no las distingue.** §3.2, §3.3, §3.bis |
+> | 🟢 **11/09 (tarde) — `D-27`: `J14` LIBRE, sin cablear; cuatro cámaras compradas; relé de bobina 12 V** | El fin de carrera **no se instala en este despliegue**, y eso cierra el conflicto de `A-2` que este manual dejaba abierto. La talanquera va por un **relé de bobina de 12 V DC con contacto NA**, no por un módulo optoacoplado. §3.bis |
 >
 > **Manda [`DECISIONES.md`](../DECISIONES.md)**, y en cobre medido
 > `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md`. **Este manual nunca gana.**
@@ -138,7 +139,7 @@ El firmware V7.6 en las placas STM32 es 100% agnóstico a la topología de red i
 
 | pin | qué es de verdad | nivel |
 |---|---|---|
-| **`PB0`** | **`CAM_DEMANDA_PIN`** — ~~la **única** entrada de cámara con firmware~~ 🛑 **es UNA de TRES**: también `PB14` y `PB15` se leen como cámara. Bornera **`J14`**, con `R64` 10 kΩ (*pull-**down***) + `C25` 100 nF = antirrebote por hardware de 1 ms | ✅ **MEDIDO 07/09** (símbolo `CAM_DEMANDA_PIN` en `pines.h`; se lee vía `camara_leerPin(CAM_DEMANDA_PIN)` en `modo_inteligente.cpp` y `digitalRead(CAM_DEMANDA_PIN)` en `Esclavo/src/main.cpp`). ⛔ *(de las tres citas anteriores sólo `main.cpp:350` seguía valiendo)* |
+| **`PB0`** | **`CAM_DEMANDA_PIN`** — ~~la **única** entrada de cámara con firmware~~ 🛑 **es UNA de TRES**: también `PB14` y `PB15` se leen como cámara. Bornera **`J14`**, con `R64` 10 kΩ (*pull-**down***) + `C25` 100 nF = antirrebote por hardware de 1 ms. *(11/09, `D-27`: **`J14` queda LIBRE, sin cablear** — ni cámara ni fin de carrera; el firmware lo sigue leyendo como demanda, así que no se conecta nada)* | ✅ **MEDIDO 07/09** (símbolo `CAM_DEMANDA_PIN` en `pines.h`; se lee vía `camara_leerPin(CAM_DEMANDA_PIN)` en `modo_inteligente.cpp` y `digitalRead(CAM_DEMANDA_PIN)` en `Esclavo/src/main.cpp`). ⛔ *(de las tres citas anteriores sólo `main.cpp:350` seguía valiendo)* |
 | **`PB8`** | **`LED_TESTIGO`** — salida por `R16` 1 kΩ al LED `D5`. **No es entrada de nada** | ✅ **MEDIDO 07/09** (`pines.h:63` — **re-corrida y correcta**) |
 | **`PB9`** (`J16` p5) | **`BOTON1` = `MANDO_A`** del mando de relés. 🛑 **BORNE VACÍO — pero el CÓDIGO lo sigue leyendo** | ✅ **MEDIDO** (símbolos `BOTON1` en `pines.h`, `mando_registrarPulso(MANDO_A)` en `botones.cpp`) |
 | **`PB13`** (`J16` p8) | **`BOTON2` = `MANDO_B`**. 🛑 **BORNE VACÍO — y su código es el único que arma `ambarLocal`** | ✅ **MEDIDO** (símbolos `BOTON2` en `pines.h`, `mando_registrarPulso(MANDO_B)` en `botones.cpp`, `ambarLocal = true` en `Esclavo/src/mando.cpp`) |
@@ -341,10 +342,19 @@ seguro de SFTY-28.
 - Qué hace la centralita cuando el relé suelta `OPEN` (si baja sola, con qué retardo) **no lo
   controla este equipo y no está medido**: se comprueba con la barrera real delante.
 
-🔴 **Y `J14` (`PB0`): `A-2` (05/09) lo reserva al fin de carrera de la pluma, pero el firmware lo
+🔴 **Y `J14` (`PB0`): ~~`A-2` (05/09) lo reserva al fin de carrera de la pluma, pero~~ el firmware lo
 sigue leyendo como `CAM_DEMANDA_PIN`** —el Maestro por nivel en Inteligente, el Esclavo por flanco,
-mandando `CMD_DEMANDA`—: un fin de carrera ahí daría **demandas falsas**. **CONFLICTO ABIERTO**; no
-lo resuelve este manual, y hasta que se resuelva no se cablea nada en `J14` sin preguntarlo.
+mandando `CMD_DEMANDA`—: ~~un fin de carrera ahí daría **demandas falsas**. **CONFLICTO ABIERTO**; no
+lo resuelve este manual, y hasta que se resuelva no se cablea nada en `J14` sin preguntarlo.~~ →
+🟢 **11/09, `D-27`: `J14` queda LIBRE, sin cablear — el fin de carrera NO se instala en este
+despliegue.** Lo que se cablee ahí pediría paso como una cámara, así que **en `J14` no se conecta
+nada**; vacío, `R64` lo deja en 0 V y no pide nada (`J14` medido en banco el 03-04/09, pasos 17-18).
+
+🛒 **Y el relé de la talanquera** (`D-27` punto 4, como la guía del Sisga): **bobina de 12 V DC**
+entre `J15` p1 y p2 y **contacto NA** a `OPEN` y su común en la centralita; **sin módulo
+optoacoplado ni `JD-VCC`** —`J15` sólo da esos dos hilos—. La rueda libre ya está en la placa
+(`D30`, `1N4148` de 200 mA): la bobina tiene que quedar por debajo; la referencia la decide el
+responsable (línea `A4` de `05_Funcional/15_Lista_de_Compras_Hardware.md`).
 
 ⚠️ **Y `J15` no está a 0 V en reposo, está a ~12 V** por el pull-up de 1 kΩ del cobre — ver §5.bis
 punto 4. En banco dio *«0 V en rojo, 12 V en ámbar»*, que es exactamente eso.

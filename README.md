@@ -92,8 +92,8 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
-| banco por packs *(78 packs)* | 🔴 **FALLA** | **1249/1252 comprobaciones en 78 packs** — 77 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22` y `D-23` son decisiones VIGENTES sin construir**. **Sólo `D-20` y la pieza B de `D-21` lo están.** `D-23` ya tiene la vía elegida (`$EVENT`, `A-14`) y **es teclado**; `D-14` espera **que el responsable elija cuál de los tres últimos canales de potencia gasta** (el multímetro que se pedía no hacía falta); `D-22` espera **una tarjeta delante** |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **88.8 %** · 69.1 % · 20.6 % · 35.7 % — *el Maestro ocupa **58216 de 65536 B**, o sea **7.320 B libres**; el Esclavo, **45280 B*** |
+| banco por packs *(78 packs)* | 🔴 **FALLA** | **1251/1258 comprobaciones en 78 packs** — 77 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22`, `D-23`, `D-25`, `D-26` y `D-27` son decisiones VIGENTES sin ancla en el firmware** (y `D-26` sin nombrar en ningún manual). **Sólo `D-20` y la pieza B de `D-21` lo están.** `D-23` ya tiene la vía elegida (`$EVENT`, `A-14`) y **es teclado**; `D-14` espera **que el responsable elija cuál de los tres últimos canales de potencia gasta** (el multímetro que se pedía no hacía falta); `D-22` espera **una tarjeta delante** |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.1 %** · 69.1 % · 20.6 % · 35.7 % — *el Maestro ocupa **58400 de 65536 B**, o sea **7.136 B libres**; el Esclavo, **45280 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.7 % — 1122973 de 3.145.728 B |
@@ -107,10 +107,10 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | arnés del ciclo | ✅ | **22/22** — corre sobre el `ciclo_degradado.h` real compilado, sin espejo en Python |
 | arnés del respaldo | ✅ | compila el `calcularSuma()` real; identidad de `respaldo.cpp` entre puntas + prueba de vida |
 | arnés del Degradado a dos puntas | ✅ | **18/18** — las dos puntas en Degradado **cada una con su reloj**. Entrega **el número**: el cruce aguanta **29 s** de desfase contra los **20,2 s** que el equipo puede acumular en 48 h, o sea factor **1,44** — y no el 2 que afirmaban los comentarios de las dos puntas |
-| arnés de las dos puntas | ✅ | **51/51** — el C++ **real de las DOS puntas** ejecutándose en el mismo proceso y el mismo instante: verde simultáneo en **0** instantes *(el total lo imprime el arnés; aquí ponía «de 53.236» y ya no casaba)* |
+| arnés de las dos puntas | 🔴 **FALLA** | **76/77** — la que cae es **G3** (la punta en verde no suelta antes del silencio de SFTY-6: 250 ms de verde frente a ámbar) y espera una decisión del responsable; los 180 s de verde en las dos del bloque G están CERRADOS (N-162, 11/09).  — el C++ **real de las DOS puntas** ejecutándose en el mismo proceso y el mismo instante: verde simultáneo en **0** instantes *(el total lo imprime el arnés; aquí ponía «de 53.236» y ya no casaba)* |
 | arnés del automático | ✅ | **99/99** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` + `modo_inteligente.cpp`, `demanda.cpp` y el `botones.cpp` real, y comprueba SFTY-2 sobre las escrituras de pin |
 
-**19 PASS · 1 FALLA · 0 ABORTADO, de 20 comprobaciones — la compuerta sale con código `1`.**
+**18 PASS · 2 FALLA · 0 ABORTADO, de 20 comprobaciones — la compuerta sale con código `1`.**
 
 > 🔴 **El `1` es el hallazgo, no una regresión.** Lo acusa `decisiones_01_anclas`: **`D-14`, `D-22` y
 > `D-23` están vigentes en `DECISIONES.md` sin una línea que las construya.** `D-14` —*el controlador
@@ -222,9 +222,10 @@ un puerto serie: aporta reloj y Bluetooth, y NO manda sobre las luces.**
 ```
 
 *(\*) Aquí ponía ~~`camaras J14, J16`~~. ✏️ **11/09:** las cámaras van a `J16` —dos por poste, p10 y
-p12 (`D-25`)—. `J14` no lleva cámara: `A-2` lo reserva al fin de carrera, **pero el firmware lo sigue
-leyendo como cámara de demanda (`CAM_DEMANDA_PIN` = `PB0`)** — conflicto abierto, del responsable
-(`ARQUITECTURA.map` §7.3).*
+p12 (`D-25`)—. `J14` no lleva cámara: ~~`A-2` lo reserva al fin de carrera,~~ **pero el firmware lo sigue
+leyendo como cámara de demanda (`CAM_DEMANDA_PIN` = `PB0`)** — ~~conflicto abierto, del responsable~~
+→ **`D-27` (11/09): `J14` LIBRE, sin cablear; el fin de carrera no se instala en este despliegue**,
+así que en `J14` no se conecta nada (`ARQUITECTURA.map` §7.3).*
 
 ### El enlace, pin a pin — y la fuente
 
@@ -268,7 +269,7 @@ del netlist, **no el papel del pin**.)*
 | `J16` | red | pin | uso nuevo |
 |---|---|---|---|
 | p1 | `/12V` | — | 🔴 **12 V crudos. Se tapa físicamente en CADA equipo que se monte** (N-120) — es el único conector de señal de la tarjeta que los trae, sin opto ni clamp |
-| p5 | `/Boton1` | `PB9` | **libre y SIN CABLEAR** (`A-2`, cerrada el 05/09: el fin de carrera va a `J14`). 🔴 **El firmware sigue leyendo ese pin** y alimentando el reconocedor de secuencias del mando |
+| p5 | `/Boton1` | `PB9` | **libre y SIN CABLEAR** (`A-2`, cerrada el 05/09: el fin de carrera va a `J14` — *11/09, `D-27`: y tampoco allí, el fin de carrera no se instala*). 🔴 **El firmware sigue leyendo ese pin** y alimentando el reconocedor de secuencias del mando |
 | p8 | `/Boton2` | `PB13` | igual que p5 |
 | p10 | `/Boton3` | `PB14` | 🎯 **`CAM_C_PIN` — cámara 1**, contacto de alarma entre p9 (3,3 V) y p10 *(verificada en banco el 03/09)* |
 | p12 | `/Boton4` | `PB15` | 🎯 **`CAM_D_PIN` — cámara 2**, contacto de alarma entre p11 (3,3 V) y p12 |
@@ -471,7 +472,7 @@ fallar varias veces con `Unable to get core ID`. Eso **no** es falta de cableado
 | 6 | [`6_Preguntas_Diseno_Funcional`](05_Funcional/6_Preguntas_Diseno_Funcional.md) | Decisiones de diseño cerradas |
 | 7 | [`7_Especificacion_Antenas`](05_Funcional/7_Especificacion_Antenas.md) | Antenas y línea de vista |
 | 8 | [`8_Procedimiento_Modo_Degradado`](05_Funcional/8_Procedimiento_Modo_Degradado.md) | Operación de emergencia por reloj sin radio |
-| 9 | [`9_Manual_Parametrizacion_Camara_IA`](05_Funcional/9_Manual_Parametrizacion_Camara_IA.md) | **4 cámaras, dos por poste** en `J16` p10/p12 (`D-25`, 11/09) — ~~⚠️ **el manual todavía dice una por poste: pendiente de alinear**~~ ✏️ **alineado el 11/09** (el `.docx` no: se regenera aparte). **Es el entregable principal del diseño de cámaras** (`D-12`): toda la inteligencia vive en la configuración de la cámara |
+| 9 | [`9_Manual_Parametrizacion_Camara_IA`](05_Funcional/9_Manual_Parametrizacion_Camara_IA.md) | **4 cámaras, dos por poste** en `J16` p10/p12 (`D-25`, 11/09) — ~~⚠️ **el manual todavía dice una por poste: pendiente de alinear**~~ ✏️ **alineado el 11/09** (el `.docx` no: se regenera aparte). **Es el entregable principal del diseño de cámaras** (`D-12`): toda la inteligencia vive en la configuración de la cámara. 🎯 **11/09, `D-27`: sus VALORES de configuración salen del manual del modelo, [`04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md`](04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md) §4** —tabla valor a valor en su §4 Paso 3—; las cuatro cámaras están compradas |
 | 10 | [`10_Manual_Modulo_Bluetooth_Telemetria`](05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md) | ⚠️ **manda enchufar un `HC-05` en `J17`, que es donde va el ESP32** |
 | 11 | [`11_Manual_Instalacion_RTC_DS3231_Bateria`](05_Funcional/11_Manual_Instalacion_RTC_DS3231_Bateria.md) | ~~`DS3231` en `PB0`/`PB8`~~ → **se muda al ESP32**. ⚠️ **manual sin corregir** |
 | 12 | [`12_Cobertura_de_Pruebas_y_Huecos`](05_Funcional/12_Cobertura_de_Pruebas_y_Huecos.md) | Qué mide cada instrumento y **qué queda sin medir** |
@@ -509,7 +510,7 @@ cerrar.)*
   `_Automatico/`: los arneses que compilan C++ real. Qué compila cada uno y su punto ciego:
   [`ARQUITECTURA.map`](ARQUITECTURA.map).
 - [`01_Firmware/compuerta.py`](01_Firmware/compuerta.py): **la única forma correcta de
-  verificar** — `19 PASS · 1 FALLA · 0 ABORTADO`, exit code 1. Las cifras están en la tabla de
+  verificar** — `18 PASS · 2 FALLA · 0 ABORTADO`, exit code 1. Las cifras están en la tabla de
   arriba, que se copia del acta; ésta es sólo la puerta.
 
 > 🛑 **Y para cerrar donde se abrió: nada de este README es un permiso.** En campo corre la
