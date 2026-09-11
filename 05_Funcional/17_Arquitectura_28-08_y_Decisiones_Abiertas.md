@@ -206,20 +206,31 @@ buscar la averia en el reloj que si funciona.
 > > La app se la da al **ESP32 Maestro**; ese al **ESP32 Esclavo**; y el STM32 de cada punta la
 > > recibe **de su propio ESP32**. **El Maestro manda la hora y el Esclavo hace caso siempre: hay
 > > UNA sola fuente**, asi que **no hay desfase inicial que acotar** —que era la unica objecion del
-> > arquitecto—. **Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.** Un `SET_RTC`
-> > dirigido al Esclavo **se rechaza**: no es una sincronizacion, **es una segunda fuente**.
+> > arquitecto—. ~~**Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.** Un `SET_RTC`
+> > dirigido al Esclavo **se rechaza**: no es una sincronizacion, **es una segunda fuente**.~~
+>
+> 🛑 **11/09 — CADUCADO lo tachado** (ya tachado en la propia fila `D-20` el 07/09 por la noche), **y
+> `D-26` (11/09) lo invierte:** la hora la manda el ESP32 de CADA poste; con radio el Esclavo hace caso a
+> la del Maestro, **sin radio (25 s) toma la de su propio ESP32**, que el tecnico le pone desde el
+> telefono en su gabinete. Construida en `68dd2c5`, **sin banco**. La radio **no** escribe el `DS3231`
+> del Esclavo (la "cadena completa" queda como mejora): el ultimo salto de la topologia de abajo no
+> existe. `14_Manual_App_Movil_IOT_VIAL.md` §5.3.bis.
 >
 > **Topologia, y explica el resto: los dos ESP32 NO se hablan.** El unico enlace entre postes es la
 > radio **entre los STM32**, asi que la hora viaja `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`.
 > **Los STM32 quedan de CARTEROS de la hora, no de duenos.**
 >
-> 🔴 **Y `D-20` esta DECIDIDA Y SIN CONSTRUIR.** Lo que falta esta en `roadmap.md` §3.4.bis, y **el
-> riesgo N-144 que la salida (a) traia consigo NO desaparece: cambia de forma.** La cura decidida no
-> es *«un reloj de software refrescado cada tanto»* —eso es **peor** que el cristal muerto, porque
-> el STM32 arranca con el **HSI** (10.000-25.000 ppm) y un reloj sembrado una vez por hora **se iria
-> 36 s en esa hora, mas que el margen entero de 29 s del cruce**— sino un **extrapolador sembrado
-> cada `LATIDO_MS` (2 s)** con un `EPOCH` del `DS3231`, donde `reloj_enHora()` pasa a significar
-> **«mi siembra es fresca»**.
+> 🔴 ~~**Y `D-20` esta DECIDIDA Y SIN CONSTRUIR.**~~ *(11/09: construida — extrapolador en `9dd8bbf`,
+> siembra ESP32 -> STM32 en `68dd2c5` con las reglas de `D-26`; sin banco.)* Lo que falta esta en
+> `roadmap.md` §0, y **el riesgo N-144 que la salida (a) traia consigo NO desaparece: cambia de forma.**
+> La cura decidida no es *«un reloj de software refrescado cada tanto»* —eso es **peor** que el cristal
+> muerto, porque el STM32 arranca con el **HSI** (10.000-25.000 ppm) y un reloj sembrado una vez por
+> hora **se iria 36 s en esa hora, mas que el margen entero de 29 s del cruce**— sino un
+> **extrapolador sembrado** ~~**cada `LATIDO_MS` (2 s)**~~ **cada 300 s** (`D-26` (2), 11/09: 7,5 s de HSI
+> por punta entre siembras) con la hora del `DS3231`, ~~donde `reloj_enHora()` pasa a significar
+> **«mi siembra es fresca»**~~. 🔴 *11/09: esa ultima mitad NO se construyo — `reloj_enHora()` sigue
+> siendo «hay hora», no «la siembra es fresca»; con el `J17` mudo la hora sigue valida y corre sobre el
+> HSI. Es `N-162` `H1` (`roadmap.md` §3.16), y lo cura `D-21` (1), en construccion fuera de `main`.*
 >
 > ⚠️ **Y la salida (c) queda descartada por lo mismo que ya decia su fila**: no hace falta cablear
 > un `DS3231` al STM32 si su propio ESP32 se lo siembra por un cable que ya existe
@@ -251,7 +262,9 @@ de `DECLARAR NO ES EJERCER` (`CLAUDE.md` §6): todo declarado, nada ejercido, y 
 instrumentos en verde mirando la declaracion.
 
 > 🔴 **Y el 07/09 esa frase se cobro a si misma, que es lo que hay que leer aqui: la decision YA
-> ESTA TOMADA (`D-20`) y sigue sin construirse.** O sea que el parrafo de arriba **no queda cerrado
+> ESTA TOMADA (`D-20`) y sigue sin construirse.** *(11/09: construida —`9dd8bbf` y, con las reglas de
+> `D-26`, `68dd2c5`—, sin banco. La puerta del Degradado del poste 2 ya puede contestar que si; que lo
+> haga en una tarjeta es la sesion de banco.)* O sea que el parrafo de arriba **no queda cerrado
 > por haberse decidido**: ahora hay **un procedimiento escrito, un comando construido, DOS
 > decisiones tomadas** (`D-18` y `D-20`) y la misma puerta contestando que no. **Decidir no es
 > construir**, igual que declarar no es ejercer. Lo unico que cambio de sitio es de quien es el
@@ -2430,8 +2443,10 @@ pedido desde el piso con `B·B·B`, el Esclavo **no obedece ni acusa recibo**, p
 > **Porque el reparto cambio: `D-15` dice que el reloj lo lleva el `DS3231` del ESP32 de cada punta,
 > y que ese ESP32 es el UNICO que contesta a `SET_RTC`.** El STM32 no tiene reloj (`Y2` muerto,
 > N-17), y que siguiera contestando producia **dos acuses opuestos a una sola orden, los dos
-> ciertos**. Lo que queda hoy en esta punta es un `bluetooth_reportarEvento("APP_BLUETOOTH",
-> "SET_RTC_LO_ACUSA_EL_PUENTE")`.
+> ciertos**. ~~Lo que queda hoy en esta punta es un `bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE")`.~~
+> *(11/09, `D-26`, `68dd2c5`: ya ni eso — el `SET_RTC` se queda en el
+> puente y no llega al STM32. Lo que la controladora recibe es `CMD:HORA_ESP32:…` con la hora releida
+> del `DS3231`, y en su diario queda `HORA_ESP32_SEMBRADA` solo en el cambio.)*
 >
 > 🔴 **Consecuencia para quien diagnostica, que es lo que hace esto peligroso y no cosmetico: las
 > cinco respuestas de la tabla de abajo YA NO LLEGAN DEL STM32.** Un tecnico que ponga la hora y

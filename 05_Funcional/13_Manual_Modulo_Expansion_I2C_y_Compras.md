@@ -127,9 +127,11 @@
 > | *«el `DS3231` no se cuelga de pines del STM32»* | ✅ **cierto, y no cambia.** No hay driver en esa punta, y este manual no monta ese bus |
 > | ~~*«el STM32 no lleva hora, nunca»*~~ | 🔴 **derogado por `D-20`:** el STM32 **recibe la hora de SU PROPIO ESP32 y la retransmite por radio a la otra punta**. Es el **cartero** de la cadena `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`, porque **los dos ESP32 no se hablan entre sí** |
 >
-> ⚠️ **SIN CONSTRUIR.** Lo que `D-20` decide es la **autoridad** de la hora, no la implementación:
+> ⚠️ ~~**SIN CONSTRUIR.** Lo que `D-20` decide es la **autoridad** de la hora, no la implementación:
 > falta el mando ESP32 → STM32 que la siembre (`enlace_stm32.cpp` **no menciona `RTC` ni `hora`**,
-> comprobado el 07/09). **Para las compras de este manual no cambia nada: siguen siendo DOS
+> comprobado el 07/09).~~ *(11/09: construido en `68dd2c5` —`siembra.cpp`, que escribe por
+> `enlace_stm32.cpp`—, sin banco; y con `D-26` la cadena termina en el `STM32-E`: la radio no escribe el
+> `DS3231` del Esclavo, y **sin radio el Esclavo toma la de su propio ESP32**.)* **Para las compras de este manual no cambia nada: siguen siendo DOS
 > `DS3231`, uno por poste (`A-5`), y ninguno cuelga del STM32.**
 >
 > 🔴 **Lo único que de verdad sigue abierto: la dirección I²C `0x68` está `SIN VERIFICAR` sobre el
@@ -654,14 +656,17 @@ Todos estos componentes se consiguen en cualquier mostrador de electrónica loca
 >   > ESP32-M  ->  STM32-M  ->  radio  ->  STM32-E  ->  ESP32-E
 >   > ```
 >   >
->   > **La autoridad de la hora es el ESP32 Maestro, y sólo él. El Esclavo hace caso siempre.** Los
->   > STM32 son **carteros**: reciben la hora de su propio ESP32 y la pasan. **Sí hay de dónde tomar
->   > la hora sin tocar el `DS3231` local: del Maestro, por radio.**
+>   > **La autoridad de la hora es el ESP32 Maestro, y sólo él. El Esclavo hace caso** ~~**siempre**~~
+>   > *(con radio; sin radio, a su propio ESP32 — `D-26` (3), 11/09)*. Los STM32 son **carteros**:
+>   > reciben la hora de su propio ESP32 y la pasan. **Sí hay de dónde tomar la hora sin tocar el
+>   > `DS3231` local: del Maestro, por radio** *(hasta el STM32-E; la radio no escribe el `DS3231` del
+>   > Esclavo)*.
 >   >
->   > ⚠️ **PERO SIN CONSTRUIR** (`D-20` decide la autoridad, no la implementación): falta el mando
+>   > ⚠️ ~~**PERO SIN CONSTRUIR** (`D-20` decide la autoridad, no la implementación): falta el mando
 >   > ESP32 → STM32 que siembre la hora. El camino físico existe
 >   > (`ESP32_Expansion/src/enlace_stm32.cpp`), **el mando no** — ese fichero no menciona `RTC` ni
->   > `hora` ni una vez (comprobado el 07/09).
+>   > `hora` ni una vez (comprobado el 07/09).~~ *(11/09: construido en `68dd2c5`, sin banco:
+>   > `CMD:HORA_ESP32`, en `siembra.cpp`.)*
 >   >
 >   > 🔴 **Y ESTO NO CAMBIA LA COMPRA: SIGUEN HACIENDO FALTA DOS `DS3231`, UNO POR POSTE (`A-5`).**
 >   > El del Esclavo es el que **conserva la hora con su pila cuando se cae la radio** — que es

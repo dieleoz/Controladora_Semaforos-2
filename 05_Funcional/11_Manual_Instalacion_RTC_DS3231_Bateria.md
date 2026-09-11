@@ -6,7 +6,7 @@
 **Propósito:** Sincronización horaria ininterrumpida para Modo Degradado, horario nocturno y Caja Negra  
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `MAPEO_TARJETA_KICAD.md`  
 **Fecha de Emisión:** 26 de Agosto de 2026  
-**Última revisión: 7 de septiembre de 2026 (tarde)** — 🔴 **`D-20`: LA AUTORIDAD DE LA HORA ES EL ESP32, Y ES UNA SOLA. La app NO pone la hora en el poste 2, nunca.** Ver el apartado final, **«Hay dos relojes por cruce»**, que es donde vive el procedimiento y el aviso de que `D-20` está **decidida y SIN CONSTRUIR**.
+**Última revisión: 11 de septiembre de 2026 (tarde)** — 🔴 **`D-26`: LA HORA LA MANDA EL ESP32 DE CADA POSTE** (construida en `68dd2c5`, sin banco): con radio, el poste 2 hace caso al Maestro; **sin radio, toma la de su `DS3231`, que se le pone desde el teléfono en su gabinete**. ~~**`D-20`: LA AUTORIDAD DE LA HORA ES EL ESP32, Y ES UNA SOLA. La app NO pone la hora en el poste 2, nunca.**~~ *(revisión del 07/09, caducada en esa frase)* Ver el apartado final, **«Hay dos relojes por cruce»**, que es donde vive el procedimiento.
 *7 de septiembre de 2026 (mañana)* — 🔴 **§4.1 DEROGADA: no se diagnostica el reloj mandando `SET_RTC` al STM32** (`D-15`). La orden vigente es **`CMD:LEER_RTC`** (`D-17`) y la contesta el ESP32.
 *Revisión anterior, 31 de Agosto de 2026* — **el apartado 5 (Plan B DS3231) está ANULADO y no se cablea.**
 Motivo: mandaba conectar un bus I²C a `PB0` y `PB8` llamándolos *«los dos únicos pines libres de la
@@ -588,10 +588,19 @@ sobre chip real, SIN VERIFICAR.**
 
 ---
 
-## 🔴 HAY DOS RELOJES POR CRUCE — y quién manda ya está decidido (`D-20`), pero NO construido
+## 🔴 HAY DOS RELOJES POR CRUCE — y quién manda ya está decidido (`D-20`, `D-26`) ~~, pero NO construido~~ y construido en `68dd2c5` (11/09), sin banco
+
+> 🔵 **11/09 — `D-26`: LA HORA LA MANDA EL ESP32 DE CADA POSTE, y este apartado se corrige hacia
+> ella.** Cada ESP32 le pasa la hora de su `DS3231` a su controladora al arrancar, justo después de
+> ponerla y cada 5 minutos. **Con radio, el poste 2 hace caso a la del Maestro; SIN radio (25 s), toma
+> la de su propio `DS3231`** —o la que el técnico le ponga desde el teléfono en su gabinete—. Por eso
+> **a los dos postes se les pone la hora**, y **con la radio caída se va al poste 2 a ponérsela**. La
+> prohibición de más abajo ya estaba tachada en la propia fila `D-20` el 07/09 por la noche. Qué ve y
+> qué hace el técnico, con cada alarma: `14_Manual_App_Movil_IOT_VIAL.md` §5.3.bis.
 
 Cada ESP32 lleva **su** DS3231 con **su** pila. **Hoy no existe ningún camino que los ponga de
-acuerdo:** los dos ESP32 no se hablan —sin WiFi, sin ESP-NOW, sin radio: sus únicos objetos
+acuerdo** *(11/09: sigue siendo cierto para los dos `DS3231` —la radio lleva la hora de controladora
+a controladora, no escribe el `DS3231` del poste 2—)*: los dos ESP32 no se hablan —sin WiFi, sin ESP-NOW, sin radio: sus únicos objetos
 de entrada/salida son su propio STM32 y el teléfono—, y la única sincronización horaria del
 equipo va por LoRa **entre los dos STM32**, cuyos relojes están muertos (`Y2`, N-17).
 
@@ -603,17 +612,20 @@ equipo va por LoRa **entre los dos STM32**, cuyos relojes están muertos (`Y2`, 
 > 1. **La autoridad de la hora es el ESP32, siempre y para todo. Al STM32 no se le pregunta
 >    nunca.** La app se la da al **ESP32 Maestro**; ése al **ESP32 Esclavo**; y el STM32 de cada
 >    punta la recibe **de su propio ESP32**.
-> 2. **El Maestro manda la hora y el Esclavo hace caso siempre.** Hay **una sola fuente**, así
->    que no hay desfase inicial que acotar.
-> 3. 🔴 **La app NO pone la hora en el poste 2. Nunca.** Un `SET_RTC` dirigido al Esclavo
->    **se rechaza**: no es una sincronización, **es una segunda fuente**.
+> 2. **El Maestro manda la hora y el Esclavo hace caso** ~~**siempre**~~ *(con radio; sin radio, a
+>    su propio ESP32 — `D-26` (3))*. ~~Hay **una sola fuente**, así que no hay desfase inicial que
+>    acotar.~~
+> 3. ~~🔴 **La app NO pone la hora en el poste 2. Nunca.** Un `SET_RTC` dirigido al Esclavo
+>    **se rechaza**: no es una sincronización, **es una segunda fuente**.~~ 🛑 **Caducado** (tachado en
+>    la propia fila `D-20` el 07/09 por la noche; `D-26` (5), 11/09): **al poste 2 se le pone la hora
+>    desde el teléfono, y sin radio entra.**
 >
 > **La topología, porque explica el resto:** los dos ESP32 **no se hablan**, así que la hora
-> viaja `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`. **Los STM32 quedan de CARTEROS de
-> la hora, no de dueños.**
+> viaja `ESP32-M -> STM32-M -> radio -> STM32-E` ~~`-> ESP32-E`~~ *(el último salto no existe: `D-26` lo
+> deja como mejora)*. **Los STM32 quedan de CARTEROS de la hora, no de dueños.**
 >
-> ⚠️ **Y AQUÍ ESTÁ LO QUE NO SE PUEDE LEER COMO HECHO: `D-20` está DECIDIDA Y SIN CONSTRUIR.**
-> Medido en el fuente el 07/09, y se puede reproducir:
+> ⚠️ ~~**Y AQUÍ ESTÁ LO QUE NO SE PUEDE LEER COMO HECHO: `D-20` está DECIDIDA Y SIN CONSTRUIR.**~~
+> *(11/09: construida en `68dd2c5`, sin banco.)* Medido en el fuente el 07/09 *(crónica)*, y se puede reproducir:
 >
 > ```
 > $ cd 01_Firmware/ESP32_Expansion
@@ -626,11 +638,13 @@ equipo va por LoRa **entre los dos STM32**, cuyos relojes están muertos (`Y2`, 
 >
 > *(Y no vale decir «pero el puente sí sabe quién es»: lo aprende —`transporte_aprenderRotulo()`,
 > con **un solo llamador**, `puente.cpp`— **para rotular el Bluetooth en la lista de Android**, y
-> ese dato **no llega al despachador**. Saber el rol para rechazar la orden es trabajo pendiente,
-> no una propiedad del equipo que usted tiene delante.)*
+> ese dato **no llega al despachador**. ~~Saber el rol para rechazar la orden es trabajo pendiente,
+> no una propiedad del equipo que usted tiene delante.~~ *(11/09: no hace falta — con `D-26` no se
+> rechaza nada; decide la controladora del poste 2.)*)*
 >
-> Lo mismo con la siembra `ESP32 -> STM32`: el camino físico existe (`enlace_stm32.cpp`), **el
-> mando que la siembra no**. Los tres trabajos que faltan están listados en `roadmap.md` §3.4.bis.
+> ~~Lo mismo con la siembra `ESP32 -> STM32`: el camino físico existe (`enlace_stm32.cpp`), **el
+> mando que la siembra no**.~~ *(11/09: el mando existe desde `68dd2c5` — `CMD:HORA_ESP32`,
+> `siembra.cpp`.)* Lo que falta está en `roadmap.md` §0 (filas 1.5, 1.13 y 1.14).
 
 > # 🔴 07/09 — `DECISIONES.md` FILA `D-21`: **UNA PILA AGOTADA EN ESE `DS3231` YA NO ES SÓLO «SE PIERDE LA HORA». ES UN CRUCE QUE DEBERÍA IRSE A ÁMBAR**
 >
@@ -658,10 +672,14 @@ equipo va por LoRa **entre los dos STM32**, cuyos relojes están muertos (`Y2`, 
 > `grep -c "irAAmbar" 01_Firmware/Esclavo/src/modo_degradado.cpp` → **0**.
 >
 > 🔴 **Lo que falta, entonces, no es «construir el ámbar»: es que el `OSF` DE ESTE MÓDULO llegue a
-> esa bandera.** Hoy `reloj_enHora()` mira el **RTC del STM32** —cristal `Y2`, muerto—, **no este
+> esa bandera.** ~~Hoy `reloj_enHora()` mira el **RTC del STM32** —cristal `Y2`, muerto—, **no este
 > `DS3231`**. Son dos relojes distintos y no se hablan. **Y como esa bandera es falsa siempre, el
-> ámbar del Maestro no se ejecuta nunca.** Así que para el técnico que está en el poste **la
-> conclusión práctica no cambia: hoy el equipo no reacciona.**
+> ámbar del Maestro no se ejecuta nunca.**~~ *(11/09, `68dd2c5`: la bandera ya se enciende con la
+> siembra de su ESP32; pero con el `OSF` puesto **el ESP32 no siembra** y la controladora **se queda con
+> su hora y la bandera en `true`** — lo único que sale, a los 15 min, es
+> `$ALARM …EVENTO:HORA_ESP32,CAUSA:SIN_HORA_DEL_ESP32…`. El ámbar por hora no fiable, `D-21` (1), está en
+> construcción fuera de `main`.)* Así que para el técnico que está en el poste **la conclusión
+> práctica no cambia: hoy el equipo avisa, pero no reacciona.**
 >
 > ### Lo que `D-21` cambia en el trabajo de este manual, HOY y sin firmware nuevo
 >
@@ -680,13 +698,12 @@ equipo va por LoRa **entre los dos STM32**, cuyos relojes están muertos (`Y2`, 
 > ⚠️ **Mientras tanto, el único detector es el técnico**, y por eso está escrito en un manual y no
 > sólo en la decisión.
 
-### Procedimiento — HOY, hasta que `D-20` esté construida
+### Procedimiento — ~~HOY, hasta que `D-20` esté construida~~ el de `D-26` (11/09)
 
-> 🛑 **Léase esto antes que los pasos.** `D-20` prohíbe poner la hora en el poste 2, **y la vía
-> que la sustituye todavía no existe**. Si hoy se aplicara la prohibición al pie de la letra,
-> **el poste 2 se quedaría sin hora ninguna** — y su Modo Degradado la exige. Así que el
-> procedimiento de hoy sigue visitando los dos postes, **y eso es un estado temporal declarado,
-> no la arquitectura**. Cuando `D-20` esté construida, el paso 4 desaparece.
+> ~~🛑 **Léase esto antes que los pasos.** `D-20` prohíbe poner la hora en el poste 2, **y la vía
+> que la sustituye todavía no existe**. … Cuando `D-20` esté construida, el paso 4 desaparece.~~
+> 🔵 **11/09 (`D-26`): el paso 4 NO desaparece — es el procedimiento.** Se ponen en hora **los dos**
+> `DS3231`: el del poste 2 es el que su controladora usa cuando no hay radio.
 
 1. Conéctese al **poste 1** —**el Maestro, y es el que manda la hora** (`D-20`)—. Espere a que
    el tablero identifique el equipo (`MAESTRO` o `ESCLAVO`): hasta entonces la app no sabe a
@@ -694,34 +711,41 @@ equipo va por LoRa **entre los dos STM32**, cuyos relojes están muertos (`Y2`, 
 2. Mande la hora. El puente contesta con la hora **releída del chip**, no con la que usted
    mandó.
 3. La app anota el poste y **avisa de cuál falta**.
-4. ⚠️ **PASO TEMPORAL, y muere con `D-20`.** Vaya al **poste 2** y repita **sin cerrar la app**.
-   *(Cuando el Maestro siembre la hora por radio, este paso no sólo sobra: el equipo lo
-   rechazará, porque una segunda fuente es exactamente lo que `D-20` prohíbe.)*
+4. ~~⚠️ **PASO TEMPORAL, y muere con `D-20`.**~~ Vaya al **poste 2** y repita **sin cerrar la app**.
+   ~~*(Cuando el Maestro siembre la hora por radio, este paso no sólo sobra: el equipo lo
+   rechazará, porque una segunda fuente es exactamente lo que `D-20` prohíbe.)*~~ *(11/09, `D-26`:
+   no se rechaza. Con radio su controladora sigue con la del Maestro; la de este `DS3231` es la que
+   tomará al perder la radio.)*
 5. Con los dos vistos, la app publica el **desfase medido entre los dos relojes**. Es el
    único sitio donde ese número existe.
 
-> # 🔴 EL POSTE 2 SE PONE EN HORA EN LA PUESTA EN MARCHA — NO DURANTE LA AVERÍA
+> # 🔴 EL POSTE 2 SE PONE EN HORA EN LA PUESTA EN MARCHA — ~~NO DURANTE LA AVERÍA~~ Y TAMBIÉN CON LA RADIO CAÍDA (`D-26`)
 >
-> **Esto vale hoy y valdrá más todavía cuando `D-20` esté construida**, y es lo que nadie había
-> escrito en ningún manual hasta el 07/09.
+> ~~**Esto vale hoy y valdrá más todavía cuando `D-20` esté construida**, y es lo que nadie había
+> escrito en ningún manual hasta el 07/09.~~
 >
-> Con `D-20` dentro, **el único camino hacia el reloj del poste 2 pasa por el Maestro y por la
+> ~~Con `D-20` dentro, **el único camino hacia el reloj del poste 2 pasa por el Maestro y por la
 > radio**. Y la radio se cae justo cuando hace falta el Modo Degradado — que es el modo que
-> **exige hora**. O sea: **con la radio muerta no se le puede poner en hora.**
+> **exige hora**. O sea: **con la radio muerta no se le puede poner en hora.**~~ 🔵 **11/09
+> (`D-26`): con la radio muerta SÍ se le puede poner en hora** —su controladora toma la de su propio
+> ESP32—, y **es lo que se hace cuando salta la alarma de radio**.
 >
-> ✅ **Y eso NO es un problema, por un motivo medido: su `DS3231` tiene pila y conserva la hora
-> que ya tenía.** *Perder la radio no es perder la hora.* Lo que obliga es a **ponerla antes**:
+> ✅ **Su `DS3231` tiene pila y conserva la hora que ya tenía.** *Perder la radio no es perder la
+> hora.* Por eso se pone también **antes**:
 >
 > - **En la puesta en marcha del cruce**, con los dos postes sanos y la radio viva.
 > - **Después de cambiar la `CR2032`** de cualquiera de los dos módulos.
 > - **Después de cualquier `$ERR ... DESC:OSCILADOR_PARADO_CAMBIE_PILA`** en el poste 2.
 >
-> 🛑 **Lo que NO se hace es subir al poste 2 con la avería encima a poner la hora.** Si se llega
-> ahí, el fallo ya ocurrió antes: en la puesta en marcha.
+> ~~🛑 **Lo que NO se hace es subir al poste 2 con la avería encima a poner la hora.** Si se llega
+> ahí, el fallo ya ocurrió antes: en la puesta en marcha.~~ *(Caducado por `D-26` (5): es justo lo
+> que se hace.)*
 
 ⚠️ **`RESULT:HORA_PUESTA_SIN_PROPAGAR` no habla del otro poste.** Significa que la hora entró
-en el DS3231 y la orden **no llegó a la controladora de ese mismo armario** por el cable
-interno `J17`. El reloj está bien; lo que falla es el enlace de dentro.
+en el DS3231 y la orden *(desde `D-26`: la línea `CMD:HORA_ESP32` que la lleva)* **no llegó a la
+controladora de ese mismo armario** por el cable interno `J17`. El reloj está bien; lo que falla es
+el enlace de dentro. Si se repite, la controladora lo dice sola a los 15 min: `$ALARM
+…EVENTO:HORA_ESP32,CAUSA:J17_MUDO…` (revisar el circuito ESP32–controladora de ese gabinete).
 
 ⚠️ **Si la app se cierra entre poste y poste, el registro se pierde** y hay que rehacer los
 dos. La app lo dirá —*«no consta en esta sesión»*— en vez de dar por bueno lo que no vio.
@@ -745,8 +769,9 @@ dos. La app lo dirá —*«no consta en esta sesión»*— en vez de dar por bue
    no lo calculaba nadie.**
 
 > ✅ **`D-20` NO deroga este apartado, y conviene decirlo para que nadie lo borre de paso.**
-> `D-20` prohíbe **ESCRIBIR** la hora en el poste 2 —eso sería una segunda fuente—; **leerla no
-> escribe nada**. `CMD:LEER_RTC` (`D-17`) se sigue mandando **a los dos postes**, y con `D-20`
+> ~~`D-20` prohíbe **ESCRIBIR** la hora en el poste 2 —eso sería una segunda fuente—;~~ **leerla no
+> escribe nada**. `CMD:LEER_RTC` (`D-17`) se sigue mandando **a los dos postes**, ~~y con `D-20`
 > construida vale **más** que hoy, no menos: es la única forma de comprobar que la siembra del
-> Maestro llegó de verdad al reloj del poste 2. **Una sola fuente no quita la necesidad de
-> mirar; la vuelve la única comprobación que queda.**
+> Maestro llegó de verdad al reloj del poste 2.~~ *(11/09, `D-26`: la radio no escribe el `DS3231` del
+> poste 2, así que el desfase entre los dos es **el salto que dará la hora del poste 2 al perder la
+> radio**.)* **Mirar sigue siendo la única comprobación que hay.**

@@ -1,24 +1,31 @@
 # ESTADO — dónde está parado el trabajo HOY (11/09/2026)
 
-> ## ▶️ PUNTO DE CONTINUACIÓN — 11/09/2026, 13:15 (la sesión se paró aquí)
+> ## ▶️ PUNTO DE CONTINUACIÓN — 11/09/2026, por la tarde
 >
-> **Para retomar, en este orden:**
-> 1. **`main` = `17724c2`**, con la compuerta en **18 PASS · 2 FALLA · 0 ABORTADO**. Los dos rojos son reales: `decisiones_01_anclas`
->    (D-14, 22, 23, 25, 26 y 27 sin ancla en el firmware) y **G3** del arnés de las dos puntas (espera decisión: SFTY-6).
-> 2. 🔴 **La integración de la hora (`D-26`) quedó A MEDIAS**: la hacía un agente en el worktree
->    `.claude/worktrees/agent-a2b20ad0678844758` (base `db8393c`). **Foto subida** en la rama
->    **`wip/d26-hora-esp32-foto-1315`** (`49111ab`, 38 ficheros), **sin revisar y sin fusionar**. 🔴 **El agente NO
->    terminó: se bloqueó (10 min sin avanzar) y el sistema lo cortó**; su worktree quedó idéntico a la foto (árbol
->    `042d59e`), así que la foto lo contiene todo. Al retomar: lanzar un agente nuevo que PARTA de esa foto con el
->    encargo de `D-26` (siembra ~5 min; Esclavo con radio / sin radio su ESP32; salto en Degradado por rojo; alarma de
->    `J17`). Se integra **por el diff** y con la compuerta dos veces, nunca a ciegas.
-> 3. **Decisiones pendientes del responsable:** G3/SFTY-6 (la punta en verde tarda 250 ms en soltar frente a un
->    `S_FALLO`); la **zona** de la cámara (se dejó la de `D-13`, barrido de la pluma); la referencia del **relé** de `J15`.
-> 4. **Siguiente trabajo, ya decidido:** ~~corregir la guía del Sisga~~ ✅ **hecho** (`7037eb6`: solo vehículo, `D-27`; ya se
->    puede reenviar); ~~el pack de frases derogadas~~ ✅ **hecho** (`documentos_06_no_reabre_lo_cerrado`) (lo cerrado el 11/09 solo puede aparecer
->    tachado); `AMBAR_EMERGENCIA` sin PIN que avise al Maestro (roadmap §3.16-A); recompilar la **APK** (la del 10/09 ya
->    no casa con `main`); portar a los modelos Python (`simulador_sistema_v7_6`, `simulador_repetidor`) la
->    autorrecuperación nueva; los **`.docx`** cuando se cierren las indefiniciones.
+> 1. **En `main` (`68dd2c5`): `D-26`, la hora la manda el ESP32 de cada poste.** El ESP32 siembra a su STM32
+>    desde el `DS3231` (al arrancar, tras cada `SET_RTC` bueno y cada 300 s, `CMD:HORA_ESP32`); el `SET_RTC` del
+>    teléfono lo atiende el puente y ya no cruza; la siembra ya no escribe el RTC del STM32; el Esclavo toma la hora
+>    del Maestro con radio y la de su ESP32 sin radio 25 s; en Degradado un salto > 29 s pasa por rojo; y
+>    `$ALARM …EVENTO:HORA_ESP32…` (`J17_MUDO`, `SIN_HORA_DEL_ESP32`, `RECHAZADA_FORMATO`). Revisado por el diff por el
+>    arquitecto antes de fusionar (**`roadmap.md` §3.16, `N-162`, `H1`..`H9`**). ⚠️ **Sin banco y sin tarjeta.** La
+>    foto `wip/d26-hora-esp32-foto-1315` quedó integrada en `a0313fe`: ya no se usa. Los dos rojos de la compuerta
+>    siguen siendo reales —`decisiones_01_anclas` y **G3**—; las cifras, en la última acta.
+> 2. 🟠 **EN CONSTRUCCIÓN (worktree, NO está en `main`): `D-21` pieza (1)** —ámbar intermitente en la punta cuya
+>    hora caducó, dentro del Degradado—. Es la cura de **`H1`**: con el `J17` del Maestro mudo, al caer la radio el
+>    Esclavo adopta su `DS3231` y el Maestro sigue con la hora derivada del HSI → **verde contra verde**. **Bloquea
+>    campo.** Se integra por el diff (`roadmap.md` §0, fila 1.13).
+> 3. **Espera al responsable:** **G3/SFTY-6** (la punta en verde tarda 250 ms en soltar frente a un `S_FALLO`); la
+>    referencia del **relé** de `J15`; la **alarma por discrepancia de los dos `DS3231`** —con el matiz de `H3`: el
+>    umbral **no puede ser 11 s a secas**, porque el HSI de cada punta mete hasta 7,5 s entre siembras (fila 2.8)—;
+>    **tachar «sin filtro de objetivo» en `D-13`** (lo derogó `D-27`); y **los `.zip` del 10/09** —cinco en la raíz, y
+>    tres (`44967db`, `bd77271`, `fae4b3e`) llevan `Camaras_Sisga_4x.html` de ese día, con las afirmaciones de
+>    seguridad retiradas—. Y el texto de los «MESES» de `D-21`/`D-23`, que la medida tumbó (fila 2.7). El resto,
+>    `roadmap.md` §0, grupo (2).
+> 4. **Siguiente trabajo, ya decidido:** los instrumentos de `D-26` (fila 1.14: ningún arnés compila el reloj del
+>    Esclavo); `AMBAR_EMERGENCIA` sin PIN que avise al Maestro (§3.16-A); la **APK** recompilada desde `main` —y su
+>    texto de `SET_RTC|OK`, que en `68dd2c5` dice *«no hay nada que los sincronice entre sí»*, caducado por `D-20`/`D-26`
+>    (al escribir esto hay cambios sin comitear en `app.js` que lo tocan: se integran por el diff)—;
+>    portar a los modelos Python la autorrecuperación nueva; los **`.docx`** cuando se cierren las indefiniciones.
 > 5. **Lo cerrado el 11/09 NO se reabre desde un documento** (`roadmap.md` §0, recuadro 🔒; `CLAUDE.md` §11.1).
 
 > **Este fichero es el estado VIVO.** Lo que está abierto, lo que bloquea y lo que falta medir.
@@ -42,8 +49,8 @@ definitivas en `D-25`; lo que se retira son sus afirmaciones de seguridad, que s
 falsas)*; **medir la alimentación del ESP32** (~~se reinició 5 veces en 97 s~~ — **al menos 3
 reinicios** en 12:18–12:19: la cinta trae 5 partes `EVT:ARRANQUE`, pero el parte se emite una vez
 por CONEXIÓN Bluetooth, así que un arranque puede anunciarse dos veces; 2 de los 5 son
-`SUBIDA_DE_TENSION`, `roadmap.md` §3.16); y **traer la cinta del Esclavo**. Lo que hay
-que construir es que **el ESP32 mande la hora** (`D-20`/`A-15`, con las reglas de **`D-26`**: siembra **cada ~5 min**, no cada hora). Todo en `roadmap.md` §3.16 (`N-162`).
+`SUBIDA_DE_TENSION`, `roadmap.md` §3.16); y **traer la cinta del Esclavo**. ~~Lo que hay
+que construir es que **el ESP32 mande la hora**~~ → 🟢 **construido y en `main` desde `68dd2c5`** (`D-20`/`A-15`, con las reglas de **`D-26`**: siembra **cada ~5 min**, no cada hora) — **sin banco, y con `H1` abierto, que bloquea campo**. Todo en `roadmap.md` §3.16 (`N-162`).
 🎯 **11/09, `D-27` — CERRADO por el responsable y alineado en los documentos (sin los `.docx`):**
 **las cuatro cámaras están compradas**; **`J14` queda libre y sin cablear** (el fin de carrera no se
 instala — se cierra el conflicto con `A-2`); **la configuración de cada cámara es la del manual del
@@ -324,10 +331,10 @@ lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida
 | | |
 |---|---|
 | Flash | Maestro **89.1 %** (**58400** de 65536 B → **7.136 B libres**) · Esclavo **69.3 %** (45392 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | 🔴 **1351/1357 comprobaciones** en **81 packs** — 80 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
+| Banco por packs | 🔴 **1352/1357 comprobaciones** en **81 packs** — 80 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
 | Arneses que compilan C++ real | 271/271 pantalla · **99/99** automático · 22/22 ciclo · **76/77 dos puntas (G3 en FALLA)** · **18/18 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
-| App | **239/239** jsdom · 58/58 funcional · 32/32 unitarios · **61/61** TDD |
+| App | **268/268** jsdom · 65/65 funcional · 42/42 unitarios · **69/69** TDD |
 
 > 🔴 **Qué HEAD y con qué árbol se midió lo dice el acta en su cabecera, y no se copia aquí**: aquí
 > ponía `f27f1a0` cuando el acta citada decía otro. Si dice `CON CAMBIOS SIN COMMITEAR`, sus cifras

@@ -197,10 +197,12 @@ Cuando se solicita el cambio de vía, el sistema debe entrar en un estado de **R
      números sí, y por eso lo que vale es el símbolo.**
 
      **Y no deja al técnico sin reloj, que es lo que importa:** la hora se pone con `SET_RTC:` y se
-     lee con `LEER_RTC` **contra el ESP32, que es donde el reloj está** (`D-15`). La rama `SET_RTC:`
+     lee con `LEER_RTC` **contra el ESP32, que es donde el reloj está** (`D-15`). ~~La rama `SET_RTC:`
      del Maestro se conserva **callada a propósito** —consume la orden para que no salga un segundo
-     acuse—, y quien contesta es `ESP32_Expansion/src/despachador.cpp`, con siete finales distintos,
-     uno por motivo. Lo que se pierde con la pantalla es el **menú** `AJUSTAR HORA`, no la puesta en
+     acuse—~~ *(11/09, `D-26`, `68dd2c5`: esa rama ya no existe — la orden se queda en el puente y no
+     llega a la controladora, que recibe después la hora releída del `DS3231` como `CMD:HORA_ESP32`)*, y
+     quien contesta es `ESP32_Expansion/src/despachador.cpp`, con ~~siete~~ ocho finales distintos, uno
+     por motivo (`14_…` §5.3). Lo que se pierde con la pantalla es el **menú** `AJUSTAR HORA`, no la puesta en
      hora.
 
   2. **La independencia CAMBIÓ DE SITIO; no se conservó.** La Regla de Oro decía *«no depende de las
@@ -825,32 +827,50 @@ cruce en ámbar, ni devolverlo a automático, ni pararlo.** Ninguna de las tres.
   esta función.
 * **El emparejado hecho ANTES de subir**, en *Ajustes de Android* (PIN del módulo `0000` o `1234` —
   **no** es el PIN del semáforo). La app **no empareja**: sólo lista lo que ya está emparejado.
-* 🔴 **La hora del POSTE 2 puesta ANTES, en la puesta en marcha** — no cuando ya haya avería. Ver el
-  recuadro de `D-20` justo debajo.
+* 🔴 **La hora de LOS DOS postes puesta en la puesta en marcha** ~~— no cuando ya haya avería~~ — **y
+  con la radio caída, la del poste 2 también se pone allí mismo** (`D-26`, 11/09). Ver el recuadro de
+  justo debajo.
 
-> # 🔴 `D-20` (07/09) — LA HORA SE PONE EN EL POSTE 1, Y EL POSTE 2 SE PONE EN HORA ANTES DE SUBIR
+> # 🔴 `D-26` (11/09) — LA HORA LA MANDA EL ESP32 DE CADA POSTE · ~~`D-20` (07/09) — LA HORA SE PONE EN EL POSTE 1, Y EL POSTE 2 SE PONE EN HORA ANTES DE SUBIR~~
 >
-> Fila **`D-20`** de [`DECISIONES.md`](../DECISIONES.md), decidida por el responsable.
+> Filas **`D-20`** y **`D-26`** de [`DECISIONES.md`](../DECISIONES.md), decididas por el responsable.
+> **`D-26` está construida en el firmware de `main` (`68dd2c5`) y SIN BANCO**: el Sisga no la lleva.
 >
-> **La autoridad de la hora es el ESP32, siempre y para todo, y es UNA SOLA.** La app se la da al
-> **ESP32 del poste 1 (Maestro)**; ése al **ESP32 del poste 2 (Esclavo)**; y el STM32 de cada punta
-> la recibe **de su propio ESP32** — los STM32 quedan de **carteros de la hora, no de dueños**.
-> **El Maestro manda la hora y el Esclavo hace caso siempre.**
+> **La autoridad de la hora es el ESP32** —el STM32 no tiene reloj y no se le pregunta—. **Con radio,
+> manda la hora del poste 1 (Maestro)** y el poste 2 le hace caso; **SIN radio (25 s sin oír al
+> Maestro), el poste 2 toma la de SU propio ESP32**: su `DS3231`, o la que usted le ponga desde el
+> teléfono en su gabinete. Cada ESP32 le pasa su hora a su controladora al arrancar, justo después de
+> ponerla y cada 5 minutos.
 >
-> 🔴 **Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.** Un `SET_RTC` dirigido al
-> Esclavo **se rechaza**: no es una sincronización, **es una segunda fuente**.
+> ~~🔴 **Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.** Un `SET_RTC` dirigido al
+> Esclavo **se rechaza**: no es una sincronización, **es una segunda fuente**.~~ 🛑 **Caducado** (ya
+> tachado en la propia fila `D-20` el 07/09 por la noche): **al poste 2 SÍ se le pone la hora**.
 >
-> **Y por eso esto va en la lista de «antes de subir»:** el único camino al reloj del poste 2 pasa
+> **Lo que hace usted:**
+>
+> 1. **En la puesta en marcha, ponga la hora en LOS DOS postes** (pestaña **Técnico**, «⏱️ Sincronizar»).
+>    La del poste 2 es la que ese poste usará cuando se caiga la radio. Y también al cambiar la pila
+>    de un módulo de reloj, y tras cualquier `OSCILADOR_PARADO_CAMBIE_PILA`.
+> 2. **Si salta la alarma de radio (`FALLO_RF`)**: vaya al gabinete del poste 2, conéctese **a él** y
+>    póngale la hora. Sin radio, entra.
+> 3. **Si salta `HORA_ESP32`** (`J17_MUDO`, `SIN_HORA_DEL_ESP32` o `RECHAZADA_FORMATO`): la hora del
+>    ESP32 de ese poste no le llega a su controladora. **Revise el circuito ESP32–controladora de ESE
+>    gabinete**; no es la radio ni el otro poste. **En el poste 1 es lo más urgente**: su hora corre sin
+>    corregir y se la sigue pasando al poste 2, y si además cae la radio los dos postes pueden separarse
+>    minutos — la protección de eso (`D-21` (1)) **todavía no está en el firmware**.
+>
+> El detalle, con cada literal: `05_Funcional/14_Manual_App_Movil_IOT_VIAL.md` §5.3.bis.
+>
+> ~~**Y por eso esto va en la lista de «antes de subir»:** el único camino al reloj del poste 2 pasa
 > por el Maestro y **por la radio**, y la radio se cae justo cuando hace falta el Modo Degradado,
-> que es **el modo que exige hora**. ✅ **No es un problema —el `DS3231` del poste 2 tiene pila y
-> conserva la hora que ya tenía**; *perder la radio no es perder la hora*—. Lo que obliga es a
-> ponerla **antes**: en la puesta en marcha, al cambiar la pila, y tras cualquier
-> `OSCILADOR_PARADO_CAMBIE_PILA` en ese poste.
+> que es **el modo que exige hora**.~~ ✅ **El `DS3231` del poste 2 tiene pila y conserva la hora que ya
+> tenía**; *perder la radio no es perder la hora*.
 >
-> ⚠️ **`D-20` está DECIDIDA Y SIN CONSTRUIR (07/09):** el puente es el mismo firmware en los dos
+> ~~⚠️ **`D-20` está DECIDIDA Y SIN CONSTRUIR (07/09):** el puente es el mismo firmware en los dos
 > postes y todavía no sabe cuál es, así que hoy sigue aceptando la hora venga por donde venga.
 > **Mientras siga así, el poste 2 se pone en hora visitándolo, porque no hay otra vía** — estado
-> temporal declarado, no la arquitectura.
+> temporal declarado, no la arquitectura.~~ *(11/09: construida; y visitar el poste 2 es el
+> procedimiento de `D-26`, no un estado temporal.)*
 
 > ⚠️ **Y un tropiezo real, no teórico:** esta semana hubo que **desvincular el Maestro en Ajustes de
 > Android** para poder conectarse al Esclavo. **La conexión es UNA a la vez y explícita**, y eso es

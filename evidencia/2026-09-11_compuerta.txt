@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-09-11
-HEAD         : 113777b   rama: main-nuevo
+HEAD         : 68dd2c5   rama: main-nuevo
 Arbol        : CON CAMBIOS SIN COMMITEAR
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -17,24 +17,24 @@ RESULTADOS
   PASS      simulador funcional               VEREDICTO FINAL: 9/9 PASS (SISTEMA V8.0 DEFINITIVA CERTIFICADO)
   PASS      simulador de repetidor            RESULTADO: 10/10 PASS
   PASS      simulador de app y bluetooth      RESULTADO GLOBAL: 12/12 comprobaciones PASS (app movil vs firmware Bluetooth)
-  PASS      test funcional de la app          [TEST] RESUMEN: 58/58 comprobaciones funcionales de la app en PASS
-  PASS      test unitarios de la app          RESUMEN DE PRUEBAS: 32 PASS | 0 FALLAS  (Total: 32)
-  PASS      test unitarios TDD de la app      RESUMEN TDD: 61 PASS | 0 FALLAS  (Total: 61)
-  PASS      app ejecutada en DOM              RESULTADO JSDOM: 239 PASS | 0 FALLAS
-  FALLA     banco por packs                   RESUMEN: 1351/1357 comprobaciones  |  packs: 80 PASS, 1 FALLA, 0 ABORTADO
+  PASS      test funcional de la app          [TEST] RESUMEN: 65/65 comprobaciones funcionales de la app en PASS
+  PASS      test unitarios de la app          RESUMEN DE PRUEBAS: 42 PASS | 0 FALLAS  (Total: 42)
+  PASS      test unitarios TDD de la app      RESUMEN TDD: 69 PASS | 0 FALLAS  (Total: 69)
+  PASS      app ejecutada en DOM              RESULTADO JSDOM: 268 PASS | 0 FALLAS
+  FALLA     banco por packs                   RESUMEN: 1352/1357 comprobaciones  |  packs: 80 PASS, 1 FALLA, 0 ABORTADO
   PASS      arnes de pantalla                 MAESTRO  145/145 comprobaciones OK | ESCLAVO  126/126 comprobaciones OK | TOTAL    271/271 comprobaciones OK
   PASS      arnes del ciclo                   RESULTADO: 22/22 comprobaciones OK
   PASS      arnes del respaldo                respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
   PASS      arnes del automatico              RESULTADO: 99/99 comprobaciones OK
   FALLA     arnes de las dos puntas           RESULTADO: 76/77 comprobaciones OK
   PASS      arnes del Degradado a dos puntas  RESULTADO: 25/25 comprobaciones OK
-  PASS      simulador del puente ESP32        RESULTADO: 115/115 comprobaciones del contrato del puente en PASS
+  PASS      simulador del puente ESP32        RESULTADO: 118/118 comprobaciones del contrato del puente en PASS
 ------------------------------------------------------------------------------
   RESUMEN: 18 PASS | 2 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a 113777b y re-corriendo
+firmware. Esta acta se verifica volviendo a 68dd2c5 y re-corriendo
 python 01_Firmware/compuerta.py.
 
 AVISO: el arbol tenia cambios sin commitear al medir. Estas
-cifras NO corresponden exactamente a 113777b.
+cifras NO corresponden exactamente a 68dd2c5.

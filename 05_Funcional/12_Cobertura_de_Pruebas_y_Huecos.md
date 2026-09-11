@@ -94,7 +94,7 @@ como *BLOQUEADO*. Repartidos como el cuerpo los describe, la cuenta que cuadra a
 | **Operación por app · reloj `DS3231` (`SET_RTC`) · barrera de PIN** | **Bloqueados en cascada** (pasos 11-14 y 25-28) porque el módulo **no se anunció en el teléfono**. El hardware está descartado como causa: es un `ESP32-WROOM-32` clásico, con `BR/EDR`, que es justo el perfil que el `SPP` de la app necesita. 🔴 **Y desde el 05/09 esta fila pesa el doble: con `D-1` la app es la ÚNICA vía de mando** *(ver `D-16`, abajo)*. Un enlace que no se establece ya no bloquea unos cuantos pasos de banco: **deja el equipo sin operar de ninguna forma** |
 | ~~**Paso 29 — mando de relés**~~ | 🟢 **DEJA DE SER HUECO EL 05/09, y por dos motivos que hay que leer juntos — ver la sección `N-118` de abajo.** El paso queda **ABORTADO por seguridad** y **así se queda para siempre**: no se repite, porque **ya no hay mando que probar** (`DECISIONES.md` **D-1**). ~~**Pero la sordera del mando no necesita ese paso para estar diagnosticada, y lo está por el paso 20:** la red de 10 kΩ a masa que la placa trae en esos pines —las `R65`–`R68` de `CLAUDE.md §9.bis`— deja `J16` p5/p8 en **`0,6 V` permanentes**, o sea BAJO fijo. **Nunca hay flanco**, así que el mando está sordo de fábrica~~ 🔧 **CADUCADO el 04/09 por `N-118`, y se tacha en vez de borrarse porque es la frase que resucita el gesto peligroso.** Ese `0,6 V` **lo ponía el firmware**, no el cobre |
 | **La fuente `12 V → 5 V` de la placa del módulo** | **No medida con carga real:** toda la sesión se alimentó por USB. Pendiente antes de campo |
-| 🆕 **`SET_RTC` no distingue el poste al que llega** (`D-20`, 07/09) | 🔴 **Hueco NUEVO, y no lo abrió el banco: lo abrió la decisión.** `D-20` dice que **la app NO pone la hora en el poste 2, nunca** —un `SET_RTC` dirigido al Esclavo **se rechaza**, porque no es una sincronización sino una **segunda fuente**—. **Ese rechazo no existe.** El puente es **el mismo firmware en los dos postes** y su despachador **no sabe en cuál está**: `grep -ci esclavo 01_Firmware/ESP32_Expansion/src/despachador.cpp` → `0` (corrido el 07/09). *(El puente sí aprende quién es —símbolo `transporte_aprenderRotulo()`, `puente.cpp`— pero **para rotular el Bluetooth en Android**; ese dato **no llega al despachador**.)* **Mientras no se construya, la única barrera es el procedimiento**, y un procedimiento no es una barrera |
+| ~~🆕 **`SET_RTC` no distingue el poste al que llega** (`D-20`, 07/09)~~ 🟢 **DEJA DE SER HUECO: `D-26` (11/09)** | 🔵 **11/09: la premisa cayó.** La prohibición ya estaba tachada en la propia fila `D-20` el 07/09 por la noche (*«la barrera es la SOBREESCRITURA»*), y `D-26` (3)/(5) manda **ponerle la hora al poste 2 desde el teléfono cuando cae la radio**: el puente de los dos postes atiende el `SET_RTC` igual y **quien decide si esa hora entra es la controladora del poste 2** (`reloj_radioManda()`), construido en `68dd2c5`, **sin banco**. Lo que sí es hueco ahora: **ningún arnés compila `Esclavo/src/reloj.cpp`** (`roadmap.md` §0 fila 1.14). ~~🔴 **Hueco NUEVO, y no lo abrió el banco: lo abrió la decisión.** `D-20` dice que **la app NO pone la hora en el poste 2, nunca** —un `SET_RTC` dirigido al Esclavo **se rechaza**, porque no es una sincronización sino una **segunda fuente**—. **Ese rechazo no existe.**~~ El puente es **el mismo firmware en los dos postes** y su despachador **no sabe en cuál está**: `grep -ci esclavo 01_Firmware/ESP32_Expansion/src/despachador.cpp` → `0` (corrido el 07/09). *(El puente sí aprende quién es —símbolo `transporte_aprenderRotulo()`, `puente.cpp`— pero **para rotular el Bluetooth en Android**; ese dato **no llega al despachador**.)* ~~**Mientras no se construya, la única barrera es el procedimiento**, y un procedimiento no es una barrera~~ *(con `D-26` no hace falta que lo sepa)* |
 
 ### 🔵 LA SEGUNDA NOCHE (4–5/09) — CUATRO DEFECTOS QUE ENCONTRÓ **UNA CINTA DE TRAMAS**, NO UN PACK
 
@@ -777,15 +777,19 @@ Todo lo que puede meter información al sistema, y qué lo prueba:
 > cruce de minuto, presupuesto de canal— **es exactamente la que haría falta**. Lo que cambia es de
 > dónde sale la hora que entra en `enviarTrioHora()` y a dónde va la que sale del ACK.
 >
-> 🔴 **Pero `D-20` está DECIDIDA Y SIN CONSTRUIR**, y hay una pregunta abierta que este documento no
-> puede contestar: **¿el tramo por radio reutiliza `CMD_HORA_*` tal cual, o se sustituye?** Hasta que
+> 🔴 **Pero `D-20` está DECIDIDA Y SIN CONSTRUIR** *(11/09: construida en `68dd2c5` con las reglas de
+> `D-26`, sin banco — y la pregunta de abajo quedó contestada: **el tramo por radio reutiliza
+> `CMD_HORA_*` tal cual**, y el Maestro lo dispara en cada siembra de su ESP32, cada 300 s; en el Esclavo
+> marca la hora como «de radio» y manda sobre la de su ESP32 mientras la radio se oiga)*, y hay una
+> pregunta abierta que este documento no puede contestar: **¿el tramo por radio reutiliza `CMD_HORA_*`
+> tal cual, o se sustituye?** Hasta que
 > eso se decida, **la clasificación honesta de esta fila no es ✅ ni ❌, sino ésta**:
 >
 > | | |
 > |---|---|
 > | modelo de PC | 🟢 **verde y bien medido** |
 > | camino real hoy | 🛑 **muerto** (`reloj_enHora()` falso siempre) |
-> | camino de `D-20` | ⚪ **sin construir** — falta el mando ESP32 → STM32 que siembre la hora (`enlace_stm32.cpp` **no menciona `RTC` ni `hora`**, comprobado el 07/09) |
+> | camino de `D-20` | ~~⚪ **sin construir** — falta el mando ESP32 → STM32 que siembre la hora (`enlace_stm32.cpp` **no menciona `RTC` ni `hora`**, comprobado el 07/09)~~ 🟡 **construido en `68dd2c5`** (`siembra.cpp`), **sin banco**; y **ningún arnés compila el reloj del Esclavo** (`roadmap.md` §0 fila 1.14) |
 > | banco | ⬜ **no ejercido, y no puede ejercerse** mientras el enlace Bluetooth no exista (fila 6) |
 
 > 🔴 **Léase la columna nueva entera antes de sacar conclusiones, porque dice algo incómodo:** en

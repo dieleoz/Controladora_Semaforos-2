@@ -222,19 +222,22 @@ compararlo contra la medición del 31/07 (1 cuadra, esquina y 2 cuadras).
 > suelo» como último recurso, porque ese mando no existe.
 >
 > 🔴 **Y un TERCER hecho, del 07/09, que es el que más carga sobre la antena: `D-20`.** La autoridad
-> de la hora es **el ESP32 del poste 1, y es una sola**; **la app no pone la hora en el poste 2,
-> nunca.** Como **los dos ESP32 no se hablan**, la hora viaja
-> `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`: **el enlace de radio pasa a ser el único
-> camino de la hora al poste 2**, además del que coordina las luces.
+> de la hora es **el ESP32 del poste 1, y es una sola**; ~~**la app no pone la hora en el poste 2,
+> nunca.**~~ *(caducado: ya tachado en la propia fila `D-20` el 07/09 por la noche, y `D-26`, 11/09,
+> manda ponérsela desde el teléfono cuando cae la radio)* Como **los dos ESP32 no se hablan**, la hora
+> viaja `ESP32-M -> STM32-M -> radio -> STM32-E` ~~`-> ESP32-E`~~: **el enlace de radio pasa a ser el
+> único camino de la hora al poste 2** ~~,~~ **mientras se oiga** *(`D-26` (3): sin radio 25 s, el poste 2
+> toma la de su propio ESP32)*, además del que coordina las luces.
 >
 > ⚠️ **Y aquí hay que ser exacto para no justificar una compra con un argumento falso: esto NO
 > convierte la antena en el punto único de fallo del reloj.** El `DS3231` del poste 2 **tiene pila y
 > conserva la hora que ya tenía** — *perder la radio no es perder la hora*. Lo que la antena decide
 > es la **ventana de sincronización** (las 2 h de antigüedad), no si el poste 2 sabe qué hora es. La
-> regla que cubre el resto no es de hardware: **el poste 2 se pone en hora en la puesta en marcha,
-> no durante la avería.**
+> regla que cubre el resto no es de hardware: **el poste 2 se pone en hora en la puesta en marcha**
+> ~~**, no durante la avería.**~~ *(11/09, `D-26`: **y con la radio caída, allí mismo**.)*
 >
-> *(`D-20` está **decidida y sin construir**: hoy esas tramas siembran un contador parado. Ver
+> *(~~`D-20` está **decidida y sin construir**: hoy esas tramas siembran un contador parado.~~ 11/09:
+> construida en `68dd2c5`, sin banco; las tramas de hora salen cada 5 min, ~0,3 % del canal. Ver
 > `4_Manual_Configuracion_Radios.md` §5.)*
 
 ---

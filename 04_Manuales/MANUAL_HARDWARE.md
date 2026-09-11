@@ -371,7 +371,7 @@ punto 4. En banco dio *«0 V en rojo, 12 V en ámbar»*, que es exactamente eso.
 > | | |
 > |---|---|
 > | 🛑 **Ya no se compran `HC-05` ni `JDY-30`** | El módulo SPP discreto está **sustituido por un `ESP32-WROOM-32` clásico** (`BT v4.2 BR/EDR + BLE`, o sea **sí hay perfil SPP**). Su firmware existe y compila: `01_Firmware/ESP32_Expansion/` |
-> | ✅ **Y ese ESP32 trae el RELOJ del cruce** | Un **`DS3231` con pila propia** por I²C en `GPIO21` (`SDA`) / `GPIO22` (`SCL`). **`D-9`/`D-15`:** el STM32 **no tiene reloj propio** (`Y2` muerto, N-17) y el del ESP32 es **el único que contesta a `SET_RTC`**. 🔴 **Y desde `D-20` (07/09), el del ESP32 MAESTRO es el único que lo contesta EN TODO EL CRUCE** — ver la nota |
+> | ✅ **Y ese ESP32 trae el RELOJ del cruce** | Un **`DS3231` con pila propia** por I²C en `GPIO21` (`SDA`) / `GPIO22` (`SCL`). **`D-9`/`D-15`:** el STM32 **no tiene reloj propio** (`Y2` muerto, N-17) y el del ESP32 es **el único que contesta a `SET_RTC`**. ~~🔴 **Y desde `D-20` (07/09), el del ESP32 MAESTRO es el único que lo contesta EN TODO EL CRUCE**~~ *(11/09, `D-26`: lo contesta el ESP32 de cada poste, y cada uno le pasa la hora a su controladora)* — ver la nota |
 > | ⚠️ **El ESP32 NO se alimenta del 3,3 V de `J17`** | Ese riel alimenta al STM32 que gobierna el cruce; **el accesorio no puede tumbar al que manda**. Fuente propia desde los 12 V |
 > | 🛑 **No manda sobre las luces** | Es un puente: traduce y reenvía. La barrera de salidas sigue en `semaforo.cpp` del STM32 |
 >
@@ -381,27 +381,34 @@ punto 4. En banco dio *«0 V en rojo, 12 V en ámbar»*, que es exactamente eso.
 > > al ESP32 Esclavo; y el STM32 de cada punta la recibe de SU PROPIO ESP32.** El Maestro manda y el
 > > Esclavo hace caso siempre — **una sola fuente, así que no hay desfase inicial que acotar.**
 > >
-> > 🔴 **Consecuencia dura para quien monta y para quien opera: la app NO pone la hora en el poste 2.
+> > ~~🔴 **Consecuencia dura para quien monta y para quien opera: la app NO pone la hora en el poste 2.
 > > Nunca.** Un `SET_RTC` dirigido al Esclavo **se rechaza**: no es una sincronización, **es una
-> > segunda fuente**. *(Consultar sí: `CMD:LEER_RTC` (`D-17`) se sigue mandando **a los dos postes**
+> > segunda fuente**.~~ 🛑 **11/09 — caducado** (ya tachado en la propia fila `D-20` el 07/09 por la
+> > noche) **y corregido hacia `D-26`: la hora la manda el ESP32 de CADA poste.** Con radio el Esclavo
+> > hace caso a la del Maestro; **sin radio (25 s) toma la de su propio `DS3231`**, y **al poste 2 sí se le
+> > pone la hora desde el teléfono** —es lo que se hace cuando cae la radio—. Construida en `68dd2c5`,
+> > sin banco. *(Consultar sí: `CMD:LEER_RTC` (`D-17`) se sigue mandando **a los dos postes**
 > > — leer no escribe nada.)*
 > >
 > > **Los dos ESP32 no se hablan entre sí.** El único enlace entre postes es la **radio entre los
-> > STM32**, así que la hora viaja `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`: **los STM32
-> > son CARTEROS de la hora, no dueños.** Por eso *«el STM32 no tiene reloj»* hay que leerlo como
+> > STM32**, así que la hora viaja `ESP32-M -> STM32-M -> radio -> STM32-E` ~~`-> ESP32-E`~~ *(el último
+> > salto no existe: `D-26` lo deja como mejora)*: **los STM32 son CARTEROS de la hora, no dueños.** Por eso *«el STM32 no tiene reloj»* hay que leerlo como
 > > **no tiene reloj PROPIO** — sí lleva la hora, sólo que no es suya.
 > >
-> > ⚠️ **SIN CONSTRUIR.** `D-20` decide la **autoridad**, no la implementación. Falta el mando
+> > ~~⚠️ **SIN CONSTRUIR.** `D-20` decide la **autoridad**, no la implementación. Falta el mando
 > > ESP32 → STM32 que siembre la hora (`ESP32_Expansion/src/enlace_stm32.cpp` **no menciona `RTC` ni
 > > `hora` ni una vez**, comprobado el 07/09), y falta el rechazo en el poste 2: el puente es **el
 > > mismo firmware en los dos postes** y su despachador **no sabe en cuál está** —
-> > `grep -c "ESCLAVO\|Esclavo\|esclavo" 01_Firmware/ESP32_Expansion/src/despachador.cpp` → `0`.
+> > `grep -c "ESCLAVO\|Esclavo\|esclavo" 01_Firmware/ESP32_Expansion/src/despachador.cpp` → `0`.~~
+> > 🟢 **11/09: el mando existe** (`CMD:HORA_ESP32`, en un fichero propio, `siembra.cpp`, que escribe por
+> > `enlace_stm32.cpp`) y **el rechazo no hace falta** (`D-26`). ⚠️ **Sin banco.**
 > >
 > > 🔴 **Y lo que NO cambia, para que nadie retire una compra: siguen haciendo falta DOS `DS3231`,
 > > uno por poste** (`A-5`). El del Esclavo es el que **conserva la hora con su pila cuando se cae la
-> > radio** — y de ahí la regla de campo: **el poste 2 se pone en hora en la PUESTA EN MARCHA, no
+> > radio** — y de ahí la regla de campo: **el poste 2 se pone en hora en la PUESTA EN MARCHA** ~~**, no
 > > durante la avería**, porque la radio se cae justo cuando hace falta el Modo Degradado, que es el
-> > modo que exige hora. *Perder la radio no es perder la hora.*
+> > modo que exige hora~~ *(11/09, `D-26`: **y con la radio caída, allí mismo**; sin radio es la hora que
+> > usa su controladora)*. *Perder la radio no es perder la hora.*
 > >
 > > 🔴 **Ni se retira la `CR2032` del STM32.** Sigue siendo **obligatoria**, y ya no por la hora: es
 > > la que alimenta el **dominio de respaldo** (`BKP->DR1..DR10`, símbolo `respaldo.h`), donde viven
@@ -452,10 +459,14 @@ Para soporte técnico, caja negra de alarmas y monitoreo desde el suelo sin subi
 > RTC del STM32 detrás.
 >
 > 🔴 **Y con `D-20` (07/09) eso adquiere una consecuencia de campo:** como la única fuente de hora es
-> el **ESP32 Maestro**, dos alarmas leídas en postes distintos sólo llevan el mismo sello si **la
-> siembra del Maestro llegó al poste 2**. Se comprueba con `CMD:LEER_RTC` (`D-17`) **en los dos
-> postes** — leer no escribe. ⚠️ **La siembra está SIN CONSTRUIR** (ver §4, recuadro de `D-20`), así
-> que **hoy los dos sellos pueden diferir y nada lo avisa.**
+> el **ESP32 Maestro** *(con radio; sin radio, cada poste la suya — `D-26`)*, dos alarmas leídas en
+> postes distintos sólo llevan el mismo sello si **la hora del Maestro llegó al poste 2**. ~~Se
+> comprueba con `CMD:LEER_RTC` (`D-17`) **en los dos postes** — leer no escribe. ⚠️ **La siembra está
+> SIN CONSTRUIR** (ver §4, recuadro de `D-20`), así que **hoy los dos sellos pueden diferir y nada lo
+> avisa.**~~ 🔵 **11/09 (`68dd2c5`, sin banco):** la siembra existe; el sello de cada alarma es el `HORA:`
+> de **esa controladora**, y lo que se compara es el `HORA:` del `$STATUS` de los dos postes
+> —`CMD:LEER_RTC` lee el `DS3231` de cada ESP32, que la radio **no** sincroniza—. Si la hora de un ESP32
+> no le llega a su controladora, ahora **sí lo avisa**: `$ALARM …EVENTO:HORA_ESP32…` a los 15 min.
 
 ---
 

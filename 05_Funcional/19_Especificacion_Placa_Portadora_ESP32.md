@@ -461,37 +461,46 @@ silencio y con autoridad de dato.
 > primera fila es una **instrucción de campo** y en el poste 2 crea justo lo que la decisión
 > prohíbe:
 >
-> > **LA AUTORIDAD DE LA HORA ES EL ESP32 MAESTRO. La app NO pone la hora en el poste 2. Nunca.**
+> > ~~**LA AUTORIDAD DE LA HORA ES EL ESP32 MAESTRO. La app NO pone la hora en el poste 2. Nunca.**
 > > *«Un `SET_RTC` dirigido al Esclavo se rechaza: no es una sincronización, es una segunda
-> > fuente»* — `DECISIONES.md` `D-20`.
+> > fuente»* — `DECISIONES.md` `D-20`.~~
+>
+> 🛑 **11/09 — ESTE RECUADRO ESTÁ CADUCADO EN SU NÚCLEO Y SE CORRIGE HACIA `D-26`.** La cita tachada ya
+> estaba tachada en la propia fila `D-20` el 07/09 por la noche (*«la barrera es la SOBREESCRITURA»*).
+> **`D-26` (11/09, construida en `68dd2c5`, sin banco): la hora la manda el ESP32 de CADA poste**; con
+> radio el poste 2 hace caso a la del Maestro, **sin radio toma la de su propio `DS3231`**, que el
+> técnico le pone desde el teléfono en su gabinete. **La radio NO escribe el `DS3231` del poste 2.**
+> `14_Manual_App_Movil_IOT_VIAL.md` §5.3.bis.
 >
 > | poste | qué se hace ante `NUNCA_SE_PUSO_PONGA_LA_HORA` |
 > |---|---|
-> | **Maestro** | **mande `CMD:PIN:1234:SET_RTC:…`.** Es la única puerta de entrada de la hora al cruce |
-> | **Esclavo (poste 2)** | 🛑 **NO se le manda `SET_RTC`.** Su hora tiene que llegarle **del Maestro por la radio** (`ESP32-M → STM32-M → radio → STM32-E → ESP32-E`; los STM32 son **carteros**, no dueños). Si su reloj está sin poner, lo que hay que revisar es **el enlace de radio y la hora del Maestro**, no este módulo |
+> | **Maestro** | **mande `CMD:PIN:1234:SET_RTC:…`.** ~~Es la única puerta de entrada de la hora al cruce~~ |
+> | **Esclavo (poste 2)** | ~~🛑 **NO se le manda `SET_RTC`.** Su hora tiene que llegarle **del Maestro por la radio** (`ESP32-M → STM32-M → radio → STM32-E → ESP32-E`; los STM32 son **carteros**, no dueños). Si su reloj está sin poner, lo que hay que revisar es **el enlace de radio y la hora del Maestro**, no este módulo~~ 🔵 **11/09 (`D-26`): también se le manda `SET_RTC`.** Ese motivo es de **su** `DS3231`, y la radio no lo escribe: sólo se arregla poniéndole la hora en ese poste |
 >
 > ⚠️ **Y AQUÍ HAY QUE LEER LA FILA DEL ESCLAVO CON LA FECHA DELANTE, O SE DEJA UN POSTE SIN HORA
-> NINGUNA: `D-20` está DECIDIDA Y SIN CONSTRUIR (07/09).** La vía que sustituye al `SET_RTC` del
+> NINGUNA: `D-20` está DECIDIDA Y SIN CONSTRUIR (07/09).** ~~La vía que sustituye al `SET_RTC` del
 > poste 2 —el mando `ESP32 → STM32` que siembra la hora, y su salto por radio— **no existe todavía**.
 > **Mientras no exista, la única forma de poner en hora el poste 2 es visitarlo**, y eso es un
 > **estado temporal declarado, no la arquitectura**: el día que `D-20` esté construida, esa visita
-> sobra y el equipo la rechaza. *(Lo que ya vale hoy, sin firmware nuevo, es la regla de abajo:
-> ponerla en la puesta en marcha y no durante la avería.)*
+> sobra y el equipo la rechaza.~~ *(11/09: construida en `68dd2c5`; y la visita al poste 2 **no sobra
+> ni se rechaza** — es el procedimiento de `D-26` (5).)*
 >
-> ✅ **Lo que sí se le sigue mandando a los dos: `CMD:LEER_RTC` (`D-17`).** `D-20` prohíbe
-> **escribir** la hora en el poste 2; **leerla no escribe nada**, y es la única forma de comprobar
-> que la del Maestro llegó de verdad.
+> ✅ **Lo que sí se le sigue mandando a los dos: `CMD:LEER_RTC` (`D-17`).** ~~`D-20` prohíbe
+> **escribir** la hora en el poste 2;~~ **leerla no escribe nada** ~~, y es la única forma de comprobar
+> que la del Maestro llegó de verdad~~ *(11/09: la radio no escribe el `DS3231` del poste 2; lo que mide
+> es el salto que dará el poste 2 al perder la radio)*.
 >
-> 🛑 **Y la regla de campo que sale de `D-20`, porque decide cuándo se sube al poste:
+> 🛑 **Y la regla de campo** ~~**que sale de `D-20`, porque decide cuándo se sube al poste:
 > EL POSTE 2 SE PONE EN HORA EN LA PUESTA EN MARCHA, NO DURANTE LA AVERÍA.** El único camino a su
 > reloj pasa por la radio, y la radio se cae justo cuando hace falta el Modo Degradado — que es el
-> modo que exige hora. ✅ **Y eso no es un problema: su `DS3231` tiene pila y conserva la hora que ya
-> tenía.** *Perder la radio no es perder la hora.* Lo que obliga es a ponerla **antes**: en la puesta
+> modo que exige hora.~~ **de `D-26`: EL POSTE 2 SE PONE EN HORA EN LA PUESTA EN MARCHA, Y CON LA RADIO
+> CAÍDA ALLÍ MISMO.** ✅ **Su `DS3231` tiene pila y conserva la hora que ya tenía.** *Perder la radio no es perder la hora.* Lo que obliga es a ponerla **antes**: en la puesta
 > en marcha, al cambiar la pila del módulo, y tras cualquier `OSCILADOR_PARADO_CAMBIE_PILA` en ese
 > poste.
 >
-> 🔴 **SIN CONSTRUIR, y hay que decirlo aquí porque esta tabla se lee delante del equipo: hoy el
-> puente atiende el `SET_RTC` venga por donde venga.** El firmware es **el mismo binario en los dos
+> 🔴 ~~**SIN CONSTRUIR, y hay que decirlo aquí porque esta tabla se lee delante del equipo:**~~ *(11/09:
+> construida; y con `D-26` lo de abajo es lo correcto)* **hoy el puente atiende el `SET_RTC` venga por
+> donde venga.** El firmware es **el mismo binario en los dos
 > postes** y el fichero que decide qué hacer con ese comando **no nombra al Esclavo ni una vez**.
 > Corrido el 07/09:
 >
@@ -502,8 +511,9 @@ silencio y con autoridad de dato.
 > ```
 >
 > *(El puente sí aprende de qué poste cuelga —`transporte_aprenderRotulo()`—, pero **para rotular el
-> Bluetooth en la lista de Android**; ese dato no llega al despachador.)* **Hasta que el rechazo
-> exista en el firmware, la barrera es de procedimiento: la pone quien maneja el teléfono.**
+> Bluetooth en la lista de Android**; ese dato no llega al despachador.)* ~~**Hasta que el rechazo
+> exista en el firmware, la barrera es de procedimiento: la pone quien maneja el teléfono.**~~
+> *(11/09: no hay rechazo que construir — `D-26`.)*
 
 ---
 
@@ -696,17 +706,19 @@ existe.**
 >
 > | lo que dice arriba | con `D-20` |
 > |---|---|
-> | *«`D-15` retiró ese camino»* — el de la hora **del Maestro al Esclavo por radio** | 🔴 **VUELVE, y es el ÚNICO.** *«La app le da la hora al ESP32 Maestro; ése al ESP32 Esclavo»*, y como **los dos ESP32 no se hablan**, la hora viaja `ESP32-M → STM32-M → **radio** → STM32-E → ESP32-E`. **Los STM32 son CARTEROS de la hora, no dueños** — que es la diferencia con lo que `D-15` retiró, donde el STM32 era el **dueño** del reloj |
+> | *«`D-15` retiró ese camino»* — el de la hora **del Maestro al Esclavo por radio** | 🔴 **VUELVE, y es el ÚNICO** ~~.~~ *(11/09, `D-26`: el único **con radio**; sin radio, el poste 2 toma la de su propio ESP32)*. *«La app le da la hora al ESP32 Maestro; ése al ESP32 Esclavo»*, y como **los dos ESP32 no se hablan**, la hora viaja `ESP32-M → STM32-M → **radio** → STM32-E` ~~`→ ESP32-E`~~ *(ese último salto no está construido: `D-26` lo deja como mejora)*. **Los STM32 son CARTEROS de la hora, no dueños** — que es la diferencia con lo que `D-15` retiró, donde el STM32 era el **dueño** del reloj |
 > | *«el poste sin él se queda sin hora **y sin forma de recibirla**»* | 🔵 **`D-20` define esa forma**: la radio. Y por eso el segundo `DS3231` **no sobra** — al revés: es lo que hace que *perder la radio no sea perder la hora*, porque tiene pila y conserva la que ya tenía |
-> | *«los dos ESP32 no se hablan… la comparación sólo la puede hacer la app visitando los dos postes»* (de `D-17`) | ✅ **SIGUE SIENDO CIERTO, y `D-20` lo dice igual.** Lo que cambia no es **leer** —`CMD:LEER_RTC` se sigue mandando a los dos— sino **escribir**: visitar el poste 2 ya no es una forma de PONERLE la hora |
+> | *«los dos ESP32 no se hablan… la comparación sólo la puede hacer la app visitando los dos postes»* (de `D-17`) | ✅ **SIGUE SIENDO CIERTO, y `D-20` lo dice igual.** Lo que cambia no es **leer** —`CMD:LEER_RTC` se sigue mandando a los dos— sino **escribir**: ~~visitar el poste 2 ya no es una forma de PONERLE la hora~~ *(11/09, `D-26`: **sí lo es**, y con la radio caída es la que se usa)* |
 >
-> 🛑 **Consecuencia dura de `D-20`, y va aquí porque este recuadro es el que se lee para decidir
+> ~~🛑 **Consecuencia dura de `D-20`, y va aquí porque este recuadro es el que se lee para decidir
 > compras y procedimiento: la app NO pone la hora en el poste 2. Nunca.** Un `SET_RTC` dirigido al
 > Esclavo **se rechaza**: no es una sincronización, es una segunda fuente. **Hay UNA sola fuente en
-> el cruce**, así que no hay desfase inicial que acotar.
+> el cruce**, así que no hay desfase inicial que acotar.~~ 🛑 **11/09 — caducado y corregido hacia
+> `D-26`:** al poste 2 **sí** se le pone la hora (sin radio, su controladora toma la de su `DS3231`); con
+> radio manda la del Maestro. **La compra no cambia: dos `DS3231`.**
 >
-> 🔴 **Y nada de esto está construido.** `D-20` está **DECIDIDA y SIN CONSTRUIR**: falta el mando
-> `ESP32 → STM32` que siembre la hora, y hoy el despachador del puente **no distingue punta**
+> 🔴 ~~**Y nada de esto está construido.** `D-20` está **DECIDIDA y SIN CONSTRUIR**: falta el mando
+> `ESP32 → STM32` que siembre la hora, y~~ *(11/09: construido en `68dd2c5`, sin banco.)* Hoy el despachador del puente **no distingue punta**
 > (`cd 01_Firmware/ESP32_Expansion && grep -c "ESCLAVO\|Esclavo\|esclavo" src/despachador.cpp` →
 > **0**, corrido el 07/09). **Para la PLACA no cambia nada** —`RTC-3` ya mandaba dibujar la huella
 > en las dos—; lo que cambia es el **procedimiento**, y eso vive en §6.
@@ -734,7 +746,7 @@ existe.**
 | **El cobre de la tarjeta del semáforo** | Todo lo que se sabe de ella sale del esquemático y del `.kicad_pcb`. **Ni una fila «VERIFICADO EN LA PLACA»** — un fichero dice lo que alguien dibujó; una placa dice lo que se fabricó |
 | **Los 30 o 38 pines del módulo** | **SIN VERIFICAR.** Nadie los ha contado (`PP-D1`) |
 | **El firmware del ESP32 sobre hardware** | Compila, y **no ha corrido nunca sobre un módulo**. ~~**No hay driver de `DS3231` funcionando en ninguna punta**~~ → 🔴 **07/09: la frase tachada es falsa y sostenía el aviso peligroso de §6.** El driver **existe, tiene tres llamadores y compila como una fila de la compuerta** (`reloj_ds3231.cpp`). Lo que sigue `SIN VERIFICAR` es **que haya hablado con un `DS3231` real** — eso es *no ejercido*, que no es lo mismo que *no existe* |
-| **La hora del STM32** | 🔴 **NO la arregla esta placa.** `D-15`: el reloj del puente es el suyo; el del controlador sigue sin camino de escritura ~~(vía `AB-4`, abierta)~~ → 🔵 **07/09: `AB-4` la DECIDIÓ el responsable (`D-20`) — el STM32 recibirá la hora de su propio ESP32.** 🛑 **Y esta fila NO se cae por eso: `D-20` está DECIDIDA y SIN CONSTRUIR.** El mando que siembra la hora `ESP32 → STM32` **no existe** todavía, así que **hoy el controlador sigue sin camino de escritura**, exactamente como dice esta celda |
+| **La hora del STM32** | 🔴 **NO la arregla esta placa.** `D-15`: el reloj del puente es el suyo; el del controlador sigue sin camino de escritura ~~(vía `AB-4`, abierta)~~ → 🔵 **07/09: `AB-4` la DECIDIÓ el responsable (`D-20`) — el STM32 recibirá la hora de su propio ESP32.** ~~🛑 **Y esta fila NO se cae por eso: `D-20` está DECIDIDA y SIN CONSTRUIR.** El mando que siembra la hora `ESP32 → STM32` **no existe** todavía, así que **hoy el controlador sigue sin camino de escritura**, exactamente como dice esta celda~~ 🟢 **11/09: el mando existe** (`CMD:HORA_ESP32`, `68dd2c5`, sin banco) y el controlador **ya tiene camino de escritura**: el de su propio ESP32 por `J17`. **La conclusión de la celda se mantiene: no la arregla esta PLACA**, sino el firmware |
 
 ---
 

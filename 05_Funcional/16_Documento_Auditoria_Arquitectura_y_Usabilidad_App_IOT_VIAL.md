@@ -83,7 +83,7 @@ En esta iteración se logró:
 ![Arquitectura de 2 Roles](./graficas/grafica_01_arquitectura_roles.png)
 
 * **Operario de Campo:** No requiere ingresar a menús ni memorizar PINs. Puede reanudar el ciclo autónomo, alternar el sentido de paso respetando el despeje todo-rojo de seguridad, activar ámbar destellante o detener el tráfico en emergencia total.
-* **Técnico / Administrador:** Protegido por PIN `1234`. Permite parametrizar tiempos nominales (~~1-15m Verde/Rojo~~ → 🔴 **3-15 min Verde/Rojo desde el 04/09**, `D-5`: *«por debajo, el conductor se convence de que el semáforo está averiado y adelanta en rojo»*. La guarda de verdad **está en el firmware** —`VERDE_MIN_MIN = 3` en `Maestro/include/limites_ciclo.h`— y rechaza con `$ERR,CMD:SET_TIEMPOS,DESC:RANGO`; 10-90s Despeje), realizar pruebas de potencia en MOSFETs y ~~sincronizar relojes RTC DS3231~~ **poner en hora el `DS3231` DEL POSTE 1, y sólo el del poste 1** (🔴 `D-20`, 07/09: **la app NO pone la hora en el poste 2, nunca** — un `SET_RTC` dirigido al Esclavo **se rechaza**, porque no es una sincronización sino una **segunda fuente**. El poste 2 recibe la hora del Maestro por la cadena `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`. ⚠️ **SIN CONSTRUIR** — ver §2.2. **Consultar** los dos relojes con `CMD:LEER_RTC` sí sigue siendo tarea del técnico: leer no escribe).
+* **Técnico / Administrador:** Protegido por PIN `1234`. Permite parametrizar tiempos nominales (~~1-15m Verde/Rojo~~ → 🔴 **3-15 min Verde/Rojo desde el 04/09**, `D-5`: *«por debajo, el conductor se convence de que el semáforo está averiado y adelanta en rojo»*. La guarda de verdad **está en el firmware** —`VERDE_MIN_MIN = 3` en `Maestro/include/limites_ciclo.h`— y rechaza con `$ERR,CMD:SET_TIEMPOS,DESC:RANGO`; 10-90s Despeje), realizar pruebas de potencia en MOSFETs y ~~sincronizar relojes RTC DS3231~~ **poner en hora el `DS3231` de ~~DEL POSTE 1, y sólo el del poste 1~~ LOS DOS POSTES** (~~🔴 `D-20`, 07/09: **la app NO pone la hora en el poste 2, nunca** — un `SET_RTC` dirigido al Esclavo **se rechaza**, porque no es una sincronización sino una **segunda fuente**. El poste 2 recibe la hora del Maestro por la cadena `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`. ⚠️ **SIN CONSTRUIR** — ver §2.2.~~ 🔵 11/09, `D-26`, construida en `68dd2c5` y sin banco: con radio el poste 2 hace caso a la hora del Maestro; **sin radio, a la de su propio `DS3231`**, que el técnico le pone desde el teléfono en su gabinete. **Consultar** los dos relojes con `CMD:LEER_RTC` sí sigue siendo tarea del técnico: leer no escribe).
 
 ### 2.2 Flujo del Asistente Courier RTC
 ![Flujo Courier RTC](./graficas/grafica_02_courier_rtc_flujo.png)
@@ -100,9 +100,16 @@ Para obras viales donde la topografía bloquea la señal de radio entre Maestro 
 > > **LA AUTORIDAD DE LA HORA ES EL ESP32, SIEMPRE Y PARA TODO.** La app se la da al **ESP32
 > > Maestro**; ése al **ESP32 Esclavo**; y el STM32 de cada punta la recibe **de su propio ESP32**.
 > > **Hay UNA sola fuente**, así que **no hay desfase inicial que acotar** — que era la única
-> > objeción del arquitecto. 🔴 **Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.**
+> > objeción del arquitecto. ~~🔴 **Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.**
 > > Un `SET_RTC` dirigido al Esclavo **se rechaza**: no es una sincronización, **es una segunda
-> > fuente**.
+> > fuente**.~~
+>
+> 🛑 **11/09 — la frase tachada de arriba está CADUCADA** (ya tachada en la propia fila `D-20` el 07/09
+> por la noche: *«la barrera es la SOBREESCRITURA»*), **y `D-26` (11/09, construida en `68dd2c5`, sin
+> banco) manda lo contrario:** con radio, el poste 2 hace caso a la hora del Maestro; **sin radio, toma
+> la de su propio ESP32, que el técnico le pone desde el teléfono en su gabinete**. Lo que se va con el
+> Courier es **el viaje cronometrado y su compensación**, no poner la hora en el poste 2.
+> `14_Manual_App_Movil_IOT_VIAL.md` §5.3.bis.
 >
 > **El Courier RTC es, por definición, una segunda fuente**: lleva la hora del teléfono hasta el
 > poste 2 y la inyecta allí. Con `D-20`, **ese gesto está prohibido**, y con él se va el $\Delta
@@ -123,13 +130,14 @@ Para obras viales donde la topografía bloquea la señal de radio entre Maestro 
 > *(Se deja escrito en vez de corregido a propósito: regenerar gráficas no es trabajo de esta
 > revisión, y una imagen borrada en silencio no deja rastro de que estuvo mal.)*
 >
-> ⚠️ **`D-20` ESTÁ DECIDIDA Y SIN CONSTRUIR.** Falta el mando ESP32 → STM32 que siembre la hora —el
+> ~~⚠️ **`D-20` ESTÁ DECIDIDA Y SIN CONSTRUIR.** Falta el mando ESP32 → STM32 que siembre la hora —el
 > camino físico existe (`ESP32_Expansion/src/enlace_stm32.cpp`), **el mando no**: ese fichero no
 > menciona `RTC` ni `hora` ni una vez— y falta el rechazo del `SET_RTC` en el poste 2 — el puente es
 > **el mismo firmware en los dos postes** y su despachador **no sabe en cuál está**:
 > `grep -c "ESCLAVO\|Esclavo\|esclavo" 01_Firmware/ESP32_Expansion/src/despachador.cpp` → `0`
 > (corrido el 07/09). **Hasta que se construya, la barrera es el procedimiento: no se manda `SET_RTC`
-> al poste 2.**
+> al poste 2.**~~ 🟢 **11/09: el mando existe** (`CMD:HORA_ESP32`, `siembra.cpp`, `68dd2c5`, sin banco) y
+> **el rechazo no se construye**: `D-26` manda ponerle la hora al poste 2 cuando cae la radio.
 >
 > ✅ **Lo que `D-20` NO deroga, para que nadie lo retire de paso:**
 > **`CMD:LEER_RTC` (`D-17`) se sigue mandando A LOS DOS POSTES.** `D-20` prohíbe **ESCRIBIR** la hora

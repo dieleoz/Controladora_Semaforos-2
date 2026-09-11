@@ -902,9 +902,12 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 >   > DE HORA», Y ESO YA NO ES CIERTO.** Siguen siendo **dos `DS3231`** (y **la compra no cambia**:
 >   > `A-5`), pero **la FUENTE es UNA SOLA: el ESP32 Maestro.** La hora viaja
 >   > `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`, con los STM32 haciendo de **carteros**,
->   > porque **los dos ESP32 no se hablan entre sí**. **La app NO pone la hora en el poste 2: nunca.**
+>   > porque **los dos ESP32 no se hablan entre sí**. ~~**La app NO pone la hora en el poste 2: nunca.**
 >   > Un `SET_RTC` dirigido al Esclavo **se rechaza** — no es una sincronización, **es una segunda
->   > fuente**.
+>   > fuente**.~~ 🔵 *11/09 (`D-26`, construida en `68dd2c5`, sin banco): caducado — al poste 2 **sí** se
+>   > le pone la hora desde el teléfono, y **sin radio su controladora toma la de su propio `DS3231`**;
+>   > con radio manda la del Maestro. **La compra no cambia**: siguen siendo dos, y el del poste 2 es el
+>   > que manda allí cuando no hay radio.*
 >   >
 >   > **El `DS3231` del poste 2 no es una segunda fuente: es la MEMORIA de la única fuente**, la que
 >   > conserva la hora con su pila cuando se cae la radio. Por eso son dos y por eso `D-20` no reduce
@@ -937,6 +940,9 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 >     Maestro/src/bluetooth.cpp:670:    bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
 >     Esclavo/src/bluetooth.cpp:643:    bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
 >   ```
+>
+>   *(11/09, `D-26`, `68dd2c5`: el segundo `grep` da hoy **0** líneas de código — el `SET_RTC` ya no
+>   llega al STM32; lo que llega es `CMD:HORA_ESP32`, que compone el puente desde su `DS3231`.)*
 >
 >   **La única coincidencia de `SIN_CRISTAL` que queda es un COMENTARIO.** *(La lección de método, que
 >   es la que no caduca: aquella cita iba por número de línea —`:336`, `:268`— y las dos apuntan hoy a
@@ -1372,16 +1378,19 @@ de banco (tarea `B5`), y hasta entonces **no se pide nada de este bloque**:
 > | qué cambia con `D-20` (07/09) | la hora ya **no nace** del RTC del STM32: nace del **`DS3231` del ESP32 Maestro** y viaja `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`. **Los STM32 son carteros, no dueños** |
 > | qué NO cambia | 🔴 **la compra sigue siendo DOS `DS3231`, uno por poste** (`A-5`). El del Esclavo es el que **conserva la hora con su pila cuando se cae la radio**. **`D-20` NO reduce la compra a uno** |
 >
-> ⚠️ **Y sigue SIN CONSTRUIR**: falta el mando ESP32 → STM32 que siembre la hora. El camino físico
+> ⚠️ ~~**Y sigue SIN CONSTRUIR**: falta el mando ESP32 → STM32 que siembre la hora. El camino físico
 > existe (`ESP32_Expansion/src/enlace_stm32.cpp`), **el mando no** — ese fichero **no menciona `RTC`
-> ni `hora` ni una vez** (comprobado el 07/09). O sea que **hoy** la hora del poste 2 sigue
+> ni `hora` ni una vez** (comprobado el 07/09).~~ *(11/09: construido en `68dd2c5` —`siembra.cpp`, que
+> escribe por `enlace_stm32.cpp` la línea `CMD:HORA_ESP32`—, sin banco; y con `D-26` la radio **no**
+> llega al `ESP32-E`: el poste 2 usa su propio `DS3231` cuando no hay radio.)* O sea que **hoy** la hora del poste 2 sigue
 > poniéndose a mano en su propio puente. **Esto describe adónde va, no lo que ya está hecho.**
 >
 > 🔴 **La regla de campo que sale de aquí, y que afecta a quien monta:** el poste 2 **se pone en hora
-> en la puesta en marcha, no durante la avería** — la radio se cae justo cuando hace falta el Modo
-> Degradado, que es el modo que exige hora. **No es un problema, porque su `DS3231` tiene pila y
-> conserva la hora**: perder la radio **no** es perder la hora. Lo que obliga es a ponerla **antes**,
-> y a repetirla al cambiar esa pila o tras un `OSCILADOR_PARADO_CAMBIE_PILA` en ese poste.
+> en la puesta en marcha** ~~**, no durante la avería** — la radio se cae justo cuando hace falta el
+> Modo Degradado, que es el modo que exige hora~~ *(11/09, `D-26`: **y también con la radio caída**,
+> desde el teléfono en su gabinete — sin radio su controladora toma la de su `DS3231`)*. **Su
+> `DS3231` tiene pila y conserva la hora**: perder la radio **no** es perder la hora. Por eso se pone
+> **antes**, y se repite al cambiar esa pila o tras un `OSCILADOR_PARADO_CAMBIE_PILA` en ese poste.
 
 | # | Qué | Cant. | Especificación en |
 |:---:|---|:---:|---|

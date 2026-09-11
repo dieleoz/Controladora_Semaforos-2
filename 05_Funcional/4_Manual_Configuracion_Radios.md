@@ -205,7 +205,13 @@ y luego **una vez por hora** mientras haya enlace.
 > > **La autoridad de la hora es el ESP32, siempre y para todo.** La app se la da al **ESP32
 > > Maestro**; ése al **ESP32 Esclavo**; y el STM32 de cada punta la recibe **de su propio ESP32**.
 > > **El Maestro manda la hora y el Esclavo hace caso siempre: hay UNA sola fuente.**
-> > **Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.**
+> > ~~**Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.**~~
+>
+> 🛑 **11/09 — lo tachado está CADUCADO** (ya tachado en la propia fila `D-20` el 07/09 por la noche),
+> **y `D-26` lo matiza en lo que toca a la radio:** el Esclavo hace caso a la hora del Maestro **mientras
+> la radio se oiga**; **sin radio (25 s, el mismo `SFTY6_SILENCIO_MS` de `$ALARM FALLO_RF`) toma la de
+> su propio ESP32**, que el técnico le pone desde el teléfono en su gabinete. Construida en `68dd2c5`,
+> sin banco. `14_Manual_App_Movil_IOT_VIAL.md` §5.3.bis.
 >
 > ✅ **Sigue siendo cierto que los dos `ESP32` no se hablan** — y eso es precisamente lo que pone a
 > las radios en el centro. **El único enlace entre postes es la radio, entre los STM32**, así que la
@@ -225,12 +231,19 @@ y luego **una vez por hora** mientras haya enlace.
 > ✅ **Pero no es un punto único de fallo del reloj, y conviene decirlo para no sobredimensionar la
 > antena por el motivo equivocado: el `DS3231` del poste 2 tiene pila y conserva la hora que ya
 > tenía.** *Perder la radio no es perder la hora.* Lo que obliga es a **poner en hora el poste 2 en
-> la PUESTA EN MARCHA, no durante la avería.**
+> la PUESTA EN MARCHA** ~~**, no durante la avería.**~~ *(11/09, `D-26`: **y con la radio caída, allí
+> mismo** — sin radio su controladora toma la hora de su `DS3231`.)*
 >
-> ⚠️ **`D-20` está DECIDIDA Y SIN CONSTRUIR (07/09).** Las tramas `0x07`–`0x0F` y `0x10` que este
+> ~~⚠️ **`D-20` está DECIDIDA Y SIN CONSTRUIR (07/09).** Las tramas `0x07`–`0x0F` y `0x10` que este
 > apartado describe **existen y hoy no transportan nada útil**: siembran el RTC del STM32, que no
 > cuenta. Con `D-20` construida **volverán a ser el camino bueno**, pero alimentando al `ESP32` del
-> Esclavo en vez de a un contador parado. **No es una trama nueva: es la misma con otro destinatario.**
+> Esclavo en vez de a un contador parado.~~ 🔵 **11/09 (`D-26`, `68dd2c5`, sin banco):** esas tramas
+> **ya son el camino bueno**, y alimentan **la base de software del STM32 Esclavo** (marcada «de radio»),
+> **no** su RTC de hardware ni su `ESP32` —la radio no escribe el `DS3231` del Esclavo; eso es la «cadena
+> completa», mejora sin construir—. **No es una trama nueva: es la misma con otro destinatario.** Y
+> cambia su **frecuencia**: el Maestro las manda **en cada siembra de su ESP32, cada 300 s**, no una vez
+> por hora —un intercambio son 7 tramas, ~0,9 s de aire cada 300 s, **0,3 % del canal**, según el
+> comentario de la rama `CMD:HORA_ESP32:` de `Maestro/src/bluetooth.cpp`; el latido ocupa ~8,7 %—.
 >
 > ✅ **Lo que de este apartado sigue siendo cierto, y es lo único que decide sobre las radios: no hay
 > nada que reconfigurar en la radio por la sincronización horaria.** La tabla de abajo se conserva
@@ -240,7 +253,7 @@ y luego **una vez por hora** mientras haya enlace.
 
 | Duda razonable | Respuesta |
 |---|---|
-| ¿Hace falta más ancho de banda? | **No.** Son las mismas tramas de 4 bytes de siempre, unas pocas al confirmar la hora y una tanda por hora |
+| ¿Hace falta más ancho de banda? | **No.** Son las mismas tramas de 4 bytes de siempre, unas pocas al confirmar la hora y una tanda ~~por hora~~ **cada 5 min** *(11/09, `D-26`: ~0,3 % del canal)* |
 | ¿Hay que cambiar el Air Data Rate? | **No.** Sigue en `2.4 kbps` |
 | ¿El repetidor las deja pasar? | **Sí.** El puente valida **formato y CRC, no comandos**, así que las tramas nuevas lo atraviesan sin modificarlo |
 | ¿Cambia algo en modo directo o con repetidor? | **No.** Las radios siguen siendo agnósticas al contenido |

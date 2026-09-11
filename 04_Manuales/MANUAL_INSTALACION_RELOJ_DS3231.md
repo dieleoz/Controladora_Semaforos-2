@@ -7,8 +7,10 @@
 **Verificación Hardware:** Esquemáticos KiCad `Controladora_Semaforos.kicad_sch`, `pines.h` y `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md`  
 **Fecha de Emisión:** 26 de Agosto de 2026  
 ~~**Última revisión:** 31 de agosto de 2026 — **el cableado a `PB0`/`PB8` de los apartados 2, 4 y 6 está ANULADO y NO se ejecuta.**~~
-**Última revisión: 7 de septiembre de 2026 (tarde)** — 🔴 **`D-20`: la hora se pone en el POSTE 1 y
-nunca en el poste 2** (`DECISIONES.md`). Ver el recuadro del apartado 6 y la fila del desfase.
+**Última revisión: 11 de septiembre de 2026 (tarde)** — 🔴 **`D-26`: la hora la manda el ESP32 de cada
+poste** (construida en `68dd2c5`, sin banco): **se pone en LOS DOS postes**, y con la radio caída se va
+al poste 2 a ponérsela. ~~**`D-20`: la hora se pone en el POSTE 1 y nunca en el poste 2**~~ *(revisión del
+07/09, caducada)* (`DECISIONES.md`). Ver el recuadro del apartado 6 y la fila del desfase.
 *7 de septiembre de 2026 (mañana)* — el cableado a `PB0`/`PB8` de los apartados 2, 4, 5
 y 6 **sigue ANULADO** *(motivo original: mandaba meter un bus I²C en dos pines que ya tienen dueño en
 el firmware que corre hoy, y uno de ellos es la entrada que **pide verde** — `N-105` de
@@ -318,8 +320,8 @@ Existen dos tipos de pilas de botón y no deben confundirse:
    >
    > | dos respuestas de éxito, y **no significan lo mismo** | |
    > |---|---|
-   > | `$ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK` | entró **y va camino de la otra punta** |
-   > | `$ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:HORA_PUESTA_SIN_PROPAGAR` | **entró aquí y NO viajó.** El otro poste sigue con su hora vieja: hay que ir a ponérsela |
+   > | `$ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK` | entró **y** ~~**va camino de la otra punta**~~ *(11/09, `D-26`: la línea `CMD:HORA_ESP32` con esa hora salió entera hacia **la controladora de ESTE poste**; en el poste 1, ésa la pasa al poste 2 por radio)* |
+   > | `$ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:HORA_PUESTA_SIN_PROPAGAR` | **entró aquí y NO viajó** ~~**.** El otro poste sigue con su hora vieja: hay que ir a ponérsela~~ *(11/09: «viajar» es a la controladora de este mismo armario por `J17`, no al otro poste. El reloj está bien; falla el enlace de dentro. Si se repite, alarma `HORA_ESP32`)* |
    >
    > **Las seis negativas y qué hacer con cada una: apartado 8 de este manual.**
 
@@ -343,7 +345,7 @@ Existen dos tipos de pilas de botón y no deben confundirse:
 | **El módulo `DS3231` no responde / parece muerto** | ⛔ ~~Es lo esperado hoy: no hay driver~~ → **CADUCADO EL 07/09: SÍ hay driver** (`ESP32_Expansion/src/reloj_ds3231.cpp`), así que **es una avería de verdad** | **Pregúntele al puente, no al LED:** `CMD:LEER_RTC` contesta el motivo concreto —bus mudo, pila, hora nunca puesta, escritura a medias—. Tabla completa en el apartado 8 |
 | **El reloj pierde la hora cada vez que se apaga el semáforo** | Pila agotada o mal colocada en el módulo. | Medir la pila con multímetro (>3.0V) y verificar que el polo positivo (+) quede hacia arriba. ✅ **sigue válido** |
 | **La hora no avanza (se queda congelada)** | ⛔ ~~Módulo DS3231 dañado o sin cristal activo~~ → **el oscilador está parado, y casi siempre es la PILA** | ⛔ ~~**Sólo aplica cuando exista firmware que lo lea.** Hoy la hora del módulo no se lee desde ningún sitio, así que este síntoma **no es diagnosticable**~~ 🔴 **CADUCADO EL 07/09 — ver abajo.** ✅ **Hoy SÍ es diagnosticable y el equipo lo dice con nombre propio:** `CMD:LEER_RTC` → `$ERR,…,DESC:OSCILADOR_PARADO_CAMBIE_PILA`. **Primero la lectura, después la pieza** |
-| **La app enseña un desfase grande entre los dos postes** | Son **dos relojes independientes** —uno por ESP32— y **hoy nadie los sincroniza solo** (`D-17`) | `CMD:LEER_RTC` en los dos postes. 🔴 ~~si uno se ha ido, `SET_RTC` **en ése**~~ ⛔ **DEROGADO EL 07/09 POR `D-20`: la hora se corrige SIEMPRE en el poste 1 (Maestro), NUNCA en el poste 2.** Poner la hora en el Esclavo **no es sincronizar: es crear una segunda fuente**, que es justo lo que `D-20` prohíbe. ⚠️ **Un desfase no es una avería del módulo**: es lo que `D-17` existe para poder ver |
+| **La app enseña un desfase grande entre los dos postes** | Son **dos relojes independientes** —uno por ESP32— y **hoy nadie los sincroniza solo** (`D-17`) | `CMD:LEER_RTC` en los dos postes. 🔴 ~~si uno se ha ido, `SET_RTC` **en ése**~~ ~~⛔ **DEROGADO EL 07/09 POR `D-20`: la hora se corrige SIEMPRE en el poste 1 (Maestro), NUNCA en el poste 2.** Poner la hora en el Esclavo **no es sincronizar: es crear una segunda fuente**, que es justo lo que `D-20` prohíbe.~~ 🔵 **11/09 (`D-26`): si uno se ha ido, `SET_RTC` en ése — también en el poste 2.** La radio no escribe el `DS3231` del poste 2, y ése desfase es el salto que dará su hora al perder la radio. ⚠️ **Un desfase no es una avería del módulo**: es lo que `D-17` existe para poder ver |
 | **El puente contesta `MOTIVO_NO_CONTEMPLADO`** | Es la **rama de cierre** del firmware: un estado que no estaba previsto | 🛑 **NO se cambia la pila ni el módulo.** Se anota la trama literal y se reporta: es firmware, no cobre |
 
 > # 🛑 ANTES DE TOCAR NADA DE ESTA TABLA: A QUIÉN SE LE PREGUNTA POR EL RELOJ (`D-15`)
@@ -351,7 +353,8 @@ Existen dos tipos de pilas de botón y no deben confundirse:
 > **Se le pregunta al PUENTE, por Bluetooth, con `CMD:LEER_RTC`. No al STM32.**
 >
 > El Maestro y el Esclavo **no tienen reloj** —el cristal `Y2` está muerto (N-17)— y sus ramas de
-> `SET_RTC` **están calladas a propósito** para que no salgan dos acuses opuestos a una sola orden.
+> `SET_RTC` ~~**están calladas a propósito**~~ *(11/09, `D-26`: **ya no existen** — la orden se queda en
+> el puente y no llega al STM32)* para que no salgan dos acuses opuestos a una sola orden.
 > **Que el STM32 no conteste no es un síntoma: es el diseño.**
 >
 > 🔴 **Este es el error que este manual existe para impedir, y este proyecto ya lo pagó:** el técnico
@@ -365,21 +368,26 @@ Existen dos tipos de pilas de botón y no deben confundirse:
 > ⚠️ **Y hay DOS relojes por cruce, uno por poste.** Un poste en hora no dice nada del otro: la app
 > compara los dos y enseña el desfase, porque **los dos ESP32 no se hablan entre sí**.
 
-> # 🔴 `D-20` (07/09) — LA HORA SE PONE EN EL POSTE 1. EN EL POSTE 2 NUNCA
+> # 🔴 `D-26` (11/09) — LA HORA LA MANDA EL ESP32 DE CADA POSTE · ~~`D-20` (07/09) — LA HORA SE PONE EN EL POSTE 1. EN EL POSTE 2 NUNCA~~
 >
-> Fila **`D-20`** de [`DECISIONES.md`](../DECISIONES.md). **La autoridad de la hora es el ESP32,
-> siempre y para todo, y es UNA SOLA:** la app se la da al **ESP32 Maestro**, ése al **ESP32
-> Esclavo**, y el STM32 de cada punta la recibe **de su propio ESP32**. **El Maestro manda la hora
-> y el Esclavo hace caso siempre.**
+> Filas **`D-20`** y **`D-26`** de [`DECISIONES.md`](../DECISIONES.md). **La autoridad de la hora es el
+> ESP32** ~~**, siempre y para todo, y es UNA SOLA:** la app se la da al **ESP32 Maestro**, ése al
+> **ESP32 Esclavo**, y el STM32 de cada punta la recibe **de su propio ESP32**. **El Maestro manda la
+> hora y el Esclavo hace caso siempre.**~~ **de cada poste**: cada uno le pasa la de su `DS3231` a su
+> controladora. **Con radio, el poste 2 hace caso a la del Maestro; SIN radio (25 s), a la de su
+> propio `DS3231`.** Construida en `68dd2c5`, **sin banco**.
 >
-> 🔴 **Consecuencia para el técnico, y es la que cambia lo que usted hace con el multímetro en la
+> ~~🔴 **Consecuencia para el técnico, y es la que cambia lo que usted hace con el multímetro en la
 > mano: un `SET_RTC` dirigido al poste 2 SE RECHAZA. No es una sincronización, es una segunda
 > fuente.** Si el poste 2 va desfasado, **la hora se corrige en el poste 1** y viaja
-> `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E` — los STM32 quedan de **carteros** de la hora,
-> no de dueños.
+> `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`~~ 🔴 **Consecuencia para el técnico: al poste 2
+> SÍ se le pone la hora**, en la puesta en marcha y **cuando se cae la radio** (`D-26` (5)). Con radio
+> la hora viaja `ESP32-M -> STM32-M -> radio -> STM32-E` — los STM32 quedan de **carteros** de la hora,
+> no de dueños—; **la radio no escribe el `DS3231` del poste 2**. Qué hacer ante cada alarma:
+> `05_Funcional/14_Manual_App_Movil_IOT_VIAL.md` §5.3.bis.
 >
-> ⚠️ **`D-20` está DECIDIDA Y SIN CONSTRUIR (07/09).** Medido: el despachador del puente es el mismo
-> firmware en los dos postes y **no nombra al Esclavo ni una vez**:
+> ~~⚠️ **`D-20` está DECIDIDA Y SIN CONSTRUIR (07/09).**~~ Medido *(el 07/09, crónica)*: el despachador del puente es el mismo
+> firmware en los dos postes y **no nombra al Esclavo ni una vez** *(y con `D-26` no hace falta)*:
 >
 > ```
 > $ cd 01_Firmware/ESP32_Expansion
@@ -387,15 +395,17 @@ Existen dos tipos de pilas de botón y no deben confundirse:
 > 0
 > ```
 >
-> Así que **hoy sigue atendiendo el `SET_RTC` venga por donde venga**. Mientras eso siga así, **el poste 2 se pone en hora a mano y visitándolo**,
-> porque no hay otra vía — y eso es un estado temporal declarado, no la arquitectura.
+> Así que **hoy sigue atendiendo el `SET_RTC` venga por donde venga** *(11/09: y es lo correcto con
+> `D-26`)*. ~~Mientras eso siga así, **el poste 2 se pone en hora a mano y visitándolo**, porque no hay
+> otra vía — y eso es un estado temporal declarado, no la arquitectura.~~ **El poste 2 se pone en hora
+> visitándolo**, y es el procedimiento, no un estado temporal.
 >
-> ✅ **Y la regla que vale en los dos estados: EL POSTE 2 SE PONE EN HORA EN LA PUESTA EN MARCHA, NO
-> DURANTE LA AVERÍA.** Con `D-20` construida, el único camino a su reloj pasa por la radio — y la
-> radio se cae justo cuando hace falta el Degradado, que es el modo que exige hora. **No pasa nada:
-> su `DS3231` tiene pila y conserva la hora que ya tenía.** *Perder la radio no es perder la hora.*
-> Lo que obliga es a ponerla **antes**: en la puesta en marcha, al cambiar la `CR2032`, y después de
-> cualquier `OSCILADOR_PARADO_CAMBIE_PILA` en ese poste.
+> ✅ **Y la regla: EL POSTE 2 SE PONE EN HORA EN LA PUESTA EN MARCHA** ~~**, NO DURANTE LA AVERÍA.**
+> Con `D-20` construida, el único camino a su reloj pasa por la radio — y la radio se cae justo cuando
+> hace falta el Degradado, que es el modo que exige hora.~~ **Y CON LA RADIO CAÍDA, ALLÍ MISMO**
+> (`D-26`). **Su `DS3231` tiene pila y conserva la hora que ya tenía.** *Perder la radio no es perder
+> la hora.* Por eso se pone también **antes**: en la puesta en marcha, al cambiar la pila del módulo
+> ~~la `CR2032`~~, y después de cualquier `OSCILADOR_PARADO_CAMBIE_PILA` en ese poste.
 
 > 🔴 **Por qué la fila *«la hora no avanza»* estaba caducada, y va escrito para que no vuelva.** La
 > pasada de la mañana del 07/09 derogó el apartado 8 —*«no hay driver»*— **y esta fila, que decía lo

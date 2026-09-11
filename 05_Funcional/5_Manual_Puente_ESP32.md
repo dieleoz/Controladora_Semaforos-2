@@ -222,10 +222,15 @@ la **configuración del ciclo**. **El repetidor no necesita ningún cambio para 
 > | quién los **emite** | `grep -n "protocolo_enviarPaquete(CMD_HORA" 01_Firmware/Maestro/src/coordinador.cpp` — las cuatro seguidas y sin espera entre ellas |
 > | quién los **recibe** | `grep -n "CMD_HORA_" 01_Firmware/Esclavo/src/main.cpp` |
 >
-> 🔴 **Dónde `D-20` se aparta de lo construido: SÓLO en el último salto.** Hoy esa cadena termina
+> 🔴 **Dónde `D-20` se aparta de lo construido: SÓLO en el último salto.** ~~Hoy esa cadena termina
 > aplicando la hora **al RTC del propio STM32 Esclavo** (`reloj_ajustar()`); con `D-20` tiene que
 > terminar **en el `ESP32-E` y su `DS3231`**, porque el STM32 es un cartero, no el dueño. **Ese
-> último salto NO existe** — `D-20` está DECIDIDA y SIN CONSTRUIR.
+> último salto NO existe** — `D-20` está DECIDIDA y SIN CONSTRUIR.~~ 🔵 **11/09 — lo decidió `D-26`
+> y está construido en `68dd2c5` (sin banco):** la cadena **termina en el STM32 Esclavo** —
+> `reloj_ajustar()` siembra su base de software y la marca «de radio»; **ya no escribe su RTC de
+> hardware**—, y **con radio esa hora manda** sobre la de su propio ESP32. Llevarla también al
+> `ESP32-E` («la cadena completa») queda **como mejora, no como condición**, sin construir. Y el
+> cuarteto sale ahora **en cada siembra del ESP32 Maestro, cada 300 s**, no cada hora.
 >
 > ✅ **Para el repetidor no cambia nada, y es la tercera vez que este apartado se gana el sueldo:**
 > valida forma, no contenido, así que el día que ese último salto se escriba **este firmware no se
@@ -260,8 +265,10 @@ puente, nunca hubo sincronización, y **el Degradado se rechaza**.
 > > Maestro**, ése al **ESP32 Esclavo**, y el STM32 de cada punta la recibe **de su propio ESP32**.
 >
 > Y como **los dos ESP32 no se hablan** —el único enlace entre postes es la radio, la de los
-> STM32—, la cadena entera es `ESP32-M → STM32-M → radio → STM32-E → ESP32-E`. **Los STM32 son
-> CARTEROS de la hora, no dueños.**
+> STM32—, la cadena entera es `ESP32-M → STM32-M → radio → STM32-E` ~~`→ ESP32-E`~~ *(el último salto
+> no existe: `D-26`)*. **Los STM32 son CARTEROS de la hora, no dueños.** *(11/09, `D-26`: **sin radio
+> 25 s, el STM32-E toma la hora de su propio ESP32** —su `DS3231`, o la que el técnico le ponga desde
+> el teléfono en su gabinete—.)*
 >
 > 🛑 **Por qué esto le importa a ESTE manual, que es de la otra placa:** el salto por radio de esa
 > cadena es **el mismo tramo que atraviesa el repetidor** en la topología de 4 radios. **No hay que
@@ -270,12 +277,14 @@ puente, nunca hubo sincronización, y **el Degradado se rechaza**.
 > Modo Degradado en esa punta. Es la misma frase de siempre —*«lo que sí afecta es la
 > sincronización previa»*— con un sujeto más.
 >
-> 🛑 **Y la regla de campo que sale de ahí: EL POSTE 2 SE PONE EN HORA EN LA PUESTA EN MARCHA, NO
-> DURANTE LA AVERÍA.** ✅ Su `DS3231` tiene pila y conserva la hora que ya tenía: *perder la radio no
-> es perder la hora.*
+> 🛑 **Y la regla de campo que sale de ahí: EL POSTE 2 SE PONE EN HORA EN LA PUESTA EN MARCHA** ~~**, NO
+> DURANTE LA AVERÍA.**~~ *(11/09, `D-26`: **y con la radio caída, allí mismo**.)* ✅ Su `DS3231` tiene
+> pila y conserva la hora que ya tenía: *perder la radio no es perder la hora.*
 >
-> 🔴 **SIN CONSTRUIR.** `D-20` se decidió el 07/09 y **no corre en ninguna tarjeta**: falta el mando
-> `ESP32 → STM32` que siembre la hora. **Hoy la hora del STM32 no viene de ningún ESP32.**
+> ~~🔴 **SIN CONSTRUIR.** `D-20` se decidió el 07/09 y **no corre en ninguna tarjeta**: falta el mando
+> `ESP32 → STM32` que siembre la hora. **Hoy la hora del STM32 no viene de ningún ESP32.**~~ 🟢 **11/09:
+> construido en `68dd2c5`** (`CMD:HORA_ESP32`, `siembra.cpp`) —**y no corre todavía en ninguna tarjeta**:
+> sin banco—. Para el repetidor sigue sin cambiar nada: esa línea va por `J17`, no por la radio.
 
 ---
 

@@ -386,9 +386,19 @@ por radio. No hay fase que sostener.
 
 | aparato | comandos con PIN | prefijos | sin PIN |
 |---|---|---|---|
-| **Maestro** `bluetooth.cpp` | `DEMANDA` `FORZAR_ROJO` `MANUAL:CAMBIAR_TURNO` `REINICIAR_RELOJ` `TEST_LEDS` `SET_MODO:{ALCANCE,AMBAR,AUTO,DEGRADADO,INTELIGENTE,MANUAL,MENU}` | `SET_RTC:` `SET_TIEMPOS:` | `CMD:FORZAR_ROJO` |
-| **Esclavo** `bluetooth.cpp` | `AMBAR_EMERGENCIA` `CANCELAR_AMBAR` `FORZAR_ROJO` `SOLICITAR_PASO` `TEST_LEDS` `SET_MODO:DEGRADADO` | `SET_RTC:` | `CMD:AMBAR_EMERGENCIA` `CMD:FORZAR_ROJO` |
-| **ESP32** `despachador.cpp` | `CMD:LEER_RTC` | `SET_RTC:` | - |
+| **Maestro** `bluetooth.cpp` | `DEMANDA` `FORZAR_ROJO` `MANUAL:CAMBIAR_TURNO` `REINICIAR_RELOJ` `TEST_LEDS` `SET_MODO:{ALCANCE,AMBAR,AUTO,DEGRADADO,INTELIGENTE,MANUAL,MENU}` | ~~`SET_RTC:`~~ `SET_TIEMPOS:` | `CMD:FORZAR_ROJO` · `CMD:HORA_ESP32:` *(D-26)* |
+| **Esclavo** `bluetooth.cpp` | `AMBAR_EMERGENCIA` `CANCELAR_AMBAR` `FORZAR_ROJO` `SOLICITAR_PASO` `TEST_LEDS` `SET_MODO:DEGRADADO` | ~~`SET_RTC:`~~ - | `CMD:AMBAR_EMERGENCIA` `CMD:FORZAR_ROJO` · `CMD:HORA_ESP32:` *(D-26)* |
+| **ESP32** `despachador.cpp` | `CMD:LEER_RTC` *(strcmp)* | `SET_RTC:` *(strstr, dentro de la linea: el puente no conoce el PIN)* · `HORA_ESP32` *(strstr: del telefono se DESCARTA)* | - |
+
+> 🔵 **11/09, `D-26` (`68dd2c5`) — la fila de SET_RTC se muda de despachador.** `[MEDIDO 11/09 sobre
+> 68dd2c5 - grep strncmp(cmd,"CMD:... / strncmp(accion,"...:" en los dos bluetooth.cpp]`: ninguna punta
+> tiene ya rama `SET_RTC:` -el `SET_RTC` del telefono lo atiende SOLO el puente y no cruza `J17`- y las
+> dos tienen `CMD:HORA_ESP32:` **antes** de la guarda de PIN: es la hora que el ESP32 de ese poste
+> compone desde su `DS3231` releido (`siembra.cpp`). Una linea del telefono que contenga `HORA_ESP32` la
+> **tira el puente** (`suplantaLaSiembra()` en `despachador.cpp`, `$ERR,NODE:PUENTE,CMD:HORA_ESP32,
+> DESC:LINEA_RESERVADA_AL_PUENTE`): sin eso cualquiera con Bluetooth dictaria la hora sin PIN. Lo miden
+> `esp32_12_consulta_de_reloj` (que el STM32 no tenga rama para lo que el puente se queda) y
+> `esp32_13_siembra_de_hora`.
 
 > 🔴 **EL TERCER DESPACHADOR ES FACIL DE OLVIDAR.** `app_01_comandos` lo lee desde
 > el 05/09 (A-9). Antes, que `SET_RTC` saliera en verde era **casualidad**: el
@@ -455,14 +465,18 @@ simplemente no se arma nunca, que es lo correcto. Ademas el banco se caeria en
 
 | fichero | lineas | funcion |
 |---|---|---|
-| `main.cpp` | 202 | arranque; el orden es la especificacion |
+| `main.cpp` | ~~202~~ 223 | arranque; el orden es la especificacion. Desde `D-26` llama a `siembra_revisar()` en `loop()`, detras de `reloj_revisar()` |
 | `vigilante.cpp` | 245 | **FUNCION 1 - watchdog.** `esp_task_wdt` + parte de arranque (`esp_reset_reason`, 11 causas) |
 | `reloj_ds3231.cpp` | 336 | **FUNCION 2 - reloj** DS3231 por I2C (GPIO21/22, 0x68). Bit OSF |
-| `puente.cpp` | 387 | **FUNCION 3 - puente SPP.** No origina, no parte ni une tramas |
+| `puente.cpp` | ~~387~~ 398 | **FUNCION 3 - puente SPP.** No origina, no parte ni une tramas. Desde `D-26` lo que `despachador_esParaElPuente()` reclama NO cruza (antes `SET_RTC` cruzaba) |
 | `enlace_stm32.cpp` | 92 | **UNICO fichero del proyecto que nombra `Serial2`** |
-| `despachador.cpp` | 273 | el TERCER despachador: `SET_RTC:` y `CMD:LEER_RTC` |
+| `despachador.cpp` | ~~273~~ 355 | el TERCER despachador: `SET_RTC:` y `CMD:LEER_RTC`, y desde `D-26` el descarte de `HORA_ESP32` del telefono. En la rama `RELOJ_OK` de `SET_RTC` llama a `siembra_ahora()` |
+| 🆕 `siembra.cpp` *(+ `include/siembra.h`, 39)* | 109 | **`D-20`/`D-26` (11/09, `68dd2c5`): LA HORA DEL `DS3231` HACIA EL STM32.** Compone `CMD:HORA_ESP32:%04d-%02d-%02d,%02d:%02d:%02d` (`FORMATO_HORA_ESP32`) **solo** con lo que devuelve `reloj_leer()`, y lo escribe por `enlace_escribirLinea()`. Sale al arrancar (con dos reintentos, `SIEMBRA_REINTENTO_1_MS`/`_2_MS`), tras cada `SET_RTC` bueno y cada `SIEMBRA_INTERVALO_MS` (300 s) -constantes en `contrato.h`-. Es la **segunda** linea que el ESP32 origina hacia el STM32 (la otra es el latido de `vigilante.cpp`): `esp32_05_no_origina` censa las escrituras y no admite una tercera. `true` = «salio entera por J17», no «el STM32 la acepto» |
 | `transporte_app.cpp` | 119 | transporte hacia el telefono |
 | `trama.cpp` | 70 | formato y CRC |
+
+`[MEDIDO 11/09 sobre 68dd2c5 - wc -l ESP32_Expansion/src/*.cpp include/siembra.h]` para las
+filas que cambiaron con `D-26`; el resto sigue siendo la medida del 07/09.
 
 **Las tres barreras del puente, con un pack cada una:** NO ORIGINA (`esp32_05`) ·
 NO PARTE NI UNE TRAMAS (`esp32_06`) · SILENCIO NO ES ORDEN (`esp32_08`). **Y NO
@@ -471,6 +485,15 @@ FILTRA POR COMANDO**: retransmite toda trama bien formada; valida FORMATO.
 **El STM32 sigue siendo el controlador.** El ESP32 PIDE; el STM32 acepta o rechaza.
 SFTY-6 mira la radio, no J17: un ESP32 colgado no puede mover una luz ni disparar un
 ambar.
+
+> 🔵 **11/09, `D-26` (`68dd2c5`): el ESP32 pasa a ser LA FUENTE DE LA HORA de su STM32**
+> (`siembra.cpp`), y de la hora cuelgan la fase del Degradado y la franja nocturna. Lo que
+> este lado hace para no meter una hora mala: solo sale la que da `reloj_leer()`, la barrera
+> del `DS3231`. Lo que hace el STM32: en Degradado, un salto mayor que el margen pasa por
+> rojo (`D-26` (4)); y si no le llega una siembra buena en tres cadencias, `$ALARM
+> …EVENTO:HORA_ESP32…`. **Lo que NO hace:** declarar vieja la hora que tiene ni caer a ambar
+> por ello —`N-162` `H1`, `D-21` pieza (1), en construccion fuera de `main`—. Lo dice la
+> cabecera de `ESP32_Expansion/src/main.cpp`.
 
 ### 2.11 El enlace por radio
 
@@ -630,14 +653,15 @@ rutas las pone `banco/modelos/`.
 | `esp32_02_watchdog_alimentado` | `X:contrato.h`, `X:main.cpp`, `X:puente.cpp`, `X:vigilante.cpp` | - | propia |
 | `esp32_03_ack_que_mira` | `X:reloj_ds3231.h`, `X:despachador.cpp` | - | propia |
 | `esp32_04_osf` | `X:contrato.h`, `X:main.cpp`, `X:reloj_ds3231.cpp` | - | propia |
-| `esp32_05_no_origina` | `X:puente.cpp` | - | propia |
+| `esp32_05_no_origina` | `X:puente.cpp`, `X:contrato.h` *(11/09, `D-26`: `LATIDO_LINEA`)* y **censa `ESP32_Expansion/src/*.cpp` e `include/*.h` enteros** (`fuentes_de`): cada escritura hacia el STM32 del proyecto, con dos excepciones con nombre -el latido y `siembra.cpp`- | - | propia |
 | `esp32_06_no_parte_tramas` | `X:puente.h`, `X:enlace_stm32.cpp`, `X:puente.cpp` | - | propia |
 | `esp32_07_presupuesto_bytes` | `X:contrato.h`, `M:coordinador.h`, `M:limites_ciclo.h`, `M:protocolo.h`, `M:bluetooth.cpp`, `M:coordinador.cpp` | - | propia |
 | `esp32_08_silencio_no_es_orden` | `X:enlace_stm32.cpp`, `X:main.cpp`, `X:puente.cpp` | - | propia |
 | `esp32_09_contrato_de_bytes` | `X:contrato.h`, `X:enlace_stm32.cpp`, `X:trama.cpp`, `M+E:bluetooth.cpp` | - | propia |
 | `esp32_10_parte_de_arranque` | `X:contrato.h`, `X:vigilante.h`, y **pares** `src/main.cpp`, `src/trama.cpp`, `src/vigilante.cpp` ⚠️ ver 3.2 | - | propia |
 | `esp32_11_bien_formada_no_es_cierta` | `X:contrato.h`, `X:reloj_ds3231.h`, `X:reloj_ds3231.cpp` | - | propia |
-| `esp32_12_consulta_de_reloj` | `X:despachador.h`, `X:reloj_ds3231.h`, `X:despachador.cpp`, `X:puente.cpp`, `M+E:bluetooth.cpp` | - | propia |
+| `esp32_12_consulta_de_reloj` | `X:despachador.h`, `X:reloj_ds3231.h`, `X:despachador.cpp`, `X:puente.cpp`, `X:siembra.cpp` *(11/09, `D-26`)*, `M+E:bluetooth.cpp` | - | propia |
+| 🆕 `esp32_13_siembra_de_hora` *(11/09, `D-26`)* | `X:contrato.h`, `X:siembra.cpp`, `X:despachador.cpp`, `X:main.cpp`, `M:modo_degradado.cpp`, `E:modo_degradado.cpp`, `M+E:reloj.h`, `M+E:reloj.cpp`, `M+E:main.cpp`, `M+E:bluetooth.cpp` | - | propia |
 | `flash_01_lastre` | **parsea `firmware.map`** del enlazador, no un fuente | - | propia |
 | `identidad_01_serie` | `M:identidad.cpp` | - | propia |
 | `maestro_01_mando` | `M:main.cpp`, `M:modo_automatico.cpp` | - | **modelos** |
@@ -654,6 +678,13 @@ rutas las pone `banco/modelos/`.
 | `maestro_12_dar_paso_sin_coordinador` | `M:bluetooth.cpp`, `M:main.cpp` | - | propia |
 | `reloj_01_consulta_por_bluetooth` | `E:reloj.h`, `E:bluetooth.cpp`, `M:reloj.h`, `M:bluetooth.cpp` | - | propia |
 | `reloj_02_siembra_que_miente` | `E:reloj.cpp`, `E:reloj.h`, `E:bluetooth.cpp`, `M:reloj.cpp`, `M:reloj.h`, `M:bluetooth.cpp` | - | propia |
+| 🆕 `reloj_03_manda_la_radio` *(11/09, `D-26`)* | `E:bluetooth.cpp`, `E:reloj.cpp`, `E:main.cpp`, `M:bluetooth.cpp`, `M:reloj.cpp`, `X:siembra.cpp`, `X:contrato.h`, y **censa `{Maestro,Esclavo}/include/*.h` y `Esclavo/src/*.cpp` enteros** (`fuentes_de`) | 🔴 **`Simulaciones/puente_esp32/arnes_puente.cpp`** y **`Validacion_Automatico/dos_puntas/{orquestador_degradado,adaptador_esclavo}.cpp`**, que lee por texto: que la copia de `isoBienFormado()` del arnes del puente sea la del fuente, y que el bloque E del orquestador salte la hora de las dos puntas. ⚠️ **Ninguno de los tres compila `Esclavo/src/reloj.cpp`** (`N-162`, premisa 1): `reloj_radioManda()` y la frontera de 25 s solo las mira este pack, por texto | propia |
+
+`[MEDIDO 11/09 sobre 68dd2c5 - los regex _RE_TRIPLE/_RE_PAR de compuerta.py sobre los dos packs nuevos,
+mas grep de fw.fuentes_de y de las tuplas que nombran Simulaciones/ y Validacion_*]`. Las dos filas
+nuevas y las de `esp32_05`/`esp32_12` son de `D-26`; el resto de la tabla sigue siendo del 07/09.
+⚠️ **Medido de paso y NO corregido** (no es de `D-26`): el censo da tambien `M:bluetooth.h` en
+`reloj_02` y `M+E:modos.h` en `app_02`, que su fila no lista.
 
 ### 3.4 Los tres MODELOS - 17 packs no direccionan nada por su cuenta
 

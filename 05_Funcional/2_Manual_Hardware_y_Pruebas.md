@@ -704,20 +704,30 @@ por los 10 kΩ de la placa.**
 > > al ESP32 ESCLAVO; y el STM32 de cada punta la recibe de SU PROPIO ESP32.**
 > > **El Maestro manda la hora y el Esclavo hace caso siempre. Hay UNA sola fuente**, así que no hay
 > > desfase inicial que acotar — que era la única objeción del arquitecto.
-> > 🔴 **Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.** Un `SET_RTC` dirigido al
-> > Esclavo **se rechaza**: no es una sincronización, **es una segunda fuente**.
+> > ~~🔴 **Consecuencia dura: la app NO pone la hora en el poste 2. Nunca.** Un `SET_RTC` dirigido al
+> > Esclavo **se rechaza**: no es una sincronización, **es una segunda fuente**.~~
+>
+> 🛑 **11/09 — lo tachado está CADUCADO** (ya tachado en la propia fila `D-20` el 07/09 por la noche) **y
+> `D-26` (11/09) lo invierte:** la hora la manda el ESP32 de CADA poste; **con radio el Esclavo hace caso
+> a la del Maestro; sin radio (25 s), a la de su propio ESP32, que el técnico le pone desde el teléfono
+> en su gabinete.** `14_Manual_App_Movil_IOT_VIAL.md` §5.3.bis.
 >
 > **Los dos ESP32 NO se hablan.** El único enlace entre postes es la radio **entre los STM32**, así
-> que la hora viaja `ESP32-M -> STM32-M -> radio -> STM32-E -> ESP32-E`. **Los STM32 son CARTEROS de
-> la hora, no dueños de ella.**
+> que la hora viaja `ESP32-M -> STM32-M -> radio -> STM32-E` ~~`-> ESP32-E`~~ *(el último salto no existe:
+> `D-26` lo deja como mejora)*. **Los STM32 son CARTEROS de la hora, no dueños de ella.**
 >
-> 🔴 **Y `D-20` ESTÁ DECIDIDA Y SIN CONSTRUIR. Nada de esa cadena corre hoy en ninguna tarjeta.**
+> 🔴 ~~**Y `D-20` ESTÁ DECIDIDA Y SIN CONSTRUIR. Nada de esa cadena corre hoy en ninguna tarjeta.**~~
+> *(11/09: construida en `68dd2c5` —`siembra.cpp` y la rama `CMD:HORA_ESP32:` de las dos puntas—, y
+> **sigue sin correr en ninguna tarjeta**: sin banco.)* Lo de debajo es la medida del 07/09:
 > Medido el 07/09 y reproducible: el puente ESP32 es **el mismo firmware en los dos postes**, y el
 > fichero que decide qué hacer con un `SET_RTC` **no nombra al Esclavo ni una vez** —
 > `cd 01_Firmware/ESP32_Expansion && grep -c "ESCLAVO\|Esclavo\|esclavo" src/despachador.cpp` → `0`.
 > Hoy lo atiende **venga por donde venga**. Y el mando ESP32 → STM32 que sembraría la hora **no
 > existe**: `src/enlace_stm32.cpp` no menciona `RTC` ni `hora` ni una vez. **Lo que `D-20` decide es
-> la AUTORIDAD, no la implementación.**
+> la AUTORIDAD, no la implementación.** *(11/09: el mando existe desde `68dd2c5` en un fichero propio,
+> `src/siembra.cpp`, que escribe por `enlace_stm32.cpp` —por eso ese fichero sigue sin nombrar la hora—.
+> Y el despachador sigue sin distinguir punta **porque con `D-26` no lo necesita**: quien decide si la
+> hora entra en el poste 2 es su controladora.)*
 
 ### Verificación del Modo Legal (Norma Colombia Res. 2024 - V8.0)
 1. Ingrese a **Modo Manual**, **Automático** o **Inteligente**.
@@ -1063,25 +1073,32 @@ Con ~1,4 µA de consumo por `VBAT`, la autonomía teórica supera los **15 años
 > > postes»*. `D-20` construye el camino que faltaba: **la hora sale del ESP32 Maestro y llega al del
 > > Esclavo pasando por los dos STM32 y la radio.** Los STM32 son **carteros**.
 > >
-> > | | ~~antes (`D-17` solo)~~ | **vigente (`D-20`, 07/09)** |
+> > 🛑 **11/09 — ESTE RECUADRO CADUCÓ EN SU NÚCLEO (`D-26`, construida en `68dd2c5`, sin banco):** la
+> > radio lleva la hora **hasta el STM32 del Esclavo, no hasta su `DS3231`**, y **sin radio el Esclavo
+> > toma la de su propio ESP32**. Así que **sí hay que poner la hora en los dos postes**, y con la radio
+> > caída se va al poste 2 a ponérsela. Qué ve el técnico: `14_Manual_App_Movil_IOT_VIAL.md` §5.3.bis.
+> >
+> > | | ~~antes (`D-17` solo)~~ *(vuelve a valer: `D-26`)* | ~~**vigente (`D-20`, 07/09)**~~ **(`D-20`, 07/09 — caducado por `D-26`)** |
 > > |---|---|---|
-> > | dónde se pone la hora | ~~en los dos postes, uno por uno~~ | **sólo en el poste 1 (Maestro)** |
-> > | `SET_RTC` al poste 2 | ~~es como se ponía la hora allí~~ | 🛑 **se rechaza: es una SEGUNDA FUENTE** |
-> > | `CMD:LEER_RTC` | a los dos postes | **a los dos postes, igual que antes** — `D-20` prohíbe **ESCRIBIR** en el poste 2; **leer no escribe nada**, y con `D-20` construida vale más que hoy: es la única forma de comprobar que la siembra del Maestro llegó de verdad al reloj del poste 2 |
+> > | dónde se pone la hora | ~~en los dos postes, uno por uno~~ **en los dos postes, uno por uno** | ~~**sólo en el poste 1 (Maestro)**~~ |
+> > | `SET_RTC` al poste 2 | ~~es como se ponía la hora allí~~ **es como se pone la hora allí** | ~~🛑 **se rechaza: es una SEGUNDA FUENTE**~~ |
+> > | `CMD:LEER_RTC` | a los dos postes | **a los dos postes, igual que antes** — ~~`D-20` prohíbe **ESCRIBIR** en el poste 2;~~ **leer no escribe nada** ~~, y con `D-20` construida vale más que hoy: es la única forma de comprobar que la siembra del Maestro llegó de verdad al reloj del poste 2~~ *(11/09, `D-26`: la radio no escribe el `DS3231` del poste 2; lo que mide es el salto que dará el poste 2 al perder la radio)* |
 > >
-> > ⚠️ **SIN CONSTRUIR. Hoy la cadena no existe** (ver el recuadro de `D-20` en §3), así que **hoy**
+> > ⚠️ ~~**SIN CONSTRUIR. Hoy la cadena no existe** (ver el recuadro de `D-20` en §3), así que **hoy**
 > > la hora del poste 2 sigue poniéndose a mano en su puente. **Esto describe a qué se cambia, no lo
-> > que ya está hecho.**
+> > que ya está hecho.**~~ *(11/09: construida en `68dd2c5`, sin banco; y la hora del poste 2 **se sigue
+> > poniendo en su puente**, porque `D-26` lo manda: es la que usa sin radio.)*
 >
-> > # 🔴 LA REGLA DE CAMPO QUE `D-20` OBLIGA A ESCRIBIR AQUÍ
+> > # 🔴 LA REGLA DE CAMPO ~~QUE `D-20` OBLIGA A ESCRIBIR AQUÍ~~ (`D-26`, 11/09)
 > >
-> > ## EL POSTE 2 SE PONE EN HORA EN LA PUESTA EN MARCHA — NO DURANTE LA AVERÍA.
+> > ## EL POSTE 2 SE PONE EN HORA EN LA PUESTA EN MARCHA ~~— NO DURANTE LA AVERÍA.~~ — Y CON LA RADIO CAÍDA, ALLÍ MISMO.
 > >
-> > Con `D-20` dentro, el único camino al reloj del poste 2 pasa por el Maestro y **por la radio**; y
-> > **la radio se cae justo cuando hace falta el Modo Degradado** — que es el modo que **exige hora**.
+> > ~~Con `D-20` dentro, el único camino al reloj del poste 2 pasa por el Maestro y **por la radio**; y
+> > **la radio se cae justo cuando hace falta el Modo Degradado** — que es el modo que **exige hora**.~~
+> > *(Caducado: sin radio, el poste 2 toma la hora de su propio ESP32 — `D-26` (3).)*
 > >
-> > ✅ **Y eso NO es un problema: el `DS3231` del poste 2 tiene pila y conserva la hora que ya tenía.**
-> > **Perder la radio no es perder la hora.** Lo que obliga es a ponerla **antes**:
+> > ✅ **El `DS3231` del poste 2 tiene pila y conserva la hora que ya tenía.**
+> > **Perder la radio no es perder la hora.** Por eso se pone también **antes**:
 > >
 > > 1. en la **puesta en marcha** del cruce,
 > > 2. al **cambiar la pila** de ese `DS3231`,
