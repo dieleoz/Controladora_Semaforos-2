@@ -485,11 +485,42 @@ void loop() {
       // -y con el se acaba el bloqueo, porque el Maestro siempre puede llevar el cruce a
       // rojo- y el GO_GREEN no.
       if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
-        semaforo_iniciarTransicionAVerde(); // Transición Rojo -> Amarillo -> Verde
-        // El backstop de verde maximo ya no se rearma aqui: lo hace el vigilante
-        // del final del bucle, que mira la LUZ en vez de la orden. Ver alli el
-        // motivo -el verde del Modo Degradado no lo ordena nadie por radio-.
-        ackVerdeEnviado = false;
+        // N-162 (11/09): LA ORDEN DE VERDE ES IDEMPOTENTE. SE REPITE, NO SE REINICIA.
+        //
+        // El Maestro repite GO_GREEN cada TIMEOUT_ACK_MS mientras no le llega el
+        // ACK_GREEN. Aqui se llamaba a semaforo_iniciarTransicionAVerde() en cada orden, y
+        // esa funcion pone S_AMARILLO y rearma tCambio este donde este la luz. Una
+        // repeticion que caia dentro del ambar lo REINICIABA: perdidos unos cuantos
+        // acuses, el Esclavo no llegaba a verde mientras duraran los reintentos, el Maestro
+        // seguia en rojo "en transicion" y la app decia "repita" (banco del 04/09, Sisga
+        // del 10/09). Y una que caia con el verde ya encendido lo DEVOLVIA a ambar, contra
+        // la Resolucion (verde->rojo directo). Las dos cosas las ejerce el bloque F del
+        // arnes de las dos puntas, con las constantes releidas del C++.
+        //
+        // Por eso solo arranca la transicion desde una luz que NO la tiene en curso. Con
+        // S_AMARILLO o S_VERDE la orden ya esta cumpliendose o cumplida: no se toca la luz
+        // y se RE-ACUSA, que es lo unico que el Maestro esta pidiendo al repetir. Callar
+        // seria peor: lo dejaria reintentando a ciegas hasta C_FALLO.
+        //
+        // S_AMARILLO AQUI SOLO PUEDE SER ESTA TRANSICION. Lo escribe una sola funcion,
+        // semaforo_iniciarTransicionAVerde(), y la llaman esta rama, el Modo Degradado y
+        // semaforo_toggle() -que no tiene ningun llamador-. El ambar del Degradado no
+        // llega hasta aqui: la cabecera de este mismo bloque llama a degradado_salir() con
+        // un GO_GREEN, y la salida fuerza rojo antes de que se evalue esta rama.
+        //
+        // ackVerdeEnviado no se toca en la repeticion: significa "ya se acuso que ESTE
+        // verde esta encendido", y una orden repetida no crea un verde nuevo. En ambar
+        // sigue en false desde que esta rama arranco la transicion, asi que el acuse de
+        // llegada a verde sale igual; en verde ya salio, o sale al final de esta misma
+        // vuelta por el mismo hueco unico de programarRespuesta().
+        const EstadoSemaforo luz = semaforo_estado();
+        if (luz != S_AMARILLO && luz != S_VERDE) {
+          semaforo_iniciarTransicionAVerde(); // Transición Rojo -> Amarillo -> Verde
+          // El backstop de verde maximo ya no se rearma aqui: lo hace el vigilante
+          // del final del bucle, que mira la LUZ en vez de la orden. Ver alli el
+          // motivo -el verde del Modo Degradado no lo ordena nadie por radio-.
+          ackVerdeEnviado = false;
+        }
         programarRespuesta(CMD_ACK_GREEN);
       }
 

@@ -136,6 +136,7 @@ static unsigned long SFTY6_SILENCIO_MS_V;
 static unsigned long TIMEOUT_ACK_MS_V;
 static unsigned long CICLO_MAX_REINTENTOS_V;
 static unsigned long DESPEJE_POR_DEFECTO_S;
+static unsigned long AMBAR_ESCLAVO_MS_V;
 
 // ---------------------------------------------------------------------------
 // EL CONTADOR. Mismo patron que arnes_automatico.cpp y arnes_ciclo.cpp.
@@ -307,6 +308,27 @@ static unsigned long g_latenciaMs = 50;
 static unsigned long g_tramasEntregadas = 0;
 static unsigned long g_tramasPerdidas = 0;
 
+// N-162 (bloque F): PERDIDA SELECTIVA, POR COMANDO Y POR ORDINAL. Cortar la direccion
+// entera "el tiempo justo" dependeria de adivinar en que milisegundo sale cada acuse; aqui
+// se tiran EXACTAMENTE las tramas que el escenario nombra -los primeros N ACK_GREEN del
+// Esclavo, o los GO_GREEN del Maestro con ordinal en [desde, hasta]- y nada mas, y cada
+// una se cuenta: el bloque exige despues que la perdida HAYA OCURRIDO tal como se pidio.
+// Los codigos se releen de protocolo.h (ver main), no se escriben aqui.
+static uint8_t CMD_GO_GREEN_V = 0, CMD_ACK_GREEN_V = 0;
+static long g_ackVerdeAPerder = 0;
+static unsigned long g_ackVerdePerdidos = 0;
+static unsigned long g_goVerdeEmitidos = 0;       // ordinal del ultimo GO_GREEN puesto en el aire
+static unsigned long g_goVerdePerderDesde = 0;    // 0 = no se tira ninguno
+static unsigned long g_goVerdePerderHasta = 0;
+static unsigned long g_goVerdePerdidos = 0;
+// GO_GREEN que llegaron al Esclavo, por el estado de SU luz en el instante de entrega.
+// Es el control de que el escenario ejercio la rama repetida: sin GO_GREEN entregados en
+// AMARILLO o en VERDE, "no reinicia el ambar" pasaria igual con una rama que no existe.
+static unsigned long g_goVerdeEntregadoEn[4] = { 0, 0, 0, 0 };
+
+// Los valores del enum EstadoSemaforo, releidos de semaforo.h (ver main). -1 = sin leer.
+static int S_VERDE_V = -1, S_AMARILLO_V = -1;
+
 // ---------------------------------------------------------------------------
 // EL OBSERVADOR. Corre DESPUES de que las dos puntas hayan ejecutado el mismo
 // instante, que es lo que da sentido a la palabra "a la vez".
@@ -337,6 +359,13 @@ static unsigned long g_escVerdeConMaestroAbierto = 0;
 static unsigned long g_escVerdeRojoLargo = 0;
 static unsigned long g_escVerdeRojoDesde = 0;
 static bool g_escVerdeRojoEnCurso = false;
+
+// N-162 (bloque F): el Esclavo pasando de VERDE a AMARILLO. La Resolucion da verde->rojo
+// DIRECTO, y el unico camino que escribe S_AMARILLO en el Esclavo es
+// semaforo_iniciarTransicionAVerde(); de verde solo se puede llegar ahi por una orden de
+// verde repetida que reinicie la transicion. Se cuenta en TODO el barrido, no solo en F.
+static unsigned long g_escVerdeAAmbar = 0;
+static int g_estadoEscAnt = -1;
 
 // El detector, aislado en una funcion para que el control negativo del bloque E pueda
 // ejercerlo con valores sinteticos. Un detector que solo se prueba a si mismo cuando
@@ -374,6 +403,11 @@ static void vigilar(unsigned long t) {
     g_escVerdeRojoEnCurso = false;
   }
 
+  // N-162: verde -> ambar en el Esclavo.
+  const int eAhora = ESCLAVO.estado();
+  if (g_estadoEscAnt == S_VERDE_V && eAhora == S_AMARILLO_V) g_escVerdeAAmbar++;
+  g_estadoEscAnt = eAhora;
+
   // SFTY-2 dentro de cada punta, sobre lo que se escribio en el pin.
   Punta* dos[2] = { &MAESTRO, &ESCLAVO };
   for (int i = 0; i < 2; i++) {
@@ -402,6 +436,11 @@ static void unTick() {
   for (size_t i = 0; i < g_aire.size();) {
     if (g_aire[i].tEntrega <= g_t) {
       Punta& d = (g_aire[i].destino == 0) ? MAESTRO : ESCLAVO;
+      // N-162: con que luz encuentra al Esclavo cada GO_GREEN que le llega.
+      if (g_aire[i].destino == 1 && g_aire[i].trama[1] == CMD_GO_GREEN_V) {
+        const int e = ESCLAVO.estado();
+        if (e >= 0 && e < 4) g_goVerdeEntregadoEn[e]++;
+      }
       d.rx(g_aire[i].trama);
       g_tramasEntregadas++;
       g_aire.erase(g_aire.begin() + i);
@@ -417,6 +456,16 @@ static void unTick() {
   // 3. Se recoge lo que cada una quiso emitir.
   unsigned char b[4];
   while (MAESTRO.tx(b)) {
+    // N-162: se tiran los GO_GREEN cuyo ordinal cae en [desde, hasta].
+    if (b[1] == CMD_GO_GREEN_V) {
+      g_goVerdeEmitidos++;
+      if (g_goVerdePerderDesde != 0 && g_goVerdeEmitidos >= g_goVerdePerderDesde &&
+          g_goVerdeEmitidos <= g_goVerdePerderHasta) {
+        g_goVerdePerdidos++;
+        g_tramasPerdidas++;
+        continue;
+      }
+    }
     if (g_enlaceHaciaEsclavo) {
       EnVuelo e; memcpy(e.trama, b, 4); e.tEntrega = g_t + g_latenciaMs; e.destino = 1;
       g_aire.push_back(e);
@@ -425,6 +474,13 @@ static void unTick() {
     }
   }
   while (ESCLAVO.tx(b)) {
+    // N-162: se tiran los primeros g_ackVerdeAPerder ACK_GREEN del Esclavo.
+    if (b[1] == CMD_ACK_GREEN_V && g_ackVerdeAPerder > 0) {
+      g_ackVerdeAPerder--;
+      g_ackVerdePerdidos++;
+      g_tramasPerdidas++;
+      continue;
+    }
     if (g_enlaceHaciaMaestro) {
       EnVuelo e; memcpy(e.trama, b, 4); e.tEntrega = g_t + g_latenciaMs; e.destino = 0;
       g_aire.push_back(e);
@@ -476,6 +532,10 @@ static void microcorte(Punta& p) {
 static void escenarioLimpio(long tiemposMaestro) {
   g_aire.clear();
   g_enlaceHaciaEsclavo = g_enlaceHaciaMaestro = true;
+  // N-162: ningun escenario hereda la perdida selectiva del anterior.
+  g_ackVerdeAPerder = 0;
+  g_goVerdeEmitidos = 0;
+  g_goVerdePerderDesde = g_goVerdePerderHasta = 0;
   MAESTRO.descargar(); MAESTRO.cargar(); MAESTRO.arrancar();
   ESCLAVO.descargar(); ESCLAVO.cargar(); ESCLAVO.arrancar();
   if (tiemposMaestro > 0) MAESTRO.orden("fijar_tiempos", tiemposMaestro);
@@ -535,6 +595,53 @@ int main() {
     CMD_HORA_S_V         = hex(PROTO_M, "CMD_HORA_S");
     CMD_CONFIG_VERDE_V   = hex(PROTO_M, "CMD_CONFIG_VERDE");
     CMD_CONFIG_DESPEJE_V = hex(PROTO_M, "CMD_CONFIG_DESPEJE");
+
+    // N-162 (bloque F): el filtro del canal reconoce GO_GREEN y ACK_GREEN por su codigo.
+    // El GO_GREEN lo emite el Maestro y el ACK_GREEN el Esclavo, y cada uno lo escribe con
+    // SU protocolo.h: si los dos ficheros discreparan, el filtro tiraria una trama que no
+    // es la que el escenario nombra, y el bloque mediria otra perdida sin enterarse.
+    const std::string PROTO_E = RAIZ + "/Esclavo/include/protocolo.h";
+    CMD_GO_GREEN_V  = hex(PROTO_M, "CMD_GO_GREEN");
+    CMD_ACK_GREEN_V = hex(PROTO_E, "CMD_ACK_GREEN");
+    if (hex(PROTO_E, "CMD_GO_GREEN") != CMD_GO_GREEN_V ||
+        hex(PROTO_M, "CMD_ACK_GREEN") != CMD_ACK_GREEN_V) {
+      abortar("CMD_GO_GREEN o CMD_ACK_GREEN DIFIEREN entre Maestro/include/protocolo.h y "
+              "Esclavo/include/protocolo.h: el bloque F no sabria que trama esta tirando");
+    }
+    if (CMD_GO_GREEN_V == CMD_ACK_GREEN_V) abortar("CMD_GO_GREEN y CMD_ACK_GREEN comparten codigo");
+  }
+
+  // N-162 (bloque F): los valores del enum EstadoSemaforo, releidos de las DOS cabeceras.
+  // punta_estado() devuelve ese enum como int, y el orquestador no incluye cabeceras del
+  // firmware; un numero escrito aqui a mano dejaria de significar AMARILLO el dia que
+  // alguien reordene el enum, y el bloque contaria otra luz sin fallar.
+  {
+    auto indiceEnum = [&](const std::string& ruta, const char* nombre) -> int {
+      std::string txt = leerFuente(ruta);
+      std::smatch m;
+      if (!std::regex_search(txt, m, std::regex(R"(enum\s+EstadoSemaforo\s*\{([^}]*)\})")))
+        abortar("no se encuentra enum EstadoSemaforo en " + ruta);
+      std::string cuerpo = m[1].str();
+      std::stringstream ss(cuerpo);
+      std::string item;
+      int i = 0;
+      while (std::getline(ss, item, ',')) {
+        if (item.find('=') != std::string::npos)
+          abortar("enum EstadoSemaforo lleva valores explicitos en " + ruta +
+                  ": este lector cuenta posiciones y ya no sabria el valor");
+        std::smatch n;
+        if (std::regex_search(item, n, std::regex(R"((\w+))")) && n[1].str() == nombre) return i;
+        i++;
+      }
+      abortar(std::string("no se encuentra ") + nombre + " en enum EstadoSemaforo de " + ruta);
+      return -1;
+    };
+    const std::string SEM_M = RAIZ + "/Maestro/include/semaforo.h";
+    const std::string SEM_E = RAIZ + "/Esclavo/include/semaforo.h";
+    S_VERDE_V    = indiceEnum(SEM_E, "S_VERDE");
+    S_AMARILLO_V = indiceEnum(SEM_E, "S_AMARILLO");
+    if (indiceEnum(SEM_M, "S_VERDE") != S_VERDE_V || indiceEnum(SEM_M, "S_AMARILLO") != S_AMARILLO_V)
+      abortar("enum EstadoSemaforo DIFIERE entre las dos puntas");
   }
   SFTY6_SILENCIO_MS_V  = leerNumero(PROTO_M, R"(#define\s+SFTY6_SILENCIO_MS\s+(\d+)UL)", "SFTY6_SILENCIO_MS");
   TIMEOUT_ACK_MS_V     = leerNumero(COORD, R"(TIMEOUT_ACK_MS\s*=\s*(\d+))", "TIMEOUT_ACK_MS");
@@ -545,11 +652,18 @@ int main() {
   // lo correcto: §5, mover contenido rompe al que lee por patron, y un ABORTADO avisa
   // mientras que un numero supuesto no.
   DESPEJE_POR_DEFECTO_S  = leerNumero(LIMITES, R"(DESPEJE_SEG_MIN\s*=\s*(\d+))", "despeje por defecto");
+  // N-162 (bloque F): el ambar de transicion rojo->verde del ESCLAVO. Es un literal dentro
+  // de la condicion de semaforo_actualizar(), sin nombre; se lee de esa misma condicion,
+  // que es la que decide cuando la luz pasa a verde.
+  AMBAR_ESCLAVO_MS_V = leerNumero(RAIZ + "/Esclavo/src/semaforo.cpp",
+      R"(estado\s*==\s*S_AMARILLO\s*&&\s*\(ahora\s*-\s*tCambio\s*>=\s*(\d+)\))",
+      "el ambar de transicion del Esclavo");
 
   std::printf("\n Constantes releidas del C++ real: silencio SFTY-6 = %lu ms,\n",
               SFTY6_SILENCIO_MS_V);
   std::printf(" timeout de ACK = %lu ms x %lu reintentos, despeje por defecto = %lu s.\n",
               TIMEOUT_ACK_MS_V, CICLO_MAX_REINTENTOS_V, DESPEJE_POR_DEFECTO_S);
+  std::printf(" ambar de transicion del Esclavo = %lu ms.\n", AMBAR_ESCLAVO_MS_V);
 
   // --- Guarda de mapeo: comun/pines.h es UNO para las dos puntas ------------
   // Este arnes usa un solo sustituto de pines.h. Vale porque los dos reales asignan
@@ -896,10 +1010,164 @@ int main() {
   }
 
   // =========================================================================
+  std::printf("\n--- BLOQUE F: un ACK_GREEN perdido y el GO_GREEN que se repite -----\n");
+  // N-162. El banco del 04/09 -"queda maestro en rojo y ... esclavo [en] rojo y ambar",
+  // "el cruce esta cambiando de fase, repita"- y el Sisga el 10/09. El mecanismo esta en el
+  // fuente: el Maestro repite GO_GREEN cada TIMEOUT_ACK_MS mientras no le llegue el
+  // ACK_GREEN, y si cada repeticion REINICIA la transicion del Esclavo, perder acuses basta
+  // para que su ambar no termine mientras duren los reintentos -o para que un verde vuelva a
+  // ambar-. Aqui los acuses se pierden A PROPOSITO y se exige que la luz no lo note.
+  //
+  // EL BORDE DE (a), escrito al lado (CLAUDE.md §7): el ambar dura lo que dice la condicion
+  // de semaforo_actualizar() -AMBAR_ESCLAVO_MS_V, releido- contado desde el tick en que la
+  // luz ENTRO en ambar, con UN tick del arnes (PASO_MS) de tolerancia por arriba, que es la
+  // granularidad con la que se miran los pines y nada mas. NI MAS CORTO -la Resolucion pide
+  // ese aviso entero, y un "arreglo" que saltara a verde con la repeticion lo recortaria-
+  // NI MAS LARGO, que es el defecto.
+  {
+    const unsigned long AMBAR = AMBAR_ESCLAVO_MS_V;
+    const unsigned long TOUT  = TIMEOUT_ACK_MS_V;
+    const unsigned long NMAX  = CICLO_MAX_REINTENTOS_V;
+
+    // F-a: se pierden los NMAX-1 primeros ACK_GREEN. Es la MAYOR perdida que no agota los
+    // reintentos del Maestro: emite NMAX ordenes como mucho, y con la rama vieja cada una
+    // produce un solo acuse, asi que el ultimo pasa. Es el caso del banco: reintentos
+    // cayendo uno tras otro dentro del ambar.
+    const long ACK_A = (long)NMAX - 1;
+    // F-b: para que un GO_GREEN repetido encuentre al Esclavo YA EN VERDE con cualquier
+    // firmware -tambien con el viejo, que es el control-, entre dos GO_GREEN ENTREGADOS
+    // tiene que pasar mas que el ambar. El Maestro los separa TOUT, asi que se tiran los
+    // n = AMBAR / TOUT reintentos siguientes al primero (ordinales 2..n+1). Y se pierden los
+    // DOS acuses que el Esclavo emite antes -el de la orden y el de "ya estoy en verde"-,
+    // porque cualquiera de los dos cerraria la espera del Maestro antes de tiempo.
+    const unsigned long N_GO_B = AMBAR / TOUT;
+    const long ACK_B = 2;
+    if (ACK_A < 1 || N_GO_B + 2 > NMAX) {
+      abortar("con estas constantes (ambar " + std::to_string(AMBAR) + " ms, timeout " +
+              std::to_string(TOUT) + " ms, " + std::to_string(NMAX) + " reintentos) el "
+              "bloque F no se puede montar sin que el Maestro agote sus reintentos: hay que "
+              "rehacer el escenario, no darlo por bueno");
+    }
+
+    struct Fase {
+      bool pilladoAmbar = false, pilladoVerde = false;
+      unsigned long tAmbar = 0, tVerde = 0;
+      unsigned long ackPerdidos = 0, goPerdidos = 0;
+      unsigned long entregadoEn[4] = { 0, 0, 0, 0 };
+      unsigned long verdeAAmbar = 0, simultaneo = 0, sinRojo = 0;
+      bool maestroAcuso = false, maestroFallo = false;
+    };
+
+    auto correrFase = [&](long ackAPerder, unsigned long goDesde, unsigned long goHasta) -> Fase {
+      Fase f;
+      escenarioLimpio(tiempos(1, 1, 15));
+      g_ackVerdeAPerder = ackAPerder;
+      g_goVerdePerderDesde = goDesde;
+      g_goVerdePerderHasta = goHasta;
+      const unsigned long ack0 = g_ackVerdePerdidos, go0 = g_goVerdePerdidos;
+      unsigned long ent0[4];
+      for (int i = 0; i < 4; i++) ent0[i] = g_goVerdeEntregadoEn[i];
+      const unsigned long va0 = g_escVerdeAAmbar, sim0 = g_verdeSimultaneo;
+      const unsigned long sr0 = g_verdeSinRojoEnfrente;
+
+      // 1. Hasta que el Esclavo ENTRA en ambar: el primer GO_GREEN de su fase.
+      for (unsigned long gastado = 0; gastado < 400000; gastado += PASO_MS) {
+        const unsigned long t = g_t;
+        unTick();
+        if (ESCLAVO.estado() == S_AMARILLO_V) { f.pilladoAmbar = true; f.tAmbar = t; break; }
+      }
+      // 2. Hasta VERDE en los pines. El presupuesto cubre el peor caso del DEFECTO -cada
+      //    reintento reinicia el ambar- para poder decir cuanto se alarga, no solo que falla.
+      if (f.pilladoAmbar) {
+        const unsigned long presupuesto = AMBAR + TOUT * (NMAX + 1) + 15000;
+        for (unsigned long gastado = 0; gastado < presupuesto; gastado += PASO_MS) {
+          const unsigned long t = g_t;
+          unTick();
+          if (ESCLAVO.verde()) { f.pilladoVerde = true; f.tVerde = t; break; }
+        }
+      }
+      // 3. Y hasta que el Maestro deja de esperar -le llega un acuse o agota reintentos-,
+      //    mas un segundo para que lo que quede en el aire aterrice. Es en esta ventana
+      //    donde un GO_GREEN repetido encuentra al Esclavo ya en verde.
+      for (unsigned long gastado = 0; gastado < TOUT * (NMAX + 1); gastado += PASO_MS) {
+        unTick();
+        if (MAESTRO.orden("listo_para_contar") == 1 ||
+            MAESTRO.orden("comunicacion_perdida") == 1) break;
+      }
+      avanzar(1000);
+      // "Acuso" = el coordinador salio de la espera por un ACK_GREEN: esta en reposo y
+      // publica al Esclavo en verde. Salir por reintentos agotados es C_FALLO, no esto.
+      f.maestroAcuso = MAESTRO.orden("listo_para_contar") == 1 &&
+                       MAESTRO.orden("esc_publica_verde") == 1;
+      f.maestroFallo = MAESTRO.orden("comunicacion_perdida") == 1;
+
+      f.ackPerdidos = g_ackVerdePerdidos - ack0;
+      f.goPerdidos  = g_goVerdePerdidos - go0;
+      for (int i = 0; i < 4; i++) f.entregadoEn[i] = g_goVerdeEntregadoEn[i] - ent0[i];
+      f.verdeAAmbar = g_escVerdeAAmbar - va0;
+      f.simultaneo  = g_verdeSimultaneo - sim0;
+      f.sinRojo     = g_verdeSinRojoEnfrente - sr0;
+      g_ackVerdeAPerder = 0;
+      g_goVerdePerderDesde = g_goVerdePerderHasta = 0;
+      return f;
+    };
+
+    const Fase fa = correrFase(ACK_A, 0, 0);
+    const Fase fb = correrFase(ACK_B, N_GO_B ? 2 : 0, N_GO_B ? 1 + N_GO_B : 0);
+
+    const unsigned long dAmbarA = fa.pilladoVerde ? fa.tVerde - fa.tAmbar : 0;
+    const unsigned long repetidosA = fa.entregadoEn[S_AMARILLO_V] + fa.entregadoEn[S_VERDE_V];
+
+    comprobar(fa.pilladoAmbar && fa.ackPerdidos == (unsigned long)ACK_A && repetidosA >= 1 &&
+              !fa.maestroFallo,
+              "F1 (control de F-a): la perdida OCURRIO como se pidio -" +
+              std::to_string(fa.ackPerdidos) + " de " + std::to_string(ACK_A) + " ACK_GREEN "
+              "tirados- y el Maestro repitio la orden: " + std::to_string(repetidosA) +
+              " GO_GREEN llegaron con la transicion ya empezada (" +
+              std::to_string(fa.entregadoEn[S_AMARILLO_V]) + " en ambar, " +
+              std::to_string(fa.entregadoEn[S_VERDE_V]) + " en verde), sin agotar reintentos");
+
+    comprobar(fa.pilladoVerde && dAmbarA >= AMBAR && dAmbarA <= AMBAR + PASO_MS,
+              "F2 (a): con esos acuses perdidos, el ambar del Esclavo antes de VERDE midio " +
+              std::to_string(dAmbarA) + " ms; se exige [" + std::to_string(AMBAR) +
+              ", " + std::to_string(AMBAR + PASO_MS) + "] (ambar releido + un tick). Si cada "
+              "GO_GREEN reiniciara el ambar, seria del orden de " + std::to_string(ACK_A) +
+              " x timeout + ambar = " + std::to_string((unsigned long)ACK_A * TOUT + AMBAR) +
+              " ms, con el Maestro en rojo 'en transicion' todo ese tiempo" +
+              (fa.pilladoVerde ? "" : " -NO LLEGO A VERDE en el presupuesto-"));
+
+    comprobar(fb.pilladoVerde && fb.ackPerdidos == (unsigned long)ACK_B &&
+              fb.goPerdidos == N_GO_B && fb.entregadoEn[S_VERDE_V] >= 1,
+              "F3 (control de F-b): se tiraron " + std::to_string(fb.ackPerdidos) + " de " +
+              std::to_string(ACK_B) + " ACK_GREEN y " + std::to_string(fb.goPerdidos) + " de " +
+              std::to_string(N_GO_B) + " GO_GREEN repetidos, y " +
+              std::to_string(fb.entregadoEn[S_VERDE_V]) + " GO_GREEN llegaron con el Esclavo "
+              "YA EN VERDE: el caso del reintento tardio se ejercio de verdad");
+
+    comprobar(g_escVerdeAAmbar == 0,
+              "F4 (b): en TODO el barrido (bloques A a F) el Esclavo nunca paso de VERDE a "
+              "AMARILLO -la Resolucion da verde->rojo directo-. En F-a y F-b llegaron " +
+              std::to_string(fa.entregadoEn[S_VERDE_V] + fb.entregadoEn[S_VERDE_V]) +
+              " GO_GREEN con el Esclavo en verde. Transiciones verde->ambar: " +
+              std::to_string(g_escVerdeAAmbar) + " (en F: " +
+              std::to_string(fa.verdeAAmbar + fb.verdeAAmbar) + ")");
+
+    comprobar(fa.maestroAcuso && fb.maestroAcuso && !fa.maestroFallo && !fb.maestroFallo,
+              "F5: el GO_GREEN repetido SE RE-ACUSA: en F-a y en F-b el Maestro salio de la "
+              "espera por un ACK_GREEN (reposo y ESC:VERDE), no por reintentos agotados. Una "
+              "orden repetida que no reiniciara nada pero CALLARA dejaria al Maestro "
+              "reintentando hasta C_FALLO");
+
+    comprobar(fa.simultaneo == 0 && fb.simultaneo == 0 && fa.sinRojo == 0 && fb.sinRojo == 0,
+              "F6 (c): durante F-a y F-b nunca hubo verde en las dos puntas, y con el Esclavo "
+              "en verde el Maestro tuvo SIEMPRE sus dos rojos encendidos");
+  }
+
+  // =========================================================================
   std::printf("\n==============================================================\n");
   comprobar(g_verdeSimultaneo == 0,
             "RESUMEN: en los " + std::to_string(g_instantes) + " instantes observados "
-            "de TODO el barrido -bloques A a D- no hubo NI UNO con verde encendido en "
+            "de TODO el barrido -bloques A a F- no hubo NI UNO con verde encendido en "
             "las dos puntas. Es la propiedad que motivo este arnes, medida sobre el C++ "
             "real de las dos y sobre lo que escribio en los pines");
   comprobar(g_enclavamientoRoto == 0,
