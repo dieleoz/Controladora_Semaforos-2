@@ -108,6 +108,11 @@ python 01_Firmware/Simulaciones/banco/correr.py --pack <nombre>
 Escribe un acta con fecha y hash de HEAD en `evidencia/`. **Las cifras de los documentos se copian del
 acta, nunca se escriben a mano.**
 
+> ⚠️ **Y CUANDO UNA FILA CAE, el acta hereda el destrozo: hicieron falta CINCO pasadas (11/09).** Una fila
+> en `FALLA` deja el acta **sin cifra legible** en esa linea, y el pack de cifras de la corrida siguiente
+> **aborta** —`ABORTADO` propaga a la siguiente—. Se arregla el FALLA, se vuelve a correr hasta que dos
+> pasadas den lo mismo, y **solo entonces** se copian las cifras. La cura nunca es tocar el pack.
+
 > ⚠️ **NO es idempotente despues de un `--rapido`: hacen falta DOS pasadas completas.** La comprobacion
 > de cifras lee el acta **ANTERIOR** —la nueva se escribe al final— y `--rapido` deja un acta sin las
 > filas de compilacion, asi que la corrida siguiente compara contra un acta mutilada y protesta con
@@ -312,6 +317,12 @@ puede quedar correcto y la compuerta verde, pero un `revert` de ese commit no de
   recupero **porque estaba comiteada**. Se escribe a un temporal y se renombra, o se usa la
   herramienta de edicion, que no tiene esta forma de fallo. **Comitear antes de un script masivo no
   es orden: es la red.**
+- 🔴 **Un `git worktree remove --force` SIGUE los enlaces que el agente dejo dentro y borra el ORIGINAL.**
+  Paso el 11/09: el agente hizo un *junction* `App_Semaforo/node_modules` hacia el arbol principal para
+  correr los arneses de `jsdom`, lo dijo en su informe, y al retirar el worktree git entro por el enlace
+  y se llevo paquetes del `node_modules` de verdad —dos `ABORTADO` en la compuerta siguiente—. **Antes de
+  retirar un worktree se censan los enlaces y se quita el enlace, no lo que apunta** (`Delete(ruta,
+  false)`), se comprueba el destino, y despues se borra el resto. Y al encargar: que el agente lo retire.
 - **No se reescribe la historia publicada para arreglarlo:** con la rama en dos remotos y otro agente
   encima, un `push --force` dana mas de lo que repara. Se anota donde vive el cambio y se sigue.
 
