@@ -228,11 +228,12 @@ static bool sellarHoraSiFaltaba(char* linea) {
   // viejo -bien formada, con el sello puesto, y descartada por la app sin que nada lo
   // dijera-. Es la escritura a medias de R-5 aplicada a una trama en vez de a un bus.
   char* hueco = strstr(linea, HUECO_HORA);
-  if (hueco == NULL) {
-    // Si el STM32 arranco con el contador en ceros y sin cristal Y2 (N-144),
-    // tambien se sella con la hora valida del DS3231 del puente.
-    hueco = strstr(linea, "HORA:00:00:00");
-  }
+  // N-162 (11/09): "HORA:00:00:00" NO ES UN HUECO Y NO SE SELLA. Se sello el 10/09
+  // (c51cc85) y se retira: ese cero lo publica un STM32 que se declara EN HORA con el
+  // contador parado (N-144), que es justo el estado del que cuelga la autorizacion del
+  // Degradado. Sellarlo pintaba en la app la hora buena del DS3231 encima del reloj
+  // malo del controlador. La app lo pinta en ambar como NO SINCRONIZADO; aqui se deja
+  // pasar tal cual, que es la regla 1 de arriba.
   if (hueco == NULL) return false;
 
   // trama_valida() ya exigio que exista, y aun asi se comprueba: esta funcion MUTA la
