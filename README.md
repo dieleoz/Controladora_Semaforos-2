@@ -93,7 +93,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
 | banco por packs *(78 packs)* | 🔴 **FALLA** | **1249/1252 comprobaciones en 78 packs** — 77 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22` y `D-23` son decisiones VIGENTES sin construir**. **Sólo `D-20` y la pieza B de `D-21` lo están.** `D-23` ya tiene la vía elegida (`$EVENT`, `A-14`) y **es teclado**; `D-14` espera **que el responsable elija cuál de los tres últimos canales de potencia gasta** (el multímetro que se pedía no hacía falta); `D-22` espera **una tarjeta delante** |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **88.8 %** · 69.1 % · 20.6 % · 35.7 % — *el Maestro ocupa **58216 de 65536 B**, o sea **7.320 B libres**; el Esclavo, **45268 B*** |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **88.8 %** · 69.1 % · 20.6 % · 35.7 % — *el Maestro ocupa **58216 de 65536 B**, o sea **7.320 B libres**; el Esclavo, **45280 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.7 % — 1122973 de 3.145.728 B |
@@ -107,7 +107,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | arnés del ciclo | ✅ | **22/22** — corre sobre el `ciclo_degradado.h` real compilado, sin espejo en Python |
 | arnés del respaldo | ✅ | compila el `calcularSuma()` real; identidad de `respaldo.cpp` entre puntas + prueba de vida |
 | arnés del Degradado a dos puntas | ✅ | **18/18** — las dos puntas en Degradado **cada una con su reloj**. Entrega **el número**: el cruce aguanta **29 s** de desfase contra los **20,2 s** que el equipo puede acumular en 48 h, o sea factor **1,44** — y no el 2 que afirmaban los comentarios de las dos puntas |
-| arnés de las dos puntas | ✅ | **45/45** — el C++ **real de las DOS puntas** ejecutándose en el mismo proceso y el mismo instante: verde simultáneo en **0 de 53.236 instantes** |
+| arnés de las dos puntas | ✅ | **51/51** — el C++ **real de las DOS puntas** ejecutándose en el mismo proceso y el mismo instante: verde simultáneo en **0** instantes *(el total lo imprime el arnés; aquí ponía «de 53.236» y ya no casaba)* |
 | arnés del automático | ✅ | **99/99** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` + `modo_inteligente.cpp`, `demanda.cpp` y el `botones.cpp` real, y comprueba SFTY-2 sobre las escrituras de pin |
 
 **19 PASS · 1 FALLA · 0 ABORTADO, de 20 comprobaciones — la compuerta sale con código `1`.**

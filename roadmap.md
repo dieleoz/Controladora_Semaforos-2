@@ -1198,12 +1198,22 @@ razonamiento, el sospechoso es el razonamiento.**
 >    este donde este la luz —desde verde, incluso, lo devuelve a ambar—;
 > 2. el Maestro reintenta `GO_GREEN` cada `TIMEOUT_ACK_MS = 3500` y el ambar dura `4000`.
 >
-> **Basta UN `ACK_GREEN` perdido para que cada reintento reinicie el ambar antes de que acabe**: el Esclavo
-> no llega nunca a verde mientras duren los reintentos, el Maestro sigue en rojo «en transicion», y la app
-> dice «repita». Que se perdiera un acuse lo apunto el responsable ese dia (*«el reenvio y la propagacion
+> ~~Basta UN `ACK_GREEN` perdido~~ — **corregido por el agente que lo arreglo: un acuse perdido reinicia el
+> ambar UNA vez (~7,5 s de ambar); para que el Esclavo no llegue a verde hacen falta VARIOS seguidos.** Medido
+> en el arnes con 4 perdidos: **18.200 ms de ambar** contra los 4.000 de la Resolucion. Mientras dura, el
+> Maestro sigue en rojo «en transicion» y la app dice «repita». Que se perdiera un acuse lo apunto el responsable ese dia (*«el reenvio y la propagacion
 > de la antena del radio»*) y es hipotesis; **que el firmware no aguanta un acuse perdido esta medido**. El
 > arreglo es que `GO_GREEN` sea idempotente en el Esclavo: si ya esta en la transicion a verde o en verde,
 > se re-acusa y no se reinicia nada.
+>
+> ✅ **CONSTRUIDO el 11/09** (agente en worktree, integrado por el diff): con `S_AMARILLO` o `S_VERDE` la
+> orden no toca la luz y se re-acusa; los vetos intactos. Bloque F nuevo en el arnes de las dos puntas
+> (45 -> **51**): pierde 4 `ACK_GREEN` (F-a) y 2 + un reintento (F-b), con las constantes releidas del C++.
+> **Visto fallar** con el defecto inyectado: 49/51 (ambar de 18.200 ms; un verde devuelto a ambar). Esclavo
+> +12 B. ⚠️ **Lo que deja a la vista, y no mide nadie:** con acuses perdidos el Esclavo ya esta en VERDE
+> mientras el Maestro espera; si el Maestro agota reintentos entra en `S_FALLO` (ambar intermitente, pluma
+> arriba) **con el Esclavo en verde**. Esa ventana ya existia con la radio caida en mitad de un verde del
+> Esclavo, y la comprobacion A9 del arnes excluye `S_FALLO` por nombre: **nadie la mide**. Pendiente de medir.
 
 **La medida que lo distingue, y no pide tarjeta nueva:** el `$STATUS` **del propio Esclavo** en ese
 momento —`ESTADO:FALLO COM` con `PLUMA:ARRIBA` es `S_FALLO`; `ESTADO:AMARILLO` con `PLUMA:ABAJO` es la
@@ -1232,7 +1242,8 @@ en una calle. Lo que dicen, con el firmware que habia dentro:
 |---|---|---|
 | **La hora** | 5 `SET_RTC`. El puente contesta `$ACK…RESULT:OK` con la hora **releida** del `DS3231`, y `LEER_RTC` la da **avanzando** (12:17:31 → 12:18:52). El STM32 emite `SET_RTC_LO_ACUSA_EL_PUENTE` 4 veces —o sea que **la siembra ENTRO**— y aun asi publica `HORA:00:00:00` en **las 150 tramas** | 🔴 con `7ff7d12` los getters leen **primero el RTC del STM32**, y en el 179DB0 ese RTC tiene `LSERDY` arriba y **no cuenta**: es `N-144` en la calle. **`main` lo corrige** (`c51cc85`: manda la base sembrada). El `DS3231` del puente **funciona en cobre** |
 | 🔴 **El Degradado con `7ff7d12` en el 179DB0** | el Maestro se declara **en hora** con el reloj parado | **su autorizacion cuelga de esa bandera, y su fase saldria de un reloj que no avanza.** **No se usa el Modo Degradado en el Sisga con ese firmware** |
-| 🔴 **El ESP32 se reinicio 5 veces en 97 s** (12:18:08–12:19:45) | 3 × `CAUSA:OTRO_PERRO` (`ESP_RST_WDT`: **no** es nuestro perro de tareas, que se llamaria `PERRO_DE_TAREAS`) y **2 × `SUBIDA_DE_TENSION`** | **perdio la alimentacion dos veces**: fuente o cable del modulo, no codigo —en el camino de `SET_RTC` no hay ni un `delay` ni un bucle, medido—. Por eso el `SET_RTC` de las 12:18:17 quedo **sin respuesta**. Y `J17` enmudece 3–4 s tras cada `SET_RTC` (`MUDO:4s`, contador ya en `N:1314`). **Es la unica superficie de mando (`D-16`)**: se mide la tension del ESP32 en marcha |
+| 🔴 **El ESP32 se reinicio AL MENOS 3 veces** en 12:18–12:19 · ~~«5 veces en 97 s»~~ | 5 partes `EVT:ARRANQUE`: 3 × `CAUSA:OTRO_PERRO` y 2 × `SUBIDA_DE_TENSION`. ⚠️ **REFUTADO el mismo 11/09 que fueran 5 reinicios**: el parte se emite **una vez por CONEXION Bluetooth** (`vigilante_declarar()` rearma `parteEmitido` al caer el enlace), asi que un arranque puede anunciarse dos veces; los reinicios que la cinta obliga son 3 | `SUBIDA_DE_TENSION` es `ESP_RST_POWERON`: **no puede salir del software** —tension por debajo del umbral, o `EN` a 0—. `OTRO_PERRO` es `ESP_RST_WDT`, el perro del dominio RTC, que en esta compilacion **solo muerde en un arranque o rearranque que no llega a `setup()`**; con `ARRANQUES:1` (la RAM del RTC borrada) apunta a una caida de tension (HIPOTESIS fuerte). **No es codigo**: el camino de `SET_RTC` del ESP32 no pasa de ~600 ms (Wire corta a 50 ms). Se mide con un USB-TTL en `TX0` a 115200 (la ROM imprime `rst:0x..`), osciloscopio en 3V3 y `EN`, y una fuente de 5 V buena. **Es la unica superficie de mando (`D-16`)** |
+| 🔴 **El MAESTRO se congela ~3 s en cada `SET_RTC`** · ~~«`J17` enmudece tras cada `SET_RTC`»~~ | el `$EVENT SET_RTC_LO_ACUSA_EL_PUENTE` sale **exactamente +3 s** despues de cada `SET_RTC`, las 4 veces, y el `MUDO` de `J17` aparece a +4/+5 s | ⚠️ **REFUTADO que fuera el ESP32**: los latidos siguieron llegando (el contador `N` cuenta LINEAS, no silencios). Lo que pasa es que `reloj_ajustarConAcuse()` llama a `rtc.setHours/Minutes/Seconds` con `rtcOperativo` en `true` y el RTC **sin contar**: cada una espera hasta 1 s en `HAL_RTC_SetTime` (`RTC_TIMEOUT_VALUE`), y el `MUDO` es falso porque `millis()` se lee antes del bloqueo. 🔴 **El perro del Maestro es de 4 s: dos siembras en la misma vuelta lo reiniciarian**, y la siembra horaria que se esta construyendo congelaria el controlador 3 s cada hora. **Sigue asi en `main`**; se le paso al agente que construye el lado STM32 |
 | **DAR PASO** | dos, a las 12:20:17 y 12:20:52, **en `INTELIGENTE`**, no en Manual. El Maestro alterna bien: verde→rojo→15 s→`ACK_GREEN` del Esclavo; y despues Esclavo→rojo→15 s→ambar 4 s→verde del Maestro | ✅ del lado del Maestro funciona. 🔴 **Pero la trama MENTIA** en el segundo: `ESC:VERDE` los 16 s del despeje **y** con el Maestro en ambar (12:21:08). `quienVerde` no cambia hasta que el Maestro llega a verde. **En la app, un DAR PASO que "no cambia".** Arreglado el 11/09 en `coordinador_estadoEsclavo()`, con tres comprobaciones nuevas en el arnes de las dos puntas (A10–A12) **vistas fallar** con el defecto inyectado (80 y 264 instantes) |
 | **Manual** | 12:19:04 → 12:19:18 en `MANUAL`: rojo/rojo, `T:--`, **sin ciclar**, y ninguna orden dentro | no hay un solo DAR PASO en Manual en esta cinta. **Lo de «Manual no cambia» no esta en esta medida**: hace falta la cinta de esa prueba |
 | **El ciclo Automatico** | `SET_TIEMPOS:3,3,15` aceptado; verde de 180 s (`T:178`…`0`), despeje de 15 s, `ESC` alterna, `PLUMA:ARRIBA` con cada verde y `ABAJO` con cada rojo, `RF` 90–100 %, `RTT` ~200 ms | ✅ del lado del Maestro, **y los 15 s de los que hablaba el reporte son el despeje que se configuro** (el tercer campo de `SET_TIEMPOS`), no un numero del firmware |
