@@ -105,7 +105,7 @@ Controladora_Semaforos 2/
 +-- 03_Hardware_Tarjeta/    MAPEO_TARJETA_KICAD.md + indice_netlist.py
 +-- 04_Manuales/            manuales de terceros (camara, radios) y los 2 propios
 |                           MANUAL_USUARIO.md / MANUAL_HARDWARE.md - mudados aqui el 05/09
-+-- 05_Funcional/           los 19 documentos numerados (.md + .docx), App_Semaforo/, Guia_Cableado_y_Pruebas_Banco.html y Camaras_Sisga_4x.html
++-- 05_Funcional/           los 19 documentos numerados (.md + .docx) y App_Semaforo/
 +-- 05_Imagenes/            3 .jpg de la app
 +-- 99_Legacy/              zips de entregas viejas y firmware retirado. NO se toca
 +-- evidencia/              actas de la compuerta + fotos de banco (WhatsApp *.jpeg)
@@ -360,20 +360,13 @@ por radio. No hay fase que sostener.
 > `escribirPines()`, y eso es SFTY-28 y necesita derogacion escrita (A-1.bis). El
 > campo `ACCION:NINGUNA` del `$ALARM` no es relleno: es no mentir en el acuse.
 
-> ⚠️ **UN PIN QUE NUNCA DIO UN FLANCO NO SE VIGILA.** En la topologia base hay **una camara por poste**,
+> ⚠️ **UN PIN QUE NUNCA DIO UN FLANCO NO SE VIGILA.** Hay **una camara por poste**,
 > asi que uno de los dos pines de J16 esta VACIO en todo equipo montado. Sin esa
 > guarda, a las 6 h emitia `CAM_CIEGA` de una camara que no existe -y `CIEGA` pesa
 > mas que `OK`, o sea que tapaba en el campo `CAM:` a la camara que si esta.
 > **Lo que cuesta:** una camara muerta DESDE EL DIA DE LA INSTALACION no se distingue
 > de una bornera vacia. Lo compensa el instalador provocando la primera deteccion
 > (Manual 9), no el firmware.
->
-> 📌 **DESPLIEGUE SISGA (4 CÁMARAS — SEPTIEMBRE 2026):**
-> En Sisga se instalan **dos cámaras por poste** (4 en total: Maestro Cam 1 y 2; Esclavo Cam 1 y 2).
-> Ambos pines de J16 están ocupados en ambas tarjetas:
-> - **Cámara 1 (Aproximación/Demanda 15-30 m):** J16 p9 (+3.3V) y p10 (CAM_C / PB14).
-> - **Cámara 2 (Presencia/Barrido Pluma 0-8 m):** J16 p11 (+3.3V) y p12 (CAM_D / PB15).
-> Guía técnica interactiva y acta de recepción con descarga PDF: `05_Funcional/Camaras_Sisga_4x.html`.
 
 ### 2.7 El despachador de Bluetooth - HAY TRES, no dos
 
@@ -883,9 +876,6 @@ permite medir *"verde en las dos A LA VEZ"* sobre las puntas reales.
 **`05_Funcional/` son 19 documentos numerados, cada uno con su `.md` y su `.docx`**
 `[MEDIDO 07/09]`. El `.docx` **no se regenera solo**: el empaquetador solo mira que
 exista.
-Adicionalmente contiene las **Guías Técnicas Operativas en HTML interactivo con exportación a PDF**:
-- `05_Funcional/Guia_Cableado_y_Pruebas_Banco.html` (Protocolo de pruebas de banco de 40 pasos).
-- `05_Funcional/Camaras_Sisga_4x.html` (Instalación de 4 cámaras, topología de aproximación y presencia, conexión J16 y cuestionario de respuestas de campo con descarga PDF).
 
 ---
 
@@ -996,8 +986,8 @@ bornera** `[MEDIDO 07/09]`:
 | `J11` | 2 | p1 `12V` · p2 `Net-(D27-K)` - **`ROJO_PEATON`. Canal fabricado, SIN firmware** |
 | `J12` | 2 | radio LoRa E90-DTU - USART3, PB10 TX / PB11 RX / PB12 DE-RE |
 | `J13` | 2 | p1 `12V` · p2 `Net-(D25-K)` - **`BUZZER`. Canal fabricado, SIN firmware** |
-| `J14` | 2 | p1 **`/Puerta`** (PB0) · p2 **`3.3V`** - 🔴 **ES UNA ENTRADA: la camara de demanda** |
-| `J15` | 2 | p1 `12V` · p2 `Net-(D29-K)` - 🔴 **LA SALIDA DE TALANQUERA** (PB2 -> opto U15 -> MOSFET Q10 IRLZ44N conmutando p2 a masa; D30 rueda libre, D29 testigo. SFTY-28: reposo = LOW = pluma abajo; HIGH = pluma arriba solo con verde) |
+| `J14` | 2 | p1 **`/Puerta`** (PB0) · p2 **`3.3V`** - 🔴 **ES UNA ENTRADA, directa al micro.** Reservada al **fin de carrera** de la pluma (`A-2`, 05/09); **no lleva camara** (Manual 9) |
+| `J15` | 2 | p1 `12V` · p2 `Net-(D29-K)` - 🔴 **LA SALIDA DE TALANQUERA** (PB2 -> `U15` TLP127 -> `Q10` IRLZ44N a masa; `D30` rueda libre, `D29` testigo) `[MEDIDO 11/09 en netlist]`. **p2 NO es masa**: con `Q10` abierto sube a ~12 V. **Sube la pluma con VERDE y tambien con CUALQUIER ambar intermitente (`S_FALLO`)** — `escribirPines()`: `(verde && !testLedsActivo) \|\| estado == S_FALLO`. **Ninguna camara interviene** (el veto es `A-1.bis`, sin construir) |
 | `J16` | **12** | ver abajo |
 | `J17` | **13** | ver abajo |
 
@@ -1013,8 +1003,8 @@ bornera** `[MEDIDO 07/09]`:
   p3  = sin conectar          p4  = 3.3 V
   p5  = /Boton1 = PB9  = MANDO_A     p6  = sin conectar
   p7  = 3.3 V                 p8  = /Boton2 = PB13 = MANDO_B
-  p9  = 3.3 V                 p10 = /Boton3 = PB14 = CAM_C_PIN  <-- CÁMARA 1 (Demanda / 15-30m)
-  p11 = 3.3 V                 p12 = /Boton4 = PB15 = CAM_D_PIN  <-- CÁMARA 2 (Presencia Pluma / 0-8m)
+  p9  = 3.3 V                 p10 = /Boton3 = PB14 = CAM_C_PIN  <-- LA CAMARA
+  p11 = 3.3 V                 p12 = /Boton4 = PB15 = CAM_D_PIN  <-- hoy VACIO
 ```
 
 > 🔴 **EL MAPA ANTERIOR DECIA "conector de 16 posiciones". SON 12.** `[MEDIDO 07/09]`

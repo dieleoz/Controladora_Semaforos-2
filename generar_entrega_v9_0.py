@@ -78,9 +78,6 @@ EVIDENCIA = os.path.join(BASE_DIR, "evidencia")
 GUIA_HTML = "Guia_Cableado_y_Pruebas_Banco.html"
 GUIA_RUTA = "05_Funcional/" + GUIA_HTML
 
-CAMARAS_HTML = "Camaras_Sisga_4x.html"
-CAMARAS_RUTA = "05_Funcional/" + CAMARAS_HTML
-
 # El documento que ORDENA a los demas (skill `entregar` seccion 3.bis). Nacio sin .docx,
 # asi que un paquete que solo mire .docx lo deja fuera - que es justo lo que hacia
 # la version anterior con el unico documento que corrige a todos los otros.
@@ -393,7 +390,7 @@ mirar.
 |---|---|
 | `01_Firmware_PlatformIO/` | **Fuente** para PlatformIO: Maestro, Esclavo, Repetidor. Sin `.bin`: se compila de aqui, y asi lo que se carga es lo que se revisa |
 | `02_Manuales/` | Manuales en `.docx` y `.md`. **Se lee primero `{{ARQ}}`**, que corrige a los demas y ellos todavia no lo incorporan |
-| `03_Cableado/` | `{{GUIA}}` y `{{CAMARAS}}` — guias de conexiones (`J17`, `J16`, `PB6`/`PB7`, `DS3231`) y de 4 camaras con acta tecnica de terreno Sisga. Se rellenan y se devuelven |
+| `03_Cableado/` | `{{GUIA}}` — guia de conexiones: `J17` (ESP32), `J16` (camaras), `PB6`/`PB7`, `DS3231` y el conector SWD. **Es tambien el formulario de vuelta**: se rellena y se devuelve |
 | `04_App/` | **Solo la APK** `{{APK}}`. Se instala, no se compila |
 | `ACTA_verificacion.txt` | El acta de la corrida citada arriba |
 | `LEEME_PRIMERO.htm` · `.md` | Este documento. El `.htm` se abre con doble clic; el `.md` es la misma cadena, generada en la misma corrida |
@@ -427,7 +424,6 @@ Asi el contenido del paquete es exactamente el del commit que lleva en el nombre
                          ("{{NASSETS}}", str(acta["nassets"])),
                          ("{{ARQ}}", ARQUITECTURA_MD),
                          ("{{GUIA}}", GUIA_HTML),
-                         ("{{CAMARAS}}", CAMARAS_HTML),
                          ("{{APK}}", nombre_apk)):
         plantilla = plantilla.replace(marca, valor)
 
@@ -622,7 +618,6 @@ def crear_paquete():
     # La guia de conexiones. Va en su propia carpeta para que no se pierda entre 38
     # manuales: es el documento que se abre CON la tarjeta delante.
     versionado.append((GUIA_RUTA, "03_Cableado/" + GUIA_HTML))
-    versionado.append((CAMARAS_RUTA, "03_Cableado/" + CAMARAS_HTML))
 
     esperado = {}
     with zipfile.ZipFile(destino, "w", zipfile.ZIP_DEFLATED) as z:

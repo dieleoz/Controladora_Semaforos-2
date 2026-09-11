@@ -31,10 +31,10 @@ que es donde se anotan las medidas.
 > el navegador, **se rellena y se devuelve en PDF**. *(El `ENCARGO_SESION_BANCO.md` de 29 pasos se
 > archivó el 07/09 en [`historico/`](historico/ENCARGO_SESION_BANCO_ARCHIVADO_07-09.md): se conserva
 > como **acta** de la 1.ª noche, no como guion. **Un solo encargo vigente.**)*
-> **5.** 📷 **Si va a INSTALACIÓN O REVISIÓN DE CÁMARAS EN SISGA (4 cámaras + talanqueras), abra
-> [`Camaras_Sisga_4x.html`](Camaras_Sisga_4x.html)** — orientación de lentes hacia los que ingresan,
-> ángulos de inclinación (15°-20° lejana vs 35°-45° pluma), cableado `J16`/`J15` y cuestionario
-> interactivo con descarga directa a PDF.
+> ⛔ *(Las dos guías «de 4 cámaras del Sisga» del 10/09 se **RETIRARON el 11/09** a
+> [`historico/`](historico/): afirmaban que una cámara protege la pluma y que la pluma solo sube con
+> verde, y las dos cosas son falsas en el firmware. La cámara se cablea por el **Manual 9** y la
+> decisión vigente `D-13`: **una por poste**. Veredicto completo en `roadmap.md` §3.16.)*
 >
 > El paso 1 **no es opcional**: es la corrección de la causa raíz del fallo de comunicación que aparecía
 > al paso de cada ciclo, en los tres modos, y del repetidor que no enlazaba. Sin él, el firmware nuevo
