@@ -7,8 +7,9 @@
 >    (D-14, 22, 23, 25, 26 y 27 sin ancla en el firmware) y **G3** del arnés de las dos puntas (espera decisión: SFTY-6).
 > 2. 🔴 **La integración de la hora (`D-26`) quedó A MEDIAS**: la hacía un agente en el worktree
 >    `.claude/worktrees/agent-a2b20ad0678844758` (base `db8393c`). **Foto subida** en la rama
->    **`wip/d26-hora-esp32-foto-1315`** (`49111ab`, 38 ficheros), **sin revisar y sin fusionar**. Al retomar: si el
->    worktree sigue ahí, mirar su `git status` y, si el agente no terminó, lanzar uno nuevo que PARTA de esa foto con el
+>    **`wip/d26-hora-esp32-foto-1315`** (`49111ab`, 38 ficheros), **sin revisar y sin fusionar**. 🔴 **El agente NO
+>    terminó: se bloqueó (10 min sin avanzar) y el sistema lo cortó**; su worktree quedó idéntico a la foto (árbol
+>    `042d59e`), así que la foto lo contiene todo. Al retomar: lanzar un agente nuevo que PARTA de esa foto con el
 >    encargo de `D-26` (siembra ~5 min; Esclavo con radio / sin radio su ESP32; salto en Degradado por rojo; alarma de
 >    `J17`). Se integra **por el diff** y con la compuerta dos veces, nunca a ciegas.
 > 3. **Decisiones pendientes del responsable:** G3/SFTY-6 (la punta en verde tarda 250 ms en soltar frente a un
