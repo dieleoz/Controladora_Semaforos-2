@@ -4,8 +4,11 @@
 //
 // LO QUE ESTE MODULO NO HACE, Y CADA UNO TIENE UN PACK DETRAS:
 //
-//   - NO ORIGINA (B-1). Todo lo que sale hacia el STM32 procede del buffer de entrada
-//     de la app. No hay un solo literal de comando en el camino de escritura.
+//   - NO ORIGINA (B-1). Todo lo que ESTE MODULO manda hacia el STM32 procede del buffer
+//     de entrada de la app. No hay un solo literal de comando en el camino de escritura.
+//     El ESP32 entero si origina DOS lineas hacia el STM32, y ninguna pasa por aqui: el
+//     latido (vigilante.cpp, N-127) y la hora del DS3231 (siembra.cpp, D-20). esp32_05
+//     censa todas las escrituras hacia el STM32 del proyecto y no admite una tercera.
 //   - NO PARTE NI UNE TRAMAS (B-5). Una entra entera y sale entera.
 //   - Y DESDE N-145 TIENE UNA EXCEPCION, LA UNICA, ESCRITA AQUI PARA QUE NADIE LEA LA
 //     LINEA DE ARRIBA COMO UN ABSOLUTO QUE YA NO ES: en el sentido equipo -> app, un

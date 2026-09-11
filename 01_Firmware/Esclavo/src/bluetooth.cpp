@@ -227,7 +227,14 @@ void bluetooth_reportarAlarma(const char* evento, const char* causa, const char*
 
   // Se anota que la caida YA se anuncio, para que la vuelta tenga con que compararse.
   // No decide nada: la decision es de SFTY-6, en main.cpp; aqui solo se toma nota.
-  enlaceCaidoAnunciado = true;
+  //
+  // D-26 (5), 11/09: SOLO SI LA ALARMA ES LA DE LA RADIO. Esta funcion la llaman tambien
+  // la camara (botones.cpp) y desde hoy la hora del ESP32, y con la bandera puesta por
+  // cualquiera la siguiente trama de radio -con la radio sana llega en segundos- sacaba un
+  // $EVENT ENLACE_RF RECUPERADO de una caida que nunca hubo. Con la alarma de la hora
+  // repitiendose cada tres cadencias habria sido un falso "radio recuperada" cada 15 min
+  // en el diario de este poste. Mismo literal que main.cpp, porque es el mismo evento.
+  if (strcmp(evento, "FALLO_RF") == 0) enlaceCaidoAnunciado = true;
 
   // N-154 CERRADO AQUI (08/09). 152 Y NO 144, Y ES LA UNICA PUNTA DONDE EL BUFFER CRECE.
   //
@@ -343,6 +350,42 @@ static void j17RegistrarLinea(unsigned long ahora) {
     snprintf(det, sizeof(det), "MUDO:%lus,MAX:%lus,N:%lu",
              silencio / 1000UL, j17SilencioMaxMs / 1000UL, j17Silencios);
     bluetooth_reportarEvento("J17", det);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// D-26 (5) - LA SEGUNDA ALARMA: LA HORA DEL ESP32 NO LLEGA, O LLEGA Y NO SIRVE.
+//
+// Gemela de la del Maestro, con el porque entero alli. Aqui pesa mas: SIN RADIO la hora de
+// esta punta sale SOLO de su ESP32 (D-26 (3)), asi que un J17 suelto la deja extrapolando
+// con el HSI -hasta 90 s por hora- justo cuando no hay otra fuente. Y CON radio tambien
+// hace falta: el circuito roto hoy es la punta sin hora el dia que la radio caiga.
+//
+// Una HORA_ESP32 IGNORADA porque manda la radio CUENTA como buena para esta alarma: lo que
+// vigila es si la linea LLEGA entera por J17, no si se aplica. Con la radio mandando no se
+// parsea -no se aplica-, asi que un formato roto con la radio viva no se ve aqui; se vera en
+// la primera siembra sin radio, que es cuando importa.
+enum HoraEsp32Estado : uint8_t { HE_SIN_NOTICIAS = 0, HE_IGNORADA, HE_SEMBRADA, HE_ALARMA };
+static HoraEsp32Estado horaEsp32Estado = HE_SIN_NOTICIAS;
+static bool horaEsp32Llego = false;        // buzon: lo levanta la rama, lo baja el bucle
+static bool horaEsp32Rechazada = false;    // la ultima HORA_ESP32 que se parseo no servia
+static unsigned long tUltimaHoraEsp32 = 0; // ultima buena, o ultima alarma repetida
+
+static void horaEsp32Vigilar(unsigned long ahora) {
+  if (horaEsp32Llego) {
+    horaEsp32Llego = false;
+    tUltimaHoraEsp32 = ahora;
+  }
+  if (ahora - tUltimaHoraEsp32 <= HORA_ESP32_ESPERA_MAX_MS) return;
+
+  tUltimaHoraEsp32 = ahora;   // la siguiente, dentro de otra espera entera
+  horaEsp32Estado = HE_ALARMA;
+  if (horaEsp32Rechazada) {
+    bluetooth_reportarAlarma("HORA_ESP32", "RECHAZADA_FORMATO", "SIGUE_SU_HORA");
+  } else if (ahora - tUltimaLineaJ17 >= J17_SILENCIO_MIN_MS) {
+    bluetooth_reportarAlarma("HORA_ESP32", "J17_MUDO", "SIGUE_SU_HORA");
+  } else {
+    bluetooth_reportarAlarma("HORA_ESP32", "SIN_HORA_DEL_ESP32", "SIGUE_SU_HORA");
   }
 }
 
@@ -557,6 +600,73 @@ static void procesarComando(const char* cmd) {
   if (strcmp(cmd, "CMD:FORZAR_ROJO") == 0) {
     enviarTramaConCrc("$ERR,CMD:FORZAR_ROJO,DESC:RENOMBRADO_USE_AMBAR_EMERGENCIA");
     bluetooth_reportarEvento("APP_BLUETOOTH", "FORZAR_ROJO_RENOMBRADO");
+    return;
+  }
+
+  // D-20 / D-26 (11/09) - LA HORA DEL ESP32 DE ESTE POSTE. SIN PIN, Y AQUI SOLO SI LA
+  // RADIO NO MANDA.
+  //
+  // QUIEN LA MANDA: el ESP32 de este poste, desde su DS3231 releido, al arrancar, tras
+  // cada puesta en hora y cada ~5 min (D-26 (2); ~~cada hora, A-15~~). Es la UNA
+  // excepcion a "el puente no origina" (esp32_05), y el puente TIRA esta misma linea si le
+  // llega del telefono: por eso va antes de la guarda de PIN, como el ambar de emergencia
+  // -con PIN caeria en AUTH_FAILED en cada siembra-. SUSTITUYE a la antigua rama de
+  // SET_RTC, que desde el 11/09 atiende SOLO el puente: una orden en las dos listas son dos
+  // acuses a una sola orden (D-15). Sin PIN en el ESP32: riesgo ACEPTADO, D-26 (1).
+  //
+  // POR QUE AQUI NO SE ACEPTA SIEMPRE, Y EN EL MAESTRO SI. D-26 (3): "CON radio, manda la
+  // hora del Maestro; SIN radio, acepta la de su propio ESP32 -su DS3231 y la que el
+  // usuario le ponga desde el telefono en el gabinete-". reloj_radioManda() es la
+  // pregunta, con "sin radio" definido por el MISMO silencio que dispara $ALARM FALLO_RF
+  // (SFTY6_SILENCIO_MS): esa alarma es la que manda al usuario a este poste a poner la
+  // hora, y esa hora tiene que entrar. Ver el porque de la fuente en reloj.h.
+  //
+  // ~~Con hora de radio puesta, NI AUNQUE LA RADIO SE CAIGA: cambiar de fuente al perder
+  // la radio seria un salto SIN COTA entre dos DS3231 puestos por separado~~ -> SUSTITUIDO
+  // el 11/09 por D-26 (3)+(4)+(5). El salto existe y D-26 lo acepta con su cota: lo que
+  // difieran los dos DS3231 (+-2 ppm cada uno, ~10 s/mes en el peor caso) mas lo que
+  // derivo el HSI de cada punta desde su ultima siembra. Lo que lo hace tolerable no es
+  // negarlo: es que un salto mayor que el margen del cruce se aplica PASANDO POR ROJO
+  // (modo_degradado.cpp, D-26 (4)) y que la perdida de radio ALARMA (FALLO_RF, main.cpp).
+  // La regla vieja dejaba a esta punta sin radio extrapolando con el HSI -hasta 90 s por
+  // hora, contra 29 s de margen- durante todo el Degradado: una cota peor que la que
+  // queria evitar. (Y cuenta que esa cuenta del peor caso la rehace esp32_13.)
+  //
+  // La guarda va ANTES que la siembra y la siembra vive en su else: al reves, la hora del
+  // ESP32 ya habria pisado la del Maestro cuando alguien preguntara.
+  //
+  // Y NO RENUEVA NADA DEL DEGRADADO: ni degradado_registrarSync() ni respaldo_marcarSync().
+  // El limite de 48 h cuenta desde la ultima hora DEL MAESTRO; una del DS3231 de este poste
+  // no demuestra que las dos puntas sigan en fase.
+  //
+  // NO CONTESTA, ni $ACK ni $ERR: no la origino el telefono. Lo que queda es el Diario, SOLO
+  // EN EL CAMBIO de quien manda -la primera IGNORADA, la primera SEMBRADA, tras el arranque
+  // o tras una alarma-: cada 5 min serian 288 lineas identicas al dia (N-73 por
+  // inundacion). Y cada linea sale de lo que la llamada devolvio (CLAUDE.md 2, N-160). Una
+  // siembra que no sirve no es una linea de diario: es la alarma de D-26 (5), aqui en el
+  // acto y despues la repite horaEsp32Vigilar() mientras dure.
+  if (strncmp(cmd, "CMD:HORA_ESP32:", 15) == 0) {
+    if (reloj_radioManda()) {
+      horaEsp32Rechazada = false;
+      horaEsp32Llego = true;
+      if (horaEsp32Estado != HE_IGNORADA) {
+        horaEsp32Estado = HE_IGNORADA;
+        bluetooth_reportarEvento("ESP32", "HORA_ESP32_IGNORADA_MANDA_RADIO");
+      }
+    } else if (reloj_sembrarDesdeIso(cmd + 15)) {
+      horaEsp32Rechazada = false;
+      horaEsp32Llego = true;
+      if (horaEsp32Estado != HE_SEMBRADA) {
+        horaEsp32Estado = HE_SEMBRADA;
+        bluetooth_reportarEvento("ESP32", "HORA_ESP32_SEMBRADA");
+      }
+    } else {
+      horaEsp32Rechazada = true;
+      if (horaEsp32Estado != HE_ALARMA) {
+        horaEsp32Estado = HE_ALARMA;
+        bluetooth_reportarAlarma("HORA_ESP32", "RECHAZADA_FORMATO", "SIGUE_SU_HORA");
+      }
+    }
     return;
   }
 
@@ -811,21 +921,6 @@ static void procesarComando(const char* cmd) {
     // no una promesa del manual.
     enviarTramaConCrc("$ERR,CMD:TEST_LEDS,DESC:NO_EN_SERVICIO_USE_EL_MAESTRO");
     bluetooth_reportarEvento("APP_BLUETOOTH", "TEST_LEDS_RECHAZADO");
-  } else if (strncmp(accion, "SET_RTC:", 8) == 0) {
-    // D-20: LA AUTORIDAD DE LA HORA ES EL ESP32 (DS3231).
-    // Si entra SET_RTC por Bluetooth local en Poste 2, siembra el extrapolador del Esclavo.
-    // D-15: Solo el ESP32 contesta al celular con $ACK/$ERR para evitar doble acuse.
-    //
-    // N-160: EL RETORNO SE MIRA. No cambia quien contesta -sigue siendo el puente, por
-    // D-15- pero SI lo que queda escrito en el Diario de Ordenes. Antes se anotaba
-    // "lo acusa el puente" pasara lo que pasara, asi que una siembra RECHAZADA por
-    // rango dejaba en el diario la misma linea que una aceptada: el unico registro que
-    // le queda al tecnico decia que la hora entro cuando no habia entrado.
-    if (reloj_sembrarDesdeIso(accion + 8)) {
-      bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE");
-    } else {
-      bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_RECHAZADO_POR_RANGO");
-    }
   } else {
     enviarTramaConCrc("$ERR,CMD:DESCONOCIDO,DESC:COMANDO_NO_SOPORTADO_EN_ESCLAVO");
   }
@@ -893,6 +988,9 @@ void bluetooth_loop() {
       btBufIn[btIdxIn++] = c;
     }
   }
+
+  // D-26 (5): despues de despachar, para que una HORA_ESP32 que acaba de llegar cuente ya.
+  horaEsp32Vigilar(ahora);
 
   // 2. Emision periodica de telemetria cada 2000 ms ($STATUS,...)
   //

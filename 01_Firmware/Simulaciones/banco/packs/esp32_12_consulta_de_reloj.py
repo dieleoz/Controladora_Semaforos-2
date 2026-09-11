@@ -45,6 +45,43 @@
 # umbral, ni una maniobra. Comprueba la forma de un despachador de consulta. Una regla
 # que aparece cubierta por una prueba que no la ejerce es peor que una fila vacia, porque
 # la vacia no miente.
+#
+# =====================================================================================
+# 🔴 11/09 - D-20: EL PUENTE SE QUEDA TRES COSAS, NO UNA. REVISION UNA POR UNA (§9).
+# =====================================================================================
+#
+# Hasta hoy el predicado reclamaba UNA linea, entera: CMD:LEER_RTC. Desde D-20 reclama
+# tres, y dos se buscan DENTRO de la linea porque asi tiene que ser:
+#   CMD:LEER_RTC      entera (strcmp)  - la consulta.
+#   "SET_RTC:"        dentro (strstr)  - el PIN va delante y el puente no lo conoce.
+#   "HORA_ESP32"      dentro (strstr)  - la linea que SOLO origina el puente; del
+#                                        telefono se descarta (anti-suplantacion).
+#
+# Lo que afirmaba cada comprobacion, y que se hace con ella:
+#   1a "el puente se queda N ordenes"   -> SE CONSERVA (informativa; ahora dice tres).
+#   1b "el predicado compara ENTERA, sin strstr" - AFIRMABA DOS COSAS Y SE REPARTE:
+#       (i)  que la CONSULTA se compara entera -> sigue valiendo y SE CONSERVA, ahora
+#            por constante: cada constante del predicado va en un strcmp;
+#       (ii) que el puente no se quede lineas que solo CONTIENEN algo, porque
+#            desaparecerian sin respuesta -> SE INVIERTE en lo que de verdad protegia:
+#            se permiten criterios "contiene", pero SOLO por una funcion con nombre que
+#            despachador_atender() llama TAMBIEN (si el predicado se queda una linea, hay
+#            una rama que la contesta). Un strstr suelto en el predicado sigue cayendo.
+#   2  "ninguna punta del STM32 la atiende" -> SE CONSERVA para las ordenes que el
+#       puente se queda EN EXCLUSIVA -LEER_RTC y, desde hoy, SET_RTC-. ~~EN ESTE
+#       WORKTREE FALLA PARA SET_RTC~~ -> integrado el 11/09 con el lado STM32, que retiro
+#       su rama SET_RTC: pasa. Y desde la integracion lee TAMBIEN la puerta sin PIN por
+#       prefijo (_puertas_del_stm32), que es por donde entra HORA_ESP32 y por donde un
+#       SET_RTC reabierto pasaba sin que esta comprobacion lo viera.
+#       La marca HORA_ESP32 NO entra aqui: con ella la propiedad es la contraria -el
+#       STM32 TIENE que atenderla, del puente- y la mide esp32_13.
+#   3  la escritura vive dentro de la guarda -> SE CONSERVA tal cual.
+#   4-7 cada motivo con su rama, su literal, la hora detras de reloj_leer() y la consulta
+#       que no escribe -> SE CONSERVAN, acotadas a la CONSULTA (las constantes enteras).
+#       Antes iteraban "todo lo reclamado" porque lo reclamado era solo la consulta;
+#       SET_RTC tiene su propio pack del mismo molde (esp32_03) y aplicarle estas lo
+#       acusaria de no contestar los motivos de OTRO enum.
+# Ninguna se borra.
 
 import re
 
@@ -57,11 +94,15 @@ DESPACHADOR = ("ESP32_Expansion", "src", "despachador.cpp")
 CABECERA_RELOJ = ("ESP32_Expansion", "include", "reloj_ds3231.h")
 CABECERA_DESP = ("ESP32_Expansion", "include", "despachador.h")
 PUENTE_CPP = ("ESP32_Expansion", "src", "puente.cpp")
+SIEMBRA_CPP = ("ESP32_Expansion", "src", "siembra.cpp")
 PUNTAS = ("Maestro", "Esclavo")
 
 # El predicado que decide que se queda. Se nombra aqui porque es el contrato; lo que NO
 # se escribe a mano es ninguno de los comandos que reclama.
 PREDICADO = "despachador_esParaElPuente"
+# La rama que contesta lo que el predicado se queda (11/09: antes despachador_observar,
+# que miraba tambien lo que cruzaba).
+ATENDER = "despachador_atender"
 
 
 def _bloque(texto, i):
@@ -125,7 +166,8 @@ def _valores_del_enum(codigo, nombre):
 
 
 def _reclamados(codigo):
-    """Los comandos que el puente se QUEDA, leidos del predicado y de sus constantes.
+    """Los comandos que el puente se QUEDA ENTEROS, leidos del predicado y de sus
+    constantes.
 
     No hay lista escrita a mano: el predicado compara contra constantes y las
     constantes llevan el texto que viaja por el cable. Si alguien anade un comando
@@ -139,6 +181,60 @@ def _reclamados(codigo):
         r'static\s+const\s+char\s+(\w+)\[\]\s*=\s*"([^"]*)"', codigo))
     usadas = [n for n in consts if re.search(r"\b%s\b" % re.escape(n), cuerpo)]
     return cuerpo, {n: consts[n] for n in usadas}
+
+
+def _contenidos(codigo, cuerpoPred):
+    """{funcion: literal} de los criterios "la linea CONTIENE..." del predicado.
+
+    11/09 (D-20). Se leen de las funciones con nombre que el predicado llama con la
+    linea -`accionSetRtc(linea)`-, y de cada una el literal de su strstr. No hay lista
+    tecleada aqui, por el mismo motivo que _reclamados()."""
+    fuera = {}
+    for nombre in sorted(set(re.findall(r"\b([A-Za-z_]\w*)\s*\(\s*linea\s*\)", cuerpoPred))):
+        if nombre in ("strcmp", "strstr", "strncmp"):
+            continue
+        cuerpoF = _cuerpo(codigo, r"\b%s\s*\(\s*const\s+char\s*\*\s*linea\s*\)" % re.escape(nombre))
+        if cuerpoF is None:
+            continue
+        m = re.search(r'strstr\s*\(\s*linea\s*,\s*"([^"]+)"\s*\)', cuerpoF)
+        if m:
+            fuera[nombre] = m.group(1)
+    return fuera
+
+
+def _token_de_la_siembra(fw):
+    """El nombre de la orden que origina siembra.cpp: "HORA_ESP32" de "CMD:HORA_ESP32:...".
+
+    Es la marca que el despachador DESCARTA del telefono. Se lee del formato para que,
+    si la orden cambia de nombre alli, este pack deje de tratar la marca vieja como
+    exenta y la vea como lo que seria entonces: una linea retenida sin motivo."""
+    sie = fw.codigo(*SIEMBRA_CPP)
+    m = re.search(r'static\s+const\s+char\s+FORMATO_HORA_ESP32\[\]\s*=\s*"CMD:([A-Z0-9_]+):',
+                  sie)
+    if m is None:
+        raise fw.Abortado(
+            "no se pudo leer FORMATO_HORA_ESP32 de %s/src/siembra.cpp. Sin el, este pack "
+            "no sabe cual de los criterios del predicado es la anti-suplantacion -que se "
+            "mide al reves, en esp32_13- y le exigiria lo que no le toca" % ROL)
+    return m.group(1)
+
+
+def _puertas_del_stm32(codigo):
+    """(exactos, prefijos, sinPin) de las ordenes que el despachador del STM32 reconoce.
+
+    POR LAS TRES PUERTAS, y la tercera tiene DOS formas. Hasta el 11/09 la puerta sin PIN
+    solo se leia ENTERA -strcmp(cmd, "CMD:X")- porque las dos ordenes sin PIN que habia
+    (el rojo/ambar de emergencia) eran exactas. D-20 abrio la primera sin PIN POR PREFIJO
+    -strncmp(cmd, "CMD:HORA_ESP32:", 15)- y este lector no la veia: una rama
+    "strncmp(cmd, "CMD:SET_RTC:", 12)" reabierta por esa forma habria pasado la 2 sin
+    que nadie la mirara. Se lee ahora; el filtro del PIN tiene la misma forma y no es una
+    orden, asi que se aparta por su nombre."""
+    exactos = set(re.findall(r'strcmp\s*\(\s*accion\s*,\s*"([^"]+)"', codigo))
+    prefijos = set(re.findall(r'strncmp\s*\(\s*accion\s*,\s*"([^"]+):"', codigo))
+    sinPin = set(re.findall(r'strcmp\s*\(\s*cmd\s*,\s*"CMD:([^"]+)"', codigo))
+    sinPin |= {c for c in re.findall(r'strncmp\s*\(\s*cmd\s*,\s*"CMD:([A-Z0-9_]+):"', codigo)
+               if c != "PIN"}
+    return exactos, prefijos, sinPin
 
 
 def correr(b, fw):
@@ -163,24 +259,50 @@ def correr(b, fw):
             "quedo ciego: en los dos casos, medir un conjunto vacio de ordenes "
             "reclamadas aprueba cualquier cosa" % PREDICADO)
 
+    contenidos = _contenidos(desp, cuerpoPred)
+    token = _token_de_la_siembra(fw)
+
     b.verificar(
         True,
-        "el puente se queda %d orden(es), leida(s) del predicado: %s"
-        % (len(reclamados), sorted(reclamados.values())),
+        "el puente se queda %d orden(es) entera(s) y %d criterio(s) 'contiene', leidos "
+        "del predicado: %s + %s" % (len(reclamados), len(contenidos),
+                                    sorted(reclamados.values()),
+                                    sorted(contenidos.values())),
         "no deberia llegarse aqui")
 
-    # El predicado compara ENTERA, no por subcadena. Un strstr aqui haria que el puente
-    # se quedara "CMD:PIN:1234:LEER_RTC" y cualquier otra linea con el texto dentro: o
-    # sea, ordenes que no son suyas desapareciendo del cable sin que nada lo diga.
+    # 1b-(i) SE CONSERVA: la consulta se compara ENTERA. Cada constante del predicado va
+    # en un strcmp contra la linea; un strstr con ella haria que el puente se quedara
+    # "CMD:PIN:1234:LEER_RTC" y cualquier otra linea con el texto dentro.
+    enteras = [n for n in reclamados
+               if re.search(r"strcmp\s*\(\s*linea\s*,\s*%s\s*\)\s*==\s*0" % re.escape(n),
+                            cuerpoPred)]
     b.verificar(
-        "strcmp" in cuerpoPred and "strstr" not in cuerpoPred and
-        "strncmp" not in cuerpoPred,
-        "el predicado compara la linea ENTERA (strcmp): solo se queda la forma exacta "
-        "del cable, no cualquier linea que lleve el texto dentro",
-        "el predicado usa strstr/strncmp: se quedaria lineas que solo CONTIENEN el "
-        "comando -CMD:PIN:1234:LEER_RTC, o una orden mas larga que lo lleve dentro- y "
-        "esas ordenes desaparecerian del cable sin llegar al STM32 y sin que nadie las "
-        "contestara. Un comando mudo se lee como equipo colgado")
+        len(enteras) == len(reclamados),
+        "la consulta se compara ENTERA (strcmp contra %s): solo se queda la forma exacta "
+        "del cable" % ", ".join(sorted(reclamados)),
+        "hay constantes del predicado que no se comparan con strcmp(linea, X) == 0: %s. "
+        "Se quedaria lineas que solo CONTIENEN la consulta, y esas desaparecerian del "
+        "cable sin llegar al STM32" % sorted(set(reclamados) - set(enteras)))
+
+    # 1b-(ii) SE INVIERTE en lo que protegia. Lo que se temia de un strstr era que el
+    # puente se quedara lineas SIN CONTESTARLAS. Desde D-20 hay dos criterios "contiene"
+    # que tienen que existir; lo que no puede haber es uno SUELTO en el predicado ni uno
+    # que la rama que contesta no use.
+    sueltos = re.findall(r"\b(strstr|strncmp)\s*\(", cuerpoPred)
+    obs = _cuerpo(desp, r"void\s+%s\s*\([^)]*\)" % re.escape(ATENDER))
+    if obs is None:
+        raise fw.Abortado("no se hallo %s() en %s/src/despachador.cpp" % (ATENDER, ROL))
+    sinRama = sorted(n for n in contenidos
+                     if not re.search(r"\b%s\s*\(\s*linea\s*\)" % re.escape(n), obs))
+    b.verificar(
+        not sueltos and contenidos and not sinRama,
+        "los %d criterios 'contiene' del predicado van por funciones con nombre (%s) que "
+        "%s() llama TAMBIEN: lo que el puente se queda tiene rama que lo conteste"
+        % (len(contenidos), ", ".join(sorted(contenidos)), ATENDER),
+        "el predicado tiene un criterio 'contiene' SUELTO (%s) o uno que %s() no usa (%s), "
+        "o no se leyo ninguno. Entonces el puente se queda lineas por un criterio que la "
+        "rama que contesta no conoce: desaparecen del cable sin respuesta, y un comando "
+        "mudo se lee como equipo colgado" % (sueltos or "-", ATENDER, sinRama or "-"))
 
     # =====================================================================
     b.titulo("2. 🔴 Y NINGUNA PUNTA LA ATIENDE: la razon del veto, recalculada")
@@ -198,14 +320,20 @@ def correr(b, fw):
     # sola orden -el defecto que D-15 cerro el 05/09- y ademas uno de los dos no la
     # recibiria nunca, porque el puente se la queda. La decision se vuelve a tomar con
     # el dato delante en vez de envejecer dentro de un comentario.
-    for const, literal in sorted(reclamados.items()):
-        orden = literal[4:] if literal.startswith("CMD:") else literal
+    #
+    # 11/09: se aplica a lo que el puente se queda EN EXCLUSIVA -las constantes enteras y
+    # los criterios "contiene" que son una ORDEN, como "SET_RTC:"-. La marca de la
+    # siembra no: esa el STM32 TIENE que atenderla, y lo mide esp32_13.
+    exclusivas = [(c, l[4:] if l.startswith("CMD:") else l)
+                  for c, l in sorted(reclamados.items())]
+    exclusivas += [(f, l.rstrip(":")) for f, l in sorted(contenidos.items())
+                   if l.rstrip(":") != token]
+    for const, orden in exclusivas:
+        literal = orden
         atendida_por = []
         for p in PUNTAS:
             codigo = fw.codigo(p, "src", "bluetooth.cpp")
-            exactos = set(re.findall(r'strcmp\s*\(\s*accion\s*,\s*"([^"]+)"', codigo))
-            prefijos = set(re.findall(r'strncmp\s*\(\s*accion\s*,\s*"([^"]+):"', codigo))
-            sinPin = set(re.findall(r'strcmp\s*\(\s*cmd\s*,\s*"CMD:([^"]+)"', codigo))
+            exactos, prefijos, sinPin = _puertas_del_stm32(codigo)
             if not exactos:
                 raise fw.Abortado(
                     "no se leyo ni un strcmp(accion, ...) del bluetooth.cpp del %s. El "
@@ -278,10 +406,10 @@ def correr(b, fw):
             "saber distinguir; con la lista corta este pack aprobaria un despachador que "
             "contestara lo mismo a todo" % (len(motivos), ROL))
 
-    cuerpoObs = _cuerpo(desp, r"void\s+despachador_observar\s*\([^)]*\)")
+    cuerpoObs = _cuerpo(desp, r"void\s+%s\s*\([^)]*\)" % re.escape(ATENDER))
     if cuerpoObs is None:
         raise fw.Abortado(
-            "no se hallo despachador_observar() en %s/src/despachador.cpp" % ROL)
+            "no se hallo %s() en %s/src/despachador.cpp" % (ATENDER, ROL))
 
     sinRama = [v for v in motivos
                if not re.search(r"\bm\s*==\s*%s\b" % re.escape(v), cuerpoObs)]
@@ -390,14 +518,21 @@ def correr(b, fw):
     # Es la promesa que la app le hace al operario -"no cambia nada: ni el reloj, ni una
     # luz, ni un modo"- y la razon por la que no pide PIN. Si esta rama llamara a
     # reloj_ajustar(), esa promesa seria falsa y encima el comando entraria sin clave.
-    mRama = re.search(r"if\s*\(\s*%s\s*\(\s*linea\s*\)\s*\)\s*\{" % re.escape(PREDICADO),
-                      cuerpoObs)
-    ramaConsulta = _bloque(cuerpoObs, mRama.end() - 1) if mRama else None
-    if ramaConsulta is None:
+    #
+    # 11/09: la rama de la consulta ya no es "if (predicado(linea))" -el predicado se
+    # queda tres cosas-, sino la que compara con la MISMA constante que el predicado.
+    ramasConsulta = []
+    for const in sorted(reclamados):
+        mRama = re.search(r"if\s*\(\s*strcmp\s*\(\s*linea\s*,\s*%s\s*\)\s*==\s*0\s*\)\s*\{"
+                          % re.escape(const), cuerpoObs)
+        if mRama:
+            ramasConsulta.append(_bloque(cuerpoObs, mRama.end() - 1))
+    if len(ramasConsulta) != len(reclamados) or None in ramasConsulta:
         raise fw.Abortado(
-            "no se hallo la rama que atiende lo reclamado -if (%s(linea)) { ... }- en "
-            "despachador_observar(). Sin ella no se puede comprobar que la consulta no "
-            "escriba" % PREDICADO)
+            "no se hallo la rama de la consulta -if (strcmp(linea, <constante>) == 0) "
+            "{ ... }- en %s() para todas las constantes del predicado (%s). Sin ella no "
+            "se puede comprobar que la consulta no escriba" % (ATENDER, sorted(reclamados)))
+    ramaConsulta = "\n".join(ramasConsulta)
     b.verificar(
         "reloj_ajustar" not in ramaConsulta,
         "la rama de la consulta NO llama a reloj_ajustar(): es de solo lectura, que es "
@@ -411,12 +546,47 @@ def correr(b, fw):
     # =====================================================================
     # Contra bloques sinteticos con las MISMAS funciones reales. Si el detector aprobara
     # estos, todos los OK de arriba serian decoracion.
-    falso = ('bool p(const char* l){ return strstr(l, "CMD:LEER_RTC") != NULL; }')
+    # 11/09 - EL CONTROL DE LA 1b SE REPARTE COMO ELLA. (i) un strstr SUELTO en el
+    # predicado sigue cayendo; (ii) un criterio con nombre que la rama que contesta no
+    # usa, tambien; (iii) y los dos bien escritos pasan -si no, la 1b seria una tapia-.
+    falso = ('bool p(const char* linea){ return strstr(linea, "CMD:LEER_RTC") != NULL; }')
     cuerpoFalso = _cuerpo(falso, r"bool\s+p\s*\([^)]*\)")
     b.control_negativo(
-        cuerpoFalso is not None and "strstr" in cuerpoFalso,
-        "un predicado escrito con strstr se detecta: se quedaria lineas que solo "
-        "CONTIENEN el comando, y esas desaparecerian del cable sin contestar")
+        cuerpoFalso is not None and bool(re.findall(r"\b(strstr|strncmp)\s*\(", cuerpoFalso)),
+        "un predicado con un strstr SUELTO se detecta: se quedaria lineas que solo "
+        "CONTIENEN el comando por un criterio que ninguna rama comparte")
+
+    huerfano = ('static bool marcaNueva(const char* linea) { return strstr(linea, "X_Y") '
+                '!= NULL; }\nbool p(const char* linea) { if (marcaNueva(linea)) return '
+                'true; return false; }\nvoid atender(const char* linea) { if (strcmp(linea, '
+                'A) == 0) { } }')
+    cH = _contenidos(huerfano, _cuerpo(huerfano, r"bool\s+p\s*\([^)]*\)"))
+    obsH = _cuerpo(huerfano, r"void\s+atender\s*\([^)]*\)")
+    b.control_negativo(
+        cH == {"marcaNueva": "X_Y"}
+        and not re.search(r"\bmarcaNueva\s*\(\s*linea\s*\)", obsH),
+        "un criterio 'contiene' que el predicado usa y la rama que contesta NO se detecta: "
+        "el lector lo encuentra por su funcion y ve que atender() no lo llama")
+
+    bien = huerfano.replace("if (strcmp(linea, A) == 0) { }",
+                            "if (marcaNueva(linea)) { emitir(\"$ERR,X\"); return; }")
+    obsB = _cuerpo(bien, r"void\s+atender\s*\([^)]*\)")
+    b.control_negativo(
+        re.search(r"\bmarcaNueva\s*\(\s*linea\s*\)", obsB) is not None,
+        "y el mismo criterio con su rama en atender() PASA: la 1b distingue, no prohibe "
+        "los criterios 'contiene'")
+
+    # 11/09: la 2 lee ahora la puerta sin PIN POR PREFIJO. Una rama SET_RTC reabierta por
+    # esa forma se ve como atendida, y el filtro del PIN -misma forma- no cuenta como orden.
+    _, _, sp = _puertas_del_stm32(
+        'if (strncmp(cmd, "CMD:SET_RTC:", 12) == 0) { x(); } '
+        'if (strncmp(cmd, "CMD:PIN:1234:", 13) != 0) { y(); } '
+        'if (strcmp(accion, "X") == 0) { }')
+    b.control_negativo(
+        "SET_RTC" in sp and "PIN" not in sp,
+        "una rama SET_RTC reabierta SIN PIN y por prefijo -strncmp(cmd, \"CMD:SET_RTC:\")- "
+        "se lee como atendida por el STM32, y el filtro del PIN no se cuenta: la 2 ya no es "
+        "ciega a la puerta que D-20 estreno")
 
     escribe = ('{ if (p(linea)) { FechaHora f; reloj_ajustar(&f); '
                'emitir("$ACK,CMD:LEER_RTC,RESULT:OK"); } }')
@@ -434,7 +604,7 @@ def correr(b, fw):
         "parado en ceros")
 
     fuera = ('{ if (c==term) { bool prop = (enlace_escribirLinea(x, n) > 0); '
-             'if (!despachador_esParaElPuente(x)) { } observar(x, prop); } }')
+             'if (!despachador_esParaElPuente(x)) { } atender(x); } }')
     mF = re.search(r"if\s*\(\s*!\s*despachador_esParaElPuente\s*\([^)]*\)\s*\)\s*\{", fuera)
     b.control_negativo(
         mF is not None and "enlace_escribirLinea" not in _bloque(fuera, mF.end() - 1),

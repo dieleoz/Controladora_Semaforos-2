@@ -167,6 +167,55 @@
 // y el peor segundo pasa de 462 B (48,1%) a 471 B (49,1%). El pack esp32_07 lo recalcula.
 #define LATIDO_BYTES          (sizeof(LATIDO_LINEA) - 1 + 2)
 
+// ---------------------------------------------------------------------------
+// D-20 / D-26 (11/09): LA SIEMBRA DE HORA HACIA EL STM32
+//
+// "Son los ESP32 los que tienen el reloj y deben comandar la hora" (el responsable,
+// 11/09). El STM32 no tiene reloj que sirva -Y2 muerto, N-17- y extrapola con millis()
+// sobre el HSI; este modulo tiene el DS3231 con pila. La linea que lleva la hora, su
+// formato y quien la compone viven en siembra.cpp; aqui solo las cadencias, porque son
+// contrato con el otro binario.
+//
+// ~~A-15: CADA HORA, Y CON EL MISMO NUMERO QUE YA USA EL MAESTRO PARA REENVIAR LA HORA AL
+// ESCLAVO -INTERVALO_SYNC_MS de Maestro/src/coordinador.cpp-. "Un solo numero en el
+// sistema, y no dos"~~ -> CORREGIDO por D-26 (2), 11/09: CADA ~5 MIN, Y CON NOMBRE PROPIO.
+//
+// El numero de A-15 se eligio por tener uno solo, no por una medida, y la medida lo tumba:
+// lo que deriva no es el DS3231 -segundos al mes- sino el oscilador interno del STM32 ENTRE
+// siembras, que es el que decide las luces. A 25000 ppm (peor caso de su ficha, HSI_PPM_PEOR
+// en Maestro/include/reloj.h) una hora sin sembrar son 90 s contra los 29 s que aguanta el
+// cruce; cinco minutos son 7,5 s. esp32_13 rehace esa cuenta desde los dos binarios.
+//
+// Deja de llamarse INTERVALO_SYNC_MS a proposito: aquel sigue siendo la hora del reenvio
+// Maestro->Esclavo en coordinador.cpp, y un nombre igual con otro valor diria en cada grep
+// que son el mismo numero. El STM32 lo espera con este valor (HORA_ESP32_CADENCIA_MS en
+// el reloj.h de las dos puntas, para su alarma de D-26 (5)), y esp32_13 exige que coincidan.
+#define SIEMBRA_INTERVALO_MS       300000UL
+
+// LOS DOS REINTENTOS DE ARRANQUE, Y POR QUE HACEN FALTA.
+//
+// El ESP32 y el STM32 se encienden A LA VEZ, y el STM32 no abre su puerto de J17 hasta
+// mucho despues: setup() de las dos puntas hace delay(2000) y luego reloj_setup(), que
+// con Y2 muerto espera ESPERA_LSE_MS (2000) al cristal, y SOLO DESPUES llama a
+// bluetooth_setup(). O sea >= 4 s sin UART. Este modulo, en cambio, llega a su primer
+// loop() en ESP32_ARRANQUE_MS (1500, SIN MEDIR - AB-3): la primera siembra sale casi
+// seguro CONTRA UN PUERTO CERRADO y se pierde sin que nadie lo sepa -el puente no espera
+// acuse del STM32, y no puede-.
+//
+//   REINTENTO_1 = 10 s: mas del doble de esos 4 s, que es el margen para un arranque
+//     algo mas lento que el medido en el fuente. La desigualdad REINTENTO_1 > delay +
+//     ESPERA_LSE_MS la recalcula esp32_13 leyendo el setup() de las dos puntas.
+//   REINTENTO_2 = 60 s: para lo que el primero no cubre -un STM32 que se reinicio por su
+//     perro (4 s) una o dos veces en el arranque, o un ESP32_ARRANQUE_MS que al medirse
+//     salga peor-. Despues ya solo queda la cadencia de D-26 (SIEMBRA_INTERVALO_MS).
+//
+// Los reintentos se cuentan desde la PRIMERA vez que el DS3231 da hora fiable, no desde
+// el reset: si el reloj arranca sin hora y alguien la pone luego, lo que importa es que
+// el STM32 este escuchando cuando salga, y a esas alturas ya lo esta. Repetir la siembra
+// no cuesta nada: el STM32 SOBREESCRIBE (D-20), no acumula.
+#define SIEMBRA_REINTENTO_1_MS     10000UL
+#define SIEMBRA_REINTENTO_2_MS     60000UL
+
 // W-4: tope de iteraciones del bucle INTERIOR de cada sentido.
 //
 // No es una optimizacion: es la mitad de la defensa. El fallo del 31/07/2026 fue un

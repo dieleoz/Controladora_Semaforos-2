@@ -945,6 +945,146 @@ int main() {
        "arriba se apoya en esa frescura y no en el numero.");
 
   // =========================================================================
+  std::printf("\n--- BLOQUE E: D-26 (4), EL SALTO DE HORA PASA POR ROJO -----------\n");
+  //
+  // Desde D-26 cada punta se re-siembra del DS3231 de su ESP32 cada ~5 min tambien en
+  // Degradado, y la fase sale de la hora: una siembra MUEVE la fase de golpe. Aqui se salta
+  // la hora de UNA punta con las dos ciclando y se mira lo que escribieron los pines.
+  //
+  // EL ESCENARIO ES EL PELIGROSO A PROPOSITO: se espera a que la OTRA punta este en su
+  // verde y se salta un ciclo de verde + despeje, que deja a la que salta en la MISMA
+  // posicion de SU verde. Sin la regla, esa punta enciende verde con la otra en verde. El
+  // orquestador no calcula ninguna fase: el instante lo da el pin de la otra punta, y el
+  // tamano del salto sale de las dos constantes releidas del C++.
+  //
+  // LA VENTANA es el despeje menos dos segundos: cubre el resto del verde de la otra punta
+  // -que empezo hace un instante por su ambar- y no llega al final del todo-rojo de la
+  // regla. Mas alla, las dos puntas quedan desfasadas un ciclo de verde + despeje, que es
+  // mas de lo que el cruce aguanta (bloque C): ese solape posterior es del salto, no de la
+  // regla, y por eso no se observa.
+  //
+  // Y SU CONTROL, que es lo que impide la tapia: un salto PEQUENO -2 s, muy por debajo del
+  // margen y del orden de lo que deriva el HSI en una cadencia- NO manda a rojo. Una regla
+  // que mandara a rojo cualquier salto pasaria las dos lineas grandes igual de bien y
+  // pararia el cruce en cada siembra.
+  {
+    const long SALTO_GRANDE = (long)(DEG_VERDE_SEG + DEG_DESPEJE_SEG);
+    const unsigned long VENTANA_MS = (DEG_DESPEJE_SEG - 2UL) * 1000UL;
+    const unsigned long ESPERA_MAX_MS = 3UL * CICLO_S * 1000UL;
+
+    // Espera hasta que se cumpla la condicion sobre los pines, o se rinde. Devuelve si
+    // llego: un escenario que no llega no mide nada y se dice.
+    auto esperarPines = [&](bool (*cond)(), unsigned long maxMs) {
+      unsigned long hecho = 0;
+      while (!cond() && hecho < maxMs) { unTick(); hecho += PASO_MS; }
+      return cond();
+    };
+
+    // --- E0: main.cpp REAL le cuenta a reloj.cpp cada trama de radio (D-26 (3)) -------
+    prepararSincronizadas(15, 8, 0, 0);
+    const long notadas = ESCLAVO.orden("radio_notada");
+    comprobar(notadas > 0,
+              "E0 (D-26 (3)): mientras la radio del arnes estaba viva, el main.cpp REAL del "
+              "Esclavo aviso a reloj de " + std::to_string(notadas) + " tramas del Maestro "
+              "-reloj_notarRadio()-. Sin esa llamada, 'sin radio' seria cierto siempre y la "
+              "hora del ESP32 pisaria la del Maestro con la radio sana");
+
+    // --- E1: el MAESTRO salta hacia su verde con el Esclavo en verde --------------------
+    entrarEnDegradadoLasDos(0);
+    const bool e1Listo = esperarPines(
+        []() { return ESCLAVO.verde() && !MAESTRO.verde(); }, ESPERA_MAX_MS);
+    unsigned long e1VerdeM = 0, e1Simul = 0, e1VerdeE = 0;
+    if (e1Listo) {
+      MAESTRO.orden("desviar_rtc", SALTO_GRANDE);
+      for (unsigned long t = 0; t < VENTANA_MS; t += PASO_MS) {
+        unTick();
+        if (MAESTRO.verde()) e1VerdeM++;
+        if (ESCLAVO.verde()) e1VerdeE++;
+        if (MAESTRO.verde() && ESCLAVO.verde()) e1Simul++;
+      }
+    }
+    comprobar(e1Listo && e1VerdeE > 0,
+              "E1.0 (el escenario es el peligroso): el Esclavo estaba en verde cuando el "
+              "Maestro salto " + std::to_string(SALTO_GRANDE) + " s, y siguio en verde " +
+              std::to_string(e1VerdeE * PASO_MS) + " ms de la ventana");
+    comprobar(e1Listo && e1VerdeM == 0 && e1Simul == 0,
+              "E1 (D-26 (4)): el Maestro salto " + std::to_string(SALTO_GRANDE) + " s -de la "
+              "fase del verde del Esclavo a la de su propio verde- y NO encendio verde en los " +
+              std::to_string(VENTANA_MS / 1000) + " s siguientes (" +
+              std::to_string(e1VerdeM) + " instantes en verde, " + std::to_string(e1Simul) +
+              " con las dos en verde): el salto paso por rojo en vez de dar el verde en la "
+              "misma vuelta");
+
+    // --- E2: y un salto PEQUENO no lo manda a rojo (el control de E1) -------------------
+    prepararSincronizadas(15, 8, 0, 0);
+    entrarEnDegradadoLasDos(0);
+    const bool e2Listo = esperarPines(
+        []() { return MAESTRO.verde() && !ESCLAVO.verde(); }, ESPERA_MAX_MS);
+    unsigned long e2VerdeM = 0, e2Ticks = 0;
+    if (e2Listo) {
+      avanzar(3000);                        // que no este en el borde de su verde
+      MAESTRO.orden("desviar_rtc", 2);
+      for (unsigned long t = 0; t < 5000; t += PASO_MS) {
+        unTick();
+        e2Ticks++;
+        if (MAESTRO.verde()) e2VerdeM++;
+      }
+    }
+    comprobar(e2Listo && e2VerdeM == e2Ticks,
+              "E2 (control de E1): con el Maestro en SU verde, un salto de 2 s -una siembra "
+              "normal- lo deja en verde los 5 s siguientes (" + std::to_string(e2VerdeM) +
+              " de " + std::to_string(e2Ticks) + " instantes): la regla no manda a rojo "
+              "cualquier salto, solo el que pasa del margen");
+
+    // --- E3: el ESCLAVO salta hacia su verde con el Maestro en verde -------------------
+    prepararSincronizadas(15, 8, 0, 0);
+    entrarEnDegradadoLasDos(0);
+    const bool e3Listo = esperarPines(
+        []() { return MAESTRO.verde() && !ESCLAVO.verde(); }, ESPERA_MAX_MS);
+    unsigned long e3VerdeE = 0, e3AmbarE = 0, e3Simul = 0, e3VerdeM = 0;
+    if (e3Listo) {
+      ESCLAVO.orden("desviar_rtc", SALTO_GRANDE);
+      for (unsigned long t = 0; t < VENTANA_MS; t += PASO_MS) {
+        unTick();
+        if (ESCLAVO.verde()) e3VerdeE++;
+        if (ESCLAVO.ambar()) e3AmbarE++;
+        if (MAESTRO.verde()) e3VerdeM++;
+        if (MAESTRO.verde() && ESCLAVO.verde()) e3Simul++;
+      }
+    }
+    comprobar(e3Listo && e3VerdeM > 0,
+              "E3.0 (el escenario es el peligroso): el Maestro estaba en verde cuando el "
+              "Esclavo salto, y siguio en verde " + std::to_string(e3VerdeM * PASO_MS) +
+              " ms de la ventana");
+    comprobar(e3Listo && e3VerdeE == 0 && e3AmbarE == 0 && e3Simul == 0,
+              "E3 (D-26 (4)): el Esclavo salto " + std::to_string(SALTO_GRANDE) + " s hacia "
+              "su verde con el Maestro en verde y NO encendio ni el ambar de su transicion "
+              "ni el verde en los " + std::to_string(VENTANA_MS / 1000) + " s siguientes (" +
+              std::to_string(e3AmbarE) + " ambar, " + std::to_string(e3VerdeE) + " verde, " +
+              std::to_string(e3Simul) + " simultaneos)");
+
+    // --- E4: y en el Esclavo un salto pequeno tampoco lo manda a rojo ------------------
+    prepararSincronizadas(15, 8, 0, 0);
+    entrarEnDegradadoLasDos(0);
+    const bool e4Listo = esperarPines(
+        []() { return ESCLAVO.verde() && !MAESTRO.verde(); }, ESPERA_MAX_MS);
+    unsigned long e4VerdeE = 0, e4Ticks = 0;
+    if (e4Listo) {
+      avanzar(3000);
+      ESCLAVO.orden("desviar_rtc", 2);
+      for (unsigned long t = 0; t < 5000; t += PASO_MS) {
+        unTick();
+        e4Ticks++;
+        if (ESCLAVO.verde()) e4VerdeE++;
+      }
+    }
+    comprobar(e4Listo && e4VerdeE == e4Ticks,
+              "E4 (control de E3): con el Esclavo en SU verde, un salto de 2 s lo deja en "
+              "verde los 5 s siguientes (" + std::to_string(e4VerdeE) + " de " +
+              std::to_string(e4Ticks) + " instantes)");
+  }
+
+  // =========================================================================
   std::printf("\n==============================================================\n");
   std::printf(" RESULTADO: %d/%d comprobaciones OK\n", total - fallos, total);
   std::printf("==============================================================\n");

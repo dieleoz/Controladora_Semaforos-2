@@ -227,8 +227,9 @@ def correr(b, fw):
 
     b.verificar(
         not conPin,
-        "el PIN (%s) no aparece en ningun fuente del puente: se transporta sin conocerlo"
-        % pin,
+        "el PIN (%s) no aparece en ningun fuente del puente: lo transporta sin conocerlo "
+        "en lo que cruza -y desde D-20 (11/09) el de SET_RTC ya no lo mira nadie: lo "
+        "reporta esp32_13-" % pin,
         "EL PUENTE LLEVA EL PIN DENTRO (%s). Es una segunda copia del contrato de "
         "autenticacion que alguien tendria que sincronizar, y el dia que difieran un "
         "comando funcionaria por una puerta y seria rechazado por la otra. El puente "

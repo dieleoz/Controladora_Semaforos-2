@@ -133,8 +133,15 @@ def correr(b, fw):
     # ---- 4. No hay modo por defecto que aplicar ------------------------------
     #
     # El puente no guarda estado del equipo, asi que no puede tener uno "conocido" al que
-    # volver. Se comprueba por la via que lo hace imposible: todo lo que sale hacia el
-    # STM32 viene del buffer de entrada, y el arranque no lo rellena.
+    # volver. Se comprueba por la via que lo hace imposible: todo lo que el PUENTE manda
+    # hacia el STM32 viene del buffer de entrada, y el arranque no lo rellena.
+    #
+    # 11/09 (D-20): el ESP32 entero manda ademas DOS lineas propias -el latido y la hora
+    # del DS3231-, y ninguna es un "modo por defecto": una no ejecuta nada y la otra solo
+    # sobreescribe el reloj. Las dos salen de loop(), no de setup() -la 1 de este pack lo
+    # sigue exigiendo- y esp32_05 las censa como las unicas; esta comprobacion se
+    # CONSERVA tal cual porque lo que mide -el buffer de la app no nace precargado- no ha
+    # cambiado.
     b.verificar(
         re.search(r"deApp\s*\[\s*0\s*\]\s*=", _cuerpo(puente, r"void\s+puente_setup\s*\(\s*\)")) is None,
         "el arranque no precarga el buffer de entrada: no hay un comando 'de fabrica' "

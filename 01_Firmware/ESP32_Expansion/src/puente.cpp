@@ -47,8 +47,10 @@ void puente_emitirPropio(const char* payload) {
 // ---------------------------------------------------------------------------
 // SENTIDO APP -> STM32.  VERBATIM.
 //
-// El unico camino por el que se escribe en Serial2, y cada byte que sale de aqui vino
-// de transporte_leer(). No hay literales: enlace_escribirLinea() recibe el buffer.
+// Cada byte que sale de AQUI hacia Serial2 vino de transporte_leer(). No hay literales:
+// enlace_escribirLinea() recibe el buffer. (Hay otros dos caminos hacia el STM32 y
+// ninguno pasa por este fichero: el latido de vigilante.cpp -N-127- y la siembra de
+// hora de siembra.cpp -D-20-. esp32_05 los censa a los tres y no admite un cuarto.)
 //
 // AQUI NO SE VALIDA NINGUN CHECKSUM, Y NO ES UN OLVIDO. Es la correccion de un
 // dato falso, y se deja escrita porque la version anterior de este fichero SI validaba
@@ -115,11 +117,14 @@ static void desdeLaApp() {
       }
 
       // ---------------------------------------------------------------------
-      // LA UNICA LINEA QUE NO CRUZA EL CABLE, Y LA REGLA NO ES UNA LISTA DE COMANDOS
+      // LAS LINEAS QUE NO CRUZAN EL CABLE, Y LA REGLA NO ES UNA LISTA DE COMANDOS
       //
       // Todo lo demas sigue VERBATIM: los mismos bytes que mando la app, sin quitar
-      // nada y sin anadir nada. SET_RTC incluido -se atiende aqui Y sigue viaje-,
-      // porque es una orden que el STM32 tambien conoce.
+      // nada y sin anadir nada. ~~SET_RTC incluido -se atiende aqui Y sigue viaje-~~:
+      // desde D-20 (11/09) SET_RTC SE QUEDA AQUI, y lo que llega al STM32 es la hora
+      // releida del DS3231 por siembra.cpp, no los bytes del telefono. Y toda linea del
+      // telefono con HORA_ESP32 dentro se queda tambien: esa orden solo la origina el
+      // puente. Los tres criterios estan en despachador.cpp.
       //
       // Lo que este `if` se queda es lo que va dirigido al PUENTE Y A NADIE MAS. El
       // criterio esta en despachador.h con su medida: reenviar CMD:LEER_RTC hace que
@@ -133,18 +138,18 @@ static void desdeLaApp() {
       // fichero; lo que no puede es que una orden este a la vez en las dos listas, y eso
       // lo recalcula un pack leyendo los dos despachadores del STM32 en cada corrida.
       //
-      // Y `propagada` nace en false por lo mismo que la barrera del reloj nace abajo: si
-      // no se escribio en el cable, no se propago. La rama que atiende esta linea no lo
-      // mira -no hay cable que cruzar-, pero un true de cortesia aqui seria un dato
-      // falso esperando a que alguien lo lea.
-      bool propagada = false;
+      // O CRUZA O LA ATIENDE EL PUENTE, NUNCA LAS DOS. Hasta el 11/09 el despachador
+      // miraba TODAS las lineas -tambien las que cruzaban- porque SET_RTC hacia las dos
+      // cosas, y necesitaba saber si la linea habia llegado entera al STM32 para
+      // contestar. Desde D-20 ninguna linea reclamada cruza, asi que ese dato no existe y
+      // el parametro que lo llevaba se retiro con el.
       if (!despachador_esParaElPuente(deApp)) {
-        propagada = (enlace_escribirLinea(deApp, largoUtil) > 0);
+        // P-3: si no sale entera, enlace_stm32.cpp la cuenta en lineasRechazadas.
+        enlace_escribirLinea(deApp, largoUtil);
+        continue;
       }
 
-      // El reloj del puente se atiende DESPUES de haber reenviado -cuando se reenvia-,
-      // porque `propagada` es parte de la respuesta y no se puede saber antes.
-      despachador_observar(deApp, propagada);
+      despachador_atender(deApp);
       continue;
     }
 

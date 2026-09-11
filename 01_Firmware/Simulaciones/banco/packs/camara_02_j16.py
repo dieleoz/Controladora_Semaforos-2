@@ -110,7 +110,11 @@ SUSTITUTOS_MAESTRO = (
     "SET_MODO:ALCANCE", "SET_MODO:INTELIGENTE", "SET_MODO:DEGRADADO",
     "MANUAL:CAMBIAR_TURNO",   # el "dar paso" del Modo Manual
     "SET_TIEMPOS:",           # confirmar tiempos, que hacia el boton 3
-    "SET_RTC:", "REINICIAR_RELOJ",
+    # Poner la hora, que hacia AJUSTAR HORA con ACEPTAR. Hasta el 11/09 el sustituto era
+    # la rama "SET_RTC:" de esta punta; desde el 11/09 SET_RTC lo atiende SOLO el puente,
+    # y lo que llega al STM32 es la hora que su DS3231 acepto, por "CMD:HORA_ESP32:". El
+    # camino sin botones sigue existiendo: se mudo de literal, y se vigila el nuevo.
+    "CMD:HORA_ESP32:", "REINICIAR_RELOJ",
 )
 
 _DEF = re.compile(
@@ -634,7 +638,7 @@ def correr(b, fw):
             "Esclavo: el mando de reles sigue pudiendo %s (%s() en mando.cpp)" % (que, fn),
             "Esclavo: el mando ya no llama a %s(). Esta punta NO tiene SET_MODO por "
             "Bluetooth -sus comandos son AMBAR_EMERGENCIA, FORZAR_ROJO, SOLICITAR_PASO, "
-            "TEST_LEDS y SET_RTC-, asi que con los botones 3 y 4 retirados el mando es su "
+            "TEST_LEDS y CMD:HORA_ESP32-, asi que con los botones 3 y 4 retirados el mando es su "
             "UNICA via para %s" % (fn, que))
 
     # Y el veto de SFTY-21 sigue teniendo quien lo arme: mando_ambarLocal() vale true

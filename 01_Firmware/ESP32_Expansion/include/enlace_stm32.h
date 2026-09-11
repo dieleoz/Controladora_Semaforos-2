@@ -7,14 +7,18 @@
 // rompe en el sitio N+1. Con una sola puerta, "el puente no origina" se puede
 // COMPROBAR leyendo un fichero corto en vez de confiando en la disciplina.
 //
-// 🔴 B-1: CADA BYTE QUE SALE POR AQUI PROCEDE DEL BUFFER DE ENTRADA DE LA APP.
+// 🔴 B-1: CADA BYTE QUE SALE POR AQUI PROCEDE DEL BUFFER DE ENTRADA DE LA APP... CON
+// DOS EXCEPCIONES CON NOMBRE, Y NINGUNA MAS: el latido de vigilante.cpp (N-127, 04/09),
+// que el STM32 ignora sin contestar, y la hora del DS3231 de siembra.cpp (D-20/A-15,
+// 11/09), que sale SOLO de reloj_leer(). Las dos estan escritas con su motivo en la
+// lista de esp32_05, que censa CADA llamada a esta funcion en src/ y falla ante una
+// tercera. Hasta el 11/09 esta cabecera decia "cada byte" a secas con el latido ya
+// saliendo por aqui desde el 04/09: una regla que enumera tiene que censar.
 //
 // Por eso enlace_escribirLinea() recibe un puntero y una longitud, y no hay ninguna
 // version que reciba un literal. Un literal de comando en este fichero seria el puente
 // mandando ordenes por su cuenta a un equipo que gobierna un cruce; que no se pueda
 // escribir sin cambiar la firma es el punto.
-//
-// El pack esp32_05_no_origina lo vigila leyendo este fichero por texto.
 
 #ifndef ENLACE_STM32_H
 #define ENLACE_STM32_H
