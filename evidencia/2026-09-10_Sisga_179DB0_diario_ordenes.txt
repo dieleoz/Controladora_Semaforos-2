@@ -1,0 +1,137 @@
+IOT-VIAL - DIARIO DE ORDENES
+Cruce: KM 12 · EL SISGA
+Equipo: MAESTRO
+Serie: 179DB0
+Exportado: 2026-09-10T17:25:53.822Z
+
+QUE ES ESTO: una entrada por cada orden que se dio desde este telefono, con
+lo que se mando, lo que el equipo contesto y lo que se vio cambiar despues.
+El PIN sale tapado con asteriscos; al equipo se le manda entero.
+
+LO QUE ESTE DIARIO NO SABE, para que no se lea de mas:
+  - No sabe si el equipo RECIBIO la orden, solo que la app la escribio.
+  - "NO CAMBIO NADA" significa que MODO y ESTADO no se movieron en las
+    tramas que llegaron. No significa que el firmware desobedeciera.
+  - No ve las luces del poste: ve lo que el equipo dice por $STATUS.
+  - No sabe de ordenes dadas desde otro telefono, el mando o los botones.
+
+RESUMEN
+  ordenes anotadas       : 23
+  no llegaron a salir    : 0
+  sin respuesta          : 1
+  rechazadas por el equipo: 0
+  no movieron MODO ni ESTADO: 1
+  efecto que no se pudo ver : 1
+
+LAS ORDENES, DE LA MAS ANTIGUA A LA MAS NUEVA
+
+12:06:14  ORDEN      CMD:PIN:****:SET_MODO:AMBAR\r\n
+12:06:14  RESPUESTA  $ACK,CMD:SET_MODO:AMBAR,RESULT:OK*7D   (+0,1 s)
+          EFECTO     CAMBIO: MODO: AUTO -> AMBAR (a los 2,0 s) · ESTADO: ROJO -> FALLO COM (a los 2,0 s) · ESC: VERDE -> AMBAR (a los 2,0 s)
+
+12:06:17  ORDEN      CMD:FORZAR_ROJO\r\n
+12:06:17  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,1 s)
+          EFECTO     CAMBIO: ESTADO: FALLO COM -> ROJO (a los 0,5 s) · MODO: AMBAR -> AUTO (a los 10,5 s, TARDIO) · ESC: AMBAR -> ROJO (a los 10,5 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:06:26  ORDEN      CMD:PIN:****:SET_MODO:AUTO\r\n
+12:06:26  RESPUESTA  $ACK,CMD:SET_MODO:AUTO,RESULT:OK*2F   (+0,1 s)
+          EFECTO     CAMBIO: MODO: AMBAR -> AUTO (a los 2,1 s) · ESC: AMBAR -> ROJO (a los 2,1 s) · ESTADO: ROJO -> AMARILLO (a los 16,1 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:12:42  ORDEN      CMD:FORZAR_ROJO\r\n
+12:12:42  RESPUESTA  $ACK,CMD:FORZAR_ROJO,RESULT:OK*5B   (+0,1 s)
+          EFECTO     CAMBIO: ESC: VERDE -> ROJO (a los 1,4 s) · MODO: AUTO -> MENU (a los 5,4 s) · ESTADO: ROJO -> AMARILLO (a los 43,5 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:12:46  ORDEN      CMD:SET_MODO:MENU\r\n
+12:12:47  RESPUESTA  $ACK,CMD:SET_MODO:MENU,RESULT:OK*33   (+0,4 s)
+          EFECTO     CAMBIO: MODO: AUTO -> MENU (a los 1,4 s) · ESTADO: ROJO -> AMARILLO (a los 39,4 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:12:58  ORDEN      CMD:SET_MODO:MENU\r\n
+12:12:58  RESPUESTA  $ACK,CMD:SET_MODO:MENU,RESULT:OK*33   (+0,3 s)
+          EFECTO     CAMBIO: MODO: MENU -> AUTO (a los 5,8 s) · ESTADO: ROJO -> AMARILLO (a los 27,8 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:13:01  ORDEN      CMD:PIN:****:SET_TIEMPOS:3,3,15\r\n
+12:13:01  RESPUESTA  $ACK,CMD:SET_TIEMPOS,RESULT:OK*4A   (+0,1 s)   [el equipo contesta al comando SET_TIEMPOS, sin los argumentos que se mandaron]
+          EFECTO     CAMBIO: MODO: MENU -> AUTO (a los 2,9 s) · ESTADO: ROJO -> AMARILLO (a los 24,9 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:13:03  ORDEN      CMD:PIN:****:SET_MODO:AUTO\r\n
+12:13:03  RESPUESTA  $ACK,CMD:SET_MODO:AUTO,RESULT:OK*2F   (+0,1 s)
+          EFECTO     CAMBIO: MODO: MENU -> AUTO (a los 0,5 s) · ESTADO: ROJO -> AMARILLO (a los 22,5 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:13:10  ORDEN      CMD:PIN:****:SET_MODO:AUTO\r\n
+12:13:10  RESPUESTA  $ACK,CMD:SET_MODO:AUTO,RESULT:OK*2F   (+0,1 s)
+          EFECTO     CAMBIO: ESTADO: ROJO -> AMARILLO (a los 15,7 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:17:21  ORDEN      CMD:PIN:****:SET_RTC:2026-09-10,12:17:20\r\n
+12:17:21  RESPUESTA  $ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-09-10,HORA:12:17:20*0B   (+0,0 s)   [el equipo contesta al comando SET_RTC, sin los argumentos que se mandaron]
+          EFECTO     NO CAMBIO NADA: MODO siguio en AUTO y ESTADO siguio en ROJO y ESC siguio en VERDE en los 31 $STATUS de los 95,0 s posteriores
+
+12:17:32  ORDEN      CMD:LEER_RTC\r\n
+12:17:32  RESPUESTA  $ACK,NODE:PUENTE,CMD:LEER_RTC,RESULT:OK,FECHA:2026-09-10,HORA:12:17:31*57   (+0,2 s)
+          EFECTO     CAMBIO: MODO: AUTO -> MANUAL (a los 93,6 s, TARDIO) · ESC: VERDE -> ROJO (a los 93,6 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:17:37  ORDEN      CMD:PIN:****:SET_RTC:2026-09-10,12:17:37\r\n
+12:17:37  RESPUESTA  $ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-09-10,HORA:12:17:37*0D   (+0,0 s)   [el equipo contesta al comando SET_RTC, sin los argumentos que se mandaron]
+          EFECTO     CAMBIO: MODO: AUTO -> MANUAL (a los 88,8 s, TARDIO) · ESC: VERDE -> ROJO (a los 88,8 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:18:00  ORDEN      CMD:PIN:****:SET_RTC:2026-09-10,12:17:59\r\n
+12:18:00  RESPUESTA  $ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-09-10,HORA:12:17:59*05   (+0,2 s)   [el equipo contesta al comando SET_RTC, sin los argumentos que se mandaron]
+          EFECTO     CAMBIO: MODO: AUTO -> MANUAL (a los 66,3 s, TARDIO) · ESC: VERDE -> ROJO (a los 66,3 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:18:17  ORDEN      CMD:PIN:****:SET_RTC:2026-09-10,12:18:17\r\n
+          RESPUESTA  SIN RESPUESTA: el equipo no contesto en 5,0 s. Eso NO quiere decir que rechazara la orden: quiere decir que esta app no oyo nada
+          EFECTO     NO SE PUDO VER: el ultimo $STATUS anterior es de 9,6 s antes de la orden, y solo se admiten 6,0 s, asi que no hay con que comparar
+
+12:18:47  ORDEN      CMD:PIN:****:SET_RTC:2026-09-10,12:18:46\r\n
+12:18:47  RESPUESTA  $ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-09-10,HORA:12:18:46*04   (+0,0 s)   [el equipo contesta al comando SET_RTC, sin los argumentos que se mandaron]
+          EFECTO     CAMBIO: MODO: AUTO -> MANUAL (a los 19,3 s, TARDIO) · ESC: VERDE -> ROJO (a los 19,3 s, TARDIO) · ESTADO: ROJO -> AMARILLO (a los 75,3 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:18:53  ORDEN      CMD:LEER_RTC\r\n
+12:18:53  RESPUESTA  $ACK,NODE:PUENTE,CMD:LEER_RTC,RESULT:OK,FECHA:2026-09-10,HORA:12:18:52*5D   (+0,4 s)
+          EFECTO     CAMBIO: MODO: AUTO -> MANUAL (a los 13,3 s, TARDIO) · ESC: VERDE -> ROJO (a los 13,3 s, TARDIO) · ESTADO: ROJO -> AMARILLO (a los 69,3 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:19:04  ORDEN      CMD:PIN:****:SET_MODO:MANUAL\r\n
+12:19:04  RESPUESTA  $ACK,CMD:SET_MODO:MANUAL,RESULT:OK*3A   (+0,1 s)
+          EFECTO     CAMBIO: MODO: AUTO -> MANUAL (a los 1,6 s) · ESC: VERDE -> ROJO (a los 1,6 s) · ESTADO: ROJO -> AMARILLO (a los 57,6 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:19:18  ORDEN      CMD:SET_MODO:ALCANCE\r\n
+12:19:18  RESPUESTA  $ACK,CMD:SET_MODO:ALCANCE,RESULT:OK*67   (+0,1 s)
+          EFECTO     CAMBIO: MODO: MANUAL -> ALCANCE (a los 1,7 s) · ESTADO: ROJO -> AMARILLO (a los 43,7 s, TARDIO) · ESC: ROJO -> VERDE (a los 75,8 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:19:46  ORDEN      CMD:PIN:****:SET_MODO:INTELIGENTE\r\n
+12:19:46  RESPUESTA  $ACK,CMD:SET_MODO:INTELIGENTE,RESULT:OK*6E   (+0,2 s)
+          EFECTO     CAMBIO: MODO: ALCANCE -> INTELIGENTE (a los 1,6 s) · ESTADO: ROJO -> AMARILLO (a los 15,6 s, TARDIO) · ESC: ROJO -> VERDE (a los 47,7 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:19:54  ORDEN      CMD:PIN:****:DEMANDA\r\n
+12:19:54  RESPUESTA  $ACK,CMD:DEMANDA,RESULT:REGISTRADA*44   (+0,1 s)
+          EFECTO     CAMBIO: ESTADO: ROJO -> AMARILLO (a los 7,6 s, TARDIO) · ESC: ROJO -> VERDE (a los 39,8 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:20:17  ORDEN      CMD:PIN:****:MANUAL:CAMBIAR_TURNO\r\n
+12:20:18  RESPUESTA  $ACK,CMD:CAMBIAR_TURNO,RESULT:OK*54   (+0,4 s)   [el equipo contesta al comando CAMBIAR_TURNO para una orden que se manda como MANUAL:CAMBIAR_TURNO: lo hace asi el firmware]
+          EFECTO     CAMBIO: ESTADO: VERDE -> ROJO (a los 0,7 s) · ESC: ROJO -> VERDE (a los 16,7 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:20:52  ORDEN      CMD:PIN:****:MANUAL:CAMBIAR_TURNO\r\n
+12:20:52  RESPUESTA  $ACK,CMD:CAMBIAR_TURNO,RESULT:OK*54   (+0,1 s)   [el equipo contesta al comando CAMBIAR_TURNO para una orden que se manda como MANUAL:CAMBIAR_TURNO: lo hace asi el firmware]
+          EFECTO     CAMBIO: ESTADO: ROJO -> AMARILLO (a los 15,7 s, TARDIO) · ESC: VERDE -> ROJO (a los 19,8 s, TARDIO) · MODO: INTELIGENTE -> AUTO (a los 63,6 s, TARDIO)
+                     [los marcados TARDIO llegaron mas de 6,0 s despues de la orden: pueden ser de otra cosa. Una orden que se obedece se nota en el $STATUS siguiente]
+
+12:21:55  ORDEN      CMD:PIN:****:SET_MODO:AUTO\r\n
+12:21:55  RESPUESTA  $ACK,CMD:SET_MODO:AUTO,RESULT:OK*2F   (+0,1 s)
+          EFECTO     CAMBIO: MODO: INTELIGENTE -> AUTO (a los 0,8 s) · ESTADO: VERDE -> ROJO (a los 0,8 s)

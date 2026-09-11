@@ -11,10 +11,13 @@ caducado: se ha retirado en vez de sustituirse por otro que caducaría igual.** 
 mide, no se lee: `git rev-parse --short HEAD`.
 
 **La instalación certificada es la V8.4 (`e303485`, 31/07).** 🔴 **Pero el 10/09 un Maestro
-(`SERIE:179DB0`) corrió en El Sisga con firmware V9 `SIN_BANCO` y NO CONSTA QUÉ COMMIT LLEVABA** —su
-`$STATUS` trae `CAM:`, que nace el 05/09—. Lo primero, antes que nada: **el hash del firmware de las
-dos tarjetas, y la cinta y el diario de las dos puntas**; y **avisar al instalador si recibió las guías
-de 4 cámaras del 10/09, que están RETIRADAS**. Todo en `roadmap.md` §3.16 (`N-162`). La compuerta en
+(`SERIE:179DB0`) corrió en El Sisga con firmware V9 `SIN_BANCO`**: cargado el paquete del 08/09
+(`7ff7d12`), probado después el del 10/09 (`b354fe9`). La cinta y el diario del Maestro están en
+`evidencia/`. Lo primero: 🔴 **no usar el Modo Degradado allí con `7ff7d12`** (el Maestro se declara
+en hora con el reloj parado); **avisar al instalador** de que la guía de 4 cámaras que le llegó por
+WhatsApp está RETIRADA —ninguna cámara protege la pluma—; **medir la alimentación del ESP32** (se
+reinició 5 veces en 97 s, dos por pérdida de tensión); y **traer la cinta del Esclavo**. Lo que hay
+que construir es que **el ESP32 mande la hora** (`D-20`/`A-15`). Todo en `roadmap.md` §3.16 (`N-162`). La compuerta en
 verde dice que los modelos y los arneses de PC no encuentran nada; **no dice que el firmware funcione
 sobre la tarjeta**.
 
@@ -277,9 +280,9 @@ lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida
 
 | | |
 |---|---|
-| Flash | Maestro **88.8 %** (**58208** de 65536 B → **7.328 B libres**) · Esclavo **69.1 %** (45268 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Flash | Maestro **88.8 %** (**58216** de 65536 B → **7.320 B libres**) · Esclavo **69.1 %** (45268 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
 | Banco por packs | 🔴 **1249/1252 comprobaciones** en **78 packs** — 77 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
-| Arneses que compilan C++ real | 271/271 pantalla · **99/99** automático · 22/22 ciclo · **42/42 dos puntas** · **18/18 Degradado a dos puntas** |
+| Arneses que compilan C++ real | 271/271 pantalla · **99/99** automático · 22/22 ciclo · **45/45 dos puntas** · **18/18 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | **239/239** jsdom · 58/58 funcional · 32/32 unitarios · **61/61** TDD |
 

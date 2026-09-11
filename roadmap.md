@@ -26,7 +26,8 @@ nada** — la cuenta esta publicada al final de aquel fichero.
 ## Las cifras NO se copian aqui
 
 **La instalacion certificada es `V8.4`, commit `e303485` (31/07/2026).** 🔴 **Pero el 10/09 un Maestro
-con firmware V9 `SIN_BANCO` corrio en campo, en El Sisga, y no consta que commit llevaba** (§3.16). En el
+con firmware V9 `SIN_BANCO` corrio en campo, en El Sisga**: cargado el paquete del 08/09 (`7ff7d12`) y
+probado despues el del 10/09 (`b354fe9`) (§3.16). En el
 repositorio, `V9.0` en `main`.
 
 Compuerta, banco, flash y arneses: **la ultima acta de `evidencia/`**. No se transcriben a este
@@ -49,7 +50,7 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 
 **La instalacion certificada es `e303485`, del 31 de julio.** ~~Ninguno de los commits posteriores ha
 entrado en un poste~~ — 🔴 **FALSO desde el 10/09: un Maestro (`SERIE:179DB0`) corrio en El Sisga con
-firmware V9** —su `$STATUS` lleva `CAM:`, que nace el 05/09—, **y nadie apunto que commit llevaba**. Es
+firmware V9** —el paquete del 08/09, `7ff7d12`; despues se probo el del 10/09, `b354fe9`—. Es
 el primer contacto de V9 con una calle, y su evidencia en el repositorio es **UNA trama transcrita a
 mano**. §3.16.
 
@@ -90,10 +91,11 @@ mano**. §3.16.
 > **`A-16`**: `D-22` se contradice a si misma, y de eso depende que el Degradado sea seguro.
 
 > 🔴 **Y la OCTAVA, del 11/09, que va DELANTE de todas porque lo que falta es preguntar y no cuesta
-> nada: `N-162`, El Sisga (§3.16).** (1) **el hash del firmware que llevaban las dos tarjetas** y la
-> cinta y el diario de las dos puntas — sin eso ninguna de sus medidas se puede leer; (2) **avisar al
-> instalador si recibio las guias de 4 camaras**, que estan RETIRADAS por dos afirmaciones de seguridad
-> falsas; (3) la rama que salio de alli se valido por el DIFF: **se quedan** los getters del reloj y
+> nada: `N-162`, El Sisga (§3.16).** (1) ~~el hash del firmware~~ — contestado: `7ff7d12` cargado,
+> `b354fe9` probado despues; la cinta y el diario **del Maestro** estan ya en `evidencia/` (308 tramas,
+> 308 checksums que casan) y **falta la del Esclavo**; (2) **avisar al instalador**: la guia de 4
+> camaras le llego **por WhatsApp** el 10/09 a las 15:32 y esta RETIRADA por dos afirmaciones de
+> seguridad falsas; (3) la rama que salio de alli se valido por el DIFF: **se quedan** los getters del reloj y
 > las cabeceras de la app, **se revierte** el sello del puente y **se retiran** los textos de DAR PASO.
 > Y la auditoria destapo **`AMBAR_EMERGENCIA` sin PIN, que no avisa al Maestro** —el candidato mas
 > firme para el DAR PASO del Sisga— y **la siembra de `A-15`, decidida y sin construir**.
@@ -538,7 +540,14 @@ Hoy no explota —esos dos canales **no tienen una linea de firmware detras**, v
 la trampa que espera al primero que enchufe una cabeza peatonal. **Los documentos lo tienen bien:
 es la placa la que engana.**
 
-### 3.8 · 🔴 `N-159` — la analitica de las camaras COMPRADAS probablemente no acciona el rele
+### 3.8 · 🟢 `N-159` — la analitica de las camaras COMPRADAS probablemente no acciona el rele
+
+> ✅ **CONTESTADO EN CAMPO el 10/09, y en positivo:** el instalador configuro una camara del Maestro
+> —`Intrusion Detection` con `Trigger Alarm Output`— y midio *«0 V cuando no hay detecciones, 3,3 V cuando
+> realiza una deteccion»* (WhatsApp, 15:24). **La casilla existe y el contacto conmuta con la analitica**:
+> el camino de `J16` sirve. Lo de abajo se conserva como el razonamiento que se hizo antes de medir.
+> ⚠️ Es **una** camara, medida en el borne y no en una trama: `CAM:?` sigue en toda la cinta de las 12:17,
+> que es de antes de configurarla.
 
 **Las camaras ya se compraron** (`D-10`, `DS-2CD2683G2-IZS`), y de un solo bit suyo cuelga todo el
 camino de `J16`. Con la ficha del modelo delante, el papel **no lo cierra en positivo y por
@@ -1149,9 +1158,12 @@ escribirlo aqui. El parte original se conserva en la historia de git (`669e87c:r
 | `J15`: p1 12 V, p2 drenador de `Q10` IRLZ44N, `U15` TLP127, `D30` 1N4148, `D29` | 🟢 **CIERTO** | medido el 11/09 sobre el `.kicad_pcb`. **Pero p2 no es «GND»**, como rotulaba el SVG: con `Q10` abierto esta a ~12 V |
 | `J16` p1 lleva 12 V y se tapa · `J14` es entrada | 🟢 **CIERTO** | pero la guia admitia camara en `J14`, y `A-2` lo reservo al **fin de carrera** |
 
-> 🔴 **Si salio hacia el Sisga alguno de los paquetes del 10/09 (`44967db`, `bd77271`, `fae4b3e`), esas
-> guias estan en manos del instalador, y el firmware del ESP32 de dentro lleva el sello revertido.**
-> Hay que avisarle antes de que monte nada por ellas.
+> 🔴 **LA GUIA SI LLEGO AL SISGA, y no por el paquete: por WhatsApp, el 10/09 a las 15:32**, junto con un
+> resumen de configuracion para "las 4 camaras". Las dos versiones de esa hora (`48f7fbb`, `86683e8`)
+> ya llevan *«cuida la pluma / protege pluma»*. El instalador dijo que la guardaba en el chat y que ese dia
+> solo configuro **una camara del Maestro**. **Hay que decirle las dos falsedades antes de que monte las
+> demas.** Y el ultimo paquete que probo es `b354fe9`, que lleva el sello del puente que aqui se revirtio:
+> **campo y `main` difieren en el ESP32**, y el siguiente paquete tiene que cargar las tres tarjetas.
 
 #### DAR PASO — el diagnostico del 10/09 NO se sostiene
 
@@ -1177,8 +1189,8 @@ razonamiento, el sospechoso es el razonamiento.**
 **La medida que lo distingue, y no pide tarjeta nueva:** el `$STATUS` **del propio Esclavo** en ese
 momento —`ESTADO:FALLO COM` con `PLUMA:ARRIBA` es `S_FALLO`; `ESTADO:AMARILLO` con `PLUMA:ABAJO` es la
 transicion—, su Diario de Ordenes (`AMBAR_EMERGENCIA` sin `CANCELAR_AMBAR` detras), la cinta del Maestro
-(`$ALARM … REINTENTOS_AGOTADOS` unos 17 s despues del despeje) **y el hash del firmware de las dos
-tarjetas**.
+(`$ALARM … REINTENTOS_AGOTADOS` unos 17 s despues del despeje). **La del Maestro ya esta, y no trae ni un
+`REINTENTOS_AGOTADOS`**: ver la cinta, abajo. Falta la del Esclavo.
 
 #### Lo que aparecio al auditar, y NO es de esta rama
 
@@ -1190,6 +1202,44 @@ tarjetas**.
 | **D** | 🟠 **Con el contador del RTC congelado en un valor NO nulo, el limite de 48 h del Degradado no vence tras un corte**: `reloj_contadorSegundos()` devuelve el contador si `rtcOperativo`, y `respaldo_horasDesdeSync()` da 0 para siempre | **mecanismo medido; que el estado exista en una placa, HIPOTESIS.** El `00:00:00` del 179DB0 cae del lado seguro desde `c51cc85` (no reanuda); otro valor congelado, no. Se mide con `CONSULTA RELOJ` dos veces, 10 s aparte: `cnt` tiene que avanzar 10 |
 | **E** | 🟠 **La guarda `D-21` del Esclavo sigue siendo inalcanzable** (§3.10.bis) y **`DECISIONES.md` la sigue llamando «guarda nueva y real»** | medido |
 | **F** | 🟡 **«Pluma ARRIBA en `S_FALLO`» no tiene fila en `DECISIONES.md`**: vive en un comentario de `semaforo.cpp` (cliente y PMT, 27/08) y en el Manual 1 (confirmado el 04/09) | a la tabla vinculante, por el responsable |
+
+#### La cinta y el diario del Maestro (10/09, 12:06–12:26, firmware `7ff7d12`), LEIDOS ENTEROS
+
+**Estan en `evidencia/2026-09-10_Sisga_179DB0_cinta_tramas.txt` y `…_diario_ordenes.txt`**, copiados de
+lo que exporto la app, y **verificados: 308 tramas con checksum, 308 casan**. Es la primera medida de V9
+en una calle. Lo que dicen, con el firmware que habia dentro:
+
+| | lo que se ve | lo que significa |
+|---|---|---|
+| **La hora** | 5 `SET_RTC`. El puente contesta `$ACK…RESULT:OK` con la hora **releida** del `DS3231`, y `LEER_RTC` la da **avanzando** (12:17:31 → 12:18:52). El STM32 emite `SET_RTC_LO_ACUSA_EL_PUENTE` 4 veces —o sea que **la siembra ENTRO**— y aun asi publica `HORA:00:00:00` en **las 150 tramas** | 🔴 con `7ff7d12` los getters leen **primero el RTC del STM32**, y en el 179DB0 ese RTC tiene `LSERDY` arriba y **no cuenta**: es `N-144` en la calle. **`main` lo corrige** (`c51cc85`: manda la base sembrada). El `DS3231` del puente **funciona en cobre** |
+| 🔴 **El Degradado con `7ff7d12` en el 179DB0** | el Maestro se declara **en hora** con el reloj parado | **su autorizacion cuelga de esa bandera, y su fase saldria de un reloj que no avanza.** **No se usa el Modo Degradado en el Sisga con ese firmware** |
+| 🔴 **El ESP32 se reinicio 5 veces en 97 s** (12:18:08–12:19:45) | 3 × `CAUSA:OTRO_PERRO` (`ESP_RST_WDT`: **no** es nuestro perro de tareas, que se llamaria `PERRO_DE_TAREAS`) y **2 × `SUBIDA_DE_TENSION`** | **perdio la alimentacion dos veces**: fuente o cable del modulo, no codigo —en el camino de `SET_RTC` no hay ni un `delay` ni un bucle, medido—. Por eso el `SET_RTC` de las 12:18:17 quedo **sin respuesta**. Y `J17` enmudece 3–4 s tras cada `SET_RTC` (`MUDO:4s`, contador ya en `N:1314`). **Es la unica superficie de mando (`D-16`)**: se mide la tension del ESP32 en marcha |
+| **DAR PASO** | dos, a las 12:20:17 y 12:20:52, **en `INTELIGENTE`**, no en Manual. El Maestro alterna bien: verde→rojo→15 s→`ACK_GREEN` del Esclavo; y despues Esclavo→rojo→15 s→ambar 4 s→verde del Maestro | ✅ del lado del Maestro funciona. 🔴 **Pero la trama MENTIA** en el segundo: `ESC:VERDE` los 16 s del despeje **y** con el Maestro en ambar (12:21:08). `quienVerde` no cambia hasta que el Maestro llega a verde. **En la app, un DAR PASO que "no cambia".** Arreglado el 11/09 en `coordinador_estadoEsclavo()`, con tres comprobaciones nuevas en el arnes de las dos puntas (A10–A12) **vistas fallar** con el defecto inyectado (80 y 264 instantes) |
+| **Manual** | 12:19:04 → 12:19:18 en `MANUAL`: rojo/rojo, `T:--`, **sin ciclar**, y ninguna orden dentro | no hay un solo DAR PASO en Manual en esta cinta. **Lo de «Manual no cambia» no esta en esta medida**: hace falta la cinta de esa prueba |
+| **El ciclo Automatico** | `SET_TIEMPOS:3,3,15` aceptado; verde de 180 s (`T:178`…`0`), despeje de 15 s, `ESC` alterna, `PLUMA:ARRIBA` con cada verde y `ABAJO` con cada rojo, `RF` 90–100 %, `RTT` ~200 ms | ✅ del lado del Maestro, **y los 15 s de los que hablaba el reporte son el despeje que se configuro** (el tercer campo de `SET_TIEMPOS`), no un numero del firmware |
+| **La camara** | `CAM:?` en toda la cinta | es de **antes** de configurarla (15:24). Lo que vino despues esta en §3.8 |
+
+> 🎯 **Y lo que pide el responsable el 11/09, que es la conclusion de la fila de la hora: «son los ESP32
+> los que tienen el reloj y deben comandar la hora».** Es `D-20` y `A-15`, decididas, y **lo construido
+> no las cumple**: el telefono le manda la hora al STM32 y **el ESP32 nunca le siembra la suya**. Lo que
+> hay que construir, y por que no es un parche:
+>
+> 1. **El ESP32 siembra a su STM32 desde el `DS3231`**, con la hora RELEIDA por la barrera: al arrancar,
+>    tras cada `SET_RTC` bueno y **cada hora** (`A-15`). En el Maestro, esa siembra se propaga al Esclavo
+>    por radio como hoy.
+> 2. **El `SET_RTC` del telefono deja de cruzar al STM32**: lo atiende el puente, y el STM32 recibe la hora
+>    del `DS3231`, no los bytes del telefono. Cierra de paso el `$ERR` del puente con la hora sembrada
+>    igual (§3.16-C).
+> 3. **En el Esclavo manda la radio mientras este fresca** (`D-20`: *el Maestro manda y el Esclavo hace
+>    caso*); su propio ESP32 solo lo siembra si no tiene hora de radio reciente —el arranque, o una radio
+>    caida—.
+> 4. 🔴 **Estrecha una barrera escrita**: `esp32_05_no_origina` —*«el puente no origina; es la propiedad
+>    mas importante del puente»*—. `D-20`/`A-15` ya decidieron que el ESP32 siembre, asi que la barrera
+>    **no se retira: se estrecha a UNA excepcion justificada**, la hora releida, y el puente **tira esa
+>    misma orden si le llega del telefono**, o cualquiera pondria la hora sin PIN.
+>
+> **Alcance medido el 11/09: 3 firmwares, 16 instrumentos que nombran `SET_RTC`, la app y los manuales.**
+> Va en su rama, con la compuerta delante, y **no se sube sin banco**.
 
 ---
 
@@ -1215,8 +1265,11 @@ tarjetas**.
 > arneses de PC no encuentran nada.* **Nada de este apartado esta cerrado, y nada de esto viaja al
 > historico hasta que una tarjeta lo diga.**
 
-> ⚠️ **11/09: el Sisga (10/09) es la primera vez que parte de esto corrio en una calle — y con UNA trama y
-> sin el hash del firmware no se cierra NADA de esta caja.** Lo que pueda cerrar lo dira la cinta. §3.16.
+> ⚠️ **11/09: el Sisga (10/09, firmware `7ff7d12`) es la primera vez que parte de esto corrio en una calle.**
+> La cinta del Maestro (§3.16) **ejerce, del lado del Maestro y por telemetria**: `N-150` (el ciclo arranca
+> tras `SET_TIEMPOS:3,3,15`), `N-153` (`PLUMA:ARRIBA` con cada verde y `ABAJO` con cada rojo) y el ciclo
+> Automatico 3/3/15. **`N-147` solo a medias**: Manual quedo 14 s en rojo/rojo sin ciclar, no 15. Nada de
+> esto ve las luces ni el Esclavo: **no se tacha nada de esta caja hasta tener su cinta**.
 
 **Los siete que salieron DESPUES de la ultima cinta (05/09, 22:19). Ninguno ha visto cobre:**
 
