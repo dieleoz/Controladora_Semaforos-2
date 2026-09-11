@@ -1,18 +1,22 @@
-# ESTADO — dónde está parado el trabajo HOY (08/09/2026)
+# ESTADO — dónde está parado el trabajo HOY (11/09/2026)
 
 > **Este fichero es el estado VIVO.** Lo que está abierto, lo que bloquea y lo que falta medir.
 > El *porqué* completo de cada `N-x` vive en [`roadmap.md`](roadmap.md); las decisiones vigentes,
 > en [`DECISIONES.md`](DECISIONES.md) — **si un párrafo de aquí contradice una fila de allí, gana
 > la fila**. Lo de debajo del separador es histórico y se conserva tachado, no borrado.
 
-**Rama de trabajo del 07/09: `feat/d20-d23-construccion`** *(contiene `main-nuevo` entera; `git log
---oneline HEAD..main-nuevo` sale vacío).* 🔴 **Aquí había un hash de HEAD escrito a mano y estaba
+**Rama de trabajo: `main`** *(el 11/09 se fusionaron, por avance rápido y tras validarlas por el
+diff, `feat/d20-d23-construccion` y `fix/campo-sisga-rtc-darpaso`, que ya la contenía).* 🔴 **Aquí había un hash de HEAD escrito a mano y estaba
 caducado: se ha retirado en vez de sustituirse por otro que caducaría igual.** El HEAD vigente se
 mide, no se lee: `git rev-parse --short HEAD`.
 
-**En campo sigue la V8.4 (`e303485`, 31/07), y NADA DE ESTA RAMA HA VISTO UNA TARJETA.** La
-compuerta en verde dice que los modelos y los arneses de PC no encuentran nada; **no dice que el
-firmware funcione sobre la tarjeta**.
+**La instalación certificada es la V8.4 (`e303485`, 31/07).** 🔴 **Pero el 10/09 un Maestro
+(`SERIE:179DB0`) corrió en El Sisga con firmware V9 `SIN_BANCO` y NO CONSTA QUÉ COMMIT LLEVABA** —su
+`$STATUS` trae `CAM:`, que nace el 05/09—. Lo primero, antes que nada: **el hash del firmware de las
+dos tarjetas, y la cinta y el diario de las dos puntas**; y **avisar al instalador si recibió las guías
+de 4 cámaras del 10/09, que están RETIRADAS**. Todo en `roadmap.md` §3.16 (`N-162`). La compuerta en
+verde dice que los modelos y los arneses de PC no encuentran nada; **no dice que el firmware funcione
+sobre la tarjeta**.
 
 > 🔴 **Y esta rama no es un retoque: TODO EL RELOJ DE LAS DOS PUNTAS SE REESCRIBIÓ.** El diff contra
 > el arranque de la rama son **cientos de líneas** en `Maestro/src/reloj.cpp` y
@@ -84,8 +88,8 @@ qué hubo que auditarla vive en [`roadmap.md`](roadmap.md) bajo **`N-160`**.
 | decisión | veredicto medido |
 |---|---|
 | **`D-20`** — la autoridad de la hora es el ESP32 | 🟢 **CONSTRUIDA** (`9dd8bbf`). `reloj_sembrarDesdeIso()` existe en las **dos** puntas **con llamadores reales** —la rama `SET_RTC:` de `Maestro/src/bluetooth.cpp` y la de `Esclavo/src/bluetooth.cpp`— y `reloj.cpp` trae el **extrapolador por software** `segBaseDelDia + (millis() - tBaseMillis) / 1000`. **Es lo que permite que `reloj_enHora()` sea cierto sin `Y2`, y por tanto lo que desbloquea el Modo Degradado del poste 2, que estaba muerto.** La propagación al Esclavo la dispara `coordinador_sincronizarHora()`, llamada **dentro del `if`** del sembrador |
-| **`D-21` pieza B** — ámbar si la hora deja de ser fiable | 🟢 **CONSTRUIDA** (`7adee76`). Guarda nueva y real en `Esclavo/src/modo_degradado.cpp`. ⚠️ **La del Maestro —`irAAmbar("Reloj no fiable", "Degradado detenido")`— YA EXISTÍA antes de la rama**: el commit sólo le añadió un comentario, y el parte la contó como nueva. ⚠️ **Y las dos no son la misma línea:** el Maestro va **directo** al ámbar; el Esclavo llama a `iniciarSalida(true)` —rendición—, que fuerza **todo-rojo primero** y termina en `DEG_RENDIDO` con `semaforo_iniciarFallo()`. Las dos acaban en intermitente; sólo el Esclavo pasa por el despeje, y es lo correcto |
-| **`D-14`** — la entrada de alarma de la cámara | 🛑 **CERO CÓDIGO.** Entró como **dos comentarios en `pines.h`**; **revertido en `def6374`**. Sigue **BLOQUEADA por una medida de multímetro**: el régimen eléctrico de la **ENTRADA** de alarma —si admite ~12 V con masa compartida o exige contacto seco—. **Eso no lo desbloquea un teclado** |
+| **`D-21` pieza B** — ámbar si la hora deja de ser fiable | 🟡 **ESCRITA** (`7adee76`) en `Esclavo/src/modo_degradado.cpp`, 🔴 **pero INALCANZABLE**: el único `horaValida = false` del Esclavo vive dentro de `reloj_setup()`, así que dentro del Degradado la guarda no puede dispararse (`roadmap.md` §3.10.bis y §3.16-E). Falta la pieza A —el `OSF` hasta `reloj_enHora()`—. ⚠️ **La del Maestro —`irAAmbar("Reloj no fiable", "Degradado detenido")`— YA EXISTÍA antes de la rama**: el commit sólo le añadió un comentario, y el parte la contó como nueva. ⚠️ **Y las dos no son la misma línea:** el Maestro va **directo** al ámbar; el Esclavo llama a `iniciarSalida(true)` —rendición—, que fuerza **todo-rojo primero** y termina en `DEG_RENDIDO` con `semaforo_iniciarFallo()`. Las dos acaban en intermitente; sólo el Esclavo pasa por el despeje, y es lo correcto |
+| **`D-14`** — la entrada de alarma de la cámara | 🛑 **CERO CÓDIGO.** Entró como **dos comentarios en `pines.h`**; **revertido en `def6374`**. ~~Sigue BLOQUEADA por una medida de multímetro~~ — 🟢 **esa medida NO hacía falta** (08/09, `roadmap.md` §3.11.bis: el Manual 9 ya tenía leído `1 input … max. 24VDC`). **Lo que la bloquea es una DECISIÓN del responsable: cuál de los tres últimos canales de potencia (`J9`/`J11`/`J13`) se gasta, para siempre** (§3.11.ter) |
 | **`D-22`** — `Y1` como latido del micro | 🛑 **CERO CÓDIGO.** Entró como **tres comentarios en cada `main.cpp`**, y describía **el HSI de hoy como si fuera la decisión implementada**; **revertido en `903f483`**. Medido buscando por sus dos nombres (`Y1` y `HSE`/`SystemClock_Config`) sobre `{Maestro,Esclavo,Repetidor}/{src,include}`: **cero apariciones**. `Y1` **no se ha arrancado nunca** y el firmware sigue en el HSI. **Va la ÚLTIMA, va SOLA, y no se carga sin una tarjeta delante:** si `Y1` no oscila, el `_Error_Handler` del núcleo es `noreturn` + `while (1)` y **la tarjeta queda a oscuras, sin luces y sin reiniciarse** |
 | **`D-23`** — pantalla propia del poste 2 | 🛑 **CERO CÓDIGO, y es una decisión de la APP.** Entró como **dos comentarios**; **revertido en `5d0a0b9`**. Medido sobre **toda** la rama: `app.js` e `index.html` **no aparecen en el diff**, y las **CUATRO** copias de `app.js` del árbol son **idénticas por hash** (`md5 b09dcc85…`) *(el parte decía tres)*. 🔴 **Y antes de construirla hay que ELEGIR LA VÍA, que no está elegida: `A-14` en [`DECISIONES.md`](DECISIONES.md)** |
 
@@ -268,7 +272,7 @@ acta es el ESTADO: `decisiones_01_anclas` vuelve a acusar a `D-14`, `D-22` y `D-
 ancla en el fuente, y esa acusación es CORRECTA — están decididas y sin construir.**
 
 Cifras **copiadas del acta
-[`evidencia/2026-09-10_compuerta.txt`](evidencia/2026-09-10_compuerta.txt)**, no escritas a mano —
+[`evidencia/2026-09-11_compuerta.txt`](evidencia/2026-09-11_compuerta.txt)**, no escritas a mano —
 lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida.
 
 | | |
@@ -279,9 +283,10 @@ lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida
 | Puente ESP32 | **101/101** |
 | App | **239/239** jsdom · 58/58 funcional · 32/32 unitarios · **61/61** TDD |
 
-> 🔴 **El acta se midió sobre HEAD `f27f1a0` y con el árbol CON CAMBIOS SIN COMMITEAR** —lo dice
-> su última línea—, así que estas cifras **no corresponden exactamente** a ningún commit. Para que
-> sean reproducibles hay que volver a correr la compuerta con el árbol limpio.
+> 🔴 **Qué HEAD y con qué árbol se midió lo dice el acta en su cabecera, y no se copia aquí**: aquí
+> ponía `f27f1a0` cuando el acta citada decía otro. Si dice `CON CAMBIOS SIN COMMITEAR`, sus cifras
+> **no corresponden exactamente** a ningún commit, y para que sean reproducibles hay que volver a
+> correr la compuerta con el árbol limpio.
 
 🔴 **Y el verde sigue sin ser un entregable — con el contraejemplo delante en vez de como
 advertencia.** El banco del 3-4/09 encontró **tres defectos que ninguna línea de instrumento podía

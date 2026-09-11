@@ -1,20 +1,22 @@
 # 🚦 Controladora de Semáforos Móviles de 3 Estados (V9.0)
 
 > 🧭 **Las decisiones vigentes viven en [`DECISIONES.md`](DECISIONES.md)** — una fila por
-> decision, con su fecha, su motivo y que deroga. **Dieciocho vigentes, nueve abiertas**
-> *(contadas el 07/09 sobre el propio fichero: 19 filas `D-x` con `D-6` derogada, y 10 filas
-> `A-x` con `A-11` resuelta)*. Si un parrafo de cualquier documento contradice una fila de
-> ahi, **gana la fila**: el parrafo esta caducado. Se lee ANTES de encargar un cambio de
-> alcance.
+> decision, con su fecha, su motivo y que deroga. *(Aqui se publicaba cuantas hay; se quito el
+> 11/09 porque decia 18 y 9 cuando ya eran mas: se cuentan alli.)* Si un parrafo de cualquier
+> documento contradice una fila de ahi, **gana la fila**: el parrafo esta caducado. Se lee
+> ANTES de encargar un cambio de alcance.
 
 ---
 
 ## 🔴 Lo que este README no puede decirte, y es lo primero
 
-**En campo corre `e303485` (V8.4, 31/07/2026). Han pasado 38 días y ninguna línea de lo que
-hay debajo ha llegado a un poste.** Sí ha llegado a una mesa: el 3-4/09 y la noche del 04/09
-hubo banco con dos tarjetas cargadas, y la última cinta —05/09, 22:19— corrió sobre `42a52cd`.
-**Todo lo arreglado después de esa cinta no ha visto una tarjeta.**
+**La instalación certificada es `e303485` (V8.4, 31/07/2026).** Lo de debajo llegó a una mesa
+el 3-4/09 y la noche del 04/09 —banco con dos tarjetas; la última cinta, 05/09 22:19, sobre
+`42a52cd`— y 🔴 **el 10/09 llegó por primera vez a una calle: un Maestro (`SERIE:179DB0`)
+corrió en El Sisga con firmware V9 `SIN_BANCO`**, y **nadie apuntó qué commit llevaba**. Su
+evidencia en el repositorio es **una trama transcrita a mano**. Lo que se reportó allí, y la
+rama que salió de ahí validada por el diff, está en `roadmap.md` §3.16 (`N-162`).
+**Nada de lo arreglado después de la cinta del 05/09 ha pasado un banco.**
 
 | | firmware | instrumento | ratio |
 |---|---|---|---|
@@ -28,7 +30,7 @@ hubo banco con dos tarjetas cargadas, y la última cinta —05/09, 22:19— corr
 > un par de números para rellenar la fila**.
 
 **Tres auditorías externas independientes dijeron lo mismo**, y la tercera lo dijo de la
-respuesta a la segunda. La regla que salió de ahí vive en `CLAUDE.md` §2.bis:
+respuesta a la segunda. La regla que salió de ahí vive en `CLAUDE.md` §0 y §8:
 
 > **Un `20/20` sobre decenas de miles de líneas de instrumento que nunca han tocado una tarjeta
 > no es un entregable: es una coartada.**
@@ -78,7 +80,7 @@ La tabla de abajo es verdad. **Lee lo que mide antes de lo que puntúa.**
 > tabla. Mismo cobre, distinto `pinMode`, distinta tensión. Ver `DECISIONES.md`, cerradas.)*
 
 **Verificación actual** — cifras **copiadas del acta**
-[`evidencia/2026-09-10_compuerta.txt`](evidencia/2026-09-10_compuerta.txt), que genera
+[`evidencia/2026-09-11_compuerta.txt`](evidencia/2026-09-11_compuerta.txt), que genera
 `python 01_Firmware/compuerta.py` en una sola corrida. No se escriben a mano — y desde **N-62**
 eso ya no es una promesa: el pack `documentos_01_cifras_del_acta` compara esta tabla contra la
 última acta en cada corrida del banco. Cuando se escribió por primera vez, **falló**: esta tabla
@@ -88,13 +90,13 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
-| banco por packs *(78 packs)* | 🔴 **FALLA** | **1249/1252 comprobaciones en 78 packs** — 77 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22` y `D-23` son decisiones VIGENTES sin construir**. **Sólo `D-20` y la pieza B de `D-21` lo están.** Ninguna de las tres se destraba con teclado: una espera un multímetro, otra una tarjeta delante y la tercera que se elija la vía |
+| banco por packs *(78 packs)* | 🔴 **FALLA** | **1249/1252 comprobaciones en 78 packs** — 77 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22` y `D-23` son decisiones VIGENTES sin construir**. **Sólo `D-20` y la pieza B de `D-21` lo están.** `D-23` ya tiene la vía elegida (`$EVENT`, `A-14`) y **es teclado**; `D-14` espera **que el responsable elija cuál de los tres últimos canales de potencia gasta** (el multímetro que se pedía no hacía falta); `D-22` espera **una tarjeta delante** |
 | compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **88.8 %** · 69.1 % · 20.6 % · 35.7 % — *el Maestro ocupa **58208 de 65536 B**, o sea **7.328 B libres**; el Esclavo, **45268 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
-| compila ESP32 | ✅ | 35.7 % — 1123005 de 3.145.728 B |
+| compila ESP32 | ✅ | 35.7 % — 1122973 de 3.145.728 B |
 | simulador del puente ESP32 | ✅ | **101/101** — las tres puntas: `bluetooth.cpp` compilado, la app en jsdom, y solo el ESP32 modelado |
-| simulador de app y bluetooth | ✅ | **12/12** — estuvo en `ABORTADO` unas horas el 05/09: **N-149** le añadió el campo `ESC` al `$STATUS` y el instrumento no supo con qué compararlo. Se enseñó a leerlo el mismo día. Queda escrito porque **mientras duró, todo lo que vigilaba entró sin mirar** (`CLAUDE.md` §3.quater) |
+| simulador de app y bluetooth | ✅ | **12/12** — estuvo en `ABORTADO` unas horas el 05/09: **N-149** le añadió el campo `ESC` al `$STATUS` y el instrumento no supo con qué compararlo. Se enseñó a leerlo el mismo día. Queda escrito porque **mientras duró, todo lo que vigilaba entró sin mirar** (`CLAUDE.md` §1) |
 | **app ejecutada en DOM** | ✅ | **239/239** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden**, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
 | test funcional de la app | ✅ | **58/58** — decía «22/22» a mano y ejecuta 34; su prueba de Courier RTC era una tautología |
 | test unitarios TDD de la app | ✅ | **61/61** — la **segunda** suite unitaria, que hasta el 01/09 **no estaba en la compuerta**: 23 pruebas verdes que no medían nada. *(Esta fila publicó `55/55` hasta el 07/09: era la cifra del 02/09, y `documentos_01` **no la vigila** — no está en su tupla `CIFRAS`.)* |
@@ -113,10 +115,11 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 > cierra un contacto y la cámara graba*— fue **el argumento de una compra**; `D-22` es poner `Y1`, y
 > `D-23` es la pantalla propia del poste 2, **que es de la app y la app no se ha tocado**.
 >
-> 🛑 **Y ninguna de las tres se apaga escribiendo código:** una espera **una medida de multímetro**,
-> otra **una tarjeta delante** —si `Y1` no oscila el `_Error_Handler` es `noreturn` y la tarjeta queda
-> a oscuras— y la tercera **que se elija la vía** entre las tres que `§5.8.6` del Manual 14 ya tiene
-> medidas. **El 07/09 se intentó cerrarlas poniéndoles el ancla en un comentario y la compuerta se
+> 🛑 **Y ninguna de las tres se apaga poniéndole un ancla:** `D-23` se apaga **construyéndola**
+> —un `$EVENT` nuevo en el Esclavo y su pantalla en la app—; `D-14` espera **una decisión del
+> responsable** —qué canal de `J9`/`J11`/`J13` se gasta, para siempre—; y `D-22` espera **una
+> tarjeta delante**, porque si `Y1` no oscila el `_Error_Handler` es `noreturn` y la tarjeta queda
+> a oscuras. **El 07/09 se intentó cerrarlas poniéndoles el ancla en un comentario y la compuerta se
 > puso en `20/20` sin que se construyera nada** *(`roadmap.md` §3.10)*. Las tres anclas están
 > revertidas y el rojo volvió, que es donde tiene que estar.
 
@@ -155,7 +158,7 @@ uno**. Y los simuladores no ejecutan el C++, lo *reimplementan a mano*: son una 
 alguien sincroniza, y eso falló cuatro veces en una semana.
 
 ⚠️ **Pero `correr.py` NO es `compuerta.py`.** El banco es **una fila de veinte**: un
-`1222/1226` no dice nada de las otras diecinueve, y una de ellas puede estar en `ABORTADO` por
+`x/y` de packs no dice nada de las otras diecinueve, y una de ellas puede estar en `ABORTADO` por
 el mismo cambio que acabas de comitear. **Antes de comitear se corre `compuerta.py`, completo.**
 
 ### 📦 Qué se le manda al funcional, y por qué son dos paquetes
@@ -172,7 +175,7 @@ El `LEEME_PRIMERO` **no abre con la cifra en verde** — abre diciendo qué corr
 no es eso, y qué sigue roto. El método está en la skill `entregar`.
 
 **Certificado en campo:** 31 de Julio de 2026 *(V8.4, dos radios en enlace directo)*
-**Última actualización del repositorio:** 7 de Septiembre de 2026 *(la cifra vigente y su hash de
+**Última actualización del repositorio:** 11 de Septiembre de 2026 *(la cifra vigente y su hash de
 HEAD están en el acta que cita la tabla de arriba, y no se repiten aquí: este pie llevaba
 `14 PASS` sobre HEAD `2cde016` cuando el acta ya medía otra cosa, y un recuento viejo no se lee
 como viejo, se lee como medida.)*
@@ -250,15 +253,23 @@ tenía el módulo SPP; **lo que se enchufa, no**.
 > SIN TELÉFONO NO HAY FORMA DE OPERAR EL EQUIPO.** Ni ámbar, ni volver a automático, ni parar el
 > cruce. Va escrito en el manual del operario: el teléfono es herramienta crítica.
 
-### Las cámaras van a `J16` p10/p12 — y **ya se cablean**
+### La cámara va a `J16` p10 — **una por poste** (`D-13`) — y **ya se cablea**
+
+*(Resumen: la tabla que manda es `05_Funcional/17_…` §1.7. La columna «red» es el nombre heredado
+del netlist, **no el papel del pin**.)*
 
 | `J16` | red | pin | uso nuevo |
 |---|---|---|---|
 | p1 | `/12V` | — | 🔴 **12 V crudos. Se tapa físicamente en CADA equipo que se monte** (N-120) — es el único conector de señal de la tarjeta que los trae, sin opto ni clamp |
-| p5 | `/Boton1` | `PB9` | **sin asignar — decisión abierta `A-2`**, y es de seguridad: el firmware sigue leyendo ese pin y alimentando el reconocedor de secuencias del mando |
+| p5 | `/Boton1` | `PB9` | **libre y SIN CABLEAR** (`A-2`, cerrada el 05/09: el fin de carrera va a `J14`). 🔴 **El firmware sigue leyendo ese pin** y alimentando el reconocedor de secuencias del mando |
 | p8 | `/Boton2` | `PB13` | igual que p5 |
-| p10 | `/Boton3` | `PB14` | **Cámara 2** *(verificada en banco)* |
-| p12 | `/Boton4` | `PB15` | **Cámara 1** |
+| p10 | `/Boton3` | `PB14` | 🎯 **`CAM_C_PIN` — LA cámara de demanda** *(verificada en banco el 03/09)* |
+| p12 | `/Boton4` | `PB15` | **`CAM_D_PIN` — entrada de cámara que HOY SE DEJA VACÍA**, y el firmware depende de ello (la exención del vigilante) |
+
+> ⚠️ **Aquí ponía `p10 = Cámara 2` / `p12 = Cámara 1`**, y la spec había decidido `C`/`D` con p12
+> vacío: esos números el firmware y el Manual 9 los usan **para otra cosa**. Corregido el 11/09. Y
+> 🔴 **las guías «de 4 cámaras» del Sisga (10/09), que ocupaban p12, están RETIRADAS** — ver
+> `roadmap.md` §3.16: **ninguna cámara protege la pluma** en el firmware de hoy.
 
 > ✅ **La medida `M3` está CERRADA desde el 03/09 y las cámaras se cablean** (`D-3`). Medido en
 > cobre —multímetro, conector vacío, paso 20 de la Guía—: el pull-down de **10 kΩ** que declaraba
@@ -287,7 +298,7 @@ tenía el módulo SPP; **lo que se enchufa, no**.
 
 Es **hardware pagado y muerto** —tiene opto, MOSFET y bornera propia—. Se anota aquí porque
 *"conserva las 8 luces"* es la clase de frase que se copia de documento en documento sin que nadie
-corra el `grep`: **la barrera de salidas de `CLAUDE.md` §6 custodia ocho nombres; el equipo mueve
+corra el `grep`: **la barrera de salidas de `CLAUDE.md` §2 custodia ocho nombres; el equipo mueve
 seis.**
 
 ### 🛑 Lo que esta arquitectura NO autoriza
@@ -452,10 +463,13 @@ fallar varias veces con `Unable to get core ID`. Eso **no** es falta de cableado
 | 15 | [`15_Lista_de_Compras_Hardware`](05_Funcional/15_Lista_de_Compras_Hardware.md) | **Qué se pide, cuánto y cuándo** |
 | 16 | [`16_Documento_Auditoria_Arquitectura_y_Usabilidad_App`](05_Funcional/16_Documento_Auditoria_Arquitectura_y_Usabilidad_App_IOT_VIAL.md) | Auditoría de arquitectura y usabilidad de la app |
 | 17 | [`17_Arquitectura_28-08_y_Decisiones_Abiertas`](05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md) | 🧭 **Manda sobre las filas 9, 10, 11 y 13.** Es donde se anotan las medidas de cobre |
+| 18 | [`18_Especificacion_Firmware_ESP32`](05_Funcional/18_Especificacion_Firmware_ESP32.md) | Especificación del firmware del módulo de expansión ESP32 |
+| 19 | [`19_Especificacion_Placa_Portadora_ESP32`](05_Funcional/19_Especificacion_Placa_Portadora_ESP32.md) | Especificación de la placa portadora del ESP32 |
 
-*(**La lista se ha desfasado TRES veces por lo mismo, y sigue sin instrumento**: el 27/08 anunciaba
-11 manuales de los 14 que existían; el 28/08, 15 de 16; y el 31/08, 16 de **17**. Contar los
-ficheros es `ls 05_Funcional/[0-9]*.md`; que nadie lo haga es lo que hace falta cerrar.)*
+*(**La lista se ha desfasado CUATRO veces por lo mismo, y sigue sin instrumento**: el 27/08 anunciaba
+11 manuales de los 14 que existían; el 28/08, 15 de 16; el 31/08, 16 de 17; y hasta el 11/09, 17 de
+**19**. Contar los ficheros es `ls 05_Funcional/[0-9]*.md`; que nadie lo haga es lo que hace falta
+cerrar.)*
 
 ---
 
@@ -472,11 +486,11 @@ ficheros es `ls 05_Funcional/[0-9]*.md`; que nadie lo haga es lo que hace falta 
 - [`01_Firmware/Repetidor`](01_Firmware/Repetidor): Puente ESP32 back-to-back. ⚠️ **Fuera de la
   configuración vigente** y **sin watchdog**: es el mismo firmware que se quedó clavado tumbando el
   enlace el 31/07. **No es el ESP32 de expansión.**
-- [`01_Firmware/Simulaciones/`](01_Firmware/Simulaciones): simuladores y `banco/` con los **76
-  packs**.
+- [`01_Firmware/Simulaciones/`](01_Firmware/Simulaciones): simuladores y `banco/` con sus
+  packs *(cuántos, en el acta)*.
 - [`01_Firmware/Validacion_LCD/`](01_Firmware/Validacion_LCD) · `_Ciclo/` · `_Respaldo/` ·
-  `_Automatico/`: los arneses que compilan C++ real. Cada uno tiene su punto ciego declarado en
-  `CLAUDE.md` §8.
+  `_Automatico/`: los arneses que compilan C++ real. Qué compila cada uno y su punto ciego:
+  [`ARQUITECTURA.map`](ARQUITECTURA.map).
 - [`01_Firmware/compuerta.py`](01_Firmware/compuerta.py): **la única forma correcta de
   verificar** — `19 PASS · 1 FALLA · 0 ABORTADO`, exit code 1. Las cifras están en la tabla de
   arriba, que se copia del acta; ésta es sólo la puerta.

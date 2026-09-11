@@ -24,13 +24,14 @@
 ## 🧾 De dónde salen las cifras de este documento
 
 **Todas las cifras de la tabla siguiente están copiadas del acta
-[`evidencia/2026-09-10_compuerta.txt`](evidencia/2026-09-10_compuerta.txt), no escritas a mano.**
+[`evidencia/2026-09-11_compuerta.txt`](evidencia/2026-09-11_compuerta.txt), no escritas a mano.**
 Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 `documentos_04_cifras_sin_vigilante`, que es lo que impide que este documento envejezca en silencio.
 
 > 🔴 **Lo que ese acta dice de sí misma, y hay que leer antes de firmar nada:**
-> `HEAD f27f1a0`, rama **`fix/campo-sisga-rtc-darpaso`**, y **`Arbol: CON CAMBIOS SIN COMMITEAR`** — el
-> acta se escribe **antes** del commit que la publica, así que ese aviso sale siempre. Un registro de
+> su `HEAD` y su rama van en su cabecera —**no se copian aquí**: aquí ponía `f27f1a0` cuando el acta
+> citada decía otro— y, si trae **`Arbol: CON CAMBIOS SIN COMMITEAR`**, es porque el acta se escribe
+> **antes** del commit que la publica. Un registro de
 > validación que se firma sobre un árbol sucio no es reproducible; para que lo sea hay que volver a
 > correr la compuerta con el árbol limpio.
 >

@@ -9,6 +9,10 @@ nada** — la cuenta esta publicada al final de aquel fichero.
 > lo que sigue abierto, con su medida al lado. Si algo no esta aqui, o esta hecho o esta en el
 > historico.
 
+> ⚠️ **Las citas a `CLAUDE.md` con `§x.bis`, `§x.ter`, `§x.quater` o `§4.sexies` son de ANTES del 07/09**,
+> cuando ese fichero se compacto (`74a1054`) y se renumero. Se deja la cita como estaba —es cronica— y la
+> regla se busca **por su titulo**, no por el numero.
+
 ## Que manda sobre este fichero, y en que orden
 
 | | |
@@ -21,7 +25,9 @@ nada** — la cuenta esta publicada al final de aquel fichero.
 
 ## Las cifras NO se copian aqui
 
-**En campo corre `V8.4`, commit `e303485` (31/07/2026).** En el repositorio, `V9.0` en `main-nuevo`.
+**La instalacion certificada es `V8.4`, commit `e303485` (31/07/2026).** 🔴 **Pero el 10/09 un Maestro
+con firmware V9 `SIN_BANCO` corrio en campo, en El Sisga, y no consta que commit llevaba** (§3.16). En el
+repositorio, `V9.0` en `main`.
 
 Compuerta, banco, flash y arneses: **la ultima acta de `evidencia/`**. No se transcriben a este
 fichero **a proposito**. Este mismo apartado publicaba `15 PASS` y `39 packs` durante una semana
@@ -41,9 +47,11 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 
 ## 0. Lo que esta abierto de verdad, en cinco lineas
 
-**En la calle corre `e303485`, del 31 de julio.** Desde entonces hay 269 commits y 42 tocan el
-firmware de las dos puntas. **Ninguno ha entrado en un poste.** Lo ultimo que toco una tarjeta fue
-la cinta del 05/09 a las 22:19.
+**La instalacion certificada es `e303485`, del 31 de julio.** ~~Ninguno de los commits posteriores ha
+entrado en un poste~~ — 🔴 **FALSO desde el 10/09: un Maestro (`SERIE:179DB0`) corrio en El Sisga con
+firmware V9** —su `$STATUS` lleva `CAM:`, que nace el 05/09—, **y nadie apunto que commit llevaba**. Es
+el primer contacto de V9 con una calle, y su evidencia en el repositorio es **UNA trama transcrita a
+mano**. §3.16.
 
 1. 🛑 **La tarjeta Maestro sigue muerta** y la escalera de diagnostico —cuyo primer peldano es
    **gratis**— no consta recorrida. **De esto cuelga todo lo demas.**
@@ -80,6 +88,15 @@ la cinta del 05/09 a las 22:19.
 > ✅ **CONTESTADAS EN PARTE esa misma noche (§3.11): la siembra periodica SE CONSTRUYE y `D-21` tiene
 > su forma cerrada.** Lo que quedo abierto son **`A-15`** —el numero de la cadencia— y sobre todo
 > **`A-16`**: `D-22` se contradice a si misma, y de eso depende que el Degradado sea seguro.
+
+> 🔴 **Y la OCTAVA, del 11/09, que va DELANTE de todas porque lo que falta es preguntar y no cuesta
+> nada: `N-162`, El Sisga (§3.16).** (1) **el hash del firmware que llevaban las dos tarjetas** y la
+> cinta y el diario de las dos puntas — sin eso ninguna de sus medidas se puede leer; (2) **avisar al
+> instalador si recibio las guias de 4 camaras**, que estan RETIRADAS por dos afirmaciones de seguridad
+> falsas; (3) la rama que salio de alli se valido por el DIFF: **se quedan** los getters del reloj y
+> las cabeceras de la app, **se revierte** el sello del puente y **se retiran** los textos de DAR PASO.
+> Y la auditoria destapo **`AMBAR_EMERGENCIA` sin PIN, que no avisa al Maestro** —el candidato mas
+> firme para el DAR PASO del Sisga— y **la siembra de `A-15`, decidida y sin construir**.
 
 > **Por donde se empieza manana:** por el **peldano gratis** de N-116 —desenchufar `J14`, `J15`,
 > `J16`, `J17` y `J2` y remedir el riel de 3,3 V—. Cuesta cinco minutos y **decide si hay que
@@ -148,7 +165,9 @@ resolver.
 | ~~**4**~~ | ~~🟠 **`validateTiempos()` de los unitarios de la app sigue en 1..15 min**~~ — **CADUCADA, medida el 08/09**: `test_unitarios_app.js` esta en `v < 3` / `r < 3`, y el caso de verde es `validateTiempos(2, ...)`, que **si** toca el borde. Se corrigio en `31170e8` (07/09) y esta fila se quedo describiendo el estado anterior | 🟠 **Queda un residual, y es la misma forma en pequeno:** el caso de rojo es `validateTiempos(3, 1, 25)`, o sea **uno por debajo del borde**. Si alguien afloja `r < 3` a `r < 2`, el caso de verde cae y **el de rojo sigue pasando**: mide el rechazo, no el limite. El borde de rojo es `2` |
 | **5** | 🟠 **El Esclavo no tiene `reloj_diagnostico()`.** Porte **mecanico** desde el Maestro; ya tiene los ingredientes. Sin el, el tecnico que sube 5 m al poste del Esclavo **no puede distinguir `lseOn=0` de `lseRdy=0`** | |
 | **6** | 🟠 **`state.correctPin = '1234'` en claro** en `app.js`. La caducidad **si** se construyo | V2 · `B3` |
-| **7** | 🔴 **El Diario de Ordenes del MAESTRO no distingue si la hora entro.** `Maestro/src/bluetooth.cpp`, rama `SET_RTC:`: `bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE")` esta **FUERA** del `if (reloj_sembrarDesdeIso(...))`. Es el residual de `N-160` una capa arriba — ver §3.10.ter | **El Esclavo YA lo arreglo** y su propio comentario describe el defecto que el Maestro conserva. Arreglar una punta y no la otra es lo que `CLAUDE.md` §6.1 manda mirar, y aqui paso en el sentido contrario al esperado |
+| ~~**7**~~ | 🟢 **CERRADA el 08/09 en `6c90ff0`**, medido el 11/09: la rama `SET_RTC:` del Maestro escribe `SET_RTC_RECHAZADO_POR_RANGO` dentro del `if (reloj_sembrarDesdeIso(...))`, igual que el Esclavo. ~~El Diario de Ordenes del MAESTRO no distingue si la hora entro.~~ `Maestro/src/bluetooth.cpp`, rama `SET_RTC:`: `bluetooth_reportarEvento("APP_BLUETOOTH", "SET_RTC_LO_ACUSA_EL_PUENTE")` esta **FUERA** del `if (reloj_sembrarDesdeIso(...))`. Es el residual de `N-160` una capa arriba — ver §3.10.ter | **El Esclavo YA lo arreglo** y su propio comentario describe el defecto que el Maestro conserva. Arreglar una punta y no la otra es lo que `CLAUDE.md` §6.1 manda mirar, y aqui paso en el sentido contrario al esperado |
+| **8** | 🔴 **`AMBAR_EMERGENCIA` sin PIN no avisa al Maestro** — solo la puerta CON PIN del Esclavo manda `CMD_AMBAR_ESCLAVO`, y la app usa la de sin PIN. §3.16-A | el candidato mas firme para el DAR PASO del Sisga |
+| **9** | 🔴 **`SET_RTC` con `$ERR` del puente y hora sembrada igual en el STM32**. §3.16-C | ⚠️ sin reproducir a mano |
 
 ### 3.2 · 🟢 `DECISIONES.md` — REVALIDADO ENTERO EL 08/09, y ya no queda ninguna fila caducada
 
@@ -206,8 +225,9 @@ antes de publicar un «no hay»:
 1. **La guia de banco le pide al responsable que COMPRE el mando que `D-1` retiro.** Su pregunta
    abierta 3 dice *«la compra ya no es pregunta: receptor con salida NO … ¿se pide ya?»*, y `D-1` y
    `17_` §4 dicen *«ya no se va a comprar»*. **Es una pregunta que no va** (`CLAUDE.md` §2.quater).
-2. **`README.md` numera `p10 = Camara 2` / `p12 = Camara 1`** contra la decision escrita de `17_`
-   §1.7. **La spec gana.**
+2. ~~**`README.md` numera `p10 = Camara 2` / `p12 = Camara 1`** contra la decision escrita de `17_`
+   §1.7.~~ 🟢 **Corregido el 11/09**: el README dice ya `CAM_C`/`CAM_D`, p12 vacio. ⚠️ **Y queda un
+   tercer reparto** —`05_Funcional/README.md`, *«p10 = poste 1, p12 = poste 2»*— que tampoco casa con la spec.
 3. **`N-118` sigue publicado como defecto abierto en `ESTADO.md`, `README.md` y 16 documentos.**
    Esta **REFUTADO** desde el 05/09 (`d020f3c`): los `0,6 V` eran el firmware viejo.
 4. **Tres cifras de flash del Maestro vivas a la vez** —`88,3 %`, `89,3 %`, `86,3 %`— fuera del acta.
@@ -245,7 +265,7 @@ mentira sobre la que el Modo Degradado se autorizaria»*.
 
 | | que | nota |
 |---|---|---|
-| **1** | `reloj.cpp` de las dos puntas pasa a **EXTRAPOLADOR sembrado cada `LATIDO_MS` (2 s)** con un `EPOCH` del `DS3231` — **no un reloj de software refrescado «cada tanto»**: con el HSI a 10.000–25.000 ppm, la frescura de la siembra ES el presupuesto de error. `reloj_enHora()` pasa a significar **«mi siembra es fresca»**. Se retiran `STM32RTC`, N-25, N-31, `reloj_ajustar()` y el truco de «enero» | toca **SFTY-18 y SFTY-23**. La desigualdad `SIEMBRA_CADUCA_MS x HSI_PPM + cadena + deriva48h < despeje - ambar` **va en un pack**, no en un comentario (N-71) |
+| **1** | `reloj.cpp` de las dos puntas pasa a **EXTRAPOLADOR sembrado cada ~~`LATIDO_MS` (2 s)~~ UNA HORA** *(`A-15`, 08/09; 🔴 **la siembra periodica sigue SIN CONSTRUIR al 11/09**, §3.16-B)* con un `EPOCH` del `DS3231` — **no un reloj de software refrescado «cada tanto»**: con el HSI a 10.000–25.000 ppm, la frescura de la siembra ES el presupuesto de error. `reloj_enHora()` pasa a significar **«mi siembra es fresca»**. Se retiran `STM32RTC`, N-25, N-31, `reloj_ajustar()` y el truco de «enero» | toca **SFTY-18 y SFTY-23**. La desigualdad `SIEMBRA_CADUCA_MS x HSI_PPM + cadena + deriva48h < despeje - ambar` **va en un pack**, no en un comentario (N-71) |
 | **2** | Un mando nuevo **ESP32 -> STM32** que siembre la hora. **El camino fisico ya existe**: `enlace_stm32.cpp` escribe hacia el STM32 | no hace falta hardware |
 | **3** | Las **48 h** de rendicion. ~~Salen del contador crudo del RTC, monotono y superviviente al apagado, y se perderian en el primer corte~~ — 🔴 **CORREGIDO el 07/09: YA ESTAN MUERTAS.** `reloj_contadorSegundos()` abre con `if (!rtcOperativo) return 0;`, asi que la pila mantiene los `BKP` **pero lo que guardan es un contador PARADO**. No es un riesgo futuro: es un limite que **hoy no cuenta** | **Los registros `BKP` NO se mueven** y `respaldo.cpp` **no se toca** —la resta de epochs con guarda de retroceso ya esta escrita—. Lo que hay que darle es un contador que avance |
 
@@ -1008,6 +1028,7 @@ el ORDEN y lo que lo justifica. Se reescribe entera cuando cambie; no se le anad
 
 | # | que | por que va aqui | que arrastra |
 |---|---|---|---|
+| **0** | 🔴 **11/09 — ENTRAN DOS POR DELANTE, las dos del Sisga (§3.16):** **(a)** que `AMBAR_EMERGENCIA` sin PIN avise al Maestro como la puerta con PIN, con el pack que mire las DOS puertas —toca el ambar y es el candidato del DAR PASO—; **(b)** la siembra periodica de `A-15`, decidida el 08/09 y sin una linea: cierra la deriva del HSI entre visitas y el salto de los 49,7 dias | **(a)** es una linea de firmware y un pack; **(b)** vuelve verdadera la premisa sobre la que se degrado `D-22` | Esclavo + pack · ESP32 + las dos puntas. **Ninguno autoriza nada sin banco** |
 | ~~**1**~~ | 🟢 **`CAM_CIEGA` — HECHO ENTERO el 08/09**, las dos mitades (`D-24`, §3.15) | 24 h de paso abierto en las dos puntas, la app, 7 documentos y la APK recompilada · **y el aviso del Modo Inteligente, que salio CERO FIRMWARE** | — |
 | **2** | 🔴 **`D-23` · la pantalla propia del poste 2**, por la via `$EVENT` | **Decidida el 07/09 y con la via YA elegida** (`A-14`). Es una de las tres que mantienen en rojo `decisiones_01_anclas`, y **la unica de las tres que se destraba con teclado** | `$EVENT` nuevo en el **Esclavo** + pantalla en **app.js** + **recompilar la APK**. ⚠️ **Antes: confirmar que el indice de `A-14` manda sobre su cuerpo** (§3.2) |
 | **3** | 🟠 **El checksum de la SUBIDA** (§3.1 fila 3) | `procesarComando()` **no lee el `*XX`**: un bit cambiado dentro de `SET_TIEMPOS` o `SET_RTC` **se obedece**. Va detras de 1 y 2 porque **no esta decidido** y porque SPP ya lleva su propio control de errores por debajo — pero es lo unico de esta lista que puede mover una luz por un bit | las dos puntas + el pack que lo mida. **Y su control negativo tiene que ser una trama con el CRC malo que HOY se obedece** |
@@ -1086,95 +1107,89 @@ a buscar el sintoma contrario al que tiene.**
 > **237 | 2 FALLAS** —caen las dos positivas y **los dos controles siguen verdes, que es lo
 > correcto**—. Restaurado por `sha256` (`b826d568…`).
 
-### 3.16 · 🟢 Incidentes de Campo en El Sisga (10/09/2026) — RTC DS3231, DAR PASO y Cámaras J16
+### 3.16 · 🔴 `N-162` — El Sisga (10/09): la PRIMERA vez que V9 toca una calle, y la rama que salio de ahi, VALIDADA POR EL DIFF el 11/09
 
-**Durante las pruebas en campo en El Sisga (Maestro serial 179DB0), Marco Pérez Ramírez (ITvial) reportó tres incidencias operativas.** Las tres se analizaron contra el firmware y la app, y se resolvieron en la rama `fix/campo-sisga-rtc-darpaso`.
+**Lo que es nuevo y cambia la lectura de todo este fichero:** el 10/09 un Maestro con `SERIE:179DB0`
+corrio **en campo, en El Sisga, con firmware V9** — su `$STATUS` lleva `CAM:`, que no existe antes de
+`e3a21ec` (05/09). O sea que **§0 («ninguno ha entrado en un poste») dejo de ser cierto ese dia**, y
+**no consta QUE commit estaba cargado** en ninguna de las dos tarjetas. `CLAUDE.md` §7: *antes de
+llamar defecto a una medida, mirese que firmware estaba dentro.* Y choca con §6.1: **una Maestro
+funciono en campo mientras este fichero da la Maestro por muerta** — hay que contrastar si `N-116` era
+otra placa.
 
-#### 1. Sincronización Courier RTC / DS3231 (`HORA:00:00:00`)
-- **Síntoma**: *«Sigue sin funcionar el tema de la configuración de Courier RTC y Sincronizar reloj DS3231»*. El equipo emitía `$STATUS,...,HORA:00:00:00,...` y la app mostraba la hora clavada en ceros.
-- **Causa raíz identificada**:
-  1. **En STM32 (`reloj.cpp`)**: Al arrancar con dominio de respaldo activo y cristal Y2 inoperativo (`N-17`), el año en el RTC del micro cumplía `rtc.getYear() >= ANIO_MARCA` de ejecuciones previas, marcando `horaValida = true` aunque los contadores estuvieran en `00:00:00`.
-  2. **Prioridad invertida en `reloj_segundosDelDia()`**: Evaluaba `if (rtcOperativo)` antes que la extrapolación por software con `millis()` (`D-20`). Si el hardware RTC decía estar operativo pero el contador estaba quieto o en ceros, ignoraba la hora sembrada por software.
-  3. **Hueco en `sellarHoraSiFaltaba()` (`puente.cpp` en ESP32)**: Solo buscaba `HUECO_HORA` (`"HORA:--:--:--"`) para inyectar la lectura del DS3231. Al recibir `"HORA:00:00:00"`, la dejaba pasar intacta sin sellarla.
-  4. **En la App móvil**: Tras enviar `SET_RTC` o `LEER_RTC`, la app no actualizaba inmediatamente la variable visual `state.hora`, esperando al siguiente frame `$STATUS`. Además, si recibía `00:00:00`, la mostraba en verde engañoso como si estuviera sincronizado.
-- **Solución implementada**:
-  - `reloj_setup()` y `reloj_actualizar()` exigen contadores distintos de cero (`h!=0 || m!=0 || s!=0`) para declarar `horaValida = true`. El STM32 emite `HORA:--:--:--` hasta ser sincronizado.
-  - `reloj_segundosDelDia()` prioriza la extrapolación de software `(segBaseDelDia + deltaS) % 86400UL` siempre que `tBaseMillis > 0` (`D-20`), asegurando avance monotónico aunque Y2 esté muerto.
-  - `puente.cpp` en ESP32 sella tanto `HORA:--:--:--` como `HORA:00:00:00` con la hora válida del RTC DS3231.
-  - La app móvil (`app.js`) actualiza `state.hora` y refresca la UI inmediatamente al recibir `$ACK,NODE:PUENTE,CMD:SET_RTC` o `CMD:LEER_RTC`. Si llega `00:00:00`, `pintarHoraEquipo()` lo pinta en ámbar de advertencia (`00:00:00 · NO SINCRONIZADO`).
+El funcional (ITvial) reporto tres cosas: la hora en `00:00:00`, DAR PASO que deja al Esclavo en ambar
+intermitente, y *«solo me envias una camara por poste»*. **Otro agente las dio por resueltas el mismo
+dia** en `fix/campo-sisga-rtc-darpaso` (12 commits, `c51cc85`..`669e87c`). **Revisado por el DIFF el
+11/09**, con tres auditorias de solo lectura y **cada hallazgo grave reproducido a mano** antes de
+escribirlo aqui. El parte original se conserva en la historia de git (`669e87c:roadmap.md`).
 
-#### 2. Operación de DAR PASO en vía reversible (Alternancia Rojo/Verde y Despeje)
-- **Síntoma**: *«El modo DAR PASO, después de 15segundos esclavo pasa a ámbar intermitente y maestro queda en rojo, no funciona como debería, recordemos, cada vez que se haga el cambio uno debe de estar en rojo el otro en verde y ir variado de acuerdo a cómo se solicite»*.
-- **Diagnóstico técnico y comprobación en telemetría**:
-  1. **Despeje todo-rojo obligatorio (`SFTY-4`)**: En una calzada de carril único reversible, la seguridad vial exige evacuar todo vehículo en tránsito antes de habilitar el flujo opuesto. Toda inversión de sentido inicia con un intervalo de **todo-rojo de 15 segundos** (`tiempoDespejeMs = 15000UL`), donde **ambos semáforos se encuentran estrictamente en ROJO**.
-  2. **Transición a Verde vs Ámbar Intermitente**: Al terminar los 15 s de despeje, el semáforo receptor del verde ejecuta la transición reglamentaria (`semaforo_iniciarTransicionAVerde()`): enciende **AMARILLO FIJO durante 4 segundos** (`TIEMPO_AMARILLO_MS = 4000UL`) de advertencia previa y acto seguido pasa a **VERDE FIJO**. El operario en calzada vio esos 4 s de amarillo en el Esclavo (mientras Maestro continuaba en rojo) e interpretó que había entrado en falla a ámbar intermitente.
-  3. **Comprobación en la trama de campo enviada por Marco (`12:26:08`)**:
-     `$STATUS,NODE:MAESTRO,SERIE:179DB0,MODO:AUTO,ESTADO:ROJO,T:141,RF:90%,RTT:196ms,BAT:--,HORA:00:00:00,ESC:VERDE,PLUMA:ABAJO,CAM:?*1E`
-     - `ESTADO:ROJO` (Maestro en Rojo).
-     - `ESC:VERDE` (**¡Esclavo en Verde!**).
-     - Se comprueba que el Esclavo **sí abrió a verde** y el cruce quedó en rojo contra verde como corresponde.
-  4. **Garantía de Alternancia (`coordinador_pedirCambio()`)**:
-     - Con Maestro en Verde (`QV_MASTER`): `DAR PASO` pasa Maestro a Rojo $\rightarrow$ 15s todo-rojo $\rightarrow$ Verde a Esclavo (`QV_ESCLAVO`).
-     - Con Esclavo en Verde (`QV_ESCLAVO`): `DAR PASO` pasa Esclavo a Rojo $\rightarrow$ 15s todo-rojo $\rightarrow$ Verde a Maestro (`QV_MASTER`).
-     - Cada solicitud invierte estrictamente el sentido, manteniendo un sentido en rojo y el opuesto en verde.
-  5. **Diferencia Operativa (AUTOMÁTICO vs MANUAL)**:
-     - En las tramas de Marco, el equipo operaba en `MODO:AUTO`. Al pulsar `DAR PASO` en Automático, se fuerza el cambio inmediato pero el temporizador de fondo continúa corriendo (`T:141`), volviendo a ciclar solo al vencer el tiempo.
-     - Para control manual a demanda pura («ir variando según se solicite»), el operario debe colocar el cruce en `MODO:MANUAL`, donde no corre ningún reloj automático y el verde permanece fijo hasta la siguiente pulsación de `DAR PASO`.
-- **Mejoras implementadas en la App móvil (ya compiladas en APK)**:
-  - Se configuró la notificación flotante (toast) inmediata en `btnOpStep` ("DAR PASO"): `✋ DAR PASO: despejando vía (15s todo-rojo)...`.
-  - Se agregó a `ACK_TEXTO` la traducción de `$ACK,CMD:CAMBIAR_TURNO,RESULT:OK` como: `Cambio de turno aceptado: despejando vía (15s)`.
-  - Se documentó el evento en la bitácora operativa de la aplicación.
-  - La APK `IOT_VIAL_Semaforos_2026-09-10_c51cc85_SIN_BANCO.apk` contiene los 13/13 recursos web sincronizados byte a byte y verificados por MD5.
+| lo que se entrego el 10/09 | veredicto del 11/09 |
+|---|---|
+| **STM32 · los getters de hora** miran primero la base sembrada (`tBaseMillis > 0`) y solo sin ella el RTC (`c51cc85`, las dos puntas, identicas) | 🟢 **SE QUEDA.** Es `D-20` literal —*«al STM32 no se le pregunta nunca»*— y explica el `00:00:00`: con `LSERDY` arriba y el contador sin contar, los getters viejos leian ceros **con `horaValida` en `true`**, que es `N-144` otra vez. ⚠️ **Ningun instrumento la ejerce**: el banco dio `1249/1252` antes y despues, y `grep tBaseMillis` sobre `Simulaciones/` y `Validacion_*` da **cero**. ⚠️ **Y lleva al HSI a las placas con `Y2` sano** (de 20–50 ppm a 10.000–25.000) **mientras `A-15` no exista** — defecto **B** abajo |
+| **STM32 · exigir `h\|m\|s != 0` para creer al RTC al arrancar** | 🟡 **se queda**: falla hacia lo seguro (una medianoche legitima al arrancar sale sin hora). **Pero la causa que la justificaba era imposible** —con `Y2` muerto `reloj_setup()` sale antes de esa linea— y **no caza un contador congelado en otro valor** (defecto **D**) |
+| **ESP32 · el puente sella tambien `HORA:00:00:00`** | 🔴 **REVERTIDO el 11/09.** Su propia cabecera lo prohibe —*«SOLO SE TOCA EL HUECO … un cero que parece una hora es peor que un hueco»*—: tapaba en la app, con la hora buena del `DS3231`, el estado del que cuelga la autorizacion del Degradado. **El simulador del puente daba `101/101` porque ningun caso contiene `HORA:00:00:00`** |
+| **App · `state.hora` desde el `$ACK` de `SET_RTC`/`LEER_RTC`** | 🔴 **RETIRADO.** Ese acuse es `NODE:PUENTE` —el `DS3231`— y `state.hora` es la del CONTROLADOR: pintaba una con la otra. **Se queda** el ambar `00:00:00 · NO SINCRONIZADO`, que es correcto |
+| **App · DAR PASO**: toast *«despejando via (15s todo-rojo)»* y `ACK_TEXTO` *«15 s … ambar de transicion (4 s) y abrira en VERDE»* | 🔴 **RETIRADO.** (1) el toast salia **al pulsar**, antes de cualquier `$ACK`; (2) **el despeje NO son 15 s**: `coordinador_configurar()` lo pone desde el respaldo, de `DESPEJE_SEG_MIN = 10` a 90 — `CLAUDE.md` §14; (3) el `$ACK` solo dice que el coordinador del Maestro estaba en reposo, **no que la otra punta vaya a abrir** (`CLAUDE.md` §2). Ahora dice eso, y manda mirar **las dos cabezas** |
+| **App · cabeceras de diagnostico y compartir** (`0cd7fd2`) | 🟢 **se queda.** Los campos existen en `state`. La APK `IOT_VIAL_Semaforos_2026-09-10_b354fe9_SIN_BANCO.apk` **es una recompilacion real**: `SHA-256` `3bfd9e61…`, distinto del 08/09, y su `app.js` identico por md5 al de `0cd7fd2`. ⚠️ **Tras el 11/09 ya no es la de HEAD**: lleva los textos de DAR PASO retirados. *(El parte citaba una `…_c51cc85_…apk` que no existe.)* |
+| **Guias `Camaras_Sisga_4x.html` y `Guia_Instalacion_Camaras_4x.html`**, su hueco en el empaquetador y en `ARQUITECTURA.map` | 🔴 **RETIRADAS a `05_Funcional/historico/` con banda de RETIRADA, fuera del paquete**, y `ARQUITECTURA.map` vuelto a lo decidido. Tabla de abajo |
+| **Las actas del 10/09** | ⚠️ las que decian *«3 packs en FALLA»* se tomaron con el **arbol sucio**, y los dos de mas eran `documentos_0x` por el cambio de fecha. Con el arbol limpio el 11/09 sobre `669e87c`: **lo mismo que el 08/09** |
 
-#### 3. Topología de 4 Cámaras en Sisga (2 en Maestro, 2 en Esclavo) y Guía Interactiva
-- **Duda de campo**: *«Solo me envías una cámara por poste... no le da la conexión de la otra cámara»*.
-- **Aclaración y Topología Completa de 4 Cámaras**:
-  - Cada controladora dispone físicamente en la bornera `J16` de dos entradas optoacopladas para cámaras:
-    - **Cámara 1 (Aproximación / Demanda)**: Bornera `J16` bornes 9 y 10 (`CAM_C_PIN` / `PB14`). Orientada a 5 m de altura con ángulo rasante de **15° a 20°** hacia los vehículos que se acercan al cruce (sentido exclusivo de aproximación al semáforo).
-    - **Cámara 2 (Pluma / Umbral de paso)**: Bornera `J16` bornes 11 y 12 (`CAM_D_PIN` / `PB15`). Orientada a 5 m de altura con ángulo picado de **35° a 45°** vigilando la zona bajo la pluma / línea de pare.
-  - **Aislamiento galvánico y seguridad**: Ambas cámaras usan contacto seco libre de potencial (`COM` y `NO` de la cámara Hikvision AcuSense). No se conecta masa del chasis ni alimentación a los bornes 9 a 12.
-  - 🔴 **Peligro mortal Pin 1 de J16**: `J16` pin 1 lleva +12V sin protección. Debe permanecer sellado y tapado con cinta o tapón retráctil para evitar contacto accidental con los pines de entrada directa al micro.
-  - **Telemetría consolidada**: En NMEA (`$STATUS`), por restricción de buffer de 155 B (`N-154`), viaja el campo consolidado `CAM:<ESTADO>` (`OK`, `?`, `CIEGA`, `PEGADA`) calculado por `camara_estado()`, que reporta la condición más crítica entre las dos entradas.
+#### Lo que las guias le decian al instalador, contra el firmware y la spec
 
-#### 4. Conexión de Talanquera en la PCB (Bornera J15 vs Peligro J14)
-- **Canal de potencia de la Talanquera**:
-  - Salida física en bornera **`J15`** (red `Motor`, dos bornes con tornillo):
-    - Pin 1: `+12V DC` (alimentación de bobina).
-    - Pin 2: Drenador conmutado a masa (`GND`) por MOSFET `IRLZ44N` (`Q10`), comandado por el optoacoplador `TLP127` (`U15`) desde el pin **`PB2`** del STM32 (`MOTOR_TALANQUERA`). Incluye diodo de rueda libre `D30` y LED testigo `D29`.
-  - 🔴 **Peligro de confusión `J14` vs `J15`**: En esquemáticos antiguos `J14` aparece rotulada como "Puerta", pero en la PCB real `J14` es una **entrada digital directa de 3.3V al STM32** (`PB0` / `CAM_DEMANDA_PIN`). Conectar un relé de 12V en `J14` inyecta 12V directos al micro y destruye la tarjeta. La talanquera va **estrictamente en `J15`**.
-  - **Esquema de interfaz con barreras comerciales (Came, BFT, Beninca, etc.)**:
-    - `J15` Pin 1 $\rightarrow$ Borne A1 (+) de la bobina de un mini-relé 12V DC.
-    - `J15` Pin 2 $\rightarrow$ Borne A2 (-) de la bobina del mini-relé.
-    - Contactos secos `COM` y `NO` del mini-relé $\rightarrow$ Bornes `OPEN` / `START` y `COM` de la centralita de la talanquera.
+| afirmacion | veredicto | evidencia |
+|---|---|---|
+| la «camara 2» **protege la pluma** / vigila que no haya un coche debajo | 🔴 **FALSO** | `escribirPines()`: `(verde && !testLedsActivo) \|\| estado == S_FALLO`. **Ninguna camara entra**: el veto es `A-1.bis`, sin construir. **La pluma baja con un coche debajo** |
+| la pluma sube **solo con verde** | 🔴 **FALSO** | sube con **cualquier** `S_FALLO`: Modo Ambar, `AMBAR_EMERGENCIA`, orfandad SFTY-6. **Un poste recien montado que aun no enlazo con el otro sube la pluma sin verde** |
+| las dos entradas hacen cosas distintas («demanda 15–30 m» / «presencia 0–8 m») | 🔴 **FALSO** | `botones.cpp` recorre `CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN}` con el mismo bucle |
+| **4 camaras, 2 por poste** | 🔴 **choca con `D-13`** (una por poste), con `17_` §1.7 (p12 vacio a proposito) y con `ESTADO.md` C1 (las 4 camaras se **revocaron el 28/08**) | **no se elige aqui: es del responsable** |
+| la app confirma las dos camaras (`CAM: ? -> OK`) | 🔴 **FALSO para la segunda** | `camara_estado()` salta el pin que nunca dio flanco: con la primera viva sale `OK` aunque la segunda este muerta. **Se podia firmar «apto» con una camara muerta** |
+| «dos entradas optoacopladas», «aislamiento galvanico» (este apartado, el 10/09) | 🔴 **FALSO** | netlist: `J16.10 -> R67 C28 U1.27`, sin opto. Es `N-120` |
+| en corte de energia la pluma baja «por gravedad o muelle» | ⚪ **SIN FUENTE** | lo decide la centralita de la barrera, que tiene su propia alimentacion. La «especificacion de compra con muelle» que citan cuatro documentos **no esta** en `15_Lista_de_Compras` |
+| angulos 15–20° / 35–45°, alturas, distancias | ⚪ **SIN FUENTE** | solo aparecen en las dos guias, y dan alturas distintas entre si |
+| `J15`: p1 12 V, p2 drenador de `Q10` IRLZ44N, `U15` TLP127, `D30` 1N4148, `D29` | 🟢 **CIERTO** | medido el 11/09 sobre el `.kicad_pcb`. **Pero p2 no es «GND»**, como rotulaba el SVG: con `Q10` abierto esta a ~12 V |
+| `J16` p1 lleva 12 V y se tapa · `J14` es entrada | 🟢 **CIERTO** | pero la guia admitia camara en `J14`, y `A-2` lo reservo al **fin de carrera** |
 
-#### 5. Aclaración Normativa y Vial: Pluma en Corte de Energía (SFTY-28) vs Pluma en Emergencia LoRa (SFTY-6)
-- **La aparente contradicción resuelta**:
-  - **Corte total de energía / Apagón pasivo (Fail-Safe pasivo - SFTY-28)**:
-    - Estado de controladora: **APAGADA**, microcontrolador sin energía.
-    - Semáforos: **Apagados** (sin luz ni regulación).
-    - Pin `PB2`: Cae por hardware a **0V (`LOW`)**, MOSFET `Q10` deja de conducir, bornera `J15` a 0V.
-    - Posición de la pluma: **ABAJO / CERRADA** (por gravedad o muelle de retorno mecánico).
-    - *Razón de tránsito*: En un corredor bidireccional estrecho de obra de 1 solo carril, si se va la energía eléctrica por completo y ambas barreras subieran, los conductores de ambos extremos avanzarían a ciegas sin semáforos, provocando un choque frontal o un bloqueo irreversible. El estado pasivo seguro es **cerrar la vía**. Si se requiere evacuación manual de emergencia, el personal de obra utiliza la llave mecánica de destrabe que equipa toda barrera comercial.
-  - **Fallo de comunicación LoRa / Emergencia táctica (`S_FALLO` - SFTY-6)**:
-    - Estado de controladora: **VIVA / ENCENDIDA**, microcontrolador ejecutando firmware.
-    - Semáforos: **Ámbar intermitente** (destellos a 500 ms en ambas puntas).
-    - Pin `PB2`: El firmware comanda `TALANQUERA_ABRIR` (**`HIGH`**), `J15` entrega **12V**.
-    - Posición de la pluma: **ARRIBA / ABIERTA**.
-    - *Razón de tránsito*: Acuerdo formal de PMT y cliente (27/08/2026). Los semáforos alertan precaución vial activa. Si la pluma bajara automáticamente, los vehículos que ya ingresaron a la calzada quedarían atrapados y encerrados dentro del corredor de obra.
-  - **Comportamiento en la App Móvil**:
-    - Botones de emergencia: Indican expresamente *"Pone ÁMBAR INTERMITENTE y ABRE la talanquera: los dos sentidos pasan con precaución"*.
-    - Telemetría en vivo: Si el firmware reporta `PLUMA:ARRIBA` con estado `FALLO COM`, la app muestra el badge en ámbar: `▲ PLUMA ARRIBA · sin enlace: se pasa con precaución`. Con verde muestra `▲ PLUMA ARRIBA · acompaña al verde`. En reposo muestra `▼ PLUMA ABAJO`.
-  - **Estado del Veto de la Pluma por Cámara (D-13)**:
-    - *Fase 1 (Vigilante pasivo - implementada en firmware y app)*: Lee eventos en `PB14`/`PB15`, reporta `$ALARM,CAM_PEGADA` o `CAM_CIEGA` y contabiliza cuántas veces un vehículo pisó el umbral (`VETO_HABRIA_ACTUADO_N`).
-    - *Fase 2 (Veto activo para retener pluma arriba en rojo si hay vehículo debajo)*: Retenida y bloqueada por la decisión `A-1.bis` en `DECISIONES.md`, ya que violaría la regla fundacional de seguridad vial *«la talanquera sigue a la luz verde, nunca al revés»* y crearía la condición anómala *Luz ROJA + Pluma ARRIBA*.
+> 🔴 **Si salio hacia el Sisga alguno de los paquetes del 10/09 (`44967db`, `bd77271`, `fae4b3e`), esas
+> guias estan en manos del instalador, y el firmware del ESP32 de dentro lleva el sello revertido.**
+> Hay que avisarle antes de que monte nada por ellas.
 
-#### 6. Entregables Documentales y de Software (N-162)
-- **Guía Técnica Interactiva `05_Funcional/Camaras_Sisga_4x.html`**:
-  - Documento autocontenido con esquema SVG de conexión en `J15` y `J16`, tablas de angulación, alturas y sentidos vehiculares.
-  - Cuestionario de validación técnica de 11 preguntas interactivas para el instalador y el funcional, con persistencia en `localStorage`, cálculo de dictamen en tiempo real y función de exportación a PDF formal con recuadros de firma técnica.
-- **Trazabilidad y Empaquetado**:
-  - Mapeado en [`ARQUITECTURA.map`](ARQUITECTURA.map) (§1.1, §2.6, §6, §7.3).
-  - Incluido en el script empaquetador [`generar_entrega_v9_0.py`](generar_entrega_v9_0.py) bajo `03_Cableado/Camaras_Sisga_4x.html` y referenciado en `LEEME_PRIMERO.md` y `.htm`.
+#### DAR PASO — el diagnostico del 10/09 NO se sostiene
+
+El parte decia que el operario confundio el **ambar FIJO** de 4 s con uno intermitente, y lo «probaba»
+con una trama. **Esa trama es de `MODO:AUTO`**, y su `ESC:VERDE` es lo que **el Maestro cree** —
+`quienVerde`, que se pone con el primer `ACK_GREEN`, y el Esclavo lo manda **todavia en ambar**—, no lo
+que el Esclavo tiene encendido. **No prueba nada del evento.** Y es **la tercera vez** que este sintoma
+se explica con un ambar que no era intermitente o que no era del Esclavo (banco del 04/09,
+`N-140`/`N-141`, `N-147`). `CLAUDE.md` §7: **la foto de campo es una medida; cuando choca con el
+razonamiento, el sospechoso es el razonamiento.**
+
+> 🔴 **EL CAMINO QUE SI PRODUCE LO QUE VIO EL OPERARIO — reproducido en el fuente el 11/09:** la app
+> manda `AMBAR_EMERGENCIA` **sin PIN** (esta en `SIN_PIN`), y en `Esclavo/src/bluetooth.cpp` **solo la
+> puerta CON PIN** llama a `protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO)` —un unico llamador en todo el
+> Esclavo—. **O sea que el aviso de `N-142` no lo ha disparado nunca la app**, y el comentario de encima
+> —*«las dos puertas llevan el mismo bloque, letra por letra»*— es falso. Con el cerrojo puesto el Esclavo
+> sigue contestando `PONG` y veta el `GO_GREEN` en silencio; el Maestro agota reintentos, cae a
+> `C_FALLO` y **se autorrecupera dandose el verde a si mismo, tambien en Manual**. Resultado: **Esclavo en
+> ambar intermitente con la pluma ARRIBA, y un cruce que no alterna.**
+>
+> ⚠️ **Que pasara asi en el Sisga es HIPOTESIS**: exige que alguien pusiera el ambar en el poste 2.
+
+**La medida que lo distingue, y no pide tarjeta nueva:** el `$STATUS` **del propio Esclavo** en ese
+momento —`ESTADO:FALLO COM` con `PLUMA:ARRIBA` es `S_FALLO`; `ESTADO:AMARILLO` con `PLUMA:ABAJO` es la
+transicion—, su Diario de Ordenes (`AMBAR_EMERGENCIA` sin `CANCELAR_AMBAR` detras), la cinta del Maestro
+(`$ALARM … REINTENTOS_AGOTADOS` unos 17 s despues del despeje) **y el hash del firmware de las dos
+tarjetas**.
+
+#### Lo que aparecio al auditar, y NO es de esta rama
+
+| | que | estado |
+|---|---|---|
+| **A** | 🔴 **`AMBAR_EMERGENCIA` sin PIN no avisa al Maestro** (arriba) | **medido.** El arreglo es mecanico —la misma linea en la otra puerta— **mas el pack que mire las DOS puertas**, que `esclavo_07`/`08` dicen mirar y no miran. Toca el ambar: se ejerce con las dos puntas |
+| **B** | 🔴 **La siembra periodica ESP32->STM32 de `A-15` (una hora) NO EXISTE**: `grep INTERVALO_SYNC_MS ESP32_Expansion/src` -> nada | **medido.** Sin ella el Maestro corre con `millis()` sobre el HSI **desde el ultimo `SET_RTC` a mano**, y a los **49,7 dias** `(millis() - tBaseMillis)` da la vuelta: la hora salta atras 17 h 02 min 47 s, que en el ciclo de 120 s del Degradado son **47 s de desfase contra un Esclavo que no salta** —del orden de 17 s de verde contra verde por ciclo **si cae dentro de un Degradado**—. Con `c51cc85` alcanza a todas las placas. **Construir `A-15` lo cierra**, y ya esta decidida |
+| **C** | 🔴 **`SET_RTC` puede mentir AL REVES**: el puente reenvia la linea al STM32 **antes y con independencia** de su `DS3231`; con un ano fuera de rango, `dia=0` u `OSF`, el telefono recibe `$ERR,NODE:PUENTE` **y el Maestro siembra esa hora y la propaga** | medido por la auditoria, ⚠️ **sin reproducir a mano todavia**. `CLAUDE.md` §2 del reves |
+| **D** | 🟠 **Con el contador del RTC congelado en un valor NO nulo, el limite de 48 h del Degradado no vence tras un corte**: `reloj_contadorSegundos()` devuelve el contador si `rtcOperativo`, y `respaldo_horasDesdeSync()` da 0 para siempre | **mecanismo medido; que el estado exista en una placa, HIPOTESIS.** El `00:00:00` del 179DB0 cae del lado seguro desde `c51cc85` (no reanuda); otro valor congelado, no. Se mide con `CONSULTA RELOJ` dos veces, 10 s aparte: `cnt` tiene que avanzar 10 |
+| **E** | 🟠 **La guarda `D-21` del Esclavo sigue siendo inalcanzable** (§3.10.bis) y **`DECISIONES.md` la sigue llamando «guarda nueva y real»** | medido |
+| **F** | 🟡 **«Pluma ARRIBA en `S_FALLO`» no tiene fila en `DECISIONES.md`**: vive en un comentario de `semaforo.cpp` (cliente y PMT, 27/08) y en el Manual 1 (confirmado el 04/09) | a la tabla vinculante, por el responsable |
 
 ---
 
@@ -1199,6 +1214,9 @@ a buscar el sintoma contrario al que tiene.**
 > banco; un pack verde tampoco. `CLAUDE.md` §3: *lo que ese `0` dice es que los modelos y los
 > arneses de PC no encuentran nada.* **Nada de este apartado esta cerrado, y nada de esto viaja al
 > historico hasta que una tarjeta lo diga.**
+
+> ⚠️ **11/09: el Sisga (10/09) es la primera vez que parte de esto corrio en una calle — y con UNA trama y
+> sin el hash del firmware no se cierra NADA de esta caja.** Lo que pueda cerrar lo dira la cinta. §3.16.
 
 **Los siete que salieron DESPUES de la ultima cinta (05/09, 22:19). Ninguno ha visto cobre:**
 
