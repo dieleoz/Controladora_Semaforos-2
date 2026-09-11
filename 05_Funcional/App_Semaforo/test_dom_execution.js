@@ -1777,6 +1777,162 @@ conectarComo('ESCLAVO', 'SERIE:SEM-E-01,MODO:SUBORDINADO,ESTADO:ROJO,T:--,RF:--,
 assert(/PEGADA/.test(camDom.textContent),
   `Contra el ESCLAVO la reja ensena SUS camaras: "${camDom.textContent}"`);
 
+// =========================================================================
+// 15. D-26 (11/09): LA HORA LA MANDA EL ESP32, Y SUS AVISOS DICEN QUE HACER
+// =========================================================================
+// Las tramas son las que COMPONE el firmware, letra por letra: el $ALARM con el tramo
+// de cada punta en su sitio (Maestro RF/RTT/SINRESP, Esclavo RX/OK/RUIDO) y el $EVENT
+// con ORIGEN/DETALLE/HORA. Una trama inventada a la medida de la app mediria la app
+// contra si misma. Se entregan por el canal serie REAL de la app, con su checksum.
+//
+// LO QUE SE EXIGE DE CADA UNA SON TRES COSAS, y hacen falta las tres: que el literal en
+// crudo siga ahi (es lo que se cita en el roadmap y en el parte), que detras venga QUE
+// HACER, y que ese que hacer sea el de SU averia -una tabla que diera la misma frase a
+// todo pasaria las dos primeras-.
+function entregarTrama(payload) {
+  window._btSubscribeCb(`$${payload}*${xorNmea(payload)}\n`);
+}
+function ultimoEvento() {
+  const it = document.querySelectorAll('.event-item')[0];
+  return it ? it.textContent.replace(/\s+/g, ' ') : '';
+}
+const toastDom = document.getElementById('toast-msg');
+// LA CIFRA QUE LA APP NO PUEDE RECALCULAR (CLAUDE.md 14): un numero con unidad de tiempo.
+// Es el borde que se mira, escrito: la cadencia de la siembra, la espera de la alarma y
+// el margen del cruce son constantes del C++ que ningun instrumento cruza con el .js.
+const CIFRA_DE_TIEMPO = /\b\d+([.,]\d+)?\s*(ms|s|seg|segundos?|min|minutos?|h|horas?)\b/i;
+function traduccionDe(txt) {
+  const i = txt.indexOf(' -> ');
+  if (i < 0) return '';
+  const j = txt.indexOf(' [ultimo tramo', i);
+  return j < 0 ? txt.slice(i + 4) : txt.slice(i + 4, j);
+}
+
+const tramaAlarmaHora = (node, causa) => {
+  const tramo = node === 'MAESTRO' ? 'RF:97%,RTT:70ms,SINRESP:0' : 'RX:1200,OK:300,RUIDO:2';
+  return `ALARM,NODE:${node},EVENTO:HORA_ESP32,CAUSA:${causa},${tramo},ACCION:SIGUE_SU_HORA,HORA:18:05:00`;
+};
+
+// 15.1 LAS TRES CAUSAS DE HORA_ESP32, EN LAS DOS PUNTAS.
+const CASOS_HORA = [
+  ['MAESTRO', 'J17_MUDO', /REVISE EL CIRCUITO ESP32-STM32/],
+  ['ESCLAVO', 'J17_MUDO', /REVISE EL CIRCUITO ESP32-STM32/],
+  ['MAESTRO', 'RECHAZADA_FORMATO', /REVISE EL CIRCUITO ESP32-STM32/],
+  ['ESCLAVO', 'RECHAZADA_FORMATO', /REVISE EL CIRCUITO ESP32-STM32/],
+  ['MAESTRO', 'SIN_HORA_DEL_ESP32', /PONGALE LA HORA DESDE EL TELEFONO AQUI, EN EL GABINETE/],
+  ['ESCLAVO', 'SIN_HORA_DEL_ESP32', /PONGALE LA HORA DESDE EL TELEFONO AQUI, EN EL GABINETE/]
+];
+CASOS_HORA.forEach(([node, causa, instruccion]) => {
+  entregarTrama(tramaAlarmaHora(node, causa));
+  const txt = ultimoEvento();
+  const trad = traduccionDe(txt);
+  assert(txt.includes('HORA_ESP32 - ' + causa) && instruccion.test(trad) &&
+         trad.includes(node),
+    `D-26: $ALARM HORA_ESP32/${causa} del ${node} se pinta con su literal Y con que hacer en ESE poste: "${trad.slice(0, 90)}..."`);
+  assert(!CIFRA_DE_TIEMPO.test(trad),
+    `D-26: el aviso ${causa} no recita ninguna cifra de tiempo del firmware (CLAUDE.md 14): "${(trad.match(CIFRA_DE_TIEMPO) || [''])[0]}"`);
+});
+
+// Las dos de J17 NO mandan al boton de sincronizar, y la de la hora ausente NO manda al
+// destornillador. Es la mitad que separa "una frase por causa" de "la misma frase para
+// todo": sin estas dos, una tabla que dijera las dos cosas a todo pasaria el bucle.
+entregarTrama(tramaAlarmaHora('MAESTRO', 'J17_MUDO'));
+assert(/NO lo arregla/.test(traduccionDe(ultimoEvento())) &&
+       !/PONGALE LA HORA DESDE EL TELEFONO AQUI/.test(traduccionDe(ultimoEvento())),
+  'D-26: J17_MUDO dice que poner la hora desde el telefono NO lo arregla, y no manda a hacerlo');
+entregarTrama(tramaAlarmaHora('ESCLAVO', 'SIN_HORA_DEL_ESP32'));
+assert(!/REVISE EL CIRCUITO/.test(traduccionDe(ultimoEvento())),
+  'D-26: SIN_HORA_DEL_ESP32 no manda a revisar el circuito: la controladora si oye a su ESP32');
+
+// 15.2 LA INSTRUCCION VA ANTES QUE EL TRAMO, y el toast la resume. El tramo de la radio
+// es del que lee despues; lo primero que tiene que ver quien esta en el poste es que hacer.
+entregarTrama(tramaAlarmaHora('MAESTRO', 'RECHAZADA_FORMATO'));
+const conTramo = ultimoEvento();
+assert(conTramo.indexOf('REVISE EL CIRCUITO') >= 0 &&
+       conTramo.indexOf('REVISE EL CIRCUITO') < conTramo.indexOf('[ultimo tramo'),
+  'D-26: la instruccion sale ANTES que el ultimo tramo de la radio, pegada al literal');
+assert(/revise el circuito ESP32-STM32/i.test(toastDom.textContent),
+  `D-26: el aviso emergente dice que hacer, no solo "ALERTA: HORA_ESP32": "${toastDom.textContent}"`);
+
+// 15.3 LA ALARMA SE GUARDA CON LA INSTRUCCION. El registro de eventos de la pantalla vive
+// en memoria; la bitacora es lo que sobrevive a que Android cierre la app y lo que se
+// exporta. Una instruccion que solo viviera en pantalla se perderia con el telefono.
+const ultimaGuardada = window.RegistroEnlace.cargar().registros
+  .filter(r => r.clase === 'ALARMA').slice(-1)[0];
+assert(!!ultimaGuardada && ultimaGuardada.texto.includes('RECHAZADA_FORMATO') &&
+       ultimaGuardada.texto.includes('REVISE EL CIRCUITO ESP32-STM32'),
+  'D-26: la bitacora persistente guarda la alarma de la hora CON su instruccion');
+
+// 15.4 CONTROL: UNA CAUSA QUE LA APP NO CONOCE SALE EN CRUDO, SIN LA INSTRUCCION DE OTRA.
+// Es lo que impide que la tabla se convierta en un filtro -la alarma desaparece- o en un
+// comodin -una averia nueva recibe el arreglo de otra-.
+entregarTrama(tramaAlarmaHora('MAESTRO', 'CAUSA_QUE_NO_EXISTE'));
+assert(ultimoEvento().includes('HORA_ESP32 - CAUSA_QUE_NO_EXISTE') &&
+       !ultimoEvento().includes(' -> ') && /ALERTA: HORA_ESP32/.test(toastDom.textContent),
+  'D-26 control: una causa de HORA_ESP32 que la app no conoce se ensena en crudo, sin instruccion prestada');
+
+// 15.5 LA OTRA AVERIA DE D-26 (5): LA RADIO. No es trama nueva, pero D-26 le puso que
+// hacer, y lo que hay que hacer depende de a que poste esta conectado el telefono.
+entregarTrama('ALARM,NODE:MAESTRO,EVENTO:FALLO_RF,CAUSA:SILENCIO_25000ms,RF:40%,RTT:900ms,SINRESP:9,ACCION:CAMBIO_A_AMBAR,HORA:18:06:00');
+const rfM = traduccionDe(ultimoEvento());
+assert(/VAYA AL GABINETE DEL ESCLAVO/.test(rfM) && /PONGALE LA HORA DESDE EL TELEFONO/.test(rfM),
+  `D-26 (5): FALLO_RF desde el MAESTRO manda al gabinete del Esclavo a ponerle la hora: "${rfM.slice(0, 90)}..."`);
+assert(!CIFRA_DE_TIEMPO.test(rfM),
+  'D-26 (5): y la traduccion no repite la cifra del silencio: esa la da el literal del equipo');
+entregarTrama('ALARM,NODE:ESCLAVO,EVENTO:FALLO_RF,CAUSA:SILENCIO_25000ms,RX:0,OK:0,RUIDO:0,ACCION:CAMBIO_A_AMBAR,HORA:18:06:00');
+const rfE = traduccionDe(ultimoEvento());
+assert(/PONGALE LA HORA DESDE EL TELEFONO AQUI/.test(rfE) && !/VAYA AL GABINETE DEL ESCLAVO/.test(rfE),
+  `D-26 (5): FALLO_RF desde el ESCLAVO manda ponerle la hora AQUI, no ir a otro poste: "${rfE.slice(0, 90)}..."`);
+
+// 15.6 LOS TRES $EVENT NUEVOS DEL DIARIO.
+const CASOS_EVENTO = [
+  ['EVENT,NODE:MAESTRO,ORIGEN:ESP32,DETALLE:HORA_ESP32_SEMBRADA,HORA:18:07:00',
+   'HORA_ESP32_SEMBRADA', /ha tomado la hora de su modulo ESP32/],
+  ['EVENT,NODE:ESCLAVO,ORIGEN:ESP32,DETALLE:HORA_ESP32_IGNORADA_MANDA_RADIO,HORA:18:07:00',
+   'HORA_ESP32_IGNORADA_MANDA_RADIO', /Normal: .*la manda el Maestro por radio/],
+  ['EVENT,NODE:ESCLAVO,ORIGEN:DEGRADADO,DETALLE:SALTO_DE_HORA_POR_ROJO,HORA:18:07:00',
+   'SALTO_DE_HORA_POR_ROJO', /COMPRUEBE LA HORA DE LOS DOS POSTES.*ROJO/]
+];
+CASOS_EVENTO.forEach(([payload, detalle, instruccion]) => {
+  entregarTrama(payload);
+  const txt = ultimoEvento();
+  const trad = traduccionDe(txt);
+  assert(txt.includes(detalle) && instruccion.test(trad) && !CIFRA_DE_TIEMPO.test(trad),
+    `D-26: $EVENT ${detalle} se pinta con su literal y con lo que significa, sin cifras: "${trad.slice(0, 90)}..."`);
+});
+// El salto pasa por rojo: eso no se puede quedar en la bitacora sin avisar.
+assert(/ROJO/.test(toastDom.textContent),
+  `D-26 (4): el salto de hora por rojo ademas avisa en emergente: "${toastDom.textContent}"`);
+
+// 15.7 LO QUE D-26 DEJO FALSO EN LA APP: el acuse de SET_RTC decia que nada sincroniza
+// los dos postes. Desde D-26 el Maestro sembrado se la pasa por radio al Esclavo. Lo que
+// sigue siendo cierto -el reloj con pila del otro poste no lo toca nadie- tiene que
+// seguir dicho. El acuse va DEBAJO de la linea de los tres relojes, asi que se mira en
+// las dos primeras.
+conectarComo('MAESTRO', 'SERIE:SEM-M-01,MODO:AUTO,ESTADO:V1_R2,T:31,RF:97,RTT:70,BAT:12.9,HORA:18:08:00');
+entregarTrama('ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:OK,FECHA:2026-09-11,HORA:18:08:00');
+const dosPrimeros = [...document.querySelectorAll('.event-item')].slice(0, 2)
+  .map(e => e.textContent.replace(/\s+/g, ' ')).join(' | ');
+assert(!/no hay nada que los sincronice/i.test(dosPrimeros) &&
+       /la pasa por radio al Esclavo/.test(dosPrimeros) &&
+       /reloj con pila del OTRO poste no se toca/.test(dosPrimeros),
+  'D-26: el acuse de SET_RTC ya no dice que nada sincroniza los postes, y sigue diciendo que el reloj del otro no se toca');
+entregarTrama('ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:HORA_PUESTA_SIN_PROPAGAR,FECHA:2026-09-11,HORA:18:08:05');
+const sinProp = [...document.querySelectorAll('.event-item')].slice(0, 2)
+  .map(e => e.textContent.replace(/\s+/g, ' ')).join(' | ');
+assert(/REVISE EL CIRCUITO ESP32-STM32/.test(sinProp),
+  'D-26 (5): HORA_PUESTA_SIN_PROPAGAR manda a revisar el circuito ESP32-STM32 de ese poste');
+
+// 15.8 LOS DOS RECHAZOS NUEVOS DEL PUENTE se traducen y no caen al "sin traducir".
+entregarTrama('ERR,NODE:PUENTE,CMD:HORA_ESP32,DESC:LINEA_RESERVADA_AL_PUENTE');
+assert(/solo el propio modulo puede mandar/.test(ultimoEvento()) &&
+       !/sin traducir/.test(ultimoEvento()),
+  `D-26: $ERR LINEA_RESERVADA_AL_PUENTE se traduce: "${ultimoEvento().slice(0, 90)}..."`);
+entregarTrama('ERR,NODE:PUENTE,CMD:DESCONOCIDO,DESC:RECLAMADA_SIN_RAMA');
+assert(/defecto del firmware del modulo/.test(ultimoEvento()) &&
+       !/sin traducir/.test(ultimoEvento()),
+  `D-26: $ERR RECLAMADA_SIN_RAMA se traduce: "${ultimoEvento().slice(0, 90)}..."`);
+
 console.log('='.repeat(80));
 console.log(` RESULTADO JSDOM: ${testsPassed} PASS | ${testsFailed} FALLAS`);
 console.log('='.repeat(80));

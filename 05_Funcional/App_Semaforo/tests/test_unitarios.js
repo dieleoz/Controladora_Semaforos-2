@@ -286,6 +286,56 @@ assert(Object.keys(RegistroCrudo.MOTIVOS).length >= 3 &&
        Object.keys(RegistroCrudo.MOTIVOS).every(k => RegistroCrudo.MOTIVOS[k].length > 10),
   `Los ${Object.keys(RegistroCrudo.MOTIVOS).length} motivos de rechazo tienen texto que explica qué pasó`);
 
+// 10. D-26 (11/09): los avisos de la hora, por el parser que corre en el telefono
+console.log('\n--- 10. Avisos de la hora del ESP32 (D-26) ---');
+// La tabla es js/avisos_equipo.js, la que index.html carga. Lo que esta suite mira y la
+// otra no: que la trama pase por camposDeTrama() -el partidor unico- antes de traducirse,
+// que el texto dependa del POSTE que avisa (D-26 (3): con radio el Esclavo sigue al
+// Maestro), y que la instruccion vaya DELANTE.
+const AvisosEquipo = require('../js/avisos_equipo.js');
+const fs10 = require('fs');
+const path10 = require('path');
+const htmlApp = fs10.readFileSync(path10.join(__dirname, '..', 'index.html'), 'utf8');
+assert(/<script src="js\/avisos_equipo\.js"><\/script>[\s\S]*<script src="app\.js"><\/script>/.test(htmlApp),
+  'index.html carga js/avisos_equipo.js ANTES de app.js: la tabla que se prueba es la que corre');
+
+function camposAlarma(node, causa, tramo) {
+  return NMEAParser.camposDeTrama(
+    `$ALARM,NODE:${node},EVENTO:HORA_ESP32,CAUSA:${causa},${tramo},ACCION:SIGUE_SU_HORA,HORA:18:05:00`.split(','));
+}
+const aJ17M = AvisosEquipo.traducirAlarma(camposAlarma('MAESTRO', 'J17_MUDO', 'RF:97%,RTT:70ms,SINRESP:0'));
+const aJ17E = AvisosEquipo.traducirAlarma(camposAlarma('ESCLAVO', 'J17_MUDO', 'RX:1200,OK:300,RUIDO:2'));
+assert(!!aJ17M && /REVISE EL CIRCUITO ESP32-STM32/.test(aJ17M.texto),
+  'J17_MUDO por camposDeTrama(): la trama real del Maestro llega a su instruccion');
+assert(!!aJ17E && !!aJ17M &&
+       /Mientras haya radio, la hora de este poste la sigue mandando el Maestro/.test(aJ17E.texto) &&
+       !/Mientras haya radio/.test(aJ17M.texto),
+  'En el ESCLAVO el aviso dice que con radio manda el Maestro; en el MAESTRO no lo dice');
+
+const causas = ['J17_MUDO', 'RECHAZADA_FORMATO', 'SIN_HORA_DEL_ESP32'];
+const delanteras = causas.map(c => AvisosEquipo.traducirAlarma(camposAlarma('ESCLAVO', c, 'RX:1,OK:1,RUIDO:0')));
+assert(delanteras.every(a => a && /^(REVISE|PONGALE)\b/.test(a.texto)),
+  'Las tres causas de HORA_ESP32 empiezan por lo que hay que HACER, no por lo que paso');
+// La cabeza de cada texto es lo que va antes de sus primeros dos puntos. Se corta con una
+// expresion y no partiendo por ':' -el partidor de tramas es uno y vive en nmea_parser.js
+// (app_12)-: esto es prosa, no una trama.
+// Sin traduccion no hay cabeza que comparar: se cuenta como falta, no revienta la suite
+// -una suite que se cae a mitad deja la compuerta en ABORTADO, y eso no es un FALLA-.
+const cabeza = t => (typeof t === 'string' ? /^[^:]*/.exec(t)[0] : null);
+assert(delanteras.every(a => a) && new Set(delanteras.map(a => cabeza(a.texto))).size === 2,
+  'y son DOS instrucciones distintas para tres causas: dos al circuito, una al telefono');
+
+const sinNodo = AvisosEquipo.traducirAlarma({ EVENTO: 'HORA_ESP32', CAUSA: 'J17_MUDO' });
+assert(!!sinNodo && /la trama no dice cual/.test(sinNodo.texto) && !/MAESTRO|ESCLAVO/.test(cabeza(sinNodo.texto)),
+  'Sin NODE en la trama no se adivina el poste: se dice que la trama no lo dice');
+
+const salto = AvisosEquipo.traducirEvento(
+  NMEAParser.camposDeTrama('$EVENT,NODE:MAESTRO,ORIGEN:DEGRADADO,DETALLE:SALTO_DE_HORA_POR_ROJO,HORA:18:07:00'.split(',')));
+assert(!!salto && /ROJO a proposito/.test(salto.texto) && !!salto.toast,
+  'SALTO_DE_HORA_POR_ROJO explica el rojo y avisa en emergente');
+assert(AvisosEquipo.traducirEvento({ ORIGEN: 'APP_BLUETOOTH', DETALLE: 'SET_MODO_AUTO' }) === null,
+  'Control: un $EVENT de siempre sigue saliendo en crudo, la tabla no lo toca');
+
 console.log('\n' + '='.repeat(80));
 console.log(` RESUMEN TDD: ${passed} PASS | ${failed} FALLAS  (Total: ${passed + failed})`);
 console.log('='.repeat(80));

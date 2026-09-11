@@ -3374,8 +3374,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Decian "hora puesta en el Maestro y propagada al Esclavo" y "entro en el MAESTRO
     // pero NO se propago al ESCLAVO". Los dos describian el $ACK del STM32, que
     // propagaba por radio con coordinador_sincronizarHora(). Ese comando ya no lo
-    // atiende el STM32: quien contesta es el puente, y el puente NO PROPAGA NADA -pone
-    // la hora en el DS3231 de SU poste y ahi se acaba-.
+    // atiende el STM32: quien contesta es el puente, y el puente ~~NO PROPAGA NADA -pone
+    // la hora en el DS3231 de SU poste y ahi se acaba-~~ (cierto el 05/09; desde D-26 el
+    // puente SIEMBRA a su propio STM32 con la hora releida: ver el parrafo de abajo).
     //
     // Dejar el texto viejo habria sido la mentira con formato de exito una capa mas
     // arriba: el firmware deja de mentir y la app sigue diciendo lo mismo. El tecnico
@@ -3387,13 +3388,26 @@ document.addEventListener('DOMContentLoaded', () => {
     //   HORA_PUESTA_SIN_PROPAGAR  entro en el DS3231 de ESTE poste y la linea NO llego a
     //                             su STM32. "Propagar" aqui es J17 -el cable de dentro
     //                             del armario-, NO la otra punta del cruce.
+    //
+    // 🔴 D-26 (11/09) - Y EL TEXTO DE OK VOLVIO A QUEDARSE VIEJO, AHORA POR EL OTRO LADO.
+    // Decia "esto NO toca el otro poste - no hay nada que los sincronice entre si", y desde
+    // D-26 es FALSO para las CONTROLADORAS: el puente ya no reenvia los bytes del telefono,
+    // siembra a su STM32 con la hora RELEIDA del DS3231, y el Maestro sembrado se la pasa
+    // por radio al Esclavo (coordinador_sincronizarHora() dentro de su rama HORA_ESP32).
+    // Lo que sigue siendo cierto es lo de los RELOJES CON PILA: el DS3231 del otro poste
+    // no lo toca nadie, y sin radio es el que manda alli (D-26 (3)). El texto dice las dos
+    // cosas y no promete lo que el acuse no sabe: "la mando entera" no es "la acepto" -si
+    // la controladora la tira, lo dice ella con su propia alarma de la hora-.
     'SET_RTC|OK': {
       tono: 'green',
-      texto: 'Equipo: hora puesta y RELEIDA del reloj de ESTE poste. Ojo: esto NO toca ' +
-             'el otro poste - cada uno lleva su propio reloj con pila y no hay nada que ' +
-             'los sincronice entre si. El cruce no queda en hora hasta que se repita ' +
-             'conectandose al otro.',
-      toast: 'Hora puesta en ESTE poste - falta el otro'
+      texto: 'Equipo: hora puesta y RELEIDA del reloj de ESTE poste, y el modulo se la ha ' +
+             'mandado entera a su controladora (si la controladora no la aceptara, lo ' +
+             'diria con un aviso de la hora). En el MAESTRO, la controladora la pasa por ' +
+             'radio al Esclavo; en el ESCLAVO, su controladora solo la usa sin radio, ' +
+             'porque con radio manda la del Maestro. El reloj con pila del OTRO poste no ' +
+             'se toca: pongale la hora tambien conectandose a el, que es el que manda alli ' +
+             'si se pierde la radio.',
+      toast: 'Hora puesta en ESTE poste - falta el reloj del otro'
     },
     // A-9. LA CONSULTA QUE NO CAMBIA NADA, Y POR ESO SE PUEDE HACER CON EL EQUIPO EN
     // MARCHA. Este texto NO repite los tres relojes ni el desfase: eso lo escribe
@@ -3408,13 +3422,17 @@ document.addEventListener('DOMContentLoaded', () => {
              'nada: ni el reloj, ni una luz, ni un modo.',
       toast: 'Reloj consultado - vea el desfase abajo'
     },
+    // D-26 (5): lo que no cruza J17 es la averia "revisar el circuito" de la misma placa,
+    // y el texto lo dice con esas palabras. Lo que no cruza ya no es "la orden" -desde
+    // D-26 la orden del telefono se queda en el puente- sino la hora que el puente releyo.
     'SET_RTC|HORA_PUESTA_SIN_PROPAGAR': {
       tono: 'red',
-      texto: 'Equipo: la hora entro en el reloj de ESTE poste, pero la orden NO llego ' +
-             'entera a su controladora por el cable interno (J17). El reloj esta bien; ' +
-             'lo que falla es el enlace de dentro del armario. Y sigue faltando el otro ' +
-             'poste, que es un reloj aparte.',
-      toast: 'Hora puesta, pero la orden no llego a la controladora'
+      texto: 'Equipo: la hora entro en el reloj de ESTE poste, pero el modulo NO pudo ' +
+             'mandarsela entera a su controladora por el cable interno (J17): la ' +
+             'controladora sigue con la que tenia. El reloj esta bien; lo que falla es el ' +
+             'camino de dentro del armario: REVISE EL CIRCUITO ESP32-STM32 de este poste ' +
+             '(es la misma placa). El reloj del otro poste es aparte.',
+      toast: 'Hora puesta en el reloj, pero no llego a la controladora: revise J17'
     }
   };
 
@@ -3579,6 +3597,27 @@ document.addEventListener('DOMContentLoaded', () => {
              'nombrar. Apunte la hora y avise: es un caso nuevo, no una averia conocida, ' +
              'y no hay nada que tocar en el poste con este dato.',
       toast: 'Rechazo por un motivo que el firmware no sabe nombrar'
+    },
+    // D-26 (11/09): los dos rechazos nuevos del puente. Ninguno lo provoca un boton de
+    // esta app -la app no manda la linea de hora ni una orden que el puente se quede sin
+    // rama-, y por eso mismo hay que decir que significan si aparecen: el primero es
+    // alguien tecleando a mano la orden reservada al modulo, el segundo un defecto del
+    // firmware del puente. Sin traduccion saldrian como un "error" que manda a mirar el
+    // cable.
+    'LINEA_RESERVADA_AL_PUENTE': {
+      texto: 'El modulo ESP32 de este poste descarto la orden ENTERA porque lleva dentro ' +
+             'el nombre de la linea de hora que solo el propio modulo puede mandar a la ' +
+             'controladora. No salio nada hacia el equipo. Esta app no manda esa orden: si ' +
+             've esto, alguien la escribio a mano. Para poner la hora use el boton ' +
+             'Sincronizar.',
+      toast: 'Orden descartada: la linea de hora es del propio modulo'
+    },
+    'RECLAMADA_SIN_RAMA': {
+      texto: 'El modulo ESP32 de este poste se quedo la orden pero no tiene como ' +
+             'atenderla, asi que no salio nada hacia el equipo. No es una averia del ' +
+             'poste ni del cable: es un defecto del firmware del modulo. Anote la orden y ' +
+             'la hora y reportelo.',
+      toast: 'El modulo se quedo la orden sin atenderla: reportelo'
     },
     'LINEA_DEMASIADO_LARGA': {
       texto: 'La orden llego al puente mas larga de lo que cabe y se descarto ENTERA: no ' +
@@ -3978,7 +4017,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } else if (header === '$ALARM') {
       const data = _camposNmea(parts);
-      showToast('ALERTA: ' + (data.EVENTO || 'Fallo detectado'));
+      // D-26 (5): UNA ALARMA DICE QUE HACER, NO SOLO QUE PASO. La tabla vive en
+      // js/avisos_equipo.js -el porque, en su cabecera- y sigue el molde de ERR_MOTIVO:
+      // el literal en crudo se queda y la traduccion va detras. Lo que la tabla no
+      // nombra sale como salia, en crudo, que es la red y no el destino.
+      const aviso = AvisosEquipo.traducirAlarma(data);
+      showToast(aviso && aviso.toast ? aviso.toast
+                                     : 'ALERTA: ' + (data.EVENTO || 'Fallo detectado'));
 
       // N-108: EL $ALARM YA NO DICE SOLO QUE SE CAYO, DICE DESDE DONDE VENIA.
       //
@@ -4015,11 +4060,14 @@ document.addEventListener('DOMContentLoaded', () => {
         ? ' [la app vio por ultima vez ' + state.rfQuality + '% a las ' +
           _horaDe(state.rfMedidaMs) + ', que puede ser de la otra punta]'
         : '';
+      // La traduccion va PEGADA al literal y ANTES del tramo: lo que el tecnico tiene que
+      // leer primero es que hacer, y el tramo es el dato para quien lo lea despues.
       const textoAlarma = 'Caja Negra: ' + (data.EVENTO || 'FALLO') + ' - ' +
                           (data.CAUSA || '') + ' (Accion: ' + (data.ACCION || '') + ')' +
+                          (aviso ? ' -> ' + aviso.texto : '') +
                           (tramo.length ? ' [ultimo tramo: ' + tramo.join(', ') + ']' : '') +
                           ultimoVisto;
-      addEvent('red', textoAlarma);
+      addEvent(aviso && aviso.tono ? aviso.tono : 'red', textoAlarma);
       // El registro de eventos de la app vivia SOLO en memoria: al cerrarse la app se
       // perdia, y el $ALARM de la caida de las 03:40 no lo leia nunca nadie. Ahora la
       // alarma se guarda, y con el tramo que midio el equipo al lado.
@@ -4112,9 +4160,16 @@ document.addEventListener('DOMContentLoaded', () => {
       // leia nadie, asi que el registro de eventos de la app solo contenia lo que la
       // app misma habia hecho: una bitacora que no sabe nada de lo que pasa en el poste.
       const data = _camposNmea(parts);
+      // D-26: tres lineas del diario que el tecnico tiene que entender -la siembra que
+      // vuelve, la que se ignora porque manda la radio, y el salto de hora que pasa por
+      // rojo-. Mismo molde que el $ALARM de arriba: crudo primero, traduccion detras, y
+      // lo que la tabla no nombra en crudo y en cyan como siempre.
+      const aviso = AvisosEquipo.traducirEvento(data);
       const textoEvento = 'Equipo [' + (data.ORIGEN || 'FIRMWARE') + ']: ' +
-                          (data.DETALLE || '') + (data.HORA ? ' - ' + data.HORA : '');
-      addEvent('cyan', textoEvento);
+                          (data.DETALLE || '') + (data.HORA ? ' - ' + data.HORA : '') +
+                          (aviso ? ' -> ' + aviso.texto : '');
+      addEvent(aviso && aviso.tono ? aviso.tono : 'cyan', textoEvento);
+      if (aviso && aviso.toast) showToast(aviso.toast);
       RegistroEnlace.anotar('EVENTO', enlaceDeAhora(), textoEvento);
       renderRegistroEnlace();
     } else if (header === '$ERR') {
@@ -5282,10 +5337,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // 19:00 locales mandaba el dia siguiente.
       const today = fechaLocalISO();
       if (!enviarComandoFirmware('SET_RTC', `${today},${comp.horaCompensada}`)) return;
-      // "Enviada", no "exitosa". Esta app no sabe si el Esclavo puso la hora: su
-      // despachador contesta $ERR,SIN_CRISTAL o $ERR,FORMATO_INVALIDO cuando no puede
-      // -Esclavo/src/bluetooth.cpp:251-257-, y con Y2 muerto en hardware (N-17) ese
-      // rechazo es hoy la respuesta habitual, no la rara.
+      // "Enviada", no "exitosa". Esta app no sabe si el Esclavo puso la hora hasta que
+      // conteste. ~~su despachador contesta $ERR,SIN_CRISTAL o $ERR,FORMATO_INVALIDO~~
+      // -caducado: desde D-26 (11/09) el SET_RTC no cruza al STM32; lo atiende el puente
+      // ESP32 de ese poste, que contesta con NODE:PUENTE y, si su reloj la acepta, siembra
+      // a la controladora con la hora releida-.
       showToast(`Orden enviada al Esclavo: ${today} ${comp.horaCompensada}`);
       addEvent('cyan', `Courier RTC: orden SET_RTC enviada (${today} ${comp.horaCompensada}, ` +
                        `traslado ${comp.elapsedSeg}s). Espere el acuse del equipo.`);
@@ -5324,10 +5380,10 @@ document.addEventListener('DOMContentLoaded', () => {
       // pantalla del equipo por senalar un componente sin haberlo medido, y ademas el
       // DS3231 hoy cuelga del ESP32, no de esta puerta.
       //
-      // Y NO SE DICE "sincronizado": el Maestro tiene TRES finales para este comando
-      // -FORMATO_INVALIDO, SIN_CRISTAL_VEA_CONSULTA_RELOJ y OK
-      // (Maestro/src/bluetooth.cpp:307-330)-, y con Y2 confirmado muerto en hardware
-      // (N-17) el del medio es el habitual. La app solo sabe que la orden salio.
+      // Y NO SE DICE "sincronizado": la orden tiene varios finales y la app solo sabe que
+      // salio. ~~el Maestro tiene TRES finales: FORMATO_INVALIDO,
+      // SIN_CRISTAL_VEA_CONSULTA_RELOJ y OK~~ -caducado: desde D-26 (11/09) el SET_RTC lo
+      // contesta el puente ESP32 del poste conectado (ACK_TEXTO / ERR_MOTIVO), no el STM32-.
       showToast(`Orden de ajuste de hora enviada: ${today} ${now}`);
       addEvent('cyan', `Orden SET_RTC enviada al equipo con la hora del celular: ${today} ${now}. ` +
                        `Espere el acuse; si no llega, el reloj NO quedó puesto.`);

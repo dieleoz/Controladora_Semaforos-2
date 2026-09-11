@@ -2826,6 +2826,25 @@ def escenario_d20(t, c, maestro, esclavo, app, util_max):
             "rojo. Sin la alarma, un J17 que come bytes deja al STM32 extrapolando con el "
             "HSI sin que nadie lo sepa (D-26 (5)); con un $ERR, el telefono acusa al operario"
             % (nombre, cortada, len(alarmas), rojos))
+
+        # Y LA APP REAL LA ENSENA DICIENDO QUE HACER (D-26 (5) + D-21 (2)). Es la mitad que
+        # ningun otro instrumento junta: la alarma que compuso el bluetooth.cpp REAL, subida
+        # por el puente, pintada por el app.js REAL. Lo que se exige es el literal Y la
+        # instruccion de SU averia -revisar el circuito de esa placa- Y el poste que avisa:
+        # una app que pintara la trama en crudo pasaria la primera condicion y no las otras.
+        puente = Puente(util_max)
+        for s in salidas:
+            if s.startswith("$ALARM"):
+                puente.desde_stm32(s)
+        vistos = [(app.entregar(w)[0].get("ultimo") or "") for w in puente.hacia_app]
+        pintada = next((v for v in vistos if "HORA_ESP32 - RECHAZADA_FORMATO" in v), "")
+        t.verificar(
+            "REVISE EL CIRCUITO ESP32-STM32" in pintada and ("(%s," % nombre) in pintada,
+            "y la app REAL la pinta con su literal y con que hacer en ese poste: %r"
+            % pintada[pintada.find("->"):][:110],
+            "la app REAL recibio la alarma de la hora del %s y pinto %r: sin 'REVISE EL "
+            "CIRCUITO ESP32-STM32' y el poste, el tecnico ve una alarma en crudo y no sabe "
+            "que la averia es de esa misma placa" % (nombre, vistos))
     salidas = maestro.avanzar(c.periodo_ms["Maestro"] + 1)
     status = next((s for s in salidas if s.startswith("$STATUS")), "")
     t.verificar(
@@ -2856,6 +2875,20 @@ def escenario_d20(t, c, maestro, esclavo, app, util_max):
         "con la radio mandando, el ESCLAVO REAL: %d lineas IGNORADA, %r en rojo/alarma, y "
         "$STATUS %r. La hora del Maestro no puede pisarla el DS3231 de este poste mientras "
         "la radio llegue (D-26 (3))" % (len(ignorada), malas, statusE.strip()))
+
+    # Y LA APP REAL LA LEE COMO LO QUE ES: lo normal, no una averia. Sin traduccion, una
+    # linea con "IGNORADA" dentro manda al tecnico a buscar un fallo que no hay.
+    puente = Puente(util_max)
+    for s in ignorada:
+        puente.desde_stm32(s)
+    vistos = [(app.entregar(w)[0].get("ultimo") or "") for w in puente.hacia_app]
+    leida = next((v for v in vistos if "HORA_ESP32_IGNORADA_MANDA_RADIO" in v), "")
+    t.verificar(
+        "Normal:" in leida and "la manda el Maestro por radio" in leida,
+        "y la app REAL pinta esa linea del diario como lo normal con radio: %r"
+        % leida[leida.find("->"):][:110],
+        "la app REAL recibio IGNORADA_MANDA_RADIO del ESCLAVO y pinto %r: sin decir que es "
+        "lo normal con radio (D-26 (3)), se lee como una averia" % (vistos,))
     esclavo.ajustar("RADIO_MANDA 0")
     salidas = esclavo.rx(otra + "\r\n")
     salidas += esclavo.avanzar(c.periodo_ms["Esclavo"] + 1)

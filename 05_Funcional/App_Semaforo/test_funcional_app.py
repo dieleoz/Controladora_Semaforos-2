@@ -487,6 +487,117 @@ def main():
     else:
         test_failed("Control Negativo Courier RTC (transcurrido calculado y no sumado)",
                     "el detector se conforma con que aparezca el calculo: no mide la suma")
+    print_header("SUITE FUNCIONAL 5: D-26 - CADA AVISO DE LA HORA QUE EMITE EL FIRMWARE TIENE SU TEXTO")
+
+    # LA LISTA NO SE ESCRIBE AQUI: SE LEE DEL C++. Una lista de causas copiada en este
+    # fichero se quedaria vieja el dia que el firmware estrenara una, y la app volveria a
+    # ensenarla en crudo sin que nada fallara (CLAUDE.md 14).
+    #
+    # EL BORDE DEL CENSO, ESCRITO (CLAUDE.md 7): se censan los avisos que D-26 creo -todas
+    # las causas de bluetooth_reportarAlarma("HORA_ESP32", ...) y los
+    # bluetooth_reportarEvento(...) cuyo DETALLE empieza por HORA_ESP32_ o por
+    # SALTO_DE_HORA_- en las dos puntas. NO se censan las demas alarmas y eventos: siguen
+    # saliendo en crudo a proposito, y exigirles texto aqui convertiria esta suite en la
+    # que decide que se traduce. Los ficheros son los que emiten: bluetooth.cpp (la hora
+    # del ESP32) y modo_degradado.cpp (el salto por rojo) de Maestro y Esclavo.
+    raiz_fw = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "01_Firmware")
+
+    def _cpp_sin_comentarios(ruta):
+        with io.open(ruta, encoding="utf-8", errors="replace") as f:
+            t = f.read()
+        t = re.sub(r"/\*.*?\*/", " ", t, flags=re.S)
+        return re.sub(r"//[^\n]*", " ", t)
+
+    re_alarma = re.compile(r'bluetooth_reportarAlarma\(\s*"HORA_ESP32"\s*,\s*"([A-Z0-9_]+)"')
+    re_evento = re.compile(r'bluetooth_reportarEvento\(\s*"([A-Z0-9_]+)"\s*,\s*'
+                           r'"((?:HORA_ESP32_|SALTO_DE_HORA_)[A-Z0-9_]*)"\s*\)')
+
+    def claves_del_firmware(textos):
+        claves = set()
+        for t in textos:
+            claves |= {"HORA_ESP32|" + c for c in re_alarma.findall(t)}
+            claves |= {o + "|" + d for o, d in re_evento.findall(t)}
+        return claves
+
+    textos_fw = []
+    for punta in ("Maestro", "Esclavo"):
+        for fich in ("bluetooth.cpp", "modo_degradado.cpp"):
+            ruta = os.path.join(raiz_fw, punta, "src", fich)
+            if not os.path.isfile(ruta):
+                test_failed("Censo de avisos D-26",
+                            f"no existe {punta}/src/{fich}: se movio el firmware y esta "
+                            f"suite no sabe donde leer los avisos (CLAUDE.md 5)")
+            textos_fw.append(_cpp_sin_comentarios(ruta))
+    claves = claves_del_firmware(textos_fw)
+    # Tres causas de alarma y tres lineas de diario, contadas el 11/09 sobre 68dd2c5. Es
+    # un SUELO, no la cuenta: si sale menos, el que fallo es el buscador, no el firmware.
+    if len({c for c in claves if c.startswith("HORA_ESP32|")}) < 3 or \
+       len({c for c in claves if not c.startswith("HORA_ESP32|")}) < 3:
+        test_failed("Censo de avisos D-26",
+                    f"el C++ solo dio {sorted(claves)}: fallo el buscador, no la app. Con "
+                    f"el censo vacio esta suite aprobaria sin mirar nada")
+    test_passed("Censo de avisos D-26 leido del C++", ", ".join(sorted(claves)))
+
+    ruta_avisos = os.path.join(js_dir, "js", "avisos_equipo.js")
+    if not os.path.isfile(ruta_avisos):
+        test_failed("Tabla de avisos de la app", "no existe js/avisos_equipo.js")
+    with io.open(ruta_avisos, encoding="utf-8", errors="replace") as f:
+        avisos_js = f.read()
+
+    def entrada(js, clave):
+        """El trozo de la tabla que pertenece a `clave`, hasta la clave siguiente."""
+        i = js.find("'" + clave + "'")
+        if i < 0:
+            return None
+        j = js.find("\n    '", i + 1)
+        return js[i:j if j > 0 else len(js)]
+
+    faltan = sorted(c for c in claves if entrada(avisos_js, c) is None)
+    if not faltan:
+        test_passed("Cada aviso D-26 del firmware tiene su texto en la app",
+                    f"{len(claves)} de {len(claves)} en js/avisos_equipo.js")
+    else:
+        test_failed("Avisos D-26 sin texto",
+                    f"el firmware emite {faltan} y la app no los traduce: el tecnico los "
+                    f"veria en crudo, sin saber que hacer")
+
+    # QUE DICE CADA UNO, por su averia (D-26 (5)): las de J17 mandan al circuito de la
+    # misma placa; la hora ausente, al telefono en ese gabinete.
+    INSTRUCCION = {
+        "HORA_ESP32|J17_MUDO": "REVISE EL CIRCUITO ESP32-STM32",
+        "HORA_ESP32|RECHAZADA_FORMATO": "REVISE EL CIRCUITO ESP32-STM32",
+        "HORA_ESP32|SIN_HORA_DEL_ESP32": "PONGALE LA HORA DESDE EL TELEFONO",
+    }
+    for clave, frase in INSTRUCCION.items():
+        trozo = entrada(avisos_js, clave) or ""
+        if frase in trozo:
+            test_passed(f"Instruccion de {clave}", frase)
+        else:
+            test_failed(f"Instruccion de {clave}",
+                        f"el texto no dice '{frase}': D-26 (5) separa las dos averias "
+                        f"porque se arreglan en sitios distintos")
+
+    # Y SIN CIFRAS DEL FIRMWARE (CLAUDE.md 14): el borde es un numero con unidad de tiempo.
+    cifra = re.compile(r"\b\d+([.,]\d+)?\s*(ms|s|seg|segundos?|min|minutos?|h|horas?)\b", re.I)
+    cadenas = re.findall(r"'([^'\n]*)'", re.sub(r"//[^\n]*", " ", avisos_js))
+    con_cifra = [c for c in cadenas if cifra.search(c)]
+    if not con_cifra:
+        test_passed("Avisos D-26 sin cifras que la app no puede recalcular",
+                    f"{len(cadenas)} literales de js/avisos_equipo.js revisados")
+    else:
+        test_failed("Cifra en un aviso", f"{con_cifra}: un numero copiado del firmware nace caducado")
+
+    # CONTROL NEGATIVO: el censo sabe fallar. Un firmware con una causa que la tabla no
+    # nombra tiene que salir como falta, y el detector de cifras tiene que ver una.
+    falso = claves_del_firmware(['bluetooth_reportarAlarma("HORA_ESP32", "CAUSA_NUEVA", "X");'])
+    if falso == {"HORA_ESP32|CAUSA_NUEVA"} and entrada(avisos_js, "HORA_ESP32|CAUSA_NUEVA") is None \
+            and cifra.search("se repite cada 5 min"):
+        test_passed("Control Negativo del censo D-26",
+                    "una causa nueva del C++ se detecta como falta y '5 min' se ve como cifra")
+    else:
+        test_failed("Control Negativo del censo D-26",
+                    "el censo no detecta una causa sin texto, o el detector de cifras no ve una")
+
     # El "N/N" no es un adorno: es la forma que compuerta.py sabe extraer para el acta,
     # y aqui es honesto porque test_failed() corta la corrida en el acto -si se llega a
     # esta linea, las N que se ejecutaron pasaron todas-.

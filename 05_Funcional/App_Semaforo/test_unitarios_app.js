@@ -552,6 +552,92 @@ runTest('Escalabilidad', 'Eliminación masiva secuencial de exactamente 17 de 20
   });
 });
 
+// --- SUITE 7: D-26 - los avisos de la hora dicen QUE HACER ---
+//
+// La tabla que se prueba es la de js/avisos_equipo.js, la MISMA que carga index.html y
+// que corre en el telefono: no se copia aqui ningun texto. Las tramas son las que compone
+// el firmware -bluetooth_reportarAlarma() con el tramo de cada punta, y
+// bluetooth_reportarEvento()-, pasadas por el parser de esta suite, que es el de la app.
+const AvisosEquipo = require('./js/avisos_equipo.js');
+
+function tramaCompleta(raw) {
+  return `${raw}*${calcularChecksumNmea(raw.substring(1))}\r\n`;
+}
+function alarmaHora(node, causa) {
+  const tramo = node === 'MAESTRO' ? 'RF:97%,RTT:70ms,SINRESP:0' : 'RX:1200,OK:300,RUIDO:2';
+  return parseNmeaTelemetry(tramaCompleta(
+    `$ALARM,NODE:${node},EVENTO:HORA_ESP32,CAUSA:${causa},${tramo},ACCION:SIGUE_SU_HORA,HORA:18:05:00`));
+}
+function eventoEquipo(node, origen, detalle) {
+  return parseNmeaTelemetry(tramaCompleta(
+    `$EVENT,NODE:${node},ORIGEN:${origen},DETALLE:${detalle},HORA:18:07:00`));
+}
+// El borde de CLAUDE.md 14, escrito: un numero con unidad de tiempo. Las constantes del
+// firmware -cadencia de siembra, espera de la alarma, margen del cruce- no las puede
+// recalcular esta app, asi que ninguna puede aparecer en un texto suyo.
+const CIFRA_DE_TIEMPO = /\b\d+([.,]\d+)?\s*(ms|s|seg|segundos?|min|minutos?|h|horas?)\b/i;
+
+['MAESTRO', 'ESCLAVO'].forEach(node => {
+  runTest('Avisos D-26', `J17_MUDO del ${node}: revisar el circuito ESP32-STM32 de ESE poste`, () => {
+    const a = AvisosEquipo.traducirAlarma(alarmaHora(node, 'J17_MUDO'));
+    assert.ok(a, 'la app no traduce J17_MUDO');
+    assert.match(a.texto, /^REVISE EL CIRCUITO ESP32-STM32 DE ESTE POSTE/);
+    assert.ok(a.texto.includes(node), 'el texto no nombra el poste que avisa');
+    assert.match(a.toast, /revise el circuito ESP32-STM32/i);
+  });
+  runTest('Avisos D-26', `RECHAZADA_FORMATO del ${node}: revisar el circuito, y el telefono NO lo arregla`, () => {
+    const a = AvisosEquipo.traducirAlarma(alarmaHora(node, 'RECHAZADA_FORMATO'));
+    assert.ok(a, 'la app no traduce RECHAZADA_FORMATO');
+    assert.match(a.texto, /^REVISE EL CIRCUITO ESP32-STM32 DE ESTE POSTE/);
+    assert.match(a.texto, /desde el telefono NO lo arregla/);
+  });
+  runTest('Avisos D-26', `SIN_HORA_DEL_ESP32 del ${node}: ponerle la hora desde el telefono en ESTE gabinete`, () => {
+    const a = AvisosEquipo.traducirAlarma(alarmaHora(node, 'SIN_HORA_DEL_ESP32'));
+    assert.ok(a, 'la app no traduce SIN_HORA_DEL_ESP32');
+    assert.match(a.texto, /^PONGALE LA HORA DESDE EL TELEFONO AQUI, EN EL GABINETE DE ESTE POSTE/);
+    assert.ok(!/REVISE EL CIRCUITO/.test(a.texto), 'manda al destornillador una averia que arregla el telefono');
+    assert.match(a.toast, /Sincronizar/);
+  });
+});
+
+runTest('Avisos D-26', 'Una causa de HORA_ESP32 que la app no conoce NO recibe la instruccion de otra', () => {
+  assert.strictEqual(AvisosEquipo.traducirAlarma(alarmaHora('MAESTRO', 'CAUSA_QUE_NO_EXISTE')), null);
+});
+
+runTest('Avisos D-26', 'FALLO_RF: desde el Maestro, ir al Esclavo; desde el Esclavo, aqui', () => {
+  const m = AvisosEquipo.traducirAlarma({ NODE: 'MAESTRO', EVENTO: 'FALLO_RF', CAUSA: 'REINTENTOS_AGOTADOS' });
+  const e = AvisosEquipo.traducirAlarma({ NODE: 'ESCLAVO', EVENTO: 'FALLO_RF', CAUSA: 'SILENCIO_25000ms' });
+  assert.match(m.texto, /^VAYA AL GABINETE DEL ESCLAVO/);
+  assert.match(e.texto, /^PONGALE LA HORA DESDE EL TELEFONO AQUI/);
+});
+
+runTest('Avisos D-26', 'Los tres $EVENT nuevos (siembra, radio manda, salto por rojo) tienen texto', () => {
+  const s = AvisosEquipo.traducirEvento(eventoEquipo('MAESTRO', 'ESP32', 'HORA_ESP32_SEMBRADA'));
+  const i = AvisosEquipo.traducirEvento(eventoEquipo('ESCLAVO', 'ESP32', 'HORA_ESP32_IGNORADA_MANDA_RADIO'));
+  const r = AvisosEquipo.traducirEvento(eventoEquipo('ESCLAVO', 'DEGRADADO', 'SALTO_DE_HORA_POR_ROJO'));
+  assert.ok(s && /ha tomado la hora de su modulo ESP32/.test(s.texto));
+  assert.ok(i && /^Normal:/.test(i.texto) && /Maestro por radio/.test(i.texto));
+  assert.ok(r && /^COMPRUEBE LA HORA DE LOS DOS POSTES/.test(r.texto) && /ROJO/.test(r.texto));
+  assert.strictEqual(r.tono, 'red');
+  assert.strictEqual(AvisosEquipo.traducirEvento(eventoEquipo('MAESTRO', 'ESP32', 'DETALLE_NUEVO')), null);
+});
+
+runTest('Avisos D-26', 'Ningun texto de la tabla recita una cifra de tiempo del firmware (CLAUDE.md 14)', () => {
+  const nodos = ['MAESTRO', 'ESCLAVO', undefined];
+  const malos = [];
+  Object.keys(AvisosEquipo.ALARMA).concat(Object.keys(AvisosEquipo.EVENTO)).forEach(k => {
+    const tabla = k in AvisosEquipo.ALARMA ? AvisosEquipo.ALARMA : AvisosEquipo.EVENTO;
+    nodos.forEach(n => {
+      const e = typeof tabla[k] === 'function' ? tabla[k]({ NODE: n }) : tabla[k];
+      [e.texto, e.toast || ''].forEach(t => { if (CIFRA_DE_TIEMPO.test(t)) malos.push(k + ': ' + t.match(CIFRA_DE_TIEMPO)[0]); });
+    });
+  });
+  // El detector tiene que saber fallar, o este verde no dice nada.
+  assert.ok(CIFRA_DE_TIEMPO.test('cada 5 min') && CIFRA_DE_TIEMPO.test('tras 25 s') &&
+            !CIFRA_DE_TIEMPO.test('el conector J17 del ESP32'), 'el detector de cifras no distingue');
+  assert.deepStrictEqual(malos, []);
+});
+
 // =============================================================================
 // RESUMEN FINAL
 // =============================================================================
