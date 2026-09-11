@@ -106,8 +106,16 @@ static void pintarDegradado() {
       // El motivo va en su propia linea y la de arriba dice que es un impedimento.
       // Partirlo asi es lo que permite que quepan los 18 caracteres del motivo mas
       // largo sin recortarlo, y un motivo recortado no sirve para arreglar nada.
-      estadoTxt = (degradado_estado() == DEG_RENDIDO) ? "RENDIDO 48h. FALTA:"
-                                                      : "NO SE PUEDE. FALTA:";
+      //
+      // Y RENDIDO TIENE DOS MOTIVOS DESDE D-21 (1): el limite de 48 h sin sincronizar y
+      // la hora que caduco. El rotulo dice CUAL fue -degradado_rendidoPorHora()-, porque
+      // la linea de abajo dice lo que FALTA para reentrar, que no tiene por que ser lo
+      // mismo: con la hora ya repuesta y el plazo vencido despues, abajo pone "SYNC
+      // CADUCADA" y arriba tiene que seguir diciendo por que se cayo el modo.
+      // "RENDIDO HORA. FALTA:" son 20 caracteres, el techo de esta linea.
+      estadoTxt = (degradado_estado() != DEG_RENDIDO) ? "NO SE PUEDE. FALTA:"
+                  : (degradado_rendidoPorHora()      ? "RENDIDO HORA. FALTA:"
+                                                     : "RENDIDO 48h. FALTA:");
       snprintf(detalle, sizeof(detalle), "%s", degradado_textoRechazo(r));
     }
   }

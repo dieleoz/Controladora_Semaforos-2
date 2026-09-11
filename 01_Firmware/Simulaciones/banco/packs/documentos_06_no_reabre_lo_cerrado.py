@@ -10,7 +10,7 @@
 # CERRADO EL 11/09 - NO SE REABRE DESDE UN DOCUMENTO"-, pero un recuadro es una frase, y
 # una frase no vigila nada.
 #
-# QUE MIDE, Y SOLO ESTO: que ninguna frase DEROGADA por D-25, D-26 o D-27 aparezca SIN
+# QUE MIDE, Y SOLO ESTO: que ninguna frase DEROGADA por D-20, D-25, D-26 o D-27 aparezca SIN
 # MARCAR en un documento VIVO. Marcada es: tachada (~~...~~ en markdown; <s>, <del>,
 # <strike> o style="text-decoration:line-through" en html), o dentro de la fe de erratas
 # de un html (<... class="decia">), o citada como muerta (ver CITA, abajo). Es la forma en
@@ -70,7 +70,7 @@ import unicodedata
 from html.parser import HTMLParser
 
 NOMBRE = "documentos_06_no_reabre_lo_cerrado"
-DESCRIPCION = "ninguna frase derogada por D-25/26/27 sigue SIN TACHAR en un documento vivo"
+DESCRIPCION = "ninguna frase derogada por D-20/25/26/27 sigue SIN TACHAR en un documento vivo"
 
 # ---------------------------------------------------------------------------------
 # LA LISTA.
@@ -87,10 +87,13 @@ DESCRIPCION = "ninguna frase derogada por D-25/26/27 sigue SIN TACHAR en un docu
 # acusaba a 12 lineas bien tachadas (medido el 11/09).
 #
 # NO ENTRAN, y se dice por que (el encargo las proponia):
-#  - HORA_PUESTA_SIN_PROPAGAR: NO esta derogada. Sigue viva en el fuente como MOTIVO 7
-#    del SET_RTC del puente (ESP32_Expansion/src/despachador.cpp, rama `!propagada`) y la
-#    vigila esp32_05_no_origina. Lo que D-20 tacho fue "falta la propagacion", no el
-#    literal, y no es de D-25/26/27. Un documento que la nombre puede estar en lo cierto.
+#  - HORA_PUESTA_SIN_PROPAGAR: NO esta derogada. Sigue viva en el fuente como MOTIVO 7 del
+#    SET_RTC del puente (ESP32_Expansion/src/despachador.cpp). OJO: aqui ponia "rama
+#    `!propagada`" y ESA RAMA YA NO EXISTE: medido el 11/09, el parametro `propagada` se
+#    retiro con D-26 -lo dice su propio despachador.h- y el motivo 7 cuelga hoy de
+#    `!siembra_ahora()`, DENTRO de la rama de SET_RTC y despues de releer el DS3231. La
+#    frase no cambia de bando por eso: lo que D-20 tacho fue "falta la propagacion", no el
+#    literal, y no es de D-20/25/26/27. Un documento que la nombre puede estar en lo cierto.
 #  - "zona donde el vehiculo espera": choca con D-13 (barrido de la pluma), pero D-27 NO
 #    deroga la zona (roadmap.md §0, nota al pie del recuadro). No es de estas tres.
 #  - Threshold/Sensitivity/1 s/50: D-27 deroga los valores de D-13 SOLO "en lo que
@@ -213,6 +216,45 @@ DEROGADAS = (
          motivo="D-27 (1): las CUATRO camaras estan compradas. No esta en su columna "
                 "'deroga', pero es lo que su punto (1) deja falso",
          ejemplo="Compradas constan 2; las otras 2 SIN VERIFICAR."),
+
+    # LA UNICA DE D-20, Y ENTRA POR LA MISMA PUERTA QUE LAS DEMAS.
+    #
+    # La frase la tacho su PROPIA fila el 07/09 por la noche -"no hace falta prohibir nada:
+    # la barrera es la SOBREESCRITURA"- y D-26 (5) manda hoy lo contrario: con la radio
+    # caida el usuario VA al poste 2 y le pone la hora desde el telefono. Se atribuye a
+    # D-20 porque es la fila que la derogo, que es lo que el paso 0 comprueba que sigue
+    # vigente; los "matadores" llevan las dos, porque los documentos la citan muerta con
+    # una o con otra.
+    #
+    # SE BUSCA POR EL NOMBRE Y POR SUS CONSECUENCIAS (CLAUDE.md 14), que es como estaba
+    # escrita de verdad en los ~20 documentos que se corrigieron el 11/09 (fd74121): el
+    # rechazo del SET_RTC dirigido al Esclavo, el "no se manda al poste 2", la "segunda
+    # fuente", el "prohibe escribir la hora en el poste 2" y la regla de campo "en la
+    # puesta en marcha, NO durante la averia" -esta ultima es justo la que D-26 (5)
+    # invierte-. Sin las consecuencias, el patron veria una de cada tres.
+    dict(dx="D-20", frase="la app no pone la hora en el poste 2, nunca / un SET_RTC al Esclavo se rechaza",
+         matadores=("D-20", "D-26"),
+         patrones=(
+             r"(?P<f>\bno\s+pone\s+la\s+hora\s+en\s+el\s+poste\s+2\b)",
+             r"(?P<f>\bdirigid[oa]\s+al\s+(?:esclavo|poste\s+2)\b[^.;|]{0,40}?\bse\s+rechaza\b)",
+             r"(?P<f>\bset_rtc\s+no\s+se\s+manda\s+al\s+poste\s+2\b)",
+             r"(?P<f>\bal\s+poste\s+2\s+no\s+se\s+manda\b)",
+             r"(?P<f>\bnunca\s+en\s+el\s+poste\s+2\b)",
+             r"(?P<f>\bprohibe\b[^.;|]{0,40}?\bla\s+hora\s+en\s+el\s+poste\s+2\b)",
+             # La regla de campo que se dedujo de ella. El nucleo es solo la negacion: "el
+             # poste 2 se pone en hora en la puesta en marcha" SIGUE SIENDO CIERTO y por eso
+             # los documentos corregidos tachan desde la coma.
+             r"\bposte\s+2\b[^.;|]{0,80}?(?P<f>\bno\s+durante\s+la\s+averia\b)",
+             # "poner la hora en el poste 2 es una segunda fuente". El (?<!\bno ) es
+             # obligatorio: la correccion de varios manuales dice "el DS3231 del poste 2 NO
+             # es una segunda fuente: es la memoria de la unica fuente", que es lo contrario.
+             r"\b(?:esclavo|poste\s+2)\b[^.;|]{0,60}?(?<!\bno )(?P<f>\b(?:seria|es)\s+(?:crear\s+)?una\s+segunda\s+fuente\b)",
+         ),
+         motivo="D-26 (5): sin radio el usuario va al poste 2 y le pone la hora desde el "
+                "telefono -y su puente la atiende y siembra su STM32-. La prohibicion ya "
+                "estaba tachada en la propia fila D-20: la barrera es la SOBREESCRITURA, no "
+                "el rechazo",
+         ejemplo="La app NO pone la hora en el poste 2. Nunca."),
 
     dict(dx="D-27", frase="objetivo: no filtrar / sin filtro de objetivo (vehiculo y persona)",
          matadores=("D-27",),
@@ -551,7 +593,7 @@ def correr(b, fw):
     docs = [preparar(r, t, ex) for r, t, ex in crudos]
 
     # ---- 2. Cada frase derogada ----
-    b.titulo("ninguna frase derogada por D-25/26/27 sigue SIN MARCAR (%d documentos)" % len(docs))
+    b.titulo("ninguna frase derogada por D-20/25/26/27 sigue SIN MARCAR (%d documentos)" % len(docs))
     citas = []
     for ent in DEROGADAS:
         malas = []

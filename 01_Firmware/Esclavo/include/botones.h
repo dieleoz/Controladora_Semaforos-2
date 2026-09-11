@@ -124,9 +124,13 @@ bool camara_leerPin(uint8_t pin);
 // trabajo cuando el getter gano llamador.
 //
 // LO QUE PUBLICA, Y LA UNICA VEZ QUE DICE "?": la peor de las dos camaras entre las que
-// tienen algo que decir. Con UNA camara por poste el otro pin esta vacio y no puede dar
-// un flanco nunca, asi que su "?" no cuenta -si no, el campo no podria decir "OK" en
-// ningun equipo real-. Un contacto trabado SI cuenta aunque no haya dado flancos, porque
+// tienen algo que decir. ~~Con UNA camara por poste el otro pin esta vacio~~ -> CADUCADO
+// el 11/09: DECISIONES.md deja ese dia DOS camaras por poste (sin el numero de la fila a
+// proposito: decisiones_01 lo contaria como ancla y esta nota no la construye). Un pin que
+// no ha dado nunca un flanco -vacio, o con una camara muerta desde la instalacion- no puede
+// dar uno, asi que su "?" no cuenta -si no, el campo no podria decir "OK" en un equipo con
+// un pin vacio-; esa exencion pierde su motivo y queda pendiente de rehacer. Un contacto
+// trabado SI cuenta aunque no haya dado flancos, porque
 // PEGADA cuelga del nivel. Y mientras ninguna haya dicho nada -entre el arranque y la
 // primera deteccion- el campo dice "?", que es lo unico cierto en ese rato.
 const char* camara_estado();
