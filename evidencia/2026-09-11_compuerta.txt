@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-09-11
-HEAD         : fdccd5b   rama: main-nuevo
+HEAD         : a3d1184   rama: main-nuevo
 Arbol        : CON CAMBIOS SIN COMMITEAR
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -33,8 +33,8 @@ RESULTADOS
   RESUMEN: 18 PASS | 2 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a fdccd5b y re-corriendo
+firmware. Esta acta se verifica volviendo a a3d1184 y re-corriendo
 python 01_Firmware/compuerta.py.
 
 AVISO: el arbol tenia cambios sin commitear al medir. Estas
-cifras NO corresponden exactamente a fdccd5b.
+cifras NO corresponden exactamente a a3d1184.
