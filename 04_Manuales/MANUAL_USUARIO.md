@@ -428,8 +428,9 @@ que es el criterio conservador: la cámara de umbral daría **eficiencia, no seg
 > PETICIÓN que sólo un modo escucha.**
 >
 > ✅ **Y la alarma de cámara ciega SÍ está resuelta para el pin vacío, con su coste escrito:** el
-> vigilante no vigila un pin que **nunca dio un flanco**, precisamente porque *«hay una cámara por
-> poste, así que en todos los equipos que se monten UNO DE ESTOS DOS PINES ESTA VACIO»*. Lo que
+> vigilante no vigila un pin que **nunca dio un flanco**, precisamente porque —dice el comentario del
+> fuente, y `D-25` lo derogó el 11/09— *«~~hay una cámara por poste, así que en todos los equipos
+> que se monten UNO DE ESTOS DOS PINES ESTA VACIO~~»*. Lo que
 > eso cuesta —**no se detecta una cámara muerta desde el día de la instalación**— lo cubre el paso
 > de instalación de [`MANUAL_CONFIGURACION_CAMARAS_IA.md`](MANUAL_CONFIGURACION_CAMARAS_IA.md), que
 > obliga a **provocar una detección delante de la cámara** y comprobar que el equipo la acusa: ése

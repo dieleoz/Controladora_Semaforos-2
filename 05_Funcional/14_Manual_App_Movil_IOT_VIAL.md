@@ -472,8 +472,11 @@ la foto de campo del 04/09.
 > mejor: `PEGADA`, `CIEGA`, `SIN COMPROBAR`, `OK`—. **Una cámara desconocida no puede quedar tapada
 > por la otra.**
 >
-> **Con el matiz que decide si el campo sirve para algo, y va escrito porque no es evidente:** hoy hay
-> **una cámara por poste**, así que en todo equipo montado **uno de los dos pines está vacío**. Un pin
+> **Con el matiz que decide si el campo sirve para algo, y va escrito porque no es evidente:** ~~hoy hay
+> **una cámara por poste**, así que en todo equipo montado **uno de los dos pines está vacío**.~~
+> 🔴 **`D-25`, 11/09: son CUATRO cámaras, DOS por poste — `p10` y `p12` van cableados los dos en cada
+> equipo, y ya no hay pin vacío.** Lo que sigue describe la regla que el firmware TODAVÍA aplica, que
+> se escribió para aquel pin vacío y **ha perdido su motivo** (pendiente de rehacer, `D-25`). Un pin
 > vacío nunca da una detección, y por eso **no se juzga su silencio** — si se juzgara, ese pin vacío
 > se anunciaría como `CIEGA` y taparía para siempre a la cámara que sí está. **Lo que sí se juzga
 > siempre es el nivel**, así que un contacto trabado en un pin que nunca dio señal **sí sale** como

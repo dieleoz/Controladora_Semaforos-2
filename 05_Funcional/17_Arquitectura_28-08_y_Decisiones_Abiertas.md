@@ -3101,12 +3101,15 @@ el C++"*.~~ → **la decision se tomo, y su sitio era exactamente ese.**
 > # 🔴 RECTIFICACION DEL 07/09, UNAS HORAS DESPUES — LA PREGUNTA DE ARRIBA ESTABA MAL HECHA, Y LA HABIA ESCRITO YO
 >
 > **Aqui se pregunto al responsable *«la SEGUNDA camara, ¿va a `J16` p12 o a `J14`?»*. Esa pregunta
-> se apoya en una premisa que no medi: que hubiera DOS camaras por placa. NO LAS HAY.**
+> se apoya en una premisa que no medi: que hubiera DOS camaras por placa. NO LAS HAY.** *(✏️ **11/09,
+> `D-25`: ahora SI las hay** — dos camaras por poste, `p10` y `p12`; lo de esta rectificacion vale para
+> el 07/09.)*
 >
-> ```
-> $ grep -n "ESTA VACIO" 01_Firmware/Maestro/src/botones.cpp
-> 370:  // que en todos los equipos que se monten UNO DE ESTOS DOS PINES ESTA VACIO. Con el
-> ```
+> ~~`$ grep -n "ESTA VACIO" 01_Firmware/Maestro/src/botones.cpp`
+> `370:  // que en todos los equipos que se monten UNO DE ESTOS DOS PINES ESTA VACIO. Con el`~~
+> *(salida LITERAL del 07/09, que antes iba en un bloque de codigo. Se tacha el 11/09 no porque sea
+> falsa —el comentario sigue en `botones.cpp`, hoy con otro numero de linea— sino porque lo que afirma
+> lo derogo `D-25`: dos camaras por poste, `p12` cableado.)*
 >
 > ~~**`D-13` es UNA CAMARA POR POSTE, y las dos unidades compradas son una para cada poste** — lo dice
 > la linea `A2` de la lista de compras (*«2 unidades … una por poste»*)~~ *(✏️ **11/09: derogado por

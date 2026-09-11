@@ -626,7 +626,8 @@ la fila.
 > | `B.B.B` -> ambar local | direccion segura |
 > | **`A.A.A` -> Modo Automatico** | 🔴 **SIN GUARDA — arranca el ciclo, o sea ABRE PASO** |
 >
-> `A-2` esta cerrada: **p5/p8 se quedan vacios y el fin de carrera va a `J14`/`PB0`**. La
+> `A-2` esta cerrada: **p5/p8 se quedan vacios** ~~y el fin de carrera va a `J14`/`PB0`~~ *(11/09,
+> `D-27`: `J14` queda LIBRE y sin cablear; el fin de carrera no se instala en este despliegue)*. La
 > consecuencia operativa es dura y va aqui porque es de seguridad: **no se cablea NADA en p5/p8**,
 > porque cualquier contacto —un final de carrera, un rebote— compone secuencias que nadie pidio.
 > La asimetria estaba medida solo sobre el Esclavo hasta hoy.

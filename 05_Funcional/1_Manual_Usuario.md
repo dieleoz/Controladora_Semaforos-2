@@ -1310,9 +1310,11 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 * 🛑 **Las cámaras de umbral (2 y 4) NO se instalan en V9.0, y no hay dónde conectarlas.** Medido el 27/08 sobre el esquemático: el pin `PB8` que los manuales daban por suyo **alimenta un LED testigo (`D5` por `R16` 1 kΩ)** — no es una bornera ni una entrada. El paso alternado lo regulan las cámaras de **demanda** y el **todo-rojo temporizado** (`cfgDespejeSeg`), que es el criterio conservador. Ver Manual 9 y `roadmap.md` N-64.
 * **Procesamiento:** La cámara Hikvision AcuSense ejecuta su analítica embebida (*Intrusion
   Detection* sobre el barrido de la pluma) y cierra su contacto seco al detectar presencia.
-  ~~con filtro `☑ Solo Vehículo`~~
+  ~~con filtro `☑ Solo Vehículo`~~ → 🔄 **11/09, `D-27`: vuelve el filtro — ☑ Vehículo · ☐ Humano, si
+  la casilla existe** (nota de abajo).
 
-> 🔴 **TACHADO EL 07/09 — `DECISIONES.md` fila `D-13`: la regla va SIN FILTRO DE OBJETIVO.**
+> 🔴 **TACHADO EL 07/09 — `DECISIONES.md` fila `D-13`: ~~la regla va SIN FILTRO DE OBJETIVO~~.**
+> *(Derogado por `D-27` el 11/09: ver la nota 🔄 de abajo.)*
 > Aquí ponía *«filtro `☑ Solo Vehículo`»* y **es exactamente el caso que `D-13` existe para cubrir**:
 > **bajo la pluma importa también una moto o una persona.** Marcar «Solo Vehículo» los deja fuera.
 > Y hay un segundo motivo medido: `Detection Target` **no está documentado para Intrusión** en el

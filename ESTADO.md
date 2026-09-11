@@ -14,8 +14,8 @@
 >    `J17`). Se integra **por el diff** y con la compuerta dos veces, nunca a ciegas.
 > 3. **Decisiones pendientes del responsable:** G3/SFTY-6 (la punta en verde tarda 250 ms en soltar frente a un
 >    `S_FALLO`); la **zona** de la cámara (se dejó la de `D-13`, barrido de la pluma); la referencia del **relé** de `J15`.
-> 4. **Siguiente trabajo, ya decidido:** corregir la **guía del Sisga** («objetivo: no filtrar» → solo vehículo, `D-27`)
->    **antes de reenviarla al instalador**; el **pack de frases derogadas** (lo cerrado el 11/09 solo puede aparecer
+> 4. **Siguiente trabajo, ya decidido:** ~~corregir la guía del Sisga~~ ✅ **hecho** (`7037eb6`: solo vehículo, `D-27`; ya se
+>    puede reenviar); ~~el pack de frases derogadas~~ ✅ **hecho** (`documentos_06_no_reabre_lo_cerrado`) (lo cerrado el 11/09 solo puede aparecer
 >    tachado); `AMBAR_EMERGENCIA` sin PIN que avise al Maestro (roadmap §3.16-A); recompilar la **APK** (la del 10/09 ya
 >    no casa con `main`); portar a los modelos Python (`simulador_sistema_v7_6`, `simulador_repetidor`) la
 >    autorrecuperación nueva; los **`.docx`** cuando se cierren las indefiniciones.
@@ -324,7 +324,7 @@ lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida
 | | |
 |---|---|
 | Flash | Maestro **89.1 %** (**58400** de 65536 B → **7.136 B libres**) · Esclavo **69.1 %** (45280 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | 🔴 **1251/1258 comprobaciones** en **78 packs** — 77 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
+| Banco por packs | 🔴 **1272/1279 comprobaciones** en **79 packs** — 78 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
 | Arneses que compilan C++ real | 271/271 pantalla · **99/99** automático · 22/22 ciclo · **76/77 dos puntas (G3 en FALLA)** · **18/18 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | **239/239** jsdom · 58/58 funcional · 32/32 unitarios · **61/61** TDD |
@@ -388,8 +388,8 @@ escriben a mano** (N-93).
   cámara: no hay red, ni imagen, ni vídeo (`D-12`). Todo cambio de sentido respeta el **Despeje
   Todo-Rojo** (`cfgDespejeSeg`).
 * ⚠️ ~~Maestro: Cámara 1 (`PB0`) + Cámara 2 (Umbral, `PB8`); Esclavo: Cámaras 3 y 4~~ — **falso
-  desde el 28/08**: son **dos cámaras de demanda, una por poste**, en **`J16` p10 (`PB14`) y p12
-  (`PB15`)**. ⚠️ **11/09: `D-25` lo cambia otra vez — CUATRO cámaras, DOS POR POSTE, p10 y p12 en
+  desde el 28/08**: ~~son **dos cámaras de demanda, una por poste**, en **`J16` p10 (`PB14`) y p12
+  (`PB15`)**~~. ⚠️ **11/09: `D-25` lo cambia otra vez — CUATRO cámaras, DOS POR POSTE, p10 y p12 en
   cada uno** (ver `DECISIONES.md`). **`D-27` (11/09): las cuatro están compradas, y `J14` queda
   libre y sin cablear.**
 * ✅ **La medida `M3` está cerrada desde el 03/09 y las cámaras se cablean** (`D-3`): pull-down
@@ -485,7 +485,7 @@ Aquí no se copia: se enlaza.**
 
 | # | Qué | Depende de |
 |---|---|---|
-| **C1** | **SFTY-29: presencia como veto** | ~~decidido el 27/08: van las 4 cámaras~~ ⛔ **REVOCADO el 28/08: van DOS**, y con ello desaparece el sujeto de SFTY-29 · ⚠️ **11/09: `D-25` vuelve a CUATRO, dos por poste (`J16` p10 y p12)** — misma configuración para todas (`D-13`; los valores, del manual del modelo por `D-27`) y **ninguna veta nada**: el veto de la pluma sigue siendo `A-1.bis`, sin construir |
+| **C1** | **SFTY-29: presencia como veto** | ~~decidido el 27/08: van las 4 cámaras~~ ~~⛔ **REVOCADO el 28/08: van DOS**, y con ello desaparece el sujeto de SFTY-29~~ (derogado por `D-25`) · ⚠️ **11/09: `D-25` vuelve a CUATRO, dos por poste (`J16` p10 y p12)** — misma configuración para todas (`D-13`; los valores, del manual del modelo por `D-27`) y **ninguna veta nada**: el veto de la pluma sigue siendo `A-1.bis`, sin construir |
 | **C2** | Reloj `DS3231` por I²C en el STM32 | ⛔ **anulado**: el reloj vive en el ESP32 (`D-9`) |
 | **C3** | **`FW-PAIR`** (byte `PAIR`, `SET_PAIR`, descarte de lo ajeno) | el más caro: toca el respaldo `DR9`, la `FIRMA` y `maestro_02_respaldo` |
 | **C4** | **`FW-N53`**: decidir secuencias | es **decisión de spec**, no código |

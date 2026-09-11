@@ -137,7 +137,7 @@ esta carpeta). Lente varifocal motorizado; **`1 alarm in, 1 alarm out`**
 
 ## 0.ter 🟢 QUÉ CAMBIÓ EL 31/08 — ESTE MANUAL SE QUEDÓ CORTO DE ENTRADAS
 
-> **Este manual decía que el firmware lee UNA cámara por poste. Hoy lee TRES.**
+> **Este manual decía que el firmware lee «UNA cámara por poste». Hoy lee TRES** entradas por punta. *(Crónica del 31/08. Aquella frase está doblemente derogada: además, `D-25` —11/09— monta DOS cámaras por poste, en `J16` p10 y p12.)*
 
 Medido el 02/09 sobre el fuente, idéntico en las dos puntas:
 
@@ -243,7 +243,7 @@ contra el firmware que corre. Se corrigen aquí, y queda el registro de qué se 
 
 | Lo que decía el manual del 26/08 | Lo MEDIDO sobre el fuente (28/08) |
 |---|---|
-| **4 cámaras** (2 por poste): demanda + umbral | El firmware leía **1 cámara por poste**. La de umbral no tiene dónde entrar. *(Al 02/09 son **3 entradas de demanda** por punta — ver §0.ter. La de umbral **sigue sin existir**)* |
+| **4 cámaras** (2 por poste): demanda + umbral | ~~El firmware leía **1 cámara por poste**.~~ *(Caducado dos veces: al 02/09 el fuente lee 3 entradas de demanda por punta, y `D-25` —11/09— monta **4 cámaras, 2 por poste**, las cuatro de DEMANDA en `J16` p10/p12.)* La de umbral no tiene dónde entrar. *(Al 02/09 son **3 entradas de demanda** por punta — ver §0.ter. La de umbral **sigue sin existir**)* |
 | Cámara 1 y 3 (demanda) → pin **`PB9`** | **`PB9` es `BOTON1`** (símbolo `BOTON1` en `pines.h`, las dos puntas). La demanda entra por **`PB0`** = `CAM_DEMANDA_PIN` (`pines.h:46`) |
 | Cámara 2 y 4 (umbral) → pin **`PB13`** | **`PB13` es `BOTON2`** (símbolo `BOTON2` en `pines.h`). No existe `CAM_UMBRAL_PIN` en el firmware Maestro/Esclavo |
 | «Optoacoplador `TLP127` con pull-up en `PB9`/`PB13`» | La línea de cámara real (`PB0`) lleva **`R64` 10 kΩ (pull-DOWN) + `C25` 100 nF**, antirrebote ~1 ms, bornera **`J14`**, y es **activa en ALTO** |

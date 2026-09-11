@@ -2117,8 +2117,9 @@ Y a los 3 minutos, seguia en AMBAR?       [ ] SI   [ ] NO, volvio a: ___________
 
 ## 📑 SECCIÓN 11 — CÁMARAS DE DEMANDA
 
-> **Qué cambió:** no son cuatro cámaras ni hay pin de umbral. Son **dos cámaras de demanda, una por
-> poste**. ~~La única entrada de cámara que el firmware del Maestro lee hoy es `CAM_DEMANDA_PIN = PB0`,
+> **Qué cambió:** ~~no son cuatro cámaras ni hay pin de umbral. Son **dos cámaras de demanda, una por
+> poste**.~~ 🔴 **`D-25`, 11/09: son CUATRO cámaras de demanda, DOS por poste** —`J16` `p10` y `p12`
+> en cada uno—, y **no hay pin de umbral**: las dos entradas de cada poste hacen LO MISMO. ~~La única entrada de cámara que el firmware del Maestro lee hoy es `CAM_DEMANDA_PIN = PB0`,
 > que sale por la bornera **`J14`** (`Maestro/include/pines.h:46`, **MEDIDO**).~~
 >
 > > # 🔴 TACHADO EL 07/09 — `MEDIDO` CON CITA BUENA Y AFIRMACIÓN FALSA (E-4)
@@ -2139,7 +2140,7 @@ Y a los 3 minutos, seguia en AMBAR?       [ ] SI   [ ] NO, volvio a: ___________
 > > y `botones.cpp`.
 > >
 > > ✅ **LA CONEXIÓN VIGENTE ES `J16`:** `p10` (`CAM_C_PIN`, `PB14`) y `p12` (`CAM_D_PIN`, `PB15`),
-> > **una cámara por poste**, cerrando el contacto seco contra los **3,3 V de `p9`/`p11`** —activo en
+> > ~~**una cámara por poste**~~ **una cámara en cada pin: DOS por poste** (`D-25`, 11/09), cerrando el contacto seco contra los **3,3 V de `p9`/`p11`** —activo en
 > > ALTO, `INPUT` pelado con pull-down `R67`/`R68` de 10 kΩ **medido en cobre**—.
 > > `DECISIONES.md` **`D-2`** y **`D-3`** (`M3` cerrada el 03/09).
 > >
@@ -2994,14 +2995,17 @@ región de *Intrusion Detection* va sobre **el barrido de la pluma** —no sobre
 (`DECISIONES.md` D-13). Un vehículo que espera correctamente **para antes de la pluma y no entra en
 la región**: si dispara, es un falso positivo.
 
-**Y aquí no se filtra por tipo de objetivo.** Bajo una pluma que baja importa igual una moto, una
-persona o un perro grande, y además `Detection Target` **no está documentado para Intrusión** en el
-manual. El filtro que se usa es **`Size Filter`**, y su ajuste sale de este ensayo.
+~~**Y aquí no se filtra por tipo de objetivo.** Bajo una pluma que baja importa igual una moto, una
+persona o un perro grande,~~ 🔴 **`D-27`, 11/09: el objetivo es el que fija el manual del modelo —
+☑ Vehículo, ☐ Humano, si la casilla existe** (`04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md` §4,
+paso 5); deroga el «sin filtro» de `D-13`. Y además `Detection Target` **no está documentado para
+Intrusión** en el manual. El filtro de tamaño es **`Size Filter`**, y su ajuste sale de este ensayo.
 
 *Las cuatro condiciones, y ninguna se sustituye por otra:*
 
 ```text
-  Con la region ya dibujada sobre el barrido de la pluma y SIN filtro de objetivo.
+  Con la region ya dibujada sobre el barrido de la pluma y ~~SIN filtro de objetivo~~
+  con objetivo SOLO Vehiculo, sin Humano (D-27, 11/09: manual del modelo).
   Se cuentan DISPAROS DEL RELE en 15 minutos de observacion por condicion.
 
   a) FAROS DE NOCHE, un vehiculo pasando por el carril contrario y barriendo

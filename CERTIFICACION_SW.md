@@ -52,7 +52,7 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 | Guarda de rutas de los instrumentos | **64 rutas** parseadas, todas existen | `compuerta.py` |
 | Banco de simulación funcional | **9/9 PASS** | `simulador_sistema_v7_6.py` |
 | Escenarios de repetidor | **10/10 PASS** | `simulador_repetidor.py` |
-| Banco por packs | 🔴 **1251/1258 comprobaciones**, **78 packs** — 77 PASS, **1 FALLA**. **Este documento se FIRMA, así que la frase que había aquí —*«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*— se retira por FALSA:** sólo `D-20` y la pieza **B** de `D-21` están construidas. `D-14`, `D-22` y `D-23` son decisiones **vigentes sin construir**, y el rojo las está contando bien | `banco/correr.py` |
+| Banco por packs | 🔴 **1272/1279 comprobaciones**, **79 packs** — 78 PASS, **1 FALLA**. **Este documento se FIRMA, así que la frase que había aquí —*«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*— se retira por FALSA:** sólo `D-20` y la pieza **B** de `D-21` están construidas. `D-14`, `D-22` y `D-23` son decisiones **vigentes sin construir**, y el rojo las está contando bien | `banco/correr.py` |
 | Arnés de pantalla (compila el `lcd.cpp` real) | **271/271** (Maestro 145/145 · Esclavo 126/126) | `Validacion_LCD/compilar.ps1` |
 | Arnés del ciclo degradado | **22/22** | `Validacion_Ciclo` |
 | Arnés del Modo Automático | **99/99** | `Validacion_Automatico` |

@@ -92,7 +92,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
-| banco por packs *(78 packs)* | 🔴 **FALLA** | **1251/1258 comprobaciones en 78 packs** — 77 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22`, `D-23`, `D-25`, `D-26` y `D-27` son decisiones VIGENTES sin ancla en el firmware** (y `D-26` sin nombrar en ningún manual). **Sólo `D-20` y la pieza B de `D-21` lo están.** `D-23` ya tiene la vía elegida (`$EVENT`, `A-14`) y **es teclado**; `D-14` espera **que el responsable elija cuál de los tres últimos canales de potencia gasta** (el multímetro que se pedía no hacía falta); `D-22` espera **una tarjeta delante** |
+| banco por packs *(79 packs)* | 🔴 **FALLA** | **1272/1279 comprobaciones en 79 packs** — 78 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22`, `D-23`, `D-25`, `D-26` y `D-27` son decisiones VIGENTES sin ancla en el firmware** (y `D-26` sin nombrar en ningún manual). **Sólo `D-20` y la pieza B de `D-21` lo están.** `D-23` ya tiene la vía elegida (`$EVENT`, `A-14`) y **es teclado**; `D-14` espera **que el responsable elija cuál de los tres últimos canales de potencia gasta** (el multímetro que se pedía no hacía falta); `D-22` espera **una tarjeta delante** |
 | compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.1 %** · 69.1 % · 20.6 % · 35.7 % — *el Maestro ocupa **58400 de 65536 B**, o sea **7.136 B libres**; el Esclavo, **45280 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
@@ -148,7 +148,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 > algo que el auditor re-corre sobre ese mismo commit. Estado de hoy en
 > [`ESTADO.md`](ESTADO.md); reglas permanentes en [`CLAUDE.md`](CLAUDE.md).
 
-### 📦 El banco son 78 packs — y eso NO es una medalla
+### 📦 El banco son 79 packs — y eso NO es una medalla
 
 ```
 python 01_Firmware/Simulaciones/banco/correr.py --listar
@@ -269,7 +269,7 @@ del netlist, **no el papel del pin**.)*
 | `J16` | red | pin | uso nuevo |
 |---|---|---|---|
 | p1 | `/12V` | — | 🔴 **12 V crudos. Se tapa físicamente en CADA equipo que se monte** (N-120) — es el único conector de señal de la tarjeta que los trae, sin opto ni clamp |
-| p5 | `/Boton1` | `PB9` | **libre y SIN CABLEAR** (`A-2`, cerrada el 05/09: el fin de carrera va a `J14` — *11/09, `D-27`: y tampoco allí, el fin de carrera no se instala*). 🔴 **El firmware sigue leyendo ese pin** y alimentando el reconocedor de secuencias del mando |
+| p5 | `/Boton1` | `PB9` | **libre y SIN CABLEAR** (`A-2`, cerrada el 05/09: ~~el fin de carrera va a `J14`~~ — *11/09, `D-27`: y tampoco allí, el fin de carrera no se instala; `J14` queda libre*). 🔴 **El firmware sigue leyendo ese pin** y alimentando el reconocedor de secuencias del mando |
 | p8 | `/Boton2` | `PB13` | igual que p5 |
 | p10 | `/Boton3` | `PB14` | 🎯 **`CAM_C_PIN` — cámara 1**, contacto de alarma entre p9 (3,3 V) y p10 *(verificada en banco el 03/09)* |
 | p12 | `/Boton4` | `PB15` | 🎯 **`CAM_D_PIN` — cámara 2**, contacto de alarma entre p11 (3,3 V) y p12 |
