@@ -229,25 +229,31 @@ def correr(b, fw):
 
     # ---- 1.bis. LA PUERTA QUE FALTA, FALTA POR EL MOTIVO QUE CREEMOS ----------
     #
-    # No basta con que el literal haya desaparecido: hace falta que la rama SET_RTC haya
-    # dejado de contestar. Si alguien quitara solo el "vea CONSULTA RELOJ" y dejara el
-    # $ERR, el tecnico volveria a recibir un rechazo a secas -y ademas seguiria habiendo
-    # dos acuses a una sola orden, que es lo que D-15 cerro-.
-    m_rama = re.search(r'strncmp\s*\(\s*accion\s*,\s*"SET_RTC:"', codigo)
-    if m_rama is None:
-        raise fw.Abortado(
-            "el Maestro ya no reconoce SET_RTC ni para consumirlo. Se espera que la rama "
-            "SIGA existiendo y calle: sin ella la orden cae al else y sale "
-            "$ERR,CMD:DESCONOCIDO, que es otra vez una segunda respuesta")
-    rama_rtc = _bloque_que_contiene(codigo, m_rama.start())
+    # No basta con que el literal haya desaparecido: hace falta que SET_RTC haya dejado de
+    # contestar aqui. Si alguien quitara solo el "vea CONSULTA RELOJ" y dejara el $ERR, el
+    # tecnico volveria a recibir un rechazo a secas -y ademas habria dos acuses a una sola
+    # orden, que es lo que D-15 cerro-.
+    #
+    # 🔴 11/09 - SE INVIERTE LA MITAD QUE EXIGIA QUE LA RAMA SIGUIERA EXISTIENDO. Hasta
+    # hoy se abortaba si el Maestro dejaba de reconocer SET_RTC, porque el puente REENVIABA
+    # la linea y sin una rama muda que la consumiera caia al DESCONOCIDO. Desde el 11/09
+    # (D-20 / A-15) SET_RTC es SOLO del puente -no la reenvia: la hora le llega al STM32
+    # como CMD:HORA_ESP32- y la rama se SUSTITUYO. Exigirla seria exigir una orden en dos
+    # listas, que esp32_12 cruza. Lo que la comprobacion vigilaba -que el Maestro no
+    # conteste a CMD:SET_RTC- se CONSERVA y se endurece: ni rama ni un solo literal con
+    # CMD:SET_RTC en todo el fichero. Que el puente no la reenvie es suyo y lo mide
+    # esp32_12, no este pack.
+    m_rama = re.search(r'strn?cmp\s*\(\s*(?:accion|cmd)\s*,\s*"(?:CMD:)?SET_RTC:"', codigo)
     b.verificar(
-        "CMD:SET_RTC" not in rama_rtc,
-        "la puerta de SET_RTC no falta por un literal borrado: la rama entera dejo de "
-        "contestar (cero $ACK y cero $ERR con CMD:SET_RTC). Por eso no necesita bits: "
-        "quien acusa es el puente, que es quien tiene el reloj (D-15)",
-        "la rama SET_RTC del Maestro vuelve a contestar a CMD:SET_RTC. Entonces SI "
-        "necesita los bits del reloj otra vez -y ademas devuelve el defecto de los dos "
-        "acuses opuestos a una sola orden que D-15 cerro el 05/09")
+        m_rama is None and "CMD:SET_RTC" not in codigo,
+        "la puerta de SET_RTC no falta por un literal borrado: el Maestro ya no reconoce "
+        "SET_RTC ni emite nada con CMD:SET_RTC. Por eso no necesita bits: quien acusa es "
+        "el puente, que es quien tiene el reloj (D-15) y desde el 11/09 el unico que "
+        "atiende la orden (D-20)",
+        "el Maestro %s. SET_RTC es del puente desde el 11/09: una rama aqui es una segunda "
+        "respuesta a una sola orden -el defecto que D-15 cerro- y, si contesta, necesita "
+        "otra vez los bits del reloj" % ("vuelve a reconocer SET_RTC" if m_rama
+                                         else "emite un literal con CMD:SET_RTC"))
 
     # ---- 2. CADA UNA lleva los bits DENTRO DE SU PROPIA RAMA -----------------
     #

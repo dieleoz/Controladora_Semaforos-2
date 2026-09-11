@@ -139,13 +139,29 @@ COMANDOS_PERMITIDOS = {
     "FORZAR_ROJO":      "presente solo para RECHAZARLO ensenando el nombre nuevo",
     "SOLICITAR_PASO":   "PIDE al Maestro; no enciende nada en esta punta",
     "TEST_LEDS":        "presente solo para RECHAZARLO con un motivo legible",
-    "SET_RTC:":         "ajusta el reloj, no las luces",
+    # 11/09 (D-20 / A-15): SUSTITUYE a "SET_RTC:", que desde hoy es solo del puente. Entra
+    # SIN PIN porque la manda el ESP32 de este poste -el puente la tira si le llega del
+    # telefono-, y por eso este pack tiene que leer tambien la puerta de `cmd`: por la de
+    # `accion` no pasa nunca, y sin leerla esta rama habria crecido por la espalda.
+    "HORA_ESP32:":      "ajusta el reloj, no las luces: siembra la base de software y "
+                        "escribe el diario, y en esta punta ni eso si manda la radio "
+                        "(D-26 (3))",
 }
 
 
 def _comandos_atendidos(codigo):
-    """Los comandos que el despachador compara, leidos del fuente."""
-    return set(re.findall(r'strn?cmp\s*\(\s*accion\s*,\s*"([^"]+)"', codigo))
+    """Los comandos que el despachador compara, leidos del fuente.
+
+    Por las DOS puertas: la de `accion` -detras del PIN- y la de `cmd` -sin PIN, con el
+    prefijo "CMD:" que aqui se quita para nombrar la orden igual que la otra puerta-. El
+    filtro del PIN no es un comando y se salta. Hasta el 11/09 solo se leia `accion`, y
+    las ordenes sin PIN pasaban por debajo de la lista blanca: AMBAR_EMERGENCIA y
+    FORZAR_ROJO se veian porque ADEMAS tienen forma con PIN; una orden solo sin PIN no se
+    habria visto nunca."""
+    con_pin = set(re.findall(r'strn?cmp\s*\(\s*accion\s*,\s*"([^"]+)"', codigo))
+    sin_pin = {c for c in re.findall(r'strn?cmp\s*\(\s*cmd\s*,\s*"CMD:([^"]+)"', codigo)
+               if not re.match(r"PIN:\d+:$", c)}
+    return con_pin | sin_pin
 
 
 def correr(b, fw):
@@ -277,6 +293,16 @@ def correr(b, fw):
     b.control_negativo(
         bool(re.search(r"\bsemaforo_iniciarTestLeds\s*\(", mutado)),
         "una llamada a semaforo_iniciarTestLeds() colada en bluetooth.cpp se detecta")
+
+    # 11/09: el lector de la lista blanca lee ahora la puerta SIN PIN. Una orden que solo
+    # existe por esa puerta tiene que aparecer como intrusa, y el filtro del PIN no.
+    sin_pin_solo = ('if (strncmp(cmd, "CMD:ABRE_TODO:", 14) == 0) { x(); } '
+                    'if (strncmp(cmd, "CMD:PIN:1234:", 13) != 0) { y(); }')
+    b.control_negativo(
+        _comandos_atendidos(sin_pin_solo) == {"ABRE_TODO:"}
+        and "ABRE_TODO:" not in COMANDOS_PERMITIDOS,
+        "una orden que solo entra SIN PIN se lee como comando atendido -y como intrusa si "
+        "no esta en la lista-, y el filtro del PIN no se cuenta como orden")
 
     mutado2 = "void _fuga2(){ protocolo_enviarPaquete(CMD_DEMANDA); }"
     b.control_negativo(

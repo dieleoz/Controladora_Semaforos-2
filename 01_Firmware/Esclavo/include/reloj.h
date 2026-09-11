@@ -87,10 +87,14 @@ uint8_t reloj_segundo();   // 0..59
 
 // Dia del mes, 1..31. Devuelve 0 si el reloj no esta en hora.
 //
-// Lo necesita el respaldo (N-20) para saber cuanto hace de la ultima
-// sincronizacion a traves de un reinicio: con solo los segundos del dia no se
-// distingue "hace una hora" de "hace veinticinco". No interesa la fecha en si,
-// solo poder restar dias.
+// ~~Lo necesita el respaldo (N-20) para saber cuanto hace de la ultima sincronizacion a
+// traves de un reinicio~~ -> CADUCADO: desde N-49 el respaldo fecha con
+// reloj_contadorSegundos(), y el 11/09 (D-26) se retiro su ultimo lector en esta punta
+// -la copia de la hora al RTC en reloj_actualizar()-. HOY NADIE LA LLAMA EN EL ESCLAVO, y
+// se deja declarada a proposito: el dia lo IMPONE la radio (CMD_HORA_D) y las dos puntas
+// tienen que poder contarlo igual; su gemela del Maestro si tiene lector
+// (enviarHoraCompleta). costura_10 la lleva en su lista con este motivo: si gana un
+// llamador aqui, el pack lo dira.
 uint8_t reloj_dia();
 
 // Segundos transcurridos desde medianoche: 0..86399.
@@ -106,6 +110,16 @@ uint32_t reloj_segundosDelDia();
 // En el Esclavo la llama UNICAMENTE el manejador de CMD_HORA_S de main.cpp, y solo
 // con las CUATRO cifras completas: aqui no hay teclado con el que un operario pueda
 // ponerlo en hora, la unica via es la radio.
+//
+// D-20 (11/09): la radio SOBRESCRIBE siempre, tenga esta punta hora o no: es "el Maestro
+// manda la hora y el Esclavo hace caso". ~~La hora del ESP32 de este poste, en cambio,
+// solo entra si no hay hora~~ -> D-26 (3), 11/09 tarde: la del ESP32 entra si la radio NO
+// manda, ver reloj_radioManda() abajo y la rama CMD:HORA_ESP32 de bluetooth.cpp.
+//
+// D-26 (3): ES LA UNICA FUNCION QUE MARCA LA HORA COMO "DE RADIO" (FH_RADIO en
+// reloj.cpp), y lo es porque en esta punta su UNICO llamador es la rama CMD_HORA_S de
+// main.cpp. Esa afirmacion la recalcula reloj_03 en cada corrida: si reloj_ajustar()
+// gana otro llamador, la fuente de la hora dejaria de decir la verdad.
 //
 // `dia` (1..31) fija ademas el dia del mes. Con 0 -el valor por defecto- la fecha no
 // se toca; se mantiene ese caso para que la firma sea la misma que en el Maestro,
@@ -147,4 +161,59 @@ void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo = 0, uint8_t di
 // valido y devuelve true.
 bool reloj_ajustarConAcuse(int hora, int minuto, int segundo, int dia);
 
+// D-20: siembra desde "YYYY-MM-DD,HH:MM:SS" -exactamente esa forma, 19 caracteres: ver
+// isoBienFormado() en reloj.cpp-. Desde el 11/09 su unico llamador es la rama
+// CMD:HORA_ESP32 de bluetooth.cpp: la hora del DS3231 de SU PROPIO ESP32, que en esta
+// punta solo se siembra si reloj_radioManda() dice que no (D-26 (3)). Si entra, la hora
+// pasa a ser "del ESP32" (FH_ESP32).
 bool reloj_sembrarDesdeIso(const char* str);
+
+// ---------------------------------------------------------------------------
+// D-26 (3) - QUIEN MANDA LA HORA EN ESTA PUNTA: "CON RADIO, LA DEL MAESTRO; SIN RADIO,
+// LA DE SU PROPIO ESP32".
+//
+// POR QUE NO SE REUSA horaValida (reloj_enHora()). Esa bandera contesta "hay hora?", y
+// esto pregunta "DE QUIEN es la hora que hay?". Son dos preguntas y por eso son dos
+// variables (CLAUDE.md 8): horaValida puede nacer en true de un RTC de hardware que
+// arranco con valores plausibles -o congelado, con Y2 muerto-, y con la regla "solo si no
+// hay hora" ese reloj habria vetado la del ESP32 para siempre. La fuente vive en reloj.cpp
+// (NINGUNA < RTC_HW < ESP32 < RADIO) y la marcan SOLO los dos sembradores: reloj_ajustar()
+// -la radio- y reloj_sembrarDesdeIso() -el ESP32-.
+//
+// "SIN RADIO", DEFINIDO CON UNA CONSTANTE QUE YA EXISTE: ninguna trama valida del Maestro
+// en SFTY6_SILENCIO_MS (protocolo.h), el MISMO silencio con el que main.cpp manda esta
+// punta a ambar y publica $ALARM FALLO_RF. Es a proposito que sean el mismo numero: esa
+// alarma es la que manda al usuario a este poste a ponerle la hora con el telefono
+// (D-26 (5)), y esa hora tiene que ENTRAR. Con dos umbrales habria un hueco en el que la
+// alarma ya salio y la hora que el usuario pone se sigue ignorando.
+//
+// Y NO SE MIDE CON tUltimoComando DE main.cpp, aunque use la misma constante: aquel
+// contesta "el Maestro GOBIERNA el cruce?" -no lo refrescan las tramas de servicio ni un
+// PING en ambar- y esto contesta "LLEGA la radio del Maestro?". Con el Esclavo en ambar
+// por la app y el Maestro latiendo, tUltimoComando envejece y la radio esta viva: medido
+// con aquel, esta punta alternaria cada pocos minutos entre la hora de su ESP32 y la del
+// Maestro. Por eso cualquier trama valida del Maestro cuenta aqui (reloj_notarRadio()).
+
+// La llama main.cpp con CADA trama valida que entrega la radio, de cualquier comando.
+void reloj_notarRadio();
+
+// true si la hora de esta punta la manda la radio: la ultima siembra fue del Maestro Y
+// su radio se oyo en los ultimos SFTY6_SILENCIO_MS. Con la radio callada, o sin haber
+// recibido nunca la hora por radio, devuelve false y la del ESP32 entra.
+bool reloj_radioManda();
+
+// ---------------------------------------------------------------------------
+// D-26 (2) y (5) - LO QUE ESTA PUNTA ESPERA DE SU ESP32. Otro binario: los numeros se
+// escriben aqui y esp32_13 los compara en cada corrida con los de
+// ESP32_Expansion/include/contrato.h.
+//
+// La cadencia con la que el ESP32 siembra (SIEMBRA_INTERVALO_MS alli). IDENTICA en las
+// dos puntas y en el ESP32: si difieren, la alarma de abajo salta con el enlace sano o no
+// salta con el enlace caido.
+static const unsigned long HORA_ESP32_CADENCIA_MS = 300000UL;
+
+// D-26 (5): sin una HORA_ESP32 bien formada en TRES cadencias, $ALARM EVENTO:HORA_ESP32.
+// Tres y no una: una siembra perdida -el ESP32 reiniciando, un byte comido- no es una
+// averia; tres seguidas, si. Y se repite cada tanto mientras dure, porque el que la tiene
+// que ver es el tecnico que se conecte DESPUES, no el que estaba conectado cuando empezo.
+static const unsigned long HORA_ESP32_ESPERA_MAX_MS = 3UL * HORA_ESP32_CADENCIA_MS;

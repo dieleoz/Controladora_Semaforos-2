@@ -79,6 +79,49 @@ static FaseDegradado faseCache = FD_DESPEJE_A;
 static unsigned long tFaseCache = 0;
 
 // ---------------------------------------------------------------------------
+// D-26 (4) - UNA HORA QUE SALTA MAS QUE EL MARGEN DEL CRUCE SE APLICA PASANDO POR ROJO.
+//
+// Gemela de la del Maestro (Maestro/src/modo_degradado.cpp, con el porque entero). Aqui
+// pesa igual o mas: SIN RADIO esta punta se re-siembra de su propio ESP32 cada ~5 min
+// (D-26 (3)), y la PRIMERA siembra tras perder la radio puede traer de golpe todo lo que
+// el HSI derivo desde la ultima hora del Maestro. Y la radio del Maestro, si llega con el
+// Degradado puesto, tambien mueve la hora (CMD_HORA_S no saca de este modo).
+//
+// EL UMBRAL SALE DEL DESPEJE QUE MANDO EL MAESTRO -config_despejeSegundos(), el mismo
+// numero con el que esta punta calcula la fase- menos el segundo del truncado: la misma
+// cuenta que alli con DEG_DESPEJE_SEG, sobre el mismo valor, porque el Maestro lo manda tal
+// cual (SFTY-23). esp32_13 comprueba que las dos formulas digan lo mismo.
+//
+// PASAR POR ROJO ES EL CAMINO QUE YA EXISTE: DEG_ENTRANDO, con rojoObligatorioMs() y la
+// espera a que la fase deje atras el verde de esta punta. Y aqui el verde abre por ambar
+// (aplicarLuz), asi que "directo" era ademas ambar -> verde sin despeje delante.
+static uint32_t segVisto = 0;
+static unsigned long tVisto = 0;
+
+static void anclarHora() {
+  segVisto = reloj_segundosDelDia();
+  tVisto = millis();
+}
+
+static uint32_t saltoSinRojoMaxS() {
+  const uint32_t despeje = config_despejeSegundos();
+  return despeje > 0 ? despeje - 1UL : 0UL;
+}
+
+// Cuanto se ha movido la hora de pared de mas -o de menos- respecto de lo que corrio
+// millis() desde la vuelta anterior, por el camino corto del circulo del dia. Re-ancla en
+// cada llamada: mide saltos entre dos vueltas, no acumula, y en marcha normal da 0 o 1.
+static uint32_t saltoDeHora() {
+  const uint32_t ahora = reloj_segundosDelDia();
+  const uint32_t esperado = (segVisto + (uint32_t)((millis() - tVisto) / 1000UL)) % 86400UL;
+  uint32_t d = (ahora + 86400UL - esperado) % 86400UL;
+  if (d > 43200UL) d = 86400UL - d;
+  segVisto = ahora;
+  tVisto = millis();
+  return d;
+}
+
+// ---------------------------------------------------------------------------
 
 // Antiguedad de la ultima sincronizacion, EN MILISEGUNDOS, fiable tambien tras un
 // reinicio a medio Degradado. Espejo de msDesdeSyncEfectivo() del Maestro (N-49 T2):
@@ -276,6 +319,7 @@ RechazoDegradado degradado_entrar() {
   rendicionEnCurso = false;
   tCambioEstado = millis();
   tFaseCache = millis() - PERIODO_FASE_MS;   // fuerza recalculo en la siguiente vuelta
+  anclarHora();                              // D-26 (4): la referencia del salto empieza aqui
 
   // N-20: queda anotado en la pila que este equipo esta en Degradado. Se escribe al
   // ENTRAR y no cuando el modo lleve un rato: el microcorte que esto cubre puede
@@ -367,6 +411,18 @@ void degradado_actualizar() {
   if (syncVencidaLatch && (estado == DEG_ENTRANDO || estado == DEG_ACTIVO)) {
     iniciarSalida(true);
     return;
+  }
+
+  // D-26 (4): ANTES de decidir la luz. Un salto mayor que el margen devuelve a
+  // DEG_ENTRANDO: rojo en esta misma vuelta, el todo-rojo contado de nuevo desde el salto y
+  // la fase recalculada ya con la hora nueva.
+  if ((estado == DEG_ENTRANDO || estado == DEG_ACTIVO) && saltoDeHora() > saltoSinRojoMaxS()) {
+    semaforo_forzarRojo();
+    verdeAplicado = false;
+    estado = DEG_ENTRANDO;
+    tCambioEstado = ahora;
+    tFaseCache = ahora - PERIODO_FASE_MS;
+    bluetooth_reportarEvento("DEGRADADO", "SALTO_DE_HORA_POR_ROJO");
   }
 
   switch (estado) {

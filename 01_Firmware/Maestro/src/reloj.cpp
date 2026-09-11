@@ -8,9 +8,10 @@
 //
 // D-20: LA AUTORIDAD DE LA HORA ES EL ESP32 (DS3231).
 // El STM32 no tiene cristal de 32.768 kHz garantizado (Y2 muerto, N-17).
-// Por tanto, reloj_ajustar() siembra tanto el RTC hardware (si está operativo)
-// como una base de software extrapolada con millis(), asegurando que reloj_enHora()
-// sea true y la hora avance fiablemente una vez sembrada desde el ESP32.
+// Por tanto, reloj_ajustar() siembra una base de software extrapolada con millis(),
+// asegurando que reloj_enHora() sea true y la hora avance una vez sembrada desde el
+// ESP32. Desde el 11/09 (N-162) la siembra YA NO escribe el RTC hardware: ver el porque
+// al final de reloj_ajustarConAcuse().
 // ---------------------------------------------------------------------------
 
 static STM32RTC &rtc = STM32RTC::getInstance();
@@ -92,9 +93,10 @@ void reloj_actualizar() {
   // N-160 - SI YA HABIA HORA SEMBRADA, SE LA PASAMOS AL CRISTAL QUE ACABA DE ARRANCAR.
   //
   // Sin esto la hora SALTA en silencio y nadie se entera. El caso es real y lo abre
-  // D-20: arranca sin cristal -rtcOperativo false-, alguien siembra por SET_RTC y la
-  // base se queda SOLO en software -el bloque "if (rtcOperativo)" de reloj_ajustar no
-  // corre-, y treinta segundos despues este reintento adopta el LSE. A partir de esa
+  // D-20: arranca sin cristal -rtcOperativo false-, llega la siembra -desde el 11/09 la
+  // del ESP32 de este poste, rama CMD:HORA_ESP32 de bluetooth.cpp- y la
+  // base se queda SOLO en software -desde el 11/09 la siembra no escribe el RTC nunca-,
+  // y treinta segundos despues este reintento adopta el LSE. A partir de esa
   // linea reloj_hora/minuto/segundo/dia() y reloj_segundosDelDia() cambian de fuente
   // al RTC hardware, QUE NUNCA SE SEMBRO, mientras horaValida sigue en true.
   //
@@ -105,28 +107,26 @@ void reloj_actualizar() {
   //
   // SE LEE ANTES DE MOVER LA BANDERA. N-162 (11/09): desde c51cc85 los getters miran
   // PRIMERO la base de software (tBaseMillis > 0) y solo sin ella el RTC, asi que la hora
-  // que se lee ya no salta al adoptar el cristal. Copiarla al RTC sigue haciendo falta:
-  // es lo que hace que reloj_contadorSegundos() -el que fecha el respaldo- cuente desde
-  // una hora escrita y no desde la que el RTC traiga.
+  // que se lee ya no salta al adoptar el cristal.
+  //
+  // ~~Copiarla al RTC sigue haciendo falta: es lo que hace que reloj_contadorSegundos() -el
+  // que fecha el respaldo- cuente desde una hora escrita y no desde la que el RTC traiga~~
+  // -> REFUTADO Y RETIRADO el 11/09 (D-26), identico en las dos puntas y con la misma
+  // medida: (1) con base de software NADIE lee la hora del RTC -los getters miran
+  // tBaseMillis, reloj_fijarEnero() tambien se aparta- y el unico que lo lee,
+  // reloj_contadorSegundos(), es CNT en crudo que respaldo.cpp solo RESTA
+  // (respaldo_horasDesdeSync: "ahora - guardado"), asi que el valor desde el que empieza no
+  // interviene; (2) reescribir CNT con los segundos del dia puede REJUVENECER una marca de
+  // sync de un arranque anterior -el motivo 3 de la siembra, abajo-; (3) con un cristal que
+  // da LSERDY y no cuenta, cada setX() espera RTOFF hasta 1 s: ~3 s con el perro en 4 s.
+  // Queda adoptar el cristal y nada mas.
   const bool teniaBase = horaValida;
-  const uint32_t segBase = teniaBase ? reloj_segundosDelDia() : 0;
-  const uint8_t diaAhora = teniaBase ? reloj_dia() : 0;
 
   rtc.setClockSource(STM32RTC::LSE_CLOCK);
   rtc.begin(false, STM32RTC::HOUR_24);
   rtcOperativo = true;
 
-  if (teniaBase) {
-    rtc.setHours((uint8_t)(segBase / 3600UL));
-    rtc.setMinutes((uint8_t)((segBase % 3600UL) / 60UL));
-    rtc.setSeconds((uint8_t)(segBase % 60UL));
-    if (rtc.getYear() < ANIO_MARCA) rtc.setYear(ANIO_MARCA);
-    if (diaAhora >= 1) {
-      rtc.setDay(diaAhora);
-      rtc.setMonth(1);  // el calendario de esta punta es enero fijo. Ver reloj_fijarEnero()
-    }
-    return;  // horaValida ya estaba en true y la hora es la MISMA de antes: no salta
-  }
+  if (teniaBase) return;  // horaValida ya estaba en true y la hora es la MISMA: no salta
 
   // Sin base previa si vale adoptar lo que el RTC traiga: es un arranque en caliente
   // con la hora que sobrevivio en el dominio de respaldo.
@@ -210,6 +210,13 @@ uint8_t reloj_dia() {
 
 void reloj_fijarEnero() {
   if (!horaValida) return;
+  // N-162 (11/09): CON BASE SEMBRADA NO SE TOCA EL RTC. Esto corre cada 10 min desde
+  // coordinador.cpp, y rtc.getMonth() no es una lectura inocente en el F1: pasa por
+  // HAL_RTC_GetTime(), que con el contador por encima de 24 h lo REESCRIBE -plegandolo al
+  // dia- con la misma espera de RTOFF de 1000 ms que la siembra quito arriba. Y con base
+  // sembrada el calendario del RTC no lo lee nadie: reloj_dia() cuenta desde diaBase, que
+  // ya vuelve de 31 a 1 como enero. Solo queda util cuando la hora vino del propio RTC.
+  if (tBaseMillis > 0) return;
   if (rtcOperativo && rtc.getMonth() != 1) rtc.setMonth(1);
 }
 
@@ -303,25 +310,30 @@ bool reloj_ajustarConAcuse(int hora, int minuto, int segundo, int dia) {
   }
   horaValida = true;
 
-  // Si el oscilador hardware esta operativo, tambien mantenemos sincronizado el RTC
-  if (rtcOperativo) {
-    rtc.setHours((uint8_t)hora);
-    rtc.setMinutes((uint8_t)minuto);
-    rtc.setSeconds((uint8_t)segundo);
-
-    if (rtc.getYear() < ANIO_MARCA) rtc.setYear(ANIO_MARCA);
-
-    if (rtc.getDay() < 1 || rtc.getDay() > 31) {
-      rtc.setDay(1);
-      rtc.setMonth(1);
-    }
-
-    if (dia >= 1) {
-      rtc.setDay((uint8_t)dia);
-      rtc.setMonth(1);
-    }
-  }
-
+  // N-162 (11/09) - LA SIEMBRA YA NO ESCRIBE EL RTC HARDWARE. Aqui habia un bloque
+  // "if (rtcOperativo) { rtc.setHours(); rtc.setMinutes(); rtc.setSeconds(); ... }", y
+  // se quita por tres motivos medidos, identicos en las dos puntas:
+  //
+  //   1. BLOQUEABA ~3 s POR SIEMBRA con el RTC parado. Cada rtc.setX() acaba en
+  //      HAL_RTC_SetTime() -> RTC_WriteTimeCounter(), que espera RTOFF en
+  //      RTC_EnterInitMode() y RTC_ExitInitMode() con RTC_TIMEOUT_VALUE = 1000 ms
+  //      (stm32f1xx_hal_rtc.c/.h). Sin reloj en el RTC, RTOFF no vuelve nunca: 1 s en la
+  //      salida de setHours y 1 s en la entrada de setMinutes y de setSeconds. La cinta
+  //      del Sisga (179DB0) lo tiene: el $EVENT de la siembra sale +3 s despues de cada
+  //      SET_RTC, las cuatro veces. Con el perro en 4 s, dos siembras en la misma vuelta
+  //      de loop() reinician el cruce, y cada una congela coordinador y radio 3 s.
+  //   2. NO TENIA LECTOR DE HORA: desde c51cc85 los getters miran primero la base de
+  //      software, y D-20 dice que al STM32 no se le pregunta la hora.
+  //   3. ROMPIA EL CONTADOR DEL RESPALDO: rtc.setX() reescribe CNT con los segundos del
+  //      dia, y reloj_contadorSegundos() lo lee como contador MONOTONO para las 48 h del
+  //      Degradado (N-49). Una reescritura hacia atras la caza respaldo_horasDesdeSync()
+  //      -"ahora < guardado" -> CADUCADA, puerta cerrada-, pero una que deja el contador
+  //      por debajo de lo que habria contado y POR ENCIMA de la marca no la caza nadie, y
+  //      rejuvenece la marca. Con una siembra cada ~5 min (D-26) seria cada 5 min.
+  //
+  // LO QUE SE PIERDE, dicho para que no se descubra en campo: el RTC hardware ya no
+  // guarda la hora del ESP32 a traves de un corte. La trae el ESP32 al arrancar (A-15).
+  //
   // N-160: se llego al final, o sea que la hora quedo puesta de verdad. Este true es
   // lo unico que autoriza a contestar $ACK; cualquier salida de arriba dice false.
   return true;
@@ -335,8 +347,29 @@ void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo, uint8_t dia) {
   (void)reloj_ajustarConAcuse((int)hora, (int)minuto, (int)segundo, (int)dia);
 }
 
+// N-162 (11/09) - LA HORA SOLO SE LEE SI TIENE EXACTAMENTE LA FORMA QUE EL ESP32 COMPONE.
+//
+// "YYYY-MM-DD,HH:MM:SS": 19 caracteres, cifras donde van cifras, separadores donde van
+// separadores y NADA detras. sscanf("%d") no lo garantiza: acepta signos, espacios y
+// cifras de menos, y NO MIRA lo que sobra. Este STM32 no comprueba checksum de entrada,
+// asi que una linea truncada y pegada a la siguiente -"...12:00:0" + "$LATIDO"- daba
+// seis campos con los segundos mal, y una truncada a secas -"...12:00:0"- tambien. Con
+// el patron las dos se rechazan, y quien llama lo escribe en el diario. Identico en las
+// dos puntas: la linea la compone el mismo firmware de ESP32 en los dos postes.
+static const char PATRON_ISO[] = "0000-00-00,00:00:00";
+
+static bool isoBienFormado(const char* s) {
+  for (uint8_t i = 0; i < sizeof(PATRON_ISO) - 1; i++) {
+    const char p = PATRON_ISO[i];
+    const char c = s[i];
+    // El '\0' de una cadena corta no es cifra ni separador: sale aqui, sin leer detras.
+    if (p == '0' ? (c < '0' || c > '9') : (c != p)) return false;
+  }
+  return s[sizeof(PATRON_ISO) - 1] == '\0';
+}
+
 bool reloj_sembrarDesdeIso(const char* str) {
-  if (str == nullptr) return false;
+  if (str == nullptr || !isoBienFormado(str)) return false;
   int anio = 0, mes = 0, dia = 0, h = 0, m = 0, s = 0;
   if (sscanf(str, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) != 6) return false;
 

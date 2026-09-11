@@ -367,6 +367,13 @@ void loop() {
   static bool ackRojoEnviado = false, ackVerdeEnviado = false;
 
   if (protocolo_hayPaqueteDisponible(&pkt)) {
+    // D-26 (3): LA RADIO SE OYE. Con CUALQUIER trama valida, de gobierno o de servicio, y
+    // antes de mirar cual es: lo que se anota no es "el Maestro gobierna" -eso es
+    // tUltimoComando, mas abajo, y NO lo refrescan ni la hora ni un PING en ambar- sino
+    // "la radio del Maestro llega", que es lo que decide si la hora de esta punta la manda
+    // la radio o su propio ESP32. Son dos preguntas y por eso dos marcas (reloj.h).
+    reloj_notarRadio();
+
     // SFTY-21: SI VUELVE EL RADIO, EL MAESTRO MANDA.
     //
     // El Modo Degradado existe para cubrir la ausencia del Maestro; en cuanto el
@@ -691,6 +698,16 @@ void loop() {
       // El nombre del evento NO lleva el numero dentro. El ejemplo del header decia
       // "FALLO_RF_12S", y ese literal habria quedado mintiendo el dia que el umbral
       // paso a 25 s (N-71). El umbral va en la causa, no en el nombre.
+      //
+      // D-26 (5): ESTA ES LA ALARMA QUE MANDA AL USUARIO A PONERLE LA HORA A ESTE POSTE.
+      // Sin radio la hora del Maestro ya no llega, y desde D-26 (3) esta punta pasa a
+      // aceptar la de su propio ESP32 -su DS3231, o la que el usuario le ponga con el
+      // telefono en el gabinete (los controladores estan matriculados)-. El umbral es el
+      // MISMO SFTY6_SILENCIO_MS con el que reloj_radioManda() decide "sin radio", asi que
+      // cuando esta alarma sale, la hora que el usuario ponga ENTRA. Sale por SerialBT ->
+      // J17 -> el ESP32 de este poste -> el telefono conectado a ESTE poste, y solo en el
+      // instante de la caida: quien llegue despues lo lee en el $STATUS (ESTADO en fallo
+      // o MODO:DEGRADADO), no en esta trama.
       // N-154: LA COTA SE DERIVA DE LA CONSTANTE QUE MANDA, Y AQUI ERA 40 A OJO. La nota
       // larga esta en Maestro/src/coordinador.cpp, en la puerta gemela. En ESTA punta
       // apretaba mas: el tramo del $ALARM del Esclavo son 44 caracteres contra los 31 del

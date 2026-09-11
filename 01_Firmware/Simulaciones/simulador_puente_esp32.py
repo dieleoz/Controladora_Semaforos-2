@@ -247,6 +247,46 @@ class Contrato:
                 "en los dos casos este modelo reenviaria al STM32 una linea que el "
                 "puente real se queda: mediria un puente que no existe")
 
+        # D-20 (11/09) - LO QUE EL PUENTE SE QUEDA POR "CONTIENE", Y LA LINEA QUE ORIGINA.
+        #
+        # Desde D-20 el predicado se queda ademas toda linea con "SET_RTC:" dentro -el
+        # PIN va delante y el puente no lo conoce- y toda linea con la marca de la
+        # siembra dentro -anti-suplantacion-. Se leen de las funciones con nombre que el
+        # predicado llama con la linea, y de cada una el literal de su strstr: bloque de
+        # esp32_12._contenidos(). Y el formato de la siembra, de siembra.cpp, para que el
+        # modelo mande al STM32 REAL exactamente la linea que el C++ compone.
+        #
+        # Sin esto el modelo seguiria reenviando el SET_RTC del telefono -como el puente
+        # de antes del 11/09- y el escenario D20 mediria un puente que ya no existe.
+        contenidos = {}
+        for nombre in sorted(set(re.findall(r"\b([A-Za-z_]\w*)\s*\(\s*linea\s*\)", _pred))):
+            if nombre in ("strcmp", "strstr", "strncmp"):
+                continue
+            m = re.search(r"\b%s\s*\(\s*const\s+char\s*\*\s*linea\s*\)\s*\{([^}]*)\}"
+                          % re.escape(nombre), desp)
+            if m:
+                ms = re.search(r'strstr\s*\(\s*linea\s*,\s*"([^"]+)"\s*\)', m.group(1))
+                if ms:
+                    contenidos[nombre] = ms.group(1)
+        sie = fw.codigo("ESP32_Expansion", "src", "siembra.cpp")
+        mf = re.search(r'static\s+const\s+char\s+FORMATO_HORA_ESP32\[\]\s*=\s*'
+                       r'"(CMD:([A-Z0-9_]+):[^"]*)"', sie)
+        if mf is None or not contenidos:
+            raise fw.Abortado(
+                "no se pudo leer del C++ lo que D-20 cambio en el puente: %s. Sin eso "
+                "este modelo reenviaria el SET_RTC del telefono al STM32, que es "
+                "exactamente lo que el puente real ya no hace"
+                % ("FORMATO_HORA_ESP32 de siembra.cpp" if mf is None
+                   else "los criterios 'contiene' del predicado"))
+        self.formato_siembra = mf.group(1)
+        self.marca_siembra = mf.group(2)
+        self.contenidas = sorted(l for l in contenidos.values() if l != self.marca_siembra)
+        if self.marca_siembra not in contenidos.values():
+            raise fw.Abortado(
+                "el predicado del puente no se queda las lineas con %r dentro: el modelo no "
+                "tiene anti-suplantacion que copiar, y D20 mediria un puente por el que el "
+                "telefono dicta la hora sin PIN" % self.marca_siembra)
+
         auto = fw.codigo("Maestro", "include", "limites_ciclo.h")
         self.rangos = {}
         for nombre in ("VERDE_MIN", "ROJO_MIN", "DESPEJE_SEG"):
@@ -620,15 +660,26 @@ class RelojDelPuente:
     modelo tiene que probar no es cual de los seis: es que el puente se comporta igual
     ante todos ellos, que es dejar el hueco como esta."""
 
-    def __init__(self, hhmmss=None):
+    def __init__(self, hhmmss=None, fecha=(2026, 9, 11)):
         self.hhmmss = hhmmss
+        # D-20: la siembra lleva fecha y hora. La fecha por defecto solo existe para que
+        # los escenarios de antes -que solo miran HH:MM:SS- no cambien de forma.
+        self.fecha = fecha
 
     def leer(self):
         return self.hhmmss
 
+    def leer_completa(self):
+        """(anio, mes, dia, h, m, s) o None: lo que reloj_leer() rellena, o su 'no'."""
+        if self.hhmmss is None:
+            return None
+        h, m, s = (int(x) for x in self.hhmmss.split(":"))
+        return tuple(self.fecha) + (h, m, s)
+
 
 class Puente:
-    def __init__(self, util_max, reloj=None, reclamadas=()):
+    def __init__(self, util_max, reloj=None, reclamadas=(), contenidas=(), marca=None,
+                 formato_siembra=None):
         self.util_max = util_max
         # A-9: las lineas que este puente se queda. Vacia por defecto para que los doce
         # escenarios que ya existian sigan midiendo LO MISMO que median -mismo motivo
@@ -636,6 +687,14 @@ class Puente:
         # silencio lo que llega al STM32 en escenarios que no van de eso-.
         self.reclamadas = tuple(reclamadas)
         self.reclamadasVistas = 0
+        # D-20 (11/09): las que se quedan por CONTENER algo ("SET_RTC:"), la marca de la
+        # siembra que se descarta del telefono, y el formato con el que se siembra. Vacios
+        # por defecto por la misma razon que `reclamadas`.
+        self.contenidas = tuple(contenidas)
+        self.marca = marca
+        self.formato_siembra = formato_siembra
+        self.suplantaciones = 0
+        self.sembradas = 0
         self.buf_app = ""
         self.buf_stm = ""
         self.hacia_stm32 = []   # una entrada por ESCRITURA, no por trama
@@ -696,10 +755,34 @@ class Puente:
         # lo pregunta a los dos .exe, no a este comentario-, o sea un rechazo rojo en la
         # app acusando al operario de una clave que no tecleo cada vez que consulta la
         # hora.
+        # D-20 - EN EL ORDEN DE despachador_atender(): la marca de la siembra PRIMERO
+        # -se descarta y se contesta-, luego la consulta, luego SET_RTC.
+        if self.marca and self.marca in util:
+            self.reclamadasVistas += 1
+            self.suplantaciones += 1
+            self._responder("$ERR,CMD:%s,DESC:LINEA_RESERVADA_AL_PUENTE" % self.marca)
+            return
         if util in self.reclamadas:
             self.reclamadasVistas += 1
             return
+        if any(s in util for s in self.contenidas):
+            # SET_RTC: la linea del telefono NO cruza. Lo que cruza es la hora que el
+            # reloj da por su barrera -en el C++, tras reloj_ajustar() == RELOJ_OK y la
+            # relectura-. Con la barrera abajo, no cruza nada.
+            self.reclamadasVistas += 1
+            self._sembrar()
+            return
         self._entregar(util)
+
+    def _sembrar(self):
+        """siembra_ahora(): el formato del C++ con lo que el reloj da, o nada."""
+        if self.formato_siembra is None or self.reloj is None:
+            return
+        campos = self.reloj.leer_completa()
+        if campos is None:
+            return
+        self.sembradas += 1
+        self._entregar(self.formato_siembra % campos)
 
     @staticmethod
     def _validar(linea):
@@ -2601,6 +2684,190 @@ def escenario_a9(t, c, maestro, esclavo, app, util_max):
         % linea2[-140:])
 
 
+def escenario_d20(t, c, maestro, esclavo, app, util_max):
+    t.titulo("D20 - la hora la comanda el ESP32: SET_RTC no cruza, cruza la hora RELEIDA")
+
+    # =============================================================================
+    # POR QUE AQUI Y NO SOLO EN LOS PACKS. esp32_05 y esp32_13 miden la FORMA del C++ del
+    # puente; ninguno puede decir si el STM32 REAL acepta la linea que el puente le manda.
+    # Este es el unico sitio donde la app REAL compone el SET_RTC, el puente (modelo con
+    # criterios y formato leidos de su C++) decide que cruza, y el bluetooth.cpp REAL de
+    # las dos puntas recibe la siembra. La costura entre dos binarios -uno de ellos
+    # escrito el 11/09 por otro agente en otro worktree- solo se ve aqui.
+    # =============================================================================
+
+    # (a) LA APP REAL compone el SET_RTC con su boton, PIN incluido.
+    #
+    # El boton de sincronizar llama a enviarComandoFirmware() directamente, y esa funcion
+    # se planta sin PIN verificado -no abre el teclado: lo dice y no manda nada-. Asi que
+    # primero se entra como el tecnico entra: el boton de rol abre el teclado REAL y el
+    # arnes teclea en el. No se toca ninguna bandera interna de la app. Al final se
+    # vuelve a Operario para dejar la app como estaba.
+    app.pulsar_id("btn-toggle-role")
+    compuestos = app.pulsar_id("btn-sync-rtc")
+    app.pulsar_id("btn-toggle-role")
+    setrtc = [x for x in compuestos if "SET_RTC:" in x]
+    t.verificar(
+        len(setrtc) == 1 and setrtc[0].endswith("\r\n"),
+        "la app REAL compone la puesta en hora al pulsar su boton: %r"
+        % (setrtc[0].strip() if setrtc else None),
+        "la app no escribio un SET_RTC al pulsar btn-sync-rtc: %r. Sin la orden real no "
+        "hay nada que medir" % (compuestos,))
+    if not setrtc:
+        return
+
+    # (b) EL PUENTE NO LA REENVIA: SIEMBRA LA HORA DEL RELOJ. El reloj del modelo da una
+    # fecha y hora DISTINTAS de las del telefono a proposito: lo que llega al STM32 tiene
+    # que ser lo del reloj, no un eco de los bytes que mando el telefono.
+    fecha, hora = (2031, 2, 3), "07:08:09"
+    reloj = RelojDelPuente(hora, fecha)
+    puente = Puente(util_max, reloj, c.reclamadas, c.contenidas, c.marca_siembra,
+                    c.formato_siembra)
+    puente.desde_app(setrtc[0])
+    esperada = c.formato_siembra % (fecha + tuple(int(x) for x in hora.split(":")))
+    t.verificar(
+        puente.hacia_stm32 == [esperada + "\n"],
+        "el SET_RTC del telefono NO cruza; lo que sale hacia el STM32 es la hora del reloj "
+        "en el formato del C++: %r" % esperada,
+        "hacia el STM32 salio %r y tenia que salir SOLO %r. Si cruzan los bytes del "
+        "telefono, el STM32 se siembra con una hora que el DS3231 pudo rechazar -3.16-C-, "
+        "y la autoridad de la hora deja de ser el ESP32 (D-20)"
+        % (puente.hacia_stm32, esperada))
+
+    # Y CON LA BARRERA DEL RELOJ ABAJO NO CRUZA NADA: ni la siembra -no hay hora que dar-
+    # ni, sobre todo, el SET_RTC del telefono como sustituto. Es la mitad que una
+    # inversion descuidada perderia: un puente que "si no puede sembrar, reenvia" pasaria
+    # la de arriba y esta no.
+    ciego = Puente(util_max, RelojDelPuente(None), c.reclamadas, c.contenidas,
+                   c.marca_siembra, c.formato_siembra)
+    ciego.desde_app(setrtc[0])
+    t.verificar(
+        ciego.hacia_stm32 == [],
+        "con el reloj sin hora fiable no cruza NADA: ni siembra ni el SET_RTC del telefono",
+        "con el reloj sin hora fiable salio %r hacia el STM32. Una hora que el DS3231 no "
+        "dio no puede llegar al controlador por ningun camino" % ciego.hacia_stm32)
+
+    # (c) ANTI-SUPLANTACION: una linea del telefono con la marca dentro no cruza, y se
+    # contesta. Con PIN delante tambien -el puente no lo puede comprobar-.
+    for falsa in ("CMD:%s:2020-01-01,00:00:00" % c.marca_siembra,
+                  c.prefijo_pin["Maestro"] + "%s:2020-01-01,00:00:00" % c.marca_siembra):
+        p = Puente(util_max, RelojDelPuente(hora, fecha), c.reclamadas, c.contenidas,
+                   c.marca_siembra, c.formato_siembra)
+        p.desde_app(falsa + "\r\n")
+        t.verificar(
+            p.hacia_stm32 == [] and p.suplantaciones == 1 and len(p.hacia_app) == 1,
+            "una linea del telefono con %s dentro (%r) no cruza y se contesta con un $ERR "
+            "del puente" % (c.marca_siembra, falsa),
+            "la linea del telefono %r: al STM32 salio %r y a la app %r. Si cruza, "
+            "cualquiera con Bluetooth pone la hora del cruce sin PIN; si no se contesta, "
+            "se lee como equipo colgado" % (falsa, p.hacia_stm32, p.hacia_app))
+
+    # Y LO QUE NO ES DEL PUENTE SIGUE PASANDO, con los tres criterios puestos: sin esta
+    # linea, un puente que se quedara con todo daria verde arriba (la tapia de 8.sexies).
+    normal = c.prefijo_pin["Maestro"] + "SET_MODO:AUTO"
+    p = Puente(util_max, RelojDelPuente(hora, fecha), c.reclamadas, c.contenidas,
+               c.marca_siembra, c.formato_siembra)
+    p.desde_app(normal + "\r\n")
+    t.verificar(
+        p.hacia_stm32 == [normal + "\n"] and p.sembradas == 0,
+        "y una orden que no es del puente sigue cruzando entera y verbatim, sin siembra "
+        "detras (%r)" % normal,
+        "una orden normal no cruzo tal cual con los criterios de D-20 puestos: %r"
+        % p.hacia_stm32)
+
+    # (d) 🔴 LA COSTURA: EL STM32 REAL RECIBE LA SIEMBRA. Sin rechazo rojo en ninguna
+    # punta -un $ERR aqui sube a la app cada hora y en cada arranque- y, en el Maestro,
+    # con la hora sembrada en su $STATUS. EN EL WORKTREE DEL ESP32 (11/09) ESTO FALLA: el
+    # receptor de CMD:HORA_ESP32 lo escribe otro agente en el lado STM32. Es la medida
+    # que tiene que ponerse verde al integrar, no una que haya que relajar.
+    for nombre, punta in (("MAESTRO", maestro), ("ESCLAVO", esclavo)):
+        salidas = punta.rx(esperada + "\r\n")
+        rojos = [s.strip() for s in salidas if s.startswith("$ERR")]
+        t.verificar(
+            not rojos,
+            "el %s REAL recibe %r sin rechazarla" % (nombre, esperada),
+            "el %s REAL contesta %r a la siembra. Esa trama sube a la app en ROJO una vez "
+            "por hora y en cada arranque, acusando al operario de algo que no hizo: falta "
+            "el receptor de la siembra antes de la guarda de PIN (lado STM32)"
+            % (nombre, rojos))
+
+    salidas = maestro.avanzar(c.periodo_ms["Maestro"] + 1)
+    status = next((s for s in salidas if s.startswith("$STATUS")), None)
+    if status is None:
+        raise fw.Abortado(
+            "el Maestro REAL no emitio $STATUS tras la siembra: sin el no se puede ver si "
+            "la hora entro")
+    t.verificar(
+        ("HORA:" + hora) in status,
+        "y el $STATUS del Maestro REAL publica la hora sembrada (HORA:%s): la del reloj del "
+        "ESP32, no la del telefono" % hora,
+        "el $STATUS del Maestro REAL no trae HORA:%s tras la siembra: %r. La linea llego y "
+        "la hora no entro -o no llego-: el STM32 sigue con la suya, y la autoridad de la "
+        "hora (D-20) no se ejerce" % (hora, status.strip()))
+
+    # (e) D-26 (5): UNA SIEMBRA QUE NO SIRVE ES UNA ALARMA, NO UN ROJO NI UN SILENCIO.
+    #
+    # La misma linea cortada en su ultimo caracter -lo que deja un byte comido en J17-. El
+    # bluetooth.cpp REAL de las dos puntas la tiene que tirar por la forma (el doble del
+    # reloj lleva el MISMO PATRON_ISO que el firmware: lo compara reloj_03) y decirlo con
+    # $ALARM EVENTO:HORA_ESP32 -nunca $ERR, que subiria a la app como un rechazo del
+    # operario-; y la hora que habia tiene que quedarse como estaba.
+    cortada = esperada[:-1]
+    for nombre, punta in (("MAESTRO", maestro), ("ESCLAVO", esclavo)):
+        salidas = punta.rx(cortada + "\r\n")
+        alarmas = [s.strip() for s in salidas if s.startswith("$ALARM")
+                   and "EVENTO:HORA_ESP32" in s and "CAUSA:RECHAZADA_FORMATO" in s]
+        rojos = [s.strip() for s in salidas if s.startswith("$ERR")]
+        t.verificar(
+            len(alarmas) == 1 and not rojos,
+            "el %s REAL tira la siembra cortada (%r) y lo dice UNA vez con $ALARM "
+            "EVENTO:HORA_ESP32,CAUSA:RECHAZADA_FORMATO, sin $ERR" % (nombre, cortada),
+            "el %s REAL, ante la siembra cortada %r, saco %d $ALARM de la hora y %r en "
+            "rojo. Sin la alarma, un J17 que come bytes deja al STM32 extrapolando con el "
+            "HSI sin que nadie lo sepa (D-26 (5)); con un $ERR, el telefono acusa al operario"
+            % (nombre, cortada, len(alarmas), rojos))
+    salidas = maestro.avanzar(c.periodo_ms["Maestro"] + 1)
+    status = next((s for s in salidas if s.startswith("$STATUS")), "")
+    t.verificar(
+        ("HORA:" + hora) in status,
+        "y la hora del Maestro REAL sigue siendo la de la siembra buena (HORA:%s): la cortada "
+        "no la toco" % hora,
+        "tras la siembra cortada el $STATUS del Maestro REAL ya no trae HORA:%s: %r. Una "
+        "linea que el patron tira no puede mover la hora" % (hora, status.strip()))
+
+    # (f) D-26 (3): EN EL ESCLAVO, CON LA RADIO MANDANDO, LA SIEMBRA SE IGNORA -Y SE DICE-.
+    #
+    # reloj.cpp no se compila en el arnes, asi que "manda la radio" se fija desde fuera
+    # (RADIO_MANDA); lo que se ejerce es la RAMA REAL del Esclavo: con la radio mandando no
+    # siembra ni alarma, deja su linea de diario IGNORADA y la hora no se mueve. Y el
+    # control: con la radio callada, la MISMA linea si entra -si no, la guarda no seria la
+    # que decide-.
+    otra = c.formato_siembra % ((2031, 2, 3) + (9, 10, 11))
+    esclavo.ajustar("RADIO_MANDA 1")
+    salidas = esclavo.rx(otra + "\r\n")
+    salidas += esclavo.avanzar(c.periodo_ms["Esclavo"] + 1)
+    ignorada = [s for s in salidas if "HORA_ESP32_IGNORADA_MANDA_RADIO" in s]
+    malas = [s.strip() for s in salidas if s.startswith("$ERR") or s.startswith("$ALARM")]
+    statusE = next((s for s in salidas if s.startswith("$STATUS")), "")
+    t.verificar(
+        len(ignorada) == 1 and not malas and "HORA:09:10:11" not in statusE,
+        "con la radio mandando, el ESCLAVO REAL ignora la siembra de su ESP32: una linea "
+        "IGNORADA_MANDA_RADIO en el diario, ni $ERR ni $ALARM, y su hora no se mueve",
+        "con la radio mandando, el ESCLAVO REAL: %d lineas IGNORADA, %r en rojo/alarma, y "
+        "$STATUS %r. La hora del Maestro no puede pisarla el DS3231 de este poste mientras "
+        "la radio llegue (D-26 (3))" % (len(ignorada), malas, statusE.strip()))
+    esclavo.ajustar("RADIO_MANDA 0")
+    salidas = esclavo.rx(otra + "\r\n")
+    salidas += esclavo.avanzar(c.periodo_ms["Esclavo"] + 1)
+    statusE = next((s for s in salidas if s.startswith("$STATUS")), "")
+    t.verificar(
+        "HORA:09:10:11" in statusE,
+        "y con la radio callada la MISMA linea entra en el ESCLAVO REAL (HORA:09:10:11): la "
+        "que decide es la guarda de la radio, no otra cosa",
+        "con la radio callada la siembra no entro en el ESCLAVO REAL: %r. Sin radio, esta "
+        "punta tiene que tomar la hora de su ESP32 (D-26 (3))" % statusE.strip())
+
+
 def main():
     print("=" * 78)
     print(" SIMULADOR DEL PUENTE ESP32 - app REAL <-> modelo del ESP32 <-> STM32 REAL")
@@ -2648,6 +2915,9 @@ def main():
         escenario_f7(t, c, maestro, app, util_max)
         escenario_asterisco(t, c, maestro, app, util_max)
         escenario_a9(t, c, maestro, esclavo, app, util_max)
+        # D-20 (11/09) va detras de A9 -que usa el $STATUS del Maestro para atribuir el
+        # poste- y delante de N-145, que es el ultimo por lo que dice abajo.
+        escenario_d20(t, c, maestro, esclavo, app, util_max)
         # N-145 va EL ULTIMO porque toca el estado del arnes del Maestro -le quita el
         # cristal para reproducir el defecto- y lo devuelve al terminar. Ir el ultimo
         # hace que un fallo a mitad no le cambie la medida a ningun otro escenario.

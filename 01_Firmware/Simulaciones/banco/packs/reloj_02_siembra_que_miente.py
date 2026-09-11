@@ -105,6 +105,31 @@
 # puede rechazar y el ACK no miente. No se cuenta como comprobacion porque no hay
 # defecto que contar.
 #
+# 🔴 11/09 - LA RAMA SE MUDO, Y LA DISCIPLINA SE MUDA CON ELLA (D-20 / A-15).
+#
+# Hasta el 11/09 la hora entraba al STM32 por la rama SET_RTC: -los bytes del telefono,
+# reenviados por el puente-. Desde el 11/09 SET_RTC es SOLO del puente, y al STM32 le
+# llega CMD:HORA_ESP32:<iso>, que compone su propio ESP32 desde el DS3231 releido. La rama
+# vieja se SUSTITUYO en las dos puntas: dejarla habria sido una orden en dos listas.
+#
+# Lo que este pack media sobre la rama vieja NO se pierde, se MUDA a la nueva sin
+# aflojarlo: el mismo sembrador, el mismo validador derivado, los mismos 2401 casos de
+# borde con los int sin castear, y las mismas tres preguntas sobre el llamador -que la
+# propagacion este gobernada (3), que ningun literal afirme exito suelto (4) y que el
+# diario dependa del retorno (5)-. Con dos cambios, y los dos se miden aqui:
+#
+#   - "SEMBRADA" entra en PALABRAS_DE_EXITO. El literal nuevo del diario AFIRMA que la
+#     hora entro -el viejo decia quien contestaba-, asi que ahora la 4 tiene sujeto.
+#   - EL ESCLAVO LLEVA UNA GUARDA DELANTE DEL SEMBRADOR, ~~reloj_enHora()~~ ->
+#     reloj_radioManda() desde D-26 (3): "con radio, manda la hora del Maestro; sin radio,
+#     la de su propio ESP32". Esa llamada no la gobierna el sembrador -va
+#     antes, a proposito- y su linea de diario ("IGNORADA") depende de ELLA, no de el. Es
+#     una EXCEPCION, y por eso se escribe con su borde y se MIDE (CLAUDE.md 6): existe
+#     SOLO en el Esclavo, es bool y su cuerpo es un unico `return` sin asignaciones -o sea
+#     que decide sin tocar la hora-. En el Maestro NO esta exenta: alli la 3 acusaria
+#     cualquier guarda, y eso es D-20 -el Maestro acepta siempre la de su ESP32-. El orden
+#     de la guarda, y que no se cuele en el sembrador compartido, los mide reloj_03.
+#
 # SIN ETIQUETA SFTY, Y ES DELIBERADO. La tentacion era SFTY-18, que vive en
 # Maestro/src/reloj.cpp y cuya regla es "la regla de seguridad no es tener reloj, es
 # saber cuando NO se tiene". Pero SFTY-18 se EJERCE midiendo el ano marcador y
@@ -139,23 +164,39 @@ SEMBRADOR = "reloj_sembrarDesdeIso"
 # La rama del despachador por la que entra la orden, y el reportador de eventos que esa
 # rama usa. Son sujetos ENUMERADOS: una regla que enumera sujetos tiene que comprobar
 # que cada uno existe (N-96), y por eso los dos abortan si no aparecen.
-RAMA_BT = "SET_RTC:"
+#
+# 11/09: era "SET_RTC:" y se mudo con la rama (ver la cabecera). Compara contra `cmd`
+# entero y no contra `accion`, porque entra SIN PIN: _rama() lee las dos formas.
+RAMA_BT = "CMD:HORA_ESP32:"
 REPORTADOR = "bluetooth_reportarEvento"
+# D-26 (5), 11/09: EL SEGUNDO REPORTADOR DE LA RAMA. Una siembra que el sembrador tira ya
+# no es una linea de diario: es $ALARM EVENTO:HORA_ESP32. Recibe el MISMO trato que el
+# diario, y por la misma razon: no decide nada -informa-, asi que la 3 no le exige estar
+# gobernado por el EXITO de la siembra (vive justo en su `else`), la 5 le exige depender
+# del VEREDICTO y la 4 mira sus literales como los de cualquier otro. Se comprueba que
+# existe en bluetooth.h antes de concederle nada (N-96).
+ALARMA = "bluetooth_reportarAlarma"
+
+# LA UNICA LLAMADA DE LA RAMA QUE PUEDE CORRER SIN QUE LA GOBIERNE EL SEMBRADOR, Y SOLO EN
+# ESTA PUNTA. Es una excepcion con sujeto, y el sujeto se comprueba que existe y que solo
+# lee antes de concederla (comprobacion 2.bis). Ver la cabecera, 11/09.
+GUARDA_ESCLAVO = "reloj_radioManda"
+PUNTA_GUARDA = "Esclavo"
 
 # EL BORDE DE LO QUE CUENTA COMO "ACUSE DE EXITO", ESCRITO AQUI PORQUE ES EL BORDE.
 #
 # Los censos que fallaron en este repositorio lo hicieron todos en la frontera que
 # decidieron no mirar, y ninguno la llevaba escrita. Esta es la de este pack:
 #
-#   SI cuenta como afirmacion de exito     "$ACK", "RESULT:OK", "PUESTA"
-#   NO cuenta                              "SET_RTC_LO_ACUSA_EL_PUENTE"
+#   SI cuenta como afirmacion de exito     "$ACK", "RESULT:OK", "PUESTA", "SEMBRADA"
+#   NO cuenta                              "IGNORADA", "RECHAZADA"
 #
-# El literal que las dos puntas emiten hoy dice QUIEN contesta, no que haya salido
-# bien: es informacion de enrutado para el diario de la app (D-15), y cobrarle una
-# guarda empujaria a quitarlo o a inventarse un rechazo. El borde queda vigilado por si
-# se mueve: el dia que ese literal diga OK o PUESTA, la comprobacion 4 lo exige
-# gobernado por el retorno de la siembra.
-PALABRAS_DE_EXITO = ("$ACK", "RESULT:OK", "PUESTA")
+# Hasta el 11/09 el literal del diario era SET_RTC_LO_ACUSA_EL_PUENTE, que decia QUIEN
+# contestaba y no que hubiera salido bien, y por eso quedaba fuera. El de ahora,
+# HORA_ESP32_SEMBRADA, SI afirma que la hora entro: por eso "SEMBRADA" entra en la lista
+# y la 4 lo exige gobernado por el retorno de la siembra. Los otros dos finales dicen
+# que la hora NO entro y no pueden afirmar un exito que no hubo.
+PALABRAS_DE_EXITO = ("$ACK", "RESULT:OK", "PUESTA", "SEMBRADA")
 
 # Los NEGATIVOS del lenguaje. Es lo unico escrito a mano de la parte que mide, y es
 # aritmetica de C++, no del firmware: un `return` de estos es un rechazo lo escriba
@@ -753,6 +794,51 @@ def _rama(codigo, etiqueta):
     return _bloque(codigo, llave)
 
 
+def _sueltas(rama, exentas):
+    """Las llamadas de la rama que corren sin que el retorno del sembrador las gobierne.
+
+    Es el cuerpo de la comprobacion 3, sacado a funcion para que los controles negativos
+    pasen por EL MISMO camino que las ramas de verdad. `exentas` es la excepcion de esa
+    punta, y viene vacia salvo en el Esclavo (ver GUARDA_ESCLAVO)."""
+    fuera = []
+    for m in re.finditer(r"\b([A-Za-z_]\w*)\s*\(", rama):
+        nombre = m.group(1)
+        if nombre in _NO_SON_LLAMADAS or nombre in (SEMBRADOR, REPORTADOR, ALARMA) \
+                or nombre in exentas:
+            continue
+        if not any(_llama_a(c, SEMBRADOR) for c in _gobernantes(rama, m.start())):
+            fuera.append(nombre)
+    return fuera
+
+
+def _diario_suelto(rama, decisores):
+    """Las lineas de diario de la rama que NO dependen del veredicto de ningun decisor.
+
+    Es el cuerpo de la comprobacion 5. `decisores` es el sembrador en las dos puntas, y
+    ademas la guarda del Esclavo: la linea IGNORADA depende de ELLA, y dice exactamente lo
+    que ella decidio -que la hora no entro porque en esa punta manda la radio (D-26 (3))-."""
+    return [rama[m.start():m.start() + 90].split("\n")[0]
+            for m in re.finditer(r"\b(?:%s|%s)\s*\(" % (re.escape(REPORTADOR),
+                                                          re.escape(ALARMA)), rama)
+            if not any(_bajo_decision(rama, m.start(), d) for d in decisores)]
+
+
+def _solo_lee(cuerpo):
+    """True si el cuerpo es UN `return <expr>;` y la expresion no asigna nada.
+
+    EL BORDE, ESCRITO AQUI PORQUE ES EL QUE CONCEDE LA EXCEPCION: una guarda que decide
+    delante del sembrador sin estar gobernada por el es aceptable SOLO si no puede tocar
+    la hora ni la marca que la decide. Se exige la forma mas estrecha que el lenguaje
+    permite leer por texto: una sola sentencia, que es un `return`, y dentro ni un `=`
+    que no sea comparacion ni un `++`/`--`. Una guarda que ademas bajara la marca -la
+    tentacion de "caducar al preguntar"- deja de ser una lectura y pierde la excepcion."""
+    m = re.fullmatch(r"\s*return\s+([^;]+);\s*", cuerpo)
+    if not m:
+        return False
+    expr = re.sub(r"[=!<>]=", " ", m.group(1))
+    return not re.search(r"=|\+\+|--", expr)
+
+
 # ---------------------------------------------------------------------------------
 
 def correr(b, fw):
@@ -886,11 +972,12 @@ def correr(b, fw):
     # nombran y se comprueba que existen. El sembrador queda fuera porque es el que
     # decide; el reportador de eventos queda fuera porque su literal no afirma exito
     # -y de eso se ocupa la comprobacion 4, para que el hueco no quede sin vigilar-.
-    if not re.search(r"\b%s\s*\(" % re.escape(REPORTADOR), fw.codigo(*BLUETOOTH_H)):
-        raise fw.Abortado(
-            "Maestro: bluetooth.h no declara %s(), que es una de las dos excepciones "
-            "que la comprobacion 3 se permite. Una excepcion cuyo sujeto no existe es "
-            "una excepcion que ya no excluye lo que creia (N-96)" % REPORTADOR)
+    for rep in (REPORTADOR, ALARMA):
+        if not re.search(r"\b%s\s*\(" % re.escape(rep), fw.codigo(*BLUETOOTH_H)):
+            raise fw.Abortado(
+                "Maestro: bluetooth.h no declara %s(), que es una de las excepciones "
+                "que la comprobacion 3 se permite. Una excepcion cuyo sujeto no existe es "
+                "una excepcion que ya no excluye lo que creia (N-96)" % rep)
 
     ramas = {}
     for p in PUNTAS:
@@ -901,21 +988,45 @@ def correr(b, fw):
                 "puerta por la que la hora entra a esta punta: sin ella este pack no "
                 "tiene llamador que medir" % (p, RAMA_BT))
 
+    # ---- 2.bis. LA EXCEPCION DEL ESCLAVO SE MIDE ANTES DE CONCEDERLA (11/09) -----
+    #
+    # GUARDA_ESCLAVO es la unica llamada que la 3 deja correr sin que la gobierne el
+    # sembrador, y solo en PUNTA_GUARDA. Una excepcion es una afirmacion sobre el codigo
+    # (CLAUDE.md 6), y esta dice tres cosas que se comprueban aqui: que la funcion existe
+    # en esa punta, que devuelve bool -decide si o no-, y que su cuerpo solo LEE (ver el
+    # borde en _solo_lee). La cuarta -que en el Maestro NO esta exenta- no se comprueba
+    # aparte: la 3 del Maestro acusaria cualquier guarda, y eso es D-20.
+    dg = _definicion(fw.codigo(*RELOJ_C[PUNTA_GUARDA]), GUARDA_ESCLAVO)
+    if dg is None:
+        raise fw.Abortado(
+            "%s: no se hallo la definicion de %s() en reloj.cpp, y la comprobacion 3 la "
+            "exime. Una excepcion cuyo sujeto no existe ya no excluye lo que creia (N-96): "
+            "o se mudo o se renombro, y aprobar aqui seria aprobar sin mirar"
+            % (PUNTA_GUARDA, GUARDA_ESCLAVO))
+    tipo_g, _, cuerpo_g = dg
+    b.verificar(
+        tipo_g == "bool" and _solo_lee(cuerpo_g),
+        "%s: la unica excepcion de la 3, %s(), existe, es `bool` y su cuerpo es un solo "
+        "`return` sin asignaciones: decide delante del sembrador sin poder tocar la hora "
+        "ni ninguna marca" % (PUNTA_GUARDA, GUARDA_ESCLAVO),
+        "%s: %s() esta exenta de la comprobacion 3 y ya no es una lectura pura (tipo "
+        "`%s`, cuerpo `%s`). Una guarda que escribe delante del sembrador puede mover la "
+        "hora o la marca sin que ningun retorno lo gobierne: la excepcion se retira o se "
+        "vuelve a razonar, no se hereda" % (PUNTA_GUARDA, GUARDA_ESCLAVO, tipo_g,
+                                            " ".join(cuerpo_g.split())[:80]))
+
+    exentas = {p: ((GUARDA_ESCLAVO,) if p == PUNTA_GUARDA else ()) for p in PUNTAS}
     for p in PUNTAS:
         rama = ramas[p]
-        sueltas = []
-        for m in re.finditer(r"\b([A-Za-z_]\w*)\s*\(", rama):
-            nombre = m.group(1)
-            if nombre in _NO_SON_LLAMADAS or nombre in (SEMBRADOR, REPORTADOR):
-                continue
-            if not any(_llama_a(c, SEMBRADOR) for c in _gobernantes(rama, m.start())):
-                sueltas.append(nombre)
+        sueltas = _sueltas(rama, exentas[p])
         b.verificar(
             not sueltas,
             "%s / %s: todo lo que la rama hace ademas de sembrar esta DENTRO del bloque "
             "que gobierna el retorno de %s()%s"
             % (p, RAMA_BT, SEMBRADOR,
-               "" if p == "Maestro" else " (esta punta no propaga nada)"),
+               "" if p != PUNTA_GUARDA else
+               " (esta punta no propaga nada; solo %s() decide antes, y es la excepcion "
+               "medida en 2.bis)" % GUARDA_ESCLAVO),
             "%s / %s: %s corre SIN que el retorno de %s() lo gobierne. En el Maestro eso "
             "es coordinador_sincronizarHora() empujando al Esclavo una hora que esta "
             "punta puede haber descartado, y D-20 dice que el Esclavo hace caso SIEMPRE: "
@@ -925,10 +1036,10 @@ def correr(b, fw):
 
     # ---- 4. NINGUN LITERAL DE LA RAMA AFIRMA EXITO SIN ESTAR GOBERNADO -------
     #
-    # Hoy las dos puntas emiten SET_RTC_LO_ACUSA_EL_PUENTE, que dice QUIEN contesta y no
-    # que haya salido bien: por eso esta pasa hoy en las dos. No es una casilla de
-    # adorno, es un trinquete -el dia que ese literal diga OK o PUESTA, cae-. El borde
-    # esta escrito arriba, en PALABRAS_DE_EXITO, con su motivo.
+    # Hasta el 11/09 las dos puntas emitian SET_RTC_LO_ACUSA_EL_PUENTE, que decia QUIEN
+    # contesta y no que hubiera salido bien, y esta pasaba en las dos por no tener sujeto.
+    # Desde el 11/09 el literal es HORA_ESP32_SEMBRADA, que SI afirma: la 4 lo exige
+    # dentro del bloque del sembrador. El borde esta arriba, en PALABRAS_DE_EXITO.
     for p in PUNTAS:
         rama = ramas[p]
         mentirosos = []
@@ -973,16 +1084,20 @@ def correr(b, fw):
     # la rama gana una linea de diario que deba salir pase lo que pase -un "SET_RTC
     # RECIBIDO" de traza, por ejemplo-, esta comprobacion la cobra y hay que escribir aqui
     # por que se excluye. Es lo correcto: una excepcion nueva se mide al escribirla.
+    #
+    # 11/09: en el Esclavo la linea IGNORADA depende de GUARDA_ESCLAVO y no del sembrador
+    # -la hora no entro porque en esa punta manda la radio, y eso es lo que dice-. Se acepta por el
+    # MISMO helper con los dos decisores, no con un "cualquier if vale": una linea bajo el
+    # `if` de otra funcion sigue cayendo, y lo ejerce un control negativo de abajo.
     for p in PUNTAS:
         rama = ramas[p]
-        sueltas = []
-        for m in re.finditer(r"\b%s\s*\(" % re.escape(REPORTADOR), rama):
-            if not _bajo_decision(rama, m.start(), SEMBRADOR):
-                sueltas.append(rama[m.start():m.start() + 90].split("\n")[0])
+        sueltas = _diario_suelto(rama, (SEMBRADOR,) + exentas[p])
         b.verificar(
             not sueltas,
-            "%s / %s: toda linea del Diario de Ordenes depende del retorno de %s(): el "
-            "registro dice si la hora entro" % (p, RAMA_BT, SEMBRADOR),
+            "%s / %s: toda linea del Diario de Ordenes depende del retorno de %s()%s: el "
+            "registro dice si la hora entro" % (
+                p, RAMA_BT, SEMBRADOR,
+                "" if p != PUNTA_GUARDA else " o del de %s()" % GUARDA_ESCLAVO),
             "%s / %s: %d llamada(s) a %s() salen FUERA del bloque que gobierna la siembra, "
             "empezando por `%s`. El diario deja la misma linea para una hora aceptada que "
             "para una rechazada, y es el unico registro que le queda al tecnico"
@@ -1002,9 +1117,9 @@ def correr(b, fw):
         b.reportar(
             "la rama %s TIRA el retorno de %s() en: %s"
             % (RAMA_BT, SEMBRADOR, ", ".join(tiran)),
-            ["El Maestro lo consume -`if (%s(accion + 8))`- y de ese `if` cuelga la "
-             "propagacion al Esclavo. La otra punta lo llama como sentencia suelta."
-             % SEMBRADOR,
+            ["Lo esperado es `if (%s(...))` en las dos puntas: en el Maestro de ese "
+             "`if` cuelga la propagacion al Esclavo, y en las dos el diario. Aqui "
+             "alguna lo llama como sentencia suelta." % SEMBRADOR,
              "NO se cuenta como comprobacion: esa rama no acusa nada ni actua sobre el "
              "resultado, asi que no hay afirmacion que pueda mentir. Cobrarlo aqui "
              "dejaria un rojo que este pack no puede apagar desde su propio fichero, y "
@@ -1105,12 +1220,9 @@ bool reloj_sembrarDesdeIso(const char* str) {
                      'bluetooth_reportarEvento("APP_BLUETOOTH", "OK"); } '
                      'else { bluetooth_reportarEvento("APP_BLUETOOTH", "RECHAZADO"); } }')
 
-    def _diario_suelto(txt):
-        return [m.start() for m in re.finditer(r"\b%s\s*\(" % re.escape(REPORTADOR), txt)
-                if not _bajo_decision(txt, m.start(), SEMBRADOR)]
-
     b.control_negativo(
-        len(_diario_suelto(diario_fuera)) == 1 and not _diario_suelto(diario_dentro),
+        len(_diario_suelto(diario_fuera, (SEMBRADOR,))) == 1
+        and not _diario_suelto(diario_dentro, (SEMBRADOR,)),
         "el diario FUERA del `if` se acusa y el diario en las DOS ramas pasa: la 5 "
         "distingue el defecto que el Maestro tuvo del arreglo, no acusa a todo el que "
         "escribe en el diario")
@@ -1127,3 +1239,37 @@ bool reloj_sembrarDesdeIso(const char* str) {
         "la linea del `else` DEPENDE del veredicto (la 5 la acepta) y NO esta gobernada "
         "por el exito (la 3 la rechazaria): son dos preguntas distintas y se miden con "
         "helpers distintos")
+
+    # LA EXCEPCION DEL ESCLAVO (11/09) TIENE QUE SABER NO CONCEDERSE. Tres ataques, y los
+    # tres pasan por los MISMOS helpers que las ramas de verdad: una rama con la forma
+    # exacta del Esclavo, juzgada como Esclavo y como Maestro; la misma con una linea de
+    # diario colgada del `if` de OTRA funcion; y el borde de "solo lee".
+    con_guarda = ('{ if (%s()) { %s("ESP32", "HORA_ESP32_IGNORADA_MANDA_RADIO"); } '
+                  'else if (%s(cmd + 15)) { %s("ESP32", "HORA_ESP32_SEMBRADA"); } '
+                  'else { %s("ESP32", "HORA_ESP32_RECHAZADA_POR_RANGO"); } return; }'
+                  % (GUARDA_ESCLAVO, REPORTADOR, SEMBRADOR, REPORTADOR, REPORTADOR))
+    b.control_negativo(
+        not _sueltas(con_guarda, (GUARDA_ESCLAVO,))
+        and _sueltas(con_guarda, ()) == [GUARDA_ESCLAVO]
+        and not _diario_suelto(con_guarda, (SEMBRADOR, GUARDA_ESCLAVO))
+        and len(_diario_suelto(con_guarda, (SEMBRADOR,))) == 1,
+        "la rama con la forma del Esclavo pasa la 3 y la 5 SOLO con la excepcion puesta: "
+        "juzgada como Maestro -sin exentas- la 3 acusa a %s() y la 5 acusa la linea "
+        "IGNORADA. La excepcion es por punta, no general" % GUARDA_ESCLAVO)
+
+    otra_decision = con_guarda.replace("if (%s())" % GUARDA_ESCLAVO, "if (otraCosa())")
+    b.control_negativo(
+        len(_diario_suelto(otra_decision, (SEMBRADOR, GUARDA_ESCLAVO))) == 1,
+        "una linea de diario colgada del `if` de OTRA funcion sigue cayendo en la 5 aunque "
+        "el Esclavo tenga la excepcion: se acepta el veredicto de %s(), no cualquier `if`"
+        % GUARDA_ESCLAVO)
+
+    b.control_negativo(
+        _solo_lee(" return horaValida && hay && (millis() - t < V); ")
+        and _solo_lee(" return a <= b; ")
+        and not _solo_lee(" hay = false; return hay; ")
+        and not _solo_lee(" return (hay = false); ")
+        and not _solo_lee(" return n++ > 0; "),
+        "el borde de 'solo lee' acepta un `return` con comparaciones y rechaza la guarda "
+        "que baja la marca antes de contestar, la que asigna dentro del return y la que "
+        "incrementa: la excepcion se pierde en cuanto la guarda escribe")

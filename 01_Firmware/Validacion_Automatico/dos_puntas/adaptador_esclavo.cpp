@@ -153,6 +153,12 @@ static uint32_t rtcTranscurrido() {
 void reloj_setup() {}
 void reloj_actualizar() {}
 bool reloj_enHora() { return g_rtcEnHora; }
+// D-26 (3): main.cpp REAL la llama con cada trama de radio para que reloj.cpp sepa si la
+// radio del Maestro llega. Aqui reloj.cpp no se compila y nadie pregunta por la fuente de
+// la hora -eso lo decide la rama CMD:HORA_ESP32 de bluetooth.cpp, que tampoco se compila
+// aqui-, asi que se cuenta la llamada y nada mas: lo que este arnes mide es la luz.
+static unsigned long g_radioNotada = 0;
+void reloj_notarRadio() { g_radioNotada++; }
 
 uint32_t reloj_contadorSegundos() {
   if (!g_rtcEnHora) return 0;   // el cero significa "no hay reloj", como en el real
@@ -274,6 +280,18 @@ PUNTA_API void punta_pulsar(int boton) {
 }
 
 PUNTA_API long punta_mando(const char* que, long arg) {
+  if (!strcmp(que, "radio_notada"))        return (long)g_radioNotada;
+  // D-26 (4): el salto de hora de ESTA punta, para el bloque E del orquestador del
+  // Degradado. BLOQUE LITERAL de la orden "desviar_rtc" de adaptador_maestro_deg.cpp -mueve
+  // la hora de pared arg segundos SIN tocar el ancla, o sea sin fabricar un residuo
+  // sub-segundo propio-: las dos puntas tienen que saltar con la misma aritmetica.
+  if (!strcmp(que, "desviar_rtc")) {
+    long s = (long)g_rtcSegundosDelDiaBase + arg;
+    while (s < 0) s += 86400L;
+    g_rtcSegundosDelDiaBase = (uint32_t)(s % 86400L);
+    g_rtcBaseSegundos = (uint32_t)((long)g_rtcBaseSegundos + arg);
+    return 1;
+  }
   if (!strcmp(que, "degradado_gobierna"))  return degradado_gobiernaLuz() ? 1 : 0;
   if (!strcmp(que, "degradado_estado"))    return (long)degradado_estado();
   if (!strcmp(que, "degradado_fase"))      return (long)degradado_fase();

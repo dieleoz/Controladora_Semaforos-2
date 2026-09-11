@@ -14,10 +14,11 @@
 // falsa; el OSF es lo unico que distingue las dos.
 //
 // 🔴 Y EL BORDE QUE MAS FACIL SE CRUZA AL LEER ESTO: que el ESP32 lleve reloj NO
-// arregla el Y2 de los STM32. Son dos relojes distintos. Mientras reloj_enHora() del
-// STM32 devuelva false, el Modo Degradado y todo lo que cuelga de SFTY-20/21 siguen
-// igual de bloqueados que hoy. Colgar el reloj del semaforo de este modulo accesorio
-// es la via B del Manual 17 3.2, esta abierta como AB-4 y tiene dueno.
+// arregla el Y2 de los STM32. Son dos relojes distintos. ~~Colgar el reloj del semaforo
+// de este modulo accesorio es la via B del Manual 17 3.2, esta abierta como AB-4~~ ->
+// DECIDIDO (D-20, 07/09; A-15, 08/09; construido en este lado el 11/09): el STM32 recibe
+// la hora de ESTE reloj por siembra.cpp, y solo la que sale de reloj_leer(). Lo que el
+// STM32 haga con ella -extrapolar con millis(), declararla vieja- es de su firmware.
 
 #ifndef RELOJ_DS3231_H
 #define RELOJ_DS3231_H

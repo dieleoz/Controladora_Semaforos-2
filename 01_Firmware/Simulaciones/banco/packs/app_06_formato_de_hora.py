@@ -203,9 +203,14 @@ def _formato_del_cpp(fw):
 
 
 def _rama_set_rtc_del_stm32(fw, punta):
-    """El bloque de la rama SET_RTC de una punta del STM32, o None si ya no existe."""
+    """El bloque de la rama SET_RTC de una punta del STM32, o None si ya no existe.
+
+    11/09: lee las dos puertas del despachador -`accion`, con PIN, y `cmd`, sin el-. Desde
+    que la rama se sustituyo lo que se exige es que NO exista, y un lector que solo mirara
+    una puerta daria por ausente una rama reabierta por la otra."""
     codigo = fw.codigo(punta, "src", "bluetooth.cpp")
-    m = re.search(r'strn?cmp\s*\(\s*accion\s*,\s*"%s:"' % re.escape(COMANDO), codigo)
+    m = re.search(r'strn?cmp\s*\(\s*(?:accion|cmd)\s*,\s*"(?:CMD:)?%s:"' % re.escape(COMANDO),
+                  codigo)
     if not m:
         return None
     i = codigo.find("{", m.end())
@@ -402,22 +407,27 @@ def correr(b, fw):
     # segundo parser. Dos aparatos parseando la misma orden es como se llego a los DOS
     # ACUSES OPUESTOS que D-15 vino a cerrar -el puente decia OK porque la puso en su
     # DS3231 y el STM32 decia NO_QUEDO_PUESTA porque en el suyo no-, las dos ciertas.
+    #
+    # 🔴 11/09 - SE INVIERTE EL ABORTO, NO LAS DOS COMPROBACIONES. Hasta hoy la rama SET_RTC
+    # del STM32 tenia que SEGUIR EXISTIENDO para consumir en silencio la linea que el
+    # puente reenviaba. Desde el 11/09 (D-20 / A-15) el puente ya NO la reenvia -la hora le
+    # llega al STM32 como CMD:HORA_ESP32, compuesta con lo que el DS3231 releyo- y la rama
+    # se SUSTITUYO: exigirla seria exigir una orden en dos listas. Las dos propiedades que
+    # esto media se conservan, y ahora sobre el fichero entero y no sobre una rama: que el
+    # STM32 no PARSEE SET_RTC -no hay rama que lo reconozca- y que no CONTESTE a
+    # CMD:SET_RTC -ni un literal-. Que el puente no la reenvie lo mide esp32_12.
     for punta in PUNTAS:
         rama = _rama_set_rtc_del_stm32(fw, punta)
-        if rama is None:
-            raise fw.Abortado(
-                "el %s ya no tiene rama SET_RTC ninguna en bluetooth.cpp. Se espera que "
-                "SIGA existiendo para CONSUMIR la orden en silencio: sin ella la linea "
-                "cae al else del despachador y sale $ERR,CMD:DESCONOCIDO, que es otra "
-                "vez una segunda respuesta a una sola orden" % punta)
+        codigo_bt = fw.codigo(punta, "src", "bluetooth.cpp")
         b.verificar(
-            "sscanf" not in rama,
-            "el %s reconoce SET_RTC pero YA NO LO PARSEA: cero sscanf en su rama" % punta,
-            "el %s ha vuelto a parsear SET_RTC. D-15 dice que el reloj es del DS3231 del "
-            "ESP32 y que solo el contesta; un segundo parser aqui devuelve los dos acuses "
-            "opuestos a una sola orden" % punta)
+            rama is None,
+            "el %s ya no reconoce SET_RTC: no hay rama que lo parsee. La orden es del "
+            "puente, el unico parser que queda" % punta,
+            "el %s ha vuelto a reconocer SET_RTC. Desde el 11/09 la orden es solo del "
+            "puente: un segundo parser aqui devuelve los dos acuses opuestos a una sola "
+            "orden (D-15), y la rama no le llegaria nunca -el puente se la queda-" % punta)
         b.verificar(
-            "CMD:SET_RTC" not in rama,
+            "CMD:SET_RTC" not in codigo_bt,
             "el %s no emite ningun $ACK ni $ERR con CMD:SET_RTC: una orden, un acuse" % punta,
             "el %s ha vuelto a contestar a CMD:SET_RTC. El acuse es del que tiene el "
             "reloj (D-15); dos aparatos contestando a una orden es el defecto que se "
