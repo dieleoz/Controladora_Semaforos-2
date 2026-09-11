@@ -103,8 +103,11 @@ void reloj_actualizar() {
   // N-24 del reves: no "hora escrita sobre un contador parado", sino "contador
   // arrancado bajo una hora que nunca se le escribio".
   //
-  // SE LEE ANTES DE MOVER LA BANDERA: los getters eligen fuente con rtcOperativo, asi
-  // que despues de ponerla ya estarian leyendo del RTC vacio.
+  // SE LEE ANTES DE MOVER LA BANDERA. N-162 (11/09): desde c51cc85 los getters miran
+  // PRIMERO la base de software (tBaseMillis > 0) y solo sin ella el RTC, asi que la hora
+  // que se lee ya no salta al adoptar el cristal. Copiarla al RTC sigue haciendo falta:
+  // es lo que hace que reloj_contadorSegundos() -el que fecha el respaldo- cuente desde
+  // una hora escrita y no desde la que el RTC traiga.
   const bool teniaBase = horaValida;
   const uint32_t segBase = teniaBase ? reloj_segundosDelDia() : 0;
   const uint8_t diaAhora = teniaBase ? reloj_dia() : 0;
