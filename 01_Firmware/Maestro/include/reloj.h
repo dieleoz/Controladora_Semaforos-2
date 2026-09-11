@@ -207,6 +207,49 @@ static const unsigned long HORA_ESP32_ESPERA_MAX_MS = 3UL * HORA_ESP32_CADENCIA_
 // esp32_13 para la cuenta de la cadencia contra el margen del cruce.
 static const unsigned long HSI_PPM_PEOR = 25000UL;
 
+// ---------------------------------------------------------------------------
+// D-21 (1) - UNA HORA QUE NO ES FIABLE ES UNA HORA QUE MIENTE. LA CADUCIDAD DE LA SIEMBRA.
+//
+// Entre dos siembras la hora de esta punta se extrapola con millis(), o sea sobre el HSI.
+// La cuenta del cruce que rehace esp32_13 le CONCEDE a cada punta la deriva de UNA cadencia
+// (HORA_DERIVA_S, abajo) y deja el resto del aguante para lo que difieran los dos DS3231.
+// Hasta hoy eso era una SUPOSICION: nada impedia que una punta con el J17 mudo siguiera
+// dando verdes por reloj horas despues, a 36-90 s por hora (H1 del veredicto del 11/09).
+//
+// EL PLAZO NO SE ESCOGE: es el tiempo en que el HSI, en el peor caso de su ficha, acumula
+// EXACTAMENTE la deriva que esa cuenta ya concede. Pasado, la punta esta fuera de lo que el
+// cruce tiene presupuestado y su hora deja de ser fiable. Un plazo mayor no compraria nada:
+// ni una siembra perdida ni el relevo de fuente de D-26 (3) caben por debajo del aguante
+// -la cuenta la publica reloj_04-.
+//
+// La DESIGUALDAD contra el aguante del cruce la recalcula reloj_04 desde este fichero en
+// cada corrida (N-71). El static_assert es solo el SUELO, que no necesita el modelo del
+// ciclo: una siembra normal tiene que llegar antes de caducar aun con el HSI corriendo en su
+// extremo rapido -si no, el Degradado caeria a ambar con el J17 sano-.
+static const unsigned long HORA_DERIVA_S =
+    (HORA_ESP32_CADENCIA_MS / 1000UL * HSI_PPM_PEOR + 999999UL) / 1000000UL;
+static const unsigned long HORA_CADUCA_MS = HORA_DERIVA_S * 1000000UL / HSI_PPM_PEOR * 1000UL;
+static_assert(HORA_CADUCA_MS >
+                  HORA_ESP32_CADENCIA_MS + HORA_ESP32_CADENCIA_MS / 1000UL * HSI_PPM_PEOR / 1000UL,
+              "D-21 (1): una siembra normal caducaria antes de llegar con el HSI rapido");
+
+// true si esta punta tiene hora Y esa hora esta dentro de su plazo: la ultima siembra buena
+// -de su ESP32, de la radio o de la pantalla, cualquiera que pase por reloj_ajustarConAcuse()-
+// tiene como mucho HORA_CADUCA_MS. Una vez caducada se QUEDA caducada hasta la siguiente
+// siembra (lo mantiene reloj_actualizar() en cada vuelta), para que la vuelta de millis() a
+// los 49,7 dias no la rejuvenezca.
+//
+// EL BORDE, ESCRITO: una hora que vino SOLO del RTC de hardware -sin ninguna siembra en este
+// arranque- NO caduca aqui. Esa no corre sobre el HSI sino sobre el cristal Y2, y la cubre el
+// limite de 48 h del Degradado; desde D-20 no hay quien la escriba, y con Y2 muerto (N-17)
+// ni siquiera nace valida.
+//
+// NO SUSTITUYE A reloj_enHora(), y son dos preguntas a proposito (CLAUDE.md 8): aquella
+// contesta "hay hora?" y la leen la sincronizacion por radio, la medida de desfase y la
+// telemetria, que tienen que seguir funcionando con una hora vieja. Esta contesta "puede
+// esta hora decidir una luz?", y solo la preguntan la puerta y el bucle del Degradado.
+bool reloj_horaFiable();
+
 // 🔴 D-15 (05/09) - ESTA PUNTA YA NO TIENE CAMINO DE ESCRITURA, Y LO QUE ESO COSTO
 // SE DEJA ESCRITO AQUI PORQUE ES DONDE HARA FALTA.
 //

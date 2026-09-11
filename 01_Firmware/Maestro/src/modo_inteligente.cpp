@@ -180,9 +180,14 @@ void modoInteligente_loop() {
       // gratis: lleva delay(5) dentro cuando el pin esta alto.
       //
       // ---- SENTIDO 1 (esta punta) -------------------------------------------------
-      //   J14 / CAM_DEMANDA_PIN (PB0)  -> se lee AQUI, POR NIVEL. Es la entrada que el
-      //        responsable dejo abierta para un posible fin de carrera de barrera; no se
-      //        retira.
+      //   J14 / CAM_DEMANDA_PIN (PB0)  -> se lee AQUI, POR NIVEL. ~~Es la entrada que el
+      //        responsable dejo abierta para un posible fin de carrera de barrera~~ ->
+      //        CADUCADO el 11/09: la fila de DECISIONES.md de ese dia sobre lo que fija la
+      //        guia del Sisga deja J14 LIBRE, sin cablear, y el fin de carrera NO se instala
+      //        en este despliegue. Con J14 vacio el pull-down tiene PB0 en 0 V y este termino
+      //        no aporta nada; mientras el firmware lo lea como demanda, en J14 no se conecta
+      //        nada. No se retira desde aqui: es logica, no nota. (Sin el numero de la fila a
+      //        proposito: decisiones_01 lo contaria como ancla y esta nota no la construye.)
       //   J16 / CAM_C_PIN y CAM_D_PIN  -> POR NIVEL, con camara_presenciaJ16(), que
       //        devuelve lo que camaras_actualizar() acaba de leer en esta misma vuelta.
       //        Es la camara que el responsable decidio instalar el 05/09, y desde aqui

@@ -10,21 +10,25 @@
 >    arquitecto antes de fusionar (**`roadmap.md` §3.16, `N-162`, `H1`..`H9`**). ⚠️ **Sin banco y sin tarjeta.** La
 >    foto `wip/d26-hora-esp32-foto-1315` quedó integrada en `a0313fe`: ya no se usa. Los dos rojos de la compuerta
 >    siguen siendo reales —`decisiones_01_anclas` y **G3**—; las cifras, en la última acta.
-> 2. 🟠 **EN CONSTRUCCIÓN (worktree, NO está en `main`): `D-21` pieza (1)** —ámbar intermitente en la punta cuya
+> 2. ~~🟠 **EN CONSTRUCCIÓN (worktree, NO está en `main`)**~~ 🟢 **CONSTRUIDA y en `main` el 11/09 por la noche, sin banco: `D-21` pieza (1)** —ámbar intermitente en la punta cuya
 >    hora caducó, dentro del Degradado—. Es la cura de **`H1`**: con el `J17` del Maestro mudo, al caer la radio el
 >    Esclavo adopta su `DS3231` y el Maestro sigue con la hora derivada del HSI → **verde contra verde**. **Bloquea
->    campo.** Se integra por el diff (`roadmap.md` §0, fila 1.13).
-> 3. **Espera al responsable:** **G3/SFTY-6** (la punta en verde tarda 250 ms en soltar frente a un `S_FALLO`); la
+>    campo.** ~~Se integra por el diff~~ Integrada por el diff (`roadmap.md` §0, fila 1.13); el plazo es **320 s** y la app lo
+>    enseña (`HORA_ESP32,CAUSA:CADUCADA`). La punta en ámbar **no vuelve sola** (`D-21`).
+> 3. **Espera al responsable:** 🆕 **la cadencia de la siembra, ~5 min → ~2 min** (`roadmap.md` §0 fila 2.10: con
+>    5 min, una siembra perdida manda el Degradado a ámbar y ~52 % de las caídas de radio dejan al Esclavo sin
+>    poder entrar en Degradado unos minutos; con 2 min las dos cosas caben y el margen de los `DS3231` sube) ·
+>    **G3/SFTY-6** (la punta en verde tarda 250 ms en soltar frente a un `S_FALLO`); la
 >    referencia del **relé** de `J15`; la **alarma por discrepancia de los dos `DS3231`** —con el matiz de `H3`: el
 >    umbral **no puede ser 11 s a secas**, porque el HSI de cada punta mete hasta 7,5 s entre siembras (fila 2.8)—;
 >    **tachar «sin filtro de objetivo» en `D-13`** (lo derogó `D-27`); y **los `.zip` del 10/09** —cinco en la raíz, y
 >    tres (`44967db`, `bd77271`, `fae4b3e`) llevan `Camaras_Sisga_4x.html` de ese día, con las afirmaciones de
 >    seguridad retiradas—. Y el texto de los «MESES» de `D-21`/`D-23`, que la medida tumbó (fila 2.7). El resto,
 >    `roadmap.md` §0, grupo (2).
-> 4. **Siguiente trabajo, ya decidido:** los instrumentos de `D-26` (fila 1.14: ningún arnés compila el reloj del
->    Esclavo); `AMBAR_EMERGENCIA` sin PIN que avise al Maestro (§3.16-A); la **APK** recompilada desde `main` —y su
+> 4. **Siguiente trabajo, ya decidido:** ~~los instrumentos de `D-26` (fila 1.14: ningún arnés compila el reloj del
+>    Esclavo)~~ *(hecho el 11/09 por la noche: el Degradado a dos puntas compila el `reloj.cpp` real, 53/53)*; `AMBAR_EMERGENCIA` sin PIN que avise al Maestro (§3.16-A); la **APK** recompilada desde `main` —y su
 >    texto de `SET_RTC|OK`, que en `68dd2c5` dice *«no hay nada que los sincronice entre sí»*, caducado por `D-20`/`D-26`
->    (al escribir esto hay cambios sin comitear en `app.js` que lo tocan: se integran por el diff)—;
+>    ~~(al escribir esto hay cambios sin comitear en `app.js` que lo tocan: se integran por el diff)~~ *(integrados en `fd595ea`)*—;
 >    portar a los modelos Python la autorrecuperación nueva; los **`.docx`** cuando se cierren las indefiniciones.
 > 5. **Lo cerrado el 11/09 NO se reabre desde un documento** (`roadmap.md` §0, recuadro 🔒; `CLAUDE.md` §11.1).
 
@@ -330,9 +334,9 @@ lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida
 
 | | |
 |---|---|
-| Flash | Maestro **89.1 %** (**58400** de 65536 B → **7.136 B libres**) · Esclavo **69.3 %** (45392 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | 🔴 **1352/1357 comprobaciones** en **81 packs** — 80 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
-| Arneses que compilan C++ real | 271/271 pantalla · **99/99** automático · 22/22 ciclo · **76/77 dos puntas (G3 en FALLA)** · **18/18 Degradado a dos puntas** |
+| Flash | Maestro **89.4 %** (**58560** de 65536 B → **6.976 B libres**) · Esclavo **69.4 %** (45512 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | 🔴 **1366/1371 comprobaciones** en **82 packs** — 81 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
+| Arneses que compilan C++ real | 271/271 pantalla · **99/99** automático · 22/22 ciclo · **76/77 dos puntas (G3 en FALLA)** · **53/53 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | **268/268** jsdom · 65/65 funcional · 42/42 unitarios · **69/69** TDD |
 

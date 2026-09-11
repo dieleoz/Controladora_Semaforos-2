@@ -646,8 +646,10 @@ procedimiento.
 > parar. ⚠️ **Lo que NO cura** (`N-162` `H1`, `roadmap.md` §3.16): tras el rojo, cada punta sigue con
 > SU hora; si difieren más que el margen, **el ciclo solapa en cada vuelta**. El caso real: el cable
 > interno del Maestro (`J17`) lleva horas mudo —alarma `HORA_ESP32,CAUSA:J17_MUDO`—, su hora corre sin
-> corregir y cae la radio. **La protección (`D-21` (1)) está en construcción y no está en este
-> firmware.** Detalle para el técnico: `14_Manual_App_Movil_IOT_VIAL.md` §5.3.bis.
+> corregir y cae la radio. ~~**La protección (`D-21` (1)) está en construcción y no está en este
+> firmware.**~~ **11/09 por la noche: la protección (`D-21` (1)) está construida, sin banco:** la punta
+> cuya hora lleva demasiado sin sembrarse deja el Degradado y pasa a ámbar intermitente, publica
+> `$ALARM …EVENTO:HORA_ESP32,CAUSA:CADUCADA…` y **no vuelve sola** —hay que sacarla del modo—. Detalle para el técnico: `14_Manual_App_Movil_IOT_VIAL.md` §5.3.bis.
 >
 > ⚠️ **La instrucción del «Paso 2 — Activar en el ESCLAVO» que manda `Ajustes / RTC` →
 > `[ 🚀 Inyectar en Esclavo ]` queda derogada por esto, y allí va tachada.** Estaba dentro de este

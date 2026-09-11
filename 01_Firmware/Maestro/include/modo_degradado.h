@@ -30,7 +30,7 @@
 // condiciones; no hay ninguna que sea opcional o "recomendable".
 enum MotivoDegradado {
   MDG_OK,
-  MDG_FALTA_HORA,     // reloj_enHora() falso: SFTY-18
+  MDG_FALTA_HORA,     // reloj_horaFiable() falso: sin hora, o siembra caducada (D-21 (1))
   MDG_NUNCA_SYNC,     // jamas se confirmo una sincronizacion con el Esclavo
   MDG_SYNC_VIEJA,     // la hubo, pero es demasiado antigua para garantizar nada
   MDG_SIN_DESFASE,    // no hay medida de desfase utilizable (SFTY-23)

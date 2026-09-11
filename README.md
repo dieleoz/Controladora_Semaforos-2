@@ -92,8 +92,8 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 65 rutas parseadas, todas existen |
-| banco por packs *(81 packs)* | 🔴 **FALLA** | **1352/1357 comprobaciones en 81 packs** — 80 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22`, `D-23`, `D-25` y `D-27` son decisiones VIGENTES sin ancla en el firmware**. **Sólo `D-20`, la pieza B de `D-21` y `D-26` lo están** —`D-26` construida en `68dd2c5` y contada en los manuales (`14_` §5.3.bis, `18_` §5.7)—. `D-23` ya tiene la vía elegida (`$EVENT`, `A-14`) y **es teclado**; `D-14` espera **que el responsable elija cuál de los tres últimos canales de potencia gasta** (el multímetro que se pedía no hacía falta); `D-22` espera **una tarjeta delante** |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.1 %** · 69.3 % · 20.6 % · 35.7 % — *el Maestro ocupa **58400 de 65536 B**, o sea **7.136 B libres**; el Esclavo, **45392 B*** |
+| banco por packs *(82 packs)* | 🔴 **FALLA** | **1366/1371 comprobaciones en 82 packs** — 81 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22`, `D-23`, `D-25` y `D-27` son decisiones VIGENTES sin ancla en el firmware**. **Sólo `D-20`, la pieza B de `D-21` y `D-26` lo están** —`D-26` construida en `68dd2c5` y contada en los manuales (`14_` §5.3.bis, `18_` §5.7)—. `D-23` ya tiene la vía elegida (`$EVENT`, `A-14`) y **es teclado**; `D-14` espera **que el responsable elija cuál de los tres últimos canales de potencia gasta** (el multímetro que se pedía no hacía falta); `D-22` espera **una tarjeta delante** |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.4 %** · 69.4 % · 20.6 % · 35.7 % — *el Maestro ocupa **58560 de 65536 B**, o sea **6.976 B libres**; el Esclavo, **45512 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.7 % — 1123521 de 3.145.728 B |
@@ -106,7 +106,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | arnés de pantalla | ✅ | **271/271** *(Maestro 145/145, Esclavo 126/126)* — compila el `lcd.cpp` real contra un framebuffer en el PC. **Sigue midiendo aunque la pantalla se retire del equipo**: no necesita la ST7920 |
 | arnés del ciclo | ✅ | **22/22** — corre sobre el `ciclo_degradado.h` real compilado, sin espejo en Python |
 | arnés del respaldo | ✅ | compila el `calcularSuma()` real; identidad de `respaldo.cpp` entre puntas + prueba de vida |
-| arnés del Degradado a dos puntas | ✅ | **18/18** — las dos puntas en Degradado **cada una con su reloj**. Entrega **el número**: el cruce aguanta **29 s** de desfase contra los **20,2 s** que el equipo puede acumular en 48 h, o sea factor **1,44** — y no el 2 que afirmaban los comentarios de las dos puntas |
+| arnés del Degradado a dos puntas | ✅ | **53/53** — las dos puntas en Degradado **cada una con su reloj**. Entrega **el número**: el cruce aguanta **29 s** de desfase contra los **20,2 s** que el equipo puede acumular en 48 h, o sea factor **1,44** — y no el 2 que afirmaban los comentarios de las dos puntas |
 | arnés de las dos puntas | 🔴 **FALLA** | **76/77** — la que cae es **G3** (la punta en verde no suelta antes del silencio de SFTY-6: 250 ms de verde frente a ámbar) y espera una decisión del responsable; los 180 s de verde en las dos del bloque G están CERRADOS (N-162, 11/09).  — el C++ **real de las DOS puntas** ejecutándose en el mismo proceso y el mismo instante: verde simultáneo en **0** instantes *(el total lo imprime el arnés; aquí ponía «de 53.236» y ya no casaba)* |
 | arnés del automático | ✅ | **99/99** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` + `modo_inteligente.cpp`, `demanda.cpp` y el `botones.cpp` real, y comprueba SFTY-2 sobre las escrituras de pin |
 
@@ -148,7 +148,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 > algo que el auditor re-corre sobre ese mismo commit. Estado de hoy en
 > [`ESTADO.md`](ESTADO.md); reglas permanentes en [`CLAUDE.md`](CLAUDE.md).
 
-### 📦 El banco son 81 packs — y eso NO es una medalla
+### 📦 El banco son 82 packs — y eso NO es una medalla
 
 ```
 python 01_Firmware/Simulaciones/banco/correr.py --listar

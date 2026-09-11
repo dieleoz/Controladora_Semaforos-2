@@ -2777,9 +2777,11 @@ def escenario_d20(t, c, maestro, esclavo, app, util_max):
 
     # (d) 🔴 LA COSTURA: EL STM32 REAL RECIBE LA SIEMBRA. Sin rechazo rojo en ninguna
     # punta -un $ERR aqui sube a la app cada hora y en cada arranque- y, en el Maestro,
-    # con la hora sembrada en su $STATUS. EN EL WORKTREE DEL ESP32 (11/09) ESTO FALLA: el
-    # receptor de CMD:HORA_ESP32 lo escribe otro agente en el lado STM32. Es la medida
-    # que tiene que ponerse verde al integrar, no una que haya que relajar.
+    # con la hora sembrada en su $STATUS. ~~EN EL WORKTREE DEL ESP32 (11/09) ESTO FALLA: el
+    # receptor de CMD:HORA_ESP32 lo escribe otro agente en el lado STM32~~ -> CADUCADO: el
+    # receptor existe en las dos puntas desde la fusion de D-26 (68dd2c5, rama CMD:HORA_ESP32
+    # de {Maestro,Esclavo}/src/bluetooth.cpp) y esta medida ya corre contra el. Se deja porque
+    # es la costura: si vuelve a fallar, falta el receptor y no hay que relajarla.
     for nombre, punta in (("MAESTRO", maestro), ("ESCLAVO", esclavo)):
         salidas = punta.rx(esperada + "\r\n")
         rojos = [s.strip() for s in salidas if s.startswith("$ERR")]

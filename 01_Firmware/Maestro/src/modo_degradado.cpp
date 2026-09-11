@@ -234,7 +234,12 @@ static unsigned long msDesdeSyncEfectivo();
 MotivoDegradado modo_degradado_evaluarEntrada() {
   // 1. Reloj propio en hora (SFTY-18). Sin esto no hay nada que calcular: la fase
   //    sale de la hora de pared, y una hora inventada daria una fase inventada.
-  if (!reloj_enHora()) return MDG_FALTA_HORA;
+  //
+  //    D-21 (1): Y FIABLE, no solo puesta: la MISMA pregunta que el bucle de abajo. Con la
+  //    puerta mirando reloj_enHora() a secas, un equipo con la siembra caducada entraba, el
+  //    telefono recibia su $ACK y la primera vuelta del bucle lo mandaba a ambar: un "si" a
+  //    una orden que no se iba a cumplir (CLAUDE.md 2). Rechazado aqui, dice por que.
+  if (!reloj_horaFiable()) return MDG_FALTA_HORA;
 
   // 2. Sincronizacion CONFIRMADA por el Esclavo y reciente. Es la condicion que de
   //    verdad sostiene el modo. Ojo con el valor centinela: nunca sincronizado
@@ -596,7 +601,28 @@ void modo_degradado_loop() {
   // D-21: El reloj puede dejar de ser fiable en marcha (pila agotada). Sin hora no hay fase
   // que calcular, y seguir dando verdes con la ultima que se recuerde seria inventar.
   // Pasa a ambar intermitente en la punta que pierde la fiabilidad.
-  if (!reloj_enHora()) {
+  //
+  // D-21 (1), 11/09: HASTA HOY ESTA GUARDA SOLO VEIA UNA HORA BORRADA. Preguntaba
+  // reloj_enHora(), y horaValida solo baja en reloj_setup() y en
+  // reloj_reiniciarDominioRespaldo() -esta si puede correr en este modo: la pide
+  // REINICIAR_RELOJ por Bluetooth-. Con el J17 mudo la hora seguia "valida" corriendo sobre
+  // el HSI a 36-90 s por hora, y la otra punta, sembrada de su DS3231, se separaba de ella en
+  // minutos: verde-verde en cada ciclo (H1). Ahora pregunta si la hora PUEDE DECIDIR UNA LUZ
+  // -sembrada hace menos de HORA_CADUCA_MS, reloj.h-.
+  //
+  // LA ALARMA SOLO PARA LA CADUCIDAD, y por eso va detras de reloj_enHora(): con la hora
+  // borrada por REINICIAR_RELOJ el que la borro ya tiene su $ACK, y decirle CADUCADA seria
+  // mandarle a mirar el J17 por algo que hizo el. Se publica con el molde de las alarmas de
+  // HORA_ESP32 porque es su consecuencia: la hora del ESP32 dejo de llegar y esta punta se
+  // rinde.
+  //
+  // EL CAMINO ES EL QUE YA HABIA: irAAmbar(), rojo y luego el ambar de semaforo.cpp. NO SE
+  // REANUDA SOLO al volver una siembra: DEG_AMBAR solo se abandona por la salida del
+  // operario (D-21: el equipo no decide solo si sale del modo, ni si vuelve a el).
+  if (!reloj_horaFiable()) {
+    if (reloj_enHora()) {
+      bluetooth_reportarAlarma("HORA_ESP32", "CADUCADA", "CAMBIO_A_AMBAR");
+    }
     irAAmbar("Reloj no fiable", "Degradado detenido");
     return;
   }

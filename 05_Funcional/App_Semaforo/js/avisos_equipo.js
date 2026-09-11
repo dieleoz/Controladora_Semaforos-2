@@ -103,6 +103,22 @@ const AvisosEquipo = {
              'el ESP32 de este poste no esta mandando la hora: revise que firmware lleva.',
       toast: 'Este poste no recibe hora de su ESP32 - pongasela desde el telefono (Tecnico > Sincronizar)'
     }),
+    // D-21 (1): en Degradado la hora de esta punta llevo demasiado sin sembrarse y dejo de
+    // poder decidir una luz: la punta se rinde a ambar. NO vuelve sola (D-21: el equipo no
+    // decide solo si vuelve al modo), asi que el texto dice que hace falta alguien. Sin
+    // cifras del plazo: la app no puede recalcularlo (CLAUDE.md 14).
+    'HORA_ESP32|CADUCADA': (data) => ({
+      tono: 'red',
+      texto: 'ESTE POSTE' + _cual(data) + ' HA DEJADO EL MODO DEGRADADO Y ESTA EN AMBAR ' +
+             'INTERMITENTE: su hora llevaba demasiado tiempo sin llegarle de su modulo ESP32 ' +
+             'y ya no es fiable para decidir los verdes. Casi siempre es el circuito ' +
+             'ESP32-STM32 de este poste (la misma placa, cable interno J17): reviselo, y ' +
+             'ponga la hora desde el telefono en este gabinete (pestana Tecnico, boton ' +
+             'Sincronizar). NO vuelve a dar paso solo: cuando la hora vuelva a llegar, hay ' +
+             'que sacarlo del Modo Degradado y volver a entrar. Ojo: el otro poste puede ' +
+             'seguir en Degradado dando verdes por su reloj.',
+      toast: 'Degradado detenido: la hora de este poste caduco - en AMBAR hasta que alguien lo atienda'
+    }),
     // D-26 (5): la otra averia. No es nueva -la emiten las dos puntas desde antes-, pero
     // D-26 le puso lo que hay que hacer, y hasta hoy salia en crudo. La causa NO se
     // traduce: lleva el silencio medido con su cifra, y esa cifra la da el equipo.
@@ -134,6 +150,16 @@ const AvisosEquipo = {
              (data && data.NODE === 'ESCLAVO'
                ? ' En el Esclavo esto solo pasa sin radio: con radio, la hora la manda el Maestro.'
                : '')
+    }),
+    // Solo el Maestro (H6-i del 11/09): tomo la hora de su ESP32 pero no pudo encolar el
+    // envio por radio al Esclavo. Hoy no deberia poder salir; si sale, el Esclavo se quedo
+    // con la hora que tenia.
+    'ESP32|HORA_ESP32_SEMBRADA_SIN_PROPAGAR': (data) => ({
+      tono: 'red',
+      texto: 'La controladora del Maestro' + _cual(data) + ' ha tomado la hora de su modulo ' +
+             'ESP32, pero NO ha podido mandarsela por radio al Esclavo: el Esclavo sigue con ' +
+             'la hora que tuviera. Compruebe la hora de los dos postes con Consultar reloj y, ' +
+             'si no cuadran, reporte esta linea: es un defecto del firmware, no del cableado.'
     }),
     // Solo el Esclavo, y es lo normal con radio (D-26 (3)).
     'ESP32|HORA_ESP32_IGNORADA_MANDA_RADIO': () => ({

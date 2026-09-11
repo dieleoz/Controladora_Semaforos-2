@@ -1856,9 +1856,10 @@ el camino de datos y `esp32_07` les prohíbe tener reloj (P-1/P-4), y esto neces
 > - **`H1` — ninguna punta declara vieja su hora.** Con el `J17` mudo la controladora sigue con
 >   `reloj_enHora()` en `true` corriendo sobre el HSI; la alarma sale y **no cambia nada del ciclo**.
 >   Con el `J17` del Maestro mudo y la radio caída, el Esclavo adopta su `DS3231` y el Maestro sigue con
->   la derivada: **verde contra verde persistente en Degradado**. Lo cura `D-21` (1), **en construcción
->   fuera de `main`**. Lo confiesa la cabecera de `ESP32_Expansion/src/main.cpp`. **Bloquea campo.**
-> - **Ningún arnés compila `Esclavo/src/reloj.cpp`**: `fuenteHora`, `reloj_radioManda()` y la frontera
+>   la derivada: **verde contra verde persistente en Degradado**. Lo cura `D-21` (1), ~~**en construcción
+>   fuera de `main`**~~ **construida el 11/09 por la noche** (`reloj_horaFiable()`, `CAUSA:CADUCADA`). Lo confiesa la cabecera de `ESP32_Expansion/src/main.cpp`. **Bloquea campo.**
+> - ~~**Ningún arnés compila `Esclavo/src/reloj.cpp`**:~~ *(11/09 por la noche: el Degradado a dos puntas
+>   compila ya el `reloj.cpp` REAL de las dos, lo que sigue es la foto de antes)* `fuenteHora`, `reloj_radioManda()` y la frontera
 >   de 25 s los mira sólo `reloj_03_manda_la_radio`, **por texto**. El Degradado a dos puntas sustituye
 >   `reloj_notarRadio()` por un contador.
 > - **`H3`**: el presupuesto que el cruce aguanta de desfase entre los dos `DS3231` es de **11 s**

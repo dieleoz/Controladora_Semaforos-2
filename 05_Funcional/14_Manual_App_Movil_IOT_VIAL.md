@@ -1446,6 +1446,7 @@ que tenía**, corriendo con su oscilador interno, que se desvía **hasta 90 s po
 | `J17_MUDO` | por el cable interno entre el ESP32 y la controladora **no llega NADA**, ni el latido | 🔧 **revisar el circuito ESP32–STM32 de ESE gabinete** (misma placa): el cable `J17` y que el ESP32 esté vivo. **No es la radio ni el otro poste** |
 | `SIN_HORA_DEL_ESP32` | el latido **sí** llega y la hora **no**: el `DS3231` de ese ESP32 **no tiene hora fiable** (y entonces no la manda), o el ESP32 lleva un firmware anterior a `D-26` | 🔎 **«Consultar reloj» en ese poste** (`§5.7`): si contesta `NUNCA_SE_PUSO_PONGA_LA_HORA`, póngala; si `OSCILADOR_PARADO_CAMBIE_PILA`, cambie **la pila del módulo `DS3231`** y póngala. Si la consulta contesta bien, apunta a que **el ESP32 no lleva el firmware de `main`** (el mismo commit en las tres tarjetas) |
 | `RECHAZADA_FORMATO` | llegó una hora del ESP32 que la controladora **tiró** —forma o rango— | 🔧 **revisar el circuito ESP32–STM32** (una línea que llega mal por `J17`) y que los dos firmwares sean del mismo commit |
+| 🆕 `CADUCADA` *(11/09 noche, `D-21` (1))* | **sólo en Modo Degradado**: la hora de ese poste lleva demasiado sin sembrarse y **ya no puede decidir un verde**. El poste **deja el Degradado y pasa a ámbar intermitente** (`ACCION:CAMBIO_A_AMBAR`), y **no vuelve solo** | 🔧 **revisar el circuito ESP32–STM32 de ese gabinete** (casi siempre es el `J17`) y **ponerle la hora desde el teléfono**; después **sacar el poste del Modo Degradado y volver a entrar**. ⚠️ **El otro poste puede seguir en Degradado dando verdes por su reloj**: es la avería que más urge |
 
 **Se apaga arreglando la causa**, no con un botón: la siguiente hora buena deja `HORA_ESP32_SEMBRADA`
 (o `…_IGNORADA_MANDA_RADIO` en el poste 2 con radio) en el diario. En el poste 2 con radio, una hora
@@ -1457,8 +1458,11 @@ que tenía**, corriendo con su oscilador interno, que se desvía **hasta 90 s po
 > al poste 2 por radio**. Si además **se cae la radio**, el poste 2 toma la de su `DS3231` —la buena— y
 > el poste 1 se queda con la derivada: **en unas horas pueden separarse minutos**, y en Modo Degradado
 > eso es **verde contra verde en cada ciclo**. El equipo **lo detecta** (esta alarma) **y no hace nada
-> con ello**: la protección —`D-21` (1), ámbar intermitente en la punta cuya hora ya no es fiable— está
-> **en construcción y no está en este firmware**. **Una alarma `HORA_ESP32` en el poste 1 es la avería
+> con ello**: la protección —`D-21` (1), ámbar intermitente en la punta cuya hora ya no es fiable— ~~está
+> **en construcción y no está en este firmware**~~ **está construida desde el 11/09 por la noche, sin
+> banco**: esa punta deja el Degradado, se pone en ámbar y avisa con `HORA_ESP32,CAUSA:CADUCADA`; **no
+> vuelve sola** —hay que sacarla del modo cuando la hora vuelva a llegar— y **el otro poste puede seguir
+> dando verdes por su reloj**. **Una alarma `HORA_ESP32` en el poste 1 es la avería
 > de hora que más urge reparar.** Lo mismo, al revés, con la del poste 2 y la radio caída.
 
 > ⚠️ **Y por qué hay que poner en hora los DOS postes en la puesta en marcha**, aunque con radio la

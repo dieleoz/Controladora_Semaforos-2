@@ -30,6 +30,17 @@
 // reloj.cpp incluye <STM32RTC.h> y no hay sustituto de esa libreria en el repositorio.
 // Lo que se modela es un PERIFERICO -un contador de segundos y cuatro getters-, no una
 // regla del firmware; el Modo Degradado, que es quien lo consume, se compila entero.
+//
+// 11/09 (D-21 (1)) - DOS VARIANTES DE ESTE MISMO FICHERO, Y NINGUNA COPIA. Con
+// -DARNES_RELOJ_REAL -lo pone SOLO compilar_degradado.ps1- el modelo de abajo NO se compila
+// y entra el reloj.cpp REAL del Esclavo, con el silicio sustituido en reloj_real/ (hay
+// STM32RTC.h ahi desde hoy). Asi la caducidad de la siembra y la frontera de 25 s de
+// reloj_radioManda() las ejecuta el bloque F del orquestador del Degradado, en vez de leerse
+// por regex. SIN el define -compilar_dos_puntas.ps1- todo sigue como estaba: aquel arnes
+// ejerce la reanudacion tras un corte con este modelo, que guarda la hora en el RTC al
+// ponerla, y el reloj.cpp real ya no lo hace (N-162). PUNTO CIEGO DECLARADO, NO ARREGLADO
+// AQUI: el bloque D de orquestador.cpp mide la reanudacion sobre un RTC que el firmware de
+// hoy ya no escribe.
 
 #include "punta_api.h"
 
@@ -53,6 +64,9 @@
 #include "bluetooth.h"
 #include "demanda.h"
 #include "stm32f1xx_hal.h"   // para volcar el dominio de respaldo real
+#ifdef ARNES_RELOJ_REAL
+#include "rtc_periferico.h"  // D-21 (1): el HSI, la linea del ESP32 y la siembra en frontera
+#endif
 
 // setup() y loop() son de main.cpp, que se compila en esta misma DLL.
 void setup();
@@ -120,6 +134,10 @@ static bool g_ambarEmergencia = false;
 static char g_ultimaAlarmaEvento[48] = "";
 static char g_ultimaAlarmaCausa[48] = "";
 static int  g_alarmasEmitidas = 0;
+// D-21 (1): la alarma de la hora caducada, por su causa; y el $EVENT del salto que pasa por
+// rojo (D-26 (4)), por su detalle. Ver el mismo par en adaptador_maestro_deg.cpp.
+static int  g_alarmasCaducada = 0;
+static int  g_eventosSaltoRojo = 0;
 
 void bluetooth_setup() {}
 void bluetooth_loop() {}
@@ -130,9 +148,29 @@ void bluetooth_reportarAlarma(const char* evento, const char* causa, const char*
   snprintf(g_ultimaAlarmaEvento, sizeof(g_ultimaAlarmaEvento), "%s", evento);
   snprintf(g_ultimaAlarmaCausa, sizeof(g_ultimaAlarmaCausa), "%s", causa);
   g_alarmasEmitidas++;
+  if (!strcmp(evento, "HORA_ESP32") && !strcmp(causa, "CADUCADA")) g_alarmasCaducada++;
 }
-void bluetooth_reportarEvento(const char*, const char*) {}
+void bluetooth_reportarEvento(const char* origen, const char* detalle) {
+  if (!strcmp(origen, "DEGRADADO") && !strcmp(detalle, "SALTO_DE_HORA_POR_ROJO")) {
+    g_eventosSaltoRojo++;
+  }
+}
 
+#ifdef ARNES_RELOJ_REAL
+// ---------------------------------------------------------------------------
+// EL RELOJ ES EL REAL (compilar_degradado.ps1). La rama CMD:HORA_ESP32 de bluetooth.cpp,
+// TRANSCRITA en lo que decide -bluetooth.cpp no se compila aqui-: si la radio manda, se
+// ignora; si no, se siembra. La pregunta a la radio se hace en el instante del banco, y la
+// siembra, si hay que conservar la fase, en la frontera de segundo: por eso van separadas.
+// Si la rama cambia, esto se queda viejo: lo compara reloj_04.
+// ---------------------------------------------------------------------------
+static int sembrarDirecto(const char* iso) { return reloj_sembrarDesdeIso(iso) ? 1 : 0; }
+
+static int ramaHoraEsp32(const char* iso) {
+  if (reloj_radioManda()) return 2;          // HE_IGNORADA: manda la radio
+  return sembrarDirecto(iso);                // 1 sembrada, 0 rechazada
+}
+#else
 // ---------------------------------------------------------------------------
 // EL RTC SIMULADO. Ver la cabecera: es un modelo de PERIFERICO, no de firmware.
 //
@@ -153,6 +191,10 @@ static uint32_t rtcTranscurrido() {
 void reloj_setup() {}
 void reloj_actualizar() {}
 bool reloj_enHora() { return g_rtcEnHora; }
+// D-21 (1): modo_degradado.cpp REAL pregunta si la hora puede decidir una luz. En ESTA
+// variante no hay base de tiempo que caduque y se contesta lo mismo que reloj_enHora(): la
+// caducidad la ejerce la variante con el reloj.cpp real (bloque F del arnes del Degradado).
+bool reloj_horaFiable() { return g_rtcEnHora; }
 // D-26 (3): main.cpp REAL la llama con cada trama de radio para que reloj.cpp sepa si la
 // radio del Maestro llega. Aqui reloj.cpp no se compila y nadie pregunta por la fuente de
 // la hora -eso lo decide la rama CMD:HORA_ESP32 de bluetooth.cpp, que tampoco se compila
@@ -185,6 +227,7 @@ void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo, uint8_t dia) {
   if (dia >= 1) g_rtcDia = dia;
   g_rtcEnHora = true;
 }
+#endif  // ARNES_RELOJ_REAL
 
 // ---------------------------------------------------------------------------
 // LA RADIO: DOS COLAS. Identica a la del Maestro; el canal lo lleva el orquestador.
@@ -242,7 +285,11 @@ PUNTA_API void punta_arrancar(void) {
 }
 
 PUNTA_API void punta_tick(unsigned long ms) {
+#ifdef ARNES_RELOJ_REAL
+  arnes_millis_valor = arnes_reloj_local(ms);   // el HSI de esta punta: rtc_periferico.h
+#else
   arnes_millis_valor = ms;
+#endif
   loop();
 }
 
@@ -280,6 +327,33 @@ PUNTA_API void punta_pulsar(int boton) {
 }
 
 PUNTA_API long punta_mando(const char* que, long arg) {
+#ifdef ARNES_RELOJ_REAL
+  // Con el reloj.cpp real no hay doble que cuente las llamadas a reloj_notarRadio(): se le
+  // pregunta a reloj_radioManda() REAL, que es lo que esas llamadas alimentan (bloque E0).
+  if (!strcmp(que, "radio_manda"))         return reloj_radioManda() ? 1 : 0;
+  // D-26 (4): el salto de hora de ESTA punta. Una siembra ACEPTADA entregada en la frontera
+  // de segundo, con la MISMA funcion que el Maestro (rtc_periferico.h): las dos puntas saltan
+  // con la misma aritmetica.
+  if (!strcmp(que, "desviar_rtc"))         return (long)arnes_sembrar_en_frontera(arg, sembrarDirecto);
+  if (!strcmp(que, "hora_caduca_ms"))      return (long)HORA_CADUCA_MS;
+  if (!strcmp(que, "hora_fiable"))         return reloj_horaFiable() ? 1 : 0;
+  if (!strcmp(que, "reloj_en_hora"))       return reloj_enHora() ? 1 : 0;
+  if (!strcmp(que, "segundos_del_dia"))    return (long)reloj_segundosDelDia();
+  if (!strcmp(que, "hsi_ppm"))             { arnes_hsi_ppm(arg); return 1; }
+  if (!strcmp(que, "fase_subsegundo"))     return arnes_fase_subsegundo();
+  if (!strcmp(que, "siembra_esp32")) {
+    char iso[24];
+    arnes_iso(iso, sizeof(iso), (uint8_t)(arg / 86400L), arg % 86400L);
+    return (long)ramaHoraEsp32(iso);
+  }
+  // El eco: la guarda de la radio se pregunta AHORA, la siembra se entrega en la frontera.
+  if (!strcmp(que, "siembra_esp32_eco")) {
+    if (reloj_radioManda()) return 2;
+    return (long)arnes_sembrar_en_frontera(0, sembrarDirecto);
+  }
+  if (!strcmp(que, "alarmas_caducada"))    return (long)g_alarmasCaducada;
+  if (!strcmp(que, "eventos_salto_rojo"))  return (long)g_eventosSaltoRojo;
+#else
   if (!strcmp(que, "radio_notada"))        return (long)g_radioNotada;
   // D-26 (4): el salto de hora de ESTA punta, para el bloque E del orquestador del
   // Degradado. BLOQUE LITERAL de la orden "desviar_rtc" de adaptador_maestro_deg.cpp -mueve
@@ -292,6 +366,7 @@ PUNTA_API long punta_mando(const char* que, long arg) {
     g_rtcBaseSegundos = (uint32_t)((long)g_rtcBaseSegundos + arg);
     return 1;
   }
+#endif
   if (!strcmp(que, "degradado_gobierna"))  return degradado_gobiernaLuz() ? 1 : 0;
   if (!strcmp(que, "degradado_estado"))    return (long)degradado_estado();
   if (!strcmp(que, "degradado_fase"))      return (long)degradado_fase();
@@ -333,6 +408,9 @@ PUNTA_API long punta_mando(const char* que, long arg) {
 PUNTA_API long punta_dominio_leer(int indice) {
   volatile uint32_t* dr = &arnes_bkp.DR1;
   if (indice >= 0 && indice < 10) return (long)dr[indice];
+#ifdef ARNES_RELOJ_REAL
+  return arnes_dominio_leer_rtc(indice);   // el silicio del RTC: rtc_periferico.cpp
+#else
   switch (indice) {
     case 10: return (long)reloj_contadorSegundos();
     case 11: return g_rtcEnHora ? 1 : 0;
@@ -340,11 +418,15 @@ PUNTA_API long punta_dominio_leer(int indice) {
     case 13: return (long)g_rtcDia;
     default: return 0;
   }
+#endif
 }
 
 PUNTA_API void punta_dominio_escribir(int indice, long valor) {
   volatile uint32_t* dr = &arnes_bkp.DR1;
   if (indice >= 0 && indice < 10) { dr[indice] = (uint32_t)valor; return; }
+#ifdef ARNES_RELOJ_REAL
+  arnes_dominio_escribir_rtc(indice, valor);
+#else
   switch (indice) {
     case 10: g_rtcBaseSegundos = (uint32_t)valor; g_rtcAncla = arnes_millis_valor; break;
     case 11: g_rtcEnHora = (valor != 0); break;
@@ -352,6 +434,7 @@ PUNTA_API void punta_dominio_escribir(int indice, long valor) {
     case 13: g_rtcDia = (uint8_t)valor; break;
     default: break;
   }
+#endif
 }
 
 }  // extern "C"

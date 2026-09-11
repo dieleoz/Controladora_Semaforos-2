@@ -141,6 +141,15 @@ bool     bluetooth_ambarEmergencia()                    { return false; }
 static unsigned long m_eventosBt = 0;
 void     bluetooth_reportarEvento(const char*, const char*) { m_eventosBt++; }
 
+// D-21 (1) (11/09) metio dos llamadas mas en modo_degradado.cpp: la guarda pregunta
+// reloj_horaFiable() -la siembra de menos de HORA_CADUCA_MS- y, si caduco, publica un
+// $ALARM. Sin estos dos el arnes vuelve a morir en el enlazador. La hora de este arnes no
+// caduca -contesta lo mismo que reloj_enHora()-, y la alarma solo se cuenta: la caducidad
+// la EJERCE el bloque F del arnes del Degradado a dos puntas, sobre el reloj.cpp real.
+bool     reloj_horaFiable()                             { return m_enHora; }
+static unsigned long m_alarmasBt = 0;
+void     bluetooth_reportarAlarma(const char*, const char*, const char*) { m_alarmasBt++; }
+
 // El respaldo real habla con los registros BKP del STM32; aqui basta con que
 // diga que no hay nada guardado, que es el caso en el que manda la radio.
 void     respaldo_guardarDegradado(bool)                { }

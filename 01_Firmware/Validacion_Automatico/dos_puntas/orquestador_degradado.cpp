@@ -81,8 +81,17 @@
 //     lado (costura_01 y el arnes del puente).
 //   - la LCD no se dibuja: solo se cuentan las llamadas. La geometria la mide
 //     Validacion_LCD sobre el lcd.cpp real.
-//   - el RTC es un modelo de PERIFERICO en las dos puntas, con la MISMA aritmetica
-//     literal, para que una diferencia entre ellas sea del firmware y no del arnes.
+//   - ~~el RTC es un modelo de PERIFERICO en las dos puntas~~ -> DESDE EL 11/09 (D-21 (1))
+//     reloj.cpp ENTRA REAL en las dos puntas: lo que se sustituye es el silicio (STM32RTC.h
+//     y el HAL del LSE y del contador, en reloj_real/, con el mismo fichero para las dos).
+//     Con eso la hora caduca de verdad, y por eso cada punta tiene ahora SU ESP32: la orden
+//     "siembra_esp32" transcribe la rama CMD:HORA_ESP32 de bluetooth.cpp, que no se compila.
+//     EN LOS BLOQUES B..E EL ESP32 ES UN ECO: siembra cada SIEMBRA_INTERVALO_MS la MISMA hora
+//     que la punta ya tiene, en su frontera de segundo. Esos bloques miden la GEOMETRIA del
+//     ciclo -el barrido, el salto de D-26 (4)- y no la deriva; sin siembras, la caducidad de
+//     D-21 (1) los mandaria a ambar a los cinco minutos, y con un DS3231 "de verdad" el
+//     residuo sub-segundo que miden C2..C4 dejaria de ser el de la radio. El DS3231 con su
+//     propia hora y el HSI derivando son del BLOQUE F, que es el que los mide.
 //   - EL MICROCORTE NO SE EJERCE AQUI. La reanudacion tras corte (N-20) la mide el
 //     bloque D del orquestador.cpp hermano. Repetirla aqui exigiria reanclar el RTC
 //     de la DLL recien cargada antes de su setup(), y un reanclado mal hecho falsea
@@ -171,6 +180,31 @@ static unsigned long leerNumero(const std::string& ruta, const std::string& patr
             " (patron no encontrado en " + ruta + ")");
   }
   return std::strtoul(m[1].str().c_str(), nullptr, 10);
+}
+
+// La POSICION de un nombre dentro de un enum del C++ real, contando identificadores sin
+// comentarios -el mismo metodo con que main() lee MODO_DEGRADADO-. Escribir el numero aqui
+// seria un modelo a mano de la superficie del firmware. Solo sabe enums sin '=': si alguno
+// lleva valor explicito, ABORTA en vez de contar mal.
+static long posicionEnEnum(const std::string& ruta, const std::string& nombreEnum,
+                           const std::string& ident) {
+  std::string txt = leerFuente(ruta);
+  std::smatch m;
+  if (!std::regex_search(txt, m, std::regex("enum\\s+" + nombreEnum + "\\s*(?::\\s*\\w+\\s*)?\\{([^}]*)\\}"))) {
+    abortar("no se pudo leer el enum " + nombreEnum + " de " + ruta);
+  }
+  std::string cuerpo = std::regex_replace(m[1].str(), std::regex(R"(//[^\n]*)"), "");
+  if (cuerpo.find('=') != std::string::npos) {
+    abortar("el enum " + nombreEnum + " de " + ruta + " lleva valores explicitos: contar su "
+            "posicion daria otro numero");
+  }
+  long idx = 0;
+  std::regex id(R"([A-Za-z_][A-Za-z0-9_]*)");
+  for (std::sregex_iterator it(cuerpo.begin(), cuerpo.end(), id), fin; it != fin; ++it, ++idx) {
+    if (it->str() == ident) return idx;
+  }
+  abortar(ident + " no aparece en el enum " + nombreEnum + " de " + ruta);
+  return -1;
 }
 
 // ---------------------------------------------------------------------------
@@ -278,6 +312,32 @@ static std::vector<EnVuelo> g_aire;
 static bool g_enlace = true;
 static unsigned long g_latenciaMs = 50;
 static unsigned long g_tramasEntregadas = 0;
+// El instante del banco en que el Esclavo recibio su ultima trama: su main.cpp REAL llama a
+// reloj_notarRadio() en ESE tick, y de ahi cuenta reloj_radioManda() los 25 s (bloque F5).
+static unsigned long g_tUltimaEntregaEsclavo = 0;
+
+// ---------------------------------------------------------------------------
+// EL ESP32 DE CADA POSTE (11/09, D-21 (1)). Cada SIEMBRA_INTERVALO_MS -leido del contrato.h
+// del ESP32, el otro binario- le manda a SU punta la linea CMD:HORA_ESP32. Dos modos:
+//
+//   ECO      el DS3231 dice la hora que la punta ya tiene: la mantiene fresca sin moverla.
+//            Bloques B..E. Ver la cabecera.
+//   DS3231   la hora del reloj con pila del poste: la del banco desde un origen comun, mas
+//            lo que ese DS3231 difiera del otro. Bloque F.
+//
+// Con g_esp32Vivo[p] a false el cable J17 de ese poste esta mudo: no llega nada.
+// ---------------------------------------------------------------------------
+static bool g_esp32Vivo[2] = {false, false};
+static bool g_esp32Ds3231 = false;
+static unsigned long g_proxSiembra[2] = {0, 0};
+static unsigned long g_cadenciaSiembraMs = 0;   // se lee del contrato.h del ESP32
+static long g_ds3231OffsetS[2] = {0, 0};
+static unsigned long g_tRefDs = 0;              // el origen comun de los dos DS3231
+static long g_segRefDs = 0;
+static long g_diaRefDs = 15;
+static long g_siembrasSembradas[2] = {0, 0};
+static long g_siembrasIgnoradas[2] = {0, 0};
+static unsigned long g_tUltimaSiembraBuena[2] = {0, 0};
 
 // ---------------------------------------------------------------------------
 // LOS DOS RELOJES. g_t es el tiempo del BANCO; cada punta recibe el suyo.
@@ -372,12 +432,34 @@ static void vigilar() {
 // ---------------------------------------------------------------------------
 // EL BUCLE. Un tick = un instante del banco, CON EL RELOJ DE CADA PUNTA.
 // ---------------------------------------------------------------------------
+// La hora del DS3231 de un poste en el instante del banco, empaquetada como la pide la orden
+// "siembra_esp32": dia * 86400 + segundos del dia. Segundos ENTEROS, truncados: es lo que el
+// ESP32 compone -el segundo en curso se pierde, el RESIDUO_SIEMBRA_S de esp32_13-.
+static long horaDs3231(int poste) {
+  long s = g_segRefDs + (long)((g_t - g_tRefDs) / 1000UL) + g_ds3231OffsetS[poste];
+  long dia = g_diaRefDs;
+  while (s < 0) { s += 86400L; dia -= 1; }
+  while (s >= 86400L) { s -= 86400L; dia += 1; }
+  while (dia < 1) dia += 31;
+  while (dia > 31) dia -= 31;
+  return dia * 86400L + s;
+}
+
+static void siembraDelEsp32(int poste) {
+  Punta& p = (poste == 0) ? MAESTRO : ESCLAVO;
+  const long r = g_esp32Ds3231 ? p.orden("siembra_esp32", horaDs3231(poste))
+                               : p.orden("siembra_esp32_eco");
+  if (r == 1) { g_siembrasSembradas[poste]++; g_tUltimaSiembraBuena[poste] = g_t; }
+  if (r == 2) g_siembrasIgnoradas[poste]++;
+}
+
 static void unTick() {
   for (size_t i = 0; i < g_aire.size();) {
     if (g_aire[i].tEntrega <= g_t) {
       Punta& d = (g_aire[i].destino == 0) ? MAESTRO : ESCLAVO;
       d.rx(g_aire[i].trama);
       g_tramasEntregadas++;
+      if (g_aire[i].destino == 1) g_tUltimaEntregaEsclavo = g_t;
       g_aire.erase(g_aire.begin() + i);
     } else {
       i++;
@@ -389,6 +471,15 @@ static void unTick() {
   // la deriva entre cristales.
   MAESTRO.tick(g_t);
   ESCLAVO.tick(g_t);
+
+  // El ESP32 de cada poste, DESPUES de la vuelta: la linea queda atendida con el millis() de
+  // este instante y la luz la decide la vuelta siguiente, como en la tarjeta.
+  for (int poste = 0; poste < 2; poste++) {
+    if (g_esp32Vivo[poste] && g_cadenciaSiembraMs > 0 && g_t >= g_proxSiembra[poste]) {
+      siembraDelEsp32(poste);
+      g_proxSiembra[poste] += g_cadenciaSiembraMs;
+    }
+  }
 
   unsigned char b[4];
   while (MAESTRO.tx(b)) {
@@ -411,6 +502,14 @@ static void unTick() {
 static void avanzar(unsigned long ms) {
   unsigned long hecho = 0;
   while (hecho < ms) { unTick(); hecho += PASO_MS; }
+}
+
+// Avanza hasta que se cumpla una condicion SOBRE LOS PINES o lo que la punta contesta, o se
+// rinde. Devuelve si llego: un escenario que no llega no mide nada, y se dice.
+static bool esperarCond(bool (*cond)(), unsigned long maxMs) {
+  unsigned long hecho = 0;
+  while (!cond() && hecho < maxMs) { unTick(); hecho += PASO_MS; }
+  return cond();
 }
 
 // ---------------------------------------------------------------------------
@@ -451,11 +550,28 @@ static const unsigned long DELAY_ARRANQUE_MS = 2000;
 static void arrancarLasDos() {
   g_aire.clear();
   g_enlace = true;
+  // Los ESP32 arrancan callados: cada escenario los enciende cuando le toca (D-21 (1)).
+  g_esp32Vivo[0] = g_esp32Vivo[1] = false;
+  g_esp32Ds3231 = false;
+  g_ds3231OffsetS[0] = g_ds3231OffsetS[1] = 0;
+  g_siembrasSembradas[0] = g_siembrasSembradas[1] = 0;
+  g_siembrasIgnoradas[0] = g_siembrasIgnoradas[1] = 0;
   MAESTRO.descargar(); MAESTRO.cargar();
   ESCLAVO.descargar(); ESCLAVO.cargar();
   MAESTRO.arrancar();
   ESCLAVO.arrancar();
   g_t += DELAY_ARRANQUE_MS;
+
+  // UNA VUELTA ANTES DE LA PRIMERA ORDEN (11/09, D-21 (1)). Recien cargada, cada DLL tiene
+  // millis() = DELAY_ARRANQUE_MS, no el reloj del banco: el primer tick lo pone. Hasta hoy
+  // la hora se sembraba ANTES de ese tick, con millis() = 2000, y en el tick siguiente
+  // saltaba hacia delante todo lo que el banco llevara corrido; el modelo del RTC no lo
+  // notaba porque el salto ocurria antes de sincronizar y la radio lo copiaba al Esclavo.
+  // Con el reloj.cpp real esa base nace con la edad del banco entero y CADUCA al instante:
+  // la puerta del Maestro la rechazaba y el barrido del bloque C medio un cruce con UNA
+  // sola punta en Degradado. Medido, no supuesto: 0 de los puntos del barrido con verde en
+  // las dos. El arnes estaba sembrando con un reloj que la tarjeta no tiene.
+  unTick();
 }
 
 struct Escenario {
@@ -492,6 +608,17 @@ static Escenario prepararSincronizadas(uint8_t dia, uint8_t hh, uint8_t mm, uint
   e.desfaseMedido     = MAESTRO.orden("desfase");
   e.configConfirmada  = MAESTRO.orden("config_confirmada") != 0;
   e.desfaseValido     = MAESTRO.orden("desfase_valido") != 0;
+
+  // D-21 (1): los dos ESP32 empiezan a sembrar, en ECO (ver la cabecera). NO ANTES: una
+  // siembra del Maestro con la radio viva propaga la hora al Esclavo (D-26 (2)) y cambiaria
+  // el residuo sub-segundo que miden C2..C4. El del Esclavo, detras de los 25 s de silencio
+  // que siguen al corte de entrarEnDegradadoLasDos(): con la radio mandando la ignoraria.
+  // Las dos primeras caen muy por dentro de HORA_CADUCA_MS desde la ultima hora que cada
+  // punta recibio; despues, una cada SIEMBRA_INTERVALO_MS.
+  g_esp32Ds3231 = false;
+  g_esp32Vivo[0] = g_esp32Vivo[1] = true;
+  g_proxSiembra[0] = g_t + 5000UL;
+  g_proxSiembra[1] = g_t + 40000UL;
   return e;
 }
 
@@ -558,6 +685,98 @@ static Medida correrConDesfase(long desfaseSegEsclavo, unsigned long msObservaci
 }
 
 // ---------------------------------------------------------------------------
+// BLOQUE F - LOS DOS DS3231 CON SU PROPIA HORA (D-21 (1)).
+//
+// El origen comun es la hora que el Maestro tiene AHORA, en su ultima frontera de segundo, en
+// tiempo del banco: desde ahi, cada DS3231 cuenta el banco -mas su diferencia con el otro,
+// g_ds3231OffsetS-. Se llama con el HSI del Maestro todavia sin deriva (su millis() es el del
+// banco) y justo tras prepararSincronizadas(), con las dos puntas en la misma hora.
+//
+// Las ordenes se atienden con el millis() de la ULTIMA vuelta, que es g_t - PASO_MS: unTick()
+// avanza g_t al terminar. Por eso la frontera se situa desde ahi.
+static void activarDs3231(unsigned long primeraM, unsigned long primeraE) {
+  const long fase = MAESTRO.orden("fase_subsegundo");
+  if (fase < 0) abortar("activarDs3231: el Maestro no tiene hora de la que partir");
+  g_tRefDs = (g_t - PASO_MS) - (unsigned long)fase;
+  g_segRefDs = MAESTRO.orden("segundos_del_dia");
+  g_diaRefDs = 15;
+  g_esp32Ds3231 = true;
+  g_esp32Vivo[0] = g_esp32Vivo[1] = true;
+  g_proxSiembra[0] = g_t + primeraM;
+  g_proxSiembra[1] = g_t + primeraE;
+}
+
+// La diferencia, en segundos y por el camino corto del dia, entre la hora de una punta y la
+// del DS3231 de su poste. Positiva: la punta va adelantada.
+static long desvioContraDs3231(Punta& p, int poste) {
+  long d = p.orden("segundos_del_dia") - (horaDs3231(poste) % 86400L);
+  while (d > 43200L) d -= 86400L;
+  while (d < -43200L) d += 86400L;
+  return d;
+}
+
+// Un borde de D-26 (4) sobre UNA punta, posicionado POR LOS PINES -el orquestador no calcula
+// fases-. Hacia delante, en el despeje que PRECEDE a su verde (20 s dentro del despeje que
+// sigue al verde de la otra); hacia atras, en el despeje que SIGUE a su verde (5 s dentro).
+// Desde ahi un salto de J segundos cae DENTRO de su propio verde: si la regla lo deja pasar
+// directo, la punta enciende -verde, o el ambar con que el Esclavo abre el suyo- en los
+// 3 s siguientes; si lo manda a rojo, no, y el firmware lo dice con su $EVENT.
+//
+// LA FASE SUB-SEGUNDO SE CONTROLA, Y SE ESCRIBE POR QUE: saltoDeHora() mide el salto contra
+// lo que corrio millis() desde la vuelta anterior, en segundos enteros. Si la frontera de
+// segundo de la punta cae entre esa vuelta y la siguiente, el salto medido sale UNO MAS que
+// el aplicado. Con la fase a 900 ms o menos, la vuelta siguiente -50 ms despues- no cruza la
+// frontera y el salto medido es EXACTAMENTE J: el borde se mide donde esta, no un segundo al
+// lado. El error del truncado lo cubre el -1 de SALTO_SIN_ROJO_MAX_S, y ese es otro borde.
+struct Borde {
+  bool listo = false;
+  long eventos = 0;        // $EVENT SALTO_DE_HORA_POR_ROJO emitidos por el salto
+  bool enciende = false;   // la punta encendio (verde o ambar de transicion) tras el salto
+  unsigned long simultaneos = 0;
+};
+
+static Borde probarBorde(bool esMaestro, long J, unsigned long esperaMaxMs) {
+  prepararSincronizadas(15, 8, 0, 0);
+  entrarEnDegradadoLasDos(0);
+  Borde b;
+  bool ok;
+  if (esMaestro) {
+    if (J > 0) {
+      ok = esperarCond([]() { return ESCLAVO.verde(); }, esperaMaxMs) &&
+           esperarCond([]() { return !ESCLAVO.verde(); }, esperaMaxMs);
+      if (ok) avanzar(20000);
+    } else {
+      ok = esperarCond([]() { return MAESTRO.verde(); }, esperaMaxMs) &&
+           esperarCond([]() { return !MAESTRO.verde(); }, esperaMaxMs);
+      if (ok) avanzar(5000);
+    }
+  } else {
+    if (J > 0) {
+      ok = esperarCond([]() { return MAESTRO.verde(); }, esperaMaxMs) &&
+           esperarCond([]() { return !MAESTRO.verde(); }, esperaMaxMs);
+      if (ok) avanzar(20000);
+    } else {
+      ok = esperarCond([]() { return ESCLAVO.verde(); }, esperaMaxMs) &&
+           esperarCond([]() { return !ESCLAVO.verde(); }, esperaMaxMs);
+      if (ok) avanzar(5000);
+    }
+  }
+  Punta& p = esMaestro ? MAESTRO : ESCLAVO;
+  for (int i = 0; ok && i < 40 && p.orden("fase_subsegundo") > 900; i++) unTick();
+  if (!ok || p.orden("fase_subsegundo") > 900) return b;
+  b.listo = true;
+  const long ev0 = p.orden("eventos_salto_rojo");
+  if (p.orden("desviar_rtc", J) != 1) { b.listo = false; return b; }
+  for (unsigned long t = 0; t < 3000; t += PASO_MS) {
+    unTick();
+    if (p.verde() || (!esMaestro && p.ambar())) b.enciende = true;
+    if (MAESTRO.verde() && ESCLAVO.verde()) b.simultaneos++;
+  }
+  b.eventos = p.orden("eventos_salto_rojo") - ev0;
+  return b;
+}
+
+// ---------------------------------------------------------------------------
 int main() {
   std::printf("==============================================================\n");
   std::printf(" LAS DOS PUNTAS EN MODO DEGRADADO - el C++ REAL de las dos,\n");
@@ -620,6 +839,33 @@ int main() {
     }
     if (MODO_DEGRADADO_V < 0) abortar("MODO_DEGRADADO no aparece en el enum ModoSistema");
   }
+
+  // D-21 (1): la cadencia del ESP32 se lee de SU contrato -otro binario-, y el silencio que
+  // define "sin radio" del protocolo.h del Esclavo. Sin valor por defecto.
+  g_cadenciaSiembraMs = leerNumero(RAIZ + "/ESP32_Expansion/include/contrato.h",
+                                   R"(#define\s+SIEMBRA_INTERVALO_MS\s+(\d+)UL)",
+                                   "SIEMBRA_INTERVALO_MS del ESP32");
+  const unsigned long SFTY6_SILENCIO_MS_E =
+      leerNumero(RAIZ + "/Esclavo/include/protocolo.h",
+                 R"(#define\s+SFTY6_SILENCIO_MS\s+(\d+)UL)", "SFTY6_SILENCIO_MS del Esclavo");
+  const long MDG_FALTA_HORA_V =
+      posicionEnEnum(RAIZ + "/Maestro/include/modo_degradado.h", "MotivoDegradado", "MDG_FALTA_HORA");
+  const long MDG_OK_V =
+      posicionEnEnum(RAIZ + "/Maestro/include/modo_degradado.h", "MotivoDegradado", "MDG_OK");
+  const long DEG_ACEPTADO_V =
+      posicionEnEnum(RAIZ + "/Esclavo/include/modo_degradado.h", "RechazoDegradado", "DEG_ACEPTADO");
+  const long DEG_RECHAZO_SIN_HORA_V =
+      posicionEnEnum(RAIZ + "/Esclavo/include/modo_degradado.h", "RechazoDegradado",
+                     "DEG_RECHAZO_SIN_HORA");
+  const long DEG_RENDIDO_V =
+      posicionEnEnum(RAIZ + "/Esclavo/include/modo_degradado.h", "EstadoDegradado", "DEG_RENDIDO");
+  const long S_FALLO_V =
+      posicionEnEnum(RAIZ + "/Maestro/include/semaforo.h", "EstadoSemaforo", "S_FALLO");
+  const long S_FALLO_E =
+      posicionEnEnum(RAIZ + "/Esclavo/include/semaforo.h", "EstadoSemaforo", "S_FALLO");
+  const long S_AMARILLO_E =
+      posicionEnEnum(RAIZ + "/Esclavo/include/semaforo.h", "EstadoSemaforo", "S_AMARILLO");
+  (void)MDG_OK_V;
 
   const unsigned long CICLO_S = 2UL * (DEG_VERDE_SEG + DEG_DESPEJE_SEG);
 
@@ -981,13 +1227,21 @@ int main() {
     };
 
     // --- E0: main.cpp REAL le cuenta a reloj.cpp cada trama de radio (D-26 (3)) -------
+    //
+    // 11/09 - SE MUDA DE PREGUNTA, NO SE RELAJA (CLAUDE.md 9). Contaba las llamadas a
+    // reloj_notarRadio() en el doble del adaptador; con el reloj.cpp REAL no hay doble que
+    // cuente, y se pregunta a lo que esas llamadas ALIMENTAN: reloj_radioManda() real, que
+    // solo dice que si con la hora de radio puesta Y una trama oida en SFTY6_SILENCIO_MS. Es
+    // mas exigente que la cuenta: una llamada que existiera y no marcara el instante daria
+    // "N tramas" y aqui da 0.
     prepararSincronizadas(15, 8, 0, 0);
-    const long notadas = ESCLAVO.orden("radio_notada");
-    comprobar(notadas > 0,
-              "E0 (D-26 (3)): mientras la radio del arnes estaba viva, el main.cpp REAL del "
-              "Esclavo aviso a reloj de " + std::to_string(notadas) + " tramas del Maestro "
-              "-reloj_notarRadio()-. Sin esa llamada, 'sin radio' seria cierto siempre y la "
-              "hora del ESP32 pisaria la del Maestro con la radio sana");
+    const long radioManda = ESCLAVO.orden("radio_manda");
+    comprobar(radioManda == 1,
+              "E0 (D-26 (3)): mientras la radio del arnes estaba viva, el reloj.cpp REAL del "
+              "Esclavo dice que la hora la MANDA LA RADIO (reloj_radioManda() = " +
+              std::to_string(radioManda) + "): el main.cpp real le aviso de las tramas. Sin "
+              "eso, 'sin radio' seria cierto siempre y la hora del ESP32 pisaria la del "
+              "Maestro con la radio sana");
 
     // --- E1: el MAESTRO salta hacia su verde con el Esclavo en verde --------------------
     entrarEnDegradadoLasDos(0);
@@ -1082,6 +1336,358 @@ int main() {
               "E4 (control de E3): con el Esclavo en SU verde, un salto de 2 s lo deja en "
               "verde los 5 s siguientes (" + std::to_string(e4VerdeE) + " de " +
               std::to_string(e4Ticks) + " instantes)");
+  }
+
+  // =========================================================================
+  std::printf("\n--- BLOQUE F: D-21 (1), UNA HORA QUE CADUCA ES UNA HORA QUE MIENTE ---\n");
+  //
+  // H1 del veredicto del 11/09: con el J17 de una punta mudo, su hora corre sobre el HSI
+  // -hasta 90 s por hora- mientras la otra se siembra de su DS3231. En Degradado eso es
+  // verde-verde en cada ciclo. D-21 (1) lo contesta con ambar en la punta que la tiene, y la
+  // caducidad de reloj.cpp -HORA_CADUCA_MS- es lo que la hace medible. Aqui corre el
+  // reloj.cpp REAL de las dos puntas, con el HSI de la punta afectada en el extremo rapido de
+  // su ficha (HSI_PPM_PEOR, releido) y cada DS3231 con su hora.
+  //
+  // LO QUE NO SE MIDE AQUI: el ambar en la OTRA punta. D-21 lo dice: en Degradado no hay
+  // radio y cada punta decide por su cuenta; la otra sigue ciclando, y eso se COMPRUEBA como
+  // lo que es -la asimetria aceptada (Riesgo 2)-, no como un fallo.
+  {
+    const long CADUCA_M = MAESTRO.orden("hora_caduca_ms");
+    const long CADUCA_E = ESCLAVO.orden("hora_caduca_ms");
+    const long PPM = (long)leerNumero(RAIZ + "/Maestro/include/reloj.h",
+                                      R"(HSI_PPM_PEOR\s*=\s*(\d+)UL)", "HSI_PPM_PEOR");
+    // La caducidad vista desde el BANCO con el HSI rapido: millis() cuenta (1 + ppm) veces
+    // lo que pasa de verdad, asi que la hora caduca ANTES en tiempo del banco.
+    // Una por punta: cada una se compara con SU constante compilada. Con una sola, un plazo
+    // distinto en el Maestro hacia caer la comprobacion del Esclavo -medido al inyectarlo- y
+    // la linea acusaba a la punta equivocada.
+    const unsigned long CADUCA_BANCO_MS =
+        (unsigned long)((long long)CADUCA_M * 1000000LL / (1000000LL + PPM));
+    const unsigned long CADUCA_BANCO_E =
+        (unsigned long)((long long)CADUCA_E * 1000000LL / (1000000LL + PPM));
+    std::printf("   HORA_CADUCA_MS compilada: %ld ms (Maestro) / %ld ms (Esclavo); HSI %ld ppm;\n"
+                "   cadencia del ESP32 %lu ms; con el HSI rapido caduca a los %lu ms del banco\n",
+                CADUCA_M, CADUCA_E, PPM, g_cadenciaSiembraMs, CADUCA_BANCO_MS);
+
+    // --- F0: el instrumento. La caducidad COMPILADA, ejercida en su frontera ---------
+    // Las dos puntas sembradas en la MISMA vuelta, sin radio -para que el Esclavo acepte la
+    // de su ESP32- y sin mas siembras: en la vuelta en que la base cumple HORA_CADUCA_MS
+    // todavia es fiable (el ">" de reloj_horaFiable()), y en la siguiente ya no. Y la hora
+    // SIGUE puesta: la guarda que habia -reloj_enHora()- no la veia caducar.
+    {
+      prepararSincronizadas(15, 8, 0, 0);
+      g_esp32Vivo[0] = g_esp32Vivo[1] = false;
+      g_enlace = false;
+      g_aire.clear();
+      avanzar(SFTY6_SILENCIO_MS_E + 1000UL);
+      activarDs3231(0, 0);
+      g_esp32Vivo[0] = g_esp32Vivo[1] = false;   // solo el origen: nada de calendario
+      const long rM = MAESTRO.orden("siembra_esp32", horaDs3231(0));
+      const long rE = ESCLAVO.orden("siembra_esp32", horaDs3231(1));
+      const unsigned long tSiembra = g_t - PASO_MS;   // el millis() con que se atendieron
+      while ((g_t - PASO_MS) - tSiembra < (unsigned long)CADUCA_M) unTick();
+      const bool enFronteraExacta = ((g_t - PASO_MS) - tSiembra) == (unsigned long)CADUCA_M;
+      const long fM0 = MAESTRO.orden("hora_fiable"), fE0 = ESCLAVO.orden("hora_fiable");
+      unTick();
+      const long fM1 = MAESTRO.orden("hora_fiable"), fE1 = ESCLAVO.orden("hora_fiable");
+      const long hM = MAESTRO.orden("reloj_en_hora"), hE = ESCLAVO.orden("reloj_en_hora");
+      comprobar(CADUCA_M == CADUCA_E && CADUCA_M > (long)g_cadenciaSiembraMs,
+                "F0.0: las dos puntas compilan la MISMA caducidad (" + std::to_string(CADUCA_M) +
+                " ms) y es mayor que la cadencia del ESP32 (" + std::to_string(g_cadenciaSiembraMs) +
+                " ms). La desigualdad contra el aguante la recalcula reloj_04");
+      comprobar(rM == 1 && rE == 1 && enFronteraExacta && fM0 == 1 && fE0 == 1 && fM1 == 0 &&
+                    fE1 == 0 && hM == 1 && hE == 1,
+                "F0: el reloj.cpp REAL de las dos puntas, sembrado una vez (" + std::to_string(rM) +
+                "/" + std::to_string(rE) + "), es FIABLE con la base de EXACTAMENTE " +
+                std::to_string(CADUCA_M) + " ms (" + std::to_string(fM0) + "/" +
+                std::to_string(fE0) + ") y deja de serlo 50 ms despues (" + std::to_string(fM1) +
+                "/" + std::to_string(fE1) + "), con la hora TODAVIA PUESTA (reloj_enHora() " +
+                std::to_string(hM) + "/" + std::to_string(hE) + "): la guarda de antes no la veia");
+    }
+
+    // --- F1: H1 ENTERO. J17 del Maestro mudo dos horas con la radio viva, y cae la radio --
+    {
+      prepararSincronizadas(15, 8, 0, 0);
+      activarDs3231(1000, 7000);
+      MAESTRO.orden("hsi_ppm", PPM);
+      avanzar(10UL * 60UL * 1000UL);
+      const bool controlVivo = MAESTRO.orden("hora_fiable") == 1 &&
+                               ESCLAVO.orden("radio_manda") == 1 &&
+                               g_siembrasSembradas[0] >= 2 && g_siembrasIgnoradas[1] >= 1;
+      comprobar(controlVivo,
+                "F1.0 (control del escenario): con los dos J17 vivos y la radio viva, el Maestro "
+                "se siembra de su ESP32 (" + std::to_string(g_siembrasSembradas[0]) +
+                " siembras) y su hora es fiable, y el Esclavo IGNORA la de su ESP32 (" +
+                std::to_string(g_siembrasIgnoradas[1]) + " veces) porque manda la radio");
+
+      g_esp32Vivo[0] = false;                         // el J17 del Maestro se calla
+      avanzar(2UL * 3600UL * 1000UL);                 // dos horas, con la radio viva
+      const long desvioM = desvioContraDs3231(MAESTRO, 0);
+      const long enHoraM = MAESTRO.orden("reloj_en_hora");
+      const long fiableM = MAESTRO.orden("hora_fiable");
+      long dME = MAESTRO.orden("segundos_del_dia") - ESCLAVO.orden("segundos_del_dia");
+      if (dME > 43200L) dME -= 86400L;
+      if (dME < -43200L) dME += 86400L;
+      nota("F1: tras 2 h con el J17 del Maestro mudo, su hora va " + std::to_string(desvioM) +
+           " s por delante de su DS3231 (HSI a +" + std::to_string(PPM) + " ppm), y la del "
+           "Esclavo la sigue por radio a " + std::to_string(dME) + " s: estan en fase, como "
+           "dice el veredicto.");
+
+      comprobar(enHoraM == 1 && fiableM == 0 && desvioM > DESFASE_QUE_AGUANTA,
+                "F1.1 (la premisa de H1): el Maestro SIGUE EN HORA para reloj_enHora() (" +
+                std::to_string(enHoraM) + ") con su hora " + std::to_string(desvioM) +
+                " s por delante de su DS3231 -mas que los " + std::to_string(DESFASE_QUE_AGUANTA) +
+                " s que el cruce aguanta, bloque C- y reloj_horaFiable() la da por caducada (" +
+                std::to_string(fiableM) + ")");
+
+      g_enlace = false;                               // cae la radio
+      g_aire.clear();
+      const long motivo = MAESTRO.orden("deg_evaluar");
+      comprobar(motivo == MDG_FALTA_HORA_V,
+                "F1.2: con la radio caida, la puerta del Maestro RECHAZA el Degradado por la hora "
+                "(motivo " + std::to_string(motivo) + " = MDG_FALTA_HORA, leido del enum) en vez "
+                "de aceptarlo y dar verdes con una hora " + std::to_string(desvioM) +
+                " s adelantada");
+
+      MAESTRO.orden("set_modo", MODO_DEGRADADO_V);   // el operario lo intenta igual
+      const bool esclavoFresco = esperarCond(
+          []() {
+            return ESCLAVO.orden("radio_manda") == 0 && ESCLAVO.orden("hora_fiable") == 1 &&
+                   g_siembrasSembradas[1] > 0;
+          },
+          g_cadenciaSiembraMs + SFTY6_SILENCIO_MS_E + 10000UL);
+      long dMEtras = MAESTRO.orden("segundos_del_dia") - ESCLAVO.orden("segundos_del_dia");
+      if (dMEtras > 43200L) dMEtras -= 86400L;
+      if (dMEtras < -43200L) dMEtras += 86400L;
+      const long rE = ESCLAVO.orden("degradado_entrar");
+      comprobar(esclavoFresco && rE == DEG_ACEPTADO_V &&
+                    (dMEtras > DESFASE_QUE_AGUANTA || -dMEtras > DESFASE_QUE_AGUANTA),
+                "F1.3 (el escenario ES el peligroso): sin radio, el Esclavo toma la hora de SU "
+                "DS3231 (D-26 (3)) y entra en Degradado (" + std::to_string(rE) + "); su hora y "
+                "la del Maestro quedan a " + std::to_string(dMEtras) + " s, mas que los " +
+                std::to_string(DESFASE_QUE_AGUANTA) + " que aguanta el cruce: si el Maestro "
+                "ciclara por reloj, habria verde-verde");
+
+      reiniciarObservacion();
+      avanzar(20UL * 60UL * 1000UL);
+      const long estadoM = MAESTRO.estado();
+      comprobar(g_verdeSimultaneo == 0 && g_pegados == 0 && g_ticksVerdeMaestro == 0 &&
+                    g_ticksVerdeEsclavo > 0,
+                "F1.4 (H1): en 20 min con la radio caida, el Maestro NO encendio verde ni una "
+                "vez (" + std::to_string(g_ticksVerdeMaestro) + ") y el Esclavo ciclo por su "
+                "reloj (" + std::to_string(g_ticksVerdeEsclavo) + " instantes en verde): " +
+                std::to_string(g_verdeSimultaneo) + " instantes con las dos en verde");
+      comprobar(estadoM == S_FALLO_V,
+                "F1.5: y el Maestro acaba en AMBAR INTERMITENTE (estado " +
+                std::to_string(estadoM) + " = S_FALLO): rechazado el Degradado, cae al ambar de "
+                "la perdida de enlace de semaforo.cpp. Es la punta con la hora que miente, en "
+                "ambar, que es lo que pide D-21");
+    }
+
+    // --- F2: el J17 del Maestro muere con las DOS ya en Degradado -----------------------
+    {
+      prepararSincronizadas(15, 8, 0, 0);
+      activarDs3231(1000, 40000);
+      MAESTRO.orden("hsi_ppm", PPM);
+      entrarEnDegradadoLasDos(0);
+      reiniciarObservacion();
+      avanzar(5UL * 60UL * 1000UL);
+      comprobar(g_ticksVerdeMaestro > 0 && g_ticksVerdeEsclavo > 0 && g_verdeSimultaneo == 0,
+                "F2.0 (control): con los dos J17 vivos, cada punta sembrada de su DS3231 y el HSI "
+                "del Maestro en su extremo rapido, las dos ciclan (" +
+                std::to_string(g_ticksVerdeMaestro) + "/" + std::to_string(g_ticksVerdeEsclavo) +
+                " instantes en verde) sin tocarse: la siembra cada cadencia absorbe la deriva");
+
+      g_esp32Vivo[0] = false;
+      const unsigned long tUltima = g_tUltimaSiembraBuena[0];
+      const long alarmas0 = MAESTRO.orden("alarmas_caducada");
+      reiniciarObservacion();
+      unsigned long tAmbar = 0, tUltVerde = 0, verdeETrasAmbar = 0;
+      for (unsigned long t = 0; t < 60UL * 60UL * 1000UL; t += PASO_MS) {
+        unTick();
+        if (MAESTRO.verde()) tUltVerde = g_t - PASO_MS;
+        if (tAmbar == 0 && MAESTRO.estado() == S_FALLO_V) tAmbar = g_t - PASO_MS;
+        if (tAmbar != 0 && ESCLAVO.verde()) verdeETrasAmbar++;
+      }
+      const long alarmas = MAESTRO.orden("alarmas_caducada") - alarmas0;
+      const unsigned long aAmbar = tAmbar ? tAmbar - tUltima : 0;
+      comprobar(g_verdeSimultaneo == 0 && g_pegados == 0,
+                "F2.1 (H1 dentro del modo): en 60 min con el J17 del Maestro mudo y su HSI a +" +
+                std::to_string(PPM) + " ppm -a esa deriva el cruce se habria roto a los ~" +
+                std::to_string((long)(DESFASE_QUE_AGUANTA * 1000000L / PPM / 60L)) + " min- NO "
+                "hubo ni un instante con las dos en verde (" + std::to_string(g_verdeSimultaneo) +
+                ") ni un verde pegado al otro");
+      comprobar(tAmbar != 0 && MAESTRO.estado() == S_FALLO_V && alarmas == 1 &&
+                    aAmbar >= CADUCA_BANCO_MS && aAmbar <= (unsigned long)CADUCA_M + 2000UL + 2UL * PASO_MS &&
+                    tUltVerde <= tUltima + (unsigned long)CADUCA_M,
+                "F2.2: el Maestro paso a AMBAR a los " + std::to_string(aAmbar) + " ms de su "
+                "ultima siembra buena -la caducidad compilada, vista desde el banco con su HSI "
+                "rapido, mas los 2 s de rojo de irAAmbar()-, no volvio a dar verde despues y lo "
+                "PUBLICO: " + std::to_string(alarmas) + " $ALARM HORA_ESP32,CADUCADA");
+      comprobar(verdeETrasAmbar > 0,
+                "F2.3 (la asimetria de D-21, medida y no escondida): con el Maestro en ambar, el "
+                "Esclavo SIGUE en Degradado dando verdes por su reloj (" +
+                std::to_string(verdeETrasAmbar) + " instantes): en Degradado no hay radio con que "
+                "decirselo");
+
+      // NO SE REANUDA SOLO (D-21; correccion del orquestador del 11/09): vuelve el J17, la
+      // hora vuelve a ser fiable y el Maestro SIGUE en ambar. Se comprueba lo que el codigo
+      // hace hoy, no se cambia.
+      g_esp32Vivo[0] = true;
+      g_proxSiembra[0] = g_t + 1000UL;
+      reiniciarObservacion();
+      avanzar(10UL * 60UL * 1000UL);
+      comprobar(MAESTRO.orden("hora_fiable") == 1 && g_ticksVerdeMaestro == 0 &&
+                    MAESTRO.estado() == S_FALLO_V &&
+                    MAESTRO.orden("alarmas_caducada") - alarmas0 == 1,
+                "F2.4 (NO se reanuda solo): vuelto el J17, la hora del Maestro vuelve a ser "
+                "fiable y en 10 min NO enciende verde (" + std::to_string(g_ticksVerdeMaestro) +
+                "): sigue en ambar hasta que una persona saque el Degradado (D-21: el equipo no "
+                "decide solo si sale del modo ni si vuelve a el)");
+    }
+
+    // --- F3: el simetrico, en el ESCLAVO -------------------------------------------------
+    {
+      prepararSincronizadas(15, 8, 0, 0);
+      activarDs3231(1000, 40000);
+      ESCLAVO.orden("hsi_ppm", PPM);
+      entrarEnDegradadoLasDos(0);
+      reiniciarObservacion();
+      avanzar(5UL * 60UL * 1000UL);
+      comprobar(g_ticksVerdeMaestro > 0 && g_ticksVerdeEsclavo > 0 && g_verdeSimultaneo == 0,
+                "F3.0 (control): con el HSI del Esclavo en su extremo rapido y su J17 vivo, las "
+                "dos ciclan sin tocarse (" + std::to_string(g_ticksVerdeMaestro) + "/" +
+                std::to_string(g_ticksVerdeEsclavo) + ")");
+
+      g_esp32Vivo[1] = false;
+      const unsigned long tUltima = g_tUltimaSiembraBuena[1];
+      const long alarmas0 = ESCLAVO.orden("alarmas_caducada");
+      reiniciarObservacion();
+      unsigned long tAmbar = 0, tUltVerde = 0, verdeMTrasAmbar = 0;
+      for (unsigned long t = 0; t < 60UL * 60UL * 1000UL; t += PASO_MS) {
+        unTick();
+        if (ESCLAVO.verde() || ESCLAVO.estado() == S_AMARILLO_E) {   // o el ambar que abre su verde
+          tUltVerde = g_t - PASO_MS;
+        }
+        if (tAmbar == 0 && ESCLAVO.estado() == S_FALLO_E) tAmbar = g_t - PASO_MS;
+        if (tAmbar != 0 && MAESTRO.verde()) verdeMTrasAmbar++;
+      }
+      const long alarmas = ESCLAVO.orden("alarmas_caducada") - alarmas0;
+      const unsigned long aAmbar = tAmbar ? tAmbar - tUltima : 0;
+      const unsigned long DESPEJE_MS = DEG_DESPEJE_SEG * 1000UL;
+      comprobar(g_verdeSimultaneo == 0 && g_pegados == 0,
+                "F3.1 (el simetrico de H1): en 60 min con el J17 del ESCLAVO mudo y su HSI a +" +
+                std::to_string(PPM) + " ppm, ni un instante con las dos en verde (" +
+                std::to_string(g_verdeSimultaneo) + ")");
+      comprobar(tAmbar != 0 && ESCLAVO.estado() == S_FALLO_E &&
+                    ESCLAVO.orden("degradado_estado") == DEG_RENDIDO_V && alarmas == 1 &&
+                    aAmbar >= CADUCA_BANCO_E &&
+                    aAmbar <= (unsigned long)CADUCA_E + DESPEJE_MS + 2UL * PASO_MS &&
+                    tUltVerde <= tUltima + (unsigned long)CADUCA_E,
+                "F3.2: el Esclavo se RINDIO -todo-rojo el despeje entero y despues ambar, "
+                "DEG_RENDIDO- a los " + std::to_string(aAmbar) + " ms de su ultima siembra buena, "
+                "sin volver a encender, y lo PUBLICO: " + std::to_string(alarmas) +
+                " $ALARM HORA_ESP32,CADUCADA");
+      comprobar(verdeMTrasAmbar > 0,
+                "F3.3 (la asimetria de D-21): con el Esclavo en ambar, el Maestro sigue en "
+                "Degradado dando verdes (" + std::to_string(verdeMTrasAmbar) + " instantes)");
+
+      const long rechazo = ESCLAVO.orden("degradado_comprobar");
+      g_esp32Vivo[1] = true;
+      g_proxSiembra[1] = g_t + 1000UL;
+      reiniciarObservacion();
+      avanzar(10UL * 60UL * 1000UL);
+      const long tras = ESCLAVO.orden("degradado_comprobar");
+      comprobar(rechazo == DEG_RECHAZO_SIN_HORA_V && tras == DEG_ACEPTADO_V &&
+                    ESCLAVO.orden("degradado_estado") == DEG_RENDIDO_V &&
+                    g_ticksVerdeEsclavo == 0,
+                "F3.4: con la hora caducada la puerta del Esclavo rechaza entrar (" +
+                std::to_string(rechazo) + " = DEG_RECHAZO_SIN_HORA) y, vuelto el J17, la "
+                "aceptaria (" + std::to_string(tras) + ") PERO NO ENTRA SOLA: sigue en "
+                "DEG_RENDIDO y en 10 min no enciende (" + std::to_string(g_ticksVerdeEsclavo) + ")");
+    }
+
+    // --- F4: LOS BORDES DE D-26 (4), en las dos puntas y en los dos sentidos -------------
+    // Hasta hoy el bloque E saltaba el ciclo entero -muy lejos del umbral- y 2 s -muy cerca
+    // de cero-. El umbral es SALTO_SIN_ROJO_MAX_S = despeje - 1: el borde es EXACTAMENTE ahi.
+    {
+      const unsigned long ESPERA = 3UL * CICLO_S * 1000UL;
+      const long D = (long)DEG_DESPEJE_SEG;
+      struct Caso { bool maestro; long J; bool rojo; const char* quien; };
+      const Caso casos[] = {
+        { true,  D,       true,  "Maestro, +despeje" },
+        { true,  D - 1,   false, "Maestro, +(despeje-1)" },
+        { true,  -D,      true,  "Maestro, -despeje (hacia atras)" },
+        { true,  -(D - 1), false, "Maestro, -(despeje-1) (hacia atras)" },
+        { false, D,       true,  "Esclavo, +despeje" },
+        { false, D - 1,   false, "Esclavo, +(despeje-1)" },
+        { false, -D,      true,  "Esclavo, -despeje (hacia atras)" },
+        { false, -(D - 1), false, "Esclavo, -(despeje-1) (hacia atras)" },
+      };
+      for (const Caso& c : casos) {
+        const Borde b = probarBorde(c.maestro, c.J, ESPERA);
+        const bool ok = b.listo && b.simultaneos == 0 &&
+                        (c.rojo ? (b.eventos == 1 && !b.enciende)
+                                : (b.eventos == 0 && b.enciende));
+        comprobar(ok,
+                  std::string("F4 (D-26 (4), borde): ") + c.quien + " = " + std::to_string(c.J) +
+                  " s, aplicado DENTRO de su propio verde -> " +
+                  (c.rojo ? "PASA POR ROJO" : "DIRECTO") + ": " + std::to_string(b.eventos) +
+                  " $EVENT SALTO_DE_HORA_POR_ROJO, " + (b.enciende ? "enciende" : "no enciende") +
+                  " en 3 s, " + std::to_string(b.simultaneos) + " instantes con las dos en verde" +
+                  (b.listo ? "" : " [EL ESCENARIO NO SE PUDO MONTAR]"));
+      }
+    }
+
+    // --- F5: reloj_radioManda() EJECUTADA: la frontera de 25 s y sus dos vecinos --------
+    // H5 del veredicto: "leido, no ejecutado". Aqui corre la del reloj.cpp real.
+    {
+      prepararSincronizadas(15, 8, 0, 0);
+      activarDs3231(0, 0);
+      g_esp32Vivo[0] = g_esp32Vivo[1] = false;      // las siembras las pone este bloque
+      avanzar(1000);
+      const long conRadio = ESCLAVO.orden("siembra_esp32", horaDs3231(1));
+      g_enlace = false;
+      g_aire.clear();
+      const unsigned long tU = g_tUltimaEntregaEsclavo;
+      while ((g_t - PASO_MS) < tU + SFTY6_SILENCIO_MS_E) unTick();
+      const bool exacta = (g_t - PASO_MS) == tU + SFTY6_SILENCIO_MS_E;
+      const long enBorde = ESCLAVO.orden("siembra_esp32", horaDs3231(1));
+      unTick();
+      const long pasado = ESCLAVO.orden("siembra_esp32", horaDs3231(1));
+      comprobar(conRadio == 2 && exacta && enBorde == 2 && pasado == 1,
+                "F5.1 (D-26 (3), la frontera): con la hora de radio puesta, la siembra del ESP32 "
+                "se IGNORA con la radio viva (" + std::to_string(conRadio) + ") y con el silencio "
+                "en EXACTAMENTE SFTY6_SILENCIO_MS = " + std::to_string(SFTY6_SILENCIO_MS_E) +
+                " ms (" + std::to_string(enBorde) + "), y ENTRA 50 ms despues (" +
+                std::to_string(pasado) + "). 2 = ignorada, 1 = sembrada");
+
+      arrancarLasDos();                               // sin sincronizar nada por radio
+      avanzar(5000);                                  // la radio viva: latidos del Maestro
+      const long sinHoraDeRadio = ESCLAVO.orden("siembra_esp32", horaDs3231(1));
+      const long otraSinRadioHora = ESCLAVO.orden("siembra_esp32", horaDs3231(1));
+      MAESTRO.orden("ajustar_reloj", 15L * 1000000L + 8L * 10000L);
+      MAESTRO.orden("sincronizar_hora");
+      avanzar(15000);
+      const long trasRadio = ESCLAVO.orden("siembra_esp32", horaDs3231(1));
+      g_enlace = false;
+      g_aire.clear();
+      avanzar(SFTY6_SILENCIO_MS_E + 1000UL);
+      const long radioCaida = ESCLAVO.orden("siembra_esp32", horaDs3231(1));
+      g_enlace = true;
+      MAESTRO.orden("sincronizar_hora");
+      avanzar(15000);
+      const long radioVuelta = ESCLAVO.orden("siembra_esp32", horaDs3231(1));
+      comprobar(sinHoraDeRadio == 1 && otraSinRadioHora == 1 && trasRadio == 2 &&
+                    radioCaida == 1 && radioVuelta == 2,
+                "F5.2 (arranque sin radio y radio intermitente): recien arrancado, con la radio "
+                "latiendo pero sin hora del Maestro, la del ESP32 ENTRA (" +
+                std::to_string(sinHoraDeRadio) + ", " + std::to_string(otraSinRadioHora) +
+                "); en cuanto el Maestro le pone la suya, se IGNORA (" +
+                std::to_string(trasRadio) + "); cae la radio y ENTRA (" +
+                std::to_string(radioCaida) + "); vuelve y la hora del Maestro la pisa otra vez (" +
+                std::to_string(radioVuelta) + ")");
+    }
   }
 
   // =========================================================================
