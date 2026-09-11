@@ -292,6 +292,19 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   if (!strcmp(que, "recargas_watchdog"))   return (long)IWatchdog.recargas;
   if (!strcmp(que, "replay_reseteos"))     return (long)g_replayReseteos;
   if (!strcmp(que, "ambar_bluetooth"))     { g_ambarEmergencia = (arg != 0); return 1; }
+  // N-162 (bloque G): el AMBAR DE EMERGENCIA de la app ENTERO, no solo su veto. Bloque
+  // literal de la rama "AMBAR_EMERGENCIA" de Esclavo/src/bluetooth.cpp -que aqui no se
+  // compila-, sin los $ACK al telefono: luz a ambar, cerrojo puesto y el aviso
+  // CMD_AMBAR_ESCLAVO al Maestro. Devuelve 0 si el Degradado gobierna, igual que alli.
+  if (!strcmp(que, "ambar_emergencia_app")) {
+    if (!degradado_gobiernaLuz()) {
+      semaforo_iniciarFallo();
+      g_ambarEmergencia = true;
+      protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO);
+      return 1;
+    }
+    return 0;
+  }
   if (!strcmp(que, "menu_abierto"))        { g_menuAbierto = (arg != 0); return 1; }
   if (!strcmp(que, "respaldo_valido"))     return respaldo_valido() ? 1 : 0;
   if (!strcmp(que, "respaldo_degradado"))  return respaldo_degradadoActivo() ? 1 : 0;

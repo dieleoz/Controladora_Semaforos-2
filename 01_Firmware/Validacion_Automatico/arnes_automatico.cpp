@@ -1144,14 +1144,25 @@ int main() {
               "con despeje=0 el arranque sigue empezando en ROJO, no salta directo a "
               "verde por tener el todo-rojo a cero");
 
+    // N-162 (bloque G del arnes de las dos puntas): ESTA LINEA AFIRMABA DOS COSAS y una era
+    // el defecto. Pedia el amarillo a <= 5 ms de coordinador_iniciarModo(), o sea el verde
+    // propio arrancando SIN esperar el ACK_RED de su GO_RED; con esa trama perdida y el
+    // Esclavo en verde eran 180 s de verde en las dos. Se REPARTE (CLAUDE.md 9): lo que
+    // sigue valiendo -no hay atajo que se salte el amarillo con el despeje a cero- se queda
+    // entero; el plazo se cuenta desde el ACK_RED, que el Esclavo simulado entrega a
+    // g_latenciaEsclavoMs, y se exige tambien que NO llegue antes.
     long msHastaAmarillo = bombearGenerico(1, 200,
         [](){ coordinador_actualizar(); },
         [](){ return semaforo_estado() == S_AMARILLO; });
-    comprobar(msHastaAmarillo >= 0 && msHastaAmarillo <= 5,
-              "CONTROL NEGATIVO: con despeje=0 el todo-rojo se salta casi al "
-              "instante, pero coordinador_actualizar() SIGUE llamando a "
-              "semaforo_iniciarTransicionAVerde(): no hay un atajo que se salte el "
-              "aviso de amarillo por tener el despeje a cero");
+    const std::string queAmarillo =
+        "CONTROL NEGATIVO: con despeje=0 el todo-rojo se salta casi al instante DESDE EL "
+        "ACK_RED (" + std::to_string(msHastaAmarillo) + " ms, acuse a " +
+        std::to_string(g_latenciaEsclavoMs) + " ms) y no antes, pero "
+        "coordinador_actualizar() SIGUE llamando a semaforo_iniciarTransicionAVerde(): no "
+        "hay un atajo que se salte el aviso de amarillo por tener el despeje a cero";
+    comprobar(msHastaAmarillo >= (long)g_latenciaEsclavoMs &&
+              msHastaAmarillo <= (long)g_latenciaEsclavoMs + 5,
+              queAmarillo.c_str());
 
     long msHastaVerde = bombearGenerico(1, (unsigned long)AMBAR_MS + 500UL,
         [](){ coordinador_actualizar(); },

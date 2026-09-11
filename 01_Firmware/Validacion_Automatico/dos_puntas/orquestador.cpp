@@ -137,6 +137,12 @@ static unsigned long TIMEOUT_ACK_MS_V;
 static unsigned long CICLO_MAX_REINTENTOS_V;
 static unsigned long DESPEJE_POR_DEFECTO_S;
 static unsigned long AMBAR_ESCLAVO_MS_V;
+// N-162 (bloque G): los tres plazos que deciden cuanto dura una punta en verde frente a
+// otra abierta. Releidos, no copiados: el bloque los usa para explicar la cifra que mide.
+static unsigned long LATIDO_MS_V;            // Maestro: cadencia del latido (PING o GO_RED)
+static unsigned long RETARDO_RESPUESTA_MS_V; // Esclavo: cortesia antes de contestar (SFTY-17)
+static unsigned long MAX_VERDE_BACKSTOP_MS_V;// Esclavo: verde maximo, vigilante del final del bucle
+static unsigned long VERDE_MIN_MIN_V, ROJO_MIN_MIN_V;   // limites_ciclo.h: el ciclo del bloque G
 
 // ---------------------------------------------------------------------------
 // EL CONTADOR. Mismo patron que arnes_automatico.cpp y arnes_ciclo.cpp.
@@ -326,8 +332,36 @@ static unsigned long g_goVerdePerdidos = 0;
 // AMARILLO o en VERDE, "no reinicia el ambar" pasaria igual con una rama que no existe.
 static unsigned long g_goVerdeEntregadoEn[4] = { 0, 0, 0, 0 };
 
+// N-162 (bloque G): el GO_RED es la UNICA orden que saca al Esclavo de un verde mientras le
+// siga llegando trafico del Maestro -un PING le refresca la orfandad-. El bloque G necesita
+// saber cuantos salieron, cuantos llegaron y cuantos se tiraron, y poder tirar los N
+// siguientes a proposito. Codigo releido de protocolo.h (ver main).
+static uint8_t CMD_GO_RED_V = 0;
+static long g_goRojoAPerder = 0;           // se tiran los N siguientes GO_RED del Maestro
+static unsigned long g_goRojoPerdidos = 0; // ...tirados por esa perdida selectiva
+static unsigned long g_goRojoCortados = 0; // ...perdidos por tener cortada la direccion
+static unsigned long g_goRojoEntregados = 0;
+
+// N-162 (bloque G, G9): un ACK_RED RETENIDO en el aire y soltado cuando el escenario diga.
+// Es la unica forma en que un acuse viejo puede enganar al Maestro -llegar despues de que
+// el Esclavo haya vuelto a verde-, y el arnes no la produce sola: el canal es FIFO y de
+// latencia fija.
+static uint8_t CMD_ACK_RED_V = 0;
+static long g_ackRojoARetener = 0;
+static bool g_hayAckRojoRetenido = false;
+static unsigned char g_ackRojoRetenido[4];
+static unsigned long g_tAckRojoRetenido = 0;
+
 // Los valores del enum EstadoSemaforo, releidos de semaforo.h (ver main). -1 = sin leer.
 static int S_VERDE_V = -1, S_AMARILLO_V = -1;
+static int S_ROJO_V = -1, S_FALLO_V = -1;
+
+// N-162 (bloque G): cuantas veces la EXCEPCION de A9 -"la otra punta esta en S_FALLO"-
+// perdono un instante en los bloques A a F, y su racha mas larga. La excepcion es el
+// instrumento de verdad (CLAUDE.md 6): lo que dice es "en S_FALLO ya no hay quien
+// gobierne", y eso es falso mientras la OTRA punta tenga un verde fijo encendido.
+static unsigned long g_a9Perdonados = 0;
+static unsigned long g_a9RachaMax = 0, g_a9Racha = 0;
 
 // ---------------------------------------------------------------------------
 // EL OBSERVADOR. Corre DESPUES de que las dos puntas hayan ejecutado el mismo
@@ -391,6 +425,13 @@ static void vigilar(unsigned long t) {
   const int S_FALLO = 3;
   if (vM && !vE && ESCLAVO.estado() != S_FALLO && !ESCLAVO.rojo()) g_verdeSinRojoEnfrente++;
   if (vE && !vM && MAESTRO.estado() != S_FALLO && !MAESTRO.rojo()) g_verdeSinRojoEnfrente++;
+  // N-162 (bloque G): y los instantes que esa excepcion PERDONO. No cambia A9: la mide.
+  if ((vM && !vE && ESCLAVO.estado() == S_FALLO) || (vE && !vM && MAESTRO.estado() == S_FALLO)) {
+    g_a9Perdonados++;
+    if (++g_a9Racha > g_a9RachaMax) g_a9RachaMax = g_a9Racha;
+  } else {
+    g_a9Racha = 0;
+  }
 
   // N-162: lo que se PUBLICA del Esclavo contra lo que el Esclavo TIENE encendido.
   const bool escVerde = MAESTRO.orden("esc_publica_verde") == 1;
@@ -441,6 +482,7 @@ static void unTick() {
         const int e = ESCLAVO.estado();
         if (e >= 0 && e < 4) g_goVerdeEntregadoEn[e]++;
       }
+      if (g_aire[i].destino == 1 && g_aire[i].trama[1] == CMD_GO_RED_V) g_goRojoEntregados++;
       d.rx(g_aire[i].trama);
       g_tramasEntregadas++;
       g_aire.erase(g_aire.begin() + i);
@@ -466,10 +508,18 @@ static void unTick() {
         continue;
       }
     }
+    // N-162 (bloque G): se tiran los g_goRojoAPerder GO_RED siguientes.
+    if (b[1] == CMD_GO_RED_V && g_goRojoAPerder > 0) {
+      g_goRojoAPerder--;
+      g_goRojoPerdidos++;
+      g_tramasPerdidas++;
+      continue;
+    }
     if (g_enlaceHaciaEsclavo) {
       EnVuelo e; memcpy(e.trama, b, 4); e.tEntrega = g_t + g_latenciaMs; e.destino = 1;
       g_aire.push_back(e);
     } else {
+      if (b[1] == CMD_GO_RED_V) g_goRojoCortados++;
       g_tramasPerdidas++;
     }
   }
@@ -479,6 +529,14 @@ static void unTick() {
       g_ackVerdeAPerder--;
       g_ackVerdePerdidos++;
       g_tramasPerdidas++;
+      continue;
+    }
+    // N-162 (bloque G, G9): se retiene el siguiente ACK_RED hasta soltarAckRojo().
+    if (b[1] == CMD_ACK_RED_V && g_ackRojoARetener > 0) {
+      g_ackRojoARetener--;
+      memcpy(g_ackRojoRetenido, b, 4);
+      g_hayAckRojoRetenido = true;
+      g_tAckRojoRetenido = g_t;
       continue;
     }
     if (g_enlaceHaciaMaestro) {
@@ -497,6 +555,17 @@ static void unTick() {
 static void avanzar(unsigned long ms) {
   unsigned long hecho = 0;
   while (hecho < ms) { unTick(); hecho += PASO_MS; }
+}
+
+// N-162 (bloque G, G9): el ACK_RED retenido sale ahora, con un viaje de radio normal.
+static void soltarAckRojo() {
+  if (!g_hayAckRojoRetenido) return;
+  EnVuelo e;
+  memcpy(e.trama, g_ackRojoRetenido, 4);
+  e.tEntrega = g_t + g_latenciaMs;
+  e.destino = 0;
+  g_aire.push_back(e);
+  g_hayAckRojoRetenido = false;
 }
 
 // Inyecta una trama en una punta como si viniera de la otra. Se usa para el trafico de
@@ -529,16 +598,27 @@ static void microcorte(Punta& p) {
 // Deja las dos puntas recien arrancadas y el canal limpio. No es cosmetica: sin esto,
 // una trama en vuelo de un escenario llegaria al siguiente y el arnes estaria midiendo
 // una averia que el mismo fabrico.
-static void escenarioLimpio(long tiemposMaestro) {
+//
+// N-162 (bloque G): exigirTiempos. MEDIDO: fijar_tiempos(1, 1, 15) -lo que piden los bloques
+// A a F- lo RECHAZA modoAutomatico_fijarTiempos() desde N-137 (verde y rojo minimos de 3
+// min), y aqui se ignoraba el valor devuelto: esos bloques corren con 3 min / 3 min / 10 s,
+// no con lo que dicen sus textos. El bloque G pide que un rechazo ABORTE. Los bloques
+// anteriores no se tocan en este cambio: su arreglo mueve todos sus tiempos y va aparte.
+static void escenarioLimpio(long tiemposMaestro, bool exigirTiempos = false) {
   g_aire.clear();
   g_enlaceHaciaEsclavo = g_enlaceHaciaMaestro = true;
   // N-162: ningun escenario hereda la perdida selectiva del anterior.
   g_ackVerdeAPerder = 0;
   g_goVerdeEmitidos = 0;
   g_goVerdePerderDesde = g_goVerdePerderHasta = 0;
+  g_goRojoAPerder = 0;
+  g_ackRojoARetener = 0;
+  g_hayAckRojoRetenido = false;
   MAESTRO.descargar(); MAESTRO.cargar(); MAESTRO.arrancar();
   ESCLAVO.descargar(); ESCLAVO.cargar(); ESCLAVO.arrancar();
-  if (tiemposMaestro > 0) MAESTRO.orden("fijar_tiempos", tiemposMaestro);
+  if (tiemposMaestro > 0 && MAESTRO.orden("fijar_tiempos", tiemposMaestro) != 1 && exigirTiempos)
+    abortar("el Maestro RECHAZO fijar_tiempos(" + std::to_string(tiemposMaestro) + "): el "
+            "escenario correria con otros tiempos que los que dice medir");
   MAESTRO.orden("arrancar_automatico");
   avanzar(500);
 }
@@ -562,6 +642,172 @@ static void configurarEsclavo(uint8_t verdeSeg, uint8_t despejeSeg) {
   inyectar(ESCLAVO, CMD_CONFIG_VERDE_V, verdeSeg);
   inyectar(ESCLAVO, CMD_CONFIG_DESPEJE_V, despejeSeg);
   avanzar(400);
+}
+
+// ---------------------------------------------------------------------------
+// N-162 (bloque G): LA VENTANA "UNA PUNTA EN VERDE Y LA OTRA SIN ROJO", S_FALLO INCLUIDO.
+//
+// Es la condicion de A9 SIN su excepcion. A9 perdona S_FALLO porque "ahi ya no hay quien
+// gobierne"; pero S_FALLO es ambar intermitente CON LA PLUMA ARRIBA (SFTY-28, semaforo.cpp)
+// y, mientras la otra punta tenga un verde fijo, SI hay quien gobierna: esta dando paso al
+// mismo carril que esta punta acaba de abrir. El detector va aislado, como el de E4, para
+// que su control negativo lo ejerza con valores sinteticos.
+// ---------------------------------------------------------------------------
+static bool hayVerdeFrenteASinRojo(bool verdeA, bool rojoB) { return verdeA && !rojoB; }
+
+static const char* nombreLuz(int e) {
+  if (e == S_ROJO_V) return "ROJO";
+  if (e == S_VERDE_V) return "VERDE";
+  if (e == S_AMARILLO_V) return "AMBAR";
+  if (e == S_FALLO_V) return "S_FALLO";
+  return "?";
+}
+
+// Lo que se ve en un instante, en una linea: luz de cada punta y si el coordinador del
+// Maestro esta en C_FALLO (comunicacion_perdida, la funcion REAL de coordinador.cpp).
+static std::string fotoG() {
+  std::string s = "M=";
+  s += nombreLuz(MAESTRO.estado());
+  if (MAESTRO.orden("comunicacion_perdida") == 1) s += "(C_FALLO)";
+  s += " E=";
+  s += nombreLuz(ESCLAVO.estado());
+  return s;
+}
+
+struct VentanaG {
+  unsigned long instantes = 0;     // instantes dentro de la ventana
+  unsigned long rachas = 0;        // cuantas veces se abrio
+  unsigned long maxMs = 0;         // la racha mas larga, en ms (instantes x PASO_MS)
+  unsigned long simultaneo = 0;    // de ellos, con verde en LAS DOS
+  unsigned long frenteAFallo = 0;  // de ellos, con la punta de enfrente en S_FALLO
+  bool enCurso = false;
+  unsigned long largo = 0;
+  std::string empezo, empezoMax, acaboMax;
+};
+
+struct CorridaG {
+  VentanaG v;
+  std::vector<std::string> traza;
+  std::string ultimaFoto;
+  unsigned long tCorte = 0;
+  bool maestroFallo = false;       // el coordinador llego a C_FALLO en algun instante
+  int esclavoAlFallo = -1;         // luz del Esclavo en el primer instante con C_FALLO
+  unsigned long tFallo = 0;
+  // N-162 (bloque G, el control de toda inversion -CLAUDE.md 9-): un Maestro que no se
+  // abriera NUNCA pasaria la ventana igual de bien que el correcto. Se anota cuando se abre
+  // -ambar o verde de la transicion; S_FALLO no cuenta- y el ultimo instante en que el
+  // Esclavo estuvo en verde antes de eso: la resta es el todo-rojo que hubo de verdad.
+  long tAperturaM = -1;
+  long tUltVerdeE = -1;
+  long tSueltaE = -1;              // primer instante con el Esclavo fuera de verde
+  // G8: cuantas veces ENTRA el Maestro en S_FALLO. Una oscilacion rojo <-> ambar -la pluma
+  // del poste subiendo y bajando- se ve aqui y no en la ventana: en rojo no hay ventana.
+  unsigned long entradasFalloM = 0;
+  bool mEnFallo = false;
+};
+
+// El todo-rojo medido: del primer instante sin verde del Esclavo al primero con el Maestro
+// abriendo. -1 si en la corrida no hubo las dos cosas.
+static long todoRojoMsG(const CorridaG& c) {
+  if (c.tAperturaM < 0 || c.tUltVerdeE < 0) return -1;
+  return c.tAperturaM - c.tUltVerdeE - (long)PASO_MS;
+}
+
+// LO QUE SE COMPARA CON EL BORDE ES EL ACUMULADO, NO LA RACHA MAS LARGA. Medido con un
+// defecto inyectado: un Maestro que conmuta S_FALLO <-> ROJO en cada instante deja la ventana
+// abierta la mitad del tiempo con rachas de UN instante, y un borde sobre la racha lo daba
+// por bueno. Un corte es un suceso: todo lo que abra en su escenario cuenta junto.
+static unsigned long acumuladoMsG(const VentanaG& v) { return v.instantes * PASO_MS; }
+
+static void cerrarRachaG(VentanaG& v, const std::string& porque) {
+  const unsigned long dur = v.largo * PASO_MS;
+  if (dur > v.maxMs) { v.maxMs = dur; v.empezoMax = v.empezo; v.acaboMax = porque; }
+  v.enCurso = false;
+  v.largo = 0;
+}
+
+// Un tick del arnes y, detras, la observacion de la ventana y de la historia de luces.
+static void pasoG(CorridaG& c) {
+  const unsigned long gr0 = g_goRojoEntregados;
+  const unsigned long t = g_t;
+  unTick();
+  const bool goRojo = (g_goRojoEntregados != gr0);
+  VentanaG& v = c.v;
+  const bool vM = MAESTRO.verde(), vE = ESCLAVO.verde();
+  const bool dentro = hayVerdeFrenteASinRojo(vM, ESCLAVO.rojo()) ||
+                      hayVerdeFrenteASinRojo(vE, MAESTRO.rojo());
+  const std::string foto = fotoG();
+  if (dentro) {
+    v.instantes++;
+    if (vM && vE) v.simultaneo++;
+    if ((vM && ESCLAVO.estado() == S_FALLO_V) || (vE && MAESTRO.estado() == S_FALLO_V))
+      v.frenteAFallo++;
+    if (!v.enCurso) { v.enCurso = true; v.largo = 0; v.rachas++; v.empezo = foto; }
+    v.largo++;
+  } else if (v.enCurso) {
+    cerrarRachaG(v, foto + (goRojo ? " [GO_RED entregado al Esclavo en ese instante]" : ""));
+  }
+  if (!c.maestroFallo && MAESTRO.orden("comunicacion_perdida") == 1) {
+    c.maestroFallo = true;
+    c.esclavoAlFallo = ESCLAVO.estado();
+    c.tFallo = t;
+  }
+  if (c.tAperturaM < 0) {
+    if (vE) c.tUltVerdeE = (long)t;
+    if (vM || MAESTRO.estado() == S_AMARILLO_V) c.tAperturaM = (long)t;
+  }
+  if (c.tSueltaE < 0 && !vE) c.tSueltaE = (long)t;
+  const bool mFallo = (MAESTRO.estado() == S_FALLO_V);
+  if (mFallo && !c.mEnFallo) c.entradasFalloM++;
+  c.mEnFallo = mFallo;
+  if (foto != c.ultimaFoto) {
+    char pre[32];
+    std::snprintf(pre, sizeof(pre), "t%+7ld ms  ", (long)t - (long)c.tCorte);
+    c.traza.push_back(std::string(pre) + foto + (goRojo ? "   <- GO_RED entregado" : ""));
+    c.ultimaFoto = foto;
+  }
+}
+
+static void correrG(CorridaG& c, unsigned long ms) {
+  for (unsigned long h = 0; h < ms; h += PASO_MS) pasoG(c);
+}
+
+static void finG(CorridaG& c) {
+  if (c.v.enCurso) cerrarRachaG(c.v, "SEGUIA ABIERTA al acabar el escenario: " + fotoG());
+}
+
+static bool alcanzarVerdeG(Punta& p, unsigned long presupuesto) {
+  for (unsigned long g = 0; g < presupuesto; g += PASO_MS) {
+    unTick();
+    if (p.verde()) return true;
+  }
+  return false;
+}
+
+// Hasta el tick en que el Maestro pone un GO_GREEN en el aire (queda en vuelo: llega).
+static bool alcanzarGoVerdeG(unsigned long presupuesto) {
+  const unsigned long n0 = g_goVerdeEmitidos;
+  for (unsigned long g = 0; g < presupuesto; g += PASO_MS) {
+    unTick();
+    if (g_goVerdeEmitidos != n0) return true;
+  }
+  return false;
+}
+
+static void imprimirTrazaG(const char* titulo, const CorridaG& c) {
+  std::printf("      %s\n", titulo);
+  const size_t n = c.traza.size();
+  const size_t MAXL = 16;
+  for (size_t i = 0; i < n && i < MAXL; i++) std::printf("        %s\n", c.traza[i].c_str());
+  if (n > MAXL) std::printf("        ... (%lu cambios mas)\n", (unsigned long)(n - MAXL));
+  std::printf("        ventana: %lu ms acumulados (%lu instantes) en %lu racha(s), la mas larga "
+              "%lu ms (%lu instantes con verde en las dos, %lu frente a S_FALLO)\n",
+              acumuladoMsG(c.v), c.v.instantes, c.v.rachas, c.v.maxMs, c.v.simultaneo,
+              c.v.frenteAFallo);
+  if (c.v.maxMs > 0) {
+    std::printf("        la mas larga empezo en [%s] y la cerro [%s]\n",
+                c.v.empezoMax.c_str(), c.v.acaboMax.c_str());
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -609,6 +855,20 @@ int main() {
               "Esclavo/include/protocolo.h: el bloque F no sabria que trama esta tirando");
     }
     if (CMD_GO_GREEN_V == CMD_ACK_GREEN_V) abortar("CMD_GO_GREEN y CMD_ACK_GREEN comparten codigo");
+
+    // N-162 (bloque G): el GO_RED lo emite el Maestro y lo obedece el Esclavo; mismo trato.
+    CMD_GO_RED_V = hex(PROTO_M, "CMD_GO_RED");
+    if (hex(PROTO_E, "CMD_GO_RED") != CMD_GO_RED_V)
+      abortar("CMD_GO_RED DIFIERE entre las dos protocolo.h: el bloque G no sabria que trama cuenta");
+    if (CMD_GO_RED_V == CMD_GO_GREEN_V || CMD_GO_RED_V == CMD_ACK_GREEN_V)
+      abortar("CMD_GO_RED comparte codigo con GO_GREEN o ACK_GREEN");
+    // Y el ACK_RED, que el bloque G retiene en el aire a proposito (G9).
+    CMD_ACK_RED_V = hex(PROTO_E, "CMD_ACK_RED");
+    if (hex(PROTO_M, "CMD_ACK_RED") != CMD_ACK_RED_V)
+      abortar("CMD_ACK_RED DIFIERE entre las dos protocolo.h: el bloque G no sabria que acuse retiene");
+    if (CMD_ACK_RED_V == CMD_GO_RED_V || CMD_ACK_RED_V == CMD_ACK_GREEN_V ||
+        CMD_ACK_RED_V == CMD_GO_GREEN_V)
+      abortar("CMD_ACK_RED comparte codigo con otra orden de luz");
   }
 
   // N-162 (bloque F): los valores del enum EstadoSemaforo, releidos de las DOS cabeceras.
@@ -642,6 +902,16 @@ int main() {
     S_AMARILLO_V = indiceEnum(SEM_E, "S_AMARILLO");
     if (indiceEnum(SEM_M, "S_VERDE") != S_VERDE_V || indiceEnum(SEM_M, "S_AMARILLO") != S_AMARILLO_V)
       abortar("enum EstadoSemaforo DIFIERE entre las dos puntas");
+    // N-162 (bloque G): los otros dos valores, con el mismo cruce entre puntas.
+    S_ROJO_V  = indiceEnum(SEM_E, "S_ROJO");
+    S_FALLO_V = indiceEnum(SEM_E, "S_FALLO");
+    if (indiceEnum(SEM_M, "S_ROJO") != S_ROJO_V || indiceEnum(SEM_M, "S_FALLO") != S_FALLO_V)
+      abortar("enum EstadoSemaforo DIFIERE entre las dos puntas (S_ROJO o S_FALLO)");
+    // vigilar() -A9 y SFTY-28- lleva "const int S_FALLO = 3" escrito a mano desde antes
+    // del bloque G. No se toca aqui, pero si el enum se reordena ese 3 dejaria de ser
+    // S_FALLO sin fallar nada: se exige que siga siendolo.
+    if (S_FALLO_V != 3)
+      abortar("S_FALLO ya no vale 3 en enum EstadoSemaforo y vigilar() lo lleva escrito a mano");
   }
   SFTY6_SILENCIO_MS_V  = leerNumero(PROTO_M, R"(#define\s+SFTY6_SILENCIO_MS\s+(\d+)UL)", "SFTY6_SILENCIO_MS");
   TIMEOUT_ACK_MS_V     = leerNumero(COORD, R"(TIMEOUT_ACK_MS\s*=\s*(\d+))", "TIMEOUT_ACK_MS");
@@ -658,6 +928,14 @@ int main() {
   AMBAR_ESCLAVO_MS_V = leerNumero(RAIZ + "/Esclavo/src/semaforo.cpp",
       R"(estado\s*==\s*S_AMARILLO\s*&&\s*\(ahora\s*-\s*tCambio\s*>=\s*(\d+)\))",
       "el ambar de transicion del Esclavo");
+
+  LATIDO_MS_V = leerNumero(COORD, R"(const\s+unsigned\s+long\s+LATIDO_MS\s*=\s*(\d+))", "LATIDO_MS");
+  RETARDO_RESPUESTA_MS_V = leerNumero(RAIZ + "/Esclavo/src/main.cpp",
+      R"(RETARDO_RESPUESTA_MS\s*=\s*(\d+))", "RETARDO_RESPUESTA_MS del Esclavo");
+  MAX_VERDE_BACKSTOP_MS_V = leerNumero(RAIZ + "/Esclavo/src/main.cpp",
+      R"(MAX_VERDE_BACKSTOP_MS\s*=\s*(\d+))", "MAX_VERDE_BACKSTOP_MS del Esclavo");
+  VERDE_MIN_MIN_V = leerNumero(LIMITES, R"(VERDE_MIN_MIN\s*=\s*(\d+))", "VERDE_MIN_MIN");
+  ROJO_MIN_MIN_V  = leerNumero(LIMITES, R"(ROJO_MIN_MIN\s*=\s*(\d+))", "ROJO_MIN_MIN");
 
   std::printf("\n Constantes releidas del C++ real: silencio SFTY-6 = %lu ms,\n",
               SFTY6_SILENCIO_MS_V);
@@ -1164,10 +1442,626 @@ int main() {
   }
 
   // =========================================================================
+  std::printf("\n--- BLOQUE G: una punta en VERDE y la otra ABIERTA o sin rojo --------\n");
+  // N-162, lo que el bloque F dejo a la vista: con acuses perdidos el Esclavo ya esta en
+  // VERDE mientras el Maestro espera, y A9 excluye S_FALLO por nombre. Aqui se MIDE la
+  // ventana -instantes con una punta en verde y la otra sin sus dos rojos, S_FALLO incluido-,
+  // cuanto dura y QUE la cierra, con la radio cortada en una direccion, en las dos, o
+  // perdiendo tramas concretas.
+  //
+  // EL BORDE, escrito al lado (CLAUDE.md 7): UN VIAJE DE RADIO (g_latenciaMs) MAS UN TICK DE
+  // OBSERVACION (PASO_MS). Es lo minimo que puede durar la ventana cuando una punta decide
+  // abrir -o cerrar- y la otra solo puede enterarse por radio: la orden sale en el mismo
+  // instante, cruza una vez y se ejecuta en el tick en que llega. Todo lo que pase de ahi
+  // es una punta ESPERANDO algo que no necesita esperar -el siguiente latido, un umbral
+  // igual al de la otra punta, un acuse que no pide-, y eso lo puede cerrar un firmware:
+  // por eso por encima del borde es FALLA y no reportar(). Ni una tolerancia mas: la
+  // excepcion de A9 ya es una tolerancia infinita, y es la que este bloque viene a medir.
+  //
+  // QUE CADA FALLA SE PUEDE APAGAR, Y QUE CADA OK SE PUEDE ENCENDER (11/09, sobre una COPIA
+  // de coordinador.cpp fuera del arbol; el firmware no se toco): con tres parches de prueba
+  // -GO_RED al entrar en C_FALLO, verde propio soltado antes que la orfandad de enfrente, y
+  // verde propio solo tras ACK_RED- el arnes da todo OK, y cada parche apaga SOLO su fila.
+  // Con defectos inyectados caen G2 (a, b) -sin GO_RED en C_FALLO y "reintentos agotados =
+  // enlace perdido"- y G4 -Maestro en rojo que se abre 3 s antes que la orfandad-.
+  //
+  // 11/09, EL ARREGLO YA EN EL FIRMWARE (coordinador.cpp, rojoEsclavoConfirmado): GO_RED al
+  // entrar en C_FALLO, y ningun verde propio sin el ACK_RED de su GO_RED -autorrecuperacion,
+  // iniciarModo y DAR PASO tras un ROJO TOTAL-. Contra el coordinador.cpp de 648b62f
+  // este mismo bloque da G1, G2-d, G5, G6, G7, G8 y G10 en FALLA (180 s con verde en las
+  // dos en G2-d, G5, G6-b y G7; 431 s de verde frente al ambar de emergencia en G8-a).
+  // G3 sigue en FALLA a proposito: cerrarlo toca SFTY-6 y es del responsable.
+  const unsigned long BORDE_MS = g_latenciaMs + PASO_MS;
+  const unsigned long a9PerdonadosAF = g_a9Perdonados, a9RachaAF = g_a9RachaMax;
+  {
+    const unsigned long TOUT = TIMEOUT_ACK_MS_V;
+    const unsigned long NMAX = CICLO_MAX_REINTENTOS_V;
+    const unsigned long SIL  = SFTY6_SILENCIO_MS_V;
+    // EL CICLO DEL BLOQUE: los minimos de limites_ciclo.h, releidos, y con el rechazo del
+    // firmware convertido en ABORTADO (ver escenarioLimpio). Con los minimos cada ventana
+    // que dure "lo que dure el verde" sale con su valor MAS CORTO posible: con otro ciclo
+    // solo puede crecer, hasta VERDE_MIN_MAX.
+    const long TIEMPOS_G = tiempos((int)VERDE_MIN_MIN_V, (int)ROJO_MIN_MIN_V,
+                                   (int)DESPEJE_POR_DEFECTO_S);
+    const unsigned long DESPEJE_MS = DESPEJE_POR_DEFECTO_S * 1000UL;
+    const unsigned long VERDE_MS = VERDE_MIN_MIN_V * 60000UL;
+    const unsigned long ROJO_MS = ROJO_MIN_MIN_V * 60000UL;
+    const unsigned long ALCANCE = 2 * (DESPEJE_MS + AMBAR_ESCLAVO_MS_V) + VERDE_MS + ROJO_MS + 60000;
+    const unsigned long POST = SIL + TOUT * (NMAX + 2) + 30000;   // el mismo de C6/C7
+    // Lo que tarda en cerrarse una ventana que dura "el verde del Maestro": su despeje, su
+    // ambar, su verde entero y un minuto para ver quien la cierra.
+    const unsigned long TRAS_VERDE = DESPEJE_MS + AMBAR_ESCLAVO_MS_V + VERDE_MS + 60000;
+
+    std::printf("   Ciclo del bloque: verde %lu min, rojo %lu min, despeje %lu s (minimos de "
+                "limites_ciclo.h, aceptados por el firmware).\n",
+                VERDE_MIN_MIN_V, ROJO_MIN_MIN_V, DESPEJE_POR_DEFECTO_S);
+    std::printf("   Borde: %lu ms (un viaje de radio del arnes, %lu ms, + un tick, %lu ms).\n",
+                BORDE_MS, g_latenciaMs, PASO_MS);
+    std::printf("   Plazos releidos: latido %lu ms, cortesia del Esclavo %lu ms, silencio SFTY-6 "
+                "%lu ms, verde maximo del Esclavo %lu ms.\n",
+                LATIDO_MS_V, RETARDO_RESPUESTA_MS_V, SIL, MAX_VERDE_BACKSTOP_MS_V);
+
+    comprobar(hayVerdeFrenteASinRojo(true, false) && !hayVerdeFrenteASinRojo(true, true) &&
+              !hayVerdeFrenteASinRojo(false, false) && !hayVerdeFrenteASinRojo(false, true),
+              "G0 (control negativo): el detector de la ventana SI dispara con verde frente a "
+              "una punta sin rojo y NO con verde frente a rojo ni sin verde");
+
+    // ---- G1: Esclavo -> Maestro muerto con el ESCLAVO en verde ------------------------
+    // El corte se barre en pasos de 250 ms a lo largo de un latido entero: la ventana
+    // depende de en que punto del latido cae el silencio, y un solo instante mediria la
+    // fase que tocara, no la peor.
+    unsigned long g1Max = 0, g1Min = (unsigned long)-1, g1PeorOff = 0, g1Fases = 0;
+    bool g1Ejercido = true;
+    CorridaG g1Peor;
+    for (unsigned long off = 0; off <= LATIDO_MS_V; off += 250) {
+      CorridaG c;
+      g1Fases++;
+      escenarioLimpio(TIEMPOS_G, true);
+      bool ok = alcanzarVerdeG(ESCLAVO, ALCANCE);
+      avanzar(off);
+      ok = ok && ESCLAVO.verde() && MAESTRO.rojo();
+      g_enlaceHaciaMaestro = false;
+      c.tCorte = g_t;
+      correrG(c, POST);
+      finG(c);
+      if (!(ok && c.maestroFallo && c.esclavoAlFallo == S_VERDE_V && !ESCLAVO.verde()))
+        g1Ejercido = false;
+      const unsigned long acu = acumuladoMsG(c.v);
+      if (acu < g1Min) g1Min = acu;
+      if (acu >= g1Max) { g1Max = acu; g1PeorOff = off; g1Peor = c; }
+    }
+    imprimirTrazaG(("G1, peor fase (corte " + std::to_string(g1PeorOff) + " ms despues de "
+                    "encenderse el verde del Esclavo; en las " + std::to_string(g1Fases) +
+                    " fases la ventana midio entre " + std::to_string(g1Min) + " y " +
+                    std::to_string(g1Max) + " ms):").c_str(), g1Peor);
+    comprobar(g1Ejercido,
+              "G1 (control): en las " + std::to_string(g1Fases) + " fases, el "
+              "corte Esclavo->Maestro cayo con el Esclavo en VERDE y el Maestro en rojo, el "
+              "Maestro llego a C_FALLO con el Esclavo TODAVIA en verde, y el Esclavo acabo "
+              "fuera de verde");
+    comprobar(g1Max <= BORDE_MS,
+              "G1: Esclavo->Maestro muerto con el Esclavo en verde. El Maestro cae a S_FALLO "
+              "(ambar intermitente, pluma ARRIBA) por silencio y el Esclavo sigue en verde hasta "
+              "que le llega un GO_RED: ventana " + std::to_string(g1Max) + " ms en la peor fase (" +
+              std::to_string(g1PeorOff) + " ms); borde " + std::to_string(BORDE_MS) + " ms" +
+              (g1Max <= BORDE_MS ? std::string(": el GO_RED sale AL ENTRAR en C_FALLO")
+                                 : std::string(". Por encima del borde el GO_RED espera al LATIDO (") +
+                                   std::to_string(LATIDO_MS_V) + " ms) y los PING que siguen "
+                                   "llegando le refrescan la orfandad"));
+
+    // ---- G2: el Maestro esperando su ACK_GREEN ----------------------------------------
+    //   a) Esclavo->Maestro muerto desde el GO_GREEN, para siempre.
+    //   b) solo se pierden los ACK_GREEN; el resto del enlace vive.
+    //   d) corte TOTAL desde el GO_GREEN hasta el instante siguiente a C_FALLO, y vuelve.
+    //      Es la averia de lluvia: un desvanecimiento de ~18 s que se lleva los acuses y,
+    //      en su ultimo instante, el GO_RED con el que el Maestro se autorrecupera.
+    CorridaG g2a, g2b, g2d;
+    bool g2Ejercido = true;
+    unsigned long g2dGoRojoCortados = 0;
+    {
+      escenarioLimpio(TIEMPOS_G, true);
+      g2Ejercido = alcanzarGoVerdeG(ALCANCE) && g2Ejercido;
+      g_enlaceHaciaMaestro = false;
+      g2a.tCorte = g_t;
+      correrG(g2a, TOUT * (NMAX + 1) + POST);
+      finG(g2a);
+    }
+    {
+      escenarioLimpio(TIEMPOS_G, true);
+      g2Ejercido = alcanzarGoVerdeG(ALCANCE) && g2Ejercido;
+      g_ackVerdeAPerder = 1000000;   // todos: el escenario acaba antes del siguiente verde
+      g2b.tCorte = g_t;
+      correrG(g2b, TOUT * (NMAX + 1) + POST);
+      finG(g2b);
+      g_ackVerdeAPerder = 0;
+    }
+    {
+      escenarioLimpio(TIEMPOS_G, true);
+      g2Ejercido = alcanzarGoVerdeG(ALCANCE) && g2Ejercido;
+      g_enlaceHaciaMaestro = g_enlaceHaciaEsclavo = false;
+      g2d.tCorte = g_t;
+      for (unsigned long g = 0; g < TOUT * (NMAX + 2) && !g2d.maestroFallo; g += PASO_MS) pasoG(g2d);
+      const unsigned long cortados0 = g_goRojoCortados;
+      pasoG(g2d);   // el instante siguiente a C_FALLO: la autorrecuperacion emite su GO_RED
+      g2dGoRojoCortados = g_goRojoCortados - cortados0;
+      g_enlaceHaciaMaestro = g_enlaceHaciaEsclavo = true;
+      correrG(g2d, TRAS_VERDE);
+      finG(g2d);
+    }
+    imprimirTrazaG("G2-a (Esclavo->Maestro muerto desde el GO_GREEN):", g2a);
+    imprimirTrazaG("G2-b (solo se pierden los ACK_GREEN):", g2b);
+    imprimirTrazaG(("G2-d (corte total desde el GO_GREEN hasta el instante siguiente a "
+                    "C_FALLO; " + std::to_string(g2dGoRojoCortados) + " GO_RED perdidos en ese "
+                    "instante):").c_str(), g2d);
+    comprobar(g2Ejercido && g2a.maestroFallo && g2b.maestroFallo && g2d.maestroFallo &&
+              g2a.esclavoAlFallo == S_VERDE_V && g2b.esclavoAlFallo == S_VERDE_V &&
+              g2d.esclavoAlFallo == S_VERDE_V && g2dGoRojoCortados >= 1,
+              "G2 (control): en a, b y d el Maestro agoto reintentos esperando el ACK_GREEN con "
+              "el Esclavo YA EN VERDE (la idempotencia de hoy), y en d el corte se llevo " +
+              std::to_string(g2dGoRojoCortados) + " GO_RED en el instante de la autorrecuperacion");
+    comprobar(acumuladoMsG(g2a.v) <= BORDE_MS && acumuladoMsG(g2b.v) <= BORDE_MS,
+              "G2 (a, b): con la otra direccion viva el Maestro NO se abre: al agotar reintentos "
+              "se AUTORRECUPERA en el instante siguiente -silencio aun por debajo de " +
+              std::to_string(SIL) + " ms- con rojo y un GO_RED que llega. Ventana: " +
+              std::to_string(acumuladoMsG(g2a.v)) + " ms (a), " +
+              std::to_string(acumuladoMsG(g2b.v)) + " ms (b); "
+              "borde " + std::to_string(BORDE_MS) + " ms");
+    comprobar(acumuladoMsG(g2d.v) <= BORDE_MS && g2d.v.simultaneo == 0,
+              "G2-d: perdido el GO_RED de la autorrecuperacion (SFTY-9) y vuelto el enlace, el "
+              "Maestro NO se abre sin el ACK_RED de su GO_RED: ventana " +
+              std::to_string(acumuladoMsG(g2d.v)) + " ms, " +
+              std::to_string(g2d.v.simultaneo * PASO_MS) + " ms con VERDE EN LAS DOS; borde " +
+              std::to_string(BORDE_MS) + " ms" +
+              (acumuladoMsG(g2d.v) <= BORDE_MS ? std::string("")
+               : std::string(". Se abrio a los ") + std::to_string(DESPEJE_MS) + " ms de despeje "
+                 "contando con un GO_RED que no llego: los PING le refrescan la orfandad al "
+                 "Esclavo, que sigue en verde"));
+    // El control de la inversion (CLAUDE.md 9): un Maestro que no se abriera NUNCA -atascado
+    // en rojo con la radio viva- pasaria la linea de arriba igual de bien.
+    comprobar(g2d.tAperturaM >= 0 && todoRojoMsG(g2d) >= (long)DESPEJE_MS,
+              "G2-d (control de la inversion): el Maestro SI se abre despues -no se queda en rojo "
+              "con la radio viva- y con el todo-rojo entero: " + std::to_string(todoRojoMsG(g2d)) +
+              " ms entre el ultimo verde del Esclavo y el ambar del Maestro; despeje " +
+              std::to_string(DESPEJE_MS) + " ms (-1 = no se abrio en " +
+              std::to_string(TRAS_VERDE) + " ms)");
+
+    // ---- G3: Maestro -> Esclavo muerto con el MAESTRO en verde (la simetrica) ----------
+    unsigned long g3Max = 0, g3Min = (unsigned long)-1, g3PeorOff = 0, g3Fases = 0;
+    bool g3Ejercido = true;
+    CorridaG g3Peor;
+    for (unsigned long off = 0; off <= LATIDO_MS_V; off += 250) {
+      CorridaG c;
+      g3Fases++;
+      escenarioLimpio(TIEMPOS_G, true);
+      bool ok = alcanzarVerdeG(MAESTRO, ALCANCE);
+      avanzar(off);
+      ok = ok && MAESTRO.verde() && ESCLAVO.rojo();
+      g_enlaceHaciaEsclavo = false;
+      c.tCorte = g_t;
+      correrG(c, POST);
+      finG(c);
+      if (!(ok && c.maestroFallo && ESCLAVO.estado() == S_FALLO_V && !MAESTRO.verde()))
+        g3Ejercido = false;
+      const unsigned long acu = acumuladoMsG(c.v);
+      if (acu < g3Min) g3Min = acu;
+      if (acu >= g3Max) { g3Max = acu; g3PeorOff = off; g3Peor = c; }
+    }
+    imprimirTrazaG(("G3, peor fase (corte " + std::to_string(g3PeorOff) + " ms despues de "
+                    "encenderse el verde del Maestro; en las " + std::to_string(g3Fases) +
+                    " fases la ventana midio entre " + std::to_string(g3Min) + " y " +
+                    std::to_string(g3Max) + " ms):").c_str(), g3Peor);
+    comprobar(g3Ejercido,
+              "G3 (control): en todas las fases el corte Maestro->Esclavo cayo con el Maestro en "
+              "VERDE y el Esclavo en rojo, el Esclavo acabo en S_FALLO por orfandad y el Maestro "
+              "en C_FALLO sin verde");
+    comprobar(g3Max <= BORDE_MS,
+              "G3: Maestro->Esclavo muerto con el Maestro en verde. El Esclavo cae a S_FALLO "
+              "(pluma ARRIBA) por orfandad ANTES de que el Maestro apague su verde por silencio: "
+              "los dos umbrales son el mismo SFTY6_SILENCIO_MS y el Maestro cuenta desde el PONG, "
+              "que sale " + std::to_string(RETARDO_RESPUESTA_MS_V) + " ms (cortesia) + un viaje "
+              "despues del PING que cuenta el Esclavo. Ventana " +
+              std::to_string(g3Max) + " ms en la peor fase (" + std::to_string(g3PeorOff) +
+              " ms); borde " +
+              std::to_string(BORDE_MS) + " ms");
+
+    // ---- G4: los controles, el mismo detector donde el orden SI es el bueno ------------
+    //   a) Maestro->Esclavo muerto con el ESCLAVO en verde: su orfandad lo saca a S_FALLO
+    //      con el Maestro en rojo.
+    //   b) corte total con el ESCLAVO en verde: el Esclavo sale de verde antes de que el
+    //      Maestro se abra, por la misma cortesia que en G3 juega al reves.
+    CorridaG g4a, g4b;
+    bool g4Ejercido = true;
+    for (int k = 0; k < 2; k++) {
+      CorridaG& c = (k == 0) ? g4a : g4b;
+      escenarioLimpio(TIEMPOS_G, true);
+      bool ok = alcanzarVerdeG(ESCLAVO, ALCANCE);
+      avanzar(1000);
+      ok = ok && ESCLAVO.verde();
+      g_enlaceHaciaEsclavo = false;
+      if (k == 1) g_enlaceHaciaMaestro = false;
+      c.tCorte = g_t;
+      correrG(c, POST);
+      finG(c);
+      if (!(ok && c.maestroFallo && ESCLAVO.estado() == S_FALLO_V)) g4Ejercido = false;
+    }
+    imprimirTrazaG("G4-a (Maestro->Esclavo muerto con el Esclavo en verde):", g4a);
+    imprimirTrazaG("G4-b (corte total con el Esclavo en verde):", g4b);
+    comprobar(g4Ejercido && acumuladoMsG(g4a.v) <= BORDE_MS && acumuladoMsG(g4b.v) <= BORDE_MS,
+              "G4 (control positivo): donde el orden de salida es el bueno el MISMO detector da " +
+              std::to_string(acumuladoMsG(g4a.v)) + " ms (a) y " +
+              std::to_string(acumuladoMsG(g4b.v)) + " ms (b) "
+              "sobre el C++ real: la ventana no es un artefacto del arnes que salga siempre");
+
+    // ---- G5: cambio de modo con el Esclavo en verde y el GO_RED de arranque perdido -----
+    // coordinador_iniciarModo() tiene la misma forma que la autorrecuperacion: UN GO_RED,
+    // despeje y verde propio, sin ACK_RED. Se entra en Automatico con el Esclavo en verde -lo
+    // que hace un operario que cambia de modo desde la app- y se pierde esa unica trama.
+    CorridaG g5;
+    bool g5Ejercido;
+    {
+      escenarioLimpio(TIEMPOS_G, true);
+      bool ok = alcanzarVerdeG(ESCLAVO, ALCANCE);
+      avanzar(3000);
+      ok = ok && ESCLAVO.verde();
+      const unsigned long perd0 = g_goRojoPerdidos, entr0 = g_goRojoEntregados;
+      g_goRojoAPerder = 1;
+      MAESTRO.orden("arrancar_automatico");
+      g5.tCorte = g_t;
+      correrG(g5, TRAS_VERDE);
+      finG(g5);
+      g5Ejercido = ok && g_goRojoPerdidos - perd0 == 1 && g_goRojoAPerder == 0;
+      std::printf("      (G5: GO_RED tirados %lu, GO_RED entregados despues %lu)\n",
+                  g_goRojoPerdidos - perd0, g_goRojoEntregados - entr0);
+    }
+    imprimirTrazaG("G5 (entrada en Automatico con el Esclavo en verde, su GO_RED perdido):", g5);
+    comprobar(g5Ejercido,
+              "G5 (control): se entro en Automatico con el Esclavo en VERDE y se perdio "
+              "EXACTAMENTE el GO_RED de coordinador_iniciarModo()");
+    comprobar(acumuladoMsG(g5.v) <= BORDE_MS && g5.v.simultaneo == 0,
+              "G5: perdido el GO_RED de coordinador_iniciarModo(), el Maestro NO se abre sin su "
+              "ACK_RED: ventana " + std::to_string(acumuladoMsG(g5.v)) + " ms, " +
+              std::to_string(g5.v.simultaneo * PASO_MS) + " ms con VERDE EN LAS DOS; borde " +
+              std::to_string(BORDE_MS) + " ms" +
+              (acumuladoMsG(g5.v) <= BORDE_MS ? std::string("")
+               : std::string(". Se abrio a los ") + std::to_string(DESPEJE_MS) +
+                 " ms contando con una trama que no llego"));
+    comprobar(g5.tAperturaM >= 0 && todoRojoMsG(g5) >= (long)DESPEJE_MS,
+              "G5 (control de la inversion): el Maestro SI se abre despues y con el todo-rojo "
+              "entero: " + std::to_string(todoRojoMsG(g5)) + " ms entre el ultimo verde del "
+              "Esclavo y el ambar del Maestro; despeje " + std::to_string(DESPEJE_MS) +
+              " ms (-1 = no se abrio en " + std::to_string(TRAS_VERDE) + " ms)");
+
+    // ---- G6: ROJO TOTAL con el Esclavo en verde y su GO_RED perdido --------------------
+    // coordinador_forzarRojoTotal() -el rojo de emergencia de la app y del mando, y la
+    // entrada en Manual- manda UN GO_RED y deja la maquina en reposo con nadie en verde. Si
+    // esa trama se pierde, (a) el rojo no llega al otro lado mientras los PING le mantengan
+    // vivo el verde, y (b) la siguiente peticion de cambio abre el verde propio contando con
+    // un despeje "ya pagado" que no vacio nada (el case QV_NINGUNO de pedirCambio, N-147).
+    //
+    // EL BORDE DE (a), escrito al lado (CLAUDE.md 7): una trama perdida solo se descubre
+    // porque no vuelve su acuse, y en reposo el unico reintento que tiene el Maestro es el
+    // LATIDO. Lo mas tarde que sale es un latido entero despues del anterior -mas un tick,
+    // por el '>' estricto del firmware-; luego cruza un viaje y se ejecuta en el tick en que
+    // llega. Se barre la fase del latido como en G1: un solo instante mediria la que tocara.
+    const unsigned long BORDE_REINTENTO_MS = LATIDO_MS_V + PASO_MS + BORDE_MS;
+    unsigned long g6SueltaMax = 0, g6Fases = 0, g6PeorOff = 0;
+    bool g6SueltaEjercido = true;
+    for (unsigned long off = 0; off <= LATIDO_MS_V; off += 250) {
+      CorridaG c;
+      g6Fases++;
+      escenarioLimpio(TIEMPOS_G, true);
+      bool ok = alcanzarVerdeG(ESCLAVO, ALCANCE);
+      avanzar(off);
+      ok = ok && ESCLAVO.verde();
+      const unsigned long perd0 = g_goRojoPerdidos;
+      g_goRojoAPerder = 1;
+      MAESTRO.orden("forzar_rojo_total");
+      c.tCorte = g_t;
+      correrG(c, LATIDO_MS_V + 2000);
+      if (!(ok && g_goRojoPerdidos - perd0 == 1)) g6SueltaEjercido = false;
+      // -1 = no salio de verde en toda la corrida: se cuenta como la corrida entera.
+      const unsigned long suelta = (c.tSueltaE < 0) ? (LATIDO_MS_V + 2000)
+                                   : (unsigned long)(c.tSueltaE - (long)c.tCorte);
+      if (suelta >= g6SueltaMax) { g6SueltaMax = suelta; g6PeorOff = off; }
+    }
+    CorridaG g6;
+    bool g6Ejercido;
+    {
+      escenarioLimpio(TIEMPOS_G, true);
+      bool ok = alcanzarVerdeG(ESCLAVO, ALCANCE);
+      avanzar(3000);
+      ok = ok && ESCLAVO.verde();
+      const unsigned long perd0 = g_goRojoPerdidos;
+      g_goRojoAPerder = 1;
+      MAESTRO.orden("forzar_rojo_total");
+      g6.tCorte = g_t;
+      correrG(g6, ROJO_MS + TRAS_VERDE);
+      finG(g6);
+      g6Ejercido = ok && g_goRojoPerdidos - perd0 == 1;
+    }
+    imprimirTrazaG("G6 (ROJO TOTAL con el Esclavo en verde, su GO_RED perdido; el Automatico "
+                   "sigue y pide el cambio al vencer su rojo):", g6);
+    comprobar(g6SueltaEjercido && g6Ejercido,
+              "G6 (control): en las " + std::to_string(g6Fases + 1) + " corridas se dio el ROJO "
+              "TOTAL con el Esclavo en VERDE y se perdio EXACTAMENTE su GO_RED");
+    comprobar(g6SueltaMax <= BORDE_REINTENTO_MS,
+              "G6-a: el ROJO TOTAL llega al otro lado aunque se pierda su trama: el Esclavo sale "
+              "de verde en " + std::to_string(g6SueltaMax) + " ms en la peor fase (" +
+              std::to_string(g6PeorOff) + " ms); borde " + std::to_string(BORDE_REINTENTO_MS) +
+              " ms (un latido + un tick + un viaje + un tick)");
+    comprobar(acumuladoMsG(g6.v) <= BORDE_MS && g6.v.simultaneo == 0 &&
+              g6.tAperturaM >= 0 && todoRojoMsG(g6) >= (long)DESPEJE_MS,
+              "G6-b: la peticion de cambio que sigue al ROJO TOTAL abre el verde propio con el "
+              "Esclavo en rojo y el todo-rojo entero: ventana " +
+              std::to_string(acumuladoMsG(g6.v)) + " ms, " +
+              std::to_string(g6.v.simultaneo * PASO_MS) + " ms con VERDE EN LAS DOS (borde " +
+              std::to_string(BORDE_MS) + " ms); todo-rojo " + std::to_string(todoRojoMsG(g6)) +
+              " ms, despeje " + std::to_string(DESPEJE_MS) + " ms (-1 = no se abrio)");
+
+    // ---- G7: DAR PASO con el despeje "ya pagado" y el rojo del otro lado sin constar ----
+    // El case QV_NINGUNO de pedirCambio() abre en el acto si el cruce lleva en rojo mas que
+    // el despeje (N-147: el despeje cumplido no se vuelve a cobrar). Aqui el ROJO TOTAL se da
+    // con la direccion Maestro->Esclavo cortada un despeje y dos segundos -se lleva su GO_RED
+    // y lo que el Maestro mande detras-, vuelve, y el operario pulsa DAR PASO. Lo que se
+    // exige: que el verde propio espere al ACK_RED y cuente el despeje ENTERO desde el,
+    // porque no se sabe desde cuando esta en rojo el otro lado.
+    CorridaG g7;
+    bool g7Ejercido;
+    long g7Acepto = -1;
+    {
+      escenarioLimpio(TIEMPOS_G, true);
+      bool ok = alcanzarVerdeG(ESCLAVO, ALCANCE);
+      avanzar(3000);
+      ok = ok && ESCLAVO.verde();
+      const unsigned long cort0 = g_goRojoCortados;
+      MAESTRO.orden("forzar_rojo_total");
+      g_enlaceHaciaEsclavo = false;
+      g7.tCorte = g_t;
+      correrG(g7, DESPEJE_MS + 2000);
+      g_enlaceHaciaEsclavo = true;
+      ok = ok && ESCLAVO.verde() && !g7.maestroFallo && g_goRojoCortados - cort0 >= 1;
+      g7Acepto = MAESTRO.orden("pedir_cambio");
+      correrG(g7, TRAS_VERDE);
+      finG(g7);
+      g7Ejercido = ok && g7Acepto == 1;
+    }
+    imprimirTrazaG("G7 (ROJO TOTAL con Maestro->Esclavo cortado un despeje + 2 s, y DAR PASO al "
+                   "volver):", g7);
+    comprobar(g7Ejercido,
+              "G7 (control): al pulsar DAR PASO el Esclavo seguia en VERDE sin haber recibido el "
+              "ROJO TOTAL, el Maestro no estaba en C_FALLO y la orden se ACEPTO (" +
+              std::to_string(g7Acepto) + ")");
+    comprobar(acumuladoMsG(g7.v) <= BORDE_MS && g7.v.simultaneo == 0 &&
+              g7.tAperturaM >= 0 && todoRojoMsG(g7) >= (long)DESPEJE_MS,
+              "G7: DAR PASO sin el rojo del otro lado confirmado espera su ACK_RED y cobra el "
+              "despeje entero: ventana " + std::to_string(acumuladoMsG(g7.v)) + " ms, " +
+              std::to_string(g7.v.simultaneo * PASO_MS) + " ms con VERDE EN LAS DOS (borde " +
+              std::to_string(BORDE_MS) + " ms); todo-rojo " + std::to_string(todoRojoMsG(g7)) +
+              " ms, despeje " + std::to_string(DESPEJE_MS) + " ms (-1 = no se abrio)");
+
+    // ---- G8: el Esclavo en su AMBAR DE EMERGENCIA, que VETA el GO_RED sin acusarlo -----
+    // Esa punta, con el cerrojo de la app puesto, ni obedece ni acusa un GO_RED -N-83/D-8,
+    // Esclavo/src/main.cpp- pero SIGUE CONTESTANDO PONG a un PING. Si el Maestro esperase su
+    // ACK_RED volviendo a ver comunicacion por los PONG, la autorrecuperacion se rearmaria
+    // sin fin: rojo 17,5 s, C_FALLO, rojo otra vez... con la pluma subiendo y bajando. Aqui
+    // se monta con el aviso CMD_AMBAR_ESCLAVO PERDIDO (N-142 lo manda una vez y sin
+    // reintento; con el aviso, main.cpp lleva el cruce a MODO_AMBAR y esto no pasa), y en
+    // las dos fases: (a) con el Esclavo en verde y (b) con el Maestro en verde.
+    //
+    // EL BORDE DE LA OSCILACION, escrito al lado: UNA entrada en S_FALLO en toda la corrida.
+    // Es lo que el propio Esclavo declara que tiene que pasar -"cae a C_FALLO ... y el cruce
+    // entero termina en ambar, que es lo que el operario pidio"- y es lo unico que no deja
+    // una pluma subiendo y bajando delante de quien pidio el ambar.
+    const unsigned long G8_MS = 12UL * 60000UL;
+    CorridaG g8[2];
+    long g8Alarmas[2] = {0, 0};
+    bool g8Ejercido = true;
+    for (int k = 0; k < 2; k++) {
+      CorridaG& c = g8[k];
+      escenarioLimpio(TIEMPOS_G, true);
+      bool ok = alcanzarVerdeG(k == 0 ? ESCLAVO : MAESTRO, ALCANCE);
+      avanzar(3000);
+      ok = ok && (k == 0 ? ESCLAVO.verde() : MAESTRO.verde());
+      const long alarmas0 = MAESTRO.orden("alarmas");
+      g_enlaceHaciaMaestro = false;          // se lleva el aviso de este instante, y solo el
+      ok = ok && ESCLAVO.orden("ambar_emergencia_app") == 1;
+      c.tCorte = g_t;
+      pasoG(c);
+      g_enlaceHaciaMaestro = true;
+      correrG(c, G8_MS);
+      finG(c);
+      ok = ok && ESCLAVO.estado() == S_FALLO_V;
+      g8Alarmas[k] = MAESTRO.orden("alarmas") - alarmas0;
+      if (!ok) g8Ejercido = false;
+    }
+    imprimirTrazaG("G8-a (ambar de emergencia del Esclavo, con el Esclavo en verde y su aviso "
+                   "perdido):", g8[0]);
+    imprimirTrazaG("G8-b (ambar de emergencia del Esclavo, con el MAESTRO en verde y el aviso "
+                   "perdido):", g8[1]);
+    comprobar(g8Ejercido,
+              "G8 (control): en a y b el ambar de emergencia del Esclavo se puso sobre la fase "
+              "pedida, su aviso CMD_AMBAR_ESCLAVO se perdio y el Esclavo seguia en S_FALLO al "
+              "acabar");
+    comprobar(g8[0].entradasFalloM <= 1 && g8[1].entradasFalloM <= 1 &&
+              g8[0].mEnFallo && g8[1].mEnFallo,
+              "G8: con el Esclavo vetando el GO_RED el Maestro NO oscila: entra en S_FALLO " +
+              std::to_string(g8[0].entradasFalloM) + " vez/veces (a) y " +
+              std::to_string(g8[1].entradasFalloM) + " (b) en " + std::to_string(G8_MS / 60000) +
+              " min y se queda ahi (borde: 1); alarmas " + std::to_string(g8Alarmas[0]) + " (a) y " +
+              std::to_string(g8Alarmas[1]) + " (b)");
+    comprobar(acumuladoMsG(g8[0].v) <= BORDE_MS,
+              "G8-a: con el Esclavo en su ambar de emergencia el Maestro NUNCA se abre frente a "
+              "el: ventana " + std::to_string(acumuladoMsG(g8[0].v)) + " ms; borde " +
+              std::to_string(BORDE_MS) + " ms");
+    // (b) empieza con el Maestro YA en verde: lo que dure hasta el final de su fase es el
+    // residual de N-142 con el aviso perdido -"hasta 3 minutos"- y ningun cambio de ESTE
+    // fichero lo acorta, porque el Maestro no tiene como saber que el otro lado cambio.
+    // Por eso va a reportar() y no cuenta; lo que SI cuenta es que no se abra otra vez.
+    comprobar(g8[1].v.rachas <= 1,
+              "G8-b: pasado el verde que ya tenia, el Maestro no se vuelve a abrir frente al "
+              "ambar de emergencia: " + std::to_string(g8[1].v.rachas) + " racha(s) de ventana "
+              "(borde 1, la del verde que ya estaba encendido)");
+    std::printf("   [NOTA]  G8-b: el verde del Maestro que YA estaba encendido siguio %lu ms frente "
+                "al ambar de emergencia del Esclavo, con el aviso CMD_AMBAR_ESCLAVO perdido. Es el "
+                "residual de N-142 (aviso sin reintento): no lo cierra coordinador.cpp. No cuenta.\n",
+                acumuladoMsG(g8[1].v));
+
+    // G8-c: el rojo del otro lado CONSTABA -el Maestro estaba en verde, o sea con el Esclavo
+    // acusado en rojo- y el Esclavo se fue a su ambar de emergencia POR SU CUENTA, con el
+    // aviso perdido. Detras, alguien da ROJO TOTAL y, pasado el despeje, DAR PASO. Un rojo
+    // acusado ANTES de la orden de rojo no dice nada del de ahora: si el Maestro contara con
+    // el, abriria frente al ambar. Aqui el control es que no se abra nunca -el otro lado no
+    // va a acusar- y que termine en S_FALLO como el, no parado en rojo.
+    CorridaG g8c;
+    bool g8cEjercido;
+    long g8cAcepto = -1;
+    {
+      escenarioLimpio(TIEMPOS_G, true);
+      bool ok = alcanzarVerdeG(MAESTRO, ALCANCE);
+      avanzar(3000);
+      g_enlaceHaciaMaestro = false;
+      ok = ok && MAESTRO.verde() && ESCLAVO.orden("ambar_emergencia_app") == 1;
+      unTick();
+      g_enlaceHaciaMaestro = true;
+      avanzar(1000);
+      MAESTRO.orden("forzar_rojo_total");
+      g8c.tCorte = g_t;
+      correrG(g8c, DESPEJE_MS + 2000);
+      g8cAcepto = MAESTRO.orden("pedir_cambio");
+      correrG(g8c, POST);
+      finG(g8c);
+      g8cEjercido = ok && ESCLAVO.estado() == S_FALLO_V;
+    }
+    imprimirTrazaG("G8-c (el rojo constaba; el Esclavo se va a su ambar de emergencia con el aviso "
+                   "perdido; ROJO TOTAL y DAR PASO pasado el despeje):", g8c);
+    comprobar(g8cEjercido,
+              "G8-c (control): el Maestro estaba en verde -rojo del Esclavo acusado-, el Esclavo "
+              "se fue a su ambar de emergencia con el aviso perdido y seguia en el al acabar; "
+              "DAR PASO devolvio " + std::to_string(g8cAcepto));
+    comprobar(acumuladoMsG(g8c.v) <= BORDE_MS && g8c.tAperturaM < 0 && g8c.mEnFallo,
+              "G8-c: un rojo acusado ANTES del ROJO TOTAL no abre el DAR PASO de despues: el "
+              "Maestro no se abre frente al ambar de emergencia (ventana " +
+              std::to_string(acumuladoMsG(g8c.v)) + " ms, borde " + std::to_string(BORDE_MS) +
+              " ms; apertura " + (g8c.tAperturaM < 0 ? std::string("ninguna")
+                                                     : std::to_string(g8c.tAperturaM - (long)g8c.tCorte) + " ms") +
+              ") y termina en S_FALLO como el otro lado");
+
+    // ---- G9: un ACK_RED VIEJO (revision del arquitecto, punto 4) -----------------------
+    // El protocolo no dice en el ACK_RED a que GO_RED contesta, asi que el Maestro solo puede
+    // exigir que llegue DESPUES de su orden. Engana si el acuse es de ANTES de que el Esclavo
+    // volviera a verde. Se monta el peor caso: se retiene un ACK_RED en el aire, el ciclo
+    // sigue hasta que el Esclavo esta otra vez en verde, se entra en Automatico perdiendo el
+    // GO_RED de entrada, y se suelta el acuse viejo en ese instante.
+    //
+    // reportar(): no cuenta, y es deliberado. Ningun firmware DEL MAESTRO puede distinguir
+    // ese acuse del bueno; cerrarlo pide un identificador en el ACK_RED, o sea protocolo y
+    // las DOS puntas. Lo que se publica es CUANTO tiene que retener la radio una trama para
+    // que pase: el Maestro no emite GO_GREEN hasta despeje + ambar + verde + despeje despues
+    // del ultimo acuse de rojo.
+    //
+    // Y SUS INSTANTES SE SACAN DEL RESUMEN FINAL, que cuenta verdes simultaneos de todo el
+    // barrido: dejarlos dentro lo convertiria en un FALLA permanente que ningun firmware del
+    // Maestro puede apagar (CLAUDE.md 1). Se imprimen aparte, con su numero.
+    CorridaG g9;
+    bool g9Ejercido = false;
+    unsigned long g9Edad = 0;
+    const unsigned long simAntesG9 = g_verdeSimultaneo;
+    const unsigned long primerAntesG9 = g_primerSimultaneoMs;
+    {
+      escenarioLimpio(TIEMPOS_G, true);
+      bool ok = alcanzarVerdeG(ESCLAVO, ALCANCE);
+      g_ackRojoARetener = 1;
+      bool rojo = false;
+      for (unsigned long g = 0; g < ALCANCE && !rojo; g += PASO_MS) { unTick(); rojo = !ESCLAVO.verde(); }
+      ok = ok && rojo && alcanzarVerdeG(ESCLAVO, ALCANCE) && g_hayAckRojoRetenido;
+      avanzar(3000);
+      ok = ok && ESCLAVO.verde();
+      g9Edad = g_t - g_tAckRojoRetenido;
+      g_goRojoAPerder = 1;
+      MAESTRO.orden("arrancar_automatico");
+      soltarAckRojo();
+      g9.tCorte = g_t;
+      correrG(g9, TRAS_VERDE);
+      finG(g9);
+      g9Ejercido = ok && g_goRojoAPerder == 0;
+    }
+    const unsigned long simG9 = g_verdeSimultaneo - simAntesG9;
+    g_verdeSimultaneo = simAntesG9;
+    g_primerSimultaneoMs = primerAntesG9;
+    std::printf("      (G9: %lu instantes con verde en las dos, FUERA del RESUMEN final)\n", simG9);
+    imprimirTrazaG("G9 (ACK_RED retenido desde ANTES del ultimo verde del Esclavo, soltado tras "
+                   "un GO_RED de entrada perdido):", g9);
+    std::printf("   [NOTA]  G9%s: un ACK_RED retenido %lu ms en el aire -desde antes del ultimo "
+                "GO_GREEN- y soltado tras un GO_RED perdido: ventana %lu ms, %lu ms con VERDE EN "
+                "LAS DOS. El Maestro no puede distinguirlo sin un identificador en el acuse "
+                "(protocolo, dos puntas). Hace falta que la radio RETENGA una trama al menos "
+                "despeje + ambar + verde + despeje (%lu ms con este ciclo) y la suelte en ese "
+                "instante. No cuenta.\n",
+                g9Ejercido ? "" : " (NO EJERCIDO: el escenario no llego a montarse)",
+                g9Edad, acumuladoMsG(g9.v), g9.v.simultaneo * PASO_MS,
+                2 * DESPEJE_MS + AMBAR_ESCLAVO_MS_V + VERDE_MS);
+
+    // ---- G10: el Esclavo en Degradado, en verde por reloj, y el Maestro entra en Automatico
+    // (revision del arquitecto, punto 5). El GO_RED de entrada lo saca del Degradado
+    // -degradado_salir(), todo-rojo- y lo acusa; el Maestro cuenta SU despeje desde ese
+    // ACK_RED. El Esclavo se configura con un despeje MAS LARGO que el del Maestro para ver
+    // cual de los dos manda. Lo que cuenta es que haya al menos el del Maestro -es lo que
+    // este fichero garantiza-; si deberia mandar el mayor de los dos es decision vial, y
+    // va a reportar().
+    CorridaG g10;
+    bool g10Ejercido = false;
+    long g10DespE = -1;
+    {
+      escenarioLimpio(TIEMPOS_G, true);
+      sincronizarEsclavo(10, 8, 0, 0);
+      configurarEsclavo(20, (uint8_t)(3 * DESPEJE_POR_DEFECTO_S));
+      g10DespE = ESCLAVO.orden("config_despeje");
+      g_enlaceHaciaEsclavo = g_enlaceHaciaMaestro = false;
+      bool ok = ESCLAVO.orden("degradado_entrar") == 0;
+      ok = ok && alcanzarVerdeG(ESCLAVO, ALCANCE) && ESCLAVO.orden("degradado_gobierna") == 1;
+      avanzar(1000);
+      ok = ok && ESCLAVO.verde();
+      g_enlaceHaciaEsclavo = g_enlaceHaciaMaestro = true;
+      MAESTRO.orden("arrancar_automatico");
+      g10.tCorte = g_t;
+      correrG(g10, TRAS_VERDE);
+      finG(g10);
+      g10Ejercido = ok && ESCLAVO.orden("degradado_gobierna") == 0;
+    }
+    imprimirTrazaG("G10 (Esclavo en Degradado y en verde por reloj; el Maestro entra en "
+                   "Automatico):", g10);
+    comprobar(g10Ejercido && g10DespE == (long)(3 * DESPEJE_POR_DEFECTO_S),
+              "G10 (control): el Esclavo daba verde POR RELOJ en su Degradado, con un despeje de " +
+              std::to_string(g10DespE) + " s configurado, y el GO_RED de entrada del Maestro lo "
+              "saco del modo");
+    comprobar(acumuladoMsG(g10.v) <= BORDE_MS && g10.tAperturaM >= 0 &&
+              todoRojoMsG(g10) >= (long)DESPEJE_MS,
+              "G10: al sacar al Esclavo de su Degradado el Maestro espera su ACK_RED y deja al "
+              "menos SU despeje: ventana " + std::to_string(acumuladoMsG(g10.v)) + " ms; todo-rojo " +
+              std::to_string(todoRojoMsG(g10)) + " ms, despeje del Maestro " +
+              std::to_string(DESPEJE_MS) + " ms (-1 = no se abrio)");
+    std::printf("   [NOTA]  G10: manda el despeje del MAESTRO: todo-rojo %ld ms contra %ld ms del "
+                "despeje configurado en el Degradado del Esclavo. Si debe mandar el mayor de los "
+                "dos es decision vial. No cuenta.\n",
+                todoRojoMsG(g10), g10DespE * 1000L);
+  }
+  // reportar(): no cuenta. Es lo que la excepcion de A9 dejo pasar en los bloques A a F, que
+  // no se diseniaron para esto. MEDIDO el 11/09 con una copia instrumentada: la racha larga
+  // es del bloque D -D5/D6-, el Esclavo dando verde POR RELOJ en su Modo Degradado con el
+  // Maestro en S_FALLO. El Degradado del Maestro no se compila en este arnes (ver
+  // adaptador_maestro.cpp), asi que esa racha no dice que pasa en campo: dice que A9 la
+  // perdona sin mirarla. Si orquestador_degradado -que si compila los dos Degradados- mide
+  // un verde frente a S_FALLO, NO se comprobo al escribir esto.
+  std::printf("   [NOTA]  la excepcion de A9 (S_FALLO por nombre) perdono %lu instantes en los "
+              "bloques A a F, racha mas larga %lu ms (bloque D: verde por reloj del Degradado "
+              "del Esclavo frente al S_FALLO de un Maestro sin Degradado compilado). No cuenta.\n",
+              a9PerdonadosAF, a9RachaAF * PASO_MS);
+
+  // =========================================================================
   std::printf("\n==============================================================\n");
   comprobar(g_verdeSimultaneo == 0,
             "RESUMEN: en los " + std::to_string(g_instantes) + " instantes observados "
-            "de TODO el barrido -bloques A a F- no hubo NI UNO con verde encendido en "
+            "de TODO el barrido -bloques A a G- no hubo NI UNO con verde encendido en "
             "las dos puntas. Es la propiedad que motivo este arnes, medida sobre el C++ "
             "real de las dos y sobre lo que escribio en los pines");
   comprobar(g_enclavamientoRoto == 0,

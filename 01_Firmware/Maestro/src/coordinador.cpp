@@ -28,6 +28,23 @@ enum QuienVerde { QV_NINGUNO, QV_MASTER, QV_ESCLAVO };
 static EstadoCoord estadoC = C_IDLE;
 static QuienVerde quienVerde = QV_NINGUNO;
 
+// N-162 (bloque G): SI CONSTA EL ROJO DEL OTRO LADO. Es otra pregunta que quienVerde, y por
+// eso otra variable: quienVerde dice a quien se le CONFIRMO un verde; esta dice si el
+// Esclavo ACUSO un rojo (CMD_ACK_RED) DESPUES de la ultima orden de rojo de entrada
+// -forzarMenu, forzarRojoTotal, iniciarModo- o de la ultima caida por silencio, y sin que
+// se le haya mandado verde desde entonces. Se pone en UN solo sitio -al llegar el ACK_RED-
+// y se baja en cada una de esas ordenes, al mandar GO_GREEN y al arrancar.
+//
+// LO QUE NO SABE, dicho para que nadie lo lea como cubierto: el protocolo no lleva en el
+// ACK_RED a que GO_RED contesta. Un acuse retenido en el aire mas alla del ultimo GO_GREEN
+// y soltado despues de una orden de rojo perdida seria indistinguible del bueno.
+//
+// Sin ella el Maestro abria su verde contando con que el GO_RED LLEGO, no con que se
+// cumplio: medido en el arnes de las dos puntas, un solo GO_RED perdido con el Esclavo en
+// verde -la autorrecuperacion tras un corte, o la entrada en un modo- dejaba 180 s de VERDE
+// EN LAS DOS PUNTAS, porque los PING siguientes le refrescan la orfandad al Esclavo.
+static bool rojoEsclavoConfirmado = false;
+
 // SFTY-4 (Safety Case): Tiempo de Despeje / All-Red
 static unsigned long tiempoDespejeMs = 15000;
 
@@ -569,6 +586,7 @@ void coordinador_setup() {
   semaforo_setup(); 
   estadoC = C_IDLE;
   quienVerde = QV_NINGUNO;
+  rojoEsclavoConfirmado = false;
   handshakeOk = false;
   tUltimaRxEsclavo = 0; // Inicializar en 0: no hemos recibido nada del Esclavo aún
 }
@@ -577,6 +595,7 @@ void coordinador_reiniciarConexion() {
   handshakeOk = false;
   estadoC = C_IDLE;
   quienVerde = QV_NINGUNO;
+  rojoEsclavoConfirmado = false;   // al otro lado puede haber otra unidad
   tUltimoPing = 0;
   tUltimaRxEsclavo = 0;
 
@@ -603,6 +622,7 @@ void coordinador_configurar(unsigned long tiempoDespeje, unsigned long, unsigned
 void coordinador_forzarMenu() {
   estadoC = C_MENU_IDLE;
   quienVerde = QV_NINGUNO;
+  rojoEsclavoConfirmado = false;   // N-162: cuenta el acuse de ESTA orden, no uno de antes
   semaforo_forzarRojo();
   protocolo_resetReplayProtection();
   protocolo_enviarPaquete(CMD_GO_RED);
@@ -610,6 +630,10 @@ void coordinador_forzarMenu() {
 
 void coordinador_forzarRojoTotal() {
   quienVerde = QV_NINGUNO;
+  // N-162: y aqui con mas razon. Un rojo acusado ANTES no dice que el otro lado siga en
+  // rojo: pudo irse a su ambar de emergencia por su cuenta -N-142, con el aviso perdido-,
+  // y el DAR PASO de despues abriria contando con el.
+  rojoEsclavoConfirmado = false;
   semaforo_forzarRojo();
   protocolo_resetReplayProtection();
   protocolo_enviarPaquete(CMD_GO_RED);
@@ -618,14 +642,24 @@ void coordinador_forzarRojoTotal() {
   estadoC = C_IDLE; // Queda en Rojo Fijo en ambos semáforos indefinidamente
 }
 
+// N-162 (bloque G): EL DESPEJE DE ENTRADA EMPIEZA CON EL ACUSE, NO CON LA ORDEN.
+//
+// Aqui se mandaba UN GO_RED y se pasaba a C_INICIAL_ESPERA_ESTATICO, que a los
+// tiempoDespejeMs abre el verde propio sin haber oido nada del otro lado. Medido en el
+// arnes de las dos puntas (G5): entrando en Automatico con el Esclavo en verde y perdida
+// esa unica trama, 180 s de verde en las dos. Ahora se entra por la MISMA espera que usa
+// pedirCambio() desde QV_ESCLAVO -con sus reintentos y su C_FALLO si se agotan- y el
+// despeje se cuenta desde el ACK_RED (case C_ESPERANDO_ACK_RED).
 void coordinador_iniciarModo() {
   quienVerde = QV_NINGUNO;
+  rojoEsclavoConfirmado = false;
   semaforo_forzarRojo();
   protocolo_resetReplayProtection();
   protocolo_enviarPaquete(CMD_GO_RED);
-  tRef = millis();
+  tEsperandoAck = millis();
+  retryCount = 0;
   tUltimaRxEsclavo = millis();
-  estadoC = C_INICIAL_ESPERA_ESTATICO;
+  estadoC = C_ESPERANDO_ACK_RED;
 }
 
 // D-7: EN MANUAL, DAR PASO ALTERNA IGUAL QUE EL AUTOMATICO Y LO DISPARA EL OPERARIO.
@@ -660,7 +694,20 @@ void coordinador_pedirCambio() {
       //
       // La condicion es la MISMA que la del case C_INICIAL_ESPERA_ESTATICO de mas abajo,
       // a proposito: si una cambia, la otra queda a la vista al lado.
-      if (millis() - tRef >= tiempoDespejeMs) {
+      //
+      // N-162 (bloque G): PERO SOLO SI CONSTA QUE EL OTRO LADO ESTA EN ROJO. El rojo de
+      // este case lo puso coordinador_forzarRojoTotal() con UN GO_RED; si esa trama se
+      // perdio con el Esclavo en verde, el despeje "pagado" no vacio nada y abrir aqui
+      // es verde en las dos. Sin el acuse se pide el rojo y se espera como desde
+      // QV_ESCLAVO, y el despeje se cuenta ENTERO desde el ACK_RED: no se sabe desde
+      // cuando esta en rojo. Con el acuse -lo normal: llega ~0,3 s despues de la orden,
+      // y el latido reintenta si no- N-147 queda como estaba.
+      if (!rojoEsclavoConfirmado) {
+        protocolo_enviarPaquete(CMD_GO_RED);
+        tEsperandoAck = millis();
+        retryCount = 0;
+        estadoC = C_ESPERANDO_ACK_RED;
+      } else if (millis() - tRef >= tiempoDespejeMs) {
         semaforo_iniciarTransicionAVerde();
         estadoC = C_INICIAL_MASTER_A_VERDE;
       } else {
@@ -703,6 +750,12 @@ void coordinador_actualizar() {
       rttMedioMs = (rttMedioMs == 0) ? rtt : ((rttMedioMs * 3 + rtt) / 4);
       latidoEnVuelo = false;
       registrarLatido(true);
+    }
+
+    // N-162 (bloque G): el unico sitio donde se pone. Con un GO_GREEN en vuelo no: un
+    // ACK_RED rezagado de antes de la orden de verde no dice nada del Esclavo de ahora.
+    if (pkt.command == CMD_ACK_RED && estadoC != C_ESPERANDO_ACK_GREEN) {
+      rojoEsclavoConfirmado = true;
     }
 
     if (pkt.command == CMD_PING) {
@@ -788,7 +841,12 @@ void coordinador_actualizar() {
       registrarLatido(false);
     }
 
-    if (estadoC == C_MENU_IDLE || estadoC == C_FALLO) {
+    // N-162 (bloque G): y mientras el rojo pedido no conste. Es el reintento del GO_RED de
+    // coordinador_forzarRojoTotal(), que no tenia ninguno: perdida esa trama con el Esclavo
+    // en verde, el ROJO TOTAL -el de emergencia, el de entrar en Manual- no llegaba nunca
+    // al otro lado mientras los PING le mantenian vivo el verde.
+    const bool rojoSinConstar = (quienVerde == QV_NINGUNO && !rojoEsclavoConfirmado);
+    if (rojoSinConstar || estadoC == C_MENU_IDLE || estadoC == C_FALLO) {
       protocolo_enviarPaquete(CMD_GO_RED); // Exige Rojo Fijo en Esclavo durante Menú o Fallo
       respuestaEsperada = CMD_ACK_RED;     // el Esclavo confirma el Rojo
     } else {
@@ -846,6 +904,14 @@ void coordinador_actualizar() {
           snprintf(causa, sizeof(causa), "SILENCIO_%lums", SFTY6_SILENCIO_MS);
           bluetooth_reportarAlarma("FALLO_RF", causa, "CAMBIO_A_AMBAR");
           estadoC = C_FALLO; // TEST 3: Esclavo apagado / sin comunicación -> Maestro a AMARILLO PARPADEO
+          // N-162 (bloque G): se perdio el enlace, asi que lo que constara del otro lado
+          // ya no consta. Y el GO_RED sale EN ESTE INSTANTE, no con el siguiente latido:
+          // con la direccion Esclavo->Maestro muerta y la otra viva, el Esclavo seguia en
+          // VERDE frente al ambar de esta punta hasta 3 s -medido en el arnes de las dos
+          // puntas (G1): 1150-2150 ms segun la fase del latido-, porque los PING que le
+          // llegaban le refrescaban la orfandad. La orden no espera nada que necesite.
+          rojoEsclavoConfirmado = false;
+          protocolo_enviarPaquete(CMD_GO_RED);
         }
       }
     } else if (estadoC == C_FALLO && tieneComunicacion) {
@@ -877,8 +943,19 @@ void coordinador_actualizar() {
       semaforo_forzarRojo();
       protocolo_resetReplayProtection();
       protocolo_enviarPaquete(CMD_GO_RED);
-      tRef = millis();
-      estadoC = C_INICIAL_ESPERA_ESTATICO;
+      // N-162 (bloque G): Y SE ESPERA SU ACUSE ANTES DE CONTAR EL DESPEJE.
+      //
+      // Aqui se pasaba a C_INICIAL_ESPERA_ESTATICO con tRef = millis(): UN GO_RED y, a
+      // los tiempoDespejeMs, verde propio sin haber oido nada. Medido en el arnes de las
+      // dos puntas (G2-d): un desvanecimiento de ~18 s desde el GO_GREEN se lleva los
+      // acuses y, en su ultimo instante, este GO_RED; el enlace vuelve, los PING le
+      // refrescan la orfandad al Esclavo -que sigue en verde- y el Maestro se abre: 180 s
+      // de VERDE EN LAS DOS. Ahora es la misma espera que la de pedirCambio() desde
+      // QV_ESCLAVO: reintentos cada TIMEOUT_ACK_MS, despeje desde el ACK_RED, y si se
+      // agotan, C_FALLO. Mientras tanto esta punta sigue en rojo.
+      tEsperandoAck = millis();
+      retryCount = 0;
+      estadoC = C_ESPERANDO_ACK_RED;
     }
   }
 
@@ -913,6 +990,7 @@ void coordinador_actualizar() {
 
     case C_ESPERA_ESTATICO_TRAS_MASTER:
       if (millis() - tRef >= tiempoDespejeMs) {
+        rojoEsclavoConfirmado = false;   // N-162: desde aqui el Esclavo puede estar en verde
         protocolo_enviarPaquete(CMD_GO_GREEN);
         tEsperandoAck = millis();
         retryCount = 0;
@@ -951,7 +1029,17 @@ void coordinador_actualizar() {
         estadoC = C_ESPERA_ESTATICO_TRAS_ESCLAVO;
       } else if (millis() - tEsperandoAck > TIMEOUT_ACK_MS) {
         retryCount++;
-        if (retryCount >= CICLO_MAX_REINTENTOS) {
+        // N-162 (bloque G): ESTA PUERTA A C_FALLO NO LLEVA ALARMA, Y POR ESO SOLO SE ABRE CON
+        // ENLACE Y CON TIEMPO. Con enlace, C_FALLO dura un tick: la autorrecuperacion lo
+        // recoge en el siguiente y vuelve a esta espera, sin ambar. Sin enlace -el Esclavo no
+        // ha contestado NUNCA y aun no vencio la gracia de arranque de SFTY-6-, entrar aqui
+        // en C_FALLO ponia el ambar SIN ALARMA y ademas tapaba la de silencio, que se guarda
+        // con "estadoC != C_FALLO". Medido en el simulador del puente (radio muda desde la
+        // entrada en Automatico): ambar a los 17,5 s y ningun $ALARM en 28 s. Lo mismo si el
+        // silencio va a vencer antes de un reintento mas: la caida es de SFTY-6, que la
+        // reporta. Mientras tanto se sigue pidiendo el rojo, que es lo que esta punta sabe hacer.
+        if (retryCount >= CICLO_MAX_REINTENTOS && tieneComunicacion &&
+            millis() - tUltimaRxEsclavo + TIMEOUT_ACK_MS <= SFTY6_SILENCIO_MS) {
             estadoC = C_FALLO;   // ver N-71 en el ACK_GREEN de arriba
         } else {
             protocolo_enviarPaquete(CMD_GO_RED);
