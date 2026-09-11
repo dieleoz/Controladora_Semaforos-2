@@ -1,5 +1,25 @@
 # ESTADO — dónde está parado el trabajo HOY (11/09/2026)
 
+> ## ▶️ PUNTO DE CONTINUACIÓN — 11/09/2026, 13:15 (la sesión se paró aquí)
+>
+> **Para retomar, en este orden:**
+> 1. **`main` = `17724c2`**, con la compuerta en **18 PASS · 2 FALLA · 0 ABORTADO**. Los dos rojos son reales: `decisiones_01_anclas`
+>    (D-14, 22, 23, 25, 26 y 27 sin ancla en el firmware) y **G3** del arnés de las dos puntas (espera decisión: SFTY-6).
+> 2. 🔴 **La integración de la hora (`D-26`) quedó A MEDIAS**: la hacía un agente en el worktree
+>    `.claude/worktrees/agent-a2b20ad0678844758` (base `db8393c`). **Foto subida** en la rama
+>    **`wip/d26-hora-esp32-foto-1315`** (`49111ab`, 38 ficheros), **sin revisar y sin fusionar**. Al retomar: si el
+>    worktree sigue ahí, mirar su `git status` y, si el agente no terminó, lanzar uno nuevo que PARTA de esa foto con el
+>    encargo de `D-26` (siembra ~5 min; Esclavo con radio / sin radio su ESP32; salto en Degradado por rojo; alarma de
+>    `J17`). Se integra **por el diff** y con la compuerta dos veces, nunca a ciegas.
+> 3. **Decisiones pendientes del responsable:** G3/SFTY-6 (la punta en verde tarda 250 ms en soltar frente a un
+>    `S_FALLO`); la **zona** de la cámara (se dejó la de `D-13`, barrido de la pluma); la referencia del **relé** de `J15`.
+> 4. **Siguiente trabajo, ya decidido:** corregir la **guía del Sisga** («objetivo: no filtrar» → solo vehículo, `D-27`)
+>    **antes de reenviarla al instalador**; el **pack de frases derogadas** (lo cerrado el 11/09 solo puede aparecer
+>    tachado); `AMBAR_EMERGENCIA` sin PIN que avise al Maestro (roadmap §3.16-A); recompilar la **APK** (la del 10/09 ya
+>    no casa con `main`); portar a los modelos Python (`simulador_sistema_v7_6`, `simulador_repetidor`) la
+>    autorrecuperación nueva; los **`.docx`** cuando se cierren las indefiniciones.
+> 5. **Lo cerrado el 11/09 NO se reabre desde un documento** (`roadmap.md` §0, recuadro 🔒; `CLAUDE.md` §11.1).
+
 > **Este fichero es el estado VIVO.** Lo que está abierto, lo que bloquea y lo que falta medir.
 > El *porqué* completo de cada `N-x` vive en [`roadmap.md`](roadmap.md); las decisiones vigentes,
 > en [`DECISIONES.md`](DECISIONES.md) — **si un párrafo de aquí contradice una fila de allí, gana
