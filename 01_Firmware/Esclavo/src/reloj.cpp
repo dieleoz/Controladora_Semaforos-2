@@ -32,6 +32,9 @@ static uint32_t tBaseMillis = 0;
 static uint32_t segBaseDelDia = 0;
 static uint8_t diaBase = 1;
 
+// D-21 (1): la base pasada de HORA_CADUCA_MS, con cerrojo. Gemela de la del Maestro.
+static bool siembraCaducada = false;
+
 // D-26 (3) - DE QUIEN ES LA HORA QUE HAY. Ver el porque en reloj.h, sobre
 // reloj_radioManda(). Ordenadas de menos a mas autoridad, y el orden SE USA: la del ESP32
 // entra si la que hay es de menos autoridad que la radio, o si la radio calla.
@@ -75,6 +78,7 @@ void reloj_setup() {
   segBaseDelDia = 0;
   diaBase = 1;
   fuenteHora = FH_NINGUNA;
+  siembraCaducada = false;
 
   if (!arrancarCristal()) return;
 
@@ -93,6 +97,9 @@ static const unsigned long REINTENTO_LSE_MS = 30000;
 static uint32_t tUltimoReintento = 0;
 
 void reloj_actualizar() {
+  // D-21 (1): el cerrojo de la caducidad, en CADA vuelta. Ver la gemela del Maestro.
+  (void)reloj_horaFiable();
+
   if (rtcOperativo) return;
 
   const uint32_t ahora = HAL_GetTick();
@@ -154,6 +161,15 @@ void reloj_actualizar() {
 }
 
 bool reloj_enHora() { return horaValida; }
+
+// D-21 (1) - VER reloj.h. Gemela letra por letra de la del Maestro: la siembra que la
+// renueva es cualquiera que haya pasado por reloj_ajustarConAcuse() -la radio o el ESP32-.
+bool reloj_horaFiable() {
+  if (!horaValida) return false;
+  if (tBaseMillis == 0) return true;
+  if ((uint32_t)(millis() - tBaseMillis) > HORA_CADUCA_MS) siembraCaducada = true;
+  return !siembraCaducada;
+}
 
 // N-49 — el contador crudo del RTC, en segundos.
 uint32_t reloj_contadorSegundos() {
@@ -262,6 +278,7 @@ bool reloj_ajustarConAcuse(int hora, int minuto, int segundo, int dia) {
     diaBase = 1;
   }
   horaValida = true;
+  siembraCaducada = false;   // D-21 (1): una siembra buena es lo unico que la rejuvenece
 
   // N-162 (11/09) - LA SIEMBRA YA NO ESCRIBE EL RTC HARDWARE. Aqui habia un bloque
   // "if (rtcOperativo) { rtc.setHours(); rtc.setMinutes(); rtc.setSeconds(); ... }", y

@@ -31,6 +31,11 @@ static uint32_t tBaseMillis = 0;
 static uint32_t segBaseDelDia = 0;
 static uint8_t diaBase = 1;
 
+// D-21 (1): la base pasada de HORA_CADUCA_MS. Es un cerrojo -lo pone reloj_horaFiable() y
+// solo lo quita una siembra buena- para que la vuelta de millis() a los 49,7 dias no haga
+// parecer fresca una siembra de hace mes y medio. Ver reloj.h.
+static bool siembraCaducada = false;
+
 // Franja nocturna. Todavia NO se usa para nada: la operacion intermitente por
 // horario quedo aplazada a peticion del cliente (31/07/2026), porque el horario
 // no es el mismo en todas las obras. Se deja el almacenamiento listo.
@@ -67,6 +72,7 @@ void reloj_setup() {
   tBaseMillis = 0;
   segBaseDelDia = 0;
   diaBase = 1;
+  siembraCaducada = false;
 
   if (!arrancarCristal()) return;
 
@@ -82,6 +88,12 @@ static const unsigned long REINTENTO_LSE_MS = 30000;
 static uint32_t tUltimoReintento = 0;
 
 void reloj_actualizar() {
+  // D-21 (1): el cerrojo de la caducidad se mira en CADA vuelta y en TODOS los modos, no
+  // solo cuando alguien pregunta: si nadie preguntara durante 49,7 dias, la resta de
+  // millis() daria la vuelta y la siembra vieja pareceria fresca. Va antes de la salida
+  // temprana, que con el cristal en marcha es la de siempre.
+  (void)reloj_horaFiable();
+
   if (rtcOperativo) return;  // ya esta, nada que hacer
 
   const uint32_t ahora = HAL_GetTick();
@@ -149,6 +161,7 @@ bool reloj_reiniciarDominioRespaldo() {
   tBaseMillis = 0;
   segBaseDelDia = 0;
   diaBase = 1;
+  siembraCaducada = false;
 
   if (!arrancarCristal()) return false;
 
@@ -159,6 +172,16 @@ bool reloj_reiniciarDominioRespaldo() {
 }
 
 bool reloj_enHora() { return horaValida; }
+
+// D-21 (1) - VER reloj.h. La hora que decide una luz tiene que ser una hora sembrada hace
+// menos de HORA_CADUCA_MS. Sin base de software la hora es la del RTC de hardware, que no
+// corre sobre el HSI: ese borde esta escrito en reloj.h.
+bool reloj_horaFiable() {
+  if (!horaValida) return false;
+  if (tBaseMillis == 0) return true;
+  if ((uint32_t)(millis() - tBaseMillis) > HORA_CADUCA_MS) siembraCaducada = true;
+  return !siembraCaducada;
+}
 
 uint32_t reloj_segundosDelDia() {
   if (!horaValida) return 0;
@@ -309,6 +332,7 @@ bool reloj_ajustarConAcuse(int hora, int minuto, int segundo, int dia) {
     diaBase = 1;
   }
   horaValida = true;
+  siembraCaducada = false;   // D-21 (1): una siembra buena es lo unico que la rejuvenece
 
   // N-162 (11/09) - LA SIEMBRA YA NO ESCRIBE EL RTC HARDWARE. Aqui habia un bloque
   // "if (rtcOperativo) { rtc.setHours(); rtc.setMinutes(); rtc.setSeconds(); ... }", y

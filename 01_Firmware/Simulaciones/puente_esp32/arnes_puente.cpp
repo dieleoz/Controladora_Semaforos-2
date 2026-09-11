@@ -121,6 +121,13 @@ static uint32_t rlj_cnt = 1000;
 
 bool reloj_enHora() { return rlj_enHora; }
 
+// D-21 (1), 11/09: modo_degradado.cpp del Esclavo -que este arnes compila, A-11- pregunta
+// ahora si la hora PUEDE DECIDIR UNA LUZ (siembra de menos de HORA_CADUCA_MS). Aqui no hay
+// base de tiempo que caduque: se contesta lo mismo que reloj_enHora(). PUNTO CIEGO
+// DECLARADO: la caducidad no se ejerce en este arnes; la ejerce el bloque F de
+// Validacion_Automatico/dos_puntas/orquestador_degradado.cpp sobre el reloj.cpp REAL.
+bool reloj_horaFiable() { return rlj_enHora; }
+
 // N-144 / N-160: EL DOBLE SE QUEDA, PERO SU COMENTARIO DECIA UNA COSA QUE YA NO ES
 // CIERTA Y SE CORRIGE AQUI. Afirmaba que "el bluetooth.cpp REAL de las dos puntas la
 // llama cuando el ajuste NO quedo puesto"; medido el 07/09, NO LA LLAMA NADIE:

@@ -607,12 +607,22 @@ static void procesarComando(const char* cmd) {
   // CON EL DEGRADADO GOBERNANDO la siembra mueve de golpe reloj_segundosDelDia(), que es de
   // donde sale la fase. Un salto mayor que el margen del cruce lo pasa por rojo
   // modo_degradado.cpp (D-26 (4)), que es quien gobierna la luz: esta rama no decide luces.
+  //
+  // H6-i (11/09) - EL DIARIO MIRA LO QUE DEVOLVIO LA PROPAGACION (molde SET_TIEMPOS,
+  // CLAUDE.md 2). Aqui se tiraba el bool de coordinador_sincronizarHora() y el diario decia
+  // SEMBRADA pasara lo que pasara. MEDIDO, Y SE DICE PARA QUE NADIE LO LEA COMO UN ARREGLO
+  // DE UN DEFECTO VIVO: hoy ese false NO PUEDE SALIR en esta rama -su unica guarda es
+  // reloj_enHora(), la misma horaValida que la siembra acaba de poner en true-. Lo que se
+  // cierra es la forma: el dia que la propagacion gane otra guarda, el diario dira la verdad
+  // en vez de afirmar un envio que no se encolo. Es de diario y no de alarma, y sin cerrojo
+  // de cambio: si alguna vez sale, sale en cada siembra, y eso tambien es un dato.
   if (strncmp(cmd, "CMD:HORA_ESP32:", 15) == 0) {
     if (reloj_sembrarDesdeIso(cmd + 15)) {
-      coordinador_sincronizarHora();
       horaEsp32Rechazada = false;
       horaEsp32Llego = true;
-      if (horaEsp32Estado != HE_SEMBRADA) {
+      if (!coordinador_sincronizarHora()) {
+        bluetooth_reportarEvento("ESP32", "HORA_ESP32_SEMBRADA_SIN_PROPAGAR");
+      } else if (horaEsp32Estado != HE_SEMBRADA) {
         horaEsp32Estado = HE_SEMBRADA;
         bluetooth_reportarEvento("ESP32", "HORA_ESP32_SEMBRADA");
       }

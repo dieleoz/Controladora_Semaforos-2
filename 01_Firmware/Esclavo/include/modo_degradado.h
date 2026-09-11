@@ -32,7 +32,7 @@ enum EstadoDegradado {
   DEG_ENTRANDO,   // todo-rojo obligatorio ANTES del primer verde por reloj
   DEG_ACTIVO,     // la luz la decide el reloj
   DEG_SALIENDO,   // todo-rojo obligatorio al devolver el mando
-  DEG_RENDIDO     // 48 h sin sincronizar: ambar intermitente hasta nueva sync
+  DEG_RENDIDO     // ambar intermitente: 48 h sin sincronizar, o la hora caducada (D-21 (1))
 };
 
 // Por que cada rechazo es un valor distinto y no un simple "no": el operario esta
@@ -42,7 +42,7 @@ enum EstadoDegradado {
 // mensaje generico convierte tres averias distintas en una sola incognita.
 enum RechazoDegradado {
   DEG_ACEPTADO,
-  DEG_RECHAZO_SIN_HORA,       // reloj_enHora() falso: operaria sobre hora inventada
+  DEG_RECHAZO_SIN_HORA,       // reloj_horaFiable() falso: sin hora o caducada (D-21 (1))
   DEG_RECHAZO_SIN_CONFIG,     // el Maestro nunca mando la duracion del ciclo
   DEG_RECHAZO_CICLO_NULO,     // la mando, pero con un verde o un despeje en cero
   DEG_RECHAZO_SIN_SYNC,       // el RTC puede estar en hora de un arranque anterior

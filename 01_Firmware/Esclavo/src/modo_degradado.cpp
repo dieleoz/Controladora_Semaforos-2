@@ -237,7 +237,11 @@ bool degradado_avisoLimite() {
 RechazoDegradado degradado_comprobar() {
   // Las condiciones son OBLIGATORIAS y ninguna se nota mirando el semaforo, que
   // es justo por lo que las comprueba el firmware y no el operario.
-  if (!reloj_enHora()) return DEG_RECHAZO_SIN_HORA;
+  //
+  // D-21 (1): la hora tiene que ser FIABLE, no solo estar puesta -la misma pregunta que la
+  // guarda de degradado_actualizar()-. Si no, SET_MODO:DEGRADADO contestaba $ACK y el modo
+  // se rendia en la vuelta siguiente: un "si" que no se iba a cumplir (CLAUDE.md 2).
+  if (!reloj_horaFiable()) return DEG_RECHAZO_SIN_HORA;
 
   // Sin la duracion del ciclo no hay nada que calcular. El flag de recibido no es
   // lo mismo que el valor: un cero podria ser "el Maestro dijo cero" o "nunca
@@ -403,7 +407,18 @@ void degradado_actualizar() {
 
   // D-21: Si la hora deja de ser fiable en marcha (pila agotada o reloj invalido),
   // se responde con ambar intermitente (rendicion) en vez de seguir dando verdes con hora falsa.
-  if (!reloj_enHora() && (estado == DEG_ENTRANDO || estado == DEG_ACTIVO)) {
+  //
+  // D-21 (1), 11/09: HASTA HOY INALCANZABLE -en esta punta horaValida solo baja en
+  // reloj_setup()-. Ahora pregunta si la hora puede decidir una luz (reloj_horaFiable(),
+  // reloj.h). La alarma, con el molde de las de HORA_ESP32, solo para la caducidad -detras
+  // de reloj_enHora(), igual que en el Maestro, donde la hora si se puede borrar en marcha-.
+  // El camino es el que ya habia: rendicion, todo-rojo el despeje entero y despues
+  // DEG_RENDIDO con el ambar de semaforo.cpp. Una siembra fresca NO devuelve el modo: de
+  // DEG_RENDIDO se sale por una orden (D-21).
+  if (!reloj_horaFiable() && (estado == DEG_ENTRANDO || estado == DEG_ACTIVO)) {
+    if (reloj_enHora()) {
+      bluetooth_reportarAlarma("HORA_ESP32", "CADUCADA", "CAMBIO_A_AMBAR");
+    }
     iniciarSalida(true);
     return;
   }

@@ -217,3 +217,37 @@ static const unsigned long HORA_ESP32_CADENCIA_MS = 300000UL;
 // averia; tres seguidas, si. Y se repite cada tanto mientras dure, porque el que la tiene
 // que ver es el tecnico que se conecte DESPUES, no el que estaba conectado cuando empezo.
 static const unsigned long HORA_ESP32_ESPERA_MAX_MS = 3UL * HORA_ESP32_CADENCIA_MS;
+
+// Lo que el HSI de este micro puede desviarse en el peor caso de su ficha. El MISMO numero
+// que en el reloj.h del Maestro -el micro es el mismo STM32F103- y con el mismo porque
+// (alli, sobre HSI_PPM_PEOR). Faltaba aqui porque ningun calculo de esta punta lo usaba;
+// desde D-21 (1) lo usa la caducidad de abajo, y reloj_04 exige que las dos copias valgan
+// lo mismo.
+static const unsigned long HSI_PPM_PEOR = 25000UL;
+
+// ---------------------------------------------------------------------------
+// D-21 (1) - LA CADUCIDAD DE LA SIEMBRA. Gemela de la del Maestro, con el porque entero en
+// su reloj.h. El plazo es el tiempo en que el HSI acumula en el peor caso la deriva de UNA
+// cadencia, que es lo que la cuenta del cruce (esp32_13) le concede a cada punta; reloj_04
+// recalcula la desigualdad contra el aguante y exige que las dos puntas digan lo mismo.
+//
+// AQUI PESA DISTINTO QUE EN EL MAESTRO, y se dice: esta punta tiene DOS sembradores. Con
+// radio la siembra es la del Maestro (CMD_HORA_S) y la de su ESP32 se IGNORA; sin radio,
+// al reves (D-26 (3)). Cualquiera de las dos que entre renueva el plazo, porque las dos
+// pasan por reloj_ajustarConAcuse(). En el RELEVO -la radio calla y la primera siembra del
+// ESP32 aun no ha llegado- la hora puede tener hasta una cadencia de la radio mas la espera
+// de SFTY6_SILENCIO_MS mas una cadencia del ESP32: MAS que este plazo. En ese rato esta
+// punta NO entra en Degradado, y si ya estaba dentro se rinde. La cuenta la publica reloj_04.
+static const unsigned long HORA_DERIVA_S =
+    (HORA_ESP32_CADENCIA_MS / 1000UL * HSI_PPM_PEOR + 999999UL) / 1000000UL;
+static const unsigned long HORA_CADUCA_MS = HORA_DERIVA_S * 1000000UL / HSI_PPM_PEOR * 1000UL;
+static_assert(HORA_CADUCA_MS >
+                  HORA_ESP32_CADENCIA_MS + HORA_ESP32_CADENCIA_MS / 1000UL * HSI_PPM_PEOR / 1000UL,
+              "D-21 (1): una siembra normal caducaria antes de llegar con el HSI rapido");
+
+// true si esta punta tiene hora Y su ultima siembra buena tiene como mucho HORA_CADUCA_MS.
+// Caducada se queda caducada hasta la siguiente siembra. Una hora que vino SOLO del RTC de
+// hardware no caduca aqui (no corre sobre el HSI): el borde y el porque, en el reloj.h del
+// Maestro. Solo la preguntan la puerta y el bucle del Degradado; reloj_enHora() sigue
+// contestando "hay hora?" para todo lo demas.
+bool reloj_horaFiable();

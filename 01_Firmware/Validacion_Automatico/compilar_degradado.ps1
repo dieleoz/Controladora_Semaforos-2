@@ -59,6 +59,14 @@ if (-not (Test-Path $BUILD)) { New-Item -ItemType Directory -Path $BUILD | Out-N
 # las cabeceras REALES del firmware, porque ninguna de ellas incluye U8g2 -lo arrastra
 # lcd.cpp, que aqui no se compila-. Una copia local de cualquiera de ellas seria el
 # "casi igual" que puede divergir en silencio.
+#
+# 11/09 (D-21 (1)): Y reloj.cpp REAL, en las dos puntas. Hasta hoy lo sustituia un modelo en
+# cada adaptador, y con eso la caducidad de la siembra y la frontera de 25 s de
+# reloj_radioManda() no las ejecutaba nadie. Lo que se sustituye ahora es el SILICIO
+# -STM32RTC.h y el HAL del LSE y del contador- en dos_puntas/reloj_real/, que va DELANTE de
+# comun/ en el -I y solo en este script; rtc_periferico.cpp es ese silicio y el HSI de
+# cada punta, el mismo fichero compilado en las dos DLL.
+$RR = Join-Path $DP 'reloj_real'
 $fuentesMaestro = @(
     (Join-Path $MAESTRO 'src\coordinador.cpp'),
     (Join-Path $MAESTRO 'src\semaforo.cpp'),
@@ -66,11 +74,15 @@ $fuentesMaestro = @(
     (Join-Path $MAESTRO 'src\modo_ambar.cpp'),
     (Join-Path $MAESTRO 'src\modos.cpp'),
     (Join-Path $MAESTRO 'src\respaldo.cpp'),
+    (Join-Path $MAESTRO 'src\reloj.cpp'),
+    (Join-Path $RR 'rtc_periferico.cpp'),
     (Join-Path $DP 'adaptador_maestro_deg.cpp')
 )
 
 # --- Punta ESCLAVO ---------------------------------------------------------
-# Los MISMOS SIETE ficheros y el MISMO adaptador que el arnes hermano. Ver la cabecera.
+# Los MISMOS SIETE ficheros y el MISMO adaptador que el arnes hermano, MAS reloj.cpp REAL
+# (11/09): el adaptador lo sabe por -DARNES_RELOJ_REAL, que solo pone este script. Ver la
+# cabecera de adaptador_esclavo.cpp: es el mismo fichero, no una copia.
 $fuentesEsclavo = @(
     (Join-Path $ESCLAVO 'src\semaforo.cpp'),
     (Join-Path $ESCLAVO 'src\main.cpp'),
@@ -79,6 +91,8 @@ $fuentesEsclavo = @(
     (Join-Path $ESCLAVO 'src\mando.cpp'),
     (Join-Path $ESCLAVO 'src\demanda.cpp'),
     (Join-Path $ESCLAVO 'src\respaldo.cpp'),
+    (Join-Path $ESCLAVO 'src\reloj.cpp'),
+    (Join-Path $RR 'rtc_periferico.cpp'),
     (Join-Path $DP 'adaptador_esclavo.cpp')
 )
 
@@ -91,12 +105,12 @@ foreach ($f in ($fuentesMaestro + $fuentesEsclavo)) {
 $comunes = @('-std=c++11', '-O1', '-Wall', '-Wno-unused-parameter', '-DPUNTA_EXPORTA',
              '-static-libgcc', '-static-libstdc++')
 
-Write-Host "Compilando la punta MAESTRO CON DEGRADADO (coordinador + semaforo + modo_degradado + modo_ambar + modos + respaldo REALES)..." -ForegroundColor Cyan
-& g++ @comunes "-I$DP" "-I$DP\comun" "-I$MAESTRO\include" -shared -o (Join-Path $BUILD 'punta_maestro_deg.dll') @fuentesMaestro
+Write-Host "Compilando la punta MAESTRO CON DEGRADADO (coordinador + semaforo + modo_degradado + modo_ambar + modos + respaldo + reloj REALES)..." -ForegroundColor Cyan
+& g++ @comunes '-DARNES_RELOJ_REAL' "-I$DP" "-I$RR" "-I$DP\comun" "-I$MAESTRO\include" -shared -o (Join-Path $BUILD 'punta_maestro_deg.dll') @fuentesMaestro
 if ($LASTEXITCODE -ne 0) { Write-Error "Fallo construyendo punta_maestro_deg.dll" }
 
-Write-Host "Compilando la punta ESCLAVO (semaforo + main + modo_degradado + config_ciclo + mando + demanda + respaldo REALES)..." -ForegroundColor Cyan
-& g++ @comunes "-I$DP" "-I$DP\comun" "-I$DP\esclavo" "-I$ESCLAVO\include" -shared -o (Join-Path $BUILD 'punta_esclavo_deg.dll') @fuentesEsclavo
+Write-Host "Compilando la punta ESCLAVO (semaforo + main + modo_degradado + config_ciclo + mando + demanda + respaldo + reloj REALES)..." -ForegroundColor Cyan
+& g++ @comunes '-DARNES_RELOJ_REAL' "-I$DP" "-I$RR" "-I$DP\comun" "-I$DP\esclavo" "-I$ESCLAVO\include" -shared -o (Join-Path $BUILD 'punta_esclavo_deg.dll') @fuentesEsclavo
 if ($LASTEXITCODE -ne 0) { Write-Error "Fallo construyendo punta_esclavo_deg.dll" }
 
 Write-Host "Compilando el orquestador del Degradado..." -ForegroundColor Cyan

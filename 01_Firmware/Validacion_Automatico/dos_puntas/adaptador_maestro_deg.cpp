@@ -58,12 +58,15 @@
 //     y con ellos menu.cpp y u8g2.
 //   - lcd.cpp y menu.cpp: la pantalla. Las llamadas se cuentan, no se dibujan.
 //   - protocolo.cpp: CRC, rafaga y proteccion de replay. Aqui la radio son dos colas.
-//   - reloj.cpp: incluye <STM32RTC.h>, que no tiene sustituto en el repositorio. Se
-//     modela el PERIFERICO -un contador de segundos y sus getters-, nunca una regla.
-//     El modelo es el MISMO BLOQUE LITERAL que ya usa adaptador_esclavo.cpp, para que
-//     las dos puntas cuenten el tiempo con la misma aritmetica y una diferencia entre
-//     ellas sea del firmware y no del arnes.
-//   - mando.cpp, bluetooth.cpp, botones.cpp: no deciden la fase del Degradado.
+//   - ~~reloj.cpp: incluye <STM32RTC.h>, que no tiene sustituto en el repositorio. Se
+//     modela el PERIFERICO~~ -> DESDE EL 11/09 (D-21 (1)) reloj.cpp ENTRA REAL, el de las
+//     dos puntas. Lo que se sustituye es el SILICIO: STM32RTC.h y el HAL del LSE y del
+//     contador, en reloj_real/, con el borde escrito alli (Y2 arrancando). Sin eso la
+//     caducidad de la siembra y la frontera de 25 s de reloj_radioManda() no las ejecutaba
+//     nadie: el doble que habia aqui no las tenia.
+//   - mando.cpp, bluetooth.cpp, botones.cpp: no deciden la fase del Degradado. La rama
+//     CMD:HORA_ESP32 de bluetooth.cpp -la que siembra- se transcribe en la orden
+//     "siembra_esp32", literal, porque bluetooth.cpp arrastra el puerto serie entero.
 
 #include "punta_api.h"
 
@@ -87,6 +90,7 @@
 #include "modo_ambar.h"
 #include "modo_degradado.h"
 #include "stm32f1xx_hal.h"   // para volcar el dominio de respaldo real
+#include "rtc_periferico.h"  // D-21 (1): el HSI, la linea del ESP32 y la siembra en frontera
 
 // ---------------------------------------------------------------------------
 // EL RELOJ SIMULADO Y LOS PINES OBSERVADOS. Esta DLL tiene los SUYOS.
@@ -120,12 +124,22 @@ bool botonAceptar()  { bool v = g_pulsarAceptar;  g_pulsarAceptar = false;  retu
 // N-73: la Caja Negra. El stub no puede limitarse a callar. [literal de adaptador_maestro.cpp]
 static char g_ultimaAlarmaEvento[48] = "";
 static int  g_alarmasEmitidas = 0;
+// D-21 (1): la alarma de la hora caducada se cuenta POR SU CAUSA, que es lo que el tecnico
+// lee. Y el $EVENT del salto de hora que pasa por rojo (D-26 (4)), por su detalle: es la
+// palabra del firmware sobre lo que acaba de hacer, y el bloque F la contrasta con los pines.
+static int  g_alarmasCaducada = 0;
+static int  g_eventosSaltoRojo = 0;
 void bluetooth_reportarAlarma(const char* evento, const char* causa, const char* accion) {
-  (void)causa; (void)accion;
+  (void)accion;
   snprintf(g_ultimaAlarmaEvento, sizeof(g_ultimaAlarmaEvento), "%s", evento);
   g_alarmasEmitidas++;
+  if (!strcmp(evento, "HORA_ESP32") && !strcmp(causa, "CADUCADA")) g_alarmasCaducada++;
 }
-void bluetooth_reportarEvento(const char*, const char*) {}
+void bluetooth_reportarEvento(const char* origen, const char* detalle) {
+  if (!strcmp(origen, "DEGRADADO") && !strcmp(detalle, "SALTO_DE_HORA_POR_ROJO")) {
+    g_eventosSaltoRojo++;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // PANTALLA SIMULADA. SOLO las funciones que los .cpp compilados llaman de verdad.
@@ -158,58 +172,31 @@ void lcd_dibujarDegradadoAmbar(const char* linea1, const char* linea2) {
 void menu_setup() {}
 
 // ---------------------------------------------------------------------------
-// EL RTC SIMULADO. BLOQUE LITERAL de adaptador_esclavo.cpp, con el mismo contrato:
-// contador MONOTONO que sobrevive al corte, y la hora de pared anclada a millis().
+// EL RELOJ ES EL REAL (11/09, D-21 (1)). Aqui habia un modelo del RTC -contador,
+// getters y un reloj_ajustar() escrito a mano- que se retira ENTERO: reloj.cpp se compila
+// en esta DLL y lo que se sustituye es solo el silicio (reloj_real/). Con el modelo, la
+// hora del Maestro no caducaba nunca y la regla nueva no la ejecutaba nadie.
 //
-// Que sea literalmente el mismo modelo en las dos puntas es la condicion para que el
-// desfase que este arnes inyecta sea del ESCENARIO y no del arnes: si cada punta
-// contara los segundos con una aritmetica distinta, el solape medido podria salir de
-// la diferencia entre los dos modelos y no del firmware.
+// LA RAMA CMD:HORA_ESP32 DE bluetooth.cpp, TRANSCRITA. bluetooth.cpp no se compila aqui
+// -arrastra el puerto serie y el despachador entero- y la rama que siembra es de cuatro
+// lineas: se copia LITERAL en lo que decide -sembrar, y SOLO SI ENTRO propagar al Esclavo-,
+// sin el diario. Si la rama cambia, esto se queda viejo: lo compara reloj_04.
 // ---------------------------------------------------------------------------
-static bool     g_rtcEnHora = false;
-static uint32_t g_rtcBaseSegundos = 0;      // valor del contador cuando millis()==g_rtcAncla
-static unsigned long g_rtcAncla = 0;
-static uint32_t g_rtcSegundosDelDiaBase = 0;
-static uint8_t  g_rtcDia = 0;
-
-static uint32_t rtcTranscurrido() {
-  return (uint32_t)((arnes_millis_valor - g_rtcAncla) / 1000UL);
+static int ramaHoraEsp32(const char* iso) {
+  if (reloj_sembrarDesdeIso(iso)) {
+    coordinador_sincronizarHora();
+    return 1;
+  }
+  return 0;
 }
 
-void reloj_setup() {}
-void reloj_actualizar() {}
-bool reloj_enHora() { return g_rtcEnHora; }
-bool reloj_hayCristal() { return true; }
+// El salto de hora que el bloque E inyecta: una siembra ACEPTADA, sin la propagacion. Es
+// la herramienta con que el orquestador mueve la hora de esta punta, no un camino del
+// equipo, y por eso va directa al sembrador.
+static int sembrarDirecto(const char* iso) { return reloj_sembrarDesdeIso(iso) ? 1 : 0; }
 
-uint32_t reloj_contadorSegundos() {
-  if (!g_rtcEnHora) return 0;   // el cero significa "no hay reloj", como en el real
-  return g_rtcBaseSegundos + rtcTranscurrido();
-}
-
-uint32_t reloj_segundosDelDia() {
-  if (!g_rtcEnHora) return 0;
-  return (g_rtcSegundosDelDiaBase + rtcTranscurrido()) % 86400UL;
-}
-uint8_t reloj_hora()   { return (uint8_t)(reloj_segundosDelDia() / 3600UL); }
-uint8_t reloj_minuto() { return (uint8_t)((reloj_segundosDelDia() / 60UL) % 60UL); }
-uint8_t reloj_segundo(){ return (uint8_t)(reloj_segundosDelDia() % 60UL); }
-uint8_t reloj_dia()    { return g_rtcEnHora ? g_rtcDia : 0; }
-
-void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo, uint8_t dia) {
-  if (hora > 23 || minuto > 59 || segundo > 59 || dia > 31) return;
-  uint32_t contador = reloj_contadorSegundos();
-  g_rtcAncla = arnes_millis_valor;
-  g_rtcBaseSegundos = contador ? contador : 1;
-  g_rtcSegundosDelDiaBase = (uint32_t)hora * 3600UL + (uint32_t)minuto * 60UL + segundo;
-  if (dia >= 1) g_rtcDia = dia;
-  g_rtcEnHora = true;
-}
-
-// coordinador.cpp lo llama cada 10 min para que las dos puntas vuelquen el dia a la
-// vez. Aqui el calendario es un solo byte de dia, asi que no hay mes que fijar: se
-// cuenta la llamada para que el arnes pueda exigir que ocurra.
-static unsigned long g_fijarEnero = 0;
-void reloj_fijarEnero() { g_fijarEnero++; }
+// coordinador.cpp llama a reloj_fijarEnero() -la real, ahora- cada 10 min. Con base de
+// software sembrada no toca el RTC (N-162); el arnes ya no cuenta la llamada.
 
 // ---------------------------------------------------------------------------
 // LA RADIO: DOS COLAS. [bloque literal de adaptador_maestro.cpp]
@@ -263,6 +250,10 @@ bool protocolo_hayPaqueteDisponible(RF_Packet* destino) {
 static ModoSistema modoAnterior = MENU;
 
 static void pasoPrincipal() {
+  // main.cpp la llama la primera de la vuelta, detras del perro. Con el modelo del RTC era
+  // un cuerpo vacio y se omitia; con el reloj.cpp real es la que mantiene el cerrojo de la
+  // caducidad de D-21 (1), asi que entra en su sitio.
+  reloj_actualizar();
   botones_actualizar();
   semaforo_actualizar();
 
@@ -333,7 +324,7 @@ PUNTA_API void punta_arrancar(void) {
 }
 
 PUNTA_API void punta_tick(unsigned long ms) {
-  arnes_millis_valor = ms;
+  arnes_millis_valor = arnes_reloj_local(ms);   // el HSI de esta punta: rtc_periferico.h
   pasoPrincipal();
 }
 
@@ -382,29 +373,38 @@ PUNTA_API long punta_mando(const char* que, long arg) {
     reloj_ajustar(h, m, s, d);
     return reloj_enHora() ? 1 : 0;
   }
-  // LA DERIVA DEL CRISTAL, Y POR QUE NO SE HACE CON reloj_ajustar() NI CON EL DOMINIO.
+  // EL SALTO DE HORA, CONSERVANDO LA FASE SUB-SEGUNDO.
   //
-  // Mueve la hora de pared de ESTA punta arg segundos, CONSERVANDO LA FASE SUB-SEGUNDO
-  // -no se toca g_rtcAncla-. Es lo que hace un cristal que corre mas rapido: la hora se
-  // separa, el instante en que cambia el segundo no salta.
-  //
-  // Las otras dos vias reanclaban: reloj_ajustar() y la escritura del indice 10 del
-  // dominio ponen g_rtcAncla = millis(), con lo que la frontera de segundo del RTC
-  // saltaba al instante de la inyeccion. El arnes acababa midiendo un residuo
-  // sub-segundo FABRICADO POR EL, encima del residuo real de la sincronizacion, y el
-  // umbral que publica se movia con el instante en que uno decidia inyectar. Se vio
-  // porque el barrido daba un solape de 950 ms justo en la frontera: demasiado
-  // redondo para un tiempo de aire de 50 ms.
-  if (!strcmp(que, "desviar_rtc")) {
-    long s = (long)g_rtcSegundosDelDiaBase + arg;
-    while (s < 0) s += 86400L;
-    g_rtcSegundosDelDiaBase = (uint32_t)(s % 86400L);
-    g_rtcBaseSegundos = (uint32_t)((long)g_rtcBaseSegundos + arg);
-    return 1;
-  }
+  // Mueve la hora de pared de ESTA punta arg segundos sin mover el instante en que cambia
+  // de segundo. Con el reloj.cpp real (11/09) eso es una SIEMBRA -la unica forma que tiene
+  // el equipo de mover su hora- entregada en la ultima frontera de segundo
+  // (arnes_sembrar_en_frontera, rtc_periferico.h). El motivo de conservar la fase no ha
+  // cambiado: reanclar al millis() de la inyeccion fabricaba un residuo sub-segundo propio
+  // del arnes -el solape de 950 ms en la frontera, demasiado redondo para un tiempo de aire
+  // de 50 ms- y el umbral publicado se movia con el instante de inyectar.
+  if (!strcmp(que, "desviar_rtc"))        return (long)arnes_sembrar_en_frontera(arg, sembrarDirecto);
   if (!strcmp(que, "reloj_en_hora"))      return reloj_enHora() ? 1 : 0;
   if (!strcmp(que, "segundos_del_dia"))   return (long)reloj_segundosDelDia();
-  if (!strcmp(que, "fijar_enero"))        return (long)g_fijarEnero;
+
+  // --- D-21 (1): la hora que caduca, y el ESP32 que la siembra ------------------
+  // La caducidad COMPILADA en esta DLL, no un numero copiado: el orquestador la pide aqui.
+  if (!strcmp(que, "hora_caduca_ms"))     return (long)HORA_CADUCA_MS;
+  if (!strcmp(que, "hora_fiable"))        return reloj_horaFiable() ? 1 : 0;
+  if (!strcmp(que, "hsi_ppm"))            { arnes_hsi_ppm(arg); return 1; }
+  if (!strcmp(que, "fase_subsegundo"))    return arnes_fase_subsegundo();
+  // La linea del ESP32 con la hora de SU DS3231, empaquetada como dia*86400 + segundos del
+  // dia. Entra por la rama transcrita, en el instante del banco en que llega.
+  if (!strcmp(que, "siembra_esp32")) {
+    char iso[24];
+    arnes_iso(iso, sizeof(iso), (uint8_t)(arg / 86400L), arg % 86400L);
+    return (long)ramaHoraEsp32(iso);
+  }
+  // Un ESP32 cuyo DS3231 dice la MISMA hora que ya tiene esta punta: la siembra que la
+  // mantiene fresca sin moverla. Es la de los bloques B..E, que miden la geometria del
+  // ciclo y no la deriva; ver la cabecera del bloque F del orquestador.
+  if (!strcmp(que, "siembra_esp32_eco"))  return (long)arnes_sembrar_en_frontera(0, ramaHoraEsp32);
+  if (!strcmp(que, "alarmas_caducada"))   return (long)g_alarmasCaducada;
+  if (!strcmp(que, "eventos_salto_rojo")) return (long)g_eventosSaltoRojo;
 
   // --- SFTY-23: el intercambio horario REAL, encolado por el coordinador ----
   if (!strcmp(que, "sincronizar_hora"))   return coordinador_sincronizarHora() ? 1 : 0;
@@ -452,28 +452,20 @@ PUNTA_API long punta_mando(const char* que, long arg) {
 // --- El dominio de respaldo: lo que la pila mantiene a traves de un corte -------
 // [bloque literal de adaptador_esclavo.cpp: las dos puntas tienen el mismo dominio y
 //  el mismo respaldo.cpp de Horner detras]
+// Los indices 10..13 son ahora el SILICIO del RTC (rtc_periferico.cpp): el contador y el
+// calendario que la pila mantiene. Con el reloj.cpp real la hora sembrada NO vive ahi
+// -desde N-162 la siembra no escribe el RTC- y por eso no sobrevive a un corte; este
+// arnes no ejerce el corte (ver la cabecera del orquestador).
 PUNTA_API long punta_dominio_leer(int indice) {
   volatile uint32_t* dr = &arnes_bkp.DR1;
   if (indice >= 0 && indice < 10) return (long)dr[indice];
-  switch (indice) {
-    case 10: return (long)reloj_contadorSegundos();
-    case 11: return g_rtcEnHora ? 1 : 0;
-    case 12: return (long)reloj_segundosDelDia();
-    case 13: return (long)g_rtcDia;
-    default: return 0;
-  }
+  return arnes_dominio_leer_rtc(indice);
 }
 
 PUNTA_API void punta_dominio_escribir(int indice, long valor) {
   volatile uint32_t* dr = &arnes_bkp.DR1;
   if (indice >= 0 && indice < 10) { dr[indice] = (uint32_t)valor; return; }
-  switch (indice) {
-    case 10: g_rtcBaseSegundos = (uint32_t)valor; g_rtcAncla = arnes_millis_valor; break;
-    case 11: g_rtcEnHora = (valor != 0); break;
-    case 12: g_rtcSegundosDelDiaBase = (uint32_t)valor; break;
-    case 13: g_rtcDia = (uint8_t)valor; break;
-    default: break;
-  }
+  arnes_dominio_escribir_rtc(indice, valor);
 }
 
 }  // extern "C"

@@ -228,7 +228,13 @@ static const char* const CAM_NOMBRE[2] = {"CAM_C", "CAM_D"};
 const char* camara_estado() {
   // LA PEOR DE LAS DOS, PERO SOLO ENTRE LAS QUE TIENEN ALGO QUE DECIR.
   //
-  // Con UNA CAMARA POR POSTE (D-13) el otro pin esta vacio, y un pin vacio arranca en
+  // ~~Con UNA CAMARA POR POSTE (D-13) el otro pin esta vacio~~ -> CADUCADO el 11/09: la fila
+  // de DECISIONES.md de ese dia sobre las conexiones del Sisga deja DOS camaras por poste,
+  // una en cada pin. (Su numero no se escribe aqui A PROPOSITO: decisiones_01 lo contaria
+  // como ancla, y esta linea no construye esa decision, solo dice que la regla de abajo
+  // perdio su motivo.) La regla se escribio para un pin vacio a proposito; se deja tal cual
+  // porque NO se toca aqui -rehacerla es la exencion que esa fila deja pendiente-. Lo cierto
+  // es la mecanica: un pin sin camara, o con una muerta desde la instalacion, arranca en
   // CAM_DESCONOCIDA y no sale de ahi nunca -no puede dar un flanco-. Con el mayor-que a
   // secas eso significaba que "?" pesaba mas que "OK" para siempre y EL CAMPO CAM: NO
   // PODIA DECIR "OK" EN NINGUN EQUIPO REAL. Un campo que solo sabe decir una cosa es el
@@ -387,8 +393,13 @@ static void vigilante_tick(unsigned long ahora) {
     for (int i = 0; i < 2; i++) {
       // UN PIN QUE NUNCA HA DADO UN FLANCO NO SE VIGILA - Y ESE ES EL CASO NORMAL.
       //
-      // HAY UNA CAMARA POR POSTE (D-13, y las compras son 2 unidades para 2 postes), asi
-      // que en todos los equipos que se monten UNO DE ESTOS DOS PINES ESTA VACIO. Con el
+      // ~~HAY UNA CAMARA POR POSTE (D-13, y las compras son 2 unidades para 2 postes), asi
+      // que en todos los equipos que se monten UNO DE ESTOS DOS PINES ESTA VACIO~~ ->
+      // CADUCADO el 11/09: DECISIONES.md deja ese dia DOS camaras por poste (p10 y p12 de
+      // J16), las cuatro compradas. ESTA EXENCION PIERDE ASI SU MOTIVO y queda pendiente de
+      // rehacer (CLAUDE.md 6: una excepcion es una afirmacion sobre el codigo). Sin el numero
+      // de la fila, a proposito: decisiones_01 lo contaria como ancla y esto no la construye.
+      // No se toca aqui. Lo que sigue describe lo que el codigo HACE, que no ha cambiado: con el
       // pull-down de 10K de la placa un pin vacio lee bajo para siempre: nunca da un
       // flanco. Sin esta linea acumulaba silencio como si fuera una camara y, cumplido el
       // plazo, emitia $ALARM CAM_CIEGA DE UNA CAMARA QUE NO EXISTE -el manual manda
