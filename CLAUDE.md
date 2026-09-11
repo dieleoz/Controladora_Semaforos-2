@@ -16,8 +16,10 @@ compuerta, al acta de `evidencia/`. Aqui queda el puntero, nunca el valor.
 ## 0. Lo que no se negocia
 
 1. **Un semaforo que falla mal mata a alguien.** Es lo unico que explica todo lo demas.
-2. **Nada sube a campo sin pasar banco.** En campo corre **V8.4, `e303485` (31/07)** y **nada ha tocado
-   una tarjeta desde entonces**: lo posterior esta validado en simulador, no en cobre.
+2. **Nada sube a campo sin pasar banco.** Que firmware hay en cada equipo **lo dice `ESTADO.md`, no este
+   fichero**: aqui ponia *«en campo corre V8.4 y nada ha tocado una tarjeta»* y dejo de ser cierto el
+   10/09, cuando un V9 `SIN_BANCO` se probo en el Sisga. **Una foto de campo sin el hash de lo que habia
+   dentro no se lee** (§7).
 3. **Un verde de la compuerta NO es un entregable.** Dice que los modelos y arneses de PC no encuentran
    nada; **no dice que el firmware funcione en la tarjeta**. Hubo un `20/20` con una regresion viva en
    banco, y los cinco defectos que pararon el banco del 3-4/09 lo pasaron sin despeinarlo.
