@@ -5,7 +5,7 @@
 > en [`DECISIONES.md`](DECISIONES.md) — **si un párrafo de aquí contradice una fila de allí, gana
 > la fila**. Lo de debajo del separador es histórico y se conserva tachado, no borrado.
 
-**Rama de trabajo: `main`** *(el 11/09 se fusionaron, por avance rápido y tras validarlas por el
+**Rama de trabajo: ~~`main`~~ `main` EN GITHUB (`origin/main`), que en ESTE clon es la rama local `main-nuevo`** *(medido el 11/09: `git rev-parse --abbrev-ref main-nuevo@{upstream}` → `origin/main`)*. ⚠️ **La rama local `main` de este clon es OTRA y vieja** —sigue a `padre/main`—: un `git checkout main` aquí no lleva al trabajo vigente. *(El 11/09 se fusionaron, por avance rápido y tras validarlas por el
 diff, `feat/d20-d23-construccion` y `fix/campo-sisga-rtc-darpaso`, que ya la contenía).* 🔴 **Aquí había un hash de HEAD escrito a mano y estaba
 caducado: se ha retirado en vez de sustituirse por otro que caducaría igual.** El HEAD vigente se
 mide, no se lee: `git rev-parse --short HEAD`.
@@ -15,8 +15,13 @@ mide, no se lee: `git rev-parse --short HEAD`.
 (`7ff7d12`), probado después el del 10/09 (`b354fe9`). La cinta y el diario del Maestro están en
 `evidencia/`. Lo primero: 🔴 **no usar el Modo Degradado allí con `7ff7d12`** (el Maestro se declara
 en hora con el reloj parado); **avisar al instalador** de que la guía de 4 cámaras que le llegó por
-WhatsApp está RETIRADA —ninguna cámara protege la pluma—; **medir la alimentación del ESP32** (se
-reinició 5 veces en 97 s, dos por pérdida de tensión); y **traer la cinta del Esclavo**. Lo que hay
+WhatsApp está RETIRADA —ninguna cámara protege la pluma— *(11/09: sus CONEXIONES —cuatro cámaras,
+dos por poste, `J16` p9/p10 y p11/p12, talanquera en `J15`— las dejó el responsable como
+definitivas en `D-25`; lo que se retira son sus afirmaciones de seguridad, que siguen siendo
+falsas)*; **medir la alimentación del ESP32** (~~se reinició 5 veces en 97 s~~ — **al menos 3
+reinicios** en 12:18–12:19: la cinta trae 5 partes `EVT:ARRANQUE`, pero el parte se emite una vez
+por CONEXIÓN Bluetooth, así que un arranque puede anunciarse dos veces; 2 de los 5 son
+`SUBIDA_DE_TENSION`, `roadmap.md` §3.16); y **traer la cinta del Esclavo**. Lo que hay
 que construir es que **el ESP32 mande la hora** (`D-20`/`A-15`). Todo en `roadmap.md` §3.16 (`N-162`). La compuerta en
 verde dice que los modelos y los arneses de PC no encuentran nada; **no dice que el firmware funcione
 sobre la tarjeta**.
@@ -58,7 +63,11 @@ sobre la tarjeta**.
 
 ## ✅ Lo que está CONFIRMADO EN COBRE
 
-**La última cinta es del 05/09 a las 22:19, y cargó `42a52cd`.** Lo demuestra, no lo afirma:
+~~**La última cinta es del 05/09 a las 22:19, y cargó `42a52cd`.**~~ 🔴 **CADUCO desde el 10/09: la
+última cinta es la del Sisga** —`evidencia/2026-09-10_Sisga_179DB0_cinta_tramas.txt` y
+`…_diario_ordenes.txt`, **sólo del Maestro**, con `7ff7d12` dentro— y lo que ejerce está en
+`roadmap.md` §3.16 y §5. **Esta tabla sigue siendo la de la cinta del 05/09** (`42a52cd`), que lo
+demuestra, no lo afirma:
 
 | | evidencia en la cinta |
 |---|---|
@@ -79,7 +88,11 @@ sobre la tarjeta**.
 | **la línea falsa de `pines.h`** | — | decía que `BOTON1`/`BOTON2` son `INPUT_PULLUP` activos en BAJO. El fuente hace `INPUT` pelado y lee `== HIGH`. Es la cabecera que todo el mundo lee antes de cablear |
 
 > **De ninguno hay una sola prueba en cobre. Que la compuerta esté en `20/20` no dice nada de
-> eso.**
+> eso.** ⚠️ *11/09: los tres primeros iban dentro de `7ff7d12`, el firmware del Maestro del Sisga
+> (`git merge-base --is-ancestor`), y la cinta del 10/09 ejerce **del lado del Maestro y por
+> telemetría** `N-150` (el ciclo arranca tras `SET_TIEMPOS:3,3,15`). Ni `N-151` ni `N-152` salen en
+> esa cinta —no hay un `DAR PASO` fuera de coordinador ni un `CANCELAR_AMBAR` del Poste 2—, y nada
+> de ella ve las luces ni el Esclavo: no se tacha nada hasta tener su cinta (`roadmap.md` §5).*
 
 ---
 
@@ -94,7 +107,7 @@ qué hubo que auditarla vive en [`roadmap.md`](roadmap.md) bajo **`N-160`**.
 | **`D-21` pieza B** — ámbar si la hora deja de ser fiable | 🟡 **ESCRITA** (`7adee76`) en `Esclavo/src/modo_degradado.cpp`, 🔴 **pero INALCANZABLE**: el único `horaValida = false` del Esclavo vive dentro de `reloj_setup()`, así que dentro del Degradado la guarda no puede dispararse (`roadmap.md` §3.10.bis y §3.16-E). Falta la pieza A —el `OSF` hasta `reloj_enHora()`—. ⚠️ **La del Maestro —`irAAmbar("Reloj no fiable", "Degradado detenido")`— YA EXISTÍA antes de la rama**: el commit sólo le añadió un comentario, y el parte la contó como nueva. ⚠️ **Y las dos no son la misma línea:** el Maestro va **directo** al ámbar; el Esclavo llama a `iniciarSalida(true)` —rendición—, que fuerza **todo-rojo primero** y termina en `DEG_RENDIDO` con `semaforo_iniciarFallo()`. Las dos acaban en intermitente; sólo el Esclavo pasa por el despeje, y es lo correcto |
 | **`D-14`** — la entrada de alarma de la cámara | 🛑 **CERO CÓDIGO.** Entró como **dos comentarios en `pines.h`**; **revertido en `def6374`**. ~~Sigue BLOQUEADA por una medida de multímetro~~ — 🟢 **esa medida NO hacía falta** (08/09, `roadmap.md` §3.11.bis: el Manual 9 ya tenía leído `1 input … max. 24VDC`). **Lo que la bloquea es una DECISIÓN del responsable: cuál de los tres últimos canales de potencia (`J9`/`J11`/`J13`) se gasta, para siempre** (§3.11.ter) |
 | **`D-22`** — `Y1` como latido del micro | 🛑 **CERO CÓDIGO.** Entró como **tres comentarios en cada `main.cpp`**, y describía **el HSI de hoy como si fuera la decisión implementada**; **revertido en `903f483`**. Medido buscando por sus dos nombres (`Y1` y `HSE`/`SystemClock_Config`) sobre `{Maestro,Esclavo,Repetidor}/{src,include}`: **cero apariciones**. `Y1` **no se ha arrancado nunca** y el firmware sigue en el HSI. **Va la ÚLTIMA, va SOLA, y no se carga sin una tarjeta delante:** si `Y1` no oscila, el `_Error_Handler` del núcleo es `noreturn` + `while (1)` y **la tarjeta queda a oscuras, sin luces y sin reiniciarse** |
-| **`D-23`** — pantalla propia del poste 2 | 🛑 **CERO CÓDIGO, y es una decisión de la APP.** Entró como **dos comentarios**; **revertido en `5d0a0b9`**. Medido sobre **toda** la rama: `app.js` e `index.html` **no aparecen en el diff**, y las **CUATRO** copias de `app.js` del árbol son **idénticas por hash** (`md5 b09dcc85…`) *(el parte decía tres)*. 🔴 **Y antes de construirla hay que ELEGIR LA VÍA, que no está elegida: `A-14` en [`DECISIONES.md`](DECISIONES.md)** |
+| **`D-23`** — pantalla propia del poste 2 | 🛑 **CERO CÓDIGO, y es una decisión de la APP.** Entró como **dos comentarios**; **revertido en `5d0a0b9`**. Medido sobre **toda** la rama: `app.js` e `index.html` **no aparecen en el diff**, y las **CUATRO** copias de `app.js` del árbol son **idénticas por hash** (`md5 b09dcc85…`) *(el parte decía tres)*. ~~🔴 **Y antes de construirla hay que ELEGIR LA VÍA, que no está elegida: `A-14` en [`DECISIONES.md`](DECISIONES.md)**~~ — 🟢 **CADUCO desde el 07/09: la vía está elegida** —`$EVENT` nuevo, emitido también al conectar (`A-14`, resuelta en índice y cuerpo)—. **Lo que falta es construirla**, y sigue en cero código (`decisiones_01_anclas` la acusa, medido el 11/09) |
 
 > 🔴 **Tres de las cinco casillas se apagaron con COMENTARIOS.** El instrumento que las acusaba,
 > `decisiones_01_anclas`, dejó de acusarlas sin que se construyera nada. **Los tres reverts son la
@@ -225,8 +238,10 @@ se acumula un `20/20` que no acerca una tarjeta (`CLAUDE.md` §2.bis).
 > paso 29.
 >
 > ~~**N-145 no se puede dar por probada: falta comprar el `DS3231`**~~ — **RESUELTO el 05/09 por
-> el responsable: cada ESP32 lleva su reloj con pila propia** (`D-9`, `D-15`). Lo que sigue sin
-> verificar es la dirección `0x68` sobre el módulo.
+> el responsable: cada ESP32 lleva su reloj con pila propia** (`D-9`, `D-15`). ~~Lo que sigue sin
+> verificar es la dirección `0x68` sobre el módulo.~~ *(11/09: verificada en el módulo del Maestro
+> `179DB0` — en la cinta del Sisga el puente contesta `SET_RTC` con la hora releída del `DS3231` y
+> `LEER_RTC` la da avanzando, 12:17:31 → 12:18:52; el del Esclavo sigue sin medir)*
 >
 > ~~**N-148 · la app no pide confirmación de vía al dar ámbar en Manual**~~ — **CERRADO EN SOFTWARE**: `SET_MODO:AMBAR` está en la tabla `VIA_MANIOBRA` de `app.js` y pasa por `confirmarVia()`, igual que `MANUAL:CAMBIAR_TURNO` y `SET_MODO:AUTO`. Y el texto **no dice «se pone en ámbar»** —eso ya lo dice el rótulo del botón—: dice lo que significa en la calzada, que los dos postes quedan en intermitente a la vez. 🔴 **Sin prueba en tarjeta.**
 >
@@ -251,10 +266,10 @@ se acumula un `20/20` que no acerca una tarjeta (`CLAUDE.md` §2.bis).
 
 | # | Qué está bloqueado | Qué lo desbloquea | De quién es |
 |---|---|---|---|
-| 🛑 **BLQ-3** | **La tarjeta Maestro dañada** (**N-116**): se calienta y deja de funcionar a los ~30 s. **El firmware queda descartado por censo**, así que reflashear no lo arregla. **La causa que sostiene el cobre es latch-up**: los 5 pines de bornera van desnudos al die y `J16` p1 lleva 12 V crudos | **Medir el consumo del riel de 3,3 V en frío** con fuente limitada en corriente, antes de energizar. 🛑 **No reenergizar «a ver si pasa»** | **Responsable** |
-| 🛑 **BLQ-6** | **Nada de lo arreglado después de la cinta del 05/09 ha pasado por una tarjeta**: N-150, N-151 y N-152 tocan el camino del ámbar y del Modo Manual, o sea **lo que decide qué ve un conductor** | **Una carga y una pasada de los pasos de ámbar, rojo total y `DAR PASO`.** Nada lo sustituye | Banco |
+| 🛑 **BLQ-3** | **La tarjeta Maestro dañada** (**N-116**) *(11/09: es **la Maestro de la sesión 1 del banco**, que se descartó entera; la `SERIE:179DB0` es **otra placa**, reprogramada como Maestro el 04/09 —`roadmap_hist.md` N-126, anunciada `SEM-179DB0-M`— y es la que corrió V9 en el Sisga el 10/09. **Ya no bloquea ejercer firmware en cobre: bloquea recuperar esta placa**)*: se calienta y deja de funcionar a los ~30 s. **El firmware queda descartado por censo**, así que reflashear no lo arregla. **La causa que sostiene el cobre es latch-up**: los 5 pines de bornera van desnudos al die y `J16` p1 lleva 12 V crudos | **Medir el consumo del riel de 3,3 V en frío** con fuente limitada en corriente, antes de energizar. 🛑 **No reenergizar «a ver si pasa»** | **Responsable** |
+| 🛑 **BLQ-6** | **Nada de lo arreglado después de la cinta del 05/09 ha pasado por una tarjeta** *(11/09: **en parte caduco** — el Maestro del Sisga llevaba `7ff7d12`, que los contiene, y su cinta ejerce del lado del Maestro `N-150`; **las luces, el Esclavo, `N-151` y `N-152` siguen sin ver cobre**, y lo posterior a `7ff7d12` —`c51cc85`, `141f191`, `63d6964`— no ha tocado ninguna tarjeta con cinta; `roadmap.md` §5)*: N-150, N-151 y N-152 tocan el camino del ámbar y del Modo Manual, o sea **lo que decide qué ve un conductor** | **Una carga y una pasada de los pasos de ámbar, rojo total y `DAR PASO`.** Nada lo sustituye | Banco |
 | 🔴 **BLQ-5** | **Todas las tarjetas, no sólo la dañada** (**N-120**): la placa protege sus **9 salidas** con 220 Ω y optoacoplador, y **ninguna de sus 5 entradas de campo** | Revisión de diseño (**2K2 en serie**). **Mientras tanto: tapar el pin de 12 V de `J16` es obligatorio en cada equipo** | **Responsable** |
-| 🔴 **BLQ-4** | **La única vía de operación del equipo**: el ESP32 no se anuncia por Bluetooth de forma fiable (**N-117**). Arreglado en el árbol el 04/09, **causa no confirmada en el módulo** | **1º (30 s, gratis): buscar el equipo en la lista del teléfono.** **2º: monitor serie a 115200 sobre el CP2102, ANTES de reflashear** | Técnico |
+| 🔴 **BLQ-4** | **La única vía de operación del equipo**: ~~el ESP32 no se anuncia por Bluetooth de forma fiable (**N-117**). Arreglado en el árbol el 04/09, **causa no confirmada en el módulo**~~ — *(11/09: **el síntoma de N-117 se cerró en banco el 04/09** —`roadmap_hist.md` N-126: el módulo se anuncia estable como `SEM-179DB0-M`—; la causa ya no se puede discriminar con el arreglo dentro. **Lo que hay HOY es otro síntoma de la misma superficie:** el ESP32 del Sisga se reinició al menos 3 veces en 12:18–12:19, con `CAUSA:OTRO_PERRO` y `SUBIDA_DE_TENSION`, que **no son el perro de N-117** —ése se publicaría `PERRO_DE_TAREAS`, `nombreCausa()`—; `roadmap.md` §3.16)* | ~~**1º (30 s, gratis): buscar el equipo en la lista del teléfono.** **2º: monitor serie a 115200 sobre el CP2102, ANTES de reflashear**~~ *(11/09, para los reinicios del Sisga:)* **USB-TTL en `TX0` a 115200** —la ROM imprime `rst:0x..` en cada arranque—, **osciloscopio en 3V3 y `EN`**, y **una fuente de 5 V buena** (es la línea `A5` de la lista de compras, sin pedir) | Técnico |
 | **BLQ-2** | 🟠 **El cristal `Y2`.** No oscila en la tarjeta medida (N-17, N-37, medida de banco del 01/08). La mitad de firmware **ya está hecha** (N-80): `SET_RTC` contesta con motivo en vez de mentir | **Diagnosticar el `Y2` de la SEGUNDA tarjeta** para decidir entre reparar el cristal o reloj de software | **Responsable** |
 | ~~**BLQ-1**~~ | 🟢 **CERRADO el 31/08 — es un `ESP32-WROOM-32` clásico**, con `BR/EDR` y por tanto SPP | — | — |
 
@@ -309,7 +324,7 @@ escriben a mano** (N-93).
 | Componente / Documento | Ubicación | Nota |
 |---|---|---|
 | **App móvil de campo** | [`05_Funcional/App_Semaforo/`](05_Funcional/App_Semaforo/) | Frontend Web Bluetooth / WebView, selector de cruces y Courier RTC |
-| **APK Android** | la más nueva del disco es `05_Funcional/IOT_VIAL_Semaforos_2026-09-08_ded4416_SIN_BANCO.apk` *(medido con `ls`; los `.apk` están en `.gitignore`, así que git no vigila esto)* | 🟢 **al día**: lleva el aviso del Modo Inteligente a ciegas (`D-24`) y su contenido se verificó **entrada por entrada y por CRC** contra los 13 ficheros de `www/`, no por que el build saliera bien. ⚠️ **Las anteriores NO se borran pero están caducadas.** Y el sufijo `_SIN_BANCO` se queda hasta que alguien la instale con un equipo delante |
+| **APK Android** | ~~la más nueva del disco es `05_Funcional/IOT_VIAL_Semaforos_2026-09-08_ded4416_SIN_BANCO.apk`~~ **la más nueva del disco es `05_Funcional/IOT_VIAL_Semaforos_2026-09-10_b354fe9_SIN_BANCO.apk`** (`SHA-256` `3bfd9e61…`, distinto de la del 08/09, `c7ec9e8e…`) *(medido el 11/09 con `ls` y `sha256sum`; los `.apk` están en `.gitignore`, así que git no vigila esto)* | 🔴 **NO está al día con `main`: hay que RECOMPILARLA.** `git diff b354fe9..HEAD` sobre `App_Semaforo/app.js` y `www/app.js` **no sale vacío** (`e91854c`, 11/09: se retiraron los textos de DAR PASO y el `state.hora` del `$ACK` del puente), así que esa APK lleva lo que se retiró. ~~🟢 **al día**~~ *(lo que sigue es de la del 08/09)*: lleva el aviso del Modo Inteligente a ciegas (`D-24`) y su contenido se verificó **entrada por entrada y por CRC** contra los 13 ficheros de `www/`, no por que el build saliera bien. ⚠️ **Las anteriores NO se borran pero están caducadas.** Y el sufijo `_SIN_BANCO` se queda hasta que alguien la instale con un equipo delante |
 | **Paquete de REVISIÓN** *(no es entrega de versión)* | `Paquete_Revision_V9.0_2026-09-08_<hash>_SIN_BANCO.zip`, generado por `generar_entrega_v9_0.py` | 🟢 Se regenera de un commit concreto y **no se versiona**. Lleva fuente para PlatformIO, manuales, la guía de cableado, la APK, el acta y el **`LEEME_PRIMERO.htm`** (se abre con doble clic). 🛑 **NO es una entrega de versión: eso exige banco pasado.** Ver la skill `entregar` §1 |
 | **Guía de cableado y banco (HTML)** | [`05_Funcional/Guia_Cableado_y_Pruebas_Banco.html`](05_Funcional/Guia_Cableado_y_Pruebas_Banco.html) | **El documento de conexiones que se entrega**, y el **formulario de vuelta**: se rellena y se devuelve en PDF |
 | **Esquemático KiCad bueno** | [`01_Firmware/Controladora_Semaforos/`](01_Firmware/Controladora_Semaforos/) | 649 KB con LCD, botones y el canal del motor, y el `.kicad_pcb` de 2,1 MB. La copia incompleta de `03_Hardware_Tarjeta/KiCad/` **se borró el 27/08** |
@@ -346,7 +361,8 @@ escriben a mano** (N-93).
   Todo-Rojo** (`cfgDespejeSeg`).
 * ⚠️ ~~Maestro: Cámara 1 (`PB0`) + Cámara 2 (Umbral, `PB8`); Esclavo: Cámaras 3 y 4~~ — **falso
   desde el 28/08**: son **dos cámaras de demanda, una por poste**, en **`J16` p10 (`PB14`) y p12
-  (`PB15`)**.
+  (`PB15`)**. ⚠️ **11/09: `D-25` lo cambia otra vez — CUATRO cámaras, DOS POR POSTE, p10 y p12 en
+  cada uno** (ver `DECISIONES.md`).
 * ✅ **La medida `M3` está cerrada desde el 03/09 y las cámaras se cablean** (`D-3`): pull-down
   real de 10 kΩ en las cuatro posiciones, `p10` y `p12` a **0 V** en reposo, entrada **activa en
   ALTO** — que es lo que el firmware ya hacía. ~~🔴 No se cablea todavía: polaridad en
@@ -440,11 +456,12 @@ Aquí no se copia: se enlaza.**
 
 | # | Qué | Depende de |
 |---|---|---|
-| **C1** | **SFTY-29: presencia como veto** | ~~decidido el 27/08: van las 4 cámaras~~ ⛔ **REVOCADO el 28/08: van DOS**, y con ello desaparece el sujeto de SFTY-29 |
+| **C1** | **SFTY-29: presencia como veto** | ~~decidido el 27/08: van las 4 cámaras~~ ⛔ **REVOCADO el 28/08: van DOS**, y con ello desaparece el sujeto de SFTY-29 · ⚠️ **11/09: `D-25` vuelve a CUATRO, dos por poste (`J16` p10 y p12)** — misma configuración para todas (`D-13`) y **ninguna veta nada**: el veto de la pluma sigue siendo `A-1.bis`, sin construir |
 | **C2** | Reloj `DS3231` por I²C en el STM32 | ⛔ **anulado**: el reloj vive en el ESP32 (`D-9`) |
 | **C3** | **`FW-PAIR`** (byte `PAIR`, `SET_PAIR`, descarte de lo ajeno) | el más caro: toca el respaldo `DR9`, la `FIRMA` y `maestro_02_respaldo` |
 | **C4** | **`FW-N53`**: decidir secuencias | es **decisión de spec**, no código |
 | **D3** | **Campo**: Courier RTC en sitio y puesta en servicio | **sólo con banco pasado, sin excepción** |
 
-> **Sobre lo que queda manda el flash:** el Maestro va al **88.6 %** y quedan **7.448 B libres**.
-> No caben todas. Se mide antes de escribir cada una, no después — `CLAUDE.md` §7.
+> **Sobre lo que queda manda el flash:** ~~el Maestro va al **88.6 %** y quedan **7.448 B libres**.~~
+> *(11/09: cifra copiada a mano el 08/09 y ya desfasada del acta; la vigente es la de la tabla de
+> arriba, que sale de `ls -t evidencia/*_compuerta.txt | head -1`)* No caben todas. Se mide antes de escribir cada una, no después — `CLAUDE.md` §7.
