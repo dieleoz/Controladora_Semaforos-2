@@ -140,8 +140,9 @@ Para obras viales donde la topografía bloquea la señal de radio entre Maestro 
 > **el rechazo no se construye**: `D-26` manda ponerle la hora al poste 2 cuando cae la radio.
 >
 > ✅ **Lo que `D-20` NO deroga, para que nadie lo retire de paso:**
-> **`CMD:LEER_RTC` (`D-17`) se sigue mandando A LOS DOS POSTES.** `D-20` prohíbe **ESCRIBIR** la hora
-> en el poste 2; **leerla no escribe nada**. Con `D-20` construida vale **más** que hoy: es la única
+> **`CMD:LEER_RTC` (`D-17`) se sigue mandando A LOS DOS POSTES.** ~~`D-20` prohíbe **ESCRIBIR** la hora
+> en el poste 2~~ *(🛑 caducado: la barrera es la SOBREESCRITURA —ya tachado en la propia fila `D-20`—, y
+> `D-26` (5) manda escribirle la hora al poste 2 cuando cae la radio)*; **leerla no escribe nada**. Con `D-20` construida vale **más** que hoy: es la única
 > forma de comprobar que la siembra del Maestro llegó de verdad al reloj del poste 2.
 > **Y siguen haciendo falta DOS `DS3231`, uno por poste (`A-5`)**: el del Esclavo es el que conserva
 > la hora con su pila cuando se cae la radio. **`D-20` no reduce la compra a uno.**

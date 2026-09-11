@@ -65,6 +65,19 @@ static EstadoDegradado estado = DEG_INACTIVO;
 static unsigned long tCambioEstado = 0;
 static bool rendicionEnCurso = false;
 
+// POR QUE ESTO ES UNA BANDERA APARTE Y NO SE DEDUCE DE syncVencidaLatch.
+//
+// rendicionEnCurso contesta "esta salida termina en ambar"; ESTA contesta "por que se
+// rindio", que es otra pregunta (CLAUDE.md 8: una variable que contesta a dos preguntas
+// no contesta bien a ninguna). Deducirlo del latch seria justo eso: el latch dice "hoy
+// hace mas de 48 h de la ultima sync", no "fue eso lo que tumbo el modo" -y despues de
+// una rendicion por hora caducada el latch puede levantarse solo con el equipo ya
+// rendido, con lo que el rotulo cambiaria de motivo sin que pasara nada.
+//
+// Se pone en los DOS caminos que rinden, pegada a su guarda, para que anadir un tercero
+// obligue a decidir que rotulo lleva.
+static bool rendidoPorHora = false;
+
 // Ultima orden de luz que ESTE modulo dio. Se actua solo en los flancos, nunca en
 // cada vuelta del bucle, por dos razones: no reiniciar la transicion a verde a
 // cada iteracion, y no pisar al backstop de verde maximo de main.cpp. Si el
@@ -419,11 +432,13 @@ void degradado_actualizar() {
     if (reloj_enHora()) {
       bluetooth_reportarAlarma("HORA_ESP32", "CADUCADA", "CAMBIO_A_AMBAR");
     }
+    rendidoPorHora = true;   // el rotulo de la pantalla dice el motivo, no "48h"
     iniciarSalida(true);
     return;
   }
 
   if (syncVencidaLatch && (estado == DEG_ENTRANDO || estado == DEG_ACTIVO)) {
+    rendidoPorHora = false;
     iniciarSalida(true);
     return;
   }
@@ -495,6 +510,9 @@ EstadoDegradado degradado_estado() { return estado; }
 // despachador de Bluetooth necesita esa diferencia para contestar la verdad.
 bool degradado_rendicionEnCurso() { return rendicionEnCurso; }
 
+// D-21 (1). El porque de que sea una bandera propia esta arriba, donde se declara.
+bool degradado_rendidoPorHora() { return rendidoPorHora; }
+
 FaseDegradado degradado_fase() { return calcularFase(); }
 
 uint32_t degradado_segundosParaCambio() {
@@ -504,13 +522,23 @@ uint32_t degradado_segundosParaCambio() {
                                   config_despejeSegundos());
 }
 
+// EL ROTULO DICE EL MOTIVO DE LA RENDICION, Y HAY DOS.
+//
+// "RENDIDO 48h" a secas MENTIA desde D-21 (1): la punta tambien se rinde cuando la hora
+// deja de ser fiable, y entonces el plazo de 48 h no se ha agotado ni tiene nada que
+// ver. Quien lea "48h" sale a revisar el radio; la hora caducada se arregla mirando el
+// J17 y la siembra del ESP32, que es otra averia y otro viaje.
+//
+// Los dos caben en la linea: 19 y 18 caracteres contra los 20 que la 6x10 admite desde
+// x=2 dejando una celda libre -el criterio de arnes_esclavo.cpp, que mide esta linea-.
 const char* degradado_textoEstado() {
   switch (estado) {
     case DEG_INACTIVO: return "INACTIVO";
     case DEG_ENTRANDO: return "ENTRANDO: TODO ROJO";
     case DEG_ACTIVO:   return "ACTIVO (por reloj)";
     case DEG_SALIENDO: return "SALIENDO: TODO ROJO";
-    case DEG_RENDIDO:  return "RENDIDO 48h: AMBAR";
+    case DEG_RENDIDO:  return rendidoPorHora ? "RENDIDO HORA: AMBAR"
+                                             : "RENDIDO 48h: AMBAR";
   }
   return "";
 }

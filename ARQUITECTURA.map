@@ -677,14 +677,25 @@ rutas las pone `banco/modelos/`.
 | `maestro_11_manual_no_cicla` | `M:coordinador.cpp`, `M:modo_automatico.cpp`, `M:modo_manual.cpp` | - | propia |
 | `maestro_12_dar_paso_sin_coordinador` | `M:bluetooth.cpp`, `M:main.cpp` | - | propia |
 | `reloj_01_consulta_por_bluetooth` | `E:reloj.h`, `E:bluetooth.cpp`, `M:reloj.h`, `M:bluetooth.cpp` | - | propia |
-| `reloj_02_siembra_que_miente` | `E:reloj.cpp`, `E:reloj.h`, `E:bluetooth.cpp`, `M:reloj.cpp`, `M:reloj.h`, `M:bluetooth.cpp` | - | propia |
+| `reloj_02_siembra_que_miente` | `E:reloj.cpp`, `E:reloj.h`, `E:bluetooth.cpp`, `M:reloj.cpp`, `M:reloj.h`, `M:bluetooth.cpp`, `M:bluetooth.h` *(11/09: faltaba; `BLUETOOTH_H`, la excepcion que se comprueba declarada)* | - | propia |
 | 🆕 `reloj_03_manda_la_radio` *(11/09, `D-26`)* | `E:bluetooth.cpp`, `E:reloj.cpp`, `E:main.cpp`, `M:bluetooth.cpp`, `M:reloj.cpp`, `X:siembra.cpp`, `X:contrato.h`, y **censa `{Maestro,Esclavo}/include/*.h` y `Esclavo/src/*.cpp` enteros** (`fuentes_de`) | 🔴 **`Simulaciones/puente_esp32/arnes_puente.cpp`** y **`Validacion_Automatico/dos_puntas/{orquestador_degradado,adaptador_esclavo}.cpp`**, que lee por texto: que la copia de `isoBienFormado()` del arnes del puente sea la del fuente, y que el bloque E del orquestador salte la hora de las dos puntas. ⚠️ **Ninguno de los tres compila `Esclavo/src/reloj.cpp`** (`N-162`, premisa 1): `reloj_radioManda()` y la frontera de 25 s solo las mira este pack, por texto | propia |
 
 `[MEDIDO 11/09 sobre 68dd2c5 - los regex _RE_TRIPLE/_RE_PAR de compuerta.py sobre los dos packs nuevos,
 mas grep de fw.fuentes_de y de las tuplas que nombran Simulaciones/ y Validacion_*]`. Las dos filas
 nuevas y las de `esp32_05`/`esp32_12` son de `D-26`; el resto de la tabla sigue siendo del 07/09.
-⚠️ **Medido de paso y NO corregido** (no es de `D-26`): el censo da tambien `M:bluetooth.h` en
-`reloj_02` y `M+E:modos.h` en `app_02`, que su fila no lista.
+~~⚠️ **Medido de paso y NO corregido** (no es de `D-26`): el censo da tambien `M:bluetooth.h` en
+`reloj_02` y `M+E:modos.h` en `app_02`, que su fila no lista.~~ **Re-medido el 11/09 por la noche
+corriendo `_RE_TRIPLE`/`_RE_PAR` pack a pack, y solo la mitad era cierta:**
+
+- ✅ **`M:bluetooth.h` en `reloj_02` SI faltaba** — `BLUETOOTH_H = ("Maestro", "include",
+  "bluetooth.h")`, abierta con `fw.codigo(*BLUETOOTH_H)`. Ya esta en su fila, arriba.
+- 🔴 **`M+E:modos.h` en `app_02` NO: el censo da `M:modos.h` A SECAS, que es lo que su fila ya
+  listaba.** La unica pareja `("include", "modos.h")` del arbol esta **dentro de un comentario**
+  de ese pack —el que explica que NO se escribe asi porque el Esclavo no tiene `modos.h`— y la
+  guarda no expande una pareja cuando ya existe la tupla con rol. Es `CLAUDE.md` §7.1 en su forma
+  mas barata: **el patron contaba un comentario**. Si algun dia se escribiera de verdad, la guarda
+  pediria un `Esclavo/include/modos.h` que no existe y **abortaria**, que es lo que ese comentario
+  vino a evitar.
 
 ### 3.4 Los tres MODELOS - 17 packs no direccionan nada por su cuenta
 

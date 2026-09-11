@@ -671,9 +671,11 @@ Todos estos componentes se consiguen en cualquier mostrador de electrónica loca
 >   > 🔴 **Y ESTO NO CAMBIA LA COMPRA: SIGUEN HACIENDO FALTA DOS `DS3231`, UNO POR POSTE (`A-5`).**
 >   > El del Esclavo es el que **conserva la hora con su pila cuando se cae la radio** — que es
 >   > exactamente por lo que perder la radio no es perder la hora. **`D-20` NO reduce la compra a
->   > uno.** Lo que obliga es a poner en hora el poste 2 **en la puesta en marcha, no durante la
->   > avería**: la radio se cae justo cuando hace falta el Modo Degradado, que es el modo que exige
->   > hora.
+>   > uno.** ~~Lo que obliga es a poner en hora el poste 2 **en la puesta en marcha, no durante la
+>   > avería**~~ 🛑 **CADUCADO por `D-26` (5) (11/09):** ponerlo en hora en la puesta en marcha sigue
+>   > siendo lo bueno, pero **durante la avería TAMBIÉN se hace**: sin radio, el técnico va al gabinete
+>   > del poste 2 y le pone la hora desde el teléfono — su ESP32 la atiende y siembra a su STM32.
+>   > La radio se cae justo cuando hace falta el Modo Degradado, que es el modo que exige hora.
 > * **Por tanto son DOS, uno por poste**, no uno; **`Y2` no decide cuántos**; y **ya están puestos**
 >   (`A-5`, 05/09). **No hay reloj que comprar para este manual.**
 > * **Y el bus tampoco se monta aquí:** el `DS3231` cuelga del `ESP32` (`GPIO21`/`GPIO22`), no del

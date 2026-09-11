@@ -1279,13 +1279,16 @@ Desfase calculado: ________ s
   > > `ESP32-M → STM32-M → radio → STM32-E → ESP32-E`. **Los dos ESP32 no se hablan; los dos STM32
   > > quedan de carteros.**
   > >
-  > > 🛑 **«La app valida la hora en las DOS puntas visitando los dos postes» es exactamente lo
+  > > ~~🛑 **«La app valida la hora en las DOS puntas visitando los dos postes» es exactamente lo
   > > prohibido:** poner la hora en el poste 2 es una **segunda fuente**, y una segunda fuente deja el
-  > > desfase inicial **sin cota**. **VALIDAR sí; PONER no.** La distinción es la que `D-17` ya había
-  > > separado y este párrafo volvió a mezclar.
+  > > desfase inicial **sin cota**. **VALIDAR sí; PONER no.**~~ 🛑 **CADUCADO por `D-20` (su propia fila:
+  > > «la barrera es la SOBREESCRITURA») y por `D-26` (5), 11/09: VALIDAR sí, y PONER también** —sin radio
+  > > es lo único que funciona, y el poste 2 tiene técnico delante—. La distinción que `D-17` separó sigue
+  > > valiendo para otra cosa: leer no escribe.
   > >
-  > > ✅ **`CMD:LEER_RTC` (`D-17`) NO se deroga y se sigue mandando A LOS DOS POSTES.** `D-20`
-  > > prohíbe **escribir** la hora en el poste 2; **leerla no escribe nada**. Con `D-20` construida
+  > > ✅ **`CMD:LEER_RTC` (`D-17`) NO se deroga y se sigue mandando A LOS DOS POSTES.** ~~`D-20`
+  > > prohíbe **escribir** la hora en el poste 2~~ *(caducado: `D-26` (5) manda escribírsela sin radio)*;
+  > > **leerla no escribe nada**. Con `D-20` construida
   > > vale más que hoy: es la única forma de comprobar que la siembra del Maestro llegó de verdad.
   > >
   > > ⚠️ **Y `D-20` está DECIDIDA Y SIN CONSTRUIR.** Hoy el puente del poste 2 **sigue atendiendo**
@@ -1314,12 +1317,17 @@ Desfase calculado: ________ s
 > CONSTRUIDA**, y se escribe aquí porque `D-20` abre un hueco que hasta hoy no tenía ni un renglón
 > en este protocolo. **Si se ejecuta hoy, el equipo va a hacer lo contrario de lo esperado.**
 >
-> **Por qué existe la barrera** (`DECISIONES.md` `D-20`, 07/09): la hora del cruce tiene **una sola
-> fuente**, y es el poste 1. Poner la hora en el poste 2 desde el teléfono **no es una
+> **Por qué existía la barrera** (`DECISIONES.md` `D-20`, 07/09): la hora del cruce tiene **una sola
+> fuente**, y es el poste 1. ~~Poner la hora en el poste 2 desde el teléfono **no es una
 > sincronización: es una segunda fuente**, y con dos fuentes el desfase inicial entre los dos relojes
-> **no tiene cota** — que es justo el escenario de los 40 s que documenta el
-> `8_Procedimiento_Modo_Degradado.md`. Cierra de paso el **rejuvenecimiento** del límite de 48 h del
-> Modo Degradado, que se conseguía poniendo ese reloj hacia atrás.
+> **no tiene cota**~~ 🛑 **CADUCADO** *(la propia fila `D-20` lo tachó el 07/09 por la noche —la barrera
+> es la SOBREESCRITURA: el Maestro empuja y el Esclavo acepta, así que no hay desfase inicial que acotar—
+> y `D-26` (5) lo manda: sin radio, se le pone la hora al poste 2 en su gabinete)*. Lo que sí sigue
+> en pie es el escenario de los 40 s que documenta el `8_Procedimiento_Modo_Degradado.md` —al perder la
+> radio, el Esclavo salta a lo que tenga su `DS3231`—, y lo que lo acota hoy no es una prohibición sino
+> **`D-26` (4)**: en Degradado, un salto mayor que el margen del cruce **pasa por rojo**. Sigue en pie
+> también el **rejuvenecimiento** del límite de 48 h del Modo Degradado, que se consigue poniendo ese
+> reloj hacia atrás: eso **no** lo cierra `D-26`, y está anotado como residual (`A-16`, `N-162` `H8`).
 >
 > **Lo que hay hoy, medido el 07/09 y corrido antes de publicarlo:**
 >
@@ -3239,8 +3247,9 @@ Seccion 12 — Telemetria y ordenes .....................  ___ / 4    (3 + 12.7)
 NO EJECUTABLES EN ESTA RONDA  (no se firman, no se cuentan)
    APLAZADAS ... 12   Seccion 6 entera (6) . 8.9 . 9.12 . 9.13 . 12.1 . 12.5 . ~~12.6~~
                       >>> 07/09 (E-8): 12.6 SALE DE AQUI Y PASA A RETIRADAS. El Courier
-                          RTC no se aplaza: MUERE. D-20 prohibe poner la hora en el poste
-                          2 desde el telefono, y eso es toda la maniobra que 12.6 media.
+                          RTC no se aplaza: MUERE. ~~D-20 prohibe poner la hora en el poste
+                          2 desde el telefono~~ (CADUCADO 11/09: D-26 (5) lo manda cuando
+                          cae la radio), y eso es toda la maniobra que 12.6 media.
                           Dejarla "aplazada" la reactivaria el dia que llegue el DS3231
                           -justo el dia en que ya se podria hacer el dano-.
                           NO arrastra consigo: el DS3231 del poste 2 sigue haciendo falta

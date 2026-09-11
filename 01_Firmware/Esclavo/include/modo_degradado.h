@@ -125,8 +125,9 @@ EstadoDegradado degradado_estado();
 
 // R-2 - DEG_SALIENDO ES UN SOLO ESTADO CON DOS FINALES, Y DESDE FUERA NO SE VEN.
 //
-// La salida normal termina en DEG_INACTIVO con la luz en ROJO; la rendicion por el
-// limite duro de 48 h termina en DEG_RENDIDO con la luz en AMBAR. degradado_estado()
+// La salida normal termina en DEG_INACTIVO con la luz en ROJO; la rendicion -por el
+// limite duro de 48 h o por la hora caducada, D-21 (1)- termina en DEG_RENDIDO con la
+// luz en AMBAR. degradado_estado()
 // devuelve DEG_SALIENDO en los dos casos, asi que quien esta fuera del modo no puede
 // saber en que va a acabar el todo-rojo que esta viendo.
 //
@@ -136,6 +137,11 @@ EstadoDegradado degradado_estado();
 // latch de la app. Sin este getter, las dos se contestarian igual y una de las dos
 // seria falsa.
 bool degradado_rendicionEnCurso();
+
+// D-21 (1) - CUAL DE LAS DOS RENDICIONES FUE, para que el rotulo no diga "48h" cuando lo
+// que caduco fue la hora. Solo tiene sentido con el modo ya rendido o rindiendose; la
+// pantalla lo pregunta para elegir el rotulo, no para decidir nada de la luz.
+bool degradado_rendidoPorHora();
 
 FaseDegradado   degradado_fase();
 

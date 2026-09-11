@@ -30,7 +30,7 @@
 //
 // Enlazar los tres en vez de escribir aqui las cadenas a mano es deliberado: una
 // copia de los textos en el arnes solo demuestra que el arnes cabe en la
-// pantalla. Asi, el dia que alguien alargue "RENDIDO 48h: AMBAR", lo mide esto.
+// pantalla. Asi, el dia que alguien alargue el rotulo de RENDIDO, lo mide esto.
 //
 // Lo demas -reloj, semaforo, radio, respaldo- se sustituye por muniones
 // controlables desde aqui abajo: nada de eso dibuja.
@@ -143,10 +143,16 @@ void     bluetooth_reportarEvento(const char*, const char*) { m_eventosBt++; }
 
 // D-21 (1) (11/09) metio dos llamadas mas en modo_degradado.cpp: la guarda pregunta
 // reloj_horaFiable() -la siembra de menos de HORA_CADUCA_MS- y, si caduco, publica un
-// $ALARM. Sin estos dos el arnes vuelve a morir en el enlazador. La hora de este arnes no
-// caduca -contesta lo mismo que reloj_enHora()-, y la alarma solo se cuenta: la caducidad
-// la EJERCE el bloque F del arnes del Degradado a dos puntas, sobre el reloj.cpp real.
-bool     reloj_horaFiable()                             { return m_enHora; }
+// $ALARM. Sin estos dos el arnes vuelve a morir en el enlazador. La alarma solo se cuenta:
+// la caducidad la EJERCE el bloque F del arnes del Degradado a dos puntas, sobre el
+// reloj.cpp real; aqui lo que se mide es LO QUE SE PINTA cuando se da.
+//
+// SON DOS BANDERAS PORQUE SON DOS PREGUNTAS (CLAUDE.md 8), y aqui se ve por que: con una
+// sola no se podria montar el caso que separa los dos rotulos de RENDIDO -hora CADUCADA
+// (hay hora, pero vieja: sale el $ALARM) frente a hora BORRADA (no hay ninguna: no sale)-,
+// que es exactamente lo que distingue reloj.cpp en la tarjeta.
+static bool m_horaFiable = true;
+bool     reloj_horaFiable()                             { return m_enHora && m_horaFiable; }
 static unsigned long m_alarmasBt = 0;
 void     bluetooth_reportarAlarma(const char*, const char*, const char*) { m_alarmasBt++; }
 
@@ -275,6 +281,22 @@ static bool cursorEnBanda(int y0, int y1) {
     for (int x = 2; x <= 8; x++)
       if (pixel(x, y)) return true;
   return false;
+}
+
+// Huella de una banda de filas: no solo cuanta tinta hay, sino DONDE. Dos pantallas que
+// pintan el mismo texto en la misma linea dan la misma huella; cambiar una letra la
+// cambia.
+//
+// Existe para poder exigir que dos rotulos SEAN DISTINTOS sin copiar aqui ninguno de los
+// dos. Copiar las cadenas seria escribir en el arnes lo que se quiere leer (CLAUDE.md 1)
+// y ademas volveria a medir el arnes en vez del firmware, que es justo lo que la cabecera
+// de este fichero dice que no se hace.
+static unsigned long huellaBanda(int y0, int y1) {
+  unsigned long h = 2166136261UL;
+  for (int y = y0; y <= y1; y++)
+    for (int x = 0; x < ANCHO; x++)
+      h = h * 31UL + (pixel(x, y) ? 1UL : 0UL);
+  return h;
 }
 
 static int pixelesEnCaja(int x0, int x1, int y0, int y1) {
@@ -880,9 +902,14 @@ int main() {
   avanzarModo(35000UL, 500UL);                          // todo-rojo de despedida
   comprobar(degradado_estado() == DEG_RENDIDO,
             "Superado el limite duro, el modo se rinde solo y cae a ambar");
+  comprobar(!degradado_rendidoPorHora(),
+            "La rendicion por el limite duro NO se apunta como rendicion por la hora");
   abrirDegradado();
-  volcar("DEGRADADO — RENDIDO 48h: AMBAR (y el motivo del reintento)");
+  volcar("DEGRADADO — rendido por el limite: 'RENDIDO 48h. FALTA:' (y el motivo del reintento)");
   perfilFilas("DEGRADADO rendido", 16, 63);
+  // La huella del rotulo de ESTA rendicion. Se compara mas abajo con la de la rendicion
+  // por hora caducada: los dos motivos no pueden pintar la misma linea.
+  const unsigned long huellaRotulo48 = huellaBanda(16, 29);
   comprobarMargenes("Degradado rendido");
   // Rendido, el aviso de limite tambien esta puesto, asi que el recuadro ocupa
   // y=40..51 de borde a borde por diseno. El borde derecho se mide en las filas
@@ -907,6 +934,103 @@ int main() {
   volcar("CARTEL RECHAZO — SYNC CADUCADA >48h");
   comprobarMargenes("Cartel rechazo sync caducada");
   comprobarBordeDerecho("Cartel rechazo sync caducada", 20, 63);
+
+  // =========================================================================
+  // RENDICION POR LA HORA CADUCADA (D-21 (1)) — EL ROTULO DICE EL MOTIVO
+  // =========================================================================
+  // El modo se rinde por DOS motivos distintos y hasta hoy los dos pintaban "48h": quien
+  // leyera la pantalla tras una hora caducada salia a revisar el radio por una averia que
+  // esta en el J17 y en la siembra del ESP32. Aqui se provocan los dos y se exige que la
+  // pantalla los distinga, midiendo -no leyendo- la linea del rotulo.
+  printf("\n\n===========================================================\n");
+  printf(" RENDIDO: LOS DOS MOTIVOS SE DISTINGUEN EN LA PANTALLA\n");
+  printf("===========================================================\n");
+  {
+    // La sonda del motivo, antes de cambiar de escenario: con la rendicion por el limite
+    // el rotulo del estado SI cita las 48 h. Es la mitad que demuestra que la otra mide.
+    comprobar(strstr(degradado_textoEstado(), "48h") != NULL,
+              "Rendido por el limite duro, el rotulo del estado cita las 48 h");
+
+    m_enHora = true; m_horaFiable = true; m_cfgRecibida = true;
+    m_verde = 30; m_despeje = 30;
+    ponerHora(14UL * 3600UL);
+    degradado_registrarSync();     // baja el latch y saca del RENDIDO anterior
+    const unsigned long alarmasAntes = m_alarmasBt;
+
+    menu_setup();
+    pulsar(p_abajo);               // cursor a MODO DEGRADADO
+    pulsar(p_ok);                  // pantalla del modo
+    pulsar(p_ok);                  // confirmacion
+    pulsar(p_ok);                  // SI entrar
+    comprobar(degradado_estado() == DEG_ENTRANDO,
+              "Con una sincronizacion fresca se puede volver a entrar (todo-rojo primero)");
+    avanzarConMenu(31000UL, 500UL);
+    comprobar(degradado_estado() == DEG_ACTIVO,
+              "El escenario de la hora caducada parte del modo VIVO, no de uno ya caido");
+
+    // Deja de llegar la siembra del ESP32: la hora sigue PUESTA pero ya no puede decidir
+    // una luz. Es el caso de reloj_horaFiable(), no el de reloj_enHora().
+    m_horaFiable = false;
+    avanzarModo(1000UL, 250UL);
+    {
+      char d[200];
+      snprintf(d, sizeof(d),
+               "La hora caducada publica UNA alarma y solo una (%lu -> %lu): la guarda no "
+               "se repite en cada vuelta", alarmasAntes, m_alarmasBt);
+      comprobar(m_alarmasBt == alarmasAntes + 1, d);
+    }
+    avanzarModo(35000UL, 500UL);   // todo-rojo de despedida entero
+    comprobar(degradado_estado() == DEG_RENDIDO,
+              "Con la hora caducada el modo se rinde igual: todo-rojo y despues ambar");
+    comprobar(degradado_rendidoPorHora(),
+              "Y queda apuntado que se rindio POR LA HORA, no por el limite de 48 h");
+
+    // La pantalla, con la hora todavia caducada: arriba el motivo de la caida, abajo lo
+    // que falta para reentrar.
+    abrirDegradado();
+    volcar("DEGRADADO — rendido por la HORA caducada (rotulo y motivo)");
+    perfilFilas("DEGRADADO rendido por hora", 16, 63);
+    comprobarMargenes("Degradado rendido por hora");
+    comprobarCabeConHolgura("Degradado rendido por hora (rotulo y motivo)", 18, 39);
+    comprobarBordeDerecho("Degradado rendido por hora (pie)", 56, 63);
+    {
+      int bandas = contarBandas(18, 63);
+      char d[200];
+      snprintf(d, sizeof(d),
+               "Degradado rendido por hora: el rotulo, el motivo, el contador y el pie no se "
+               "solapan (%d bandas)", bandas);
+      comprobar(bandas == 4, d);
+    }
+    {
+      // LA COMPROBACION QUE CAZA EL ROTULO QUE MIENTE, y no hay ninguna cadena copiada:
+      // los dos motivos tienen que pintar lineas DISTINTAS, y las dos tienen que tener
+      // tinta -si el rotulo desapareciera, las huellas tambien serian distintas-.
+      const unsigned long huellaRotuloHora = huellaBanda(16, 29);
+      const int xi = primeraColumna(16, 29);
+      char d[240];
+      snprintf(d, sizeof(d),
+               "El rotulo de RENDIDO por hora NO es el mismo que el de RENDIDO por 48 h "
+               "(huellas %lu contra %lu, con tinta desde x=%d)",
+               huellaRotuloHora, huellaRotulo48, xi);
+      comprobar(huellaRotuloHora != huellaRotulo48 && xi >= 0, d);
+    }
+
+    // Y con la hora repuesta ya se puede reentrar: entonces la pantalla ensena el rotulo
+    // del ESTADO -no el del "FALTA:"-, que es el otro sitio donde ponia "48h".
+    m_horaFiable = true;
+    abrirDegradado();
+    volcar("DEGRADADO — rendido por la hora, con la hora ya repuesta (se puede reentrar)");
+    comprobarMargenes("Degradado rendido por hora, ya reentrable");
+    comprobarCabeConHolgura("Degradado rendido por hora, ya reentrable", 18, 39);
+    comprobarBordeDerecho("Degradado rendido por hora, ya reentrable (pie)", 56, 63);
+    {
+      char d[220];
+      snprintf(d, sizeof(d),
+               "Rendido por la hora, el rotulo del estado no cita un limite de 48 h que no "
+               "se agoto ('%s')", degradado_textoEstado());
+      comprobar(strstr(degradado_textoEstado(), "48h") == NULL, d);
+    }
+  }
 
   // --- El cartel de rechazo con el motivo mas largo posible ----------------
   // lcd_dibujarRechazoDegradado() recibe el texto de fuera. Se le da uno de 20

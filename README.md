@@ -92,8 +92,8 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 65 rutas parseadas, todas existen |
-| banco por packs *(82 packs)* | 🔴 **FALLA** | **1366/1371 comprobaciones en 82 packs** — 81 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22`, `D-23`, `D-25` y `D-27` son decisiones VIGENTES sin ancla en el firmware**. **Sólo `D-20`, la pieza B de `D-21` y `D-26` lo están** —`D-26` construida en `68dd2c5` y contada en los manuales (`14_` §5.3.bis, `18_` §5.7)—. `D-23` ya tiene la vía elegida (`$EVENT`, `A-14`) y **es teclado**; `D-14` espera **que el responsable elija cuál de los tres últimos canales de potencia gasta** (el multímetro que se pedía no hacía falta); `D-22` espera **una tarjeta delante** |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.4 %** · 69.4 % · 20.6 % · 35.7 % — *el Maestro ocupa **58560 de 65536 B**, o sea **6.976 B libres**; el Esclavo, **45512 B*** |
+| banco por packs *(82 packs)* | 🔴 **FALLA** | **1368/1373 comprobaciones en 82 packs** — 81 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22`, `D-23`, `D-25` y `D-27` son decisiones VIGENTES sin ancla en el firmware**. **Sólo `D-20`, la pieza B de `D-21` y `D-26` lo están** —`D-26` construida en `68dd2c5` y contada en los manuales (`14_` §5.3.bis, `18_` §5.7)—. `D-23` ya tiene la vía elegida (`$EVENT`, `A-14`) y **es teclado**; `D-14` espera **que el responsable elija cuál de los tres últimos canales de potencia gasta** (el multímetro que se pedía no hacía falta); `D-22` espera **una tarjeta delante** |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.4 %** · 69.6 % · 20.6 % · 35.7 % — *el Maestro ocupa **58560 de 65536 B**, o sea **6.976 B libres**; el Esclavo, **45636 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.7 % — 1123521 de 3.145.728 B |
@@ -103,7 +103,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | test funcional de la app | ✅ | **65/65** — decía «22/22» a mano y ejecuta 34; su prueba de Courier RTC era una tautología |
 | test unitarios TDD de la app | ✅ | **69/69** — la **segunda** suite unitaria, que hasta el 01/09 **no estaba en la compuerta**: 23 pruebas verdes que no medían nada. *(Esta fila publicó `55/55` hasta el 07/09: era la cifra del 02/09, y `documentos_01` **no la vigila** — no está en su tupla `CIFRAS`.)* |
 | test unitarios de la app | ✅ | **42/42** — seis suites que no cargan el navegador: NMEA y *checksums*, generador de comandos y barrera de PIN, validación de `SET_TIEMPOS`, Courier RTC, gestor de cruces y escala de 20 cruces |
-| arnés de pantalla | ✅ | **271/271** *(Maestro 145/145, Esclavo 126/126)* — compila el `lcd.cpp` real contra un framebuffer en el PC. **Sigue midiendo aunque la pantalla se retire del equipo**: no necesita la ST7920 |
+| arnés de pantalla | ✅ | **287/287** *(Maestro 145/145, Esclavo 142/142)* — compila el `lcd.cpp` real contra un framebuffer en el PC. **Sigue midiendo aunque la pantalla se retire del equipo**: no necesita la ST7920 |
 | arnés del ciclo | ✅ | **22/22** — corre sobre el `ciclo_degradado.h` real compilado, sin espejo en Python |
 | arnés del respaldo | ✅ | compila el `calcularSuma()` real; identidad de `respaldo.cpp` entre puntas + prueba de vida |
 | arnés del Degradado a dos puntas | ✅ | **53/53** — las dos puntas en Degradado **cada una con su reloj**. Entrega **el número**: el cruce aguanta **29 s** de desfase contra los **20,2 s** que el equipo puede acumular en 48 h, o sea factor **1,44** — y no el 2 que afirmaban los comentarios de las dos puntas |
