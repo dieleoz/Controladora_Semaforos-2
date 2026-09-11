@@ -296,6 +296,11 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   if (!strcmp(que, "tramas_emitidas"))    return (long)g_tramasEmitidas;
   if (!strcmp(que, "alarmas"))            return (long)g_alarmasEmitidas;
   if (!strcmp(que, "redibujos"))          return (long)g_lcdRedibujos;
+  // N-162: lo que el campo ESC: del $STATUS diria en este instante -la funcion REAL
+  // de coordinador.cpp, no una copia-. La cinta del Sisga lo pillo diciendo VERDE con
+  // el Esclavo ya en rojo y el Maestro en ambar.
+  if (!strcmp(que, "esc_publica_verde"))
+    return strcmp(coordinador_estadoEsclavo(), "VERDE") == 0 ? 1 : 0;
   if (!strcmp(que, "reloj_en_hora"))      { g_enHora = (arg != 0); return 1; }
   if (!strcmp(que, "forzar_rojo_total"))  { coordinador_forzarRojoTotal(); return 1; }
   if (!strcmp(que, "modo_actual"))        return (long)modoActual_get();

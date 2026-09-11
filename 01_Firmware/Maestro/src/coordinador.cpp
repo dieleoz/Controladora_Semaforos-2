@@ -1029,6 +1029,15 @@ bool coordinador_comunicacionPerdida() {
 const char* coordinador_estadoEsclavo() {
   if (modoActual_get() == MODO_AMBAR) return "AMBAR";
   if (estadoC == C_FALLO) return "?";
+  // N-162 (cinta del Sisga, 10/09, 12:20:54-12:21:10): quienVerde se queda en QV_ESCLAVO
+  // hasta que el Maestro llega a VERDE, pero el Esclavo YA esta en rojo desde que llego
+  // su ACK_RED. Sin esto la trama publicaba ESC:VERDE durante todo el despeje y durante
+  // el ambar del Maestro: la app pintaba ambar contra verde y un DAR PASO que "no cambia".
+  // Mientras se ESPERA el ACK_RED sigue diciendo VERDE: todavia no consta que cambiara.
+  if (quienVerde == QV_ESCLAVO &&
+      (estadoC == C_ESPERA_ESTATICO_TRAS_ESCLAVO || estadoC == C_MASTER_A_VERDE)) {
+    return "ROJO";
+  }
   return (quienVerde == QV_ESCLAVO) ? "VERDE" : "ROJO";
 }
 

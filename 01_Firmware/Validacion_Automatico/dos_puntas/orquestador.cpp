@@ -320,6 +320,24 @@ static unsigned long g_enclavamientoRoto = 0;   // rojo y verde a la vez EN LA M
 static unsigned long g_talanqueraSinVerde = 0;
 static unsigned long g_verdeSinRojoEnfrente = 0;
 
+// N-162 - LO QUE EL MAESTRO PUBLICA DEL ESCLAVO (campo ESC: del $STATUS). La cinta del
+// Sisga (10/09, 12:20:54-12:21:10) lo pillo diciendo VERDE durante todo el despeje y
+// durante el ambar del propio Maestro. No mueve una luz: miente en la pantalla que el
+// operario mira para decidir.
+//   g_escVerdeConMaestroAbierto: ESC dice VERDE y el Maestro esta en AMBAR o VERDE. Eso
+//     no es cierto NUNCA -la barrera no los deja coincidir-, asi que no lleva tolerancia.
+//   g_escVerdeRojoLargo: ESC dice VERDE y el Esclavo REAL lleva mas de ESC_TOLERANCIA_MS
+//     seguidos en rojo y sin verde. EL BORDE ES 1 s Y POR ESTO: entre que el Esclavo pasa
+//     a rojo y su ACK_RED llega al Maestro va un viaje de radio (g_latenciaMs = 50 ms en
+//     este arnes) mas un tick; ahi el Maestro todavia no puede saberlo y decir VERDE es
+//     prudente, no falso. 1 s son 20 veces ese viaje; el despeje que tapaba son 15 s.
+static const unsigned long ESC_TOLERANCIA_MS = 1000;
+static unsigned long g_escVerdeTicks = 0;
+static unsigned long g_escVerdeConMaestroAbierto = 0;
+static unsigned long g_escVerdeRojoLargo = 0;
+static unsigned long g_escVerdeRojoDesde = 0;
+static bool g_escVerdeRojoEnCurso = false;
+
 // El detector, aislado en una funcion para que el control negativo del bloque E pueda
 // ejercerlo con valores sinteticos. Un detector que solo se prueba a si mismo cuando
 // nada falla es un adorno.
@@ -344,6 +362,17 @@ static void vigilar(unsigned long t) {
   const int S_FALLO = 3;
   if (vM && !vE && ESCLAVO.estado() != S_FALLO && !ESCLAVO.rojo()) g_verdeSinRojoEnfrente++;
   if (vE && !vM && MAESTRO.estado() != S_FALLO && !MAESTRO.rojo()) g_verdeSinRojoEnfrente++;
+
+  // N-162: lo que se PUBLICA del Esclavo contra lo que el Esclavo TIENE encendido.
+  const bool escVerde = MAESTRO.orden("esc_publica_verde") == 1;
+  if (escVerde) g_escVerdeTicks++;
+  if (escVerde && (vM || MAESTRO.ambar())) g_escVerdeConMaestroAbierto++;
+  if (escVerde && !vE && ESCLAVO.rojo()) {
+    if (!g_escVerdeRojoEnCurso) { g_escVerdeRojoEnCurso = true; g_escVerdeRojoDesde = t; }
+    if (t - g_escVerdeRojoDesde > ESC_TOLERANCIA_MS) g_escVerdeRojoLargo++;
+  } else {
+    g_escVerdeRojoEnCurso = false;
+  }
 
   // SFTY-2 dentro de cada punta, sobre lo que se escribio en el pin.
   Punta* dos[2] = { &MAESTRO, &ESCLAVO };
@@ -685,6 +714,20 @@ int main() {
             "A9: con una punta en verde, la otra tuvo SIEMPRE los dos rojos encendidos "
             "-no basta con 'no verde': ambar o apagado frente a un verde es una via sin "
             "rojo-. La excepcion de S_FALLO va por nombre");
+  // N-162. A10 es el control positivo de A11 y A12: sin instantes con ESC:VERDE las dos
+  // de abajo pasarian igual con un campo que dijera ROJO siempre.
+  comprobar(g_escVerdeTicks > 0,
+            "A10 (N-162): el Maestro SI llego a publicar ESC:VERDE (" +
+            std::to_string(g_escVerdeTicks) + " instantes): sin esto A11 y A12 no "
+            "medirian nada");
+  comprobar(g_escVerdeConMaestroAbierto == 0,
+            "A11 (N-162, cinta del Sisga 12:21:08): el Maestro NUNCA publico ESC:VERDE "
+            "estando el mismo en ambar o en verde. Instantes: " +
+            std::to_string(g_escVerdeConMaestroAbierto));
+  comprobar(g_escVerdeRojoLargo == 0,
+            "A12 (N-162, cinta del Sisga 12:20:54): ESC:VERDE no siguio publicandose mas "
+            "de 1 s con el Esclavo REAL en rojo -el despeje entero lo tapaba-. "
+            "Instantes fuera de tolerancia: " + std::to_string(g_escVerdeRojoLargo));
 
   // =========================================================================
   std::printf("\n--- BLOQUE B: una punta se reinicia y la otra no -----------------\n");
