@@ -3,6 +3,7 @@
 #include "despachador.h"
 #include "reloj_ds3231.h"
 #include "puente.h"
+#include "siembra.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -29,13 +30,65 @@
 // son suyas.
 static const char CMD_LEER_RTC[] = "CMD:LEER_RTC";
 
-bool despachador_esParaElPuente(const char* linea) {
-  if (linea == NULL) return false;
-  return strcmp(linea, CMD_LEER_RTC) == 0;
+// D-20 (11/09): SET_RTC SE BUSCA DENTRO DE LA LINEA, NO SE COMPARA ENTERA.
+//
+// La linea real es "CMD:PIN:1234:SET_RTC:2026-08-31,23:59:59": el PIN va delante y el
+// puente no lo conoce -esp32_09 exige que no aparezca en ningun fuente de aqui-, asi que
+// la unica forma de reconocerla sin tenerlo es buscar "SET_RTC:" dentro. Es el mismo
+// criterio que esta rama usaba desde el 31/08 para poner el DS3231; lo que cambia es que
+// ahora tambien decide que la linea NO CRUZA.
+//
+// UNA SOLA COPIA, y la usan el predicado y la rama que contesta. Si fueran dos, el dia
+// que difirieran el puente se quedaria una linea que no sabe contestar -desaparece sin
+// respuesta, y un comando mudo se lee como equipo colgado- o contestaria una que ademas
+// viajo al cable, que es lo que D-20 viene a quitar.
+static const char* accionSetRtc(const char* linea) {
+  return strstr(linea, "SET_RTC:");
 }
 
-void despachador_observar(const char* linea, bool propagada) {
+// D-20 (11/09) - ANTI-SUPLANTACION: LA LINEA DE HORA SOLO LA ORIGINA ESTE MODULO.
+//
+// El STM32 acepta CMD:HORA_ESP32 SIN PIN -no puede pedirlo: el puente no lo conoce- y
+// sobreescribe su hora con ella. Si el telefono pudiera mandarla, cualquiera con
+// Bluetooth dictaria la hora del cruce sin clave. Por eso toda linea del telefono que la
+// CONTENGA -en cualquier posicion, con o sin PIN delante, con o sin prefijo- se descarta
+// aqui y no cruza.
+//
+// strstr y no strcmp A PROPOSITO, al reves que LEER_RTC: aqui no se trata de reconocer
+// una orden del puente, sino de que ninguna linea del telefono llegue al STM32 con ese
+// texto dentro. Quedarse de mas solo cuesta un $ERR; quedarse de menos es la puerta.
+//
+// El texto es el mismo que va en FORMATO_HORA_ESP32 de siembra.cpp; son dos ficheros y
+// esp32_13 comprueba que los dos digan lo mismo, porque si la orden cambiara de nombre
+// alli y no aqui, esto seguiria guardando una puerta que ya no existe.
+static bool suplantaLaSiembra(const char* linea) {
+  return strstr(linea, "HORA_ESP32") != NULL;
+}
+
+// LO QUE EL PUENTE SE QUEDA: tres criterios, y cada uno lo usa tambien la rama que
+// contesta (despachador_atender). esp32_12 los lee de aqui en cada corrida.
+bool despachador_esParaElPuente(const char* linea) {
+  if (linea == NULL) return false;
+  if (strcmp(linea, CMD_LEER_RTC) == 0) return true;
+  if (suplantaLaSiembra(linea)) return true;
+  if (accionSetRtc(linea) != NULL) return true;
+  return false;
+}
+
+void despachador_atender(const char* linea) {
   if (linea == NULL) return;
+
+  // =================================================================================
+  // D-20 - LA SUPLANTACION VA LA PRIMERA
+  // =================================================================================
+  // Antes que la consulta y antes que SET_RTC: una linea que traiga las dos cosas
+  // -"CMD:PIN:1234:SET_RTC:HORA_ESP32..."- se trata como lo que puede hacer dano, no
+  // como lo que parece. Y se CONTESTA: una orden que desaparece sin respuesta se lee
+  // como equipo colgado y se repite.
+  if (suplantaLaSiembra(linea)) {
+    puente_emitirPropio("$ERR,NODE:PUENTE,CMD:HORA_ESP32,DESC:LINEA_RESERVADA_AL_PUENTE");
+    return;
+  }
 
   // =================================================================================
   // LEER_RTC - LA CONSULTA QUE NO ESCRIBE NADA
@@ -72,7 +125,11 @@ void despachador_observar(const char* linea, bool propagada) {
   // responderMotivo(m) que armara la trama en otro sitio dejaria a TODAS las ramas sin
   // literal, todas pasarian por "no promete nada" y el pack seguiria en verde midiendo
   // nada. Se repiten los prefijos a proposito.
-  if (despachador_esParaElPuente(linea)) {
+  //
+  // La condicion es la MISMA comparacion que el predicado -strcmp contra la constante-,
+  // no una llamada al predicado: desde D-20 el predicado se queda tres cosas y esta rama
+  // es solo la de la consulta.
+  if (strcmp(linea, CMD_LEER_RTC) == 0) {
     FechaHora leida;
     if (reloj_leer(&leida)) {
       // LA HORA QUE SALE ES LA QUE EL MODULO TIENE, RELEIDA AHORA MISMO. No hay copia
@@ -151,17 +208,33 @@ void despachador_observar(const char* linea, bool propagada) {
     return;
   }
 
-  // strstr, NO strncmp contra un prefijo con el PIN dentro.
+  // =================================================================================
+  // SET_RTC - D-20 (11/09): SE ATIENDE AQUI Y YA NO SIGUE VIAJE
+  // =================================================================================
+  // Hasta el 11/09 esta rama ponia el DS3231 y la MISMA linea, con los bytes del
+  // telefono, seguia hacia el STM32, que sembraba su hora con ellos. Eso tenia dos
+  // defectos medidos (roadmap 3.16-C): el STM32 sembraba y propagaba al Esclavo una hora
+  // que el DS3231 acababa de RECHAZAR -ano fuera de rango, OSF-, y el telefono recibia a
+  // la vez un $ERR del puente y un "sembrada" del equipo. D-20: la autoridad de la hora
+  // es el ESP32. El STM32 recibe la hora RELEIDA del DS3231 por siembra_ahora(), y solo
+  // si el DS3231 la acepto.
   //
-  // La linea real es "CMD:PIN:1234:SET_RTC:2026-08-31,23:59:59". Buscar el prefijo
-  // completo obligaria a escribir "1234" aqui, y entonces el puente TENDRIA el PIN:
-  // una segunda copia del contrato que alguien tiene que sincronizar, y el dia que
-  // difirieran un comando funcionaria por una puerta y seria rechazado por la otra.
-  // Buscando solo "SET_RTC:" el puente transporta el PIN sin conocerlo.
-  // D-20: LA AUTORIDAD DE LA HORA ES EL ESP32 (DS3231). El puente atiende SET_RTC,
-  // escribe en el DS3231 y propaga la orden al micro STM32 por el puerto serie.
-  const char* p = strstr(linea, "SET_RTC:");
-  if (p == NULL) return;
+  // 🔴 Y LO QUE ESO CUESTA, DICHO Y NO ESCONDIDO: el PIN de esta linea ya no lo comprueba
+  // NADIE. Antes lo miraba la guarda de PIN del STM32; ahora la linea no llega alli, y el
+  // puente no puede mirarlo porque no lo conoce (esp32_09). O sea que con D-20 la hora
+  // del CONTROLADOR se puede poner sin PIN escribiendo "SET_RTC:..." por Bluetooth.
+  // RIESGO ACEPTADO por el responsable el 11/09 (D-26 (1)): "hace falta tener la app, y la
+  // app no la maneja cualquiera que este en la via". esp32_13 lo deja escrito como nota
+  // que cita D-26, no como acusacion: el dia que esa fila cambie, la nota tiene a quien
+  // apuntar.
+  const char* p = accionSetRtc(linea);
+  if (p == NULL) {
+    // EL PREDICADO SE QUEDO UNA LINEA QUE NINGUNA RAMA RECONOCE. Hoy no hay camino: los
+    // tres criterios del predicado tienen su rama arriba. Si alguien anade un cuarto y
+    // no le escribe rama, la linea no cruza y sin esto desapareceria sin respuesta.
+    puente_emitirPropio("$ERR,NODE:PUENTE,CMD:DESCONOCIDO,DESC:RECLAMADA_SIN_RAMA");
+    return;
+  }
   p += 8;
 
   // MOTIVO 1: la trama no casa el formato. Se contesta ANTES de tocar el bus: una
@@ -226,31 +299,8 @@ void despachador_observar(const char* linea, bool propagada) {
     // mismo, que es justo como se cuelan los defectos en un cambio que "no cambia nada".
     puente_emitirPropio("$ERR,NODE:PUENTE,CMD:SET_RTC,DESC:MOTIVO_NO_CONTEMPLADO");
 
-  } else if (!propagada) {
-    // MOTIVO 7, Y ES UN $ACK, NO UN $ERR. La hora entro AQUI y la linea no llego entera
-    // al STM32, asi que el equipo se quedo con la suya. Es medio arreglo, y sin esta
-    // rama se leeria como entero.
-    //
-    // LIMITE DECLARADO: `propagada` significa "la linea se puso entera en el cable",
-    // no "el STM32 la acepto". Esperar su $ACK obligaria a bloquear el bombeo, y un
-    // puente que se para a esperar es un puente que deja de pasar telemetria. El $ACK
-    // del propio STM32 sube a la app por su cuenta, y como este va marcado NODE:PUENTE
-    // el operario ve las dos respuestas y sabe cual es de quien.
-    FechaHora leida;
-    if (!reloj_leer(&leida)) {
-      puente_emitirPropio("$ERR,NODE:PUENTE,CMD:SET_RTC,DESC:NO_QUEDO_PUESTA");
-    } else {
-      char p[112];
-      snprintf(p, sizeof(p),
-               "$ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:HORA_PUESTA_SIN_PROPAGAR,"
-               "FECHA:%04d-%02d-%02d,HORA:%02d:%02d:%02d",
-               leida.anio, leida.mes, leida.dia,
-               leida.hora, leida.minuto, leida.segundo);
-      puente_emitirPropio(p);
-    }
-
   } else {
-    // LA HORA QUE SE DEVUELVE ES LA QUE EL MODULO TIENE, RELEIDA POR LA BARRERA.
+    // RELOJ_OK. LA HORA QUE SE DEVUELVE ES LA QUE EL MODULO TIENE, RELEIDA POR LA BARRERA.
     //
     // No se hace por adorno: es lo que le da un llamador de verdad a reloj_enHora() -a
     // traves de reloj_leer()- y lo que convierte el $ACK en una medida en vez de una
@@ -263,6 +313,28 @@ void despachador_observar(const char* linea, bool propagada) {
     FechaHora leida;
     if (!reloj_leer(&leida)) {
       puente_emitirPropio("$ERR,NODE:PUENTE,CMD:SET_RTC,DESC:NO_QUEDO_PUESTA");
+
+    } else if (!siembra_ahora()) {
+      // D-20 (11/09): LA SIEMBRA INMEDIATA, Y SOLO AQUI -con el DS3231 puesto Y releido-.
+      // Una hora que el DS3231 rechazo no llega nunca a esta linea, que es lo que cierra
+      // 3.16-C: el STM32 ya no puede quedarse con una hora que el reloj dijo que no.
+      //
+      // MOTIVO 7, Y ES UN $ACK, NO UN $ERR. La hora entro en el DS3231 y la linea
+      // CMD:HORA_ESP32 NO salio entera hacia el STM32 -o la barrera se cayo entre esta
+      // relectura y la de siembra_ahora()-, asi que el equipo se quedo con la suya hasta
+      // la siembra siguiente. Es medio arreglo, y sin esta rama se leeria como entero.
+      //
+      // LIMITE DECLARADO: "propagar" es "la linea HORA_ESP32 se puso entera en el
+      // cable", no "el STM32 la acepto". Esperar su acuse obligaria a bloquear el bombeo,
+      // y un puente que se para a esperar es un puente que deja de pasar telemetria.
+      char p[112];
+      snprintf(p, sizeof(p),
+               "$ACK,NODE:PUENTE,CMD:SET_RTC,RESULT:HORA_PUESTA_SIN_PROPAGAR,"
+               "FECHA:%04d-%02d-%02d,HORA:%02d:%02d:%02d",
+               leida.anio, leida.mes, leida.dia,
+               leida.hora, leida.minuto, leida.segundo);
+      puente_emitirPropio(p);
+
     } else {
       // 🔴 EL LITERAL SE REPITE EN LAS DOS RAMAS A PROPOSITO, Y NO SE SACA A UN
       // COMPOSITOR. Es N-89 exacto: el pack que vigila esta propiedad busca los

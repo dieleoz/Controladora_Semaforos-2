@@ -91,12 +91,12 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 
 | Comprobación | Estado | |
 |---|---|---|
-| guarda de rutas de los instrumentos | ✅ | 64 rutas parseadas, todas existen |
-| banco por packs *(79 packs)* | 🔴 **FALLA** | **1272/1279 comprobaciones en 79 packs** — 78 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22`, `D-23`, `D-25`, `D-26` y `D-27` son decisiones VIGENTES sin ancla en el firmware** (y `D-26` sin nombrar en ningún manual). **Sólo `D-20` y la pieza B de `D-21` lo están.** `D-23` ya tiene la vía elegida (`$EVENT`, `A-14`) y **es teclado**; `D-14` espera **que el responsable elija cuál de los tres últimos canales de potencia gasta** (el multímetro que se pedía no hacía falta); `D-22` espera **una tarjeta delante** |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.1 %** · 69.1 % · 20.6 % · 35.7 % — *el Maestro ocupa **58400 de 65536 B**, o sea **7.136 B libres**; el Esclavo, **45280 B*** |
+| guarda de rutas de los instrumentos | ✅ | 65 rutas parseadas, todas existen |
+| banco por packs *(81 packs)* | 🔴 **FALLA** | **1351/1357 comprobaciones en 81 packs** — 80 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22`, `D-23`, `D-25` y `D-27` son decisiones VIGENTES sin ancla en el firmware**, y `D-26` —ya construida— **sin nombrar en ningún manual**. **Sólo `D-20`, la pieza B de `D-21` y `D-26` lo están.** `D-23` ya tiene la vía elegida (`$EVENT`, `A-14`) y **es teclado**; `D-14` espera **que el responsable elija cuál de los tres últimos canales de potencia gasta** (el multímetro que se pedía no hacía falta); `D-22` espera **una tarjeta delante** |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.1 %** · 69.3 % · 20.6 % · 35.7 % — *el Maestro ocupa **58400 de 65536 B**, o sea **7.136 B libres**; el Esclavo, **45392 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
-| compila ESP32 | ✅ | 35.7 % — 1122973 de 3.145.728 B |
+| compila ESP32 | ✅ | 35.7 % — 1123521 de 3.145.728 B |
 | simulador del puente ESP32 | ✅ | **101/101** — las tres puntas: `bluetooth.cpp` compilado, la app en jsdom, y solo el ESP32 modelado |
 | simulador de app y bluetooth | ✅ | **12/12** — estuvo en `ABORTADO` unas horas el 05/09: **N-149** le añadió el campo `ESC` al `$STATUS` y el instrumento no supo con qué compararlo. Se enseñó a leerlo el mismo día. Queda escrito porque **mientras duró, todo lo que vigilaba entró sin mirar** (`CLAUDE.md` §1) |
 | **app ejecutada en DOM** | ✅ | **239/239** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden**, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
@@ -148,7 +148,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 > algo que el auditor re-corre sobre ese mismo commit. Estado de hoy en
 > [`ESTADO.md`](ESTADO.md); reglas permanentes en [`CLAUDE.md`](CLAUDE.md).
 
-### 📦 El banco son 79 packs — y eso NO es una medalla
+### 📦 El banco son 81 packs — y eso NO es una medalla
 
 ```
 python 01_Firmware/Simulaciones/banco/correr.py --listar

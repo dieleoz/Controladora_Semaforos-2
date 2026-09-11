@@ -1,6 +1,7 @@
 // ===== src/modo_degradado.cpp =====
 #include "modo_degradado.h"
 #include "modo_ambar.h"
+#include "bluetooth.h"   // D-26 (4): el $EVENT del salto de hora que pasa por rojo
 #include "botones.h"
 #include "ciclo_degradado.h"
 #include "coordinador.h"
@@ -131,6 +132,69 @@ static const uint32_t LIMITE_DURO_H = LIMITE_DURO_MS / 3600000UL;
 // mismo motivo por el que existe el despeje: es el tiempo que tarda en vaciarse el
 // tramo. Entrar o salir mas rapido que eso seria dar por vacio algo que no lo esta.
 static const unsigned long ROJO_TRANSICION_MS = (unsigned long)DEG_DESPEJE_SEG * 1000UL;
+
+// ---------------------------------------------------------------------------
+// D-26 (4) - UNA HORA QUE SALTA MAS QUE EL MARGEN DEL CRUCE SE APLICA PASANDO POR ROJO.
+//
+// Desde D-26 la hora de esta punta se re-siembra del DS3231 de su ESP32 cada ~5 min
+// TAMBIEN EN DEGRADADO, y la fase del ciclo sale de reloj_segundosDelDia(): cada siembra
+// MUEVE LA FASE de golpe lo que el HSI derivo desde la anterior. Hasta hoy esa vuelta
+// hacia semaforo_forzarVerde() en la MISMA iteracion si el salto caia en la fase del verde
+// de esta punta: un salto hacia delante desde el verde del OTRO poste, por encima del
+// despeje, pasaba de su verde al nuestro sin un solo instante de rojo por medio.
+//
+// EL UMBRAL SALE DEL DESPEJE, NO SE ESCOGE: DEG_DESPEJE_SEG - 1 = el margen del cruce.
+//   - Un salto de J segundos enteros solo puede llevar del ultimo segundo del verde del
+//     otro poste al primero del nuestro si J >= DEG_DESPEJE_SEG + 1: el despeje es justo
+//     el rojo que separa los dos verdes. Por debajo, el salto cae como mucho DENTRO del
+//     despeje y el rojo sigue estando en medio.
+//   - Y el salto se MIDE en segundos enteros, con un segundo de error por truncado: un
+//     salto medido de DEG_DESPEJE_SEG - 1 puede ser uno real de DEG_DESPEJE_SEG, que
+//     todavia no salta el despeje. Por eso -1 y no el despeje entero.
+//   - Coincide con el desfase que el cruce aguanta medido sobre el C++ de las dos puntas
+//     (compilar_degradado.ps1: 29 s con el despeje en 30), y no es casualidad: es la misma
+//     frontera vista desde el salto. esp32_13 lo recalcula.
+// Un salto menor se aplica directo: es la correccion normal de la deriva y el despeje la
+// absorbe igual que absorbe la deriva entre cristales. Mandarlo a rojo pararia el cruce
+// en cada siembra.
+//
+// PASAR POR ROJO ES EL CAMINO QUE YA EXISTE: DEG_ENTRADA_ROJO, con su ROJO_TRANSICION_MS
+// completo Y esperando a que la fase deje atras el verde de esta punta, de modo que el
+// siguiente verde sea uno entero contado desde su frontera. No hay un camino nuevo.
+static const uint32_t SALTO_SIN_ROJO_MAX_S = (uint32_t)DEG_DESPEJE_SEG - 1UL;
+
+// LA OTRA MITAD, Y ES LA QUE HACE QUE EL UMBRAL NO SEA UNA TAPIA: una siembra NORMAL
+// -la deriva del HSI en su peor caso durante una cadencia, redondeada hacia arriba, mas el
+// segundo del truncado- tiene que quedar POR DEBAJO. Si no, el Degradado pasaria por rojo
+// en cada siembra. Las constantes estan en reloj.h, y la cadencia se contrasta con la del
+// ESP32 en esp32_13.
+static_assert((HORA_ESP32_CADENCIA_MS / 1000UL * HSI_PPM_PEOR + 999999UL) / 1000000UL + 1UL
+                  < SALTO_SIN_ROJO_MAX_S,
+              "D-26 (4): una siembra normal saltaria mas que el margen y el Degradado "
+              "pasaria por rojo cada cadencia");
+
+// La hora de pared de la vuelta anterior y el millis() en que se leyo.
+static uint32_t segVisto = 0;
+static unsigned long tVisto = 0;
+
+static void anclarHora() {
+  segVisto = reloj_segundosDelDia();
+  tVisto = millis();
+}
+
+// Cuanto se ha movido la hora de pared DE MAS -o de menos- respecto de lo que corrio
+// millis() desde la vuelta anterior, por el camino corto del circulo del dia. Re-ancla en
+// cada llamada, asi que mide saltos entre dos vueltas y no acumula nada: en marcha normal
+// da 0 o 1 (el truncado de los dos segundos enteros).
+static uint32_t saltoDeHora() {
+  const uint32_t ahora = reloj_segundosDelDia();
+  const uint32_t esperado = (segVisto + (uint32_t)((millis() - tVisto) / 1000UL)) % 86400UL;
+  uint32_t d = (ahora + 86400UL - esperado) % 86400UL;
+  if (d > 43200UL) d = 86400UL - d;
+  segVisto = ahora;
+  tVisto = millis();
+  return d;
+}
 
 // Cuanto se queda en pantalla el rechazo antes de volver al menu solo. Suficiente
 // para leer dos lineas sin que el equipo se quede indefinidamente en una pantalla que
@@ -446,6 +510,7 @@ void modo_degradado_setup() {
   // cumplir el despeje completo Y que la fase haya dejado atras el verde, de modo que
   // el primer verde tras el corte sea un verde entero contado desde su principio. Un
   // equipo que arranca es justo el que menos sabe de lo que hay en el tramo.
+  anclarHora();   // D-26 (4): la referencia del salto de hora empieza aqui
   estado = DEG_ENTRADA_ROJO;
   ultRestante = 0xFFFFFFFFUL;
   ultEstadoPintado = DEG_RECHAZO;  // fuerza el primer repintado
@@ -548,6 +613,19 @@ void modo_degradado_loop() {
   if (desdeSync >= LIMITE_DURO_MS) {
     irAAmbar("Limite 48h sin sync", "Revise el radio");
     return;
+  }
+
+  // D-26 (4): ANTES de calcular la fase y de decidir la luz. Un salto mayor que el margen
+  // -una siembra del ESP32 tras mucha deriva, o un DS3231 puesto con otra hora- vuelve a
+  // DEG_ENTRADA_ROJO: rojo YA, en esta misma vuelta, y el verde solo vuelve tras
+  // ROJO_TRANSICION_MS y en su frontera. Tambien si ya estaba entrando: el todo-rojo se
+  // cuenta de nuevo desde el salto, porque lo que habia contado era con otra hora.
+  if (saltoDeHora() > SALTO_SIN_ROJO_MAX_S) {
+    semaforo_forzarRojo();
+    estado = DEG_ENTRADA_ROJO;
+    tEstado = millis();
+    ultEstadoPintado = DEG_RECHAZO;  // fuerza el repintado: la pantalla dice "Entrando"
+    bluetooth_reportarEvento("DEGRADADO", "SALTO_DE_HORA_POR_ROJO");
   }
 
   FaseDegradado fase = faseAhora();

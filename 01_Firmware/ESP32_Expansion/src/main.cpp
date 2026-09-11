@@ -19,6 +19,17 @@
 // De ahi la regla de rechazo: cualquier propuesta que haga que el semaforo dependa del
 // ESP32 para seguir siendo SEGURO se rechaza, por comoda que sea.
 //
+// 🔴 D-20 / D-26 (11/09) CAMBIAN LA SEGUNDA MITAD, Y HAY QUE DECIRLO AQUI ARRIBA: desde
+// entonces este modulo es LA FUENTE DE LA HORA del STM32 -siembra.cpp, al arrancar, tras
+// cada SET_RTC bueno y cada ~5 min (D-26 (2))-. De la hora cuelgan cosas que el STM32 decide por reloj
+// -la fase del Modo Degradado, la franja nocturna-, asi que "no leen ni un byte de este
+// modulo" dejo de ser cierto para el reloj. Lo que este lado hace para no meter una hora
+// mala: solo sale la que da reloj_leer(), la barrera del DS3231. Lo que tiene que hacer
+// el otro lado NO se puede comprobar desde este fichero ni desde ningun pack de este rol:
+// desde D-26 (5) el STM32 ALARMA si no le llega una siembra buena en tres cadencias
+// -$ALARM EVENTO:HORA_ESP32-, pero NO declara vieja la hora que tiene ni cae a ambar por
+// ello: eso es la pieza (A) de D-21, sin construir.
+//
 // 🔴 Y LO QUE NADIE VIGILA, QUE HAY QUE SABER ANTES DE FIARSE DE ESTE FIRMWARE:
 //
 // SFTY-6 mira la RADIO LoRa, no J17 -coordinador.cpp:656 usa tUltimaRxEsclavo y
@@ -93,6 +104,8 @@
 //
 // Mientras eso no exista, EL PUENTE NO EMITE LATIDO. Un latido que hoy solo produce un
 // rechazo falso cada dos segundos no acerca el registro de cortes: lo cambia por ruido.
+// -> CADUCADO el 04/09 (N-127): las dos piezas del STM32 se construyeron y el latido
+//    existe -vigilante_latir(), en loop()-. Se deja lo de arriba por lo que dice abajo.
 //
 // Se deja escrito y no se borra: una causa que se cae se marca refutada, porque la que
 // desaparece en silencio se vuelve a proponer y la segunda vez ya nadie recuerda que se
@@ -106,6 +119,7 @@
 #include "transporte_app.h"
 #include "reloj_ds3231.h"
 #include "puente.h"
+#include "siembra.h"
 
 void setup() {
   // EL CENSO ANTES QUE EL PERRO, Y ES LA MITAD QUE FALTABA.
@@ -171,6 +185,13 @@ void loop() {
   // Una vuelta = las dos direcciones + el reloj.
   puente_bombear();
   reloj_revisar();
+
+  // D-20 / D-26: LA HORA HACIA EL STM32. Detras de reloj_revisar() para que la barrera
+  // que consulta este recien mirada, y AQUI y no en setup(): en setup() no se pone un
+  // byte en ningun cable (6.4), y ademas el STM32 todavia no escucha -abre J17 >= 4 s
+  // despues del encendido, contrato.h-. La siembra de un SET_RTC no pasa por aqui: sale
+  // en el momento desde despachador.cpp.
+  siembra_revisar();
 
   // EL PARTE DE ARRANQUE SALE AQUI, NO EN setup(), Y LAS DOS RAZONES SON DISTINTAS.
   //

@@ -59,7 +59,17 @@ BT_PUENTE = ("ESP32_Expansion", "src", "despachador.cpp")
 # direccion contraria signifique algo en vez de aprobar siempre.
 SIN_BOTON_A_PROPOSITO = {
     "SET_RTC",       # lo manda el asistente Courier, no un boton suelto
+    # 11/09 (D-20 / A-15): NO LA MANDA LA APP, Y ESO ES LA BARRERA, NO UN HUECO. La
+    # origina el ESP32 de cada poste desde su DS3231 y le llega al STM32 sin PIN; el
+    # puente la TIRA si le llega del telefono. Una app que la mandara pondria la hora sin
+    # PIN en cuanto hubiera un puente viejo en medio. Por eso esta excepcion se MIDE
+    # (comprobacion 2.bis): no basta con que este aqui, la app no puede mandarla.
+    "HORA_ESP32",
 }
+
+# La orden que la app NO puede mandar, por el motivo de arriba. Se nombra aparte porque
+# no es solo "sin boton": su ausencia en la app es una propiedad que se comprueba.
+NO_LA_MANDA_LA_APP = "HORA_ESP32"
 
 
 def _atiende(fw, punta):
@@ -69,6 +79,11 @@ def _atiende(fw, punta):
     prefijos = set(re.findall(r'strncmp\s*\(\s*accion\s*,\s*"([^"]+):"', codigo))
     # Tambien la forma sin PIN, que es deliberada para el rojo de emergencia.
     sin_pin = set(re.findall(r'strcmp\s*\(\s*cmd\s*,\s*"CMD:([^"]+)"', codigo))
+    # 11/09: y la forma sin PIN POR PREFIJO -CMD:HORA_ESP32:<iso>-, que hasta hoy no
+    # existia y este lector no veia: una orden atendida que el censo no cuenta es una
+    # orden que nadie revisa. El filtro del PIN tiene la misma forma y no es una orden.
+    sin_pin |= {c for c in re.findall(r'strncmp\s*\(\s*cmd\s*,\s*"CMD:([A-Z0-9_]+):"',
+                                      codigo) if c != "PIN"}
     return exactos | prefijos | sin_pin
 
 
@@ -77,8 +92,10 @@ def _atiende_el_puente(fw):
 
     Son de DOS formas y las dos cuentan, porque significan cosas distintas:
 
-      strstr(linea, "SET_RTC:")     el puente lo atiende Y la linea SIGUE VIAJE al
-                                    STM32. Es un comando compartido.
+      strstr(linea, "SET_RTC:")     el puente lo atiende. Hasta el 11/09 la linea
+                                    SEGUIA VIAJE al STM32; desde el 11/09 no (D-20):
+                                    al STM32 le llega CMD:HORA_ESP32. El lector no
+                                    cambia: sigue contando SET_RTC como del puente.
       strcmp(linea, CMD_LEER_RTC)   la linea se queda aqui: es del puente y de nadie
                                     mas (despachador_esParaElPuente).
 
@@ -103,8 +120,12 @@ def _envia(fw):
     "sin interfaz" un FORZAR_ROJO y un TEST_LEDS que la app manda desde hace meses
     -por openPinModal(), que guarda el comando y lo ejecuta al validar el PIN-.
     Es la regla del instrumento: descartar al buscador antes de acusar."""
-    js = fw.texto_repo(*APP_JS)
-    html = fw.texto_repo(*APP_HTML)
+    return _envia_de(fw.texto_repo(*APP_JS), fw.texto_repo(*APP_HTML))
+
+
+def _envia_de(js, html):
+    """El cuerpo de _envia(), sobre textos: asi el control negativo de la 2.bis pasa por
+    el MISMO lector que la app de verdad."""
     literales = set(re.findall(r"executeCommand\(\s*'([^']+)'", js))
     literales |= set(re.findall(r"openPinModal\(\s*'([^']+)'", js))
     # N-75: la puerta de salida se renombro a enviarComandoFirmware() en el rewrite de
@@ -204,6 +225,25 @@ def correr(b, fw):
         "sin interfaz: trabajo hecho que el tecnico no puede usar -SOLICITAR_PASO es "
         "justo la funcion que el Esclavo estreno en V9.0 (N-58)-" % sin_interfaz)
 
+    # ---- 2.bis. La excepcion de HORA_ESP32 se mide: la app NO la manda (11/09) ----
+    #
+    # La 2 la deja pasar sin boton por estar en SIN_BOTON_A_PROPOSITO. Esa excepcion dice
+    # algo sobre el codigo -"no la origina el telefono"- y aqui se comprueba en la
+    # direccion que importa: si la app la mandara, un puente anterior al 11/09 la
+    # reenviaria y el STM32 pondria la hora sin PIN.
+    mandadas = sorted(c for c in envia if c.split(":")[0] == NO_LA_MANDA_LA_APP)
+    b.verificar(
+        NO_LA_MANDA_LA_APP in todos and not mandadas,
+        "%s la atiende el STM32 (%s) y la app NO la manda: la origina el ESP32 de cada "
+        "poste, y la excepcion de la 2 es cierta" % (
+            NO_LA_MANDA_LA_APP,
+            ", ".join(p for p in PUNTAS if NO_LA_MANDA_LA_APP in atiende[p])),
+        "%s. La hora del STM32 viene del ESP32 de su poste (D-20): una app que la manda "
+        "pone la hora sin PIN en cuanto hay un puente viejo en medio, y un STM32 que ya no "
+        "la atiende deja la excepcion de la 2 sin sujeto" % (
+            ("la app manda %s" % mandadas) if mandadas else
+            ("ninguna punta atiende %s" % NO_LA_MANDA_LA_APP)))
+
     # ---- 3. El PIN del contrato se lee del C++, no se supone ----
     pines = set()
     for p in PUNTAS:
@@ -236,9 +276,17 @@ def correr(b, fw):
     # seria lo unico que lo dijera... el dia que alguien lo mirara.
     b.control_negativo(
         "LEER_RTC" in puente and "SET_RTC" in puente,
-        "el lector del tercer despachador encuentra sus DOS formas: la compartida "
-        "(strstr de SET_RTC:, que ademas sigue viaje al STM32) y la exclusiva (la "
+        "el lector del tercer despachador encuentra sus DOS formas: la de prefijo "
+        "(strstr de SET_RTC:) y la de linea entera (la "
         "constante CMD:LEER_RTC, que se queda en el puente)")
     b.control_negativo(
         bool(re.findall(r"executeCommand\(\s*'([^']+)'", "executeCommand('X_INVENTADO')")),
         "el lector de comandos de la app encuentra un executeCommand con literal")
+    # La 2.bis tiene que saber ver a la app mandando la orden prohibida por la puerta que
+    # usaria de verdad -enviarComandoFirmware con el argumento construido-, por el MISMO
+    # lector que la app real.
+    b.control_negativo(
+        NO_LA_MANDA_LA_APP in _envia_de(
+            "enviarComandoFirmware('%s', `${today},${now}`);" % NO_LA_MANDA_LA_APP, ""),
+        "una app que mandara %s por enviarComandoFirmware() se lee como tal: la 2.bis la "
+        "acusaria" % NO_LA_MANDA_LA_APP)

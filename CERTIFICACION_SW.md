@@ -47,12 +47,12 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 | Verificación | Resultado medido | Método |
 |---|---|---|
 | Compilación Maestro (STM32F103) | **58400 B de Flash — 89.1 %** de 65536 B (quedan **7136 B**) | `pio run` |
-| Compilación Esclavo (STM32F103) | **45280 B de Flash — 69.1 %** de 65536 B | `pio run` |
+| Compilación Esclavo (STM32F103) | **45392 B de Flash — 69.3 %** de 65536 B | `pio run` |
 | Compilación Repetidor (ESP32) | **270497 B de Flash — 20,6 %** de 1310720 B | `pio run` |
-| Guarda de rutas de los instrumentos | **64 rutas** parseadas, todas existen | `compuerta.py` |
+| Guarda de rutas de los instrumentos | **65 rutas** parseadas, todas existen | `compuerta.py` |
 | Banco de simulación funcional | **9/9 PASS** | `simulador_sistema_v7_6.py` |
 | Escenarios de repetidor | **10/10 PASS** | `simulador_repetidor.py` |
-| Banco por packs | 🔴 **1272/1279 comprobaciones**, **79 packs** — 78 PASS, **1 FALLA**. **Este documento se FIRMA, así que la frase que había aquí —*«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*— se retira por FALSA:** sólo `D-20` y la pieza **B** de `D-21` están construidas. `D-14`, `D-22` y `D-23` son decisiones **vigentes sin construir**, y el rojo las está contando bien | `banco/correr.py` |
+| Banco por packs | 🔴 **1351/1357 comprobaciones**, **81 packs** — 80 PASS, **1 FALLA**. **Este documento se FIRMA, así que la frase que había aquí —*«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*— se retira por FALSA:** sólo `D-20` y la pieza **B** de `D-21` están construidas. `D-14`, `D-22` y `D-23` son decisiones **vigentes sin construir**, y el rojo las está contando bien | `banco/correr.py` |
 | Arnés de pantalla (compila el `lcd.cpp` real) | **271/271** (Maestro 145/145 · Esclavo 126/126) | `Validacion_LCD/compilar.ps1` |
 | Arnés del ciclo degradado | **22/22** | `Validacion_Ciclo` |
 | Arnés del Modo Automático | **99/99** | `Validacion_Automatico` |
@@ -82,7 +82,7 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 > | publicaba | medido hoy | por qué importa |
 > |---|---|---|
 > | ~~Maestro: 42.620 B (65,0 %)~~ | **58400 B (89.1 %)** | 🔴 **El error grave.** Quien planificase con el 65 % creería tener **~23 KB libres**; quedan **7136 B**. Con esa cifra se propone estructura que **no cabe** |
-> | ~~Esclavo: 15.480 B (23,6 %)~~ | **45280 B (69.1 %)** | Casi el triple de ocupación real |
+> | ~~Esclavo: 15.480 B (23,6 %)~~ | **45392 B (69.3 %)** | Casi el triple de ocupación real |
 > | ~~Repetidor: 269.197 B (20,5 %)~~ | **270497 B (20,6 %)** | El acta mide **una** compilación de repetidor, no dos |
 > | ~~Compilación Repetidor diagnóstico: 270.257 B (20,6 %)~~ | — | ⛔ **Retirada.** La compuerta no la mide: publicar una fila sin medida detrás la hace leerse como medida |
 > | ~~Banco funcional 9/9~~ | **9/9** — las 20 de entonces incluian 11 pruebas que no median nada; se retiraron con su evidencia una a una | |

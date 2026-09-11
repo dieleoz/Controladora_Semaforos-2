@@ -110,6 +110,20 @@ CONOCIDAS = {
         # ganar llamador, que es el trinquete de CLAUDE.md 6.1 haciendo su trabajo: una
         # lista que acumula nombres obsoletos deja de poder fallar.
         "respaldo_valido", "semaforo_toggle",
+        # D-26 (11/09): reloj_dia VUELVE a la lista en esta punta, y el motivo es
+        # comprobable -lo que CLAUDE.md 6 exige de una excepcion-:
+        #
+        #   1. Su unico lector era la copia de la hora al RTC que hacia reloj_actualizar() al
+        #      adoptar el cristal, y esa copia se RETIRO el 11/09 con la medida escrita en
+        #      reloj.cpp: nadie leia esa hora y reescribir CNT podia rejuvenecer una marca de
+        #      sync -y bloqueaba hasta ~3 s con el perro en 4-.
+        #   2. El respaldo no la necesita: desde N-49 fecha con reloj_contadorSegundos().
+        #      `grep reloj_dia Esclavo/src` sin comentarios da solo su definicion.
+        #   3. Se queda declarada porque el dia lo impone la radio (CMD_HORA_D) y su gemela
+        #      del Maestro SI tiene lector (enviarHoraCompleta): retirarla aqui separaria las
+        #      dos APIs del reloj por un getter.
+        # Si gana un llamador en el Esclavo, este pack lo dira: es el trinquete.
+        "reloj_dia",
         # El Esclavo NO enciende luces por su cuenta: rechaza TEST_LEDS y no fuerza
         # verde. Que estas dos no tengan llamador es la barrera funcionando.
         "semaforo_iniciarTestLeds", "semaforo_forzarVerde",

@@ -82,8 +82,9 @@ SIN_SET_MODO_A_PROPOSITO = {
         "DIGITO con los botones fisicos o el mando de reles y solo escribe al RTC "
         "al confirmar. Mandarla por Bluetooth dejaria al equipo plantado en una "
         "pantalla de edicion que nadie esta operando en el poste, y sin ciclo. La "
-        "via remota para poner el reloj ya existe y hace el trabajo completo: es "
-        "SET_RTC, que el propio SFTY-18 nombra como sustituto de esa pantalla.",
+        "via remota para poner el reloj ya existe: es SET_RTC, que el propio SFTY-18 "
+        "nombra como sustituto de esa pantalla. Desde el 11/09 SET_RTC lo atiende el "
+        "puente (el DS3231) y la hora le llega al STM32 como CMD:HORA_ESP32 (D-20).",
 }
 
 # El rotulo del `default:` del switch no es un modo: es lo que la telemetria dice

@@ -216,10 +216,15 @@ def correr(b, fw):
         "comando o cambiar la pila" % (len(descs), len(motivos), sorted(descs)))
 
     # ---- 6. Y el $ERR de la relectura tambien esta dentro de su `if` ----------
-    cuerpo = _cuerpo(desp, r"void\s+despachador_observar\s*\([^)]*\)")
+    # 11/09 (D-20): la funcion se llama despachador_atender() -antes _observar(), que
+    # miraba tambien las lineas que cruzaban-. Solo cambia el nombre que se busca; lo
+    # que se mide es lo mismo. Que el $ACK de SET_RTC dependa ADEMAS de la siembra lo
+    # mide esp32_13: esta regla mira la llamada al RELOJ mas cercana, y siembra_ahora()
+    # no es una llamada al reloj de este fichero.
+    cuerpo = _cuerpo(desp, r"void\s+despachador_atender\s*\([^)]*\)")
     if cuerpo is None:
         raise fw.Abortado(
-            "no se hallo despachador_observar() en %s/src/despachador.cpp. Es el unico "
+            "no se hallo despachador_atender() en %s/src/despachador.cpp. Es el unico "
             "sitio donde vive esta propiedad" % ROL)
     lecturas = list(re.finditer(r"\breloj_leer\s*\(", cuerpo))
     b.verificar(

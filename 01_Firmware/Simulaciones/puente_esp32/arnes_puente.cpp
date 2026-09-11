@@ -43,6 +43,7 @@
 //   PINS         imprime el estado de los pines de luz
 //   PUERTO       imprime pines y baudios del HardwareSerial que se encontro
 //   RTC <c> <h>  fija si hay cristal y si el reloj esta en hora
+//   RADIO_MANDA <0|1>  (Esclavo) lo que contesta reloj_radioManda(), D-26 (3)
 //   MDG <n>      fija el motivo que devuelve la puerta del Modo Degradado
 //   DEG          (Esclavo) imprime estado, gobiernaLuz y rendicion del Degradado REAL
 //   DEG_ENTRAR   (Esclavo) pide la puerta REAL e imprime el RechazoDegradado
@@ -184,13 +185,46 @@ bool reloj_ajustarConAcuse(int hora, int minuto, int segundo, int dia) {
 void reloj_ajustar(uint8_t h, uint8_t m, uint8_t s, uint8_t d) {
   (void)reloj_ajustarConAcuse((int)h, (int)m, (int)s, (int)d);
 }
+// N-162 / D-26 (11/09) - LA FORMA EXACTA DE LA LINEA DEL ESP32, COPIADA LETRA POR LETRA.
+//
+// El sembrador del firmware rechaza por la FORMA antes de sscanf -"YYYY-MM-DD,HH:MM:SS" y
+// nada detras-. Este doble no lo hacia: aceptaba una linea truncada que el firmware tira, y
+// entonces la rama CMD:HORA_ESP32 del bluetooth.cpp REAL que este arnes compila se
+// ejercia por su camino de exito justo en el caso en que el equipo toma el de la alarma
+// (D-26 (5)). Es el "doble que acepta lo que el firmware rechaza" de arriba otra vez.
+//
+// SE COPIA, NO SE ESCRIBE PARECIDO: PATRON_ISO e isoBienFormado() son el BLOQUE LITERAL
+// de reloj.cpp -identico en las dos puntas- y reloj_03 compara los tres textos en cada
+// corrida. Si el firmware cambia el patron y esto no, el pack cae antes que el arnes mienta.
+static const char PATRON_ISO[] = "0000-00-00,00:00:00";
+
+static bool isoBienFormado(const char* s) {
+  for (uint8_t i = 0; i < sizeof(PATRON_ISO) - 1; i++) {
+    const char p = PATRON_ISO[i];
+    const char c = s[i];
+    // El '\0' de una cadena corta no es cifra ni separador: sale aqui, sin leer detras.
+    if (p == '0' ? (c < '0' || c > '9') : (c != p)) return false;
+  }
+  return s[sizeof(PATRON_ISO) - 1] == '\0';
+}
+
 bool reloj_sembrarDesdeIso(const char* str) {
-  if (str == nullptr) return false;
+  if (str == nullptr || !isoBienFormado(str)) return false;
   int anio = 0, mes = 0, dia = 0, h = 0, m = 0, s = 0;
   if (sscanf(str, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) != 6) return false;
   // N-160: replica exacta del firmware. Sin cast y devolviendo lo que la llamada hizo.
   return reloj_ajustarConAcuse(h, m, s, dia);
 }
+
+#if defined(PUNTA_ESCLAVO)
+// D-26 (3): la pregunta de la rama CMD:HORA_ESP32 del Esclavo -"manda la radio?"-.
+// reloj.cpp no se compila aqui (ver arriba), asi que se gobierna desde fuera con
+// "RADIO_MANDA 0|1". Arranca en NO, que es el estado real de un Esclavo recien encendido
+// -todavia no oyo al Maestro-, y el que deja pasar la siembra: el escenario D20 lo
+// necesita para medir la rama que SIEMBRA, y pide la otra rama a proposito.
+static bool rlj_radioManda = false;
+bool reloj_radioManda() { return rlj_radioManda; }
+#endif
 bool reloj_reiniciarDominioRespaldo() { return rlj_cristal; }
 void reloj_ajustarFranjaNocturna(uint8_t, uint8_t) {}
 uint8_t reloj_inicioNoche() { return 22; }
@@ -538,6 +572,14 @@ int main(void) {
       rlj_cristal = (c != 0);
       rlj_enHora = (h != 0);
       printf("OK cristal=%d enhora=%d\n", (int)rlj_cristal, (int)rlj_enHora);
+
+    } else if (strncmp(linea, "RADIO_MANDA ", 12) == 0) {
+#if defined(PUNTA_ESCLAVO)
+      rlj_radioManda = (atoi(linea + 12) != 0);
+      printf("OK radio_manda=%d\n", (int)rlj_radioManda);
+#else
+      printf("OK radio_manda=n/a\n");
+#endif
 
     } else if (strncmp(linea, "RADIO ", 6) == 0) {
 #if defined(PUNTA_MAESTRO)

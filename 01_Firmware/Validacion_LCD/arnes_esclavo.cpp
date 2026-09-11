@@ -133,6 +133,14 @@ void          protocolo_resetReplayProtection() {}
 // simulador, no de aqui; ponerlo a true dejaria las cinco vistas del Esclavo sin medir.
 bool     bluetooth_ambarEmergencia()                    { return false; }
 
+// D-26 (4) (11/09) metio OTRA llamada en modo_degradado.cpp -el $EVENT del salto de hora
+// que pasa por rojo- y el arnes volvio a morir en el enlazador: el mismo ABORTADO de N-106.
+// No dibuja nada, asi que aqui solo se cuenta: si alguna vista de este arnes provocara un
+// salto de hora (ponerHora() en pleno Degradado), el recuento lo delataria en vez de
+// cambiar la pantalla medida en silencio.
+static unsigned long m_eventosBt = 0;
+void     bluetooth_reportarEvento(const char*, const char*) { m_eventosBt++; }
+
 // El respaldo real habla con los registros BKP del STM32; aqui basta con que
 // diga que no hay nada guardado, que es el caso en el que manda la radio.
 void     respaldo_guardarDegradado(bool)                { }

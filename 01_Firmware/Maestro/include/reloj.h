@@ -178,7 +178,34 @@ void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo = 0, uint8_t di
 // valido y devuelve true.
 bool reloj_ajustarConAcuse(int hora, int minuto, int segundo, int dia);
 
+// D-20: siembra desde "YYYY-MM-DD,HH:MM:SS" -exactamente esa forma, 19 caracteres: ver
+// isoBienFormado() en reloj.cpp-. Desde el 11/09 su unico llamador es la rama
+// CMD:HORA_ESP32 de bluetooth.cpp: la hora del DS3231 de SU PROPIO ESP32, que en esta
+// punta se acepta siempre (el Esclavo, en cambio, solo si la radio no manda: D-26 (3)).
 bool reloj_sembrarDesdeIso(const char* str);
+
+// ---------------------------------------------------------------------------
+// D-26 (2) y (5) - LO QUE ESTA PUNTA ESPERA DE SU ESP32. Otro binario: los numeros se
+// escriben aqui -y en el reloj.h del Esclavo- y esp32_13 los compara en cada corrida con
+// los de ESP32_Expansion/include/contrato.h.
+//
+// La cadencia con la que el ESP32 siembra (SIEMBRA_INTERVALO_MS alli). Si difieren, la
+// alarma de abajo salta con el enlace sano o no salta con el enlace caido.
+static const unsigned long HORA_ESP32_CADENCIA_MS = 300000UL;
+
+// D-26 (5): sin una HORA_ESP32 bien formada en TRES cadencias, $ALARM EVENTO:HORA_ESP32.
+// Tres y no una: una siembra perdida -el ESP32 reiniciando, un byte comido- no es una
+// averia; tres seguidas, si. Y se repite cada tanto mientras dure, porque quien la tiene
+// que ver es el tecnico que se conecte DESPUES, no el que estaba conectado cuando empezo.
+static const unsigned long HORA_ESP32_ESPERA_MAX_MS = 3UL * HORA_ESP32_CADENCIA_MS;
+
+// Lo que el oscilador interno (HSI) de este micro puede desviarse en el PEOR caso de su
+// ficha: +-1 % a 25 C y hasta -2 % / +2,5 % en -40..105 C (STM32F103, "HSI oscillator
+// accuracy"). Entre dos siembras la hora se extrapola con millis(), que corre sobre el
+// HSI, asi que esto es lo que decide cuanto se separa. Lo usa el static_assert de
+// modo_degradado.cpp -una siembra NORMAL no puede mandar el Degradado a rojo- y lo relee
+// esp32_13 para la cuenta de la cadencia contra el margen del cruce.
+static const unsigned long HSI_PPM_PEOR = 25000UL;
 
 // 🔴 D-15 (05/09) - ESTA PUNTA YA NO TIENE CAMINO DE ESCRITURA, Y LO QUE ESO COSTO
 // SE DEJA ESCRITO AQUI PORQUE ES DONDE HARA FALTA.
@@ -202,10 +229,12 @@ bool reloj_sembrarDesdeIso(const char* str);
 // VIENE LO DE ABAJO. Los dos parrafos anteriores YA NO SON CIERTOS:
 //
 //   - "hoy NADIE puede poner en hora este RTC" -> SI se puede. D-20 abrio un camino
-//     nuevo, reloj_sembrarDesdeIso(), con llamador real en la rama SET_RTC de
-//     bluetooth.cpp. No escribe el RTC: siembra una base de software que se extrapola
-//     con millis(), que es justo el punto de D-20 -el cristal Y2 no hace falta-.
-//   - "reloj_enHora() es hoy FALSO SIEMPRE" -> es TRUE en cuanto alguien manda SET_RTC.
+//     nuevo, reloj_sembrarDesdeIso(), con llamador real en bluetooth.cpp: hasta el 11/09
+//     la rama SET_RTC -los bytes del telefono-, y desde el 11/09 la rama CMD:HORA_ESP32
+//     -la hora que el DS3231 de su ESP32 releyo; SET_RTC ya es solo del puente-. No
+//     escribe el RTC: siembra una base de software que se extrapola con millis(), que es
+//     justo el punto de D-20 -el cristal Y2 no hace falta-.
+//   - "reloj_enHora() es hoy FALSO SIEMPRE" -> es TRUE en cuanto entra la primera siembra.
 //     Y con ella se desbloquean los tres de la lista, empezando por el Modo Degradado.
 //
 // UN .h QUE MIENTE SOBRE ESTA BANDERA ES CARO: es lo que lee el siguiente antes de
