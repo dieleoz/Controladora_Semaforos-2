@@ -530,6 +530,14 @@ static void procesarComando(const char* cmd) {
   // LAS DOS PUERTAS -esta sin PIN y la de 'accion' con PIN- LLEVAN EL MISMO BLOQUE, letra
   // por letra. Un parche a una sola deja media puerta abierta contestando el $ACK viejo;
   // lo vigilan esclavo_07 y esclavo_08.
+  //
+  // 🔴 N-142 / §3.16-A (11/09) - Y HASTA HOY ESA FRASE ERA FALSA, MEDIDA EN EL FUENTE:
+  // protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO) tenia UN SOLO llamador en todo Esclavo/src
+  // y estaba en la puerta CON PIN. La app manda AMBAR_EMERGENCIA por la de SIN PIN -esta-,
+  // asi que el aviso de N-142 NO LO HABIA DISPARADO NUNCA NADIE desde un telefono: el
+  // tecnico del Poste 2 pedia ambar, esta punta se iba a S_FALLO y el Maestro seguia su
+  // ciclo pudiendo dar VERDE en el Poste 1 hacia un carril cuyo otro extremo ya no
+  // controla nadie. Es el candidato mas firme del DAR PASO del Sisga (roadmap §3.16).
   if (strcmp(cmd, "CMD:AMBAR_EMERGENCIA") == 0) {
     if (!degradado_gobiernaLuz()) {
       // Filas A y B: nadie mas gobierna la luz, el ambar se enciende ya. No hay $ERR
@@ -538,14 +546,49 @@ static void procesarComando(const char* cmd) {
       const bool yaEnAmbar = (semaforo_estado() == S_FALLO);
       semaforo_iniciarFallo();
       ambarEmergencia = true;
+
+      // N-142: SE LE DICE AL MAESTRO, TAMBIEN POR AQUI. El porque entero -que sin el
+      // aviso el Maestro no tiene forma de enterarse, que esta punta sigue contestando
+      // PONG en ambar y que por eso el enlace le parece perfecto- esta escrito una sola
+      // vez, en la puerta gemela de 'accion'. Se manda sin esperar acuse y sin reintento,
+      // igual que alli.
+      protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO);
+
+      // 🔴 Y EL $ACK DICE SI ESA TRAMA PUEDE HABER SIDO OIDA, PORQUE NO ES LO MISMO.
+      //
+      // CLAUDE.md §2: un $ACK que no depende de lo que la llamada devolvio es una mentira
+      // con formato de exito. protocolo_enviarPaquete() es void y lo es a proposito -no
+      // hay acuse que esperar-, asi que lo que se mira NO es esa llamada: es lo unico que
+      // esta punta sabe de la radio del Maestro en este instante, y es el mismo dato con
+      // el que ya se publica el $ALARM FALLO_RF y su $EVENT de regreso (N-108).
+      //
+      // QUE PROMETE CADA LITERAL, escrito para que nadie lea de mas:
+      //   OK / YA_EN_AMBAR_LATCH_PUESTO   el ambar esta puesto AQUI y el aviso salio con
+      //                                   el enlace sin caida declarada. NO promete que
+      //                                   la trama llegara -no se acusa-, solo que esta
+      //                                   punta oye al Maestro.
+      //   ..._SIN_RADIO                   el ambar esta puesto AQUI y esta punta ya
+      //                                   declaro que se quedo sin radio: el aviso sale
+      //                                   igual y casi seguro no llega. El Poste 1 puede
+      //                                   seguir dando verde, y quien pidio el ambar
+      //                                   tiene que saberlo antes de irse del poste.
+      //
+      // NO SE INVENTA UN SEGUNDO RELOJ DE SILENCIO para contestar esto: el que hay lo
+      // arma main.cpp con SFTY6_SILENCIO_MS y lo baja el regreso de tramas validas en
+      // bluetooth_loop(). Dos cuentas del mismo silencio divergirian sin que nadie lo
+      // notara, que es lo que este fichero ya tiene escrito para el silencio de J17.
+      const bool sinRadio = enlaceCaidoAnunciado;
       if (yaEnAmbar) {
         // Fila B. Lo que esta orden cambia NO es la luz -ya estaba en ambar por SFTY-6,
         // por el watchdog o por un B.B.B-: es el latch, que convierte un ambar que el
         // siguiente CMD_GO_RED se llevaria en uno vetado. Contestar OK ocultaria que lo
         // unico nuevo es la proteccion.
-        enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO");
+        enviarTramaConCrc(sinRadio
+            ? "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO_SIN_RADIO"
+            : "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO");
       } else {
-        enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
+        enviarTramaConCrc(sinRadio ? "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK_SIN_RADIO"
+                                   : "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
       }
       bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_SIN_PIN");
     } else if (salidaDegradadoIniciada()) {
@@ -704,10 +747,16 @@ static void procesarComando(const char* cmd) {
       // cambio y cae a fallo-, solo que tarda mas.
       protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO);
 
+      // El $ACK dice si esa trama puede haber sido oida. El porque completo -y por que
+      // no se mira lo que devolvio la llamada, que es void- esta en la puerta sin PIN.
+      const bool sinRadio = enlaceCaidoAnunciado;
       if (yaEnAmbar) {
-        enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO");
+        enviarTramaConCrc(sinRadio
+            ? "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO_SIN_RADIO"
+            : "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO");
       } else {
-        enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
+        enviarTramaConCrc(sinRadio ? "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK_SIN_RADIO"
+                                   : "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
       }
       bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_LOCAL");
     } else if (salidaDegradadoIniciada()) {

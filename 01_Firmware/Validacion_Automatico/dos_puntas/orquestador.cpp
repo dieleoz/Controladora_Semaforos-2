@@ -201,6 +201,78 @@ static unsigned long leerNumero(const std::string& ruta, const std::string& patr
 }
 
 // ---------------------------------------------------------------------------
+// N-142 / §3.16-A (11/09): LA LINEA QUE TECLEA EL TELEFONO, LEIDA DEL C++.
+//
+// El bloque H pide el ambar de emergencia por la puerta SIN PIN del Esclavo -la que usa
+// la app-, y para eso hace falta el literal del comando. NO SE ESCRIBE AQUI: se deduce
+// del despachador igual que lo deducen esclavo_07 y esclavo_08 -la rama comparada contra
+// 'cmd' cuyo bloque llama a semaforo_iniciarFallo()-, porque un literal escrito en el
+// arnes seguiria midiendo el comando de ayer el dia que se renombre. Es lo que paso con
+// FORZAR_ROJO (N-83), y el arnes habria seguido en verde tecleando un comando muerto.
+//
+// Los comentarios se quitan ANTES de buscar: este fichero cita sus propios comandos
+// dentro de los comentarios -por eso los packs leen el fuente sin ellos-, y un lector que
+// los cuente encuentra la rama equivocada.
+static std::string sinComentarios(const std::string& src) {
+  std::string fuera;
+  fuera.reserve(src.size());
+  for (size_t i = 0; i < src.size();) {
+    if (src[i] == '/' && i + 1 < src.size() && src[i + 1] == '/') {
+      while (i < src.size() && src[i] != '\n') i++;
+    } else if (src[i] == '/' && i + 1 < src.size() && src[i + 1] == '*') {
+      i += 2;
+      while (i + 1 < src.size() && !(src[i] == '*' && src[i + 1] == '/')) i++;
+      i = (i + 2 < src.size()) ? i + 2 : src.size();
+    } else {
+      fuera += src[i++];
+    }
+  }
+  return fuera;
+}
+
+// El bloque de la rama que empieza en 'desde', hasta la siguiente comparacion o hasta su
+// return. Mismo corte que el lector de los packs, y por el mismo motivo: sin el, el
+// filtro de PIN que vive entre dos ramas cae dentro de la de arriba.
+static std::string bloqueDeRama(const std::string& src, size_t desde) {
+  // Desde DESPUES de la propia comparacion: buscar "strcmp" desde 'desde' se encuentra a
+  // si misma y el bloque sale vacio -medido: el lector no hallaba ninguna rama-.
+  const size_t sig = src.find("strcmp", desde + 6);
+  size_t fin = (sig == std::string::npos) ? src.size() : sig;
+  const size_t ret = src.find("return;", desde + 6);
+  if (ret != std::string::npos && ret < fin) fin = ret;
+  return src.substr(desde, fin - desde);
+}
+
+// Devuelve el literal de la puerta SIN PIN del ambar de emergencia (la comparada contra
+// 'cmd') y, en 'results', los RESULT que esa rama puede contestar. Cadena vacia si no la
+// encuentra: quien llama decide si eso es un ABORTADO o el caso malo de un control.
+static std::string literalPuertaAmbar(const std::string& fuente,
+                                      std::vector<std::string>* results) {
+  const std::string src = sinComentarios(fuente);
+  std::regex re(R"(strcmp\s*\(\s*cmd\s*,\s*\"([^\"]+)\"\s*\))");
+  for (std::sregex_iterator it(src.begin(), src.end(), re), fin; it != fin; ++it) {
+    const size_t desde = (size_t)it->position(0);
+    const std::string bloque = bloqueDeRama(src, desde);
+    if (bloque.find("semaforo_iniciarFallo") == std::string::npos) continue;
+    if (results) {
+      results->clear();
+      std::regex reRes(R"(\"\$ACK,CMD:[A-Z0-9_:]+,RESULT:([A-Z0-9_]+)\")");
+      for (std::sregex_iterator r(bloque.begin(), bloque.end(), reRes), rf; r != rf; ++r) {
+        const std::string v = (*r)[1].str();
+        bool ya = false;
+        for (const std::string& x : *results) if (x == v) ya = true;
+        if (!ya) results->push_back(v);
+      }
+    }
+    return (*it)[1].str();
+  }
+  return std::string();
+}
+
+static std::string LINEA_AMBAR_APP;                  // "CMD:AMBAR_EMERGENCIA" hoy
+static std::vector<std::string> RESULTS_AMBAR_APP;   // lo que esa rama puede contestar
+
+// ---------------------------------------------------------------------------
 // UNA PUNTA: SU DLL, SU API Y SU DOMINIO DE RESPALDO.
 // ---------------------------------------------------------------------------
 typedef const char* (*FnNombre)(void);
@@ -776,6 +848,27 @@ static void finG(CorridaG& c) {
   if (c.v.enCurso) cerrarRachaG(c.v, "SEGUIA ABIERTA al acabar el escenario: " + fotoG());
 }
 
+// N-142: el telefono del Poste 2 pide el ambar de emergencia POR LA PUERTA SIN PIN, que
+// es la que manda la app. La linea sale del C++ (ver literalPuertaAmbar); la despacha el
+// bluetooth.cpp REAL del Esclavo en su siguiente tick.
+static long tecleaAmbarApp() {
+  return ESCLAVO.orden(("bt:" + LINEA_AMBAR_APP).c_str());
+}
+
+// Cual de los RESULT de esa rama trae el ultimo acuse que el equipo le mando al telefono.
+// Se pregunta por CADA literal leido del C++ -ninguno escrito aqui-, de modo que el
+// escenario puede comparar dos respuestas sin saber como se llaman.
+static std::string resultDelUltimoAcuse() {
+  std::string hallado;
+  for (const std::string& r : RESULTS_AMBAR_APP) {
+    if (ESCLAVO.orden(("ack:RESULT:" + r).c_str()) == 1) {
+      // El mas largo gana: "OK" es prefijo de "OK_SIN_RADIO" y strstr casaria los dos.
+      if (r.size() > hallado.size()) hallado = r;
+    }
+  }
+  return hallado;
+}
+
 static bool alcanzarVerdeG(Punta& p, unsigned long presupuesto) {
   for (unsigned long g = 0; g < presupuesto; g += PASO_MS) {
     unTick();
@@ -936,6 +1029,18 @@ int main() {
       R"(MAX_VERDE_BACKSTOP_MS\s*=\s*(\d+))", "MAX_VERDE_BACKSTOP_MS del Esclavo");
   VERDE_MIN_MIN_V = leerNumero(LIMITES, R"(VERDE_MIN_MIN\s*=\s*(\d+))", "VERDE_MIN_MIN");
   ROJO_MIN_MIN_V  = leerNumero(LIMITES, R"(ROJO_MIN_MIN\s*=\s*(\d+))", "ROJO_MIN_MIN");
+
+  // N-142 (bloque H): la linea del telefono y los acuses que esa rama puede contestar,
+  // leidos del despachador real. Sin ellos el bloque H tecleeria un comando inventado y
+  // el Esclavo lo rechazaria con un $ERR generico: el escenario pasaria por "el Maestro
+  // no se entera" cuando lo que no entero fue el arnes.
+  LINEA_AMBAR_APP = literalPuertaAmbar(
+      leerFuente(RAIZ + "/Esclavo/src/bluetooth.cpp"), &RESULTS_AMBAR_APP);
+  if (LINEA_AMBAR_APP.empty() || RESULTS_AMBAR_APP.empty()) {
+    abortar("no se pudo leer del C++ la puerta SIN PIN del ambar de emergencia del "
+            "Esclavo -la rama comparada contra 'cmd' que llama a semaforo_iniciarFallo()- "
+            "o sus RESULT. El bloque H teclearia un comando que no existe");
+  }
 
   std::printf("\n Constantes releidas del C++ real: silencio SFTY-6 = %lu ms,\n",
               SFTY6_SILENCIO_MS_V);
@@ -1276,15 +1381,25 @@ int main() {
     // La guarda de N-83 del despachador real: con el ambar de Bluetooth pedido, un
     // CMD_GO_GREEN del Maestro NO enciende verde en el Esclavo. Es una de las dos
     // unicas ramas que pueden vetar una orden de verde, y vive en src/main.cpp.
+    //
+    // 11/09 (N-142): el cerrojo ya no se mueve a mano -aquella orden era un doble del
+    // firmware- sino TECLEANDO la linea de la app en el bluetooth.cpp REAL. Y el aviso al
+    // Maestro se pierde a proposito, en el tick en que sale: con el aviso, el Maestro se
+    // va a MODO_AMBAR y deja de mandar GO_GREEN, o sea que la guarda que esta linea viene
+    // a medir no se recorreria ni una vez. Lo que el aviso SI cambia se mide en el bloque H.
     escenarioLimpio(tiempos(1, 1, 15));
     unsigned long verdeE0 = g_ticksVerdeEsclavo;
-    ESCLAVO.orden("ambar_bluetooth", 1);
+    g_enlaceHaciaMaestro = false;
+    bool d7 = tecleaAmbarApp() == 1;
+    unTick();                       // el despachador real atiende la linea en este tick
+    g_enlaceHaciaMaestro = true;
+    d7 = d7 && ESCLAVO.orden("ambar_latch") == 1 && ESCLAVO.estado() == S_FALLO_V;
     avanzar(300000);
-    comprobar(g_ticksVerdeEsclavo == verdeE0,
-              "D7: con el ambar de emergencia pedido por la app, el despachador REAL del "
+    comprobar(d7 && g_ticksVerdeEsclavo == verdeE0,
+              "D7: con el ambar de emergencia pedido por la app -la linea " +
+              LINEA_AMBAR_APP + " tecleada en el bluetooth.cpp REAL-, el despachador del "
               "Esclavo no encendio verde ni una sola vez en 5 minutos de ordenes del "
               "Maestro (la guarda de N-83, ejercida sobre el .cpp y no sobre su texto)");
-    ESCLAVO.orden("ambar_bluetooth", 0);
   }
 
   // =========================================================================
@@ -1864,9 +1979,12 @@ int main() {
       ok = ok && (k == 0 ? ESCLAVO.verde() : MAESTRO.verde());
       const long alarmas0 = MAESTRO.orden("alarmas");
       g_enlaceHaciaMaestro = false;          // se lleva el aviso de este instante, y solo el
-      ok = ok && ESCLAVO.orden("ambar_emergencia_app") == 1;
+      // 11/09 (N-142): la linea de la app en el despachador REAL, no la transcripcion que
+      // este arnes tenia. El aviso sale DENTRO del pasoG() de abajo y es el que se pierde.
+      ok = ok && tecleaAmbarApp() == 1;
       c.tCorte = g_t;
       pasoG(c);
+      ok = ok && ESCLAVO.orden("ambar_latch") == 1;
       g_enlaceHaciaMaestro = true;
       correrG(c, G8_MS);
       finG(c);
@@ -1920,8 +2038,9 @@ int main() {
       bool ok = alcanzarVerdeG(MAESTRO, ALCANCE);
       avanzar(3000);
       g_enlaceHaciaMaestro = false;
-      ok = ok && MAESTRO.verde() && ESCLAVO.orden("ambar_emergencia_app") == 1;
-      unTick();
+      ok = ok && MAESTRO.verde() && tecleaAmbarApp() == 1;
+      unTick();                               // el despachador real atiende la linea aqui
+      ok = ok && ESCLAVO.orden("ambar_latch") == 1;
       g_enlaceHaciaMaestro = true;
       avanzar(1000);
       MAESTRO.orden("forzar_rojo_total");
@@ -2045,6 +2164,233 @@ int main() {
                 "dos es decision vial. No cuenta.\n",
                 todoRojoMsG(g10), g10DespE * 1000L);
   }
+  // =========================================================================
+  std::printf("\n--- BLOQUE H: el ambar del Poste 2 AVISA al Poste 1 (N-142, §3.16-A) --\n");
+  // EL DEFECTO QUE ESTE BLOQUE VIENE A VIGILAR, medido en el fuente el 11/09: el ambar de
+  // emergencia del Esclavo tiene DOS puertas en bluetooth.cpp -sin PIN contra 'cmd' y con
+  // PIN contra 'accion'- y protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO) tenia UN SOLO
+  // llamador, en la de CON PIN. La app manda por la de SIN PIN (app.js, lista SIN_PIN), o
+  // sea que el aviso de N-142 NO LO HABIA DISPARADO NUNCA UN TELEFONO: el tecnico del
+  // Poste 2 pedia ambar, esa punta se iba a S_FALLO -intermitente con la pluma ARRIBA- y
+  // el Maestro seguia su ciclo dando VERDE en el Poste 1 hacia el mismo carril, hasta que
+  // agotara reintentos en el siguiente cambio. Es el candidato mas firme del DAR PASO del
+  // Sisga (roadmap §3.16).
+  //
+  // POR QUE NO LO VEIA ESTE ARNES: el ambar de la app entraba por una orden del adaptador
+  // que era una TRANSCRIPCION de la puerta CON PIN. Se median dos copias buenas de una
+  // puerta mala. Ahora se teclea la linea de la app -leida del C++- en el bluetooth.cpp
+  // REAL, que se compila en la DLL del Esclavo.
+  //
+  // EL BORDE, escrito al lado (CLAUDE.md §7), y sale del CAMINO, no de un gusto: la linea
+  // se despacha en un tick y el aviso sale al aire en ese mismo instante; cruza UN VIAJE
+  // de radio; el coordinador del Maestro lo lee en el tick en que llega -dentro de
+  // modoAutomatico_loop()-; main.cpp lo consume en la vuelta SIGUIENTE, y el cambio de
+  // modo corre su setup() una vuelta despues, porque main.cpp compara contra una COPIA
+  // del modo leida al principio de la vuelta -eso esta medido y escrito en el propio
+  // main.cpp, y el adaptador lo transcribe sin corregirlo-. Mas el tick de observacion:
+  // un viaje + cuatro ticks. Todo lo que pase de ahi es el Maestro esperando algo que no
+  // necesita esperar, y eso lo cierra un firmware.
+  {
+    const long TIEMPOS_H = tiempos((int)VERDE_MIN_MIN_V, (int)ROJO_MIN_MIN_V,
+                                   (int)DESPEJE_POR_DEFECTO_S);
+    const unsigned long DESPEJE_MS_H = DESPEJE_POR_DEFECTO_S * 1000UL;
+    const unsigned long VERDE_MS_H = VERDE_MIN_MIN_V * 60000UL;
+    const unsigned long ROJO_MS_H = ROJO_MIN_MIN_V * 60000UL;
+    const unsigned long ALCANCE_H =
+        2 * (DESPEJE_MS_H + AMBAR_ESCLAVO_MS_V) + VERDE_MS_H + ROJO_MS_H + 60000;
+    const unsigned long BORDE_AVISO_MS = g_latenciaMs + 4 * PASO_MS;
+    // Lo que se deja correr despues de pedir el ambar: el verde entero que el Maestro
+    // tenia encendido mas un minuto. Si no se parara, la ventana seria ese verde entero
+    // -"hasta 3 minutos", el residual de N-142 que el bloque G8-b publica sin cerrar-.
+    const unsigned long TRAS_AMBAR_H = VERDE_MS_H + 60000;
+
+    std::printf("   La app pide el ambar con la linea %s, leida del despachador real.\n",
+                LINEA_AMBAR_APP.c_str());
+    std::printf("   Acuses que esa rama puede contestar (leidos del C++): ");
+    for (size_t i = 0; i < RESULTS_AMBAR_APP.size(); i++)
+      std::printf("%s%s", RESULTS_AMBAR_APP[i].c_str(),
+                  i + 1 < RESULTS_AMBAR_APP.size() ? ", " : "\n");
+    std::printf("   Borde: %lu ms (un viaje de radio, %lu ms, + cuatro ticks de %lu ms).\n",
+                BORDE_AVISO_MS, g_latenciaMs, PASO_MS);
+
+    // ---- H0 (control negativo): el lector de la puerta sabe fallar --------------------
+    // Si literalPuertaAmbar() devolviera cualquier rama, el bloque teclearia otra cosa y
+    // "el Maestro no se entera" mediria al arnes. Se ejerce sobre un despachador
+    // sintetico: una rama que enciende ambar y otra que no, y la de un comentario.
+    {
+      const std::string FALSO =
+          "// if (strcmp(cmd, \"CMD:COMENTADO\") == 0) { semaforo_iniciarFallo(); }\n"
+          "if (strcmp(cmd, \"CMD:OTRA\") == 0) { semaforo_forzarRojo(); return; }\n"
+          "if (strcmp(cmd, \"CMD:LA_BUENA\") == 0) { semaforo_iniciarFallo();\n"
+          "  enviarTramaConCrc(\"$ACK,CMD:LA_BUENA,RESULT:OK\");\n"
+          "  enviarTramaConCrc(\"$ACK,CMD:LA_BUENA,RESULT:YA\"); return; }\n";
+      std::vector<std::string> res;
+      const std::string hallada = literalPuertaAmbar(FALSO, &res);
+      std::vector<std::string> nada;
+      const std::string vacia = literalPuertaAmbar(
+          "if (strcmp(cmd, \"CMD:OTRA\") == 0) { semaforo_forzarRojo(); }", &nada);
+      comprobar(hallada == "CMD:LA_BUENA" && res.size() == 2 && res[0] == "OK" &&
+                res[1] == "YA" && vacia.empty(),
+                "H0 (control negativo): el lector de la puerta del ambar encuentra la rama "
+                "que enciende ambar y NO la del comentario ni la que solo fuerza rojo, y "
+                "devuelve vacio -no una rama cualquiera- cuando no hay ninguna");
+    }
+
+    // ---- H1: con radio, el aviso llega y el cruce se para -----------------------------
+    CorridaG h1;
+    bool h1Ejercido;
+    long h1Entradas = -1, h1Origen = -1;
+    std::string h1Result;
+    {
+      escenarioLimpio(TIEMPOS_H, true);
+      bool ok = alcanzarVerdeG(MAESTRO, ALCANCE_H);
+      avanzar(3000);
+      ok = ok && MAESTRO.verde() && ESCLAVO.rojo() &&
+           MAESTRO.orden("entradas_ambar") == 0;
+      ok = ok && tecleaAmbarApp() == 1;
+      h1.tCorte = g_t;
+      pasoG(h1);                      // el despachador real atiende la linea en este tick
+      ok = ok && ESCLAVO.orden("ambar_latch") == 1 && ESCLAVO.estado() == S_FALLO_V;
+      h1Result = resultDelUltimoAcuse();
+      correrG(h1, TRAS_AMBAR_H);
+      finG(h1);
+      h1Entradas = MAESTRO.orden("entradas_ambar");
+      h1Origen = MAESTRO.orden("ambar_es_del_esclavo");
+      h1Ejercido = ok;
+    }
+    imprimirTrazaG("H1 (el Poste 2 pide ambar desde la app con el Maestro en VERDE):", h1);
+    comprobar(h1Ejercido,
+              "H1 (control): el Maestro estaba en VERDE con el Esclavo en rojo, se tecleo " +
+              LINEA_AMBAR_APP + " en el despachador real del Esclavo y esa punta quedo en "
+              "S_FALLO con el cerrojo puesto. El acuse al telefono fue RESULT:" +
+              (h1Result.empty() ? std::string("(ninguno)") : h1Result));
+    comprobar(acumuladoMsG(h1.v) <= BORDE_AVISO_MS && h1.v.simultaneo == 0,
+              "H1: el Maestro DEJA DE DAR VERDE frente al ambar de emergencia del otro "
+              "poste: ventana " + std::to_string(acumuladoMsG(h1.v)) + " ms (borde " +
+              std::to_string(BORDE_AVISO_MS) + " ms), " +
+              std::to_string(h1.v.simultaneo * PASO_MS) + " ms con verde en las dos. Sin "
+              "el aviso esa ventana es el verde entero que tuviera encendido -hasta " +
+              std::to_string(VERDE_MS_H / 1000) + " s con este ciclo-");
+    comprobar(h1Entradas == 1 && h1Origen == 1,
+              "H1 (la otra mitad): el Maestro entro en MODO_AMBAR " +
+              std::to_string(h1Entradas) + " vez -no ciclo, no oscilo- y lo apunto como "
+              "AMBAR DEL ESCLAVO (origen=" + std::to_string(h1Origen) + "), que es lo que "
+              "decide si una cancelacion del Poste 2 puede sacarlo (D-8)");
+
+    // ---- H2: segunda pulsacion CON radio, con la luz ya en ambar ----------------------
+    // Es el control de H3: la MISMA fila de la tabla del firmware -el equipo ya estaba en
+    // ambar- pero con la radio viva. Sin ella, H3 podria salir distinto por estar en otra
+    // fila y no por la radio, que es justo lo que se quiere aislar.
+    std::string h2Result;
+    long h2Entradas = -1;
+    bool h2Ejercido;
+    {
+      const bool yaEnAmbar = (ESCLAVO.estado() == S_FALLO_V);
+      bool ok = yaEnAmbar && tecleaAmbarApp() == 1;
+      avanzar(3 * PASO_MS);
+      h2Result = resultDelUltimoAcuse();
+      avanzar(5000);
+      h2Entradas = MAESTRO.orden("entradas_ambar");
+      h2Ejercido = ok && ESCLAVO.estado() == S_FALLO_V && !h2Result.empty();
+    }
+    comprobar(h2Ejercido && h2Result != h1Result && h2Entradas == 1,
+              "H2: la SEGUNDA pulsacion, con el equipo ya en ambar y la radio viva, se "
+              "contesta distinto de la primera (RESULT:" + h2Result + " contra RESULT:" +
+              h1Result + ") y NO vuelve a entrar en MODO_AMBAR (" +
+              std::to_string(h2Entradas) + " entrada): re-armar manda un todo-rojo y el "
+              "operario que pulsa dos veces no sabria cual de las dos movio la luz");
+
+    // ---- H3: la radio CAIDA, y lo que el equipo le dice al telefono -------------------
+    // El corte es TOTAL y dura mas que el silencio de SFTY-6, que es la unica averia de
+    // radio que esta punta PUEDE conocer: la declara ella misma con su $ALARM FALLO_RF.
+    // Con el corte, el Esclavo ya esta en ambar por orfandad, asi que la fila de la tabla
+    // es la de H2 -"ya estaba en ambar"- y la unica diferencia entre las dos es la radio.
+    std::string h3Result;
+    long h3Entradas = -1, h3Alarmas = 0;
+    bool h3Ejercido;
+    CorridaG h3;
+    {
+      escenarioLimpio(TIEMPOS_H, true);
+      bool ok = alcanzarVerdeG(MAESTRO, ALCANCE_H);
+      avanzar(3000);
+      ok = ok && MAESTRO.verde();
+      g_enlaceHaciaEsclavo = g_enlaceHaciaMaestro = false;
+      h3.tCorte = g_t;
+      correrG(h3, SFTY6_SILENCIO_MS_V + 5000);
+      h3Alarmas = ESCLAVO.orden("alarmas");
+      ok = ok && ESCLAVO.estado() == S_FALLO_V && h3Alarmas >= 1;
+      ok = ok && tecleaAmbarApp() == 1;
+      correrG(h3, 3 * PASO_MS);
+      h3Result = resultDelUltimoAcuse();
+      ok = ok && ESCLAVO.orden("ambar_latch") == 1;
+      correrG(h3, TRAS_AMBAR_H);
+      finG(h3);
+      h3Entradas = MAESTRO.orden("entradas_ambar");
+      h3Ejercido = ok && !h3Result.empty();
+    }
+    imprimirTrazaG("H3 (radio caida del todo; el Poste 2 pide ambar con la radio muerta):", h3);
+    comprobar(h3Ejercido,
+              "H3 (control): con la radio cortada mas de " +
+              std::to_string(SFTY6_SILENCIO_MS_V) + " ms el Esclavo ya estaba en ambar por "
+              "orfandad y habia emitido " + std::to_string(h3Alarmas) + " alarma(s) por el "
+              "cable del telefono; la orden de ambar se atendio igual y el cerrojo quedo "
+              "puesto. El ambar de quien esta en la calzada NO depende de la radio");
+    comprobar(h3Result != h2Result,
+              "H3: y el $ACK LO DICE. Con la radio caida el equipo contesta RESULT:" +
+              h3Result + " donde con la radio viva y la MISMA luz contesta RESULT:" +
+              h2Result + ": el tecnico se entera de que el otro poste no se ha enterado. Un "
+              "acuse igual en los dos casos seria una mentira con formato de exito "
+              "(CLAUDE.md §2), y aqui la mentira manda a alguien a casa creyendo que el "
+              "cruce entero esta en ambar");
+    comprobar(h3Entradas == 0,
+              "H3 (la medida que explica al Sisga): con la radio muerta el Maestro NO entra "
+              "en MODO_AMBAR (" + std::to_string(h3Entradas) + " entradas) porque el aviso "
+              "no llega. Lo que lo protege entonces es lo de siempre -agotar reintentos y "
+              "caer a C_FALLO-, no el aviso; por eso el $ACK de arriba tiene que decirlo");
+
+    // ---- H4: la averia FEA -solo muere el transmisor del Esclavo- ---------------------
+    // El Maestro le sigue hablando, asi que esta punta NO tiene forma de saber que lo que
+    // ella emite no sale: su unico dato de radio es el silencio de lo que RECIBE. Aqui se
+    // mide lo que si depende de este fichero -que el ambar se ponga igual- y se publica lo
+    // que no: que el $ACK sale como con la radio sana.
+    CorridaG h4;
+    bool h4Ejercido;
+    long h4Entradas = -1;
+    std::string h4Result;
+    {
+      escenarioLimpio(TIEMPOS_H, true);
+      bool ok = alcanzarVerdeG(MAESTRO, ALCANCE_H);
+      avanzar(3000);
+      ok = ok && MAESTRO.verde() && ESCLAVO.rojo();
+      g_enlaceHaciaMaestro = false;          // solo esta direccion, y no vuelve
+      h4.tCorte = g_t;
+      ok = ok && tecleaAmbarApp() == 1;
+      pasoG(h4);
+      ok = ok && ESCLAVO.orden("ambar_latch") == 1 && ESCLAVO.estado() == S_FALLO_V;
+      h4Result = resultDelUltimoAcuse();
+      correrG(h4, TRAS_AMBAR_H);
+      finG(h4);
+      h4Entradas = MAESTRO.orden("entradas_ambar");
+      h4Ejercido = ok;
+    }
+    imprimirTrazaG("H4 (solo muere el transmisor del Esclavo: pide ambar y el aviso no sale):",
+                   h4);
+    comprobar(h4Ejercido,
+              "H4: con la direccion Esclavo->Maestro muerta y el Maestro todavia hablando, "
+              "el ambar de emergencia se pone IGUAL en el Poste 2 y el cerrojo queda puesto: "
+              "lo que protege a quien esta en esa calzada no cuelga de la radio");
+    std::printf("   [NOTA]  H4: el Maestro NO se entero (%ld entradas en MODO_AMBAR) y el "
+                "telefono recibio RESULT:%s, el MISMO que con la radio sana. Esta punta no "
+                "puede saber que su emision no sale -solo oye silencios de lo que RECIBE, y "
+                "aqui el Maestro le sigue hablando-, y el aviso de N-142 se manda sin acuse "
+                "y sin reintento a proposito (el operario esta delante). Cerrarlo pide un "
+                "acuse al aviso: protocolo y LAS DOS puntas, como el ACK_RED sin "
+                "identificador de G9. La ventana medida -verde del Maestro frente al ambar "
+                "del Esclavo- fue de %lu ms, %lu ms con verde en las dos. No cuenta.\n",
+                h4Entradas, h4Result.c_str(), acumuladoMsG(h4.v),
+                h4.v.simultaneo * PASO_MS);
+  }
+
   // reportar(): no cuenta. Es lo que la excepcion de A9 dejo pasar en los bloques A a F, que
   // no se diseniaron para esto. MEDIDO el 11/09 con una copia instrumentada: la racha larga
   // es del bloque D -D5/D6-, el Esclavo dando verde POR RELOJ en su Modo Degradado con el
