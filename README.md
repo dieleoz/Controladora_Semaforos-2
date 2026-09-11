@@ -255,7 +255,7 @@ tenía el módulo SPP; **lo que se enchufa, no**.
 > SIN TELÉFONO NO HAY FORMA DE OPERAR EL EQUIPO.** Ni ámbar, ni volver a automático, ni parar el
 > cruce. Va escrito en el manual del operario: el teléfono es herramienta crítica.
 
-### La cámara va a `J16` p10 — **una por poste** (`D-13`) — y **ya se cablea**
+### Las cámaras van a `J16` p10 y p12 — **dos por poste** (`D-25`, 11/09) — y **ya se cablean**
 
 *(Resumen: la tabla que manda es `05_Funcional/17_…` §1.7. La columna «red» es el nombre heredado
 del netlist, **no el papel del pin**.)*
@@ -265,13 +265,16 @@ del netlist, **no el papel del pin**.)*
 | p1 | `/12V` | — | 🔴 **12 V crudos. Se tapa físicamente en CADA equipo que se monte** (N-120) — es el único conector de señal de la tarjeta que los trae, sin opto ni clamp |
 | p5 | `/Boton1` | `PB9` | **libre y SIN CABLEAR** (`A-2`, cerrada el 05/09: el fin de carrera va a `J14`). 🔴 **El firmware sigue leyendo ese pin** y alimentando el reconocedor de secuencias del mando |
 | p8 | `/Boton2` | `PB13` | igual que p5 |
-| p10 | `/Boton3` | `PB14` | 🎯 **`CAM_C_PIN` — LA cámara de demanda** *(verificada en banco el 03/09)* |
-| p12 | `/Boton4` | `PB15` | **`CAM_D_PIN` — entrada de cámara que HOY SE DEJA VACÍA**, y el firmware depende de ello (la exención del vigilante) |
+| p10 | `/Boton3` | `PB14` | 🎯 **`CAM_C_PIN` — cámara 1**, contacto de alarma entre p9 (3,3 V) y p10 *(verificada en banco el 03/09)* |
+| p12 | `/Boton4` | `PB15` | 🎯 **`CAM_D_PIN` — cámara 2**, contacto de alarma entre p11 (3,3 V) y p12 |
 
-> ⚠️ **Aquí ponía `p10 = Cámara 2` / `p12 = Cámara 1`**, y la spec había decidido `C`/`D` con p12
-> vacío: esos números el firmware y el Manual 9 los usan **para otra cosa**. Corregido el 11/09. Y
-> 🔴 **las guías «de 4 cámaras» del Sisga (10/09), que ocupaban p12, están RETIRADAS** — ver
-> `roadmap.md` §3.16: **ninguna cámara protege la pluma** en el firmware de hoy.
+> ✅ **`D-25` (11/09, el responsable): las conexiones de la guía de cámaras del Sisga quedan
+> DEFINITIVAS** —4 cámaras, dos por poste— y derogan de `D-13` solo *«una por poste, p12 vacío»*.
+> 🔴 **Lo que el que cablea tiene que saber, medido en el firmware de hoy:** las **dos entradas hacen
+> LO MISMO** (piden paso; `botones.cpp`, `CAM_J16[2]`), **ninguna protege la pluma** (el veto es
+> `A-1.bis`, sin construir), y **una segunda cámara muerta desde la instalación no la detecta nadie**
+> (el vigilante salta el pin que nunca dio un flanco): se comprueba cada cámara por separado al
+> instalar. Las frases falsas de la guía del 10/09 se corrigen en su versión nueva (`roadmap.md` §3.16).
 
 > ✅ **La medida `M3` está CERRADA desde el 03/09 y las cámaras se cablean** (`D-3`). Medido en
 > cobre —multímetro, conector vacío, paso 20 de la Guía—: el pull-down de **10 kΩ** que declaraba
@@ -456,7 +459,7 @@ fallar varias veces con `Unable to get core ID`. Eso **no** es falta de cableado
 | 6 | [`6_Preguntas_Diseno_Funcional`](05_Funcional/6_Preguntas_Diseno_Funcional.md) | Decisiones de diseño cerradas |
 | 7 | [`7_Especificacion_Antenas`](05_Funcional/7_Especificacion_Antenas.md) | Antenas y línea de vista |
 | 8 | [`8_Procedimiento_Modo_Degradado`](05_Funcional/8_Procedimiento_Modo_Degradado.md) | Operación de emergencia por reloj sin radio |
-| 9 | [`9_Manual_Parametrizacion_Camara_IA`](05_Funcional/9_Manual_Parametrizacion_Camara_IA.md) | ~~4 cámaras~~ → **2 cámaras de demanda** en `J16`. **Es el entregable principal del diseño de cámaras** (`D-12`): toda la inteligencia vive en la configuración de la cámara |
+| 9 | [`9_Manual_Parametrizacion_Camara_IA`](05_Funcional/9_Manual_Parametrizacion_Camara_IA.md) | **4 cámaras, dos por poste** en `J16` p10/p12 (`D-25`, 11/09) — ⚠️ **el manual todavía dice una por poste: pendiente de alinear**. **Es el entregable principal del diseño de cámaras** (`D-12`): toda la inteligencia vive en la configuración de la cámara |
 | 10 | [`10_Manual_Modulo_Bluetooth_Telemetria`](05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md) | ⚠️ **manda enchufar un `HC-05` en `J17`, que es donde va el ESP32** |
 | 11 | [`11_Manual_Instalacion_RTC_DS3231_Bateria`](05_Funcional/11_Manual_Instalacion_RTC_DS3231_Bateria.md) | ~~`DS3231` en `PB0`/`PB8`~~ → **se muda al ESP32**. ⚠️ **manual sin corregir** |
 | 12 | [`12_Cobertura_de_Pruebas_y_Huecos`](05_Funcional/12_Cobertura_de_Pruebas_y_Huecos.md) | Qué mide cada instrumento y **qué queda sin medir** |
