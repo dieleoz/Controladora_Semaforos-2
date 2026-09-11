@@ -1037,7 +1037,8 @@ el ORDEN y lo que lo justifica. Se reescribe entera cuando cambie; no se le anad
 
 | # | que | por que va aqui | que arrastra |
 |---|---|---|---|
-| **0** | 🔴 **11/09 — ENTRAN DOS POR DELANTE, las dos del Sisga (§3.16):** **(a)** que `AMBAR_EMERGENCIA` sin PIN avise al Maestro como la puerta con PIN, con el pack que mire las DOS puertas —toca el ambar y es el candidato del DAR PASO—; **(b)** la siembra periodica de `A-15`, decidida el 08/09 y sin una linea: cierra la deriva del HSI entre visitas y el salto de los 49,7 dias | **(a)** es una linea de firmware y un pack; **(b)** vuelve verdadera la premisa sobre la que se degrado `D-22` | Esclavo + pack · ESP32 + las dos puntas. **Ninguno autoriza nada sin banco** |
+| **0** | 🔴 **11/09 — ENTRAN DOS POR DELANTE, las dos del Sisga (§3.16):** **(a)** que `AMBAR_EMERGENCIA` sin PIN avise al Maestro como la puerta con PIN, con el pack que mire las DOS puertas —toca el ambar y es el candidato del DAR PASO—; **(a.bis)** que `GO_GREEN` sea idempotente en el Esclavo (§3.16, DAR PASO), que es
+el que mejor casa con el banco del 04/09 y con el Sisga; **(b)** la siembra periodica de `A-15`, decidida el 08/09 y sin una linea: cierra la deriva del HSI entre visitas y el salto de los 49,7 dias | **(a)** es una linea de firmware y un pack; **(b)** vuelve verdadera la premisa sobre la que se degrado `D-22` | Esclavo + pack · ESP32 + las dos puntas. **Ninguno autoriza nada sin banco** |
 | ~~**1**~~ | 🟢 **`CAM_CIEGA` — HECHO ENTERO el 08/09**, las dos mitades (`D-24`, §3.15) | 24 h de paso abierto en las dos puntas, la app, 7 documentos y la APK recompilada · **y el aviso del Modo Inteligente, que salio CERO FIRMWARE** | — |
 | **2** | 🔴 **`D-23` · la pantalla propia del poste 2**, por la via `$EVENT` | **Decidida el 07/09 y con la via YA elegida** (`A-14`). Es una de las tres que mantienen en rojo `decisiones_01_anclas`, y **la unica de las tres que se destraba con teclado** | `$EVENT` nuevo en el **Esclavo** + pantalla en **app.js** + **recompilar la APK**. ⚠️ **Antes: confirmar que el indice de `A-14` manda sobre su cuerpo** (§3.2) |
 | **3** | 🟠 **El checksum de la SUBIDA** (§3.1 fila 3) | `procesarComando()` **no lee el `*XX`**: un bit cambiado dentro de `SET_TIEMPOS` o `SET_RTC` **se obedece**. Va detras de 1 y 2 porque **no esta decidido** y porque SPP ya lleva su propio control de errores por debajo — pero es lo unico de esta lista que puede mover una luz por un bit | las dos puntas + el pack que lo mida. **Y su control negativo tiene que ser una trama con el CRC malo que HOY se obedece** |
@@ -1186,6 +1187,24 @@ razonamiento, el sospechoso es el razonamiento.**
 >
 > ⚠️ **Que pasara asi en el Sisga es HIPOTESIS**: exige que alguien pusiera el ambar en el poste 2.
 
+> 🔴 **Y EL CAMINO QUE MEJOR CASA CON LO QUE SE VIO, medido el 11/09 con la transcripcion del banco del
+> 04/09 delante** —*«queda maestro en rojo y despues de 15 segundos esclavo quedan [en] rojo y ambar»* y
+> *«la aplicacion dice: el cruce esta cambiando de fase, repita al terminar»*—. Esa frase es
+> `$ERR,CMD:CAMBIAR_TURNO,DESC:EN_TRANSICION_REINTENTE`: **el Maestro seguia esperando el `ACK_GREEN`**.
+> Dos piezas medidas en el fuente:
+>
+> 1. la rama `CMD_GO_GREEN` de `Esclavo/src/main.cpp` llama a `semaforo_iniciarTransicionAVerde()` **en
+>    cada orden**, y esa funcion pone `S_AMARILLO` y **reinicia el reloj del ambar** (`tCambio = millis()`)
+>    este donde este la luz —desde verde, incluso, lo devuelve a ambar—;
+> 2. el Maestro reintenta `GO_GREEN` cada `TIMEOUT_ACK_MS = 3500` y el ambar dura `4000`.
+>
+> **Basta UN `ACK_GREEN` perdido para que cada reintento reinicie el ambar antes de que acabe**: el Esclavo
+> no llega nunca a verde mientras duren los reintentos, el Maestro sigue en rojo «en transicion», y la app
+> dice «repita». Que se perdiera un acuse lo apunto el responsable ese dia (*«el reenvio y la propagacion
+> de la antena del radio»*) y es hipotesis; **que el firmware no aguanta un acuse perdido esta medido**. El
+> arreglo es que `GO_GREEN` sea idempotente en el Esclavo: si ya esta en la transicion a verde o en verde,
+> se re-acusa y no se reinicia nada.
+
 **La medida que lo distingue, y no pide tarjeta nueva:** el `$STATUS` **del propio Esclavo** en ese
 momento —`ESTADO:FALLO COM` con `PLUMA:ARRIBA` es `S_FALLO`; `ESTADO:AMARILLO` con `PLUMA:ABAJO` es la
 transicion—, su Diario de Ordenes (`AMBAR_EMERGENCIA` sin `CANCELAR_AMBAR` detras), la cinta del Maestro
@@ -1240,6 +1259,11 @@ en una calle. Lo que dicen, con el firmware que habia dentro:
 >
 > **Alcance medido el 11/09: 3 firmwares, 16 instrumentos que nombran `SET_RTC`, la app y los manuales.**
 > Va en su rama, con la compuerta delante, y **no se sube sin banco**.
+>
+> ✅ **Las cuatro reglas, APROBADAS por el responsable el 11/09** (incluidas la 3 y la 4, que eran
+> derivacion mia de `D-20` y estrechan una barrera escrita). En construccion ese mismo dia con agentes en
+> **worktrees aislados** —ESP32, STM32 y DAR PASO por separado, mas una auditoria de solo lectura de los
+> reinicios del ESP32—, y **se integra revisando el diff de cada uno**, no su parte.
 
 ---
 
