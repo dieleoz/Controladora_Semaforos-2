@@ -2523,8 +2523,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (punta) { avisarOtraPunta('MANUAL:CAMBIAR_TURNO', punta); return; }
       if (!confirmarVia('MANUAL:CAMBIAR_TURNO', () => btnOpStep.click())) return;
       if (!enviarComandoFirmware('MANUAL:CAMBIAR_TURNO')) return;
-      showToast('✋ DAR PASO: despejando vía (15s todo-rojo)...');
-      addEvent('cyan', 'Operario: orden CAMBIAR TURNO enviada. Se aplicará despeje todo-rojo (15s) antes de habilitar el verde opuesto.');
+      // N-162: aqui NO se dice "despejando": la orden acaba de SALIR y el equipo puede
+      // contestar $ERR. Lo que el equipo hace lo dice su acuse (ACK_TEXTO). Y sin cifra
+      // de segundos: el despeje es configurable y esta app no puede recalcularlo.
+      addEvent('cyan', 'Operario: orden CAMBIAR TURNO enviada al equipo.');
     });
   }
 
@@ -3181,11 +3183,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const ACK_TEXTO = {
+    // N-162: este $ACK dice que el Maestro ACEPTO la orden -su coordinador estaba en
+    // reposo-, no que la otra punta vaya a abrir: si el Esclavo tiene un ambar puesto veta
+    // el verde en silencio. Por eso no se promete el final, y no se cita ninguna cifra de
+    // segundos: el despeje es configurable (coordinador_configurar) y la app no lo sabe.
     'CAMBIAR_TURNO|OK': {
       tono: 'green',
-      texto: 'Equipo: CAMBIO DE TURNO ACEPTADO. Despejando calzada única: ambos sentidos en ' +
-             'TODO-ROJO durante 15 s. Luego el sentido opuesto pasará por ámbar de transición (4 s) y abrirá en VERDE.',
-      toast: 'Cambio de turno aceptado: despejando vía (15 s todo-rojo)...'
+      texto: 'Equipo: CAMBIO DE TURNO ACEPTADO. El Maestro hace el todo-rojo de despeje ' +
+             'configurado y despues da el paso. Mire las DOS cabezas: si una queda en ambar ' +
+             'intermitente, el cambio NO se completo.',
+      toast: 'Cambio de turno aceptado por el equipo'
     },
     'CANCELAR_AMBAR|RETIRADO': {
       tono: 'green',
@@ -4056,10 +4063,9 @@ document.addEventListener('DOMContentLoaded', () => {
           ? anotarLecturaDeReloj(
               data, cual === 'LEER_RTC' ? 'CONSULTA DE RELOJ' : 'Hora puesta')
           : null;
-      if ((cual === 'SET_RTC' || cual === 'LEER_RTC') && data.HORA) {
-        state.hora = data.HORA;
-        pintarHoraEquipo();
-      }
+      // N-162: este acuse NO toca state.hora. Viene de NODE:PUENTE -el DS3231 del ESP32-
+      // y state.hora es la hora del CONTROLADOR, la del $STATUS. Pintar una con la otra
+      // tapaba justo lo que hay que ver: un STM32 que no recibio la hora.
       const dicho = ACK_TEXTO[clave];
       if (dicho) {
         addEvent(dicho.tono, dicho.texto);
