@@ -9,7 +9,7 @@
 >    `$ALARM …EVENTO:HORA_ESP32…` (`J17_MUDO`, `SIN_HORA_DEL_ESP32`, `RECHAZADA_FORMATO`). Revisado por el diff por el
 >    arquitecto antes de fusionar (**`roadmap.md` §3.16, `N-162`, `H1`..`H9`**). ⚠️ **Sin banco y sin tarjeta.** La
 >    foto `wip/d26-hora-esp32-foto-1315` quedó integrada en `a0313fe`: ya no se usa. Los dos rojos de la compuerta
->    siguen siendo reales —`decisiones_01_anclas` y **G3**—; las cifras, en la última acta.
+>    siguen siendo reales —`decisiones_01_anclas` y ~~**G3**~~ *(**G3 cerrado el 12/09**, `N-163`: queda UN solo rojo)*—; las cifras, en la última acta.
 > 2. ~~🟠 **EN CONSTRUCCIÓN (worktree, NO está en `main`)**~~ 🟢 **CONSTRUIDA y en `main` el 11/09 por la noche, sin banco: `D-21` pieza (1)** —ámbar intermitente en la punta cuya
 >    hora caducó, dentro del Degradado—. Es la cura de **`H1`**: con el `J17` del Maestro mudo, al caer la radio el
 >    Esclavo adopta su `DS3231` y el Maestro sigue con la hora derivada del HSI → **verde contra verde**. **Bloquea
@@ -20,7 +20,10 @@
 >    rederivado. **Lo que sí queda para el responsable son dos cosas nuevas que salieron al construirla:** «~2 min»
 >    no está fijado al segundo en `DECISIONES.md` —los 120 s salen de la medida de la fila 2.10—, y a esa cadencia
 >    **tolerar DOS siembras perdidas cabría**, a cambio de bajar el margen entre los dos `DS3231` de 13 s a 7 s)* ·
->    **G3/SFTY-6** (la punta en verde tarda 250 ms en soltar frente a un `S_FALLO`); la
+>    ~~**G3/SFTY-6** (la punta en verde tarda 250 ms en soltar frente a un `S_FALLO`)~~ *(**DECIDIDO y
+>    CONSTRUIDO el 12/09**, `N-163`: la ventana pasa de 250 ms a CERO **sin tocar el umbral de 25 s** —lo
+>    sujeta un `static_assert` que demuestra que no se recorta el presupuesto de reintentos—, y el criterio
+>    del responsable se midió caso por caso sobre 32 cortes: los ámbares no subieron ni uno)*; la
 >    referencia del **relé** de `J15`; la **alarma por discrepancia de los dos `DS3231`** —con el matiz de `H3`: el
 >    umbral **no puede ser 11 s a secas**, porque el HSI de cada punta mete entre siembras ~~hasta 7,5 s~~ **hasta
 >    3 s desde el 12/09** (la cifra la manda la cadencia: `roadmap.md` fila 2.8, y el umbral sube de 11 a 13 s)—;
@@ -337,9 +340,9 @@ lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida
 
 | | |
 |---|---|
-| Flash | Maestro **89.5 %** (**58636** de 65536 B → **5.900 B libres**) · Esclavo **70.1 %** (45932 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | 🔴 **1386/1391 comprobaciones** en **82 packs** — 81 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
-| Arneses que compilan C++ real | 287/287 pantalla · **99/99** automático · 22/22 ciclo · **101/102 dos puntas (G3 en FALLA)** · **53/53 Degradado a dos puntas** |
+| Flash | Maestro **89.8 %** (**58880** de 65536 B → **6.656 B libres**) · Esclavo **70.1 %** (45932 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | 🔴 **1386/1393 comprobaciones** en **82 packs** — 81 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
+| Arneses que compilan C++ real | 287/287 pantalla · **99/99** automático · 22/22 ciclo · **106/106 dos puntas** · **53/53 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | **268/268** jsdom · 65/65 funcional · 42/42 unitarios · **69/69** TDD |
 

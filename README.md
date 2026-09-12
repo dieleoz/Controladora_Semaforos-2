@@ -92,8 +92,8 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | Comprobación | Estado | |
 |---|---|---|
 | guarda de rutas de los instrumentos | ✅ | 65 rutas parseadas, todas existen |
-| banco por packs *(82 packs)* | 🔴 **FALLA** | **1386/1391 comprobaciones en 82 packs** — 81 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22`, `D-23`, `D-25` y `D-27` son decisiones VIGENTES sin ancla en el firmware**. **Están construidas `D-20`, la pieza B de `D-21`, `D-26` y —desde el 12/09— `D-28` y `D-29`**. `D-23` ya tiene la vía elegida (`$EVENT`, `A-14`) y **es teclado**; `D-14` es **la entrada de alarma de la cámara**, y el 12/09 se cerró que **no se gasta ninguno de los tres canales muertos**: la cámara graba el evento **sola en su microSD** (`Trigger Recording` + `Record Schedule` tipo `Event`, ficha oficial), así que marcarlo con un contacto no compra nada; `D-22` espera **una tarjeta delante** — y su premisa se corrigió el 12/09: `Y1` **no es un reloj**, es el latido del micro, y toda la derivación de márgenes ya asume el oscilador interno en su peor caso. 🔴 **Esta cuenta subió a SIETE el 12/09 al decidirse `D-28` y `D-29`, y volvió a cinco al construirlas el mismo día. Que suba no dice que el banco se degrade: dice que se está decidiendo más rápido de lo que se construye, y se arregla con teclado, no tocando el instrumento** |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.5 %** · 70.1 % · 20.6 % · 35.7 % — *el Maestro ocupa **58636 de 65536 B**, o sea **5.900 B libres**; el Esclavo, **45932 B*** |
+| banco por packs *(82 packs)* | 🔴 **FALLA** | **1386/1393 comprobaciones en 82 packs** — 81 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22`, `D-23`, `D-25` y `D-27` son decisiones VIGENTES sin ancla en el firmware**. **Están construidas `D-20`, la pieza B de `D-21`, `D-26` y —desde el 12/09— `D-28` y `D-29`**. `D-23` ya tiene la vía elegida (`$EVENT`, `A-14`) y **es teclado**; `D-14` es **la entrada de alarma de la cámara**, y el 12/09 se cerró que **no se gasta ninguno de los tres canales muertos**: la cámara graba el evento **sola en su microSD** (`Trigger Recording` + `Record Schedule` tipo `Event`, ficha oficial), así que marcarlo con un contacto no compra nada; `D-22` espera **una tarjeta delante** — y su premisa se corrigió el 12/09: `Y1` **no es un reloj**, es el latido del micro, y toda la derivación de márgenes ya asume el oscilador interno en su peor caso. 🔴 **Esta cuenta subió a SIETE el 12/09 al decidirse `D-28` y `D-29`, y volvió a cinco al construirlas el mismo día. Que suba no dice que el banco se degrade: dice que se está decidiendo más rápido de lo que se construye, y se arregla con teclado, no tocando el instrumento** |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.8 %** · 70.1 % · 20.6 % · 35.7 % — *el Maestro ocupa **58880 de 65536 B**, o sea **6.656 B libres**; el Esclavo, **45932 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.7 % — 1123521 de 3.145.728 B |
@@ -107,10 +107,10 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 | arnés del ciclo | ✅ | **22/22** — corre sobre el `ciclo_degradado.h` real compilado, sin espejo en Python |
 | arnés del respaldo | ✅ | compila el `calcularSuma()` real; identidad de `respaldo.cpp` entre puntas + prueba de vida |
 | arnés del Degradado a dos puntas | ✅ | **53/53** — las dos puntas en Degradado **cada una con su reloj**. Entrega **el número**: el cruce aguanta **29 s** de desfase contra los **20,2 s** que el equipo puede acumular en 48 h, o sea factor **1,44** — y no el 2 que afirmaban los comentarios de las dos puntas |
-| arnés de las dos puntas | 🔴 **FALLA** | **101/102** — la que cae es **G3** (la punta en verde no suelta antes del silencio de SFTY-6: 250 ms de verde frente a ámbar) y espera una decisión del responsable; los 180 s de verde en las dos del bloque G están CERRADOS (N-162, 11/09).  — el C++ **real de las DOS puntas** ejecutándose en el mismo proceso y el mismo instante: verde simultáneo en **0** instantes *(el total lo imprime el arnés; aquí ponía «de 53.236» y ya no casaba)* |
+| arnés de las dos puntas | ✅ | **106/106** — ~~la que cae es **G3** (la punta en verde no suelta antes del silencio de SFTY-6: 250 ms de verde frente a ámbar) y espera una decisión del responsable~~ 🟢 **`G3` CERRADO el 12/09 (`N-163`): la ventana pasó de 250 ms a CERO.** El responsable decidió con una condición que fue el criterio de aceptación —*«que no sea que por microcortes de radio el esclavo se pase a ámbar cada nada»*—, y se midió caso por caso sobre **32 cortes**: los ámbares no subieron ni uno (Esclavo 8→8, Maestro 10→10). **El umbral de 25 s no se tocó**; lo que cambió es cuándo se suelta el verde. Los 180 s de verde en las dos del bloque G están CERRADOS (N-162, 11/09). — el C++ **real de las DOS puntas** ejecutándose en el mismo proceso y el mismo instante: verde simultáneo en **0** instantes *(el total lo imprime el arnés; aquí ponía «de 53.236» y ya no casaba)* |
 | arnés del automático | ✅ | **99/99** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` + `modo_inteligente.cpp`, `demanda.cpp` y el `botones.cpp` real, y comprueba SFTY-2 sobre las escrituras de pin |
 
-**18 PASS · 2 FALLA · 0 ABORTADO, de 20 comprobaciones — la compuerta sale con código `1`.**
+**19 PASS · 1 FALLA · 0 ABORTADO, de 20 comprobaciones — la compuerta sale con código `1`.**
 
 > 🔴 **El `1` es el hallazgo, no una regresión.** Lo acusa `decisiones_01_anclas`: **`D-14`, `D-22` y
 > `D-23` están vigentes en `DECISIONES.md` sin una línea que las construya.** `D-14` —*el controlador
@@ -510,7 +510,7 @@ cerrar.)*
   `_Automatico/`: los arneses que compilan C++ real. Qué compila cada uno y su punto ciego:
   [`ARQUITECTURA.map`](ARQUITECTURA.map).
 - [`01_Firmware/compuerta.py`](01_Firmware/compuerta.py): **la única forma correcta de
-  verificar** — `18 PASS · 2 FALLA · 0 ABORTADO`, exit code 1. Las cifras están en la tabla de
+  verificar** — `19 PASS · 1 FALLA · 0 ABORTADO`, exit code 1. Las cifras están en la tabla de
   arriba, que se copia del acta; ésta es sólo la puerta.
 
 > 🛑 **Y para cerrar donde se abrió: nada de este README es un permiso.** En campo corre la
