@@ -26,7 +26,7 @@
 >    seguridad retiradas—. Y el texto de los «MESES» de `D-21`/`D-23`, que la medida tumbó (fila 2.7). El resto,
 >    `roadmap.md` §0, grupo (2).
 > 4. **Siguiente trabajo, ya decidido:** ~~los instrumentos de `D-26` (fila 1.14: ningún arnés compila el reloj del
->    Esclavo)~~ *(hecho el 11/09 por la noche: el Degradado a dos puntas compila el `reloj.cpp` real, 53/53)*; `AMBAR_EMERGENCIA` sin PIN que avise al Maestro (§3.16-A); la **APK** recompilada desde `main` —y su
+>    Esclavo)~~ *(hecho el 11/09 por la noche: el Degradado a dos puntas compila el `reloj.cpp` real, 53/53)*; ~~`AMBAR_EMERGENCIA` sin PIN que avise al Maestro (§3.16-A)~~ *(**hecho el 12/09 en `913c29c`**, con los tres instrumentos que lo dejaban pasar arreglados —el de dos puntas ejercía una **transcripción** de la puerta buena escrita en su propio adaptador—; `roadmap.md` §0 fila 1.2. **Sin banco y sin tarjeta**, y **no confirma la causa del DAR PASO del Sisga**: eso lo diría la cinta del Esclavo. Queda viva la vía de `H4`: si muere sólo el transmisor del Esclavo, el aviso no sale, esa punta no puede saberlo y el `$ACK` sale igual que con la radio sana)*; la **APK** recompilada desde `main` —y su
 >    texto de `SET_RTC|OK`, que en `68dd2c5` dice *«no hay nada que los sincronice entre sí»*, caducado por `D-20`/`D-26`
 >    ~~(al escribir esto hay cambios sin comitear en `app.js` que lo tocan: se integran por el diff)~~ *(integrados en `fd595ea`)*—;
 >    portar a los modelos Python la autorrecuperación nueva; los **`.docx`** cuando se cierren las indefiniciones.
