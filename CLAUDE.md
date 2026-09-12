@@ -323,6 +323,14 @@ puede quedar correcto y la compuerta verde, pero un `revert` de ese commit no de
   y se llevo paquetes del `node_modules` de verdad —dos `ABORTADO` en la compuerta siguiente—. **Antes de
   retirar un worktree se censan los enlaces y se quita el enlace, no lo que apunta** (`Delete(ruta,
   false)`), se comprueba el destino, y despues se borra el resto. Y al encargar: que el agente lo retire.
+- 🔴 **Y AL REVES: un agente REANUDADO puede acabar escribiendo en el ARBOL PRINCIPAL sin decirlo.** Su
+  worktree se retira solo cuando el agente termina **sin tocar nada** —y terminar sin tocar nada es lo
+  que hace un agente que PARA y devuelve el encargo, que es justo lo que se le pide—; al reanudarlo ya
+  no existe, y escribe donde puede. Paso el 12/09 con las 45 lineas de `roadmap.md`. **Lo unico que lo
+  hizo inofensivo fue comitear con rutas explicitas**: con `git add -A` se las habria llevado por
+  delante cualquiera de los tres commits de en medio. **Antes de integrar por parche se comprueba que el
+  worktree existe** —`git -C <ruta> diff` falla en seco si no—, y si no existe, el trabajo esta en el
+  arbol principal: se mira ahi antes de darlo por perdido.
 - **No se reescribe la historia publicada para arreglarlo:** con la rama en dos remotos y otro agente
   encima, un `push --force` dana mas de lo que repara. Se anota donde vive el cambio y se sigue.
 
@@ -394,6 +402,15 @@ dedujo de ella, y eso es §7.1 en el sitio donde mas cuesta —el alcance de un 
 ⚠️ **Y la lista se queda corta SIEMPRE por el mismo sitio: lo que no es firmware ni documento.**
 Aquella no nombraba **la app**, que decia dos veces la cifra vieja. Antes de dar por cerrado un
 cambio de constante: **¿quien mas la RECITA?** — la app, un `.html`, un manual, el LEEME de un `.zip`.
+
+> 🔴 **UNA CIFRA CADUCADA SE SUSTITUYE; UNA CONTRADICCION HAY QUE REESCRIBIRLA — y el `sed` no sabe
+> la diferencia.** Al copiar las cifras de un acta, un `sed` deja el numero bueno **dentro de una
+> frase que ahora miente**: el 12/09 tres sitios quedaron publicando `106/106` junto a *«🔴 FALLA — la
+> que cae es G3»*. El numero era correcto y el parrafo, falso. **Despues de sustituir cifras se
+> BUSCA EL VEREDICTO que las acompanaba** —`FALLA`, `sigue`, `espera`, `abierto`, `la que cae`— y se
+> mira si sigue siendo cierto. Vale igual para un ROTULO: cuando el sujeto muere, el nombre sobrevive
+> y **manda a construir lo que ya no es** —«las dos pantallas» seguia rotulando dos filas vivas
+> cuando las dos LCD ya no existian—.
 
 > 🔴 **UN NUMERO EN UN SITIO QUE NO PUEDE RECALCULARLO NO SE SINCRONIZA: SE RETIRA.**
 
