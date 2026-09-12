@@ -1,10 +1,12 @@
 // ===== include/reloj.h (ESCLAVO) =====
 #pragma once
 #include <Arduino.h>
-// SFTY6_SILENCIO_MS: el plazo de D-21 (1) se DERIVA del relevo de fuente de D-26 (3), que
-// dura una espera de silencio de radio. Aqui la constante YA se usaba -reloj_radioManda()
-// la lee en reloj.cpp-, y ahora hace falta en la propia cabecera. Se incluye en vez de
-// copiar el numero, que es lo mismo que hace el reloj.h del Maestro (CLAUDE.md 14).
+// SFTY6_SILENCIO_MS: uno de los casos que el plazo de D-21 (1) tiene que cubrir es el relevo
+// de fuente de D-26 (3), que dura una espera de silencio de radio -desde D-28 (2) el plazo ya
+// no se deriva de el, pero su static_assert lo sigue midiendo-. Aqui la constante YA se usaba
+// -reloj_radioManda() la lee en reloj.cpp-, y ahora hace falta en la propia cabecera. Se
+// incluye en vez de copiar el numero, que es lo mismo que hace el reloj.h del Maestro
+// (CLAUDE.md 14).
 #include "protocolo.h"
 
 // ---------------------------------------------------------------------------
@@ -236,21 +238,23 @@ static const unsigned long HSI_PPM_PEOR = 25000UL;
 
 // ---------------------------------------------------------------------------
 // D-21 (1) - LA CADUCIDAD DE LA SIEMBRA. Gemela de la del Maestro, con el porque entero en
-// su reloj.h: por que la derivacion vieja -la deriva de UNA cadencia- era una tautologia y
-// se cayo al bajar la cadencia a 120 s. reloj_04 recalcula la desigualdad contra el aguante
-// del cruce y exige que las dos puntas digan lo mismo.
+// su reloj.h: por que la derivacion de UNA cadencia era una tautologia y se cayo al bajar la
+// cadencia a 120 s, y por que la del RELEVO se quedo corta y D-28 (2) la sustituyo por la de
+// DOS SIEMBRAS PERDIDAS. reloj_04 recalcula la desigualdad contra el aguante del cruce y
+// exige que las dos puntas digan lo mismo: el plazo es un CONTRATO DEL CRUCE.
 //
-// Y EL CASO QUE MANDA EN LA DERIVACION ES DE ESTA PUNTA, no del Maestro: esta tiene DOS
-// sembradores. Con radio la siembra es la del Maestro (CMD_HORA_S) y la de su ESP32 se
-// IGNORA; sin radio, al reves (D-26 (3)). Cualquiera de las dos que entre renueva el plazo,
-// porque las dos pasan por reloj_ajustarConAcuse(). En el RELEVO -la radio calla y la
-// primera siembra del ESP32 aun no ha llegado- la hora puede tener hasta una cadencia de la
-// radio, mas SFTY6_SILENCIO_MS, mas una cadencia del ESP32.
+// Y EL CASO (b) ES DE ESTA PUNTA, no del Maestro: esta tiene DOS sembradores. Con radio la
+// siembra es la del Maestro (CMD_HORA_S) y la de su ESP32 se IGNORA; sin radio, al reves
+// (D-26 (3)). Cualquiera de las dos que entre renueva el plazo, porque las dos pasan por
+// reloj_ajustarConAcuse(). En el RELEVO -la radio calla y la primera siembra del ESP32 aun
+// no ha llegado- la hora puede tener hasta una cadencia de la radio, mas SFTY6_SILENCIO_MS,
+// mas una cadencia del ESP32.
 //
 // ~~MAS QUE ESTE PLAZO: en ese rato esta punta NO entra en Degradado, y si ya estaba dentro
-// se rinde~~ -> DEJA DE SERLO: desde D-26 (2) el plazo se DERIVA de ese relevo, asi que lo
-// cubre por construccion y el static_assert lo exige. Era ~52 % de las caidas de radio
-// (fila 2.10 del roadmap), y era el motivo principal para bajar la cadencia.
+// se rinde~~ -> DEJA DE SERLO: desde D-26 (2) el plazo cubre ese relevo, y desde D-28 (2) lo
+// cubre de sobra porque se deriva de un caso mayor. Era ~52 % de las caidas de radio (fila
+// 2.10 del roadmap), y era el motivo principal para bajar la cadencia. Su static_assert se
+// queda: es el unico que vigila el termino de SFTY6_SILENCIO_MS.
 //
 // La propagacion por radio sale en CADA siembra del ESP32 del Maestro (D-26 (2), la rama
 // CMD:HORA_ESP32 de su bluetooth.cpp llama a coordinador_sincronizarHora()), y NO cada
@@ -259,17 +263,28 @@ static const unsigned long HORA_RELEVO_MS =
     2UL * HORA_ESP32_CADENCIA_MS
     + 2UL * HORA_ESP32_CADENCIA_MS / 1000UL * HSI_PPM_PEOR / 1000UL
     + SFTY6_SILENCIO_MS;
+// (c) D-28 (2), EL CASO PEOR DESDE EL 12/09 Y DEL QUE SE DERIVA EL PLAZO: dos siembras
+// perdidas seguidas son TRES cadencias -se pierden la 1 y la 2, trae hora la 3-, sin
+// silencio que sumar porque aqui la fuente no cambia. Con dos solo cabria UNA perdida, que
+// es lo que ya compraba el relevo. El porque entero, y por que no se escribe en funcion de
+// HORA_ESP32_ESPERA_MAX_MS aunque hoy valgan lo mismo, en el reloj.h del Maestro.
+static const unsigned long HORA_DOS_PERDIDAS_MS =
+    3UL * HORA_ESP32_CADENCIA_MS
+    + 3UL * HORA_ESP32_CADENCIA_MS / 1000UL * HSI_PPM_PEOR / 1000UL;
 static const unsigned long HORA_DERIVA_S =
-    (HORA_RELEVO_MS / 1000UL * HSI_PPM_PEOR + 999999UL) / 1000000UL;
+    (HORA_DOS_PERDIDAS_MS / 1000UL * HSI_PPM_PEOR + 999999UL) / 1000000UL;
 static const unsigned long HORA_CADUCA_MS = HORA_DERIVA_S * 1000000UL / HSI_PPM_PEOR * 1000UL;
 static_assert(HORA_CADUCA_MS >
                   HORA_ESP32_CADENCIA_MS + HORA_ESP32_CADENCIA_MS / 1000UL * HSI_PPM_PEOR / 1000UL,
               "D-21 (1): una siembra normal caducaria antes de llegar con el HSI rapido");
 static_assert(HORA_CADUCA_MS > HORA_RELEVO_MS,
               "D-21 (1) / D-26 (3): la hora caducaria en mitad del relevo de fuente");
-static_assert((HORA_DERIVA_S - 1UL) * 1000000UL / HSI_PPM_PEOR * 1000UL <= HORA_RELEVO_MS,
-              "D-21 (1): el plazo no es el MENOR que cubre el relevo; sobra deriva concedida "
-              "y el margen de los dos DS3231 mengua sin decision de nadie");
+static_assert(HORA_CADUCA_MS > HORA_DOS_PERDIDAS_MS,
+              "D-28 (2): dos siembras perdidas seguidas caducarian la hora, y la punta se va "
+              "a ambar sin volver sola");
+static_assert((HORA_DERIVA_S - 1UL) * 1000000UL / HSI_PPM_PEOR * 1000UL <= HORA_DOS_PERDIDAS_MS,
+              "D-28 (2): el plazo no es el MENOR que cubre las dos siembras perdidas; sobra "
+              "deriva concedida y el margen de los dos DS3231 mengua sin decision de nadie");
 
 // true si esta punta tiene hora Y su ultima siembra buena tiene como mucho HORA_CADUCA_MS.
 // Caducada se queda caducada hasta la siguiente siembra. Una hora que vino SOLO del RTC de
