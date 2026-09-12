@@ -1,0 +1,24 @@
+# 99_Legacy QUEDA FUERA DE GIT A PROPOSITO (12/09/2026)
+#
+# POR QUE. Esta carpeta llego a ser 496 ficheros versionados de los 1.081 del
+# repositorio -el 46 %- y 4,1 GB en disco: cuarenta .zip de entregables, .rar,
+# .apk, .docx, arboles de firmware duplicados enteros y backups de KiCad. Nada de
+# eso lo abre ningun instrumento, y su unico efecto vivo era que un grep sobre el
+# arbol versionado encontraba firmware de agosto y alguien -o algun agente-
+# razonaba sobre un equipo que ya no existe.
+#
+# QUE SIGNIFICA ESTO, dicho sin adornos:
+#   - Los ficheros NO SE HAN BORRADO. Siguen en este disco, aqui al lado.
+#   - Siguen en la HISTORIA de git: cualquiera de ellos se recupera con
+#     `git show <hash>:<ruta>`; el ultimo commit en que estuvieron versionados
+#     esta escrito en LEEME.md.
+#   - Un clon NUEVO del repositorio NO los traera. Si esta carpeta hace falta en
+#     otra maquina, se copia a mano o se saca de la historia. Es la misma
+#     situacion que ya tienen los .apk (CLAUDE.md 13): git no vigila esto, y hay
+#     que mirarlo en el DISCO.
+#
+# Lo unico que sigue versionado aqui es este fichero y el LEEME, para que el que
+# llegue sepa que hay debajo sin tener que abrirlo.
+*
+!.gitignore
+!LEEME.md

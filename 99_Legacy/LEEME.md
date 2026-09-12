@@ -8,6 +8,37 @@ Si busca lo vigente: firmware en `01_Firmware/Maestro`, `Esclavo`, `Repetidor`,
 `ESP32_Expansion`; manuales en `04_Manuales/` y `05_Funcional/`; el entregable de esta semana
 es el `.zip` de la raíz y su `LEEME_PRIMERO.md`.
 
+> ## 🔴 12/09/2026 — ESTA CARPETA SALIÓ DE GIT, Y ENTRARON TRES PROYECTOS MÁS
+>
+> **Lo que se midió y lo motiva:** `99_Legacy/` eran **496 ficheros versionados de los 1.081
+> del repositorio —el 46 %—** y 4,1 GB en disco. Ningún instrumento abre nada de aquí
+> (`documentos_06` la excluye **por construcción**), así que su único efecto vivo era que un
+> `grep` sobre el árbol versionado encontrara firmware de agosto y alguien —o algún agente—
+> razonara sobre un equipo que ya no existe. Desde hoy la carpeta la ignora git: ver el
+> `.gitignore` de al lado, que explica qué significa eso.
+>
+> **Los ficheros NO se han borrado.** Están en este disco y en la historia de git. **El último
+> commit en el que TODO esto estuvo versionado es `0a9fd33`** (12/09/2026), y cualquier
+> fichero se recupera con `git show 0a9fd33:<ruta>`. ⚠️ **Un clon nuevo no traerá esta
+> carpeta**: si hace falta en otra máquina, se copia a mano o se saca de la historia.
+>
+> **Y entraron tres proyectos que estaban en `01_Firmware/` sin que nadie los usara**, medido
+> el 12/09 —cero instrumentos los nombran por su ruta, y `ARQUITECTURA.map` ya tenía la duda
+> escrita sin resolver: *«que `Semaforos/`, `Diagnostico_LCD/` y `Camara/` sigan siendo útiles:
+> se listaron; nadie ha comprobado si algo los usa»*—:
+>
+> | | qué es | por qué sale de `01_Firmware/` |
+> |---|---|---|
+> | `Semaforos/` | el firmware **monolítico** anterior a la partición en tres roles (`maestro.cpp`, `esclavo.cpp`, `repetidor.cpp` en un solo proyecto) | 31 ficheros versionados, último commit 01/09. **Es el que más daño hacía**: sus símbolos se parecen a los vivos y un `grep` los encuentra |
+> | `Diagnostico_LCD/` | proyecto PlatformIO de diagnóstico de pantalla | 4 ficheros, 28/08 |
+> | `Camara/` | Python de visión (`ConteoPersonas.py`, `deep_sort`, `RS.py`) | 3 ficheros, 28/08 |
+>
+> 🛑 **Lo que NO se movió, y por poco:** `01_Firmware/Controladora_Semaforos/` **no es código
+> muerto — es el diseño KiCad de la tarjeta** (`.kicad_pcb` de 2,1 MB y `.kicad_sch` de 649 KB),
+> y lo citan `03_Hardware_Tarjeta/indice_netlist.py` y las specs `13_` y `17_`. Sacarlo de git
+> habría sacado el hardware del repositorio. El nombre engaña: se parece al de `Semaforos/` y
+> no tiene nada que ver.
+
 ---
 
 ## 0. 🔴 LA TRAMPA DE ESTA CARPETA, y ya cobró un hallazgo falso

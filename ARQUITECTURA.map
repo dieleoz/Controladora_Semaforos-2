@@ -213,11 +213,15 @@ Controladora_Semaforos 2/
 +-- Controladora_Semaforos/   >>> OJO: DIRECTORIO ANIDADO DOS VECES <<<
 |     +-- Controladora_Semaforos/  los .kicad_pcb / .kicad_sch / .kicad_pro
 |     +-- Gerber_Semaforos/        los .gbr y el .drl
-+-- Semaforos/                proyecto PlatformIO viejo (compile_commands, lib, test)
-+-- Diagnostico_LCD/          proyecto PlatformIO de diagnostico de pantalla
-+-- Camara/                   Python de vision (ConteoPersonas.py, deep_sort, RS.py)
-|                             NO forma parte del producto: D-12 dice que del sistema
-|                             solo se consume UN CONTACTO SECO
+~~+-- Semaforos/~~             MOVIDO a 99_Legacy/ el 12/09 - era el firmware MONOLITICO
+|                             anterior a la particion en tres roles. Cero instrumentos lo
+|                             abrian por su ruta, y sus simbolos se parecen a los vivos:
+|                             un grep los encontraba y se razonaba sobre agosto
+~~+-- Diagnostico_LCD/~~      MOVIDO a 99_Legacy/ el 12/09 (diagnostico de pantalla)
+~~+-- Camara/~~               MOVIDO a 99_Legacy/ el 12/09 - Python de vision
+|                             (ConteoPersonas.py, deep_sort, RS.py). NO formaba parte del
+|                             producto: D-12 dice que del sistema solo se consume UN
+|                             CONTACTO SECO
 +-- FIRMWARE.md, TROUBLESHOOTING.md
 ```
 
@@ -1463,7 +1467,7 @@ numero ni `--`: `--` ya significa *"todavia no lo se"*.
 | **La asignacion opto `U6`..`U15`** | `[ESCRITO]`. Se midieron `Q1..Q10`, `D11..D30`, `R23..R73` y las borneras, no la correspondencia de cada opto |
 | **Si el `ABORTADO` en cascada del orden alfabetico ocurre de verdad** | Se simulo el censo con el orden invertido y da 4 rutas inexistentes `[MEDIDO]`. **No se corrio `compuerta.py` con los packs renombrados** |
 | **Las cifras de flash** | Copiadas del acta del 07/09. No se recompilo en esta pasada |
-| **Que `Semaforos/`, `Diagnostico_LCD/` y `Camara/` sigan siendo utiles** | Se listaron; **nadie ha comprobado si algo los usa** |
+| ~~**Que `Semaforos/`, `Diagnostico_LCD/` y `Camara/` sigan siendo utiles**~~ | ~~Se listaron; **nadie ha comprobado si algo los usa**~~ -> 🟢 **COMPROBADO el 12/09 y los tres MOVIDOS a `99_Legacy/`**: `git grep` por su RUTA da **cero** instrumentos. ⚠️ El primer censo dio 1, 3 y 0 porque el patron era el NOMBRE -«Semaforos» casa con el del proyecto y «Camara» con las camaras del producto-: `CLAUDE.md` 7.1 en el sitio donde mas engana |
 | **Los `.docx` de `05_Funcional`** | Se listaron los 19 pares. **No se comprobo que cada `.docx` corresponda a su `.md`** |
 
 ---

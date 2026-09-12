@@ -249,7 +249,7 @@ contra el firmware que corre. Se corrigen aquí, y queda el registro de qué se 
 | «Optoacoplador `TLP127` con pull-up en `PB9`/`PB13`» | La línea de cámara real (`PB0`) lleva **`R64` 10 kΩ (pull-DOWN) + `C25` 100 nF**, antirrebote ~1 ms, bornera **`J14`**, y es **activa en ALTO** |
 
 **De dónde salió el error:** el manual del 26/08 se escribió contra el firmware de nodo único
-`01_Firmware/Semaforos/`, que sí definía dos entradas de cámara (`CAM_DEMANDA_PIN` = `PB0` y
+`99_Legacy/Semaforos/` (movido ahi el 12/09; estaba en `01_Firmware/`), que sí definía dos entradas de cámara (`CAM_DEMANDA_PIN` = `PB0` y
 `CAM_UMBRAL_PIN` = `PB8`). Al partir el firmware en Maestro/Esclavo, `CAM_UMBRAL_PIN` **no se
 portó**. Y el pin `PB8` que se le atribuía tampoco es una entrada: medido el 27/08 sobre el
 esquemático bueno, **`PB8` va por `R16` 1 kΩ a un LED testigo (`D5`)** — es una salida de aviso,
@@ -290,7 +290,7 @@ Lo que hubo, y por qué se fue:
 **`PB6`/`PB7`, USART1 remapeado, conector `J17`** (símbolo `SerialBT` en `Maestro/src/bluetooth.cpp`, idéntico en el
 Esclavo — ⛔ la cita `:28` estaba caducada). Ver la tabla de §2.
 
-**Nació vivo y murió en la partición del firmware.** En `01_Firmware/Semaforos/` (nodo único)
+**Nació vivo y murió en la partición del firmware.** En `99_Legacy/Semaforos/` (movido ahi el 12/09; estaba en `01_Firmware/`) (nodo único)
 `modo_inteligente.cpp:65,81-82` sí llamaba a las tres. Al separar en Maestro/Esclavo la llamada
 no se portó, y el **Esclavo ni siquiera tiene `modo_inteligente.cpp`**.
 
