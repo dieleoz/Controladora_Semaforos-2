@@ -45,6 +45,14 @@ static QuienVerde quienVerde = QV_NINGUNO;
 // EN LAS DOS PUNTAS, porque los PING siguientes le refrescan la orfandad al Esclavo.
 static bool rojoEsclavoConfirmado = false;
 
+// N-163: esta punta solto su verde porque se le agoto el margen de SFTY-6, y todavia no ha
+// reanudado. NO es "hay fallo" -ese es C_FALLO, y sigue saliendo a los 25 s como siempre-:
+// es "el verde se cerro por precaucion y hay que volver a abrirlo cuando se pueda oir a la
+// otra punta". Hace falta una marca propia porque el reposo al que se sale -C_IDLE, en rojo,
+// sin verde asignado y sin el rojo del otro lado acusado- es INDISTINGUIBLE del ROJO TOTAL
+// deliberado (coordinador_forzarRojoTotal), que debe quedarse quieto indefinidamente.
+static bool verdeSoltadoPorMargen = false;
+
 // SFTY-4 (Safety Case): Tiempo de Despeje / All-Red
 static unsigned long tiempoDespejeMs = 15000;
 
@@ -187,6 +195,61 @@ const unsigned long LATIDO_MS = 3000;
 // papel -el ambar por orfandad saltaba a los 12 s, sobre el 2o o 3er reintento- y el
 // numero estaba repetido como literal en los dos estados de espera de ACK.
 const uint8_t CICLO_MAX_REINTENTOS = 5;
+
+// N-163 (12/09): EL VERDE PROPIO SE SUELTA UN MARGEN ANTES QUE EL SILENCIO, PORQUE LAS
+// DOS PUNTAS CUENTAN EL MISMO SILENCIO DESDE INSTANTES DISTINTOS.
+//
+// EL DEFECTO, MEDIDO EN EL ARNES DE LAS DOS PUNTAS (G3, 250 ms en las 13 fases del
+// latido): con la direccion Maestro->Esclavo muerta y esta punta en VERDE, el Esclavo se
+// va a su ambar por orfandad ANTES de que aqui se apague el verde. No es verde contra
+// verde -es verde contra ambar, con la pluma de aquel poste ARRIBA-, pero es una ventana
+// real y hasta hoy no la cerraba nadie.
+//
+// LA CAUSA no es el umbral: es el ANCLA. Los dos umbrales son el mismo
+// SFTY6_SILENCIO_MS, pero el Esclavo cuenta desde la ultima orden que RECIBIO
+// (tUltimoComando, Esclavo/src/main.cpp) y esta punta desde la respuesta que le
+// CONTESTARON (tUltimaRxEsclavo). Entre esos dos instantes hay el retardo de cortesia
+// del Esclavo -RETARDO_RESPUESTA_MS, SFTY-17- mas el viaje de vuelta, y ese desfase es
+// exactamente la ventana.
+//
+// DE DONDE SALE EL MARGEN, Y POR QUE CUBRE EL PEOR CASO: es TIMEOUT_ACK_MS, y no es una
+// holgura elegida. El desfase entre los dos instantes es un TROZO del viaje de ida y
+// vuelta -de "la orden llega al Esclavo" a "su respuesta llega aqui"-, y ese viaje
+// completo es justo lo que TIMEOUT_ACK_MS acota: si lo desbordara, ningun ACK llegaria a
+// tiempo y el ciclo entero estaria roto. Cubre por tanto el desfase CON EL VIAJE DE IDA
+// DE SOBRA, y con el repetidor dentro -ese timeout se valido en campo el 31/07 con la tasa
+// aerea ya a 2.4 kbps, y el propio RETARDO_RESPUESTA_MS existe por el repetidor-.
+// Anclarlo a "cuando mande yo la ultima orden" seria peor que el defecto: con la radio
+// caida esta punta sigue emitiendo cada LATIDO_MS contra el vacio, ese instante se
+// refrescaria solo y el verde no se soltaria NUNCA.
+//
+// LO QUE NO SE TOCA, Y ES CONDICION DEL RESPONSABLE (12/09): SFTY6_SILENCIO_MS se queda
+// en 25 s y esta punta entra en C_FALLO -ambar intermitente- exactamente cuando entraba
+// antes. Bajar el umbral o los reintentos manda el cruce a ambar cada dos por tres
+// cuando llueve (reporte de campo del 27/08): el enlace se degrada, se pierden tramas
+// sueltas y son los reintentos los que las recuperan. Aqui solo se adelanta la SUELTA
+// DEL VERDE, que colgaba del mismo numero sin tener por que.
+//
+// La desigualdad se RECALCULA desde el C++ en vez de explicarse: si alguien sube el
+// timeout, los reintentos o el latido hasta que el presupuesto de radio no quepa por
+// debajo del punto de suelta, esto NO COMPILA.
+static_assert(TIMEOUT_ACK_MS < SFTY6_SILENCIO_MS,
+              "el margen para soltar el verde no cabe dentro de SFTY6_SILENCIO_MS");
+static_assert(LATIDO_MS + CICLO_MAX_REINTENTOS * TIMEOUT_ACK_MS + TIMEOUT_ACK_MS
+                  <= SFTY6_SILENCIO_MS,
+              "soltar el verde un TIMEOUT_ACK_MS antes recortaria el presupuesto de "
+              "reintentos de radio (N-71): con lluvia el cruce se iria a ambar de mas");
+//
+// La forma es la MISMA que ya usa la salida de C_ESPERANDO_ACK_RED unas lineas mas
+// abajo -"si el silencio va a vencer antes de un reintento mas"-, y a proposito: son la
+// misma pregunta hecha en dos sitios, y con el mismo margen las dos se contestan igual.
+// Al arranque -tUltimaRxEsclavo == 0, el Esclavo no ha contestado nunca- se mira el
+// mismo reloj que la gracia de SFTY-6 de mas abajo, adelantado por el mismo margen.
+static bool puedeSostenerVerde() {
+  return (tUltimaRxEsclavo > 0)
+             ? (millis() - tUltimaRxEsclavo + TIMEOUT_ACK_MS <= SFTY6_SILENCIO_MS)
+             : (millis() + TIMEOUT_ACK_MS <= SFTY6_SILENCIO_MS);
+}
 
 // --- SFTY-23: Sincronizacion horaria por radio (lado Maestro) --------------
 //
@@ -588,6 +651,7 @@ void coordinador_setup() {
   quienVerde = QV_NINGUNO;
   rojoEsclavoConfirmado = false;
   handshakeOk = false;
+  verdeSoltadoPorMargen = false;   // N-163: esta orden redefine la intencion; no se reanuda nada
   tUltimaRxEsclavo = 0; // Inicializar en 0: no hemos recibido nada del Esclavo aún
 }
 
@@ -596,6 +660,7 @@ void coordinador_reiniciarConexion() {
   estadoC = C_IDLE;
   quienVerde = QV_NINGUNO;
   rojoEsclavoConfirmado = false;   // al otro lado puede haber otra unidad
+  verdeSoltadoPorMargen = false;   // N-163: esta orden redefine la intencion; no se reanuda nada
   tUltimoPing = 0;
   tUltimaRxEsclavo = 0;
 
@@ -623,6 +688,7 @@ void coordinador_forzarMenu() {
   estadoC = C_MENU_IDLE;
   quienVerde = QV_NINGUNO;
   rojoEsclavoConfirmado = false;   // N-162: cuenta el acuse de ESTA orden, no uno de antes
+  verdeSoltadoPorMargen = false;   // N-163: esta orden redefine la intencion; no se reanuda nada
   semaforo_forzarRojo();
   protocolo_resetReplayProtection();
   protocolo_enviarPaquete(CMD_GO_RED);
@@ -635,6 +701,7 @@ void coordinador_forzarRojoTotal() {
   // y el DAR PASO de despues abriria contando con el.
   rojoEsclavoConfirmado = false;
   semaforo_forzarRojo();
+  verdeSoltadoPorMargen = false;   // N-163: esta orden redefine la intencion; no se reanuda nada
   protocolo_resetReplayProtection();
   protocolo_enviarPaquete(CMD_GO_RED);
   tRef = millis();
@@ -654,6 +721,7 @@ void coordinador_iniciarModo() {
   quienVerde = QV_NINGUNO;
   rojoEsclavoConfirmado = false;
   semaforo_forzarRojo();
+  verdeSoltadoPorMargen = false;   // N-163: esta orden redefine la intencion; no se reanuda nada
   protocolo_resetReplayProtection();
   protocolo_enviarPaquete(CMD_GO_RED);
   tEsperandoAck = millis();
@@ -671,6 +739,14 @@ void coordinador_iniciarModo() {
 // tendria que mantener iguales.
 void coordinador_pedirCambio() {
   if (estadoC != C_IDLE) return;
+
+  // N-163: si alguien pide cambio, la reanudacion pendiente sobra -este cambio hace su
+  // trabajo-. Y sobre todo: la marca NO puede sobrevivir a un cambio de fase. Sin esta
+  // linea, un verde soltado por margen que luego reanudase por aqui dejaria la marca
+  // puesta, y al volver el coordinador a C_IDLE -ya con el verde bien abierto- la
+  // reanudacion de mas abajo dispararia y pediria rojo con la luz en verde. Va DESPUES
+  // del return de arriba: si esta llamada no hace nada, tampoco puede retirar nada.
+  verdeSoltadoPorMargen = false;
 
   switch (quienVerde) {
     case QV_NINGUNO:
@@ -707,10 +783,16 @@ void coordinador_pedirCambio() {
         tEsperandoAck = millis();
         retryCount = 0;
         estadoC = C_ESPERANDO_ACK_RED;
-      } else if (millis() - tRef >= tiempoDespejeMs) {
+      } else if (millis() - tRef >= tiempoDespejeMs && puedeSostenerVerde()) {
         semaforo_iniciarTransicionAVerde();
         estadoC = C_INICIAL_MASTER_A_VERDE;
       } else {
+        // N-163: la tercera puerta al verde propio, y lleva el mismo veto. Sin el, con el
+        // rojo acusado y el despeje ya cumplido esta punta abriria aqui aunque llevara un
+        // margen entero sin oir al otro poste; el bloque de coordinador_actualizar() lo
+        // cerraria en la vuelta siguiente, pero despues de haber encendido el ambar de la
+        // transicion. Sin margen se cae a C_INICIAL_ESPERA_ESTATICO, que espera con el
+        // rojo puesto y abre en cuanto vuelva el enlace.
         // Falta despeje: se espera lo que QUEDA. tRef NO se toca -es cuando empezo el
         // rojo-, que es justo lo que arreglaba el primer defecto de arriba.
         estadoC = C_INICIAL_ESPERA_ESTATICO;
@@ -877,6 +959,46 @@ void coordinador_actualizar() {
     }
   } else {
     // En modos de operación activos (Automático, Inteligente, Manual)
+
+    // N-163: agotado el margen, esta punta deja de dar verde. NO se toca tUltimaRxEsclavo
+    // -eso refrescaria el reloj de SFTY-6 y desarmaria la red justo antes de usarla- ni se
+    // adelanta C_FALLO: el ambar sigue saliendo del bloque de abajo, a los 25 s.
+    //
+    // Se cubre tambien la transicion rojo->ambar->verde en curso: si se dejara acabar, el
+    // verde se encenderia dentro de la ventana que esto viene a cerrar.
+    if (!puedeSostenerVerde() && estadoC != C_FALLO &&
+        (semaforo_estado() == S_VERDE || estadoC == C_MASTER_A_VERDE ||
+         estadoC == C_INICIAL_MASTER_A_VERDE)) {
+      // Verde -> rojo DIRECTO, que es lo que esta punta hace siempre al cerrar su verde
+      // (coordinador_pedirCambio(), caso QV_MASTER). No se inventa una luz nueva.
+      semaforo_forzarRojo();
+      quienVerde = QV_NINGUNO;
+      // Llevamos un margen entero sin oir a la otra punta: lo que constara de ella ya no
+      // consta. Ademas es lo que hace que el LATIDO pase a mandar GO_RED en vez de PING
+      // -rojoSinConstar, N-162-, o sea que la otra punta recibe la orden de rojo por el
+      // camino que ya existe, sin anadir aqui un envio.
+      rojoEsclavoConfirmado = false;
+      // El rojo empieza AHORA (N-147: tRef es cuando empezo el rojo, no un valor viejo).
+      tRef = millis();
+      // SE SALE A C_IDLE, Y ESO NO ES PEREZA: ES LA CONDICION QUE DECIDE EL CAMBIO.
+      //
+      // MEDIDO en el barrido de microcortes (G11), probando las dos salidas contra el
+      // MISMO barrido: saliendo a C_ESPERANDO_ACK_RED el Esclavo entraba en ambar 20 veces
+      // en 32 cortes, contra 14 del firmware sin este cambio -SEIS DE MAS-. La causa no es
+      // el margen: es que esa espera SUPRIME EL LATIDO (SFTY-13, colision half-duplex) y
+      // reintenta al ritmo de TIMEOUT_ACK_MS en vez del de LATIDO_MS. El hueco maximo
+      // entre lo que esta punta emite crecia lo que va de una cadencia a la otra, y en un
+      // corte que se recupera cerca del umbral eso basta para que el primer GO_RED de
+      // despues de la vuelta del enlace llegue al otro poste PASADO su silencio. El
+      // criterio del responsable es "ni un ambar mas en
+      // microcortes que se recuperan", asi que la salida buena es la que NO toca la
+      // cadencia: en C_IDLE el latido sigue saliendo cada LATIDO_MS, y con
+      // rojoEsclavoConfirmado en false lo que sale es GO_RED, que es la orden que hace
+      // falta. El Esclavo oye EXACTAMENTE lo mismo que oiria sin este cambio.
+      verdeSoltadoPorMargen = true;
+      estadoC = C_IDLE;
+    }
+
     if (!tieneComunicacion) {
       if (tUltimaRxEsclavo > 0 || millis() > SFTY6_SILENCIO_MS) {
         if (estadoC != C_FALLO) {
@@ -904,6 +1026,10 @@ void coordinador_actualizar() {
           snprintf(causa, sizeof(causa), "SILENCIO_%lums", SFTY6_SILENCIO_MS);
           bluetooth_reportarAlarma("FALLO_RF", causa, "CAMBIO_A_AMBAR");
           estadoC = C_FALLO; // TEST 3: Esclavo apagado / sin comunicación -> Maestro a AMARILLO PARPADEO
+          // N-163: desde aqui manda SFTY-9, que reanuda por su cuenta. Dejar la marca
+          // puesta la haria disparar mas tarde, ya con el cruce abierto, y cerraria un
+          // verde bueno.
+          verdeSoltadoPorMargen = false;
           // N-162 (bloque G): se perdio el enlace, asi que lo que constara del otro lado
           // ya no consta. Y el GO_RED sale EN ESTE INSTANTE, no con el siguiente latido:
           // con la direccion Esclavo->Maestro muerta y la otra viva, el Esclavo seguia en
@@ -956,6 +1082,33 @@ void coordinador_actualizar() {
       tEsperandoAck = millis();
       retryCount = 0;
       estadoC = C_ESPERANDO_ACK_RED;
+
+    } else if (verdeSoltadoPorMargen && estadoC == C_IDLE && quienVerde == QV_NINGUNO &&
+               semaforo_estado() == S_ROJO && puedeSostenerVerde()) {
+      // N-163: VUELVE EL ENLACE CON MARGEN, ASI QUE SE REANUDA. Y HACE FALTA DECIRLO AQUI
+      // PORQUE NADIE MAS LO HARIA.
+      //
+      // Medido en G11 con la version que soltaba el verde y se quedaba quieta: soltado el
+      // verde, la fase que modo_automatico esta contando pasa a ser la de ROJO, asi que el
+      // proximo coordinador_pedirCambio() no llega hasta que vence el rojo entero -3 min
+      // con el ciclo minimo, hasta 15 con el maximo- y el cruce se queda en TODO-ROJO todo
+      // ese rato por un corte de veintitantos segundos. Un todo-rojo de minutos en una via
+      // alternada no es estado seguro: es el sitio donde la gente decide pasarse el rojo.
+      //
+      // Se reanuda por la MISMA puerta que SFTY-9 y con la misma garantia de N-162: se
+      // pide el rojo, se espera su ACK_RED, y el despeje se cuenta DESDE ese acuse -no
+      // desde el rojo de esta punta-, porque mientras no se oia a la otra pudo irse a su
+      // ambar por orfandad y su carril puede no estar vacio.
+      //
+      // La condicion de disparo es puedeSostenerVerde(), no tieneComunicacion: entre el
+      // margen y el silencio esta punta SIGUE teniendo comunicacion segun SFTY-6, y con
+      // tieneComunicacion esto se dispararia en el mismo instante de soltar el verde.
+      verdeSoltadoPorMargen = false;
+      rojoEsclavoConfirmado = false;   // cuenta el acuse de ESTA orden, no uno de antes
+      protocolo_enviarPaquete(CMD_GO_RED);
+      tEsperandoAck = millis();
+      retryCount = 0;
+      estadoC = C_ESPERANDO_ACK_RED;
     }
   }
 
@@ -968,7 +1121,12 @@ void coordinador_actualizar() {
       break;
 
     case C_INICIAL_ESPERA_ESTATICO:
-      if (millis() - tRef >= tiempoDespejeMs) {
+      // N-163: y el verde tampoco se ABRE sin margen. Cerrar solo la salida dejaria la
+      // otra mitad del mismo agujero: perdido el enlace justo despues de un ACK_RED, el
+      // despeje puede terminar con el silencio ya casi vencido y esta punta encenderia un
+      // verde nuevo con el otro poste a segundos de irse a ambar por orfandad. Aqui no se
+      // pierde nada: si el enlace vuelve, el despeje ya esta cumplido y abre en el acto.
+      if (millis() - tRef >= tiempoDespejeMs && puedeSostenerVerde()) {
         semaforo_iniciarTransicionAVerde(); // Transición Rojo -> Amarillo (4s) -> Verde
         estadoC = C_INICIAL_MASTER_A_VERDE;
       }
@@ -1049,7 +1207,8 @@ void coordinador_actualizar() {
       break;
 
     case C_ESPERA_ESTATICO_TRAS_ESCLAVO:
-      if (millis() - tRef >= tiempoDespejeMs) {
+      // N-163: mismo veto que en C_INICIAL_ESPERA_ESTATICO, y por el mismo motivo.
+      if (millis() - tRef >= tiempoDespejeMs && puedeSostenerVerde()) {
         semaforo_iniciarTransicionAVerde(); // Transición Rojo -> Amarillo (4s) -> Verde
         estadoC = C_MASTER_A_VERDE;
       }

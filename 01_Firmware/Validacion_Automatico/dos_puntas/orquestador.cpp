@@ -424,6 +424,34 @@ static unsigned long g_goRojoPerdidos = 0; // ...tirados por esa perdida selecti
 static unsigned long g_goRojoCortados = 0; // ...perdidos por tener cortada la direccion
 static unsigned long g_goRojoEntregados = 0;
 
+// N-163 (bloque G11): EL SILENCIO QUE CADA PUNTA MIDE DE VERDAD.
+//
+// Hace falta para DERIVAR cuantos ambares tocan en un barrido de microcortes en vez de
+// escribirlos a mano: una cifra escrita a mano aqui aprobaria el firmware que la produjo.
+// Y son DOS instantes distintos, que es justo lo que G3 mide:
+//   - el Esclavo cuenta desde la ultima trama de GOBIERNO que RECIBIO (tUltimoComando de
+//     Esclavo/src/main.cpp: PING, GO_RED o GO_GREEN; las de servicio no lo refrescan),
+//   - el Maestro, desde la ultima trama que le LLEGO, sea cual sea (tUltimaRxEsclavo de
+//     coordinador.cpp se refresca con CUALQUIER paquete).
+// g_entregasEsclavoNoGobierno cuenta lo que este modelo NO sabria fechar: si un escenario
+// mete trafico de servicio, la cuenta deja de ser exacta y la linea que la use lo dice.
+static uint8_t CMD_PING_V = 0;
+static unsigned long g_tGobiernoEsclavo = 0;
+static unsigned long g_tRxMaestro = 0;
+static unsigned long g_entregasEsclavoNoGobierno = 0;
+
+// N-163: CUANDO EMITIO EL MAESTRO POR ULTIMA VEZ, LLEGARA O NO. Se fecha en la EMISION y
+// no en la entrega a proposito: lo que decide si el otro poste se queda huerfano es cada
+// cuanto habla esta punta, y eso no depende de que el aire este cortado. Sin esta marca,
+// G11 no puede distinguir "el firmware habla igual que antes" de "el firmware habla menos
+// y por eso el ambar de enfrente llega antes": la cuenta derivada de ambares sigue al
+// canal, asi que sube con la medida y las dos casan igual. Medido: con la version de
+// N-163 que salia a C_ESPERANDO_ACK_RED -que SUPRIME el latido (SFTY-13) y reintenta al
+// ritmo del timeout de acuse en vez del latido- el hueco crecia lo que va de una cadencia
+// a la otra, y el Esclavo entraba en ambar el DOBLE de veces en el mismo barrido de
+// cortes. Esta es la linea que lo caza; la de arriba, sola, no puede.
+static unsigned long g_tEmisionMaestro = 0;
+
 // N-162 (bloque G, G9): un ACK_RED RETENIDO en el aire y soltado cuando el escenario diga.
 // Es la unica forma en que un acuse viejo puede enganar al Maestro -llegar despues de que
 // el Esclavo haya vuelto a verde-, y el arnes no la produce sola: el canal es FIFO y de
@@ -565,6 +593,16 @@ static void unTick() {
         if (e >= 0 && e < 4) g_goVerdeEntregadoEn[e]++;
       }
       if (g_aire[i].destino == 1 && g_aire[i].trama[1] == CMD_GO_RED_V) g_goRojoEntregados++;
+      // N-163: el reloj de silencio de cada punta, fechado sobre la ENTREGA.
+      if (g_aire[i].destino == 1) {
+        const uint8_t c163 = g_aire[i].trama[1];
+        if (c163 == CMD_PING_V || c163 == CMD_GO_RED_V || c163 == CMD_GO_GREEN_V)
+          g_tGobiernoEsclavo = g_t;
+        else
+          g_entregasEsclavoNoGobierno++;
+      } else {
+        g_tRxMaestro = g_t;
+      }
       d.rx(g_aire[i].trama);
       g_tramasEntregadas++;
       g_aire.erase(g_aire.begin() + i);
@@ -580,6 +618,7 @@ static void unTick() {
   // 3. Se recoge lo que cada una quiso emitir.
   unsigned char b[4];
   while (MAESTRO.tx(b)) {
+    g_tEmisionMaestro = g_t;   // N-163: emitida. Que llegue o no es cosa del aire.
     // N-162: se tiran los GO_GREEN cuyo ordinal cae en [desde, hasta].
     if (b[1] == CMD_GO_GREEN_V) {
       g_goVerdeEmitidos++;
@@ -709,6 +748,10 @@ static void escenarioLimpio(long tiemposMaestro, bool exigirTiempos = false) {
     abortar("el Maestro RECHAZO fijar_tiempos(" + std::to_string(tiemposMaestro) + "): el "
             "escenario correria con otros tiempos que los que dice medir");
   MAESTRO.orden("arrancar_automatico");
+  // N-163: las dos puntas acaban de arrancar, asi que su reloj de silencio empieza AQUI.
+  // Heredar el del escenario anterior daria un silencio ya vencido en el primer tick.
+  g_tGobiernoEsclavo = g_tRxMaestro = g_tEmisionMaestro = g_t;
+  g_entregasEsclavoNoGobierno = 0;
   avanzar(500);
 }
 
@@ -832,6 +875,11 @@ struct CorridaG {
   // del poste subiendo y bajando- se ve aqui y no en la ventana: en rojo no hay ventana.
   unsigned long entradasFalloM = 0;
   bool mEnFallo = false;
+  // N-163 (G11): y las del ESCLAVO, que es la punta cuyo ambar decide el criterio del
+  // responsable -"ni uno mas en microcortes que se recuperan"-. La del Maestro ya estaba;
+  // esta no, y sin ella el criterio no se podia medir.
+  unsigned long entradasFalloE = 0;
+  bool eEnFallo = false;
 };
 
 // El todo-rojo medido: del primer instante sin verde del Esclavo al primero con el Maestro
@@ -888,6 +936,9 @@ static void pasoG(CorridaG& c) {
   const bool mFallo = (MAESTRO.estado() == S_FALLO_V);
   if (mFallo && !c.mEnFallo) c.entradasFalloM++;
   c.mEnFallo = mFallo;
+  const bool eFallo = (ESCLAVO.estado() == S_FALLO_V);
+  if (eFallo && !c.eEnFallo) c.entradasFalloE++;
+  c.eEnFallo = eFallo;
   if (foto != c.ultimaFoto) {
     char pre[32];
     std::snprintf(pre, sizeof(pre), "t%+7ld ms  ", (long)t - (long)c.tCorte);
@@ -1011,6 +1062,14 @@ int main() {
       abortar("CMD_GO_RED DIFIERE entre las dos protocolo.h: el bloque G no sabria que trama cuenta");
     if (CMD_GO_RED_V == CMD_GO_GREEN_V || CMD_GO_RED_V == CMD_ACK_GREEN_V)
       abortar("CMD_GO_RED comparte codigo con GO_GREEN o ACK_GREEN");
+    // N-163 (G11): el PING, que es la otra trama que refresca tUltimoComando en el Esclavo.
+    // Sin leerlo, el reloj de silencio del Esclavo contaria un PING como servicio y G11
+    // derivaria mas ambares de los que tocan.
+    CMD_PING_V = hex(PROTO_M, "CMD_PING");
+    if (hex(PROTO_E, "CMD_PING") != CMD_PING_V)
+      abortar("CMD_PING DIFIERE entre las dos protocolo.h: G11 no sabria fechar el silencio");
+    if (CMD_PING_V == CMD_GO_RED_V || CMD_PING_V == CMD_GO_GREEN_V)
+      abortar("CMD_PING comparte codigo con una orden de luz");
     // Y el ACK_RED, que el bloque G retiene en el aire a proposito (G9).
     CMD_ACK_RED_V = hex(PROTO_E, "CMD_ACK_RED");
     if (hex(PROTO_M, "CMD_ACK_RED") != CMD_ACK_RED_V)
@@ -2672,6 +2731,183 @@ int main() {
                 "despeje configurado en el Degradado del Esclavo. Si debe mandar el mayor de los "
                 "dos es decision vial. No cuenta.\n",
                 todoRojoMsG(g10), g10DespE * 1000L);
+
+    // ---- G11: MICROCORTES QUE SE RECUPERAN. El COSTE del margen de G3 -----------------
+    //
+    // Este bloque NO mide la ventana de G3: mide lo que cerrarla podria costar. Soltar el
+    // verde propio un margen ANTES del silencio solo vale si no compra el defecto
+    // contrario -"se va a degradado cada nada cuando llueve", reporte de campo del 27/08-,
+    // y esa propiedad no la medio nunca nadie: entradasFalloM existia desde G8 y del ESCLAVO no
+    // habia cuenta ninguna, que es justo la punta cuyo ambar decide.
+    //
+    // EL BORDE, ESCRITO AL LADO Y DERIVADO, NO ELEGIDO (CLAUDE.md 7): por cada corte se
+    // deriva si TOCABA ambar comparando el silencio que cada punta midio de verdad
+    // -g_tGobiernoEsclavo para el Esclavo, g_tRxMaestro para el Maestro, que son los dos
+    // instantes DISTINTOS que G3 mide- contra SFTY6_SILENCIO_MS, que es el unico umbral de
+    // los dos. La cuenta esperada sale del canal; escribirla a mano aqui seria aprobar el
+    // firmware con el numero que ese mismo firmware produjo.
+    //
+    // POR QUE LOS CORTES SON ESTOS: se barre por debajo y por encima de donde el margen
+    // muerde. 18500 ms es el ultimo corte que NO puede dejar huerfano a nadie
+    // -SFTY6_SILENCIO_MS menos el latido menos un TIMEOUT_ACK_MS: peor fase del latido mas
+    // el viaje-, 21500 ms es el instante EXACTO en que el margen suelta el verde, y
+    // 24950 ms es el ultimo milisegundo util del umbral. Si el margen estuviera mal
+    // derivado, asomaria entre 18500 y 24950.
+    //
+    // Y EN LAS DOS DIRECCIONES: corte TOTAL (la lluvia) y corte solo Maestro->Esclavo (la
+    // averia de G3). Cortar una sola direccion no es lo mismo: el Maestro sigue emitiendo.
+    {
+      const unsigned long CORTES_G11[] = {
+        3000, 8000, 15000, SIL - LATIDO_MS_V - TOUT, SIL - TOUT, SIL - TOUT + 1000,
+        SIL - 2000, SIL - PASO_MS
+      };
+      const unsigned nCortes = (unsigned)(sizeof(CORTES_G11) / sizeof(CORTES_G11[0]));
+      // LA RECUPERACION NO ES UN PLAZO FIJO: SE ESPERA A QUE EL MAESTRO VUELVA A DAR
+      // VERDE. Lo aprendio el instrumento (CLAUDE.md 7): con un plazo fijo -despeje +
+      // ambar + dos reintentos + holgura- el segundo corte de los pares mas largos caia
+      // con el cruce todavia rehaciendose, o sea que el barrido NO estaba midiendo lo que
+      // dice medir -cortes CON EL MAESTRO EN VERDE-. El tope es el peor camino completo:
+      // el silencio entero, el presupuesto de reintentos, el despeje y el ambar.
+      const unsigned long RECUP_MS = SIL + TOUT * (NMAX + 2) + DESPEJE_MS +
+                                     AMBAR_ESCLAVO_MS_V + 30000;
+      // Dos cortes por escenario: 2 x (corte + recuperacion) cabe dentro del verde minimo
+      // del Maestro (VERDE_MIN_MIN), asi que el barrido ejerce lo que dice ejercer -cortes
+      // CON EL MAESTRO EN VERDE- y no se le cuela un relevo de ciclo en medio.
+      const int REPS_G11 = 2;
+      unsigned long g11Cortes = 0, g11EspE = 0, g11EspM = 0, g11AmbE = 0, g11AmbM = 0;
+      unsigned long g11MaxSilE = 0, g11MaxSilM = 0, g11VueltasAVerde = 0;
+      unsigned long g11MaxHueco = 0;
+      unsigned long g11ConMaestroVerde = 0;
+      bool g11Ejercido = true;
+      CorridaG g11Peor;
+      unsigned long g11PeorD = 0;
+      for (int dir = 0; dir < 2; dir++) {
+        for (unsigned n = 0; n < nCortes; n++) {
+          const unsigned long D = CORTES_G11[n];
+          CorridaG c;
+          escenarioLimpio(TIEMPOS_G, true);
+          if (!alcanzarVerdeG(MAESTRO, ALCANCE)) g11Ejercido = false;
+          c.tCorte = g_t;
+          for (int k = 0; k < REPS_G11; k++) {
+            g11Cortes++;
+            if (MAESTRO.verde()) g11ConMaestroVerde++;
+            bool orfE = false, orfM = false;
+            g_enlaceHaciaEsclavo = false;
+            if (dir == 0) g_enlaceHaciaMaestro = false;
+            for (unsigned long h = 0; h < D + RECUP_MS; h += PASO_MS) {
+              if (h >= D) g_enlaceHaciaEsclavo = g_enlaceHaciaMaestro = true;
+              pasoG(c);
+              const unsigned long silE = g_t - g_tGobiernoEsclavo;
+              const unsigned long silM = g_t - g_tRxMaestro;
+              if (silE > SIL) orfE = true;
+              if (silM > SIL) orfM = true;
+              if (silE > g11MaxSilE) g11MaxSilE = silE;
+              if (silM > g11MaxSilM) g11MaxSilM = silM;
+              const unsigned long hueco = g_t - g_tEmisionMaestro;
+              if (hueco > g11MaxHueco) g11MaxHueco = hueco;
+              // Se corta la recuperacion cuando el cruce ha vuelto a su verde Y EL
+              // ENLACE ESTA VERIFICABLEMENTE VIVO -las dos puntas oyendose por debajo de
+              // un latido mas un timeout-. Las dos mitades hacen falta, y la segunda la
+              // enseno el instrumento (CLAUDE.md 7): con solo "el Maestro esta en verde",
+              // los cortes que NO llegan a apagar el verde salian con una recuperacion de
+              // CERO ticks -el corte siguiente empezaba en el mismo instante en que
+              // acababa el anterior-, asi que los silencios se encadenaban y el barrido
+              // media cortes de 45 s donde decia medir dos de 22,5 s.
+              if (h >= D && MAESTRO.verde() &&
+                  g_t - g_tGobiernoEsclavo <= LATIDO_MS_V + TOUT &&
+                  g_t - g_tRxMaestro <= LATIDO_MS_V + TOUT) {
+                g11VueltasAVerde++;
+                break;
+              }
+            }
+            if (orfE) g11EspE++;
+            if (orfM) g11EspM++;
+          }
+          finG(c);
+          g11AmbE += c.entradasFalloE;
+          g11AmbM += c.entradasFalloM;
+          if (D >= g11PeorD) { g11PeorD = D; g11Peor = c; }
+        }
+      }
+      imprimirTrazaG(("G11, el corte mas largo (" + std::to_string(g11PeorD) + " ms, "
+                      "repetido " + std::to_string(REPS_G11) + " veces sobre el mismo "
+                      "escenario):").c_str(), g11Peor);
+      std::printf("      G11: %lu cortes de %lu a %lu ms, en las dos direcciones. Silencio "
+                  "maximo medido: Esclavo %lu ms, Maestro %lu ms (umbral %lu ms). Entradas en "
+                  "ambar: Esclavo %lu (derivadas %lu), Maestro %lu (derivadas %lu).\n",
+                  g11Cortes, CORTES_G11[0], CORTES_G11[nCortes - 1], g11MaxSilE, g11MaxSilM,
+                  SIL, g11AmbE, g11EspE, g11AmbM, g11EspM);
+      // DE QUE DEPENDE LA DERIVACION, Y POR ESO SE MIDE AQUI: el reloj de silencio del
+      // Esclavo se modela contando SOLO PING, GO_RED y GO_GREEN, que son los tres sitios
+      // donde main.cpp REFRESCA tUltimoComando. El dia que aparezca un cuarto, este modelo
+      // se quedaria fechando el silencio de otro firmware y la cuenta derivada de abajo
+      // aprobaria un ambar de mas sin decir nada. Se recuenta sobre el fuente sin
+      // comentarios: este repositorio cita sus propios simbolos en los comentarios.
+      //
+      // SE ESPERAN CUATRO, NO TRES, Y ESO LO CORRIGIO EL INSTRUMENTO (CLAUDE.md 7): el
+      // cuarto es la DECLARACION -"static unsigned long tUltimoComando = millis()"-, que
+      // casa el mismo patron y no es un refresco. Se cuenta el total en vez de filtrarla
+      // porque std::regex no tiene lookbehind y un patron mas fino se rompe con el primer
+      // salto de linea que alguien meta; lo que importa es que la cuenta NO SE MUEVA.
+      unsigned long refrescosTUC = 0;
+      {
+        const std::string mainE =
+            sinComentarios(leerFuente(RAIZ + "/Esclavo/src/main.cpp"));
+        const std::regex reTUC(R"(tUltimoComando\s*=\s*millis\(\))");
+        for (std::sregex_iterator it(mainE.begin(), mainE.end(), reTUC), fin; it != fin; ++it)
+          refrescosTUC++;
+      }
+      comprobar(g11Ejercido && g11ConMaestroVerde == g11Cortes && refrescosTUC == 4 &&
+                g11MaxSilE > SIL - TOUT && g11MaxSilE < SIL + LATIDO_MS_V + TOUT,
+                "G11 (control): los " + std::to_string(g11Cortes) + " cortes cayeron TODOS con "
+                "el Maestro en VERDE, el silencio del Esclavo llego a " +
+                std::to_string(g11MaxSilE) + " ms -pasado el punto donde el margen muerde (" +
+                std::to_string(SIL - TOUT) + " ms) y sin desbordar la fase del latido- y "
+                "main.cpp del Esclavo sigue refrescando tUltimoComando en " +
+                std::to_string(refrescosTUC) + " sitios (su declaracion + PING, GO_RED y "
+                "GO_GREEN), que es lo "
+                "unico sobre lo que este modelo fecha el silencio. Trafico de servicio "
+                "entregado y correctamente NO contado: " +
+                std::to_string(g_entregasEsclavoNoGobierno) + " tramas");
+      // 🔴 LA LINEA QUE DECIDE SI EL CAMBIO ENTRA (criterio del responsable, 12/09): ni un
+      // ambar de mas en cortes que se recuperan. Se compara contra lo DERIVADO del canal,
+      // no contra un numero escrito: si el firmware se rindiera antes de tiempo -por el
+      // margen o por cualquier otra cosa- la cuenta medida subiria y la derivada no.
+      comprobar(g11AmbE == g11EspE && g11AmbM == g11EspM,
+                "G11: en " + std::to_string(g11Cortes) + " microcortes que se RECUPERAN, cada "
+                "punta entra en ambar EXACTAMENTE las veces que su propio silencio paso de " +
+                std::to_string(SIL) + " ms: Esclavo " + std::to_string(g11AmbE) + " contra " +
+                std::to_string(g11EspE) + " derivadas, Maestro " + std::to_string(g11AmbM) +
+                " contra " + std::to_string(g11EspM) + ". Soltar el verde antes que el silencio "
+                "no adelanta el ambar de nadie");
+      // 🔴 Y EL CONTROL QUE LE FALTA A LA LINEA DE ARRIBA, porque la cuenta derivada SIGUE
+      // AL CANAL: si el firmware hablara menos, subirian a la vez la medida y la derivada
+      // y las dos casarian igual de bien. Lo que no puede cambiar es CADA CUANTO habla
+      // esta punta con el aire cortado, porque de eso -y solo de eso- depende cuando se
+      // entera el otro poste al volver el enlace.
+      //
+      // EL BORDE, ESCRITO AL LADO Y DERIVADO (CLAUDE.md 7): LATIDO_MS, mas un tick de
+      // observacion. Es la cadencia con la que el Maestro habla en un modo activo -PING, o
+      // GO_RED cuando el rojo no consta- y el primer sumando del presupuesto de radio de
+      // N-71. Cualquier camino nuevo que deje a esta punta callada mas de un latido
+      // ADELANTA el ambar del otro poste, aunque el umbral de 25 s no se haya tocado.
+      comprobar(g11MaxHueco <= LATIDO_MS_V + PASO_MS,
+                "G11 (el control de la cuenta de arriba): con el aire cortado el Maestro no se "
+                "calla mas de un latido. Hueco maximo entre emisiones suyas: " +
+                std::to_string(g11MaxHueco) + " ms; borde " +
+                std::to_string(LATIDO_MS_V + PASO_MS) + " ms (LATIDO_MS + un tick). Un camino "
+                "que la callara mas -una espera de acuse, que suprime el latido por SFTY-13 y "
+                "reintenta cada " + std::to_string(TOUT) + " ms- adelantaria el ambar del otro "
+                "poste sin tocar el umbral, y la cuenta derivada de arriba subiria con el");
+      // El control de la inversion (CLAUDE.md 9): un Maestro que se quedara en rojo para
+      // siempre despues del primer corte pasaria la linea de arriba igual de bien.
+      comprobar(g11VueltasAVerde == g11Cortes,
+                "G11 (control de la inversion): tras CADA UNO de los " +
+                std::to_string(g11Cortes) + " cortes el Maestro VUELVE a dar verde (" +
+                std::to_string(g11VueltasAVerde) + " vueltas), asi que la cuenta de ambares de "
+                "arriba no sale de un cruce que se quedo parado en rojo -que la pasaria igual "
+                "de bien-");
+    }
   }
   // =========================================================================
   std::printf("\n--- BLOQUE H: el ambar del Poste 2 AVISA al Poste 1 (N-142, §3.16-A) --\n");
