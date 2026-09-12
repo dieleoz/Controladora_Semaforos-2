@@ -1,6 +1,11 @@
 // ===== include/reloj.h (ESCLAVO) =====
 #pragma once
 #include <Arduino.h>
+// SFTY6_SILENCIO_MS: el plazo de D-21 (1) se DERIVA del relevo de fuente de D-26 (3), que
+// dura una espera de silencio de radio. Aqui la constante YA se usaba -reloj_radioManda()
+// la lee en reloj.cpp-, y ahora hace falta en la propia cabecera. Se incluye en vez de
+// copiar el numero, que es lo mismo que hace el reloj.h del Maestro (CLAUDE.md 14).
+#include "protocolo.h"
 
 // ---------------------------------------------------------------------------
 // D-20: LA AUTORIDAD DE LA HORA ES EL ESP32 (DS3231).
@@ -210,7 +215,11 @@ bool reloj_radioManda();
 // La cadencia con la que el ESP32 siembra (SIEMBRA_INTERVALO_MS alli). IDENTICA en las
 // dos puntas y en el ESP32: si difieren, la alarma de abajo salta con el enlace sano o no
 // salta con el enlace caido.
-static const unsigned long HORA_ESP32_CADENCIA_MS = 300000UL;
+//
+// ~~300000UL (~5 min)~~ -> 120000UL (~2 min), D-26 (2) el 11/09 por la noche. La razon que
+// mas pesa es de ESTA punta: con 5 min el relevo de D-26 (3) duraba mas que el plazo. El
+// porque entero vive junto a SIEMBRA_INTERVALO_MS en contrato.h.
+static const unsigned long HORA_ESP32_CADENCIA_MS = 120000UL;
 
 // D-26 (5): sin una HORA_ESP32 bien formada en TRES cadencias, $ALARM EVENTO:HORA_ESP32.
 // Tres y no una: una siembra perdida -el ESP32 reiniciando, un byte comido- no es una
@@ -227,23 +236,40 @@ static const unsigned long HSI_PPM_PEOR = 25000UL;
 
 // ---------------------------------------------------------------------------
 // D-21 (1) - LA CADUCIDAD DE LA SIEMBRA. Gemela de la del Maestro, con el porque entero en
-// su reloj.h. El plazo es el tiempo en que el HSI acumula en el peor caso la deriva de UNA
-// cadencia, que es lo que la cuenta del cruce (esp32_13) le concede a cada punta; reloj_04
-// recalcula la desigualdad contra el aguante y exige que las dos puntas digan lo mismo.
+// su reloj.h: por que la derivacion vieja -la deriva de UNA cadencia- era una tautologia y
+// se cayo al bajar la cadencia a 120 s. reloj_04 recalcula la desigualdad contra el aguante
+// del cruce y exige que las dos puntas digan lo mismo.
 //
-// AQUI PESA DISTINTO QUE EN EL MAESTRO, y se dice: esta punta tiene DOS sembradores. Con
-// radio la siembra es la del Maestro (CMD_HORA_S) y la de su ESP32 se IGNORA; sin radio,
-// al reves (D-26 (3)). Cualquiera de las dos que entre renueva el plazo, porque las dos
-// pasan por reloj_ajustarConAcuse(). En el RELEVO -la radio calla y la primera siembra del
-// ESP32 aun no ha llegado- la hora puede tener hasta una cadencia de la radio mas la espera
-// de SFTY6_SILENCIO_MS mas una cadencia del ESP32: MAS que este plazo. En ese rato esta
-// punta NO entra en Degradado, y si ya estaba dentro se rinde. La cuenta la publica reloj_04.
+// Y EL CASO QUE MANDA EN LA DERIVACION ES DE ESTA PUNTA, no del Maestro: esta tiene DOS
+// sembradores. Con radio la siembra es la del Maestro (CMD_HORA_S) y la de su ESP32 se
+// IGNORA; sin radio, al reves (D-26 (3)). Cualquiera de las dos que entre renueva el plazo,
+// porque las dos pasan por reloj_ajustarConAcuse(). En el RELEVO -la radio calla y la
+// primera siembra del ESP32 aun no ha llegado- la hora puede tener hasta una cadencia de la
+// radio, mas SFTY6_SILENCIO_MS, mas una cadencia del ESP32.
+//
+// ~~MAS QUE ESTE PLAZO: en ese rato esta punta NO entra en Degradado, y si ya estaba dentro
+// se rinde~~ -> DEJA DE SERLO: desde D-26 (2) el plazo se DERIVA de ese relevo, asi que lo
+// cubre por construccion y el static_assert lo exige. Era ~52 % de las caidas de radio
+// (fila 2.10 del roadmap), y era el motivo principal para bajar la cadencia.
+//
+// La propagacion por radio sale en CADA siembra del ESP32 del Maestro (D-26 (2), la rama
+// CMD:HORA_ESP32 de su bluetooth.cpp llama a coordinador_sincronizarHora()), y NO cada
+// INTERVALO_SYNC_MS: por eso las dos cadencias del relevo son la misma constante.
+static const unsigned long HORA_RELEVO_MS =
+    2UL * HORA_ESP32_CADENCIA_MS
+    + 2UL * HORA_ESP32_CADENCIA_MS / 1000UL * HSI_PPM_PEOR / 1000UL
+    + SFTY6_SILENCIO_MS;
 static const unsigned long HORA_DERIVA_S =
-    (HORA_ESP32_CADENCIA_MS / 1000UL * HSI_PPM_PEOR + 999999UL) / 1000000UL;
+    (HORA_RELEVO_MS / 1000UL * HSI_PPM_PEOR + 999999UL) / 1000000UL;
 static const unsigned long HORA_CADUCA_MS = HORA_DERIVA_S * 1000000UL / HSI_PPM_PEOR * 1000UL;
 static_assert(HORA_CADUCA_MS >
                   HORA_ESP32_CADENCIA_MS + HORA_ESP32_CADENCIA_MS / 1000UL * HSI_PPM_PEOR / 1000UL,
               "D-21 (1): una siembra normal caducaria antes de llegar con el HSI rapido");
+static_assert(HORA_CADUCA_MS > HORA_RELEVO_MS,
+              "D-21 (1) / D-26 (3): la hora caducaria en mitad del relevo de fuente");
+static_assert((HORA_DERIVA_S - 1UL) * 1000000UL / HSI_PPM_PEOR * 1000UL <= HORA_RELEVO_MS,
+              "D-21 (1): el plazo no es el MENOR que cubre el relevo; sobra deriva concedida "
+              "y el margen de los dos DS3231 mengua sin decision de nadie");
 
 // true si esta punta tiene hora Y su ultima siembra buena tiene como mucho HORA_CADUCA_MS.
 // Caducada se queda caducada hasta la siguiente siembra. Una hora que vino SOLO del RTC de

@@ -178,19 +178,43 @@
 //
 // ~~A-15: CADA HORA, Y CON EL MISMO NUMERO QUE YA USA EL MAESTRO PARA REENVIAR LA HORA AL
 // ESCLAVO -INTERVALO_SYNC_MS de Maestro/src/coordinador.cpp-. "Un solo numero en el
-// sistema, y no dos"~~ -> CORREGIDO por D-26 (2), 11/09: CADA ~5 MIN, Y CON NOMBRE PROPIO.
+// sistema, y no dos"~~ -> CORREGIDO por D-26 (2), 11/09: ~~CADA ~5 MIN~~ CADA ~2 MIN, Y CON
+// NOMBRE PROPIO.
 //
 // El numero de A-15 se eligio por tener uno solo, no por una medida, y la medida lo tumba:
 // lo que deriva no es el DS3231 -segundos al mes- sino el oscilador interno del STM32 ENTRE
 // siembras, que es el que decide las luces. A 25000 ppm (peor caso de su ficha, HSI_PPM_PEOR
 // en Maestro/include/reloj.h) una hora sin sembrar son 90 s contra los 29 s que aguanta el
-// cruce; cinco minutos son 7,5 s. esp32_13 rehace esa cuenta desde los dos binarios.
+// cruce. esp32_13 rehace esa cuenta desde los dos binarios, y reloj_04 la del plazo.
+//
+// Y POR QUE ~2 MIN Y NO ~5 (D-26 (2), 11/09 por la noche, decidido por el responsable con
+// la medida delante - roadmap.md fila 2.10). LA CADENCIA NO SE PAGA SOLA: de ella cuelga
+// el plazo de caducidad de D-21 (1) -HORA_CADUCA_MS, en el reloj.h de las dos puntas-, y
+// ese plazo tiene que cubrir DOS cosas que con 5 min no cabian:
+//
+//   - UNA SIEMBRA PERDIDA. Un ESP32 que se reinicia o un byte comido dejan la siguiente
+//     hora en dos cadencias. Con el plazo atado a UNA cadencia, esa punta se iba a ambar
+//     y NO volvia sola (D-21): costaba el Degradado hasta que fuese una persona.
+//   - EL RELEVO DE FUENTE DE D-26 (3) EN EL ESCLAVO. Al callarse la radio su hora puede
+//     tener hasta dos cadencias mas SFTY6_SILENCIO_MS antes de que llegue la primera
+//     siembra de SU ESP32. Con 5 min eso son ~625 s contra un plazo de 320: el Esclavo no
+//     podia ENTRAR en Degradado durante esos minutos, o se rendia si ya estaba dentro.
+//
+// Las dos escalan con la cadencia, el aguante del cruce no. Bajarla a 120 s es lo que hace
+// que el plazo derivado quepa por debajo del aguante en vez de por encima; la derivacion
+// entera vive en el reloj.h de las dos puntas y reloj_04 la recalcula del C++.
+//
+// LO QUE CUESTA, y esta aceptado por el responsable: la linea por J17 y la propagacion por
+// radio del Maestro al Esclavo salen 2,5 veces mas a menudo. Aqui NO se escribe el tanto
+// por ciento de canal: ningun instrumento lo recalcula desde esta constante -costura_09
+// mide que el intercambio quepa en su techo de tiempo, no cuanto aire ocupa al cabo del
+// dia-, asi que una cifra copiada aqui naceria caducada (CLAUDE.md 14).
 //
 // Deja de llamarse INTERVALO_SYNC_MS a proposito: aquel sigue siendo la hora del reenvio
 // Maestro->Esclavo en coordinador.cpp, y un nombre igual con otro valor diria en cada grep
 // que son el mismo numero. El STM32 lo espera con este valor (HORA_ESP32_CADENCIA_MS en
 // el reloj.h de las dos puntas, para su alarma de D-26 (5)), y esp32_13 exige que coincidan.
-#define SIEMBRA_INTERVALO_MS       300000UL
+#define SIEMBRA_INTERVALO_MS       120000UL
 
 // LOS DOS REINTENTOS DE ARRANQUE, Y POR QUE HACEN FALTA.
 //

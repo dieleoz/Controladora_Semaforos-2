@@ -1,6 +1,12 @@
 // ===== include/reloj.h =====
 #pragma once
 #include <Arduino.h>
+// SFTY6_SILENCIO_MS: el plazo de D-21 (1) se DERIVA del relevo de fuente de D-26 (3), y ese
+// relevo dura una espera de silencio de radio. Se incluye para no escribir aqui una copia
+// del numero: en el mismo binario, una copia es un desincronizado esperando (CLAUDE.md 14).
+// protocolo.h no incluye a este, asi que no hay ciclo, y es todo #define y declaraciones:
+// no anade almacenamiento a las unidades de traduccion que ya incluian reloj.h.
+#include "protocolo.h"
 
 // ---------------------------------------------------------------------------
 // SFTY-18 — Reloj de tiempo real (RTC interno del STM32)
@@ -191,7 +197,11 @@ bool reloj_sembrarDesdeIso(const char* str);
 //
 // La cadencia con la que el ESP32 siembra (SIEMBRA_INTERVALO_MS alli). Si difieren, la
 // alarma de abajo salta con el enlace sano o no salta con el enlace caido.
-static const unsigned long HORA_ESP32_CADENCIA_MS = 300000UL;
+//
+// ~~300000UL (~5 min)~~ -> 120000UL (~2 min), D-26 (2) el 11/09 por la noche: con 5 min el
+// plazo de abajo no cubria ni una siembra perdida ni el relevo de D-26 (3). El porque
+// entero, con la medida, vive junto a SIEMBRA_INTERVALO_MS en contrato.h.
+static const unsigned long HORA_ESP32_CADENCIA_MS = 120000UL;
 
 // D-26 (5): sin una HORA_ESP32 bien formada en TRES cadencias, $ALARM EVENTO:HORA_ESP32.
 // Tres y no una: una siembra perdida -el ESP32 reiniciando, un byte comido- no es una
@@ -211,27 +221,73 @@ static const unsigned long HSI_PPM_PEOR = 25000UL;
 // D-21 (1) - UNA HORA QUE NO ES FIABLE ES UNA HORA QUE MIENTE. LA CADUCIDAD DE LA SIEMBRA.
 //
 // Entre dos siembras la hora de esta punta se extrapola con millis(), o sea sobre el HSI.
-// La cuenta del cruce que rehace esp32_13 le CONCEDE a cada punta la deriva de UNA cadencia
-// (HORA_DERIVA_S, abajo) y deja el resto del aguante para lo que difieran los dos DS3231.
-// Hasta hoy eso era una SUPOSICION: nada impedia que una punta con el J17 mudo siguiera
-// dando verdes por reloj horas despues, a 36-90 s por hora (H1 del veredicto del 11/09).
+// Hasta el 11/09 nada impedia que una punta con el J17 mudo siguiera dando verdes por reloj
+// horas despues, a 36-90 s por hora (H1 del veredicto del 11/09); el plazo lo cierra.
 //
-// EL PLAZO NO SE ESCOGE: es el tiempo en que el HSI, en el peor caso de su ficha, acumula
-// EXACTAMENTE la deriva que esa cuenta ya concede. Pasado, la punta esta fuera de lo que el
-// cruce tiene presupuestado y su hora deja de ser fiable. Un plazo mayor no compraria nada:
-// ni una siembra perdida ni el relevo de fuente de D-26 (3) caben por debajo del aguante
-// -la cuenta la publica reloj_04-.
+// ~~EL PLAZO ES LA DERIVA DE UNA CADENCIA~~ -> DERIVADO DEL RELEVO (D-26 (2), 11/09 por la
+// noche, con la cadencia en ~2 min). Aquella derivacion era casi una TAUTOLOGIA: el tiempo
+// en que el HSI acumula la deriva de una cadencia ES la cadencia, y los 20 s de holgura que
+// parecia dar con 300 s salian solo del redondeo a segundos enteros (7,5 -> 8). Medido con
+// 120 s el redondeo no da nada -3,0 s exactos- y el plazo salia IGUAL a la cadencia: una
+// siembra normal caducaba antes de que llegase la siguiente. Eso no es un estorbo del
+// static_assert: es la derivacion vieja diciendo que ya no servia.
 //
-// La DESIGUALDAD contra el aguante del cruce la recalcula reloj_04 desde este fichero en
-// cada corrida (N-71). El static_assert es solo el SUELO, que no necesita el modelo del
-// ciclo: una siembra normal tiene que llegar antes de caducar aun con el HSI corriendo en su
-// extremo rapido -si no, el Degradado caeria a ambar con el J17 sano-.
+// EL PLAZO SIGUE SIN ESCOGERSE, pero ahora lo fija lo que tiene que SOBREVIVIR, que es el
+// caso peor de los dos que el plazo debe cubrir (fila 2.10 del roadmap):
+//
+//   (a) UNA SIEMBRA PERDIDA: la siguiente hora buena llega en DOS cadencias.
+//   (b) EL RELEVO DE FUENTE DE D-26 (3) en el Esclavo: dos cadencias -la ultima
+//       propagacion por radio, que sale en cada siembra del Maestro, y la primera siembra
+//       de su propio ESP32- mas el SFTY6_SILENCIO_MS que tarda en declarar la radio muda.
+//
+// (b) contiene a (a): el mismo caso mas la espera de silencio. Por eso HORA_RELEVO_MS es el
+// SUELO, y no hay que sumar los dos. Las dos cadencias las cuentan relojes de cuarzo -los
+// ESP32 y el aire-, pero la EDAD se mide con millis() sobre el HSI de esta punta, que en su
+// extremo rapido cuenta (1 + ppm) veces mas: por eso se inflan. SFTY6_SILENCIO_MS no se
+// infla, porque ya lo mide ese mismo millis().
+//
+// AQUI EL MAESTRO NO TIENE RELEVO -no lo siembra ninguna radio- y aun asi usa el numero del
+// Esclavo: el plazo es un CONTRATO DEL CRUCE, no de una punta. Con dos plazos distintos una
+// se rinde a ambar mientras la otra sigue dando verdes con una hora de la misma edad, que es
+// justo el verde-contra-ambar que D-21 vino a evitar. reloj_04 exige que sean iguales.
+static const unsigned long HORA_RELEVO_MS =
+    2UL * HORA_ESP32_CADENCIA_MS
+    + 2UL * HORA_ESP32_CADENCIA_MS / 1000UL * HSI_PPM_PEOR / 1000UL
+    + SFTY6_SILENCIO_MS;
+
+// Y EL PLAZO SE CUANTIZA a segundos enteros de deriva, como antes: HORA_DERIVA_S es la
+// deriva -en segundos- que el plazo le concede a esta punta, y es la MENOR que cubre el
+// relevo. Ese redondeo hacia arriba es la unica holgura, y es deliberada: sin ella el plazo
+// caeria exactamente sobre el caso peor y el ">" de reloj_horaFiable() decidiria por un ms.
+//
+// LO QUE ESTO CUESTA, DICHO: conceder mas deriva que una cadencia RECORTA el margen que
+// esp32_13 le deja a la discrepancia entre los dos DS3231. No es un descuido, es el precio
+// del relevo, y no es libre: reloj_04 recalcula en cada corrida que lo que queda del aguante
+// del cruce sigue siendo positivo (el TECHO, que necesita el modelo del ciclo y por eso no
+// puede ser un static_assert) y que este plazo es el MENOR que cubre el relevo -si alguien
+// lo sube a mano para comprar holgura, ese margen mengua sin que nadie lo decida-.
 static const unsigned long HORA_DERIVA_S =
-    (HORA_ESP32_CADENCIA_MS / 1000UL * HSI_PPM_PEOR + 999999UL) / 1000000UL;
+    (HORA_RELEVO_MS / 1000UL * HSI_PPM_PEOR + 999999UL) / 1000000UL;
 static const unsigned long HORA_CADUCA_MS = HORA_DERIVA_S * 1000000UL / HSI_PPM_PEOR * 1000UL;
+
+// EL SUELO VIEJO, QUE SE QUEDA: una siembra NORMAL tiene que llegar antes de caducar aun con
+// el HSI en su extremo rapido, o el Degradado caeria a ambar con el J17 sano en cada
+// cadencia. Hoy lo implica el del relevo -que pide mas-, y se conserva a proposito porque
+// vigila OTRO termino de la formula: el dia que alguien toque el relevo, este sigue de pie.
 static_assert(HORA_CADUCA_MS >
                   HORA_ESP32_CADENCIA_MS + HORA_ESP32_CADENCIA_MS / 1000UL * HSI_PPM_PEOR / 1000UL,
               "D-21 (1): una siembra normal caducaria antes de llegar con el HSI rapido");
+
+// EL SUELO QUE MANDA HOY. Si cae, el Esclavo no puede ENTRAR en Degradado tras perder la
+// radio -o se rinde si ya estaba dentro- durante los minutos del relevo.
+static_assert(HORA_CADUCA_MS > HORA_RELEVO_MS,
+              "D-21 (1) / D-26 (3): la hora caducaria en mitad del relevo de fuente");
+
+// Y EL TECHO QUE SI CABE EN C++: que el plazo sea el MENOR que cubre el relevo. El de
+// verdad -contra el aguante del cruce- lo barre reloj_04, que tiene el modelo del ciclo.
+static_assert((HORA_DERIVA_S - 1UL) * 1000000UL / HSI_PPM_PEOR * 1000UL <= HORA_RELEVO_MS,
+              "D-21 (1): el plazo no es el MENOR que cubre el relevo; sobra deriva concedida "
+              "y el margen de los dos DS3231 mengua sin decision de nadie");
 
 // true si esta punta tiene hora Y esa hora esta dentro de su plazo: la ultima siembra buena
 // -de su ESP32, de la radio o de la pantalla, cualquiera que pase por reloj_ajustarConAcuse()-

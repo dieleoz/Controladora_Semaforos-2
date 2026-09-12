@@ -5,7 +5,9 @@
 # "Son los ESP32 los que tienen el reloj y deben comandar la hora" (el responsable,
 # 11/09). Lo construido hasta hoy no lo cumplia: el telefono le mandaba la hora al STM32
 # y el ESP32 nunca le sembraba la suya (roadmap 3.16-B). Desde hoy siembra.cpp manda
-# CMD:HORA_ESP32:YYYY-MM-DD,HH:MM:SS al arrancar, tras cada SET_RTC bueno y cada ~5 min.
+# CMD:HORA_ESP32:YYYY-MM-DD,HH:MM:SS al arrancar, tras cada SET_RTC bueno y cada
+# SIEMBRA_INTERVALO_MS (D-26 (2): ~~~5 min~~ ~2 min desde el 11/09 por la noche; el numero
+# no se recita aqui, se LEE del contrato en cada corrida).
 #
 # QUIEN MIDE QUE. esp32_05 mide la BARRERA: que esta sea la unica orden hacia el STM32
 # y que se componga solo de reloj_leer(). Este pack mide lo demas, que es lo que hace
@@ -671,14 +673,18 @@ def correr(b, fw):
     # =====================================================================
     # Con los MISMOS patrones de la 1 sobre textos sinteticos: si el patron del STM32 no
     # leyera el numero -o leyera el de otra constante-, esto no distinguiria nada.
-    contratoFalso = "#define SIEMBRA_INTERVALO_MS       600000UL\n"
-    relojFalso = "static const unsigned long HORA_ESP32_CADENCIA_MS = 300000UL;\n"
+    # Los dos sinteticos se DERIVAN de la cadencia real (el doble contra la de verdad): con
+    # numeros escritos a mano, el dia que D-26 (2) vuelva a cambiarla -ya paso el 11/09, de
+    # 300 s a 120- el control seguiria en verde citando una cadencia que ya no existe.
+    contratoFalso = "#define SIEMBRA_INTERVALO_MS       %dUL\n" % (2 * esp)
+    relojFalso = "static const unsigned long HORA_ESP32_CADENCIA_MS = %dUL;\n" % esp
     mE = re.search(RE_SIEMBRA_ESP32, contratoFalso)
     mM = re.search(RE_CADENCIA_STM32, relojFalso)
     b.control_negativo(
         mE is not None and mM is not None and int(mE.group(1)) != int(mM.group(1)),
-        "una cadencia de 10 min en el ESP32 contra los 5 que espera el STM32 se lee con los "
-        "mismos patrones de la 1 y sale distinta: compara valores leidos, no nombres")
+        "una cadencia de %d s en el ESP32 contra los %d que espera el STM32 se lee con los "
+        "mismos patrones de la 1 y sale distinta: compara valores leidos, no nombres"
+        % (2 * esp // 1000, esp // 1000))
 
     # LA RELACION DE LA 1 TIENE QUE SABER CAER, Y CON EL NUMERO QUE SE CORRIGIO: con la
     # cadencia de A-15 (una hora) la misma cuenta supera el aguante.

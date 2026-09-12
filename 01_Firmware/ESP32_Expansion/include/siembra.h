@@ -17,7 +17,9 @@
 //   1. al arrancar, en cuanto el DS3231 da hora fiable, con los dos reintentos de
 //      contrato.h (el STM32 abre J17 mas tarde que nosotros);
 //   2. justo despues de un SET_RTC del telefono que termino en RELOJ_OK con releida OK;
-//   3. cada SIEMBRA_INTERVALO_MS (D-26 (2): ~5 min; ~~una hora, A-15~~).
+//   3. cada SIEMBRA_INTERVALO_MS (D-26 (2): ~2 min; ~~~5 min~~; ~~una hora, A-15~~). El
+//      numero no se recita aqui: de esa constante cuelga el plazo de caducidad de D-21 (1),
+//      y el porque de bajarla esta con ella en contrato.h.
 //
 // LO QUE NO SABE, Y NO PUEDE: si el STM32 la acepto. `true` significa que la linea se
 // puso ENTERA en el cable, no que alguien la leyera. Esperar un acuse obligaria a parar

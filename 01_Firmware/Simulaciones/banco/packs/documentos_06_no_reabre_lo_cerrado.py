@@ -161,9 +161,12 @@ DEROGADAS = (
              r"(?P<f>\bsiembra\s+horaria\b)",
              r"(?P<f>\breus\w*\s+intervalo_sync_ms\b)",
          ),
-         motivo="D-26 (2): cada STM32 se siembra desde el DS3231 de su ESP32 cada ~5 min. El "
-                "reenvio Maestro->Esclavo por radio (INTERVALO_SYNC_MS, una hora) NO es esto y "
-                "sigue vivo: por eso el patron exige 'siembra'",
+         motivo="D-26 (2): cada STM32 se siembra desde el DS3231 de su ESP32 cada ~2 min "
+                "(el ~5 min original lo cambio el responsable el 11/09 por la noche, y la "
+                "cadencia se construyo el 12/09; este motivo lo decia y se quedo viejo: el "
+                "guardian de que un documento no reabra una decision citaba la cadencia "
+                "DEROGADA). El reenvio Maestro->Esclavo por radio (INTERVALO_SYNC_MS, una "
+                "hora) NO es esto y sigue vivo: por eso el patron exige 'siembra'",
          ejemplo="El ESP32 siembra la hora al STM32 cada hora."),
 
     dict(dx="D-26", frase="la siembra cada 2 s", matadores=("D-26", "A-15"),
@@ -173,7 +176,8 @@ DEROGADAS = (
              r"\bsiembr\w*[^.;|]{0,80}?(?P<f>\bcada\s+(?:2|dos)\s*s(?:eg\w*)?\b)",
              r"(?P<f>\bcada\s+(?:2|dos)\s*s(?:eg\w*)?\b)[^.;|]{0,40}?\bsiembr",
          ),
-         motivo="D-26 (2): ~5 min. Los 2 s ya los corrigio A-15 el 08/09",
+         motivo="D-26 (2): ~2 min desde el 11/09 (antes ~5 min). Los 2 s ya los corrigio "
+                "A-15 el 08/09",
          ejemplo="El DS3231 siembra al STM32 cada 2 s."),
 
     dict(dx="D-26", frase="el Esclavo acepta su ESP32 si la radio lleva 2 h sin sembrar",

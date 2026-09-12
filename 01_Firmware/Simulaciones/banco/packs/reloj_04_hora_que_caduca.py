@@ -11,12 +11,27 @@
 # puerta y el bucle del Degradado de las dos puntas preguntan reloj_horaFiable(): hora
 # sembrada hace como mucho HORA_CADUCA_MS (reloj.h).
 #
+# D-26 (2), 11/09 POR LA NOCHE: LA CADENCIA BAJA A ~2 MIN Y EL PLAZO SE REDERIVA.
+# La derivacion vieja -"el plazo es el tiempo en que el HSI acumula la deriva de UNA
+# cadencia"- era casi una TAUTOLOGIA: ese tiempo ES la cadencia, y los 20 s de holgura que
+# parecia dar con 300 s salian del redondeo a segundos enteros (7,5 -> 8). Con 120 s el
+# redondeo no da nada (3,0 exactos) y el plazo salia IGUAL a la cadencia. Desde hoy el plazo
+# se deriva del RELEVO de fuente de D-26 (3), que es el caso peor que tiene que sobrevivir y
+# que contiene al de una siembra perdida. Las lineas de este pack que EXIGIAN que no cupiera
+# ninguno de los dos se revisaron una por una (CLAUDE.md 9) y estan invertidas abajo.
+#
 # QUE MIDE ESTE PACK, Y QUE NO:
 #   - LA DESIGUALDAD (N-71). El plazo no se escoge: HORA_CADUCA_MS se escribe en reloj.h como
-#     EXPRESION de la cadencia y del HSI, y aqui se EVALUA esa expresion -con aritmetica de
-#     32 bits sin signo, la del Cortex-M3- y se contrasta contra el aguante del cruce, barrido
-#     con el modelo de costura por el MISMO codigo que esp32_13 (se importa, no se copia).
-#     Un comentario no falla cuando alguien cambia un numero; esto si.
+#     EXPRESION de la cadencia, del HSI y del silencio de SFTY-6, y aqui se EVALUA esa
+#     expresion -con aritmetica de 32 bits sin signo, la del Cortex-M3- y se contrasta contra
+#     el aguante del cruce, barrido con el modelo de costura por el MISMO codigo que esp32_13
+#     (se importa, no se copia). Un comentario no falla cuando alguien cambia un numero;
+#     esto si.
+#   - Y QUE LA CADENA SIGA SIENDO UNA DERIVACION Y NO UN NUMERO ESCRITO A MANO. Un
+#     HORA_RELEVO_MS = 271000UL pasaria todas las desigualdades de abajo y habria cortado el
+#     lazo con la cadencia: la proxima vez que alguien la toque, el plazo se quedaria quieto.
+#     Por eso se exige que cada eslabon NOMBRE a los anteriores (CLAUDE.md 1: un rojo no se
+#     apaga escribiendo lo que el instrumento quiere leer).
 #   - QUE LA REGLA TIENE SUJETO Y LLAMADOR (CLAUDE.md 6.1, N-96): la funcion existe en las dos
 #     puntas, compara contra la constante, la rejuvenece SOLO una siembra, y la preguntan la
 #     puerta y el bucle del Degradado de las dos, con el ambar que ya habia y la alarma.
@@ -57,8 +72,18 @@ BT_C = {p: (p, "src", "bluetooth.cpp") for p in PUNTAS}
 
 PREDICADO = "reloj_horaFiable"
 # Las constantes que forman el plazo, EN EL ORDEN en que se definen: cada una solo puede
-# usar las anteriores.
-SIMBOLOS = ("HORA_ESP32_CADENCIA_MS", "HSI_PPM_PEOR", "HORA_DERIVA_S", "HORA_CADUCA_MS")
+# usar las anteriores (y SFTY6_SILENCIO_MS, que viene del protocolo.h de su punta).
+SIMBOLOS = ("HORA_ESP32_CADENCIA_MS", "HSI_PPM_PEOR", "HORA_RELEVO_MS", "HORA_DERIVA_S",
+            "HORA_CADUCA_MS")
+# Que tiene que NOMBRAR cada eslabon para seguir siendo una derivacion y no un numero
+# escrito a mano. Vale el nombre directo o el de un eslabon que ya lo arrastre.
+NOMBRA = {"HORA_RELEVO_MS": ("HORA_ESP32_CADENCIA_MS", "SFTY6_SILENCIO_MS"),
+          "HORA_DERIVA_S": ("HORA_RELEVO_MS",),
+          "HORA_CADUCA_MS": ("HORA_DERIVA_S",)}
+# D-21 (1): SFTY6_SILENCIO_MS entra en la derivacion del plazo, asi que reloj.h tiene que
+# INCLUIR el protocolo.h de su punta. Sin el include, el numero seria una copia.
+RE_SFTY6 = r"#define\s+SFTY6_SILENCIO_MS\s+(\d+)UL"
+PROTOCOLO = {p: (p, "include", "protocolo.h") for p in PUNTAS}
 # Donde se pregunta, por punta: (funcion de la PUERTA, funcion del BUCLE, camino de ambar
 # que YA existia y que la guarda tiene que tomar).
 DONDE = {"Maestro": ("modo_degradado_evaluarEntrada", "modo_degradado_loop", "irAAmbar"),
@@ -110,7 +135,10 @@ def _eval_nodo(n, valores, desbordes):
 
 def evaluar_c(expr, valores):
     """(valor, desbordes) de una expresion entera del C++ con aritmetica de 32 bits."""
-    limpia = re.sub(r"\b(\d+)(?:UL|LU|U|L)\b", r"\1", expr.strip())
+    # Una expresion del C++ puede venir partida en varias lineas (HORA_RELEVO_MS lo esta):
+    # se colapsan los blancos ANTES de parsear, o Python la lee como un bloque indentado y
+    # el pack aborta por una forma que es correcta.
+    limpia = re.sub(r"\b(\d+)(?:UL|LU|U|L)\b", r"\1", " ".join(expr.split()))
     if not re.fullmatch(r"[\w\s+\-*/()]+", limpia):
         raise _NoSabe("caracteres fuera de lo que este evaluador sabe: %r" % expr)
     arbol = ast.parse(limpia.replace("/", "//"), mode="eval")
@@ -119,20 +147,43 @@ def evaluar_c(expr, valores):
 
 
 def _constantes(fw, punta):
-    """{simbolo: valor} de reloj.h de la punta, evaluando cada expresion en orden."""
+    """({simbolo: valor}, {simbolo: desbordes}, {simbolo: expresion}) de reloj.h de la punta.
+
+    SFTY6_SILENCIO_MS se SIEMBRA desde el protocolo.h de la MISMA punta -no se escribe aqui-
+    porque el plazo lo usa y reloj.h lo incluye. Es la unica semilla de fuera del fichero."""
     t = fw.codigo(*RELOJ_H[punta])
-    valores, desb = {}, {}
+    silencio = fw.constante(PROTOCOLO[punta], RE_SFTY6,
+                            "SFTY6_SILENCIO_MS del %s" % punta)
+    valores, desb, expr = {"SFTY6_SILENCIO_MS": silencio}, {}, {}
     for s in SIMBOLOS:
         m = re.search(r"static\s+const\s+unsigned\s+long\s+%s\s*=\s*([^;]+);" % s, t)
         if m is None:
             raise fw.Abortado("%s/include/reloj.h no define %s: sin el no hay plazo que medir"
                               % (punta, s))
+        expr[s] = " ".join(m.group(1).split())
         try:
             valores[s], desb[s] = evaluar_c(m.group(1), valores)
         except _NoSabe as e:
             raise fw.Abortado("%s/include/reloj.h: %s = %r no es una forma que este pack sepa "
                               "evaluar (%s)" % (punta, s, m.group(1).strip(), e))
-    return valores, desb
+    valores.pop("SFTY6_SILENCIO_MS")
+    return valores, desb, expr
+
+
+def _cadena_derivada(expr, incluye_protocolo):
+    """(ok, motivo): cada eslabon del plazo NOMBRA a los suyos, y reloj.h incluye protocolo.h.
+
+    EL BORDE, ESCRITO (CLAUDE.md 7): mira los NOMBRES de la expresion, no su valor. Un
+    eslabon escrito como literal -aunque el numero sea el correcto HOY- corta el lazo con la
+    cadencia y el plazo se queda quieto la proxima vez que alguien la toque."""
+    if not incluye_protocolo:
+        return False, 'reloj.h no tiene #include "protocolo.h": SFTY6_SILENCIO_MS seria copia'
+    for s, exigidos in NOMBRA.items():
+        for n in exigidos:
+            if not re.search(r"\b%s\b" % n, expr.get(s, "")):
+                return False, ("%s = %r no nombra a %s: es un numero escrito a mano, no una "
+                               "derivacion" % (s, expr.get(s, ""), n))
+    return True, "los tres eslabones nombran a los suyos y reloj.h incluye protocolo.h"
 
 
 # --- LECTURA POR LLAVES (bloque literal de esp32_13: _bloque / _cuerpo) ------------------
@@ -167,6 +218,26 @@ def _suelo_ms(cad_ms, ppm):
     return cad_ms * (1000000 + ppm) / 1000000.0
 
 
+def _perdida_ms(cad_ms, ppm):
+    """UNA SIEMBRA PERDIDA: la siguiente hora buena llega en DOS cadencias, medidas por el
+    millis() del STM32 con el HSI en su extremo rapido. Pasa por _suelo_ms a proposito -es
+    la misma inflacion- para que el control negativo ejercite este mismo camino."""
+    return _suelo_ms(2 * cad_ms, ppm)
+
+
+def _relevo_ms(cad_ms, ppm, silencio_ms):
+    """EL RELEVO DE FUENTE DE D-26 (3) en el Esclavo, en su propio millis().
+
+    Dos cadencias -la ultima propagacion por radio, que sale en CADA siembra del ESP32 del
+    Maestro, y la primera siembra del ESP32 de esta punta- mas el SFTY6_SILENCIO_MS que
+    tarda en declarar la radio muda. Las cadencias las cuentan cuarzos y por eso se inflan
+    con el HSI; el silencio NO, porque ya lo mide ese mismo millis().
+
+    CONTIENE al de una siembra perdida: es el mismo caso mas la espera de silencio, asi que
+    el suelo del plazo es este y no la suma de los dos."""
+    return _perdida_ms(cad_ms, ppm) + silencio_ms
+
+
 def _relativa_s(plazo_ms, ppm):
     """Lo que se pueden separar DOS puntas que dan verdes con la hora de hasta plazo_ms:
     la deriva del HSI de cada una en sentidos opuestos, mas el segundo entero de cada
@@ -199,9 +270,9 @@ def correr(b, fw):
     # =====================================================================
     b.titulo("1. El plazo sale del C++, igual en las dos puntas y en el ESP32")
     # =====================================================================
-    cte, desb = {}, {}
+    cte, desb, expr = {}, {}, {}
     for p in PUNTAS:
-        cte[p], desb[p] = _constantes(fw, p)
+        cte[p], desb[p], expr[p] = _constantes(fw, p)
     esp = fw.constante(CONTRATO, RE_SIEMBRA_ESP32, "la cadencia de la siembra en el ESP32")
     iguales = all(cte["Maestro"][s] == cte["Esclavo"][s] for s in SIMBOLOS)
     sin_desborde = not any(desb[p][s] for p in PUNTAS for s in SIMBOLOS)
@@ -214,10 +285,26 @@ def correr(b, fw):
         "sigue dando verdes con la misma hora; con un desborde, la tarjeta calcula otro numero"
         % (cte["Maestro"], cte["Esclavo"], desb, esp))
 
+    # Y QUE SIGA SIENDO UNA DERIVACION. Sin esto, las desigualdades de la 2 las pasaria igual
+    # de bien un plazo escrito a mano que diera la casualidad de cumplirlas hoy.
+    cadena = {}
+    for p in PUNTAS:
+        incl = re.search(r'#include\s+"protocolo\.h"', fw.codigo(*RELOJ_H[p])) is not None
+        cadena[p] = _cadena_derivada(expr[p], incl)
+    b.verificar(
+        all(ok for ok, _ in cadena.values()),
+        "el plazo es una CADENA DERIVADA en las dos puntas, no un numero escrito a mano: %s"
+        % {p: cadena[p][1] for p in PUNTAS},
+        "la cadena del plazo esta cortada (%s). Un eslabon escrito como literal cumple las "
+        "desigualdades de hoy y deja de seguir a la cadencia: el dia que D-26 (2) vuelva a "
+        "cambiarla, el plazo se queda quieto y nadie lo nota"
+        % {p: cadena[p][1] for p in PUNTAS})
+
     c = cte["Maestro"]
     P_ms = c["HORA_CADUCA_MS"]
     cad_ms = c["HORA_ESP32_CADENCIA_MS"]
     ppm = c["HSI_PPM_PEOR"]
+    silencio = fw.constante(PROTOCOLO_E, RE_SFTY6, "SFTY6_SILENCIO_MS del Esclavo")
 
     # =====================================================================
     b.titulo("2. LA DESIGUALDAD: por encima de la cadencia, por debajo del aguante")
@@ -257,17 +344,74 @@ def correr(b, fw):
         "caduque, y el cruce aguanta %d: el plazo deja pasar el verde-verde que viene a cerrar"
         % (P_ms, relativa_P, aguante))
 
-    # Y NO SE COME EL PRESUPUESTO DE LOS DS3231. esp32_13 reserva lo que queda del aguante
-    # para lo que difieran los dos relojes con pila, que nadie acota. Si la caducidad
-    # concediera mas deriva que UNA cadencia, ese margen menguaria sin que nadie lo decidiera.
+    # ~~Y NO SE COME EL PRESUPUESTO DE LOS DS3231: la caducidad no puede conceder mas deriva
+    # que UNA cadencia~~ -> REVISADA UNA POR UNA el 11/09 por la noche (CLAUDE.md 9). Afirmaba
+    # DOS cosas:
+    #   (i)  "el plazo no concede mas deriva de la NECESARIA" -> SE MUDA aqui abajo, que es
+    #        donde sigue valiendo: el plazo tiene que ser el MENOR que cubre el relevo.
+    #   (ii) "y lo necesario es UNA cadencia" -> SE BORRA: lo tumba D-26 (2). El plazo tiene
+    #        que cubrir el relevo, que son dos cadencias mas el silencio, asi que concede mas
+    #        deriva que una cadencia POR DISENO. Lo que no puede es concederla de mas: eso
+    #        recorta el margen de los dos DS3231 sin que nadie lo decida, y por eso el suelo
+    #        se cuantiza y se comprueba la minimalidad.
+    #
+    # LA MINIMALIDAD. HORA_DERIVA_S es la deriva -en segundos enteros- que el plazo concede.
+    # Con un segundo MENOS el plazo ya no cubriria el relevo: eso es lo que dice que el numero
+    # salio de la derivacion y no de la mano de alguien que queria holgura.
+    relevo_ms = _relevo_ms(cad_ms, ppm, silencio)
+    quantum_ms = 1000000 // ppm * 1000
+    P_menor = (deriva_P - 1) * quantum_ms
     b.verificar(
-        deriva_P <= deriva_cad,
-        "la deriva que la caducidad concede (%d s) es la de UNA cadencia (%d s): el margen que "
-        "esp32_13 deja a los dos DS3231 (%d s) no cambia" % (deriva_P, deriva_cad,
-                                                           aguante - 2 * deriva_cad - 2 * RESIDUO_SIEMBRA_S),
-        "la caducidad concede %d s de deriva y la cuenta de esp32_13 supone %d: el margen de los "
-        "dos DS3231 mengua en %d s sin decision de nadie" % (deriva_P, deriva_cad,
-                                                           2 * (deriva_P - deriva_cad)))
+        P_menor <= relevo_ms < P_ms,
+        "el plazo es el MENOR que cubre el relevo: con %d s de deriva concedida son %d ms, y "
+        "con uno menos serian %d ms, que NO cubren el relevo (%d ms). El margen que le queda a "
+        "los dos DS3231 es %d s" % (deriva_P, P_ms, P_menor, relevo_ms,
+                                    aguante - relativa_P),
+        "el plazo (%d ms, %d s de deriva) no es el menor que cubre el relevo (%d ms): con %d ms "
+        "ya bastaba. Cada segundo de deriva concedido de mas recorta 2 s el margen de los dos "
+        "DS3231, que hoy es %d s, y eso es una DECISION -cuanto margen se cede-, no una "
+        "derivacion" % (P_ms, deriva_P, relevo_ms, P_menor, aguante - relativa_P))
+
+    # Y LO QUE EL C++ CALCULA NO PUEDE QUEDARSE CORTO CONTRA ESTE MODELO. La expresion de
+    # reloj.h trunca en enteros a cada paso; si truncara por debajo del relevo real, el plazo
+    # saldria derivado de un relevo mas corto que el de verdad.
+    relevo_cpp = c["HORA_RELEVO_MS"]
+    b.verificar(
+        relevo_cpp >= relevo_ms,
+        "HORA_RELEVO_MS del C++ (%d ms) no se queda corto contra el relevo de este modelo "
+        "(%.0f ms): el truncado entero de reloj.h no acorta el caso peor"
+        % (relevo_cpp, relevo_ms),
+        "HORA_RELEVO_MS del C++ da %d ms y el relevo de verdad es %.0f: el plazo se estaria "
+        "derivando de un caso peor mas corto que el real" % (relevo_cpp, relevo_ms))
+
+    # =====================================================================
+    b.titulo("2.bis LO QUE EL PLAZO SI TIENE QUE COMPRAR (invertidas por D-26 (2))")
+    # =====================================================================
+    # Las dos lineas de abajo estaban en el reportar() de este pack como residual que ningun
+    # firmware podia aprobar -"lo que el plazo NO puede comprar"-. Con la cadencia en ~2 min
+    # SI se pueden, asi que dejan de ser nota y pasan a ser comprobacion (CLAUDE.md 9: se
+    # INVIERTEN para exigir lo nuevo). Su control esta abajo: con la cadencia vieja caen.
+    perdida_ms = _perdida_ms(cad_ms, ppm)
+    b.verificar(
+        P_ms > perdida_ms,
+        "UNA SIEMBRA PERDIDA CABE: la siguiente hora buena llega a los %.0f ms del millis() de "
+        "la punta -dos cadencias de %d ms con el HSI a +%d ppm- y el plazo es %d. Un ESP32 que "
+        "se reinicia o un byte comido ya no cuestan el Degradado hasta que vuelva una persona"
+        % (perdida_ms, cad_ms, ppm, P_ms),
+        "una siembra perdida (%.0f ms) pasa del plazo (%d ms): la punta se va a ambar y NO "
+        "vuelve sola (D-21), asi que un byte comido cuesta el Degradado hasta que vaya alguien"
+        % (perdida_ms, P_ms))
+
+    b.verificar(
+        P_ms > relevo_ms,
+        "EL RELEVO DE D-26 (3) CABE: al callarse la radio, la hora del Esclavo puede tener "
+        "hasta %.0f ms -dos cadencias de %d ms infladas por el HSI, mas SFTY6_SILENCIO_MS "
+        "(%d)- antes de la primera siembra de su ESP32, y el plazo es %d. El Esclavo puede "
+        "ENTRAR en Degradado durante el relevo y no se rinde si ya estaba dentro"
+        % (relevo_ms, cad_ms, silencio, P_ms),
+        "el relevo (%.0f ms) pasa del plazo (%d ms): al caer la radio el Esclavo no puede "
+        "entrar en Degradado durante esos minutos, o se rinde si ya estaba dentro. No da "
+        "verde-verde: da un cruce que no arranca" % (relevo_ms, P_ms))
 
     # =====================================================================
     b.titulo("3. La regla tiene sujeto y llamador (CLAUDE.md 6.1)")
@@ -359,64 +503,105 @@ def correr(b, fw):
     # =====================================================================
     b.titulo("LO QUE EL PLAZO NO PUEDE COMPRAR (no cuenta)")
     # =====================================================================
-    perdida_ms = 2 * cad_ms
-    rel_perdida = _relativa_s(perdida_ms, ppm)
-    silencio = fw.constante(PROTOCOLO_E, r"#define\s+SFTY6_SILENCIO_MS\s+(\d+)UL",
-                            "SFTY6_SILENCIO_MS del Esclavo")
-    relevo_ms = cad_ms + silencio + cad_ms
-    # El mayor plazo que todavia cabria con los DS3231 IGUALES, y lo que costaria.
+    # DOS siembras perdidas seguidas: lo primero que sigue sin caber, y el sitio por donde
+    # este plazo se rompe. Es el residual que ningun firmware puede aprobar con este aguante.
+    dos_perdidas_ms = _suelo_ms(3 * cad_ms, ppm)
+    # El mayor plazo que todavia cabria bajo el aguante, y lo que costaria en margen.
     p_max = cad_ms
     while _relativa_s(p_max + 1000, ppm) < aguante:
         p_max += 1000
-    margen_hoy = aguante - _relativa_s(cad_ms, ppm)
+    margen_hoy = aguante - relativa_P
     margen_pmax = aguante - _relativa_s(p_max, ppm)
-    # Probabilidad de caer en el relevo: A = lo que hace de la ultima hora por radio al
-    # callarse (0..cad), B = la espera a la primera siembra del ESP32 tras el silencio
-    # (0..cad), uniformes e independientes. La hora caduca si A + silencio + B > P.
-    lim = (P_ms - silencio) / float(cad_ms)
-    prob = 1.0 - (lim * lim / 2.0 if lim <= 1.0 else 1.0 - (2.0 - lim) ** 2 / 2.0)
+    dias = lambda m: m / (2 * DS3231_PPM * 86400 / 1e6)
     b.reportar(
-        "D-21 (1): lo que la caducidad NO tolera, con la cuenta",
-        ["UNA SIEMBRA PERDIDA manda el Degradado a ambar. Tolerarla pediria un plazo de al menos "
-         "dos cadencias (%d ms), y con el las dos puntas podrian separarse %d s contra %d de "
-         "aguante: NO CABE, ni con los dos DS3231 iguales. Y el ambar no se levanta solo (D-21): "
-         "una siembra comida -el ESP32 reiniciando, un byte- cuesta el Degradado hasta que vuelva "
-         "una persona." % (perdida_ms, rel_perdida, aguante),
-         "EL RELEVO DE D-26 (3) EN EL ESCLAVO: al callarse la radio, su hora puede tener hasta una "
-         "cadencia de la ultima propagacion + SFTY6_SILENCIO_MS + una cadencia hasta la primera "
-         "siembra de SU ESP32 = %d ms, MAS que el plazo (%d). Con fases al azar, en torno al %.0f "
-         "%% de las veces el Esclavo NO PUEDE ENTRAR en Degradado durante esos primeros minutos "
-         "(la puerta dice SIN HORA VALIDA) y, si ya estaba dentro, se rinde. No hay verde-verde: "
-         "hay un cruce que no arranca el Degradado hasta que llega la siembra."
-         % (relevo_ms, P_ms, 100.0 * prob),
-         "EL MAYOR PLAZO QUE CABRIA con los dos DS3231 iguales es %d ms; subirlo de %d a %d deja "
-         "el margen de los DS3231 de %d s en %d s (a %d ppm por reloj, de ~%.0f dias a ~%.0f) y "
-         "no compra ni la siembra perdida ni el relevo. Por eso el plazo es el de una cadencia: "
-         "cualquier otro es una DECISION -que margen de los DS3231 se cede- y no una derivacion."
-         % (p_max, P_ms, p_max, margen_hoy, margen_pmax, DS3231_PPM,
-            margen_hoy / (2 * DS3231_PPM * 86400 / 1e6),
-            margen_pmax / (2 * DS3231_PPM * 86400 / 1e6))])
+        "D-21 (1): lo que el plazo derivado del relevo sigue SIN comprar",
+        ["LO QUE SE PAGO POR EL RELEVO, DICHO EN CLARO. El plazo concede %d s de deriva por "
+         "punta y no los %d de UNA cadencia, asi que el margen que queda para lo que difieran "
+         "los dos DS3231 baja de %d s a %d s (a %d ppm por reloj, de ~%.0f dias sin tocarlos a "
+         "~%.0f). No es un descuido: es el precio de que el Esclavo pueda entrar en Degradado "
+         "durante el relevo, y es la razon de que la cadencia bajase a %d s -con la vieja, el "
+         "mismo relevo no cabia de ninguna manera-."
+         % (deriva_P, deriva_cad, aguante - _relativa_s(cad_ms, ppm), margen_hoy, DS3231_PPM,
+            dias(aguante - _relativa_s(cad_ms, ppm)), dias(margen_hoy), cad_ms // 1000),
+         "DOS SIEMBRAS PERDIDAS SEGUIDAS siguen mandando el Degradado a ambar, y el ambar no "
+         "se levanta solo (D-21): la tercera cadencia llega a los %.0f ms y el plazo es %d. "
+         "LO QUE HAY QUE DECIR AQUI, Y ES UNA PREGUNTA PARA EL RESPONSABLE, NO UNA "
+         "DERIVACION: tolerarlas CABRIA. Un plazo de %d ms deja %d s de separacion contra %d "
+         "de aguante -el mayor que cabe es %d ms-, asi que lo que lo impide no es el cruce: "
+         "es la regla de que el plazo sea el MENOR que cubre el relevo. Comprarlas costaria "
+         "bajar el margen de los dos DS3231 de %d s a %d s (~%.0f dias a ~%.0f). Ese cambio "
+         "es una DECISION -cuanto margen se cede-, y este pack no la toma."
+         % (dos_perdidas_ms, P_ms, int(dos_perdidas_ms),
+            _relativa_s(dos_perdidas_ms, ppm), aguante, p_max,
+            margen_hoy, aguante - _relativa_s(dos_perdidas_ms, ppm),
+            dias(margen_hoy), dias(aguante - _relativa_s(dos_perdidas_ms, ppm))),
+         "Y ESTO SIGUE SIN MEDIR EL TIEMPO. Que el plazo caduque de verdad en su frontera, que "
+         "el relevo quepa en el equipo y que la punta pase a ambar sin verde-verde lo EJERCE el "
+         "bloque F del orquestador del Degradado sobre el reloj.cpp real (CLAUDE.md 6.3). Aqui "
+         "solo se recalcula la aritmetica y se vigila que ese bloque siga ahi."])
 
     # =====================================================================
     b.titulo("CONTROLES NEGATIVOS")
     # =====================================================================
-    # El techo sabe caer: con el plazo de dos cadencias la misma cuenta supera el aguante.
+    # El techo sabe caer. OJO AL BORDE, Y ESTA MEDIDO (CLAUDE.md 7): con la cadencia en ~2 min
+    # el techo ya NO lo rompe un plazo que tolere dos siembras perdidas -ese CABE bajo el
+    # aguante; lo dice el reportar de arriba-, asi que hay que ejercitarlo con el primer plazo
+    # que de verdad se sale, que es p_max mas un escalon. Escrito con el caso viejo, este
+    # control salia en verde sin ejercitar nada: medido al escribirlo, y por eso se cambio.
     b.control_negativo(
-        not (_relativa_s(2 * cad_ms, ppm) < aguante),
-        "con un plazo de dos cadencias la cuenta de la 2 da %d s contra %d de aguante: el techo "
-        "caza un plazo que tolere una siembra perdida" % (_relativa_s(2 * cad_ms, ppm), aguante))
+        not (_relativa_s(p_max + 1000, ppm) < aguante),
+        "el primer plazo por encima del mayor que cabe (%d ms) da %d s de separacion contra "
+        "%d de aguante: el techo de la 2 sabe cazar un plazo demasiado largo"
+        % (p_max + 1000, _relativa_s(p_max + 1000, ppm), aguante))
     # El suelo sabe caer: un plazo igual a la cadencia no deja llegar la siembra con HSI rapido.
     b.control_negativo(
         not (cad_ms > _suelo_ms(cad_ms, ppm)),
         "un plazo igual a la cadencia no pasa el suelo de la 2: con el HSI rapido la siembra "
         "llega %.0f ms despues de caducar" % (_suelo_ms(cad_ms, ppm) - cad_ms))
-    # El evaluador lee la expresion REAL y sabe ver un desborde de 32 bits.
-    v, d = evaluar_c("(300000UL / 1000UL * 25000UL + 999999UL) / 1000000UL", {})
-    v2, d2 = evaluar_c("300000UL * 25000UL / 1000000UL", {})
+
+    # EL CONTROL DE LAS DOS INVERSIONES DE LA 2.bis, Y ES EL QUE IMPORTA (CLAUDE.md 9: una
+    # inversion sin escenario de control la aprobaria igual una guarda que no dejara pasar
+    # nada). Se rehace la derivacion ENTERA con la cadencia VIEJA de D-26 -300 s- por el mismo
+    # camino que la de arriba, y se exige que el relevo NO quepa: es la medida que motivo el
+    # cambio de la cadencia, y si algun dia deja de caer es que este pack dejo de mirar.
+    CAD_VIEJA_MS = 300000
+    P_viejo = _deriva_cadencia_s(CAD_VIEJA_MS, ppm) * quantum_ms   # la derivacion vieja
+    relevo_viejo = _relevo_ms(CAD_VIEJA_MS, ppm, silencio)
+    perdida_vieja = _perdida_ms(CAD_VIEJA_MS, ppm)
     b.control_negativo(
-        v == 8 and not d and d2 and v2 != 7500,
-        "el evaluador da 8 con la forma que usa reloj.h y DETECTA el desborde de 32 bits de "
-        "'300000UL * 25000UL' (en la tarjeta daria %d, no 7500)" % v2)
+        not (P_viejo > relevo_viejo) and not (P_viejo > perdida_vieja),
+        "con la cadencia vieja (%d ms) y su plazo de una cadencia (%d ms) NI el relevo (%.0f "
+        "ms) NI una siembra perdida (%.0f ms) cabian: las dos inversiones de la 2.bis saben "
+        "caer, y esa es la medida que bajo la cadencia a %d ms"
+        % (CAD_VIEJA_MS, P_viejo, relevo_viejo, perdida_vieja, cad_ms))
+
+    # Y LA MINIMALIDAD SABE CAER: un plazo de un segundo de deriva MAS sigue cubriendo el
+    # relevo, o sea que el "<= relevo" de la 2 lo rechaza por sobrado, no por corto.
+    b.control_negativo(
+        not (deriva_P * quantum_ms <= relevo_ms),
+        "un plazo con un segundo de deriva de mas (%d ms) tendria %d ms de sobra sobre el "
+        "relevo: la minimalidad de la 2 lo caza en vez de darlo por bueno"
+        % ((deriva_P + 1) * quantum_ms, int(deriva_P * quantum_ms - relevo_ms)))
+
+    # Y LA CADENA SABE CAER: un eslabon escrito como literal no pasa, y el bueno si.
+    ok_lit, _ = _cadena_derivada({"HORA_RELEVO_MS": "271000UL",
+                                  "HORA_DERIVA_S": "(HORA_RELEVO_MS / 1000UL) ",
+                                  "HORA_CADUCA_MS": "HORA_DERIVA_S * 1000UL"}, True)
+    ok_sin, _ = _cadena_derivada(expr["Maestro"], False)
+    ok_bien, _ = _cadena_derivada(expr["Maestro"], True)
+    b.control_negativo(
+        not ok_lit and not ok_sin and ok_bien,
+        "la cadena de la 1 acusa un HORA_RELEVO_MS escrito como literal y un reloj.h sin el "
+        "#include de protocolo.h, y aprueba la cadena real: mide los NOMBRES, no el valor")
+    # El evaluador lee la expresion REAL -la del relevo, que es la forma que usa reloj.h desde
+    # D-26 (2)- y sabe ver un desborde de 32 bits.
+    v, d = evaluar_c("2UL * 120000UL + 2UL * 120000UL / 1000UL * 25000UL / 1000UL + 25000UL",
+                     {})
+    v2, d2 = evaluar_c("2UL * 120000UL * 25000UL / 1000000UL", {})
+    b.control_negativo(
+        v == 271000 and not d and d2 and v2 != 6000,
+        "el evaluador da 271000 con la forma del relevo que usa reloj.h y DETECTA el desborde "
+        "de 32 bits de '2UL * 120000UL * 25000UL' (en la tarjeta daria %d, no 6000)" % v2)
     # La 3 sabe caer: la guarda vieja -reloj_enHora() a secas, sin alarma- no pasa.
     ok_v, _ = _guarda_del_bucle(
         '{ if (!reloj_enHora()) { irAAmbar("x", "y"); return; } }', "irAAmbar")
