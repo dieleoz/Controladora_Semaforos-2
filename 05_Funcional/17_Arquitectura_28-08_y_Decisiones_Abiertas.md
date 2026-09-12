@@ -226,11 +226,33 @@ buscar la averia en el reloj que si funciona.
 > La cura decidida no es *«un reloj de software refrescado cada tanto»* —eso es **peor** que el cristal
 > muerto, porque el STM32 arranca con el **HSI** (10.000-25.000 ppm) y un reloj sembrado una vez por
 > hora **se iria 36 s en esa hora, mas que el margen entero de 29 s del cruce**— sino un
-> **extrapolador sembrado** ~~**cada `LATIDO_MS` (2 s)**~~ **cada 300 s** (`D-26` (2), 11/09: 7,5 s de HSI
-> por punta entre siembras) con la hora del `DS3231`, ~~donde `reloj_enHora()` pasa a significar
+> **extrapolador sembrado** ~~**cada `LATIDO_MS` (2 s)**~~ ~~**cada 300 s** (`D-26` (2), 11/09: 7,5 s de HSI
+> por punta entre siembras)~~ **cada `SIEMBRA_INTERVALO_MS`** con la hora del `DS3231`, ~~donde `reloj_enHora()` pasa a significar
 > **«mi siembra es fresca»**~~. 🔴 *11/09: esa ultima mitad NO se construyo — `reloj_enHora()` sigue
 > siendo «hay hora», no «la siembra es fresca»; con el `J17` mudo la hora sigue valida y corre sobre el
 > HSI. Es `N-162` `H1` (`roadmap.md` §3.16), y lo cura `D-21` (1), en construccion fuera de `main`.*
+>
+> 🔴 **POR QUE LOS DOS NUMEROS DE ARRIBA VAN TACHADOS Y NO ACTUALIZADOS (12/09).** Los «300 s» y los
+> «7,5 s» caducaron el 11/09 por la noche, cuando `D-26` (2) bajo la cadencia, y **volverian a caducar**
+> el dia que alguien la vuelva a mover: este `.md` no puede derivar de una constante de C++ —otro
+> lenguaje, otro binario, ningun instrumento cruza los dos—, asi que **una cifra escrita aqui nace
+> caducada** (`CLAUDE.md` §14). Lo que se escribe es **el nombre de la constante y la propiedad**:
+>
+> - **La cadencia manda desde `SIEMBRA_INTERVALO_MS`** (`ESP32_Expansion/include/contrato.h`);
+>   `{Maestro,Esclavo}/include/reloj.h` la replica como `HORA_ESP32_CADENCIA_MS` y **`esp32_13` contrasta
+>   las dos en cada corrida** — si difieren, la alarma de `D-26` (5) salta con el enlace sano o calla con
+>   el enlace caido. 🆕 **`D-28` (1) la fija AL SEGUNDO** —deja de ser un «~2 min» aproximado—, y el valor
+>   vive en esas dos rutas, no en este parrafo.
+> - **La propiedad, que es lo que no envejece:** la deriva que el HSI acumula **entre dos siembras** tiene
+>   que caber **por debajo del margen del cruce**, y quien lo recalcula es el `static_assert` de
+>   `Maestro/src/modo_degradado.cpp` (`D-26` (4)) en cada compilacion — no este documento.
+> - 🆕 **`D-28` (2) — EN CONSTRUCCION el 12/09, NO dese por hecha:** el plazo de caducidad de la hora
+>   (`HORA_CADUCA_MS`, `{Maestro,Esclavo}/include/reloj.h`) **deja de derivarse del relevo y pasa a cubrir
+>   DOS SIEMBRAS PERDIDAS** — una punta con el `J17` mudo aguanta dos siembras seguidas sin irse a ambar.
+>   **Coste aceptado por el responsable, con la medida delante: el margen que le queda a la discrepancia
+>   entre los dos `DS3231` se estrecha**, y `reloj_04` recalcula en cada corrida que siga siendo positivo.
+>   Mientras la fila no este construida en `main`, **lo que este documento afirma es la REGLA, no que el
+>   firmware ya la cumpla**.
 >
 > ⚠️ **Y la salida (c) queda descartada por lo mismo que ya decia su fila**: no hace falta cablear
 > un `DS3231` al STM32 si su propio ESP32 se lo siembra por un cable que ya existe

@@ -1570,6 +1570,24 @@ de `MOSFET`. Ver §0.bis: el buscador respondía y no sabía encontrar.)*
 > `CR2032` que ya mantiene el RTC»*, y *«Sin pila… `respaldo_setup()` encuentra el contenido
 > invalido y borra»*. **Quitarla porque «la hora ya la lleva el ESP32» borra la reanudación tras un
 > corte.**
+>
+> 🆕 🔴 **`D-29` (12/09) — Y LA PILA NO ERA LA ÚNICA FORMA DE PERDER ESA REANUDACIÓN. EN CONSTRUCCIÓN,
+> NO ESTÁ EN `main`.** Con la pila sana y el cristal vivo, un corte de luz **también** la mataba, y es un
+> efecto colateral de `D-20`/`D-26` que nadie decidió: desde `N-162` (11/09) **la siembra ya no escribe el
+> RTC de hardware del STM32**, así que al arrancar `reloj_setup()` deja `horaValida` en `false`,
+> `degradado_reanudarTrasCorte()` cierra por su primera puerta **y en ese mismo arranque borra el
+> indicador del dominio de respaldo** —la rama `!sigueVigente` con su `respaldo_guardarDegradado(false)`—.
+> La hora del ESP32 llega un segundo después, en el `loop()`, y **ya no queda nada que reanudar**.
+>
+> **La regla que `D-29` fija —esto es lo que la spec afirma, no que el firmware ya lo haga—: el indicador
+> de la pila NO se borra hasta DESPUÉS de la primera siembra del arranque**, para que la reanudación
+> pueda decidirse con la hora que el ESP32 acaba de dar. ⚠️ **Lo que NO se toca al hacerlo:** la segunda
+> puerta —el límite duro de **48 h** desde la última sincronización— **sigue mandando**, porque es la que
+> impide reanudar sobre una marca que ya no significa nada; y **sigue sin haber entrada automática al
+> Degradado** (`SFTY-21`: activación MANUAL). ✅ **Cierra de paso la divergencia de DOS FLOTAS**: hoy una
+> tarjeta cuyo RTC escribió un firmware anterior al 11/09 **sí** reanuda y una recién grabada **no**, con
+> el mismo binario y sin que nada del `$STATUS` lo distinga. **El comentario del firmware que atribuye
+> esto a «sin cristal» se queda corto: pasa también con el cristal vivo.**
 
 ### 5.3 🔴 El bit `OSF` — el chip lo regala, y hay que cogerlo
 
@@ -1654,7 +1672,9 @@ rango.
 > medido el 11/09 sobre `68dd2c5`, con la siembra YA construida:** si el `DS3231` tiene el `OSF` puesto,
 > `siembra_ahora()` **no manda nada** (`reloj_leer()` dice que no), y la controladora **se queda con
 > la hora que tenía, con `reloj_enHora()` en `true`**: la bandera **no baja**. Lo único que cambia es
-> que a los 15 min sale `$ALARM …EVENTO:HORA_ESP32,CAUSA:SIN_HORA_DEL_ESP32…` (§5.7). `grep -rnw OSF`
+> que ~~a los 15 min~~ *(cifra retirada el 12/09: derivaba de la cadencia vieja y volvería a caducar —
+> `CLAUDE.md` §14)* **al cabo de `HORA_ESP32_ESPERA_MAX_MS` —tres cadencias, `{Maestro,Esclavo}/include/reloj.h`—**
+> sale `$ALARM …EVENTO:HORA_ESP32,CAUSA:SIN_HORA_DEL_ESP32…` (§5.7). `grep -rnw OSF`
 > sobre `{Maestro,Esclavo}/{src,include}` → dos líneas, **las dos de un comentario** de
 > `Maestro/include/reloj.h` que dice exactamente eso. **La pieza A sigue sin construir**, y lo que se
 > construye el 11/09 fuera de `main` es `D-21` (1) —ámbar en la punta cuya hora ya no es fiable—.
@@ -1825,8 +1845,8 @@ el camino de datos y `esp32_07` les prohíbe tener reloj (P-1/P-4), y esto neces
 | | lo construido | símbolo |
 |---|---|---|
 | **La línea** | `CMD:HORA_ESP32:%04d-%02d-%02d,%02d:%02d:%02d` — un literal entero, 34 caracteres, por debajo de los 63 útiles del STM32. **Sólo campos de `reloj_leer()`**: si la barrera del `DS3231` dice que no (sin hora, `OSF`, bus caído), **no sale nada** — ni un hueco, ni un cero, ni la última que se vio | `FORMATO_HORA_ESP32`, `siembra_ahora()` |
-| **Cuándo sale** | (1) **al arrancar**, en cuanto el `DS3231` da hora fiable, con **dos reintentos** a 10 s y 60 s (el STM32 abre `J17` ≥ 4 s después del encendido: `delay(2000)` + `ESPERA_LSE_MS`); (2) **justo después de un `SET_RTC` bueno**, dentro de su rama `RELOJ_OK`; (3) **cada 300 s** desde la última que salió | `siembra_revisar()` en `loop()`; `SIEMBRA_REINTENTO_1_MS`, `SIEMBRA_REINTENTO_2_MS`, `SIEMBRA_INTERVALO_MS` en `contrato.h` |
-| **Por qué 300 s y no una hora** | `D-26` (2): lo que deriva no es el `DS3231` —segundos al mes— sino el HSI del STM32 entre siembras: a 25.000 ppm una hora son 90 s contra los 29 s del cruce; 300 s son 7,5 s. **Corrige el número de `A-15`**, y a propósito ya no comparte nombre con `INTERVALO_SYNC_MS` (aquél sigue siendo el reenvío Maestro→Esclavo de `coordinador.cpp`) | `HSI_PPM_PEOR` en `Maestro/include/reloj.h`; `esp32_13` rehace la cuenta |
+| **Cuándo sale** | (1) **al arrancar**, en cuanto el `DS3231` da hora fiable, con **dos reintentos** a 10 s y 60 s (el STM32 abre `J17` ≥ 4 s después del encendido: `delay(2000)` + `ESPERA_LSE_MS`); (2) **justo después de un `SET_RTC` bueno**, dentro de su rama `RELOJ_OK`; (3) **cada `SIEMBRA_INTERVALO_MS`** ~~cada 300 s~~ desde la última que salió | `siembra_revisar()` en `loop()`; `SIEMBRA_REINTENTO_1_MS`, `SIEMBRA_REINTENTO_2_MS`, `SIEMBRA_INTERVALO_MS` en `contrato.h` |
+| **Por qué una cadencia de minutos y no una hora** ~~«Por qué 300 s»~~ | `D-26` (2), fijada **al segundo** por 🆕 `D-28` (1): lo que deriva no es el `DS3231` —segundos al mes— sino el HSI del STM32 entre siembras: a `HSI_PPM_PEOR` una hora son 90 s contra los 29 s del cruce, y **una hora no cabe**. ~~300 s son 7,5 s~~ — **la deriva por cadencia NO se escribe aquí** (`CLAUDE.md` §14: un `.md` no puede recalcularla, así que nace caducada; se retiró el 12/09 al bajar la cadencia). **Lo que este documento afirma es la propiedad: la deriva de UNA cadencia al HSI peor queda por debajo del margen del cruce**, y la recalcula el `static_assert` de `modo_degradado.cpp` en cada compilación. **Corrige el número de `A-15`**, y a propósito ya no comparte nombre con `INTERVALO_SYNC_MS` (aquél sigue siendo el reenvío Maestro→Esclavo de `coordinador.cpp`) | `SIEMBRA_INTERVALO_MS` en `contrato.h`, replicada como `HORA_ESP32_CADENCIA_MS` y `HSI_PPM_PEOR` en `Maestro/include/reloj.h`; `esp32_13` contrasta las dos y rehace la cuenta |
 | **Qué significa `true`** | «la línea salió **entera** por `J17`», **no** «el STM32 la aceptó»: esperar su acuse obligaría a parar el bombeo | `siembra.h` |
 | **`SET_RTC` ya no cruza** | lo que `despachador_esParaElPuente()` reclama —`CMD:LEER_RTC`, `SET_RTC:` dentro de la línea, `HORA_ESP32` dentro de la línea— **no se escribe en `J17`**; lo contesta `despachador_atender()`. Consecuencia aceptada (`D-26` (1)): **el PIN del `SET_RTC` ya no lo comprueba nadie** —el puente no lo conoce (`esp32_09`) y el STM32 ya no ve la línea— | `despachador.cpp`, `puente.cpp` |
 | **Anti-suplantación** | toda línea del teléfono con `HORA_ESP32` dentro se tira con `$ERR,NODE:PUENTE,CMD:HORA_ESP32,DESC:LINEA_RESERVADA_AL_PUENTE`, **antes** que cualquier otra rama: el STM32 acepta esa orden sin PIN | `suplantaLaSiembra()` |
@@ -1841,9 +1861,9 @@ el camino de datos y `esp32_07` les prohíbe tener reloj (P-1/P-4), y esto neces
 | **¿la aplica?** | **siempre**, y si entra, `coordinador_sincronizarHora()` la empuja al Esclavo por radio **en esa misma siembra** (⚠️ el `bool` que devuelve se tira: `N-162` `H6`) | **sólo si `reloj_radioManda()` es falso** —la hora que hay es de radio (`FH_RADIO`) y llegó una trama válida del Maestro en `SFTY6_SILENCIO_MS`, 25 s, el mismo silencio de `$ALARM FALLO_RF`—. `reloj_notarRadio()` lo alimenta con **cada** trama válida, no con `tUltimoComando` |
 | **las 48 h del Degradado** | — | esta hora **no renueva** `degradado_registrarSync()` ni `respaldo_marcarSync()`: el plazo cuenta desde la última del Maestro |
 | **escribe el RTC de hardware** | **no** (`N-162`: bloqueaba ~3 s con el RTC parado y rejuvenecía la marca de sync) | **no** |
-| **en Degradado** | un salto > `SALTO_SIN_ROJO_MAX_S` = `DEG_DESPEJE_SEG - 1` (29 s) → `DEG_ENTRADA_ROJO`; un `static_assert` exige que una siembra normal (⌈300 s × 25.000 ppm⌉ + 1 = 9 s) quede por debajo | `saltoSinRojoMaxS()` = despeje del Maestro − 1 → `DEG_ENTRANDO` |
+| **en Degradado** | un salto > `SALTO_SIN_ROJO_MAX_S` = `DEG_DESPEJE_SEG - 1` (29 s) → `DEG_ENTRADA_ROJO`; un `static_assert` exige que **una siembra normal** —⌈cadencia × `HSI_PPM_PEOR`⌉ + 1 s de truncado— **quede por debajo**, o el Degradado pasaría por rojo en cada cadencia. ~~(⌈300 s × 25.000 ppm⌉ + 1 = 9 s)~~ *(el resultado se retira el 12/09: cambia con la cadencia y este `.md` no puede recalcularlo — `CLAUDE.md` §14. Lo recalcula el compilador)* | `saltoSinRojoMaxS()` = despeje del Maestro − 1 → `DEG_ENTRANDO`; el `static_assert` en `Maestro/src/modo_degradado.cpp` |
 | **diario** (sólo en el cambio) | `HORA_ESP32_SEMBRADA` | `HORA_ESP32_IGNORADA_MANDA_RADIO` · `HORA_ESP32_SEMBRADA` |
-| **la alarma `D-26` (5)** | `horaEsp32Vigilar()`: sin una `HORA_ESP32` buena en `HORA_ESP32_ESPERA_MAX_MS` (3 × 300 s) → `$ALARM,NODE:MAESTRO,EVENTO:HORA_ESP32,CAUSA:{RECHAZADA_FORMATO\|J17_MUDO\|SIN_HORA_DEL_ESP32},…,ACCION:SIGUE_SU_HORA`, repetida cada espera entera | la misma, `NODE:ESCLAVO`; una hora **ignorada** cuenta como buena (vigila que llegue, no que se aplique) |
+| **la alarma `D-26` (5)** | `horaEsp32Vigilar()`: sin una `HORA_ESP32` buena en `HORA_ESP32_ESPERA_MAX_MS` —**tres cadencias**, ~~(3 × 300 s)~~ *(el producto se retira el 12/09: derivaba de la cadencia vieja)*— → `$ALARM,NODE:MAESTRO,EVENTO:HORA_ESP32,CAUSA:{RECHAZADA_FORMATO\|J17_MUDO\|SIN_HORA_DEL_ESP32},…,ACCION:SIGUE_SU_HORA`, repetida cada espera entera | la misma, `NODE:ESCLAVO`; una hora **ignorada** cuenta como buena (vigila que llegue, no que se aplique) |
 
 `J17_MUDO` y `SIN_HORA_DEL_ESP32` se separan con el registro de `J17` que ya existía y su mismo umbral
 (`J17_SILENCIO_MIN_MS`): no llega ni el latido → cable o ESP32; llega el latido y no la hora → el
@@ -1862,11 +1882,57 @@ el camino de datos y `esp32_07` les prohíbe tener reloj (P-1/P-4), y esto neces
 >   compila ya el `reloj.cpp` REAL de las dos, lo que sigue es la foto de antes)* `fuenteHora`, `reloj_radioManda()` y la frontera
 >   de 25 s los mira sólo `reloj_03_manda_la_radio`, **por texto**. El Degradado a dos puntas sustituye
 >   `reloj_notarRadio()` por un contador.
-> - **`H3`**: el presupuesto que el cruce aguanta de desfase entre los dos `DS3231` es de **11 s**
->   (29 − 2 × 8 − 2 × 1), ~32 días a 2 ppm por chip —~18 días en un gabinete al sol—. **Con el `J17`
->   mudo, el HSI se come esos 11 s en minutos**, no en meses.
+> - **`H3`**: el cruce sólo aguanta un **desfase acotado** entre los dos `DS3231`, y lo que queda para él
+>   es **lo que sobra del aguante del ciclo después de descontar la deriva que el plazo le concede a cada
+>   punta**. ~~es de **11 s** (29 − 2 × 8 − 2 × 1), ~32 días a 2 ppm por chip —~18 días en un gabinete al
+>   sol—~~ 🔴 *(las cuatro cifras se RETIRAN el 12/09, no se actualizan: el «8» era la deriva por punta a
+>   la cadencia vieja y el «11 s» y los días salían de él, así que caducaron con `D-26` (2) y volverían a
+>   caducar con `D-28`. Un `.md` no puede recalcularlas — `CLAUDE.md` §14.)* **Quien las recalcula en cada
+>   corrida, y es donde hay que mirarlas:** `_aguante()` de `esp32_13_siembra_de_hora.py` da el aguante del
+>   ciclo y `_relativa_s()` de `reloj_04_hora_que_caduca.py` la separación relativa que el plazo permite;
+>   **`reloj_04` falla si lo que queda deja de ser positivo**. ⚠️ 🆕 **`D-28` (2) lo ESTRECHA a propósito**
+>   —es el coste aceptado por el responsable a cambio de aguantar dos siembras perdidas— y sigue siendo
+>   positivo. **Con el `J17` mudo, el HSI se come ese margen en minutos**, no en meses: eso no cambia.
 > - **La «cadena completa»** —que la radio escriba también el `DS3231` del Esclavo— **no está**: `D-26`
 >   la deja como mejora.
+
+#### 5.7.bis 🆕 `D-28` (12/09) — la cadencia queda fijada al segundo, y el plazo aguanta DOS siembras perdidas
+
+> 🔴 **EN CONSTRUCCIÓN EL 12/09 POR OTRA MANO. NO ESTÁ EN `main` MIENTRAS SE ESCRIBE ESTO**, así que lo
+> que sigue **es la REGLA que la decisión fija**, no una descripción del binario de hoy. Quien lo lea con
+> una tarjeta delante: **la fuente de verdad es el fuente**, y el estado de la construcción,
+> `ESTADO.md`. **Fila `D-28` de `DECISIONES.md`, decidida por el responsable.**
+>
+> **(1) La cadencia de la siembra deja de ser un «~2 min» aproximado y queda FIJADA AL SEGUNDO.** El
+> número no estaba escrito en `D-26` (2) —salía de una medida del roadmap—, y por eso el agente que la
+> construyó lo devolvió en vez de elegirlo. **Vive en `SIEMBRA_INTERVALO_MS`**
+> (`ESP32_Expansion/include/contrato.h`), replicada como `HORA_ESP32_CADENCIA_MS` en
+> `{Maestro,Esclavo}/include/reloj.h`; **`esp32_13` contrasta las dos en cada corrida.**
+>
+> **(2) El plazo de caducidad de la hora (`D-21` (1)) deja de derivarse del RELEVO y pasa a derivarse de
+> DOS SIEMBRAS PERDIDAS**, que es el caso peor de los dos: **la siguiente hora buena llega en tres
+> cadencias**, y eso —inflado por el HSI en su extremo rápido y cuantizado a segundos enteros de deriva—
+> es `HORA_CADUCA_MS`. **Lo que compra:** una punta con el `J17` mudo **aguanta dos siembras seguidas
+> perdidas sin irse a ámbar**; hasta hoy la segunda la tumbaba y **no volvía sola**, que es una avería
+> que se paga con un viaje al poste.
+>
+> ⚠️ **LO QUE CUESTA, DICHO, porque el responsable lo aceptó con la medida delante:** conceder más deriva
+> **estrecha el margen que le queda a la discrepancia entre los dos `DS3231`**. Sigue siendo positivo, y
+> **`reloj_04` lo recalcula en cada corrida: el día que deje de serlo, el pack lo dice.** La alternativa
+> era el plazo mínimo —más margen, pero el cruce se para y hay que ir al poste—; entre las dos, **el
+> responsable eligió no parar el cruce.**
+>
+> **La regla de minimalidad no desaparece: cambia de sujeto.** El plazo sigue siendo **el MENOR que cubre
+> su caso peor**; lo que cambia es que el caso peor ya no es el relevo sino las dos siembras, y **el
+> `static_assert` del techo se rehace contra el término nuevo**. El del relevo **se conserva**, porque
+> vigila otro término de la fórmula (`CLAUDE.md` §9).
+>
+> **NINGUNA CIFRA DE ESTE APARTADO SE ESCRIBE AQUÍ**, y es deliberado (`CLAUDE.md` §14): las cuatro que
+> este documento recitaba —la cadencia, la deriva entre siembras, la espera de la alarma y el presupuesto
+> del desfase— **ya caducaron una vez el 11/09 y volverían a caducar con esta misma decisión**. **Dónde
+> se leen de verdad:** `HORA_ESP32_CADENCIA_MS`, `HORA_RELEVO_MS`, `HORA_DERIVA_S` y `HORA_CADUCA_MS` en
+> `{Maestro,Esclavo}/include/reloj.h` —con sus tres `static_assert` al lado—, y **recalculadas en cada
+> corrida** por `reloj_04_hora_que_caduca` y `esp32_13_siembra_de_hora`.
 
 ---
 
@@ -2361,7 +2427,7 @@ deja abierto: no se inventa una decisión para que el documento parezca cerrado.
 | ~~**`AB-2`**~~ | ✅ **DECIDIDA el 31/08 y la mitad que faltaba el 04/09.** ~~*Cómo se opera el equipo si el ESP32 se cuelga, sin pantalla, sin pulsadores y sin mando*~~ → el mando **se queda** en los canales `A` y `B` (Manual 17 §3.3, opción 3), y el cruce **se opera desde el Maestro** (§3.7). 🔴 **Lo que sigue abierto no es la decisión, es su demostración:** el mando **no se pudo pulsar en banco** (N-118), el fuente se corrigió el 04/09 y **no se ha cargado en ninguna tarjeta**. El watchdog sigue cubriendo el colgado y **no** el muerto ni el desenchufado | ~~el responsable~~ **decidida; falta la carga verificada** | ya no bloquea el alcance de §6; **sí** bloquea que se pueda vender como salida de emergencia |
 | **`AB-9`** | 🔴 **NUEVA (04/09): dos módulos vírgenes se anuncian con el MISMO nombre.** El rótulo bueno se aprende del `$STATUS` y entra **en la siguiente arrancada** (§6.5); hasta entonces las dos puntas dicen `SEM-SIN-MATRICULA`. Y `AB-2` acaba de convertir ese rótulo en **lo que le dice al operario a qué poste caminar** (§17 3.7). ¿Se cubre por procedimiento —una vuelta de energía a cada módulo antes de irse, firmada en el acta— o el firmware da un provisional distinto por módulo? Las cuatro opciones, en el Manual 17 §3.8 | **el responsable** | si hay que tocar el firmware del puente antes de la primera puesta en marcha |
 | **`AB-3`** | 🟠 **`ESP32_ARRANQUE_MS` y el tiempo de reemparejar SPP: SIN VERIFICAR.** Son el hueco de la desigualdad de §4.2, y **se miden con el módulo en la mano**, no se estiman | **quien monte**, con visto bueno técnico | el número concreto del watchdog, y qué tiene que decirle la app al operario tras un reinicio |
-| ~~**`AB-4`**~~ | ✅ **DECIDIDA EL 07/09 POR EL RESPONSABLE — `DECISIONES.md` `D-20`: gana la vía B.** *«La autoridad de la hora es el ESP32, siempre y para todo. Al STM32 no se le pregunta nunca»*, y el `Y2` **no se repara: se deja de usar**. §1.2 de este documento queda **acotada a la hora** y el resto sigue en pie (ver el recuadro de §1.2, con la propiedad de seguridad medida). 🟢 **11/09: CONSTRUIDA en lo principal** —extrapolador en `9dd8bbf`, siembra `ESP32 → STM32` cada 300 s en `68dd2c5` con las reglas de `D-26` (§5.7)—, sin banco; queda (3) y `N-162` `H1`. *(Lo que sigue es la celda del 07/09.)* 🔴 **Lo que queda abierto ya no es la decisión, es su CONSTRUCCIÓN**, y no lo cierra este documento: (1) `reloj.cpp` de las dos puntas pasa a **extrapolador sembrado cada ~~`LATIDO_MS`~~ 300 s (`D-26`)** con un `EPOCH` del `DS3231` —**no** «un reloj de software refrescado cada tanto»: con el HSI a 10.000-25.000 ppm, sembrar una vez por hora se va **36 s en esa hora**, más que el margen entero de **29 s** del cruce—; (2) el mando `ESP32 → STM32` que siembre, que ~~**no existe**~~ *(existe desde `68dd2c5`: `CMD:HORA_ESP32`, §5.7)* (el camino físico sí: `enlace_stm32.cpp`); (3) las **48 h** de rendición, que hoy salen del contador crudo del RTC del STM32 y se pierden en el primer corte. Tabla de tres filas en `roadmap.md` §3.4.bis. 🟠 Y sigue `SIN VERIFICAR` el `0x68`. **El texto anterior de esta celda se conserva a continuación, SIN tachar, porque describe el equipo de HOY — mientras `D-20` no se construya, todo esto sigue siendo cierto:** 🟠 **El `Y2`: se repara, o el STM32 lleva reloj de software disciplinado por el ESP32.** La vía B **cuelga el reloj del semáforo del accesorio** — contra §1.2. Antes hay una medida pendiente que puede ahorrar la compra entera (`ESTADO.md` `B5`). 🔵 **05/09 (N-145): sigue abierta, y ahora hay una TERCERA vía en marcha que no es ninguna de las dos** — el STM32 publica un hueco honesto y **el puente lo sella al pasar** (`B-5.bis`). Eso **tapa el síntoma en la app y NO da reloj al semáforo**: el Modo Degradado sigue colgando del reloj del STM32. ~~🛑 **Y no está probado: sin `DS3231` comprado (`A6`) ni dirección `0x68` verificada, esta vía SIGUE SIN EJERCER**~~ → 🟢 **07/09: SÍ SE EJERCIÓ.** `N-145` cerrada **en cobre** el 05/09 (`HORA:22:19:58`) y `A6` comprada y puesta. 🛑 **Lo que NO cambia, y es lo que mantiene `AB-4` abierta: el sello tapa el hueco en la APP y sigue sin dar reloj al SEMÁFORO.** El Modo Degradado y todo lo que cuelga de SFTY-20/21 **siguen colgando del `Y2` del STM32**, y siguen igual de bloqueados que el 31/08. 🟠 Sólo queda `SIN VERIFICAR` el `0x68` | ~~**el responsable**~~ **decidida (`D-20`); falta CONSTRUIRLA** | ~~si el `DS3231` del ESP32 basta o hay que tocar el STM32~~ → **ya está contestado: hay que tocar el STM32.** Lo que desbloquea ahora es el Modo Degradado, que lleva bloqueado desde el 31/07 |
+| ~~**`AB-4`**~~ | ✅ **DECIDIDA EL 07/09 POR EL RESPONSABLE — `DECISIONES.md` `D-20`: gana la vía B.** *«La autoridad de la hora es el ESP32, siempre y para todo. Al STM32 no se le pregunta nunca»*, y el `Y2` **no se repara: se deja de usar**. §1.2 de este documento queda **acotada a la hora** y el resto sigue en pie (ver el recuadro de §1.2, con la propiedad de seguridad medida). 🟢 **11/09: CONSTRUIDA en lo principal** —extrapolador en `9dd8bbf`, siembra `ESP32 → STM32` cada `SIEMBRA_INTERVALO_MS` ~~cada 300 s~~ en `68dd2c5` con las reglas de `D-26` (§5.7)—, sin banco; queda (3) y `N-162` `H1`. *(Lo que sigue es la celda del 07/09.)* 🔴 **Lo que queda abierto ya no es la decisión, es su CONSTRUCCIÓN**, y no lo cierra este documento: (1) `reloj.cpp` de las dos puntas pasa a **extrapolador sembrado cada ~~`LATIDO_MS`~~ ~~300 s~~ `SIEMBRA_INTERVALO_MS` (`D-26` (2), fijada al segundo por `D-28` (1); la cifra se retira el 12/09 — §5.7)** con un `EPOCH` del `DS3231` —**no** «un reloj de software refrescado cada tanto»: con el HSI a 10.000-25.000 ppm, sembrar una vez por hora se va **36 s en esa hora**, más que el margen entero de **29 s** del cruce—; (2) el mando `ESP32 → STM32` que siembre, que ~~**no existe**~~ *(existe desde `68dd2c5`: `CMD:HORA_ESP32`, §5.7)* (el camino físico sí: `enlace_stm32.cpp`); (3) las **48 h** de rendición, que hoy salen del contador crudo del RTC del STM32 y se pierden en el primer corte. Tabla de tres filas en `roadmap.md` §3.4.bis. 🟠 Y sigue `SIN VERIFICAR` el `0x68`. **El texto anterior de esta celda se conserva a continuación, SIN tachar, porque describe el equipo de HOY — mientras `D-20` no se construya, todo esto sigue siendo cierto:** 🟠 **El `Y2`: se repara, o el STM32 lleva reloj de software disciplinado por el ESP32.** La vía B **cuelga el reloj del semáforo del accesorio** — contra §1.2. Antes hay una medida pendiente que puede ahorrar la compra entera (`ESTADO.md` `B5`). 🔵 **05/09 (N-145): sigue abierta, y ahora hay una TERCERA vía en marcha que no es ninguna de las dos** — el STM32 publica un hueco honesto y **el puente lo sella al pasar** (`B-5.bis`). Eso **tapa el síntoma en la app y NO da reloj al semáforo**: el Modo Degradado sigue colgando del reloj del STM32. ~~🛑 **Y no está probado: sin `DS3231` comprado (`A6`) ni dirección `0x68` verificada, esta vía SIGUE SIN EJERCER**~~ → 🟢 **07/09: SÍ SE EJERCIÓ.** `N-145` cerrada **en cobre** el 05/09 (`HORA:22:19:58`) y `A6` comprada y puesta. 🛑 **Lo que NO cambia, y es lo que mantiene `AB-4` abierta: el sello tapa el hueco en la APP y sigue sin dar reloj al SEMÁFORO.** El Modo Degradado y todo lo que cuelga de SFTY-20/21 **siguen colgando del `Y2` del STM32**, y siguen igual de bloqueados que el 31/08. 🟠 Sólo queda `SIN VERIFICAR` el `0x68` | ~~**el responsable**~~ **decidida (`D-20`); falta CONSTRUIRLA** | ~~si el `DS3231` del ESP32 basta o hay que tocar el STM32~~ → **ya está contestado: hay que tocar el STM32.** Lo que desbloquea ahora es el Modo Degradado, que lleva bloqueado desde el 31/07 |
 | ~~**`AB-5`**~~ | 🟢 **RESUELTA A MEDIAS EL 05/09 (N-149), y se dice qué mitad.** ~~*`$STATUS` tiene 8 B de margen y nada lo vigila*~~ → **el buffer del Maestro subió a `payload[144]`, el peor caso está MEDIDO en `126 B` (18 B de holgura) y lo vigila `esp32_07_presupuesto_bytes`**, que además tumbó la primera versión del cambio. 🟠 **Sigue abierta para el ESCLAVO**, que se quedó en `payload[128]` y **cuyo margen no está medido: SIN VERIFICAR** | técnico | evita una trama cortada a mitad de campo el día que crezca un literal — **hoy sólo en la punta del Maestro** |
 | **`AB-6`** | 🟡 **El nombre real del pin 3 de `J17`**: `RS(A0)` en el esquemático contra `LCD_PSB` en el firmware. Se cierra **siguiendo el hilo**, no leyendo más código | **quien monte** | el cableado del ESP32 |
 | **`AB-7`** | 🟡 **El PIN `1234` en claro en el fuente y en el aire** (§3.5). Es una limitación conocida. Cambiar el esquema toca las dos puntas y la app, y **no cabe en la especificación de un puente** | **el responsable** | nada de este documento; se anota para que no se dé por resuelto |
