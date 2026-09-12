@@ -3,7 +3,7 @@
 > ## ▶️ PUNTO DE CONTINUACIÓN — 11/09/2026, por la tarde
 >
 > 1. **En `main` (`68dd2c5`): `D-26`, la hora la manda el ESP32 de cada poste.** El ESP32 siembra a su STM32
->    desde el `DS3231` (al arrancar, tras cada `SET_RTC` bueno y cada 300 s, `CMD:HORA_ESP32`); el `SET_RTC` del
+>    desde el `DS3231` (al arrancar, tras cada `SET_RTC` bueno y cada ~~300 s~~ **120 s desde el 12/09**, `CMD:HORA_ESP32`); el `SET_RTC` del
 >    teléfono lo atiende el puente y ya no cruza; la siembra ya no escribe el RTC del STM32; el Esclavo toma la hora
 >    del Maestro con radio y la de su ESP32 sin radio 25 s; en Degradado un salto > 29 s pasa por rojo; y
 >    `$ALARM …EVENTO:HORA_ESP32…` (`J17_MUDO`, `SIN_HORA_DEL_ESP32`, `RECHAZADA_FORMATO`). Revisado por el diff por el
@@ -13,14 +13,17 @@
 > 2. ~~🟠 **EN CONSTRUCCIÓN (worktree, NO está en `main`)**~~ 🟢 **CONSTRUIDA y en `main` el 11/09 por la noche, sin banco: `D-21` pieza (1)** —ámbar intermitente en la punta cuya
 >    hora caducó, dentro del Degradado—. Es la cura de **`H1`**: con el `J17` del Maestro mudo, al caer la radio el
 >    Esclavo adopta su `DS3231` y el Maestro sigue con la hora derivada del HSI → **verde contra verde**. **Bloquea
->    campo.** ~~Se integra por el diff~~ Integrada por el diff (`roadmap.md` §0, fila 1.13); el plazo es **320 s** y la app lo
+>    campo.** ~~Se integra por el diff~~ Integrada por el diff (`roadmap.md` §0, fila 1.13); el plazo es ~~320 s~~ **280 s desde el 12/09** —lo bajó la cadencia de ~2 min, y de paso se descubrió que la derivación vieja era una **tautología**: se derivaba de la propia cadencia, así que a 120 s habría dado plazo = cadencia, **margen cero**. Ahora se deriva del **relevo** (`2C + deriva + SFTY6` = 271 s), con dos `static_assert` que lo sujetan— y la app lo
 >    enseña (`HORA_ESP32,CAUSA:CADUCADA`). La punta en ámbar **no vuelve sola** (`D-21`).
-> 3. **Espera al responsable:** 🆕 **la cadencia de la siembra, ~5 min → ~2 min** (`roadmap.md` §0 fila 2.10: con
->    5 min, una siembra perdida manda el Degradado a ámbar y ~52 % de las caídas de radio dejan al Esclavo sin
->    poder entrar en Degradado unos minutos; con 2 min las dos cosas caben y el margen de los `DS3231` sube) ·
+> 3. **Espera al responsable:** ~~🆕 **la cadencia de la siembra, ~5 min → ~2 min**~~ *(decidida por el responsable
+>    el 11/09 por la noche y **CONSTRUIDA el 12/09 en `dca17cd`**: `SIEMBRA_INTERVALO_MS` = 120000 y el plazo
+>    rederivado. **Lo que sí queda para el responsable son dos cosas nuevas que salieron al construirla:** «~2 min»
+>    no está fijado al segundo en `DECISIONES.md` —los 120 s salen de la medida de la fila 2.10—, y a esa cadencia
+>    **tolerar DOS siembras perdidas cabría**, a cambio de bajar el margen entre los dos `DS3231` de 13 s a 7 s)* ·
 >    **G3/SFTY-6** (la punta en verde tarda 250 ms en soltar frente a un `S_FALLO`); la
 >    referencia del **relé** de `J15`; la **alarma por discrepancia de los dos `DS3231`** —con el matiz de `H3`: el
->    umbral **no puede ser 11 s a secas**, porque el HSI de cada punta mete hasta 7,5 s entre siembras (fila 2.8)—;
+>    umbral **no puede ser 11 s a secas**, porque el HSI de cada punta mete entre siembras ~~hasta 7,5 s~~ **hasta
+>    3 s desde el 12/09** (la cifra la manda la cadencia: `roadmap.md` fila 2.8, y el umbral sube de 11 a 13 s)—;
 >    **tachar «sin filtro de objetivo» en `D-13`** (lo derogó `D-27`); y **los `.zip` del 10/09** —cinco en la raíz, y
 >    tres (`44967db`, `bd77271`, `fae4b3e`) llevan `Camaras_Sisga_4x.html` de ese día, con las afirmaciones de
 >    seguridad retiradas—. Y el texto de los «MESES» de `D-21`/`D-23`, que la medida tumbó (fila 2.7). El resto,
@@ -54,7 +57,7 @@ falsas)*; **medir la alimentación del ESP32** (~~se reinició 5 veces en 97 s~~
 reinicios** en 12:18–12:19: la cinta trae 5 partes `EVT:ARRANQUE`, pero el parte se emite una vez
 por CONEXIÓN Bluetooth, así que un arranque puede anunciarse dos veces; 2 de los 5 son
 `SUBIDA_DE_TENSION`, `roadmap.md` §3.16); y **traer la cinta del Esclavo**. ~~Lo que hay
-que construir es que **el ESP32 mande la hora**~~ → 🟢 **construido y en `main` desde `68dd2c5`** (`D-20`/`A-15`, con las reglas de **`D-26`**: siembra **cada ~5 min**, no cada hora) — **sin banco, y con `H1` abierto, que bloquea campo**. Todo en `roadmap.md` §3.16 (`N-162`).
+que construir es que **el ESP32 mande la hora**~~ → 🟢 **construido y en `main` desde `68dd2c5`** (`D-20`/`A-15`, con las reglas de **`D-26`**: siembra ~~cada ~5 min~~ **cada ~2 min desde el 12/09 (`dca17cd`)**, no cada hora) — **sin banco, y con `H1` abierto, que bloquea campo**. Todo en `roadmap.md` §3.16 (`N-162`).
 🎯 **11/09, `D-27` — CERRADO por el responsable y alineado en los documentos (sin los `.docx`):**
 **las cuatro cámaras están compradas**; **`J14` queda libre y sin cablear** (el fin de carrera no se
 instala — se cierra el conflicto con `A-2`); **la configuración de cada cámara es la del manual del
@@ -335,8 +338,8 @@ lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida
 | | |
 |---|---|
 | Flash | Maestro **89.4 %** (**58560** de 65536 B → **6.976 B libres**) · Esclavo **69.9 %** (45816 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | 🔴 **1373/1378 comprobaciones** en **82 packs** — 81 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
-| Arneses que compilan C++ real | 287/287 pantalla · **99/99** automático · 22/22 ciclo · **85/86 dos puntas (G3 en FALLA)** · **53/53 Degradado a dos puntas** |
+| Banco por packs | 🔴 **1380/1385 comprobaciones** en **82 packs** — 81 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
+| Arneses que compilan C++ real | 287/287 pantalla · **99/99** automático · 22/22 ciclo · **90/91 dos puntas (G3 en FALLA)** · **53/53 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | **268/268** jsdom · 65/65 funcional · 42/42 unitarios · **69/69** TDD |
 

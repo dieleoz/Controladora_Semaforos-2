@@ -52,7 +52,7 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 | Guarda de rutas de los instrumentos | **65 rutas** parseadas, todas existen | `compuerta.py` |
 | Banco de simulación funcional | **9/9 PASS** | `simulador_sistema_v7_6.py` |
 | Escenarios de repetidor | **10/10 PASS** | `simulador_repetidor.py` |
-| Banco por packs | 🔴 **1373/1378 comprobaciones**, **82 packs** — 81 PASS, **1 FALLA**. **Este documento se FIRMA, así que la frase que había aquí —*«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*— se retira por FALSA:** sólo `D-20` y la pieza **B** de `D-21` están construidas. `D-14`, `D-22` y `D-23` son decisiones **vigentes sin construir**, y el rojo las está contando bien | `banco/correr.py` |
+| Banco por packs | 🔴 **1380/1385 comprobaciones**, **82 packs** — 81 PASS, **1 FALLA**. **Este documento se FIRMA, así que la frase que había aquí —*«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*— se retira por FALSA:** sólo `D-20` y la pieza **B** de `D-21` están construidas. `D-14`, `D-22` y `D-23` son decisiones **vigentes sin construir**, y el rojo las está contando bien | `banco/correr.py` |
 | Arnés de pantalla (compila el `lcd.cpp` real) | **287/287** (Maestro 145/145 · Esclavo 142/142) | `Validacion_LCD/compilar.ps1` |
 | Arnés del ciclo degradado | **22/22** | `Validacion_Ciclo` |
 | Arnés del Modo Automático | **99/99** | `Validacion_Automatico` |
@@ -62,7 +62,7 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 | App — test unitarios TDD | **69/69** | segunda suite unitaria |
 | Compilación ESP32 de expansión | **1122973 B — 35,7 %** de 3145728 B | `pio run` |
 | Simulador del puente ESP32 | **118/118** | contrato del puente |
-| Arnés de las dos puntas | 🔴 **85/86** (G3) | el C++ real de las dos puntas en el mismo proceso |
+| Arnés de las dos puntas | 🔴 **90/91** (G3) | el C++ real de las dos puntas en el mismo proceso |
 | Arnés del Degradado a dos puntas | **53/53** | cada punta con su reloj — desde el 11/09, con el `reloj.cpp` REAL de las dos puntas |
 
 > ⛔ **En la fila del arnés que ejecuta la app en el navegador esta tabla publicó `201/201`
