@@ -14,6 +14,206 @@ NOMBRE = "costura_06_reanudacion"
 DESCRIPCION = "la punta que se reinicia, ¿vuelve en fase?"
 
 
+# =================================================================================
+# LAS CONDICIONES DE REANUDACION SE MIDEN POR PROPIEDAD, NO POR FORMA
+#
+# POR QUE ESTE LECTOR NO VOLVERA A ACUSAR AL FIRMWARE CUANDO ALGUIEN MUEVA LA
+# EXPRESION. Hasta el 12/09 esta seccion leia las dos puntas con dos expresiones
+# LITERALES -"reloj_enHora() && respaldo_hayCiclo() && horas != ... && horas < ..."
+# en el Maestro, "sigueVigente = (horas != ...) && (horas < ...)" en el Esclavo-. Eso
+# no media la propiedad: media el ORDEN de los &&, los parentesis y el nombre de la
+# variable intermedia. D-29 reestructuro las dos funciones -saco la vigencia de la
+# sync a su propio bool y giro la puerta del Esclavo a la forma negada- SIN QUITAR
+# NINGUNA CONDICION, y el pack acuso al firmware de un defecto que no tenia: es
+# CLAUDE.md 5 en su forma pura, contenido que se MUDA dentro del mismo fichero.
+#
+# Lo que se mide ahora es lo que la comprobacion siempre dijo medir: que las cuatro
+# condiciones ESTAN, en las dos puntas, dentro del cuerpo de la funcion que reanuda, y
+# que el centinela se compara APARTE del numero. Nada de eso depende de como esten
+# encadenados los &&, asi que la proxima reestructuracion no lo rompe. Lo que SI lo
+# rompe -y debe romperlo- es que una condicion desaparezca.
+#
+# LAS TRES COSAS QUE LE DAN DIENTES, porque sin ellas seria un grep con adornos:
+#
+#  1. SE ACOTA EL CUERPO DE LA FUNCION. Es lo unico que hace que el control negativo
+#     muerda: RESPALDO_SYNC_CADUCADA y LIMITE_*_H tambien viven en
+#     msDesdeSyncEfectivo(), en el mismo .cpp. Buscandolos en el fichero entero, quitar
+#     el centinela de la reanudacion seguiria dando verde.
+#  2. SOLO SE MIRAN LAS DECISIONES DE PRIMER NIVEL del cuerpo. Ese es EL BORDE, y se
+#     escribe aqui cual es y por que es el correcto (CLAUDE.md 7): D-29 metio DENTRO
+#     de la rama de rechazo un segundo 'if' -el diferimiento, con las mismas cuatro
+#     condiciones repetidas- y una condicion borrada de la puerta seguiria apareciendo
+#     alli. Una decision SUBORDINADA no puede contestar por la puerta. Medido: con la
+#     puerta del Esclavo sin respaldo_hayCiclo(), mirando todo el cuerpo el pack daba
+#     verde; mirando solo el primer nivel, cae.
+#  3. LAS BANDERAS LOCALES SE EXPANDEN. 'ok', 'syncVigente', 'sigueVigente' son nombres
+#     de paso; se sustituyen por TODO lo que se les asigna en el cuerpo, a cualquier
+#     profundidad. Asi la misma lectura vale para la forma encadenada de ayer, para la
+#     de dos banderas de hoy y para la secuencial del Esclavo -que asignaba la misma
+#     bandera dos veces-, sin una linea por forma.
+#
+# LO QUE ESTE LECTOR NO MIDE, DICHO AQUI PARA QUE NADIE LO LEA COMO CUBIERTO: que la
+# puerta se EJERCITE. Es un pack de texto (CLAUDE.md 6.3); quien ejecuta esta funcion
+# de verdad es el arnes de dos_puntas. Aqui se mide presencia y simetria, nada mas.
+#
+# Y LO QUE NO ES UNA EXCEPCION: las dos puntas ganaron con D-29 una guarda de abandono
+# DISTINTA -el Esclavo mira mando_ambarLocal(), el Maestro modoActual_get() != MENU-.
+# Este lector no la mira y no le hace falta, porque no es una de las cuatro
+# condiciones: no hay aqui ninguna frase que excuse un verde. Se anota el motivo por
+# si alguien viene a preguntarselo, MEDIDO el 12/09 con fuente.codigo() sobre
+# Maestro/{src,include}: mando_ambarLocal aparece 0 veces en el CODIGO del Maestro -un
+# 'grep' pelado da 2, y las dos son texto de comentario, que es CLAUDE.md 7.1-, porque
+# el B.B.B. de esa punta hace un cambio de MODO y no levanta un cerrojo.
+# =================================================================================
+
+def _bloque(texto, i):
+    """El interior del bloque que abre en texto[i]. None si no cierra.
+
+    Bloque traido LITERAL de app_04_valores_de_status.py: es la misma idea que ya
+    corre en una treintena de packs y no se reescribe aqui otra vez."""
+    apertura = texto[i]
+    cierre = {"{": "}", "(": ")", "[": "]"}[apertura]
+    prof = 0
+    for j in range(i, len(texto)):
+        if texto[j] == apertura:
+            prof += 1
+        elif texto[j] == cierre:
+            prof -= 1
+            if prof == 0:
+                return texto[i + 1:j]
+    return None
+
+
+def _cuerpo_funcion(cod, nombre):
+    """El cuerpo de una funcion C++ por su NOMBRE. None si no esta.
+
+    Se direcciona por nombre y no por la forma de su cabecera porque un nombre es lo
+    unico de una funcion que no cambia al reordenar sus condiciones."""
+    m = re.search(r"\b%s\s*\([^)]*\)\s*\{" % re.escape(nombre), cod)
+    return None if not m else _bloque(cod, m.end() - 1)
+
+
+def _alias_bool(cuerpo):
+    """{bandera local: todo lo que se le asigna en el cuerpo}.
+
+    Se recogen TODAS las asignaciones y a cualquier profundidad, no solo la
+    declaracion: el Esclavo de antes de D-29 declaraba sigueVigente con dos de las
+    condiciones y le asignaba las otras dos mas abajo, dentro de un if. Quedarse con
+    la declaracion habria perdido la mitad de la puerta."""
+    alias = {}
+    for m in re.finditer(r"\bbool\s+(\w+)\s*=\s*([^;]*);", cuerpo):
+        alias.setdefault(m.group(1), []).append(m.group(2))
+    for n in list(alias):
+        for m in re.finditer(r"(?<![\w.>])%s\s*=(?!=)\s*([^;]*);" % re.escape(n), cuerpo):
+            alias[n].append(m.group(1))
+    return {n: " ".join(v) for n, v in alias.items()}
+
+
+def _decisiones_raiz(cuerpo):
+    """Las condiciones de los 'if' de PRIMER NIVEL del cuerpo.
+
+    La profundidad se cuenta por llaves. Vale aqui porque en estos dos ficheros no hay
+    literales de cadena con llaves dentro; si algun dia los hubiera, el borde habria
+    que contarlo con un tokenizador y no con count()."""
+    fuera = []
+    for m in re.finditer(r"\bif\s*\(", cuerpo):
+        if cuerpo.count("{", 0, m.start()) - cuerpo.count("}", 0, m.start()) != 0:
+            continue
+        cond = _bloque(cuerpo, m.end() - 1)
+        if cond is not None:
+            fuera.append(cond)
+    return fuera
+
+
+def _con_alias(cond, alias):
+    """La condicion mas el texto de las banderas locales que nombra, transitivamente.
+
+    No reconstruye la expresion -no hace falta-: solo junta texto para poder preguntar
+    si una condicion esta o no esta. El conjunto 'visto' es lo que impide que una
+    bandera que se nombra a si misma deje el bucle dando vueltas."""
+    visto, pend, out = set(), [cond], []
+    while pend:
+        t = pend.pop()
+        out.append(t)
+        for n, v in alias.items():
+            if n not in visto and re.search(r"\b%s\b" % re.escape(n), t):
+                visto.add(n)
+                pend.append(v)
+    return " ".join(out)
+
+
+def _horas_limite(cod, nombre_h):
+    """Las horas del limite, DERIVADAS de la constante que manda.
+
+    El limite en horas se declara siempre como <X>_MS / 3600000UL -costura_07 lo
+    comprueba en las dos puntas-, asi que aqui se lee la constante en ms y se divide.
+    Leer el _H directamente seria leer una division sin hacer; escribir 48 seria un
+    numero a mano, que es lo que CLAUDE.md 4 prohibe."""
+    nombre_ms = nombre_h[:-2] + "_MS" if nombre_h.endswith("_H") else nombre_h
+    return producto(cod, nombre_ms) // 3600000
+
+
+def _condiciones_reanudacion(fw, punta, funcion):
+    """Las condiciones que la funcion de reanudacion de una punta exige de verdad.
+
+    Devuelve un dict con una entrada por condicion, mas el limite que encontro. No
+    poder acotar el cuerpo es un ABORTADO y no un FALLA: significa que el instrumento
+    no midio -la funcion se renombro o se mudo-, y eso no dice nada del firmware
+    (CLAUDE.md 1)."""
+    cod = fw.codigo(punta, "src", "modo_degradado.cpp")
+    cuerpo = _cuerpo_funcion(cod, funcion)
+    if cuerpo is None:
+        raise fw.Abortado(
+            "no se pudo acotar el cuerpo de %s() en %s/src/modo_degradado.cpp: la "
+            "funcion se renombro o se mudo de fichero. Sin el cuerpo no se puede "
+            "medir la simetria de las condiciones de reanudacion." % (funcion, punta))
+
+    # El numero de horas se sigue desde SU ORIGEN, no por el nombre 'horas': lo que la
+    # propiedad exige es que el centinela y el limite se comprueben sobre la MISMA
+    # lectura del contador de RTC, y no sobre dos numeros distintos que casualmente se
+    # llamen igual.
+    mo = re.search(r"\b(\w+)\s*=\s*respaldo_horasDesdeSync\s*\(\s*"
+                   r"reloj_contadorSegundos\s*\(\s*\)\s*\)", cuerpo)
+    if not mo:
+        return {"antiguedad": False, "indicador": False, "hora": False,
+                "ciclo": False, "centinela": False, "limite": None, "juntas": False}
+
+    h = re.escape(mo.group(1))
+    r_cent = r"(?:%s\s*!=\s*RESPALDO_SYNC_CADUCADA|RESPALDO_SYNC_CADUCADA\s*!=\s*%s)" % (h, h)
+    # Se admiten las dos escrituras de "por debajo del limite" -la directa y la negada-
+    # porque las dos dicen lo mismo y elegir una seria volver a medir la forma.
+    r_lim = (r"(?:%s\s*(?:<|>=)\s*(LIMITE_\w*_H)\b|\b(LIMITE_\w*_H)\s*(?:>|<=)\s*%s)" % (h, h))
+
+    decisiones = [_con_alias(c, _alias_bool(cuerpo)) for c in _decisiones_raiz(cuerpo)]
+    r = {"antiguedad": True, "hora": False, "ciclo": False, "centinela": False,
+         "limite": None, "juntas": False,
+         # El indicador vive en su propia puerta de salida temprana, asi que se pide en
+         # CUALQUIER decision de primer nivel y no en la misma que las otras tres.
+         "indicador": any(re.search(r"\brespaldo_degradadoActivo\s*\(\s*\)", d)
+                          for d in decisiones)}
+    for d in decisiones:
+        hora = bool(re.search(r"\breloj_enHora\s*\(\s*\)", d))
+        ciclo = bool(re.search(r"\brespaldo_hayCiclo\s*\(\s*\)", d))
+        cent = bool(re.search(r_cent, d))
+        ml = re.search(r_lim, d)
+        # Presencia y reunion se apuntan POR SEPARADO, y no es cosmetica: si se marcara
+        # todo a la vez, quitar UNA condicion haria que el fallo acusara a las cuatro y
+        # el mensaje mentiria sobre lo que se midio. Un rojo que nombra mal lo que le
+        # falta manda a mirar donde no es.
+        r["hora"] = r["hora"] or hora
+        r["ciclo"] = r["ciclo"] or ciclo
+        r["centinela"] = r["centinela"] or cent
+        if ml and not r["limite"]:
+            r["limite"] = ml.group(1) or ml.group(2)
+        # LAS CUATRO EN LA MISMA DECISION, no repartidas por el cuerpo: cuatro
+        # condiciones que no se juntan nunca no son una puerta, son cuatro notas.
+        if hora and ciclo and cent and ml:
+            r["juntas"] = True
+    if r["limite"]:
+        r["horas_limite"] = _horas_limite(cod, r["limite"])
+    return r
+
+
 def correr(b, fw):
     # Bloque traido LITERAL, solo reindentado.
     verificar = b.verificar
@@ -84,15 +284,48 @@ def correr(b, fw):
     # El caso feo. Las condiciones de reanudacion son las MISMAS en las dos puntas
     # -eso esta bien-, pero se evaluan sobre datos que pueden diferir. Y el
     # calendario es uno de ellos.
-    m_condiciones = bool(re.search(r"reloj_enHora\(\)\s*&&\s*respaldo_hayCiclo\(\)\s*&&\s*\n?\s*horas\s*!=\s*RESPALDO_SYNC_CADUCADA\s*&&\s*horas\s*<\s*LIMITE_DURO_H",
-                                   T_M_DEG_C))
-    e_condiciones = bool(re.search(r"sigueVigente\s*=\s*\(horas\s*!=\s*RESPALDO_SYNC_CADUCADA\)\s*&&\s*\(horas\s*<\s*LIMITE_SIN_SYNC_H\)",
-                                   T_E_DEG_C))
-    verificar(m_condiciones and e_condiciones,
+    # Se mide la PROPIEDAD, no la forma: ver la cabecera de este fichero, donde esta
+    # escrito por que este lector no vuelve a acusar al firmware cuando alguien mueva
+    # la expresion, y cual es el borde que usa -las decisiones de primer nivel-.
+    _COND = {"indicador": "el indicador de la pila (respaldo_degradadoActivo)",
+             "hora": "el reloj propio en hora (reloj_enHora)",
+             "ciclo": "el ciclo acordado en la pila (respaldo_hayCiclo)",
+             "centinela": "el centinela RESPALDO_SYNC_CADUCADA, aparte del numero",
+             "limite": "la antiguedad por debajo del limite (LIMITE_*_H)"}
+    puntas = {
+        "Maestro": _condiciones_reanudacion(fw, "Maestro", "modo_degradado_reanudarTrasCorte"),
+        "Esclavo": _condiciones_reanudacion(fw, "Esclavo", "degradado_reanudarTrasCorte"),
+    }
+    faltan = []
+    for p, r in puntas.items():
+        if not r.get("antiguedad"):
+            # Va aparte y primero: sin origen no hay numero que comparar, y las otras
+            # cuatro caerian detras diciendo algo que no es el hallazgo.
+            faltan.append("%s: la antiguedad no sale de "
+                          "respaldo_horasDesdeSync(reloj_contadorSegundos())" % p)
+        faltan += ["%s: no exige %s" % (p, t) for k, t in _COND.items() if not r.get(k)]
+        if r.get("hora") and r.get("ciclo") and r.get("centinela") and r.get("limite") \
+                and not r.get("juntas"):
+            faltan.append("%s: las cuatro estan, pero NO se juntan en una sola decision "
+                          "de la puerta: repartidas por el cuerpo no vetan juntas" % p)
+
+    # Y "las MISMAS": cada punta nombra su propia constante -LIMITE_DURO_H en el
+    # Maestro, LIMITE_SIN_SYNC_H en el Esclavo-, asi que la simetria no se puede pedir
+    # por el nombre. Se pide por el VALOR, derivado de la constante en ms de cada
+    # fichero. Sin esto la linea diria "son las mismas" mientras una punta aguanta 48 h
+    # y la otra 24, que es exactamente el desajuste que este pack existe para cazar.
+    horas = {p: r.get("horas_limite") for p, r in puntas.items()}
+    if all(v is not None for v in horas.values()) and len(set(horas.values())) != 1:
+        faltan.append("los limites no valen lo mismo: %s" % horas)
+
+    verificar(not faltan,
               "las cuatro condiciones de reanudacion son las mismas en las dos puntas -indicador, "
               "reloj en hora, ciclo en la pila, antiguedad fechable y por debajo del limite-, y las "
-              "dos comprueban el centinela CADUCADA aparte del numero",
-              "las condiciones de reanudacion difieren entre puntas")
+              "dos comprueban el centinela CADUCADA aparte del numero. Medido sobre el CUERPO de "
+              "cada funcion, no sobre la forma de sus &&: Maestro %s y Esclavo %s, las dos de %s h"
+              % (puntas["Maestro"]["limite"], puntas["Esclavo"]["limite"],
+                 horas["Maestro"]),
+              "las condiciones de reanudacion difieren entre puntas -> " + " | ".join(faltan))
 
     # RETIRADO el 05/08 (N-49 T1) — SE INVIERTE, no se borra sin dejar rastro.
     #
