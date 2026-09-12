@@ -329,14 +329,14 @@ acta es el ESTADO: `decisiones_01_anclas` vuelve a acusar a `D-14`, `D-22` y `D-
 ancla en el fuente, y esa acusación es CORRECTA — están decididas y sin construir.**
 
 Cifras **copiadas del acta
-[`evidencia/2026-09-11_compuerta.txt`](evidencia/2026-09-11_compuerta.txt)**, no escritas a mano —
+[`evidencia/2026-09-12_compuerta.txt`](evidencia/2026-09-12_compuerta.txt)**, no escritas a mano —
 lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida.
 
 | | |
 |---|---|
-| Flash | Maestro **89.4 %** (**58560** de 65536 B → **6.976 B libres**) · Esclavo **69.6 %** (45636 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | 🔴 **1368/1373 comprobaciones** en **82 packs** — 81 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
-| Arneses que compilan C++ real | 287/287 pantalla · **99/99** automático · 22/22 ciclo · **76/77 dos puntas (G3 en FALLA)** · **53/53 Degradado a dos puntas** |
+| Flash | Maestro **89.4 %** (**58560** de 65536 B → **6.976 B libres**) · Esclavo **69.9 %** (45816 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | 🔴 **1373/1378 comprobaciones** en **82 packs** — 81 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
+| Arneses que compilan C++ real | 287/287 pantalla · **99/99** automático · 22/22 ciclo · **85/86 dos puntas (G3 en FALLA)** · **53/53 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | **268/268** jsdom · 65/65 funcional · 42/42 unitarios · **69/69** TDD |
 
