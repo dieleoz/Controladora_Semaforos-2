@@ -325,13 +325,25 @@ de `camara_03_vigilante` hizo exactamente lo que prometía.
 
 ## A-0 · La configuración de la grabación en microSD
 
-✅ **La COMPRA ya está decidida**, el 05/09 por el responsable: *«cada cámara tiene una micro, la
-metemos»* — **2 unidades `high endurance`**, entra como `A10` en la lista de compras
-(`05_Funcional/15_Lista_de_Compras_Hardware.md`).
+🟢 **COMPRADAS Y EN MANO — el responsable, 12/09: «ya están compradas, con SD de 64 GB, son 4 ya».**
+~~✅ La COMPRA ya está decidida, el 05/09: *«cada cámara tiene una micro, la metemos»* — **2 unidades
+`high endurance`**~~ 🔴 **aquel «2 unidades» era FALSO y contradecía a `D-25` y a la lista de compras,
+que dicen CUATRO** *(lo cazó la auditoría del 12/09; se corrige aquí, no allí)*. Son **cuatro de
+64 GB**, una por cámara. Entra como `A10` en `05_Funcional/15_Lista_de_Compras_Hardware.md`.
+⚠️ **Sin verificar si son `high endurance`**, que es lo que aguanta la reescritura continua; con
+grabación **por evento** importa mucho menos que con grabación continua.
 
-**Lo que sigue abierto es la configuración, y no bloquea comprar:** capacidad, días de retención, y
-si la grabación va **continua o por evento**. Recupera el uso que le habías encontrado —soporte de
-accidentes y auditoría— y **no toca una línea de firmware**.
+🔴 **LO QUE SIGUE ABIERTO YA NO ES «LA CONFIGURACIÓN» EN ABSTRACTO: ES QUE NADIE LA CONFIGURA, y
+ahora que las tarjetas están se nota.** Medido el 12/09: **la guía que va al poste no menciona la
+microSD ni una sola vez**, y su paso 07 marca en `Linkage Method` **sólo la salida de alarma**. Un
+instalador que la siga al pie de la letra **deja las cuatro tarjetas vacías**. El manual del modelo
+exige **DOS cosas y las dos faltan del procedimiento**: la casilla **`Trigger Recording`** en la
+misma regla de intrusión, **y** un `Record Schedule` de tipo **`Event`** — *«Before You Start: select
+Trigger Recording in event settings for each record type except Continuous»*, impresa 36. Con una
+sola de las dos no se graba nada. Además la tarjeta **se formatea desde la cámara** antes (impresa 32).
+
+**Lo que sigue siendo decisión y no descuido:** días de retención y **continua o por evento**. La
+capacidad ya no se decide —64 GB, compradas—. No toca una línea de firmware.
 
 ⚠️ **La capacidad máxima tiene dos fuentes que no coinciden:** la ficha oficial del 03/03/2023 dice
 **512 GB**; una recopilación `.docx` que **no es del fabricante** dice 256 GB.
