@@ -214,8 +214,11 @@ static void iniciarSalida(bool rendicion) {
 
   // N-20: el indicador se baja AL EMPEZAR la salida, no al terminarla. Si la luz se
   // fuera durante el todo-rojo de despedida, reanudar al volver seria resucitar un
-  // modo que ya se habia mandado apagar -por el operario, por el regreso del radio o
-  // por el limite de 48 h-, y ninguna de esas tres ordenes admite marcha atras.
+  // modo que ya se habia mandado apagar. Son CUATRO los caminos que llegan hasta aqui,
+  // no tres: el operario, el regreso del radio, el limite duro de 48 h y -desde
+  // D-21 (1)- la hora que dejo de ser fiable en marcha. Ninguna de las cuatro admite
+  // marcha atras, y la lista se enumera entera a proposito: un quinto camino que
+  // alguien anada tiene que chocar con ella (CLAUDE.md 2).
   respaldo_guardarDegradado(false);
 }
 
@@ -226,9 +229,11 @@ void degradado_registrarSync() {
   tUltimaSync = millis();
   syncVencidaLatch = false;
 
-  // Una sincronizacion nueva rehabilita el modo tras una rendicion: la causa que
-  // lo tumbo -deriva desconocida- acaba de desaparecer. No se vuelve a entrar
-  // solo, eso sigue siendo decision del operario.
+  // Una sincronizacion nueva rehabilita el modo tras una rendicion, y lo hace sin
+  // preguntar POR CUAL de las dos se rindio: si fue el limite duro, la deriva
+  // desconocida acaba de medirse; si fue la hora no fiable (D-21 (1)), esta terna la
+  // repone. Por eso el DEG_RENDIDO -> DEG_INACTIVO de abajo no mira rendidoPorHora.
+  // No se vuelve a entrar solo, eso sigue siendo decision del operario.
   if (estado == DEG_RENDIDO) estado = DEG_INACTIVO;
 }
 
@@ -479,11 +484,14 @@ void degradado_actualizar() {
     case DEG_SALIENDO:
       if ((ahora - tCambioEstado) >= rojoObligatorioMs()) {
         if (rendicionEnCurso) {
-          // Rendicion por el limite duro: ambar intermitente, el mismo estado al
-          // que lleva la perdida de radio. Se enciende aqui explicitamente en vez
-          // de esperar a que main.cpp lo deduzca de su temporizador de 12 s,
-          // porque el motivo de esta caida es otro y no debe depender de que ese
-          // temporizador este en el valor adecuado.
+          // Rendicion -por CUALQUIERA de sus dos causas, que aqui ya no se
+          // distinguen-: ambar intermitente, el mismo estado al que lleva la perdida
+          // de radio. Este tramo es comun a las dos guardas de arriba, la del limite
+          // duro y la de la hora no fiable; cual fue lo dice rendidoPorHora, y solo
+          // lo necesita el rotulo. Se enciende aqui explicitamente en vez de esperar
+          // a que main.cpp lo deduzca de su temporizador de 12 s, porque el motivo de
+          // esta caida es otro y no debe depender de que ese temporizador este en el
+          // valor adecuado.
           estado = DEG_RENDIDO;
           semaforo_iniciarFallo();
           protocolo_resetReplayProtection();
@@ -506,8 +514,11 @@ bool degradado_gobiernaLuz() {
 EstadoDegradado degradado_estado() { return estado; }
 
 // R-2. El porque completo esta en modo_degradado.h: DEG_SALIENDO no distingue la salida
-// normal -termina en rojo- de la rendicion por el limite duro -termina en ambar-, y el
-// despachador de Bluetooth necesita esa diferencia para contestar la verdad.
+// normal -termina en rojo- de la rendicion -termina en ambar-, y el despachador de
+// Bluetooth necesita esa diferencia para contestar la verdad. Contesta "esta salida
+// acaba en ambar" y NO por que: vale igual para las dos causas -limite duro y hora no
+// fiable-, porque las dos pasan por el mismo iniciarSalida(true). Quien necesite el
+// motivo pregunta a degradado_rendidoPorHora(), que es otra bandera a proposito.
 bool degradado_rendicionEnCurso() { return rendicionEnCurso; }
 
 // D-21 (1). El porque de que sea una bandera propia esta arriba, donde se declara.

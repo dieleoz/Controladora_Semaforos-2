@@ -415,8 +415,8 @@ static bool salidaDegradadoIniciada() {
 //
 // UN BOTON PARA ENTRAR EN UN MODO QUE NO SE PUEDE VER ES MEDIA FUNCION. Y hay tres
 // preguntas concretas que el operario no podia contestar desde el telefono: si esta
-// punta esta en Degradado, si se rindio a ambar por el limite de 48 h, y si lo que ve
-// en el cruce lo manda el Maestro o el reloj de aqui.
+// punta esta en Degradado, si se rindio a ambar, y si lo que ve en el cruce lo manda el
+// Maestro o el reloj de aqui.
 //
 // POR QUE TRES LITERALES Y NO CINCO, uno por estado del enum:
 //
@@ -425,9 +425,18 @@ static bool salidaDegradadoIniciada() {
 //   que es lo que este campo contesta. En que tramo del modo va se lee en ESTADO:, que
 //   ya viaja al lado y dice ROJO en los dos todo-rojos.
 //
-//   DEG_RENDIDO -> "RENDIDO", y va aparte porque NO es lo mismo: el modo termino solo
-//   al vencer la autorizacion de 48 h y la luz quedo en ambar intermitente. Pintarlo
-//   como DEGRADADO diria que el cruce sigue operando por reloj cuando ya no opera.
+//   DEG_RENDIDO -> "RENDIDO", y va aparte porque NO es lo mismo: el modo TERMINO SOLO
+//   y la luz quedo en ambar intermitente. Pintarlo como DEGRADADO diria que el cruce
+//   sigue operando por reloj cuando ya no opera.
+//
+//   Y SON DOS LAS CAUSAS QUE LLEVAN AHI, no solo el vencimiento de la autorizacion de
+//   48 h: desde D-21 (1) esta punta tambien se rinde si la hora deja de ser FIABLE en
+//   marcha (modo_degradado.cpp, las dos guardas que llaman a iniciarSalida(true)). Este
+//   literal NO las distingue, y es deliberado: el campo contesta QUIEN manda la luz, y
+//   en los dos casos la respuesta es "ya nadie por reloj". El motivo si se publica, pero
+//   por otra via -degradado_rendidoPorHora(), que es lo que lee el rotulo del LCD-, asi
+//   que quien vaya al poste con "RENDIDO" en el telefono todavia no sabe si va a mirar
+//   el radio o el J17. Eso es una carencia conocida del $STATUS, no una simplificacion.
 //
 // EL COSTE EN BYTES ES CERO, Y ESTA MEDIDO POR BUFFER (CLAUDE.md 7.bis): el literal mas
 // largo que puede salir de aqui es "SUBORDINADO", 11 caracteres, que son exactamente
@@ -599,10 +608,13 @@ static void procesarComando(const char* cmd) {
       enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:SALIENDO_TODO_ROJO");
       bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_SIN_PIN");
     } else if (degradado_rendicionEnCurso()) {
-      // Fila D con la salida en curso terminando en AMBAR: es la rendicion por el limite
-      // de 48 h, que acaba en DEG_RENDIDO encendiendo el ambar por su cuenta. La orden no
-      // arranca nada -degradado_salir() ya no opera- pero el latch SI cambia algo: sin el,
-      // ese ambar duraria hasta la siguiente orden del Maestro. R-2.
+      // Fila D con la salida en curso terminando en AMBAR: es una rendicion, que acaba
+      // en DEG_RENDIDO encendiendo el ambar por su cuenta. Vale para las DOS que hay
+      // -el limite duro de 48 h y la hora que dejo de ser fiable, D-21 (1)-, y no hace
+      // falta distinguirlas: lo que se pregunta aqui es como TERMINA la salida en curso,
+      // no por que empezo, y degradado_rendicionEnCurso() contesta exactamente eso para
+      // las dos. La orden no arranca nada -degradado_salir() ya no opera- pero el latch
+      // SI cambia algo: sin el, ese ambar duraria hasta la siguiente orden del Maestro. R-2.
       ambarEmergencia = true;
       enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:SALIDA_YA_EN_CURSO");
       bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_SIN_PIN");
@@ -1004,8 +1016,9 @@ void bluetooth_loop() {
   //                              la senal; pisarla dejaria al operario sin la cuenta.
   //   !degradado_gobiernaLuz()    durante el todo-rojo de despedida la luz es del modo. Es
   //                              tambien lo que impide que esto pise al Degradado.
-  //   estado() != S_FALLO         si la rendicion por 48 h ya encendio el ambar, no se
-  //                              reinicia el parpadeo por gusto.
+  //   estado() != S_FALLO         si una rendicion ya encendio el ambar -la del limite
+  //                              duro o la de la hora no fiable, que acaban las dos en
+  //                              DEG_RENDIDO-, no se reinicia el parpadeo por gusto.
   //
   // Y AQUI YA NO HAY REVOCACION AUTOMATICA. La habia -"si la luz salio de S_FALLO, tira el
   // latch"- y se retira con su porque escrito en la cabecera de ambarEmergencia: durante
