@@ -1,6 +1,34 @@
-# ESTADO — dónde está parado el trabajo HOY (11/09/2026)
+# ESTADO — dónde está parado el trabajo HOY (12/09/2026)
 
-> ## ▶️ PUNTO DE CONTINUACIÓN — 11/09/2026, por la tarde
+> ## ▶️ PUNTO DE CONTINUACIÓN — 12/09/2026
+>
+> 🔴 **LO PRIMERO, y no cambia por nada de lo de abajo: NADA DE LO DE HOY HA VISTO UNA TARJETA.**
+> Son once horas de PC. Lo que decide si esto funciona es la sesión de banco (`roadmap.md` §0,
+> grupo 3) y **la cinta del Esclavo del Sisga, que sigue sin traerse**.
+>
+> **La compuerta pasa de DOS rojos a UNO**, y el que queda **no es un defecto de firmware**: es
+> `decisiones_01_anclas` contando las cinco decisiones tomadas y sin construir (`D-14`, `D-22`,
+> `D-23`, `D-25`, `D-27`). De ésas, `D-23` es teclado, `D-22` necesita una tarjeta delante, y
+> `D-14`/`D-25`/`D-27` puede que **no necesiten ni una línea de código** y el instrumento les
+> exige ancla igual — eso es un defecto del instrumento, y está en la lista.
+>
+> **Lo que entró hoy en firmware, todo `SIN_BANCO`:** `N-142` —el ámbar de emergencia sin PIN
+> **avisa al Maestro**, y el `$ACK` dice si el aviso pudo oírse— · `D-28` —el plazo de la hora a
+> **400 s**, y de paso se descubrió que su derivación era una **tautología** que habría dado
+> margen cero— · `D-29` —**`N-20` resucitado**: un corte de luz ya no mata la reanudación del
+> Degradado— · `N-163` —**`G3` cerrado**: la ventana de verde-contra-ámbar, de 250 ms a **cero**,
+> sin tocar el umbral de 25 s—. **Maestro al 89,8 %, quedan 6.656 B.**
+>
+> **Y el repositorio:** de **1.081 a 549 ficheros versionados** —`99_Legacy/` sale de git con el
+> firmware monolítico dentro—, `OPTIMIZACIONES.md` de **2.310 a 954 líneas** con las 29 reglas
+> contadas antes y después, y **18 filas nuevas en §0** del roadmap: pendientes que sólo vivían
+> en el porqué y que una mudanza al histórico habría enterrado.
+>
+> **LO QUE ESPERA AL RESPONSABLE**, y es corto: los días de retención de las microSD y si graban
+> continua o por evento (`A-0`) · si el poste debe aguantar **tres** siembras perdidas en vez de
+> dos —el margen entre relojes bajaría de 7 s a 1 s sobre 29, **no se recomienda**— · y si se
+> cierra que **el aviso de ámbar entre postes no se acusa**, que cambia el protocolo de radio en
+> las dos puntas. Lo demás de su lista está abajo y en `roadmap.md` §0 grupo (2).
 >
 > 1. **En `main` (`68dd2c5`): `D-26`, la hora la manda el ESP32 de cada poste.** El ESP32 siembra a su STM32
 >    desde el `DS3231` (al arrancar, tras cada `SET_RTC` bueno y cada ~~300 s~~ **120 s desde el 12/09**, `CMD:HORA_ESP32`); el `SET_RTC` del

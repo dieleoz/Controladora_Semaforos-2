@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-09-12
-HEAD         : 6bc628a   rama: main-nuevo
+HEAD         : fd89c2c   rama: main-nuevo
 Arbol        : LIMPIO
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -33,5 +33,5 @@ RESULTADOS
   RESUMEN: 19 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a 6bc628a y re-corriendo
+firmware. Esta acta se verifica volviendo a fd89c2c y re-corriendo
 python 01_Firmware/compuerta.py.
