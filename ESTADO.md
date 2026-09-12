@@ -341,7 +341,7 @@ lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida
 | | |
 |---|---|
 | Flash | Maestro **89.8 %** (**58880** de 65536 B → **6.656 B libres**) · Esclavo **70.1 %** (45932 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | 🔴 **1386/1393 comprobaciones** en **82 packs** — 81 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
+| Banco por packs | 🔴 **1387/1394 comprobaciones** en **82 packs** — 81 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
 | Arneses que compilan C++ real | 287/287 pantalla · **99/99** automático · 22/22 ciclo · **106/106 dos puntas** · **53/53 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | **268/268** jsdom · 65/65 funcional · 42/42 unitarios · **69/69** TDD |

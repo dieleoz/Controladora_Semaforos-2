@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-09-12
-HEAD         : 23b11fa   rama: main-nuevo
+HEAD         : 6bc628a   rama: main-nuevo
 Arbol        : LIMPIO
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -21,7 +21,7 @@ RESULTADOS
   PASS      test unitarios de la app          RESUMEN DE PRUEBAS: 42 PASS | 0 FALLAS  (Total: 42)
   PASS      test unitarios TDD de la app      RESUMEN TDD: 69 PASS | 0 FALLAS  (Total: 69)
   PASS      app ejecutada en DOM              RESULTADO JSDOM: 268 PASS | 0 FALLAS
-  FALLA     banco por packs                   RESUMEN: 1386/1393 comprobaciones  |  packs: 81 PASS, 1 FALLA, 0 ABORTADO
+  FALLA     banco por packs                   RESUMEN: 1387/1394 comprobaciones  |  packs: 81 PASS, 1 FALLA, 0 ABORTADO
   PASS      arnes de pantalla                 MAESTRO  145/145 comprobaciones OK | ESCLAVO  142/142 comprobaciones OK | TOTAL    287/287 comprobaciones OK
   PASS      arnes del ciclo                   RESULTADO: 22/22 comprobaciones OK
   PASS      arnes del respaldo                respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
@@ -33,5 +33,5 @@ RESULTADOS
   RESUMEN: 19 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a 23b11fa y re-corriendo
+firmware. Esta acta se verifica volviendo a 6bc628a y re-corriendo
 python 01_Firmware/compuerta.py.
