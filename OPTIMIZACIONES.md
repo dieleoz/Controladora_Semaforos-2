@@ -1878,9 +1878,22 @@ parejas encendidas a la vez**, demostrando que una orden dirigida a la pareja A 
 > **`trigger alarm output` NO esta**; el manual generico lo da *«only supported by certain models»*.
 > El argumento con el que se daba por probable —*«la ficha pone `1 output`»*— **se retira**: ese
 > borne se cierra tambien **a mano desde el navegador y por horario**, sin analitica ninguna.
-> **`SIN VERIFICAR`, con el peso de la prueba del lado negativo.** Lo cierra el `ENSAYO 0`
-> —diez minutos, solo pantalla— de `roadmap.md` §3.8. **Si la casilla no esta, esta regla no se
-> puede implementar por `J16` y hace falta otro diseno.**
+> ~~**`SIN VERIFICAR`, con el peso de la prueba del lado negativo.**~~ 🟢 **12/09 — ESTA FRASE
+> ESTABA CONGELADA EN EL 07/09 Y HAY MEDIDA DE CAMPO DESDE EL 10/09, EN POSITIVO:** una camara
+> del Maestro con `Intrusion Detection` y `Trigger Alarm Output` dio **0 V en reposo y 3,3 V al
+> detectar** en el borne (`roadmap.md` §3.8, `N-159`). ⚠️ **Pero no se lee como cerrada: NO TIENE
+> ACTA** —ni captura de la lista de casillas, ni numero de serie, ni firmware de la camara— y
+> **cubre UNA de las cuatro**. El estado correcto, y el mismo en todos los documentos:
+> **«confirmado en UNA camara el 10/09, sin acta; el `ENSAYO 0` se repite en las otras tres»**.
+>
+> 🔴 **Y se retira tambien el razonamiento con el que esta fila daba la respuesta por negativa**,
+> porque la auditoria del 12/09 lo tumbo desde dentro de la propia ficha: **«no esta en la lista
+> de `Linkage Method`» NO significa «el equipo no puede»**. Esa misma ficha omite la entrada de
+> alarma en su fila `Basic Event` mientras declara `Alarm: 1 input, 1 output` y el manual tiene un
+> capitulo entero `Set Alarm Input`. **Las filas de evento de esa ficha no son un censo
+> exhaustivo** (`CLAUDE.md` §7.1). Lo cierra el `ENSAYO 0` de `roadmap.md` §3.8 —diez minutos,
+> solo pantalla— **en las tres camaras que faltan, y esta vez con la lista de casillas copiada
+> literal**, que es lo que la medida del 10/09 no recogio.
 >
 > 🔴 **Y su fase de grabacion (`D-14`) NO EXISTE EN EL FIRMWARE.** *«El controlador cierra un
 > contacto y la camara graba»*: **cero anclas en las dos puntas**, medido por separado por dos
@@ -1989,9 +2002,18 @@ Tres caminos, y **lo decide la pregunta 5 del acta de banco**:
 > Y son cosas opuestas: una demanda **pide** el verde, una presencia **lo retrasa**. Reusar una entrada
 > de demanda como presencia sin cambiar quien la lee seria pedir paso justo cuando hay que negarlo.
 >
-> ⚠️ **Y lo que NO se ha movido: `J16` sigue sin poder cablearse.** La medida `M3` —la contradiccion
+> ~~⚠️ **Y lo que NO se ha movido: `J16` sigue sin poder cablearse.** La medida `M3` —la contradiccion
 > entre el netlist y el fuente sobre la polaridad de esos pines— **sigue abierta**, y hasta que se
-> cierre con ohmimetro **no se cablea camara a `J16`**, ni de demanda ni de presencia. `PA11` sigue
+> cierre con ohmimetro **no se cablea camara a `J16`**, ni de demanda ni de presencia.~~
+> 🔴 **DEROGADO POR `D-25` y `D-27` (11/09), y esta frase era la mas peligrosa de este documento
+> porque contradecia una INSTRUCCION DE CAMPO en vigor:** las cuatro camaras van a `J16` —camara 1
+> entre p9 (3,3 V) y p10 (`CAM_C_PIN`), camara 2 entre p11 (3,3 V) y p12 (`CAM_D_PIN`), conmutando
+> **hacia +3,3 V y nunca contra masa**—, esta cerrado por el responsable, y las guias ya se lo
+> mandan al instalador. La polaridad **se resolvio**: `pinMode(..., INPUT)` pelado y
+> `digitalRead() == HIGH`, con 9,93/9,94 kOhm a masa y 0 V en reposo medidos en cobre el 03/09.
+> Lo que queda de aquella familia de medidas es **`M4` y solo eso**: nadie ha puesto un
+> multimetro en **p9** —el paso 21 ejercito p10 contra p11—, y sigue marcado ⬜ banco en
+> `MAPEO_TARJETA_KICAD.md`. Es una comprobacion de banco, **no un veto al cableado**. `PA11` sigue
 > siendo la eleccion correcta para una entrada **con bornera propia**; lo que ya no es cierto es que
 > haga falta un hilo a un pad **para tener por donde entrar**.
 
