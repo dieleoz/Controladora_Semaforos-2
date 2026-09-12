@@ -119,6 +119,15 @@ def _ramas(codigo):
     return ramas
 
 
+def _avisa(cuerpo):
+    """Las ordenes de radio que este bloque EMITE, por su nombre del protocolo.
+
+    Se lee la llamada, no el nombre del comando: quien decide si el otro extremo se
+    entera es protocolo_enviarPaquete(), y el CMD_ que lleva dentro lo deduce quien
+    llama a esto. Un pack que escribiera el nombre a mano seguiria midiendo el de ayer."""
+    return sorted(set(re.findall(r"protocolo_enviarPaquete\s*\(\s*(\w+)", cuerpo)))
+
+
 def _nombres_en_respuestas(cuerpo):
     """Los comandos que las respuestas de una rama NOMBRAN. [(tipo, nombre)]."""
     return [(m.group(1), m.group(2))
@@ -331,6 +340,68 @@ def correr(b, fw):
         "ambar de la app: llega un CMD_GO_RED, el nodo esta en S_FALLO y vuelve a "
         "rojo por su cuenta" % (revocacion, GETTER))
 
+    # ---- 4.bis. N-142: LAS DOS PUERTAS AVISAN AL MAESTRO -------------------------
+    #
+    # POR QUE ESTA COMPROBACION NACE EN 2026-09-11 Y NO EL 04/09 CON N-142. Porque el
+    # arreglo de N-142 entro por UNA de las dos puertas y nadie lo midio: medido el
+    # 11/09 sobre el fuente, protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO) tenia UN SOLO
+    # llamador en todo Esclavo/src y vivia en la puerta CON PIN, mientras la app manda
+    # AMBAR_EMERGENCIA por la de SIN PIN (app.js, lista SIN_PIN). O sea que el aviso no
+    # lo habia disparado nunca un telefono: el tecnico del Poste 2 pedia ambar, esta
+    # punta se iba a S_FALLO -ambar intermitente con la pluma ARRIBA- y el Maestro
+    # seguia su ciclo pudiendo dar VERDE en el Poste 1 hacia el mismo carril.
+    #
+    # Y ESTE PACK LO DEJABA PASAR MIENTRAS DECIA MIRAR LAS DOS PUERTAS: el censo de
+    # arriba deduplica por NOMBRE -las dos ramas se llaman igual- y el comparador de
+    # esclavo_08 no miraba las llamadas de protocolo_. Las dos cosas se arreglan; esta
+    # es la mitad positiva -que el aviso ESTE en cada puerta-, y la de esclavo_08 es la
+    # general -que las dos ejecuten lo mismo, sea lo que sea-.
+    #
+    # NADA SE ESCRIBE A MANO, tampoco aqui: la orden de radio se DEDUCE de lo que las
+    # puertas emiten y se exige que sea la MISMA en todas. Escribir CMD_AMBAR_ESCLAVO en
+    # el pack seria el valor por defecto disfrazado de siempre.
+    puertas_ambar = [(c, cu) for c, cu in ramas if "semaforo_iniciarFallo" in cu]
+    if len(puertas_ambar) < 2:
+        raise fw.Abortado(
+            "el despachador del Esclavo tiene %d puerta(s) que llaman a "
+            "semaforo_iniciarFallo() y se esperaban las dos -sin PIN contra 'cmd' y con "
+            "PIN contra 'accion'-. Con una sola, este pack no puede medir si el arreglo "
+            "entro por las dos, que es justo el defecto que viene a cazar"
+            % len(puertas_ambar))
+
+    avisos = [(c, _avisa(cu)) for c, cu in puertas_ambar]
+    emitidos = sorted({x for _, conj in avisos for x in conj})
+    mudas = [c for c, conj in avisos if not conj]
+    b.verificar(
+        bool(emitidos) and not mudas and
+        all(conj == avisos[0][1] for _, conj in avisos),
+        "las %d puertas del ambar de emergencia AVISAN al Maestro por radio, y con la "
+        "misma orden (%s): el ambar del Poste 2 no depende de por donde entro la peticion"
+        % (len(puertas_ambar), ", ".join(emitidos) or "ninguna"),
+        "N-142 A MEDIAS: %s. El Esclavo se pone en ambar intermitente con la pluma "
+        "ARRIBA y el Maestro no se entera, asi que puede seguir dando VERDE en el Poste 1 "
+        "hacia un carril cuyo otro extremo ya no controla nadie. Es el candidato mas "
+        "firme del DAR PASO del Sisga (roadmap 3.16-A)"
+        % ("ninguna puerta del ambar manda una sola trama por radio" if not emitidos
+           else "hay %d puerta(s) del ambar que no mandan nada por radio mientras la(s) "
+                "otra(s) si (%s)" % (len(mudas), emitidos)))
+
+    # Y que el aviso lo LEA alguien en la otra punta: una trama que nadie consume es la
+    # forma cara de N-73 -declarada, emitida y sin efecto-, y desde aqui no se ve.
+    # Se censa el directorio del Maestro, no una lista de ficheros escrita aqui.
+    if emitidos:
+        AVISO = emitidos[0]
+        fw.comando(PROTOCOLO, AVISO)     # el #define tiene que seguir existiendo
+        lectores = sorted(n for n in fw.fuentes_de("Maestro", "src")
+                          if re.search(r"\b%s\b" % AVISO, fw.codigo("Maestro", "src", n)))
+        b.verificar(
+            bool(lectores),
+            "el Maestro LEE ese aviso: %s lo nombra(n) (%s). El Esclavo no avisa al aire"
+            % (", ".join(lectores), AVISO),
+            "NADIE en Maestro/src nombra %s. El Esclavo manda el aviso y en la otra punta "
+            "no lo consume nadie: la trama entra por el UART sin lector y el Maestro sigue "
+            "ciclando igual, que es el defecto de N-142 con una trama de mas" % AVISO)
+
     # ---- 5. Un latch persistente sin salida seria peor que el defecto ------------
     # Si el ambar de Bluetooth no se pudiera revocar, el nodo quedaria sordo al Maestro
     # hasta el siguiente corte de corriente. La salida tiene que estar en el C++, no en
@@ -379,6 +450,36 @@ def correr(b, fw):
                                for _, n in _nombres_en_respuestas(cu)]),
         "el filtro de PIN y el catch-all no se le cuelgan a ninguna rama: sin ese "
         "corte, el censo acusaria de incoherentes a dos ramas correctas")
+    # N-142: el detector del aviso, contra el defecto REAL que estuvo vivo hasta el
+    # 11/09 -una puerta que avisa y otra que no- y contra el firmware arreglado. Sobre
+    # un despachador sintetico y no sobre el real: con el real, quitar el aviso apagaria
+    # tambien este control y una linea que no puede fallar sola es un adorno (N-89).
+    MUDO = '''
+      if (strcmp(cmd, "CMD:AMBAR_EMERGENCIA") == 0) {
+        semaforo_iniciarFallo();
+        enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
+        return;
+      }
+      if (strcmp(accion, "AMBAR_EMERGENCIA") == 0) {
+        semaforo_iniciarFallo();
+        protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO);
+        enviarTramaConCrc("$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
+      }
+    '''
+    mudo = [(c, _avisa(cu)) for c, cu in _ramas(MUDO) if "semaforo_iniciarFallo" in cu]
+    b.control_negativo(
+        len(mudo) == 2 and [conj for _, conj in mudo] == [[], ["CMD_AMBAR_ESCLAVO"]],
+        "sobre dos puertas del ambar -una que avisa al Maestro por radio y otra que no- "
+        "el detector ve las DOS y senala a la muda: es el defecto que vivio desde el "
+        "04/09 hasta el 11/09 sin que este pack lo viera")
+    b.control_negativo(
+        _avisa("protocolo_enviarPaquete(CMD_GO_AMBAR); protocolo_enviarPaquete( CMD_X );")
+        == ["CMD_GO_AMBAR", "CMD_X"] and
+        _avisa("semaforo_iniciarFallo(); enviarTramaConCrc(\"$ACK\");") == [],
+        "el lector del aviso deduce el comando de la llamada -con y sin espacios- y no "
+        "inventa uno donde no hay ninguna: si diera siempre algo, la comprobacion de que "
+        "las dos puertas mandan LO MISMO aprobaria sin mirar")
+
     b.control_negativo(
         _condiciones_if("if (!a() && b(x, y) && c()) {") == ["!a() && b(x, y) && c()"],
         "el lector de condiciones no se parte en el primer ')': las guardas de main.cpp "

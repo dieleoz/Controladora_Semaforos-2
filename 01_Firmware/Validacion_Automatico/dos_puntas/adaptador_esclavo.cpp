@@ -23,8 +23,15 @@
 // guardas de N-83 -las que revocan el ambar de la app- viven EXACTAMENTE ahi.
 //
 // LO QUE SE SUSTITUYE, Y ES TODO LO QUE NO DECIDE UNA LUZ: pantalla (lcd, menu),
-// botones, Bluetooth, el RTC y la radio. Ninguno de esos cinco puede encender un
-// verde; los tres que si pueden -radio, Degradado, mando- se compilan de verdad.
+// botones, el RTC y la radio. Ninguno de esos cuatro puede encender un verde; los tres
+// que si pueden -radio, Degradado, mando- se compilan de verdad.
+//
+// 11/09 (N-142, §3.16-A): Y EL BLUETOOTH DEJA DE ESTAR EN ESA LISTA. bluetooth.cpp del
+// Esclavo se compila en esta DLL -por #include, ver el bloque de mas abajo- porque el
+// ambar de emergencia de la app vive ahi, tiene DOS puertas y solo una avisaba al
+// Maestro. Mientras el arnes lo doblaba con una transcripcion, ese defecto era invisible
+// aqui. Sigue doblado en la variante -DARNES_RELOJ_REAL (arnes del Degradado), que mide
+// la FASE y no el despachador del telefono.
 //
 // EL RTC ES EL UNICO MODELO ESCRITO A MANO QUE QUEDA AQUI, y se dice en voz alta:
 // reloj.cpp incluye <STM32RTC.h> y no hay sustituto de esa libreria en el repositorio.
@@ -124,11 +131,13 @@ void menu_setup() {}
 void menu_loop() { g_lcdRedibujos++; }
 bool menu_estaAbierto() { return g_menuAbierto; }
 
+#ifdef ARNES_RELOJ_REAL
 // ---------------------------------------------------------------------------
-// BLUETOOTH SIMULADO. bluetooth.cpp no se compila -y el 31/08 esta ademas en manos de
-// otro agente-, pero bluetooth_ambarEmergencia() NO puede ser un false fijo: es una de
-// las DOS guardas que vetan un CMD_GO_GREEN en el despachador real (N-83). El
-// orquestador la mueve, de modo que la rama vetada se recorre.
+// BLUETOOTH SIMULADO (arnes del Degradado). bluetooth.cpp no se compila aqui -arrastra
+// el puerto serie entero y lo que este arnes mide es la FASE, no el despachador del
+// telefono-, pero bluetooth_ambarEmergencia() NO puede ser un false fijo: es una de las
+// DOS guardas que vetan un CMD_GO_GREEN en el despachador real (N-83). El orquestador la
+// mueve, de modo que la rama vetada se recorre.
 // ---------------------------------------------------------------------------
 static bool g_ambarEmergencia = false;
 static char g_ultimaAlarmaEvento[48] = "";
@@ -155,6 +164,138 @@ void bluetooth_reportarEvento(const char* origen, const char* detalle) {
     g_eventosSaltoRojo++;
   }
 }
+
+#else   // !ARNES_RELOJ_REAL
+// ---------------------------------------------------------------------------
+// 🔴 EL BLUETOOTH ES EL REAL (11/09, N-142 / §3.16-A). bluetooth.cpp del Esclavo SE
+// COMPILA EN ESTA DLL, y el motivo es un defecto que este arnes no podia ver.
+//
+// EL DEFECTO: el ambar de emergencia de la app tiene DOS puertas en ese fichero -sin PIN
+// contra 'cmd' y con PIN contra 'accion'- y solo la de CON PIN avisaba al Maestro
+// (CMD_AMBAR_ESCLAVO). La app usa la de SIN PIN. Aqui no se veia porque el ambar de la
+// app entraba por la orden "ambar_emergencia_app" de mas abajo, que era una
+// TRANSCRIPCION de la puerta CON PIN escrita en este fichero: el arnes medía la copia
+// buena de una puerta mala. Es CLAUDE.md §8 en su forma mas cara -el modelo replicando
+// lo que el firmware no hace- y se corrige de la unica manera que no vuelve a pasar:
+// compilando el despachador de verdad y metiendole la LINEA que manda el telefono.
+//
+// SE INCLUYE EL .cpp, como arnes_respaldo.cpp con respaldo.cpp: el fuente entra intacto,
+// byte por byte, y lo que se sustituye es el SILICIO de alrededor -el puerto serie- mas
+// los cuatro modulos que esta DLL no compila (protocolo, identidad, botones y el RTC).
+//
+// LO QUE ESTO ANADE AL ARNES, Y NO ES POCO: el $ACK que el telefono recibe pasa a ser
+// observable. Hasta hoy ninguna prueba de este repositorio leia lo que el equipo CONTESTA
+// mientras la luz se movia; se leia por texto en los packs. Ver las ordenes "bt:" y "ack:".
+//
+// LO QUE NO ENTRA: protocolo.cpp (CRC, rafaga y replay), identidad.cpp y botones.cpp. Los
+// tres se doblan aqui abajo y ninguno decide una luz. Y el reloj sigue siendo el modelo de
+// periferico de siempre; la rama CMD:HORA_ESP32 del despachador se puede ejercer, pero
+// quien mide la hora es el arnes del Degradado, con reloj.cpp real.
+// ---------------------------------------------------------------------------
+
+// Los tres pines que bluetooth.cpp nombra y que el sustituto comun de pines.h no tiene.
+// NUMEROS FUERA DE LOS QUE OBSERVA EL ORQUESTADOR (0..12): si RS485_IN_DE_RE cayera
+// encima de una luz, el HIGH de bluetooth_setup() encenderia una lampara en el arnes y
+// el fallo se leeria como un defecto del firmware.
+#ifndef PB7
+#define PB7 14
+#endif
+#ifndef PB6
+#define PB6 15
+#endif
+#ifndef RS485_IN_DE_RE
+#define RS485_IN_DE_RE 13
+#endif
+
+// EL CABLE DEL TELEFONO. Entrada: lo que el orquestador teclea en la app. Salida: la
+// cinta de tramas que el equipo emite, que es lo que la app leeria.
+//
+// Se guarda LA ULTIMA linea de acuse ($ACK o $ERR) y se cuentan las de alarma. Guardar
+// solo la ultima no es pereza: cada orden del arnes se despacha en UN tick y se pregunta
+// en el mismo, igual que el telefono, que tampoco tiene historial.
+static char g_btIn[512];
+static int  g_btInCab = 0, g_btInCola = 0;
+static char g_btUltimoAcuse[192] = "";
+static char g_btLinea[192];
+static int  g_btLineaIdx = 0;
+static unsigned long g_btAlarmas = 0, g_btAcuses = 0, g_btEventos = 0;
+
+static void btSalidaCaracter(char c) {
+  if (c == '\r' || c == '\n') {
+    if (g_btLineaIdx > 0) {
+      g_btLinea[g_btLineaIdx] = '\0';
+      if (!strncmp(g_btLinea, "$ACK", 4) || !strncmp(g_btLinea, "$ERR", 4)) {
+        snprintf(g_btUltimoAcuse, sizeof(g_btUltimoAcuse), "%s", g_btLinea);
+        g_btAcuses++;
+      } else if (!strncmp(g_btLinea, "$ALARM", 6)) {
+        g_btAlarmas++;
+      } else if (!strncmp(g_btLinea, "$EVENT", 6)) {
+        g_btEventos++;
+      }
+      g_btLineaIdx = 0;
+    }
+    return;
+  }
+  if (g_btLineaIdx < (int)sizeof(g_btLinea) - 1) g_btLinea[g_btLineaIdx++] = c;
+}
+
+class HardwareSerial {
+ public:
+  HardwareSerial(int, int) {}
+  void begin(unsigned long) {}
+  int available() { return (g_btInCab != g_btInCola) ? 1 : 0; }
+  int read() {
+    if (g_btInCab == g_btInCola) return -1;
+    char c = g_btIn[g_btInCab];
+    g_btInCab = (g_btInCab + 1) % (int)sizeof(g_btIn);
+    return (int)(unsigned char)c;
+  }
+  void print(const char* s) { while (*s) btSalidaCaracter(*s++); }
+};
+
+// Una linea del telefono, entregada como la entrega el puente: con su salto de linea al
+// final. La despacha bluetooth_loop() REAL en el siguiente tick de esta punta.
+static bool btTeclear(const char* linea) {
+  const char* p = linea;
+  for (;; p++) {
+    int sig = (g_btInCola + 1) % (int)sizeof(g_btIn);
+    if (sig == g_btInCab) return false;   // cola llena: no se finge que entro
+    g_btIn[g_btInCola] = *p ? *p : '\n';
+    g_btInCola = sig;
+    if (!*p) return true;
+  }
+}
+
+// --- Los cuatro modulos que esta DLL no compila y bluetooth.cpp si llama -----
+//
+// protocolo.cpp: sus tres contadores de SFTY-15. tramasValidas() NO es un cero fijo, y
+// eso es lo unico que importa aqui: bluetooth_loop() lo usa para saber que la radio
+// VOLVIO -y con el baja la bandera de enlace caido que decide el $ACK del ambar-. Se
+// cuenta lo que la radio de este arnes entrega de verdad.
+static unsigned long g_rxValidas = 0;
+unsigned long protocolo_bytesRecibidos()    { return g_rxValidas * 4UL; }
+unsigned long protocolo_tramasValidas()     { return g_rxValidas; }
+unsigned long protocolo_tramasDescartadas() { return 0; }
+
+// identidad.cpp: el serie que viaja en el $STATUS. Un literal, porque ninguna decision
+// de luz cuelga de el.
+void identidad_texto(char* dst) { snprintf(dst, 7, "%s", "ARNES1"); }
+
+// botones.cpp: el campo CAM: del $STATUS. La vigilancia de camaras la miden camara_01 y
+// camara_03; aqui solo hace falta que la trama se componga.
+const char* camara_estado() { return "OK"; }
+
+// reloj.cpp: las dos funciones de D-26 que el despachador consulta y que el modelo de
+// RTC de mas abajo no tiene. La FUENTE de la hora no la ejerce este arnes -la ejerce el
+// del Degradado, con reloj.cpp real-, asi que aqui se contesta lo unico que no miente:
+// que la radio no manda la hora mientras nadie la haya sembrado por radio, y que una
+// siembra del ESP32 no entra. Ver la cabecera.
+bool reloj_radioManda() { return false; }
+bool reloj_sembrarDesdeIso(const char*) { return false; }
+
+// EL FUENTE REAL, SIN TOCAR.
+#include "../../Esclavo/src/bluetooth.cpp"   // NOLINT: deliberado, ver la cabecera
+#endif  // ARNES_RELOJ_REAL
 
 #ifdef ARNES_RELOJ_REAL
 // ---------------------------------------------------------------------------
@@ -262,7 +403,15 @@ void protocolo_enviarPaquete(uint8_t cmd, uint8_t param) {
 }
 
 bool protocolo_hayPaqueteDisponible(RF_Packet* destino) {
-  return g_rx.sacar(destino);
+  const bool hay = g_rx.sacar(destino);
+#ifndef ARNES_RELOJ_REAL
+  // N-142: el contador de tramas validas de SFTY-15, que aqui vive en el doble de
+  // protocolo.cpp. Lo lee bluetooth_loop() REAL para saber que la radio VOLVIO, y de esa
+  // bandera cuelga el $ACK del ambar de emergencia: sin este ++, el equipo contestaria
+  // "sin radio" para siempre despues de la primera caida.
+  if (hay) g_rxValidas++;
+#endif
+  return hay;
 }
 
 // ---------------------------------------------------------------------------
@@ -353,6 +502,11 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   }
   if (!strcmp(que, "alarmas_caducada"))    return (long)g_alarmasCaducada;
   if (!strcmp(que, "eventos_salto_rojo"))  return (long)g_eventosSaltoRojo;
+  // Con bluetooth.cpp fuera, las alarmas se cuentan en el doble de arriba, y el veto del
+  // ambar de la app se mueve a mano: es la unica forma de recorrer la rama vetada cuando
+  // el despachador que arma el cerrojo no se compila.
+  if (!strcmp(que, "alarmas"))             return (long)g_alarmasEmitidas;
+  if (!strcmp(que, "ambar_bluetooth"))     { g_ambarEmergencia = (arg != 0); return 1; }
 #else
   if (!strcmp(que, "radio_notada"))        return (long)g_radioNotada;
   // D-26 (4): el salto de hora de ESTA punta, para el bloque E del orquestador del
@@ -366,6 +520,25 @@ PUNTA_API long punta_mando(const char* que, long arg) {
     g_rtcBaseSegundos = (uint32_t)((long)g_rtcBaseSegundos + arg);
     return 1;
   }
+  // --- N-142: EL TELEFONO, POR EL CABLE DE VERDAD -----------------------------
+  //
+  // "bt:<linea>" teclea una linea en el puerto del telefono y la despacha el
+  // bluetooth.cpp REAL en el siguiente tick de esta punta. El orquestador NO escribe
+  // aqui el literal del comando: lo LEE del C++ (ver leerLiteralAmbar() alli), porque un
+  // literal escrito en el arnes seguiria midiendo el comando de ayer el dia que se
+  // renombre -que es exactamente lo que paso con FORZAR_ROJO en N-83-.
+  //
+  // "ack:<subcadena>" contesta si el ULTIMO acuse que el equipo mando al telefono la
+  // contiene. Es lo que la app leeria, no lo que el arnes supone: hasta hoy ninguna
+  // prueba que moviera luces miraba lo que el equipo CONTESTA.
+  if (!strncmp(que, "bt:", 3))             return btTeclear(que + 3) ? 1 : 0;
+  if (!strncmp(que, "ack:", 4))            return strstr(g_btUltimoAcuse, que + 4) ? 1 : 0;
+  if (!strcmp(que, "acuses"))              return (long)g_btAcuses;
+  if (!strcmp(que, "eventos_bt"))          return (long)g_btEventos;
+  // El cerrojo REAL de bluetooth.cpp, no una copia: es una de las dos guardas que vetan
+  // un CMD_GO_GREEN en el despachador de main.cpp (N-83 / D-8).
+  if (!strcmp(que, "ambar_latch"))         return bluetooth_ambarEmergencia() ? 1 : 0;
+  if (!strcmp(que, "alarmas"))             return (long)g_btAlarmas;
 #endif
   if (!strcmp(que, "degradado_gobierna"))  return degradado_gobiernaLuz() ? 1 : 0;
   if (!strcmp(que, "degradado_estado"))    return (long)degradado_estado();
@@ -381,23 +554,17 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   if (!strcmp(que, "senal_en_curso"))      return semaforo_senalEnCurso() ? 1 : 0;
   if (!strcmp(que, "ambar_local"))         return mando_ambarLocal() ? 1 : 0;
   if (!strcmp(que, "tramas_emitidas"))     return (long)g_tramasEmitidas;
-  if (!strcmp(que, "alarmas"))             return (long)g_alarmasEmitidas;
   if (!strcmp(que, "recargas_watchdog"))   return (long)IWatchdog.recargas;
   if (!strcmp(que, "replay_reseteos"))     return (long)g_replayReseteos;
-  if (!strcmp(que, "ambar_bluetooth"))     { g_ambarEmergencia = (arg != 0); return 1; }
-  // N-162 (bloque G): el AMBAR DE EMERGENCIA de la app ENTERO, no solo su veto. Bloque
-  // literal de la rama "AMBAR_EMERGENCIA" de Esclavo/src/bluetooth.cpp -que aqui no se
-  // compila-, sin los $ACK al telefono: luz a ambar, cerrojo puesto y el aviso
-  // CMD_AMBAR_ESCLAVO al Maestro. Devuelve 0 si el Degradado gobierna, igual que alli.
-  if (!strcmp(que, "ambar_emergencia_app")) {
-    if (!degradado_gobiernaLuz()) {
-      semaforo_iniciarFallo();
-      g_ambarEmergencia = true;
-      protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO);
-      return 1;
-    }
-    return 0;
-  }
+  // 🔴 11/09 - AQUI VIVIA "ambar_emergencia_app", Y SE RETIRA EN VEZ DE ARREGLARSE.
+  //
+  // Era una TRANSCRIPCION de la rama del ambar de emergencia -"bloque literal", decia su
+  // comentario- copiada de la puerta CON PIN, la unica que avisaba al Maestro. La app usa
+  // la de SIN PIN, que no avisaba: el arnes ejercia la copia buena de una puerta mala y
+  // por eso el bloque G podia dar verde sin ver nada (N-142 a medias, §3.16-A). Una copia
+  // a mano del firmware no se arregla copiandola mejor: se retira y se compila el
+  // despachador de verdad. Lo que la sustituye es "bt:", que teclea la MISMA LINEA que
+  // manda el telefono.
   if (!strcmp(que, "menu_abierto"))        { g_menuAbierto = (arg != 0); return 1; }
   if (!strcmp(que, "respaldo_valido"))     return respaldo_valido() ? 1 : 0;
   if (!strcmp(que, "respaldo_degradado"))  return respaldo_degradadoActivo() ? 1 : 0;

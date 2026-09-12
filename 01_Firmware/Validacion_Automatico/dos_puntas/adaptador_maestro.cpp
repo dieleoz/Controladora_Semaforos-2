@@ -22,6 +22,26 @@
 // arnes de una punta -semaforo_actualizar(), el loop del modo, mando_actualizar()-, que
 // es el orden literal de main.cpp para el camino del ciclo automatico.
 //
+// 11/09 (N-142, §3.16-A) - MODO_AMBAR SI ENTRA, Y ES EL REAL. Hasta hoy modo_ambar.cpp
+// estaba DOBLADO aqui con dos cuerpos vacios que solo contaban llamadas, y el aviso que
+// el Esclavo manda al ponerse en su ambar de emergencia (CMD_AMBAR_ESCLAVO) no lo
+// consumia nadie en este arnes: coordinador.cpp lo anotaba, main.cpp -que no se compila-
+// era quien lo leia, y aqui esa bandera se quedaba puesta para siempre. O sea que el
+// arnes NO PODIA VER lo unico que el aviso cambia: que el Maestro deje de ciclar y se
+// vaya a ambar. Con el doble, el bloque nuevo habria medido el doble.
+//
+// Entra por #include del .cpp REAL -como arnes_respaldo.cpp con respaldo.cpp- y no por
+// el guion: asi el fichero que se mide es el que va a la tarjeta, byte por byte, y
+// lcd_dibujarDegradadoAmbar() se resuelve contra el sustituto de abajo. La cabecera que
+// se usa para declararlo es la lcd.h REAL del Maestro, no el sustituto de este arnes:
+// una declaracion copiada puede divergir en silencio y la real no puede.
+//
+// LO QUE SIGUE SIN TRANSCRIBIRSE, dicho para que nadie lo cuente como cubierto: la
+// MITAD DE VUELTA de N-152 -CMD_CANCELA_AMBAR_ESCLAVO, que en main.cpp lleva el cruce a
+// MODO_MANUAL-. modo_manual.cpp no se compila en esta DLL y transcribir su destino
+// pidiendo prestado un tercer doble seria medir el doble otra vez. Este arnes mide el
+// ambar que ENTRA; la cancelacion la mide costura_14 por texto.
+//
 // La consecuencia se dice sin adornos: en este arnes el MODO DEGRADADO del Maestro no
 // existe, asi que "las dos puntas en degradado a la vez con configuraciones distintas"
 // no se puede montar por ese lado. Lo que si se monta -y es donde vive el peligro real-
@@ -102,15 +122,28 @@ static ModoSistema g_modoActual = MENU;
 ModoSistema modoActual_get() { return g_modoActual; }
 void modoActual_set(ModoSistema m) { g_modoActual = m; }
 
-// MODO_AMBAR / MODO_DEGRADADO del Maestro: sus .cpp no se compilan (ver cabecera).
-// Se stubean SOLO las funciones que mando.cpp llama de verdad.
+// MODO_DEGRADADO del Maestro: su .cpp no se compila (ver cabecera). Se stubea SOLO lo
+// que mando.cpp llama de verdad.
 static MotivoDegradado g_entradaDegradado = MDG_OK;
-static unsigned long g_modoAmbarSetups = 0;
 static unsigned long g_modoDegradadoSetups = 0;
-void modo_ambar_setup() { g_modoAmbarSetups++; }
-void modo_ambar_fijarMotivo(const char*, const char*) {}
 MotivoDegradado modo_degradado_evaluarEntrada() { return g_entradaDegradado; }
 void modo_degradado_setup() { g_modoDegradadoSetups++; }
+
+// N-142 (11/09): MODO_AMBAR es el .cpp REAL. Ver la cabecera. Va detras de los stubs de
+// pantalla porque los necesita, y antes de pasoPrincipal(), que es quien lo despacha.
+//
+// La cabecera REAL del Maestro, no el sustituto de este arnes: lcd_dibujarDegradadoAmbar()
+// no esta declarada en el sustituto, y copiar su firma aqui seria una declaracion escrita
+// a mano que puede divergir en silencio (la real no puede).
+#include "../../Maestro/include/lcd.h"   // NOLINT: la lcd.h REAL, no el sustituto
+
+static unsigned long g_lcdAmbar = 0;
+void lcd_dibujarDegradadoAmbar(const char* linea1, const char* linea2) {
+  (void)linea1; (void)linea2;
+  g_lcdAmbar++;
+}
+
+#include "../../Maestro/src/modo_ambar.cpp"   // NOLINT: deliberado, ver cabecera
 
 // ---------------------------------------------------------------------------
 // RELOJ SIMULADO. Con reloj_enHora() en false, atenderSincronizacion() del
@@ -197,15 +230,56 @@ bool protocolo_hayPaqueteDisponible(RF_Packet* destino) {
 // ---------------------------------------------------------------------------
 static bool g_pendA = false, g_pendB = false;
 
+// N-142 (11/09): EL TRAMO DE main.cpp QUE CONSUME EL AVISO DEL ESCLAVO, TRANSCRITO EN SU
+// SITIO Y EN SU ORDEN. Es lo unico de main.cpp que decide luz en este camino y no estaba.
+//
+// Transcripcion literal de Maestro/src/main.cpp::loop(), acotada a los modos que esta DLL
+// compila. Las tres piezas, y ninguna es de adorno:
+//
+//   1. En MODO_AMBAR el Maestro NO refresca el coordinador -SFTY-21: calla a proposito- y
+//      por eso oye por coordinador_escucharEnAmbar(). Sin esa llamada, un Maestro en ambar
+//      tiene la radio muda Y SORDA y la trama del Esclavo entraria por el UART sin lector.
+//   2. El aviso se CONSUME aqui -coordinador_hayAmbarDelEsclavo() lo borra al leerlo- y la
+//      respuesta es un cambio de MODO, porque el modo no lo decide la maquina del ciclo.
+//   3. "&& modo != MODO_AMBAR": si ya estamos en ambar no se reentra, porque
+//      modo_ambar_setup() manda un todo-rojo y vuelve a ordenar el ambar, y el operario
+//      puede pulsar tres veces.
+//
+// 'modo' es una COPIA leida al principio de la vuelta, igual que en main.cpp: alli esta
+// medido y escrito que por eso modo_ambar_setup() corre en la vuelta SIGUIENTE. Se
+// conserva el defecto de una vuelta a proposito -es lo que hace el equipo-, no se mejora
+// aqui: un arnes que corrigiera el firmware al transcribirlo mediria otro equipo.
+static ModoSistema modoAnterior = MENU;
+static unsigned long g_entradasAmbar = 0;
+
 static void pasoPrincipal() {
   if (g_pendA) { mando_registrarPulso(MANDO_A); g_pulsarArriba = true; }
   if (g_pendB) { mando_registrarPulso(MANDO_B); g_pulsarAbajo = true; }
   g_pendA = g_pendB = false;
 
   semaforo_actualizar();
-  if (modoActual_get() == MODO_AUTOMATICO) {
-    modoAutomatico_loop();
+
+  ModoSistema modo = modoActual_get();
+  if (modo == MODO_AMBAR) {
+    coordinador_escucharEnAmbar();
   }
+
+  if (coordinador_hayAmbarDelEsclavo() && modo != MODO_AMBAR) {
+    modo_ambar_fijarMotivoDelEsclavo();
+    modoActual_set(MODO_AMBAR);
+  }
+
+  if (modo != modoAnterior) {
+    if (modo == MODO_AMBAR) { modo_ambar_setup(); g_entradasAmbar++; }
+    modoAnterior = modo;
+  }
+
+  switch (modo) {
+    case MODO_AUTOMATICO: modoAutomatico_loop(); break;
+    case MODO_AMBAR:      modo_ambar_loop();     break;
+    default: break;   // los demas modos no se compilan en esta DLL (ver cabecera)
+  }
+
   mando_actualizar();
 }
 
@@ -312,6 +386,13 @@ PUNTA_API long punta_mando(const char* que, long arg) {
     return 1;
   }
   if (!strcmp(que, "modo_actual"))        return (long)modoActual_get();
+  // N-142: cuantas veces ha ENTRADO esta punta en MODO_AMBAR -o sea cuantas veces ha
+  // corrido el modo_ambar_setup() REAL, que manda todo-rojo, ordena CMD_GO_AMBAR y
+  // enciende el ambar de aqui-. Es lo que distingue "se entero" de "sigue ciclando", y
+  // que sea UNA y no tres es lo que distingue un cruce parado de una pluma subiendo y
+  // bajando delante de quien pidio el ambar.
+  if (!strcmp(que, "entradas_ambar"))     return (long)g_entradasAmbar;
+  if (!strcmp(que, "ambar_es_del_esclavo")) return modo_ambar_origenEsclavo() ? 1 : 0;
   return PUNTA_DESCONOCIDO;
 }
 

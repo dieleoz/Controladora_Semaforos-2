@@ -3253,6 +3253,28 @@ document.addEventListener('DOMContentLoaded', () => {
              'del Maestro. Para quitarlo hace falta RETIRAR AMBAR.',
       toast: 'Ya estaba en ambar - ahora ademas queda protegido'
     },
+    // N-142 / §3.16-A (11/09). LAS DOS DE ABAJO SON LAS MISMAS DOS DE ARRIBA CON UN DATO
+    // MAS, Y ES EL QUE DECIDE SI EL TECNICO SE PUEDE IR: el Poste 2 acaba de ponerse en
+    // ambar y AVISA al Maestro por radio, pero esta punta ya habia declarado que se quedo
+    // sin radio, asi que ese aviso casi seguro no llega. El Poste 1 no se entera y puede
+    // seguir dando VERDE hacia el mismo carril. No es un rechazo -el ambar SI esta puesto
+    // aqui- y por eso el tono no cambia; lo que cambia es lo que hay que hacer despues.
+    'AMBAR_EMERGENCIA|OK_SIN_RADIO': {
+      tono: 'red',
+      texto: 'Equipo: AMBAR DE EMERGENCIA puesto EN ESTE POSTE, pero la unidad ha ' +
+             'declarado que se quedo SIN RADIO: el otro poste NO se ha enterado y puede ' +
+             'seguir dando verde hacia este carril. Cierre el paso alli o avise al ' +
+             'Poste 1 antes de irse.',
+      toast: 'Ambar puesto AQUI - sin radio: el otro poste no se ha enterado'
+    },
+    'AMBAR_EMERGENCIA|YA_EN_AMBAR_LATCH_PUESTO_SIN_RADIO': {
+      tono: 'red',
+      texto: 'Equipo: YA ESTABA en ambar y esta orden anade la PROTECCION (no se lo ' +
+             'lleva la siguiente orden del Maestro). Pero la unidad ha declarado que se ' +
+             'quedo SIN RADIO: el otro poste NO se ha enterado. Compruebe el Poste 1 ' +
+             'antes de irse.',
+      toast: 'Protegido, pero sin radio: el otro poste no se ha enterado'
+    },
     // El ambar NO esta puesto todavia: el equipo esta saliendo del Degradado por
     // todo-rojo y eso tarda hasta 90 s (cfgDespeje). Decir OK seria dar por hecho un
     // cambio de luz que aun no ha ocurrido.

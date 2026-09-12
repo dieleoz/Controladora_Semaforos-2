@@ -80,8 +80,21 @@ RE_CONSULTA_GOB = re.compile(r"\bdegradado_gobiernaLuz\s*\(\s*\)")
 # Las llamadas que CAMBIAN el estado del equipo. Se comparan entre las dos puertas del
 # mismo comando; los literales de respuesta y los eventos quedan fuera a proposito,
 # porque el detalle del $EVENT SI es distinto entre ellas y debe serlo.
-RE_ACCION = re.compile(r"\b((?:semaforo|demanda|reloj|config|coordinador|degradado)"
-                       r"_\w+)\s*\(")
+#
+# 🔴 11/09 - 'protocolo' ENTRA EN LA LISTA, Y SU AUSENCIA ES LA MEDIDA DE POR QUE ESTE
+# PACK DEJO PASAR N-142 A MEDIAS. La comprobacion 3 dice comparar lo que hacen las dos
+# puertas del ambar de emergencia y el defecto que estuvo vivo del 04/09 al 11/09 era
+# EXACTAMENTE una diferencia entre ellas: la puerta CON PIN llamaba a
+# protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO) -avisar al Maestro- y la de SIN PIN, que es
+# la que usa la app, no. El comparador miraba seis prefijos y ninguno era 'protocolo_',
+# asi que los dos conjuntos salian iguales y el pack aprobaba.
+#
+# Y NO ES UN PREFIJO MAS: mandar una trama por radio es lo que decide si el OTRO POSTE se
+# entera. Una via que cambia la luz de este poste sin decirselo al otro no hace "casi lo
+# mismo" que la que si lo dice: hace lo contrario en el unico sitio donde importa, que es
+# el carril compartido.
+RE_ACCION = re.compile(r"\b((?:semaforo|demanda|reloj|config|coordinador|degradado"
+                       r"|protocolo)_\w+)\s*\(")
 
 
 def _censo(fw):
@@ -429,3 +442,17 @@ def correr(b, fw):
         any(len(v) > 1 and any(a != v[0] for a in v[1:]) for v in accs_falsas.values()),
         "el comparador de las dos puertas detecta que ejecutan acciones distintas — es "
         "lo unico que impide que el arreglo de N-106 entre por una sola de las dos")
+
+    # 11/09: y el caso EXACTO que se colo -dos puertas identicas salvo el aviso por
+    # radio-. Sin esta linea, anadir 'protocolo' a RE_ACCION seria una afirmacion sobre
+    # el lector que no comprueba nadie (CLAUDE.md 6).
+    SOLO_RADIO_A = 'semaforo_iniciarFallo(); enviarTramaConCrc("$ACK,CMD:X,RESULT:OK");'
+    SOLO_RADIO_B = ('semaforo_iniciarFallo(); protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO);'
+                    ' enviarTramaConCrc("$ACK,CMD:X,RESULT:OK");')
+    b.control_negativo(
+        _acciones(SOLO_RADIO_A) != _acciones(SOLO_RADIO_B) and
+        "protocolo_enviarPaquete" in _acciones(SOLO_RADIO_B) and
+        "protocolo_enviarPaquete" not in _acciones(SOLO_RADIO_A),
+        "dos puertas identicas salvo el AVISO POR RADIO al otro poste ya no se leen "
+        "iguales: es el defecto de N-142 a medias -la puerta sin PIN que la app usa no "
+        "avisaba- y este comparador lo veia igual que el arreglado")
