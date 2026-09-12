@@ -143,6 +143,8 @@ static unsigned long LATIDO_MS_V;            // Maestro: cadencia del latido (PI
 static unsigned long RETARDO_RESPUESTA_MS_V; // Esclavo: cortesia antes de contestar (SFTY-17)
 static unsigned long MAX_VERDE_BACKSTOP_MS_V;// Esclavo: verde maximo, vigilante del final del bucle
 static unsigned long VERDE_MIN_MIN_V, ROJO_MIN_MIN_V;   // limites_ciclo.h: el ciclo del bloque G
+// N-162 (bloque D): modo_degradado.cpp del Esclavo, el limite duro sin sync, EN HORAS.
+static unsigned long LIMITE_SIN_SYNC_H_V;
 
 // ---------------------------------------------------------------------------
 // EL CONTADOR. Mismo patron que arnes_automatico.cpp y arnes_ciclo.cpp.
@@ -658,9 +660,16 @@ static void inyectar(Punta& destino, uint8_t cmd, uint8_t param) {
 // despues. Si esto se olvidara, el Modo Degradado no podria reanudar nunca y el arnes
 // estaria midiendo un equipo que no existe.
 // ---------------------------------------------------------------------------
-static void microcorte(Punta& p) {
+// N-162 (12/09): rtcHwEscrito entrega el dominio con el marcador del RTC HARDWARE puesto
+// (indice 11), y solo el bloque D lo usa. No es una puerta de atras al firmware: es el
+// SILICIO de un equipo cuyo RTC quedo escrito por un firmware ANTERIOR al 11/09, que es la
+// unica forma en que ese marcador puede estar puesto hoy. Sin el, la linea que dice "tras
+// un corte ya no reanuda" la aprobaria igual de bien un escenario que no sabe reanudar
+// nada (CLAUDE.md §9: el control que le falta a toda inversion). -1 = no se toca.
+static void microcorte(Punta& p, int rtcHwEscrito = -1) {
   long dominio[PUNTA_DOMINIO_PALABRAS];
   for (int i = 0; i < PUNTA_DOMINIO_PALABRAS; i++) dominio[i] = p.domLeer(i);
+  if (rtcHwEscrito >= 0) dominio[11] = rtcHwEscrito;
   p.descargar();
   p.cargar();
   for (int i = 0; i < PUNTA_DOMINIO_PALABRAS; i++) p.domEscribir(i, dominio[i]);
@@ -1030,6 +1039,14 @@ int main() {
   VERDE_MIN_MIN_V = leerNumero(LIMITES, R"(VERDE_MIN_MIN\s*=\s*(\d+))", "VERDE_MIN_MIN");
   ROJO_MIN_MIN_V  = leerNumero(LIMITES, R"(ROJO_MIN_MIN\s*=\s*(\d+))", "ROJO_MIN_MIN");
 
+  // N-162 (bloque D): el limite duro sin sincronizacion, la SEGUNDA puerta de
+  // degradado_reanudarTrasCorte(). Se relee del C++ y en HORAS derivadas de la misma
+  // expresion que escribe el firmware -"48UL * 3600UL * 1000UL"-, no de un 48 escrito
+  // aqui: si manana son 24, el bloque compara contra 24 sin que nadie se acuerde.
+  LIMITE_SIN_SYNC_H_V = leerNumero(RAIZ + "/Esclavo/src/modo_degradado.cpp",
+      R"(LIMITE_SIN_SYNC_MS\s*=\s*(\d+)UL\s*\*\s*3600UL\s*\*\s*1000UL)",
+      "LIMITE_SIN_SYNC_MS del Modo Degradado del Esclavo");
+
   // N-142 (bloque H): la linea del telefono y los acuses que esa rama puede contestar,
   // leidos del despachador real. Sin ellos el bloque H tecleeria un comando inventado y
   // el Esclavo lo rechazaria con un $ERR generico: el escenario pasaria por "el Maestro
@@ -1318,6 +1335,16 @@ int main() {
   // El Esclavo en Modo Degradado decide su luz POR RELOJ, con la configuracion que el
   // Maestro le dejo. Si esa configuracion no es la que el Maestro esta usando, hay dos
   // ciclos de distinta duracion sobre el mismo cruce. Aqui se monta a proposito.
+  //
+  // 🔴 12/09 (N-162, roadmap 1.16(c)) - QUE CAMBIO AQUI Y POR QUE. La parte del microcorte
+  // media la reanudacion contra un modelo de RTC que guardaba la hora al ponerla, y el
+  // firmware dejo de escribir ese RTC el 11/09: el escenario reanudaba y la tarjeta ya no
+  // puede. Ninguna linea se reescribio en bloque hasta que pasara (CLAUDE.md §9): D1 a D4
+  // y D7 se conservan tal cual porque no dependen del corte, D5 se reparte -se queda con
+  // la precondicion y suelta la frase que afirmaba que la reanudacion se estaba
+  // ejerciendo-, D6 se conserva porque su propiedad de seguridad sigue valiendo, y lo que
+  // se anade son el desenlace (D6b), el ORDEN de las dos puertas (D6c), lo que la pila
+  // pierde (D6d) y el escenario de control que las tres necesitan (D8/D9).
   {
     escenarioLimpio(tiempos(1, 1, 15));
     unsigned long sim0 = g_verdeSimultaneo;
@@ -1367,14 +1394,77 @@ int main() {
     ESCLAVO.orden("degradado_entrar");
     avanzar(30000);
     bool gobernabaAntes = ESCLAVO.orden("degradado_gobierna") == 1;
+    const bool respaldoAntes = ESCLAVO.orden("respaldo_degradado") == 1;
+    const long cntAntes = ESCLAVO.domLeer(10);
+
     microcorte(ESCLAVO);
+
+    // SE LEE ANTES DE AVANZAR NI UN TICK. degradado_reanudarTrasCorte() ya corrio dentro
+    // de setup() y no se vuelve a llamar nunca -"Solo la llama setup(), y una sola vez",
+    // modo_degradado.cpp-, asi que lo que decidio esta puesto en esta primera vuelta.
+    const bool gobiernaTrasCorte = ESCLAVO.orden("degradado_gobierna") == 1;
+    const bool huboSyncTrasCorte = ESCLAVO.orden("degradado_hubo_sync") == 1;
+    const bool enHoraTrasCorte   = ESCLAVO.orden("reloj_en_hora") == 1;
+    const bool rtcHwTrasCorte    = ESCLAVO.orden("rtc_hw_en_hora") == 1;
+    const long horasSyncTrasCorte = ESCLAVO.orden("respaldo_horas_sync");
+    const long cntTrasCorte       = ESCLAVO.domLeer(10);
+    const bool respaldoTrasCorte  = ESCLAVO.orden("respaldo_degradado") == 1;
+
+    const unsigned long vE0 = g_ticksVerdeEsclavo;
     avanzar(120000);
-    comprobar(gobernabaAntes,
-              "D5: el Esclavo estaba gobernando por reloj cuando se le corto la energia "
-              "(sin eso, la reanudacion no se estaria ejerciendo)");
+    const unsigned long verdesTrasCorte = g_ticksVerdeEsclavo - vE0;
+    comprobar(gobernabaAntes && respaldoAntes,
+              "D5 (control): el Esclavo estaba gobernando por reloj cuando se le corto la "
+              "energia Y la pila lo tenia anotado, que son las dos precondiciones de "
+              "degradado_reanudarTrasCorte(). Sin ellas nada de lo que sigue mide nada");
     comprobar(g_verdeSimultaneo == sim0,
-              "D6: tras el microcorte, con el Esclavo reanudando -o no- el Degradado por "
-              "su cuenta y el Maestro sin enterarse, NUNCA coincidio un verde");
+              "D6: tras el microcorte, con el Esclavo decidiendo por su cuenta si reanuda "
+              "el Degradado y el Maestro sin enterarse, NUNCA coincidio un verde. QUE "
+              "decidio lo dice D6b: hasta el 12/09 esta linea llevaba escrito 'reanudando "
+              "-o no-', y ese '-o no-' era el hueco por el que el bloque se quedo midiendo "
+              "un mecanismo que el firmware ya no tiene");
+
+    // 🔴 N-162, roadmap 1.16(c) - LO QUE D5/D6 NO MEDIAN, Y POR QUE HACIA FALTA.
+    //
+    // Hasta el 12/09 este escenario reanudaba: el modelo de RTC del adaptador guardaba la
+    // hora al ponerla y el dominio se la devolvia al arrancar. El firmware perdio esa
+    // capacidad el 11/09 -reloj_ajustarConAcuse() ya no llama a rtc.setHours/Minutes/
+    // Seconds, o sea que rtc.getYear() no llega nunca a ANIO_MARCA y reloj_setup() deja
+    // horaValida en false-, asi que el arnes estaba ejerciendo un camino que la tarjeta ya
+    // no tiene. Un instrumento que mide contra un mecanismo muerto no mide poco: mide otra
+    // cosa, y da verde. D6 sobrevive porque la propiedad de seguridad que vigila sigue
+    // valiendo; lo que se anade es el DESENLACE, que D6 tapaba con su "-o no-".
+    comprobar(!gobiernaTrasCorte && !huboSyncTrasCorte && verdesTrasCorte == 0,
+              "D6b: tras el corte el Esclavo NO reanuda el Degradado -no gobierna la luz, "
+              "degradado_huboSync() sigue en false y en los 2 min siguientes dio " +
+              std::to_string(verdesTrasCorte) + " verdes por reloj-, porque la hora vivia "
+              "en RAM y el corte se la llevo. Es el desenlace que hoy tiene la tarjeta, y "
+              "el contrario del que este bloque daba por bueno hasta el 12/09: con el "
+              "modelo viejo esta misma ventana traia 640 verdes por reloj");
+
+    // 🔴 Y EL ORDEN, no solo el desenlace (CLAUDE.md §9). degradado_reanudarTrasCorte()
+    // tiene DOS puertas en serie -"reloj_enHora() && respaldo_hayCiclo()" primero, y las
+    // horas desde la ultima sincronizacion despues-. Una inversion que solo mirase D6b la
+    // aprobaria igual con las dos cerradas, y no distinguiria "no reanuda porque no sabe
+    // que hora es" de "no reanuda porque el contador de la pila se perdio", que son
+    // averias distintas y una de ellas seria del arnes. Aqui se exige que la SEGUNDA este
+    // ABIERTA: el contador sobrevivio, avanzo, y la marca de sync es fresca.
+    comprobar(!enHoraTrasCorte && !rtcHwTrasCorte &&
+                  cntTrasCorte >= cntAntes && horasSyncTrasCorte >= 0 &&
+                  (unsigned long)horasSyncTrasCorte < LIMITE_SIN_SYNC_H_V,
+              "D6c (el orden): la puerta que cerro fue la PRIMERA. El contador de la pila "
+              "sobrevivio y avanzo (" + std::to_string(cntAntes) + " -> " +
+              std::to_string(cntTrasCorte) + " s) y la marca de sync sale de hace " +
+              std::to_string(horasSyncTrasCorte) + " h contra un limite de " +
+              std::to_string(LIMITE_SIN_SYNC_H_V) + " h, o sea que la segunda puerta "
+              "estaba ABIERTA; lo que falta es la hora, y el RTC hardware no la trae "
+              "porque desde N-162 ninguna linea del firmware lo escribe");
+
+    comprobar(!respaldoTrasCorte,
+              "D6d: y el indicador de la pila queda BORRADO en ese mismo arranque "
+              "(respaldo_guardarDegradado(false) de la rama !sigueVigente). Es lo que hace "
+              "la perdida definitiva para ese arranque: la hora del ESP32 llega en el "
+              "loop, despues, y ya no hay nada que reanudar");
   }
 
   {
@@ -1400,6 +1490,54 @@ int main() {
               LINEA_AMBAR_APP + " tecleada en el bluetooth.cpp REAL-, el despachador del "
               "Esclavo no encendio verde ni una sola vez en 5 minutos de ordenes del "
               "Maestro (la guarda de N-83, ejercida sobre el .cpp y no sobre su texto)");
+  }
+
+  {
+    // 🔴 EL CONTROL QUE LE FALTA A LA INVERSION DE D6b (CLAUDE.md §9). Una guarda que no
+    // dejara pasar NADA -un escenario que se hubiera roto al partir la bandera del reloj,
+    // un respaldo que ya no se lee, un degradado_entrar() que rechaza por otro motivo-
+    // aprobaria D6b/D6c/D6d exactamente igual de bien que el firmware correcto.
+    //
+    // Asi que se corre el MISMO escenario cambiando UNA cosa: el dominio de la pila llega
+    // con el marcador del RTC hardware PUESTO. Eso no es una puerta de atras al firmware,
+    // es el silicio de un equipo cuyo RTC escribio un firmware ANTERIOR al 11/09 -y con la
+    // CR2032 dentro, ese marcador sobrevive incluso a una recarga por SWD-. Con la hora de
+    // vuelta, el equipo SI reanuda: la reanudacion de N-20 sigue viva y lo unico que hoy la
+    // impide es que nadie escribe ya ese RTC. Sin esta linea, D6b podria estar verde por
+    // haberse quedado sin escenario y nadie lo notaria.
+    escenarioLimpio(tiempos(1, 1, 15));
+    unsigned long sim0 = g_verdeSimultaneo;
+    sincronizarEsclavo(10, 8, 0, 0);
+    configurarEsclavo(20, 10);
+    g_enlaceHaciaEsclavo = false;
+    g_enlaceHaciaMaestro = false;
+    ESCLAVO.orden("degradado_entrar");
+    avanzar(30000);
+    const bool gobernabaAntes = ESCLAVO.orden("degradado_gobierna") == 1;
+
+    microcorte(ESCLAVO, 1);   // el unico cambio: el RTC hardware venia escrito
+
+    const bool enHora   = ESCLAVO.orden("reloj_en_hora") == 1;
+    const bool gobierna = ESCLAVO.orden("degradado_gobierna") == 1;
+    const bool huboSync = ESCLAVO.orden("degradado_hubo_sync") == 1;
+    const bool respaldoSigue = ESCLAVO.orden("respaldo_degradado") == 1;
+    const unsigned long vE0 = g_ticksVerdeEsclavo;
+    avanzar(120000);
+    const unsigned long verdesTrasCorte = g_ticksVerdeEsclavo - vE0;
+
+    comprobar(gobernabaAntes && enHora && gobierna && huboSync && respaldoSigue &&
+                  verdesTrasCorte > 0,
+              "D8 (el control de D6b): con el MISMO escenario y el RTC hardware escrito -un "
+              "equipo anterior al 11/09-, el Esclavo SI reanuda el Degradado tras el corte, "
+              "el indicador de la pila NO se borra y vuelve a encender verde por su reloj (" +
+              std::to_string(verdesTrasCorte) + " instantes). La reanudacion de N-20 esta "
+              "viva; lo que la apaga hoy es que reloj_ajustarConAcuse() dejo de escribir el "
+              "RTC, y no un escenario roto ni una guarda que no deja pasar nada");
+    comprobar(g_verdeSimultaneo == sim0,
+              "D9: y en ese caso -el peor de los dos, porque aqui el Esclavo SI vuelve a dar "
+              "verde por su reloj con el Maestro sin enterarse- tampoco coincidio un verde "
+              "en las dos puntas. Sin el conteo de D8 esta linea seria adorno: una ventana "
+              "sin un solo verde del Esclavo la pasaria igual");
   }
 
   // =========================================================================

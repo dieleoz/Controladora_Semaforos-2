@@ -43,11 +43,16 @@
 // y entra el reloj.cpp REAL del Esclavo, con el silicio sustituido en reloj_real/ (hay
 // STM32RTC.h ahi desde hoy). Asi la caducidad de la siembra y la frontera de 25 s de
 // reloj_radioManda() las ejecuta el bloque F del orquestador del Degradado, en vez de leerse
-// por regex. SIN el define -compilar_dos_puntas.ps1- todo sigue como estaba: aquel arnes
-// ejerce la reanudacion tras un corte con este modelo, que guarda la hora en el RTC al
-// ponerla, y el reloj.cpp real ya no lo hace (N-162). PUNTO CIEGO DECLARADO, NO ARREGLADO
-// AQUI: el bloque D de orquestador.cpp mide la reanudacion sobre un RTC que el firmware de
-// hoy ya no escribe.
+// por regex. SIN el define -compilar_dos_puntas.ps1- entra el modelo de mas abajo.
+//
+// 12/09 (N-162, roadmap 1.16(c)) - AQUEL PUNTO CIEGO ESTABA DECLARADO Y HOY SE CIERRA.
+// Decia: "el bloque D de orquestador.cpp mide la reanudacion sobre un RTC que el firmware
+// de hoy ya no escribe", y era cierto -medido: el Esclavo del arnes despertaba con
+// gobierna=1 despues del microcorte-. El modelo guardaba la hora en el RTC al ponerla; el
+// reloj.cpp real dejo de hacerlo el 11/09. Lo que lo arregla NO es dejar de reponer el
+// dominio -eso mataria el escenario- sino PARTIR LA BANDERA: la hora sembrada vive en RAM
+// y el corte se la lleva, el marcador del RTC hardware vive en la pila y ningun firmware
+// lo escribe. Ver el bloque de las banderas, y D6b/D6c/D6d y D8/D9 del orquestador.
 
 #include "punta_api.h"
 
@@ -318,8 +323,33 @@ static int ramaHoraEsp32(const char* iso) {
 // El contador de segundos es MONOTONO y sobrevive al corte -lo mantiene la pila-, que
 // es la propiedad de la que cuelga todo el fechado de N-49. Avanza con el reloj
 // simulado del arnes: reloj_contadorSegundos() = base + millis()/1000.
-// ---------------------------------------------------------------------------
-static bool     g_rtcEnHora = false;
+//
+// 🔴 12/09 (N-162, roadmap 1.16(c)) - AQUI HABIA UNA SOLA BANDERA CONTESTANDO A DOS
+// PREGUNTAS DISTINTAS, Y POR ESO EL BLOQUE D MEDIA OTRA COSA (CLAUDE.md §8).
+//
+// g_rtcEnHora valia a la vez por "hay hora sembrada" -horaValida de reloj.cpp, que vive
+// en RAM y un corte se la lleva- y por "el RTC hardware esta configurado y con ano >=
+// ANIO_MARCA" -que vive en el dominio de la CR2032 y es LO UNICO que reloj_setup() mira
+// al arrancar-. Como el indice 11 del dominio guardaba y reponia esa unica bandera, el
+// Esclavo del arnes DESPERTABA EN HORA despues de un microcorte y reanudaba el Modo
+// Degradado. MEDIDO hoy sobre el fuente real, eso ya no puede pasar:
+//
+//   grep -n "rtc\.set" Esclavo/src/reloj.cpp  ->  solo rtc.setClockSource()
+//   Esclavo/src/reloj.cpp:283  "N-162 (11/09) - LA SIEMBRA YA NO ESCRIBE EL RTC HARDWARE"
+//   Esclavo/src/reloj.cpp:186  "sin cristal el Degradado NO SE REANUDA tras un corte"
+//
+// o sea que reloj_ajustarConAcuse() no escribe ni la hora ni el ano, rtc.getYear() no
+// llega nunca a ANIO_MARCA, y reloj_setup() deja horaValida en false despues de CADA
+// corte. La misma medida esta en reloj_real/rtc_periferico.cpp -"arnes_rtc_configurado =
+// false; desde N-162 nadie lo escribe"-: aquella variante ya era fiel y esta no.
+//
+// Son dos banderas, y desde hoy lo son:
+//   g_horaSembrada  RAM. La pone reloj_ajustar() (la radio) y se la lleva el corte.
+//   g_rtcHwEnHora   dominio de la pila, indice 11. NINGUNA linea del firmware la pone;
+//                   solo puede ponerla el orquestador, y eso modela un equipo cuyo RTC
+//                   escribio un firmware ANTERIOR al 11/09. Es el control del bloque D.
+static bool     g_horaSembrada = false;
+static bool     g_rtcHwEnHora = false;
 static uint32_t g_rtcBaseSegundos = 0;      // valor del contador cuando millis()==g_rtcAncla
 static unsigned long g_rtcAncla = 0;
 static uint32_t g_rtcSegundosDelDiaBase = 0;
@@ -329,13 +359,18 @@ static uint32_t rtcTranscurrido() {
   return (uint32_t)((arnes_millis_valor - g_rtcAncla) / 1000UL);
 }
 
-void reloj_setup() {}
+// N-162: el reloj_setup() real hace EXACTAMENTE esto y nada mas que importe aqui:
+//   horaValida = rtc.isConfigured() && rtc.getYear() >= ANIO_MARCA && (h|m|s) != 0
+// o sea que la hora que hay al arrancar es la del RTC HARDWARE, la que la pila mantuvo,
+// y ninguna otra. La sembrada por radio esta en RAM y ya no existe. Sin esta linea el
+// modelo despertaba en hora porque el indice 11 le devolvia su unica bandera.
+void reloj_setup() { g_horaSembrada = g_rtcHwEnHora; }
 void reloj_actualizar() {}
-bool reloj_enHora() { return g_rtcEnHora; }
+bool reloj_enHora() { return g_horaSembrada; }
 // D-21 (1): modo_degradado.cpp REAL pregunta si la hora puede decidir una luz. En ESTA
 // variante no hay base de tiempo que caduque y se contesta lo mismo que reloj_enHora(): la
 // caducidad la ejerce la variante con el reloj.cpp real (bloque F del arnes del Degradado).
-bool reloj_horaFiable() { return g_rtcEnHora; }
+bool reloj_horaFiable() { return g_horaSembrada; }
 // D-26 (3): main.cpp REAL la llama con cada trama de radio para que reloj.cpp sepa si la
 // radio del Maestro llega. Aqui reloj.cpp no se compila y nadie pregunta por la fuente de
 // la hora -eso lo decide la rama CMD:HORA_ESP32 de bluetooth.cpp, que tampoco se compila
@@ -343,19 +378,33 @@ bool reloj_horaFiable() { return g_rtcEnHora; }
 static unsigned long g_radioNotada = 0;
 void reloj_notarRadio() { g_radioNotada++; }
 
+// 🔴 EL BORDE QUE ESTE MODELO ELIGE, ESCRITO AL LADO PORQUE ES UNA DECISION (CLAUDE.md §7):
+// AQUI EL CRISTAL CUENTA. El reloj_contadorSegundos() real devuelve 0 solo cuando NO hay
+// cristal (rtcOperativo == false); con cristal devuelve CNT, que la pila mantiene y que
+// sigue contando a traves del corte, y NO depende de que la hora este puesta. Colgarlo de
+// la bandera de la hora -como estaba- juntaba las dos puertas de
+// degradado_reanudarTrasCorte() en una sola y hacia imposible saber CUAL cerro:
+//
+//   sigueVigente = reloj_enHora() && respaldo_hayCiclo();          <- primera
+//   horas = respaldo_horasDesdeSync(reloj_contadorSegundos());     <- segunda
+//
+// Con el contador a 0, la segunda tambien cierra y una inversion que solo mire el
+// desenlace aprueba las barreras en cualquier orden (CLAUDE.md §9). Se modela el caso
+// FAVORABLE al firmware -cristal vivo, marca fresca, la segunda puerta ABIERTA- para que
+// si aun asi no reanuda, la que cerro sea la primera y se pueda medir cual es.
 uint32_t reloj_contadorSegundos() {
-  if (!g_rtcEnHora) return 0;   // el cero significa "no hay reloj", como en el real
-  return g_rtcBaseSegundos + rtcTranscurrido();
+  const uint32_t v = g_rtcBaseSegundos + rtcTranscurrido();
+  return v == 0 ? 1UL : v;   // el mismo suelo que el real: 0 significa "no hay reloj"
 }
 
 uint32_t reloj_segundosDelDia() {
-  if (!g_rtcEnHora) return 0;
+  if (!g_horaSembrada) return 0;
   return (g_rtcSegundosDelDiaBase + rtcTranscurrido()) % 86400UL;
 }
 uint8_t reloj_hora()   { return (uint8_t)(reloj_segundosDelDia() / 3600UL); }
 uint8_t reloj_minuto() { return (uint8_t)((reloj_segundosDelDia() / 60UL) % 60UL); }
 uint8_t reloj_segundo(){ return (uint8_t)(reloj_segundosDelDia() % 60UL); }
-uint8_t reloj_dia()    { return g_rtcEnHora ? g_rtcDia : 0; }
+uint8_t reloj_dia()    { return g_horaSembrada ? g_rtcDia : 0; }
 
 void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo, uint8_t dia) {
   if (hora > 23 || minuto > 59 || segundo > 59 || dia > 31) return;
@@ -366,7 +415,12 @@ void reloj_ajustar(uint8_t hora, uint8_t minuto, uint8_t segundo, uint8_t dia) {
   g_rtcBaseSegundos = contador ? contador : 1;
   g_rtcSegundosDelDiaBase = (uint32_t)hora * 3600UL + (uint32_t)minuto * 60UL + segundo;
   if (dia >= 1) g_rtcDia = dia;
-  g_rtcEnHora = true;
+  // N-162: SIEMBRA LA BASE DE SOFTWARE Y NO TOCA g_rtcHwEnHora, y esa omision es el
+  // modelo. reloj_ajustarConAcuse() perdio el bloque "if (rtcOperativo) { rtc.setHours();
+  // ... }" el 11/09 por tres motivos medidos -bloqueaba 3 s por siembra, nadie leia esa
+  // hora, y rejuvenecia el contador del respaldo-. Poner aqui la bandera del hardware
+  // volveria a escribir el RTC que el firmware dejo de escribir.
+  g_horaSembrada = true;
 }
 #endif  // ARNES_RELOJ_REAL
 
@@ -539,6 +593,13 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   // un CMD_GO_GREEN en el despachador de main.cpp (N-83 / D-8).
   if (!strcmp(que, "ambar_latch"))         return bluetooth_ambarEmergencia() ? 1 : 0;
   if (!strcmp(que, "alarmas"))             return (long)g_btAlarmas;
+  // N-162 (12/09): las dos banderas del reloj, por separado. El bloque D las necesita para
+  // decir CUAL de las dos puertas de degradado_reanudarTrasCorte() cerro tras un corte, en
+  // vez de mirar solo el desenlace. "rtc_hw_en_hora" es la de la pila, la que ningun
+  // firmware escribe desde el 11/09; "reloj_en_hora" es la de RAM que el corte se lleva.
+  if (!strcmp(que, "reloj_en_hora"))       return reloj_enHora() ? 1 : 0;
+  if (!strcmp(que, "hora_fiable"))         return reloj_horaFiable() ? 1 : 0;
+  if (!strcmp(que, "rtc_hw_en_hora"))      return g_rtcHwEnHora ? 1 : 0;
 #endif
   if (!strcmp(que, "degradado_gobierna"))  return degradado_gobiernaLuz() ? 1 : 0;
   if (!strcmp(que, "degradado_estado"))    return (long)degradado_estado();
@@ -568,6 +629,15 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   if (!strcmp(que, "menu_abierto"))        { g_menuAbierto = (arg != 0); return 1; }
   if (!strcmp(que, "respaldo_valido"))     return respaldo_valido() ? 1 : 0;
   if (!strcmp(que, "respaldo_degradado"))  return respaldo_degradadoActivo() ? 1 : 0;
+  // N-162 (12/09): la SEGUNDA puerta de degradado_reanudarTrasCorte(), preguntada con los
+  // mismos dos argumentos con los que la pregunta el firmware -respaldo.cpp REAL y el
+  // contador crudo del RTC-. El -1 es RESPALDO_SYNC_CADUCADA, que no es una hora grande
+  // sino "no se cuanto ha pasado" (respaldo.h): se traduce aqui, donde la constante esta
+  // incluida, para no escribir 0xFFFFFFFF en el orquestador.
+  if (!strcmp(que, "respaldo_horas_sync")) {
+    const uint32_t h = respaldo_horasDesdeSync(reloj_contadorSegundos());
+    return (h == RESPALDO_SYNC_CADUCADA) ? -1L : (long)h;
+  }
   return PUNTA_DESCONOCIDO;
 }
 
@@ -580,8 +650,13 @@ PUNTA_API long punta_dominio_leer(int indice) {
 #else
   switch (indice) {
     case 10: return (long)reloj_contadorSegundos();
-    case 11: return g_rtcEnHora ? 1 : 0;
-    case 12: return (long)reloj_segundosDelDia();
+    // N-162: lo que la pila mantiene NO es "hay hora", es "el RTC hardware quedo escrito".
+    // Desde el 11/09 ninguna linea del firmware lo escribe, asi que esto sale 0 siempre y
+    // el equipo despierta sin hora, igual que la tarjeta. Ver el bloque de las banderas.
+    case 11: return g_rtcHwEnHora ? 1 : 0;
+    // Y por eso estos dos son el CALENDARIO DEL RTC, no la hora de pared sembrada: solo
+    // valen algo cuando el indice 11 dice que aquel RTC se escribio alguna vez.
+    case 12: return (long)(g_rtcSegundosDelDiaBase + rtcTranscurrido()) % 86400L;
     case 13: return (long)g_rtcDia;
     default: return 0;
   }
@@ -596,7 +671,7 @@ PUNTA_API void punta_dominio_escribir(int indice, long valor) {
 #else
   switch (indice) {
     case 10: g_rtcBaseSegundos = (uint32_t)valor; g_rtcAncla = arnes_millis_valor; break;
-    case 11: g_rtcEnHora = (valor != 0); break;
+    case 11: g_rtcHwEnHora = (valor != 0); break;
     case 12: g_rtcSegundosDelDiaBase = (uint32_t)valor; break;
     case 13: g_rtcDia = (uint8_t)valor; break;
     default: break;
