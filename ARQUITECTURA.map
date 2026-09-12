@@ -38,6 +38,48 @@
     justificaciones largas, y esas viven en su sitio -DECISIONES.md, roadmap.md,
     05_Funcional/17_...-, que es donde alguien las mantiene.
 
+    ---- REMEDIDO EL 12/09, sobre 7da1048 (rama worktree-agent-a06540332c2c8891a) ------
+
+    Ultima pasada que habia tocado este fichero: 09b9948 (12/09, N-142). Desde ahi a
+    7da1048 van 9 commits mas; los que tocan firmware o banco son dca17cd (D-26 (2), la
+    cadencia de la siembra), 2e111f1 (N-162 H8, el bloque D de dos_puntas) y 87f2ddf
+    (comentarios del Esclavo). Los tres se remidieron abajo, en su sitio.
+
+    Acta vigente       : evidencia/2026-09-12_compuerta.txt  (HEAD e6af65a)
+                         18 PASS | 2 FALLA | 0 ABORTADO - 82 packs - 1380/1385
+                         Re-sellada sobre e6af65a en 266bb2f, dos pasadas dando lo mismo.
+    Commits DESPUES del acta (266bb2f, 5fe9616, 7da1048): DECISIONES.md, README.md,
+    roadmap.md y el re-sellado del acta. Ninguno toca firmware ni banco: la acta arriba
+    sigue midiendo lo que hay en 7da1048.
+
+    🔴 ESTO YA NO ES UN "20/20". Dos de las veinte filas estan en FALLA, y las dos son
+    rojo ESPERADO, no regresion -CLAUDE.md §1, "unas cuantas decisiones vigentes sin
+    construir a la vez dicen que se esta decidiendo mas rapido de lo que se construye":
+      - `banco por packs`: `decisiones_01_anclas` 52/61 `[MEDIDO 12/09 - banco/correr.py]`.
+        D-14, D-22, D-23, D-25, D-27, D-28 y D-29 estan VIGENTES sin ancla en el fuente
+        -siete, no las tres de la pasada del 07/09-, mas D-28 y D-29 sin nombrar en ningun
+        `.md` de `05_Funcional`/`04_Manuales` (esa es una propiedad DISTINTA, del mismo
+        pack). Packs: 82, no 78 -entraron `documentos_06`, `reloj_03`, `reloj_04` y
+        `esp32_13` desde el 07/09-.
+      - `arnes de las dos puntas` (`dos_puntas`, `compilar_dos_puntas.ps1`): 90/91, no
+        42/42. "G3 sigue en FALLA a proposito, intacta" (`2e111f1`): es un rojo que el
+        propio commit deja vivo a sabiendas, dentro del bloque F. Ver §4.
+    `correr.py` (sin PlatformIO) dio 1379/1388 en esta misma pasada -distinto de los
+    1380/1385 del acta, que es `compuerta.py` completo-: la diferencia es exactamente la
+    de CLAUDE.md 4.quater, `correr.py` NO ES `compuerta.py`; no se reconcilio a mano.
+
+    OTRAS TRES COSAS QUE ESTA PASADA DEJA MARCADAS Y NO CORRIGE POR SU CUENTA:
+      - Tres agentes trabajan en paralelo AHORA MISMO sobre
+        `{Maestro,Esclavo}/include/reloj.h`, `{Maestro,Esclavo}/src/modo_degradado.cpp`,
+        `dos_puntas/orquestador.cpp`, `adaptador_esclavo.cpp`, `05_Funcional/17_` y `18_`,
+        y los packs `reloj_04`/`esp32_13`. Las filas de abajo que tocan esos ficheros
+        llevan ⚠️ **PUEDE QUEDAR VIEJA (12/09)** y hay que re-medirlas al integrar.
+      - `documentos_06_no_reabre_lo_cerrado` (11/09, `113777b`) censa `ARQUITECTURA.map`
+        entre los documentos que vigila (§0): una frase derogada por `D-20/25/26/27` que
+        se deje aqui SIN tachar hace caer ese pack. Convencion respetada en esta pasada.
+      - Nueva seccion **3.7**: la vuelta fichero -> instrumento, y la lista de huerfanos
+        que pide el encargo del 12/09.
+
 ## 0. Como se lee, y que NO es este fichero
 
 | etiqueta | significa |
@@ -51,17 +93,24 @@ ponga. `[MEDIDO]` aqui significa *se midio sobre un FICHERO*: el `.cpp`, el `.h`
 el `.kicad_pcb`. Un fichero dice lo que alguien dibujo o escribio; una placa dice
 lo que se fabrico. Lo que MIDE es `01_Firmware/compuerta.py`.
 
-**NINGUN INSTRUMENTO PARSEA ESTE FICHERO** `[MEDIDO 07/09]`:
+~~**NINGUN INSTRUMENTO PARSEA ESTE FICHERO** `[MEDIDO 07/09]`~~ 🔴 **FALSO DESDE EL 11/09,
+`[MEDIDO 12/09]`: HAY UNO.**
 
 ```
 $ grep -rn "ARQUITECTURA" --include=*.py .          (sin node_modules)
-  banco/packs/esp32_05_no_origina.py:23   prosa de un comentario
+  banco/packs/esp32_05_no_origina.py:23              prosa de un comentario
+  banco/packs/documentos_06_no_reabre_lo_cerrado.py:47,:48,:537   LEE este fichero
   05_Funcional/generar_graficas_arquitectura.py:41,:54   texto de una grafica
   generar_entrega_v9_0.py:44,:262         la constante es 17_Arquitectura...md
 ```
 
-Ninguna es una lectura de este fichero. `flash_01_lastre.py` si parsea un `.map`,
-pero es `firmware.map`, el del enlazador: misma extension, ninguna relacion.
+`documentos_06_no_reabre_lo_cerrado` (11/09, `113777b`) censa **todo `*.md` de la raiz mas
+`ARQUITECTURA.map`** (linea 537: `n.endswith(".md") or n == "ARQUITECTURA.map"`) buscando
+frases derogadas por `D-20/25/26/27` SIN TACHAR. Este fichero es ahora un DOCUMENTO VIVO
+para ese pack: una frase vieja dejada sin `~~tachar~~` aqui **hace caer un pack**, y lo que
+este mapa tache tiene que usar exactamente esa convencion (`~~...~~`), no otra. La entrada
+de `flash_01_lastre.py` sigue sin ser una lectura de este fichero -parsea `firmware.map`,
+el del enlazador, misma extension, ninguna relacion.
 
 **QUIEN LO NOMBRA** `[MEDIDO 07/09]` - se da el comando, no el numero de linea:
 
@@ -189,12 +238,18 @@ Controladora_Semaforos 2/
 | `Maestro` | 21 | 9.395 | **87,6 %** - 57.416 de 65.536 B |
 | `Esclavo` | 14 | 6.604 | **63,7 %** - 41.772 de 65.536 B |
 | `Repetidor` | 1 (`main.cpp`, 200 lineas) | 214 | 20,6 % - 270.497 de 1.310.720 B |
-| `ESP32_Expansion` | 8 | 2.588 | 35,7 % - 1.122.973 de 3.145.728 B |
-| **total firmware** | 44 | **18.801 lineas** | |
+| `ESP32_Expansion` | ~~8~~ **9** *(11/09, `68dd2c5`/D-26: entra `siembra.cpp`)* `[MEDIDO 12/09 - ls ESP32_Expansion/src/*.cpp \| wc -l]` | 2.588 | 35,7 % - 1.122.973 de 3.145.728 B |
+| **total firmware** | ~~44~~ **45** `[MEDIDO 12/09 - find Maestro/src Esclavo/src Repetidor/src ESP32_Expansion/src -name *.cpp \| wc -l]` | 18.801 lineas *(sin re-levantar; ver aviso de abajo)* | |
 
-> **El presupuesto de flash del Maestro es el numero que decide.** 8.120 B libres.
-> A este nivel una funcion nueva de tamano medio no entra sin haber medido antes de
-> que esta hecho el porcentaje (CLAUDE.md 7).
+> **El presupuesto de flash del Maestro es el numero que decide.** ~~8.120 B libres~~
+> 🔴 **`[MEDIDO 12/09 - evidencia/2026-09-12_compuerta.txt]`: 89,4 % - solo 7.976 B
+> libres**, y siguio subiendo con D-21(1)/D-26. Ver §5, fila 2, para la cifra fechada;
+> **esta tabla completa (2.1/2.2) no se re-levanto entera en esta pasada** -las lineas
+> por fichero de 2.2 son anteriores al 07/09 y varios ya no cuadran (`coordinador.cpp`,
+> `bluetooth.cpp`, `modo_degradado.cpp` crecieron mas de 100 lineas cada uno desde
+> entonces)-. Volver a levantar 2.1/2.2 desde cero es trabajo aparte, fuera del
+> alcance del 11-12/09 que pidio este encargo. A este nivel una funcion nueva de
+> tamano medio no entra sin haber medido antes que esta hecho el porcentaje (CLAUDE.md 7).
 
 > ⚠️ **El acta puede publicar el binario ANTERIOR** si se escribe justo despues de
 > tocar codigo (PlatformIO sirve un incremental viejo). La cifra de flash se
@@ -471,7 +526,8 @@ simplemente no se arma nunca, que es lo correcto. Ademas el banco se caeria en
 | `puente.cpp` | ~~387~~ 398 | **FUNCION 3 - puente SPP.** No origina, no parte ni une tramas. Desde `D-26` lo que `despachador_esParaElPuente()` reclama NO cruza (antes `SET_RTC` cruzaba) |
 | `enlace_stm32.cpp` | 92 | **UNICO fichero del proyecto que nombra `Serial2`** |
 | `despachador.cpp` | ~~273~~ 355 | el TERCER despachador: `SET_RTC:` y `CMD:LEER_RTC`, y desde `D-26` el descarte de `HORA_ESP32` del telefono. En la rama `RELOJ_OK` de `SET_RTC` llama a `siembra_ahora()` |
-| 🆕 `siembra.cpp` *(+ `include/siembra.h`, 39)* | 109 | **`D-20`/`D-26` (11/09, `68dd2c5`): LA HORA DEL `DS3231` HACIA EL STM32.** Compone `CMD:HORA_ESP32:%04d-%02d-%02d,%02d:%02d:%02d` (`FORMATO_HORA_ESP32`) **solo** con lo que devuelve `reloj_leer()`, y lo escribe por `enlace_escribirLinea()`. Sale al arrancar (con dos reintentos, `SIEMBRA_REINTENTO_1_MS`/`_2_MS`), tras cada `SET_RTC` bueno y cada `SIEMBRA_INTERVALO_MS` (300 s) -constantes en `contrato.h`-. Es la **segunda** linea que el ESP32 origina hacia el STM32 (la otra es el latido de `vigilante.cpp`): `esp32_05_no_origina` censa las escrituras y no admite una tercera. `true` = «salio entera por J17», no «el STM32 la acepto» |
+| 🆕 `siembra.cpp` *(+ `include/siembra.h`, 39)* | 109 | **`D-20`/`D-26` (11/09, `68dd2c5`): LA HORA DEL `DS3231` HACIA EL STM32.** Compone `CMD:HORA_ESP32:%04d-%02d-%02d,%02d:%02d:%02d` (`FORMATO_HORA_ESP32`) **solo** con lo que devuelve `reloj_leer()`, y lo escribe por `enlace_escribirLinea()`. Sale al arrancar (con dos reintentos, `SIEMBRA_REINTENTO_1_MS`/`_2_MS`), tras cada `SET_RTC` bueno y cada `SIEMBRA_INTERVALO_MS` (~~300 s~~ **120 s desde el 12/09,
+`dca17cd`, D-26 (2)** `[MEDIDO 12/09 - grep SIEMBRA_INTERVALO_MS ESP32_Expansion/include/contrato.h]`) -constantes en `contrato.h`-. Es la **segunda** linea que el ESP32 origina hacia el STM32 (la otra es el latido de `vigilante.cpp`): `esp32_05_no_origina` censa las escrituras y no admite una tercera. `true` = «salio entera por J17», no «el STM32 la acepto» |
 | `transporte_app.cpp` | 119 | transporte hacia el telefono |
 | `trama.cpp` | 70 | formato y CRC |
 
@@ -639,6 +695,7 @@ rutas las pone `banco/modelos/`.
 | `documentos_03_trama_status` | `M+E:bluetooth.cpp` | `05_Funcional/10_Manual_Modulo_Bluetooth_Telemetria.md`, `app.js`, `index.html` + **las 3 copias de la app** | propia |
 | `documentos_04_cifras_sin_vigilante` | `M:limites_ciclo.h`, `M:mando.cpp`, `M+E:protocolo.h` | 🔴 **`04_Manuales/MANUAL_USUARIO.md`, `04_Manuales/MANUAL_HARDWARE.md`**, `CERTIFICACION_SW.md`, `OPTIMIZACIONES.md` | propia |
 | `documentos_05_copias_coherentes` | - | `README.md`, `ESTADO.md`, `CERTIFICACION_SW.md` (`A.md`/`B.md` son el `control_negativo`, no rutas) | propia |
+| 🆕 `documentos_06_no_reabre_lo_cerrado` *(11/09, `113777b`; ⚠️ FALTABA EN ESTE MAPA hasta el 12/09)* | - | no direcciona firmware. **CENSA por directorio** -no lista a mano- `05_Funcional/*.md`+`*.html` (primer nivel), `04_Manuales/*.md` (primer nivel) y la raiz: todo `*.md` **y `ARQUITECTURA.map`** (ver §0). Excluye `DECISIONES.md`, `roadmap_hist.md`, `05_Funcional/historico/` y `99_Legacy/` a proposito -son la fuente que deroga o la cronica de lo derogado, no algo que puede reabrirlo- | propia |
 | `enlace_01_transporte` | `E:bluetooth.h`, `E:pines.h`, `E:bluetooth.cpp`, `E:lcd.cpp`, `M:bluetooth.h`, `M:pines.h`, `M:bluetooth.cpp`, `M:lcd.cpp`, `M:main.cpp` | - | propia |
 | `enlace_02_silencio_j17` | `M+E:bluetooth.cpp` | - | propia |
 | `esclavo_01_latch_ambar` | (via modelos) | - | **modelos** |
@@ -647,8 +704,8 @@ rutas las pone `banco/modelos/`.
 | `esclavo_04_desfase` | (via modelos) | - | **modelos** |
 | `esclavo_05_hora_atomica` | (via modelos) | - | **modelos** |
 | `esclavo_06_no_abre_paso` | `E:bluetooth.cpp`, `E:demanda.cpp`, `E:protocolo.cpp` | - | propia |
-| `esclavo_07_ambar_emergencia` | `E:bluetooth.h`, `E:protocolo.h`, `E:bluetooth.cpp`, `E:main.cpp`, `M:bluetooth.cpp` | - | propia |
-| `esclavo_08_ambar_en_degradado` | `E:bluetooth.cpp`, `E:main.cpp`, `E:mando.cpp`, `E:modo_degradado.cpp`, `M:coordinador.cpp` | - | propia |
+| `esclavo_07_ambar_emergencia` | `E:bluetooth.h`, `E:protocolo.h`, `E:bluetooth.cpp`, `E:main.cpp`, `M:bluetooth.cpp` · ⚠️ **FALTABA EN ESTA FILA** `[MEDIDO 12/09]`: **ademas censa `Maestro/src` ENTERO** (`fw.fuentes_de("Maestro","src")`, desde `913c29c`/N-142) para exigir que ALGUN fichero de esa carpeta lea el aviso de radio que emite el ambar de emergencia -no una lista escrita a mano- | - | propia |
+| `esclavo_08_ambar_en_degradado` | `E:bluetooth.cpp`, `E:main.cpp`, `E:mando.cpp`, `E:modo_degradado.cpp`, `M:coordinador.cpp` · ⚠️ **FALTABA EN ESTA FILA** `[MEDIDO 12/09]`: **ademas censa `Esclavo/src` ENTERO** (`fw.fuentes_de("Esclavo","src")`, desde `913c29c`/N-142) fichero a fichero, para que un `.cpp` nuevo que ponga o quite el ambar entre bajo vigilancia solo | - | propia |
 | `esp32_01_watchdog_desigualdad` | `X:contrato.h`, `E:main.cpp`, `M:coordinador.cpp`, `M+E:protocolo.h` | `app.js` | propia |
 | `esp32_02_watchdog_alimentado` | `X:contrato.h`, `X:main.cpp`, `X:puente.cpp`, `X:vigilante.cpp` | - | propia |
 | `esp32_03_ack_que_mira` | `X:reloj_ds3231.h`, `X:despachador.cpp` | - | propia |
@@ -661,7 +718,7 @@ rutas las pone `banco/modelos/`.
 | `esp32_10_parte_de_arranque` | `X:contrato.h`, `X:vigilante.h`, y **pares** `src/main.cpp`, `src/trama.cpp`, `src/vigilante.cpp` ⚠️ ver 3.2 | - | propia |
 | `esp32_11_bien_formada_no_es_cierta` | `X:contrato.h`, `X:reloj_ds3231.h`, `X:reloj_ds3231.cpp` | - | propia |
 | `esp32_12_consulta_de_reloj` | `X:despachador.h`, `X:reloj_ds3231.h`, `X:despachador.cpp`, `X:puente.cpp`, `X:siembra.cpp` *(11/09, `D-26`)*, `M+E:bluetooth.cpp` | - | propia |
-| 🆕 `esp32_13_siembra_de_hora` *(11/09, `D-26`)* | `X:contrato.h`, `X:siembra.cpp`, `X:despachador.cpp`, `X:main.cpp`, `M:modo_degradado.cpp`, `E:modo_degradado.cpp`, `M+E:reloj.h`, `M+E:reloj.cpp`, `M+E:main.cpp`, `M+E:bluetooth.cpp` | - | propia |
+| 🆕 `esp32_13_siembra_de_hora` *(11/09, `D-26`; sin tocar por `dca17cd` -"28/28 sin tocarlo, porque lee del fuente"-)* ⚠️ **PUEDE QUEDAR VIEJA (12/09): reloj.h y modo_degradado.cpp los tocan agentes en paralelo AHORA MISMO** | `X:contrato.h`, `X:siembra.cpp`, `X:despachador.cpp`, `X:main.cpp`, `M:modo_degradado.cpp`, `E:modo_degradado.cpp`, `M+E:reloj.h`, `M+E:reloj.cpp`, `M+E:bluetooth.cpp` · ~~`M+E:main.cpp`~~ 🔴 **REFUTADO `[MEDIDO 12/09 - censo _RE_TRIPLE/_RE_PAR pack a pack, igual que el 3.3 addendum]`: el pack SI lee `Maestro/src/main.cpp` y `Esclavo/src/main.cpp` (`fw.codigo(p,"src","main.cpp")` con `p` en `PUNTAS`), pero la tupla `("src","main.cpp")` que eso genera queda TAPADA por la propia `MAIN = ("ESP32_Expansion","src","main.cpp")` de este mismo fichero -el hueco de 3.2, "el censo... solo expande un par si el triple no esta ya dentro", mordiendo dentro de un solo pack-. La guarda no lo registra como M+E; el pack si lo abre** | - | propia |
 | `flash_01_lastre` | **parsea `firmware.map`** del enlazador, no un fuente | - | propia |
 | `identidad_01_serie` | `M:identidad.cpp` | - | propia |
 | `maestro_01_mando` | `M:main.cpp`, `M:modo_automatico.cpp` | - | **modelos** |
@@ -679,7 +736,7 @@ rutas las pone `banco/modelos/`.
 | `reloj_01_consulta_por_bluetooth` | `E:reloj.h`, `E:bluetooth.cpp`, `M:reloj.h`, `M:bluetooth.cpp` | - | propia |
 | `reloj_02_siembra_que_miente` | `E:reloj.cpp`, `E:reloj.h`, `E:bluetooth.cpp`, `M:reloj.cpp`, `M:reloj.h`, `M:bluetooth.cpp`, `M:bluetooth.h` *(11/09: faltaba; `BLUETOOTH_H`, la excepcion que se comprueba declarada)* | - | propia |
 | 🆕 `reloj_03_manda_la_radio` *(11/09, `D-26`)* | `E:bluetooth.cpp`, `E:reloj.cpp`, `E:main.cpp`, `M:bluetooth.cpp`, `M:reloj.cpp`, `X:siembra.cpp`, `X:contrato.h`, y **censa `{Maestro,Esclavo}/include/*.h` y `Esclavo/src/*.cpp` enteros** (`fuentes_de`) | 🔴 **`Simulaciones/puente_esp32/arnes_puente.cpp`** y **`Validacion_Automatico/dos_puntas/{orquestador_degradado,adaptador_esclavo}.cpp`**, que lee por texto: que la copia de `isoBienFormado()` del arnes del puente sea la del fuente, y que el bloque E del orquestador salte la hora de las dos puntas. ⚠️ ~~**Ninguno de los tres compila `Esclavo/src/reloj.cpp`** (`N-162`, premisa 1)~~ *(11/09 noche, `fdccd5b`: el arnes del Degradado a dos puntas SI lo compila —`reloj_real/`— y su bloque F ejerce la frontera de 25 s; el arnes del puente y `dos_puntas` siguen con el muñon)* | propia |
-| 🆕 `reloj_04_hora_que_caduca` *(11/09 noche, `D-21` (1))* | `M:reloj.h`, `E:reloj.h`, `M:reloj.cpp`, `E:reloj.cpp`, `M:modo_degradado.cpp`, `E:modo_degradado.cpp`, `X:contrato.h` y el `_aguante` que importa de `esp32_13` | 🔴 **`Validacion_Automatico/dos_puntas/{orquestador_degradado,reloj_real}`**, que es quien EJECUTA el plazo: este pack **evalua las expresiones de `reloj.h` en 32 bits** (suelo, techo y que el plazo tenga sujeto y llamador en las dos puntas) y comprueba que el arnes compila el reloj real | propia |
+| 🆕 `reloj_04_hora_que_caduca` *(11/09 noche, `D-21` (1); ENSANCHADO el 12/09 en `dca17cd` -14/14 -> 21/21-)* ⚠️ **PUEDE QUEDAR VIEJA (12/09): reloj.h y modo_degradado.cpp los tocan agentes en paralelo AHORA MISMO** | `M:reloj.h`, `E:reloj.h`, `M:reloj.cpp`, `E:reloj.cpp`, `M:modo_degradado.cpp`, `E:modo_degradado.cpp`, `X:contrato.h`, `E:protocolo.h` 🆕 *(12/09: SOLO Esclavo -`PROTOCOLO_E`- se registra suelto; `Maestro/include/protocolo.h` lo tapa la misma tupla, igual hueco que en `esp32_13`)*, `M+E:bluetooth.cpp` 🆕 *(12/09)* y el `_aguante` que importa de `esp32_13` | 🔴 **`Validacion_Automatico/dos_puntas/{orquestador_degradado,reloj_real}`**, que es quien EJECUTA el plazo: este pack **evalua las expresiones de `reloj.h` en 32 bits** (suelo, techo y que el plazo tenga sujeto y llamador en las dos puntas) y comprueba que el arnes compila el reloj real. `[MEDIDO 12/09]`: `HORA_RELEVO_MS = 2*120000 + 2*120000/1000*25000/1000 + 25000 = 271000`, `HORA_DERIVA_S = 7`, `HORA_CADUCA_MS = 280000` (margen 9 s contra el relevo) -`grep -n "HSI_PPM_PEOR\|HORA_RELEVO_MS\|HORA_DERIVA_S\|HORA_CADUCA_MS" Maestro/include/reloj.h`- | propia |
 
 `[MEDIDO 11/09 sobre 68dd2c5 - los regex _RE_TRIPLE/_RE_PAR de compuerta.py sobre los dos packs nuevos,
 mas grep de fw.fuentes_de y de las tuplas que nombran Simulaciones/ y Validacion_*]`. Las dos filas
@@ -697,6 +754,24 @@ corriendo `_RE_TRIPLE`/`_RE_PAR` pack a pack, y solo la mitad era cierta:**
   mas barata: **el patron contaba un comentario**. Si algun dia se escribiera de verdad, la guarda
   pediria un `Esclavo/include/modos.h` que no existe y **abortaria**, que es lo que ese comentario
   vino a evitar.
+
+**Re-medido de nuevo el 12/09** (encargo de ese dia, mismo metodo pack a pack), sobre los packs
+tocados el 11-12/09 (`esclavo_07`, `esclavo_08`, `app_02`, `reloj_04`, `esp32_13`,
+`documentos_06`) y el arnes `dos_puntas`. Confirmado: `app_02` sigue igual (verificado de nuevo,
+el `M:modos.h` de arriba no cambio). Nuevo en esta pasada, todo ya movido a su fila:
+
+- `reloj_04` gano `E:protocolo.h` y `M+E:bluetooth.cpp` con el ensanchamiento de `dca17cd` (D-26
+  (2)); el mismo hueco de dedup afecta a `Maestro/include/protocolo.h`, que queda tapado.
+- `esp32_13` lleva `M+E:main.cpp` escrito desde antes del 07/09 y **NUNCA fue cierto para el
+  censo pack-a-pack**: su propia tupla `MAIN = ("ESP32_Expansion","src","main.cpp")` tapa el par
+  `("src","main.cpp")` que generan sus llamadas `fw.codigo(p,"src","main.cpp")` con `p` en
+  `PUNTAS`. El pack SI abre `Maestro/src/main.cpp` y `Esclavo/src/main.cpp` -la tabla de 3.3 lo
+  dice desde antes de esta pasada-, pero la guarda de rutas nunca lo registro POR ESTE pack.
+- `esclavo_07`/`esclavo_08` llevaban desde `913c29c` (12/09) un `fuentes_de` cada uno -Maestro/src
+  y Esclavo/src enteros respectivamente- que su fila de 3.3 nunca reflejo, ni siquiera en la
+  pasada de `09b9948` que si toco esos dos packs.
+- `documentos_06` no estaba en NINGUNA parte de este mapa pese a existir desde `113777b` (11/09):
+  ver su fila nueva, arriba, y §0 para el hallazgo de que censa este mismo fichero.
 
 ### 3.4 Los tres MODELOS - 17 packs no direccionan nada por su cuenta
 
@@ -758,9 +833,87 @@ que ninguna fila avise:
 | `Validacion_Automatico/compilar_degradado.ps1` | `costura_12_margen_deriva` | 1 pack ABORTADO |
 | `evidencia/*_compuerta.txt` | `fuente.actas()`, `documentos_01`, `documentos_04` | 2 packs ABORTADO |
 
-> **Y un pack en ABORTADO tumba la fila entera `banco por packs`**: 78 packs sin
-> medir por un fichero mudado. La guarda seguiria publicando *"64 rutas, todas
-> existen"*.
+> **Y un pack en ABORTADO tumba la fila entera `banco por packs`**: ~~78~~ **82**
+> packs `[MEDIDO 12/09]` sin medir por un fichero mudado. La guarda seguiria
+> publicando *"~~64~~ **65** rutas, todas existen"*.
+
+### 3.7 Del fichero al instrumento - la vuelta, y los huerfanos
+
+`[MEDIDO 12/09 - encargo del 12/09, parte B]`
+
+**3.3 dice "este pack abre estos ficheros". Esta seccion contesta al reves: "este**
+**fichero del firmware, ¿quien lo abre?"** Un fichero que no aparece en NINGUNA
+vuelta no lo mide nadie -CLAUDE.md §4- y **eso es lo que se busca aqui, no una
+tabla de 95 filas**.
+
+**LAS TRES FORMAS DE DIRECCIONAR, y como se busca cada una** (se resistieron de
+forma distinta; ver el informe del encargo para el detalle):
+
+1. **La tupla individual** -`("Maestro","src","mando.cpp")`, o su pareja suelta
+   `("src","mando.cpp")`- que ya censa 3.3. Se busca con los mismos regex de la
+   guarda (`_RE_TRIPLE`/`_RE_PAR`), **pack a pack, no acumulados**: acumular files
+   entre packs (como hace `compuerta.py` para la guarda) esconde parejas detras de
+   una tupla ya vista de OTRO pack, que es un censo distinto al que pide esta tabla.
+2. **`fuentes_de(punta, carpeta[, ext])`** -censo de un DIRECTORIO ENTERO-. No sale
+   con el regex de arriba: hay que `grep -rn "fuentes_de(" banco/packs/*.py
+   banco/modelos/*.py` y leer, por cada hallazgo, si `punta`/`carpeta`/`ext` son
+   literales o una variable que itera sobre una tupla (`PUNTAS = (...)`) definida
+   antes en el mismo fichero.
+3. **El arnes que compila el `.cpp` REAL** -por su `.ps1` (§4) o por `#include`
+   directo desde un adaptador-. Se busca en los `compilar*.ps1` y con
+   `grep -rn '#include ".*\.\./.*\.cpp"'` en los adaptadores de `dos_puntas`.
+
+**LA SORPRESA: censando las tres formas, NINGUN `.cpp`/`.h` de los 4 roles se queda**
+**sin que ALGUN instrumento lo ABRA.** `decisiones_01_anclas` (§3.3) censa **los 4
+roles, `src` E `include` enteros** buscando anclas `D-x` en los comentarios; eso
+por si solo hace que "abierto por algo" sea `[MEDIDO]` cierto para los 95 ficheros
+`.cpp`/`.h` de `Maestro+Esclavo+Repetidor+ESP32_Expansion`. **Y ESO ES EXACTAMENTE
+CLAUDE.md §6: "declarar no es ejercer".** Un `grep` de `D-\d+` sobre un comentario
+no comprueba una sola linea de codigo. La pregunta util no es "¿lo abre algo?" -la
+respuesta es siempre si-, es **"¿lo abre algo que comprueba una PROPIEDAD REAL de
+su contenido, y no solo texto de comentario?"**
+
+**Con esa vara, los 95 ficheros se reparten asi** `[MEDIDO 12/09 - censo aislado
+`_RE_TRIPLE`/`_RE_PAR` pack a pack + `fuentes_de` + lectura de cada arnes]`:
+
+| cobertura | ficheros | quien mide algo REAL |
+|---|---|---|
+| nombrados por tupla individual | 72 (de 95) | el pack que los nombra, en 3.3 |
+| **no nombrados por tupla, pero dentro de un `fuentes_de` con propiedad real** | 23 | `costura_10_funciones_muertas` (`Maestro`+`Esclavo`, `src`+`include`: censo de llamadores, real) para 20 de ellos -las cabeceras `demanda.h` `lcd.h` `mando.h` `semaforo.h` `config_ciclo.h` `pines_repetidor.h`(E) y los `modo_*.h` del Maestro, mas `modo_alcance.cpp` `modo_hora.cpp` `modos.cpp`- · `esp32_05_no_origina` (censo de `ESP32_Expansion` `src`+`include`, real: nadie mas nombra el puerto) para los otros 5 -`enlace_stm32.h` `siembra.h` `trama.h` `transporte_app.h` `transporte_app.cpp`- |
+| **solo el barrido superficial de `decisiones_01` (o menos)** | 2 | `Repetidor/src/main.cpp` y `Repetidor/include/pines_repetidor.h` - ver abajo |
+
+**LOS DOS HUERFANOS DE VERDAD, y por que son distintos entre si:**
+
+1. 🔴 **`Maestro/include/pines_repetidor.h` y `Esclavo/include/pines_repetidor.h`**
+   `[MEDIDO 12/09 - grep -rn "pines_repetidor" Maestro Esclavo Repetidor]` **no los
+   `#include` NADA dentro de su propio rol.** Solo `Repetidor/src/main.cpp` incluye
+   su propia copia. No es solo que ningun pack los nombre: **PlatformIO ni siquiera
+   los compila** -un `.h` en `include/` que nada `#include` no se llega a parsear-,
+   asi que ni la fila 2/3 de la compuerta (`compila maestro`/`compila esclavo`) los
+   toca. Las tres copias son **byte-identicas** (`sha256sum`, mismo hash en las
+   tres), asi que no hay tres versiones divergiendo: hay dos copias muertas de un
+   fichero que solo hace falta en un rol. `decisiones_01_anclas` las abre igual
+   -censa `include/` entero, compile o no- pero solo mira si citan un `D-x`.
+2. 🟡 **`Repetidor/src/main.cpp`** (200 lineas, todo el `.cpp` del rol) SI se compila
+   de verdad (fila 4 de la compuerta, PlatformIO, 20,6 %) y SI lo lee `flash_01_lastre`
+   para una propiedad real -que no enlace `Wire.h`/`SPI.h` ni herede una bandera de
+   pantalla que no le hace nada, `[MEDIDO 12/09]`-. **Lo que NINGUN instrumento
+   ejerce es su LOGICA DE REPETIDOR** -reenvio de tramas, temporizacion-: la fila 7
+   de la compuerta, `simulador_repetidor.py` (10/10), es un **modelo Python que no
+   importa `fuente.py` ni nombra una sola ruta real** `[MEDIDO 12/09 - grep -n
+   "Repetidor\|fw\." Simulaciones/simulador_repetidor.py]`: la misma categoria de
+   hueco que este mapa ya documenta para `puente_esp32` ("el ESP32 es modelo en
+   Python: el simulador NO carga su binario aunque su C++ exista"), aqui sin
+   nombrar. Es coherente con que `Repetidor/` esta **"FUERA de la config vigente"**
+   (§1.1, §2.11: "2 radios en enlace directo, sin repetidor"): el hueco es sabido,
+   no oculto, pero no estaba escrito en ningun sitio de este mapa hasta hoy.
+
+**Lo que esta vuelta NO mide, dicho para que nadie lo lea de mas:** que un fichero
+este "cubierto" por `fuentes_de` de `costura_10`/`esp32_05` no dice que su
+COMPORTAMIENTO este ejercido -esos dos packs miran una propiedad concreta (llamadores
+sin uso; quien nombra el puerto), no el resto del fichero-. La tabla de 3.3, mas la
+compilacion real de §4, siguen siendo la unica lista de "esto se EJERCIO de verdad"
+(CLAUDE.md §6). Esta seccion contesta "¿lo abrio algo?", no "¿se probo?".
 
 ---
 
@@ -777,8 +930,8 @@ propia de la compuerta.
 | **`Validacion_Ciclo`** | `compilar.ps1` | solo `arnes_ciclo.cpp`, que `#include "ciclo_degradado.h"` | funcion **pura**: no hay maquina de estados, no hay tiempo |
 | **`Validacion_Respaldo`** | `compilar.ps1` | `arnes_respaldo.cpp` **`#include "respaldo.cpp"`** | **no ejerce el arranque**. Comprueba ademas que `respaldo.cpp/.h` son identicos entre puntas |
 | **`Validacion_Automatico`** | `compilar.ps1` | **M:** `coordinador.cpp` `botones.cpp` `semaforo.cpp` `modo_automatico.cpp` `modo_inteligente.cpp` `demanda.cpp` `mando.cpp` | **solo el Maestro**. No ejerce el Degradado ni el microcorte |
-| **`.../dos_puntas`** | `compilar_dos_puntas.ps1` | **M(4):** `coordinador` `semaforo` `modo_automatico` `mando` · **E(7):** `semaforo` `main` `modo_degradado` `config_ciclo` `mando` `demanda` `respaldo` · 🆕 **12/09 (`913c29c`, `N-142`): ademas, POR `#include` DESDE LOS ADAPTADORES —no por el `.ps1`—, el `bluetooth.cpp` REAL del Esclavo y el `modo_ambar.cpp` REAL del Maestro.** El del Esclavo entra solo en esta variante (en la del Degradado sigue doblado); con el entran un `HardwareSerial` sustituido y los dobles de `protocolo`, `identidad`, `botones` y las dos funciones de `reloj` de `D-26` | el microcorte y el **Degradado del Maestro** no entran; `protocolo.cpp` tampoco. 🆕 **Y lo que se RETIRO al compilar el despachador de verdad:** la orden `ambar_emergencia_app` del adaptador, que era una **transcripcion** de la puerta CON PIN del ambar — el arnes medía la copia buena de una puerta mala (`CLAUDE.md` §8) |
-| **`.../dos_puntas` Degradado** | `compilar_degradado.ps1` | **M(6):** `coordinador` `semaforo` `modo_degradado` `modo_ambar` `modos` `respaldo` · **E:** el mismo `adaptador_esclavo.cpp` · 🆕 **11/09 noche: ademas el `reloj.cpp` REAL de las DOS puntas**, con el silicio sustituido en `dos_puntas/reloj_real/` (`STM32RTC.h`, HAL, `rtc_periferico.cpp`) y un `DS3231` por poste | **no ejerce el microcorte**; su bloque D mide la reanudacion tras corte contra un modelo de RTC que el firmware ya no escribe (`N-162` `H8`, roadmap 1.16-c) |
+| **`.../dos_puntas`** ⚠️ **PUEDE QUEDAR VIEJA (12/09): `orquestador.cpp` y `adaptador_esclavo.cpp` los toca un agente en paralelo AHORA MISMO** | `compilar_dos_puntas.ps1` | **M(4):** `coordinador` `semaforo` `modo_automatico` `mando` · **E(7):** `semaforo` `main` `modo_degradado` `config_ciclo` `mando` `demanda` `respaldo` · 🆕 **12/09 (`913c29c`, `N-142`): ademas, POR `#include` DESDE LOS ADAPTADORES —no por el `.ps1`—, el `bluetooth.cpp` REAL del Esclavo y el `modo_ambar.cpp` REAL del Maestro.** El del Esclavo entra solo en esta variante (en la del Degradado sigue doblado); con el entran un `HardwareSerial` sustituido y los dobles de `protocolo`, `identidad`, `botones` y las dos funciones de `reloj` de `D-26` | **el microcorte y el respaldo del MAESTRO no entran** (su `M(4)` no trae `respaldo.cpp`); `Maestro/src/protocolo.cpp` tampoco. 🆕 **Y lo que se RETIRO al compilar el despachador de verdad:** la orden `ambar_emergencia_app` del adaptador, que era una **transcripcion** de la puerta CON PIN del ambar — el arnes medía la copia buena de una puerta mala (`CLAUDE.md` §8). 🔴 **12/09, `2e111f1` (N-162 H8) reescribio su BLOQUE D** (D1-D9: D1-D4/D7 se conservan, D5 se reparte, D6 se conserva y entran D6b/D6c/D6d/D8/D9) porque medía la reanudacion del Esclavo tras un microcorte **contra un modelo de RTC que el firmware dejo de escribir el 11/09** -daba verde, midiendo otra cosa (CLAUDE.md §6)-; ahora D6b/c/d exigen que NO reanude (la hora vivia en RAM), y D8/D9 son el CONTROL: con el marcador del RTC hardware puesto -un equipo anterior al 11/09- SI reanuda, para que D6b no sea un escenario roto disfrazado de guarda. **Y entra el BLOQUE H (N-142, §3.16-A, H0..H4):** con la puerta SIN PIN tecleada en el `bluetooth.cpp` REAL del Esclavo, con radio el Maestro para el cruce dentro de un viaje mas cuatro ticks; sin radio no se entera y el `$ACK` lo dice. Este bloque D es del arnes de este renglon, no del "Degradado" de abajo -su propio comentario lo dice: "la reanudacion tras corte la mide el bloque D del orquestador.cpp HERMANO"- |
+| **`.../dos_puntas` Degradado** | `compilar_degradado.ps1` | **M(6):** `coordinador` `semaforo` `modo_degradado` `modo_ambar` `modos` `respaldo` · **E:** el mismo `adaptador_esclavo.cpp` · 🆕 **11/09 noche: ademas el `reloj.cpp` REAL de las DOS puntas**, con el silicio sustituido en `dos_puntas/reloj_real/` (`STM32RTC.h`, HAL, `rtc_periferico.cpp`) y un `DS3231` por poste | 🔴 **CORREGIDO `[MEDIDO 12/09 - grep -n "MICROCORTE\|reanuda" orquestador_degradado.cpp]`: este renglon SIGUE sin ejercer el microcorte -su propio comentario lo dice a proposito: "EL MICROCORTE NO SE EJERCE AQUI... la mide el bloque D del orquestador.cpp hermano"-, pero la fila anterior de este mapa se lo atribuia a el por error. Ver la fila de arriba** |
 | `Simulaciones/puente_esp32` | `compilar.ps1` | **M(8):** `bluetooth` `semaforo` `coordinador` `modo_automatico` `mando` `modos` `demanda` `identidad` · **E(5):** `bluetooth` `semaforo` `demanda` `identidad` `modo_degradado` | **el ESP32 es modelo en Python**: el simulador NO carga su binario aunque su C++ exista |
 
 **Por que `dos_puntas` necesita DOS DLL:** Maestro y Esclavo definen **los mismos
@@ -815,35 +968,38 @@ permite medir *"verde en las dos A LA VEZ"* sobre las puntas reales.
 > `simulador_app_bluetooth.py` -otra fila- estaba en ABORTADO.
 > **`correr.py` es para iterar. `compuerta.py` es para autorizar.**
 
-`[MEDIDO 07/09 - main() de compuerta.py + acta 2026-09-07]`
+`[MEDIDO 07/09 - main() de compuerta.py + acta 2026-09-07]`. **Columna 12/09
+`[MEDIDO 12/09 - evidencia/2026-09-12_compuerta.txt, HEAD e6af65a]`**, sin tocar a
+mano las que no cambiaron: CLAUDE.md 4 prohibe copiar del acta lo que no se ha vuelto
+a leer, asi que donde el acta del 07/09 y la del 12/09 coinciden no se repite cifra.
 
-| # | fila | que mide | cifra 07/09 |
-|---|---|---|---|
-| | **-- Instrumentos --** | | |
-| 1 | `guarda de rutas` | que cada fuente que los instrumentos dicen abrir **existe**. Suelo: `RUTAS_MINIMAS_ESPERADAS = 45` | 64 rutas |
-| | **-- Compilacion --** (se salta con `--rapido`) | | |
-| 2 | `compila maestro` | PlatformIO sobre `Maestro/` | 87,6 % |
-| 3 | `compila esclavo` | PlatformIO sobre `Esclavo/` | 63,7 % |
-| 4 | `compila repetidor` | PlatformIO sobre `Repetidor/` | 20,6 % |
-| 5 | `compila esp32` | PlatformIO sobre `ESP32_Expansion/` | 35,7 % |
-| | **-- Modelos de comportamiento --** (Python escrito a mano: prueban EL MODELO) | | |
-| 6 | `simulador funcional` | `simulador_sistema_v7_6.py` | 9/9 |
-| 7 | `simulador de repetidor` | `simulador_repetidor.py` | 10/10 |
-| 8 | `simulador de app y bluetooth` | `simulador_app_bluetooth.py` - app vs firmware BT | 12/12 |
-| 9 | `test funcional de la app` | `05_Funcional/App_Semaforo/test_funcional_app.py` | 58/58 |
-| 10 | `test unitarios de la app` | `App_Semaforo/test_unitarios_app.js` (node) | 32/32 |
-| 11 | `test unitarios TDD de la app` | `App_Semaforo/tests/test_unitarios.js` (node) | 61/61 |
-| 12 | `app ejecutada en DOM` | `App_Semaforo/test_dom_execution.js` sobre jsdom | 235/235 |
-| | **-- Validadores de firmware --** | | |
-| 13 | `banco por packs` | `Simulaciones/banco/correr.py` - **78 packs** | **1243/1246** |
-| | **-- Firmware compilado y ejecutado en el PC --** (lo unico cuyo PASS habla del codigo) | | |
-| 14 | `arnes de pantalla` | `Validacion_LCD` | M 145 + E 126 = 271/271 |
-| 15 | `arnes del ciclo` | `Validacion_Ciclo` | 22/22 |
-| 16 | `arnes del respaldo` | `Validacion_Respaldo` | identicos entre puntas + PING/PONG |
-| 17 | `arnes del automatico` | `Validacion_Automatico` | 99/99 |
-| 18 | `arnes de las dos puntas` | `Validacion_Automatico/dos_puntas` | 42/42 |
-| 19 | `arnes del Degradado a dos puntas` | `compilar_degradado.ps1` | 18/18 |
-| 20 | `simulador del puente ESP32` | `simulador_puente_esp32.py` - **lazo entero app-ESP32-STM32** | 101/101 |
+| # | fila | que mide | cifra 07/09 | cifra 12/09 |
+|---|---|---|---|---|
+| | **-- Instrumentos --** | | | |
+| 1 | `guarda de rutas` | que cada fuente que los instrumentos dicen abrir **existe**. Suelo: `RUTAS_MINIMAS_ESPERADAS = 45` | 64 rutas | 65 rutas |
+| | **-- Compilacion --** (se salta con `--rapido`) | | | |
+| 2 | `compila maestro` | PlatformIO sobre `Maestro/` | ~~87,6 %~~ | **89,4 %** - 58.560/65.536 B. Suben D-21(1)/D-26; **7.976 B libres**, menos margen que el 07/09 |
+| 3 | `compila esclavo` | PlatformIO sobre `Esclavo/` | ~~63,7 %~~ | **69,9 %** - 45.816/65.536 B |
+| 4 | `compila repetidor` | PlatformIO sobre `Repetidor/` | 20,6 % | 20,6 % (igual) |
+| 5 | `compila esp32` | PlatformIO sobre `ESP32_Expansion/` | 35,7 % | 35,7 % (igual) |
+| | **-- Modelos de comportamiento --** (Python escrito a mano: prueban EL MODELO) | | | |
+| 6 | `simulador funcional` | `simulador_sistema_v7_6.py` | 9/9 | 9/9 |
+| 7 | `simulador de repetidor` | `simulador_repetidor.py` | 10/10 | 10/10 |
+| 8 | `simulador de app y bluetooth` | `simulador_app_bluetooth.py` - app vs firmware BT | 12/12 | 12/12 |
+| 9 | `test funcional de la app` | `05_Funcional/App_Semaforo/test_funcional_app.py` | 58/58 | ~~58/58~~ **65/65** |
+| 10 | `test unitarios de la app` | `App_Semaforo/test_unitarios_app.js` (node) | 32/32 | ~~32/32~~ **42/42** |
+| 11 | `test unitarios TDD de la app` | `App_Semaforo/tests/test_unitarios.js` (node) | 61/61 | ~~61/61~~ **69/69** |
+| 12 | `app ejecutada en DOM` | `App_Semaforo/test_dom_execution.js` sobre jsdom | 235/235 | ~~235/235~~ **268/268** |
+| | **-- Validadores de firmware --** | | | |
+| 13 | `banco por packs` | `Simulaciones/banco/correr.py` - ~~78~~ **82 packs** | ~~1243/1246~~ | 🔴 **FALLA - 1380/1385 - 81 PASS, 1 FALLA, 0 ABORTADO.** `decisiones_01_anclas` 52/61: D-14/D-22/D-23/D-25/D-27/D-28/D-29 VIGENTES sin ancla + D-28/D-29 sin nombrar en manual. Rojo esperado (CLAUDE.md §1), ver cabecera |
+| | **-- Firmware compilado y ejecutado en el PC --** (lo unico cuyo PASS habla del codigo) | | | |
+| 14 | `arnes de pantalla` | `Validacion_LCD` | M 145 + E 126 = 271/271 | ~~271/271~~ **287/287** (M 145 + E 142) |
+| 15 | `arnes del ciclo` | `Validacion_Ciclo` | 22/22 | 22/22 |
+| 16 | `arnes del respaldo` | `Validacion_Respaldo` | identicos entre puntas + PING/PONG | igual |
+| 17 | `arnes del automatico` | `Validacion_Automatico` | 99/99 | 99/99 |
+| 18 | `arnes de las dos puntas` | `Validacion_Automatico/dos_puntas` | ~~42/42~~ | 🔴 **FALLA - 90/91.** "G3 sigue en FALLA a proposito, intacta" (`2e111f1`): rojo dejado vivo a sabiendas dentro del bloque F, ver §4 |
+| 19 | `arnes del Degradado a dos puntas` | `compilar_degradado.ps1` | ~~18/18~~ | **53/53** (creció con el reloj real de D-21(1), ver §4) |
+| 20 | `simulador del puente ESP32` | `simulador_puente_esp32.py` - **lazo entero app-ESP32-STM32** | 101/101 | ~~101/101~~ **118/118** |
 
 **Codigos de salida:** `0` PASS · `1` FALLA · `2` ABORTADO. Escribe el acta en
 `evidencia/` con fecha y hash de HEAD.
@@ -856,6 +1012,11 @@ permite medir *"verde en las dos A LA VEZ"* sobre las puntas reales.
 > 🔴 **UN `20/20` DICE "los modelos y arneses de PC no encuentran nada". NO DICE QUE
 > EL FIRMWARE FUNCIONE EN LA TARJETA.** El 04/09 los tres defectos que pararon el
 > banco pasaron esas 20 comprobaciones sin despeinarlas. **Verde no es entregable.**
+> 🔴 **Y EL 12/09 NI SIQUIERA ES UN `20/20`: SON 18.** Las filas 13 y 18 estan en
+> FALLA -las dos, rojo dejado a proposito, no regresion silenciosa- y aun asi es la
+> forma en que la frase de arriba se pone a prueba de verdad: un lector que se crea
+> "20/20 = entregable" tiene que fallar primero al leer el acta del 12/09, no al
+> preguntar. Ver la cabecera de este fichero para el detalle de las dos.
 
 > 🔴 **N-44 SIGUE VIVO.** Los siete arneses que compilan C++ real caen a la vez si
 > `ld` no abre la ruta con `ñ` de `Diego.Zuñiga`. La cura -copiar el toolchain a
