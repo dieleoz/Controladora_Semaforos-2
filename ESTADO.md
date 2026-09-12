@@ -24,11 +24,18 @@
 > contadas antes y después, y **18 filas nuevas en §0** del roadmap: pendientes que sólo vivían
 > en el porqué y que una mudanza al histórico habría enterrado.
 >
-> **LO QUE ESPERA AL RESPONSABLE**, y es corto: los días de retención de las microSD y si graban
-> continua o por evento (`A-0`) · si el poste debe aguantar **tres** siembras perdidas en vez de
-> dos —el margen entre relojes bajaría de 7 s a 1 s sobre 29, **no se recomienda**— · y si se
-> cierra que **el aviso de ámbar entre postes no se acusa**, que cambia el protocolo de radio en
-> las dos puntas. Lo demás de su lista está abajo y en `roadmap.md` §0 grupo (2).
+> **LO QUE ESPERA AL RESPONSABLE — y el 12/09 por la tarde se quedó en NADA.** Las cuatro que había
+> se cerraron con él delante, y se dice aquí **para que nadie las vuelva a preguntar**:
+> ~~microSD~~ *(tienen SD y graban; lo que falta no es decidir, es **el paso que falta en la guía**,
+> y eso es teclado — fila 1.29)* · ~~tres siembras perdidas~~ *(pregunta mal planteada por mí: la hora
+> la mandan los ESP32, y lo que se decidía era sólo cuánto aguanta el STM32 con su reloj interno.
+> **Se queda en una**, que es lo seguro)* · ~~`A-8`~~ *(**cerrada**: la guía ya dice 24×7 en la regla y
+> en la salida, en tres sitios)* · ~~el acuse del aviso de ámbar~~ *(**`D-31`, decidida Y
+> ESPECIFICADA entera** — el primer diseño se descartó porque construía algo **peor** que el defecto,
+> y las tres correcciones salieron de sus preguntas: acuse sólo del primero, el cancelar en el mismo
+> lote, y **un** reintento porque a 8 km lo que sube es la pérdida y el presupuesto de radio sólo deja
+> ~4 s)*. **Lo que queda es todo teclado**, en `roadmap.md` §0 grupo (1). Lo único que NO destraba
+> nadie escribiendo está en el grupo (3): la sesión de banco y **la cinta del Esclavo del Sisga**.
 >
 > 1. **En `main` (`68dd2c5`): `D-26`, la hora la manda el ESP32 de cada poste.** El ESP32 siembra a su STM32
 >    desde el `DS3231` (al arrancar, tras cada `SET_RTC` bueno y cada ~~300 s~~ **120 s desde el 12/09**, `CMD:HORA_ESP32`); el `SET_RTC` del
