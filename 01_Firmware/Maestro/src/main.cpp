@@ -189,6 +189,24 @@ void loop() {
   // Lo encontro maestro_10_coordinador_alcanzable.
   // Los dos modos llaman a semaforo_actualizar() por su cuenta, que es lo que aquí se
   // perdería.
+  // D-29: LA REANUDACION DEL DEGRADADO SE VUELVE A PREGUNTAR MIENTRAS SIGA PENDIENTE.
+  //
+  // Desde N-162 esta punta despierta SIN hora -reloj_setup() la saca del RTC hardware y
+  // ya nadie lo escribe-, asi que la consulta de setup() cierra por la primera condicion
+  // y la hora del ESP32 llega despues, aqui. La ventana, su borde y el borrado del
+  // permiso viven todos en modo_degradado_reanudarTrasCorte(); aqui no se decide nada,
+  // igual que en setup(). En cuanto la decision esta tomada esto sale por su primera
+  // linea, asi que no cuesta nada por vuelta.
+  //
+  // VA ANTES DE LEER 'modo', y no es estetica: asi el cambio de modo lo ve el
+  // "if (modo != modoAnterior)" de mas abajo EN ESTA MISMA VUELTA y el todo-rojo de
+  // entrada empieza ya, en vez de una vuelta despues. Y se entra por el mismo camino que
+  // el arranque -modoActual_set() y el switch comun-, no por una llamada directa a
+  // modo_degradado_setup(): una segunda via seria una segunda puerta.
+  if (modo_degradado_reanudarTrasCorte()) {
+    modoActual_set(MODO_DEGRADADO);
+  }
+
   ModoSistema modo = modoActual_get();
   if (modo != MODO_AUTOMATICO && modo != MODO_DEGRADADO && modo != MODO_AMBAR) {
      coordinador_actualizar_background();

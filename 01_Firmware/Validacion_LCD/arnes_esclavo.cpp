@@ -133,6 +133,19 @@ void          protocolo_resetReplayProtection() {}
 // simulador, no de aqui; ponerlo a true dejaria las cinco vistas del Esclavo sin medir.
 bool     bluetooth_ambarEmergencia()                    { return false; }
 
+// D-29 (12/09) metio la TERCERA, y es la gemela de la de arriba: al reconstruir N-20 -que
+// un corte de luz no mate la reanudacion del Degradado-, degradado_reanudarTrasCorte()
+// pasa a consultar el cerrojo del MANDO antes de decidir. Este arnes no compila mando.cpp
+// -mide PIXELES- y volvio a morir en el enlazador: "undefined reference", que la compuerta
+// lee como ABORTADO. Tres veces el mismo camino: N-106, D-26 (4) y esta.
+//
+// Devuelve false, y no es una eleccion comoda sino LO QUE LA TARJETA TIENE: D-1 retiro el
+// mando de reles el 05/09 -el equipo se opera solo por app- y sin pulsadores esa bandera no
+// se arma nunca. Quien SI la ejerce es el bloque D del arnes de dos puntas (D16/D17/D18),
+// que la arma por el camino real -tres pulsos de B contra el mando.cpp de verdad- y mide que
+// con el ambar puesto la reanudacion diferida no ocurre. Aqui no dibuja ninguna vista.
+bool     mando_ambarLocal()                             { return false; }
+
 // D-26 (4) (11/09) metio OTRA llamada en modo_degradado.cpp -el $EVENT del salto de hora
 // que pasa por rojo- y el arnes volvio a morir en el enlazador: el mismo ABORTADO de N-106.
 // No dibuja nada, asi que aqui solo se cuenta: si alguna vista de este arnes provocara un

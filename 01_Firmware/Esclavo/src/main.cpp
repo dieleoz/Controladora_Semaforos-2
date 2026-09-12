@@ -308,6 +308,11 @@ void setup() {
   // Todas las condiciones y el borrado del indicador cuando alguna falla viven en
   // degradado_reanudarTrasCorte(); aqui no se decide nada. Si devuelve false, el
   // arranque sigue siendo el de siempre y no hay nada mas que hacer.
+  //
+  // D-29 (12/09): Y SI DEVUELVE false, YA NO SIEMPRE ES DEFINITIVO. Desde N-162 esta
+  // punta despierta SIN hora -la trae el ESP32 por J17 unos segundos despues-, asi que
+  // la funcion puede dejar la decision pendiente y el bucle vuelve a preguntarsela. La
+  // ventana y su borde viven alli; aqui sigue sin decidirse nada.
   degradado_reanudarTrasCorte();
 
   tArranque = millis();
@@ -356,6 +361,15 @@ void loop() {
   semaforo_actualizar();
   atenderRespuestaPendiente();   // SFTY-17
   caducarBufferHora();           // SFTY-23: un envio a medias no envejece en RAM
+
+  // D-29: LA REANUDACION DEL DEGRADADO SE VUELVE A PREGUNTAR MIENTRAS SIGA PENDIENTE.
+  //
+  // Va DESPUES de bluetooth_loop() -que es quien atiende CMD:HORA_ESP32 y siembra la
+  // hora- y ANTES de degradado_actualizar(), para que la siembra y la reanudacion que
+  // desbloquea caigan en la MISMA vuelta y el modo empiece a contar su todo-rojo ya en
+  // esta. La guarda esta dentro: en cuanto la decision se toma -o la ventana se cierra-
+  // esto sale por su primera linea y no cuesta nada.
+  degradado_reanudarTrasCorte();
 
   // SFTY-21: el ciclo por reloj y el limite duro de 48 h corren en cada vuelta,
   // haya o no alguien mirando la pantalla. Con el modo inactivo esto no toca

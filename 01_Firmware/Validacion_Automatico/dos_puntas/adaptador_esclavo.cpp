@@ -293,10 +293,39 @@ const char* camara_estado() { return "OK"; }
 // reloj.cpp: las dos funciones de D-26 que el despachador consulta y que el modelo de
 // RTC de mas abajo no tiene. La FUENTE de la hora no la ejerce este arnes -la ejerce el
 // del Degradado, con reloj.cpp real-, asi que aqui se contesta lo unico que no miente:
-// que la radio no manda la hora mientras nadie la haya sembrado por radio, y que una
-// siembra del ESP32 no entra. Ver la cabecera.
+// que la radio no manda la hora mientras nadie la haya sembrado por radio.
 bool reloj_radioManda() { return false; }
-bool reloj_sembrarDesdeIso(const char*) { return false; }
+
+// 🔴 D-29 (12/09) - Y ESTA DEJA DE SER UN "return false" FIJO, PORQUE DE ELLA CUELGA EL
+// BLOQUE D ENTERO.
+//
+// D-29 difiere el borrado del permiso de la pila para que la reanudacion pueda decidirse
+// con LA HORA QUE EL ESP32 TRAE DESPUES DEL ARRANQUE. Con esta funcion contestando
+// siempre que no, esa hora no podia llegar nunca por el camino real y el bloque D no
+// tendria forma de ejercer lo construido: mediria el diferimiento y no su desenlace.
+//
+// LO QUE MODELA, Y LO QUE NO. Modela el PERIFERICO -la hora entra y la base de software
+// queda sembrada-, delegando en reloj_ajustar(), que es el mismo sembrador del modelo que
+// usa la radio, con su misma regla de rango. Y NO TOCA g_rtcHwEnHora, exactamente como
+// reloj_ajustarConAcuse() dejo de tocar el RTC hardware en N-162: si lo tocara, el modelo
+// estaria devolviendo la capacidad que el firmware perdio y el bloque D volveria a medir
+// una tarjeta que no existe.
+//
+// EL BORDE QUE ESTE MODELO NO EJERCE, ESCRITO AL LADO (CLAUDE.md 7): el RECHAZO POR
+// FORMATO. reloj.cpp real exige el patron exacto de 19 caracteres (isoBienFormado) y aqui
+// solo se pide que sscanf saque los seis campos y que esten en rango. Esa frontera la
+// ejerce la otra variante de este mismo fichero -reloj.cpp REAL, bloque F del arnes del
+// Degradado-, que es donde vive; duplicar aqui el patron seria una segunda copia del
+// firmware escrita a mano. Lo que el bloque D necesita de aqui es que una siembra BIEN
+// FORMADA entre, y que una malformada no invente una hora.
+bool reloj_sembrarDesdeIso(const char* str) {
+  if (str == nullptr) return false;
+  int anio = 0, mes = 0, dia = 0, h = 0, m = 0, s = 0;
+  if (sscanf(str, "%d-%d-%d,%d:%d:%d", &anio, &mes, &dia, &h, &m, &s) != 6) return false;
+  if (h < 0 || h > 23 || m < 0 || m > 59 || s < 0 || s > 59 || dia < 1 || dia > 31) return false;
+  reloj_ajustar((uint8_t)h, (uint8_t)m, (uint8_t)s, (uint8_t)dia);
+  return true;
+}
 
 // EL FUENTE REAL, SIN TOCAR.
 #include "../../Esclavo/src/bluetooth.cpp"   // NOLINT: deliberado, ver la cabecera

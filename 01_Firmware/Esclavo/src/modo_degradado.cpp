@@ -3,6 +3,7 @@
 #include "bluetooth.h"      // R-4: bluetooth_ambarEmergencia(), la unica consulta que se le hace
 #include "ciclo_degradado.h"
 #include "config_ciclo.h"
+#include "mando.h"          // D-29: mando_ambarLocal(), la guarda del camino diferido
 #include "protocolo.h"
 #include "reloj.h"
 #include "respaldo.h"
@@ -61,6 +62,35 @@ static const unsigned long ROJO_MINIMO_MS = 4000UL;
 // un bucle que gira miles de veces por segundo.
 static const unsigned long PERIODO_FASE_MS = 200UL;
 
+// ---------------------------------------------------------------------------
+// D-29 — LA VENTANA EN LA QUE LA REANUDACION TODAVIA PUEDE DECIDIRSE.
+//
+// Desde N-162 (11/09) la siembra ya no escribe el RTC hardware, asi que reloj_setup()
+// deja horaValida en false tras CADA corte y la PRIMERA puerta de la reanudacion cierra
+// dentro de setup(). La hora existe -la trae el ESP32 por J17-, pero llega DESPUES, en el
+// bucle. Si el permiso de la pila se borrara en ese mismo arranque, cuando la hora llega
+// ya no quedaria nada que reanudar.
+//
+// EL BORDE, Y POR QUE ES ESTE Y NO OTRO (CLAUDE.md 7). Es el MISMO instante en el que
+// bluetooth.cpp da por muda la siembra del ESP32 y publica $ALARM EVENTO:HORA_ESP32
+// -horaEsp32Vigilar(), HORA_ESP32_ESPERA_MAX_MS, tres cadencias-. O sea que el permiso se
+// conserva exactamente mientras el propio firmware considera que la siembra PUEDE llegar,
+// ni una vuelta mas, y en el instante en que se tira el tecnico ya tiene la alarma que
+// dice por que. Cualquier otro numero seria un plazo nuevo que nadie recalcularia.
+//
+// SE CUENTA CON millis() A SECAS -tiempo desde el arranque de ESTE micro- porque el ESP32
+// y el STM32 se encienden A LA VEZ y comparten ese origen (contrato.h lo dice y esp32_13
+// lo recalcula). LO QUE CABE DENTRO, leido del calendario del ESP32 (siembra.cpp): la
+// primera siembra sale a los ~1,5 s contra un puerto que aun no existe -este setup() hace
+// delay(2000) y reloj_setup() espera hasta ESPERA_LSE_MS antes de bluetooth_setup()-, y
+// las que SI se pueden oir son SIEMBRA_REINTENTO_1_MS (10 s), SIEMBRA_REINTENTO_2_MS
+// (60 s) y la cadencia (180 s y 300 s). Cuatro oportunidades dentro de la ventana.
+//
+// SE DERIVA DEL SIMBOLO, NO SE COPIA EL NUMERO, por lo mismo que LIMITE_SIN_SYNC_H se
+// deriva de LIMITE_SIN_SYNC_MS: dos numeros que significan lo mismo se separan el dia que
+// alguien toca uno.
+static const unsigned long VENTANA_REANUDACION_MS = HORA_ESP32_ESPERA_MAX_MS;
+
 static EstadoDegradado estado = DEG_INACTIVO;
 static unsigned long tCambioEstado = 0;
 static bool rendicionEnCurso = false;
@@ -87,6 +117,21 @@ static bool verdeAplicado = false;
 static bool huboSyncAlguna = false;
 static unsigned long tUltimaSync = 0;
 static bool syncVencidaLatch = false;
+
+// D-29 — ¿QUEDA ALGO POR DECIDIR DE LA REANUDACION DE ESTE ARRANQUE?
+//
+// Contesta a UNA sola pregunta, y por eso no se deduce de ninguna otra bandera
+// (CLAUDE.md 8). Vale true desde el arranque y baja EN CUANTO la decision se toma, en
+// cualquiera de sus sentidos -se reanudo, se tiro el permiso, o la ventana se cerro-, de
+// modo que degradado_reanudarTrasCorte() sigue siendo UNA decision por arranque: lo unico
+// que cambia con D-29 es que puede tardar unas vueltas en tomarse.
+//
+// NO ES COSMETICA. Sin ella la funcion volveria a sembrar tUltimaSync en cada vuelta con
+// la antiguedad que dice la pila, y el limite duro de 48 h se mide justo contra ese
+// instante: reescribirlo con millis() en cada vuelta congelaria la antiguedad y el tope
+// no venceria nunca. Un diferimiento que abriera la segunda puerta seria exactamente lo
+// contrario de lo que D-29 autoriza.
+static bool reanudacionPorDecidir = true;
 
 static FaseDegradado faseCache = FD_DESPEJE_A;
 static unsigned long tFaseCache = 0;
@@ -360,34 +405,95 @@ void degradado_salir() {
 }
 
 // ---------------------------------------------------------------------------
-// N-20 — Reanudacion tras un corte. Ver el porque completo en modo_degradado.h.
+// N-20 / D-29 — Reanudacion tras un corte. Ver el porque completo en modo_degradado.h.
 //
-// Solo la llama setup(), y una sola vez.
+// D-29 (12/09): YA NO SE DECIDE EN UNA SOLA VUELTA. La llaman setup() y, mientras la
+// decision siga pendiente, TAMBIEN el bucle: la hora con la que hay que decidir la trae
+// el ESP32 despues del arranque. Sigue siendo UNA decision por arranque -lo garantiza
+// reanudacionPorDecidir-, y lo unico que se difiere es el BORRADO del permiso, nunca el
+// limite duro de 48 h ni la activacion manual de SFTY-21: esto REANUDA un modo que ya
+// estaba puesto, no lo enciende.
 // ---------------------------------------------------------------------------
 bool degradado_reanudarTrasCorte() {
+  // D-29: tomada la decision -en el sentido que sea-, las llamadas siguientes del bucle
+  // no hacen nada y salen por aqui.
+  if (!reanudacionPorDecidir) return false;
+
   // Nada que reanudar: ni siquiera se toca el respaldo. Un equipo que nunca entro en
   // Degradado no debe escribir en la pila en cada arranque.
-  if (!respaldo_degradadoActivo()) return false;
+  if (!respaldo_degradadoActivo()) { reanudacionPorDecidir = false; return false; }
 
-  bool sigueVigente = reloj_enHora() && respaldo_hayCiclo();
+  // D-29: y si entretanto este modulo dejo de estar quieto -alguien entro al Degradado a
+  // mano desde la app, o esta punta ya se rindio-, la reanudacion no pinta nada: manda lo
+  // que se hizo DESPUES del arranque. Sin esta guarda la vuelta siguiente reescribiria
+  // tUltimaSync con la antiguedad de la pila sobre un modo ya en marcha.
+  if (estado != DEG_INACTIVO) { reanudacionPorDecidir = false; return false; }
 
-  uint32_t horas = RESPALDO_SYNC_CADUCADA;
-  if (sigueVigente) {
-    horas = respaldo_horasDesdeSync(reloj_contadorSegundos());
-    // Las dos condiciones se comprueban por separado a proposito. CADUCADA no es un
-    // numero grande, es "no se cuanto ha pasado": tratarla como una hora mas la
-    // colaria por debajo del limite el dia que alguien cambie el orden de la resta.
-    sigueVigente = (horas != RESPALDO_SYNC_CADUCADA) && (horas < LIMITE_SIN_SYNC_H);
+  // 🔴 D-29 / D-1 — CON UN AMBAR DEL MANDO PUESTO, EL PERMISO SE TIRA Y NO SE REANUDA.
+  //
+  // ESTA GUARDA LA ABRIO D-29 Y POR ESO LA CIERRA D-29. degradado_comprobar() mira SOLO
+  // el cerrojo de Bluetooth y NO mando_ambarLocal(), a proposito y con su motivo escrito
+  // alli: con el veto dentro de la puerta, el A.B.A.B del propio mando se rechazaria
+  // antes de llegar a ejecutarse. Mientras la reanudacion se decidia dentro de setup() la
+  // carrera no existia -no se ha contado ni un pulso todavia-; con la decision diferida
+  // hasta VENTANA_REANUDACION_MS, entre el arranque y la siembra caben minutos y en ellos
+  // la bandera SI puede armarse. Se pregunta AQUI, en el camino diferido, y no alli: se
+  // cierra lo que D-29 abrio sin tocar la puerta unica del modo.
+  //
+  // 🔴 EL MOTIVO NO ES UN OPERARIO CON EL MANDO EN LA MANO: ESE NO EXISTE. D-1 retiro el
+  // hardware el 05/09 y con los pulsadores desmontados esta bandera no se arma nunca. El
+  // motivo es EL COBRE: J16 p5 y p8 estan VACIOS y BOTON1/BOTON2 -PB9 y PB13, pines.h-
+  // se siguen leyendo como entradas peladas, asi que lo que alguien cablee ahi compone
+  // secuencias que nadie pidio (CLAUDE.md 3; A-2 y D-1). Si eso llega a armar el ambar,
+  // el equipo esta en ambar intermitente por una orden que el firmware ya obedece en
+  // otros cinco sitios, y reanudar por encima seria la maquina revocandola.
+  //
+  // Y SU MODO DE FALLO ES EL DE HOY -no reanudar-, asi que no puede empeorar nada: sin
+  // esta guarda el equipo no reanudaba tampoco, solo que por el borrado que D-29 quita.
+  if (mando_ambarLocal()) {
+    reanudacionPorDecidir = false;
+    respaldo_guardarDegradado(false);
+    return false;
   }
 
-  if (!sigueVigente) {
+  // LA SEGUNDA PUERTA, y desde D-29 se pregunta ENTERA aunque la primera este cerrada.
+  // Puede hacerse porque no depende de la hora: es una resta de dos lecturas del contador
+  // crudo del RTC (N-49). Y hace falta hacerlo, porque de ella depende que el permiso se
+  // pueda conservar: lo que D-29 difiere es el BORRADO, no el limite duro.
+  //
+  // Las dos condiciones se comprueban por separado a proposito. CADUCADA no es un
+  // numero grande, es "no se cuanto ha pasado": tratarla como una hora mas la
+  // colaria por debajo del limite el dia que alguien cambie el orden de la resta.
+  const uint32_t horas = respaldo_horasDesdeSync(reloj_contadorSegundos());
+  const bool syncVigente = (horas != RESPALDO_SYNC_CADUCADA) && (horas < LIMITE_SIN_SYNC_H);
+
+  if (!reloj_enHora() || !respaldo_hayCiclo() || !syncVigente) {
+    // D-29 — EL BORRADO SE DIFIERE, Y SOLO POR LO QUE LA SIEMBRA PUEDE ARREGLAR.
+    //
+    // Se conserva el permiso UNICAMENTE si las cuatro cosas a la vez: lo unico que falta
+    // es la hora, el ciclo acordado sigue en la pila, la SEGUNDA puerta esta ABIERTA -o
+    // sea que el diferimiento ni la roza- y la siembra del ESP32 todavia puede llegar.
+    //
+    // Con cualquier otra cosa cerrada se borra hoy igual que antes, y no es rigor de
+    // adorno: ninguna siembra arregla un ciclo que no esta guardado ni una marca de sync
+    // de hace mas de 48 h, y un contador de RTC parado -el caso "sin cristal" de N-160-
+    // devuelve CADUCADA, asi que ese equipo sigue sin reanudar y el permiso se tira en el
+    // arranque, sin quedarse puesto seis minutos esperando algo que no puede pasar.
+    if (!reloj_enHora() && respaldo_hayCiclo() && syncVigente &&
+        millis() < VENTANA_REANUDACION_MS) {
+      return false;   // sin borrar: se vuelve a preguntar en la siguiente vuelta del bucle
+    }
+
     // Arranque normal Y BORRADO DEL INDICADOR. Sin el borrado, cada reinicio
     // reintentaria la misma comprobacion fallida, y un indicador que se queda puesto
     // acabaria disparandose el dia que un dato basura lo haga cuadrar por accidente.
     // La autorizacion caducada no se guarda "por si acaso": se tira.
+    reanudacionPorDecidir = false;
     respaldo_guardarDegradado(false);
     return false;
   }
+
+  reanudacionPorDecidir = false;
 
   // Se siembra el reloj del limite duro con la antiguedad REAL que el respaldo
   // conoce, no con el instante de arranque. Poner tUltimaSync = millis() regalaria
@@ -397,8 +503,17 @@ bool degradado_reanudarTrasCorte() {
   // pocos milisegundos aqui-, y es correcto que lo haga: todas las comparaciones del
   // modulo son de la forma (ahora - tUltimaSync), que con el desbordamiento sin signo
   // sigue dando la diferencia buena.
-  huboSyncAlguna = true;
-  tUltimaSync = millis() - horas * 3600000UL;
+  //
+  // D-29: SOLO SI NO HAY YA UNA MEDIDA EN RAM. Con la decision diferida puede haber
+  // entrado antes una sincronizacion de verdad por radio (CMD_HORA_S), y esa es una
+  // medida directa del instante en que las dos puntas volvieron a coincidir; pisarla con
+  // la antiguedad de la pila seria envejecerla por una lectura peor. La pila no se
+  // ignora: msDesdeSyncEfectivo() se queda con la MAYOR de las dos en cada vuelta.
+  const bool sembradaAqui = !huboSyncAlguna;
+  if (sembradaAqui) {
+    huboSyncAlguna = true;
+    tUltimaSync = millis() - horas * 3600000UL;
+  }
   syncVencidaLatch = false;
 
   // Y se entra por la MISMA puerta que usa el operario desde la pantalla. Asi el
@@ -406,7 +521,7 @@ bool degradado_reanudarTrasCorte() {
   // condiciones son identicos: reanudar no es un camino alternativo con reglas
   // propias, es la entrada de siempre con el permiso recuperado de la pila.
   if (degradado_entrar() != DEG_ACEPTADO) {
-    huboSyncAlguna = false;
+    if (sembradaAqui) huboSyncAlguna = false;
     respaldo_guardarDegradado(false);
     return false;
   }

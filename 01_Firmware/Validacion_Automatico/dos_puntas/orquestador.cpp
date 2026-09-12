@@ -145,6 +145,14 @@ static unsigned long MAX_VERDE_BACKSTOP_MS_V;// Esclavo: verde maximo, vigilante
 static unsigned long VERDE_MIN_MIN_V, ROJO_MIN_MIN_V;   // limites_ciclo.h: el ciclo del bloque G
 // N-162 (bloque D): modo_degradado.cpp del Esclavo, el limite duro sin sync, EN HORAS.
 static unsigned long LIMITE_SIN_SYNC_H_V;
+// D-29 (bloque D): la ventana en la que el permiso de la pila se conserva esperando la
+// primera siembra del ESP32. Se DERIVA de reloj.h -cadencia x multiplicador-, que es de
+// donde la deriva el firmware, y no se escribe aqui ningun numero.
+static unsigned long VENTANA_REANUDACION_MS_V;
+// D-29 (bloque D): el prefijo de la linea que el ESP32 pone por J17, leido del
+// despachador REAL del Esclavo. Un literal escrito aqui mediria el comando de ayer el dia
+// que alguien lo renombre, que es lo que ya paso con FORZAR_ROJO (N-83).
+static std::string PREFIJO_HORA_ESP32;
 
 // ---------------------------------------------------------------------------
 // EL CONTADOR. Mismo patron que arnes_automatico.cpp y arnes_ciclo.cpp.
@@ -704,6 +712,45 @@ static void escenarioLimpio(long tiemposMaestro, bool exigirTiempos = false) {
   avanzar(500);
 }
 
+// ---------------------------------------------------------------------------
+// D-29 — EL RELOJ DEL BANCO VUELVE A CERO, Y HAY QUE DECIR POR QUE Y QUE CUESTA.
+//
+// El arnes tiene UN reloj absoluto (g_t) que nunca vuelve, y punta_tick() se lo impone a
+// las dos puntas. Un microcorte recarga la DLL -las estaticas del firmware vuelven a su
+// valor de arranque- pero NO devuelve ese reloj a cero, asi que setup() corre con
+// millis()==0 (la global de la DLL recien mapeada) y la primera vuelta del bucle salta de
+// golpe a g_t. Con la ventana de D-29 medida sobre millis() -tiempo desde el arranque,
+// que es lo que es en la tarjeta, donde el ESP32 y el STM32 encienden a la vez- ese salto
+// cerraria la ventana en la primera vuelta y el bloque no podria ejercer nada.
+//
+// Se pone g_t a cero al PRINCIPIO del escenario, justo despues de escenarioLimpio(), que
+// es el unico instante en que las DOS puntas acaban de recargarse y ninguna arrastra una
+// marca de tiempo futura. Mover g_t con una punta viva le haria correr el reloj hacia
+// atras y sus restas sin signo darian plazos enormes: eso si seria fabricar una averia.
+//
+// LO QUE ESTO NO MODELA, ESCRITO AL LADO (CLAUDE.md 7): el corte llega unos segundos
+// DESPUES del cero, asi que la ventana que el escenario deja al equipo es la del
+// firmware MENOS lo que el escenario gasto antes de cortar. Es un recorte, no un regalo:
+// el equipo del banco tiene MENOS margen que el de la calzada, nunca mas.
+static void relojDelBancoACero() {
+  g_t = 0;
+  // La racha de "el Esclavo publica verde y tiene rojo" se cuenta con restas de g_t: si
+  // quedara abierta al saltar el reloj, la resta daria un plazo enorme y contaria un
+  // largo que no ocurrio.
+  g_escVerdeRojoEnCurso = false;
+}
+
+// D-29: LA HORA DEL ESP32, POR EL CABLE DE VERDAD. Se teclea en el puerto del telefono la
+// MISMA linea que el puente pone por J17 -prefijo leido del despachador real- y la
+// despacha el bluetooth.cpp REAL en el siguiente tick de esta punta.
+static void sembrarEsclavoDesdeEsp32(int dia, int h, int m, int s) {
+  char linea[64];
+  std::snprintf(linea, sizeof(linea), "%s2026-01-%02d,%02d:%02d:%02d",
+                PREFIJO_HORA_ESP32.c_str(), dia, h, m, s);
+  ESCLAVO.orden(("bt:" + std::string(linea)).c_str());
+  unTick();   // el despachador real atiende la linea en este tick
+}
+
 // Empaqueta verde(min), rojo(min), despeje(s) como espera punta_mando("fijar_tiempos").
 static long tiempos(int verdeMin, int rojoMin, int despejeSeg) {
   return verdeMin * 10000L + rojoMin * 100L + despejeSeg;
@@ -1047,6 +1094,61 @@ int main() {
       R"(LIMITE_SIN_SYNC_MS\s*=\s*(\d+)UL\s*\*\s*3600UL\s*\*\s*1000UL)",
       "LIMITE_SIN_SYNC_MS del Modo Degradado del Esclavo");
 
+  // D-29 (bloque D): LA VENTANA DEL DIFERIMIENTO, DERIVADA COMO LA DERIVA EL FIRMWARE.
+  //
+  // modo_degradado.cpp no escribe un plazo propio: dice
+  // "VENTANA_REANUDACION_MS = HORA_ESP32_ESPERA_MAX_MS", y ese simbolo vale
+  // 3 x HORA_ESP32_CADENCIA_MS en reloj.h. Se leen las TRES cosas: que la ventana siga
+  // colgando de ese simbolo -si alguien la cambia por un numero suelto esto ABORTA, que es
+  // lo correcto (§5)- y los dos factores de los que sale el valor.
+  {
+    const std::string DEG_E = RAIZ + "/Esclavo/src/modo_degradado.cpp";
+    const std::string RELOJ_E = RAIZ + "/Esclavo/include/reloj.h";
+    if (!std::regex_search(leerFuente(DEG_E),
+            std::regex(R"(VENTANA_REANUDACION_MS\s*=\s*HORA_ESP32_ESPERA_MAX_MS)"))) {
+      abortar("la ventana de D-29 de Esclavo/src/modo_degradado.cpp ya no se deriva de "
+              "HORA_ESP32_ESPERA_MAX_MS. Este bloque estaria midiendo contra un plazo que "
+              "el firmware ya no usa");
+    }
+    const unsigned long cadencia = leerNumero(RELOJ_E,
+        R"(HORA_ESP32_CADENCIA_MS\s*=\s*(\d+)UL)", "HORA_ESP32_CADENCIA_MS del Esclavo");
+    const unsigned long veces = leerNumero(RELOJ_E,
+        R"(HORA_ESP32_ESPERA_MAX_MS\s*=\s*(\d+)UL\s*\*\s*HORA_ESP32_CADENCIA_MS)",
+        "el multiplicador de HORA_ESP32_ESPERA_MAX_MS del Esclavo");
+    VENTANA_REANUDACION_MS_V = cadencia * veces;
+    if (VENTANA_REANUDACION_MS_V == 0) abortar("la ventana de D-29 salio en cero");
+  }
+
+  // D-29 (bloque D): EL PREFIJO DE LA LINEA DEL ESP32, LEIDO DEL DESPACHADOR REAL.
+  //
+  // Se localiza por donde SIEMBRA -"reloj_sembrarDesdeIso(cmd + N)"-, se toma esa N y se
+  // busca el strncmp que compara EXACTAMENTE esos N caracteres. Asi el arnes no lleva
+  // escrito el nombre del comando ni su longitud: si se renombra, esto sigue tecleando la
+  // linea buena; si el despachador deja de sembrar por ahi, ABORTA en vez de medir otra
+  // cosa (§5 y §7 sobre lo que un literal copiado mide al dia siguiente).
+  {
+    const std::string bt = leerFuente(RAIZ + "/Esclavo/src/bluetooth.cpp");
+    std::smatch m;
+    if (!std::regex_search(bt, m, std::regex(R"(reloj_sembrarDesdeIso\(cmd\s*\+\s*(\d+)\))"))) {
+      abortar("no se encuentra en Esclavo/src/bluetooth.cpp la siembra "
+              "reloj_sembrarDesdeIso(cmd + N): el bloque D no sabria por que linea entra "
+              "la hora del ESP32 y teclearia un comando inventado");
+    }
+    const std::string n = m[1].str();
+    std::smatch mp;
+    if (!std::regex_search(bt, mp,
+            std::regex(R"RX(strncmp\(cmd,\s*"([^"]+)",\s*)RX" + n + R"RX(\)\s*==\s*0)RX"))) {
+      abortar("no se encuentra el strncmp de " + n + " caracteres que guarda la rama de "
+              "la hora del ESP32 en Esclavo/src/bluetooth.cpp");
+    }
+    PREFIJO_HORA_ESP32 = mp[1].str();
+    if (PREFIJO_HORA_ESP32.size() != (size_t)std::atoi(n.c_str())) {
+      abortar("el literal '" + PREFIJO_HORA_ESP32 + "' de la rama de la hora del ESP32 no "
+              "mide los " + n + " caracteres que el despachador compara: el arnes no puede "
+              "componer la linea sin adivinar");
+    }
+  }
+
   // N-142 (bloque H): la linea del telefono y los acuses que esa rama puede contestar,
   // leidos del despachador real. Sin ellos el bloque H tecleeria un comando inventado y
   // el Esclavo lo rechazaria con un $ERR generico: el escenario pasaria por "el Maestro
@@ -1386,6 +1488,7 @@ int main() {
     // estando en Degradado, REANUDA por su cuenta al arrancar, y el Maestro ni se ha
     // enterado. Dos autoridades y una de ellas acaba de nacer.
     escenarioLimpio(tiempos(1, 1, 15));
+    relojDelBancoACero();   // D-29: el porque, y lo que recorta, en esa funcion
     unsigned long sim0 = g_verdeSimultaneo;
     sincronizarEsclavo(10, 8, 0, 0);
     configurarEsclavo(20, 10);
@@ -1438,9 +1541,11 @@ int main() {
               "D6b: tras el corte el Esclavo NO reanuda el Degradado -no gobierna la luz, "
               "degradado_huboSync() sigue en false y en los 2 min siguientes dio " +
               std::to_string(verdesTrasCorte) + " verdes por reloj-, porque la hora vivia "
-              "en RAM y el corte se la llevo. Es el desenlace que hoy tiene la tarjeta, y "
-              "el contrario del que este bloque daba por bueno hasta el 12/09: con el "
-              "modelo viejo esta misma ventana traia 640 verdes por reloj");
+              "en RAM y el corte se la llevo. 🔴 12/09, D-29: ESTA LINEA SOBREVIVE Y CAMBIA "
+              "DE PRECONDICION. Mide la ventana en la que el ESP32 TODAVIA NO HA HABLADO, "
+              "que con el diferimiento es justo donde hay que mirar: el permiso de la pila "
+              "sigue puesto (D6d) y aun asi no se enciende nada. Un diferimiento que "
+              "reanudara sin hora seria la entrada automatica que SFTY-21 prohibe");
 
     // 🔴 Y EL ORDEN, no solo el desenlace (CLAUDE.md §9). degradado_reanudarTrasCorte()
     // tiene DOS puertas en serie -"reloj_enHora() && respaldo_hayCiclo()" primero, y las
@@ -1460,11 +1565,48 @@ int main() {
               "estaba ABIERTA; lo que falta es la hora, y el RTC hardware no la trae "
               "porque desde N-162 ninguna linea del firmware lo escribe");
 
-    comprobar(!respaldoTrasCorte,
-              "D6d: y el indicador de la pila queda BORRADO en ese mismo arranque "
-              "(respaldo_guardarDegradado(false) de la rama !sigueVigente). Es lo que hace "
-              "la perdida definitiva para ese arranque: la hora del ESP32 llega en el "
-              "loop, despues, y ya no hay nada que reanudar");
+    // 🔴 D-29 (12/09) — LA LINEA INVERTIDA. Hasta hoy exigia !respaldoTrasCorte: el
+    // indicador se borraba en ese mismo arranque y esa era "la perdida definitiva", con la
+    // hora del ESP32 llegando despues y sin nada que reanudar. Es exactamente el defecto
+    // que D-29 manda reconstruir, asi que la linea se INVIERTE -no se borra: la propiedad
+    // que vigila -que pasa con el permiso de la pila en el arranque- sigue siendo la
+    // pregunta buena, solo que la respuesta correcta es la contraria.
+    comprobar(respaldoTrasCorte,
+              "D6d (invertida por D-29): el indicador de la pila NO se borra en ese "
+              "arranque. Se conserva mientras la primera siembra del ESP32 pueda llegar, "
+              "porque es la unica forma de que la reanudacion se decida con la hora que "
+              "esa siembra trae. Y se conserva SIN reanudar nada todavia (D6b): lo que se "
+              "difiere es el borrado, no la puerta");
+
+    // 🔴 D-29 — Y EL BORDE DE ESE DIFERIMIENTO, MEDIDO (CLAUDE.md §7: cuando un
+    // instrumento compara contra un borde, se escribe CUAL es y por que es el correcto).
+    //
+    // CUAL: VENTANA_REANUDACION_MS de modo_degradado.cpp, que no es un plazo propio sino
+    // HORA_ESP32_ESPERA_MAX_MS -tres cadencias de siembra, releidas de reloj.h aqui
+    // arriba-. POR QUE ESE: es el mismo instante en el que bluetooth.cpp da por muda la
+    // siembra del ESP32 y publica su $ALARM, o sea que el permiso dura exactamente lo que
+    // el propio firmware considera que la siembra puede tardar, ni una vuelta mas.
+    //
+    // Sin esta linea el diferimiento seria indefinido, y un permiso que no caduca acaba
+    // siendo la entrada automatica que el comentario del Maestro lleva avisando desde
+    // N-20: "el dia que el operario ponga el reloj en hora por otro motivo".
+    const unsigned long vE1 = g_ticksVerdeEsclavo;
+    avanzar(VENTANA_REANUDACION_MS_V);
+    const bool respaldoTrasVentana = ESCLAVO.orden("respaldo_degradado") == 1;
+    // Y una siembra que llega TARDE ya no resucita nada: la ventana no es una pausa, es
+    // un plazo. Sin esta segunda mitad la linea solo diria "el bit se apago".
+    sembrarEsclavoDesdeEsp32(10, 8, 45, 0);
+    avanzar(120000);
+    const bool gobiernaTrasVentana = ESCLAVO.orden("degradado_gobierna") == 1;
+    const bool enHoraTrasVentana = ESCLAVO.orden("reloj_en_hora") == 1;
+    const unsigned long verdesTrasVentana = g_ticksVerdeEsclavo - vE1;
+    comprobar(!respaldoTrasVentana && enHoraTrasVentana && !gobiernaTrasVentana &&
+                  verdesTrasVentana == 0,
+              "D6e (el borde de D-29): pasados los " +
+              std::to_string(VENTANA_REANUDACION_MS_V / 1000UL) + " s de la ventana sin "
+              "una sola siembra, el permiso de la pila se TIRA, y una siembra posterior "
+              "-que si pone el equipo en hora- ya no reanuda nada ni enciende un verde. El "
+              "diferimiento caduca solo; no hace falta que nadie se acuerde");
   }
 
   {
@@ -1493,18 +1635,245 @@ int main() {
   }
 
   {
-    // 🔴 EL CONTROL QUE LE FALTA A LA INVERSION DE D6b (CLAUDE.md §9). Una guarda que no
-    // dejara pasar NADA -un escenario que se hubiera roto al partir la bandera del reloj,
-    // un respaldo que ya no se lee, un degradado_entrar() que rechaza por otro motivo-
-    // aprobaria D6b/D6c/D6d exactamente igual de bien que el firmware correcto.
+    // 🔴 D-29 (12/09) — LO QUE SE CONSTRUYE, EJERCIDO DE PUNTA A PUNTA.
     //
-    // Asi que se corre el MISMO escenario cambiando UNA cosa: el dominio de la pila llega
-    // con el marcador del RTC hardware PUESTO. Eso no es una puerta de atras al firmware,
-    // es el silicio de un equipo cuyo RTC escribio un firmware ANTERIOR al 11/09 -y con la
-    // CR2032 dentro, ese marcador sobrevive incluso a una recarga por SWD-. Con la hora de
-    // vuelta, el equipo SI reanuda: la reanudacion de N-20 sigue viva y lo unico que hoy la
-    // impide es que nadie escribe ya ese RTC. Sin esta linea, D6b podria estar verde por
-    // haberse quedado sin escenario y nadie lo notaria.
+    // Mismo escenario que D5/D6b: el Esclavo se corta en Degradado y despierta sin hora.
+    // Lo unico que se anade es lo que pasa DE VERDAD en la tarjeta unos segundos despues:
+    // el ESP32 pone su linea por J17. Se teclea la MISMA linea, con el prefijo leido del
+    // despachador, y la atiende el bluetooth.cpp REAL de esta DLL.
+    //
+    // 🔴 Y LO QUE ESTE ESCENARIO MIDE NO ES EL DESENLACE, ES EL ORDEN (CLAUDE.md §9). Una
+    // inversion que solo mirase "acaba reanudando" no distinguiria "reanuda PORQUE la
+    // siembra llego a tiempo" de "reanuda porque alguien dejo la puerta abierta": las dos
+    // acaban en verde por reloj. Por eso se lee el estado JUSTO ANTES de la siembra -60 s
+    // de arranque, que es SIEMBRA_REINTENTO_2_MS del calendario del ESP32, o sea el rato
+    // que de verdad puede pasar- y JUSTO DESPUES, en el mismo tick.
+    escenarioLimpio(tiempos(1, 1, 15));
+    relojDelBancoACero();
+    {
+      unsigned long simD = g_verdeSimultaneo;
+      sincronizarEsclavo(10, 8, 0, 0);
+      configurarEsclavo(20, 10);
+      g_enlaceHaciaEsclavo = false;
+      g_enlaceHaciaMaestro = false;
+      ESCLAVO.orden("degradado_entrar");
+      avanzar(30000);
+      const bool gobernabaAntes = ESCLAVO.orden("degradado_gobierna") == 1;
+
+      microcorte(ESCLAVO);
+
+      const bool respaldoTrasCorte = ESCLAVO.orden("respaldo_degradado") == 1;
+      const bool gobiernaTrasCorte = ESCLAVO.orden("degradado_gobierna") == 1;
+
+      const unsigned long vAntes = g_ticksVerdeEsclavo;
+      avanzar(60000);
+      const bool enHoraAntes = ESCLAVO.orden("reloj_en_hora") == 1;
+      const bool gobiernaAntes = ESCLAVO.orden("degradado_gobierna") == 1;
+      const unsigned long verdesAntes = g_ticksVerdeEsclavo - vAntes;
+      const long horasSyncAntes = ESCLAVO.orden("respaldo_horas_sync");
+      const int luzAntes = ESCLAVO.estado();
+
+      sembrarEsclavoDesdeEsp32(10, 8, 31, 0);   // la linea del ESP32, en un solo tick
+
+      const bool enHoraDespues = ESCLAVO.orden("reloj_en_hora") == 1;
+      const bool rtcHwDespues = ESCLAVO.orden("rtc_hw_en_hora") == 1;
+      const bool gobiernaDespues = ESCLAVO.orden("degradado_gobierna") == 1;
+      const bool huboSyncDespues = ESCLAVO.orden("degradado_hubo_sync") == 1;
+      const bool respaldoDespues = ESCLAVO.orden("respaldo_degradado") == 1;
+      const int luzDespues = ESCLAVO.estado();
+
+      const unsigned long vE0 = g_ticksVerdeEsclavo;
+      avanzar(120000);
+      const unsigned long verdesDespues = g_ticksVerdeEsclavo - vE0;
+
+      comprobar(gobernabaAntes && respaldoTrasCorte && !gobiernaTrasCorte,
+                "D10 (control): el Esclavo gobernaba por reloj al cortarse la luz, "
+                "despierta con el permiso de la pila TODAVIA PUESTO y sin haber reanudado "
+                "nada. Son las tres precondiciones de D-29; sin ellas lo que sigue no mide "
+                "el diferimiento, mide otra cosa");
+
+      comprobar(!enHoraAntes && !gobiernaAntes && verdesAntes == 0 && luzAntes != S_VERDE_V,
+                "D11 (el orden, primera mitad): durante los 60 s que el ESP32 tarda en "
+                "poder hablar -SIEMBRA_REINTENTO_2_MS de su calendario- el equipo sigue "
+                "SIN hora, sin gobernar y sin un solo verde por reloj. La puerta no estaba "
+                "abierta esperando: estaba cerrada por la hora, que es la primera");
+
+      comprobar(enHoraDespues && !rtcHwDespues && gobiernaDespues && huboSyncDespues &&
+                    respaldoDespues && luzDespues == S_ROJO_V,
+                "D12 (el orden, segunda mitad): EN EL TICK de la siembra -y no antes- el "
+                "equipo entra en hora y el Degradado vuelve a gobernar, y lo hace por el "
+                "TODO-ROJO de degradado_entrar() (la luz pasa a ROJO, no a verde). El "
+                "marcador del RTC hardware sigue en false: la hora la trajo el ESP32, que "
+                "es lo que D-29 construye, y no un RTC que ningun firmware escribe");
+
+      comprobar(verdesDespues > 0,
+                "D13: y a partir de ahi vuelve a dar verde por su reloj (" +
+                std::to_string(verdesDespues) + " instantes en los 2 min siguientes), con "
+                "una marca de sync de hace " + std::to_string(horasSyncAntes) +
+                " h contra un limite de " + std::to_string(LIMITE_SIN_SYNC_H_V) + " h. Sin "
+                "este conteo, D12 lo pasaria igual un equipo que entra en Degradado y se "
+                "queda en todo-rojo para siempre");
+
+      comprobar(g_verdeSimultaneo == simD,
+                "D13b: y en toda esa reanudacion tardia -el Esclavo volviendo a gobernar "
+                "por reloj minuto y medio despues del corte, con el Maestro sin enterarse- "
+                "NUNCA coincidio un verde en las dos puntas");
+    }
+  }
+
+  {
+    // 🔴 D-29 — LA SEGUNDA PUERTA NO SE TOCA, Y ESTA ES LA LINEA QUE LO EXIGE.
+    //
+    // El limite duro de 48 h es lo que impide reanudar sobre una marca que ya no significa
+    // nada (N-160 / D-20), y D-29 dice explicitamente que no se toca. Un diferimiento
+    // escrito de la forma facil -conservar el permiso siempre que falte la hora- la
+    // abriria: bastaria que la siembra llegase para que un equipo con la sincronizacion
+    // caducada volviera a dar verdes por reloj.
+    //
+    // Se monta el MISMO escenario cambiando UNA cosa, y por el mismo camino que la pila
+    // usa de verdad: el contador del RTC -el registro que la CR2032 mantiene y del que
+    // sale la antiguedad de la marca- salta hacia delante el limite duro MAS una hora. No
+    // se toca ni el firmware ni el indicador; lo que envejece es el dato, como envejece en
+    // la calle. El salto y el corte van SIN un solo tick por medio a proposito: con uno,
+    // degradado_actualizar() se rendiria antes y el escenario ya no mediria el arranque.
+    escenarioLimpio(tiempos(1, 1, 15));
+    relojDelBancoACero();
+    {
+      unsigned long simE = g_verdeSimultaneo;
+      sincronizarEsclavo(10, 8, 0, 0);
+      configurarEsclavo(20, 10);
+      g_enlaceHaciaEsclavo = false;
+      g_enlaceHaciaMaestro = false;
+      ESCLAVO.orden("degradado_entrar");
+      avanzar(30000);
+      const bool gobernabaAntes = ESCLAVO.orden("degradado_gobierna") == 1;
+
+      const long cnt = ESCLAVO.domLeer(10);
+      ESCLAVO.domEscribir(10, cnt + (long)((LIMITE_SIN_SYNC_H_V + 1UL) * 3600UL));
+      const long horasAntes = ESCLAVO.orden("respaldo_horas_sync");
+
+      microcorte(ESCLAVO);
+
+      const bool respaldoTrasCorte = ESCLAVO.orden("respaldo_degradado") == 1;
+      const long horasTrasCorte = ESCLAVO.orden("respaldo_horas_sync");
+
+      sembrarEsclavoDesdeEsp32(10, 9, 0, 0);
+      const bool enHora = ESCLAVO.orden("reloj_en_hora") == 1;
+
+      const unsigned long vE0 = g_ticksVerdeEsclavo;
+      avanzar(120000);
+      const unsigned long verdes = g_ticksVerdeEsclavo - vE0;
+      const bool gobierna = ESCLAVO.orden("degradado_gobierna") == 1;
+
+      comprobar(gobernabaAntes && horasAntes > (long)LIMITE_SIN_SYNC_H_V &&
+                    horasTrasCorte > (long)LIMITE_SIN_SYNC_H_V,
+                "D14 (control): el escenario esta montado -el Esclavo gobernaba por reloj y "
+                "su marca de sync sale de hace " + std::to_string(horasTrasCorte) +
+                " h contra un limite de " + std::to_string(LIMITE_SIN_SYNC_H_V) + " h-, o "
+                "sea que lo que cierra aqui es la SEGUNDA puerta y no la primera");
+
+      comprobar(!respaldoTrasCorte && enHora && !gobierna && verdes == 0,
+                "D15: con la sincronizacion pasada del limite duro, el permiso de la pila "
+                "se tira EN EL ARRANQUE -no se difiere: ninguna siembra arregla una marca "
+                "de hace mas de 48 h- y la hora del ESP32, que si entra, no reanuda nada ni "
+                "enciende un verde. El diferimiento de D-29 no roza la segunda puerta");
+    }
+  }
+
+  {
+    // 🔴 D-29 / D-1 — EL AMBAR DEL MANDO, DENTRO DE LA VENTANA DEL DIFERIMIENTO.
+    //
+    // QUE CIERRA. degradado_comprobar() -la puerta unica del modo- mira SOLO el cerrojo
+    // de Bluetooth y NO mando_ambarLocal(), a proposito. Mientras la reanudacion se
+    // decidia dentro de setup() eso no abria nada: no se ha contado ni un pulso todavia.
+    // D-29 difiere la decision hasta VENTANA_REANUDACION_MS, y en esos minutos la bandera
+    // SI puede armarse: la guarda nueva de degradado_reanudarTrasCorte() tira el permiso
+    // en ese caso, y esto es lo que la ejerce.
+    //
+    // POR QUE NO ES ADORNO AUNQUE EL MANDO ESTE DESMONTADO (D-1, 05/09). Con los
+    // pulsadores fuera la bandera no se arma nunca, asi que en la tarjeta de hoy esta
+    // guarda no se dispararia jamas y una linea que no puede fallar no es una
+    // comprobacion. Aqui SI se arma, y por el camino real: tres pulsos de B en el
+    // mando.cpp REAL de esta DLL -B.B.B, la secuencia del ambar-. Lo que se mide es que
+    // la guarda EXISTE y muerde cuando la bandera esta puesta; lo que la puede poner en
+    // campo es el cobre, no una persona: J16 p5 y p8 estan VACIOS y BOTON1/BOTON2 siguen
+    // leyendose como entradas peladas (CLAUDE.md 3, A-2/D-1).
+    //
+    // Y EL CONTROL VA PEGADO, no en otro escenario: se corre DOS VECES con la MISMA
+    // temporizacion y la unica diferencia son los tres pulsos. Sin el, la linea de abajo
+    // la pasaria igual de bien un escenario que se quedo sin siembra o sin permiso.
+    struct SalidaMando { bool ambar; bool permiso; bool gobierna; unsigned long verdes; };
+    auto correrConMando = [&](bool pulsarBBB) -> SalidaMando {
+      escenarioLimpio(tiempos(1, 1, 15));
+      relojDelBancoACero();
+      sincronizarEsclavo(10, 8, 0, 0);
+      configurarEsclavo(20, 10);
+      g_enlaceHaciaEsclavo = false;
+      g_enlaceHaciaMaestro = false;
+      ESCLAVO.orden("degradado_entrar");
+      avanzar(30000);
+      microcorte(ESCLAVO);
+      avanzar(20000);   // dentro de la ventana, y ya con el ambar de orfandad puesto
+      if (pulsarBBB) {
+        // B . B . B por el mando REAL: punta_pulsar() se los entrega a
+        // mando_registrarPulso() en botones_actualizar(), como un pulso del rele.
+        for (int i = 0; i < 3; i++) { ESCLAVO.pulsar(2); unTick(); }
+      }
+      avanzar(20000);   // los tres destellos rojos de confirmacion y su ejecucion
+      SalidaMando r;
+      r.ambar = ESCLAVO.orden("ambar_local") == 1;
+      r.permiso = ESCLAVO.orden("respaldo_degradado") == 1;
+      sembrarEsclavoDesdeEsp32(10, 8, 40, 0);
+      const unsigned long v0 = g_ticksVerdeEsclavo;
+      avanzar(120000);
+      r.verdes = g_ticksVerdeEsclavo - v0;
+      r.gobierna = ESCLAVO.orden("degradado_gobierna") == 1;
+      return r;
+    };
+    const SalidaMando conMando = correrConMando(true);
+    const SalidaMando sinMando = correrConMando(false);
+
+    comprobar(conMando.ambar && !sinMando.ambar,
+              "D16 (control): el B.B.B armo de verdad el ambar del mando -el mando.cpp "
+              "REAL, con sus tres destellos rojos y su ejecucion-, y el escenario gemelo "
+              "sin pulsar no lo armo. Sin esta linea las dos de abajo mediran lo mismo "
+              "por casualidad");
+
+    comprobar(!conMando.permiso && !conMando.gobierna && conMando.verdes == 0,
+              "D17: con el ambar del mando puesto DENTRO de la ventana, la reanudacion "
+              "diferida NO ocurre: el permiso de la pila se tira en cuanto la bandera "
+              "aparece, y la siembra del ESP32 que llega despues no gobierna la luz ni "
+              "enciende un verde. Es lo unico que D-29 abrio -degradado_comprobar() no "
+              "mira esta bandera- y se cierra en el camino diferido, sin tocar la puerta");
+
+    comprobar(sinMando.permiso && sinMando.gobierna && sinMando.verdes > 0,
+              "D18 (el control negativo de D17): el MISMO escenario con la MISMA "
+              "temporizacion y sin los tres pulsos SI reanuda (" +
+              std::to_string(sinMando.verdes) + " verdes por reloj). O sea que lo que "
+              "paro la reanudacion fue la bandera del mando y no el escenario");
+  }
+
+  {
+    // 🔴 EL CONTROL DE LA INVERSION, CON SUJETO NUEVO DESDE EL 12/09 (CLAUDE.md §9).
+    //
+    // Hasta hoy este escenario era el control de D6b: demostraba que la reanudacion de
+    // N-20 seguia VIVA y que lo unico que la apagaba era que nadie escribe ya el RTC
+    // hardware. Con D-29 construida las DOS ramas acaban reanudando, asi que como control
+    // de "reanuda o no" ya no distingue nada y habria que borrarlo o darle otro sujeto.
+    //
+    // SE LE DA OTRO SUJETO, Y NO ES RELLENO. Aqui NO SE ENTREGA NINGUNA SIEMBRA, y aun asi
+    // el equipo reanuda EN setup(). Eso separa las dos causas que D10-D13 podrian estar
+    // confundiendo: alli la reanudacion la trae la siembra dentro de la ventana; aqui la
+    // trae el RTC hardware sin ventana ninguna. Si el diferimiento hubiera roto el camino
+    // que ya funcionaba -por ejemplo dejando la decision pendiente para siempre en vez de
+    // tomarla cuando se puede-, esta linea caeria y las de alla no. Es ademas la mitad de
+    // la divergencia de flotas que D-29 dice cerrar: la tarjeta anterior al 11/09 sigue
+    // haciendo lo de siempre.
+    //
+    // El dominio de la pila llega con el marcador del RTC hardware PUESTO. No es una
+    // puerta de atras al firmware: es el silicio de un equipo cuyo RTC escribio un
+    // firmware ANTERIOR al 11/09 -y con la CR2032 dentro, ese marcador sobrevive incluso a
+    // una recarga por SWD-.
     escenarioLimpio(tiempos(1, 1, 15));
     unsigned long sim0 = g_verdeSimultaneo;
     sincronizarEsclavo(10, 8, 0, 0);
@@ -1527,12 +1896,14 @@ int main() {
 
     comprobar(gobernabaAntes && enHora && gobierna && huboSync && respaldoSigue &&
                   verdesTrasCorte > 0,
-              "D8 (el control de D6b): con el MISMO escenario y el RTC hardware escrito -un "
-              "equipo anterior al 11/09-, el Esclavo SI reanuda el Degradado tras el corte, "
-              "el indicador de la pila NO se borra y vuelve a encender verde por su reloj (" +
-              std::to_string(verdesTrasCorte) + " instantes). La reanudacion de N-20 esta "
-              "viva; lo que la apaga hoy es que reloj_ajustarConAcuse() dejo de escribir el "
-              "RTC, y no un escenario roto ni una guarda que no deja pasar nada");
+              "D8 (el control de D10-D13 desde el 12/09): con el MISMO escenario, el RTC "
+              "hardware escrito -un equipo anterior al 11/09- y SIN ENTREGAR NI UNA "
+              "SIEMBRA, el Esclavo reanuda el Degradado ya en setup() y vuelve a encender "
+              "verde por su reloj (" + std::to_string(verdesTrasCorte) + " instantes). "
+              "Separa las dos causas: alla reanuda porque la siembra llego dentro de la "
+              "ventana, aqui porque la hora estaba desde el arranque. Y demuestra que el "
+              "diferimiento de D-29 no rompio el camino que ya funcionaba -la mitad de la "
+              "divergencia de flotas que D-29 cierra-");
     comprobar(g_verdeSimultaneo == sim0,
               "D9: y en ese caso -el peor de los dos, porque aqui el Esclavo SI vuelve a dar "
               "verde por su reloj con el Maestro sin enterarse- tampoco coincidio un verde "
