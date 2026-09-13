@@ -122,9 +122,14 @@ bloquea y lo que cuesta.*
 > reintentos serían **10,5 s**; con **3**, **14 s**. A 8 km y en un cruce **móvil** lo que sube es la
 > **pérdida**, y contra la pérdida sirve **repetir** — así que más reintentos significan **menos falsas
 > alarmas** a cambio de que la alarma verdadera **tarde más en salir**. Ese equilibrio es suyo, no mío
-> (`CLAUDE.md` §8.2). **Mientras no lo diga, el `1` se queda** —está construido, en `main` y funcionando—,
-> pero **los `static_assert` dejan de afirmar que lo derivan**: eso hay que reescribirlo, elegido el
-> modelo, y va en la fila **1.31** de `roadmap.md` con los ficheros contados.
+> (`CLAUDE.md` §8.2). ~~**Mientras no lo diga, el `1` se queda.**~~ 🟢 **LO DIJO EL 13/09 — `D-32` (3):
+> *«mas reintentos, 14 o mas»*, o sea `AVISO_AMBAR_REINTENTOS` = **3** y **14 s**. CONSTRUIDO el 13/09.**
+> Y con el número se rehízo la guarda: los dos `static_assert` pasan a ser **uno**, escrito contra el modelo
+> que el firmware **implementa de verdad** —sólo se serializa el cable, `(1+N) × 2 × ENVIO_TRAMA_MS`—, con su
+> borde al lado y **sin fingir una derivación**: el número lo fija el responsable por el reloj de pared, no el
+> aire. Visto fallar en el borde exacto: con **34** compila, con **35** para la compilación. Y la medida que
+> autorizó los tres: **el aviso NO bloquea** —las dos puertas del ámbar mandan la trama y siguen, y el reenvío
+> es un `if` sobre un reloj que ya corre—, así que las esperas no gastan aire.
 
 **(4) LA APP LO DICE, y dice la verdad.** El canal ya existe —`$ALARM,NODE:…,EVENTO:…,CAUSA:…,ACCION:…`, **con campo `ACCION`**—. Y con (3) la alarma **ya no puede afirmar «el otro poste no se enteró»**: tiene que decir **«NO HE PODIDO CONFIRMARLO»**, que es distinto y es lo que el técnico puede actuar —cerrar el paso allí o avisar antes de irse—. Entra `app.js` **en sus cuatro copias** y la APK | 12/09 · decidida por el responsable | ✅ **Y el responsable añade una mitigación que se escribe porque es real: la tarea de mantenimiento** —*«el operador va al semáforo y se conecta y sabrá esa alarma»*—. ⚠️ **Pero es COMPLEMENTO, no sustituto, y la diferencia importa:** esa alarma la ve **quien se conecte a ESE poste**, y entre que el transmisor se rompe y alguien va, **el otro poste sigue dando verde**. El acuse cierra la ventana; la visita sólo la descubre después | que el aviso de `N-142` viaje sin acuse y sin reintento, que era el estado desde el 04/09 |
 

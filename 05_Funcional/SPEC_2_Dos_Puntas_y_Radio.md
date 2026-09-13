@@ -170,7 +170,7 @@ nunca en `coordinador_escucharEnAmbar()`.
 > a ignorar la única señal que esto existe para darle.
 
 **Plazo y reintento:** `AVISO_AMBAR_TIMEOUT_MS` (`protocolo.h`), que un `static_assert` de `coordinador.cpp`
-obliga a ser el mismo `TIMEOUT_ACK_MS`; y `AVISO_AMBAR_REINTENTOS`, que **hoy vale uno** y **está ELEGIDO, no
+obliga a ser el mismo `TIMEOUT_ACK_MS`; y `AVISO_AMBAR_REINTENTOS`, que **vale TRES desde `D-32` (3), 13/09** y **está ELEGIDO, no
 derivado** (§HUECOS, 1). Agotado, sale `$ALARM AVISO_RF / SIN_CONFIRMAR / AVISE_POSTE_1`, y **dice «no he
 podido confirmarlo», nunca «el otro poste no se enteró»**: con un reintento de por medio, una trama perdida se
 ve igual que un transmisor roto.
@@ -263,8 +263,10 @@ caben decenas; bajo el modelo serie completo no cabe ninguno y el valor tendría
 entera. **«Con dos no compila y con cero tampoco» no demuestra nada**: las dos mitades salen del mismo híbrido.
 **El techo de orfandad AGUANTA y no hay defecto vivo**; lo que se cae es la justificación. La restricción real
 no es el aire: es **cuánto tarda el Poste 2 en declarar que el otro no contesta**, y ese equilibrio —menos
-falsas alarmas contra una alarma verdadera más tardía— **es del responsable y está pendiente**. Mientras no lo
-diga, el uno se queda. **Corregido en `Maestro/src/coordinador.cpp`; SIN corregir** en la cabecera de
+falsas alarmas contra una alarma verdadera más tardía— **era del responsable y YA ESTÁ CONTESTADO: `D-32` (3), 13/09
+— «mas reintentos, 14 o mas» → `AVISO_AMBAR_REINTENTOS` = 3, o sea 14 s. CONSTRUIDO ese día**, y con él la
+guarda rehecha contra el modelo que el firmware implementa (una sola, `(1+N) × 2 × ENVIO_TRAMA_MS`, vista
+fallar en 35). Este hueco queda CERRADO. **Corregido en `Maestro/src/coordinador.cpp`; SIN corregir** en la cabecera de
 `AVISO_AMBAR_REINTENTOS` de `protocolo.h` (*«UNO, Y EL NUMERO ESTA DERIVADO, NO ELEGIDO»* — y el fichero es
 idéntico en las **dos** puntas, así que la frase está dos veces) y en **dos** párrafos de
 `Esclavo/src/bluetooth.cpp`. Nada de esto lo ve la compuerta.
