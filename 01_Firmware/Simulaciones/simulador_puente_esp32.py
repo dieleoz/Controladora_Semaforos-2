@@ -235,8 +235,23 @@ class Contrato:
                "ESP32_Expansion/src/despachador.cpp")
         _consts = dict(re.findall(
             r'static\s+const\s+char\s+(\w+)\[\]\s*=\s*"([^"]*)"', desp))
-        _pred = desp[desp.find("bool despachador_esParaElPuente"):]
-        _pred = _pred[:_pred.find("\n}") + 2]
+        # EL TERCER LECTOR MAL ACOTADO, hallado el 12/09 al arreglar el del despachador.
+        # Acotaba con `_pred[:_pred.find("\n}") + 2]`, o sea por la primera llave que
+        # abriera linea. MEDIDO: hoy da 251 caracteres contra los 198 del cuerpo real
+        # -la diferencia es la cabecera y la llave de cierre-, asi que hoy acierta. Pero
+        # acierta por como esta escrito el C++, no por como esta escrito el lector: basta
+        # una llave a columna cero dentro del predicado -un #if, un bloque anidado
+        # desangrado- para que corte antes de tiempo, y entonces se pierden constantes
+        # del censo SIN vaciarlo, que es lo unico que la guarda de abajo sabe ver. Un
+        # corte parcial no dispara nada y deja el modelo reenviando al STM32 lineas que
+        # el puente real se queda. Se acota por llaves, como los otros dos.
+        _pred = _cuerpo_funcion(desp, "despachador_esParaElPuente")
+        if _pred is None:
+            raise fw.Abortado(
+                "no se pudo acotar el cuerpo de despachador_esParaElPuente() en "
+                "ESP32_Expansion/src/despachador.cpp: sin frontera, este censo leeria "
+                "constantes de las funciones vecinas y daria por reclamadas ordenes que "
+                "el puente no reclama")
         self.reclamadas = sorted(
             lit for nom, lit in _consts.items()
             if re.search(r"\b%s\b" % re.escape(nom), _pred))
@@ -419,13 +434,35 @@ class Contrato:
 
     @staticmethod
     def _cuerpo_despachador(cod, donde):
-        i = cod.find("static void procesarComando(")
-        if i < 0:
+        """El cuerpo de procesarComando(), CONTANDO LLAVES. ABORTA si no se puede acotar.
+
+        Hasta el 12/09 esto terminaba en `cod.find("void bluetooth_loop", i)`, o sea que
+        el despachador acababa donde EMPIEZA OTRA FUNCION. Todo lo que viviera en medio
+        entraba en el censo: MEDIDO ese dia, 551 caracteres de mas en el Maestro
+        -obtenerNombreModo() y bluetooth_testLedsActivo()- y 187 en el Esclavo
+        -bluetooth_testLedsActivo() y bluetooth_ambarEmergencia()-.
+
+        Ninguno de los cinco patrones que esto alimenta cambiaba de resultado ese dia, y
+        por eso el arreglo no toca ninguna cifra: el defecto no es lo que mide HOY, es
+        que la frontera la pone una funcion VECINA en vez de la llave que cierra. El dia
+        que alguien mueva un strcmp(cmd, ...) a esa cola -o mueva bluetooth_loop() de
+        sitio- el censo de comandos cambia sin que nadie lo haya tocado, y eso es
+        CLAUDE.md 5: contenido que se MUDA dentro de un fichero que sigue existiendo.
+
+        Se reutiliza _cuerpo_funcion(), que ya acota por llaves para el bucle desde esta
+        misma manana: un tercer lector propio seria otra frontera que mantener."""
+        if "static void procesarComando(" not in cod:
             raise fw.Abortado(
                 "no se encontro procesarComando() en %s: sin el despachador no hay "
                 "contrato que ejercer" % donde)
-        j = cod.find("void bluetooth_loop", i)
-        return cod[i:j if j > 0 else len(cod)]
+        cuerpo = _cuerpo_funcion(cod, "procesarComando")
+        if cuerpo is None:
+            raise fw.Abortado(
+                "procesarComando() esta en %s y no se pudo acotar su cuerpo: este lector "
+                "no sabe donde acaba, y devolver de mas no seria medir poco sino medir "
+                "OTRA COSA -el censo de comandos contaria los de las funciones vecinas-"
+                % donde)
+        return cuerpo
 
 
 # =====================================================================================
@@ -1908,11 +1945,23 @@ def escenario_f4(t, c, maestro, app, util_max):
 #                           lineas entrando por J17 no lo tocan. Es un plazo de RADIO.
 #   tUltimaTelemetria       cumple (2) y NO cumple (1): lo sella la EMISION del $STATUS.
 #   tUltimaLineaJ17 (A3)    cumple (1) y NO cumple (2): lo sella j17RegistrarLinea() con
-#                           cada linea que entra, pero el unico sitio del bucle que lo
-#                           resta esta DENTRO del propio tramo de recepcion, o sea que
-#                           solo puede contar el silencio DESPUES de que se acabe. Es la
-#                           diferencia entre MEDIR y VIGILAR que el reportar() de mas
-#                           abajo lleva escrita desde el 31/08.
+#                           cada linea que entra, y el bucle NO lo resta en ninguna
+#                           vuelta -lo resta j17RegistrarLinea(), o sea dentro del propio
+#                           tramo de recepcion-, asi que por SI SOLO solo sabe contar el
+#                           silencio DESPUES de que se acabe.
+#
+#                           OJO - D-26 (5) LE ANADIO UN SEGUNDO LECTOR, y hay que decir por
+#                           que NO lo convierte en guarda del puerto: horaEsp32Vigilar()
+#                           -que el bucle si llama en cada vuelta- resta `ahora -
+#                           tUltimaLineaJ17` mientras el silencio DURA. Pero lo resta
+#                           para ELEGIR LA CAUSA de una alarma que ya decidio disparar
+#                           otro reloj (tUltimaHoraEsp32, el de la HORA): distingue
+#                           J17_MUDO de SIN_HORA_DEL_ESP32. Quitale el puerto y la alarma
+#                           sale igual, solo que con la otra etiqueta. Un reloj que no
+#                           puede DISPARAR nada no es una guarda de silencio del puerto,
+#                           y meterlo en este censo daria por existente un watchdog del
+#                           puerto que no existe: la acusacion falsa de arriba, del
+#                           reves. MEDIDO el 12/09 en las dos puntas.
 #
 # QUE SIGUE CAZANDO, que es la otra mitad del entregable: el watchdog de verdad. Si
 # alguien escribe `tUltimaRx = ahora;` dentro del while(SerialBT.available()) -o se lo
@@ -2035,6 +2084,46 @@ def guardas_de_silencio_del_puerto(cod, donde):
     armadas, rx = _marcas_que_arma_la_entrada(cod, cuerpo, donde)
     vigiladas = _marcas_que_vigila_cada_vuelta(cuerpo, rx)
     return sorted(armadas & vigiladas), sorted(armadas), sorted(vigiladas)
+
+
+def plazo_hora_esp32():
+    """(ms, "N x CADENCIA") - el plazo de D-26 (5), DERIVADO del reloj.h de LAS DOS puntas.
+
+    Se relee en cada corrida y no se escribe el valor: la cadencia cambio el 11/09
+    -300000 -> 120000, D-26 (2)- y el plazo con ella. Un "6 min" tecleado aqui seria una
+    cifra que este fichero no puede recalcular, o sea caducada de nacimiento (CLAUDE.md
+    14). Se devuelve tambien la FORMA -"3 x HORA_ESP32_CADENCIA_MS"- porque es lo que no
+    envejece: lo que el texto tiene que contar es de que se deriva, no cuanto vale hoy.
+
+    SE LEEN LAS DOS Y SE EXIGE QUE COINCIDAN. F5 habla del equipo, no de una punta: si
+    los dos reloj.h divergieran, publicar aqui el numero del Maestro seria contar de la
+    otra punta algo que no es cierto, y es el defecto del gemelo en otro fichero que este
+    repositorio ya conoce. Divergir puede ser legitimo el dia que se decida; lo que no
+    puede es pasar inadvertido.
+
+    ABORTA si no puede derivarlo, y no cae a un valor por defecto (CLAUDE.md 4): un plazo
+    inventado aqui pondria en el informe una cifra que ningun firmware respalda."""
+    vistos = {}
+    for punta in PUNTAS:
+        rel = fw.codigo(punta, "include", "reloj.h")
+        donde = "%s/include/reloj.h" % punta
+        cad = re.search(r"HORA_ESP32_CADENCIA_MS\s*=\s*(\d+)UL\s*;", rel)
+        mul = re.search(r"HORA_ESP32_ESPERA_MAX_MS\s*=\s*"
+                        r"(\d+)UL\s*\*\s*HORA_ESP32_CADENCIA_MS\s*;", rel)
+        if not cad or not mul:
+            raise fw.Abortado(
+                "no se pudo derivar HORA_ESP32_ESPERA_MAX_MS de %s. O cambio de forma "
+                "-ya no se deriva de la cadencia- o cambio de fichero, y en los dos "
+                "casos el texto de F5 estaria contando un plazo que el firmware ya no "
+                "tiene" % donde)
+        n = int(mul.group(1))
+        vistos[punta] = (n * int(cad.group(1)), "%d x HORA_ESP32_CADENCIA_MS" % n)
+    if len(set(vistos.values())) != 1:
+        raise fw.Abortado(
+            "el plazo de HORA_ESP32 ya no es el mismo en las dos puntas: %r. F5 lo cuenta "
+            "como UN plazo del equipo, y con dos valores ese texto miente en una de las "
+            "dos" % (vistos,))
+    return vistos[PUNTAS[0]]
 
 
 # Un bluetooth_loop() con un watchdog del puerto DE VERDAD, para el control negativo del
@@ -2169,36 +2258,68 @@ def escenario_f5(t, c, maestro, app, util_max):
         "el plazo de la app aparece en el firmware: el equipo no puede depender de que "
         "haya alguien mirando un telefono")
 
+    # D-26 (5) OBLIGO A REESCRIBIR ESTA LINEA, no a cambiarle la cifra. Decia "puente:
+    # NINGUNO, nadie lo vigila", y desde D-26 eso es falso: hay un plazo y hay dueno. Lo
+    # que sigue siendo cierto -y es lo que esta linea defiende- es que son plazos
+    # DISTINTOS con duenos distintos; por eso la condicion no cambia (CLAUDE.md 14: una
+    # cifra caducada se sustituye, una contradiccion se reescribe).
+    espera_ms, espera_forma = plazo_hora_esp32()
     t.verificar(
         c.sfty6_ms != c.timeout_app_ms,
         "los tres silencios tienen tres plazos distintos y tres duenos: radio %d ms "
-        "(protocolo.h) / app %d ms (app.js) / puente: NINGUNO, nadie lo vigila"
-        % (c.sfty6_ms, c.timeout_app_ms),
+        "(protocolo.h) / app %d ms (app.js) / puente %d ms (%s, reloj.h), que vigila la "
+        "HORA y no el puerto" % (c.sfty6_ms, c.timeout_app_ms, espera_ms, espera_forma),
         "el plazo de radio (%d) y el de la app (%d) coinciden: dos cosas que se miden "
         "igual acaban tratandose igual" % (c.sfty6_ms, c.timeout_app_ms))
 
     t.reportar(
-        "EL TERCER SILENCIO SE MIDE DESDE EL 31/08, PERO SIGUE SIN VIGILARSE - y no es "
-        "lo mismo",
+        "EL TERCER SILENCIO YA TIENE ALARMA, PERO LA LEVANTA OTRO RELOJ - y no vigila lo "
+        "mismo",
         ["Los dos primeros silencios tienen dueno y plazo medido. El TERCERO -el del",
-         "propio ESP32- cambio a medias con A3 (commit d44048c), y la diferencia entre",
-         "MEDIR y VIGILAR es justo lo que queda abierto:",
+         "propio ESP32- se movio dos veces: A3 (commit d44048c) lo puso a MEDIRSE y",
+         "D-26 (5) le dio ALARMA. Lo que queda abierto ya no es 'no hay nada'; es que lo",
+         "que hay mira la HORA y no el PUERTO, y son dos escalas distintas:",
          "",
-         "  lo que A3 SI hizo   j17RegistrarLinea() cierra el silencio cuando llega una",
-         "                      linea y publica $EVENT,ORIGEN:J17,DETALLE:MUDO:Ns.",
-         "                      Ejercido en F6. Es un dato de DIAGNOSTICO, y bueno: el",
-         "                      tecnico que se conecta lee cuanto llevaba mudo el puerto.",
-         "  lo que NO hizo      no hay umbral, ni alarma, ni comprobacion periodica. La",
-         "                      guarda de tiempo en bluetooth_loop() sigue sin existir",
-         "                      -medido arriba, en este mismo escenario-, asi que el",
-         "                      equipo NO se entera mientras el puente esta muerto: solo",
-         "                      puede contarlo DESPUES, y solo a quien vuelva a hablarle.",
+         "  lo que A3 hizo      j17RegistrarLinea() cierra el silencio cuando llega una",
+         "                      linea y publica $EVENT ORIGEN:J17 con MUDO/MAX/N. Desde",
+         "                      AB-1 solo por encima de J17_SILENCIO_MIN_MS (LATIDO_MS x",
+         "                      1,5): con el latido del puente, un silencio de un latido",
+         "                      es el reposo. Ejercido en F6. Es DIAGNOSTICO: lo lee el",
+         "                      tecnico que se conecta despues.",
+         "  lo que D-26 hizo    a los %d ms (%s, reloj.h) el equipo" % (espera_ms,
+                                                                       espera_forma),
+         "                      publica $ALARM EVENTO:HORA_ESP32 por su cuenta, sin que",
+         "                      nadie pregunte, y horaEsp32Vigilar() corre en CADA vuelta",
+         "                      del bucle. O sea que SI existe umbral, SI existe alarma y",
+         "                      SI hay comprobacion periodica. Para elegir la causa mira",
+         "                      el puerto -J17_MUDO si ademas no entra nada, si no",
+         "                      SIN_HORA_DEL_ESP32-, y ahi acaba lo que el puerto decide.",
+         "  lo que falta        DENTRO de bluetooth_loop() no hay ni una guarda de",
+         "                      silencio sobre la RECEPCION del puerto -medido arriba, en",
+         "                      este mismo escenario, y por eso la lista sale vacia-. El",
+         "                      disparo de D-26 lo decide tUltimaHoraEsp32: quita el",
+         "                      puerto y la alarma sale igual, solo que con otra etiqueta.",
+         "",
+         "SON DOS RELOJES Y NO UNO, y confundirlos seria darse por cubierto:",
+         "",
+         "  el que existe       vigila que la HORA llegue. Escala de MINUTOS, porque su",
+         "                      plazo se deriva de la cadencia de siembra: %d ms." % espera_ms,
+         "                      Lo que protege es que el micro no extrapole a ciegas.",
+         "  el que no existe    vigilaria que el PUERTO hable. Escala de SEGUNDOS -el",
+         "                      latido pasa cada LATIDO_MS-, y es el unico que puede",
+         "                      decir 'el puente esta colgado' cuando lo esta.",
+         "",
+         "El de minutos acaba tapando al de segundos, pero tarde y diciendo otra cosa: un",
+         "ESP32 muerto se acaba notando porque deja de sembrar la hora, no porque nadie",
+         "vigile el cable. Entre que muere y que se dice pueden pasar hasta esos %d ms."
+         % espera_ms,
          "",
          "Y la app sigue sin distinguir 'el equipo callado' de 'el puente colgado': las",
          "dos cosas le llegan como %d ms sin trama, y un tecnico delante del poste vera"
          % c.timeout_app_ms,
-         "'Sin enlace' en las dos. El $EVENT de A3 no llega a tiempo para eso, porque",
-         "por construccion sale cuando el silencio YA se acabo.",
+         "'Sin enlace' en las dos. Ni el $EVENT de A3 -sale cuando el silencio YA se",
+         "acabo- ni el $ALARM de D-26 -que viaja por el mismo cable muerto- llegan a",
+         "tiempo para eso.",
          "Que el hueco que queda se cierre con un latido propio del ESP32, con un campo",
          "en la trama, o con nada, es una decision con dueno y no la toma un",
          "instrumento."])
