@@ -310,18 +310,25 @@
 // -"Maestro","src","coordinador.cpp"- y mudarlo los rompe en silencio (CLAUDE.md 5).
 #define AVISO_AMBAR_TIMEOUT_MS  3500UL
 
-// Reintentos del aviso. UNO, Y EL NUMERO ESTA DERIVADO, NO ELEGIDO.
+// Reintentos del aviso: UNO, Y ESTA ELEGIDO, NO DERIVADO.
 //
-// La distancia NO alarga el viaje -a 8 km la senal tarda 27 us mas- pero SI sube la
-// probabilidad de PERDER la trama, y contra una trama perdida sirve REPETIR, no esperar.
-// Lo que acota cuantas veces es el presupuesto de radio: SFTY6_SILENCIO_MS es el techo y
-// el peor caso del ciclo se lo come casi entero.
+// [CORREGIDO EL 12/09. Aqui ponia "EL NUMERO ESTA DERIVADO, NO ELEGIDO" y era falso.]
 //
-// LA CUENTA VIVE EN coordinador.cpp, en DOS static_assert que se leen juntos -uno exige
-// que UNO quepa, el otro que DOS no-, porque alli estan a la vista las tres constantes
-// del presupuesto. Entre los dos, 1 es el UNICO valor que compila: si manana alguien
-// toca el techo, el timeout o los reintentos del ciclo, este numero no se queda
-// mintiendo, la compilacion se para.
+// Lo cierto y lo falso, separado, porque la parte cierta es la que importa:
+//   CIERTO  - la distancia NO alarga el viaje -a 8 km la senal tarda 27 us mas- pero SI
+//             sube la probabilidad de PERDER la trama, y contra una perdida sirve
+//             REPETIR, no esperar. Por eso hay reintento.
+//   FALSO   - que el presupuesto de radio acote cuantas veces. NO lo acota: los dos
+//             static_assert de coordinador.cpp cobran el coste unitario de un modelo
+//             -la espera entera- con el recuento del contrario -solo los reintentos, sin
+//             el intento inicial-. Bajo el modelo que el firmware IMPLEMENTA -las esperas
+//             corren en paralelo y solo se serializa el cable- caben decenas; bajo el
+//             modelo serie completo no cabe ninguno. El 1 sale de mezclarlos.
+//
+// LA RESTRICCION DE VERDAD ES EL RELOJ DE PARED, no el aire: lo que tarda esta punta en
+// declarar que la otra no contesta, hoy (1+1) x AVISO_AMBAR_TIMEOUT_MS. Subirlo da menos
+// falsas alarmas y una alarma verdadera mas lenta. Ese equilibrio es del responsable
+// (D-31, correccion del 12/09; roadmap 1.31), y MIENTRAS NO LO DIGA EL 1 SE QUEDA.
 #define AVISO_AMBAR_REINTENTOS  1
 
 // N-130: EL PARAM DE CMD_ACK_DEMANDA DICE SI LA DEMANDA SE VA A ATENDER O NO.

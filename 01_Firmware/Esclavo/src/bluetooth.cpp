@@ -135,9 +135,9 @@ static bool enlaceCaidoAnunciado = false;
 //                         esto existe para darle.
 //   avisoAmbarEsperando   hay un aviso en vuelo con el plazo corriendo. Es lo unico que
 //                         bluetooth_loop() mira para cronometrar.
-//   avisoAmbarReenvios    reenvios ya gastados, contra AVISO_AMBAR_REINTENTOS, que NO se
-//                         elige: se deriva del presupuesto de radio con dos
-//                         static_assert en Maestro/src/coordinador.cpp.
+//   avisoAmbarReenvios    reenvios ya gastados, contra AVISO_AMBAR_REINTENTOS. Ese numero
+//                         esta ELEGIDO, no derivado -corregido el 12/09-: ver el motivo
+//                         en protocolo.h, donde vive la constante.
 //   tAvisoAmbar           cuando salio el intento que se esta cronometrando.
 //
 // QUIEN BORRA LA MEMORIA, Y POR QUE NO PUEDE HABER UN SEGUNDO CAMINO: la rama de
@@ -1159,12 +1159,13 @@ void bluetooth_loop() {
   // esta punta no ve las constantes del coordinador, y que sigan siendo el MISMO numero
   // lo mide un static_assert alli, no este comentario.
   //
-  // UN REINTENTO, Y NO PORQUE UNO PAREZCA PRUDENTE: la distancia no alarga el viaje -a
+  // UN REINTENTO. La parte que sigue siendo cierta: la distancia no alarga el viaje -a
   // 8 km la senal tarda 27 us mas- pero si sube la probabilidad de perder la trama, y
-  // contra una trama perdida sirve REPETIR. Cuantas veces lo dice el presupuesto de radio
-  // bajo SFTY6_SILENCIO_MS, y AVISO_AMBAR_REINTENTOS sale de dos static_assert que exigen
-  // que uno quepa y que dos no. Si el techo o el timeout cambian, el firmware no compila
-  // en vez de quedarse con un numero viejo.
+  // contra una trama perdida sirve REPETIR.
+  // La que NO: aqui ponia que "cuantas veces lo dice el presupuesto de radio". Corregido
+  // el 12/09 -el presupuesto NO es la restriccion-. AVISO_AMBAR_REINTENTOS esta ELEGIDO,
+  // y lo que de verdad mueve subirlo es cuanto tarda esta punta en declarar que la otra
+  // no contesta. El motivo entero, en protocolo.h.
   //
   // LA ALARMA DICE "NO HE PODIDO CONFIRMARLO", NUNCA "el otro poste no se entero", Y ESA
   // DIFERENCIA ES TODA LA DECISION: con un reintento de por medio, una trama perdida por
