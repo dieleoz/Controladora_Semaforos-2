@@ -41,20 +41,6 @@ La tabla de abajo es verdad. **Lee lo que mide antes de lo que puntúa.**
 
 ---
 
-## 📍 De dónde viene este repositorio
-
-> **Este proyecto desciende de `Controladora_Semaforos` @ `50a5380`** (28/08/2026). Allí vive la
-> historia completa: 8.900 líneas de firmware validado y dos años de actas en `evidencia/`.
->
-> **La historia arranca de cero aquí a propósito, no por descuido.** El repositorio padre pesaba
-> **3,47 GB** —dos ZIP de entrega de 2 GB y 1 GB dentro de su historia— y GitHub rechaza de plano
-> cualquier fichero de más de 100 MB: esa historia **no se puede empujar**.
->
-> **Consecuencia práctica:** si busca por qué una línea del firmware es como es, `git blame`
-> **aquí no lo sabe**. Está en el repositorio padre — y sobre todo en
-> [`roadmap.md`](roadmap.md), que sí viajó entero y es donde está escrito el *por qué* de cada
-> `N-x`.
-
 ## 🔧 Qué se probó en banco, y qué no
 
 > **El 3 y 4 de Septiembre esto vio una tarjeta.** El funcional ejecutó la guía de 29 pasos
@@ -255,7 +241,7 @@ tenía el módulo SPP; **lo que se enchufa, no**.
 | ~~**Pantalla LCD ST7920** (las dos puntas)~~ | **este PCB no permite ampliación**, y la pantalla ocupaba cinco pines —`PB3` `PB4` `PB5` `PB6` `PB7`— de los que el Bluetooth necesita `PB6`/`PB7`: **no había de dónde sacarlos**. Confirmado por el responsable el 05/09 (`D-17.bis`) | toda la operación pasa por la app. **Se retira del EQUIPO, no del código**: `lcd.cpp` y `menu.cpp` siguen compilando y `Validacion_LCD` sigue dando `271/271` sobre un framebuffer del PC |
 | ~~**Módulo Bluetooth SPP dedicado** (`HC-05` / `JDY-30`)~~ | lo sustituye el ESP32 por el mismo `J17` | **no se compran** |
 | ~~**Los CUATRO botones**~~ | los pines 3 y 4 son los que necesitan las cámaras, y el 05/09 el responsable retiró la botonera entera: **«todo por app»** | ⚠️ **DOS funciones de botón están muertas y DOS SIGUEN VIVAS, y el reparto no es casual**: `botonAceptar()`/`botonCancelar()` son `return false;` —son los de `PB14`/`PB15`, **los pines que ahora son cámaras**—; pero `botonArriba()`/`botonAbajo()` tienen llamadores vivos y leen `BOTON1`/`BOTON2`, **que son los pines del mando**. 🔴 **Lo que alguien cierre en `J16` p5/p8 contra los 3,3 V SIGUE ENTRANDO al firmware.** *(`Botón 1` y `Botón 2` SON `Mando A` y `Mando B`: los mismos dos pines con dos nombres.)* |
-| ~~**El mando de relés** (hardware)~~ | 05/09, el responsable: *«ya no tenemos mandos de A y B, sólo la app»* (`D-1`) | 🔴 **El CÓDIGO no se toca, y el motivo está medido:** `mando_ambarLocal()` tiene **cinco llamadas vivas** —tres vetos en `Esclavo/src/main.cpp` y dos decisiones de `CANCELAR_AMBAR` en su `bluetooth.cpp`— y su veto es **SFTY-21**. Retirar el armador deja esos `if` siempre verdaderos: **el veto no queda inerte, queda ABIERTO.** Con el mando desmontado la bandera simplemente no se arma nunca, que es lo correcto |
+| ~~**El mando de relés** (hardware)~~ | 05/09, el responsable: *«ya no tenemos mandos de A y B, sólo la app»* (`D-1`) | ~~🔴 **El CÓDIGO no se toca**~~ 🛑 **DEROGADO POR `D-30` (12/09): el software TAMBIÉN sale** —el responsable: *«hasta el sw lo quitamos»*—. **Decidido y SIN CONSTRUIR**, y va con su precio medido, que es lo que lo tiene parado: `mando_ambarLocal()` tiene **SEIS** llamadas vivas (no cinco), y de ellas **la que ABRE PASO es el veto del `CMD_GO_GREEN` del Esclavo**; retirar sólo el armador deja ese `if` **ABIERTO, no inerte**. Además `mando.cpp` es el **único escritor de `senalActiva`**, así que el cambio toca **`SFTY-2`**, y después **ningún instrumento vigila la interceptación de las salidas por señal**. ⚠️ Y no cierra el cobre: `J16` p5/p8 siguen vacíos y **el firmware los lee por DOS caminos**, no sólo por el del mando (`CLAUDE.md` §3) |
 
 > 🔴 **Y su consecuencia declarada, que es una propiedad del sistema y no una avería (`D-16`):
 > SIN TELÉFONO NO HAY FORMA DE OPERAR EL EQUIPO.** Ni ámbar, ni volver a automático, ni parar el
@@ -334,129 +320,6 @@ seis.**
 
 **El plano de conexiones que se entrega —`J17`, `J16`, `PB6`/`PB7`, el `DS3231` y el SWD— es
 [`05_Funcional/Guia_Cableado_y_Pruebas_Banco.html`](05_Funcional/Guia_Cableado_y_Pruebas_Banco.html).**
-
----
-
-## ✅ Sistema operativo en campo (1 de Agosto de 2026)
-
-**Con dos radios en enlace directo, el sistema funciona correctamente.** El fallo de comunicación
-que se arrastraba desde el 31/07 tenía **tres causas físicas, ninguna de firmware**: los DIP
-switches `M0`/`M1` mal puestos, la tasa aérea a `0.3 kbps` que saturaba el canal half-duplex, y
-**la radio B1 con el transmisor averiado**.
-
-⚠️ **Sigue vigente:** 2 radios, enlace directo, **sin repetidor**, a **`2.4 kbps`** de Air Data
-Rate y con `M0`/`M1` **ambos en OFF** durante la operación. Ver
-[`05_Funcional/4_Manual_Configuracion_Radios.md`](05_Funcional/4_Manual_Configuracion_Radios.md).
-
----
-
-## 🔧 Lo que dejó el banco del 1 de Agosto — cuatro hallazgos que siguen informando decisiones
-
-| | qué era | estado hoy |
-|---|---|---|
-| **N-17** | `rtc.begin()` con LSE esperaba al oscilador **sin límite**: si el cristal `Y2` no arranca, el equipo se queda en el arranque para siempre | ✅ espera acotada a 2 s, por debajo de los 4 s del watchdog. *Un semáforo no puede depender de un cristal de reloj para encender* |
-| **N-26** | `botones_setup()` declaraba los pines y **nunca los leía**: un botón ya pulsado al encender se leía como flanco y arrancaba un modo que nadie pidió | ✅ se siembra el estado real de cada pin |
-| **N-23** | poner la hora no era sincronizar: `coordinador_sincronizarHora()` sólo **encola**, y en el menú nadie movía el coordinador | ✅ cerrado — y hoy el reloj vive en el ESP32 (`D-9`, `D-15`) |
-| **N-37** | **el cristal `Y2` está MUERTO**, cerrado por eliminación con tres medidas | ⛔ sigue siendo el motivo de que el reloj sea un `DS3231` colgado del ESP32. Falta diagnosticar el `Y2` de la segunda tarjeta (**BLQ-2**) |
-
-### Carga por SWD: `mode=UR`, y no se cambia
-
-`HOTPLUG` se engancha al micro **en marcha**. Con un firmware que se cuelga al arrancar, el
-watchdog reinicia cada 4 s **en mitad del borrado**: `failed to erase memory`. El delator es
-`NVM size: 128 KBytes (default)` en un chip de 64 KB.
-
-⚠️ **Si `UR` falla, reintenta — no cambies el modo.** Enganchar es cuestión de *timing* y puede
-fallar varias veces con `Unable to get core ID`. Eso **no** es falta de cableado.
-
----
-
-## 📌 Resumen de Reglas de Color y Seguridad Vial (V8.0 → V8.7)
-
-| Escenario de Operación | Estado Semáforo Maestro | Estado Semáforo Esclavo | Comportamiento del Sistema |
-|---|---|---|---|
-| **1. Sin Comunicación / Pérdida de Enlace** | 🟡 Amarillo Intermitente (1Hz) | 🟡 Amarillo Intermitente (1Hz) | Entrada a fallo de seguridad tras **25 s** sin PONG/PING. |
-| **2. Menú Principal (Con comunicación)** | 🔴 ROJO FIJO Continuo | 🔴 ROJO FIJO Continuo | ~~Menú LCD~~ con re-refuerzo de Rojo Fijo. **Con la LCD retirada este escenario pasa a la app** — el rojo fijo no cambia. |
-| **3. Menú Principal (Sin comunicación)** | 🟡 Amarillo Intermitente (1Hz) | 🟡 Amarillo Intermitente (1Hz) | Detección de orfandad ~~en Menú~~ a los **25 s**. |
-| **4. Apagado del Esclavo** | 🟡 Amarillo Intermitente (25 s) | Off / Sin Batería | Maestro detecta orfandad a los **25 s** y entra a fallo de seguridad. |
-| **5. Apagado del Maestro** | Off / Sin Batería | 🟡 Amarillo Intermitente (25 s) | Esclavo detecta orfandad a los **25 s** y entra a fallo de seguridad. |
-| **6. Restablecimiento (Self-Healing)** | 🔴 Rojo Fijo (15s All-Red) | 🔴 Rojo Fijo (15s All-Red) | **RECONEXIÓN AUTÓNOMA SIN REINICIAR NINGUNA TARJETA**. |
-| **7. Modo Manual** | 🔴 ROJO FIJO Continuo | 🔴 ROJO FIJO Continuo | **ROJO FIJO INDEFINIDO** hasta que la app dé paso. Con `DAR PASO` alterna rojo/verde como el automático y termina en **rojo+verde**, conservando el todo-rojo de despeje (`D-7`). |
-| **8. Transición Verde a Rojo** | 🔴 Rojo Directo (0s) | 🔴 Rojo Directo (0s) | Cumplimiento estricto Resolución 2024 (0s de pre-aviso). |
-| **9. Transición Rojo a Verde** | 🟡 Amarillo Fijo (4.0s) | 🟡 Amarillo Fijo (4.0s) | 4.0 segundos de aviso previo para despeje de camiones pesados. |
-| **10. Prueba de Alcance (V8.1)** | 🔴 ROJO FIJO Continuo | 🔴 ROJO FIJO Continuo | Diagnóstico con calidad de enlace y tiempo de respuesta. **No arranca ciclos.** |
-| **11. Modo Degradado (V8.7)** | Alterna 🟢/🔴 **por reloj** | Alterna 🔴/🟢 **por reloj** | **Activación MANUAL verificada**, nunca automática. Ciclo de 30 s de verde y **30 s de todo-rojo ampliado**. Cae solo a 🟡 tras **48 h** sin resincronizar. |
-
-> ⚠️ **El umbral de silencio de SFTY-6 son `25 s`, no `12 s`** — `SFTY6_SILENCIO_MS = 25000UL` en
-> el `protocolo.h` de **las dos puntas**. Esta tabla publicaba `12 s` en cinco filas: era el número
-> vigente hasta **N-71**, que midió que aquel techo estaba **por debajo** del peor caso del ciclo de
-> reintentos —20,5 s—, así que **los reintentos 4 y 5 no podían ejecutarse jamás** y nada lo
-> delataba, porque el equipo hacía algo razonable: irse a ámbar.
->
-> ⚠️ **Los gestos de las filas 2, 3, 7 y 10 eran de la botonera y la pantalla, que ya no se
-> montan.** El **comportamiento vial** de las once filas —qué color se ve y durante cuánto— **no
-> cambia**: lo que cambia es **quién lo pide**, y hoy lo pide la app.
-
-> ### ⚠️ El escenario 1 NO cambia: al perder el radio sigue entrándose en ámbar
->
-> El **Modo Degradado** (fila 11) **no sustituye** a ese comportamiento: es un **caso especial que un
-> operario activa a mano**, tras verificar las dos puntas. La máquina **nunca** decide sola operar sin
-> radio.
->
-> **Por qué.** Un ámbar dice *"no estoy controlando esto, decide tú"* y el conductor llega **alerta**.
-> Un verde dice *"pasa tranquilo, el otro lado está en rojo"* y llega **confiado**. Sin radio nadie
-> puede confirmar que la otra punta siga viva, así que **un verde equivocado es más peligroso que un
-> ámbar ambiguo**. El análisis completo, incluidos los riesgos residuales aceptados, está en
-> [`OPTIMIZACIONES.md`](OPTIMIZACIONES.md) §SFTY-21.
-
----
-
-## 🗂️ ~~Estructura del menú (V8.7)~~ — **RETIRADO con la pantalla**
-
-> 🛑 **Esto ya no es lo que se monta** (`D-17.bis`, 05/09). La pantalla LCD se retira de las dos
-> puntas y con ella el menú entero: **toda la operación pasa a la app**. Lo que muere es la
-> INTERFAZ, y con ella `MODO_HORA` —cuyo único armador vive en `menu.cpp`, detrás de un
-> `botonAceptar()` que es `return false;`— y `MODO_ALCANCE`.
->
-> **Lo que sí se conserva escrito**, porque sigue explicando decisiones de hoy: el menú era de dos
-> niveles porque una lista plana no cabía en los 64 px de alto, y **el límite no era estético** —en
-> la V8.6 una sexta línea caía en `y=69` y el peligro no era que no se dibujara, sino que **el
-> cursor sí podía navegar hasta ella**, dejando al operario en una opción invisible—. Es el mismo
-> criterio que impide que la app esconda una opción donde el dedo sí llega.
->
-> ✅ **Y lo que este README publicó como imposible y era falso:** ~~por Bluetooth sólo se alcanzan
-> tres de los ocho modos y no existe la vuelta al menú~~ — **REFUTADO el 05/09: son SIETE de
-> ocho.** `SET_MODO:MENU` existe en `Maestro/src/bluetooth.cpp`, entra **sin PIN** y sale de todos
-> los modos; en Degradado pide la salida ordenada. El único inalcanzable era `MODO_HORA`.
-> `ESTADO.md` lo llevaba corregido desde el 31/08 (N-100) **y este README no**, así que durante seis
-> días el documento de entrada hacía parecer imposible el «todo por app» que ya estaba hecho.
-
----
-
-## 🎛️ ~~Mando de relés~~ — el HARDWARE se retiró, el CÓDIGO se queda
-
-> 🟡 **`D-1` (05/09):** *«ya no tenemos mandos de A y B, sólo la app»*. El mando **no se monta**.
-> **Su código no se toca**, y el motivo está medido, no razonado: `mando_ambarLocal()` tiene
-> **cinco llamadas vivas** y su veto es **SFTY-21**; borrar el armador deja esos `if` siempre
-> verdaderos y **el veto queda ABIERTO, no inerte**. Con el mando desmontado la bandera no se arma
-> nunca, que es exactamente lo correcto.
-
-**Lo que el firmware hace HOY** — leído de `mando.cpp` de las dos puntas, no de la especificación:
-
-| Secuencia | Acción en el Maestro | Acción en el Esclavo | Confirmación |
-|---|---|---|---|
-| **`A · A · A`** (≤12 s) | 🟢 **Modo Automático** | obedecer al Maestro *(sale del ámbar local)* | 2 destellos rojos |
-| **`B · B · B`** (≤12 s) | 🟡 **Modo Ámbar**, sin condiciones y desde cualquier modo | 🟡 **ámbar local — y desobedece al Maestro a propósito** | 3 destellos rojos |
-| **`A · B · A · B`** (≤18 s) | 🕒 **Modo Degradado**, *sólo si la hora está validada* | 🕒 **Modo Degradado** | 4 destellos rojos |
-
-> ⚠️ **La tabla anterior de este README publicaba cinco secuencias y sólo la de Degradado existe en
-> el firmware.** Aquella era la **redefinición anti-colisión propuesta en la spec de V9.0**, escrita
-> en pasado como si estuviera hecha; lo que sí se implementó de N-53 es `secuenciasInhibidas()` en
-> las dos puntas. Queda abierto como **`FW-N53`** en [`ESTADO.md`](ESTADO.md), y es **decisión de
-> spec**: cambiar los gestos cambia el Manual 1, el Manual 3 y el adiestramiento del operario.
-
-> 🔴 **Y ese código vivo es la razón de que `J16` p5/p8 sea hoy una decisión de SEGURIDAD (`A-2`):
-> cualquier cosa que se cierre ahí entra por el reconocedor de secuencias.** Un fin de carrera de
-> talanquera dispararía `B·B·B` (ámbar local) o `A·B·A·B` (Degradado) por accidente.
 
 ---
 
