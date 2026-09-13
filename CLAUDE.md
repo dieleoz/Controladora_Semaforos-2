@@ -411,6 +411,11 @@ reescribirlos en cada vuelta es donde se va el tiempo — y donde se deja de hac
 >    incontestable.** No se discute si un manual esta viejo: se cuenta **que NO menciona** de lo que el firmware
 >    hace hoy. *«`10_Manual_Bluetooth` tiene CERO menciones de `CANCELAR_AMBAR`, que existe desde el 31/08, y CERO
 >    de `LATIDO`, desde el 04/09»* no admite replica; *«ese manual esta desactualizado»*, si.
+>    ⚠️ **PERO UN CERO SIGUE SIENDO §7.1 — «mi patron no encontro», no «no hay»— y aqui muerde el doble, porque
+>    el cero se usa para TIRAR un documento.** Medido el 12/09: `«14_Manual_App tiene CERO menciones de CAM:»` era
+>    cierto **y enganaba**, porque ese manual escribe `CAM` sin los dos puntos y resulta ser **el documento mas
+>    completo del repositorio sobre las camaras en la app**. El criterio habria tirado justo lo que decia que
+>    faltaba. **Antes de jubilar por ausencia se busca por los DOS nombres posibles y se mira que hay dentro.**
 
 
 ## 16. Limpiar es parte del trabajo, y se MIDE
