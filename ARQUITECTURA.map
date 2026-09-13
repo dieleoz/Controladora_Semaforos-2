@@ -1003,7 +1003,7 @@ a leer, asi que donde el acta del 07/09 y la del 12/09 coinciden no se repite ci
 | 17 | `arnes del automatico` | `Validacion_Automatico` | 99/99 | 99/99 |
 | 18 | `arnes de las dos puntas` | `Validacion_Automatico/dos_puntas` | ~~42/42~~ | 🔴 **FALLA - 90/91.** "G3 sigue en FALLA a proposito, intacta" (`2e111f1`): rojo dejado vivo a sabiendas dentro del bloque F, ver §4 |
 | 19 | `arnes del Degradado a dos puntas` | `compilar_degradado.ps1` | ~~18/18~~ | **53/53** (creció con el reloj real de D-21(1), ver §4) |
-| 20 | `simulador del puente ESP32` | `simulador_puente_esp32.py` - **lazo entero app-ESP32-STM32** | 101/101 | ~~101/101~~ **118/118** |
+| 20 | `simulador del puente ESP32` | `simulador_puente_esp32.py` - **lazo entero app-ESP32-STM32** | 101/101 | ~~101/101~~ **119/119** |
 
 **Codigos de salida:** `0` PASS · `1` FALLA · `2` ABORTADO. Escribe el acta en
 `evidencia/` con fecha y hash de HEAD.

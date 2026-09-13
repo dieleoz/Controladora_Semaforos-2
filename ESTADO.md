@@ -17,7 +17,7 @@
 > **400 s**, y de paso se descubrió que su derivación era una **tautología** que habría dado
 > margen cero— · `D-29` —**`N-20` resucitado**: un corte de luz ya no mata la reanudación del
 > Degradado— · `N-163` —**`G3` cerrado**: la ventana de verde-contra-ámbar, de 250 ms a **cero**,
-> sin tocar el umbral de 25 s—. **Maestro al 89,8 %, quedan 6.656 B.**
+> sin tocar el umbral de 25 s—. **Maestro al 89,8 %, quedan 6.648 B.**
 >
 > **Y el repositorio:** de **1.081 a 549 ficheros versionados** —`99_Legacy/` sale de git con el
 > firmware monolítico dentro—, `OPTIMIZACIONES.md` de **2.310 a 954 líneas** con las 29 reglas
@@ -375,9 +375,9 @@ lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida
 
 | | |
 |---|---|
-| Flash | Maestro **89.8 %** (**58880** de 65536 B → **6.656 B libres**) · Esclavo **70.1 %** (45932 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | 🔴 **1387/1394 comprobaciones** en **82 packs** — 81 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
-| Arneses que compilan C++ real | 287/287 pantalla · **99/99** automático · 22/22 ciclo · **106/106 dos puntas** · **53/53 Degradado a dos puntas** |
+| Flash | Maestro **89.9 %** (**58888** de 65536 B → **6.648 B libres**) · Esclavo **70.7 %** (46356 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | 🔴 **1388/1396 comprobaciones** en **82 packs** — 81 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta `D-14`, `D-22` y `D-23` como **vigentes sin construir**. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
+| Arneses que compilan C++ real | 287/287 pantalla · **99/99** automático · 22/22 ciclo · **110/110 dos puntas** · **53/53 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | **268/268** jsdom · 65/65 funcional · 42/42 unitarios · **69/69** TDD |
 
