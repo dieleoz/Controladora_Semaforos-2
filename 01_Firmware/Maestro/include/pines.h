@@ -43,6 +43,12 @@
 // La camara de DEMANDA entra por PB0, y la placa la ayuda: esa linea lleva R64 10K y
 // C25 100nF hasta la bornera J14, o sea un RC de 1 ms. Es un ANTIRREBOTE POR HARDWARE
 // -la bornera estaba pensada como entrada, y por eso el esquematico la llama "Puerta"-.
+// 🛑 D-27 (2) (11/09, decision del responsable): J14 QUEDA LIBRE, SIN CABLEAR. El fin de carrera
+// NO se instala en este despliegue, y eso cierra el conflicto de A-2 SIN TOCAR EL FIRMWARE.
+// MIENTRAS EL FIRMWARE LEA PB0 COMO DEMANDA, EN J14 NO SE CONECTA NADA: J14 es una ENTRADA del
+// micro -3,3 V, sin opto ni diodo- y la salida de talanquera es J15. Un rele cableado aqui se
+// desconecta ANTES de energizar. El ancla vive en este fichero a proposito: es donde mira quien
+// llega con el destornillador (CLAUDE.md 3).
 #define CAM_DEMANDA_PIN    PB0  // -> R64 10K + C25 100nF -> bornera J14 (antirrebote 1 ms)
 
 // LA CAMARA DE UMBRAL NO TIENE ENTRADA FISICA, Y ESTE PIN NO ES ELLA.
@@ -163,6 +169,14 @@
 #define BOTON1      PB9   // J16 p5  - Arriba / mando A
 #define BOTON2      PB13  // J16 p8  - Abajo  / mando B
 #define CAM_C_PIN   PB14  // J16 p10 - camara de contacto seco (era BOTON3, "Aceptar")
+// D-25 (11/09, decision del responsable): DOS CAMARAS POR POSTE, y por eso p12 DEJA DE ESTAR
+// VACIO. Deroga de D-13 "una camara por poste" y "p12 vacio a proposito". El codigo que lo
+// cumple ya existe -CAM_J16[2] recorrido en el mismo bucle de camaras_actualizar()-, asi que
+// esta marca dice DONDE vive la decision, no que quede algo por construir.
+// ⚠️ LO QUE D-25 SI DEJA PENDIENTE Y ESTA MARCA NO CUBRE: al ir p12 cableado, la exencion de
+// CAM_CIEGA para una camara que nunca dio flanco PIERDE SU MOTIVO -una segunda camara muerta
+// desde la instalacion no se detecta sola-. Vive en botones.cpp, SIN numero de fila a proposito
+// para que no se cuente como construida, y en roadmap.md fila 1.9.
 #define CAM_D_PIN   PB15  // J16 p12 - camara de contacto seco (era BOTON4, "Cancelar")
 
 // --- RS485 "IN" / Telemetría Bluetooth (USART1) ---
