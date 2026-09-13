@@ -301,8 +301,12 @@
 > ### Qué NO se puede ejecutar de este documento
 >
 > 1. **Todo paso que mencione `Botón 3` o `Botón 4`.** Están tachados abajo y siguen tachados.
-> 2. La pantalla LCD **se sigue dibujando** y sirve para *leer* estado; **no sirve para mandar**,
->    porque no hay con qué confirmar una opción.
+> 2. ~~La pantalla LCD **se sigue dibujando** y sirve para *leer* estado~~ → 🛑 **NO SIRVE PARA
+>    NADA EN EL EQUIPO: la pantalla se retiró** (`D-17.bis`, 05/09; el hardware, el 28/08) **y las
+>    dos LCD hoy no existen** *(el responsable, 12/09)*. Lo que sigue dibujándose es un
+>    **framebuffer invisible** en el firmware —los cuatro pines del transporte están en
+>    `U8X8_PIN_NONE`—, y `D-30` (12/09) manda retirar también ese software. **Ni se lee ni se
+>    manda desde el gabinete: todo va por la app** (`D-16`).
 > 3. El límite duro de 48 h (Sección 4) sigue vigente: el equipo se rinde solo a ámbar. No es un
 >    procedimiento — es un tope. 🔴 **07/09: el `grep` que aquí se publicaba —`LIMITE_DURO_MS` sobre
 >    `Esclavo/src/modo_degradado.cpp`— DA CERO, y un cero se lee como «no hay».** El símbolo del

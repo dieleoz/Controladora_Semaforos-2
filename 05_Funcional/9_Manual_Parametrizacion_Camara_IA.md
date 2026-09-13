@@ -325,10 +325,13 @@ cada equipo. **Un commit no protege de un destornillador.**
 >
 > * **Las imágenes no pasan por el controlador.** El semáforo no las ve, no las guarda y no las
 >   reenvía. Siguen sin existir *para el sistema de control*: el bit sigue siendo el bit.
-> * **La tarjeta microSD no está comprada** — no está en `15_Lista_de_Compras_Hardware.md`, y a
->   512 GB no es una compra trivial. *(Nota de fuentes: la ficha de 2023 dice **512 GB** y el `.docx`
->   del 05/09 apunta que alguna edición indica 256 GB. **Se compra mirando la ficha del lote que
->   llegue**, no este manual.)*
+> * ~~**La tarjeta microSD no está comprada** — no está en `15_Lista_de_Compras_Hardware.md`, y a
+>   512 GB no es una compra trivial.~~ → 🟢 **CADUCADO (`A-0`, 12/09): las CUATRO están COMPRADAS
+>   y en mano, de 64 GB** —el responsable: *«ya están compradas, con SD de 64 GB, son 4 ya»*—, y
+>   entran como línea `A10` de `15_Lista_de_Compras_Hardware.md`. **La capacidad ya no se decide.**
+>   Lo que sigue abierto en `A-0` son **días de retención y continua-o-por-evento**, y queda
+>   **sin verificar** si son `high endurance`. *(Nota de fuentes: la ficha de 2023 dice **512 GB** y el `.docx`
+>   del 05/09 apunta que alguna edición indica 256 GB — es el TECHO que admite la cámara, no lo comprado.)*
 > * **Alguien tiene que ir a recogerla.** Sin red en el poste, las imágenes se sacan **subiendo al
 >   equipo y retirando la tarjeta**. La alternativa —FTP o NAS— **exige red hasta el poste, que hoy
 >   no existe**.

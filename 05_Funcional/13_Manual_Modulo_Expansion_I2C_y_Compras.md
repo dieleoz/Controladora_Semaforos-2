@@ -580,8 +580,11 @@ de `PB6`/`PB7` habría que volver a contestarlos.** Ninguno se hace leyendo cód
    del esquemático lo llama **`RS(A0)`**, y en ese mismo bloque el nombre `RS` ya está dado a
    `PB4`. **Los dos nombres no pueden ser ciertos a la vez.** ➜ **SIGUE ABIERTO, y ahora el que
    arriesga es el Bluetooth:** si `PB6` fuera de verdad el `RS/A0` del display, el `TX` del módulo
-   estaría peleando con la línea de comando de la pantalla. Se comprueba encendiendo el equipo y
-   mirando si la LCD dibuja (§7.0).
+   estaría peleando con la línea de comando de la pantalla. ~~Se comprueba encendiendo el equipo y
+   mirando si la LCD dibuja (§7.0).~~ 🛑 **ESA COMPROBACIÓN YA NO EXISTE: la pantalla se retiró del
+   equipo** (`D-17.bis`) **y no hay display que mirar.** Con la pantalla fuera, lo que hay que
+   comprobar es **el enlace Bluetooth por `J17`**: si `PB6` no fuera `LCD_PSB`, lo que falla es la
+   telemetría, no un dibujo.
 2. **El módulo del display puede traer `PSB` ya estrapado** (`roadmap.md` N-22). ➜ **SIGUE
    ABIERTO**, por el mismo motivo que el anterior.
 3. **`PB6`/`PB7` no pueden ser `USART1` e `I²C1` a la vez.** El manual daba el remapeo por libre
@@ -827,9 +830,12 @@ Todos estos componentes se consiguen en cualquier mostrador de electrónica loca
 * [ ] **Continuidad de Tierras** *(solo si se monta el `PCF8574`)*: Verificar con el pito del multímetro que Pines 1, 2, 3 y 8 del `PCF8574` estén unidos a `GND` (fijando dirección `0x20`).
 * [ ] **Aislamiento en VCC** *(solo si se monta el `PCF8574`)*: Medir resistencia entre Pin 16 (`VCC`) y Pin 8 (`GND`). No debe haber continuidad (< 10 kΩ indica cortocircuito).
 * [ ] **Voltaje de Alimentación:** Conectar solo la tarjeta madre y verificar que al Pin `VCC` de la placa hija le lleguen exactamente $3.30\text{V} \pm 0.1\text{V}$.
-* [ ] **La pantalla sigue pintando.** Recomendable en todas las rutas (y **sin objeto en la D**, que
-      va sin pantalla): encender y comprobar que el LCD dibuja como antes. **Ahora este paso vigila
-      el Bluetooth**: si `PB6` resultara ser el `RS/A0` del display, es aquí donde se ve.
+* [ ] ~~**La pantalla sigue pintando.** Recomendable en todas las rutas (y **sin objeto en la D**, que
+      va sin pantalla): encender y comprobar que el LCD dibuja como antes.~~ 🛑 **CASILLA ANULADA
+      (`D-17.bis`): NO HAY PANTALLA QUE MIRAR** —se retiró del equipo, y las dos LCD hoy no existen—,
+      así que **todas** las rutas están en el caso que aquí se llamaba «la D». **Lo que este paso
+      vigilaba se traslada al Bluetooth**: si `PB6` resultara ser el `RS/A0` del display, se ve en la
+      casilla de abajo, no en un dibujo.
 * [ ] **El enlace Bluetooth responde.** Emparejar desde el celular y comprobar que llega telemetría.
       **No verificado en banco todavía**: el módulo se cableó a `J17` p2/p3 el 28/08 y la compuerta
       pasó, pero la compuerta no toca la tarjeta.

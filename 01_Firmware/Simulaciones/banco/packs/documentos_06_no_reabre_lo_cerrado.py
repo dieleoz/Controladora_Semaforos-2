@@ -10,8 +10,8 @@
 # CERRADO EL 11/09 - NO SE REABRE DESDE UN DOCUMENTO"-, pero un recuadro es una frase, y
 # una frase no vigila nada.
 #
-# QUE MIDE, Y SOLO ESTO: que ninguna frase DEROGADA por D-20, D-25, D-26 o D-27 aparezca SIN
-# MARCAR en un documento VIVO. Marcada es: tachada (~~...~~ en markdown; <s>, <del>,
+# QUE MIDE, Y SOLO ESTO: que ninguna frase DEROGADA por D-1, D-20, D-25, D-26, D-27 o A-0
+# aparezca SIN MARCAR en un documento VIVO. Marcada es: tachada (~~...~~ en markdown; <s>, <del>,
 # <strike> o style="text-decoration:line-through" en html), o dentro de la fe de erratas
 # de un html (<... class="decia">), o citada como muerta (ver CITA, abajo). Es la forma en
 # que este repositorio dice "esto se decia y ya no".
@@ -70,7 +70,30 @@ import unicodedata
 from html.parser import HTMLParser
 
 NOMBRE = "documentos_06_no_reabre_lo_cerrado"
-DESCRIPCION = "ninguna frase derogada por D-20/25/26/27 sigue SIN TACHAR en un documento vivo"
+DESCRIPCION = "ninguna frase derogada por D-1/20/25/26/27 o A-0 sigue SIN TACHAR en un documento vivo"
+
+# ---------------------------------------------------------------------------------
+# UN SUJETO PUEDE MORIR EN UNA A-x, Y LAS A-x NO TIENEN FILA EN "Vigentes".
+#
+# El paso 0 comprueba, para cada D-x de la lista, que su fila sigue vigente: si cae, sus
+# frases pueden volver a ser ciertas. Con una A-x esa comprobacion NO SIRVE, y no por
+# comodidad: A-0 sigue ABIERTA -faltan dias de retencion y continua-o-por-evento- y sin
+# embargo MATO dos cosas el 12/09, la compra y la capacidad. Su vigencia no dice nada
+# sobre eso; lo que mata la frase es LA LINEA DEL RESPONSABLE dentro de su apartado.
+#
+# Asi que para las A-x el paso 0 comprueba OTRA cosa: que esa linea SIGUE ESCRITA en
+# DECISIONES.md, buscada sobre el texto NORMALIZADO (por eso el ancla va en ASCII y en
+# minusculas, CLAUDE.md §13). Si alguien la retira o la reescribe con otras palabras,
+# este pack se cae y la lista se revisa A MANO -exactamente igual que cuando cae una D-x-,
+# en vez de quedarse buscando en silencio lo que ya no esta muerto.
+# ---------------------------------------------------------------------------------
+
+ANCLAS_A = {
+    # A-0, 12/09: "COMPRADAS Y EN MANO - el responsable: <<ya estan compradas, con SD de
+    # 64 GB, son 4 ya>>" y, mas abajo, "La capacidad ya no se decide -64 GB, compradas-".
+    # Se ancla a la cita del responsable, que es la que no se puede parafrasear sin querer.
+    "A-0": "ya estan compradas, con sd de 64 gb, son 4 ya",
+}
 
 # ---------------------------------------------------------------------------------
 # LA LISTA.
@@ -259,6 +282,86 @@ DEROGADAS = (
                 "estaba tachada en la propia fila D-20: la barrera es la SOBREESCRITURA, no "
                 "el rechazo",
          ejemplo="La app NO pone la hora en el poste 2. Nunca."),
+
+    # ---------------------------------------------------------------------------------
+    # LAS microSD (A-0, 12/09). El sujeto muerto no es la tarjeta: es "todavia no la
+    # tenemos". Medido el 12/09 sobre el arbol: SEIS documentos vivos decian que estaban
+    # sin comprar y OTROS SEIS que la capacidad seguia por decidir, y ningun instrumento
+    # los veia. Van en DOS entradas porque son dos frases distintas -una se apaga
+    # comprando, la otra decidiendo- y el responsable apago las dos el mismo dia.
+    # ---------------------------------------------------------------------------------
+    dict(dx="A-0", frase="las microSD estan sin comprar", matadores=("A-0",),
+         patrones=(
+             # Se exige "microsd" en la MISMA frase: "sin comprar" a secas es cierto del
+             # DS3231 (11_...:553), del receptor del mando (MANUAL_MANDO_4_RELES:649) y de
+             # B3 (15_Lista:1443). Sin ese anclaje el patron acusaria a tres verdades.
+             r"\bmicrosd\b[^.;|]{0,40}?(?P<f>\bsin\s+comprar\b)",
+             r"(?P<f>\bsin\s+comprar\b)[^.;|]{0,40}?\bmicrosd\b",
+             r"(?P<f>\bla\s+tarjeta\s+(?:microsd\s+)?no\s+esta\s+comprada\b)",
+             # ESTE cruza celdas de tabla a proposito -[^.;] en vez de [^.;|]-: la fila de
+             # 15_Lista pone el sujeto en la primera celda ("A10 microSD de las camaras") y
+             # el veredicto en la tercera ("NO se han comprado"), y con [^.;|] no se ven.
+             # El tope de 60 es lo que impide que salte a la fila siguiente.
+             r"\b(?:a10|microsd)\b[^.;]{0,60}?(?P<f>\bno\s+se\s+han\s+comprado\b)",
+             r"(?P<f>\bno\s+comprada,?\s+no\s+presupuestada\b)",
+         ),
+         motivo="A-0 (12/09): las CUATRO microSD estan COMPRADAS y en mano, de 64 GB -el "
+                "responsable: 'ya estan compradas, con SD de 64 GB, son 4 ya'-. Lo que sigue "
+                "abierto son dias de retencion y continua-o-por-evento, no la compra",
+         ejemplo="Las microSD de las camaras siguen sin comprar."),
+
+    dict(dx="A-0", frase="la capacidad de las microSD sigue por decidir", matadores=("A-0",),
+         patrones=(
+             # La forma mas repetida es la ENUMERACION de lo que falta, y ahi "capacidad" va
+             # pegada a "dias de retencion". El nucleo (?P<f>) es SOLO "capacidad": el resto
+             # de la enumeracion SIGUE ABIERTO y tacharlo entero seria mentir al reves.
+             r"(?P<f>\bcapacidad\b)[^.;|]{0,20}?,?\s*(?:y\s+)?\bdias\s+de\s+retencion\b",
+             r"(?P<f>\bcapacidad\b)[^.;|]{0,70}?\b(?:no\s+est[ae]n?\s+decidid|siguen?\s+abiert)",
+             r"\blo\s+que\s+falta\b[^.;|]{0,30}?(?P<f>\bcapacidad\b)",
+             # Las dos consecuencias que no nombran "decidir" (CLAUDE.md §14): pedirla, y
+             # derivarla de la retencion.
+             r"(?P<f>\bla\s+capacidad\s+que\s+hay\s+que\s+pedir\b)",
+             r"(?P<f>\bde\s+eso\s+sale\s+la\s+capacidad\b)",
+         ),
+         motivo="A-0 (12/09): 'La capacidad ya no se decide -64 GB, compradas-'. Lo que sigue "
+                "siendo decision son los dias de retencion y continua-o-por-evento; la "
+                "capacidad maxima que ADMITE la camara (256/512 GB) es otra cosa y sigue viva",
+         ejemplo="Falta decidir la capacidad, dias de retencion y continua o por evento."),
+
+    # ---------------------------------------------------------------------------------
+    # LA BOTONERA (D-1, 05/09: "ya no tenemos mandos de A y B, solo la app, los quitamos").
+    # D-1 retiro el HARDWARE -el mando y los cuatro pulsadores-; lo que se quedo fue el
+    # CODIGO, y eso lo retira D-30, en curso. Por eso estas dos entradas persiguen SOLO
+    # frases sobre el equipo montado, nunca sobre el firmware: "el menu sigue en el
+    # firmware" es cierto hoy y no se toca.
+    # ---------------------------------------------------------------------------------
+    dict(dx="D-1", frase="la botonera sigue en el equipo", matadores=("D-1", "D-30"),
+         patrones=(
+             r"(?P<f>\bqueda\s+la\s+botonera\b)",
+             r"\bbotonera\b[^.;|]{0,30}?(?P<f>\bsigue\s+en\s+la\s+tarjeta\b)",
+             # "sin LCD desde el 28/08; botonera si" (2_Manual_Hardware, tabla). El \b final
+             # deja fuera "la botonera sino la cabecera" (LEEME_PRIMERO_APP:124), que habla
+             # de la botonera TACTIL de la app y es cierta.
+             r"(?P<f>\bbotonera\s+si\b)",
+         ),
+         motivo="D-1 (05/09): el mando y la botonera se retiraron del EQUIPO; J16 p5 y p8 "
+                "quedan libres y no se les cablea nada. Lo que sigue vivo es el CODIGO, y de "
+                "eso se ocupa D-30",
+         ejemplo="Se retira la pantalla y queda la botonera, que sigue en la tarjeta."),
+
+    dict(dx="D-1", frase="J16 es la botonera", matadores=("D-1", "D-2", "D-25"),
+         patrones=(
+             # El (?<!\bno ) es obligatorio y esta MEDIDO: 10_Manual...:671 dice "J16 YA NO es
+             # la botonera: es el conector de las camaras", que es la correccion, no la frase
+             # muerta. Sin el, el pack acusaba al unico documento que ya estaba bien.
+             r"\bj16\b[^.;|]{0,24}?(?<!\bno )(?P<f>\bes\s+(?:el\s+de\s+)?la\s+botonera\b)",
+             r"(?P<f>\bconector\s+de\s+la\s+botonera\b)",
+         ),
+         motivo="D-1 retiro la botonera y D-2/D-25 dejaron J16 como el conector de las CAMARAS "
+                "(p10=CAM_C_PIN, p12=CAM_D_PIN; p5/p8 LIBRES). El netlist de KiCad sigue "
+                "rotulando sus pistas /Boton1../Boton4 y ese nombre no se puede cambiar sin "
+                "retocar el .kicad_sch: el ROTULO del netlist es cierto, 'J16 es la botonera' no",
+         ejemplo="El J16 es el de la botonera y trae 12 V en su posicion 1."),
 
     dict(dx="D-27", frase="objetivo: no filtrar / sin filtro de objetivo (vehiculo y persona)",
          matadores=("D-27",),
@@ -555,13 +658,29 @@ def _perdona(doc, entrada):
 
 
 def correr(b, fw):
-    # ---- 0. Las D-x de la lista siguen VIGENTES ----
-    filas = _filas_decisiones(fw.texto_repo("DECISIONES.md"))
+    # ---- 0. Las D-x de la lista siguen VIGENTES; las A-x conservan su ancla ----
+    texto_dec = fw.texto_repo("DECISIONES.md")
+    filas = _filas_decisiones(texto_dec)
     if not filas or len(filas) < 10:
         raise fw.Abortado("no se pudo leer la tabla Vigentes de DECISIONES.md: sin ella no "
                           "se sabe si las decisiones que derogaron estas frases siguen en pie")
+    dec_norm = _normalizar(texto_dec)[0]
     b.titulo("las decisiones que derogaron las frases siguen vigentes")
     for dx in sorted(set(e["dx"] for e in DEROGADAS)):
+        if dx.upper().startswith("A-"):
+            ancla = ANCLAS_A.get(dx)
+            if ancla is None:
+                raise fw.Abortado(
+                    "la lista tiene entradas de %s y %s no tiene ancla en ANCLAS_A: una A-x no "
+                    "es una fila de 'Vigentes', asi que sin ancla no hay NADA que comprobar y "
+                    "el paso 0 aprobaria por vacio" % (dx, dx))
+            b.verificar(ancla in dec_norm,
+                        "%s conserva en DECISIONES.md la linea que mata sus frases" % dx,
+                        "%s ya no dice '%s' en DECISIONES.md: la linea del responsable que mato "
+                        "estas frases se ha retirado o reescrito, asi que pueden haber vuelto a "
+                        "ser ciertas. La lista de este pack se revisa A MANO, no se deja "
+                        "buscando lo que ya no esta muerto" % (dx, ancla))
+            continue
         b.verificar(dx in filas and not filas[dx],
                     "%s sigue VIGENTE en DECISIONES.md" % dx,
                     "%s ya no esta vigente en DECISIONES.md (%s): sus frases derogadas pueden "
@@ -597,7 +716,8 @@ def correr(b, fw):
     docs = [preparar(r, t, ex) for r, t, ex in crudos]
 
     # ---- 2. Cada frase derogada ----
-    b.titulo("ninguna frase derogada por D-20/25/26/27 sigue SIN MARCAR (%d documentos)" % len(docs))
+    b.titulo("ninguna frase derogada por D-1/20/25/26/27 o A-0 sigue SIN MARCAR (%d documentos)"
+             % len(docs))
     citas = []
     for ent in DEROGADAS:
         malas = []

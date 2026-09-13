@@ -62,7 +62,7 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 > | **`A2`** cámaras | 4 pedidas, **2 compradas**, 2 `SIN VERIFICAR` | ✅ **las 4 COMPRADAS**, modelo `DS-2CD2683G2-IZS` (`D-10`) confirmado. **Nada que pedir** |
 > | **`A4`** talanquera | ~~«Módulo de 1 relé optoacoplado, con jumper `JD-VCC`»~~ | 🔴 **UN RELÉ con BOBINA de 12 V DC y un contacto normalmente abierto**, uno por poste — **sin módulo optoacoplado ni `JD-VCC`**: `J15` sólo da dos hilos (p1 = 12 V, p2 = drenador de `Q10`) y no hay ni masa ni 3,3 V para alimentar la lógica de un módulo. La **rueda libre ya está en la placa** (`D30`, un `1N4148` de 200 mA — bloque `E2`): **la corriente de la bobina tiene que quedar por debajo de eso**. Qué corriente, y qué aguanta el contacto frente a la entrada `OPEN` de la centralita: `SIN VERIFICAR` — **la referencia la elige el responsable antes de pedir** |
 > | fin de carrera de la pluma | *(nunca fue línea: `A-2` lo mandaba a `J14`)* | ⛔ **NO SE COMPRA en este despliegue.** `J14` queda **libre y sin cablear**: el firmware lo lee como demanda (`CAM_DEMANDA_PIN`), así que en `J14` no se conecta nada |
-> | `A7` · `A10` | ver el bloque `D-25` | **sin cambio**: 2 conectores + cable para 4 cámaras; 4 microSD, sin comprar |
+> | `A7` · `A10` | ver el bloque `D-25` | **sin cambio**: 2 conectores + cable para 4 cámaras; ~~4 microSD, sin comprar~~ → 🟢 **las 4 microSD COMPRADAS y en mano** *(`A-0`, 12/09: cuatro de 64 GB)* |
 >
 > **De dónde sale el cableado de `A4`:** `05_Funcional/Camaras_Sisga_4x.html`, apartado *«Talanquera
 > en J15»* —`J15` p1 a un borne de la bobina, p2 al otro, contacto NA a `OPEN` y a su común «como diga
@@ -96,7 +96,7 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 > |---|---|---|---|
 > | **`A2`** cámaras | 2 | **4** | ~~🔴 **compradas constan 2** (fila `A2`, 05/09). **Las otras 2: `SIN VERIFICAR` con compras.**~~ → 🟢 **`D-27` (11/09): las 4 compradas.** Y el modelo está marcado **`Discontinued`** en la web del fabricante (05/09): ~~**esas 2 son las que ese aviso afecta**~~ *(con las cuatro ya compradas, afecta sólo a repuestos)* |
 > | **`A7`** conexión a `J16` | 2 juegos | **2 conectores** *(uno por tarjeta)* **+ cable de 2 hilos para 4 cámaras** | sin pedir |
-> | **`A10`** microSD | 2 | **4** *(una por cámara)* | sin comprar |
+> | **`A10`** microSD | 2 | **4** *(una por cámara)* | ~~sin comprar~~ → 🟢 **COMPRADAS**, cuatro de **64 GB** *(`A-0`, 12/09)* |
 > | **`A4`** relé de talanquera | 2 | **2** *(uno por poste, no cambia)* | ⚠️ ver la nota de la fila `A4`: el tipo de relé pedido **no casa** con dos hilos en `J15` · 🟢 **`D-27`: se cambia la pieza** — relé de bobina 12 V DC, contacto NA (bloque `D-27` de arriba) |
 > | energía de cámara por poste | 13 W | **2 × 13 W = 26 W** *(máximo de ficha)* | es un número para quien dimensiona batería y panel — ver el bloque 📷 de `A2` |
 >
@@ -159,9 +159,13 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 > (11/09, `D-25`: cuatro cámaras).** Ver la línea
 > **`A10`** en el bloque **A**.
 >
-> ⚠️ **Lo que la decisión NO cierra, y sigue en `A-0` de `DECISIONES.md`:** **capacidad**, **días de
-> retención** y **si la grabación va continua o por evento**. Se puede comprar sin cerrarlas —una
-> tarjeta grande sirve para las tres respuestas— **pero no se puede configurar la cámara sin ellas**.
+> ⚠️ **Lo que la decisión NO cierra, y sigue en `A-0` de `DECISIONES.md`:** ~~**capacidad**,~~ **días de
+> retención** y **si la grabación va continua o por evento**. ~~Se puede comprar sin cerrarlas —una
+> tarjeta grande sirve para las tres respuestas—~~ **pero no se puede configurar la cámara sin ellas**.
+>
+> 🟢 **12/09 — YA NO SE COMPRAN: ESTÁN COMPRADAS.** El responsable: *«ya están compradas, con SD de
+> 64 GB, son 4 ya»*. **La capacidad deja de ser pregunta: 64 GB.** ⚠️ **Sin verificar si son
+> `high endurance`.**
 >
 > ---
 >
@@ -416,7 +420,7 @@ de lo recibido —llegaron ESP32, no `HC-05`—, criterio de compra del módulo 
 | **A7** Conexión de cámaras a `J16` | — *(línea nueva del 28/08)* | **NO se ha pedido** | pendiente *(es cable y conector, no electrónica)*. 🟢 **04/09: `M3` CERRADA en banco — ya no sólo se compra, YA SE PUEDE CONECTAR**, con el p1 de `J16` tapado. Ver `A7` |
 | **A8** **Placa portadora del `ESP32`** | — *(línea nueva del **31/08**)* | **NO se ha pedido, NO está diseñada, y NO está decidido quién la diseña ni quién la fabrica** | 🔴 **NO cubierta.** ⏸️ **04/09: SIN MOVIMIENTO — sigue sin dueño.** Ver `A8` |
 | ~~**A9**~~ **Receptor RF del mando de relés** | ~~nunca se pidió: el mando iba a retirarse~~ · ~~31/08: SUBE DE PRIORIDAD~~ · ~~04/09: SE COMPRA con salida `NO`~~ | **NUNCA se compró, y ya NO se compra** | ⛔ **ANULADA EL 05/09 (`D-1`).** *«Ya no tenemos mandos de A y B, sólo la app, los quitamos»*. **NO es una pieza pendiente: es una decisión.** Cero unidades. 🛑 **El CÓDIGO del mando NO se retira** — Manual 2 §6. 📵 Consecuencia: **la app es la única vía de mando** (`D-16`) |
-| 🆕 **A10** **microSD de las cámaras** | — *(línea nueva del **05/09**)* | **NO se han comprado** | 🟢 **DECIDIDA la compra el 05/09 por el responsable:** *«cada cámara tiene una micro, la metemos»*. ~~**2 unidades, una por cámara.**~~ → **4 unidades, una por cámara** *(11/09, `D-25`)*. ⚠️ **Capacidad, retención y continua-o-por-evento siguen abiertas** (`A-0` de `DECISIONES.md`): no bloquean comprar, **sí bloquean configurar**. Ver `A10` |
+| 🆕 **A10** **microSD de las cámaras** | — *(línea nueva del **05/09**)* | ~~**NO se han comprado**~~ → 🟢 **COMPRADAS Y EN MANO** *(`A-0`, 12/09)* | 🟢 **DECIDIDA la compra el 05/09 por el responsable:** *«cada cámara tiene una micro, la metemos»*. ~~**2 unidades, una por cámara.**~~ → **4 unidades, una por cámara** *(11/09, `D-25`)*, y **compradas el 12/09: *«ya están compradas, con SD de 64 GB, son 4 ya»***. ⚠️ ~~**Capacidad,**~~ **retención y continua-o-por-evento siguen abiertas** (`A-0` de `DECISIONES.md`): ~~no bloquean comprar,~~ **sí bloquean configurar**. **La capacidad ya NO está abierta: 64 GB.** ⚠️ **Sin verificar si son `high endurance`.** Ver `A10` |
 | ~~**B1–B2**~~ RTC en la placa STM32 | — | **NO se compraron** | ⛔ **ANULADAS.** El RTC se mudó a **A6**, colgado del `ESP32` |
 | **B3–B4** Expansor y accesorios | — | **NO se compraron** | correcto: siguen **esperando al banco**, no se piden todavía |
 | **E1** Resistencias **2K2** para las 5 entradas de campo | — *(línea nueva del **04/09**)* | **NO se ha pedido: es de la revisión V2 de la placa** | 🆕 **NO es una decisión tomada.** Es una **cuenta** para quien firme la V2. Ver bloque **E** |
@@ -579,7 +583,7 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 > | **`A1′`** | **contar los pines (30 o 38) y medir el ancho** de los módulos que ya hay | no impide usar los que hay ni escribir su firmware; **impide fabricar `A8`** |
 > | **`A8`** | **decidir quién la diseña y quién la fabrica** — hoy no está decidido | — |
 > | ~~**`A6`**~~ | ~~nada para pedirlo. **Cuántos** y qué reloj queda en el STM32 dependen del `Y2` (`B5`)~~ ⛔ **CADUCADO 05/09: son 2, están puestos, y `Y2` no decide nada** (`D-9`, `D-15`) | — |
-> | 🆕 **`A10`** | **nada para comprarlas.** Lo que falta —retención, capacidad, continua o por evento (`A-0`)— **es para configurarlas** | no impide pedir las tarjetas |
+> | 🆕 **`A10`** | **nada: ya están compradas** *(12/09, cuatro de 64 GB)*. Lo que falta —retención, ~~capacidad,~~ continua o por evento (`A-0`)— **es para configurarlas** | no impide nada: las tarjetas están en mano |
 
 | # | Qué | Cant. | Para qué | Especificación en |
 |:---:|---|:---:|---|---|
@@ -593,7 +597,7 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 | **A7** | **Juego de conexión de las cámaras a `J16`**: conector hembra del footprint de `J16` con sus terminales de crimpar, y cable de 2 hilos apantallado por cámara. 🟢 **04/09: `M3` CERRADA — ya se puede CONECTAR, no sólo comprar.** ⚠️ **Y el juego incluye con qué TAPAR el p1 de 12 V** *(tapón, funda termorretráctil o el conector sin terminal en esa posición)*: no es opcional | ~~**2 juegos**~~ → **2 conectores** *(uno por tarjeta)* **+ cable de 2 hilos para 4 cámaras** *(11/09, `D-25`: dos cámaras por conector)* | Llevar el contacto seco de ~~la cámara~~ **cada cámara** a los pines que **liberan los pulsadores 3 y 4** ~~el mando~~ (`PB14`/`PB15`), **contra los 3,3 V del borne contiguo** (`p9` para `p10`, `p11` para `p12`) — **con `D-25` se usan LOS DOS en cada poste**. **No hace falta `PCF8574` ni ninguna placa hija** | **Manual 13** §3 *(borneras)* · `03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md` §7 *(el mapa pin a pin de `J16`)* · **Manual 9** *(polaridad, `M3` y el `ENSAYO 4`)* |
 | **A8** | 🔴 **PLACA PORTADORA DEL `ESP32`** — **línea nueva del 31/08; hasta hoy esto NO ERA UNA LÍNEA DE COMPRAS y hacía falta igual.** Lleva, como mínimo: **PCB**, **hembrillas** para el módulo (que es de formato protoboard y va enchufado, no soldado), **conectores** de entrada de 12 V y de salida a `J17`, **fusible**, **protección de inversión de polaridad** y **condensadores** de desacoplo y de reserva | **2** *(1 por poste)* — 🛑 **NO SE FABRICA todavía** | Que el `ESP32` y su `A5` y su `A6` sean **un conjunto montable y reemplazable**, en vez de tres módulos sueltos con cables volantes dentro de un armario que vibra en un remolque | 🔴 **`05_Funcional/19_Especificacion_Placa_Portadora_ESP32.md`** *(otro agente la está escribiendo en este mismo árbol — **aquí NO se duplica**: si al leer esto ese fichero no existe todavía, es que ese trabajo no ha entrado, y **se espera a que entre en vez de inventar la especificación aquí**)* |
 | ~~**A9**~~ | ⛔ **RECEPTOR RF DEL MANDO DE RELÉS — NO SE PIDE. ANULADA EL 05/09 (`D-1`).** ~~🟢 SE PIDE, contacto seco MOMENTÁNEO, canales A y B, 12 V, salida `NO`~~ · ~~🛑 04/09: falta DECIDIR si `NO` o `NC`~~. **El responsable retiró el mando del equipo: *«ya no tenemos mandos de A y B, sólo la app, los quitamos»*.** **NO es una pieza pendiente ni una compra aplazada: es una decisión.** El razonamiento de `NO`/`NC` se conserva en el bloque de abajo porque **sigue gobernando el cableado de las CÁMARAS** | ~~2~~ → **0** | ⛔ **Nada.** ~~era la única vía de mando del Esclavo~~ → 📵 **eso no se resuelve comprando: pasa a ser `D-16`** — la app es la única superficie de mando, y **el Modo Degradado del Esclavo se queda sin vía de activación** *(Manual 2 §6, con el censo de las cuatro)* | 🛑 **Nada que especificar.** 🔴 **Y lo que NO se toca: el CÓDIGO del mando se queda** — retirarlo abre el veto de SFTY-21. Manual 2 §6 |
-| 🆕 **A10** | **Tarjeta microSD para cada cámara** — **`high endurance` / de vigilancia**, no la de un teléfono: se escribe en bucle las 24 h y una tarjeta de consumo se agota. Formato admitido por la cámara: **microSD / SDHC / SDXC** | ~~**2**~~ → **4** *(11/09, `D-25`)* *(1 por cámara)* | **Que exista soporte de accidentes y auditoría.** El controlador **no ve imagen** (`D-12`) y no la va a ver: las imágenes viven **en la cámara**. Sin tarjeta no hay ninguna, y **no se toca una línea de firmware** | ⚠️ **Capacidad, retención y modo de grabación NO están decididos** (`A-0`). 🔴 **Y la capacidad máxima tiene DOS fuentes que no coinciden:** ver el aviso de abajo. 🛑 **07/09 — Y LA CUENTA DE RETENCIÓN SE APOYA EN `D-14`, QUE NO ESTÁ IMPLEMENTADA:** ver el recuadro justo debajo |
+| 🆕 **A10** | **Tarjeta microSD para cada cámara** — **`high endurance` / de vigilancia**, no la de un teléfono: se escribe en bucle las 24 h y una tarjeta de consumo se agota. Formato admitido por la cámara: **microSD / SDHC / SDXC** | ~~**2**~~ → **4** *(11/09, `D-25`)* *(1 por cámara)* — 🟢 **COMPRADAS el 12/09, de 64 GB. Nada que pedir** | **Que exista soporte de accidentes y auditoría.** El controlador **no ve imagen** (`D-12`) y no la va a ver: las imágenes viven **en la cámara**. Sin tarjeta no hay ninguna, y **no se toca una línea de firmware** | ⚠️ ~~**Capacidad,**~~ **retención y modo de grabación NO están decididos** (`A-0`) — **la capacidad SÍ: 64 GB, compradas** *(12/09)*. 🔴 **Y la capacidad máxima tiene DOS fuentes que no coinciden:** ver el aviso de abajo. 🛑 **07/09 — Y LA CUENTA DE RETENCIÓN SE APOYA EN `D-14`, QUE NO ESTÁ IMPLEMENTADA:** ver el recuadro justo debajo |
 
 > # 🔴 07/09 — AVISO SOBRE `A10`: **LA CUENTA QUE DIMENSIONA ESTA COMPRA SE APOYA EN `D-14`, Y `D-14` NO ESTÁ EN EL FIRMWARE**
 >
@@ -623,7 +627,7 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 > | | |
 > |---|---|
 > | **Qué NO cambia** | **se compran ~~2~~ tarjetas igual** *(11/09: **4**, una por cámara — `D-25`)*. La cámara graba por movimiento sin necesitar nada nuestro |
-> | **Qué SÍ cambia** | **la capacidad que hay que pedir.** Ante la duda, **la más grande que admitan las dos fuentes** *(ver el aviso de los 256/512 GB)*, no la más modesta |
+> | **Qué SÍ cambia** | ~~**la capacidad que hay que pedir.** Ante la duda, **la más grande que admitan las dos fuentes** *(ver el aviso de los 256/512 GB)*, no la más modesta~~ → 🟢 **CADUCADO (`A-0`, 12/09): las cuatro están compradas, de 64 GB.** Lo que cambia es **cuánto dura la grabación en 64 GB**, que es exactamente lo que hay que mirar al decidir retención |
 > | **Y lo que hay que decidir antes de configurar** | `A-0`: retención y **continua o por evento** — con el añadido de que **el evento «rojo» hoy no llega a la cámara** |
 >
 > 🔴 **Y falta cablear y falta firmware, y ninguno de los dos está pedido:** `D-14` necesita **un
@@ -719,8 +723,9 @@ relés, y las cámaras pasan a los pines que el mando deja libres en `J16` (A7).
 >    05/09** dice **`256 GB`**, y **ésa NO es fuente del fabricante**. **Se compra mirando la ficha
 >    del lote que llegue**, y ante la duda **una de 256 GB entra en las dos lecturas**.
 >    ⚠️ **Lo que la decisión NO cierra y sigue en `A-0`:** cuántos **días de retención** hacen falta y
->    si la grabación va **continua o por evento**. De eso sale la capacidad; comprar sin decidirlo se
->    puede, **configurar la cámara no**.
+>    si la grabación va **continua o por evento**. ~~De eso sale la capacidad; comprar sin decidirlo se
+>    puede,~~ **configurar la cámara no**. 🟢 **12/09: la capacidad ya no depende de eso — están
+>    compradas, cuatro de 64 GB** (`A-0`); lo que sale de la retención es **cuánto cabe en esos 64 GB**.
 > 2. **Quién y cómo las recupera** — 🔴 **SIGUE SIN DUEÑO.** Sin red en el poste, **las imágenes se
 >    sacan subiendo a retirar la tarjeta**. La alternativa *(FTP o NAS)* **exige red hasta el poste,
 >    que no existe y no está presupuestada**. **Comprar la tarjeta no resuelve esto**, y conviene no
@@ -1639,7 +1644,7 @@ firme la revisión V2 de la placa, no compras autorizadas.**
 | **A8** | **Placa portadora del `ESP32`** ×2 | 🛑 **EL MONTAJE**, y además **NO TIENE DUEÑO**: no está decidido quién la diseña ni quién la fabrica. **Decisión del responsable** |
 | ~~**A9**~~ | ⛔ **NO SE PIDE (`D-1`, 05/09)** | ~~🛑 LA OPERACIÓN DEL ESCLAVO~~ → 📵 **ya no es una compra que falte: es `D-16`.** ~~Esa punta **no tiene `SET_MODO` por Bluetooth** —`grep -c "SET_MODO" Esclavo/src/bluetooth.cpp` → **`0`**, remedido el 05/09— … **El Modo Degradado del Esclavo se queda sin vía de activación**~~ 🟢 **CADUCADO EL 07/09: el mismo `grep` da hoy `10`.** `D-18` (05/09) le dio a esa punta `SET_MODO:DEGRADADO` por app — **se decidió, que es lo que esta fila decía que hacía falta**. Lo que queda de la fila es `D-16`: **la app es la única vía, y depende de un teléfono** |
 | ~~**A6**~~ | ✅ **`DS3231` ×2 — YA PUESTOS**, uno por `ESP32`, con pila propia | ~~Se pide ya; **cuántos** lo decide el diagnóstico del `Y2`~~ ⛔ **CADUCADO: `Y2` no decide nada** (`D-9`, `D-15`). 🔴 **Lo que sigue abierto no es la compra sino la prueba:** `0x68` **`SIN VERIFICAR`** sobre el módulo real, y `N-145` sin ejercer |
-| 🆕 **A10** | **microSD `high endurance` ~~×2~~ ×4** *(11/09, `D-25`)*, una por cámara | 🟢 **Nada para comprarlas** *(decidido el 05/09)*. Lo que bloquean es **la configuración**: sin decidir retención y continua-o-por-evento no se puede parametrizar la grabación (`A-0`) |
+| 🆕 **A10** | **microSD `high endurance` ~~×2~~ ×4** *(11/09, `D-25`)*, una por cámara | 🟢 **Nada: YA ESTÁN COMPRADAS Y EN MANO**, cuatro de **64 GB** *(`A-0`, 12/09)* ~~*(decidido el 05/09)*~~. Lo que bloquean es **la configuración**: sin decidir retención y continua-o-por-evento no se puede parametrizar la grabación (`A-0`) |
 | **A7** | Conector ~~y cable~~ para `J16` ×2 **+ cable para 4 cámaras** *(11/09, `D-25`)* | 🟢 **Nada, ni para comprar ni para conectar: `M3` se cerró en banco el 04/09** —pull-down real de 10 kΩ—. ~~**Conectarlo** espera a la medida **`M3`**~~. **Lo único obligatorio es tapar el p1 de 12 V antes de enchufar** |
 | **A2** · **A3** · **A4** | Cámaras, antenas, relés de talanquera | Nada. Siguen pendientes desde el 27/08 |
 | **E1** · **E2** | 2K2 en las entradas de campo · diodo de potencia por el `D30` | 🆕 **No bloquean nada hoy porque no se piden: son de la V2 de la placa, y NADIE la ha firmado.** Lo que bloquean es que las 5 entradas siguen **desnudas** — se opera tapando el p1 |

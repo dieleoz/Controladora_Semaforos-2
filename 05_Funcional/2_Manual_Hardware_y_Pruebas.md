@@ -551,12 +551,15 @@ que causó la avería anterior, quemas también el radio de reemplazo.
 
 ---
 
-## 3. Interfaz Local — 🔴 RETIRADA EL 28/08. QUEDA LA BOTONERA, SIN PANTALLA
+## 3. Interfaz Local — 🔴 RETIRADA ENTERA: ~~QUEDA LA BOTONERA, SIN PANTALLA~~ NI PANTALLA NI BOTONERA
 
-**La LCD ST7920 (128×64) ya no se instala.** La configuración de tiempos, los modos y la puesta en
-hora se hacen **desde la app por Bluetooth** (§8). Lo que sigue se conserva porque **el hardware de
-la botonera sigue en la tarjeta y el menú sigue en el firmware**, y quien monte el equipo tiene que
-saberlo.
+**La LCD ST7920 (128×64) ya no se instala** *(`D-17.bis`, 28/08 el hardware)* **y la botonera
+tampoco** *(`D-1`, 05/09: «ya no tenemos mandos de A y B, sólo la app, los quitamos»)*. La
+configuración de tiempos, los modos y la puesta en hora se hacen **desde la app por Bluetooth**
+(§8). Lo que sigue se conserva porque ~~**el hardware de la botonera sigue en la tarjeta y**~~ **el
+menú sigue en el firmware** —y eso es SOFTWARE, que `D-30` (12/09) manda retirar y está en curso—,
+y quien monte el equipo tiene que saberlo. **De la botonera no queda hardware: `J16` p5 y p8 quedan
+LIBRES y no se les cablea nada** *(ver el recuadro del 05/09, más abajo)*.
 
 ~~La pantalla LCD (128x64) permite configurar los tiempos de la vía mediante 4 pulsadores físicos:~~
 
@@ -679,7 +682,7 @@ por los 10 kΩ de la placa.**
 
 | | Maestro | Esclavo |
 |---|---|---|
-| LCD y botonera | ~~✅~~ 🛑 sin LCD desde el 28/08; botonera sí | ~~✅~~ 🛑 igual |
+| LCD y botonera | ~~✅~~ 🛑 sin LCD desde el 28/08; ~~botonera sí~~ **sin botonera desde el 05/09** (`D-1`) | ~~✅~~ 🛑 igual |
 | Menú | 2 niveles: `MANUAL` / `AUTOMATICO` / `INTELIGENTE` / `CONFIGURACION`, y dentro `PRUEBA ALCANCE` / `AJUSTAR HORA` / `MODO DEGRADADO` | 2 opciones: `ESTADO` / `MODO DEGRADADO` |
 | Ajuste de hora | ✅ Única vía para poner el reloj | ❌ **A propósito** — la hora llega por radio |
 | Modos de operación | ✅ | ❌ **A propósito** — quien manda el ciclo es el Maestro |
@@ -1410,7 +1413,9 @@ justo el gesto que precedió al calentamiento del paso 29.
 > **microSD de hasta 512 GB** *(ficha, pág. 3)* y sabe grabar por evento, así que **el soporte de
 > accidentes y la auditoría son posibles EN LA CÁMARA** — sin tocar el firmware. Pero **esas imágenes
 > no pasan por el controlador**, y sin red en el poste **se recuperan subiendo a retirar la tarjeta**.
-> La tarjeta **no está comprada** y la política de retención **no está definida**. Ver **Manual 9**.
+> ~~La tarjeta **no está comprada**~~ → 🟢 **las CUATRO están COMPRADAS y en mano, de 64 GB**
+> (`A-0`, 12/09). La política de retención **sigue sin definir**, y con ella continua-o-por-evento.
+> Ver **Manual 9**.
 >
 > ⚠️ **Una cámara = una salida = UN SIGNIFICADO.** La ficha dice **`1 input, 1 output`** (pág. 3):
 > **una sola salida por cámara**, así que cada cámara sólo puede decir **una** cosa. ~~Hoy el
@@ -1729,7 +1734,7 @@ Desde el 28/08 esto **no es un accesorio de diagnóstico: es la interfaz del equ
 >
 > | | qué es | **posición 1** |
 > |---|---|---|
-> | **`J16`** | conector de la **BOTONERA** | 🔴 **`12 V`** |
+> | **`J16`** | ~~conector de la **BOTONERA**~~ → **el conector de las CÁMARAS** (`D-2`/`D-3`/`D-25`: `p10` = `CAM_C_PIN`, `p12` = `CAM_D_PIN`; `p5`/`p8` LIBRES). *El netlist de KiCad sigue rotulando sus pistas `/Boton1..4` y ese nombre no se puede cambiar sin retocar el `.kicad_sch`* | 🔴 **`12 V`** |
 > | **`J17`** | ~~conector de la **PANTALLA**~~ → **el UART del módulo ESP32** — **el suyo** | `CS` (señal, no alimentación) |
 >
 > > ✅ **04/09 — la identidad de `J17` quedó RESUELTA en banco, y por eso se tacha lo anterior.**

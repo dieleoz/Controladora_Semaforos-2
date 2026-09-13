@@ -1383,8 +1383,11 @@ Para detección inteligente de flujo vehicular en pasos alternados de obra sin r
 >   ✏️ **11/09: «dos» se contó con dos cámaras.** Con `D-25` hay **cuatro**, y la regla del
 >   responsable es **una por cámara**; **cuántas se compran lo fija la lista de compras**, no este
 >   manual.
->   **Lo que sigue sin decidir es la CONFIGURACIÓN** —capacidad, días de retención, y si la grabación
->   va continua o por evento—, y eso **no toca una línea de firmware**.
+>   ✏️ **12/09: YA NO ES UNA COMPRA DECIDIDA, ES UNA COMPRA HECHA** — el responsable: *«ya están
+>   compradas, con SD de 64 GB, son 4 ya»* (`A-0`). **Cuatro, de 64 GB, en mano.**
+>   **Lo que sigue sin decidir es la CONFIGURACIÓN** —~~capacidad,~~ días de retención, y si la grabación
+>   va continua o por evento—, y eso **no toca una línea de firmware**. **La capacidad ya no se
+>   decide: 64 GB.**
 > * Sin red en el poste, para verlas hay que **subir al equipo y retirar la tarjeta**.
 > * **Nadie ha decidido todavía** cuántos días se guardan ni quién las revisa.
 >
@@ -1796,7 +1799,9 @@ Desde el 28/08 esto **ya no es un accesorio de soporte: es la única interfaz de
 
 > ## ⛔ ANTES DE CONECTAR NADA: `J16` LLEVA 12 V Y QUEMA EL MÓDULO
 >
-> **`J16` y `J17` son dos conectores distintos y se parecen.** `J16` es el de la **botonera** y
+> **`J16` y `J17` son dos conectores distintos y se parecen.** ~~`J16` es el de la **botonera**~~ →
+> **`J16` es el de las CÁMARAS** *(`D-2`/`D-3`/`D-25`: `p10` = `CAM_C_PIN`, `p12` = `CAM_D_PIN`;
+> `p5` y `p8` quedan LIBRES — la botonera se retiró el 05/09, `D-1`)*, y
 > **trae 12 V en su posición 1**; `J17` es el de la pantalla y reparte **3,3 V**. Enchufar el módulo
 > Bluetooth en `J16` le mete **12 V a una entrada de 3,3 V: se quema, y no avisa antes**.
 >
