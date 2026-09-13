@@ -382,3 +382,40 @@ reescribirlos en cada vuelta es donde se va el tiempo — y donde se deja de hac
 > manuales.** Se tocan cuando el sujeto esta quieto: propagar una decision fresca a once documentos es apostar a que
 > no cambia, y aqui cambia. Esto NO deroga que una decision no esta puesta hasta que llega al manual (§11.1): dice
 > **cuando** se hace ese viaje, no si se hace.
+
+## 16. Limpiar es parte del trabajo, y se MIDE
+
+> **Este repositorio no se degrada por lo que se escribe mal: se degrada por lo que se anade y nadie
+> retira. Del 28/08 al 05/09, `CLAUDE.md` crecio 869 lineas contra 36 borradas y NINGUN commit retiro
+> nunca un apartado. `roadmap.md` volvio de 1.093 a 2.695 en cinco dias. Es el mismo mecanismo las dos
+> veces: se INCREMENTA sin releer.**
+
+**LA MEDIDA, y se RECALCULA antes de cada tanda — no se recita** (§8): lineas de
+`{Maestro,Esclavo,Repetidor}/{src,include}` **frente a** `Simulaciones + Validacion_* + compuerta.py`.
+El 12/09: **18.858 contra 53.771, o sea 2,85 a 1** —el `.map` la midio en 2,90 con otro corte—, y en los
+cinco dias anteriores **el aparato de medir crecio ~12.000 lineas y el firmware CERO**. Cuando esa
+division sube y el firmware no se mueve, **lo que hay no es rigor: es sustitucion**, y se corrige
+cerrando el editor de `.md`.
+
+**LAS TRES REGLAS QUE LO SUJETAN:**
+
+1. 🔴 **NADA ENTRA SIN QUE ALGO SALGA.** Un pack, un apartado o un documento nuevo **nombra en su commit
+   que retira**. Si no retira nada, el commit lo dice y explica por que — «lo escribi y no borre nada» es
+   una decision, no un descuido, y tiene que verse.
+2. 🔴 **NINGUN FICHERO BASE PASA DE 1.000 LINEAS.** Base es lo que gobierna: `DECISIONES.md`,
+   `OPTIMIZACIONES.md`, `05_Funcional/17_...`, `CLAUDE.md`, `roadmap.md`, `ESTADO.md`, `ARQUITECTURA.map`,
+   `README.md`. **Lo que pasa se PARTE, no se reescribe**: lo vivo se queda, la cronica se muda literal a
+   su `_hist`, y **el historico publica las dos cuentas** para demostrar que no se borro nada. El molde es
+   `roadmap.md`, 2.695 -> 443 + historico.
+3. 🔴 **UN SUJETO MUERTO SE MATA EN EL INSTRUMENTO, NO EN LA MEMORIA.** Cuando el responsable retira algo
+   —el mando, las LCD, una compra ya hecha—, la decision lo mata en UNA fila y el sujeto sigue vivo en
+   diez documentos. **Va a `documentos_06_no_reabre_lo_cerrado` el mismo dia**, con la frase literal que
+   lo mata. Acordarse no funciona: nadie se acuerda, y el sintoma es volver a proponerle al responsable
+   algo que el ya cerro.
+
+⚠️ **Y el archivado tiene DOS destinos que no son lo mismo, asi que se elige a proposito:**
+`05_Funcional/historico/` **sigue dentro de git** —muerto pero consultable, y un clon nuevo lo trae—;
+`99_Legacy/` **esta FUERA de git** por su propio `.gitignore` —un clon nuevo ya no lo trae—. Y ojo con la
+mecanica: **`git mv` a `99_Legacy/` los deja SEGUIDOS en la ruta nueva** —fuerza el `.gitignore`— y el
+repositorio sigue cargando los bytes, que es lo contrario de jubilar. Se mueve en disco y se registra la
+**BAJA**: el indice tiene que salir con lineas `D`, nunca `R`.
