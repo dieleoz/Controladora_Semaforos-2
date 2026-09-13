@@ -397,6 +397,21 @@ reescribirlos en cada vuelta es donde se va el tiempo — y donde se deja de hac
 > descubrir que ya no aplica. **Certificado quiere decir: banco pasado y tarjeta cargada** (§0.2),
 > no compuerta verde (§0.3).
 
+> 🔴 **Y COMO SE ESCRIBE UNA SPEC, que es lo que sustituye a esos manuales.** Tres reglas, las tres medidas el 12/09
+> al escribir las cinco primeras:
+>
+> 1. **Una spec se escribe desde `DECISIONES.md` VIGENTE y desde EL FUENTE. NUNCA desde un manual anterior.**
+>    Copiar un manual propaga lo caducado con aspecto de revisado — y ese es justo el bucle que la spec viene a
+>    cortar. El manual viejo se ABRE para censar que cubre; **ninguna frase suya entra sin verificarla contra el
+>    codigo**. Una `A-x` abierta se nombra como HUECO, no como comportamiento.
+> 2. **Un requisito = una spec, y por debajo de 300 lineas.** Si no cabe, sobra prosa. **Y el reparto nombra
+>    EXPLICITAMENTE lo que queda sin dueno**: partir un sistema en cinco specs deja huecos entre ellas, y un hueco
+>    que nadie nombra no lo cubre nadie.
+> 3. 🔴 **LA CADUCIDAD DE UN DOCUMENTO SE MIDE POR AUSENCIA, NO POR OPINION — y esto es lo que la hace
+>    incontestable.** No se discute si un manual esta viejo: se cuenta **que NO menciona** de lo que el firmware
+>    hace hoy. *«`10_Manual_Bluetooth` tiene CERO menciones de `CANCELAR_AMBAR`, que existe desde el 31/08, y CERO
+>    de `LATIDO`, desde el 04/09»* no admite replica; *«ese manual esta desactualizado»*, si.
+
 
 ## 16. Limpiar es parte del trabajo, y se MIDE
 
