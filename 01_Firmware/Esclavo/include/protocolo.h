@@ -231,9 +231,14 @@
 //   2. SE SALE AL TODO-ROJO, NO AL CICLO. Reanudar seria dar verde a un cruce cuyo
 //      Poste 1 no ha mirado nadie. Se entra en MODO_MANUAL por la misma puerta que
 //      N-147: coordinador_forzarRojoTotal(), que no programa ningun cambio.
-//   3. NO SE ACUSA, igual que CMD_AMBAR_ESCLAVO y por el mismo motivo -el operario del
-//      Poste 2 ya tiene su respuesta por Bluetooth-. Lo que confirma es que el cruce
-//      pase de ambar a rojo, que se ve desde donde esta de pie.
+//   3. NO SE ACUSA -y desde el 12/09 YA NO ES "igual que CMD_AMBAR_ESCLAVO": aquel SI se
+//      acusa (D-31), este no, y la asimetria es la regla y no un olvido-. El camino
+//      NORMAL de esta trama es con el Maestro YA en MODO_AMBAR, donde tiene prohibido
+//      transmitir (SFTY-21): un acuse aqui obligaria a hablar justo en el modo en que
+//      esta punta calla, y su ausencia -que es lo habitual- se leeria como averia. Lo
+//      que confirma es que el cruce pase de ambar a rojo, que se ve desde donde esta de
+//      pie. Lo que esta trama SI hace por D-31 es BORRAR la memoria del acuse en el
+//      Esclavo, y eso es de su lado: ver la cabecera de CMD_ACK_AVISO_AMBAR.
 //   4. LA RED, SI ESTA TRAMA SE PIERDE: aqui NO sirve la de N-142 -el Maestro callado
 //      no agota reintentos ni cae a C_FALLO: no pregunta nada-. La red es que la
 //      SEGUNDA pulsacion de CANCELAR_AMBAR reenvia el aviso en vez de contestar
@@ -246,6 +251,78 @@
 // UART y no lo habria leido nadie: declarado y no ejercido. Por eso existe
 // coordinador_escucharEnAmbar(), que ESCUCHA sin hablar -callar es no transmitir-.
 #define CMD_CANCELA_AMBAR_ESCLAVO  0x15
+
+// D-31 (12/09): EL AVISO DE AMBAR ENTRE POSTES SE ACUSA -- Y SOLO EL PRIMERO.
+//
+// LA AVERIA QUE ESTO CIERRA, y que hasta hoy el arnes de las dos puntas publicaba como
+// NOTA QUE NO CUENTA (bloque H4) porque ningun firmware de esa punta podia aprobarla
+// solo: si se rompe SOLO EL TRANSMISOR del Esclavo -oye pero no habla-, esa punta NO
+// TIENE FORMA DE SABERLO. Su unico dato de radio es el silencio de lo que RECIBE, y el
+// Maestro le sigue hablando. El tecnico ve un $ACK identico al de la radio sana, se va,
+// y el Poste 1 sigue dando VERDE hacia un carril cuyo otro extremo esta en ambar. Y
+// muerde en el caso COMUN: la rama principal del ambar de emergencia es
+// if (!degradado_gobiernaLuz()), o sea operacion normal obedeciendo al Maestro.
+//
+// EL ACUSE SE ESPERA SOLO DEL PRIMER AVISO, Y ESO NO ES UNA SIMPLIFICACION: ES LA REGLA.
+//
+// El primer diseno -"que el Poste 1 acuse siempre"- se descarto porque construia algo
+// PEOR que el defecto. El aviso es justamente lo que manda al Maestro a MODO_AMBAR, y
+// alli tiene PROHIBIDO transmitir (SFTY-21; coordinador_escucharEnAmbar(): "callar no es
+// no oir"). Un diseno que esperase acuse en CADA pulsacion diria "nadie me oyo" CON LA
+// RADIO SANA cada vez que alguien pulsa dos veces -que es lo normal en un poste, y esta
+// medido: el operario pulso tres veces en catorce segundos, ver N-134-, y eso ENSENA AL
+// TECNICO A IGNORAR la unica senal que esta decision existe para darle.
+//
+// Por eso: al llegar el acuse, el Esclavo RECUERDA que el Poste 1 ya lo sabe. Las
+// pulsaciones siguientes vuelven a mandar el aviso -no cuesta nada y el Maestro lo
+// ignora por su propia guarda- pero NO ESPERAN NADA y lo dicen en el $ACK
+// (RESULT:..._POSTE1_AVISADO).
+//
+// ASI SFTY-21 NO SE TOCA: EL MAESTRO CONTESTA SOLO MIENTRAS CICLA, QUE ES CUANDO PUEDE.
+// La rama de coordinador_escucharEnAmbar() -la que corre con el Maestro YA en ambar- no
+// emite este acuse ni ningun otro: sigue oyendo y callando, exactamente como N-152 la
+// dejo.
+//
+// QUIEN BORRA LA MEMORIA: EL CANCELAR, Y NO HAY OTRO CAMINO. Armado y cancelado son la
+// MISMA maquina; partirlos deja un estado que miente -la proxima vez el Esclavo no
+// esperaria acuse cuando SI debe-. Censado en Esclavo/src/bluetooth.cpp el 12/09:
+// ambarEmergencia se pone a false en UN SOLO sitio, la rama de CANCELAR_AMBAR, y la
+// memoria se borra en esa misma sentencia para que no puedan separarse.
+//
+// EL AMBAR NO ESPERA. Se enciende al instante y el telefono recibe su $ACK inmediato; el
+// desmentido llega DESPUES, como $ALARM. Es el patron de CMD_ACK_DEMANDA (N-130): "no
+// puede esperar: bloquear el bucle por una radio de 2.4 kbps es peor".
+//
+// Y LA ALARMA DICE "NO HE PODIDO CONFIRMARLO", NUNCA "el otro poste no se entero": con
+// un reintento de por medio, una trama perdida se ve IGUAL que un transmisor roto, y
+// afirmar la causa seria inventarsela. Lo que el tecnico puede actuar es lo primero.
+#define CMD_ACK_AVISO_AMBAR  0x16
+
+// El plazo que el Esclavo espera ese acuse. NO ES UN NUMERO NUEVO: es el mismo
+// TIMEOUT_ACK_MS que el ciclo ya usa como "un viaje de radio con margen", y esta escrito
+// aqui porque el Esclavo NO PUEDE VER una constante que vive en
+// Maestro/src/coordinador.cpp.
+//
+// Que las dos sigan siendo el MISMO numero no se confia a este comentario -un comentario
+// no falla cuando alguien cambia un numero-: lo mide un static_assert en coordinador.cpp,
+// que es el unico sitio donde las dos son visibles a la vez. La otra salida era MUDAR
+// TIMEOUT_ACK_MS a este header, y se descarta: los instrumentos lo direccionan por RUTA
+// -"Maestro","src","coordinador.cpp"- y mudarlo los rompe en silencio (CLAUDE.md 5).
+#define AVISO_AMBAR_TIMEOUT_MS  3500UL
+
+// Reintentos del aviso. UNO, Y EL NUMERO ESTA DERIVADO, NO ELEGIDO.
+//
+// La distancia NO alarga el viaje -a 8 km la senal tarda 27 us mas- pero SI sube la
+// probabilidad de PERDER la trama, y contra una trama perdida sirve REPETIR, no esperar.
+// Lo que acota cuantas veces es el presupuesto de radio: SFTY6_SILENCIO_MS es el techo y
+// el peor caso del ciclo se lo come casi entero.
+//
+// LA CUENTA VIVE EN coordinador.cpp, en DOS static_assert que se leen juntos -uno exige
+// que UNO quepa, el otro que DOS no-, porque alli estan a la vista las tres constantes
+// del presupuesto. Entre los dos, 1 es el UNICO valor que compila: si manana alguien
+// toca el techo, el timeout o los reintentos del ciclo, este numero no se queda
+// mintiendo, la compilacion se para.
+#define AVISO_AMBAR_REINTENTOS  1
 
 // N-130: EL PARAM DE CMD_ACK_DEMANDA DICE SI LA DEMANDA SE VA A ATENDER O NO.
 //

@@ -74,3 +74,21 @@ bool bluetooth_testLedsActivo();
 // banderas, y CANCELAR_AMBAR lo dice en su RESULT cuando la otra sigue puesta.
 // ---------------------------------------------------------------------------
 bool bluetooth_ambarEmergencia();
+
+// ---------------------------------------------------------------------------
+// D-31 (12/09) - EL POSTE 1 ACUSA EL AVISO DE AMBAR, Y AQUI SE RECOGE.
+//
+// Lo llama main.cpp desde la cadena de radio, que es el UNICO lector de radio de esta
+// punta -protocolo_hayPaqueteDisponible() es consumo destructivo, y un segundo lector en
+// bluetooth.cpp le robaria CMD_GO_RED / CMD_GO_GREEN al despachador de luces, que es lo
+// contrario de lo que esto protege-. Por eso la rama vive alli y el estado, aqui.
+//
+// QUE CAMBIA AL LLAMARLA: se para el plazo del aviso en vuelo -no habra desmentido- y se
+// RECUERDA que el Poste 1 ya lo sabe, de modo que las pulsaciones siguientes no esperen
+// nada. Esa memoria la borra CANCELAR_AMBAR y nadie mas.
+//
+// NO HACE NADA si el ambar de emergencia de esta punta no esta vigente: un acuse
+// rezagado de un armado ya cancelado pondria la memoria y dejaria al aviso SIGUIENTE sin
+// esperar confirmacion, que es justo la ceguera que D-31 cierra.
+// ---------------------------------------------------------------------------
+void bluetooth_avisoAmbarAcusado();

@@ -135,6 +135,12 @@ static uint8_t CMD_CONFIG_VERDE_V, CMD_CONFIG_DESPEJE_V;
 static unsigned long SFTY6_SILENCIO_MS_V;
 static unsigned long TIMEOUT_ACK_MS_V;
 static unsigned long CICLO_MAX_REINTENTOS_V;
+// D-31: el plazo del acuse del aviso de ambar y sus reintentos, leidos de protocolo.h. El
+// bloque H4 tiene que dejar correr el intento Y su reintento antes de exigir la alarma:
+// con un presupuesto escrito a mano, el dia que el numero cambie el escenario preguntaria
+// antes de tiempo y llamaria defecto a un firmware que estaba esperando.
+static unsigned long AVISO_AMBAR_TIMEOUT_MS_V;
+static unsigned long AVISO_AMBAR_REINTENTOS_V;
 static unsigned long DESPEJE_POR_DEFECTO_S;
 static unsigned long AMBAR_ESCLAVO_MS_V;
 // N-162 (bloque G): los tres plazos que deciden cuanto dura una punta en verde frente a
@@ -281,6 +287,54 @@ static std::string literalPuertaAmbar(const std::string& fuente,
 
 static std::string LINEA_AMBAR_APP;                  // "CMD:AMBAR_EMERGENCIA" hoy
 static std::vector<std::string> RESULTS_AMBAR_APP;   // lo que esa rama puede contestar
+
+// ---------------------------------------------------------------------------
+// D-31 (12/09): LOS TRES CAMPOS DE LA ALARMA DEL AVISO, LEIDOS DEL C++.
+//
+// Ninguno se escribe aqui, por lo mismo que la linea del telefono: un literal escrito en
+// el arnes sigue midiendo el mensaje de ayer el dia que se renombre, y el bloque seguiria
+// en verde exigiendo una alarma que ya no existe.
+//
+// EL ANCLA ES AVISO_AMBAR_REINTENTOS, y se elige asi porque es lo unico que identifica a
+// ESTA alarma y no a las otras cuatro que este fichero emite: la del aviso es la que vive
+// detras del contador de reintentos del aviso. Anclarla al nombre del evento seria
+// escribir el literal por la puerta de atras. Si el ancla desaparece, esto devuelve vacio
+// y quien llama lo trata como ABORTADO -aprobar sin haber leido es fabricar un PASS-.
+struct AlarmaAviso {
+  std::string evento, causa, accion;
+  bool valida() const { return !evento.empty() && !causa.empty() && !accion.empty(); }
+};
+
+static AlarmaAviso alarmaDelAviso(const std::string& fuente) {
+  AlarmaAviso a;
+  const std::string src = sinComentarios(fuente);
+  const size_t ancla = src.find("AVISO_AMBAR_REINTENTOS");
+  if (ancla == std::string::npos) return a;
+  const std::string cola = src.substr(ancla);
+  std::regex re(R"(bluetooth_reportarAlarma\s*\(\s*\"([A-Z0-9_]+)\"\s*,\s*\"([A-Z0-9_]+)\"\s*,\s*\"([A-Z0-9_]+)\"\s*\))");
+  std::smatch m;
+  if (!std::regex_search(cola, m, re)) return a;
+  a.evento = m[1].str();
+  a.causa = m[2].str();
+  a.accion = m[3].str();
+  return a;
+}
+
+static AlarmaAviso ALARMA_AVISO;
+
+// D-31 (2): el prefijo con el que la app manda las ordenes que piden PIN. Se LEE del
+// despachador -el strncmp() contra 'cmd'- porque el dia que el PIN cambie, un prefijo
+// escrito aqui haria que el bloque H6 tecleara una linea que el equipo rechaza y el
+// escenario aprobaria por no haber cancelado nada.
+static std::string prefijoPinApp(const std::string& fuente) {
+  const std::string src = sinComentarios(fuente);
+  std::regex re(R"(strncmp\s*\(\s*cmd\s*,\s*\"(CMD:PIN:[^\"]*)\"\s*,)");
+  std::smatch m;
+  if (!std::regex_search(src, m, re)) return std::string();
+  return m[1].str();
+}
+
+static std::string PREFIJO_PIN_APP;
 
 // ---------------------------------------------------------------------------
 // UNA PUNTA: SU DLL, SU API Y SU DOMINIO DE RESPALDO.
@@ -1219,6 +1273,25 @@ int main() {
             "Esclavo -la rama comparada contra 'cmd' que llama a semaforo_iniciarFallo()- "
             "o sus RESULT. El bloque H teclearia un comando que no existe");
   }
+
+  // D-31: los tres campos de la alarma del aviso, del mismo fuente y por el mismo motivo.
+  ALARMA_AVISO = alarmaDelAviso(leerFuente(RAIZ + "/Esclavo/src/bluetooth.cpp"));
+  if (!ALARMA_AVISO.valida()) {
+    abortar("no se pudo leer del C++ la alarma del aviso de ambar (D-31): se busca la "
+            "bluetooth_reportarAlarma() que sigue a AVISO_AMBAR_REINTENTOS en "
+            "Esclavo/src/bluetooth.cpp. Sin ella H4 exigiria una alarma escrita a mano, "
+            "que es una prueba que aprueba el firmware de ayer");
+  }
+  PREFIJO_PIN_APP = prefijoPinApp(leerFuente(RAIZ + "/Esclavo/src/bluetooth.cpp"));
+  if (PREFIJO_PIN_APP.empty()) {
+    abortar("no se pudo leer del C++ el prefijo de PIN del despachador del Esclavo "
+            "(strncmp contra 'cmd' que empieza por CMD:PIN:). El bloque H6 teclearia una "
+            "cancelacion que el equipo rechaza y aprobaria sin haber cancelado nada");
+  }
+  AVISO_AMBAR_TIMEOUT_MS_V = leerNumero(PROTO_M,
+      R"(#define\s+AVISO_AMBAR_TIMEOUT_MS\s+(\d+)UL)", "AVISO_AMBAR_TIMEOUT_MS");
+  AVISO_AMBAR_REINTENTOS_V = leerNumero(PROTO_M,
+      R"(#define\s+AVISO_AMBAR_REINTENTOS\s+(\d+))", "AVISO_AMBAR_REINTENTOS");
 
   std::printf("\n Constantes releidas del C++ real: silencio SFTY-6 = %lu ms,\n",
               SFTY6_SILENCIO_MS_V);
@@ -3027,14 +3100,18 @@ int main() {
     // ambar- pero con la radio viva. Sin ella, H3 podria salir distinto por estar en otra
     // fila y no por la radio, que es justo lo que se quiere aislar.
     std::string h2Result;
-    long h2Entradas = -1;
+    long h2Entradas = -1, h2AlarmasAntes = -1, h2AlarmasDespues = -1;
     bool h2Ejercido;
     {
       const bool yaEnAmbar = (ESCLAVO.estado() == S_FALLO_V);
+      h2AlarmasAntes = ESCLAVO.orden("alarmas");
       bool ok = yaEnAmbar && tecleaAmbarApp() == 1;
       avanzar(3 * PASO_MS);
       h2Result = resultDelUltimoAcuse();
-      avanzar(5000);
+      // D-31: se deja correr el plazo ENTERO del acuse mas su reintento -leidos del C++-
+      // antes de mirar las alarmas. Preguntar antes seria aprobar por no haber esperado.
+      avanzar(AVISO_AMBAR_TIMEOUT_MS_V * (AVISO_AMBAR_REINTENTOS_V + 1) + 5000);
+      h2AlarmasDespues = ESCLAVO.orden("alarmas");
       h2Entradas = MAESTRO.orden("entradas_ambar");
       h2Ejercido = ok && ESCLAVO.estado() == S_FALLO_V && !h2Result.empty();
     }
@@ -3044,6 +3121,26 @@ int main() {
               h1Result + ") y NO vuelve a entrar en MODO_AMBAR (" +
               std::to_string(h2Entradas) + " entrada): re-armar manda un todo-rojo y el "
               "operario que pulsa dos veces no sabria cual de las dos movio la luz");
+    // D-31 (1): LA LINEA QUE IMPIDE QUE ESTE ARREGLO SE VUELVA UNA FALSA ALARMA.
+    //
+    // Es la mitad que costo descartar el primer diseno -"que el Poste 1 acuse siempre"-.
+    // Aqui el Maestro YA esta en MODO_AMBAR, o sea CALLADO por SFTY-21, asi que un
+    // firmware que esperase acuse en cada pulsacion no recibiria ninguno y gritaria con
+    // la radio SANA. Y eso no es un aviso de mas: es lo que ensena al tecnico a ignorar
+    // la unica senal que D-31 existe para darle. Se exige las DOS cosas juntas -que el
+    // acuse diga "ya avisado" y que NO salga alarma-, porque cada una sin la otra se
+    // puede cumplir por el motivo equivocado.
+    comprobar(h2AlarmasDespues == h2AlarmasAntes &&
+                  ESCLAVO.orden(("ack:RESULT:" + h2Result).c_str()) == 1 &&
+                  h2Result != h1Result,
+              "H2 (D-31): la segunda pulsacion contesta que el Poste 1 YA ESTABA AVISADO "
+              "(RESULT:" + h2Result + ") y NO espera nada: pasado el plazo entero del "
+              "acuse (" + std::to_string(AVISO_AMBAR_TIMEOUT_MS_V) + " ms x " +
+              std::to_string(AVISO_AMBAR_REINTENTOS_V + 1) + " intentos) las alarmas del "
+              "telefono siguen en " + std::to_string(h2AlarmasDespues) + ", las mismas de "
+              "antes. Con el Maestro ya en MODO_AMBAR esta callado por SFTY-21: esperar "
+              "acuse aqui daria 'nadie me oyo' CON LA RADIO SANA cada vez que alguien "
+              "pulsa dos veces");
 
     // ---- H3: la radio CAIDA, y lo que el equipo le dice al telefono -------------------
     // El corte es TOTAL y dura mas que el silencio de SFTY-6, que es la unica averia de
@@ -3094,13 +3191,25 @@ int main() {
               "caer a C_FALLO-, no el aviso; por eso el $ACK de arriba tiene que decirlo");
 
     // ---- H4: la averia FEA -solo muere el transmisor del Esclavo- ---------------------
-    // El Maestro le sigue hablando, asi que esta punta NO tiene forma de saber que lo que
-    // ella emite no sale: su unico dato de radio es el silencio de lo que RECIBE. Aqui se
-    // mide lo que si depende de este fichero -que el ambar se ponga igual- y se publica lo
-    // que no: que el $ACK sale como con la radio sana.
+    //
+    // 🔴 D-31 (12/09): ESTE BLOQUE ERA UNA [NOTA] QUE NO CONTABA, Y HOY CUENTA.
+    //
+    // Lo era con razon: ningun firmware de esta punta podia aprobarlo solo. El Maestro le
+    // sigue hablando, asi que el Esclavo NO tiene forma de saber que lo que EL emite no
+    // sale -su unico dato de radio es el silencio de lo que RECIBE-, y el $ACK que el
+    // telefono recibia era identico al de la radio sana. Con el acuse construido esa
+    // pregunta ya tiene quien la conteste, asi que la nota se convierte en comprobacion.
+    //
+    // LO QUE SE EXIGE, Y ES LO UNICO QUE CIERRA LA VENTANA: que el equipo lo DIGA. No que
+    // el Poste 1 se entere -no puede: el transmisor esta muerto-, ni que el $ACK cambie
+    // -sale antes de saberlo, y eso es D-31 (3): el ambar no espera-. Lo que se exige es
+    // que, pasado el plazo y su reintento, salga un $ALARM que diga que NO SE PUDO
+    // CONFIRMAR. La trama se lee entera y no se cuenta: un contador aprobaria igual con
+    // la alarma de radio de siempre, que en este escenario no se emite.
     CorridaG h4;
     bool h4Ejercido;
-    long h4Entradas = -1;
+    long h4Entradas = -1, h4AlarmasAntes = -1, h4AlarmasDespues = -1;
+    long h4DiceEvento = 0, h4DiceCausa = 0, h4DiceAccion = 0;
     std::string h4Result;
     {
       escenarioLimpio(TIEMPOS_H, true);
@@ -3109,31 +3218,149 @@ int main() {
       ok = ok && MAESTRO.verde() && ESCLAVO.rojo();
       g_enlaceHaciaMaestro = false;          // solo esta direccion, y no vuelve
       h4.tCorte = g_t;
+      h4AlarmasAntes = ESCLAVO.orden("alarmas");
       ok = ok && tecleaAmbarApp() == 1;
       pasoG(h4);
       ok = ok && ESCLAVO.orden("ambar_latch") == 1 && ESCLAVO.estado() == S_FALLO_V;
       h4Result = resultDelUltimoAcuse();
       correrG(h4, TRAS_AMBAR_H);
       finG(h4);
+      h4AlarmasDespues = ESCLAVO.orden("alarmas");
+      h4DiceEvento = ESCLAVO.orden(("alarma:EVENTO:" + ALARMA_AVISO.evento).c_str());
+      h4DiceCausa  = ESCLAVO.orden(("alarma:CAUSA:" + ALARMA_AVISO.causa).c_str());
+      h4DiceAccion = ESCLAVO.orden(("alarma:ACCION:" + ALARMA_AVISO.accion).c_str());
       h4Entradas = MAESTRO.orden("entradas_ambar");
       h4Ejercido = ok;
     }
     imprimirTrazaG("H4 (solo muere el transmisor del Esclavo: pide ambar y el aviso no sale):",
                    h4);
     comprobar(h4Ejercido,
-              "H4: con la direccion Esclavo->Maestro muerta y el Maestro todavia hablando, "
-              "el ambar de emergencia se pone IGUAL en el Poste 2 y el cerrojo queda puesto: "
-              "lo que protege a quien esta en esa calzada no cuelga de la radio");
-    std::printf("   [NOTA]  H4: el Maestro NO se entero (%ld entradas en MODO_AMBAR) y el "
-                "telefono recibio RESULT:%s, el MISMO que con la radio sana. Esta punta no "
-                "puede saber que su emision no sale -solo oye silencios de lo que RECIBE, y "
-                "aqui el Maestro le sigue hablando-, y el aviso de N-142 se manda sin acuse "
-                "y sin reintento a proposito (el operario esta delante). Cerrarlo pide un "
-                "acuse al aviso: protocolo y LAS DOS puntas, como el ACK_RED sin "
-                "identificador de G9. La ventana medida -verde del Maestro frente al ambar "
-                "del Esclavo- fue de %lu ms, %lu ms con verde en las dos. No cuenta.\n",
-                h4Entradas, h4Result.c_str(), acumuladoMsG(h4.v),
-                h4.v.simultaneo * PASO_MS);
+              "H4 (control): con la direccion Esclavo->Maestro muerta y el Maestro todavia "
+              "hablando, el ambar de emergencia se pone IGUAL en el Poste 2 y el cerrojo "
+              "queda puesto: lo que protege a quien esta en esa calzada no cuelga de la "
+              "radio. El $ACK inmediato fue RESULT:" + h4Result + ", y sale antes de saber "
+              "nada del otro poste a proposito (D-31 (3): el ambar no espera)");
+    comprobar(h4Ejercido && h4Entradas == 0 &&
+                  h4AlarmasDespues > h4AlarmasAntes &&
+                  h4DiceEvento == 1 && h4DiceCausa == 1 && h4DiceAccion == 1,
+              "H4 (D-31, LA QUE CIERRA LA VENTANA): el Maestro NO se entero (" +
+              std::to_string(h4Entradas) + " entradas en MODO_AMBAR) y el equipo LO DICE: "
+              "tras el plazo del acuse y su reintento emitio $ALARM EVENTO:" +
+              ALARMA_AVISO.evento + " CAUSA:" + ALARMA_AVISO.causa + " ACCION:" +
+              ALARMA_AVISO.accion + " (" + std::to_string(h4AlarmasAntes) + " -> " +
+              std::to_string(h4AlarmasDespues) + " alarmas). Dice que NO PUDO CONFIRMARLO, "
+              "no que el otro poste no se entero: con un reintento de por medio una trama "
+              "perdida se ve igual que un transmisor roto. La ventana medida -verde del "
+              "Maestro frente al ambar del Esclavo- fue de " +
+              std::to_string(acumuladoMsG(h4.v)) + " ms, " +
+              std::to_string(h4.v.simultaneo * PASO_MS) + " ms con verde en las dos");
+
+    // ---- H5: EL CONTROL DE H4 -el MISMO escenario con el transmisor SANO- -------------
+    //
+    // Sin esta corrida, H4 aprobaria igual de bien a un firmware que gritase SIEMPRE: una
+    // alarma que no sabe callarse no distingue nada, y es exactamente la forma de defecto
+    // que D-31 (1) descarto en el primer diseno. Aqui no se corta ninguna direccion; todo
+    // lo demas -el ciclo, la fase, la linea que se teclea, el tiempo que se deja correr-
+    // es letra por letra lo de H4.
+    CorridaG h5;
+    bool h5Ejercido;
+    long h5Entradas = -1, h5AlarmasAntes = -1, h5AlarmasDespues = -1;
+    std::string h5Result, h5Segundo;
+    {
+      escenarioLimpio(TIEMPOS_H, true);
+      bool ok = alcanzarVerdeG(MAESTRO, ALCANCE_H);
+      avanzar(3000);
+      ok = ok && MAESTRO.verde() && ESCLAVO.rojo();
+      h5.tCorte = g_t;
+      h5AlarmasAntes = ESCLAVO.orden("alarmas");
+      ok = ok && tecleaAmbarApp() == 1;
+      pasoG(h5);
+      ok = ok && ESCLAVO.orden("ambar_latch") == 1 && ESCLAVO.estado() == S_FALLO_V;
+      h5Result = resultDelUltimoAcuse();
+      correrG(h5, TRAS_AMBAR_H);
+      finG(h5);
+      h5AlarmasDespues = ESCLAVO.orden("alarmas");
+      h5Entradas = MAESTRO.orden("entradas_ambar");
+      // La prueba positiva de que el acuse LLEGO y quedo recordado: se vuelve a pulsar y
+      // el equipo tiene que contestar lo de "ya avisado", que solo puede decir si hubo
+      // trama de vuelta. Mirar solo la ausencia de alarma dejaria pasar un firmware que
+      // no cronometra nada.
+      ok = ok && tecleaAmbarApp() == 1;
+      avanzar(3 * PASO_MS);
+      h5Segundo = resultDelUltimoAcuse();
+      h5Ejercido = ok;
+    }
+    comprobar(h5Ejercido && h5Entradas == 1 && h5AlarmasDespues == h5AlarmasAntes &&
+                  h5Segundo != h5Result && !h5Segundo.empty(),
+              "H5 (control de H4): el MISMO escenario con el transmisor SANO. El Maestro se "
+              "entero (" + std::to_string(h5Entradas) + " entrada en MODO_AMBAR), NO salio "
+              "ninguna alarma (" + std::to_string(h5AlarmasDespues) + ", las mismas que "
+              "antes) y la segunda pulsacion contesta RESULT:" + h5Segundo + " en vez de "
+              "RESULT:" + h5Result + ", que es la memoria del acuse: solo puede decirla si "
+              "hubo trama de vuelta. Sin esta corrida, H4 la pasaria un firmware que "
+              "gritara siempre");
+
+    // ---- H6: D-31 (2) - EL CANCELAR BORRA LA MEMORIA, Y SI NO, LA MEMORIA MIENTE ------
+    //
+    // Es la mitad de D-31 que ningun otro bloque toca, y sin ella el arreglo se degrada
+    // SOLO CON EL TIEMPO: armado y cancelado son la misma maquina, y partirlos deja un
+    // estado que miente. Con la memoria sin borrar, el ambar SIGUIENTE de este poste
+    // contestaria "el Poste 1 ya lo sabe" apoyandose en un acuse de un ambar que ya no
+    // existe, y NO ESPERARIA confirmacion: volveria la ceguera de H4 sin que nada la
+    // delate, y encima solo a partir de la segunda vez -que es como se cuelan los
+    // defectos que nadie reproduce-.
+    //
+    // LA SECUENCIA, y cada paso hace falta: se arma con la radio SANA (el acuse llega y
+    // la memoria queda puesta) -> se CANCELA -> se mata el transmisor -> se vuelve a
+    // armar. Lo que se exige es que ESE SEGUNDO ARMADO VUELVA A ESPERAR y acabe en
+    // alarma. Si el paso del cancelar no borrara nada, no habria alarma y esta linea cae.
+    long h6AlarmasAntes = -1, h6AlarmasDespues = -1, h6DiceCausa = 0;
+    std::string h6Primero, h6TrasCancelar, h6Segundo;
+    bool h6Ejercido;
+    {
+      escenarioLimpio(TIEMPOS_H, true);
+      bool ok = alcanzarVerdeG(MAESTRO, ALCANCE_H);
+      avanzar(3000);
+      ok = ok && MAESTRO.verde();
+      // 1. Armado con la radio sana: el acuse llega y la memoria se pone.
+      ok = ok && tecleaAmbarApp() == 1;
+      avanzar(3 * PASO_MS);
+      h6Primero = resultDelUltimoAcuse();
+      avanzar(AVISO_AMBAR_TIMEOUT_MS_V * (AVISO_AMBAR_REINTENTOS_V + 1) + 5000);
+      // 2. Cancelacion desde el telefono, con PIN. El prefijo del PIN se LEE del
+      //    despachador; el nombre de la accion se escribe, igual que hace costura_14 y
+      //    por el mismo motivo: es un contrato con el exterior -lo teclea la app- y
+      //    deducirlo seria adivinar.
+      ok = ok && ESCLAVO.orden(("bt:" + PREFIJO_PIN_APP + "CANCELAR_AMBAR").c_str()) == 1;
+      avanzar(3 * PASO_MS);
+      h6TrasCancelar = ESCLAVO.orden("ack:CMD:CANCELAR_AMBAR") == 1 ? "contestado" : "";
+      ok = ok && ESCLAVO.orden("ambar_latch") == 0 && !h6TrasCancelar.empty();
+      avanzar(5000);
+      // 3. Muere el transmisor y se vuelve a pedir ambar.
+      g_enlaceHaciaMaestro = false;
+      h6AlarmasAntes = ESCLAVO.orden("alarmas");
+      ok = ok && tecleaAmbarApp() == 1;
+      avanzar(3 * PASO_MS);
+      h6Segundo = resultDelUltimoAcuse();
+      avanzar(AVISO_AMBAR_TIMEOUT_MS_V * (AVISO_AMBAR_REINTENTOS_V + 1) + 5000);
+      h6AlarmasDespues = ESCLAVO.orden("alarmas");
+      h6DiceCausa = ESCLAVO.orden(("alarma:CAUSA:" + ALARMA_AVISO.causa).c_str());
+      h6Ejercido = ok;
+    }
+    // El literal contra el que se compara NO se escribe: es h5Segundo, o sea el que el
+    // propio equipo contesta cuando la memoria SI esta puesta (H5). Asi la linea sigue
+    // midiendo lo mismo el dia que ese RESULT se renombre.
+    comprobar(h6Ejercido && h6AlarmasDespues > h6AlarmasAntes && h6DiceCausa == 1 &&
+                  !h6Segundo.empty() && h6Segundo != h5Segundo,
+              "H6 (D-31 (2)): tras CANCELAR, el ambar siguiente VUELVE A ESPERAR el acuse. "
+              "Se armo con la radio sana (RESULT:" + h6Primero + "), se cancelo, se mato el "
+              "transmisor y se volvio a armar: el equipo contesta RESULT:" + h6Segundo +
+              " y NO el de 'ya avisado' (RESULT:" + h5Segundo + ", que es el que da con la "
+              "memoria puesta), y acaba emitiendo $ALARM CAUSA:" + ALARMA_AVISO.causa +
+              " (" + std::to_string(h6AlarmasAntes) + " -> " +
+              std::to_string(h6AlarmasDespues) + " alarmas). Sin el borrado de la memoria "
+              "en el cancelar, este segundo ambar diria 'el Poste 1 ya lo sabe' sobre un "
+              "acuse de un ambar que ya no existe y no avisaria de nada");
   }
 
   // reportar(): no cuenta. Es lo que la excepcion de A9 dejo pasar en los bloques A a F, que

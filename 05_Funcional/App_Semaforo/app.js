@@ -2992,7 +2992,10 @@ document.addEventListener('DOMContentLoaded', () => {
   //
   //   CANCELAR_AMBAR    RETIRADO / RETIRADO_QUEDA_MANDO
   //   AMBAR_EMERGENCIA  OK / YA_EN_AMBAR_LATCH_PUESTO / SALIENDO_TODO_ROJO /
-  //                     SALIDA_YA_EN_CURSO
+  //                     SALIDA_YA_EN_CURSO, y sus variantes _SIN_RADIO y, desde D-31,
+  //                     _POSTE1_AVISADO. LA LISTA DE AQUI NO SE MANTIENE A MANO Y NO ES
+  //                     EL CONTRATO: es una foto para leer el parrafo. Quien la recuenta
+  //                     contra el C++ en cada corrida es app_10, en las dos direcciones
   //   SET_MODO:MENU     OK / SALIENDO_TODO_ROJO
   //   SET_MODO:AMBAR    OK / REARMADO          <- N-146, 05/09
   //   SET_RTC           OK / HORA_PUESTA_SIN_PROPAGAR
@@ -3236,11 +3239,20 @@ document.addEventListener('DOMContentLoaded', () => {
              'mueve, el ambar viene del Poste 1 y hay que resolverlo alli.',
       toast: 'Reenviado al Maestro: mire el cruce, no esta garantizado que se vaya'
     },
+    // D-31 (12/09): este texto gana una frase, porque el literal ha cambiado de
+    // significado sin cambiar de nombre. "OK" sigue queriendo decir "el ambar esta puesto
+    // aqui", pero desde hoy la unidad ESPERA que el otro poste acuse el aviso, y ese
+    // acuse todavia no ha llegado cuando sale este $ACK -el ambar no espera-. Si no
+    // llegara, lo dice despues con un aviso propio. Sin esta frase, quien lee "OK" se va
+    // creyendo que ya esta todo, que es el defecto que D-31 vino a cerrar.
     'AMBAR_EMERGENCIA|OK': {
       tono: 'red',
       texto: 'Equipo: AMBAR DE EMERGENCIA puesto. Intermitente en las dos vias y ' +
-             'talanquera ABIERTA: no es un rojo, los dos sentidos pasan con precaucion.',
-      toast: 'Ambar de emergencia puesto'
+             'talanquera ABIERTA: no es un rojo, los dos sentidos pasan con precaucion. ' +
+             'La unidad acaba de avisar por radio al otro poste y esta esperando que lo ' +
+             'confirme: NO SE VAYA todavia. Si no lo consigue, sale un aviso rojo en esta ' +
+             'misma pantalla diciendolo.',
+      toast: 'Ambar puesto - esperando que el otro poste confirme el aviso'
     },
     // Ya estaba en ambar por SFTY-6, por el watchdog o por un B.B.B. Lo que esta orden
     // cambio NO es la luz: es el latch, que convierte un ambar que la siguiente orden
@@ -3274,6 +3286,34 @@ document.addEventListener('DOMContentLoaded', () => {
              'quedo SIN RADIO: el otro poste NO se ha enterado. Compruebe el Poste 1 ' +
              'antes de irse.',
       toast: 'Protegido, pero sin radio: el otro poste no se ha enterado'
+    },
+    // D-31 (12/09). LAS DOS DE ABAJO SON LAS UNICAS RESPUESTAS DE TODA ESTA TABLA QUE
+    // PROMETEN ALGO DEL OTRO POSTE, Y LO PROMETEN PORQUE LA UNIDAD LO MIDIO: el Poste 1
+    // ACUSO por radio un aviso anterior de este mismo ambar, o sea que hubo trama de
+    // vuelta y la radio de salida de este poste funciona.
+    //
+    // LO QUE NO PROMETEN, y por eso el tono no es verde: que el Poste 1 SIGA en ambar. Su
+    // ambar lo puede haber retirado alguien de aquel gabinete y esta punta no se entera.
+    // Lo confirmado es la ENTREGA del aviso, no el estado del otro extremo.
+    //
+    // Salen a partir de la SEGUNDA pulsacion: la primera no puede decirlo todavia -el
+    // acuse tarda un viaje de radio y el ambar no espera-, y si no llegara, lo que sale
+    // es el aviso $ALARM del avisos_equipo.js, no un $ACK distinto.
+    'AMBAR_EMERGENCIA|OK_POSTE1_AVISADO': {
+      tono: 'red',
+      texto: 'Equipo: AMBAR DE EMERGENCIA puesto, y el otro poste YA ESTABA AVISADO: ' +
+             'confirmo por radio un aviso anterior de este mismo ambar, asi que la radio ' +
+             'de salida de esta unidad funciona. No promete que el otro poste siga en ' +
+             'ambar -eso lo puede haber quitado alguien alli-, solo que el aviso llego.',
+      toast: 'Ambar puesto - el otro poste ya estaba avisado'
+    },
+    'AMBAR_EMERGENCIA|YA_EN_AMBAR_POSTE1_AVISADO': {
+      tono: 'red',
+      texto: 'Equipo: YA ESTABA en ambar con la proteccion puesta, y el otro poste YA ' +
+             'ESTABA AVISADO: confirmo por radio el aviso de este mismo ambar. Esta ' +
+             'pulsacion no ha cambiado nada, y eso es lo correcto. Si lo que quiere es ' +
+             'quitarlo, use RETIRAR AMBAR.',
+      toast: 'Ya estaba en ambar y el otro poste ya estaba avisado'
     },
     // El ambar NO esta puesto todavia: el equipo esta saliendo del Degradado por
     // todo-rojo y eso tarda hasta 90 s (cfgDespeje). Decir OK seria dar por hecho un

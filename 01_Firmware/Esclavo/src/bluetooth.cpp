@@ -121,6 +121,62 @@ static bool ambarEmergencia = false;
 // y lo baja el aviso de vuelta; no es un watchdog y no tiene reloj. Ver bluetooth_loop().
 static bool enlaceCaidoAnunciado = false;
 
+// D-31 (12/09) - LA MEMORIA DEL ACUSE DEL AVISO DE AMBAR. TRES BANDERAS Y UN INSTANTE,
+// porque son tres preguntas distintas y una variable que contesta a dos no puede
+// contestar bien a ninguna (CLAUDE.md 8).
+//
+//   avisoAmbarConfirmado  el Poste 1 ACUSO el aviso vigente. Mientras valga true las
+//                         pulsaciones siguientes NO esperan nada, y ese es el corazon de
+//                         D-31 (1): el aviso manda al Maestro a MODO_AMBAR y alli tiene
+//                         PROHIBIDO transmitir (SFTY-21), asi que un diseno que esperase
+//                         acuse en cada pulsacion diria "nadie me oyo" CON LA RADIO SANA
+//                         cada vez que alguien pulsa dos veces -que es lo normal en un
+//                         poste- y ensenaria al tecnico a ignorar la unica senal que
+//                         esto existe para darle.
+//   avisoAmbarEsperando   hay un aviso en vuelo con el plazo corriendo. Es lo unico que
+//                         bluetooth_loop() mira para cronometrar.
+//   avisoAmbarReenvios    reenvios ya gastados, contra AVISO_AMBAR_REINTENTOS, que NO se
+//                         elige: se deriva del presupuesto de radio con dos
+//                         static_assert en Maestro/src/coordinador.cpp.
+//   tAvisoAmbar           cuando salio el intento que se esta cronometrando.
+//
+// QUIEN BORRA LA MEMORIA, Y POR QUE NO PUEDE HABER UN SEGUNDO CAMINO: la rama de
+// CANCELAR_AMBAR, en la MISMA sentencia que tira ambarEmergencia. Censado el 12/09 sobre
+// este fichero: "ambarEmergencia = false" aparece en UN SOLO sitio, asi que no hay via
+// por la que el ambar se retire dejando la memoria puesta. Si la hubiera, la memoria
+// mentiria: el aviso siguiente no esperaria acuse cuando SI debe.
+static bool avisoAmbarConfirmado = false;
+static bool avisoAmbarEsperando = false;
+static uint8_t avisoAmbarReenvios = 0;
+static unsigned long tAvisoAmbar = 0;
+
+// Se llama JUSTO DESPUES de cada protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO) de las DOS
+// puertas del ambar de emergencia, y va en las dos letra por letra como todo el bloque de
+// esa rama.
+//
+// OJO AL INSTRUMENTO, Y SE ESCRIBE PORQUE ES UNA DEBILIDAD CONOCIDA: el comparador de
+// esclavo_08 -el que caza que las dos puertas hagan lo mismo- censa las llamadas cuyo
+// prefijo sea semaforo_, demanda_, reloj_, config_, coordinador_, degradado_ o
+// protocolo_, y este nombre no cae en ninguno. O sea que NINGUN pack vigila que las dos
+// puertas la lleven. Lo que lo sostiene es la regla que este fichero ya tiene escrita
+// -las dos puertas llevan el mismo bloque, letra por letra- y el bloque H2 del arnes de
+// las dos puntas, que ejerce la segunda pulsacion por la puerta que usa la app.
+static void avisoAmbarSalio() {
+  // Con el Poste 1 ya avisado no se arranca ningun plazo: es la pulsacion repetida, el
+  // Maestro esta callado en su ambar y su silencio es lo esperado, no una averia.
+  if (avisoAmbarConfirmado) return;
+  avisoAmbarEsperando = true;
+  avisoAmbarReenvios = 0;
+  tAvisoAmbar = millis();
+}
+
+void bluetooth_avisoAmbarAcusado() {
+  // Sin ambar vigente no se cree nada: ver el porque en bluetooth.h.
+  if (!ambarEmergencia) return;
+  avisoAmbarEsperando = false;
+  avisoAmbarConfirmado = true;
+}
+
 static uint8_t calcularChecksum(const char* str) {
   uint8_t crc = 0;
   while (*str && *str != '*') {
@@ -559,9 +615,10 @@ static void procesarComando(const char* cmd) {
       // N-142: SE LE DICE AL MAESTRO, TAMBIEN POR AQUI. El porque entero -que sin el
       // aviso el Maestro no tiene forma de enterarse, que esta punta sigue contestando
       // PONG en ambar y que por eso el enlace le parece perfecto- esta escrito una sola
-      // vez, en la puerta gemela de 'accion'. Se manda sin esperar acuse y sin reintento,
-      // igual que alli.
+      // vez, en la puerta gemela de 'accion'. D-31 (12/09): y desde hoy el PRIMERO se
+      // ESPERA -avisoAmbarSalio() arranca el plazo-, igual que alli.
       protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO);
+      avisoAmbarSalio();
 
       // 🔴 Y EL $ACK DICE SI ESA TRAMA PUEDE HABER SIDO OIDA, PORQUE NO ES LO MISMO.
       //
@@ -581,12 +638,31 @@ static void procesarComando(const char* cmd) {
       //                                   igual y casi seguro no llega. El Poste 1 puede
       //                                   seguir dando verde, y quien pidio el ambar
       //                                   tiene que saberlo antes de irse del poste.
+      //   ..._POSTE1_AVISADO              D-31: el Poste 1 ACUSO por radio un aviso
+      //                                   anterior de ESTE mismo ambar. Es la unica
+      //                                   frase de todas estas que promete algo del OTRO
+      //                                   extremo, y lo promete porque lo midio: hubo una
+      //                                   trama de vuelta. No promete que el Poste 1
+      //                                   siga en ambar -de eso no se entera nadie desde
+      //                                   aqui-, solo que la radio de ida funciona y que
+      //                                   por eso esta pulsacion NO espera nada.
       //
       // NO SE INVENTA UN SEGUNDO RELOJ DE SILENCIO para contestar esto: el que hay lo
       // arma main.cpp con SFTY6_SILENCIO_MS y lo baja el regreso de tramas validas en
       // bluetooth_loop(). Dos cuentas del mismo silencio divergirian sin que nadie lo
       // notara, que es lo que este fichero ya tiene escrito para el silencio de J17.
+      //
+      // D-31: Y EL PRIMER $ACK NO ESPERA AL ACUSE. Sale ya, con lo que se sabe ya; si el
+      // acuse no llega en su plazo, el desmentido va DESPUES y por otro canal
+      // ($ALARM AVISO_RF). Casar un $ERR con una orden contestada hace segundos es lo que
+      // N-130 ya descarto: la app no sabria a cual de dos pulsaciones corresponde.
+      //
+      // SIN_RADIO GANA A POSTE1_AVISADO cuando las dos son ciertas, y no es un empate mal
+      // resuelto: la memoria del acuse es de HACE UN RATO y la caida de radio es de
+      // AHORA. Lo que el tecnico tiene que leer es lo que puede haber cambiado desde
+      // entonces.
       const bool sinRadio = enlaceCaidoAnunciado;
+      const bool yaAvisado = avisoAmbarConfirmado && !sinRadio;
       if (yaEnAmbar) {
         // Fila B. Lo que esta orden cambia NO es la luz -ya estaba en ambar por SFTY-6,
         // por el watchdog o por un B.B.B-: es el latch, que convierte un ambar que el
@@ -594,10 +670,14 @@ static void procesarComando(const char* cmd) {
         // unico nuevo es la proteccion.
         enviarTramaConCrc(sinRadio
             ? "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO_SIN_RADIO"
-            : "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO");
+            : yaAvisado
+                ? "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_POSTE1_AVISADO"
+                : "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO");
       } else {
-        enviarTramaConCrc(sinRadio ? "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK_SIN_RADIO"
-                                   : "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
+        enviarTramaConCrc(sinRadio
+            ? "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK_SIN_RADIO"
+            : yaAvisado ? "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK_POSTE1_AVISADO"
+                        : "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
       }
       bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_SIN_PIN");
     } else if (salidaDegradadoIniciada()) {
@@ -753,22 +833,37 @@ static void procesarComando(const char* cmd) {
       // de esa fase -hasta 3 minutos con los tiempos de hoy- convivian Maestro en verde y
       // Esclavo en ambar, y los dos sentidos podian entrar al carril.
       //
-      // Se manda SIN esperar acuse y sin reintento, igual que CMD_GO_AMBAR: quedarse
-      // esperando retrasaria la respuesta al operario, que es lo urgente. Si se pierde,
-      // la red sigue siendo la de siempre -el Maestro agota reintentos en el siguiente
-      // cambio y cae a fallo-, solo que tarda mas.
+      // D-31 (12/09) - Y ESTE PARRAFO SE REESCRIBE, PORQUE DECIA "SIN ESPERAR ACUSE Y SIN
+      // REINTENTO" Y ESO ERA EL DEFECTO. Lo que decia -"quedarse esperando retrasaria la
+      // respuesta al operario"- sigue siendo cierto Y SE RESPETA: el ambar se enciende
+      // arriba, el $ACK sale abajo en esta misma vuelta y NADA BLOQUEA EL BUCLE. Lo que
+      // se anade es un plazo que corre en bluetooth_loop() y, si vence, un DESMENTIDO
+      // posterior por $ALARM. Es el patron de CMD_ACK_DEMANDA (N-130), no una espera.
+      //
+      // Y hacia falta porque la red que este parrafo invocaba NO CUBRE LA AVERIA FEA: si
+      // solo muere el TRANSMISOR de esta punta, el Maestro le sigue hablando, no agota
+      // ningun reintento y no cae a fallo. Esta punta no tiene forma de saberlo -su unico
+      // dato de radio es el silencio de lo que RECIBE- y el tecnico se va del poste con
+      // un $ACK identico al de la radio sana. Es el bloque H4 del arnes de las dos puntas.
       protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO);
+      avisoAmbarSalio();
 
       // El $ACK dice si esa trama puede haber sido oida. El porque completo -y por que
-      // no se mira lo que devolvio la llamada, que es void- esta en la puerta sin PIN.
+      // no se mira lo que devolvio la llamada, que es void, y que promete cada literal-
+      // esta en la puerta sin PIN.
       const bool sinRadio = enlaceCaidoAnunciado;
+      const bool yaAvisado = avisoAmbarConfirmado && !sinRadio;
       if (yaEnAmbar) {
         enviarTramaConCrc(sinRadio
             ? "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO_SIN_RADIO"
-            : "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO");
+            : yaAvisado
+                ? "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_POSTE1_AVISADO"
+                : "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:YA_EN_AMBAR_LATCH_PUESTO");
       } else {
-        enviarTramaConCrc(sinRadio ? "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK_SIN_RADIO"
-                                   : "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
+        enviarTramaConCrc(sinRadio
+            ? "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK_SIN_RADIO"
+            : yaAvisado ? "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK_POSTE1_AVISADO"
+                        : "$ACK,CMD:AMBAR_EMERGENCIA,RESULT:OK");
       }
       bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_LOCAL");
     } else if (salidaDegradadoIniciada()) {
@@ -838,7 +933,29 @@ static void procesarComando(const char* cmd) {
         enviarTramaConCrc("$ERR,CMD:CANCELAR_AMBAR,DESC:NO_HAY_AMBAR_VIGENTE");
       }
     } else {
+      // D-31 (2), 12/09: EL CANCELAR ES LO QUE BORRA LA MEMORIA DEL ACUSE, Y VA EN LA
+      // MISMA SENTENCIA QUE EL LATCH PARA QUE NADIE PUEDA SEPARARLOS.
+      //
+      // Armado y cancelado son la MISMA maquina. Sin este borrado, el proximo
+      // AMBAR_EMERGENCIA de este poste contestaria "el Poste 1 ya lo sabe" apoyandose en
+      // un acuse de un ambar que ya no existe, y NO ESPERARIA confirmacion: la memoria
+      // pasaria a mentir justo cuando hace falta que diga la verdad. Es el estado que
+      // partir la maquina deja, y por eso el cancelar entro en el mismo lote.
+      //
+      // Se borra tambien cuando queda el latch del mando y NO sale ningun aviso al
+      // Maestro: el aviso vigente se acabo igual, y el siguiente arranca su plazo desde
+      // cero. Un borrado de mas cuesta una espera de 3,5 s que nadie nota; uno de menos
+      // cuesta la ceguera entera.
+      //
+      // Y SE PARA EL PLAZO QUE ESTUVIERA CORRIENDO, QUE ES LO QUE MAS IMPORTA DE ESTAS
+      // TRES LINEAS: si no, el reintento del aviso saldria DESPUES de esta cancelacion y
+      // volveria a meter al Maestro en MODO_AMBAR por un ambar que acaba de retirarse.
+      // El desmentido se pierde con el, y esta bien que se pierda: quien pidio el ambar
+      // ya no lo quiere, y una alarma sobre algo cancelado manda a mirar donde no hay
+      // nada.
       ambarEmergencia = false;
+      avisoAmbarConfirmado = false;
+      avisoAmbarEsperando = false;
       // D-8: los dos vetos del ambar de emergencia son INDEPENDIENTES, y aqui se ve por
       // que eso no es redundancia. Quitar el de la app no quita el del gabinete: quien lo
       // puso fue otra persona, por otra via, y una orden no puede revocar la de alguien a
@@ -1027,6 +1144,57 @@ void bluetooth_loop() {
   if (ambarEmergencia && !semaforo_senalEnCurso() && !degradado_gobiernaLuz() &&
       semaforo_estado() != S_FALLO) {
     semaforo_iniciarFallo();
+  }
+
+  // D-31 (3) y (4), 12/09 - EL PLAZO DEL ACUSE, SU UNICO REENVIO Y EL DESMENTIDO.
+  //
+  // POR QUE VIVE EN EL BUCLE Y NO EN LA RAMA QUE MANDA EL AVISO: porque el ambar NO
+  // ESPERA. La rama enciende la luz, manda la trama y contesta al telefono en la misma
+  // vuelta; bloquear el bucle por una radio de 2.4 kbps es peor que no confirmar nada
+  // (N-130, y esa frase la firma este repositorio despues de medirla). Aqui solo se mira
+  // un reloj que ya corre.
+  //
+  // EL PLAZO ES TIMEOUT_ACK_MS, no un numero nuevo: es lo que este firmware ya llama "un
+  // viaje de radio con margen". Vive en protocolo.h como AVISO_AMBAR_TIMEOUT_MS porque
+  // esta punta no ve las constantes del coordinador, y que sigan siendo el MISMO numero
+  // lo mide un static_assert alli, no este comentario.
+  //
+  // UN REINTENTO, Y NO PORQUE UNO PAREZCA PRUDENTE: la distancia no alarga el viaje -a
+  // 8 km la senal tarda 27 us mas- pero si sube la probabilidad de perder la trama, y
+  // contra una trama perdida sirve REPETIR. Cuantas veces lo dice el presupuesto de radio
+  // bajo SFTY6_SILENCIO_MS, y AVISO_AMBAR_REINTENTOS sale de dos static_assert que exigen
+  // que uno quepa y que dos no. Si el techo o el timeout cambian, el firmware no compila
+  // en vez de quedarse con un numero viejo.
+  //
+  // LA ALARMA DICE "NO HE PODIDO CONFIRMARLO", NUNCA "el otro poste no se entero", Y ESA
+  // DIFERENCIA ES TODA LA DECISION: con un reintento de por medio, una trama perdida por
+  // lluvia se ve EXACTAMENTE IGUAL que un transmisor muerto. Afirmar la causa seria
+  // inventarsela, y lo que el tecnico puede actuar -cerrar el paso alli o avisar al
+  // Poste 1 antes de irse- es lo mismo en los dos casos.
+  //
+  // QUE PROMETE CADA CAMPO DE ESTA ALARMA, escrito para que nadie lea de mas:
+  //   EVENTO AVISO_RF        el aviso de ambar por radio, no la radio en general. La
+  //                          caida de enlace es otra alarma y tiene su propio evento
+  //                          (FALLO_RF): mezclarlas mandaria a revisar la antena cuando
+  //                          lo roto puede ser solo el sentido de ida.
+  //   CAUSA SIN_CONFIRMAR    no volvio acuse tras el intento y su reintento. NO dice que
+  //                          el aviso no llegara: dice que esta punta no lo sabe.
+  //   ACCION AVISE_POSTE_1   lo unico que cierra la ventana desde donde esta el tecnico.
+  //
+  // Y LAS TRES CABEN EN LA COTA DE bluetooth_reportarAlarma() SIN TOCARLA (N-154, margen
+  // CERO): su peor caso son EVENTO 10 + CAUSA 19 + ACCION 14, y estos miden 8, 13 y 13.
+  // Se comprueba aqui porque agrandar el buffer no es la cura y no se va a agrandar.
+  if (avisoAmbarEsperando && (ahora - tAvisoAmbar) > AVISO_AMBAR_TIMEOUT_MS) {
+    if (avisoAmbarReenvios < AVISO_AMBAR_REINTENTOS) {
+      avisoAmbarReenvios++;
+      tAvisoAmbar = ahora;
+      protocolo_enviarPaquete(CMD_AMBAR_ESCLAVO);
+    } else {
+      // Se apaga ANTES de la alarma: si reportarAlarma() tardara o se reentrara, un
+      // desmentido por aviso es lo prometido, no dos.
+      avisoAmbarEsperando = false;
+      bluetooth_reportarAlarma("AVISO_RF", "SIN_CONFIRMAR", "AVISE_POSTE_1");
+    }
   }
 
   // 1. Recepción de Comandos desde la App Móvil

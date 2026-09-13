@@ -664,6 +664,25 @@ void loop() {
       if (pkt.param == DEMANDA_RECHAZADA) {
         bluetooth_reportarEvento("MAESTRO", "DEMANDA_NO_ATENDIDA_MODO_ACTUAL");
       }
+    } else if (pkt.command == CMD_ACK_AVISO_AMBAR) {
+      // D-31 (12/09): EL POSTE 1 CONFIRMA QUE OYO EL AVISO DE AMBAR DE EMERGENCIA.
+      //
+      // VA AQUI Y NO EN bluetooth.cpp, Y ES LA MITAD QUE HAY QUE NO ROMPER: esta cadena
+      // if/else es el UNICO lector de radio del Esclavo, y protocolo_hayPaqueteDisponible()
+      // es CONSUMO DESTRUCTIVO. Un segundo lector dentro del despachador del telefono le
+      // robaria CMD_GO_RED y CMD_GO_GREEN a este de aqui -o sea, las ordenes de luz- de
+      // vez en cuando y sin patron. Seria exactamente lo contrario de lo que D-31
+      // protege. El estado vive alli porque alli esta el latch; la lectura, aqui.
+      //
+      // NO SE TOCA tUltimoComando, por el mismo motivo que CMD_GO_AMBAR unas lineas mas
+      // arriba: este acuse no es el Maestro GOBERNANDO el cruce, y refrescar la marca de
+      // orfandad con el desarmaria la red de SFTY-6 justo en el instante en que el
+      // Maestro se va a callar a proposito.
+      //
+      // Y NO SE CONTESTA NADA. Es una hoja del protocolo: acusar un acuse es una escalera
+      // sin peldano ultimo, y ademas esta punta no tiene maquina de estados que lo espere
+      // -el molde es CMD_ACK_DEMANDA de aqui arriba, no el ACK_RED del Maestro-.
+      bluetooth_avisoAmbarAcusado();
     }
 
 

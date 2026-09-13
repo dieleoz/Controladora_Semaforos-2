@@ -169,6 +169,12 @@ void bluetooth_reportarEvento(const char* origen, const char* detalle) {
     g_eventosSaltoRojo++;
   }
 }
+// D-31: main.cpp del Esclavo la llama al recibir CMD_ACK_AVISO_AMBAR, y en ESTA variante
+// bluetooth.cpp no se compila. Vacia a proposito: lo que la funcion hace -recordar que el
+// Poste 1 acuso- vive dentro del despachador real, y este arnes mide la FASE, no el
+// acuse. Quien lo ejerce es el arnes de las dos puntas, que si compila bluetooth.cpp.
+// Un stub que contase llamadas aqui seria un contador que nadie lee (N-73 al reves).
+void bluetooth_avisoAmbarAcusado() {}
 
 #else   // !ARNES_RELOJ_REAL
 // ---------------------------------------------------------------------------
@@ -221,6 +227,12 @@ void bluetooth_reportarEvento(const char* origen, const char* detalle) {
 static char g_btIn[512];
 static int  g_btInCab = 0, g_btInCola = 0;
 static char g_btUltimoAcuse[192] = "";
+// D-31: y la ULTIMA linea de $ALARM, por el mismo motivo por el que se guarda el acuse.
+// Contarlas no basta para este bloque: lo que H4 tiene que demostrar es que la alarma que
+// sale es LA DEL AVISO -y que dice "no he podido confirmarlo" y no "el otro poste no se
+// entero"-, y eso solo se ve leyendo la trama. Un contador aprobaria igual con la alarma
+// de radio de siempre, que es la que este escenario NO produce.
+static char g_btUltimaAlarma[192] = "";
 static char g_btLinea[192];
 static int  g_btLineaIdx = 0;
 static unsigned long g_btAlarmas = 0, g_btAcuses = 0, g_btEventos = 0;
@@ -233,6 +245,7 @@ static void btSalidaCaracter(char c) {
         snprintf(g_btUltimoAcuse, sizeof(g_btUltimoAcuse), "%s", g_btLinea);
         g_btAcuses++;
       } else if (!strncmp(g_btLinea, "$ALARM", 6)) {
+        snprintf(g_btUltimaAlarma, sizeof(g_btUltimaAlarma), "%s", g_btLinea);
         g_btAlarmas++;
       } else if (!strncmp(g_btLinea, "$EVENT", 6)) {
         g_btEventos++;
@@ -616,6 +629,9 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   // prueba que moviera luces miraba lo que el equipo CONTESTA.
   if (!strncmp(que, "bt:", 3))             return btTeclear(que + 3) ? 1 : 0;
   if (!strncmp(que, "ack:", 4))            return strstr(g_btUltimoAcuse, que + 4) ? 1 : 0;
+  // D-31: lo mismo con la ULTIMA alarma. "alarma:" y no "alarmas" -que ya existe y cuenta-
+  // a proposito: son dos preguntas distintas y el escenario necesita las dos.
+  if (!strncmp(que, "alarma:", 7))         return strstr(g_btUltimaAlarma, que + 7) ? 1 : 0;
   if (!strcmp(que, "acuses"))              return (long)g_btAcuses;
   if (!strcmp(que, "eventos_bt"))          return (long)g_btEventos;
   // El cerrojo REAL de bluetooth.cpp, no una copia: es una de las dos guardas que vetan

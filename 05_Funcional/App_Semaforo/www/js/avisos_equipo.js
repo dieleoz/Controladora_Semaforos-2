@@ -134,6 +134,35 @@ const AvisosEquipo = {
              'bien. Y revise la radio: el ultimo tramo que acompana a esta alarma dice como ' +
              'venia el enlace cuando se cayo.',
       toast: 'Radio perdida - ponga la hora al Esclavo desde el telefono, en su gabinete'
+    }),
+    // D-31 (12/09) - EL AVISO DE AMBAR AL OTRO POSTE NO SE PUDO CONFIRMAR.
+    //
+    // Es la averia que el equipo NO PODIA VER hasta hoy: si se rompe solo el TRANSMISOR
+    // de este poste -oye pero no habla-, la unidad no tiene forma de saberlo. Su unico
+    // dato de radio es el silencio de lo que RECIBE, y el otro poste le sigue hablando.
+    // El acuse al aviso es lo que la delata.
+    //
+    // EL TEXTO DICE "NO SE HA PODIDO CONFIRMAR", NUNCA "el otro poste no se entero", Y
+    // ESO NO ES PRUDENCIA: es lo unico cierto. La unidad reintenta el aviso, asi que una
+    // trama que se pierde por lluvia se ve EXACTAMENTE IGUAL que un transmisor muerto.
+    // Afirmar la causa mandaria a cambiar una radio que puede estar sana; y lo que hay
+    // que hacer -cerrar el paso alli o avisar al otro poste- es lo mismo en los dos casos.
+    //
+    // SIN CIFRAS (CLAUDE.md 14): ni el plazo del acuse ni cuantos reintentos hubo. Esta
+    // app no puede recalcularlos desde el C++ y cualquier numero copiado aqui nace
+    // caducado. Se dice lo que no envejece.
+    'AVISO_RF|SIN_CONFIRMAR': (data) => ({
+      tono: 'red',
+      texto: 'NO SE HA PODIDO CONFIRMAR QUE EL OTRO POSTE SE HAYA ENTERADO DEL AMBAR DE ' +
+             'EMERGENCIA. Este poste' + _cual(data) + ' esta en ambar intermitente, eso si ' +
+             'esta puesto y no depende de la radio. Lo que no se ha podido comprobar es que ' +
+             'el aviso llegara al otro extremo: la unidad lo mando, lo repitio y no le ' +
+             'contestaron. Puede ser una trama perdida o puede ser que esta unidad ya no ' +
+             'consiga emitir -oye bien y por eso no lo nota por si sola-. ANTES DE IRSE: ' +
+             'compruebe el otro poste. Si sigue dando verde, cierre el paso alli o avise a ' +
+             'quien pueda hacerlo; el carril es el mismo. Y reporte esta linea: la radio de ' +
+             'salida de este poste es sospechosa.',
+      toast: 'No se pudo confirmar el aviso al otro poste - compruebelo antes de irse'
     })
   },
 

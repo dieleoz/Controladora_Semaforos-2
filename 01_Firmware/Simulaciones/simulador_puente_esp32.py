@@ -428,6 +428,65 @@ class Contrato:
         return cod[i:j if j > 0 else len(cod)]
 
 
+# =====================================================================================
+# EL CUERPO DE UNA FUNCION, CONTANDO LLAVES - Y POR QUE cod.find(...) NO VALE
+#
+# Hasta el 12/09 dos escenarios leian el bucle asi:
+#
+#     loop = cod[cod.find("void bluetooth_loop"):]
+#
+# Eso NO acota: se lleva el fichero ENTERO desde la cabecera hasta el final, y cualquier
+# millis() o cualquier palabra que apareciera detras contaba como si estuviera dentro
+# del bucle. MEDIDO el 12/09 sobre las dos puntas: bluetooth_loop() es hoy la ultima
+# funcion de los dos ficheros -entre la cola y el cuerpo hay 25 caracteres-, asi que no
+# tapaba nada. Ese "hoy" es justo el defecto: el dia que alguien anada una funcion
+# detras, el lector empieza a medir otra cosa y no avisa. Es CLAUDE.md 5, contenido que
+# se MUDA de sitio dentro de un fichero que sigue existiendo.
+#
+# El bloque viene LITERAL de banco/packs/costura_06_reanudacion.py, que a su vez lo trajo
+# de app_04_valores_de_status.py: es la misma idea que ya corre en una treintena de packs
+# y no se reescribe aqui otra vez.
+# =====================================================================================
+
+def _bloque(texto, i):
+    """El interior del bloque que abre en texto[i]. None si no cierra."""
+    apertura = texto[i]
+    cierre = {"{": "}", "(": ")", "[": "]"}[apertura]
+    prof = 0
+    for j in range(i, len(texto)):
+        if texto[j] == apertura:
+            prof += 1
+        elif texto[j] == cierre:
+            prof -= 1
+            if prof == 0:
+                return texto[i + 1:j]
+    return None
+
+
+def _cuerpo_funcion(cod, nombre):
+    """El cuerpo de una funcion C++ por su NOMBRE. None si no esta.
+
+    Se direcciona por nombre y no por la forma de su cabecera porque un nombre es lo
+    unico de una funcion que no cambia al reordenar sus condiciones."""
+    m = re.search(r"\b%s\s*\([^)]*\)\s*\{" % re.escape(nombre), cod)
+    return None if not m else _bloque(cod, m.end() - 1)
+
+
+def _cuerpo_del_bucle(cod, donde):
+    """El cuerpo de bluetooth_loop(). ABORTA si no se puede acotar.
+
+    Aborta en vez de devolver el fichero entero: un lector que no sabe donde acaba la
+    funcion no mide poco, mide OTRA COSA, y un ABORTADO grita mientras que un hueco no
+    (CLAUDE.md 4)."""
+    cuerpo = _cuerpo_funcion(cod, "bluetooth_loop")
+    if cuerpo is None:
+        raise fw.Abortado(
+            "no se pudo acotar el cuerpo de bluetooth_loop() en %s: sin el, este "
+            "escenario mediria el fichero entero y llamaria defecto del bucle a "
+            "cualquier cosa escrita debajo" % donde)
+    return cuerpo
+
+
 def checksum(payload_sin_dolar):
     """XOR-8, saltando el '$' y PARANDO en el '*'. Las dos condiciones se releen del
     C++ arriba; aqui se reproducen para poder FABRICAR tramas de prueba. Las que el
@@ -1820,25 +1879,220 @@ def escenario_f4(t, c, maestro, app, util_max):
          "defecto: ningun firmware puede 'aprobar' una decision que nadie ha tomado."])
 
 
+# =====================================================================================
+# LA MITAD (a) DE F5: DISTINGUIR UN VIGILANTE DEL PUERTO DE UN PLAZO DE RADIO
+#
+# POR QUE ESTE LECTOR EXISTE Y QUE SUSTITUYO. Hasta el 12/09 la mitad (a) media la FORMA
+# del bucle: contaba los millis() y buscaba la palabra `timeout|TIMEOUT|SILENCIO|
+# tUltimaRx`. Ese mismo dia D-31 metio en el Esclavo un plazo de acuse POR RADIO
+# -AVISO_AMBAR_TIMEOUT_MS, el Esclavo espera al acuse del Maestro-, la palabra TIMEOUT
+# aparecio dentro de bluetooth_loop() y el escenario se puso rojo ACUSANDO AL FIRMWARE DE
+# UN DEFECTO QUE NO TIENE. Es CLAUDE.md 5 en su forma pura, y la cura no era aflojar el
+# patron -quitar `timeout` de la lista habria dejado ciego al escenario el dia que
+# alguien anada un watchdog de verdad-: es medir LA PROPIEDAD.
+#
+# LA PROPIEDAD, ESCRITA ENTERA. Una guarda de silencio sobre la RECEPCION del puerto es
+# un reloj que cumple LAS DOS COSAS A LA VEZ:
+#
+#   (1) SE ARMA CON LO QUE ENTRA. Su marca de tiempo se vuelve a sellar cuando llega algo
+#       por SerialBT, cualquier cosa, sin mirar que es. Es lo que hace que el trafico del
+#       puente lo mantenga alimentado.
+#   (2) SE MIRA EN CADA VUELTA, tambien cuando no ha entrado nada. Es lo unico que le
+#       permite dispararse DURANTE el silencio, que es de lo que va este escenario.
+#
+# Y ASI ES COMO SE DISTINGUEN LOS TRES RELOJES QUE HOY VIVEN EN ESTE FUENTE, que es lo
+# que el lector viejo no sabia hacer:
+#
+#   tAvisoAmbar (D-31)      cumple (2) y NO cumple (1): se sella cuando ESTA PUNTA MANDA
+#                           el aviso por radio, y lo apaga el acuse del OTRO POSTE. Mil
+#                           lineas entrando por J17 no lo tocan. Es un plazo de RADIO.
+#   tUltimaTelemetria       cumple (2) y NO cumple (1): lo sella la EMISION del $STATUS.
+#   tUltimaLineaJ17 (A3)    cumple (1) y NO cumple (2): lo sella j17RegistrarLinea() con
+#                           cada linea que entra, pero el unico sitio del bucle que lo
+#                           resta esta DENTRO del propio tramo de recepcion, o sea que
+#                           solo puede contar el silencio DESPUES de que se acabe. Es la
+#                           diferencia entre MEDIR y VIGILAR que el reportar() de mas
+#                           abajo lleva escrita desde el 31/08.
+#
+# QUE SIGUE CAZANDO, que es la otra mitad del entregable: el watchdog de verdad. Si
+# alguien escribe `tUltimaRx = ahora;` dentro del while(SerialBT.available()) -o se lo
+# hace hacer a un ayudante al que le pase el reloj- y luego mira `ahora - tUltimaRx` en
+# el bucle, las dos condiciones se cumplen y esto cae. Lo ejerce el control negativo del
+# final del escenario, que no es decoracion: sin el, un PASS de aqui solo diria que el
+# lector no supo mirar.
+# =====================================================================================
+
+# Palabras que abren parentesis y NO son una llamada. Sin esta lista, `if (...)` entraria
+# como funcion y el buscador de cuerpos se pondria a resolver nombres que no existen.
+_NO_SON_LLAMADAS = ("if", "while", "for", "switch", "return", "sizeof", "do")
+
+
+def _relojes_del_bucle(cuerpo):
+    """Los nombres que DENTRO del cuerpo valen el reloj: millis() y quien lo copia.
+
+    No se escribe 'ahora' a mano: el dia que esa variable cambie de nombre este lector
+    tiene que seguirla, no quedarse midiendo un nombre que ya no existe (CLAUDE.md 7.3).
+    """
+    nombres = {"millis()"}
+    for m in re.finditer(r"\b(\w+)\s*=\s*millis\(\)\s*;", cuerpo):
+        nombres.add(m.group(1))
+    return nombres
+
+
+def _marcas_selladas(texto, relojes):
+    """Las variables a las que ese texto SELLA el reloj: `X = ahora;` o `X = millis();`."""
+    pat = r"\b(\w+)\s*=\s*(?:%s)\s*;" % "|".join(re.escape(r) for r in sorted(relojes))
+    return set(re.findall(pat, texto))
+
+
+def _tramo_de_recepcion(cuerpo, donde):
+    """El bloque por el que pasa CUALQUIER byte que entre por el puerto. ABORTA si falta.
+
+    Aborta y no devuelve vacio porque un tramo vacio haria que la condicion (1) no se
+    cumpliera nunca y el escenario diera PASS sin haber mirado: seria el hueco que no
+    grita de CLAUDE.md 4."""
+    m = re.search(r"\b(?:while|if)\s*\(\s*SerialBT\.available\(\)", cuerpo)
+    if not m:
+        raise fw.Abortado(
+            "no se hallo el while(SerialBT.available()) de bluetooth_loop() en %s: sin "
+            "el tramo de recepcion no se puede saber que marca de tiempo arma la "
+            "entrada del puerto, y este escenario aprobaria sin mirar" % donde)
+    i = cuerpo.find("{", m.end())
+    if i < 0 or ";" in cuerpo[m.end():i]:
+        raise fw.Abortado(
+            "el while(SerialBT.available()) de %s no abre un bloque con llaves: este "
+            "lector no sabe acotar esa forma" % donde)
+    rx = _bloque(cuerpo, i)
+    if rx is None or not rx.strip():
+        raise fw.Abortado(
+            "el tramo de recepcion de bluetooth_loop() en %s salio vacio: el lector no "
+            "esta midiendo el puerto" % donde)
+    return rx
+
+
+def _marcas_que_arma_la_entrada(cod, cuerpo, donde):
+    """Condicion (1): las marcas de tiempo que se sellan cuando ENTRA algo por el puerto.
+
+    Se mira el tramo de recepcion Y el cuerpo de las funciones a las que ese tramo LE
+    PASA EL RELOJ, porque sellar la hora de llegada es justo lo que hace un ayudante de
+    una linea: j17RegistrarLinea(ahora) lo hace hoy, y no entrar ahi dejaria la marca de
+    A3 fuera del censo.
+
+    EL BORDE, ESCRITO, PORQUE ES DONDE FALLAN LOS CENSOS (CLAUDE.md 7): NO se entra en
+    las llamadas que no reciben el reloj, y hoy la unica es procesarComando(btBufIn), el
+    despachador. Es el borde correcto y no una excusa: lo que hay dentro del despachador
+    no lo arma "una linea cualquiera", lo arma UN COMANDO CONCRETO -el plazo de D-31 lo
+    arranca SET_MODO:AMBAR-, y un reloj que solo un comando enciende no se alimenta del
+    trafico del puerto, que es la condicion (1). MEDIDO el 12/09 en las dos puntas:
+    procesarComando() no lee millis() ni escribe ninguna marca de tiempo, asi que hoy
+    este borde no esconde nada. Lo que si queda fuera es un watchdog que se armara desde
+    un ayudante SIN recibir el reloj; contra eso el que responde es la segunda mitad de
+    (a), que ejerce el binario REAL con el puente muerto y exige que no salga ninguna
+    alarma.
+    """
+    rx = _tramo_de_recepcion(cuerpo, donde)
+    relojes = _relojes_del_bucle(cuerpo)
+    marcas = _marcas_selladas(rx, relojes)
+    for m in re.finditer(r"\b(\w+)\s*\(([^()]*)\)\s*;", rx):
+        nombre, args = m.group(1), m.group(2)
+        if nombre in _NO_SON_LLAMADAS:
+            continue
+        pasados = [i for i, a in enumerate(args.split(",")) if a.strip() in relojes]
+        if not pasados:
+            continue
+        cuerpo_ayudante = _cuerpo_funcion(cod, nombre)
+        firma = re.search(r"\b%s\s*\(([^)]*)\)\s*\{" % re.escape(nombre), cod)
+        if cuerpo_ayudante is None or firma is None:
+            continue
+        # El reloj entra con OTRO nombre: el del parametro en esa posicion.
+        params = firma.group(1).split(",")
+        dentro = {"millis()"}
+        for i in pasados:
+            if i < len(params) and re.findall(r"\w+", params[i]):
+                dentro.add(re.findall(r"\w+", params[i])[-1])
+        marcas |= _marcas_selladas(cuerpo_ayudante, dentro)
+    return marcas, rx
+
+
+def _marcas_que_vigila_cada_vuelta(cuerpo, rx):
+    """Condicion (2): marcas de las que el bucle resta el reloj FUERA de la recepcion.
+
+    Se quita el tramo de recepcion antes de mirar porque lo que solo se calcula cuando ha
+    entrado algo no puede enterarse de que no entra nada."""
+    fuera = cuerpo.replace(rx, " ")
+    relojes = _relojes_del_bucle(cuerpo)
+    pat = r"(?:%s)\s*-\s*(\w+)\b" % "|".join(re.escape(r) for r in sorted(relojes))
+    return set(re.findall(pat, fuera))
+
+
+def guardas_de_silencio_del_puerto(cod, donde):
+    """(las que cumplen LAS DOS, las que arma la entrada, las que se vigilan).
+
+    La primera lista vacia ES la propiedad (a) de F5: nada de lo que el bucle cronometra
+    se alimenta del puerto, asi que si el ESP32 muere el equipo no se entera por esa via.
+    """
+    cuerpo = _cuerpo_del_bucle(cod, donde)
+    armadas, rx = _marcas_que_arma_la_entrada(cod, cuerpo, donde)
+    vigiladas = _marcas_que_vigila_cada_vuelta(cuerpo, rx)
+    return sorted(armadas & vigiladas), sorted(armadas), sorted(vigiladas)
+
+
+# Un bluetooth_loop() con un watchdog del puerto DE VERDAD, para el control negativo del
+# final de F5. Lleva las dos condiciones: la marca la sella un ayudante al que la
+# recepcion le pasa el reloj, y el bucle la resta fuera del tramo de recepcion.
+_BUCLE_CON_WATCHDOG = """
+  static void j17RegistrarLinea(unsigned long t) { tUltimaLineaJ17 = t; }
+  static void procesarComando(const char* c) { if (strcmp(c, "$X") == 0) { } }
+  void bluetooth_loop() {
+    const unsigned long ahora = millis();
+    while (SerialBT.available() > 0) {
+      char c = (char)SerialBT.read();
+      if (c == '\\n') { procesarComando(btBufIn); j17RegistrarLinea(ahora); }
+    }
+    if (ahora - tUltimaLineaJ17 > 15000UL) {
+      bluetooth_reportarAlarma("J17", "MUDO", "REVISE_EL_PUENTE");
+    }
+  }
+"""
+
+
 def escenario_f5(t, c, maestro, app, util_max):
     t.titulo("F5 - TRES silencios que NO significan lo mismo")
 
     # (a) EL ESP32 SE CUELGA. El STM32 sigue ciclando y NO SE ENTERA.
     #
     # No es una opinion sobre el diseno: se mide en el fuente y se ejerce en el binario.
+    # Que se mide exactamente -y por que un plazo de radio ya no se confunde con un
+    # vigilante del puerto- esta escrito arriba, sobre guardas_de_silencio_del_puerto().
     for punta in PUNTAS:
-        cod = c.codigo[punta]
-        loop = cod[cod.find("void bluetooth_loop"):]
-        marcas = re.findall(r"millis\(\)", loop)
-        guarda = re.search(r"tUltimaRx|SILENCIO|silencio|timeout|TIMEOUT", loop)
+        donde = "%s/src/bluetooth.cpp" % punta
+        guardas, armadas, vigiladas = guardas_de_silencio_del_puerto(
+            c.codigo[punta], donde)
         t.verificar(
-            len(marcas) == 1 and guarda is None,
-            "%s: bluetooth_loop() lee millis() %d vez y no tiene NINGUNA guarda de "
-            "silencio sobre la recepcion -> si el ESP32 muere, el equipo no se entera"
-            % (punta, len(marcas)),
-            "%s: bluetooth_loop() tiene %d millis() y/o una guarda (%r). Si alguien "
-            "anadio un watchdog del puerto Bluetooth, este escenario cambia de "
-            "significado" % (punta, len(marcas), guarda.group(0) if guarda else None))
+            not guardas,
+            "%s: bluetooth_loop() cronometra %s, y la entrada del puerto sella %s: "
+            "ningun reloj del bucle se alimenta de lo que llega por SerialBT -> no hay "
+            "guarda de silencio, si el ESP32 muere el equipo no se entera por esta via"
+            % (punta,
+               " y ".join(vigiladas) if vigiladas else "ninguna marca de tiempo",
+               " y ".join(armadas) if armadas else "ninguna marca de tiempo"),
+            "%s: bluetooth_loop() cronometra en cada vuelta %s, que la entrada del "
+            "puerto vuelve a sellar. Eso es un watchdog del puerto Bluetooth -las dos "
+            "condiciones-, y este escenario cambia de significado: la muerte del ESP32 "
+            "pasaria a detectarse por esta via" % (punta, " y ".join(guardas)))
+
+    # CONTROL NEGATIVO, y aqui no es un adorno: la mitad (a) es una lista VACIA, y una
+    # lista vacia sale igual de un firmware limpio que de un lector que no supo mirar.
+    # La otra direccion la ejerce el Esclavo REAL de arriba, que lleva dentro el plazo de
+    # radio de D-31 y NO lo cuenta como guarda del puerto.
+    guardas_sinteticas = guardas_de_silencio_del_puerto(
+        _BUCLE_CON_WATCHDOG, "un bluetooth_loop() sintetico")[0]
+    t.control_negativo(
+        guardas_sinteticas == ["tUltimaLineaJ17"],
+        "un bluetooth_loop() sintetico con un watchdog del puerto DE VERDAD -marca "
+        "sellada por la entrada y restada en cada vuelta- se detecta (%r), mientras que "
+        "el plazo de acuse por radio de D-31, que vive en el Esclavo real, no"
+        % (guardas_sinteticas,))
 
     # Se ejerce sobre el binario REAL: radio viva, puente muerto -nadie lee-. El equipo
     # tiene que seguir emitiendo su telemetria y NO irse a ambar.
@@ -2210,8 +2464,10 @@ def escenario_asterisco(t, c, maestro, app, util_max):
     # 1. MEDIDO en el fuente: el STM32 no valida el checksum de entrada.
     for punta in PUNTAS:
         cuerpo = Contrato._cuerpo_despachador(c.codigo[punta], punta)
-        cod = c.codigo[punta]
-        loop = cod[cod.find("void bluetooth_loop"):]
+        # ACOTADO por llaves, no por find(): la cola desde la cabecera hasta el final del
+        # fichero acusaba al camino de recepcion de cualquier calcularChecksum() escrito
+        # DEBAJO del bucle. Ver la cabecera de _cuerpo_del_bucle().
+        loop = _cuerpo_del_bucle(c.codigo[punta], "%s/src/bluetooth.cpp" % punta)
         t.verificar(
             "calcularChecksum" not in cuerpo and "calcularChecksum" not in loop,
             "%s: ni una llamada a calcularChecksum() en el camino de recepcion "

@@ -196,6 +196,53 @@ const unsigned long LATIDO_MS = 3000;
 // numero estaba repetido como literal en los dos estados de espera de ACK.
 const uint8_t CICLO_MAX_REINTENTOS = 5;
 
+// D-31 (3), 12/09: DE DONDE SALE AVISO_AMBAR_REINTENTOS. NO SE ELIGE: SE DERIVA AQUI.
+//
+// EL BORDE CONTRA EL QUE SE MIDE, ESCRITO AL LADO (CLAUDE.md 7): es el MISMO que
+// recalcula costura_09_presupuesto_radio en cada corrida -el techo de orfandad
+// SFTY6_SILENCIO_MS menos el peor caso del ciclo, que es la cadencia del latido mas los
+// reintentos, cada uno con su tiempo de cable-. Hoy: 25,0 s - (3,0 + 5 x 3,56) = 4,2 s
+// libres, y una espera del aviso cuesta 3,56 s. Cabe UNA. Dos no.
+//
+// POR QUE ESE BORDE Y NO EL DEL static_assert DE N-163 DE MAS ABAJO, que es la pregunta
+// que hay que contestar antes de creerse esta cuenta: aquel suma un TIMEOUT_ACK_MS extra
+// que NO es tiempo de aire -es el margen con el que esta punta suelta el verde ANTES-, y
+// suma en SERIE porque las dos cosas las hace el mismo extremo. El aviso lo manda el
+// OTRO: sus esperas corren EN PARALELO a las del ciclo y lo unico que se serializa en el
+// aire medio duplex es el tiempo de cable, 2 x ENVIO_TRAMA_MS. El borde de costura_09 es
+// el que acota lo que este aviso puede gastar, y es el que el responsable tuvo delante.
+//
+// ENVIO_TRAMA_MS no se lee de ningun sitio porque no existe como constante en el
+// firmware: es tiempo de CABLE -4 tramas x 3 copias de rafaga a 9600 baudios mas la
+// conmutacion del MAX485- y costura_09 lleva el mismo 0,06 s escrito a la vista por el
+// mismo motivo. Se anota aqui, no dentro de una suma.
+static constexpr unsigned long ENVIO_TRAMA_MS = 60;
+static constexpr unsigned long PASO_RADIO_MS = TIMEOUT_ACK_MS + ENVIO_TRAMA_MS;
+static constexpr unsigned long PRESUPUESTO_LIBRE_MS =
+    SFTY6_SILENCIO_MS - (LATIDO_MS + CICLO_MAX_REINTENTOS * PASO_RADIO_MS);
+
+// El plazo del acuse del aviso es EL MISMO que el del ciclo, y no dos numeros que alguien
+// tenga que acordarse de mover a la vez (N-69: tres copias a mano fue como se
+// desincronizaron las puntas). Vive en protocolo.h porque el Esclavo lo necesita y no ve
+// este fichero; que sigan siendo el mismo lo dice el compilador, aqui.
+static_assert(AVISO_AMBAR_TIMEOUT_MS == TIMEOUT_ACK_MS,
+              "el plazo del acuse del aviso de ambar dejo de ser TIMEOUT_ACK_MS: son dos "
+              "copias del mismo numero y una se movio sin la otra");
+
+// Las DOS mitades de la derivacion. La primera dice que el reintento CABE; la segunda,
+// que es el ULTIMO que cabe. Sin la segunda, AVISO_AMBAR_REINTENTOS podria ser 0 y este
+// fichero seguiria compilando: quedaria elegido, no derivado.
+static_assert(AVISO_AMBAR_REINTENTOS * (AVISO_AMBAR_TIMEOUT_MS + ENVIO_TRAMA_MS)
+                  <= PRESUPUESTO_LIBRE_MS,
+              "los reintentos del aviso de ambar (D-31) no caben en lo que queda del "
+              "presupuesto de radio bajo SFTY6_SILENCIO_MS: el diseno vuelve al "
+              "responsable, no se recorta el techo");
+static_assert((AVISO_AMBAR_REINTENTOS + 1) * (AVISO_AMBAR_TIMEOUT_MS + ENVIO_TRAMA_MS)
+                  > PRESUPUESTO_LIBRE_MS,
+              "cabe UN reintento mas del que declara AVISO_AMBAR_REINTENTOS: el numero se "
+              "DERIVA de lo que queda libre, y quedarse corto tira alarmas que un "
+              "reintento habria evitado");
+
 // N-163 (12/09): EL VERDE PROPIO SE SUELTA UN MARGEN ANTES QUE EL SILENCIO, PORQUE LAS
 // DOS PUNTAS CUENTAN EL MISMO SILENCIO DESDE INSTANTES DISTINTOS.
 //
@@ -856,15 +903,40 @@ void coordinador_actualizar() {
       // -modo_ambar_setup()-. Con eso el ambar del Esclavo se RESPETA porque esta punta
       // obedece, no porque el otro extremo este trabado, que es lo que hacia antes.
       //
-      // NO SE ACUSA. El Esclavo lo manda sin esperar respuesta y sin reintento -su
-      // operario esta esperando delante-, asi que un acuse no lo leeria nadie. Lo que
-      // hace las veces de confirmacion es que el cruce entero se pare, que se ve.
+      // AQUI DECIA "NO SE ACUSA" Y DEJO DE SER CIERTO EL 12/09 (D-31). El motivo que
+      // daba -"el Esclavo lo manda sin esperar respuesta, asi que un acuse no lo leeria
+      // nadie"- era correcto mientras nadie esperase; hoy el Esclavo SI espera el del
+      // PRIMER aviso, y sin el no puede distinguir su transmisor roto de la radio sana.
+      // Lo que sigue siendo cierto es que el operario del Poste 2 ve pararse el cruce:
+      // eso confirma el efecto, no la LLEGADA de la trama, y son dos cosas distintas.
       //
       // Y la red de abajo sigue puesta: si esta trama se pierde, esta punta agotara sus
       // reintentos en el siguiente cambio y caera a C_FALLO igual que antes. Lo que se
       // gana es no esperar hasta ahi.
       ambarPedidoPorEsclavo = true;
       cancelaAmbarPedidaPorEsclavo = false;
+
+      // D-31 (12/09): Y AHORA SI SE ACUSA. EL PARRAFO DE ARRIBA DECIA "NO SE ACUSA" Y SE
+      // CORRIGE ENTERO, porque lo que lo justificaba -"un acuse no lo leeria nadie"- dejo
+      // de ser cierto: el Esclavo AHORA lo espera.
+      //
+      // Lo que este acuse promete, y solo esto: QUE ESTA PUNTA OYO EL AVISO. No promete
+      // que el cruce se pare -eso lo decide main.cpp una vuelta despues, y con su propia
+      // guarda de "si ya estamos en ambar no se hace nada"-. Es a proposito: lo que el
+      // Esclavo necesita saber es si SU TRANSMISOR llega, no que hizo este extremo.
+      //
+      // SE EMITE AQUI Y NO EN coordinador_escucharEnAmbar(), Y ESA ES LA MITAD QUE
+      // PROTEGE SFTY-21. Esta rama solo corre desde coordinador_actualizar(), o sea con
+      // el Maestro CICLANDO, que es cuando tiene permiso para hablar. La rama gemela de
+      // escucharEnAmbar() -Maestro ya en ambar- deja de contestar a proposito, y por eso
+      // el Esclavo solo espera acuse del PRIMER aviso: el segundo llega cuando este
+      // extremo ya esta callado, y esperarlo seria fabricar una falsa alarma con la radio
+      // sana. El porque entero esta en protocolo.h, en la cabecera de este comando.
+      //
+      // Va DESPUES de armar la bandera, no antes: si la trama saliera primero y algo
+      // fallara al anotar, el Esclavo se quedaria confirmado sobre un extremo que no se
+      // entero. El orden barato es el seguro.
+      protocolo_enviarPaquete(CMD_ACK_AVISO_AMBAR);
 
     } else if (pkt.command == CMD_CANCELA_AMBAR_ESCLAVO) {
       // N-152: EL ESCLAVO RETIRA SU AMBAR DE EMERGENCIA.
