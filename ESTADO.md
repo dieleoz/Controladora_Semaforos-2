@@ -16,8 +16,12 @@
 > **avisa al Maestro**, y el `$ACK` dice si el aviso pudo oírse— · `D-28` —el plazo de la hora a
 > **400 s**, y de paso se descubrió que su derivación era una **tautología** que habría dado
 > margen cero— · `D-29` —**`N-20` resucitado**: un corte de luz ya no mata la reanudación del
-> Degradado— · `N-163` —**`G3` cerrado**: la ventana de verde-contra-ámbar, de 250 ms a **cero**,
-> sin tocar el umbral de 25 s—. **Maestro al 89,8 %, quedan 6.648 B.**
+> Degradado— · **`D-31` —el aviso de ámbar entre postes YA SE ACUSA** (`9192063`): el Esclavo espera
+> acuse del **primer** aviso, con **un** reintento, y si no llega lo dice; `dos_puntas` pasa de
+> **106/106 a 110/110** porque `H4` deja de ser nota y se convierte en comprobación— · `N-163` —**`G3`
+> cerrado**: la ventana de verde-contra-ámbar, de 250 ms a **cero**,
+> sin tocar el umbral de 25 s—. **Maestro al 89,9 %, quedan 6.648 B** *(acta de `13591c7`: `58888 B`
+> de `65536`; no se transcribe más cifra que ésta, y ésta se copió del acta, no de memoria)*.
 >
 > **Y el repositorio:** de **1.081 a 549 ficheros versionados** —`99_Legacy/` sale de git con el
 > firmware monolítico dentro—, `OPTIMIZACIONES.md` de **2.310 a 954 líneas** con las 29 reglas
@@ -37,6 +41,26 @@
 > ~4 s)*. **Lo que queda es todo teclado**, en `roadmap.md` §0 grupo (1). Lo único que NO destraba
 > nadie escribiendo está en el grupo (3): la sesión de banco y **la cinta del Esclavo del Sisga**.
 >
+> 🔴 **CORRECCIÓN DE ESE «NADA», ESCRITA AL FINAL DEL 12/09: HAY UNA, Y ES `D-30`.** No es una
+> pregunta de las que ya estaban contestadas —el responsable YA decidió que el LCD y el mando A/B/C/D
+> salen del firmware, y eso no se reabre—: es que **al medir el alcance antes de construirlo apareció
+> un precio que la decisión no podía conocer**, y quien lo paga tiene que verlo. Los tres hechos, medidos:
+>
+> - **`mando.cpp` es el único escritor de `senalActiva`**, así que retirarlo **se lleva por delante
+>   parte de `semaforo.cpp`, que es `SFTY-2`** —la barrera de salidas—.
+> - Después del cambio **ningún instrumento del repositorio puede cazar un defecto en la
+>   interceptación de `escribirPines()` por señal**, mientras que el código interceptado **se queda**
+>   como camino sin ejercicio. Es exactamente el patrón de `CLAUDE.md` §6.
+> - **`menu_setup()` llama a `coordinador_forzarMenu()`**, el todo-rojo de las dos puntas, **alcanzable
+>   HOY desde la app**: borrar `menu.cpp` borra ese todo-rojo si no se le da otra puerta.
+>
+> **La pregunta, y es la única:** ¿se ejecuta `D-30` entera sabiendo eso, o se saca **sólo el LCD** y se
+> deja el mando —que es la mitad que de verdad está trenzada con la seguridad— para cuando haya un
+> instrumento que vigile la interceptación? ⚠️ **Mientras no se conteste, `D-30` NO se construye**, y
+> lo que sigue vivo en `main` es la fila **1.21**: `A.A.A` entra al modo Automático **sin guarda** en el
+> Maestro, con `J16` p5 y p8 **vacíos y pelados**. La ventana entre hoy y el cierre de `D-30` es real y
+> está contada ahí.
+>
 > 1. **En `main` (`68dd2c5`): `D-26`, la hora la manda el ESP32 de cada poste.** El ESP32 siembra a su STM32
 >    desde el `DS3231` (al arrancar, tras cada `SET_RTC` bueno y cada ~~300 s~~ **120 s desde el 12/09**, `CMD:HORA_ESP32`); el `SET_RTC` del
 >    teléfono lo atiende el puente y ya no cruza; la siembra ya no escribe el RTC del STM32; el Esclavo toma la hora
@@ -48,13 +72,16 @@
 > 2. ~~🟠 **EN CONSTRUCCIÓN (worktree, NO está en `main`)**~~ 🟢 **CONSTRUIDA y en `main` el 11/09 por la noche, sin banco: `D-21` pieza (1)** —ámbar intermitente en la punta cuya
 >    hora caducó, dentro del Degradado—. Es la cura de **`H1`**: con el `J17` del Maestro mudo, al caer la radio el
 >    Esclavo adopta su `DS3231` y el Maestro sigue con la hora derivada del HSI → **verde contra verde**. **Bloquea
->    campo.** ~~Se integra por el diff~~ Integrada por el diff (`roadmap.md` §0, fila 1.13); el plazo es ~~320 s~~ **280 s desde el 12/09** —lo bajó la cadencia de ~2 min, y de paso se descubrió que la derivación vieja era una **tautología**: se derivaba de la propia cadencia, así que a 120 s habría dado plazo = cadencia, **margen cero**. Ahora se deriva del **relevo** (`2C + deriva + SFTY6` = 271 s), con dos `static_assert` que lo sujetan— y la app lo
+>    campo.** ~~Se integra por el diff~~ Integrada por el diff (`roadmap.md` §0, fila 1.13); el plazo es ~~320 s~~ ~~280 s~~ **400 s desde el 12/09 por la tarde** (`D-28` (2), `6c25bda`) —lo bajó primero la cadencia de ~2 min, y de paso se descubrió que la derivación vieja era una **tautología**: se derivaba de la propia cadencia, así que a 120 s habría dado plazo = cadencia, **margen cero**. Pasó por derivarse del **relevo** (271 s) unas horas, y **el responsable decidió esa misma tarde que el plazo cubra DOS siembras perdidas**: hoy se deriva de `HORA_DOS_PERDIDAS_MS` = `3C + deriva` = **369 s**, cuantizado a segundos enteros de deriva → **400 s**, con **cuatro** `static_assert` encadenados que lo sujetan. ⚠️ **Los 7 s que el responsable aceptó NO son este margen**: son el margen entre los dos `DS3231`, otra cantidad — aquí el colchón sobre la segunda pérdida es de **31 s**— y la fuente de los dos números es `{Maestro,Esclavo}/include/reloj.h`, idéntico en las dos puntas, no este párrafo. Y la app lo
 >    enseña (`HORA_ESP32,CAUSA:CADUCADA`). La punta en ámbar **no vuelve sola** (`D-21`).
 > 3. **Espera al responsable:** ~~🆕 **la cadencia de la siembra, ~5 min → ~2 min**~~ *(decidida por el responsable
 >    el 11/09 por la noche y **CONSTRUIDA el 12/09 en `dca17cd`**: `SIEMBRA_INTERVALO_MS` = 120000 y el plazo
->    rederivado. **Lo que sí queda para el responsable son dos cosas nuevas que salieron al construirla:** «~2 min»
->    no está fijado al segundo en `DECISIONES.md` —los 120 s salen de la medida de la fila 2.10—, y a esa cadencia
->    **tolerar DOS siembras perdidas cabría**, a cambio de bajar el margen entre los dos `DS3231` de 13 s a 7 s)* ·
+>    rederivado. ~~**Lo que sí queda para el responsable son dos cosas nuevas que salieron al construirla:** «~2 min»
+>    no está fijado al segundo en `DECISIONES.md`, y a esa cadencia **tolerar DOS siembras perdidas cabría** a cambio
+>    de bajar el margen entre los dos `DS3231` de 13 s a 7 s~~ *(**las dos las cerró el responsable el 12/09 por la
+>    tarde y son `D-28`**: la cadencia queda fijada en **120000 ms exactos** —deja de ser «~2 min», que era lo que
+>    permitía que cada lector derivase su propia cifra—, y el plazo **sí cubre dos siembras perdidas**, con el margen
+>    entre los dos `DS3231` bajado de 13 s a 7 s. Está construido en `6c25bda`)* ·
 >    ~~**G3/SFTY-6** (la punta en verde tarda 250 ms en soltar frente a un `S_FALLO`)~~ *(**DECIDIDO y
 >    CONSTRUIDO el 12/09**, `N-163`: la ventana pasa de 250 ms a CERO **sin tocar el umbral de 25 s** —lo
 >    sujeta un `static_assert` que demuestra que no se recorta el presupuesto de reintentos—, y el criterio
