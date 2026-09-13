@@ -1,0 +1,118 @@
+# ARQUITECTURA_hist.map - LA CRONICA que se saco de `ARQUITECTURA.map` el 12/09/2026
+
+    Esto NO es un instrumento ni una tabla de consulta diaria: es lo que `ARQUITECTURA.map`
+    describe como cronica en su propia cabecera -"el PORQUE de cada hallazgo... NO vive
+    aqui"- y que se habia colado dentro de todos modos. Se saco **integro y literal**, nunca
+    resumido, para que el fichero vivo bajara del tope de 1.000 lineas (CLAUDE.md, cabecera).
+
+    **Los apartados CONSERVAN su numero original** (`CLAUDE.md` §5: se cita por numero, no por
+    linea). `ARQUITECTURA.map` se quedo, en cada uno, con una frase que dice el veredicto de
+    hoy y apunta aqui. La cuenta que demuestra que no se perdio nada esta al final de este
+    fichero.
+
+    **Indice de lo que vive aqui:** §1.2 (ruido ignorado del arbol) · §1.3 (segundo nivel de
+    `01_Firmware/` y la trampa del directorio anidado) · §9 (lo que la pasada del 12/09 NO
+    midio).
+
+---
+
+### 1.2 Ruido: existe y se ignora - NO se inventaria `[MEDIDO 12/09 - .gitignore + test -e]`
+
+| ruta | estado |
+|---|---|
+| `scratch/` | EXISTE, ignorado |
+| `05_Funcional/App_Semaforo/node_modules/` | EXISTE, ignorado |
+| `01_Firmware/Maestro/.pio/`, `Esclavo/.pio/` | EXISTEN, ignorados |
+| `05_Funcional/App_Semaforo/android/app/build/` | EXISTE, ignorado |
+| `__pycache__/` (varios) | ignorado |
+| `01_Firmware/Validacion_*/build/`, `Simulaciones/puente_esp32/build/` | ignorados |
+| `*.zip *.rar *.7z *.apk *.patch` | ignorados |
+
+> **EL ARBOL ESTA EN VUELO:** otros agentes escriben mientras se mide. **Una medida de un
+> arbol compartido caduca en minutos**, asi que lo que se publica aqui es el COMANDO, no el
+> resultado. ⚠️ `.claude/worktrees/` tiene **worktrees viejos sin retirar**: cualquier
+> `grep -r` desde la raiz los cuenta y multiplica los resultados por veinte (CLAUDE.md 7.1).
+
+### 1.3 `01_Firmware/` - segundo nivel `[MEDIDO 12/09]`
+
+```
+01_Firmware/
++-- compuerta.py              994 lineas. LA UNICA FORMA CORRECTA DE VERIFICAR
++-- Maestro/                  firmware STM32F103C8T6 - controlador
++-- Esclavo/                  firmware STM32F103C8T6 - obedece
++-- Repetidor/                firmware ESP32, 3 ficheros. FUERA de la config vigente
++-- ESP32_Expansion/          firmware ESP32 - puente BT + reloj DS3231
++-- Simulaciones/             banco/ (82 packs) + 4 simuladores + puente_esp32/
++-- Validacion_LCD/           arnes que compila lcd.cpp/menu.cpp/modos.cpp reales
++-- Validacion_Ciclo/         arnes de ciclo_degradado.h
++-- Validacion_Respaldo/      arnes de respaldo.cpp
++-- Validacion_Automatico/    3 arneses: automatico, dos_puntas, degradado
++-- Controladora_Semaforos/   >>> OJO: DIRECTORIO ANIDADO DOS VECES <<<
+|     +-- Controladora_Semaforos/  los .kicad_pcb / .kicad_sch / .kicad_pro
+|     +-- Gerber_Semaforos/        los .gbr y el .drl
+~~Semaforos/  Diagnostico_LCD/  Camara/~~   MOVIDOS a 99_Legacy/ el 12/09. Cero
+|                             instrumentos los abrian por su ruta (roadmap.md, N-x del 12/09)
++-- FIRMWARE.md, TROUBLESHOOTING.md
+```
+
+> 🔴 **`Controladora_Semaforos/Controladora_Semaforos/` - la trampa que costo un
+> comando en esta misma pasada.** `ls 01_Firmware/Controladora_Semaforos` devuelve
+> un directorio del MISMO nombre, no los ficheros de KiCad. Un `find` a `-maxdepth
+> 2` desde `01_Firmware` NO encuentra el `.kicad_pcb`. Ruta buena, entera:
+> `01_Firmware/Controladora_Semaforos/Controladora_Semaforos/Controladora_Semaforos.kicad_pcb`
+
+---
+
+## 9. LO QUE ESTA PASADA NO MIDIO - y nadie debe dar por medido
+
+| | |
+|---|---|
+| **El cobre real** | Todo lo de la seccion 7 sale del `.kicad_pcb`, que dice lo que se DIBUJO. Las unicas medidas con puntas del proyecto viven en `05_Funcional/17_...` seccion A (pasos 20 y 21 de la Guia, 03/09) y en la sesion de banco del 04/09. **Ganan a este fichero** |
+| **El comportamiento en la tarjeta** | El firmware de esta rama **NUNCA ha estado en un banco completo**. En campo corre la **V8.4, `e303485`** (31/07) |
+| **La asignacion opto `U6`..`U15`** | `[ESCRITO]`. Se midieron `Q1..Q10`, `D11..D30`, `R23..R73` y las borneras, no la correspondencia de cada opto |
+| **Si el `ABORTADO` en cascada del orden alfabetico ocurre de verdad** | Se simulo el censo con el orden invertido y da 4 rutas inexistentes `[MEDIDO]`. **No se corrio `compuerta.py` con los packs renombrados** |
+| **Las cifras de flash** | Copiadas del acta del 12/09. No se recompilo al escribir esto |
+| **Los `.docx` de `05_Funcional`** | Se listaron los 19 pares. **No se comprobo que cada `.docx` corresponda a su `.md`** |
+| **Que lo de 3.7 este PROBADO** | 3.7 contesta «¿quien lo abre?» y «¿quien lo compila?». **No contesta «¿se probo?»** — eso es 4 |
+| **El cobre, en esta pasada del 12/09** | La seccion 7 **no se re-midio**: se mantiene tal cual la dejo la pasada del 07-11/09. Antes de fiarse de una fila suya, `05_Funcional/17_...`, que GANA |
+
+---
+
+## La cuenta de la particion del 12/09 - la red contra perder un bloque
+
+**Se publica para que cualquiera la rehaga, no para que se crea** (`CLAUDE.md` §7). El
+`ARQUITECTURA.map` de partida (commit `362929c`, antes de esta particion) tenia **1.517**
+lineas.
+
+```
+ARQUITECTURA.map ANTES de la particion del 12/09 (commit 362929c)      1.517 lineas
+
+                              contenido de partida    andamiaje nuevo   total HOY
+ARQUITECTURA.map              (vivo)                        1.192             50       1.242
+ARQUITECTURA_conectores.map   (integro §7, literal)           267             20         287
+ARQUITECTURA_hist.map         (integro §1.2+§1.3+§9)           58             60         118
+                                                             -----            ---       -----
+                                                             1.517            130       1.647
+```
+
+**1.192 + 267 + 58 = 1.517 -> cuadra exacto contra el fichero de partida: nada se borro,
+nada quedo en dos sitios.** El andamiaje nuevo (cabeceras del corte, indice, los "esto se fue
+a..." de 1.2/1.3/7/9, y esta misma cuenta) se cuenta aparte a proposito, para que la resta de
+arriba siga siendo limpia. Se puede repetir en dos comandos: `git show 362929c:ARQUITECTURA.map
+| wc -l` -> **1.517**; `wc -l ARQUITECTURA.map ARQUITECTURA_conectores.map
+ARQUITECTURA_hist.map` -> **1.242 + 287 + 118 = 1.647** hoy.
+
+> ⚠️ **ESTA PARTICION NO BASTA PARA BAJAR `ARQUITECTURA.map` DE 1.000 LINEAS, Y SE DICE AQUI
+> EN VEZ DE FORZARLO RECORTANDO UNA TABLA.** Sacar §7 (267 lineas) y la cronica de §1.2 + §1.3
+> + §9 (58 lineas) deja el fichero vivo en **1.242 lineas** -1.192 de contenido de partida mas
+> 50 de andamiaje nuevo, que suma, no resta-, **242 por encima del tope**. Lo que sigue
+> pesando son las dos tablas que el encargo pidio conservar intactas -§3.3 (113 lineas) y
+> §3.7 (170 lineas), **283 lineas entre las dos**- mas el resto de §2 y §3 (mecanica de HOY:
+> que pack abre que fichero, que rompe moverlo) y las secciones §0, §4, §5, §6, §8 y §10, que
+> no son cronica y no estaban en el encargo. Moverlas habria significado reescribir o resumir
+> una tabla de instrumento, que es justo lo que este encargo prohibe. **Tambien se busco, sin
+> exito, la "cronica" adicional que el encargo describia** -"cabeceras de re-medidas
+> fechadas", "que cambio desde la pasada de la manana", "el diagrama de por que cambia el
+> formato"-: `grep -in "manana\|diagrama\|formato"` sobre el `ARQUITECTURA.map` de partida no
+> encuentra nada de eso; no se inventaron secciones para forzar esa descripcion. **La cifra
+> final y que mas cortar, si se corta algo mas, quedan para el responsable.**

@@ -1,0 +1,287 @@
+# ARQUITECTURA_conectores.map - EL HARDWARE: conectores, pines y cadenas de potencia
+
+    Esto ES la seccion 7 de `ARQUITECTURA.map`, sacada el 12/09/2026 **integra y literal** -ni
+    una linea resumida ni reescrita- para que el fichero vivo bajara del tope de 1.000 lineas
+    (CLAUDE.md, cabecera). Es un CORTE, no una edicion: la cuenta que demuestra que no se
+    perdio nada esta al final de `ARQUITECTURA_hist.map`.
+
+    **El numero de apartado (7, con 7.1..7.7) SE CONSERVA tal cual estaba en
+    `ARQUITECTURA.map`** (CLAUDE.md §5: los documentos citan por numero, no por linea).
+    `ARQUITECTURA.map` §7 se quedo con una frase que apunta aqui; nada de fuera necesita
+    cambiar su cita salvo saber que el desarrollo ahora vive en ESTE fichero.
+
+    **QUIEN GANA A ESTE FICHERO:** todo lo de abajo sale del `.kicad_pcb`, que dice lo que se
+    DIBUJO. `05_Funcional/17_Arquitectura_28-08_y_Decisiones_Abiertas.md` seccion A trae lo
+    medido con puntas -lo que se FABRICO- y **gana a este fichero en todo lo que sea hardware
+    medido** (`CLAUDE.md` §3 y §12). Este `.map` no es un instrumento: no mide nada y nada
+    falla por lo que aqui ponga (ver `ARQUITECTURA.map` §0).
+
+---
+
+## 7. EL HARDWARE
+
+> **Todo lo de esta seccion se midio sobre el `.kicad_pcb`, que dice lo que se
+> DIBUJO. Lo que dice lo que se FABRICO son las medidas con puntas de
+> `05_Funcional/17_...` seccion A, que GANAN a este fichero.**
+
+### 7.1 El fichero de KiCad NO esta vacio - medido por dos caminos
+
+`[MEDIDO 07/09]`
+
+```
+$ wc -c Controladora_Semaforos.kicad_pcb            ->  2.158.421 B
+$ grep -c '(segment '  ...kicad_pcb                 ->          0   <-- FALSO
+$ grep -oE '\(segment\b' ...kicad_pcb | grep -c ''  ->      1.447   <-- REAL
+  footprints 185 · vias 89 · pads 485 · redes declaradas 587
+  esquematico: 649.224 B
+```
+
+KiCad separa los tokens con **tabulador y salto de linea**: buscar la pista con un
+espacio detras da cero, y **un cero se lee como "no hay"**.
+
+### 7.2 Las DIEZ cadenas de potencia
+
+`[MEDIDO 07/09 - parseo de footprints y redes del .kicad_pcb]`
+
+Molde de cada cadena, **trazado entero en el netlist, de la pata del micro a la
+bornera** `[MEDIDO 07/09]`:
+
+```
+  U1 pad --> R (220) --> LED del opto TLP127 --> [aislamiento] --> pin 4 del opto
+                                                      |  (pin 6 del opto al riel /5V,
+                                                      |   NO al de 12 V)
+                                     R (220) al gate <+  +  R (10K) del gate a GND
+                                          |
+                                       IRLZ44N (drain) --> bornera p2
+                                          |                    ^
+                                          |     1N4148 al /12V-+  (rueda libre)
+                                          |     LED + R 1K al /12V (testigo Y PULL-UP)
+                                       GND (source)
+```
+
+| # | U1 pad | pin | red del sch | opto | R gate | MOSFET | bornera | senal |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 10 | PA0 | `/S1` | `U6` | `R21` | `Q1` | `J3` | `ROJO1` |
+| 2 | 11 | PA1 | `/S2` | `U7` | `R27` | `Q2` | `J4` | `AMARILLO1` |
+| 3 | 12 | PA2 | `/S3` | `U8` | `R32` | `Q3` | `J5` | `VERDE1` |
+| 4 | 13 | PA3 | `/S4` | `U9` | `R37` | `Q4` | `J6` | `ROJO2` |
+| 5 | 14 | PA4 | `/S5` | `U10` | `R42` | `Q5` | `J7` | `AMARILLO2` |
+| 6 | 15 | PA5 | `/S6` | `U11` | `R47` | `Q6` | `J8` | `VERDE2` |
+| 7 | 17 | PA7 | **`/S8`** | `U12` | `R52` | `Q7` | `J9` | `VERDE_PEATON` |
+| 8 | 19 | PB1 | `/Buzzer` | `U13` | `R57` | `Q8` | `J13` | `BUZZER` |
+| 9 | 16 | PA6 | **`/S7`** | `U14` | `R62` | `Q9` | `J11` | `ROJO_PEATON` |
+| 10 | 20 | PB2 | `/Motor` | `U15` | `R72` | `Q10` | `J15` | `MOTOR_TALANQUERA` |
+
+| # | LED testigo | rueda libre | pull-up 1K al 12 V |
+|---|---|---|---|
+| 1 | `D12` | `D11` | `R23` |
+| 2 | `D13` | `D14` | `R28` |
+| 3 | `D15` | `D16` | `R33` |
+| 4 | `D17` | `D18` | `R38` |
+| 5 | `D19` | `D20` | `R43` |
+| 6 | 🔴 **`D21` CON EL CATODO AL AIRE** | `D22` | `R48` |
+| 7 | `D23` | `D24` | `R53` |
+| 8 | `D25` | `D26` | `R58` |
+| 9 | `D27` | `D28` | `R63` |
+| 10 | `D29` | `D30` | `R73` |
+
+*(Son **DIEZ**, no nueve: dos documentos decian nueve y se tacharon el 05/09.)*
+
+> ⚠️ **`/S7` y `/S8` ESTAN CRUZADAS RESPECTO AL ORDEN QUE SUGIERE EL NOMBRE**
+> `[MEDIDO 07/09]`: `/S7` es **PA6 -> J11 -> ROJO_PEATON** y `/S8` es
+> **PA7 -> J9 -> VERDE_PEATON**. Quien cablee guiandose por el numero de la
+> etiqueta y no por la bornera invierte las dos cabezas peatonales. Hoy no importa
+> -los dos canales estan muertos en firmware-; el dia que se gasten, si.
+
+> 🔴 **EL BORNE NO ESTA A 0 V EN REPOSO, ESTA A ~12 V.** `[MEDIDO 07/09 sobre el
+> netlist]` **Nueve** de los diez drenadores llevan `R 1 kohm + LED` al riel de 12 V,
+> y eso esta **en el cobre, no en el conector**: no se evita dejando un hilo sin
+> poner. Con el MOSFET abierto el borne sube a ~12 V con ~10 mA **calculados**
+> -`(12 - Vf)/1 kohm`, no una sonda-.
+
+> 🔴 **EL DECIMO ES LA EXCEPCION, Y ESTA EN UN CANAL DE LUZ VIVO.** `D21`, el LED del
+> canal `Q6 -> J8 -> VERDE2`, tiene el catodo **sin conectar**: red
+> `unconnected-(D21-K-Pad1)`, cero pistas. Su gemelo `D23` lo tiene en los dos
+> extremos. Ese canal **no tiene indicador luminoso** y **`J8` p2 FLOTA en reposo**
+> en vez de subir a ~12 V como los otros nueve. **`[SIN VERIFICAR]` si es defecto o
+> decision** - es `A-10` de `DECISIONES.md`, y es de BANCO.
+
+> ⚠️ **"EL OPTO AISLA GALVANICAMENTE" ES MEDIO CIERTO.** Hay **UNA sola red `GND`**,
+> que incluye el catodo del LED del opto y la fuente del MOSFET. El opto separa el
+> **pin del micro** del nodo de puerta; **no crea una masa separada**. Cualquier cosa
+> colgada de esos bornes **comparte la masa del controlador**.
+
+### 7.3 Los conectores, pad a pad
+
+`[MEDIDO 07/09 - redes de cada pad en el .kicad_pcb]`
+
+| conector | pads | contenido |
+|---|---|---|
+| `J1` | 2 | p1 `GND` · p2 `Net-(D6-A)` - entrada de alimentacion |
+| `J2` | 4 | p1 `GND` · p2/p3 senal · p4 `3.3V` - programacion |
+| `J3`..`J8` | 2 c/u | p1 **`12V`** · p2 drenador - **las seis luces** |
+| `J9` | 2 | p1 `12V` · p2 `Net-(D23-K)` - **`VERDE_PEATON`. Canal fabricado, SIN firmware** |
+| `J10` | 2 | `RS485_IN_TX`/`RX` (PA9/PA10) - **muertos, solo `pines.h`** |
+| `J11` | 2 | p1 `12V` · p2 `Net-(D27-K)` - **`ROJO_PEATON`. Canal fabricado, SIN firmware** |
+| `J12` | 2 | radio LoRa E90-DTU - USART3, PB10 TX / PB11 RX / PB12 DE-RE |
+| `J13` | 2 | p1 `12V` · p2 `Net-(D25-K)` - **`BUZZER`. Canal fabricado, SIN firmware** |
+| `J14` | 2 | p1 **`/Puerta`** (PB0) · p2 **`3.3V`** - 🔴 **ES UNA ENTRADA, directa al micro.** ~~Reservada al **fin de carrera** de la pluma (`A-2`, 05/09);~~ **no lleva camara** (Manual 9). 🟢 **LIBRE, SIN CABLEAR — `D-27` (11/09): el fin de carrera NO se instala en este despliegue.** En `J14` **no se conecta nada**; vacio, `R64` (10 kOhm a masa) deja `PB0` en 0 V (`J14` medido en cobre, banco 03-04/09, pasos 17-18). ~~🔴 **CONFLICTO ABIERTO `[MEDIDO 11/09]`, del responsable, NO se resuelve aqui:**~~ Por que no se conecta nada, `[MEDIDO 11/09]`: el firmware lee `PB0` como **`CAM_DEMANDA_PIN`** en las dos puntas —Maestro por NIVEL en `modoInteligente_loop()` (`demandaLocalS1`: pide y SOSTIENE fase), Esclavo por FLANCO en `main.cpp` -> `demanda_solicitar()` -> `CMD_DEMANDA` por radio—, asi que un fin de carrera aqui **da demandas falsas** cada vez que se mueve la pluma. `grep -rn "CAM_DEMANDA_PIN" Maestro/src Esclavo/src` |
+| `J15` | 2 | p1 `12V` · p2 `Net-(D29-K)` - 🔴 **LA SALIDA DE TALANQUERA** (PB2 -> `U15` TLP127 -> `Q10` IRLZ44N a masa; `D30` rueda libre, `D29` testigo) `[MEDIDO 11/09 en netlist]`. **p2 NO es masa**: con `Q10` abierto sube a ~12 V. **Sube la pluma con VERDE y tambien con CUALQUIER ambar intermitente (`S_FALLO`)** — `escribirPines()`: `(verde && !testLedsActivo) \|\| estado == S_FALLO`. **Ninguna camara interviene** (el veto es `A-1.bis`, sin construir). ✏️ **11/09, `D-25` (conexion DEFINITIVA):** p1 y p2 a la **bobina de un rele de 12 V**; el contacto del rele a la entrada **`OPEN`** de la centralita de la barrera. `D30` (1N4148, entre `/12V` y p2) ya es la rueda libre de esa bobina. ⚠️ **`[SIN VERIFICAR]`** como responde la centralita a `OPEN` sostenido y soltado, y que hace la barrera sin energia en la tarjeta: lo decide la centralita, no este cobre |
+| `J16` | **12** | ver abajo |
+| `J17` | **13** | ver abajo |
+
+> 🔴 **`J14` ES ENTRADA. LA SALIDA DE TALANQUERA ES `J15`.** No se confunden: `J14`
+> lleva `3.3 V` en p2 y `J15` lleva `12 V` en p1. Enchufar el motor en `J14` es meter
+> la etapa de potencia en un pin de entrada del micro.
+
+**`J16` - conector de senal. `[MEDIDO 07/09: TIENE 12 PADS]`**
+
+```
+  p1  = 12 V CRUDOS   <<< SE TAPA EN CADA EQUIPO QUE SE MONTE (D-4, N-120)
+  p2  = GND           <<< LA UNICA MASA DE TODO EL CONECTOR
+  p3  = sin conectar          p4  = 3.3 V
+  p5  = /Boton1 = PB9  = MANDO_A     p6  = sin conectar
+  p7  = 3.3 V                 p8  = /Boton2 = PB13 = MANDO_B
+  p9  = 3.3 V                 p10 = /Boton3 = PB14 = CAM_C_PIN  <-- CAMARA 1 (contra p9)
+  p11 = 3.3 V                 p12 = /Boton4 = PB15 = CAM_D_PIN  <-- CAMARA 2 (contra p11)
+```
+
+> ✏️ **11/09, `D-25`:** aqui ponia ~~`p10 <-- LA CAMARA`~~ y ~~`p12 <-- hoy VACIO`~~. Son
+> **cuatro camaras, DOS POR POSTE**, las dos cableadas en cada tarjeta. **Hacen LO MISMO**
+> (`CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN}`, un solo bucle en `camaras_actualizar()`:
+> `demanda_solicitar()` + vigilante; identico en las dos puntas). **`p12` es el borne
+> con menos separacion a la red de 12 V** (`/Boton4`, `1,359 mm`, 7.7 punto 3): con camara
+> en el, `p1` tapado (`D-4`) deja de ser teoria.
+
+> 🔴 **EL MAPA ANTERIOR DECIA "conector de 16 posiciones". SON 12.** `[MEDIDO 07/09]`
+
+**Pull-downs `[MEDIDO 07/09]`:** `R64` `R65` `R66` `R67` `R68`, todas **10K a GND**,
+sobre `/Puerta`, `/Boton1`, `/Boton2`, `/Boton3`, `/Boton4` respectivamente.
+
+**Polaridad: UNA SOLA para las cuatro posiciones** - `INPUT` pelado + **activo en
+ALTO**, contacto seco que **CIERRA CONTRA LOS 3,3 V** `[MEDIDO 07/09 sobre el
+fuente]`:
+
+```
+$ grep -n 'pinMode(BOTON1\|pinMode(CAM_C_PIN\|lecturaCruda' Maestro/src/botones.cpp
+   42:  bool lecturaCruda = (digitalRead(b.pin) == HIGH);
+  514:  pinMode(BOTON1, INPUT);
+  515:  pinMode(BOTON2, INPUT);
+  530:  pinMode(CAM_DEMANDA_PIN, INPUT);
+  531:  pinMode(CAM_C_PIN, INPUT);
+  532:  pinMode(CAM_D_PIN, INPUT);
+      (Esclavo: :507 :508 :523 :524 en botones.cpp; CAM_DEMANDA_PIN en main.cpp:288)
+```
+
+**Y el gesto contrario es imposible en este conector:** hay **una sola masa (p2)** y
+un pin de 3,3 V pegado a cada posicion de senal. Un contacto por posicion contra
+masa **necesitaria una masa por posicion**. Cablear contra masa deja `MANDO_B` sin
+armar `ambarLocal` NUNCA y **abre el veto de SFTY-21** sin que ningun test lo diga.
+
+**`J17` - el enlace serie al ESP32 + los restos de la LCD `[MEDIDO 07/09]`:**
+
+```
+  p1 = /CS     = PB4  (LCD_CS)      <-- en alta impedancia
+  p2 = /RST    = PB7  RX Bluetooth  <-- VIVO, USART1 remapeado
+  p3 = /RS(A0) = PB6  TX Bluetooth  <-- VIVO, USART1 remapeado
+  p4 = /SCL    = PB3  (LCD_SCLK)    <-- en alta impedancia
+  p5 = /SI     = PB5  (LCD_SID)     <-- en alta impedancia
+  p6 = 3.3V    p7 = GND    p8 = 3.3V    p9 = GND
+  p10..p13 = sin conectar
+```
+
+```
+$ grep -n 'HardwareSerial SerialBT' Maestro/src/bluetooth.cpp Esclavo/src/bluetooth.cpp
+  Maestro:30  static HardwareSerial SerialBT(PB7, PB6);   // USART1 remapeado
+  Esclavo:29  static HardwareSerial SerialBT(PB7, PB6);   // NO es la misma linea
+$ grep -n 'U8X8_PIN_NONE' Maestro/src/lcd.cpp Esclavo/src/lcd.cpp
+  Maestro:74-75   Esclavo:92-93   (los 4 pines del constructor SW SPI)
+```
+
+> **PB3 ES EL RELOJ DEL SPI DE SOFTWARE Y CONMUTA EN CADA BIT, pegado al RX/TX del
+> ESP32 dentro del mismo mazo.** Esa es la corrupcion intermitente que no se
+> diagnostica nunca. Por eso los pines pasaron a `U8X8_PIN_NONE`: la libreria se
+> salta el `pinMode` y el `digitalWrite` cuando el pin es `NONE`.
+> **Se eligio esa forma y no procedimientos de bus nulos -que ahorraban 524 B mas-
+> porque DOS PACKS leen ese constructor POR TEXTO** (`flash_01_lastre` y
+> `enlace_01_transporte`): cambiar la FORMA los dejaba en ABORTADO (N-89).
+
+### 7.4 Censo de pines - la columna que NO caduca
+
+`[MEDIDO 07/09]` Se da el pin, la bornera y el ESTADO -que son estables- y **el
+comando** para reencontrar la evidencia, no el numero de linea.
+
+| pin | nombre | bornera | estado | como se reencuentra |
+|---|---|---|---|---|
+| PA0..PA5 | `ROJO1` `AMARILLO1` `VERDE1` `ROJO2` `AMARILLO2` `VERDE2` | J3..J8 | VIVOS, `OUTPUT` | `grep -n "static void escribirPines" */src/semaforo.cpp` |
+| PA6 | `ROJO_PEATON` | J11 | **MUERTO** declarado | solo `pines.h` (+1 comentario en `Maestro/src/main.cpp`) |
+| PA7 | `VERDE_PEATON` | J9 | **MUERTO** declarado | idem |
+| PA8 | `RS485_IN_DE_RE` | U2 | VIVO `OUTPUT HIGH` | `grep -n RS485_IN_DE_RE */src/bluetooth.cpp` |
+| PA9 / PA10 | `RS485_IN_TX/RX` | J10 | **MUERTOS** | solo `pines.h` |
+| PA11 PA12 PA15 PC13 | - | - | **SIN CABLEAR** ✅ ahora `[MEDIDO]`, ya no `[ESCRITO]` | redes `unconnected-(U1-PA11-Pad32)`, `-PA12-Pad33`, `-PA15-Pad38`, `-PC13-Pad2` en el `.kicad_pcb` |
+| PB0 | `CAM_DEMANDA_PIN` | J14 | VIVO `INPUT`, activo ALTO. ~~🔴 **CONFLICTO ABIERTO (11/09):** `A-2` reserva `J14` al fin de carrera y el firmware lo lee como camara de demanda — ver 7.3~~ → 🟢 **`D-27` (11/09): `J14` LIBRE, sin cablear** — el fin de carrera no se instala; como el firmware lo lee como demanda, no se conecta nada — ver 7.3 | `grep -n "pinMode(CAM_DEMANDA_PIN"` -> **M: `botones.cpp` · E: `main.cpp`** |
+| PB1 | `BUZZER` | J13 | **MUERTO** declarado | solo `pines.h` |
+| PB2 | `MOTOR_TALANQUERA` | J15 | VIVO `OUTPUT`, reposo **CERRAR** | `grep -n MOTOR_TALANQUERA */src/semaforo.cpp` |
+| PB3 PB4 PB5 | `LCD_SCLK` `LCD_CS` `LCD_SID` | J17 p4/p1/p5 | **EN ALTA IMPEDANCIA** con pista hasta la bornera | `grep -n U8X8_PIN_NONE */src/lcd.cpp` |
+| PB6 / PB7 | TX / RX Bluetooth | J17 p3/p2 | VIVOS, USART1 remapeado | `grep -n "HardwareSerial SerialBT"` |
+| PB8 | `LED_TESTIGO` | - | `pinMode(INPUT)` **sin lectura**, deliberado | `pines.h`. **No es una bornera: es `R16` 1K + LED `D5`** |
+| PB9 | `BOTON1` / `MANDO_A` | J16 p5 | VIVO `INPUT` pelado, activo ALTO | `grep -n "pinMode(BOTON1" */src/botones.cpp` |
+| PB10 PB11 PB12 | `RS485_OUT_TX/RX`, `LORA_DE_RE` | J12 | VIVOS, USART3 | `pines.h` |
+| PB13 | `BOTON2` / `MANDO_B` | J16 p8 | VIVO `INPUT` pelado, activo ALTO | idem |
+| PB14 | `CAM_C_PIN` | J16 p10 | VIVO `INPUT` pelado, activo ALTO. **CAMARA 1 de cada poste** (contra p9, `D-25`) | `grep -n "pinMode(CAM_C_PIN" */src/botones.cpp` |
+| PB15 | `CAM_D_PIN` | J16 p12 | VIVO `INPUT` pelado, activo ALTO. ~~**Hoy VACIO en todo equipo montado**~~ → ✏️ **11/09, `D-25`: CAMARA 2 de cada poste** (contra p11); hace lo mismo que `PB14` | idem |
+
+**Asimetria que hay que saber porque los instrumentos leen POR RUTA:**
+`CAM_DEMANDA_PIN` se declara en **`Maestro/src/botones.cpp`** pero en
+**`Esclavo/src/main.cpp`**. Un pack que censara solo `botones.cpp` veria tres
+entradas en una punta y dos en la otra **sin que haya defecto**.
+
+### 7.5 Pines libres de cobre - y lo que cuesta gastarlos
+
+`[MEDIDO 07/09]`
+
+**`PB3`, `PB4` y `PB5`** son los unicos GPIO del proyecto **libres y con bornera ya
+cableada** (`J17` p4, p1, p5). De los tres, **solo `PB3` y `PB4` son de JTAG**; `PB5`
+no lo es, y decir "los tres" era falso. En los que si lo son no cuesta nada:
+`pin_DisconnectDebug()` hace `__HAL_AFIO_REMAP_SWJ_NOJTAG()` - **suelta JTAG y
+conserva SWD**.
+
+**Tres canales de potencia completos, fabricados y sin una linea de firmware
+detras:** `J9` (`VERDE_PEATON`, PA7), `J11` (`ROJO_PEATON`, PA6) y `J13` (`BUZZER`,
+PB1). El molde es el mismo de la talanquera (`J15`), que **si funciono en banco el
+04/09**. Gastar uno cuesta **16 B de flash, medidos por desensamblado** - pero cierra
+la puerta a una cabeza peatonal o a un zumbador (A-3.10).
+
+### 7.6 Lo que sigue ABIERTO en el hardware
+
+| | estado |
+|---|---|
+| **La placa portadora del ESP32** | NO disenada, NO fabricada, NO medida. Ni siquiera es una linea de compras. **Quien la disena y quien la fabrica: sin decidir.** Su fuente propia DC-DC 12->5 V >= 1 A (linea A5) **no se ha pedido**: el LM7805 de la tarjeta no da los picos de ~500 mA |
+| **El cristal `Y2`** | **CONFIRMADO MUERTO EN BANCO** el 01/08 (N-17, N-37). El reloj se fue al DS3231 del ESP32 (D-9, D-15). Falta diagnosticar el `Y2` de la SEGUNDA tarjeta |
+| **`D21` con el catodo al aire** | `[SIN VERIFICAR]` si es defecto o decision. A-10, y es de banco |
+| **La salida de alarma de la camara** | 🟢 **11/09: contestado en campo el 10/09, en una camara del Maestro** —`Intrusion Detection` + `Trigger Alarm Output` dio 0 V / 3,3 V en el borne (`roadmap.md` §3.8)—; se mira igual en cada una de las cuatro. Lo de antes de medir: ~~🔴 `[SIN VERIFICAR]` que la ANALITICA pueda accionar el rele. El manual dice de `Trigger Alarm Output` que *"only supported by certain models"*, y la fila *Linkage Method* de la ficha **no la menciona**. Si no se puede enlazar, el camino de `J16` no sirve: es OTRO diseno. D-14 propone ir por la ENTRADA de alarma, que no lleva esa nota~~ |
+| **N-120** | la tarjeta protege todo lo que SALE y **no protege nada de lo que ENTRA**. Decidir si V2 se lo pone |
+
+### 7.7 Los avisos que no se pueden perder
+
+1. **`J16` p1 lleva 12 V CRUDOS** a un conector de senal directa al micro. **SE TAPA
+   FISICAMENTE ANTES DE CABLEAR NADA, en cada equipo que se monte.** No es una
+   cautela de banco: es D-4 / N-120. El destornillador no lee.
+2. **`J14` es ENTRADA. La salida de talanquera es `J15`.**
+3. **El margen contra los 12 V no es el que parece.** La distancia entre PADS
+   -10,2 / 22,9 / 27,9 mm- **no es la separacion real**. Sobre cobre, respetando
+   capas (`03_Hardware_Tarjeta/MAPEO_TARJETA_KICAD.md` seccion 7.bis.2):
+   `/Boton1` 1,405 mm · `/Boton2` 1,408 mm · `/Boton3` 4,269 mm · `/Boton4`
+   **1,359 mm**. **EL ORDEN SE INVIERTE: p12 es el PEOR, no el mas seguro.** Y es
+   cobre de diseno, sin tolerancia de fabrica ni suciedad de armario.
+4. **EL ORDEN ES ASIMETRICO: FIRMWARE PRIMERO, COBRE DESPUES.** Con un binario
+   anterior a `deeeab4` dentro, `PB14` vuelve a ser `botonAceptar()` -el que
+   EJECUTA- y cualquier cosa enchufada en `J16` p10 puede pulsar *Aceptar* en un
+   equipo que esta en la calle. ✏️ **11/09, con `D-25` la camara 2 va a `p12`, y
+   `PB15` es `botonCancelar()` en ese mismo binario** (`git show e303485:01_Firmware/
+   Maestro/src/botones.cpp`, V8.4): lo enchufado en `p12` puede pulsar *Cancelar*. **Se exige la carga VERIFICADA, no el merge: un
+   commit no protege de un destornillador.**
+5. **Los bornes de potencia estan a ~12 V en reposo**, no a 0 V, y el pull-up esta
+   en el cobre. Ver 7.2.
+6. **El opto NO crea una masa separada.** Ver 7.2.
+
