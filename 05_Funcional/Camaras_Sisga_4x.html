@@ -670,7 +670,7 @@
       </li>
       <li>
         <span class="decia"><b>DECÍA:</b> «En la app, al primer carro el rótulo pasa de CAM: ? a CAM: OK» (y con eso la cámara quedaba comprobada).</span>
-        <span class="cierto"><b class="lbl">LO CIERTO:</b> La app pone <b>OK</b> en cuanto <b>cualquier</b> cámara de ese poste detecta algo, y <b>sigue en OK aunque la otra no haya detectado nunca nada</b> (por ejemplo, muerta desde que se montó). No te dice cuál. Cada cámara se comprueba <b>con el multímetro en su borne</b> (paso 11, nuevo).</span>
+        <span class="cierto"><b class="lbl">LO CIERTO:</b> La app pone <b>OK</b> en cuanto <b>cualquier</b> cámara de ese poste detecta algo, y <b>sigue en OK aunque la otra no haya detectado nunca nada</b> (por ejemplo, muerta desde que se montó). No te dice cuál. Cada cámara se comprueba <b>con el multímetro en su borne</b> (paso 12, nuevo).</span>
       </li>
       <li>
         <span class="decia"><b>DECÍA:</b> «El multímetro pita durante exactamente 5 segundos».</span>
@@ -692,6 +692,7 @@
       <li><b>La zona</b> se dibuja sobre <b>la franja por donde baja el brazo de la pluma</b>, igual en las dos cámaras. Ya no «entre 15 y 30 m».</li>
       <li><b>Objetivo:</b> <s>no filtrar (vehículo <i>y</i> persona)</s> — <i>(D-27, 11/09)</i> <b>no cambia: solo Vehículo</b> (☑ Vehículo, ☐ Humano), como en la guía del 10/09. <b>Umbral:</b> el más bajo. <b>Sensibilidad:</b> alta.</li>
       <li><b>Retardo de la salida:</b> el más corto que ofrezca la lista (nunca «Manual»). <b>Horario:</b> 24 horas los 7 días, en la regla y en la salida (faltaba).</li>
+      <li>🆕 <b>(12/09) Faltaba la microSD por completo, y es un paso nuevo entero: el 09.</b> Ninguna versión anterior la nombraba, así que <b>las cámaras configuradas hasta ahora tienen la tarjeta vacía</b>. Hay que <b>formatearla desde la cámara</b> y dejar la grabación puesta: la casilla <b>Grabación activada</b> (<i>Trigger Recording</i>) en la regla del paso 07 <b>y</b> una programación de grabación de tipo <b>Event</b>. <b>Con una sola de las dos no se graba nada.</b> Los pasos que antes eran 09, 10 y 11 ahora son <b>10, 11 y 12</b>.</li>
       <li>El campo «Estado de reposo NO» puede no existir en la pantalla: el reposo se comprueba <b>con el multímetro</b>.</li>
       <li><b>Alturas, ángulos y distancias</b> (4 m, 15–20°, 35–45°, 0–8 m, 15–30 m): no tienen fuente. Son <b>orientativos</b>.</li>
     </ul>
@@ -710,7 +711,7 @@
     Las conexiones de esta guía quedan como definitivas: en cada poste, cámara 1 a <span class="mono">J16 p9/p10</span> y cámara 2 a <span class="mono">J16 p11/p12</span>. Lo que tienes que saber de la segunda cámara:
     <ul>
       <li><b>Hace exactamente lo mismo que la primera.</b> No añade ninguna función: es una segunda mirada sobre la misma zona.</li>
-      <li><b>La app no te dirá si funciona.</b> Y hoy el equipo <b>no avisa de una cámara que nunca ha detectado nada</b>: si queda muerta desde el día que la montas, nadie se entera. Por eso cada una se comprueba con el multímetro (paso 11).</li>
+      <li><b>La app no te dirá si funciona.</b> Y hoy el equipo <b>no avisa de una cámara que nunca ha detectado nada</b>: si queda muerta desde el día que la montas, nadie se entera. Por eso cada una se comprueba con el multímetro (paso 12).</li>
       <li><span class="mono">J16 p12</span> es, en la placa, el borne con <b>menos separación a los 12 V</b>. Con el pin 1 tapado, trabajo limpio: sin restos de cobre, sin humedad.</li>
     </ul>
   </div>
@@ -772,7 +773,7 @@
 
     <div class="progress-bar-wrap">
       <span>Cámara actual seleccionada: <b id="lbl-active-camera" style="color:var(--accent-ink)">Maestro · Cámara 1</b></span>
-      <span class="progress-pill">Progreso en esta cámara: <b id="progress-count">0</b>/11 pasos listos</span>
+      <span class="progress-pill">Progreso en esta cámara: <b id="progress-count">0</b>/12 pasos listos</span>
     </div>
   </div>
 
@@ -876,7 +877,7 @@
 
   <div class="layout">
 
-    <!-- 11 PASOS INTERACTIVOS (SE ADAPTAN SEGUN CAMARA SELECCIONADA) -->
+    <!-- 12 PASOS INTERACTIVOS (SE ADAPTAN SEGUN CAMARA SELECCIONADA) -->
     <ol class="steps" id="step-list">
 
       <li class="step" data-step="0">
@@ -979,6 +980,7 @@
             <li><b>Sensibilidad:</b> <b>alta</b>.</li>
             <li><b>Programación (Arming Schedule):</b> <b>24 horas los 7 días</b>. Si no, de noche o en fin de semana la cámara no dispara y nadie se entera.</li>
             <li><b>Vinculación (Linkage):</b> Marcar ☑ <span class="field mono">Salida de alarma A→1</span> — <b>solo en esta regla</b>.</li>
+            <li><b>Vinculación (Linkage), segunda casilla:</b> marcar también ☑ <span class="field mono">Grabación activada</span> (<i>Trigger Recording</i>). Es lo que hace que <b>esta</b> detección se grabe en la microSD de la cámara. <b>El «solo en esta regla» de la línea de arriba es de la salida de alarma, no de ésta.</b> Sin esta casilla la tarjeta se queda vacía aunque en el paso 09 dejes puesta la programación de grabación.</li>
             <li>Guardar cambios.</li>
           </ul>
           <div class="warn-inline"><span class="ico">✍</span> <span>Ninguno de estos valores está medido todavía con la cámara real. <b>Anota los que pongas.</b> Si el responsable te pide otros, pon los suyos.</span></div>
@@ -997,17 +999,43 @@
           <ul class="substeps">
             <li><b>Retardo (Delay):</b> el valor <b>más corto</b> que ofrezca la lista. <b>¡Nunca «Manual»!</b> Con «Manual» el contacto se queda cerrado y la cámara ya no da detecciones nuevas. El equipo acaba avisando «cámara pegada», pero solo pasado mucho rato: hasta entonces nadie se entera.</li>
             <li><b>Programación (Arming Schedule):</b> <b>24 horas los 7 días</b>, igual que la regla.</li>
-            <li><b>Estado de reposo:</b> si la pantalla lo ofrece, Normalmente Abierto (NO). Si ese campo no aparece, no lo busques más: el reposo se comprueba con el multímetro en el paso 09.</li>
+            <li><b>Estado de reposo:</b> si la pantalla lo ofrece, Normalmente Abierto (NO). Si ese campo no aparece, no lo busques más: el reposo se comprueba con el multímetro en el paso 10.</li>
             <li>En otras reglas (Movimiento, Bloqueo, Excepción de red): asegurarse de que <span class="field mono">A→1</span> esté <b>DESMARCADO</b>. Una sombra o una avería de la cámara no pueden cerrar el contacto.</li>
           </ul>
         </div>
       </li>
 
-      <li class="step" data-step="8">
+      <li class="step nuevo" data-step="8">
         <button class="check" aria-label="Marcar paso 9 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <div class="step-body">
           <div class="step-head">
             <span class="step-num">09</span>
+            <h3 class="step-title">microSD: formatear la tarjeta y dejar la grabación puesta</h3>
+            <span class="step-tag cambia">Nuevo · 12/09</span>
+          </div>
+          <p><b>Sin este paso la cámara no graba nada y la tarjeta se queda vacía.</b> Son <b>dos</b> casillas y hacen falta las dos: la del paso 07 (<i>Grabación activada</i>) y la programación de abajo. <b>Con una sola no hay vídeo.</b> Son cuatro tarjetas de <b>64 GB</b>, una por cámara, ya compradas.</p>
+          <ul class="substeps">
+            <li><b>¿Está la tarjeta dentro?</b> Si esta cámara no lleva la microSD puesta, ponla antes de nada. El montaje de la ranura viene en la <b>guía rápida del fabricante</b> (<span class="mono">UD40284B Quick Start Guide</span>, en <span class="mono">04_Manuales/</span>). Sin tarjeta los menús de abajo no sirven de nada.</li>
+            <li><b>Formatear (inicializar) la tarjeta EN LA CÁMARA:</b> <span class="field">Almacenamiento</span> → <span class="field">Gestión de almacenamiento</span> → <span class="field">Gestión de HDD</span> (<i>Configuration → Storage → Storage Management → HDD Management</i>). Selecciona la tarjeta y pulsa <span class="field mono">Format</span>.
+              <br><b>Tienes que ver:</b> el estado pasa de <span class="field mono">Uninitialized</span> a <span class="field mono">Normal</span>. Si se queda en cualquier otra cosa, <b>para y avisa</b>. <i>(Manual del modelo, pág. impresa 32.)</i></li>
+            <li><b>Vuelve a comprobar el paso 07:</b> en la regla de intrusión tiene que estar marcada ☑ <span class="field mono">Grabación activada</span> (<i>Trigger Recording</i>). El manual lo pone como requisito previo de lo siguiente: <i>«Before You Start: select Trigger Recording in event settings for each record type except Continuous»</i> (pág. impresa 36).</li>
+            <li><b>Programación de grabación:</b> <span class="field">Almacenamiento</span> → <span class="field">Ajustes de programación</span> → <span class="field">Programación de grabación</span> (<i>Configuration → Storage → Schedule Settings → Record Schedule</i>):
+              <br>• Marcar ☑ <span class="field mono">Enable</span>.
+              <br>• Tipo de grabación: <span class="field mono">Event</span> — <i>«The video is recorded when configured event is detected»</i> (pág. impresa 36).
+              <br>• Horario: <b>24 horas los 7 días</b>, por la misma razón que los otros dos horarios de esta guía: <b>esta cámara no tiene red</b>, no puede poner su reloj en hora sola, y ese reloj se va y se pierde en cada corte. Cualquier franja distinta de 24×7 depende de un reloj que deriva.
+              <br>• Guardar.</li>
+            <li><b>COMPROBACIÓN — es lo único que demuestra que las dos casillas funcionaron.</b> Provoca una detección (cruza un vehículo por la zona), abre <span class="field mono">Playback</span> en el navegador de la cámara, busca el día de hoy y mira si <b>hay un clip a esa hora</b>. <b>Anota si lo hay o no.</b> Si no hay clip, o falta una de las dos casillas o la analítica no ha disparado: <b>para y avisa</b>.</li>
+          </ul>
+          <div class="warn-inline"><span class="ico">🕳</span> <span><b>Lo que NO se decide en el poste, porque todavía no está decidido:</b> los <b>días de retención</b> y si al final la grabación será <b>continua</b> en vez de por evento. En la pantalla <span class="field mono">Advanced</span> de la programación están <span class="field mono">Overwrite</span>, <span class="field mono">Pre-record</span>, <span class="field mono">Post-record</span> y <span class="field mono">Recording Expiration</span>: <b>déjalos como vengan y anota qué valores traían.</b> Lo único que el manual dice de uno de ellos, y conviene que el responsable lo sepa: <b>sin <span class="mono">Overwrite</span>, cuando la tarjeta se llena la cámara deja de grabar.</b> <b>Nadie ha decidido esto: no lo decidas tú.</b></span></div>
+          <div class="warn-inline"><span class="ico">⚠</span> <span><b>No está verificado que estas tarjetas sean <i>high endurance</i></b> (las de vigilancia, que aguantan la reescritura continua). <b>Anota la marca y el modelo impresos en la tarjeta.</b> Con grabación por evento importa mucho menos que si acaba siendo continua. <b>Y la hora que la cámara escriba encima del vídeo también se va</b>, por lo mismo de arriba: sirve para encontrar el clip, no como hora legal.</span></div>
+        </div>
+      </li>
+
+      <li class="step" data-step="9">
+        <button class="check" aria-label="Marcar paso 10 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="step-body">
+          <div class="step-head">
+            <span class="step-num">10</span>
             <h3 class="step-title">Verificación con Multímetro en el Relé</h3>
           </div>
           <p>Multímetro en continuidad (modo pito) sobre los bornes <span class="field mono">1A</span> y <span class="field mono">1B</span> de la cámara (sin conectar a la tarjeta aún):</p>
@@ -1019,11 +1047,11 @@
         </div>
       </li>
 
-      <li class="step" data-step="9">
-        <button class="check" aria-label="Marcar paso 10 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <li class="step" data-step="10">
+        <button class="check" aria-label="Marcar paso 11 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <div class="step-body">
           <div class="step-head">
-            <span class="step-num">10</span>
+            <span class="step-num">11</span>
             <h3 class="step-title">Cableado a la Bornera J16</h3>
           </div>
           <div class="warn-inline stop"><span class="ico">🛑</span> <span>Antes del primer hilo: <b>J16 Pin 1 tapado</b> y <b>programa nuevo confirmado</b> en esta tarjeta (recuadro NO NEGOCIABLE).</span></div>
@@ -1036,11 +1064,11 @@
         </div>
       </li>
 
-      <li class="step nuevo" data-step="10">
-        <button class="check" aria-label="Marcar paso 11 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <li class="step nuevo" data-step="11">
+        <button class="check" aria-label="Marcar paso 12 como hecho"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <div class="step-body">
           <div class="step-head">
-            <span class="step-num">11</span>
+            <span class="step-num">12</span>
             <h3 class="step-title">Comprobar ESTA cámara en su borne</h3>
             <span class="step-tag cambia">Nuevo</span>
           </div>
@@ -1072,6 +1100,8 @@
           <div class="ref-row"><dt>Salida Relé</dt><dd>ALARM OUT 1A/1B</dd></div>
           <div class="ref-row"><dt>Retardo</dt><dd>El más corto · nunca Manual</dd></div>
           <div class="ref-row"><dt>Horario</dt><dd>24 h × 7 días</dd></div>
+          <div class="ref-row"><dt>microSD</dt><dd>Formateada en la cámara · Estado <span class="mono">Normal</span></dd></div>
+          <div class="ref-row"><dt>Grabación</dt><dd><span class="mono">Trigger Recording</span> + <span class="mono">Event</span> · 24 h × 7</dd></div>
         </dl>
       </div>
 
@@ -1148,11 +1178,12 @@
       <li><b>Las dos cámaras igual:</b> <code>botones.cpp</code>, <code>CAM_J16[2] = {CAM_C_PIN, CAM_D_PIN}</code> recorrido por el mismo bucle en <code>camaras_actualizar()</code> (<code>demanda_solicitar()</code> + vigilante), idéntico en las dos puntas.</li>
       <li><b>La demanda solo actúa en Inteligente, y solo alarga:</b> <code>demanda_hayLocal()</code> y <code>camara_presenciaJ16()</code> solo tienen lector en <code>modo_inteligente.cpp</code>; <code>CMD_DEMANDA</code> del Esclavo solo se atiende en <code>MODO_INTELIGENTE</code> (<code>coordinador.cpp</code>); por debajo de <code>sueloMs</code> no cambia nada y el techo es <code>sueloMin * TECHO_POR_SUELO</code>.</li>
       <li><b>App y segunda cámara:</b> <code>camara_estado()</code> salta el pin sin flanco (<code>camHuboFlanco</code>); <code>vigilante_tick()</code> tampoco lo vigila. La app pinta <code>CAM:</code> del poste conectado (<code>pintarCamaras()</code>, textos «SIN COMPROBAR» / «OK — las dos ven…»).</li>
-      <li><b>Configuración de la cámara:</b> <code>DECISIONES.md</code> <code>D-13</code> (zona = barrido de la pluma, <s>sin filtro de objetivo,</s> umbral mínimo, sensibilidad alta, <code>Delay</code> mínimo, los dos <code>Arming Schedule</code> 24×7, salida solo en esta regla) y <code>D-25</code> (4 cámaras, conexiones definitivas). Manual 9 §4 Paso 0, Paso 4 y §4.bis.2 / §4.bis.7. <s>⚠️ <b>Conflicto abierto, sin resolver aquí:</b> el Manual 9 §4 Paso 3 dice «Vehículo, Humano no, 1 s, 50», y <code>D-13</code> dice sin filtro de objetivo, umbral mínimo y sensibilidad alta; esta guía sigue <code>D-13</code>, que es la tabla vinculante, y el instalador pone lo que le diga el responsable (paso 07).</s> — <i>(D-27, 11/09)</i> <b>Cerrado por <code>D-27</code> punto 3:</b> la configuración es la del manual del modelo (<code>04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md</code> §4), y <code>D-27</code> deroga el «sin filtro de objetivo» de <code>D-13</code>: <b>objetivo ☑ Vehículo · ☐ Humano, si la casilla existe</b>; si no existe, se anota, se avisa y se sube el mínimo del <code>Size Filter</code> (§4 Paso 2, punto 5). Ese manual <b>no fija</b> <code>Threshold</code>, <code>Sensitivity</code> ni el horario de la salida, así que se quedan los de <code>D-13</code> (mínimo, alta, 24×7); y <code>D-27</code> <b>no deroga la zona</b>: sigue el barrido de la pluma de <code>D-13</code>. El «1 s» y el «50» del Manual 9 se retiraron por no tener fuente; tabla valor a valor en el Manual 9 §4 Paso 3. Que una moto cuente como «vehículo»: <code>SIN VERIFICAR</code>. El filtro no quita protección —ninguna cámara la da: <code>escribirPines()</code> no lee ninguna—, pero el contador de la fase 1 (<code>camara_vetosPluma()</code>) deja de contar personas bajo la pluma (<code>roadmap.md</code> §0, fila 2.1.bis b). Los pasos 09 y 11 prueban por eso con un vehículo.</li>
+      <li><b>Configuración de la cámara:</b> <code>DECISIONES.md</code> <code>D-13</code> (zona = barrido de la pluma, <s>sin filtro de objetivo,</s> umbral mínimo, sensibilidad alta, <code>Delay</code> mínimo, los dos <code>Arming Schedule</code> 24×7, salida solo en esta regla) y <code>D-25</code> (4 cámaras, conexiones definitivas). Manual 9 §4 Paso 0, Paso 4 y §4.bis.2 / §4.bis.7. <s>⚠️ <b>Conflicto abierto, sin resolver aquí:</b> el Manual 9 §4 Paso 3 dice «Vehículo, Humano no, 1 s, 50», y <code>D-13</code> dice sin filtro de objetivo, umbral mínimo y sensibilidad alta; esta guía sigue <code>D-13</code>, que es la tabla vinculante, y el instalador pone lo que le diga el responsable (paso 07).</s> — <i>(D-27, 11/09)</i> <b>Cerrado por <code>D-27</code> punto 3:</b> la configuración es la del manual del modelo (<code>04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md</code> §4), y <code>D-27</code> deroga el «sin filtro de objetivo» de <code>D-13</code>: <b>objetivo ☑ Vehículo · ☐ Humano, si la casilla existe</b>; si no existe, se anota, se avisa y se sube el mínimo del <code>Size Filter</code> (§4 Paso 2, punto 5). Ese manual <b>no fija</b> <code>Threshold</code>, <code>Sensitivity</code> ni el horario de la salida, así que se quedan los de <code>D-13</code> (mínimo, alta, 24×7); y <code>D-27</code> <b>no deroga la zona</b>: sigue el barrido de la pluma de <code>D-13</code>. El «1 s» y el «50» del Manual 9 se retiraron por no tener fuente; tabla valor a valor en el Manual 9 §4 Paso 3. Que una moto cuente como «vehículo»: <code>SIN VERIFICAR</code>. El filtro no quita protección —ninguna cámara la da: <code>escribirPines()</code> no lee ninguna—, pero el contador de la fase 1 (<code>camara_vetosPluma()</code>) deja de contar personas bajo la pluma (<code>roadmap.md</code> §0, fila 2.1.bis b). Los pasos 10 y 12 prueban por eso con un vehículo.</li>
       <li><b>Programa antes que hilo:</b> <code>CLAUDE.md</code> §3; <code>ARQUITECTURA.map</code> §7.7 (con un binario anterior a <code>deeeab4</code>, <code>PB14</code> es <code>botonAceptar()</code> y <code>PB15</code> es <code>botonCancelar()</code>: <code>git show e303485:01_Firmware/Maestro/src/botones.cpp</code>, V8.4). La casilla de la app solo existe desde <code>e3a21ec</code>, que desciende de <code>deeeab4</code> (<code>git merge-base --is-ancestor deeeab4 e3a21ec</code>): sirve para PARAR, no como permiso.</li>
       <li><b>Talanquera en J15</b> (añadido el 11/09 por <code>D-25</code>): netlist del <code>.kicad_pcb</code> — <code>J15</code> p1 <code>/12V</code>, p2 <code>Net-(D29-K)</code> = drenador de <code>Q10</code> IRLZ44N (fuente a <code>GND</code>), <code>D30</code> 1N4148 entre <code>/12V</code> y p2; <code>PB2</code> → <code>U15</code> TLP127 → <code>Q10</code>. Cuándo sube: la misma fórmula de <code>escribirPines()</code> de arriba; el test de lámparas no la sube (<code>!testLedsActivo</code>). La respuesta de la centralita a <code>OPEN</code> y el corte de energía: <b>sin fuente</b> (<code>roadmap.md</code> §3.16, «por gravedad o muelle» ⚪ SIN FUENTE). Se retiran del apartado del 10/09 (<code>fae4b3e</code>): «p2 = GND», «al arrancar queda abajo hasta el primer verde» (falso: <code>C_MENU_IDLE</code> sin comunicación → <code>S_FALLO</code>) y «todo-rojo 15 s» (el despeje sale de la configuración).</li>
       <li><b>J14:</b> <s><code>A-2</code> lo reserva al fin de carrera; … <b>Conflicto abierto</b>, del responsable; esta guía no lo resuelve: solo dice que no se conecte nada ahí sin preguntar.</s> → <b>LIBRE, sin cablear (<code>D-27</code>, 11/09)</b>: el fin de carrera no se instala en este despliegue, y eso cierra el conflicto con <code>A-2</code> sin tocar el firmware. El firmware sigue leyendo <code>PB0</code> como <code>CAM_DEMANDA_PIN</code> (Maestro por nivel en <code>modoInteligente_loop()</code>; Esclavo por flanco en <code>main.cpp</code> → <code>demanda_solicitar()</code>), así que <b>mientras lo lea, en J14 no se conecta nada</b>; vacío, <code>R64</code> (10 kΩ a masa) lo deja en 0 V — J14 medido en banco el 03-04/09, pasos 17-18.</li>
-      <li><b>Pendiente de firmware, no de esta guía:</b> la exención del vigilante para una cámara sin flanco se escribió porque <code>p12</code> iba vacío (<code>D-13</code>, derogado en eso por <code>D-25</code>); hasta que se rehaga, la segunda cámara muerta desde la instalación no la detecta el equipo, y por eso existe el paso 11.</li>
+      <li><b>Pendiente de firmware, no de esta guía:</b> la exención del vigilante para una cámara sin flanco se escribió porque <code>p12</code> iba vacío (<code>D-13</code>, derogado en eso por <code>D-25</code>); hasta que se rehaga, la segunda cámara muerta desde la instalación no la detecta el equipo, y por eso existe el paso 12.</li>
+      <li>🆕 <b>microSD (paso 09, nuevo el 12/09):</b> las cuatro tarjetas de <b>64 GB</b> están compradas (el responsable, 12/09) y <b>ninguna versión de esta guía las nombraba</b>: un instalador que la siguiera al pie de la letra dejaba las cuatro vacías. Las dos casillas y el formateo salen del <b>manual del modelo</b>, <code>UD28967B-C Network Camera User Manual 5.7.20</code>: formatear en <i>Storage → Storage Management → HDD Management</i> hasta que el estado pase de <code>Uninitialized</code> a <code>Normal</code> (<b>impresa 32</b>); tipo <code>Event</code> en <i>Storage → Schedule Settings → Record Schedule</i> y su requisito previo <i>«select Trigger Recording in event settings for each record type except Continuous»</i> (<b>impresa 36</b>); <code>Trigger Recording</code> como método de vinculación (<b>impresa 70</b>). El <b>24×7</b> de la programación de grabación es el mismo argumento de <code>A-8</code>: sin red no hay NTP (<code>D-12</code>) y el reloj de la cámara deriva. <b>Siguen SIN decidir (<code>A-0</code>): días de retención y continua-o-por-evento</b>, y <b>sin verificar</b> si las tarjetas son <i>high endurance</i>; por eso el paso manda anotar, no elegir.</li>
     </ul>
   </details>
 
@@ -1165,9 +1196,13 @@
 
 <script>
 (function(){
-  var STEP_COUNT = 11;
+  var STEP_COUNT = 12;
   // Clave nueva a proposito: el progreso marcado con la guia del 10/09 no vale para esta.
-  var STORAGE_KEY = 'sisga-4cam-progress-corregida-11-09';
+  // 12/09: entra el paso 09 (microSD) y los tres ultimos corren un sitio. Si se reutilizara
+  // la clave anterior, las casillas guardadas quedarian una posicion por debajo -el
+  // instalador veria marcado el paso de la microSD que nadie hizo-, asi que la clave cambia
+  // otra vez y el progreso arranca de cero a proposito.
+  var STORAGE_KEY = 'sisga-4cam-progress-corregida-12-09';
 
   // Configuracion de las 4 camaras. El cableado es LITERAL de la version del 10/09
   // (86683e8), revisado con el responsable; no se toca.

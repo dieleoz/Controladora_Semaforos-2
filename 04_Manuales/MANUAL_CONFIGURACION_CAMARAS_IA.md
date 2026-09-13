@@ -556,7 +556,7 @@ por **`RS485_OUT`**:
 
 ---
 
-## 4. Parametrización de la Cámara en 3 Pasos
+## 4. Parametrización de la Cámara en ~~3~~ **4 Pasos**
 
 Sin Internet, sin routers y sin software de monitoreo. Se hace **una vez en taller** y queda:
 
@@ -569,6 +569,7 @@ Sin Internet, sin routers y sin software de monitoreo. Se hace **una vez en tall
 │    BARRIDO DE LA PLUMA (D-13; ver el aviso de abajo)                   │
 │ 2. Dibujar la zona ~~/ linea~~ de deteccion (Filtro: solo Vehiculo)    │
 │ 3. Salida de Alarma: modo N/O ~~a 1 s~~ al MINIMO de la lista (Paso 3) │
+│ 4. microSD: formatear en la camara y grabacion por EVENTO (Paso 4)     │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -746,10 +747,78 @@ Sin Internet, sin routers y sin software de monitoreo. Se hace **una vez en tall
      inventada por nosotros (`A-7`). **Anote el valor real que aparezca**, que es el dato que falta.
 2. En la pestaña del evento inteligente, **Método de Vinculación** (*Linkage Method*):
    * ☑ **Disparar Salida de Alarma 1**.
+   * ☑ **Grabación activada** (*Trigger Recording*) — 🆕 **12/09.** Es lo que hace que **este** evento
+     se grabe en la microSD de la cámara. **El «un único significado» del punto 3 es de la salida de
+     alarma, no de esta casilla.** Sin ella la tarjeta se queda vacía aunque la programación de
+     grabación esté puesta: **ver el Paso 4**.
 3. **Desarmar los eventos básicos:** en *Detección de Movimiento básica*, *Sabotaje de Vídeo* y
    *Excepción*, dejar **desmarcada** la casilla «Disparar Salida de Alarma».
    *(Una salida = un único significado: «hay vehículo».)*
 4. **Guardar**.
+
+### Paso 4: La microSD — formatearla EN LA CÁMARA y dejar la grabación puesta
+
+> ## 🔴 12/09 — ESTE PASO NO EXISTÍA, Y SIN ÉL LAS CUATRO TARJETAS SE QUEDAN VACÍAS
+>
+> Las cuatro microSD de **64 GB** están **compradas y en mano** (el responsable, 12/09: *«ya están
+> compradas con sd de 64 gb son 4 ya»*), y **ni este manual ni la guía de campo las nombraban**. Un
+> instalador que siguiera el procedimiento al pie de la letra dejaba **las cuatro sin grabar nada**.
+>
+> **Son DOS casillas y hacen falta las DOS. Con una sola no hay vídeo** — el manual del modelo lo
+> pone como requisito previo de la programación de grabación: *«Before You Start: select Trigger
+> Recording in event settings for each record type except Continuous»* (`UD28967B-C` v5.7.20,
+> **impresa 36**). Y **antes de las dos, la tarjeta hay que formatearla desde la propia cámara**
+> (**impresa 32**).
+>
+> 🛑 **Nada de este paso toca una línea de firmware ni hace que una cámara proteja la pluma.** Lo
+> único que da es **soporte de accidentes y auditoría**: el controlador **no ve imagen** (`D-12`) y
+> las imágenes viven en la cámara.
+
+1. **La tarjeta, dentro.** Si la cámara no lleva su microSD puesta, se pone antes de nada; el montaje
+   de la ranura está en la guía rápida del fabricante (`UD40284B ... Quick Start Guide`, en esta
+   misma carpeta). Sin tarjeta, los menús de abajo no hacen nada.
+2. **Formatear (inicializar) la tarjeta EN LA CÁMARA:** `Configuration` → `Storage` →
+   `Storage Management` → `HDD Management`. Seleccionar la tarjeta y pulsar **`Format`**.
+   * **El estado tiene que pasar de `Uninitialized` a `Normal`** (**impresa 32**). Si se queda en
+     cualquier otra cosa: **se anota y se para**.
+3. **La casilla del evento**, que es la del **Paso 3, punto 2**: ☑ **`Trigger Recording`**
+   (*Grabación activada*) en la regla de intrusión. Está en la lista cerrada de vinculaciones de la
+   ficha del modelo (**pág. 4**) — al contrario que `Trigger Alarm Output`, que no está — y el manual
+   la documenta en **impresa 70**: *«Check Trigger Recording, and the device records the video about
+   the detected alarm event»*.
+4. **Programación de grabación:** `Configuration` → `Storage` → `Schedule Settings` →
+   `Record Schedule`.
+   * ☑ `Enable`.
+   * Tipo de grabación: **`Event`** — *«The video is recorded when configured event is detected»*
+     (**impresa 36**).
+   * Horario: **24 × 7**, por el mismo argumento que los dos `Arming Schedule` de `A-8`: **la cámara
+     no tiene red**, no puede usar NTP (`D-12`) y su reloj deriva y se pierde en cada corte, así que
+     **cualquier franja distinta de 24 × 7 cuelga de un reloj que se va**.
+   * Guardar.
+5. **La comprobación, y es lo único que demuestra que las dos casillas quedaron puestas:** provocar
+   una detección con un vehículo y buscar el clip del día en **`Playback`**. **Se anota si aparece o
+   no.** Si no hay clip, o falta una de las dos casillas o la analítica no ha disparado.
+
+> ## 🕳 LO QUE ESTE PASO **NO** RELLENA, PORQUE NO ESTÁ DECIDIDO (`A-0`)
+>
+> **Días de retención y continua-o-por-evento siguen siendo decisión del responsable.** Este paso deja
+> la grabación **por evento** porque es lo que la regla de intrusión ya activa y lo único que el
+> manual documenta para ella; **si se decide continua, cambia el tipo del `Record Schedule`** — y
+> entonces que las tarjetas sean o no `high endurance` deja de ser un detalle.
+>
+> En la pantalla `Advanced` de la programación quedan `Overwrite`, `Pre-record`, `Post-record` y
+> `Recording Expiration`: **no se tocan, se ANOTA con qué valores venían.** Son retención, y la
+> retención no se decide en el poste. ⚠️ **Lo único que el manual advierte y que conviene decidir
+> pronto: sin `Overwrite`, cuando la tarjeta se llena la cámara DEJA DE GRABAR.**
+>
+> ⚠️ **SIN VERIFICAR si las tarjetas compradas son `high endurance`** (las de vigilancia, que aguantan
+> la reescritura en bucle). Se anota marca y modelo de lo que llegó.
+> ⚠️ **La capacidad máxima del modelo tiene DOS fuentes que no coinciden** —la ficha oficial del
+> 03/03/2023 dice `512 GB`; una recopilación `.docx` que **no es del fabricante** dice `256 GB`—. Con
+> tarjetas de 64 GB no interviene, y se deja escrito para que nadie lo cierre citando el `.docx`.
+>
+> ⚠️ **Y la hora que la cámara estampa sobre el vídeo se va por lo mismo que el horario** (`A-8`):
+> sirve para encontrar el clip, **no como hora legal**.
 
 > 💡 **Operación Autónoma:** se desconecta la laptop. La cámara opera de forma continua con la
 > batería del semáforo. No queda ningún PC en obra.
