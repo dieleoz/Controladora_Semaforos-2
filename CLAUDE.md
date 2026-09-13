@@ -383,6 +383,18 @@ reescribirlos en cada vuelta es donde se va el tiempo — y donde se deja de hac
 > no cambia, y aqui cambia. Esto NO deroga que una decision no esta puesta hasta que llega al manual (§11.1): dice
 > **cuando** se hace ese viaje, no si se hace.
 
+> 🔴 **REGLA DEL RESPONSABLE (12/09): LOS MANUALES NO SE TOCAN HASTA QUE TODO ESTE CERTIFICADO.**
+> Ni se escriben, ni se actualizan, ni se barren. **UNICA EXCEPCION: los `.html` de campo** —la guia
+> de camaras y la de cableado—, **que son los que llegan al poste y se corrigen siempre**, porque un
+> instalador los sigue manana con un destornillador en la mano.
+>
+> **El motivo, medido: 17.000 lineas en seis manuales** (`1_`, `2_`, `3_`, `9_`, `14_`, `18_`)
+> **describiendo un sistema que ha cambiado cuatro veces desde que se escribieron.** Reescribirlos
+> antes de que el sujeto este quieto es tirar el trabajo dos veces: una al escribirlo y otra al
+> descubrir que ya no aplica. **Certificado quiere decir: banco pasado y tarjeta cargada** (§0.2),
+> no compuerta verde (§0.3).
+
+
 ## 16. Limpiar es parte del trabajo, y se MIDE
 
 > **Este repositorio no se degrada por lo que se escribe mal: se degrada por lo que se anade y nadie
