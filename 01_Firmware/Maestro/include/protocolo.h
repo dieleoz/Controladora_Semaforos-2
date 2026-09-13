@@ -294,7 +294,7 @@
 // puede esperar: bloquear el bucle por una radio de 2.4 kbps es peor".
 //
 // Y LA ALARMA DICE "NO HE PODIDO CONFIRMARLO", NUNCA "el otro poste no se entero": con
-// un reintento de por medio, una trama perdida se ve IGUAL que un transmisor roto, y
+// los reintentos de por medio, una trama perdida se ve IGUAL que un transmisor roto, y
 // afirmar la causa seria inventarsela. Lo que el tecnico puede actuar es lo primero.
 #define CMD_ACK_AVISO_AMBAR  0x16
 
@@ -310,26 +310,27 @@
 // -"Maestro","src","coordinador.cpp"- y mudarlo los rompe en silencio (CLAUDE.md 5).
 #define AVISO_AMBAR_TIMEOUT_MS  3500UL
 
-// Reintentos del aviso: UNO, Y ESTA ELEGIDO, NO DERIVADO.
+// Reintentos del aviso: TRES, Y LO ELIGE EL RESPONSABLE. NO SE DERIVA DE NADA.
 //
-// [CORREGIDO EL 12/09. Aqui ponia "EL NUMERO ESTA DERIVADO, NO ELEGIDO" y era falso.]
+// D-32 (3), 13/09: "mas reintentos, 14 o mas". El eje de la decision es EL RELOJ DE
+// PARED -lo que tarda esta punta en declarar que la otra no contesta, o sea
+// (1 + AVISO_AMBAR_REINTENTOS) x AVISO_AMBAR_TIMEOUT_MS: 14 s con 3, donde antes eran
+// 7 s con 1-, y lo que compra son MENOS FALSAS ALARMAS a 8 km. La parte medida que lo
+// sostiene: la distancia NO alarga el viaje -la senal tarda 27 us mas- pero SI sube la
+// probabilidad de PERDER la trama, y contra una perdida sirve REPETIR, no esperar. El
+// responsable acepta esa lentitud a cambio. Es su equilibrio, no el de este fichero.
 //
-// Lo cierto y lo falso, separado, porque la parte cierta es la que importa:
-//   CIERTO  - la distancia NO alarga el viaje -a 8 km la senal tarda 27 us mas- pero SI
-//             sube la probabilidad de PERDER la trama, y contra una perdida sirve
-//             REPETIR, no esperar. Por eso hay reintento.
-//   FALSO   - que el presupuesto de radio acote cuantas veces. NO lo acota: los dos
-//             static_assert de coordinador.cpp cobran el coste unitario de un modelo
-//             -la espera entera- con el recuento del contrario -solo los reintentos, sin
-//             el intento inicial-. Bajo el modelo que el firmware IMPLEMENTA -las esperas
-//             corren en paralelo y solo se serializa el cable- caben decenas; bajo el
-//             modelo serie completo no cabe ninguno. El 1 sale de mezclarlos.
+// [12/09, Y SE DEJA ESCRITO PORQUE ES EL ERROR CARO: aqui ponia "EL NUMERO ESTA
+//  DERIVADO, NO ELEGIDO" y era falso. El presupuesto de radio NO acota cuantas veces se
+//  repite -los dos static_assert que lo decian mezclaban el coste unitario de un modelo
+//  con el recuento del contrario-, y un numero elegido y llamado derivado bloquea la
+//  pregunta. Ahora esta elegido y ademas DICHO: quien lo eligio, cuando y contra que.]
 //
-// LA RESTRICCION DE VERDAD ES EL RELOJ DE PARED, no el aire: lo que tarda esta punta en
-// declarar que la otra no contesta, hoy (1+1) x AVISO_AMBAR_TIMEOUT_MS. Subirlo da menos
-// falsas alarmas y una alarma verdadera mas lenta. Ese equilibrio es del responsable
-// (D-31, correccion del 12/09; roadmap 1.31), y MIENTRAS NO LO DIGA EL 1 SE QUEDA.
-#define AVISO_AMBAR_REINTENTOS  1
+// LO QUE EL AIRE SI ACOTA, y eso no es un comentario sino una guarda: que los
+// (1 + AVISO_AMBAR_REINTENTOS) intentos quepan en el presupuesto que el ciclo deja
+// libre. Lo mide un static_assert en coordinador.cpp -el unico sitio donde se ven a la
+// vez las dos cuentas-, y alli esta escrito el borde y por que es ese.
+#define AVISO_AMBAR_REINTENTOS  3
 
 // N-130: EL PARAM DE CMD_ACK_DEMANDA DICE SI LA DEMANDA SE VA A ATENDER O NO.
 //

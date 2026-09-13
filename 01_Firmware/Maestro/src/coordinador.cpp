@@ -196,36 +196,33 @@ const unsigned long LATIDO_MS = 3000;
 // numero estaba repetido como literal en los dos estados de espera de ACK.
 const uint8_t CICLO_MAX_REINTENTOS = 5;
 
-// D-31 (3), 12/09: DE DONDE SALE AVISO_AMBAR_REINTENTOS. NO SE ELIGE: SE DERIVA AQUI.
+// D-31 (3) + D-32 (3), 13/09: DE DONDE SALE AVISO_AMBAR_REINTENTOS. NO SE DERIVA: LO
+// ELIGE EL RESPONSABLE. AQUI SOLO SE COMPRUEBA QUE CABE.
 //
-// EL BORDE CONTRA EL QUE SE MIDE, ESCRITO AL LADO (CLAUDE.md 7): es el MISMO que
-// recalcula costura_09_presupuesto_radio en cada corrida -el techo de orfandad
-// SFTY6_SILENCIO_MS menos el peor caso del ciclo, que es la cadencia del latido mas los
-// reintentos, cada uno con su tiempo de cable-. Hoy: 25,0 s - (3,0 + 5 x 3,56) = 4,2 s
-// libres. [RETIRADO 12/09: "y una espera del aviso cuesta 3,56 s. Cabe UNA. Dos no."]
+// SE ESCRIBE ENTERO PORQUE CORRIGE UN DEFECTO DE ESTE MISMO FICHERO: hasta el 12/09 este
+// parrafo y los dos static_assert de abajo afirmaban que el numero salia de una cuenta, y
+// era falso. Cobraban el coste unitario del modelo SERIE -la espera entera, 3.560 ms- con
+// el recuento del modelo PARALELO -solo los reintentos, sin el intento inicial-, y de ese
+// hibrido salia el 1. Ningun modelo coherente daba 1: el paralelo daba decenas y el serie
+// daba 0, que anula D-31 entera. Un numero elegido y llamado derivado bloquea la
+// pregunta, porque desde ahi ya nadie mira la causa (CLAUDE.md 8.2).
 //
-// ESA ULTIMA FRASE ERA FALSA Y SE RETIRA EL 12/09, MEDIDA. NO CAMBIA NADA DEL
-// COMPORTAMIENTO -el techo de 25 s aguanta y SFTY-6 no se rompe-, cambia lo que este
-// fichero AFIRMA, que es peor: un numero elegido y llamado derivado bloquea la pregunta.
+// EL MODELO QUE SE QUEDA ES EL PARALELO, Y NO POR ELEGANTE: ES EL QUE EL FIRMWARE
+// IMPLEMENTA. Medido el 13/09 en Esclavo/src/bluetooth.cpp, que es quien manda el aviso:
+// la rama del ambar de emergencia enciende la luz, hace UN protocolo_enviarPaquete() y
+// contesta al telefono en la misma vuelta -no espera a nadie-; el reenvio es un if sobre
+// un reloj que ya corre dentro de bluetooth_loop(), no suprime el latido y no encola
+// nada. protocolo_enviarPaquete() solo se detiene el tiempo de CABLE de su rafaga. O sea
+// que las esperas del aviso NO le quitan aire a nadie: lo unico que no puede correr en
+// paralelo en un medio duplex es el cable.
 //
-// La incoherencia esta AQUI MISMO, entre este parrafo y los static_assert de abajo: el
-// parrafo dice -con razon- que las esperas del aviso corren EN PARALELO a las del ciclo y
-// que lo unico que se serializa en el aire es 2 x ENVIO_TRAMA_MS, o sea 120 ms. Y los
-// static_assert cobran 3.560 ms por reintento. Los dos no pueden ser ciertos:
-//   - con el modelo de este parrafo -solo cable-, en 4.200 ms caben ~34 reintentos;
-//   - con el modelo serie completo hay que cobrar TAMBIEN el intento inicial, y entonces
-//     no cabe ninguno: AVISO_AMBAR_REINTENTOS tendria que ser 0, que anula D-31 entera.
-// El 1 sale de mezclar el coste unitario de uno con el recuento del otro. Por eso "con 2
-// no compila y con 0 tampoco" no demuestra que este derivado: las dos mitades salen del
-// mismo hibrido.
-//
-// LA RESTRICCION DE VERDAD NO ES EL AIRE, ES EL RELOJ DE PARED: lo que tarda el poste 2
-// en declarar que el otro no contesta, hoy (1+1) x 3,5 s = 7 s. Con 2 reintentos serian
-// 10,5 s; con 3, 14 s. A 8 km y en un cruce MOVIL lo que sube es la PERDIDA, asi que mas
-// reintentos = menos falsas alarmas a cambio de que la verdadera tarde mas en salir. Ese
-// equilibrio es del responsable (D-31, correccion del 12/09), no de este fichero.
-// MIENTRAS NO LO DIGA, EL 1 SE QUEDA: esta construido y funcionando. Lo que se retira es
-// la afirmacion de que lo deriva una cuenta.
+// QUIEN ELIGE EL NUMERO Y CONTRA QUE: el responsable, D-32 (3) del 13/09 -"mas
+// reintentos, 14 o mas"-, y el eje es el RELOJ DE PARED, no el aire. Lo que tarda el
+// poste 2 en declarar que el otro no contesta es (1 + AVISO_AMBAR_REINTENTOS) x
+// AVISO_AMBAR_TIMEOUT_MS: 14 s con 3, donde antes eran 7 s con 1. A 8 km y en un cruce
+// MOVIL lo que sube es la PERDIDA de tramas, no la latencia -la senal tarda 27 us mas-,
+// y contra una perdida sirve REPETIR: se paga que la alarma verdadera tarde mas a cambio
+// de menos falsas alarmas. Ese equilibrio es suyo y no se re-deriva aqui.
 //
 // POR QUE ESE BORDE Y NO EL DEL static_assert DE N-163 DE MAS ABAJO, que es la pregunta
 // que hay que contestar antes de creerse esta cuenta: aquel suma un TIMEOUT_ACK_MS extra
@@ -252,28 +249,37 @@ static_assert(AVISO_AMBAR_TIMEOUT_MS == TIMEOUT_ACK_MS,
               "el plazo del acuse del aviso de ambar dejo de ser TIMEOUT_ACK_MS: son dos "
               "copias del mismo numero y una se movio sin la otra");
 
-// LO QUE ESTAS DOS GUARDAS SON, CORREGIDO EL 12/09 (D-31, y el parrafo largo de arriba):
-// NO son una derivacion, aunque asi se escribieron. Cobran el coste unitario del modelo
-// SERIE -la espera entera, 3.560 ms- con el recuento del modelo PARALELO -solo los
-// reintentos, sin el intento inicial-, y de esa mezcla sale el 1. Ningun modelo coherente
-// da 1: el paralelo da ~34 y el serie da 0.
+// LA UNICA GUARDA QUE QUEDA, Y LO QUE DICE EXACTAMENTE: que el AIRE que ocupan los
+// (1 + AVISO_AMBAR_REINTENTOS) intentos del aviso cabe en lo que el ciclo deja libre.
 //
-// SE QUEDAN TAL CUAL, y a proposito: sujetan el numero que HOY esta construido y en main,
-// y aflojarlas no arregla nada. Lo que se corrige es lo que DICEN. La eleccion del modelo
-// -y con ella si AVISO_AMBAR_REINTENTOS sigue en 1, sube a 2 o 3- es del responsable,
-// porque lo que cambia es cuanto tarda el poste 2 en avisar de que el otro no contesta:
-// 7 s hoy, 10,5 s con 2, 14 s con 3. Va en roadmap 1.31 con los ficheros contados.
-static_assert(AVISO_AMBAR_REINTENTOS * (AVISO_AMBAR_TIMEOUT_MS + ENVIO_TRAMA_MS)
-                  <= PRESUPUESTO_LIBRE_MS,
-              "los reintentos del aviso de ambar (D-31) no caben en lo que queda del "
-              "presupuesto de radio bajo SFTY6_SILENCIO_MS: el diseno vuelve al "
-              "responsable, no se recorta el techo");
-static_assert((AVISO_AMBAR_REINTENTOS + 1) * (AVISO_AMBAR_TIMEOUT_MS + ENVIO_TRAMA_MS)
-                  > PRESUPUESTO_LIBRE_MS,
-              "cabe UN reintento mas del que declara AVISO_AMBAR_REINTENTOS bajo el modelo "
-              "hibrido con el que se escribio esta guarda. OJO: eso NO demuestra que el "
-              "numero este derivado -ver el parrafo de arriba-, y subirlo es decision del "
-              "responsable, no de quien tropiece con este mensaje");
+// YA NO HAY UNA SEGUNDA QUE DIGA "Y UNO MAS NO CABRIA", y su ausencia es la mitad del
+// arreglo: aquella existia para fingir que el numero se derivaba del aire. No se deriva
+// -lo fija el responsable por el reloj de pared, arriba-, asi que una guarda que lo
+// clave por arriba solo puede mentir sobre quien manda.
+//
+// EL BORDE, ESCRITO AL LADO, Y POR QUE ES EL CORRECTO (CLAUDE.md 7):
+//   el borde  PRESUPUESTO_LIBRE_MS, o sea el techo de orfandad SFTY6_SILENCIO_MS menos el
+//             peor caso del ciclo -la cadencia del latido mas sus reintentos, cada uno con
+//             su tiempo de cable-. Es el MISMO que recalcula costura_09_presupuesto_radio
+//             en cada corrida, y es el que el responsable tuvo delante al decidir. El otro
+//             borde de este fichero -el de N-163, mas abajo- NO sirve aqui, y por que no
+//             esta cuatro parrafos mas arriba.
+//   el coste  2 x ENVIO_TRAMA_MS por intento, y solo eso: la ida del CMD_AMBAR_ESCLAVO y
+//             la vuelta del CMD_ACK_AVISO_AMBAR. Las ESPERAS no se cobran porque corren en
+//             paralelo -el aviso no bloquea, medido arriba en bluetooth.cpp-; el cable si,
+//             porque el medio es semiduplex y ahi nadie mas puede hablar.
+//   el conteo (1 + AVISO_AMBAR_REINTENTOS), con el intento INICIAL dentro: tambien ocupa
+//             aire. Contar solo los reintentos fue la otra mitad del defecto del 12/09, y
+//             ademas dejaba a este fichero contando distinto que el arnes de las dos
+//             puntas, que ya cuenta 1 + N (dos_puntas/orquestador.cpp).
+//   hoy       (1 + 3) x 2 x 60 ms = 480 ms contra 4.200 ms libres. Cabe de sobra, y esa
+//             holgura ES la razon por la que el aire no es lo que acota este numero.
+// Si alguien sube los reintentos del aviso, el latido o los del ciclo hasta que no quepa,
+// esto NO COMPILA y el diseno vuelve al responsable: no se recorta el techo.
+static_assert((AVISO_AMBAR_REINTENTOS + 1) * (2 * ENVIO_TRAMA_MS) <= PRESUPUESTO_LIBRE_MS,
+              "el AIRE de los (1 + AVISO_AMBAR_REINTENTOS) intentos del aviso de ambar "
+              "(D-31, D-32) no cabe en PRESUPUESTO_LIBRE_MS: el diseno vuelve al "
+              "responsable, no se recorta SFTY6_SILENCIO_MS");
 
 // N-163 (12/09): EL VERDE PROPIO SE SUELTA UN MARGEN ANTES QUE EL SILENCIO, PORQUE LAS
 // DOS PUNTAS CUENTAN EL MISMO SILENCIO DESDE INSTANTES DISTINTOS.

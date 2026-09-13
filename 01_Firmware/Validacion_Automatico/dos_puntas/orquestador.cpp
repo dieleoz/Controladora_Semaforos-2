@@ -136,7 +136,7 @@ static unsigned long SFTY6_SILENCIO_MS_V;
 static unsigned long TIMEOUT_ACK_MS_V;
 static unsigned long CICLO_MAX_REINTENTOS_V;
 // D-31: el plazo del acuse del aviso de ambar y sus reintentos, leidos de protocolo.h. El
-// bloque H4 tiene que dejar correr el intento Y su reintento antes de exigir la alarma:
+// bloque H4 tiene que dejar correr el intento Y sus reintentos antes de exigir la alarma:
 // con un presupuesto escrito a mano, el dia que el numero cambie el escenario preguntaria
 // antes de tiempo y llamaria defecto a un firmware que estaba esperando.
 static unsigned long AVISO_AMBAR_TIMEOUT_MS_V;
@@ -3108,7 +3108,7 @@ int main() {
       bool ok = yaEnAmbar && tecleaAmbarApp() == 1;
       avanzar(3 * PASO_MS);
       h2Result = resultDelUltimoAcuse();
-      // D-31: se deja correr el plazo ENTERO del acuse mas su reintento -leidos del C++-
+      // D-31: se deja correr el plazo ENTERO del acuse mas sus reintentos -leidos del C++-
       // antes de mirar las alarmas. Preguntar antes seria aprobar por no haber esperado.
       avanzar(AVISO_AMBAR_TIMEOUT_MS_V * (AVISO_AMBAR_REINTENTOS_V + 1) + 5000);
       h2AlarmasDespues = ESCLAVO.orden("alarmas");
@@ -3203,7 +3203,7 @@ int main() {
     // LO QUE SE EXIGE, Y ES LO UNICO QUE CIERRA LA VENTANA: que el equipo lo DIGA. No que
     // el Poste 1 se entere -no puede: el transmisor esta muerto-, ni que el $ACK cambie
     // -sale antes de saberlo, y eso es D-31 (3): el ambar no espera-. Lo que se exige es
-    // que, pasado el plazo y su reintento, salga un $ALARM que diga que NO SE PUDO
+    // que, pasado el plazo y sus reintentos, salga un $ALARM que diga que NO SE PUDO
     // CONFIRMAR. La trama se lee entera y no se cuenta: un contador aprobaria igual con
     // la alarma de radio de siempre, que en este escenario no se emite.
     CorridaG h4;
@@ -3245,11 +3245,12 @@ int main() {
                   h4DiceEvento == 1 && h4DiceCausa == 1 && h4DiceAccion == 1,
               "H4 (D-31, LA QUE CIERRA LA VENTANA): el Maestro NO se entero (" +
               std::to_string(h4Entradas) + " entradas en MODO_AMBAR) y el equipo LO DICE: "
-              "tras el plazo del acuse y su reintento emitio $ALARM EVENTO:" +
+              "tras el plazo del acuse y sus " +
+              std::to_string(AVISO_AMBAR_REINTENTOS_V) + " reintentos emitio $ALARM EVENTO:" +
               ALARMA_AVISO.evento + " CAUSA:" + ALARMA_AVISO.causa + " ACCION:" +
               ALARMA_AVISO.accion + " (" + std::to_string(h4AlarmasAntes) + " -> " +
               std::to_string(h4AlarmasDespues) + " alarmas). Dice que NO PUDO CONFIRMARLO, "
-              "no que el otro poste no se entero: con un reintento de por medio una trama "
+              "no que el otro poste no se entero: con reintentos de por medio una trama "
               "perdida se ve igual que un transmisor roto. La ventana medida -verde del "
               "Maestro frente al ambar del Esclavo- fue de " +
               std::to_string(acumuladoMsG(h4.v)) + " ms, " +
