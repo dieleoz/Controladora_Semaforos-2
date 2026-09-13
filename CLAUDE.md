@@ -76,7 +76,10 @@ sigue siendo el boton que EJECUTA y lo que un instalador enchufe puede pulsarlo 
 **Tres hechos de cobre fabricado, aqui porque su ausencia hiere a una persona:** **`J16` p1 lleva 12 V crudos a un
 conector de senal directa al micro y se TAPA en cada equipo que se monte** (`D-4`, `N-120`) · **`J14` es una ENTRADA
 del micro** (3,3 V, sin opto ni diodo) y **la salida de talanquera es `J15`**: un rele cableado a `J14` **se
-desconecta antes de energizar** · **`J16` p5 y p8 estan VACIOS y el codigo del mando SIGUE leyendo sus flancos**
+desconecta antes de energizar** · **`J16` p5 y p8 estan VACIOS y el firmware SIGUE leyendo sus flancos POR DOS
+CAMINOS, no uno** —medido el 12/09: el mismo `flanco[]` de `botones.cpp` alimenta `mando_registrarPulso()`
+**y** `botonArriba()`/`botonAbajo()`, con llamadores vivos en `menu.cpp` y `modo_hora.cpp` de las dos puntas—,
+asi que **quitar el mando NO cierra ese pin**: hay que censar los dos
 (`A-2`, `D-1`): lo que se cablee ahi compone secuencias sin que nadie lo pida.
 
 **Carga por SWD: `mode=UR` con `-e all`, y no se cambia.** `HOTPLUG` se engancha al micro en marcha, y con un
