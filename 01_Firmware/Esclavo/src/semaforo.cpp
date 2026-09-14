@@ -1,6 +1,8 @@
 // ===== src/semaforo.cpp =====
 #include "semaforo.h"
 #include "pines.h"
+// D-33: la pluma pregunta a las camaras antes de bajar. El porque, en escribirPines().
+#include "botones.h"
 
 static EstadoSemaforo estado = S_ROJO;
 static unsigned long tCambio = 0;
@@ -57,6 +59,46 @@ static const unsigned long TEST_FASE_MS = 2000;
 // decide (SFTY-28).
 static bool plumaAbierta = false;
 
+// --- D-33: LA PLUMA BAJA UNOS SEGUNDOS DESPUES DEL ROJO --------------------
+//
+// TRES SEGUNDOS, ELEGIDOS POR EL RESPONSABLE EL 14/09/2026. No es un numero derivado y
+// no se defiende como tal. El razonamiento completo -el dato que tuvo delante, los dos
+// peligros uno a cada lado, y por que el static_assert es necesario pero NO suficiente-
+// esta en el mismo bloque del semaforo.cpp del Maestro, y no se resume aqui para que no
+// puedan divergir.
+//
+// ESTA PUNTA NO TIENE limites_ciclo.h, Y SE DICE EN VEZ DE INVENTARSE UNA CONSTANTE. El
+// suelo vial del despeje lo FIJA y lo HACE CUMPLIR el Maestro -DESPEJE_SEG_MIN, la
+// guarda de SET_TIEMPOS-; el Esclavo aplica el despeje que le mandan por radio y no
+// tiene voto. Se declara aqui el suelo HEREDADO para poder escribir la misma
+// desigualdad, y quien impide que las dos copias se separen NO es la disciplina: es
+// barrera_03_talanquera, que en cada corrida lee DESPEJE_SEG_MIN del limites_ciclo.h
+// del Maestro y exige que sea este mismo numero (N-71).
+static const unsigned long DESPEJE_MIN_HEREDADO_SEG = 10UL;
+static const unsigned long PLUMA_RETARDO_BAJADA_MS = 3000UL;
+
+// N-71: LA DESIGUALDAD NO SE QUEDA EN EL COMENTARIO DE ARRIBA. Si alguien sube el
+// retardo o baja el suelo vial del despeje, esto no compila.
+static_assert(PLUMA_RETARDO_BAJADA_MS * 2UL <= DESPEJE_MIN_HEREDADO_SEG * 1000UL,
+              "D-33: el retardo de bajada de la pluma se come mas de la MITAD del "
+              "todo-rojo mas corto que el ciclo permite (DESPEJE_SEG_MIN). Con eso la "
+              "pluma puede seguir arriba cuando la otra punta abre su verde, que es "
+              "justo el accidente que el veto viene a evitar");
+
+// EL CIERRE PEDIDO Y TODAVIA NO EJECUTADO. Una sola bandera, y contesta a UNA pregunta:
+// "la luz ya no pide la pluma arriba, pero el pin sigue en ABRIR". Es lo que permite que
+// semaforo_actualizar() vuelva a pasar por la puerta sin recalcular la condicion de
+// SFTY-28 por segunda vez -dos formulas que alguien tendria que mantener iguales es lo
+// que este fichero lleva evitando desde N-153-.
+static bool plumaCierrePendiente = false;
+static unsigned long tPlumaCierrePedido = 0;
+
+// Y ESTA CONTESTA A OTRA, POR ESO SON DOS Y NO UNA (CLAUDE.md 8): "el pin sigue en ABRIR
+// PORQUE UNA CAMARA VE ALGO DEBAJO". La lee botones.cpp para contar los vetos que de
+// verdad actuan; plumaCierrePendiente tambien es cierta durante el retardo, donde no hay
+// veto ninguno, y una sola bandera para las dos preguntas no contestaria bien a ninguna.
+static bool plumaVetada = false;
+
 static void escribirPines(bool rojo, bool amarillo, bool verde) {
   digitalWrite(ROJO1, rojo);
   digitalWrite(ROJO2, rojo);
@@ -68,10 +110,24 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   // SFTY-28: LA PLUMA SIGUE AL VERDE, Y SALE POR LA MISMA PUERTA QUE LAS LUCES.
   //
   // Va DENTRO de escribirPines() a proposito, no en un modo ni en un despachador: es
-  // la regla 6 extendida. Si un modo pudiera mover la barrera por su cuenta habria
-  // una pluma arriba con la luz en rojo, y eso es PEOR que no tener barrera, porque
-  // el conductor confia en ella. Aqui no puede contradecir a las luces: se escribe
-  // con el mismo 'verde' YA enclavado que acaba de encender la lampara.
+  // la regla 6 extendida. Si un modo pudiera mover la barrera por su cuenta, la barrera
+  // y la luz podrian decir cosas distintas sin que nadie lo hubiera decidido. Aqui no
+  // puede: se escribe con el mismo 'verde' YA enclavado que acaba de encender la lampara.
+  //
+  // ~~"una pluma arriba con la luz en rojo es PEOR que no tener barrera, porque el
+  // conductor confia en ella"~~ -> DEROGADO POR EL RESPONSABLE EL 14/09/2026, dentro de
+  // D-33, y se deja tachado en vez de borrado porque esa frase era el sosten del
+  // argumento que estuvo a punto de parar este cambio (CLAUDE.md 7.4). Sus palabras:
+  // "el veto es solo para la barrera con el problema... esas barreras son casi de
+  // adorno, EL QUE MANDA ES EL SEMAFORO Y SU ESTADO". O sea: LA BARRERA NO ES PARTE DEL
+  // ENCLAVAMIENTO. Quien reparte el paso es la luz; la pluma protege a quien esta
+  // DEBAJO DE ELLA y a nadie mas, y por eso el veto es LOCAL a este poste, no para el
+  // ciclo, no viaja en el ACK_RED y no retrasa el verde de la otra punta.
+  //
+  // LO QUE ESA DEROGACION CUESTA, ESCRITO EN VEZ DE DISIMULADO: habra ratos de luz roja
+  // con la pluma arriba mientras la otra punta tiene verde. Es un estado DISENADO, no
+  // una averia -por eso PLUMA: se publica desde N-153-, y el operario tiene que poder
+  // distinguirlo: lo dice el $EVENT de vigilante_tick() cuando el veto se sostiene.
   //
   // Sube con verde. Rojo, ambar de transicion, todo-rojo de despeje y destellos del
   // mando la dejan ABAJO.
@@ -117,9 +173,75 @@ static void escribirPines(bool rojo, bool amarillo, bool verde) {
   // la pluma- la copia se queda vieja sin que nada falle, que es lo que este
   // repositorio lleva pagando. Aqui el pin y la bandera salen del mismo parentesis y no
   // pueden discrepar.
+  //
+  // =========================================================================
+  // D-33 (14/09/2026) - LA CAMARA VETA LA BAJADA, Y LA BAJADA LLEVA RETARDO
+  // =========================================================================
+  //
+  // DEROGA SFTY-28 EN SU "NUNCA AL REVES": la pluma sigue a la luz SALVO QUE HAYA
+  // PRESENCIA. Las palabras del responsable: "es su sensor de presencia; si no baja por
+  // la camara da igual, es justo ese el punto de la funcion de la camara: que la barrera
+  // no se lleve una moto o un carro. Por eso incluso baja segundos despues de que el
+  // semaforo cambie a rojo".
+  //
+  // LO QUE NO CAMBIA, Y ES LA MITAD QUE IMPORTA:
+  //
+  //   SUBIR SIGUE SIENDO INSTANTANEO Y SIGUE COLGANDO SOLO DE LA LUZ. Ni el retardo ni
+  //   el veto pueden ABRIR la barrera: las dos condiciones nuevas solo saben RETENERLA
+  //   ARRIBA cuando ya lo estaba. Una camara no puede levantar una pluma, igual que no
+  //   puede encender un verde: eso sigue siendo la barrera de salidas.
+  //
+  //   SIGUE SALIENDO POR ESTA PUERTA Y SOBRE EL 'verde' YA ENCLAVADO. No hay un segundo
+  //   digitalWrite en ningun sitio, ni un modo que mueva la pluma por su cuenta.
+  //
+  // EL ORDEN DE LAS TRES RAZONES NO ES ESTETICO (CLAUDE.md 9: una inversion que solo
+  // mira el RESULTADO aprueba un firmware con las barreras en el ORDEN equivocado):
+  //
+  //   1. LA LUZ. Si la luz pide la pluma arriba, arriba, y se olvidan las dos banderas.
+  //      Un veto que sobreviviera al verde siguiente seria un veto pegado.
+  //   2. EL RETARDO. Mientras corre, la pluma se queda arriba PASE LO QUE PASE: el que
+  //      entro con el verde sigue dentro y no hace falta que ninguna camara lo vea. Va
+  //      ANTES del veto a proposito, porque es el unico tramo que NO depende de que el
+  //      aparato de fuera funcione.
+  //   3. EL VETO. Cumplido el retardo, la pluma solo baja si NINGUNA camara ve nada.
+  //
+  // VETA CUALQUIERA DE LAS DOS, NO HACE FALTA CONSENSO. camara_presenciaJ16() ya
+  // contesta con un OR sobre las dos entradas de J16, y es la UNICA definicion de "hay
+  // alguien" que tiene el firmware. El consenso -exigir que las dos vean- seria la
+  // eleccion peligrosa: con una camara muerta desde la instalacion -que el vigilante NO
+  // detecta (D-25)- el AND no se cumpliria jamas y el veto no existiria nunca, en
+  // silencio. Con el OR, una camara muerta solo hace que vete la otra.
+  //
+  // LO QUE ESTO CUESTA, ESCRITO EN VEZ DE DISIMULADO: una camara que ve presencia para
+  // siempre deja la pluma ARRIBA para siempre. NO SE LE PONE TOPE QUE LA BAJE -A-1.bis:
+  // un tope que baja igual devuelve el peligro que el veto evita; tope es ALARMA, no
+  // accion-. Quien avisa es el vigilante de botones.cpp: CAM_PEGADA a los 20 min si el
+  // contacto se queda cerrado, y el $EVENT del contador en cuanto el veto actua.
+  const bool luzPideArriba = (verde && !testLedsActivo) || estado == S_FALLO;
+  bool plumaArriba;
+  if (luzPideArriba) {
+    plumaCierrePendiente = false;
+    plumaVetada = false;
+    plumaArriba = true;
+  } else if (!plumaAbierta) {
+    // Ya estaba abajo: no hay bajada que retrasar ni que vetar. Sin esta rama, una
+    // camara pegada impediria que la pluma BAJARA una vez y despues impediria que
+    // volviera a estar abajo, que no es lo mismo y es absurdo.
+    plumaCierrePendiente = false;
+    plumaVetada = false;
+    plumaArriba = false;
+  } else {
+    if (!plumaCierrePendiente) {
+      plumaCierrePendiente = true;
+      tPlumaCierrePedido = millis();
+    }
+    const bool enRetardo = (millis() - tPlumaCierrePedido) < PLUMA_RETARDO_BAJADA_MS;
+    plumaVetada = !enRetardo && camara_presenciaJ16();
+    plumaArriba = enRetardo || plumaVetada;
+    if (!plumaArriba) plumaCierrePendiente = false;
+  }
   digitalWrite(MOTOR_TALANQUERA,
-               (plumaAbierta = ((verde && !testLedsActivo) || estado == S_FALLO))
-                   ? TALANQUERA_ABRIR : TALANQUERA_CERRAR);
+               (plumaAbierta = plumaArriba) ? TALANQUERA_ABRIR : TALANQUERA_CERRAR);
 }
 
 static void aplicarSalidas(bool rojo, bool amarillo, bool verde) {
@@ -232,6 +354,11 @@ void semaforo_setup() {
   // La bandera dice lo que dice el pin, tambien aqui: este digitalWrite no pasa por
   // escribirPines(), asi que es el unico sitio donde hay que repetirlo.
   plumaAbierta = false;
+  // D-33: y con ella las dos banderas del cierre. Un arranque no hereda un retardo a
+  // medias ni un veto de antes del reinicio: la pluma ya esta abajo, que es el unico
+  // estado desde el que las dos sobran.
+  plumaCierrePendiente = false;
+  plumaVetada = false;
 
   semaforo_apagarTodo();
 }
@@ -287,6 +414,14 @@ bool semaforo_testLedsEnCurso() {
 // $STATUS; ver el porque de que sea una bandera y no un recalculo sobre plumaAbierta.
 bool semaforo_plumaArriba() {
   return plumaAbierta;
+}
+
+// D-33: true mientras la pluma esta arriba PORQUE UNA CAMARA VE ALGO. Lo lee el
+// contador de botones.cpp -que es quien tiene el bluetooth- para saber cuando el veto
+// ACTUA. Ver el porque de que sea una bandera distinta de plumaAbierta en su
+// declaracion: son dos preguntas.
+bool semaforo_plumaVetada() {
+  return plumaVetada;
 }
 
 void semaforo_iniciarFallo() {
@@ -354,6 +489,21 @@ void semaforo_actualizar() {
       aplicarSalidas(LOW, ambarStatus, LOW);
     }
   }
+
+  // D-33: HAY QUE VOLVER A PASAR POR LA PUERTA, Y ESTE ES EL SITIO.
+  //
+  // Antes de D-33 la pluma solo dependia de los argumentos de escribirPines(), asi que
+  // bastaba con que se la llamara en cada CAMBIO de luz. Ahora depende ademas del RELOJ
+  // -el retardo- y de un aparato de fuera -la camara-, y ninguna de las dos cosas
+  // provoca una llamada por si sola: en rojo estable, sin senal del mando y sin
+  // S_FALLO, nadie vuelve a escribir un pin hasta la transicion siguiente. Sin esta
+  // linea la pluma se quedaria arriba HASTA EL PROXIMO CAMBIO DE LUZ, que es minutos.
+  //
+  // NO ES UN SEGUNDO ESCRITOR: se vuelve a entrar por aplicarSalidas() con lo ultimo
+  // que pidio la logica -ultR/ultA/ultV-, o sea que el enclavamiento SFTY-2 y la
+  // intercepcion de SFTY-21 siguen delante. Y la condicion es la BANDERA que dejo
+  // puesta escribirPines(), no una segunda copia de la formula de SFTY-28.
+  if (plumaCierrePendiente) aplicarSalidas(ultR, ultA, ultV);
 }
 
 bool semaforo_estable() {

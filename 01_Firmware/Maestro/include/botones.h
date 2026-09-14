@@ -58,10 +58,17 @@ bool camara_leerPin(uint8_t pin);
 // ---------------------------------------------------------------------------
 // LA PRESENCIA SOSTENIDA EN LAS DOS CAMARAS DE J16. 05/09/2026.
 //
-// ESTE GETTER SI ES DEL MAESTRO SOLO, Y NO ES UNA ASIMETRIA NUEVA: ES SFTY-27. El Esclavo
-// PIDE y el Maestro DECIDE, asi que la unica punta que necesita saber "hay cola AHORA" es
-// esta; en el Esclavo seria un huerfano por construccion -no tiene Modo Inteligente-. El
-// bloque del vigilante de mas abajo si es identico en las dos.
+// ~~ESTE GETTER SI ES DEL MAESTRO SOLO... en el Esclavo seria un huerfano por
+// construccion -no tiene Modo Inteligente-~~ -> CADUCADO POR D-33 (14/09/2026). Aquella
+// frase era cierta mientras el UNICO consumidor era el Modo Inteligente, que efectivamente
+// es del Maestro (SFTY-27: el Esclavo pide, el Maestro decide). D-33 le da un SEGUNDO
+// consumidor que existe en las DOS puntas y no decide nada del ciclo: escribirPines(), que
+// pregunta si hay alguien debajo antes de dejar bajar la pluma. Una pluma por poste, una
+// pregunta por poste. Desde hoy esta declarada y construida igual en las dos.
+//
+// SIGUE SIENDO UN GETTER Y NO UN LECTOR: no ordena nada, no toca una luz y no toca el
+// ciclo. Lo unico que puede hacer quien la llama es NO bajar la pluma (D-13: una camara
+// pide, no manda).
 //
 // POR QUE HACE FALTA, Y ES LO QUE LA MEDIDA DEL 05/09 SACO: las camaras de J16 ya entraban
 // en el Modo Inteligente -por flanco, via demanda_solicitar() y demanda_hayLocal()-, o sea

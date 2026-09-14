@@ -78,3 +78,18 @@ bool semaforo_testLedsEnCurso();
 // lo lee como averia. Publicarlo no depende de las camaras y cierra el hueco antes.
 // ---------------------------------------------------------------------------
 bool semaforo_plumaArriba();
+
+// ---------------------------------------------------------------------------
+// D-33 (14/09/2026) - POR QUE LA PLUMA SIGUE ARRIBA.
+//
+// true SOLO cuando el pin esta en ABRIR porque una camara ve algo debajo. Durante los
+// segundos de retardo que siguen al rojo devuelve FALSE aunque la pluma siga arriba: ahi
+// no hay veto, hay cortesia con el que entro legalmente, y confundir las dos cosas
+// inflaria el contador de vetos con bajadas que nadie impidio.
+//
+// EXISTE PARA QUE EL CONTADOR PUEDA CONTAR LO QUE PASA DE VERDAD. Hasta D-33,
+// vigilante_tick() contaba mirando la BAJADA ya hecha ("el veto habria actuado"); con el
+// veto construido esa bajada no ocurre, asi que ese contador se habria callado justo
+// cuando empieza a haber algo que contar. Se cuenta el flanco de subida de esta bandera.
+// ---------------------------------------------------------------------------
+bool semaforo_plumaVetada();

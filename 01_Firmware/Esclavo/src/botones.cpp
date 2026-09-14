@@ -218,6 +218,34 @@ static const unsigned long CAM_PEGADA_MS = 1200000UL;
 // son los que diran cuanto silencio hay de verdad en este cruce. Hoy no hay ninguno.
 static const unsigned long CAM_CIEGA_MS = 86400000UL;
 
+// -------------------------------------------------------------------------------
+// VETO_SOSTENIDO_MS - CUANDO UNA PLUMA RETENIDA DEJA DE SER SEGURA PARA EL TRAMO
+// -------------------------------------------------------------------------------
+// D-33: para el que esta DEBAJO, la barrera arriba siempre es lo seguro. Para el TRAMO
+// no: en cuanto vence el todo-rojo, la otra punta puede abrir su verde, y un carril
+// unico con la luz de un lado en verde y la barrera del otro levantada tiene las dos
+// bocas abiertas. Ese es el instante en que hay que avisar, y por eso el plazo sale del
+// DESPEJE y no del contacto.
+//
+// SE TOMA EL MAXIMO DEL RANGO CONFIGURABLE, y el borde va escrito: el despeje en curso
+// vive en coordinador.cpp y aqui no se ve, asi que se compara contra el techo. Un veto
+// mas largo que DESPEJE_SEG_MAX ha vencido al despeje en CUALQUIER configuracion; al
+// reves no, y por eso no se toma el minimo: avisaria de un despeje que aun no ha vencido.
+// ESTA PUNTA NO TIENE limites_ciclo.h: el techo del despeje lo fija el Maestro y aqui
+// se declara HEREDADO, igual que DESPEJE_MIN_HEREDADO_SEG en semaforo.cpp. Quien impide
+// que las dos copias se separen es camara_03_vigilante, que lee DESPEJE_SEG_MAX del
+// limites_ciclo.h del Maestro y exige que sea este mismo numero (N-71).
+static const unsigned long DESPEJE_MAX_HEREDADO_SEG = 90UL;
+static const unsigned long VETO_SOSTENIDO_MS = DESPEJE_MAX_HEREDADO_SEG * 1000UL;
+
+// Y LOS CINCO DIGITOS QUE CABEN EN EL CAMPO DE SEGUNDOS DE detalle[] (N-154).
+//
+// NO es un limite del veto -un veto dura lo que dure-: es lo que el BUFFER admite. Los
+// demas %u de este fichero salen de un uint16_t y no pueden dar mas de cinco digitos;
+// este sale de un RELOJ, y una pluma retenida 18,2 h ya da seis. Por encima se publica
+// "!" en vez de un numero recortado. El buffer no se agranda (CLAUDE.md 10).
+static const unsigned long VETO_SEG_PUBLICABLE_MAX = 65535UL;
+
 // EL ORDEN DE LOS VALORES ES LA GRAVEDAD, y por eso el campo CAM: se resuelve con un
 // simple mayor-que en vez de con una cadena de ifs que alguien tendria que mantener
 // ordenada. "?" pesa mas que "OK" a proposito; el porque, en botones.h.
@@ -229,7 +257,13 @@ static unsigned long camSinFlancoMs[2] = {0, 0};
 static unsigned long camUltimoFlanco[2] = {0, 0};
 static bool camHuboFlanco[2] = {false, false};
 static unsigned long camTickAnt = 0;
-static bool camPlumaAnt = false;
+// D-33: la bandera de flanco del contador ya no es la de la pluma -esa transicion dejo
+// de ocurrir el dia que el veto existe- sino la del VETO. Sigue habiendo una sola, y con
+// ella el cronometro del veto en curso y los avisos ya dados, que son lo que impide que
+// el aviso periodico se repita en cada vuelta del loop.
+static bool camVetoAnt = false;
+static unsigned long camVetoDesde = 0;
+static uint16_t camVetoAvisos = 0;
 static uint16_t camVetos = 0;
 
 // Los dos nombres que salen al aire, indexados por la MISMA i que CAM_J16[]. Se
@@ -357,12 +391,20 @@ static void vigilante_nivel(int i, bool alto, unsigned long ahora) {
 
 // QUE ES "HAY PRESENCIA" EN UNA CAMARA DE J16. UNA SOLA DEFINICION, Y AQUI.
 //
-// Lo contestan dos consumidores que preguntan por motivos distintos y necesitan la MISMA
-// respuesta: el contador de vetos de la fase 2 -abajo, en vigilante_tick()- y, en el
-// Maestro, camara_presenciaJ16(), que es lo que deja al Modo Inteligente sostener una
-// fase mientras hay cola. Escribir la condicion dos veces seria el defecto que este
-// repositorio ya paga en otros sitios: dos formulas que solo la disciplina mantiene
-// iguales. El pack camara_03_vigilante comprueba que sigue habiendo UNA.
+// ~~Lo contestan dos consumidores... el contador de vetos de la fase 2 -abajo, en
+// vigilante_tick()- y, en el Maestro, camara_presenciaJ16()~~ -> ACTUALIZADO POR D-33
+// (14/09/2026). El contador ya no pregunta aqui: lee la decision que tomo escribirPines()
+// (ver vigilante_tick()). El unico llamador es camara_presenciaJ16(), y por el pasan
+// ahora DOS preguntas distintas hechas por motivos distintos:
+//
+//   EL MODO INTELIGENTE, solo en el Maestro: "hay cola AHORA" para sostener una fase.
+//   EL VETO DE LA PLUMA, en las dos puntas: "hay alguien debajo" para no bajar la
+//   barrera (D-33). Es la razon de que el getter haya dejado de ser del Maestro solo.
+//
+// Escribir la condicion dos veces seria el defecto que este repositorio ya paga en otros
+// sitios: dos formulas que solo la disciplina mantiene iguales. Y ahora pesa mas que
+// ayer, porque una de las dos copias decidiria si una barrera fisica baja sobre alguien.
+// El pack camara_03_vigilante comprueba que sigue habiendo UNA.
 //
 // SON DOS TERMINOS Y HACEN FALTA LOS DOS:
 //
@@ -453,34 +495,106 @@ static void vigilante_tick(unsigned long ahora) {
     }
   }
 
-  // EL CONTADOR QUE JUSTIFICA LA FASE 2, Y NADA MAS QUE ESO.
+  // EL CONTADOR. YA NO DICE "HABRIA": DICE "ACTUO" (D-33, 14/09/2026).
   //
-  // Se mira en el instante en que la pluma ACABA DE BAJAR, que es el mismo en el que la
-  // fase 2 la habria dejado arriba. Esto OBSERVA una transicion ya hecha: vetarla
-  // exigiria entrar en escribirPines(), y eso es SFTY-28 y necesita derogacion escrita
-  // (A-1.bis). Por eso el contador se construye ANTES que el veto y no despues: es el
-  // que dice si el veto merece la pena.
+  // ~~Se mira en el instante en que la pluma ACABA DE BAJAR... Esto OBSERVA una
+  // transicion ya hecha~~ -> CADUCADO POR D-33, y no por gusto: CON EL VETO CONSTRUIDO
+  // ESA TRANSICION YA NO OCURRE. Si el disparo se hubiera quedado donde estaba, el
+  // contador se habria callado para siempre EXACTAMENTE en el caso que vino a medir, y
+  // un contador a cero se lee como "esto no pasa nunca", que es la conclusion CONTRARIA
+  // a la verdad. Se muda el DISPARO; el contador, su saturacion y su $EVENT se conservan.
   //
-  // "Hay presencia" se pregunta a camara_presencia(), que es la UNICA definicion que
-  // tiene este fichero y la que usa tambien el Modo Inteligente. Aqui vivia la condicion
-  // escrita a mano; al ganar un segundo consumidor se saco arriba en vez de copiarse.
-  if (camPlumaAnt && !arriba) {
-    bool presencia = false;
-    for (int i = 0; i < 2; i++) {
-      if (camara_presencia(i, ahora)) {
-        presencia = true;
-      }
+  // SE CUENTA EL FLANCO DE SUBIDA, NO EL NIVEL: un veto que dura tres minutos es UN veto,
+  // no uno por vuelta del loop. Contar el nivel llenaria el aire de tramas identicas y
+  // haria que el numero midiera la velocidad del bucle en vez de los coches.
+  //
+  // ~~"Hay presencia" se pregunta a camara_presencia()...~~ Ya no se pregunta aqui: la
+  // hace escribirPines(), que es quien decide, y aqui solo se lee LO QUE DECIDIO
+  // -semaforo_plumaVetada()-. Preguntarlo otra vez seria una segunda copia de la
+  // condicion del veto, muestreada en otro instante, y podria contar un veto que no hubo
+  // o callarse uno que si. camara_presencia() sigue siendo la definicion unica y sigue
+  // teniendo consumidor -camara_presenciaJ16()-, que es por donde la contestan tanto el
+  // Modo Inteligente (Maestro) como el veto de la pluma (las dos puntas).
+  const bool vetada = semaforo_plumaVetada();
+  if (vetada && !camVetoAnt) {
+    camVetoDesde = ahora;
+    camVetoAvisos = 0;
+    if (camVetos < 65535) {
+      camVetos++;
     }
-    if (presencia) {
-      if (camVetos < 65535) {
-        camVetos++;
+    char detalle[sizeof("VETO_SOSTENIDO_MIN:65535")];
+    snprintf(detalle, sizeof(detalle), "VETO_ACTUADO_N:%u", camara_vetosPluma());
+    bluetooth_reportarEvento("CAMARA_PLUMA", detalle);
+  }
+
+  // -------------------------------------------------------------------------------
+  // EL VETO QUE NO SE ACABA - D-33, AMPLIACION DEL RESPONSABLE (14/09/2026)
+  // -------------------------------------------------------------------------------
+  //
+  // EL SENTIDO DEL FALLO ESTA DECIDIDO Y ES ESTE: "si la camara da error, asumo que
+  // NUNCA BAJA LA BARRERA por error o falsa alarma. Se informa a la app para pedir
+  // AJUSTE DE CAMARA, y la barrera nunca baja". Una barrera arriba no aplasta a nadie;
+  // el precio es que deja de proteger, Y POR ESO TIENE QUE VERSE. Esto es ese verse.
+  //
+  // NO HAY TOPE QUE BAJE LA PLUMA, Y NO ES UN OLVIDO (A-1.bis): un tope que baja igual
+  // devuelve el peligro que el veto evita, porque este firmware NO PUEDE distinguir un
+  // rele trabado de un vehiculo parado debajo -dan el mismo nivel-. Tope es AVISO.
+  //
+  // POR QUE CAM_PEGADA NO BASTA, medido: CAM_PEGADA cuelga del NIVEL sostenido, y una
+  // camara que dispara sin parar -mal ajustada, vegetacion, lluvia- ABRE el contacto
+  // entre disparo y disparo. Su cronometro se reinicia en cada flanco, asi que nunca
+  // alarma; pero camara_presencia() SI la ve continua -el flanco vigente dura
+  // demanda_ventanaMs()-, o sea que el veto no se suelta y nadie se entera. Ese es el
+  // hueco exacto que tapa este aviso, y por eso es de la PLUMA y no de una camara.
+  //
+  // EL PLAZO ES EL DEL PELIGRO, NO EL DEL DIAGNOSTICO, Y ESA DISTINCION ES TODO.
+  //
+  // Se escribio primero con CAM_PEGADA_MS (20 min) "porque ya existia", y es el numero
+  // EQUIVOCADO: aquel plazo contesta a "rele trabado o vehiculo parado", que es una
+  // pregunta de DIAGNOSTICO, y llega veinte minutos tarde. El peligro de una pluma
+  // retenida no se mide en el contacto: se mide contra el TODO-ROJO DE DESPEJE, porque
+  // en cuanto el despeje vence la otra punta puede abrir su verde y entonces el tramo
+  // tiene dos bocas -una por luz, otra por barrera-.
+  //
+  // EL BORDE, ESCRITO AL LADO Y POR QUE ES EL CORRECTO (CLAUDE.md 7): el despeje es
+  // CONFIGURABLE entre DESPEJE_SEG_MIN y DESPEJE_SEG_MAX, y este fichero no tiene el
+  // valor en curso -vive en coordinador.cpp en el Maestro y llega por radio en el
+  // Esclavo-. Se toma el MAXIMO del rango: un veto que dura mas que el despeje MAS LARGO
+  // que el equipo admite ha vencido al despeje EN CUALQUIER configuracion, asi que este
+  // aviso NUNCA puede ser un falso positivo por tener el despeje largo. El precio esta
+  // declarado: con el despeje al minimo el aviso llega tarde -90 s en vez de 10-, y la
+  // unica forma de afinarlo es preguntarle al coordinador el despeje EN CURSO, que es
+  // un getter que este encargo no puede escribir.
+  //
+  // LO QUE EL AVISO DICE Y LO QUE NO: dice cuantos segundos lleva la pluma retenida, que
+  // es lo unico MEDIDO. NO dice "camara averiada": vetar mucho puede ser una camara mal
+  // ajustada O un cruce con mucho trafico, y este micro no ve imagen (D-12) y no puede
+  // separarlos. Quien traduce esto a "revise el ajuste de la camara" es la app.
+  //
+  // ES PERIODICO A PROPOSITO. Un aviso unico se pierde si la sesion de Bluetooth empieza
+  // despues y deja al operario con una barrera arriba sin explicacion; repetirlo es lo
+  // que hace que la condicion se pueda descubrir entrando tarde.
+  if (vetada) {
+    const unsigned long retenida = ahora - camVetoDesde;
+    const uint16_t debidos = (uint16_t)(retenida / VETO_SOSTENIDO_MS);
+    if (debidos > camVetoAvisos) {
+      camVetoAvisos = debidos;
+      // N-154: snprintf NO avisa de que recorta. Con seis digitos dejaria
+      // "VETO_SOSTENIDO_S:10368" cuando lleva 1.036.800 s: un numero BIEN FORMADO Y
+      // FALSO, que es peor que no publicarlo, porque la app lo dibuja igual. Fuera de
+      // cota va "!", que en este protocolo significa "llego imposible" y nunca "--",
+      // que significa "todavia no lo se" (bluetooth.cpp).
+      const unsigned long segs = retenida / 1000UL;
+      char detalle[sizeof("VETO_SOSTENIDO_S:65535")];
+      if (segs > VETO_SEG_PUBLICABLE_MAX) {
+        snprintf(detalle, sizeof(detalle), "VETO_SOSTENIDO_S:!");
+      } else {
+        snprintf(detalle, sizeof(detalle), "VETO_SOSTENIDO_S:%u", (unsigned)segs);
       }
-      char detalle[28];
-      snprintf(detalle, sizeof(detalle), "VETO_HABRIA_ACTUADO_N:%u", camara_vetosPluma());
       bluetooth_reportarEvento("CAMARA_PLUMA", detalle);
     }
   }
-  camPlumaAnt = arriba;
+  camVetoAnt = vetada;
 }
 
 // N-26 APLICADO A LAS CAMARAS. Un contacto YA CERRADO al encender no es una deteccion:
@@ -496,7 +610,12 @@ static void vigilante_tick(unsigned long ahora) {
 static void camaras_sembrar() {
   const unsigned long ahora = millis();
   camTickAnt = ahora;
-  camPlumaAnt = semaforo_plumaArriba();
+  // N-26 tambien aqui: un veto ya activo al encender no es un veto NUEVO. Hoy no puede
+  // estarlo -semaforo_setup() deja la pluma abajo y las dos banderas limpias-, y se
+  // siembra igual para que la siembra no dependa de que eso siga siendo cierto.
+  camVetoAnt = semaforo_plumaVetada();
+  camVetoDesde = ahora;
+  camVetoAvisos = 0;
   for (int i = 0; i < 2; i++) {
     camAnt[i] = camara_leerPin(CAM_J16[i]);
     // Y EL CRONOMETRO DE PEGADA SE SIEMBRA IGUAL, por el mismo motivo una capa mas
@@ -699,3 +818,28 @@ bool botonAbajo()   { return consumir(1); }
 // de poder quedarse inhibido por una pantalla que alguien olvido abierta (SFTY-21).
 bool botonAceptar() { return false; }
 bool botonCancelar(){ return false; }
+
+// LA PRESENCIA SOSTENIDA EN J16. El porque de que esto exista -y de que desde D-33 exista
+// en las DOS puntas- esta en botones.h.
+//
+// NO ES UN LECTOR DE PINES: es camara_presencia() -la definicion unica que este fichero
+// tiene de "hay coche"- preguntada por las dos camaras. Se escribio primero como
+// `camAnt[0] || camAnt[1]`, o sea nivel puro, y EL ARNES LO TUMBO: con el contacto
+// pulsando como pulsa el rele de la AcuSense -cerrado ~1 s por coche y abierto entre
+// coche y coche- el nivel se cae en los huecos, el Modo Inteligente muestrea uno de esos
+// huecos y la fase termina en el suelo igual que sin camara. El verde medido era 363000 ms
+// contra los 720000 del techo. El termino que faltaba es el flanco vigente, y ya existia.
+//
+// NO RELEE LOS PINES a proposito: camaras_actualizar() ya los leyo en esta misma vuelta y
+// dejo el resultado en camAnt[]. Releerlos daria un SEGUNDO valor de "hay coche" en la
+// misma iteracion -quien decide el semaforo mirando un instante distinto del que mira el
+// vigilante que juzga esa camara- y ademas arrastraria dos delay(5) mas por vuelta.
+bool camara_presenciaJ16() {
+  const unsigned long ahora = millis();
+  for (int i = 0; i < 2; i++) {
+    if (camara_presencia(i, ahora)) {
+      return true;
+    }
+  }
+  return false;
+}

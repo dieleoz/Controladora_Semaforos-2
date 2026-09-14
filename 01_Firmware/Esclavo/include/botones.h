@@ -147,3 +147,38 @@ const char* camara_estado();
 // El mismo numero sale ademas en cada $EVENT del vigilante, y sale POR ESTA FUNCION:
 // asi lo que publica el aire y lo que devuelve el getter no pueden separarse.
 uint16_t camara_vetosPluma();
+
+
+// ---------------------------------------------------------------------------
+// LA PRESENCIA SOSTENIDA EN LAS DOS CAMARAS DE J16. 05/09/2026.
+//
+// ~~ESTE GETTER SI ES DEL MAESTRO SOLO... en el Esclavo seria un huerfano por
+// construccion -no tiene Modo Inteligente-~~ -> CADUCADO POR D-33 (14/09/2026). Aquella
+// frase era cierta mientras el UNICO consumidor era el Modo Inteligente, que efectivamente
+// es del Maestro (SFTY-27: el Esclavo pide, el Maestro decide). D-33 le da un SEGUNDO
+// consumidor que existe en las DOS puntas y no decide nada del ciclo: escribirPines(), que
+// pregunta si hay alguien debajo antes de dejar bajar la pluma. Una pluma por poste, una
+// pregunta por poste. Desde hoy esta declarada y construida igual en las dos.
+//
+// SIGUE SIENDO UN GETTER Y NO UN LECTOR: no ordena nada, no toca una luz y no toca el
+// ciclo. Lo unico que puede hacer quien la llama es NO bajar la pluma (D-13: una camara
+// pide, no manda).
+//
+// POR QUE HACE FALTA, Y ES LO QUE LA MEDIDA DEL 05/09 SACO: las camaras de J16 ya entraban
+// en el Modo Inteligente -por flanco, via demanda_solicitar() y demanda_hayLocal()-, o sea
+// que la frase "el modo no ve la camara de J16" era FALSA. Pero PEDIR y SOSTENER no son la
+// misma pregunta:
+//
+//   PEDIR PASO es un suceso, y un flanco lo cuenta bien. Ese camino se queda como estaba.
+//   ALARGAR UNA FASE es un nivel -"hay cola AHORA"-, y un flanco no puede contestarlo.
+//
+// La ventana de demanda_hayLocal() dura 3 s y NO se prolonga con cada deteccion: la
+// siguiente peticion dentro de la ventana se descarta como peticion nueva, asi que entre
+// dos peticiones aceptadas siempre queda un hueco en el que "hay cola" contesta que no. Y
+// modo_inteligente.cpp muestrea esa respuesta en cada vuelta: basta caer en un hueco para
+// que la fase termine en el suelo. Medido en el arnes, no razonado (Bloque F).
+//
+// Es exactamente el mismo reparto que el firmware ya hacia con J14: el Maestro lee PB0 POR
+// NIVEL y el Esclavo POR FLANCO, y el comentario de botones.cpp lo explica con estas mismas
+// dos palabras. Lo que faltaba era aplicarselo a las camaras nuevas.
+bool camara_presenciaJ16();
