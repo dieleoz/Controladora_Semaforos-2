@@ -68,9 +68,14 @@ VIGILANTE = ("camara_estado", "camara_vetosPluma", "camara_alarmar",
 # fase 2 del vigilante o una segunda copia de la condicion de SFTY-28.
 LEE_DEL_SEMAFORO = {"semaforo_plumaArriba", "semaforo_plumaVetada"}
 
-# Nada de esto puede aparecer dentro de una funcion del vigilante. La fase 1 no actua:
-# cuenta y avisa. Si alguna vez hace falta que actue, eso es la fase 2, contradice SFTY-28
-# y necesita derogacion escrita del responsable (A-1.bis).
+# Nada de esto puede aparecer dentro de una funcion del vigilante: cuenta y avisa.
+#
+# ~~Si alguna vez hace falta que actue, eso es la fase 2 y necesita derogacion escrita~~
+# -> LA DEROGACION LLEGO (D-33, 14/09/2026) Y ESTA LISTA SIGUE ENTERA, que es lo que hay
+# que entender: el veto de la pluma se construyo en escribirPines(), donde vive SFTY-28,
+# y NO aqui. El vigilante sigue sin mover una luz ni la pluma. Si un dia apareciera un
+# digitalWrite de la talanquera dentro de estas funciones, seria una SEGUNDA puerta a la
+# barrera -exactamente lo que SFTY-28 prohibe- por mucho que el veto ya este decidido.
 ORDENAN = ("coordinador_pedirCambio", "coordinador_configurar", "coordinador_iniciarModo",
            "semaforo_forzarRojo", "semaforo_forzarVerde", "semaforo_iniciarFallo",
            "semaforo_toggle", "semaforo_iniciarTransicionAVerde", "digitalWrite",
@@ -294,9 +299,11 @@ def correr(b, fw):
     # 3. LA FASE 1 NO ACTUA: NI UNA LUZ, NI LA PLUMA
     # =============================================================================
     #
-    # Es el limite que el encargo puso y el que A-1.bis explica: un veto que deje la pluma
-    # arriba en rojo rompe el invariante de SFTY-28 y de Validacion_Automatico, y hace
-    # falta derogarlo POR ESCRITO. Mientras eso no exista, esto solo puede contar.
+    # ~~Mientras la derogacion no exista, esto solo puede contar~~ -> D-33 LA ESCRIBIO el
+    # 14/09, y esta comprobacion NO se relaja por eso: cambia de motivo. Ya no dice "el
+    # veto no existe todavia"; dice "el veto NO SE IMPLEMENTA AQUI". Vive en
+    # escribirPines(), que es la unica puerta a los pines, y un vigilante que moviera la
+    # barrera por su cuenta seria la segunda puerta que SFTY-28 existe para impedir.
     for punta in PUNTAS:
         ordena = []
         for fn in VIGILANTE:
@@ -308,10 +315,10 @@ def correr(b, fw):
             not ordena,
             "%s: ninguna de las %d funciones del vigilante llama a nada que mueva una luz "
             "ni la pluma: la fase 1 cuenta y avisa" % (punta, len(VIGILANTE)),
-            "%s: el vigilante ACTUA: %s. La fase 1 de D-13 tiene cero efecto vial por "
-            "definicion; lo que ahi se ha metido es la fase 2, contradice SFTY-28 y "
-            "necesita la derogacion escrita de A-1.bis antes de existir"
-            % (punta, ", ".join(ordena)))
+            "%s: el vigilante ACTUA: %s. El veto de la pluma esta decidido y construido "
+            "(D-33), pero vive en escribirPines(), que es la UNICA puerta a los pines: "
+            "mover la barrera desde aqui es una SEGUNDA puerta, y eso es lo que SFTY-28 "
+            "prohibe" % (punta, ", ".join(ordena)))
 
         # Lo unico que el vigilante puede saber del semaforo es LEERLO, y por un solo
         # sitio: semaforo_plumaArriba(), que devuelve lo que escribirPines() dejo puesto y
