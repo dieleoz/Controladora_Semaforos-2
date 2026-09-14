@@ -59,8 +59,10 @@ FUENTES = (
     ("Esclavo", "include", "bluetooth.h"),
     ("Maestro", "include", "pines.h"),
     ("Esclavo", "include", "pines.h"),
-    ("Maestro", "src", "lcd.cpp"),
-    ("Esclavo", "src", "lcd.cpp"),
+    # D-32 (1), 13/09: fuera las dos tuplas de ruta hacia el lcd.cpp. El fichero ya no
+    # existe, y estas dos tuplas las censa la guarda de rutas de compuerta.py POR
+    # TEXTO: dejarlas aborta la compuerta entera aunque este literal no lo lea
+    # nadie -FUENTES no se usa en ninguna parte del pack; solo alimenta el censo-.
 )
 
 # HECHO DE HARDWARE, NO CONSTANTE DEL FIRMWARE, y por eso se escribe aqui con su
@@ -280,22 +282,18 @@ def _bloque_nadie_mas_los_reclama(b, fw):
                 "alias se quedo ciego y buscaria solo los pines crudos, que es como "
                 "nadie los escribe" % (punta, rx, tx))
 
-        # La pantalla RENUNCIO al reset a proposito (U8X8_PIN_NONE). Es una afirmacion
-        # positiva y no la ausencia de un patron: la ausencia se puede deber a que el
-        # buscador no supo mirar.
-        lcd = fw.codigo(punta, "src", "lcd.cpp")
-        args = _uno(fw, lcd, r"U8G2_ST7920\w*\s+u8g2\s*\(([^)]*)\)",
-                    "el constructor del display", "%s/src/lcd.cpp" % punta)[0]
-        args = [a.strip() for a in args.split(",")]
-        b.verificar(
-            "U8X8_PIN_NONE" in args and not _reclamantes(", ".join(args), nombres),
-            "%s: el display se construye con U8X8_PIN_NONE y no nombra ninguno de %s: "
-            "la pantalla renuncio a esos pines, no se los quitaron por descuido"
-            % (punta, ", ".join(nombres)),
-            "%s: el constructor del display (%s) vuelve a reclamar el pin del puerto. "
-            "Dos perifericos sobre el mismo pin no dan error: gana el ultimo que "
-            "arranco, y el sintoma es telemetria muda sin ninguna pista"
-            % (punta, ", ".join(args)))
+        # D-32 (1), 13/09: AQUI SE COMPROBABA QUE LA PANTALLA HABIA RENUNCIADO AL
+        # PIN DEL PUERTO -que el constructor U8G2_ST7920 de lcd.cpp llevaba
+        # U8X8_PIN_NONE y no nombraba ninguno de los alias del RX/TX-. Una
+        # comprobacion por punta, DOS en total, retiradas con el fichero: sin
+        # lcd.cpp no hay constructor, y una afirmacion positiva sobre un fichero
+        # que no existe no se puede hacer.
+        #
+        # LA PROPIEDAD NO SE QUEDA SIN VIGILANTE, que es lo que hay que mirar
+        # antes de retirar nada de aqui: el censo de DIRECTORIO de abajo sigue
+        # barriendo src/ e include/ enteros buscando quien reclama esos pines,
+        # asi que si la pantalla volviera a por ellos por cualquier via la caza
+        # ese. Y costura_11 exige ademas que ninguna punta enlace ya U8g2.
 
         # Censo del DIRECTORIO -src/ e include/-, con los comentarios fuera: los
         # comentarios de lcd.cpp, main.cpp y protocolo.cpp siguen nombrando PB6/PB7

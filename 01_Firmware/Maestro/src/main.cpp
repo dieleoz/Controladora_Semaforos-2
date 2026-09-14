@@ -3,7 +3,6 @@
 #include "pines.h"
 #include "botones.h"
 #include "coordinador.h"
-#include "lcd.h"
 #include "menu.h"
 #include "modos.h"
 #include "modo_manual.h"
@@ -43,10 +42,12 @@ static ModoSistema modoAnterior;
 void setup() {
   botones_setup();
   coordinador_setup();
-  lcd_setup();
 
-  // Inicializar UI
-  lcd_dibujarBienvenida();
+  // D-32 (1), 13/09: aqui iban lcd_setup() y lcd_dibujarBienvenida(). SE QUEDA EL
+  // delay(2000), y no por inercia: su motivo escrito no es la bienvenida sino el
+  // watchdog de la linea de abajo -"despues del delay inicial para evitar loop de
+  // reinicio"-. Quitarlo con la pantalla seria cambiar el arranque del IWDG en un
+  // commit que dice que solo retira el LCD.
   delay(2000);
 
   // SFTY-1: Iniciar Watchdog Timer a 4 segundos (despues del delay inicial para evitar loop de reinicio)

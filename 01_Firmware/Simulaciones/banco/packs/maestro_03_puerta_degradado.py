@@ -541,25 +541,20 @@ def correr(b, fw):
               "Tras un reinicio sin marca en la pila la puerta se cierra sola (centinela).",
               "Tras un reinicio la puerta no devuelve el centinela")
 
-    # --- 3.11 ------------------------------------------------------------------
-    # LA PANTALLA. Sigue SIN enclavamiento: la firma del Maestro no tiene el parametro
-    # 'vencida' que si tiene la del Esclavo, asi que pinta lo que le den. Hoy lo que le
-    # dan ya viene contrastado contra la pila, de modo que el numero no miente; pero la
-    # defensa esta en el llamante y no en el que pinta, y eso es una capa menos.
-    _lcd_mae = _codigo("Maestro", "src", "lcd.cpp")
-    _lcd_esc = _codigo("Esclavo", "src", "lcd.cpp")
-    _mae_tiene_vencida = bool(re.search(r"lcd_dibujarDegradado\([^)]*vencid", _lcd_mae, re.I))
-    _esc_tiene_vencida = bool(re.search(r"lcd_dibujarDegradado\([^)]*[Vv]encida", _lcd_esc))
-    verificar(_mae_tiene_vencida and _esc_tiene_vencida,
-              "Las dos pantallas reciben un indicador de vencimiento y no solo un numero: "
-              "ninguna puede pintar una antiguedad pequena por su cuenta.",
-              f"ASIMETRIA QUE SIGUE ABIERTA: lcd_dibujarDegradado() del Esclavo recibe el "
-              f"indicador 'vencida' ({_esc_tiene_vencida}) y muestra '>48h'; la del Maestro no "
-              f"({_mae_tiene_vencida}) y pinta el numero que le den, divididos los minutos por "
-              f"60. Hoy el llamante ya se lo da contrastado, asi que el numero no miente, pero "
-              f"la pantalla NO es una defensa: si alguien vuelve a pasarle una medida cruda, "
-              f"volveria a mostrar 'Sin sync: 0h00m' tras mes y medio sin sincronizar y nadie "
-              f"lo notaria.")
+    # --- 3.11 RETIRADO POR D-32 (1), 13/09 --------------------------------------
+    # Aqui se media LA ASIMETRIA ENTRE LAS DOS PANTALLAS: lcd_dibujarDegradado()
+    # del Esclavo recibia el indicador 'vencida' y mostraba '>48h', y la del
+    # Maestro no lo recibia y pintaba el numero que le dieran. Se decia -con
+    # razon- que la defensa estaba en el llamante y no en el que pinta, y que eso
+    # era una capa menos.
+    #
+    # LA ASIMETRIA NO SE ARREGLO: SE QUEDO SIN SUJETO, y conviene decirlo asi
+    # para que nadie la lea como cerrada. Retirado el LCD no hay ninguna de las
+    # dos pantallas, luego no queda nadie que pueda pintar una antiguedad pequena
+    # por su cuenta. Lo que SI se queda -y lo miden los bloques de arriba de este
+    # mismo pack- es que la puerta de entrada al Degradado contrasta la marca
+    # contra la pila: esa era la capa que de verdad defendia, y no se toca.
+    # Una comprobacion menos: 19 -> 18.
 
 
     # ==========================================================================

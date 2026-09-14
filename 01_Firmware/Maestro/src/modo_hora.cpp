@@ -2,7 +2,6 @@
 #include "modo_hora.h"
 #include "botones.h"
 #include "coordinador.h"
-#include "lcd.h"
 #include "menu.h"
 #include "modos.h"
 #include "reloj.h"
@@ -91,13 +90,11 @@ static bool syncNuevaConfirmada() {
   return desde <= (millis() - tFase);
 }
 
-static void repintar() {
-  // N-24: se le pasa tambien si el oscilador arranco. Sin ese dato la pantalla solo
-  // podia decir "sin poner en hora", que manda al operario a teclear la hora contra
-  // un RTC parado una y otra vez.
-  lcd_dibujarAjusteHora(horaActual(), minutoActual(), digito, reloj_enHora(),
-                        reloj_hayCristal());
-}
+// D-32 (1), 13/09: aqui vivia repintar(), que era la UNICA salida de este modo. Con
+// la pantalla fuera, MODO_HORA no ensena nada y su confirmacion sigue colgando de
+// botonAceptar(), que devuelve false desde el 31/08: el modo esta muerto de las dos
+// puntas a la vez. NO SE RETIRA EN ESTE COMMIT porque su enum vive en modos.h, que
+// este encargo no toca; queda medido y reportado como los 748 B que sobran.
 
 void modo_hora_setup() {
   // Mismo estado seguro que el Menu y que PRUEBA ALCANCE: Rojo Fijo en ambos
@@ -121,8 +118,6 @@ void modo_hora_setup() {
   fase = FH_EDITANDO;
   envioOk = false;
   sinReloj = false;
-
-  repintar();
 }
 
 void modo_hora_loop() {
@@ -136,7 +131,6 @@ void modo_hora_loop() {
       envioOk = true;
       fase = FH_RESULTADO;
       tFase = millis();
-      lcd_dibujarSyncHora(false, true);
       return;
     }
 
@@ -147,7 +141,6 @@ void modo_hora_loop() {
       envioOk = false;
       fase = FH_RESULTADO;
       tFase = millis();
-      lcd_dibujarSyncHora(false, false);
     }
     return;
   }
@@ -163,13 +156,6 @@ void modo_hora_loop() {
     // repinta y lo que se mira es si el numero CAMBIA. El RTC del F1 cuenta una vez
     // por segundo; medio segundo de refresco basta para verlo sin cargar el bus de
     // la pantalla mas de lo necesario.
-    if (sinReloj && millis() - tDiag >= REFRESCO_DIAG_MS) {
-      tDiag = millis();
-      latidoDiag = !latidoDiag;
-      RelojDiag diag;
-      reloj_diagnostico(&diag);
-      lcd_dibujarDiagnosticoReloj(diag, latidoDiag);
-    }
 
     // N-45: la consulta del reloj NO se va sola. Los otros resultados son un
     // desenlace de una linea que se lee de un vistazo; esta son cuatro lineas de
@@ -240,9 +226,6 @@ void modo_hora_loop() {
         tFase = millis();
         tDiag = millis();
         latidoDiag = false;
-        RelojDiag diag;
-        reloj_diagnostico(&diag);
-        lcd_dibujarDiagnosticoReloj(diag, latidoDiag);
         return;
       }
       sinReloj = false;
@@ -253,7 +236,6 @@ void modo_hora_loop() {
       // desde el bucle de abajo, que es lo unico que hace que las tramas salgan.
       fase = FH_ENVIANDO;
       tFase = millis();
-      lcd_dibujarSyncHora(true, false);
       return;
     }
   }
@@ -270,5 +252,5 @@ void modo_hora_loop() {
   // Esclavo no interprete orfandad y se vaya a Ambar por estar el operario aqui.
   coordinador_actualizar();
 
-  if (cambio) repintar();
+  (void)cambio;   // D-32 (1): lo unico que hacia era disparar el repintado.
 }

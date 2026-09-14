@@ -3,10 +3,8 @@
 #include "botones.h"
 #include "semaforo.h"
 #include "coordinador.h"
-#include "lcd.h"
 #include "menu.h"
 #include "modos.h"
-#include <string.h>
 
 // N-141 (04/09/2026): MODO MANUAL TENIA LA MISMA TRAMPA QUE N-42, Y SEGUIA ABIERTA.
 //
@@ -79,7 +77,6 @@ void modoManual_setup() {
   // mismo reset de replay- y termina en C_IDLE con quienVerde en QV_NINGUNO. O sea: el
   // cruce parado sin plazo ninguno, y la primera pulsacion aceptada.
   coordinador_forzarRojoTotal();
-  lcd_dibujarManual(semaforo_nombreEstado());
 }
 
 void modoManual_loop() {
@@ -110,10 +107,8 @@ void modoManual_loop() {
 
   coordinador_actualizar();
 
-  static const char* estadoAnt = "";
-  const char* actual = coordinador_nombreEstadoMaster();
-  if (strcmp(actual, estadoAnt) != 0) {
-    lcd_dibujarManual(actual);
-    estadoAnt = actual;
-  }
+  // D-32 (1), 13/09: aqui vivia el repintado por cambio de estado. Era el UNICO
+  // producto de este bloque -comparar el nombre del estado contra el anterior para
+  // no repetir el volcado a la ST7920-, asi que se va entero con la pantalla. El
+  // estado del Maestro lo sigue publicando bluetooth.cpp por coordinador_nombreEstadoMaster().
 }

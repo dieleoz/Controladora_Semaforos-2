@@ -5,7 +5,6 @@
 #include "demanda.h"    // la puerta unica por la que sale una demanda
 #include "reloj.h"           // SFTY-23
 #include "botones.h"         // N-16
-#include "lcd.h"             // N-16
 #include "menu.h"            // N-16
 #include "mando.h"           // SFTY-21 / N-19: mando de reles
 #include "config_ciclo.h"    // SFTY-23: lo que este fichero publica para el Degradado
@@ -209,8 +208,6 @@ void setup() {
   //
   // botones_setup() la acompana porque solo declara pines y siembra su estado (N-26).
   botones_setup();
-  lcd_setup();
-  lcd_dibujarBienvenida();
 
   // N-22: los 2 s que el Maestro SI tenia y esta punta no. Era la ultima diferencia
   // que quedaba entre las dos en todo el camino de la pantalla; el constructor de

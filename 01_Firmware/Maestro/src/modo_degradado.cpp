@@ -5,7 +5,6 @@
 #include "botones.h"
 #include "ciclo_degradado.h"
 #include "coordinador.h"
-#include "lcd.h"
 #include "menu.h"
 #include "modos.h"
 #include "reloj.h"
@@ -257,9 +256,8 @@ static bool reanudacionPorDecidir = true;
 
 // Ultimo dibujado, para no repintar sin necesidad: volcar el buffer de 1 KB por SPI
 // software bloquea el bucle unas decenas de ms.
-static FaseDegradado ultFase = FD_DESPEJE_A;
-static uint32_t ultRestante = 0xFFFFFFFFUL;
-static EstadoDeg ultEstadoPintado = DEG_ACTIVO;
+// D-32 (1), 13/09: aqui vivian ultFase/ultRestante/ultEstadoPintado, los tres
+// static que evitaban repetir el volcado del framebuffer. Se van con la pantalla.
 
 // Declarada aqui porque la puerta la necesita y su cuerpo vive mas abajo, junto al
 // resto de la logica del limite duro.
@@ -545,7 +543,6 @@ static void irAAmbar(const char* l1, const char* l2) {
   ambarArrancado = false;
   estado = DEG_AMBAR;
   tEstado = millis();
-  lcd_dibujarDegradadoAmbar(l1, l2);
 }
 
 void modo_degradado_setup() {
@@ -570,8 +567,9 @@ void modo_degradado_setup() {
   if (motivo != MDG_OK) {
     estado = DEG_RECHAZO;
     semaforo_forzarRojo();
-    lcd_dibujarDegradadoRechazo(modo_degradado_motivoL1(motivo),
-                                modo_degradado_motivoL2(motivo));
+    // D-32 (1): el motivo ya no se pinta. SIGUE PUBLICANDOSE: modo_degradado_motivoL1()
+    // y motivoL2() las lee bluetooth.cpp para el $ERR del rechazo, que es hoy la unica
+    // via por la que el tecnico sabe por que no entro.
     return;
   }
 
@@ -605,8 +603,6 @@ void modo_degradado_setup() {
   // equipo que arranca es justo el que menos sabe de lo que hay en el tramo.
   anclarHora();   // D-26 (4): la referencia del salto de hora empieza aqui
   estado = DEG_ENTRADA_ROJO;
-  ultRestante = 0xFFFFFFFFUL;
-  ultEstadoPintado = DEG_RECHAZO;  // fuerza el primer repintado
 }
 
 bool modo_degradado_pedirSalida() {
@@ -624,9 +620,6 @@ bool modo_degradado_pedirSalida() {
   semaforo_forzarRojo();
   estado = DEG_SALIDA_ROJO;
   tEstado = millis();
-  // El texto es corto a proposito: con la fuente 6x10 caben 20 caracteres por linea
-  // y U8g2 recorta en silencio lo que sobre. El arnes lo comprueba.
-  lcd_dibujarDegradadoAmbar("Saliendo: todo rojo", "Vea las dos puntas");
   return true;
 }
 
@@ -738,7 +731,6 @@ void modo_degradado_loop() {
     semaforo_forzarRojo();
     estado = DEG_ENTRADA_ROJO;
     tEstado = millis();
-    ultEstadoPintado = DEG_RECHAZO;  // fuerza el repintado: la pantalla dice "Entrando"
     bluetooth_reportarEvento("DEGRADADO", "SALTO_DE_HORA_POR_ROJO");
   }
 
@@ -755,7 +747,6 @@ void modo_degradado_loop() {
     //      primer verde que se de sera un verde entero contado desde su principio.
     if (millis() - tEstado >= ROJO_TRANSICION_MS && fase != FD_VERDE_MAESTRO) {
       estado = DEG_ACTIVO;
-      ultEstadoPintado = DEG_ENTRADA_ROJO;  // fuerza repintado al cambiar de estado
     }
     semaforo_forzarRojo();
   } else {
@@ -773,36 +764,20 @@ void modo_degradado_loop() {
     }
   }
 
-  // --- Pantalla ------------------------------------------------------------
-  uint32_t restante = ciclo_degradado_restante(reloj_segundosDelDia(),
-                                               DEG_VERDE_SEG, DEG_DESPEJE_SEG);
-  if (fase == ultFase && restante == ultRestante && estado == ultEstadoPintado) return;
-  ultFase = fase;
-  ultRestante = restante;
-  ultEstadoPintado = estado;
-
-  const char* textoFase;
-  const char* detalle;
-  if (estado == DEG_ENTRADA_ROJO) {
-    textoFase = "ROJO";
-    detalle = "Entrando: todo rojo";
-  } else if (fase == FD_VERDE_MAESTRO) {
-    textoFase = "VERDE";
-    detalle = "Paso por el maestro";
-  } else if (fase == FD_VERDE_ESCLAVO) {
-    textoFase = "ROJO";
-    detalle = "Paso por el esclavo";
-  } else {
-    textoFase = "ROJO";
-    detalle = "Despeje total";
-  }
-
-  bool syncVencida = (desdeSync >= LIMITE_DURO_MS);
-
-  // Aviso al acercarse al limite. Se avisa con 4 h de margen: es tiempo de sobra para
-  // programar una visita, y no tanto como para que el aviso se vuelva paisaje.
-  const char* aviso = (desdeSync >= AVISO_LIMITE_MS) ? "AVISO: LIMITE 48h" : 0;
-
-  lcd_dibujarDegradado(textoFase, detalle, (unsigned long)restante,
-                       desdeSync / 60000UL, syncVencida, aviso);
+  // --- Pantalla: RETIRADA POR D-32 (1) el 13/09 ------------------------------
+  //
+  // Aqui terminaba el bucle componiendo la fase ("VERDE"/"ROJO"), el detalle
+  // ("Paso por el maestro", "Despeje total"...), la cuenta atras de
+  // ciclo_degradado_restante() y el aviso del limite de 48 h, y lo volcaba con
+  // lcd_dibujarDegradado(). Todo eso era PANTALLA: no decidia ninguna luz -la luz se
+  // decide en el bloque de arriba, en la unica linea del firmware que da verde sin
+  // confirmacion del otro extremo- y se va entero.
+  //
+  // NO SE PIERDE EL AVISO DE LAS 48 h: LIMITE_DURO_MS lo sigue aplicando la puerta de
+  // entrada (modo_degradado_evaluarEntrada) y la rendicion, que son las que mandan; lo
+  // que desaparece es el recuadro que lo anunciaba en el gabinete.
+  //
+  // LO QUE SI SE PIERDE, dicho con su nombre: en esta punta ya nadie llama a
+  // ciclo_degradado_restante(), asi que la CUENTA ATRAS del Degradado del Maestro no
+  // se publica en ningun sitio. En el Esclavo si -degradado_segundosParaCambio()-.
 }

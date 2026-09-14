@@ -69,7 +69,21 @@ def _usa_de_verdad(fw, punta):
 
 
 def _depende_de_u8g2(fw, punta):
-    return "U8g2" in fw.texto(punta, "platformio.ini")
+    """Si esa punta ENLAZA u8g2, leido del bloque lib_deps y no del fichero entero.
+
+    MISMO MOTIVO QUE _banderas_de(), y se aprendio dos veces: el comentario que explica
+    la decision NOMBRA la libreria, asi que buscarla en el texto entero da por declarada
+    una dependencia que solo esta explicada. Medido el 13/09 con D-32 (1): retirado
+    U8g2 de los dos platformio.ini, esta funcion seguia devolviendo True por el
+    comentario que documentaba la retirada, y este pack ABORTABA buscando un
+    constructor U8G2_* que ya no existe. Un pack que se cree un comentario no mide el
+    firmware: mide la prosa que lo rodea."""
+    texto = fw.texto(punta, "platformio.ini")
+    m = re.search(r"^lib_deps\s*=(.*?)(?=^\w|^\[|\Z)", texto, re.S | re.M)
+    if m is None:
+        return False
+    cuerpo = re.sub(r";[^\n]*", " ", m.group(1))          # comentarios de .ini fuera
+    return "U8g2" in cuerpo or "u8g2" in cuerpo
 
 
 def _banderas_de(fw, punta):
@@ -91,16 +105,28 @@ def correr(b, fw):
 
     usa = {p: _usa_de_verdad(fw, p) for p in PUNTAS}
     con_pantalla = [p for p in PUNTAS if _depende_de_u8g2(fw, p)]
-    if not con_pantalla:
-        raise fw.Abortado(
-            "ninguna punta declara U8g2 en su platformio.ini. O cambio la libreria de "
-            "pantalla o fallo la lectura del .ini; en los dos casos este pack estaria "
-            "exigiendo banderas de una libreria que ya no se enlaza")
 
+    # D-32 (1), 13/09: AQUI HABIA UN `raise fw.Abortado` SI NINGUNA PUNTA DECLARABA
+    # U8g2, Y HOY NINGUNA LA DECLARA. Se retira el aborto y se dice por que, porque un
+    # ABORTADO aqui seria decir "no pude medir" cuando lo cierto es "ya no hay nada de
+    # eso que medir" -y ABORTADO no dice nada del firmware, o sea que habria dejado
+    # pasar sin mirar todo lo que este pack vigila (CLAUDE.md 1)-.
+    #
+    # EL PACK NO SE QUEDA SIN TRABAJO, se queda con la mitad que sigue viva:
+    #   - Los bloques 1 y 2 recorren `con_pantalla`. Vacia -> cero comprobaciones, y no
+    #     por un `if` que las salte sino porque no hay sujeto que recorrer.
+    #   - El bloque 3 -"si una punta empieza a usar I2C de verdad, la bandera tiene que
+    #     SALIR"- sigue recorriendo las TRES puntas: es el que sirve el dia del PCF8574.
+    #   - El bloque 4 pasa de mirar una punta a mirar las TRES: ninguna tiene pantalla,
+    #     asi que NINGUNA puede llevar U8X8_NO_HW_I2C ni U8X8_NO_HW_SPI. Eso es mas
+    #     vigilancia que antes, no menos, y es exactamente lo que caza el .ini copiado
+    #     que devolveria el lastre.
+    # La cuenta del pack baja a proposito: de 11 comprobaciones a las que salgan de los
+    # bloques 3 y 4 mas los controles negativos.
     b.verificar(
         True,
         "puntas con pantalla u8g2: %s | uso real de buses: %s"
-        % (", ".join(con_pantalla),
+        % (", ".join(con_pantalla) or "NINGUNA (D-32 (1): el LCD salio del firmware)",
            ", ".join("%s=%s" % (p, sorted(usa[p]) or "ninguno") for p in PUNTAS)),
         "no deberia llegarse aqui")
 

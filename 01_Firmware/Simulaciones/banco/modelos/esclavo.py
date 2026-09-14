@@ -26,7 +26,6 @@ from banco import fuente as _fw
 # Si alguna no se puede leer, banco.fuente ABORTA: sin valor por defecto, nunca.
 # --------------------------------------------------------------------------
 _ESC_MANDO = ("Esclavo", "src", "mando.cpp")
-_ESC_MENU = ("Esclavo", "src", "menu.cpp")
 _ESC_MAIN = ("Esclavo", "src", "main.cpp")
 _ESC_SEM = ("Esclavo", "src", "semaforo.cpp")
 _ESC_DEG = ("Esclavo", "src", "modo_degradado.cpp")
@@ -46,9 +45,16 @@ DESTELLO_OFF_MS = _fw.constante(_ESC_SEM, r"DESTELLO_OFF_MS\s*=\s*(\d+)", "deste
 AMBAR_RAPIDO_MS = _fw.constante(_ESC_SEM, r"AMBAR_RAPIDO_PERIODO_MS\s*=\s*(\d+)", "periodo del ambar rapido")
 AMARILLO_A_VERDE_MS = _fw.constante(_ESC_SEM, r"estado\s*==\s*S_AMARILLO\s*&&\s*\(ahora\s*-\s*tCambio\s*>=\s*(\d+)\)", "amarillo previo al verde")
 
-INACTIVIDAD_MS = _fw.constante(_ESC_MENU, r"INACTIVIDAD_MS\s*=\s*(\d+)", "regreso automatico al listado")
-REFRESCO_MS = _fw.constante(_ESC_MENU, r"REFRESCO_MS\s*=\s*(\d+)", "repintado periodico")
-RECHAZO_MS = _fw.constante(_ESC_MENU, r"RECHAZO_MS\s*=\s*(\d+)", "duracion del cartel de rechazo")
+# D-32 (1), 13/09: aqui se leian del menu.cpp del Esclavo INACTIVIDAD_MS (regreso
+# automatico al listado), REFRESCO_MS (repintado periodico) y RECHAZO_MS (duracion del
+# cartel de rechazo). Las tres eran de la NAVEGACION de la pantalla y se van con ella.
+#
+# ERAN LA CASCADA MAS CARA DE ESTE CAMBIO, y por eso queda escrito: se leian A NIVEL DE
+# MODULO y sin valor por defecto, asi que en cuanto dejaran de estar en el C++ el propio
+# `import banco.modelos.esclavo` habria lanzado Abortado y habria tumbado en ABORTADO a
+# los CINCO packs que importan este modelo -esclavo_01, _02, _03, _04 y _05, 31
+# comprobaciones-. ABORTADO no dice nada del firmware: habria sido una puerta abierta,
+# no una casilla pendiente.
 
 VENTANA_HORA_MS = _fw.constante(_ESC_MAIN, r"VENTANA_HORA_MS\s*=\s*(\d+)", "caducidad del buffer de hora")
 
@@ -366,98 +372,22 @@ class ModoDegradado:
         return self.estado in ("DEG_ENTRANDO", "DEG_ACTIVO", "DEG_SALIENDO")
 
 
-class Menu:
-    """Puerto de src/menu.cpp. Solo interesa la NAVEGACION, no lo que dibuja:
-    la geometria la valida el arnes de 01_Firmware/Validacion_LCD."""
-
-    N_OPCIONES = 2
-
-    def __init__(self, nodo):
-        self.nodo = nodo
-        self.pantalla = "P_MENU"
-        self.cursor = 0
-        self.tRechazo = 0
-        self.tRepintado = 0
-        self.tUltimaPulsacion = 0
-        self.repintados = 0
-
-    def setup(self):
-        self.pantalla = "P_MENU"
-        self.cursor = 0
-        self.tUltimaPulsacion = self.nodo.t
-        self.tRepintado = self.nodo.t
-        self.repintados += 1
-
-    def esta_abierto(self):
-        return self.pantalla != "P_MENU"
-
-    def _ir_a(self, p):
-        self.pantalla = p
-        self.tRepintado = self.nodo.t
-        self.repintados += 1
-
-    def loop(self):
-        n = self.nodo
-        arriba = n.consumir_boton(0)
-        abajo = n.consumir_boton(1)
-        aceptar = n.consumir_boton(2)
-        cancelar = n.consumir_boton(3)
-        hay_pulsacion = arriba or abajo or aceptar or cancelar
-
-        if hay_pulsacion:
-            self.tUltimaPulsacion = n.t
-        elif self.pantalla != "P_MENU" and (n.t - self.tUltimaPulsacion) >= INACTIVIDAD_MS:
-            self.cursor = 0
-            self._ir_a("P_MENU")
-            return
-
-        cambio = False
-        if self.pantalla == "P_MENU":
-            if arriba:
-                self.cursor = (self.cursor + self.N_OPCIONES - 1) % self.N_OPCIONES
-                cambio = True
-            if abajo:
-                self.cursor = (self.cursor + 1) % self.N_OPCIONES
-                cambio = True
-            if aceptar:
-                self._ir_a("P_ESTADO" if self.cursor == 0 else "P_DEGRADADO")
-                return
-        elif self.pantalla == "P_ESTADO":
-            if cancelar:
-                self._ir_a("P_MENU")
-                return
-        elif self.pantalla == "P_DEGRADADO":
-            if cancelar:
-                self._ir_a("P_MENU")
-                return
-            if aceptar:
-                if n.degradado.gobierna_luz():
-                    n.degradado.salir()
-                    cambio = True
-                else:
-                    self._ir_a("P_CONFIRMAR")
-                    return
-        elif self.pantalla == "P_CONFIRMAR":
-            if cancelar:
-                self._ir_a("P_DEGRADADO")
-                return
-            if aceptar:
-                n.ultimo_rechazo = n.degradado.entrar()
-                if n.ultimo_rechazo == "DEG_ACEPTADO":
-                    self._ir_a("P_DEGRADADO")
-                else:
-                    self.tRechazo = n.t
-                    self._ir_a("P_RECHAZO")
-                return
-        elif self.pantalla == "P_RECHAZO":
-            if hay_pulsacion or (n.t - self.tRechazo) > RECHAZO_MS:
-                self._ir_a("P_DEGRADADO")
-                return
-
-        vivo = self.pantalla in ("P_ESTADO", "P_DEGRADADO", "P_CONFIRMAR")
-        if cambio or (vivo and (n.t - self.tRepintado) >= REFRESCO_MS):
-            self.tRepintado = n.t
-            self.repintados += 1
+# D-32 (1), 13/09: AQUI VIVIA `class Menu`, el puerto en Python de src/menu.cpp del
+# Esclavo: las cinco pantallas (P_MENU, P_ESTADO, P_DEGRADADO, P_CONFIRMAR, P_RECHAZO),
+# el cursor, el regreso automatico al listado y el repintado periodico. Se va entera
+# porque su sujeto ya no existe: de menu.cpp solo queda menu_estaAbierto().
+#
+# LO QUE ESE MODELO SOSTENIA, y donde ha quedado: esta clase era lo que le daba sujeto
+# a esclavo_02_inhibicion_menu (7 comprobaciones, `# EJERCE SFTY-21: el mando queda
+# inhibido con el menu abierto`), que se retira con ella. SFTY-21 NO se queda sin
+# ejercicio: quedan once packs etiquetados -maestro_01_mando mide las tres secuencias,
+# esclavo_01 el latch, camara_02_j16 la polaridad de A y B, y siete mas-.
+#
+# Y la inhibicion en si: `menu_estaAbierto()` devuelve hoy false siempre, asi que el
+# mando del Esclavo esta SIEMPRE armado. Eso no lo estrena este commit -botonAceptar()
+# es `return false;` desde el 31/08, o sea que la pantalla no podia bajar del listado y
+# la bandera ya era falsa en todas las vueltas-; lo que cambia es que ya no hay un
+# modelo simulando un estado que el equipo no puede alcanzar.
 
 
 class Mando:
@@ -465,7 +395,7 @@ class Mando:
 
     MAX_PULSOS = 4
 
-    def __init__(self, nodo, inhibicion_activa=True, guarda_ambar_en_verde=True):
+    def __init__(self, nodo, guarda_ambar_en_verde=True):
         self.nodo = nodo
         self.sec = []          # (boton, instante)
         self.pendiente = None
@@ -474,14 +404,26 @@ class Mando:
         # Interruptores para los CONTROLES NEGATIVOS: permiten correr el mismo
         # modelo SIN una salvaguarda y exigir que la prueba lo cace. Si la prueba
         # no distingue las dos versiones, no esta midiendo la salvaguarda.
-        self.inhibicion_activa = inhibicion_activa
         self.guarda_ambar_en_verde = guarda_ambar_en_verde
 
     def _limpiar(self):
         self.sec = []
 
     def _secuencias_inhibidas(self):
-        return self.inhibicion_activa and self.nodo.menu.esta_abierto()
+        # D-32 (1), 13/09: EL MODELO SIGUE AL FIRMWARE, que es la unica forma de que
+        # este banco valga para algo. mando.cpp del Esclavo hace
+        # `return menu_estaAbierto();` y menu_estaAbierto() es hoy `return false;`.
+        #
+        # Aqui habia ademas un interruptor -inhibicion_activa- para poder correr el
+        # modelo SIN la salvaguarda y exigir que la prueba lo cazara. Se retira con la
+        # unica prueba que lo giraba (esclavo_02_inhibicion_menu): un control negativo
+        # que ya nadie ejerce no es un control, es un parametro muerto.
+        #
+        # LO QUE ESTO SIGNIFICA, dicho entero: el mando del Esclavo esta SIEMPRE armado
+        # sobre J16 p5/p8, que estan vacios y pelados. No es nuevo -desde el 31/08 la
+        # pantalla no podia bajar del listado, asi que la bandera ya era falsa siempre-
+        # y no lo cierra el firmware: lo cierra la instruccion de no cablear esos pines.
+        return False
 
     def _confirmar_y_actuar(self, accion, destellos):
         self.nodo.semaforo.forzar_rojo()
@@ -571,7 +513,6 @@ class Esclavo:
         self.flanco = [False] * 4
         self.semaforo = Semaforo(self)
         self.degradado = ModoDegradado(self)
-        self.menu = Menu(self)
         self.mando = Mando(self)
         self.rx = []            # tramas que llegan del Maestro
         self.tx = []            # (instante, comando, param) que salen al aire
@@ -583,8 +524,7 @@ class Esclavo:
         self.tInicioVerde = 0
         self.estado_luz_ant = "S_ROJO"
         self.ultimo_rechazo = "DEG_ACEPTADO"
-        self.interfaz_arrancada = True
-        self.menu.setup()
+        # D-32 (1): aqui iban `self.interfaz_arrancada = True` y `self.menu.setup()`.
 
         # Reloj
         self.reloj_en_hora = True
@@ -828,9 +768,7 @@ class Esclavo:
             self.programar_respuesta(CMD["CMD_ACK_GREEN"])
             self.ack_verde_enviado = True
 
-        if self.interfaz_arrancada:
-            self.menu.loop()
-
+        # D-32 (1): aqui iba `if self.interfaz_arrancada: self.menu.loop()`.
         self.mando.actualizar()
         self.flanco = [False] * 4
 

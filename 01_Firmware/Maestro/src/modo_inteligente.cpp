@@ -5,11 +5,9 @@
 #include "semaforo.h"
 #include "coordinador.h"
 #include "demanda.h"
-#include "lcd.h"
 #include "menu.h"
 #include "modos.h"
 #include "protocolo.h"
-#include <string.h>
 #include "limites_ciclo.h"   // N-137: el minimo vial, no un 2 escrito a mano
 #include "modo_automatico.h" // A-12: los tiempos CONFIGURADOS se leen, no se copian
 
@@ -153,7 +151,6 @@ void modoInteligente_setup() {
 
   tEstadoDesde = millis();
   primeraVezCorriendo = true;
-  lcd_dibujarInteligente(coordinador_nombreEstadoMaster(), 0, true);
 }
 
 void modoInteligente_loop() {
@@ -291,21 +288,9 @@ void modoInteligente_loop() {
         primeraVezCorriendo = true;
       }
 
-      static const char* estadoAnt = "";
-      static int presenciaAnt = -1;
-      const char* actual = coordinador_nombreEstadoMaster();
-
-      // LO QUE SE DIBUJA ES LO QUE DECIDE, y no una segunda lectura. Aqui se llamaba otra
-      // vez a camara_leerPin(CAM_DEMANDA_PIN), o sea que la pantalla contaba SOLO la
-      // camara de J14: una deteccion de J16 -que es donde el responsable decidio poner la
-      // camara el 05/09- alargaba la fase sin aparecer en el contador de presencia. El
-      // operario veia un cruce que no cambiaba y un cero al lado.
-      int presenciaActual = (demandaLocalS1 ? 1 : 0) + (demandaRemotaS2 ? 1 : 0);
-
-      if (strcmp(actual, estadoAnt) != 0 || presenciaActual != presenciaAnt) {
-        lcd_dibujarInteligente(actual, presenciaActual, true);
-        estadoAnt = actual;
-        presenciaAnt = presenciaActual;
-      }
+      // D-32 (1), 13/09: aqui se componia el contador de presencia de la pantalla
+      // -(demandaLocalS1?1:0) + (demandaRemotaS2?1:0)- y se repintaba al cambiar. Se
+      // retira con la pantalla. NO se retira nada de lo que DECIDE: las dos banderas
+      // que lo alimentaban se calculan mas arriba y las sigue usando la logica de fase.
   }
 }

@@ -71,9 +71,22 @@ PUERTAS_AL_VERDE = (
 # una decision que el que abra el arnes no puede ver.
 EXCLUIDOS = {
     ("Maestro", "modo_degradado.cpp"):
-        "incluye lcd.h y menu.h, o sea u8g2 y la pantalla entera. Consecuencia escrita "
-        "en adaptador_maestro.cpp: el Modo Degradado del MAESTRO no se ejerce en este "
-        "arnes -el del Esclavo si, y es el que crea las dos autoridades sobre la luz-",
+        # MOTIVO REESCRITO EL 13/09 POR D-32 (1). LA EXCLUSION SE QUEDA; EL MOTIVO ERA
+        # FALSO, y por dos vias a la vez:
+        #
+        #   1. Decia "incluye lcd.h y menu.h, o sea u8g2 y la pantalla entera". Ya lo
+        #      habia refutado por medida adaptador_maestro_deg.cpp -"U8g2 lo arrastra
+        #      lcd.cpp, no lcd.h"-, que compila modo_degradado.cpp del Maestro SIN
+        #      traerse la libreria. O sea que la excusa no describia el arbol ni antes.
+        #   2. Y desde hoy no hay lcd.h ni u8g2 que incluir en ninguna punta.
+        #
+        # EL MOTIVO DE VERDAD, que es el que hay que poder comprobar: este arnes reparte
+        # el trabajo con el del Degradado a dos puntas, y es ESE el que compila y
+        # ejerce Maestro/src/modo_degradado.cpp. Aqui se ejerce el del Esclavo, que es
+        # el que crea las dos autoridades sobre la luz.
+        "lo ejerce el arnes del Degradado a dos puntas, que SI compila "
+        "Maestro/src/modo_degradado.cpp; aqui se ejerce el del Esclavo, que es el que "
+        "crea las dos autoridades sobre la luz",
 }
 
 # Sin estos tres, el arnes no mide la propiedad aunque compile y de verde.

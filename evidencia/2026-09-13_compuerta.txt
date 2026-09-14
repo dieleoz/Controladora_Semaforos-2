@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-09-13
-HEAD         : 06f126e   rama: main
+HEAD         : fb395c6   rama: main
 Arbol        : CON CAMBIOS SIN COMMITEAR
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -9,9 +9,9 @@ GCC de host  : gcc.exe (MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders
 
 RESULTADOS
 ------------------------------------------------------------------------------
-  PASS      guarda de rutas                   65 rutas parseadas, todas existen
-  PASS      compila maestro                   Flash: [========= ]  89.9% (used 58888 bytes from 65536 bytes)
-  PASS      compila esclavo                   Flash: [=======   ]  70.9% (used 46444 bytes from 65536 bytes)
+  PASS      guarda de rutas                   61 rutas parseadas, todas existen
+  PASS      compila maestro                   Flash: [======    ]  63.1% (used 41368 bytes from 65536 bytes)
+  PASS      compila esclavo                   Flash: [======    ]  55.4% (used 36336 bytes from 65536 bytes)
   PASS      compila repetidor                 Flash: [==        ]  20.6% (used 270497 bytes from 1310720 bytes)
   PASS      compila esp32                     Flash: [====      ]  35.7% (used 1123521 bytes from 3145728 bytes)
   PASS      simulador funcional               VEREDICTO FINAL: 9/9 PASS (SISTEMA V8.0 DEFINITIVA CERTIFICADO)
@@ -21,8 +21,7 @@ RESULTADOS
   PASS      test unitarios de la app          RESUMEN DE PRUEBAS: 42 PASS | 0 FALLAS  (Total: 42)
   PASS      test unitarios TDD de la app      RESUMEN TDD: 69 PASS | 0 FALLAS  (Total: 69)
   PASS      app ejecutada en DOM              RESULTADO JSDOM: 268 PASS | 0 FALLAS
-  FALLA     banco por packs                   RESUMEN: 1407/1410 comprobaciones  |  packs: 81 PASS, 1 FALLA, 0 ABORTADO
-  PASS      arnes de pantalla                 MAESTRO  145/145 comprobaciones OK | ESCLAVO  142/142 comprobaciones OK | TOTAL    287/287 comprobaciones OK
+  FALLA     banco por packs                   RESUMEN: 1382/1383 comprobaciones  |  packs: 78 PASS, 1 FALLA, 0 ABORTADO
   PASS      arnes del ciclo                   RESULTADO: 22/22 comprobaciones OK
   PASS      arnes del respaldo                respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
   PASS      arnes del automatico              RESULTADO: 99/99 comprobaciones OK
@@ -30,11 +29,11 @@ RESULTADOS
   PASS      arnes del Degradado a dos puntas  RESULTADO: 53/53 comprobaciones OK
   PASS      simulador del puente ESP32        RESULTADO: 119/119 comprobaciones del contrato del puente en PASS
 ------------------------------------------------------------------------------
-  RESUMEN: 19 PASS | 1 FALLA | 0 ABORTADO
+  RESUMEN: 18 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a 06f126e y re-corriendo
+firmware. Esta acta se verifica volviendo a fb395c6 y re-corriendo
 python 01_Firmware/compuerta.py.
 
 AVISO: el arbol tenia cambios sin commitear al medir. Estas
-cifras NO corresponden exactamente a 06f126e.
+cifras NO corresponden exactamente a fb395c6.

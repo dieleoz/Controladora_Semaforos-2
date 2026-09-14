@@ -147,7 +147,7 @@ CIFRAS_ACTA = (
     ("simulador funcional",    r"(\d+/\d+) PASS",            "funcional",        "%s"),
     ("simulador de repetidor", r"(\d+/\d+) PASS",            "repetidor",        "%s"),
     ("banco por packs",        r"\d+/(\d+) comprobaciones",  "banco por packs",  "%s"),
-    ("arnes de pantalla",      r"TOTAL\s+(\d+/\d+)",         "pantalla",         "%s"),
+    # D-32 (1), 13/09: fuera la fila del "arnes de pantalla". Se retiro con el LCD.
     ("arnes del ciclo",        r"(\d+/\d+) comprobaciones",  "ciclo",            "%s"),
     ("arnes del automatico",   r"(\d+/\d+) comprobaciones",  "automatico",       "%s"),
     ("test funcional de la app", r"(\d+/\d+) comprobaciones", "app",             "%s"),

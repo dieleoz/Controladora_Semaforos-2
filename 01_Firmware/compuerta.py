@@ -393,51 +393,23 @@ def correr_python(nombre, script, base=None):
     anotar(nombre, PASS if p.returncode == 0 else FALLA, cuenta)
 
 
-def arnes_lcd():
-    """El arnes compila los lcd.cpp REALES contra un framebuffer en el PC. Necesita
-    gcc de host: sin el no puede correr, y eso es ABORTADO, no PASS. Ese matiz
-    importa mas de lo que parece -las 209 pantallas dejan de estar cubiertas- y sin
-    esta compuerta se pasaba por alto."""
-    d = os.path.join(RAIZ, "Validacion_LCD")
-    if not os.path.isdir(d):
-        anotar("arnes de pantalla", ABORTADO, "no existe Validacion_LCD")
-        return
-    if _asegurar_gcc() is None:
-        anotar("arnes de pantalla", ABORTADO,
-               f"{MOTIVO_GCC}: las pantallas NO se validaron")
-        return
-    # -ExecutionPolicy Bypass NO es un atajo de comodidad: sin el, la politica del
-    # sistema rechaza compilar.ps1 y la compuerta se comia el error como si el arnes
-    # hubiera corrido y fallado. Se descubrio porque el acta salia SIN CIFRA: 433
-    # caracteres de salida donde el arnes escribe 239 comprobaciones.
-    p = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
-                        "-File", os.path.join(d, "compilar.ps1")],
-                       cwd=d, capture_output=True, text=True, errors="replace")
-    salida = (p.stdout or "") + (p.stderr or "")
-
-    # UN ARNES QUE NO ARRANCA ES ABORTADO, NO FALLA. La distincion es la razon de ser
-    # de este script y aqui misma se estaba incumpliendo: FALLA afirma "el firmware no
-    # cumple", y un arnes bloqueado por la politica de ejecucion no midio el firmware.
-    if ("ejecuci" in salida and "deshabilitada" in salida) or \
-       "UnauthorizedAccess" in salida or "cannot be loaded" in salida:
-        anotar("arnes de pantalla", ABORTADO,
-               "la politica de ejecucion de PowerShell bloqueo compilar.ps1")
-        return
-    if "comprobaciones" not in salida:
-        anotar("arnes de pantalla", ABORTADO,
-               f"el arnes no llego a medir (solo {len(salida)} caracteres de salida)")
-        return
-    # El arnes resume en "MAESTRO 110/113 comprobaciones OK" y "TOTAL 3 de 239 ...
-    # FALLARON": dice OK y FALLARON, no PASS. Buscar "PASS" aqui dejaba el acta sin
-    # cifra -y un acta sin cifra no certifica nada-.
-    partes = [l.strip() for l in salida.splitlines()
-              if re.search(r"\b(MAESTRO|ESCLAVO)\b\s+\d+/\d+", l)]
-    total = next((l.strip() for l in reversed(salida.splitlines())
-                  if "TOTAL" in l.upper() and any(c.isdigit() for c in l)), "")
-    cuenta = " | ".join(partes + ([total] if total and not partes else []))
-    if partes and total:
-        cuenta += " | " + total
-    anotar("arnes de pantalla", PASS if p.returncode == 0 else FALLA, cuenta[:150])
+# D-32 (1), 13/09/2026: AQUI VIVIA arnes_lcd(), Y LA CUENTA DE LA COMPUERTA BAJA A
+# PROPOSITO. No es una regresion y no se disimula:
+#
+#   antes:  20 filas · "arnes de pantalla  MAESTRO 145/145 | ESCLAVO 142/142 |
+#                       TOTAL 287/287 comprobaciones OK"
+#   ahora:  19 filas · esa linea no existe.
+#
+# El arnes enlazaba los lcd.cpp y menu.cpp REALES de las dos puntas contra 131 ficheros
+# .c del nucleo de U8g2 y media GEOMETRIA sobre un framebuffer en el PC. Retirado el
+# LCD (D-32 (1)) no queda nada que medir: no es que el instrumento se apague, es que el
+# sujeto ya no existe. Un ABORTADO habria sido lo contrario de la verdad -ABORTADO dice
+# "no pude medir"-, y dejar la funcion con el directorio borrado daba exactamente eso,
+# exit 2 para siempre.
+#
+# LO QUE SE PIERDE CON EL, dicho entero: era el UNICO sitio donde Esclavo/src/
+# modo_degradado.cpp se compilaba y ejecutaba en solitario. Su cobertura a dos puntas
+# sigue en el arnes del Degradado (53/53) y en el de las dos puntas (110/110).
 
 
 # ---------------------------------------------------------------------------
@@ -938,7 +910,6 @@ def main():
     # FASE 6: lo que se compila y se ejecuta DE VERDAD, frente a los modelos de arriba.
     # Es la unica seccion cuyo PASS habla del codigo y no de una copia suya.
     print("\n-- Firmware compilado y ejecutado en el PC --")
-    arnes_lcd()
     arnes_ciclo()
     arnes_respaldo()
     arnes_automatico()

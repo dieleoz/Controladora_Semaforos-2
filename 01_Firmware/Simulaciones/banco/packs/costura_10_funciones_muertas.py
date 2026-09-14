@@ -59,23 +59,50 @@ CONOCIDAS = {
         # llamador -bluetooth.cpp la consulta para publicar el $EVENT de cambio de
         # estado del enlace-, y una huerfana que gano llamador y se queda anotada es
         # justo lo que este pack persigue: la lista dejaria de poder fallar.
-        # N-141 (04/09): lcd_dibujarConfigValor se queda SIN LLAMADOR, y el motivo es
-        # comprobable -que es lo que §3.bis exige de una excepcion-:
+        # D-32 (1), 13/09: SALE lcd_dibujarConfigValor DE ESTA LISTA, y no porque
+        # estorbe: porque el pack lo EXIGE. Su comprobacion de "desaparecidas" pide que
+        # toda huerfana anotada siga declarandose en algun header, y esta vivia en
+        # Maestro/include/lcd.h, que hoy no existe. Dejarla aqui es tenerla "vigilando
+        # el aire", que es el fallo que esa tercera comprobacion existe para cazar.
         #
-        #   1. Sus DOS unicos llamadores eran los asistentes de configuracion de
-        #      modo_automatico.cpp y modo_manual.cpp. Los dos se retiraron el 04/09
-        #      (N-42 y N-141) porque su unica salida era botonAceptar(), que devuelve
-        #      false desde el 31/08: eran trampas sin salida, no pantallas.
-        #   2. La pantalla LCD esta RETIRADA por decision del 28/08. Una funcion que
-        #      dibuja un campo de configuracion en una pantalla que no existe no puede
-        #      ganar llamador legitimo.
-        #
-        # No se borra de lcd.cpp en este commit: ese fichero lo compila de verdad
-        # Validacion_LCD, y retirar simbolos de ahi es un trabajo aparte con su propia
-        # medida. Si algun dia lo gana, este pack lo dira -y eso es lo que persigue-.
-        "lcd_dibujarConfigValor",
+        # El motivo con el que entro el 04/09 (N-141) terminaba diciendo: "No se borra
+        # de lcd.cpp en este commit: ese fichero lo compila de verdad Validacion_LCD, y
+        # retirar simbolos de ahi es un trabajo aparte con su propia medida". Ese
+        # trabajo aparte es este.
         "coordinador_intentarHandshake",
         "coordinador_medirDesfase", "coordinador_reiniciarConexion",
+        # ------------------------------------------------------------------
+        # D-32 (1), 13/09 — LAS TRES QUE SE QUEDAN SIN LECTOR AL RETIRAR EL LCD.
+        # Motivo comprobable una por una, que es lo que este pack exige. Se anotan
+        # AQUI y no se borran de sus modulos: ninguna es codigo de pantalla, son
+        # getters de estado a los que la pantalla era el unico que preguntaba.
+        #
+        # protocolo_bytesRecibidos y protocolo_tramasValidas — los DOS contadores de
+        # linea de SFTY-15, los que separan "no llega nada" de "llega basura". Su
+        # unico lector en esta punta era refrescarSiCambio() de modo_alcance.cpp, que
+        # los leia para pintarlos en la pantalla de PRUEBA ALCANCE. Comprobable:
+        # `grep -n "protocolo_tramasValidas" Maestro/src` sin comentarios da hoy solo
+        # su definicion en protocolo.cpp.
+        # 🔴 ESTAS DOS NO SON UNA HUERFANA COMODA, SON UNA CAPACIDAD PERDIDA, y se
+        # dice aqui para que no se lea como cerrado: el Maestro deja de leer sus
+        # propios contadores de SFTY-15 en ningun sitio. En el ESCLAVO si se
+        # publican -su $ALARM y su $EVENT los sacan al aire, y por eso alli
+        # protocolo_tramasDescartadas salio de esta lista en N-108-; en el Maestro
+        # nadie lo hace todavia. El sustituto natural es publicarlos en el $STATUS de
+        # bluetooth.cpp, y eso es firmware que hay que escribir, no una anotacion.
+        # modoAlcance_setup() SIGUE llamando a protocolo_reiniciarContadores(), o sea
+        # que los contadores se siguen poniendo a cero para cada medida: lo que falta
+        # es quien los lea.
+        "protocolo_bytesRecibidos", "protocolo_tramasValidas",
+        # reloj_hayCristal — N-24. Su unico lector era repintar() de modo_hora.cpp,
+        # que se lo pasaba a lcd_dibujarAjusteHora() para poder decir "SIN CRISTAL" en
+        # vez de mandar al operario a teclear la hora contra un RTC parado.
+        # AQUI NO SE PIERDE LA CAPACIDAD, y es comprobable: reloj_diagnostico() sigue
+        # teniendo lector -bluetooth.cpp- y RelojDiag lleva lseOn, lseRdy y rtcSel, que
+        # son los BITS CRUDOS de los que este getter deriva su booleano. O sea que
+        # quien quiera saber si el oscilador arranco lo sigue pudiendo saber, y ademas
+        # por el camino que N-45 eligio a proposito: los bits, no una conclusion.
+        "reloj_hayCristal",
     },
     "Esclavo": {
         # N-133 (04/09): los dos accesos a los tiempos del ciclo AUTOMATICO.
@@ -127,6 +154,56 @@ CONOCIDAS = {
         # El Esclavo NO enciende luces por su cuenta: rechaza TEST_LEDS y no fuerza
         # verde. Que estas dos no tengan llamador es la barrera funcionando.
         "semaforo_iniciarTestLeds", "semaforo_forzarVerde",
+        # ==================================================================
+        # D-32 (1), 13/09 — LAS DOCE QUE PIERDEN SU UNICO LLAMADOR AL RETIRAR EL
+        # menu.cpp DE ESTA PUNTA. Todas tenian por lector el menu_loop() del Esclavo y
+        # solo a el; medido symbol a symbol con el mismo algoritmo de este pack antes
+        # de tocar nada. Se agrupan en tres motivos distintos, y cada grupo dice que
+        # pasa si nunca se le vuelve a llamar (CLAUDE.md 6.2).
+        #
+        # ---- GRUPO 1: los dos botones que SI existen (A y B, J16 p5/p8) ----
+        # Su unico consumidor eran las lineas 183-184 del menu_loop() retirado.
+        # LO QUE NO SE PIERDE, Y ES LO QUE IMPORTA: los pines SE SIGUEN LEYENDO igual.
+        # Quien los lee es botones_actualizar(), una sola vez por vuelta, y desde ahi
+        # alimenta al mando de reles con mando_registrarPulso(MANDO_A/MANDO_B) ANTES
+        # de que nadie consuma el flanco -esta escrito en botones.cpp: "el mando ve el
+        # pulso AQUI, antes de que ninguna pantalla pueda consumirlo, y sin consumirlo
+        # el mismo"-. O sea que lo que baja de dos a uno no es el numero de lecturas
+        # de J16 p5/p8: es el numero de CONSUMIDORES de esa lectura. El que queda es
+        # el reconocedor de secuencias del mando, que es el que gobierna.
+        # ⚠️ Ese es el matiz que hay que llevar a D-32 y a CLAUDE.md §3, que hoy dicen
+        # "leidos por DOS caminos" en las dos puntas: en el Esclavo pasa a ser uno.
+        "botonArriba", "botonAbajo",
+        # ---- GRUPO 2: los dos que ya no tenian sujeto fisico ----
+        # botonAceptar() y botonCancelar() son `return false;` desde el 31/08 (D-2:
+        # PB14 y PB15, J16 p10 y p12, son camaras). botones.cpp las conserva
+        # declaradas A PROPOSITO -"mientras existan, git grep botonCancelar sigue
+        # listando de una sola vez todo lo que la retirada de los botones C y D dejo
+        # sin mando fisico"-, y ese motivo sigue siendo bueno. Lo que cambia es que su
+        # ultimo punto de uso en esta punta estaba en el menu_loop() retirado.
+        # QUE PASA SI NUNCA SE LLAMAN: nada. Ya no podian devolver true.
+        "botonAceptar", "botonCancelar",
+        # ---- GRUPO 3: los ocho getters del Degradado que solo miraba la pantalla ----
+        # Los dos primeros son TEXTO PARA PINTAR y no tienen otra lectura posible:
+        "degradado_textoEstado", "degradado_textoFase",
+        # Los seis siguientes son ESTADO, y aqui hay que ser exacto con lo que se
+        # pierde. Su unico lector en el firmware del Esclavo era el menu_loop():
+        # pintaban la antiguedad de la ultima sincronizacion, el aviso del limite de
+        # 48 h, el motivo de la rendicion y la cuenta atras al siguiente cambio.
+        # NINGUNA DE LAS SEIS ES UNA GUARDA: son getters de solo lectura, asi que
+        # dejarlas sin lector no abre ningun veto -lo que decide sigue decidiendo
+        # dentro de modo_degradado.cpp, que las calcula para su propia logica-.
+        # 🔴 PERO SI ES UNA CAPACIDAD PERDIDA, y se anota para que se decida y no para
+        # que se olvide: tras este cambio la ANTIGUEDAD DE SYNC del Modo Degradado del
+        # Esclavo no la lee nadie en esa punta, o sea que no sale por ningun sitio. El
+        # sustituto seria publicarla en el $STATUS o en el $EVENT periodico de D-32
+        # (2), y eso es bluetooth.cpp: firmware por escribir, no una anotacion.
+        # Dos de las seis conservan consumidor FUERA del firmware y por eso no se
+        # borran de modo_degradado.cpp: degradado_huboSync() la usa el adaptador de
+        # las dos puntas y degradado_syncVencida() el simulador del puente ESP32.
+        "degradado_huboSync", "degradado_msDesdeSync", "degradado_syncVencida",
+        "degradado_avisoLimite", "degradado_rendidoPorHora",
+        "degradado_segundosParaCambio",
     },
 }
 

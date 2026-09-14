@@ -245,7 +245,11 @@ def correr(b, fw):
     # Dos origenes -la camara de PB0 y el boton de la app- significan lo mismo. Si cada
     # uno llevase su temporizador, el limite de ritmo de uno no sabria nada del otro.
     fuera = []
-    for fichero in ("main.cpp", "bluetooth.cpp", "modo_degradado.cpp", "menu.cpp"):
+    # D-32 (1), 13/09: fuera "menu.cpp". De el solo queda menu_estaAbierto() y no
+    # emite ninguna trama. El try/except de abajo se lo habria tragado en silencio,
+    # que es peor que quitarlo: el pack seguiria diciendo que barre cuatro ficheros
+    # cuando barreria tres. Las comprobaciones no cambian (sigue 14/14).
+    for fichero in ("main.cpp", "bluetooth.cpp", "modo_degradado.cpp"):
         try:
             codigo = fw.codigo("Esclavo", "src", fichero)
         except Exception:

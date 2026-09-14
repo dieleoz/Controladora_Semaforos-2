@@ -1,0 +1,26 @@
+ESTE DIRECTORIO YA NO ES UN ARNES. D-32 (1), 13/09/2026.
+========================================================
+
+El arnes de pantalla (287/287: 145 del Maestro y 142 del Esclavo) se retiro con el LCD.
+Enlazaba Maestro/src/lcd.cpp, Maestro/src/menu.cpp, Esclavo/src/lcd.cpp y
+Esclavo/src/menu.cpp contra 131 ficheros .c del nucleo de U8g2 para medir geometria
+sobre un framebuffer en el PC. Sin lcd.cpp no hay nada que medir, asi que se fueron
+arnes_lcd.cpp, arnes_esclavo.cpp, compilar.ps1 y build/.
+
+LO QUE QUEDA, Y POR QUE NO SE BORRO EL DIRECTORIO ENTERO
+--------------------------------------------------------
+Arduino.h y pines.h son STUBS COMPARTIDOS, no parte del arnes. Validacion_Ciclo los usa:
+
+    Validacion_Ciclo/compilar.ps1:14
+    $STUB = Join-Path $AQUI '..\Validacion_LCD'      # el Arduino.h minimo, ya existente
+
+arnes_ciclo.cpp incluye ciclo_degradado.h, que incluye <Arduino.h>, y el UNICO Arduino.h
+del -I es este. Borrar el directorio entero deja al arnes del ciclo (22/22) sin compilar,
+o sea la fila en ABORTADO. Medido, no supuesto.
+
+⚠️ ESTO ES DEUDA, NO EL SITIO DEFINITIVO. El stub deberia vivir en un directorio con
+nombre honesto -Validacion_Comun/, por ejemplo- y Validacion_Ciclo/compilar.ps1 apuntar
+alli. No se hizo en este commit porque Validacion_Ciclo esta fuera de su alcance.
+
+⚠️ Y OJO CON roadmap_hist.md:3327, que hoy afirma: "Validacion_Ciclo | 29/29 | INTACTO.
+Solo ciclo_degradado.h, funcion pura". Es falso: depende de este directorio.

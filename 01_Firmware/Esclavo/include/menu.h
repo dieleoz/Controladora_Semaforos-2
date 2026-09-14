@@ -3,69 +3,60 @@
 #include <Arduino.h>
 
 // ---------------------------------------------------------------------------
-// D-17.bis: LA PANTALLA Y ESTE MENU SE RETIRAN DEL EQUIPO. Todo se opera por la app. Se
-// retiran del EQUIPO, no del codigo: este fichero sigue compilando y el arnes de pantalla
-// sigue midiendo un framebuffer en el PC, que no necesita que haya cristal montado.
+// D-32 (1), 13/09/2026 — SALE EL LCD DEL FIRMWARE.
 //
-// OJO AL LEER LO DE ABAJO: describe un menu que se navega, y hoy NO se navega en ninguna
-// de las dos puntas -las funciones de aceptar y cancelar de botones.cpp devuelven falso
-// desde que sus pines son camaras (D-2)-. O sea que la segunda entrada de ese listado, la
-// que entraba al Modo Degradado, esta escrita y es inalcanzable; lo que la sustituye es la
-// orden por app de D-18, y esa si tiene llave.
+// D-17.bis (28/08) habia retirado la pantalla DEL EQUIPO y conservado el codigo a
+// proposito; D-30 propuso llevarse ademas el mando, y D-32 (1) recorta esa decision a
+// una sola mitad: sale el LCD y el mando A/B/C/D SE QUEDA. Asi que de la interfaz del
+// Esclavo ya no queda nada: ni pantalla fisica, ni framebuffer, ni navegacion.
 //
-// N-16 — Menu del Esclavo.
+// LO QUE ESTA CABECERA DECLARABA Y YA NO EXISTE: un menu de dos entradas -ESTADO y
+// MODO DEGRADADO- con su cursor, su confirmacion de entrada al Degradado y su regreso
+// automatico al listado. El censo de por que se puede retirar sin dejar ningun camino
+// de gobierno sin puerta esta en menu.cpp, symbol a symbol.
 //
-// Esta cabecera era una copia huerfana del Maestro: declaraba MODO_MANUAL,
-// MODO_AUTOMATICO y MODO_INTELIGENTE en un firmware que no tiene ninguno de los
-// tres, y ningun .cpp la implementaba. Se reescribe entera.
-//
-// EL ESCLAVO NO OFRECE MODOS DE OPERACION, Y NO ES UN OLVIDO
-// ---------------------------------------------------------
-// Quien decide el ciclo es el Maestro. Poner aqui MANUAL o AUTOMATICO seria dar a
-// las dos puntas la capacidad de decidir a la vez, y el dia que un tecnico
-// arranque un modo en cada gabinete el cruce queda con dos cerebros discutiendo
-// por radio quien tiene razon. El menu tiene exactamente dos entradas:
-//
-//   ESTADO          - solo lee: hora propia con SEGUNDOS, antiguedad de la ultima
-//                     sincronizacion y contadores de linea (SFTY-15).
-//   MODO DEGRADADO  - entrar y salir (SFTY-21).
-//
-// Tampoco hay ajuste de hora: llega por radio desde el Maestro (SFTY-23), y
-// teclearla aqui reintroduce el desfase de hasta 59 s que ese mecanismo elimino.
-//
-// La interfaz NO detiene el ciclo. En el Maestro, entrar al menu fuerza rojo fijo
-// en las dos puntas porque el menu es donde se decide; aqui no se decide nada, y
-// dejar el cruce parado porque alguien esta mirando una pantalla de diagnostico
-// seria cambiar la operacion por consultarla. El Esclavo sigue obedeciendo al
-// Maestro mientras el tecnico navega.
+// LO QUE SIGUE SIENDO CIERTO Y NO SE TOCA: EL ESCLAVO NO OFRECE MODOS DE OPERACION, Y
+// NO ES UN OLVIDO. Quien decide el ciclo es el Maestro. Dar a las dos puntas la
+// capacidad de decidir a la vez deja el cruce con dos cerebros discutiendo por radio
+// quien tiene razon. Entrar y salir del Modo Degradado en esta punta se pide hoy por
+// la app (D-18) o por las secuencias del mando de reles, y las dos vias pasan por
+// modo_degradado.cpp, que es quien lleva las condiciones y las transiciones.
 // ---------------------------------------------------------------------------
 
+// Las dos se conservan porque main.cpp las llama -menu_setup() al terminar la ventana
+// de bienvenida, menu_loop() en cada vuelta- y porque son el hueco donde volveria a
+// montarse una interfaz. Hoy no hacen nada; el motivo esta escrito en menu.cpp.
 void menu_setup();
 void menu_loop();
 
 // ---------------------------------------------------------------------------
-// SFTY-21 — Lo consulta mando.cpp para inhibir las secuencias del mando de reles.
+// SFTY-21 — LA UNICA DE LAS TRES QUE GOBIERNA ALGO. Lo consulta mando.cpp, en
+// secuenciasInhibidas(), para decidir si reconoce o no las secuencias del mando de
+// reles: con true el mando queda inhibido, con false queda armado.
 //
-// "MENU ABIERTO" NO PUEDE SIGNIFICAR AQUI LO MISMO QUE EN EL MAESTRO
-// ------------------------------------------------------------------
-// En el Maestro el menu es un MODO del que se sale para volver a operar, asi que
-// "en el menu" es un estado excepcional. En el Esclavo la pantalla no se cierra
-// nunca: menu_loop() corre en cada vuelta y siempre hay algo dibujado. Tomar al pie
-// de la letra "con la pantalla encendida no hay mando" dejaria el mando muerto
-// SIEMPRE, que es justo lo contrario de lo que N-19 viene a resolver.
+// DEVUELVE SIEMPRE false DESDE D-32 (1), Y ESO NO ABRE NINGUN VETO. Medido antes de
+// tocarlo, que es lo que CLAUDE.md 6.2 exige de un armador que se retira:
 //
-// Lo que se traslada es el RIESGO, no la letra: que una rafaga de pulsos a ciegas
-// caiga sobre un cursor que puede CONFIRMAR algo. En el Esclavo eso solo ocurre por
-// debajo del listado inicial -en MODO DEGRADADO y en su pantalla de confirmacion,
-// donde ACEPTAR activa el modo-, y ademas estar ahi significa que hay una persona
-// delante del gabinete navegando: sus pulsaciones son para la pantalla, no para el
-// mando. En el listado inicial, A y B solo mueven el cursor entre dos opciones y
-// ningun pulso puede confirmar nada, asi que ese es el estado de reposo en el que el
-// mando DEBE funcionar.
+//   El armador era "hay una pantalla abierta por debajo del listado inicial". Para
+//   bajar del listado hacia falta botonAceptar(), que es `return false;` en
+//   botones.cpp desde el 31/08 (D-2: sus pines son camaras). O sea que la bandera ya
+//   valia false en todas las vueltas del bucle desde entonces, y botones.cpp lo dice
+//   por escrito: "con ACEPTAR mudo, la pantalla del Esclavo no puede bajar del
+//   listado, asi que menu_estaAbierto() es siempre falso". El comportamiento del
+//   equipo no cambia hoy; lo que cambia es que la propiedad pasa de ser de ALCANCE a
+//   estar escrita en el fuente.
 //
-// Va acompanado del regreso automatico al listado por inactividad (ver menu.cpp).
-// Sin el, una pantalla dejada abierta al bajar del gabinete dejaria el mando mudo de
-// forma indefinida, y desde el suelo no habria como notarlo: a diferencia del
-// Maestro, aqui el menu NO detiene el ciclo, asi que "las luces ciclan luego el menu
-// esta cerrado" no vale como indicio.
+//   Y ES LA RESPUESTA CORRECTA, no un residuo. El veto protegia de un caso concreto:
+//   que una rafaga de pulsos a ciegas cayera sobre un cursor capaz de CONFIRMAR algo
+//   mientras hay una persona delante del gabinete. Sin pantalla ese caso no existe, e
+//   inhibir el mando de todas formas seria dar por presente a un operario que no esta
+//   -y en esta punta el mando es la unica via de entrar o salir del Degradado sin la
+//   app-.
+//
+// LO QUE ESTO NO ARREGLA, y se dice para que nadie lo lea como cerrado: J16 p5/p8
+// siguen VACIOS Y PELADOS y el mando sigue armado sobre ellos, asi que un puente ahi
+// compone secuencias sin que nadie lo pida. Es lo mismo que antes de este commit
+// -D-32 lo deja escrito- y no lo cierra el firmware: lo cierra la instruccion de no
+// cablearlos.
+// ---------------------------------------------------------------------------
 bool menu_estaAbierto();

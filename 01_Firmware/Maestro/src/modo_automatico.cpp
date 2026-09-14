@@ -6,10 +6,8 @@
 #include "botones.h"
 #include "semaforo.h"
 #include "coordinador.h"
-#include "lcd.h"
 #include "menu.h"
 #include "modos.h"
-#include <string.h>
 
 // N-135 (04/09, HORAS DESPUES DE N-42): AQUI HABIA UN ENUM DE UN SOLO VALOR, Y ESO NO
 // ES UNA MAQUINA DE ESTADOS: ES UNA CONSTANTE DISFRAZADA.
@@ -254,7 +252,6 @@ void modoAutomatico_setup() {
   coordinador_iniciarModo();   // empieza SIEMPRE por todo-rojo y su despeje
   tEstadoDesde = millis();
   primeraVezCorriendo = true;
-  lcd_dibujarAutomatico(coordinador_nombreEstadoMaster(), minRojo, minVerde);
 }
 
 void modoAutomatico_loop() {
@@ -317,10 +314,6 @@ void modoAutomatico_loop() {
     restanteFaseSeg = SIN_CUENTA_ATRAS;
   }
 
-  static const char* estadoAnt = "";
-  const char* actual = coordinador_nombreEstadoMaster();
-  if (strcmp(actual, estadoAnt) != 0) {
-    lcd_dibujarAutomatico(actual, minRojo, minVerde);
-    estadoAnt = actual;
-  }
+  // D-32 (1), 13/09: repintado por cambio de estado, retirado con la pantalla. No
+  // decidia nada: solo evitaba repetir el volcado del framebuffer.
 }

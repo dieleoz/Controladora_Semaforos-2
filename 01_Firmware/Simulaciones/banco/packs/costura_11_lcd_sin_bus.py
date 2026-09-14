@@ -21,19 +21,40 @@
 # la pantalla ya no esta, se retire su codigo o no. Lo que quedaba era el firmware
 # conduciendo tres hilos hacia un modulo que ya no esta enchufado.
 #
-# LO QUE ESTE PACK NO PIDE, Y ES LA MITAD DE SU TRABAJO.
+# D-32 (1), 13/09/2026 - ESTE PACK SE REPARTIO, NO SE BORRO. Y hay que leer por que,
+# porque la mitad que cambia es la que EXIGIA EL COMPORTAMIENTO QUE HOY SE RETIRA.
 #
-# No pide que la pantalla se retire. Se decidio expresamente NO retirarla, y el
-# motivo es vial: menu.cpp:215 del Esclavo es UNA DE LAS TRES VIAS que lo sacan
-# del Modo Degradado -las otras dos son mando.cpp y la puerta automatica de
-# main.cpp-, y la app todavia NO puede (defecto N-106, abierto). Retirar el menu
-# hoy seria quitar una via de seguridad mientras otra sigue rota.
+# LO QUE DECIA AQUI HASTA HOY, literal y ahora derogado: "No pide que la pantalla se
+# retire. Se decidio expresamente NO retirarla, y el motivo es vial: menu.cpp:215 del
+# Esclavo es UNA DE LAS TRES VIAS que lo sacan del Modo Degradado (...) Por eso la
+# prueba 4 exige que el dibujo SIGA VIVO."
 #
-# Por eso la prueba 4 exige que el dibujo SIGA VIVO. Sin ella, este pack se podria
-# poner en verde vaciando lcd.cpp -que es justo lo que se decidio no hacer- y
-# ademas se llevaria por delante las 271 comprobaciones de Validacion_LCD. Un pack
-# que solo prohibe se satisface destruyendo; se le pone al lado lo que debe
-# conservarse.
+# DOS COSAS LO TUMBAN, y las dos son medidas, no decisiones:
+#
+#   1. D-32 (1): el responsable retira el LCD del firmware -"solo retirar el lcd"-.
+#   2. Y LA VIA QUE ESA FRASE PROTEGIA YA ESTABA MUERTA cuando se escribio. Para
+#      llegar a menu.cpp:215 -la salida del Degradado por pantalla- hacia falta
+#      botonAceptar(), que es `return false;` en botones.cpp desde el 31/08 (D-2: sus
+#      pines son camaras). El cursor del Esclavo no podia bajar del listado inicial.
+#      O sea que la prueba 4 estaba conservando una via de seguridad INALCANZABLE, y
+#      cobrandose a cambio el derecho de veto sobre retirar la pantalla. Es el caso de
+#      CLAUDE.md 9 en su forma cara: una prueba madura que EXIGE el comportamiento
+#      defectuoso porque se escribio cuando parecia inevitable.
+#      Las vias vivas de salida del Degradado del Esclavo son las otras dos que la
+#      propia frase nombraba -mando.cpp y la puerta automatica de main.cpp- mas la
+#      orden por app de D-18, que ya esta construida en su despachador de Bluetooth.
+#
+# QUE SE HIZO CON CADA MITAD:
+#   - 1.1, 1.2 y 2.1 SE CONSERVAN TAL CUAL. Son la propiedad de verdad -que nadie
+#     conduzca PB3/PB4/PB5- y hoy son mas fuertes, no mas debiles: el unico fichero
+#     que podia conducirlos ya no existe.
+#   - 3.1 y 4.1 SE INVIERTEN. Donde pedian "el constructor de u8g2 no recibe pines" y
+#     "el framebuffer sigue vivo", ahora piden que no quede ni libreria ni pantalla.
+#     Una inversion sin control aprueba cualquier cosa, asi que los controles
+#     negativos del final se rehicieron contra ficheros que SI existen.
+#
+# (Las cifras "271 comprobaciones de Validacion_LCD" que este comentario repetia
+# estaban ademas caducadas: el acta del 13/09 daba 287. El arnes ya no existe.)
 
 import re
 
@@ -87,12 +108,9 @@ def _texto_pines_esclavo():
     return _FW.texto("Esclavo", "include", "pines.h")
 
 
-def _codigo_lcd_maestro():
-    return _FW.codigo("Maestro", "src", "lcd.cpp")
-
-
-def _codigo_lcd_esclavo():
-    return _FW.codigo("Esclavo", "src", "lcd.cpp")
+# D-32 (1): aqui vivian _codigo_lcd_maestro() y _codigo_lcd_esclavo(), las dos unicas
+# tuplas de ruta hacia el lcd.cpp de cada punta que este pack aportaba al censo de
+# compuerta.py. Se van con el fichero: dejarlas ABORTA la guarda de rutas entera.
 
 
 _FW = None
@@ -177,105 +195,116 @@ def correr(b, fw):
         "de forma intermitente, que es la averia que no se diagnostica nunca"
         % culpables)
 
-    # -- 3. u8g2 tampoco los ata por su cuenta -----------------------------------
+    # -- 3. INVERTIDA POR D-32 (1): ya no hay libreria que pueda atar los pines ----
     #
-    # Es el camino que no se ve: el constructor no aparece como un pinMode, pero
-    # entrega los pines a la libreria y a partir de ahi los conduce ella. Prohibir
-    # solo pinMode dejaria justo esta puerta abierta.
+    # Hasta el 13/09 esta prueba leia el constructor U8G2_* de lcd.cpp y exigia que
+    # todos sus argumentos de pin fueran U8X8_PIN_NONE. Era el camino que no se ve: el
+    # constructor no aparece como un pinMode pero entrega los pines a la libreria, y a
+    # partir de ahi los conduce ella.
     #
-    # SE LEEN LOS ARGUMENTOS DEL C++, no se da por bueno el nombre de la clase. El
-    # transporte sigue siendo SW SPI -y tiene que seguir siendolo, porque
-    # flash_01_lastre cuelga de eso la bandera de HW SPI-; lo que cambia es que ya no
-    # recibe ningun pin. Que U8X8_PIN_NONE baste esta leido en la libreria:
-    # u8x8_gpio_and_delay_arduino() pregunta "!= U8X8_PIN_NONE" antes del pinMode del
-    # arranque y antes del digitalWrite de cada escritura.
-    print("\n-- 3.1 El constructor del display no recibe ningun pin --")
-    ataduras = []
-    for punta, cod in (("Maestro", _codigo_lcd_maestro()),
-                       ("Esclavo", _codigo_lcd_esclavo())):
-        m = re.search(r"U8G2_\w+\s+u8g2\s*\(([^)]*)\)", cod)
-        if not m:
-            # La regla del instrumento: un "no aparece" no es un hallazgo hasta
-            # haber descartado al buscador. Si
-            # el constructor no se encuentra, lo que fallo puede ser el patron.
-            ataduras.append("%s: no se halla el constructor de u8g2 en lcd.cpp "
-                            "(patron ciego o forma nueva de instanciar)" % punta)
-            continue
-        args = [a.strip() for a in m.group(1).split(",")]
-        # El primero es la rotacion; del segundo en adelante son pines.
-        pines = args[1:]
-        if not pines:
-            ataduras.append("%s: el constructor no declara ningun argumento de pin"
-                            % punta)
-        malos = [a for a in pines if a != "U8X8_PIN_NONE"]
-        if malos:
-            ataduras.append("%s: recibe pines reales -> %s" % (punta, malos))
-        if "SetPin" in cod:
-            ataduras.append("%s: llama a u8x8_SetPin_*, que ata los pines aparte"
-                            % punta)
-        for macro in MACROS:
-            if re.search(r"\b%s\b" % macro, cod):
-                ataduras.append("%s: lcd.cpp todavia nombra %s" % (punta, macro))
+    # Retirado el LCD, ese camino se cierra un nivel MAS ARRIBA y de forma que no
+    # depende de como este escrito un argumento: U8g2 ya no se enlaza. Se comprueba en
+    # el platformio.ini, que es donde vive la decision, y no por la ausencia de
+    # lcd.cpp -que se puede recrear sin que nadie lo note-.
+    print("\n-- 3.1 Ninguna punta enlaza U8g2: no hay libreria que pueda atar pines --")
+    # SE LEE EL BLOQUE lib_deps, NO EL FICHERO ENTERO. CLAUDE.md 7.1: el patron cuenta
+    # comentarios, y el comentario que explica la retirada de la libreria la NOMBRA. La
+    # primera version de esta prueba preguntaba por el texto entero y daba FALLA sobre
+    # dos .ini correctos, acusando al firmware de su propio patron ciego.
+    con_libreria = []
+    for punta in PUNTAS:
+        texto = fw.texto(punta, "platformio.ini")
+        m = re.search(r"^lib_deps\s*=(.*?)(?=^\w|^\[|\Z)", texto, re.S | re.M)
+        cuerpo = re.sub(r";[^\n]*", " ", m.group(1)) if m else ""
+        if "U8g2" in cuerpo or "u8g2" in cuerpo:
+            con_libreria.append(punta)
 
     b.verificar(
-        not ataduras,
-        "en las dos puntas el constructor de u8g2 recibe U8X8_PIN_NONE en todos sus "
-        "argumentos de pin, no llama a u8x8_SetPin_* y no nombra ninguna de las tres "
-        "macros: la libreria no tiene ningun pin que conducir",
-        "lcd.cpp VUELVE A ATAR LOS PINES: %s. Con el ESP32 en J17 esto devuelve el "
-        "reloj SPI al conector del enlace serie" % ataduras)
+        not con_libreria,
+        "ninguna de las dos puntas declara U8g2 en su platformio.ini: no queda "
+        "libreria de pantalla que pueda tomar PB3/PB4/PB5 por su cuenta, asi que la "
+        "prueba 2.1 ya no tiene una puerta trasera por la que colarsele",
+        "%s vuelve(n) a declarar U8g2. Con el ESP32 en J17 eso devuelve el reloj SPI "
+        "al conector del enlace serie por un camino que ningun pinMode ensena: la "
+        "libreria conduce los pines que le entregue el constructor" % con_libreria)
 
-    # -- 4. Y el dibujo sigue vivo: esto no era retirar la pantalla ---------------
+    # -- 4. INVERTIDA POR D-32 (1): no queda dibujo en ninguna punta --------------
     #
-    # La contrapartida. Sin esta prueba el pack se pondria en verde vaciando
-    # lcd.cpp, que es lo que se decidio NO hacer: se llevaria las 271 comprobaciones
-    # de Validacion_LCD y, con menu.cpp, la via de menu.cpp:215 que saca al Esclavo
-    # del Modo Degradado mientras la app no puede (N-106).
-    print("\n-- 4.1 El framebuffer se sigue componiendo (la pantalla NO se retiro) --")
-    mudos = []
-    for punta, cod in (("Maestro", _codigo_lcd_maestro()),
-                       ("Esclavo", _codigo_lcd_esclavo())):
-        n_draw = len(re.findall(r"\bdrawStr\s*\(", cod))
-        n_send = len(re.findall(r"\bsendBuffer\s*\(", cod))
-        if n_draw == 0 or n_send == 0:
-            mudos.append("%s: drawStr x%d, sendBuffer x%d" % (punta, n_draw, n_send))
+    # ESTA ERA LA PRUEBA QUE CELEBRABA EL DEFECTO (CLAUDE.md 9). Exigia que drawStr y
+    # sendBuffer SIGUIERAN existiendo en los dos lcd.cpp, y su motivo escrito -guardar
+    # la via de salida del Degradado de menu.cpp:215- llevaba muerto desde el 31/08,
+    # cuando botonAceptar() paso a ser `return false;`. Se invierte entera.
+    #
+    # Y NO MIRA SOLO EL RESULTADO. Comprobar "lcd.cpp no existe" aprobaria igual de
+    # bien un arbol al que le falta el fichero por accidente que uno del que se retiro
+    # la pantalla: se mira ademas que NADIE haya heredado el dibujo, que es por donde
+    # volveria de verdad -un drawStr mudado a menu.cpp o a un modo-.
+    print("\n-- 4.1 No queda pantalla: ni lcd.cpp, ni dibujo heredado por otro --")
+    restos = []
+    for punta in PUNTAS:
+        for nombre in fw.fuentes_de(punta, "src", ".cpp"):
+            if nombre == "lcd.cpp":
+                restos.append("%s: vuelve a existir src/lcd.cpp" % punta)
+                continue
+            cod = fw.codigo(punta, "src", nombre)
+            for token in ("drawStr", "sendBuffer", "u8g2", "U8G2"):
+                if re.search(r"\b%s\b" % token, cod):
+                    restos.append("%s/src/%s nombra %s" % (punta, nombre, token))
+        for nombre in fw.fuentes_de(punta, "include", ".h"):
+            if nombre == "lcd.h":
+                restos.append("%s: vuelve a existir include/lcd.h" % punta)
 
     b.verificar(
-        not mudos,
-        "las dos puntas siguen componiendo el framebuffer (drawStr y sendBuffer "
-        "siguen ahi): lo que se corto es el cable, no la pantalla. Validacion_LCD "
-        "puede seguir midiendo sus 271 comprobaciones y menu.cpp conserva la via de "
-        "salida del Modo Degradado",
-        "lcd.cpp se ha quedado MUDO: %s. Eso ya no es 'no conducir el bus', es "
-        "retirar la pantalla, y con ella se van las 271 comprobaciones del arnes y "
-        "la via de menu.cpp:215 que saca al Esclavo del Degradado (N-106 sigue "
-        "abierto: la app no puede sustituirla)" % mudos)
+        not restos,
+        "ninguna de las dos puntas tiene lcd.cpp ni lcd.h, y ningun otro fichero de "
+        "src ha heredado drawStr, sendBuffer ni el objeto u8g2: la pantalla esta "
+        "retirada del firmware y no se ha mudado a otro sitio (D-32 (1))",
+        "QUEDA PANTALLA EN EL FIRMWARE: %s. D-32 (1) la retira; si vuelve, vuelve con "
+        "ella el reloj SPI en el conector del ESP32 que este pack existe para "
+        "impedir, y hay que rehacer la medida de J17 antes de aceptarlo" % restos)
 
     # -- Controles negativos: la prueba sabe distinguir el caso malo --------------
     #
-    # Se mutan copias en memoria del fuente real, no bloques sinteticos: un control
+    # Se mutan copias en memoria de un fuente REAL, no bloques sinteticos: un control
     # negativo sobre texto inventado demuestra que el regex funciona sobre texto
-    # inventado, que no es lo que hace falta saber.
-    cod_m = _codigo_lcd_maestro()
+    # inventado, que no es lo que hace falta saber. D-32 (1): el fuente real ya no
+    # puede ser lcd.cpp -no existe-, asi que se muta main.cpp del Maestro, que es el
+    # fichero al que de verdad volveria el dibujo si alguien lo reintrodujera.
+    cod_m = fw.codigo("Maestro", "src", "main.cpp")
 
     mutado = cod_m + "\nvoid _falso() { pinMode(LCD_SCLK, OUTPUT); }\n"
     b.control_negativo(
         bool(_conducciones(mutado, set(MACROS) | PINES_J17)),
         "devolver un pinMode(LCD_SCLK, OUTPUT) se detecta")
-
-    # Se muta el constructor REAL devolviendole los pines, que es exactamente el
-    # cambio que habria que hacer para volver a encender la pantalla.
-    mutado2 = re.sub(r"(U8G2_\w+\s+u8g2\s*\()[^)]*\)",
-                     r"\1U8G2_R0, LCD_SCLK, LCD_SID, LCD_CS, U8X8_PIN_NONE)", cod_m)
-    m2 = re.search(r"U8G2_\w+\s+u8g2\s*\(([^)]*)\)", mutado2)
-    detecta2 = bool(m2) and [a.strip() for a in m2.group(1).split(",")][1:] != \
-        ["U8X8_PIN_NONE"] * 4
     b.control_negativo(
-        detecta2,
-        "devolver LCD_SCLK/LCD_SID/LCD_CS al constructor se detecta")
+        not _conducciones(cod_m, set(MACROS) | PINES_J17),
+        "y el mismo fichero SIN mutar no lo dispara: la prueba 2.1 distingue")
 
-    mudo = re.sub(r"\bsendBuffer\s*\(", "noSend(", cod_m)
+    # La 3.1 invertida tiene que saber ver una libreria que vuelve, Y tiene que saber
+    # NO verla cuando solo esta nombrada en un comentario. Las dos mitades, porque el
+    # segundo caso es el que rompio esta prueba el dia que se escribio.
+    def _lib_deps(txt):
+        mm = re.search(r"^lib_deps\s*=(.*?)(?=^\w|^\[|\Z)", txt, re.S | re.M)
+        return re.sub(r";[^\n]*", " ", mm.group(1)) if mm else ""
+
+    _ini_real = fw.texto("Maestro", "platformio.ini")
+    # La libreria se reintroduce DENTRO del bloque lib_deps, que es donde volveria de
+    # verdad: pegarla al final del fichero no la mete en el bloque y el control
+    # negativo aprobaria por no encontrarla, que es el fallo contrario.
+    _ini_mutado = re.sub(r"^lib_deps\s*=", "lib_deps =\n    olikraus/U8g2@^2.35.19",
+                         _ini_real, count=1, flags=re.M)
     b.control_negativo(
-        len(re.findall(r"\bsendBuffer\s*\(", mudo)) == 0,
-        "vaciar el volcado de lcd.cpp se detecta (la prueba 4 no aprueba una "
-        "pantalla retirada)")
+        "U8g2" in _lib_deps(_ini_mutado) and "U8g2" not in _lib_deps(_ini_real),
+        "reintroducir olikraus/U8g2 en lib_deps se detecta, y hoy no esta en lib_deps")
+    b.control_negativo(
+        "U8g2" in _ini_real and "U8g2" not in _lib_deps(_ini_real),
+        "y un U8g2 que solo aparece en un COMENTARIO del .ini no cuenta como "
+        "dependencia: es el patron ciego de CLAUDE.md 7.1, medido sobre el fichero real")
+
+    # Y la 4.1 invertida tiene que saber ver el dibujo mudado a otro fichero, que es
+    # la forma por la que la pantalla volveria sin recrear lcd.cpp.
+    heredado = cod_m + "\nvoid _falso() { u8g2.drawStr(0, 0, \"x\"); u8g2.sendBuffer(); }\n"
+    b.control_negativo(
+        bool(re.search(r"\bdrawStr\b", heredado)) and
+        not re.search(r"\bdrawStr\b", cod_m),
+        "un drawStr mudado a main.cpp se detecta, y hoy main.cpp no lo tiene")

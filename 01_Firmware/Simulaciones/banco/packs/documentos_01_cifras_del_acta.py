@@ -65,17 +65,19 @@ CIFRAS = (
     ("app ejecutada en DOM",   r"(?P<TOTAL_APP>.*)",        "comprobaciones de la app en DOM"),
     ("test unitarios de la app", r"(?P<TOTAL_APP>.*)",      "test unitarios de la app"),
     ("test funcional de la app", r"(\d+/\d+) comprobaciones", "test funcional de la app"),
-    ("arnes de pantalla",      r"MAESTRO\s+(\d+/\d+)",      "pantalla del Maestro"),
-    ("arnes de pantalla",      r"ESCLAVO\s+(\d+/\d+)",      "pantalla del Esclavo"),
-    ("arnes de pantalla",      r"TOTAL\s+(\d+/\d+)",        "pantalla, total"),
+    # D-32 (1), 13/09: fuera las TRES filas del "arnes de pantalla" -MAESTRO 145/145,
+    # ESCLAVO 142/142 y TOTAL 287/287-. El arnes se retiro con el LCD, asi que el acta
+    # ya no imprime esa linea y estas tres entradas se quedarian vigilando el aire.
     ("arnes del ciclo",        r"(\d+/\d+) comprobaciones", "arnes del ciclo"),
     ("arnes del automatico",   r"(\d+/\d+) comprobaciones", "arnes del automatico"),
 )
 
 # Las cinco que ESTADO.md repite en su cabecera. No se le exigen las trece: se le
 # exige que las que publica sean las mismas.
+# D-32 (1), 13/09: fuera "pantalla, total". ESTADO.md tiene que dejar de publicarla
+# en su cabecera, y ese fichero esta fuera del alcance de este cambio: queda reportado.
 EN_ESTADO = ("flash del Maestro", "flash del Esclavo", "flash del Repetidor",
-             "total de comprobaciones del banco", "pantalla, total",
+             "total de comprobaciones del banco",
              # La cabecera de ESTADO.md publica las tres de la app -"32 unitarios +
              # 61 jsdom + 58 funcional"- y llevaba dos viejas encima. Si un dia deja
              # de publicarlas, esto falla y se quita la fila a mano: es mas barato

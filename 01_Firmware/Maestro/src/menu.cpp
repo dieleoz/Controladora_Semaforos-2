@@ -3,7 +3,6 @@
 #include "modos.h"
 #include "reloj.h"   // N-31
 #include "botones.h"
-#include "lcd.h"
 #include "semaforo.h"
 #include "pines.h"
 #include "coordinador.h"
@@ -49,33 +48,17 @@ static int cursorMenu = 0;
 enum NivelMenu { NIVEL_RAIZ, NIVEL_CONFIG };
 static NivelMenu nivel = NIVEL_RAIZ;
 
-static const char* opcionesRaiz[4] = {"MANUAL", "AUTOMATICO", "INTELIGENTE",
-                                      "CONFIGURACION"};
+// D-32 (1), 13/09: los ROTULOS de las opciones se van con la pantalla; los INDICES
+// se quedan, porque son los que el switch de menu_loop() traduce a modos. El orden es
+// el de siempre: 0 MANUAL, 1 AUTOMATICO, 2 INTELIGENTE, 3 CONFIGURACION.
 static const int OPCIONES_RAIZ = 4;
 
-// N-31: la cuarta, REINICIAR RELOJ. Cabe sin comprimir nada -el layout de 4 usa el
-// interlineado de 11 px, que es el validado en campo- y solo la busca quien ya sabe
-// que el reloj no arranca.
-static const char* opcionesConfig[4] = {"PRUEBA ALCANCE", "AJUSTAR HORA",
-                                        "MODO DEGRADADO", "REINICIAR RELOJ"};
+// Submenu CONFIGURACION: 0 PRUEBA ALCANCE, 1 AJUSTAR HORA, 2 MODO DEGRADADO,
+// 3 REINICIAR RELOJ (N-31).
 static const int OPCIONES_CONFIG = 4;
-
-// N-31: cuanto se sostiene el resultado del reinicio antes de repintar el menu. El
-// operario esta a 5 m del gabinete y este mensaje decide si sigue con software o coge
-// el soldador; no puede parpadear y desaparecer. 0 = no hay resultado en pantalla.
-static unsigned long tResultadoReinicio = 0;
-static const unsigned long RESULTADO_REINICIO_MS = 6000;
 
 static int cantidadOpciones() {
   return (nivel == NIVEL_RAIZ) ? OPCIONES_RAIZ : OPCIONES_CONFIG;
-}
-
-static void repintar() {
-  if (nivel == NIVEL_RAIZ) {
-    lcd_dibujarMenu(cursorMenu, opcionesRaiz, OPCIONES_RAIZ);
-  } else {
-    lcd_dibujarMenu(cursorMenu, opcionesConfig, OPCIONES_CONFIG, "CONFIGURACION");
-  }
 }
 
 void menu_setup() {
@@ -85,24 +68,34 @@ void menu_setup() {
   // estuvo -por ejemplo tras una vuelta al menu provocada por el propio firmware-.
   nivel = NIVEL_RAIZ;
   cursorMenu = 0;
+  // ESTA LINEA ES EL MOTIVO DE QUE menu.cpp SIGA EXISTIENDO DESPUES DE D-32 (1).
+  // coordinador_forzarMenu() es el todo-rojo de LAS DOS PUNTAS, y menu_setup() tiene
+  // doce llamadores -once modos y el despachador de Bluetooth-, asi que es la puerta
+  // por la que la app pide hoy ese todo-rojo con SET_MODO:MENU. Retirar el fichero con
+  // la pantalla habria borrado ese camino sin que ningun instrumento lo dijera.
   coordinador_forzarMenu(); // Fuerza Rojo Fijo en Maestro y Esclavo
-  repintar();
 }
 
+// D-32 (1), 13/09: LA NAVEGACION SE QUEDA Y NO ES UN DESCUIDO.
+//
+// Lo que se ha retirado de aqui es el dibujo; lo que mueve el cursor y lo que ARMA
+// cada modo sigue en pie, y esa es la diferencia entre retirar una pantalla y
+// reescribir el control de flujo del equipo. Medido antes de tocar nada:
+//
+//   - botonAceptar() y botonCancelar() devuelven false SIEMPRE desde el 31/08 (sus
+//     pines son camaras, D-2). O sea que este switch NO PUEDE alcanzarse hoy: el
+//     cursor se mueve con A y B y no hay forma de confirmar nada. Quitar la
+//     navegacion no cerraria ningun camino vivo, y dejarla no abre ninguno.
+//   - Dejarla conserva a botonArriba()/botonAbajo() un llamador en esta punta, que es
+//     lo que sostiene los DOS caminos de lectura de J16 p5/p8 que D-32 describe.
+//   - Y conserva el unico armador de MODO_HORA. Retirarlo obligaria a tocar modos.h y
+//     a retirar modo_hora.cpp entero, que es OTRO cambio y no "retirar el lcd".
+//
+// Lo que ha desaparecido con la pantalla es el sostenimiento de 6 s del resultado de
+// REINICIAR RELOJ (N-31): existia para que un mensaje no parpadeara y se perdiera, y
+// sin mensaje no sostiene nada. La operacion en si -reloj_reiniciarDominioRespaldo()-
+// sigue donde estaba, mas abajo, y ademas la app la pide por REINICIAR_RELOJ.
 void menu_loop() {
-  // N-31: mientras el resultado del reinicio esta en pantalla, se ignoran los botones
-  // y no se repinta el menu encima. Sin esto el mensaje duraria una vuelta del bucle
-  // -invisible- y el operario no sabria si el reinicio hizo algo.
-  if (tResultadoReinicio != 0) {
-    if (millis() - tResultadoReinicio < RESULTADO_REINICIO_MS) {
-      // Se consumen los flancos para que un boton pulsado durante la espera no salte
-      // a un modo en cuanto la pantalla se retire.
-      botonArriba(); botonAbajo(); botonAceptar(); botonCancelar();
-      return;
-    }
-    tResultadoReinicio = 0;
-    repintar();
-  }
   bool redibujar = false;
   const int n = cantidadOpciones();
 
@@ -126,7 +119,6 @@ void menu_loop() {
           // menu principal (Rojo Fijo con enlace, Ambar sin el).
           nivel = NIVEL_CONFIG;
           cursorMenu = 0;
-          repintar();
           return;
       }
     } else {
@@ -135,12 +127,11 @@ void menu_loop() {
         case 1:  modoActual_set(MODO_HORA);      break;
         case 2:  modoActual_set(MODO_DEGRADADO); break;
         default: {
-          // N-31: se ejecuta AQUI mismo, sin pantalla propia. Es una operacion de un
-          // solo paso cuyo resultado se lee en AJUSTAR HORA: si el aviso pasa de
-          // "SIN CRISTAL" a "RELOJ SIN PONER EN HORA", el estado sucio ERA la causa.
-          const bool arranco = reloj_reiniciarDominioRespaldo();
-          lcd_dibujarReinicioReloj(arranco);
-          tResultadoReinicio = millis();
+          // N-31: se ejecuta AQUI mismo. D-32 (1): su resultado ya no se pinta, asi
+          // que se descarta explicitamente -no se deja un valor sin mirar-. Quien
+          // necesite el desenlace lo pide por la app: bluetooth.cpp atiende
+          // REINICIAR_RELOJ y contesta con el resultado de esta misma llamada.
+          (void)reloj_reiniciarDominioRespaldo();
           return;
         }
       }
@@ -157,7 +148,8 @@ void menu_loop() {
     redibujar = true;
   }
 
-  if (redibujar) {
-    repintar();
-  }
+  // D-32 (1): `redibujar` era la orden de volcar el framebuffer. Se conserva la
+  // variable porque las dos ramas que la ponen son las que mueven el cursor, y
+  // borrarla convertiria este bucle en dos `if` sueltos sin nada que los una.
+  (void)redibujar;
 }

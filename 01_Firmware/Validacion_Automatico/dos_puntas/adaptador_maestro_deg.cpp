@@ -77,8 +77,9 @@
 #include "pines.h"
 
 // CABECERAS REALES DEL MAESTRO, sin sustituto. Ver la medida de arriba.
+// D-32 (1), 13/09: cae "lcd.h". Era una de las reales -este arnes no tiene sustituto de
+// pantalla en su -I- y por eso la retirada del LCD rompia aqui la compilacion.
 #include "botones.h"
-#include "lcd.h"
 #include "menu.h"
 #include "modos.h"
 
@@ -148,27 +149,16 @@ void bluetooth_reportarEvento(const char* origen, const char* detalle) {
 // lcd_dibujarDegradado() esto dejaria de compilar en vez de divergir en silencio. Un
 // sustituto de cabecera no habria dado ese aviso.
 // ---------------------------------------------------------------------------
-static unsigned long g_lcdRedibujos = 0;
-static unsigned long g_lcdRechazos = 0;
-static unsigned long g_lcdAmbar = 0;
-static char g_ultimaLinea1[32] = "";
-
-void lcd_dibujarDegradado(const char* fase, const char* detalle, unsigned long restanteSeg,
-                          unsigned long minutosDesdeSync, bool syncVencida, const char* aviso) {
-  (void)fase; (void)detalle; (void)restanteSeg; (void)minutosDesdeSync;
-  (void)syncVencida; (void)aviso;
-  g_lcdRedibujos++;
-}
-void lcd_dibujarDegradadoRechazo(const char* linea1, const char* linea2) {
-  (void)linea2;
-  snprintf(g_ultimaLinea1, sizeof(g_ultimaLinea1), "%s", linea1 ? linea1 : "");
-  g_lcdRechazos++;
-}
-void lcd_dibujarDegradadoAmbar(const char* linea1, const char* linea2) {
-  (void)linea2;
-  snprintf(g_ultimaLinea1, sizeof(g_ultimaLinea1), "%s", linea1 ? linea1 : "");
-  g_lcdAmbar++;
-}
+// D-32 (1), 13/09: aqui vivian los tres contadores de dibujo (g_lcdRedibujos,
+// g_lcdRechazos, g_lcdAmbar), el buffer g_ultimaLinea1 y los tres stubs
+// lcd_dibujarDegradado / ...Rechazo / ...Ambar que modo_degradado.cpp y modo_ambar.cpp
+// llamaban. Los tres .cpp reales ya no dibujan, asi que no hay nada que sustituir.
+//
+// MEDIDO ANTES DE BORRARLOS, que es lo que evita retirar un contador que alguien mira:
+// los tres se publicaban en consultar() con las claves "redibujos", "lcd_rechazos" y
+// "lcd_ambar", y NINGUN orquestador las pide -grep de las tres cadenas sobre
+// orquestador.cpp y orquestador_degradado.cpp: cero-. Se van con sus tres lineas de
+// consultar().
 void menu_setup() {}
 
 // ---------------------------------------------------------------------------
@@ -443,9 +433,6 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   if (!strcmp(que, "senal_en_curso"))     return semaforo_senalEnCurso() ? 1 : 0;
   if (!strcmp(que, "tramas_emitidas"))    return (long)g_tramasEmitidas;
   if (!strcmp(que, "alarmas"))            return (long)g_alarmasEmitidas;
-  if (!strcmp(que, "redibujos"))          return (long)g_lcdRedibujos;
-  if (!strcmp(que, "lcd_rechazos"))       return (long)g_lcdRechazos;
-  if (!strcmp(que, "lcd_ambar"))          return (long)g_lcdAmbar;
   return PUNTA_DESCONOCIDO;
 }
 

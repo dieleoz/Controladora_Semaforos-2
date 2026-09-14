@@ -14,7 +14,6 @@
 #include "semaforo.h"
 #include "coordinador.h"
 #include "protocolo.h"   // N-134: la orden de ambar al Esclavo
-#include "lcd.h"
 #include "menu.h"
 #include "modos.h"
 #include "botones.h"
@@ -76,7 +75,6 @@ void modo_ambar_setup() {
   protocolo_enviarPaquete(CMD_GO_AMBAR);
 
   semaforo_iniciarFallo();
-  lcd_dibujarDegradadoAmbar(ambarL1, ambarL2);
 }
 
 void modo_ambar_loop() {

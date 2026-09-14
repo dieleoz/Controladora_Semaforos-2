@@ -1,7 +1,6 @@
 // ===== src/mando.cpp =====
 #include "mando.h"
 #include "coordinador.h"
-#include "lcd.h"
 #include "modos.h"
 #include "modo_automatico.h"
 #include "modo_degradado.h"

@@ -129,19 +129,16 @@ static unsigned long g_modoDegradadoSetups = 0;
 MotivoDegradado modo_degradado_evaluarEntrada() { return g_entradaDegradado; }
 void modo_degradado_setup() { g_modoDegradadoSetups++; }
 
-// N-142 (11/09): MODO_AMBAR es el .cpp REAL. Ver la cabecera. Va detras de los stubs de
-// pantalla porque los necesita, y antes de pasoPrincipal(), que es quien lo despacha.
+// N-142 (11/09): MODO_AMBAR es el .cpp REAL, y va antes de pasoPrincipal(), que es
+// quien lo despacha.
 //
-// La cabecera REAL del Maestro, no el sustituto de este arnes: lcd_dibujarDegradadoAmbar()
-// no esta declarada en el sustituto, y copiar su firma aqui seria una declaracion escrita
-// a mano que puede divergir en silencio (la real no puede).
-#include "../../Maestro/include/lcd.h"   // NOLINT: la lcd.h REAL, no el sustituto
-
-static unsigned long g_lcdAmbar = 0;
-void lcd_dibujarDegradadoAmbar(const char* linea1, const char* linea2) {
-  (void)linea1; (void)linea2;
-  g_lcdAmbar++;
-}
+// D-32 (1), 13/09: AQUI HABIA UN #include "../../Maestro/include/lcd.h" -ruta relativa
+// literal a la cabecera REAL, con su NOLINT y su motivo escrito: el sustituto de este
+// arnes no declaraba lcd_dibujarDegradadoAmbar() y copiar la firma a mano habria podido
+// divergir en silencio-. Con el LCD retirado esa cabecera ya no existe Y modo_ambar.cpp
+// ya no llama a ninguna funcion de dibujo, asi que el include y su stub se van juntos.
+// Era la primera de las dos roturas de compilacion que la retirada del LCD causaba en
+// Validacion_Automatico.
 
 #include "../../Maestro/src/modo_ambar.cpp"   // NOLINT: deliberado, ver cabecera
 
