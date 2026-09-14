@@ -402,11 +402,11 @@ lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida
 
 | | |
 |---|---|
-| Flash | Maestro **89.9 %** (**58888** de 65536 B → **6.648 B libres**) · Esclavo **70.9 %** (46444 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | 🔴 **1407/1410 comprobaciones** en **82 packs** — 81 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta TRES como **vigentes sin construir**: `D-14`, `D-22` y `D-30` *(bajo de seis el 12/09 al anclar `D-25` y `D-27`)*. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
-| Arneses que compilan C++ real | 287/287 pantalla · **99/99** automático · 22/22 ciclo · **110/110 dos puntas** · **53/53 Degradado a dos puntas** |
+| Flash | Maestro **63.8 %** (**41800** de 65536 B → **23.736 B libres**) · Esclavo **55.9 %** (36648 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | 🔴 **1397/1398 comprobaciones** en **79 packs** — 78 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta TRES como **vigentes sin construir**: `D-14`, `D-22` y `D-30` *(bajo de seis el 12/09 al anclar `D-25` y `D-27`)*. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
+| Arneses que compilan C++ real | ~~287/287 pantalla~~ *(retirado con el LCD, `D-32` (1))* · **99/99** automático · 22/22 ciclo · **110/110 dos puntas** · **53/53 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
-| App | **268/268** jsdom · 65/65 funcional · 42/42 unitarios · **69/69** TDD |
+| App | **281/281** jsdom · 65/65 funcional · 52/52 unitarios · **69/69** TDD |
 
 > 🔴 **Qué HEAD y con qué árbol se midió lo dice el acta en su cabecera, y no se copia aquí**: aquí
 > ponía `f27f1a0` cuando el acta citada decía otro. Si dice `CON CAMBIOS SIN COMMITEAR`, sus cifras

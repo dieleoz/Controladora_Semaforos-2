@@ -99,26 +99,32 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 
 | Comprobación | Estado | |
 |---|---|---|
-| guarda de rutas de los instrumentos | ✅ | 65 rutas parseadas, todas existen |
-| banco por packs *(82 packs)* | 🔴 **FALLA** | **1407/1410 comprobaciones en 82 packs** — 81 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22` y `D-30` son decisiones VIGENTES sin ancla *(13/09: `D-23` sale de la lista **construida**, no anclada a mano)* *(12/09 noche: `D-25` y `D-27` ya la tienen, en `pines.h`, donde el codigo vive)* en el firmware**. **Están construidas `D-20`, la pieza B de `D-21`, `D-26` y —desde el 12/09— `D-28` y `D-29`**. `D-23` ya tiene la vía elegida (`$EVENT`, `A-14`) y **es teclado**; `D-14` es **la entrada de alarma de la cámara**, y el 12/09 se cerró que **no se gasta ninguno de los tres canales muertos**: la cámara graba el evento **sola en su microSD** (`Trigger Recording` + `Record Schedule` tipo `Event`, ficha oficial), así que marcarlo con un contacto no compra nada; `D-22` espera **una tarjeta delante** — y su premisa se corrigió el 12/09: `Y1` **no es un reloj**, es el latido del micro, y toda la derivación de márgenes ya asume el oscilador interno en su peor caso. 🔴 **Esta cuenta subió a SIETE el 12/09 al decidirse `D-28` y `D-29`, y volvió a cinco al construirlas el mismo día. Que suba no dice que el banco se degrade: dice que se está decidiendo más rápido de lo que se construye, y se arregla con teclado, no tocando el instrumento** |
-| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **89.9 %** · 70.9 % · 20.6 % · 35.7 % — *el Maestro ocupa **58888 de 65536 B**, o sea **6.648 B libres**; el Esclavo, **46444 B*** |
+| guarda de rutas de los instrumentos | ✅ | 61 rutas parseadas, todas existen |
+| banco por packs *(79 packs)* | 🔴 **FALLA** | **1397/1398 comprobaciones en 79 packs** — 78 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando que **`D-14`, `D-22` y `D-30` son decisiones VIGENTES sin ancla *(13/09: `D-23` sale de la lista **construida**, no anclada a mano)* *(12/09 noche: `D-25` y `D-27` ya la tienen, en `pines.h`, donde el codigo vive)* en el firmware**. **Están construidas `D-20`, la pieza B de `D-21`, `D-26` y —desde el 12/09— `D-28` y `D-29`**. `D-23` ya tiene la vía elegida (`$EVENT`, `A-14`) y **es teclado**; `D-14` es **la entrada de alarma de la cámara**, y el 12/09 se cerró que **no se gasta ninguno de los tres canales muertos**: la cámara graba el evento **sola en su microSD** (`Trigger Recording` + `Record Schedule` tipo `Event`, ficha oficial), así que marcarlo con un contacto no compra nada; `D-22` espera **una tarjeta delante** — y su premisa se corrigió el 12/09: `Y1` **no es un reloj**, es el latido del micro, y toda la derivación de márgenes ya asume el oscilador interno en su peor caso. 🔴 **Esta cuenta subió a SIETE el 12/09 al decidirse `D-28` y `D-29`, y volvió a cinco al construirlas el mismo día. Que suba no dice que el banco se degrade: dice que se está decidiendo más rápido de lo que se construye, y se arregla con teclado, no tocando el instrumento** |
+| compila Maestro / Esclavo / Repetidor / ESP32 | ✅ | **63.8 %** · 55.9 % · 20.6 % · 35.7 % — *el Maestro ocupa **58888 de 65536 B**, o sea **6.648 B libres**; el Esclavo, **46444 B*** |
 | simulador funcional | ✅ | 9/9 — eran 20, y 11 de aquellas no medían nada: se retiraron una a una con su evidencia |
 | simulador de repetidor | ✅ | 10/10 |
 | compila ESP32 | ✅ | 35.7 % — 1123521 de 3.145.728 B |
 | simulador del puente ESP32 | ✅ | **119/119** — las tres puntas: `bluetooth.cpp` compilado, la app en jsdom, y solo el ESP32 modelado |
 | simulador de app y bluetooth | ✅ | **12/12** — estuvo en `ABORTADO` unas horas el 05/09: **N-149** le añadió el campo `ESC` al `$STATUS` y el instrumento no supo con qué compararlo. Se enseñó a leerlo el mismo día. Queda escrito porque **mientras duró, todo lo que vigilaba entró sin mirar** (`CLAUDE.md` §1) |
-| **app ejecutada en DOM** | ✅ | **268/268** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden**, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
+| **app ejecutada en DOM** | ✅ | **281/281** — carga `index.html` en jsdom, más `app.js` y **los `js/*.js` que el propio HTML declara, en su orden**, y los **ejercita**: pestañas, modales, ingesta de telemetría, *fuzzing* de 200 tramas corruptas y los botones que mandan comandos. Es el único instrumento que **ejecuta** la app en vez de leerla |
 | test funcional de la app | ✅ | **65/65** — decía «22/22» a mano y ejecuta 34; su prueba de Courier RTC era una tautología |
 | test unitarios TDD de la app | ✅ | **69/69** — la **segunda** suite unitaria, que hasta el 01/09 **no estaba en la compuerta**: 23 pruebas verdes que no medían nada. *(Esta fila publicó `55/55` hasta el 07/09: era la cifra del 02/09, y `documentos_01` **no la vigila** — no está en su tupla `CIFRAS`.)* |
-| test unitarios de la app | ✅ | **42/42** — seis suites que no cargan el navegador: NMEA y *checksums*, generador de comandos y barrera de PIN, validación de `SET_TIEMPOS`, Courier RTC, gestor de cruces y escala de 20 cruces |
-| arnés de pantalla | ✅ | **287/287** *(Maestro 145/145, Esclavo 142/142)* — compila el `lcd.cpp` real contra un framebuffer en el PC. **Sigue midiendo aunque la pantalla se retire del equipo**: no necesita la ST7920 |
+| test unitarios de la app | ✅ | **52/52** — seis suites que no cargan el navegador: NMEA y *checksums*, generador de comandos y barrera de PIN, validación de `SET_TIEMPOS`, Courier RTC, gestor de cruces y escala de 20 cruces |
 | arnés del ciclo | ✅ | **22/22** — corre sobre el `ciclo_degradado.h` real compilado, sin espejo en Python |
 | arnés del respaldo | ✅ | compila el `calcularSuma()` real; identidad de `respaldo.cpp` entre puntas + prueba de vida |
 | arnés del Degradado a dos puntas | ✅ | **53/53** — las dos puntas en Degradado **cada una con su reloj**. Entrega **el número**: el cruce aguanta **29 s** de desfase contra los **20,2 s** que el equipo puede acumular en 48 h, o sea factor **1,44** — y no el 2 que afirmaban los comentarios de las dos puntas |
 | arnés de las dos puntas | ✅ | **110/110** — ~~la que cae es **G3** (la punta en verde no suelta antes del silencio de SFTY-6: 250 ms de verde frente a ámbar) y espera una decisión del responsable~~ 🟢 **`G3` CERRADO el 12/09 (`N-163`): la ventana pasó de 250 ms a CERO.** El responsable decidió con una condición que fue el criterio de aceptación —*«que no sea que por microcortes de radio el esclavo se pase a ámbar cada nada»*—, y se midió caso por caso sobre **32 cortes**: los ámbares no subieron ni uno (Esclavo 8→8, Maestro 10→10). **El umbral de 25 s no se tocó**; lo que cambió es cuándo se suelta el verde. Los 180 s de verde en las dos del bloque G están CERRADOS (N-162, 11/09). — el C++ **real de las DOS puntas** ejecutándose en el mismo proceso y el mismo instante: verde simultáneo en **0** instantes *(el total lo imprime el arnés; aquí ponía «de 53.236» y ya no casaba)* |
 | arnés del automático | ✅ | **99/99** — compila `coordinador.cpp` + `semaforo.cpp` + `modo_automatico.cpp` + `modo_inteligente.cpp`, `demanda.cpp` y el `botones.cpp` real, y comprueba SFTY-2 sobre las escrituras de pin |
 
-**19 PASS · 1 FALLA · 0 ABORTADO, de 20 comprobaciones — la compuerta sale con código `1`.**
+> 🛑 **Aquí había una fila más, `arnés de pantalla`, y NO se actualiza: se RETIRA.** Compilaba los cuatro
+> `lcd.cpp`/`menu.cpp` reales contra 131 `.c` de U8g2, y **se fue con el LCD** el 13/09 (`D-32` (1), `17d3a1f`).
+> La compuerta baja de **20 filas a 19** y el banco pierde sus **287 comprobaciones** (145 Maestro + 142
+> Esclavo): **es una bajada A PROPÓSITO, no una regresión.** Se dice aquí abajo y no en la tabla porque en la
+> tabla **sólo caben filas con una medida detrás** — una fila sin medida se lee como medida.
+
+
+**19 PASS · 1 FALLA · 0 ABORTADO, de 19 comprobaciones — la compuerta sale con código `1`.**
 
 > 🔴 **El `1` es el hallazgo, no una regresión.** Lo acusa `decisiones_01_anclas`: **`D-14`, `D-22` y
 > `D-23` están vigentes en `DECISIONES.md` sin una línea que las construya.** `D-14` —*el controlador
@@ -138,7 +144,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 > exactamente esto:
 > *los modelos y los arneses de PC no encuentran nada*. **No dice que el firmware funcione en la
 > tarjeta.** El contraejemplo está fechado: los tres defectos que pararon el banco del 3-4/09
-> pasaron estas 20 comprobaciones sin despeinarlas. **Verde no es entregable.**
+> pasaron estas 19 comprobaciones sin despeinarlas. **Verde no es entregable.**
 
 ### Por qué la compuerta está hecha así — cuatro lecciones, en una línea cada una
 
@@ -156,7 +162,7 @@ publicaba 32 rutas y 86,4 % de flash cuando el acta que ella misma citaba medía
 > algo que el auditor re-corre sobre ese mismo commit. Estado de hoy en
 > [`ESTADO.md`](ESTADO.md); reglas permanentes en [`CLAUDE.md`](CLAUDE.md).
 
-### 📦 El banco son 82 packs — y eso NO es una medalla
+### 📦 El banco son 79 packs — y eso NO es una medalla
 
 ```
 python 01_Firmware/Simulaciones/banco/correr.py --listar

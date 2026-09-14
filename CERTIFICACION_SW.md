@@ -46,19 +46,19 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 
 | Verificación | Resultado medido | Método |
 |---|---|---|
-| Compilación Maestro (STM32F103) | **58888 B de Flash — 89.9 %** de 65536 B (quedan **6648 B**) | `pio run` |
-| Compilación Esclavo (STM32F103) | **46444 B de Flash — 70.9 %** de 65536 B | `pio run` |
+| Compilación Maestro (STM32F103) | **41800 B de Flash — 63.8 %** de 65536 B (quedan **6648 B**) | `pio run` |
+| Compilación Esclavo (STM32F103) | **36648 B de Flash — 55.9 %** de 65536 B | `pio run` |
 | Compilación Repetidor (ESP32) | **270497 B de Flash — 20,6 %** de 1310720 B | `pio run` |
-| Guarda de rutas de los instrumentos | **65 rutas** parseadas, todas existen | `compuerta.py` |
+| Guarda de rutas de los instrumentos | **61 rutas** parseadas, todas existen | `compuerta.py` |
 | Banco de simulación funcional | **9/9 PASS** | `simulador_sistema_v7_6.py` |
 | Escenarios de repetidor | **10/10 PASS** | `simulador_repetidor.py` |
-| Banco por packs | 🔴 **1407/1410 comprobaciones**, **82 packs** — 81 PASS, **1 FALLA**. **Este documento se FIRMA, así que la frase que había aquí —*«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*— se retira por FALSA:** sólo `D-20` y la pieza **B** de `D-21` están construidas. `D-14`, `D-22` y `D-23` son decisiones **vigentes sin construir**, y el rojo las está contando bien | `banco/correr.py` |
-| Arnés de pantalla (compila el `lcd.cpp` real) | **287/287** (Maestro 145/145 · Esclavo 142/142) | `Validacion_LCD/compilar.ps1` |
+| Banco por packs | 🔴 **1397/1398 comprobaciones**, **79 packs** — 78 PASS, **1 FALLA**. **Este documento se FIRMA, así que la frase que había aquí —*«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*— se retira por FALSA:** sólo `D-20` y la pieza **B** de `D-21` están construidas. `D-14`, `D-22` y `D-23` son decisiones **vigentes sin construir**, y el rojo las está contando bien | `banco/correr.py` |
+| ~~Arnés de pantalla~~ | 🛑 **RETIRADO el 13/09 con el LCD** (`D-32` (1)): compilaba el `lcd.cpp` real, y ese fichero ya no existe. **Este documento se FIRMA: la fila no se actualiza, se retira** | — |
 | Arnés del ciclo degradado | **22/22** | `Validacion_Ciclo` |
 | Arnés del Modo Automático | **99/99** | `Validacion_Automatico` |
 | App — test funcional | **65/65** | suite funcional de la app |
-| App — test unitarios | **42/42** | suite unitaria de la app |
-| App — ejecutada en DOM | **268/268** | arnés jsdom |
+| App — test unitarios | **52/52** | suite unitaria de la app |
+| App — ejecutada en DOM | **281/281** | arnés jsdom |
 | App — test unitarios TDD | **69/69** | segunda suite unitaria |
 | Compilación ESP32 de expansión | **1122973 B — 35,7 %** de 3145728 B | `pio run` |
 | Simulador del puente ESP32 | **119/119** | contrato del puente |
@@ -81,8 +81,8 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 >
 > | publicaba | medido hoy | por qué importa |
 > |---|---|---|
-> | ~~Maestro: 42.620 B (65,0 %)~~ | **58888 B (89.9 %)** | 🔴 **El error grave.** Quien planificase con el 65 % creería tener **~23 KB libres**; quedan **7136 B**. Con esa cifra se propone estructura que **no cabe** |
-> | ~~Esclavo: 15.480 B (23,6 %)~~ | **46444 B (70.9 %)** | Casi el triple de ocupación real |
+> | ~~Maestro: 42.620 B (65,0 %)~~ | **41800 B (63.8 %)** | 🔴 **El error grave.** Quien planificase con el 65 % creería tener **~23 KB libres**; quedan **7136 B**. Con esa cifra se propone estructura que **no cabe** |
+> | ~~Esclavo: 15.480 B (23,6 %)~~ | **36648 B (55.9 %)** | Casi el triple de ocupación real |
 > | ~~Repetidor: 269.197 B (20,5 %)~~ | **270497 B (20,6 %)** | El acta mide **una** compilación de repetidor, no dos |
 > | ~~Compilación Repetidor diagnóstico: 270.257 B (20,6 %)~~ | — | ⛔ **Retirada.** La compuerta no la mide: publicar una fila sin medida detrás la hace leerse como medida |
 > | ~~Banco funcional 9/9~~ | **9/9** — las 20 de entonces incluian 11 pruebas que no median nada; se retiraron con su evidencia una a una | |
