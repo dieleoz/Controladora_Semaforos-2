@@ -319,7 +319,8 @@ quedar correcto y la compuerta verde, pero un `revert` de ese commit no deshace 
 | `ESTADO.md` | donde esta parado el trabajo **hoy** · `evidencia/`, las actas con fecha y hash: **la fuente de toda cifra** |
 | `OPTIMIZACIONES.md` | las reglas `SFTY-x` y la trazabilidad regla -> codigo -> prueba |
 | `01_Firmware/compuerta.py` | **la unica forma correcta de verificar** · `Simulaciones/banco/`, packs y modelos · `Validacion_*/`, los arneses que compilan C++ real |
-| `04_Manuales/`, `05_Funcional/` | manuales y protocolos para el tecnico y el auditor |
+| 🔴 **`05_Funcional/SPEC_1..SPEC_6`** | **LA SPEC, y es el documento DEL PRODUCTO**: lo que el equipo HACE. Se parte de aqui para exportar, no de `DECISIONES.md`. Cada afirmacion validada contra el fuente; lo que no cumple vive en su «HUECOS MEDIDOS» |
+| `04_Manuales/`, el resto de `05_Funcional/` | manuales y protocolos para el tecnico y el auditor |
 
 ## 13. Convenciones
 
@@ -369,12 +370,30 @@ las tres primeras: identicas o no se compila.**
 
 Lo fija el responsable, y decide que se toca primero cuando dos cosas compiten:
 
-1. **Las SPEC** — `DECISIONES.md` y `05_Funcional/17_...`. **La base**: todo lo demas se deriva de ellas.
+1. 🔴 **LA SPEC — `05_Funcional/SPEC_1..SPEC_6`.** Es **el documento DEL PRODUCTO**: el responsable lo fijo el
+   13/09 — *«si manana exportamos este semaforo, partimos de los MANUALES y de la SPEC»*—. Con `05_Funcional/17_...`,
+   que gana en cobre medido.
 2. **Los ARNESES y los instrumentos** — compuerta, packs, simuladores. Lo que MIDE la spec.
 3. **Los manuales y la documentacion** — `04_Manuales/`, el resto de `05_Funcional/`, los `.docx`.
 
 **El motivo: las spec cambian a diario y son la base; los manuales congelan el dia en que se escribieron, y
 reescribirlos en cada vuelta es donde se va el tiempo — y donde se deja de hacer codigo.**
+
+> 🔴 **DONDE SE ESCRIBE CADA COSA, Y ESTO CORRIGE UN VICIO MIO QUE EL RESPONSABLE TUVO QUE SENALAR DOS VECES.**
+> `DECISIONES.md` **NO es la spec: es el ANDAMIO con el que se construyo**, y nacio por un motivo concreto —
+> *«se creo porque cada nada empezabas a preguntar una y otra vez lo mismo»*—. De ahi las dos reglas:
+>
+> - **En la fila va SU RESPUESTA, en dos lineas, y lo que deroga. NADA MAS.** Ni como se midio, ni que commit lo
+>   construyo, ni que se refuto: eso es CRONICA y su sitio es `roadmap_hist.md`. Una fila que crece hasta las
+>   5.000 caracteres —y las hay— **ha dejado de cumplir su unica funcion**, que es contestar de un vistazo para
+>   que nadie vuelva a preguntar.
+> - **EL COMPORTAMIENTO VA A LA SPEC.** Si la spec ya lo dice, **no se repite en la fila**.
+>
+> 🔴 **Y LA SPEC TIENE QUE ESTAR COHERENTE E IMPLEMENTADA**, que es la mitad que se olvida: una spec que promete
+> lo que el equipo no hace es peor que no tenerla, porque el que la exporte firma algo falso. **Cada afirmacion se
+> valida contra el fuente** y se clasifica en las cuatro de §6: implementada y ejercida · implementada sin
+> ejercer · **NO implementada** —esa va al apartado «HUECOS MEDIDOS» de su spec, nunca escrita como si existiera
+> (§1)— · no comprobable desde el fuente.
 
 > 🔴 **UN CAMBIO DE UNA CONSTANTE, UN FLANCO O UN UMBRAL CUESTA DOS EDICIONES: la fuente de verdad, y el instrumento
 > que la RECALCULA. Nada mas.** Si un documento RECITA ese valor, la respuesta correcta **no es actualizarlo: es
