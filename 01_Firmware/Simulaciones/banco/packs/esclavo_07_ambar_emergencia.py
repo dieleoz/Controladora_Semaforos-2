@@ -25,14 +25,18 @@
 #      guarda de main.cpp solo protegia el ambar del mando, asi que el pedido desde la
 #      app se lo llevaba el siguiente latido -unos 3 s- y el operario veia al equipo
 #      obedecer y volverse atras solo.
+#      🔴 D-30 (14/09): y ahora es la UNICA mitad que queda. Retirado el mando, el
+#      termino mando_ambarLocal() salio de esas tres guardas; lo que aqui se media como
+#      una simetria entre dos latches se mide hoy como lo que siempre fue: que ninguna
+#      guarda de luz se olvide del latch que hay.
 #
 # NADA DE ESTO LLEVA EL NOMBRE NUEVO ESCRITO A MANO. El nombre se DEDUCE del C++ -la
 # rama sin PIN que llama a semaforo_iniciarFallo()- y con el se comprueba el motivo del
 # rechazo. Escribirlo aqui seria un valor por defecto disfrazado: el dia que alguien
 # renombrara otra vez, el pack seguiria midiendo el nombre de ayer.
 #
-# EJERCE SFTY-21: el ambar pedido por Bluetooth pesa lo mismo que el del mando; ninguna
-# orden de luz por radio lo revoca.
+# EJERCE SFTY-21: el ambar pedido por Bluetooth es el UNICO latch de esta punta desde
+# D-30 (14/09), y ninguna orden de luz por radio lo revoca.
 
 import re
 
@@ -307,24 +311,40 @@ def correr(b, fw):
     fw.comando(PROTOCOLO, "CMD_GO_RED")
 
     condiciones = _condiciones_if(principal)
-    vetos_mando = [c for c in condiciones if "mando_ambarLocal()" in c]
-    if not vetos_mando:
-        raise fw.Abortado(
-            "no se hallo en main.cpp ni una guarda con mando_ambarLocal(). Ese es el "
-            "patron que el ambar de Bluetooth tiene que igualar; sin el, el pack no "
-            "sabe donde mirar")
 
-    sin_bluetooth = [c.split("\n")[0].strip() for c in vetos_mando
-                     if "%s()" % GETTER not in c]
+    # D-30 (14/09) — EL ANCLA CAMBIA, Y ES LO UNICO QUE CAMBIA DE ESTE BLOQUE.
+    #
+    # Aqui se anclaba en las guardas que llevaban mando_ambarLocal() y se exigia que
+    # TODAS llevaran ademas el getter de Bluetooth: la propiedad estaba escrita como una
+    # SIMETRIA -"una orden de emergencia vale lo mismo la haya dado un dedo en el
+    # gabinete o un dedo en el telefono"- porque entonces habia dos latches.
+    #
+    # Hoy hay uno. Retirado el mando (D-30), el termino mando_ambarLocal() salio de las
+    # tres guardas y anclarse en el habria dejado el pack en ABORTADO permanente, que no
+    # dice nada del firmware. Lo que NO se fue es la propiedad de fondo: las guardas que
+    # deciden si esta punta obedece una orden de luz tienen que consultar el latch.
+    #
+    # EL BORDE, escrito al lado porque el pack compara contra uno: TRES, y son
+    # nominales -CMD_GO_RED, CMD_GO_GREEN y la recuperacion tras fallo, los mismos tres
+    # `if` que hasta el 14/09 llevaban los dos terminos-. Se exige >= 3 y no == 3 para
+    # que una guarda NUEVA no haga fallar al pack por existir; lo que este numero
+    # persigue es que BAJEN, que es como un veto desaparece en silencio.
+    vetos_latch = [c for c in condiciones if "%s()" % GETTER in c]
+    if not vetos_latch:
+        raise fw.Abortado(
+            "no se hallo en main.cpp ni una guarda con %s(). Es el UNICO latch de ambar "
+            "que le queda a esta punta desde D-30, asi que sin el no hay nada que "
+            "proteja un ambar pedido de la siguiente orden de luz -y el pack no puede "
+            "fingir que lo midio-" % GETTER)
+
     b.verificar(
-        not sin_bluetooth,
-        "las %d guardas de main.cpp que respetan el ambar del mando respetan TAMBIEN "
-        "el pedido por Bluetooth. Una orden de emergencia vale lo mismo la haya dado "
-        "un dedo en el gabinete o un dedo en el telefono" % len(vetos_mando),
-        "hay %d guarda(s) que solo miran mando_ambarLocal(): %s. Por ahi se cuela la "
-        "revocacion: el ambar de la app dura hasta el siguiente latido del Maestro "
-        "-unos 3 s- y el operario ve el equipo obedecer y volverse atras solo"
-        % (len(sin_bluetooth), sin_bluetooth))
+        len(vetos_latch) >= 3,
+        "main.cpp tiene %d guardas de luz que consultan %s(): el ambar pedido desde la "
+        "app no lo pisa ninguna orden de radio" % (len(vetos_latch), GETTER),
+        "solo quedan %d guarda(s) con %s() y eran TRES -CMD_GO_RED, CMD_GO_GREEN y la "
+        "recuperacion tras fallo-. La que falte es una puerta por la que el ambar de la "
+        "app se revoca solo: llega la orden, el equipo obedece, y el operario ve al "
+        "equipo volverse atras sin que nadie se lo pidiera" % (len(vetos_latch), GETTER))
 
     # La guarda concreta que revocaba: la que se dispara con un CMD_GO_RED encontrando
     # el nodo ya en S_FALLO. Se comprueba aparte de la de arriba porque es un 'if'

@@ -598,6 +598,110 @@ def main():
         test_failed("Control Negativo del censo D-26",
                     "el censo no detecta una causa sin texto, o el detector de cifras no ve una")
 
+    print_header("SUITE FUNCIONAL 6: LA BARRERA RETENIDA POR LA CAMARA - EL FORMATO SALE DEL C++")
+
+    # NI LOS LITERALES NI LOS PATRONES SE ESCRIBEN AQUI: se leen de los dos lados y se
+    # cruzan. Del C++ salen los snprintf que componen el DETALLE; del .js, sus dos
+    # PATRON_*. Una lista copiada en esta suite se quedaria vieja el dia que el firmware
+    # cambiara el rotulo, y la app volveria a ensenar el aviso en crudo -- con un cartel
+    # que no abre y una barrera arriba que nadie destaca -- sin que nada fallara.
+    #
+    # EL BORDE, ESCRITO (CLAUDE.md 7): se censan SOLO los snprintf de botones.cpp cuyo
+    # formato empieza por VETO_, que son los que alimentan
+    # bluetooth_reportarEvento("CAMARA_PLUMA", ...). Los demas DETALLE de ese fichero no
+    # son de este sujeto y exigirles cartel convertiria esta suite en la que decide que
+    # se destaca.
+    ruta_mod = os.path.join(js_dir, "js", "aviso_camara_pluma.js")
+    if not os.path.isfile(ruta_mod):
+        test_failed("Cartel de la barrera retenida",
+                    "no existe js/aviso_camara_pluma.js: el aviso de CAMARA_PLUMA no lo "
+                    "traduce nadie y vuelve a caer en la bitacora de 30 lineas")
+    with io.open(ruta_mod, encoding="utf-8", errors="replace") as f:
+        mod_js = f.read()
+
+    re_snprintf_veto = re.compile(r'snprintf\(\s*detalle\s*,[^,]+,\s*"(VETO_[^"]*)"')
+    re_origen_camara = re.compile(r'bluetooth_reportarEvento\(\s*"(CAMARA_PLUMA)"')
+
+    formatos, origenes = set(), set()
+    for punta in ("Maestro", "Esclavo"):
+        ruta = os.path.join(raiz_fw, punta, "src", "botones.cpp")
+        if not os.path.isfile(ruta):
+            test_failed("Censo de la barrera retenida",
+                        f"no existe {punta}/src/botones.cpp: se movio el firmware y esta "
+                        f"suite no sabe donde leer el aviso (CLAUDE.md 5)")
+        t = _cpp_sin_comentarios(ruta)
+        formatos |= set(re_snprintf_veto.findall(t))
+        origenes |= set(re_origen_camara.findall(t))
+
+    # SUELO, NO CUENTA: dos formatos -- el flanco y el sostenido -- y el ORIGEN. Si sale
+    # menos, el que fallo es el buscador y no el firmware, y un censo vacio aprobaria
+    # esta suite entera sin mirar nada.
+    if len(formatos) < 2 or "CAMARA_PLUMA" not in origenes:
+        test_failed("Censo de la barrera retenida",
+                    f"el C++ solo dio formatos={sorted(formatos)} origenes={sorted(origenes)}: "
+                    f"fallo el buscador, no la app")
+    test_passed("Formato del aviso de barrera retenida leido del C++", ", ".join(sorted(formatos)))
+
+    # LOS PATRONES DEL .JS, LEIDOS DEL FICHERO. Se traduce cada formato del C++ a un
+    # DETALLE de ejemplo -- %u es una cuenta y '!' ya viene literal -- y se exige que
+    # ALGUN patron del modulo lo acepte.
+    patrones = [re.compile(p) for p in
+                re.findall(r"PATRON_[A-Z_]+:\s*/(\^[^/]+\$)/", mod_js)]
+    if len(patrones) < 2:
+        test_failed("Patrones del cartel de la camara",
+                    f"js/aviso_camara_pluma.js publica {len(patrones)} patrones anclados y "
+                    f"el firmware emite {len(formatos)} formatos")
+
+    sin_patron = []
+    for fmt in sorted(formatos):
+        ejemplo = fmt.replace("%u", "180")
+        if not any(p.match(ejemplo) for p in patrones):
+            sin_patron.append(ejemplo)
+    if not sin_patron:
+        test_passed("Cada DETALLE de CAMARA_PLUMA del firmware lo reconoce el modulo",
+                    f"{len(formatos)} de {len(formatos)} formatos aceptados por los patrones del .js")
+    else:
+        test_failed("DETALLE de CAMARA_PLUMA sin patron",
+                    f"el firmware emite {sin_patron} y la app no lo reconoce: el tecnico lo "
+                    f"veria como una linea mas de la bitacora y se le iria con el scroll")
+
+    # 🔴 LO QUE LA APP NO PUEDE DECIR NUNCA. El equipo no ve imagen (D-12) y no separa un
+    # vehiculo parado de una camara mal apuntada: los dos son un contacto cerrado. El
+    # propio botones.cpp lo deja escrito. Se miran los LITERALES del modulo, no el codigo.
+    averia = re.compile(r"averi|estropead|dañad|defectuos|fallo de la cámara", re.I)
+    lit_mod = re.findall(r"'([^'\n]*)'", re.sub(r"//[^\n]*", " ", mod_js))
+    con_averia = [c for c in lit_mod if averia.search(c)]
+    if not con_averia and averia.search("la camara esta averiada"):
+        test_passed("El cartel no afirma una averia que el equipo no puede ver",
+                    f"{len(lit_mod)} literales de js/aviso_camara_pluma.js revisados")
+    else:
+        test_failed("El cartel afirma una averia",
+                    f"{con_averia}: el equipo no ve imagen y no distingue un vehiculo parado "
+                    f"de una camara mal apuntada (D-12)")
+
+    # Y SIN CIFRAS DEL FIRMWARE, mismo borde que los avisos D-26: el unico numero que el
+    # cartel ensena es el que VIENE EN LA TRAMA, no una constante copiada del C++.
+    con_cifra_cam = [c for c in lit_mod if cifra.search(c)]
+    if not con_cifra_cam:
+        test_passed("El cartel no recita ninguna cifra del firmware",
+                    f"ni el todo-rojo maximo, ni la cadencia del aviso, ni el tope del buffer")
+    else:
+        test_failed("Cifra en el cartel de la camara",
+                    f"{con_cifra_cam}: un numero copiado del firmware nace caducado")
+
+    # CONTROL NEGATIVO: el censo sabe fallar. Un formato nuevo del C++ tiene que salir
+    # como falta, y el detector de averia tiene que ver una.
+    falso_fmt = set(re_snprintf_veto.findall(
+        'snprintf(detalle, sizeof(detalle), "VETO_INVENTADO_X:%u", 1);'))
+    if falso_fmt == {"VETO_INVENTADO_X:%u"} \
+            and not any(p.match("VETO_INVENTADO_X:180") for p in patrones) \
+            and averia.search("camara averiada"):
+        test_passed("Control Negativo del censo de la camara",
+                    "un formato nuevo del C++ se detecta como falta y 'averiada' se ve como diagnostico")
+    else:
+        test_failed("Control Negativo del censo de la camara",
+                    "el censo no detecta un formato sin patron, o el detector de averia no ve una")
+
     # El "N/N" no es un adorno: es la forma que compuerta.py sabe extraer para el acta,
     # y aqui es honesto porque test_failed() corta la corrida en el acto -si se llega a
     # esta linea, las N que se ejecutaron pasaron todas-.

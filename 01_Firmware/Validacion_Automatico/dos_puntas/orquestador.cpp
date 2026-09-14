@@ -1962,29 +1962,37 @@ int main() {
   }
 
   {
-    // 🔴 D-29 / D-1 — EL AMBAR DEL MANDO, DENTRO DE LA VENTANA DEL DIFERIMIENTO.
+    // 🔴 D-30 / D-29 — EL AMBAR DE LA APP, DENTRO DE LA VENTANA DEL DIFERIMIENTO.
     //
-    // QUE CIERRA. degradado_comprobar() -la puerta unica del modo- mira SOLO el cerrojo
-    // de Bluetooth y NO mando_ambarLocal(), a proposito. Mientras la reanudacion se
-    // decidia dentro de setup() eso no abria nada: no se ha contado ni un pulso todavia.
-    // D-29 difiere la decision hasta VENTANA_REANUDACION_MS, y en esos minutos la bandera
-    // SI puede armarse: la guarda nueva de degradado_reanudarTrasCorte() tira el permiso
-    // en ese caso, y esto es lo que la ejerce.
+    // ESTE ESCENARIO MEDIA EL AMBAR DEL MANDO, Y SE REAPUNTA EN VEZ DE BORRARSE
+    // (CLAUDE.md §9). Su sujeto era mando_ambarLocal(), armado con B.B.B desde el
+    // gabinete; el mando salio del producto el 14/09 (D-30) y con el la guarda que D-29
+    // habia puesto dentro de degradado_reanudarTrasCorte() para esa bandera concreta.
     //
-    // POR QUE NO ES ADORNO AUNQUE EL MANDO ESTE DESMONTADO (D-1, 05/09). Con los
-    // pulsadores fuera la bandera no se arma nunca, asi que en la tarjeta de hoy esta
-    // guarda no se dispararia jamas y una linea que no puede fallar no es una
-    // comprobacion. Aqui SI se arma, y por el camino real: tres pulsos de B en el
-    // mando.cpp REAL de esta DLL -B.B.B, la secuencia del ambar-. Lo que se mide es que
-    // la guarda EXISTE y muerde cuando la bandera esta puesta; lo que la puede poner en
-    // campo es el cobre, no una persona: J16 p5 y p8 estan VACIOS y BOTON1/BOTON2 siguen
-    // leyendose como entradas peladas (CLAUDE.md 3, A-2/D-1).
+    // LO QUE SE MIDE SIGUE EXISTIENDO, PERO LO CIERRA OTRA PUERTA, Y ESA ES LA MITAD QUE
+    // HAY QUE ESCRIBIR. El veto que sobrevive es el LATCH DE LA APP
+    // -bluetooth_ambarEmergencia()-, y la reanudacion diferida no lo esquiva porque no
+    // tiene camino propio: degradado_reanudarTrasCorte() entra por degradado_entrar(),
+    // que revalida con degradado_comprobar(), y ahi vive
+    // "if (bluetooth_ambarEmergencia()) return DEG_RECHAZO_AMBAR_VIGENTE". Al rechazar,
+    // reanudarTrasCorte() hace respaldo_guardarDegradado(false): el permiso se tira
+    // igual que antes. O sea que la propiedad es la misma -con un ambar de emergencia
+    // puesto, un microcorte no devuelve el poste al Degradado por su cuenta- y lo que
+    // cambia es QUIEN la sostiene: ya no una guarda especifica del camino diferido,
+    // sino la puerta unica del modo.
+    //
+    // POR QUE NO ES ADORNO, Y AHORA MENOS QUE ANTES. El ambar del mando habia que
+    // justificarlo con el cobre -J16 p5/p8 pelados-, porque con las botoneras
+    // desmontadas ninguna persona podia armarlo. El de la app lo arma un tecnico con el
+    // telefono todos los dias, y se pide AQUI POR EL CAMINO REAL: tecleaAmbarApp() manda
+    // la MISMA LINEA que manda el telefono -leida del C++, no escrita aqui- y la despacha
+    // el bluetooth.cpp REAL de esta DLL.
     //
     // Y EL CONTROL VA PEGADO, no en otro escenario: se corre DOS VECES con la MISMA
-    // temporizacion y la unica diferencia son los tres pulsos. Sin el, la linea de abajo
-    // la pasaria igual de bien un escenario que se quedo sin siembra o sin permiso.
-    struct SalidaMando { bool ambar; bool permiso; bool gobierna; unsigned long verdes; };
-    auto correrConMando = [&](bool pulsarBBB) -> SalidaMando {
+    // temporizacion y la unica diferencia es la linea del telefono. Sin el, la linea de
+    // abajo la pasaria igual de bien un escenario que se quedo sin siembra o sin permiso.
+    struct SalidaAmbar { bool ambar; bool permiso; bool permisoFinal; bool gobierna; unsigned long verdes; };
+    auto correrConAmbarApp = [&](bool pedirAmbar) -> SalidaAmbar {
       escenarioLimpio(tiempos(1, 1, 15));
       relojDelBancoACero();
       sincronizarEsclavo(10, 8, 0, 0);
@@ -1995,43 +2003,68 @@ int main() {
       avanzar(30000);
       microcorte(ESCLAVO);
       avanzar(20000);   // dentro de la ventana, y ya con el ambar de orfandad puesto
-      if (pulsarBBB) {
-        // B . B . B por el mando REAL: punta_pulsar() se los entrega a
-        // mando_registrarPulso() en botones_actualizar(), como un pulso del rele.
-        for (int i = 0; i < 3; i++) { ESCLAVO.pulsar(2); unTick(); }
+      if (pedirAmbar) {
+        // La puerta SIN PIN, que es la que usa la app (N-142). La despacha el
+        // bluetooth.cpp REAL en su siguiente tick.
+        tecleaAmbarApp();
+        unTick();
       }
-      avanzar(20000);   // los tres destellos rojos de confirmacion y su ejecucion
-      SalidaMando r;
-      r.ambar = ESCLAVO.orden("ambar_local") == 1;
+      avanzar(20000);
+      SalidaAmbar r;
+      r.ambar = ESCLAVO.orden("ambar_latch") == 1;
+      // ANTES de la siembra: aqui la decision TODAVIA NO SE HA TOMADO. Se lee para poder
+      // decirlo en el mensaje, no para exigir nada (ver el borde, abajo).
       r.permiso = ESCLAVO.orden("respaldo_degradado") == 1;
       sembrarEsclavoDesdeEsp32(10, 8, 40, 0);
       const unsigned long v0 = g_ticksVerdeEsclavo;
       avanzar(120000);
       r.verdes = g_ticksVerdeEsclavo - v0;
       r.gobierna = ESCLAVO.orden("degradado_gobierna") == 1;
+      // DESPUES de la siembra: ESTE es el instante en que se decide, y por eso es el que
+      // se exige. Ver el borde escrito arriba del comprobar().
+      r.permisoFinal = ESCLAVO.orden("respaldo_degradado") == 1;
       return r;
     };
-    const SalidaMando conMando = correrConMando(true);
-    const SalidaMando sinMando = correrConMando(false);
+    const SalidaAmbar conAmbar = correrConAmbarApp(true);
+    const SalidaAmbar sinAmbar = correrConAmbarApp(false);
 
-    comprobar(conMando.ambar && !sinMando.ambar,
-              "D16 (control): el B.B.B armo de verdad el ambar del mando -el mando.cpp "
-              "REAL, con sus tres destellos rojos y su ejecucion-, y el escenario gemelo "
-              "sin pulsar no lo armo. Sin esta linea las dos de abajo mediran lo mismo "
-              "por casualidad");
+    comprobar(conAmbar.ambar && !sinAmbar.ambar,
+              "D16 (control): la linea del telefono armo de verdad el latch del ambar de "
+              "emergencia -el bluetooth.cpp REAL, por la puerta sin PIN que usa la app-, y "
+              "el escenario gemelo sin teclearla no lo armo. Sin esta linea las dos de "
+              "abajo mediran lo mismo por casualidad");
 
-    comprobar(!conMando.permiso && !conMando.gobierna && conMando.verdes == 0,
-              "D17: con el ambar del mando puesto DENTRO de la ventana, la reanudacion "
-              "diferida NO ocurre: el permiso de la pila se tira en cuanto la bandera "
-              "aparece, y la siembra del ESP32 que llega despues no gobierna la luz ni "
-              "enciende un verde. Es lo unico que D-29 abrio -degradado_comprobar() no "
-              "mira esta bandera- y se cierra en el camino diferido, sin tocar la puerta");
+    // 🔴 EL BORDE, Y POR QUE SE MIDE DESPUES DE LA SIEMBRA Y NO ANTES (CLAUDE.md §7).
+    //
+    // La version del mando exigia el permiso ANTES de la siembra, y podia: la guarda de
+    // D-29 miraba mando_ambarLocal() en la PRIMERA linea del camino diferido y tiraba el
+    // permiso en cuanto la bandera aparecia, sin esperar a tener hora. Retirada esa
+    // guarda, lo que cierra es la puerta unica, y la puerta unica NO SE CONSULTA HASTA
+    // QUE HAY HORA: mientras falta, degradado_reanudarTrasCorte() se va por la rama del
+    // diferimiento -"return false sin borrar"- y el permiso sigue puesto a proposito,
+    // porque la decision aun no se ha tomado. Medido: antes de la siembra permiso=1 CON
+    // ambar y CON el gemelo sin ambar -o sea que ahi no discrimina nada-; despues de la
+    // siembra da 0 con ambar y 1 sin el.
+    //
+    // O SEA QUE LO QUE SE MOVIO ES EL INSTANTE, NO LA PROPIEDAD, y exigirla en el
+    // instante viejo seria acusar al firmware de un defecto que no tiene. El instante
+    // correcto es aquel en que la decision existe: cuando la hora ya llego. Que la
+    // propiedad sigue siendo una propiedad -y no algo que se cumple solo- lo demuestra
+    // D18, que es el mismo escenario sin la linea del telefono y acaba con permiso=1.
+    comprobar(!conAmbar.permisoFinal && !conAmbar.gobierna && conAmbar.verdes == 0,
+              "D17: con el ambar de emergencia de la app puesto DENTRO de la ventana, la "
+              "reanudacion diferida NO ocurre: una vez llega la hora del ESP32 -que es "
+              "cuando la decision se toma- el permiso de la pila se tira, y ni se gobierna "
+              "la luz ni se enciende un verde. Quien lo cierra es la PUERTA UNICA "
+              "-degradado_reanudarTrasCorte() entra por degradado_entrar(), que revalida "
+              "con degradado_comprobar() y ahi vive el rechazo por ambar vigente-, no una "
+              "guarda propia del camino diferido: desde D-30 esa guarda ya no existe");
 
-    comprobar(sinMando.permiso && sinMando.gobierna && sinMando.verdes > 0,
+    comprobar(sinAmbar.permisoFinal && sinAmbar.gobierna && sinAmbar.verdes > 0,
               "D18 (el control negativo de D17): el MISMO escenario con la MISMA "
-              "temporizacion y sin los tres pulsos SI reanuda (" +
-              std::to_string(sinMando.verdes) + " verdes por reloj). O sea que lo que "
-              "paro la reanudacion fue la bandera del mando y no el escenario");
+              "temporizacion y sin la linea del telefono SI reanuda (" +
+              std::to_string(sinAmbar.verdes) + " verdes por reloj). O sea que lo que "
+              "paro la reanudacion fue el latch del ambar y no el escenario");
   }
 
   {

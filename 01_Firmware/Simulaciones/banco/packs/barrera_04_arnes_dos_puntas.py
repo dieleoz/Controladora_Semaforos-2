@@ -148,11 +148,27 @@ def correr(b, fw):
     # Los instrumentos leen el fuente por ruta: mover o renombrar un .cpp rompe uno.
     # Esta es la guarda de rutas del arnes nuevo (regla 5).
     rutas = re.findall(r"'src\\(\w+\.cpp)'", guion)
+    # EL SUELO, RE-DERIVADO EL 14/09 (D-30), Y CUAL ES EL BORDE.
+    #
+    # Era DIEZ y el guion nombra hoy NUEVE, porque la retirada del mando le quito dos
+    # fuentes: mando.cpp del Maestro y mando.cpp del Esclavo. El suelo se RECALCULA
+    # contra lo que el guion compila hoy, no se baja hasta que la cuenta pase.
+    #
+    # EL DESGLOSE, medido sobre el guion terminado -3 del Maestro y 6 del Esclavo-:
+    #   Maestro: coordinador.cpp, semaforo.cpp, modo_automatico.cpp          (eran 4)
+    #   Esclavo: semaforo.cpp, main.cpp, modo_degradado.cpp, config_ciclo.cpp,
+    #            demanda.cpp, respaldo.cpp                                    (eran 7)
+    #
+    # POR QUE NUEVE Y NO "los que haya": lo que este numero persigue es que BAJEN sin
+    # que nadie lo note, que es como un arnes deja de compilar firmware real y pasa a
+    # medir stubs sin dejar rastro. Un fichero NUEVO en el guion no lo hace fallar -por
+    # eso es >= y no ==-; uno que desaparezca, si.
     b.verificar(
-        len(rutas) >= 10,
+        len(rutas) >= 9,
         f"el guion del arnes nombra {len(rutas)} fuentes del firmware por ruta",
-        f"solo se leyeron {len(rutas)} rutas del guion. Un censo casi vacio daria PASS "
-        "sin mirar nada, que es la prueba muerta que este banco persigue")
+        f"solo se leyeron {len(rutas)} rutas del guion y el suelo son 9 (3 del Maestro y "
+        "6 del Esclavo). Un censo por debajo significa que el arnes compila menos "
+        "firmware real del que decia, y eso no avisa solo")
 
     # El guion reparte las rutas en dos variables, una por punta, asi que aqui basta con
     # exigir que cada nombre exista en ALGUNA de las dos; el reparto correcto lo

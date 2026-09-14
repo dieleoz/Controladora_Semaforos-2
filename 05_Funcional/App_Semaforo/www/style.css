@@ -1023,6 +1023,55 @@ body {
   background: rgba(255, 30, 68, 0.10);
 }
 
+/* EL CARTEL DE LA BARRERA RETENIDA POR LA CAMARA (14/09).
+   Mismo molde que .card-parado -franja roja a la izquierda y fondo teñido- porque es la
+   misma clase de aviso: algo que el equipo NO va a resolver solo. Lo que cambia respecto
+   a aquel es que este NO vive dentro de una pestaña, asi que no hereda el gap de
+   .tab-content y lleva su propio margen inferior. */
+.card-camara-pluma {
+  border-left: 4px solid var(--red-lamp);
+  background: rgba(255, 30, 68, 0.10);
+}
+
+/* Ya bajó: el aviso se queda -lo que la dejó arriba sigue sin revisarse- pero deja de
+   ser rojo. Un rojo sobre una barrera que ya bajó enseña a no creerse los rojos. */
+.card-camara-pluma.camara-pluma-bajada {
+  border-left-color: var(--amber-lamp);
+  background: rgba(255, 176, 32, 0.10);
+}
+
+.camara-pluma-titulo {
+  display: block;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.camara-pluma-medida {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+/* LO ACCIONABLE VA MAS GRANDE QUE LA MEDIDA, y es deliberado: el numero de segundos es
+   lo que hay que reportar, pero lo que salva a alguien es "mire debajo del brazo". */
+.camara-pluma-accion {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+.camara-pluma-limite {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
 .parado-titulo {
   display: block;
   font-size: 13px;

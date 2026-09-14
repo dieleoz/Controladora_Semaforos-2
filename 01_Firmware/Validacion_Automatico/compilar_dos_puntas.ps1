@@ -45,31 +45,33 @@ if (-not (Test-Path $BUILD)) { New-Item -ItemType Directory -Path $BUILD | Out-N
 # OJO AL ORDEN DE LOS -I. El directorio de sustitutos de la punta va PRIMERO, luego el
 # comun, y el include REAL de esa punta al final. Asi Arduino.h, pines.h, lcd.h, menu.h,
 # botones.h e IWatchdog.h se resuelven contra los sustitutos, y TODO lo demas
-# -semaforo.h, protocolo.h, reloj.h, respaldo.h, mando.h, config_ciclo.h,
+# -semaforo.h, protocolo.h, reloj.h, respaldo.h, config_ciclo.h,
 # modo_degradado.h, ciclo_degradado.h, bluetooth.h, demanda.h, coordinador.h,
 # modo_automatico.h, modos.h, modo_ambar.h- cae a la cabecera REAL del firmware. Una
 # copia local de cualquiera de esas seria el "casi igual" que puede divergir en silencio.
+# D-30 (14/09): en esa lista estaba mando.h. Salio del firmware con el mando, y con el
+# la interceptacion de escrituras de semaforo.cpp: ya no hay nada que resolver ahi.
 $COMUN = @("-I$DP", "-I$DP\comun")
 
 # --- Punta MAESTRO ---------------------------------------------------------
-# Los mismos cuatro ficheros que ya ejerce el arnes de una punta.
+# Los mismos tres ficheros del firmware que ya ejerce el arnes de una punta.
+# D-30 (14/09): eran cuatro; mando.cpp salio del firmware entero.
 $fuentesMaestro = @(
     (Join-Path $MAESTRO 'src\coordinador.cpp'),
     (Join-Path $MAESTRO 'src\semaforo.cpp'),
     (Join-Path $MAESTRO 'src\modo_automatico.cpp'),
-    (Join-Path $MAESTRO 'src\mando.cpp'),
     (Join-Path $DP 'adaptador_maestro.cpp')
 )
 
 # --- Punta ESCLAVO ---------------------------------------------------------
-# SIETE ficheros reales, y el que importa es src/main.cpp: el despachador de radio que
+# SEIS ficheros reales -eran siete hasta que mando.cpp salio con D-30-, y el que
+# importa es src/main.cpp: el despachador de radio que
 # decide si esta punta obedece un CMD_GO_GREEN. Ningun arnes lo habia compilado nunca.
 $fuentesEsclavo = @(
     (Join-Path $ESCLAVO 'src\semaforo.cpp'),
     (Join-Path $ESCLAVO 'src\main.cpp'),
     (Join-Path $ESCLAVO 'src\modo_degradado.cpp'),
     (Join-Path $ESCLAVO 'src\config_ciclo.cpp'),
-    (Join-Path $ESCLAVO 'src\mando.cpp'),
     (Join-Path $ESCLAVO 'src\demanda.cpp'),
     (Join-Path $ESCLAVO 'src\respaldo.cpp'),
     (Join-Path $DP 'adaptador_esclavo.cpp')
@@ -84,11 +86,11 @@ foreach ($f in ($fuentesMaestro + $fuentesEsclavo)) {
 $comunes = @('-std=c++11', '-O1', '-Wall', '-Wno-unused-parameter', '-DPUNTA_EXPORTA',
              '-static-libgcc', '-static-libstdc++')
 
-Write-Host "Compilando la punta MAESTRO (coordinador + semaforo + modo_automatico + mando REALES)..." -ForegroundColor Cyan
+Write-Host "Compilando la punta MAESTRO (coordinador + semaforo + modo_automatico REALES)..." -ForegroundColor Cyan
 & g++ @comunes @COMUN "-I$DP\maestro" "-I$MAESTRO\include" -shared -o (Join-Path $BUILD 'punta_maestro.dll') @fuentesMaestro
 if ($LASTEXITCODE -ne 0) { Write-Error "Fallo construyendo punta_maestro.dll" }
 
-Write-Host "Compilando la punta ESCLAVO (semaforo + main + modo_degradado + config_ciclo + mando + demanda + respaldo REALES)..." -ForegroundColor Cyan
+Write-Host "Compilando la punta ESCLAVO (semaforo + main + modo_degradado + config_ciclo + demanda + respaldo REALES)..." -ForegroundColor Cyan
 & g++ @comunes @COMUN "-I$DP\esclavo" "-I$ESCLAVO\include" -shared -o (Join-Path $BUILD 'punta_esclavo.dll') @fuentesEsclavo
 if ($LASTEXITCODE -ne 0) { Write-Error "Fallo construyendo punta_esclavo.dll" }
 

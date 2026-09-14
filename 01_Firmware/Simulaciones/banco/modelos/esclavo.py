@@ -25,7 +25,6 @@ from banco import fuente as _fw
 # Constantes leidas del firmware real (anti-deriva modelo/firmware).
 # Si alguna no se puede leer, banco.fuente ABORTA: sin valor por defecto, nunca.
 # --------------------------------------------------------------------------
-_ESC_MANDO = ("Esclavo", "src", "mando.cpp")
 _ESC_MAIN = ("Esclavo", "src", "main.cpp")
 _ESC_SEM = ("Esclavo", "src", "semaforo.cpp")
 _ESC_DEG = ("Esclavo", "src", "modo_degradado.cpp")
@@ -33,16 +32,12 @@ _ESC_PROTO = ("Esclavo", "include", "protocolo.h")
 _ESC_CICLO = ("Esclavo", "include", "ciclo_degradado.h")
 _MAE_COORD = ("Maestro", "src", "coordinador.cpp")
 
-VENTANA_TRIPLE_MS = _fw.constante(_ESC_MANDO, r"VENTANA_TRIPLE_MS\s*=\s*(\d+)", "ventana de A.A.A / B.B.B")
-VENTANA_CUADRUPLE_MS = _fw.constante(_ESC_MANDO, r"VENTANA_CUADRUPLE_MS\s*=\s*(\d+)", "ventana de A.B.A.B")
-DESTELLOS_OBEDECER = _fw.constante(_ESC_MANDO, r"DESTELLOS_OBEDECER\s*=\s*(\d+)", "destellos de A.A.A")
-DESTELLOS_AMBAR = _fw.constante(_ESC_MANDO, r"DESTELLOS_AMBAR\s*=\s*(\d+)", "destellos de B.B.B")
-DESTELLOS_DEGRADADO = _fw.constante(_ESC_MANDO, r"DESTELLOS_DEGRADADO\s*=\s*(\d+)", "destellos de A.B.A.B")
-RECHAZO_AMBAR_MS = _fw.constante(_ESC_MANDO, r"RECHAZO_AMBAR_MS\s*=\s*(\d+)", "ambar rapido de rechazo")
-
-DESTELLO_ON_MS = _fw.constante(_ESC_SEM, r"DESTELLO_ON_MS\s*=\s*(\d+)", "destello encendido")
-DESTELLO_OFF_MS = _fw.constante(_ESC_SEM, r"DESTELLO_OFF_MS\s*=\s*(\d+)", "destello apagado")
-AMBAR_RAPIDO_MS = _fw.constante(_ESC_SEM, r"AMBAR_RAPIDO_PERIODO_MS\s*=\s*(\d+)", "periodo del ambar rapido")
+# D-30 (14/09): AQUI SE LEIAN SEIS CONSTANTES DE mando.cpp -las dos ventanas, los
+# tres recuentos de destellos y el ambar rapido de rechazo- y tres de la senal de
+# semaforo.cpp. El mando salio del firmware con sus ficheros, asi que no habia fuente
+# que leer: _fw.constante() ABORTA cuando no encuentra la constante -sin valor por
+# defecto, nunca- y los cuatro packs que importan este modelo habrian caido en
+# ABORTADO, que no dice nada del firmware.
 AMARILLO_A_VERDE_MS = _fw.constante(_ESC_SEM, r"estado\s*==\s*S_AMARILLO\s*&&\s*\(ahora\s*-\s*tCambio\s*>=\s*(\d+)\)", "amarillo previo al verde")
 
 # D-32 (1), 13/09: aqui se leian del menu.cpp del Esclavo INACTIVIDAD_MS (regreso
@@ -103,7 +98,6 @@ CMD = {n: _fw.comando(_ESC_PROTO, n) for n in (
     "CMD_CONFIG_VERDE", "CMD_CONFIG_DESPEJE", "CMD_ACK_CONFIG")}
 DELTA_FUERA_DE_RANGO = -128
 
-MANDO_A, MANDO_B = 0, 1
 
 
 # ==========================================================================
@@ -116,22 +110,16 @@ MANDO_A, MANDO_B = 0, 1
 class Semaforo:
     """Puerto de src/semaforo.cpp.
 
-    Se modela con detalle porque el mando DEPENDE de el: la accion confirmada se
-    ejecuta cuando terminan los destellos, y esos destellos son los que abren -o
-    no- una ventana en la que el latch de ambar todavia no esta puesto.
+    D-30 (14/09): de aqui salio la SENAL DE CONFIRMACION -destellos rojos y ambar
+    rapido-, que interceptaba la escritura a los pines mientras duraba. Su unico
+    armador era mando.cpp; retirado el mando, la bandera no podia volver a valer
+    true y la interceptacion era un camino que nadie podia ejercer.
     """
 
     def __init__(self, nodo):
         self.nodo = nodo
         self.estado = "S_ROJO"
         self.tCambio = 0
-        self.senalActiva = False
-        self.senalEsAmbar = False
-        self.senalDestellos = 0
-        self.senalEncendida = False
-        self.tSenal = 0
-        self.tSenalInicio = 0
-        self.senalDuracion = 0
         self.pines = (False, False, False)   # rojo, amarillo, verde EN EL POSTE
         self.ult = (False, False, False)
         self.verde_en_pines_alguna_vez = False
@@ -150,65 +138,11 @@ class Semaforo:
             r = False
         if r and v:
             v = False
+        # `ult` se guarda igual que en el C++: es lo ultimo que pidio la logica, y de
+        # ella cuelga la reentrada de la pluma (D-33). Lo que ya no hay es el desvio
+        # `if senalActiva: return` que la senal del mando metia justo aqui.
         self.ult = (r, a, v)
-        if self.senalActiva:
-            return
         self._escribir_pines(r, a, v)
-
-    def _terminar_senal(self):
-        self.senalActiva = False
-        self.senalDestellos = 0
-        self.senalEsAmbar = False
-        self._escribir_pines(*self.ult)
-
-    def _actualizar_senal(self):
-        ahora = self.nodo.t
-        if self.senalEsAmbar:
-            if ahora - self.tSenal >= AMBAR_RAPIDO_MS:
-                self.tSenal = ahora
-                self.senalEncendida = not self.senalEncendida
-                self._escribir_pines(False, self.senalEncendida, False)
-            if ahora - self.tSenalInicio >= self.senalDuracion:
-                self._terminar_senal()
-            return
-        if self.senalEncendida:
-            if ahora - self.tSenal >= DESTELLO_ON_MS:
-                self.senalEncendida = False
-                self._escribir_pines(False, False, False)
-                self.tSenal = ahora
-                if self.senalDestellos > 0:
-                    self.senalDestellos -= 1
-                if self.senalDestellos == 0:
-                    self._terminar_senal()
-        else:
-            if ahora - self.tSenal >= DESTELLO_OFF_MS:
-                self.senalEncendida = True
-                self._escribir_pines(True, False, False)
-                self.tSenal = ahora
-
-    def destellos_rojos(self, n):
-        if n == 0:
-            return
-        self.senalActiva = True
-        self.senalEsAmbar = False
-        self.senalDestellos = n
-        self.senalEncendida = False
-        self.tSenal = self.nodo.t
-        self.tSenalInicio = self.tSenal
-        self._escribir_pines(False, False, False)
-
-    def ambar_rapido(self, ms):
-        self.senalActiva = True
-        self.senalEsAmbar = True
-        self.senalDestellos = 0
-        self.senalEncendida = True
-        self.tSenal = self.nodo.t
-        self.tSenalInicio = self.tSenal
-        self.senalDuracion = ms
-        self._escribir_pines(False, True, False)
-
-    def senal_en_curso(self):
-        return self.senalActiva
 
     def forzar_rojo(self):
         self.estado = "S_ROJO"
@@ -229,8 +163,6 @@ class Semaforo:
 
     def actualizar(self):
         ahora = self.nodo.t
-        if self.senalActiva:
-            self._actualizar_senal()
         if self.estado == "S_AMARILLO" and (ahora - self.tCambio) >= AMARILLO_A_VERDE_MS:
             self.estado = "S_VERDE"
             self._aplicar(False, False, True)
@@ -321,6 +253,19 @@ class ModoDegradado:
             return "DEG_RECHAZO_SIN_SYNC"
         if self.sync_vencida:
             return "DEG_RECHAZO_SYNC_VENCIDA"
+        # R-4: CON UN AMBAR DE LA APP VIGENTE NO SE ENTRA AL DEGRADADO.
+        #
+        # Faltaba en este modelo, y hasta el 14/09 no se notaba: el A.B.A.B del mando
+        # bajaba `ambarLocal` ANTES de llamar aqui, asi que por esa via la guarda nunca
+        # se alcanzaba con el latch puesto. Retirado el mando, la UNICA via de entrada
+        # es SET_MODO:DEGRADADO por app (D-18), que no revoca nada: pregunta, y con el
+        # ambar puesto se lleva un DEG_RECHAZO_AMBAR_VIGENTE.
+        #
+        # La diferencia importa y por eso se modela: el mando REVOCABA el ambar del
+        # operario para entrar -y si luego el modo se rechazaba, el equipo se quedaba
+        # sin ambar y sin Degradado-; la app no puede dejar ese hueco.
+        if self.nodo._ambar_emergencia():
+            return "DEG_RECHAZO_AMBAR_VIGENTE"
         return "DEG_ACEPTADO"
 
     def entrar(self):
@@ -377,125 +322,80 @@ class ModoDegradado:
 # el cursor, el regreso automatico al listado y el repintado periodico. Se va entera
 # porque su sujeto ya no existe: de menu.cpp solo queda menu_estaAbierto().
 #
-# LO QUE ESE MODELO SOSTENIA, y donde ha quedado: esta clase era lo que le daba sujeto
-# a esclavo_02_inhibicion_menu (7 comprobaciones, `# EJERCE SFTY-21: el mando queda
-# inhibido con el menu abierto`), que se retira con ella. SFTY-21 NO se queda sin
-# ejercicio: quedan once packs etiquetados -maestro_01_mando mide las tres secuencias,
-# esclavo_01 el latch, camara_02_j16 la polaridad de A y B, y siete mas-.
+# LO QUE ESE MODELO SOSTENIA: le daba sujeto a esclavo_02_inhibicion_menu (7
+# comprobaciones, `# EJERCE SFTY-21: el mando queda inhibido con el menu abierto`), que
+# se retiro con ella.
 #
-# Y la inhibicion en si: `menu_estaAbierto()` devuelve hoy false siempre, asi que el
-# mando del Esclavo esta SIEMPRE armado. Eso no lo estrena este commit -botonAceptar()
-# es `return false;` desde el 31/08, o sea que la pantalla no podia bajar del listado y
-# la bandera ya era falsa en todas las vueltas-; lo que cambia es que ya no hay un
-# modelo simulando un estado que el equipo no puede alcanzar.
+# D-30 (14/09): Y LA FRASE QUE SEGUIA A ESTA -"SFTY-21 no se queda sin ejercicio:
+# quedan once packs etiquetados"- YA NO ES CIERTA, asi que se corrige en vez de
+# heredarse. Retirado el mando entero, lo que quedaba de SFTY-21 en esta punta es el
+# LATCH DE AMBAR, y hoy lo arma la app en vez del gabinete: es `ambarEmergencia` de
+# bluetooth.cpp, lo ejerce esclavo_01 sobre el modelo reapuntado y lo leen en el texto
+# esclavo_07 y costura_14. Lo que NADIE ejerce ya -y se dice para que su ausencia no se
+# lea como cobertura- son las secuencias de pulsos y la senal de destellos: no existen.
 
 
-class Mando:
-    """Puerto de src/mando.cpp."""
+class AmbarEmergencia:
+    """Puerto del latch de ambar de la app: `ambarEmergencia` de src/bluetooth.cpp.
 
-    MAX_PULSOS = 4
+    D-30 (14/09): AQUI VIVIA `class Mando`, el puerto de src/mando.cpp -el buffer de
+    pulsos, las ventanas, las tres secuencias y el latch `ambar_local` que armaba
+    B.B.B-. Se va con su fichero, y el latch NO se va con el: el firmware conserva el
+    de la app, y son LAS MISMAS TRES GUARDAS de main.cpp las que lo leen, que hasta el
+    14/09 preguntaban por los dos.
 
-    def __init__(self, nodo, guarda_ambar_en_verde=True):
+    Por eso este modelo se REAPUNTA en vez de borrarse. La propiedad que el banco
+    ejerce -con un ambar pedido puesto, ninguna orden de luz por radio lo pisa ni se
+    acusa- es la misma, sobre el unico latch que queda. Borrarlo habria dejado esa
+    propiedad sin ningun instrumento que la EJECUTE: esclavo_07 la mira en el texto de
+    las guardas, que es otra cosa.
+
+    Lo que NO se modela, y se dice para que su ausencia no se lea como cobertura: el
+    dialogo de CANCELAR_AMBAR con el Maestro (CMD_CANCELA_AMBAR_ESCLAVO, el plazo del
+    acuse y su reenvio) vive en bluetooth.cpp y lo miden costura_14 y esclavo_07. Aqui
+    solo esta el latch y su sostenedor, que es lo que decide la LUZ.
+    """
+
+    def __init__(self, nodo):
         self.nodo = nodo
-        self.sec = []          # (boton, instante)
-        self.pendiente = None
-        self.ambar_local = False
-        self.rechazos = 0
-        # Interruptores para los CONTROLES NEGATIVOS: permiten correr el mismo
-        # modelo SIN una salvaguarda y exigir que la prueba lo cace. Si la prueba
-        # no distingue las dos versiones, no esta midiendo la salvaguarda.
-        self.guarda_ambar_en_verde = guarda_ambar_en_verde
+        self.armado = False
 
-    def _limpiar(self):
-        self.sec = []
+    def pedir(self):
+        """CMD:AMBAR_EMERGENCIA. Arma el latch y enciende el ambar en la misma vuelta.
 
-    def _secuencias_inhibidas(self):
-        # D-32 (1), 13/09: EL MODELO SIGUE AL FIRMWARE, que es la unica forma de que
-        # este banco valga para algo. mando.cpp del Esclavo hace
-        # `return menu_estaAbierto();` y menu_estaAbierto() es hoy `return false;`.
-        #
-        # Aqui habia ademas un interruptor -inhibicion_activa- para poder correr el
-        # modelo SIN la salvaguarda y exigir que la prueba lo cazara. Se retira con la
-        # unica prueba que lo giraba (esclavo_02_inhibicion_menu): un control negativo
-        # que ya nadie ejerce no es un control, es un parametro muerto.
-        #
-        # LO QUE ESTO SIGNIFICA, dicho entero: el mando del Esclavo esta SIEMPRE armado
-        # sobre J16 p5/p8, que estan vacios y pelados. No es nuevo -desde el 31/08 la
-        # pantalla no podia bajar del listado, asi que la bandera ya era falsa siempre-
-        # y no lo cierra el firmware: lo cierra la instruccion de no cablear esos pines.
-        return False
-
-    def _confirmar_y_actuar(self, accion, destellos):
-        self.nodo.semaforo.forzar_rojo()
-        self.nodo.semaforo.destellos_rojos(destellos)
-        self.pendiente = accion
-        self._limpiar()
-
-    def _rechazar(self):
-        self.rechazos += 1
-        self.nodo.semaforo.ambar_rapido(RECHAZO_AMBAR_MS)
-        self._limpiar()
-
-    def _purgar_viejos(self, ahora):
-        self.sec = [p for p in self.sec if (ahora - p[1]) <= VENTANA_CUADRUPLE_MS]
-
-    def registrar_pulso(self, boton):
-        if self._secuencias_inhibidas():
-            self._limpiar()
-            return
-        if self.nodo.semaforo.senal_en_curso() or self.pendiente is not None:
-            return
-        ahora = self.nodo.t
-        self._purgar_viejos(ahora)
-        if len(self.sec) >= self.MAX_PULSOS:
-            self.sec = self.sec[1:]
-        self.sec.append((boton, ahora))
-
-        if len(self.sec) >= 4:
-            u = self.sec[-4:]
-            if [p[0] for p in u] == [MANDO_A, MANDO_B, MANDO_A, MANDO_B] and \
-                    (ahora - u[0][1]) <= VENTANA_CUADRUPLE_MS:
-                if self.nodo.degradado.comprobar() == "DEG_ACEPTADO":
-                    self._confirmar_y_actuar("ACC_DEGRADADO", DESTELLOS_DEGRADADO)
-                else:
-                    self._rechazar()
-                return
-        if len(self.sec) >= 3:
-            u = self.sec[-3:]
-            if (ahora - u[0][1]) <= VENTANA_TRIPLE_MS:
-                if [p[0] for p in u] == [MANDO_A] * 3:
-                    self._confirmar_y_actuar("ACC_OBEDECER", DESTELLOS_OBEDECER)
-                    return
-                if [p[0] for p in u] == [MANDO_B] * 3:
-                    self._confirmar_y_actuar("ACC_AMBAR", DESTELLOS_AMBAR)
-                    return
-
-    def _ejecutar(self, a):
+        Sin condiciones y desde cualquier estado: es la regla que impide que nadie
+        quede atrapado con un semaforo en estado raro a 5 m de altura.
+        """
         n = self.nodo
-        if a == "ACC_OBEDECER":
-            self.ambar_local = False
-            if n.degradado.gobierna_luz():
-                n.degradado.salir()
-            else:
-                n.semaforo.forzar_rojo()
-        elif a == "ACC_AMBAR":
-            self.ambar_local = True
-            if n.degradado.gobierna_luz():
-                n.degradado.salir()
-            else:
-                n.semaforo.iniciar_fallo()
-        elif a == "ACC_DEGRADADO":
-            self.ambar_local = False
-            n.degradado.entrar()
+        self.armado = True
+        if n.degradado.gobierna_luz():
+            # Salida ORDENADA por el todo-rojo de despedida del Degradado. El ambar lo
+            # enciende despues el sostenedor, no este salto.
+            n.degradado.salir()
+        else:
+            n.semaforo.iniciar_fallo()
+
+    def cancelar(self):
+        """CMD:CANCELAR_AMBAR. Quita el latch; NO enciende ni apaga nada por su cuenta.
+
+        La luz la mueve luego quien mande: el Maestro con su siguiente orden, o la
+        caida por silencio. Apagar aqui seria decidir una luz que este comando no pide.
+        """
+        self.armado = False
 
     def actualizar(self):
+        """El SOSTENEDOR de bluetooth.cpp, al final de la vuelta.
+
+        Se RE-ARMA en vez de encenderse una sola vez porque la orden tiene que
+        sobrevivir a lo que pase despues -al todo-rojo de salida del Degradado, que
+        termina en INACTIVO y no en ambar-; un ambar que se apaga solo no es un estado
+        seguro, es un parpadeo.
+
+        Eran TRES guardas y hoy son dos: la tercera, `not senal_en_curso()`, protegia
+        los destellos del mando y se fue con ellos.
+        """
         n = self.nodo
-        if self.pendiente is not None and not n.semaforo.senal_en_curso():
-            a = self.pendiente
-            self.pendiente = None
-            self._ejecutar(a)
-        if self.ambar_local and not n.semaforo.senal_en_curso() and \
-                (not self.guarda_ambar_en_verde or not n.degradado.gobierna_luz()) and \
+        if self.armado and not n.degradado.gobierna_luz() and \
                 n.semaforo.estado != "S_FALLO":
             n.semaforo.iniciar_fallo()
 
@@ -503,17 +403,19 @@ class Mando:
 class Esclavo:
     """Puerto del loop() de src/main.cpp, con su misma secuencia de llamadas.
 
-    El ORDEN importa y por eso se respeta: los flancos primero, luego las luces,
-    la radio en medio y el mando al final, que es lo que hace que la ultima
-    palabra de cada vuelta sea del mando.
+    El ORDEN importa y por eso se respeta: los flancos primero, luego las luces, la
+    radio en medio y el SOSTENEDOR DEL AMBAR al final, que es lo que hace que la
+    ultima palabra de cada vuelta sea del latch y no de una orden de radio que acabe
+    de llegar. Hasta el 14/09 el que cerraba la vuelta era mando_actualizar(), en el
+    mismo sitio y por el mismo motivo.
     """
 
-    def __init__(self, obedece_ambar_local=True):
+    def __init__(self, obedece_ambar_emergencia=True):
         self.t = 0
         self.flanco = [False] * 4
         self.semaforo = Semaforo(self)
         self.degradado = ModoDegradado(self)
-        self.mando = Mando(self)
+        self.ambar = AmbarEmergencia(self)
         self.rx = []            # tramas que llegan del Maestro
         self.tx = []            # (instante, comando, param) que salen al aire
         self.respuesta_pendiente = None
@@ -556,8 +458,9 @@ class Esclavo:
         self.respaldo_hay_ciclo = False
         self.respaldo_guardados = []
 
-        # Interruptor del CONTROL NEGATIVO del bloque 1.
-        self.obedece_ambar_local = obedece_ambar_local
+        # Interruptor del CONTROL NEGATIVO del bloque 1: con el a False se modela un
+        # firmware SIN la desobediencia, y la prueba tiene que cazarlo.
+        self.obedece_ambar_emergencia = obedece_ambar_emergencia
 
     # --- reloj -----------------------------------------------------------
     def reloj_segundos_del_dia(self):
@@ -662,10 +565,10 @@ class Esclavo:
             return DELTA_FUERA_DE_RANGO
         return d
 
-    def _ambar_local(self):
-        # El interruptor solo existe para el control negativo: con el a False se
-        # modela un firmware SIN la desobediencia, y la prueba tiene que cazarlo.
-        return self.mando.ambar_local and self.obedece_ambar_local
+    def _ambar_emergencia(self):
+        # Puerto de `!bluetooth_ambarEmergencia()`, el termino que queda en las tres
+        # guardas de main.cpp desde que el del mando se fue (D-30).
+        return self.ambar.armado and self.obedece_ambar_emergencia
 
     def _procesar(self, pkt):
         cmd, param = pkt
@@ -678,12 +581,12 @@ class Esclavo:
             self.programar_respuesta(CMD["CMD_PONG"])
         elif cmd == CMD["CMD_GO_RED"]:
             self.tUltimoComando = self.t
-            if not self._ambar_local():
+            if not self._ambar_emergencia():
                 self.semaforo.forzar_rojo()
                 self.programar_respuesta(CMD["CMD_ACK_RED"])
         elif cmd == CMD["CMD_GO_GREEN"]:
             self.tUltimoComando = self.t
-            if not self._ambar_local():
+            if not self._ambar_emergencia():
                 self.semaforo.iniciar_transicion_a_verde()
                 self.ack_verde_enviado = False
                 self.programar_respuesta(CMD["CMD_ACK_GREEN"])
@@ -732,7 +635,7 @@ class Esclavo:
                 self._respaldo_guardar_ciclo(self.cfg_verde, self.cfg_despeje)
                 self.programar_respuesta(CMD["CMD_ACK_CONFIG"])
 
-        if not self._ambar_local() and self.semaforo.estado == "S_FALLO" and cmd == CMD["CMD_GO_RED"]:
+        if not self._ambar_emergencia() and self.semaforo.estado == "S_FALLO" and cmd == CMD["CMD_GO_RED"]:
             self.semaforo.forzar_rojo()
 
     # --- bucle principal --------------------------------------------------
@@ -740,10 +643,10 @@ class Esclavo:
         self.t += dt
 
         # botones_actualizar(): el mando ve los pulsos ANTES que ninguna pantalla
-        if self.flanco[0]:
-            self.mando.registrar_pulso(MANDO_A)
-        if self.flanco[1]:
-            self.mando.registrar_pulso(MANDO_B)
+        # D-30 (14/09): aqui botones_actualizar() pasaba cada flanco de BOTON1/BOTON2
+        # al reconocedor de secuencias del mando, ANTES que ninguna pantalla. El
+        # firmware dejo de hacerlo el 14/09 y el modulo salio entero: los pines se
+        # siguen leyendo, pero ya no alimentan nada que mueva la luz.
 
         self.semaforo.actualizar()
         self._atender_respuesta_pendiente()
@@ -769,7 +672,7 @@ class Esclavo:
             self.ack_verde_enviado = True
 
         # D-32 (1): aqui iba `if self.interfaz_arrancada: self.menu.loop()`.
-        self.mando.actualizar()
+        self.ambar.actualizar()
         self.flanco = [False] * 4
 
     # --- utilidades del banco --------------------------------------------
@@ -778,12 +681,15 @@ class Esclavo:
         for _ in range(n):
             self.loop(paso)
 
-    def secuencia(self, botones, separacion=2000):
-        """Acciona el mando como lo hace el operario: un pulso cada ~2 s, que es
-        lo que tarda el rele en conmutar (medido en campo, ver mando.h)."""
-        for b in botones:
-            self.pulsar(b)
-            self.correr(separacion)
+    def pedir_ambar_emergencia(self):
+        """CMD:AMBAR_EMERGENCIA desde la app, y una vuelta para que la luz lo siga."""
+        self.ambar.pedir()
+        self.correr(50)
+
+    def cancelar_ambar_emergencia(self):
+        """CMD:CANCELAR_AMBAR desde la app."""
+        self.ambar.cancelar()
+        self.correr(50)
 
     def verde_encendido(self):
         return self.semaforo.pines[2]

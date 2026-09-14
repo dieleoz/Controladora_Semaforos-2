@@ -80,7 +80,8 @@ $fuentesMaestro = @(
 )
 
 # --- Punta ESCLAVO ---------------------------------------------------------
-# Los MISMOS SIETE ficheros y el MISMO adaptador que el arnes hermano, MAS reloj.cpp REAL
+# Los MISMOS SEIS ficheros -eran siete hasta que mando.cpp salio con D-30- y el MISMO
+# adaptador que el arnes hermano, MAS reloj.cpp REAL
 # (11/09): el adaptador lo sabe por -DARNES_RELOJ_REAL, que solo pone este script. Ver la
 # cabecera de adaptador_esclavo.cpp: es el mismo fichero, no una copia.
 $fuentesEsclavo = @(
@@ -88,7 +89,6 @@ $fuentesEsclavo = @(
     (Join-Path $ESCLAVO 'src\main.cpp'),
     (Join-Path $ESCLAVO 'src\modo_degradado.cpp'),
     (Join-Path $ESCLAVO 'src\config_ciclo.cpp'),
-    (Join-Path $ESCLAVO 'src\mando.cpp'),
     (Join-Path $ESCLAVO 'src\demanda.cpp'),
     (Join-Path $ESCLAVO 'src\respaldo.cpp'),
     (Join-Path $ESCLAVO 'src\reloj.cpp'),
@@ -109,7 +109,7 @@ Write-Host "Compilando la punta MAESTRO CON DEGRADADO (coordinador + semaforo + 
 & g++ @comunes '-DARNES_RELOJ_REAL' "-I$DP" "-I$RR" "-I$DP\comun" "-I$MAESTRO\include" -shared -o (Join-Path $BUILD 'punta_maestro_deg.dll') @fuentesMaestro
 if ($LASTEXITCODE -ne 0) { Write-Error "Fallo construyendo punta_maestro_deg.dll" }
 
-Write-Host "Compilando la punta ESCLAVO (semaforo + main + modo_degradado + config_ciclo + mando + demanda + respaldo + reloj REALES)..." -ForegroundColor Cyan
+Write-Host "Compilando la punta ESCLAVO (semaforo + main + modo_degradado + config_ciclo + demanda + respaldo + reloj REALES)..." -ForegroundColor Cyan
 & g++ @comunes '-DARNES_RELOJ_REAL' "-I$DP" "-I$RR" "-I$DP\comun" "-I$DP\esclavo" "-I$ESCLAVO\include" -shared -o (Join-Path $BUILD 'punta_esclavo_deg.dll') @fuentesEsclavo
 if ($LASTEXITCODE -ne 0) { Write-Error "Fallo construyendo punta_esclavo_deg.dll" }
 

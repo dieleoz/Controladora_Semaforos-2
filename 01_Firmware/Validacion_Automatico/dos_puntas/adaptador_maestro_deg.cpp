@@ -3,7 +3,7 @@
 // LA PUNTA MAESTRO **CON SU MODO DEGRADADO REAL**, DENTRO DE SU PROPIA DLL.
 //
 // Es hermano de adaptador_maestro.cpp y NO lo sustituye: aquel monta el Modo
-// Automatico -coordinador + modo_automatico + mando- y declara en su cabecera que
+// Automatico -coordinador + modo_automatico- y declara en su cabecera que
 // "en este arnes el MODO DEGRADADO del Maestro no existe". Este monta lo contrario:
 // el Degradado, que es el unico modo en el que CADA PUNTA ENCIENDE SU VERDE SIN
 // PREGUNTARLE A NADIE.
@@ -64,7 +64,7 @@
 //     contador, en reloj_real/, con el borde escrito alli (Y2 arrancando). Sin eso la
 //     caducidad de la siembra y la frontera de 25 s de reloj_radioManda() no las ejecutaba
 //     nadie: el doble que habia aqui no las tenia.
-//   - mando.cpp, bluetooth.cpp, botones.cpp: no deciden la fase del Degradado. La rama
+//   - bluetooth.cpp, botones.cpp: no deciden la fase del Degradado. La rama
 //     CMD:HORA_ESP32 de bluetooth.cpp -la que siembra- se transcribe en la orden
 //     "siembra_esp32", literal, porque bluetooth.cpp arrastra el puerto serie entero.
 
@@ -387,6 +387,14 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   // La caducidad COMPILADA en esta DLL, no un numero copiado: el orquestador la pide aqui.
   if (!strcmp(que, "hora_caduca_ms"))     return (long)HORA_CADUCA_MS;
   if (!strcmp(que, "hora_fiable"))        return reloj_horaFiable() ? 1 : 0;
+  // 1.22 - EL TERCER ESTADO DEL CRISTAL, Y ES LA PERILLA DEL CONTROL NEGATIVO.
+  // Congela CNT dejando LSERDY en 1 (reloj_real/stm32f1xx_hal.h). "rtc_cnt" es el contador
+  // CRUDO del periferico, no reloj_contadorSegundos(): hace falta poder ver que el silicio
+  // se quedo quieto SIN pasar por la funcion del firmware que se esta midiendo.
+  if (!strcmp(que, "rtc_congelar"))       { arnes_rtc_congelar(arg != 0); return 1; }
+  if (!strcmp(que, "rtc_congelado"))      return arnes_rtc_esta_congelado() ? 1 : 0;
+  if (!strcmp(que, "rtc_cnt"))            return (long)arnes_rtc_cnt();
+  if (!strcmp(que, "contador_segundos"))  return (long)reloj_contadorSegundos();
   if (!strcmp(que, "hsi_ppm"))            { arnes_hsi_ppm(arg); return 1; }
   if (!strcmp(que, "fase_subsegundo"))    return arnes_fase_subsegundo();
   // La linea del ESP32 con la hora de SU DS3231, empaquetada como dia*86400 + segundos del
@@ -418,7 +426,7 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   // --- La puerta y el modo -------------------------------------------------
   // "deg_evaluar" devuelve el MotivoDegradado real: 0 = MDG_OK. No se toca nada.
   if (!strcmp(que, "deg_evaluar"))        return (long)modo_degradado_evaluarEntrada();
-  // Se cambia de modo por la MISMA variable que escribe la pantalla y el mando. El
+  // Se cambia de modo por la MISMA variable que escribe la pantalla. El
   // modo_degradado_setup() lo dispara pasoPrincipal() en la siguiente vuelta, por el
   // camino de main.cpp, con su borrado de indicador incluido. No hay puerta trasera.
   if (!strcmp(que, "set_modo"))           { modoActual_set((ModoSistema)arg); return 1; }
@@ -437,7 +445,6 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   // --- Observacion ---------------------------------------------------------
   if (!strcmp(que, "toques"))
     return (arg >= 0 && arg < 64) ? (long)arnes_toques[arg] : -1;
-  if (!strcmp(que, "senal_en_curso"))     return semaforo_senalEnCurso() ? 1 : 0;
   if (!strcmp(que, "tramas_emitidas"))    return (long)g_tramasEmitidas;
   if (!strcmp(que, "alarmas"))            return (long)g_alarmasEmitidas;
   return PUNTA_DESCONOCIDO;

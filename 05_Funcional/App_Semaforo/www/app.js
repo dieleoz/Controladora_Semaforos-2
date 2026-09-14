@@ -191,6 +191,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const diagRfOkDEl = document.getElementById('diag-rf-ok-d');
   const diagRfRuidoDEl = document.getElementById('diag-rf-ruido-d');
   const diagRfPieEl = document.getElementById('diag-rf-pie');
+  // El cartel de la barrera retenida por la camara (14/09). Vive FUERA de las pestanas:
+  // ver el comentario de index.html y el de js/aviso_camara_pluma.js.
+  const camPlumaEl = document.getElementById('aviso-camara-pluma');
+  const camPlumaTituloEl = document.getElementById('camara-pluma-titulo');
+  const camPlumaMedidaEl = document.getElementById('camara-pluma-medida');
+  const camPlumaAccionEl = document.getElementById('camara-pluma-accion');
+  const camPlumaLimiteEl = document.getElementById('camara-pluma-limite');
   const padTituloEl = document.getElementById('pad-titulo');
   const btnIrAlMaestro = document.getElementById('btn-ir-al-maestro');
   const btnIrAlEsclavo = document.getElementById('btn-ir-al-esclavo');
@@ -2935,6 +2942,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // EL CARTEL DE LA BARRERA RETENIDA, QUE ES LO QUE NO SE PUEDE DESALOJAR CONTANDO
+  // LINEAS. El texto entero sale del modulo -titulo, medida, accion y limite-: aqui solo
+  // se reparte en el DOM. Una frase escrita en esta funcion seria una segunda copia de
+  // lo que el tecnico lee, y las suites miden la del modulo.
+  function renderAvisoCamaraPluma() {
+    if (!camPlumaEl) return;
+    const v = (typeof AvisoCamaraPluma !== 'undefined') ? AvisoCamaraPluma.vigente() : null;
+    if (!v) {
+      camPlumaEl.hidden = true;
+      return;
+    }
+    camPlumaEl.hidden = false;
+    // La clase cambia el color, no el texto: quien lee sabe por el titulo si el brazo
+    // sigue arriba, y el color solo acompana. Un cartel que se distinguiera SOLO por el
+    // color no le dice nada a quien lo mira con el sol de frente.
+    camPlumaEl.className = 'card card-camara-pluma' + (v.bajada ? ' camara-pluma-bajada' : '');
+    if (camPlumaTituloEl) camPlumaTituloEl.textContent = (v.bajada ? '⚠️ ' : '⛔ ') + v.titulo;
+    if (camPlumaMedidaEl) camPlumaMedidaEl.textContent = v.medida;
+    if (camPlumaAccionEl) camPlumaAccionEl.textContent = v.accion;
+    if (camPlumaLimiteEl) camPlumaLimiteEl.textContent = v.limite;
+  }
+
   // VOLVER AL MENU: la salida de cualquier modo, sin PIN (ver SIN_PIN arriba).
   //
   // Ni aqui ni en ningun otro sitio se pinta "ya esta en el menu": desde el Degradado
@@ -3293,26 +3322,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // mando puesta la luz sigue vetada. Un "ambar retirado" a secas manda al operario a
     // esperar un cambio de fase que no va a llegar hasta que alguien suba a hacer el
     // A.A.A, y mientras tanto el cruce sigue en ambar con la talanquera abierta.
-    'CANCELAR_AMBAR|RETIRADO_QUEDA_MANDO': {
-      tono: 'red',
-      texto: 'Equipo: se retiro el ambar que puso la APP, pero QUEDA OTRO AMBAR PUESTO ' +
-             'DESDE EL MANDO del gabinete. El cruce NO vuelve a ciclar: ese no se quita ' +
-             'por radio. Hay que ir al poste y hacer la secuencia en el mando.',
-      toast: 'QUEDA el ambar del mando: hay que ir al poste'
-    },
-    // N-152 (05/09). LITERAL NUEVO DEL ESCLAVO, y es de los que NO se pueden pintar en
-    // verde: la orden se acepto y lo que el operario pidio TODAVIA NO HA PASADO.
-    //
-    // Leido de Esclavo/src/bluetooth.cpp:553 y de su rama entera, no del nombre: se llega
-    // aqui cuando el operario pulsa RETIRAR AMBAR por SEGUNDA vez. El latch de esta punta
-    // ya se quito en la primera pulsacion -por eso no entra por la rama de RETIRADO-,
-    // pero el cruce sigue en ambar porque el que lo sostiene ahora es el MAESTRO, que
-    // desde N-142 se va a MODO_AMBAR al enterarse del armado y en ese modo CALLA a
-    // proposito (SFTY-21). Lo que hace esta pulsacion es VOLVER A MANDARLE el aviso.
-    //
-    // Y NO PROMETE QUE EL AMBAR SE VAYA -el propio firmware lo dice-: el Maestro puede
-    // estar en un ambar que pidio otra persona, y entonces ignora el aviso a proposito.
-    // Un "retirado" aqui seria la mentira con formato de exito de CLAUDE.md 6.
+    // ~~'CANCELAR_AMBAR|RETIRADO_QUEDA_MANDO'~~ -> RETIRADO el 14/09 con el
+    // mando. El firmware YA NO EMITE ese acuse: la rama que lo producia era
+    // inalcanzable desde que la bandera del ambar local se quedo sin armador, y
+    // salio con ella. Una traduccion para un acuse que nadie manda no es
+    // inofensiva: es una pantalla que el tecnico no va a ver nunca y que dice
+    // que suba al poste a hacer una secuencia que ya no existe.
     'CANCELAR_AMBAR|REENVIADO_AL_MAESTRO': {
       tono: 'red',
       texto: 'Equipo: en ESTA punta ya no queda ambar puesto desde la app -se quito en ' +
@@ -4062,6 +4077,20 @@ document.addEventListener('DOMContentLoaded', () => {
       // fiandose de una barrera que puede llevar bajada un minuto.
       const plumaAntes = state.pluma;
       state.pluma = data.PLUMA !== undefined ? data.PLUMA : null;
+      // EL FIRMWARE NO PUBLICA UN EVENTO DE FIN DE LA RETENCION: deja de repetir el
+      // aviso, y "dejar de repetir" es indistinguible de "se corto el Bluetooth". Quien
+      // dice que el brazo ya bajo es este campo, que llega a cadencia fija. El cartel NO
+      // se retira -lo que la dejo arriba sigue sin revisarse-, pero deja de afirmar que
+      // la barrera esta arriba, que es lo que dejaria de ser cierto.
+      if (typeof AvisoCamaraPluma !== 'undefined') {
+        const solto = AvisoCamaraPluma.verPluma(state.pluma);
+        if (solto) {
+          renderAvisoCamaraPluma();
+          addEvent(solto.tono, 'Equipo [CAMARA_PLUMA]: ' + solto.texto);
+          RegistroEnlace.anotar('EVENTO', enlaceDeAhora(), solto.texto);
+          renderRegistroEnlace();
+        }
+      }
       // D-13: LAS CAMARAS SE ASIGNAN CON LA MISMA REGLA QUE ESC: Y PLUMA:, Y POR EL
       // MISMO MOTIVO. El campo puede DEJAR de venir por un camino normal -el equipo
       // de enfrente tiene firmware anterior a D-13-, y un `if (data.CAM !== undefined)`
@@ -4329,9 +4358,33 @@ document.addEventListener('DOMContentLoaded', () => {
       // pantalla lo ensenaria tarde -al llegar la trama siguiente-. Justo en la
       // herramienta que se usa para perseguir tramas que van y vienen, una cinta que se
       // repinta con retraso es una cinta que miente sobre CUANDO llego cada cosa.
+      // LA BARRERA RETENIDA POR LA CAMARA VA ANTES QUE NADA, y por el mismo motivo por
+      // el que el diagnostico de radio se desvia: el firmware REPITE este aviso mientras
+      // dure la retencion, asi que por el camino de abajo cada repeticion gastaria una
+      // de las 30 lineas y acabaria desalojandose a si misma. Aqui la cadencia refresca
+      // el cartel y solo las TRANSICIONES -empieza, se suelta- escriben en la bitacora.
+      //
+      // Y NO ES UN return: igual que el de abajo, esta rama tiene que caer al final de
+      // la cadena para que renderDepuracion() y renderDiario() repinten la cinta de
+      // tramas en crudo con esta trama ya dentro.
+      const vistoCam = (typeof AvisoCamaraPluma !== 'undefined')
+        ? AvisoCamaraPluma.ver(data) : null;
       const esDiagRadio = typeof DiagnosticoEnlace !== 'undefined' &&
                           DiagnosticoEnlace.esPeriodico(data);
-      if (esDiagRadio) {
+      if (vistoCam) {
+        renderAvisoCamaraPluma();
+        if (vistoCam.linea) {
+          // El literal del equipo va DELANTE y la traduccion detras, que es el molde de
+          // esta app: quien reporta necesita el DETALLE tal y como vino.
+          const textoCam = 'Equipo [' + (data.ORIGEN || 'FIRMWARE') + ']: ' +
+                           (data.DETALLE || '') + (data.HORA ? ' - ' + data.HORA : '') +
+                           ' -> ' + vistoCam.linea.texto;
+          addEvent(vistoCam.linea.tono, textoCam);
+          RegistroEnlace.anotar('EVENTO', enlaceDeAhora(), textoCam);
+          renderRegistroEnlace();
+        }
+        if (vistoCam.toast) showToast(vistoCam.toast);
+      } else if (esDiagRadio) {
         const visto = DiagnosticoEnlace.ver(data);
         renderDiagnosticoEnlace();
         // LO QUE SI GASTA BITACORA SON LAS TRANSICIONES, NO LA CADENCIA. El recuadro
@@ -4687,6 +4740,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof DiagnosticoEnlace !== 'undefined') {
       DiagnosticoEnlace.olvidar();
       renderDiagnosticoEnlace();
+    }
+    // Y por lo mismo el cartel de la barrera retenida: es de UN poste. Colgado sobre el
+    // siguiente mandaria a mirar debajo del brazo que no es, y ademas dice "no va a
+    // bajar sola" de una barrera que nadie ha vuelto a mirar.
+    if (typeof AvisoCamaraPluma !== 'undefined') {
+      AvisoCamaraPluma.olvidar();
+      renderAvisoCamaraPluma();
     }
     if (btnDevice) btnDevice.className = 'btn-top btn-device';
     if (btStatusDot) btStatusDot.className = 'status-dot';

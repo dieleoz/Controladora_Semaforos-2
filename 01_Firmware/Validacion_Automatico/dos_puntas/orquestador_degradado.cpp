@@ -1728,6 +1728,137 @@ int main() {
     }
   }
 
+
+  // --- F6: 1.22 - EL CRISTAL QUE ARRANCA Y NO CUENTA ----------------------------------
+  //
+  // EL TERCER ESTADO. Hasta el 14/09 ningun instrumento podia cazarlo, y no era un olvido:
+  // el defecto vive DENTRO del modelo del silicio. reloj_real/stm32f1xx_hal.h derivaba CNT
+  // de millis(), asi que un contador congelado no era un escenario que faltara sino un
+  // ESTADO QUE EL ARNES NO SABIA EXPRESAR. La perilla arnes_rtc_congelar() lo expresa, y es
+  // a la vez el CONTROL NEGATIVO que CLAUDE.md 6 exige: sin ella no se puede demostrar que
+  // el firmware lo detecta, solo que compila.
+  //
+  // CONGELA CNT Y DEJA LSERDY EN 1, que es justo lo que hace el cristal de la cinta del
+  // Sisga: el bit dice "el oscilador arranco" y no dice que el contador incremente.
+  {
+    const std::string M_RELOJ_H = RAIZ + "/Maestro/include/reloj.h";
+    const std::string E_RELOJ_H = RAIZ + "/Esclavo/include/reloj.h";
+    const std::string M_RELOJ_C = RAIZ + "/Maestro/src/reloj.cpp";
+
+    // EL PLAZO NO SE ESCRIBE AQUI: se RECALCULA con la misma formula del reloj.h real y con
+    // sus dos terminos leidos del fuente. Copiar el numero seria un modelo a mano del
+    // firmware, y el dia que alguien mueva la ventana este bloque seguiria midiendo la
+    // vieja y diria PASS (CLAUDE.md 4).
+    const unsigned long CNT_TICK_M =
+        leerNumero(M_RELOJ_H, R"(CNT_TICK_MS\s*=\s*(\d+)UL)", "CNT_TICK_MS del Maestro");
+    const unsigned long CNT_TICK_E =
+        leerNumero(E_RELOJ_H, R"(CNT_TICK_MS\s*=\s*(\d+)UL)", "CNT_TICK_MS del Esclavo");
+    const unsigned long PPM_H =
+        leerNumero(M_RELOJ_H, R"(HSI_PPM_PEOR\s*=\s*(\d+)UL)", "HSI_PPM_PEOR del Maestro");
+    const unsigned long REINTENTO_LSE_MS =
+        leerNumero(M_RELOJ_C, R"(REINTENTO_LSE_MS\s*=\s*(\d+))", "REINTENTO_LSE_MS");
+    const unsigned long VENTANA =
+        2UL * CNT_TICK_M + 2UL * CNT_TICK_M / 1000UL * PPM_H / 1000UL + 1UL;
+
+    // Un solo plazo para el cruce, igual que HORA_CADUCA_MS: con dos ventanas distintas una
+    // punta se declararia sin reloj mientras la otra sigue fechando con el mismo cristal.
+    comprobar(CNT_TICK_M == CNT_TICK_E,
+              "F6.0 (el borde es el mismo en las dos puntas): CNT_TICK_MS del Maestro = " +
+                  std::to_string(CNT_TICK_M) + " y del Esclavo = " + std::to_string(CNT_TICK_E));
+
+    // LA OBSERVACION DURA 10 MINUTOS DE BANCO y no dos segundos, a proposito: asi el "el
+    // contador no se movio" no es un instante sino un tramo, y de paso cubre de sobra los
+    // reintentos de N-25 que el cerrojo tiene que rechazar.
+    const unsigned long OBSERVACION_MS = 600000UL;
+    const unsigned long REINTENTOS_CUBIERTOS = OBSERVACION_MS / REINTENTO_LSE_MS;
+
+    // --- F6.1: LA PERILLA, que es el control negativo -------------------------------
+    prepararSincronizadas(15, 8, 0, 0);
+    const long cntSano0 = MAESTRO.orden("rtc_cnt");
+    avanzar(VENTANA + 1000UL);
+    const long cntSano1 = MAESTRO.orden("rtc_cnt");
+    const long contadorSano = MAESTRO.orden("contador_segundos");
+    const long horasSano = MAESTRO.orden("respaldo_horas_sync");
+
+    MAESTRO.orden("rtc_congelar", 1);
+    const long cntCong = MAESTRO.orden("rtc_cnt");
+    unTick();
+    // TODAVIA NO: la ventana no ha cerrado. Es lo que separa "se congelo" de "lo detecto",
+    // y sin este punto el bloque no distinguiria la cura de un firmware que se declara sin
+    // reloj en cuanto alguien toca el arnes.
+    const long contadorJusto = MAESTRO.orden("contador_segundos");
+
+    avanzar(OBSERVACION_MS);
+    const long cntTras = MAESTRO.orden("rtc_cnt");
+
+    comprobar(cntSano1 > cntSano0 && contadorSano != 0 && horasSano >= 0 &&
+                  MAESTRO.orden("rtc_congelado") == 1 && contadorJusto != 0 &&
+                  cntTras == cntCong,
+              "F6.1 (CONTROL NEGATIVO, la perilla): con el cristal sano CNT sube (" +
+                  std::to_string(cntSano0) + " -> " + std::to_string(cntSano1) +
+                  ") y el equipo fecha (" + std::to_string(horasSano) + " h); congelado, CNT "
+                  "se queda en " + std::to_string(cntCong) + " durante " +
+                  std::to_string(OBSERVACION_MS / 1000UL) + " s de banco (" +
+                  std::to_string(cntTras) + ") CON LSERDY EN 1, y en la vuelta siguiente a "
+                  "congelarlo el firmware todavia NO lo ha declarado (" +
+                  std::to_string(contadorJusto) + " != 0): la ventana de " +
+                  std::to_string(VENTANA) + " ms no habia cerrado");
+
+    // --- F6.2: LA CURA, y es la que cierra las dos puertas --------------------------
+    const long contadorTras = MAESTRO.orden("contador_segundos");
+    const long horasTras = MAESTRO.orden("respaldo_horas_sync");
+    comprobar(contadorTras == 0 && horasTras == -1,
+              "F6.2 (la cura, Maestro): pasada la ventana, reloj_contadorSegundos() devuelve "
+              "0 (" + std::to_string(contadorTras) + ") -el 'no hay reloj' del que cuelgan los "
+              "dos centinelas de respaldo.cpp- y respaldo_horasDesdeSync() contesta CADUCADA (" +
+                  std::to_string(horasTras) + "). Antes de 1.22 contestaba 0 h: 'acabo de "
+              "sincronizar', que es lo que exige la puerta de ENTRADA (SYNC_FRESCA_MS) y lo "
+              "que el limite duro de 48 h da por bueno");
+
+    // --- F6.3: EL CERROJO, que es el modo de fallo que la cura CREA ------------------
+    // Bajar rtcOperativo deja al reintento de N-25 mirando un LSERDY que en este cristal
+    // vale 1. Sin cerrojo lo readoptaria cada REINTENTO_LSE_MS y desharia la cura en
+    // silencio. Los 10 min de arriba cubren varios reintentos: el escenario ya paso por
+    // ellos, y esto lo dice con el numero para que no sea una casualidad no medida.
+    comprobar(REINTENTOS_CUBIERTOS >= 2 && contadorTras == 0 && horasTras == -1,
+              "F6.3 (el cerrojo): tras " + std::to_string(REINTENTOS_CUBIERTOS) +
+                  " reintentos de N-25 (REINTENTO_LSE_MS = " + std::to_string(REINTENTO_LSE_MS) +
+                  " ms) con LSERDY todavia en 1, el cristal NO se readopta: el contador sigue "
+                  "en 0 (" + std::to_string(contadorTras) + ") y la marca sigue CADUCADA (" +
+                  std::to_string(horasTras) + ")");
+
+    // --- F6.4: LA MISMA EN EL ESCLAVO, que es la punta que da verde sin la otra ------
+    prepararSincronizadas(15, 8, 0, 0);
+    const long eContadorSano = ESCLAVO.orden("contador_segundos");
+    const long eHorasSano = ESCLAVO.orden("respaldo_horas_sync");
+    ESCLAVO.orden("rtc_congelar", 1);
+    avanzar(OBSERVACION_MS);
+    const long eContador = ESCLAVO.orden("contador_segundos");
+    const long eHoras = ESCLAVO.orden("respaldo_horas_sync");
+    comprobar(eContadorSano != 0 && eHorasSano >= 0 && eContador == 0 && eHoras == -1,
+              "F6.4 (la cura, Esclavo): con el cristal sano fecha (" +
+                  std::to_string(eHorasSano) + " h); congelado, contador 0 (" +
+                  std::to_string(eContador) + ") y marca CADUCADA (" + std::to_string(eHoras) +
+                  "). Gemela de la del Maestro: un plazo distinto por punta seria una "
+                  "declarandose sin reloj mientras la otra fecha con el mismo cristal");
+
+    // --- F6.5: Y QUE NO SE DISPARA CON UN CRISTAL SANO ------------------------------
+    // El otro lado de la guarda, y es el caro: un falso positivo aqui le TIRA la hora al
+    // equipo y le cierra el Degradado. Sin este punto, una guarda que dijera "parado"
+    // siempre pasaria F6.2 y F6.4 igual de bien que la correcta.
+    prepararSincronizadas(15, 8, 0, 0);
+    avanzar(OBSERVACION_MS);
+    const long contadorVivo = MAESTRO.orden("contador_segundos");
+    const long horasVivo = MAESTRO.orden("respaldo_horas_sync");
+    const long eContadorVivo = ESCLAVO.orden("contador_segundos");
+    const long eHorasVivo = ESCLAVO.orden("respaldo_horas_sync");
+    comprobar(contadorVivo != 0 && horasVivo >= 0 && eContadorVivo != 0 && eHorasVivo >= 0,
+              "F6.5 (y NO se dispara con un cristal sano): tras " +
+                  std::to_string(OBSERVACION_MS / 1000UL) + " s contando, las dos puntas "
+                  "siguen con reloj (Maestro " + std::to_string(contadorVivo) + ", Esclavo " +
+                  std::to_string(eContadorVivo) + ") y siguen fechando (" +
+                  std::to_string(horasVivo) + " h, " + std::to_string(eHorasVivo) + " h)");
+  }
   // =========================================================================
   std::printf("\n==============================================================\n");
   std::printf(" RESULTADO: %d/%d comprobaciones OK\n", total - fallos, total);

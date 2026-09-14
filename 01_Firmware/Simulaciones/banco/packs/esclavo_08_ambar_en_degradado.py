@@ -9,20 +9,24 @@
 #
 # QUE ES EL DEFECTO, MEDIDO Y NO LEIDO
 # ------------------------------------
-# El Esclavo tiene DOS vias externas para pedir ambar de emergencia, y el firmware
-# declara por escrito que valen lo mismo -bluetooth.cpp, cabecera del latch: "UNA
-# EMERGENCIA PEDIDA POR BLUETOOTH VALE LO MISMO QUE UNA DEL MANDO"-. No valen lo mismo:
+# El Esclavo tenia DOS vias externas para pedir ambar de emergencia y el firmware
+# declaraba por escrito que valian lo mismo. No valian:
 #
-#   mando, B.B.B      case ACC_AMBAR de mando.cpp: pone ambarLocal y, SI el Degradado
-#                     gobierna la luz, sale por degradado_salir() -el todo-rojo de
-#                     despedida-. Si no gobierna, semaforo_iniciarFallo() y ya.
+#   mando, B.B.B      case ACC_AMBAR de mando.cpp: ponia ambarLocal y, SI el Degradado
+#                     gobernaba la luz, salia por degradado_salir() -el todo-rojo de
+#                     despedida-. Si no gobernaba, semaforo_iniciarFallo() y ya.
 #   app, AMBAR_EMERG. bluetooth.cpp: semaforo_iniciarFallo() y el latch, sin preguntar
 #                     por el Degradado. Y contesta "$ACK,...,RESULT:OK" igual.
 #
-# El porque es vial y esta escrito en el propio mando.cpp: saltar de un verde por reloj
+# 🔴 D-30 (14/09): AHORA SOLO QUEDA LA SEGUNDA, QUE ES LA DEFECTUOSA. Retirado el
+# mando, la via de la app es la unica de esta punta: el defecto que este pack marca ROTA
+# dejo de tener una hermana correcta al lado que lo compensara. No es que el pack mida
+# menos; es que lo que mide pesa mas.
+#
+# El porque es vial y estaba escrito en el propio mando.cpp: saltar de un verde por reloj
 # directo a ambar intermitente "le daria a quien ya venia lanzado una senal que invita a
 # negociar el paso mientras aun cree tener prioridad". Es la misma razon por la que el
-# Degradado entra y sale siempre por todo-rojo.
+# Degradado entra y sale siempre por todo-rojo, y sigue siendo cierta sin mando.
 #
 # LO QUE ESTE PACK MIDE Y LO QUE NO
 # ---------------------------------
@@ -43,8 +47,9 @@
 # por eso va como verificar().
 #
 # Y NO ES LA TRAMPA DE §3: ningun firmware posible puede aprobar el alias de CMD_DELTA,
-# pero este defecto lo cierra UNA LINEA -la misma que ya tiene mando.cpp-. Una propiedad
-# que el firmware SI puede cumplir es una comprobacion, no una nota.
+# pero este defecto lo cierra UNA LINEA -la que mando.cpp tenia hasta el 14/09, y que
+# queda escrita arriba en la tabla-. Una propiedad que el firmware SI puede cumplir es
+# una comprobacion, no una nota.
 #
 # LO QUE ESTE PACK NO DECIDE
 # --------------------------
@@ -65,7 +70,6 @@ DESCRIPCION = ("toda via externa que ponga el Esclavo en ambar sabe salir del Mo
                "Degradado (N-106)")
 
 BT_ESCLAVO = ("Esclavo", "src", "bluetooth.cpp")
-MANDO_ESCLAVO = ("Esclavo", "src", "mando.cpp")
 
 # Las llamadas se buscan con el parentesis vacio Y el punto y coma: asi la DEFINICION
 # -que termina en '{'- no se cuenta como llamador. Sin ese detalle, semaforo.cpp
@@ -191,21 +195,27 @@ def correr(b, fw):
         "degradado_gobiernaLuz() para no pisarlo (%s)"
         % (len(ponen), ", ".join(n for n in ponen if n not in ciegas)),
         "SFTY-21 ROTA: %s pone(n) el equipo en ambar SIN preguntar por el Modo "
-        "Degradado ni llamar a degradado_salir(). El mando puede sacar al Esclavo del "
-        "Degradado y la pantalla puede; esta via NO, y contesta que si. Medido sobre "
+        "Degradado ni llamar a degradado_salir(), y contesta que si. Desde D-30 no hay "
+        "otra via externa de ambar en esta punta con la que compensarlo. Medido sobre "
         "el fuente; la consecuencia dinamica no se ejerce aqui" % ", ".join(ciegas))
 
-    # ---- 2. La rama del ambar consulta el Degradado, como el molde del mando ----
-    # El molde de como se hace bien vive en el mismo repositorio: el case ACC_AMBAR de
-    # mando.cpp. Se comprueba que existe ANTES de exigirselo a nadie -si el molde
-    # desapareciera, esta comprobacion estaria pidiendo algo que ya no se hace en
-    # ningun sitio y habria que replantearla, no imponerla-.
-    mando = fw.codigo(*MANDO_ESCLAVO)
-    if not (RE_LLAMA_SALIR.search(mando) and RE_CONSULTA_GOB.search(mando)):
-        raise fw.Abortado(
-            "mando.cpp del Esclavo ya no consulta degradado_gobiernaLuz() ni llama a "
-            "degradado_salir(). Ese es el molde contra el que se mide el ambar de la "
-            "app; sin el, el pack no tiene con que comparar")
+    # ---- 2. La rama del ambar consulta el Degradado ----
+    #
+    # D-30 (14/09) — AQUI SE COMPROBABA QUE EL MOLDE EXISTIERA, Y EL MOLDE ERA EL MANDO.
+    #
+    # La comprobacion se apoyaba en el `case ACC_AMBAR` de mando.cpp: "asi es como se
+    # hace bien, haga la app lo mismo". Era una cautela correcta -no exigirle a nadie
+    # algo que ya no se hace en ningun sitio- y por eso abortaba si el molde se caia.
+    #
+    # El molde se cayo entero: mando.cpp ya no existe. Pero LA PROPIEDAD NO ERA DEL
+    # MOLDE, y por eso la comprobacion se queda en vez de irse con el: ninguna via que
+    # ponga el equipo en ambar puede ignorar quien gobierna la luz, y el porque es vial
+    # -saltar de un verde por reloj directo a ambar intermitente le da a quien venia
+    # lanzado una senal que invita a negociar el paso mientras aun cree tener prioridad-.
+    #
+    # 🔴 Y AHORA PESA MAS, NO MENOS. Hasta hoy el pack podia marcar esto ROTA sabiendo
+    # que el mando si lo hacia bien y que quedaba una via correcta. Retirado el mando, la
+    # via de la app es la UNICA: lo que aqui se marque ROTA es todo lo que hay.
 
     codigo = fw.codigo(*BT_ESCLAVO)
     ramas = _ramas(codigo)
@@ -232,12 +242,12 @@ def correr(b, fw):
     b.propiedad(
         not sordas,
         "las %d puertas del ambar de emergencia por Bluetooth (%s) consultan "
-        "degradado_gobiernaLuz() dentro de su bloque, igual que el case ACC_AMBAR del "
-        "mando" % (len(puertas), ", ".join(c for c, _ in puertas)),
+        "degradado_gobiernaLuz() dentro de su bloque: el ambar no pisa al modo que "
+        "gobierna la luz" % (len(puertas), ", ".join(c for c, _ in puertas)),
         "SFTY-21 ROTA: %d de las %d puertas del ambar por Bluetooth (%s) no consultan "
-        "degradado_gobiernaLuz(). El firmware declara que una emergencia pedida por "
-        "Bluetooth vale lo mismo que una del mando; en Degradado no vale lo mismo, y "
-        "el $ACK,RESULT:OK sale igual"
+        "degradado_gobiernaLuz(). Desde D-30 esta es la UNICA via de ambar de esta "
+        "punta, asi que no queda ninguna que salga ordenada del Degradado, y el "
+        "$ACK,RESULT:OK sale igual"
         % (len(sordas), len(puertas), ", ".join(sordas)))
 
     # ---- 3. Las dos puertas del mismo comando ejecutan lo mismo -----------------
@@ -298,8 +308,6 @@ def correr(b, fw):
     # un detector que senala siempre es tan inutil como uno que no senala nunca.
     SANO = {"bluetooth.cpp": {"pone_ambar": 2, "sale": 1, "consulta": 1,
                               "define_ambar": False, "define_salir": False},
-            "mando.cpp": {"pone_ambar": 2, "sale": 2, "consulta": 3,
-                          "define_ambar": False, "define_salir": False},
             "modo_degradado.cpp": {"pone_ambar": 1, "sale": 0, "consulta": 1,
                                    "define_ambar": False, "define_salir": True},
             "semaforo.cpp": {"pone_ambar": 0, "sale": 0, "consulta": 0,

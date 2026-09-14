@@ -336,6 +336,46 @@ assert(!!salto && /ROJO a proposito/.test(salto.texto) && !!salto.toast,
 assert(AvisosEquipo.traducirEvento({ ORIGEN: 'APP_BLUETOOTH', DETALLE: 'SET_MODO_AUTO' }) === null,
   'Control: un $EVENT de siempre sigue saliendo en crudo, la tabla no lo toca');
 
+console.log('\n--- 11. La barrera retenida por la camara (14/09) ---');
+// El modulo es js/aviso_camara_pluma.js, el que index.html carga. Lo que esta suite mira
+// y la otra no: que la trama pase por camposDeTrama() -el partidor unico, app_12- antes
+// de leerse, y que el reparto entre los DOS ficheros de textos sea el que se declaro.
+const AvisoCamaraPluma11 = require('../js/aviso_camara_pluma.js');
+assert(/<script src="js\/aviso_camara_pluma\.js"><\/script>[\s\S]*<script src="app\.js"><\/script>/.test(htmlApp),
+  'index.html carga js/aviso_camara_pluma.js ANTES de app.js: el modulo que se prueba es el que corre');
+
+// LA TRAMA REAL DEL FIRMWARE, con el DETALLE que lleva DOS PUNTOS DENTRO. Es el borde
+// que hay que mirar y esta escrito: camposDeTrama() corta por el PRIMER ':' (N-62), asi
+// que DETALLE llega como 'VETO_SOSTENIDO_S:240' entero. Si algun dia partiera por todos,
+// el modulo recibiria '240' suelto y el cartel no abriria: esta linea lo delata.
+const tramaCam = det =>
+  NMEAParser.camposDeTrama(`$EVENT,NODE:MAESTRO,ORIGEN:CAMARA_PLUMA,DETALLE:${det},HORA:18:40:00`.split(','));
+AvisoCamaraPluma11.olvidar();
+const camposCam = tramaCam('VETO_SOSTENIDO_S:240');
+assert(camposCam.DETALLE === 'VETO_SOSTENIDO_S:240',
+  `camposDeTrama() deja el DETALLE entero aunque lleve dos puntos dentro: ${camposCam.DETALLE}`);
+const visto11 = AvisoCamaraPluma11.ver(camposCam);
+assert(!!visto11 && visto11.abre === true,
+  'La trama real de CAMARA_PLUMA, partida por el partidor unico, abre el cartel');
+
+// LAS PALABRAS DEL ENCARGO, y las tres van juntas porque su ORDEN es el de los riesgos:
+// el brazo levantado, mirar debajo, y solo al final la camara. Al reves mandaria a un
+// tecnico a la caja de la camara con un vehiculo todavia debajo del brazo.
+const accion11 = AvisoCamaraPluma11.vigente().accion;
+assert(/^La barrera está ARRIBA y no va a bajar sola\./.test(accion11) &&
+       accion11.indexOf('Mire debajo del brazo antes de tocar nada') <
+       accion11.indexOf('revise el apunte y la configuración de la cámara'),
+  'Lo accionable va en el ORDEN de los riesgos: el brazo, mirar debajo, y al final la camara');
+
+// EL REPARTO ENTRE LOS DOS FICHEROS DE TEXTOS, declarado y comprobado. La tabla de
+// avisos_equipo.js indexa por 'ORIGEN|DETALLE' exacto: un DETALLE con un numero dentro no
+// puede vivir alli, y si alguien lo metiera habria DOS textos para el mismo aviso.
+assert(AvisosEquipo.traducirEvento(camposCam) === null,
+  'CAMARA_PLUMA no esta en la tabla de claves exactas: su DETALLE lleva un numero dentro');
+assert(AvisoCamaraPluma11.ver(tramaCam('HORA_ESP32_SEMBRADA')) === null &&
+       AvisoCamaraPluma11.ver({ ORIGEN: 'ENLACE_RF', DETALLE: 'RX:1 OK:1 RUIDO:0' }) === null,
+  'Control: el modulo de la camara no se lleva por delante los $EVENT de los otros sujetos');
+
 console.log('\n' + '='.repeat(80));
 console.log(` RESUMEN TDD: ${passed} PASS | ${failed} FALLAS  (Total: ${passed + failed})`);
 console.log('='.repeat(80));

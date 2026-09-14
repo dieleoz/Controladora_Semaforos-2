@@ -58,16 +58,23 @@ DESCRIPCION = "el test de lamparas entra por el enclavamiento y no levanta la ta
 
 RUTA = ("Maestro", "src", "semaforo.cpp")
 
-# Las funciones que pueden llamar a escribirPines() sin pasar por aplicarSalidas().
-# Es un TRINQUETE, no un absoluto: son los cuatro caminos de la senal del mando, que
-# interceptan la salida a proposito. Una funcion NUEVA en esta lista es un camino
-# nuevo a los pines y tiene que discutirse, no colarse.
-INTERCEPTAN_SFTY21 = {
+# La UNICA funcion que puede llamar a escribirPines(). Es un TRINQUETE, no un
+# absoluto: una funcion NUEVA aqui es un camino nuevo a los pines y tiene que
+# discutirse, no colarse.
+#
+# D-30 (14/09): ERAN CINCO Y AHORA ES UNA, y eso es lo que compro retirar el mando.
+# Las otras cuatro -terminarSenal, actualizarSenal, semaforo_destellosRojos y
+# semaforo_ambarRapido- eran los caminos de la senal SFTY-21, que interceptaba la
+# salida a proposito y por eso estaba autorizada a escribir pines por su cuenta.
+# Con ellas dentro, cuatro caminos a la lampara estaban pre-aprobados POR NOMBRE y
+# nadie volvia a mirarlos. Hoy cualquier funcion que no sea aplicarSalidas() da
+# FALLA, que es una barrera estrictamente mas fuerte que la de ayer.
+#
+# El nombre de la constante cambia con su sujeto a proposito: llamarla
+# INTERCEPTAN_SFTY21 cuando ya no hay interceptacion mandaria a buscar algo que no
+# existe (CLAUDE.md 14).
+PUEDEN_ESCRIBIR_PINES = {
     "aplicarSalidas",          # el camino bueno: la barrera esta dentro
-    "terminarSenal",           # vuelca ultR/ultA/ultV, ya saneados por el enclavamiento
-    "actualizarSenal",         # destellos y ambar rapido: nunca verde
-    "semaforo_destellosRojos",  # hueco inicial del primer destello
-    "semaforo_ambarRapido",    # ambar de rechazo
 }
 
 # El tercer argumento de escribirPines() que NO es un verde crudo. `false` es apagado;
@@ -209,12 +216,27 @@ def correr(b, fw):
         if args[2] not in VERDE_ADMITIDO:
             crudos.append("%s() pide verde=%s" % (quien, args[2]))
 
+    # EL SUELO DEL CENSO, RE-DERIVADO EL 14/09 (D-30), Y CUAL ES EL BORDE.
+    #
+    # Era SEIS: la llamada de aplicarSalidas() mas las cinco de la senal del mando
+    # -su hueco inicial, el ambar de rechazo, los dos destellos de actualizarSenal() y
+    # el volcado de terminarSenal()-. Retirada la senal queda UNA, y el suelo se
+    # RECALCULA desde lo que el fichero tiene hoy en vez de bajarse hasta que pase.
+    #
+    # POR QUE UNA ES EL NUMERO CORRECTO Y NO "poco": el fichero escribe los pines por un
+    # solo sitio a proposito -es la barrera SFTY-2- y la comprobacion de mas abajo exige
+    # que ese sitio sea aplicarSalidas() y ningun otro. Las dos juntas dicen lo mismo que
+    # decia el seis y algo mas fuerte: no solo "he mirado caminos", sino "hay exactamente
+    # un camino". CERO seria el caso malo de verdad -o el lector se rompio, o la barrera
+    # se mudo de fichero y este pack estaria aprobando un semaforo.cpp que ya no escribe
+    # una lampara (CLAUDE.md 5: la guarda no ve el contenido que se MUDA)-.
     b.verificar(
-        llamadas >= 6,
-        "censadas %d llamadas a escribirPines() en semaforo.cpp, clasificadas por la "
+        llamadas >= 1,
+        "censadas %d llamada(s) a escribirPines() en semaforo.cpp, clasificadas por la "
         "funcion que las contiene" % llamadas,
-        "solo %d llamadas a escribirPines() halladas. Un censo casi vacio aprobaria el "
-        "fichero sin haber mirado un solo camino a los pines" % llamadas)
+        "CERO llamadas a escribirPines() halladas en semaforo.cpp. O el lector dejo de "
+        "entender la forma de la llamada, o el camino a los pines se mudo a otro "
+        "fichero: en los dos casos este pack estaria aprobando sin haber mirado nada")
 
     b.verificar(
         not crudos,
@@ -222,9 +244,9 @@ def correr(b, fw):
         "que llega a los pines es el que el enclavamiento SFTY-2 ya saneo",
         "VERDE FUERA DEL ENCLAVAMIENTO: %s. Ese verde llega a la lampara sin que "
         "aplicarSalidas() lo haya visto, asi que SFTY-2 no lo ha enclavado y "
-        "ultR/ultA/ultV no lo conocen -una senal del mando que terminara ahi volcaria "
-        "una foto vieja-. Y como la talanquera cuelga del mismo argumento, ademas abre "
-        "la barrera" % ", ".join(crudos))
+        "ultR/ultA/ultV no lo conocen -y de ese registro cuelga la reentrada de la pluma "
+        "(D-33), que volcaria una foto vieja-. Y como la talanquera cuelga del mismo "
+        "argumento, ademas abre la barrera" % ", ".join(crudos))
 
     # ---- 4. Quien llama directamente es SOLO la senal del mando ----
     directas = set()
@@ -232,14 +254,15 @@ def correr(b, fw):
         quien = _quien_contiene(funciones, mc.start())
         if quien:
             directas.add(quien)
-    intrusas = sorted(directas - INTERCEPTAN_SFTY21)
+    intrusas = sorted(directas - PUEDEN_ESCRIBIR_PINES)
     b.verificar(
         not intrusas,
-        "las %d funciones que llaman a escribirPines() son las conocidas: "
-        "aplicarSalidas y los cuatro caminos de la senal SFTY-21" % len(directas),
-        "CAMINO NUEVO A LOS PINES: %s llama(n) a escribirPines() directamente. Puede "
-        "ser legitimo -la senal del mando lo es- pero nadie lo ha mirado: si no pasa "
-        "por aplicarSalidas(), la barrera no lo cubre" % ", ".join(intrusas))
+        "la unica funcion que llama a escribirPines() es aplicarSalidas(): todo verde "
+        "que llega a una lampara ha pasado por el enclavamiento (%d camino/s censado/s)"
+        % len(directas),
+        "CAMINO NUEVO A LOS PINES: %s llama(n) a escribirPines() directamente. Desde "
+        "D-30 no hay ninguna excepcion legitima: si no pasa por aplicarSalidas(), la "
+        "barrera SFTY-2 no lo cubre y la pluma cuelga del mismo argumento" % ", ".join(intrusas))
 
     b.verificar(
         "semaforo_actualizar" not in directas,
@@ -282,36 +305,38 @@ def correr(b, fw):
         "numero. Es N-71 otra vez -una relacion entre constantes que vive en la "
         "cabeza de quien la escribio y no en el codigo-" % nombreFase)
 
-    # ---- 6. Con una senal del mando en curso, el test NO corre por debajo ----
+    # ---- 6. LA MAQUINA DE LUCES AVANZA EN TODOS LOS MODOS ----
     #
-    # Con senalActiva, aplicarSalidas() guarda y no escribe: el test gastaria sus
-    # segundos sin encender una lampara y eso se lee como lamparas fundidas. Y peor:
-    # el return del bloque dejaria actualizarSenal() sin llamar y la senal no
-    # terminaria nunca.
-    j = bloqueTest.find("senalActiva")
+    # BLOQUE MUDADO LITERAL DESDE maestro_01_mando (D-30, 14/09), que se retira con el
+    # mando. NO era una comprobacion del mando aunque viviera en su pack: lo que exige
+    # es que main.cpp llame a semaforo_actualizar() SIN CONDICION dentro del loop().
+    #
+    # POR QUE SIGUE HACIENDO FALTA, con lo que cuelga de esa llamada HOY:
+    #   - el parpadeo del ambar de S_FALLO, que vive dentro de semaforo_actualizar();
+    #   - la transicion S_AMARILLO -> S_VERDE, tambien dentro;
+    #   - y la REENTRADA DE LA PLUMA de D-33 -`if (plumaCierrePendiente) aplicarSalidas(
+    #     ultR, ultA, ultV)`-, que es la unica forma de que la pluma baje cuando la
+    #     camara deja de ver algo sin que cambie la luz. Sin esta llamada la pluma se
+    #     queda ARRIBA hasta el proximo cambio de luz, que son minutos.
+    #
+    # Lo que este bloque exigia ANTES en su pack de origen era que el test de lamparas
+    # esperase con una senal del mando en curso. Eso murio con la senal: no hay ya nada
+    # que pueda ocupar las lamparas por encima de la logica, que es justo lo que hace
+    # que esta llamada sea ahora el unico motor de las luces.
+    #
+    # maestro_10 tambien la mira, pero con reportar(), que NO CUENTA. Aqui cuenta.
+    _main = fw.codigo("Maestro", "src", "main.cpp")
+    _llamada_incondicional = bool(re.search(
+        r"void loop\(\)[\s\S]{0,2000}?\n  semaforo_actualizar\(\);", _main))
     b.verificar(
-        j >= 0 and j < bloqueTest.find("aplicarSalidas"),
-        "el bloque del test mira senalActiva ANTES de pedir ninguna salida: con la "
-        "senal del mando ocupando las luces, el test espera en vez de gastarse a "
-        "oscuras",
-        "el bloque del test no consulta senalActiva antes de llamar a aplicarSalidas(). "
-        "Con una senal en curso aplicarSalidas() guarda y NO escribe: seis segundos de "
-        "test sin encender una lampara, que un tecnico lee como tres lamparas fundidas")
-
-    ramaSenal = None
-    k = bloqueTest.find("if (senalActiva)")
-    if k >= 0:
-        t = _bloque(bloqueTest, bloqueTest.index("{", k))
-        ramaSenal = bloqueTest[t[0]:t[1]]
-    b.verificar(
-        ramaSenal is not None and "return" not in ramaSenal
-        and "aplicarSalidas" not in ramaSenal,
-        "y en esa rama no hay return ni salida: se cae hasta actualizarSenal(), de modo "
-        "que la senal termina y las luces vuelven",
-        "la rama de senalActiva del test devuelve o escribe salidas. Si devuelve, "
-        "actualizarSenal() no se llama: la senal no termina NUNCA, senalActiva se queda "
-        "en true y aplicarSalidas() no vuelve a escribir un pin en toda la vida del "
-        "equipo")
+        _llamada_incondicional,
+        "main.cpp llama a semaforo_actualizar() SIN CONDICION en el loop(), asi que la "
+        "maquina de luces avanza en todos los modos: el ambar de fallo parpadea, el "
+        "amarillo pasa a verde y la pluma de D-33 puede volver a bajar",
+        "main.cpp ya NO llama a semaforo_actualizar() sin condicion. Un modo que no "
+        "llegue a esa llamada deja el ambar de S_FALLO CONGELADO -una lampara fija que "
+        "no es ninguna senal del contrato- y, peor, deja la PLUMA ARRIBA hasta el "
+        "proximo cambio de luz aunque la camara ya no vea nada (D-33)")
 
     # ---- 7. LA TALANQUERA, EVALUANDO LA CONDICION REAL ----
     cuerpoEscribir = _cuerpo(codigo, "escribirPines")

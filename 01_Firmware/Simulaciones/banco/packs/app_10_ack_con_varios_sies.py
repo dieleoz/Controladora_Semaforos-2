@@ -290,7 +290,7 @@ def correr(b, fw):
 
     b.control_negativo(
         len(_ACK_CPP.findall(
-            'enviarTramaConCrc("$ACK,CMD:CANCELAR_AMBAR,RESULT:RETIRADO_QUEDA_MANDO");')) == 1,
+            'enviarTramaConCrc("$ACK,CMD:CANCELAR_AMBAR,RESULT:RETIRADO");')) == 1,
         "el censo del C++ reconoce un acuse con su RESULT dentro de la llamada real")
     b.control_negativo(
         not _ACK_CPP.findall('enviarTramaConCrc("$ERR,CMD:CANCELAR_AMBAR,DESC:NO_HAY");'),

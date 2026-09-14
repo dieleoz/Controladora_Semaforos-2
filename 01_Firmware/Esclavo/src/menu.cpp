@@ -2,9 +2,12 @@
 #include "menu.h"
 
 // ---------------------------------------------------------------------------
-// D-32 (1), 13/09/2026 — SALE EL LCD. DE ESTE FICHERO SOBREVIVE UNA SOLA COSA, Y NO
-// ES UNA PANTALLA: menu_estaAbierto(), que es la puerta que INHIBE las secuencias del
-// mando de reles (SFTY-21) y que lee Esclavo/src/mando.cpp.
+// D-32 (1), 13/09/2026 — SALE EL LCD.
+//
+// D-30 (14/09): Y AQUI DECIA "DE ESTE FICHERO SOBREVIVE UNA SOLA COSA: menu_estaAbierto()".
+// Tampoco sobrevivio. Era la puerta que inhibia las secuencias del mando y su unico
+// lector era mando.cpp; retirado el mando se fue con el. De este fichero quedan hoy
+// menu_setup() y menu_loop(), las dos VACIAS, que main.cpp sigue llamando.
 //
 // LO QUE HABIA AQUI Y POR QUE SE VA ENTERO. Este fichero era la navegacion de la
 // pantalla del Esclavo: cinco pantallas (P_MENU, P_ESTADO, P_DEGRADADO, P_CONFIRMAR y
@@ -31,31 +34,15 @@
 //       y main.cpp por sus propios caminos.
 //   Censado symbol a symbol antes de borrar nada.
 //
-// menu_estaAbierto() Y LA REGLA DE LA BANDERA QUE SOLO SABE DAR UNA RESPUESTA
+// LO QUE FUE DE menu_estaAbierto()
 // ---------------------------------------------------------------------------
-// CLAUDE.md 6.2 obliga a censar, antes de retirar el armador de una bandera, quien la
-// LEE y que pasa si nunca vale true. Hecho:
+// D-32 la dejo devolviendo `false` fijo, con el censo que CLAUDE.md 6.2 exige: su
+// unico lector era secuenciasInhibidas() de mando.cpp, y con la bandera siempre falsa
+// el mando quedaba SIEMPRE armado -que no era un veto abierto por aquel commit, sino
+// el estado de hecho desde el 31/08, cuando botonAceptar() paso a ser `return false`-.
 //
-//   LECTOR: uno solo, secuenciasInhibidas() en Esclavo/src/mando.cpp, que devuelve
-//   exactamente menu_estaAbierto(). Con true, las secuencias del mando NO se
-//   reconocen; con false, el mando esta armado.
-//
-//   QUE PASA SI NUNCA VALE true: el mando queda SIEMPRE armado. Eso NO es un veto que
-//   se abre en este commit, y esta medido: el armador era `pantalla != P_MENU`, y
-//   `pantalla` solo salia de P_MENU dentro de `if (aceptar)`, con aceptar =
-//   botonAceptar() = false desde el 31/08. La bandera ya era falsa en todas las
-//   vueltas del bucle desde entonces, y botones.cpp lo dice por escrito al lado de esa
-//   definicion: "con ACEPTAR mudo, la pantalla del Esclavo no puede bajar del listado,
-//   asi que menu_estaAbierto() es siempre falso". Lo que cambia hoy es que deja de ser
-//   una propiedad de alcance y pasa a estar escrita en el fuente.
-//
-//   Y ADEMAS ES LA RESPUESTA CORRECTA, no un resto: el veto existia para el caso "hay
-//   una persona delante del gabinete mirando una pantalla que puede CONFIRMAR algo".
-//   Sin pantalla ese estado no existe nunca, asi que inhibir el mando seria inventarse
-//   un operario que no esta. La contrapartida se dice entera: J16 p5/p8 siguen VACIOS
-//   Y PELADOS, el mando sigue armado sobre ellos y un puente ahi sigue componiendo
-//   secuencias. Eso es exactamente lo de ayer -D-32 lo deja escrito-, no una novedad
-//   de este commit, y no lo arregla el firmware sino la instruccion de no cablearlos.
+// D-30 (14/09) cierra eso del todo: retirado el mando, la funcion se quedo sin lector
+// y se retiro. Ya no hay ningun reconocedor de secuencias al que inhibir ni armar.
 //
 // CONSECUENCIA QUE HAY QUE SABER, y va aqui porque es donde se causo: botonArriba() y
 // botonAbajo() se quedan SIN NINGUN CONSUMIDOR en esta punta -su unico llamador eran
@@ -76,10 +63,13 @@ void menu_loop() {
   // Vacia a proposito. Ver la cabecera: aqui vivia la navegacion de cinco pantallas.
 }
 
-// SFTY-21. El razonamiento completo, con la medida, esta en la cabecera de este
-// fichero y en menu.h. No se cablea a false "y punto": se cablea a false porque el
-// estado que la ponia a true -una pantalla abierta por debajo del listado- ya no puede
-// existir, y porque desde el 31/08 tampoco podia.
-bool menu_estaAbierto() {
-  return false;
-}
+// D-30 (14/09): AQUI ESTABA menu_estaAbierto(), Y SE VA CON EL MANDO.
+//
+// Era la puerta que INHIBIA las secuencias del mando con una pantalla abierta por
+// debajo del listado, y su UNICO lector en todo el firmware era secuenciasInhibidas()
+// de mando.cpp. Retirado el mando no la lee nadie: se quedaba huerfana, y una funcion
+// que no llama nadie no es una barrera, es un adorno que aparenta una (CLAUDE.md 6.1).
+//
+// No abre nada al irse, y esto se censo antes de tocarla: devolvia `false` fijo desde
+// que quedo sin armador, asi que el mando ya estaba SIEMPRE armado y lo que se retira
+// es un veto que no vetaba. Hoy ni siquiera hay mando al que inhibir.

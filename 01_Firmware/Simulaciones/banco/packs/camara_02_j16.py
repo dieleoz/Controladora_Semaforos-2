@@ -67,8 +67,9 @@
 import re
 
 # EJERCE SFTY-21: que los dos pines del mando (A y B) se lean con la polaridad que pide el
-# conector -INPUT pelado, activo en ALTO- y sigan alimentando mando_registrarPulso(), que
-# es de donde cuelga el veto de mando_ambarLocal(). Hasta el 04/09 esta etiqueta decia
+# conector -INPUT pelado, activo en ALTO-. 🔴 D-30 (14/09): y ya NO alimentan ningun
+# reconocedor de secuencias; el veto que cuelga de ahi es hoy el de la app. Hasta el 04/09
+# esta etiqueta decia
 # "sigan en INPUT_PULLUP", y con eso la regla que dice ejercer estaba muerta (N-118).
 
 NOMBRE = "camara_02_j16"
@@ -617,15 +618,27 @@ def correr(b, fw):
         #
         # LA MITAD QUE SIGUE VALIENDO SE CONSERVA y es la de abajo: que NADIE mas consuma
         # esos flancos. Que el mando no los reciba no sirve de nada si otro los recoge.
-        pulsos = re.findall(r"mando_registrarPulso\s*\(", cuerpo_act or "")
+        # D-30 (14/09): EL CENSO SE ENSANCHA DE UNA FUNCION A LA PUNTA ENTERA.
+        #
+        # Miraba el cuerpo de botones_actualizar(), que era donde vivia la llamada. Hoy
+        # mando.cpp no existe, asi que preguntarle solo a esa funcion seria una guarda
+        # que ya solo sabe dar una respuesta (CLAUDE.md 6.2). Se pregunta a TODOS los
+        # .cpp de la punta, que es lo que de verdad hay que sostener: que nadie vuelva a
+        # cablear esos dos flancos a algo que mueva la luz.
+        #
+        # EL BORDE, escrito al lado porque el pack compara contra uno: el numero correcto
+        # es CERO y no "menos que antes". No hay reconocedor de secuencias al que llamar,
+        # de modo que cualquier aparicion del simbolo es codigo que no compila o un
+        # reconocedor nuevo; las dos cosas hay que mirarlas a mano.
+        pulsos = sum(len(re.findall(r"mando_registrarPulso\s*\(", fw.codigo(punta, "src", f)))
+                     for f in fw.fuentes_de(punta, "src"))
         b.verificar(
-            cuerpo_act is not None and not pulsos,
-            "%s: los flancos de J16 p5 y p8 ya NO alimentan el reconocedor de secuencias: "
-            "un puente en esa bornera no puede mover el cruce" % punta,
-            "%s: botones_actualizar() vuelve a pasar flancos al mando (%d llamada(s)). El "
-            "hardware se retiro el 05/09 y esos dos bornes estan VACIOS: lo unico que "
-            "puede pulsarlos es un puente de prueba, y entonces mueve el cruce de verdad"
-            % (punta, len(pulsos)))
+            cuerpo_act is not None and pulsos == 0,
+            "%s: los flancos de J16 p5 y p8 no alimentan ningun reconocedor de secuencias "
+            "en toda la punta: un puente en esa bornera no puede mover el cruce" % punta,
+            "%s: hay %d llamada(s) a mando_registrarPulso() en la punta. Esos dos bornes "
+            "estan VACIOS y pelados: lo unico que puede pulsarlos es un puente de prueba, "
+            "y entonces mueve el cruce de verdad" % (punta, pulsos))
 
     # -- 7.bis LOS SUSTITUTOS: sin ellos, esta retirada no se puede hacer --
     bt_maestro = fw.codigo("Maestro", "src", "bluetooth.cpp")
@@ -638,33 +651,54 @@ def correr(b, fw):
         "los ocho modos: retirarla sin el comando que la sustituye deja al operario "
         "dentro de un modo sin mas salida que cortar la energia" % ", ".join(faltan))
 
-    # El Esclavo NO tiene SET_MODO por Bluetooth. Su sustituto no es la app: es el mando
-    # de reles, que sigue entero sobre A y B. Si el mando dejara de alcanzar el Degradado,
-    # esta punta se quedaria sin ninguna forma de entrar ni de salir.
-    mando_esc = fw.codigo("Esclavo", "src", "mando.cpp")
+    # COMPROBACION INVERTIDA (D-30, 14/09), y la frase que la sostenia ya era falsa.
+    #
+    # Decia: "El Esclavo NO tiene SET_MODO por Bluetooth. Su sustituto no es la app: es
+    # el mando de reles", y exigia que mando.cpp siguiera llamando a degradado_entrar()
+    # y degradado_salir(). Las dos mitades estaban caducadas: D-18 (05/09) le dio a esta
+    # punta SET_MODO:DEGRADADO por Bluetooth -la llave que faltaba para una puerta que ya
+    # estaba construida-, y el 14/09 se retiro el mando.
+    #
+    # Se invierte hacia la via que QUEDA, que es la unica que hay: el despachador de
+    # Bluetooth tiene que poder alcanzar las dos puertas del Degradado de esta punta. Si
+    # esto se rompiera, el Esclavo se quedaria sin ninguna forma de entrar ni de salir
+    # -no hay pulsadores, no hay pantalla y el Maestro no puede ordenarlo por radio,
+    # porque el radio muerto es justo la razon de entrar al modo-.
+    bt_esc = fw.codigo("Esclavo", "src", "bluetooth.cpp")
     for fn, que in (("degradado_entrar", "ENTRAR al Modo Degradado"),
                     ("degradado_salir", "SALIR del Modo Degradado")):
         b.verificar(
-            re.search(r"\b%s\s*\(" % fn, mando_esc) is not None,
-            "Esclavo: el mando de reles sigue pudiendo %s (%s() en mando.cpp)" % (que, fn),
-            "Esclavo: el mando ya no llama a %s(). Esta punta NO tiene SET_MODO por "
-            "Bluetooth -sus comandos son AMBAR_EMERGENCIA, FORZAR_ROJO, SOLICITAR_PASO, "
-            "TEST_LEDS y CMD:HORA_ESP32-, asi que con los botones 3 y 4 retirados el mando es su "
-            "UNICA via para %s" % (fn, que))
+            re.search(r"\b%s\s*\(" % fn, bt_esc) is not None,
+            "Esclavo: la app sigue pudiendo %s (%s() en bluetooth.cpp, D-18)" % (que, fn),
+            "Esclavo: bluetooth.cpp ya no llama a %s(). Retirado el mando (D-30), la app "
+            "es la UNICA superficie de mando de esta punta: sin esa llamada no queda "
+            "ninguna via para %s, ni desde el suelo ni por radio" % (fn, que))
 
-    # Y el veto de SFTY-21 sigue teniendo quien lo arme: mando_ambarLocal() vale true
-    # porque A y B siguen llegando al mando. Retirar el armador de una bandera deja
-    # abiertos los if que la usan para vetar, y eso casi nunca es "nada".
+    # EL VETO DE SFTY-21 SE REAPUNTA (D-30, 14/09): SON LOS MISMOS TRES `if`.
+    #
+    # Aqui se contaban los `!mando_ambarLocal()`. Esas tres guardas de main.cpp tenian
+    # DOS terminos -el latch del gabinete y el de la app- y hoy tienen uno: el del
+    # mando se quedo sin armador cuando el firmware dejo de leer J16 p5/p8, asi que era
+    # un termino que solo sabia dar una respuesta y salio con su bandera.
+    #
+    # LO QUE SE VIGILA NO CAMBIA, y por eso el recuento se muda en vez de borrarse:
+    # mientras alguien haya pedido ambar, una orden de luz por radio NO saca a esta
+    # punta de el. Lo que cambia es QUIEN lo arma, y ahora es el unico que queda.
+    #
+    # EL BORDE: TRES, y son nominales -CMD_GO_RED, CMD_GO_GREEN y la recuperacion tras
+    # fallo-. Se exige >= 3 y no == 3 para que una guarda NUEVA no haga fallar al pack
+    # por existir; lo que este numero persigue es que BAJEN, que es como un veto
+    # desaparece en silencio.
     consumidores = sum(
-        len(re.findall(r"!\s*mando_ambarLocal\s*\(", fw.codigo("Esclavo", "src", f)))
+        len(re.findall(r"!\s*bluetooth_ambarEmergencia\s*\(", fw.codigo("Esclavo", "src", f)))
         for f in fw.fuentes_de("Esclavo", "src"))
     b.verificar(
         consumidores >= 3,
-        "Esclavo: los %d vetos de mando_ambarLocal() siguen en pie, y su bandera sigue "
-        "pudiendo ser cierta porque A y B no se tocaron (SFTY-21)" % consumidores,
-        "Esclavo: quedan %d vetos de mando_ambarLocal() y eran tres. Mientras un operario "
-        "pidio ambar local, una orden de radio NO saca a esta punta del ambar: ese es el "
-        "veto, y desaparece en silencio si se rompe su camino" % consumidores)
+        "Esclavo: los %d vetos de bluetooth_ambarEmergencia() siguen en pie (SFTY-21): "
+        "con un ambar pedido, ninguna orden de luz por radio lo pisa" % consumidores,
+        "Esclavo: quedan %d vetos de bluetooth_ambarEmergencia() y eran tres. Mientras "
+        "alguien pidio ambar, una orden de radio NO saca a esta punta del ambar: ese es "
+        "el veto, y desaparece en silencio si se rompe su camino" % consumidores)
 
     # =============================================================================
     # 8. CONTROLES NEGATIVOS

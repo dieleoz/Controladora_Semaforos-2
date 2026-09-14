@@ -30,7 +30,7 @@
 //   - menu / lcd / botones / protocolo : no-ops. Ninguno decide nada del contrato.
 //
 // LO QUE SI ES REAL, y por eso el EFECTO se puede medir y no solo la respuesta:
-//   bluetooth.cpp, semaforo.cpp, coordinador.cpp, modo_automatico.cpp, mando.cpp,
+//   bluetooth.cpp, semaforo.cpp, coordinador.cpp, modo_automatico.cpp,
 //   modos.cpp, demanda.cpp e identidad.cpp de la punta que toque. Cuando un comando
 //   de la app mueve una luz, la mueve escribirPines() de verdad.
 //
@@ -387,10 +387,13 @@ unsigned long modo_degradado_msDesdeSync() { return mdg_ms_sync; }
 bool modo_degradado_avisoLimite()          { return mdg_hubo_sync && mdg_ms_sync >= MDG_AVISO_MS; }
 bool modo_degradado_syncVencida()          { return mdg_ms_sync >= MDG_LIMITE_MS; }
 
-// modo_ambar.cpp y modo_degradado.cpp: los llama mando.cpp al reconocer su secuencia.
+// modo_ambar.cpp: lo llama bluetooth.cpp al atender SET_MODO:AMBAR desde la app -es
+// el unico camino que queda para pedir el ambar, desde D-30 (14/09)-.
+// Aqui habia tambien un modo_degradado_setup(): su unico llamador era mando.cpp, y
+// se retira con el. Si algun dia otro .cpp de los que compila este arnes lo pide, el
+// enlazador lo dira -que es como se ha medido que sobraba-.
 void modo_ambar_setup() {}
 void modo_ambar_fijarMotivo(const char*, const char*) {}
-void modo_degradado_setup() {}
 
 // respaldo.cpp escribe en los registros de respaldo del RTC. Sin RTC no hay donde.
 void respaldo_marcarSync(uint32_t) {}
@@ -421,13 +424,14 @@ bool botonCancelar() { return false; }
 #endif
 
 #if defined(PUNTA_ESCLAVO)
-// mando.cpp del Esclavo arrastra su menu.h y su modo_degradado.h, y de todo eso
-// bluetooth.cpp solo consulta el VETO: mientras un operario pidio ambar desde el
-// gabinete, una orden de radio no saca a esta punta del ambar (SFTY-21). El veto se
-// gobierna desde fuera para poder ejercerlo; el latch de ambar por Bluetooth, que es
-// lo que este arnes mide de verdad, vive dentro del bluetooth.cpp REAL.
-static bool mando_ambar = false;
-bool mando_ambarLocal() { return mando_ambar; }
+// D-30 (14/09): AQUI VIVIA EL SUSTITUTO DEL VETO DEL MANDO -mando_ambarLocal()-.
+//
+// Lo consultaba bluetooth.cpp para no sacar del ambar a una punta cuyo ambar habia
+// pedido un operario desde el gabinete. Retiradas las botoneras, ese armador no
+// existe y el firmware ya no pregunta por el: el veto que queda es el LATCH DE LA
+// APP, y ese no se sustituye aqui porque vive dentro del bluetooth.cpp REAL que este
+// arnes compila. O sea que el veto dejo de gobernarse desde fuera y paso a ejercerse
+// por el mismo camino que lo ejerce el tecnico: mandando el comando.
 
 // A-11 (05/09) - EL MODO DEGRADADO YA NO SE SUSTITUYE: SE ENLAZA EL modo_degradado.cpp
 // REAL DEL ESCLAVO.

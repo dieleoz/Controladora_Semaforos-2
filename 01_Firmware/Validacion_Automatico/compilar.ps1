@@ -1,14 +1,15 @@
 # Compila y ejecuta el arnes del ciclo automatico en el PC.
 #
-# Compila coordinador.cpp, semaforo.cpp, modo_automatico.cpp Y mando.cpp REALES
-# del Maestro -no una copia, no un espejo en Python- y ejercita el ciclo completo
-# sobre ellos. Requiere gcc/g++ (MinGW-w64).
+# Compila coordinador.cpp, semaforo.cpp y modo_automatico.cpp REALES del Maestro
+# -no una copia, no un espejo en Python- y ejercita el ciclo completo sobre ellos.
+# Requiere gcc/g++ (MinGW-w64).
 #
-# N-52: mando.cpp se suma aqui. Antes el arnes media los pines de verdad pero
-# senalActiva -el static de semaforo.cpp que SOLO pone mando.cpp- nunca se ponia a
-# true en este binario, porque mando.cpp no se compilaba. La rama
-# "if (senalActiva) return;" de aplicarSalidas() jamas se ejercia: el arnes miraba
-# los pines pero no recorria el unico camino que puede congelarlos.
+# D-30 (14/09): AQUI SE COMPILABA TAMBIEN mando.cpp, y ya no existe. Lo que aquel
+# fichero aportaba era el unico armador de senalActiva -el static de semaforo.cpp que
+# congelaba escribirPines() mientras duraban los destellos-, y esa interceptacion
+# salio entera de semaforo.cpp con el mando. Hoy aplicarSalidas() escribe en el mismo
+# paso siempre: no queda ninguna rama que pueda congelar los pines, asi que tampoco
+# queda nada que compilar aqui para ejercerla.
 #
 # UN SOLO BINARIO, como Validacion_Ciclo y a diferencia de Validacion_LCD: aqui no
 # se compila nada del Esclavo, asi que no hay colision de simbolos que obligue a dos
@@ -41,12 +42,13 @@ if (-not (Test-Path $BUILD)) { New-Item -ItemType Directory -Path $BUILD | Out-N
 # botones.h, lcd.h y menu.h se resuelvan contra los sustitutos de aqui y no contra
 # los reales del Maestro -que arrastrarian el framework STM32duino, U8g2 y el resto
 # de modos, nada de lo cual hace falta para medir el ciclo automatico-.
-# protocolo.h, reloj.h, respaldo.h, coordinador.h, semaforo.h, mando.h, modo_ambar.h,
-# modo_degradado.h y modos.h SI son los reales: no hay sustituto de esos en este
-# directorio -modos.h a proposito: es el enum ModoSistema, y una copia local seria
-# justo el "casi igual" que puede divergir sin que nadie lo note-
-# (mando.h y las dos ultimas solo necesitan Arduino.h, que ya esta sustituido),
-# asi que caen a Maestro\include.
+# protocolo.h, reloj.h, respaldo.h, coordinador.h, semaforo.h y modos.h SI son los
+# reales: no hay sustituto de esos en este directorio -modos.h a proposito: es el enum
+# ModoSistema, y una copia local seria justo el "casi igual" que puede divergir sin que
+# nadie lo note-, asi que caen a Maestro\include.
+# D-30 (14/09): aqui se nombraban ademas mando.h, modo_ambar.h y modo_degradado.h. La
+# primera ya no existe; las otras dos se incluian solo por los stubs que hacian falta
+# para enlazar mando.cpp, y el arnes ya no las abre.
 $incluye = @("-I$AQUI", "-I$MAESTRO\include")
 
 $objetos = @()
@@ -85,14 +87,13 @@ function Compilar-Fuente($origen, $nombreObjeto) {
 # Ademas es lo que permite ejercer la pregunta del encargo: si una deteccion en el
 # PIN de J16 llega hasta el Modo Inteligente. Con el stub, J14 y J16 eran el mismo
 # bool y la respuesta salia que si por construccion.
-Write-Host "Compilando coordinador.cpp, semaforo.cpp, modo_automatico.cpp, modo_inteligente.cpp, demanda.cpp, mando.cpp y botones.cpp (los MISMOS del firmware) y el arnes..." -ForegroundColor Cyan
+Write-Host "Compilando coordinador.cpp, semaforo.cpp, modo_automatico.cpp, modo_inteligente.cpp, demanda.cpp y botones.cpp (los MISMOS del firmware) y el arnes..." -ForegroundColor Cyan
 Compilar-Fuente (Join-Path $MAESTRO 'src\coordinador.cpp')     'coordinador.o'
 Compilar-Fuente (Join-Path $MAESTRO 'src\botones.cpp')         'botones.o'
 Compilar-Fuente (Join-Path $MAESTRO 'src\semaforo.cpp')        'semaforo.o'
 Compilar-Fuente (Join-Path $MAESTRO 'src\modo_automatico.cpp') 'modo_automatico.o'
 Compilar-Fuente (Join-Path $MAESTRO 'src\modo_inteligente.cpp') 'modo_inteligente.o'
 Compilar-Fuente (Join-Path $MAESTRO 'src\demanda.cpp')         'demanda.o'
-Compilar-Fuente (Join-Path $MAESTRO 'src\mando.cpp')           'mando.o'
 Compilar-Fuente (Join-Path $AQUI 'arnes_automatico.cpp')       'arnes_automatico.o'
 
 $exe = Join-Path $BUILD 'validar_automatico.exe'

@@ -6,7 +6,6 @@
 #include "reloj.h"           // SFTY-23
 #include "botones.h"         // N-16
 #include "menu.h"            // N-16
-#include "mando.h"           // SFTY-21 / N-19: mando de reles
 #include "config_ciclo.h"    // SFTY-23: lo que este fichero publica para el Degradado
 #include "modo_degradado.h"  // SFTY-21
 #include "respaldo.h"        // N-20: lo que sobrevive al corte de energia
@@ -263,11 +262,6 @@ void setup() {
   // inicializando.
   respaldo_setup();
 
-  // SFTY-21 / N-19: mando de reles. Solo pone a cero sus contadores; los pulsos los
-  // vera en botones_actualizar(), asi que no importa que el receptor todavia no este
-  // instalado.
-  mando_setup();
-
   // Entradas Digitales de Cámaras IA AcuSense (Contacto Seco N/O)
   // N-67: LA POLARIDAD LA MANDA LA PLACA, Y LA PLACA DICE ACTIVO EN ALTO.
   //
@@ -476,10 +470,15 @@ void loop() {
       // esta punta no acusaba, y eso se arreglo por otro sitio. O sea que "quitemos el
       // cerrojo" es una pregunta ya contestada, y la respuesta fue que no.
       //
-      // D-1: el primero de los dos sigue leyendose aunque el mando ya no tenga
-      // pulsadores. Sin hardware esa bandera no se arma nunca y la guarda deja pasar; con
-      // el armador borrado la guarda pasaria a ser SIEMPRE cierta, que no es lo mismo.
-      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
+      // D-30 (14/09): AQUI HABIA DOS VETOS Y AHORA HAY UNO.
+      //
+      // El que falta es !mando_ambarLocal(), el ambar pedido con B.B.B desde el
+      // gabinete. Su bandera solo la armaba mando.cpp y el firmware dejo de leer los
+      // flancos de J16 p5/p8 el 14/09, asi que ya no podia volver a valer true: era un
+      // termino que solo sabia dar una respuesta (CLAUDE.md 6.2) y quitarlo NO abre
+      // nada. El veto que protege a quien esta en la calzada es el de la app, y se
+      // queda entero -D-8 sigue en pie: no se toca el cerrojo de bluetooth-.
+      if (!bluetooth_ambarEmergencia()) {
         semaforo_forzarRojo(); // Directo a rojo
         ackRojoEnviado = true;
         programarRespuesta(CMD_ACK_RED);
@@ -502,7 +501,11 @@ void loop() {
       // ABRE PASO, NO LO QUE LO PARA. El verde abre; el rojo para. Por eso el GO_RED pasa
       // -y con el se acaba el bloqueo, porque el Maestro siempre puede llevar el cruce a
       // rojo- y el GO_GREEN no.
-      if (!mando_ambarLocal() && !bluetooth_ambarEmergencia()) {
+      // D-30 (14/09): el veto del mando se cayo aqui tambien -bandera sin armador desde
+      // que el firmware dejo de leer J16 p5/p8-. ESTE es el que ABRE PASO de los tres,
+      // asi que se dice en voz alta: lo que impide el verde con un ambar pedido sigue
+      // siendo el cerrojo de la app, intacto, y N-142 sigue mandando sobre el.
+      if (!bluetooth_ambarEmergencia()) {
         // N-162 (11/09): LA ORDEN DE VERDE ES IDEMPOTENTE. SE REPITE, NO SE REINICIA.
         //
         // El Maestro repite GO_GREEN cada TIMEOUT_ACK_MS mientras no le llega el
@@ -693,7 +696,9 @@ void loop() {
     // que encuentre el nodo en S_FALLO entra por esta puerta aunque la guarda de arriba
     // lo haya vetado, y volveria a forzar rojo -y a reiniciar la proteccion de replay-
     // por su cuenta. Guardar solo una de las dos deja la revocacion intacta.
-    if (!mando_ambarLocal() && !bluetooth_ambarEmergencia() &&
+    // D-30 (14/09): igual que las dos de arriba, se cae el termino del mando. Esta abre
+    // hacia ROJO, asi que su peor caso es forzar rojo de mas.
+    if (!bluetooth_ambarEmergencia() &&
         semaforo_estado() == S_FALLO && pkt.command == CMD_GO_RED) {
       semaforo_forzarRojo();
       protocolo_resetReplayProtection();
@@ -812,18 +817,6 @@ void loop() {
   } else {
     menu_loop();
   }
-
-  // SFTY-21: el mando va AL FINAL, y por dos motivos.
-  //
-  // Uno: la accion se ejecuta cuando los destellos de confirmacion han terminado, y
-  // quien los hace avanzar es semaforo_actualizar(), al principio de esta misma
-  // vuelta. Consultarlo aqui hace que la accion salga en la iteracion en la que la
-  // senal se apaga, sin un ciclo de espera de por medio.
-  //
-  // Dos: cualquier cosa que el mando cambie -salir del Degradado, encender el ambar-
-  // queda como ultima palabra de la vuelta, sin que la logica de radio de mas arriba
-  // la pise antes de llegar a los pines.
-  mando_actualizar();
 }
 
 

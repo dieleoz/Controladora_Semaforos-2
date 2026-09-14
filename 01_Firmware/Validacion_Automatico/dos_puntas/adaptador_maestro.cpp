@@ -2,8 +2,8 @@
 //
 // LA PUNTA MAESTRO, DENTRO DE SU PROPIA DLL.
 //
-// Compila coordinador.cpp + semaforo.cpp + modo_automatico.cpp + mando.cpp REALES -los
-// mismos cuatro ficheros que van a la tarjeta y los mismos que ya ejerce
+// Compila coordinador.cpp + semaforo.cpp + modo_automatico.cpp REALES -los
+// mismos tres ficheros que van a la tarjeta y los mismos que ya ejerce
 // arnes_automatico.cpp- y les pone alrededor lo justo para que enlacen: pantalla,
 // botones, reloj y radio simulados.
 //
@@ -19,8 +19,12 @@
 // Maestro/src/main.cpp y Maestro/src/modo_degradado.cpp NO entran. main.cpp despacha a
 // los ocho modos y arrastra la pantalla entera (u8g2) por menu.cpp; modo_degradado.cpp
 // incluye lcd.h y menu.h y arrastra lo mismo. El bucle se conduce como ya lo conduce el
-// arnes de una punta -semaforo_actualizar(), el loop del modo, mando_actualizar()-, que
-// es el orden literal de main.cpp para el camino del ciclo automatico.
+// arnes de una punta -semaforo_actualizar() y el loop del modo-, que es el orden
+// literal de main.cpp para el camino del ciclo automatico.
+//
+// D-30 (14/09): AQUI SE COMPILABA TAMBIEN mando.cpp Y EL TICK CERRABA CON
+// mando_actualizar(). Las botoneras A/B/C/D salieron del producto y el fichero del
+// firmware entero con ellas, asi que no hay nada que alimentar ni que resolver.
 //
 // 11/09 (N-142, §3.16-A) - MODO_AMBAR SI ENTRA, Y ES EL REAL. Hasta hoy modo_ambar.cpp
 // estaba DOBLADO aqui con dos cuerpos vacios que solo contaban llamadas, y el aviso que
@@ -65,9 +69,7 @@
 #include "protocolo.h"
 #include "reloj.h"
 #include "respaldo.h"
-#include "mando.h"
 #include "modo_ambar.h"
-#include "modo_degradado.h"
 
 // ---------------------------------------------------------------------------
 // EL RELOJ SIMULADO Y LOS PINES OBSERVADOS. Los declara extern Arduino.h; existen
@@ -123,18 +125,17 @@ void lcd_dibujarAutomatico(const char*, int, int) { g_lcdRedibujos++; }
 void lcd_dibujarConfigValor(const char*, int, const char*) { g_lcdRedibujos++; }
 void menu_setup() {}
 
-// modoActual_get()/set() DE VERDAD: mando.cpp los necesita para decidir si "ya
-// estabamos aqui". Arranca en MENU, igual que el enum real.
+// modoActual_get()/set() DE VERDAD: los leen coordinador.cpp y modo_automatico.cpp
+// -modoAutomatico_enMarcha() es literalmente una lectura de este valor-. Arranca en
+// MENU, igual que el enum real.
 static ModoSistema g_modoActual = MENU;
 ModoSistema modoActual_get() { return g_modoActual; }
 void modoActual_set(ModoSistema m) { g_modoActual = m; }
 
-// MODO_DEGRADADO del Maestro: su .cpp no se compila (ver cabecera). Se stubea SOLO lo
-// que mando.cpp llama de verdad.
-static MotivoDegradado g_entradaDegradado = MDG_OK;
-static unsigned long g_modoDegradadoSetups = 0;
-MotivoDegradado modo_degradado_evaluarEntrada() { return g_entradaDegradado; }
-void modo_degradado_setup() { g_modoDegradadoSetups++; }
+// D-30 (14/09): AQUI VIVIAN LOS DOS SUSTITUTOS DE MODO_DEGRADADO
+// -modo_degradado_evaluarEntrada() y modo_degradado_setup()-. Existian SOLO porque
+// mando.cpp los llamaba al reconocer A.B.A.B; ningun otro .cpp de esta DLL los pide.
+// Medido con el enlazador, que es quien lo sabe: sin ellos la DLL sigue enlazando.
 
 // N-142 (11/09): MODO_AMBAR es el .cpp REAL, y va antes de pasoPrincipal(), que es
 // quien lo despacha.
@@ -227,10 +228,11 @@ bool protocolo_hayPaqueteDisponible(RF_Packet* destino) {
 // UN TICK DE main.cpp, EN EL ORDEN REAL.
 // [bloque literal de arnes_automatico.cpp::pasoPrincipal()]
 //
-// mando.cpp se alimenta desde botones_actualizar() (ANTES de despachar al modo) y se
-// resuelve desde mando_actualizar() (AL FINAL de loop()). El rele del mando esta
-// cableado EN PARALELO con Boton1/Boton2, asi que un pulso real dispara los dos
-// caminos a la vez.
+// g_pendA/g_pendB son los dos botones fisicos del gabinete (Boton1/Boton2), y siguen
+// difiriendose un tick a proposito: es lo que hace botones_actualizar() en el equipo.
+// D-30 (14/09): ademas de encender el flag del boton, alimentaban
+// mando_registrarPulso() -el rele del mando iba EN PARALELO con estos dos pulsadores-.
+// Retiradas las botoneras, lo que queda es el pulsador y nada mas.
 // ---------------------------------------------------------------------------
 static bool g_pendA = false, g_pendB = false;
 
@@ -257,8 +259,8 @@ static ModoSistema modoAnterior = MENU;
 static unsigned long g_entradasAmbar = 0;
 
 static void pasoPrincipal() {
-  if (g_pendA) { mando_registrarPulso(MANDO_A); g_pulsarArriba = true; }
-  if (g_pendB) { mando_registrarPulso(MANDO_B); g_pulsarAbajo = true; }
+  if (g_pendA) { g_pulsarArriba = true; }
+  if (g_pendB) { g_pulsarAbajo = true; }
   g_pendA = g_pendB = false;
 
   semaforo_actualizar();
@@ -284,7 +286,6 @@ static void pasoPrincipal() {
     default: break;   // los demas modos no se compilan en esta DLL (ver cabecera)
   }
 
-  mando_actualizar();
 }
 
 // ---------------------------------------------------------------------------
@@ -350,7 +351,6 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   // -> CORRIENDO, aceptando lo configurado. Es la puerta de entrada real al ciclo.
   if (!strcmp(que, "arrancar_automatico")) {
     coordinador_setup();
-    mando_setup();
     g_modoActual = MODO_AUTOMATICO;
     g_pulsarArriba = g_pulsarAbajo = g_pulsarAceptar = g_pulsarCancelar = false;
     modoAutomatico_setup();
@@ -370,7 +370,6 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   if (!strcmp(que, "comunicacion_perdida")) return coordinador_comunicacionPerdida() ? 1 : 0;
   if (!strcmp(que, "toques"))
     return (arg >= 0 && arg < 64) ? (long)arnes_toques[arg] : -1;
-  if (!strcmp(que, "senal_en_curso"))     return semaforo_senalEnCurso() ? 1 : 0;
   if (!strcmp(que, "tramas_emitidas"))    return (long)g_tramasEmitidas;
   if (!strcmp(que, "alarmas"))            return (long)g_alarmasEmitidas;
   if (!strcmp(que, "redibujos"))          return (long)g_lcdRedibujos;

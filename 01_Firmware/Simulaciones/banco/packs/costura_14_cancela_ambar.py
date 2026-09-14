@@ -148,26 +148,44 @@ def _medir(fw):
     bloques_bt = _bloques_if(bt)
 
     # Los vetadores: las funciones que el despachador de radio del Esclavo consulta
-    # NEGADAS para decidir si obedece. Se deducen de main.cpp y no se escriben: son las
-    # que sostienen el ambar, y una de ellas es el latch del mando.
+    # NEGADAS para decidir si obedece una orden de luz. Se DEDUCEN y no se escriben.
+    #
+    # D-30 (14/09) — LA REGLA DE DEDUCCION CAMBIO, Y ESTE ES EL PORQUE.
+    #
+    # Antes se buscaban las guardas con DOS getters negados en la misma condicion: ese
+    # par -el latch del mando y el de la app- aislaba al veto del ambar de cualquier
+    # otro `if (!algo())` de main.cpp sin nombrar a ninguno. Retirado el mando ya no hay
+    # par: las tres guardas quedaron con UN termino, y anclarse en el par habria dejado
+    # el pack en ABORTADO permanente, que no dice nada del firmware.
+    #
+    # LA REGLA NUEVA AISLA IGUAL DE BIEN Y SIGUE SIN ESCRIBIR EL NOMBRE: el vetador es
+    # el getter que main.cpp consulta NEGADO y que ademas esta DECLARADO EN bluetooth.h,
+    # o sea que es parte del contrato del modulo del latch. Medido el 14/09 sobre el
+    # fuente: de los getters negados de main.cpp -degradado_gobiernaLuz (3),
+    # bluetooth_ambarEmergencia (3) y reloj_enHora (1)- solo el segundo esta en ese
+    # header, asi que la regla resuelve a uno y solo uno. Que ese getter este declarado
+    # alli no se da por hecho: lo mide esclavo_07.
     main_e = fw.codigo("Esclavo", "src", "main.cpp")
+    bt_h = fw.texto("Esclavo", "include", "bluetooth.h")
     vetadores = set()
     for cond, _i, _f in _bloques_if(main_e):
-        atomos = _atomos(cond)
-        if len(atomos) < 2:
-            continue
-        negadas = {re.sub(r"^!\s*", "", a) for a in atomos if a.startswith("!")}
-        negadas = {a for a in negadas if re.fullmatch(r"\w+\s*\(\s*\)", a)}
-        if len(negadas) >= 2:
-            vetadores |= {re.sub(r"\s", "", a) for a in negadas}
-    if len(vetadores) < 2:
+        for a in _atomos(cond):
+            if not a.startswith("!"):
+                continue
+            nom = re.sub(r"^!\s*", "", a)
+            if not re.fullmatch(r"\w+\s*\(\s*\)", nom):
+                continue
+            simbolo = re.sub(r"\s", "", nom)
+            if simbolo[:-2] in bt_h:
+                vetadores.add(simbolo)
+    if not vetadores:
         raise fw.Abortado(
-            "en Esclavo/src/main.cpp no se hallo ninguna guarda con DOS getters negados "
-            "en la misma condicion (halladas: %s). Ese par es el veto del ambar -el del "
-            "mando y el de la app- y es contra el que se decide desde que salida de %s "
-            "sale el aviso. Sin poder leerlo habria que escribir el nombre del latch a "
-            "mano, que es el valor por defecto que este banco no admite"
-            % (sorted(vetadores), ORDEN))
+            "en Esclavo/src/main.cpp no se hallo ninguna guarda que consulte NEGADO un "
+            "getter declarado en bluetooth.h. Ese es el veto del ambar -el unico latch "
+            "que le queda a esta punta desde D-30- y es contra el que se decide desde "
+            "que salida de %s sale el aviso. Sin poder leerlo habria que escribir el "
+            "nombre del latch a mano, que es el valor por defecto que este banco no "
+            "admite" % ORDEN)
     d["vetadores"] = sorted(vetadores)
 
     # Las salidas de la orden, por su literal de respuesta. Cada una con su bloque.
@@ -472,7 +490,7 @@ def correr(b, fw):
         not d["mudas_debiendo"] and not d["hablan_no_debiendo"],
         "las %d salida(s) de CMD:%s que declaran el ambar retirado emiten %s por radio "
         "(%s), y las %d que no lo declaran callan (%s): el Maestro se entera cuando el "
-        "ambar se va de verdad, y no cuando solo se quita uno de los dos latches"
+        "ambar se va de verdad, y no cuando no habia ninguno que quitar"
         % (len(d["deben_emitir"]), ORDEN, d["CMD_AVISO"], ", ".join(d["deben_emitir"]),
            len(d["no_deben_emitir"]), ", ".join(d["no_deben_emitir"])),
         "SFTY: el aviso de retirada del ambar no sale por donde debe. Salidas que "
@@ -545,24 +563,38 @@ def _controles(b, fw, d):
         "quitandole el aviso a la salida %r -que es el defecto N-152 tal cual estaba el "
         "05/09- la comprobacion 1 cae y lo nombra" % limpia[0])
 
-    # --- 2. Y la direccion contraria: avisar con el mando todavia puesto -----------
-    sostenidas = sorted(n for n in d["no_deben_emitir"] if d["salidas"][n]["sostenido"])
-    if sostenidas:
-        rod = _rodaja_salida(fw, sostenidas[0])
+    # --- 2. Y la direccion contraria: avisar desde una salida que NO debe avisar ----
+    #
+    # D-30 (14/09) — ESTE CONTROL SE ENSANCHA, Y LO PIDIO EL PROPIO PACK.
+    #
+    # Se ejercia sobre la salida "sostenida": la que contestaba RETIRADO_QUEDA_MANDO
+    # porque quedaba ademas el latch del gabinete, y que por eso NO avisaba al Maestro.
+    # Esa rama se retiro con el mando -era inalcanzable desde que la bandera se quedo
+    # sin armador- y el control se quedo sin sujeto: cayo en el acto y dijo por que,
+    # que es exactamente lo que se le pide a un control negativo.
+    #
+    # NO SE RELAJA NI SE BORRA: su proposito no era el mando, era demostrar que la
+    # comprobacion 1 no mide "que haya aviso" sino de DONDE sale. Para eso sirve
+    # cualquier salida de `no_deben_emitir`, y queda otra que no es del mando: el
+    # rechazo $ERR -"no habia ambar que quitar"-, que tampoco debe avisar al Maestro
+    # porque no ha cambiado nada que el Maestro necesite saber.
+    no_avisan = sorted(d["no_deben_emitir"])
+    if no_avisan:
+        rod = _rodaja_salida(fw, no_avisan[0])
         med = _con_defecto(fw, {ESCLAVO_BT: [(rod, rod.replace(
             "enviarTramaConCrc",
             "protocolo_enviarPaquete(%s); enviarTramaConCrc" % d["CMD_AVISO"], 1))]})
         b.control_negativo(
-            med is not None and med["hablan_no_debiendo"] == [sostenidas[0]],
-            "y al reves: avisando desde %r -la salida con el latch del mando todavia "
-            "puesto- la misma comprobacion cae. No mide 'que haya aviso': mide de DONDE "
-            "sale" % sostenidas[0])
+            med is not None and med["hablan_no_debiendo"] == [no_avisan[0]],
+            "y al reves: avisando desde %r -una salida que NO debe avisar al Maestro- la "
+            "misma comprobacion cae. No mide 'que haya aviso': mide de DONDE sale"
+            % no_avisan[0])
     else:
         b.control_negativo(
             False,
-            "no hay ninguna salida de CMD:%s sostenida por el mando contra la que "
-            "ejercer la direccion contraria: la comprobacion 1 solo mediria una mitad"
-            % ORDEN)
+            "no queda ninguna salida de CMD:%s que deba callar, asi que la comprobacion 1 "
+            "solo mediria una mitad: aprobaria un firmware que avisa desde TODAS las "
+            "salidas, incluido el rechazo" % ORDEN)
 
     # --- 3. El oido: se le quita la llamada al lector en el modo -------------------
     oyente = d["oyentes"][0]

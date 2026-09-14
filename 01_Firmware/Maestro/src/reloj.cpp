@@ -45,6 +45,75 @@ static uint8_t nocheFin = 5;
 // Espera acotada a que arranque el oscilador del cristal Y2.
 static const uint32_t ESPERA_LSE_MS = 2000;
 
+// ---------------------------------------------------------------------------
+// 1.22 - EL CRISTAL QUE ARRANCA Y NO CUENTA. El porque entero y de que sale el plazo
+// estan en reloj.h, sobre CNT_TICK_MS y CNT_VENTANA_MS.
+//
+// EL CERROJO. Una vez MEDIDO que el contador no avanza, este cristal no se vuelve a
+// adoptar: el reintento de N-25 solo mira LSERDY, que en este cristal vale 1 -es justo el
+// estado que engana-, asi que sin cerrojo volveria a subir rtcOperativo a los 30 s y
+// desharia la cura en silencio, dejando al equipo oscilando entre "con reloj" y "sin
+// reloj" sin que nadie lo viera. Lo quitan reloj_setup() y reloj_reiniciarDominioRespaldo()
+// y nadie mas: o sea, una persona o un reinicio, nunca la maquina sola.
+static bool cristalCongelado = false;
+static uint32_t cntMuestra = 0;
+static uint32_t tCntMuestra = 0;
+
+// CNT en crudo, con la doble lectura de CNTH que exige el silicio -la pareja CNTH/CNTL
+// puede cruzar un flanco entre las dos mitades-. NO aplica el disfraz "v == 0 -> 1" de
+// reloj_contadorSegundos(): ese es de aquella funcion y aqui ESTORBA, porque un contador
+// congelado EN CERO es exactamente lo que hay que poder ver.
+static uint32_t leerCnt() {
+  uint16_t alta = (uint16_t)RTC->CNTH;
+  const uint16_t baja = (uint16_t)RTC->CNTL;
+  if ((uint16_t)RTC->CNTH != alta) alta = (uint16_t)RTC->CNTH;
+  return ((uint32_t)alta << 16) | baja;
+}
+
+// Se ancla en los TRES sitios que suben rtcOperativo, y no en la declaracion de las
+// estaticas: con cntMuestra en 0 de fabrica, un contador congelado justo en 0 se declararia
+// parado sin haber medido ninguna ventana -acertando por casualidad, que no es medir-.
+static void anclarVigilancia() {
+  cntMuestra = leerCnt();
+  tCntMuestra = HAL_GetTick();
+}
+
+// LA SEGUNDA VISITA, hecha por el firmware y no por un tecnico (ver la cabecera de
+// RelojDiag en reloj.h). La llama reloj_actualizar() en cada vuelta del bucle.
+static void vigilarCristal() {
+  if (!rtcOperativo || cristalCongelado) return;
+
+  const uint32_t ahora = HAL_GetTick();
+  const uint32_t cnt = leerCnt();
+
+  if (cnt != cntMuestra) {   // conto: se reancla y no hay nada mas que mirar
+    cntMuestra = cnt;
+    tCntMuestra = ahora;
+    return;
+  }
+  if ((uint32_t)(ahora - tCntMuestra) < CNT_VENTANA_MS) return;  // la ventana sigue abierta
+
+  cristalCongelado = true;
+  rtcOperativo = false;   // reloj_contadorSegundos() vuelve a devolver 0: ESA ES LA CURA
+
+  // Y LA HORA CAE CON EL, PERO SOLO SI SU UNICA FUENTE ERA ESTE CONTADOR.
+  //
+  // Con base de software sembrada (tBaseMillis > 0) la hora NO sale de aqui: sale de
+  // millis(), la cubre el plazo de D-21 (1) y se queda intacta. Sin base, la hora que hay
+  // es la que reloj_setup() o reloj_actualizar() ADOPTARON del RTC, o sea una hora
+  // CONGELADA a la que reloj_horaFiable() da fiabilidad para siempre por su
+  // "if (tBaseMillis == 0) return true". Ese borde esta escrito en reloj.h con su premisa
+  // -"esa no corre sobre el HSI sino sobre el cristal Y2"-, y este cristal es justo el que
+  // la rompe: si el Y2 no cuenta, esa hora no avanza y no puede decidir una luz.
+  //
+  // Bajar horaValida ARMA el camino de "no se la hora", no apaga ninguno, y el camino ya
+  // existia y ya estaba ejercido -reloj_setup() y reloj_reiniciarDominioRespaldo() lo
+  // bajan-. Donde manda es en modo_degradado.cpp: reloj_horaFiable() pasa a false, la
+  // puerta de entrada contesta MDG_FALTA_HORA y el bucle del modo se va a ambar. Es el
+  // lado seguro, y es el mismo al que ya lleva un REINICIAR_RELOJ.
+  if (tBaseMillis == 0) horaValida = false;
+}
+
 static bool arrancarCristal() {
   // El oscilador vive en el dominio de respaldo y hay que poder escribirlo.
   __HAL_RCC_PWR_CLK_ENABLE();
@@ -73,12 +142,14 @@ void reloj_setup() {
   segBaseDelDia = 0;
   diaBase = 1;
   siembraCaducada = false;
+  cristalCongelado = false;   // 1.22: el arranque del periferico es lo que quita el cerrojo
 
   if (!arrancarCristal()) return;
 
   rtc.setClockSource(STM32RTC::LSE_CLOCK);  // cristal Y2 de 32.768 kHz
   rtc.begin(false, STM32RTC::HOUR_24);      // false = NO borrar la hora guardada
   rtcOperativo = true;                      // N-24: a partir de aqui el RTC cuenta
+  anclarVigilancia();                       // 1.22: y a partir de aqui se vigila que CUENTE
 
   horaValida = rtc.isConfigured() && (rtc.getYear() >= ANIO_MARCA) &&
                (rtc.getHours() != 0 || rtc.getMinutes() != 0 || rtc.getSeconds() != 0);
@@ -94,7 +165,16 @@ void reloj_actualizar() {
   // temprana, que con el cristal en marcha es la de siempre.
   (void)reloj_horaFiable();
 
+  // 1.22 - LA SEGUNDA VISITA AL CONTADOR, Y VA ANTES DE LA SALIDA TEMPRANA: el caso que
+  // hay que vigilar es justo rtcOperativo == true, que es por donde esta funcion se va.
+  vigilarCristal();
+
   if (rtcOperativo) return;  // ya esta, nada que hacer
+
+  // 1.22 - Y UN CRISTAL YA MEDIDO COMO PARADO NO SE VUELVE A ADOPTAR. El reintento de
+  // abajo solo mira LSERDY, y en este cristal LSERDY vale 1: sin este cerrojo readoptaria
+  // el cristal cada 30 s y desharia la cura sin decir nada. Ver vigilarCristal().
+  if (cristalCongelado) return;
 
   const uint32_t ahora = HAL_GetTick();
   if (ahora - tUltimoReintento < REINTENTO_LSE_MS) return;
@@ -137,6 +217,7 @@ void reloj_actualizar() {
   rtc.setClockSource(STM32RTC::LSE_CLOCK);
   rtc.begin(false, STM32RTC::HOUR_24);
   rtcOperativo = true;
+  anclarVigilancia();   // 1.22: se adopta el cristal Y se empieza a medir si CUENTA
 
   if (teniaBase) return;  // horaValida ya estaba en true y la hora es la MISMA: no salta
 
@@ -162,12 +243,14 @@ bool reloj_reiniciarDominioRespaldo() {
   segBaseDelDia = 0;
   diaBase = 1;
   siembraCaducada = false;
+  cristalCongelado = false;   // 1.22: esto reinicia el dominio entero; el cerrojo tambien
 
   if (!arrancarCristal()) return false;
 
   rtc.setClockSource(STM32RTC::LSE_CLOCK);
   rtc.begin(false, STM32RTC::HOUR_24);
   rtcOperativo = true;
+  anclarVigilancia();   // 1.22
   return true;
 }
 
@@ -243,6 +326,9 @@ void reloj_fijarEnero() {
   if (rtcOperativo && rtc.getMonth() != 1) rtc.setMonth(1);
 }
 
+// 1.22: desde hoy esto contesta "hay un cristal que CUENTA", no "el oscilador arranco".
+// Un Y2 que da LSERDY y deja CNT quieto sale de aqui en false, igual que uno que no
+// arranco: para quien pregunta son el mismo caso -no hay con que contar-.
 bool reloj_hayCristal() { return rtcOperativo; }
 
 // N-49 — el contador crudo del RTC, en segundos. Ver la nota de reloj.h.

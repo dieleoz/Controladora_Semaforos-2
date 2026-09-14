@@ -23,6 +23,21 @@
 // este arnes: si alguien pone arnes_lse_listo a false, cada lectura del flag gasta 1 ms del
 // reloj simulado para que la espera acotada de arrancarCristal() termine como en la
 // tarjeta, pero ningun bloque lo usa hoy.
+//
+// 1.22 (14/09) - Y EL TERCER ESTADO, QUE ANTES NI SIQUIERA SE PODIA EXPRESAR.
+//
+// El cristal tiene TRES estados y este fichero solo sabia dos: "no arranca"
+// (arnes_lse_listo = false) y "arranca y cuenta". El tercero -ARRANCA Y SE QUEDA QUIETO,
+// el de la cinta del Sisga (179DB0)- no era un escenario que faltara: era un estado que el
+// modelo NO PODIA REPRESENTAR, porque arnes_rtc_cnt() derivaba el contador de millis() y
+// millis() nunca se para. Un pack que lea reloj.cpp por texto tampoco lo ve: el defecto es
+// del TIEMPO, no de la forma (CLAUDE.md 6.3).
+//
+// arnes_rtc_congelado es esa perilla. CONGELA EL CONTADOR Y DEJA LSERDY EN 1 -no toca
+// arnes_lse_listo, y por tanto tampoco BDCR-, que es EXACTAMENTE lo que hace el cristal
+// real: el bit dice "el oscilador arranco" y no dice que el contador incremente. Sigue
+// siendo SILICIO y no una regla: aqui solo se decide cuanto vale CNT. Lo que el firmware
+// concluya de eso lo decide reloj.cpp, compilado letra por letra.
 #pragma once
 
 #include "../comun/stm32f1xx_hal.h"
@@ -36,7 +51,14 @@ extern bool arnes_lse_listo;
 extern uint32_t arnes_rtc_cnt_base;        // lo que valia CNT cuando millis() == ancla
 extern unsigned long arnes_rtc_cnt_ancla;
 
+// 1.22 - EL TERCER ESTADO. Ver la cabecera. Se mueve con arnes_rtc_congelar()
+// (rtc_periferico.h), nunca escribiendo estas dos a mano: el valor congelado tiene que ser
+// el que el contador tenia EN ESE INSTANTE, o el escenario mide un salto y no una parada.
+extern bool arnes_rtc_congelado;
+extern uint32_t arnes_rtc_cnt_congelado;
+
 inline uint32_t arnes_rtc_cnt() {
+  if (arnes_rtc_congelado) return arnes_rtc_cnt_congelado;
   return arnes_rtc_cnt_base + (uint32_t)((arnes_millis_valor - arnes_rtc_cnt_ancla) / 1000UL);
 }
 

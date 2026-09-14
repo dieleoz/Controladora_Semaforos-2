@@ -40,12 +40,30 @@ PUNTAS = ("Maestro", "Esclavo")
 # pack lo dice: sobra tanto una que aparece como una que desaparece.
 CONOCIDAS = {
     "Maestro": {
-        # 🟡 14/09: mando_registrarPulso ENTRA, y a proposito. El firmware dejo de leer
-        # los flancos de J16 p5/p8 porque el hardware del mando salio del equipo el 05/09
-        # y esos bornes estan vacios: lo unico que podia pulsarlos era un puente de
-        # prueba, y entonces movia el cruce. La funcion se queda inerte mientras
-        # mando.cpp siga dentro; SALE de aqui el dia que el fichero se retire entero.
-        "mando_registrarPulso",
+        # 🟢 D-30, 14/09: mando_registrarPulso SALE de esta lista, y lo pidio el propio
+        # pack. Entro el 14/09 cuando el firmware dejo de leer los flancos de J16 p5/p8,
+        # con la anotacion escrita al lado: "SALE de aqui el dia que el fichero se retire
+        # entero". Ese dia es hoy -mando.cpp y mando.h ya no existen en ninguna punta-,
+        # asi que dejarla seria vigilar el aire: la comprobacion de "desaparecidas" la
+        # pediria por su nombre y no la encontraria declarada en ningun header.
+        #
+        # 🟡 D-30, 14/09: modoAutomatico_pedirArranqueDirecto ENTRA, y es una huerfana que
+        # crea ESTE cambio. Su UNICO llamador era `ejecutar(ACC_AUTOMATICO)` de mando.cpp,
+        # que arrancaba el Modo Automatico desde el suelo sin pasar por el asistente.
+        #
+        # EL MOTIVO ES COMPROBABLE, que es lo que se le exige a una excepcion (CLAUDE.md
+        # 6): SU CUERPO ESTA VACIO. En modo_automatico.cpp es literalmente
+        # `void modoAutomatico_pedirArranqueDirecto() { /* N-42: ya no hace falta */ }`
+        # desde que N-42 retiro el asistente de configuracion. O sea que no se queda sin
+        # llamador una funcion que hacia algo: se queda sin llamador un no-op, y no hay
+        # conducta que se pierda ni veto que se abra.
+        #
+        # ⚠️ Y NO SE DEJA AQUI COMO SOLUCION: lo correcto es retirarla del firmware, con
+        # su declaracion de modo_automatico.h. No entra en este lote porque
+        # modo_automatico.{cpp,h} no es de sus ficheros y dos agentes tocando el mismo
+        # arbol se mezclan (CLAUDE.md 11). Queda anotada para que el que lo retire la
+        # borre tambien de esta lista.
+        "modoAutomatico_pedirArranqueDirecto",
         # Getters de telemetria que la pantalla dejo de pedir. No danan; se anotan.
         # 🟢 D-32 (1), 13/09: protocolo_tramasDescartadas SALE, igual que salio en el
         # Esclavo con N-108 y por el mismo motivo -ahora se publica al aire-. Viajaba
@@ -111,8 +129,14 @@ CONOCIDAS = {
         "reloj_hayCristal",
     },
     "Esclavo": {
-        # 🟡 14/09: igual que en el Maestro, y por el mismo motivo. Ver arriba.
-        "mando_registrarPulso",
+        # 🟢 D-30, 14/09: aqui estaba mando_registrarPulso y sale por lo mismo que en el
+        # Maestro: el fichero que la declaraba ya no existe.
+        #
+        # Y NO ENTRA NADA EN SU LUGAR POR EL MANDO. La otra huerfana que esta retirada
+        # creo en esta punta -menu_estaAbierto(), cuyo unico lector era
+        # secuenciasInhibidas() de mando.cpp- NO se anota: se RETIRO del firmware, de
+        # menu.cpp y de menu.h. Anotarla habria sido darle permiso a un adorno con forma
+        # de barrera (CLAUDE.md 6.1), y su fichero si es de este lote.
         # N-133 (04/09): los dos accesos a los tiempos del ciclo AUTOMATICO.
         #
         # EL MOTIVO ES COMPROBABLE, que es lo que §3.bis exige de una excepcion: no se
@@ -171,16 +195,17 @@ CONOCIDAS = {
         #
         # ---- GRUPO 1: los dos botones que SI existen (A y B, J16 p5/p8) ----
         # Su unico consumidor eran las lineas 183-184 del menu_loop() retirado.
-        # LO QUE NO SE PIERDE, Y ES LO QUE IMPORTA: los pines SE SIGUEN LEYENDO igual.
-        # Quien los lee es botones_actualizar(), una sola vez por vuelta, y desde ahi
-        # alimenta al mando de reles con mando_registrarPulso(MANDO_A/MANDO_B) ANTES
-        # de que nadie consuma el flanco -esta escrito en botones.cpp: "el mando ve el
-        # pulso AQUI, antes de que ninguna pantalla pueda consumirlo, y sin consumirlo
-        # el mismo"-. O sea que lo que baja de dos a uno no es el numero de lecturas
-        # de J16 p5/p8: es el numero de CONSUMIDORES de esa lectura. El que queda es
-        # el reconocedor de secuencias del mando, que es el que gobierna.
-        # ⚠️ Ese es el matiz que hay que llevar a D-32 y a CLAUDE.md §3, que hoy dicen
-        # "leidos por DOS caminos" en las dos puntas: en el Esclavo pasa a ser uno.
+        #
+        # 🔴 D-30, 14/09 — ESTE COMENTARIO DECIA "lo que baja de dos a uno es el numero
+        # de CONSUMIDORES, y el que queda es el reconocedor de secuencias del mando, que
+        # es el que gobierna". YA NO HAY SEGUNDO CONSUMIDOR: baja de uno a CERO.
+        #
+        # Los pines SE SIGUEN LEYENDO igual -los lee botones_actualizar(), una sola vez
+        # por vuelta- pero esa lectura ya no alimenta a nadie que mueva la luz. Lo que
+        # cambia de verdad es el riesgo de cobre: hasta el 14/09 un puente en J16 p5/p8
+        # componia secuencias que metian al cruce en ambar o en Degradado; hoy no
+        # compone nada. La instruccion de no cablearlos sigue viva igualmente -los
+        # bornes siguen vacios y pelados-, pero ya no es lo unico que lo impide.
         "botonArriba", "botonAbajo",
         # ---- GRUPO 2: los dos que ya no tenian sujeto fisico ----
         # botonAceptar() y botonCancelar() son `return false;` desde el 31/08 (D-2:

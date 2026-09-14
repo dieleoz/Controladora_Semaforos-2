@@ -7,7 +7,6 @@
 #include "reloj.h"
 #include "identidad.h"
 #include "botones.h"       // D-13: camara_estado(), la fuente del campo CAM:
-#include "mando.h"           // R-3: mando_ambarLocal(), para no prometer un ambar que no se quita
 #include "modo_degradado.h"  // N-106: la salida ordenada y sus dos finales
 #include <string.h>
 #include <stdio.h>
@@ -967,14 +966,17 @@ static void procesarComando(const char* cmd) {
       // "NO_HAY_AMBAR_VIGENTE" delante de un semaforo que estaba en ambar: el latch ya
       // se habia quitado en la primera pulsacion, asi que la segunda no tenia salida.
       //
-      // La condicion no es "no hay latch": es que ESTA PUNTA SIGA EN AMBAR y que no lo
-      // sostenga el mando. Si la luz ya no esta en ambar no hay nada que pedir, y si el
-      // latch del gabinete esta puesto esta punta no va a obedecer igualmente.
+      // La condicion no es "no hay latch": es que ESTA PUNTA SIGA EN AMBAR. Si la luz ya
+      // no esta en ambar no hay nada que pedir.
+      //
+      // D-30 (14/09): sobraba ademas "y que no lo sostenga el mando" -!mando_ambarLocal()-.
+      // Ese latch ya no tiene armador, asi que el termino solo sabia dar una respuesta y la
+      // condicion queda en lo que de verdad decide: que la luz siga en ambar.
       //
       // NO PROMETE que el ambar se vaya: el Maestro puede estar en un ambar que pidio
       // otra persona -y entonces ignora el aviso a proposito-. Dice lo que hizo, que es
       // volver a pedirlo. Es el mismo reparto que SOLICITAR_PASO: esta punta pide.
-      if (semaforo_estado() == S_FALLO && !mando_ambarLocal()) {
+      if (semaforo_estado() == S_FALLO) {
         protocolo_enviarPaquete(CMD_CANCELA_AMBAR_ESCLAVO);
         enviarTramaConCrc("$ACK,CMD:CANCELAR_AMBAR,RESULT:REENVIADO_AL_MAESTRO");
         bluetooth_reportarEvento("APP_BLUETOOTH", "CANCELA_AMBAR_REENVIADA");
@@ -1013,25 +1015,20 @@ static void procesarComando(const char* cmd) {
       // quien no ha visto. Por eso este comando dice lo que hizo en vez de prometer que
       // el ambar se fue.
       //
-      // D-1: la rama sigue viva con el mando desmontado. Sin pulsadores nunca se toma, lo
-      // cual es correcto; lo que no seria correcto es borrarla, porque entonces el acuse
-      // pasaria a afirmar siempre que el ambar se retiro del todo.
-      if (mando_ambarLocal()) {
-        // El otro latch, el del mando, NO lo puede quitar este comando: los tres vetos de
-        // main.cpp son "!mando_ambarLocal() && !bluetooth_ambarEmergencia()", asi que con
-        // el del gabinete puesto la luz sigue vetada. Contestar OK a secas mandaria al
-        // tecnico a esperar un cambio que no va a llegar hasta que alguien haga A.A.A.
-        //
-        // N-152: Y POR ESO TAMPOCO SE AVISA AL MAESTRO. Esta punta SIGUE en ambar, asi
-        // que pedirle al Maestro que salga del suyo dejaria el cruce con una punta en
-        // rojo y la otra en ambar, y al Maestro mandando ordenes que esta punta no
-        // obedece ni acusa -que es exactamente el bloqueo que N-142 cerro-. El aviso
-        // sale cuando el ambar se va de verdad, no cuando se quita uno de los dos.
-        enviarTramaConCrc("$ACK,CMD:CANCELAR_AMBAR,RESULT:RETIRADO_QUEDA_MANDO");
-      } else {
-        protocolo_enviarPaquete(CMD_CANCELA_AMBAR_ESCLAVO);
-        enviarTramaConCrc("$ACK,CMD:CANCELAR_AMBAR,RESULT:RETIRADO");
-      }
+      // D-30 (14/09): AQUI HABIA DOS ACUSES Y AHORA HAY UNO, Y ESTO SE LE DICE A LA APP.
+      //
+      // Habia una rama para "quedaba tambien el latch del mando" que contestaba
+      // RESULT:RETIRADO_QUEDA_MANDO y NO avisaba al Maestro. Solo se tomaba con
+      // mando_ambarLocal() puesto, y esa bandera se quedo sin armador cuando el firmware
+      // dejo de leer J16 p5/p8: era una rama que ya no alcanzaba nadie. Se retira con su
+      // acuse, asi que ese RESULT no vuelve a salir por el puerto -no es un cambio de
+      // conducta, es la retirada de una respuesta que ya no podia emitirse-.
+      //
+      // Queda el unico caso real: se retira el cerrojo de la app, se avisa al Maestro y se
+      // contesta lo que se hizo. D-8 no se toca: los dos vetos eran independientes y el
+      // que desaparece es el que ya no tenia quien lo pusiera.
+      protocolo_enviarPaquete(CMD_CANCELA_AMBAR_ESCLAVO);
+      enviarTramaConCrc("$ACK,CMD:CANCELAR_AMBAR,RESULT:RETIRADO");
       bluetooth_reportarEvento("APP_BLUETOOTH", "AMBAR_EMERGENCIA_REVOCADO");
     }
   } else if (strcmp(accion, "FORZAR_ROJO") == 0) {
@@ -1312,8 +1309,9 @@ void bluetooth_loop() {
   // un estado seguro, es un parpadeo.
   //
   // Las tres guardas, y ninguna sobra:
-  //   !semaforo_senalEnCurso()    mientras hay destellos de confirmacion las luces son de
-  //                              la senal; pisarla dejaria al operario sin la cuenta.
+  // Las guardas eran TRES. La que falta -!semaforo_senalEnCurso()- protegia los destellos
+  // de confirmacion del mando, y salio con el mando el 14/09 (D-30): ya no hay ninguna
+  // senal que pueda ocupar las lamparas por encima de la logica.
   //   !degradado_gobiernaLuz()    durante el todo-rojo de despedida la luz es del modo. Es
   //                              tambien lo que impide que esto pise al Degradado.
   //   estado() != S_FALLO         si una rendicion ya encendio el ambar -la del limite
@@ -1324,7 +1322,7 @@ void bluetooth_loop() {
   // latch"- y se retira con su porque escrito en la cabecera de ambarEmergencia: durante
   // el todo-rojo de despedida la luz esta en ROJO, asi que mataba el latch milisegundos
   // despues de armarse. Desde R-3 el latch se quita pidiendolo: CANCELAR_AMBAR.
-  if (ambarEmergencia && !semaforo_senalEnCurso() && !degradado_gobiernaLuz() &&
+  if (ambarEmergencia && !degradado_gobiernaLuz() &&
       semaforo_estado() != S_FALLO) {
     semaforo_iniciarFallo();
   }

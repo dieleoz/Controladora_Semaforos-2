@@ -30,6 +30,12 @@
 // recalcularlas desde el C++ y cualquier numero copiado aqui nace caducado. Se dice lo
 // que no envejece: "sigue saliendo mientras dure", "mas de lo que el cruce aguanta".
 //
+// LO QUE NO ESTA AQUI Y DONDE VIVE: el $EVENT de ORIGEN:CAMARA_PLUMA. Su DETALLE lleva
+// un NUMERO dentro -los segundos que la barrera lleva retenida-, asi que no puede ser
+// una clave 'ORIGEN|DETALLE' de esta tabla, y ademas no se agota en una linea de
+// bitacora: el firmware lo REPITE mientras dure y tiene que sobrevivir a las 30
+// entradas. Vive en js/aviso_camara_pluma.js, con su cartel.
+//
 // Y NINGUN TEXTO LLEVA LA PALABRA DE LA ORDEN ENTRE COMILLAS DE CABLE: el pack
 // app_07 censa como emisor de trama todo literal de js/ que contenga el prefijo de
 // orden, y un texto que lo citara se leeria como un segundo generador.

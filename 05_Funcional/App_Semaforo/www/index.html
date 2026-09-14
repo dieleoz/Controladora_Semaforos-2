@@ -51,6 +51,28 @@
   <main class="app-container">
 
     <!-- ===================================================================
+         EL CARTEL DE LA BARRERA RETENIDA POR LA CAMARA (14/09)
+         ===================================================================
+         VIVE AQUI, FUERA DE LAS CINCO PESTANAS, Y ESA ES LA MITAD DEL ARREGLO.
+
+         El equipo publica este aviso desde el 14/09 y la app lo dejaba caer en el
+         REGISTRO DE EVENTOS como una linea mas. La bitacora guarda 30 entradas y la
+         ventana del POSTE 2 ensena 12: un aviso que llegue mientras el tecnico mira
+         otra cosa se va con el scroll. Un cartel dentro de #tab-estado tampoco valdria
+         -se pierde por navegacion en vez de por scroll-, asi que es el primer hijo de
+         .app-container, que es comun a las cinco pestanas y no se oculta nunca.
+
+         NACE OCULTO y solo lo abre el equipo. El texto entero lo escribe
+         renderAvisoCamaraPluma() desde js/aviso_camara_pluma.js: aqui no hay ni una
+         frase, para que no haya dos copias de lo que el tecnico lee. -->
+    <div class="card card-camara-pluma" id="aviso-camara-pluma" hidden>
+      <strong class="camara-pluma-titulo" id="camara-pluma-titulo"></strong>
+      <p class="camara-pluma-medida" id="camara-pluma-medida"></p>
+      <p class="camara-pluma-accion" id="camara-pluma-accion"></p>
+      <small class="camara-pluma-limite" id="camara-pluma-limite"></small>
+    </div>
+
+    <!-- ===================================================================
          TAB 1: OPERACIÓN PRINCIPAL (LA VISTA QUE USA EL OPERARIO EN CAMPO)
          =================================================================== -->
     <section class="tab-content active" id="tab-estado">
@@ -1050,6 +1072,7 @@
   <script src="js/diagnostico_enlace.js"></script>
   <script src="js/depuracion.js"></script>
   <script src="js/avisos_equipo.js"></script>
+  <script src="js/aviso_camara_pluma.js"></script>
   <script src="js/bluetooth_driver.js"></script>
   <script src="app.js"></script>
 </body>

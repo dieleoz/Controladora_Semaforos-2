@@ -219,17 +219,6 @@ def _juzgadas(lineas, tema, ancla=None):
     return fuera
 
 
-def _exenta(p, norm, ventanas):
-    """True si la linea habla del mando y no del umbral de SFTY-6.
-
-    Los dos cerrojos, juntos: vocabulario del mando, TODAS sus cifras son ventanas
-    reales del C++, y no nombra SFTY-6 -si lo nombra, el sujeto es el umbral y no hay
-    exencion que valga-."""
-    if any(x in p for x in NO_EXIME):
-        return False
-    return bool(norm) and any(v in p for v in VOCAB_MANDO) and norm <= ventanas
-
-
 def _tipo_techo(decl):
     """Mayor valor que cabe en el tipo con el que se declara la constante.
 
@@ -345,13 +334,24 @@ def correr(b, fw):
     seg6 = umbrales["Maestro"] / 1000.0
     formas = {"%g" % seg6, "%.1f" % seg6}     # "25" y "25.0"
 
-    # Las ventanas del mando, releidas del C++ igual que el umbral. Son el OTRO "12 s"
-    # -el que esta bien-, y sin leerlas del fuente la exencion seria un numero escrito
-    # a mano que seguiria eximiendo el dia que la ventana cambiara.
-    ventanas = {"%g" % (fw.constante(("Maestro", "src", "mando.cpp"),
-                                     r"%s\s*=\s*(\d+)" % cte,
-                                     "la ventana %s del mando" % cte) / 1000.0)
-                for cte in ("VENTANA_TRIPLE_MS", "VENTANA_CUADRUPLE_MS")}
+    # D-30 (14/09) — AQUI SE RELEIAN LAS VENTANAS DEL MANDO, Y LA EXENCION SE RETIRA.
+    #
+    # Eran el OTRO "12 s" del proyecto -el que estaba bien- y sostenian una exencion de
+    # dos cerrojos: la linea habla del mando Y todas sus cifras son ventanas REALES de
+    # mando.cpp. El segundo cerrojo es el que hacia legitima la exencion, porque
+    # convertia el motivo en una afirmacion medible sobre el codigo.
+    #
+    # Retirado el mando (D-30) no hay contra que medirla. Mantenerla sin ese cerrojo
+    # seria exactamente lo que CLAUDE.md 6 prohibe -"una lista de excepciones con
+    # motivos sin verificar es una lista de defectos con permiso"-, asi que sale entera
+    # y el pack queda MAS ESTRICTO: una linea que hable del silencio de SFTY-6 y
+    # publique cifras en segundos se juzga contra el umbral real, sin apelacion.
+    #
+    # Ojo a lo que esto NO hace: una linea que hable SOLO del mando sigue sin juzgarse,
+    # porque _juzgadas() ni la selecciona -no nombra el silencio de SFTY-6-. Lo mide el
+    # control negativo de mas abajo. Esas lineas son documentacion caducada de un
+    # subsistema retirado, que es otro defecto y de otro duenno: este pack no las acusa
+    # de publicar un umbral falso, que seria acusar al firmware de algo que no hizo.
 
     vistas = []
     for doc, lineas in docs.items():
@@ -361,15 +361,6 @@ def correr(b, fw):
                 continue        # habla de SFTY-6 sin publicar cifra: no hay nada que comparar
             norm = {"%g" % float(s.replace(",", ".")) for s in hallados}
 
-            # La exencion del mando, con sus dos cerrojos puestos.
-            if _exenta(p, norm, ventanas):
-                b.reportar(
-                    "%s:%d habla del mando, no del silencio de SFTY-6" % (doc, n),
-                    ["sus cifras (%s s) son ventanas reales de mando.cpp (%s s)"
-                     % ("/".join(sorted(norm)), "/".join(sorted(ventanas))),
-                     "no se juzga contra el umbral de SFTY-6: acusarla seria un falso "
-                     "positivo sobre una frase correcta"])
-                continue
             ok = bool(norm & {"%g" % float(f) for f in formas})
             if ok:
                 vistas.append("%s:%d" % (doc, n))
@@ -572,26 +563,32 @@ def correr(b, fw):
         "detector distingue los dos '12 s' porque se ancla a la frase")
 
     # (b2) El caso duro, que la primera version de este pack SI acusaba -medido-: la
-    # linea del mando que ademas dice "sin comunicacion". Aqui ya no basta la frase, y
-    # es la exencion la que tiene que salvarla.
-    duro = _plano(_normalizar(
+    # linea del mando que ademas dice "sin comunicacion".
+    #
+    # D-30 (14/09) — CONTROL INVERTIDO. Exigia que esa linea quedase EXENTA "por sus
+    # cifras, no por la frase": era la mitad buena de la exencion del mando. Retirada la
+    # exencion, esa misma linea tiene que JUZGARSE, y por eso el control cambia de signo
+    # en vez de borrarse: sigue midiendo que el vocabulario del mando no compra
+    # impunidad, solo que ahora no la compra NUNCA en vez de comprarla con cifras
+    # verdaderas.
+    mixta = _plano(_normalizar(
         "Sin comunicacion, la ventana del mando de 12 s sigue valiendo: es local."))
-    n_duro = {"%g" % float(s.replace(",", ".")) for s in _RE_SEG.findall(duro)}
     b.control_negativo(
-        bool(_juzgadas([(1, duro)], FRASES_SFTY6)) and _exenta(duro, n_duro, ventanas),
-        "una linea del mando que ademas dice 'sin comunicacion' queda exenta por sus "
-        "cifras -son ventanas reales de mando.cpp-, no por la frase")
+        bool(_juzgadas([(1, mixta)], FRASES_SFTY6)),
+        "una linea que habla del mando Y del silencio ya NO queda exenta: se juzga "
+        "contra el umbral real de SFTY-6, porque el mando al que apelaba no existe")
 
-    # (b3) Y la exencion NO es un agujero: en cuanto la linea nombra SFTY-6, el sujeto
-    # es el umbral y se juzga aunque hable de secuencias del mando.
+    # es el umbral y se juzga aunque hable de secuencias del mando. Antes la clave era
+    # que nombrar SFTY-6 CERRABA la exencion; retirada la exencion (D-30) se juzga por
+    # el camino normal, y el control sigue exigiendo lo mismo: que esta linea se acuse.
     colado = _plano(_normalizar(
         "El mando compone su secuencia en 12 s, y SFTY-6 cae a ambar en 12 s."))
     n_colado = {"%g" % float(s.replace(",", ".")) for s in _RE_SEG.findall(colado)}
     b.control_negativo(
-        not _exenta(colado, n_colado, ventanas)
+        bool(_juzgadas([(1, colado)], FRASES_SFTY6))
         and not (n_colado & {"%g" % float(f) for f in formas}),
         "una linea que se escuda en el mando para publicar un umbral de SFTY-6 falso "
-        "NO se exime: nombrar SFTY-6 cierra la exencion")
+        "NO se exime: se juzga y se acusa como cualquier otra")
 
     # (c) La linea de SFTY-6 con el umbral viejo si se acusa.
     viejo = _plano(_normalizar(

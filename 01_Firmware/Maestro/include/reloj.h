@@ -93,6 +93,10 @@ void reloj_diagnostico(RelojDiag* d);
 // Devuelve 0 si el RTC no esta operativo, y ese cero es un valor con significado:
 // respaldo_marcarSync() y respaldo_horasDesdeSync() lo tratan como "no hay reloj" y
 // se abstienen, en vez de fechar contra un contador que nadie hace avanzar.
+//
+// 1.22: y "no operativo" incluye desde hoy EL CRISTAL QUE ARRANCA Y NO CUENTA, que hasta
+// ahora entraba aqui como si contara. El porque y el plazo, en el bloque de CNT_VENTANA_MS
+// mas abajo.
 uint32_t reloj_contadorSegundos();
 
 // N-25 — reintento en segundo plano del cristal. Se llama desde el loop(). Si el
@@ -219,6 +223,77 @@ static const unsigned long HORA_ESP32_ESPERA_MAX_MS = 3UL * HORA_ESP32_CADENCIA_
 // modo_degradado.cpp -una siembra NORMAL no puede mandar el Degradado a rojo- y lo relee
 // esp32_13 para la cuenta de la cadencia contra el margen del cruce.
 static const unsigned long HSI_PPM_PEOR = 25000UL;
+
+// ---------------------------------------------------------------------------
+// 1.22 - EL CRISTAL TIENE TRES ESTADOS Y EL FIRMWARE SOLO DISTINGUIA DOS.
+//
+// LSERDY dice "el oscilador ARRANCO". NO dice que el contador INCREMENTE. El tercer
+// estado -arranca y se queda quieto- es el de la cinta del Sisga (179DB0), y con el
+// reloj_contadorSegundos() devolvia un numero plausible que no se movia:
+//
+//   - la resta de respaldo_horasDesdeSync() -"ahora - guardado"- da 0 h, o sea "acabo de
+//     sincronizar", sobre un acuerdo que puede ser de hace meses: la marca se guardo con
+//     el MISMO numero que se lee ahora;
+//   - y el centinela que deberia taparlo lo DESTAPA: el "v == 0 ? 1UL : v" de
+//     reloj_contadorSegundos() convierte un contador congelado EN CERO -que es lo que
+//     trae un dominio de respaldo recien borrado- en un 1 no nulo, que pasa las dos
+//     guardas de respaldo.cpp;
+//   - y la puerta que se abre con ese 0 h no es solo la de 48 h (LIMITE_DURO_H): es la de
+//     ENTRADA, que exige la sincronizacion FRESCA (SYNC_FRESCA_MS de modo_degradado.cpp).
+//
+// LA MEDIDA QUE FALTABA YA ESTABA ESCRITA ARRIBA, en la cabecera de RelojDiag: "cnt
+// cambiando entre dos visitas -> el RTC CUENTA. Distingue 'no cuenta' de 'cuenta pero
+// nadie lo ha puesto en hora'". El firmware sabia separar los tres estados y esa segunda
+// visita no la hacia el: la hacia un tecnico repitiendo SET_RTC, y desde D-15 ese camino
+// ya no emite los bits. Desde hoy la hace el bucle, sola, en cada vuelta.
+//
+// LA CURA SE ENGANCHA A UN MECANISMO QUE YA EXISTE: baja rtcOperativo, y con el en falso
+// reloj_contadorSegundos() ya devuelve 0 A PROPOSITO -el "no hay reloj" del que cuelgan
+// los dos centinelas de respaldo.cpp-. No se inventa ninguna barrera nueva.
+// ---------------------------------------------------------------------------
+
+// EL BORDE FISICO, Y NO ES UNA ELECCION: el cristal Y2 es de 32.768 Hz y el prescaler del
+// RTC del F1 lo divide por 32768 (PRL = 32767, lo pone STM32RTC al abrir el periferico),
+// asi que CNT sube UNA vez por segundo. En cualquier ventana REAL mayor de un segundo un
+// contador que cuenta tiene por fuerza un flanco dentro; uno que no cuenta, no. Ahi esta
+// la frontera entre los dos estados que LSERDY no separa, y de ahi sale el plazo.
+static const unsigned long CNT_TICK_MS = 1000UL;
+
+// LA VENTANA DE LA SEGUNDA VISITA. Se piden DOS flancos y no uno, y la ventana se INFLA;
+// los tres terminos tienen motivo y ninguno es un numero redondo elegido a ojo:
+//
+//   - DOS FLANCOS porque la primera lectura despues de abrir el periferico puede venir de
+//     la sombra APB del F1 -CNT se lee a traves de la sincronizacion RSF- y valer todavia
+//     el numero anterior. Con un solo flanco esa lectura rancia bastaria para declarar
+//     muerto un cristal VIVO, y un falso positivo aqui le tira la hora al equipo. Con dos,
+//     una lectura rancia sobra.
+//   - INFLADA por HSI_PPM_PEOR porque la ventana se MIDE con HAL_GetTick(), que corre
+//     sobre el HSI, mientras el flanco lo cuenta el CRISTAL. En su extremo RAPIDO el HSI
+//     marca (1 + ppm) ms por cada ms real: una ventana de W ms medidos puede ser de solo
+//     W/(1 + ppm) ms REALES. Se usa el MISMO simbolo que D-21 (1) unas lineas mas abajo,
+//     no una copia del numero.
+//   - Y +1 ms por la granularidad del propio HAL_GetTick(): la comparacion es de enteros
+//     de milisegundo, asi que el tiempo real transcurrido puede ser un ms menor que la
+//     diferencia de tics.
+//
+// LO QUE NO ENTRA EN LA CUENTA, Y SE DICE PARA QUE NADIE LO BUSQUE: el periodo del bucle.
+// Esto es un SUELO, no un periodo. vigilarCristal() solo concluye cuando han pasado AL
+// MENOS CNT_VENTANA_MS, y un bucle lento mira MAS TARDE -mas flancos dentro de la ventana,
+// nunca menos-. El bucle solo fija cuanto se TARDA en detectarlo, no si se acierta, y ese
+// retraso lo acota el perro guardian: a lo sumo una vuelta mas.
+static const unsigned long CNT_VENTANA_MS =
+    2UL * CNT_TICK_MS
+    + 2UL * CNT_TICK_MS / 1000UL * HSI_PPM_PEOR / 1000UL
+    + 1UL;
+
+// EL SUELO ESCRITO EN C++ Y NO EN PROSA: la ventana, descontado el peor adelanto del HSI,
+// sigue siendo mas larga que los dos segundos de CRISTAL que se exigen. Si alguien baja la
+// ventana o sube la deriva del HSI, esto cae ANTES de que el firmware acuse de estar
+// parado a un cristal sano -que es el unico fallo caro de esta guarda-.
+static_assert((unsigned long long)CNT_VENTANA_MS * 1000000ULL >=
+                  (unsigned long long)(2UL * CNT_TICK_MS) * (1000000ULL + HSI_PPM_PEOR),
+              "1.22: la ventana de la segunda visita puede cerrarse antes de los dos "
+              "flancos de un cristal que SI cuenta: falso positivo, y tira la hora");
 
 // ---------------------------------------------------------------------------
 // D-21 (1) - UNA HORA QUE NO ES FIABLE ES UNA HORA QUE MIENTE. LA CADUCIDAD DE LA SIEMBRA.

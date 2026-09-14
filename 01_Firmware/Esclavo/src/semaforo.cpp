@@ -7,31 +7,16 @@
 static EstadoSemaforo estado = S_ROJO;
 static unsigned long tCambio = 0;
 
-// --- SFTY-21: senal del mando de reles -------------------------------------
-// Ver la explicacion completa en semaforo.h. Aqui solo lo imprescindible: mientras
-// senalActiva vale true, la logica normal sigue corriendo pero sus salidas se guardan
-// en ultR/ultA/ultV en lugar de escribirse; los pines los lleva la senal. Al acabar
-// se vuelca lo guardado y todo continua como si nada.
-static bool senalActiva = false;
+// D-33: LO ULTIMO QUE PIDIO LA LOGICA. No es un segundo escritor de pines: es el
+// registro con el que semaforo_actualizar() vuelve a entrar por aplicarSalidas()
+// cuando la pluma tiene un cierre pendiente -ver el bloque de D-33 mas abajo-. Sin
+// el, en rojo estable nadie volveria a escribir un pin y la pluma se quedaria arriba
+// hasta el proximo cambio de luz.
+//
+// Lo escribia tambien la senal del mando (SFTY-21), que guardaba aqui las salidas
+// mientras los destellos ocupaban las lampara; esa mitad se fue con el mando el
+// 14/09 (D-30) y este registro se queda porque D-33 lo usa por su cuenta.
 static bool ultR = false, ultA = false, ultV = false;
-
-static uint8_t senalDestellos = 0;   // destellos rojos que faltan
-static bool senalEsAmbar = false;
-static bool senalEncendida = false;
-static unsigned long tSenal = 0;     // instante del ultimo cambio de la senal
-static unsigned long tSenalInicio = 0;
-static unsigned long senalDuracion = 0;  // solo para el ambar rapido
-
-// 400 ms encendido y 400 ms apagado. Contable a 5 m y de dia: por debajo de ~250 ms
-// el ojo deja de separar destellos y el operario ya no puede contarlos, que es lo
-// unico que se le pide. Cuatro destellos son 3,6 s, dentro de lo que el operario
-// espera mirando hacia arriba.
-static const unsigned long DESTELLO_ON_MS = 400;
-static const unsigned long DESTELLO_OFF_MS = 400;
-
-// Ambar de rechazo: 150 ms. El ambar de fallo va a 500 ms, asi que el ritmo por si
-// solo distingue "rechazado" de "estado seguro".
-static const unsigned long AMBAR_RAPIDO_PERIODO_MS = 150;
 
 // --- N-82: test de lamparas ------------------------------------------------
 // La bandera vive AQUI ARRIBA, y no junto a semaforo_iniciarTestLeds() donde estaba,
@@ -260,83 +245,20 @@ static void aplicarSalidas(bool rojo, bool amarillo, bool verde) {
     verde = false; // El Rojo siempre gana por seguridad.
   }
 
-  // SFTY-21: lo que la logica quiere se guarda SIEMPRE, incluso con una senal en
-  // curso. Asi al terminar la senal los pines se ponen al dia con la ultima decision
-  // real y no con una foto vieja.
+  // D-33: lo que la logica quiere se guarda SIEMPRE, y DESPUES del enclavamiento de
+  // arriba a proposito: lo que queda aqui ya viene saneado, de modo que la reentrada
+  // de la pluma no puede reintroducir una combinacion prohibida.
+  //
+  // AQUI ESTABA LA INTERCEPCION DE SFTY-21 -un 'if (senalActiva) return;' que desviaba
+  // la escritura mientras los destellos del mando ocupaban las lamparas-. Salio con el
+  // mando el 14/09 (D-30): sus unicos armadores eran mando.cpp, asi que la bandera ya
+  // no podia volver a valer true y la guarda solo sabia dar una respuesta
+  // (CLAUDE.md 6.2). Ahora no hay desvio: lo que la logica pide se escribe en el mismo
+  // paso, que es el camino normal y el unico.
   ultR = rojo; ultA = amarillo; ultV = verde;
-
-  // El enclavamiento de arriba se aplica ANTES de este punto a proposito: lo que se
-  // guarda ya viene saneado, de modo que el volcado posterior no puede reintroducir
-  // una combinacion prohibida.
-  if (senalActiva) return;
 
   escribirPines(rojo, amarillo, verde);
 }
-
-static void terminarSenal() {
-  senalActiva = false;
-  senalDestellos = 0;
-  senalEsAmbar = false;
-  // Los pines se ponen al dia con lo ultimo que pidio la logica normal mientras la
-  // senal ocupaba la salida.
-  escribirPines(ultR, ultA, ultV);
-}
-
-static void actualizarSenal() {
-  unsigned long ahora = millis();
-
-  if (senalEsAmbar) {
-    if (ahora - tSenal >= AMBAR_RAPIDO_PERIODO_MS) {
-      tSenal = ahora;
-      senalEncendida = !senalEncendida;
-      escribirPines(false, senalEncendida, false);
-    }
-    if (ahora - tSenalInicio >= senalDuracion) {
-      terminarSenal();
-    }
-    return;
-  }
-
-  if (senalEncendida) {
-    if (ahora - tSenal >= DESTELLO_ON_MS) {
-      senalEncendida = false;
-      escribirPines(false, false, false);
-      tSenal = ahora;
-      if (senalDestellos > 0) senalDestellos--;
-      if (senalDestellos == 0) terminarSenal();
-    }
-  } else {
-    if (ahora - tSenal >= DESTELLO_OFF_MS) {
-      senalEncendida = true;
-      escribirPines(true, false, false);   // ROJO: nunca verde para confirmar
-      tSenal = ahora;
-    }
-  }
-}
-
-void semaforo_destellosRojos(uint8_t n) {
-  if (n == 0) return;
-  senalActiva = true;
-  senalEsAmbar = false;
-  senalDestellos = n;
-  senalEncendida = false;
-  tSenal = millis();
-  tSenalInicio = tSenal;
-  escribirPines(false, false, false);  // hueco inicial: hace visible el 1er destello
-}
-
-void semaforo_ambarRapido(unsigned long ms) {
-  senalActiva = true;
-  senalEsAmbar = true;
-  senalDestellos = 0;
-  senalEncendida = true;
-  tSenal = millis();
-  tSenalInicio = tSenal;
-  senalDuracion = ms;
-  escribirPines(false, true, false);
-}
-
-bool semaforo_senalEnCurso() { return senalActiva; }
 
 void semaforo_setup() {
   pinMode(ROJO1, OUTPUT);
@@ -434,48 +356,28 @@ void semaforo_actualizar() {
   unsigned long ahora = millis();
 
   // Test de lámparas en taller (6 segundos: 2s Rojo -> 2s Amarillo -> 2s Verde)
+  // D-30 (14/09): AQUI ESPERABA EL TEST A QUE LA SENAL DEL MANDO SOLTARA LAS LUCES.
+  // Con el mando fuera ya no hay quien ocupe las lamparas por encima de la logica, y
+  // la rama de espera solo sabia dar una respuesta: el test corre siempre entero.
   if (testLedsActivo) {
-    // CON UNA SENAL DEL MANDO EN CURSO, EL TEST ESPERA: no se abandona ni corre por
-    // debajo. Dos motivos, y ninguno es cortesia con el mando.
-    //
-    // No corre por debajo porque aplicarSalidas() con senalActiva guarda y NO escribe:
-    // el test gastaria sus seis segundos sin encender una lampara y un tecnico leeria
-    // eso como tres lamparas fundidas. Y porque el return de mas abajo dejaria
-    // actualizarSenal() sin llamar: la senal no terminaria nunca, senalActiva se
-    // quedaria en true y aplicarSalidas() no volveria a escribir un pin en toda la
-    // vida del equipo.
-    //
-    // No se abandona porque el $ACK de TEST_LEDS ya salio: tirar la peticion en
-    // silencio seria la misma mentira por otro camino. Re-armando el reloj, el test
-    // empieza entero en cuanto la senal suelta las luces.
-    if (senalActiva) {
-      tInicioTest = ahora;
+    unsigned long elapsed = ahora - tInicioTest;
+    if (elapsed < TEST_FASE_MS) {
+      aplicarSalidas(true, false, false);
+    } else if (elapsed < 2 * TEST_FASE_MS) {
+      aplicarSalidas(false, true, false);
+    } else if (elapsed < 3 * TEST_FASE_MS) {
+      // El verde del test pasa por el enclavamiento como cualquier otro: si algun
+      // dia SFTY-2 se lo niega, esta fase se queda sin encender y eso es la
+      // respuesta correcta, no un estorbo que rodear. La pluma no lo sigue -ver
+      // escribirPines()-, asi que el tecnico ve la lampara sin que se abra la via.
+      aplicarSalidas(false, false, true);
     } else {
-      unsigned long elapsed = ahora - tInicioTest;
-      if (elapsed < TEST_FASE_MS) {
-        aplicarSalidas(true, false, false);
-      } else if (elapsed < 2 * TEST_FASE_MS) {
-        aplicarSalidas(false, true, false);
-      } else if (elapsed < 3 * TEST_FASE_MS) {
-        // El verde del test pasa por el enclavamiento como cualquier otro: si algun
-        // dia SFTY-2 se lo niega, esta fase se queda sin encender y eso es la
-        // respuesta correcta, no un estorbo que rodear. La pluma no lo sigue -ver
-        // escribirPines()-, asi que el tecnico ve la lampara sin que se abra la via.
-        aplicarSalidas(false, false, true);
-      } else {
-        testLedsActivo = false;
-        aplicarSalidas(true, false, false);
-      }
-      return;
+      testLedsActivo = false;
+      aplicarSalidas(true, false, false);
     }
+    return;
   }
 
-  // SFTY-21: la senal se atiende ANTES y NO se sale de la funcion. La logica de
-  // abajo tiene que seguir corriendo aunque la senal ocupe las luces; si se
-  // devolviera aqui, una transicion a verde pedida justo antes se quedaria congelada
-  // y quien la espere -el Maestro por radio o el Modo Degradado- aguardaria
-  // indefinidamente un estado que nadie va a alcanzar.
-  if (senalActiva) actualizarSenal();
 
   // Transición Rojo -> Amarillo -> Verde
   if (estado == S_AMARILLO && (ahora - tCambio >= 4000)) { // 4s de Amarillo

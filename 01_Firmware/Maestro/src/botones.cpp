@@ -1,7 +1,6 @@
 // ===== src/botones.cpp =====
 #include "botones.h"
 #include "pines.h"
-#include "mando.h"
 #include "demanda.h"
 #include "semaforo.h"
 #include "bluetooth.h"
@@ -744,41 +743,19 @@ void botones_actualizar() {
   flanco[0] = flancoBoton(b1, 0);
   flanco[1] = flancoBoton(b2, 1);
 
-  // SFTY-21: el mando ve el pulso AQUI, antes de que ningun modo pueda consumirlo, y
-  // sin consumirlo el mismo. Que la secuencia se reconozca no puede depender de en
-  // que pantalla este el equipo; para eso existe el mando.
+  // D-30 (14/09): LOS FLANCOS DE J16 p5 Y p8 YA NO ALIMENTAN NADA, Y EL MANDO SALIO DEL
+  // FIRMWARE.
   //
-  // Solo hay A (Boton 1) y B (Boton 2), que son justo los dos que el mando necesita. El
-  // 3 EJECUTABA y el 4 salia, y por eso nunca formaron parte de ninguna secuencia:
-  // repetirlos a ciegas podria haber arrancado un modo que nadie pidio. Desde el 31/08
-  // sus pines son camaras, asi que esa exclusion ya no hay que sostenerla. Ver mando.cpp.
-  // ~~if (flanco[0]) mando_registrarPulso(MANDO_A);~~
-  // ~~if (flanco[1]) mando_registrarPulso(MANDO_B);~~
+  // Aqui el reconocedor de secuencias veia cada pulso de BOTON1/BOTON2 antes que nadie:
+  // A.A.A, B.B.B y A.B.A.B movian el cruce de verdad. El hardware del mando salio del
+  // equipo el 05/09 -"se opera solo por app"-, la lectura se corto el 14/09 y el
+  // responsable reafirmo ese mismo dia "eliminamos las botoneras A, B, C y D". Con esta
+  // pieza sale ya el modulo entero: mando.cpp, mando.h y la senal de confirmacion que
+  // vivia en semaforo.cpp.
   //
-  // RETIRADO EL 14/09: EL FIRMWARE YA NO LEE LOS FLANCOS DE J16 p5 Y p8.
-  //
-  // El hardware del mando salio del equipo el 05/09 -"se opera solo por app"- y el
-  // responsable lo reafirmo el 14/09: "eliminamos las botoneras A, B, C y D". La guia de
-  // campo ya retiro su paso de prueba y dice que ahi no hay nada que cablear. Lo que
-  // quedaba era el programa leyendo dos bornes vacios, y eso NO es inocuo: la propia guia
-  // lo avisa -"un puente para probar mueve el cruce de verdad: tres toques en p8 son
-  // ambar intermitente y A.B.A.B mete al Poste 2 en Modo Degradado"-. Sin botonera, el
-  // unico que puede componer una secuencia es un instalador puenteando la bornera para
-  // comprobarla, que es lo primero que hace cualquiera delante de un conector.
-  //
-  // POR QUE NO ABRE NINGUN VETO, medido antes de cortar (CLAUDE.md 6.2 - la simetrica:
-  // borrar el armador de una bandera no deja sus vetos inertes, los deja ABIERTOS):
-  // sin pulsos mando_ambarLocal() no vuelve a valer true, y de ella cuelgan cuatro
-  // guardas del Esclavo. Tres son "!mando_ambarLocal() && !bluetooth_ambarEmergencia()",
-  // y el segundo termino veta por su cuenta en SIETE sitios -incluida la puerta de
-  // entrada del Degradado-, asi que el proposito del veto lo sostiene entero el camino de
-  // la app, que es el unico que queda. La cuarta deja de ejecutarse y su propio
-  // comentario ya dice que su modo de fallo es el de hoy: no reanudar.
-  //
-  // EL FICHERO mando.cpp SE QUEDA, INERTE: su maquina de secuencias no recibe un solo
-  // pulso. Retirarlo entero son ~880 lineas, 16 packs y 6 arneses, y va en su pieza; lo
-  // que no podia esperar era el pin abierto. Mientras siga dentro, semaforo.cpp conserva
-  // el camino de interceptacion (SFTY-21) y sus instrumentos siguen midiendolo.
+  // LOS PINES SIGUEN VACIOS Y PELADOS, y eso no lo arregla el firmware: lo que se arregla
+  // es que un puente ahi ya no pueda componer una secuencia, porque no hay reconocedor.
+  // La instruccion de no cablearlos sigue viva en la guia de campo.
 
   // Las camaras de J16 se leen en la MISMA vuelta y en el mismo sitio que la botonera,
   // porque comparten conector y porque asi hay un solo punto donde mirar cuando J16 se

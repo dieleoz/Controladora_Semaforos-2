@@ -1,6 +1,6 @@
 # ===== banco/modelos/maestro.py =====
 #
-# MODELO DEL MANDO Y DEL SEMAFORO DEL MAESTRO — port fiel de mando.cpp + semaforo.cpp,
+# MODELO DEL MAESTRO — constantes releidas del C++ y utilidades del banco,
 # mas el respaldo, la puerta del Degradado y la sincronizacion horaria.
 #
 # Vivia dentro de validador_maestro.py, mezclado con los cinco bloques de pruebas en un
@@ -27,21 +27,14 @@ def cte(partes, patron, base=10):
     return _fw.constante(partes, patron, patron, base=base)
 
 
-# --- mando.cpp (SFTY-21) ---------------------------------------------------
-MANDO = ("Maestro", "src", "mando.cpp")
-VENTANA_TRIPLE_MS = cte(MANDO, r"VENTANA_TRIPLE_MS\s*=\s*(\d+)")
-VENTANA_CUADRUPLE_MS = cte(MANDO, r"VENTANA_CUADRUPLE_MS\s*=\s*(\d+)")
-DESTELLOS_AUTOMATICO = cte(MANDO, r"DESTELLOS_AUTOMATICO\s*=\s*(\d+)")
-DESTELLOS_AMBAR = cte(MANDO, r"DESTELLOS_AMBAR\s*=\s*(\d+)")
-DESTELLOS_DEGRADADO = cte(MANDO, r"DESTELLOS_DEGRADADO\s*=\s*(\d+)")
-RECHAZO_AMBAR_MS = cte(MANDO, r"RECHAZO_AMBAR_MS\s*=\s*(\d+)")
-MAX_PULSOS = cte(MANDO, r"MAX_PULSOS\s*=\s*(\d+)")
-
 # --- semaforo.cpp ----------------------------------------------------------
+# D-30 (14/09): AQUI SE LEIAN ADEMAS LAS SIETE CONSTANTES DE mando.cpp Y LAS TRES
+# DE LA SENAL DE CONFIRMACION. El mando salio del firmware y con el sus ficheros,
+# asi que esas lecturas se quedaron sin fuente que leer: cte() ABORTA cuando no
+# encuentra la constante -sin valor por defecto, nunca-, de modo que dejarlas habria
+# tumbado en ABORTADO a los cinco packs que importan este modelo. Un ABORTADO no
+# dice nada del firmware, asi que se retiran con su sujeto y en el mismo commit.
 SEM = ("Maestro", "src", "semaforo.cpp")
-DESTELLO_ON_MS = cte(SEM, r"DESTELLO_ON_MS\s*=\s*(\d+)")
-DESTELLO_OFF_MS = cte(SEM, r"DESTELLO_OFF_MS\s*=\s*(\d+)")
-AMBAR_RAPIDO_PERIODO_MS = cte(SEM, r"AMBAR_RAPIDO_PERIODO_MS\s*=\s*(\d+)")
 AMBAR_FALLO_PERIODO_MS = cte(SEM, r"ahora\s*-\s*tCambio\s*>=\s*(\d+)\)\s*\{\s*\n\s*tCambio")
 
 # --- botones.cpp -----------------------------------------------------------
@@ -100,7 +93,6 @@ DELTA_FUERA_DE_RANGO = -cte(("Maestro", "include", "protocolo.h"),
 SEGUNDOS_DEL_DIA = cte(("Maestro", "include", "ciclo_degradado.h"),
                        r"SEGUNDOS_DEL_DIA\s*=\s*(\d+)UL")
 
-MANDO_A, MANDO_B = 0, 1
 UINT32 = 1 << 32
 
 def resumen_constantes():
@@ -112,10 +104,6 @@ def resumen_constantes():
     print("=" * 78)
     print("  VALIDADOR DEL MAESTRO  --  constantes leidas del C++ en esta ejecucion")
     print("=" * 78)
-    print(f"   mando     : triple={VENTANA_TRIPLE_MS} ms  cuadruple={VENTANA_CUADRUPLE_MS} ms  "
-          f"buffer={MAX_PULSOS}")
-    print(f"   destellos : auto={DESTELLOS_AUTOMATICO}  ambar={DESTELLOS_AMBAR}  "
-          f"degradado={DESTELLOS_DEGRADADO}  on/off={DESTELLO_ON_MS}/{DESTELLO_OFF_MS} ms")
     print(f"   puerta    : fresca={SYNC_FRESCA_MS} ms  tolerancia=+-{TOLERANCIA_DESFASE_S} s  "
           f"limite={LIMITE_DURO_MS} ms ({LIMITE_DURO_H} h)")
     print(f"   sync      : timeout={TIMEOUT_ACK_MS} ms  intentos={SYNC_MAX_INTENTOS}  "
@@ -125,250 +113,23 @@ def resumen_constantes():
 
 
 # ==========================================================================
-# 1. MODELO DEL MANDO Y DEL SEMAFORO  (port fiel de mando.cpp + semaforo.cpp)
+# AQUI VIVIA EL MODELO DEL MANDO Y DE SU SENAL  (D-30, retirado el 14/09)
 # ==========================================================================
 #
-# Se porta la logica REAL, no una idealizacion. En particular:
-#   - el buffer deslizante de MAX_PULSOS con su desplazamiento
-#   - purgarViejos() con la ventana CUADRUPLE para todos los pulsos
-#   - el orden A.B.A.B antes que los triples, y el return de cada rama
-#   - el bloqueo de pulsos mientras hay senal en curso o accion pendiente
-#   - la senal del semaforo, que solo avanza si alguien llama a
-#     semaforo_actualizar(); esto ultimo es la clave del bloque 1.7
-
-ACC_NINGUNA, ACC_AUTOMATICO, ACC_AMBAR, ACC_DEGRADADO = 0, 1, 2, 3
-NOMBRE_ACC = {ACC_NINGUNA: "-", ACC_AUTOMATICO: "AUTOMATICO",
-              ACC_AMBAR: "AMBAR", ACC_DEGRADADO: "DEGRADADO"}
-
-
-class Semaforo:
-    """Port de semaforo.cpp limitado a lo que el mando toca: la senal que ocupa
-    las salidas y el enclavamiento rojo/verde."""
-
-    def __init__(self):
-        self.pines = (0, 0, 0)      # (rojo, ambar, verde) escritos de verdad
-        self.ult = (1, 0, 0)        # lo que la logica normal quiere
-        self.senal_activa = False
-        self.senal_es_ambar = False
-        self.senal_destellos = 0
-        self.senal_encendida = False
-        self.t_senal = 0
-        self.t_senal_inicio = 0
-        self.senal_duracion = 0
-        self.destellos_vistos = 0   # instrumentacion del banco, no del firmware
-
-    def aplicar_salidas(self, r, a, v):
-        # SFTY-2: enclavamiento logico. El rojo siempre gana.
-        if r:
-            v = 0
-        elif v:
-            r = 0
-        self.ult = (r, a, v)
-        if self.senal_activa:
-            return
-        self.pines = (r, a, v)
-
-    def forzar_rojo(self):
-        self.aplicar_salidas(1, 0, 0)
-
-    def destellos_rojos(self, n):
-        if n == 0:
-            return
-        self.senal_activa = True
-        self.senal_es_ambar = False
-        self.senal_destellos = n
-        self.senal_encendida = False
-        self.t_senal = self.ahora
-        self.t_senal_inicio = self.ahora
-        self.pines = (0, 0, 0)
-
-    def ambar_rapido(self, ms):
-        self.senal_activa = True
-        self.senal_es_ambar = True
-        self.senal_destellos = 0
-        self.senal_encendida = True
-        self.t_senal = self.ahora
-        self.t_senal_inicio = self.ahora
-        self.senal_duracion = ms
-        self.pines = (0, 1, 0)
-
-    def _terminar_senal(self):
-        self.senal_activa = False
-        self.senal_destellos = 0
-        self.senal_es_ambar = False
-        self.pines = self.ult
-
-    def actualizar(self, ahora):
-        """semaforo_actualizar(). SOLO avanza si alguien la llama: ese es
-        exactamente el punto que el bloque 1.7 pone a prueba."""
-        self.ahora = ahora
-        if not self.senal_activa:
-            return
-        if self.senal_es_ambar:
-            if ahora - self.t_senal >= AMBAR_RAPIDO_PERIODO_MS:
-                self.t_senal = ahora
-                self.senal_encendida = not self.senal_encendida
-                self.pines = (0, 1 if self.senal_encendida else 0, 0)
-            if ahora - self.t_senal_inicio >= self.senal_duracion:
-                self._terminar_senal()
-            return
-        if self.senal_encendida:
-            if ahora - self.t_senal >= DESTELLO_ON_MS:
-                self.senal_encendida = False
-                self.pines = (0, 0, 0)
-                self.t_senal = ahora
-                if self.senal_destellos > 0:
-                    self.senal_destellos -= 1
-                if self.senal_destellos == 0:
-                    self._terminar_senal()
-        else:
-            if ahora - self.t_senal >= DESTELLO_OFF_MS:
-                self.senal_encendida = True
-                self.pines = (1, 0, 0)   # ROJO: nunca verde para confirmar
-                self.t_senal = ahora
-                self.destellos_vistos += 1
-
-
-class Mando:
-    """Port de mando.cpp. `puerta_ok` decide que contesta
-    modo_degradado_evaluarEntrada(); `inhibido` modela secuenciasInhibidas()."""
-
-    def __init__(self, sem, puerta_ok=True):
-        self.sem = sem
-        self.puerta_ok = puerta_ok
-        self.boton = [0] * MAX_PULSOS
-        self.tiempo = [0] * MAX_PULSOS
-        self.n = 0
-        self.pendiente = ACC_NINGUNA
-        self.inhibido = False
-        self.ejecutadas = []          # instrumentacion: [(instante, accion)]
-        self.rechazos = 0
-        self.ignorados = 0            # pulsos descartados por estar ocupado
-
-    def _limpiar(self):
-        self.n = 0
-
-    def _purgar(self, ahora):
-        primero = 0
-        while primero < self.n and (ahora - self.tiempo[primero]) > VENTANA_CUADRUPLE_MS:
-            primero += 1
-        if primero == 0:
-            return
-        for i in range(primero, self.n):
-            self.boton[i - primero] = self.boton[i]
-            self.tiempo[i - primero] = self.tiempo[i]
-        self.n -= primero
-
-    def _confirmar_y_actuar(self, accion, destellos):
-        # coordinador_forzarRojoTotal() + destellos. Todo-rojo antes de nada.
-        self.sem.forzar_rojo()
-        self.sem.destellos_rojos(destellos)
-        self.pendiente = accion
-        self._limpiar()
-
-    def _rechazar(self):
-        self.rechazos += 1
-        self.sem.ambar_rapido(RECHAZO_AMBAR_MS)
-        self._limpiar()
-
-    def registrar_pulso(self, boton, ahora):
-        if self.inhibido:
-            self._limpiar()
-            return
-        if self.sem.senal_activa or self.pendiente != ACC_NINGUNA:
-            self.ignorados += 1
-            return
-
-        self._purgar(ahora)
-
-        if self.n >= MAX_PULSOS:
-            for i in range(1, MAX_PULSOS):
-                self.boton[i - 1] = self.boton[i]
-                self.tiempo[i - 1] = self.tiempo[i]
-            self.n = MAX_PULSOS - 1
-
-        self.boton[self.n] = boton
-        self.tiempo[self.n] = ahora
-        self.n += 1
-        n = self.n
-
-        # A.B.A.B primero, tal cual en el C++.
-        if n >= 4:
-            if (self.boton[n - 4] == MANDO_A and self.boton[n - 3] == MANDO_B and
-                    self.boton[n - 2] == MANDO_A and self.boton[n - 1] == MANDO_B and
-                    (ahora - self.tiempo[n - 4]) <= VENTANA_CUADRUPLE_MS):
-                if self.puerta_ok:
-                    self._confirmar_y_actuar(ACC_DEGRADADO, DESTELLOS_DEGRADADO)
-                else:
-                    self._rechazar()
-                return
-
-        if n >= 3:
-            tramo = ahora - self.tiempo[n - 3]
-            if tramo <= VENTANA_TRIPLE_MS:
-                if (self.boton[n - 3] == MANDO_A and self.boton[n - 2] == MANDO_A and
-                        self.boton[n - 1] == MANDO_A):
-                    self._confirmar_y_actuar(ACC_AUTOMATICO, DESTELLOS_AUTOMATICO)
-                    return
-                if (self.boton[n - 3] == MANDO_B and self.boton[n - 2] == MANDO_B and
-                        self.boton[n - 1] == MANDO_B):
-                    self._confirmar_y_actuar(ACC_AMBAR, DESTELLOS_AMBAR)
-                    return
-
-    def actualizar(self):
-        """mando_actualizar(), al FINAL del loop principal."""
-        if self.pendiente == ACC_NINGUNA:
-            return
-        if self.sem.senal_activa:
-            return
-        a = self.pendiente
-        self.pendiente = ACC_NINGUNA
-        self.ejecutadas.append((self.sem.ahora, a))
-
-
-def correr_tren(tren, cadencia_ms, puerta_ok=True, bombea=True, ms_extra=40000,
-                paso_ms=10):
-    """Ejecuta un tren de pulsos sobre el modelo completo y devuelve las acciones
-    ejecutadas y el estado final.
-
-    `bombea` = si el modo activo llama a semaforo_actualizar() en cada iteracion.
-    Es el parametro que distingue un modo normal del asistente de configuracion
-    del Modo Automatico (ver bloque 1.7)."""
-    sem = Semaforo()
-    sem.ahora = 0
-    m = Mando(sem, puerta_ok)
-    instantes = {i * cadencia_ms: b for i, b in enumerate(tren)}
-    fin = (len(tren) - 1) * cadencia_ms + ms_extra
-    t = 0
-    while t <= fin:
-        sem.ahora = t
-        if t in instantes:
-            m.registrar_pulso(instantes[t], t)
-        if bombea:
-            sem.actualizar(t)
-        m.actualizar()
-        t += paso_ms
-    return m, sem
-
-
-def accion_de(tren, cadencia_ms=2000, **kw):
-    """Primera accion ejecutada por el tren, que es la que el operario ve."""
-    m, _ = correr_tren(tren, cadencia_ms, **kw)
-    return m.ejecutadas[0][1] if m.ejecutadas else ACC_NINGUNA
-
-
-def trenes(longitud):
-    """Todos los trenes posibles de esa longitud sobre {A,B}."""
-    if longitud == 0:
-        yield []
-        return
-    for resto in trenes(longitud - 1):
-        yield resto + [MANDO_A]
-        yield resto + [MANDO_B]
-
-
-def txt(tren):
-    return "".join("A" if b == MANDO_A else "B" for b in tren)
+# Eran un port fiel de mando.cpp mas la parte de semaforo.cpp que el mando tocaba:
+# las clases Semaforo y Mando, correr_tren(), accion_de(), trenes(), txt() y las
+# constantes ACC_*. Su UNICO consumidor era el pack maestro_01_mando, que se retira
+# con ellas.
+#
+# NO SE CONSERVA "POR SI ACASO": un modelo sin firmware que modelar no mide nada, y
+# ademas sus constantes se releen del C++ en cada corrida sin valor por defecto, de
+# modo que quedarse habria sido un ABORTADO permanente con aspecto de cobertura.
+#
+# LO QUE MEDIA Y SIGUE HACIENDO FALTA SE REPARTIO ANTES DE BORRAR, no se dejo caer:
+# la propiedad de que main.cpp llama a semaforo_actualizar() SIN CONDICION -de la
+# que hoy cuelgan el parpadeo del ambar de fallo y la reentrada de la pluma de
+# D-33- se mudo LITERAL a maestro_09_test_leds. El resto describia solo las
+# secuencias A.A.A, B.B.B y A.B.A.B, y muere con ellas.
 
 
 # --------------------------------------------------------------------------

@@ -7,12 +7,11 @@
 //
 //   semaforo.cpp        las luces y el enclavamiento SFTY-2 de esta punta
 //   main.cpp            EL DESPACHADOR DE RADIO. Aqui vive lo que decide si esta
-//                       punta obedece un CMD_GO_GREEN, y las dos guardas -mando
+//                       punta obedece un CMD_GO_GREEN, y la guarda -el
 //                       local y ambar de Bluetooth- que lo pueden vetar
 //   modo_degradado.cpp  la OTRA autoridad que puede encender un verde aqui, sin que
 //                       nadie lo ordene por radio
 //   config_ciclo.cpp    el par verde+despeje que llega del Maestro
-//   mando.cpp           el mando de reles: senalActiva, el ambar local
 //   demanda.cpp         la puerta unica de la demanda vehicular
 //   respaldo.cpp        el dominio de respaldo REAL, con su calcularSuma() de Horner
 //
@@ -24,7 +23,7 @@
 //
 // LO QUE SE SUSTITUYE, Y ES TODO LO QUE NO DECIDE UNA LUZ: pantalla (lcd, menu),
 // botones, el RTC y la radio. Ninguno de esos cuatro puede encender un verde; los tres
-// que si pueden -radio, Degradado, mando- se compilan de verdad.
+// que si pueden -radio, Degradado- se compilan de verdad.
 //
 // 11/09 (N-142, §3.16-A): Y EL BLUETOOTH DEJA DE ESTAR EN ESA LISTA. bluetooth.cpp del
 // Esclavo se compila en esta DLL -por #include, ver el bloque de mas abajo- porque el
@@ -70,7 +69,6 @@
 #include "protocolo.h"
 #include "reloj.h"
 #include "respaldo.h"
-#include "mando.h"
 #include "config_ciclo.h"
 #include "modo_degradado.h"
 #include "bluetooth.h"
@@ -103,8 +101,9 @@ static_assert(sizeof(RF_Packet) == 4, "RF_Packet dejo de medir 4 bytes");
 
 // ---------------------------------------------------------------------------
 // BOTONES SIMULADOS. Mismo contrato que en el arnes de una punta: leerlos los gasta.
-// El rele del mando esta cableado EN PARALELO con Boton1/Boton2, asi que un pulso
-// real dispara los dos caminos -mando_registrarPulso() y el flag del boton-.
+// D-30 (14/09): el rele del mando iba EN PARALELO con Boton1/Boton2 y un pulso
+// alimentaba los dos caminos -mando_registrarPulso() y el flag del boton-. Retiradas
+// las botoneras queda solo el pulsador del gabinete.
 // ---------------------------------------------------------------------------
 static bool g_pulsarArriba = false, g_pulsarAbajo = false;
 static bool g_pulsarAceptar = false, g_pulsarCancelar = false;
@@ -112,8 +111,8 @@ static bool g_pendA = false, g_pendB = false;
 
 void botones_setup() {}
 void botones_actualizar() {
-  if (g_pendA) { mando_registrarPulso(MANDO_A); g_pulsarArriba = true; }
-  if (g_pendB) { mando_registrarPulso(MANDO_B); g_pulsarAbajo = true; }
+  if (g_pendA) { g_pulsarArriba = true; }
+  if (g_pendB) { g_pulsarAbajo = true; }
   g_pendA = g_pendB = false;
 }
 bool botonArriba()   { bool v = g_pulsarArriba;   g_pulsarArriba = false;   return v; }
@@ -132,16 +131,20 @@ bool camara_leerPin(uint8_t pin) { return digitalRead(pin) == HIGH; }
 // ---------------------------------------------------------------------------
 // PANTALLA SIMULADA. Solo cuenta llamadas.
 //
-// menu_estaAbierto() NO esta cableado a false: es la puerta que INHIBE las secuencias
-// del mando (SFTY-21), y dejarla siempre cerrada seria no ejercer nunca esa rama.
+// D-30 (14/09): AQUI VIVIA menu_estaAbierto(), Y SE VA CON EL MANDO.
+//
+// Era la puerta que INHIBIA las secuencias del mando de reles, y su UNICO lector en
+// todo el firmware era secuenciasInhibidas() de Esclavo/src/mando.cpp. Retirado el
+// mando, la funcion se quedo sin quien la llame: ya no la define este adaptador ni la
+// declara esclavo/menu.h, y con ella sale la orden "menu_abierto" que la movia desde
+// el orquestador -ningun escenario la usaba-. menu_setup() y menu_loop() SIGUEN VIVAS:
+// las llama main.cpp del Esclavo, que esta DLL si compila.
 // ---------------------------------------------------------------------------
 static unsigned long g_lcdRedibujos = 0;
-static bool g_menuAbierto = false;
 void lcd_setup() {}
 void lcd_dibujarBienvenida() { g_lcdRedibujos++; }
 void menu_setup() {}
 void menu_loop() { g_lcdRedibujos++; }
-bool menu_estaAbierto() { return g_menuAbierto; }
 
 #ifdef ARNES_RELOJ_REAL
 // ---------------------------------------------------------------------------
@@ -525,7 +528,7 @@ extern "C" {
 PUNTA_API const char* punta_nombre(void) { return "ESCLAVO"; }
 
 // EL setup() REAL DEL FIRMWARE. No una version recortada: el mismo que corre en la
-// tarjeta, con su orden -luces primero, pantalla, watchdog, RTC, respaldo, mando,
+// tarjeta, con su orden -luces primero, pantalla, watchdog, RTC, respaldo,
 // bluetooth y degradado_reanudarTrasCorte() al final-. Esa ultima llamada es la que
 // decide si tras un corte esta punta REANUDA el Modo Degradado o cae a ambar, y es
 // justo lo que hay que ejercer en el escenario de microcorte.
@@ -591,6 +594,14 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   if (!strcmp(que, "hora_fiable"))         return reloj_horaFiable() ? 1 : 0;
   if (!strcmp(que, "reloj_en_hora"))       return reloj_enHora() ? 1 : 0;
   if (!strcmp(que, "segundos_del_dia"))    return (long)reloj_segundosDelDia();
+  // 1.22 - EL TERCER ESTADO DEL CRISTAL, Y ES LA PERILLA DEL CONTROL NEGATIVO.
+  // Congela CNT dejando LSERDY en 1 (reloj_real/stm32f1xx_hal.h). "rtc_cnt" es el contador
+  // CRUDO del periferico, no reloj_contadorSegundos(): hace falta poder ver que el silicio
+  // se quedo quieto SIN pasar por la funcion del firmware que se esta midiendo.
+  if (!strcmp(que, "rtc_congelar"))        { arnes_rtc_congelar(arg != 0); return 1; }
+  if (!strcmp(que, "rtc_congelado"))       return arnes_rtc_esta_congelado() ? 1 : 0;
+  if (!strcmp(que, "rtc_cnt"))             return (long)arnes_rtc_cnt();
+  if (!strcmp(que, "contador_segundos"))   return (long)reloj_contadorSegundos();
   if (!strcmp(que, "hsi_ppm"))             { arnes_hsi_ppm(arg); return 1; }
   if (!strcmp(que, "fase_subsegundo"))     return arnes_fase_subsegundo();
   if (!strcmp(que, "siembra_esp32")) {
@@ -664,8 +675,14 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   if (!strcmp(que, "config_despeje"))      return (long)config_despejeSegundos();
   if (!strcmp(que, "toques"))
     return (arg >= 0 && arg < 64) ? (long)arnes_toques[arg] : -1;
-  if (!strcmp(que, "senal_en_curso"))      return semaforo_senalEnCurso() ? 1 : 0;
-  if (!strcmp(que, "ambar_local"))         return mando_ambarLocal() ? 1 : 0;
+  // D-30 (14/09): AQUI ESTABAN "senal_en_curso" Y "ambar_local".
+  //
+  // La primera preguntaba por semaforo_senalEnCurso() -la interceptacion de escrituras
+  // de SFTY-21-, que salio entera de semaforo.cpp; ningun escenario la consultaba ya.
+  // La segunda por mando_ambarLocal(), el veto del ambar pedido con B.B.B desde el
+  // gabinete. El veto que SOBREVIVE es el de la app y se pregunta por "ambar_latch"
+  // -bluetooth_ambarEmergencia()-, que es la bandera que hoy sostienen las tres guardas
+  // de main.cpp y la puerta unica de degradado_comprobar().
   if (!strcmp(que, "tramas_emitidas"))     return (long)g_tramasEmitidas;
   if (!strcmp(que, "recargas_watchdog"))   return (long)IWatchdog.recargas;
   if (!strcmp(que, "replay_reseteos"))     return (long)g_replayReseteos;
@@ -678,7 +695,6 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   // a mano del firmware no se arregla copiandola mejor: se retira y se compila el
   // despachador de verdad. Lo que la sustituye es "bt:", que teclea la MISMA LINEA que
   // manda el telefono.
-  if (!strcmp(que, "menu_abierto"))        { g_menuAbierto = (arg != 0); return 1; }
   if (!strcmp(que, "respaldo_valido"))     return respaldo_valido() ? 1 : 0;
   if (!strcmp(que, "respaldo_degradado"))  return respaldo_degradadoActivo() ? 1 : 0;
   // N-162 (12/09): la SEGUNDA puerta de degradado_reanudarTrasCorte(), preguntada con los

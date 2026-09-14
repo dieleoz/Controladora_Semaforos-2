@@ -1,5 +1,5 @@
 // ===== Validacion_Automatico/menu.h =====
-// Sustituto de menu.h para compilar modo_automatico.cpp Y mando.cpp en el PC.
+// Sustituto de menu.h para compilar modo_automatico.cpp en el PC.
 //
 // YA NO COPIA EL ENUM, Y ESO ES UNA MEJORA, NO UN DESCUIDO.
 //

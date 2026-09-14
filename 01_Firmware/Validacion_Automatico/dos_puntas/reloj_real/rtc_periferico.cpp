@@ -17,6 +17,8 @@
 bool arnes_lse_listo = true;             // ver el borde en stm32f1xx_hal.h
 uint32_t arnes_rtc_cnt_base = 1;
 unsigned long arnes_rtc_cnt_ancla = 0;
+bool arnes_rtc_congelado = false;        // 1.22: el tercer estado, ver stm32f1xx_hal.h
+uint32_t arnes_rtc_cnt_congelado = 0;
 ArnesRccRegs arnes_rcc;
 ArnesRtcRegs arnes_rtc_regs;
 
@@ -98,6 +100,25 @@ int arnes_sembrar_en_frontera(long deltaS, int (*sembrar)(const char* iso)) {
   return r;
 }
 
+// --- 1.22: la perilla de congelacion. Ver rtc_periferico.h -------------------------------
+void arnes_rtc_congelar(bool congelado) {
+  if (congelado == arnes_rtc_congelado) return;
+  if (congelado) {
+    // Se queda en lo que vale AHORA. Congelarlo en otro numero seria un salto, y un salto
+    // lo caza otra barrera ("ahora < guardado" de respaldo_horasDesdeSync): el escenario
+    // mediria esa y no la parada.
+    arnes_rtc_cnt_congelado = arnes_rtc_cnt();
+  } else {
+    // Y al soltarlo sigue desde donde se quedo, sin recuperar el tiempo perdido: eso es lo
+    // que hace un cristal que vuelve a oscilar.
+    arnes_rtc_cnt_base = arnes_rtc_cnt_congelado;
+    arnes_rtc_cnt_ancla = arnes_millis_valor;
+  }
+  arnes_rtc_congelado = congelado;
+}
+
+bool arnes_rtc_esta_congelado() { return arnes_rtc_congelado; }
+
 // --- El dominio de respaldo del RTC -------------------------------------------------------
 long arnes_dominio_leer_rtc(int indice) {
   switch (indice) {
@@ -113,7 +134,14 @@ long arnes_dominio_leer_rtc(int indice) {
 
 void arnes_dominio_escribir_rtc(int indice, long valor) {
   switch (indice) {
-    case 10: arnes_rtc_cnt_base = (uint32_t)valor; arnes_rtc_cnt_ancla = arnes_millis_valor; break;
+    case 10:
+      arnes_rtc_cnt_base = (uint32_t)valor;
+      arnes_rtc_cnt_ancla = arnes_millis_valor;
+      // 1.22: la reposicion tras un microcorte tiene que llegar tambien al valor congelado,
+      // o el corte DESCONGELARIA el cristal por la puerta de atras: la pila mantiene el
+      // contador, no repara el oscilador.
+      if (arnes_rtc_congelado) arnes_rtc_cnt_congelado = (uint32_t)valor;
+      break;
     case 11:
       arnes_rtc_configurado = (valor != 0);
       if (arnes_rtc_configurado) arnes_rtc_anio = 26;   // ANIO_MARCA de reloj.cpp

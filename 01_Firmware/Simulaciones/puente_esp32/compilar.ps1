@@ -2,7 +2,7 @@
 #
 # Cada uno enlaza el bluetooth.cpp REAL de su punta -no una copia, no un espejo en
 # Python- junto con los fuentes que deciden el EFECTO de un comando: semaforo.cpp
-# escribe los pines, coordinador.cpp gobierna el ciclo, modo_automatico.cpp y mando.cpp
+# escribe los pines, coordinador.cpp gobierna el ciclo, modo_automatico.cpp
 # completan el camino. Lo que NO compila y por que esta escrito en arnes_puente.cpp.
 #
 # DOS EJECUTABLES Y NO UNO, como Validacion_LCD y a diferencia de Validacion_Ciclo: las
@@ -34,7 +34,7 @@ if (-not (Test-Path $BUILD)) { New-Item -ItemType Directory -Path $BUILD | Out-N
 # OJO AL ORDEN DE LOS -I: este directorio va PRIMERO para que Arduino.h, pines.h,
 # botones.h, lcd.h y menu.h se resuelvan contra los sustitutos de aqui y no contra los
 # reales, que arrastrarian STM32duino y U8g2. bluetooth.h, semaforo.h, coordinador.h,
-# protocolo.h, reloj.h, identidad.h, demanda.h, modos.h, mando.h, modo_automatico.h y
+# protocolo.h, reloj.h, identidad.h, demanda.h, modos.h, modo_automatico.h y
 # modo_degradado.h SI son los reales: no hay copia local de ninguno, a proposito -una
 # copia local seria el "casi igual" que diverge sin que nadie lo note-.
 #
@@ -65,7 +65,7 @@ function Construir($punta, $carpeta, $fuentes, $exe) {
 
 Write-Host "Compilando el bluetooth.cpp REAL de las dos puntas..." -ForegroundColor Cyan
 Construir 'MAESTRO' 'Maestro' `
-    @('bluetooth','semaforo','coordinador','modo_automatico','mando','modos','demanda','identidad') `
+    @('bluetooth','semaforo','coordinador','modo_automatico','modos','demanda','identidad') `
     'arnes_maestro.exe'
 # A-11 (05/09): modo_degradado.cpp ENTRA EN LA LISTA. bluetooth.cpp del Esclavo gano
 # SET_MODO:DEGRADADO, o sea que ya no solo LEE el modo: le pide la entrada y compone un

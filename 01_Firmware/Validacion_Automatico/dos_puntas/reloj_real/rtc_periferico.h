@@ -40,6 +40,21 @@ long arnes_fase_subsegundo();
 // -1 si esta punta no tenia hora que desplazar.
 int arnes_sembrar_en_frontera(long deltaS, int (*sembrar)(const char* iso));
 
+// --- 1.22: LA PERILLA DE CONGELACION DEL CONTADOR ------------------------------------
+//
+// El TERCER estado del cristal: LSERDY sigue en 1 y CNT deja de incrementar. El porque y
+// por que no es un escenario sino un estado que el modelo no sabia expresar, en la cabecera
+// de stm32f1xx_hal.h de este mismo directorio.
+//
+// ES TAMBIEN EL CONTROL NEGATIVO de la guarda que lo caza (CLAUDE.md 6): sin poder congelar
+// el contador no se puede demostrar que el firmware lo detecta, solo que compila.
+//
+// Congela en el valor que CNT tiene AHORA, y al descongelar sigue desde ahi -no salta-: un
+// contador que retrocede o que pega un brinco lo caza otra barrera de respaldo.cpp
+// ("ahora < guardado" -> CADUCADA) y el escenario mediria esa, no esta.
+void arnes_rtc_congelar(bool congelado);
+bool arnes_rtc_esta_congelado();
+
 // --- EL DOMINIO DE RESPALDO DEL RTC (indices 10..13 de punta_api.h) -------------------
 long arnes_dominio_leer_rtc(int indice);
 void arnes_dominio_escribir_rtc(int indice, long valor);

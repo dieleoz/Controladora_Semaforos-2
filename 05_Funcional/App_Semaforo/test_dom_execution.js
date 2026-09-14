@@ -2026,6 +2026,130 @@ assert(/Sí publica, desde D-23/.test(textoPanelDiag) &&
 assert(/BAT:--/.test(textoPanelDiag) && /porcentaje/.test(textoPanelDiag),
   'D-23: y sigue diciendo lo que de verdad NO publica, que no ha cambiado');
 
+// =========================================================================
+// 17. LA BARRERA RETENIDA POR LA CAMARA, EJECUTADA (14/09)
+// =========================================================================
+// La suite unitaria mide js/aviso_camara_pluma.js con el modulo en la mano. Esto mide
+// LO OTRO, que es lo que ninguna prueba de texto ve: que la trama entra por el cable,
+// que el cartel aparece, y sobre todo QUE SIGUE AHI DESPUES DE 30 LINEAS -- que es la
+// mitad del encargo y la unica que se rompe sola en cuanto alguien meta el aviso dentro
+// de una pestana o de state.events.
+function camPluma(detalle, node, hora) {
+  entregarTrama(`EVENT,NODE:${node || 'MAESTRO'},ORIGEN:CAMARA_PLUMA,DETALLE:${detalle},HORA:${hora || '18:30:00'}`);
+}
+const cartelDom = document.getElementById('aviso-camara-pluma');
+
+// EL CARTEL NACE OCULTO. Sin esto lo de abajo no mide nada: un cartel que ya estuviera
+// a la vista pasaria estas comprobaciones sin que el aviso hubiera llegado.
+assert(cartelDom && cartelDom.hidden === true,
+  'CAMARA_PLUMA: sin aviso del equipo el cartel esta oculto (si no, lo de abajo no mide nada)');
+
+// --- Un veto que ACTUA es lo normal y NO abre el cartel ---
+// Es el control que separa "la camara hizo su trabajo" de "la camara tiene la barrera
+// secuestrada". Sin el, un cartel que saltara con cada vehiculo se aprenderia a ignorar.
+camPluma('VETO_ACTUADO_N:3', 'MAESTRO', '18:29:00');
+assert(cartelDom.hidden === true,
+  'CAMARA_PLUMA: VETO_ACTUADO_N NO abre el cartel - un vehiculo despejando es lo normal');
+assert(/impedido que la barrera baje/.test(ultimoEvento()) && !/averi/i.test(ultimoEvento()),
+  `CAMARA_PLUMA: pero SI se traduce en la bitacora, sin llamarlo averia: "${ultimoEvento().slice(0, 80)}"`);
+
+// --- El aviso que importa: la retencion SOSTENIDA ---
+camPluma('VETO_SOSTENIDO_S:180', 'MAESTRO', '18:30:00');
+assert(cartelDom.hidden === false,
+  'CAMARA_PLUMA: el aviso de retencion sostenida ABRE el cartel');
+const textoCartel = () => cartelDom.textContent.replace(/\s+/g, ' ').trim();
+// LAS PALABRAS EXACTAS DEL ENCARGO, y las tres van juntas porque el ORDEN es el de los
+// riesgos: el brazo levantado, mirar debajo, y solo al final la camara.
+assert(/La barrera está ARRIBA y no va a bajar sola/.test(textoCartel()) &&
+       /Mire debajo del brazo antes de tocar nada/.test(textoCartel()) &&
+       /revise el apunte y la configuración de la cámara/.test(textoCartel()),
+  `CAMARA_PLUMA: el cartel dice lo unico accionable: "${textoCartel().slice(0, 120)}..."`);
+assert(/180 s/.test(textoCartel()) && /POSTE 1 \(MAESTRO\)/.test(textoCartel()),
+  `CAMARA_PLUMA: y publica la MEDIDA -los segundos y de que poste-: "${textoCartel().slice(0, 90)}"`);
+// 🔴 LO QUE EL CARTEL NO PUEDE DECIR NUNCA. El equipo no ve imagen y no separa un
+// vehiculo parado de una camara mal apuntada: afirmar la averia es inventar un dato que
+// el equipo no tiene, y ademas manda a no mirar debajo del brazo.
+assert(!/averi/i.test(textoCartel()) && !/estropead|dañad|fallo de la cámara/i.test(textoCartel()),
+  'CAMARA_PLUMA: el cartel NO dice "camara averiada" - el equipo no ve imagen y no puede saberlo');
+assert(/no ve imagen/.test(textoCartel()) && /Quien juzga es usted/.test(textoCartel()),
+  'CAMARA_PLUMA: y dice POR QUE no lo puede saber, que es lo que impide leerlo como diagnostico');
+
+// --- Las repeticiones refrescan el cartel y NO gastan bitacora ---
+// El firmware repite el aviso mientras dure la retencion. Por el camino generico, cada
+// repeticion se comeria una de las 30 y el aviso acabaria desalojandose a si mismo.
+const eventosAntesRepe = document.querySelectorAll('.event-item').length;
+const arribaAntesRepe = ultimoEvento();
+for (let i = 1; i <= 10; i++) camPluma(`VETO_SOSTENIDO_S:${180 + i * 90}`, 'MAESTRO', '18:3' + (i % 10) + ':00');
+assert(document.querySelectorAll('.event-item').length === eventosAntesRepe &&
+       ultimoEvento() === arribaAntesRepe,
+  `CAMARA_PLUMA: diez repeticiones del mismo episodio NO gastan ni una linea de la bitacora ` +
+  `(antes ${eventosAntesRepe}, ahora ${document.querySelectorAll('.event-item').length})`);
+assert(/1080 s/.test(textoCartel()),
+  `CAMARA_PLUMA: y el cartel SI se va al dia con la ultima medida: "${textoCartel().slice(0, 90)}"`);
+
+// --- 🔴 EL CASO MALO DEL ENCARGO: 30 LINEAS DETRAS ---
+// La bitacora guarda 30 entradas. Se meten 32 lineas de otro sujeto y se exige que la
+// del aviso YA NO ESTE en la lista -- ese es el control: si siguiera ahi, el cartel no
+// estaria demostrando nada -- y que el cartel siga diciendo lo mismo.
+const hayLineaDelAviso = () => [...document.querySelectorAll('.event-item')]
+  .some(e => /BARRERA RETENIDA POR LA CÁMARA/.test(e.textContent));
+assert(hayLineaDelAviso(),
+  'CAMARA_PLUMA: antes del desalojo, la linea del aviso SI esta en la bitacora');
+for (let i = 1; i <= 32; i++) {
+  entregarTrama(`EVENT,NODE:MAESTRO,ORIGEN:OTRA_COSA,DETALLE:RELLENO_${i},HORA:19:00:00`);
+}
+assert(!hayLineaDelAviso(),
+  'CAMARA_PLUMA: 32 lineas detras EXPULSAN la linea del aviso de la bitacora de 30 (el caso malo, ejercido)');
+assert(cartelDom.hidden === false &&
+       /La barrera está ARRIBA y no va a bajar sola/.test(textoCartel()) &&
+       /1080 s/.test(textoCartel()),
+  'CAMARA_PLUMA: y el CARTEL sigue entero - no vive en state.events, asi que no se le puede desalojar');
+
+// --- Y NO SE PIERDE POR NAVEGACION, que es la otra forma de perderlo ---
+// Un cartel dentro de #tab-estado desaparece en cuanto el tecnico abre la bitacora o los
+// tiempos. Este vive fuera de las cinco pestanas.
+document.querySelector('.nav-item[data-tab="tab-eventos"]').click();
+assert(document.getElementById('tab-estado').classList.contains('active') === false &&
+       cartelDom.hidden === false && /Mire debajo del brazo/.test(textoCartel()),
+  'CAMARA_PLUMA: con la pestana de ESTADO cerrada el cartel sigue a la vista (vive fuera de las pestanas)');
+document.querySelector('.nav-item[data-tab="tab-estado"]').click();
+
+// --- El '!' del firmware: fuera de cota, y NO se inventa un numero ---
+// N-154: cuando los segundos no caben en el campo, el firmware publica '!' en vez de un
+// numero bien formado y falso. Es el caso MAS grave -la retencion mas larga-, asi que
+// tiene que llegar al cartel, no caer al camino del crudo.
+camPluma('VETO_SOSTENIDO_S:!', 'ESCLAVO', '19:05:00');
+assert(cartelDom.hidden === false && /más tiempo del que el equipo puede publicar/.test(textoCartel()) &&
+       !/\bNaN\b/.test(textoCartel()) && !/ 0 s/.test(textoCartel()),
+  `CAMARA_PLUMA: con '!' se dice que no cabe, sin inventar cifra ni escribir 0: "${textoCartel().slice(0, 110)}"`);
+assert(/POSTE 2 \(ESCLAVO\)/.test(textoCartel()),
+  'CAMARA_PLUMA: y el cartel se atribuye al poste que lo mando, no al anterior');
+
+// --- Que ya bajo lo dice el $STATUS, no el silencio del equipo ---
+// El firmware NO publica un evento de fin: deja de repetir, y eso es indistinguible de
+// un Bluetooth cortado. El cartel NO se retira -lo que la dejo arriba sigue sin
+// revisarse- pero deja de afirmar que la barrera esta arriba, que ya no seria cierto.
+conectarComo('ESCLAVO', 'SERIE:SEM-E-01,MODO:SUBORDINADO,ESTADO:R1_V2,T:--,RF:--,RTT:--,BAT:--,PLUMA:ABAJO,HORA:19:06:00');
+assert(cartelDom.hidden === false && !/La barrera está ARRIBA/.test(textoCartel()),
+  `CAMARA_PLUMA: con PLUMA:ABAJO el cartel se queda pero YA NO dice que la barrera esta arriba: "${textoCartel().slice(0, 100)}"`);
+assert(/YA HA BAJADO/.test(textoCartel()) && /revise el apunte y la configuración de la cámara/.test(textoCartel()),
+  'CAMARA_PLUMA: dice que bajo Y sigue mandando a revisar la camara: lo que la dejo arriba no se ha tocado');
+// El tiempo verbal sigue al brazo: un "lleva retenida" sobre una barrera que ya bajo
+// manda a mirar un brazo que ya no esta arriba.
+const medidaDom = () => document.getElementById('camara-pluma-medida').textContent;
+assert(/estuvo retenida/.test(medidaDom()) && !/lleva retenida/.test(medidaDom()),
+  `CAMARA_PLUMA: la medida pasa a pasado - ya no dice "lleva retenida": "${medidaDom()}"`);
+assert(/ya ha bajado/.test(ultimoEvento()),
+  `CAMARA_PLUMA: y el soltarse gasta UNA linea de bitacora, que es una transicion: "${ultimoEvento().slice(0, 80)}"`);
+
+// --- Al soltar el enlace se olvida: el cartel es de UN poste ---
+// Se pulsa el boton de verdad -- el mismo que el tecnico -- en vez de llamar a
+// olvidarEnlace(), que vive dentro de la IIFE: lo que hay que medir es que el camino
+// real pase por ahi, no que la funcion exista.
+document.getElementById('btn-bt-disconnect').click();
+assert(cartelDom.hidden === true,
+  'CAMARA_PLUMA: al caer el enlace el cartel se retira - colgado sobre el poste siguiente mandaria a mirar el brazo que no es');
+
 console.log('='.repeat(80));
 console.log(` RESULTADO JSDOM: ${testsPassed} PASS | ${testsFailed} FALLAS`);
 console.log('='.repeat(80));

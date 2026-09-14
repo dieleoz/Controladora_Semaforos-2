@@ -769,6 +769,163 @@ runTest('D-23 diagnostico', 'al soltar el enlace se olvidan los contadores del p
     'la primera del poste nuevo se resta contra la del anterior y finge un reinicio');
 });
 
+// --- SUITE 9: la barrera retenida por la camara (14/09) ---
+//
+// La logica que se prueba es la de js/aviso_camara_pluma.js, la MISMA que carga
+// index.html. Las tramas se componen con el formato que emiten los snprintf de
+// {Maestro,Esclavo}/src/botones.cpp y se parten con el parser de la app.
+const AvisoCamaraPluma = require('./js/aviso_camara_pluma.js');
+
+function eventoCamara(detalle, node) {
+  return eventoEquipo(node || 'MAESTRO', 'CAMARA_PLUMA', detalle);
+}
+
+runTest('Camara-pluma', 'los dos DETALLE del firmware se reconocen y se leen', () => {
+  AvisoCamaraPluma.olvidar();
+  assert.deepStrictEqual(AvisoCamaraPluma.leer(eventoCamara('VETO_SOSTENIDO_S:180')),
+    { clase: 'SOSTENIDO', segundos: 180, fueraDeCota: false, vetos: null });
+  assert.deepStrictEqual(AvisoCamaraPluma.leer(eventoCamara('VETO_ACTUADO_N:7')),
+    { clase: 'ACTUADO', segundos: null, fueraDeCota: false, vetos: 7 });
+});
+
+// EL '!' ES UN VALOR DEL PROTOCOLO, NO UN ERROR DE FORMATO (N-154). Y es el caso MAS
+// grave -- la retencion mas larga --: si el patron no lo admitiera, justo ese aviso
+// caeria al camino del crudo y el tecnico no veria cartel.
+runTest('Camara-pluma', "el '!' de fuera de cota se admite y NO se convierte en un cero", () => {
+  AvisoCamaraPluma.olvidar();
+  const l = AvisoCamaraPluma.leer(eventoCamara('VETO_SOSTENIDO_S:!'));
+  assert.ok(l && l.fueraDeCota === true, "no reconoce el '!' del firmware");
+  assert.strictEqual(l.segundos, null, 'un 0 diria "lleva cero segundos", que es lo contrario');
+  AvisoCamaraPluma.ver(eventoCamara('VETO_SOSTENIDO_S:!'));
+  const v = AvisoCamaraPluma.vigente();
+  assert.ok(/más tiempo del que el equipo puede publicar/.test(v.medida), v.medida);
+  // La hora del equipo SI lleva digitos y es legitima; lo que no puede aparecer es una
+  // cuenta de segundos, que es justo el dato que el equipo dijo que no cabia.
+  assert.ok(!/\d+\s*s\b/.test(v.medida), 'se ha colado una cifra de segundos inventada');
+});
+
+runTest('Camara-pluma', 'lo que la tabla no nombra se devuelve null y sigue por el camino del crudo', () => {
+  AvisoCamaraPluma.olvidar();
+  // Un DETALLE nuevo del mismo ORIGEN, y un prefijo con basura detras: los dos tienen
+  // que caer fuera. Un patron sin anclar se los tragaria en el cartel equivocado.
+  ['VETO_SOSTENIDO_MIN:4', 'VETO_SOSTENIDO_S:180 EXTRA', 'CAM_NUEVA:1', '']
+    .forEach(det => assert.strictEqual(AvisoCamaraPluma.ver(eventoCamara(det)), null, det));
+  // Y el mismo DETALLE con otro ORIGEN tampoco: se miran los dos campos.
+  assert.strictEqual(AvisoCamaraPluma.ver(eventoEquipo('MAESTRO', 'RELOJ', 'VETO_SOSTENIDO_S:180')), null);
+  assert.strictEqual(AvisoCamaraPluma.vigente(), null, 'ha abierto cartel sin aviso valido');
+});
+
+// EL CONTROL QUE SEPARA "la camara hizo su trabajo" de "la camara tiene la barrera
+// secuestrada". Un cartel que saltara con cada vehiculo se aprende a ignorar.
+runTest('Camara-pluma', 'un veto que ACTUA es lo normal: linea de bitacora, pero NO cartel', () => {
+  AvisoCamaraPluma.olvidar();
+  const v = AvisoCamaraPluma.ver(eventoCamara('VETO_ACTUADO_N:3'));
+  assert.ok(v && v.abre === false && v.linea && v.toast === null, 'el flanco abre cartel');
+  assert.strictEqual(AvisoCamaraPluma.vigente(), null, 'un veto normal ha abierto cartel');
+});
+
+runTest('Camara-pluma', 'BASTA UNA VEZ: la primera retencion sostenida abre el cartel y gasta UNA linea', () => {
+  AvisoCamaraPluma.olvidar();
+  const v = AvisoCamaraPluma.ver(eventoCamara('VETO_SOSTENIDO_S:120'));
+  assert.ok(v.abre && v.linea && v.linea.tono === 'red' && v.toast, 'la primera no abre');
+  const c = AvisoCamaraPluma.vigente();
+  assert.ok(c && c.bajada === false && c.segundos === 120, JSON.stringify(c));
+});
+
+// EL CORAZON DEL ARREGLO, gemelo del de D-23: el firmware REPITE mientras dure, y una
+// linea por repeticion volveria a comerse las 30 entradas de la bitacora.
+runTest('Camara-pluma', 'las repeticiones del episodio refrescan el cartel y NO gastan bitacora', () => {
+  AvisoCamaraPluma.olvidar();
+  AvisoCamaraPluma.ver(eventoCamara('VETO_SOSTENIDO_S:90'));
+  for (let i = 2; i <= 8; i++) {
+    const v = AvisoCamaraPluma.ver(eventoCamara('VETO_SOSTENIDO_S:' + (90 * i)));
+    assert.ok(!v.abre && v.linea === null && v.toast === null, 'la repeticion ' + i + ' gasta linea');
+  }
+  assert.strictEqual(AvisoCamaraPluma.vigente().segundos, 720, 'el cartel no sigue la ultima medida');
+});
+
+// QUIEN DICE QUE YA BAJO ES EL $STATUS, no el silencio del equipo: el firmware no
+// publica un evento de fin, y "deja de repetir" es indistinguible de un cable cortado.
+runTest('Camara-pluma', 'el cartel NO se retira al bajar la barrera, pero deja de decir que esta arriba', () => {
+  AvisoCamaraPluma.olvidar();
+  AvisoCamaraPluma.ver(eventoCamara('VETO_SOSTENIDO_S:200'));
+  assert.strictEqual(AvisoCamaraPluma.verPluma('ARRIBA'), null, 'ARRIBA cierra algo');
+  assert.strictEqual(AvisoCamaraPluma.verPluma(null), null, '"no tengo el dato" se lee como "bajo"');
+  const linea = AvisoCamaraPluma.verPluma('ABAJO');
+  assert.ok(linea && linea.tono === 'green', 'el soltarse no deja linea');
+  const c = AvisoCamaraPluma.vigente();
+  assert.ok(c && c.bajada === true, 'el cartel se ha retirado solo');
+  assert.ok(!/está ARRIBA/.test(c.accion) && /revise el apunte/.test(c.accion), c.accion);
+  assert.ok(/estuvo retenida/.test(c.medida) && !/lleva retenida/.test(c.medida), c.medida);
+  // Y no repite la linea en cada $STATUS siguiente: es una transicion, no una cadencia.
+  assert.strictEqual(AvisoCamaraPluma.verPluma('ABAJO'), null, 'repite la linea de bajada');
+});
+
+// 🔴 LO QUE LA APP NO PUEDE DECIR NUNCA. El equipo no ve imagen (D-12) y no separa un
+// vehiculo parado de una camara mal apuntada: los dos son un contacto cerrado. Afirmar
+// la averia inventa un dato que el equipo no tiene, y manda a NO mirar debajo del brazo.
+runTest('Camara-pluma', 'ningun texto afirma que la camara este averiada, y se dice por que no se puede saber', () => {
+  const AVERIA = /averi|estropead|dañad|rota|defectuos|fallo de la cámara/i;
+  AvisoCamaraPluma.olvidar();
+  const textos = [];
+  textos.push(AvisoCamaraPluma.ver(eventoCamara('VETO_ACTUADO_N:1')).linea.texto);
+  ['VETO_SOSTENIDO_S:90', 'VETO_SOSTENIDO_S:!'].forEach(det => {
+    AvisoCamaraPluma.olvidar();
+    const v = AvisoCamaraPluma.ver(eventoCamara(det));
+    textos.push(v.linea.texto, v.toast);
+    const c = AvisoCamaraPluma.vigente();
+    textos.push(c.titulo, c.medida, c.accion, c.limite);
+    textos.push(AvisoCamaraPluma.verPluma('ABAJO').texto);
+    const d = AvisoCamaraPluma.vigente();
+    textos.push(d.titulo, d.medida, d.accion);
+  });
+  // El detector sabe fallar, o este verde no dice nada.
+  assert.ok(AVERIA.test('la camara esta averiada') && !AVERIA.test('revise el apunte'),
+            'el detector de averia no distingue');
+  const malos = textos.filter(t => AVERIA.test(t || ''));
+  assert.deepStrictEqual(malos, []);
+  assert.ok(/no ve imagen/.test(AvisoCamaraPluma.LIMITE) &&
+            /Quien juzga es usted/.test(AvisoCamaraPluma.LIMITE), AvisoCamaraPluma.LIMITE);
+});
+
+// SIN CIFRAS DEL FIRMWARE (CLAUDE.md 14): el unico numero que sale es el que VIENE EN LA
+// TRAMA. Ni el todo-rojo maximo, ni la cadencia del aviso, ni el tope del buffer.
+runTest('Camara-pluma', 'ningun texto FIJO recita una cifra de tiempo del firmware', () => {
+  const fijos = [AvisoCamaraPluma.ACCION, AvisoCamaraPluma.LIMITE];
+  AvisoCamaraPluma.olvidar();
+  fijos.push(AvisoCamaraPluma.ver(eventoCamara('VETO_ACTUADO_N:1')).linea.texto);
+  AvisoCamaraPluma.olvidar();
+  AvisoCamaraPluma.ver(eventoCamara('VETO_SOSTENIDO_S:60'));
+  fijos.push(AvisoCamaraPluma.vigente().titulo, AvisoCamaraPluma.verPluma('ABAJO').texto,
+             AvisoCamaraPluma.vigente().titulo, AvisoCamaraPluma.vigente().accion);
+  assert.ok(CIFRA_DE_TIEMPO.test('pasados 90 s'), 'el detector de cifras no distingue');
+  assert.deepStrictEqual(fijos.filter(t => CIFRA_DE_TIEMPO.test(t || '')), []);
+});
+
+runTest('Camara-pluma', 'al soltar el enlace se olvida: el cartel es de UN poste', () => {
+  AvisoCamaraPluma.olvidar();
+  AvisoCamaraPluma.ver(eventoCamara('VETO_SOSTENIDO_S:150', 'ESCLAVO'));
+  assert.ok(/POSTE 2 \(ESCLAVO\)/.test(AvisoCamaraPluma.vigente().medida));
+  AvisoCamaraPluma.olvidar();
+  assert.strictEqual(AvisoCamaraPluma.vigente(), null, 'el cartel del poste anterior sobrevive');
+  // Y sin NODE no se adivina: atribuirlo al poste equivocado manda a abrir el gabinete
+  // que no es. Misma regla que _cual() de js/avisos_equipo.js.
+  AvisoCamaraPluma.ver(parseNmeaTelemetry(tramaCompleta(
+    '$EVENT,ORIGEN:CAMARA_PLUMA,DETALLE:VETO_SOSTENIDO_S:99,HORA:18:07:00')));
+  assert.ok(/no dice cuál/.test(AvisoCamaraPluma.vigente().medida),
+            AvisoCamaraPluma.vigente().medida);
+});
+
+// index.html tiene que CARGAR el modulo, o esta suite estaria midiendo un fichero que en
+// el telefono no corre. Es la misma comprobacion que protege a js/avisos_equipo.js.
+runTest('Camara-pluma', 'index.html carga js/aviso_camara_pluma.js ANTES de app.js', () => {
+  const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+  const iMod = html.indexOf('js/aviso_camara_pluma.js');
+  const iApp = html.indexOf('src="app.js"');
+  assert.ok(iMod > 0, 'index.html no carga js/aviso_camara_pluma.js');
+  assert.ok(iMod < iApp, 'se carga despues de app.js: en el telefono no existiria al arrancar');
+});
+
 // =============================================================================
 // RESUMEN FINAL
 // =============================================================================

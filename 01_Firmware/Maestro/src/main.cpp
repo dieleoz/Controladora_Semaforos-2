@@ -12,7 +12,6 @@
 #include "modo_hora.h"
 #include "modo_degradado.h"
 #include "modo_ambar.h"
-#include "mando.h"
 #include "reloj.h"
 #include "respaldo.h"
 #include "semaforo.h"
@@ -76,10 +75,6 @@ void setup() {
   // leerse como corrupto y borrarse: se perderia la marca de sincronizacion justo en
   // el arranque que viene a rescatarla.
   respaldo_setup();
-
-  // SFTY-21: el mando de reles queda armado desde el arranque. No depende de ningún
-  // modo: es la única interfaz que el operario tiene desde el suelo.
-  mando_setup();
 
   // Modulo de radio corta en USART1 REMAPEADO (PB6 TX / PB7 RX a 9600 bps).
   // Sale por el conector J17 -p3 y p2-, que es enchufable; PA9/PA10 no llegan
@@ -330,11 +325,5 @@ void loop() {
     case MODO_AMBAR:      modo_ambar_loop();      break;
   }
 
-  // SFTY-21: al FINAL. La acción del mando (cambio de modo) se aplica cuando la
-  // confirmación de destellos ha terminado, nunca a mitad: primero se confirma, luego
-  // se actúa. Ponerlo aquí también garantiza que el cambio de modo lo recoja la
-  // siguiente iteración por el camino normal, con su setup(), y no a mitad del loop
-  // de un modo que ya no es el activo.
-  mando_actualizar();
 }
 

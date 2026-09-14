@@ -133,7 +133,7 @@ que viviera en una funcion comun los dejaria midiendo un bloque vacio (`N-89`).
 
 ---
 
-## 3.bis 🟡 LAS BOTONERAS A/B/C/D SE ELIMINAN — el equipo se opera SOLO por la app
+## 3.bis 🟢 LAS BOTONERAS A/B/C/D ESTAN ELIMINADAS — el equipo se opera SOLO por la app
 
 **El hardware ya no existe: se retiro del equipo el 05/09** —*«se opera solo por app»*— y el
 responsable lo reafirma el 14/09: *«eliminamos las botoneras A, B, C y D»*. **No hay superficie
@@ -141,14 +141,12 @@ fisica de operacion**: ni botones, ni receptor que comprar, ni pantalla —esa s
 13/09—. La guia de campo ya retiro su paso de prueba del mando, y **`J16` p5 y p8 se quedan vacios:
 no hay nada que cablear ahi**.
 
-🔴 **PERO EL PROGRAMA SIGUE LEYENDO ESOS DOS PINES, Y ESO NO ES INOCUO.** Medido el 14/09: los dos
-ficheros del mando siguen en el arbol —548 lineas entre las dos puntas— y cada flanco en p5 o p8
-**entra en el reconocedor de secuencias**. Con el hardware retirado nadie los pulsa, asi que **el
-riesgo que queda es exactamente uno: QUE ALGUIEN LOS PUENTEE PARA PROBAR**, que es lo primero que hace
-un instalador delante de una bornera. Y mueve el cruce de verdad: **tres toques en p8 son ambar
-intermitente**, **`A`·`B`·`A`·`B` mete al poste 2 en Modo Degradado**, y **tres seguidas en el poste 1
-arrancan el ciclo, o sea ABREN PASO**. La guia de campo lo avisa con esas palabras; **esta spec no
-puede decir menos hasta que el codigo salga**.
+✅ **Y EL PROGRAMA YA NO LOS LEE: el codigo salio del firmware el 14/09.** `mando.cpp` y `mando.h` de
+las dos puntas estan retirados —681 lineas— y con ellos el reconocedor de secuencias, de modo que
+**un puente en `J16` p5 o p8 ya no compone nada**: era el unico riesgo que quedaba vivo, porque
+puentear una bornera para probarla es lo primero que hace un instalador y entonces movia el cruce de
+verdad. Los bornes siguen vacios y pelados, asi que **la instruccion de no cablearlos sigue en pie**;
+lo que cambia es que ya no es lo unico que lo impide.
 
 ✅ **Y lo que cuesta sacarlo esta MEDIDO hoy, porque el repositorio lo daba por mas caro de lo que
 es** — dos frases que lo frenaban y son falsas:
@@ -158,9 +156,11 @@ es** — dos frases que lo frenaban y son falsas:
 | *«retirar el mando se lleva por delante parte de la barrera de salidas»* | **No.** La bandera que intercepta las luces la arman **dos** funciones y sus **unicos** llamadores son el mando. Sin ellos la bandera se queda en falso para siempre y la guarda que cuelga de ella **no dispara**: el equipo escribe las luces por el camino normal. **No deja ningun veto abierto — deja codigo muerto** |
 | *«borrar el menu borra el todo-rojo de las dos puntas»* | **Tampoco.** Ese todo-rojo tiene **tres** llamadores: el menu, el Modo Alcance y el Modo Hora, **y los dos ultimos se alcanzan desde la app** |
 
-⚠️ **Lo que si queda al sacarlo, y hay que decirlo:** el camino de interceptar las luces se queda
-**sin nadie que lo ejerza**, o sea que ningun instrumento podra volver a cazar un defecto ahi. O sale
-entero con el mando, o se queda vigilado por algo.
+✅ **Y la condicion que puso el responsable se cumplio: el camino de interceptar las luces SALIO
+ENTERO con el mando**, en vez de quedarse dentro sin nadie que lo ejerza. Con el fuera, `semaforo.cpp`
+escribe los pines por un solo sitio —`aplicarSalidas()`, donde vive el enclavamiento `SFTY-2`— y la
+lista de funciones autorizadas a saltarselo **baja de cinco a una**: cualquier camino nuevo a una
+lampara es ahora un rojo del banco en vez de una excepcion ya aprobada por su nombre.
 
 ## 4. El PIN
 
@@ -301,14 +301,16 @@ rompe el arnes del puente, que pulsa antes del primer `$STATUS`.
 del puente, porque el otro no existe, **pero la trama no lo dice**. Residual declarado en
 `sellarHoraSiFaltaba()`; su cierre es de SPEC 3.
 
-🟡 **9 · La app todavia no traduce el aviso de barrera retenida.** Cuando una camara deja la barrera
-arriba mas alla del todo-rojo mas largo, el equipo **ya lo publica** y repite el aviso mientras dure,
-diciendo cuantos segundos lleva retenida (SPEC 5, pagina 1 §4). La app lo recibe y **lo deja caer en la
-bitacora general como una linea mas**: no lo destaca, y **no dice al tecnico lo unico accionable, que es
-«revise el ajuste de la camara»**. Medido el 14/09 sobre el fuente de la app: **la app no hace nada
-especial con ese aviso**, y la bitacora **solo guarda 30 entradas** —en el poste 2 se ven **12**—, asi
-que un aviso que llegue mientras el tecnico mira otra cosa **se pierde de la pantalla**. Decidido el 14/09 que **basta
-UNA vez** para pedir el ajuste: no hay umbral que construir, solo la traduccion.
+✅ **9 · La app destaca el aviso de barrera retenida, y ya no se puede perder con el scroll.** Un solo
+`$EVENT` de `ORIGEN:CAMARA_PLUMA` con `DETALLE:VETO_SOSTENIDO_S:` abre un cartel propio
+—`js/aviso_camara_pluma.js`, primer hijo de `.app-container`— que vive **fuera de la bitacora de 30
+entradas y fuera de las cinco pestanas**, publica los segundos que el equipo mide y manda a **mirar
+debajo del brazo antes de tocar la camara**; las repeticiones lo refrescan sin gastar una linea de
+registro, y el `VETO_ACTUADO_N` del flanco se traduce como lo normal que es, sin cartel. **No afirma
+«camara averiada»**: el equipo no ve imagen y no separa un vehiculo parado de un mal apunte (`D-12`),
+asi que publica la medida y el juicio queda en quien esta delante del poste. Solo un `PLUMA:ABAJO` del
+`$STATUS` le cambia el titulo —el cartel **no se retira solo**, porque lo que la dejo arriba sigue sin
+revisarse— y el enlace caido lo borra, que es de un poste.
 
 🟡 **10 · Los dos interruptores de administrador no existen, y su estado NO CABE en la trama de hoy.**
 Decididos el 14/09 (SPEC 5 §4.1), y se llaman **los dos interruptores de administrador**: *sacar la

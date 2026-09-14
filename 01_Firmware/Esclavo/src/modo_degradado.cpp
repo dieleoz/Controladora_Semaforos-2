@@ -3,7 +3,6 @@
 #include "bluetooth.h"      // R-4: bluetooth_ambarEmergencia(), la unica consulta que se le hace
 #include "ciclo_degradado.h"
 #include "config_ciclo.h"
-#include "mando.h"          // D-29: mando_ambarLocal(), la guarda del camino diferido
 #include "protocolo.h"
 #include "reloj.h"
 #include "respaldo.h"
@@ -340,12 +339,16 @@ RechazoDegradado degradado_comprobar() {
   // deliberado, y desde el 31/08 se puede hacer sin subir al gabinete con
   // CMD:PIN:1234:CANCELAR_AMBAR (R-3), asi que nadie queda bloqueado.
   //
-  // SOLO SE MIRA EL LATCH DE BLUETOOTH, NO mando_ambarLocal(), y es deliberado: el
-  // mando ya resolvio esto de otra forma y la resolvio EXPLICITAMENTE -ejecutar(
-  // ACC_DEGRADADO) pone ambarLocal = false antes de llamar aqui (mando.cpp:147)-, o sea
-  // que declara que entrar en Degradado revoca su propio ambar. Anadirlo a esta guarda
-  // rechazaria el A.B.A.B del mando antes de que llegue a ejecutarse, porque
-  // mando_registrarPulso() consulta degradado_comprobar() con la bandera todavia puesta.
+  // SOLO HAY UN LATCH QUE MIRAR, Y ES EL DE BLUETOOTH.
+  //
+  // D-30 (14/09): aqui decia "no mando_ambarLocal(), y es deliberado" -el mando revocaba
+  // su propio ambar antes de llamar aqui, asi que anadirlo habria rechazado el A.B.A.B
+  // antes de que llegara a ejecutarse-. Retirado el mando esa cautela no tiene sujeto, y
+  // lo que queda es mas simple y mas seguro: la UNICA via de entrada es
+  // SET_MODO:DEGRADADO por app (D-18), que no revoca nada -pregunta-, de modo que con un
+  // ambar vigente esta puerta se cierra y el ambar SOBREVIVE. Ya no existe el hueco que
+  // dejaba el mando: quedarse sin ambar y sin Degradado porque las condiciones cayeron
+  // entre la comprobacion y la ejecucion.
   if (bluetooth_ambarEmergencia()) return DEG_RECHAZO_AMBAR_VIGENTE;
 
   return DEG_ACEPTADO;
@@ -429,32 +432,19 @@ bool degradado_reanudarTrasCorte() {
   // tUltimaSync con la antiguedad de la pila sobre un modo ya en marcha.
   if (estado != DEG_INACTIVO) { reanudacionPorDecidir = false; return false; }
 
-  // 🔴 D-29 / D-1 — CON UN AMBAR DEL MANDO PUESTO, EL PERMISO SE TIRA Y NO SE REANUDA.
+  // D-30 (14/09): AQUI ESTABA LA GUARDA DEL AMBAR DEL MANDO QUE ANADIO D-29, Y SE VA CON
+  // SU SUJETO.
   //
-  // ESTA GUARDA LA ABRIO D-29 Y POR ESO LA CIERRA D-29. degradado_comprobar() mira SOLO
-  // el cerrojo de Bluetooth y NO mando_ambarLocal(), a proposito y con su motivo escrito
-  // alli: con el veto dentro de la puerta, el A.B.A.B del propio mando se rechazaria
-  // antes de llegar a ejecutarse. Mientras la reanudacion se decidia dentro de setup() la
-  // carrera no existia -no se ha contado ni un pulso todavia-; con la decision diferida
-  // hasta VENTANA_REANUDACION_MS, entre el arranque y la siembra caben minutos y en ellos
-  // la bandera SI puede armarse. Se pregunta AQUI, en el camino diferido, y no alli: se
-  // cierra lo que D-29 abrio sin tocar la puerta unica del modo.
+  // Tiraba el permiso de reanudacion si mando_ambarLocal() estaba puesto. Su motivo
+  // escrito NO era un operario con el mando en la mano -ese ya no existia- sino EL COBRE:
+  // J16 p5/p8 vacios y pelados, leidos como entradas, de modo que un puente ahi componia
+  // secuencias que nadie pidio. Esa premisa se cayo el 14/09, cuando el firmware dejo de
+  // alimentar al reconocedor con los flancos de esos dos pines: hoy un puente en p5/p8 no
+  // puede armar ningun ambar, porque no hay nada que lo arme.
   //
-  // 🔴 EL MOTIVO NO ES UN OPERARIO CON EL MANDO EN LA MANO: ESE NO EXISTE. D-1 retiro el
-  // hardware el 05/09 y con los pulsadores desmontados esta bandera no se arma nunca. El
-  // motivo es EL COBRE: J16 p5 y p8 estan VACIOS y BOTON1/BOTON2 -PB9 y PB13, pines.h-
-  // se siguen leyendo como entradas peladas, asi que lo que alguien cablee ahi compone
-  // secuencias que nadie pidio (CLAUDE.md 3; A-2 y D-1). Si eso llega a armar el ambar,
-  // el equipo esta en ambar intermitente por una orden que el firmware ya obedece en
-  // otros cinco sitios, y reanudar por encima seria la maquina revocandola.
-  //
-  // Y SU MODO DE FALLO ES EL DE HOY -no reanudar-, asi que no puede empeorar nada: sin
-  // esta guarda el equipo no reanudaba tampoco, solo que por el borrado que D-29 quita.
-  if (mando_ambarLocal()) {
-    reanudacionPorDecidir = false;
-    respaldo_guardarDegradado(false);
-    return false;
-  }
+  // Retirarla no abre nada: la bandera no podia valer true, asi que la guarda no disparaba
+  // y su modo de fallo declarado -no reanudar- era el de hoy. La SEGUNDA PUERTA, que es la
+  // que de verdad sujeta esto, sigue intacta justo debajo.
 
   // LA SEGUNDA PUERTA, y desde D-29 se pregunta ENTERA aunque la primera este cerrada.
   // Puede hacerse porque no depende de la hora: es una resta de dos lecturas del contador
