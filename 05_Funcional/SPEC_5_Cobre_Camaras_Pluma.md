@@ -97,8 +97,8 @@ camara, y lo que hace con ella tiene una sola direccion:
 🔴 **LA DIRECCION DEL FALLO ESTA DECIDIDA: ante error, falsa alarma o contacto pegado, LA BARRERA NO
 BAJA.** No se le pone tope que acabe bajandola —un tope devuelve el peligro que el veto evita, porque
 el firmware **no distingue un rele trabado de un vehiculo parado debajo** (`A-1.bis`)—: se **AVISA**,
-y el aviso dice **cuantos segundos lleva retenida**, nunca «camara averiada». La app pide entonces
-ajuste de camara. **Una barrera arriba no aplasta a nadie; el precio es que deja de proteger, y por
+y el aviso dice **cuantos segundos lleva retenida**, nunca «camara averiada». 🔴 **Traducir ese aviso
+a «revise el ajuste de la camara» es trabajo de la app y esta PENDIENTE** (`SPEC_4` §7, hueco 9). **Una barrera arriba no aplasta a nadie; el precio es que deja de proteger, y por
 eso tiene que VERSE.**
 
 ⚠️ **Y lo que sigue sin proteger a nadie, escrito en vez de disimulado: una camara muerta DESDE LA
@@ -107,9 +107,30 @@ INSTALACION no veta NUNCA.** Sin un solo flanco el firmware no la distingue de u
 inseguro para quien este debajo. Lo compensa el paso de instalacion del Manual 9, que obliga a
 **provocar una deteccion** delante de la camara.
 
-**Lo que `D-33` NO trae todavia:** el **modo admin** que saque una barrera de la logica desde la app
-(decidido el 14/09, sin construir) y el umbral de *«demasiadas falsas alarmas»* a partir del cual la
-app pide ajuste por su cuenta.
+### Cuando el equipo pide que se revise la camara — **basta UNA vez**
+
+**No hay que contar alarmas ni fijar un numero: el criterio es fisico.** Un vehiculo que pasa por
+debajo despeja en segundos. Si una camara sigue viendo algo **despues del todo-rojo mas largo que el
+equipo admite**, lo que hay debajo ya no es trafico normal: o esta averiada la camara, o esta
+apuntando a donde no debe, o hay algo parado ahi.
+
+**Asi que en cuanto ocurre UNA sola vez, el equipo lo publica**, y lo repite mientras la barrera siga
+retenida. El aviso dice **cuantos segundos lleva retenida** —que es lo unico que el equipo ha medido
+de verdad—; **nunca dice «camara averiada»**, porque este equipo no ve imagen y no puede saberlo.
+
+🔴 **Y aqui hay un tramo SIN CONSTRUIR que no se disimula: traducir ese aviso a «revise el ajuste de
+la camara» es trabajo de la app, y hoy no esta hecho.** El aviso llega al telefono y **se queda como
+una linea mas del registro**, sin destacar y sin decir lo unico accionable (`SPEC_4` §7, hueco 9).
+
+⚠️ **Y el aviso tarda en salir lo que dura el todo-rojo mas largo que el equipo admite —90 s—, aunque
+el cruce este configurado con uno de 10 s.** Se compara contra ese techo a proposito, para que este
+aviso **no pueda ser nunca una falsa alarma por tener el ciclo largo**. Afinarlo exigiria que la
+barrera preguntara el ciclo EN CURSO, y eso hoy no existe.
+
+⚠️ **Lo que esto cuesta, y se acepta:** un camion cargando o un vehiculo averiado parado bajo la
+barrera **tambien** dispara la peticion de ajuste. Es un aviso de mas con la camara sana. Molesta a
+quien lo atiende; **no hiere a nadie**, y la alternativa —esperar a que se acumulen varias— seria
+elegir un numero que nadie ha medido todavia. *(Decidido el 14/09.)*
 
 # 1. El reparto, en una frase
 
@@ -229,6 +250,36 @@ rele, y los contactos del rele a `OPEN`/`COM` de la centralita.** **SFTY-28, pin
 - **`D-33`: y BAJA tres segundos tarde, o no baja** mientras una camara vea algo debajo. Las dos
   excepciones solo pueden **RETENER** una pluma que ya estaba arriba: la subida sigue dependiendo de
   la luz y de nada mas. Pagina 1 §4.
+
+### 4.1 🟡 Los dos interruptores de administrador — **DECIDIDOS el 14/09, SIN CONSTRUIR**
+
+Hay dos averias distintas que hoy dejan un poste sin salida, y llevan **dos interruptores
+separados en el modo administrador de la app, uno por poste**. No se pueden juntar en uno: lo que
+falla no es lo mismo y lo que queda funcionando tampoco.
+
+| el interruptor | cuando se usa | que hace el equipo despues |
+|---|---|---|
+| **Sacar la camara del veto** | la camara esta averiada o mal apuntada y **no deja bajar la barrera** | la barrera **vuelve a trabajar**: sube con el verde y baja tras el rojo, con su retardo. Lo unico que se pierde es que la camara pueda retenerla |
+| **Sacar la barrera de servicio** | la barrera esta **rota de verdad** —brazo partido, actuador atascado— | el brazo se queda **arriba** y deja de obedecer a la luz. El cruce sigue funcionando **solo con el semaforo** |
+
+**Los dos TIENEN QUE sobrevivir a un corte de luz** —y por eso la tarjeta guarda indicadores en una
+memoria que mantiene viva su pila; que sigan puestos de verdad es una de las dos cosas que hay que
+medir antes de construirlo, abajo— **y los dos se publican**, porque un poste degradado en silencio es exactamente lo que
+este documento existe para evitar: quien se conecte tiene que ver que ese poste no esta entero.
+
+⚠️ **No sobra sitio, y se dice porque el trabajo lo va a encontrar: las diez casillas de esa memoria
+estan ocupadas.** Los dos interruptores caben **como dos banderas dentro de la casilla de
+indicadores**, que si tiene hueco, y eso obliga a rehacer su suma de comprobacion y a **cambiar las
+dos puntas a la vez**, porque ese fichero tiene que ser identico en las dos.
+
+🔴 **Y quedan dos cosas por MEDIR antes de construirlo, no despues:** que el interruptor siga puesto
+de verdad tras un corte —no basta con que quepa— y **que hace el equipo si se saca la barrera de
+servicio con el brazo abajo**. Subir un brazo no aplasta a nadie, pero el equipo arranca siempre con
+la barrera abajo, asi que hay un instante que hay que mirar.
+
+🔴 **Lo que NO garantiza «sacar la barrera de servicio»: que el brazo se quede arriba si se va la
+luz.** Sin energia la salida cae y el actuador baja por su muelle o por su peso — es el fallo seguro
+de la barrera y **el software no lo gobierna**. El interruptor manda mientras haya corriente.
   Lo del `S_FALLO` **lo eligieron el cliente y el PMT el 27/08/2026**, no el firmware — 🔴 **y esa
   eleccion NO tiene fila en `DECISIONES.md`** (SPEC 1 §11).
 - **Equipo SIN ENERGIA: el pin cae a LOW, el MOSFET no conduce, la pluma BAJA** — el fallo seguro. La

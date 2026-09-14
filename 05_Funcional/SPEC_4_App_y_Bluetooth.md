@@ -271,6 +271,25 @@ rompe el arnes del puente, que pulsa antes del primer `$STATUS`.
 ⚠️ **8 · Desde el `$STATUS` la app no puede saber que reloj sello la `HORA:`.** Hoy siempre es el DS3231
 del puente, porque el otro no existe, **pero la trama no lo dice**. Residual declarado en
 `sellarHoraSiFaltaba()`; su cierre es de SPEC 3.
+
+🟡 **9 · La app todavia no traduce el aviso de barrera retenida.** Cuando una camara deja la barrera
+arriba mas alla del todo-rojo mas largo, el equipo **ya lo publica** y repite el aviso mientras dure,
+diciendo cuantos segundos lleva retenida (SPEC 5, pagina 1 §4). La app lo recibe y **lo deja caer en la
+bitacora general como una linea mas**: no lo destaca, y **no dice al tecnico lo unico accionable, que es
+«revise el ajuste de la camara»**. Medido el 14/09 sobre el fuente de la app: **la app no hace nada
+especial con ese aviso**, y la bitacora **solo guarda 30 entradas** —en el poste 2 se ven **12**—, asi
+que un aviso que llegue mientras el tecnico mira otra cosa **se pierde de la pantalla**. Decidido el 14/09 que **basta
+UNA vez** para pedir el ajuste: no hay umbral que construir, solo la traduccion.
+
+🟡 **10 · Los dos interruptores de administrador no existen, y su estado NO CABE en la trama de hoy.**
+Decididos el 14/09 (SPEC 5 §4.1), y se llaman **los dos interruptores de administrador**: *sacar la
+camara del veto* y *sacar la barrera de servicio*, uno por poste, sobreviviendo a un corte de luz. 🔴 **Y el obstaculo esta MEDIDO antes de construirlos, no
+despues:** la trama de estado del poste 1 va llena — **le sobran 3 bytes de 155, y un campo nuevo no
+cabe en 3 bytes**—, asi que **el estado de los dos interruptores no puede viajar ahi**. Hay una salida
+ya medida que liberaria otros 3 recortando el campo de la hora, **y aun asi habria que comprobar que
+alcanza**. Como se publican es una decision pendiente: un aviso propio, o ese recorte. **Mientras no se
+decida, no se construyen**: un interruptor que el tecnico no puede ver encendido es peor que no
+tenerlo, porque deja un poste degradado sin que nadie lo sepa.
 ---
 
 ## 8. QUIEN EJERCE CADA BARRERA DE ESTE DOCUMENTO

@@ -1,4 +1,4 @@
-# 🚦 Controladora de Semáforos Móviles de 3 Estados (V9.0)
+# 🚦 Controladora de Semáforos Móviles de 3 Estados (V9.1)
 
 > 🧭 **Las decisiones vigentes viven en [`DECISIONES.md`](DECISIONES.md)** — una fila por
 > decision, con su fecha, su motivo y que deroga. *(Aqui se publicaba cuantas hay; se quito el
@@ -405,6 +405,6 @@ cerrar.)*
   arriba, que se copia del acta; ésta es sólo la puerta.
 
 > 🛑 **Y para cerrar donde se abrió: nada de este README es un permiso.** En campo corre la
-> **V8.4**; la V9.0 compila, pasa la compuerta y **lo que hay hoy en el árbol no ha visto una
+> **V8.4**; la V9.1 compila y **pasa 18 de las 19 filas de la compuerta — la que falla es el censo de decisiones sin construir, y falla con razón** (`D-22` necesita una tarjeta delante). **Lo que hay hoy en el árbol no ha visto una
 > tarjeta**. **Nada sube a campo sin pasar banco** — y el banco no lo sustituye ningún número verde
 > de esta página.

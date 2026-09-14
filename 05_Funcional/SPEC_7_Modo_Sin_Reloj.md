@@ -192,6 +192,46 @@ del puente— y **`AVISO_LIMITE_MS` del Maestro no se usa en ninguna linea**. Su
 el tope, el cruce **si lo sabe y se degrada solo a ambar**; lo que le falta es **decirlo antes**,
 y eso es §6.
 
+### 5.1 Y ese tope de 48 h no cae al segundo: puede cumplirse antes o despues, hasta por una hora
+
+El equipo mide ese plazo con **dos relojes a la vez y se queda con el que diga mas tiempo**: un
+contador que mantiene viva la pila de boton de la tarjeta —que sigue andando aunque se vaya la
+luz— y el reloj de programa, que cuenta desde que la tarjeta arranco y **un corte lo pone a cero**.
+
+🔴 **En las tarjetas que hay hoy en campo el cristal del contador de pila NO OSCILA**, asi que en
+la practica queda solo el reloj de programa. Y ese lo gobierna el **oscilador interno de emergencia**
+del microcontrolador, que es impreciso a proposito porque no es un cristal.
+
+**Cuanto se desvia, y HACIA DONDE — las dos cosas, porque el sentido no es uno solo y no es
+simetrico.** Ese oscilador puede correr **rapido o lento** segun la tarjeta y la temperatura, y **no
+se sabe cual toca en cada equipo**. 🔴 **La cifra es de FICHA DEL FABRICANTE: nadie la ha medido en
+una tarjeta de estas** *(y por eso se escribe asi: un numero de ficha no es una medida)*. De ficha,
+sobre 48 horas el tope puede cumplirse **hasta ~1 h 10 min antes** —por el lado que se adelanta— o
+**hasta ~1 h despues** —por el que se atrasa—.
+
+- **Si se cumple antes:** el cruce se va a ambar intermitente **cuando todavia no hacia falta**.
+  Molesta a quien lo opera; no hiere a nadie.
+- **Si se cumple despues:** el cruce sigue repartiendo el paso **un rato mas de lo previsto** con los
+  dos relojes ya separados. Es la direccion incomoda. ⚠️ **Y el plazo de 48 h NO se eligio con
+  holgura, que es lo que parece:** esta medido con **8,8 segundos de margen** sobre los 29 s de
+  desfase que el cruce aguanta, y esa cuenta se hizo con unos cristales que **en las tarjetas de hoy
+  no oscilan**. Alargar el plazo obligaria a alargar el todo-rojo —una semana pediria ~90 s, que
+  destroza la fluidez del paso—: **la salida real no es estirar el limite, es ir a arreglar la
+  radio.**
+
+⚠️ **Se acepta asi, y por que no se arregla:** la tarjeta lleva montado un segundo cristal que
+quitaria la imprecision, pero **el firmware no lo ha encendido nunca**, y encenderlo tiene un modo de
+fallo **peor que el problema que resuelve**: si ese cristal no llegara a oscilar, el arranque se
+queda colgado **antes de encender una sola lampara** — tarjeta muerta, sin luces y sin reiniciarse
+sola. Hacerlo bien obliga a escribir a mano una salida de emergencia, a **recalibrar todo lo que el
+equipo mide por tiempo** —el micro pasaria a correr un 12 % mas rapido— y a probarlo **con una
+tarjeta delante**.
+
+🟡 **Que sitio ocupa ese trabajo en la cola lo decidio el responsable el 14/09: el ULTIMO, y solo,
+y no se carga sin una tarjeta delante.** Lo que se acepta a cambio es el desvio de arriba.
+*(Ficha interna: `D-22`, ordenada por `A-16`. El detalle tecnico del cristal esta en el apartado 3
+de este mismo documento y no se repite aqui.)*
+
 ## 6. POR QUE esta el cruce en Degradado — **el censo, y que dato falta**
 
 **La entrada es SIEMPRE de una persona** (`SFTY-21`, activacion manual): no hay ni un camino que

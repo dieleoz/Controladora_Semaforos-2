@@ -159,6 +159,8 @@ cadencia.
 
 ## 6. Reanudacion tras un corte de energia
 
+> ⚠️ **Y con que PRECISION se cuentan los plazos largos —las 48 h sin sincronizar— no se decide aqui: esta en `SPEC_7` §5.1.** Resumen de una linea: en las tarjetas de campo el contador de pila no oscila, queda el reloj de programa, y **ese tope puede cumplirse hasta ~1 h 10 min antes o ~1 h despues** de las 48 h de reloj de pared —y es un numero de FICHA del fabricante, no una medida—.
+
 **El problema, medido el 12/09 (`D-29`):** desde que la siembra no escribe el RTC hardware,
 `reloj_setup()` deja la hora invalida **tras cada corte**. La reanudacion cerraba por su primera puerta
 **y en ese mismo arranque borraba el indicador de la pila**, de modo que la hora del ESP32 —que llega

@@ -227,27 +227,29 @@ rearma**: ni se abandona (el `$ACK` ya salió) ni corre por debajo. **El Poste 2
 `D-5` (mínimo por sentido) · `D-7` (DAR PASO en Manual) · `D-8` (los vetos del ámbar de emergencia, §4) ·
 `D-11` (aplicar tiempos no arranca el ciclo) · `D-19` (suelo y techo del Inteligente, **con condición sin
 cumplir**) · `D-29` (la reanudación del Degradado, que **no es manual**) · `D-30` **recortada por `D-32` (1):
-sale SÓLO el LCD y el mando SE QUEDA** · y `A-1.bis` **abierta**: si se deroga SFTY-28 para que una cámara pueda
-vetar la pluma. **Mientras siga abierta ninguna cámara interviene en `escribirPines()`** — hueco, no conducta.
+sale SÓLO el LCD y el mando SE QUEDA** · y ~~`A-1.bis` abierta~~ → **`D-33` (14/09): SÍ se deroga SFTY-28,
+y sólo en su mitad de «nunca al revés».** La pluma **sigue a la luz para SUBIR**; lo que la cámara puede hacer
+es **retener la bajada**, nunca provocar una subida. La conducta entera, en **SPEC 5 pág. 1 §4**.
 🔴 **TRES CONDUCTAS DE LA PLUMA Y LA LUZ SIN FILA QUE LAS RESPALDE**, y son de las que hieren a alguien:
 **(a)** que la pluma **suba en `S_FALLO`** (§2), elegido *«por el cliente y el PMT el 27/08/2026»* en una frase
-que vive sólo en el fuente y en SPEC 5 §4; **(b)** que el verde **cierre sin ámbar** (§3.1); **(c)** que la
-pluma **baje sin retardo** (§12.1), contra la regla del responsable del 13/09. **Son decisiones viales: las
-decide él, no el firmware ni esta spec.**
+que vive sólo en el fuente y en SPEC 5 §4; y **(b)** que el verde **cierre sin ámbar** (§3.1). **Son decisiones
+viales: las decide él, no el firmware ni esta spec.** ⬇️ ~~**(c)** que la pluma baje sin retardo~~ → **ya tiene
+fila: `D-33`, y está construida.** Bajan DOS, no tres.
 
 ## 12. HUECOS MEDIDOS
 
 Medido el 12/09/2026; **1, 2 y 6 remedidos el 13/09/2026 sobre `bfef121`**. Cada uno trae con qué reproducirlo.
-1. 🔴 **LA PLUMA BAJA EN EL MISMO INSTANTE DEL ROJO. El retardo que pidió el responsable NO ESTÁ
-   IMPLEMENTADO.** La regla, 13/09: *«sólo baja segundos DESPUÉS del rojo, porque suelen pasarse carros y hay
-   que darle tiempo al conductor a pasar»*. Hoy la pluma cuelga del mismo `verde` de `escribirPines()` (§2),
-   así que **el flanco de la lámpara y el del motor son el mismo evento**: no hay temporizador, ni estado
-   intermedio, ni constante que ajustar. 🔴 **Y el daño se compone con §3.1: el verde cierra SIN ÁMBAR, así
-   que el coche que entró LEGALMENTE con el verde sigue dentro cuando cae el rojo, y la pluma baja SOBRE ÉL.**
-   Es **el mismo daño que persigue `A-1.bis`** por otra vía —allí falta un veto, aquí un retardo—, y **una
-   solución no cubre la otra**. ✅ **El MEDIDOR ya existe y es quien dice si esto merece construirse:**
-   `vigilante_tick()` cuenta `camVetos` y emite `$EVENT CAMARA_PLUMA:VETO_HABRIA_ACTUADO_N:<n>` en las dos
-   puntas. **Antes de pedir el retardo, léase ese contador de campo.**
+1. 🟢 **CERRADO EL 14/09 — ~~LA PLUMA BAJA EN EL MISMO INSTANTE DEL ROJO~~.** Hoy **baja 3 segundos
+   después del rojo**, y **no baja en absoluto mientras una cámara vea algo debajo**. La regla que lo pidió,
+   del responsable el 13/09: *«sólo baja segundos DESPUÉS del rojo, porque suelen pasarse carros y hay que
+   darle tiempo al conductor a pasar»*. Es **el cambio que sube la versión a `V9.1`**, y la conducta entera
+   vive en **SPEC 5 pág. 1 §4** — aquí sólo el puntero. ⬇️ *lo que este hueco decía, y por qué se conserva:*
+   el daño que describía **era real y se componía con §3.1** —el verde cierra SIN ÁMBAR, así que el coche que
+   entró legalmente seguía dentro cuando caía el rojo y la pluma bajaba sobre él—. 🔴 **§3.1 SIGUE ABIERTO:
+   el verde sigue cerrando sin ámbar.** Lo que cambia es que ahora hay tres segundos y un veto de cámara entre
+   ese coche y el brazo; lo que no cambia es que **el conductor no recibe aviso de que el verde se acaba**.
+   ⚠️ **Y el contador que medía esto cambió de significado con la obra:** ya no dice «habría actuado» —esa
+   transición dejó de ocurrir el día que el veto existe— sino **cuántos vetos ACTUARON de verdad**.
 2. 🔴 **`D-30` está VIGENTE, RECORTADA por `D-32` (1) y sin ancla en el fuente**: esta spec ya no puede decir que
    el mando salga, porque es el **único escritor de `senalActiva`**, o sea SFTY-2 (§10). Su cobre, **SPEC 5 §3**.
 3. 🔴 **DOS HUECOS DE LUZ DEL DEGRADADO** *(el modo entero, SPEC 3)*. **(a)** `DEG_VERDE_SEG` **no pasa por

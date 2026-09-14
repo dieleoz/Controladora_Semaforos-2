@@ -1,5 +1,14 @@
 # SPEC 0 — EL SISTEMA: que es, y como se pone un cruce a funcionar
 
+**Version del equipo: `V9.1`** *(14/09/2026)*. Sube desde la `V9.0` del 12/09 por **dos cambios que se ven desde la carretera**, y ninguno de los dos cabe dentro de un numero de version ya entregado:
+
+- **El verde del modo sin radio pasa de medio minuto a TRES MINUTOS.** Es el cambio mayor: cuando los dos postes pierden el enlace y se reparten el paso por reloj, cada lado da paso tres minutos en vez de treinta segundos. Lo que hace ese modo, en `SPEC_7`.
+- **La barrera ya no baja en el mismo instante en que el semaforo se pone en rojo:** baja unos segundos despues, **para dar tiempo a los vehiculos que ya venian pasando y no golpearlos**, y **no baja en absoluto mientras una camara vea algo debajo**. Lo que hace y lo que no, en `SPEC_5`.
+
+⚠️ **Y esta version NO ha visto una tarjeta.** Lo que hay instalado en campo sigue siendo la `V8.4`.
+
+⚠️ **Los manuales de `04_Manuales/` y del resto de `05_Funcional/` siguen rotulados `V9.0`, y es a proposito:** no se reescriben hasta que haya banco y tarjeta, porque reescribir un manual antes de que el equipo este quieto es tirar el trabajo dos veces. **Las siete spec SI estan al dia.** La unica excepcion son las guias `.html` de campo, que se corrigen siempre: las sigue un instalador con un destornillador en la mano.
+
 **La puerta de entrada.** Quien no ha visto este repositorio empieza aqui y sale sabiendo **que es el producto**, **como se
 opera un cruce de principio a fin** y **que NO hace el equipo**. Escrita el 13/09/2026 con **cuatro agentes escribiendo en el
 arbol a la vez**: todo lo medido esta fechado al commit **`ef3504c`** (`git show ef3504c:<fichero>`). **Mandan sobre este
