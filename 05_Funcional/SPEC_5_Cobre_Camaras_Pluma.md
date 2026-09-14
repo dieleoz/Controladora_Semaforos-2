@@ -52,9 +52,11 @@ bornera: antirrebote RC de 1 ms **en la placa**). `J14` p2 son **3,3 V**, el nud
 
 ## 3. `J16` p5 y p8 estan VACIOS y el firmware SIGUE leyendo sus flancos
 
-> 🟡 **14/09 — EL RESPONSABLE ELIMINA LAS BOTONERAS A/B/C/D: el equipo se opera SOLO por la app.**
-> **Este aviso NO se retira con la decision: se retira el dia que el codigo salga del firmware**, y
-> hoy sigue dentro (`SPEC_4` §3.bis). Mientras tanto, lo de abajo es exactamente lo que pasa.
+> 🟡 **EL HARDWARE DEL MANDO SE RETIRO EL 05/09 y el responsable lo reafirma el 14/09: el equipo
+> se opera SOLO por la app.** La guia de campo ya retiro su paso de prueba y dice que **aqui no hay
+> nada que cablear**. 🔴 **Este aviso NO se retira por eso: se retira el dia que el codigo salga del
+> firmware**, y hoy sigue dentro (`SPEC_4` §3.bis). Con el hardware fuera, **el riesgo que queda es
+> que alguien PUENTEE p5 o p8 para probar** —y eso mueve el cruce de verdad—.
 
 El mando **se retiro como hardware** y **su codigo se queda** (`D-1`, 05/09). 🔴 **Y sigue siendo cierto
 el 13/09, contra lo que `D-30` habia decidido: `D-32` (1) la recorta —«solo retirar el lcd»— y el mando

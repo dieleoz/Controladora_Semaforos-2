@@ -135,16 +135,20 @@ que viviera en una funcion comun los dejaria midiendo un bloque vacio (`N-89`).
 
 ## 3.bis 🟡 LAS BOTONERAS A/B/C/D SE ELIMINAN — el equipo se opera SOLO por la app
 
-**Decidido por el responsable el 14/09** *(«eliminamos las botoneras A, B, C y D; ahora es por
-app»)*, y confirma lo que ya estaba decidido el 12/09. **No hay superficie fisica de operacion**:
-ni botones, ni pantalla — la pantalla salio del firmware el 13/09.
+**El hardware ya no existe: se retiro del equipo el 05/09** —*«se opera solo por app»*— y el
+responsable lo reafirma el 14/09: *«eliminamos las botoneras A, B, C y D»*. **No hay superficie
+fisica de operacion**: ni botones, ni receptor que comprar, ni pantalla —esa salio del firmware el
+13/09—. La guia de campo ya retiro su paso de prueba del mando, y **`J16` p5 y p8 se quedan vacios:
+no hay nada que cablear ahi**.
 
-🔴 **DECIDIDO NO ES CONSTRUIDO, y esta spec no puede decir lo contrario: el firmware de hoy SIGUE
-leyendo esas pulsaciones.** Medido el 14/09: los dos ficheros del mando siguen en el arbol —548
-lineas entre las dos puntas— y **tres pulsaciones seguidas en el poste 1 arrancan el ciclo, o sea
-ABREN PASO, sin preguntar nada**. Mientras eso siga dentro, **lo que alguien cablee a `J16` p5 o p8
-compone la secuencia sin que nadie la pida** (`SPEC_5` §3). Esa es la razon de que esto sea urgente y
-no cosmetico.
+🔴 **PERO EL PROGRAMA SIGUE LEYENDO ESOS DOS PINES, Y ESO NO ES INOCUO.** Medido el 14/09: los dos
+ficheros del mando siguen en el arbol —548 lineas entre las dos puntas— y cada flanco en p5 o p8
+**entra en el reconocedor de secuencias**. Con el hardware retirado nadie los pulsa, asi que **el
+riesgo que queda es exactamente uno: QUE ALGUIEN LOS PUENTEE PARA PROBAR**, que es lo primero que hace
+un instalador delante de una bornera. Y mueve el cruce de verdad: **tres toques en p8 son ambar
+intermitente**, **`A`·`B`·`A`·`B` mete al poste 2 en Modo Degradado**, y **tres seguidas en el poste 1
+arrancan el ciclo, o sea ABREN PASO**. La guia de campo lo avisa con esas palabras; **esta spec no
+puede decir menos hasta que el codigo salga**.
 
 ✅ **Y lo que cuesta sacarlo esta MEDIDO hoy, porque el repositorio lo daba por mas caro de lo que
 es** — dos frases que lo frenaban y son falsas:
