@@ -160,14 +160,63 @@
              o sea que de los siete campos, CUATRO son marcas fijas. Dejar los huecos en
              blanco los haria pasar por medidas que aun no llegaron; se dice cuales no
              existen, para que nadie los espere. -->
+        <!-- 🔴 ESTA LISTA DECIA "NO publica calidad de radio" A SECAS, Y DESDE D-23
+             (13/09) ESO ERA FALSO. El Esclavo no manda RF% ni RTT en su $STATUS -eso no
+             ha cambiado-, pero SI publica los contadores de linea de su radio en un
+             $EVENT propio, y esta ventana se los estaba negando al tecnico. Es
+             CLAUDE.md 14: el rotulo sobrevivio al sujeto y mandaba a no buscar un dato
+             que ya existe. Se corrige distinguiendo las dos cosas en vez de borrar la
+             frase: lo que NO hay sigue sin haberlo, y hay que seguir diciendolo. -->
         <ul class="diag-lista">
           <li><strong>Sí publica:</strong> su estado de luces, su hora y su serie.</li>
-          <li><strong>NO publica:</strong> batería, calidad de radio ni latencia — el
-              firmware del Esclavo manda <code>BAT:--</code>, <code>RF:--</code> y
-              <code>RTT:--</code> fijos. No están medidos, así que no se pintan.</li>
+          <li><strong>Sí publica, desde D-23:</strong> los contadores de su propia radio
+              — bytes recibidos, tramas buenas y tramas descartadas — en un
+              <code>$EVENT</code> cada 30 s. Van abajo, en su propio recuadro.</li>
+          <li><strong>NO publica:</strong> batería, <em>porcentaje</em> de calidad de
+              radio ni latencia — el firmware del Esclavo manda <code>BAT:--</code>,
+              <code>RF:--</code> y <code>RTT:--</code> fijos en su <code>$STATUS</code>.
+              No están medidos, así que no se pintan. El porcentaje de enlace lo mide el
+              Maestro sobre el cruce, y es otra magnitud: no se compara con lo de
+              abajo.</li>
           <li><strong>Tampoco publica</strong> cuánto falta para el cambio
               (<code>T:--</code>): la cuenta atrás la lleva el Maestro.</li>
         </ul>
+
+        <!-- D-23, LA MITAD DE LA APP. Lo rellena renderDiagnosticoEnlace() con lo que
+             DiagnosticoEnlace haya leido del ultimo $EVENT ORIGEN:ENLACE_RF.
+             POR QUE UN RECUADRO Y NO LINEAS DE BITACORA: son contadores ACUMULADOS, asi
+             que la muestra de ahora ya contiene todo lo que decian las anteriores. Lo
+             que lleva informacion es el VALOR DE AHORA y la DIFERENCIA con la muestra
+             anterior; una lista de acumulados es la misma cifra repetida desalojando
+             los $ALARM. El porque entero esta en js/diagnostico_enlace.js.
+             NO LLEVA SEMAFORO DE COLOR NI VEREDICTO, y es deliberado: el umbral que
+             diria "esto va mal" no lo ha decidido nadie (ver ese fichero). -->
+        <div class="diag-log-cab">Radio de este poste · contadores de línea (D-23)</div>
+        <div class="diag-rf" id="diag-rf">
+          <p class="diag-rf-vacio" id="diag-rf-vacio">
+            Todavía no ha llegado ninguna medida. Este poste la publica cada 30 s:
+            si en un minuto sigue vacío, no está entrando su <code>$EVENT</code>.
+          </p>
+          <div class="diag-rf-datos" id="diag-rf-datos" style="display:none;">
+            <div class="diag-rf-fila">
+              <span class="diag-rf-rot">Bytes recibidos</span>
+              <span class="diag-rf-val" id="diag-rf-rx">--</span>
+              <span class="diag-rf-delta" id="diag-rf-rx-d"></span>
+            </div>
+            <div class="diag-rf-fila">
+              <span class="diag-rf-rot">Tramas buenas</span>
+              <span class="diag-rf-val" id="diag-rf-ok">--</span>
+              <span class="diag-rf-delta" id="diag-rf-ok-d"></span>
+            </div>
+            <div class="diag-rf-fila">
+              <span class="diag-rf-rot">Tramas descartadas</span>
+              <span class="diag-rf-val" id="diag-rf-ruido">--</span>
+              <span class="diag-rf-delta" id="diag-rf-ruido-d"></span>
+            </div>
+            <p class="diag-rf-pie" id="diag-rf-pie"></p>
+          </div>
+        </div>
+
         <div class="diag-log-cab">Últimos movimientos de este enlace</div>
         <!-- Lo rellena renderDiagnostico() con state.events, que es la MISMA lista que
              pinta la pestana de Eventos: no hay una segunda copia del registro que
@@ -998,6 +1047,7 @@
   <script src="js/site_manager.js"></script>
   <script src="js/courier_rtc.js"></script>
   <script src="js/registro_enlace.js"></script>
+  <script src="js/diagnostico_enlace.js"></script>
   <script src="js/depuracion.js"></script>
   <script src="js/avisos_equipo.js"></script>
   <script src="js/bluetooth_driver.js"></script>

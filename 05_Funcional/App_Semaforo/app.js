@@ -179,6 +179,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnBtDisconnect = document.getElementById('btn-bt-disconnect');
   const panelDiagnosticoEl = document.getElementById('panel-diagnostico');
   const diagLogEl = document.getElementById('diag-log');
+  // D-23: el recuadro de los contadores de radio de ESTE poste, dentro de la ventana de
+  // diagnostico que ya existia. No es una pantalla nueva -la del POSTE 2 lleva abierta
+  // desde N-149-: es el dato que le faltaba dentro.
+  const diagRfVacioEl = document.getElementById('diag-rf-vacio');
+  const diagRfDatosEl = document.getElementById('diag-rf-datos');
+  const diagRfRxEl = document.getElementById('diag-rf-rx');
+  const diagRfOkEl = document.getElementById('diag-rf-ok');
+  const diagRfRuidoEl = document.getElementById('diag-rf-ruido');
+  const diagRfRxDEl = document.getElementById('diag-rf-rx-d');
+  const diagRfOkDEl = document.getElementById('diag-rf-ok-d');
+  const diagRfRuidoDEl = document.getElementById('diag-rf-ruido-d');
+  const diagRfPieEl = document.getElementById('diag-rf-pie');
   const padTituloEl = document.getElementById('pad-titulo');
   const btnIrAlMaestro = document.getElementById('btn-ir-al-maestro');
   const btnIrAlEsclavo = document.getElementById('btn-ir-al-esclavo');
@@ -2811,7 +2823,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // CONFIRMADA: sin saber con quien se habla no se puede decir a donde ir.
     if (btnIrAlEsclavo) btnIrAlEsclavo.style.display = enMaestro ? '' : 'none';
     if (btnIrAlMaestro) btnIrAlMaestro.style.display = enEsclavo ? '' : 'none';
-    if (enEsclavo) renderDiagnostico();
+    // Al abrir la ventana se pinta lo que YA se sabe, sin esperar a la siguiente trama:
+    // si no, el recuadro de la radio saldria con el cartel de "todavia no ha llegado
+    // ninguna medida" durante hasta 30 s teniendo el dato guardado, y eso manda a buscar
+    // una averia que no hay.
+    if (enEsclavo) { renderDiagnostico(); renderDiagnosticoEnlace(); }
   }
 
   // El registro de la ventana de diagnostico. NO es una segunda copia de nada: lee
@@ -2849,6 +2865,74 @@ document.addEventListener('DOMContentLoaded', () => {
       item.appendChild(txt);
       diagLogEl.appendChild(item);
     });
+  }
+
+  // D-23 - EL RECUADRO DE LA RADIO DE ESTE POSTE.
+  //
+  // Pinta el ULTIMO valor de cada contador y, al lado, LO QUE CAMBIO desde la muestra
+  // anterior. Los dos juntos y no uno: el acumulado dice "cuanto lleva esta radio desde
+  // que arranco" -que es lo que se cita al reportar- y el delta dice "que esta pasando
+  // ahora mismo", que es lo que se mira con el poste delante. Con solo el acumulado, una
+  // radio que se acaba de quedar muda ensena el mismo numero grande de siempre.
+  //
+  // TODO CON textContent: aqui dentro caen cifras que vienen del equipo por el cable.
+  //
+  // LO QUE ESTA FUNCION NO HACE ES DECIDIR SI ESTA BIEN O MAL. No hay clase de color por
+  // umbral, porque el umbral no existe: ver la cabecera de js/diagnostico_enlace.js. El
+  // unico rojo que se pinta es el del delta de bytes en CERO, y eso no es un umbral -es
+  // la ausencia literal de trafico, "no entro nada", que no admite segunda lectura-.
+  function renderDiagnosticoEnlace() {
+    if (!diagRfDatosEl || !diagRfVacioEl) return;
+    const resumen = DiagnosticoEnlace.resumen();
+    if (!resumen) {
+      // Sin muestra no se pinta un cero. Un 0 aqui diria "la radio no ha recibido nada",
+      // que es un diagnostico durisimo; lo que pasa es que la medida no ha llegado, y son
+      // cosas distintas. Es la misma regla de RegistroEnlace y la de ABORTADO/PASS.
+      diagRfDatosEl.style.display = 'none';
+      diagRfVacioEl.style.display = '';
+      return;
+    }
+    diagRfVacioEl.style.display = 'none';
+    diagRfDatosEl.style.display = '';
+
+    const m = resumen.muestra;
+    if (diagRfRxEl) diagRfRxEl.textContent = String(m.rx);
+    if (diagRfOkEl) diagRfOkEl.textContent = String(m.ok);
+    if (diagRfRuidoEl) diagRfRuidoEl.textContent = String(m.ruido);
+
+    const d = resumen.delta;
+    const seg = d ? Math.round(d.ventanaMs / 1000) : 0;
+    // El texto del delta NOMBRA SU VENTANA. "+4" no significa nada sin saber en cuanto
+    // tiempo; y la ventana se mide, no se supone que son 30 s: si el poste se salto una
+    // muestra o el telefono estuvo en segundo plano, el hueco es mayor y hay que verlo.
+    const pon = (el, v, sufijo) => {
+      if (!el) return;
+      el.textContent = d ? ('+' + v + ' en ' + seg + ' s' + (sufijo || '')) : 'primera medida';
+    };
+    pon(diagRfRxDEl, d ? d.rx : 0, '');
+    pon(diagRfOkDEl, d ? d.ok : 0, '');
+    pon(diagRfRuidoDEl, d ? d.ruido : 0, '');
+    if (diagRfRxDEl) {
+      diagRfRxDEl.className = 'diag-rf-delta' + (d && d.rx === 0 ? ' diag-rf-mudo' : '');
+    }
+
+    if (diagRfPieEl) {
+      if (!d) {
+        diagRfPieEl.textContent = 'Primera medida de este poste: los números son el ' +
+          'total desde que arrancó su micro. La siguiente, en 30 s, ya dirá qué cambió.';
+      } else if (d.rx === 0) {
+        diagRfPieEl.textContent = 'En los últimos ' + seg + ' s NO entró un solo byte ' +
+          'por esta radio. No es ruido: no está llegando nada.';
+      } else {
+        const pct = DiagnosticoEnlace.pctRuido(d);
+        diagRfPieEl.textContent = 'En los últimos ' + seg + ' s entraron ' + d.rx +
+          ' bytes. ' + (pct === null
+            ? 'Ninguna trama completa se cerró en esa ventana: entran bytes sueltos.'
+            : 'De las tramas que llegaron, ' + pct + ' % se descartaron.') +
+          ' El juicio sobre si eso es aceptable es de quien está delante del poste: ' +
+          'la app no fija ningún umbral.';
+      }
+    }
   }
 
   // VOLVER AL MENU: la salida de cualquier modo, sin PIN (ver SIN_PIN arriba).
@@ -4222,6 +4306,47 @@ document.addEventListener('DOMContentLoaded', () => {
       // leia nadie, asi que el registro de eventos de la app solo contenia lo que la
       // app misma habia hecho: una bitacora que no sabe nada de lo que pasa en el poste.
       const data = _camposNmea(parts);
+
+      // D-23 - EL DIAGNOSTICO PERIODICO DE LA RADIO NO ES UNA LINEA DE BITACORA.
+      //
+      // Este $EVENT llega cada 30 s -2/min-; addEvent() recorta state.events a 30, asi
+      // que dejandolo seguir por el camino de abajo se come la bitacora entera en QUINCE
+      // MINUTOS, y la ventana del POSTE 2 -que ensena slice(0, 12)- en SEIS. Los $ALARM
+      // que el tecnico vino a leer los desaloja el propio dato que venia a ayudarle. El
+      // porque de que su sitio sea un recuadro y no una lista -y por que tampoco
+      // RegistroEnlace- esta medido y escrito en js/diagnostico_enlace.js.
+      //
+      // SOLO SE DESVIA EL PERIODICO. Con este mismo ORIGEN viajan la vuelta del enlace
+      // del Esclavo y los cambios de estado del Maestro, que son SUCESOS y siguen su
+      // camino de siempre hasta la bitacora: esas hay que verlas. Quien distingue es el
+      // patron anclado de DiagnosticoEnlace, no este if.
+      //
+      // 🔴 Y ESTO ES UN else, NO UN return CON LA RAMA CORTA ARRIBA. Detras de toda esta
+      // cadena de cabeceras hay dos repintados que corren PARA CADA TRAMA ACEPTADA
+      // -renderDepuracion() y renderDiario()-. Un return aqui se los saltaria, y el que
+      // se pierde es el de la CINTA DE TRAMAS EN CRUDO: la trama ya quedo anotada por
+      // RegistroCrudo.anotar() al entrar, o sea que el dato estaria guardado y la
+      // pantalla lo ensenaria tarde -al llegar la trama siguiente-. Justo en la
+      // herramienta que se usa para perseguir tramas que van y vienen, una cinta que se
+      // repinta con retraso es una cinta que miente sobre CUANDO llego cada cosa.
+      const esDiagRadio = typeof DiagnosticoEnlace !== 'undefined' &&
+                          DiagnosticoEnlace.esPeriodico(data);
+      if (esDiagRadio) {
+        const visto = DiagnosticoEnlace.ver(data);
+        renderDiagnosticoEnlace();
+        // LO QUE SI GASTA BITACORA SON LAS TRANSICIONES, NO LA CADENCIA. El recuadro
+        // solo existe mientras alguien mira la pantalla; que este poste empezara a comer
+        // ruido a las 03:40 tiene que quedar escrito aunque no hubiera nadie delante, y
+        // por eso estas pocas lineas si van a la lista y al registro que persiste. Son
+        // dos por episodio como mucho -empieza y para-, no dos por minuto.
+        if (visto && visto.avisos.length) {
+          visto.avisos.forEach(a => {
+            addEvent(a.tono, 'Equipo [radio de este poste]: ' + a.texto);
+            RegistroEnlace.anotar('EVENTO', enlaceDeAhora(), a.texto);
+          });
+          renderRegistroEnlace();
+        }
+      } else {
       // D-26: tres lineas del diario que el tecnico tiene que entender -la siembra que
       // vuelve, la que se ignora porque manda la radio, y el salto de hora que pasa por
       // rojo-. Mismo molde que el $ALARM de arriba: crudo primero, traduccion detras, y
@@ -4234,6 +4359,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (aviso && aviso.toast) showToast(aviso.toast);
       RegistroEnlace.anotar('EVENTO', enlaceDeAhora(), textoEvento);
       renderRegistroEnlace();
+      }
     } else if (header === '$ERR') {
       const data = _camposNmea(parts);
       // Igual que el $ACK: la negativa se pega a la orden que la provoco. Con una
@@ -4553,6 +4679,15 @@ document.addEventListener('DOMContentLoaded', () => {
   function olvidarEnlace() {
     state.connected = false;
     state.node = null;
+    // D-23: los contadores de radio son de UN poste y arrancan con su micro. Si no se
+    // olvidan al soltar el enlace, la primera muestra del SIGUIENTE poste se resta contra
+    // la ultima del anterior y sale un delta inventado -y casi siempre negativo, que
+    // ademas se leeria como "este poste se ha reiniciado"-. Es la misma cautela que A-9
+    // sobre el reloj: una lectura atribuida al poste equivocado fabrica una averia.
+    if (typeof DiagnosticoEnlace !== 'undefined') {
+      DiagnosticoEnlace.olvidar();
+      renderDiagnosticoEnlace();
+    }
     if (btnDevice) btnDevice.className = 'btn-top btn-device';
     if (btStatusDot) btStatusDot.className = 'status-dot';
     // "Sin equipo" y "Sin enlace" NO son lo mismo, y la diferencia es la que decide si

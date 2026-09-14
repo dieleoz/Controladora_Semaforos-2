@@ -638,6 +638,137 @@ runTest('Avisos D-26', 'Ningun texto de la tabla recita una cifra de tiempo del 
   assert.deepStrictEqual(malos, []);
 });
 
+// --- SUITE 8: D-23 - el diagnostico de radio de la punta a la que estas conectado ---
+//
+// La logica que se prueba es la de js/diagnostico_enlace.js, la MISMA que carga
+// index.html. Las tramas se componen con el formato que emite el firmware -el snprintf
+// de bluetooth_reportarEvento() del Esclavo- y se parten con el parser de la app, no con
+// uno de esta suite: app_12_un_solo_parser existe para que eso no vuelva a pasar.
+const DiagnosticoEnlace = require('./js/diagnostico_enlace.js');
+const fs = require('fs');
+const path = require('path');
+
+function diagRadio(rx, ok, ruido, node) {
+  return eventoEquipo(node || 'ESCLAVO', 'ENLACE_RF',
+                      `RX:${rx} OK:${ok} RUIDO:${ruido}`);
+}
+
+runTest('D-23 diagnostico', 'el periodico del Esclavo se reconoce y se leen sus tres contadores', () => {
+  DiagnosticoEnlace.olvidar();
+  const d = diagRadio(1200, 300, 2);
+  assert.ok(DiagnosticoEnlace.esPeriodico(d), 'no reconoce el periodico de D-23');
+  assert.deepStrictEqual(DiagnosticoEnlace.leer(d), { rx: 1200, ok: 300, ruido: 2 });
+});
+
+// EL CORAZON DEL ARREGLO. Si esto se pone rojo, el periodico esta volviendo a la lista
+// de 30 y la bitacora se vuelve a comer los $ALARM en quince minutos.
+runTest('D-23 diagnostico', 'los OTROS $EVENT del mismo ORIGEN NO son el periodico: son sucesos y van a la bitacora', () => {
+  DiagnosticoEnlace.olvidar();
+  // La vuelta del enlace del Esclavo y los tres cambios de estado del Maestro. Los
+  // literales son los de los snprintf de las dos puntas.
+  ['RECUPERADO_OK:300_RUIDO:2', 'PERDIDO_RF:80', 'SIN_MEDIDA_RF:--', 'OK_RF:97']
+    .forEach(det => {
+      assert.ok(!DiagnosticoEnlace.esPeriodico(eventoEquipo('ESCLAVO', 'ENLACE_RF', det)),
+                `se traga como periodico un SUCESO del enlace: ${det}`);
+    });
+  // Y un $EVENT de otro origen tampoco, aunque su detalle empezara por RX:.
+  assert.ok(!DiagnosticoEnlace.esPeriodico(eventoEquipo('ESCLAVO', 'RELOJ', 'RX:1 OK:1 RUIDO:0')),
+            'mira el DETALLE sin mirar el ORIGEN');
+});
+
+runTest('D-23 diagnostico', 'el delta se mide contra la muestra anterior y nombra su ventana', () => {
+  DiagnosticoEnlace.olvidar();
+  const a = DiagnosticoEnlace.ver(diagRadio(1000, 200, 0), 1000);
+  assert.strictEqual(a.delta, null, 'inventa un delta en la primera muestra');
+  assert.ok(a.primera, 'no marca la primera muestra');
+  const b = DiagnosticoEnlace.ver(diagRadio(1300, 250, 3), 31000);
+  assert.deepStrictEqual(b.delta, { rx: 300, ok: 50, ruido: 3, ventanaMs: 30000 });
+});
+
+// N-144 en esta pantalla: un contador que baja no es un delta negativo.
+runTest('D-23 diagnostico', 'un contador que BAJA se lee como reinicio del poste, no como delta negativo', () => {
+  DiagnosticoEnlace.olvidar();
+  DiagnosticoEnlace.ver(diagRadio(9000, 900, 5), 1000);
+  const r = DiagnosticoEnlace.ver(diagRadio(12, 2, 0), 31000);
+  assert.ok(r.reinicio, 'no detecta que el poste rearranco');
+  assert.strictEqual(r.delta, null, 'resta contra la cuenta del arranque anterior');
+  assert.ok(r.avisos.some(a => /SE HA REINICIADO/.test(a.texto) && a.tono === 'red'),
+            'un poste que rearranca solo no deja aviso rojo');
+});
+
+// LA REGLA DE ESTE FICHERO, MEDIDA: las lineas las gobiernan los sucesos, no el reloj.
+runTest('D-23 diagnostico', 'en regimen NO gasta bitacora: solo anota cuando algo CAMBIA', () => {
+  DiagnosticoEnlace.olvidar();
+  let ms = 1000;
+  // La primera si deja una linea: que el diagnostico empezo a llegar hay que decirlo.
+  assert.strictEqual(DiagnosticoEnlace.ver(diagRadio(1000, 100, 0), ms).avisos.length, 1);
+  // Veinte muestras seguidas de radio sana -diez minutos- y ni una linea mas.
+  let lineas = 0;
+  for (let i = 1; i <= 20; i++) {
+    ms += 30000;
+    lineas += DiagnosticoEnlace.ver(diagRadio(1000 + i * 300, 100 + i * 50, 0), ms).avisos.length;
+  }
+  assert.strictEqual(lineas, 0,
+    'el periodico sigue gastando lineas de las 30 en regimen: la bitacora se llena sola');
+});
+
+runTest('D-23 diagnostico', 'el ruido se anota cuando EMPIEZA y cuando PARA, una vez por episodio', () => {
+  DiagnosticoEnlace.olvidar();
+  let ms = 1000;
+  DiagnosticoEnlace.ver(diagRadio(1000, 100, 0), ms);
+  // Tres ventanas seguidas comiendo ruido: una sola linea, la de que empieza.
+  const empieza = DiagnosticoEnlace.ver(diagRadio(1300, 150, 4), ms += 30000);
+  assert.ok(empieza.avisos.some(a => /EMPIEZA a descartar/.test(a.texto)), 'no avisa del ruido');
+  assert.strictEqual(DiagnosticoEnlace.ver(diagRadio(1600, 200, 9), ms += 30000).avisos.length, 0,
+    'repite el aviso de ruido en cada muestra: eso es volver a llenar la bitacora');
+  assert.strictEqual(DiagnosticoEnlace.ver(diagRadio(1900, 250, 14), ms += 30000).avisos.length, 0);
+  // Y cuando para, se dice: si no, el tecnico no sabe que el episodio se cerro.
+  const para = DiagnosticoEnlace.ver(diagRadio(2200, 300, 14), ms += 30000);
+  assert.ok(para.avisos.some(a => /deja de descartar/.test(a.texto)), 'no avisa de que el ruido paro');
+});
+
+runTest('D-23 diagnostico', 'una radio que no recibe NADA se anota, y se distingue del ruido', () => {
+  DiagnosticoEnlace.olvidar();
+  let ms = 1000;
+  DiagnosticoEnlace.ver(diagRadio(1000, 100, 0), ms);
+  const mudo = DiagnosticoEnlace.ver(diagRadio(1000, 100, 0), ms += 30000);
+  assert.ok(mudo.avisos.some(a => /NO recibió un solo byte/.test(a.texto) && a.tono === 'red'),
+            'una radio muda no deja rastro');
+  // Y al volver el trafico se dice tambien.
+  const vuelve = DiagnosticoEnlace.ver(diagRadio(1300, 150, 0), ms += 30000);
+  assert.ok(vuelve.avisos.some(a => /Vuelven a entrar bytes/.test(a.texto)));
+});
+
+// La regla de RegistroEnlace aplicada aqui: no medido NO es cero.
+runTest('D-23 diagnostico', 'sin tramas en la ventana el % de ruido es null, NUNCA 0', () => {
+  assert.strictEqual(DiagnosticoEnlace.pctRuido(null), null, 'sin delta devuelve un numero');
+  assert.strictEqual(DiagnosticoEnlace.pctRuido({ rx: 40, ok: 0, ruido: 0, ventanaMs: 30000 }), null,
+    'entraron bytes sueltos y ninguna trama: un 0% diria que todas llegaron bien');
+  assert.strictEqual(DiagnosticoEnlace.pctRuido({ rx: 400, ok: 3, ruido: 1, ventanaMs: 30000 }), 25);
+});
+
+// CLAUDE.md 8: la app no fija umbrales sobre una radio que no ha medido. El firmware lo
+// decidio y lo dejo escrito; esto es el trinquete que impide que vuelva por la app.
+runTest('D-23 diagnostico', 'no hay ningun umbral ni veredicto escrito en el modulo', () => {
+  const fuente = fs.readFileSync(path.join(__dirname, 'js', 'diagnostico_enlace.js'), 'utf8');
+  // Se mira el CODIGO, no los comentarios: aqui los comentarios citan lo que explican
+  // -"RF < 70% = degradado"- y un grep sin filtrar los cuenta (CLAUDE.md 7.1).
+  const codigo = fuente.replace(/^\s*\/\/.*$/gm, '');
+  assert.ok(!/UMBRAL|DEGRADADO|ACEPTABLE/i.test(codigo), 'ha entrado un veredicto por umbral');
+  // El detector tiene que saber fallar.
+  assert.ok(/UMBRAL/i.test('const UMBRAL_RUIDO = 30;'), 'el detector de umbrales no detecta');
+});
+
+runTest('D-23 diagnostico', 'al soltar el enlace se olvidan los contadores del poste anterior', () => {
+  DiagnosticoEnlace.olvidar();
+  DiagnosticoEnlace.ver(diagRadio(9000, 900, 5), 1000);
+  DiagnosticoEnlace.olvidar();
+  assert.strictEqual(DiagnosticoEnlace.resumen(), null, 'se queda con la muestra del poste anterior');
+  const primera = DiagnosticoEnlace.ver(diagRadio(50, 5, 0), 31000);
+  assert.ok(primera.primera && !primera.reinicio,
+    'la primera del poste nuevo se resta contra la del anterior y finge un reinicio');
+});
+
 // =============================================================================
 // RESUMEN FINAL
 // =============================================================================

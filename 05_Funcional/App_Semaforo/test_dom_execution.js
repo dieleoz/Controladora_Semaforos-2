@@ -1933,6 +1933,99 @@ assert(/defecto del firmware del modulo/.test(ultimoEvento()) &&
        !/sin traducir/.test(ultimoEvento()),
   `D-26: $ERR RECLAMADA_SIN_RAMA se traduce: "${ultimoEvento().slice(0, 90)}..."`);
 
+// =========================================================================
+// 16. D-23 - EL DIAGNOSTICO DE RADIO DEL POSTE 2, EJECUTADO
+// =========================================================================
+// La suite unitaria ya mide la logica de js/diagnostico_enlace.js con el modulo en la
+// mano. Esto mide LO OTRO, que es lo que ninguna prueba de texto ve: que la trama entra
+// por el cable de verdad, que el recuadro de la ventana del POSTE 2 se rellena, y sobre
+// todo QUE NO APARECE EN LA LISTA DE EVENTOS -- que es la mitad del arreglo y la que se
+// rompe sola en cuanto alguien toque la cadena de cabeceras de parseNmeaTelemetry().
+function diagRf(rx, ok, ruido) {
+  entregarTrama(`EVENT,NODE:ESCLAVO,ORIGEN:ENLACE_RF,DETALLE:RX:${rx} OK:${ok} RUIDO:${ruido},HORA:18:20:00`);
+}
+
+// Se conmuta al ESCLAVO: la ventana de diagnostico solo existe contra esa punta, y con
+// el MAESTRO delante estariamos midiendo un panel oculto y pasando por otra razon.
+conectarComo('ESCLAVO', 'SERIE:SEM-E-01,MODO:SUBORDINADO,ESTADO:R1_V2,T:--,RF:--,RTT:--,BAT:--,HORA:18:20:00');
+const panelDiagDom = document.getElementById('panel-diagnostico');
+assert(panelDiagDom && panelDiagDom.style.display !== 'none',
+  'D-23: contra el POSTE 2 la ventana de diagnostico esta abierta (si no, lo de abajo no mide nada)');
+
+// El recuadro arranca diciendo que NO HA LLEGADO NADA, que no es lo mismo que un cero.
+const diagRfVacioDom = document.getElementById('diag-rf-vacio');
+const diagRfDatosDom = document.getElementById('diag-rf-datos');
+assert(diagRfVacioDom && diagRfDatosDom && diagRfDatosDom.style.display === 'none' &&
+       /Todavía no ha llegado ninguna medida/.test(diagRfVacioDom.textContent),
+  'D-23: sin muestra el recuadro dice que no ha llegado, en vez de pintar ceros');
+
+// --- La primera muestra: rellena el recuadro con los tres contadores ---
+diagRf(1000, 100, 0);
+assert(diagRfDatosDom.style.display !== 'none' && diagRfVacioDom.style.display === 'none',
+  'D-23: la primera muestra abre el recuadro de contadores');
+assert(document.getElementById('diag-rf-rx').textContent === '1000' &&
+       document.getElementById('diag-rf-ok').textContent === '100' &&
+       document.getElementById('diag-rf-ruido').textContent === '0',
+  `D-23: los tres contadores del $EVENT se pintan (rx=${document.getElementById('diag-rf-rx').textContent})`);
+
+// --- LO QUE ESTE BLOQUE EXISTE PARA CAZAR ---
+// Veinte muestras seguidas -diez minutos de radio sana- y la lista de eventos tiene que
+// quedarse EXACTAMENTE como estaba. Con el defecto, addEvent() habria metido veinte
+// lineas y desalojado otras tantas de las 30.
+const eventosAntesDelPeriodico = document.querySelectorAll('.event-item').length;
+const textoArribaAntes = ultimoEvento();
+for (let i = 1; i <= 20; i++) diagRf(1000 + i * 300, 100 + i * 50, 0);
+assert(document.querySelectorAll('.event-item').length === eventosAntesDelPeriodico &&
+       ultimoEvento() === textoArribaAntes,
+  `D-23: veinte diagnosticos periodicos NO gastan ni una linea de la bitacora de 30 ` +
+  `(antes ${eventosAntesDelPeriodico}, ahora ${document.querySelectorAll('.event-item').length})`);
+// Y el recuadro SI se ha ido al dia con la ultima: no se pinta callando.
+assert(document.getElementById('diag-rf-rx').textContent === '7000',
+  `D-23: el recuadro sigue la ultima muestra (rx=${document.getElementById('diag-rf-rx').textContent})`);
+// El pie nombra la ventana medida y NO emite veredicto sobre si eso esta bien.
+assert(/En los últimos \d+ s entraron \d+ bytes/.test(document.getElementById('diag-rf-pie').textContent),
+  `D-23: el pie dice cuanto entro y en cuanto tiempo: "${document.getElementById('diag-rf-pie').textContent.slice(0, 70)}"`);
+
+// --- Y LA OTRA MITAD: los SUCESOS del mismo ORIGEN siguen llegando a la bitacora ---
+// Si el filtro se pasa de ancho, se lleva por delante justo las lineas que cuentan una
+// caida de radio. Este es su control negativo.
+// Se mira EL TEXTO DE ARRIBA y no la cuenta de la lista, y no es indiferente: la lista
+// ya esta en su tope de 30, asi que su longitud NO PUEDE crecer y un `length + 1` seria
+// una comprobacion que no puede fallar -- adorno, CLAUDE.md 9 --. Lo que distingue "se
+// pinto" de "se trago" aqui es que la linea de arriba cambie.
+entregarTrama('EVENT,NODE:ESCLAVO,ORIGEN:ENLACE_RF,DETALLE:RECUPERADO_OK:300_RUIDO:2,HORA:18:26:00');
+assert(/RECUPERADO_OK:300_RUIDO:2/.test(ultimoEvento()),
+  `D-23: la VUELTA del enlace sigue siendo un suceso y sigue pintandose: "${ultimoEvento().slice(0, 80)}"`);
+
+// --- Una transicion SI gasta una linea: el ruido que empieza ---
+// Los contadores SUBEN -- 1100 tramas buenas venian del bucle de arriba --. Poner aqui un
+// numero menor no probaria el ruido: probaria el reinicio, porque un contador que baja es
+// otro arranque. Lo aprendi rompiendolo: la primera version de esta linea decia ok:750 y
+// lo que salio fue el aviso de "SE HA REINICIADO", correctamente.
+diagRf(7400, 1150, 6);
+assert(/EMPIEZA a descartar/.test(ultimoEvento()) && !/REINICIADO/.test(ultimoEvento()),
+  `D-23: que este poste empiece a comer ruido SI deja linea en la bitacora: "${ultimoEvento().slice(0, 80)}"`);
+// ...y la siguiente muestra igual de ruidosa NO repite la linea: la de arriba sigue
+// siendo la misma, o sea que esta muestra no escribio nada.
+const arribaTrasRuido = ultimoEvento();
+diagRf(7700, 1200, 11);
+assert(ultimoEvento() === arribaTrasRuido,
+  `D-23: el aviso de ruido no se repite en cada muestra mientras dure el episodio: "${ultimoEvento().slice(0, 80)}"`);
+// Y cuando el episodio PARA se dice una vez, que es la otra mitad de la transicion.
+diagRf(8000, 1250, 11);
+assert(/deja de descartar/.test(ultimoEvento()),
+  `D-23: cuando el ruido para, se anota: "${ultimoEvento().slice(0, 80)}"`);
+
+// --- La ventana del POSTE 2 ya no miente sobre lo que esta punta publica ---
+// Decia "NO publica calidad de radio" a secas, y desde D-23 eso manda al tecnico a no
+// buscar un dato que si existe (CLAUDE.md 14: el rotulo sobrevivio al sujeto).
+const textoPanelDiag = panelDiagDom.textContent.replace(/\s+/g, ' ');
+assert(/Sí publica, desde D-23/.test(textoPanelDiag) &&
+       /contadores de su propia radio/.test(textoPanelDiag),
+  'D-23: la ventana del POSTE 2 dice que esta punta SI publica los contadores de su radio');
+assert(/BAT:--/.test(textoPanelDiag) && /porcentaje/.test(textoPanelDiag),
+  'D-23: y sigue diciendo lo que de verdad NO publica, que no ha cambiado');
+
 console.log('='.repeat(80));
 console.log(` RESULTADO JSDOM: ${testsPassed} PASS | ${testsFailed} FALLAS`);
 console.log('='.repeat(80));

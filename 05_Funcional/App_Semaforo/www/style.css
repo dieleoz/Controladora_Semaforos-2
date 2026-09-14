@@ -2021,3 +2021,47 @@ body {
 .diag-log-item.red { border-left-color: var(--red-text); }
 .diag-log-item.cyan { border-left-color: var(--cyan-neon); }
 .diag-log-vacio { font-size: 11px; color: var(--text-muted); line-height: 1.45; }
+
+/* D-23 - EL RECUADRO DE LOS CONTADORES DE RADIO DE ESTE POSTE.
+   Las cifras van en fuente MONOESPACIADA y alineadas a la derecha a proposito: se leen
+   a un metro y con guantes, y sobre todo se COMPARAN con la muestra de hace un minuto.
+   Con fuente proporcional, 111 y 999 tienen anchos distintos y un cambio de magnitud no
+   se ve de un vistazo, que es justo para lo que sirve esta pantalla.
+   NO HAY AQUI NINGUNA CLASE DE VEREDICTO POR UMBRAL -ni verde de "va bien" ni rojo de
+   "va mal"-: ese umbral no lo ha decidido nadie, y el motivo esta escrito entero en
+   js/diagnostico_enlace.js. La unica excepcion es .diag-rf-mudo, que no marca un umbral
+   sino la ausencia literal de trafico. */
+.diag-rf { margin-bottom: 12px; }
+.diag-rf-vacio { font-size: 11px; color: var(--text-muted); line-height: 1.45; margin: 0; }
+.diag-rf-vacio code { font-family: var(--font-mono); color: var(--amber-lamp); }
+.diag-rf-fila {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  margin-bottom: 4px;
+}
+.diag-rf-rot { flex: 1 1 auto; font-size: 11px; color: var(--text-secondary); }
+.diag-rf-val {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: right;
+  min-width: 5.5ch;
+}
+.diag-rf-delta {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: right;
+  min-width: 12ch;
+}
+/* "No entro un solo byte" no es un umbral: es la ausencia de trafico, y es lo unico de
+   este recuadro que la app se permite senalar por su cuenta. */
+.diag-rf-delta.diag-rf-mudo { color: var(--red-text); font-weight: 700; }
+.diag-rf-pie { font-size: 10px; color: var(--text-muted); line-height: 1.45; margin: 6px 0 0; }
