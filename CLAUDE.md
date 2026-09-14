@@ -482,6 +482,14 @@ cinco dias anteriores **el aparato de medir crecio ~12.000 lineas y el firmware 
 division sube y el firmware no se mueve, **lo que hay no es rigor: es sustitucion**, y se corrige
 cerrando el editor de `.md`.
 
+> 🔴 **Y LA MEDIDA DEJA DE SER UN PROPOSITO Y PASA A SER UNA PUERTA (14/09).** Medido sobre los ultimos
+> 50 commits: **firmware +6.454/-2.834, INSTRUMENTOS +18.470/-2.020, documentos +9.039/-6.096.** O sea que
+> **el aparato de medir crecio al TRIPLE que lo que mide**, y eso —no los `.md`— es lo que el responsable
+> siente como bucle: *«me siento en un bucle, desde hace 50 commits nada»*. **La regla: un pack nuevo entra
+> si CONTESTA UNA PREGUNTA ABIERTA o DESBLOQUEA algo parado; si solo certifica otra vez lo ya certificado,
+> no entra — y eso ya lo decia §8.1, lo que faltaba era CONTARLO.** Antes de anadir un instrumento se dice
+> en el commit **que pregunta abierta contesta**. Si no hay pregunta, es sustitucion.
+
 **LAS TRES REGLAS QUE LO SUJETAN:**
 
 1. 🔴 **NADA ENTRA SIN QUE ALGO SALGA.** Un pack, un apartado o un documento nuevo **nombra en su commit

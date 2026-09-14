@@ -40,6 +40,12 @@ PUNTAS = ("Maestro", "Esclavo")
 # pack lo dice: sobra tanto una que aparece como una que desaparece.
 CONOCIDAS = {
     "Maestro": {
+        # 🟡 14/09: mando_registrarPulso ENTRA, y a proposito. El firmware dejo de leer
+        # los flancos de J16 p5/p8 porque el hardware del mando salio del equipo el 05/09
+        # y esos bornes estan vacios: lo unico que podia pulsarlos era un puente de
+        # prueba, y entonces movia el cruce. La funcion se queda inerte mientras
+        # mando.cpp siga dentro; SALE de aqui el dia que el fichero se retire entero.
+        "mando_registrarPulso",
         # Getters de telemetria que la pantalla dejo de pedir. No danan; se anotan.
         # 🟢 D-32 (1), 13/09: protocolo_tramasDescartadas SALE, igual que salio en el
         # Esclavo con N-108 y por el mismo motivo -ahora se publica al aire-. Viajaba
@@ -105,6 +111,8 @@ CONOCIDAS = {
         "reloj_hayCristal",
     },
     "Esclavo": {
+        # 🟡 14/09: igual que en el Maestro, y por el mismo motivo. Ver arriba.
+        "mando_registrarPulso",
         # N-133 (04/09): los dos accesos a los tiempos del ciclo AUTOMATICO.
         #
         # EL MOTIVO ES COMPROBABLE, que es lo que §3.bis exige de una excepcion: no se

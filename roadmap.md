@@ -109,6 +109,22 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 > hecho.** Tres filas de §3.6 (la guarda de rutas y el intermitente del simulador) **no se
 > re-midieron** y por eso no entran en ningun grupo.
 
+> 🔴 **EL ORDEN DE LO QUE SIGUE, fijado el 14/09 despues de medir el bucle.** Los ultimos 50 commits dan
+> **firmware +6.454/-2.834** contra **instrumentos +18.470/-2.020**: el aparato de medir crece al TRIPLE
+> que lo que mide. **Asi que lo que sigue es FIRMWARE, en este orden, y cada pieza CIERRA UN RIESGO:**
+>
+> | | que | por que va ahi |
+> |---|---|---|
+> | **1** | 🟢 **El firmware deja de leer `J16` p5/p8** *(hecho el 14/09, 4 lineas)* | cierra el riesgo del puente de prueba, que es el unico que quedaba vivo en campo |
+> | **2** | **Retirar el mando entero** — ~880 lineas fuera, 16 packs y 6 arneses | es lo unico que DEVUELVE sitio y borra codigo en vez de anadirlo |
+> | **3** | **El cristal que arranca y no cuenta** (1.22) | seguridad: hoy el equipo puede creerse una sincronizacion de hace meses |
+> | **4** | **La ventana que no cierra nadie** (1.39) | seguridad: ambar contra verde en carril unico |
+> | **5** | **Que la app diga «revise el ajuste de la camara»** (1.43) | es el unico aviso accionable que la `V9.1` anade y hoy se pierde en la bitacora |
+>
+> ⚠️ **Y la puerta nueva de `CLAUDE.md` §16 aplica a los cinco: un instrumento solo entra si CONTESTA una
+> pregunta abierta, y el commit dice cual.** Lo que quede sin vigilante se escribe como hueco, no se tapa
+> con un pack.
+
 **(1) TECLADO — se hace escribiendo en el PC** *(nada entra aqui sin un `grep` que diga que no existe)*
 
 > ⚠️ **LA TABLA VA POR DANO, NO POR NUMERO.** Las tres primeras se subieron aqui el 12/09 desde §3,

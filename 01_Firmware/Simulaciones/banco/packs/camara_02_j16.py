@@ -604,17 +604,28 @@ def correr(b, fw):
             "este fichero el hueco 2 era el boton que EJECUTABA"
             % (punta, tablas or "(no se hallan)"))
 
+        # ~~A y B tienen que seguir alimentando mando_registrarPulso()~~ -> INVERTIDA el
+        # 14/09 (CLAUDE.md 9). Aquella linea exigia lo que HOY ES EL DEFECTO.
+        #
+        # El motivo que la sostenia -"el mando es lo unico que le queda al operario que
+        # esta en el suelo sin telefono"- dejo de ser cierto el 05/09, cuando el hardware
+        # del mando salio del equipo: no hay pulsadores, no hay receptor que comprar y la
+        # guia de campo retiro su paso de prueba. Lo que quedaba era el programa leyendo
+        # dos bornes VACIOS, y eso no es inocuo: la propia guia avisa de que un puente
+        # para comprobar la bornera compone secuencias y MUEVE EL CRUCE -tres toques en
+        # p8 son ambar intermitente; A.B.A.B mete al poste 2 en Degradado-.
+        #
+        # LA MITAD QUE SIGUE VALIENDO SE CONSERVA y es la de abajo: que NADIE mas consuma
+        # esos flancos. Que el mando no los reciba no sirve de nada si otro los recoge.
+        pulsos = re.findall(r"mando_registrarPulso\s*\(", cuerpo_act or "")
         b.verificar(
-            cuerpo_act is not None
-            and re.search(r"if\s*\(\s*flanco\[0\]\s*\)\s*mando_registrarPulso\s*\(\s*MANDO_A",
-                          cuerpo_act)
-            and re.search(r"if\s*\(\s*flanco\[1\]\s*\)\s*mando_registrarPulso\s*\(\s*MANDO_B",
-                          cuerpo_act),
-            "%s: A y B siguen alimentando mando_registrarPulso() desde botones_actualizar()"
-            % punta,
-            "%s: el mando dejo de recibir los pulsos de A y B. Es SFTY-21: las secuencias "
-            "tienen que verse SIEMPRE, y con C y D retirados el mando es lo unico que le "
-            "queda al operario que esta en el suelo sin telefono" % punta)
+            cuerpo_act is not None and not pulsos,
+            "%s: los flancos de J16 p5 y p8 ya NO alimentan el reconocedor de secuencias: "
+            "un puente en esa bornera no puede mover el cruce" % punta,
+            "%s: botones_actualizar() vuelve a pasar flancos al mando (%d llamada(s)). El "
+            "hardware se retiro el 05/09 y esos dos bornes estan VACIOS: lo unico que "
+            "puede pulsarlos es un puente de prueba, y entonces mueve el cruce de verdad"
+            % (punta, len(pulsos)))
 
     # -- 7.bis LOS SUSTITUTOS: sin ellos, esta retirada no se puede hacer --
     bt_maestro = fw.codigo("Maestro", "src", "bluetooth.cpp")
