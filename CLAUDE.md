@@ -386,6 +386,24 @@ Lo fija el responsable, y decide que se toca primero cuando dos cosas compiten:
    FALSA.** El 14/09 hubo **ocho** afirmaciones falsas vivas a la vez en seis documentos —cuatro sobre el retardo de
    la barrera, tres negaciones de algo construido y una constante que un comentario del propio firmware negaba—, y
    **ninguna la caza la compuerta**: las cazaron un revisor y dos agentes leyendo. Esa es la deuda de instrumento.
+
+> 🔴 **COMO SE RESUELVE UN CHOQUE, Y ES UNA SOLA FRASE DEL RESPONSABLE (14/09):** *«si la spec no pasa, si el
+> arquitecto contra decisiones, si no le gusta algo — se AJUSTA LA SPEC, que es lo que debe implementar el
+> firmware»*. O sea: **un choque NO se discute y NO deja dos versiones vivas. Se arregla en la spec, y despues el
+> firmware la sigue.** Vale igual si quien objeta es un revisor de arquitectura, si `DECISIONES.md` dice otra cosa,
+> o si al responsable no le convence: **la salida siempre es la misma puerta.**
+>
+> 🔴 **Y AQUI ESTA LO QUE IMPIDE QUE LA SPEC SE CONVIERTA EN UNA LISTA DE DESEOS — LOS DOS REGISTROS, QUE NO SE
+> MEZCLAN NUNCA:**
+>
+> | | que es | como se sujeta |
+> |---|---|---|
+> | **lo que el equipo HACE** | descripcion | **se valida contra el fuente**, frase por frase. Si no se cumple, la spec MIENTE y se corrige la spec (§1: no se decora) |
+> | **lo que el equipo DEBE hacer** | la ORDEN al firmware | vive en el apartado **«HUECOS MEDIDOS»** de su spec, y **ese apartado deja de ser una confesion: es la COLA DE TRABAJO del firmware** |
+>
+> **Una frase que no diga claramente en cual de los dos esta, esta mal escrita.** Es exactamente el fallo que costo
+> el dia: cuatro documentos decian *«no esta implementado»* —registro 2— sobre algo que YA estaba construido
+> —registro 1—, y quien lo leyera iba a construir dos veces lo mismo. **El tiempo verbal no basta: se marca.**
 2. **Los ARNESES y los instrumentos** — compuerta, packs, simuladores. Lo que MIDE la spec.
 3. **Los manuales y la documentacion** — `04_Manuales/`, el resto de `05_Funcional/`, los `.docx`.
 
