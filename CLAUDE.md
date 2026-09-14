@@ -306,7 +306,15 @@ quedar correcto y la compuerta verde, pero un `revert` de ese commit no deshace 
    NO elijas.** Ahi nace el bucle: uno lo arregla en un sentido y el siguiente en el contrario.
 5. **Ningun agente comitea.** Comitea el orquestador, con rutas explicitas y **leyendo** el indice.
 6. **A cada agente se le pide que DUDE del encargo.** Es la frase que mas rinde.
-7. **La compuerta la corre el orquestador con el arbol QUIETO.** Una cifra medida mientras otros escriben no vale.
+7. 🔴 **UNA DECISION QUE RETIRA O DEROGA UNA BARRERA SE REVISA ANTES DE CONSTRUIRLA, NO DESPUES** — y el revisor
+   busca **el modo de fallo que la decision CREA**, no si la decision es buena: eso ya lo decidio el responsable.
+   ⚠️ **Y donde mirar primero, que es lo que rinde: LA PREMISA QUE LA DECISION CONTRADICE SUELE ESTAR ESCRITA EN EL
+   FUENTE, y es el argumento en contra.** El 14/09 una decision sobre la barrera se paro asi: `semaforo.cpp` llevaba
+   escrito *«una pluma arriba con la luz en rojo es PEOR que no tener barrera, porque el conductor confia en ella»*,
+   y **nadie habia ido a buscarla**. Cuando aparece hay dos salidas y las dos valen: el responsable **cambia la
+   premisa** —y el comentario se corrige HACIA la decision (§11.1), con la derogacion escrita y con su nombre— o
+   **la premisa aguanta y la decision se replantea**. Lo que no vale es construir encima sin haberla leido.
+8. **La compuerta la corre el orquestador con el arbol QUIETO.** Una cifra medida mientras otros escriben no vale.
 
 ## 12. Donde esta cada cosa
 
