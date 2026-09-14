@@ -1,6 +1,54 @@
-# ESTADO — dónde está parado el trabajo HOY (12/09/2026)
+# ESTADO — dónde está parado el trabajo HOY (14/09/2026)
 
-> ## ▶️ PUNTO DE CONTINUACIÓN — 12/09/2026
+> ## ▶️ PUNTO DE CONTINUACIÓN — 14/09/2026
+>
+> 🔴 **LO PRIMERO, y no cambia por nada de lo de abajo: NADA DE ESTO HA VISTO UNA TARJETA.**
+> Lo que decide si funciona es la sesión de banco (`roadmap.md` §0, grupo 3) y **la cinta del
+> Esclavo del Sisga, que sigue sin traerse**. Los binarios que salgan de aquí llevan `SIN_BANCO`
+> pegado al nombre, y **el sufijo lo quita quien los pruebe en un equipo**, no quien los compila.
+>
+> **LO QUE ENTRÓ HOY: `D-33` — LA CÁMARA VETA LA BAJADA DE LA PLUMA** (`363e375` firmware,
+> `de8939f` instrumentos, `96a30e5` spec). La pluma **sube por la luz y por nada más**; **baja
+> 3 s después del rojo**; y pasado el retardo **cualquiera de las dos cámaras del poste retiene
+> la bajada** mientras vea algo. El veto es **local**: el otro poste abre su verde igual. Ante
+> error, falsa alarma o contacto pegado **la barrera NO baja y se avisa**, diciendo cuántos
+> segundos lleva retenida — nunca «cámara averiada», que este micro no puede saber.
+>
+> **Y lo que costó de verdad no fue el veto.** Fueron **tres instrumentos que medían la FORMA de
+> una condición que `D-33` movió de sitio** —uno abortó, otro acusó al firmware de haber perdido
+> el `S_FALLO`, y el tercero exigía por escrito justo lo que ahora sería el defecto— y **dos
+> copias a mano del límite vial que el Esclavo llevaba sin vigilante** (`N-133`), que se habrían
+> quedado viejas **compilando y sin decir nada**. Todo eso está repartido y medido, y las tres
+> inyecciones se hicieron sobre el `.cpp` real con restauración verificada por hash.
+>
+> **Compuerta: 18 PASS · 1 FALLA · 0 ABORTADO**, dos pasadas iguales con el árbol quieto. Banco
+> **1411/1412** en 79 packs. **El único rojo es correcto y no se decora** (`CLAUDE.md` §1): es
+> `decisiones_01_anclas` acusando a **`D-22`**, la única decisión vigente sin construir, y **no
+> se cierra con teclado: necesita una tarjeta delante**. Las que este rojo contaba antes ya
+> salieron: `D-23` y `D-33` están construidas, `D-14` no se instala y `D-30` quedó recortada.
+>
+> **LO QUE ESPERA AL RESPONSABLE, hoy:**
+>
+> - **El umbral de «demasiadas falsas alarmas»** a partir del cual la app pide ajuste de cámara.
+>   El firmware **no puede darlo**: no distingue un veto verdadero de uno falso —los dos son un
+>   contacto cerrado— y lo único derivable honestamente es *cuántos vetos sobreviven al despeje*.
+> - **El modo administrador que saque una barrera de la lógica** desde la app, poste a poste
+>   (decidido el 14/09, sin construir). Antes hay que **medir** si persiste tras un corte y qué
+>   pasa si se retira con la pluma abajo — probablemente sea fila propia (`roadmap` 1.41).
+> - **La sesión de banco y la cinta del Sisga**, que es lo único que no destraba nadie escribiendo.
+>
+> ⚠️ **LO QUE SIGUE ABIERTO Y PUEDE HERIR**, sin adornos: la ventana que no cierra nadie
+> (`roadmap` **1.39**) y **cuatro de los seis modos de fallo que el veto crea** (`roadmap`
+> **1.42**) — entre ellos que el firmware **no distingue una presencia sostenida real de una
+> cámara mal apuntada**, y que **los últimos metros de la bajada no los ve nadie**: no hay fin de
+> carrera, y **está sin preguntar al fabricante** si la centralita trae fotocélula o borde sensible.
+
+> ## 📜 PUNTO DE CONTINUACIÓN DEL 12/09/2026 — la crónica, conservada
+>
+> ⚠️ **LAS CIFRAS DE ESTE BLOQUE SON LAS DE ESE DÍA Y NO SE SINCRONIZAN** (`CLAUDE.md` §14): el
+> *«Maestro al 89,9 %, quedan 6.648 B»* de abajo dejó de ser cierto el **13/09**, al retirarse el
+> LCD, y *«las cinco decisiones sin construir»*, el **14/09**. Se conservan porque son el porqué
+> de lo que vino después; **la cifra viva está en la tabla de más abajo, copiada del acta**.
 >
 > 🔴 **LO PRIMERO, y no cambia por nada de lo de abajo: NADA DE LO DE HOY HA VISTO UNA TARJETA.**
 > Son once horas de PC. Lo que decide si esto funciona es la sesión de banco (`roadmap.md` §0,
