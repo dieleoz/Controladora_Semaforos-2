@@ -15,6 +15,21 @@
 #define ROJO_PEATON   PA6 // S7 -> J11
 #define VERDE_PEATON  PA7 // S8 -> J9
 
+// D-14 (13/09, decidido por el responsable en D-32 (4)): LA ENTRADA DE ALARMA DE LA
+// CAMARA -el controlador cierra un contacto y la camara graba- NO SE INSTALA EN ESTE
+// DESPLIEGUE. Medido sobre la guia que sigue el instalador
+// (05_Funcional/Camaras_Sisga_4x.html): cablea J16 (48 menciones) y J15 (15), nombra
+// J14 (9), y de J9, J11 y J13 -los tres candidatos de D-d, roadmap.md 2.4- CERO. Y solo
+// cablea la SALIDA de alarma de la camara (1A/1B, hacia J16); nunca su entrada, que es
+// lo que D-14 pedia.
+//
+// EL ANCLA VIVE AQUI PORQUE J9/J11/J13 SON LOS TRES CANDIDATOS: J9 (VERDE_PEATON,
+// arriba) y J11 (ROJO_PEATON, arriba) siguen sin firmware detras (D-d), y J13 (BUZZER,
+// mas abajo) tambien. NINGUNO SE GASTA PARA D-14: no hay salida de la tarjeta cableada
+// hacia la entrada de alarma de la camara, y quien llegue con el destornillador no
+// cablea nada ahi para esto. Si D-14 se instala algun dia, primero se elige canal
+// (roadmap.md 2.4) y se escribe el codigo; hasta entonces no hay nada que construir.
+
 // --- Actuadores ---
 #define LORA_DE_RE        PB12 // Control DE/~RE del MAX3485 (bus OUT) -> E90-DTU LoRa
 #define BUZZER             PB1  // -> opto U13 -> MOSFET Q8 -> bornera J13
