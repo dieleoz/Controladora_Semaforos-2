@@ -320,14 +320,15 @@ quedar correcto y la compuerta verde, pero un `revert` de ese commit no deshace 
 
 | | |
 |---|---|
-| `DECISIONES.md` | 🔴 **lo decidido: `D-x` vigentes y `A-x` abiertos. GANA a este fichero, y se lee ANTES de lanzar un agente o de ejecutar un cambio de alcance** |
+| 🔴 **`05_Funcional/SPEC_0..SPEC_8`** | **MANDA, Y SOBRE EL FIRMWARE TAMBIEN** *(responsable, 14/09: «ahora es lo que digan las spec, y eso debe hacer el firmware»)*. Es el documento DEL PRODUCTO: lo que el equipo HACE. **Si el firmware y la spec no coinciden, el defecto es del FIRMWARE** — salvo que la spec prometa algo que nadie decidio, y entonces es la spec la que miente y se corrige (§1). Se parte de aqui para exportar |
+| `DECISIONES.md` | **el ANDAMIO: como se llego.** ~~GANA a este fichero~~ -> **DEJA DE GANAR el 14/09** *(«el archivo decisiones marea»)*. Sigue sirviendo para UNA cosa y solo una: **que no se le vuelva a preguntar al responsable lo que ya contesto**. Se lee antes de lanzar un agente por eso, no porque mande |
 | `05_Funcional/17_Arquitectura...md` | 🔴 **las medidas de cobre, con fecha, instrumento y firmware que habia dentro. GANA a este fichero en todo lo que sea hardware medido** |
 | `ARQUITECTURA.map` | que ficheros abre cada instrumento, que mide cada fila de la compuerta, que hay en cada conector |
 | `roadmap.md` · `roadmap_hist.md` | el **porque**: cada `N-x` con su cronica. Se busca **por `N-x`**, no por fichero: el corte entre los dos se mueve |
 | `ESTADO.md` | donde esta parado el trabajo **hoy** · `evidencia/`, las actas con fecha y hash: **la fuente de toda cifra** |
 | `OPTIMIZACIONES.md` | las reglas `SFTY-x` y la trazabilidad regla -> codigo -> prueba |
 | `01_Firmware/compuerta.py` | **la unica forma correcta de verificar** · `Simulaciones/banco/`, packs y modelos · `Validacion_*/`, los arneses que compilan C++ real |
-| 🔴 **`05_Funcional/SPEC_1..SPEC_6`** | **LA SPEC, y es el documento DEL PRODUCTO**: lo que el equipo HACE. Se parte de aqui para exportar, no de `DECISIONES.md`. Cada afirmacion validada contra el fuente; lo que no cumple vive en su «HUECOS MEDIDOS» |
+| *(la spec)* | cada afirmacion validada contra el fuente; lo que NO se cumple vive en su apartado «HUECOS MEDIDOS», **nunca escrito como si existiera** |
 | `04_Manuales/`, el resto de `05_Funcional/` | manuales y protocolos para el tecnico y el auditor |
 
 ## 13. Convenciones
@@ -378,9 +379,13 @@ las tres primeras: identicas o no se compila.**
 
 Lo fija el responsable, y decide que se toca primero cuando dos cosas compiten:
 
-1. 🔴 **LA SPEC — `05_Funcional/SPEC_1..SPEC_6`.** Es **el documento DEL PRODUCTO**: el responsable lo fijo el
-   13/09 — *«si manana exportamos este semaforo, partimos de los MANUALES y de la SPEC»*—. Con `05_Funcional/17_...`,
-   que gana en cobre medido.
+1. 🔴 **LA SPEC — `05_Funcional/SPEC_0..SPEC_8`, Y MANDA SOBRE EL FIRMWARE.** El responsable lo fijo el 13/09
+   —*«si manana exportamos este semaforo, partimos de los MANUALES y de la SPEC»*— y lo cerro el 14/09: **«ahora es
+   lo que digan las spec, y eso debe hacer el firmware»**. Con `05_Funcional/17_...`, que gana en cobre medido.
+   ⚠️ **Y por eso una spec que promete lo que el equipo no hace ya no es solo un documento malo: es una ORDEN
+   FALSA.** El 14/09 hubo **ocho** afirmaciones falsas vivas a la vez en seis documentos —cuatro sobre el retardo de
+   la barrera, tres negaciones de algo construido y una constante que un comentario del propio firmware negaba—, y
+   **ninguna la caza la compuerta**: las cazaron un revisor y dos agentes leyendo. Esa es la deuda de instrumento.
 2. **Los ARNESES y los instrumentos** — compuerta, packs, simuladores. Lo que MIDE la spec.
 3. **Los manuales y la documentacion** — `04_Manuales/`, el resto de `05_Funcional/`, los `.docx`.
 

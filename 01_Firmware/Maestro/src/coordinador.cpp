@@ -232,10 +232,19 @@ const uint8_t CICLO_MAX_REINTENTOS = 5;
 // aire medio duplex es el tiempo de cable, 2 x ENVIO_TRAMA_MS. El borde de costura_09 es
 // el que acota lo que este aviso puede gastar, y es el que el responsable tuvo delante.
 //
-// ENVIO_TRAMA_MS no se lee de ningun sitio porque no existe como constante en el
-// firmware: es tiempo de CABLE -4 tramas x 3 copias de rafaga a 9600 baudios mas la
-// conmutacion del MAX485- y costura_09 lleva el mismo 0,06 s escrito a la vista por el
-// mismo motivo. Se anota aqui, no dentro de una suma.
+// ~~ENVIO_TRAMA_MS no se lee de ningun sitio porque no existe como constante en el
+// firmware~~ -> FALSO, y corregido el 14/09: existe cuatro lineas mas abajo y se lee
+// TRES veces -PASO_RADIO_MS, el comentario del coste del aviso y el static_assert del
+// presupuesto-. El comentario se escribio cuando el valor era un numero a mano, alguien
+// lo convirtio en constante y esta frase se quedo negandola. Lo cazo el pack que vigila
+// las spec, porque una spec la habia COPIADO LITERAL y publicaba la misma mentira.
+//
+// LO QUE SI ES CIERTO Y ES LO QUE HABIA QUE DECIR: su valor NO SE DERIVA de ninguna otra
+// constante del firmware. Es tiempo de CABLE -4 tramas x 3 copias de rafaga a 9600
+// baudios mas la conmutacion del MAX485-, o sea una medida de fuera, y por eso se escribe
+// aqui a la vista en vez de dentro de una suma; costura_09 lleva el mismo 0,06 s escrito
+// por el mismo motivo. Un numero que viene de fuera se ESCRIBE; lo que no se hace es
+// negar la constante que lo guarda.
 static constexpr unsigned long ENVIO_TRAMA_MS = 60;
 static constexpr unsigned long PASO_RADIO_MS = TIMEOUT_ACK_MS + ENVIO_TRAMA_MS;
 static constexpr unsigned long PRESUPUESTO_LIBRE_MS =

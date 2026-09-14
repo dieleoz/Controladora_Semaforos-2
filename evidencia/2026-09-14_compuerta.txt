@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-09-14
-HEAD         : dcf3991   rama: main
+HEAD         : fa59bf2   rama: main
 Arbol        : CON CAMBIOS SIN COMMITEAR
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -21,7 +21,7 @@ RESULTADOS
   PASS      test unitarios de la app          RESUMEN DE PRUEBAS: 52 PASS | 0 FALLAS  (Total: 52)
   PASS      test unitarios TDD de la app      RESUMEN TDD: 69 PASS | 0 FALLAS  (Total: 69)
   PASS      app ejecutada en DOM              RESULTADO JSDOM: 281 PASS | 0 FALLAS
-  FALLA     banco por packs                   RESUMEN: 1411/1412 comprobaciones  |  packs: 78 PASS, 1 FALLA, 0 ABORTADO
+  FALLA     banco por packs                   RESUMEN: 1422/1423 comprobaciones  |  packs: 79 PASS, 1 FALLA, 0 ABORTADO
   PASS      arnes del ciclo                   RESULTADO: 22/22 comprobaciones OK
   PASS      arnes del respaldo                respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
   PASS      arnes del automatico              RESULTADO: 115/115 comprobaciones OK
@@ -32,8 +32,8 @@ RESULTADOS
   RESUMEN: 18 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a dcf3991 y re-corriendo
+firmware. Esta acta se verifica volviendo a fa59bf2 y re-corriendo
 python 01_Firmware/compuerta.py.
 
 AVISO: el arbol tenia cambios sin commitear al medir. Estas
-cifras NO corresponden exactamente a dcf3991.
+cifras NO corresponden exactamente a fa59bf2.

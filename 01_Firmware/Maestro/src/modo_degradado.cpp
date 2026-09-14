@@ -844,7 +844,12 @@ void modo_degradado_loop() {
   // y repetido mientras el aviso sigue armado. Mismo plazo de siempre -AVISO_LIMITE_MS-,
   // que no se reinvento: la comparacion no salio de este fichero.
   //
-  // LO QUE SI SE PIERDE, dicho con su nombre: en esta punta ya nadie llama a
-  // ciclo_degradado_restante(), asi que la CUENTA ATRAS del Degradado del Maestro no
-  // se publica en ningun sitio. En el Esclavo si -degradado_segundosParaCambio()-.
+  // LO QUE SI SE PIERDE, dicho con su nombre: ya nadie llama a
+  // ciclo_degradado_restante(), asi que la CUENTA ATRAS del Degradado no se publica en
+  // ningun sitio. ~~En el Esclavo si -degradado_segundosParaCambio()-~~ -> FALSO,
+  // medido el 14/09: en el Esclavo esa funcion tiene definicion, cabecera y un
+  // comentario que dice "hoy solo lo usa la pantalla del menu"... y el menu se fue con
+  // el LCD. CERO llamadores en las DOS puntas. Se corrige aqui porque un comentario que
+  // dice que algo se publica cuando no se publica es peor que el hueco: quien lo lea no
+  // ira a construirlo.
 }

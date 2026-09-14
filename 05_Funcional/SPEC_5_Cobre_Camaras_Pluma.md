@@ -1,8 +1,16 @@
-# SPEC 5 — COBRE, CAMARAS Y PLUMA
+# SPEC 5 — COBRE Y CONECTORES
 
-**Para quien tiene un destornillador en la mano, y para quien compra.** Que hay en cada pin, que es
-peligroso, y que declara este proyecto **sin haberlo medido nunca**. **Fuera:** el ciclo (SPEC 1), la
-radio (SPEC 2), la hora (SPEC 3), la app (SPEC 4).
+**Para quien tiene un destornillador en la mano, y para quien compra — UN SOLO LECTOR.** Que hay en
+cada pin, que es peligroso, y que declara este proyecto **sin haberlo medido nunca**. 🔴 **Que HACEN
+la camara y la barrera —el veto, el retardo de 3 s, el aviso, los dos interruptores— ya NO vive aqui:
+es `SPEC_8`.** **Fuera** ademas: el ciclo (SPEC 1), la radio (SPEC 2), la hora (SPEC 3), la app (SPEC 4).
+
+> **EL CORTE CON `SPEC_8`, Y POR QUE ES ESE — se escribe porque partir un documento deja huecos entre
+> las dos mitades, y un hueco que nadie nombra no lo cubre nadie.** Aqui vive lo que decide **EL
+> COBRE**: lo que hay en un borne y lo que pasa **sin firmware dentro**. Alli vive lo que decide **EL
+> FIRMWARE**. Por eso **la pluma sin energia esta AQUI** (§4: cae el pin, cae el MOSFET, baja el
+> brazo) y **la pluma que sube con el ambar intermitente esta en `SPEC_8` §5** — esa la decide una
+> linea de `escribirPines()`, no el cobre.
 
 **De donde sale cada linea.** Las MEDIDAS de cobre son de `05_Funcional/17_Arquitectura_28-08_y_
 Decisiones_Abiertas.md`, **copiadas literales con su fecha** — esa spec **gana a esta** en todo lo
@@ -15,7 +23,7 @@ del fichero · `SIN VERIFICAR` = **nadie lo ha comprobado, ni aqui ni en ningun 
 > 03-04/09**: `J16` p5/p8/p10/p12, `J17` p2/p3, `J14`, `J15` y las masas del modulo. Todo lo demas
 > es un **dibujo**, no una placa.
 
-# 🛑 PAGINA 1 — LOS CUATRO AVISOS QUE HIEREN A UNA PERSONA
+# 🛑 PAGINA 1 — LOS AVISOS QUE HIEREN A UNA PERSONA: **TRES DE COBRE, Y EL CUARTO SE MUDO**
 
 ## 1. `J16` p1 lleva 12 V CRUDOS, y taparlo es OBLIGATORIO en cada equipo
 
@@ -45,8 +53,8 @@ bornera: antirrebote RC de 1 ms **en la placa**). `J14` p2 son **3,3 V**, el nud
 
 - **`D-27` (2), 11/09: `J14` queda LIBRE, SIN CABLEAR** — el fin de carrera **no se instala** aqui.
 - ⚠️ **Mientras el firmware lea `PB0` como `CAM_DEMANDA_PIN`, en `J14` no se conecta NADA** — sigue
-  leyendolo en las dos puntas (§3). Vacio, `R64` lo deja en **0 V** (`J14` **MEDIDO EN COBRE**, pasos
-  17-18 del banco 03-04/09).
+  leyendolo en las dos puntas (`SPEC_8` §2). Vacio, `R64` lo deja en **0 V** (`J14` **MEDIDO EN
+  COBRE**, pasos 17-18 del banco 03-04/09).
 - ⚠️ **`J15` p2 NO es masa**, aunque un esquema de guia lo rotulara «GND (Q10)»: con `Q10` abierto
   esta a **~12 V** (`D-25`).
 
@@ -81,62 +89,10 @@ por **dos caminos, no uno**:
 > **CERRADO**, que es lo correcto; **retirar su ARMADOR del codigo dejaria los tres `if` siempre
 > verdaderos y el veto ABIERTO**. Por eso `D-1` dice que el codigo **no se toca**.
 
-## 4. 🔴 LA CAMARA FRENA LA BARRERA — pero solo a la que YA veia bajar
+## 4. 🔴 LA CAMARA FRENA LA BARRERA — **este aviso se mudo ENTERO a `SPEC_8` §1**
 
-**`D-33` (14/09/2026) derogo el aviso que habia aqui** *(«ninguna camara protege la pluma: puede bajar
-con un coche debajo», medido el 11/09 y cierto hasta ese dia)*. Hoy `escribirPines()` **si** lee la
-camara, y lo que hace con ella tiene una sola direccion:
-
-- **La pluma SUBE por la luz y por nada mas.** La camara no la levanta nunca: la rama de «pluma ya
-  abajo» la deja abajo **en seco**, sin mirar camara ni reloj. **Una deteccion no puede abrir una
-  barrera con la luz en rojo.**
-- **La pluma BAJA tres segundos DESPUES del rojo** (`PLUMA_RETARDO_BAJADA_MS`, elegido por el
-  responsable el 14/09 — no derivado), *«porque suelen pasarse carros en ambar y hay que darle unos
-  segundos al conductor»*. El retardo no depende de ninguna camara: se cumple con las borneras vacias,
-  que es como esta hoy la mayoria de los equipos.
-- **Pasado el retardo, CUALQUIERA de las dos camaras del poste VETA la bajada** mientras siga viendo
-  algo. Sin consenso: con un AND, una camara muerta anularia el veto para siempre.
-- **El veto es LOCAL y no para el ciclo.** *«Esas barreras son casi de adorno; el que manda es el
-  semaforo y su estado»* (responsable, 14/09). El coordinador no lo consulta: el otro poste abre su
-  verde igual.
-
-🔴 **LA DIRECCION DEL FALLO ESTA DECIDIDA: ante error, falsa alarma o contacto pegado, LA BARRERA NO
-BAJA.** No se le pone tope que acabe bajandola —un tope devuelve el peligro que el veto evita, porque
-el firmware **no distingue un rele trabado de un vehiculo parado debajo** (`A-1.bis`)—: se **AVISA**,
-y el aviso dice **cuantos segundos lleva retenida**, nunca «camara averiada». 🔴 **Traducir ese aviso
-a «revise el ajuste de la camara» es trabajo de la app y esta PENDIENTE** (`SPEC_4` §7, hueco 9). **Una barrera arriba no aplasta a nadie; el precio es que deja de proteger, y por
-eso tiene que VERSE.**
-
-⚠️ **Y lo que sigue sin proteger a nadie, escrito en vez de disimulado: una camara muerta DESDE LA
-INSTALACION no veta NUNCA.** Sin un solo flanco el firmware no la distingue de una bornera vacia
-(§3.2, `A-6`), asi que ahi la pluma baja como antes de `D-33`. Es el lado seguro para el tramo y el
-inseguro para quien este debajo. Lo compensa el paso de instalacion del Manual 9, que obliga a
-**provocar una deteccion** delante de la camara.
-
-### Cuando el equipo pide que se revise la camara — **basta UNA vez**
-
-**No hay que contar alarmas ni fijar un numero: el criterio es fisico.** Un vehiculo que pasa por
-debajo despeja en segundos. Si una camara sigue viendo algo **despues del todo-rojo mas largo que el
-equipo admite**, lo que hay debajo ya no es trafico normal: o esta averiada la camara, o esta
-apuntando a donde no debe, o hay algo parado ahi.
-
-**Asi que en cuanto ocurre UNA sola vez, el equipo lo publica**, y lo repite mientras la barrera siga
-retenida. El aviso dice **cuantos segundos lleva retenida** —que es lo unico que el equipo ha medido
-de verdad—; **nunca dice «camara averiada»**, porque este equipo no ve imagen y no puede saberlo.
-
-🔴 **Y aqui hay un tramo SIN CONSTRUIR que no se disimula: traducir ese aviso a «revise el ajuste de
-la camara» es trabajo de la app, y hoy no esta hecho.** El aviso llega al telefono y **se queda como
-una linea mas del registro**, sin destacar y sin decir lo unico accionable (`SPEC_4` §7, hueco 9).
-
-⚠️ **Y el aviso tarda en salir lo que dura el todo-rojo mas largo que el equipo admite —90 s—, aunque
-el cruce este configurado con uno de 10 s.** Se compara contra ese techo a proposito, para que este
-aviso **no pueda ser nunca una falsa alarma por tener el ciclo largo**. Afinarlo exigiria que la
-barrera preguntara el ciclo EN CURSO, y eso hoy no existe.
-
-⚠️ **Lo que esto cuesta, y se acepta:** un camion cargando o un vehiculo averiado parado bajo la
-barrera **tambien** dispara la peticion de ajuste. Es un aviso de mas con la camara sana. Molesta a
-quien lo atiende; **no hiere a nadie**, y la alternativa —esperar a que se acumulen varias— seria
-elegir un numero que nadie ha medido todavia. *(Decidido el 14/09.)*
+**Lo unico que se afirma de eso desde aqui es cobre: `J16` p10 y p12 son las dos camaras (§2.1) y
+`J15` es la pluma (§4). El veto, el retardo de 3 s y el aviso son `SPEC_8`, y no se resumen aqui.**
 
 # 1. El reparto, en una frase
 
@@ -200,7 +156,7 @@ cerrar el contacto contra los 3,3 V: entrada activa en ALTO, para los cuatro pin
 🛑 **El gesto de prueba es `p5` contra `p4` y `p8` contra `p7` — NUNCA contra masa:** en todo `J16`
 hay **una sola masa** (`p2`). Y **`p1` tapado antes de nada.**
 
-# 3. Las camaras
+# 3. Las camaras — **el cobre**
 
 **Camara comprada: Hikvision `DS-2CD2683G2-IZS`** (`D-10`), **las CUATRO compradas** (`D-27` (1)),
 **dos por poste** (`D-25`, 11/09: *«mantener estas conexiones como definitivas»*).
@@ -218,24 +174,9 @@ oficial): el soporte de accidentes existe **en la camara, no en el firmware**.
 | **camara 1** | `J16` **p9** (3,3 V) | `J16` **p10** (`PB14`, `CAM_C_PIN`) |
 | **camara 2** | `J16` **p11** (3,3 V) | `J16` **p12** (`PB15`, `CAM_D_PIN`) |
 
-## 3.1 🔴 Las DOS entradas hacen EXACTAMENTE LO MISMO
+## 3.1 Las DOS entradas hacen EXACTAMENTE LO MISMO — **`SPEC_8` §2**, con la tercera declarada
 
-**MEDIDO hoy en las dos puntas:** `camaras_actualizar()` recorre `CAM_J16[2] = {CAM_C_PIN,
-CAM_D_PIN}` **en un solo bucle**: flanco -> `demanda_solicitar()` + `vigilante_flanco()`.
-**NO hay una «de demanda» y otra «de presencia», lo diga lo que lo diga cualquier manual.**
-
-**Y hay una TERCERA entrada declarada que no es ninguna de esas dos:** `CAM_DEMANDA_PIN` (`PB0`,
-`J14`), que se lee **distinto** — Maestro por **NIVEL** en `modoInteligente_loop()`, Esclavo por
-**FLANCO** en `main.cpp` -> `demanda_solicitar()` -> `CMD_DEMANDA` — y **el vigilante NO la vigila**.
-Hoy `J14` va **libre** (`D-27`), asi que en reposo no pide nada; **pero el codigo sigue ahi.**
-
-## 3.2 🔴 Una segunda camara muerta desde la instalacion NO SE DETECTA SOLA
-
-**MEDIDO:** `vigilante_tick()` salta el plazo `CAM_CIEGA` mientras `camHuboFlanco[i]` es falso, y
-`camara_estado()` salta esa misma camara al publicar `CAM:`. **El vigilante no alarma una camara que
-NUNCA dio un flanco**, y la app pinta `CAM: OK` con la primera deteccion **de cualquiera de las
-dos**. Tras cada reinicio la vigilancia queda desarmada hasta la primera deteccion. **Por que esa exencion
-ya no tiene motivo: §7.2.**
+## 3.2 Una camara muerta desde la instalacion NO SE DETECTA SOLA — **`SPEC_8` §4** (su choque, §7.2)
 
 ## 3.3 Lo que la placa pone y lo que no
 
@@ -244,59 +185,23 @@ Las tres entradas son **`INPUT` PELADO y ACTIVAS EN ALTO**. `R64`/`R67`/`R68` so
 («`PB14`/`PB15` sin condensador») es **falsa** (11/09), y el comentario de `camara_leerPin()`
 **todavia la dice** (§7). **Las resistencias estan medidas en cobre; los condensadores, NO.**
 
-# 4. La talanquera
+# 4. La talanquera — **la cadena electrica**
+
+> 🔴 **Que HACE la pluma —cuando sube, cuando baja, quien la veta, quien la saca de servicio y que
+> pasa en averia— es `SPEC_8`. Aqui solo el cobre por el que sale la orden.**
 
 **Cadena:** `PB2` -> `R70` 220 / `R69` 10K -> opto `TLP127` (`U15`) -> MOSFET `IRLZ44N` (`Q10`) ->
 bornera **`J15`** (p1 = 12 V, p2 = drenador). **`D-25` / `D-27` (4): `J15` p1/p2 a la bobina de un
-rele, y los contactos del rele a `OPEN`/`COM` de la centralita.** **SFTY-28, pin a pin:**
+rele, y los contactos del rele a `OPEN`/`COM` de la centralita.** **Lo que el COBRE garantiza, pin a
+pin** (la regla completa es SFTY-28, y su tabla luz -> pluma es **SPEC 1 §2**):
 
-- **Sube con verde y tambien en `S_FALLO`** —ambar intermitente: orfandad SFTY-6, Modo Ambar,
-  `AMBAR_EMERGENCIA`, Degradado en ambar, un poste recien encendido—; **no sube con el verde de un test
-  de lamparas** (`!testLedsActivo`, N-82). **La tabla luz -> pluma entera es SPEC 1 §2** y no se repite.
-- **`D-33`: y BAJA tres segundos tarde, o no baja** mientras una camara vea algo debajo. Las dos
-  excepciones solo pueden **RETENER** una pluma que ya estaba arriba: la subida sigue dependiendo de
-  la luz y de nada mas. Pagina 1 §4.
-
-### 4.1 🟡 Los dos interruptores de administrador — **DECIDIDOS el 14/09, SIN CONSTRUIR**
-
-Hay dos averias distintas que hoy dejan un poste sin salida, y llevan **dos interruptores
-separados en el modo administrador de la app, uno por poste**. No se pueden juntar en uno: lo que
-falla no es lo mismo y lo que queda funcionando tampoco.
-
-| el interruptor | cuando se usa | que hace el equipo despues |
-|---|---|---|
-| **Sacar la camara del veto** | la camara esta averiada o mal apuntada y **no deja bajar la barrera** | la barrera **vuelve a trabajar**: sube con el verde y baja tras el rojo, con su retardo. Lo unico que se pierde es que la camara pueda retenerla |
-| **Sacar la barrera de servicio** | la barrera esta **rota de verdad** —brazo partido, actuador atascado— | el brazo se queda **arriba** y deja de obedecer a la luz. El cruce sigue funcionando **solo con el semaforo** |
-
-**Los dos TIENEN QUE sobrevivir a un corte de luz** —y por eso la tarjeta guarda indicadores en una
-memoria que mantiene viva su pila; que sigan puestos de verdad es una de las dos cosas que hay que
-medir antes de construirlo, abajo— **y los dos se publican**, porque un poste degradado en silencio es exactamente lo que
-este documento existe para evitar: quien se conecte tiene que ver que ese poste no esta entero.
-
-⚠️ **No sobra sitio, y se dice porque el trabajo lo va a encontrar: las diez casillas de esa memoria
-estan ocupadas.** Los dos interruptores caben **como dos banderas dentro de la casilla de
-indicadores**, que si tiene hueco, y eso obliga a rehacer su suma de comprobacion y a **cambiar las
-dos puntas a la vez**, porque ese fichero tiene que ser identico en las dos.
-
-🔴 **Y quedan dos cosas por MEDIR antes de construirlo, no despues:** que el interruptor siga puesto
-de verdad tras un corte —no basta con que quepa— y **que hace el equipo si se saca la barrera de
-servicio con el brazo abajo**. Subir un brazo no aplasta a nadie, pero el equipo arranca siempre con
-la barrera abajo, asi que hay un instante que hay que mirar.
-
-🔴 **Lo que NO garantiza «sacar la barrera de servicio»: que el brazo se quede arriba si se va la
-luz.** Sin energia la salida cae y el actuador baja por su muelle o por su peso — es el fallo seguro
-de la barrera y **el software no lo gobierna**. El interruptor manda mientras haya corriente.
-  Lo del `S_FALLO` **lo eligieron el cliente y el PMT el 27/08/2026**, no el firmware — 🔴 **y esa
-  eleccion NO tiene fila en `DECISIONES.md`** (SPEC 1 §11).
-- **Equipo SIN ENERGIA: el pin cae a LOW, el MOSFET no conduce, la pluma BAJA** — el fallo seguro. La
-  compra pide **actuador con retorno por muelle o gravedad**: eso el software no lo garantiza.
 - **La orden sale por la MISMA puerta que las luces** — dentro de `escribirPines()`, con el `verde`
   ya enclavado por SFTY-2. Una barrera con dos puertas no es una barrera.
-
-> 🔴 **Y lo que NO hace: no la levanta nada.** La camara solo puede retrasar o impedir la BAJADA
-> (`D-33`, pagina 1 §4). **`A-1.bis` sigue abierto en su otra mitad:** que hacer cuando el veto se
-> queda pegado. La respuesta de hoy es **avisar y no bajar nunca**, y esta escrita porque se eligio,
-> no porque se midiera que sea la mejor.
+- **Equipo SIN ENERGIA: el pin cae a LOW, el MOSFET no conduce, la pluma BAJA** — el fallo seguro. La
+  compra pide **actuador con retorno por muelle o gravedad**: eso el software no lo garantiza.
+- 🔴 **Y por eso «sacar la barrera de servicio» (`SPEC_8` §6) NO garantiza que el brazo se quede
+  arriba si se va la luz:** sin energia la salida cae y el actuador baja por su muelle o por su peso.
+  **El interruptor manda mientras haya corriente**; el cobre manda cuando no la hay.
 
 ⚠️ **MEDIDO EN COBRE (banco 04/09):** `J15` dio *«en rojo 0 V, en ambar 12 V»*. La causa se explico
 el 05/09: **nueve de los diez drenadores llevan pull-up de 1 kOhm + LED al riel de 12 V** (`R23`,
@@ -327,6 +232,9 @@ datasheet); nivel ALTO con la camara cerrada, **2,70 V** contra un `VIH` de **2,
 un techo y esta cerca**, y lo fija el pull-down de 10 kOhm que la placa ya trae.
 
 # 6. `SIN VERIFICAR` — lo que el proyecto declara sin haberlo medido nunca
+
+**La tabla se conserva ENTERA y con su numeracion**, porque se cita desde fuera por numero de fila.
+Lo que no esta medido de la **conducta** —no del cobre— es `SPEC_8` §7.
 
 | # | lo que nadie ha comprobado |
 |---|---|
@@ -364,7 +272,7 @@ Manda la medida de cobre; el choque se escribe, no se arregla desde aqui (`CLAUD
    (aviso 2). Inofensivo con el borne vacio; **deja de serlo el dia que alguien cablee ahi.**
 2. **La exencion del vigilante se escribio PORQUE `p12` iba vacio a proposito, y `D-25` le quito el
    motivo** (`CLAUDE.md` §6: una excepcion es una AFIRMACION sobre el codigo, y esta caduco). Sigue en
-   el firmware: **una camara 2 muerta desde la instalacion no la avisa nadie** (§3.2). Pendiente EN
+   el firmware: **una camara 2 muerta desde la instalacion no la avisa nadie** (`SPEC_8` §4). Pendiente EN
    FIRMWARE, no aqui.
 3. **El comentario de `camara_leerPin()` en `botones.cpp` de las dos puntas dice que `PB14`/`PB15`
    «no llevan mas que el 10K de `R67`/`R68`».** El netlist trae `C28` y `C29` (100 nF). **Gana el
@@ -378,7 +286,8 @@ Manda la medida de cobre; el choque se escribe, no se arregla desde aqui (`CLAUD
    regla es **vacuamente cierta** para los dos peatonales (`N-96`; §2 de arriba y SPEC 1 §1).
 
 *Decisiones recogidas: `D-1`, `D-2`, `D-3`, `D-4`, `D-10`, `D-12`, `D-13` (lo no derogado), `D-14`,
-`D-25`, `D-27`, `D-32` (1) y (4). Abiertas que nombra sin resolver: `A-1.bis`, `A-2`, `17_` §3.6 y §3.10. Las MEDIDAS
+`D-25`, `D-27`, `D-32` (1) y (4). Abiertas que nombra sin resolver: `A-2`, `17_` §3.6 y §3.10. Las MEDIDAS
 son de `17_Arquitectura_28-08_y_Decisiones_Abiertas.md`, que **gana a este fichero**; lo decidido, de
 `DECISIONES.md`, que **gana a los dos**. El firmware se remidio contra `{Maestro,Esclavo}/include/
-pines.h` y `src/{semaforo,botones,main}.cpp` el 12/09/2026.*
+pines.h` y `src/{semaforo,botones,main}.cpp` el 12/09/2026. **La conducta de camara y barrera se
+partio a `SPEC_8` el 14/09/2026** (`roadmap.md` 1.45).*

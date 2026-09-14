@@ -12,7 +12,7 @@
 **La puerta de entrada.** Quien no ha visto este repositorio empieza aqui y sale sabiendo **que es el producto**, **como se
 opera un cruce de principio a fin** y **que NO hace el equipo**. Escrita el 13/09/2026 con **cuatro agentes escribiendo en el
 arbol a la vez**: todo lo medido esta fechado al commit **`ef3504c`** (`git show ef3504c:<fichero>`). **Mandan sobre este
-fichero** `DECISIONES.md` en lo decidido, `05_Funcional/17_...` en el cobre medido, y **cada una de las otras siete spec en su
+fichero** `DECISIONES.md` en lo decidido, `05_Funcional/17_...` en el cobre medido, y **cada una de las otras ocho spec en su
 materia** — aqui vive el puntero, nunca el desarrollo. Se cita el **SIMBOLO**, nunca la linea (`CLAUDE.md` §7.3), y **ninguna
 cifra vive aqui** (§14).
 
@@ -31,7 +31,7 @@ dos puntas. **El Automatico no se reanuda: no se guarda el modo, solo los tiempo
 el telefono en el poste**. `SPEC_3` §6 y `SPEC_6` A.5.3 documentan la reanudacion del Degradado; **la del modo normal no.**
 
 **C · «Operacion normal» NO estaba escrita, y lo confirma el instrumento.** `grep -rincE "puesta en marcha|operacion
-normal|primera vez" 05_Funcional/SPEC_*.md` da **0 en las siete** (reproducido hoy). Lo unico que habia: el procedimiento de
+normal|primera vez" 05_Funcional/SPEC_*.md` da **0 en las ocho** (reproducido hoy). Lo unico que habia: el procedimiento de
 campo del **Degradado** (`SPEC_6` PARTE A), y **tres pasos dentro de `app.js`** —*«1) VOLVER AL MENU; 2) mande los tiempos;
 3) ARRANQUE EL CICLO con AUTOMATICO»*, literal de `EN_MARCHA_PARE_EL_MODO`, que `N-150` escribio despues de que un operario
 se quedara el 05/09 delante de un cruce en rojo esperando a que arrancara solo—. **Era la mejor documentacion de operacion
@@ -105,7 +105,7 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
     **quitar la energia**: sin energia el pin de la pluma cae a reposo, **la pluma BAJA** y las luces se apagan (`SPEC_5` §4).
     Al volver la energia, §0.B.
 
-## 3. EL MAPA DE LAS SIETE SPEC — a donde ir
+## 3. EL MAPA DE LAS OCHO SPEC — a donde ir
 
 | | contesta |
 |---|---|
@@ -113,9 +113,17 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
 | **`SPEC_2` Dos Puntas y Radio** | como se coordinan los dos postes, y que pasa con la radio sana, degradada y muerta |
 | **`SPEC_3` La Hora** | de donde sale la hora, quien siembra a quien, cuando CADUCA y que se hace entonces |
 | **`SPEC_4` App y Bluetooth** | **todas las ordenes y que contesta el equipo a cada una**; telefono → ESP32 → STM32 |
-| **`SPEC_5` Cobre, Camaras y Pluma** | que hay en cada pin y que es peligroso. Se lee **con un destornillador en la mano** |
+| **`SPEC_5` Cobre y Conectores** | que hay en cada pin, que es peligroso y que no se ha medido nunca del hardware. Se lee **con un destornillador en la mano** |
 | **`SPEC_6` Campo, Radio y Alarmas** | el Degradado paso a paso, la configuracion de las radios, y **que hace el tecnico con cada alarma** |
 | **`SPEC_7` Modo Sin Reloj** | por que ese modo **no se construye**, y que si falta (que la app diga POR QUE) |
+| **`SPEC_8` Camaras y Barrera** | **que HACEN** las camaras y la pluma: el veto, el retardo de bajada, cuando el equipo pide que se revise una camara, y **que NO protege** |
+
+> 🔴 **`SPEC_5` y `SPEC_8` son las dos mitades de un mismo aparato y se leen juntas** — se partieron
+> el 14/09 porque un solo documento servia a dos lectores (`roadmap.md` 1.45). El corte: **`SPEC_5` es
+> lo que decide el COBRE** (que hay en un borne, y que pasa sin firmware dentro); **`SPEC_8` es lo que
+> decide el FIRMWARE.** Por eso la pluma **sin energia** esta en `SPEC_5` §4 y la pluma que **sube con
+> el ambar intermitente de averia** esta en `SPEC_8` §5 — con la eleccion vial del cliente y el PMT
+> del 27/08/2026 que **sigue sin fila en `DECISIONES.md`**.
 
 ## 4. GLOSARIO
 
@@ -129,7 +137,7 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
 - **Orfandad** — que a una punta deje de llegarle nada de la otra durante `SFTY6_SILENCIO_MS`; se responde con **ambar intermitente** (SFTY-6, `SPEC_2` §4).
 - **Siembra** — el envio periodico de la hora del ESP32 a su STM32 por el cable `J17` (`SPEC_3` §2).
 - **Vale de via despejada** — lo que la app pregunta antes de una orden que **abre paso**: un PIN demuestra QUIEN eres, no que hayas MIRADO (`SPEC_4` §4).
-- **PMT** — quien dirige el manejo de transito de la obra; consta como autor, con el cliente, de una decision vial del 27/08/2026 (`SPEC_5` §4). ⚠️ **El repositorio usa la sigla sin desarrollarla nunca**, y aqui no se inventa.
+- **PMT** — quien dirige el manejo de transito de la obra; consta como autor, con el cliente, de una decision vial del 27/08/2026 que **no tiene fila** (`SPEC_8` §5) (`SPEC_5` §4). ⚠️ **El repositorio usa la sigla sin desarrollarla nunca**, y aqui no se inventa.
 
 ## 5. 🔴 LO QUE EL EQUIPO NO HACE — en un solo sitio, y **medido** en la spec que cada linea cita
 
@@ -140,7 +148,7 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
    hay mensaje de error** (`SPEC_5` §2, `SPEC_1` §1). **No se venden como funciones del equipo.**
 3. **NO DISTINGUE UN VEHICULO PARADO DEBAJO DE UNA CAMARA MAL APUNTADA.** 🟢 ~~Ninguna camara protege la pluma~~ →
    **desde el 14/09 SI la protege**: la barrera baja 3 s despues del rojo y **no baja mientras una camara vea algo debajo**
-   (`SPEC_5` pag. 1 §4). 🔴 **Lo que el equipo NO puede hacer es juzgar lo que ve:** un vehiculo parado y una camara
+   (`SPEC_8` §1). 🔴 **Lo que el equipo NO puede hacer es juzgar lo que ve:** un vehiculo parado y una camara
    que dispara sola **dan el mismo contacto cerrado**, asi que ante la duda **no baja y avisa** —y quien decide si eso es
    una averia o trafico es una persona, no el equipo—. Y **los ultimos metros de la bajada no los ve nadie**: no hay fin
    de carrera, y esta **sin preguntar al fabricante** si la centralita trae fotocelula o borde sensible.
@@ -157,6 +165,6 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
    y `ESTADO:` y **nunca la causa**: los textos de causa que el operario lee estan escritos en `app.js` (`SPEC_7` §6, H-2).
 8. **NO SE DIAGNOSTICA A SI MISMO EL COBRE NI LA RADIO.** Ningun instrumento lee la configuracion de una radio (`SPEC_6`
    HUECO 3); la pluma **no tiene realimentacion** —sabe «ordene abrir», nunca «esta abierta» (`SPEC_1` §2)—; y **una camara
-   muerta desde la instalacion no la avisa nadie** (`SPEC_5` §3.2).
+   muerta desde la instalacion no la avisa nadie** (`SPEC_8` §4).
 9. ⚠️ **Y lo que no se puede afirmar de nada de esto: NO HA VISTO UNA TARJETA.** Ninguna camara se ha conectado nunca a este
    equipo, y que firmware corre en cada poste **lo dice `ESTADO.md`, no este fichero** (`CLAUDE.md` §0.2).
