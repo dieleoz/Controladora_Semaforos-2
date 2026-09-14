@@ -206,17 +206,21 @@ CONOCIDAS = {
         # recupera no es una cifra: es el AVISO previo a las 48 h, con SU plazo -el de
         # AVISO_SIN_SYNC_MS, 40 de 48, o sea las ultimas 8 h-, que no se reinventa
         # aqui porque quien compara sigue siendo modo_degradado.cpp.
-        # 🔴 LO QUE SIGUE ABIERTO, Y SE ANOTA PARA QUE SE DECIDA: EL MAESTRO NO TIENE
-        # ESTE AVISO. Alli el plazo -AVISO_LIMITE_MS, 44 h de 48, las ultimas 4- vivia
-        # DENTRO de la funcion de dibujo del LCD, y hoy la constante NO SE USA EN
-        # NINGUNA LINEA: `grep -n "AVISO_LIMITE_MS" Maestro/src` da solo su
-        # declaracion. Su modo_degradado.h no publica ni el aviso ni la antiguedad
-        # -msDesdeSyncEfectivo() es static-, asi que la mitad del Maestro necesita un
-        # GETTER NUEVO en ese header y eso no es de bluetooth.cpp. Mientras tanto el
-        # poste 1 se va a ambar al vencer las 48 h sin haber avisado antes.
-        # ⚠️ Y NO VALE coordinador_msDesdeUltimaSync(), que si es publica: devuelve
-        # millis() - tUltimaSyncOk y a los 49,7 dias da la vuelta. El propio
-        # modo_degradado.cpp lleva escrito por que NO se usa esa.
+        # 🟢 AQUI SE ANOTO "EL MAESTRO NO TIENE ESTE AVISO", Y SE CERRO EL MISMO DIA.
+        # Aquella nota era cierta y se deja escrita en pasado porque explica el hueco:
+        # alli el plazo -AVISO_LIMITE_MS, 44 h de 48, las ultimas 4- vivia DENTRO de la
+        # funcion de dibujo del LCD, con la antiguedad como variable LOCAL, asi que al
+        # retirar la pantalla la constante se quedo con UN SOLO USO -su declaracion- y
+        # el poste 1 se iba a ambar al vencer sin haber avisado, y ademas en silencio:
+        # irAAmbar() no emite $EVENT ni $ALARM.
+        # CONSTRUIDO: Maestro/include/modo_degradado.h publica ahora los cuatro getters
+        # espejo -modo_degradado_huboSync/msDesdeSync/avisoLimite/syncVencida- y
+        # Maestro/src/bluetooth.cpp emite el MISMO $EVENT ORIGEN:DEGRADADO que el
+        # Esclavo. La comparacion NO se movio al despachador: sigue en
+        # modo_degradado.cpp, que es quien tiene la constante.
+        # ⚠️ Y NO SE USO coordinador_msDesdeUltimaSync(), que si era publica y era el
+        # atajo: devuelve millis() - tUltimaSyncOk y a los 49,7 dias da la vuelta. El
+        # propio modo_degradado.cpp lleva escrito por que no se usa esa.
         "degradado_rendidoPorHora",
         "degradado_segundosParaCambio",
     },

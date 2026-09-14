@@ -58,6 +58,61 @@ const char* modo_degradado_motivoL2(MotivoDegradado m);
 // el radio muera ya sera tarde para acordarlo.
 void modo_degradado_publicarConfig();
 
+// --- El reloj del limite de 48 h, para quien lo tenga que PUBLICAR ----------
+//
+// D-32 (1), 13/09 - LOS CUATRO GETTERS QUE FALTABAN, Y POR QUE FALTABAN.
+//
+// Hasta el 13/09 esta punta SI avisaba antes de vencer el limite: el bucle componia
+// `const char* aviso = (desdeSync >= AVISO_LIMITE_MS) ? "AVISO: LIMITE 48h" : 0;` y se
+// lo pasaba a lcd_dibujarDegradado(). PERO ESO VIVIA DENTRO DE LA FUNCION DE DIBUJO, con
+// `desdeSync` como variable LOCAL, asi que al retirar el LCD el aviso se fue entero y
+// AVISO_LIMITE_MS se quedo con UN SOLO USO: su declaracion. El Maestro se va hoy a ambar
+// al vencer las 48 h sin haber avisado antes -irAAmbar() no emite $EVENT ni $ALARM-, y
+// nadie puede verlo venir porque no hay pantalla y el dato no sale por el cable.
+//
+// ESTOS CUATRO NO SON TELEMETRIA NUEVA: son la MISMA cuenta que el modo ya hacia para si
+// mismo, expuesta. El calculo no se mueve de aqui y no se duplica en ningun sitio.
+//
+// 🔴 Y POR ESO LA COMPARACION VIVE EN EL .cpp Y NO EN QUIEN PREGUNTA. Podria haberse
+// publicado solo la antiguedad y dejar que bluetooth.cpp comparase, y habria sido el
+// gemelo en otro fichero que este repositorio ya sabe como acaba: el dia que alguien
+// mueva AVISO_LIMITE_MS, el aviso seguiria saliendo con el plazo viejo y nada lo diria.
+// Quien compara es quien tiene la constante.
+//
+// SON EL ESPEJO EXACTO DE LOS DEL ESCLAVO -degradado_huboSync(), degradado_msDesdeSync(),
+// degradado_avisoLimite() y degradado_syncVencida()- a proposito, para que las dos puntas
+// publiquen la MISMA linea y el tecnico compare un poste con el otro sin traducir nada.
+// Lo que NO es igual es el plazo, y tampoco se unifica aqui: alli son 40 h de 48 -las
+// ultimas 8- y aqui 44 de 48 -las ultimas 4-, cada uno con su motivo escrito junto a su
+// constante. Igualarlos seria una decision del responsable, no un aseo.
+//
+// NINGUNO ES UNA GUARDA: son de solo lectura y no vetan nada. Lo que decide sigue
+// decidiendo dentro de modo_degradado.cpp -la puerta de entrada y el limite duro del
+// bucle-, y por eso dejarlos sin lector no abriria un veto; lo unico que se perderia
+// otra vez es el aviso.
+
+// false = jamas se pudo fechar una sincronizacion, ni por RAM ni por la marca de la
+// pila. Quien publique tiene que preguntar ESTO antes de creerse el numero de abajo:
+// publicar una antiguedad sin fecha detras es inventarse un dato.
+bool modo_degradado_huboSync();
+
+// Milisegundos desde la ultima sincronizacion, por el mismo camino que usa la puerta de
+// entrada: la medida de RAM contrastada contra el reloj de pared de la pila, tomando el
+// MAYOR de los dos. NO es coordinador_msDesdeUltimaSync(), que da la vuelta a los 49,7
+// dias -el porque entero esta en msDesdeSyncEfectivo()-. Solo tiene sentido si
+// modo_degradado_huboSync() dice que si.
+unsigned long modo_degradado_msDesdeSync();
+
+// Se acerca el limite duro: quedan AVISO_LIMITE_MS o menos. Existe para que la caida a
+// ambar no sorprenda a nadie -el estado seguro no puede depender de que alguien se
+// acuerde, pero avisar con margen evita que el cruce se degrade sin que hubiera falta-.
+bool modo_degradado_avisoLimite();
+
+// El limite duro YA esta agotado. Es el mismo borde que el bucle aplica para rendirse,
+// preguntado desde fuera; no es un latch como el del Esclavo y no le hace falta serlo,
+// porque aqui la antiguedad se contrasta contra el reloj de pared y no se desborda.
+bool modo_degradado_syncVencida();
+
 // --- Reanudacion tras un corte de energia (N-20) ---------------------------
 //
 // Se llama UNA vez en el arranque. Devuelve true si el equipo estaba en Modo

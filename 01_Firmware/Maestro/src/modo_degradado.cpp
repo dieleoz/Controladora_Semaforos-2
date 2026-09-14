@@ -439,6 +439,48 @@ static unsigned long msDesdeSyncEfectivo() {
   return (unsigned long)horas * 3600000UL;
 }
 
+// --- D-32 (1), 13/09: el reloj del limite, expuesto para que alguien lo PUBLIQUE ----
+//
+// EL PORQUE ENTERO ESTA EN EL HEADER y no se repite. Aqui solo lo que es de este fichero:
+// los cuatro se apoyan en msDesdeSyncEfectivo(), que es la MISMA funcion que usan la
+// puerta de entrada y el limite duro del bucle, y comparan contra LAS MISMAS DOS
+// constantes que estan unas lineas mas arriba. No hay una segunda cuenta que pueda
+// separarse de la primera, que es la unica forma de que el aviso siga significando lo que
+// dice el dia que alguien mueva el plazo.
+//
+// 0xFFFFFFFF ES EL CENTINELA QUE ESTA CASA YA USA -"no se puede fechar"-, no un numero
+// grande: msDesdeSyncEfectivo() lo devuelve cuando ni la RAM ni la pila saben fechar, y
+// aqui se traduce a las dos respuestas que de verdad tocan. Ojo con leerlo como "muy
+// viejo" en el sitio equivocado.
+bool modo_degradado_huboSync() {
+  return msDesdeSyncEfectivo() != 0xFFFFFFFFUL;
+}
+
+unsigned long modo_degradado_msDesdeSync() {
+  return msDesdeSyncEfectivo();
+}
+
+// SIN FECHA NO HAY AVISO, Y ES DELIBERADO: "nunca sincronizado" no es "se acerca el
+// limite", es otra averia -la que la puerta de entrada rechaza con MDG_NUNCA_SYNC- y
+// tiene su propio sitio en la trama. Encender el aviso aqui mezclaria las dos y mandaria
+// al tecnico a mirar el radio cuando lo que pasa es que este equipo no ha hablado nunca
+// con el otro. Es la misma forma que degradado_avisoLimite() del Esclavo, que pregunta
+// primero por huboSyncAlguna.
+bool modo_degradado_avisoLimite() {
+  const unsigned long ms = msDesdeSyncEfectivo();
+  if (ms == 0xFFFFFFFFUL) return false;
+  return ms >= AVISO_LIMITE_MS;
+}
+
+// AQUI SI CUENTA EL CENTINELA COMO VENCIDO, y es la asimetria con la de arriba: es el
+// MISMO borde que aplica el bucle -`if (desdeSync >= LIMITE_DURO_MS) irAAmbar(...)`, y
+// 0xFFFFFFFF lo supera-, asi que este getter contesta lo que el modo va a hacer y no una
+// opinion paralela. Si contestara false sin fecha, la trama diria "no vencido" del mismo
+// equipo que esta a punto de irse a ambar por esta causa.
+bool modo_degradado_syncVencida() {
+  return msDesdeSyncEfectivo() >= LIMITE_DURO_MS;
+}
+
 // D-29 (12/09): LA LLAMAN setup() Y, MIENTRAS LA DECISION SIGA PENDIENTE, EL BUCLE.
 // La hora con la que hay que decidir la trae el ESP32 despues del arranque, asi que el
 // permiso de la pila no se tira hasta que esa siembra haya podido llegar. Lo diferido es
@@ -788,9 +830,19 @@ void modo_degradado_loop() {
   // decide en el bloque de arriba, en la unica linea del firmware que da verde sin
   // confirmacion del otro extremo- y se va entero.
   //
-  // NO SE PIERDE EL AVISO DE LAS 48 h: LIMITE_DURO_MS lo sigue aplicando la puerta de
-  // entrada (modo_degradado_evaluarEntrada) y la rendicion, que son las que mandan; lo
-  // que desaparece es el recuadro que lo anunciaba en el gabinete.
+  // 🔴 AQUI PONIA "NO SE PIERDE EL AVISO DE LAS 48 h", Y ERA FALSO. Se corrige en vez de
+  // matizarlo abajo (CLAUDE.md 7.4). Lo que aquella frase demostraba es que el LIMITE se
+  // sigue aplicando -cierto: lo aplican la puerta de entrada y el `>= LIMITE_DURO_MS` de
+  // unas lineas mas arriba-, y de ahi concluia que el AVISO tampoco se perdia. Son dos
+  // cosas distintas: el limite es lo que PASA, y el aviso es lo que se ve VENIR. El
+  // recuadro que se fue era el unico lector de AVISO_LIMITE_MS, asi que durante unas
+  // horas del 13/09 esta punta se iba a ambar al vencer sin haber avisado nunca -y
+  // irAAmbar() no emite $EVENT ni $ALARM, o sea que la caida era muda-.
+  //
+  // REPARADO EL MISMO DIA, y por el cable en vez de por la pantalla: los cuatro getters de
+  // arriba lo exponen y bluetooth.cpp lo publica en el $EVENT ORIGEN:DEGRADADO, por flanco
+  // y repetido mientras el aviso sigue armado. Mismo plazo de siempre -AVISO_LIMITE_MS-,
+  // que no se reinvento: la comparacion no salio de este fichero.
   //
   // LO QUE SI SE PIERDE, dicho con su nombre: en esta punta ya nadie llama a
   // ciclo_degradado_restante(), asi que la CUENTA ATRAS del Degradado del Maestro no

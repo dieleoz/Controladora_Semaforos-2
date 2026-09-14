@@ -42,6 +42,77 @@ def correr(b, fw):
               "cada fuente por separado",
               f"limites distintos: Maestro {M_LIMITE_DURO_MS} ms, Esclavo {E_LIMITE_MS} ms")
 
+    # ---- D-32 (1), 13/09: EL AVISO PREVIO, Y QUE SIGA AVISANDO ANTES ----------------
+    #
+    # POR QUE ESTO ENTRA AQUI Y ENTRA HOY. El modelo de costura ya leia las dos
+    # constantes de aviso -M_AVISO_LIMITE_MS y E_AVISO_MS- y NADIE PREGUNTABA POR ELLAS:
+    # estaban medidas y sin vigilante. Hasta el 13/09 eso solo era un hueco; desde que el
+    # aviso vuelve a salir por el cable -$EVENT ORIGEN:DEGRADADO en las dos puntas- es la
+    # unica cosa que sujeta que lo que sale siga significando lo que dice.
+    #
+    # 🔴 Y SE ESCRIBE PORQUE SE MIDIO QUE FALTABA, no por completismo. Inyectado en el
+    # .cpp REAL del Maestro `return ms >= LIMITE_DURO_MS;` dentro de
+    # modo_degradado_avisoLimite() -o sea: el "aviso previo" avisando en el instante en
+    # que el cruce YA se ha ido a ambar, que es no avisar-, el banco entero siguio en
+    # verde y con codigo 0. Un aviso que puede dejar de ser previo sin que nada caiga es
+    # un adorno que da verde (CLAUDE.md 6).
+    #
+    # SON DOS COMPROBACIONES Y NO UNA, porque son dos formas distintas de romperlo:
+    #   1. que el plazo siga siendo ANTERIOR al limite -si alguien sube el aviso hasta el
+    #      limite, la constante sigue existiendo y el getter sigue teniendo llamador, o
+    #      sea que costura_10 no ve nada-;
+    #   2. que sea ESA constante la que el getter compara. Esto es lo que la inyeccion
+    #      rompio: el aviso puede quedarse mirando otro numero y AVISO_LIMITE_MS volver a
+    #      tener un solo uso -su declaracion-, que es EXACTAMENTE el estado en el que la
+    #      retirada del LCD dejo al Maestro y que este trabajo vino a cerrar.
+    #
+    # LOS PLAZOS NO SE IGUALAN ENTRE PUNTAS Y ESO NO ES UN DEFECTO: el Maestro avisa con
+    # las ultimas 4 h y el Esclavo con las ultimas 8, cada uno con su motivo escrito junto
+    # a su constante. Igualarlos seria una decision del responsable. Aqui solo se exige que
+    # cada uno avise ANTES de su propio limite, que es lo que la palabra "previo" promete.
+    for nom, aviso_ms, limite_ms in (("Maestro", M_AVISO_LIMITE_MS, M_LIMITE_DURO_MS),
+                                     ("Esclavo", E_AVISO_MS, E_LIMITE_MS)):
+        verificar(0 < aviso_ms < limite_ms,
+                  f"el aviso del {nom} es PREVIO: avisa a las {aviso_ms//3600000} h de un "
+                  f"limite de {limite_ms//3600000} h, o sea con las ultimas "
+                  f"{(limite_ms-aviso_ms)//3600000} h de margen",
+                  f"el aviso del {nom} NO es previo: avisa a las {aviso_ms//3600000} h contra "
+                  f"un limite de {limite_ms//3600000} h. Avisar en el limite o despues no es "
+                  "avisar: el cruce ya se fue a ambar cuando el tecnico lo lee, y el aviso "
+                  "existe justo para que eso no le sorprenda")
+
+    # QUIEN COMPARA, Y CONTRA QUE. Se lee el CUERPO del getter, no el fichero entero: que
+    # la constante aparezca en modo_degradado.cpp no dice nada -su propia declaracion ya la
+    # nombra-, y ese es el cero de grep que dejaria pasar la inyeccion (CLAUDE.md 7.1).
+    def _cuerpo(texto, nombre):
+        m = re.search(r"\b%s\s*\(\s*\)\s*\{" % re.escape(nombre), texto)
+        if not m:
+            return None
+        prof, ini = 0, m.end() - 1
+        for j in range(ini, len(texto)):
+            if texto[j] == "{":
+                prof += 1
+            elif texto[j] == "}":
+                prof -= 1
+                if prof == 0:
+                    return texto[ini + 1:j]
+        return None
+
+    for nom, texto_c, getter, cte in (
+            ("Maestro", T_M_DEG_C, "modo_degradado_avisoLimite", "AVISO_LIMITE_MS"),
+            ("Esclavo", T_E_DEG_C, "degradado_avisoLimite", "AVISO_SIN_SYNC_MS")):
+        cuerpo = _cuerpo(texto_c, getter)
+        verificar(cuerpo is not None and cte in cuerpo,
+                  f"el aviso del {nom} lo decide {getter}() comparando contra {cte} DENTRO de "
+                  "modo_degradado.cpp: quien compara es quien tiene la constante, y el "
+                  "despachador solo pregunta",
+                  f"{getter}() del {nom} ya no compara contra {cte} "
+                  f"({'no se hallo el cuerpo del getter' if cuerpo is None else 'la constante no sale en su cuerpo'}). "
+                  "O el plazo se mudo a otro fichero -y entonces es un gemelo que se separa "
+                  "el dia que alguien toca uno- o el aviso esta mirando otro numero. En los "
+                  "dos casos lo que sale por el $EVENT deja de ser el plazo que la constante "
+                  "dice, y nadie mas lo vigila")
+
     # Tiempo de aire de una trama: RF_BURST_COPIES copias de 4 bytes por el cable al
     # modulo, mas los 2 ms de conmutacion del MAX485 y el bit de parada.
     BITS_POR_BYTE = 10  # 8N1

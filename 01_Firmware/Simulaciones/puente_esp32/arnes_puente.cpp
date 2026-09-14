@@ -352,6 +352,34 @@ const char* modo_degradado_motivoL1(MotivoDegradado) { return "FALTA_HORA"; }
 const char* modo_degradado_motivoL2(MotivoDegradado) { return "PONGA_LA_HORA"; }
 bool modo_degradado_pedirSalida() { return true; }
 
+// D-32 (1), 13/09 - EL RELOJ DEL LIMITE DE 48 h, GOBERNABLE DESDE FUERA.
+//
+// Sin estos cuatro el arnes del MAESTRO dejo de ENLAZAR en cuanto bluetooth.cpp gano el
+// $EVENT del aviso -"undefined reference to modo_degradado_avisoLimite()"-, o sea un
+// ABORTADO, que es una puerta abierta y no una casilla pendiente.
+//
+// SE DOBLAN CON MEMORIA Y NO CON UN STUB FIJO, por lo mismo que los tiempos del ciclo de
+// aqui abajo: lo que hay que poder ejercer es el FLANCO -que el $EVENT salga cuando el
+// aviso se arma y NO cada vuelta- y las tres salidas del campo SYNC -"--" sin fecha, el
+// numero con ella-. Cuatro constantes devolviendo siempre lo mismo dejarian el emisor
+// nuevo sin una sola transicion que medir, que es un adorno que da verde (CLAUDE.md 6).
+//
+// ARRANCAN EN "NUNCA SINCRONIZADO", que es el estado real de un equipo recien encendido y
+// ademas el mas restrictivo: un arnes que no diga nada obtiene SYNC:-- AVISO:NO, o sea
+// ninguna trama de mas. Se gobiernan con DEGSYNC <huboSync> <ms>, y el aviso y el vencido
+// se DERIVAN de esos ms contra los mismos dos plazos que el firmware -44 h y 48 h-: un
+// sustituto que dejara elegir el booleano por separado podria decir "aviso NO" con la
+// antiguedad por encima del plazo, o sea medir un firmware incoherente que no existe.
+static bool mdg_hubo_sync = false;
+static unsigned long mdg_ms_sync = 0xFFFFFFFFUL;
+static const unsigned long MDG_AVISO_MS  = 158400000UL;  // 44 h, como AVISO_LIMITE_MS
+static const unsigned long MDG_LIMITE_MS = 172800000UL;  // 48 h, como LIMITE_DURO_MS
+
+bool modo_degradado_huboSync()             { return mdg_hubo_sync; }
+unsigned long modo_degradado_msDesdeSync() { return mdg_ms_sync; }
+bool modo_degradado_avisoLimite()          { return mdg_hubo_sync && mdg_ms_sync >= MDG_AVISO_MS; }
+bool modo_degradado_syncVencida()          { return mdg_ms_sync >= MDG_LIMITE_MS; }
+
 // modo_ambar.cpp y modo_degradado.cpp: los llama mando.cpp al reconocer su secuencia.
 void modo_ambar_setup() {}
 void modo_ambar_fijarMotivo(const char*, const char*) {}
@@ -702,6 +730,20 @@ int main(void) {
                (unsigned long)resp_horas); }
 #else
       printf("OK resp=n/a\n");
+#endif
+
+    } else if (strncmp(linea, "DEGSYNC ", 8) == 0) {
+#if defined(PUNTA_MAESTRO)
+      // D-32 (1): el reloj del limite de 48 h. Dos numeros: si se puede fechar, y los
+      // milisegundos desde la ultima sincronizacion. El aviso y el vencido los deriva el
+      // sustituto de los mismos plazos que el firmware, no se eligen por separado.
+      { int h = 0; unsigned long ms = 0;
+        sscanf(linea + 8, "%d %lu", &h, &ms);
+        mdg_hubo_sync = (h != 0); mdg_ms_sync = ms;
+        printf("OK degsync=%d/%lu aviso=%d vencida=%d\n", (int)mdg_hubo_sync, mdg_ms_sync,
+               (int)modo_degradado_avisoLimite(), (int)modo_degradado_syncVencida()); }
+#else
+      printf("OK degsync=n/a\n");
 #endif
 
     } else if (strncmp(linea, "RXCNT ", 6) == 0) {

@@ -913,6 +913,106 @@ bool bluetooth_testLedsActivo() {
   return semaforo_testLedsEnCurso();
 }
 
+// ---------------------------------------------------------------------------
+// D-32 (1), 13/09 - EL AVISO DEL LIMITE DE 48 h DE ESTA PUNTA. ES EL GEMELO DEL DEL
+// ESCLAVO Y SE ESCRIBE COPIANDOLO, NO INVENTANDO OTRO.
+//
+// QUE SE ROMPIO, medido: hasta hoy el Maestro SI avisaba antes de vencer, pero la
+// comparacion vivia DENTRO de la funcion de dibujo del LCD -`(desdeSync >=
+// AVISO_LIMITE_MS) ? "AVISO: LIMITE 48h" : 0`, con desdeSync como variable LOCAL-. Se fue
+// con la pantalla y AVISO_LIMITE_MS se quedo con UN SOLO USO: su declaracion. Desde
+// entonces esta punta se va a ambar al vencer las 48 h sin haber avisado, y ademas en
+// SILENCIO: irAAmbar() de modo_degradado.cpp no emite ni $EVENT ni $ALARM.
+//
+// EL PLAZO NO SE INVENTA: SE CONSERVA EL QUE YA HABIA. Aqui no hay una sola constante de
+// tiempo; se pregunta a modo_degradado_avisoLimite(), que es quien compara contra
+// AVISO_LIMITE_MS dentro de modo_degradado.cpp. Son 44 h de las 48, o sea las ULTIMAS 4.
+// ⚠️ Y NO son las mismas 8 h que el Esclavo: cada punta conserva SU plazo con el motivo
+// escrito junto a su constante. Igualarlos seria una decision del responsable, no un aseo
+// de este commit.
+//
+// LOS CUATRO GETTERS SON NUEVOS Y SON EL ESPEJO DE LOS DEL ESCLAVO. La comparacion se
+// quedo en modo_degradado.cpp a proposito: traerla aqui habria sido el gemelo en otro
+// fichero que este repositorio ya sabe como acaba -el dia que alguien mueva el plazo, el
+// aviso seguiria saliendo con el viejo y nada lo diria-. Quien compara es quien tiene la
+// constante. ⚠️ Y NO se deriva de coordinador_msDesdeUltimaSync(), que si es publica y
+// seria el atajo: devuelve millis() - tUltimaSyncOk y DA LA VUELTA a los 49,7 dias. El
+// porque esta escrito en el propio modo_degradado.cpp desde antes de esto.
+//
+// POR QUE POR FLANCO Y NO PERIODICO A SECAS: identico al Esclavo. Cada $EVENT entra en
+// state.events, que addEvent() de app.js RECORTA A 30 ENTRADAS, y un periodico mas a la
+// misma cadencia parte por dos la ventana de bitacora en la que el tecnico busca el
+// $ALARM. Es N-73 por inundacion. Asi que en reposo esto NO PONE UN SOLO BYTE EN EL CABLE:
+// por FLANCO del trio el aviso llega en el instante en que se arma, y mientras SIGUE
+// armado se repite a DIAG_ENLACE_MS para el tecnico que llega despues del flanco. El peor
+// segundo del presupuesto lo cuenta igual, entero y sin prorratear.
+//
+// MISMO ORIGEN Y MISMO FORMATO QUE EL ESCLAVO, LETRA POR LETRA, y esa es la mitad del
+// valor: el tecnico compara la linea de un poste con la del otro sin traducir nada. El
+// ORIGEN DEGRADADO ya existe en esta punta -lo emite modo_degradado.cpp con
+// SALTO_DE_HORA_POR_ROJO-, y la app los distingue por el DETALLE.
+//
+// MARCADORES Y COTAS, la misma cuenta que alli y por los mismos motivos: "--" es "todavia
+// no lo se" y nunca un cero de relleno -por eso se pregunta antes a
+// modo_degradado_huboSync()-; sin "!" porque la antiguedad no tiene cota contra la que
+// salirse y una guarda que ningun dato puede disparar es adorno (CLAUDE.md 6.2);
+// syncTxt[12] acotado por TIPO -diez cifras de un unsigned long mas la "h"- porque la
+// antiguedad es un contador libre que sigue creciendo pasado el limite; y el separador en
+// ESPACIOS y no en comas, porque _camposNmea() de la app parte por ',' y lo de detras se
+// convertiria en campos sueltos que el pintor de $EVENT no mira.
+//
+//   parte fija   21   "SYNC:" + " AVISO:" + " VENCIDA:"
+//   SYNC         11   syncTxt[12]
+//   AVISO         2   literal "SI"/"NO"
+//   VENCIDA       2   literal "SI"/"NO"
+//
+//   21 + 15 = 36 caracteres + NUL = 37 B, que es lo que guarda det[37]. Que el $EVENT
+//   ENTERO quepa luego en su payload no se afirma aqui: lo recalcula
+//   esp32_07_presupuesto_bytes leyendo este snprintf y el del emisor.
+// ---------------------------------------------------------------------------
+static unsigned long tUltimoDiagDegradado = 0;
+static int8_t diagDegradadoAnt = -1;   // -1: aun no se ha publicado ninguno
+
+static void diagDegradadoPublicar(unsigned long ahora) {
+  const bool sabeFechar = modo_degradado_huboSync();
+  const bool aviso      = modo_degradado_avisoLimite();
+  const bool vencida    = modo_degradado_syncVencida();
+
+  // El trio en un solo entero para poder comparar flancos sin tres banderas estaticas.
+  // No contesta a dos preguntas distintas: contesta a UNA -"que se publico la ultima
+  // vez"- y por eso puede ser una sola variable.
+  const int8_t ahoraEstado = (int8_t)((sabeFechar ? 4 : 0) | (aviso ? 2 : 0) | (vencida ? 1 : 0));
+
+  // LA PRIMERA VUELTA SOLO ANOTA, Y ES EL MISMO LIMITE DECLARADO QUE LLEVA ESCRITO EL
+  // PERIODICO DE D-23: al arrancar el STM32 puede no haber nadie escuchando -el ESP32 y
+  // el telefono llegan despues- y una trama que nadie oye no es un instrumento. No se
+  // pierde nada: si el aviso ya viene armado de un arranque anterior, la repeticion de
+  // abajo lo publica a los DIAG_ENLACE_MS, que es cuando ya puede oirse.
+  if (diagDegradadoAnt < 0) {
+    diagDegradadoAnt = ahoraEstado;
+    return;
+  }
+
+  const bool cambio = (ahoraEstado != diagDegradadoAnt);
+  const bool tocaRepetir = aviso && (ahora - tUltimoDiagDegradado >= DIAG_ENLACE_MS);
+  if (!cambio && !tocaRepetir) return;
+
+  diagDegradadoAnt = ahoraEstado;
+  tUltimoDiagDegradado = ahora;
+
+  char syncTxt[12];
+  if (!sabeFechar) {
+    strncpy(syncTxt, "--", sizeof(syncTxt));
+  } else {
+    snprintf(syncTxt, sizeof(syncTxt), "%luh", modo_degradado_msDesdeSync() / 3600000UL);
+  }
+
+  char det[37];
+  snprintf(det, sizeof(det), "SYNC:%s AVISO:%s VENCIDA:%s",
+           syncTxt, aviso ? "SI" : "NO", vencida ? "SI" : "NO");
+  bluetooth_reportarEvento("DEGRADADO", det);
+}
+
 void bluetooth_loop() {
   const unsigned long ahora = millis();
 
@@ -1317,4 +1417,6 @@ void bluetooth_loop() {
              protocolo_tramasDescartadas());
     bluetooth_reportarEvento("ENLACE_RF", det);
   }
+
+  diagDegradadoPublicar(ahora);
 }
