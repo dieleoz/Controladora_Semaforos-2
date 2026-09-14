@@ -2,6 +2,30 @@
 
 > ## ▶️ PUNTO DE CONTINUACIÓN — 14/09/2026
 >
+> 🔴 **LO QUE CAMBIO HOY Y MANDA SOBRE TODO LO DEMAS: LA SPEC PASA A SER LA AUTORIDAD.**
+> Palabras del responsable: *«el archivo decisiones marea, ahora es lo que digan las spec y eso debe
+> hacer el firmware»* y *«si la spec no pasa, si el arquitecto vs decisiones, si no le gusta algo, pues
+> debemos ajustar la spec»*. **Si el firmware y la spec no coinciden, el defecto es del firmware.**
+> `DECISIONES.md` baja a andamio. Y la spec pasa a tener **dos registros que no se mezclan** —lo que el
+> equipo HACE, que se valida contra el fuente, y lo que DEBE hacer, que vive en «HUECOS MEDIDOS» y **es la
+> cola de trabajo del firmware**— (`CLAUDE.md` §12 y §15).
+>
+> 🔴 **Y LA MEDIDA DEL BUCLE, porque el responsable pidio entenderlo y el numero NO era el que creiamos.**
+> Sobre los ultimos 50 commits: **firmware +6.454/-2.834 · INSTRUMENTOS +18.470/-2.020 · documentos
+> +9.039/-6.096**. No son los `.md`: **el aparato de medir crece al TRIPLE que lo que mide.** `CLAUDE.md`
+> §16 convierte esa medida en **puerta**: un instrumento entra si **contesta una pregunta abierta**, y el
+> commit dice cual.
+>
+> ▶️ **POR DONDE SE SIGUE, y son cinco piezas de FIRMWARE, no de documentos** (`roadmap.md` §0, la tabla
+> del orden): **(1)** ✅ los flancos de `J16` p5/p8, hecho hoy · **(2)** **retirar el mando entero**, ~880
+> lineas FUERA, 16 packs y 6 arneses — **es la recomendada: la unica que borra codigo y devuelve sitio** ·
+> **(3)** el cristal que arranca y no cuenta · **(4)** la ventana de ambar contra verde · **(5)** que la
+> app traduzca el aviso de barrera retenida.
+>
+> ⚠️ **Y una deuda abierta que NO se ha tocado a proposito: el arquitecto funcional dijo NO OK a las nueve
+> spec, con 12 puntos.** Los doce son de documento —**cero defectos de firmware**— y tres son afirmaciones
+> falsas vivas. Estan en `roadmap.md` 1.47. No se tocaron porque el responsable pidio parar los `.md`.
+>
 > 🔴 **LO PRIMERO, y no cambia por nada de lo de abajo: NADA DE ESTO HA VISTO UNA TARJETA.**
 > Lo que decide si funciona es la sesión de banco (`roadmap.md` §0, grupo 3) y **la cinta del
 > Esclavo del Sisga, que sigue sin traerse**. Los binarios que salgan de aquí llevan `SIN_BANCO`

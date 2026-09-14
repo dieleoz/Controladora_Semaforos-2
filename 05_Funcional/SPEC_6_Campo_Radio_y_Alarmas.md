@@ -208,8 +208,11 @@ mas**: medido, el puente ESP32 **no origina ninguna** —solo retransmite— y e
 | `CAM_CIEGA` | `CAM_C_SIN_FLANCO` · `CAM_D_SIN_FLANCO` | **`NINGUNA`** | las dos | esa camara **dio flancos antes** y lleva demasiado paso abierto sin dar ninguno | lo mismo. ⚠️ **Solo puede salir de una camara que YA vio algo alguna vez**: una muerta desde la instalacion, o un borne vacio, **no la dispara nunca** (SPEC 5 §3.2) |
 
 > 🔴 **`ACCION:NINGUNA` NO ES RELLENO: significa «medida de seguridad vial ejecutada: ninguna».** Las dos alarmas de
-> camara **observan y no vetan** — no bajan la pluma, no tocan una luz y no paran el ciclo (fase 1 de `D-13`;
-> **ninguna camara protege la pluma**, SPEC 5, aviso 4), asi que **no son una urgencia del cruce**.
+> camara **no mueven nada por si mismas**: no bajan la pluma, no tocan una luz y no paran el ciclo.
+> ⚠️ **PERO LA CAMARA QUE LAS DISPARA SI RETIENE LA BARRERA** (`SPEC_8` §1). ~~Ninguna camara protege la
+> pluma~~ dejo de ser cierto el 14/09: **una camara pegada puede estar dejando el brazo ARRIBA ahora mismo**,
+> y eso no se ve en esta alarma sino en el aviso de barrera retenida. **Atiendala mirando tambien si la
+> pluma bajo.**
 
 **Cuando se apaga una alarma.** Las de camara **se cierran solas por su prueba contraria** y lo dicen con un
 `$EVENT` de camara recuperada: una que no se cierra nunca deja al operario sin saber si aquello se arreglo.

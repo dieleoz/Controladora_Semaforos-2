@@ -175,18 +175,16 @@ no demuestra que las dos puntas sigan en fase**. Es correcto — pero significa 
 puede visitar el poste todos los dias y el cruce se ira a ambar igual al vencer el tope**, y lo
 unico que lo levanta es que vuelva la radio.
 
-🔴 **Y EL AVISO ANTICIPADO ESTA DECLARADO Y NO SE EJERCE** (`CLAUDE.md` §6.1). Censado el 13/09
-sobre todo el arbol: **`degradado_avisoLimite()` y `degradado_syncVencida()` no tienen ni un
-llamador en el firmware del Esclavo** —el unico consumidor que queda esta fuera, en el simulador
-del puente— y **`AVISO_LIMITE_MS` del Maestro no se usa en ninguna linea**. Su lector era
-`menu_loop()`, **y el menu se fue esta manana con el LCD** (`D-32` (1)).
+🟢 **EL AVISO ANTICIPADO YA SE PUBLICA, EN LAS DOS PUNTAS** — construido el 13/09, y este apartado
+lo negaba hasta el 14/09. ~~Esta declarado y no se ejerce~~ → **remedido:** las dos puntas emiten
+por evento, cada medio minuto, **cuantas horas llevan sin sincronizar, si el aviso esta armado y si
+el plazo ya vencio**. El equipo **avisa antes de rendirse**, y la antiguedad de la sincronizacion
+**si sale**.
 
-> 🔴 **HOY EL CRUCE SE VA A AMBAR AL VENCER EL TOPE SIN HABER AVISADO ANTES, y la antiguedad de
-> la sincronizacion no sale por ningun sitio.** Lo escribe el propio
-> `costura_10_funciones_muertas` al declarar la excepcion: *«la ANTIGUEDAD DE SYNC del Modo
-> Degradado del Esclavo no la lee nadie en esa punta, o sea que no sale por ningun sitio»* — y
-> nombra el sustituto, **el `$EVENT` periodico de `D-32` (2): firmware por escribir, no una
-> anotacion**.
+> 🔴 **LO QUE SIGUE ABIERTO ES OTRA COSA, Y SON DOS:** que **los dos postes avisan con plazos
+> DISTINTOS** —el 1 en las ultimas cuatro horas de las 48; el 2, antes— **y nadie cruza los dos
+> numeros**; y que **la CUENTA ATRAS del Degradado no la publica ninguna de las dos puntas**: las
+> funciones que la calculan se quedaron sin un solo llamador cuando se retiro la pantalla.
 
 **Un modo que depende de una visita y no sabe que la visita no llego es peor que no tenerlo.** Con
 el tope, el cruce **si lo sabe y se degrada solo a ambar**; lo que le falta es **decirlo antes**,
@@ -287,11 +285,17 @@ relojes que se creen el uno al otro sin hablarse.** Las tres perdidas:
 
 ## 8. HUECOS MEDIDOS — lo que NO existe, y no se escribe como si existiera
 
-### H-1 🔴 El aviso anticipado del tope esta DECLARADO y NO SE EJERCE
+### H-1 🟡 El aviso previo YA se publica; lo que no casa son los dos plazos
 
-Medido en §5. ⚠️ **`CLAUDE.md` §6: una excepcion es una AFIRMACION SOBRE EL CODIGO.** La de
-`costura_10_funciones_muertas` se midio al heredarla y sigue siendo cierta — **lo que no es
-cierto es leerla como «cubierto»**.
+⬇️ ~~El aviso anticipado esta declarado y no se ejerce~~ → **construido el 13/09 y remedido el
+14/09** (§5). **Lo que queda abierto son dos cosas distintas, y ninguna tiene fila:**
+
+1. **Los dos postes avisan con plazos DISTINTOS** —el 1 en las ultimas cuatro horas de las 48;
+   el 2, antes— **y nadie cruza los dos numeros**, ni un `static_assert` ni un instrumento. El dia
+   que alguien mueva uno, el otro no le sigue.
+2. **La CUENTA ATRAS del Degradado no la publica ninguna punta.** Las dos funciones que la calculan
+   se quedaron **sin un solo llamador** al retirarse la pantalla, y un comentario del firmware decia
+   que en el poste 2 si salia —**tambien falso, corregido el 14/09**—.
 
 ### H-2 🔴 La causa del Degradado no se publica: la app la INVENTA
 

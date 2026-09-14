@@ -154,7 +154,9 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
    de carrera, y esta **sin preguntar al fabricante** si la centralita trae fotocelula o borde sensible.
 4. **NO HAY AMBAR AL CERRAR EL VERDE: salta de VERDE a ROJO.** **El conductor no recibe ningun aviso de que el verde se
    acaba**; en su lugar hay un margen, no un aviso: el todo-rojo de despeje (`SPEC_1` §3.1). Y **la pluma baja en el MISMO
-   instante del rojo** — el retardo que pidio el responsable **no esta implementado** (`SPEC_1` §12.1).
+   instante del rojo~~ → **CONSTRUIDO el 14/09: baja 3 s despues** (`SPEC_8` §1). Lo que sigue faltando es
+   el AVISO al conductor de que el verde se acaba; entre el y el brazo hay ahora tres segundos y el veto de
+   camara, que no es lo mismo que un aviso.
 5. **EL PIN VIAJA EN CLARO Y CUATRO ORDENES NO LO PIDEN.** El transporte es Bluetooth SPP **sin cifrar**; las cuatro que
    **cambian algo** sin clave estan contadas en `SPEC_4` §7.1. Y **`SET_RTC` con un PIN falso pone la hora** — riesgo
    **aceptado** por el responsable, `D-26` (1).
