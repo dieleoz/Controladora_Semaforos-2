@@ -121,6 +121,57 @@ static bool ambarEmergencia = false;
 // y lo baja el aviso de vuelta; no es un watchdog y no tiene reloj. Ver bluetooth_loop().
 static bool enlaceCaidoAnunciado = false;
 
+// ---------------------------------------------------------------------------
+// D-23 (13/09) - EL POSTE 2 DICE COMO VE EL SU PROPIO ENLACE, Y LO DICE SOLO.
+//
+// EL HUECO QUE TAPA, medido el 08/09 y escrito en A-14: el $STATUS de esta punta publica
+// T:--, RF:-- y RTT:-- como LITERALES, y esos cuatro marcadores NO SE RETIRAN -el porque
+// entero esta en el propio $STATUS, abajo-. O sea que el poste 2 nunca dice como ve EL
+// el enlace. Y SI lo sabe: protocolo_bytesRecibidos(), protocolo_tramasValidas() y
+// protocolo_tramasDescartadas() existen, pero hasta hoy solo salian DENTRO del $ALARM,
+// o sea CUANDO EL ENLACE YA SE CAYO. El caso de uso de D-23 es el contrario -"se va a
+// degradado cada nada cuando llueve", y el tecnico llega DESPUES-: lo que hace falta es
+// el dato con el equipo sano, delante del poste y por Bluetooth directo a esta punta.
+//
+// POR QUE PERIODICO Y NO "AL CONECTARSE", que es lo que A-14 pedia: EL STM32 NO PUEDE
+// SABER QUE HAY UN TELEFONO. El unico que ve al telefono es el ESP32, y traer ese aviso
+// seria la TERCERA orden que el accesorio origina hacia el micro, que esp32_05_no_origina
+// condiciona POR ESCRITO a una fila de DECISIONES.md. El responsable eligio la otra via
+// el 13/09 (D-32 (2)): periodico a cadencia baja, que no toca ninguna barrera y no toca
+// el ESP32. El coste esta aceptado y escrito: el tecnico lo ve al cabo de la cadencia,
+// no al instante.
+//
+// Y TAMPOCO SE DEDUCE DEL TRAFICO DE J17, que es la tentacion barata: por J17 entra el
+// latido del puente cada LATIDO_MS (AB-1), asi que el puerto habla SOLO. Una linea
+// entrando no dice que haya nadie mirando.
+//
+// POR QUE 30 s, Y POR QUE EL NUMERO NO SALE DE LOS BYTES. El peor segundo de esta punta
+// NO depende de la cadencia mientras sea >= 1 s -a cualquier cadencia cabe UN $EVENT de
+// mas en el peor segundo, y es el mismo $EVENT-, asi que elegir por bytes seria elegir
+// por el numero que no manda. Lo que si depende de la cadencia es el coste SOSTENIDO, y
+// a 30 s es una fraccion de punto porcentual del canal. Las dos cifras no se copian
+// aqui: las rehace esp32_07_presupuesto_bytes en cada corrida leyendo ESTA constante.
+//
+// LO QUE SI MANDA ES LA BITACORA DE LA APP, y por eso el numero no baja mas: cada $EVENT
+// entra en state.events, que addEvent() de app.js RECORTA A 30 ENTRADAS (MEDIDO el
+// 13/09). A 30 s la bitacora de la sesion sigue cubriendo un cuarto de hora; a 10 s se
+// vaciaria en cinco minutos y este diagnostico se comeria justo los $ALARM que el tecnico
+// vino a leer. Es N-73 por inundacion, el mismo motivo por el que el $EVENT de J17 dejo
+// de salir por linea y paso a salir por umbral (AB-1).
+//
+// NO SE DERIVA DE SFTY6_SILENCIO_MS AUNQUE TIENTE, y el porque esta escrito abajo, en el
+// $EVENT de la vuelta del enlace: ese umbral es el del watchdog de la RADIO, y traerlo a
+// este fichero -el del puerto del telefono- es la precondicion de que alguien acabe
+// alimentando uno con el otro. Son dos silencios y dos instrumentos.
+//
+// LIMITE DECLARADO: arranca en 0, asi que la primera sale a los DIAG_ENLACE_MS de
+// encender y no en el arranque. Es lo correcto y no un efecto lateral: al arrancar el
+// STM32 puede no haber nadie escuchando -el ESP32 y el telefono llegan despues- y una
+// trama que nadie oye no es un instrumento.
+// ---------------------------------------------------------------------------
+static const unsigned long DIAG_ENLACE_MS = 30000UL;
+static unsigned long tUltimoDiagEnlace = 0;
+
 // D-31 (12/09) - LA MEMORIA DEL ACUSE DEL AVISO DE AMBAR. TRES BANDERAS Y UN INSTANTE,
 // porque son tres preguntas distintas y una variable que contesta a dos no puede
 // contestar bien a ninguna (CLAUDE.md 8).
@@ -1423,5 +1474,41 @@ void bluetooth_loop() {
       }
       validasAnt = validas;
     }
+  }
+
+  // D-23 (13/09) - EL DIAGNOSTICO DEL ENLACE DE ESTA PUNTA, A SU PROPIA CADENCIA.
+  //
+  // VA FUERA DEL if DEL $STATUS Y CON SU PROPIO RELOJ, y no es colocacion: colgando de
+  // aquel, la cadencia de este dato dejaria de ser la que dice DIAG_ENLACE_MS para pasar
+  // a ser un multiplo del periodico, y ademas los DOS instrumentos que leen
+  // `ahora - tUltimaTelemetria >= N` por TEXTO -esp32_07_presupuesto_bytes y
+  // simulador_puente_esp32- estarian midiendo un bloque que ya no es solo el $STATUS.
+  //
+  // LOS TRES CONTADORES SON LOS MISMOS QUE LOS DEL $ALARM, Y ESA ES LA MITAD DEL VALOR:
+  // el tecnico compara la linea de un poste sano con la de la caida sin traducir nada.
+  // Lo que cambia es el SEPARADOR -espacios y no comas- y eso NO es estilo: _camposNmea()
+  // de la app parte la trama por ',' y cada trozo por su PRIMER ':', asi que una coma
+  // dentro del DETALLE convierte lo que va detras en campos sueltos que el pintor de
+  // $EVENT no mira; los bits saldrian al cable y no llegarian a la pantalla. Es el mismo
+  // motivo que ya lleva escrito el $EVENT de ORIGEN:RELOJ del Maestro.
+  //
+  // LA COTA DE det[] ES LA DE tramo[45] DEL $ALARM, POR EL MISMO MOTIVO Y CON LA MISMA
+  // CUENTA -el porque entero esta alli y no se repite-: los tres son CONTADORES LIBRES de
+  // protocolo.cpp, sin techo que prometer, asi que se acotan a su tope de TIPO, que son
+  // las diez cifras de un unsigned long. Parte fija de ESTE formato: "RX:" + " OK:" +
+  // " RUIDO:" = 14, los mismos 14 que la del $ALARM. 14 + 30 = 44 caracteres + NUL = 45.
+  // Inventarles un techo para estrechar el buffer seria una cota escrita en vez de
+  // medida. Que el $EVENT ENTERO quepa luego en su payload no se afirma aqui: lo
+  // recalcula esp32_07_presupuesto_bytes leyendo este snprintf y el del emisor.
+  //
+  // EL ORIGEN ES ENLACE_RF Y NO UNO NUEVO: es el MISMO sujeto que el $EVENT de la vuelta
+  // del enlace -como ve ESTA punta su radio-, y la app ya los distingue por el DETALLE.
+  if (ahora - tUltimoDiagEnlace >= DIAG_ENLACE_MS) {
+    tUltimoDiagEnlace = ahora;
+    char det[45];
+    snprintf(det, sizeof(det), "RX:%lu OK:%lu RUIDO:%lu",
+             protocolo_bytesRecibidos(), protocolo_tramasValidas(),
+             protocolo_tramasDescartadas());
+    bluetooth_reportarEvento("ENLACE_RF", det);
   }
 }

@@ -62,6 +62,7 @@
 # comprueba las dos cosas por separado: que la cota este DERIVADA (de limites_ciclo.h y
 # de SFTY6_SILENCIO_MS, no escrita a mano) y que el emisor la COMPARE antes de imprimir.
 
+import math
 import re
 
 NOMBRE = "esp32_07_presupuesto_bytes"
@@ -676,21 +677,25 @@ def correr(b, fw):
         "%lu": len("4294967295"),   # unsigned long de 32 bits en Cortex-M3
     }
 
-    def _peor_tramo(punta):
-        """(peor caso en caracteres, capacidad del buffer) del tramo del $ALARM."""
-        codigo = fw.codigo(punta, "src", "bluetooth.cpp")
-        cuerpo = _cuerpo_funcion(codigo, "bluetooth_reportarAlarma")
-        if cuerpo is None:
-            raise _abortar("bluetooth_reportarAlarma()", "bluetooth.cpp del %s" % punta)
-        m = re.search(r"char\s+tramo\s*\[\s*(\d+)\s*\]", cuerpo)
+    # D-23 (13/09): ESTA FUNCION SE PARAMETRIZA, NO SE COPIA. Nacio midiendo el tramo[]
+    # del $ALARM y desde hoy mide tambien el det[] del $EVENT periodico de D-23, que es
+    # EL MISMO problema con los MISMOS tres contadores: un buffer interno relleno con
+    # numeros libres que despues entra en un payload. Reescribir esta cuenta para el
+    # segundo caso seria reescribir logica ya probada por un cambio de nombre, que es
+    # justo por donde se cuelan los errores (CLAUDE.md 4). Lo unico que entra por
+    # parametro es DONDE mirar y COMO llamarlo en el mensaje.
+    def _peor_buffer(punta, cuerpo, nombre, que):
+        """(peor caso en caracteres, capacidad) de un buffer interno relleno por snprintf."""
+        m = re.search(r"char\s+%s\s*\[\s*(\d+)\s*\]" % re.escape(nombre), cuerpo)
         if not m:
-            raise _abortar("la declaracion de tramo[]", "el $ALARM del %s" % punta)
+            raise _abortar("la declaracion de %s[]" % nombre, "%s del %s" % (que, punta))
         cap = int(m.group(1))
         escrituras = re.findall(
-            r'snprintf\(\s*tramo\s*,[^,]+,\s*"((?:[^"\\]|\\.)*)"\s*(.*?)\);',
+            r'snprintf\(\s*%s\s*,[^,]+,\s*"((?:[^"\\]|\\.)*)"\s*(.*?)\);' % re.escape(nombre),
             cuerpo, re.S)
         if not escrituras:
-            raise _abortar("el snprintf que rellena tramo[]", "el $ALARM del %s" % punta)
+            raise _abortar("el snprintf que rellena %s[]" % nombre,
+                           "%s del %s" % (que, punta))
         peor = 0
         for fmt, cola in escrituras:
             args, prof, act = [], 0, ""
@@ -711,8 +716,8 @@ def correr(b, fw):
             fijo = len(re.sub(r"%[0-9]*l?[usd]", "", fmt).replace("%%", "%"))
             if len(convs) != len(args):
                 raise _Falta(
-                    "el tramo del $ALARM del %s tiene %d conversiones y %d argumentos"
-                    % (punta, len(convs), len(args)))
+                    "%s del %s tiene %d conversiones y %d argumentos"
+                    % (que, punta, len(convs), len(args)))
             total = fijo
             for conv, arg in zip(convs, args):
                 if conv == "%s":
@@ -721,11 +726,19 @@ def correr(b, fw):
                     total += ANCHO_POR_TIPO[conv]
                 else:
                     raise _Falta(
-                        "el tramo del $ALARM del %s usa la conversion %r y esta cuenta "
-                        "no sabe acotarla. Una estimacion aqui es lo que trunco el "
-                        "$ALARM de N-108" % (punta, conv))
+                        "%s del %s usa la conversion %r y esta cuenta no sabe acotarla. "
+                        "Una estimacion aqui es lo que trunco el $ALARM de N-108"
+                        % (que, punta, conv))
             peor = max(peor, total)
         return peor, cap
+
+    def _peor_tramo(punta):
+        """(peor caso en caracteres, capacidad del buffer) del tramo del $ALARM."""
+        cuerpo = _cuerpo_funcion(fw.codigo(punta, "src", "bluetooth.cpp"),
+                                 "bluetooth_reportarAlarma")
+        if cuerpo is None:
+            raise _abortar("bluetooth_reportarAlarma()", "bluetooth.cpp del %s" % punta)
+        return _peor_buffer(punta, cuerpo, "tramo", "el tramo del $ALARM")
 
     for punta in ("Maestro", "Esclavo"):
         try:
@@ -815,6 +828,112 @@ def correr(b, fw):
             "corta el cierre del checksum, el otro extremo descarta la trama y la alarma "
             "desaparece entera justo cuando hace falta" % (punta.upper(), peorA, capT))
 
+    # ---- 2.sexies D-23 (13/09): EL $EVENT PERIODICO DEL ENLACE DEL ESCLAVO ----
+    #
+    # QUE ES Y POR QUE ENTRA EN ESTE PACK. D-23 pide que el poste 2 diga como ve EL su
+    # enlace -sus tres contadores de SFTY-15, que hasta hoy solo salian dentro del $ALARM,
+    # o sea cuando la radio YA se habia caido-. El responsable eligio el 13/09 la via del
+    # $EVENT PERIODICO (D-32 (2)). Eso pone en J17 un SEGUNDO emisor periodico, y este es
+    # el pack que dice si el canal lo aguanta: un presupuesto que no contara un emisor que
+    # existe no mediria de menos, mediria OTRO equipo.
+    #
+    # SE MIDE EN DOS PASOS Y CON LA MISMA MAQUINA QUE EL $ALARM, porque son dos
+    # truncamientos distintos: primero que los tres contadores quepan en su buffer interno
+    # -si no, se pierde el final del dato y la trama sale bien formada, que es el fallo que
+    # no se investiga-, y despues que el $EVENT entero quepa en su payload y en su
+    # envoltorio con CRC.
+    #
+    # SE LOCALIZA POR LA CONSTANTE CON NOMBRE, no por el texto del bloque: si alguien la
+    # retira o la renombra este pack ABORTA en vez de dejar de contar el emisor en
+    # silencio, que es la unica forma de que la cuenta no envejezca sola (CLAUDE.md 14).
+    codigo_e = fw.codigo("Esclavo", "src", "bluetooth.cpp")
+    m_diag = re.search(r"ahora\s*-\s*(\w+)\s*>=\s*(DIAG_ENLACE_MS)\s*\)\s*\{", codigo_e)
+    if not m_diag:
+        raise fw.Abortado(
+            "no se hallo en bluetooth.cpp del Esclavo el bloque periodico "
+            "`ahora - <marca> >= DIAG_ENLACE_MS`, que es con lo que se construyo D-23. O "
+            "se retiro, o cambio de forma: en los dos casos este presupuesto estaria "
+            "contando un emisor distinto del que hay en el cable")
+    bloque_diag = _bloque_que_contiene(codigo_e, m_diag.end())
+    m_llamada = re.search(
+        r'bluetooth_reportarEvento\s*\(\s*"([^"]+)"\s*,\s*(\w+)\s*\)', bloque_diag)
+    if not m_llamada:
+        raise fw.Abortado(
+            "el bloque periodico de D-23 ya no llama a bluetooth_reportarEvento() con un "
+            "ORIGEN literal y un buffer: sin esos dos no hay trama que acotar")
+    origen_diag, nombre_det = m_llamada.group(1), m_llamada.group(2)
+
+    try:
+        peorD, capD = _peor_buffer("Esclavo", bloque_diag, nombre_det,
+                                   "el DETALLE del $EVENT periodico de D-23")
+    except _Falta as e:
+        raise fw.Abortado(str(e))
+    b.verificar(
+        peorD <= capD - 1,
+        "los tres contadores de D-23 caben en su %s[%d], que guarda %d: el peor caso por "
+        "TIPO son %d caracteres" % (nombre_det, capD, capD - 1, peorD),
+        "EL DETALLE DE D-23 NO CABE: %d caracteres por TIPO en un %s[%d] que guarda %d. "
+        "Se pierde el FINAL, o sea el contador de descartes, y el $EVENT sale bien formado "
+        "y con su checksum bueno: el tecnico lee una linea entera a la que le falta justo "
+        "el numero que fue a buscar. Se acota donde se produce, no se ensancha el buffer"
+        % (peorD, nombre_det, capD, capD - 1))
+
+    cuerpo_ev = _cuerpo_funcion(codigo_e, "bluetooth_reportarEvento")
+    if cuerpo_ev is None:
+        raise fw.Abortado(
+            "no se hallo bluetooth_reportarEvento() en bluetooth.cpp del Esclavo: es el "
+            "emisor por el que sale D-23 y sin el no hay payload que medir")
+    m_ev = re.search(
+        r'snprintf\(\s*payload\s*,[^,]+,\s*"(\$EVENT(?:[^"\\]|\\.)*)"\s*(.*?)\);',
+        cuerpo_ev, re.S)
+    firma_ev = re.search(r"\bbluetooth_reportarEvento\s*\(([^)]*)\)\s*\{", codigo_e)
+    capEv = _ancho_decl(cuerpo_ev, "payload")
+    capTrE = _ancho_decl(codigo_e, "tramaCompleta")
+    if not (m_ev and firma_ev) or capEv is None or capTrE is None:
+        raise fw.Abortado(
+            "no se pudo leer del C++ el emisor del $EVENT del Esclavo (snprintf=%s, "
+            "firma=%s, payload=%s, tramaCompleta=%s). Sin ellos D-23 no se acota"
+            % (bool(m_ev), bool(firma_ev), capEv, capTrE))
+    params_ev = [p.strip().split()[-1].lstrip("*") for p in firma_ev.group(1).split(",")]
+    anchos_ev = []
+    for a in _partir_args(m_ev.group(2).strip().lstrip(",")):
+        if len(params_ev) > 0 and a == params_ev[0]:
+            anchos_ev.append(len(origen_diag))      # el ORIGEN es un literal del llamador
+        elif len(params_ev) > 1 and a == params_ev[1]:
+            anchos_ev.append(capD - 1)              # el DETALLE, por SU buffer
+        else:
+            w = _ancho_decl(cuerpo_ev, a)           # lo demas, buffer del propio emisor
+            if w is None:
+                raise fw.Abortado(
+                    "no se supo acotar %r del $EVENT del Esclavo. No es un parametro de "
+                    "la firma ni un buffer del cuerpo, asi que su ancho no sale de "
+                    "ningun sitio medible y una estimacion aqui es N-108 otra vez" % a)
+            anchos_ev.append(w)
+    peorEv = _peor(m_ev.group(1), anchos_ev)
+    if peorEv is None:
+        raise fw.Abortado(
+            "el $EVENT del Esclavo tiene %d conversiones y %d argumentos: con esa "
+            "discrepancia no hay cuenta que hacer"
+            % (len(re.findall(r"%[0-9]*l?[usd]", m_ev.group(1))), len(anchos_ev)))
+
+    b.verificar(
+        peorEv <= capEv,
+        "el $EVENT periodico de D-23 (ORIGEN:%s) cabe: %d caracteres por BUFFER en un "
+        "payload que guarda %d" % (origen_diag, peorEv, capEv),
+        "EL $EVENT DE D-23 NO CABE: %d caracteres por BUFFER en un payload que guarda %d. "
+        "Se pierden los %d ultimos -el final es la HORA-, y el checksum sale BUENO porque "
+        "se calcula sobre lo que quedo. Se acorta el ORIGEN o el DETALLE, no se ensancha "
+        "el payload: es el mismo emisor que usan las dos puntas"
+        % (peorEv, capEv, peorEv - capEv))
+    b.verificar(
+        peorEv + len("*XX\r\n") <= capTrE,
+        "y sale entero con su checksum: %d + 5 caracteres en un tramaCompleta que guarda "
+        "%d" % (peorEv, capTrE),
+        "el $EVENT de D-23 son %d caracteres y con su *XX\\r\\n no cabe en un "
+        "tramaCompleta que guarda %d. Truncar aqui es PEOR: se corta el cierre del "
+        "checksum y el otro extremo descarta la trama entera"
+        % (peorEv, capTrE))
+
     # ---- 3. La cadencia, leida del C++ ---------------------------------------
     cadencias = {}
     for punta in ("Maestro", "Esclavo"):
@@ -832,17 +951,52 @@ def correr(b, fw):
 
     porSegundo = 1000.0 / cadencias["Maestro"]
 
+    # ---- 3.bis D-23: y la cadencia del SEGUNDO periodico, que tiene que ser BAJA ------
+    #
+    # LA COMPRUEBA ESTE PACK PORQUE ES LA MITAD DEL ARGUMENTO CON EL QUE SE ELIGIO LA VIA.
+    # El responsable descarto el aviso ESP32->STM32 -que habria sido la tercera orden que
+    # el accesorio origina hacia el micro- a cambio de un periodico "a cadencia baja". Si
+    # esa cadencia baja hasta la del $STATUS, lo que se construyo deja de ser lo que se
+    # decidio, y ademas inunda la bitacora de 30 entradas de la app. El borde contra el que
+    # se compara va escrito, que es lo que pide CLAUDE.md 7: es la cadencia del $STATUS,
+    # RELEIDA arriba del C++, no un numero puesto aqui.
+    diag_ms = fw.constante(
+        ("Esclavo", "src", "bluetooth.cpp"),
+        r"%s\s*=\s*(\d+)UL" % re.escape(m_diag.group(2)),
+        "la cadencia del $EVENT de diagnostico de enlace de D-23")
+    b.verificar(
+        diag_ms > cadencias["Esclavo"],
+        "el diagnostico de D-23 sale cada %d ms, mas espaciado que el $STATUS (%d ms): es "
+        "el periodico BAJO con el que se eligio la via, no un segundo latido"
+        % (diag_ms, cadencias["Esclavo"]),
+        "el diagnostico de D-23 sale cada %d ms y el $STATUS cada %d ms. Un segundo "
+        "periodico igual o mas rapido que el primero ya no es 'cadencia baja': es el "
+        "coste que se dijo que no se iba a pagar, y ademas vacia en minutos la bitacora "
+        "de eventos de la app, que es donde el tecnico busca el $ALARM"
+        % (diag_ms, cadencias["Esclavo"]))
+
     # ---- 4. EL PEOR SEGUNDO REALISTA CABE ------------------------------------
     #
     # $STATUS a su cadencia, mas una rafaga de $ACK, $EVENT y $ALARM coincidiendo. No es
     # el caso medio: es un comando que dispara una alarma y una entrada de bitacora justo
     # cuando toca telemetria, que es exactamente cuando mas informacion hace falta.
-    peor = topeStatus * porSegundo + topeEvento + topeAlarma + topeStatus
+    #
+    # D-23 (13/09): Y EL SEGUNDO PERIODICO ENTRA AQUI, ENTERO Y NO PRORRATEADO. En el peor
+    # segundo el $EVENT de diagnostico o cae o no cae, y la cuenta se hace para el segundo
+    # en que cae -que ademas no es casualidad: 30000 es multiplo de la cadencia del
+    # $STATUS, asi que los dos periodicos coinciden en la MISMA vuelta del bucle por
+    # construccion, y eso es mejor que depender de la suerte-. El techo se calcula, no se
+    # escribe: si algun dia la cadencia bajara de un segundo, cabrian varios y la cuenta
+    # los cuenta en vez de quedarse corta sin decirlo.
+    diag_por_segundo = int(math.ceil(1000.0 / diag_ms))
+    peor = (topeStatus * porSegundo + topeEvento + topeAlarma + topeStatus
+            + topeEvento * diag_por_segundo)
     ocupacion = 100.0 * peor / caudal
     b.verificar(
         peor < caudal,
         "el peor segundo son %d B de %d B/s (%.1f%%): la rafaga de $STATUS + $EVENT + "
-        "$ALARM + $ACK cabe" % (peor, caudal, ocupacion),
+        "$ALARM + $ACK, con el diagnostico de D-23 cada %d ms encima, cabe"
+        % (peor, caudal, ocupacion, diag_ms),
         "EL PEOR SEGUNDO NO CABE: %d B contra %d B/s (%.1f%%). Las tramas se encolan y "
         "llegan tarde; pasados los 5 s de TIMEOUT_ENLACE_MS la app declara el enlace "
         "perdido de un equipo que esta emitiendo" % (peor, caudal, ocupacion))
@@ -861,16 +1015,124 @@ def correr(b, fw):
         % (msComando, cadencias["Maestro"]))
 
     # ---- 6. P-2: el buffer de salida aguanta la rafaga ------------------------
+    # 🔴 P-2 SE REESCRIBE EL 13/09 HACIA EL BORDE REAL, Y LA CAUSA VIEJA SE MARCA
+    # REFUTADA EN VEZ DE BORRARSE (CLAUDE.md 7.4): la que desaparece en silencio vuelve a
+    # proponerse, y la segunda vez nadie recuerda que se comprobo.
+    #
+    # LO QUE DECIA HASTA HOY: `BUF_SALIDA_APP >= topeStatus + topeEvento + topeAlarma`,
+    # o sea "el buffer de salida hacia la app aguanta la rafaga sin descartar".
+    #
+    # POR QUE ERA FALSO, MEDIDO EL 13/09 SOBRE EL FUENTE DEL PUENTE. BUF_SALIDA_APP tiene
+    # UN SOLO USUARIO en todo el firmware del ESP32: `char trama[BUF_SALIDA_APP]` en
+    # puente_emitirPropio() -un array de PILA que compone UNA trama que ORIGINA EL PROPIO
+    # PUENTE, su parte de arranque y sus $ERR-. Su dueno de verdad es esa trama, y quien
+    # lo mide es esp32_10_parte_de_arranque.
+    #
+    # LAS TRAMAS DEL STM32 NO PASAN POR AHI. El sentido STM32 -> app lee LINEA A LINEA en
+    # deSTM32[BUF_ENTRADA_STM32] -el indice vuelve a cero en cada terminador- y reenvia
+    # cada una por `char salida[BUF_ENTRADA_STM32 + 2]` a transporte_escribir(), que es
+    # spp.write(): la cola de BluetoothSerial. NINGUN buffer de este firmware acumula una
+    # rafaga. O sea que P-2 comparaba una rafaga de TRES TRAMAS contra un buffer de
+    # composicion de UNA, y el borde estaba mal desde antes de que D-23 existiera; lo que
+    # hizo D-23 fue empujar el numero por encima de 512 y hacerlo visible.
+    #
+    # QUIEN LIMITA DE VERDAD, Y POR ESO SON DOS COSAS DISTINTAS:
+    #   la RAFAGA      la limita el CABLE, 960 B/s, y eso ya es la seccion 4.
+    #   cada TRAMA     la limita la linea del puente, y ESO NO LO MEDIA NADIE. Es lo que
+    #                  se construye aqui.
     salida = fw.constante(CONTRATO, r"#define\s+BUF_SALIDA_APP\s+(\d+)",
-                          "el buffer de salida hacia la app")
-    rafaga = topeStatus + topeEvento + topeAlarma
+                          "el buffer con el que el puente compone SU PROPIA trama")
+    codigo_p = fw.codigo("ESP32_Expansion", "src", "puente.cpp")
+    propio = _cuerpo_funcion(codigo_p, "puente_emitirPropio")
+    usos = len(re.findall(r"\bBUF_SALIDA_APP\b", codigo_p))
     b.verificar(
-        salida >= rafaga,
-        "P-2: el buffer hacia la app (%d B) aguanta la rafaga de %d B sin descartar"
-        % (salida, rafaga),
-        "P-2 ROTA: el buffer hacia la app son %d B y la rafaga %d B. Una rafaga que "
-        "coincida con un $STATUS descartaria tramas justo cuando mas hay que contar"
-        % (salida, rafaga))
+        propio is not None and usos == 1 and "BUF_SALIDA_APP" in propio,
+        "P-2 (refutada y re-anclada): BUF_SALIDA_APP (%d B) tiene %d uso en puente.cpp y "
+        "esta dentro de puente_emitirPropio(), o sea que dimensiona la trama que ORIGINA "
+        "el puente -no la rafaga del STM32, que va linea a linea por otro buffer-"
+        % (salida, usos),
+        "BUF_SALIDA_APP ha dejado de ser lo que esta refutacion midio: %d usos en "
+        "puente.cpp y dentro de puente_emitirPropio()=%s. Si las tramas del STM32 han "
+        "pasado a componerse ahi, la P-2 vieja -la rafaga contra este buffer- vuelve a "
+        "significar algo y hay que rehacer esta seccion, no darla por buena"
+        % (usos, propio is not None and "BUF_SALIDA_APP" in (propio or "")))
+
+    # ---- 6.bis EL BORDE REAL: CADA TRAMA CABE EN LA LINEA DEL PUENTE ----------
+    #
+    # QUE PASA SI NO CABE, Y ES PEOR QUE UN TRUNCAMIENTO: puente.cpp arma la linea byte a
+    # byte mientras `idxSTM32 < BUF_ENTRADA_STM32 - 1` y, pasado ese punto, levanta
+    # stmDesbordada; al llegar el terminador la trama ENTERA se descarta y se CUENTA en
+    # descartadasLargo. O sea que el desbordamiento NO es mudo -hay contador-, y por eso
+    # esta comprobacion no habla de truncamiento: habla de una trama que DESAPARECE. El
+    # $STATUS del poste no llegaria a la app, y lo unico que quedaria es un contador que
+    # nadie mira desde el poste.
+    #
+    # LO QUE NO HABIA ERA VIGILANCIA DEL MARGEN: nada comprobaba que la trama mas larga
+    # que el STM32 PUEDE emitir quepa en esa linea. Se construye aqui, y DERIVADA: todo
+    # lo que el STM32 pone en el cable sale por enviarTramaConCrc(), asi que ninguna
+    # trama pasa de lo que su tramaCompleta[] guarda. Ni un numero escrito a mano, para
+    # que el dia que alguien anada un campo al $STATUS esto se ponga rojo solo
+    # (CLAUDE.md 14).
+    m_env = re.search(r'snprintf\(\s*tramaCompleta\s*,[^,]+,\s*"((?:[^"\\]|\\.)*)"',
+                      fw.codigo("Maestro", "src", "bluetooth.cpp"))
+    if not m_env:
+        raise fw.Abortado(
+            "no se hallo el snprintf de enviarTramaConCrc(): sin su formato no se sabe "
+            "con cuantos bytes de terminador cierra el STM32 cada trama, y esa es la "
+            "diferencia entre lo que viaja y lo que el puente ALMACENA")
+    terminadores = m_env.group(1).count("\\r") + m_env.group(1).count("\\n")
+
+    entrada = fw.constante(CONTRATO, r"#define\s+BUF_ENTRADA_STM32\s+(\d+)",
+                           "la linea donde el puente arma lo que viene del STM32")
+    # DECLARAR NO ES EJERCER (CLAUDE.md 6): la capacidad no es la del #define, es la que
+    # la GUARDA de puente.cpp deja pasar. Se lee la guarda.
+    m_g = re.search(r"idxSTM32\s*<\s*\(size_t\)\(\s*BUF_ENTRADA_STM32\s*-\s*(\d+)\s*\)",
+                    codigo_p)
+    if not m_g:
+        raise fw.Abortado(
+            "no se hallo en puente.cpp la guarda `idxSTM32 < (size_t)(BUF_ENTRADA_STM32 "
+            "- N)`, que es la que de verdad decide cuantos caracteres entran en la linea. "
+            "Con el #define solo se mediria la cota DECLARADA, y este pack ya sabe que "
+            "eso no es lo mismo")
+    cabe = entrada - int(m_g.group(1))
+
+    lineas = {}
+    for punta in ("Maestro", "Esclavo"):
+        cap = _ancho_decl(fw.codigo(punta, "src", "bluetooth.cpp"), "tramaCompleta")
+        if cap is None:
+            raise fw.Abortado(
+                "no se hallo tramaCompleta[] en bluetooth.cpp del %s: es el techo de todo "
+                "lo que esa punta puede poner en el cable" % punta)
+        lineas[punta] = cap - terminadores
+    peor_punta = max(lineas, key=lambda p: lineas[p])
+    peor_linea = lineas[peor_punta]
+
+    b.verificar(
+        peor_linea <= cabe,
+        "la trama mas larga que el STM32 puede emitir (%s, %d caracteres sin los %d de "
+        "terminador) cabe en la linea del puente, que admite %d: margen %d"
+        % (peor_punta, peor_linea, terminadores, cabe, cabe - peor_linea),
+        "LA TRAMA MAS LARGA DEL %s NO CABE EN LA LINEA DEL PUENTE: %d caracteres contra "
+        "los %d que la guarda de puente.cpp deja entrar. No se trunca: se DESCARTA "
+        "ENTERA y se cuenta en descartadasLargo, asi que el $STATUS de ese poste deja de "
+        "llegar a la app y lo unico que queda es un contador que nadie mira desde el "
+        "poste. Se acorta la trama donde se produce; ensanchar BUF_ENTRADA_STM32 es "
+        "mover el borde en vez de respetarlo"
+        % (peor_punta.upper(), peor_linea, cabe))
+
+    # Y LA MITAD QUE LA COMPROBACION DE ARRIBA SE LLEVARIA POR DELANTE SI NO SE ANOTA: su
+    # mensaje afirma que el desbordamiento se CUENTA, y eso es una afirmacion sobre el
+    # codigo. Se mide, no se recita (CLAUDE.md 6, la excepcion es el instrumento).
+    b.verificar(
+        bool(re.search(r"stmDesbordada\s*=\s*true", codigo_p))
+        and bool(re.search(r"if\s*\(\s*stmDesbordada\s*\)[^}]*descartadasLargo\+\+",
+                           codigo_p, re.S)),
+        "y si algun dia no cupiera, el puente lo CUENTA: levanta stmDesbordada al pasarse "
+        "y suma descartadasLargo al cerrar la linea, en vez de entregar media trama",
+        "puente.cpp ya no levanta stmDesbordada al pasarse, o ya no la convierte en "
+        "descartadasLargo al cerrar la linea. Entonces una trama demasiado larga SI se "
+        "volveria muda: media trama entregada o una perdida sin contador, y el mensaje "
+        "de la comprobacion de arriba estaria prometiendo un contador que no existe")
 
     # ---- 7. P-1 y P-4: el puente no anade ni agrupa --------------------------
     #
