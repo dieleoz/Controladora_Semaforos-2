@@ -41,6 +41,28 @@ La tabla de abajo es verdad. **Lee lo que mide antes de lo que puntúa.**
 
 ---
 
+## 📐 LA SPEC — empieza por aquí, y son seis ficheros
+
+**Escritas el 12–13/09 desde `DECISIONES.md` vigente y desde el fuente, verificando cada afirmación contra el
+código.** Sustituyen a ~17.000 líneas de manuales que describían un sistema que ha cambiado cuatro veces.
+**Ninguna pasa de 300 líneas a propósito:** un fichero que no se puede leer entero no lo lee nadie entero, y
+entonces cada lector deriva su propia versión.
+
+| | qué contesta |
+|---|---|
+| [`SPEC_1_Ciclo_y_Luces`](05_Funcional/SPEC_1_Ciclo_y_Luces.md) | qué hace **un** poste con sus tres luces y su pluma: modos, tiempos, transiciones, la barrera de salidas |
+| [`SPEC_2_Dos_Puntas_y_Radio`](05_Funcional/SPEC_2_Dos_Puntas_y_Radio.md) | 🔴 **lo único de verdad difícil: que los dos postes NUNCA den verde a la vez**, con una radio lenta que pierde tramas y sin cable entre ellos |
+| [`SPEC_3_La_Hora`](05_Funcional/SPEC_3_La_Hora.md) | de dónde sale la hora y qué pasa cuando se pierde — **es lo que autoriza el Degradado**, o sea el modo que da verdes sin confirmar con la otra punta |
+| [`SPEC_4_App_y_Bluetooth`](05_Funcional/SPEC_4_App_y_Bluetooth.md) | la **única** forma de operar el equipo (`D-16`): qué órdenes hay, qué contesta el equipo a cada una y de qué depende esa respuesta |
+| [`SPEC_5_Cobre_Camaras_Pluma`](05_Funcional/SPEC_5_Cobre_Camaras_Pluma.md) | 🛑 **qué hay en cada pin, qué es peligroso y qué no se ha medido nunca.** Se lee con un destornillador en la mano |
+| [`SPEC_6_Campo_Radio_y_Alarmas`](05_Funcional/SPEC_6_Campo_Radio_y_Alarmas.md) | el **procedimiento de campo** del Degradado, la configuración de radio y antenas, y la tabla completa de alarmas → qué hace el técnico |
+
+> ⚠️ **La spec dice qué HACE el equipo hoy, no qué debería hacer.** Lo que no cumple una decisión vigente vive
+> en el apartado «HUECOS MEDIDOS» de cada una, con la medida pegada. **Y los manuales viejos siguen en el
+> árbol a propósito**: se intentó jubilarlos y se paró con medida — hay contenido que ninguna spec cubre
+> todavía (la receta de la APK, los ensayos de cámara con instrumento, la trama canónica con checksums de la
+> que cuelga un pack). Está contado en `roadmap.md` 1.35(a).
+
 ## 🔧 Qué se probó en banco, y qué no
 
 > **El 3 y 4 de Septiembre esto vio una tarjeta.** El funcional ejecutó la guía de 29 pasos
