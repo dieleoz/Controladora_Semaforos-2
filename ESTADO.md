@@ -397,14 +397,14 @@ acta es el ESTADO: `decisiones_01_anclas` vuelve a acusar a `D-14`, `D-22` y `D-
 ancla en el fuente, y esa acusación es CORRECTA — están decididas y sin construir.**
 
 Cifras **copiadas del acta
-[`evidencia/2026-09-13_compuerta.txt`](evidencia/2026-09-13_compuerta.txt)**, no escritas a mano —
+[`evidencia/2026-09-14_compuerta.txt`](evidencia/2026-09-14_compuerta.txt)**, no escritas a mano —
 lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida.
 
 | | |
 |---|---|
-| Flash | Maestro **63.8 %** (**41800** de 65536 B → **23.736 B libres**) · Esclavo **55.9 %** (36648 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | 🔴 **1397/1398 comprobaciones** en **79 packs** — 78 PASS, **1 FALLA**, y el rojo es correcto: `decisiones_01_anclas` cuenta TRES como **vigentes sin construir**: `D-14`, `D-22` y `D-30` *(bajo de seis el 12/09 al anclar `D-25` y `D-27`)*. 🔴 **La frase que iba aquí, *«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*, ERA FALSA: sólo `D-20` y la pieza B de `D-21` están construidas.** Las otras tres se «anclaron» con comentarios y están revertidas (`def6374`, `903f483`, `5d0a0b9`) |
-| Arneses que compilan C++ real | ~~287/287 pantalla~~ *(retirado con el LCD, `D-32` (1))* · **99/99** automático · 22/22 ciclo · **110/110 dos puntas** · **53/53 Degradado a dos puntas** |
+| Flash | Maestro **64.2 %** (**42060** de 65536 B → **23.476 B libres**) · Esclavo **56.4 %** (36944 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | 🔴 **1411/1412 comprobaciones** en **79 packs** — 78 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando a **`D-22`**, la única decisión vigente sin ancla en el firmware — y no se construye con teclado: **necesita una tarjeta delante**. Las que este rojo contaba antes ya salieron de la lista: `D-23` y `D-33` están **construidas**, `D-14` **no se instala** (la cámara graba el evento sola en su microSD, 12/09) y `D-30` quedó **recortada** al retirarse el LCD (`D-32` (1)). 🔴 **Que esta cuenta suba no dice que el banco se degrade: dice que se está decidiendo más rápido de lo que se construye, y se arregla con teclado, no tocando el instrumento** |
+| Arneses que compilan C++ real | ~~287/287 pantalla~~ *(retirado con el LCD, `D-32` (1))* · **115/115** automático · 22/22 ciclo · **111/111 dos puntas** · **53/53 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | **281/281** jsdom · 65/65 funcional · 52/52 unitarios · **69/69** TDD |
 

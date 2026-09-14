@@ -75,20 +75,41 @@ por **dos caminos, no uno**:
 > **CERRADO**, que es lo correcto; **retirar su ARMADOR del codigo dejaria los tres `if` siempre
 > verdaderos y el veto ABIERTO**. Por eso `D-1` dice que el codigo **no se toca**.
 
-## 4. 🔴 NINGUNA CAMARA PROTEGE LA PLUMA: puede bajar con un coche debajo
+## 4. 🔴 LA CAMARA FRENA LA BARRERA — pero solo a la que YA veia bajar
 
-**MEDIDO en el firmware (11/09, `a6980e4` / `b79d904`, y reconfirmado hoy):** `escribirPines()` **no
-lee ninguna camara**. La pluma sigue a la luz y a nada mas (SFTY-28):
+**`D-33` (14/09/2026) derogo el aviso que habia aqui** *(«ninguna camara protege la pluma: puede bajar
+con un coche debajo», medido el 11/09 y cierto hasta ese dia)*. Hoy `escribirPines()` **si** lee la
+camara, y lo que hace con ella tiene una sola direccion:
 
-```
-digitalWrite(MOTOR_TALANQUERA,
-             (plumaAbierta = ((verde && !testLedsActivo) || estado == S_FALLO))
-                 ? TALANQUERA_ABRIR : TALANQUERA_CERRAR);
-```
+- **La pluma SUBE por la luz y por nada mas.** La camara no la levanta nunca: la rama de «pluma ya
+  abajo» la deja abajo **en seco**, sin mirar camara ni reloj. **Una deteccion no puede abrir una
+  barrera con la luz en rojo.**
+- **La pluma BAJA tres segundos DESPUES del rojo** (`PLUMA_RETARDO_BAJADA_MS`, elegido por el
+  responsable el 14/09 — no derivado), *«porque suelen pasarse carros en ambar y hay que darle unos
+  segundos al conductor»*. El retardo no depende de ninguna camara: se cumple con las borneras vacias,
+  que es como esta hoy la mayoria de los equipos.
+- **Pasado el retardo, CUALQUIERA de las dos camaras del poste VETA la bajada** mientras siga viendo
+  algo. Sin consenso: con un AND, una camara muerta anularia el veto para siempre.
+- **El veto es LOCAL y no para el ciclo.** *«Esas barreras son casi de adorno; el que manda es el
+  semaforo y su estado»* (responsable, 14/09). El coordinador no lo consulta: el otro poste abre su
+  verde igual.
 
-**El veto de la pluma es `A-1.bis`: ABIERTO Y SIN CONSTRUIR.** La fase 1 de `D-13` solo **cuenta**
-cuantas veces habria actuado (`camVetos`, `$EVENT`); **observa y no veta**. **El operario no debe
-montar el equipo creyendo que la camara frena la barrera.**
+🔴 **LA DIRECCION DEL FALLO ESTA DECIDIDA: ante error, falsa alarma o contacto pegado, LA BARRERA NO
+BAJA.** No se le pone tope que acabe bajandola —un tope devuelve el peligro que el veto evita, porque
+el firmware **no distingue un rele trabado de un vehiculo parado debajo** (`A-1.bis`)—: se **AVISA**,
+y el aviso dice **cuantos segundos lleva retenida**, nunca «camara averiada». La app pide entonces
+ajuste de camara. **Una barrera arriba no aplasta a nadie; el precio es que deja de proteger, y por
+eso tiene que VERSE.**
+
+⚠️ **Y lo que sigue sin proteger a nadie, escrito en vez de disimulado: una camara muerta DESDE LA
+INSTALACION no veta NUNCA.** Sin un solo flanco el firmware no la distingue de una bornera vacia
+(§3.2, `A-6`), asi que ahi la pluma baja como antes de `D-33`. Es el lado seguro para el tramo y el
+inseguro para quien este debajo. Lo compensa el paso de instalacion del Manual 9, que obliga a
+**provocar una deteccion** delante de la camara.
+
+**Lo que `D-33` NO trae todavia:** el **modo admin** que saque una barrera de la logica desde la app
+(decidido el 14/09, sin construir) y el umbral de *«demasiadas falsas alarmas»* a partir del cual la
+app pide ajuste por su cuenta.
 
 # 1. El reparto, en una frase
 
@@ -205,6 +226,9 @@ rele, y los contactos del rele a `OPEN`/`COM` de la centralita.** **SFTY-28, pin
 - **Sube con verde y tambien en `S_FALLO`** —ambar intermitente: orfandad SFTY-6, Modo Ambar,
   `AMBAR_EMERGENCIA`, Degradado en ambar, un poste recien encendido—; **no sube con el verde de un test
   de lamparas** (`!testLedsActivo`, N-82). **La tabla luz -> pluma entera es SPEC 1 §2** y no se repite.
+- **`D-33`: y BAJA tres segundos tarde, o no baja** mientras una camara vea algo debajo. Las dos
+  excepciones solo pueden **RETENER** una pluma que ya estaba arriba: la subida sigue dependiendo de
+  la luz y de nada mas. Pagina 1 §4.
   Lo del `S_FALLO` **lo eligieron el cliente y el PMT el 27/08/2026**, no el firmware — 🔴 **y esa
   eleccion NO tiene fila en `DECISIONES.md`** (SPEC 1 §11).
 - **Equipo SIN ENERGIA: el pin cae a LOW, el MOSFET no conduce, la pluma BAJA** — el fallo seguro. La
@@ -212,7 +236,10 @@ rele, y los contactos del rele a `OPEN`/`COM` de la centralita.** **SFTY-28, pin
 - **La orden sale por la MISMA puerta que las luces** — dentro de `escribirPines()`, con el `verde`
   ya enclavado por SFTY-2. Una barrera con dos puertas no es una barrera.
 
-> 🔴 **Y lo que NO hace: no la frena nada.** Aviso 4 de la pagina 1. **`A-1.bis` abierto.**
+> 🔴 **Y lo que NO hace: no la levanta nada.** La camara solo puede retrasar o impedir la BAJADA
+> (`D-33`, pagina 1 §4). **`A-1.bis` sigue abierto en su otra mitad:** que hacer cuando el veto se
+> queda pegado. La respuesta de hoy es **avisar y no bajar nunca**, y esta escrita porque se eligio,
+> no porque se midiera que sea la mejor.
 
 ⚠️ **MEDIDO EN COBRE (banco 04/09):** `J15` dio *«en rojo 0 V, en ambar 12 V»*. La causa se explico
 el 05/09: **nueve de los diez drenadores llevan pull-up de 1 kOhm + LED al riel de 12 V** (`R23`,

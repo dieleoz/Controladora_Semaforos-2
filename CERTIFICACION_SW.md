@@ -24,7 +24,7 @@
 ## 🧾 De dónde salen las cifras de este documento
 
 **Todas las cifras de la tabla siguiente están copiadas del acta
-[`evidencia/2026-09-13_compuerta.txt`](evidencia/2026-09-13_compuerta.txt), no escritas a mano.**
+[`evidencia/2026-09-14_compuerta.txt`](evidencia/2026-09-14_compuerta.txt), no escritas a mano.**
 Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 `documentos_04_cifras_sin_vigilante`, que es lo que impide que este documento envejezca en silencio.
 
@@ -46,23 +46,23 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 
 | Verificación | Resultado medido | Método |
 |---|---|---|
-| Compilación Maestro (STM32F103) | **41800 B de Flash — 63.8 %** de 65536 B (quedan **6648 B**) | `pio run` |
-| Compilación Esclavo (STM32F103) | **36648 B de Flash — 55.9 %** de 65536 B | `pio run` |
+| Compilación Maestro (STM32F103) | **42060 B de Flash — 64.2 %** de 65536 B (quedan **23476 B**) | `pio run` |
+| Compilación Esclavo (STM32F103) | **36944 B de Flash — 56.4 %** de 65536 B | `pio run` |
 | Compilación Repetidor (ESP32) | **270497 B de Flash — 20,6 %** de 1310720 B | `pio run` |
-| Guarda de rutas de los instrumentos | **61 rutas** parseadas, todas existen | `compuerta.py` |
+| Guarda de rutas de los instrumentos | **62 rutas** parseadas, todas existen | `compuerta.py` |
 | Banco de simulación funcional | **9/9 PASS** | `simulador_sistema_v7_6.py` |
 | Escenarios de repetidor | **10/10 PASS** | `simulador_repetidor.py` |
-| Banco por packs | 🔴 **1397/1398 comprobaciones**, **79 packs** — 78 PASS, **1 FALLA**. **Este documento se FIRMA, así que la frase que había aquí —*«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*— se retira por FALSA:** sólo `D-20` y la pieza **B** de `D-21` están construidas. `D-14`, `D-22` y `D-23` son decisiones **vigentes sin construir**, y el rojo las está contando bien | `banco/correr.py` |
+| Banco por packs | 🔴 **1411/1412 comprobaciones**, **79 packs** — 78 PASS, **1 FALLA**. **Este documento se FIRMA, así que la frase que había aquí —*«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*— se retira por FALSA.** Hoy el único rojo es `decisiones_01_anclas` por **`D-22`**, la única decisión vigente sin construir, y **necesita una tarjeta delante**: no se cierra con teclado. `D-23` y `D-33` sí están construidas; `D-14` no se instala y `D-30` quedó recortada con el LCD | `banco/correr.py` |
 | ~~Arnés de pantalla~~ | 🛑 **RETIRADO el 13/09 con el LCD** (`D-32` (1)): compilaba el `lcd.cpp` real, y ese fichero ya no existe. **Este documento se FIRMA: la fila no se actualiza, se retira** | — |
 | Arnés del ciclo degradado | **22/22** | `Validacion_Ciclo` |
-| Arnés del Modo Automático | **99/99** | `Validacion_Automatico` |
+| Arnés del Modo Automático | **115/115** | `Validacion_Automatico` — las 16 nuevas son el **Bloque G de `D-33`**: el retardo de bajada de la pluma y el veto de la cámara, ejecutados sobre el `semaforo.cpp` real |
 | App — test funcional | **65/65** | suite funcional de la app |
 | App — test unitarios | **52/52** | suite unitaria de la app |
 | App — ejecutada en DOM | **281/281** | arnés jsdom |
 | App — test unitarios TDD | **69/69** | segunda suite unitaria |
-| Compilación ESP32 de expansión | **1122973 B — 35,7 %** de 3145728 B | `pio run` |
+| Compilación ESP32 de expansión | **1123521 B — 35,7 %** de 3145728 B | `pio run` |
 | Simulador del puente ESP32 | **119/119** | contrato del puente |
-| Arnés de las dos puntas | **110/110** | el C++ real de las dos puntas en el mismo proceso. 🟢 **`G3` cerrado el 12/09 (`N-163`)**: la ventana de verde-contra-ámbar pasó de 250 ms a CERO, sin tocar el umbral de 25 s de SFTY-6 |
+| Arnés de las dos puntas | **111/111** | el C++ real de las dos puntas en el mismo proceso. 🟢 **`G3` cerrado el 12/09 (`N-163`)**: la ventana de verde-contra-ámbar pasó de 250 ms a CERO, sin tocar el umbral de 25 s de SFTY-6 |
 | Arnés del Degradado a dos puntas | **53/53** | cada punta con su reloj — desde el 11/09, con el `reloj.cpp` REAL de las dos puntas |
 
 > ⛔ **En la fila del arnés que ejecuta la app en el navegador esta tabla publicó `201/201`
@@ -81,8 +81,8 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 >
 > | publicaba | medido hoy | por qué importa |
 > |---|---|---|
-> | ~~Maestro: 42.620 B (65,0 %)~~ | **41800 B (63.8 %)** | 🔴 **El error grave.** Quien planificase con el 65 % creería tener **~23 KB libres**; quedan **7136 B**. Con esa cifra se propone estructura que **no cabe** |
-> | ~~Esclavo: 15.480 B (23,6 %)~~ | **36648 B (55.9 %)** | Casi el triple de ocupación real |
+> | ~~Maestro: 42.620 B (65,0 %)~~ · ~~41800 B (63.8 %)~~ | **42060 B (64.2 %)** | 🔴 **El error grave, y su final.** Quien planificase con el 65 % creería tener **~23 KB libres** cuando quedaban **7136 B**. Los ~23 KB existen desde el 13/09, pero por otro motivo: **se retiró el LCD** (`D-32` (1)). Hoy quedan **23476 B** |
+> | ~~Esclavo: 15.480 B (23,6 %)~~ · ~~36648 B (55.9 %)~~ | **36944 B (56.4 %)** | Casi el triple de ocupación real |
 > | ~~Repetidor: 269.197 B (20,5 %)~~ | **270497 B (20,6 %)** | El acta mide **una** compilación de repetidor, no dos |
 > | ~~Compilación Repetidor diagnóstico: 270.257 B (20,6 %)~~ | — | ⛔ **Retirada.** La compuerta no la mide: publicar una fila sin medida detrás la hace leerse como medida |
 > | ~~Banco funcional 9/9~~ | **9/9** — las 20 de entonces incluian 11 pruebas que no median nada; se retiraron con su evidencia una a una | |
