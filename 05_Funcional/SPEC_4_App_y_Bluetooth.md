@@ -201,9 +201,14 @@ medido, los unicos sitios que los escriben son esas dos ramas. Quitar los campos
 Esclavo dejaria la pantalla del poste 2 **pintando la cuenta atras y la bateria del poste 1**, que es peor
 que un `--`. El campo que llega marcado es un dato; el campo que no llega deja la pantalla mintiendo.
 
-⚠️ **El poste 2 nunca dice como ve EL el enlace.** Lo sabe —`protocolo_bytesRecibidos()`,
-`protocolo_tramasValidas()`, `protocolo_tramasDescartadas()`— pero esos tres solo salen dentro del
-`$ALARM`, **o sea cuando el enlace ya se cayo**. Ese es el hueco exacto que `D-23` viene a tapar.
+🟢 **13/09 — EL POSTE 2 YA DICE COMO VE EL SU ENLACE, y esta spec decia lo contrario.** Hasta el 12/09 los
+tres contadores —`protocolo_bytesRecibidos()`, `protocolo_tramasValidas()`, `protocolo_tramasDescartadas()`—
+**solo salian dentro del `$ALARM`, o sea cuando el enlace YA se habia caido**. `D-32` (2) eligio la via de
+`D-23` —**`$EVENT` periodico**, no un aviso ESP32 -> STM32— y **se construyo el mismo dia** (`06f126e`):
+`Esclavo/src/bluetooth.cpp` publica `$EVENT ... ORIGEN:ENLACE_RF, DETALLE:RX:<n> OK:<n> RUIDO:<n>` cada
+`DIAG_ENLACE_MS`, con su propio reloj y **fuera del `if` del `$STATUS`**. Los cuatro campos fijos de arriba
+siguen fijos: **el dato nuevo no va en el `$STATUS`, va en el Diario.** Lo que queda abierto es la PANTALLA,
+y esta en §7.3.
 
 ---
 
@@ -226,21 +231,19 @@ STM32 ya no ve la linea: **no hay quien lo rechace**. Esta **abierto POR DECISIO
 aceptado por el responsable— y por eso no es un defecto; se escribe aqui porque **una excepcion que nadie
 cuenta es indistinguible de un olvido** (`CLAUDE.md` §6).
 
-🔴 **3 · `D-23` esta DECIDIDA Y SIN CONSTRUIR, y lo que falta no es teclado.** La app **no tiene ni una
-linea** de la pantalla propia del poste 2. La **via** si esta elegida (`A-14`): **un `$EVENT` nuevo**, no
-un campo en el `$STATUS` —un campo no entra, el `$STATUS` del Maestro esta en su techo de buffer y
-`documentos_03_trama_status` obliga a que el campo este en las **dos** puntas; la cuenta la rehace
-`esp32_07_presupuesto_bytes`— y no un comando de consulta, porque el caso de uso es *«se va a degradado
-cada nada cuando llueve»* y **el tecnico llega DESPUES**. Con la via viene una condicion: **el `$EVENT`
-tiene que salir tambien AL CONECTARSE**, o la pantalla queda en blanco en un poste sano y el tecnico no
-puede distinguir *«va bien»* de *«no llego el dato»*. **Lo que NO esta elegido es el mecanismo de «al
-conectar», y es una decision, no un trabajo:** el STM32 **no puede saber** que un telefono se conecto —el
-unico que lo ve es el ESP32, con `transporte_conectado()` / `hasClient()`—. Las dos vias medidas estan en
-`D-23`: **(i)** un aviso ESP32 -> STM32, que seria **la tercera linea que el accesorio origina hacia el
-micro** y que `esp32_05_no_origina` condiciona **por escrito** a una fila de `DECISIONES.md`; **(ii)** un
-`$EVENT` periodico a cadencia baja, que no toca ninguna barrera pero contradice el *«no gasta periodico»*
-con el que se eligio la via. **Mientras no se elija, `D-23` no se construye, y `decisiones_01_anclas` la
-acusa con razon: ese rojo se apaga CONSTRUYENDO, nunca poniendo el ancla.**
+🔴 **3 · `D-23`: EL FIRMWARE YA ESTA; LA PANTALLA DE LA APP NO — y la app es de quien era la decision.**
+Esta spec decia *«decidida y sin construir»* y *«lo que NO esta elegido es el mecanismo de al conectar»*.
+**Las dos frases caducaron el 13/09.** `D-32` (2) resolvio el mecanismo: como el STM32 **no puede saber** que
+un telefono se conecto —el unico que lo ve es el ESP32— y traer ese aviso seria **la tercera orden que el
+accesorio origina hacia el micro** (`esp32_05_no_origina` la condiciona **por escrito** a una fila de
+`DECISIONES.md`), el responsable eligio la otra via: **`$EVENT` periodico a cadencia baja**, que no toca
+ninguna barrera. **Construida ese dia** en `Esclavo/src/bluetooth.cpp` (`06f126e`), y `decisiones_01_anclas`
+ya no la acusa. **LO QUE SIGUE ABIERTO, medido hoy sobre el arbol:** `D-23` pedia *«una pantalla para
+Esclavo, diferente de lo que hoy hace la app»* y **la app no tiene ni una linea de ella** — `grep -n
+"ENLACE_RF" app.js` da **cero en las cuatro copias**. El dato **si llega al tecnico**, pero como una linea
+mas del REGISTRO DE EVENTOS, mezclada con las demas: `$EVENT` lo pinta el camino generico de `app.js`, que no
+distingue este `ORIGEN` de ningun otro. **Es media decision construida, y la mitad que falta es la que la
+fila nombra.**
 
 🔴 **4 · Dos `$ACK` que no dependen de lo que la orden hizo: `SET_MODO:ALCANCE` y `SET_MODO:INTELIGENTE`.**
 Las dos ramas contestan `RESULT:OK` despues de `modoActual_set()` **y nada mas**. El trabajo de entrar en
@@ -264,9 +267,12 @@ mismo `RF:`/`RTT:` que cualquier otro modo —vienen de la ventana de latidos de
 contadores que ese modo pone a cero—. Es un modo de medida sin nadie que lea la medida, y es `D-16` en su
 forma mas simple.
 
-⚠️ **6 · `D-30` esta decidida y sin construir, y toca esta spec por un sitio concreto:** retirar
-`menu.cpp` se lleva por delante el todo-rojo de las dos puntas que hoy es **alcanzable desde la app** con
-`SET_MODO:MENU`. **Hay que mudarlo, no dejarlo caer.** El alcance completo esta medido en la fila `D-30`.
+⚠️ **6 · `D-30`, RECORTADA por `D-32` (1) el 13/09 — sale SOLO el LCD; el mando A/B/C/D SE QUEDA.** Lo que
+toca a esta spec no cambia y por eso se conserva: **`menu.cpp` NO es solo pantalla.** `menu_setup()` llama a
+`coordinador_forzarMenu()`, el todo-rojo de las dos puntas, **alcanzable HOY desde la app** con
+`SET_MODO:MENU` (§3.1, y es una de las cuatro ordenes sin PIN del hueco 1). **Si `menu.cpp` cae con el LCD,
+ese todo-rojo necesita otra puerta EN EL MISMO COMMIT.** Lo dice la propia `D-32` (1). ⚠️ **Medido sobre
+`606ba78`, con un agente retirando el LCD ahora mismo:** los ficheros siguen ahi y `D-30` sigue **sin ancla**.
 
 ⚠️ **7 · Una ventana de ~1 s por conexion en la que una orden de Maestro puede salir contra un Esclavo.**
 `SOLO_MAESTRO` pregunta `=== 'ESCLAVO'`, asi que con `state.node` en `null` —entre que el socket abre y

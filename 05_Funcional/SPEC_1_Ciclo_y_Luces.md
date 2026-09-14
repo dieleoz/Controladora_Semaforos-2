@@ -236,19 +236,27 @@ leería tres lámparas fundidas). **El Poste 2 lo rechaza** con `NO_EN_SERVICIO_
 
 `D-5` (mínimo por sentido) · `D-7` (DAR PASO en Manual) · `D-8` (los dos vetos del ámbar de emergencia)
 · `D-11` (aplicar tiempos no arranca el ciclo) · `D-19` (suelo y techo del Inteligente, **con condición
-sin cumplir**) · `D-30` (LCD y mando salen del firmware, **sin construir**) · y `A-1.bis` **abierta**: si
-se deroga SFTY-28 para que una cámara pueda vetar la bajada de la pluma. **Mientras `A-1.bis` esté
-abierta, ninguna cámara interviene en `escribirPines()`** — es un hueco, no un comportamiento.
+sin cumplir**) · `D-30` **recortada por `D-32` (1), 13/09: del firmware sale SÓLO el LCD y el mando A/B/C/D
+SE QUEDA** · y `A-1.bis` **abierta**: si se deroga SFTY-28 para que una cámara pueda vetar la bajada de la
+pluma. **Mientras `A-1.bis` esté abierta, ninguna cámara interviene en `escribirPines()`** — es un hueco,
+no un comportamiento.
+
+⚠️ **Y una que gobierna la pluma y NO tiene fila:** que la pluma **suba en `S_FALLO`** (§2, punto 4) lo
+eligieron *«el cliente y el PMT el 27/08/2026»*, y esa frase vive sólo en el fuente y en SPEC 5 §4. **No hay
+`D-x` que la respalde**: es la única conducta de seguridad de este documento sin decisión escrita detrás.
 
 ## 12. HUECOS MEDIDOS
 
 Medido el 12/09/2026 sobre el árbol de trabajo. Cada uno trae con qué se reproduce.
 
-1. 🔴 **`D-30` está VIGENTE y NO ESTÁ CONSTRUIDA.** Decide retirar `lcd.cpp`, `menu.cpp` y `mando.cpp`
-   de las dos puntas y la lectura de flancos de `BOTON1`/`BOTON2`. Los seis ficheros siguen ahí y no hay
-   **ni una** marca `D-30` en el fuente —`grep -rho "D-[0-9]*" 01_Firmware/{Maestro,Esclavo}/{src,include} | sort | uniq -c`
-   la da en **cero** mientras otras decisiones tienen decenas—. Siguen vivos `A.A.A`, `B.B.B` y
-   `A.B.A.B`, que **cambian de modo**; y `A.A.A` arranca el ciclo, o sea **abre paso**.
+1. 🔴 **`D-30` está VIGENTE, RECORTADA y sin ancla en el fuente — y lo que sigue vivo es lo que la
+   recortó.** 🔴 **`D-32` (1), 13/09: sale SÓLO el LCD; `mando.cpp` SE QUEDA** —es la mitad trenzada con
+   la seguridad: es el único escritor de `senalActiva`, o sea SFTY-2, y retirarlo dejaría
+   `escribirPines()` sin ningún instrumento que ejercite su interceptación (§10)—. **Lo que esta spec ya
+   NO puede decir: que el mando salga.** Medido sobre `606ba78`, `decisiones_01_anclas` acusaba `D-30`
+   **sin una sola ancla**; ⚠️ **hay un agente retirando el LCD mientras esto se escribe**, así que esa
+   mitad se construye hoy. Y siguen vivos `A.A.A`, `B.B.B` y `A.B.A.B`, que **cambian de modo**; `A.A.A`
+   arranca el ciclo, o sea **abre paso**, y eso es conducta permanente. Su cobre es SPEC 5 §3.
 2. 🔴 **En Modo Degradado el verde de cada sentido lo fija `DEG_VERDE_SEG`, en `modo_degradado.cpp`, y
    NO pasa por `limites_ciclo.h`.** Está en **segundos** y `VERDE_MIN_MIN` en **minutos**; conviértalos y
    compárelos: el verde del Degradado queda **muy por debajo** del mínimo vial de `D-5`. El fuente lo
@@ -263,6 +271,9 @@ Medido el 12/09/2026 sobre el árbol de trabajo. Cada uno trae con qué se repro
    Maestro apoya su cuenta de margen en que *«los 4 s de ámbar con que el Esclavo abre su verde protegen
    SÓLO en un sentido»*. Además contradice la secuencia que el Manual 1 declara normativa (rojo → ámbar
    → verde). `grep -n "semaforo_forzarVerde\|semaforo_iniciarTransicionAVerde" 01_Firmware/{Maestro,Esclavo}/src/modo_degradado.cpp`
+   ⚠️ **NO confundir con la otra asimetría del Degradado, que SÍ es correcta y está razonada**: la de la
+   SALIDA a ámbar (Maestro directo, Esclavo por rendición y despeje), en SPEC 2 §7 y SPEC 3 §5. **Ésta es
+   la de la APERTURA del verde, y ésa no la respalda nadie.**
 4. ⚠️ **Los dos plazos de la máquina de luces son LITERALES sin nombre**, dentro de
    `semaforo_actualizar()`: el ámbar de transición y el medio periodo del parpadeo de `S_FALLO`. No se
    pueden citar, ni vigilar por símbolo, ni releer desde un pack. Todo lo demás de este documento tiene

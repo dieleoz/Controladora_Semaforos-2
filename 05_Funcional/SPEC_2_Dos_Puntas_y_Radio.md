@@ -172,7 +172,7 @@ nunca en `coordinador_escucharEnAmbar()`.
 **Plazo y reintento:** `AVISO_AMBAR_TIMEOUT_MS` (`protocolo.h`), que un `static_assert` de `coordinador.cpp`
 obliga a ser el mismo `TIMEOUT_ACK_MS`; y `AVISO_AMBAR_REINTENTOS`, que **vale TRES desde `D-32` (3), 13/09** y **está ELEGIDO, no
 derivado** (§HUECOS, 1). Agotado, sale `$ALARM AVISO_RF / SIN_CONFIRMAR / AVISE_POSTE_1`, y **dice «no he
-podido confirmarlo», nunca «el otro poste no se enteró»**: con un reintento de por medio, una trama perdida se
+podido confirmarlo», nunca «el otro poste no se enteró»**: con reintentos de por medio, una trama perdida se
 ve igual que un transmisor roto.
 
 **Cancelar** borra el latch y **la memoria del acuse en la misma sentencia**, y para el plazo en vuelo. Armado
@@ -222,10 +222,8 @@ empezar**, no al terminar):
 
 **De `DEG_RENDIDO` no se sale solo**: hace falta una orden, o una sincronización nueva
 (`degradado_registrarSync()`). Reentrar sigue siendo decisión del operario. **`D-29`:** un corte de luz ya no
-mata la reanudación — el permiso de la pila se conserva hasta que la primera siembra del arranque pueda llegar
-(`VENTANA_REANUDACION_MS`, derivada del mismo instante en que el firmware da por muda la siembra). La
-**segunda puerta —el límite duro— no se toca**, y con el cristal `Y2` muerto es ella la que cierra: `D-29`
-sólo alcanza a las tarjetas cuyo `Y2` oscila.
+mata la reanudación, y **el límite duro —la segunda puerta— no se toca**. La ventana, lo que difiere el
+borrado y su alcance real —sólo las tarjetas cuyo `Y2` oscila— están en **SPEC 3 §6 y H-3**, y no se repiten.
 
 ## 8. EL PRESUPUESTO DE RADIO — Y CUÁL ES EL BORDE DE CADA UNO
 
@@ -249,35 +247,32 @@ se mide contra **(A)**, nunca contra **(B)**.
 
 **El aire:** `RF_BURST_COPIES` copias por envío y la tasa aérea fijan el tiempo de cable de cada trama; ese
 coste está a la vista en `coordinador.cpp` (`ENVIO_TRAMA_MS`) y en `costura_09`, y **no se lee de ninguna
-constante del firmware porque no existe como tal**. Los parámetros del módulo son de SPEC 5; esta spec sólo
-exige que **las dos puntas y el repetidor estén configurados igual**, o el CRC no casa y el síntoma es «el
-equipo se calló».
+constante del firmware porque no existe como tal**. Los parámetros del módulo (tasa aérea, canal, `M0`/`M1`,
+potencia) son de **SPEC 6 §B**, no de SPEC 5, que sólo trae el cobre de `J12`; esta spec sólo exige que **las
+dos puntas y el repetidor estén configurados igual**, o el CRC no casa y el síntoma es «el equipo se calló».
 
 ## HUECOS MEDIDOS
 
-**1. 🔴 `AVISO_AMBAR_REINTENTOS` está ELEGIDO, no derivado — y CUATRO sitios del fuente siguen diciendo lo
-contrario.** Medido el 12/09; escrito en `D-31` y en `roadmap.md` 1.31. Los dos `static_assert` de
-`coordinador.cpp` cobran el **coste unitario** del modelo serie con el **recuento** del modelo paralelo: bajo
-el modelo del párrafo que los precede —las esperas del aviso corren en paralelo y sólo se serializa el cable—
-caben decenas; bajo el modelo serie completo no cabe ninguno y el valor tendría que ser cero, que anula `D-31`
-entera. **«Con dos no compila y con cero tampoco» no demuestra nada**: las dos mitades salen del mismo híbrido.
-**El techo de orfandad AGUANTA y no hay defecto vivo**; lo que se cae es la justificación. La restricción real
-no es el aire: es **cuánto tarda el Poste 2 en declarar que el otro no contesta**, y ese equilibrio —menos
-falsas alarmas contra una alarma verdadera más tardía— **era del responsable y YA ESTÁ CONTESTADO: `D-32` (3), 13/09
-— «mas reintentos, 14 o mas» → `AVISO_AMBAR_REINTENTOS` = 3, o sea 14 s. CONSTRUIDO ese día**, y con él la
-guarda rehecha contra el modelo que el firmware implementa (una sola, `(1+N) × 2 × ENVIO_TRAMA_MS`, vista
-fallar en 35). Este hueco queda CERRADO. **Corregido en `Maestro/src/coordinador.cpp`; SIN corregir** en la cabecera de
-`AVISO_AMBAR_REINTENTOS` de `protocolo.h` (*«UNO, Y EL NUMERO ESTA DERIVADO, NO ELEGIDO»* — y el fichero es
-idéntico en las **dos** puntas, así que la frase está dos veces) y en **dos** párrafos de
-`Esclavo/src/bluetooth.cpp`. Nada de esto lo ve la compuerta.
+**1. 🟢 CERRADO — `AVISO_AMBAR_REINTENTOS` está ELEGIDO, no derivado, y ya lo dice TODO el fuente.** La
+restricción nunca fue el aire: es **cuánto tarda el Poste 2 en declarar que el otro no contesta**, y ese
+equilibrio —menos falsas alarmas contra una alarma verdadera más tardía— era del responsable. Lo contestó
+`D-32` (3), 13/09 (*«mas reintentos, 14 o mas»*): **vale TRES, o sea 14 s**, construido ese día y con la guarda
+rehecha contra el modelo que el firmware implementa (una sola, `(1+N) × 2 × ENVIO_TRAMA_MS`, vista fallar en
+35). **Los CUATRO sitios que el 12/09 seguían diciendo «derivado» se remidieron sobre `606ba78` y los cuatro
+están corregidos**: `Maestro/src/coordinador.cpp`, la cabecera de `protocolo.h` de las **dos** puntas
+(*«TRES, Y LO ELIGE EL RESPONSABLE. NO SE DERIVA DE NADA»*) y los dos párrafos de `Esclavo/src/bluetooth.cpp`
+(*«ELEGIDO, no derivado»*). Nada de esto lo ve la compuerta: se remide con `grep`.
 
 **2. 🔴 Los dos presupuestos de radio no casan sobre el mismo techo: fila pendiente, no detalle.** Escrito en
 `D-31` (3) y en `coordinador.cpp`. §8 los separa por su borde; **elegir el modelo sigue sin hacerse**.
 
-**3. 🔴 `D-30` está decidida y NO construida, y muerde exactamente aquí.** El veto `!mando_ambarLocal()` de la
-rama `CMD_GO_GREEN` del Esclavo es **la única de las seis llamadas vivas que ABRE PASO**: retirar el armador
-sin resolver los seis lectores no deja ese `if` inerte, **lo deja abierto** y el `GO_GREEN` se obedece. Con el
-mando desmontado la bandera no se arma nunca y hoy la guarda deja pasar: el riesgo es del trabajo pendiente.
+**3. 🟢 EL RIESGO QUE ESTE HUECO DESCRIBÍA YA NO EXISTE — y lo cerró una DECISIÓN, no un commit.** Decía que
+`D-30` retiraba `mando.cpp` y que el veto `!mando_ambarLocal()` de la rama `CMD_GO_GREEN` del Esclavo —**la
+única de las seis llamadas vivas que ABRE PASO**— quedaría **ABIERTO, no inerte**. 🔴 **`D-32` (1), 13/09,
+recorta `D-30`: sale SÓLO el LCD y el mando SE QUEDA en el firmware**, y esa medida es justamente el motivo que
+la fila da. El veto sigue en pie; con el mando desmontado la bandera no se arma nunca y la guarda queda
+**CERRADA**, que es lo correcto. ⚠️ **Lo que `D-32` (1) NO cierra: `J16` p5/p8 siguen vacíos, pelados y leídos
+por dos caminos** — es SPEC 5 §3, y sigue siendo una regla de montaje, no una guarda del firmware.
 
 **4. ⚠️ El `CMD_ACK_RED` no lleva a qué `CMD_GO_RED` contesta** —escrito en el propio `coordinador.cpp`—: un
 acuse retenido en el aire más allá del último `GO_GREEN` y soltado tras una orden de rojo perdida **sería
@@ -289,14 +284,17 @@ no lo cierra. Residual conocido, sin decisión.
 origina tramas. El `protocolo_enviarPaquete(CMD_PONG)` de `coordinador_actualizar()` contesta a algo que hoy no
 manda nadie —§6, declarado y no ejercido—. Inofensivo para la luz; se deja escrito en vez de tocarse.
 
-**6. ⚠️ `D-21` pieza (A) sigue sin construir en el STM32.** `OSF` no aparece en
-`{Maestro,Esclavo}/{src,include}` fuera de un comentario de `Maestro/include/reloj.h` que dice exactamente eso
-(`grep OSF` a secas cuenta `MOSFET`: filtrarlo); el bit **sí** se interpreta en el ESP32
-(`ESP32_Expansion/src/reloj_ds3231.cpp`). Toca aquí por su consecuencia: el Degradado se autoriza sobre
-`reloj_horaFiable()`, que no ve el `OSF`. El detalle es de SPEC 3.
+**6. ⚠️ `D-21` pieza (A) sigue sin construir: el `OSF` no llega al STM32.** Toca aquí sólo por su consecuencia
+—el Degradado se autoriza sobre `reloj_horaFiable()`, que no ve ese bit—. **La medida está en SPEC 3, H-2**, y
+no se repite.
 
-**7. ⚠️ Ningún arnés EJECUTA `Esclavo/src/reloj.cpp`**, y la frontera de silencio que decide si la hora la
-manda la radio se mide **por texto** (`D-26`). Un pack de texto no ve un defecto del tiempo.
+**7. 🔴 REFUTADO — esta spec lo publicaba AL REVÉS.** Decía que **ningún arnés EJECUTA
+`Esclavo/src/reloj.cpp`** y que la frontera de silencio sólo se medía por texto. Medido sobre `606ba78`:
+`Validacion_Automatico/compilar_degradado.ps1` **enlaza el `reloj.cpp` REAL de las DOS puntas** y lo compila con
+`-DARNES_RELOJ_REAL`, que sólo pone ese script (`adaptador_esclavo.cpp` lo confirma en su `#ifdef`). La fila
+`D-26` marca esa frase como falsa desde el 11/09 y la corrigió el 12/09 al escribirse SPEC 3; **entró aquí
+porque las seis spec se escribieron el mismo día, por separado y sin leerse.** Lo que sí sigue sin ejercicio es
+otra cosa y está en **SPEC 3, H-1**: el modelo de silicio del arnés deriva `CNT` de `millis()`, así que el
+contador congelado **no es un escenario que falte, es un estado que no se puede expresar**.
 
-**8. ⚠️ Nada de este capítulo ha visto una tarjeta.** `D-31` y `D-26` están en `main` **sin banco**. Qué
-firmware corre en cada equipo lo dice `ESTADO.md`, no este fichero.
+**8. ⚠️ Nada de este capítulo ha visto una tarjeta.** `D-31`, `D-26` y el `$EVENT` de `D-32` (2) están en `main` **SIN BANCO**; qué firmware corre en cada equipo lo dice `ESTADO.md`, no este fichero.

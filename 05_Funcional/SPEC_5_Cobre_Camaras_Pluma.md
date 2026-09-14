@@ -52,8 +52,10 @@ bornera: antirrebote RC de 1 ms **en la placa**). `J14` p2 son **3,3 V**, el nud
 
 ## 3. `J16` p5 y p8 estan VACIOS y el firmware SIGUE leyendo sus flancos
 
-El mando **se retiro como hardware** y **su codigo se queda** (`D-1`, 05/09). Los dos bornes quedan
-**libres en el cobre** y **vivos en el firmware**, por **dos caminos, no uno**:
+El mando **se retiro como hardware** y **su codigo se queda** (`D-1`, 05/09). 🔴 **Y sigue siendo cierto
+el 13/09, contra lo que `D-30` habia decidido: `D-32` (1) la recorta —«solo retirar el lcd»— y el mando
+A/B/C/D SE QUEDA en el firmware.** Los dos bornes quedan **libres en el cobre** y **vivos en el firmware**,
+por **dos caminos, no uno**:
 
 | camino | simbolo | que hace |
 |---|---|---|
@@ -122,8 +124,9 @@ de `semaforo.cpp`.
 > no hay mensaje de error**: el equipo parece sano — la averia mas cara de diagnosticar. **No se
 > venden ni se incluyen en una entrega como funciones del equipo.** El
 > cobre **si** esta: tres etapas completas, el mismo molde que `J15`; encender una cuesta **16 B de
-> flash** de suelo (desensamblado del `.elf`, 05/09). Gastarlas es **`17_` §3.10, abierta**, con un
-> cuarto pretendiente: `D-14`, la entrada de alarma de la camara.
+> flash** de suelo (desensamblado del `.elf`, 05/09). Gastarlas es **`17_` §3.10, abierta**. 🟢 **Y ya
+> NO tienen cuarto pretendiente: `D-32` (4), 13/09, cierra `D-14` para este despliegue** — el ancla vive
+> en los dos `pines.h`, justo encima de estos tres pines, porque son sus tres candidatos.
 
 ## 2.1 `J16`, posicion por posicion
 
@@ -183,10 +186,8 @@ Hoy `J14` va **libre** (`D-27`), asi que en reposo no pide nada; **pero el codig
 **MEDIDO:** `vigilante_tick()` salta el plazo `CAM_CIEGA` mientras `camHuboFlanco[i]` es falso, y
 `camara_estado()` salta esa misma camara al publicar `CAM:`. **El vigilante no alarma una camara que
 NUNCA dio un flanco**, y la app pinta `CAM: OK` con la primera deteccion **de cualquiera de las
-dos**. Tras cada reinicio la vigilancia queda desarmada hasta la primera deteccion.
-
-⚠️ **Esa exencion se escribio PORQUE `p12` iba vacio a proposito. Con `D-25` pierde su motivo y queda
-pendiente de rehacer EN FIRMWARE** (`CLAUDE.md` §6: una excepcion es una afirmacion sobre el codigo).
+dos**. Tras cada reinicio la vigilancia queda desarmada hasta la primera deteccion. **Por que esa exencion
+ya no tiene motivo: §7.2.**
 
 ## 3.3 Lo que la placa pone y lo que no
 
@@ -201,11 +202,11 @@ Las tres entradas son **`INPUT` PELADO y ACTIVAS EN ALTO**. `R64`/`R67`/`R68` so
 bornera **`J15`** (p1 = 12 V, p2 = drenador). **`D-25` / `D-27` (4): `J15` p1/p2 a la bobina de un
 rele, y los contactos del rele a `OPEN`/`COM` de la centralita.** **SFTY-28, pin a pin:**
 
-- **Sube con verde.** Rojo, ambar de transicion, todo-rojo de despeje y destellos del mando la dejan
-  **abajo**. **No sube con el verde de un test de lamparas** (`!testLedsActivo`, N-82).
-- **Sube tambien en `S_FALLO`** — ambar intermitente: orfandad SFTY-6, Modo Ambar,
-  `AMBAR_EMERGENCIA`, Degradado en ambar, y un poste recien encendido que aun no enlaza. **Lo
-  eligieron el cliente y el PMT el 27/08/2026**, no el firmware.
+- **Sube con verde y tambien en `S_FALLO`** —ambar intermitente: orfandad SFTY-6, Modo Ambar,
+  `AMBAR_EMERGENCIA`, Degradado en ambar, un poste recien encendido—; **no sube con el verde de un test
+  de lamparas** (`!testLedsActivo`, N-82). **La tabla luz -> pluma entera es SPEC 1 §2** y no se repite.
+  Lo del `S_FALLO` **lo eligieron el cliente y el PMT el 27/08/2026**, no el firmware — 🔴 **y esa
+  eleccion NO tiene fila en `DECISIONES.md`** (SPEC 1 §11).
 - **Equipo SIN ENERGIA: el pin cae a LOW, el MOSFET no conduce, la pluma BAJA** — el fallo seguro. La
   compra pide **actuador con retorno por muelle o gravedad**: eso el software no lo garantiza.
 - **La orden sale por la MISMA puerta que las luces** — dentro de `escribirPines()`, con el `verde`
@@ -262,7 +263,7 @@ un techo y esta cerca**, y lo fija el pull-down de 10 kOhm que la placa ya trae.
 | 15 | **El pico de 500 mA del ESP32.** Es ficha y Manual 15, no medida — y en banco el modulo se alimento **por USB**, no por la fuente 12 V -> 5 V definitiva |
 | 16 | **El `Y2` de la segunda tarjeta.** N-37 midio uno; el otro sigue sin diagnosticar |
 | 17 | **Que por el enlace `J17` hable alguien.** El enlace fisico si (patas 42/43, masa comun < 50 mV, `GPIO17` a 3,3 V); **el Bluetooth no subio en toda la sesion de banco** |
-| 18 | **Que espera electricamente el `ALARM IN` de la camara** (`D-14`): **sin tension, sin corriente**, y las palabras *«dry contact»* y *«relay»* **no aparecen en las 110 paginas** del manual del fabricante. Conectar una salida que en reposo esta a 12 V, con masa comun, a una entrada cuyo regimen no conocemos **no es un cableado: es un ensayo** — con multimetro y **antes** de escribir firmware |
+| 18 | **Que espera electricamente el `ALARM IN` de la camara** (`D-14`): **sin tension, sin corriente**, y las palabras *«dry contact»* y *«relay»* **no aparecen en las 110 paginas** del manual del fabricante. Conectar una salida que en reposo esta a 12 V, con masa comun, a una entrada cuyo regimen no conocemos **no es un cableado: es un ensayo** — con multimetro y **antes** de escribir firmware. 🟢 **13/09: no urge, y por eso sigue aqui y no en la pagina 1.** `D-32` (4) decide que **`D-14` NO SE INSTALA en este despliegue** —medido sobre `Camaras_Sisga_4x.html`, la guia que sigue el instalador: solo cablea la SALIDA de alarma (`1A`/`1B`), nunca la entrada—. **La decision no borra la capacidad: dice que hoy no se monta**, igual que `D-27` (2) con `J14`. El dia que se instale, este ensayo va primero |
 | 19 | **Que la sonda de la medida de `J15`** *(«en rojo 0 V, en ambar 12 V»)* estuviera entre p1 y p2. Es **deduccion** a partir de `TALANQUERA_ABRIR = HIGH`, no una lectura del informe |
 | 20 | **Casi todo el resto del cobre de esta tarjeta.** El censo del 05/09 es lectura del `.kicad_pcb`, **no punta sobre la placa** |
 
@@ -275,26 +276,25 @@ un techo y esta cerca**, y lo fija el pull-down de 10 kOhm que la placa ya trae.
 
 Manda la medida de cobre; el choque se escribe, no se arregla desde aqui (`CLAUDE.md` §12).
 
-1. **`D-27` deja `J14` libre y el firmware sigue leyendo `PB0` como `CAM_DEMANDA_PIN`** en las dos
-   puntas. Inofensivo con el borne vacio (`R64` lo deja en 0 V); **deja de serlo el dia que alguien
-   cablee ahi.**
-2. **La exencion del vigilante se escribio para un `p12` vacio y `D-25` le quito el motivo.** Sigue
-   en el firmware: **una camara 2 muerta desde la instalacion no la avisa nadie.** Pendiente EN
+1. **`D-27` deja `J14` libre y el firmware sigue leyendo `PB0` como `CAM_DEMANDA_PIN`** en las dos puntas
+   (aviso 2). Inofensivo con el borne vacio; **deja de serlo el dia que alguien cablee ahi.**
+2. **La exencion del vigilante se escribio PORQUE `p12` iba vacio a proposito, y `D-25` le quito el
+   motivo** (`CLAUDE.md` §6: una excepcion es una AFIRMACION sobre el codigo, y esta caduco). Sigue en
+   el firmware: **una camara 2 muerta desde la instalacion no la avisa nadie** (§3.2). Pendiente EN
    FIRMWARE, no aqui.
 3. **El comentario de `camara_leerPin()` en `botones.cpp` de las dos puntas dice que `PB14`/`PB15`
    «no llevan mas que el 10K de `R67`/`R68`».** El netlist trae `C28` y `C29` (100 nF). **Gana el
    cobre**; el comentario esta caducado y **no se toca desde esta spec**.
 4. **`17_` se contradice en la cuenta de salidas de campo: «9» en tres sitios vivos y «DIEZ» en uno**
-   (correccion del 05/09). `pines.h` es explicito: **DIEZ MOSFET y DIEZ optos, `Q1`-`Q10`,
-   `U6`-`U15`.** La asimetria del §5 no cambia de signo.
+   (05/09). `pines.h` es explicito: **DIEZ MOSFET y DIEZ optos, `Q1`-`Q10` con `U6`-`U15`.** La
+   asimetria del §5 no cambia de signo.
 5. **`D-25` dice «las camaras no tocan el ciclo» y en Modo Inteligente SI alargan una fase** (con
    techo, `TECHO_POR_SUELO`). Es el conflicto (2) que `D-27` **no** cerro. El ciclo es SPEC 1.
-6. **`CLAUDE.md` §2 enumera ocho pines de luz y `escribirPines()` mueve SEIS** (`ROJO1/2`,
-   `AMARILLO1/2`, `VERDE1/2`) mas la talanquera. La regla es **vacuamente cierta** para los dos
-   peatonales: nadie los escribe porque nadie los escribe (`N-96`).
+6. **`CLAUDE.md` §2 enumera ocho pines de luz y `escribirPines()` mueve SEIS** mas la talanquera: la
+   regla es **vacuamente cierta** para los dos peatonales (`N-96`; §2 de arriba y SPEC 1 §1).
 
 *Decisiones recogidas: `D-1`, `D-2`, `D-3`, `D-4`, `D-10`, `D-12`, `D-13` (lo no derogado), `D-14`,
-`D-25`, `D-27`. Abiertas que nombra sin resolver: `A-1.bis`, `A-2`, `17_` §3.6 y §3.10. Las MEDIDAS
+`D-25`, `D-27`, `D-32` (1) y (4). Abiertas que nombra sin resolver: `A-1.bis`, `A-2`, `17_` §3.6 y §3.10. Las MEDIDAS
 son de `17_Arquitectura_28-08_y_Decisiones_Abiertas.md`, que **gana a este fichero**; lo decidido, de
 `DECISIONES.md`, que **gana a los dos**. El firmware se remidio contra `{Maestro,Esclavo}/include/
 pines.h` y `src/{semaforo,botones,main}.cpp` el 12/09/2026.*

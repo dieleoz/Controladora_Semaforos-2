@@ -20,14 +20,19 @@ las alarmas de reloj. **Fuera:** el ciclo (SPEC 1) · la coordinacion de radio e
 
 | | |
 |---|---|
-| **ESP32 de cada poste** | lleva un **`DS3231` con pila propia**. Es **la autoridad de la hora, siempre y para todo** (`D-20`) |
-| **STM32 de cada poste** | **no tiene reloj que sirva**. Su cristal `Y2` esta confirmado muerto en banco (`N-17`) y su calendario esta anclado a enero por construccion (`reloj_fijarEnero()`) |
+| **ESP32 de cada poste** | lleva un **`DS3231` con pila propia**. Es **la autoridad de la hora, siempre y para todo** (`D-20`, que desarrolla `D-9`) |
+| **STM32 de cada poste** | **no tiene reloj que sirva** (`D-9`). Su cristal `Y2` esta confirmado muerto en banco (`N-17`) y su calendario esta anclado a enero por construccion (`reloj_fijarEnero()`) |
 
 **Al STM32 no se le pregunta la hora nunca.** Lo que tiene es una **base de tiempo de software**
 —`segBaseDelDia` + `tBaseMillis`, extrapolada con `millis()`— que le **siembra** su propio ESP32. Ese
 `millis()` corre sobre el **HSI**, el oscilador RC interno del micro, cuyo peor caso de ficha esta
 escrito en `HSI_PPM_PEOR` (`reloj.h`): **es el que decide cuanto se separan las dos puntas entre
-siembras, y es la razon de todo el resto de esta spec.** Y **el unico que contesta a `SET_RTC` es el
+siembras, y es la razon de todo el resto de esta spec.** 🟡 **Y sobre ese HSI hay una decision VIGENTE
+que ninguna spec nombraba: `D-22`** —montar `Y1` (8 MHz, ya soldado y sin usar) como reloj de sistema,
+de 10.000-25.000 ppm a 20-50 ppm—, **OPCIONAL y la ULTIMA DE LA COLA** desde que el responsable la
+degrado el 07/09. `Y1` **no lleva la hora: es el LATIDO**, y mejoraria todo lo que aqui cuelga de
+`millis()`. **Precondicion medible y sin cumplir: nunca se ha arrancado**, y nada de esta spec supone que
+exista. Y **el unico que contesta a `SET_RTC` es el
 ESP32** (`D-15`): el puente se queda la orden del telefono y **ya no la pasa al STM32**; lo que el STM32
 recibe es la linea de siembra, que compone el propio ESP32.
 
@@ -82,9 +87,8 @@ STM32 Maestro --CMD_HORA_D/H/M/S--> STM32 Esclavo   [por radio, en cada siembra]
 - **Lo que la hora del propio ESP32 NO renueva:** ni `degradado_registrarSync()` ni
   `respaldo_marcarSync()`. El limite duro cuenta desde la ultima hora **del Maestro**; una del `DS3231`
   local no demuestra que las dos puntas sigan en fase.
-- **El salto que deja el relevo esta acotado y aceptado:** lo que difieran los dos `DS3231` mas lo que
-  derivo el HSI de cada punta desde su ultima siembra. Lo hace tolerable la regla del §5 —el salto pasa
-  por rojo— y la alarma de radio; **no negarlo.**
+- **El salto que deja el relevo esta acotado y aceptado:** lo que difieran los dos `DS3231` mas la deriva
+  del HSI desde la ultima siembra. Lo tolera la regla del §5 —el salto pasa por rojo— y la alarma de radio.
 
 ## 4. El plazo de caducidad de la hora
 
@@ -138,11 +142,9 @@ aceptado desde el 01/08 y **sin solucion tecnica sin radio**.
 hora?», un equipo con la siembra caducada entraba, el telefono recibia su `$ACK` y la primera vuelta del
 bucle lo mandaba a ambar: **un «si» a una orden que no se iba a cumplir** (`CLAUDE.md` §2).
 
-**En el BUCLE, y las dos puntas NO hacen la misma linea:** el Maestro llama `irAAmbar(...)` y va **rojo
-y directo** al ambar; el Esclavo llama `iniciarSalida(true)` —**rendicion**—, que fuerza todo-rojo,
-cumple el despeje obligatorio y **entonces** entra en `DEG_RENDIDO` con el ambar. **Es lo correcto:**
-salir de verde directo a intermitente le dice al que viene lanzado que negocie el paso creyendo que aun
-tiene prioridad.
+**En el BUCLE las dos puntas NO hacen la misma linea** —el Maestro llama `irAAmbar(...)` y va rojo y
+directo; el Esclavo llama `iniciarSalida(true)`, se RINDE por todo-rojo y entra en `DEG_RENDIDO`—, **y es
+lo correcto. El motivo entero esta en SPEC 2 §7** y no se repite aqui.
 
 **No se vuelve solo.** De ese ambar se sale **por una orden del operario**: una siembra fresca no
 devuelve el modo (`D-21`).
@@ -178,9 +180,8 @@ de `D-20`/`D-26` que nadie vio. **La reconstruccion difiere el BORRADO del permi
   existe en esa punta —el Maestro resuelve el ambar del mando con un **cambio de modo**, que la guarda
   de `modoActual_get()` ya ve; el Esclavo levanta un **cerrojo**.
 - **Lo que NO se toca:** el **limite duro** (`LIMITE_DURO_MS` / `LIMITE_SIN_SYNC_MS`) sigue mandando —es
-  la puerta que impide reanudar sobre una marca que ya no significa nada— y **sigue sin haber entrada
-  automatica al Degradado**: `SFTY-21` es activacion manual. Esto **reanuda** un modo que ya estaba
-  puesto.
+  la puerta que impide reanudar sobre una marca que ya no significa nada—, y **sigue sin haber entrada
+  automatica al Degradado** (`SFTY-21`, activacion manual): esto **reanuda** un modo que ya estaba puesto.
 
 ## 7. Las alarmas de reloj — son DOS, porque son dos averias distintas
 
@@ -277,20 +278,19 @@ no, **con el mismo binario y sin que nada en el `$STATUS` lo distinga**.
 
 ### H-4 `horaValida` es un trinquete de una sola direccion
 
-**Medido:** los unicos `horaValida = false` viven en `reloj_setup()` en las dos puntas, mas
+**Medido:** los unicos `horaValida = false` viven en `reloj_setup()` de las dos puntas, mas
 `reloj_reiniciarDominioRespaldo()` **solo en el Maestro** —esa funcion no existe en el Esclavo—. No hay
 `reloj_invalidarHora()`: se retiro con el camino de escritura viejo y **no se restauro al abrirse el
-nuevo** (`N-160`). **Lo que hace ALCANZABLE la guarda del Degradado no es esa bandera, es
-`reloj_horaFiable()`**, con su propio cerrojo. Cerrarlo bien es la pieza (A) de H-2.
+nuevo** (`N-160`). **La guarda del Degradado no cuelga de esa bandera sino de `reloj_horaFiable()`**, con
+su propio cerrojo; cerrarlo bien es la pieza (A) de H-2.
 
 ### H-5 Comentarios de cadencia caducados — el numero manda, el comentario no
 
-**Seis lineas de comentario** siguen recitando la cadencia **de la epoca anterior a `D-26` (2)** en vez
-de nombrar la constante, despues de que `D-28` (1) la fijara al segundo: `ESP32_Expansion/src/main.cpp`,
-`ESP32_Expansion/src/siembra.cpp` (bloque `(3)`), `Maestro/src/modo_degradado.cpp` (la nota de `D-26` (4)
-y la de `VENTANA_REANUDACION_MS`, esta con **dos** cadencias que ya no existen) y
-`Esclavo/src/modo_degradado.cpp` (dos). **Las constantes son correctas y los packs las releen**, asi que
-esto no mueve ninguna luz — pero es exactamente la cifra que envejece en silencio con autoridad de dato
+**Seis lineas de comentario** recitan la cadencia **anterior a `D-26` (2)** en vez de nombrar la
+constante, despues de que `D-28` (1) la fijara al segundo: `ESP32_Expansion/src/main.cpp` y
+`siembra.cpp` (bloque `(3)`), `Maestro/src/modo_degradado.cpp` (dos, una de ellas con **dos** cadencias
+que ya no existen) y `Esclavo/src/modo_degradado.cpp` (dos). **Las constantes son correctas y los packs
+las releen**: no mueve ninguna luz, pero es la cifra que envejece en silencio con autoridad de dato
 (`CLAUDE.md` §14). *(Las de `contrato.h` NO entran: narran por que se bajo, y eso sigue siendo cierto.)*
 
 ### H-6 Nada de esto ha visto una tarjeta

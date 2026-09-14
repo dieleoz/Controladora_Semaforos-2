@@ -133,8 +133,8 @@ siguen vivos:
 # PARTE B — LA RADIO COMO APARATO: configuracion y antenas
 
 **Que trata:** el modulo E90-DTU y su antena. **El protocolo que viaja por dentro es SPEC 2**, y el
-conector `J12` con su cobre es SPEC 5. *(Nota: SPEC 2 §8 remite «los parametros del modulo» a SPEC 5,
-que no los trae. Estan aqui.)*
+conector `J12` con su cobre es SPEC 5. *(SPEC 2 §8 remitia «los parametros del modulo» a SPEC 5, que no
+los trae; corregido el 13/09: apunta aqui.)*
 
 ## B.1 Lo que NO se negocia
 
@@ -238,7 +238,7 @@ deberia hacerse.**
 |---|---|---|---|---|---|
 | `FALLO_RF` | `SILENCIO_<n>ms` | `CAMBIO_A_AMBAR` | **las dos** | no llega **nada** del otro poste en `SFTY6_SILENCIO_MS` | **el enlace esta CORTADO.** Parte B por orden: energia ➜ `M0`/`M1` ➜ misma tasa y canal ➜ antena y su conector. **Y ponerle la hora a este poste** (`D-26` (5)): sin radio, esa hora ya entra |
 | `FALLO_RF` | `REINTENTOS_AGOTADOS` | `CAMBIO_A_AMBAR` | **solo Maestro** | se agotaron los reintentos de un cambio de luz **con el enlace vivo** | **el enlace EXISTE y se degrada** —lluvia, distancia, interferencia—, no esta cortado. Eso es **cobertura y antena** (B.5), no configuracion |
-| `AVISO_RF` | `SIN_CONFIRMAR` | `AVISE_POSTE_1` | **solo Esclavo** | se puso el ambar de emergencia aqui y **el Poste 1 no acuso** el aviso ni tras el reintento | **haga lo que dice la accion**: cierre el paso aqui o **avise al Poste 1 antes de irse**. 🔴 **Dice «no he podido confirmarlo», NUNCA «el otro poste no se entero»**: una trama perdida por lluvia se ve igual que un transmisor muerto |
+| `AVISO_RF` | `SIN_CONFIRMAR` | `AVISE_POSTE_1` | **solo Esclavo** | se puso el ambar de emergencia aqui y **el Poste 1 no acuso** el aviso **ni tras agotar los reintentos** — `D-32` (3), 13/09: son `AVISO_AMBAR_REINTENTOS`, y la espera total es `(1 + N) x AVISO_AMBAR_TIMEOUT_MS`. ⚠️ **NO ES INMEDIATA: espere a que salga antes de irse** | **haga lo que dice la accion**: cierre el paso aqui o **avise al Poste 1 antes de irse**. 🔴 **Dice «no he podido confirmarlo», NUNCA «el otro poste no se entero»**: una trama perdida por lluvia se ve igual que un transmisor muerto |
 | `HORA_ESP32` | `J17_MUDO` · `SIN_HORA_DEL_ESP32` · `RECHAZADA_FORMATO` | `SIGUE_SU_HORA` | las dos | la hora del ESP32 **no llega, o llega y no sirve** | **es de la MISMA placa**: el ESP32, su `DS3231` y el cable `J17`. Las tres causas mandan a sitios distintos: **SPEC 3 §7** |
 | `HORA_ESP32` | `CADUCADA` | `CAMBIO_A_AMBAR` | las dos | la hora caduco **con el Degradado en marcha** (`D-21` (1)) | esa punta ya esta en ambar. Poner la hora antes de reintentar el modo (A.2, A.6) |
 | `CAM_PEGADA` | `CAM_C_CONTACTO_FIJO` · `CAM_D_CONTACTO_FIJO` | **`NINGUNA`** | las dos | el contacto de esa camara lleva cerrado mas de `CAM_PEGADA_MS` | **el borne lo dice el nombre**: `CAM_C` y `CAM_D` son los dos de camara de `J16` (`D-25`, SPEC 5 §2.1). Revisar cableado y la configuracion de esa camara (`D-13`). **La causa dice `CONTACTO_FIJO` y NO «averia» a proposito**: no se puede distinguir de una presencia legitima larga |
@@ -261,8 +261,8 @@ despues.** Censado hoy sobre `{Maestro,Esclavo}/src/modo_degradado.cpp`: **el un
 publica el modo en cualquiera de las dos puntas es `DEGRADADO / SALTO_DE_HORA_POR_ROJO`**. No hay traza
 de que una punta **entro**, **salio**, **se rindio** ni **reanudo sola tras un corte** (A.5). La unica
 superficie es `MODO:` del `$STATUS`, que dice el AHORA y no el CUANDO. **Es la misma forma que `D-23`
-vino a cerrar para el poste 2 —el tecnico llega despues— aplicada al modo entero. Ninguna fila abierta
-lo nombra.**
+cerro para el enlace del poste 2 —el tecnico llega despues— aplicada al modo entero**, y el molde ya
+existe: `D-32` (2) la construyo el 13/09 como **`$EVENT` periodico**. **Aqui no hay fila que lo pida.**
 
 **2. 🔴 EL AVISO PREVIO AL LIMITE DURO NO TIENE DONDE LEERSE, EN NINGUNA DE LAS DOS PUNTAS.** Medido:
 el aviso del Maestro se compone dentro de la funcion que **dibuja la pantalla** (`AVISO_LIMITE_MS` ➜
@@ -293,7 +293,7 @@ nadie ha cronometrado en una tarjeta.
 radio reconfigurada con este firmware dentro. Que firmware corre en cada equipo lo dice `ESTADO.md`.
 
 *Vigentes recogidas: `D-1`, `D-2`, `D-13`, `D-16`, `D-17`, `D-17.bis`, `D-18`, `D-21` (1), `D-25`,
-`D-26` (3) y (5), `D-29`, `D-31`. Nombradas como hueco: `D-21` (A), `D-23`. Remedido el 12/09/2026
+`D-26` (3) y (5), `D-29`, `D-31`, `D-32` (2). Nombradas como hueco: `D-21` (A). Remedido el 12/09/2026
 sobre `{Maestro,Esclavo}/src/{modo_degradado,bluetooth,botones,coordinador,main,protocolo,reloj}.cpp`.
 Censados y NO copiados: `8_Procedimiento_Modo_Degradado.md`, `4_Manual_Configuracion_Radios.md`,
 `7_Especificacion_Antenas.md`, `04_Manuales/MANUAL_EXACTO_RADIOS_E90_DTU.md`.*
