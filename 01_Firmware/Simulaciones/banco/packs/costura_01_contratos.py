@@ -38,6 +38,7 @@ COMPARTIDOS = [
 
 
 def correr(b, fw):
+    _copia_heredada_del_despeje(b, fw)
     hay_common = fw.existe("lib", "Common")
 
     if hay_common:
@@ -123,3 +124,46 @@ def _modo_biblioteca_comun(b, fw):
             f"{nombre} no tiene copia local en ninguna punta",
             f"{nombre} tiene copia local en {tapado}: por el orden de busqueda esa "
             "copia TAPA a la de lib/Common y la asimetria vuelve, ahora invisible")
+
+
+# LAS COPIAS A MANO DEL LIMITE VIAL QUE EL ESCLAVO LLEVA DENTRO.
+#
+# (constante en el Esclavo, fichero, constante del Maestro, para que la usa)
+COPIAS_DEL_DESPEJE = [
+    ("DESPEJE_MIN_HEREDADO_SEG", ("Esclavo", "src", "semaforo.cpp"), "DESPEJE_SEG_MIN",
+     "acotar el retardo de bajada de la pluma contra el todo-rojo mas corto (D-33)"),
+    ("DESPEJE_MAX_HEREDADO_SEG", ("Esclavo", "src", "botones.cpp"), "DESPEJE_SEG_MAX",
+     "decidir cuando una pluma retenida deja de ser segura para el tramo (D-33)"),
+]
+
+
+def _copia_heredada_del_despeje(b, fw):
+    """D-33: el suelo vial del despeje, copiado a mano en el Esclavo.
+
+    El static_assert que acota el retardo de bajada de la pluma necesita
+    DESPEJE_SEG_MIN, y ese valor vive en Maestro/include/limites_ciclo.h, que el
+    ESCLAVO NO VE -es un proyecto PlatformIO aparte y ese header es solo del
+    Maestro-. Asi que el Esclavo lleva una copia a mano,
+    DESPEJE_MIN_HEREDADO_SEG, y una copia a mano es exactamente N-133: el dia que
+    alguien baje el suelo vial en limites_ciclo.h, el static_assert del Esclavo
+    seguiria midiendo contra el numero viejo Y SEGUIRIA COMPILANDO. Nadie se
+    enteraria.
+
+    No se puede arreglar moviendo el header -limites_ciclo.h es del ciclo, que es
+    del Maestro- asi que lo que queda es esto: que el banco compare las dos y
+    falle cuando divergan. Las DOS se releen del C++ en cada corrida; ninguna se
+    escribe aqui (CLAUDE.md 14)."""
+    b.titulo("D-33: la copia del suelo del despeje que el Esclavo lleva a mano")
+
+    for copiada, ruta, original, para_que in COPIAS_DEL_DESPEJE:
+        real = fw.constante(("Maestro", "include", "limites_ciclo.h"),
+                            r"%s\s*=\s*(\d+)" % original, original)
+        copia = fw.constante(ruta, r"%s\s*=\s*(\d+)" % copiada, copiada)
+        b.verificar(
+            copia == real,
+            "%s del Esclavo (%s) sigue valiendo lo que %s del Maestro: la copia sirve "
+            "para %s" % (copiada, ruta[-1], original, para_que),
+            "el Esclavo usa %s = %d y el Maestro dice %s = %d. La copia se quedo vieja "
+            "-y en %s eso COMPILA IGUAL y no lo dice nadie (N-133)-: %s se estaria "
+            "midiendo contra un limite vial que ya no existe"
+            % (copiada, copia, original, real, ruta[-1], para_que))

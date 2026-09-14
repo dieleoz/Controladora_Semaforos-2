@@ -359,6 +359,17 @@ static unsigned long g_ticksVerdeEsclavo = 0;
 static unsigned long g_enclavamientoRoto = 0;
 static unsigned long g_talanqueraSinVerde = 0;
 
+// D-33 (14/09/2026) - EL REPARTO DE LA INVARIANTE DE LA PLUMA (CLAUDE.md 9). El mismo
+// que en orquestador.cpp, y por el mismo motivo: la linea de arriba afirmaba "la pluma
+// arriba SIEMPRE tiene una razon nombrada" (se conserva), "esa razon es el verde" (se
+// reparte: fuera de la bajada sigue siendo cierta, dentro la razon es el retardo) y "la
+// unica excepcion es S_FALLO" (se conserva literal). La excepcion nueva NO se concede
+// por nombre: se CRONOMETRA contra PLUMA_RETARDO_BAJADA_MS leido del C++ real, porque
+// una excepcion sin cota aprobaria igual una pluma arriba diez minutos.
+static unsigned long g_plumaSinVerdeDesde[2] = {0, 0};
+static unsigned long g_peorVentanaPlumaMs[2] = {0, 0};
+static unsigned long g_retardoPlumaMs = 0;
+
 // Verde de una punta seguido del verde de la otra SIN un solo instante de todo-rojo en
 // medio. Es igual de mortal que el solape y solo se ve mirando la transicion, no el
 // instante: lo aprendio costura_02 y aqui se mide sobre los pines reales.
@@ -424,7 +435,14 @@ static void vigilar() {
     if (p->pin(MOTOR_TALANQUERA) == TALANQUERA_ABRIR &&
         p->pin(VERDE1) != HIGH && p->pin(VERDE2) != HIGH &&
         p->estado() != S_FALLO) {
-      g_talanqueraSinVerde++;
+      if (g_plumaSinVerdeDesde[i] == 0) g_plumaSinVerdeDesde[i] = g_t + 1;
+      const unsigned long dur = g_t - (g_plumaSinVerdeDesde[i] - 1);
+      if (dur > g_peorVentanaPlumaMs[i]) g_peorVentanaPlumaMs[i] = dur;
+      if (dur > g_retardoPlumaMs) {
+        g_talanqueraSinVerde++;
+      }
+    } else {
+      g_plumaSinVerdeDesde[i] = 0;
     }
   }
 }
@@ -842,6 +860,19 @@ int main() {
 
   // D-21 (1): la cadencia del ESP32 se lee de SU contrato -otro binario-, y el silencio que
   // define "sin radio" del protocolo.h del Esclavo. Sin valor por defecto.
+  // D-33: el retardo de bajada de la pluma, leido de LAS DOS puntas y comparado. Si se
+  // separan, una punta bajaria la barrera antes que la otra con el mismo rojo.
+  {
+    const unsigned long rM = leerNumero(RAIZ + "/Maestro/src/semaforo.cpp",
+        R"(PLUMA_RETARDO_BAJADA_MS\s*=\s*(\d+)UL)", "retardo de bajada de la pluma (Maestro)");
+    const unsigned long rE = leerNumero(RAIZ + "/Esclavo/src/semaforo.cpp",
+        R"(PLUMA_RETARDO_BAJADA_MS\s*=\s*(\d+)UL)", "retardo de bajada de la pluma (Esclavo)");
+    if (rM != rE) {
+      abortar("D-33: el retardo de bajada de la pluma NO es el mismo en las dos puntas");
+    }
+    g_retardoPlumaMs = rM;
+  }
+
   g_cadenciaSiembraMs = leerNumero(RAIZ + "/ESP32_Expansion/include/contrato.h",
                                    R"(#define\s+SIEMBRA_INTERVALO_MS\s+(\d+)UL)",
                                    "SIEMBRA_INTERVALO_MS del ESP32");
@@ -981,9 +1012,16 @@ int main() {
               "B5: y nunca se paso del verde de una punta al de la otra sin al menos un "
               "instante de todo-rojo entre medias");
 
-    comprobar(g_enclavamientoRoto == 0 && g_talanqueraSinVerde == 0,
-              "B6: en esos mismos instantes, ni rojo+verde a la vez en una misma cara "
-              "(SFTY-2) ni pluma arriba sin verde fuera de S_FALLO (SFTY-28)");
+    {
+      char msg[420];
+      std::snprintf(msg, sizeof(msg),
+          "B6: en esos mismos instantes, ni rojo+verde a la vez en una misma cara "
+          "(SFTY-2) ni pluma arriba sin verde fuera de S_FALLO MAS ALLA del retardo de "
+          "D-33 (SFTY-28 derogada en parte). Ventana mas larga medida: %lu ms en el "
+          "Maestro y %lu ms en el Esclavo, contra los %lu ms del C++ real",
+          g_peorVentanaPlumaMs[0], g_peorVentanaPlumaMs[1], g_retardoPlumaMs);
+      comprobar(g_enclavamientoRoto == 0 && g_talanqueraSinVerde == 0, msg);
+    }
 
     // N-96: los tres pines declarados y muertos. Se cuentan ESCRITURAS, no niveles: un
     // digitalWrite(pin, LOW) dejaria el nivel igual que un pin que nadie toca.

@@ -121,6 +121,13 @@ bool botonArriba()   { bool v = g_pulsarArriba;   g_pulsarArriba = false;   retu
 bool botonAbajo()    { bool v = g_pulsarAbajo;    g_pulsarAbajo = false;    return v; }
 bool botonCancelar() { bool v = g_pulsarCancelar; g_pulsarCancelar = false; return v; }
 bool botonAceptar()  { bool v = g_pulsarAceptar;  g_pulsarAceptar = false;  return v; }
+// D-33 (14/09/2026): NO HAY CAMARAS EN ESTE BANCO, y por eso contesta que no hay nadie.
+// Es la respuesta correcta para un equipo con las borneras de J16 vacias -el pull-down
+// de 10K deja los pines bajos para siempre-, no un "por ahora". Lo que este arnes mide
+// es el reparto del verde entre las dos puntas; quien ejerce el veto con camaras de
+// verdad es el Bloque F/G de arnes_automatico.cpp, que compila botones.cpp REAL.
+bool camara_presenciaJ16() { return false; }
+
 
 // N-73: la Caja Negra. El stub no puede limitarse a callar. [literal de adaptador_maestro.cpp]
 static char g_ultimaAlarmaEvento[48] = "";

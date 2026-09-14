@@ -538,6 +538,32 @@ static unsigned long g_ticksVerdeMaestro = 0;
 static unsigned long g_ticksVerdeEsclavo = 0;
 static unsigned long g_enclavamientoRoto = 0;   // rojo y verde a la vez EN LA MISMA punta
 static unsigned long g_talanqueraSinVerde = 0;
+
+// ---------------------------------------------------------------------------
+// D-33 (14/09/2026) - EL REPARTO DE LA INVARIANTE DE LA PLUMA (CLAUDE.md 9).
+//
+// La linea de arriba afirmaba TRES cosas a la vez, y solo UNA ha cambiado:
+//
+//   1. "la pluma arriba SIEMPRE tiene una razon nombrada"   -> SE CONSERVA ENTERA.
+//   2. "esa razon es el verde encendido"                    -> SE REPARTE: sigue siendo
+//      cierta fuera de la bajada, y dentro la razon es el retardo de D-33.
+//   3. "la unica excepcion nombrada es S_FALLO"             -> SE CONSERVA LITERAL.
+//
+// LA EXCEPCION NUEVA NO ES UN PERMISO: ES UNA COTA QUE SE MIDE. Se cronometra cuanto
+// dura de verdad cada ventana de "pluma arriba sin verde" y se exige que no pase del
+// PLUMA_RETARDO_BAJADA_MS leido del C++ real. Sin esta medida, la excepcion aprobaria
+// igual de bien un firmware que dejara la pluma arriba diez minutos -que es justo el
+// modo de fallo que D-33 crea-, y seria el "verde porque nadie mira" de CLAUDE.md 6.
+//
+// AQUI NO HAY CAMARAS (los adaptadores contestan false a camara_presenciaJ16), asi que
+// el veto no puede actuar y la unica razon posible es el retardo. Quien ejerce el veto
+// con camaras de verdad es el arnes de una punta, que compila botones.cpp REAL.
+// El reloj comun del banco. Se declara AQUI ARRIBA -y no donde estaba, junto al bucle-
+// porque el observador de la pluma necesita fechar sus ventanas y corre antes.
+static unsigned long g_t = 0;
+static unsigned long g_plumaSinVerdeDesde[2] = {0, 0};   // 0 = ninguna ventana abierta
+static unsigned long g_peorVentanaPlumaMs[2] = {0, 0};
+static unsigned long g_retardoPlumaMs = 0;               // leido del C++ en main()
 static unsigned long g_verdeSinRojoEnfrente = 0;
 
 // N-162 - LO QUE EL MAESTRO PUBLICA DEL ESCLAVO (campo ESC: del $STATUS). La cinta del
@@ -621,11 +647,20 @@ static void vigilar(unsigned long t) {
         (p->pin(ROJO2) == HIGH && p->pin(VERDE2) == HIGH)) {
       g_enclavamientoRoto++;
     }
-    // SFTY-28: pluma arriba sin verde. La excepcion de S_FALLO va por nombre.
+    // SFTY-28 con la derogacion parcial de D-33: pluma arriba sin verde. La excepcion de
+    // S_FALLO va por nombre, y la del retardo va CRONOMETRADA -no por nombre-: se cuenta
+    // violacion solo cuando la ventana ya paso del plazo que el C++ declara.
     if (p->pin(MOTOR_TALANQUERA) == TALANQUERA_ABRIR &&
         p->pin(VERDE1) != HIGH && p->pin(VERDE2) != HIGH &&
         p->estado() != S_FALLO) {
-      g_talanqueraSinVerde++;
+      if (g_plumaSinVerdeDesde[i] == 0) g_plumaSinVerdeDesde[i] = g_t + 1;
+      const unsigned long dur = g_t - (g_plumaSinVerdeDesde[i] - 1);
+      if (dur > g_peorVentanaPlumaMs[i]) g_peorVentanaPlumaMs[i] = dur;
+      if (dur > g_retardoPlumaMs) {
+        g_talanqueraSinVerde++;
+      }
+    } else {
+      g_plumaSinVerdeDesde[i] = 0;
     }
   }
 }
@@ -633,7 +668,6 @@ static void vigilar(unsigned long t) {
 // ---------------------------------------------------------------------------
 // EL BUCLE. Un tick = el MISMO millis() en las dos puntas.
 // ---------------------------------------------------------------------------
-static unsigned long g_t = 0;
 static const unsigned long PASO_MS = 50;
 
 static void unTick() {
@@ -1184,6 +1218,21 @@ int main() {
   // lo correcto: §5, mover contenido rompe al que lee por patron, y un ABORTADO avisa
   // mientras que un numero supuesto no.
   DESPEJE_POR_DEFECTO_S  = leerNumero(LIMITES, R"(DESPEJE_SEG_MIN\s*=\s*(\d+))", "despeje por defecto");
+
+  // D-33: el retardo de bajada de la pluma, leido de LAS DOS puntas. Se comparan aqui
+  // porque escribirPines() tiene que ser identico en las dos (barrera_03) y este numero
+  // es parte de esa orden: si se separan, una punta bajaria la barrera antes que la otra
+  // con el mismo rojo. SIN VALOR POR DEFECTO: si el patron desaparece, aborta.
+  {
+    const unsigned long rM = leerNumero(RAIZ + "/Maestro/src/semaforo.cpp",
+        R"(PLUMA_RETARDO_BAJADA_MS\s*=\s*(\d+)UL)", "retardo de bajada de la pluma (Maestro)");
+    const unsigned long rE = leerNumero(RAIZ + "/Esclavo/src/semaforo.cpp",
+        R"(PLUMA_RETARDO_BAJADA_MS\s*=\s*(\d+)UL)", "retardo de bajada de la pluma (Esclavo)");
+    if (rM != rE) {
+      abortar("D-33: el retardo de bajada de la pluma NO es el mismo en las dos puntas");
+    }
+    g_retardoPlumaMs = rM;
+  }
   // N-162 (bloque F): el ambar de transicion rojo->verde del ESCLAVO. Es un literal dentro
   // de la condicion de semaforo_actualizar(), sin nombre; se lee de esa misma condicion,
   // que es la que decide cuando la luz pasa a verde.
@@ -3386,9 +3435,31 @@ int main() {
   comprobar(g_enclavamientoRoto == 0,
             "RESUMEN (SFTY-2): en ninguno de esos instantes coincidieron rojo y verde "
             "en la misma cara de ninguna de las dos puntas");
-  comprobar(g_talanqueraSinVerde == 0,
-            "RESUMEN (SFTY-28): en ninguno de esos instantes hubo pluma arriba sin verde "
-            "encendido fuera de S_FALLO, en ninguna de las dos puntas");
+  {
+    char msg[420];
+    std::snprintf(msg, sizeof(msg),
+        "RESUMEN (SFTY-28 con la derogacion parcial de D-33): en ninguno de esos "
+        "instantes hubo pluma arriba sin verde encendido fuera de S_FALLO MAS ALLA del "
+        "retardo de bajada. La ventana mas larga medida fue de %lu ms en el Maestro y "
+        "%lu ms en el Esclavo, contra los %lu ms que declara el C++ real: la excepcion "
+        "de D-33 esta ACOTADA, no concedida",
+        g_peorVentanaPlumaMs[0], g_peorVentanaPlumaMs[1], g_retardoPlumaMs);
+    comprobar(g_talanqueraSinVerde == 0, msg);
+  }
+  {
+    // EL CONTROL QUE LE FALTA A TODA INVERSION (CLAUDE.md 9). La linea de arriba la
+    // pasaria igual de bien un firmware que NUNCA levantara la pluma: sin esto, el
+    // reparto habria cambiado una comprobacion por una tapia. Se exige que la ventana
+    // haya EXISTIDO -o sea, que la pluma llegara a estar arriba con la luz ya en rojo-,
+    // que es el comportamiento nuevo que D-33 manda construir.
+    char msg[360];
+    std::snprintf(msg, sizeof(msg),
+        "CONTROL de D-33: la ventana de 'pluma arriba con la luz ya en rojo' EXISTIO de "
+        "verdad en las dos puntas (%lu ms y %lu ms). Si alguna fuera cero, la pluma "
+        "seguiria bajando en el mismo instante del rojo y el retardo seria un adorno",
+        g_peorVentanaPlumaMs[0], g_peorVentanaPlumaMs[1]);
+    comprobar(g_peorVentanaPlumaMs[0] > 0 && g_peorVentanaPlumaMs[1] > 0, msg);
+  }
 
   std::printf("\n==============================================================\n");
   std::printf(" RESULTADO: %d/%d comprobaciones OK\n", total - fallos, total);

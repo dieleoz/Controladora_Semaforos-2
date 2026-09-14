@@ -17,3 +17,7 @@ bool botonCancelar();
 // $STATUS, asi que la firma tiene que estar o no compila. La definicion esta en
 // arnes_puente.cpp y devuelve el estado de ARRANQUE del vigilante, no un OK.
 const char* camara_estado();
+// D-33 (14/09/2026): semaforo.cpp REAL llama a esta antes de dejar bajar la pluma, asi
+// que la firma tiene que estar o no compila. La definicion esta en arnes_puente.cpp y
+// devuelve false: aqui no hay camaras cableadas.
+bool camara_presenciaJ16();

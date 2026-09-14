@@ -58,6 +58,16 @@ VIGILANTE = ("camara_estado", "camara_vetosPluma", "camara_alarmar",
              "camara_recuperada", "camara_presencia", "vigilante_flanco",
              "vigilante_nivel", "vigilante_tick")
 
+# LO UNICO QUE EL VIGILANTE PUEDE USAR DEL SEMAFORO, Y ES UN TRINQUETE.
+#
+# Los dos son getters de lo que escribirPines() ya decidio y dejo puesto; ninguno
+# recalcula nada, y eso se MIDE mas abajo sobre semaforo.cpp en vez de fiarse del nombre.
+# semaforo_plumaVetada() entro con D-33 (14/09/2026): contesta a "el pin sigue en ABRIR
+# PORQUE una camara ve algo debajo", que es otra pregunta que plumaArriba y por eso son
+# dos banderas y no una. Un tercer nombre aqui se DISCUTE antes de anadirse: seria o la
+# fase 2 del vigilante o una segunda copia de la condicion de SFTY-28.
+LEE_DEL_SEMAFORO = {"semaforo_plumaArriba", "semaforo_plumaVetada"}
+
 # Nada de esto puede aparecer dentro de una funcion del vigilante. La fase 1 no actua:
 # cuenta y avisa. Si alguna vez hace falta que actue, eso es la fase 2, contradice SFTY-28
 # y necesita derogacion escrita del responsable (A-1.bis).
@@ -310,13 +320,35 @@ def correr(b, fw):
         for fn in VIGILANTE:
             llamadas |= set(re.findall(r"\b(semaforo_\w+)\s*\(", cuerpos[(punta, fn)]))
         b.verificar(
-            llamadas == {"semaforo_plumaArriba"},
-            "%s: del semaforo el vigilante solo usa semaforo_plumaArriba(), que es un "
-            "getter de lo que ya se escribio en el pin" % punta,
-            "%s: el vigilante usa %s del semaforo. Lo unico que puede hacer con el "
-            "semaforo es LEERLO, y por un solo sitio: cualquier otra cosa es la fase 2 o "
-            "una segunda copia de la condicion de SFTY-28"
-            % (punta, sorted(llamadas) or "(nada: fallo el buscador, no el firmware)"))
+            llamadas and llamadas <= LEE_DEL_SEMAFORO,
+            "%s: del semaforo el vigilante solo usa %s - getters de lo que escribirPines() "
+            "ya decidio y dejo puesto" % (punta, ", ".join(sorted(llamadas)) or "nada"),
+            "%s: el vigilante usa %s del semaforo, y sobra(n) %s. Lo unico que puede hacer "
+            "con el semaforo es LEERLO: cualquier otra cosa es la fase 2 o una segunda "
+            "copia de la condicion de SFTY-28. Un nombre nuevo aqui se DISCUTE, no se "
+            "anade"
+            % (punta, sorted(llamadas) or "(nada: fallo el buscador, no el firmware)",
+               sorted(llamadas - LEE_DEL_SEMAFORO) or "(ninguno, y aun asi la lista quedo "
+               "vacia: fallo el buscador)"))
+
+        # Y LA LISTA NO SE CREE A SI MISMA: que cada nombre sea un GETTER se MIDE sobre
+        # semaforo.cpp (CLAUDE.md 6 - la excepcion es el instrumento de verdad). Un cuerpo
+        # que fuera algo mas que `return <bandera>;` podria estar recalculando SFTY-28, que
+        # es exactamente lo que esta lista existe para impedir; el nombre no lo garantiza.
+        sem = fw.codigo(punta, "src", "semaforo.cpp")
+        noGetters = []
+        for fn in sorted(llamadas & LEE_DEL_SEMAFORO):
+            cuerpoFn = _cuerpo(sem, fn)
+            if cuerpoFn is None or not re.fullmatch(
+                    r"\{\s*return\s+[A-Za-z_]\w*\s*;\s*\}", cuerpoFn):
+                noGetters.append(fn)
+        b.verificar(
+            not noGetters,
+            "%s: y cada uno de esos nombres ES un getter de verdad, medido en "
+            "semaforo.cpp: el cuerpo devuelve una bandera y no calcula nada" % punta,
+            "%s: %s no son getters en semaforo.cpp -o no se encuentran-. Si uno de ellos "
+            "recalcula la condicion, el vigilante tiene una segunda formula de SFTY-28 "
+            "aunque la lista de arriba este verde" % (punta, ", ".join(noGetters)))
 
     # =============================================================================
     # 4. EL CAMPO CAM: SABE DECIR LAS CUATRO COSAS, Y EL "?" ES UNA DE ELLAS
@@ -388,12 +420,31 @@ def correr(b, fw):
         # de vetos no llamase seria la funcion huerfana de N-73, y ademas devolveria el
         # firmware a tener dos formulas de "hay coche".
         b.verificar(
-            re.search(r"camara_presencia\s*\(\s*i\s*,", tick) is not None,
-            "%s: el contador de vetos pregunta por camara_presencia(), o sea que la "
-            "definicion de 'hay coche' es UNA y la comparten sus dos consumidores" % punta,
-            "%s: vigilante_tick() no llama a camara_presencia(). O se ha vuelto a escribir "
-            "la condicion a mano -dos formulas que solo la disciplina mantiene iguales- o "
-            "el contador de vetos dejo de mirar la presencia" % punta)
+            re.search(r"camara_presencia\w*\s*\(", tick) is None
+            and re.search(r"semaforo_plumaVetada\s*\(", tick) is not None,
+            "%s: el contador de vetos NO vuelve a preguntar por la presencia: lee "
+            "semaforo_plumaVetada(), o sea la decision que ya tomo escribirPines(). Una "
+            "segunda consulta seria la misma pregunta muestreada en otro instante" % punta,
+            "%s: vigilante_tick() vuelve a preguntar por la presencia en vez de leer "
+            "semaforo_plumaVetada(). Desde D-33 quien decide el veto es escribirPines(); "
+            "recalcularlo aqui cuenta vetos que no hubo y se calla los que si, porque son "
+            "dos muestras del mismo pin en dos instantes distintos" % punta)
+
+        # Y EL VETO QUE SE CUENTA TIENE QUE SER EL QUE ACTUO, NO EL QUE HABRIA ACTUADO.
+        #
+        # Es la otra mitad de lo mismo, y sin ella la inversion de arriba aprobaria un
+        # firmware que dejo de contar: bastaria con no mirar nada. El disparo se cuenta en
+        # el FLANCO de subida del veto -un veto de tres minutos es UN veto, no uno por
+        # vuelta del loop- y eso se lee tal cual del fuente.
+        b.verificar(
+            re.search(r"if\s*\(\s*vetada\s*&&\s*!\s*camVetoAnt\s*\)", tick)
+            is not None,
+            "%s: y lo cuenta por FLANCO -vetada && !camVetoAnt-: un veto que dura tres "
+            "minutos es UN veto. Por nivel, el numero mediria la velocidad del bucle en "
+            "vez de los coches" % punta,
+            "%s: el contador de vetos no dispara por flanco. O no cuenta -y un contador a "
+            "cero se lee como 'esto no pasa nunca', que es la conclusion contraria a la "
+            "verdad- o cuenta por nivel y llena el aire de tramas identicas" % punta)
 
         # Y ese getter devuelve LA constante, no una copia suya.
         dem = fw.codigo(punta, "src", "demanda.cpp")
@@ -434,9 +485,14 @@ def correr(b, fw):
     # 5.quater LA CAMARA DE J16 LLEGA AL MODO QUE DECIDE (Maestro, 05/09)
     # =============================================================================
     #
-    # SOLO EL MAESTRO, Y NO ES UNA ASIMETRIA NUEVA: ES SFTY-27. El Esclavo PIDE y el
-    # Maestro DECIDE, asi que la unica punta que necesita saber "hay cola AHORA" es esta;
-    # el Esclavo no tiene Modo Inteligente y el getter alli seria un huerfano.
+    # EL MODO INTELIGENTE, SOLO EL MAESTRO: NO ES UNA ASIMETRIA NUEVA, ES SFTY-27. El
+    # Esclavo PIDE y el Maestro DECIDE, asi que la unica punta que necesita saber "hay cola
+    # AHORA" para alargar una fase es esta.
+    #
+    # ~~y el getter alli seria un huerfano~~ -> CADUCADO POR D-33 (14/09/2026): el Esclavo
+    # tiene camara_presenciaJ16() y NO es un huerfano, porque quien lo llama alli es el veto
+    # de la pluma. Son dos consumidores distintos de la misma definicion: el Maestro la usa
+    # para decidir cuanto dura un verde y las dos puntas para decidir si la barrera baja.
     #
     # POR QUE ESTA COMPROBACION EXISTE. El 05/09 se reporto que "el vigilante mira J16 y el
     # modo lee J14, o sea que el modo no recibe demanda de la camara". Era FALSO -entraba
@@ -450,36 +506,56 @@ def correr(b, fw):
     # comprueba que el cable esta puesto -que el getter existe, que sale de la definicion
     # unica y que el modo lo llama-. Que con trafico en J16 la fase se alargue de verdad
     # hasta el techo lo mide el Bloque F ejecutando el C++, y ningun pack de texto puede.
-    # NO sale de cuerpos[], que solo trae las funciones de VIGILANTE y ademas las exige en
-    # LAS DOS puntas. Esta vive solo en el Maestro, asi que se parsea aparte -y si el
-    # patron no la encuentra, ABORTA: un "no aparece" no es un hallazgo hasta haber
-    # descartado al buscador.
-    cuerpo_j16 = _cuerpo(codigo["Maestro"], "camara_presenciaJ16")
-    if cuerpo_j16 is None:
-        raise fw.Abortado(
-            "no se encuentra camara_presenciaJ16() en Maestro/src/botones.cpp. Un patron "
-            "que no encuentra nada NO demuestra que no haya nada (CLAUDE.md 4)")
-    else:
+    # NO sale de cuerpos[], que solo trae las funciones de VIGILANTE.
+    #
+    # ~~Esta vive solo en el Maestro~~ -> CADUCADO POR D-33 (14/09/2026): el veto de la
+    # pluma la pregunta desde semaforo.cpp en LAS DOS puntas, asi que las dos se miden. Con
+    # el rotulo viejo, el envoltorio del Esclavo se quedaba sin vigilar y podia releer los
+    # pines por su cuenta sin que nadie lo viera. Si el patron no la encuentra, ABORTA: un
+    # "no aparece" no es un hallazgo hasta haber descartado al buscador.
+    for punta in PUNTAS:
+        cuerpo_j16 = _cuerpo(codigo[punta], "camara_presenciaJ16")
+        if cuerpo_j16 is None:
+            raise fw.Abortado(
+                "no se encuentra camara_presenciaJ16() en %s/src/botones.cpp. Un patron "
+                "que no encuentra nada NO demuestra que no haya nada (CLAUDE.md 4)" % punta)
         b.verificar(
             re.search(r"camara_presencia\s*\(\s*i\s*,", cuerpo_j16) is not None
             and "camara_leerPin" not in cuerpo_j16,
-            "Maestro: camara_presenciaJ16() sale de camara_presencia() -la definicion "
-            "unica- y no se hace su propia lectura de los pines",
-            "Maestro: camara_presenciaJ16() no pregunta por camara_presencia(), o relee "
+            "%s: camara_presenciaJ16() sale de camara_presencia() -la definicion "
+            "unica- y no se hace su propia lectura de los pines" % punta,
+            "%s: camara_presenciaJ16() no pregunta por camara_presencia(), o relee "
             "los pines por su cuenta. Lo primero devuelve el firmware a dos formulas de "
             "'hay coche'; lo segundo da un SEGUNDO valor en la misma vuelta, y quien "
             "decide el semaforo estaria mirando otro instante que el vigilante que juzga "
-            "esa misma camara")
+            "esa misma camara" % punta)
 
-        inteligente = fw.codigo("Maestro", "src", "modo_inteligente.cpp")
+        # Y LA DEFINICION UNICA TIENE CONSUMIDOR. Es el bloque que vigilante_tick() llevaba
+        # antes de D-33, MUDADO al escenario donde sigue siendo cierto (CLAUDE.md 9). Hasta
+        # el 05/09 la condicion vivia dentro de vigilante_tick(); al ganar un segundo
+        # consumidor se saco a camara_presencia() en vez de copiarse. Hoy quien la consume
+        # es EL VETO DE LA PLUMA, en semaforo.cpp. Una definicion correcta que nadie
+        # llamara seria la funcion huerfana de N-73, y devolveria el firmware a dos
+        # formulas de "hay coche" en cuanto alguien volviera a necesitar la pregunta.
         b.verificar(
-            re.search(r"camara_presenciaJ16\s*\(\s*\)", inteligente) is not None,
-            "Maestro: el Modo Inteligente lee las camaras de J16 -camara_presenciaJ16()- "
-            "y no solo la de J14. Es donde el responsable decidio poner la camara",
-            "Maestro: modo_inteligente.cpp NO llama a camara_presenciaJ16(). Entonces la "
-            "unica camara del poste solo puede PEDIR paso por la ventana de demanda.cpp, "
-            "que deja huecos: la fase se acaba en el suelo y la camara no aporta nada al "
-            "trafico. Es el defecto que se midio el 05/09 en el Bloque F del arnes")
+            re.search(r"camara_presenciaJ16\s*\(\s*\)",
+                      fw.codigo(punta, "src", "semaforo.cpp")) is not None,
+            "%s: y tiene consumidor: el veto de la pluma de D-33 la pregunta desde "
+            "semaforo.cpp, o sea que 'hay coche' se define UNA vez y se lee donde se "
+            "decide" % punta,
+            "%s: semaforo.cpp no llama a camara_presenciaJ16(). O el veto de D-33 no esta "
+            "construido en esta punta -y la barrera baja sin mirar lo que hay debajo- o se "
+            "ha vuelto a escribir la condicion a mano" % punta)
+
+    inteligente = fw.codigo("Maestro", "src", "modo_inteligente.cpp")
+    b.verificar(
+        re.search(r"camara_presenciaJ16\s*\(\s*\)", inteligente) is not None,
+        "Maestro: el Modo Inteligente lee las camaras de J16 -camara_presenciaJ16()- "
+        "y no solo la de J14. Es donde el responsable decidio poner la camara",
+        "Maestro: modo_inteligente.cpp NO llama a camara_presenciaJ16(). Entonces la "
+        "unica camara del poste solo puede PEDIR paso por la ventana de demanda.cpp, "
+        "que deja huecos: la fase se acaba en el suelo y la camara no aporta nada al "
+        "trafico. Es el defecto que se midio el 05/09 en el Bloque F del arnes")
 
     # =============================================================================
     # 6. LAS TRAMAS CABEN. ES N-108, REHECHO SOBRE LOS LITERALES DE ESTE VIGILANTE

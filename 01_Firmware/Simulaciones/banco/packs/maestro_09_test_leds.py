@@ -79,17 +79,10 @@ _DEF = re.compile(
     r"EstadoSemaforo)\s+(\w+)\s*\([^)]*\)\s*\{", re.M)
 
 
-def _bloque(codigo, i):
-    """[inicio, fin] del bloque que abre en codigo[i] == '{'. None si no cierra."""
-    nivel = 0
-    for j in range(i, len(codigo)):
-        if codigo[j] == "{":
-            nivel += 1
-        elif codigo[j] == "}":
-            nivel -= 1
-            if nivel == 0:
-                return (i, j + 1)
-    return None
+# El emparejador de llaves y el resolutor de la condicion de la pluma viven en
+# banco/fuente.py: los necesitan tres packs y una copia por pack es el defecto que ese
+# fichero existe para no cometer. Aqui solo queda el nombre corto.
+from fuente import bloque as _bloque  # noqa: E402
 
 
 def _funciones(codigo):
@@ -132,34 +125,6 @@ def _condicion_pluma(cuerpo):
     if not m:
         return None
     return m.group(1).strip(), m.group(2), m.group(3)
-
-
-def _sin_asignacion(expr, codigo):
-    """Desenvuelve la condicion cuando viene dentro de una asignacion a la bandera.
-
-    N-153. La orden de la pluma pasa a ser
-
-        digitalWrite(MOTOR_TALANQUERA,
-                     (plumaAbierta = ((verde && !testLedsActivo) || estado == S_FALLO))
-                         ? TALANQUERA_ABRIR : TALANQUERA_CERRAR);
-
-    porque el $STATUS publica ahora esa posicion y el valor tiene que salir del MISMO
-    parentesis que mueve el pin: una copia de la formula en la linea de al lado seria la
-    que se queda vieja el dia que la condicion cambie.
-
-    LA EXCEPCION SE MIDE, NO SE ESCRIBE (CLAUDE.md 3.bis). No se acepta cualquier
-    asignacion: solo la que asigna a la bandera que devuelve semaforo_plumaArriba(),
-    leida del propio fuente. Con cualquier otro identificador esto devuelve la expresion
-    tal cual y el pack ABORTA como hacia antes -que es lo correcto: una expresion que no
-    se entiende no se aprueba-."""
-    m = re.match(r"^\(\s*([A-Za-z_]\w*)\s*=\s*(.+)\)$", expr.strip())
-    if not m:
-        return expr
-    cuerpo = _cuerpo(codigo, "semaforo_plumaArriba")
-    publica = re.search(r"return\s+([A-Za-z_]\w*)\s*;", cuerpo or "")
-    if not publica or publica.group(1) != m.group(1):
-        return expr
-    return m.group(2).strip()
 
 
 def _evaluar_pluma(cond, bandera, verde, test, fallo):
@@ -362,7 +327,14 @@ def correr(b, fw):
     # N-153: la condicion puede venir envuelta en la asignacion de la bandera que el
     # $STATUS publica. Se desenvuelve SOLO si esa bandera es la que devuelve el getter,
     # comprobado sobre el fuente; en cualquier otro caso se deja como esta y se aborta.
-    expr = _sin_asignacion(expr, codigo)
+    expr = fw.sin_asignacion(expr, codigo)
+    # D-33: y desde el 14/09 puede ser un local, con la tabla de verdad una linea mas
+    # arriba. Se la sigue hasta donde vive en vez de abortar; lo que NO se hace es dar
+    # por buena una expresion que no se entiende.
+    publicada = fw.bandera_publicada(codigo)
+    d33 = fw.apertura_de_la_pluma(cuerpoEscribir, publicada, expr)
+    if d33 is not None:
+        expr = d33["tabla"]
 
     desconocidos = sorted(set(_IDENT.findall(expr)) -
                           {"verde", bandera, "estado", "S_FALLO"})
@@ -412,6 +384,26 @@ def correr(b, fw):
         "quedaria ABAJO, cerrando la via por completo, que es la politica CONTRARIA a "
         "la decidida")
 
+    # ---- 7.bis. LA RAMA QUE D-33 CREO, Y LA UNICA PREGUNTA QUE HAY QUE HACERLE ----
+    #
+    # El retardo y el veto son EXCEPCIONES A LA BAJADA, no permisos de subida. Escritas
+    # mal serian lo segundo: bastaria que la rama de "pluma ya abajo" mirase la camara
+    # para que una deteccion LEVANTARA la barrera con la luz en rojo. Ninguna de las
+    # comprobaciones de arriba lo veria -la tabla de verdad de la apertura seguiria
+    # intacta- y el arnes tampoco, porque ahi la pluma nunca parte de abajo con una
+    # camara viendo algo. Por eso esta linea mira la FORMA: la rama de en medio cierra
+    # y no consulta nada.
+    if d33 is not None:
+        b.verificar(
+            d33["cierra"],
+            "D-33: con la pluma YA ABAJO y la luz sin pedirla, el firmware la deja "
+            "abajo en seco -sin mirar camara ni reloj-. El retardo y el veto solo "
+            "pueden RETENER una pluma que ya estaba arriba, nunca ABRIRLA",
+            "la rama de D-33 para la pluma ya cerrada no la deja cerrada. Si de ahi "
+            "cuelga el veto, una deteccion de camara LEVANTA la barrera con la luz en "
+            "rojo: la excepcion habria dejado de ser una excepcion a la bajada para "
+            "ser un permiso de subida")
+
     # ---- 8. CONTROLES NEGATIVOS ----
     #
     # Sin esto, el dia que un patron dejara de casar este pack aprobaria un firmware
@@ -435,6 +427,28 @@ def correr(b, fw):
         "semaforo_actualizar" in reinyectado,
         "el verde crudo de N-82 reinyectado en semaforo_actualizar() se detecta y se "
         "atribuye a la funcion correcta")
+
+    # D-33: y el detector de la rama de en medio, ejercido contra el texto defectuoso
+    # de verdad -el que ABRE desde cerrada-, no contra uno inventado.
+    _MALA = ("{ const bool L = (verde && !testLedsActivo) || estado == S_FALLO;"
+             "  bool P;"
+             "  if (L) { P = true; }"
+             "  else if (!F) { P = camara_presenciaJ16(); }"
+             "  else { P = false; }"
+             "  digitalWrite(MOTOR_TALANQUERA, (F = P) ? TALANQUERA_ABRIR : X); }")
+    _BUENA = _MALA.replace("P = camara_presenciaJ16();", "P = false;")
+    b.control_negativo(
+        fw.apertura_de_la_pluma(_MALA, "F", "P")["cierra"] is False
+        and fw.apertura_de_la_pluma(_BUENA, "F", "P")["cierra"] is True,
+        "una rama de D-33 que ABRE la pluma desde cerrada con la camara se detecta, y "
+        "la que la deja cerrada pasa: el detector distingue la excepcion del permiso")
+
+    b.control_negativo(
+        fw.apertura_de_la_pluma(_BUENA, "F", "P")["tabla"]
+        == "(verde && !testLedsActivo) || estado == S_FALLO",
+        "y la tabla de verdad que se saca de la cadena de D-33 es la ENTERA, con sus "
+        "tres terminos: si se quedara con un trozo, las cuatro filas de arriba se "
+        "estarian evaluando sobre media condicion")
 
     b.control_negativo(
         _condicion_pluma("{ digitalWrite(MOTOR_TALANQUERA, (a && b) ? X : Y); }")

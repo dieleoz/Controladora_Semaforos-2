@@ -15,3 +15,9 @@ bool botonAbajo();
 bool botonAceptar();
 bool botonCancelar();
 bool camara_leerPin(uint8_t pin);
+// D-33 (14/09/2026): semaforo.cpp REAL llama a esta antes de dejar bajar la pluma, asi
+// que la firma tiene que estar o no compila. NO es un detalle de arnes: es la prueba de
+// que el veto no se puede quitar en silencio -quitarlo rompe el ENLACE, no se queda
+// callado-. La definicion esta en el adaptador y devuelve false: en este banco no hay
+// camaras cableadas, o sea que la pluma sigue a la luz con su retardo y nada mas.
+bool camara_presenciaJ16();

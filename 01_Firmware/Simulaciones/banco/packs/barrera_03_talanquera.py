@@ -116,7 +116,30 @@ def correr(b, fw):
             "SFTY-28 prohibe" % punta)
         m = re.search(r"digitalWrite\(\s*MOTOR_TALANQUERA\s*,\s*([^;]+)\)",
                       cuerpo.replace("\n", " "))
-        expr = m.group(1).replace(" ", "") if m else ""
+        # D-33 (14/09/2026): LA CONDICION YA NO CABE EN EL TERNARIO, Y SE LA SIGUE.
+        #
+        # Hasta ese dia la tabla de verdad entera estaba escrita aqui dentro y un `in`
+        # bastaba. D-33 la saco a `luzPideArriba` una linea mas arriba, porque el retardo
+        # de bajada y el veto de la camara necesitan saber si la pluma YA estaba arriba.
+        # Las dos lineas de abajo NO se relajan: siguen exigiendo el mismo `verde` y el
+        # mismo S_FALLO, solo que sobre la expresion donde ahora viven (CLAUDE.md 9). Si
+        # la cadena no se entiende, esto ABORTA en vez de aprobar una barrera sin mirar.
+        crudo = m.group(1).strip() if m else ""
+        expr = crudo.replace(" ", "")
+        # El ternario: la CONDICION es lo que va antes del '?'. Las dos ramas las mira
+        # el pack de N-82; aqui solo interesa de que depende la pluma.
+        ternario = re.match(r"^(.+?)\?", crudo)
+        suelto = fw.sin_asignacion(ternario.group(1).strip() if ternario else crudo, codigo)
+        d33 = None
+        if m is not None and re.fullmatch(r"[A-Za-z_]\w*", suelto):
+            d33 = fw.apertura_de_la_pluma(cuerpo, fw.bandera_publicada(codigo), suelto)
+            if d33 is None:
+                raise fw.Abortado(
+                    "%s: la pluma se manda con el local %r y la cadena que lo decide no "
+                    "tiene la forma que este pack sabe leer. Una condicion que no se "
+                    "entiende no se aprueba: se aborta y se viene a mirarla"
+                    % (punta, suelto))
+            expr = d33["tabla"].replace(" ", "")
         b.verificar(
             m is not None and "verde" in expr and "rojo" not in expr,
             "%s: la pluma se decide con el MISMO 'verde' ya enclavado que enciende la "
@@ -136,6 +159,22 @@ def correr(b, fw):
             "%s: la orden de la pluma ya no contempla S_FALLO (%r). Con el equipo sin "
             "enlace la barrera se quedaria ABAJO, cerrando la via por completo, que es "
             "la politica CONTRARIA a la decidida" % (punta, expr))
+
+        # D-33: Y LA RAMA QUE LA DECISION CREO. El retardo y el veto son excepciones a
+        # la BAJADA, no permisos de subida. Escritos mal serian lo segundo: bastaria que
+        # la rama de "pluma ya abajo" mirase la camara para que una deteccion LEVANTARA
+        # la barrera con la luz en rojo, y las dos lineas de arriba seguirian verdes
+        # porque la tabla de verdad de la apertura no habria cambiado una coma.
+        if d33 is not None:
+            b.verificar(
+                d33["cierra"],
+                "%s: con la pluma YA ABAJO y la luz sin pedirla, el firmware la deja "
+                "abajo en seco. El retardo y el veto de D-33 solo pueden RETENER una "
+                "pluma que ya estaba arriba, nunca ABRIRLA" % punta,
+                "%s: la rama de D-33 para la pluma ya cerrada no la deja cerrada. Si de "
+                "ahi cuelga el veto, una deteccion de camara ABRE la barrera con la luz "
+                "en rojo: la excepcion habria dejado de ser una excepcion a la bajada "
+                "para ser un permiso de subida" % punta)
 
     # ---- 4. El arranque la deja cerrada ----
     for punta in PUNTAS:

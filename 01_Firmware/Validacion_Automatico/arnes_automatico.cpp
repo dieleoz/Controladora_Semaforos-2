@@ -200,6 +200,54 @@ static long violacionesEnclavamiento = 0;
 // estado, esto siga cazandolo.
 static long violacionesTalanquera = 0;
 
+// ---------------------------------------------------------------------------
+// D-33 (14/09/2026) - EL REPARTO DE LA INVARIANTE DE ARRIBA (CLAUDE.md 9).
+//
+// LA LINEA DE ARRIBA AFIRMABA TRES COSAS, Y SOLO UNA HA CAMBIADO. Se cuentan antes de
+// tocarla porque casi ninguna invariante afirma una sola (N-83):
+//
+//   1. "la pluma arriba SIEMPRE tiene una razon nombrada, nunca sube sola"
+//      -> SE CONSERVA ENTERA. Lo que crece es la lista de razones, de dos a cuatro.
+//   2. "esa razon es el verde encendido"
+//      -> SE REPARTE. Sigue siendo cierta fuera de la ventana de bajada -y ahi se
+//         mide igual que siempre-; dentro, las razones son el retardo de D-33 y el
+//         veto de la camara, y cada una se mide con su propia cota.
+//   3. "la unica excepcion nombrada es S_FALLO"
+//      -> SE CONSERVA LITERAL, con su nombre y su motivo.
+//
+// LAS DOS RAZONES NUEVAS NO SE CONCEDEN POR NOMBRE: SE MIDEN. Una excepcion escrita y
+// no comprobada es una lista de defectos con permiso (CLAUDE.md 6):
+//
+//   EL RETARDO se CRONOMETRA contra PLUMA_RETARDO_BAJADA_MS leido del C++ real. No se
+//   pregunta al firmware si "esta en el retardo" -eso seria creerle-: se mide cuanto
+//   lleva la pluma arriba con la luz ya en rojo y se compara con su propia constante.
+//
+//   EL VETO se cruza con la OTRA funcion real: si semaforo_plumaVetada() dice que si,
+//   camara_presenciaJ16() tiene que decir que si TAMBIEN. Un veto que se quedara
+//   pegado -true sin nadie debajo- dejaria la pluma arriba para siempre y pasaria
+//   cualquier comprobacion que se limitara a aceptar la excusa.
+static long vetoSinPresencia = 0;
+static unsigned long g_plumaSinVerdeDesde = 0;   // 0 = no hay ventana abierta
+static unsigned long g_peorVentanaPlumaMs = 0;     // la mas larga, sea cual sea la razon
+static unsigned long g_peorVentanaSinVetoMs = 0;  // la mas larga con el veto SUELTO
+static unsigned long g_ventanasPluma = 0;
+static unsigned long g_retardoPlumaMs = 0;       // leido del C++ al principio de main()
+
+// EL MARGEN DEL RETARDO, Y ES UNA PROPIEDAD DEL FIRMWARE QUE ESTE ARNES MIDIO.
+//
+// El retardo no se suelta en el milisegundo exacto: se suelta la siguiente vez que
+// alguien entra por escribirPines(). Con una SENAL DEL MANDO en curso (SFTY-21) las
+// escrituras estan interceptadas y aplicarSalidas() guarda sin escribir, asi que la
+// unica puerta abierta es actualizarSenal(), que pasa por escribirPines() cada
+// DESTELLO_ON_MS como mucho. Medido en el fuzz del Bloque D9: 3150 ms de ventana contra
+// 3000 de retardo, y los 150 son el periodo del ambar rapido.
+//
+// EL BORDE VA ESCRITO Y SE LEE DEL C++ (CLAUDE.md 7): el margen es DESTELLO_ON_MS, el
+// mayor de los tres periodos con que una senal vuelve a escribir los pines. No es una
+// tolerancia inventada para que la comprobacion pase: es el tiempo maximo que el propio
+// firmware puede tardar en volver a mirar, y sube o baja con esa constante.
+static unsigned long g_margenSenalMs = 0;
+
 // N-153. LO QUE EL EQUIPO PUBLICA DE LA PLUMA TIENE QUE SER LO QUE HAY EN EL PIN.
 //
 // Desde N-153 el $STATUS lleva un campo PLUMA que sale de semaforo_plumaArriba(), y la
@@ -221,7 +269,32 @@ static void vigilarEnclavamiento() {
   if (arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR &&
       arnes_pines[VERDE1] != HIGH && arnes_pines[VERDE2] != HIGH &&
       semaforo_estado() != S_FALLO) {
-    violacionesTalanquera++;
+    // D-33: la ventana se abre en el primer tick sin luz y se cierra sola. Se fecha con
+    // el reloj del arnes, no con una bandera del firmware.
+    if (g_plumaSinVerdeDesde == 0) {
+      g_plumaSinVerdeDesde = arnes_millis_valor + 1;
+      g_ventanasPluma++;
+    }
+    const unsigned long dur = arnes_millis_valor - (g_plumaSinVerdeDesde - 1);
+    if (dur > g_peorVentanaPlumaMs) g_peorVentanaPlumaMs = dur;
+    const bool dentroDelRetardo = (dur <= g_retardoPlumaMs + g_margenSenalMs);
+    const bool vetoVivo = semaforo_plumaVetada() && camara_presenciaJ16();
+    // DOS MEDIDAS, NO UNA. La ventana TOTAL puede durar horas y estar bien -es una camara
+    // vetando-; la que tiene cota es la que corre SIN veto, porque ahi lo unico que puede
+    // estar reteniendo la pluma es el retardo. Meterlas en el mismo numero haria que el
+    // maximo lo fijara siempre el veto y la cota del retardo dejaria de medirse.
+    if (!vetoVivo && dur > g_peorVentanaSinVetoMs) g_peorVentanaSinVetoMs = dur;
+    if (!dentroDelRetardo && !vetoVivo) {
+      violacionesTalanquera++;
+    }
+  } else {
+    g_plumaSinVerdeDesde = 0;
+  }
+  // D-33: y el veto no puede estar puesto sin nadie debajo, en NINGUN instante. Es el
+  // unico modo de fallo del veto que deja la barrera arriba para siempre sin que ninguna
+  // luz cambie, o sea el unico que ninguna otra comprobacion de aqui podria ver.
+  if (semaforo_plumaVetada() && !camara_presenciaJ16()) {
+    vetoSinPresencia++;
   }
   if (semaforo_plumaArriba() != (arnes_pines[MOTOR_TALANQUERA] == TALANQUERA_ABRIR)) {
     discrepanciasPluma++;
@@ -753,6 +826,19 @@ int main() {
   // Constantes releidas del C++ real. Ni una se escribe a mano: si el patron no
   // aparece, el arnes ABORTA antes de comprobar nada (ver leerConstante()).
   // -------------------------------------------------------------------------
+  // D-33: ESTA VA LA PRIMERA, y no por orden alfabetico. vigilarEnclavamiento() la usa
+  // para decidir si una pluma arriba sin verde esta justificada; si se leyera despues de
+  // arrancar los bloques, los primeros ticks compararian contra un cero y acusarian al
+  // firmware de un defecto que no tiene.
+  g_retardoPlumaMs = (unsigned long)leerConstante("semaforo.cpp",
+      R"(PLUMA_RETARDO_BAJADA_MS\s*=\s*(\d+)UL)",
+      "el retardo con el que la pluma baja DESPUES del rojo (D-33)");
+
+  g_margenSenalMs = (unsigned long)leerConstante("semaforo.cpp",
+      R"(DESTELLO_ON_MS\s*=\s*(\d+))",
+      "el periodo con que una senal del mando vuelve a escribir los pines, que es el "
+      "margen con el que se suelta el retardo de la pluma (D-33)");
+
   long AMBAR_MS = leerConstante("semaforo.cpp",
       R"(S_AMARILLO\s*&&\s*\(ahora\s*-\s*tCambio\s*>=\s*(\d+)\))",
       "la duracion del amarillo fijo Rojo->Verde (SFTY-5)");
@@ -1576,11 +1662,14 @@ int main() {
       }
     }
     comprobar(violacionesTalanquera == 0,
-            "en NINGUN instante del barrido la talanquera estuvo ARRIBA sin verde "
-            "encendido y fuera de S_FALLO (SFTY-28, medido sobre el pin que "
-            "semaforo.cpp real escribio: rojo, ambar de transicion, todo-rojo y "
-            "destellos del mando la dejan abajo; el ambar intermitente de SFTY-6 la "
-            "sube, por decision del cliente)");
+            "en NINGUN instante del barrido la talanquera estuvo ARRIBA sin una razon "
+            "nombrada (SFTY-28 con la derogacion parcial de D-33, medido sobre el pin que "
+            "semaforo.cpp real escribio). Las razones son cuatro y NO se admiten por su "
+            "nombre: el verde; el ambar intermitente de SFTY-6, por decision del cliente; "
+            "el retardo de bajada de D-33, CRONOMETRADO contra su constante; y el veto de "
+            "la camara, CRUZADO contra camara_presenciaJ16(). El rojo, el ambar de "
+            "transicion y el todo-rojo la dejan abajo igual que antes, solo que unos "
+            "segundos despues");
   {
     // Control negativo del vigilante de la pluma: se falsea el pin a mano y se exige
     // que el detector lo cace. Sin esto, el dia que MOTOR_TALANQUERA dejara de
@@ -1595,17 +1684,33 @@ int main() {
     long antesPluma = discrepanciasPluma;
     int guardaP = arnes_pines[MOTOR_TALANQUERA];
     int guardaV1 = arnes_pines[VERDE1], guardaV2 = arnes_pines[VERDE2];
+    // D-33: Y LA VENTANA SE FALSEA VIEJA, que es la mitad nueva de este control. Con el
+    // reparto de la invariante, una pluma arriba sin verde RECIEN abierta esta justificada
+    // por el retardo; si este control se limitara a falsear el pin, dejaria de disparar y
+    // se habria convertido en un adorno que da verde el mismo dia del cambio. Se le
+    // envejece la ventana a proposito para ejercer el camino que SI tiene que contar.
+    unsigned long guardaVent = g_plumaSinVerdeDesde;
+    unsigned long guardaPeor = g_peorVentanaPlumaMs;
+    unsigned long guardaPeorSV = g_peorVentanaSinVetoMs;
+    unsigned long guardaNvent = g_ventanasPluma;
     arnes_pines[MOTOR_TALANQUERA] = TALANQUERA_ABRIR;
     arnes_pines[VERDE1] = LOW; arnes_pines[VERDE2] = LOW;
+    g_plumaSinVerdeDesde = arnes_millis_valor - (g_retardoPlumaMs * 2UL) + 1;
     vigilarEnclavamiento();
     bool detecta = (violacionesTalanquera == antes + 1);
     arnes_pines[MOTOR_TALANQUERA] = guardaP;
     arnes_pines[VERDE1] = guardaV1; arnes_pines[VERDE2] = guardaV2;
     violacionesTalanquera = antes;
     discrepanciasPluma = antesPluma;
+    g_plumaSinVerdeDesde = guardaVent;
+    g_peorVentanaPlumaMs = guardaPeor;
+    g_peorVentanaSinVetoMs = guardaPeorSV;
+    g_ventanasPluma = guardaNvent;
     comprobar(detecta,
               "control negativo: el vigilante de la pluma SI cuenta una violacion "
-              "cuando la talanquera esta arriba con los dos verdes apagados");
+              "cuando la talanquera esta arriba con los dos verdes apagados Y la ventana "
+              "de bajada ya paso del retardo de D-33 -o sea, sin ninguna de las razones "
+              "que la invariante repartida admite-");
   }
   comprobar(discrepanciasPluma == 0,
             "en NINGUN instante del barrido semaforo_plumaArriba() dijo algo distinto "
@@ -1619,11 +1724,22 @@ int main() {
     long antesD = discrepanciasPluma;
     long antesT = violacionesTalanquera;
     int guardaP = arnes_pines[MOTOR_TALANQUERA];
+    // D-33: falsear el pin puede ABRIR una ventana de bajada que no existio. Se guarda y
+    // se restaura igual que los contadores, por el mismo motivo que ya estaba escrito
+    // abajo: dejarla contada convertiria este control en un fallo del de al lado.
+    unsigned long guardaVent = g_plumaSinVerdeDesde;
+    unsigned long guardaPeor = g_peorVentanaPlumaMs;
+    unsigned long guardaPeorSV = g_peorVentanaSinVetoMs;
+    unsigned long guardaNvent = g_ventanasPluma;
     arnes_pines[MOTOR_TALANQUERA] =
         semaforo_plumaArriba() ? TALANQUERA_CERRAR : TALANQUERA_ABRIR;
     vigilarEnclavamiento();
     bool cazado = (discrepanciasPluma == antesD + 1);
     arnes_pines[MOTOR_TALANQUERA] = guardaP;
+    g_plumaSinVerdeDesde = guardaVent;
+    g_peorVentanaPlumaMs = guardaPeor;
+    g_peorVentanaSinVetoMs = guardaPeorSV;
+    g_ventanasPluma = guardaNvent;
     // Los dos contadores se restauran: falsear el pin puede disparar tambien el
     // invariante de SFTY-28, y dejarlo contado convertiria este control en un fallo
     // del otro.
@@ -2134,11 +2250,277 @@ int main() {
     }
   }
 
+
+  // ===========================================================================
+  // BLOQUE G - EL VETO DE LA PLUMA Y SU RETARDO (D-33, 14/09), EJECUTADOS
+  // ===========================================================================
+  //
+  // POR QUE ESTE BLOQUE EXISTE Y NO BASTA CON HABER REPARTIDO LA INVARIANTE.
+  //
+  // El reparto de vigilarEnclavamiento() dice "la pluma no se queda arriba MAS DE LA
+  // CUENTA". Eso lo pasaria igual de bien un firmware que no hubiera construido nada:
+  // una pluma que sigue bajando en el mismo instante del rojo cumple la cota trivialmente
+  // (CLAUDE.md 9: el escenario nuevo no es relleno, es el control que le falta a toda
+  // inversion). Aqui se exige lo CONTRARIO -que el comportamiento nuevo OCURRA- y se
+  // miden las dos mitades por separado, porque son dos mecanismos distintos:
+  //
+  //   EL RETARDO no depende de ninguna camara. Tiene que cumplirse con las borneras
+  //   vacias, que es como esta la mayoria de los equipos hoy.
+  //   EL VETO depende de la camara, y su direccion de fallo esta DECIDIDA por el
+  //   responsable el 14/09: ante error, falsa alarma o contacto pegado, LA BARRERA NO
+  //   BAJA. No se acota para que acabe bajando; se AVISA. G4 es el control de que el
+  //   fail-safe apunta a donde se dijo, y no al reves.
+  std::printf("\n-- Bloque G: el veto de la pluma y su retardo (D-33) --\n");
+  {
+    const unsigned long PASO_G = 100UL;
+
+    // Los dos plazos, releidos del C++ REAL en este mismo bloque. VENTANA_MS vive en el
+    // scope del Bloque F y aqui se vuelve a leer en vez de sacarse fuera: son dos lecturas
+    // del MISMO fichero y del MISMO patron, asi que no pueden divergir, y sacar la
+    // variable a main() ataria los dos bloques por una variable compartida.
+    long VENTANA_G_MS = leerConstante("demanda.cpp",
+        R"(SILENCIO_MS\s*=\s*(\d+))",
+        "la vigencia de una deteccion, que es lo que hace que el veto se suelte");
+    long DESPEJE_MAX_G = leerConstante("limites_ciclo.h",
+        R"(DESPEJE_SEG_MAX\s*=\s*(\d+))",
+        "el techo del despeje configurable, contra el que se mide un veto sostenido");
+    const unsigned long VETO_SOSTENIDO_G_MS = (unsigned long)DESPEJE_MAX_G * 1000UL;
+
+    // Avanza el reloj llamando a los DOS lazos reales. botones_actualizar() tiene que ir
+    // en cada vuelta o camAnt[] no se refresca y la presencia se congelaria en el valor
+    // de la siembra, que es justo lo contrario de lo que se quiere medir.
+    auto correrG = [&](unsigned long ms) {
+      unsigned long hecho = 0;
+      while (hecho < ms) {
+        arnes_millis_valor += PASO_G;
+        // EL ORDEN ES EL DE main.cpp, Y NO ES UN DETALLE: alli botones_actualizar() va en
+        // la linea 145 y semaforo_actualizar() en la 168, o sea que escribirPines() lee
+        // camAnt[] REFRESCADO EN ESTA MISMA VUELTA. Con el orden invertido, el veto
+        // trabajaria sobre la lectura de la vuelta anterior y el arnes mediria un desfase
+        // de un tick que el equipo real no tiene. Medido: invertido, este arnes acusaba al
+        // firmware de un veto sin presencia que solo existia en el arnes.
+        botones_actualizar();
+        semaforo_actualizar();
+        vigilarEnclavamiento();
+        hecho += PASO_G;
+      }
+    };
+
+    // Cuanto tarda la pluma en bajar desde AHORA, o -1 si no baja en 'tope' ms.
+    auto msHastaQueBaje = [&](unsigned long tope) -> long {
+      unsigned long hecho = 0;
+      while (hecho < tope) {
+        arnes_millis_valor += PASO_G;
+        botones_actualizar();     // el orden de main.cpp; ver correrG()
+        semaforo_actualizar();
+        vigilarEnclavamiento();
+        hecho += PASO_G;
+        if (!semaforo_plumaArriba()) return (long)hecho;
+      }
+      return -1;
+    };
+
+    // Deja el equipo con la pluma ARRIBA por un verde de verdad y las camaras como diga
+    // el escenario. El verde se pide al semaforo real: fabricar aqui la condicion seria
+    // una segunda copia de SFTY-28.
+    auto plumaArribaCon = [&](bool camC, bool camD) {
+      camaraJ14(false);
+      cerrarContacto(CAM_C_PIN, camC);
+      cerrarContacto(CAM_D_PIN, camD);
+      arnes_millis_valor += 60000UL;
+      botones_setup();
+      semaforo_forzarVerde();
+      semaforo_actualizar();
+      correrG(2000UL);
+      g_eventosEmitidos = 0;
+      g_ultimoEventoDetalle[0] = 0;
+      g_alarmasEmitidas = 0;
+    };
+
+    const unsigned long RETARDO = g_retardoPlumaMs;
+    const unsigned long TOL_G = 3UL * PASO_G;
+
+    comprobar(RETARDO > 0,
+              "G0: el retardo de bajada de la pluma se leyo del C++ real y no es cero. "
+              "Con un cero, todo lo de abajo mediria el firmware de antes de D-33 y "
+              "pasaria sin enterarse");
+
+    // -- G1: SIN NADIE DEBAJO, LA PLUMA BAJA - PERO NO EN EL INSTANTE DEL ROJO -------
+    //
+    // Las dos mitades de la misma linea: que baje -si no, el equipo se queda sin barrera-
+    // y que NO baje antes de tiempo -si no, el retardo no existe-. Medir solo una de las
+    // dos deja pasar el firmware contrario.
+    plumaArribaCon(false, false);
+    comprobar(semaforo_plumaArriba(),
+              "G1a: con un verde real la pluma esta ARRIBA -medido sobre el pin que "
+              "escribio semaforo.cpp-, o sea que el escenario parte de donde dice");
+    semaforo_forzarRojo();
+    semaforo_actualizar();
+    vigilarEnclavamiento();
+    char g1b[320];
+    std::snprintf(g1b, sizeof(g1b),
+        "G1b: en el INSTANTE del rojo la pluma sigue ARRIBA (pin=%d, ABRIR=%d). Antes de "
+        "D-33 bajaba aqui mismo, con el que entro legalmente todavia bajo el barrido",
+        arnes_pines[MOTOR_TALANQUERA], TALANQUERA_ABRIR);
+    comprobar(semaforo_plumaArriba(), g1b);
+    long tBajada = msHastaQueBaje(RETARDO * 4UL);
+    char g1c[380];
+    std::snprintf(g1c, sizeof(g1c),
+        "G1c: y baja sola %ld ms despues del rojo, contra los %lu ms que declara el C++ "
+        "real (tolerancia %lu ms por el paso del arnes). Sin camaras no hay veto: lo "
+        "unico que la retiene es el retardo, y se suelta solo",
+        tBajada, RETARDO, TOL_G);
+    comprobar(tBajada > 0 && (unsigned long)tBajada >= RETARDO &&
+              (unsigned long)tBajada <= RETARDO + TOL_G, g1c);
+    comprobar(g_eventosEmitidos == 0,
+              "G1d: y NO se conto ningun veto. Un contador que se disparase con el simple "
+              "retardo diria que las camaras estan parando bajadas que nadie paro, y ese "
+              "numero es el que decide si el veto merece la pena");
+
+    // -- G2: CON PRESENCIA, LA PLUMA NO BAJA, Y SE DICE ------------------------------
+    plumaArribaCon(true, false);
+    semaforo_forzarRojo();
+    semaforo_actualizar();
+    long noBaja = msHastaQueBaje(RETARDO * 6UL);
+    char g2[380];
+    std::snprintf(g2, sizeof(g2),
+        "G2a: con CAM_C viendo presencia, la pluma NO baja en %lu ms -seis veces el "
+        "retardo- (msHastaQueBaje=%ld, -1 = no bajo). Es D-33 letra por letra: la camara "
+        "es el sensor de presencia y la barrera no se lleva lo que hay debajo",
+        RETARDO * 6UL, noBaja);
+    comprobar(noBaja == -1 && semaforo_plumaArriba(), g2);
+    char g2b[360];
+    std::snprintf(g2b, sizeof(g2b),
+        "G2b: y el equipo LO DICE: %d evento(s), el ultimo '%s'. El contador dejo de "
+        "decir HABRIA -esa transicion ya no ocurre- y cuenta el veto que ACTUO. Sin ese "
+        "cambio se habria callado justo en el caso que vino a medir",
+        g_eventosEmitidos, g_ultimoEventoDetalle);
+    comprobar(g_eventosEmitidos >= 1 &&
+              std::strncmp(g_ultimoEventoDetalle, "VETO_ACTUADO_N:", 15) == 0, g2b);
+    const int eventosTrasVeto = g_eventosEmitidos;
+    correrG(RETARDO * 4UL);
+    char g2c[340];
+    std::snprintf(g2c, sizeof(g2c),
+        "G2c: y NO repite el conteo mientras el mismo veto sigue vivo (%d eventos antes, "
+        "%d despues de otros %lu ms). Un veto que dura tres minutos es UN veto: contarlo "
+        "por vuelta mediria la velocidad del bucle en vez de los coches",
+        eventosTrasVeto, g_eventosEmitidos, RETARDO * 4UL);
+    comprobar(g_eventosEmitidos == eventosTrasVeto, g2c);
+
+    // -- G3: Y CUANDO EL DE DEBAJO SE VA, LA PLUMA BAJA ------------------------------
+    //
+    // El control que le falta a G2: un veto que no supiera SOLTARSE pasaria G2 igual de
+    // bien que el correcto, y dejaria la barrera arriba para siempre en cada ciclo.
+    cerrarContacto(CAM_C_PIN, false);
+    long tSuelta = msHastaQueBaje((unsigned long)VENTANA_G_MS + RETARDO * 4UL);
+    char g3[360];
+    std::snprintf(g3, sizeof(g3),
+        "G3: al abrirse el contacto, la pluma baja %ld ms despues -lo que tarda en caducar "
+        "la vigencia del flanco, %ld ms-. El veto se SUELTA solo: sin esta linea, G2 "
+        "aprobaria un veto pegado, que es una barrera que no vuelve a bajar nunca",
+        tSuelta, VENTANA_G_MS);
+    comprobar(tSuelta > 0, g3);
+
+    // -- G4: CAMARA PEGADA - LA BARRERA NO BAJA, Y ESO ES LO CORRECTO ----------------
+    //
+    // EL SENTIDO DEL FALLO LO DECIDIO EL RESPONSABLE EL 14/09: "si la camara da error,
+    // asumo que nunca baja la barrera por error o falsa alarma. Se informa a la app para
+    // pedir ajuste de camara, y la barrera nunca baja". Una barrera arriba no aplasta a
+    // nadie; el precio es que deja de proteger, y por eso tiene que VERSE. Este caso mide
+    // las dos mitades: que NO baja, y que se dice.
+    plumaArribaCon(true, false);
+    semaforo_forzarRojo();
+    semaforo_actualizar();
+    long pegada = msHastaQueBaje(VETO_SOSTENIDO_G_MS * 2UL);
+    char g4[400];
+    std::snprintf(g4, sizeof(g4),
+        "G4a: con el contacto PEGADO -cerrado para siempre- la pluma NO baja en %lu ms, y "
+        "no se le pone tope que la baje (A-1.bis: un tope que baja igual devuelve el "
+        "peligro que el veto evita; este firmware NO distingue un rele trabado de un "
+        "vehiculo parado debajo). msHastaQueBaje=%ld, -1 = no bajo",
+        VETO_SOSTENIDO_G_MS * 2UL, pegada);
+    comprobar(pegada == -1, g4);
+    char g4b[420];
+    std::snprintf(g4b, sizeof(g4b),
+        "G4b: y pasados %lu ms el equipo lo PUBLICA: ultimo evento '%s'. Ese plazo es el "
+        "techo del despeje configurable, o sea el instante a partir del cual la otra punta "
+        "YA pudo abrir su verde en CUALQUIER configuracion: es cuando la barrera dejo de "
+        "hacer su trabajo y hay que verlo. El aviso dice cuantos segundos lleva retenida "
+        "-lo unico medido-, nunca 'camara averiada'",
+        VETO_SOSTENIDO_G_MS, g_ultimoEventoDetalle);
+    comprobar(std::strncmp(g_ultimoEventoDetalle, "VETO_SOSTENIDO_S:", 17) == 0, g4b);
+
+    // -- G5: CAMARA CIEGA - NO VETA, Y ESE ES EL LADO SEGURO PARA EL TRAMO -----------
+    //
+    // D-25 midio que el vigilante NO detecta una camara muerta desde la instalacion: sin
+    // un solo flanco no se la juzga. Con el veto, esa camara tampoco veta NUNCA, asi que
+    // la pluma baja como antes de D-33. Es el lado seguro para el tramo y el INSEGURO
+    // para quien este debajo, y por eso se mide en vez de suponerse: es el unico caso en
+    // que D-33 no protege a nadie, y quien monte el equipo tiene que saberlo.
+    plumaArribaCon(false, false);
+    semaforo_forzarRojo();
+    semaforo_actualizar();
+    long ciega = msHastaQueBaje(RETARDO * 4UL);
+    char g5[380];
+    std::snprintf(g5, sizeof(g5),
+        "G5: con las dos borneras de J16 VACIAS -que es lo mismo que una camara muerta "
+        "desde la instalacion: ni un flanco nunca- la pluma baja a los %ld ms, igual que "
+        "antes de D-33. El veto no puede proteger a quien nadie ve, y eso va escrito en "
+        "la spec en vez de disimulado", ciega);
+    comprobar(ciega > 0, g5);
+
+    // -- G6: VETA CUALQUIERA DE LAS DOS, SIN CONSENSO --------------------------------
+    //
+    // Decidido por el responsable el 14/09: "asumo que cualquiera, la camara ES ESE
+    // SENSOR". Se mide con la SEGUNDA camara sola, porque el defecto que esto caza -un
+    // veto escrito solo sobre CAM_J16[0]- pasaria todos los casos de arriba.
+    plumaArribaCon(false, true);
+    semaforo_forzarRojo();
+    semaforo_actualizar();
+    long soloD = msHastaQueBaje(RETARDO * 6UL);
+    char g6[360];
+    std::snprintf(g6, sizeof(g6),
+        "G6: con CAM_D sola -CAM_C vacia- la pluma tampoco baja (msHastaQueBaje=%ld). "
+        "Veta CUALQUIERA de las dos: el consenso seria la eleccion peligrosa, porque con "
+        "una camara muerta el AND no se cumpliria jamas y el veto no existiria nunca",
+        soloD);
+    comprobar(soloD == -1, g6);
+
+    // Se deja el equipo limpio: sin contactos cerrados y con la pluma abajo, para que el
+    // resumen de invariantes de mas abajo no herede una ventana abierta de este bloque.
+    cerrarContacto(CAM_C_PIN, false);
+    cerrarContacto(CAM_D_PIN, false);
+    correrG((unsigned long)VENTANA_G_MS + RETARDO * 4UL);
+  }
+
   // ===========================================================================
   comprobar(violacionesEnclavamiento == 0,
             "en NINGUN instante de todo el barrido -los nueve bloques- coincidieron "
             "ROJO y VERDE encendidos a la vez en la misma cara (SFTY-2, medido sobre "
             "lo que semaforo.cpp real escribio en los pines, no sobre la logica)");
+  {
+    char rp[460];
+    std::snprintf(rp, sizeof(rp),
+        "RESUMEN (SFTY-28 con la derogacion parcial de D-33): en ninguno de los instantes "
+        "del barrido hubo pluma arriba sin verde y fuera de S_FALLO MAS ALLA de las dos "
+        "razones nuevas. Se abrieron %lu ventanas de bajada; la mas larga duro %lu ms "
+        "-esa la sostenia el veto de una camara- y la mas larga CON EL VETO SUELTO duro "
+        "%lu ms, contra los %lu ms de retardo mas %lu ms de margen -el periodo con que "
+        "una senal del mando vuelve a escribir los pines, leido del C++-: la excepcion "
+        "del retardo esta ACOTADA y MEDIDA, no concedida por su nombre",
+        g_ventanasPluma, g_peorVentanaPlumaMs, g_peorVentanaSinVetoMs, g_retardoPlumaMs,
+        g_margenSenalMs);
+    comprobar(violacionesTalanquera == 0, rp);
+  }
+  comprobar(g_ventanasPluma > 0,
+            "CONTROL de D-33: esas ventanas EXISTIERON. Si fueran cero, la pluma seguiria "
+            "bajando en el mismo instante del rojo y el reparto de la invariante habria "
+            "cambiado una comprobacion por una tapia (CLAUDE.md 9)");
+  comprobar(vetoSinPresencia == 0,
+            "RESUMEN (D-33): en NINGUN instante semaforo_plumaVetada() dijo que si con "
+            "camara_presenciaJ16() diciendo que no. Un veto pegado dejaria la barrera "
+            "arriba para siempre sin mover una sola luz, o sea sin que ninguna otra "
+            "comprobacion de este arnes pudiera verlo");
   comprobar(!g_senalExcedioPresupuesto,
             "RESUMEN DEL VIGILANTE DE SENAL: en NINGUN bloque -A a D9- "
             "semaforo_senalEnCurso() estuvo pegada en true mas alla del presupuesto "

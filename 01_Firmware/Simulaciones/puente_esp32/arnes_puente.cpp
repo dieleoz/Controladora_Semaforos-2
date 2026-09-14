@@ -254,6 +254,13 @@ const char* reloj_textoHora() { return "18:25:00"; }
 // lista sea la del C++ lo mide camara_03_vigilante.
 const char* camara_estado() { return "?"; }
 
+// D-33 (14/09/2026): sin camaras cableadas no hay presencia que vetar, por el mismo
+// motivo por el que camara_estado() de arriba contesta "?" y no "OK": aqui se mide el
+// puente del ESP32, no el veto de la pluma. Devolver true seria dejar la barrera arriba
+// en todo el arnes y medir otra cosa.
+bool camara_presenciaJ16() { return false; }
+
+
 #if defined(PUNTA_MAESTRO)
 #include "reloj.h"   // struct RelojDiag: solo la declara el reloj.h del Maestro
 // N-114 - EL SUSTITUTO DE LA CONSULTA DEL RELOJ, Y POR QUE DEVUELVE UN IMPOSIBLE.

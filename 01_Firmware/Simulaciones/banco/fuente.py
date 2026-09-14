@@ -169,3 +169,107 @@ def fuentes_de(punta, carpeta, ext=".cpp"):
     if not os.path.isdir(d):
         raise Abortado("no existe el directorio %s" % os.path.join(punta, carpeta))
     return sorted(n for n in os.listdir(d) if n.endswith(ext))
+
+
+# ---------------------------------------------------------------------------------
+# LA CONDICION DE LA PLUMA, QUE DESDE D-33 YA NO CABE EN UNA LINEA
+# ---------------------------------------------------------------------------------
+#
+# Vive AQUI y no en un pack porque la necesitan TRES: barrera_03_talanquera lee las dos
+# puntas, maestro_09_test_leds evalua la tabla de verdad y camara_03_vigilante mira quien
+# la consulta. Tres copias de este parser serian el defecto que este fichero existe para
+# no cometer -y la peor version de el, porque un parser que se queda viejo no da error:
+# deja de encontrar y el pack aprueba una barrera que no ha mirado.
+
+
+def bloque(codigo, i):
+    """[inicio, fin] del bloque que abre en codigo[i] == '{'. None si no cierra."""
+    nivel = 0
+    for j in range(i, len(codigo)):
+        if codigo[j] == "{":
+            nivel += 1
+        elif codigo[j] == "}":
+            nivel -= 1
+            if nivel == 0:
+                return (i, j + 1)
+    return None
+
+
+def bandera_publicada(codigo):
+    """El nombre de la bandera que devuelve semaforo_plumaArriba(), leido del fuente.
+
+    Es la que el $STATUS publica (N-153) y la que el ternario asigna: sin ella no se
+    puede saber si la asignacion que envuelve la condicion es la legitima o cualquier
+    otra que alguien haya metido por el camino."""
+    m = re.search(r"bool\s+semaforo_plumaArriba\s*\([^)]*\)\s*\{([^}]*)\}", codigo)
+    if not m:
+        return None
+    r = re.search(r"return\s+([A-Za-z_]\w*)\s*;", m.group(1))
+    return r.group(1) if r else None
+
+
+def apertura_de_la_pluma(cuerpo, publicada, local):
+    """Reune la condicion de la pluma, que D-33 partio en dos el 14/09/2026.
+
+    Hasta ese dia el ternario de MOTOR_TALANQUERA llevaba dentro la tabla de verdad
+    entera y un `in` bastaba para auditarla. D-33 la saco a una cadena de tres ramas,
+    porque el retardo de bajada y el veto de la camara necesitan saber si la pluma YA
+    ESTABA arriba:
+
+        const bool luzPideArriba = (verde && !testLedsActivo) || estado == S_FALLO;
+        bool plumaArriba;
+        if (luzPideArriba)        { ...; plumaArriba = true;  }   <- LA UNICA APERTURA
+        else if (!plumaAbierta)   { ...; plumaArriba = false; }   <- ya abajo: se queda
+        else                      { ...retardo y veto...      }   <- solo RETIENE
+        digitalWrite(MOTOR_TALANQUERA, (plumaAbierta = plumaArriba) ? ABRIR : CERRAR);
+
+    ESTO NO RELAJA NINGUNA COMPROBACION (CLAUDE.md 9). La tabla de verdad no
+    desaparecio: se MUDO, y los packs siguen auditandola letra por letra sobre
+    `tabla`. Lo que se anade es la pregunta que la forma nueva hace posible y la vieja
+    no: `cierra` dice si la rama de en medio -pluma ya abajo, luz que no la pide- la
+    deja abajo EN SECO. Si de ahi colgara el veto, una deteccion de camara LEVANTARIA
+    la barrera con la luz en rojo, y la tabla de verdad de la apertura seguiria intacta:
+    ninguna de las comprobaciones de antes de D-33 lo veria.
+
+    Devuelve None si la condicion sigue escrita en linea -entonces no hay nada que
+    seguir y el pack la audita como siempre- o si la cadena no tiene la forma de
+    arriba, que es lo mismo que decir "no la entiendo": quien llama ABORTA, nunca
+    aprueba."""
+    if not re.fullmatch(r"[A-Za-z_]\w*", (local or "").strip()) or not publicada:
+        return None
+    local = local.strip()
+    pone_true = re.compile(r"(?<![A-Za-z_])%s\s*=\s*true\s*;" % re.escape(local))
+    pone_false = re.compile(r"(?<![A-Za-z_])%s\s*=\s*false\s*;" % re.escape(local))
+    for m in re.finditer(r"if\s*\(\s*([A-Za-z_]\w*)\s*\)\s*\{", cuerpo):
+        tramo = bloque(cuerpo, m.end() - 1)
+        if not tramo or not pone_true.search(cuerpo[tramo[0]:tramo[1]]):
+            continue
+        guarda = m.group(1)
+        ini = re.search(r"bool\s+%s\s*=\s*([^;]+);" % re.escape(guarda), cuerpo)
+        if not ini:
+            return None
+        resto = cuerpo[tramo[1]:]
+        me = re.match(r"\s*else\s+if\s*\(\s*!\s*%s\s*\)\s*\{" % re.escape(publicada),
+                      resto)
+        cierra = False
+        if me:
+            t2 = bloque(resto, me.end() - 1)
+            if t2:
+                cierra = bool(pone_false.search(resto[t2[0]:t2[1]]))
+        return {"tabla": ini.group(1).strip(), "guarda": guarda, "cierra": cierra}
+    return None
+
+
+def sin_asignacion(expr, codigo):
+    """Desenvuelve `(plumaAbierta = X)` y devuelve X. Solo si la bandera es la publicada.
+
+    N-153: el valor que viaja en el campo PLUMA del $STATUS sale del MISMO parentesis
+    que mueve el pin, para que no haya una copia de la formula al lado. Se acepta esa
+    asignacion y NINGUNA otra: con cualquier otro identificador esto devuelve la
+    expresion tal cual y quien llama la vera como no entendida, que es lo correcto."""
+    m = re.match(r"^\(\s*([A-Za-z_]\w*)\s*=\s*(.+)\)$", expr.strip())
+    if not m:
+        return expr
+    if m.group(1) != bandera_publicada(codigo):
+        return expr
+    return m.group(2).strip()
