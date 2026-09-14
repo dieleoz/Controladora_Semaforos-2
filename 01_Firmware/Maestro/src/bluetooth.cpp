@@ -12,6 +12,7 @@
 #include "reloj.h"
 #include "identidad.h"
 #include "botones.h"       // D-13: camara_estado(), la fuente del campo CAM:
+#include "protocolo.h"     // D-23 gemelo: los tres contadores de linea de SFTY-15
 #include <string.h>
 #include <stdio.h>
 
@@ -32,6 +33,17 @@ static HardwareSerial SerialBT(PB7, PB6); // USART1 remapeado: PB7 RX, PB6 TX
 static unsigned long tUltimaTelemetria = 0;
 static char btBufIn[64];
 static uint8_t btIdxIn = 0;
+
+// D-32 (1), 13/09 - LA CADENCIA DEL DIAGNOSTICO DE ENLACE DE ESTA PUNTA.
+//
+// ES EL GEMELO DECLARADO del DIAG_ENLACE_MS del Esclavo, y el numero es el MISMO a
+// proposito: el porque entero -que no sale de los bytes sino de las 30 entradas a las que
+// addEvent() de app.js recorta la bitacora- esta escrito una sola vez, en
+// Esclavo/src/bluetooth.cpp, y no se repite aqui. Lo que si se dice es que son gemelos:
+// dos numeros que significan lo mismo se separan el dia que alguien toca uno, y hay un
+// pack que los recalcula y falla si divergen.
+static const unsigned long DIAG_ENLACE_MS = 30000UL;
+static unsigned long tUltimoDiagEnlace = 0;
 
 // ---------------------------------------------------------------------------
 // A3 - EL REGISTRO DE SILENCIO DEL PUERTO J17.
@@ -1236,5 +1248,73 @@ void bluetooth_loop() {
         bluetooth_reportarEvento("ENLACE_RF", det);
       }
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // D-32 (1), 13/09 - EL POSTE 1 TAMBIEN DICE COMO VE EL SU ENLACE. ES EL GEMELO DEL
+  // PERIODICO DE D-23, Y SE ESCRIBE COPIANDO AQUEL, NO INVENTANDO OTRO.
+  //
+  // QUE SE ROMPIO, medido: protocolo_bytesRecibidos() y protocolo_tramasValidas() -los dos
+  // contadores de SFTY-15 que separan "no llega nada" de "llega basura"- se quedaron SIN
+  // NINGUN LECTOR en esta punta al retirar el LCD. Su unico lector era refrescarSiCambio()
+  // de modo_alcance.cpp, que los pintaba en la pantalla de PRUEBA ALCANCE.
+  // costura_10_funciones_muertas los lleva anotados desde ese commit y su motivo dice
+  // literalmente cual es el arreglo: "el sustituto natural es publicarlos en bluetooth.cpp,
+  // y eso es firmware que hay que escribir, no una anotacion". Esto es ese firmware.
+  //
+  // NO VAN EN EL $STATUS AUNQUE LA ANOTACION LO PROPUSIERA, Y EL MOTIVO ESTA MEDIDO: el
+  // $STATUS de esta punta es el que fija el borde del cable. Su payload[155] esta en el
+  // TECHO que tramaCompleta[160] admite, su peor caso son 151 caracteres de los 154 que
+  // guarda, y la trama entera son 157 de los 159 que el puente acepta antes de DESCARTARLA
+  // COMPLETA. Margen 2. Un campo mas -el mas corto imaginable, "RX:" con un digito- se come
+  // esos dos bytes y el poste deja de hablar; ademas documentos_03 obliga a que un campo
+  // del $STATUS este en las DOS puntas, y el Esclavo esta en el mismo techo. Por eso es un
+  // $EVENT: el sitio donde D-32 (2) ya puso el dato gemelo el mismo dia.
+  //
+  // ES EL MISMO BLOQUE QUE EL DEL ESCLAVO LETRA POR LETRA -misma constante, misma cadencia,
+  // mismo ORIGEN, mismo formato y mismo buffer- Y ESO NO ES COPIA PEREZOSA: es lo que
+  // permite que el tecnico compare la linea de un poste con la del otro sin traducir nada,
+  // que es la mitad del valor del dato. Dos formatos distintos para el mismo par de
+  // contadores obligarian a recordar cual es cual justo cuando hay prisa.
+  //
+  // POR QUE FUERA DEL if DEL $STATUS Y CON SU PROPIO RELOJ: colgando de aquel, la cadencia
+  // dejaria de ser la que dice DIAG_ENLACE_MS para pasar a ser un multiplo del periodico, y
+  // ademas los DOS instrumentos que leen `ahora - tUltimaTelemetria >= N` por TEXTO
+  // -esp32_07_presupuesto_bytes y simulador_puente_esp32- estarian midiendo un bloque que
+  // ya no es solo el $STATUS.
+  //
+  // POR QUE 30 s Y NO OTRO NUMERO: es el mismo que el Esclavo, y el motivo entero esta
+  // escrito alli -no sale de los bytes, sale de la bitacora de 30 entradas de la app-.
+  // Separarlos seria dos numeros que significan lo mismo, o sea dos que se separan el dia
+  // que alguien toca uno.
+  //
+  // LIMITE DECLARADO, el mismo que alli: arranca en 0, asi que la primera sale a los
+  // DIAG_ENLACE_MS de encender y no en el arranque, cuando todavia puede no haber nadie
+  // escuchando.
+  //
+  // EL ORIGEN ES ENLACE_RF Y NO UNO NUEVO: es el MISMO sujeto que el $EVENT de flanco de
+  // aqui arriba -como ve ESTA punta su radio-, y la app ya los distingue por el DETALLE.
+  //
+  // LA COTA DE det[] ES LA DE tramo[32] DEL $ALARM EN SU FORMA DE ARRIBA, PERO LA CUENTA ES
+  // OTRA Y POR ESO VA ESCRITA: los tres son CONTADORES LIBRES de protocolo.cpp -sin techo
+  // que prometer, al reves que el RF/RTT/SINRESP del $ALARM, que si tienen cota declarada y
+  // por eso se comparan-, asi que se acotan a su tope de TIPO, que son las diez cifras de un
+  // unsigned long. Parte fija de este formato: "RX:" + " OK:" + " RUIDO:" = 14.
+  // 14 + 30 = 44 caracteres + NUL = 45. Inventarles un techo para estrechar el buffer seria
+  // una cota escrita en vez de medida. Que el $EVENT ENTERO quepa luego en su payload[112]
+  // no se afirma aqui: lo recalcula esp32_07_presupuesto_bytes leyendo este snprintf y el
+  // del emisor.
+  //
+  // EL SEPARADOR SON ESPACIOS Y NO COMAS, y no es estilo: _camposNmea() de la app parte la
+  // trama por ',' y cada trozo por su PRIMER ':', asi que una coma dentro del DETALLE
+  // convierte lo que va detras en campos sueltos que el pintor de $EVENT no mira.
+  // ---------------------------------------------------------------------------
+  if (ahora - tUltimoDiagEnlace >= DIAG_ENLACE_MS) {
+    tUltimoDiagEnlace = ahora;
+    char det[45];
+    snprintf(det, sizeof(det), "RX:%lu OK:%lu RUIDO:%lu",
+             protocolo_bytesRecibidos(), protocolo_tramasValidas(),
+             protocolo_tramasDescartadas());
+    bluetooth_reportarEvento("ENLACE_RF", det);
   }
 }

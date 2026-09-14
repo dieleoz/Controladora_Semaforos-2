@@ -41,7 +41,13 @@ PUNTAS = ("Maestro", "Esclavo")
 CONOCIDAS = {
     "Maestro": {
         # Getters de telemetria que la pantalla dejo de pedir. No danan; se anotan.
-        "bluetooth_testLedsActivo", "protocolo_tramasDescartadas",
+        # 🟢 D-32 (1), 13/09: protocolo_tramasDescartadas SALE, igual que salio en el
+        # Esclavo con N-108 y por el mismo motivo -ahora se publica al aire-. Viajaba
+        # aqui desde el 27/08 y NO estaba en el grupo del LCD de abajo, asi que la
+        # lista decia que el Maestro perdia DOS contadores de SFTY-15 cuando en
+        # realidad no leia NINGUNO de los tres. Lo dijo el propio pack al ganar
+        # llamador, no una relectura: es la comprobacion 3 haciendo su trabajo.
+        "bluetooth_testLedsActivo",
         # N-86 retiro las tres del puerto de camara IA (protocolo_actualizarAI,
         # protocolo_obtenerAutosEsperandoAI, protocolo_obtenerUltimoTiempoAI). Ya no
         # se declaran en ningun header, asi que salen de la lista: la comprobacion de
@@ -72,28 +78,22 @@ CONOCIDAS = {
         "coordinador_intentarHandshake",
         "coordinador_medirDesfase", "coordinador_reiniciarConexion",
         # ------------------------------------------------------------------
-        # D-32 (1), 13/09 — LAS TRES QUE SE QUEDAN SIN LECTOR AL RETIRAR EL LCD.
+        # D-32 (1), 13/09 — LAS QUE SE QUEDARON SIN LECTOR AL RETIRAR EL LCD.
         # Motivo comprobable una por una, que es lo que este pack exige. Se anotan
         # AQUI y no se borran de sus modulos: ninguna es codigo de pantalla, son
         # getters de estado a los que la pantalla era el unico que preguntaba.
         #
-        # protocolo_bytesRecibidos y protocolo_tramasValidas — los DOS contadores de
-        # linea de SFTY-15, los que separan "no llega nada" de "llega basura". Su
-        # unico lector en esta punta era refrescarSiCambio() de modo_alcance.cpp, que
-        # los leia para pintarlos en la pantalla de PRUEBA ALCANCE. Comprobable:
-        # `grep -n "protocolo_tramasValidas" Maestro/src` sin comentarios da hoy solo
-        # su definicion en protocolo.cpp.
-        # 🔴 ESTAS DOS NO SON UNA HUERFANA COMODA, SON UNA CAPACIDAD PERDIDA, y se
-        # dice aqui para que no se lea como cerrado: el Maestro deja de leer sus
-        # propios contadores de SFTY-15 en ningun sitio. En el ESCLAVO si se
-        # publican -su $ALARM y su $EVENT los sacan al aire, y por eso alli
-        # protocolo_tramasDescartadas salio de esta lista en N-108-; en el Maestro
-        # nadie lo hace todavia. El sustituto natural es publicarlos en el $STATUS de
-        # bluetooth.cpp, y eso es firmware que hay que escribir, no una anotacion.
-        # modoAlcance_setup() SIGUE llamando a protocolo_reiniciarContadores(), o sea
-        # que los contadores se siguen poniendo a cero para cada medida: lo que falta
-        # es quien los lea.
-        "protocolo_bytesRecibidos", "protocolo_tramasValidas",
+        # 🟢 protocolo_bytesRecibidos y protocolo_tramasValidas SALEN DE LA LISTA EL
+        # MISMO DIA, Y SALEN PORQUE ESTE PACK LO EXIGE: una huerfana que GANA llamador
+        # y se queda anotada es justo lo que persigue -la lista dejaria de poder
+        # fallar-. La anotacion decia: "el sustituto natural es publicarlos en
+        # bluetooth.cpp, y eso es firmware que hay que escribir, no una anotacion".
+        # Escrito: Maestro/src/bluetooth.cpp emite ahora el $EVENT periodico
+        # ORIGEN:ENLACE_RF con "RX:<n> OK:<n> RUIDO:<n>" cada DIAG_ENLACE_MS, gemelo
+        # del que D-32 (2) puso en el Esclavo, y esp32_07_presupuesto_bytes lo acota y
+        # lo mete en el peor segundo. Los DOS contadores de SFTY-15 del poste 1 -los
+        # que separan "no llega nada" de "llega basura"- vuelven a ser observables, y
+        # ya no en el $STATUS: no cabia (margen 2 contra el tope del puente).
         # reloj_hayCristal — N-24. Su unico lector era repintar() de modo_hora.cpp,
         # que se lo pasaba a lcd_dibujarAjusteHora() para poder decir "SIN CRISTAL" en
         # vez de mandar al operario a teclear la hora contra un RTC parado.
@@ -183,26 +183,41 @@ CONOCIDAS = {
         # ultimo punto de uso en esta punta estaba en el menu_loop() retirado.
         # QUE PASA SI NUNCA SE LLAMAN: nada. Ya no podian devolver true.
         "botonAceptar", "botonCancelar",
-        # ---- GRUPO 3: los ocho getters del Degradado que solo miraba la pantalla ----
+        # ---- GRUPO 3: los getters del Degradado que solo miraba la pantalla ----
         # Los dos primeros son TEXTO PARA PINTAR y no tienen otra lectura posible:
         "degradado_textoEstado", "degradado_textoFase",
-        # Los seis siguientes son ESTADO, y aqui hay que ser exacto con lo que se
-        # pierde. Su unico lector en el firmware del Esclavo era el menu_loop():
-        # pintaban la antiguedad de la ultima sincronizacion, el aviso del limite de
-        # 48 h, el motivo de la rendicion y la cuenta atras al siguiente cambio.
-        # NINGUNA DE LAS SEIS ES UNA GUARDA: son getters de solo lectura, asi que
-        # dejarlas sin lector no abre ningun veto -lo que decide sigue decidiendo
-        # dentro de modo_degradado.cpp, que las calcula para su propia logica-.
-        # 🔴 PERO SI ES UNA CAPACIDAD PERDIDA, y se anota para que se decida y no para
-        # que se olvide: tras este cambio la ANTIGUEDAD DE SYNC del Modo Degradado del
-        # Esclavo no la lee nadie en esa punta, o sea que no sale por ningun sitio. El
-        # sustituto seria publicarla en el $STATUS o en el $EVENT periodico de D-32
-        # (2), y eso es bluetooth.cpp: firmware por escribir, no una anotacion.
-        # Dos de las seis conservan consumidor FUERA del firmware y por eso no se
-        # borran de modo_degradado.cpp: degradado_huboSync() la usa el adaptador de
-        # las dos puntas y degradado_syncVencida() el simulador del puente ESP32.
-        "degradado_huboSync", "degradado_msDesdeSync", "degradado_syncVencida",
-        "degradado_avisoLimite", "degradado_rendidoPorHora",
+        # Los que siguen son ESTADO, y aqui hay que ser exacto con lo que se pierde.
+        # Su unico lector en el firmware del Esclavo era el menu_loop(): pintaban la
+        # antiguedad de la ultima sincronizacion, el aviso del limite de 48 h, el
+        # motivo de la rendicion y la cuenta atras al siguiente cambio.
+        # NINGUNA ES UNA GUARDA: son getters de solo lectura, asi que dejarlas sin
+        # lector no abre ningun veto -lo que decide sigue decidiendo dentro de
+        # modo_degradado.cpp, que las calcula para su propia logica-.
+        #
+        # 🟢 CUATRO SALEN DE LA LISTA EL MISMO DIA -degradado_huboSync,
+        # degradado_msDesdeSync, degradado_syncVencida y degradado_avisoLimite- Y NO
+        # POR COMODIDAD: este pack falla con una huerfana que GANA llamador y se queda
+        # anotada, porque entonces la lista deja de poder fallar. La anotacion pedia
+        # exactamente esto: "el sustituto seria publicarla en el $STATUS o en el
+        # $EVENT periodico de D-32 (2), y eso es bluetooth.cpp: firmware por escribir".
+        # Escrito: diagDegradadoPublicar() en Esclavo/src/bluetooth.cpp emite el
+        # $EVENT ORIGEN:DEGRADADO con "SYNC:<h>h AVISO:<SI|NO> VENCIDA:<SI|NO>" por
+        # FLANCO del trio y repetido mientras el aviso sigue armado. Lo que se
+        # recupera no es una cifra: es el AVISO previo a las 48 h, con SU plazo -el de
+        # AVISO_SIN_SYNC_MS, 40 de 48, o sea las ultimas 8 h-, que no se reinventa
+        # aqui porque quien compara sigue siendo modo_degradado.cpp.
+        # 🔴 LO QUE SIGUE ABIERTO, Y SE ANOTA PARA QUE SE DECIDA: EL MAESTRO NO TIENE
+        # ESTE AVISO. Alli el plazo -AVISO_LIMITE_MS, 44 h de 48, las ultimas 4- vivia
+        # DENTRO de la funcion de dibujo del LCD, y hoy la constante NO SE USA EN
+        # NINGUNA LINEA: `grep -n "AVISO_LIMITE_MS" Maestro/src` da solo su
+        # declaracion. Su modo_degradado.h no publica ni el aviso ni la antiguedad
+        # -msDesdeSyncEfectivo() es static-, asi que la mitad del Maestro necesita un
+        # GETTER NUEVO en ese header y eso no es de bluetooth.cpp. Mientras tanto el
+        # poste 1 se va a ambar al vencer las 48 h sin haber avisado antes.
+        # ⚠️ Y NO VALE coordinador_msDesdeUltimaSync(), que si es publica: devuelve
+        # millis() - tUltimaSyncOk y a los 49,7 dias da la vuelta. El propio
+        # modo_degradado.cpp lleva escrito por que NO se usa esa.
+        "degradado_rendidoPorHora",
         "degradado_segundosParaCambio",
     },
 }

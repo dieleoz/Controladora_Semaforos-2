@@ -828,111 +828,150 @@ def correr(b, fw):
             "corta el cierre del checksum, el otro extremo descarta la trama y la alarma "
             "desaparece entera justo cuando hace falta" % (punta.upper(), peorA, capT))
 
-    # ---- 2.sexies D-23 (13/09): EL $EVENT PERIODICO DEL ENLACE DEL ESCLAVO ----
+    # ---- 2.sexies D-23: LOS $EVENT PERIODICOS DE LAS DOS PUNTAS ---------------
     #
-    # QUE ES Y POR QUE ENTRA EN ESTE PACK. D-23 pide que el poste 2 diga como ve EL su
-    # enlace -sus tres contadores de SFTY-15, que hasta hoy solo salian dentro del $ALARM,
-    # o sea cuando la radio YA se habia caido-. El responsable eligio el 13/09 la via del
-    # $EVENT PERIODICO (D-32 (2)). Eso pone en J17 un SEGUNDO emisor periodico, y este es
-    # el pack que dice si el canal lo aguanta: un presupuesto que no contara un emisor que
-    # existe no mediria de menos, mediria OTRO equipo.
+    # QUE ES Y POR QUE ENTRA EN ESTE PACK. D-23 pide que cada poste diga como ve EL su
+    # enlace -sus contadores de SFTY-15, que hasta el 13/09 solo salian dentro del $ALARM,
+    # o sea cuando la radio YA se habia caido-. El responsable eligio la via del $EVENT
+    # PERIODICO (D-32 (2)). Eso pone en J17 emisores periodicos ADEMAS del $STATUS, y este
+    # es el pack que dice si el canal los aguanta: un presupuesto que no contara un emisor
+    # que existe no mediria de menos, mediria OTRO equipo.
+    #
+    # AQUI SE CENSABA UNO SOLO, Y ESO CADUCO EL MISMO DIA. Este bloque se escribio con el
+    # unico periodico que habia -el ENLACE_RF del Esclavo- localizado por su nombre de
+    # variable, y D-32 (1) anadio dos mas: el gemelo del Maestro, que publica los dos
+    # contadores de SFTY-15 que se quedaron sin lector al retirar el LCD, y el del aviso
+    # del limite de 48 h del Esclavo. Un censo escrito para UNO cuenta uno para siempre y
+    # no se queja, que es la forma de caducar de CLAUDE.md 14: se RECUENTA, no se lee. Asi
+    # que ahora se BARRE, y el numero de emisores que salga es el que entra en el caudal.
+    #
+    # SE LOCALIZAN POR LA CONSTANTE CON NOMBRE Y EN LAS DOS PUNTAS -`ahora - <marca> >=
+    # DIAG_ENLACE_MS`-, no por el texto del bloque: si alguien la retira o la renombra este
+    # pack ABORTA en vez de dejar de contar un emisor en silencio, que es la unica forma de
+    # que la cuenta no envejezca sola. Y el TRAMO que se mide de cada uno va desde esa
+    # comparacion hasta su bluetooth_reportarEvento(), que es donde viven los buffers que
+    # hay que acotar: es la misma maquina que el $ALARM, no una cuenta nueva.
     #
     # SE MIDE EN DOS PASOS Y CON LA MISMA MAQUINA QUE EL $ALARM, porque son dos
-    # truncamientos distintos: primero que los tres contadores quepan en su buffer interno
+    # truncamientos distintos: primero que lo que se compone quepa en su buffer interno
     # -si no, se pierde el final del dato y la trama sale bien formada, que es el fallo que
     # no se investiga-, y despues que el $EVENT entero quepa en su payload y en su
     # envoltorio con CRC.
-    #
-    # SE LOCALIZA POR LA CONSTANTE CON NOMBRE, no por el texto del bloque: si alguien la
-    # retira o la renombra este pack ABORTA en vez de dejar de contar el emisor en
-    # silencio, que es la unica forma de que la cuenta no envejezca sola (CLAUDE.md 14).
-    codigo_e = fw.codigo("Esclavo", "src", "bluetooth.cpp")
-    m_diag = re.search(r"ahora\s*-\s*(\w+)\s*>=\s*(DIAG_ENLACE_MS)\s*\)\s*\{", codigo_e)
-    if not m_diag:
-        raise fw.Abortado(
-            "no se hallo en bluetooth.cpp del Esclavo el bloque periodico "
-            "`ahora - <marca> >= DIAG_ENLACE_MS`, que es con lo que se construyo D-23. O "
-            "se retiro, o cambio de forma: en los dos casos este presupuesto estaria "
-            "contando un emisor distinto del que hay en el cable")
-    bloque_diag = _bloque_que_contiene(codigo_e, m_diag.end())
-    m_llamada = re.search(
-        r'bluetooth_reportarEvento\s*\(\s*"([^"]+)"\s*,\s*(\w+)\s*\)', bloque_diag)
-    if not m_llamada:
-        raise fw.Abortado(
-            "el bloque periodico de D-23 ya no llama a bluetooth_reportarEvento() con un "
-            "ORIGEN literal y un buffer: sin esos dos no hay trama que acotar")
-    origen_diag, nombre_det = m_llamada.group(1), m_llamada.group(2)
-
-    try:
-        peorD, capD = _peor_buffer("Esclavo", bloque_diag, nombre_det,
-                                   "el DETALLE del $EVENT periodico de D-23")
-    except _Falta as e:
-        raise fw.Abortado(str(e))
-    b.verificar(
-        peorD <= capD - 1,
-        "los tres contadores de D-23 caben en su %s[%d], que guarda %d: el peor caso por "
-        "TIPO son %d caracteres" % (nombre_det, capD, capD - 1, peorD),
-        "EL DETALLE DE D-23 NO CABE: %d caracteres por TIPO en un %s[%d] que guarda %d. "
-        "Se pierde el FINAL, o sea el contador de descartes, y el $EVENT sale bien formado "
-        "y con su checksum bueno: el tecnico lee una linea entera a la que le falta justo "
-        "el numero que fue a buscar. Se acota donde se produce, no se ensancha el buffer"
-        % (peorD, nombre_det, capD, capD - 1))
-
-    cuerpo_ev = _cuerpo_funcion(codigo_e, "bluetooth_reportarEvento")
-    if cuerpo_ev is None:
-        raise fw.Abortado(
-            "no se hallo bluetooth_reportarEvento() en bluetooth.cpp del Esclavo: es el "
-            "emisor por el que sale D-23 y sin el no hay payload que medir")
-    m_ev = re.search(
-        r'snprintf\(\s*payload\s*,[^,]+,\s*"(\$EVENT(?:[^"\\]|\\.)*)"\s*(.*?)\);',
-        cuerpo_ev, re.S)
-    firma_ev = re.search(r"\bbluetooth_reportarEvento\s*\(([^)]*)\)\s*\{", codigo_e)
-    capEv = _ancho_decl(cuerpo_ev, "payload")
-    capTrE = _ancho_decl(codigo_e, "tramaCompleta")
-    if not (m_ev and firma_ev) or capEv is None or capTrE is None:
-        raise fw.Abortado(
-            "no se pudo leer del C++ el emisor del $EVENT del Esclavo (snprintf=%s, "
-            "firma=%s, payload=%s, tramaCompleta=%s). Sin ellos D-23 no se acota"
-            % (bool(m_ev), bool(firma_ev), capEv, capTrE))
-    params_ev = [p.strip().split()[-1].lstrip("*") for p in firma_ev.group(1).split(",")]
-    anchos_ev = []
-    for a in _partir_args(m_ev.group(2).strip().lstrip(",")):
-        if len(params_ev) > 0 and a == params_ev[0]:
-            anchos_ev.append(len(origen_diag))      # el ORIGEN es un literal del llamador
-        elif len(params_ev) > 1 and a == params_ev[1]:
-            anchos_ev.append(capD - 1)              # el DETALLE, por SU buffer
-        else:
-            w = _ancho_decl(cuerpo_ev, a)           # lo demas, buffer del propio emisor
-            if w is None:
+    periodicos = {}
+    for punta in ("Maestro", "Esclavo"):
+        codigo_p = fw.codigo(punta, "src", "bluetooth.cpp")
+        marcas = list(re.finditer(r"ahora\s*-\s*(\w+)\s*>=\s*DIAG_ENLACE_MS", codigo_p))
+        if not marcas:
+            raise fw.Abortado(
+                "no se hallo en bluetooth.cpp del %s ni una sola comparacion `ahora - "
+                "<marca> >= DIAG_ENLACE_MS`, que es con lo que se construyo D-23 en las "
+                "dos puntas. O se retiro, o cambio de forma: en los dos casos este "
+                "presupuesto estaria contando un emisor distinto del que hay en el cable"
+                % punta)
+        periodicos[punta] = []
+        for m_marca in marcas:
+            m_llamada = re.search(
+                r'bluetooth_reportarEvento\s*\(\s*"([^"]+)"\s*,\s*(\w+)\s*\)',
+                codigo_p[m_marca.end():])
+            if not m_llamada:
                 raise fw.Abortado(
-                    "no se supo acotar %r del $EVENT del Esclavo. No es un parametro de "
-                    "la firma ni un buffer del cuerpo, asi que su ancho no sale de "
-                    "ningun sitio medible y una estimacion aqui es N-108 otra vez" % a)
-            anchos_ev.append(w)
-    peorEv = _peor(m_ev.group(1), anchos_ev)
-    if peorEv is None:
-        raise fw.Abortado(
-            "el $EVENT del Esclavo tiene %d conversiones y %d argumentos: con esa "
-            "discrepancia no hay cuenta que hacer"
-            % (len(re.findall(r"%[0-9]*l?[usd]", m_ev.group(1))), len(anchos_ev)))
+                    "el periodico de D-23 anclado en `%s` (%s) no termina en un "
+                    "bluetooth_reportarEvento() con un ORIGEN literal y un buffer: sin "
+                    "esos dos no hay trama que acotar"
+                    % (m_marca.group(1), punta))
+            tramo_src = codigo_p[m_marca.end():m_marca.end() + m_llamada.end()]
+            periodicos[punta].append(
+                (m_marca.group(1), m_llamada.group(1), m_llamada.group(2), tramo_src))
 
     b.verificar(
-        peorEv <= capEv,
-        "el $EVENT periodico de D-23 (ORIGEN:%s) cabe: %d caracteres por BUFFER en un "
-        "payload que guarda %d" % (origen_diag, peorEv, capEv),
-        "EL $EVENT DE D-23 NO CABE: %d caracteres por BUFFER en un payload que guarda %d. "
-        "Se pierden los %d ultimos -el final es la HORA-, y el checksum sale BUENO porque "
-        "se calcula sobre lo que quedo. Se acorta el ORIGEN o el DETALLE, no se ensancha "
-        "el payload: es el mismo emisor que usan las dos puntas"
-        % (peorEv, capEv, peorEv - capEv))
-    b.verificar(
-        peorEv + len("*XX\r\n") <= capTrE,
-        "y sale entero con su checksum: %d + 5 caracteres en un tramaCompleta que guarda "
-        "%d" % (peorEv, capTrE),
-        "el $EVENT de D-23 son %d caracteres y con su *XX\\r\\n no cabe en un "
-        "tramaCompleta que guarda %d. Truncar aqui es PEOR: se corta el cierre del "
-        "checksum y el otro extremo descarta la trama entera"
-        % (peorEv, capTrE))
+        all(periodicos[x] for x in ("Maestro", "Esclavo")),
+        "las dos puntas tienen periodico de diagnostico: el Maestro %d y el Esclavo %d"
+        % (len(periodicos["Maestro"]), len(periodicos["Esclavo"])),
+        "una punta se quedo sin periodico de diagnostico (Maestro %d, Esclavo %d). D-23 "
+        "pide que CADA poste diga como ve EL su enlace, y un poste mudo no lo dice"
+        % (len(periodicos["Maestro"]), len(periodicos["Esclavo"])))
+
+    for punta in ("Maestro", "Esclavo"):
+        codigo_p = fw.codigo(punta, "src", "bluetooth.cpp")
+        cuerpo_ev = _cuerpo_funcion(codigo_p, "bluetooth_reportarEvento")
+        if cuerpo_ev is None:
+            raise fw.Abortado(
+                "no se hallo bluetooth_reportarEvento() en bluetooth.cpp del %s: es el "
+                "emisor por el que sale D-23 y sin el no hay payload que medir" % punta)
+        m_ev = re.search(
+            r'snprintf\(\s*payload\s*,[^,]+,\s*"(\$EVENT(?:[^"\\]|\\.)*)"\s*(.*?)\);',
+            cuerpo_ev, re.S)
+        firma_ev = re.search(r"\bbluetooth_reportarEvento\s*\(([^)]*)\)\s*\{", codigo_p)
+        capEv = _ancho_decl(cuerpo_ev, "payload")
+        capTrE = _ancho_decl(codigo_p, "tramaCompleta")
+        if not (m_ev and firma_ev) or capEv is None or capTrE is None:
+            raise fw.Abortado(
+                "no se pudo leer del C++ el emisor del $EVENT del %s (snprintf=%s, "
+                "firma=%s, payload=%s, tramaCompleta=%s). Sin ellos D-23 no se acota"
+                % (punta, bool(m_ev), bool(firma_ev), capEv, capTrE))
+        params_ev = [x.strip().split()[-1].lstrip("*")
+                     for x in firma_ev.group(1).split(",")]
+
+        for marca, origen_diag, nombre_det, tramo_src in periodicos[punta]:
+            try:
+                peorD, capD = _peor_buffer(punta, tramo_src, nombre_det,
+                                           "el DETALLE del $EVENT periodico de D-23 (%s)"
+                                           % origen_diag)
+            except _Falta as e:
+                raise fw.Abortado(str(e))
+            b.verificar(
+                peorD <= capD - 1,
+                "el DETALLE de %s en el %s cabe en su %s[%d], que guarda %d: el peor caso "
+                "por TIPO son %d caracteres"
+                % (origen_diag, punta.upper(), nombre_det, capD, capD - 1, peorD),
+                "EL DETALLE DE %s EN EL %s NO CABE: %d caracteres por TIPO en un %s[%d] "
+                "que guarda %d. Se pierde el FINAL, y el $EVENT sale bien formado y con su "
+                "checksum bueno: el tecnico lee una linea entera a la que le falta justo "
+                "el numero que fue a buscar. Se acota donde se produce, no se ensancha el "
+                "buffer" % (origen_diag, punta.upper(), peorD, nombre_det, capD, capD - 1))
+
+            anchos_ev = []
+            for a in _partir_args(m_ev.group(2).strip().lstrip(",")):
+                if len(params_ev) > 0 and a == params_ev[0]:
+                    anchos_ev.append(len(origen_diag))   # el ORIGEN es literal del llamador
+                elif len(params_ev) > 1 and a == params_ev[1]:
+                    anchos_ev.append(capD - 1)           # el DETALLE, por SU buffer
+                else:
+                    w = _ancho_decl(cuerpo_ev, a)        # lo demas, buffer del propio emisor
+                    if w is None:
+                        raise fw.Abortado(
+                            "no se supo acotar %r del $EVENT del %s. No es un parametro de "
+                            "la firma ni un buffer del cuerpo, asi que su ancho no sale de "
+                            "ningun sitio medible y una estimacion aqui es N-108 otra vez"
+                            % (a, punta))
+                    anchos_ev.append(w)
+            peorEv = _peor(m_ev.group(1), anchos_ev)
+            if peorEv is None:
+                raise fw.Abortado(
+                    "el $EVENT del %s tiene %d conversiones y %d argumentos: con esa "
+                    "discrepancia no hay cuenta que hacer"
+                    % (punta, len(re.findall(r"%[0-9]*l?[usd]", m_ev.group(1))),
+                       len(anchos_ev)))
+
+            b.verificar(
+                peorEv <= capEv,
+                "el $EVENT periodico de D-23 del %s (ORIGEN:%s) cabe: %d caracteres por "
+                "BUFFER en un payload que guarda %d"
+                % (punta.upper(), origen_diag, peorEv, capEv),
+                "EL $EVENT %s DEL %s NO CABE: %d caracteres por BUFFER en un payload que "
+                "guarda %d. Se pierden los %d ultimos -el final es la HORA-, y el checksum "
+                "sale BUENO porque se calcula sobre lo que quedo. Se acorta el ORIGEN o el "
+                "DETALLE, no se ensancha el payload: es el mismo emisor que usan todas las "
+                "tramas de bitacora de esta punta"
+                % (origen_diag, punta.upper(), peorEv, capEv, peorEv - capEv))
+            b.verificar(
+                peorEv + len("*XX\r\n") <= capTrE,
+                "y sale entero con su checksum: %d + 5 caracteres en un tramaCompleta que "
+                "guarda %d" % (peorEv, capTrE),
+                "el $EVENT %s del %s son %d caracteres y con su *XX\\r\\n no cabe en un "
+                "tramaCompleta que guarda %d. Truncar aqui es PEOR: se corta el cierre del "
+                "checksum y el otro extremo descarta la trama entera"
+                % (origen_diag, punta, peorEv, capTrE))
 
     # ---- 3. La cadencia, leida del C++ ---------------------------------------
     cadencias = {}
@@ -951,7 +990,7 @@ def correr(b, fw):
 
     porSegundo = 1000.0 / cadencias["Maestro"]
 
-    # ---- 3.bis D-23: y la cadencia del SEGUNDO periodico, que tiene que ser BAJA ------
+    # ---- 3.bis D-23: la cadencia de los periodicos, que tiene que ser BAJA -----------
     #
     # LA COMPRUEBA ESTE PACK PORQUE ES LA MITAD DEL ARGUMENTO CON EL QUE SE ELIGIO LA VIA.
     # El responsable descarto el aviso ESP32->STM32 -que habria sido la tercera orden que
@@ -960,20 +999,51 @@ def correr(b, fw):
     # decidio, y ademas inunda la bitacora de 30 entradas de la app. El borde contra el que
     # se compara va escrito, que es lo que pide CLAUDE.md 7: es la cadencia del $STATUS,
     # RELEIDA arriba del C++, no un numero puesto aqui.
-    diag_ms = fw.constante(
-        ("Esclavo", "src", "bluetooth.cpp"),
-        r"%s\s*=\s*(\d+)UL" % re.escape(m_diag.group(2)),
-        "la cadencia del $EVENT de diagnostico de enlace de D-23")
+    #
+    # D-32 (1): Y AHORA SON DOS CONSTANTES, UNA POR PUNTA, ASI QUE SE COMPRUEBA QUE SEAN
+    # LA MISMA. El comentario del Maestro promete literalmente que "hay un pack que los
+    # recalcula y falla si divergen", y una promesa escrita en el fuente que no comprueba
+    # nadie es exactamente la excepcion sin medir de CLAUDE.md 6. Es ademas el gemelo en
+    # dos ficheros que este repositorio ya sabe como acaba: dos numeros que significan lo
+    # mismo se separan el dia que alguien toca uno, y aqui separarlos haria que el peor
+    # segundo dejara de ser el mismo en los dos postes sin que nada lo dijera.
+    diag = {}
+    for punta in ("Maestro", "Esclavo"):
+        diag[punta] = fw.constante(
+            (punta, "src", "bluetooth.cpp"),
+            r"DIAG_ENLACE_MS\s*=\s*(\d+)UL",
+            "la cadencia del $EVENT de diagnostico de enlace de D-23 en el %s" % punta)
+
     b.verificar(
-        diag_ms > cadencias["Esclavo"],
-        "el diagnostico de D-23 sale cada %d ms, mas espaciado que el $STATUS (%d ms): es "
-        "el periodico BAJO con el que se eligio la via, no un segundo latido"
-        % (diag_ms, cadencias["Esclavo"]),
-        "el diagnostico de D-23 sale cada %d ms y el $STATUS cada %d ms. Un segundo "
-        "periodico igual o mas rapido que el primero ya no es 'cadencia baja': es el "
-        "coste que se dijo que no se iba a pagar, y ademas vacia en minutos la bitacora "
-        "de eventos de la app, que es donde el tecnico busca el $ALARM"
-        % (diag_ms, cadencias["Esclavo"]))
+        diag["Maestro"] == diag["Esclavo"],
+        "las dos puntas diagnostican a la MISMA cadencia (%d ms): son gemelas declaradas, "
+        "y el comentario del Maestro que lo promete tiene quien lo compruebe"
+        % diag["Maestro"],
+        "las cadencias de diagnostico DIVERGEN: Maestro %d ms, Esclavo %d ms. El fuente "
+        "del Maestro dice que son el mismo numero a proposito y que un pack lo recalcula; "
+        "con dos valores distintos el peor segundo ya no es el mismo en los dos postes y "
+        "la bitacora de la app se vacia a ritmos distintos en cada uno"
+        % (diag["Maestro"], diag["Esclavo"]))
+
+    for punta in ("Maestro", "Esclavo"):
+        b.verificar(
+            diag[punta] > cadencias[punta],
+            "el diagnostico del %s sale cada %d ms, mas espaciado que su $STATUS (%d ms): "
+            "es el periodico BAJO con el que se eligio la via, no un segundo latido"
+            % (punta.upper(), diag[punta], cadencias[punta]),
+            "el diagnostico del %s sale cada %d ms y su $STATUS cada %d ms. Un segundo "
+            "periodico igual o mas rapido que el primero ya no es 'cadencia baja': es el "
+            "coste que se dijo que no se iba a pagar, y ademas vacia en minutos la "
+            "bitacora de eventos de la app, que es donde el tecnico busca el $ALARM"
+            % (punta.upper(), diag[punta], cadencias[punta]))
+
+    # LA QUE ENTRA EN EL CAUDAL ES LA MENOR, NO LA MAYOR, y se escribe por que: la cadencia
+    # mas CORTA es la que mete mas bytes en el peor segundo. Con la comprobacion de gemelas
+    # de arriba en verde las dos son la misma y da igual cual se tome; el dia que divergieran
+    # -que es el dia en que esta linea importa- quedarse con la mayor mediria el poste bueno
+    # y publicaria un porcentaje mas comodo que el real. Un presupuesto se hace por el peor
+    # extremo o no es un presupuesto.
+    diag_ms = min(diag["Maestro"], diag["Esclavo"])
 
     # ---- 4. EL PEOR SEGUNDO REALISTA CABE ------------------------------------
     #
@@ -981,25 +1051,39 @@ def correr(b, fw):
     # el caso medio: es un comando que dispara una alarma y una entrada de bitacora justo
     # cuando toca telemetria, que es exactamente cuando mas informacion hace falta.
     #
-    # D-23 (13/09): Y EL SEGUNDO PERIODICO ENTRA AQUI, ENTERO Y NO PRORRATEADO. En el peor
+    # D-23 (13/09): Y LOS PERIODICOS ENTRAN AQUI, ENTEROS Y NO PRORRATEADOS. En el peor
     # segundo el $EVENT de diagnostico o cae o no cae, y la cuenta se hace para el segundo
-    # en que cae -que ademas no es casualidad: 30000 es multiplo de la cadencia del
-    # $STATUS, asi que los dos periodicos coinciden en la MISMA vuelta del bucle por
-    # construccion, y eso es mejor que depender de la suerte-. El techo se calcula, no se
-    # escribe: si algun dia la cadencia bajara de un segundo, cabrian varios y la cuenta
-    # los cuenta en vez de quedarse corta sin decirlo.
+    # en que cae -que ademas no es casualidad: la cadencia es multiplo de la del $STATUS,
+    # asi que los periodicos coinciden en la MISMA vuelta del bucle por construccion, y eso
+    # es mejor que depender de la suerte-. El techo se calcula, no se escribe: si algun dia
+    # la cadencia bajara de un segundo, cabrian varios y la cuenta los cuenta en vez de
+    # quedarse corta sin decirlo.
+    #
+    # D-32 (1): Y CUANTOS SON SALE DEL CENSO DE 2.sexies, NO DE UN 1 ESCRITO AQUI. Esa es
+    # la parte que caduco en un dia: la cuenta decia "el segundo periodico" en singular
+    # cuando el arbol ya tenia tres emisores repartidos en las dos puntas. Se toma el PEOR
+    # POSTE -el que mas periodicos tiene-, porque el presupuesto es el de UN cable J17 y
+    # cada poste tiene el suyo; sumar los de los dos mediria un equipo que no existe, y
+    # quedarse con el menor mediria el poste bueno.
+    #
+    # ⚠️ EL EMISOR DEL AVISO DEL LIMITE SOLO DISPARA CUANDO EL AVISO ESTA ARMADO, Y AUN ASI
+    # SE CUENTA ENTERO: un presupuesto que descuente un emisor porque "casi nunca sale" no
+    # es un peor caso, es un caso medio con otro nombre. Y las horas en que ese emisor si
+    # sale son justo aquellas en las que el tecnico necesita que las tramas lleguen.
+    diag_emisores = max(len(periodicos["Maestro"]), len(periodicos["Esclavo"]))
     diag_por_segundo = int(math.ceil(1000.0 / diag_ms))
     peor = (topeStatus * porSegundo + topeEvento + topeAlarma + topeStatus
-            + topeEvento * diag_por_segundo)
+            + topeEvento * diag_emisores * diag_por_segundo)
     ocupacion = 100.0 * peor / caudal
     b.verificar(
         peor < caudal,
         "el peor segundo son %d B de %d B/s (%.1f%%): la rafaga de $STATUS + $EVENT + "
-        "$ALARM + $ACK, con el diagnostico de D-23 cada %d ms encima, cabe"
-        % (peor, caudal, ocupacion, diag_ms),
-        "EL PEOR SEGUNDO NO CABE: %d B contra %d B/s (%.1f%%). Las tramas se encolan y "
-        "llegan tarde; pasados los 5 s de TIMEOUT_ENLACE_MS la app declara el enlace "
-        "perdido de un equipo que esta emitiendo" % (peor, caudal, ocupacion))
+        "$ALARM + $ACK, con los %d periodicos de diagnostico del peor poste cada %d ms "
+        "encima, cabe" % (peor, caudal, ocupacion, diag_emisores, diag_ms),
+        "EL PEOR SEGUNDO NO CABE: %d B contra %d B/s (%.1f%%) con %d periodicos de "
+        "diagnostico. Las tramas se encolan y llegan tarde; pasados los 5 s de "
+        "TIMEOUT_ENLACE_MS la app declara el enlace perdido de un equipo que esta "
+        "emitiendo" % (peor, caudal, ocupacion, diag_emisores))
 
     # ---- 5. El sentido de ida tambien tiene su cuenta -------------------------
     tope = fw.constante(CONTRATO, r"#define\s+TRAMA_MAX_UTIL\s+(\d+)",

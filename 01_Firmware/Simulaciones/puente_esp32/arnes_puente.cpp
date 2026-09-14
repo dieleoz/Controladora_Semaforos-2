@@ -443,14 +443,27 @@ bool respaldo_degradadoActivo()             { return resp_degradado; }
 bool respaldo_hayCiclo()                    { return resp_hayCiclo; }
 uint32_t respaldo_horasDesdeSync(uint32_t)  { return resp_horas; }
 
+#endif
+
 // N-108 - LOS CONTADORES DE LINEA DE SFTY-15, que protocolo.cpp lleva y este arnes
 // sustituye. Suben con cada paquete que el arnes entrega, para que el $EVENT de enlace y
 // el tramo del $ALARM tengan algo real que publicar en vez de tres ceros fijos.
+//
+// D-32 (1), 13/09 - SALEN DEL #if DEL ESCLAVO Y PASAN A SER DE LAS DOS PUNTAS, y no es
+// aseo: el arnes del MAESTRO dejo de ENLAZAR el dia que su bluetooth.cpp empezo a
+// publicar el $EVENT periodico ORIGEN:ENLACE_RF con estos tres contadores -"undefined
+// reference to protocolo_bytesRecibidos()"-, o sea un ABORTADO, que es una puerta abierta
+// y no una casilla pendiente. Vivian bajo PUNTA_ESCLAVO solo porque hasta hoy solo esa
+// punta los leia; las declara protocolo.h de las DOS y ninguna de las dos enlaza su
+// protocolo.cpp aqui, asi que el sustituto es de los dos o el arnes no compila.
+//
+// Y ASI EL EMISOR NUEVO SE PUEDE EJERCER, que es lo que separa un sustituto de un parche
+// para que enlace: con RXCNT gobernable desde fuera en las dos puntas, el $EVENT del
+// Maestro publica numeros que el arnes eligio y no tres ceros fijos.
 static unsigned long cnt_bytes = 0, cnt_validas = 0, cnt_ruido = 0;
 unsigned long protocolo_bytesRecibidos()    { return cnt_bytes; }
 unsigned long protocolo_tramasValidas()     { return cnt_validas; }
 unsigned long protocolo_tramasDescartadas() { return cnt_ruido; }
-#endif
 
 // --- El puerto del ESP32, buscado POR SUS PINES ----------------------------------
 static HardwareSerial* puerto_esp32() {
@@ -692,15 +705,13 @@ int main(void) {
 #endif
 
     } else if (strncmp(linea, "RXCNT ", 6) == 0) {
-#if defined(PUNTA_ESCLAVO)
       // Los tres contadores de SFTY-15 de una vez: bytes, validas y ruido.
+      // D-32 (1): tambien en el MAESTRO, que desde hoy los publica en su $EVENT
+      // periodico. Aqui contestaba "n/a" para esa punta porque nadie los leia alli.
       cnt_bytes = (unsigned long)atol(linea + 6);
       cnt_validas = cnt_bytes / 6;
       cnt_ruido = cnt_bytes % 7;
       printf("OK rx=%lu ok=%lu ruido=%lu\n", cnt_bytes, cnt_validas, cnt_ruido);
-#else
-      printf("OK rxcnt=n/a\n");
-#endif
 
     } else if (strcmp(linea, "MODO") == 0) {
 #if defined(PUNTA_MAESTRO)

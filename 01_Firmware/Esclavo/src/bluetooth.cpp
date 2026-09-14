@@ -1163,6 +1163,138 @@ bool bluetooth_ambarEmergencia() {
   return ambarEmergencia;
 }
 
+// ---------------------------------------------------------------------------
+// D-32 (1), 13/09 - EL AVISO DEL LIMITE DE 48 h VUELVE A TENER SUPERFICIE, Y ES EL
+// AGUJERO MAS GRAVE QUE DEJO LA RETIRADA DEL LCD.
+//
+// QUE SE ROMPIO, medido y no supuesto. degradado_avisoLimite() y degradado_syncVencida()
+// se quedaron SIN NINGUN LLAMADOR en el firmware de esta punta: su unico lector era el
+// menu_loop() que salio con la pantalla, y costura_10_funciones_muertas las lleva anotadas
+// desde ese commit con el motivo escrito -"NO es una huerfana comoda, es una capacidad
+// perdida"-. Ninguna de las dos es una guarda, asi que perder el lector no abrio ningun
+// veto: lo que decide sigue decidiendo dentro de modo_degradado.cpp. LO QUE SE PERDIO ES
+// EL AVISO.
+//
+// Y EL AVISO NO ES COSMETICA: sin el, el cruce se va a ambar sin que nadie lo haya visto
+// venir. La caida la ejecuta degradado_actualizar() con `if (syncVencidaLatch && ...)
+// iniciarSalida(true)`, y ese camino NO emite $EVENT ni $ALARM: la rendicion por las 48 h
+// es HOY completamente muda. El equipo se degrada solo y el tecnico se entera al llegar.
+// El apartado de modo_degradado.cpp que fija el plazo lo dice con todas las letras: "el
+// estado seguro no puede depender de que alguien se acuerde, pero avisar con margen evita
+// que el cruce se degrade sin que hubiera falta".
+//
+// EL PLAZO NO SE INVENTA: SE CONSERVA EL QUE YA HABIA. Esta funcion no compara contra
+// ningun numero propio -no hay una sola constante de tiempo aqui-: pregunta a
+// degradado_avisoLimite(), que es quien compara contra AVISO_SIN_SYNC_MS dentro de
+// modo_degradado.cpp. Son 40 h de las 48, o sea que avisa con las ULTIMAS 8 h de margen,
+// "un turno completo" por el motivo que alli esta escrito. Traer el numero a este fichero
+// seria el gemelo en otro sitio que este repositorio ya sabe como acaba (CLAUDE.md 14):
+// el dia que alguien mueva el plazo, el aviso dejaria de significar lo que dice.
+// ⚠️ EL MAESTRO NO PUEDE HACER ESTO HOY y por eso esta mitad va sola: alli el plazo
+// -AVISO_LIMITE_MS, 44 h de 48, las ultimas 4- vivia DENTRO de la funcion de dibujo del
+// LCD y modo_degradado.h no publica ni el aviso ni la antiguedad. Falta un getter, y
+// anadirlo no es de este fichero.
+//
+// POR QUE POR FLANCO Y NO PERIODICO A SECAS, que era la forma barata. El $EVENT periodico
+// de D-23 que vive mas abajo lleva escrito su propio techo: cada $EVENT entra en
+// state.events, que addEvent() de app.js RECORTA A 30 ENTRADAS, y un segundo periodico a
+// la misma cadencia PARTE POR DOS la ventana de bitacora que el tecnico tiene para
+// encontrar el $ALARM -de un cuarto de hora a siete minutos-. Es N-73 por inundacion, el
+// mismo motivo por el que el $EVENT de J17 paso de salir por linea a salir por umbral
+// (AB-1). Asi que en reposo esta funcion NO PONE UN SOLO BYTE EN EL CABLE:
+//
+//   - por FLANCO del trio (sabe fechar / aviso / vencido) el aviso llega EN EL INSTANTE
+//     en que se arma, que ademas es mejor que esperar a la cadencia;
+//   - y mientras el aviso SIGUE armado se repite a DIAG_ENLACE_MS, porque el tecnico que
+//     llega DESPUES del flanco -que es el caso de uso entero de D-23- no vio aquel.
+//
+// O sea: coste cero cuando no hay nada que decir, y la segunda trama solo en las horas en
+// que de verdad hace falta. El peor segundo del presupuesto SI la cuenta igual, entera y
+// sin prorratear, porque un presupuesto que descuente un emisor que puede disparar mide
+// otro equipo; lo recalcula esp32_07_presupuesto_bytes leyendo ESTA cadencia.
+//
+// LA CADENCIA ES LA MISMA CONSTANTE, NO UNA SEGUNDA: DIAG_ENLACE_MS. No es pereza -es lo
+// contrario de un numero nuevo que nadie recalcularia-, y ademas los dos periodicos caen
+// en la MISMA vuelta del bucle por construccion, que es lo que hace que el peor segundo
+// se pueda calcular en vez de depender de la suerte.
+//
+// EL ORIGEN ES DEGRADADO Y NO UNO NUEVO: es el MISMO sujeto que el $EVENT de
+// SALTO_DE_HORA_POR_ROJO que ya emite modo_degradado.cpp, y la app los distingue por el
+// DETALLE, igual que hace con los dos ENLACE_RF.
+//
+// LOS MARCADORES SIGNIFICAN LO DE SIEMPRE (CLAUDE.md 10, y la tabla de SPEC 4 §5):
+// "--" es "todavia no lo se" y NUNCA un cero de relleno. degradado_msDesdeSync() devuelve
+// 0 cuando no hubo sync jamas, y publicar ese 0 diria "sincronizado hace un momento",
+// que es exactamente lo contrario de la verdad; por eso se pregunta antes a
+// degradado_huboSync(). Aqui no hay "!": el valor no tiene cota contra la que salirse
+// -ver el buffer-, y una guarda que ningun dato puede disparar no es una comprobacion,
+// es adorno (CLAUDE.md 6.2).
+//
+// LA COTA DE syncTxt[] ES POR TIPO, Y SE ESCRIBE POR QUE NO PUEDE SER OTRA: la antiguedad
+// es un CONTADOR LIBRE -sigue creciendo despues del limite; el latch no la para-, asi que
+// no hay constante que la acote, igual que los tres contadores de SFTY-15 de aqui al lado.
+// El tope de %lu son las diez cifras de un unsigned long: 10 + la "h" = 11 caracteres +
+// NUL = 12. Que el valor REAL no pueda pasar de 1.193 h -2^32 ms partido por 3.600.000-
+// no se usa para estrechar el buffer: eso seria acotar por el rango, que es justo lo que
+// N-154 corrigio.
+//
+// LA COTA DE det[], por BUFFER y no por rango, con el separador en ESPACIOS y no en comas
+// por el mismo motivo que el $EVENT de D-23 -_camposNmea() de la app parte por ',' y una
+// coma dentro del DETALLE convierte lo que va detras en campos sueltos que el pintor de
+// $EVENT no mira-:
+//
+//   parte fija   21   "SYNC:" + " AVISO:" + " VENCIDA:"
+//   SYNC         11   syncTxt[12]
+//   AVISO         2   literal "SI"/"NO"
+//   VENCIDA       2   literal "SI"/"NO"
+//
+//   21 + 15 = 36 caracteres + NUL = 37 B, que es lo que guarda det[37]. Que el $EVENT
+//   ENTERO quepa luego en su payload no se afirma aqui: lo recalcula
+//   esp32_07_presupuesto_bytes leyendo este snprintf y el del emisor.
+// ---------------------------------------------------------------------------
+static unsigned long tUltimoDiagDegradado = 0;
+static int8_t diagDegradadoAnt = -1;   // -1: aun no se ha publicado ninguno
+
+static void diagDegradadoPublicar(unsigned long ahora) {
+  const bool sabeFechar = degradado_huboSync();
+  const bool aviso      = degradado_avisoLimite();
+  const bool vencida    = degradado_syncVencida();
+
+  // El trio en un solo entero para poder comparar flancos sin tres banderas estaticas.
+  // No contesta a dos preguntas distintas: contesta a UNA -"que se publico la ultima
+  // vez"- y por eso puede ser una sola variable.
+  const int8_t ahoraEstado = (int8_t)((sabeFechar ? 4 : 0) | (aviso ? 2 : 0) | (vencida ? 1 : 0));
+
+  // LA PRIMERA VUELTA SOLO ANOTA, Y ES EL MISMO LIMITE DECLARADO QUE LLEVA ESCRITO EL
+  // PERIODICO DE D-23: al arrancar el STM32 puede no haber nadie escuchando -el ESP32 y
+  // el telefono llegan despues- y una trama que nadie oye no es un instrumento. No se
+  // pierde nada: si el aviso ya viene armado de un arranque anterior, la repeticion de
+  // abajo lo publica a los DIAG_ENLACE_MS, que es cuando ya puede oirse.
+  if (diagDegradadoAnt < 0) {
+    diagDegradadoAnt = ahoraEstado;
+    return;
+  }
+
+  const bool cambio = (ahoraEstado != diagDegradadoAnt);
+  const bool tocaRepetir = aviso && (ahora - tUltimoDiagDegradado >= DIAG_ENLACE_MS);
+  if (!cambio && !tocaRepetir) return;
+
+  diagDegradadoAnt = ahoraEstado;
+  tUltimoDiagDegradado = ahora;
+
+  char syncTxt[12];
+  if (!sabeFechar) {
+    strncpy(syncTxt, "--", sizeof(syncTxt));
+  } else {
+    snprintf(syncTxt, sizeof(syncTxt), "%luh", degradado_msDesdeSync() / 3600000UL);
+  }
+
+  char det[37];
+  snprintf(det, sizeof(det), "SYNC:%s AVISO:%s VENCIDA:%s",
+           syncTxt, aviso ? "SI" : "NO", vencida ? "SI" : "NO");
+  bluetooth_reportarEvento("DEGRADADO", det);
+}
+
 void bluetooth_loop() {
   const unsigned long ahora = millis();
 
@@ -1511,4 +1643,6 @@ void bluetooth_loop() {
              protocolo_tramasDescartadas());
     bluetooth_reportarEvento("ENLACE_RF", det);
   }
+
+  diagDegradadoPublicar(ahora);
 }
