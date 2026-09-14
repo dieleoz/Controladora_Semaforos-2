@@ -133,6 +133,31 @@ que viviera en una funcion comun los dejaria midiendo un bloque vacio (`N-89`).
 
 ---
 
+## 3.bis 🟡 LAS BOTONERAS A/B/C/D SE ELIMINAN — el equipo se opera SOLO por la app
+
+**Decidido por el responsable el 14/09** *(«eliminamos las botoneras A, B, C y D; ahora es por
+app»)*, y confirma lo que ya estaba decidido el 12/09. **No hay superficie fisica de operacion**:
+ni botones, ni pantalla — la pantalla salio del firmware el 13/09.
+
+🔴 **DECIDIDO NO ES CONSTRUIDO, y esta spec no puede decir lo contrario: el firmware de hoy SIGUE
+leyendo esas pulsaciones.** Medido el 14/09: los dos ficheros del mando siguen en el arbol —548
+lineas entre las dos puntas— y **tres pulsaciones seguidas en el poste 1 arrancan el ciclo, o sea
+ABREN PASO, sin preguntar nada**. Mientras eso siga dentro, **lo que alguien cablee a `J16` p5 o p8
+compone la secuencia sin que nadie la pida** (`SPEC_5` §3). Esa es la razon de que esto sea urgente y
+no cosmetico.
+
+✅ **Y lo que cuesta sacarlo esta MEDIDO hoy, porque el repositorio lo daba por mas caro de lo que
+es** — dos frases que lo frenaban y son falsas:
+
+| lo que se decia | lo medido el 14/09 |
+|---|---|
+| *«retirar el mando se lleva por delante parte de la barrera de salidas»* | **No.** La bandera que intercepta las luces la arman **dos** funciones y sus **unicos** llamadores son el mando. Sin ellos la bandera se queda en falso para siempre y la guarda que cuelga de ella **no dispara**: el equipo escribe las luces por el camino normal. **No deja ningun veto abierto — deja codigo muerto** |
+| *«borrar el menu borra el todo-rojo de las dos puntas»* | **Tampoco.** Ese todo-rojo tiene **tres** llamadores: el menu, el Modo Alcance y el Modo Hora, **y los dos ultimos se alcanzan desde la app** |
+
+⚠️ **Lo que si queda al sacarlo, y hay que decirlo:** el camino de interceptar las luces se queda
+**sin nadie que lo ejerza**, o sea que ningun instrumento podra volver a cazar un defecto ahi. O sale
+entero con el mando, o se queda vigilado por algo.
+
 ## 4. El PIN
 
 - La forma del cable es `CMD:PIN:<pin>:<accion>` y la comparacion es **literal en los dos despachadores**.

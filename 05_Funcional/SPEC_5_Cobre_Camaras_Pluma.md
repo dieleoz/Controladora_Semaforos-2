@@ -52,6 +52,10 @@ bornera: antirrebote RC de 1 ms **en la placa**). `J14` p2 son **3,3 V**, el nud
 
 ## 3. `J16` p5 y p8 estan VACIOS y el firmware SIGUE leyendo sus flancos
 
+> 🟡 **14/09 — EL RESPONSABLE ELIMINA LAS BOTONERAS A/B/C/D: el equipo se opera SOLO por la app.**
+> **Este aviso NO se retira con la decision: se retira el dia que el codigo salga del firmware**, y
+> hoy sigue dentro (`SPEC_4` §3.bis). Mientras tanto, lo de abajo es exactamente lo que pasa.
+
 El mando **se retiro como hardware** y **su codigo se queda** (`D-1`, 05/09). 🔴 **Y sigue siendo cierto
 el 13/09, contra lo que `D-30` habia decidido: `D-32` (1) la recorta —«solo retirar el lcd»— y el mando
 A/B/C/D SE QUEDA en el firmware.** Los dos bornes quedan **libres en el cobre** y **vivos en el firmware**,
