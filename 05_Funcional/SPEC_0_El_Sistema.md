@@ -138,9 +138,12 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
 2. **NO GOBIERNA CABEZAL PEATONAL NI ZUMBADOR, AUNQUE LOS PINES EXISTAN.** `ROJO_PEATON`, `VERDE_PEATON` y el buzzer estan
    **declarados y muertos** —ni un `pinMode` ni un `digitalWrite`—: **cableados a `J11`/`J9`/`J13` no se encienden nunca y no
    hay mensaje de error** (`SPEC_5` §2, `SPEC_1` §1). **No se venden como funciones del equipo.**
-3. **NINGUNA CAMARA PROTEGE LA PLUMA: puede bajar con un coche debajo.** `escribirPines()` **no lee ninguna camara** — la
-   pluma sigue a la luz y a nada mas. El veto es `A-1.bis`, **abierto y sin construir**; hoy el firmware solo **cuenta**
-   cuantas veces habria actuado (`SPEC_5` §4).
+3. **NO DISTINGUE UN VEHICULO PARADO DEBAJO DE UNA CAMARA MAL APUNTADA.** 🟢 ~~Ninguna camara protege la pluma~~ →
+   **desde el 14/09 SI la protege**: la barrera baja 3 s despues del rojo y **no baja mientras una camara vea algo debajo**
+   (`SPEC_5` pag. 1 §4). 🔴 **Lo que el equipo NO puede hacer es juzgar lo que ve:** un vehiculo parado y una camara
+   que dispara sola **dan el mismo contacto cerrado**, asi que ante la duda **no baja y avisa** —y quien decide si eso es
+   una averia o trafico es una persona, no el equipo—. Y **los ultimos metros de la bajada no los ve nadie**: no hay fin
+   de carrera, y esta **sin preguntar al fabricante** si la centralita trae fotocelula o borde sensible.
 4. **NO HAY AMBAR AL CERRAR EL VERDE: salta de VERDE a ROJO.** **El conductor no recibe ningun aviso de que el verde se
    acaba**; en su lugar hay un margen, no un aviso: el todo-rojo de despeje (`SPEC_1` §3.1). Y **la pluma baja en el MISMO
    instante del rojo** — el retardo que pidio el responsable **no esta implementado** (`SPEC_1` §12.1).
