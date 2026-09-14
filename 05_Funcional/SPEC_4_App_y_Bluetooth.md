@@ -28,11 +28,11 @@ Son **tres tramos** y **el del medio no es un cable tonto**.
 | ESP32 <-> STM32 | **UART por `J17`**, `ENLACE_BAUDIO` / `ENLACE_FORMATO`, `ENLACE_PIN_TX`/`RX` | `contrato.h` |
 | formato de trama | `$TIPO,CLAVE:valor,...` cerrado con `*XX\r\n`, `XX` = XOR-8 del payload **saltando el `$`** | `enviarTramaConCrc()` / `calcularChecksum()` en los dos `bluetooth.cpp` |
 
-**El rotulo SPP se APRENDE.** La serie sale del silicio del STM32 y el ESP32 no puede saberla al
-arrancar: `transporte_aprenderRotulo()` la toma del primer `$STATUS` que retransmite y la guarda, y el
-rotulo bueno —`ROTULO_PREFIJO` + serie + `M` o `E`— aparece **en la arrancada siguiente**. Hasta
-entonces se ve `ROTULO_PROVISIONAL`, y se ve **a proposito**: un rotulo inventado es peor que uno que
-admite que no sabe. **No se re-rotula en caliente**: cambiar el nombre SPP tira la sesion del operario.
+**El rotulo SPP se APRENDE.** La serie sale del silicio del STM32 y el ESP32 no puede saberla al arrancar:
+`transporte_aprenderRotulo()` la toma del primer `$STATUS` que retransmite y la guarda, y el rotulo bueno
+—`ROTULO_PREFIJO` + serie + `M` o `E`— aparece **en la arrancada siguiente**. Hasta entonces se ve
+`ROTULO_PROVISIONAL` **a proposito**: un rotulo inventado es peor que uno que admite que no sabe. **No se
+re-rotula en caliente**: cambiar el nombre SPP tira la sesion del operario.
 
 **El puente NO filtra la telemetria de subida.** `desdeElEquipo()` valida FORMATO —`trama_valida()`— y
 retransmite **toda trama bien formada, la conozca o no**. La lista `PREFIJOS_STM32` existe solo para los
@@ -54,15 +54,13 @@ propio puente marcado `NODE:PUENTE`. **O cruza o la atiende el puente, nunca las
 - **Subida (equipo -> app):** `BUF_ENTRADA_STM32`; lo que desborda se cuenta en
   `puente_descartadasPorLargo()` y no sube.
 
-**El latido.** El puente emite `LATIDO_LINEA` cada `LATIDO_MS` hacia el STM32 para que sus contadores de
-silencio de `J17` cuenten **muertes del puente** y no silencios del puerto. **Los dos despachadores tienen
-una rama reservada que sale sin actuar y SIN CONTESTAR**, la primera de todas: sin ella el latido caeria
-en el `$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO` del final y la app pintaria un aviso rojo cada dos
-segundos acusando al operario de una clave que nadie tecleo.
-
-**Sin telefono conectado no se escribe.** `transporte_escribir()` mira `hasClient()` y devuelve `0`:
-contar como entregada una trama que `BluetoothSerial` tira dejaria mintiendo al unico contador que se
-puede mirar desde fuera.
+**El latido.** El puente emite `LATIDO_LINEA` cada `LATIDO_MS` hacia el STM32 para que sus contadores de silencio
+de `J17` cuenten **muertes del puente** y no silencios del puerto. **Los dos despachadores tienen una rama
+reservada que sale sin actuar y SIN CONTESTAR**, la primera de todas: sin ella el latido caeria en el
+`$ERR,CMD:AUTH_FAILED,DESC:PIN_INVALIDO` del final y la app pintaria un aviso rojo cada dos segundos acusando al
+operario de una clave que nadie tecleo. **Y sin telefono conectado no se escribe:** `transporte_escribir()` mira
+`hasClient()` y devuelve `0`, porque contar como entregada una trama que `BluetoothSerial` tira dejaria mintiendo
+al unico contador que se puede mirar desde fuera.
 
 ---
 
@@ -142,15 +140,13 @@ que viviera en una funcion comun los dejaria midiendo un bloque vacio (`N-89`).
 - **El criterio, escrito en el firmware:** *el PIN guarda lo que ABRE paso o mueve luces; no lo que las
   para.* Por eso el rojo de emergencia entra sin clave: quien esta viendo el incidente tiene que poder
   pedirlo aunque no se sepa la clave.
-- **La segunda puerta de la app no es una clave: es el VALE DE VIA DESPEJADA.** Para las ordenes que
-  abren paso desde la botonera de campo, `enviarComandoFirmware()` exige `viaConfirmadaVigente()` en vez
-  del PIN. El motivo no es comodidad: **un PIN demuestra QUIEN eres y no demuestra que hayas MIRADO.** El
-  firmware no cambia —sigue exigiendo el PIN y la app se lo sigue poniendo—; lo que cambia es a quien se
-  lo pide la app.
+- **La segunda puerta de la app no es una clave: es el VALE DE VIA DESPEJADA.** Para las ordenes que abren paso
+  desde la botonera de campo, `enviarComandoFirmware()` exige `viaConfirmadaVigente()` en vez del PIN, y el motivo
+  no es comodidad: **un PIN demuestra QUIEN eres y no demuestra que hayas MIRADO.** El firmware no cambia —sigue
+  exigiendo el PIN y la app se lo sigue poniendo—; cambia a quien se lo pide la app.
 - **La app devuelve si la orden llego a salir, y el que llama tiene que mirarlo.** `enviarComandoFirmware()`
-  devuelve `bool`: pulsar un boton no es saber que el equipo obedecio, y **ni siquiera es saber que la
-  orden salio**. Una orden que no salio se anota en el Diario **y no en la cinta** —por el cable no paso
-  un byte—, que son dos averias distintas para quien esta de pie.
+  devuelve `bool`: pulsar un boton no es saber que el equipo obedecio, y **ni siquiera es saber que la orden
+  salio**. Una orden que no salio se anota en el Diario **y no en la cinta** —por el cable no paso un byte—.
 
 🔴 **Lo que el PIN NO cubre hoy esta medido y esta en §7.**
 
@@ -201,14 +197,13 @@ medido, los unicos sitios que los escriben son esas dos ramas. Quitar los campos
 Esclavo dejaria la pantalla del poste 2 **pintando la cuenta atras y la bateria del poste 1**, que es peor
 que un `--`. El campo que llega marcado es un dato; el campo que no llega deja la pantalla mintiendo.
 
-🟢 **13/09 — EL POSTE 2 YA DICE COMO VE EL SU ENLACE, y esta spec decia lo contrario.** Hasta el 12/09 los
-tres contadores —`protocolo_bytesRecibidos()`, `protocolo_tramasValidas()`, `protocolo_tramasDescartadas()`—
-**solo salian dentro del `$ALARM`, o sea cuando el enlace YA se habia caido**. `D-32` (2) eligio la via de
-`D-23` —**`$EVENT` periodico**, no un aviso ESP32 -> STM32— y **se construyo el mismo dia** (`06f126e`):
-`Esclavo/src/bluetooth.cpp` publica `$EVENT ... ORIGEN:ENLACE_RF, DETALLE:RX:<n> OK:<n> RUIDO:<n>` cada
-`DIAG_ENLACE_MS`, con su propio reloj y **fuera del `if` del `$STATUS`**. Los cuatro campos fijos de arriba
-siguen fijos: **el dato nuevo no va en el `$STATUS`, va en el Diario.** Lo que queda abierto es la PANTALLA,
-y esta en §7.3.
+🟢 **EL POSTE 2 DICE COMO VE EL SU ENLACE, y hasta el 12/09 no lo decia:** los tres contadores
+—`protocolo_bytesRecibidos()`, `protocolo_tramasValidas()`, `protocolo_tramasDescartadas()`— **solo salian dentro
+del `$ALARM`, o sea cuando el enlace YA se habia caido**. `D-32` (2) eligio la via de `D-23` —**`$EVENT`
+periodico**, no un aviso ESP32 -> STM32—: `Esclavo/src/bluetooth.cpp` publica `$EVENT ... ORIGEN:ENLACE_RF,
+DETALLE:RX:<n> OK:<n> RUIDO:<n>` cada `DIAG_ENLACE_MS`, con su propio reloj y **fuera del `if` del `$STATUS`**.
+Los cuatro campos fijos siguen fijos: **el dato nuevo no va en el `$STATUS`, va en el Diario.** La PANTALLA sigue
+abierta: §7.3.
 
 ---
 
@@ -232,17 +227,14 @@ aceptado por el responsable— y por eso no es un defecto; se escribe aqui porqu
 cuenta es indistinguible de un olvido** (`CLAUDE.md` §6).
 
 🔴 **3 · `D-23`: EL FIRMWARE YA ESTA; LA PANTALLA DE LA APP NO — y la app es de quien era la decision.**
-Esta spec decia *«decidida y sin construir»* y *«lo que NO esta elegido es el mecanismo de al conectar»*.
-**Las dos frases caducaron el 13/09.** `D-32` (2) resolvio el mecanismo: como el STM32 **no puede saber** que
-un telefono se conecto —el unico que lo ve es el ESP32— y traer ese aviso seria **la tercera orden que el
-accesorio origina hacia el micro** (`esp32_05_no_origina` la condiciona **por escrito** a una fila de
-`DECISIONES.md`), el responsable eligio la otra via: **`$EVENT` periodico a cadencia baja**, que no toca
-ninguna barrera. **Construida ese dia** en `Esclavo/src/bluetooth.cpp` (`06f126e`), y `decisiones_01_anclas`
-ya no la acusa. **LO QUE SIGUE ABIERTO, medido hoy sobre el arbol:** `D-23` pedia *«una pantalla para
-Esclavo, diferente de lo que hoy hace la app»* y **la app no tiene ni una linea de ella** — `grep -n
-"ENLACE_RF" app.js` da **cero en las cuatro copias**. El dato **si llega al tecnico**, pero como una linea
-mas del REGISTRO DE EVENTOS, mezclada con las demas: `$EVENT` lo pinta el camino generico de `app.js`, que no
-distingue este `ORIGEN` de ningun otro. **Es media decision construida, y la mitad que falta es la que la
+`D-32` (2) resolvio el mecanismo: como el STM32 **no puede saber** que un telefono se conecto —el unico que lo ve
+es el ESP32— y traer ese aviso seria **la tercera orden que el accesorio origina hacia el micro**
+(`esp32_05_no_origina` la condiciona **por escrito** a una fila de `DECISIONES.md`), el responsable eligio
+**`$EVENT` periodico a cadencia baja**, que no toca ninguna barrera, y esta construido. **LO QUE SIGUE ABIERTO,
+medido sobre el arbol:** `D-23` pedia *«una pantalla para Esclavo, diferente de lo que hoy hace la app»* y **la app
+no tiene ni una linea de ella** — `grep -n "ENLACE_RF" app.js` da **cero en las cuatro copias**. El dato **si llega
+al tecnico**, pero como una linea mas del REGISTRO DE EVENTOS: `$EVENT` lo pinta el camino generico de `app.js`,
+que no distingue este `ORIGEN` de ningun otro. **Es media decision construida, y la mitad que falta es la que la
 fila nombra.**
 
 🔴 **4 · Dos `$ACK` que no dependen de lo que la orden hizo: `SET_MODO:ALCANCE` y `SET_MODO:INTELIGENTE`.**
@@ -250,16 +242,14 @@ Las dos ramas contestan `RESULT:OK` despues de `modoActual_set()` **y nada mas**
 el modo vive en `modoAlcance_setup()` y `modoInteligente_setup()`, y `Maestro/src/main.cpp` los llama
 **solo bajo `if (modo != modoAnterior)`**: repetida la orden con el modo ya puesto, el equipo contesta OK
 y **no corre nada**. Es la **misma forma** que `N-146` reparo en `SET_MODO:AMBAR` —capturando `yaEnModo`
-y contestando `REARMADO`— y que el Esclavo reparo en su `SET_MODO:DEGRADADO` —capturando `antesDeg` y
-contestando `YA_ACTIVO`—; las dos unicas ramas de modo que **no** tienen la forma son `AUTO` y `MANUAL`,
-que son justo las que llaman al coordinador **dentro** de la rama. **Lo que cada una se deja, medido:**
-en `ALCANCE`, `modoAlcance_setup()` es el **unico llamador** de `protocolo_reiniciarContadores()` en el
-Maestro, o sea que **la puesta a cero de SFTY-15 no ocurre en la segunda pulsacion** y lo que se ensena ya
-no corresponde a *esta* medicion; en `INTELIGENTE`, no se re-ejecuta `coordinador_iniciarModo()`. **El par
-peligroso es alcanzable por el mismo camino que `N-146`:** `CMD:FORZAR_ROJO` entra **sin PIN desde
-cualquier modo**, mueve la luz y **no toca `modoActual`**. ⚠️ **Lo que NO se afirma:** no esta medido en
-banco ni en tarjeta, es lectura del fuente; y **no deja el cruce trabado** —`modoInteligente_loop()` vuelve
-a pedir cambio desde `C_IDLE`—.
+y contestando `REARMADO`— y que el Esclavo reparo en su `SET_MODO:DEGRADADO` —capturando `antesDeg` y contestando
+`YA_ACTIVO`—; las dos unicas ramas de modo que **no** tienen la forma son `AUTO` y `MANUAL`, que son justo las que
+llaman al coordinador **dentro** de la rama. **Lo que cada una se deja, medido:** en `ALCANCE`,
+`modoAlcance_setup()` es el **unico llamador** de `protocolo_reiniciarContadores()` en el Maestro, o sea que **la
+puesta a cero de SFTY-15 no ocurre en la segunda pulsacion**; en `INTELIGENTE`, no se re-ejecuta
+`coordinador_iniciarModo()`. **El par peligroso es alcanzable por el mismo camino que `N-146`:**
+`CMD:FORZAR_ROJO` entra **sin PIN desde cualquier modo**, mueve la luz y **no toca `modoActual`**. ⚠️ **Lo que NO
+se afirma:** no esta medido en banco ni en tarjeta, es lectura del fuente, y **no deja el cruce trabado**.
 
 ⚠️ **5 · El Modo Alcance no tiene superficie.** Todo lo que ese modo produce sale por
 `lcd_dibujarAlcance()`, y **el LCD se retiro** (`D-17.bis`). Desde el telefono, `MODO:ALCANCE` ensena el
@@ -267,12 +257,10 @@ mismo `RF:`/`RTT:` que cualquier otro modo —vienen de la ventana de latidos de
 contadores que ese modo pone a cero—. Es un modo de medida sin nadie que lea la medida, y es `D-16` en su
 forma mas simple.
 
-⚠️ **6 · `D-30`, RECORTADA por `D-32` (1) el 13/09 — sale SOLO el LCD; el mando A/B/C/D SE QUEDA.** Lo que
-toca a esta spec no cambia y por eso se conserva: **`menu.cpp` NO es solo pantalla.** `menu_setup()` llama a
-`coordinador_forzarMenu()`, el todo-rojo de las dos puntas, **alcanzable HOY desde la app** con
-`SET_MODO:MENU` (§3.1, y es una de las cuatro ordenes sin PIN del hueco 1). **Si `menu.cpp` cae con el LCD,
-ese todo-rojo necesita otra puerta EN EL MISMO COMMIT.** Lo dice la propia `D-32` (1). ⚠️ **Medido sobre
-`606ba78`, con un agente retirando el LCD ahora mismo:** los ficheros siguen ahi y `D-30` sigue **sin ancla**.
+⚠️ **6 · `menu.cpp` NO ES SOLO PANTALLA, y por eso `D-30` toca a esta spec** (`D-32` (1) la recorta: sale solo el
+LCD — SPEC 1 §12.2). `menu_setup()` llama a `coordinador_forzarMenu()`, el todo-rojo de las dos puntas,
+**alcanzable HOY desde la app** con `SET_MODO:MENU` (§3.1, y es una de las cuatro ordenes sin PIN del hueco 1).
+**Si `menu.cpp` cae con el LCD, ese todo-rojo necesita otra puerta EN EL MISMO COMMIT.**
 
 ⚠️ **7 · Una ventana de ~1 s por conexion en la que una orden de Maestro puede salir contra un Esclavo.**
 `SOLO_MAESTRO` pregunta `=== 'ESCLAVO'`, asi que con `state.node` en `null` —entre que el socket abre y
@@ -283,3 +271,30 @@ rompe el arnes del puente, que pulsa antes del primer `$STATUS`.
 ⚠️ **8 · Desde el `$STATUS` la app no puede saber que reloj sello la `HORA:`.** Hoy siempre es el DS3231
 del puente, porque el otro no existe, **pero la trama no lo dice**. Residual declarado en
 `sellarHoraSiFaltaba()`; su cierre es de SPEC 3.
+---
+
+## 8. QUIEN EJERCE CADA BARRERA DE ESTE DOCUMENTO
+
+> **Una spec puede describir barreras que ningun compilador ejerce, con UNA condicion: que cada barrera lleve
+> escrito QUIEN la ejerce.** El criterio es `CLAUDE.md` §6.3 — **¿algun arnes COMPILA ese `.cpp`?**; si solo lo
+> lee por texto no ve un defecto del TIEMPO, y es *vigilada por texto*, no *ejecutada*. Filas = las de la
+> compuerta; reparto de `.cpp` por arnes, `ARQUITECTURA.map` §4-5. **Medido sobre `ef3504c`.**
+
+| barrera | quien la EJERCE hoy |
+|---|---|
+| §4 **el PIN del firmware** (`CMD:PIN:<pin>:<accion>`) | ✅ **fila 20**: `Simulaciones/puente_esp32/compilar.ps1` **enlaza el `bluetooth.cpp` REAL de las DOS puntas** y le teclea ordenes con el prefijo releido del fuente · **fila 18** ademas en el Esclavo (bloque H) |
+| §3 **el `$ACK` depende de lo que la llamada devolvio** | ✅ **filas 20 y 18**, sobre esos mismos `bluetooth.cpp` reales: la 20 compara rama por rama lo que contesta el fuente |
+| §4 **el PIN de la app** y §2 **el enrutado por punta** | ✅ **filas 9 a 12**, y la **12** corre `app.js` entero en jsdom inyectando `$STATUS` reales |
+| §5 **`juzgarTrama()`, el XOR-8 y las cinco tramas** | ✅ **fila 12**, que inyecta tramas corruptas contra el `app.js` real |
+| §4 **el VALE DE VIA (`viaConfirmadaVigente()`)** y el `bool` de `enviarComandoFirmware()` | ✅ **fila 12** |
+| §3.3 **el despachador del ESP32** — `D-15`, `esParaElPuente()`, los siete `$ERR` de `LEER_RTC` | 🔴 **NADIE.** `ESP32_Expansion/src/despachador.cpp` **no lo compila ningun arnes**: solo lo cruza PlatformIO, y la fila 20 **lo modela en Python** (`ARQUITECTURA.map` §3.7, nota 3) |
+| §1 **`transporte_escribir()` mira `hasClient()`** | 🔴 **NADIE.** `X:transporte_app.cpp`, igual que el anterior |
+| §1 **`TRAMA_MAX_UTIL` y `BUF_ENTRADA_STM32`** | 🟡 **texto** (`esp32_06_no_parte_tramas`, `esp32_09_contrato_de_bytes`, `esp32_07_presupuesto_bytes`) |
+| §1 **la rama del latido que sale sin contestar** | 🟡 **texto** (`esp32_08_silencio_no_es_orden`, y el censo de la fila 20, que la excluye por nombre) |
+| §1 **`sellarHoraSiFaltaba()`**, la unica trama que el puente modifica | 🟡 **texto** (`esp32_13_siembra_de_hora`, `reloj_02_siembra_que_miente`); nadie compila `X:siembra.cpp` |
+
+**Cuenta: 10 filas y 12 barreras — 7 ejecutadas, 2 sin nadie, 3 vigiladas solo por texto.** 🔴 **Los dos rojos son
+el MISMO hecho: el ESP32 entero (9 `.cpp`) no se ejecuta en el PC en ningun sitio**, asi que todo lo que esta spec
+dice del puente —`D-15`, los limites de linea, los siete motivos de `LEER_RTC`— descansa en packs que leen texto.
+⚠️ **Y una refutacion que conviene dejar escrita: `Maestro/src/bluetooth.cpp` SI lo compila alguien** —la fila 20,
+junto con el del Esclavo—; lo que no compila nadie es el despachador del **ESP32**, que es otro fichero.
