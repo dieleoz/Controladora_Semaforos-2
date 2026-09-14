@@ -263,11 +263,19 @@ Todas estas cifras están **construidas en firmware** y validadas en simulador, 
 contrastadas contra la operación real de obra**. Se listan para que el funcional las confirme o las
 corrija **antes** de la primera puesta en campo.
 
-1. **Ciclo degradado fijo de verde 30 s / todo-rojo 30 s (ciclo de 120 s).** No hereda el verde
+1. ~~**Ciclo degradado fijo de verde 30 s / todo-rojo 30 s (ciclo de 120 s).** No hereda el verde
    configurado en Modo Automático, deliberadamente: un verde de 2 min con todo-rojo de 30 s daría un
-   ciclo de 5 minutos y nadie espera eso en un paso alternado sin invadir. **¿Son 30/30 aceptables
-   para el tramo de obra real, o hace falta ajustarlos por longitud?** *(Bajar el todo-rojo acorta el
-   margen de deriva y obligaría a bajar también el límite de 48 h.)*
+   ciclo de 5 minutos y nadie espera eso en un paso alternado sin invadir. ¿Son 30/30 aceptables
+   para el tramo de obra real, o hace falta ajustarlos por longitud? *(Bajar el todo-rojo acorta el
+   margen de deriva y obligaría a bajar también el límite de 48 h.)*~~
+
+   🔵 **RESUELTO — 13/09: el verde deja de ser un valor propio de mesa de pruebas y pasa a ser el
+   MISMO mínimo vial que ya rige para todo lo demás (`D-5`).** El todo-rojo no se toca —sigue siendo
+   la decisión vial de arriba— y con él tampoco el margen contra la deriva ni el límite de 48 h:
+   medido de nuevo tras la subida, el cruce sigue aguantando exactamente el mismo desfase entre
+   relojes que antes (`costura_12_margen_deriva`). La cifra vigente del verde vive solo en
+   `DEG_VERDE_SEG` (`Maestro/src/modo_degradado.cpp`) y en `VERDE_MIN_MIN` (`D-5`); no se copia aquí
+   para no volver a quedar caduca.
 2. **Límite duro de 48 h sin resincronizar ⇒ caída automática a ámbar.** Sale de un margen teórico de
    ~3,5 días ~~con factor de seguridad 2~~ 🔴 **con factor de seguridad 1,44, no 2.**
 
@@ -360,8 +368,10 @@ corrija **antes** de la primera puesta en campo.
    —medido con dos patrones, para descartar al buscador—.
    **(b) Y sí hay quien lo vigila:** `:202-203` **rechaza la entrada** al modo si no ha llegado la
    configuración — `DEG_RECHAZO_SIN_CONFIG` y `DEG_RECHAZO_CICLO_NULO`.
-   Las dos puntas corren 30/30 **porque el Maestro se los manda**, no por coincidencia de versión:
-   `Maestro/src/modo_degradado.cpp:249` envía `DEG_VERDE_SEG` / `DEG_DESPEJE_SEG` (`:74-75`).
+   Las dos puntas corren el MISMO ciclo **porque el Maestro se lo manda**, no por coincidencia de
+   versión: `modo_degradado_publicarConfig()` (`Maestro/src/modo_degradado.cpp`) envía
+   `DEG_VERDE_SEG` / `DEG_DESPEJE_SEG` — la cifra vigente se lee de ahí, no de este documento, que es
+   justo lo que este punto (2) volvió a demostrar el 13/09 cuando el verde subió a 180 s.
 3. **Margen de flash del Maestro (N-21).** ~~Tras el Modo Degradado va al **80,2 %**. Lo pendiente
    —persistencia conectada, pantalla informativa en ámbar y modo nocturno— lo dejaría sobre el
    **85 %**: ajustado pero viable.~~ **Una función grande más ya no cabría.** ¿Se acota el alcance

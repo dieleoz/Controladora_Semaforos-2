@@ -1855,8 +1855,11 @@ Es la comprobación por la que existe esta sección, y hoy no se puede montar**~
 > 🟢 **Y ésta es la que más se gana con `D-18`: es la comprobación por la que existe la sección
 > —que en ningún momento haya verde en las dos puntas a la vez— y llevaba desde el 04/09 sin poder
 > montarse. ⚠️ Se sigue haciendo con el tramo CERRADO al tráfico.**
-- *Acción:* con las dos puntas en Degradado, **observar dos ciclos completos (4 minutos)** con un
-  observador en cada punta.
+- *Acción:* con las dos puntas en Degradado, **observar dos ciclos completos** con un observador en
+  cada punta. 🔴 **13/09 (`D-5`): el verde dejó de ser un valor fijo de mesa de pruebas y pasó a ser
+  el mínimo vial** (`DEG_VERDE_SEG`, `Maestro/src/modo_degradado.cpp`); dos ciclos ya no son cuatro
+  minutos, y este documento no se actualiza solo. Calcule el tiempo de observador con la cifra
+  vigente antes de montar la prueba, no con la de esta línea.
 - *Marcar cada punto con lo observado en las LUCES:*
 
 ```text
@@ -1867,7 +1870,9 @@ Es la comprobación por la que existe esta sección, y hoy no se puede montar**~
 [ ] EN NINGUN MOMENTO hubo verde en las dos puntas a la vez
 ```
 
-- Duración medida del ciclo completo: ________ s *(esperado ~120 s)*
+- Duración medida del ciclo completo: ________ s *(esperado 2 × (`DEG_VERDE_SEG` + `DEG_DESPEJE_SEG`)
+  — lea las dos constantes de `Maestro/src/modo_degradado.cpp` antes de la prueba; no dé por buena
+  una cifra escrita en este documento)*
 - Resultado: `[ ] CUMPLE  [ ] NO CUMPLE` — Observación: ________________________________
 - > **Por qué las luces y no la telemetría.** Cada unidad informa de la fase que *ella* calcula. Si
   > las dos calculan mal —relojes desfasados, versiones distintas, una unidad reiniciada— **las dos
@@ -3348,8 +3353,13 @@ DATOS MEDIDOS  (no cuentan como CUMPLE/NO CUMPLE: son registro para el acta)
      Se puso en hora cada modulo por separado en esta sesion?  [ ] NO   [ ] SI
 
   Modo Degradado (9.7):
-     Duracion del ciclo completo ............ ______ s   (esperado ~120 s)
-     Todo-rojo medido ....................... ______ s   (esperado ~30 s)
+     Duracion del ciclo completo ............ ______ s   (esperado 2 x (DEG_VERDE_SEG +
+                                                            DEG_DESPEJE_SEG); lea las dos
+                                                            constantes de modo_degradado.cpp
+                                                            antes de la prueba -D-5, 13/09,
+                                                            movio el verde de mesa de pruebas
+                                                            al minimo vial-)
+     Todo-rojo medido ....................... ______ s   (esperado ~30 s, sin tocar por D-5)
 
   Mando (§0.3):
      ~~J16 p5 contra masa ... ______   p8 contra masa ... ______~~   CADUCADO (N-118, 04/09):

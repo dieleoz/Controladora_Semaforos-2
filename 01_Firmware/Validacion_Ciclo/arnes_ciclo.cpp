@@ -26,9 +26,56 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <cstdlib>
+#include <fstream>
+#include <regex>
+#include <sstream>
+#include <string>
+#include <vector>
 
 // El fichero REAL del firmware. No una copia.
 #include "ciclo_degradado.h"
+
+// ---------------------------------------------------------------------------
+// LA CONFIGURACION "REAL DEL FIRMWARE" SE RELEE DE modo_degradado.cpp, NO SE
+// ESCRIBE A MANO. Mismo patron que Validacion_Automatico/arnes_automatico.cpp:
+// dirDeEsteArchivo() para no depender del directorio de trabajo, y ABORTAR sin
+// valor por defecto si el patron no aparece (CLAUDE.md 4 y 5). Antes esta tabla
+// llevaba `{ 30, 30, ... }` escrito a mano: cuando la constante subio a 180 el
+// literal se habria quedado mintiendo en silencio si nadie tocaba este fichero.
+// ---------------------------------------------------------------------------
+static std::string dirDeEsteArchivo() {
+  std::string f = __FILE__;
+  size_t p = f.find_last_of("/\\");
+  return (p == std::string::npos) ? std::string(".") : f.substr(0, p);
+}
+static const std::string MAESTRO_SRC = dirDeEsteArchivo() + "/../Maestro/src/";
+
+static void abortar(const std::string& motivo) {
+  std::fprintf(stdout, "\n[ABORTADO] %s\n", motivo.c_str());
+  std::fprintf(stdout,
+      "Sin esa constante el arnes mediria otra cosa que el firmware, y seguiria\n"
+      "dando un veredicto aunque ya no describa el C++ real. Regla del banco:\n"
+      "sin valor por defecto, nunca.\n");
+  std::exit(2);
+}
+
+// La primera aparicion del patron en modo_degradado.cpp. ABORTA si no aparece.
+static long leerConstante(const std::string& patron, const std::string& que) {
+  std::string ruta = MAESTRO_SRC + "modo_degradado.cpp";
+  std::ifstream f(ruta.c_str());
+  if (!f) abortar("no se pudo abrir el fuente real " + ruta);
+  std::ostringstream ss;
+  ss << f.rdbuf();
+  std::string txt = ss.str();
+  std::regex re(patron);
+  std::smatch m;
+  if (!std::regex_search(txt, m, re)) {
+    abortar("no se pudo leer del C++ real la constante de " + que +
+            " (patron no encontrado en modo_degradado.cpp)");
+  }
+  return std::strtol(m[1].str().c_str(), nullptr, 10);
+}
 
 static int total = 0, fallos = 0;
 
@@ -42,12 +89,12 @@ static void comprobar(bool ok, const char* que) {
   }
 }
 
-// Configuraciones a barrer. Se incluye la REAL del firmware y varias que NO dividen a
+// Configuraciones a barrer. La REAL del firmware se antepone en main(), releida de
+// modo_degradado.cpp; estas son ademas, sinteticas, para forzar ciclos que NO dividen a
 // 86.400, que es donde muerde el salto de medianoche: 86400 %% 120 == 0 no prueba nada
 // sobre un ciclo de 134 s.
 struct Config { uint16_t verde, despeje; const char* porque; };
-static const Config CONFIGS[] = {
-  {  30,  30, "la real del firmware (DEG_VERDE_SEG / DEG_DESPEJE_SEG)" },
+static const Config CONFIGS_EXTRA[] = {
   {  30,  37, "ciclo 134 s: 86400 %% 134 = 44, no divide" },
   {  45,  20, "ciclo 130 s: 86400 %% 130 = 20, no divide" },
   {  17,  11, "ciclo  56 s: 86400 %%  56 = 32, no divide" },
@@ -55,16 +102,33 @@ static const Config CONFIGS[] = {
   {   7,   3, "ciclo  20 s, muy corto" },
   { 255, 255, "el tope del byte" },
 };
-static const int N_CONFIGS = sizeof(CONFIGS) / sizeof(CONFIGS[0]);
+static const int N_CONFIGS_EXTRA = sizeof(CONFIGS_EXTRA) / sizeof(CONFIGS_EXTRA[0]);
 
 int main() {
   printf("==============================================================\n");
   printf(" ARNES DEL CICLO DEGRADADO - ciclo_degradado.h REAL, en el PC\n");
   printf("==============================================================\n");
 
-  for (int c = 0; c < N_CONFIGS; c++) {
-    const uint16_t v = CONFIGS[c].verde, d = CONFIGS[c].despeje;
-    printf("\n-- verde=%u despeje=%u  (%s)\n", v, d, CONFIGS[c].porque);
+  // La primera configuracion del barrido ES la real del firmware, releida de
+  // modo_degradado.cpp en cada corrida (CLAUDE.md 4): ni un numero escrito a mano, para
+  // que esta etiqueta no pueda mentir en silencio el dia que alguien mueva la constante.
+  const uint16_t verdeReal = (uint16_t)leerConstante(
+      R"(DEG_VERDE_SEG\s*=\s*(\d+))", "el verde del ciclo degradado (DEG_VERDE_SEG)");
+  const uint16_t despejeReal = (uint16_t)leerConstante(
+      R"(DEG_DESPEJE_SEG\s*=\s*(\d+))", "el despeje del ciclo degradado (DEG_DESPEJE_SEG)");
+  char porqueReal[128];
+  snprintf(porqueReal, sizeof(porqueReal),
+           "la real del firmware, releida de modo_degradado.cpp "
+           "(DEG_VERDE_SEG=%u / DEG_DESPEJE_SEG=%u)",
+           verdeReal, despejeReal);
+
+  std::vector<Config> configs;
+  configs.push_back(Config{ verdeReal, despejeReal, porqueReal });
+  for (int i = 0; i < N_CONFIGS_EXTRA; i++) configs.push_back(CONFIGS_EXTRA[i]);
+
+  for (size_t c = 0; c < configs.size(); c++) {
+    const uint16_t v = configs[c].verde, d = configs[c].despeje;
+    printf("\n-- verde=%u despeje=%u  (%s)\n", v, d, configs[c].porque);
 
     // 1. LA PROPIEDAD QUE IMPORTA: nunca se pasa de un verde al otro sin todo-rojo.
     //    Un verde que sucede a otro verde sin cierre deja el cruce abierto por los

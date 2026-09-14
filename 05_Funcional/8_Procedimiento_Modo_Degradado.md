@@ -973,8 +973,11 @@ En la App Móvil:
 
 ### Paso 3 — VERIFICACIÓN VISUAL DE AMBAS PUNTAS ← **obligatoria**
 
-Con las dos unidades ya en Degradado, **quédese a ver al menos un ciclo completo (120 s)** y
-compruebe con los ojos, no en pantalla:
+Con las dos unidades ya en Degradado, **quédese a ver al menos un ciclo completo** —los dos verdes y
+sus dos todo-rojos— **antes de irse, aunque tarde varios minutos**: el ciclo hoy es el que resulte de
+sumar dos veces `DEG_VERDE_SEG` y dos veces `DEG_DESPEJE_SEG` (`Maestro/src/modo_degradado.cpp`), y
+esa cifra ya subió una vez (`D-5`, 13/09) sin que este documento se enterase por sí solo. **No dé por
+bueno el primer verde y se retire**: compruebe con los ojos, no en pantalla:
 
 - [ ] Cuando el **Maestro está en verde**, el **Esclavo está en rojo**
 - [ ] Entre los dos verdes hay un **todo-rojo largo** (~30 s) con **ambas puntas en rojo**
@@ -1837,9 +1840,9 @@ $ grep -n "setClockSource" 01_Firmware/Maestro/src/reloj.cpp 01_Firmware/Esclavo
 
 | Parámetro | Valor | Dónde está |
 |---|---|---|
-| Verde de cada punta | **30 s** | `DEG_VERDE_SEG` |
-| Todo-rojo entre verdes | **30 s** *(ya ampliado — el normal son 15 s)* | `DEG_DESPEJE_SEG` |
-| Ciclo completo | **120 s** · espera máxima 90 s | 2 × (30 + 30) |
+| Verde de cada punta | 🔵 **el mismo mínimo vial que todo lo demás** (`D-5`, 13/09 — ya no es un valor propio de mesa de pruebas; no se copia el número aquí para no volver a quedar caduco) | `DEG_VERDE_SEG` |
+| Todo-rojo entre verdes | **30 s** *(ya ampliado — el normal son 15 s; NO se tocó con `D-5`)* | `DEG_DESPEJE_SEG` |
+| Ciclo completo | 2 × (verde + 30 s) — se recalcula de las dos filas de arriba, no se copia un número | `DEG_VERDE_SEG`, `DEG_DESPEJE_SEG` |
 | Antigüedad máxima de la sincronización para entrar | **2 h** | `SYNC_FRESCA_MS` |
 | Tolerancia de desfase para entrar | **±3 s** | `TOLERANCIA_DESFASE_S` |
 | Aviso de límite — **MAESTRO** | a partir de **44 h** — 🔴 **HOY NO HAY DÓNDE LEERLO** *(§4)* | `AVISO_LIMITE_MS` |
@@ -1868,17 +1871,25 @@ $ grep -n "setClockSource" 01_Firmware/Maestro/src/reloj.cpp 01_Firmware/Esclavo
 > Los parámetros de *arriba* —tiempos, tolerancias y el límite de 48 h— viven en el firmware y no
 > dependen de ningún botón.
 
-**El ciclo degradado es fijo y propio: no hereda el verde configurado en Modo Automático.** Es
-deliberado — un verde de 2 minutos con un todo-rojo de 30 s daría un ciclo de 5 minutos, y nadie
-espera cinco minutos en un paso alternado sin invadir.
+**El ciclo degradado es fijo y propio: no hereda el verde configurado en Modo Automático** —son dos
+constantes separadas, y por eso pueden decidirse por separado—.
 
-> 🔵 **Y desde el 04/09 ese argumento es MÁS fuerte, no menos.** El mínimo del Modo Automático
+> 🔵 **Y desde el 04/09 ese argumento cambió de sentido, no de peso.** El mínimo del Modo Automático
 > **subió de 1 a 3 minutos** —verde 3–15 min, rojo 3–15 min
 > (`Maestro/src/modo_automatico.cpp:51-53`)—, por decisión vial del responsable: *«tres minutos es
-> la mínima distancia de seguridad»*. **Si el Degradado heredase el verde configurado, el ciclo
-> mínimo pasaría de los 120 s de ahora a 7 minutos** —2 × (3 min + 30 s)—, y este modo es
-> precisamente el que corre **sin confirmación de la otra punta**. Los `30 / 30` fijos se quedan
-> como están, y el porqué queda medido en vez de razonado.
+> la mínima distancia de seguridad»*. Este documento razonaba que heredar ese verde en Degradado
+> alargaría el ciclo a 7 minutos y que **eso** era lo que se aceptaba a cambio de mantener el verde
+> fijo en 30 s.
+>
+> 🔴 **RESUELTO EL 13/09, Y EN EL SENTIDO CONTRARIO AL QUE ESTE PÁRRAFO RAZONABA: el responsable pidió
+> el mínimo vial TAMBIÉN aquí (`D-5`), no que el Degradado siguiera siendo la excepción.** El verde
+> deja de ser un valor propio de mesa de pruebas fijado por fluidez —esa era la razón real, y el
+> responsable la revisó a sabiendas del ciclo más largo que compra—. El todo-rojo, el margen contra
+> la deriva y el límite de 48 h **no se tocaron**: siguen siendo la misma decisión vial de arriba, y
+> medido de nuevo tras la subida el cruce aguanta exactamente el mismo desfase entre relojes que
+> antes (`costura_12_margen_deriva`). La cifra vigente vive en `DEG_VERDE_SEG`
+> (`Maestro/src/modo_degradado.cpp`) y en `VERDE_MIN_MIN` (`D-5`, `limites_ciclo.h`), no en este
+> párrafo.
 
 ---
 
@@ -1960,9 +1971,9 @@ Escrito aquí porque una limitación documentada vale más que una promesa:
   > la única forma de saberlo es mirar `MODO:` en el `$STATUS`. **La verificación visual de las dos
   > puntas tras un corte no la pide el equipo: la tiene que recordar la persona.**
 - **La configuración del ciclo se sincroniza pero todavía no se consume** en el cálculo del ciclo
-  (N-18): hoy ambas puntas usan los 30/30 fijos compilados. Mientras los dos firmwares sean de la
-  misma versión, coinciden — **pero flashear versiones distintas en cada punta rompería la fase sin
-  aviso**.
+  (N-18): hoy ambas puntas usan el mismo par de constantes fijas compiladas (`DEG_VERDE_SEG` /
+  `DEG_DESPEJE_SEG`). Mientras los dos firmwares sean de la misma versión, coinciden — **pero
+  flashear versiones distintas en cada punta rompería la fase sin aviso**.
 - **El RTC no se ha contrastado contra hora patrón** ni se ha comprobado que conserve la hora tras
   desconectar la alimentación (N-15, N-17).
 - ⚠️ **Lo que sigue abierto en la entrada y la salida (medido el 02/09):**

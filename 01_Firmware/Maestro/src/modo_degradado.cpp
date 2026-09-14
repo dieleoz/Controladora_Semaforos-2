@@ -60,18 +60,33 @@
 // sin disciplinar. La alternativa real no es alargar el plazo: es ir a arreglar el
 // radio.
 //
-// El verde se iguala al despeje: ciclo de 2*(30+30) = 120 s y espera maxima de 90 s
-// para quien llega justo despues de que su verde acabe. Se pierde fluidez, que es
-// exactamente lo que se acepta en un modo degradado.
+// EL VERDE. Hasta el 13/09 se igualaba al despeje (30 s), y a esa eleccion se le
+// atribuian DOS razones que, recontadas, son FALSAS -se dejan escritas y REFUTADAS en
+// vez de borradas (CLAUDE.md 7.4), porque una causa que desaparece en silencio vuelve a
+// proponerse-:
+//
+//   "no cabe en el byte"            FALSA. CMD_CONFIG topa en 255 s (ver mas abajo) y
+//                                   180 no se acerca al borde.
+//   "lo exige el margen de deriva"  FALSA. Ese margen lo pone el DESPEJE, no el verde:
+//                                   costura_12_margen_deriva mide que el aguante del
+//                                   cruce en el sentido malo es EXACTAMENTE el despeje
+//                                   ampliado, y no se mueve ni un segundo al cambiar el
+//                                   verde.
+//
+// La razon que SI sostenia el 30 s era FLUIDEZ -"se pierde fluidez, que es exactamente
+// lo que se acepta en un modo degradado"-, y es la que el responsable decidio en contra
+// el 13/09: el verde de Degradado pasa a ser el MISMO minimo vial que ya rige para todo
+// lo demas (D-5, VERDE_MIN_MIN = 3 min = 180 s). El ciclo pasa de 2*(30+30) = 120 s a
+// 2*(180+30) = 420 s, y la espera maxima de quien llega justo despues de su verde pasa
+// de 30+30+30 = 90 s a 30+180+30 = 240 s. El despeje no se toca, y el margen de deriva
+// no cambia -precisamente porque no depende del verde-.
 //
 // TOPE DEL BYTE. CMD_CONFIG lleva un solo byte por valor, asi que el ciclo degradado
-// esta topado en 255 s por fase. Estos 30 s no se acercan al tope, y ademas el ciclo
-// degradado NO hereda el verde configurado en Modo Automatico -que se mide en minutos
-// y si desbordaria-: es fijo y propio de este modo. De ese modo lo que la pantalla
-// cuenta es siempre el ciclo que de verdad se esta corriendo, porque la cuenta atras
-// sale de estas mismas constantes a traves de ciclo_degradado_restante().
+// esta topado en 255 s por fase. Ni los 180 s de verde ni los 30 de despeje se acercan
+// al tope, y ademas el ciclo degradado NO hereda el verde configurado en Modo
+// Automatico -que se mide en minutos y si desbordaria-: es fijo y propio de este modo.
 // ---------------------------------------------------------------------------
-static const uint16_t DEG_VERDE_SEG = 30;
+static const uint16_t DEG_VERDE_SEG = 180;
 static const uint16_t DEG_DESPEJE_SEG = 30;   // YA AMPLIADO. Ver arriba.
 
 // --- Puerta de entrada -----------------------------------------------------
