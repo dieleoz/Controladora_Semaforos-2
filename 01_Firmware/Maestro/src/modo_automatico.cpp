@@ -64,15 +64,6 @@ static bool primeraVezCorriendo = true;
 // modoAutomatico_tiemposCiclo().
 static bool respaldoLeido = false;
 
-// SFTY-21: peticion de arranque sin asistente, desde el mando de reles (A.A.A).
-// arranqueDirecto DESAPARECE como concepto: ahora TODAS las entradas al modo son
-// directas, asi que no queda de que escapar. La funcion publica se conserva vacia
-// porque su llamador vive en mando.cpp -la secuencia A.A.A del mando de reles- y
-// borrarla convertiria este arreglo en un cambio de dos ficheros por comodidad.
-// El compilador conserva el punto de uso y un grep lo sigue encontrando.
-
-void modoAutomatico_pedirArranqueDirecto() { /* N-42: ya no hace falta, ver arriba */ }
-
 // --- N-69: limites DUROS de los tiempos del ciclo --------------------------------
 //
 // No son preferencias de interfaz: son la ultima linea. La app valida por comodidad,

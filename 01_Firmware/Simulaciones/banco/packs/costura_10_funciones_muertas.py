@@ -47,23 +47,11 @@ CONOCIDAS = {
         # asi que dejarla seria vigilar el aire: la comprobacion de "desaparecidas" la
         # pediria por su nombre y no la encontraria declarada en ningun header.
         #
-        # 🟡 D-30, 14/09: modoAutomatico_pedirArranqueDirecto ENTRA, y es una huerfana que
-        # crea ESTE cambio. Su UNICO llamador era `ejecutar(ACC_AUTOMATICO)` de mando.cpp,
-        # que arrancaba el Modo Automatico desde el suelo sin pasar por el asistente.
-        #
-        # EL MOTIVO ES COMPROBABLE, que es lo que se le exige a una excepcion (CLAUDE.md
-        # 6): SU CUERPO ESTA VACIO. En modo_automatico.cpp es literalmente
-        # `void modoAutomatico_pedirArranqueDirecto() { /* N-42: ya no hace falta */ }`
-        # desde que N-42 retiro el asistente de configuracion. O sea que no se queda sin
-        # llamador una funcion que hacia algo: se queda sin llamador un no-op, y no hay
-        # conducta que se pierda ni veto que se abra.
-        #
-        # ⚠️ Y NO SE DEJA AQUI COMO SOLUCION: lo correcto es retirarla del firmware, con
-        # su declaracion de modo_automatico.h. No entra en este lote porque
-        # modo_automatico.{cpp,h} no es de sus ficheros y dos agentes tocando el mismo
-        # arbol se mezclan (CLAUDE.md 11). Queda anotada para que el que lo retire la
-        # borre tambien de esta lista.
-        "modoAutomatico_pedirArranqueDirecto",
+        # 🟢 roadmap 1.48 (c): modoAutomatico_pedirArranqueDirecto SALE de esta lista
+        # porque se RETIRO del firmware -declaracion de modo_automatico.h y cuerpo vacio
+        # (N-42) de modo_automatico.cpp-. Entro el 14/09 al morir su unico llamador,
+        # mando.cpp, con la anotacion "queda anotada para que el que lo retire la borre
+        # tambien de esta lista". Dejarla seria vigilar el aire.
         # Getters de telemetria que la pantalla dejo de pedir. No danan; se anotan.
         # 🟢 D-32 (1), 13/09: protocolo_tramasDescartadas SALE, igual que salio en el
         # Esclavo con N-108 y por el mismo motivo -ahora se publica al aire-. Viajaba

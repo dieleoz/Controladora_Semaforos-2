@@ -5,19 +5,6 @@
 void modoAutomatico_setup();
 void modoAutomatico_loop();
 
-// SFTY-21: arranque sin asistente, para la secuencia A.A.A del mando de reles.
-//
-// El asistente pide tres confirmaciones en pantalla (rojo, verde y despeje) y desde el
-// suelo NO HAY PANTALLA QUE RELLENAR: el operario esta a 5 m y solo puede dar pulsos.
-// Un A.A.A que dejara el equipo esperando en la primera pregunta no arrancaria nada, y
-// el operario, viendo las luces quietas, concluiria que el radio sigue muerto cuando
-// en realidad nadie llego a intentarlo.
-//
-// Se arranca con los ULTIMOS valores configurados, o con los de fabrica si nadie los
-// cambio desde el encendido. Marca la intencion; la aplica el siguiente
-// modoAutomatico_setup().
-void modoAutomatico_pedirArranqueDirecto();
-
 // N-143: los segundos que faltan de la fase LARGA -el verde o el rojo de 3 a 15 min-, o
 // SIN_CUENTA_ATRAS cuando manda el coordinador (un despeje o una transicion en curso) o
 // cuando el equipo no esta en este modo.
