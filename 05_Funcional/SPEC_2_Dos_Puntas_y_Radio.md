@@ -98,6 +98,15 @@ El umbral (`SFTY6_SILENCIO_MS`) vive **una sola vez**, en la cabecera de protoco
 | Maestro | **la respuesta que le CONTESTARON** | fallo, ámbar intermitente, alarma `FALLO_RF / SILENCIO_…`, y una orden de rojo **en ese mismo instante** |
 | Esclavo | **la última orden que RECIBIÓ** | ámbar intermitente, misma alarma |
 
+**Qué es «respuesta» en el Maestro, y sólo esto** (1.49c, validado sobre `622a20b`): la que **cierra el latido en
+vuelo** —el `CMD_PONG` a un latido simple, el `CMD_ACK_RED` a la orden de rojo del latido—, el `CMD_ACK_RED` mientras
+espera ese acuse **o en fallo**, y el `CMD_ACK_GREEN` mientras espera el suyo. Todas prueban **las dos direcciones**:
+el Esclavo recibió una orden de esta punta. 🔴 **Una trama que no contesta a nada NO sostiene el silencio:** ni la
+demanda de cámara (`CMD_DEMANDA`), ni el aviso de ámbar, ni los acuses de hora. Con la bajada Maestro→Esclavo muerta y
+la cámara del Poste 2 pidiendo paso, **el Maestro vence su silencio igual que sin demanda** —antes cada demanda se lo
+renovaba y sostenía su verde frente al ámbar del otro poste—. El reloj sólo se renueva sin trama en las dos entradas
+deliberadas a todo-rojo (el rojo forzado y el arranque de modo), y vuelve a cero al reiniciar la conexión.
+
 > 🔴 **LOS DOS UMBRALES SON EL MISMO NÚMERO Y LOS DOS INSTANTES NO.** Entre «la orden llega al Esclavo» y «su respuesta
 > llega al Maestro» hay el retardo de cortesía (`SFTY-17`) más el viaje de vuelta, y **ese desfase era la ventana**:
 > con la dirección Maestro→Esclavo muerta, el Poste 2 se iba a su ámbar **antes** de que el Poste 1 apagara su verde
@@ -113,14 +122,16 @@ acuse** antes de contar despeje; tras una suelta por margen se reanuda por esa m
 minutos en una vía alternada no es estado seguro: es donde la gente se pasa el rojo.
 
 🟢 **Y EL SENTIDO CONTRARIO —el verde del ESCLAVO frente al ámbar del Maestro— SE CIERRA IGUAL** (`D-34`). Las dos
-anclas se desfasaban por el otro lado: el Maestro cuenta desde lo último que OYÓ y el Esclavo refrescaba su silencio
-con cada **repetición** de la orden de verde. Hoy, en las dos puntas:
+anclas se desfasaban por el otro lado: ~~el Maestro cuenta desde lo último que OYÓ~~ → el Maestro cuenta desde la
+última **respuesta** (arriba; hasta 1.49c valía cualquier trama) y el Esclavo refrescaba su silencio con cada
+**repetición** de la orden de verde. Hoy, en las dos puntas:
 
 - **Una repetición de la orden de verde no refresca el silencio del Esclavo**: sólo la orden que arranca la transición.
 - **El Esclavo suelta su verde un acuse ANTES de su silencio**, va a rojo directo y lo dice en el parámetro de su
   respuesta al latido; **no lo borra el latido**, sólo una orden de luz.
-- **El Maestro no entrega la orden de verde sin haber oído a la otra punta en el último latido**, así que el desfase
-  entre anclas queda dentro de ese margen. El viaje de ida tiene que caber en la diferencia entre el plazo del acuse y
+- **El Maestro no entrega la orden de verde sin una RESPUESTA de la otra punta en el último latido** —en esa espera el
+  latido es simple, así que lo que abre la puerta es su `CMD_PONG`; hasta 1.49c valía cualquier trama—, así que el
+  desfase entre anclas queda dentro de ese margen. El viaje de ida tiene que caber en la diferencia entre el plazo del acuse y
   la cadencia del latido: **premisa escrita junto a la constante, no medida con repetidor**.
 - **Al oír ese aviso con el cruce quieto, el Maestro reanuda por la misma puerta de `N-163`**: rojo, acuse, despeje, y
   su propio verde.
@@ -176,7 +187,8 @@ todo-rojo**. *(Literales, SPEC 4 §3.2; el campo, SPEC 6.)*
 >   confirmar con el otro extremo, y **no hay evento ni literal que lo anuncie** (HUECO 6).
 > - **Lo que sí protege:** el permiso se tira si el equipo ya no está quieto donde lo dejó el arranque —una persona
 >   eligió modo, o el modo ya gobierna—, si hay ámbar del mando puesto, o si falló cualquier condición de vigencia. Lo
->   que se difiere es **el borrado, no el límite duro**; la ventana, en SPEC 3 §6 y H-3.
+>   que se difiere es **el borrado, no el límite duro**; la ventana, en SPEC 3 §6 y H-3. Y **en las dos puntas la
+>   decisión espera además a que el cristal tenga veredicto** (1.49b), dentro de esa misma ventana: SPEC 3 §6.
 
 **Condiciones del Poste 2, y devuelve MOTIVO, no un sí/no** —quien la llame tiene que poder decirle al operario qué le
 falta—: sin hora **fiable** (fiable, no sólo puesta) · sin configuración recibida · ciclo nulo · nunca hubo
@@ -245,7 +257,9 @@ caso «que no debería pasar».
 **Qué separa hoy el firmware y qué no.** El **ancla** sí está separada, por tres caminos: el reloj de orfandad del
 Esclavo contesta *«¿el Maestro GOBIERNA?»* —sólo lo refrescan las órdenes de rojo y de verde—; el aviso de radio al
 reloj contesta *«¿LLEGA la radio?»* contando **cualquier** trama válida; y la cuenta de reintentos **es un reloj
-propio del cambio**, vivo sólo en las esperas de acuse. **Lo que NO está separado es el NÚMERO:** el umbral de
+propio del cambio**, vivo sólo en las esperas de acuse. **En el Maestro el silencio contesta sólo «¿me CONTESTA?»**
+—lo renueva una respuesta (§4), no cualquier trama— y la pregunta «¿llega radio?» **no tiene reloj propio** en esa
+punta: los cinco lectores del reloj viejo preguntaban lo otro. **Lo que NO está separado es el NÚMERO:** el umbral de
 silencio es uno y gobierna las dos puntas **y las dos preguntas** —el veto del cambio del Maestro lee el MISMO
 contador y la MISMA constante que el ámbar por orfandad, desplazada lo que dura un acuse, y en el Esclavo un solo
 reloj decide **las dos cosas**—. 🔴 **Y la separación que sí existe está ORDENADA AL REVÉS: el reloj del cambio vence
@@ -259,7 +273,10 @@ leyendo las constantes del C++; *su borde* es que quien primero llega manda, y e
 desigualdad del punto de suelta:** el mismo peor caso **más lo que dura un acuse**; **NO es un presupuesto y su holgura
 NO es de nadie**, su borde es el instante en que esta punta suelta el verde, y dice que adelantar la suelta no puede
 recortar el presupuesto de reintentos. **No se restan ni comparten holgura**, y un tercer consumidor se mide contra
-**(A)**. **El tiempo de aire** —las copias de la ráfaga por la tasa aérea— **está escrito A MANO en el coordinador
+**(A)**. **Contra el borde de (B) se mide también el intercambio de hora** (1.49c): mientras corre, el latido está
+suprimido y sus acuses **no renuevan** el silencio del Maestro, así que la cadencia del latido más todos sus intentos
+tienen que caber antes del punto de suelta del verde —si no, un intercambio con lluvia soltaría el verde con el
+Esclavo contestando—. Lo exige un `static_assert` junto a `SYNC_MAX_INTENTOS` y `costura_09` lo recalcula. **El tiempo de aire** —las copias de la ráfaga por la tasa aérea— **está escrito A MANO en el coordinador
 como tiempo de cable y NO se deriva de ningún parámetro de la radio** (`ENVIO_TRAMA_MS`); `costura_09` lleva el mismo
 valor a la vista y por el mismo motivo. Los parámetros del módulo son de **SPEC 6 §B**, y aquí sólo se exige que las
 dos puntas y el repetidor estén configurados igual o el CRC no casa. **Subir el umbral de silencio sin mover los
@@ -275,7 +292,7 @@ reintentos por su plazo ensancha el HUECO 5** — el compromiso que `T-2` resolv
 |---|---|
 | Sólo el fichero del semáforo escribe pines | **fila 17**, y **sólo el Maestro** · el Esclavo, texto (SPEC 1 §13) |
 | El CRC de cada trama (`SFTY-3`) | 🔴 **NADIE.** El fichero de protocolo de las **dos** puntas sólo lo cruza PlatformIO |
-| Silencio → ámbar, y la suelta por margen (§4) | ✅ **fila 18**, bloques G: compila el coordinador y el bucle del Esclavo reales y relee el umbral del C++ |
+| Silencio → ámbar, y la suelta por margen (§4) | ✅ **fila 18**, bloques G: compila el coordinador y el bucle del Esclavo reales y relee el umbral del C++. Que la demanda **no** sostenga el silencio del Maestro lo ejerce `G3D` (1.49c), con control negativo visto fallar |
 | Los reintentos (§3) | ✅ **fila 18** (su número, releído) · la desigualdad de §9, `costura_09` por texto |
 | Vuelta del enlace · supresión del latido (§2.2) | 🔴 **nadie**, ninguna de las dos |
 | Retardo de cortesía · §5.2 rojo confirmado · §5.4 backstop de verde | ✅ **fila 18** las tres |
@@ -302,8 +319,8 @@ pendientes**: apuntan al fichero de protocolo y al coordinador fuera del ciclo �
    Esclavo sólo contesta latidos y nunca los origina, y el Repetidor no origina tramas — inofensivo para la luz.
 4. ⚠️ **La pieza de la decisión del reloj que avisa de pila perdida sigue sin construir: ese bit del RTC no llega al
    STM32** (`D-21`), y el Degradado se autoriza sobre una comprobación que no lo ve (**SPEC 3, H-2**). Y **nada de este
-   capítulo ha visto una tarjeta**: el acuse del aviso, el salto de hora por rojo y el evento periódico están en `main`
-   **SIN BANCO**, y qué corre en cada equipo lo dice `ESTADO.md`.
+   capítulo ha visto una tarjeta**: el acuse del aviso, el salto de hora por rojo, el evento periódico y el ancla de
+   respuesta del silencio del Maestro (§4, 1.49c) están en `main` **SIN BANCO**, y qué corre en cada equipo lo dice `ESTADO.md`.
 5. 🟢 **CERRADO en el fuente (`D-34`, 15/09) — el número se queda.** ~~Nadie mira la luz de la otra punta entre los
    dos vencimientos~~ → medido en el arnés de dos puntas: hasta 23 s de ámbar del Maestro contra verde del Esclavo, y
    el mecanismo no eran los reintentos sino las anclas (`roadmap` 1.39). Lo que el equipo hace ahora está en **§4**;

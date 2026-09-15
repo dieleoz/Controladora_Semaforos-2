@@ -181,6 +181,15 @@ dos decisiones anteriores que nadie vio. **La reconstruccion difiere el BORRADO 
   responsable el 12/09). **En el Maestro no hay llamada gemela y no es una omision:** esa funcion no
   existe en esa punta —el Maestro resuelve el ambar del mando con un **cambio de modo**, que la guarda
   del modo activo ya ve; el Esclavo levanta un **cerrojo**.
+- **Y no se decide sobre un contador que nadie ha visto contar** (1.49 (b), validado sobre `622a20b`): mientras
+  `reloj_estadoCristal()` diga VIGILANDO y la ventana siga abierta, la reanudacion **no decide ni borra** y se vuelve
+  a preguntar en la vuelta siguiente —en las dos puntas—. Durante esa espera el contador devuelve un numero que no
+  se ha movido, y la marca de la pila salia «cero horas» sobre un cristal parado. En el Maestro, **la falta de ciclo
+  en la pila se pregunta ANTES de esperar**, en el arranque, porque despues de publicar la configuracion esa
+  comprobacion ya no mira nada. Pasada la ventana se decide con lo que haya, como antes.
+- **La marca copiada de la pila no es una medida** (Esclavo): la reanudacion anota `syncDesdePila`, y mientras no
+  llegue una sincronizacion de verdad, una pila que ya no puede fechar esa marca cuenta como «nunca sincronizado» y
+  no se ignora por «la RAM esta sana». Asi las dos puntas contestan lo mismo con el mismo dato.
 - **Lo que NO se toca:** el **limite duro** sigue mandando —es la puerta que impide reanudar sobre una
   marca que ya no significa nada—, y **sigue sin haber entrada automatica al Degradado**: la activacion
   es manual (`SFTY-21`) y esto **reanuda** un modo que ya estaba puesto.
@@ -206,6 +215,10 @@ dure, porque quien la tiene que ver es el tecnico que se conecte **despues**.
 alarma con causa `CADUCADA` y accion de cambio a ambar. **Va detras de la pregunta «¿hay hora?» a proposito:**
 con la hora borrada a mano, quien la borro ya tiene su acuse, y decirle CADUCADA seria mandarle a mirar el
 cable por algo que hizo el.
+
+**Y la caida del Degradado del Maestro por su limite** sale como `$ALARM DEGRADADO` con la causa que la produjo —el
+contador del reloj no cuenta, la marca no se puede fechar, o el plazo— (H-1; que hace el tecnico: SPEC 6 PARTE C).
+**El Esclavo no la emite.**
 
 **El diario** anota **solo el CAMBIO** de quien manda —la primera ignorada, la primera sembrada, tras el
 arranque o tras una alarma—: una linea por siembra serian cientos al dia, y eso es perdida silenciosa por
@@ -254,17 +267,43 @@ sincronizar», y tras un reset eso abria la puerta de FRESCURA de la entrada del
   Maestro, cura en el Esclavo, y ningun disparo con el cristal sano. ⚠️ **Implementado SIN EJERCER:** ese bloque
   parte de puntas **sembradas**, asi que la rama que retira la hora y el efecto sobre un Degradado en marcha no
   los recorre; el cerrojo del Esclavo tampoco se comprueba aparte.
+- **Distingue «todavia no lo se» de «cuenta»** (1.49, validado sobre `622a20b`). `reloj_estadoCristal()`, gemela en
+  las dos puntas, contesta **tres** estados: VIGILANDO —el oscilador arranco y la ventana sigue abierta—, CUENTA
+  —se han visto dos flancos del contador desde que se adopto el cristal— y CONGELADO —no hay contador que cuente:
+  no arranco, o la ventana cerro sin flancos—. Se deduce de lo que ya habia; no es un estado nuevo que se pueda
+  desincronizar. `reloj_hayCristal()` no tiene llamador en el Maestro y no existe en el Esclavo; sigue
+  contestando solo «arranco».
+- **La usan tres sitios, y los tres esperan al veredicto:** el acuse de `REINICIAR_RELOJ`, que ya no dice
+  «ponga la hora» hasta ver contar (SPEC 4 §3.1); la reanudacion tras corte de las dos puntas (§6); y la caida del
+  Degradado del Maestro por su limite, que ahora **se publica con su causa** —`$ALARM DEGRADADO` con
+  `RELOJ_NO_CUENTA`, `SYNC_SIN_FECHA` o `LIMITE_48H`, en ese orden de preferencia— en vez de caer a ambar mudo con
+  el rotulo del plazo (que hace el tecnico con cada una: SPEC 6 PARTE C).
+- **Ejercido:** el bloque G del arnes del Degradado (`orquestador_degradado.cpp`) recorre la reanudacion con la
+  siembra dentro de la ventana y, en `G7`, la marca copiada de la pila y la alarma `RELOJ_NO_CUENTA`, con controles
+  negativos vistos fallar. ⚠️ **Implementado SIN EJERCER:** las causas `SYNC_SIN_FECHA` y `LIMITE_48H` no las cuenta
+  ningun arnes, y el acuse diferido de `REINICIAR_RELOJ` lo vigilan packs de **texto** (`reloj_01`, `app_08`): el
+  doble del arnes del puente acepta la orden que fija el veredicto, pero ningun guion la manda.
 
 **LO QUE EL EQUIPO DEBE HACER Y AUN NO HACE (registro 2, cola de trabajo):**
 
-1. **Nadie lo dice.** Ninguna alarma, evento ni campo del `$STATUS` nombra el cristal parado: el cerrojo es
-   estatico y sin lector fuera de `reloj.cpp`, `reloj_hayCristal()` no tiene llamador en el Maestro y no existe
-   en el Esclavo, y la alarma de hora `CADUCADA` va detras de «¿hay hora?», que en la rama sin base ya es falso.
-   El tecnico ve el ambar sin su causa. *(Medido por ausencia; ninguna fila lo ordena todavia.)*
-2. 🟡 **SIN VERIFICAR — `roadmap.md` 1.49 (a) y (b), en medida por otro agente:** si `REINICIAR_RELOJ`
-   contesta exito con el cristal congelado, y si el Maestro puede decidir la reanudacion en `setup()` **antes**
-   de que la ventana de vigilancia cierre —durante esa ventana el contador congelado sigue saliendo como no
-   nulo (`return v == 0 ? 1UL : v;` sigue en el fuente)—. **No se afirma ninguna de las dos.**
+1. **Casi nadie lo dice.** Fuera de las dos salidas de arriba —el `$ERR` de `REINICIAR_RELOJ` y la alarma del limite
+   del Maestro—, ningun evento ni campo del `$STATUS` nombra el cristal parado, y la alarma de hora `CADUCADA` va
+   detras de «¿hay hora?», que en la rama sin base ya es falso. **Un tecnico que se conecta despues**, o un
+   Esclavo, siguen dando el ambar sin su causa. *(Medido por ausencia; ninguna fila lo ordena todavia.)*
+2. 🟢 ~~SIN VERIFICAR — `roadmap.md` 1.49 (a) y (b)~~ → **medidos reales y CONSTRUIDOS** (registro 1, arriba). **Lo que
+   queda, medido sobre `622a20b`:**
+   - 🔴 **`RELOJ_NO_CUENTA` gana aunque el plazo lo midiera la RAM.** La rama pregunta el cristal ANTES que el
+     origen de la medida: en una tarjeta cuyo cristal no arranco —la de banco de §1— el estado es CONGELADO siempre,
+     y **un limite de verdad sin radio, medido en RAM, sale con esa causa y con el rotulo «No es la radio»**. El
+     propio fuente dice que el centinela no decide la causa; para esta causa tampoco la decide el centinela, pero la
+     decide el cristal, que en esa tarjeta no informa de nada. **Lo que pide, sin fila todavia: esa causa solo cuando la
+     marca no se pudo fechar**, como `SYNC_SIN_FECHA`. *(Lectura del fuente; ningun arnes recorre ese caso.)*
+   - **La rendicion del Esclavo por su limite sigue MUDA:** baja `rendidoPorHora` y se rinde sin `$ALARM`; lo unico
+     que queda es el parte periodico de sincronizacion con su vencido. Las dos puntas no avisan igual de la misma caida.
+   - **La app no traduce `$ALARM DEGRADADO`:** `js/avisos_equipo.js` no tiene ninguna entrada con ese evento, asi que
+     las tres causas se pintan en crudo (SPEC 4 §7, hueco 11).
+   - El contador congelado sigue saliendo como no nulo durante la ventana (`return v == 0 ? 1UL : v;` sigue en el
+     fuente); lo que cambio es que quien decide ya no lo lee antes del veredicto.
 3. **Sin banco y sin tarjeta** (H-6). ⚠️ Exigir medida en RAM en la puerta **contradice `D-29`**: no es orden.
 
 ### H-2 🔴 La pieza (A) del ambar por hora que miente sigue sin construir: el aviso de oscilador parado no llega al STM32

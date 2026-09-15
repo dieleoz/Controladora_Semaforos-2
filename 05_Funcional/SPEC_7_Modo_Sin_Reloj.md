@@ -162,8 +162,10 @@ decidio **no cruzar** el 13/09.
 
 🟢 **EL TOPE EXISTE Y ES DURO.** Pasado `LIMITE_DURO_MS` (Maestro) / `LIMITE_SIN_SYNC_MS`
 (Esclavo) **desde la ultima sincronizacion confirmada con la otra punta**, el Degradado termina:
-el Maestro llama `irAAmbar("Limite 48h sin sync", "Revise el radio")` y el Esclavo se **rinde**
-por todo-rojo hasta `DEG_RENDIDO`, que es ambar intermitente. **El motivo esta en el fuente y es
+el Maestro va a ambar **publicando la causa** —`$ALARM DEGRADADO` con `RELOJ_NO_CUENTA`, `SYNC_SIN_FECHA` o
+`LIMITE_48H`, y solo esta ultima lleva el rotulo «Limite 48h sin sync / Revise el radio» (1.49 (b), `622a20b`; que
+hace el tecnico: SPEC 6 PARTE C)— y el Esclavo se **rinde** por todo-rojo hasta `DEG_RENDIDO`, que es ambar
+intermitente, **sin `$ALARM`**. **El motivo esta en el fuente y es
 la frase que gobierna esta spec entera:** *«EL ESTADO SEGURO NO PUEDE DEPENDER DE QUE ALGUIEN SE
 ACUERDE»*. Y la puerta de entrada del Maestro es aun mas estrecha: exige sincronizacion
 **fresca** (`SYNC_FRESCA_MS`) y desfase dentro de `TOLERANCIA_DESFASE_S`, las dos **por radio**.
@@ -239,7 +241,7 @@ meta el cruce en Degradado solo. Asi que «por que esta en Degradado» son **tre
 |---|---|---|
 | **por que lo pusieron** (la radio se cayo) | `$ALARM FALLO_RF` con su causa, y el `$EVENT ENLACE_RF` | 🟢 **sale**, pero como **evento pasado**: el tecnico que llega DESPUES depende de la bitacora |
 | **por que NO puede entrar** | `MDG_FALTA_HORA`, `MDG_NUNCA_SYNC`, `MDG_SYNC_VIEJA`, `MDG_SIN_DESFASE`, `MDG_DESFASE_ALTO`, `MDG_SIN_CONFIG` (Maestro) · `DEG_RECHAZO_SIN_HORA`, `SIN_CONFIG`, `CICLO_NULO`, `SIN_SYNC`, `SYNC_VENCIDA`, `AMBAR_VIGENTE` (Esclavo) | 🟡 **solo como `$ERR` a quien mando la orden**. Quien se conecta despues no lo ve |
-| **por que se SALIO** (ambar) | `irAAmbar("Reloj no fiable")` · `irAAmbar("Limite 48h sin sync")` · la rendicion del Esclavo | 🟡 el `$ALARM HORA_ESP32/CADUCADA` si sale; **el vencimiento del tope no publica causa propia** |
+| **por que se SALIO** (ambar) | `irAAmbar("Reloj no fiable")` · el limite del Maestro, en tres ramas · la rendicion del Esclavo | 🟡 el `$ALARM HORA_ESP32/CADUCADA` si sale; ~~el vencimiento del tope no publica causa propia~~ → **en el Maestro si, desde 1.49 (b): `$ALARM DEGRADADO` con su causa**, como instante y no en el diario. **El Esclavo sigue sin publicarla** |
 
 ⚠️ **Y LO QUE LA APP HACE HOY ES PEOR QUE UN HUECO: AFIRMA LA CAUSA SIN QUE NADIE SE LA MANDE.**
 Medido sobre `app.js`: el badge de `DEGRADADO` dice *«SIN ENLACE ENTRE POSTES»* y el de `RENDIDO`
@@ -300,9 +302,13 @@ relojes que se creen el uno al otro sin hablarse.** Las tres perdidas:
 
 ### H-2 🔴 La causa del Degradado no se publica: la app la INVENTA
 
-Los motivos de rechazo y de salida existen como enumerados en las dos puntas y **solo salen como
-`$ERR` a quien mando la orden**. Los textos de causa que el operario lee estan escritos en
-`app.js`. **Sin `D-x` que lo ordene, no se construye.**
+Los motivos de rechazo existen como enumerados en las dos puntas y **solo salen como `$ERR` a quien
+mando la orden**. ~~y de salida~~ → **la salida del Maestro por su limite ya sale como `$ALARM
+DEGRADADO` con su causa** (1.49 (b), §6); la del Esclavo, no, y **la app no la traduce** —
+`js/avisos_equipo.js` no tiene entrada para ese evento y la pinta en crudo—. Los textos de causa que
+el operario lee en el badge siguen escritos en `app.js`. **Sin `D-x` que lo ordene, no se construye.**
+⚠️ **Y esa causa puede mentir:** en una tarjeta con el cristal parado, un limite de verdad sin radio
+sale como `RELOJ_NO_CUENTA` (SPEC 3, H-1, registro 2).
 
 ### H-3 🔴 La visita no renueva el tope, y en ningun documento estaba escrita la consecuencia
 

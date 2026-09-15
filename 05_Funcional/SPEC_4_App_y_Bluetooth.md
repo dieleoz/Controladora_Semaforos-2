@@ -104,7 +104,7 @@ prometia rojo y hacia ambar con la talanquera arriba. Lo rechaza **nombrando el 
 | `MANUAL:CAMBIAR_TURNO` | si | **tres, y el ORDEN importa** (`N-151`): `$ERR ... MODO_SIN_CICLO_SALGA_PRIMERO` si `modoMueveElCoordinador()` es falso; si no, `RESULT:OK` cuando `pedirCambioVerificado()` devuelve true, y `$ERR ... EN_TRANSICION_REINTENTE` cuando no |
 | `TEST_LEDS` | si | `RESULT:STARTING_6S` incondicional, **y es correcto**: `semaforo_iniciarTestLeds()` no lleva guarda A PROPOSITO y lo deja escrito — un rechazo mudo dentro de una funcion `void` dejaria este acuse mintiendo. La espera se resuelve en `semaforo_actualizar()` |
 | `SET_TIEMPOS:v,r,d` | si | **EL MOLDE. Cuatro respuestas, una por motivo:** `$ERR ... FORMATO_INVALIDO` si el `sscanf` con el `%c` centinela no convierte 3 exactos —dos ordenes pegadas convierten 4—; `$ERR ... EN_MARCHA_PARE_EL_MODO` si `modoAutomatico_enMarcha()`; `$ERR ... RANGO` si `modoAutomatico_fijarTiempos()` devuelve false; `RESULT:OK` **solo** si devolvio true |
-| `REINICIAR_RELOJ` | si | depende del bool de `reloj_reiniciarDominioRespaldo()`: `RESULT:CRISTAL_OK_PONGA_LA_HORA` o `$ERR ... SIGUE_PARADO_VEA_CONSULTA_RELOJ`, **y en el fallo emite ademas** el `$EVENT` con `ORIGEN:RELOJ` de `reportarBitsDelReloj()` |
+| `REINICIAR_RELOJ` | si | **cuatro, y el `$ACK` NO sale en la rama** (1.49 (a), `622a20b`). ~~depende del bool de `reloj_reiniciarDominioRespaldo()`: `RESULT:CRISTAL_OK_PONGA_LA_HORA` o ...~~ → el bool solo decide si hay algo que verificar. `$ERR ... REPITA_EN_UNOS_SEGUNDOS` si ya hay una orden esperando veredicto —sin tocar nada: reiniciar otra vez abriria otra ventana y dejaria dos ordenes para un veredicto—; `$ERR ... SIGUE_PARADO_VEA_CONSULTA_RELOJ` si el oscilador no arranca, con el `$EVENT` `ORIGEN:RELOJ` de `reportarBitsDelReloj()`; y si arranca, **no contesta todavia**: publica `$EVENT ... ORIGEN:APP_BLUETOOTH, DETALLE:RELOJ_REINICIADO_VERIFICANDO` y deja la orden pendiente. **El veredicto sale despues, una sola vez**, desde `bluetooth_loop()` cuando `reloj_estadoCristal()` deja de decir VIGILANDO: `RESULT:CRISTAL_OK_PONGA_LA_HORA` **solo** con CUENTA, o `$ERR ... ARRANCA_Y_NO_CUENTA_VEA_CONSULTA_RELOJ` con CONGELADO, otra vez con los bits. **Llega unos segundos despues de pulsar**: el plazo es la ventana de vigilancia del cristal y no se copia aqui. La app traduce los tres `DESC` |
 | `DEMANDA` | si | **tres**: `$ERR ... SOLO_EN_MODO_INTELIGENTE` fuera del modo —registrar una peticion que ningun ciclo va a mirar es fingirla—; `RESULT:REGISTRADA` si `demanda_solicitar()` devuelve true; `$ERR ... REPITA_EN_UNOS_SEGUNDOS` si devuelve false |
 
 ### 3.2 Esclavo (poste 2) — `Esclavo/src/bluetooth.cpp`, `procesarComando()`
@@ -323,6 +323,13 @@ ya medida que liberaria otros 3 recortando el campo de la hora, **y aun asi habr
 alcanza**. Como se publican es una decision pendiente: un aviso propio, o ese recorte. **Mientras no se
 decida, no se construyen**: un interruptor que el tecnico no puede ver encendido es peor que no
 tenerlo, porque deja un poste degradado sin que nadie lo sepa.
+
+⚠️ **11 · Lo que 1.49 dejo a medias en esta spec** (medido sobre `622a20b`). **(a)** El Maestro emite
+`$ALARM DEGRADADO` con tres causas al caer por su limite (SPEC 6 PARTE C) y **`js/avisos_equipo.js` no tiene
+ninguna entrada para ese evento**: `traducirAlarma()` devuelve `null` y la alarma se pinta en crudo, justo la que
+dice si mirar la radio o el reloj. **(b)** El acuse diferido de `REINICIAR_RELOJ` (§3.1) **no lo recorre ningun
+arnes en el tiempo**: el doble del arnes del puente acepta la orden que fija el veredicto del cristal, pero
+ningun guion la manda; lo que hay son packs de texto sobre la forma de la rama (`reloj_01`, `app_08`).
 ---
 
 ## 8. QUIEN EJERCE CADA BARRERA DE ESTE DOCUMENTO
@@ -335,7 +342,7 @@ tenerlo, porque deja un poste degradado sin que nadie lo sepa.
 | barrera | quien la EJERCE hoy |
 |---|---|
 | §4 **el PIN del firmware** (`CMD:PIN:<pin>:<accion>`) | ✅ **fila 20**: `Simulaciones/puente_esp32/compilar.ps1` **enlaza el `bluetooth.cpp` REAL de las DOS puntas** y le teclea ordenes con el prefijo releido del fuente · **fila 18** ademas en el Esclavo (bloque H) |
-| §3 **el `$ACK` depende de lo que la llamada devolvio** | ✅ **filas 20 y 18**, sobre esos mismos `bluetooth.cpp` reales: la 20 compara rama por rama lo que contesta el fuente |
+| §3 **el `$ACK` depende de lo que la llamada devolvio** | ✅ **filas 20 y 18**, sobre esos mismos `bluetooth.cpp` reales: la 20 compara rama por rama lo que contesta el fuente. ⚠️ **Salvo el `$ACK` diferido de `REINICIAR_RELOJ`**, que sale fuera de la rama y solo lo vigila texto (hueco 11) |
 | §4 **el PIN de la app** y §2 **el enrutado por punta** | ✅ **filas 9 a 12**, y la **12** corre `app.js` entero en jsdom inyectando `$STATUS` reales |
 | §5 **`juzgarTrama()`, el XOR-8 y las cinco tramas** | ✅ **fila 12**, que inyecta tramas corruptas contra el `app.js` real |
 | §4 **el VALE DE VIA (`viaConfirmadaVigente()`)** y el `bool` de `enviarComandoFirmware()` | ✅ **fila 12** |

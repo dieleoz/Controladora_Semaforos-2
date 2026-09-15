@@ -96,7 +96,8 @@ Tres cosas que el equipo hace solo, y solo se ven en **`MODO:`** del `$STATUS` (
 
 1. **Vuelve la radio ➜ sale del modo.** Solo con tramas de gobierno; las de servicio no sacan.
 2. **Se agota el limite duro ➜ se rinde sola a ambar**, y **el firmware no deja reentrar**: contesta el rechazo de
-   sync caducada. **Hay que arreglar la radio, no reactivar el modo.**
+   sync caducada. **Hay que arreglar la radio, no reactivar el modo.** El Poste 1, ademas, lo dice en el instante
+   con `$ALARM DEGRADADO` y su causa (PARTE C); el Poste 2, no.
 3. **Corte de energia ➜ PUEDE REANUDAR SOLA**, en todo-rojo, si al volver siguen vigentes hora, ciclo en la pila y
    sincronizacion fechable (`D-29`). **Nadie se lo avisa al operario.** 🔴 **Tras cualquier corte, verifique A.3 en las
    dos puntas aunque el equipo no se lo pida**: si una reanudo y la otra no, puede dar verdes sin que nadie mire.
@@ -204,6 +205,9 @@ mas**: medido, el puente ESP32 **no origina ninguna** —solo retransmite— y e
 | `AVISO_RF` | `SIN_CONFIRMAR` | `AVISE_POSTE_1` | **solo Esclavo** | se puso el ambar de emergencia aqui y **el Poste 1 no acuso** el aviso **ni tras agotar los reintentos**. El acuse se construyo el 13/09 y su numero de reintentos lo fijo el responsable; la espera total es **(1 + reintentos) x el plazo de un viaje de radio** (`D-31`, `D-32` (3)). ⚠️ **NO ES INMEDIATA: espere a que salga antes de irse** | **haga lo que dice la accion**: cierre el paso aqui o **avise al Poste 1 antes de irse**. 🔴 **Dice «no he podido confirmarlo», NUNCA «el otro poste no se entero»**: una trama perdida por lluvia se ve igual que un transmisor muerto |
 | `HORA_ESP32` | `J17_MUDO` · `SIN_HORA_DEL_ESP32` · `RECHAZADA_FORMATO` | `SIGUE_SU_HORA` | las dos | la hora del ESP32 **no llega, o llega y no sirve** | **es de la MISMA placa**: el ESP32, su reloj de calendario y el cable `J17`. Las tres causas mandan a sitios distintos: **SPEC 3 §7** |
 | `HORA_ESP32` | `CADUCADA` | `CAMBIO_A_AMBAR` | las dos | la hora caduco **con el Degradado en marcha** (`D-21` (1)) | esa punta ya esta en ambar. Poner la hora antes de reintentar el modo (A.2, A.6) |
+| `DEGRADADO` | `LIMITE_48H` | `CAMBIO_A_AMBAR` | **solo Maestro** | vencio el limite duro sin sincronizar con la otra punta, y el equipo SI sabia fecharlo —en RAM o en la pila— (1.49 (b)) | **es la radio**: sin ella nadie renueva el limite. Parte B por orden. **No reactive el Degradado**: rechaza por sincronizacion (A.5), y poner la hora con el telefono **no renueva el tope** (`SPEC_7` §5) |
+| `DEGRADADO` | `SYNC_SIN_FECHA` | `CAMBIO_A_AMBAR` | **solo Maestro** | el contador del reloj cuenta, pero la marca de la ultima sincronizacion **no se puede fechar** —reloj movido hacia atras, dominio de respaldo borrado— y no hay medida en RAM | **no se sabe cuanto hace**, y el equipo lo trata como vencido. **Lo que lo levanta es una sincronizacion nueva entre las dos puntas, y esa solo viaja por radio**: la hora del telefono no la renueva (`SPEC_7` §5). Compruebe el enlace (Parte B) y que la puerta de A.2 acepte antes de reintentar el modo |
+| `DEGRADADO` | `RELOJ_NO_CUENTA` | `CAMBIO_A_AMBAR` | **solo Maestro** | vencio el limite **y el contador del reloj de la tarjeta no cuenta** en ese instante. El rotulo dice «No es la radio» | 🔴 **NO SE FIE DEL ROTULO: mire LAS DOS COSAS.** Con el contador parado la marca de la pila no se puede fechar, y eso es del reloj (SPEC 3, H-1). Los bits los publica `REINICIAR_RELOJ` cuando rechaza (SPEC 4 §3.1), **que ademas BORRA la hora, el ciclo acordado y la autorizacion del Degradado**: no se pulsa para mirar; **pero en una tarjeta cuyo cristal no arranca esta causa sale SIEMPRE, tambien cuando el plazo lo cumplio de verdad una radio caida** —el hueco de SPEC 3 H-1—. Revise la radio (Parte B) igual que con `LIMITE_48H` |
 | `CAM_PEGADA` | `CAM_C_CONTACTO_FIJO` · `CAM_D_CONTACTO_FIJO` | **`NINGUNA`** | las dos | el contacto de esa camara lleva cerrado mas del plazo de presencia legitima | **el borne lo dice el nombre**: son los dos de camara de `J16` (`D-25`, SPEC 5 §2.1). Revisar cableado y la configuracion de esa camara (`D-13`). **La causa dice `CONTACTO_FIJO` y NO «averia» a proposito**: no se puede distinguir de una presencia legitima larga |
 | `CAM_CIEGA` | `CAM_C_SIN_FLANCO` · `CAM_D_SIN_FLANCO` | **`NINGUNA`** | las dos | esa camara **dio flancos antes** y lleva demasiado paso abierto sin dar ninguno | lo mismo. ⚠️ **Solo puede salir de una camara que YA vio algo alguna vez**: una muerta desde la instalacion, o un borne vacio, **no la dispara nunca** (SPEC 5 §3.2) |
 
@@ -213,6 +217,11 @@ mas**: medido, el puente ESP32 **no origina ninguna** —solo retransmite— y e
 > pluma~~ dejo de ser cierto el 14/09: **una camara pegada puede estar dejando el brazo ARRIBA ahora mismo**,
 > y eso no se ve en esta alarma sino en el aviso de barrera retenida. **Atiendala mirando tambien si la
 > pluma bajo.**
+
+> ⚠️ **LAS TRES `DEGRADADO` SALEN SOLO DEL POSTE 1, Y UNA SOLA VEZ** —al contrario que las de hora, no se
+> repiten—: quien se conecte despues ve el ambar en `MODO:` y no la causa. El Poste 2 se rinde por su limite **sin `$ALARM`**: lo unico que
+> deja es el parte periodico de sincronizacion diciendo que vencio (HUECO 2). **Y la app todavia no las traduce**:
+> llegan en crudo (SPEC 4 §7, hueco 11). Con cualquiera de las tres, **mire tambien el Poste 2**.
 
 **Cuando se apaga una alarma.** Las de camara **se cierran solas por su prueba contraria** y lo dicen con un
 `$EVENT` de camara recuperada: una que no se cierra nunca deja al operario sin saber si aquello se arreglo.
@@ -230,7 +239,8 @@ Las de hora **se repiten mientras duren**, porque quien las tiene que ver es el 
 El reporte del 13/09 —*«si llueve, el cruce se iba a ambar antes de 15 segundos, a los 7»*— sale de tres cosas medidas
 sobre el propio commit de esa version: (1) su techo de orfandad son **12 s**, y ⚠️ **no es una constante con nombre: es
 el literal `12000` escrito a pelo**, dos veces, una por punta (`Esclavo/src/main.cpp`, junto a `tUltimoComando`;
-`Maestro/src/coordinador.cpp`, junto a `tUltimaRxEsclavo`) — **se dice asi porque es parte del hallazgo**: no hay simbolo
+`Maestro/src/coordinador.cpp`, junto a `tUltimaRxEsclavo`, nombre de esa version: en `main` el ancla es otra, SPEC 2
+§4) — **se dice asi porque es parte del hallazgo**: no hay simbolo
 que citar, y es la forma que `N-69` castiga; (2) el latido **se suprime mientras se espera un ACK** (`SFTY-13`,
 SPEC 2 §2.3), asi que el contador de silencio **llega envejecido en uno o dos latidos** y **perder cuatro latidos
 seguidos manda las dos puntas a ambar** — de ahi el «a los 7»; (3) ⚠️ **la SEGUNDA via al ambar, agotar los reintentos
@@ -264,6 +274,8 @@ Recensado el 14/09, esta vez sobre los cuatro ficheros que publican y no solo so
 salto de hora que pasa por rojo** y **el parte periodico de sincronizacion** (HUECO 2). Sigue **sin haber traza de que
 una punta ENTRO, SALIO ni REANUDO SOLA tras un corte** (A.5), y `MODO:` dice el AHORA, no el CUANDO; lo unico que se
 infiere es la rendicion, porque el parte pasa a decir que vencio. **El molde existe; no hay fila que pida las otras.**
+*(La salida del Poste 1 por su limite ya sale como `$ALARM DEGRADADO` —PARTE C—, pero una alarma es del instante y
+no del diario: no cierra este hueco.)*
 
 **2. ⚠️ EL AVISO PREVIO AL LIMITE DURO YA TIENE DONDE LEERSE — LO QUE FALTA AHORA ES OTRA COSA. Esta linea decia que no
 salia por ningun sitio y ERA FALSA; remedido el 14/09 y corregido en vez de matizado.** Las dos puntas publican
