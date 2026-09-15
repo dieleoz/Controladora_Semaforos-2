@@ -606,6 +606,8 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   // se quedo quieto SIN pasar por la funcion del firmware que se esta midiendo.
   if (!strcmp(que, "rtc_congelar"))        { arnes_rtc_congelar(arg != 0); return 1; }
   if (!strcmp(que, "rtc_congelado"))       return arnes_rtc_esta_congelado() ? 1 : 0;
+  // 1.49b3 (G8): el cristal que NO ARRANCA nunca (LSERDY en 0), antes de punta_arrancar().
+  if (!strcmp(que, "lse_listo"))           { arnes_lse_listo = (arg != 0); return 1; }
   if (!strcmp(que, "rtc_cnt"))             return (long)arnes_rtc_cnt();
   if (!strcmp(que, "contador_segundos"))   return (long)reloj_contadorSegundos();
   if (!strcmp(que, "hsi_ppm"))             { arnes_hsi_ppm(arg); return 1; }

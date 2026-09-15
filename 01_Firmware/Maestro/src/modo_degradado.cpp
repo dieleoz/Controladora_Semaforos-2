@@ -806,6 +806,12 @@ void modo_degradado_loop() {
   // en silencio. Son tres averias que mandan a tres sitios:
   //   RELOJ_NO_CUENTA   el contador del RTC no cuenta (reloj_estadoCristal() CONGELADO): la
   //                     marca de la pila no se puede fechar con el. No es la radio.
+  //                     1.49b3: SOLO CONGELADO -arranco y se paro-. SIN_CRISTAL -no arranco,
+  //                     el caso de las tarjetas de campo (SPEC_7 5.1)- NO entra aqui: la
+  //                     sync vive en RAM y cuenta con millis(), y a las 48 h el plazo es de
+  //                     verdad. Medido el 15/09 (G8 del arnes del Degradado): con "!rtcOperativo
+  //                     -> CONGELADO" ese limite salia "Reloj sin contar / No es la radio".
+  //                     SIN_CRISTAL sigue a las dos de abajo con su condicion de siempre.
   //   SYNC_SIN_FECHA    el contador cuenta, pero la pila dice CADUCADA (reloj movido hacia
   //                     atras, dominio borrado): no se sabe cuanto hace.
   //   LIMITE_48H        lo demas, que es el plazo de verdad: la radio.

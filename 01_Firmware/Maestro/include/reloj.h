@@ -45,7 +45,7 @@ bool reloj_enHora();
 // al apagar y encender volvia a ceros, sin nada que explicara por que.
 bool reloj_hayCristal();
 
-// 1.49(a) - EL VEREDICTO DEL CRISTAL EN TRES ESTADOS, porque hay tres respuestas y el bool de
+// 1.49(a) - EL VEREDICTO DEL CRISTAL EN TRES ESTADOS -cuatro desde 1.49b3, abajo-, porque hay tres respuestas y el bool de
 // arriba solo sabe dos. Entre que el oscilador arranca y que vigilarCristal() ha visto contar
 // -o ha cerrado su ventana sin verlo- pasan hasta CNT_VENTANA_MS, y en ese rato
 // reloj_hayCristal() ya dice true: "arranco", no "cuenta". Quien necesite la segunda
@@ -57,14 +57,27 @@ bool reloj_hayCristal();
 //              no uno por lo mismo que la ventana pide dos: la primera lectura tras abrir
 //              el periferico puede venir rancia de la sombra APB, y un flanco solo podria
 //              ser esa lectura poniendose al dia.
-//   CONGELADO  no hay contador que cuente: o no arranco, o arranco y la ventana cerro sin
-//              flancos (el cerrojo de 1.22). Para quien pregunta es el mismo caso -no hay
-//              con que fechar- y el detalle lo dan los bits de reloj_diagnostico().
+//   CONGELADO  arranco y la ventana cerro sin flancos (el cerrojo de 1.22): hay un cristal
+//              y NO cuenta.
+//   SIN_CRISTAL  el oscilador no arranco (o todavia no se ha adoptado): no hay cristal.
+//
+// 1.49b3 - ~~"o no arranco, o arranco y no cuenta: para quien pregunta es el mismo caso"~~
+// -> FALSO para la rama del limite del Degradado, medido el 15/09 (G8 del arnes del
+// Degradado): en las tarjetas de campo el Y2 no oscila (SPEC_7 5.1), la sync vive en RAM, y
+// un limite de 48 h DE VERDAD salia como RELOJ_NO_CUENTA "No es la radio". Para fechar son
+// el mismo caso -ninguno fecha-; para decirle al tecnico donde mirar, no. Son dos banderas
+// (rtcOperativo y cristalCongelado) y dos respuestas. SIN_CRISTAL va AL FINAL para no mover
+// el valor de las otras tres.
 //
 // No es un estado nuevo que alguien pueda desincronizar: se DEDUCE de rtcOperativo, del
 // cerrojo y de los flancos que vigilarCristal() ya cuenta. VIGILANDO dura como mucho
 // CNT_VENTANA_MS mas una vuelta, porque vigilarCristal() corre en cada reloj_actualizar().
-enum EstadoCristal : uint8_t { RELOJ_CRISTAL_VIGILANDO, RELOJ_CRISTAL_CUENTA, RELOJ_CRISTAL_CONGELADO };
+enum EstadoCristal : uint8_t {
+  RELOJ_CRISTAL_VIGILANDO,
+  RELOJ_CRISTAL_CUENTA,
+  RELOJ_CRISTAL_CONGELADO,
+  RELOJ_CRISTAL_SIN_CRISTAL
+};
 EstadoCristal reloj_estadoCristal();
 
 // N-45 — CONSULTA DEL RELOJ: los bits crudos, sin interpretar.

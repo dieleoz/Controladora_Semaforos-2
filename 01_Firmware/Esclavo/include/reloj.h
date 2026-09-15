@@ -92,7 +92,15 @@ uint32_t reloj_contadorSegundos();
 // con el porque entero en su reloj.h. Aqui lo pregunta la reanudacion del Degradado: con el
 // cristal en VIGILANDO, reloj_contadorSegundos() devuelve un numero que todavia nadie ha
 // visto moverse, y la marca de 48 h de la pila se fecharia contra el.
-enum EstadoCristal : uint8_t { RELOJ_CRISTAL_VIGILANDO, RELOJ_CRISTAL_CUENTA, RELOJ_CRISTAL_CONGELADO };
+// 1.49b3: y un cuarto, SIN_CRISTAL -el oscilador no arranco-, separado de CONGELADO -arranco
+// y no cuenta-. Aqui solo se pregunta VIGILANDO, asi que esta punta no cambia de conducta;
+// se separa igual para que el enum siga siendo el mismo en las dos puntas.
+enum EstadoCristal : uint8_t {
+  RELOJ_CRISTAL_VIGILANDO,
+  RELOJ_CRISTAL_CUENTA,
+  RELOJ_CRISTAL_CONGELADO,
+  RELOJ_CRISTAL_SIN_CRISTAL
+};
 EstadoCristal reloj_estadoCristal();
 
 // N-25 — reintento en segundo plano del cristal. Se llama desde el loop(). Adopta el

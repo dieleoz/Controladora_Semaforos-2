@@ -537,6 +537,7 @@ static bool pendienteReloj = false;
 //   CONGELADO  -> $ERR con la marca VEA_CONSULTA_RELOJ Y LOS BITS en la misma rama, como la
 //                 otra puerta (reloj_01): el oscilador arranco y el contador no se movio, y
 //                 los bits -RDY en 1, CNT quieto- son justo los que lo dicen.
+//   SIN_CRISTAL -> 1.49b3: el $ERR de "no arranco", con sus bits. Ver la rama.
 // Mientras sea VIGILANDO no contesta nada: la ventana la cierra vigilarCristal() en cada
 // reloj_actualizar(), asi que esto no espera mas de CNT_VENTANA_MS y una vuelta.
 static void atenderVeredictoReloj() {
@@ -548,6 +549,14 @@ static void atenderVeredictoReloj() {
   } else if (e == RELOJ_CRISTAL_CONGELADO) {
     pendienteReloj = false;
     enviarTramaConCrc("$ERR,CMD:REINICIAR_RELOJ,DESC:ARRANCA_Y_NO_CUENTA_VEA_CONSULTA_RELOJ");
+    reportarBitsDelReloj();
+  } else if (e == RELOJ_CRISTAL_SIN_CRISTAL) {
+    // 1.49b3: con la orden pendiente el oscilador YA arranco (la rama solo la deja pendiente
+    // si reloj_reiniciarDominioRespaldo() dio true), y hoy nadie baja rtcOperativo sin el
+    // cerrojo: esto no deberia verse. Si se ve, NO es un OK ni se queda sin respuesta: es el
+    // mismo $ERR que la rama da cuando el oscilador no arranca, con sus bits.
+    pendienteReloj = false;
+    enviarTramaConCrc("$ERR,CMD:REINICIAR_RELOJ,DESC:SIGUE_PARADO_VEA_CONSULTA_RELOJ");
     reportarBitsDelReloj();
   }
 }

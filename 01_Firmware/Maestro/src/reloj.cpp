@@ -341,8 +341,11 @@ bool reloj_hayCristal() { return rtcOperativo; }
 
 // 1.49 - VER reloj.h. Se deduce de lo que ya habia: rtcOperativo lo baja el cerrojo de 1.22
 // o un arranque fallido, y los flancos los cuenta vigilarCristal().
+// 1.49b3: el cerrojo se pregunta PRIMERO -vigilarCristal() baja rtcOperativo al cerrarlo, asi
+// que !rtcOperativo solo no distingue las dos averias-.
 EstadoCristal reloj_estadoCristal() {
-  if (!rtcOperativo) return RELOJ_CRISTAL_CONGELADO;
+  if (cristalCongelado) return RELOJ_CRISTAL_CONGELADO;
+  if (!rtcOperativo) return RELOJ_CRISTAL_SIN_CRISTAL;
   return flancosVistos >= 2 ? RELOJ_CRISTAL_CUENTA : RELOJ_CRISTAL_VIGILANDO;
 }
 

@@ -44,7 +44,7 @@
 //   PUERTO       imprime pines y baudios del HardwareSerial que se encontro
 //   RTC <c> <h>  fija si hay cristal y si el reloj esta en hora
 //   CRISTAL <e>  con cristal, el veredicto de reloj_estadoCristal(): 0 VIGILANDO, 1 CUENTA,
-//                2 CONGELADO (1.49)
+//                2 CONGELADO (1.49), 3 SIN_CRISTAL (1.49b3)
 //   RADIO_MANDA <0|1>  (Esclavo) lo que contesta reloj_radioManda(), D-26 (3)
 //   MDG <n>      fija el motivo que devuelve la puerta del Modo Degradado
 //   DEG          (Esclavo) imprime estado, gobiernaLuz y rendicion del Degradado REAL
@@ -243,9 +243,12 @@ bool reloj_reiniciarDominioRespaldo() { return rlj_cristal; }
 // Se incluye reloj.h REAL aqui porque el tipo del retorno vive alli, y copiarlo seria el
 // "casi igual" que diverge.
 #include "reloj.h"
+// 1.49b3: sin cristal es SIN_CRISTAL y no CONGELADO, como el reloj.cpp real: CONGELADO es
+// "arranco y no cuenta", y ese se pide con "CRISTAL 2". "CRISTAL 3" da SIN_CRISTAL con el
+// cristal puesto, el caso que el despachador no deberia ver y que tiene que contestar igual.
 static int rlj_estadoCristal = 1;
 EstadoCristal reloj_estadoCristal() {
-  if (!rlj_cristal) return RELOJ_CRISTAL_CONGELADO;
+  if (!rlj_cristal) return RELOJ_CRISTAL_SIN_CRISTAL;
   return (EstadoCristal)rlj_estadoCristal;
 }
 void reloj_ajustarFranjaNocturna(uint8_t, uint8_t) {}
@@ -650,7 +653,7 @@ int main(void) {
     } else if (strncmp(linea, "CRISTAL ", 8) == 0) {
       // 1.49: el veredicto que devuelve reloj_estadoCristal() con cristal. Ver el doble.
       const int v = atoi(linea + 8);
-      rlj_estadoCristal = (v >= 0 && v <= 2) ? v : 1;
+      rlj_estadoCristal = (v >= 0 && v <= 3) ? v : 1;   // 3 = SIN_CRISTAL (1.49b3)
       printf("OK estado_cristal=%d\n", rlj_estadoCristal);
 
     } else if (strncmp(linea, "RADIO_MANDA ", 12) == 0) {

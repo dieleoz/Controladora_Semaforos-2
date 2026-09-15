@@ -252,8 +252,10 @@ bool reloj_enHora() { return horaValida; }
 
 // 1.49 - VER reloj.h. Gemela de la del Maestro: se deduce de rtcOperativo -lo baja el cerrojo
 // de 1.22 o un arranque fallido- y de los flancos que cuenta vigilarCristal().
+// 1.49b3: el cerrojo PRIMERO, gemela de la del Maestro.
 EstadoCristal reloj_estadoCristal() {
-  if (!rtcOperativo) return RELOJ_CRISTAL_CONGELADO;
+  if (cristalCongelado) return RELOJ_CRISTAL_CONGELADO;
+  if (!rtcOperativo) return RELOJ_CRISTAL_SIN_CRISTAL;
   return flancosVistos >= 2 ? RELOJ_CRISTAL_CUENTA : RELOJ_CRISTAL_VIGILANDO;
 }
 

@@ -142,6 +142,10 @@ static int  g_eventosSaltoRojo = 0;
 // de verdad", que mandan al tecnico a sitios distintos.
 static int  g_alarmasDegradado = 0;
 static int  g_alarmasRelojNoCuenta = 0;
+// 1.49b3 (G8): y las otras dos causas, contadas aparte. Sin ellas G8 solo podria decir "no
+// salio RELOJ_NO_CUENTA", que tambien lo cumple un firmware que caiga mudo o por otra rama.
+static int  g_alarmasLimite48h = 0;
+static int  g_alarmasSyncSinFecha = 0;
 void bluetooth_reportarAlarma(const char* evento, const char* causa, const char* accion) {
   (void)accion;
   snprintf(g_ultimaAlarmaEvento, sizeof(g_ultimaAlarmaEvento), "%s", evento);
@@ -150,6 +154,8 @@ void bluetooth_reportarAlarma(const char* evento, const char* causa, const char*
   if (!strcmp(evento, "DEGRADADO")) {
     g_alarmasDegradado++;
     if (!strcmp(causa, "RELOJ_NO_CUENTA")) g_alarmasRelojNoCuenta++;
+    if (!strcmp(causa, "LIMITE_48H")) g_alarmasLimite48h++;
+    if (!strcmp(causa, "SYNC_SIN_FECHA")) g_alarmasSyncSinFecha++;
   }
 }
 void bluetooth_reportarEvento(const char* origen, const char* detalle) {
@@ -429,6 +435,14 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   if (!strcmp(que, "alarmas_caducada"))   return (long)g_alarmasCaducada;
   if (!strcmp(que, "alarmas_degradado"))  return (long)g_alarmasDegradado;
   if (!strcmp(que, "alarmas_reloj_no_cuenta")) return (long)g_alarmasRelojNoCuenta;
+  if (!strcmp(que, "alarmas_limite_48h")) return (long)g_alarmasLimite48h;
+  if (!strcmp(que, "alarmas_sync_sin_fecha")) return (long)g_alarmasSyncSinFecha;
+  // 1.49b3 (G8) - EL CRISTAL QUE NO ARRANCA NUNCA, que es el de las tarjetas de campo (SPEC_7
+  // 5.1). Es SILICIO: LSERDY se queda en 0 (reloj_real/stm32f1xx_hal.h). Tiene que darse ANTES
+  // de punta_arrancar(): quien decide es reloj_setup(), compilado tal cual.
+  if (!strcmp(que, "lse_listo"))          { arnes_lse_listo = (arg != 0); return 1; }
+  // El veredicto del firmware, en crudo: el orquestador lo imprime, no lo interpreta.
+  if (!strcmp(que, "estado_cristal"))     return (long)reloj_estadoCristal();
   if (!strcmp(que, "eventos_salto_rojo")) return (long)g_eventosSaltoRojo;
 
   // --- SFTY-23: el intercambio horario REAL, encolado por el coordinador ----

@@ -565,6 +565,9 @@ static int MODO_DEGRADADO_V = -1;   // se lee de modos.h, nunca se escribe a man
 // millis() que retrocede hace vencer TODOS los temporizadores del firmware de golpe.
 static const unsigned long DELAY_ARRANQUE_MS = 2000;
 
+// 1.49b3 (G8): las dos puntas arrancan SIN CRISTAL -LSERDY nunca a 1-. Solo lo enciende G8.
+static bool g_sinCristalAlArrancar = false;
+
 static void arrancarLasDos() {
   g_aire.clear();
   g_enlace = true;
@@ -576,6 +579,13 @@ static void arrancarLasDos() {
   g_siembrasIgnoradas[0] = g_siembrasIgnoradas[1] = 0;
   MAESTRO.descargar(); MAESTRO.cargar();
   ESCLAVO.descargar(); ESCLAVO.cargar();
+  // 1.49b3 (G8): el cristal que NO ARRANCA, puesto en el silicio ANTES de reloj_setup(). La
+  // DLL recien cargada trae LSERDY en 1, asi que sin esta perilla todos los demas escenarios
+  // siguen como estaban.
+  if (g_sinCristalAlArrancar) {
+    MAESTRO.orden("lse_listo", 0);
+    ESCLAVO.orden("lse_listo", 0);
+  }
   MAESTRO.arrancar();
   ESCLAVO.arrancar();
   g_t += DELAY_ARRANQUE_MS;
@@ -2066,6 +2076,83 @@ int main() {
                 ") y LO PUBLICA con la causa verdadera: " + std::to_string(r.alarmasNoCuenta) +
                 " $ALARM DEGRADADO,RELOJ_NO_CUENTA de " + std::to_string(r.alarmasDeg) +
                 " del Degradado");
+    }
+    // --- G8: EL LIMITE DE VERDAD EN UNA TARJETA SIN CRISTAL (1.49b3) ---------------------
+    //
+    // LA PREGUNTA: en las tarjetas de campo el Y2 NO oscila (SPEC_7 5.1). Sin corte de luz,
+    // la sincronizacion por radio vive en RAM y el limite duro se cuenta con millis(): a las
+    // 48 h es el plazo DE VERDAD, y la averia es la radio. G7.2 exige RELOJ_NO_CUENTA para un
+    // contador que ARRANCO y se paro; aqui el contador no arranco nunca y la marca no hace
+    // falta fecharla con el. Si la rama del limite junta "no hay cristal" con "cristal
+    // parado", manda al tecnico lejos de la radio.
+    //
+    // EL BORDE, ESCRITO: se simulan las 48 h enteras a PASO_MS, sin atajo -el limite sale de
+    // coordinador_msDesdeUltimaSync(), que es millis() menos la ultima sync, y no hay otra
+    // forma honesta de envejecerla-. El ESP32 siembra en eco todo el tiempo: sin el, la hora
+    // caducaria antes (D-21 (1)) y la caida seria la de "Reloj no fiable", no la del limite.
+    {
+      const unsigned long G8_LIMITE_MS = leerNumero(RAIZ + "/Maestro/src/modo_degradado.cpp",
+                                                    R"(LIMITE_DURO_MS\s*=\s*(\d+))",
+                                                    "LIMITE_DURO_MS del Maestro (G8)");
+      g_sinCristalAlArrancar = true;
+      prepararSincronizadas(15, 8, 0, 0);
+      g_sinCristalAlArrancar = false;   // solo este arranque: los que vengan traen cristal
+      const long lseM = MAESTRO.orden("contador_segundos");
+      const long estadoCristalM = MAESTRO.orden("estado_cristal");
+      const long motivo = MAESTRO.orden("deg_evaluar");
+      entrarEnDegradadoLasDos(0);
+      const long msSync0 = MAESTRO.orden("ms_desde_sync");
+      avanzar(3000);
+      const bool entro = MAESTRO.orden("modo_actual") == MODO_DEGRADADO_V;
+
+      // Hasta una hora ANTES del limite contado desde la sync: el control. Si cae antes, lo
+      // que se mide no es el limite.
+      const unsigned long ANTES = G8_LIMITE_MS - 3600000UL;
+      while ((unsigned long)MAESTRO.orden("ms_desde_sync") < ANTES &&
+             MAESTRO.estado() != S_FALLO_V) {
+        avanzar(60000UL);
+      }
+      const long msAntes = MAESTRO.orden("ms_desde_sync");
+      const bool enDegAntes = MAESTRO.orden("modo_actual") == MODO_DEGRADADO_V &&
+                              MAESTRO.estado() != S_FALLO_V;
+      const long alarmasAntes = MAESTRO.orden("alarmas_degradado");
+
+      // Y hasta el limite, con dos horas de sobra para que la caida tenga donde ocurrir.
+      unsigned long tCaida = 0;
+      long msCaida = -1;
+      for (unsigned long h = 0; h < 2UL * 3600000UL && tCaida == 0; h += PASO_MS) {
+        unTick();
+        if (MAESTRO.orden("alarmas_degradado") > alarmasAntes) {
+          tCaida = g_t;
+          msCaida = MAESTRO.orden("ms_desde_sync");
+        }
+      }
+      avanzar(5000);
+      const long estadoFin = MAESTRO.estado();
+      const long aDeg = MAESTRO.orden("alarmas_degradado");
+      const long aNoCuenta = MAESTRO.orden("alarmas_reloj_no_cuenta");
+      const long aLimite = MAESTRO.orden("alarmas_limite_48h");
+      const long aSinFecha = MAESTRO.orden("alarmas_sync_sin_fecha");
+      const long estadoCristalFin = MAESTRO.orden("estado_cristal");
+
+      comprobar(lseM == 0 && motivo == MDG_OK_V && entro && msSync0 >= 0 && enDegAntes &&
+                    alarmasAntes == 0,
+                "G8.0 (control del escenario): sin cristal desde el arranque (contador " +
+                    std::to_string(lseM) + ", estado_cristal " + std::to_string(estadoCristalM) +
+                    ") la puerta deja entrar (motivo " + std::to_string(motivo) +
+                    ") y a " + std::to_string(msAntes / 3600000L) +
+                    " h de la sync el Maestro sigue en Degradado sin $ALARM (" +
+                    std::to_string(alarmasAntes) + ")");
+      comprobar(tCaida != 0 && msCaida >= (long)G8_LIMITE_MS && estadoFin == S_FALLO_V &&
+                    aDeg == 1 && aLimite == 1 && aNoCuenta == 0 && aSinFecha == 0,
+                "G8.1 (1.49b3): sin cristal, a las " + std::to_string(msCaida) +
+                    " ms de la sync (limite " + std::to_string(G8_LIMITE_MS) +
+                    ") el Maestro cae a ambar (estado " + std::to_string(estadoFin) +
+                    ") con LIMITE_48H: " + std::to_string(aLimite) + " de " +
+                    std::to_string(aDeg) + " $ALARM del Degradado; RELOJ_NO_CUENTA " +
+                    std::to_string(aNoCuenta) + ", SYNC_SIN_FECHA " + std::to_string(aSinFecha) +
+                    " (estado_cristal " + std::to_string(estadoCristalFin) +
+                    "). Un cristal que nunca arranco no es 'reloj sin contar': es la radio");
     }
   }
   // =========================================================================
