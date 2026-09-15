@@ -69,6 +69,12 @@ RETARDO_RESPUESTA_MS = _fw.constante(_ESC_MAIN, r"RETARDO_RESPUESTA_MS\s*=\s*(\d
 SILENCIO_A_AMBAR_MS = _fw.constante(("Esclavo", "include", "protocolo.h"),
                                     r"#define\s+SFTY6_SILENCIO_MS\s+(\d+)UL",
                                     "caida a ambar por silencio de radio")
+# D-34: el margen con que el Esclavo suelta su verde antes de ese silencio, y el valor del
+# param del PONG que lo avisa. Se leen de protocolo.h, donde el firmware los lee.
+AVISO_AMBAR_TIMEOUT_MS = _fw.constante(("Esclavo", "include", "protocolo.h"),
+                                       r"#define\s+AVISO_AMBAR_TIMEOUT_MS\s+(\d+)UL",
+                                       "margen de suelta del verde (D-34)")
+PONG_VERDE_SOLTADO = _fw.comando(("Esclavo", "include", "protocolo.h"), "PONG_VERDE_SOLTADO")
 
 LIMITE_SIN_SYNC_H = _fw.constante(_ESC_DEG, r"LIMITE_SIN_SYNC_MS\s*=\s*(\d+)UL\s*\*\s*3600UL", "limite duro sin sync")
 AVISO_SIN_SYNC_H = _fw.constante(_ESC_DEG, r"AVISO_SIN_SYNC_MS\s*=\s*(\d+)UL\s*\*\s*3600UL", "aviso de proximidad")
@@ -422,6 +428,7 @@ class Esclavo:
         self.respuesta_param = 0
         self.tEnviarRespuesta = 0
         self.tUltimoComando = 0
+        self.verde_soltado_por_margen = False   # D-34
         self.ack_verde_enviado = False
         self.tInicioVerde = 0
         self.estado_luz_ant = "S_ROJO"
@@ -578,14 +585,20 @@ class Esclavo:
         if cmd == CMD["CMD_PING"]:
             if self.semaforo.estado != "S_FALLO":
                 self.tUltimoComando = self.t
-            self.programar_respuesta(CMD["CMD_PONG"])
+            # D-34: el param dice si esta punta solto su verde por margen
+            self.programar_respuesta(CMD["CMD_PONG"],
+                                     PONG_VERDE_SOLTADO if self.verde_soltado_por_margen else 0)
         elif cmd == CMD["CMD_GO_RED"]:
             self.tUltimoComando = self.t
+            self.verde_soltado_por_margen = False   # D-34
             if not self._ambar_emergencia():
                 self.semaforo.forzar_rojo()
                 self.programar_respuesta(CMD["CMD_ACK_RED"])
         elif cmd == CMD["CMD_GO_GREEN"]:
-            self.tUltimoComando = self.t
+            # D-34: la repeticion (luz ya en ambar o verde) no refresca el silencio
+            if self.semaforo.estado not in ("S_AMARILLO", "S_VERDE"):
+                self.tUltimoComando = self.t
+            self.verde_soltado_por_margen = False   # D-34
             if not self._ambar_emergencia():
                 self.semaforo.iniciar_transicion_a_verde()
                 self.ack_verde_enviado = False
@@ -656,9 +669,15 @@ class Esclavo:
         if self.rx:
             self._procesar(self.rx.pop(0))
 
+        # D-34: el verde se suelta AVISO_AMBAR_TIMEOUT_MS antes que el ambar, directo a rojo
+        if (not self.degradado.gobierna_luz() and self.semaforo.estado in ("S_VERDE", "S_AMARILLO")
+                and (self.t - self.tUltimoComando) + AVISO_AMBAR_TIMEOUT_MS > SILENCIO_A_AMBAR_MS):
+            self.semaforo.forzar_rojo()
+            self.verde_soltado_por_margen = True
         if not self.degradado.gobierna_luz() and (self.t - self.tUltimoComando) > SILENCIO_A_AMBAR_MS:
             if self.semaforo.estado != "S_FALLO":
                 self.semaforo.iniciar_fallo()
+                self.verde_soltado_por_margen = False   # D-34: desde aqui manda SFTY-9
 
         luz = self.semaforo.estado
         if luz != self.estado_luz_ant:

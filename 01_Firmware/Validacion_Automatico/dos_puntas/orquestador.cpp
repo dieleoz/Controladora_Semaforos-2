@@ -506,6 +506,22 @@ static unsigned long g_entregasEsclavoNoGobierno = 0;
 // cortes. Esta es la linea que lo caza; la de arriba, sola, no puede.
 static unsigned long g_tEmisionMaestro = 0;
 
+// D-34 (bloques G13 y G14): el PONG, su param y la reanudacion que dispara. Codigos
+// releidos de las dos protocolo.h (ver main). Se tiran los PONG que el Esclavo EMITE con
+// g_t en [desde, hasta) -una ventana de tiempo y no un recuento, porque lo que G14 barre es
+// la EDAD del ultimo PONG oido al acabar el despeje-. Una REANUDACION es el tick en que al
+// Maestro le llega un PONG con PONG_VERDE_SOLTADO y el Maestro pone un GO_RED en el aire en
+// ESE MISMO tick: es la firma de la rama de coordinador.cpp, que emite sin esperar a nada.
+// NO ES UNICA, Y SE MIDIO (control negativo con la rama anulada): con el Maestro en C_FALLO
+// la llegada de CUALQUIER trama le devuelve la comunicacion y SFTY-9 emite su GO_RED en ese
+// mismo tick, asi que el contador sube tambien ahi. Por eso G13 solo lo exige en las celdas
+// donde el silencio del Maestro NO paso de SFTY6_SILENCIO_MS -sin C_FALLO no hay SFTY-9-.
+static uint8_t CMD_PONG_V = 0, PONG_VERDE_SOLTADO_V = 0;
+static unsigned long g_pongPerderDesdeT = 0, g_pongPerderHastaT = 0;   // hasta == 0: ninguno
+static unsigned long g_pongPerdidos = 0;
+static unsigned long g_pongAvisosEntregados = 0;
+static unsigned long g_reanudaciones = 0;
+
 // N-162 (bloque G, G9): un ACK_RED RETENIDO en el aire y soltado cuando el escenario diga.
 // Es la unica forma en que un acuse viejo puede enganar al Maestro -llegar despues de que
 // el Esclavo haya vuelto a verde-, y el arnes no la produce sola: el canal es FIFO y de
@@ -671,10 +687,16 @@ static void vigilar(unsigned long t) {
 static const unsigned long PASO_MS = 50;
 
 static void unTick() {
+  bool pongAvisoEsteTick = false;   // D-34
   // 1. Lo que ya vencio en el aire se entrega ANTES de que las puntas corran.
   for (size_t i = 0; i < g_aire.size();) {
     if (g_aire[i].tEntrega <= g_t) {
       Punta& d = (g_aire[i].destino == 0) ? MAESTRO : ESCLAVO;
+      if (g_aire[i].destino == 0 && g_aire[i].trama[1] == CMD_PONG_V &&
+          g_aire[i].trama[2] == PONG_VERDE_SOLTADO_V) {
+        pongAvisoEsteTick = true;
+        g_pongAvisosEntregados++;
+      }
       // N-162: con que luz encuentra al Esclavo cada GO_GREEN que le llega.
       if (g_aire[i].destino == 1 && g_aire[i].trama[1] == CMD_GO_GREEN_V) {
         const int e = ESCLAVO.estado();
@@ -684,9 +706,17 @@ static void unTick() {
       // N-163: el reloj de silencio de cada punta, fechado sobre la ENTREGA.
       if (g_aire[i].destino == 1) {
         const uint8_t c163 = g_aire[i].trama[1];
-        if (c163 == CMD_PING_V || c163 == CMD_GO_RED_V || c163 == CMD_GO_GREEN_V)
+        // D-34 (CLAUDE.md 9): el GO_GREEN que encuentra la luz en AMARILLO o en VERDE es una
+        // repeticion y ya NO refresca tUltimoComando. Se mira la luz ANTES de entregarla
+        // -d.rx() va debajo-, que es lo que ve la guarda de main.cpp. Sin esto el modelo
+        // fecharia el silencio del Esclavo con cada repeticion y derivaria menos ambares.
+        const bool goVerdeRepetido =
+            (c163 == CMD_GO_GREEN_V &&
+             (ESCLAVO.estado() == S_AMARILLO_V || ESCLAVO.estado() == S_VERDE_V));
+        if (c163 == CMD_PING_V || c163 == CMD_GO_RED_V ||
+            (c163 == CMD_GO_GREEN_V && !goVerdeRepetido))
           g_tGobiernoEsclavo = g_t;
-        else
+        else if (!goVerdeRepetido)
           g_entregasEsclavoNoGobierno++;
       } else {
         g_tRxMaestro = g_t;
@@ -707,6 +737,9 @@ static void unTick() {
   unsigned char b[4];
   while (MAESTRO.tx(b)) {
     g_tEmisionMaestro = g_t;   // N-163: emitida. Que llegue o no es cosa del aire.
+    // D-34: se cuenta en la EMISION, antes de cualquier perdida: la reanudacion es lo que
+    // el Maestro decide, no lo que el aire deja pasar.
+    if (pongAvisoEsteTick && b[1] == CMD_GO_RED_V) { g_reanudaciones++; pongAvisoEsteTick = false; }
     // N-162: se tiran los GO_GREEN cuyo ordinal cae en [desde, hasta].
     if (b[1] == CMD_GO_GREEN_V) {
       g_goVerdeEmitidos++;
@@ -733,6 +766,13 @@ static void unTick() {
     }
   }
   while (ESCLAVO.tx(b)) {
+    // D-34 (G14): los PONG emitidos dentro de la ventana de perdida.
+    if (b[1] == CMD_PONG_V && g_pongPerderHastaT != 0 && g_t >= g_pongPerderDesdeT &&
+        g_t < g_pongPerderHastaT) {
+      g_pongPerdidos++;
+      g_tramasPerdidas++;
+      continue;
+    }
     // N-162: se tiran los primeros g_ackVerdeAPerder ACK_GREEN del Esclavo.
     if (b[1] == CMD_ACK_GREEN_V && g_ackVerdeAPerder > 0) {
       g_ackVerdeAPerder--;
@@ -830,6 +870,7 @@ static void escenarioLimpio(long tiemposMaestro, bool exigirTiempos = false) {
   g_goRojoAPerder = 0;
   g_ackRojoARetener = 0;
   g_hayAckRojoRetenido = false;
+  g_pongPerderDesdeT = g_pongPerderHastaT = 0;   // D-34
   MAESTRO.descargar(); MAESTRO.cargar(); MAESTRO.arrancar();
   ESCLAVO.descargar(); ESCLAVO.cargar(); ESCLAVO.arrancar();
   if (tiemposMaestro > 0 && MAESTRO.orden("fijar_tiempos", tiemposMaestro) != 1 && exigirTiempos)
@@ -1165,6 +1206,17 @@ int main() {
     if (CMD_ACK_RED_V == CMD_GO_RED_V || CMD_ACK_RED_V == CMD_ACK_GREEN_V ||
         CMD_ACK_RED_V == CMD_GO_GREEN_V)
       abortar("CMD_ACK_RED comparte codigo con otra orden de luz");
+    // D-34: el PONG y el valor de su param que dice "verde soltado". Los emite el Esclavo
+    // y los lee el Maestro, cada uno con SU protocolo.h.
+    CMD_PONG_V = hex(PROTO_E, "CMD_PONG");
+    PONG_VERDE_SOLTADO_V = hex(PROTO_E, "PONG_VERDE_SOLTADO");
+    if (hex(PROTO_M, "CMD_PONG") != CMD_PONG_V ||
+        hex(PROTO_M, "PONG_VERDE_SOLTADO") != PONG_VERDE_SOLTADO_V)
+      abortar("CMD_PONG o PONG_VERDE_SOLTADO DIFIEREN entre las dos protocolo.h: G13 no sabria "
+              "que aviso cuenta");
+    if (PONG_VERDE_SOLTADO_V == 0)
+      abortar("PONG_VERDE_SOLTADO vale 0, que es el param del PONG de siempre: el aviso no "
+              "se distinguiria de un PONG normal");
   }
 
   // N-162 (bloque F): los valores del enum EstadoSemaforo, releidos de las DOS cabeceras.
@@ -3020,7 +3072,7 @@ int main() {
                 std::to_string(SIL - TOUT) + " ms) y sin desbordar la fase del latido- y "
                 "main.cpp del Esclavo sigue refrescando tUltimoComando en " +
                 std::to_string(refrescosTUC) + " sitios (su declaracion + PING, GO_RED y "
-                "GO_GREEN), que es lo "
+                "el GO_GREEN que arranca la transicion -D-34: la repeticion ya no-), que es lo "
                 "unico sobre lo que este modelo fecha el silencio. Trafico de servicio "
                 "entregado y correctamente NO contado: " +
                 std::to_string(g_entregasEsclavoNoGobierno) + " tramas");
@@ -3062,6 +3114,419 @@ int main() {
                 std::to_string(g11VueltasAVerde) + " vueltas), asi que la cuenta de ambares de "
                 "arriba no sale de un cruce que se quedo parado en rojo -que la pasaria igual "
                 "de bien-");
+    }
+
+    // ---- G12: GO_GREEN ENTREGADO, SU ACUSE PERDIDO, Y LA BAJADA MUERE DESPUES (1.39, E2b) --
+    //
+    // La medida del 15/09 ("bloque H" en la copia del scratchpad; aqui G12 porque el bloque H
+    // de este arnes ya es el del ambar del Poste 2 y sus H1..H6 estan citados fuera). La
+    // subida Esclavo->Maestro muere 'pre' ms ANTES de que el Maestro emita el GO_GREEN
+    // (0 = en el instante de emitirlo), y la bajada vive hasta que el Esclavo ha recibido
+    // k repeticiones de ese GO_GREEN -o hasta que el Maestro cae a S_FALLO, lo que llegue
+    // antes-. Cada punta cuenta su silencio desde un instante DISTINTO: el Maestro desde su
+    // ultima recepcion -anterior al corte de la subida-, el Esclavo desde su ultima orden
+    // -la ultima repeticion entregada-. Si el reloj del Esclavo se refresca despues que el
+    // del Maestro, el Maestro cae a ambar con la pluma arriba y el Esclavo sigue en verde
+    // hasta su propia orfandad. Ningun escenario de G1..G11 corta las dos direcciones en
+    // ese orden: G2-a deja viva la bajada, G2-d la devuelve, G4-b corta las dos a la vez.
+    //
+    // POR QUE ESTE BARRIDO (CLAUDE.md 7), derivado del C++:
+    //   pre en multiplos del LATIDO_MS: el Maestro fecha su silencio sobre el PONG de cada
+    //     latido, asi que dentro de un latido la fase cambia poco y entre latidos cambia el
+    //     instante del ultimo PONG oido. Hasta 6 latidos, y se ABORTA si el ultimo corte mas
+    //     un latido llega al silencio SFTY-6: ahi el Maestro ya estaria en C_FALLO antes de
+    //     poder emitir, y la fila no mediria lo que dice.
+    //   k de 0 a CICLO_MAX_REINTENTOS - 1: las repeticiones que el Maestro puede llegar a
+    //     entregar antes de agotar reintentos. k = CICLO_MAX_REINTENTOS no hace falta como
+    //     columna: la rama "la bajada vive hasta el S_FALLO del Maestro" esta en todas las
+    //     celdas y la ejercen las de pre alto.
+    // EL BORDE DE G12a ES CERO, NO BORDE_MS, y por eso se escribe: con las DOS direcciones
+    // muertas no hay viaje de radio que esperar -cada punta decide sobre su propio reloj-,
+    // asi que nada obliga a que el ambar de una se solape con el verde de la otra. Las celdas
+    // que salen con 50 ms en HEAD (la bajada cortada en el instante del S_FALLO, con el
+    // GO_RED ya en el aire) tambien cuentan: la trama salio porque la radio aun vivia, y el
+    // Maestro encendio el ambar sin esperar a que llegara.
+    //
+    // LO QUE SE CAMBIO DEL BLOQUE LITERAL DEL SCRATCHPAD, y por que: (1) la ventana se
+    // observa desde el corte de la subida, no desde el GO_GREEN, para que un firmware que
+    // abra la ventana ANTES de emitir -o que no emita- no quede sin mirar; (2) se retiro la
+    // reconstruccion por texto de la traza (umbral de 4000 ms escrito a mano), que en las
+    // celdas sin GO_GREEN daba 25000 ms de "cruce" con la ventana real a cero: se cuenta
+    // con VentanaG, el mismo detector de G1..G11; (3) el horizonte de 120 s sale del C++.
+    {
+      unsigned long dtGo = 0;
+      {
+        escenarioLimpio(TIEMPOS_G, true);
+        const unsigned long t0 = g_t;
+        if (!alcanzarGoVerdeG(ALCANCE)) abortar("G12: con la radio sana no hubo GO_GREEN en el alcance");
+        dtGo = g_t - t0;   // tick siguiente al de la emision
+      }
+      const unsigned N_PRES = 5;
+      const unsigned long PRES[N_PRES] = { 0, LATIDO_MS_V, 2 * LATIDO_MS_V, 4 * LATIDO_MS_V,
+                                           6 * LATIDO_MS_V };
+      if (PRES[N_PRES - 1] + LATIDO_MS_V >= SIL)
+        abortar("G12: el corte mas temprano (" + std::to_string(PRES[N_PRES - 1]) + " ms) mas un "
+                "latido llega al silencio SFTY-6 (" + std::to_string(SIL) + " ms): el Maestro ya "
+                "estaria en C_FALLO antes de emitir el GO_GREEN");
+      if (PRES[N_PRES - 1] + PASO_MS >= dtGo)
+        abortar("G12: el corte mas temprano caeria antes del primer tick del escenario");
+      if (NMAX == 0) abortar("G12: CICLO_MAX_REINTENTOS leido en cero");
+      // Horizonte tras el GO_GREEN: el mismo que G2-a. Cubre el peor cierre posible -el
+      // Maestro cae a S_FALLO como tarde un silencio despues, y el Esclavo huerfano otro
+      // silencio despues de su ultima orden-; se aborta si no lo cubre.
+      const unsigned long HORIZONTE = TOUT * (NMAX + 1) + POST;
+      if (HORIZONTE <= 2 * SIL + LATIDO_MS_V + BORDE_MS)
+        abortar("G12: el horizonte no cubre dos silencios SFTY-6 mas un latido");
+
+      unsigned long celdas = 0, frenteMaxMs = 0, frentePeorPre = 0, frentePeorK = 0;
+      unsigned long celdasConCruce = 0, simultaneoMs = 0, emitidas = 0, porK = 0, porFallo = 0;
+      unsigned long frenteInstantes = 0;
+      bool precondicion = true, filaCeroEjerce = true;
+      std::string malas;
+      CorridaG peor;
+      bool hayPeor = false;
+      const unsigned long a9Antes = g_a9Perdonados;
+      std::printf("   G12: GO_GREEN emitido a %lu ms del arranque del escenario con la radio sana.\n",
+                  dtGo);
+      std::printf("   G12  pre_ms  k  GO_GREEN  bajada_cortada_por  frente_a_S_FALLO_ms  ventana_ms\n");
+      for (unsigned ip = 0; ip < N_PRES; ip++) {
+        const unsigned long pre = PRES[ip];
+        for (unsigned long k = 0; k < NMAX; k++) {
+          celdas++;
+          escenarioLimpio(TIEMPOS_G, true);
+          const unsigned long t0 = g_t;
+          const unsigned long n0 = g_goVerdeEmitidos;
+          unsigned long entregados0 = 0;
+          for (int i = 0; i < 4; i++) entregados0 += g_goVerdeEntregadoEn[i];
+          CorridaG c;
+          bool cortadoSub = false;
+          while (g_goVerdeEmitidos == n0 && g_t - t0 < ALCANCE) {
+            if (!cortadoSub && pre > 0 && g_t - t0 + pre + PASO_MS >= dtGo) {
+              g_enlaceHaciaMaestro = false; cortadoSub = true; c.tCorte = g_t;
+            }
+            if (cortadoSub) pasoG(c); else unTick();
+          }
+          const bool emitido = (g_goVerdeEmitidos != n0);
+          if (!cortadoSub && emitido) { cortadoSub = true; c.tCorte = g_t; }   // pre == 0
+          g_enlaceHaciaMaestro = false;   // el ACK_GREEN no vuelve
+          // la bajada vive hasta k repeticiones mas entregadas, o hasta el S_FALLO del Maestro
+          bool bajadaCortada = false, cortePorK = false, eVerde = false;
+          unsigned long tEmK = 0;
+          for (unsigned long g = 0; g < HORIZONTE; g += PASO_MS) {
+            if (!bajadaCortada) {
+              if (g_goVerdeEmitidos >= n0 + 1 + k) {
+                if (tEmK == 0) tEmK = g_t;
+                if (g_t >= tEmK + 2 * PASO_MS) {
+                  g_enlaceHaciaEsclavo = false; bajadaCortada = true; cortePorK = true;
+                }
+              }
+              if (MAESTRO.estado() == S_FALLO_V && !bajadaCortada) {
+                g_enlaceHaciaEsclavo = false; bajadaCortada = true;
+              }
+            }
+            pasoG(c);
+            if (ESCLAVO.verde()) eVerde = true;
+          }
+          finG(c);
+          unsigned long entregados = 0;
+          for (int i = 0; i < 4; i++) entregados += g_goVerdeEntregadoEn[i];
+          entregados -= entregados0;
+
+          const unsigned long frenteMs = c.v.frenteAFallo * PASO_MS;
+          frenteInstantes += c.v.frenteAFallo;
+          if (frenteMs > 0) celdasConCruce++;
+          if (!hayPeor || frenteMs > frenteMaxMs) {
+            frenteMaxMs = frenteMs; frentePeorPre = pre; frentePeorK = k; peor = c; hayPeor = true;
+          }
+          simultaneoMs += c.v.simultaneo * PASO_MS;
+          if (emitido) emitidas++;
+          if (cortePorK) porK++; else if (bajadaCortada) porFallo++;
+          const bool okCelda = cortadoSub && bajadaCortada && (!emitido || entregados >= 1);
+          if (!okCelda) {
+            precondicion = false;
+            malas += " (" + std::to_string(pre) + "," + std::to_string(k) + ")";
+          }
+          if (pre == 0 && !(emitido && entregados >= 1 && eVerde)) filaCeroEjerce = false;
+          std::printf("   G12  %6lu  %lu  %-8s  %-18s  %19lu  %10lu\n", pre, k,
+                      emitido ? "si" : "NO", cortePorK ? "k repeticiones"
+                                              : (bajadaCortada ? "S_FALLO Maestro" : "NO CORTADA"),
+                      frenteMs, acumuladoMsG(c.v));
+        }
+      }
+      imprimirTrazaG(("G12, peor celda (pre " + std::to_string(frentePeorPre) + " ms, k " +
+                      std::to_string(frentePeorK) + "):").c_str(), peor);
+      comprobar(frenteMaxMs == 0,
+                "G12a: GO_GREEN entregado, acuse perdido y radio muerta en las dos direcciones "
+                "(subida cortada 0 a " + std::to_string(PRES[N_PRES - 1]) + " ms antes del "
+                "GO_GREEN, bajada viva durante 0 a " + std::to_string(NMAX - 1) + " repeticiones): "
+                "en las " + std::to_string(celdas) + " celdas ninguna punta da verde frente a la "
+                "otra en S_FALLO (ambar, pluma arriba) -el caso medido: Maestro en S_FALLO y "
+                "Esclavo en verde-. Medido: " +
+                std::to_string(celdasConCruce) + " celdas con cruce, el peor " +
+                std::to_string(frenteMaxMs) + " ms (pre " + std::to_string(frentePeorPre) +
+                " ms, k " + std::to_string(frentePeorK) + "); borde 0 ms (las dos direcciones "
+                "muertas: no hay viaje de radio que esperar)");
+      comprobar(simultaneoMs == 0,
+                "G12b (control): en esas " + std::to_string(celdas) + " celdas nunca verde en las "
+                "dos puntas a la vez: " + std::to_string(simultaneoMs) + " ms");
+      comprobar(precondicion && filaCeroEjerce,
+                "G12c (control negativo): en las " + std::to_string(celdas) + " celdas la subida "
+                "se corto y la bajada se corto (" + std::to_string(porK) + " tras k repeticiones, " +
+                std::to_string(porFallo) + " al caer el Maestro a S_FALLO), y todo GO_GREEN emitido "
+                "llego al Esclavo (" + std::to_string(emitidas) + " celdas con GO_GREEN); en la "
+                "fila pre = 0 -radio sana hasta el instante de emitir- el GO_GREEN salio, llego y "
+                "el Esclavo SI se puso en verde: un arnes que no cortara nada o un escenario sin "
+                "verde no aprueba G12a" +
+                (malas.empty() ? std::string("") : std::string(". Celdas sin precondicion:") + malas));
+      std::printf("   [NOTA]  G12: la excepcion de A9 (S_FALLO por nombre) perdono %lu instantes en "
+                  "este barrido; el detector de G conto %lu frente a S_FALLO. A9 se comprueba "
+                  "tras el bloque A y no ve estos instantes. No cuenta.\n",
+                  g_a9Perdonados - a9Antes, frenteInstantes);
+    }
+
+    // ---- G13: D-34 (i). EL MICROCORTE QUE VUELVE CON EL MARGEN DEL ESCLAVO YA PASADO ------
+    //
+    // El modo de fallo que D-34 CREA (CLAUDE.md 11.7): el Esclavo suelta su verde
+    // AVISO_AMBAR_TIMEOUT_MS antes de su silencio. Un corte total que vuelve en ese hueco ya
+    // no cuesta un ambar -no llego al silencio- pero SI un rojo, un despeje y un verde del
+    // Maestro de mas: el Esclavo lo dice en el PONG y el Maestro reanuda como N-163. Se mide
+    // que ese coste este acotado, que no traiga ambar y que la reanudacion sea UNA.
+    //
+    // POR QUE ESTE BARRIDO (CLAUDE.md 7): el silencio con que el Esclavo recibe la primera
+    // orden tras la vuelta esta cuantizado por el latido -siempre un multiplo del periodo del
+    // PING-, asi que barrer solo el instante de la vuelta repite los mismos valores. Lo que
+    // lo mueve de verdad es el VIAJE de radio tras la vuelta, y por eso se barre la latencia
+    // del aire desde el instante de la vuelta: hasta 1500 ms, porque por encima el viaje de
+    // ida y vuelta de un GO_RED con su ACK_RED (2 x latencia + RETARDO_RESPUESTA_MS) ya no
+    // cabe en TIMEOUT_ACK_MS y el escenario mediria reintentos, no esto (se aborta).
+    // LA CLASIFICACION SALE DEL CANAL, NO DEL FIRMWARE: una celda esta "en el hueco" si el
+    // silencio del Esclavo paso de SFTY6_SILENCIO_MS - AVISO_AMBAR_TIMEOUT_MS en algun tick
+    // y ninguna de las dos puntas paso de SFTY6_SILENCIO_MS (el mismo modelo que G11).
+    // EL BORDE del todo-rojo: despeje + LATIDO_MS + 2 x TIMEOUT_ACK_MS, contado desde la
+    // vuelta del enlace hasta que el Maestro abre (ambar de su transicion o verde): un latido
+    // para que salga el PING que se lleva el aviso, un acuse para el PONG y otro para el
+    // GO_RED con su ACK_RED, y el despeje desde ese acuse (N-162).
+    {
+      const unsigned long LAT_BASE = g_latenciaMs;
+      const unsigned long MARGEN = AVISO_AMBAR_TIMEOUT_MS_V;
+      const unsigned long LATS_VUELTA[] = { LAT_BASE, 450, 1000, 1500 };
+      const unsigned nLats = (unsigned)(sizeof(LATS_VUELTA) / sizeof(LATS_VUELTA[0]));
+      const unsigned long OBJ[] = { SIL - MARGEN - LATIDO_MS_V, SIL - MARGEN,
+                                    SIL - LATIDO_MS_V / 2, SIL - PASO_MS };
+      const unsigned nObj = (unsigned)(sizeof(OBJ) / sizeof(OBJ[0]));
+      if (MARGEN == 0 || MARGEN >= SIL) abortar("G13: AVISO_AMBAR_TIMEOUT_MS leido fuera de (0, SFTY6)");
+      for (unsigned i = 0; i < nLats; i++)
+        if (2 * LATS_VUELTA[i] + RETARDO_RESPUESTA_MS_V + 2 * PASO_MS >= TOUT)
+          abortar("G13: con latencia " + std::to_string(LATS_VUELTA[i]) + " ms un GO_RED y su "
+                  "ACK_RED no caben en TIMEOUT_ACK_MS: la celda mediria reintentos");
+      const unsigned long BORDE_TR = DESPEJE_MS + LATIDO_MS_V + 2 * TOUT;
+      const unsigned long HOR13 = SIL + LATIDO_MS_V + TOUT * (NMAX + 2) + DESPEJE_MS +
+                                  AMBAR_ESCLAVO_MS_V + 30000;
+      unsigned long celdas = 0, enHueco = 0, sinMargen = 0, ambE = 0, espE = 0, ambM = 0, espM = 0;
+      unsigned long peorTR = 0, reanudHueco = 0, malasHueco = 0, espureas = 0, simult = 0;
+      bool ejercido = true;
+      std::string malas;
+      std::printf("   G13  obj_ms  lat_vuelta  silE_entrega  hueco  reanud  ambarE/M  todo_rojo_vuelta_ms\n");
+      for (unsigned il = 0; il < nLats; il++) {
+        for (unsigned io = 0; io < nObj; io++) {
+          celdas++;
+          g_latenciaMs = LAT_BASE;
+          escenarioLimpio(TIEMPOS_G, true);
+          if (!alcanzarVerdeG(ESCLAVO, ALCANCE)) ejercido = false;
+          avanzar(LATIDO_MS_V + TOUT);   // que el ACK_GREEN haya llegado: QV_ESCLAVO en C_IDLE
+          if (!ESCLAVO.verde() || MAESTRO.verde()) ejercido = false;
+          CorridaG c;
+          c.tCorte = g_t;
+          const unsigned long r0 = g_reanudaciones;
+          g_enlaceHaciaEsclavo = g_enlaceHaciaMaestro = false;
+          long tVuelta = -1, tAbre = -1;
+          unsigned long silEntrega = 0;
+          bool entregado = false, pasoMargen = false, orfE = false, orfM = false, solto = false;
+          for (unsigned long h = 0; h < HOR13; h += PASO_MS) {
+            if (tVuelta < 0 && g_t - g_tGobiernoEsclavo >= OBJ[io]) {
+              g_latenciaMs = LATS_VUELTA[il];
+              g_enlaceHaciaEsclavo = g_enlaceHaciaMaestro = true;
+              tVuelta = (long)g_t;
+            }
+            const unsigned long tg0 = g_tGobiernoEsclavo;
+            const unsigned long t = g_t;
+            pasoG(c);
+            // El silencio que el firmware evaluo en ESTE tick: si en el hubo entrega, la
+            // entrega va antes y lo pone a cero -main.cpp refresca antes de mirar-.
+            if (!entregado && g_tGobiernoEsclavo == tg0 && t - tg0 > SIL - MARGEN) pasoMargen = true;
+            if (!entregado && !ESCLAVO.verde() && ESCLAVO.estado() != S_FALLO_V) solto = true;
+            if (tVuelta >= 0 && !entregado && g_tGobiernoEsclavo != tg0) {
+              entregado = true;
+              silEntrega = g_tGobiernoEsclavo - tg0;
+            }
+            if (t - g_tGobiernoEsclavo > SIL) orfE = true;
+            if (t - g_tRxMaestro > SIL) orfM = true;
+            if (tVuelta >= 0 && tAbre < 0 &&
+                (MAESTRO.verde() || MAESTRO.estado() == S_AMARILLO_V))
+              tAbre = (long)t;
+            if (tAbre >= 0 && MAESTRO.verde()) break;
+          }
+          finG(c);
+          g_latenciaMs = LAT_BASE;
+          const unsigned long reanud = g_reanudaciones - r0;
+          const bool hueco = pasoMargen && !orfE && !orfM;
+          if (orfE) espE++;
+          if (orfM) espM++;
+          ambE += c.entradasFalloE;
+          ambM += c.entradasFalloM;
+          simult += c.v.simultaneo;
+          const long tr = (tAbre >= 0 && tVuelta >= 0) ? tAbre - tVuelta : -1;
+          if (hueco) {
+            enHueco++;
+            reanudHueco += reanud;
+            if (tr > (long)peorTR) peorTR = (unsigned long)tr;
+            const bool ok = (reanud == 1 && c.entradasFalloE == 0 && c.entradasFalloM == 0 &&
+                             tr >= 0 && (unsigned long)tr <= BORDE_TR && solto &&
+                             acumuladoMsG(c.v) <= g_latenciaMs + PASO_MS);
+            if (!ok) {
+              malasHueco++;
+              malas += " (obj " + std::to_string(OBJ[io]) + ", lat " +
+                       std::to_string(LATS_VUELTA[il]) + ")";
+            }
+          } else if (!pasoMargen) {
+            sinMargen++;
+            if (reanud != 0 || solto) espureas++;
+          }
+          std::printf("   G13  %6lu  %10lu  %12lu  %-5s  %6lu  %4lu/%-4lu  %19ld\n", OBJ[io],
+                      LATS_VUELTA[il], silEntrega, hueco ? "si" : (pasoMargen ? "orf" : "no"),
+                      reanud, c.entradasFalloE, c.entradasFalloM, tr);
+        }
+      }
+      comprobar(ejercido && enHueco > 0 && malasHueco == 0,
+                "G13a (D-34, i): en las " + std::to_string(enHueco) + " celdas cuyo corte total "
+                "vuelve con el silencio del Esclavo pasado su margen (" +
+                std::to_string(SIL - MARGEN) + " ms) y sin llegar al de nadie (" +
+                std::to_string(SIL) + " ms), el Esclavo solto su verde, NO hubo ambar en "
+                "ninguna punta, el Maestro reanudo UNA vez por corte (" +
+                std::to_string(reanudHueco) + " reanudaciones) y abrio como tarde " +
+                std::to_string(peorTR) + " ms despues de la vuelta; borde " +
+                std::to_string(BORDE_TR) + " ms (despeje + LATIDO_MS + 2 x TIMEOUT_ACK_MS). "
+                "Coste: un rojo, un despeje y un verde de mas, no un ambar" +
+                (malas.empty() ? std::string("") : std::string(". Celdas malas:") + malas));
+      comprobar(ambE == espE && ambM == espM && simult == 0,
+                "G13b: en las " + std::to_string(celdas) + " celdas cada punta entra en ambar "
+                "EXACTAMENTE las veces que su silencio paso de " + std::to_string(SIL) +
+                " ms: Esclavo " + std::to_string(ambE) + " contra " + std::to_string(espE) +
+                " derivadas, Maestro " + std::to_string(ambM) + " contra " +
+                std::to_string(espM) + "; verde en las dos a la vez: " +
+                std::to_string(simult * PASO_MS) + " ms");
+      comprobar(sinMargen > 0 && espureas == 0,
+                "G13c (control negativo): en las " + std::to_string(sinMargen) + " celdas que "
+                "vuelven ANTES del margen el Esclavo NO solto su verde y el Maestro NO reanudo "
+                "(" + std::to_string(espureas) + " celdas con suelta o reanudacion): un firmware "
+                "que soltara o reanudara siempre no aprueba G13a");
+    }
+
+    // ---- G14: D-34 (ii) y (iii). EL PRECIO DE EXIGIR UN PONG RECIENTE ANTES DEL GO_GREEN ---
+    //
+    // (ii) con el enlace sano el GO_GREEN sale donde salia: tRef + despeje, a un tick -tRef
+    // es el primer instante del rojo del Maestro, que se lee de sus pines-; y con PONG
+    // perdidos se retrasa como mucho LATIDO_MS + un tick + un viaje de vuelta (RETARDO del
+    // Esclavo + ida y vuelta), sin ambar. (iii) se barre la EDAD del ultimo PONG oido al
+    // acabar el despeje tirando los PONG de una ventana que acaba justo ahi, con dos
+    // latencias (la del arnes y 450 ms), y se exige que al emitir esa edad no pase de
+    // LATIDO_MS. POR QUE ESTAS VENTANAS (CLAUDE.md 7): de cero a cuatro latidos, que llevan
+    // la edad de "sano" a bastante mas que un latido sin acercarse al silencio SFTY-6
+    // (se aborta si la ventana mas un latido llegara a el).
+    {
+      const unsigned long LAT_BASE = g_latenciaMs;
+      const unsigned long LATS14[] = { LAT_BASE, 450 };
+      const unsigned long VENT[] = { 0, LATIDO_MS_V / 2, LATIDO_MS_V, 2 * LATIDO_MS_V,
+                                     3 * LATIDO_MS_V, 4 * LATIDO_MS_V };
+      const unsigned nV = (unsigned)(sizeof(VENT) / sizeof(VENT[0]));
+      if (VENT[nV - 1] + 2 * LATIDO_MS_V >= SIL) abortar("G14: la ventana mas larga llega al silencio SFTY-6");
+      unsigned long celdas = 0, emitidas = 0, conEspera = 0, esperaCero = 0, edadMax = 0;
+      unsigned long retrasoMax = 0, ambares = 0, ventanaMs = 0, perdidosTot = 0;
+      long d0Max = -1, d0Min = 1000000;
+      bool ejercido = true, retrasoOk = true;
+      std::printf("   G14  lat  ventana_ms  pong_perdidos  edad_fin_despeje  edad_al_emitir  retraso_ms\n");
+      for (unsigned il = 0; il < 2; il++) {
+        const unsigned long viaje = RETARDO_RESPUESTA_MS_V + 2 * LATS14[il] + PASO_MS;
+        const unsigned long BORDE_RET = LATIDO_MS_V + PASO_MS + viaje;
+        for (unsigned iv = 0; iv < nV; iv++) {
+          celdas++;
+          g_latenciaMs = LATS14[il];
+          escenarioLimpio(TIEMPOS_G, true);
+          CorridaG c;
+          if (!alcanzarVerdeG(MAESTRO, ALCANCE)) { ejercido = false; continue; }
+          long tRojoM = -1;
+          for (unsigned long g = 0; g < VERDE_MS + 60000; g += PASO_MS) {
+            const unsigned long t = g_t;
+            pasoG(c);
+            if (!MAESTRO.verde()) { tRojoM = (long)t; break; }
+          }
+          if (tRojoM < 0 || !MAESTRO.rojo()) { ejercido = false; continue; }
+          const unsigned long tFin = (unsigned long)tRojoM + DESPEJE_MS;
+          g_pongPerderDesdeT = tFin - VENT[iv];
+          g_pongPerderHastaT = (VENT[iv] == 0) ? 0 : tFin;
+          const unsigned long p0 = g_pongPerdidos;
+          const unsigned long n0 = g_goVerdeEmitidos;
+          long edadFin = -1, tEmit = -1, edadEmit = -1;
+          for (unsigned long g = 0; g < DESPEJE_MS + SIL; g += PASO_MS) {
+            const unsigned long t = g_t;
+            pasoG(c);
+            if (edadFin < 0 && t >= tFin) edadFin = (long)(t - g_tRxMaestro);
+            if (g_goVerdeEmitidos != n0) { tEmit = (long)t; edadEmit = (long)(t - g_tRxMaestro); break; }
+          }
+          // y un rato despues, para ver que no aparece ningun ambar por la espera
+          correrG(c, AMBAR_ESCLAVO_MS_V + 2 * TOUT);
+          finG(c);
+          g_pongPerderDesdeT = g_pongPerderHastaT = 0;
+          g_latenciaMs = LAT_BASE;
+          const unsigned long perdidos = g_pongPerdidos - p0;
+          ambares += c.entradasFalloE + c.entradasFalloM;
+          ventanaMs += acumuladoMsG(c.v);
+          long retraso = -1;
+          if (tEmit >= 0) {
+            emitidas++;
+            retraso = tEmit - (long)tFin;
+            if (VENT[iv] == 0) {
+              if (retraso > d0Max) d0Max = retraso;
+              if (retraso < d0Min) d0Min = retraso;
+            }
+            if ((unsigned long)edadEmit > edadMax) edadMax = (unsigned long)edadEmit;
+            if (retraso > (long)retrasoMax) retrasoMax = (unsigned long)retraso;
+            if (retraso < 0 || (unsigned long)retraso > BORDE_RET) retrasoOk = false;
+            if (edadFin > (long)LATIDO_MS_V) {
+              conEspera++;
+              if (retraso <= (long)PASO_MS) esperaCero++;
+            }
+          } else {
+            ejercido = false;
+          }
+          perdidosTot += perdidos;
+          std::printf("   G14  %3lu  %10lu  %13lu  %16ld  %14ld  %10ld\n", LATS14[il], VENT[iv],
+                      perdidos, edadFin, edadEmit, retraso);
+        }
+      }
+      g_latenciaMs = LAT_BASE;
+      comprobar(ejercido && d0Min >= 0 && d0Max <= (long)PASO_MS && retrasoOk && ambares == 0,
+                "G14a (D-34, ii): el GO_GREEN sale con el enlace sano a " + std::to_string(d0Min) +
+                ".." + std::to_string(d0Max) + " ms del fin del despeje (medido desde el primer "
+                "rojo del Maestro en sus pines; borde un tick, " + std::to_string(PASO_MS) +
+                " ms) y, con PONG perdidos, como tarde " + std::to_string(retrasoMax) +
+                " ms (borde LATIDO_MS + tick + viaje de vuelta); en las " +
+                std::to_string(celdas) + " celdas, " + std::to_string(ambares) +
+                " entradas en ambar y " + std::to_string(ventanaMs) + " ms de ventana");
+      comprobar(emitidas == celdas && edadMax <= LATIDO_MS_V,
+                "G14b (D-34, iii): en las " + std::to_string(emitidas) + " emisiones barridas "
+                "(dos latencias, ventanas de 0 a " + std::to_string(VENT[nV - 1]) + " ms sin "
+                "PONG) la edad del ultimo PONG oido al emitir el GO_GREEN fue como mucho " +
+                std::to_string(edadMax) + " ms; borde LATIDO_MS, " + std::to_string(LATIDO_MS_V) +
+                " ms");
+      // Una ventana de medio latido puede no contener ninguna emision de PONG: por eso no se
+      // exige perdida en cada celda, sino que el barrido entero haya tirado alguno y que
+      // alguna celda acabe el despeje con el PONG mas viejo que un latido.
+      comprobar(perdidosTot > 0 && conEspera > 0 && esperaCero == 0,
+                "G14c (control negativo): en " + std::to_string(conEspera) + " celdas el despeje "
+                "acabo con el ultimo PONG MAS VIEJO que un latido y en TODAS el GO_GREEN espero "
+                "(" + std::to_string(esperaCero) + " salieron en el tick del despeje): un "
+                "firmware que no exigiera el PONG aprobaria G14a sin haber esperado nada");
     }
   }
   // =========================================================================

@@ -10,6 +10,17 @@
 #define CMD_PONG       0x05
 #define CMD_ACK_RED    0x06
 
+// D-34 (15/09): EL PARAM DEL PONG DICE SI EL ESCLAVO SOLTO SU VERDE POR MARGEN.
+//
+// El Esclavo apaga su verde AVISO_AMBAR_TIMEOUT_MS antes de su propio silencio SFTY-6
+// (Esclavo/src/main.cpp), y el Maestro no tiene otra forma de enterarse: el Esclavo no
+// acusa un rojo que nadie le ordeno, y el Maestro se quedaria en QV_ESCLAVO frente a un
+// carril en rojo hasta el final de la fase. Con el aviso, el Maestro reanuda por la
+// misma puerta que N-163 (coordinador.cpp). Hasta hoy el param del PONG valia siempre 0,
+// asi que un Maestro viejo lo ignora sin cambiar nada. El repetidor copia los 4 bytes
+// crudos y no necesita saberlo.
+#define PONG_VERDE_SOLTADO  0x01
+
 // --- SFTY-23: Sincronizacion horaria por radio -----------------------------
 // La hora se cuadra UNA sola vez en el Maestro y viaja al Esclavo. Ajustar a mano
 // las dos puntas dejaba hasta 59 s de desfase el primer dia -casi cuatro veces el
@@ -136,11 +147,20 @@
 //
 // LO QUE CUESTA SUBIRLO, dicho sin adornos: el cruce puede quedarse hasta 25 s en
 // la fase que tuviera cuando cayo el enlace, en vez de 12. NO puede aparecer un
-// verde nuevo en ese rato -ninguna punta enciende verde sin el ACK de la otra-, asi
-// que lo que se alarga es una espera, no un riesgo de verde simultaneo. A cambio se
-// evita el ambar espurio, que segun el reporte de campo del 27/08 aparece "cada
-// nada cuando llueve": una lluvia que tumba tramas sueltas consumia el techo antes
-// de que los reintentos tuvieran ocasion de recuperarlas.
+// verde nuevo en ese rato -ninguna punta enciende verde sin el ACK de la otra-. A
+// cambio se evita el ambar espurio, que segun el reporte de campo del 27/08 aparece
+// "cada nada cuando llueve": una lluvia que tumba tramas sueltas consumia el techo
+// antes de que los reintentos tuvieran ocasion de recuperarlas.
+//
+// D-34 (15/09): ~~lo que se alarga es una espera, no un riesgo de verde simultaneo~~
+// -> FALSO, y derogado. Verde contra verde no, pero un verde YA DADO si sobrevive al
+// ambar de la otra punta: cada punta cuenta este silencio desde un instante distinto
+// -el Maestro desde lo ultimo que OYO, el Esclavo desde la ultima orden que RECIBIO- y
+// medido en el arnes de las dos puntas (G12, roadmap 1.39) el Esclavo seguia en verde
+// hasta 23 s frente al ambar del Maestro, con la pluma de aquel poste arriba. Lo cierran
+// las dos mitades de D-34: el Esclavo suelta su verde AVISO_AMBAR_TIMEOUT_MS antes de
+// este umbral, y el Maestro no entrega un GO_GREEN sin un PONG de menos de LATIDO_MS.
+// Este numero NO cambia con eso: sigue en 25 s y N-163 sigue en pie.
 //
 // OJO AL LIMITE SUPERIOR: subirlo mas no es gratis ni indefinido. Es el tiempo que
 // una punta sigue con la configuracion vieja creyendo que la otra la acompana.

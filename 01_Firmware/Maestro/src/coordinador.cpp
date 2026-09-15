@@ -946,6 +946,29 @@ void coordinador_actualizar() {
       rojoEsclavoConfirmado = true;
     }
 
+    // D-34 (15/09): EL ESCLAVO SOLTO SU VERDE POR MARGEN, Y SE REANUDA COMO N-163.
+    //
+    // Aquel apago su verde un AVISO_AMBAR_TIMEOUT_MS antes de su silencio y no lo acusa -no
+    // se lo ordeno nadie-; lo dice en el param del PONG. Sin esto esta punta seguiria en
+    // QV_ESCLAVO frente a un carril en rojo hasta el final de la fase, que es el todo-rojo
+    // de minutos que N-163 ya cerro en la otra direccion. Por eso el bloque es el de la
+    // reanudacion de N-163 (mas abajo, "VUELVE EL ENLACE CON MARGEN"): se pide el rojo, se
+    // espera su ACK_RED y el despeje se cuenta desde ese acuse (N-162) antes del verde
+    // propio. Dos diferencias, y las dos son a proposito: quienVerde pasa de QV_ESCLAVO a
+    // QV_NINGUNO -alli ya lo era-, y verdeSoltadoPorMargen de ESTA punta no se toca -es
+    // otra pregunta-. rojoEsclavoConfirmado NO se pone con el PONG: el rojo consta cuando
+    // llegue el ACK_RED de esta orden, no antes. Fuera de QV_ESCLAVO + C_IDLE el param se
+    // ignora: en cualquier otra espera ya hay una orden de luz en curso que manda.
+    if (pkt.command == CMD_PONG && pkt.param == PONG_VERDE_SOLTADO &&
+        quienVerde == QV_ESCLAVO && estadoC == C_IDLE) {
+      quienVerde = QV_NINGUNO;
+      rojoEsclavoConfirmado = false;
+      protocolo_enviarPaquete(CMD_GO_RED);
+      tEsperandoAck = millis();
+      retryCount = 0;
+      estadoC = C_ESPERANDO_ACK_RED;
+    }
+
     if (pkt.command == CMD_PING) {
       protocolo_enviarPaquete(CMD_PONG);
     } else if (pkt.command == CMD_AMBAR_ESCLAVO) {
@@ -1278,7 +1301,33 @@ void coordinador_actualizar() {
       break;
 
     case C_ESPERA_ESTATICO_TRAS_MASTER:
-      if (millis() - tRef >= tiempoDespejeMs) {
+      // D-34 (15/09): EL PRIMER GO_GREEN NO SALE SIN UN PONG DE MENOS DE UN LATIDO.
+      //
+      // Es el unico sitio que emite el PRIMER GO_GREEN; los reintentos de
+      // C_ESPERANDO_ACK_GREEN no se tocan. Si la subida esta muerta y la bajada viva, el
+      // GO_GREEN llega, el Esclavo abre, y esta punta cuenta su silencio desde un PONG
+      // viejo: cae a ambar mientras aquel sigue en verde (G12, roadmap 1.39, hasta 23 s).
+      // Exigir un PONG reciente acota ese desfase a un latido. Con el enlace sano no
+      // cuesta nada -llega uno cada LATIDO_MS-; con un PONG perdido retrasa el verde del
+      // otro poste un latido por PONG, y nunca mas alla de SFTY6_SILENCIO_MS, donde manda
+      // la caida a C_FALLO de siempre. No anade ningun ambar: mientras espera, el cruce
+      // sigue en todo-rojo.
+      //
+      // tUltimaRxEsclavo > 0: sin ninguna recepcion no hay PONG que fechar, y la resta
+      // contra 0 daria una edad falsa. OJO, "PONG" es el caso normal y no la letra:
+      // tUltimaRxEsclavo lo refresca CUALQUIER trama del Esclavo -un CMD_DEMANDA tambien-.
+      // Para esta guarda basta, porque lo que tiene que constar es que la SUBIDA vive; no
+      // prueba la bajada, pero sin bajada el GO_GREEN tampoco llega a abrir nada.
+      static_assert(LATIDO_MS < TIMEOUT_ACK_MS,
+                    "D-34: el PONG exigido antes del GO_GREEN tiene que ser mas joven que un "
+                    "viaje de acuse, o el desfase entre las dos puntas deja de quedar dentro "
+                    "del margen con que cada una suelta su verde");
+      // LA PREMISA QUE ESTE static_assert NO PUEDE COMPROBAR, escrita al lado (CLAUDE.md 7):
+      // que el viaje de ida del GO_GREEN quepa en TIMEOUT_ACK_MS - LATIDO_MS (500 ms). Es
+      // tiempo de aire y de repetidor, una medida de FUERA como ENVIO_TRAMA_MS, y por eso
+      // no se deriva aqui de nada.
+      if (millis() - tRef >= tiempoDespejeMs && tUltimaRxEsclavo > 0 &&
+          millis() - tUltimaRxEsclavo <= LATIDO_MS) {
         rojoEsclavoConfirmado = false;   // N-162: desde aqui el Esclavo puede estar en verde
         protocolo_enviarPaquete(CMD_GO_GREEN);
         tEsperandoAck = millis();
@@ -1303,7 +1352,14 @@ void coordinador_actualizar() {
             // reintentos" de "silencio total" es la diferencia entre un enlace que se
             // degrada -lluvia, distancia, interferencia- y uno que se corta. Hasta hoy
             // las dos caidas se veian igual desde fuera: una luz ambar.
-            bluetooth_reportarAlarma("FALLO_RF", "REINTENTOS_AGOTADOS", "CAMBIO_A_AMBAR");
+            //
+            // D-34 (15/09): ~~CAMBIO_A_AMBAR~~ -> CAMBIO_A_ROJO. Esta rama solo corre con
+            // tieneComunicacion cierta -sin ella el bloque de SFTY-6 de arriba ya habria
+            // puesto C_FALLO antes de llegar al switch, y el GO_GREEN no sale sin un PONG
+            // reciente-, asi que en la vuelta siguiente SFTY-9 lleva la luz a ROJO y vuelve
+            // a pedir el rojo del otro poste. La alarma decia una luz que no se queda. El
+            // ambar, si llega, lo reporta la puerta de silencio con su propia causa.
+            bluetooth_reportarAlarma("FALLO_RF", "REINTENTOS_AGOTADOS", "CAMBIO_A_ROJO");
             estadoC = C_FALLO;
         } else {
             protocolo_enviarPaquete(CMD_GO_GREEN);

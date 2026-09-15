@@ -370,6 +370,12 @@ void loop() {
   RF_Packet pkt;
   static unsigned long tUltimoComando = millis();
   static bool ackRojoEnviado = false, ackVerdeEnviado = false;
+  // D-34 (15/09): esta punta apago su verde porque se le agotaba el margen de SFTY-6 y el
+  // Maestro todavia no lo sabe. Viaja en el param del PONG (PONG_VERDE_SOLTADO) y la bajan
+  // las ordenes de luz -GO_RED, GO_GREEN, GO_AMBAR: cualquiera de ellas redefine lo que el
+  // Maestro quiere de aqui- y la caida a S_FALLO por silencio, desde donde manda SFTY-9.
+  // El PING NO la baja: el PING es justo por donde el aviso tiene que salir.
+  static bool verdeSoltadoPorMargen = false;
 
   if (protocolo_hayPaqueteDisponible(&pkt)) {
     // D-26 (3): LA RADIO SE OYE. Con CUALQUIER trama valida, de gobierno o de servicio, y
@@ -402,8 +408,11 @@ void loop() {
       if (semaforo_estado() != S_FALLO) {
         tUltimoComando = millis();
       }
-      programarRespuesta(CMD_PONG); // SFTY-17: se responde tras el retardo de cortesia
+      // SFTY-17: se responde tras el retardo de cortesia. D-34: y el param dice si esta
+      // punta solto su verde por margen, que es lo unico que el Maestro no puede ver.
+      programarRespuesta(CMD_PONG, verdeSoltadoPorMargen ? PONG_VERDE_SOLTADO : 0);
     } else if (pkt.command == CMD_GO_AMBAR) {
+      verdeSoltadoPorMargen = false;   // D-34: una orden de luz redefine la intencion
       // N-134 (04/09): EL AMBAR ORDENADO. Reportado en banco: "si le vuelvo a ambar,
       // ese cambia a ambar pero este no" -y luego, 25 s despues, si-.
       //
@@ -429,6 +438,7 @@ void loop() {
 
     } else if (pkt.command == CMD_GO_RED) {
       tUltimoComando = millis();
+      verdeSoltadoPorMargen = false;   // D-34: una orden de luz redefine la intencion
       // N-142 (04/09): EL AMBAR DE LA APP YA NO VETA LA RADIO. EL DEL MANDO SI.
       //
       // N-142 (04/09): LOS DOS VETOS SE QUEDAN. EL BLOQUEO SE ARREGLA POR ARRIBA.
@@ -484,7 +494,19 @@ void loop() {
         programarRespuesta(CMD_ACK_RED);
       }
     } else if (pkt.command == CMD_GO_GREEN) {
-      tUltimoComando = millis();
+      // D-34 (15/09): LA REPETICION DE UN GO_GREEN NO REFRESCA EL SILENCIO.
+      //
+      // Con la luz ya en S_AMARILLO o S_VERDE la orden no es nueva: es el Maestro repitiendo
+      // porque no le llego el ACK_GREEN (N-162, mas abajo). Si refrescara tUltimoComando,
+      // esta punta contaria su silencio desde la ULTIMA repeticion que le llego y el Maestro
+      // desde lo ULTIMO QUE OYO, que es anterior: con la subida muerta y la bajada viva unas
+      // repeticiones mas, el Maestro caia a ambar y este verde seguia encendido hasta su
+      // propia orfandad -hasta 23 s medidos en G12, roadmap 1.39-. Solo la orden que
+      // arranca la transicion cuenta como orden; las demas de gobierno siguen igual.
+      if (semaforo_estado() != S_AMARILLO && semaforo_estado() != S_VERDE) {
+        tUltimoComando = millis();
+      }
+      verdeSoltadoPorMargen = false;   // D-34: una orden de luz redefine la intencion
       // N-83: la misma pareja de guardas. Sin la de Bluetooth el ambar de la app
       // duraria hasta el siguiente verde, y ese es el peor final de los dos: el
       // operario pidio precaucion para los dos sentidos y el equipo le da paso a uno.
@@ -713,10 +735,43 @@ void loop() {
   // Maestro dejo, verificada por un operario en las dos puntas. Sin esta guarda
   // los dos mecanismos se pisarian doce segundos despues de entrar, y el ambar
   // ganaria siempre porque el silencio del radio es permanente.
+  //
+  // D-34 (15/09): Y EL VERDE SE SUELTA ANTES QUE EL AMBAR, UN AVISO_AMBAR_TIMEOUT_MS ANTES.
+  //
+  // Es N-163 en esta punta. El Maestro cuenta el mismo silencio desde lo ultimo que OYO,
+  // que llega DESPUES de la ultima orden que aqui se recibio -retardo de cortesia mas el
+  // viaje de vuelta-, o ANTES si lo que se perdio fue la subida: en los dos casos el ambar
+  // de una punta puede caer con la otra todavia en verde. El margen es
+  // AVISO_AMBAR_TIMEOUT_MS porque es la copia, visible desde aqui, de TIMEOUT_ACK_MS -"un
+  // viaje de radio con margen", el mismo que usa N-163 en el Maestro-; que sigan siendo el
+  // mismo numero lo comprueba un static_assert en coordinador.cpp.
+  //
+  // Verde -> rojo DIRECTO por semaforo_forzarRojo(), que es la unica puerta de semaforo.cpp
+  // para eso (SFTY-2, barrera de salidas): no se inventa una luz nueva ni un ambar. El
+  // ambar sigue llegando exactamente cuando llegaba, por la guarda de debajo, que no se
+  // toca. Y se dice por el PONG, porque el Maestro no tiene otra forma de saberlo.
+  //
+  // El punto de suelta va con nombre propio y no escrito dentro del 'if': la guarda de
+  // debajo es la UNICA condicion de este fichero que nombra SFTY6_SILENCIO_MS, y asi la
+  // reconocen los instrumentos que la leen por texto (costura_13, esp32_01, reloj_03).
+  // Es la misma cuenta -silencio + margen > umbral- restada al otro lado, y la resta no
+  // puede dar la vuelta porque el static_assert lo impide.
+  static_assert(AVISO_AMBAR_TIMEOUT_MS < SFTY6_SILENCIO_MS,
+                "D-34: el margen para soltar el verde no cabe dentro de SFTY6_SILENCIO_MS");
+  static constexpr unsigned long SUELTA_VERDE_MS = SFTY6_SILENCIO_MS - AVISO_AMBAR_TIMEOUT_MS;
+  if (!degradado_gobiernaLuz() &&
+      (semaforo_estado() == S_VERDE || semaforo_estado() == S_AMARILLO) &&
+      millis() - tUltimoComando > SUELTA_VERDE_MS) {
+    semaforo_forzarRojo();
+    verdeSoltadoPorMargen = true;
+  }
   if (!degradado_gobiernaLuz() && millis() - tUltimoComando > SFTY6_SILENCIO_MS) {
     if (semaforo_estado() != S_FALLO) {
       semaforo_iniciarFallo();
       protocolo_resetReplayProtection();
+      // D-34: desde aqui manda SFTY-9, que reanuda por su cuenta con un GO_RED; un aviso
+      // de verde soltado que siguiera en el PONG haria reanudar dos veces.
+      verdeSoltadoPorMargen = false;
       // N-73: la Caja Negra existia y NO LA LLAMABA NADIE.
       //
       // bluetooth_reportarAlarma() estaba declarada, definida y documentada en las

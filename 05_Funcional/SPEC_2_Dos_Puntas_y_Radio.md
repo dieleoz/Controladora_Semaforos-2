@@ -82,8 +82,9 @@ ya en ámbar de transición o en verde, **re-acusa y no toca la luz**.
 ## 3. LOS REINTENTOS
 
 El plazo de cada acuse y el número de reintentos viven en el coordinador (`SFTY-7`). Agotados: desde la espera del
-acuse de **verde** → fallo **con alarma** `FALLO_RF / REINTENTOS_AGOTADOS`, **y sin mirar el reloj del silencio** —esa
-asimetría es la que abre el hueco de §9—; desde la espera del acuse de **rojo** → fallo **sólo si hay enlace y queda
+acuse de **verde** → fallo **con alarma** `FALLO_RF / REINTENTOS_AGOTADOS / CAMBIO_A_ROJO`: esa rama sólo corre con
+enlace vivo, y la vuelta del enlace (`SFTY-9`) lleva la luz a **rojo**, no a ámbar —el ámbar, si llega, lo reporta el
+silencio con su propia causa— (`D-34`); desde la espera del acuse de **rojo** → fallo **sólo si hay enlace y queda
 margen de silencio**, y si no se sigue pidiendo el rojo y la caída la reporta el ámbar por silencio, cuya alarma esta
 puerta no puede tapar. **Contra la distancia no sirve esperar, sirve repetir**: sube la **pérdida**, no la latencia, y
 la palanca es el número de copias de la ráfaga.
@@ -110,6 +111,23 @@ producía **más** ámbares en microcortes que se recuperan. **El umbral NO se b
 (`SFTY-9`): se reencolan la hora y la configuración, se fuerza rojo, se pide el rojo del otro lado y **se espera su
 acuse** antes de contar despeje; tras una suelta por margen se reanuda por esa misma puerta, porque un todo-rojo de
 minutos en una vía alternada no es estado seguro: es donde la gente se pasa el rojo.
+
+🟢 **Y EL SENTIDO CONTRARIO —el verde del ESCLAVO frente al ámbar del Maestro— SE CIERRA IGUAL** (`D-34`). Las dos
+anclas se desfasaban por el otro lado: el Maestro cuenta desde lo último que OYÓ y el Esclavo refrescaba su silencio
+con cada **repetición** de la orden de verde. Hoy, en las dos puntas:
+
+- **Una repetición de la orden de verde no refresca el silencio del Esclavo**: sólo la orden que arranca la transición.
+- **El Esclavo suelta su verde un acuse ANTES de su silencio**, va a rojo directo y lo dice en el parámetro de su
+  respuesta al latido; **no lo borra el latido**, sólo una orden de luz.
+- **El Maestro no entrega la orden de verde sin haber oído a la otra punta en el último latido**, así que el desfase
+  entre anclas queda dentro de ese margen. El viaje de ida tiene que caber en la diferencia entre el plazo del acuse y
+  la cadencia del latido: **premisa escrita junto a la constante, no medida con repetidor**.
+- **Al oír ese aviso con el cruce quieto, el Maestro reanuda por la misma puerta de `N-163`**: rojo, acuse, despeje, y
+  su propio verde.
+
+**Lo que cuesta**: un microcorte que vuelve justo en ese margen da un rojo y un despeje de más, nunca un ámbar; y con
+enlace malo la entrega del verde se retrasa un latido por cada respuesta perdida, sin pasar del umbral de silencio.
+Lo ejercen las filas `G12`–`G14` del arnés de dos puntas, con controles negativos vistos fallar. **Sin banco.**
 
 ## 5. LAS BARRERAS QUE IMPIDEN VERDE + VERDE — la lista entera
 
@@ -286,11 +304,10 @@ pendientes**: apuntan al fichero de protocolo y al coordinador fuera del ciclo �
    STM32** (`D-21`), y el Degradado se autoriza sobre una comprobación que no lo ve (**SPEC 3, H-2**). Y **nada de este
    capítulo ha visto una tarjeta**: el acuse del aviso, el salto de hora por rojo y el evento periódico están en `main`
    **SIN BANCO**, y qué corre en cada equipo lo dice `ESTADO.md`.
-5. 🔴 **NADIE MIRA LA LUZ DE LA OTRA PUNTA ENTRE LOS DOS VENCIMIENTOS** (§9). Agotados los reintentos, el Maestro se va
-   a ámbar con `FALLO_RF / REINTENTOS_AGOTADOS` mientras la otra punta —si la orden de verde llegó y su acuse no
-   volvió— **sigue en verde** hasta que venza SU silencio; dura la diferencia entre los dos plazos, que se recalcula
-   de las constantes. La suelta por margen cerró el sentido contrario y **éste no lo cierra nadie**: `costura_09` sólo
-   comprueba que los reintentos quepan, y el veto de margen sólo protege el verde de ESTA punta. **Sin banco.**
+5. 🟢 **CERRADO en el fuente (`D-34`, 15/09) — el número se queda.** ~~Nadie mira la luz de la otra punta entre los
+   dos vencimientos~~ → medido en el arnés de dos puntas: hasta 23 s de ámbar del Maestro contra verde del Esclavo, y
+   el mecanismo no eran los reintentos sino las anclas (`roadmap` 1.39). Lo que el equipo hace ahora está en **§4**;
+   las filas `G12`–`G14` lo vigilan. **Sin banco: sigue sin haberse visto en una tarjeta.**
 6. 🔴 **LA REANUDACIÓN AUTOMÁTICA NO SE ANUNCIA** (§7). El equipo vuelve solo al único modo que da verde sin confirmar
    con el otro extremo y **el operario no puede enterarse desde el teléfono**: no hay evento ni literal. No es defecto
    de la decisión que mandó reanudar sino de lo que esa decisión no dijo. **Es decisión vial: del responsable.**
