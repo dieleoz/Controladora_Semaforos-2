@@ -91,7 +91,7 @@ entonces cada lector deriva su propia versión.
 > tabla. Mismo cobre, distinto `pinMode`, distinta tensión. Ver `DECISIONES.md`, cerradas.)*
 
 **Verificación actual** — cifras **copiadas del acta**
-[`evidencia/2026-09-14_compuerta.txt`](evidencia/2026-09-14_compuerta.txt), que genera
+[`evidencia/2026-09-15_compuerta.txt`](evidencia/2026-09-15_compuerta.txt), que genera
 `python 01_Firmware/compuerta.py` en una sola corrida. No se escriben a mano — y desde **N-62**
 eso ya no es una promesa: el pack `documentos_01_cifras_del_acta` compara esta tabla contra la
 última acta en cada corrida del banco. Cuando se escribió por primera vez, **falló**: esta tabla

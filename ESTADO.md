@@ -469,7 +469,7 @@ acta es el ESTADO: `decisiones_01_anclas` vuelve a acusar a `D-14`, `D-22` y `D-
 ancla en el fuente, y esa acusación es CORRECTA — están decididas y sin construir.**
 
 Cifras **copiadas del acta
-[`evidencia/2026-09-14_compuerta.txt`](evidencia/2026-09-14_compuerta.txt)**, no escritas a mano —
+[`evidencia/2026-09-15_compuerta.txt`](evidencia/2026-09-15_compuerta.txt)**, no escritas a mano —
 lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida.
 
 | | |
