@@ -1859,6 +1859,215 @@ int main() {
                   std::to_string(eContadorVivo) + ") y siguen fechando (" +
                   std::to_string(horasVivo) + " h, " + std::to_string(eHorasVivo) + " h)");
   }
+
+  // =========================================================================
+  std::printf("\n--- BLOQUE G: 1.49(b), EL MICROCORTE CON EL CRISTAL QUE NO CUENTA ---\n");
+  //
+  // LA PREGUNTA: las dos puntas en Degradado, se va la luz de las dos, vuelve, y el cristal
+  // Y2 arranca pero NO cuenta (el tercer estado de F6). Tras el corte la reanudacion de D-29
+  // se decide con la hora del ESP32, que llega en el bucle; y la segunda puerta -la marca de
+  // 48 h de la pila- se fecha con un contador que el firmware tarda CNT_VENTANA_MS en declarar
+  // parado. Si la siembra cae DENTRO de esa ventana, la pila contesta "0 h" con un contador
+  // quieto. Medido el 15/09 sobre bff78e6, en copia: verde del poste 2 durante 273 s contra el
+  // ambar del poste 1.
+  //
+  // EL BORDE DE LA VENTANA ES EL DE F6 -dos flancos de 1 Hz inflados por el HSI-, y la
+  // siembra se pone a +1 s del arranque, DENTRO de el, a proposito: es el unico instante en
+  // el que la puerta puede leer un contador congelado como si contara. G4 la pone detras
+  // (+5 s) y es el caso que ya era correcto.
+  //
+  // EL CORTE SE HACE COMO EN LA TARJETA: la RAM se va (se recarga la DLL) y el dominio de la
+  // pila se conserva palabra a palabra. Y el reloj del banco vuelve a DELAY_ARRANQUE_MS
+  // porque el millis() de la DLL recien cargada es ese: las dos puntas arrancan A LA VEZ con
+  // sus ESP32, que es lo que D-29 da por hecho.
+  //
+  // LA ASIMETRIA DE D-21 SE CONSERVA Y SE DICE: la punta con el reloj que no cuenta no da
+  // verde; la otra, con el suyo sano, sigue en Degradado (F2.3/F3.3). Lo que este bloque
+  // prohibe es que la punta del CRISTAL PARADO de verde, y que una punta caiga a ambar muda.
+  {
+    const long DEG_ENTRANDO_V =
+        posicionEnEnum(RAIZ + "/Esclavo/include/modo_degradado.h", "EstadoDegradado", "DEG_ENTRANDO");
+    const long DEG_ACTIVO_V =
+        posicionEnEnum(RAIZ + "/Esclavo/include/modo_degradado.h", "EstadoDegradado", "DEG_ACTIVO");
+    const unsigned long G_TICK = leerNumero(RAIZ + "/Maestro/include/reloj.h",
+                                            R"(CNT_TICK_MS\s*=\s*(\d+)UL)", "CNT_TICK_MS");
+    const unsigned long G_PPM = leerNumero(RAIZ + "/Maestro/include/reloj.h",
+                                           R"(HSI_PPM_PEOR\s*=\s*(\d+)UL)", "HSI_PPM_PEOR");
+    const unsigned long G_VENTANA = 2UL * G_TICK + 2UL * G_TICK / 1000UL * G_PPM / 1000UL + 1UL;
+
+    struct ResG {
+      unsigned long verdeM = 0, verdeE = 0, verdeEfrenteFalloM = 0, verdeMfrenteFalloE = 0, ambos = 0;
+      unsigned long verdeEtrasCongelar = 0;
+      bool reanudoM = false, reanudoE = false;
+      long pilaMfin = -1, pilaEfin = -1, degEfin = -1, estadoMfin = -1;
+      long alarmasDeg = 0, alarmasNoCuenta = 0;
+      unsigned long verdeMantes = 0, verdeEantes = 0;
+    };
+
+    // congelarTrasMs: 0 = congelado desde el arranque; >0 = cristales sanos al arrancar y se
+    // congelan los que pida congM/congE a esos ms (G7).
+    auto microcorte = [&](bool congM, bool congE, unsigned long seedM, unsigned long seedE,
+                          bool rtcHw, unsigned long congelarTrasMs) -> ResG {
+      ResG r;
+      prepararSincronizadas(15, 8, 0, 0);
+      activarDs3231(1000, 7000);
+      entrarEnDegradadoLasDos(0);
+      avanzar(5UL * 60UL * 1000UL);
+      const long H = horaDs3231(0);
+      long domM[PUNTA_DOMINIO_PALABRAS], domE[PUNTA_DOMINIO_PALABRAS];
+      for (int i = 0; i < PUNTA_DOMINIO_PALABRAS; i++) { domM[i] = MAESTRO.domLeer(i); domE[i] = ESCLAVO.domLeer(i); }
+      MAESTRO.descargar(); MAESTRO.cargar();
+      ESCLAVO.descargar(); ESCLAVO.cargar();
+      // rtcHw: el marcador del RTC de hardware que escribia un firmware anterior al 11/09 (el
+      // control de D-29, ver adaptador_esclavo.cpp): con el, reloj_setup() ya tiene hora.
+      if (rtcHw) { domM[11] = domE[11] = 1; domM[13] = domE[13] = 15; }
+      for (int i = 0; i < PUNTA_DOMINIO_PALABRAS; i++) { MAESTRO.domEscribir(i, domM[i]); ESCLAVO.domEscribir(i, domE[i]); }
+      if (congelarTrasMs == 0) {
+        if (congM) MAESTRO.orden("rtc_congelar", 1);
+        if (congE) ESCLAVO.orden("rtc_congelar", 1);
+      }
+      g_aire.clear();
+      g_enlace = false;
+      MAESTRO.arrancar();
+      ESCLAVO.arrancar();
+      g_t = DELAY_ARRANQUE_MS;          // las DLL recien cargadas: millis() = delay(2000)
+      g_plumaSinVerdeDesde[0] = g_plumaSinVerdeDesde[1] = 0;
+      g_tRefDs = g_t;
+      g_segRefDs = (H % 86400L) + 10;   // diez segundos de corte en los dos DS3231
+      g_diaRefDs = H / 86400L;
+      g_esp32Ds3231 = true;
+      g_esp32Vivo[0] = g_esp32Vivo[1] = true;
+      g_proxSiembra[0] = g_t + seedM;
+      g_proxSiembra[1] = g_t + seedE;
+      const unsigned long OBS = 15UL * 60UL * 1000UL;
+      bool congelado = false;
+      unsigned long tCongelado = 0;
+      for (unsigned long h = 0; h < OBS; h += PASO_MS) {
+        if (congelarTrasMs > 0 && !congelado && h >= congelarTrasMs) {
+          if (congM) MAESTRO.orden("rtc_congelar", 1);
+          if (congE) ESCLAVO.orden("rtc_congelar", 1);
+          congelado = true;
+          tCongelado = h;
+        }
+        unTick();
+        const bool vM = MAESTRO.verde(), vE = ESCLAVO.verde();
+        const bool fM = MAESTRO.estado() == S_FALLO_V, fE = ESCLAVO.estado() == S_FALLO_E;
+        if (vM) r.verdeM += PASO_MS;
+        if (vE) r.verdeE += PASO_MS;
+        if (vE && fM) r.verdeEfrenteFalloM += PASO_MS;
+        if (vM && fE) r.verdeMfrenteFalloE += PASO_MS;
+        if (vM && vE) r.ambos += PASO_MS;
+        if (!congelado) { if (vM) r.verdeMantes += PASO_MS; if (vE) r.verdeEantes += PASO_MS; }
+        // Tras declarar parado el contador -la ventana de F6 y una vuelta- esa punta ya no
+        // tiene con que fechar su marca: un verde del Esclavo ahi es el defecto de (b1).
+        if (congelado && vE && h >= tCongelado + G_VENTANA + 2UL * PASO_MS) r.verdeEtrasCongelar += PASO_MS;
+        if (MAESTRO.orden("modo_actual") == MODO_DEGRADADO_V) r.reanudoM = true;
+        const long dE = ESCLAVO.orden("degradado_estado");
+        if (dE == DEG_ENTRANDO_V || dE == DEG_ACTIVO_V) r.reanudoE = true;
+      }
+      r.pilaMfin = MAESTRO.orden("respaldo_degradado");
+      r.pilaEfin = ESCLAVO.orden("respaldo_degradado");
+      r.degEfin = ESCLAVO.orden("degradado_estado");
+      r.estadoMfin = MAESTRO.estado();
+      r.alarmasDeg = MAESTRO.orden("alarmas_degradado");
+      r.alarmasNoCuenta = MAESTRO.orden("alarmas_reloj_no_cuenta");
+      return r;
+    };
+
+    auto cifras = [](const ResG& r) {
+      return std::string("verde M ") + std::to_string(r.verdeM) + " ms, verde E " +
+             std::to_string(r.verdeE) + " ms, verde E frente a ambar M " +
+             std::to_string(r.verdeEfrenteFalloM) + " ms, verde M frente a ambar E " +
+             std::to_string(r.verdeMfrenteFalloE) + " ms, verde+verde " + std::to_string(r.ambos) +
+             " ms; reanudo M=" + std::to_string(r.reanudoM) + " E=" + std::to_string(r.reanudoE) +
+             "; pila M=" + std::to_string(r.pilaMfin) + " E=" + std::to_string(r.pilaEfin);
+    };
+
+    std::printf("   ventana del cristal (F6): %lu ms; siembra dentro a +1000 ms\n", G_VENTANA);
+
+    // --- G0: EL CONTROL. Sin el, "no reanuda" pasaria con una puerta que no deja pasar nada.
+    {
+      const ResG r = microcorte(false, false, 1000, 1000, false, 0);
+      comprobar(r.reanudoM && r.reanudoE && r.verdeM > 0 && r.verdeE > 0 && r.ambos == 0,
+                "G0 (control, D-29 sigue viva): cristales sanos y siembra DENTRO de la ventana "
+                "del cristal: las dos REANUDAN y ciclan sin tocarse (" + cifras(r) + ")");
+    }
+    // --- G1: el Esclavo con el cristal parado -------------------------------------------
+    {
+      const ResG r = microcorte(false, true, 1000, 1000, false, 0);
+      comprobar(r.verdeE == 0 && !r.reanudoE && r.pilaEfin == 0 && r.ambos == 0,
+                "G1: Esclavo con el cristal que no cuenta, siembra a +1 s: el Esclavo NO reanuda, "
+                "NO enciende verde y tira el permiso de la pila (" + cifras(r) + ")");
+      nota("G1: con el Maestro sano y el Esclavo en ambar, el Maestro sigue en Degradado: la "
+           "asimetria de D-21 (F3.3), " + std::to_string(r.verdeMfrenteFalloE) + " ms");
+    }
+    // --- G2: las dos --------------------------------------------------------------------
+    {
+      const ResG r = microcorte(true, true, 1000, 1000, false, 0);
+      comprobar(r.verdeE == 0 && r.verdeM == 0 && !r.reanudoE && !r.reanudoM &&
+                    r.verdeEfrenteFalloM == 0 && r.ambos == 0,
+                "G2 (el caso medido, 273 s en HEAD): las dos con el cristal que no cuenta, siembra "
+                "a +1 s: NINGUNA reanuda ni enciende verde, y 0 ms de verde E frente a ambar M (" +
+                cifras(r) + ")");
+    }
+    // --- G3: el Maestro -------------------------------------------------------------------
+    {
+      const ResG r = microcorte(true, false, 1000, 1000, false, 0);
+      comprobar(r.verdeM == 0 && !r.reanudoM && r.pilaMfin == 0 && r.ambos == 0,
+                "G3: Maestro con el cristal que no cuenta, siembra a +1 s: el Maestro NO reanuda "
+                "-antes reanudaba y caia a ambar a los 4,1 s sin decir nada-, no enciende verde y "
+                "tira el permiso (" + cifras(r) + ")");
+      nota("G3: el Esclavo, con su cristal sano, sigue en Degradado frente al Maestro fuera de "
+           "el: la asimetria de D-21 (F2.3), verde E frente a ambar M " +
+           std::to_string(r.verdeEfrenteFalloM) + " ms");
+    }
+    // --- G4: la siembra DETRAS de la ventana, que ya era el caso correcto ------------------
+    {
+      const ResG r = microcorte(false, true, 1000, 5000, false, 0);
+      comprobar(r.verdeE == 0 && !r.reanudoE && r.ambos == 0,
+                "G4: Esclavo parado con su siembra a +5 s, fuera de la ventana: no reanuda ni "
+                "enciende (" + cifras(r) + ")");
+    }
+    // --- G5 / G6: el RTC de hardware escrito (equipo anterior al 11/09) ----------------
+    {
+      const ResG r = microcorte(true, true, 600000, 600000, true, 0);
+      comprobar(r.verdeE == 0 && r.verdeM == 0 && !r.reanudoE && !r.reanudoM,
+                "G5: las dos paradas con el RTC de hardware escrito -reloj_setup() ya trae hora "
+                "y la puerta no espera a la siembra-: ninguna reanuda sobre el contador que no "
+                "cuenta (" + cifras(r) + ")");
+      const ResG c = microcorte(false, false, 600000, 600000, true, 0);
+      comprobar(c.reanudoM && c.reanudoE && c.verdeM > 0 && c.verdeE > 0 && c.ambos == 0,
+                "G6 (control de G5): el mismo equipo con los cristales sanos SI reanuda y cicla (" +
+                cifras(c) + ")");
+    }
+    // --- G7: reanudadas con el cristal sano, y DESPUES se para (b1 y b3) -----------------
+    //
+    // La marca de 48 h de las dos puntas sale ahora solo de la pila -tras un corte no hay
+    // otra-. Cuando el contador se para, el Maestro ya no puede fecharla y cae a ambar; el
+    // Esclavo tenia esa MISMA marca copiada en RAM y, si la tratara como una medida propia,
+    // seguiria dando verde frente a ese ambar. Y la caida del Maestro tiene que decirse.
+    {
+      // A los 7 min: medido en G0, el primer verde del Esclavo tras el corte llega a los ~382 s
+      // y el del Maestro a los ~168 s; congelar antes dejaria al control G7.0 sin verde del
+      // Esclavo que ver, y "no dio verde despues" no distinguiria nada.
+      const ResG r = microcorte(true, true, 1000, 1000, false, 7UL * 60UL * 1000UL);
+      comprobar(r.reanudoM && r.reanudoE && r.verdeMantes > 0 && r.verdeEantes > 0,
+                "G7.0 (control del escenario): con los cristales sanos al arrancar las dos "
+                "reanudan y dan verde antes de pararse el reloj (" + cifras(r) + ")");
+      comprobar(r.verdeEtrasCongelar == 0 && r.verdeEfrenteFalloM == 0 && r.ambos == 0 &&
+                    r.degEfin == DEG_RENDIDO_V,
+                "G7.1 (b1): parado el contador, el Esclavo NO sigue dando verde con la marca de "
+                "la pila copiada en RAM: se rinde (estado " + std::to_string(r.degEfin) +
+                " = DEG_RENDIDO) y 0 ms de verde E frente a ambar M (" +
+                std::to_string(r.verdeEfrenteFalloM) + "; verde E tras declararlo parado " +
+                std::to_string(r.verdeEtrasCongelar) + " ms)");
+      comprobar(r.estadoMfin == S_FALLO_V && r.alarmasNoCuenta == 1 && r.alarmasDeg == 1,
+                "G7.2 (b3): el Maestro cae a ambar (estado " + std::to_string(r.estadoMfin) +
+                ") y LO PUBLICA con la causa verdadera: " + std::to_string(r.alarmasNoCuenta) +
+                " $ALARM DEGRADADO,RELOJ_NO_CUENTA de " + std::to_string(r.alarmasDeg) +
+                " del Degradado");
+    }
+  }
   // =========================================================================
   std::printf("\n==============================================================\n");
   std::printf(" RESULTADO: %d/%d comprobaciones OK\n", total - fallos, total);

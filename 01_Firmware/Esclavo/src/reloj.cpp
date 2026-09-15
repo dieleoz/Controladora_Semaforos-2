@@ -66,6 +66,9 @@ static const uint32_t ESPERA_LSE_MS = 2000;
 static bool cristalCongelado = false;
 static uint32_t cntMuestra = 0;
 static uint32_t tCntMuestra = 0;
+// 1.49: los flancos vistos desde que se adopto el cristal, saturados en 2. Es lo que separa
+// VIGILANDO de CUENTA en reloj_estadoCristal(); ver reloj.h.
+static uint8_t flancosVistos = 0;
 
 // CNT en crudo, con la doble lectura de CNTH que exige el silicio -la pareja CNTH/CNTL
 // puede cruzar un flanco entre las dos mitades-. NO aplica el disfraz "v == 0 -> 1" de
@@ -84,6 +87,7 @@ static uint32_t leerCnt() {
 static void anclarVigilancia() {
   cntMuestra = leerCnt();
   tCntMuestra = HAL_GetTick();
+  flancosVistos = 0;   // 1.49: el veredicto empieza de cero con cada adopcion
 }
 
 // LA SEGUNDA VISITA, hecha por el firmware y no por un tecnico. La llama reloj_actualizar()
@@ -97,6 +101,7 @@ static void vigilarCristal() {
   if (cnt != cntMuestra) {   // conto: se reancla y no hay nada mas que mirar
     cntMuestra = cnt;
     tCntMuestra = ahora;
+    if (flancosVistos < 2) flancosVistos++;   // 1.49: el segundo es el que da CUENTA
     return;
   }
   if ((uint32_t)(ahora - tCntMuestra) < CNT_VENTANA_MS) return;  // la ventana sigue abierta
@@ -244,6 +249,13 @@ void reloj_actualizar() {
 }
 
 bool reloj_enHora() { return horaValida; }
+
+// 1.49 - VER reloj.h. Gemela de la del Maestro: se deduce de rtcOperativo -lo baja el cerrojo
+// de 1.22 o un arranque fallido- y de los flancos que cuenta vigilarCristal().
+EstadoCristal reloj_estadoCristal() {
+  if (!rtcOperativo) return RELOJ_CRISTAL_CONGELADO;
+  return flancosVistos >= 2 ? RELOJ_CRISTAL_CUENTA : RELOJ_CRISTAL_VIGILANDO;
+}
 
 // D-21 (1) - VER reloj.h. Gemela letra por letra de la del Maestro: la siembra que la
 // renueva es cualquiera que haya pasado por reloj_ajustarConAcuse() -la radio o el ESP32-.

@@ -526,6 +526,32 @@ static void reportarBitsDelReloj() {
   bluetooth_reportarEvento("RELOJ", det);
 }
 
+// 1.49(a) - LA ORDEN REINICIAR_RELOJ ESPERANDO SU VEREDICTO. La pone la rama del despachador
+// cuando el oscilador arranca tras el reinicio, y la baja atenderVeredictoReloj() en la
+// vuelta en que reloj_estadoCristal() deja de decir VIGILANDO. Una sola bandera y una sola
+// respuesta por orden: el porque, en la rama.
+static bool pendienteReloj = false;
+
+// El veredicto, desde bluetooth_loop(). Dos salidas y ninguna mas, las dos con su trama:
+//   CUENTA     -> el $ACK que antes salia en el acto, ahora con la medida detras.
+//   CONGELADO  -> $ERR con la marca VEA_CONSULTA_RELOJ Y LOS BITS en la misma rama, como la
+//                 otra puerta (reloj_01): el oscilador arranco y el contador no se movio, y
+//                 los bits -RDY en 1, CNT quieto- son justo los que lo dicen.
+// Mientras sea VIGILANDO no contesta nada: la ventana la cierra vigilarCristal() en cada
+// reloj_actualizar(), asi que esto no espera mas de CNT_VENTANA_MS y una vuelta.
+static void atenderVeredictoReloj() {
+  if (!pendienteReloj) return;
+  const EstadoCristal e = reloj_estadoCristal();
+  if (e == RELOJ_CRISTAL_CUENTA) {
+    pendienteReloj = false;
+    enviarTramaConCrc("$ACK,CMD:REINICIAR_RELOJ,RESULT:CRISTAL_OK_PONGA_LA_HORA");
+  } else if (e == RELOJ_CRISTAL_CONGELADO) {
+    pendienteReloj = false;
+    enviarTramaConCrc("$ERR,CMD:REINICIAR_RELOJ,DESC:ARRANCA_Y_NO_CUENTA_VEA_CONSULTA_RELOJ");
+    reportarBitsDelReloj();
+  }
+}
+
 static void procesarComando(const char* cmd) {
   // AB-1 - LA LINEA RESERVADA DEL PUENTE, Y VA LA PRIMERA DE TODAS.
   //
@@ -862,9 +888,24 @@ static void procesarComando(const char* cmd) {
     // en los dos casos mandaria al tecnico a poner la hora en un equipo que no puede
     // contarla. Y no se nombra ninguna pieza -N-45 quito "Es Y2: toca hardware" de la
     // pantalla por afirmar sin haber medido-: lo que sigue lo dice CONSULTA RELOJ.
-    if (reloj_reiniciarDominioRespaldo()) {
-      enviarTramaConCrc("$ACK,CMD:REINICIAR_RELOJ,RESULT:CRISTAL_OK_PONGA_LA_HORA");
-      bluetooth_reportarEvento("APP_BLUETOOTH", "RELOJ_REINICIADO");
+    //
+    // 1.49(a) - Y "ARRANCO" NO ES "CUENTA": EL SI SE DA CUANDO SE SABE, NO ANTES. Aqui salia
+    // CRISTAL_OK_PONGA_LA_HORA en cuanto el oscilador arrancaba, y el cristal que arranca y
+    // no cuenta -1.22, la cinta del Sisga- lo detecta vigilarCristal() CNT_VENTANA_MS
+    // despues: el tecnico se iba a poner la hora en un equipo que no la puede contar, con un
+    // $ACK en la mano. Ahora la rama NO contesta: deja la orden pendiente, publica que esta
+    // verificando, y el veredicto -$ACK o $ERR, uno de los dos y una sola vez- sale de
+    // bluetooth_loop() cuando reloj_estadoCristal() lo tiene. Sin bloquear: la ventana son
+    // dos segundos y el perro muerde a los cuatro.
+    //
+    // Y UNA SEGUNDA ORDEN MIENTRAS SE VERIFICA SE RECHAZA SIN TOCAR NADA. Volver a reiniciar
+    // el dominio reanclaria la vigilancia -otra ventana entera- y dejaria dos ordenes
+    // esperando un solo veredicto: una de las dos se quedaria sin respuesta.
+    if (pendienteReloj) {
+      enviarTramaConCrc("$ERR,CMD:REINICIAR_RELOJ,DESC:REPITA_EN_UNOS_SEGUNDOS");
+    } else if (reloj_reiniciarDominioRespaldo()) {
+      pendienteReloj = true;
+      bluetooth_reportarEvento("APP_BLUETOOTH", "RELOJ_REINICIADO_VERIFICANDO");
     } else {
       enviarTramaConCrc("$ERR,CMD:REINICIAR_RELOJ,DESC:SIGUE_PARADO_VEA_CONSULTA_RELOJ");
       // El mismo motivo que tenia SET_RTC -este $ERR nombra una consulta que no se puede
@@ -1040,6 +1081,11 @@ void bluetooth_loop() {
 
   // D-26 (5): despues de despachar, para que una HORA_ESP32 que acaba de llegar cuente ya.
   horaEsp32Vigilar(ahora);
+
+  // 1.49(a): el veredicto de un REINICIAR_RELOJ pendiente, si ya lo hay. Detras del
+  // despachador para que una orden que llega en esta vuelta no se conteste en la misma: el
+  // cristal recien adoptado todavia no ha podido contar.
+  atenderVeredictoReloj();
 
   // 2. Emision periodica de telemetria cada 2000 ms ($STATUS,...)
   //

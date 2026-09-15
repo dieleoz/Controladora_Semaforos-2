@@ -449,6 +449,12 @@ uint32_t reloj_contadorSegundos() {
   return v == 0 ? 1UL : v;   // el mismo suelo que el real: 0 significa "no hay reloj"
 }
 
+// 1.49(b2): el veredicto del cristal, sobre el MISMO borde de arriba: aqui el cristal cuenta
+// y ya se vio contar. Contestar VIGILANDO dejaria la reanudacion esperando a un veredicto que
+// este modelo no sabe dar; el estado VIGILANDO y el CONGELADO los ejerce el bloque G del
+// arnes del Degradado sobre el reloj.cpp real.
+EstadoCristal reloj_estadoCristal() { return RELOJ_CRISTAL_CUENTA; }
+
 uint32_t reloj_segundosDelDia() {
   if (!g_horaSembrada) return 0;
   return (g_rtcSegundosDelDiaBase + rtcTranscurrido()) % 86400UL;

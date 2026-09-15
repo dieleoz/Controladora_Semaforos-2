@@ -43,6 +43,8 @@
 //   PINS         imprime el estado de los pines de luz
 //   PUERTO       imprime pines y baudios del HardwareSerial que se encontro
 //   RTC <c> <h>  fija si hay cristal y si el reloj esta en hora
+//   CRISTAL <e>  con cristal, el veredicto de reloj_estadoCristal(): 0 VIGILANDO, 1 CUENTA,
+//                2 CONGELADO (1.49)
 //   RADIO_MANDA <0|1>  (Esclavo) lo que contesta reloj_radioManda(), D-26 (3)
 //   MDG <n>      fija el motivo que devuelve la puerta del Modo Degradado
 //   DEG          (Esclavo) imprime estado, gobiernaLuz y rendicion del Degradado REAL
@@ -233,6 +235,19 @@ static bool rlj_radioManda = false;
 bool reloj_radioManda() { return rlj_radioManda; }
 #endif
 bool reloj_reiniciarDominioRespaldo() { return rlj_cristal; }
+// 1.49: el veredicto del cristal en tres estados. Lo preguntan el despachador REAL del
+// Maestro -el $ACK diferido de REINICIAR_RELOJ- y el modo_degradado.cpp REAL del Esclavo -la
+// reanudacion tras corte-. reloj.cpp no se compila aqui: sin cristal es CONGELADO, y con
+// cristal lo que diga "CRISTAL <0|1|2>" (VIGILANDO, CUENTA, CONGELADO), que arranca en
+// CUENTA -el estado que ya suponia este doble- para no mover ningun escenario existente.
+// Se incluye reloj.h REAL aqui porque el tipo del retorno vive alli, y copiarlo seria el
+// "casi igual" que diverge.
+#include "reloj.h"
+static int rlj_estadoCristal = 1;
+EstadoCristal reloj_estadoCristal() {
+  if (!rlj_cristal) return RELOJ_CRISTAL_CONGELADO;
+  return (EstadoCristal)rlj_estadoCristal;
+}
 void reloj_ajustarFranjaNocturna(uint8_t, uint8_t) {}
 uint8_t reloj_inicioNoche() { return 22; }
 uint8_t reloj_finNoche() { return 5; }
@@ -631,6 +646,12 @@ int main(void) {
       rlj_cristal = (c != 0);
       rlj_enHora = (h != 0);
       printf("OK cristal=%d enhora=%d\n", (int)rlj_cristal, (int)rlj_enHora);
+
+    } else if (strncmp(linea, "CRISTAL ", 8) == 0) {
+      // 1.49: el veredicto que devuelve reloj_estadoCristal() con cristal. Ver el doble.
+      const int v = atoi(linea + 8);
+      rlj_estadoCristal = (v >= 0 && v <= 2) ? v : 1;
+      printf("OK estado_cristal=%d\n", rlj_estadoCristal);
 
     } else if (strncmp(linea, "RADIO_MANDA ", 12) == 0) {
 #if defined(PUNTA_ESCLAVO)

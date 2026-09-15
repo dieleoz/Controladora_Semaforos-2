@@ -117,6 +117,23 @@ static bool huboSyncAlguna = false;
 static unsigned long tUltimaSync = 0;
 static bool syncVencidaLatch = false;
 
+// 1.49(b1) - ¿LA MEDIDA DE RAM ES PROPIA, O ES LA MARCA DE LA PILA COPIADA EN RAM?
+//
+// huboSyncAlguna contesta "hay una antiguedad en RAM"; ESTA contesta "de donde salio", que
+// es otra pregunta y por eso es otra bandera (CLAUDE.md 8). La pone SOLO la reanudacion tras
+// corte -tUltimaSync = millis() - horas de la pila- y la baja SOLO una sincronizacion de
+// verdad (degradado_registrarSync()).
+//
+// POR QUE HACE FALTA. msDesdeSyncEfectivo() ignora una pila CADUCADA "porque la RAM esta
+// sana", y eso es cierto de una RAM que midio el acuerdo con el Maestro. Una RAM sembrada de
+// la pila no midio nada: es la MISMA marca, y si la pila ya no la puede fechar -el contador
+// del RTC dejo de contar, 1.22- la copia tampoco. Medido el 15/09 (bloque G del arnes del
+// Degradado): con las dos puntas reanudadas y el contador parado despues, el Maestro -que
+// tras un corte solo tiene la pila- caia a ambar y esta punta seguia dando verde por reloj
+// con su copia. Dos reglas distintas para la misma marca, y el resultado es verde contra
+// ambar. Con la bandera las dos puntas contestan lo mismo con el mismo dato.
+static bool syncDesdePila = false;
+
 // D-29 — ¿QUEDA ALGO POR DECIDIR DE LA REANUDACION DE ESTE ARRANQUE?
 //
 // Contesta a UNA sola pregunta, y por eso no se deduce de ninguna otra bandera
@@ -201,7 +218,11 @@ static unsigned long msDesdeSyncEfectivo() {
     // CADUCADA significa "no se puede fechar", no "es viejo". Con la RAM sana esa
     // ignorancia no aporta nada y se ignora; el desbordamiento de millis() (49,7
     // dias) sigue cubierto porque cuando la pila SI sabe fechar se toma el mayor.
-    if (horasPila == RESPALDO_SYNC_CADUCADA) return ms;
+    //
+    // 1.49(b1): "sana" quiere decir MEDIDA AQUI. Si lo que hay en RAM es la marca de la pila
+    // copiada al reanudar, la pila que ya no la fecha es la unica fuente que tenia, y se
+    // contesta lo mismo que sin RAM: nunca sincronizado. Ver syncDesdePila arriba.
+    if (horasPila == RESPALDO_SYNC_CADUCADA) return syncDesdePila ? 0xFFFFFFFFUL : ms;
     const unsigned long msPila = (unsigned long)horasPila * 3600000UL;
     return (msPila > ms) ? msPila : ms;
   }
@@ -272,6 +293,7 @@ void degradado_registrarSync() {
   huboSyncAlguna = true;
   tUltimaSync = millis();
   syncVencidaLatch = false;
+  syncDesdePila = false;   // 1.49(b1): desde aqui la RAM es una medida propia
 
   // Una sincronizacion nueva rehabilita el modo tras una rendicion, y lo hace sin
   // preguntar POR CUAL de las dos se rindio: si fue el limite duro, la deriva
@@ -446,6 +468,27 @@ bool degradado_reanudarTrasCorte() {
   // y su modo de fallo declarado -no reanudar- era el de hoy. La SEGUNDA PUERTA, que es la
   // que de verdad sujeta esto, sigue intacta justo debajo.
 
+  // 1.49(b2) - LA SEGUNDA PUERTA NO SE PREGUNTA HASTA QUE EL CRISTAL TENGA VEREDICTO.
+  //
+  // Se fecha con reloj_contadorSegundos(), y durante la ventana de vigilarCristal() ese
+  // contador devuelve un numero que nadie ha visto moverse: con un Y2 que arranca y no
+  // cuenta, la resta de la pila sale "0 h" -acabo de sincronizar- sobre una marca de hace lo
+  // que sea. Medido el 15/09 (bloque G del arnes del Degradado): con la siembra del ESP32
+  // dentro de esa ventana esta punta reanudaba y daba 273 s de verde por reloj frente al
+  // ambar del Maestro. Pasada la ventana, un contador parado ya devuelve 0 -CADUCADA- y la
+  // puerta cierra sola, que es lo que N-160 y D-29 ya daban por bueno.
+  //
+  // POR QUE ESTO NO CHOCA CON D-29, dicho con su texto: D-29 decide que "el indicador de la
+  // pila no se borra hasta despues de la primera siembra del arranque, para que la
+  // reanudacion pueda decidirse con la hora que el ESP32 acaba de dar", y deja expresamente
+  // en pie la segunda puerta. No pide decidir en cuanto llega la siembra. Esto espera como
+  // mucho CNT_VENTANA_MS mas una vuelta, sin borrar nada, dentro de la ventana que este
+  // fichero ya da a D-29 (VENTANA_REANUDACION_MS), y la misma guarda de millis() lo acota por
+  // si el veredicto no llegara: pasado el plazo se decide con lo que haya, igual que antes.
+  if (reloj_estadoCristal() == RELOJ_CRISTAL_VIGILANDO && millis() < VENTANA_REANUDACION_MS) {
+    return false;   // sin decidir y sin borrar: se vuelve a preguntar en la siguiente vuelta
+  }
+
   // LA SEGUNDA PUERTA, y desde D-29 se pregunta ENTERA aunque la primera este cerrada.
   // Puede hacerse porque no depende de la hora: es una resta de dos lecturas del contador
   // crudo del RTC (N-49). Y hace falta hacerlo, porque de ella depende que el permiso se
@@ -503,6 +546,7 @@ bool degradado_reanudarTrasCorte() {
   if (sembradaAqui) {
     huboSyncAlguna = true;
     tUltimaSync = millis() - horas * 3600000UL;
+    syncDesdePila = true;   // 1.49(b1): es la marca de la pila, no una medida de esta RAM
   }
   syncVencidaLatch = false;
 
@@ -511,7 +555,7 @@ bool degradado_reanudarTrasCorte() {
   // condiciones son identicos: reanudar no es un camino alternativo con reglas
   // propias, es la entrada de siempre con el permiso recuperado de la pila.
   if (degradado_entrar() != DEG_ACEPTADO) {
-    if (sembradaAqui) huboSyncAlguna = false;
+    if (sembradaAqui) { huboSyncAlguna = false; syncDesdePila = false; }
     respaldo_guardarDegradado(false);
     return false;
   }

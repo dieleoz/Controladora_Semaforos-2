@@ -88,6 +88,13 @@ bool reloj_enHora();
 // mas abajo.
 uint32_t reloj_contadorSegundos();
 
+// 1.49(b) - EL VEREDICTO DEL CRISTAL EN TRES ESTADOS. Gemelo letra por letra del Maestro,
+// con el porque entero en su reloj.h. Aqui lo pregunta la reanudacion del Degradado: con el
+// cristal en VIGILANDO, reloj_contadorSegundos() devuelve un numero que todavia nadie ha
+// visto moverse, y la marca de 48 h de la pila se fecharia contra el.
+enum EstadoCristal : uint8_t { RELOJ_CRISTAL_VIGILANDO, RELOJ_CRISTAL_CUENTA, RELOJ_CRISTAL_CONGELADO };
+EstadoCristal reloj_estadoCristal();
+
 // N-25 — reintento en segundo plano del cristal. Se llama desde el loop(). Adopta el
 // reloj si el oscilador despierta despues del arranque, sin reiniciar.
 void reloj_actualizar();

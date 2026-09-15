@@ -45,6 +45,28 @@ bool reloj_enHora();
 // al apagar y encender volvia a ceros, sin nada que explicara por que.
 bool reloj_hayCristal();
 
+// 1.49(a) - EL VEREDICTO DEL CRISTAL EN TRES ESTADOS, porque hay tres respuestas y el bool de
+// arriba solo sabe dos. Entre que el oscilador arranca y que vigilarCristal() ha visto contar
+// -o ha cerrado su ventana sin verlo- pasan hasta CNT_VENTANA_MS, y en ese rato
+// reloj_hayCristal() ya dice true: "arranco", no "cuenta". Quien necesite la segunda
+// respuesta -el $ACK de REINICIAR_RELOJ, la reanudacion del Degradado tras un corte- tiene
+// que poder distinguir "todavia no lo se" de "si".
+//
+//   VIGILANDO  el oscilador arranco y la ventana sigue abierta: todavia no se sabe.
+//   CUENTA     se han visto DOS flancos del contador desde que se adopto el cristal. Dos y
+//              no uno por lo mismo que la ventana pide dos: la primera lectura tras abrir
+//              el periferico puede venir rancia de la sombra APB, y un flanco solo podria
+//              ser esa lectura poniendose al dia.
+//   CONGELADO  no hay contador que cuente: o no arranco, o arranco y la ventana cerro sin
+//              flancos (el cerrojo de 1.22). Para quien pregunta es el mismo caso -no hay
+//              con que fechar- y el detalle lo dan los bits de reloj_diagnostico().
+//
+// No es un estado nuevo que alguien pueda desincronizar: se DEDUCE de rtcOperativo, del
+// cerrojo y de los flancos que vigilarCristal() ya cuenta. VIGILANDO dura como mucho
+// CNT_VENTANA_MS mas una vuelta, porque vigilarCristal() corre en cada reloj_actualizar().
+enum EstadoCristal : uint8_t { RELOJ_CRISTAL_VIGILANDO, RELOJ_CRISTAL_CUENTA, RELOJ_CRISTAL_CONGELADO };
+EstadoCristal reloj_estadoCristal();
+
 // N-45 — CONSULTA DEL RELOJ: los bits crudos, sin interpretar.
 //
 // Hasta aqui, cuando el reloj no arrancaba la pantalla decia "Revisa Y2, pila y R5" y

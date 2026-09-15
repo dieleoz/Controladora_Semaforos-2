@@ -106,7 +106,27 @@ def _despachador(fw, partes):
     return _bloque(codigo, m.end() - 1)
 
 
-def _acciones(cuerpo):
+def _ack_diferido(accion, bloque, codigo):
+    """1.49(a): el "$ACK que sale despues", atribuido a la rama que lo dejo pendiente.
+
+    Desde 1.49 REINICIAR_RELOJ no contesta en su rama: pone una bandera estatica a true y
+    el $ACK lo emite otra funcion del mismo fichero cuando el cristal tiene veredicto. La
+    promesa sigue estando en el cable, solo que no dentro del bloque. EL BORDE, escrito: se
+    atribuye SOLO si la rama pone `X = true;` y hay en el fichero una funcion que LEE X
+    -`if (!X) return;`- y emite "$ACK,CMD:<esta orden>". Una bandera sin emisor, o un ACK de
+    otra orden, no cuentan."""
+    if codigo is None:
+        return ""
+    for nombre in re.findall(r"\b(\w+)\s*=\s*true\s*;", bloque):
+        for m in re.finditer(r"\bif\s*\(\s*!\s*%s\s*\)\s*return\s*;" % re.escape(nombre), codigo):
+            ini = codigo.rfind("{", 0, m.start())
+            cuerpo = _bloque(codigo, ini) if ini >= 0 else None
+            if cuerpo and ('"$ACK,CMD:%s' % accion) in cuerpo:
+                return '"$ACK,CMD:%s' % accion
+    return ""
+
+
+def _acciones(cuerpo, codigo=None):
     """{accion: bloque} de esa punta, con la accion normalizada como la nombra la app.
 
     Tres normalizaciones, y las tres salen de como esta escrito el propio despachador:
@@ -135,7 +155,7 @@ def _acciones(cuerpo):
         accion = accion.rstrip(":")
         if not accion:
             continue
-        fuera[accion] = fuera.get(accion, "") + bloque
+        fuera[accion] = fuera.get(accion, "") + bloque + _ack_diferido(accion, bloque, codigo)
     return fuera
 
 
@@ -190,7 +210,7 @@ def correr(b, fw):
                 "%s: no se hallo procesarComando() en bluetooth.cpp. Es el unico sitio "
                 "donde vive el reparto de comandos: sin el, este pack compararia las "
                 "listas de la app contra nada y saldria verde" % punta)
-        ramas[punta] = _acciones(cuerpo)
+        ramas[punta] = _acciones(cuerpo, fw.codigo(*partes))
         if len(ramas[punta]) < 3:
             raise fw.Abortado(
                 "%s: el despachador solo dio %d rama(s) de comando. Las dos puntas "
@@ -311,6 +331,16 @@ def correr(b, fw):
         _implementa(_acciones(movido)["TEST_LEDS"]),
         "una orden que cambia de punta -pasa a contestar $ACK donde antes solo negaba- "
         "se detecta como implementada, que es lo que dejaria la lista de la app atras")
+    diferido = ('static bool pend = false; '
+                'static void veredicto() { if (!pend) return; '
+                'enviarTramaConCrc("$ACK,CMD:TEST_LEDS,RESULT:OK"); } '
+                'void procesar() { if (strcmp(accion, "TEST_LEDS") == 0) { pend = true; } }')
+    sinEmisor = diferido.replace("$ACK,CMD:TEST_LEDS", "$ACK,CMD:OTRA")
+    b.control_negativo(
+        _implementa(_acciones(diferido, diferido)["TEST_LEDS"]) and
+        not _implementa(_acciones(sinEmisor, sinEmisor)["TEST_LEDS"]),
+        "1.49: una orden cuyo $ACK sale DESPUES, de la funcion que lee la bandera que su "
+        "rama puso, cuenta como implementada; y con el emisor contestando OTRA orden, no")
     b.control_negativo(
         _rechaza_con_motivo("TEST_LEDS", _acciones(rechazo)["TEST_LEDS"]),
         "y un rechazo que NOMBRA la orden NO se marca: el detector distingue la "

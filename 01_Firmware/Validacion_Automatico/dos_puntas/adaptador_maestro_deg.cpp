@@ -137,11 +137,20 @@ static int  g_alarmasEmitidas = 0;
 // palabra del firmware sobre lo que acaba de hacer, y el bloque F la contrasta con los pines.
 static int  g_alarmasCaducada = 0;
 static int  g_eventosSaltoRojo = 0;
+// 1.49(b3): la caida del Degradado por su limite se cuenta POR SU CAUSA, igual que la de la
+// hora caducada: el bloque G separa "no se puede fechar porque el reloj no cuenta" de "48 h
+// de verdad", que mandan al tecnico a sitios distintos.
+static int  g_alarmasDegradado = 0;
+static int  g_alarmasRelojNoCuenta = 0;
 void bluetooth_reportarAlarma(const char* evento, const char* causa, const char* accion) {
   (void)accion;
   snprintf(g_ultimaAlarmaEvento, sizeof(g_ultimaAlarmaEvento), "%s", evento);
   g_alarmasEmitidas++;
   if (!strcmp(evento, "HORA_ESP32") && !strcmp(causa, "CADUCADA")) g_alarmasCaducada++;
+  if (!strcmp(evento, "DEGRADADO")) {
+    g_alarmasDegradado++;
+    if (!strcmp(causa, "RELOJ_NO_CUENTA")) g_alarmasRelojNoCuenta++;
+  }
 }
 void bluetooth_reportarEvento(const char* origen, const char* detalle) {
   if (!strcmp(origen, "DEGRADADO") && !strcmp(detalle, "SALTO_DE_HORA_POR_ROJO")) {
@@ -253,6 +262,15 @@ static void pasoPrincipal() {
   reloj_actualizar();
   botones_actualizar();
   semaforo_actualizar();
+
+  // D-29 / 1.49(b): LA REANUDACION QUE main.cpp VUELVE A PREGUNTAR EN CADA VUELTA, transcrita
+  // en su sitio -antes de leer 'modo'-. Faltaba aqui: el arranque la preguntaba una vez en
+  // punta_arrancar() y la vuelta no, asi que la mitad diferida de D-29 no la ejecutaba este
+  // arnes -medido el 15/09 en la copia de 1.49: sin ella el Maestro no reanudaba nunca con la
+  // siembra llegando despues del setup()-. Si main.cpp la mueve, esto se queda viejo.
+  if (modo_degradado_reanudarTrasCorte()) {
+    modoActual_set(MODO_DEGRADADO);
+  }
 
   ModoSistema modo = modoActual_get();
   if (modo != MODO_AUTOMATICO && modo != MODO_DEGRADADO && modo != MODO_AMBAR) {
@@ -409,6 +427,8 @@ PUNTA_API long punta_mando(const char* que, long arg) {
   // ciclo y no la deriva; ver la cabecera del bloque F del orquestador.
   if (!strcmp(que, "siembra_esp32_eco"))  return (long)arnes_sembrar_en_frontera(0, ramaHoraEsp32);
   if (!strcmp(que, "alarmas_caducada"))   return (long)g_alarmasCaducada;
+  if (!strcmp(que, "alarmas_degradado"))  return (long)g_alarmasDegradado;
+  if (!strcmp(que, "alarmas_reloj_no_cuenta")) return (long)g_alarmasRelojNoCuenta;
   if (!strcmp(que, "eventos_salto_rojo")) return (long)g_eventosSaltoRojo;
 
   // --- SFTY-23: el intercambio horario REAL, encolado por el coordinador ----

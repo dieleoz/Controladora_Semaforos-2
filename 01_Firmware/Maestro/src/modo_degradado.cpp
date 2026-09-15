@@ -533,6 +533,30 @@ bool modo_degradado_reanudarTrasCorte() {
   //      compararlo solo contra el limite lo dejaria pasar por "muchisimas horas"
   //      -que ya falla-, pero escribirlo explicito es lo que impide que un futuro
   //      cambio de signo en la comparacion lo convierta en "reciente".
+  //
+  // 1.49(b2) - Y LA CONDICION 3 NO SE PREGUNTA HASTA QUE EL CRISTAL TENGA VEREDICTO. Gemela
+  // de la del Esclavo, con el porque entero alli: durante la ventana de vigilarCristal() el
+  // contador devuelve un numero que nadie ha visto moverse, y con un Y2 que arranca y no
+  // cuenta la marca sale "0 h". Medido el 15/09 (bloque G del arnes del Degradado): esta
+  // punta reanudaba sobre esa lectura y a los 4,1 s caia a ambar por su limite. Se espera
+  // como mucho CNT_VENTANA_MS mas una vuelta, sin borrar nada, dentro de la ventana de D-29 y
+  // acotado por ella.
+  //
+  // LA CONDICION 2 SE PREGUNTA ANTES DE ESPERAR, Y ES EL MODO DE FALLO QUE LA ESPERA CREABA:
+  // setup() llama a esta funcion ANTES de modo_degradado_publicarConfig() porque despues
+  // respaldo_hayCiclo() es cierto siempre. Si la espera fuera delante, la decision pasaria a
+  // la vuelta del bucle con el ciclo ya publicado y la condicion 2 no comprobaria nada. Sin
+  // ciclo guardado se borra aqui, en setup(), exactamente como antes: ni la siembra ni el
+  // cristal lo arreglan. Por eso esto vive aqui y no en main.cpp.
+  if (!respaldo_hayCiclo()) {
+    reanudacionPorDecidir = false;
+    respaldo_guardarDegradado(false);
+    return false;
+  }
+  if (reloj_estadoCristal() == RELOJ_CRISTAL_VIGILANDO && millis() < VENTANA_REANUDACION_MS) {
+    return false;   // sin decidir y sin borrar: se vuelve a preguntar en la siguiente vuelta
+  }
+
   const uint32_t horas = respaldo_horasDesdeSync(reloj_contadorSegundos());
   const bool syncVigente = horas != RESPALDO_SYNC_CADUCADA && horas < LIMITE_DURO_H;
 
@@ -773,9 +797,35 @@ void modo_degradado_loop() {
   // VERDAD, no desde el arranque: si no, un corte de luz a las 47 h regalaria 48 h mas
   // de Degradado sobre una hora que lleva dos dias sin cuadrarse, y el tope dejaria de
   // ser un tope.
+  //
+  // 1.49(b3) - Y LA CAIDA SE DICE, CON SU CAUSA VERDADERA. Hasta el 15/09 esta rama iba a
+  // ambar sin $ALARM -irAAmbar() no emite nada- y con un rotulo que no siempre era cierto:
+  // msDesdeSyncEfectivo() devuelve el centinela 0xFFFFFFFF, que supera el limite, tambien
+  // cuando la marca NO SE PUEDE FECHAR. Medido en el bloque G del arnes del Degradado: tras
+  // un corte, con el cristal parado, esta punta caia aqui a los pocos segundos con "48h" y
+  // en silencio. Son tres averias que mandan a tres sitios:
+  //   RELOJ_NO_CUENTA   el contador del RTC no cuenta (reloj_estadoCristal() CONGELADO): la
+  //                     marca de la pila no se puede fechar con el. No es la radio.
+  //   SYNC_SIN_FECHA    el contador cuenta, pero la pila dice CADUCADA (reloj movido hacia
+  //                     atras, dominio borrado): no se sabe cuanto hace.
+  //   LIMITE_48H        lo demas, que es el plazo de verdad: la radio.
+  // El orden es el de la causa mas concreta primero. El centinela NO decide la causa: la
+  // pila tambien lo devuelve con mas de 48 h bien fechadas, y alli el rotulo "48h" es cierto.
+  // Se publica UNA vez: irAAmbar() deja el modo en DEG_AMBAR y de ahi no se vuelve aqui. Los
+  // rotulos no nombran ninguna pieza, por lo mismo que N-45 quito "Es Y2: toca hardware".
   unsigned long desdeSync = msDesdeSyncEfectivo();
   if (desdeSync >= LIMITE_DURO_MS) {
-    irAAmbar("Limite 48h sin sync", "Revise el radio");
+    if (reloj_estadoCristal() == RELOJ_CRISTAL_CONGELADO) {
+      bluetooth_reportarAlarma("DEGRADADO", "RELOJ_NO_CUENTA", "CAMBIO_A_AMBAR");
+      irAAmbar("Reloj sin contar", "No es la radio");
+    } else if (respaldo_horasDesdeSync(reloj_contadorSegundos()) == RESPALDO_SYNC_CADUCADA &&
+               desdeSync == 0xFFFFFFFFUL) {
+      bluetooth_reportarAlarma("DEGRADADO", "SYNC_SIN_FECHA", "CAMBIO_A_AMBAR");
+      irAAmbar("Sync sin fecha", "Sincronice de nuevo");
+    } else {
+      bluetooth_reportarAlarma("DEGRADADO", "LIMITE_48H", "CAMBIO_A_AMBAR");
+      irAAmbar("Limite 48h sin sync", "Revise el radio");
+    }
     return;
   }
 

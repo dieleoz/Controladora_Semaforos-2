@@ -134,6 +134,47 @@ def _cuerpo(codigo, patron, que):
     return _bloque_que_contiene(codigo, codigo.find("{", m.end() - 1) + 1)
 
 
+ACK_RELOJ = "$ACK,CMD:REINICIAR_RELOJ,RESULT:CRISTAL_OK_PONGA_LA_HORA"
+
+
+def _ack_diferido(codigo):
+    """1.49(a): (None si esta bien | motivo) del $ACK de REINICIAR_RELOJ.
+
+    Mide la FORMA que separa "arranco" de "cuenta": la rama del despachador no contesta el
+    ACK -el oscilador acaba de arrancar y vigilarCristal() tarda CNT_VENTANA_MS en saber si
+    cuenta-, el literal sale UNA vez, y el bloque mas interno que lo envuelve esta gobernado
+    por una condicion que nombra RELOJ_CRISTAL_CUENTA. EL BORDE, escrito: se mira el `if`
+    que abre ESE bloque y no la funcion entera, porque un ACK colgado del else de al lado
+    tambien estaria "en una funcion que pregunta el estado"."""
+    m = re.search(r'strcmp\s*\(\s*accion\s*,\s*"REINICIAR_RELOJ"\s*\)\s*==\s*0\s*\)\s*\{',
+                  codigo)
+    if not m:
+        return "no se hallo la rama REINICIAR_RELOJ del despachador"
+    rama = _bloque_que_contiene(codigo, m.end())
+    if ACK_RELOJ in rama:
+        return ("la rama REINICIAR_RELOJ contesta %s en el acto: con un cristal que "
+                "arranca y no cuenta, el tecnico se va a poner la hora en un equipo que no "
+                "puede contarla" % ACK_RELOJ)
+    usos = [x.start() for x in re.finditer(re.escape('"' + ACK_RELOJ + '"'), codigo)]
+    if len(usos) != 1:
+        return "el literal del ACK sale %d veces y tiene que salir UNA" % len(usos)
+    prof, ini = 0, -1
+    for j in range(usos[0] - 1, -1, -1):
+        if codigo[j] == "}":
+            prof += 1
+        elif codigo[j] == "{":
+            if prof == 0:
+                ini = j
+                break
+            prof -= 1
+    cabecera = codigo[max(0, codigo.rfind(";", 0, ini), codigo.rfind("}", 0, ini),
+                          codigo.rfind("{", 0, ini)) + 1:ini]
+    if not re.search(r"\bif\s*\(.*RELOJ_CRISTAL_CUENTA", cabecera, re.S):
+        return ("el ACK no esta dentro de un if que pregunte RELOJ_CRISTAL_CUENTA "
+                "(cabecera leida: %r)" % cabecera.strip()[:80])
+    return None
+
+
 def _snprintf(cuerpo, destino, que):
     """(formato, [argumentos]) del snprintf que escribe en `destino`."""
     m = re.search(r'snprintf\(\s*%s\s*,[^,]+,\s*"((?:[^"\\]|\\.)*)"\s*(.*?)\);'
@@ -425,9 +466,38 @@ def correr(b, fw):
              "Emisor presente en el Esclavo: %s"
              % ("SI" if EMISOR in esclavo else "NO")])
 
+    # ---- 9. 1.49(a): EL "SI" DE REINICIAR_RELOJ SE DA CUANDO EL CRISTAL HA CONTADO ----
+    #
+    # La puerta de CONSULTA RELOJ nueva -ARRANCA_Y_NO_CUENTA- ya la cuentan 1 y 2 de arriba;
+    # esto mide la otra mitad, la que un verde de 1 y 2 no ve: que el ACK no salga antes
+    # del veredicto. El comportamiento en el tiempo -VIGILANDO no contesta, CONGELADO da el
+    # $ERR con los bits, CUENTA da el ACK una vez- se ejerce sobre el bluetooth.cpp
+    # compilado con el arnes del puente (orden CRISTAL); esto es la forma, y es la que un
+    # refactor rompe sin que nadie lo vea.
+    motivo = _ack_diferido(codigo)
+    b.verificar(
+        motivo is None,
+        "REINICIAR_RELOJ no contesta CRISTAL_OK en su rama: el $ACK sale una sola vez, "
+        "dentro del if que pregunta RELOJ_CRISTAL_CUENTA (1.49 (a))",
+        "1.49 (a): %s" % motivo)
+
     # ---- CONTROLES NEGATIVOS -------------------------------------------------
     #
     # Los tres atacan las tres formas de morir en silencio de la cabecera.
+    malo = ('void f(){ if (strcmp(accion, "REINICIAR_RELOJ") == 0) {'
+            ' if (reloj_reiniciarDominioRespaldo()) { enviarTramaConCrc("%s"); } } }'
+            % ACK_RELOJ)
+    b.control_negativo(
+        _ack_diferido(malo) is not None,
+        "con el ACK de vuelta en la rama, en el acto -la forma de antes de 1.49-, la "
+        "comprobacion 9 lo detecta")
+    colgado = ('void f(){ if (strcmp(accion, "REINICIAR_RELOJ") == 0) { x(); } }'
+               ' void g(){ if (e == RELOJ_CRISTAL_CUENTA) { y(); } else { enviarTramaConCrc("%s"); } }'
+               % ACK_RELOJ)
+    b.control_negativo(
+        _ack_diferido(colgado) is not None,
+        "con el ACK colgado del else de al lado del if que pregunta CUENTA, tambien: se mide "
+        "el bloque que lo envuelve, no la funcion")
     falso = ('void f(){ if (!reloj_hayCristal()) {'
              ' enviarTramaConCrc("$ERR,CMD:SET_RTC,DESC:SIN_CRISTAL_VEA_CONSULTA_RELOJ");'
              ' } else { %s(); } }' % EMISOR)

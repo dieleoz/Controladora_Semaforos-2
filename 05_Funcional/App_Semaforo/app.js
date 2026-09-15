@@ -3810,6 +3810,20 @@ document.addEventListener('DOMContentLoaded', () => {
              'aviso: son los que dicen si el problema es la pila, el cristal o el firmware.',
       toast: 'El reloj sigue parado: los bits estan en Registro de Eventos'
     },
+    // 1.49 (a): el tercer caso del reinicio. El oscilador SI arranco -por eso no es el de
+    // arriba- pero el contador no se movio en la ventana en que el equipo lo vigila, asi que
+    // el equipo NO dice "ponga la hora". Este rechazo llega unos segundos DESPUES de pulsar,
+    // no en el acto: el equipo primero publica que esta verificando y contesta cuando lo sabe.
+    // Por eso no se escribe aqui cuantos segundos: los decide el firmware.
+    'ARRANCA_Y_NO_CUENTA_VEA_CONSULTA_RELOJ': {
+      texto: 'Se reinicio el reloj y el oscilador ARRANCA, pero el contador NO AVANZA: el ' +
+             'equipo lo vigilo unos segundos y no conto. NO ponga la hora: no la podria ' +
+             'guardar. NO busque la consulta del reloj en la pantalla del gabinete: no se ' +
+             'puede abrir. El equipo acaba de publicar los bits del reloj en el REGISTRO DE ' +
+             'EVENTOS de esta app, justo debajo de este aviso: con el oscilador en marcha y el ' +
+             'contador quieto, son los que dicen donde mirar.',
+      toast: 'El reloj arranca pero no cuenta: los bits estan en Registro de Eventos'
+    },
     'SIN_CRISTAL': {
       texto: 'Esa unidad no tiene reloj en marcha y por eso no acepta la hora. Ponga la ' +
              'hora en el MAESTRO: desde alli se propaga. Si el Maestro tampoco la ' +
