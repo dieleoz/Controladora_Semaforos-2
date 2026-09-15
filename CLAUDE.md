@@ -279,6 +279,12 @@ quedar correcto y la compuerta verde, pero un `revert` de ese commit no deshace 
 - 🔴 **Al editar con un script, `open(ruta, "w")` TRUNCA ANTES de escribir:** si el `.write()` falla despues —un
   `UnicodeEncodeError` por un emoji— **el fichero queda vacio y el error parece de lectura**. Se escribe a un
   temporal y se renombra, o se usa la herramienta de edicion. **Comitear antes de un script masivo es la red.**
+- 🔴 **Y SU HERMANO: UN CORTE QUE BUSCA «EL SIGUIENTE CIERRE» SE LLEVA EL BLOQUE DE AL LADO.**
+  Medido el 14/09: al retirar una entrada de un diccionario en `app.js`, el script corto desde su ancla hasta el
+  proximo `},` —y ese `},` era el de la entrada SIGUIENTE, que desaparecio entera—. El fichero quedo valido,
+  las cuatro copias identicas y la app arrancando: **lo cazo un pack en la corrida de despues, no la sintaxis.**
+  **Un borrado se delimita por SUS DOS extremos leidos, nunca por «el siguiente delimitador»**, y despues se
+  cuenta: si el fichero pierde mas lineas que el bloque, se ha llevado algo mas.
 - 🔴 **Un `git worktree remove --force` SIGUE los enlaces que el agente dejo dentro y borra el ORIGINAL** —un
   *junction* a `node_modules` se llevo el de verdad y dejo dos `ABORTADO`—. **Antes de retirarlo se censan los
   enlaces y se quita el ENLACE, no lo que apunta** (`Delete(ruta, false)`), se comprueba el destino, y despues el
