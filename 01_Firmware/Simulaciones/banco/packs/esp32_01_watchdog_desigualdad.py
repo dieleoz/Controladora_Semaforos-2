@@ -26,7 +26,9 @@
 # El par de constantes "obvio" -el watchdog contra SFTY-6- es el EQUIVOCADO para el rol
 # de PUENTE. Medido:
 #
-#   Maestro/src/coordinador.cpp:656  tieneComunicacion = (tUltimaRxEsclavo > 0) && ...
+#   Maestro/src/coordinador.cpp  tieneComunicacion = (tUltimaRespuestaEsclavo > 0) && ...
+#     (1.49c: hasta el 15/09 era tUltimaRxEsclavo, cualquier trama; ahora la ultima
+#      RESPUESTA por radio. Sigue siendo radio y no J17, que es lo que este pack mide.)
 #   Esclavo/src/main.cpp:555         millis() - tUltimoComando > SFTY6_SILENCIO_MS
 #
 # Las dos variables se alimentan del enlace de RADIO LoRa. Ninguna lee un solo byte de
@@ -122,8 +124,9 @@ def correr(b, fw):
     coord = fw.codigo("Maestro", "src", "coordinador.cpp")
     m = re.search(r"tieneComunicacion\s*=([^;]*SFTY6_SILENCIO_MS[^;]*);", coord)
     b.verificar(
-        m is not None and "tUltimaRxEsclavo" in m.group(1) and "SerialBT" not in m.group(1),
-        "MEDIDO que SFTY-6 del Maestro vigila la RADIO (tUltimaRxEsclavo), no J17: un "
+        m is not None and "tUltimaRespuestaEsclavo" in m.group(1) and "SerialBT" not in m.group(1),
+        "MEDIDO que SFTY-6 del Maestro vigila la RADIO (tUltimaRespuestaEsclavo, la ultima "
+        "respuesta del Esclavo por radio -1.49c-), no J17: un "
         "puente colgado es invisible para el equipo, y por eso la cota que gobierna es "
         "la de la app",
         "la condicion de SFTY-6 del Maestro ya no es la que este pack midio. O dejo de "

@@ -12,7 +12,7 @@ Incluye correcciones de auditoría:
 - SFTY-13: Supresion de PING durante la espera de ACK (evita que el latido pise la
   ventana del acuse en el enlace de radio)
 - Buffer overflow protocolo corregido (binIdx=0 restaurado)
-- tUltimaRxEsclavo inicializado a 0 en setup
+- tUltimaRespuestaEsclavo (antes tUltimaRxEsclavo) inicializado a 0 en setup
 - TIMEOUT_ACK y RF_BURST_COPIES se LEEN del firmware C++ en cada ejecución (ver bloque 0),
   para que el modelo no pueda divergir del código real sin que la prueba lo note.
 
@@ -375,7 +375,12 @@ class SemafaroMaestro:
         self.tiempo_despeje_s = DESPEJE_S   # N-12: leido del C++
         self.t_ref = 0.0
         self.t_ultimo_ping = 0.0
-        self.t_ultima_rx_esclavo = 0.0  # V7.7: Inicializar a 0, no millis()
+        # 1.49c: el ancla del silencio es la ultima RESPUESTA, no la ultima trama (SPEC_2 s4).
+        # Replica coordinador.cpp: PONG/ACK_RED que cierra el latido en vuelo, ACK_RED en
+        # C_ESPERANDO_ACK_RED o C_FALLO, ACK_GREEN en C_ESPERANDO_ACK_GREEN.
+        self.t_ultima_respuesta_esclavo = 0.0  # V7.7: Inicializar a 0, no millis()
+        self.latido_en_vuelo = False
+        self.respuesta_esperada = 0
         self.t_esperando_ack = 0.0
         self.retry_count = 0
         self.msg_id_counter = 0
@@ -394,7 +399,7 @@ class SemafaroMaestro:
         self.luz_local = "S_ROJO"
         self.ultimo_id_recibido = 0
         self.t_ref = current_time
-        self.t_ultima_rx_esclavo = current_time
+        self.t_ultima_respuesta_esclavo = current_time
         self.estado_c = "C_INICIAL_ESPERA_ESTATICO"
 
     def forzar_menu(self):
@@ -407,7 +412,7 @@ class SemafaroMaestro:
         self.luz_local = "S_ROJO"
         self.ultimo_id_recibido = 0
         self.t_ref = current_time
-        self.t_ultima_rx_esclavo = current_time
+        self.t_ultima_respuesta_esclavo = current_time
         self.estado_c = "C_IDLE" # Mantiene Rojo Fijo en ambos indefinidamente
 
     def pedir_cambio(self, current_time: float) -> bytes:
@@ -437,7 +442,17 @@ class SemafaroMaestro:
                 pkt = RF_Packet.from_bytes(rx_bytes[i:i+4])
                 if pkt and pkt.msg_id != self.ultimo_id_recibido:
                     self.ultimo_id_recibido = pkt.msg_id
-                    self.t_ultima_rx_esclavo = current_time
+                    # 1.49c: se decide ANTES de que la trama cambie el estado.
+                    es_respuesta = (
+                        (self.latido_en_vuelo and pkt.command == self.respuesta_esperada)
+                        or (pkt.command == RF_Packet.CMD_ACK_RED
+                            and self.estado_c in ("C_ESPERANDO_ACK_RED", "C_FALLO"))
+                        or (pkt.command == RF_Packet.CMD_ACK_GREEN
+                            and self.estado_c == "C_ESPERANDO_ACK_GREEN"))
+                    if es_respuesta:
+                        self.t_ultima_respuesta_esclavo = current_time
+                    if self.latido_en_vuelo and pkt.command == self.respuesta_esperada:
+                        self.latido_en_vuelo = False
 
                     if pkt.command == RF_Packet.CMD_ACK_RED and self.estado_c == "C_ESPERANDO_ACK_RED":
                         self.t_ref = current_time
@@ -453,12 +468,15 @@ class SemafaroMaestro:
                 and self.estado_c != "C_ESPERANDO_ACK_RED"):
             if self.estado_c == "C_MENU_IDLE":
                 tx_bytes += self.enviar_paquete(RF_Packet.CMD_GO_RED)
+                self.respuesta_esperada = RF_Packet.CMD_ACK_RED
             else:
                 tx_bytes += self.enviar_paquete(RF_Packet.CMD_PING)
+                self.respuesta_esperada = RF_Packet.CMD_PONG
             self.t_ultimo_ping = current_time
+            self.latido_en_vuelo = True
 
         # Monitoreo de caída a 12.0s y Self-Healing
-        tiene_comunicacion = (self.t_ultima_rx_esclavo > 0) and (current_time - self.t_ultima_rx_esclavo <= FALLBACK_S)
+        tiene_comunicacion = (self.t_ultima_respuesta_esclavo > 0) and (current_time - self.t_ultima_respuesta_esclavo <= FALLBACK_S)
 
         if self.estado_c == "C_MENU_IDLE":
             if tiene_comunicacion:
@@ -467,7 +485,7 @@ class SemafaroMaestro:
                 self.luz_local = "S_FALLO" # TEST 4: Sin comunicación en Menú → AMARILLO PARPADEO
         else:
             if not tiene_comunicacion:
-                if self.t_ultima_rx_esclavo > 0 or current_time > FALLBACK_S:
+                if self.t_ultima_respuesta_esclavo > 0 or current_time > FALLBACK_S:
                     if self.estado_c != "C_FALLO":
                         self.estado_c = "C_FALLO"
                         self.luz_local = "S_FALLO"  # TEST 3: Esclavo apagado → AMARILLO PARPADEO
@@ -494,11 +512,11 @@ class SemafaroMaestro:
 
         elif self.estado_c == "C_ESPERA_ESTATICO_TRAS_MASTER":
             # D-34: literal de coordinador.cpp -"millis() - tRef >= tiempoDespejeMs &&
-            # tUltimaRxEsclavo > 0 && millis() - tUltimaRxEsclavo <= LATIDO_MS"-. El primer
-            # GO_GREEN no sale sin algo oido del Esclavo hace menos de un latido.
+            # tUltimaRespuestaEsclavo > 0 && millis() - tUltimaRespuestaEsclavo <= LATIDO_MS"-. El
+            # primer GO_GREEN no sale sin una RESPUESTA del Esclavo de menos de un latido (1.49c).
             if (current_time - self.t_ref >= self.tiempo_despeje_s
-                    and self.t_ultima_rx_esclavo > 0
-                    and current_time - self.t_ultima_rx_esclavo <= LATIDO_S):
+                    and self.t_ultima_respuesta_esclavo > 0
+                    and current_time - self.t_ultima_respuesta_esclavo <= LATIDO_S):
                 self.t_esperando_ack = current_time
                 self.retry_count = 0
                 self.estado_c = "C_ESPERANDO_ACK_GREEN"
@@ -733,7 +751,7 @@ def ejecutar_auditoria_completa():
     # segunda rama de :168-170 -el PIN guarda lo que ABRE paso, no lo que lo para-.
     print("\n▶ PRUEBA 1: Menu por Bluetooth CON comunicacion (TEST 5 campo)...")
     resp1 = bt(b"CMD:SET_MODO:MENU", current_time)
-    maestro.t_ultima_rx_esclavo = current_time  # Simular que hay comunicación
+    maestro.t_ultima_respuesta_esclavo = current_time  # Simular que hay comunicación
     esclavo.t_ultimo_comando = current_time
     avanzar_simulacion(5.0)
     print(f"   [t={current_time:.1f}s] app->{resp1} | Maestro: {maestro.luz_local} "
@@ -755,7 +773,7 @@ def ejecutar_auditoria_completa():
     print("\n▶ PRUEBA 2: Menu por Bluetooth SIN comunicacion (TEST 4 campo)...")
     maestro2 = SemafaroMaestro()
     resp2 = DespachadorBluetooth(maestro2).procesar(b"CMD:SET_MODO:MENU", 0.0)
-    maestro2.t_ultima_rx_esclavo = 0.0  # V7.7: Nunca recibió nada
+    maestro2.t_ultima_respuesta_esclavo = 0.0  # V7.7: Nunca recibió nada
     esclavo2 = SemaforoEsclavo()
     esclavo2.t_ultimo_comando = 0.0
     rep2 = RepetidorESP32()

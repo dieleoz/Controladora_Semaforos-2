@@ -485,14 +485,22 @@ static unsigned long g_goRojoEntregados = 0;
 // Y son DOS instantes distintos, que es justo lo que G3 mide:
 //   - el Esclavo cuenta desde la ultima trama de GOBIERNO que RECIBIO (tUltimoComando de
 //     Esclavo/src/main.cpp: PING, GO_RED o GO_GREEN; las de servicio no lo refrescan),
-//   - el Maestro, desde la ultima trama que le LLEGO, sea cual sea (tUltimaRxEsclavo de
-//     coordinador.cpp se refresca con CUALQUIER paquete).
+//   - ~~el Maestro, desde la ultima trama que le LLEGO, sea cual sea (tUltimaRxEsclavo de
+//     coordinador.cpp se refresca con CUALQUIER paquete)~~ -> 1.49c: el Maestro, desde la
+//     ultima RESPUESTA (tUltimaRespuestaEsclavo): PONG, ACK_RED o ACK_GREEN. El firmware
+//     exige ademas que conteste a lo que tiene en vuelo; este modelo no ve el estado del
+//     coordinador y cuenta las tres siempre. g_entregasMaestroNoRespuesta cuenta lo que
+//     llega y el modelo NO fecha -una demanda, un aviso-, igual que la del Esclavo.
 // g_entregasEsclavoNoGobierno cuenta lo que este modelo NO sabria fechar: si un escenario
 // mete trafico de servicio, la cuenta deja de ser exacta y la linea que la use lo dice.
 static uint8_t CMD_PING_V = 0;
 static unsigned long g_tGobiernoEsclavo = 0;
 static unsigned long g_tRxMaestro = 0;
+// 1.49c (G3D): la ultima ENTREGA de cualquier trama al Maestro, conteste o no a algo. Solo la
+// usa G3D para exigir que el trafico de la camara llego; no es el reloj de nadie.
+static unsigned long g_tRxEntregaMaestro = 0;
 static unsigned long g_entregasEsclavoNoGobierno = 0;
+static unsigned long g_entregasMaestroNoRespuesta = 0;   // 1.49c
 
 // N-163: CUANDO EMITIO EL MAESTRO POR ULTIMA VEZ, LLEGARA O NO. Se fecha en la EMISION y
 // no en la entrega a proposito: lo que decide si el otro poste se queda huerfano es cada
@@ -513,8 +521,9 @@ static unsigned long g_tEmisionMaestro = 0;
 // Maestro le llega un PONG con PONG_VERDE_SOLTADO y el Maestro pone un GO_RED en el aire en
 // ESE MISMO tick: es la firma de la rama de coordinador.cpp, que emite sin esperar a nada.
 // NO ES UNICA, Y SE MIDIO (control negativo con la rama anulada): con el Maestro en C_FALLO
-// la llegada de CUALQUIER trama le devuelve la comunicacion y SFTY-9 emite su GO_RED en ese
-// mismo tick, asi que el contador sube tambien ahi. Por eso G13 solo lo exige en las celdas
+// la llegada de ~~CUALQUIER trama~~ -> una RESPUESTA (1.49c: el PONG en vuelo o un ACK_RED)
+// le devuelve la comunicacion y SFTY-9 emite su GO_RED en ese mismo tick, asi que el
+// contador sube tambien ahi. Por eso G13 solo lo exige en las celdas
 // donde el silencio del Maestro NO paso de SFTY6_SILENCIO_MS -sin C_FALLO no hay SFTY-9-.
 static uint8_t CMD_PONG_V = 0, PONG_VERDE_SOLTADO_V = 0;
 static unsigned long g_pongPerderDesdeT = 0, g_pongPerderHastaT = 0;   // hasta == 0: ninguno
@@ -719,7 +728,13 @@ static void unTick() {
         else if (!goVerdeRepetido)
           g_entregasEsclavoNoGobierno++;
       } else {
-        g_tRxMaestro = g_t;
+        // 1.49c: el reloj de silencio del Maestro solo lo renuevan las respuestas.
+        const uint8_t c149 = g_aire[i].trama[1];
+        if (c149 == CMD_PONG_V || c149 == CMD_ACK_RED_V || c149 == CMD_ACK_GREEN_V)
+          g_tRxMaestro = g_t;
+        else
+          g_entregasMaestroNoRespuesta++;
+        g_tRxEntregaMaestro = g_t;
       }
       d.rx(g_aire[i].trama);
       g_tramasEntregadas++;
@@ -881,6 +896,7 @@ static void escenarioLimpio(long tiemposMaestro, bool exigirTiempos = false) {
   // Heredar el del escenario anterior daria un silencio ya vencido en el primer tick.
   g_tGobiernoEsclavo = g_tRxMaestro = g_tEmisionMaestro = g_t;
   g_entregasEsclavoNoGobierno = 0;
+  g_entregasMaestroNoRespuesta = 0;
   avanzar(500);
 }
 
@@ -2554,6 +2570,98 @@ int main() {
               " ms); borde " +
               std::to_string(BORDE_MS) + " ms");
 
+    // ---- G3D (roadmap 1.49 c): G3 CON LA CAMARA DEL ESCLAVO MANDANDO DEMANDA ----------
+    //
+    // El mismo corte que G3 -bajada Maestro->Esclavo muerta con el Maestro en verde-, pero
+    // la subida sigue trayendo trafico que NO contesta a nada: el CMD_DEMANDA de la camara
+    // del poste 2. SPEC_2 §4 dice que el Maestro ancla su silencio en la respuesta que le
+    // CONTESTARON. Si lo ancla en cualquier trama, cada demanda le renueva el silencio: el
+    // Esclavo se va a su ambar por orfandad y el Maestro sigue en verde toda su fase
+    // (157 s medidos el 15/09 sobre bff78e6, en copia).
+    //
+    // POR QUE ESTOS PERIODOS (CLAUDE.md 7), derivados del C++:
+    //   0                          el control: G3 tal cual, sin trafico en la subida.
+    //   SFTY6 - TIMEOUT_ACK - LATIDO  por debajo del punto donde el Maestro suelta su verde
+    //                              (SFTY6 - TIMEOUT_ACK): con el ancla vieja, UNA demanda
+    //                              por periodo basta para que ese punto no llegue nunca.
+    //   (SFTY6 - TIMEOUT_ACK) / 2  la misma pregunta con el doble de trafico.
+    //   ventana de demanda.cpp + un latido  lo mas denso que el Esclavo deja salir (su
+    //                              SILENCIO_MS entre demandas) con holgura de un latido.
+    // Y tres fases del corte dentro de un latido (0, medio, entero), como G3 barre.
+    // EL BORDE es el MISMO de G3, BORDE_MS: la demanda no es una orden y no puede comprar
+    // ventana. El control de la inversion: en las celdas con demanda las tramas LLEGARON
+    // al Maestro despues del corte -si no, la fila no mide nada- y el Maestro acaba en
+    // C_FALLO, como en G3: un Maestro que nunca se abriera tambien daria ventana cero.
+    {
+      const unsigned long VENTANA_DEMANDA_MS = leerNumero(RAIZ + "/Esclavo/src/demanda.cpp",
+          R"(static\s+const\s+unsigned\s+long\s+SILENCIO_MS\s*=\s*(\d+))",
+          "SILENCIO_MS de demanda.cpp");
+      if (SIL <= TOUT + LATIDO_MS_V) abortar("G3D: SFTY6_SILENCIO_MS no deja sitio al periodo derivado");
+      const unsigned long PERIODOS_G3D[] = { 0UL, SIL - TOUT - LATIDO_MS_V, (SIL - TOUT) / 2,
+                                             VENTANA_DEMANDA_MS + LATIDO_MS_V };
+      const unsigned long OFFS_G3D[] = { 0UL, LATIDO_MS_V / 2, LATIDO_MS_V };
+      const unsigned long DUR_G3D = TRAS_VERDE + POST;
+      unsigned long peorMs = 0, peorP = 0, peorOff = 0, celdas = 0, celdasDemanda = 0;
+      unsigned long peorControlMs = 0;
+      bool ejercido = true, trafico = true, acabaEnFallo = true;
+      CorridaG peor;
+      std::printf("   G3D  periodo_ms  off_ms  demandas  rx_Maestro  ventana_ms  M_C_FALLO_ms  luz_final_M/E\n");
+      for (unsigned long P : PERIODOS_G3D) {
+        for (unsigned long off : OFFS_G3D) {
+          CorridaG c;
+          celdas++;
+          escenarioLimpio(TIEMPOS_G, true);
+          bool ok = alcanzarVerdeG(MAESTRO, ALCANCE);
+          avanzar(off);
+          ok = ok && MAESTRO.verde() && ESCLAVO.rojo();
+          g_enlaceHaciaEsclavo = false;
+          c.tCorte = g_t;
+          unsigned long pulsos = 0, rxM = 0;
+          unsigned long tRx0 = g_tRxEntregaMaestro;
+          for (unsigned long h = 0; h < DUR_G3D; h += PASO_MS) {
+            const bool pulso = (P != 0) && h >= LATIDO_MS_V && ((h - LATIDO_MS_V) % P) < PASO_MS;
+            ESCLAVO.entrada(CAM_DEMANDA_PIN, pulso ? HIGH : LOW);
+            if (pulso) pulsos++;
+            pasoG(c);
+            if (g_tRxEntregaMaestro != tRx0) { rxM++; tRx0 = g_tRxEntregaMaestro; }
+          }
+          finG(c);
+          ESCLAVO.entrada(CAM_DEMANDA_PIN, LOW);
+          if (!ok) ejercido = false;
+          if (P != 0) {
+            celdasDemanda++;
+            if (pulsos == 0 || rxM == 0) trafico = false;
+          } else if (!(c.maestroFallo && ESCLAVO.estado() == S_FALLO_V)) {
+            ejercido = false;
+          }
+          if (!(c.maestroFallo && MAESTRO.orden("comunicacion_perdida") == 1 && !MAESTRO.verde()))
+            acabaEnFallo = false;
+          const unsigned long acu = acumuladoMsG(c.v);
+          if (P == 0 && acu > peorControlMs) peorControlMs = acu;
+          if (acu >= peorMs) { peorMs = acu; peorP = P; peorOff = off; peor = c; }
+          std::printf("   G3D  %10lu  %6lu  %8lu  %10lu  %10lu  %12ld  %s/%s\n", P, off, pulsos, rxM,
+                      acu, c.maestroFallo ? (long)(c.tFallo - c.tCorte) : -1L,
+                      nombreLuz(MAESTRO.estado()), nombreLuz(ESCLAVO.estado()));
+        }
+      }
+      imprimirTrazaG(("G3D, peor celda (periodo " + std::to_string(peorP) + " ms, fase " +
+                      std::to_string(peorOff) + " ms):").c_str(), peor);
+      comprobar(ejercido && trafico && celdasDemanda > 0,
+                "G3D (control): en las " + std::to_string(celdas) + " celdas el corte cayo con el "
+                "Maestro en VERDE y el Esclavo en rojo; sin demanda el Esclavo acabo en S_FALLO y "
+                "el Maestro en C_FALLO (G3), y en las " + std::to_string(celdasDemanda) +
+                " celdas con demanda las tramas de la camara SI llegaron al Maestro tras el corte");
+      comprobar(peorMs <= BORDE_MS && acabaEnFallo,
+                "G3D (1.49 c, SPEC_2 §4): con la bajada muerta y la camara del poste 2 mandando "
+                "CMD_DEMANDA, el Maestro NO sostiene su verde frente al ambar del Esclavo: la "
+                "demanda no es una respuesta y no le renueva el silencio. Ventana " +
+                std::to_string(peorMs) + " ms en la peor celda (periodo " + std::to_string(peorP) +
+                " ms, fase " + std::to_string(peorOff) + " ms; sin demanda " +
+                std::to_string(peorControlMs) + " ms); borde " + std::to_string(BORDE_MS) +
+                " ms, el de G3. Y en TODAS el Maestro acaba en C_FALLO sin verde" +
+                (acabaEnFallo ? std::string("") : std::string(" -NO: alguna celda no llego-")));
+    }
+
     // ---- G4: los controles, el mismo detector donde el orden SI es el bueno ------------
     //   a) Maestro->Esclavo muerto con el ESCLAVO en verde: su orfandad lo saca a S_FALLO
     //      con el Maestro en rojo.
@@ -3124,7 +3232,7 @@ int main() {
     // (0 = en el instante de emitirlo), y la bajada vive hasta que el Esclavo ha recibido
     // k repeticiones de ese GO_GREEN -o hasta que el Maestro cae a S_FALLO, lo que llegue
     // antes-. Cada punta cuenta su silencio desde un instante DISTINTO: el Maestro desde su
-    // ultima recepcion -anterior al corte de la subida-, el Esclavo desde su ultima orden
+    // ultima RESPUESTA recibida (1.49c) -anterior al corte de la subida-, el Esclavo desde su ultima orden
     // -la ultima repeticion entregada-. Si el reloj del Esclavo se refresca despues que el
     // del Maestro, el Maestro cae a ambar con la pluma arriba y el Esclavo sigue en verde
     // hasta su propia orfandad. Ningun escenario de G1..G11 corta las dos direcciones en

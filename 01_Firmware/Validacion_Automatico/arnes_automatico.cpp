@@ -526,11 +526,15 @@ static unsigned long g_latenciaEsclavoMs = 50;
 struct PaqueteEntrante { bool hay; RF_Packet pkt; unsigned long tEntrega; };
 static PaqueteEntrante g_entrante = { false, {0, 0, 0, 0}, 0 };
 
-// El instante de la ULTIMA entrega, tal como lo veria coordinador.cpp al fijar
-// tUltimaRxEsclavo. No hay getter de esa variable interna -es estatica del
+// El instante de la ULTIMA RESPUESTA entregada, tal como lo veria coordinador.cpp al fijar
+// tUltimaRespuestaEsclavo. No hay getter de esa variable interna -es estatica del
 // modulo-, asi que el arnes lleva su propia copia del mismo evento: el arnes es
 // quien decide cuando "llega" un paquete, de modo que esta marca de tiempo es
 // exacta y no una aproximacion.
+// 1.49c: ~~tUltimaRxEsclavo, cualquier trama~~. La DEMANDA espontanea ya no la mueve, igual
+// que en el firmware. Lo que este modelo NO distingue: una trama de ESC_TRAMA_MALA (ACK_RED
+// a un GO_GREEN) si la mueve y en el firmware no; la comprobacion de orfandad que la lee
+// corre con ESC_CORRECTO, donde toda entrega es la respuesta a lo que el Maestro emitio.
 static unsigned long g_ultimaEntregaMs = 0;
 
 void protocolo_setup() {}
@@ -584,7 +588,7 @@ bool protocolo_hayPaqueteDisponible(RF_Packet* destino) {
     RF_Packet d = { 0, 0, 0, 0 };
     d.command = CMD_DEMANDA;
     *destino = d;
-    g_ultimaEntregaMs = arnes_millis_valor;
+    // 1.49c: una demanda no es una respuesta; no renueva el silencio del Maestro.
     return true;
   }
   if (!g_entrante.hay) return false;
@@ -999,7 +1003,7 @@ int main() {
     // Deja pasar un latido completo (3 s) ANTES de cortar el enlace, para que
     // g_ultimaEntregaMs quede fijado por un intercambio real y no por lo que
     // quedara de la ultima ACK del arranque -asi el instante de referencia de esta
-    // comprobacion es el MISMO que coordinador.cpp usa para tUltimaRxEsclavo-.
+    // comprobacion es el MISMO que coordinador.cpp usa para tUltimaRespuestaEsclavo-.
     bombear(200, 4000, [](){ return false; });
 
     g_modoEsclavo = ESC_MUDO;   // el Esclavo "se apaga": ni luz ni latido
@@ -1019,7 +1023,7 @@ int main() {
       if (diff < 0) diff = -diff;
       // La tolerancia es el paso de bombeo (50ms), no un margen de gracia del
       // firmware: el propio codigo cae a C_FALLO en el mismo tick en que
-      // millis()-tUltimaRxEsclavo supera los 12000 leidos arriba.
+      // millis()-tUltimaRespuestaEsclavo supera el SFTY6_SILENCIO_MS leido arriba.
       char msg[200];
       std::snprintf(msg, sizeof(msg),
           "la orfandad se detecta A LOS %ld ms leidos del C++ real, ni antes ni "

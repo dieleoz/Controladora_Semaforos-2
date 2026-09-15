@@ -58,7 +58,34 @@ static unsigned long tiempoDespejeMs = 15000;
 
 static bool handshakeOk = false;
 static unsigned long tUltimoPing = 0;
-static unsigned long tUltimaRxEsclavo = 0;
+// 1.49c (15/09): EL ANCLA DEL SILENCIO ES LA RESPUESTA QUE LE CONTESTARON, NO LA ULTIMA
+// TRAMA QUE LLEGO (SPEC_2 s4).
+//
+// Aqui vivia tUltimaRxEsclavo, refrescada con CUALQUIER trama del Esclavo antes de mirar
+// el comando, y de ella bebian SFTY-6, SFTY-9, el margen de N-163 y la compuerta de D-34.
+// Contestaba a dos preguntas -"llega radio?" y "el Esclavo me CONTESTA?"- y no podia
+// contestar bien a ninguna (CLAUDE.md 8). MEDIDO en el arnes de las dos puntas (G3D): con
+// la bajada Maestro->Esclavo muerta y la camara del poste 2 mandando CMD_DEMANDA, cada
+// demanda le renovaba el silencio a esta punta; el Esclavo se iba a su ambar por orfandad
+// y el poste 1 seguia en VERDE toda su fase, 157 s.
+//
+// LA PREMISA QUE ESTO DEROGA, escrita en el fuente y fuera de el: "SFTY-6 del Maestro
+// vigila la RADIO" (pack esp32_01, ESP32_Expansion/src/main.cpp y contrato.h) y, en el
+// latido de mas abajo, "la respuesta del Esclavo tambien refresca tUltimaRxEsclavo" durante
+// un intercambio de hora. SFTY-6 sigue mirando la radio -no J17-, pero lo que vigila es que
+// el otro extremo CONTESTE por ella: una trama que no responde a nada no prueba la bajada.
+//
+// QUE ES UNA RESPUESTA, y solo esto: la que cierra el latido en vuelo (respuestaEsperada:
+// PONG a un PING, ACK_RED a un GO_RED del latido), y ACK_RED / ACK_GREEN dentro de SUS
+// esperas -C_FALLO cuenta como espera del ACK_RED: ahi solo se emite GO_RED-. Todas prueban
+// las DOS direcciones: el Esclavo recibio una orden de esta punta.
+//
+// "LLEGA RADIO?" SE QUEDA SIN RELOJ, Y NO POR OLVIDO: censados los cinco lectores del reloj
+// viejo -tieneComunicacion, la gracia de arranque de SFTY-6, puedeSostenerVerde(), el
+// margen de C_ESPERANDO_ACK_RED y la compuerta de D-34-, los cinco preguntaban lo segundo.
+// Un reloj sin lector seria declarar sin ejercer (CLAUDE.md 6). Lo que queda de esa
+// pregunta es handshakeOk, que si tiene lector.
+static unsigned long tUltimaRespuestaEsclavo = 0;
 static bool demandaRemotaPendiente = false;
 // N-142: el Esclavo aviso de que le pusieron ambar de emergencia. Se anota aqui y lo
 // consume main.cpp, que es quien puede cambiar de modo: llamar a modoActual_set()
@@ -103,7 +130,7 @@ bool coordinador_hayCancelaAmbarDelEsclavo() {
 // contradiciendo la fase, o un latido que le desarme la orfandad al otro-. Escuchar no
 // hace ninguna de las dos cosas. Por eso esto NO es coordinador_actualizar(): no
 // responde PONG, no emite latido, no toca la maquina de estados, y no refresca
-// tUltimaRxEsclavo ni la telemetria -si lo hiciera, el enlace se pintaria vivo por
+// tUltimaRespuestaEsclavo ni la telemetria -si lo hiciera, el enlace se pintaria vivo por
 // tramas que este modo no contesta-.
 //
 // SOLO SE ATIENDEN LOS DOS AVISOS DEL AMBAR. Lo demas que llegue se descarta a
@@ -302,7 +329,8 @@ static_assert((AVISO_AMBAR_REINTENTOS + 1) * (2 * ENVIO_TRAMA_MS) <= PRESUPUESTO
 // LA CAUSA no es el umbral: es el ANCLA. Los dos umbrales son el mismo
 // SFTY6_SILENCIO_MS, pero el Esclavo cuenta desde la ultima orden que RECIBIO
 // (tUltimoComando, Esclavo/src/main.cpp) y esta punta desde la respuesta que le
-// CONTESTARON (tUltimaRxEsclavo). Entre esos dos instantes hay el retardo de cortesia
+// CONTESTARON (tUltimaRespuestaEsclavo; hasta 1.49c era la ultima trama que llegara, fuera
+// o no una respuesta). Entre esos dos instantes hay el retardo de cortesia
 // del Esclavo -RETARDO_RESPUESTA_MS, SFTY-17- mas el viaje de vuelta, y ese desfase es
 // exactamente la ventana.
 //
@@ -349,11 +377,11 @@ static_assert(LATIDO_MS + CICLO_MAX_REINTENTOS * PASO_RADIO_MS + TIMEOUT_ACK_MS
 // La forma es la MISMA que ya usa la salida de C_ESPERANDO_ACK_RED unas lineas mas
 // abajo -"si el silencio va a vencer antes de un reintento mas"-, y a proposito: son la
 // misma pregunta hecha en dos sitios, y con el mismo margen las dos se contestan igual.
-// Al arranque -tUltimaRxEsclavo == 0, el Esclavo no ha contestado nunca- se mira el
+// Al arranque -tUltimaRespuestaEsclavo == 0, el Esclavo no ha contestado nunca- se mira el
 // mismo reloj que la gracia de SFTY-6 de mas abajo, adelantado por el mismo margen.
 static bool puedeSostenerVerde() {
-  return (tUltimaRxEsclavo > 0)
-             ? (millis() - tUltimaRxEsclavo + TIMEOUT_ACK_MS <= SFTY6_SILENCIO_MS)
+  return (tUltimaRespuestaEsclavo > 0)
+             ? (millis() - tUltimaRespuestaEsclavo + TIMEOUT_ACK_MS <= SFTY6_SILENCIO_MS)
              : (millis() + TIMEOUT_ACK_MS <= SFTY6_SILENCIO_MS);
 }
 
@@ -447,6 +475,16 @@ static unsigned long tFalloSync = 0;
 //   Con el techo en 25 s, los tres intentos (13,7 s) caben con 11,3 s de margen.
 static const uint8_t SYNC_MAX_INTENTOS = 3;
 static const unsigned long BACKOFF_SYNC_MS = 60000UL;
+
+// 1.49c: LOS ACUSES DE ESTE INTERCAMBIO NO SON "RESPUESTA" PARA EL RELOJ DE SILENCIO, Y POR
+// ESO ESTA CUENTA TIENE QUE CABER ANTES DEL PUNTO DE SUELTA DEL VERDE, NO SOLO DEL SILENCIO.
+// Mientras dura, el latido se suprime (SFTY-13) y lo unico que renueva
+// tUltimaRespuestaEsclavo es el latido: el peor caso sin renovarlo es la cadencia del latido
+// mas los intentos enteros. Si no cupiera, un intercambio de hora con lluvia soltaria el
+// verde con el Esclavo contestando.
+static_assert(LATIDO_MS + SYNC_MAX_INTENTOS * PASO_RADIO_MS + TIMEOUT_ACK_MS <= SFTY6_SILENCIO_MS,
+              "1.49c: un intercambio de sincronizacion entero no cabe antes del punto de "
+              "suelta del verde (SFTY6_SILENCIO_MS - TIMEOUT_ACK_MS)");
 
 // Una vez por hora sobra: la deriva entre dos sincronizaciones tan seguidas queda en
 // milisegundos. Lo que se paga por sincronizar mas a menudo es canal, que es el
@@ -758,7 +796,7 @@ void coordinador_setup() {
   rojoEsclavoConfirmado = false;
   handshakeOk = false;
   verdeSoltadoPorMargen = false;   // N-163: esta orden redefine la intencion; no se reanuda nada
-  tUltimaRxEsclavo = 0; // Inicializar en 0: no hemos recibido nada del Esclavo aún
+  tUltimaRespuestaEsclavo = 0; // en 0: el Esclavo no ha contestado nada todavia
 }
 
 void coordinador_reiniciarConexion() {
@@ -768,7 +806,7 @@ void coordinador_reiniciarConexion() {
   rojoEsclavoConfirmado = false;   // al otro lado puede haber otra unidad
   verdeSoltadoPorMargen = false;   // N-163: esta orden redefine la intencion; no se reanuda nada
   tUltimoPing = 0;
-  tUltimaRxEsclavo = 0;
+  tUltimaRespuestaEsclavo = 0;
 
   // SFTY-23: se aborta el intercambio en vuelo -su ACK ya no va a llegar- y se
   // invalida la medida de desfase. Al otro lado puede haber ahora una unidad recien
@@ -811,7 +849,9 @@ void coordinador_forzarRojoTotal() {
   protocolo_resetReplayProtection();
   protocolo_enviarPaquete(CMD_GO_RED);
   tRef = millis();
-  tUltimaRxEsclavo = millis(); // Rojo total es intencional, resetear timer para no disparar fallo
+  // Rojo total es intencional, resetear timer para no disparar fallo. 1.49c: es el reloj de
+  // la RESPUESTA el que se renueva, porque es el que dispara el fallo; la gracia es la misma.
+  tUltimaRespuestaEsclavo = millis();
   estadoC = C_IDLE; // Queda en Rojo Fijo en ambos semáforos indefinidamente
 }
 
@@ -832,7 +872,7 @@ void coordinador_iniciarModo() {
   protocolo_enviarPaquete(CMD_GO_RED);
   tEsperandoAck = millis();
   retryCount = 0;
-  tUltimaRxEsclavo = millis();
+  tUltimaRespuestaEsclavo = millis();   // 1.49c: la misma gracia que forzarRojoTotal()
   estadoC = C_ESPERANDO_ACK_RED;
 }
 
@@ -926,7 +966,25 @@ void coordinador_actualizar() {
   bool llego = protocolo_hayPaqueteDisponible(&pkt);
 
   if (llego) {
-    tUltimaRxEsclavo = millis();
+    // 1.49c: el reloj de silencio SOLO lo renueva una respuesta (ver la declaracion). Se
+    // decide AQUI, antes de nada, y no por despiste: la telemetria de abajo baja
+    // latidoEnVuelo y la reanudacion de D-34 cambia estadoC, y las dos cosas son la
+    // pregunta. Un CMD_DEMANDA, un aviso de ambar o un acuse de hora llegan igual, y no
+    // renuevan nada.
+    //
+    // EL ACK_RED EN C_FALLO TAMBIEN, Y ESTA MEDIDO: al entrar en C_FALLO esta punta manda un
+    // GO_RED FUERA del latido (N-162), con respuestaEsperada todavia en PONG. Sin este
+    // termino su acuse no contaba y SFTY-9 esperaba al GO_RED del latido siguiente: G13 del
+    // arnes de las dos puntas midio 2.100 ms mas de ambar en el Maestro tras un corte total
+    // (10.650 -> 12.750 ms de vuelta a verde). El Esclavo solo emite CMD_ACK_RED al recibir
+    // un CMD_GO_RED (Esclavo/src/main.cpp), asi que en C_FALLO prueba las dos direcciones.
+    const bool esRespuesta =
+        (latidoEnVuelo && pkt.command == respuestaEsperada) ||
+        (pkt.command == CMD_ACK_RED && (estadoC == C_ESPERANDO_ACK_RED || estadoC == C_FALLO)) ||
+        (pkt.command == CMD_ACK_GREEN && estadoC == C_ESPERANDO_ACK_GREEN);
+    if (esRespuesta) {
+      tUltimaRespuestaEsclavo = millis();
+    }
     handshakeOk = true;
 
     // Telemetria: solo cierra el latido la respuesta que le corresponde (PONG a un
@@ -1066,8 +1124,10 @@ void coordinador_actualizar() {
   //
   // SFTY-23: la supresion se extiende al intercambio de sincronizacion, que espera su
   // propio ACK y sufre la misma colision half-duplex. El enlace no queda a ciegas
-  // mientras tanto: la respuesta del Esclavo tambien refresca tUltimaRxEsclavo, y el
-  // intercambio esta acotado a SYNC_MAX_INTENTOS, por debajo del fallback de orfandad.
+  // mientras tanto: ~~la respuesta del Esclavo tambien refresca tUltimaRxEsclavo~~ -> FALSO
+  // desde 1.49c, los acuses de hora no renuevan el silencio; lo que sigue siendo cierto es que
+  // el intercambio esta acotado a SYNC_MAX_INTENTOS, y ahora el static_assert junto a esa
+  // constante exige que quepa antes del punto de suelta del verde, no solo del silencio.
   if (millis() - tUltimoPing > LATIDO_MS
       && estadoC != C_ESPERANDO_ACK_GREEN
       && estadoC != C_ESPERANDO_ACK_RED
@@ -1096,7 +1156,9 @@ void coordinador_actualizar() {
   }
 
   // SFTY-6 / SFTY-9: Monitoreo de caida (SFTY6_SILENCIO_MS sin recibir) y Auto-Recuperacion
-  bool tieneComunicacion = (tUltimaRxEsclavo > 0) && (millis() - tUltimaRxEsclavo <= SFTY6_SILENCIO_MS);
+  // 1.49c: desde la ultima RESPUESTA, no desde la ultima trama (SPEC_2 s4).
+  bool tieneComunicacion = (tUltimaRespuestaEsclavo > 0) &&
+                           (millis() - tUltimaRespuestaEsclavo <= SFTY6_SILENCIO_MS);
 
   if (estadoC == C_MENU_IDLE) {
     if (tieneComunicacion) {
@@ -1114,7 +1176,7 @@ void coordinador_actualizar() {
   } else {
     // En modos de operación activos (Automático, Inteligente, Manual)
 
-    // N-163: agotado el margen, esta punta deja de dar verde. NO se toca tUltimaRxEsclavo
+    // N-163: agotado el margen, esta punta deja de dar verde. NO se toca tUltimaRespuestaEsclavo
     // -eso refrescaria el reloj de SFTY-6 y desarmaria la red justo antes de usarla- ni se
     // adelanta C_FALLO: el ambar sigue saliendo del bloque de abajo, a los 25 s.
     //
@@ -1154,7 +1216,7 @@ void coordinador_actualizar() {
     }
 
     if (!tieneComunicacion) {
-      if (tUltimaRxEsclavo > 0 || millis() > SFTY6_SILENCIO_MS) {
+      if (tUltimaRespuestaEsclavo > 0 || millis() > SFTY6_SILENCIO_MS) {
         if (estadoC != C_FALLO) {
           // N-73: ver la nota larga en Esclavo/src/main.cpp. La Caja Negra estaba
           // declarada y sin llamar en las dos puntas. Esta es una de las DOS puertas
@@ -1313,11 +1375,14 @@ void coordinador_actualizar() {
       // la caida a C_FALLO de siempre. No anade ningun ambar: mientras espera, el cruce
       // sigue en todo-rojo.
       //
-      // tUltimaRxEsclavo > 0: sin ninguna recepcion no hay PONG que fechar, y la resta
-      // contra 0 daria una edad falsa. OJO, "PONG" es el caso normal y no la letra:
-      // tUltimaRxEsclavo lo refresca CUALQUIER trama del Esclavo -un CMD_DEMANDA tambien-.
-      // Para esta guarda basta, porque lo que tiene que constar es que la SUBIDA vive; no
-      // prueba la bajada, pero sin bajada el GO_GREEN tampoco llega a abrir nada.
+      // tUltimaRespuestaEsclavo > 0: sin ninguna respuesta no hay PONG que fechar, y la
+      // resta contra 0 daria una edad falsa.
+      // ~~OJO, "PONG" es el caso normal y no la letra: lo refresca CUALQUIER trama del
+      // Esclavo -un CMD_DEMANDA tambien-. Para esta guarda basta, porque lo que tiene que
+      // constar es que la SUBIDA vive~~ -> 1.49c: AHORA SI ES LA LETRA. En este estado el
+      // latido es un PING, asi que lo unico que renueva el reloj es su PONG, y un PONG
+      // prueba las DOS direcciones. Aquella frase bastaba para esta guarda y era el mismo
+      // reloj que sostenia el verde de G3D.
       static_assert(LATIDO_MS < TIMEOUT_ACK_MS,
                     "D-34: el PONG exigido antes del GO_GREEN tiene que ser mas joven que un "
                     "viaje de acuse, o el desfase entre las dos puntas deja de quedar dentro "
@@ -1326,8 +1391,8 @@ void coordinador_actualizar() {
       // que el viaje de ida del GO_GREEN quepa en TIMEOUT_ACK_MS - LATIDO_MS (500 ms). Es
       // tiempo de aire y de repetidor, una medida de FUERA como ENVIO_TRAMA_MS, y por eso
       // no se deriva aqui de nada.
-      if (millis() - tRef >= tiempoDespejeMs && tUltimaRxEsclavo > 0 &&
-          millis() - tUltimaRxEsclavo <= LATIDO_MS) {
+      if (millis() - tRef >= tiempoDespejeMs && tUltimaRespuestaEsclavo > 0 &&
+          millis() - tUltimaRespuestaEsclavo <= LATIDO_MS) {
         rojoEsclavoConfirmado = false;   // N-162: desde aqui el Esclavo puede estar en verde
         protocolo_enviarPaquete(CMD_GO_GREEN);
         tEsperandoAck = millis();
@@ -1384,7 +1449,7 @@ void coordinador_actualizar() {
         // silencio va a vencer antes de un reintento mas: la caida es de SFTY-6, que la
         // reporta. Mientras tanto se sigue pidiendo el rojo, que es lo que esta punta sabe hacer.
         if (retryCount >= CICLO_MAX_REINTENTOS && tieneComunicacion &&
-            millis() - tUltimaRxEsclavo + TIMEOUT_ACK_MS <= SFTY6_SILENCIO_MS) {
+            millis() - tUltimaRespuestaEsclavo + TIMEOUT_ACK_MS <= SFTY6_SILENCIO_MS) {
             estadoC = C_FALLO;   // ver N-71 en el ACK_GREEN de arriba
         } else {
             protocolo_enviarPaquete(CMD_GO_RED);

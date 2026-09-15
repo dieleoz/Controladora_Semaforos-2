@@ -118,6 +118,21 @@ def correr(b, fw):
         "sincronizacion fallida se convierte en una caida de enlace FALSA y manda el "
         "cruce a ambar sin motivo" % (peor_sync, techo))
 
+    # ---- 2.bis 1.49c: y antes del punto de SUELTA del verde, no solo del techo ----
+    # Desde 1.49c los acuses de hora NO renuevan el silencio del Maestro (solo lo hace una
+    # respuesta al latido o a una orden de luz), asi que durante el intercambio el reloj
+    # que suelta el verde -techo menos TIMEOUT_ACK_MS, N-163- corre sin renovarse. El
+    # static_assert de coordinador.cpp junto a SYNC_MAX_INTENTOS dice lo mismo; aqui se
+    # recalcula desde las constantes, como el resto del presupuesto (CLAUDE.md 4).
+    suelta = techo - timeout_ms / 1000.0
+    b.verificar(
+        peor_sync <= suelta,
+        "los %d intentos de sincronizacion caben antes de que el Maestro suelte su verde: "
+        "%.2f s contra %.2f s (techo - TIMEOUT_ACK_MS)" % (sync_intentos, peor_sync, suelta),
+        "el intercambio de sincronizacion puede durar %.2f s sin renovar el silencio del "
+        "Maestro y el verde se suelta a los %.2f s: un intercambio con lluvia apagaria el "
+        "verde con el Esclavo contestando" % (peor_sync, suelta))
+
     # ---- 3. Y el techo no puede ser desproporcionado ----
     # La direccion contraria. El techo es el tiempo que una punta sigue con la
     # configuracion vieja creyendo que la otra la acompana; subirlo "por si acaso" hasta
