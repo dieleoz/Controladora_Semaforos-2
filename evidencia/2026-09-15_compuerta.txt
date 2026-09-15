@@ -1,7 +1,7 @@
 ACTA DE VERIFICACION - Controladora de Semaforos
 ==============================================================================
 Fecha        : 2026-09-15
-HEAD         : 226ae26   rama: main
+HEAD         : bff78e6   rama: main
 Arbol        : CON CAMBIOS SIN COMMITEAR
 Modo         : completo
 PlatformIO   : PlatformIO Core, version 6.1.19
@@ -24,7 +24,7 @@ RESULTADOS
   FALLA     banco por packs                   RESUMEN: 1409/1410 comprobaciones  |  packs: 78 PASS, 1 FALLA, 0 ABORTADO
   PASS      arnes del ciclo                   RESULTADO: 22/22 comprobaciones OK
   PASS      arnes del respaldo                respaldo.cpp y respaldo.h identicos entre puntas | arnes vivo (PING/PONG)
-  PASS      arnes del automatico              RESULTADO: 74/74 comprobaciones OK
+  PASS      arnes del automatico              RESULTADO: 75/75 comprobaciones OK
   PASS      arnes de las dos puntas           RESULTADO: 120/120 comprobaciones OK
   PASS      arnes del Degradado a dos puntas  RESULTADO: 59/59 comprobaciones OK
   PASS      simulador del puente ESP32        RESULTADO: 119/119 comprobaciones del contrato del puente en PASS
@@ -32,8 +32,8 @@ RESULTADOS
   RESUMEN: 18 PASS | 1 FALLA | 0 ABORTADO
 
 ABORTADO no es PASS: una comprobacion que no pudo correr no dice nada del
-firmware. Esta acta se verifica volviendo a 226ae26 y re-corriendo
+firmware. Esta acta se verifica volviendo a bff78e6 y re-corriendo
 python 01_Firmware/compuerta.py.
 
 AVISO: el arbol tenia cambios sin commitear al medir. Estas
-cifras NO corresponden exactamente a 226ae26.
+cifras NO corresponden exactamente a bff78e6.

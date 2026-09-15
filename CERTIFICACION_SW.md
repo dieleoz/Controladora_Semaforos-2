@@ -55,7 +55,7 @@ Que sigan siendo las del acta más reciente lo comprueba en cada corrida el pack
 | Banco por packs | 🔴 **1409/1410 comprobaciones**, **79 packs** — 78 PASS, **1 FALLA**. **Este documento se FIRMA, así que la frase que había aquí —*«D-14, D-20, D-21, D-22 y D-23 integradas y ancladas»*— se retira por FALSA.** Hoy el único rojo es `decisiones_01_anclas` por **`D-22`**, la única decisión vigente sin construir, y **necesita una tarjeta delante**: no se cierra con teclado. `D-23` y `D-33` sí están construidas; `D-14` no se instala y `D-30` quedó recortada con el LCD | `banco/correr.py` |
 | ~~Arnés de pantalla~~ | 🛑 **RETIRADO el 13/09 con el LCD** (`D-32` (1)): compilaba el `lcd.cpp` real, y ese fichero ya no existe. **Este documento se FIRMA: la fila no se actualiza, se retira** | — |
 | Arnés del ciclo degradado | **22/22** | `Validacion_Ciclo` |
-| Arnés del Modo Automático | **74/74** | `Validacion_Automatico` — las 16 nuevas son el **Bloque G de `D-33`**: el retardo de bajada de la pluma y el veto de la cámara, ejecutados sobre el `semaforo.cpp` real |
+| Arnés del Modo Automático | **75/75** | `Validacion_Automatico` — las 16 nuevas son el **Bloque G de `D-33`**: el retardo de bajada de la pluma y el veto de la cámara, ejecutados sobre el `semaforo.cpp` real |
 | App — test funcional | **70/70** | suite funcional de la app |
 | App — test unitarios | **63/63** | suite unitaria de la app |
 | App — ejecutada en DOM | **302/302** | arnés jsdom |
