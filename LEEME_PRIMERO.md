@@ -7,7 +7,7 @@
 - La instalacion certificada es la **V8.4, commit `e303485`** (31/07/2026).
 - El **Maestro del Sisga** (`SERIE:179DB0`) corrio el 10/09 con **V9 `SIN_BANCO`**: se cargo `7ff7d12` y
   despues se probo `b354fe9`. Cual quedo dentro no consta. El firmware del Esclavo del Sisga, SIN VERIFICAR.
-- **Este paquete no es nada de eso.** Es el firmware del commit **`226ae26`**, candidato a primer estable.
+- **Este paquete no es nada de eso.** Es el firmware del commit **`ca2de3d`**, candidato a primer estable.
 
 ## 2. ¿Ha pasado banco? **NO.**
 
@@ -45,28 +45,34 @@ carga en el equipo del Sisga y el sufijo `SIN_BANCO` no se quita.** Lo quita qui
   mientras vea algo. Si la retencion se alarga, la app abre un cartel de **barrera retenida**.
 - **El mando esta fuera del firmware**: un puente en `J16` p5/p8 ya no compone secuencias **con este
   firmware**. Con el viejo, si. Por eso esos bornes siguen sin cablearse.
-- **El cristal que arranca y no cuenta**: el equipo deja de creerse una sincronizacion que no puede fechar.
-- **La app**: traduce el aviso de barrera retenida.
+- **El cristal que arranca y no cuenta**: el equipo deja de creerse una sincronizacion que no puede fechar, no
+  reanuda el Degradado sin veredicto del cristal, `REINICIAR_RELOJ` ya no contesta OK sin comprobar que cuenta,
+  y el Maestro alarma la causa cuando cae a ambar —sin confundir «no hay cristal» con «el cristal no
+  cuenta»— (`1.49` a/b).
+- **Una camara pidiendo paso ya no sostiene la radio**: el poste 1 cuenta su silencio desde lo que el poste 2
+  le CONTESTA, no desde cualquier trama (`1.49` c). Antes, con la radio del poste 1 al 2 cortada, el poste 1
+  podia seguir en verde toda su fase frente al ambar del otro.
+- **La app**: traduce el aviso de barrera retenida y la respuesta nueva del reloj.
 
 ## 6. Que hay dentro, y que documento se ejecuta
 
 **El documento que se ejecuta es `05_Funcional/ENCARGO_BANCO_15-09.md`.** Tiene las pruebas, los huecos que
 se rellenan y como se devuelve. Este LEEME no sustituye a ninguna de sus casillas.
 
-- Paquete: `Paquete_Banco_2026-09-15_226ae26_SIN_BANCO.zip`
-- Maestro: `Maestro_2026-09-15_226ae26_SIN_BANCO.bin` · 41644 B · sha256
-  `19dc60559f2a9b2b5fbf66b6847aa41b5eaf48401d4fd3533a0cbb56f1031f72`
-- Esclavo: `Esclavo_2026-09-15_226ae26_SIN_BANCO.bin` · 36408 B · sha256
-  `39dd40ca28216e0317a2ff95d50ce5f2ca62862c062ad2569d4300c705cb6c99`
-- App: `IOT_VIAL_Semaforos_2026-09-15_226ae26_SIN_BANCO.apk` · 4.019.775 B · sha256
-  `6afaa466d7f3334d2020830b3d73062307f5ec06f502bf642fdc0b4cd6ca3b1e`. Se verifica ESTE fichero: una
+- Paquete: `Paquete_Banco_2026-09-15_ca2de3d_SIN_BANCO.zip`
+- Maestro: `Maestro_2026-09-15_ca2de3d_SIN_BANCO.bin` · 42228 B · sha256
+  `317f8e463cb461413594148102e2f670e12f922d029a23ce12de66f1593157f4`
+- Esclavo: `Esclavo_2026-09-15_ca2de3d_SIN_BANCO.bin` · 36532 B · sha256
+  `3884e6afaf75d38338f9be183332f1aa8673c24788928d22069e47afd3773434`
+- App: `IOT_VIAL_Semaforos_2026-09-15_622a20b_SIN_BANCO.apk` · 4.020.773 B · sha256
+  `811f6399555f02fa0e53fe8bd74038013be5a7d0fefbfff5fd58593eb3f03688`. Se verifica ESTE fichero: una
   recompilacion del mismo commit en otro PC puede dar otro sha256.
-- Puente ESP32: `ESP32_Expansion_2026-09-15_226ae26_SIN_BANCO.bin` · 1130096 B · sha256
+- Puente ESP32: `ESP32_Expansion_2026-09-15_ca2de3d_SIN_BANCO.bin` · 1130096 B · sha256
   `171ceb3cf5c1db897c34a9cb0c04456cd509e79a0cb0c1198e886b90d5534437`
 - Los `.bin` van dentro porque lo que se mide es ESE binario: los tres se compilaron desde cero dos veces con el
   mismo sha256. El fuente para PlatformIO va al lado, para revisar.
 - El acta de la compuerta.
 
-**Nota mecanica.** Este LEEME se comitea despues de `226ae26`: un fichero no puede contener el hash de su
-propio commit. El firmware es el de `226ae26`, y se comprueba con
-`git diff --name-only 226ae26..HEAD -- 01_Firmware`, que tiene que salir **vacio**.
+**Nota mecanica.** Este LEEME se comitea despues de `ca2de3d`: un fichero no puede contener el hash de su
+propio commit. El firmware es el de `ca2de3d`, y se comprueba con
+`git diff --name-only ca2de3d..HEAD -- 01_Firmware`, que tiene que salir **vacio**.

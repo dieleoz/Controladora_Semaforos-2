@@ -1,4 +1,4 @@
-# ENCARGO DE BANCO del 15/09/2026 — firmware del commit `226ae26`
+# ENCARGO DE BANCO del 15/09/2026 — firmware del commit `ca2de3d`
 
 **Esto es una PETICION DE MEDIDA, no una version.** Pide que alguien ponga dos tarjetas delante y mire. No
 autoriza instalar nada, no autoriza quitar el sufijo `SIN_BANCO` y no autoriza cargar el equipo del Sisga.
@@ -30,9 +30,9 @@ autoriza instalar nada, no autoriza quitar el sufijo `SIN_BANCO` y no autoriza c
    radio sin la antena puesta.**
 
 ```
-STM32_Programmer_CLI -c port=SWD mode=UR -e all -w Maestro_2026-09-15_226ae26_SIN_BANCO.bin 0x08000000 -v -rst
-STM32_Programmer_CLI -c port=SWD mode=UR -u 0x08000000 41644 leido_maestro.bin
-sha256sum leido_maestro.bin      (y lo mismo con el Esclavo: 36408 B)
+STM32_Programmer_CLI -c port=SWD mode=UR -e all -w Maestro_2026-09-15_ca2de3d_SIN_BANCO.bin 0x08000000 -v -rst
+STM32_Programmer_CLI -c port=SWD mode=UR -u 0x08000000 42228 leido_maestro.bin
+sha256sum leido_maestro.bin      (y lo mismo con el Esclavo: 36532 B)
 ```
 
 - SIN VERIFICAR: la guia de banco escribe la carga sin la direccion `0x08000000`, y la orden de lectura
@@ -43,29 +43,32 @@ sha256sum leido_maestro.bin      (y lo mismo con el Esclavo: 36408 B)
 
 ## 2. Lo que se carga
 
-- Maestro: `Maestro_2026-09-15_226ae26_SIN_BANCO.bin` · 41644 B · sha256
-  `19dc60559f2a9b2b5fbf66b6847aa41b5eaf48401d4fd3533a0cbb56f1031f72`
-- Esclavo: `Esclavo_2026-09-15_226ae26_SIN_BANCO.bin` · 36408 B · sha256
-  `39dd40ca28216e0317a2ff95d50ce5f2ca62862c062ad2569d4300c705cb6c99`
-- App: `IOT_VIAL_Semaforos_2026-09-15_226ae26_SIN_BANCO.apk` · 4.019.775 B · sha256
-  `6afaa466d7f3334d2020830b3d73062307f5ec06f502bf642fdc0b4cd6ca3b1e`
+- Maestro: `Maestro_2026-09-15_ca2de3d_SIN_BANCO.bin` · 42228 B · sha256
+  `317f8e463cb461413594148102e2f670e12f922d029a23ce12de66f1593157f4`
+- Esclavo: `Esclavo_2026-09-15_ca2de3d_SIN_BANCO.bin` · 36532 B · sha256
+  `3884e6afaf75d38338f9be183332f1aa8673c24788928d22069e47afd3773434`
+- App: `IOT_VIAL_Semaforos_2026-09-15_622a20b_SIN_BANCO.apk` · 4.020.773 B · sha256
+  `811f6399555f02fa0e53fe8bd74038013be5a7d0fefbfff5fd58593eb3f03688`
+  - La APK lleva el nombre del commit del que salio (`622a20b`): la app no cambio despues
+    (`git diff --name-only 622a20b..ca2de3d -- 05_Funcional/App_Semaforo` sale vacio).
   - Se verifica ESTE fichero: recompilada en otro PC, la misma APK puede dar otro sha256 (finales de linea).
-- Puente ESP32 (el mismo en los dos postes): `ESP32_Expansion_2026-09-15_226ae26_SIN_BANCO.bin` · 1130096 B · sha256
+- Puente ESP32 (el mismo en los dos postes): `ESP32_Expansion_2026-09-15_ca2de3d_SIN_BANCO.bin` · 1130096 B · sha256
   `171ceb3cf5c1db897c34a9cb0c04456cd509e79a0cb0c1198e886b90d5534437`
   - Compilado desde cero dos veces con el mismo sha256. El puente cambio despues de `7ff7d12` (`D-26`): con uno
     viejo la hora no llega al STM32 y E2 y D no se pueden hacer.
-- Paquete: `Paquete_Banco_2026-09-15_226ae26_SIN_BANCO.zip`.
+- Paquete: `Paquete_Banco_2026-09-15_ca2de3d_SIN_BANCO.zip`.
 
 **El sufijo `SIN_BANCO` no se quita al renombrar. Lo quita quien lo haya probado en un equipo.**
 
 ## 3. Lo que dice la compuerta, y por que no es un permiso
 
 - Copiado de `evidencia/2026-09-15_compuerta.txt`: **18 PASS · 1 FALLA · 0 ABORTADO**; banco por packs
-  **1409/1410**; arnes de las dos puntas **120/120**; flash Maestro **63.1 %**, Esclavo **55.1 %**.
+  **1416/1417**; arnes de las dos puntas **122/122**; Degradado a dos puntas **71/71**; flash Maestro
+  **64.0 %**, Esclavo **55.3 %**.
 - El FALLA es `decisiones_01_anclas` acusando a `D-22` (arrancar el cristal `Y1`), decidida y **sin
   construir**. Es correcto que acuse. **En esta sesion `Y1` no se toca.**
-- El acta se tomo con `HEAD` en `457ae81` y los cambios de `D-34` sin comitear: no hay acta con `HEAD` en
-  `226ae26`. El tamano de un `.bin` no es la cifra de flash del acta; un binario se acredita por su sha256.
+- El acta se tomo con el arreglo `1.49b3` integrado justo antes de comitearlo como `ca2de3d`: el fuente medido
+  es el de `ca2de3d`. El tamano de un `.bin` no es la cifra de flash del acta; un binario se acredita por su sha256.
 - **La compuerta dice que los modelos y arneses de PC no encuentran nada. No dice que funcione en la tarjeta.**
 
 ## 4. Como se trabaja la sesion
@@ -87,7 +90,7 @@ sha256sum leido_maestro.bin      (y lo mismo con el Esclavo: 36408 B)
 
 ## 5. Las pruebas, por dano
 
-Las cifras de tiempo salen de las constantes de `226ae26` (silencio 25 s, margen 3,5 s, latido 3 s,
+Las cifras de tiempo salen de las constantes de `ca2de3d` (silencio 25 s, margen 3,5 s, latido 3 s,
 retardo de pluma 3 s, ambar de transicion 4 s). Valen para este hash y para ningun otro.
 
 **Orden sugerido**, porque unas dejan preparada la siguiente: A1, A2, A3, B, C, E1, E3, E3b, E4, E1b, la
@@ -125,7 +128,7 @@ En un solo carril, un parpadeo en un poste con verde vivo en el otro es exposici
 
 - Prepara: como A1.
 - Manos: cortar la radio del poste 2 en su verde; **en cuanto su verde pase a rojo, reconectar en menos de
-  2 s**. Con eso, en `226ae26`, un latido del poste 1 llega antes del silencio del poste 2. Entre 2 y 3,5 s
+  2 s**. Con eso, en `ca2de3d`, un latido del poste 1 llega antes del silencio del poste 2. Entre 2 y 3,5 s
   puede no llegar, y entonces un parpadeo es lo esperado: se repite.
 - Debe verse:
   - **Ningun poste parpadea.**
@@ -207,11 +210,13 @@ secuencias y una de ellas entra en Automatico sin ninguna guarda.
 **No tiene alarma propia**: al medir que el contador no avanza, el firmware deja de creerse el reloj y la
 sincronizacion guardada, y solo se ve por la consecuencia.
 
-- Prepara: **solo discrimina en una tarjeta cuyo `Y2` arranca y no cuenta**. Se sabe antes, no por la app:
+- Prepara: **solo discrimina en una tarjeta cuyo `Y2` arranca y no cuenta**. Se sabe antes:
   - Solo en el poste 1: «Reiniciar reloj y respaldo» (`REINICIAR_RELOJ`) desde la app (**borra el respaldo de
-    la pila**: se hace antes de E2). Si contesta `SIGUE_PARADO_VEA_CONSULTA_RELOJ`, el cristal esta muerto y
-    esta prueba **NO APLICA** a esa tarjeta. **`CRISTAL_OK_PONGA_LA_HORA` no prueba que cuente**: sale igual
-    con un cristal congelado. El Esclavo no tiene esta orden.
+    la pila**: se hace antes de E2). La respuesta llega **unos segundos despues**, no en el acto: `SIGUE_PARADO_VEA_CONSULTA_RELOJ` = cristal
+    muerto, esta prueba **NO APLICA**; `ARRANCA_Y_NO_CUENTA_VEA_CONSULTA_RELOJ` = **congelado**; `CRISTAL_OK_PONGA_LA_HORA`
+    = cuenta (desde `ca2de3d` ya no sale con el cristal congelado). Si contesta `REPITA_EN_UNOS_SEGUNDOS`, se
+    espera y se pide otra vez. El Esclavo no tiene esta orden.
+  - Respuesta del poste 1: ______
   - Para distinguir congelado de vivo, en las dos tarjetas: leer por SWD el contador `RTC_CNTL`
     (`0x4000281C`) dos veces con 10 s de diferencia. Mismo valor = congelado; unos 10 mas = vivo. **SIN
     VERIFICAR** que se pueda leer asi. Si no se puede, la prueba D es **NO HECHO**: no se deduce.
@@ -220,7 +225,8 @@ sincronizacion guardada, y solo se ve por la consecuencia.
   Devolverla.
 - Debe verse, con cristal **congelado**: **no vuelve sola al Degradado** (`MODO:` no es `DEGRADADO`), y un
   `SET_MODO:DEGRADADO` posterior (sin radio) se rechaza por hora o por sincronizacion; en el Maestro, en
-  `226ae26`, `Falta: nunca hubo sincronizacion RF`. Con cristal **vivo** puede reanudar sola: no es defecto.
+  `ca2de3d`, `Falta: nunca hubo sincronizacion RF`. Si el Maestro llega a caer a ambar por esto, debe salir
+  `$ALARM DEGRADADO` con causa `RELOJ_NO_CUENTA` (o `SYNC_SIN_FECHA`), nunca mudo. Con cristal **vivo** puede reanudar sola: no es defecto.
 - Anotar: la hora que publica al arrancar ______ · reanudo si/no ______ · respuesta al pedir el modo ______
 - Si NO se ve: una tarjeta con el cristal congelado que reanuda sola el Degradado se esta creyendo una
   sincronizacion de antiguedad desconocida. Se anota con la hora que publico al arrancar.
@@ -295,7 +301,7 @@ sincronizacion guardada, y solo se ve por la consecuencia.
 
 ## 6. Como se devuelve
 
-- Una carpeta `Banco_226ae26_<fecha de la sesion>` con: las cintas y diarios de **los dos postes**, uno por
+- Una carpeta `Banco_ca2de3d_<fecha de la sesion>` con: las cintas y diarios de **los dos postes**, uno por
   prueba; los videos; la salida del programador de cada carga y lectura con el `sha256sum` leido, y **foto
   de esa pantalla junto a la tarjeta y su serie** (`SERIE:` del `$STATUS`); y **este documento relleno**.
 - **Un paso no hecho se marca NO HECHO con su motivo. No se deja en blanco.**
