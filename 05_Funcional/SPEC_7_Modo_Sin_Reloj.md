@@ -158,7 +158,7 @@ decidio **no cruzar** el 13/09.
 > ninguna de las dos se arregla con un modo nuevo (`CLAUDE.md` §8.1: un instrumento que
 > certifica otra vez lo ya certificado sustituye).
 
-## 5. Que pasa si el operador NO vuelve a tiempo — **la barrera ya esta, el aviso NO**
+## 5. Que pasa si el operador NO vuelve a tiempo — **la barrera ya esta, y avisa antes**
 
 🟢 **EL TOPE EXISTE Y ES DURO.** Pasado `LIMITE_DURO_MS` (Maestro) / `LIMITE_SIN_SYNC_MS`
 (Esclavo) **desde la ultima sincronizacion confirmada con la otra punta**, el Degradado termina:
@@ -175,11 +175,11 @@ no demuestra que las dos puntas sigan en fase**. Es correcto — pero significa 
 puede visitar el poste todos los dias y el cruce se ira a ambar igual al vencer el tope**, y lo
 unico que lo levanta es que vuelva la radio.
 
-🟢 **EL AVISO ANTICIPADO YA SE PUBLICA, EN LAS DOS PUNTAS** — construido el 13/09, y este apartado
-lo negaba hasta el 14/09. ~~Esta declarado y no se ejerce~~ → **remedido:** las dos puntas emiten
-por evento, cada medio minuto, **cuantas horas llevan sin sincronizar, si el aviso esta armado y si
-el plazo ya vencio**. El equipo **avisa antes de rendirse**, y la antiguedad de la sincronizacion
-**si sale**.
+🟢 **EL AVISO ANTICIPADO SE PUBLICA, EN LAS DOS PUNTAS.** Cada una emite un `$EVENT` de origen
+`DEGRADADO` con **cuantas horas lleva sin sincronizar, si el aviso esta armado y si el plazo ya
+vencio**: sale cuando cambia alguno de los tres y se repite con la cadencia del diagnostico
+periodico mientras el aviso siga armado. El equipo **avisa antes de rendirse**, y la antiguedad de
+la sincronizacion **si sale**.
 
 > 🔴 **LO QUE SIGUE ABIERTO ES OTRA COSA, Y SON DOS:** que **los dos postes avisan con plazos
 > DISTINTOS** —el 1 en las ultimas cuatro horas de las 48; el 2, antes— **y nadie cruza los dos
@@ -187,8 +187,8 @@ el plazo ya vencio**. El equipo **avisa antes de rendirse**, y la antiguedad de 
 > funciones que la calculan se quedaron sin un solo llamador cuando se retiro la pantalla.
 
 **Un modo que depende de una visita y no sabe que la visita no llego es peor que no tenerlo.** Con
-el tope, el cruce **si lo sabe y se degrada solo a ambar**; lo que le falta es **decirlo antes**,
-y eso es §6.
+el tope, el cruce **si lo sabe, lo dice antes y se degrada solo a ambar**; lo que no dice es **por
+que** esta en Degradado, y eso es §6.
 
 ### 5.1 Y ese tope de 48 h no cae al segundo: puede cumplirse antes o despues, hasta por una hora
 
@@ -251,15 +251,16 @@ Degradado por otro motivo, la app dice el motivo equivocado con cara de dato.
 
 **El mismo dato en las dos, leible conectandose a cualquiera** (el requisito del responsable):
 **(1)** la CAUSA vigente del estado degradado —el motivo que el firmware ya calcula— y **(2)** la
-ANTIGUEDAD de la ultima sincronizacion contra su tope, que es lo que dice cuanto queda.
+ANTIGUEDAD de la ultima sincronizacion contra su tope, que es lo que dice cuanto queda. **De la
+(2) ya salen la antiguedad y si el aviso esta armado** (§5); lo que no sale es cuanto queda (H-1).
 
 🔴 **La via NO es un campo nuevo del `$STATUS`: esta medido que NO CABE.** `esp32_07` lo
 recalcula en cada corrida —al peor `$STATUS` del **Maestro** le quedan menos caracteres libres de
 los que ocupa un campo— y `documentos_03_trama_status` **prohibe** que el Esclavo emita un campo
 que el Maestro no emita, asi que manda el margen del Maestro. **La via que queda es la que
 `D-32` (2) eligio y que ya esta construida el 13/09: el `$EVENT` periodico**, que hoy lleva el
-diagnostico del enlace (`ORIGEN:ENLACE_RF`). **Anadirle la causa y la antiguedad es extenderlo,
-no abrir camino nuevo**, y **no toca `esp32_05_no_origina`**.
+diagnostico del enlace (`ORIGEN:ENLACE_RF`) y el del Degradado (`ORIGEN:DEGRADADO`, §5). **Anadirle
+la causa es extenderlo, no abrir camino nuevo**, y **no toca `esp32_05_no_origina`**.
 
 ⚠️ **Con su coste ya aceptado:** el tecnico lo ve **al cabo de la cadencia**, no al instante,
 porque **el STM32 no puede saber que hay un telefono**. Y la cadencia **no baja**: cada `$EVENT`
@@ -327,10 +328,10 @@ de **SPEC 3**, que no se repite aqui.
    «hace cuanto que las dos puntas se hablaron» a «hace cuanto que alguien vino»—, o sea **que
    garantiza el estado seguro**. Si se decide que si, **hay que exigir que la visita compare los
    DOS relojes** (`CMD:LEER_RTC` en los dos postes, `D-17`): poner uno solo los separa mas.
-2. 🟡 **¿La causa y la antiguedad entran en el `$EVENT` periodico de `D-32` (2)?** Es la via ya
-   elegida, no toca ninguna barrera y el caudal lo aguanta. **Es teclado en cuanto haya fila.**
+2. 🟡 **¿La causa entra en el `$EVENT` periodico de `D-32` (2)?** La antiguedad ya va (§5). Es la
+   via ya elegida, no toca ninguna barrera y el caudal lo aguanta. **Es teclado en cuanto haya fila.**
 
-> ⚠️ **Y una que no es del responsable sino del banco: el aviso de H-1 se apago al retirar el
-> LCD y ningun instrumento lo acuso**, porque `costura_10_funciones_muertas` **acepta el
-> huerfano con su motivo escrito** —«su lector era la pantalla»—, que es cierto. **Lo que falta
-> no es un llamador: es decidir si esa capacidad se sustituye o se retira.**
+> ⚠️ **Y una que no es del responsable sino del banco:** al retirar el LCD el aviso previo se
+> quedo sin lector y ningun instrumento lo acuso, porque `costura_10_funciones_muertas` aceptaba
+> el huerfano con su motivo escrito. **Se sustituyo por el `$EVENT` de §5** y sus getters salieron
+> de esa lista; lo que sigue sin lector es la cuenta atras (H-1).

@@ -153,16 +153,15 @@ configuracion** (`SPEC_6` HUECO 3), y si no se hizo el sintoma no dira «radio m
    una averia o trafico es una persona, no el equipo—. Y **los ultimos metros de la bajada no los ve nadie**: no hay fin
    de carrera, y esta **sin preguntar al fabricante** si la centralita trae fotocelula o borde sensible.
 4. **NO HAY AMBAR AL CERRAR EL VERDE: salta de VERDE a ROJO.** **El conductor no recibe ningun aviso de que el verde se
-   acaba**; en su lugar hay un margen, no un aviso: el todo-rojo de despeje (`SPEC_1` §3.1). Y **la pluma baja en el MISMO
-   instante del rojo~~ → **CONSTRUIDO el 14/09: baja 3 s despues** (`SPEC_8` §1). Lo que sigue faltando es
-   el AVISO al conductor de que el verde se acaba; entre el y el brazo hay ahora tres segundos y el veto de
-   camara, que no es lo mismo que un aviso.
+   acaba**; en su lugar hay un margen, no un aviso: el todo-rojo de despeje (`SPEC_1` §3.1). La pluma **no** baja con el
+   rojo: espera unos segundos y, pasados, no baja mientras una camara vea algo debajo (`SPEC_8` §1). **Ni ese retardo
+   ni el veto de camara son un AVISO al conductor de que el verde se acaba**, y ese aviso es lo que falta.
 5. **EL PIN VIAJA EN CLARO Y CUATRO ORDENES NO LO PIDEN.** El transporte es Bluetooth SPP **sin cifrar**; las cuatro que
    **cambian algo** sin clave estan contadas en `SPEC_4` §7.1. Y **`SET_RTC` con un PIN falso pone la hora** — riesgo
    **aceptado** por el responsable, `D-26` (1).
 6. **NO HAY AVISO REMOTO: si no hay nadie conectado, nadie se entera.** Ni red, ni SMS, ni servidor: `$ALARM` sale **en el
-   instante** y **solo lo ve quien esta conectado entonces** (`SPEC_6` PARTE C). Y el aviso previo al limite duro del
-   Degradado **esta declarado y no se ejerce**: su lector era el LCD, retirado (`SPEC_7` §5).
+   instante** y **solo lo ve quien esta conectado entonces** (`SPEC_6` PARTE C). Lo mismo el aviso previo al limite duro
+   del Degradado: **las dos puntas lo publican** por evento, pero solo lo lee quien este conectado (`SPEC_7` §5).
 7. **NO ENTRA EN DEGRADADO SOLO, Y LA APP INVENTA LA CAUSA.** La entrada es siempre de una persona; el equipo publica `MODO:`
    y `ESTADO:` y **nunca la causa**: los textos de causa que el operario lee estan escritos en `app.js` (`SPEC_7` §6, H-2).
 8. **NO SE DIAGNOSTICA A SI MISMO EL COBRE NI LA RADIO.** Ningun instrumento lee la configuracion de una radio (`SPEC_6`

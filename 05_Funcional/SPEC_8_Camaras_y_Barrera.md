@@ -44,8 +44,8 @@ camara, y lo que hace con ella tiene una sola direccion:
 🔴 **LA DIRECCION DEL FALLO ESTA DECIDIDA: ante error, falsa alarma o contacto pegado, LA BARRERA NO
 BAJA.** No se le pone tope que acabe bajandola —un tope devuelve el peligro que el veto evita, porque
 el firmware **no distingue un rele trabado de un vehiculo parado debajo** (`A-1.bis`)—: se **AVISA**,
-y el aviso dice **cuantos segundos lleva retenida**, nunca «camara averiada». 🔴 **Traducir ese aviso
-a «revise el ajuste de la camara» es trabajo de la app y esta PENDIENTE** (`SPEC_4` §7, hueco 9). **Una barrera arriba no aplasta a nadie; el precio es que deja de proteger, y por
+y el aviso dice **cuantos segundos lleva retenida**, nunca «camara averiada». **La app lo traduce a lo
+accionable** —mirar debajo del brazo y, si no hay nada, revisar el apunte y la configuracion de la camara— (§3). **Una barrera arriba no aplasta a nadie; el precio es que deja de proteger, y por
 eso tiene que VERSE.**
 
 ⚠️ **Y lo que sigue sin proteger a nadie, escrito en vez de disimulado: una camara muerta DESDE LA
@@ -85,9 +85,12 @@ apuntando a donde no debe, o hay algo parado ahi.
 retenida. El aviso dice **cuantos segundos lleva retenida** —que es lo unico que el equipo ha medido
 de verdad—; **nunca dice «camara averiada»**, porque este equipo no ve imagen y no puede saberlo.
 
-🔴 **Y aqui hay un tramo SIN CONSTRUIR que no se disimula: traducir ese aviso a «revise el ajuste de
-la camara» es trabajo de la app, y hoy no esta hecho.** El aviso llega al telefono y **se queda como
-una linea mas del registro**, sin destacar y sin decir lo unico accionable (`SPEC_4` §7, hueco 9).
+🟢 **Y la app lo traduce a lo unico accionable** (`aviso_camara_pluma.js`): el aviso de barrera
+retenida **abre un cartel** que dice, por este orden, que la barrera esta arriba y no va a bajar
+sola, que se mire debajo del brazo antes de tocar nada y, si no hay nada, que se revise el apunte y
+la configuracion de la camara. Cuando el equipo informa de que la pluma ya bajo, el cartel **se
+queda** y pide revisar la camara antes de irse. El contador de vetos normales **no** lo abre: un
+vehiculo despejando es lo corriente.
 
 ⚠️ **Y el aviso tarda en salir lo que dura el todo-rojo mas largo que el equipo admite —90 s—, aunque
 el cruce este configurado con uno de 10 s.** Se compara contra ese techo a proposito, para que este
