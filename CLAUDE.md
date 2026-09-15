@@ -76,11 +76,10 @@ sigue siendo el boton que EJECUTA y lo que un instalador enchufe puede pulsarlo 
 **Tres hechos de cobre fabricado, aqui porque su ausencia hiere a una persona:** **`J16` p1 lleva 12 V crudos a un
 conector de senal directa al micro y se TAPA en cada equipo que se monte** (`D-4`, `N-120`) · **`J14` es una ENTRADA
 del micro** (3,3 V, sin opto ni diodo) y **la salida de talanquera es `J15`**: un rele cableado a `J14` **se
-desconecta antes de energizar** · **`J16` p5 y p8 estan VACIOS y el firmware SIGUE leyendo sus flancos POR DOS
-CAMINOS, no uno** —medido el 12/09: el mismo `flanco[]` de `botones.cpp` alimenta `mando_registrarPulso()`
-**y** `botonArriba()`/`botonAbajo()`, con llamadores vivos en `menu.cpp` y `modo_hora.cpp` de las dos puntas—,
-asi que **quitar el mando NO cierra ese pin**: hay que censar los dos
-(`A-2`, `D-1`): lo que se cablee ahi compone secuencias sin que nadie lo pida.
+desconecta antes de energizar** · **`J16` p5 y p8 estan VACIOS y NO se cablean, aunque el mando ya salio del
+fuente**: el firmware los sigue LEYENDO (`botonArriba()`/`botonAbajo()`), y **un equipo con firmware anterior
+a la retirada compone secuencias con un puente**. Un pin no se cierra quitando un consumidor: se cierra
+quitando la LECTURA, y **en campo manda lo que esta CARGADO, no el arbol** (`SPEC_5` §3).
 
 **Carga por SWD: `mode=UR` con `-e all`, y no se cambia.** `HOTPLUG` se engancha al micro en marcha, y con un
 firmware que se cuelga al arrancar el watchdog reinicia cada 4 s en mitad del borrado (`failed to erase memory`); el

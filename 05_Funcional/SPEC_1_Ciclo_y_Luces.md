@@ -56,7 +56,7 @@ CIERRA, porque el pin cae a reposo. Y **ninguna avería de la pluma detiene el c
 
 | luz | pluma |
 |---|---|
-| Rojo · ámbar de transición · todo-rojo de despeje · destellos y ámbar rápido del mando | ABAJO |
+| Rojo · ámbar de transición · todo-rojo de despeje · ~~destellos y ámbar rápido del mando~~ *(salieron con el mando, 14/09)* | ABAJO |
 | Verde de ciclo | ARRIBA |
 | Verde de test de lámparas | **ABAJO** |
 | Fallo (ámbar intermitente) | **ARRIBA** |
@@ -90,7 +90,7 @@ de las dos puntas**: un cabezal que dependiera de que un modo se acordase puede 
 varios: **es el único que existe.** **Ninguna de las dos puntas tiene función de transición a rojo** —el `grep` de
 abajo da **cero** en el fuente— y el estado de ámbar lo escribe sólo el arranque de la transición a verde, o sea
 **únicamente en el sentido contrario**. Las llamadas a forzar rojo se cuentan por **decenas** (coordinador,
-Degradado, mando, radio), varias con el comentario literal `// Directo a rojo`, y **todas hacen lo mismo**.
+Degradado, radio; ~~mando~~, que salió del firmware el 14/09), varias con el comentario literal `// Directo a rojo`, y **todas hacen lo mismo**.
 `grep -rn "TransicionARojo" 01_Firmware --include=*.cpp --include=*.h` *(sin filtro salen los índices binarios del editor, no fuente)*
 ⚠️ **NO se confunda con lo que sí está documentado, que es LO CONTRARIO.** Lo que se retiró en su día fue la
 transición **europea rojo+ámbar → verde**, citando el Manual de Señalización de Colombia: eso habla de cómo se
@@ -112,12 +112,12 @@ su propio fichero, y se lee y escribe con un par de funciones (`modoActual_get()
 |---|---|---|
 | Menú | **rojo fijo** en las dos puntas; ámbar intermitente si no hay enlace | arranque, `SET_MODO:MENU` |
 | Manual | todo-rojo al entrar y **ningún cambio programado**: la fase acaba cuando alguien pulsa | `SET_MODO:MANUAL`; también al cancelarse un ámbar del Poste 2 |
-| Automático | cicla por tiempo | `SET_MODO:AUTO`; secuencia `A.A.A` del mando |
+| Automático | cicla por tiempo | `SET_MODO:AUTO` ~~; secuencia `A.A.A` del mando~~ *(salió el 14/09)* |
 | Inteligente | cicla por tiempo **con suelo y techo**, y las cámaras sólo pueden ALARGAR | `SET_MODO:INTELIGENTE` |
 | Alcance | **no arranca ciclos**: mantiene lo que haya (rojo fijo con enlace) | `SET_MODO:ALCANCE` |
 | Hora | no toca las luces | 🔴 **INALCANZABLE** — ver Huecos |
-| Degradado | todo-rojo de entrada y luego verde/rojo por reloj | `SET_MODO:DEGRADADO`; `A.B.A.B`; reanudación tras corte |
-| Ámbar | **ámbar intermitente pedido a propósito** | `SET_MODO:AMBAR`; `B.B.B`; aviso del Poste 2; salida del Degradado |
+| Degradado | todo-rojo de entrada y luego verde/rojo por reloj | `SET_MODO:DEGRADADO`; ~~`A.B.A.B`;~~ reanudación tras corte |
+| Ámbar | **ámbar intermitente pedido a propósito** | `SET_MODO:AMBAR`; ~~`B.B.B`;~~ aviso del Poste 2; salida del Degradado |
 
 **El modo Ámbar es una salida de emergencia y por eso no tiene condiciones**: funciona desde cualquier modo en
 marcha. El ámbar *dentro* del Degradado, en cambio, es un estado interno de ese modo: comparten la luz y las dos
@@ -125,13 +125,14 @@ líneas de motivo. ⚠️ **Y la reanudación tras un corte NO la pide nadie: la
 **Poste 2 (Esclavo) NO tiene modos de operación.** Su luz la ordena el Poste 1 salvo en tres casos locales — **ámbar
 de emergencia con cerrojo** (pedido desde la app), **Modo Degradado** y **ámbar por orfandad** (§9).
 
-> 🔴 **ESE ÁMBAR DE EMERGENCIA CONSERVA SUS DOS VETOS, Y EN EL FUENTE SON TRES `if`. LAS DOS CUENTAS SON
+> 🔴 **ESE ÁMBAR DE EMERGENCIA CONSERVA SU VETO, Y EN EL FUENTE SON TRES `if`. LAS DOS CUENTAS SON
 > CIERTAS Y CUENTAN COSAS DISTINTAS, y por ahí se cuentan mal** (`D-8`).
-> **DOS por SUJETO** —el mando y la app, que son las dos personas distintas que pueden poner ese ámbar, y es
-> como lo escribe la decisión— y **TRES por RAMA**: la misma condición guarda la orden de rojo, la orden de
-> verde **y la recuperación tras fallo** del bucle del Esclavo, que **no es un `else` de la primera**. Una
-> regla que ENUMERA sujetos comprueba que cada sujeto EXISTE, y dónde se ejerce (`CLAUDE.md` §2). El detalle
-> y el recuento, **SPEC 2 §2.3**; `SPEC 5` §3 ya decía tres.
+> **UNO por SUJETO** —la app, que es hoy la única que puede poner ese ámbar— y **TRES por RAMA**: la misma
+> condición guarda la orden de rojo, la orden de verde **y la recuperación tras fallo** del bucle del Esclavo, que
+> **no es un `else` de la primera**. ⬇️ ~~DOS por sujeto, el mando y la app, como lo escribe la decisión~~
+> → **el sujeto «mando» salió del firmware el 14/09 (`D-30`) y su término de la condición con él**, sin abrir
+> ningún veto: sin mando, ese término ya valía siempre lo mismo (SPEC 5 §3). Una regla que ENUMERA sujetos
+> comprueba que cada sujeto EXISTE, y dónde se ejerce (`CLAUDE.md` §2). El detalle y el recuento, **SPEC 2 §2.3**.
 > **La asimetría es el arreglo entero: se guarda lo que ABRE paso, no lo que lo PARA.**
 
 ## 5. Los tiempos, y de dónde salen
@@ -198,27 +199,24 @@ cuenta. **Mide la LUZ, no la última orden recibida** —las órdenes repetidas 
 verde del Degradado no lo ordena nadie por radio.
 **El watchdog** (`SFTY-1`) arranca en las dos puntas, se refresca en cada vuelta del bucle y se arma **antes** de
 tocar el reloj, para que un cristal que no arranca sea un reinicio visible y no un cuelgue mudo a oscuras. Por eso
-**nada de lo que ocupa las luces bloquea**: destellos y test avanzan por el reloj de milisegundos. **Arranque:** el
+**nada de lo que ocupa las luces bloquea**: ~~destellos y~~ el test avanza por el reloj de milisegundos. **Arranque:** el
 Poste 2 pone **las luces primero, siempre**; el Poste 1 no — ver Huecos.
 
 ## 10. Lo que ocupa las luces sin ser un modo
 
-**Señales del mando** (`SFTY-21`). Los destellos rojos y el ámbar rápido **INTERCEPTAN las escrituras a los pines, no
-la lógica**: mientras la señal está activa, la puerta única guarda el último color **ya saneado por el enclavamiento**
-y no escribe; al terminar se vuelca la última decisión real (ignorar las llamadas dejaría esperando para siempre a
-quien aguardase un verde). **La confirmación va en DESTELLOS ROJOS contables, nunca en verde** —el rojo nunca
-significa «pase», así que si el operario cuenta mal el peor caso sigue siendo seguro—; el **rechazo** es ámbar
-rápido, a otro ritmo que el de fallo. **Test de lámparas** (`CMD:TEST_LEDS`): tres fases —rojo, ámbar, verde— que
-**entran por la puerta única** y por tanto por el enclavamiento, y **la pluma no sigue a ese verde**. Con una señal
-del mando en curso **el test espera y se rearma**: ni se abandona (el `$ACK` ya salió) ni corre por debajo. **El
-Poste 2 lo rechaza.**
+~~**Señales del mando** (`SFTY-21`): destellos rojos y ámbar rápido que INTERCEPTABAN las escrituras a los pines~~
+→ **salieron con el mando el 14/09** (`D-30`): ya no queda nada que ocupe las lámparas por encima de la lógica, y la
+puerta única escribe siempre lo que decide. **Test de lámparas** (`CMD:TEST_LEDS`): tres fases —rojo, ámbar, verde— que
+**entran por la puerta única** y por tanto por el enclavamiento, y **la pluma no sigue a ese verde**.
+~~Con una señal del mando en curso el test espera y se rearma~~ → **corre siempre entero**: la espera se fue con la señal.
+**El Poste 2 lo rechaza.**
 
 ## 11. Decisiones vigentes que gobiernan este documento
 
 El mínimo por sentido · `DAR PASO` en Manual · los vetos del ámbar de emergencia (§4) · que aplicar tiempos no
 arranque el ciclo · el suelo y el techo del Inteligente, **con condición sin cumplir** · la reanudación del Degradado,
-que **no es manual** · y la retirada de la interfaz vieja, **recortada el 13/09 a que salga SÓLO el LCD y el mando SE
-QUEDE** (`D-32`). ⬇️ Y ~~`A-1.bis` abierta~~ → **el 14/09 el responsable SÍ deroga la mitad de «nunca al revés» de la
+que **no es manual** · y la retirada de la interfaz vieja (`D-30`), ~~recortada el 13/09 a que salga sólo el LCD y el mando se quede (`D-32`)~~
+→ **reafirmada entera el 14/09**: el LCD y el mando ya salieron; faltan la lectura de p5/p8 y el menú (§12.2). ⬇️ Y ~~`A-1.bis` abierta~~ → **el 14/09 el responsable SÍ deroga la mitad de «nunca al revés» de la
 regla de la pluma** (`D-33`). La pluma **sigue a la luz para SUBIR**; lo que la cámara puede hacer es **retener la
 bajada**, nunca provocar una subida. La conducta entera, en **SPEC 5 pág. 1 §4**.
 🔴 **DOS CONDUCTAS DE LA PLUMA Y LA LUZ SIN FILA QUE LAS RESPALDE**, y son de las que hieren a alguien: **(a)** que la
@@ -242,15 +240,18 @@ Cada uno trae con qué reproducirlo.
    ese coche y el brazo; lo que no cambia es que **el conductor no recibe aviso de que el verde se acaba**.
    ⚠️ **Y el contador que medía esto cambió de significado con la obra:** ya no dice «habría actuado» —esa
    transición dejó de ocurrir el día que el veto existe— sino **cuántos vetos ACTUARON de verdad**.
-2. 🔴 **LA RETIRADA DE LA INTERFAZ VIEJA SIGUE VIGENTE Y A MEDIAS** (`D-30`). ⬇️ ~~sin ancla en el fuente~~ →
-   **medido el 14/09: SÍ la tiene** —la cabecera del menú del Esclavo la nombra y dice qué le recortó el 13/09—, y
-   **la mitad del LCD YA ESTÁ CONSTRUIDA**. Sigue sin construir **la retirada del mando de botones**, que el responsable
-   **reafirmó el 14/09** —*«eliminamos las botoneras A, B, C y D; ahora es por app»*—, derogando el recorte del
-   13/09 que lo dejaba dentro. ⬇️ ~~y retirarlo toca la barrera de salidas~~ → **MEDIDO el 14/09 y es FALSO:** la
-   bandera que intercepta las luces la arman dos funciones del propio fichero de las luces, y sus **únicos**
-   llamadores son el mando; sin ellos se queda en falso y su guarda **deja de disparar** — o sea **camino normal**,
-   ningún veto abierto, sólo código muerto. 🔴 **Lo único real:** ese camino se quedaría **sin nadie que lo
-   ejerza**. Cobre, **SPEC 5 §3**; lo que ve el operador, **SPEC 4 §3.bis**.
+2. 🔴 **LA RETIRADA DE LA INTERFAZ VIEJA (`D-30`): el LCD y el mando YA SALIERON; la lectura de p5/p8 y el menú NO.**
+   **Lo que el equipo HACE hoy** *(registro 1, medido el 15/09/2026 contra el fuente de las dos puntas)*: **el LCD
+   salió el 13/09** y **el mando A/B/C/D salió entero el 14/09** —primero el corte de sus pulsos (`ccca294`), después
+   el módulo, sus lectores y la señal que interceptaba las luces (`f57a401`)—. Ya no existen `mando_ambarLocal()` ni `semaforo_senalEnCurso()`.
+   ⬇️ ~~retirarlo toca la barrera de salidas o abre vetos~~ → **medido: no abrió ninguno** (SPEC 5 §3).
+   🔴 **LO QUE FALTA — COLA DE TRABAJO DEL FIRMWARE** *(registro 2)*: **(a)** la **lectura de `BOTON1`/`BOTON2`**
+   (`J16` p5/p8), que `D-30` retira con el resto y **sigue viva**: `botones_actualizar()` la antirrebota y
+   `botonArriba()`/`botonAbajo()` entregan el flanco. Hoy sólo lo consumen `menu_loop()` y `modo_hora_loop()` del
+   Poste 1 y **no mueve nada visible**, pero un llamador nuevo lo vuelve a hacer actuar sin tocar el cobre. **(b)** El
+   **menú del Poste 1** (`Maestro/src/menu.cpp`): su navegación no llega a ningún modo, pero `menu_setup()` es la
+   puerta del todo-rojo de las dos puntas que pide `SET_MODO:MENU`, y ese camino se conserva antes de retirarlo.
+   Cobre y regla de montaje, **SPEC 5 §3**; lo que ve el operador, **SPEC 4 §3.bis**.
 3. 🔴 **LOS HUECOS DE LUZ DEL DEGRADADO** *(el modo entero, SPEC 3)*. **(a)** El verde del Degradado
    (`DEG_VERDE_SEG`) **no pasa por el fichero de límites del ciclo**: es una constante propia del modo. ⬇️ ~~y queda
    muy por debajo del mínimo por sentido, y si ese mínimo alcanza al Degradado no está escrito en ninguna parte~~ →
@@ -266,14 +267,14 @@ Cada uno trae con qué reproducirlo.
    símbolo, ni releer desde un pack. `grep -n "ahora - tCambio >=" 01_Firmware/Maestro/src/semaforo.cpp`
 5. ⚠️ **El Poste 1 arranca A OSCURAS y el Poste 2 no.** El arranque del coordinador arranca el semáforo —que **apaga
    las tres luces**— y el primer rojo no llega hasta que el menú fuerza el todo-rojo, tras arrancar reloj, respaldo,
-   mando y Bluetooth, con una espera de dos segundos en medio y el cabezal apagado. ⚠️ **Esa espera ya NO es la
+   ~~mando y~~ Bluetooth, con una espera de dos segundos en medio y el cabezal apagado. ⚠️ **Esa espera ya NO es la
    bienvenida del LCD**: sobrevive porque su motivo escrito es el watchdog.
 6. ⚠️ **El backstop de verde máximo está dimensionado contra un máximo que ya no existe.** Su comentario lo justifica
    *«por encima del máximo configurable (99 min)»* y el máximo real hoy es el del rango vial: protege en la dirección
    segura, pero mucho más laxo de lo que su razón pide — una razón caducada (`CLAUDE.md` §6).
 7. ⚠️ **El Modo Hora es inalcanzable, y de ningún modo se sale por botón.** Los botones de aceptar y cancelar
    devuelven `false` **siempre** en las dos puntas desde que sus pines pasaron a ser cámaras: **todas** las
-   ramas que los consultan son código muerto, sólo se sale por app o por mando, y no hay `SET_MODO:HORA`.
+   ramas que los consultan son código muerto, sólo se sale por app ~~o por mando~~, y no hay `SET_MODO:HORA`.
    `grep -n "bool boton" 01_Firmware/{Maestro,Esclavo}/src/botones.cpp`
 8. ⚠️ **El conmutador de luz** (`semaforo_toggle()`) **no tiene ningún llamador** y **contiene la única
    transición de fallo a verde** del firmware: hoy inerte, saca del ámbar intermitente sin pasar por rojo.
@@ -292,13 +293,13 @@ Cada uno trae con qué reproducirlo.
 | **El todo-rojo de despeje** (`SFTY-4`) · **el ámbar por silencio y orfandad** (§9) | ✅ el despeje, **filas 17 y 18**, que corren el ciclo sobre el coordinador real; el silencio, **fila 18** (detalle en SPEC 2 §9) |
 | **El watchdog** (`SFTY-1`, §9) | 🟡 **PARTIDA: el reinicio no lo ejerce nadie.** El bucle del Maestro sólo lo cruza PlatformIO; la fila 18 cuenta las recargas del bucle del Esclavo contra un watchdog **simulado** |
 | **Menú en rojo fijo** (`SFTY-12`) · **el test de lámparas** (§10) | 🔴 **NADIE las dos.** El forzado de menú y el arranque del test **no aparecen en ningún arnés**; el menú sólo lo compila la fila 14, y `maestro_09_test_leds` lee texto |
-| **Los destellos INTERCEPTAN** la escritura de pines (§10) | ✅ **fila 17**, y el mando es su único escritor vivo — es el motivo de que la retirada se recortara |
+| ~~**Los destellos INTERCEPTAN** la escritura de pines (§10)~~ | ~~fila 17~~ → **sin sujeto desde el 14/09**: la interceptación salió con el mando (§10). No cuenta abajo |
 | **El backstop de verde máximo** (§9) · **el rango duro de tiempos** (`D-5`) · **no reconfigurar en marcha** (`D-11`, §5) | ✅ el backstop, **fila 18**; el rango y la reconfiguración, **fila 17**, y el rango también la 18 |
 | **`DAR PASO` en Manual** (`D-7`, §8) | 🟡 **PARTIDA:** el acuse de `MANUAL:CAMBIAR_TURNO` sí (**fila 18**), pero **el Modo Manual del Maestro no lo compila ningún arnés** — sólo PlatformIO |
 | **Los vetos del ámbar del Poste 2** (`D-8`, §4) | ✅ **fila 18**, que compila el bucle y el Bluetooth del Esclavo REALES. La cuenta, SPEC 2 §2.3 |
 | **El suelo y el techo del Inteligente** (`D-19`, §7) | ✅ **fila 17** (el factor de techo y las tres entradas de presencia) |
 
-**Cuenta: 13 barreras — 8 ejecutadas, 2 sin nadie, 3 partidas.** Los dos rojos **no son casillas sueltas**: el menú y
+**Cuenta: ~~13 barreras — 8 ejecutadas~~ 12 barreras — 7 ejecutadas, 2 sin nadie, 3 partidas** *(15/09: sale la interceptación)*. Los dos rojos **no son casillas sueltas**: el menú y
 el test de lámparas son **los dos caminos a los pines de luz que ningún arnés recorre**, y el segundo es justo el que
 enciende VERDE sin mirar nada. Y de las tres partidas la más cara es el enclavamiento: **el del ESCLAVO —la punta que
 obedece— no lo ejecuta nadie.**

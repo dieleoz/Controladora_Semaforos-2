@@ -58,36 +58,42 @@ bornera: antirrebote RC de 1 ms **en la placa**). `J14` p2 son **3,3 V**, el nud
 - ⚠️ **`J15` p2 NO es masa**, aunque un esquema de guia lo rotulara «GND (Q10)»: con `Q10` abierto
   esta a **~12 V** (`D-25`).
 
-## 3. `J16` p5 y p8 estan VACIOS y el firmware SIGUE leyendo sus flancos
+## 3. `J16` p5 y p8 estan VACIOS: el firmware los sigue LEYENDO, ya sin nada que ejecute — y NO se cablean
 
-> 🟡 **EL HARDWARE DEL MANDO SE RETIRO EL 05/09 y el responsable lo reafirma el 14/09: el equipo
-> se opera SOLO por la app.** La guia de campo ya retiro su paso de prueba y dice que **aqui no hay
-> nada que cablear**. 🔴 **Este aviso NO se retira por eso: se retira el dia que el codigo salga del
-> firmware**, y hoy sigue dentro (`SPEC_4` §3.bis). Con el hardware fuera, **el riesgo que queda es
-> que alguien PUENTEE p5 o p8 para probar** —y eso mueve el cruce de verdad—.
+> 🔴 **Regla de montaje, no cautela: NADA se cablea en `J16` p5 ni p8, y no se puentean «para
+> probar».** La regla **sigue en pie**; lo que cambio el 14/09 es **el motivo**, y son tres:
+>
+> 1. **El firmware que hay DENTRO del poste puede ser anterior a la retirada.** Un equipo sin carga
+>    verificada de un firmware posterior al 14/09 **sigue componiendo secuencias con un puente**:
+>    `A.A.A` entra al Modo Automatico **sin ninguna guarda** —abre paso—, `B.B.B` pone ambar y
+>    `A.B.A.B` mete al poste en Degradado. **Que firmware lleva cada equipo lo dice `ESTADO.md`, no
+>    esta spec**, y el instalador no lo puede ver desde la bornera (`CLAUDE.md` §3: se exige la CARGA,
+>    no el commit).
+> 2. **El pin sigue LEIDO en el firmware de hoy**, aunque ya no ejecute nada (tabla de abajo). Un
+>    llamador nuevo de `botonArriba()` o `botonAbajo()` lo vuelve a convertir en una entrada que
+>    actua **sin tocar el cobre**. El pin no esta cerrado hasta que salga la lectura, y eso **no esta
+>    construido**: es `SPEC_1` §12.2.
+> 3. **Es una entrada directa a una pata del micro, sin nada en medio** (§5), **a poco mas de un
+>    milimetro de la red de 12 V** (§1).
 
-El mando **se retiro como hardware** y **su codigo se queda** (`D-1`, 05/09). 🔴 **Y sigue siendo cierto
-el 13/09, contra lo que `D-30` habia decidido: `D-32` (1) la recorta —«solo retirar el lcd»— y el mando
-A/B/C/D SE QUEDA en el firmware.** Los dos bornes quedan **libres en el cobre** y **vivos en el firmware**,
-por **dos caminos, no uno**:
+**Lo que el firmware del arbol HACE con esos dos bornes** — MEDIDO leyendo el fuente de las dos puntas el
+15/09/2026; **no ejercido en ninguna tarjeta**:
 
-| camino | simbolo | que hace |
+| | simbolo | que produce un flanco en p5/p8 |
 |---|---|---|
-| secuencias del mando | `mando_registrarPulso(MANDO_A/B)` desde `botones_actualizar()` | `A.A.A` -> **Modo Automatico, o sea ABRE PASO** · `B.B.B` -> ambar local · `A.B.A.B` -> Degradado |
-| navegacion viva | `botonArriba()` / `botonAbajo()`, con llamadores en `menu.cpp` y `modo_hora.cpp` **de las dos puntas** | entra al firmware por `digitalRead(b.pin) == HIGH` |
+| la lectura | `botones_setup()` configura `BOTON1`/`BOTON2` (`PB9`/`PB13`) como entrada pelada; `botones_actualizar()` los antirrebota y deja un flanco por vuelta | nada por si sola |
+| ~~las secuencias del mando~~ | ~~`mando_registrarPulso()` desde `botones_actualizar()`~~ — la llamada se corto el 14/09 (`ccca294`) y el modulo del mando salio entero de las dos puntas ese mismo dia (`f57a401`) | **ninguna secuencia**: no queda reconocedor |
+| lo que queda consumiendo el flanco | `botonArriba()` / `botonAbajo()`. **Maestro:** los llaman `menu_loop()` y `modo_hora_loop()`. **Esclavo:** ningun llamador | **Maestro en menu:** mueve un cursor interno, y la confirmacion que lo convertiria en un modo (`botonAceptar()`) devuelve `false` siempre. **Modo Hora:** inalcanzable (`SPEC_1` §12.7). **Ni luz, ni pluma, ni trama, ni campo de la app** |
 
-> 🔴 **`A.A.A` entra al Modo Automatico SIN NINGUNA GUARDA** (MEDIDO 07/09 en el Maestro); las otras
-> dos si estan frenadas. El comentario que lo justifica —*«no necesita proteccion porque el sistema
-> se corrige solo»*— **se escribio para un pulsador al que solo llegaba un tecnico en una escalera**.
->
-> **Regla de montaje, no cautela: NADA se cablea en `J16` p5 ni p8, y no se puentean «para probar».**
-> Una pluma que sube y baja tres veces dentro de la ventana **es `B.B.B`**. Es `A-2`, decision **de
-> seguridad**.
->
-> ⚠️ **Y al reves tambien duele:** de `mando_ambarLocal()` cuelgan **tres vetos** en
-> `Esclavo/src/main.cpp` (SFTY-21). Con `p8` al aire la bandera **no se arma nunca** y el veto queda
-> **CERRADO**, que es lo correcto; **retirar su ARMADOR del codigo dejaria los tres `if` siempre
-> verdaderos y el veto ABIERTO**. Por eso `D-1` dice que el codigo **no se toca**.
+Ya no existen en el fuente `mando_registrarPulso()`, `mando_ambarLocal()` ni `semaforo_senalEnCurso()`.
+
+> ⬇️ ~~De `mando_ambarLocal()` cuelgan tres vetos en `Esclavo/src/main.cpp`; retirar su armador los dejaria ABIERTOS, y por eso el codigo no se toca~~
+> → **MEDIDO el 15/09 sobre los dos commits: ningun veto quedo abierto.** La bandera **solo** se armaba
+> desde una secuencia del mando, asi que al cortar los pulsos valia `false` para siempre. Las tres guardas
+> del bucle del Esclavo eran «bandera del mando **y** ambar de la app» y quedan en **solo el ambar de la
+> app** —la misma respuesta, porque el primer termino ya era siempre verdadero—; la guarda de la
+> reanudacion diferida del Degradado y la rama de `CANCELAR_AMBAR` que contestaba «queda el del mando»
+> **eran inalcanzables** y salieron. **El veto que sigue vetando es el de la app** (`SPEC_2` §2.3).
 
 ## 4. 🔴 LA CAMARA FRENA LA BARRERA — **este aviso se mudo ENTERO a `SPEC_8` §1**
 
@@ -117,7 +123,7 @@ de `semaforo.cpp`.
 | `J12` | `PB10` TX · `PB11` RX · `PB12` DE/~RE | Radio LoRa (`USART3`) | 🟢 vivo — SPEC 2 |
 | `J10` | `PA9` `PA10` · `PA8` DE/~RE | RS485 «IN» / telemetria | 🟡 vacio hoy |
 | `J14` | `PB0` | **ENTRADA** — `CAM_DEMANDA_PIN` | 🟡 **LIBRE, sin cablear** (`D-27`) — pero **leido** |
-| `J16` | ver abajo | mando `A`/`B` + **las dos camaras** | mitad vivo, mitad libre |
+| `J16` | ver abajo | ~~mando `A`/`B`~~ p5/p8 vacios + **las dos camaras** | mitad vivo, mitad libre (y leido, §3) |
 | `J17` | `PB3`-`PB7` | LCD retirada -> **ESP32** (p2 = `PB7` RX, p3 = `PB6` TX) | 🟢 vivo |
 | `J1` · `J2` | — | alimentacion · **SWD** | — |
 
@@ -144,8 +150,8 @@ de `semaforo.cpp`.
 | p2 | `GND` | — | **la unica masa del conector** | — |
 | p3 · p6 | **sin red** | — | — | — |
 | p4 · p7 · p9 · p11 | `3,3 V` | — | el borne contra el que se cierra el contacto | mismo nudo que `J14` p2 |
-| p5 | `/Boton1` | `PB9` | 🟡 **LIBRE, y el firmware lo lee** (`MANDO_A` / `botonArriba()`) | **9,92 kOhm** a masa · 11,28 kOhm a 3,3 V · **0,6 V** |
-| p8 | `/Boton2` | `PB13` | 🟡 **LIBRE, y el firmware lo lee** (`MANDO_B` / `botonAbajo()`) | **9,92 kOhm** · 11,28 kOhm · **0,6 V** |
+| p5 | `/Boton1` | `PB9` | 🟡 **LIBRE, y el firmware lo lee** (`botonArriba()`; ~~`MANDO_A`~~) — **no se cablea**, §3 | **9,92 kOhm** a masa · 11,28 kOhm a 3,3 V · **0,6 V** |
+| p8 | `/Boton2` | `PB13` | 🟡 **LIBRE, y el firmware lo lee** (`botonAbajo()`; ~~`MANDO_B`~~) — **no se cablea**, §3 | **9,92 kOhm** · 11,28 kOhm · **0,6 V** |
 | p10 | `/Boton3` | `PB14` | 🎯 **`CAM_C_PIN` — CAMARA 1 del poste** (`D-25`) | **9,93 kOhm** · 11,29 kOhm · **0 V** |
 | p12 | `/Boton4` | `PB15` | 🎯 **`CAM_D_PIN` — CAMARA 2 del poste** (`D-25`) | **9,94 kOhm** · 11,31 kOhm · **0 V** |
 | p13-p16 | sin red | — | pads que existen en el cobre y no en el esquema | — |
@@ -153,7 +159,8 @@ de `semaforo.cpp`.
 **El pull-down de 10 kOhm que declaraba el netlist es REAL y esta en las cuatro posiciones**
 (`R65`-`R68`, con su 100 nF). Con 3,3 V en la posicion contigua, **el gesto que el conector pide es
 cerrar el contacto contra los 3,3 V: entrada activa en ALTO, para los cuatro pines y sin excepcion.**
-🛑 **El gesto de prueba es `p5` contra `p4` y `p8` contra `p7` — NUNCA contra masa:** en todo `J16`
+🛑 **El gesto de prueba es contra el 3,3 V contiguo —`p10` contra `p9`, `p12` contra `p11`— NUNCA contra masa**
+*(el banco del 03/09 lo hizo tambien en `p5`/`p8`; en un equipo instalado esos dos no se puentean, §3)*: en todo `J16`
 hay **una sola masa** (`p2`). Y **`p1` tapado antes de nada.**
 
 # 3. Las camaras — **el cobre**
@@ -247,7 +254,7 @@ Lo que no esta medido de la **conducta** —no del cobre— es `SPEC_8` §7.
 | 7 | **Si el `D21` sin conectar de `J8` (`VERDE2`) es defecto o decision.** Su catodo esta sin conectar en esquema y cobre (red `unconnected-(D21-K-Pad1)`, cero pistas): **`J8` p2 FLOTA** en reposo mientras los otros nueve suben a 12 V. **No hay ni una nota en el repositorio.** Se cierra comparando `J8` p1-p2 contra `J7` p1-p2 |
 | 8 | **Los condensadores `C25`/`C28`/`C29`.** En el netlist si; **en cobre, sin medir** — solo las resistencias (paso 20) |
 | 9 | **El voltaje de `p5`/`p8` con el puente puesto.** El dato se perdio con el incidente de N-116 y **no se retoma sobre la Maestro** mientras siga con el corto |
-| 10 | **Que el mando `A`/`B` funcione con la polaridad corregida.** `346ea5f` esta escrito en las dos puntas y **NO cargado, NO ejercido**: **nadie ha visto nunca a este equipo obedecer un `A·A·A`** |
+| 10 | ~~**Que el mando `A`/`B` funcione con la polaridad corregida.**~~ → **sin sujeto desde el 14/09: el mando salio del firmware** (§3). Lo que sigue sin verificar es lo contrario y es de campo: **que firmware lleva cada equipo instalado**, porque con uno anterior un puente en p5/p8 **si** compone secuencias (`ESTADO.md`) |
 | 11 | **La causa de N-116** — la tarjeta Maestro tiene un corto entre 3,3 V y `GND` **medido**, arranca ~30 s y se calienta. 🛑 **No se reenergiza.** El firmware queda descartado **por censo** (ninguna salida toca un pin de `J16`); eso **no nombra a nadie mas** |
 | 12 | **El `2K2` de §5: no se ha probado en ninguna tarjeta.** Es aritmetica sobre el datasheet y sobre el pull-down medido, **no una medida** |
 | 13 | **Que `PB3`/`PB4`/`PB5` se puedan usar con el ESP32 puesto.** Libres y en alta impedancia, con pista a `J17` p4/p1/p5 — **el mismo conector donde vive el modulo**. Usarlos **no cuesta el SWD** (`pinF1_DisconnectDebug()` hace `NOJTAG`, no `SWJ_DISABLE`) |
@@ -286,8 +293,9 @@ Manda la medida de cobre; el choque se escribe, no se arregla desde aqui (`CLAUD
    regla es **vacuamente cierta** para los dos peatonales (`N-96`; §2 de arriba y SPEC 1 §1).
 
 *Decisiones recogidas: `D-1`, `D-2`, `D-3`, `D-4`, `D-10`, `D-12`, `D-13` (lo no derogado), `D-14`,
-`D-25`, `D-27`, `D-32` (1) y (4). Abiertas que nombra sin resolver: `A-2`, `17_` §3.6 y §3.10. Las MEDIDAS
+`D-25`, `D-27`, ~~`D-32` (1)~~ (derogada por `D-30`, reafirmada el 14/09), `D-32` (4), `D-30`. Abiertas que nombra sin resolver: `A-2`, `17_` §3.6 y §3.10. Las MEDIDAS
 son de `17_Arquitectura_28-08_y_Decisiones_Abiertas.md`, que **gana a este fichero**; lo decidido, de
 `DECISIONES.md`, que **gana a los dos**. El firmware se remidio contra `{Maestro,Esclavo}/include/
-pines.h` y `src/{semaforo,botones,main}.cpp` el 12/09/2026. **La conducta de camara y barrera se
+pines.h` y `src/{semaforo,botones,main}.cpp` el 12/09/2026; **§3, contra `botones.cpp`, `menu.cpp`,
+`modo_hora.cpp` y `main.cpp` de las dos puntas el 15/09/2026**. **La conducta de camara y barrera se
 partio a `SPEC_8` el 14/09/2026** (`roadmap.md` 1.45).*
