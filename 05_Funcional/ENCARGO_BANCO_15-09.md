@@ -56,7 +56,15 @@ sha256sum leido_maestro.bin      (y lo mismo con el Esclavo: 36532 B)
   `171ceb3cf5c1db897c34a9cb0c04456cd509e79a0cb0c1198e886b90d5534437`
   - Compilado desde cero dos veces con el mismo sha256. El puente cambio despues de `7ff7d12` (`D-26`): con uno
     viejo la hora no llega al STM32 y E2 y D no se pueden hacer.
-- Paquete: `Paquete_Banco_2026-09-15_ca2de3d_SIN_BANCO.zip`.
+🔴 **LOS `.bin` NO VAN EN EL PAQUETE: van el FUENTE y la APK.** Se compilan con PlatformIO desde
+`01_Firmware_PlatformIO/{Maestro,Esclavo,ESP32_Expansion}` —`pio run`— y el `.bin` sale en
+`.pio/build/<entorno>/firmware.bin`. Los sha256 de arriba son los de ESTA maquina: si los tuyos no coinciden,
+**no es un fallo tuyo** —otra version del compilador da otro binario del mismo fuente—, pero entonces **anota
+el sha256 de lo que cargaste** y pidenos el `.bin` si quieres cargar exactamente el mismo. Lo que no vale es
+cargar sin anotar que se cargo.
+
+- Paquete: `Paquete_Banco_2026-09-15_ca2de3d_SIN_BANCO.zip` — dentro: el LEEME y esta solicitud en Word, las
+  nueve SPEC en Word, la guia de conexiones en `.html`, la APK y el fuente para PlatformIO. **Sin `.bin`.**
 
 **El sufijo `SIN_BANCO` no se quita al renombrar. Lo quita quien lo haya probado en un equipo.**
 

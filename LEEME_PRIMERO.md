@@ -69,9 +69,9 @@ se rellenan y como se devuelve. Este LEEME no sustituye a ninguna de sus casilla
   recompilacion del mismo commit en otro PC puede dar otro sha256.
 - Puente ESP32: `ESP32_Expansion_2026-09-15_ca2de3d_SIN_BANCO.bin` · 1130096 B · sha256
   `171ceb3cf5c1db897c34a9cb0c04456cd509e79a0cb0c1198e886b90d5534437`
-- Los `.bin` van dentro porque lo que se mide es ESE binario: los tres se compilaron desde cero dos veces con el
-  mismo sha256. El fuente para PlatformIO va al lado, para revisar.
-- El acta de la compuerta.
+- **Los `.bin` NO van dentro: va el FUENTE para PlatformIO y va la APK.** Los sha256 de arriba son los de esta
+  maquina (compilados desde cero dos veces, mismo hash); si tu compilador da otro, anota el que cargues.
+- El acta de la compuerta no va en el paquete: vive en `evidencia/` del repositorio.
 
 **Nota mecanica.** Este LEEME se comitea despues de `ca2de3d`: un fichero no puede contener el hash de su
 propio commit. El firmware es el de `ca2de3d`, y se comprueba con
