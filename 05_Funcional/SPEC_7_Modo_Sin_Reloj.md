@@ -318,8 +318,8 @@ accesorio hacia el micro** y `esp32_05_no_origina` lo condiciona a una fila de `
 
 `D-26`, `D-28` y `D-21` (1) estan en `main` y **SIN BANCO**: lo que hay son packs y arneses de PC,
 y **un verde de la compuerta no dice que el firmware funcione en la tarjeta** (`CLAUDE.md` §0.3).
-La unica medida sobre el aparato real —la cinta del Sisga— es la que trae el defecto vivo `H-1`
-de **SPEC 3**, que no se repite aqui.
+La unica medida sobre el aparato real —la cinta del Sisga— es la que destapo el cristal que arranca
+y no cuenta (`H-1` de **SPEC 3**: deteccion construida, sin banco), que no se repite aqui.
 
 ## 9. Lo que esta spec NO decide — **son DOS filas del responsable, no dos modos**
 

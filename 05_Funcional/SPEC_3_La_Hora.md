@@ -130,7 +130,8 @@ no rejuvenezca una siembra vieja.
 
 **El BORDE, escrito** (`CLAUDE.md` §7): una hora que vino **solo del reloj de hardware**, sin ninguna siembra
 en este arranque, **no caduca aqui** — esa no corre sobre el oscilador interno, y la cubre el limite duro del
-Degradado. **Ese borde es donde vive el defecto vivo H-1.**
+Degradado. **Su premisa la rompe un cristal que arranca y no cuenta**: desde `roadmap.md` 1.22 el bucle
+lo mide y, si esa hora solo salia de ese contador, la retira (H-1).
 
 ## 5. El ambar de la punta cuya hora caduco
 
@@ -226,33 +227,45 @@ pasar MESES»— marcada como refutada al revisarla en noviembre: con el cable d
 
 ## 9. HUECOS MEDIDOS — lo que no cumple una decision vigente, o lo que una vigente no alcanza
 
-### H-1 🔴 El cristal tiene TRES estados y el firmware distingue dos — **defecto VIVO** (`roadmap.md` 1.22)
+### H-1 🟢 ~~El cristal tiene TRES estados y el firmware distingue dos — defecto VIVO~~ → **la deteccion esta CONSTRUIDA en las dos puntas** (`roadmap.md` 1.22) · 🟡 **queda la cola de abajo**
 
-El arranque da por bueno el cristal en cuanto el chip dice **que el oscilador arranco**, y marca el reloj
-como operativo justo despues. **Pero eso dice que ARRANCO, no que el contador INCREMENTE**, y el tercer
-estado —oscilador listo con el contador quieto— **es el de la cinta de campo del Sisga**.
+*El defecto era:* el oscilador listo con el contador quieto —el tercer estado, **el de la cinta del Sisga**—
+pasaba por reloj operativo; la cuenta de horas restaba dos lecturas iguales y contestaba «acabo de
+sincronizar», y tras un reset eso abria la puerta de FRESCURA de la entrada del Maestro (`SYNC_FRESCA_MS`).
 
-Reproducido en el fuente, y cada eslabon es una linea:
+**LO QUE EL EQUIPO HACE (registro 1, validado contra el fuente de `bff78e6`):**
 
-1. El lector del contador devuelve el valor en crudo... **y el centinela que deberia taparlo lo destapa**:
-   `return v == 0 ? 1UL : v;` convierte un contador **parado en 0** en un **`1` no nulo**, que pasa los dos
-   centinelas del respaldo.
-2. La cuenta de horas desde la ultima sincronizacion resta dos lecturas **iguales** y devuelve **cero
-   horas** — o sea «acabo de hablar con el otro poste», sobre un acuerdo que puede ser de meses.
-3. Tras un reset no hay medida en RAM: la medida efectiva se queda con la de la pila y devuelve **cero**.
-4. 🔴 **Y la puerta que se abre NO es la del limite duro: es la de la FRESCURA** que exige la entrada del
-   Maestro (`SYNC_FRESCA_MS`, condicion 2). **Es mucho mas estrecha** —la razon se lee dividiendo las dos
-   constantes de `Maestro/src/modo_degradado.cpp`—.
+- **Detecta.** En cada vuelta del bucle, `reloj_actualizar()` llama a `vigilarCristal()` **antes** de su
+  salida temprana, en `{Maestro,Esclavo}/src/reloj.cpp`: si el contador no avanza en una ventana **derivada**
+  del tick del cristal (`CNT_VENTANA_MS`, con `static_assert` contra el falso positivo), baja el reloj operativo.
+- **Cierra la puerta por el mecanismo que ya habia:** con el reloj no operativo, `reloj_contadorSegundos()`
+  devuelve **0**, y `respaldo_horasDesdeSync()` contesta **CADUCADA** por su centinela. Con medida en RAM manda
+  la RAM; tras un reset ya no queda «cero horas» que leer, asi que **ni la entrada ni la reanudacion ven una
+  sincronizacion fresca**.
+- **No se readopta sola:** un cerrojo impide que el reintento periodico del cristal —que solo mira si el
+  oscilador arranco— deshaga la cura. Lo quitan **el arranque** en las dos puntas y **el reinicio del dominio
+  de respaldo** en el Maestro, que es la unica que tiene esa funcion. Nunca la maquina sola.
+- **La hora cae con el SOLO si su unica fuente era ese contador** (sin base de software sembrada): entonces
+  se retira la hora valida —y en el Esclavo su fuente pasa a ninguna—, `reloj_horaFiable()` da falso, la puerta
+  del Degradado rechaza por falta de hora y el bucle va a ambar (Maestro) o se rinde (Esclavo). Con base
+  sembrada la hora sigue intacta y la cubre su propia caducidad (§4).
+- **Ejercido:** el arnes de dos puntas lleva la perilla de congelacion del contador (bloque `F6` de
+  `Validacion_Automatico/dos_puntas/orquestador_degradado.cpp`): control negativo, cura y cerrojo en el
+  Maestro, cura en el Esclavo, y ningun disparo con el cristal sano. ⚠️ **Implementado SIN EJERCER:** ese bloque
+  parte de puntas **sembradas**, asi que la rama que retira la hora y el efecto sobre un Degradado en marcha no
+  los recorre; el cerrojo del Esclavo tampoco se comprueba aparte.
 
-**Ningun instrumento puede cazarlo hoy, y no es un olvido:** el modelo de silicio del arnes
-(`Validacion_Automatico/dos_puntas/reloj_real/stm32f1xx_hal.h`) **deriva el contador del reloj de programa**,
-asi que el contador congelado **no es un escenario que falte: es un estado que no se puede expresar**. El arnes
-lleva su borde escrito y bien —declara «cristal vivo» y «cristal muerto»— y el defecto vive en el tercero. La
-perilla de congelacion que hay que anadirle **es a la vez el control negativo** que se exige antes de conectarlo.
-**El arreglo barato no toca el respaldo:** muestrear el contador en el reloj de cada punta y **bajar la bandera de
-reloj operativo si no cambia**. ⚠️ **Las otras formas medidas chocan:** exigir RAM en la puerta **contradice
-`D-29` de frente**, que existe justo para apoyarse en la marca de la pila. **Eso no es una orden: es una fila
-nueva del responsable.**
+**LO QUE EL EQUIPO DEBE HACER Y AUN NO HACE (registro 2, cola de trabajo):**
+
+1. **Nadie lo dice.** Ninguna alarma, evento ni campo del `$STATUS` nombra el cristal parado: el cerrojo es
+   estatico y sin lector fuera de `reloj.cpp`, `reloj_hayCristal()` no tiene llamador en el Maestro y no existe
+   en el Esclavo, y la alarma de hora `CADUCADA` va detras de «¿hay hora?», que en la rama sin base ya es falso.
+   El tecnico ve el ambar sin su causa. *(Medido por ausencia; ninguna fila lo ordena todavia.)*
+2. 🟡 **SIN VERIFICAR — `roadmap.md` 1.49 (a) y (b), en medida por otro agente:** si `REINICIAR_RELOJ`
+   contesta exito con el cristal congelado, y si el Maestro puede decidir la reanudacion en `setup()` **antes**
+   de que la ventana de vigilancia cierre —durante esa ventana el contador congelado sigue saliendo como no
+   nulo (`return v == 0 ? 1UL : v;` sigue en el fuente)—. **No se afirma ninguna de las dos.**
+3. **Sin banco y sin tarjeta** (H-6). ⚠️ Exigir medida en RAM en la puerta **contradice `D-29`**: no es orden.
 
 ### H-2 🔴 La pieza (A) del ambar por hora que miente sigue sin construir: el aviso de oscilador parado no llega al STM32
 
@@ -297,4 +310,4 @@ entran: narran por que se bajo, y eso sigue siendo cierto.)*
 El relevo de fuente y el plazo nuevo estan **fusionados en `main` y SIN BANCO**: lo que hay son packs y
 arneses de PC, y **un verde de la compuerta no dice que el firmware funcione en la tarjeta**
 (`CLAUDE.md` §0.3). La unica medida tomada sobre el aparato real —la cinta del Sisga— es justamente la
-que trae **H-1**.
+que destapo **H-1**, y su deteccion tampoco ha visto una tarjeta.

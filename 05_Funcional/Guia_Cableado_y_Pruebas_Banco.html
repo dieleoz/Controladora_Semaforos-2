@@ -472,7 +472,7 @@
       pedir</b>—. <b>Los dos tienen decisiones colgando de lo que salga.</b></p>
     <p class="sub">🛑 <b>Y DOS COSAS QUE YA NO SE HACEN, para que no se busquen:</b> <b>el paso 29
       —probar el mando de relés— se ha retirado</b> (ese hardware ya no existe, y puentear
-      <code>J16</code> p5/p8 <b>mueve el cruce</b>); y <b>la cámara ya NO va a <code>J14</code>: va
+      <code>J16</code> p5/p8 <b>mueve el cruce</b> <i>en un equipo con firmware anterior al 14/09</i>); y <b>la cámara ya NO va a <code>J14</code>: va
       a <code>J16</code> p10</b>, que es el único borne donde el programa la vigila. <b>Si traes la
       hoja del 04/09 en la cabeza, estas dos te harán trabajar al revés.</b></p>
     <p class="sub">🎯 <b>11/09 · DECISIÓN DEL RESPONSABLE (<code>D-25</code>): CUATRO CÁMARAS, DOS
@@ -483,7 +483,10 @@
       relé</b> cuyo contacto va a la entrada <code>OPEN</code> de la centralita. Deroga sólo
       <s>«una cámara por poste / p12 vacío»</s>; lo tachado en esta hoja lleva la marca
       <b>«11/09, D-25»</b>. <b>Lo que tienes que saber al cablear, medido en el programa:</b> las
-      dos entradas <b>hacen lo mismo</b>; <b>ninguna frena la pluma</b> (baja con un coche debajo);
+      dos entradas <b>hacen lo mismo</b>; <s><b>ninguna frena la pluma</b> (baja con un coche debajo)</s>
+      → <b>14/09, <code>D-33</code> (<code>SPEC_8</code> §1): la pluma baja unos segundos DESPUÉS del
+      rojo, y pasado ese retardo CUALQUIERA de las dos cámaras del poste retiene la bajada</b> mientras
+      vea algo — no la levanta nunca, y no para el ciclo;
       la pluma sube con verde <b>y con el ámbar intermitente</b>; y <b>una cámara que no ha
       detectado nunca no la vigila nadie</b> — la trama <code>CAM:</code> dice <code>OK</code> en
       cuanto <b>una</b> de las dos detecta.</p>
@@ -491,13 +494,15 @@
       <b>las CUATRO cámaras están compradas</b> (modelo <code>DS-2CD2683G2-IZS</code> confirmado);
       <b><code>J14</code> queda LIBRE, sin cablear</b> —el fin de carrera <b>no se instala en este
       despliegue</b>, y como el programa sigue leyendo <code>PB0</code> como petición de paso, <b>en
-      <code>J14</code> no se conecta nada en campo</b>; los pasos 17 y 19 lo siguen ejerciendo
-      <b>en banco</b> con un cable que se retira al terminar—; y <b>la configuración de cada cámara
+      <code>J14</code> no se conecta nada en campo</b>; <s>los pasos 17 y 19 lo siguen ejerciendo
+      <b>en banco</b> con un cable que se retira al terminar</s> → <b>15/09: tampoco en banco.
+      El paso 19 se ha retirado</b> (<code>SPEC_5</code> §2: mientras el programa lea
+      <code>PB0</code>, en <code>J14</code> no se conecta NADA); el 17 sólo lo mide vacío—; y <b>la configuración de cada cámara
       es la del manual del modelo comprado</b> (<code>04_Manuales/MANUAL_CONFIGURACION_CAMARAS_IA.md</code>
       §4 y la ficha del modelo; esta hoja no configura: sólo mide, en los pasos 39 y 40). Lo tachado por esto lleva la marca
       <b>«11/09, D-27»</b>.</p>
     <div class="meta">
-      <span>revisión del <b>07 · 09 · 2026</b> · sobre la del 04/09 noche y las cámaras del 05/09 · <b>11/09: texto alineado con <code>D-25</code></b> (cámaras y <code>J15</code>; los pasos no cambian de número) · <b>11/09: y con <code>D-27</code></b> (<code>J14</code> libre en campo, cuatro cámaras compradas, configuración por el manual del modelo, relé de <code>J15</code>)</span><span>48 pasos</span><span>firmware con N-42, N-133, N-134, N-142, N-145, N-146, N-147, N-149 · y del 05/09: <b>A-12</b> (suelo y techo del Inteligente), <b>D-13 fase 1</b> (vigilante de cámaras) y <b>D-18</b> (Degradado del Poste 2 por app)</span>
+      <span>revisión del <b>07 · 09 · 2026</b> · sobre la del 04/09 noche y las cámaras del 05/09 · <b>11/09: texto alineado con <code>D-25</code></b> (cámaras y <code>J15</code>; los pasos no cambian de número) · <b>11/09: y con <code>D-27</code></b> (<code>J14</code> libre en campo, cuatro cámaras compradas, configuración por el manual del modelo, relé de <code>J15</code>) · <b>15/09: alineado con <code>SPEC_5</code>/<code>SPEC_8</code> y el <code>ENCARGO_BANCO_15-09</code></b> (paso 19 retirado: nada en <code>J14</code>; pluma con retardo y veto de cámara, pasos 16, 21.bis y 21.quater; mando fuera del programa; <code>p1</code> se tapa retirando el pin; carga por <code>sha256</code> leído de vuelta)</span><span>48 pasos</span><span>firmware con N-42, N-133, N-134, N-142, N-145, N-146, N-147, N-149 · y del 05/09: <b>A-12</b> (suelo y techo del Inteligente), <b>D-13 fase 1</b> (vigilante de cámaras) y <b>D-18</b> (Degradado del Poste 2 por app)</span>
     </div>
   </header>
 
@@ -517,15 +522,23 @@
         <code>p4</code> y <code>p8</code> contra <code>p7</code>»</s>. <b>El hardware del mando se
         retiró del equipo</b> (decisión del 05/09: se opera <b>sólo por app</b>), así que <b>no hay
         nada que cablear en <code>J16</code> p5 ni p8</b> y no hay receptor que comprar.
-        🔴 <b>Y no es sólo que sobre: es que hace daño.</b> El programa <b>sigue leyendo esos dos
+        🔴 <b>Y no es sólo que sobre: es que hace daño.</b> <s>El programa <b>sigue leyendo esos dos
         pines</b> a propósito, y cada flanco entra en el reconocedor de secuencias: tres toques en
         <code>p8</code> son <b>ámbar intermitente</b> y <code>A·B·A·B</code> mete al Poste 2 en
-        <b>Modo Degradado</b>. <b>Un puente «para probar» mueve el cruce de verdad.</b>
+        <b>Modo Degradado</b>.</s> → <b>15/09 (<code>SPEC_5</code> §3): el reconocedor salió del
+        programa el 14/09, y la regla SIGUE</b>, por tres motivos: <b>un equipo con firmware anterior
+        SÍ compone secuencias con un puente</b> —<code>A·A·A</code> entra en Automático sin ninguna
+        guarda, <code>B·B·B</code> pone ámbar, <code>A·B·A·B</code> mete al poste en Degradado— y
+        desde la bornera no se ve qué lleva dentro; <b>el programa de hoy sigue LEYENDO los dos
+        pines</b>; y son entradas directas al micro a poco más de un milímetro de los 12 V.
+        <b>Un puente «para probar» puede mover el cruce de verdad.</b>
         ⚠️ <b>Y los <code>0,6 V</code> de p5/p8 del banco anterior NO eran una avería</b>: eran el
         <code>pinMode</code> del binario que había dentro. Está explicado en el paso 2.bis, y
         <b>no hay que ir a buscarlos</b>.</li>
       <li><b>Instale la APK NUEVA</b>
-        (el nombre exacto y su <code>md5</code> estan en <code>LEEME_PRIMERO.md</code>, en la raíz del paquete). La anterior
+        (<s>el nombre exacto y su <code>md5</code> estan en <code>LEEME_PRIMERO.md</code>, en la raíz del paquete</s>
+        → <i>15/09: el nombre y su <code>sha256</code> están en <code>ENCARGO_BANCO_15-09</code> §2; se
+        comprueba ese fichero, no el tamaño</i>). La anterior
         <b>no podía abrir el enlace</b>: le faltaba la llamada que abre el socket, así que se pintaba
         «Enlazado» sin estarlo. <b>Con la APK vieja no conecta por bien que funcione el módulo.</b></li>
       <li><b>Antes de sospechar del ESP32, mire el NOMBRE.</b> Mientras no haya aprendido la serie del
@@ -598,7 +611,8 @@
               <td>🛑 <b>ya no es un botón: es <code>CAM_D_PIN</code>, ENTRADA DE CÁMARA</b></td></tr>
           <tr><td><b>Botones 1 y 2 «Arriba / Abajo»</b> — <code>J16</code> p5 y p8
               (<code>PB9</code>/<code>PB13</code>)</td>
-              <td>⚠️ <b>ni pulsador ni mando: ese hardware se retiró</b> (<code>D-1</code>, 05/09) —
+              <td>⚠️ <b>ni pulsador ni mando: ese hardware se retiró</b> (<code>D-1</code>, 05/09), y
+                el código del mando salió del programa el 14/09 —
                 <b>pero el firmware SIGUE LEYENDO esos dos pines</b>. Ver el aviso rojo de aquí
                 abajo</td></tr>
           <tr><td><b>La pantalla LCD ST7920 y su menú</b></td>
@@ -608,20 +622,29 @@
         </tbody>
       </table>
     </div>
-    <p>🔴 <b>EL AVISO QUE NO SE PUEDE QUITAR AUNQUE NO HAYA BOTONERA, Y ESTÁ MEDIDO HOY:</b> de los
+    <p>🔴 <b>EL AVISO QUE NO SE PUEDE QUITAR AUNQUE NO HAYA BOTONERA</b> <i>(medido el 05/09; el
+      motivo, rehecho el 15/09 sobre <code>SPEC_5</code> §3)</i><b>:</b> de los
       cuatro botones, <b>dos siguen vivos en el firmware</b>. <b>«Aceptar» y «Cancelar» están
       muertos</b> —sus funciones devuelven siempre «no pulsado»—, pero <b>«Arriba» y «Abajo» NO</b>:
-      el firmware sigue leyendo <code>J16</code> <b>p5 y p8</b> y esas lecturas tienen <b>siete usos
+      el firmware sigue leyendo <code>J16</code> <b>p5 y p8</b> <s>y esas lecturas tienen <b>siete usos
       vivos</b> dentro. <b>Cualquier cosa que cierre p5 o p8 contra los 3,3 V del pin de al lado
       sigue moviendo cosas dentro del equipo</b> —compone secuencias del mando—. Y no es teórico:
       <code>B·B·B</code> deja el poste en <b>ámbar intermitente</b> y <code>A·B·A·B</code> mete al
-      Poste 2 en <b>Modo Degradado</b>, que es el único modo que da verde <b>sin confirmar la otra
-      punta</b>.</p>
+      Poste 2 en <b>Modo Degradado</b></s>. → <b>15/09: con el programa del 15/09 ese flanco ya no
+      compone ninguna secuencia</b> —el mando salió de las dos puntas el 14/09— y sólo lo consumen
+      <code>botonArriba()</code>/<code>botonAbajo()</code> del menú y del Modo Hora del Maestro, sin
+      luz, pluma ni trama. <b>Pero un equipo con firmware ANTERIOR sí las compone</b>:
+      <code>A·A·A</code> entra en Automático sin ninguna guarda, <code>B·B·B</code> pone ámbar y
+      <code>A·B·A·B</code> mete al poste en <b>Modo Degradado</b>, que es el único modo que da verde
+      <b>sin confirmar la otra punta</b>. Qué firmware lleva cada equipo lo dice
+      <code>ESTADO.md</code>, no la bornera.</p>
     <p>🔴 <b>Por eso p5 y p8 se dejan SIN CABLEAR y NO se puentean «para probar». Ningún paso de
-      esta hoja te manda tocarlos</b> —el que lo hacía, el 29, se ha retirado—. <b>Si algún día se
+      esta hoja te manda tocarlos</b> —el que lo hacía, el 29, se ha retirado; la única excepción es
+      la prueba C del <code>ENCARGO_BANCO_15-09</code>, en la mesa y nunca en el Sisga—. <s><b>Si algún día se
       pone algo ahí</b> —un final de carrera de la barrera, que es la idea anotada— <b>hay que
       desarmar antes ese reconocedor</b>: una pluma que sube y baja tres veces seguidas <b>es</b>
-      <code>B·B·B</code>. <s><b>Eso está sin decidir y va en la pregunta 3.</b></s> → <b>11/09,
+      <code>B·B·B</code>.</s> <i>(15/09: el reconocedor ya no está en el programa; lo que falta para
+      cerrar esos pines es quitar la LECTURA, y eso no está construido — <code>SPEC_5</code> §3.)</i> <s><b>Eso está sin decidir y va en la pregunta 3.</b></s> → <b>11/09,
       D-27: decidido.</b> <code>A-2</code> (05/09) dejó p5/p8 vacíos, y <code>D-27</code> dice que
       <b>el fin de carrera no se instala en este despliegue</b>: ni aquí ni en <code>J14</code>.</p>
     <p class="porque">Medido el 05/09 sobre el fuente de las dos puntas, y así se localiza:
@@ -852,21 +875,27 @@
         <thead><tr><th>Entrada</th><th>Se simula así</th><th>Paso</th></tr></thead>
         <tbody>
           <tr><td><s><b>LA</b> cámara del poste</s> <b>Cámara 1</b> (11/09, D-25) · <code>J16</code> <b>p10</b></td>
-            <td><b>Se cablea.</b> Un cable de <b>p10 a p9 u p11 (3,3 V)</b> — <b>nunca a
+            <td><b>Se cablea.</b> Un cable de <b>p10 a p9 <s>u p11</s> (3,3 V)</b> <i>(15/09: el contiguo; p12 contra p11 — <code>SPEC_5</code> §2.1)</i> — <b>nunca a
               masa</b> · sólo tras el paso 20</td><td>21</td></tr>
           <tr><td><s>Entrada equivalente</s> <b>Cámara 2</b> (11/09, D-25) · <code>J16</code> <b>p12</b></td>
             <td>El <b>segundo</b> borne de cámara de la misma tarjeta. <s>Hoy <b>queda libre</b>: se
               ejerce igual, con un cable a 3,3 V, para dejarlo medido</s> → <b>11/09, D-25: también
               se cablea</b> (contra <b>p11</b>). Se ejerce igual, con un cable a 3,3 V</td><td>21</td></tr>
           <tr><td>Petición de paso por <code>J14</code> (<code>PB0</code>)</td>
-            <td><b>Ya NO es donde va la cámara</b> (ver el aviso de debajo). Sigue viva como entrada
-              y se ejerce con un cable <b>entre sus dos bornes</b> — <b>sólo en banco</b>: 11/09,
-              <code>D-27</code>, <b>en campo <code>J14</code> queda vacío</b>, y el cable se retira al
-              terminar el paso 19</td><td>19</td></tr>
+            <td><b>Ya NO es donde va la cámara</b> (ver el aviso de debajo). <s>Sigue viva como entrada
+              y se ejerce con un cable <b>entre sus dos bornes</b> — <b>sólo en banco</b></s>
+              → 🛑 <b>15/09: NO SE SIMULA. En <code>J14</code> no se conecta NADA, tampoco en
+              banco</b> (<code>SPEC_5</code> §2, encargo del 15/09 §1.4): el programa sigue leyendo
+              <code>PB0</code> como petición de paso, y un cable ahí <b>mueve el cruce</b>. Sólo se
+              mide vacío (paso 17)</td><td>17</td></tr>
           <tr><td><code>J16</code> p5 y p8</td>
-            <td>🛑 <b>NO SE TOCAN. El mando de relés no existe: no hay nada que cablear ahí</b>, y un
-              puente «para probar» compone secuencias de mando en un equipo vivo. Ver el aviso rojo
-              del apartado «no hay botonera»</td><td>—</td></tr>
+            <td>🛑 <b>NO SE TOCAN. El mando de relés no existe: no hay nada que cablear ahí.</b>
+              <s>un puente «para probar» compone secuencias de mando en un equipo vivo</s> →
+              <b>15/09:</b> el programa del 15/09 ya no compone secuencias, <b>pero un equipo con
+              firmware anterior al 14/09 SÍ</b>, y desde la bornera no se ve qué lleva dentro
+              (<code>SPEC_5</code> §3). <b>Única excepción: la prueba C del
+              <code>ENCARGO_BANCO_15-09</code>, en la mesa, con el hash leído de vuelta — nunca en el
+              equipo del Sisga.</b> Ver el aviso rojo del apartado «no hay botonera»</td><td>—</td></tr>
           <tr><td>Pérdida de radio</td><td>Desenrosca la antena o quita su alimentación</td><td>8</td></tr>
           <tr><td>Pérdida del módulo</td><td>Desenchufa un cable de datos de <code>J17</code></td><td>14</td></tr>
         </tbody>
@@ -912,7 +941,7 @@
           el programa <b>no juzga el silencio de un pin que nunca ha dado señal</b> —se escribió así
           porque <code>p12</code> iba vacío—, de modo que <b>una segunda cámara muerta desde el día
           que se monta no la detecta nadie</b>. Cada cámara se comprueba <b>en su borne</b> (paso 21).</p>
-        <p>🟢 <b><code>J14</code> NO se retira y sigue vivo</b> —se ejerce en el paso 19—. <s>Queda como
+        <p>🟢 <b><code>J14</code> NO se retira y sigue vivo</b> <s>—se ejerce en el paso 19—</s> <i>(15/09: el paso 19 se retiró; <code>J14</code> sólo se mide vacío)</i>. <s>Queda como
           el mejor candidato a <b>final de carrera de la barrera</b>, porque es <b>el único pin de
           entrada con antirrebote por hardware</b> y un contacto mecánico es justo lo que rebota.
           🔴 <b>11/09 · CONFLICTO ABIERTO, no se resuelve en esta hoja:</b> <code>A-2</code> (05/09)
@@ -925,8 +954,9 @@
           → 🎯 <b>11/09, <code>D-27</code>: <code>J14</code> LIBRE, sin cablear.</b> El fin de carrera
           <b>no se instala en este despliegue</b>, así que <b>en campo, en <code>J14</code> no se conecta
           nada</b>. Vacío, <code>R64</code> lo deja en 0 V y no pide nada (medido en banco el
-          03-04/09, pasos 17-18). En banco se sigue ejerciendo con un cable (pasos 17 y 19), que
-          <b>se retira al terminar</b>.</p>
+          03-04/09, pasos 17-18). <s>En banco se sigue ejerciendo con un cable (pasos 17 y 19), que
+          <b>se retira al terminar</b>.</s> → <b>15/09: en banco tampoco se conecta nada</b>; el paso
+          19 se ha retirado y el 17 sólo mide vacío (<code>SPEC_5</code> §2).</p>
       </div>
       <p><b>Lo que trae cada borne, medido en el fuente y en el cobre:</b></p>
       <div class="tabla-envoltorio">
@@ -1001,6 +1031,13 @@
                 entonces la barrera <b>lo decide su centralita</b>, que tiene alimentación propia —
                 <b><code>SIN VERIFICAR</code></b>, y es lo que pregunta el <code>a0tc</code></td></tr>
             <tr><td><b>Verde</b></td><td>🔼 arriba</td><td>Da paso</td></tr>
+            <tr><td><b>Rojo</b> <i>(15/09, <code>D-33</code>)</i></td><td>🔼 unos segundos y
+              luego 🔽 <b>ABAJO</b> — <b>o ARRIBA mientras una cámara del poste vea algo</b></td>
+              <td><b>Baja con retardo tras el rojo</b> (<code>PLUMA_RETARDO_BAJADA_MS</code>, en
+                <code>semaforo.cpp</code>) —se cumple con las borneras vacías—, y pasado el retardo
+                <b>cualquiera de las dos cámaras de <code>J16</code> retiene la bajada</b>. La cámara
+                <b>no la levanta nunca</b>: con la pluma ya abajo, abajo se queda. El veto es local y
+                <b>el otro poste abre su verde igual</b> (<code>SPEC_8</code> §1)</td></tr>
             <tr><td><b>En FALLO (ámbar intermitente)</b></td><td>🔼 <b>ARRIBA — y es QUERIDO</b></td>
               <td>🟢 <b>Confirmado por el responsable el 04/09.</b> Es para <b>no dejar coches
                 atrapados detrás de una pluma que ya no señaliza nada</b>. <b>NO es un descuido y no
@@ -1014,13 +1051,19 @@
       <p><b>Verde con la pluma abajo está admitido</b> —la barrera puede ser más restrictiva que la
         lámpara—; <s><b>pluma arriba sin verde, no</b>: eso sería una invitación a entrar que nadie
         autorizó</s> → <b>11/09, medido: salvo en ámbar intermitente</b>, donde sube sin verde a
-        propósito (la fila «En FALLO» de arriba). La condición entera es
+        propósito (la fila «En FALLO» de arriba) <i>— y, desde el 14/09, en el retardo tras el rojo y
+        mientras una cámara retenga la bajada (fila «Rojo»)</i>. <s>La condición entera es</s> La condición de subida es
         <code>(verde &amp;&amp; !testLedsActivo) || estado == S_FALLO</code>. <b>Y sólo <code>semaforo.cpp</code> la mueve</b>, dentro de
         <code>escribirPines()</code>: no hay un segundo <code>digitalWrite</code> en ninguna parte.
-        <b>Una barrera con dos puertas no es una barrera.</b> 🔴 <b>Ninguna cámara entra en esa
+        <b>Una barrera con dos puertas no es una barrera.</b> <s>🔴 <b>Ninguna cámara entra en esa
         condición</b>: la pluma <b>baja aunque haya un coche debajo</b>. El veto es
         <code>A-1.bis</code> y <b>no está construido</b> (11/09, D-25: tampoco con dos cámaras por
-        poste).</p>
+        poste).</s> → 🔴 <b>14/09, <code>D-33</code>: esa condición decide sólo cuándo SUBE.</b> Cuando
+        la luz deja de pedirla, <code>escribirPines()</code> mira dos cosas más, en este orden: <b>el
+        retardo</b> (la pluma sigue arriba unos segundos pase lo que pase) y <b>el veto</b> (pasado el
+        retardo, no baja mientras una cámara de <code>J16</code> vea algo). <b>Una cámara muerta desde
+        la instalación no veta nunca</b> (<code>SPEC_8</code> §1 y §4). Qué se ve en banco y cómo se
+        prueba: <b>pruebas B1 a B4 del <code>ENCARGO_BANCO_15-09</code></b>.</p>
       <p>🎯 <b>11/09 · CÓMO SE CABLEA (<code>D-25</code>):</b> <code>J15</code> <b>p1</b> = 12 V ·
         <b>p2</b> = drenador de <code>Q10</code>, <b>que NO es masa</b>: con <code>Q10</code> abierto
         está a ~12 V. Entre p1 y p2 va <b>la bobina de un relé</b>; el <b>contacto</b> de ese relé va a
@@ -1079,8 +1122,8 @@
     <div class="campo"><label for="f-lugar">Dónde se hizo</label><input type="text" id="f-lugar" placeholder="banco / taller / poste"></div>
     <div class="campo"><label for="f-multimetro">Multímetro</label><input type="text" id="f-multimetro"></div>
     <div class="campo"><label for="f-movil">Móvil y versión de la app</label><input type="text" id="f-movil" placeholder="modelo · versión o fecha del APK"></div>
-    <div class="campo"><label for="f-fw-m">Fichero cargado · Maestro</label><input type="text" id="f-fw-m" placeholder="nombre y md5"></div>
-    <div class="campo"><label for="f-fw-e">Fichero cargado · Esclavo</label><input type="text" id="f-fw-e" placeholder="nombre y md5"></div>
+    <div class="campo"><label for="f-fw-m">Fichero cargado · Maestro</label><input type="text" id="f-fw-m" placeholder="nombre y sha256 leído de vuelta"></div>
+    <div class="campo"><label for="f-fw-e">Fichero cargado · Esclavo</label><input type="text" id="f-fw-e" placeholder="nombre y sha256 leído de vuelta"></div>
   </div>
 
   <!-- El parte. Va vacio en el fichero A PROPOSITO: lo rellena el guion leyendo
@@ -1096,10 +1139,10 @@
         <tr><td><b>Pie de rey</b></td><td>Paso 1</td></tr>
         <tr><td><b>ST-LINK</b> y portátil</td><td>Paso 2</td></tr>
         <tr><td><b>Adaptador USB-TTL de 3,3 V</b></td><td>Hablar con el equipo sin el móvil</td></tr>
-        <tr><td><b>Funda termorretráctil</b></td><td>Paso 4. <b>No es opcional</b></td></tr>
-        <tr><td><b>Cables sueltos de punta fina</b> y un <b>pulsador</b></td><td>Simular entradas: pasos 19 y 21. ⚠️ <b>Nunca en <code>J16</code> p5 ni p8</b></td></tr>
+        <tr><td><s><b>Funda termorretráctil</b></s> <b>Con qué retirar el pin 1</b> del conector volante <i>(15/09)</i></td><td>Paso 4. <b>No es opcional</b>: <code>p1</code> se tapa <b>retirando el pin</b>, no con funda (<code>SPEC_5</code> §1)</td></tr>
+        <tr><td><b>Cables sueltos de punta fina</b> y un <b>pulsador</b></td><td>Simular entradas: paso 21 (<s>19</s>, retirado el 15/09). ⚠️ <b>Nunca en <code>J16</code> p5 ni p8, y nunca en <code>J14</code></b></td></tr>
         <tr><td><b>Tres puentes hembra-hembra</b> y un <b>cargador USB</b></td><td>Pasos 9 a 14</td></tr>
-        <tr><td><b>Cronómetro</b></td><td>Pasos 7, 8, 14, 19, <b>21.quin</b> y <b>40</b>.
+        <tr><td><b>Cronómetro</b></td><td>Pasos 7, 8, 14, <s>19,</s> <b>21.quin</b> y <b>40</b>.
           ⚠️ <b>El 21.quin son dos verdes seguidos de hasta 6 minutos cada uno</b>: cuenta con
           <b>~20 min</b> y no lo dejes para el final</td></tr>
         <tr><td><b>Móvil Android</b> con la app</td><td>Pasos 10 a 14 y 25 a 29</td></tr>
@@ -1153,8 +1196,11 @@
     <div class="fc">
       <p class="ft">Carga el programa nuevo en las dos tarjetas <a href="#d2">detalle</a></p>
       <p><b class="et">Haz</b> ST-LINK al conector de 4 pines <code>J2</code>. Cada fichero en su
-        tarjeta: <b>no son intercambiables</b>. <b>Comprueba el <code>md5</code></b> — el tamaño no
-        identifica nada. 🔴 <b>Antes de tocar <code>J16</code>.</b></p>
+        tarjeta: <b>no son intercambiables</b>. <b>Comprueba el <s><code>md5</code></s>
+        <code>sha256</code></b> — el tamaño no identifica nada. 🔴 <b>Antes de tocar <code>J16</code>.</b>
+        <i>(15/09: el fichero, su <code>sha256</code>, la orden de carga con su dirección y la
+        <b>lectura de vuelta de la flash</b> —que es lo que demuestra lo CARGADO, no lo compilado—
+        están en <code>ENCARGO_BANCO_15-09</code> §1 y §2, y mandan sobre la línea de aquí abajo.)</i></p>
       <p class="ver"><b class="et">Ver</b> Dice <b>escrito y verificado</b> y reinicia. Si sale
         <code>Unable to get core ID</code>, <b>reintenta sin cambiar nada</b>: es timing, no cableado.</p>
       <div class="parar" style="margin:.35rem 0 .4rem">
@@ -1171,7 +1217,7 @@
           de cableado</b> — <a href="#d2">el resto, en el detalle</a>.</p>
       </div>
       <div class="anota">
-        <p class="porque">El nombre y el <code>md5</code> van arriba, en la identificación.</p>
+        <p class="porque">El nombre y el <code>sha256</code> <i>(leído de vuelta, encargo §1.2)</i> van arriba, en la identificación.</p>
         <div class="tres">
           <label class="si"><input type="radio" name="p2" value="si"> Cargadas las dos</label>
           <label class="no"><input type="radio" name="p2" value="no"> NO cargó alguna</label>
@@ -1198,8 +1244,12 @@
       <div class="fc">
         <div class="ft">🎯 Comprueba que entró el binario NUEVO, con el multímetro y en diez segundos</div>
         <p><b>Es la prueba más barata del día y no necesita app, ni radio, ni nada enchufado.</b>
-          El programa del 04/09 cambia cómo se leen los pines del mando (<code>J16</code> p5 y p8):
+          El programa del 04/09 cambia cómo se leen los pines <s>del mando</s> <i>(libres desde el 05/09)</i> (<code>J16</code> p5 y p8):
           antes tenían el pull-up interno encendido y ahora no. <b>Eso se ve con el voltímetro.</b></p>
+        <p>⚠️ <b>15/09: lo que esta medida NO dice.</b> <b>0 V en los cuatro sólo separa «anterior al
+          04/09» de «posterior»</b>: no distingue un binario de otro posterior. <b>Qué hash hay dentro
+          lo dice la lectura de vuelta de la flash</b> (<code>ENCARGO_BANCO_15-09</code> §1.2), y es
+          esa la que decide si se sigue. Se mide <b>con el conector vacío y sin puentear nada</b>.</p>
         <p><b>HAZ:</b> equipo encendido, <code>J16</code> <b>vacío</b>, nadie tocando nada. Mide
           contra masa (<code>J16</code> p2) las cuatro posiciones de señal.</p>
         <p><b>TIENES QUE VER:</b> <b>0 V en las CUATRO</b>.</p>
@@ -1214,8 +1264,8 @@
         <table>
           <thead><tr><th>posición</th><th>qué es</th><th>antes del 04/09</th><th>ahora tiene que dar</th><th>lo que mides</th></tr></thead>
           <tbody>
-            <tr><td><b>p5</b></td><td>mando A</td><td>0,6 V</td><td><b>0 V</b></td><td><input type="text" id="a2b5" placeholder="___ V"></td></tr>
-            <tr><td><b>p8</b></td><td>mando B</td><td>0,6 V</td><td><b>0 V</b></td><td><input type="text" id="a2b8" placeholder="___ V"></td></tr>
+            <tr><td><b>p5</b></td><td><s>mando A</s> libre, no se cablea</td><td>0,6 V</td><td><b>0 V</b></td><td><input type="text" id="a2b5" placeholder="___ V"></td></tr>
+            <tr><td><b>p8</b></td><td><s>mando B</s> libre, no se cablea</td><td>0,6 V</td><td><b>0 V</b></td><td><input type="text" id="a2b8" placeholder="___ V"></td></tr>
             <tr><td><b>p10</b></td><td>cámara C</td><td>0 V</td><td><b>0 V</b></td><td><input type="text" id="a2b10" placeholder="___ V"></td></tr>
             <tr><td><b>p12</b></td><td>cámara D</td><td>0 V</td><td><b>0 V</b></td><td><input type="text" id="a2b12" placeholder="___ V"></td></tr>
           </tbody>
@@ -1227,16 +1277,18 @@
           arriba y los 10 kΩ tiran el pin a masa <b>limpio</b>. Las cámaras (p10, p12) ya estaban así,
           y por eso <b>no cambian</b>: son el control de que la medida está bien hecha.</p>
         <div class="tres">
-          <label class="si"><input type="radio" name="p2b" value="si"> Las cuatro a 0 V — el programa nuevo está dentro</label>
+          <label class="si"><input type="radio" name="p2b" value="si"> Las cuatro a 0 V — no es anterior al 04/09 (el hash lo dice la lectura de vuelta)</label>
           <label class="no"><input type="radio" name="p2b" value="no"> p5 y/o p8 siguen dando ~0,6 V</label>
           <label class="np"><input type="radio" name="p2b" value="np"> No se pudo medir</label>
         </div>
         <div class="parar" style="margin-top:.5rem">
           <b>🛑 Si p5 o p8 te dan ~0,6 V, PARA aquí</b>
           <p>No es la placa: <b>es que se cargó el binario viejo</b>. Vuelve al paso 2 y repite la
-            carga. <b>Si sigues sin el programa nuevo, no pruebes el mando</b> — con el viejo dentro
+            carga. <s><b>Si sigues sin el programa nuevo, no pruebes el mando</b> — con el viejo dentro
             los pines están clavados en «pulsado», ninguna secuencia responde, y perderás la sesión
-            diagnosticando algo que ya está diagnosticado.</p>
+            diagnosticando algo que ya está diagnosticado.</s> <i>(15/09: el mando ya no existe y no
+            se prueba.)</i> <b>Con un binario viejo dentro, no se enchufa nada en <code>J16</code></b>:
+            ese firmware puede componer secuencias con un toque en p5/p8 (<code>SPEC_5</code> §3).</p>
         </div>
         <textarea id="t2b" placeholder="¿Coinciden las cuatro? · ¿qué multímetro usaste? · si p5/p8 dan 0,6 V: ¿repetiste la carga? ¿qué pasó?"></textarea>
       </div>
@@ -1273,12 +1325,14 @@
     <div class="fn">4</div>
     <div class="fc">
       <p class="ft">Tapa el pin de 12 V de <code>J16</code></p>
-      <p><b class="et">Haz</b> Apagado, <b>tapa la posición 1</b>: funda termorretráctil, o retira el
-        pin del conector volante. Tira suave.</p>
+      <p><b class="et">Haz</b> Apagado, <b>tapa la posición 1</b>: <s>funda termorretráctil, o</s> retira el
+        pin del conector volante. Tira suave. <i>(15/09: la funda ya no vale — <code>SPEC_5</code> §1
+        documenta <b>retirar el pin</b>, porque no se puede deshacer por accidente; encargo del 15/09
+        §1.3.)</i></p>
       <p class="ver"><b class="et">Ver</b> <b>Cubierto y sin metal accesible</b>, y así queda el resto
         de la visita. 🔴 <b>No basta con «no conectar ese pin»</b>: una viruta no lee instrucciones.</p>
       <div class="anota">
-        <p class="porque">Con qué lo tapaste: <input type="text" id="a4" placeholder="funda / pin retirado / otra cosa"></p>
+        <p class="porque">Con qué lo tapaste: <input type="text" id="a4" placeholder="pin retirado / otra cosa (cuál)"></p>
         <div class="tres">
           <label class="si"><input type="radio" name="p4" value="si"> Tapado</label>
           <label class="no"><input type="radio" name="p4" value="no"> NO tapado</label>
@@ -1472,9 +1526,17 @@
       <p><b class="et">Haz</b> Con los dos enlazados, quita la alimentación de la radio del Esclavo
         —o desenrosca su antena— y arranca el cronómetro. <b>Tres veces.</b> Luego devuélvela y
         cronometra el reenganche.</p>
-      <p class="ver"><b class="et">Ver</b> <b>Entre 23 y 28 s</b> las tres veces, y <b>ÁMBAR
+      <p class="ver"><b class="et">Ver</b> <s><b>Entre 23 y 28 s</b> las tres veces, y</s> <b>ÁMBAR
         INTERMITENTE, no fijo</b>. Al devolverla <b>vuelve solo</b>, por todo-rojo, sin tocar nada.
-        <b>Alrededor de 12 s = el programa no es el nuevo</b> (paso 2). <b>Más de 30 s: para y avisa.</b></p>
+        <s><b>Alrededor de 12 s = el programa no es el nuevo</b> (paso 2). <b>Más de 30 s: para y avisa.</b></s></p>
+      <p class="porque">✏️ <b>15/09 · las cifras de tiempo de este paso ya no valen</b>, y no se
+        sustituyen aquí: con <code>D-34</code> <b>lo que se ve y cuándo depende de qué poste tenga el
+        verde al cortar</b> —un verde vivo pasa primero a <b>ROJO FIJO</b> y sólo después parpadean los
+        dos—, y las cifras son de un hash concreto. <b>El corte con verde se hace y se cronometra con
+        las pruebas A1 y A2 del <code>ENCARGO_BANCO_15-09</code></b>. Lo que se mira aquí vale en
+        cualquier firmware: <b>acaba en ámbar INTERMITENTE</b>, <b>nunca hay verde en un poste con el
+        otro parpadeando</b> (si lo hay, se para la sesión) y <b>al devolver la radio vuelve solo</b>.
+        Qué programa hay dentro no se deduce de un cronómetro: lo dice la lectura de vuelta (paso 2).</p>
       <div class="anota">
         <p class="porque">Corte 1: <input type="text" id="a8a" style="max-width:4.5rem;display:inline-block"> s
           &nbsp; 2: <input type="text" id="a8b" style="max-width:4.5rem;display:inline-block"> s
@@ -1750,16 +1812,24 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
       <p class="ft">Mira <b>cuándo BAJA</b></p>
       <p><b class="et">Haz</b> Sigue el mismo ciclo. Apunta con qué luz empieza a bajar y si baja del
         todo.</p>
-      <p class="ver"><b class="et">Ver</b> Baja <b>al terminar el verde</b> y <b>queda abajo todo el
-        rojo</b>. <b>Si se queda arriba con el semáforo en rojo, anótalo y avisa.</b></p>
+      <p class="ver"><b class="et">Ver</b> <s>Baja <b>al terminar el verde</b> y <b>queda abajo todo el
+        rojo</b>. <b>Si se queda arriba con el semáforo en rojo, anótalo y avisa.</b></s>
+        → <b>14/09, <code>D-33</code>: con <code>J16</code> vacío, la pluma sigue ARRIBA unos segundos
+        DESPUÉS del rojo y luego baja</b>, y queda abajo el resto del rojo. <b>Ese retardo es lo
+        correcto, no un fallo.</b> Con algo cerrado en <code>J16</code> p10 o p12 se queda arriba
+        mientras siga cerrado: también es lo diseñado (<code>SPEC_8</code> §1). 🔴 <b>Lo que se anota
+        y se avisa: que baje en el mismo instante del rojo</b> (el retardo no está dentro), o <b>que
+        se quede arriba en rojo con <code>J16</code> vacío</b> pasados esos segundos. El retardo con
+        cronómetro, el veto y el cartel de la app se prueban con <b>B1 a B4 del
+        <code>ENCARGO_BANCO_15-09</code></b>.</p>
       <div class="anota">
         <p class="porque">Empezó a bajar con la luz en: <input type="text" id="a16a" placeholder="ámbar / rojo / no bajó"></p>
         <div class="tres">
-          <label class="si"><input type="radio" name="p16" value="si"> Baja y queda abajo en rojo</label>
+          <label class="si"><input type="radio" name="p16" value="si"> Baja unos segundos después del rojo y queda abajo</label>
           <label class="no"><input type="radio" name="p16" value="no"> NO baja o a medias</label>
           <label class="np"><input type="radio" name="p16" value="np"> No se pudo</label>
         </div>
-        <textarea id="t16" placeholder="Qué hizo exactamente"></textarea>
+        <textarea id="t16" placeholder="Qué hizo exactamente · ¿había algo conectado en J16?"></textarea>
       </div>
     </div>
   </div>
@@ -1777,21 +1847,23 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
     —<s>a <code>J14</code></s>, cambiado el 05/09— <b>porque es el único borne donde el programa la
     VIGILA</b>. <s><code>p12</code> queda libre como segunda entrada</s> → <b>11/09, D-25: la segunda
     va a <code>p12</code></b>, y <code>J14</code> sigue vivo <s>(con el conflicto de <code>A-2</code>
-    del apartado 00)</s> → <b>11/09, D-27: LIBRE y sin cablear en campo</b> (en banco se ejerce
-    con un cable en los pasos 17 y 19, que se retira). Ver el aviso del apartado 00.</p>
-  <p class="sub"><b>Las entradas se simulan con un cable, pero no con el mismo gesto:</b> en
-    <code>J14</code> el cable va <b>entre sus dos bornes</b>; en <code>J16</code> va del pin
-    <b>a los 3,3 V</b> (p9 u p11), <b>nunca a masa</b>. Y <code>J16</code> <b>no se cablea hasta el
-    paso 20</b>.</p>
+    del apartado 00)</s> → <b>11/09, D-27: LIBRE y sin cablear en campo</b> <s>(en banco se ejerce
+    con un cable en los pasos 17 y 19, que se retira)</s> → <b>15/09: y sin cablear en banco; el
+    paso 19 se ha retirado</b>. Ver el aviso del apartado 00.</p>
+  <p class="sub"><s><b>Las entradas se simulan con un cable, pero no con el mismo gesto:</b> en
+    <code>J14</code> el cable va <b>entre sus dos bornes</b>;</s> → <b>15/09: sólo se simulan las
+    de <code>J16</code></b>: el cable va del pin <b>al 3,3 V contiguo</b> —<b>p10 contra p9, p12
+    contra p11</b> (<code>SPEC_5</code> §2.1)—, <b>nunca a masa</b>. En <code>J14</code> no se
+    conecta nada. Y <code>J16</code> <b>no se cablea hasta el paso 20</b>.</p>
   <p class="sub">🆕 <b>Y este apartado creció el 05/09: el programa que llevas VIGILA esas dos
     entradas y avisa cuando dejan de comportarse como una cámara</b> (pasos <b>21.bis</b>,
     <b>21.ter</b> y <b>21.quater</b>). <b>Vigila: no manda.</b> Los avisos <b>no mueven el cruce</b>
     — el recuadro de después del paso 21 dice exactamente qué hace y qué no.</p>
   <p class="sub">🛑 <b>«Le concede el verde» sólo puede pasar en MODO INTELIGENTE, y eso afecta a los
-    pasos 19 y 21.</b> La petición de la cámara <b>únicamente la atiende ese modo</b>: en el menú, en
+    pasos <s>19 y</s> 21.</b> La petición de la cámara <b>únicamente la atiende ese modo</b>: en el menú, en
     Automático o en Manual la entrada se lee y <b>no mueve el cruce</b>. ⚠️ <b>Esto NO lo arregla la
     carga del 04/09 y no es un descuido de ella:</b> el Automático da los verdes <b>por reloj</b>, no
-    por demanda, y eso es lo que tiene que hacer. <b>Así que estos pasos —el 19, el 21 y el 21.quin— se
+    por demanda, y eso es lo que tiene que hacer. <b>Así que estos pasos —<s>el 19,</s> el 21 y el 21.quin— se
     hacen en <code>CMD:PIN:1234:SET_MODO:INTELIGENTE</code></b>, puesto desde el MAESTRO, y se
     anota. <b>Sin ese modo, un «no responde» no acusa a la cámara ni a la placa: no hay quien
     atienda la petición</b>, y marcarlo «NO cumple» mandaría a alguien a buscar un fallo que no está
@@ -1849,37 +1921,31 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
     </div>
   </div>
 
-  <div class="fila" id="f19">
-    <div class="fn">19</div>
-    <div class="fc">
-      <p class="ft">Que el semáforo <b>responda</b> a la petición de <code>J14</code> <a href="#d31">detalle</a></p>
-      <p><b class="et">Haz</b> ✏️ <b>Con un cable o un pulsador entre los dos bornes de
-        <code>J14</code></b>. <b>Aquí ya no va la cámara</b>, pero <code>J14</code> <b>sigue vivo</b>
-        y esta es la única vez que se ejerce, así que no se salta<s>: es el borne candidato al final de
-        carrera de la barrera. 🔴 <b>11/09 · CONFLICTO ABIERTO:</b> <code>A-2</code> ya lo reservó al
-        final de carrera, y lo que este paso ejerce —<b>que <code>J14</code> pide paso</b>— es justo lo
-        que haría un final de carrera cada vez que la pluma se mueve, porque el programa lee
-        <code>PB0</code> como <code>CAM_DEMANDA_PIN</code>. Se mide y se anota; no se decide aquí.</s>.
-        → 🎯 <b>11/09, <code>D-27</code>: <code>J14</code> queda LIBRE, sin cablear, en campo</b> —el
-        fin de carrera no se instala en este despliegue—. El programa sigue leyendo <code>PB0</code>
-        como <code>CAM_DEMANDA_PIN</code>, y por eso <b>este cable es sólo de banco: se retira al
-        terminar el paso</b> y en el poste <b>no se deja nada conectado a <code>J14</code></b>.
-        Primero <b>un ciclo entero sin tocar nada</b>. Después cierra el
-        contacto con ese sentido en rojo y <b>cronometra</b>.</p>
-      <p class="ver"><b class="et">Ver</b> <b>En reposo, ninguna petición.</b> Al cerrar, ese poste
-        pide paso, el cruce hace su todo-rojo y <b>le concede el verde</b>. <b>Si pide paso sin que
-        nadie pase, para y anótalo.</b></p>
-      <div class="anota">
-        <p class="porque">¿Con qué? <input type="text" id="a19c" placeholder="cámara / cable / pulsador">
-          &nbsp; En reposo, ¿pidió solo? <input type="text" id="a19a" class="en-linea">
-          &nbsp; Al cerrar tardó <input type="text" id="a19b" class="en-linea"> s en dar verde</p>
-        <div class="tres">
-          <label class="si"><input type="radio" name="p19" value="si"> Pide y le dan paso</label>
-          <label class="no"><input type="radio" name="p19" value="no"> NO responde, o pide solo</label>
-          <label class="np"><input type="radio" name="p19" value="np"> No se pudo</label>
-        </div>
-        <textarea id="t19" placeholder="Qué hizo en reposo · qué hizo al cerrar"></textarea>
-      </div>
+  <!-- ===================================================================
+       PASO 19 RETIRADO EL 15/09. NO SE BORRA EN SILENCIO: SE DICE QUE NO VA.
+       Mandaba cerrar un cable entre los dos bornes de J14 para ver al cruce
+       conceder paso. SPEC_5 §2 (15/09): "Mientras el firmware lea PB0 como
+       CAM_DEMANDA_PIN, en J14 no se conecta NADA", y ENCARGO_BANCO_15-09 §1.4
+       lo repite para la mesa. Ese cable es una PETICION DE PASO de verdad
+       (Maestro por nivel en modoInteligente_loop(), Esclavo por flanco en
+       main.cpp -> CMD_DEMANDA): no se prueba, se ordena. Mismo molde que f29,
+       y por eso 'f19' sale de CLAVE en el guion.
+       =================================================================== -->
+  <div class="parar" id="f19">
+    <b>🛑 EL PASO 19 —«que el semáforo responda a la petición de <code>J14</code>»— SE HA RETIRADO
+      (15/09). En <code>J14</code> no se conecta NADA, tampoco en la mesa</b>
+    <p>Aquí ponía <s>«con un cable o un pulsador entre los dos bornes de <code>J14</code> […]
+      este cable es sólo de banco: se retira al terminar el paso»</s>. <b>No se hace.</b>
+      <code>SPEC_5</code> §2: <b>mientras el programa lea <code>PB0</code> como
+      <code>CAM_DEMANDA_PIN</code>, en <code>J14</code> no se conecta nada</b> —y lo sigue leyendo
+      en las dos puntas—. Un cable ahí <b>no es una medida: es una petición de paso</b> que el cruce
+      atiende. <b>Lo único que se hace con <code>J14</code> es medirlo vacío (paso 17).</b></p>
+    <p>🔴 <b>Y si encuentras un relé o cualquier hilo ya cableado a <code>J14</code>, se desconecta
+      ANTES de energizar</b>: es una entrada directa a una pata del micro, sin opto ni diodo. La
+      salida de la talanquera es <code>J15</code>.</p>
+    <div class="anota">
+      <p class="porque">¿Había algo conectado a <code>J14</code>, o llegaste a cerrar sus bornes?
+        <input type="text" id="a19z" placeholder="no / sí — qué había y qué hizo el cruce"></p>
     </div>
   </div>
 
@@ -1891,14 +1957,15 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
         los pines <b>5, 8, 10 y 12</b> contra el pin <b>2 (masa)</b> y contra el <b>4 (3,3 V)</b>.
         <b>(b) Con energía</b>, continua: esos cuatro contra masa.</p>
       <p class="ver"><b class="et">Ver</b> <b>Bien:</b> ~<b>10 kΩ a masa</b>, abierto a 3,3 V, y en
-        (b) <b>casi 0 V en los CUATRO</b> → se puede cablear. 🔴 <b>Mal:</b> abierto a masa, o 3,3 V
+        (b) <b>casi 0 V en los CUATRO</b> → se puede cablear <i>la cámara en p10 y p12 — p5 y p8 se
+        miden y NO se cablean nunca (<code>SPEC_5</code> §3)</i>. 🔴 <b>Mal:</b> abierto a masa, o 3,3 V
         en reposo → <b>NO se cablea</b>: anota y sigue. <b>Los cuatro dan igual en (a) y en (b)</b>;
         el que se salga es el hallazgo.</p>
       <p class="porque">✏️ <b>04/09 · CORREGIDO, y esto habría hecho reportar un defecto que no
         existe.</b> Aquí ponía <s>«en (b) lo normal es 5 y 8 altos, 10 y 12 casi cero, y si dieran
         los cuatro igual, eso es el hallazgo»</s>. <b>Es al revés con el firmware de este
         paquete:</b> el mando ya <b>no</b> enciende la resistencia interna hacia arriba
-        (<code>pinMode(BOTON1, INPUT)</code> pelado, <code>Maestro/src/botones.cpp:160-161</code>),
+        (<code>pinMode(BOTON1, INPUT)</code> pelado, <s><code>Maestro/src/botones.cpp:160-161</code></s> <code>botones_setup()</code> <i>(15/09: se cita el símbolo; el número de línea caducó)</i>),
         así que <b>los cuatro tienen que dar casi 0 V</b> y <b>eso es lo correcto</b>. Es
         exactamente lo que mide el <b>paso 2.bis</b>, y los dos pasos estaban <b>diciendo lo
         contrario dentro de la misma hoja</b>. <b>Si te salen 5 y 8 a ~0,6 V, no es un hallazgo: es
@@ -1908,8 +1975,8 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
           <table>
             <thead><tr><th>Pin</th><th>Ω a masa (pin 2)</th><th>Ω a 3,3 V (pin 4)</th><th>V con energía</th></tr></thead>
             <tbody>
-              <tr><td><b>5</b> mando A</td><td><input type="text" id="a20a"></td><td><input type="text" id="a20b"></td><td><input type="text" id="a20c"></td></tr>
-              <tr><td><b>8</b> mando B</td><td><input type="text" id="a20d"></td><td><input type="text" id="a20e"></td><td><input type="text" id="a20f"></td></tr>
+              <tr><td><b>5</b> <s>mando A</s> libre</td><td><input type="text" id="a20a"></td><td><input type="text" id="a20b"></td><td><input type="text" id="a20c"></td></tr>
+              <tr><td><b>8</b> <s>mando B</s> libre</td><td><input type="text" id="a20d"></td><td><input type="text" id="a20e"></td><td><input type="text" id="a20f"></td></tr>
               <tr><td><b>10</b> cámara</td><td><input type="text" id="a20g"></td><td><input type="text" id="a20h"></td><td><input type="text" id="a20i"></td></tr>
               <tr><td><b>12</b> cámara</td><td><input type="text" id="a20j"></td><td><input type="text" id="a20k"></td><td><input type="text" id="a20l"></td></tr>
             </tbody>
@@ -1930,7 +1997,8 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
     <div class="fc">
       <p class="ft">Sólo si el 20 salió bien: <b>cablear la cámara</b> a <code>J16</code> y ejercerla <a href="#d20">detalle</a></p>
       <p><b class="et">Haz</b> Apagado. <b>La salida de alarma de la cámara —o, si no la tienes, un
-        cable o un pulsador— entre el <b>pin 10</b> y los <b>3,3 V del pin 9 u 11</b></b> —<b>contra
+        cable o un pulsador— entre el <b>pin 10</b> y los <b>3,3 V del pin 9 <s>u 11</s></b></b>
+        <i>(15/09: el contiguo — p10 contra p9, p12 contra p11, <code>SPEC_5</code> §2.1)</i> —<b>contra
         3,3 V, nunca contra masa</b>—, en normalmente abierto. Comprueba que el <b>pin 1 sigue
         tapado</b>. Después repite el gesto en el <b>pin 12</b><s>, aunque ahí no vaya cámara: se ejerce
         para dejarlo medido</s> → <b>11/09, D-25: en <code>p12</code> va la cámara 2</b>, contra
@@ -1964,7 +2032,11 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
       <p class="ver"><b class="et">Ver</b> En reposo, <b>ninguna petición</b>; al cerrar, el cruce le
         da paso en pocos segundos <b>(sólo en Modo Inteligente — ver el aviso de arriba)</b>.
         <b>Y en la trama, el campo <code>CAM:</code> pasa de <code>?</code> a <code>OK</code></b> en
-        cuanto esa entrada da su primer flanco. 🔴 <b>Si el paso 20 no salió bien, este paso NO se
+        cuanto esa entrada da su primer flanco. ⚠️ <b>15/09, <code>D-33</code>: si el contacto sigue
+        cerrado cuando ese poste pasa a rojo, la pluma se queda ARRIBA mientras siga cerrado</b>, y el
+        otro poste abre su verde igual: <b>es lo diseñado, no un fallo</b> (<code>SPEC_8</code> §1;
+        se prueba en B3 del <code>ENCARGO_BANCO_15-09</code>). Lo que sí es grave es que un contacto
+        cerrado <b>levante</b> una pluma que ya estaba abajo en rojo. 🔴 <b>Si el paso 20 no salió bien, este paso NO se
         hace</b>: marca «No se cableó» con el motivo. <b>Si pide paso solo, quita el cable y
         anótalo.</b> ⚠️ <b>Y si al cerrar una vez el cruce cuenta DOS peticiones, anótalo tal
         cual</b>: estos dos pines <s>no llevan condensador y</s> se leen por flanco <i>(11/09: el netlist sí les pone <code>C28</code>/<code>C29</code>; sin medir en cobre)</i>.
@@ -2026,9 +2098,16 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
           <tr><td><code>$EVENT,ORIGEN:CAMARA,DETALLE:CAM_C_RECUPERADA</code></td>
               <td>la entrada vuelve a comportarse</td>
               <td>el aviso se cierra <b>solo</b>: no hay que rearmar nada</td></tr>
-          <tr><td><code>$EVENT,ORIGEN:CAMARA_PLUMA,DETALLE:VETO_HABRIA_ACTUADO_N:&lt;n&gt;</code></td>
-              <td>la pluma baja habiendo presencia debajo</td>
-              <td>un contador. <b>La pluma baja igual</b> — ver abajo</td></tr>
+          <tr><td><s><code>$EVENT,ORIGEN:CAMARA_PLUMA,DETALLE:VETO_HABRIA_ACTUADO_N:&lt;n&gt;</code></s>
+              → <code>$EVENT,ORIGEN:CAMARA_PLUMA,DETALLE:VETO_ACTUADO_N:&lt;n&gt;</code> <i>(15/09, D-33)</i></td>
+              <td><s>la pluma baja habiendo presencia debajo</s> → pasado el retardo tras el rojo, una
+                cámara del poste <b>retiene</b> la bajada</td>
+              <td>un contador. <s><b>La pluma baja igual</b></s> → <b>La pluma NO baja</b> mientras la
+                cámara vea algo (<code>SPEC_8</code> §1)</td></tr>
+          <tr><td><code>$EVENT,ORIGEN:CAMARA_PLUMA,DETALLE:VETO_SOSTENIDO_S:&lt;s&gt;</code> <i>(15/09)</i></td>
+              <td>la pluma lleva retenida más que el todo-rojo más largo que admite el equipo, y se repite</td>
+              <td>dice <b>cuántos segundos lleva retenida</b>, nunca «cámara averiada»; la app abre el
+                cartel de barrera retenida (<code>SPEC_8</code> §3; prueba B4 del encargo)</td></tr>
         </tbody>
       </table>
     </div>
@@ -2080,8 +2159,9 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
         nadie» se leen igual mientras nadie provoque una detección.</p>
     </div>
     <p>🛑 <b><code>ACCION:NINGUNA</code> no es un hueco de la trama: es el dato.</b> Ese campo dice
-      qué medida de seguridad vial ejecutó el equipo, y <b>esta versión no ejecuta ninguna</b>. No
-      veta, no baja la pluma, no toca una luz, no cambia un tiempo. <b>El cruce funciona exactamente
+      qué medida de seguridad vial ejecutó el equipo <i>al dar ESA alarma</i>, y <b>esta versión no ejecuta ninguna</b>. <s>No
+      veta, no baja la pluma,</s> <i>(15/09: la alarma no veta ni baja la pluma; lo que retiene la
+      pluma es la entrada de cámara cerrada, por <code>D-33</code>, con alarma o sin ella)</i> No toca una luz, no cambia un tiempo. <b>El <s>cruce</s> ciclo funciona exactamente
       igual con las dos alarmas puestas.</b> Son <b>avisos de mantenimiento</b> —«que alguien vaya a
       mirar esa cámara»—, <b>no fallos de seguridad</b>: 🔴 <b>un cruce NO se para por esto.</b></p>
     <p>🛑 <b>Y lo que <code>CAM_PEGADA</code> NO sabe distinguir, escrito en vez de disimulado:</b>
@@ -2122,8 +2202,9 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
       <div class="marco">
         <b>⏱️ Esta espera se solapa con otros pasos: no te sientes a mirarla</b>
         <p>Pon el puente, anota la hora y <b>sigue por el apartado 07</b>. Vuelve a la cinta a los
-          20 min. <b>p9 y p11 son los dos 3,3 V</b> —medidos en cobre el 03/09, paso 20— y <b>vale
-          cualquiera de los dos</b>; el paso 21 usó p11. 🔴 <b>Contra 3,3 V, NUNCA contra masa</b>,
+          20 min. <b>p9 y p11 son los dos 3,3 V</b> —medidos en cobre el 03/09, paso 20— <s>y <b>vale
+          cualquiera de los dos</b>; el paso 21 usó p11</s> <i>(15/09: se usa el contiguo, p10 contra
+          p9, como pide <code>SPEC_5</code> §2.1)</i>. 🔴 <b>Contra 3,3 V, NUNCA contra masa</b>,
           y <b>comprueba otra vez que <code>J16</code> p1 sigue tapado</b> antes de meter la mano:
           ese pin lleva <b>12 V crudos</b> a un conector de señal directa al micro.</p>
       </div>
@@ -2131,14 +2212,22 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
         <code>$ALARM …EVENTO:CAM_PEGADA,CAUSA:CAM_C_CONTACTO_FIJO,…,ACCION:NINGUNA</code>.
         <b>(c)</b> Al quitar el puente,
         <code>$EVENT,…,ORIGEN:CAMARA,DETALLE:CAM_C_RECUPERADA</code>.
-        🟢 <b>Y lo que importa tanto como la alarma: el cruce NO cambia de comportamiento</b> —ni con
+        🟢 <b>Y lo que importa tanto como la alarma: <s>el cruce NO cambia de comportamiento</s>
+        las LUCES no cambian de comportamiento</b> —ni con
         el puente puesto, ni cuando salta el aviso, ni al quitarlo—. <b>Si el semáforo hace algo
         distinto, eso SÍ es un hallazgo</b> y hay que anotarlo: esta versión no debe tocar el ciclo.
+        ⚠️ <b>15/09, <code>D-33</code>: la PLUMA sí cambia, y es lo diseñado.</b> Con el puente puesto,
+        cuando ese poste pasa a rojo la pluma <b>se queda arriba</b> mientras siga el puente; en el
+        teléfono de ese poste salen los <code>$EVENT</code> de <code>CAMARA_PLUMA</code> y, si sigue
+        retenida más que el todo-rojo más largo que admite el equipo, la app abre el cartel de barrera
+        retenida (<code>SPEC_8</code> §3). Al quitar el puente, baja. <b>Eso no se anota como fallo</b>:
+        se prueba en <b>B3 y B4 del <code>ENCARGO_BANCO_15-09</code></b>, que este paso no sustituye
+        (el encargo deja <code>CAM_PEGADA</code> para después de B4, si sobra tiempo).
         ⚠️ <b>Y si la alarma no llega, mira antes la hora que apuntaste</b>: 20 min son 20 min, y un
         «no llegó» a los 12 no acusa a nada.</p>
       <div class="anota">
         <p class="porque">Puente puesto a las <input type="text" id="a21f" class="en-linea">
-          &nbsp; ¿En qué pin cerraste? <input type="text" id="a21g" class="en-linea" placeholder="p9 / p11">
+          &nbsp; ¿En qué pin cerraste? <input type="text" id="a21g" class="en-linea" placeholder="p10-p9 / p12-p11">
           &nbsp; El <code>$ALARM</code> llegó a las <input type="text" id="a21h" class="en-linea"></p>
         <p class="porque">¿Salió el <code>RECUPERADA</code> al quitarlo?
           <input type="text" id="a21i" class="en-linea">
@@ -2198,31 +2287,30 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
   <div class="fila" id="f21d">
     <div class="fn">21<small>quater</small></div>
     <div class="fc">
-      <p class="ft">El contador <code>VETO_HABRIA_ACTUADO_N</code> · <b>el número que decide si la fase 2 se construye</b></p>
-      <p><b class="et">Haz</b> Con el <b>puente de p10 puesto</b> (el del 21.bis), haz que la
-        <b>pluma baje</b> —deja que el ciclo la baje solo, o pásalo a rojo—. Repítelo
-        <b>tres o cuatro veces</b> y apunta el valor de <code>N</code> cada vez.</p>
-      <p class="ver"><b class="et">Ver</b> Cada vez que la pluma baja con el puente puesto sale
-        <code>$EVENT,…,ORIGEN:CAMARA_PLUMA,DETALLE:VETO_HABRIA_ACTUADO_N:&lt;n&gt;</code> con
-        <b><code>N</code> subiendo de uno en uno</b>.
-        🛑 <b>Y la pluma BAJA IGUAL: esto cuenta, no impide.</b> Si la vieras quedarse arriba, eso
-        <b>sí</b> es un hallazgo — esta versión no debe tocar la pluma.
-        ⚠️ <b>La primera bajada después de encender no debe regalar un veto</b>: si al arrancar el
-        equipo, <b>sin</b> haber puesto tú el puente, ya sale un <code>N:1</code>, anótalo.</p>
-      <p class="porque">📌 <b>Para qué sirve este número, porque no es telemetría de adorno:</b> es
-        <b>cuántas veces la pluma habría bajado con alguien debajo</b> en un cruce real. Es el
-        <b>único dato</b> con el que se puede decidir si merece la pena construir la fase 2 —la que
-        de verdad vetaría esa bajada—. Hoy ese número <b>no existe</b>, y por eso se pregunta.</p>
+      <p class="ft">El contador de vetos de la pluma · <s><code>VETO_HABRIA_ACTUADO_N</code>, el número que decide si la fase 2 se construye</s> <b>la fase 2 ya está construida (D-33)</b></p>
+      <div class="parar">
+        <b>🛑 15/09 · ESTE PASO SE DIO LA VUELTA. SI LO HACES COMO ESTABA, APUNTAS LO CORRECTO COMO
+          FALLO</b>
+        <p>Aquí ponía <s>«la pluma BAJA IGUAL: esto cuenta, no impide. Si la vieras quedarse arriba,
+          eso sí es un hallazgo»</s>. <b>Desde el 14/09 (<code>D-33</code>) es al revés:</b> con el
+          puente puesto, pasado el retardo tras el rojo, <b>la pluma se queda ARRIBA</b> mientras siga
+          el puente, y el <code>$EVENT</code> se llama <code>VETO_ACTUADO_N</code>
+          (<code>SPEC_8</code> §1).</p>
+        <p><b>No se duplica aquí: el veto se prueba con B1, B2, B3 y B4 del
+          <code>ENCARGO_BANCO_15-09</code></b> —retardo sin cámara, que la cámara no levanta la pluma,
+          el veto con <code>p10</code>-<code>p9</code> y con <code>p12</code>-<code>p11</code>, y el
+          cartel de la app—. En esta hoja sólo se anota si se hizo y dónde quedó apuntado.</p>
+      </div>
       <div class="anota">
-        <p class="porque">Valores de <code>N</code> que viste, en orden:
-          <input type="text" id="a21n" placeholder="1, 2, 3…">
-          &nbsp; ¿La pluma bajó las tres/cuatro veces? <input type="text" id="a21o" class="en-linea"></p>
+        <p class="porque">¿Se hicieron B1-B4 del encargo? ¿Dónde quedó el resultado?
+          <input type="text" id="a21n" placeholder="sí, en el encargo relleno / no — motivo">
+          &nbsp; Con el puente puesto, ¿la pluma se quedó arriba tras el rojo? <input type="text" id="a21o" class="en-linea"></p>
         <div class="tres">
-          <label class="si"><input type="radio" name="p21d" value="si"> Sube de uno en uno y la pluma baja igual</label>
-          <label class="no"><input type="radio" name="p21d" value="no"> No sube, salta números, o la pluma se quedó arriba</label>
-          <label class="np"><input type="radio" name="p21d" value="np"> No se pudo</label>
+          <label class="si"><input type="radio" name="p21d" value="si"> Hechas en el encargo · la pluma quedó retenida con el puente</label>
+          <label class="no"><input type="radio" name="p21d" value="no"> La pluma bajó con el puente puesto, o una cámara la LEVANTÓ</label>
+          <label class="np"><input type="radio" name="p21d" value="np"> No se pudo / no se hizo</label>
         </div>
-        <textarea id="t21d" placeholder="Pega las líneas · si la pluma se quedó arriba, en qué momento"></textarea>
+        <textarea id="t21d" placeholder="Pega las líneas $EVENT · si la pluma bajó con el puente puesto, en qué momento"></textarea>
       </div>
     </div>
   </div>
@@ -2259,7 +2347,9 @@ SEM-SIN-MATRICULA  todavia NO ha aprendido de que poste cuelga</pre>
         <code>CMD:PIN:1234:SET_MODO:INTELIGENTE</code> desde el <b>Maestro</b>. <b>(c)</b> Con la
         cámara del paso 21 <b>cerrada de forma sostenida</b> en el poste que está en verde y
         <b>nadie pidiendo</b> en el otro, <b>cronometra ese verde de punta a punta</b>. <b>(d)</b>
-        Repite <b>sin</b> tocar la cámara.</p>
+        Repite <b>sin</b> tocar la cámara. <i>(15/09, <code>D-33</code>: con el contacto aún cerrado
+        cuando ese verde termina, la pluma de ese poste se queda arriba en rojo hasta que lo abras — es
+        lo diseñado; ábrelo al acabar el verde.)</i></p>
       <p class="ver"><b class="et">Ver</b> <b>Con tráfico en su lado y nadie enfrente: el verde
         llega a los 6 min y CORTA</b> —el doble de los 3 configurados—. <b>Sin tocar nada: el verde
         dura los 3 min de siempre.</b> 🔴 <b>Lo que es hallazgo, y hay que apuntarlo con el número:
@@ -2650,13 +2740,18 @@ EN Modo Inteligente         $ACK ... RESULT:PEDIDO_AL_MAESTRO
       <b>no hay mando que probar, no hay receptor que comprar y no hay nada que cablear en esos dos
       pines</b>.</p>
     <p>🔴 <b>Y lo que hace obligatorio decirlo en vez de borrar el paso:</b> <b>el programa SIGUE
-      LEYENDO p5 y p8</b>, a propósito y por un motivo de seguridad —de esa lectura cuelga el veto
+      LEYENDO p5 y p8</b><s>, a propósito y por un motivo de seguridad —de esa lectura cuelga el veto
       que impide que una orden de radio saque a un poste del ámbar que puso una persona—. Cada
-      toque en esos pines <b>entra en el reconocedor de secuencias</b>:</p>
+      toque en esos pines <b>entra en el reconocedor de secuencias</b>:</s>
+      → <b>15/09 (<code>SPEC_5</code> §3, medido en el fuente de las dos puntas):</b> el reconocedor
+      y la bandera de ámbar local <b>salieron del programa el 14/09</b>, y ningún veto quedó abierto.
+      Con el programa del 15/09 un toque ahí <b>no compone nada</b>. <b>Pero un equipo con firmware
+      ANTERIOR sí</b>, y desde la bornera no se ve cuál lleva:</p>
     <div class="diagrama" style="margin:.3rem 0">
-<pre>tres toques en p8   (B.B.B)     -&gt;  el poste se va a AMBAR INTERMITENTE
-tres toques en p5   (A.A.A)     -&gt;  vuelve a obedecer al Maestro
-p5 p8 p5 p8         (A.B.A.B)   -&gt;  el Poste 2 entra en MODO DEGRADADO</pre>
+<pre>CON FIRMWARE ANTERIOR AL 14/09 (SPEC_5 §3):
+tres toques en p5   (A.A.A)     -&gt;  entra en MODO AUTOMATICO sin ninguna guarda
+tres toques en p8   (B.B.B)     -&gt;  el poste se va a AMBAR
+p5 p8 p5 p8         (A.B.A.B)   -&gt;  el poste entra en MODO DEGRADADO</pre>
     </div>
     <p><b>El Modo Degradado es el único modo que da verde sin confirmar la otra punta</b>, y se sale
       de él por tres sitios muy concretos (apartado 08.quinquies). <b>Un puente «para probar» no es
@@ -2668,9 +2763,12 @@ p5 p8 p5 p8         (A.B.A.B)   -&gt;  el Poste 2 entra en MODO DEGRADADO</pre>
       ramas del experimento en la misma tabla. <b>No hay que ir a buscar esos 0,6 V:</b> lo que se
       mide hoy es el <b>paso 2.bis</b>, y ahí los cuatro pines tienen que dar <b>0 V</b>.</p>
     <p><b>Lo único que se te pide de esos dos pines es una medida con el multímetro y el conector
-      vacío</b> —pasos <b>2.bis</b> y <b>20</b>—, <b>sin puentear nada</b>. <b>Qué se pone ahí en el
-      futuro está sin decidir y es la pregunta 3.</b> <a href="#d29">Por qué el código del mando
-      sigue dentro del programa, en el detalle</a>.</p>
+      vacío</b> —pasos <b>2.bis</b> y <b>20</b>—, <b>sin puentear nada</b>. <s><b>Qué se pone ahí en el
+      futuro está sin decidir y es la pregunta 3.</b></s> → <b>15/09, <code>SPEC_5</code> §3: nada;
+      es regla de montaje, no cautela</b>. <b>Única excepción al puente: la prueba C del
+      <code>ENCARGO_BANCO_15-09</code></b>, en la mesa, con el hash leído de vuelta, y <b>nunca en el
+      equipo del Sisga</b>. <a href="#d29"><s>Por qué el código del mando sigue dentro del programa</s>
+      Qué fue del código del mando, en el detalle</a>.</p>
     <div class="anota">
       <p class="porque">¿Llegaste a puentear p5 o p8 en algún momento, aunque fuera un instante?
         <input type="text" id="a29z" placeholder="no / sí — y qué hizo el cruce"></p>
@@ -2726,7 +2824,7 @@ p5 p8 p5 p8         (A.B.A.B)   -&gt;  el Poste 2 entra en MODO DEGRADADO</pre>
       <code>$ACK</code> o el <code>$ERR</code> en la pantalla del móvil—, no cuando pulsas. <b>Y se para
       cuando la luz del otro poste cambia</b>, no cuando te das cuenta. Si no puedes ver los dos
       postes a la vez, <b>dilo</b>: el número seguirá valiendo, pero con esa reserva escrita.</p>
-    <p><b>Referencia que ya conoces: el paso 8 midió estos mismos 25 s cortando la radio.</b> Si
+    <p><b>Referencia que ya conoces: el paso 8 midió <s>estos mismos 25 s</s> <i>(15/09: el corte de radio, cuyas cifras son ahora las de A1/A2 del encargo)</i> cortando la radio.</b> Si
       aquí te sale la misma cifra, es el mismo mecanismo — el Esclavo lleva 25 s sin oír al Maestro.
       <b>Si te sale muy distinta, ESO es el hallazgo</b> y hay que replantear la causa.</p>
   </div>
@@ -3067,7 +3165,8 @@ Y para separar el arreglo de un ambar cualquiera, una cuarta:
                                                     con otra cara: anotalo.
 
 3) contesta OK        ->  🔴 El binario cargado NO es el de este paquete.
-                          Vuelve al paso 2 y comprueba el md5.</pre>
+                          Vuelve al paso 2 y comprueba el sha256
+                          LEIDO DE VUELTA (encargo 15/09 §1.2).</pre>
       </div>
       <p class="porque">⚠️ <b>Para salir del ámbar</b> hay que mandar otra orden —entrar en un modo—:
         <b>no se recupera solo</b>, igual que el rojo total.</p>
@@ -3414,7 +3513,8 @@ CON modulo de reloj conectado:
   <p class="sub">♻️ <b>Lo de la tarjeta ya está en esta hoja y no se repite aquí</b>: la medida que
     autoriza a cablear <code>J16</code> es el <b>paso 20</b>, ejercer p10 y p12 el <b>21</b>, <s>la
     la cámara (<code>J16</code> p10) el <b>21</b></s> <small>(11/09, D-25: duplicado; las dos cámaras
-    van a p10 y p12)</small> y la entrada de <code>J14</code> los <b>17 y 19</b>,
+    van a p10 y p12)</small> y la entrada de <code>J14</code> <s>los <b>17 y 19</b></s> el
+    <b>17</b>, sólo medida vacía (15/09: el 19 se retiró),
     los <b>0 V</b> de p5/p8
     &mdash;que con el programa viejo daban <b>0,6 V</b>&mdash; el <b>2.bis</b>, y <b>tapar
     <code>J16</code> p1</b> el punto 5 del recuadro de arriba y la tabla de borneras del detalle.
@@ -3676,7 +3776,7 @@ CON modulo de reloj conectado:
   <p class="sub" style="margin-top:.4rem"><b>Aquí se va la primera hora si se improvisa. En este
     orden, y no cambies piezas hasta el final.</b></p>
   <div class="diagrama">
-<pre>(a) ES EL PROGRAMA NUEVO? Comprueba el md5 (paso 2). Con uno antiguo el cableado
+<pre>(a) ES EL PROGRAMA NUEVO? Comprueba el sha256 leido de vuelta (paso 2). Con uno antiguo el cableado
     puede estar PERFECTO y no salir nada. Es lo que mas se parece a un cable malo.
 (b) LA MASA COMUN. Sin ella no hay referencia: silencio o basura. <50 mV (paso 23).
 (c) LA VELOCIDAD: 9600 las dos puntas. Su sintoma es IDENTICO al de un cable cruzado.
@@ -3692,7 +3792,7 @@ CON modulo de reloj conectado:
     montado. <b>No se recablea buscando el error: el error no está en el cable.</b></p>
   <div class="libre">
     <b>¿Hasta dónde llegaste en esta lista, y qué medías?</b>
-    <textarea id="lib7" style="min-height:3rem" placeholder="Aparece sí/no · conecta sí/no · llegan datos sí/no · md5 · masa contra masa · ¿intercambiaste los hilos? · con el USB-TTL directo, ¿llegó algo?"></textarea>
+    <textarea id="lib7" style="min-height:3rem" placeholder="Aparece sí/no · conecta sí/no · llegan datos sí/no · sha256 · masa contra masa · ¿intercambiaste los hilos? · con el USB-TTL directo, ¿llegó algo?"></textarea>
   </div>
 
   <h2><span class="n">9.bis</span> Preguntas abiertas · las que necesitan tu respuesta, no una medida</h2>
@@ -3723,34 +3823,39 @@ CON modulo de reloj conectado:
   </div>
 
   <div class="libre">
-    <b>3 · 🔴 <code>J16</code> p5 y p8 quedaron LIBRES al retirar el mando. ¿Qué se pone ahí — y
-      qué se hace con el reconocedor que sigue leyéndolos?</b>
+    <b>3 · 🔴 <code>J16</code> p5 y p8 quedaron LIBRES al retirar el mando. ¿Qué se pone ahí<s> — y
+      qué se hace con el reconocedor que sigue leyéndolos</s>? (15/09: contestada, nada)</b>
     <p>✏️ <b>Esta pregunta era otra hasta el 07/09 y se cuenta entero, porque el histórico es el
       dato.</b> Decía <s>«el mando A/B está arreglado en firmware; falta comprar el receptor y
       probarlo»</s> y pedía la referencia del receptor. <b>Ya no aplica: el hardware del mando se
       retiró del equipo</b> —el cruce se opera <b>sólo por la app</b>—, así que <b>no hay receptor
       que comprar y el paso 29 se ha retirado.</b></p>
     <p><b>Lo que queda vivo, medido y sin decidir:</b> el <b>programa sigue leyendo esos dos
-      pines</b>, y no por descuido — de esa lectura cuelga el veto que impide que una orden remota
+      pines</b>, <s>y no por descuido — de esa lectura cuelga el veto que impide que una orden remota
       saque al Poste 2 de un ámbar que puso una persona. <b>Retirar el trozo que la arma dejaría
-      ese veto abierto, no inerte.</b> Así que el código se queda y los pines se leen.</p>
-    <p>🛑 <b>Y ahí está la trampa que decide esta pregunta:</b> la idea anotada para esos dos pines
+      ese veto abierto, no inerte.</b> Así que el código se queda y los pines se leen.</s>
+      → <b>15/09 (<code>SPEC_5</code> §3): el mando y su bandera salieron del programa el 14/09 y
+      ningún veto quedó abierto</b>; lo que queda es la LECTURA, sin nada que ejecute, y quitarla
+      no está construido (<code>SPEC_1</code> §12.2).</p>
+    <p><s>🛑 <b>Y ahí está la trampa que decide esta pregunta:</b> la idea anotada para esos dos pines
       era un <b>final de carrera de la talanquera</b>. Pero <b>cada flanco entra en el reconocedor
       de secuencias del mando</b>, y <b>una pluma que sube y baja tres veces seguidas dentro de la
       ventana ES la secuencia del ámbar intermitente</b>. <b>Esto NO está medido en banco</b>; lo
-      que sí está medido es que <b>el código que lo haría está vivo y lee esos pines</b>.</p>
-    <p><b>Las tres salidas, con lo que cuesta cada una:</b></p>
+      que sí está medido es que <b>el código que lo haría está vivo y lee esos pines</b>.</s>
+      <i>(15/09: caducado con el firmware del 15/09, cierto con uno anterior al 14/09 — <code>SPEC_5</code> §3.)</i></p>
+    <p><s><b>Las tres salidas, con lo que cuesta cada una:</b></s> <i>(15/09: ya no se ofrecen; ver
+      la nota verde de abajo)</i></p>
     <div class="tabla-envoltorio" style="margin:.2rem 0 .4rem">
       <table>
         <thead><tr><th>salida</th><th>qué cuesta</th></tr></thead>
         <tbody>
           <tr><td><b>Dejarlos vacíos</b></td><td><b>Cero.</b> Es lo que hay hoy, y lo que esta hoja
             manda hacer</td></tr>
-          <tr><td><b>Final de carrera de la talanquera</b></td><td>Cierra el lazo abierto de la
+          <tr><td><s><b>Final de carrera de la talanquera</b></s></td><td><s>Cierra el lazo abierto de la
             pluma <b>y</b> puede disparar el mando. Exige <b>desarmar el reconocedor</b>, que es
-            tocar el código que la decisión dice que no se toca</td></tr>
-          <tr><td><b>Otra cosa</b> (dos pulsadores, un contacto de puerta…)</td><td>Lo mismo: <b>lo
-            que se cablee ahí compone secuencias</b> mientras el reconocedor siga vivo</td></tr>
+            tocar el código que la decisión dice que no se toca</s> → <code>D-27</code>: no se instala</td></tr>
+          <tr><td><s><b>Otra cosa</b> (dos pulsadores, un contacto de puerta…)</s></td><td><s>Lo mismo: <b>lo
+            que se cablee ahí compone secuencias</b> mientras el reconocedor siga vivo</s> → <code>SPEC_5</code> §3: nada se cablea en p5/p8</td></tr>
         </tbody>
       </table>
     </div>
@@ -3767,7 +3872,12 @@ CON modulo de reloj conectado:
       conecta nada ahí; vacío, <code>R64</code> lo deja en 0 V y no pide nada (pasos 17-18)— y
       <b>p5/p8 siguen vacíos</b> (<code>A-2</code>, 05/09). <b>La parte de <code>J14</code> de esta
       pregunta ya está contestada</b>; lo que quede de p5/p8, si algo, se escribe abajo.</p>
-    <textarea id="pa3" style="min-height:3rem" placeholder="¿se dejan vacios p5 y p8? · si va un final de carrera: ¿a J14 (con antirrebote y sin reconocedor) o a J16 p5/p8? · si va a p5/p8, ¿se autoriza desarmar el reconocedor de secuencias del mando? · ¿quien firma ese cambio?"></textarea>
+    <p>🟢 <b>15/09: la parte de p5/p8 tampoco está abierta.</b> <code>SPEC_5</code> §3: <b>nada se
+      cablea en p5 ni p8 y no se puentean «para probar»</b>, porque un equipo con firmware anterior al
+      14/09 compone secuencias con un puente, porque el programa sigue leyéndolos y porque son
+      entradas directas al micro junto a los 12 V. <b>Las «tres salidas» de arriba ya no se
+      ofrecen</b>: el reconocedor que citan no existe en el programa.</p>
+    <textarea id="pa3" style="min-height:3rem" placeholder="solo si ves algo cableado en p5/p8 de algun equipo: que habia, en que equipo y que firmware llevaba (ESTADO.md)"></textarea>
   </div>
 
   <div class="libre">
@@ -4119,7 +4229,7 @@ CON modulo de reloj conectado:
         acaso» es una pieza más que puede estar mal.</p>
     </div></details>
 
-    <details id="d20"><summary>Paso 20 · qué decide la medida, y qué dice del mando</summary><div class="dcuerpo">
+    <details id="d20"><summary>Paso 20 · qué decide la medida, y qué dice de p5/p8</summary><div class="dcuerpo">
       <p><b>Los pines 10 y 12 no llevan resistencia interna de reposo.</b> Un cable suelto o sin
         resistencia a masa <b>no queda en reposo: queda flotando</b>, y el ruido del armario hace que
         el semáforo <b>reciba peticiones de paso que nadie ha hecho</b>.</p>
@@ -4143,10 +4253,11 @@ CON modulo de reloj conectado:
         2.bis). <b>Anota los cuatro valores aunque el paso 21 no se vaya a hacer.</b></p>
       <p>🛑 <b>Y se miden CON EL CONECTOR VACÍO y sin puentear nada.</b> El paso que puenteaba p5 y
         p8 —el 29— se ha retirado: ese hardware no existe y el puente <b>compone secuencias de
-        mando en un equipo vivo</b>.</p>
+        mando en un equipo vivo</b> <i>(15/09: en un equipo con firmware anterior al 14/09 —
+        <code>SPEC_5</code> §3—; con el del 15/09 ya no, y la regla sigue)</i>.</p>
       <h4>Qué se hace con el resultado</h4>
       <p><b>Si sale bien</b>, la cámara se cablea a <code>J16</code> p10: contacto normalmente
-        abierto <b>cerrando contra 3,3 V</b> (p9 u p11), <b>nunca contra masa</b>. <b>Si sale mal</b>, se anotan los
+        abierto <b>cerrando contra 3,3 V</b> (p9 <s>u p11</s>; y p12 contra p11 — <code>SPEC_5</code> §2.1), <b>nunca contra masa</b>. <b>Si sale mal</b>, se anotan los
         números y se sigue: la solución —resistencia de 10 kΩ a masa en el conector volante, o cámara
         en contacto cerrado— <b>se decide con el dato delante, no antes</b>.</p>
     </div></details>
@@ -4271,7 +4382,23 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
         piden los dos números y no sólo el de <code>J8</code>.</p>
     </div></details>
 
-    <details id="d29"><summary>El mando de relés · por qué ya no se prueba, y por qué su código sigue dentro</summary><div class="dcuerpo">
+    <details id="d29"><summary>El mando de relés · por qué ya no se prueba, y <s>por qué su código sigue dentro</s> qué fue de su código</summary><div class="dcuerpo">
+      <div class="parar" style="margin:.2rem 0 .5rem">
+        <b>🛑 15/09 · TODO LO QUE SIGUE EN ESTE PLEGABLE ESTÁ CADUCADO, y se deja tachado por dentro para
+          que nadie lo vuelva a proponer</b>
+        <p><b>El código del mando salió entero de las dos puntas el 14/09</b> —la llamada desde
+          <code>botones_actualizar()</code> se cortó en <code>ccca294</code> y el módulo salió en
+          <code>f57a401</code>—. Ya no existen <code>mando_registrarPulso()</code>,
+          <code>mando_ambarLocal()</code> ni <code>semaforo_senalEnCurso()</code>. <b>Medido el 15/09
+          sobre los dos commits: ningún veto quedó abierto</b> —la bandera sólo se armaba desde una
+          secuencia del mando, así que valía <code>false</code> para siempre— (<code>SPEC_5</code> §3).</p>
+        <p><b>Lo que queda y manda en la bornera:</b> el programa <b>sigue leyendo</b> p5/p8
+          (<code>botonArriba()</code>/<code>botonAbajo()</code>, sin luz, pluma ni trama), y <b>un
+          equipo con firmware anterior al 14/09 sí compone secuencias con un puente</b>. Por eso
+          <b>p5 y p8 no se cablean ni se puentean</b>; única excepción, la prueba C del
+          <code>ENCARGO_BANCO_15-09</code> en la mesa.</p>
+      </div>
+      <div class="caducado-d29" style="text-decoration:line-through">
       <h4>Las dos mitades de la decisión, y hay que sostener las dos</h4>
       <p>🔴 <b>EL HARDWARE SE FUE. EL CÓDIGO SE QUEDA. Las dos cosas a la vez</b>, y son de la misma
         decisión del 05/09 —<b>el equipo se opera sólo por la app</b>—.</p>
@@ -4320,6 +4447,7 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
       <p><b>Por qué el Esclavo debe ignorar la app con el ámbar puesto:</b> es desobediencia
         deliberada. <b>Mientras un operario pidió ámbar local puede haber alguien trabajando delante
         de ese poste</b>, y una orden remota no debe sacarlo del ámbar.</p>
+      </div>
     </div></details>
 
     <details id="dcam"><summary>Pasos 39 y 40 · las cámaras Hikvision: qué decide cada respuesta, y qué sigue <code>SIN VERIFICAR</code></summary><div class="dcuerpo">
@@ -4423,7 +4551,8 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
             <tr><td><code>J14</code><br><code>PB0</code></td><td><b>Entrada de demanda</b> · pide paso</td>
               <td>Los <b>dos hilos del contacto seco</b> y nada más: uno de los bornes es 3,3 V y el
                 otro la señal. <b>No hace falta masa ni resistencias.</b> Normalmente abierto: al
-                cerrar, pide paso. <b>Se simula con un cable entre los dos bornes</b> (paso 19).
+                cerrar, pide paso. <s><b>Se simula con un cable entre los dos bornes</b> (paso 19).</s>
+                🛑 <b>15/09: NO se simula; el paso 19 se retiró</b> (<code>SPEC_5</code> §2).
                 ✏️ <b>05/09: la CÁMARA ya no va aquí</b> (<s>era la que se cablea</s>) —va a
                 <code>J16</code> p10, que es el único borne donde el programa la <b>vigila</b>—.
                 <b>Este pin NO se retira y sigue vivo</b>: <b>es la única entrada con antirrebote en
@@ -4436,16 +4565,17 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
                 → 🎯 <b>11/09, <code>D-27</code>: LIBRE, sin cablear, en campo.</b> El fin de carrera
                 no se instala en este despliegue y el programa lo lee como cámara
                 (<code>CAM_DEMANDA_PIN</code>): <b>en el poste no se conecta nada aquí</b>. Vacío,
-                <code>R64</code> lo deja en 0 V y no pide nada (pasos 17-18). El cable del paso 19 es
-                de banco y se retira</td></tr>
+                <code>R64</code> lo deja en 0 V y no pide nada (pasos 17-18). <s>El cable del paso 19 es
+                de banco y se retira</s> → <b>15/09: en banco tampoco se conecta nada</b></td></tr>
             <tr><td><code>J15</code></td><td><b>Talanquera</b></td>
               <td><s>Un borne a <b>+12 V de batería</b>, el otro a la <b>entrada de apertura</b> de la
                 centralita. Transistor de potencia hasta 10 A: <b>no hace falta relé externo</b></s>
                 → <b>11/09, D-25:</b> <b>p1 = 12 V</b> y <b>p2 = drenador de <code>Q10</code></b>
                 (<b>no es masa</b>: con <code>Q10</code> abierto está a ~12 V) <b>a la bobina de un
                 relé</b>; el <b>contacto</b> del relé va a la entrada <code>OPEN</code> de la
-                centralita. Sube con verde <b>y con el ámbar intermitente</b>; <b>ninguna cámara la
-                frena</b>. <i>(11/09, <code>D-27</code>: relé de <b>bobina 12 V DC</b>, contacto
+                centralita. Sube con verde <b>y con el ámbar intermitente</b>; <s><b>ninguna cámara la
+                frena</b></s> → <b>14/09, <code>D-33</code>: baja con retardo tras el rojo, y una
+                cámara del poste retiene la bajada</b> (<code>SPEC_8</code> §1). <i>(11/09, <code>D-27</code>: relé de <b>bobina 12 V DC</b>, contacto
                 <b>normalmente abierto</b> a <code>OPEN</code> y al común; sin módulo optoacoplado;
                 la rueda libre ya está en la placa, <code>D30</code>.)</i></td></tr>
             <tr><td><code>J12</code></td><td><b>Radio</b> entre postes</td>
@@ -4456,20 +4586,25 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
                 que es más fiable que la funda porque no se puede deshacer por accidente. Corre a un
                 milímetro de las señales de al lado</td></tr>
             <tr><td><code>J16</code> <b>p5</b> y <b>p8</b><br><code>PB9</code> <code>PB13</code></td>
-              <td><b>Mando de relés</b> · canales <b>A</b> y <b>B</b></td>
+              <td><s><b>Mando de relés</b> · canales <b>A</b> y <b>B</b></s> <b>Libres</b> — y leídos</td>
               <td>🛑 <b>NO SE CABLEAN. NO SE PUENTEAN. QUEDAN VACÍOS.</b> ✏️ Aquí ponía
                 <s>«van cableados, no se dejan vacíos de colchón»</s>: <b>eso caducó el 05/09</b>,
                 cuando <b>se retiró el hardware del mando</b> y el equipo pasó a operarse sólo por la
                 app. <b>No hay mando que conectar y no hay receptor que comprar.</b>
-                <p style="margin:.35rem 0 0">🔴 <b>Y el firmware SIGUE LEYENDO estos dos pines, a
-                propósito</b> —de esa lectura cuelga el veto que impide que una orden remota saque
+                <p style="margin:.35rem 0 0">🔴 <b>Y el firmware SIGUE LEYENDO estos dos pines</b><s>, a
+                propósito —de esa lectura cuelga el veto que impide que una orden remota saque
                 al Poste 2 de un ámbar que puso una persona; borrar lo que arma esa bandera dejaría
                 el veto <b>abierto</b>, no inerte—. <b>Consecuencia directa: cualquier cosa que
                 cierre p5 o p8 contra 3,3 V compone secuencias del mando.</b> Tres toques en p8 =
-                <b>ámbar intermitente</b>; p5·p8·p5·p8 = <b>Modo Degradado del Poste 2</b>.</p>
+                <b>ámbar intermitente</b>; p5·p8·p5·p8 = <b>Modo Degradado del Poste 2</b>.</s>
+                → <b>15/09 (<code>SPEC_5</code> §3):</b> el mando salió del programa el 14/09 y
+                ningún veto quedó abierto; con el programa del 15/09 un toque ahí no compone nada.
+                <b>Con firmware anterior, sí</b>: <code>A·A·A</code> entra en Automático sin guarda,
+                <code>B·B·B</code> pone ámbar, <code>A·B·A·B</code> mete al poste en Degradado.</p>
                 <p style="margin:.35rem 0 0"><b>Lo único que se hace aquí es MEDIR con el conector
-                vacío</b> (pasos 2.bis y 20): tienen que dar <b>0 V</b>. Qué se pone en el futuro es
-                la <b>pregunta 3</b>.</p></td></tr>
+                vacío</b> (pasos 2.bis y 20): tienen que dar <b>0 V</b>. <s>Qué se pone en el futuro es
+                la <b>pregunta 3</b>.</s> <i>(15/09: nada — <code>SPEC_5</code> §3. Única excepción al
+                puente: prueba C del <code>ENCARGO_BANCO_15-09</code>, en mesa.)</i></p></td></tr>
             <tr><td><code>J16</code> <b>p10</b><br><code>PB14</code></td>
               <td>🎯 <s><b>LA CÁMARA DE ESTE POSTE</b></s> <b>CÁMARA 1 del poste</b> (11/09, D-25) — <code>CAM_C_PIN</code></td>
               <td>✅ <b>Cableada y verificada en banco el 03/09</b>, sin demandas fantasma (paso 21).
@@ -4576,8 +4711,9 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
             <tr><td><b>El mando por radio</b></td>
               <td>🟢 <b>Ya no es un hueco: DEJÓ DE EXISTIR.</b> El hardware se retiró el 05/09 y el
                 equipo se opera sólo por la app. <s>El paso 29 ejercía las secuencias con un
-                puente</s> — <b>ese paso se ha retirado</b>. Lo que queda abierto es <b>qué se pone
-                en <code>J16</code> p5/p8</b>, y es la pregunta 3</td></tr>
+                puente</s> — <b>ese paso se ha retirado</b>. <s>Lo que queda abierto es <b>qué se pone
+                en <code>J16</code> p5/p8</b>, y es la pregunta 3</s> → <b>15/09: no queda abierto</b>;
+                su código salió del programa el 14/09 y en p5/p8 no se cablea nada (<code>SPEC_5</code> §3)</td></tr>
             <tr><td><b>Zumbador y luces de peatón</b></td>
               <td><b>No se prueban porque no hay nada que probar — y no son averías</b></td></tr>
             <tr><td><b>Con qué tiempos ARRANCA el Modo Automático</b></td>
@@ -4643,11 +4779,14 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
                 ⚠️ <b>11/09: no la prueba</b> — en 30 min no puede salir <code>CAM_CIEGA</code> ni
                 contando reloj; ver la nota del 21.ter</td></tr>
             <tr><td>🆕 <b>Si se construye la fase 2 del veto de pluma</b></td>
-              <td>🟠 <b>No se pregunta aquí, y es deliberado: el dato con el que se decide todavía
+              <td><s>🟠 <b>No se pregunta aquí, y es deliberado: el dato con el que se decide todavía
                 no existe.</b> Lo produce esta misma fase 1 —el contador
                 <code>VETO_HABRIA_ACTUADO_N</code> del <b>paso 21.quater</b>, y después el mismo
                 contador en el poste—. <b>Ofrecer hoy la elección sería pedir una decisión sobre una
-                causa sin medir</b>; lo que esta visita hace es traer el número</td></tr>
+                causa sin medir</b>; lo que esta visita hace es traer el número</s>
+                → 🟢 <b>14/09, <code>D-33</code>: decidido y construido</b> — la cámara retiene la
+                bajada (<code>SPEC_8</code> §1). <b>No ha visto una tarjeta</b>: se prueba con B1-B4 del
+                <code>ENCARGO_BANCO_15-09</code></td></tr>
             <tr><td>🆕 <b>Bajar el umbral de <code>CAM_CIEGA</code> por debajo de las 24 h</b></td>
               <td>🟠 <b>Fuera de esta visita.</b> Cuánto silencio es normal en este cruce es una
                 propiedad <b>de la carretera</b>, no del equipo, y hoy <b>no hay ni un dato</b>. Los
@@ -4765,7 +4904,10 @@ $ grep -oE '\(net [0-9]+ "Net-\(D23-K\)"\)'             Controladora_Semaforos.k
     //     ya esta en el binario.
     //   f41 es el Modo Degradado del Poste 2: se construyo el 05/09 y nadie lo ha
     //     pedido nunca en una tarjeta. Sus DOS respuestas posibles son datos.
-    var CLAVE = ['f7', 'f7b', 'f12', 'f15', 'f16', 'f19', 'f20', 'f21',
+    // 15/09: SALE 'f19'. Cerraba un cable en J14, y SPEC_5 §2 dice que ahi no se
+    //   conecta nada mientras el programa lea PB0 como peticion de paso: en su sitio
+    //   hay un .parar, igual que f29.
+    var CLAVE = ['f7', 'f7b', 'f12', 'f15', 'f16', 'f20', 'f21',
                  'f21b', 'f21c', 'f21d', 'f21e',
                  'f30', 'f31', 'f32', 'f33',
                  'f34', 'f35', 'f36', 'f37', 'f38',
