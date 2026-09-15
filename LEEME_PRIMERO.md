@@ -1,133 +1,72 @@
-# LÉEME PRIMERO — paquete del 05/09/2026, noche
+# LEEME PRIMERO — paquete de banco del 15/09/2026
 
-## 1. Qué es esto
+**Esto es un ENCARGO DE BANCO: una peticion de medida, no una version para instalar.**
 
-**Firmware Y APK.** En campo corre `V8.4`, commit `e303485`, **del 31/07/2026**. Este paquete
-es **`517531d`**, que es el commit del que sale **todo el contenido de este `.zip`**.
+## 1. Que corre en campo hoy
 
-> *(Nota mecánica, por si alguien la busca: la línea que acaba de leer se comiteó en el commit
-> siguiente —un fichero no puede contener el hash del commit que lo contiene—. El firmware, los
-> manuales y el acta de este paquete son los de `517531d` exactamente.)*
-
-> ⚠️ **La APK dice `7586c46` y el paquete `bfc8800`. No es un descuido:** se compiló sobre
-> `7586c46` y los commits siguientes **sólo tocan documentos**, verificado con
-> `git diff --name-only 7586c46..bfc8800 -- 05_Funcional/App_Semaforo/`, que sale **vacío** (corrido ahora). **El
-> nombre lleva el commit del que salió el binario, no el de cuando se empaquetó**: al revés
-> sería decir que se midió algo que no se midió.
+- La instalacion certificada es la **V8.4, commit `e303485`** (31/07/2026).
+- El **Maestro del Sisga** (`SERIE:179DB0`) corrio el 10/09 con **V9 `SIN_BANCO`**: se cargo `7ff7d12` y
+  despues se probo `b354fe9`. Cual quedo dentro no consta. El firmware del Esclavo del Sisga, SIN VERIFICAR.
+- **Este paquete no es nada de eso.** Es el firmware del commit **`226ae26`**, candidato a primer estable.
 
 ## 2. ¿Ha pasado banco? **NO.**
 
-Con esas palabras. La compuerta sale **20 PASS · 0 FALLA · 0 ABORTADO** y el banco por packs
-**1161/1180 en 76 packs**. Eso dice que *los modelos y los arneses de PC no encuentran nada*.
-**No dice que el firmware funcione en la tarjeta.**
+Nada de lo construido desde el 05/09 ha visto una tarjeta. **No se instala en ningun equipo de campo, no se
+carga en el equipo del Sisga y el sufijo `SIN_BANCO` no se quita.** Lo quita quien lo pruebe en un equipo.
 
-> 🔴 **Y esta noche hay una prueba concreta de ello, que conviene leer entera:** durante horas la
-> compuerta estuvo en `19 PASS · 1 FALLA`, **y ese `FALLA` era el hallazgo más útil del día** — el
-> Modo Inteligente podía cortar un verde a los 15 s, por debajo del mínimo vial de 3 minutos. Se
-> ha ido porque **se arregló el firmware**, no porque nadie mire.
+## 3. ALTO — lo que hay que hacer ANTES de enchufar nada
 
-**Nada de este paquete ha tocado una tarjeta.** En concreto: `camara_estado()` **nunca se ha
-ejercido con cobre en `J16`**, y ningún banco ha visto una alarma `CIEGA` ni `PEGADA` de verdad.
+1. **Cargar por SWD con `mode=UR` y `-e all`.** Si falla, se reintenta; no se cambia el modo.
+2. **Verificar el hash de lo CARGADO**: `sha256sum` del fichero antes, y de la flash leida de vuelta despues.
+   Tienen que coincidir con los de §6. Nunca por el tamano.
+3. **`J16` p1 lleva 12 V crudos directos al micro: se retira el pin del conector volante.** Siempre.
+4. **`J14` es una ENTRADA del micro: ahi no se conecta nada.** La talanquera va en `J15`.
+5. **`J16` p5 y p8 no se cablean ni se puentean.** Solo la prueba C del encargo, en la mesa, y **nunca en el
+   equipo del Sisga**.
+6. Camaras de prueba: `p10` contra `p9`, `p12` contra `p11`. Nunca contra masa.
+7. Ninguna radio se energiza sin su antena.
 
-## 3. 🛑 Lo que hay que hacer ANTES de enchufar nada
+## 4. Lo que sigue abierto, antes de las novedades
 
-**El firmware nuevo tiene que estar CARGADO Y VERIFICADO en la tarjeta antes de que nadie
-conecte una cámara a `J16`.** No es «el mismo commit»: **un commit no protege de un
-destornillador**. Con el firmware viejo dentro, lo que se enchufe en `J16` p10 puede pulsar
-*Aceptar* en un equipo que está en la calle.
+- La compuerta (`evidencia/2026-09-15_compuerta.txt`) da **18 PASS · 1 FALLA · 0 ABORTADO**. El FALLA es
+  correcto: acusa a `D-22` (el cristal `Y1`), decidida y sin construir. En el banco `Y1` no se toca.
+- **El caso exacto de `D-34` —la orden de verde llega y su acuse no vuelve— no se puede reproducir con dos
+  radios en una mesa.** El encargo lo dice y pide lo que si se puede medir.
+- **El puente ESP32 tambien se carga, en los dos postes**: sin el de este commit la hora no llega al STM32 y dos
+  pruebas no se pueden hacer.
+- **Un verde de la compuerta no dice que el firmware funcione en la tarjeta.** Por eso existe el encargo.
 
-**Y `J16` p1 lleva 12 V CRUDOS** — sin opto, sin resistencia, sin clamp, directo al micro.
-**Taparlo es obligatorio en cada equipo que se monte**, no una cautela de banco.
+## 5. Que trae, por lo que puede herir
 
-## 4. 🎯 Qué probar con esta carga
+- **`D-34`**: el verde de un poste ya no sobrevive al ambar intermitente del otro cuando se cae la radio. El
+  poste 2 suelta su verde antes de su silencio y lo avisa; el poste 1 no le entrega el verde al poste 2 sin
+  haberlo oido en el ultimo latido.
+- **`D-33`**: la pluma baja unos segundos despues del rojo, y cualquier camara del poste retiene la bajada
+  mientras vea algo. Si la retencion se alarga, la app abre un cartel de **barrera retenida**.
+- **El mando esta fuera del firmware**: un puente en `J16` p5/p8 ya no compone secuencias **con este
+  firmware**. Con el viejo, si. Por eso esos bornes siguen sin cablearse.
+- **El cristal que arranca y no cuenta**: el equipo deja de creerse una sincronizacion que no puede fechar.
+- **La app**: traduce el aviso de barrera retenida.
 
-| | qué hacer | resultado bueno |
-|---|---|---|
-| **La cámara mueve el cruce** | cerrar `J16` p10 contra p9 (3,3 V) con el equipo en **Modo Inteligente** | el verde de ese lado **se mantiene** mientras haya detecciones, hasta el doble del tiempo configurado |
-| **Y NO lo acorta** | configurar 3 min y pedir paso desde la cámara enseguida | **no cambia antes de los 3 min**. Antes cortaba a los **15 s** |
-| **Sin cámaras se porta como el Automático** | dejar `J16` desconectado y correr en Inteligente | ciclo normal con los tiempos configurados. **Si esto falla, para y avisa** |
-| **El pin vacío NO alarma** | con **una sola** cámara conectada, esperar | **no puede salir `CAM_CIEGA` del pin vacío**. Si sale, es un defecto |
-| **La cámara pegada sí alarma** | puentear p10 y dejarlo **20 min** | llega `$ALARM … CAM_PEGADA`. Quitar el puente → `CAM_C_RECUPERADA` |
-| **El Degradado del poste 2** | desde la app, pedir Modo Degradado **en el Esclavo** | entra, **o dice por qué no** con uno de sus seis motivos. Y **se ve en la pantalla de la app** |
-| **La hora** | consultar reloj de maestro, esclavo y celular | los tres, y el desfase entre ellos |
+## 6. Que hay dentro, y que documento se ejecuta
 
-**Los pasos con sus casillas están en la Guía de Cableado y Pruebas de Banco**, que se rellena y
-**se devuelve en PDF**. Ese PDF es el formulario de vuelta: lo que no salga en él, no se contesta.
+**El documento que se ejecuta es `05_Funcional/ENCARGO_BANCO_15-09.md`.** Tiene las pruebas, los huecos que
+se rellenan y como se devuelve. Este LEEME no sustituye a ninguna de sus casillas.
 
-## 5. 🛑 Avisos, para que nadie reporte un defecto que no existe
+- Paquete: `Paquete_Banco_2026-09-15_226ae26_SIN_BANCO.zip`
+- Maestro: `Maestro_2026-09-15_226ae26_SIN_BANCO.bin` · 41644 B · sha256
+  `19dc60559f2a9b2b5fbf66b6847aa41b5eaf48401d4fd3533a0cbb56f1031f72`
+- Esclavo: `Esclavo_2026-09-15_226ae26_SIN_BANCO.bin` · 36408 B · sha256
+  `39dd40ca28216e0317a2ff95d50ce5f2ca62862c062ad2569d4300c705cb6c99`
+- App: `IOT_VIAL_Semaforos_2026-09-15_226ae26_SIN_BANCO.apk` · 4.019.775 B · sha256
+  `6afaa466d7f3334d2020830b3d73062307f5ec06f502bf642fdc0b4cd6ca3b1e`. Se verifica ESTE fichero: una
+  recompilacion del mismo commit en otro PC puede dar otro sha256.
+- Puente ESP32: `ESP32_Expansion_2026-09-15_226ae26_SIN_BANCO.bin` · 1130096 B · sha256
+  `171ceb3cf5c1db897c34a9cb0c04456cd509e79a0cb0c1198e886b90d5534437`
+- Los `.bin` van dentro porque lo que se mide es ESE binario: los tres se compilaron desde cero dos veces con el
+  mismo sha256. El fuente para PlatformIO va al lado, para revisar.
+- El acta de la compuerta.
 
-**`CAM: ?` («SIN COMPROBAR») es lo normal hasta la primera detección.** No es un fallo: **un pin
-que nunca ha dado una señal no se vigila**, a propósito. Por eso **el paso de instalación en que
-el instalador provoca una detección DEJA DE SER OPCIONAL** — es lo que arma el vigilante y lo que
-hace que `CAM:` pueda decir `OK`.
-
-**Las alarmas de cámara llevan `ACCION:NINGUNA`, y eso es un dato, no un hueco.** El cruce
-funciona **exactamente igual** con las dos alarmas puestas: son avisos de mantenimiento, no
-fallos de seguridad. **No se para un cruce por esto.**
-
-**`CAM_PEGADA` no sabe distinguir un relé trabado de un vehículo parado veinte minutos debajo de
-la pluma.** Las dos cosas piden que alguien vaya a mirar; por eso la causa dice `CONTACTO_FIJO`
-y no «avería».
-
-**`BAT:--` sigue siendo correcto.** La batería no se mide: no hay divisor ni entrada analógica.
-
-## 5.bis 🔴 Un arreglo de esta última hora, y hay que saberlo
-
-**El diálogo del Modo Degradado decía *«Para salir: VOLVER AL MENÚ»*, y esa orden SÓLO LA
-ATIENDE EL POSTE 1.** La frase se escribió cuando ese modo era sólo del Maestro; al abrirlo al
-Poste 2 se quedó. **Un operario que la siguiera no podía sacar al Poste 2 del modo.**
-
-Corregido. **Las tres salidas reales del Poste 2 son:** que vuelva el enlace con el Poste 1 ·
-**ÁMBAR EMERGENCIA**, la única que el operario tiene en la mano · o que venzan las **48 h**.
-
-> **Y esto no lo encontró ningún instrumento**: lo encontró quien fue a escribir el manual, al
-> intentar explicar el botón. Ningún pack lee el texto de un diálogo contra el enrutado por
-> punta.
-
-## 6. Qué cambió en la app, que es mucho
-
-**223 líneas.** Tarjeta nueva de **cámaras** (`OK` / `SIN COMPROBAR` / `CIEGA` / `PEGADA`),
-**Modo Degradado del poste 2** con su botón y sus seis motivos de rechazo, **consulta de reloj**
-de las dos puntas y del teléfono, y el **modo real del poste 2** en la trama, que antes era un
-texto fijo.
-
-⚠️ **La APK anterior queda obsoleta.** La de este paquete es
-`IOT_VIAL_Semaforos_2026-09-05_7586c46_SIN_BANCO.apk`, y su contenido está verificado **entrada
-por entrada y por CRC** contra el repositorio: **0 nombres distintos, 0 CRC distintos**.
-
-## 7. 🔴 Lo que sigue abierto
-
-**El manual del «doble» NO EXISTE, y es una condición del responsable.** El Modo Inteligente
-puede alargar una fase hasta **el doble** del tiempo configurado, y eso se aprobó *«**si** un
-funcional revisa el manual y este manual de uso es claro»*. **Ese manual está sin escribir.**
-Un verde que unas veces dura 3 minutos y otras 6 **parece una avería desde la acera**.
-
-**El `$ALARM` no cabe en su peor caso** — medido: 158 caracteres contra 143 en el Maestro, 171 en
-el Esclavo. Es **anterior** a este paquete y no se ha arreglado. Una trama truncada **no da un
-dato malo**: no casa el CRC y la app la descarta entera.
-
-**Tras un reinicio, la vigilancia de silencio queda desarmada** hasta la primera detección: una
-cámara que muera en el mismo corte que reinicia al equipo **no se anuncia**.
-
-**El `botones.cpp` del Esclavo no se compila en ningún arnés.** Lo que sostiene su corrección es
-que su bloque es **idéntico byte a byte** al del Maestro — y eso **no es lo mismo que ejecutarlo**.
-
-**El ESP32 se reinicia por tensión** (`EVT:ARRANQUE,CAUSA:SUBIDA_DE_TENSION`). Es el `LM2596`,
-no el firmware.
-
-## 8. Qué hay dentro
-
-| | |
-|---|---|
-| `ACTA_verificacion.txt` | la corrida: fecha, `HEAD`, toolchain |
-| `IOT_VIAL_Semaforos_2026-09-05_7586c46_SIN_BANCO.apk` | la app, verificada por CRC contra el fuente |
-| `01_Firmware/` | **fuente** para PlatformIO. Sin binarios: se compilan del código que se revisa |
-| `02_Manuales/` | manuales y la guía de banco, **con sus cabeceras de estado** |
-
-**Los manuales que llevan aviso salen CON el aviso, o no salen.** Varios describen cosas que
-**no se deben hacer todavía**, y ese aviso es la parte útil del documento.
-
-## 9. Carga por SWD
-
-`mode=UR` con `-e all`, y no se cambia. Si falla, **reintenta**: enganchar es cuestión de
-*timing*. `HOTPLUG` con un firmware que se cuelga al arrancar deja `failed to erase memory`.
+**Nota mecanica.** Este LEEME se comitea despues de `226ae26`: un fichero no puede contener el hash de su
+propio commit. El firmware es el de `226ae26`, y se comprueba con
+`git diff --name-only 226ae26..HEAD -- 01_Firmware`, que tiene que salir **vacio**.
