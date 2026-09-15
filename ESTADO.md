@@ -53,16 +53,16 @@
 >
 > **LO QUE ESPERA AL RESPONSABLE, hoy:**
 >
-> - **El umbral de «demasiadas falsas alarmas»** a partir del cual la app pide ajuste de cámara.
->   El firmware **no puede darlo**: no distingue un veto verdadero de uno falso —los dos son un
->   contacto cerrado— y lo único derivable honestamente es *cuántos vetos sobreviven al despeje*.
+> - ~~**El umbral de «demasiadas falsas alarmas»**~~ → **YA NO ESPERA: decidido el 14/09, basta UNA**
+>   (`SPEC_8` §3), y la app lo traduce desde `f57a401`. *(Se le volvió a preguntar el 15/09 por
+>   leer esta línea: por eso se tacha.)*
 > - **El modo administrador que saque una barrera de la lógica** desde la app, poste a poste
->   (decidido el 14/09, sin construir). Antes hay que **medir** si persiste tras un corte y qué
+>   (decidido el 14/09, sin construir; **FUERA del primer estable**, `roadmap` §0 tabla E). Antes hay que **medir** si persiste tras un corte y qué
 >   pasa si se retira con la pluma abajo — probablemente sea fila propia (`roadmap` 1.41).
 > - **La sesión de banco y la cinta del Sisga**, que es lo único que no destraba nadie escribiendo.
 >
-> ⚠️ **LO QUE SIGUE ABIERTO Y PUEDE HERIR**, sin adornos: la ventana que no cierra nadie
-> (`roadmap` **1.39**) y **cuatro de los seis modos de fallo que el veto crea** (`roadmap`
+> ⚠️ **LO QUE SIGUE ABIERTO Y PUEDE HERIR**, sin adornos: ~~la ventana que no cierra nadie (`roadmap` **1.39**)~~ → cerrada en el fuente
+> por `D-34` el 15/09, sin banco, y **cuatro de los seis modos de fallo que el veto crea** (`roadmap`
 > **1.42**) — entre ellos que el firmware **no distingue una presencia sostenida real de una
 > cámara mal apuntada**, y que **los últimos metros de la bajada no los ve nadie**: no hay fin de
 > carrera, y **está sin preguntar al fabricante** si la centralita trae fotocélula o borde sensible.
@@ -474,9 +474,9 @@ lo comprueban `documentos_01`, `documentos_04` y `documentos_05` en cada corrida
 
 | | |
 |---|---|
-| Flash | Maestro **62.9 %** (**41228** de 65536 B → **24.308 B libres**) · Esclavo **54.9 %** (35976 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
-| Banco por packs | 🔴 **1407/1408 comprobaciones** en **79 packs** — 78 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando a **`D-22`**, la única decisión vigente sin ancla en el firmware — y no se construye con teclado: **necesita una tarjeta delante**. Las que este rojo contaba antes ya salieron de la lista: `D-23` y `D-33` están **construidas**, `D-14` **no se instala** (la cámara graba el evento sola en su microSD, 12/09) y `D-30` quedó **recortada** al retirarse el LCD (`D-32` (1)). 🔴 **Que esta cuenta suba no dice que el banco se degrade: dice que se está decidiendo más rápido de lo que se construye, y se arregla con teclado, no tocando el instrumento** |
-| Arneses que compilan C++ real | ~~287/287 pantalla~~ *(retirado con el LCD, `D-32` (1))* · **74/74** automático · 22/22 ciclo · **111/111 dos puntas** · **53/53 Degradado a dos puntas** |
+| Flash | Maestro **63.1 %** (**41328** de 65536 B → **24.208 B libres**) · Esclavo **55.1 %** (36092 B) · Repetidor **20.6 %** · ESP32 **35.7 %** |
+| Banco por packs | 🔴 **1409/1410 comprobaciones** en **79 packs** — 78 PASS, **1 FALLA**. 🔴 **Y el rojo es CORRECTO, no es una regresión:** es `decisiones_01_anclas` acusando a **`D-22`**, la única decisión vigente sin ancla en el firmware — y no se construye con teclado: **necesita una tarjeta delante**. Las que este rojo contaba antes ya salieron de la lista: `D-23` y `D-33` están **construidas**, `D-14` **no se instala** (la cámara graba el evento sola en su microSD, 12/09) y `D-30` quedó **recortada** al retirarse el LCD (`D-32` (1)). 🔴 **Que esta cuenta suba no dice que el banco se degrade: dice que se está decidiendo más rápido de lo que se construye, y se arregla con teclado, no tocando el instrumento** |
+| Arneses que compilan C++ real | ~~287/287 pantalla~~ *(retirado con el LCD, `D-32` (1))* · **74/74** automático · 22/22 ciclo · **120/120 dos puntas** · **53/53 Degradado a dos puntas** |
 | Puente ESP32 | **101/101** |
 | App | **302/302** jsdom · **70/70** funcional · **63/63** unitarios · **75/75** TDD |
 
