@@ -122,7 +122,16 @@ LATIDO_S = _leer_constante_cpp(
 
 TIMEOUT_ACK_S = _leer_constante_cpp(
     _ruta_firmware("Maestro", "src", "coordinador.cpp"),
-    r"TIMEOUT_ACK_MS\s*=\s*(\d+)", 8000) / 1000.0
+    r"TIMEOUT_ACK_MS\s*=\s*(\d+)", 8000, obligatorio=True) / 1000.0
+
+# D-34 (15/09): el Maestro no entrega el primer GO_GREEN sin un PONG de menos de LATIDO_MS,
+# y coordinador.cpp lo sujeta con static_assert(LATIDO_MS < TIMEOUT_ACK_MS). La desigualdad
+# se RECALCULA aqui desde las dos constantes leidas (CLAUDE.md 4): si deja de cumplirse,
+# el firmware no compila y este modelo tampoco debe seguir midiendo.
+if not LATIDO_S < TIMEOUT_ACK_S:
+    print(f"\n   ❌ ABORTADO: LATIDO_MS ({LATIDO_S}s) no es menor que TIMEOUT_ACK_MS "
+          f"({TIMEOUT_ACK_S}s): la guarda de D-34 en C_ESPERA_ESTATICO_TRAS_MASTER no vale.")
+    sys.exit(2)
 
 # SFTY-17: retardo de cortesia del Esclavo antes de contestar, para que la radio
 # intermedia del repetidor alcance a volver de transmision a recepcion.
@@ -484,7 +493,12 @@ class SemafaroMaestro:
                 self.estado_c = "C_IDLE"
 
         elif self.estado_c == "C_ESPERA_ESTATICO_TRAS_MASTER":
-            if current_time - self.t_ref >= self.tiempo_despeje_s:
+            # D-34: literal de coordinador.cpp -"millis() - tRef >= tiempoDespejeMs &&
+            # tUltimaRxEsclavo > 0 && millis() - tUltimaRxEsclavo <= LATIDO_MS"-. El primer
+            # GO_GREEN no sale sin algo oido del Esclavo hace menos de un latido.
+            if (current_time - self.t_ref >= self.tiempo_despeje_s
+                    and self.t_ultima_rx_esclavo > 0
+                    and current_time - self.t_ultima_rx_esclavo <= LATIDO_S):
                 self.t_esperando_ack = current_time
                 self.retry_count = 0
                 self.estado_c = "C_ESPERANDO_ACK_GREEN"
@@ -494,8 +508,12 @@ class SemafaroMaestro:
             if current_time - self.t_esperando_ack > self.timeout_ack_s:
                 self.retry_count += 1
                 if self.retry_count >= 5:
+                    # D-34: aqui se ponia luz_local = "S_FALLO" en el acto, y el firmware no
+                    # lo hace: coordinador.cpp solo pone estadoC = C_FALLO (alarma
+                    # CAMBIO_A_ROJO). Esta rama solo corre con comunicacion, asi que en la
+                    # vuelta siguiente SFTY-9 -arriba- lleva la luz a ROJO. El ambar solo lo
+                    # pone el case C_FALLO de abajo si SFTY-9 no lo recoge.
                     self.estado_c = "C_FALLO"
-                    self.luz_local = "S_FALLO"
                 else:
                     tx_bytes += self.enviar_paquete(RF_Packet.CMD_GO_GREEN)
                     self.t_esperando_ack = current_time
@@ -522,12 +540,25 @@ class SemafaroMaestro:
                 self.quien_verde = "QV_MASTER"
                 self.estado_c = "C_IDLE"
 
+        elif self.estado_c == "C_FALLO":
+            # Literal del "case C_FALLO" de coordinador.cpp: la luz de fallo la pone el
+            # switch, no la rama que decide C_FALLO. Hace falta desde D-34 (ver arriba).
+            if self.luz_local != "S_FALLO":
+                self.luz_local = "S_FALLO"
+
         return tx_bytes
 
 # ==========================================
 # 4. MÁQUINA DE ESTADOS C++ NODO ESCLAVO
 # ==========================================
 class SemaforoEsclavo:
+    # D-34 (15/09), LO QUE ESTE ESCLAVO NO MODELA, dicho para que no se lea como exacto: la
+    # repeticion del GO_GREEN que no refresca el silencio, la suelta del verde
+    # AVISO_AMBAR_TIMEOUT_MS antes de SFTY6_SILENCIO_MS, el param PONG_VERDE_SOLTADO, y la
+    # reanudacion del Maestro al oirlo. Ninguna prueba de este fichero corta un solo
+    # sentido del enlace ni deja un verde del Esclavo sin ordenes tanto tiempo, asi que
+    # copiarlo aqui seria una copia sin ejercer. Lo mide sobre el C++ REAL de las dos
+    # puntas Validacion_Automatico/dos_puntas (G12, G13, G14).
     def __init__(self):
         self.luz_local = "S_ROJO"
         self.t_ultimo_comando = 0.0

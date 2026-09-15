@@ -370,11 +370,14 @@ static void vigilarEnclavamiento() {
 // haya salido una alarma con su causa.
 char g_ultimaAlarmaEvento[48] = "";
 char g_ultimaAlarmaCausa[48]  = "";
+// D-34 (15/09): la ACCION tambien se guarda. La alarma de reintentos agotados decia
+// CAMBIO_A_AMBAR con la luz yendose a ROJO, y este stub la tiraba: la mentira pasaba entera.
+char g_ultimaAlarmaAccion[48] = "";
 int  g_alarmasEmitidas = 0;
 void bluetooth_reportarAlarma(const char* evento, const char* causa, const char* accion) {
-  (void)accion;
   std::snprintf(g_ultimaAlarmaEvento, sizeof(g_ultimaAlarmaEvento), "%s", evento);
   std::snprintf(g_ultimaAlarmaCausa,  sizeof(g_ultimaAlarmaCausa),  "%s", causa);
+  std::snprintf(g_ultimaAlarmaAccion, sizeof(g_ultimaAlarmaAccion), "%s", accion);
   g_alarmasEmitidas++;
 }
 // El $EVENT del vigilante tambien se guarda: los "CAMARA_RECUPERADA" y los
@@ -533,8 +536,13 @@ static unsigned long g_ultimaEntregaMs = 0;
 void protocolo_setup() {}
 void protocolo_resetReplayProtection() {}
 
+// D-34: cuantos GO_RED ha puesto el Maestro en el aire. Se cuenta ANTES de mirar si el
+// Esclavo contesta: lo que se mide es la orden emitida, no su acuse.
+static unsigned long g_goRedEmitidos = 0;
+
 void protocolo_enviarPaquete(uint8_t cmd, uint8_t param) {
   (void)param;
+  if (cmd == CMD_GO_RED) g_goRedEmitidos++;
   if (g_modoEsclavo == ESC_MUDO) return;  // orfandad real: nadie contesta nada
 
   RF_Packet resp = { 0, 0, 0, 0 };
@@ -1067,17 +1075,57 @@ int main() {
     // dejaba ninguno: el tecnico veia una luz ambar y ni fecha ni causa. Se exige la
     // CAUSA concreta -distinguir "se agotaron los reintentos" de "silencio total" es
     // la diferencia entre un enlace que se degrada y uno que se corta-.
+    //
+    // D-34 (15/09): ESTA LINEA AFIRMABA DOS COSAS, Y EL TEXTO CELEBRABA LA MENTIRA (CLAUDE.md 9).
+    // (1) la causa REINTENTOS_AGOTADOS -> SE CONSERVA. (2) "al caer a ambar" -> SE INVIERTE:
+    // el firmware decia CAMBIO_A_AMBAR y la luz iba a ROJO, porque esta rama solo corre con
+    // enlace y SFTY-9 la recoge en la vuelta siguiente. Se exige ahora la ACCION que publica,
+    // y la luz que de verdad hace se mide en la linea nueva de debajo, sobre los pines.
     comprobar(g_alarmasEmitidas > 0 &&
               std::strcmp(g_ultimaAlarmaEvento, "FALLO_RF") == 0 &&
-              std::strcmp(g_ultimaAlarmaCausa, "REINTENTOS_AGOTADOS") == 0,
-              "al caer a ambar por reintentos agotados, la Caja Negra emitio "
-              "FALLO_RF/REINTENTOS_AGOTADOS -sin esto el tecnico ve la luz y no sabe "
-              "si el enlace se degrado o se corto (N-73)-");
+              std::strcmp(g_ultimaAlarmaCausa, "REINTENTOS_AGOTADOS") == 0 &&
+              std::strcmp(g_ultimaAlarmaAccion, "CAMBIO_A_ROJO") == 0,
+              "agotados los reintentos del GO_GREEN, la Caja Negra emitio "
+              "FALLO_RF/REINTENTOS_AGOTADOS con la accion CAMBIO_A_ROJO -la causa distingue "
+              "un enlace que se degrada de uno que se corta (N-73); la accion dice la luz que "
+              "de verdad queda (D-34)-");
 
     comprobar(coordinador_comunicacionPerdida(),
               "CONTROL NEGATIVO: agotados los reintentos sin la respuesta correcta, "
-              "el Maestro cae a C_FALLO (estado seguro) en vez de quedarse esperando "
-              "para siempre");
+              "el Maestro pasa por C_FALLO en vez de quedarse esperando para siempre");
+
+    // D-34: Y LA ACCION TIENE QUE SER VERDAD. Desde el tick de C_FALLO se sigue bombeando
+    // una ventana y se exige: la luz del Maestro NUNCA en S_FALLO (ni un tick de ambar), al
+    // final en S_ROJO, el coordinador fuera de C_FALLO, y al menos un GO_RED emitido
+    // (SFTY-9 vuelve a pedir el rojo del otro poste).
+    //
+    // EL BORDE, Y POR QUE ES ESE (CLAUDE.md 7): TIMEOUT_ACK_MS, leido del C++. Cubre la
+    // vuelta siguiente -donde SFTY-9 tiene que recoger C_FALLO- y un reintento entero del
+    // GO_RED si su acuse faltara. Y tiene que acabar ANTES del despeje que sigue al ACK_RED,
+    // o el amarillo legitimo de la transicion a verde propio acusaria al firmware: esa
+    // desigualdad se recalcula aqui y, si no se cumple, se ABORTA en vez de medir otra cosa.
+    if (!(SEG_ESTATICO_MS > (unsigned long)TIMEOUT_ACK_MS + g_latenciaEsclavoMs + 200UL))
+      abortar("la ventana de D-34 (TIMEOUT_ACK_MS) no cabe dentro del despeje por defecto: "
+              "el amarillo del verde propio se confundiria con el ambar que se busca");
+    const unsigned long goRedAntes = g_goRedEmitidos;
+    bool vioAmbarFallo = (semaforo_estado() == S_FALLO);
+    for (unsigned long w = 0; w < (unsigned long)TIMEOUT_ACK_MS; w += 200) {
+      arnes_millis_valor += 200;
+      modoAutomatico_loop();
+      vigilarEnclavamiento();
+      if (semaforo_estado() == S_FALLO) vioAmbarFallo = true;
+    }
+    const std::string queRojo =
+        "D-34: agotados los reintentos CON enlace, la luz del Maestro va a ROJO y no a ambar: "
+        "en " + std::to_string(TIMEOUT_ACK_MS) + " ms (TIMEOUT_ACK_MS) ni un tick en S_FALLO "
+        "(visto=" + std::to_string(vioAmbarFallo) + "), acaba en S_ROJO (" +
+        std::to_string(semaforo_estado() == S_ROJO) + "), fuera de C_FALLO (" +
+        std::to_string(!coordinador_comunicacionPerdida()) + ") y con " +
+        std::to_string(g_goRedEmitidos - goRedAntes) + " GO_RED emitidos -lo que dice "
+        "CAMBIO_A_ROJO es lo que hace-";
+    comprobar(!vioAmbarFallo && semaforo_estado() == S_ROJO &&
+              !coordinador_comunicacionPerdida() && g_goRedEmitidos > goRedAntes,
+              queRojo.c_str());
   }
 
   // ===========================================================================
