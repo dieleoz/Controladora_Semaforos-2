@@ -234,6 +234,16 @@ DETALLE:RX:<n> OK:<n> RUIDO:<n>` cada `DIAG_ENLACE_MS`, con su propio reloj y **
 Los cuatro campos fijos siguen fijos: **el dato nuevo no va en el `$STATUS`, va en el Diario.** La PANTALLA sigue
 abierta: §7.3.
 
+🟢 **EN LOS DOS POSTES, LA APP DESTACA EL AVISO DE BARRERA RETENIDA, y no se puede perder con el scroll.** Un solo
+`$EVENT` de `ORIGEN:CAMARA_PLUMA` con `DETALLE:VETO_SOSTENIDO_S:` abre un cartel propio
+—`js/aviso_camara_pluma.js`, primer hijo de `.app-container`— que vive **fuera de la bitacora y fuera de las
+pestanas**, publica los segundos que el equipo mide y manda a **mirar debajo del brazo antes de tocar la camara**;
+las repeticiones lo refrescan sin gastar una linea de registro, y el `VETO_ACTUADO_N` del flanco se traduce como lo
+normal que es, sin cartel. **No afirma «camara averiada»**: el equipo no ve imagen y no separa un vehiculo parado de
+un mal apunte (`D-12`), asi que publica la medida y el juicio queda en quien esta delante del poste. Solo un
+`PLUMA:ABAJO` del `$STATUS` le cambia el titulo —el cartel **no se retira solo**, porque lo que la dejo arriba sigue
+sin revisarse— y el enlace caido lo borra, que es de un poste.
+
 ---
 
 ## 7. HUECOS MEDIDOS
@@ -301,16 +311,8 @@ rompe el arnes del puente, que pulsa antes del primer `$STATUS`.
 del puente, porque el otro no existe, **pero la trama no lo dice**. Residual declarado en
 `sellarHoraSiFaltaba()`; su cierre es de SPEC 3.
 
-✅ **9 · La app destaca el aviso de barrera retenida, y ya no se puede perder con el scroll.** Un solo
-`$EVENT` de `ORIGEN:CAMARA_PLUMA` con `DETALLE:VETO_SOSTENIDO_S:` abre un cartel propio
-—`js/aviso_camara_pluma.js`, primer hijo de `.app-container`— que vive **fuera de la bitacora de 30
-entradas y fuera de las cinco pestanas**, publica los segundos que el equipo mide y manda a **mirar
-debajo del brazo antes de tocar la camara**; las repeticiones lo refrescan sin gastar una linea de
-registro, y el `VETO_ACTUADO_N` del flanco se traduce como lo normal que es, sin cartel. **No afirma
-«camara averiada»**: el equipo no ve imagen y no separa un vehiculo parado de un mal apunte (`D-12`),
-asi que publica la medida y el juicio queda en quien esta delante del poste. Solo un `PLUMA:ABAJO` del
-`$STATUS` le cambia el titulo —el cartel **no se retira solo**, porque lo que la dejo arriba sigue sin
-revisarse— y el enlace caido lo borra, que es de un poste.
+🟢 **9 · CERRADO — construido en `f57a401`.** Ya no es cola de trabajo: lo que la app HACE con el aviso de
+barrera retenida esta descrito en §6. El numero se queda para que las citas de fuera no queden cojas.
 
 🟡 **10 · Los dos interruptores de administrador no existen, y su estado NO CABE en la trama de hoy.**
 Decididos el 14/09 (SPEC 5 §4.1), y se llaman **los dos interruptores de administrador**: *sacar la

@@ -458,8 +458,12 @@ CUATRO_DEL_14 = (
     ("SPEC_5, retirada en 96a30e5",
      "\"El veto de la pluma es A-1.bis: ABIERTO Y SIN CONSTRUIR\" -- construido",
      "A-1.bis es un ancla de decision, no un simbolo de C/JS (eso es decisiones_01)"),
-    ("app / SPEC_4",
-     "\"la app pide ajuste de camara\" -- app.js no trata ese aviso",
+    # La cuarta NO se retiro: se CUMPLIO construyendo. El 14/09 era falsa -app.js no
+    # trataba el aviso- y desde f57a401 lo traduce js/aviso_camara_pluma.js. Se queda
+    # en la lista porque lo que publica es la ceguera del pack, y esa sigue: si la app
+    # volviera a tirar el aviso, este pack seguiria en verde.
+    ("D-33 y SPEC_4 hueco 9, cumplida construyendo en f57a401",
+     "\"la app pide ajuste de camara\" -- el 14/09 app.js no trataba ese aviso",
      "PROMETE una conducta sin nombrar simbolo"),
 )
 
