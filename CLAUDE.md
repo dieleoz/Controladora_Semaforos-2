@@ -517,3 +517,25 @@ cerrando el editor de `.md`.
 mecanica: **`git mv` a `99_Legacy/` los deja SEGUIDOS en la ruta nueva** —fuerza el `.gitignore`— y el
 repositorio sigue cargando los bytes, que es lo contrario de jubilar. Se mueve en disco y se registra la
 **BAJA**: el indice tiene que salir con lineas `D`, nunca `R`.
+
+## 17. Un ABORTADO del worktree no es una medida, y una fila del roadmap no es una causa
+
+**Dos cosas que en una tanda con agentes en paralelo se cuelan solas, y las dos hacen tomar por medido lo que no lo esta.**
+
+1. 🔴 **UN WORKTREE DE AGENTE NO TIENE `node_modules`, asi que su compuerta ABORTA dos filas** —«app ejecutada
+   en DOM» y «simulador del puente ESP32»— **y el puente es justo el arnes que compila `coordinador.cpp` real.**
+   Un agente honesto lo reporta como esperado; el error es del orquestador si lo acepta como cobertura. **La
+   compuerta que AUTORIZA el commit se corre en el arbol principal, con el arbol quieto, y ahi esas filas no
+   abortan.** No se crean junctions a `node_modules` para taparlo (§11: un `worktree remove --force` sigue el
+   enlace y borra el original).
+2. 🔴 **UNA FILA DEL ROADMAP QUE NOMBRA EL MECANISMO ES UNA HIPOTESIS, NO UNA CAUSA — y el 15/09 fallo DOS
+   veces en la misma sesion**: 1.39 culpaba a los reintentos agotados cuando el hueco lo abrian las ANCLAS del
+   silencio, y 1.49(b) apuntaba al Maestro cuando el defecto estaba en el ESCLAVO. Las dos se escribieron
+   derivando de las constantes, sin ejercer. **Antes de construir contra una fila se re-mide el mecanismo en un
+   arnes que ejecute las dos puntas; si cae, se marca REFUTADO dentro de la fila** (§7.4) **y el orden por dano
+   se rehace con la medida** —lo que estaba enterrado como nota puede ser lo peor de la lista—.
+
+> ⚠️ **Y lo que ordena el trabajo con eso: MEDIR ES BARATO Y CONSTRUIR SOBRE UNA FILA MALA CUESTA EL DOBLE**,
+> porque el arreglo hay que deshacerlo y el instrumento que lo vigila nace midiendo otra cosa. **El agente que
+> mide va antes que el que escribe y NO toca el arbol** (§11.2); su veredicto se guarda en el scratchpad y el
+> que construye lo lleva delante.

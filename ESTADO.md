@@ -51,6 +51,12 @@
 > se cierra con teclado: necesita una tarjeta delante**. Las que este rojo contaba antes ya
 > salieron: `D-23` y `D-33` están construidas, `D-14` no se instala y `D-30` quedó recortada.
 >
+> 🚚 **15/09 — ENVIADO AL FUNCIONAL: `ca2de3d`.** Es el primer paquete que sale con la ventana ambar-contra-verde
+> cerrada en las dos puntas (`D-34`) y con los tres defectos de `1.49` arreglados: la camara pidiendo paso ya no
+> sostiene el silencio del Maestro, el cristal parado ya no deja reanudar el Degradado y `REINICIAR_RELOJ` no dice
+> OK sin comprobarlo. Compuerta **18 PASS / 1 FALLA (`D-22`) / 0 ABORTADO**, banco 1416/1417, flash 64.0 % y 55.3 %.
+> **Se retiran sin mandarse `226ae26` y `622a20b`** (`roadmap` E5). **Nada de esto ha visto una tarjeta todavia.**
+>
 > **LO QUE ESPERA AL RESPONSABLE, hoy:**
 >
 > - ~~**El umbral de «demasiadas falsas alarmas»**~~ → **YA NO ESPERA: decidido el 14/09, basta UNA**
