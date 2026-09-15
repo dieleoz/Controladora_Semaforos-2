@@ -242,7 +242,7 @@ falle la de arriba es adorno.
 
 ## 10. Flash, RAM y cotas de buffer
 
-64 KB por micro, y **el Maestro esta por encima del 85 %: ya no queda margen comodo.** La cifra exacta sale de la
+64 KB por micro, y **el margen del Maestro se mira en el acta antes de estimar un coste — no se recita.** La cifra exacta sale de la
 ultima acta (`ls -t evidencia/*_compuerta.txt | head -1`) y **no se copia aqui**: un umbral no caduca, una cifra si.
 
 - **Antes de sacrificar una funcion porque «no cabe», MIDE DE QUE ESTA HECHO ese porcentaje** (`N-70`): **por

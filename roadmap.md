@@ -116,9 +116,10 @@ python 01_Firmware/Simulaciones/banco/correr.py   # solo los packs. Sirve para i
 > | | que | quien lo destraba | estado |
 > |---|---|---|---|
 > | **E1** | medir la ventana 1.39 y elegir el arreglo | teclado (medida, solo lectura) | 🟢 **medida** (15/09): existe, hasta **23,15 s** en el arnes de dos puntas; el mecanismo real esta en la fila 1.39 |
-> | **E2** | construir el arreglo de 1.39 con su pack de dos luces | teclado (firmware) | 🛑 **espera al responsable**: la direccion (V2+M3) y el umbral de M3, fila 1.39 |
-> | **E3** | las negaciones falsas de la spec (`SPEC_0`, `SPEC_7`, `SPEC_8` §1 y §3; `SPEC_6` ya estaba bien) | teclado (spec) | 🟢 integrado, sin comitear |
-> | **E4** | retirar `modoAutomatico_pedirArranqueDirecto()` (1.48 c) | teclado (firmware) | 🟢 integrado, sin comitear |
+> | **E2** | construir el arreglo de 1.39 con su pack de dos luces | teclado (firmware) | 🟡 **en curso** (15/09): el responsable DELEGA la direccion y el umbral de M3 en un revisor independiente (*«si necesitas definir algo preguntale a fable»*); su veredicto va a `DECISIONES.md` en dos lineas, y despues se construye. Incluye la alarma `CAMBIO_A_AMBAR` que sale con la luz en rojo |
+> | **E2b** | el bloque H como fila del arnes de dos puntas: **ambar contra verde = 0 ms**; tiene que FALLAR en HEAD | teclado (instrumento: contesta 1.39, ya se vio fallar) | 🟡 en curso |
+> | **E3** | las negaciones falsas de la spec (`SPEC_0`, `SPEC_7`, `SPEC_8` §1 y §3; `SPEC_6` ya estaba bien) | teclado (spec) | 🟢 `b89c4d1` · resto: `SPEC_4` hueco 9 y `spec_01_no_promete`, en curso |
+> | **E4** | retirar `modoAutomatico_pedirArranqueDirecto()` (1.48 c) | teclado (firmware) | 🟢 `2447815` |
 > | **E5** | **CONGELAR**: compuerta completa x2, binarios `SIN_BANCO` con `sha256sum`, guia de banco | orquestador | espera E2-E4 |
 > | **E6** | **sesion de banco con dos tarjetas** sobre ESE hash | responsable / funcional | espera E5 |
 > | **E7** | carga verificada en el equipo del Sisga y su cinta, incluida la del Esclavo | campo | espera E6 |
