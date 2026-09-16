@@ -10,6 +10,13 @@
 
 ## 🔴 Lo que este README no puede decirte, y es lo primero
 
+> ▶️ **16/09/2026 — SE ESPERAN LAS TRAMAS DEL FUNCIONAL.** Se le mando
+> `Paquete_Banco_2026-09-16_1889631_SIN_BANCO.zip`. **Por donde se retoma, y que hay que
+> preguntarle a esas tramas ANTES de leerlas, esta en el punto de continuacion de
+> [`ESTADO.md`](ESTADO.md)** — empieza pidiendo la version del firmware, que desde hoy el
+> equipo sabe contestar.
+
+
 **La instalación certificada es `e303485` (V8.4, 31/07/2026).** Lo de debajo llegó a una mesa
 el 3-4/09 y la noche del 04/09 —banco con dos tarjetas; la última cinta, 05/09 22:19, sobre
 `42a52cd`— y 🔴 **el 10/09 llegó por primera vez a una calle: un Maestro (`SERIE:179DB0`)

@@ -1,5 +1,42 @@
 # ESTADO — dónde está parado el trabajo HOY (14/09/2026)
 
+> ## ▶️ PUNTO DE CONTINUACION — 16/09/2026, Y ES POR AQUI POR DONDE SE RETOMA
+>
+> 🚦 **SE ESPERAN LAS TRAMAS DEL FUNCIONAL.** Se le mando
+> **`Paquete_Banco_2026-09-16_1889631_SIN_BANCO.zip`** (sha256 `59643817`) con la APK
+> `IOT_VIAL_Semaforos_2026-09-16_1889631_SIN_BANCO.apk` (`1e2080d4`). Compuerta **18 PASS /
+> 1 FALLA / 0 ABORTADO**, banco **1459/1460 en 80 packs** —el rojo es `D-22` y **necesita una
+> tarjeta delante**, no se cierra con teclado—.
+>
+> **LO PRIMERO QUE HAY QUE HACER CON ESAS TRAMAS, en este orden:**
+>
+> 1. 🔴 **Pedir la version ANTES de leer nada** (boton *Consultar version del firmware*).
+>    Si contesta `SIN_SELLAR` con `FW:--`, el binario se compilo desde el `.zip` —ahi no hay
+>    `git`— y entonces **el hash es `1889631` por declaracion, no por medida**. Sin eso, la foto
+>    no se lee (`CLAUDE.md` §0.2).
+> 2. 🔴 **Repetir las tres que el 16/09 NO quedaron medidas**, porque cayeron dentro de una
+>    ventana sin enlace y **no dicen nada del firmware** (§1): `SET_MODO:INTELIGENTE`,
+>    `AMBAR_EMERGENCIA` y `REINICIAR_RELOJ` + `CONSULTA RELOJ`. Comprobando antes que entra
+>    `$STATUS`. El fuente los tiene habilitados: solo se rechazan desde `DEGRADADO`.
+> 3. ⚠️ **Leer el RESUMEN del diario buscando `ESCRITAS SIN ENLACE`.** Es nuevo (1.50): esas
+>    ordenes se escribieron a un cable muerto y **no son un rechazo del equipo**. El 16/09 hubo
+>    **24**, seis de ellas `FORZAR_ROJO`.
+> 4. ⚠️ **La cinta se recorta a 300 tramas y el 16/09 tiro 483.** Si la sesion es larga, exportar
+>    por tramos o subir el tope antes de empezar.
+>
+> **DOS COSAS QUE NO SE PUEDEN ACHACAR AL FIRMWARE:**
+>
+> - 🔴 **El `Y2` de 32,768 kHz del Maestro `179DB0` NO OSCILA** —`ON:1 RDY:0 BYP:0 SEL:0
+>   EN:0 CNT:--`—. Es **soldadura** (`C-6`). Cualquier fallo de hora en ESA tarjeta es esto, y
+>   `1.49b3` funciono: el equipo lo rotula bien en vez de culpar a la radio.
+> - ⚠️ **Los «17 segundos del Esclavo» no existen en el firmware** (`grep 17000` = cero). Son
+>   **21,5 s** para soltar el verde (`SFTY6_SILENCIO_MS - AVISO_AMBAR_TIMEOUT_MS`) y **25 s** para
+>   el ambar. Quien cronometre vera esos. Pendiente de decision del responsable.
+>
+> **Y LA REGLA DE TRABAJO MIENTRAS HAYA PRUEBAS FUNCIONALES EN MARCHA:** firmware, app,
+> compilar, verificar, empaquetar. El roadmap se cierra al final y en dos lineas; **ningun `.md`
+> nuevo**, y lo que haya que pedirle al funcional va en el `.html` que le da un PDF.
+
 > ## ▶️ PUNTO DE CONTINUACIÓN — 14/09/2026
 >
 > 🔴 **LO QUE CAMBIO HOY Y MANDA SOBRE TODO LO DEMAS: LA SPEC PASA A SER LA AUTORIDAD.**
